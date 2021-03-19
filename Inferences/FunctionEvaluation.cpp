@@ -10,35 +10,34 @@
 
 template<Interpretation i>
 struct FunctionEvaluator; 
-// {
-//   static Option<PolyNf> simplify(PolyNf* evalArgs) 
-//   { return Option<PolyNf>(); }
-// };
 
 template<class Number>
-Option<PolyNf> trySimplifyUnaryMinus(PolyNf* evalArgs)
+MaybeOverflow<Option<PolyNf>> trySimplifyUnaryMinus(MaybeOverflow<PolyNf>* evalArgs)
 {
   CALL("trySimplifyUnaryMinus(PolyNf*)")
   using Numeral = typename Number::ConstantType;
   using Polynom = Polynom<Number>;
 
-  auto out = Polynom(*evalArgs[0].template wrapPoly<Number>());
+  auto overflow = evalArgs[0].overflowOccurred;
+  auto out = Polynom(*evalArgs[0].value.template wrapPoly<Number>());
 
   for (unsigned i = 0; i < out.nSummands(); i++) {
      out.summandAt(i).numeral = out.summandAt(i).numeral * Numeral(-1);
   }
-  return some<PolyNf>(PolyNf(AnyPoly(perfect(std::move(out)))));
+
+  return maybeOverflow(some<PolyNf>(PolyNf(AnyPoly(perfect(std::move(out))))), overflow);
 }
 
 template<class Number, class Clsr>
-Option<PolyNf> trySimplifyConst2(PolyNf* evalArgs, Clsr f) 
+MaybeOverflow<Option<PolyNf>> trySimplifyConst2(MaybeOverflow<PolyNf>* evalArgs, Clsr f) 
 {
-  auto lhs = evalArgs[0].template tryNumeral<Number>();
-  auto rhs = evalArgs[1].template tryNumeral<Number>();
+  auto lhs = evalArgs[0].value.template tryNumeral<Number>();
+  auto rhs = evalArgs[1].value.template tryNumeral<Number>();
+  auto overflow =  evalArgs[0].overflowOccurred || evalArgs[1].overflowOccurred;
   if (lhs.isSome() && rhs.isSome()) {
-    return some<PolyNf>(PolyNf(AnyPoly(perfect(Polynom<Number>(f(lhs.unwrap(), rhs.unwrap()))))));
+    return maybeOverflow(some<PolyNf>(PolyNf(AnyPoly(perfect(Polynom<Number>(f(lhs.unwrap(), rhs.unwrap())))))), overflow);
   } else {
-    return none<PolyNf>();
+    return maybeOverflow(none<PolyNf>(), overflow);
   }
 }
 
@@ -46,33 +45,38 @@ Option<PolyNf> trySimplifyConst2(PolyNf* evalArgs, Clsr f)
 // INT_QUOTIENT_X & INT_REMAINDER_X
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+
 template<class Number, class NumEval>
-Option<PolyNf> trySimplifyQuotient(PolyNf* evalArgs, NumEval f) 
+MaybeOverflow<Option<PolyNf>> trySimplifyQuotient(MaybeOverflow<PolyNf>* evalArgs, NumEval f) 
 {
   using Numeral = typename Number::ConstantType;
-  auto lhs = evalArgs[0].template tryNumeral<Number>();
-  auto rhs = evalArgs[1].template tryNumeral<Number>();
-  if (rhs.isSome() && rhs.unwrap() == Numeral(1)) {
-    return some<PolyNf>(evalArgs[0]);
-  } else if (lhs.isSome() && rhs.isSome()) {
-    return some<PolyNf>(PolyNf(AnyPoly(perfect(Polynom<Number>(f(lhs.unwrap(), rhs.unwrap()))))));
-  } else {
-    return none<PolyNf>();
-  }
+  auto lhs = evalArgs[0].value.template tryNumeral<Number>();
+  auto rhs = evalArgs[1].value.template tryNumeral<Number>();
+  auto overflow =  evalArgs[0].overflowOccurred || evalArgs[1].overflowOccurred;
+  auto out = rhs.isSome() && rhs.unwrap() == Numeral(1) ? 
+                   some<PolyNf>(evalArgs[0].value)
+           : lhs.isSome() && rhs.isSome()  ? 
+                   some<PolyNf>(PolyNf(AnyPoly(perfect(Polynom<Number>(f(lhs.unwrap(), rhs.unwrap())))))) 
+           : none<PolyNf>();
+  return maybeOverflow(out, overflow);
 }
 
 template<class Number, class NumEval>
-Option<PolyNf> trySimplifyRemainder(PolyNf* evalArgs, NumEval f) 
+MaybeOverflow<Option<PolyNf>> trySimplifyRemainder(MaybeOverflow<PolyNf>* evalArgs, NumEval f) 
 {
   using Numeral = typename Number::ConstantType;
-  auto lhs = evalArgs[0].template tryNumeral<Number>();
-  auto rhs = evalArgs[1].template tryNumeral<Number>();
+  auto lhs = evalArgs[0].value.template tryNumeral<Number>();
+  auto rhs = evalArgs[1].value.template tryNumeral<Number>();
   if (rhs.isSome() && rhs.unwrap() == Numeral(1)) {
-    return some<PolyNf>(PolyNf(AnyPoly(perfect(Polynom<Number>(Numeral(0))))));
+    return maybeOverflow(
+              some<PolyNf>(PolyNf(AnyPoly(perfect(Polynom<Number>(Numeral(0)))))), 
+              /* overflowed termsr not being used. overflow = */ false);
   } else if (lhs.isSome() && rhs.isSome()) {
-    return some<PolyNf>(PolyNf(AnyPoly(perfect(Polynom<Number>(f(lhs.unwrap(), rhs.unwrap()))))));
+    return catchOverflow(
+              [&]() {return some(PolyNf(AnyPoly(perfect(Polynom<Number>(f(lhs.unwrap(), rhs.unwrap())))))); },
+              none<PolyNf>());
   } else {
-    return none<PolyNf>();
+    return maybeOverflow(none<PolyNf>(), evalArgs[0].overflowOccurred || evalArgs[1].overflowOccurred);   
   }
 }
 
@@ -80,7 +84,7 @@ Option<PolyNf> trySimplifyRemainder(PolyNf* evalArgs, NumEval f)
   template<>                                                                                                  \
   struct FunctionEvaluator<Interpretation::INT_QUOTIENT_ ## X>                                                \
   {                                                                                                           \
-    static Option<PolyNf> simplify(PolyNf* evalArgs)                                                          \
+    static MaybeOverflow<Option<PolyNf>> simplify(MaybeOverflow<PolyNf>* evalArgs)                            \
     { return trySimplifyQuotient<IntTraits>(evalArgs,                                                         \
         [](IntegerConstantType lhs, IntegerConstantType rhs)                                                  \
         { return lhs.quotient ## X(rhs); });                                                                  \
@@ -90,7 +94,7 @@ Option<PolyNf> trySimplifyRemainder(PolyNf* evalArgs, NumEval f)
   template<>                                                                                                  \
   struct FunctionEvaluator<Interpretation::INT_REMAINDER_ ## X>                                               \
   {                                                                                                           \
-    static Option<PolyNf> simplify(PolyNf* evalArgs)                                                          \
+    static MaybeOverflow<Option<PolyNf>> simplify(MaybeOverflow<PolyNf>* evalArgs)                            \
     { return trySimplifyRemainder<IntTraits>(evalArgs,                                                        \
         [](IntegerConstantType lhs, IntegerConstantType rhs)                                                  \
         { return lhs.remainder ## X(rhs); });                                                                 \
@@ -108,15 +112,17 @@ IMPL_QUOTIENT_REMAINDER(E)
   template<>                                                                                                  \
   struct FunctionEvaluator<NumTraits::divI>                                                                   \
   {                                                                                                           \
-    static Option<PolyNf> simplify(PolyNf* evalArgs)                                                          \
+    static MaybeOverflow<Option<PolyNf>> simplify(MaybeOverflow<PolyNf>* evalArgs)                            \
     {                                                                                                         \
       using Numeral = typename NumTraits::ConstantType;                                                       \
-      auto lhs = evalArgs[0].tryNumeral<NumTraits>();                                                         \
-      auto rhs = evalArgs[1].tryNumeral<NumTraits>();                                                         \
+      auto lhs = evalArgs[0].value.tryNumeral<NumTraits>();                                                   \
+      auto rhs = evalArgs[1].value.tryNumeral<NumTraits>();                                                   \
       if (lhs.isSome() && rhs.isSome() && rhs.unwrap() != Numeral(0)) {                                       \
-        return Option<PolyNf>(PolyNf(AnyPoly(perfect(Polynom<NumTraits>(lhs.unwrap() / rhs.unwrap())))));     \
+        return catchOverflow(                                                                                 \
+            [&](){ return some(PolyNf(AnyPoly(perfect(Polynom<NumTraits>(lhs.unwrap() / rhs.unwrap()))))); }, \
+            none<PolyNf>());                                                                                  \
       } else {                                                                                                \
-        return Option<PolyNf>();                                                                              \
+        return maybeOverflow(none<PolyNf>(), evalArgs[0].overflowOccurred || evalArgs[1].overflowOccurred);   \
       }                                                                                                       \
     }                                                                                                         \
   };                                                                                                          \

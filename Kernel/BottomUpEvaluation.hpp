@@ -53,7 +53,7 @@ namespace Memo {
     Hashed() : _memo(decltype(_memo)()) {}
 
     template<class Init> Result getOrInit(Arg const& orig, Init init) 
-    { return _memo.getOrInit(Arg(orig), init); }
+    { return Result(_memo.getOrInit(Arg(orig), init)); }
 
     Option<Result> get(const Arg& orig) 
     { 

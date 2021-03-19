@@ -42,6 +42,7 @@
 #include "Indexing/TermIndexingStructure.hpp"
 
 #define DEBUG(...) //DBG(__VA_ARGS__)
+#define DEBUG_IDX(...) //DBG(__VA_ARGS__)
 
 using Kernel::InequalityLiteral;
 namespace Indexing {
@@ -54,24 +55,24 @@ bool InequalityResolutionIndex::handleLiteral(Literal* lit, Clause* c, bool addi
   auto norm_ = this->normalizer().normalize<NumTraits>(lit);
   if (norm_.isSome()) {
     if (norm_.unwrap().overflowOccurred) {
-      DEBUG("skipping overflown literal: ", norm_.unwrap().value)
+      DEBUG_IDX("skipping overflown literal: ", norm_.unwrap().value)
       env.statistics->irOverflowNorm++;
       /* we skip it */
 
     } else {
       auto norm = std::move(norm_).unwrap().value;
 
-      DEBUG("literal: ", norm);
+      DEBUG_IDX("literal: ", norm);
       for (auto monom : norm.term().iterSummands()) {
         // if (!monom.tryNumeral().isSome()) { // TODO shall we skip this?
         if (!monom.factors->tryVar().isSome()) { // TODO shall we not skip this?
 
           auto term = monom.factors->denormalize();
           if (adding) {
-            DEBUG("\tinserting: ", term);
+            DEBUG_IDX("\tinserting: ", term);
             _is->insert(term, lit, c);
           } else {
-            DEBUG("\tremoving: ", term);
+            DEBUG_IDX("\tremoving: ", term);
             _is->remove(term, lit, c);
           }
         }
@@ -354,13 +355,13 @@ ClauseIterator InequalityResolution::generateClauses(Clause* cl1, Literal* liter
                       return Option<Clause*>();
                     }
 
-                    bool overflow = false;
-                    auto resolventLit = InequalityLiteral(perfect(PolynomialEvaluation::simplifySummation(resolventSum, overflow)), strictness);
-                    //   ^^^^^^^^^^^^--> k1 * rest1 + k2 * rest2 >= 0
-                    if (overflow) { 
+                    auto sum = PolynomialEvaluation::simplifySummation(resolventSum);
+                    if (sum.overflowOccurred) {
                       env.statistics->irOverflowApply++;
                       return Option<Clause*>(); 
                     }
+                    auto resolventLit = InequalityLiteral(perfect(sum.value), strictness);
+                    //   ^^^^^^^^^^^^--> k1 * rest1 + k2 * rest2 >= 0
 
                     Inference inf(GeneratingInference2(Kernel::InferenceRule::INEQUALITY_RESOLUTION, cl1, cl2));
                     auto size = cl1->size() + cl2->size() - 1 + (res.constraints ? res.constraints->size() : 0);

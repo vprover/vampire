@@ -116,60 +116,65 @@ Option<LitSimplResult> PolynomialEvaluation::tryEvalPredicate(Literal* orig, Pol
 
 #include "Inferences/FunctionEvaluation.cpp"
 
-Option<PolyNf> trySimplify(Theory::Interpretation i, PolyNf* evalArgs) 
+
+bool anyOverflow(MaybeOverflow<PolyNf>* polys, unsigned cnt) 
+{ 
+  for (unsigned i = 0; i < cnt; i++) 
+    if (polys[i].overflowOccurred) 
+      return true;  
+
+  return false;
+}
+
+MaybeOverflow<Option<PolyNf>> trySimplify(FuncTerm const& orig, Theory::Interpretation i, MaybeOverflow<PolyNf>* evalArgs) 
 {
-  CALL("trySimplify(Theory::Interpretation i, PolyNf* evalArgs) ")
-  try {
-    switch (i) {
+  CALL("trySimplify(FuncTerm orig, Theory::Interpretation i, PolyNf* evalArgs) ")
+  switch (i) {
 
 #define CONSTANT_CASE_2(Num, func, expr)                                                                      \
-      case Num##Traits:: func ## I:                                                                           \
-        {                                                                                                     \
-          using Const = typename Num##Traits::ConstantType;                                                   \
-          return trySimplifyConst2<Num##Traits>(evalArgs, [](Const l, Const r){ return expr; });              \
-        }                                                                                                     \
+    case Num##Traits:: func ## I:                                                                           \
+      {                                                                                                     \
+        using Const = typename Num##Traits::ConstantType;                                                   \
+        return trySimplifyConst2<Num##Traits>(evalArgs, [](Const l, Const r){ return expr; });              \
+      }                                                                                                     \
 
 #define CASE(inter)                                                                                           \
-      case inter: return FunctionEvaluator<inter>::simplify(evalArgs);
+    case inter: return FunctionEvaluator<inter>::simplify(evalArgs);
 
 #define QUOTIENT_REMAINDER_CASES(X)                                                                           \
-      CASE(Theory::INT_QUOTIENT_  ## X)                                                                       \
-      CASE(Theory::INT_REMAINDER_ ## X)
+    CASE(Theory::INT_QUOTIENT_  ## X)                                                                       \
+    CASE(Theory::INT_REMAINDER_ ## X)
 
 #define FRAC_CASE(Num)                                                                                        \
-      CASE(Num##Traits::divI)
+    CASE(Num##Traits::divI)
 
 #define NUM_CASE(Num)                                                                                         \
-      case Num ## Traits::minusI: return trySimplifyUnaryMinus<Num ## Traits>(evalArgs);
+    case Num ## Traits::minusI: return trySimplifyUnaryMinus<Num ## Traits>(evalArgs);
 
-      NUM_CASE(Int)
-      NUM_CASE(Rat)
-      NUM_CASE(Real)
-      QUOTIENT_REMAINDER_CASES(E)
-      QUOTIENT_REMAINDER_CASES(T)
-      QUOTIENT_REMAINDER_CASES(F)
+    NUM_CASE(Int)
+    NUM_CASE(Rat)
+    NUM_CASE(Real)
+    QUOTIENT_REMAINDER_CASES(E)
+    QUOTIENT_REMAINDER_CASES(T)
+    QUOTIENT_REMAINDER_CASES(F)
 
-      FRAC_CASE(Rat)
-      FRAC_CASE(Real)
+    FRAC_CASE(Rat)
+    FRAC_CASE(Real)
 
-  // TODO evaluate conversion functions
-  // TODO evaluate INT_ABS
-  // TODO evaluate INT_SUCCESSOR
-  // TODO evaluate FRAC_QUOTIENT
-  // TODO evaluate FRAC_ROUND
-  // TODO evaluate NUM_TO_NUM
-  // TODO evaluate NUM_TRUNCATE
+// TODO evaluate conversion functions
+// TODO evaluate INT_ABS
+// TODO evaluate INT_SUCCESSOR
+// TODO evaluate FRAC_QUOTIENT
+// TODO evaluate FRAC_ROUND
+// TODO evaluate NUM_TO_NUM
+// TODO evaluate NUM_TRUNCATE
 
 #undef NUM_CASE
 #undef QUOTIENT_REMAINDER_CASES
 #undef CONSTANT_CASE
 
-      default:
-        return none<PolyNf>();
-    }
-
-  } catch (DivByZeroException&) {
-    return none<PolyNf>();
+    default:
+      return maybeOverflow( none<PolyNf>(), anyOverflow(evalArgs, orig.arity()));
   }
 }
 
@@ -184,16 +189,23 @@ MaybeOverflow<Option<PolyNf>> PolynomialEvaluation::evaluate(TypedTermList term)
 { return evaluate(PolyNf::normalize(term)); }
 
 template<class Number>
-Polynom<Number> simplifyPoly(Polynom<Number> const& in, PolyNf* simplifiedArgs, bool& overflow);
+MaybeOverflow<Polynom<Number>> simplifyPoly(Polynom<Number> const& in, MaybeOverflow<PolyNf>* simplifiedArgs);
 
 template<class Number>
-Monom<Number> simplifyMonom(Monom<Number> const&, PolyNf* simplifiedArgs, bool& overflow);
+MaybeOverflow<Monom<Number>> simplifyMonom(Monom<Number> const& in, MaybeOverflow<PolyNf>* simplifiedArgs);
 
-POLYMORPHIC_FUNCTION(AnyPoly, SimplifyPoly  , const& p, PolyNf* ts; bool& overflow;) 
-{ return AnyPoly(perfect(simplifyPoly(*p, ts, overflow))); }
+struct SimplifyPoly {
+  MaybeOverflow<PolyNf>* ts;
+  template<class NumTraits>
+  MaybeOverflow<AnyPoly> operator()(Perfect<Polynom<NumTraits>> const& p) 
+  {
+    return simplifyPoly(*p, ts)
+      .map([](Polynom<NumTraits> p) -> AnyPoly { return AnyPoly(perfect(std::move(p))); });
+  } 
+};
 
-AnyPoly simplifyPoly(AnyPoly const& p, PolyNf* ts, bool& overflow)
-{ return p.apply(Polymorphic::SimplifyPoly{ ts, overflow }); }
+MaybeOverflow<AnyPoly> simplifyPoly(AnyPoly const& p, MaybeOverflow<PolyNf>* ts)
+{ return p.apply(SimplifyPoly{ ts }); }
 
 MaybeOverflow<Option<PolyNf>> PolynomialEvaluation::evaluate(PolyNf normalized) const 
 {
@@ -203,40 +215,43 @@ MaybeOverflow<Option<PolyNf>> PolynomialEvaluation::evaluate(PolyNf normalized) 
   struct Eval 
   {
     const PolynomialEvaluation& norm;
-    bool& overflow;
 
-    using Result = PolyNf;
+    using Result = MaybeOverflow<PolyNf>;
     using Arg    = PolyNf;
 
-    PolyNf operator()(PolyNf orig, PolyNf* ts) 
+    MaybeOverflow<PolyNf> operator()(PolyNf orig, MaybeOverflow<PolyNf>* ts) 
     { 
       return orig.match(
-          [&](Perfect<FuncTerm> f)  -> PolyNf
+          [&](Perfect<FuncTerm> f)  -> MaybeOverflow<PolyNf>
           { 
-            return f->function().tryInterpret()
-              .andThen( [&](Theory::Interpretation && i)  -> Option<PolyNf>
-                { return trySimplify(i, ts); })
-              .unwrapOrElse([&]() -> PolyNf
-                { return PolyNf(perfect(FuncTerm(f->function(), ts))); });
+            auto itp = f->function().tryInterpret();
+            auto simpl = itp.isSome() ?  trySimplify(*f, itp.unwrap(), ts)
+                                      : maybeOverflow(none<PolyNf>(), anyOverflow(ts, f->arity()));
 
+            return simpl.map([&](Option<PolyNf> x) -> PolyNf { 
+                return x || [&]() {
+                  Stack<PolyNf> args(f->arity());
+                  for (unsigned i = 0; i < f->arity(); i++)
+                    args.push(std::move(ts[i].value));
+                  return PolyNf(perfect(FuncTerm(f->function(), std::move(args))));
+                };
+            });
           }, 
 
           [&](Variable v) 
-          { return v; },
+          { return maybeOverflow(PolyNf(v), false); },
 
           [&](AnyPoly p) 
-          { return simplifyPoly(p, ts, overflow); }
+          { return simplifyPoly(p, ts).map([](AnyPoly p) { return PolyNf(p); }); }
       );
     }
   };
-  static Memo::Hashed<PolyNf, PolyNf> memo;
-  bool overflow = false;
-  auto out = evaluateBottomUp(normalized, Eval{ *this, overflow }, memo);
-  if (out == normalized) {
-    return maybeOverflow(Option<PolyNf>(), overflow);
-  } else {
-    return maybeOverflow(Option<PolyNf>(std::move(out)), overflow);
-  }
+  static Memo::Hashed<PolyNf, MaybeOverflow<PolyNf>> memo;
+  auto out = evaluateBottomUp(normalized, Eval{ *this }, memo);
+  return out.map([&normalized](PolyNf out) {
+      return out == normalized ? Option<PolyNf>()
+                               : Option<PolyNf>(std::move(out));
+      });
 }
 
 template<class Config>
@@ -244,12 +259,13 @@ PolyNf createTerm(unsigned fun, PolyNf* evaluatedArgs)
 { return perfect(FuncTerm(FuncId(fun), evaluatedArgs)); }
 
 template<class Number>
-Polynom<Number> PolynomialEvaluation::simplifySummation(Stack<Monom<Number>> summands, bool& overflow)
+MaybeOverflow<Polynom<Number>> PolynomialEvaluation::simplifySummation(Stack<Monom<Number>> summands)
 { 
   CALL("simplifySummation(Stack<Monom<Number>>)") 
   using Monom   = Monom<Number>;
   using Polynom = Polynom<Number>;
 
+  bool overflow = false;
   // then we sort them by their monom, in order to add up the coefficients efficiently
   std::sort(summands.begin(), summands.end());
 
@@ -283,31 +299,38 @@ Polynom<Number> PolynomialEvaluation::simplifySummation(Stack<Monom<Number>> sum
 
   auto poly = Polynom(std::move(summands));
   poly.integrity();
-  return poly;
+  return maybeOverflow(std::move(poly), overflow);
 }
 
-template Polynom< IntTraits> PolynomialEvaluation::simplifySummation< IntTraits>(Stack<Monom< IntTraits>> summands, bool& overflow);
-template Polynom< RatTraits> PolynomialEvaluation::simplifySummation< RatTraits>(Stack<Monom< RatTraits>> summands, bool& overflow);
-template Polynom<RealTraits> PolynomialEvaluation::simplifySummation<RealTraits>(Stack<Monom<RealTraits>> summands, bool& overflow);
+template MaybeOverflow<Polynom< IntTraits>> PolynomialEvaluation::simplifySummation< IntTraits>(Stack<Monom< IntTraits>> summands);
+template MaybeOverflow<Polynom< RatTraits>> PolynomialEvaluation::simplifySummation< RatTraits>(Stack<Monom< RatTraits>> summands);
+template MaybeOverflow<Polynom<RealTraits>> PolynomialEvaluation::simplifySummation<RealTraits>(Stack<Monom<RealTraits>> summands);
 
 
 
 template<class Number>
-Polynom<Number> simplifyPoly(Polynom<Number> const& in, PolyNf* simplifiedArgs, bool& overflow)
+MaybeOverflow<Polynom<Number>> simplifyPoly(Polynom<Number> const& in, MaybeOverflow<PolyNf>* simplifiedArgs)
 { 
   CALL("simplify(Polynom<Number>const&, PolyNf* simplifiedArgs)") 
   using Monom   = Monom<Number>;
 
   // first we simplify all the monoms containted in this polynom
+  bool overflow = false;
   Stack<Monom> out;
   {
     auto offs = 0;
     for (unsigned i = 0; i < in.nSummands(); i++) {
       auto monom  = in.summandAt(i);
-      auto simpl = simplifyMonom(monom, &simplifiedArgs[offs], overflow);
+      auto simpl_ = simplifyMonom(monom, &simplifiedArgs[offs]);
+      auto simpl = simpl_.value;
+      ASS(!simpl_.overflowOccurred || !simpl.isZero())
+      if (simpl_.overflowOccurred)
+        overflow = true;
+
       if (simpl.isZero()) {
         /* we don't add it */
       } else if (simpl.factors->nFactors() == 1 && simpl.factors->factorAt(0).tryPolynom().isSome()) {
+        /* k * (t1 + ... tn) ==> k * t1 + ... k * tn */
         auto origSize = out.size(); 
         try {
           auto poly = simpl.factors->factorAt(0).tryPolynom().unwrap();
@@ -327,7 +350,11 @@ Polynom<Number> simplifyPoly(Polynom<Number> const& in, PolyNf* simplifiedArgs, 
       offs += monom.factors->nFactors();
     }
   }
-  return PolynomialEvaluation::simplifySummation(std::move(out), overflow);
+  auto res = PolynomialEvaluation::simplifySummation(std::move(out));
+  if (overflow) {
+    res.overflowOccurred = true;
+  }
+  return res;
 }
 
 
@@ -335,7 +362,7 @@ Polynom<Number> simplifyPoly(Polynom<Number> const& in, PolyNf* simplifiedArgs, 
  * In exact this means, that all the numeral factors are collapsed into one numeral (e.g. 3*4*3*x ==> 36*x)
  */
 template<class Number>
-Monom<Number> simplifyMonom(Monom<Number> const& in, PolyNf* simplifiedArgs, bool& overflow) 
+MaybeOverflow<Monom<Number>> simplifyMonom(Monom<Number> const& in, MaybeOverflow<PolyNf>* simplifiedArgs)
 { 
 
   using Numeral      = typename Number::ConstantType;
@@ -353,10 +380,14 @@ Monom<Number> simplifyMonom(Monom<Number> const& in, PolyNf* simplifiedArgs, boo
     return out;
   };
 
+  bool overflow = false;
+
   auto& facs = *in.factors;
   Stack<MonomFactor> args(facs.nFactors());
   for (unsigned i = 0; i < facs.nFactors(); i++) {
-    args.push(MonomFactor(simplifiedArgs[i], facs.factorAt(i).power));
+    if (simplifiedArgs[i].overflowOccurred) 
+      overflow = true; // TODO it might happen that the overflowed term is simplified away later on. we do not yet make up for this yet
+    args.push(MonomFactor(simplifiedArgs[i].value, facs.factorAt(i).power));
   }
 
   std::sort(args.begin(), args.end());
@@ -397,10 +428,10 @@ Monom<Number> simplifyMonom(Monom<Number> const& in, PolyNf* simplifiedArgs, boo
   }
 
   if (numeral == Numeral(0)) {
-    return Monom::zero();
+    return maybeOverflow(Monom::zero(), false);
   } else {
     args.truncate(offs);
-    return Monom(numeral, perfect(MonomFactors(std::move(args)))); 
+    return maybeOverflow(Monom(numeral, perfect(MonomFactors(std::move(args)))), overflow); 
   }
 }
 
