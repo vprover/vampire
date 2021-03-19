@@ -34,6 +34,8 @@
 #include "GeneralSplitting.hpp"
 #include "InequalitySplitting.hpp"
 #include "InterpretedNormalizer.hpp"
+#include "Kernel/InequalityNormalizer.hpp"
+#include "Kernel/LaKbo.hpp"
 #include "Naming.hpp"
 #include "Normalisation.hpp"
 #include "NNF.hpp"
@@ -153,6 +155,17 @@ void Preprocess::preprocess(Problem& prb)
 {
   CALL("Preprocess::preprocess");
 
+  auto normalizeInterpreted = [&]() {
+    if (env.options->inequalityResolution()) {
+
+      LaKbo kbo(KBO(prb, *env.options));
+      auto norm = InequalityNormalizer(PolynomialEvaluation(kbo));
+      InterpretedNormalizer(&norm).apply(prb);
+    } else {
+      InterpretedNormalizer(nullptr).apply(prb);
+    }
+  };
+
   if (env.options->showPreprocessing()) {
     env.beginOutput();
     env.out() << "preprocessing started" << std::endl;
@@ -193,7 +206,8 @@ void Preprocess::preprocess(Problem& prb)
   // If there are interpreted operations
   if (prb.hasInterpretedOperations() || env.signature->hasTermAlgebras()){
     // Normalizer is needed, because the TheoryAxioms code assumes Normalized problem
-    InterpretedNormalizer().apply(prb);
+    normalizeInterpreted();
+    
     // Add theory axioms if needed
     if( _options.theoryAxioms() != Options::TheoryAxiomLevel::OFF){
       env.statistics->phase=Statistics::INCLUDING_THEORY_AXIOMS;
@@ -218,7 +232,7 @@ void Preprocess::preprocess(Problem& prb)
 
   if (prb.hasInterpretedOperations() || env.signature->hasTermAlgebras()){
     // Some axioms needed to be normalized, so we call InterpretedNormalizer twice
-    InterpretedNormalizer().apply(prb);
+    normalizeInterpreted();
   }
 
   // Expansion of distinct groups happens before other preprocessing

@@ -92,6 +92,16 @@ namespace Kernel {
       : _eval(eval) {  }
 
     template<class NumTraits> Option<MaybeOverflow<InequalityLiteral<NumTraits>>> normalize(Literal* lit) const;
+    Literal* normalizeLiteral(Literal* lit) const 
+    {
+      return           normalize< IntTraits>(lit)
+                         .map([](MaybeOverflow<InequalityLiteral< IntTraits>> l) { return l.value.denormalize(); })
+      || [&](){ return normalize< RatTraits>(lit)
+                         .map([](MaybeOverflow<InequalityLiteral< RatTraits>> l) { return l.value.denormalize(); }); }
+      || [&](){ return normalize<RealTraits>(lit)
+                         .map([](MaybeOverflow<InequalityLiteral<RealTraits>> l) { return l.value.denormalize(); }); }
+      || lit;
+    }
   };
 
 
