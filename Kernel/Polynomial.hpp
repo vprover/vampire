@@ -690,6 +690,17 @@ Option<typename Number::ConstantType> FuncId::tryNumeral() const
 
 namespace Kernel {
 
+// template<class Args> FuncTerm::FuncTerm(FuncId f, Args const& args) 
+//   : _fun(f)
+//   , _args(f.arity())
+// {
+//   static_assert(std::is_same< typename std::remove_const<typename std::remove_reference<decltype(args[0u])>::type>::type
+//                             , PolyNf
+//                             >::value, "args must return a PolyNf on a call  operator[](unsigned)");
+//   for (unsigned i = 0; i < f.arity(); i++) 
+//     _args.push(args[i]);
+// }
+
 template<class Number>
 Option<typename Number::ConstantType> FuncTerm::tryNumeral() const
 { return _fun.template tryNumeral<Number>(); }

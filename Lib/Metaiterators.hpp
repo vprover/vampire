@@ -1713,6 +1713,13 @@ public:
   }
 
   template<class P>
+  bool any(P p) 
+  {
+    CALL("IterTraits::any")
+    return find(p).isSome();
+  }
+
+  template<class P>
   Option<Elem> find(P p) 
   {
     CALL("IterTraits::find")

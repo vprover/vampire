@@ -27,17 +27,29 @@ struct MaybeOverflow
   C value;
   bool overflowOccurred;
 
+  MaybeOverflow(C value, bool overflowOccurred) : value(std::move(value)), overflowOccurred(overflowOccurred) {}
+  explicit MaybeOverflow(MaybeOverflow const&) = default;
   MaybeOverflow(MaybeOverflow&&) = default;
   MaybeOverflow& operator=(MaybeOverflow&&) = default;
 
   template<class F>
   auto map(F f)  -> MaybeOverflow<decltype(f(value))>
-  { return { .value = f(value), .overflowOccurred = overflowOccurred, }; }
+  { return MaybeOverflow<decltype(f(value))>(f(std::move(value)), overflowOccurred); }
 };
 
 template<class C>
 static MaybeOverflow<C> maybeOverflow(C simplified, bool overflowOccurred) 
-{ return { .value = simplified, .overflowOccurred = overflowOccurred, }; }
+{ return MaybeOverflow<C>(std::move(simplified), overflowOccurred); }
+
+template<class A, class F>
+MaybeOverflow<A> catchOverflow(F fun, A alternative)
+{
+  try {
+    return maybeOverflow(fun(), false);
+  } catch (Kernel::MachineArithmeticException&) {
+    return maybeOverflow(std::move(alternative), true);
+  }
+}
 
 namespace Inferences 
 {
@@ -60,7 +72,7 @@ public:
   { return evaluate(PolyNf(in)).map([](PolyNf p) { return p.unwrap<Polynom<NumTraits>>(); }); }
 
   template<class NumTraits>
-  static Polynom<NumTraits> simplifySummation(Stack<Monom<NumTraits>>, bool& overflow);
+  static MaybeOverflow<Polynom<NumTraits>> simplifySummation(Stack<Monom<NumTraits>>);
 private:
 
   Result simplifyLiteral(Literal*) override;
