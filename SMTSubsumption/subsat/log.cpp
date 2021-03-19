@@ -6,24 +6,24 @@
 #if SUBSAT_LOGGING_ENABLED
 
 static LogLevel
-get_max_log_level(std::string const& fn, std::string const& pretty_fn)
+get_max_log_level(log::string const& fn, log::string const& pretty_fn)
 {
   (void)fn;
   (void)pretty_fn;
 
-  // bool const from_decision_queue = pretty_fn.find("DecisionQueue") != std::string::npos;
+  // bool const from_decision_queue = pretty_fn.find("DecisionQueue") != log::string::npos;
   // if (from_decision_queue) {
   //   return LogLevel::Info;
   // }
 
-  // if (pretty_fn.find("add_") != std::string::npos) {
+  // if (pretty_fn.find("add_") != log::string::npos) {
   //   return LogLevel::Info;
   // }
 
   // if (fn == "analyze") {
   //   return LogLevel::Trace;
   // }
-  // if (fn.find("minimize") != std::string::npos) {
+  // if (fn.find("minimize") != log::string::npos) {
   //   return LogLevel::Trace;
   // }
   // if (fn == "propagate_literal") {
@@ -36,7 +36,7 @@ get_max_log_level(std::string const& fn, std::string const& pretty_fn)
 
 /// Filter log messages
 bool
-subsat_should_log(LogLevel msg_level, std::string fn, std::string pretty_fn)
+subsat_should_log(LogLevel msg_level, log::string fn, log::string pretty_fn)
 {
   LogLevel max_log_level = get_max_log_level(fn, pretty_fn);
   return msg_level <= max_log_level;
@@ -71,7 +71,7 @@ level_color(LogLevel msg_level)
 }
 
 std::pair<std::ostream&, bool>
-subsat_log(LogLevel msg_level, std::string fn, std::string /* pretty_fn */)
+subsat_log(LogLevel msg_level, log::string fn, log::string /* pretty_fn */)
 {
   std::ostream& os = std::cerr;
   int const fd = fileno(stderr);
@@ -83,7 +83,7 @@ subsat_log(LogLevel msg_level, std::string fn, std::string /* pretty_fn */)
   if (color && !isatty(fd)) { color = nullptr; }
 
   if (color) { os << color; }
-  os << level_name(msg_level) << " [" << fn << "] " << std::string(padding, ' ');
+  os << level_name(msg_level) << " [" << fn << "] " << log::string(padding, ' ');
   return {os, (bool)color};
 }
 

@@ -1084,6 +1084,7 @@ class SMTSubsumption::SMTSubsumptionImpl2
     /// Otherwise, solve() needs to be called.
     bool setupSubsumption(Kernel::Clause* base, Kernel::Clause* instance)
     {
+      CALL("SMTSubsumptionImpl2::setupSubsumption");
       solver.clear();
       ASS(solver.empty());
       auto& theory = solver.theory();
@@ -1246,6 +1247,7 @@ class SMTSubsumption::SMTSubsumptionImpl2
     /// Otherwise, solve() needs to be called.
     bool setupSubsumptionResolution(Kernel::Clause* base, Kernel::Clause* instance)
     {
+      CALL("SMTSubsumptionImpl2::setupSubsumptionResolution");
       solver.clear();
       ASS(solver.empty());
       auto& theory = solver.theory();
@@ -1354,6 +1356,7 @@ class SMTSubsumption::SMTSubsumptionImpl2
     /// Solve the subsumption instance created by the previous call to a setup... function.
     bool solve()
     {
+      CALL("SMTSubsumptionImpl2::solve");
       return solver.solve() == subsat::Result::Sat;
     }
 
@@ -1414,6 +1417,7 @@ class SMTSubsumption::SMTSubsumptionImpl2
 
     bool checkSubsumption(Kernel::Clause* base, Kernel::Clause* instance)
     {
+      CALL("SMTSubsumptionImpl2::checkSubsumption");
       return setupSubsumption(base, instance) && solve();
     }
 
@@ -1756,12 +1760,14 @@ ProofOfConcept::~ProofOfConcept() = default;
 
 bool ProofOfConcept::checkSubsumption(Kernel::Clause* base, Kernel::Clause* instance)
 {
+  CALL("ProofOfConcept::checkSubsumption");
   ASS(m_subsat_impl);
   return m_subsat_impl->checkSubsumption(base, instance);
 }
 
 bool ProofOfConcept::checkSubsumptionResolution(Kernel::Clause* base, Kernel::Clause* instance, Kernel::Clause* conclusion)
 {
+  CALL("ProofOfConcept::checkSubsumptionResolution");
   ASS(m_subsat_impl);
   return m_subsat_impl->checkSubsumptionResolution(base, instance, conclusion);
 }

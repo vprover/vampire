@@ -59,7 +59,7 @@ struct Statistics {
 };
 static inline std::ostream& operator<<(std::ostream& os, Statistics const& stats)
 {
-  os << std::string(70, '-') << '\n';
+  os << log::string(70, '-') << '\n';
 #if SUBSAT_RESTART
   os << "Restarts:         " << std::setw(8) << stats.restarts << '\n';
 #endif
@@ -320,6 +320,8 @@ public:
   template <typename K, typename T>
   using vector_map = subsat::vector_map<K, T, allocator_type<T>>;
 
+  using string = std::basic_string<char, std::char_traits<char>, allocator_type<char>>;
+
 #ifndef NDEBUG
   // Note: std::set and std::map are slow, so use them only in debug mode!
   template <typename Key, typename Compare = std::less<Key>>
@@ -493,6 +495,7 @@ public:
   /// May not be called while a constraint started by 'constraint_start' is active!
   NODISCARD AllocatedConstraintHandle alloc_constraint(uint32_t capacity)
   {
+    LOG_TRACE("alloc_constraint: " << capacity);
     auto handle = m_constraints.alloc(capacity);
     UPDATE_STORAGE_STATS();
     return handle;
@@ -1113,6 +1116,7 @@ public:
     uint32_t stats_countdown = 0;
 #endif
 
+    LOG_TRACE("Start solving loop");
     while (res == Result::Unknown) {
 #ifdef SUBSAT_STATISTICS_INTERVAL
       if (stats_countdown-- == 0) {
@@ -1325,8 +1329,7 @@ private:
   /// or an invalid ClauseRef if all unit clauses have been propagated without conflict.
   ConstraintRef propagate()
   {
-    // CDEBUG("propagate");
-    // assert(checkInvariants());
+    LOG_TRACE("propagate");
     assert(m_theory_propagate_head == m_trail.size());
     while (m_propagate_head < m_trail.size()) {
       Lit const lit = m_trail[m_propagate_head++];

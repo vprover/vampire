@@ -28,6 +28,24 @@ inline std::ostream &operator<<(std::ostream &os, unsigned char c) {
 }
 }
 
+
+#if !SUBSAT_STANDALONE
+#include "Lib/STLAllocator.hpp"
+#endif
+
+namespace log {
+
+#if SUBSAT_STANDALONE
+template <typename T>
+using allocator_type = std::allocator<T>;
+#else
+template <typename T>
+using allocator_type = Lib::STLAllocator<T>;
+#endif
+
+using string = std::basic_string<char, std::char_traits<char>, allocator_type<char>>;
+} // namespace log
+
 template <typename T, typename Allocator>
 struct ShowVecImpl {
   std::vector<T, Allocator> const& vec;
@@ -81,10 +99,10 @@ enum class LogLevel : int {
 
 /// Filter log messages
 bool
-subsat_should_log(LogLevel msg_level, std::string fn, std::string pretty_fn);
+subsat_should_log(LogLevel msg_level, log::string fn, log::string pretty_fn);
 
 std::pair<std::ostream&, bool>
-subsat_log(LogLevel msg_level, std::string fn, std::string pretty_fn);
+subsat_log(LogLevel msg_level, log::string fn, log::string pretty_fn);
 
 #define LOG(lvl, x)                                               \
   do {                                                            \
