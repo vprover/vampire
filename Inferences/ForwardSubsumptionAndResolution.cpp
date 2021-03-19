@@ -387,7 +387,7 @@ bool ForwardSubsumptionAndResolution::perform(Clause* cl, Clause*& replacement, 
 {
   CALL("ForwardSubsumptionAndResolution::perform");
 
-  Clause* resolutionClause=0;
+  Clause* resolutionClause = nullptr;
 
   unsigned clen=cl->length();
   if(clen==0) {
@@ -544,66 +544,101 @@ bool ForwardSubsumptionAndResolution::perform(Clause* cl, Clause*& replacement, 
   {
     TimeCounter tc_fsr(TC_FORWARD_SUBSUMPTION_RESOLUTION);
 
-    for(unsigned li=0;li<clen;li++) {
-      Literal* resLit=(*cl)[li];
-      SLQueryResultIterator rit=_unitIndex->getGeneralizations( resLit, true, false);
-      while(rit.hasNext()) {
-	Clause* mcl=rit.next().clause;
-	if(ColorHelper::compatible(cl->color(), mcl->color())) {
-	  resolutionClause=generateSubsumptionResolutionClause(cl,resLit,mcl);
-	  env.statistics->forwardSubsumptionResolution++;
-	  premises = pvi( getSingletonIterator(mcl) );
-	  replacement = resolutionClause;
-	  result = true;
-	  goto fin;
-	}
+    for (unsigned li = 0; li < clen; li++) {
+      Literal* resLit = (*cl)[li];
+      SLQueryResultIterator rit = _unitIndex->getGeneralizations(resLit, true, false);
+      while (rit.hasNext()) {
+        Clause* mcl = rit.next().clause;
+        ASS(!resolutionClause);
+        if (ColorHelper::compatible(cl->color(), mcl->color())) {
+          resolutionClause = generateSubsumptionResolutionClause(cl, resLit, mcl);
+          ASS(resolutionClause);
+          env.statistics->forwardSubsumptionResolution++;
+          premises = pvi(getSingletonIterator(mcl));
+          replacement = resolutionClause;
+          result = true;
+        }
+#if CHECK_SMT_SUBSUMPTION
+        if (!smtsubs.checkSubsumptionResolution(mcl, cl, resolutionClause)) {
+          std::cerr << "\% ***WRONG RESULT OF SUBSUMPTION RESOLUTION*** (1)" << std::endl;
+          std::cerr << "\% base       = " << mcl->toString() << std::endl;
+          std::cerr << "\% instance   = " << cl->toString() << std::endl;
+          std::cerr << "\% conclusion = " << (resolutionClause ? resolutionClause->toString() : "<no subsumption resolution possible>") << std::endl;
+        }
+#endif
+        if (resolutionClause) {
+          goto fin;
+        }
       }
     }
 
     {
       CMStack::Iterator csit(cmStore);
-      while(csit.hasNext()) {
-	ClauseMatches* cms=csit.next();
-	for(unsigned li=0;li<clen;li++) {
-	  Literal* resLit=(*cl)[li];
-	  if(checkForSubsumptionResolution(cl, cms, resLit) && ColorHelper::compatible(cl->color(), cms->_cl->color()) ) {
-	    resolutionClause=generateSubsumptionResolutionClause(cl,resLit,cms->_cl);
-	    env.statistics->forwardSubsumptionResolution++;
-	    premises = pvi( getSingletonIterator(cms->_cl) );
-	    replacement = resolutionClause;
-	    result = true;
-	    goto fin;
-	  }
-	}
+      while (csit.hasNext()) {
+        ClauseMatches* cms = csit.next();
+        for (unsigned li = 0; li < clen; li++) {
+          Literal* resLit = (*cl)[li];
+          ASS(!resolutionClause);
+          if (checkForSubsumptionResolution(cl, cms, resLit) && ColorHelper::compatible(cl->color(), cms->_cl->color())) {
+            resolutionClause = generateSubsumptionResolutionClause(cl, resLit, cms->_cl);
+            ASS(resolutionClause);
+            env.statistics->forwardSubsumptionResolution++;
+            premises = pvi(getSingletonIterator(cms->_cl));
+            replacement = resolutionClause;
+            result = true;
+          }
+#if CHECK_SMT_SUBSUMPTION
+          if (!smtsubs.checkSubsumptionResolution(cms->_cl, cl, resolutionClause)) {
+            std::cerr << "\% ***WRONG RESULT OF SUBSUMPTION RESOLUTION*** (2)" << std::endl;
+            std::cerr << "\% base       = " << cms->_cl->toString() << std::endl;
+            std::cerr << "\% instance   = " << cl->toString() << std::endl;
+            std::cerr << "\% conclusion = " << (resolutionClause ? resolutionClause->toString() : "<no subsumption resolution possible>") << std::endl;
+          }
+#endif
+          if (resolutionClause) {
+            goto fin;
+          }
+        }
       }
     }
 
-    for(unsigned li=0;li<clen;li++) {
-      Literal* resLit=(*cl)[li];	//resolved literal
-      SLQueryResultIterator rit=_fwIndex->getGeneralizations( resLit, true, false);
-      while(rit.hasNext()) {
-	SLQueryResult res=rit.next();
-	Clause* mcl=res.clause;
+    for (unsigned li = 0; li < clen; li++) {
+      Literal* resLit = (*cl)[li]; //resolved literal
+      SLQueryResultIterator rit = _fwIndex->getGeneralizations(resLit, true, false);
+      while (rit.hasNext()) {
+        SLQueryResult res = rit.next();
+        Clause* mcl = res.clause;
 
-	if(mcl->hasAux()) {
-	  //we have already examined this clause
-	  continue;
-	}
+        if (mcl->hasAux()) {
+          //we have already examined this clause
+          continue;
+        }
 
-	ClauseMatches* cms=new ClauseMatches(mcl);
-	res.clause->setAux(cms);
-	cmStore.push(cms);
-	cms->fillInMatches(&miniIndex);
+        ClauseMatches* cms = new ClauseMatches(mcl);
+        res.clause->setAux(cms);
+        cmStore.push(cms);
+        cms->fillInMatches(&miniIndex);
 
-	if(checkForSubsumptionResolution(cl, cms, resLit) && ColorHelper::compatible(cl->color(), cms->_cl->color())) {
-	  resolutionClause=generateSubsumptionResolutionClause(cl,resLit,cms->_cl);
-	  env.statistics->forwardSubsumptionResolution++;
-          premises = pvi( getSingletonIterator(cms->_cl) );
+        ASS(!resolutionClause);
+        if (checkForSubsumptionResolution(cl, cms, resLit) && ColorHelper::compatible(cl->color(), cms->_cl->color())) {
+          resolutionClause = generateSubsumptionResolutionClause(cl, resLit, cms->_cl);
+          ASS(resolutionClause);
+          env.statistics->forwardSubsumptionResolution++;
+          premises = pvi(getSingletonIterator(cms->_cl));
           replacement = resolutionClause;
           result = true;
-	  goto fin;
-	}
-
+        }
+#if CHECK_SMT_SUBSUMPTION
+        if (!smtsubs.checkSubsumptionResolution(cms->_cl, cl, resolutionClause)) {
+          std::cerr << "\% ***WRONG RESULT OF SUBSUMPTION RESOLUTION*** (3)" << std::endl;
+          std::cerr << "\% base       = " << cms->_cl->toString() << std::endl;
+          std::cerr << "\% instance   = " << cl->toString() << std::endl;
+          std::cerr << "\% conclusion = " << (resolutionClause ? resolutionClause->toString() : "<no subsumption resolution possible>") << std::endl;
+        }
+#endif
+        if (resolutionClause) {
+          goto fin;
+        }
       }
     }
   }

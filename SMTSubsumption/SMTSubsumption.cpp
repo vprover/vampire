@@ -1381,26 +1381,6 @@ class SMTSubsumption::SMTSubsumptionImpl2
       return conclusion;
     }
 
-    /// For correctness checking: if the original subsumption resolution finds a conclusion, call this to check whether we can also find this conclusion.
-    /// Note that SR is not unique, so there could be multiple possible conclusions, and both approaches may return a different one.
-    ///
-    /// Example for multiple possible subsumption resolutions:
-    ///     base = P(x) \/ Q(x) \/ R(x)
-    ///     inst = P(c) \/ Q(c) \/ ~R(c) \/ P(d) \/ ~Q(d) \/ R(d)
-    ///
-    /// (Do not call solve() if you want to use this function.)
-    bool findSubsumptionResolutionConclusion(Kernel::Clause* conclusion)
-    {
-      while (solve()) {
-        // Found another model, build the corresponding result
-        Kernel::Clause* cl = getSubsumptionResolutionConclusion();
-        if (checkClauseEquality(cl, conclusion)) {
-          return true;
-        }
-      }
-      return false;
-    }
-
     bool checkClauseEquality(Clause* const cl1, Clause* const cl2)
     {
       return checkClauseEquality(cl1->literals(), cl1->length(), cl2->literals(), cl2->length());
@@ -1432,9 +1412,29 @@ class SMTSubsumption::SMTSubsumptionImpl2
       return setupSubsumption(base, instance) && solve();
     }
 
-    bool checkSubsumptionResolution(Kernel::Clause* base, Kernel::Clause* instance)
+    /// For correctness checking: if the original subsumption resolution finds a conclusion, call this to check whether we can also find this conclusion.
+    /// Note that SR is not unique, so there could be multiple possible conclusions, and both approaches may return a different one.
+    ///
+    /// Example for multiple possible subsumption resolutions:
+    ///     base = P(x) \/ Q(x) \/ R(x)
+    ///     inst = P(c) \/ Q(c) \/ ~R(c) \/ P(d) \/ ~Q(d) \/ R(d)
+    ///
+    /// Pass NULL for the conclusion to check that subsumption resolution isn't possible.
+    bool checkSubsumptionResolution(Kernel::Clause* base, Kernel::Clause* instance, Kernel::Clause* conclusion)
     {
-      return setupSubsumptionResolution(base, instance) && solve();
+      setupSubsumptionResolution(base, instance);
+      if (!conclusion) {
+        return !solve();
+      }
+    // TODO: add an RSTAT_MCTR to see the distribution of "number of possible consequences per SR". (just to see how common this situation is.)
+      while (solve()) {
+        // Found another model, build the corresponding result
+        Kernel::Clause* cl = getSubsumptionResolutionConclusion();
+        if (checkClauseEquality(cl, conclusion)) {
+          return true;
+        }
+      }
+      return false;
     }
 };  // class SMTSubsumptionImpl2
 
@@ -1753,6 +1753,12 @@ bool ProofOfConcept::checkSubsumption(Kernel::Clause* base, Kernel::Clause* inst
 {
   ASS(m_subsat_impl);
   return m_subsat_impl->checkSubsumption(base, instance);
+}
+
+bool ProofOfConcept::checkSubsumptionResolution(Kernel::Clause* base, Kernel::Clause* instance, Kernel::Clause* conclusion)
+{
+  ASS(m_subsat_impl);
+  return m_subsat_impl->checkSubsumptionResolution(base, instance, conclusion);
 }
 
 
