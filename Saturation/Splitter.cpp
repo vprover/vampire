@@ -35,6 +35,7 @@
 #include "Shell/Options.hpp"
 #include "Shell/Refutation.hpp"
 #include "Shell/Statistics.hpp"
+#include "Shell/AnswerExtractor.hpp"
 
 #include "SAT/Preprocess.hpp"
 #include "SAT/SATInference.hpp"
@@ -1037,6 +1038,8 @@ bool Splitter::getComponents(Clause* cl, Stack<LiteralStack>& acc)
 
   for(unsigned i=0;i<clen;i++) {
     Literal* lit=(*cl)[i];
+    //Signature::Symbol* psym=env.signature->getPredicate(lit->functor());
+    //if(psym->answerPredicate()){ return false;}
     VariableIterator vit(lit);
     while(vit.hasNext()) {
       unsigned master=varMasters.findOrInsert(vit.next().var(), i);
@@ -1629,11 +1632,22 @@ bool Splitter::handleEmptyClause(Clause* cl)
   if(cl->splits()->isEmpty()) {
     return false;
   }
+  ASS(cl->isEmpty() || 
+      (_sa->getAnswerLiteralManager() && 
+       _sa->getAnswerLiteralManager()->isAnswerClause(cl,true)));
 
   static SATLiteralStack conflictLits;
   conflictLits.reset();
 
   collectDependenceLits(cl->splits(), conflictLits);
+
+  if(!cl->isEmpty()){
+    cout << "HERE" << endl;
+    doSplitting(cl);
+    onAllProcessed();
+    return true;
+  }
+
   SATClause* confl = SATClause::fromStack(conflictLits);
 
   FormulaList* resLst=0;

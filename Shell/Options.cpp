@@ -1761,6 +1761,11 @@ void Options::init()
     _lookup.insert(&_questionAnswering);
     _questionAnswering.tag(OptionTag::OTHER);
 
+    _questionCount = UnsignedOptionValue("question_count","qc",0);
+    _questionCount.description = "The max number of answers you want, 0 means as many as possible, which could lead to non-termination.";
+    _lookup.insert(&_questionCount);
+    _questionCount.tag(OptionTag::OTHER); 
+
     _randomSeed = IntOptionValue("random_seed","",Random::seed());
     _randomSeed.description="Some parts of vampire use random numbers. This seed allows for reproducability of results. By default the seed is not changed.";
     _lookup.insert(&_randomSeed);
