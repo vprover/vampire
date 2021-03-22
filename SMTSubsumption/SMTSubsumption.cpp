@@ -1354,16 +1354,18 @@ class SMTSubsumption::SMTSubsumptionImpl2
       }
 
 
-      // TODO: we are missing constraints
-      //  when an inst_lit is complementary-matched, then we cannot match anything else to it.
-      //  but when it is not complementary-matched, then we may match multiple base literals to it.
-      // binary clauses: ~compl \/ ~normal; maybe with an "in-between" variable so we don't need quadratically many clauses.
+      // NOTE: these constraints are necessary because:
+      // 1) when an inst_lit is complementary-matched, then we cannot match anything else to it.
+      // 2) but when it is not complementary-matched, then we may match multiple base literals to it.
+      // The reason 2) is why we can't simply use instance-AtMostOne constraints like we do for subsumption.
+      // Naive solution: use binary clauses "~compl \/ ~normal", more sophisticated: use a helper variable that just means "instance literal is complementary-matched".
       //
-// % ***WRONG RESULT OF SUBSUMPTION RESOLUTION***
-// %    base       = 1. ~p(X0,X1,X2,X3,X4) | p(X5,X1,X2,X3,X4) [input]
-// %    instance   = 366. ~neq(X10,X11) | ~neq(X10,s0) | ~neq(X12,X11) | ~neq(X10,X12) | ~neq(X10,X13) | ~neq(X12,s0) | ~neq(X13,X14) | ~neq(X13,X11) | ~neq(X10,X14) | p(X10,X13,X14,s0,s0) [duplicate literal removal 362]
-// % Should NOT be possible but found the following result:
-// %    conclusion = 406. ~neq(X10,X11) | ~neq(X10,s0) | ~neq(X12,X11) | ~neq(X10,X12) | ~neq(X10,X13) | ~neq(X12,s0) | ~neq(X13,X14) | ~neq(X13,X11) | ~neq(X10,X14) [subsumption resolution 366,1]
+      // Example of wrong inference without these constraints:
+      // % ***WRONG RESULT OF SUBSUMPTION RESOLUTION***
+      // %    base       = 1. ~p(X0,X1,X2,X3,X4) | p(X5,X1,X2,X3,X4) [input]
+      // %    instance   = 366. ~neq(X10,X11) | ~neq(X10,s0) | ~neq(X12,X11) | ~neq(X10,X12) | ~neq(X10,X13) | ~neq(X12,s0) | ~neq(X13,X14) | ~neq(X13,X11) | ~neq(X10,X14) | p(X10,X13,X14,s0,s0) [duplicate literal removal 362]
+      // % Should NOT be possible but found the following result:
+      // %    conclusion = 406. ~neq(X10,X11) | ~neq(X10,s0) | ~neq(X12,X11) | ~neq(X10,X12) | ~neq(X10,X13) | ~neq(X12,s0) | ~neq(X13,X14) | ~neq(X13,X11) | ~neq(X10,X14) [subsumption resolution 366,1]
       for (unsigned j = 0; j < instance->length(); ++j) {
         uint32_t const nnormal = inst_normal_matches[j].size();
         uint32_t const ncompl = inst_compl_matches[j].size();
