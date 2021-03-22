@@ -267,36 +267,33 @@ Clause* ForwardSubsumptionAndResolution::generateSubsumptionResolutionClause(Cla
 
 bool checkForSubsumptionResolution(Clause* cl, ClauseMatches* cms, Literal* resLit)
 {
-  Clause* mcl=cms->_cl;
-  unsigned mclen=mcl->length();
+  Clause* mcl = cms->_cl;
+  unsigned mclen = mcl->length();
 
   ClauseMatches::ZeroMatchLiteralIterator zmli(cms);
-  if(zmli.hasNext()) {
-    while(zmli.hasNext()) {
-      Literal* bl=zmli.next();
-//      if( !resLit->couldBeInstanceOf(bl, true) ) {
-      if( ! MatchingUtils::match(bl, resLit, true) ) {
-	return false;
+  if (zmli.hasNext()) {
+    while (zmli.hasNext()) {
+      Literal* bl = zmli.next();
+      if (!MatchingUtils::match(bl, resLit, true)) {
+        return false;
       }
     }
-  } else {
-    bool anyResolvable=false;
-    for(unsigned i=0;i<mclen;i++) {
-//      if(resLit->couldBeInstanceOf((*mcl)[i], true)) {
-      if( MatchingUtils::match((*mcl)[i], resLit, true) ) {
-	anyResolvable=true;
-	break;
+  }
+  else {
+    bool anyResolvable = false;
+    for (unsigned i = 0; i < mclen; i++) {
+      if (MatchingUtils::match((*mcl)[i], resLit, true)) {
+        anyResolvable = true;
+        break;
       }
     }
-    if(!anyResolvable) {
+    if (!anyResolvable) {
       return false;
     }
   }
 
-  return MLMatcher::canBeMatched(mcl,cl,cms->_matches,resLit);
+  return MLMatcher::canBeMatched(mcl, cl, cms->_matches, resLit);
 }
-
-
 
 class SubsumptionLogger
 {
