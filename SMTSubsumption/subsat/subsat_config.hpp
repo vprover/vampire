@@ -9,9 +9,19 @@ static_assert(VDEBUG == 0, "VDEBUG and NDEBUG are not synchronized");
 static_assert(VDEBUG == 1, "VDEBUG and NDEBUG are not synchronized");
 #endif
 
+
+/***********************************************************************
+ * Operation mode: stand-alone binary or embedded in Vampire
+ ***********************************************************************/
+
 #ifndef SUBSAT_STANDALONE
 #define SUBSAT_STANDALONE 0
 #endif
+
+
+/***********************************************************************
+ * Debugging features
+ ***********************************************************************/
 
 // By default, enable logging only in debug mode
 #ifndef SUBSAT_LOGGING_ENABLED
@@ -21,6 +31,28 @@ static_assert(VDEBUG == 1, "VDEBUG and NDEBUG are not synchronized");
 #       define SUBSAT_LOGGING_ENABLED 0
 #   endif
 #endif
+
+// By default, statistics are only enabled in standalone mode or if logging is enabled
+#if SUBSAT_STANDALONE || SUBSAT_LOGGING_ENABLED
+#define SUBSAT_STATISTICS 1
+#else
+#define SUBSAT_STATISTICS 0
+#endif
+
+// If SUBSAT_STATISTICS_INTERVAL is set, print statistics periodically
+// (interval is measured in number of loop iterations)
+#if SUBSAT_STATISTICS && !defined(SUBSAT_STATISTICS_INTERVAL)
+#define SUBSAT_STATISTICS_INTERVAL (VDEBUG ? 500 : 5000)
+#endif
+
+// TODO: disable this by default in Vampire mode (to not slow down vampire's debug mode too much),
+//       but only when this is ready to merge.
+#define SUBSAT_EXPENSIVE_ASSERTIONS 1
+
+
+/***********************************************************************
+ * Solving features
+ ***********************************************************************/
 
 // Clause learning
 // ASSESSMENT: important
@@ -94,23 +126,6 @@ static_assert(VDEBUG == 1, "VDEBUG and NDEBUG are not synchronized");
 #ifndef SUBSAT_SIMPLIFY_AMOS
 #define SUBSAT_SIMPLIFY_AMOS 1
 #endif
-
-// By default, statistics are only enabled in standalone mode or if logging is enabled
-#if SUBSAT_STANDALONE || SUBSAT_LOGGING_ENABLED
-#define SUBSAT_STATISTICS 1
-#else
-#define SUBSAT_STATISTICS 0
-#endif
-
-// If SUBSAT_STATISTICS_INTERVAL is set, print statistics periodically
-// (interval is measured in number of loop iterations)
-#if SUBSAT_STATISTICS && !defined(SUBSAT_STATISTICS_INTERVAL)
-#define SUBSAT_STATISTICS_INTERVAL (VDEBUG ? 500 : 5000)
-#endif
-
-// TODO: disable this by default in Vampire mode (to not slow down vampire's debug mode too much),
-//       but only when this is ready to merge.
-#define SUBSAT_EXPENSIVE_ASSERTIONS 1
 
 
 #endif /* !SUBSAT_CONFIG_HPP */
