@@ -1432,8 +1432,17 @@ class SMTSubsumption::SMTSubsumptionImpl2
     bool checkSubsumptionResolution(Kernel::Clause* base, Kernel::Clause* instance, Kernel::Clause* conclusion)
     {
       setupSubsumptionResolution(base, instance);
-      if (!conclusion) {
-        return !solve();
+      if (conclusion == nullptr) {
+        if (solve()) {
+          std::cerr << "\% ***WRONG RESULT OF SUBSUMPTION RESOLUTION***" << std::endl;
+          std::cerr << "\%    base       = " << base->toString() << std::endl;
+          std::cerr << "\%    instance   = " << instance->toString() << std::endl;
+          std::cerr << "\% Should NOT be possible but found the following result:" << std::endl;
+          std::cerr << "\%    conclusion = " << getSubsumptionResolutionConclusion()->toString() << std::endl;
+          return false;
+        } else {
+          return true;
+        }
       }
     // TODO: add an RSTAT_MCTR to see the distribution of "number of possible consequences per SR". (just to see how common this situation is.)
       while (solve()) {
@@ -1443,6 +1452,11 @@ class SMTSubsumption::SMTSubsumptionImpl2
           return true;
         }
       }
+      std::cerr << "\% ***WRONG RESULT OF SUBSUMPTION RESOLUTION***" << std::endl;
+      std::cerr << "\%    base     = " << base->toString() << std::endl;
+      std::cerr << "\%    instance = " << instance->toString() << std::endl;
+      std::cerr << "\% Should have found this conclusion:" << std::endl;
+      std::cerr << "\%    expected = " << conclusion->toString() << std::endl;
       return false;
     }
 };  // class SMTSubsumptionImpl2

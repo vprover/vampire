@@ -559,12 +559,7 @@ bool ForwardSubsumptionAndResolution::perform(Clause* cl, Clause*& replacement, 
           result = true;
         }
 #if CHECK_SMT_SUBSUMPTION
-        if (!smtsubs.checkSubsumptionResolution(mcl, cl, resolutionClause)) {
-          std::cerr << "\% ***WRONG RESULT OF SUBSUMPTION RESOLUTION*** (1)" << std::endl;
-          std::cerr << "\% base       = " << mcl->toString() << std::endl;
-          std::cerr << "\% instance   = " << cl->toString() << std::endl;
-          std::cerr << "\% conclusion = " << (resolutionClause ? resolutionClause->toString() : "<no subsumption resolution possible>") << std::endl;
-        }
+        smtsubs.checkSubsumptionResolution(mcl, cl, resolutionClause);
 #endif
         if (resolutionClause) {
           goto fin;
@@ -588,12 +583,7 @@ bool ForwardSubsumptionAndResolution::perform(Clause* cl, Clause*& replacement, 
             result = true;
           }
 #if CHECK_SMT_SUBSUMPTION
-          if (!smtsubs.checkSubsumptionResolution(cms->_cl, cl, resolutionClause)) {
-            std::cerr << "\% ***WRONG RESULT OF SUBSUMPTION RESOLUTION*** (2)" << std::endl;
-            std::cerr << "\% base       = " << cms->_cl->toString() << std::endl;
-            std::cerr << "\% instance   = " << cl->toString() << std::endl;
-            std::cerr << "\% conclusion = " << (resolutionClause ? resolutionClause->toString() : "<no subsumption resolution possible>") << std::endl;
-          }
+          smtsubs.checkSubsumptionResolution(cms->_cl, cl, resolutionClause);
 #endif
           if (resolutionClause) {
             goto fin;
@@ -629,12 +619,7 @@ bool ForwardSubsumptionAndResolution::perform(Clause* cl, Clause*& replacement, 
           result = true;
         }
 #if CHECK_SMT_SUBSUMPTION
-        if (!smtsubs.checkSubsumptionResolution(cms->_cl, cl, resolutionClause)) {
-          std::cerr << "\% ***WRONG RESULT OF SUBSUMPTION RESOLUTION*** (3)" << std::endl;
-          std::cerr << "\% base       = " << cms->_cl->toString() << std::endl;
-          std::cerr << "\% instance   = " << cl->toString() << std::endl;
-          std::cerr << "\% conclusion = " << (resolutionClause ? resolutionClause->toString() : "<no subsumption resolution possible>") << std::endl;
-        }
+        smtsubs.checkSubsumptionResolution(cms->_cl, cl, resolutionClause);
 #endif
         if (resolutionClause) {
           goto fin;
