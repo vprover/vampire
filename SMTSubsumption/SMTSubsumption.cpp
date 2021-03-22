@@ -1682,7 +1682,7 @@ void ProofOfConcept::test(Clause* side_premise, Clause* main_premise)
   {
   SMTSubsumptionImpl2 impl;
   std::cout << "\nTESTING 'subsat' subsumption (v2)" << std::endl;
-  subsat_print_config(std::cout);
+  subsat::print_config(std::cout);
   std::cout << "SETUP" << std::endl;
   bool subsumed1 = impl.setupSubsumption(side_premise, main_premise);
   std::cout << "  => " << subsumed1 << std::endl;
@@ -1694,7 +1694,7 @@ void ProofOfConcept::test(Clause* side_premise, Clause* main_premise)
   {
   SMTSubsumptionImpl3 impl;
   std::cout << "\nTESTING 'subsat' subsumption (v3)" << std::endl;
-  subsat_print_config(std::cout);
+  subsat::print_config(std::cout);
   std::cout << "SETUP" << std::endl;
   impl.setupMainPremise(main_premise);
   bool subsumed1 = impl.setupSubsumption(side_premise);

@@ -54,7 +54,6 @@ struct ShowVecImpl {
 template<typename T, typename Allocator>
 std::ostream& operator<<(std::ostream& os, ShowVecImpl<T, Allocator> const& sv)
 {
-  using namespace numerical_chars;
   auto const& vec = sv.vec;
 
   if (vec.empty()) {
@@ -69,7 +68,10 @@ std::ostream& operator<<(std::ostream& os, ShowVecImpl<T, Allocator> const& sv)
     } else {
       os << ", ";
     }
-    os << x;
+    {
+      using namespace numerical_chars;
+      os << x;
+    }
   }
   os << " ]";
   return os;

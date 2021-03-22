@@ -6,7 +6,12 @@
 #include <limits>
 #include <ostream>
 
+#include "./subsat_config.hpp"
 #include "./vector_map.hpp"
+
+#if !SUBSAT_STANDALONE
+#include "Lib/STLAllocator.hpp"
+#endif
 
 namespace subsat {
 
@@ -21,9 +26,21 @@ using std::uint32_t;
 
 // TODO: use something like this instead of templates everywhere
 #if SUBSAT_STANDALONE
-// template <typename T>
-// using allocator_type = std::allocator<T>;
+template <typename T>
+using allocator_type = ::std::allocator<T>;
+#else
+template <typename T>
+using allocator_type = ::Lib::STLAllocator<T>;
 #endif
+
+using string = std::basic_string<char, std::char_traits<char>, allocator_type<char>>;
+
+// template <typename T>
+// using vector = std::vector<T, allocator_type<T>>;
+
+// template <typename K, typename T>
+// using vector_map = subsat::vector_map<K, T, allocator_type<T>>;
+
 
 class Lit;
 

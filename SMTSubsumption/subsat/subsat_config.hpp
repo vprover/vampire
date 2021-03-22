@@ -113,8 +113,4 @@ static_assert(VDEBUG == 1, "VDEBUG and NDEBUG are not synchronized");
 #define SUBSAT_EXPENSIVE_ASSERTIONS 1
 
 
-#include <ostream>
-void subsat_print_config(std::ostream& os);
-
-
 #endif /* !SUBSAT_CONFIG_HPP */

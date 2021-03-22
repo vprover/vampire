@@ -33,6 +33,8 @@
 
 namespace subsat {
 
+void print_config(std::ostream& os);
+
 #if SUBSAT_STATISTICS
 struct Statistics {
   int conflicts = 0;              ///< Number of conflicts encountered.
@@ -59,7 +61,7 @@ struct Statistics {
 };
 static inline std::ostream& operator<<(std::ostream& os, Statistics const& stats)
 {
-  os << log::string(70, '-') << '\n';
+  os << subsat::string(70, '-') << '\n';
 #if SUBSAT_RESTART
   os << "Restarts:         " << std::setw(8) << stats.restarts << '\n';
 #endif

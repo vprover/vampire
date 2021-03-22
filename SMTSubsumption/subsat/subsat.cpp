@@ -4,7 +4,7 @@
 // TODO: move solver implementation here
 
 
-void subsat_print_config(std::ostream& os)
+void subsat::print_config(std::ostream& os)
 {
     os << "Features:";
     if (SUBSAT_STANDALONE) { os << " STANDALONE"; }
