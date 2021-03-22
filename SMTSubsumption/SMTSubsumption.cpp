@@ -1325,6 +1325,18 @@ class SMTSubsumption::SMTSubsumptionImpl2
         }
       }
 
+
+      // TODO: we are missing constraints
+      //  when an inst_lit is complementary-matched, then we cannot match anything else to it.
+      //  but when it is not complementary-matched, then we may match multiple base literals to it.
+      // binary clauses: ~compl \/ ~normal; maybe with an "in-between" variable so we don't need quadratically many clauses.
+      //
+// % ***WRONG RESULT OF SUBSUMPTION RESOLUTION***
+// %    base       = 1. ~p(X0,X1,X2,X3,X4) | p(X5,X1,X2,X3,X4) [input]
+// %    instance   = 366. ~neq(X10,X11) | ~neq(X10,s0) | ~neq(X12,X11) | ~neq(X10,X12) | ~neq(X10,X13) | ~neq(X12,s0) | ~neq(X13,X14) | ~neq(X13,X11) | ~neq(X10,X14) | p(X10,X13,X14,s0,s0) [duplicate literal removal 362]
+// % Should NOT be possible but found the following result:
+// %    conclusion = 406. ~neq(X10,X11) | ~neq(X10,s0) | ~neq(X12,X11) | ~neq(X10,X12) | ~neq(X10,X13) | ~neq(X12,s0) | ~neq(X13,X14) | ~neq(X13,X11) | ~neq(X10,X14) [subsumption resolution 366,1]
+
       // At least one complementary match
       // NOTE: this clause is required. Without it, we may get a false subsumption
       //       (because subsumption resolution uses set-matching and not multiset-matching)
