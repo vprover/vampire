@@ -10,6 +10,7 @@
 #include "Kernel/Matcher.hpp"
 #include "Kernel/MLMatcher.hpp"
 #include "Kernel/ColorHelper.hpp"
+#include "Debug/RuntimeStatistics.hpp"
 
 #include <chrono>
 #include <iostream>
@@ -1129,6 +1130,16 @@ class SMTSubsumption::SMTSubsumptionImpl2
       uint32_t const remaining_base_len = base->length();
 #endif
 
+/*
+      uint32_t base_n_commutative = 0;
+      for (unsigned i = 0; i < base->length(); ++i) {
+        Literal* base_lit = base->literals()[i];
+        if (base_lit->commutative()) {
+          base_n_commutative += 1;
+        }
+      }
+*/
+
       // Here we store the AtMostOne constraints saying that each instance literal may be matched at most once.
       // Each instance literal can be matched by at most 2 boolean vars per base literal (two orientations of equalities).
       // NOTE: instance constraints cannot be packed densely because we only know their shape at the end.
@@ -1155,6 +1166,9 @@ class SMTSubsumption::SMTSubsumptionImpl2
 #endif
 
         // Build clause stating that base_lit must be matched to at least one corresponding instance literal.
+        // NOTE: we do not need an AtMostOne constraint with the same literals, because
+        //       1) different literals will induce different substitutions so this is already built-in via the theory propagation (and because we don't have clauses with duplicate literals)
+        //       2) even if 1) were false, a solution with multiple matches could always be reduced to a solution with one match per literal.
         solver.constraint_start();
 
         for (unsigned j = 0; j < instance->length(); ++j) {
@@ -1242,6 +1256,10 @@ class SMTSubsumption::SMTSubsumptionImpl2
     }  // setupSubsumption
 
 
+    // TODO: allocate this into one big array...
+    vvector<vvector<subsat::Var>> inst_normal_matches;
+    vvector<vvector<subsat::Var>> inst_compl_matches;
+
     /// Set up the subsumption resolution problem from scratch.
     /// Returns false if no solution is possible.
     /// Otherwise, solve() needs to be called.
@@ -1254,6 +1272,12 @@ class SMTSubsumption::SMTSubsumptionImpl2
       ASS(theory.empty());
       complementary_matches.clear();
       ASS(complementary_matches.empty());
+
+      // TODO: improve allocation behaviour
+      inst_normal_matches.clear();
+      inst_normal_matches.resize(instance->length());
+      inst_compl_matches.clear();
+      inst_compl_matches.resize(instance->length());
 
       m_base = base;
       m_instance = instance;
@@ -1276,6 +1300,7 @@ class SMTSubsumption::SMTSubsumptionImpl2
                 subsat::Var b = solver.new_variable(i);
                 theory.commit_bindings(binder, b);
                 solver.constraint_push_literal(b);
+                inst_normal_matches[j].push_back(b);
                 match_count += 1;
               }
             }
@@ -1285,6 +1310,7 @@ class SMTSubsumption::SMTSubsumptionImpl2
                 subsat::Var b = solver.new_variable(i);
                 theory.commit_bindings(binder, b);
                 solver.constraint_push_literal(b);
+                inst_normal_matches[j].push_back(b);
                 match_count += 1;
               }
             }
@@ -1299,6 +1325,7 @@ class SMTSubsumption::SMTSubsumptionImpl2
                 theory.commit_bindings(binder, b);
                 solver.constraint_push_literal(b);
                 complementary_matches.push_back({b, j});
+                inst_compl_matches[j].push_back(b);
                 match_count += 1;
               }
             }
@@ -1309,6 +1336,7 @@ class SMTSubsumption::SMTSubsumptionImpl2
                 theory.commit_bindings(binder, b);
                 solver.constraint_push_literal(b);
                 complementary_matches.push_back({b, j});
+                inst_compl_matches[j].push_back(b);
                 match_count += 1;
               }
             }
@@ -1336,6 +1364,25 @@ class SMTSubsumption::SMTSubsumptionImpl2
 // %    instance   = 366. ~neq(X10,X11) | ~neq(X10,s0) | ~neq(X12,X11) | ~neq(X10,X12) | ~neq(X10,X13) | ~neq(X12,s0) | ~neq(X13,X14) | ~neq(X13,X11) | ~neq(X10,X14) | p(X10,X13,X14,s0,s0) [duplicate literal removal 362]
 // % Should NOT be possible but found the following result:
 // %    conclusion = 406. ~neq(X10,X11) | ~neq(X10,s0) | ~neq(X12,X11) | ~neq(X10,X12) | ~neq(X10,X13) | ~neq(X12,s0) | ~neq(X13,X14) | ~neq(X13,X11) | ~neq(X10,X14) [subsumption resolution 366,1]
+      for (unsigned j = 0; j < instance->length(); ++j) {
+        uint32_t const nnormal = inst_normal_matches[j].size();
+        uint32_t const ncompl = inst_compl_matches[j].size();
+        if (nnormal >= 2 && ncompl >= 2 && nnormal + ncompl > 4) {
+          // TODO: more sophisticated encoding with helper variable? instead of the 'matrix' encoding below
+          RSTAT_CTR_INC("would do SR sophisticated encoding");
+        }
+        // Idea: instance literal is complementary-matched => cannot be normal-matched
+        // basic implementation using binary clauses.
+        for (subsat::Var const b_compl : inst_compl_matches[j]) {
+          for (subsat::Var const b_normal : inst_normal_matches[j]) {
+            solver.constraint_start();
+            solver.constraint_push_literal(~b_compl);
+            solver.constraint_push_literal(~b_normal);
+            auto handle = solver.constraint_end();
+            solver.add_clause_unsafe(handle);
+          }
+        }
+      }
 
       // At least one complementary match
       // NOTE: this clause is required. Without it, we may get a false subsumption
@@ -1445,6 +1492,7 @@ class SMTSubsumption::SMTSubsumptionImpl2
     {
       setupSubsumptionResolution(base, instance);
       if (conclusion == nullptr) {
+        RSTAT_CTR_INC("failed subsumption resolutions");
         if (solve()) {
           std::cerr << "\% ***WRONG RESULT OF SUBSUMPTION RESOLUTION***" << std::endl;
           std::cerr << "\%    base       = " << base->toString() << std::endl;
@@ -1456,20 +1504,23 @@ class SMTSubsumption::SMTSubsumptionImpl2
           return true;
         }
       }
-    // TODO: add an RSTAT_MCTR to see the distribution of "number of possible consequences per SR". (just to see how common this situation is.)
+      int found = 0;
       while (solve()) {
         // Found another model, build the corresponding result
         Kernel::Clause* cl = getSubsumptionResolutionConclusion();
         if (checkClauseEquality(cl, conclusion)) {
-          return true;
+          found += 1;
         }
       }
-      std::cerr << "\% ***WRONG RESULT OF SUBSUMPTION RESOLUTION***" << std::endl;
-      std::cerr << "\%    base     = " << base->toString() << std::endl;
-      std::cerr << "\%    instance = " << instance->toString() << std::endl;
-      std::cerr << "\% Should have found this conclusion:" << std::endl;
-      std::cerr << "\%    expected = " << conclusion->toString() << std::endl;
-      return false;
+      RSTAT_MCTR_INC("subsumption resolution #possible consequences", found);
+      if (found == 0) {
+        std::cerr << "\% ***WRONG RESULT OF SUBSUMPTION RESOLUTION***" << std::endl;
+        std::cerr << "\%    base     = " << base->toString() << std::endl;
+        std::cerr << "\%    instance = " << instance->toString() << std::endl;
+        std::cerr << "\% Should have found this conclusion:" << std::endl;
+        std::cerr << "\%    expected = " << conclusion->toString() << std::endl;
+      }
+      return (found > 0);
     }
 };  // class SMTSubsumptionImpl2
 
