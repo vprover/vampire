@@ -43,7 +43,6 @@
 #undef RSTAT_COLLECTION
 #define RSTAT_COLLECTION 1
 
-
 namespace Kernel
 {
 

@@ -22,6 +22,7 @@
 #include "Lib/Environment.hpp"
 #include "Lib/TimeCounter.hpp"
 #include "Lib/Timer.hpp"
+#include "Shell/SearchSpaceDumper.hpp"
 #include "SAT/Z3Interfacing.hpp"
 #include "Shell/SearchSpaceDumper.hpp"
 
