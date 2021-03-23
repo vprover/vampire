@@ -8,6 +8,8 @@
 #include "./types.hpp"
 #include "./log.hpp"
 
+#include "Lib/DHMap.hpp"
+
 #if !SUBSAT_STANDALONE
 #include "Kernel/Term.hpp"
 #endif
@@ -17,7 +19,12 @@ namespace subsat {
 
 
 /// Domain of the substitution: Vampire's FOL variables
-using VampireVar = unsigned int;
+using VampireVar = unsigned;
+
+
+/// Since vampire variables aren't necessarily contiguous,
+/// we map them to contiguous integers ("position") first.
+using VampireVarPos = std::uint32_t;
 
 
 #if !SUBSAT_STANDALONE
@@ -201,14 +208,11 @@ public:
         VampireVar var = entry.first;
         VampireTerm term = entry.second;
         LOG_TRACE(SHOWVAR(var) << " -> " << SHOWTERM(term));
-        while (var >= m_bindings_by_var.size()) {
-          m_bindings_by_var.emplace_back();
+        VampireVarPos pos = m_var_pos.findOrInsert(var, m_var_pos.size());
+        while (pos >= m_bindings_by_pos.size()) {
+          m_bindings_by_pos.emplace_back();
         }
-        auto& var_bindings = m_bindings_by_var[var];
-        if (var_bindings.empty()) {
-          m_used_vars.push_back(var);
-        }
-        var_bindings.push_back({b, term});
+        m_bindings_by_pos[pos].push_back({b, term});
       }
     }
   }
@@ -238,10 +242,10 @@ public:
 #endif
     m_bindings_storage.clear();
     m_bindings.clear();
-    for (VampireVar v : m_used_vars) {
-      m_bindings_by_var[v].clear();
+    for (VampireVarPos pos = 0; pos < m_var_pos.size(); ++pos) {
+      m_bindings_by_pos[pos].clear();
     }
-    m_used_vars.clear();
+    m_var_pos.reset();
   }
 
   bool empty() const noexcept
@@ -250,9 +254,9 @@ public:
     if (is_empty) {
       // ASS(m_state == State::Setup);   // not true if there's no bindings?
       ASS(m_bindings_storage.empty());
-      ASS(m_used_vars.empty());
+      ASS(m_var_pos.isEmpty());
 #if VDEBUG
-      for (auto const& vec : m_bindings_by_var) {
+      for (auto const& vec : m_bindings_by_pos) {
         ASS(vec.empty());
       }
 #endif
@@ -264,8 +268,10 @@ public:
   {
     m_bindings_storage.reserve(bool_var_count * bindings_per_bool_var);
     m_bindings.reserve(bool_var_count);
-    m_used_vars.reserve(vampire_var_count);
-    m_bindings_by_var.reserve(4*vampire_var_count);
+    m_bindings_by_pos.reserve(vampire_var_count);
+    for (VampireVarPos pos = 0; pos < vampire_var_count; ++pos) {
+      m_bindings_by_pos.emplace_back();
+    }
   }
 
 public:
@@ -285,14 +291,16 @@ public:
     {
       ASS(m_state == State::Solving);
       // Retrieve the bindings corresponding to the given boolean variable
-      BindingsRef bindings = m_bindings[b];
+      BindingsRef const bindings = m_bindings[b];
 
       // Exhaustively propagate the conflicting atoms
       for (std::uint32_t i = bindings.index; i < bindings.end(); ++i) {
         // Substitution constraint (X0 -> t) for b
-        BindingsEntry entry = m_bindings_storage[i];
+        BindingsEntry const entry = m_bindings_storage[i];
+        VampireVar const var = entry.first;
+        VampireVarPos const pos = m_var_pos.get(var);
         // Go through possible other mappings for X0
-        for (auto q : m_bindings_by_var[entry.first]) {
+        for (auto const q : m_bindings_by_pos[pos]) {
           if (q.second != entry.second) {
             // conflicting substitution constraints
             subsat::Var const conflicting_var = q.first;  // conflicting variable
@@ -314,17 +322,10 @@ private:
 
   vector_map<subsat::Var, BindingsRef> m_bindings;
 
-  // TODO: instead of these bindings, just store a vector_map<subsat::Var, vector<subsat::Var>>
-  // that lists for each boolean variable the list of propagations.
-  // This list can be built lazily during solving. Need also a flag whether the vector is initialized.
-  // combined: vector_map<subsat::Var, std::pair<bool, vector<subsat::Var>>> ??
-  // separate:
-  // vector_map<subsat::Var, char>
-  // vector_map<subsat::Var, vector<subsat::Var>>
-  //
-  // Unfortunately vampire variables don't need to be contiguous
-  vector<VampireVar> m_used_vars;
-  vector_map<VampireVar, vector<std::pair<subsat::Var, VampireTerm>>> m_bindings_by_var;
+  // Unfortunately vampire variables don't need to be contiguous,
+  // so we map them to contiguous integers ("position") first.
+  Lib::DHMap<VampireVar, VampireVarPos, Kernel::IdentityHash> m_var_pos;
+  vector_map<VampireVarPos, vector<std::pair<subsat::Var, VampireTerm>>> m_bindings_by_pos;
 
 #ifndef NDEBUG
   State m_state = State::Setup;
