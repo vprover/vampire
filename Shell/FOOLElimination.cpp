@@ -896,8 +896,8 @@ void FOOLElimination::collectSorts(VList* vars, TermStack& typeVars,
   while (fvi.hasNext()) {
     unsigned var = fvi.next();
     ASS_REP(_varSorts.find(var), var);    
-    TermList sort = _varSorts.get(var, Term::defaultSort());
-    if(sort == Term::superSort()){
+    TermList sort = _varSorts.get(var, AtomicSort::defaultSort());
+    if(sort == AtomicSort::superSort()){
       //variable is a type var
       allVars.push(TermList(var, false));
       typeVars.push(TermList(var, false));

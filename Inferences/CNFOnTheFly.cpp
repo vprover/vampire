@@ -682,12 +682,12 @@ TermList sigmaRemoval(TermList sigmaTerm, TermList expsrt){
   SortHelper::normaliseArgSorts(typeVars, termVarSorts);
   SortHelper::normaliseSort(typeVars, resultSort);
 
-  TermList skSymSort = Term::arrowSort(termVarSorts, resultSort);
+  TermList skSymSort = AtomicSort::arrowSort(termVarSorts, resultSort);
   unsigned fun = Skolem::addSkolemFunction(typeVars.size(), typeVars.size(), 0, skSymSort);
   TermList head = TermList(Term::create(fun, typeVars.size(), typeVars.begin()));
   TermList skolemTerm = ApplicativeHelper::createAppTerm(SortHelper::getResultSort(head.term()), head, termVars);
 
-  ASS(*expsrt.term()->nthArgument(1) == Term::boolSort());
+  ASS(*expsrt.term()->nthArgument(1) == AtomicSort::boolSort());
   //cout << "OUT OF sigmaRemoval " + sigmaTerm.toString() << endl;
 
   return skolemTerm;

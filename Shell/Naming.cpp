@@ -1163,7 +1163,7 @@ Literal* Naming::getDefinitionLiteral(Formula* f, VList* freeVars) {
     return Literal::create(pred, arity, true, false, allVars.begin());
   } else {
     unsigned fun = env.signature->addNameFunction(typeVars.size());
-    TermList sort = Term::arrowSort(termVarSorts, AtomicSort::boolSort());
+    TermList sort = AtomicSort::arrowSort(termVarSorts, AtomicSort::boolSort());
     Signature::Symbol* sym = env.signature->getFunction(fun);
     sym->setType(OperatorType::getConstantsType(sort, typeArgArity)); 
     TermList head = TermList(Term::create(fun, typeVars.size(), typeVars.begin()));

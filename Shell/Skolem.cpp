@@ -403,8 +403,8 @@ Formula* Skolem::skolemise (Formula* f)
       VarSet::Iterator vuIt(*dep);
       while(vuIt.hasNext()) {
         unsigned uvar = vuIt.next();
-        TermList sort = _varSorts.get(uvar, Term::defaultSort());
-        if(sort == Term::superSort()){
+        TermList sort = _varSorts.get(uvar, AtomicSort::defaultSort());
+        if(sort == AtomicSort::superSort()){
           //This a type variable
           TermList var = TermList(uvar, false);
           allVars.push(var);
@@ -452,7 +452,7 @@ Formula* Skolem::skolemise (Formula* f)
         } else {
           //The higher-order case. Create the term
           //sk(typevars) @ termvar_1 @ termvar_2 @ ... @ termvar_n
-          TermList skSymSort = Term::arrowSort(termVarSorts, rangeSort);
+          TermList skSymSort = AtomicSort::arrowSort(termVarSorts, rangeSort);
           unsigned fun = addSkolemFunction(typeVars.size(), 0, skSymSort, v, typeVars.size());
           _introducedSkolemFuns.push(fun);
           TermList head = TermList(Term::create(fun, typeVars.size(), typeVars.begin()));

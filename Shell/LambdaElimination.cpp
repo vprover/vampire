@@ -276,7 +276,7 @@ TermList LambdaElimination::elimLambda(TermList term)
     }
   }
 
-  if(!AH::isApp(t)){
+  if(!t->isApplication()){
     return term;
   }
 
@@ -304,7 +304,7 @@ TermList LambdaElimination::elimLambda(Stack<int>& vars, TermStack& sorts,
     int v = vars.pop();
     TermList s = sorts.pop();
     bodye = elimLambda(v, s, bodye, sort);
-    sort = Term::arrowSort(s, sort);
+    sort = AtomicSort::arrowSort(s, sort);
   }
 
   return bodye;
@@ -335,7 +335,7 @@ TermList LambdaElimination::elimLambda(int var, TermList varSort,
   TermList s2 = *t->nthArgument(1);  
   TermList arg1 = *t->nthArgument(2);
   TermList arg2 = *t->nthArgument(3);
-  TermList a1sort = Term::arrowSort(s1, s2);
+  TermList a1sort = AtomicSort::arrowSort(s1, s2);
   TermList a2sort = s1;
 
   bool freeInArg1 = arg1.isFreeVariable(var);
@@ -348,18 +348,18 @@ TermList LambdaElimination::elimLambda(int var, TermList varSort,
 
   if (freeInArg1 && freeInArg2){
     TermList arg1e = elimLambda(var, varSort, arg1, a1sort);
-    TermList s1e = Term::arrowSort(varSort, a1sort);
+    TermList s1e = AtomicSort::arrowSort(varSort, a1sort);
     TermList arg2e = elimLambda(var, varSort, arg2, a2sort);
-    TermList s2e = Term::arrowSort(varSort, a2sort);     
+    TermList s2e = AtomicSort::arrowSort(varSort, a2sort);     
     return createSCorBTerm(arg1e, s1e, arg2e, s2e, Signature::S_COMB);
   } else if (freeInArg1) {
     TermList arg1e = elimLambda(var, varSort, arg1, a1sort);
-    TermList s1e = Term::arrowSort(varSort, a1sort);
+    TermList s1e = AtomicSort::arrowSort(varSort, a1sort);
     return createSCorBTerm(arg1e, s1e, arg2, a2sort, Signature::C_COMB);
   } else{
     ASS(freeInArg2);
     TermList arg2e = elimLambda(var, varSort, arg2, a2sort); 
-    TermList s2e = Term::arrowSort(varSort, a2sort);     
+    TermList s2e = AtomicSort::arrowSort(varSort, a2sort);     
     return createSCorBTerm(arg1, a1sort, arg2e, s2e, Signature::B_COMB);
   }
 }
@@ -561,8 +561,8 @@ void LambdaElimination::addProxyAxioms(Problem& prb)
   TermList y = TermList(2, false);
 
   TermList choiceSort = AtomicSort::arrowSort(AtomicSort::arrowSort(s1, AtomicSort::boolSort()), s1);
-  unsigned skolem1 = Skolem::addSkolemFunction(1,0, choiceSort, new VList(0));
-  unsigned skolem2 = Skolem::addSkolemFunction(1,0, choiceSort, new VList(0));
+  unsigned skolem1 = Skolem::addSkolemFunction(1,1,0, choiceSort);
+  unsigned skolem2 = Skolem::addSkolemFunction(1,1,0, choiceSort);
   TermList sk1 = TermList(Term::create1(skolem1, s1));
   TermList sk2 = TermList(Term::create1(skolem2, s1));
 

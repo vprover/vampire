@@ -421,7 +421,7 @@ void HeuristicInstantiationIndex::handleClause(Clause* c, bool adding)
         Literal* newLit = EqHelper::replace(lit, leftArgs[i], freshVar);
         newLit->setPolarity(!newLit->polarity());
         Term* eqForm = Term::createFormula(new Kernel::AtomicFormula(newLit));
-        Term* lambdaTerm = Term::createLambda(TermList(eqForm), boundVar, boundVarSortList, Term::boolSort());
+        Term* lambdaTerm = Term::createLambda(TermList(eqForm), boundVar, boundVarSortList, AtomicSort::boolSort());
         combTerm = LambdaElimination().elimLambda(lambdaTerm);
         if(!_insertedInstantiations.contains(combTerm)){
         /*cout << "lhs is " + lit->nthArgument(0)->toString() << endl;
@@ -439,7 +439,7 @@ void HeuristicInstantiationIndex::handleClause(Clause* c, bool adding)
         newLit = EqHelper::replace(lit, rightArgs[i], freshVar);
         newLit->setPolarity(!newLit->polarity());        
         eqForm = Term::createFormula(new Kernel::AtomicFormula(newLit));
-        lambdaTerm = Term::createLambda(TermList(eqForm), boundVar, boundVarSortList, Term::boolSort());
+        lambdaTerm = Term::createLambda(TermList(eqForm), boundVar, boundVarSortList, AtomicSort::boolSort());
         combTerm = LambdaElimination().elimLambda(lambdaTerm);
         if(!_insertedInstantiations.contains(combTerm)){
         /*cout << "rhs is " + lit->nthArgument(1)->toString() << endl;
