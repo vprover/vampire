@@ -8,6 +8,8 @@
  * and in the source directory
  */
 #include "Kernel/Formula.hpp"
+#include "Kernel/Substitution.hpp"
+#include "Kernel/SubstHelper.hpp"
 
 #include "SymbolOccurrenceReplacement.hpp"
 
@@ -28,7 +30,7 @@ Term* SymbolOccurrenceReplacement::process(Term* term) {
             // function symbols, defined inside $let are expected to be
             // disjoint and fresh symbols are expected to be fresh
             ASS_NEQ(sd->getFunctor(), _symbol);
-            ASS_NEQ(sd->getFunctor(), _freshSymbol);
+            //ASS_NEQ(sd->getFunctor(), _freshSymbol);
           }
           return Term::createLet(sd->getFunctor(), sd->getVariables(), process(sd->getBinding()), process(*term->nthArgument(0)), sd->getSort());
 
@@ -40,7 +42,7 @@ Term* SymbolOccurrenceReplacement::process(Term* term) {
           // function symbols, defined inside $let are expected to be
           // disjoint and fresh symbols are expected to be fresh
           ASS_NEQ(sd->getFunctor(), _symbol);
-          ASS_NEQ(sd->getFunctor(), _freshSymbol);
+          //ASS_NEQ(sd->getFunctor(), _freshSymbol);
         }
         return Term::createTupleLet(sd->getFunctor(), sd->getTupleSymbols(), process(sd->getBinding()), process(*term->nthArgument(0)), sd->getSort());
 
@@ -56,24 +58,26 @@ Term* SymbolOccurrenceReplacement::process(Term* term) {
 
   bool renaming = !_isPredicate && (term->functor() == _symbol);
 
-  Stack<TermList> arguments;
+  TermList* arg = term->args();
+  TermStack arguments;
+  Substitution substitution;
 
   if (renaming) {
-    VList::Iterator fvit(_freeVars);
+    VList::Iterator fvit(_argVars);
     while (fvit.hasNext()) {
       unsigned var = fvit.next();
-      arguments.push(TermList(var, false));
+      substitution.bind(var, process(*arg));
+      arg = arg->next();
     }
-  }
-
-  Term::Iterator it(term);
-  while (it.hasNext()) {
-    arguments.push(process(it.next()));
+  } else {
+    while (!arg->isEmpty()) {
+      arguments.push(process(*arg));
+      arg = arg->next();
+    }  
   }
 
   if (renaming) {
-    unsigned arity = term->arity() + VList::length(_freeVars);
-    return Term::create(_freshSymbol, arity, arguments.begin());
+    return SubstHelper::apply(_freshApplication, substitution);
   } else {
     return Term::create(term, arguments.begin());
   }
@@ -97,26 +101,30 @@ Formula* SymbolOccurrenceReplacement::process(Formula* formula) {
 
       bool renaming = _isPredicate && (literal->functor() == _symbol);
 
-      Stack<TermList> arguments;
+      TermList* arg = literal->args();
+      TermStack arguments;
+      Substitution substitution;
 
       if (renaming) {
-        VList::Iterator fvit(_freeVars);
+        VList::Iterator fvit(_argVars);
         while (fvit.hasNext()) {
-          arguments.push(TermList(fvit.next(), false));
+          unsigned var = fvit.next();
+          substitution.bind(var, process(*arg));
+          arg = arg->next();
         }
-      }
-
-      Term::Iterator lit(literal);
-      while (lit.hasNext()) {
-        arguments.push(process(lit.next()));
+      } else {
+        while (!arg->isEmpty()) {
+          arguments.push(process(*arg));
+          arg = arg->next();
+        }    
       }
 
       Literal* processedLiteral;
       if (renaming) {
-        unsigned arity = literal->arity() + VList::length(_freeVars);
-        bool polarity = (bool)literal->polarity();
-        bool commutative = (bool)literal->commutative();
-        processedLiteral = Literal::create(_freshSymbol, arity, polarity, commutative, arguments.begin());
+        processedLiteral = SubstHelper::apply(static_cast<Literal*>(_freshApplication), substitution);
+        if(!literal->polarity()){
+          processedLiteral = Literal::complementaryLiteral(processedLiteral);
+        }
       } else {
         processedLiteral = Literal::create(literal, arguments.begin());
       }

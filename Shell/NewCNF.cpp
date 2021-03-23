@@ -791,9 +791,11 @@ TermList NewCNF::nameLetBinding(unsigned symbol, VList* bindingVariables, TermLi
     arguments.push(TermList(var, false));
   }
 
+  Term* freshApplication;
 
   if (isPredicate) {
     Literal* name = Literal::create(freshSymbol, nameArity, POSITIVE, false, arguments.begin());
+    freshApplication = name;
     Formula* nameFormula = new AtomicFormula(name);
 
     Formula* formulaBinding = BoolTermFormula::create(binding);
@@ -804,6 +806,7 @@ TermList NewCNF::nameLetBinding(unsigned symbol, VList* bindingVariables, TermLi
     }
   } else {
     TermList name = TermList(Term::create(freshSymbol, nameArity, arguments.begin()));
+    freshApplication = name.term();
     Formula* nameFormula = new AtomicFormula(Literal::createEquality(POSITIVE, name, binding, nameSort));
 
     enqueue(nameFormula);
@@ -812,7 +815,7 @@ TermList NewCNF::nameLetBinding(unsigned symbol, VList* bindingVariables, TermLi
   }
   
   if (renameSymbol) {
-    SymbolOccurrenceReplacement replacement(isPredicate, symbol, freshSymbol, bindingFreeVars);
+    SymbolOccurrenceReplacement replacement(isPredicate, freshApplication, symbol, bindingVariables);
     return replacement.process(contents);
   }
 

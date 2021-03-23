@@ -48,7 +48,7 @@ public:
    * and another. 
    *
    * The main use case is to store a different term in the leaf to the one indexed 
-   * in the tree. This use for example in Skolemisation on the fly where we 
+   * in the tree. This is used for example in Skolemisation on the fly where we 
    * store Terms of type $o (formulas) in the tree, but in the leaf we store
    * the skolem terms used to witness them (to facilitate the reuse of Skolems)
    */

@@ -32,11 +32,17 @@ class LambdaElimination {
 public:
 
   LambdaElimination() {};
-  LambdaElimination(DHMap<unsigned,TermList> varSorts) : _varSorts(varSorts){};
+//  LambdaElimination(DHMap<unsigned,TermList> varSorts) : _varSorts(varSorts){};
+
+  /** Set of recursive functions that rconvert lambda terms to 
+   *  combinatory terms and replace logical symbols by proxies.
+   *  It can be used as an alternative to FOOLElimination
+   */
   TermList elimLambda(Term* lambdaTerm);
-  TermList processBeyondLambda(Term*);
-  TermList processBeyondLambda(Formula*);
-  TermList processBeyondLambda(TermList);
+  TermList elimLambda(TermList term);
+  TermList elimLambda(Stack<int>& vars, TermStack& sorts, TermList body, TermList sort);
+  TermList elimLambda(int var, TermList varSort, TermList body, TermList sort);
+  TermList elimLambda(Formula*);
   
   //void addFunctionExtensionalityAxioms(UnitList*& units);
   //void addBooleanExtensionalityAxiom(UnitList*& units);
@@ -60,17 +66,20 @@ private:
     
   TermList sortOf(TermList t);
 
-  void addToProcessed(TermList ts, Stack<unsigned> &_argNums);
-  void dealWithApp(TermList lhs, TermList rhs, const unsigned lambdaVar, TermStack &toBeProcessed, Stack<unsigned> &argNums);
+  void addToProcessed(TermList ts, TermList sort, Stack<unsigned> &_argNums);
+  void dealWithApp(Term* app, const unsigned lambdaVar, 
+    TermStack &toBeProcessed, TermStack &sorts, Stack<unsigned> &argNums);
 
   TermList createKTerm(TermList s1, TermList s2, TermList arg1);
-  TermList createSCorBTerm(TermList arg1, TermList arg2, Signature::Combinator comb);
+  TermList createSCorBTerm(TermList arg1, TermList arg1sort, 
+        TermList arg2, TermList arg2sort, Signature::Combinator comb);
   
-  void process(Stack<int> &vars, TermStack &sorts, TermStack &toBeProcessed);
+  void process(Stack<int> &vars, TermStack &varSorts, 
+               TermStack &toBeProcessed, TermStack &sorts);
   
   /** Lexical scope of the current unit */
-  DHMap<unsigned,TermList> _varSorts;
   TermStack _processed;
+  TermStack _processedSorts;
   Stack<Signature::Combinator> _combinators;
 };
 

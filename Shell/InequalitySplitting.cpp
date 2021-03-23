@@ -24,6 +24,7 @@
 #include "Kernel/Term.hpp"
 #include "Kernel/Unit.hpp"
 #include "Kernel/ApplicativeHelper.hpp"
+#include "Kernel/TermIterators.hpp"
 
 #include "Indexing/TermSharing.hpp"
 
@@ -149,16 +150,24 @@ Literal* InequalitySplitting::splitLiteral(Literal* lit, UnitInputType inpType, 
   ASS(isSplittable(lit));
 
   TermList srt = SortHelper::getEqualityArgumentSort(lit);
-  VList* vars = srt.freeVariables();
+  TermStack vars;
+
+  VariableIterator vit(srt);
+  while(vit.hasNext()){
+    vars.push(vit.next());
+  }
+
+  SortHelper::normaliseSort(vars, srt);
+
   unsigned fun;
   OperatorType* type;
   if(!_appify){
-    fun=env.signature->addNamePredicate(VList::length(vars) + 1);
-    type = OperatorType::getPredicateType({srt}, vars);
+    fun=env.signature->addNamePredicate(vars.size() + 1);
+    type = OperatorType::getPredicateType({srt}, vars.size());
   } else {
-    srt = AtomicSort::arrowSort(srt, AtomicSort::boolSort());
-    fun=env.signature->addNameFunction(VList::length(vars));
-    type = OperatorType::getConstantsType(srt, vars);
+    srt = Term::arrowSort(srt, AtomicSort::boolSort());
+    fun=env.signature->addNameFunction(vars.size());
+    type = OperatorType::getConstantsType(srt, vars.size());
   }
 
 
@@ -216,31 +225,21 @@ bool InequalitySplitting::isSplittableEqualitySide(TermList t)
   return t.isTerm() && t.term()->ground() && t.term()->weight()>=_splittingTreshold;
 }
 
-Literal* InequalitySplitting::makeNameLiteral(unsigned predNum, TermList arg, bool polarity, VList* vars)
+Literal* InequalitySplitting::makeNameLiteral(unsigned predNum, TermList arg, bool polarity, TermStack vars)
 {
   CALL("InequalitySplitting::makeNameLiteral");
  
-  TermStack args;
-  while(!VList::isEmpty(vars)){
-    unsigned var = vars->head();
-    vars = vars->tail();
-    args.push(TermList(var, false));
-  }
   if(!_appify){
-    args.push(arg);
-  }
-  Literal* lit;
-  if(!_appify){
-    lit = Literal::create(predNum, args.size(), polarity, false, args.begin());
+    vars.push(arg);
+    return Literal::create(predNum, vars.size(), polarity, false, vars.begin());
   } else {
     TermList boolT = polarity ? TermList(Term::foolTrue()) : TermList(Term::foolFalse());
-    TermList head = TermList(Term::create(predNum, args.size(), args.begin()));
+    TermList head = TermList(Term::create(predNum, vars.size(), vars.begin()));
     TermList headS = SortHelper::getResultSort(head.term());
     TermList t = ApplicativeHelper::createAppTerm(headS, head, arg);
-    lit=Literal::createEquality(true, t, boolT, AtomicSort::boolSort());
+    return Literal::createEquality(true, t, boolT, AtomicSort::boolSort());
   }
 
-  return lit;
 }
 
 

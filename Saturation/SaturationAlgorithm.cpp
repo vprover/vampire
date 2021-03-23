@@ -572,8 +572,8 @@ void SaturationAlgorithm::onClauseReduction(Clause* cl, Clause** replacements, u
 
   if (replacement) {
     //Where an inference has multiple conclusions, onParenthood will only be run 
-    //for the final conclusion. This is unsafe when running with symbol elimination
-    //at the moment the only simplification rules that have multiple conclusions
+    //for the final conclusion. This is unsafe when running with symbol elimination.
+    //At the moment the only simplification rules that have multiple conclusions
     //are higher-order and it is assumed that we will not run higher-order along
     //with symbol elimination.
     //In the future if a first-order simplification rule is added with multiple 
@@ -1649,16 +1649,7 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
     // fsd should be performed after forward subsumption,
     // because every successful forward subsumption will lead to a (useless) match in fsd.
     if (opt.forwardSubsumptionDemodulation()) {
-      if (prb.hasPolymorphicSym()) { // TODO: extend ForwardSubsumptionDemodulation to support polymorphism
-        if (outputAllowed()) {
-          env.beginOutput();
-          addCommentSignForSZS(env.out());
-          env.out() << "WARNING: Not using ForwardSubsumptionDemodulation currently not compatible with polymorphic inputs." << endl;
-          env.endOutput();
-        }
-      } else {
-        res->addForwardSimplifierToFront(new ForwardSubsumptionDemodulation(false));
-      }
+      res->addForwardSimplifierToFront(new ForwardSubsumptionDemodulation(false));
     }
   }
   if (prb.hasEquality()) {
@@ -1709,16 +1700,7 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
     }
   }
   if (prb.hasEquality() && opt.backwardSubsumptionDemodulation()) {
-    if (prb.hasPolymorphicSym()) { // TODO: extend BackwardSubsumptionDemodulation to support polymorphism
-      if (outputAllowed()) {
-        env.beginOutput();
-        addCommentSignForSZS(env.out());
-        env.out() << "WARNING: Not using BackwardSubsumptionDemodulation currently not compatible with polymorphic inputs." << endl;
-        env.endOutput();
-      }
-    } else {
-      res->addBackwardSimplifierToFront(new BackwardSubsumptionDemodulation());
-    }
+    res->addBackwardSimplifierToFront(new BackwardSubsumptionDemodulation());
   }
   if (opt.backwardSubsumption() != Options::Subsumption::OFF) {
     bool byUnitsOnly=opt.backwardSubsumption()==Options::Subsumption::UNIT_ONLY;
@@ -1806,27 +1788,9 @@ ImmediateSimplificationEngine* SaturationAlgorithm::createISE(Problem& prb, cons
   }
   if(prb.hasInterpretedOperations() || prb.hasInterpretedEquality()) {
     if (env.options->gaussianVariableElimination()) {
-      if (prb.hasPolymorphicSym()) { // TODO: extend GaussianVariableElimination to live alongside polymorphism!
-        if (outputAllowed()) {
-          env.beginOutput();
-          addCommentSignForSZS(env.out());
-          env.out() << "WARNING: Not using GaussianVariableElimination currently not compatible with polymorphic inputs." << endl;
-          env.endOutput();
-        }
-      } else {
-        res->addFront(new GaussianVariableElimination());
-      }
+      res->addFront(new GaussianVariableElimination());
     }
-    if (prb.hasPolymorphicSym()) { // TODO: extend InterpretedEvaluation to alongside polymorphism!
-      if (outputAllowed()) {
-        env.beginOutput();
-        addCommentSignForSZS(env.out());
-        env.out() << "WARNING: Not using InterpretedEvaluation currently not compatible with polymorphic inputs." << endl;
-        env.endOutput();
-      }
-    } else {
-      res->addFront(new InterpretedEvaluation(env.options->inequalityNormalization(), ordering));
-    }
+    res->addFront(new InterpretedEvaluation(env.options->inequalityNormalization(), ordering));
   }
   if(prb.hasEquality()) {
     res->addFront(new TrivialInequalitiesRemovalISE());

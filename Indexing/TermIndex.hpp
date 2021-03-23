@@ -19,6 +19,7 @@
 #include "Index.hpp"
 
 #include "TermIndexingStructure.hpp"
+#include "Lib/Set.hpp"
 
 namespace Indexing {
 
@@ -78,6 +79,58 @@ private:
   Ordering& _ord;
   const Options& _opt;
 };
+
+/**
+ * Term index for backward demodulation
+ */
+class DemodulationSubtermIndex
+: public TermIndex
+{
+public:
+  // people seemed to like the class, although it add's no interface on top of TermIndex
+  DemodulationSubtermIndex(TermIndexingStructure* is)
+  : TermIndex(is) {};
+protected:
+  // it's the implementation of this below in DemodulationSubtermIndexImpl, which makes this work
+  void handleClause(Clause* c, bool adding) = 0;
+};
+
+template <bool combinatorySupSupport>
+class DemodulationSubtermIndexImpl
+: public DemodulationSubtermIndex
+{
+public:
+  CLASS_NAME(DemodulationSubtermIndexImpl);
+  USE_ALLOCATOR(DemodulationSubtermIndexImpl);
+
+  DemodulationSubtermIndexImpl(TermIndexingStructure* is)
+  : DemodulationSubtermIndex(is) {};
+protected:
+  void handleClause(Clause* c, bool adding);
+};
+
+/**
+ * Term index for forward demodulation
+ */
+class DemodulationLHSIndex
+: public TermIndex
+{
+public:
+  CLASS_NAME(DemodulationLHSIndex);
+  USE_ALLOCATOR(DemodulationLHSIndex);
+
+  DemodulationLHSIndex(TermIndexingStructure* is, Ordering& ord, const Options& opt)
+  : TermIndex(is), _ord(ord), _opt(opt) {};
+protected:
+  void handleClause(Clause* c, bool adding);
+private:
+  Ordering& _ord;
+  const Options& _opt;
+};
+
+/////////////////////////////////////////////////////
+// Indices for higher-order inferences from here on//
+/////////////////////////////////////////////////////
 
 class PrimitiveInstantiationIndex
 : public TermIndex
@@ -155,6 +208,21 @@ public:
   void insertFormula(TermList formula, TermList skolem);
 };
 
+class HeuristicInstantiationIndex
+: public TermIndex
+{
+public:
+  CLASS_NAME(HeuristicInstantiationIndex);  
+  USE_ALLOCATOR(HeuristicInstantiationIndex);
+  
+  HeuristicInstantiationIndex(TermIndexingStructure* is) : TermIndex(is)
+  {}
+protected:
+  void insertInstantiation(TermList sort, TermList instantiation);
+  void handleClause(Clause* c, bool adding);
+private:
+  Set<TermList> _insertedInstantiations;
+};
 
 class RenamingFormulaIndex
 : public TermIndex
@@ -168,54 +236,6 @@ public:
   void insertFormula(TermList formula, TermList name, Literal* lit, Clause* cls);
 protected:
   void handleClause(Clause* c, bool adding);
-};
-
-/**
- * Term index for backward demodulation
- */
-class DemodulationSubtermIndex
-: public TermIndex
-{
-public:
-  // people seemed to like the class, although it add's no interface on top of TermIndex
-  DemodulationSubtermIndex(TermIndexingStructure* is)
-  : TermIndex(is) {};
-protected:
-  // it's the implementation of this below in DemodulationSubtermIndexImpl, which makes this work
-  void handleClause(Clause* c, bool adding) = 0;
-};
-
-template <bool combinatorySupSupport>
-class DemodulationSubtermIndexImpl
-: public DemodulationSubtermIndex
-{
-public:
-  CLASS_NAME(DemodulationSubtermIndexImpl);
-  USE_ALLOCATOR(DemodulationSubtermIndexImpl);
-
-  DemodulationSubtermIndexImpl(TermIndexingStructure* is)
-  : DemodulationSubtermIndex(is) {};
-protected:
-  void handleClause(Clause* c, bool adding);
-};
-
-/**
- * Term index for forward demodulation
- */
-class DemodulationLHSIndex
-: public TermIndex
-{
-public:
-  CLASS_NAME(DemodulationLHSIndex);
-  USE_ALLOCATOR(DemodulationLHSIndex);
-
-  DemodulationLHSIndex(TermIndexingStructure* is, Ordering& ord, const Options& opt)
-  : TermIndex(is), _ord(ord), _opt(opt) {};
-protected:
-  void handleClause(Clause* c, bool adding);
-private:
-  Ordering& _ord;
-  const Options& _opt;
 };
 
 };

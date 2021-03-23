@@ -98,6 +98,9 @@ public:
     Clause* clause;
     Literal* literal;
     TermList term;
+    // In some higher-order use cases, we want to store a different term 
+    // in the leaf to the indexed term. extraTerm is used for this purpose.
+    // In all other situations it is empty
     TermList extraTerm;
 
     vstring toString(){
@@ -257,7 +260,7 @@ public:
           CALL("SubstitutionTree::ChildBySortHelper::childBySort");
           TermList srt;
           // only consider interpreted sorts
-          if(SortHelper::tryGetResultSort(t,srt)){
+          if(SortHelper::tryGetResultSort(t,srt) && !srt.isVar()){
             ASS(srt.isTerm());
             unsigned con = srt.term()->functor(); 
             if(!srt.term()->isSuper() && env.signature->isInterpretedNonDefault(con)){
@@ -283,7 +286,8 @@ public:
           CALL("SubstitutionTree::ChildBySortHelper::mightExistAsTop");
           if(!t.isTerm()){ return; }
           TermList srt;
-          if(SortHelper::tryGetResultSort(t,srt) && !srt.term()->isSuper()){
+          if(SortHelper::tryGetResultSort(t,srt) &&  !srt.isVar() && 
+             !srt.term()->isSuper()){
             unsigned con = srt.term()->functor();
             if(env.signature->isInterpretedNonDefault(con)){
               unsigned f = t.term()->functor();
@@ -298,7 +302,8 @@ public:
           CALL("SubstitutionTree::ChildBySortHelper::remove");
           if(!t.isTerm()){ return;}
           TermList srt;
-          if(SortHelper::tryGetResultSort(t,srt) && !srt.term()->isSuper()){
+          if(SortHelper::tryGetResultSort(t,srt) && !srt.isVar() &&  
+             !srt.term()->isSuper()){
             unsigned con = srt.term()->functor();
             if(env.signature->isInterpretedNonDefault(con)){
               unsigned f = t.term()->functor();

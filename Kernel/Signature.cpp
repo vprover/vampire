@@ -153,15 +153,16 @@ void Signature::Symbol::addToDistinctGroup(unsigned group,unsigned this_number)
  *
  * The type can be set only once for each symbol, and if the type
  * should be different from the default type, this function must be
- * called before any call to @c fnType() or @c predType().
+ * called before any call to @c fnType(), @c predType() or @c typeConType().
  */
 void Signature::Symbol::setType(OperatorType* type)
 {
   CALL("Signature::Symbol::setType");
   ASS_REP(!_type, _type->toString());
 
+  // this is copied out to the Symbol for convenience
   _typeArgsArity = type->typeArgsArity(); 
-  _type = type;
+  _type = type;  
 }
 
 /**
@@ -472,7 +473,7 @@ unsigned Signature::addInterpretedFunction(Interpretation interpretation, Operat
   }
 
   vstring symbolKey = name+"_i"+Int::toString(interpretation)+(Theory::isPolymorphic(interpretation) ? type->toString() : "");
-  ASS(!_funNames.find(symbolKey));
+  ASS_REP(!_funNames.find(symbolKey), name);
 
   unsigned fnNum = _funs.length();
   InterpretedSymbol* sym = new InterpretedSymbol(name, interpretation);
@@ -737,14 +738,10 @@ unsigned Signature::getApp()
   bool added = false;
   unsigned app = addFunction("vAPP", 4, added);
   if(added){
-    _appFun = app;
-    VList* vl = VList::empty();
-    VList::push(1, vl);
-    VList::push(0, vl);
     TermList tv1 = TermList(0, false);
     TermList tv2 = TermList(1, false);
     TermList arrowType = AtomicSort::arrowSort(tv1, tv2);
-    OperatorType* ot = OperatorType::getFunctionType({arrowType, tv1}, tv2, vl);
+    OperatorType* ot = OperatorType::getFunctionType({arrowType, tv1}, tv2, 2);
     Symbol* sym = getFunction(app);
     sym->setType(ot);
   }
@@ -757,15 +754,12 @@ unsigned Signature::getDiff(){
   bool added = false;
   unsigned diff = addFunction("diff",2, added);      
   if(added){
-    VList* vl = VList::empty();
-    VList::push(1, vl);
-    VList::push(0, vl);
     TermList alpha = TermList(0, false);
     TermList beta = TermList(1, false);
     TermList alphaBeta = AtomicSort::arrowSort(alpha, beta);
     TermList result = AtomicSort::arrowSort(alphaBeta, alphaBeta, alpha);
     Symbol * sym = getFunction(diff);
-    sym->setType(OperatorType::getConstantsType(result, vl));
+    sym->setType(OperatorType::getConstantsType(result, 2));
   }
   return diff;
 }
@@ -777,13 +771,12 @@ unsigned Signature::getChoice(){
   bool added = false;
   unsigned choice = addFunction("vEPSILON",1, added);      
   if(added){
-    VList* vl = VList::singleton(0);
     TermList alpha = TermList(0, false);
     TermList bs = AtomicSort::boolSort();
     TermList alphaBs = AtomicSort::arrowSort(alpha, bs);
     TermList result = AtomicSort::arrowSort(alphaBs, alpha);
     Symbol * sym = getFunction(choice);
-    sym->setType(OperatorType::getConstantsType(result, vl));
+    sym->setType(OperatorType::getConstantsType(result, 1));
   }
   return choice;
 }

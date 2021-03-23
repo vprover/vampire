@@ -562,6 +562,7 @@ set(VAMPIRE_SHELL_SOURCES
     Shell/EqResWithDeletion.cpp
     #Shell/EqualityAxiomatizer.cpp
     Shell/EqualityProxy.cpp
+    Shell/EqualityProxyMono.cpp    
     Shell/Flattening.cpp
     Shell/FunctionDefinition.cpp
     Shell/GeneralSplitting.cpp
@@ -630,6 +631,7 @@ set(VAMPIRE_SHELL_SOURCES
     Shell/EqResWithDeletion.hpp
     #Shell/EqualityAxiomatizer.hpp
     Shell/EqualityProxy.hpp
+    Shell/EqualityProxyMono.hpp
     Shell/Flattening.hpp
     Shell/FunctionDefinition.hpp
     Shell/GeneralSplitting.hpp

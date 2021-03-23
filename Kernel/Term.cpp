@@ -85,9 +85,9 @@ void Term::destroy ()
   CALL("Term::destroy");
   ASS(CHECK_LEAKS || ! shared());
 
-  size_t sz = sizeof(Term)+_arity*sizeof(TermList);
+  size_t sz = sizeof(Term)+_arity*sizeof(TermList)+getPreDataSize();
   void* mem = this;
-  mem = reinterpret_cast<void*>(reinterpret_cast<char*>(mem)+getPreDataSize()); // MS: shouldn't here be "-getPreDataSize()" to complement the "operator new" above?
+  mem = reinterpret_cast<void*>(reinterpret_cast<char*>(mem)-getPreDataSize());
   DEALLOC_KNOWN(mem,sz,"Term");
 } // Term::destroy
 
@@ -1043,8 +1043,8 @@ Term* Term::createNonShared(Term* t,TermList* args)
 
 
 
-/** Create a new complex term, and insert it into the sharing
- *  structure if all arguments are shared.
+/** Create a new complex term, and do not insert it into the sharing
+ *  structure.
  */
 Term* Term::createNonShared(unsigned function, unsigned arity, TermList* args)
 {
@@ -1702,14 +1702,14 @@ Literal* Literal::createEquality (bool polarity, TermList arg1, TermList arg2, T
        ASS_REP(arg2.isVar(), arg2.toString());
        return createVariableEquality(polarity, arg1, arg2, sort);
      }
-     ASS(checkSortSubst.match(sort, 0, srt2, 1));
+     ASS(env.sharing->isWellSortednessCheckingDisabled() || checkSortSubst.match(sort, 0, srt2, 1));
    }
    else {    
-    ASS_REP2(checkSortSubst.match(sort, 0, srt1, 1), sort.toString(), srt1.toString());
+    ASS_REP2(env.sharing->isWellSortednessCheckingDisabled() || checkSortSubst.match(sort, 0, srt1, 1), sort.toString(), srt1.toString());
 #if VDEBUG
      if (SortHelper::tryGetResultSort(arg2, srt2)) {
        checkSortSubst.reset();
-       ASS_REP2(checkSortSubst.match(sort, 0, srt2, 1), sort.toString(), arg2.toString() + " :  " + srt2.toString());
+       ASS_REP2(env.sharing->isWellSortednessCheckingDisabled() || checkSortSubst.match(sort, 0, srt2, 1), sort.toString(), arg2.toString() + " :  " + srt2.toString());
      }
 #endif
    }

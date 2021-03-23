@@ -46,7 +46,8 @@ TermSharing::TermSharing()
     _literalInsertions(0),
     _sortInsertions(0),
     _termInsertions(0),
-    _poly(1)
+    _poly(1),
+    _wellSortednessCheckingDisabled(false)
 {
   CALL("TermSharing::TermSharing");
 }
@@ -198,10 +199,10 @@ Term* TermSharing::insert(Term* t)
 
     //poly function works for mono as well, but is slow
     //it is fine to use for debug
-    ASS_REP(SortHelper::areImmediateSortsValidPoly(t), t->toString());
-    if (!_poly && !SortHelper::areImmediateSortsValidMono(t)){
+    ASS_REP(_wellSortednessCheckingDisabled || SortHelper::areImmediateSortsValidPoly(t), t->toString());
+    if (!_poly && !SortHelper::areImmediateSortsValidMono(t) && !_wellSortednessCheckingDisabled){
       USER_ERROR("Immediate (shared) subterms of  term/literal "+t->toString()+" have different types/not well-typed!");
-    } else if (_poly && !SortHelper::areImmediateSortsValidPoly(t)){
+    } else if (_poly && !SortHelper::areImmediateSortsValidPoly(t) && !_wellSortednessCheckingDisabled){
       USER_ERROR("Immediate (shared) subterms of  term/literal "+t->toString()+" have different types/not well-typed!");      
     }
   }
@@ -332,12 +333,10 @@ Literal* TermSharing::insert(Literal* t)
     t->setInterpretedConstantsPresence(hasInterpretedConstants);
     _totalLiterals++;
 
-
-
-     ASS_REP(SortHelper::areImmediateSortsValidPoly(t), t->toString());
-    if (!_poly && !SortHelper::areImmediateSortsValidMono(t)){
+     ASS_REP(_wellSortednessCheckingDisabled || SortHelper::areImmediateSortsValidPoly(t), t->toString());
+    if (!_poly && !SortHelper::areImmediateSortsValidMono(t) && !_wellSortednessCheckingDisabled){
       USER_ERROR("Immediate (shared) subterms of  term/literal "+t->toString()+" have different types/not well-typed!");
-    } else if (_poly && !SortHelper::areImmediateSortsValidPoly(t)){
+    } else if (_poly && !SortHelper::areImmediateSortsValidPoly(t) && !_wellSortednessCheckingDisabled){
       USER_ERROR("Immediate (shared) subterms of  term/literal "+t->toString()+" have different types/not well-typed!");      
     }
   }

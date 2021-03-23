@@ -29,6 +29,7 @@
 #include "DistinctGroupExpansion.hpp"
 #include "EqResWithDeletion.hpp"
 #include "EqualityProxy.hpp"
+#include "EqualityProxyMono.hpp"
 #include "Flattening.hpp"
 #include "FunctionDefinition.hpp"
 #include "GeneralSplitting.hpp"
@@ -214,12 +215,10 @@ void Preprocess::preprocess(Problem& prb)
   }
 
   if (prb.hasFOOL() || env.statistics->higherOrder) {//or lambda
-    //ASS(!env.statistics->polymorphic); //FOOL + polymorphism currently does not work
-
     // This is the point to extend the signature with $$true and $$false
     // If we don't have fool then these constants get in the way (a lot)
 
-    if (!_options.newCNF() || env.statistics->higherOrder) {
+    if (!_options.newCNF() || env.statistics->polymorphic || env.statistics->higherOrder) {
       if (env.options->showPreprocessing())
         env.out() << "FOOL elimination" << std::endl;
   
@@ -453,8 +452,14 @@ void Preprocess::preprocess(Problem& prb)
      if (env.options->showPreprocessing())
        env.out() << "equality proxy" << std::endl;
 
-     EqualityProxy proxy(_options.equalityProxy());
-     proxy.apply(prb);
+     if(_options.useMonoEqualityProxy() && !prb.hasPolymorphicSym()){
+       EqualityProxyMono proxy(_options.equalityProxy());
+       proxy.apply(prb);
+     } else {
+       //default
+       EqualityProxy proxy(_options.equalityProxy());
+       proxy.apply(prb);
+     }
    }
 
    
@@ -475,23 +480,13 @@ void Preprocess::preprocess(Problem& prb)
      }
    }
 
-   //bce hasn't been updated to deal with polymorphism
    if (_options.blockedClauseElimination()) {
-     if (prb.hasPolymorphicSym()) { // TODO: extend BlockedClauseElimination to support polymorphism!
-       if (outputAllowed()) {
-         env.beginOutput();
-         addCommentSignForSZS(env.out());
-         env.out() << "WARNING: Not using BlockedClauseElimination currently not compatible with polymorphic inputs." << endl;
-         env.endOutput();
-       }
-     } else {
-       env.statistics->phase=Statistics::BLOCKED_CLAUSE_ELIMINATION;
-       if(env.options->showPreprocessing())
-         env.out() << "blocked clause elimination" << std::endl;
+     env.statistics->phase=Statistics::BLOCKED_CLAUSE_ELIMINATION;
+     if(env.options->showPreprocessing())
+       env.out() << "blocked clause elimination" << std::endl;
 
-       BlockedClauseElimination bce;
-       bce.apply(prb);
-     }
+     BlockedClauseElimination bce;
+     bce.apply(prb);
    }
 
    if (env.options->showPreprocessing()) {

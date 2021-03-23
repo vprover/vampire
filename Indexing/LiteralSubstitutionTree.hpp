@@ -100,9 +100,9 @@ private:
       }
     }
 
-    //dummy. UnificationFilter needs a leave function to undo the sort unification
+    //dummy. UnificationFilter needs a leave function to undo the sort unification.
     //MatchingFilter doesn't require this, since the sort unifier is added onto
-    //the final term unifier and undone by the next call to backTrack() in FatsGen 
+    //the final term unifier and undone by the next call to backTrack() in FastGen 
     //or FastInst iterator.
     void leave(const SLQueryResult& res){  }
   private:

@@ -112,53 +112,53 @@ FormulaUnit* Skolem::skolemiseImpl (FormulaUnit* unit, bool appify)
 }
 
 unsigned Skolem::addSkolemFunction(unsigned arity, TermList* domainSorts,
-    TermList rangeSort, unsigned var, VList* vl)
+    TermList rangeSort, unsigned var, unsigned taArity)
 {
   CALL("Skolem::addSkolemFunction(unsigned,unsigned*,unsigned,unsigned)");
 
   if(VarManager::varNamePreserving()) {
     vstring varName=VarManager::getVarName(var);
-    return addSkolemFunction(arity, domainSorts, rangeSort, vl, varName.c_str());
+    return addSkolemFunction(arity, taArity, domainSorts, rangeSort, varName.c_str());
   }
   else {
-    return addSkolemFunction(arity, domainSorts, rangeSort, vl);
+    return addSkolemFunction(arity, taArity, domainSorts, rangeSort);
   }
 }
 
-unsigned Skolem::addSkolemFunction(unsigned arity, TermList* domainSorts,
-    TermList rangeSort, VList* vl, const char* suffix)
+unsigned Skolem::addSkolemFunction(unsigned arity, unsigned taArity, TermList* domainSorts,
+    TermList rangeSort, const char* suffix)
 {
   CALL("Skolem::addSkolemFunction(unsigned,TermList*,TermList,const char*)");
   //ASS(arity==0 || domainSorts!=0);
 
   unsigned fun = env.signature->addSkolemFunction(arity, suffix);
   Signature::Symbol* fnSym = env.signature->getFunction(fun);
-  OperatorType* ot = OperatorType::getFunctionType(arity - VList::length(vl), domainSorts, rangeSort, vl);
+  OperatorType* ot = OperatorType::getFunctionType(arity - taArity, domainSorts, rangeSort, taArity);
   fnSym->setType(ot);
   return fun;
 }
 
-unsigned Skolem::addSkolemPredicate(unsigned arity, TermList* domainSorts, unsigned var, VList* vl)
+unsigned Skolem::addSkolemPredicate(unsigned arity, TermList* domainSorts, unsigned var, unsigned taArity)
 {
   CALL("Skolem::addSkolemPredicate(unsigned,unsigned*,unsigned,unsigned)");
 
   if(VarManager::varNamePreserving()) {
     vstring varName=VarManager::getVarName(var);
-    return addSkolemPredicate(arity, domainSorts, vl, varName.c_str());
+    return addSkolemPredicate(arity, taArity, domainSorts, varName.c_str());
   }
   else {
-    return addSkolemPredicate(arity, domainSorts, vl);
+    return addSkolemPredicate(arity, taArity, domainSorts);
   }
 }
 
-unsigned Skolem::addSkolemPredicate(unsigned arity, TermList* domainSorts, VList* vl, const char* suffix)
+unsigned Skolem::addSkolemPredicate(unsigned arity, unsigned taArity, TermList* domainSorts, const char* suffix)
 {
   CALL("Skolem::addSkolemPredicate(unsigned,unsigned*,unsigned,const char*)");
   //ASS(arity==0 || domainSorts!=0);
 
   unsigned pred = env.signature->addSkolemPredicate(arity, suffix);
   Signature::Symbol* pSym = env.signature->getPredicate(pred);
-  OperatorType* ot = OperatorType::getPredicateType(arity - VList::length(vl), domainSorts, vl);
+  OperatorType* ot = OperatorType::getPredicateType(arity - taArity, domainSorts, taArity);
   pSym->setType(ot);
   return pred;
 }
@@ -359,20 +359,23 @@ Formula* Skolem::skolemise (Formula* f)
 
   case EXISTS: 
     {
-      //cout << "skolemising " + f->toString() << endl;
       // create the skolems for the existentials here
       // and bind them in _subst
       unsigned arity = 0;
       ensureHavingVarSorts();
-      static Stack<TermList> argSorts;
-      static Stack<TermList> termArgs;
-      static Stack<TermList> args;
-      argSorts.reset();
-      termArgs.reset();
-      args.reset();
+      static TermStack allVars;
+      static TermStack typeVars;
+      static TermStack termVars;
+      static TermStack termVarSorts;
+      termVarSorts.reset();
+      termVars.reset();
+      allVars.reset();
+      typeVars.reset();
 
       // for proof recording purposes, see below
       VList* varArgs = VList::empty();
+      //We use a FIFO structure since in the polymorphic case
+      //a variable list must be of the form [typevars, termvars]
       VList::FIFO vArgs(varArgs);
       Formula* before = SubstHelper::apply(f, _subst);
 
@@ -400,51 +403,60 @@ Formula* Skolem::skolemise (Formula* f)
       VarSet::Iterator vuIt(*dep);
       while(vuIt.hasNext()) {
         unsigned uvar = vuIt.next();
-        TermList sort = _varSorts.get(uvar, AtomicSort::defaultSort());
-        if(sort == AtomicSort::superSort()){
-          args.push(TermList(uvar, false));
+        TermList sort = _varSorts.get(uvar, Term::defaultSort());
+        if(sort == Term::superSort()){
+          //This a type variable
+          TermList var = TermList(uvar, false);
+          allVars.push(var);
+          typeVars.push(var);
           vArgs.pushFront(uvar);
         } else {
+          //This is a term variable
           if(sort.isVar() || !sort.term()->shared() || !sort.term()->ground()){
+            //the sort may include existential type variables that have been skolemised 
+            //above
             sort = SubstHelper::apply(sort, _subst);
           }
-          argSorts.push(sort);
-          termArgs.push(TermList(uvar, false));
+          termVarSorts.push(sort);
+          termVars.push(TermList(uvar, false));
           vArgs.pushBack(uvar);
         }
         arity++;
       }
-      ASS(termArgs.size() == argSorts.size());
 
-      VList* vl = VList::empty();
-      for(int i = args.size() -1; i >= 0 ; i--){
-        VList::push(args[i].var(), vl);
+      for(unsigned i = 0; i < termVars.size() && !_appify; i++){
+        allVars.push(termVars[i]);
       }
+      SortHelper::normaliseArgSorts(typeVars, termVarSorts);
 
-      for(unsigned i = 0; i < termArgs.size() && !_appify; i++){
-        args.push(termArgs[i]);
-      }
-      
       VList::Iterator vs(f->vars());
       while (vs.hasNext()) {
         unsigned v = vs.next();
         TermList rangeSort=_varSorts.get(v, AtomicSort::defaultSort());
         if(rangeSort.isVar() || !rangeSort.term()->shared() || 
            !rangeSort.term()->ground()){
+          //the range sort may include existential type variables that have been skolemised 
+          //above
           rangeSort = SubstHelper::apply(rangeSort, _subst);
         }
+
+        SortHelper::normaliseSort(typeVars, rangeSort);
         Term* skolemTerm;
 
         if(!_appify){
-          unsigned fun = addSkolemFunction(arity, argSorts.begin(), rangeSort, v, vl);
+          //Not the higher-order case. Create the term
+          //sk(typevars, termvars).
+          unsigned fun = addSkolemFunction(arity, termVarSorts.begin(), rangeSort, v, typeVars.size());
           _introducedSkolemFuns.push(fun);
-          skolemTerm = Term::create(fun, arity, args.begin());
+          skolemTerm = Term::create(fun, arity, allVars.begin());
         } else {
-          TermList skSymSort = AtomicSort::arrowSort(argSorts, rangeSort);
-          unsigned fun = addSkolemFunction(VList::length(vl), 0, skSymSort, v, vl);
+          //The higher-order case. Create the term
+          //sk(typevars) @ termvar_1 @ termvar_2 @ ... @ termvar_n
+          TermList skSymSort = Term::arrowSort(termVarSorts, rangeSort);
+          unsigned fun = addSkolemFunction(typeVars.size(), 0, skSymSort, v, typeVars.size());
           _introducedSkolemFuns.push(fun);
-          TermList head = TermList(Term::create(fun, args.size(), args.begin()));
-          skolemTerm = ApplicativeHelper::createAppTerm(skSymSort, head, termArgs).term();
+          TermList head = TermList(Term::create(fun, typeVars.size(), typeVars.begin()));
+          skolemTerm = ApplicativeHelper::createAppTerm(skSymSort, head, termVars).term();
         }
 
         env.statistics->skolemFunctions++;

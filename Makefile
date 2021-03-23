@@ -355,6 +355,7 @@ VS_OBJ = Shell/AnswerExtractor.o\
          Shell/DistinctGroupExpansion.o\
          Shell/EqResWithDeletion.o\
          Shell/EqualityProxy.o\
+         Shell/EqualityProxyMono.o\
          Shell/Flattening.o\
          Shell/FunctionDefinition.o\
          Shell/GeneralSplitting.o\

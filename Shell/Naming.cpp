@@ -1111,15 +1111,15 @@ bool Naming::canBeInDefinition(Formula* f, Where where) {
 Literal* Naming::getDefinitionLiteral(Formula* f, VList* freeVars) {
   CALL("Naming::getDefinitionLiteral");
 
-  unsigned length = VList::length(freeVars);
+  unsigned arity = VList::length(freeVars);
 
-  static Stack<TermList> argSorts;
-  static Stack<TermList> termArgs;
-  static Stack<TermList> args;
+  static TermStack termVarSorts;
+  static TermStack termVars;
+  static TermStack typeVars;
   static DHMap<unsigned, TermList> varSorts;
-  argSorts.reset();
-  termArgs.reset();
-  args.reset();
+  termVarSorts.reset();
+  termVars.reset();
+  typeVars.reset();
   varSorts.reset();
 
   SortHelper::collectVariableSorts(f, varSorts);
@@ -1129,25 +1129,24 @@ Literal* Naming::getDefinitionLiteral(Formula* f, VList* freeVars) {
     unsigned uvar = vit.next();
     TermList sort = varSorts.get(uvar, AtomicSort::defaultSort());
     if(sort == AtomicSort::superSort()){
-      args.push(TermList(uvar, false));     
+      typeVars.push(TermList(uvar, false));     
     } else {
-      termArgs.push(TermList(uvar, false));
-      argSorts.push(sort);
+      termVars.push(TermList(uvar, false));
+      termVarSorts.push(sort);
     }
   }
-  ASS(termArgs.size() == argSorts.size());
 
-  VList* vl = VList::empty();
-  for(int i = args.size() -1; i >= 0; i--){
-    VList::push(args[i].var(), vl);
-  }
+  unsigned typeArgArity = typeVars.size();
+  TermStack& allVars = typeVars;
 
-  for(unsigned i = 0; i < termArgs.size() && !_appify; i++){
-    args.push(termArgs[i]);
+  SortHelper::normaliseArgSorts(typeVars, termVarSorts);
+
+  for(unsigned i = 0; i < termVars.size() && !_appify; i++){
+    allVars.push(termVars[i]);
   }
 
   if(!_appify){
-    unsigned pred = env.signature->addNamePredicate(length);
+    unsigned pred = env.signature->addNamePredicate(arity);
     Signature::Symbol* predSym = env.signature->getPredicate(pred);
 
     if (env.colorUsed) {
@@ -1160,15 +1159,15 @@ Literal* Naming::getDefinitionLiteral(Formula* f, VList* freeVars) {
       }
     }
 
-    predSym->setType(OperatorType::getPredicateType(length - VList::length(vl), argSorts.begin(), vl));
-    return Literal::create(pred, length, true, false, args.begin());
+    predSym->setType(OperatorType::getPredicateType(arity - typeArgArity, termVarSorts.begin(), typeArgArity));
+    return Literal::create(pred, arity, true, false, allVars.begin());
   } else {
-    unsigned fun = env.signature->addNameFunction(args.size());
-    TermList sort = AtomicSort::arrowSort(argSorts, AtomicSort::boolSort());
+    unsigned fun = env.signature->addNameFunction(typeVars.size());
+    TermList sort = Term::arrowSort(termVarSorts, AtomicSort::boolSort());
     Signature::Symbol* sym = env.signature->getFunction(fun);
-    sym->setType(OperatorType::getConstantsType(sort, vl)); 
-    TermList head = TermList(Term::create(fun, args.size(), args.begin()));
-    TermList t = ApplicativeHelper::createAppTerm(sort, head, termArgs);
+    sym->setType(OperatorType::getConstantsType(sort, typeArgArity)); 
+    TermList head = TermList(Term::create(fun, typeVars.size(), typeVars.begin()));
+    TermList t = ApplicativeHelper::createAppTerm(sort, head, termVars);
     return  Literal::createEquality(true, TermList(t), TermList(Term::foolTrue()), AtomicSort::boolSort());  
   }
 }

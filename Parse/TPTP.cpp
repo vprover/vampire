@@ -1418,7 +1418,7 @@ void TPTP::tff()
             ? addUninterpretedConstant(nm, _overflow, added)
             : env.signature->addFunction(nm, arity, added);
         Signature::Symbol* symbol = env.signature->getFunction(fun);
-        OperatorType* ot = OperatorType::getFunctionTypeUniformRange(arity, AtomicSort::superSort(), AtomicSort::superSort(), VList::empty());
+        OperatorType* ot = OperatorType::getFunctionTypeUniformRange(arity, AtomicSort::superSort(), AtomicSort::superSort());
         if (!added) {
           if(symbol->fnType()!=ot){
             PARSE_ERROR("Type constructor declared with two different types",tok);
@@ -2289,8 +2289,9 @@ void TPTP::funApp()
       return;
 
     case T_ITE:
-      if(env.statistics->polymorphic || env.statistics->higherOrder){
-        USER_ERROR("Polymorphic Vampire is currently not compatible with FOOL reasoning");
+      if(env.statistics->higherOrder){
+        //Does higher-order even use this code? I dont think so.
+        USER_ERROR("Higher-order Vampire is currently not compatible with FOOL reasoning");
       }
       consumeToken(T_LPAR);
       addTagState(T_RPAR);
@@ -2302,8 +2303,9 @@ void TPTP::funApp()
       return;
 
     case T_LET: {
-      if(env.statistics->polymorphic || env.statistics->higherOrder){
-        USER_ERROR("Polymorphic Vampire is currently not compatible with FOOL reasoning");
+      if(env.statistics->higherOrder){
+        //Does higher-order even use this code? I dont think so.        
+        USER_ERROR("Higher-order  Vampire is currently not compatible with FOOL reasoning");
       }
       consumeToken(T_LPAR);
       addTagState(T_RPAR);
@@ -2900,7 +2902,7 @@ void TPTP::term()
     case T_INTEGER_TYPE:
     case T_REAL_TYPE:
     case T_RATIONAL_TYPE: {
-      USER_ERROR("Polymorphic Vampire is currently not compatible with theory reasoning");
+      //USER_ERROR("Polymorphic Vampire is currently not compatible with theory reasoning");
       //the code below is in preparation for 
       //when theorey reasoning is updated to deal with polymorphism
       resetToks();
@@ -2924,7 +2926,7 @@ void TPTP::term()
     case T_INT:
     case T_REAL:
     case T_RAT: {
-      if(env.statistics->polymorphic || env.statistics->higherOrder){
+      if(/*env.statistics->polymorphic ||*/ env.statistics->higherOrder){
         USER_ERROR("Polymorphic Vampire is currently not compatible with theory reasoning");
       }
       resetToks();
@@ -3933,10 +3935,16 @@ OperatorType* TPTP::constructOperatorType(Type* t, VList* vars)
 
   bool isPredicate = resultSort == AtomicSort::boolSort();
   unsigned arity = (unsigned)argumentSorts.size();
+
+  if(env.statistics->polymorphic){
+    SortHelper::normaliseArgSorts(vars, argumentSorts);
+    SortHelper::normaliseSort(vars, resultSort);
+  }
+
   if (isPredicate && !_isThf) { //in THF, we treat predicates and boolean terms the same
-    return OperatorType::getPredicateType(arity, argumentSorts.begin(), vars);
+    return OperatorType::getPredicateType(arity, argumentSorts.begin(), VList::length(vars));
   } else {
-    return OperatorType::getFunctionType(arity, argumentSorts.begin(), resultSort, vars);
+    return OperatorType::getFunctionType(arity, argumentSorts.begin(), resultSort, VList::length(vars));
   }
 } // constructOperatorType
 
@@ -4298,7 +4306,7 @@ void TPTP::foldl(TermStack* terms)
 
 void TPTP::readTypeArgs(unsigned arity)
 {
-  CALL("TPTP::readApplicativeTypeTerm");
+  CALL("TPTP::readTypeArgs");
 
   for(unsigned i = 0; i < arity; i++){
     consumeToken(T_APP);
@@ -4335,6 +4343,13 @@ TermList TPTP::readSort()
         readTypeArgs(arity);
       } else {
         int c = getChar(0);
+        //Polymorphic sorts of are of the form 
+        //type_con(sort_1, ..., sort_n)
+        //the same as standard first-order terms.
+        //Code below works, but does not fit the philosophy of
+        //this parser. However, recursive calls to readSort are
+        //used in for array sorts and tuple sorts, so polymorphism
+        //isn't uniquely evil on this front!
         if(c == '('){
           consumeToken(T_LPAR);    
           for(;;){

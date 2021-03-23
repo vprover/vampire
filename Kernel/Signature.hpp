@@ -96,6 +96,9 @@ class Signature
   protected:
     /** print name */
     vstring _name;
+
+    // both _arity and _typeArgsArity could be recovered from _type. Storing directly here as well for convenience
+
     /** arity */
     unsigned _arity;
     /** arity of type arguments */
@@ -734,11 +737,10 @@ class Signature
     bool added = false;
     unsigned eqProxy = addFunction("vEQ",1, added);
     if(added){
-      VList* vl = VList::singleton(0);
       TermList tv = TermList(0, false);
       TermList result = AtomicSort::arrowSort(tv, tv, AtomicSort::boolSort());
       Symbol * sym = getFunction(eqProxy);
-      sym->setType(OperatorType::getConstantsType(result, vl));
+      sym->setType(OperatorType::getConstantsType(result, 1));
       sym->setProxy(EQUALS);
     }
     return eqProxy;  
@@ -785,12 +787,11 @@ class Signature
     bool added = false;
     unsigned proxy = addFunction(name,1, added);
     if(added){
-      VList* vl = VList::singleton(0);
       TermList tv = TermList(0, false);
       TermList result = AtomicSort::arrowSort(tv, AtomicSort::boolSort());
       result = AtomicSort::arrowSort(result, AtomicSort::boolSort());
       Symbol * sym = getFunction(proxy);
-      sym->setType(OperatorType::getConstantsType(result, vl));
+      sym->setType(OperatorType::getConstantsType(result, 1));
       sym->setProxy(name == "vPI" ? PI : SIGMA);
     }
     return proxy;  
@@ -825,11 +826,9 @@ class Signature
     } else {
       comb = addFunction(name,1, added);
     }
-    
+
     if(added){
-      VList* vl = new VList(2);
-      VList::push(1, vl);
-      VList::push(0, vl);
+      unsigned typeArgsArity = 3;
       TermList x0 = TermList(0, false);
       TermList x1 = TermList(1, false);
       TermList x2 = TermList(2, false);
@@ -845,15 +844,15 @@ class Signature
       }else if(c == B_COMB){
         sort = AtomicSort::arrowSort(t0, t2, t3);
       }else if(c == K_COMB){
-        vl = vl->tail();
-        sort = AtomicSort::arrowSort(x1, x2 , x1);
+        typeArgsArity = 2;
+        sort = AtomicSort::arrowSort(x0, x1 , x0);
       }else if(c == I_COMB){
-        vl = vl->tail()->tail();
-        sort = AtomicSort::arrowSort(x2, x2);
+        typeArgsArity = 1;
+        sort = AtomicSort::arrowSort(x0, x0);
       }    
 
       Symbol* sym = getFunction(comb);
-      sym->setType(OperatorType::getConstantsType(sort, vl));
+      sym->setType(OperatorType::getConstantsType(sort, typeArgsArity));
       sym->setComb(c);
     } 
     return comb;

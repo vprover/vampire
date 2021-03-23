@@ -117,13 +117,7 @@ bool createLiteralBindings(Literal* baseLit, LiteralList const* alts, Clause* in
       }
       if(MatchingUtils::matchReversedArgs(baseLit, alit)) {
 	ArrayStoringBinder binder(altBindingData, variablePositions);
-	MatchingUtils::matchTerms(*baseLit->nthArgument(0),*alit->nthArgument(1),binder);
-	MatchingUtils::matchTerms(*baseLit->nthArgument(1),*alit->nthArgument(0),binder);
-  if(baseLit->isTwoVarEquality()){
-    MatchingUtils::matchTerms(baseLit->twoVarEqSort(),SortHelper::getEqualityArgumentSort(alit),binder);
-  }//matchArgs automatically matches the sorts of literals if one is a twoVarEq literal
-   //This is the reason for the difference between the two cases.
-
+	MatchingUtils::matchReversedArgs(baseLit, alit, binder);
 	*altBindingPtrs=altBindingData;
 	altBindingPtrs++;
 	altBindingData+=numVars;
@@ -165,12 +159,7 @@ bool createLiteralBindings(Literal* baseLit, LiteralList const* alts, Clause* in
     }
     if(baseLit->isEquality() && MatchingUtils::matchReversedArgs(baseLit, resolvedLit)) {
       ArrayStoringBinder binder(altBindingData, variablePositions);
-      MatchingUtils::matchTerms(*baseLit->nthArgument(0),*resolvedLit->nthArgument(1),binder);
-      MatchingUtils::matchTerms(*baseLit->nthArgument(1),*resolvedLit->nthArgument(0),binder);
-      if(baseLit->isTwoVarEquality()){
-        MatchingUtils::matchTerms(baseLit->twoVarEqSort(),SortHelper::getEqualityArgumentSort(resolvedLit),binder);
-      }
-
+      MatchingUtils::matchReversedArgs(baseLit, resolvedLit, binder);
       *altBindingPtrs=altBindingData;
       altBindingPtrs++;
       altBindingData+=numVars;
@@ -512,8 +501,6 @@ void MLMatcher::Impl::initMatchingData(Literal** baseLits0, unsigned baseLen, Cl
       zeroAlts++;
       singleAlts++;
     } else if(currAltCnt==1 && !(resolvedLit && resolvedLit->couldBeInstanceOf(s_baseLits[i], true)) ) {
-      //TODO the above requires updating to polymorphism
-      //for now, a minor source of incompleteness
       if(singleAlts!=i) {
         swapLits(i, singleAlts);
 	if(mostDistVarsLit==singleAlts) {

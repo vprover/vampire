@@ -39,7 +39,7 @@ private:
   Clause* trySplitClause(Clause* cl);
   Literal* splitLiteral(Literal* lit, UnitInputType inpType, Clause*& premise);
 
-  Literal* makeNameLiteral(unsigned predNum, TermList arg, bool polarity, VList* vars);
+  Literal* makeNameLiteral(unsigned predNum, TermList arg, bool polarity, TermStack vars);
 
   bool isSplittable(Literal* lit);
   bool isSplittableEqualitySide(TermList t);

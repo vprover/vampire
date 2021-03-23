@@ -26,7 +26,6 @@
 
 #include "Indexing/GroundingIndex.hpp"
 
-#include "Shell/EqualityProxy.hpp"
 #include "Shell/PredicateDefinition.hpp"
 
 #include "IGAlgorithm.hpp"
