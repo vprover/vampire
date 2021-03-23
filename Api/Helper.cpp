@@ -234,7 +234,7 @@ vstring DefaultHelperCore::toString(const Kernel::Formula* f0) const
   case EXISTS:
   {
     vstring result = vstring("(") + con + "[";
-    Kernel::Formula::VarList::Iterator vit(f->vars());
+    VList::Iterator vit(f->vars());
     ASS(vit.hasNext());
     while (vit.hasNext()) {
       unsigned var = vit.next();
@@ -399,13 +399,13 @@ struct DefaultHelperCore::Var2NameMapper
   DefaultHelperCore& aux;
 };
 
-StringIterator DefaultHelperCore::getVarNames(VarList* l)
+StringIterator DefaultHelperCore::getVarNames(VList* l)
 {
   CALL("DefaultHelperCore::getVarNames");
 
   VirtualIterator<vstring> res=pvi( getPersistentIterator(
       getMappingIterator(
-	  VarList::DestructiveIterator(l),
+	  VList::DestructiveIterator(l),
 	  Var2NameMapper(*this))
   ) );
 

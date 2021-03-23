@@ -61,7 +61,7 @@ namespace Indexing
     Stack<Term*> toVisit;
     List<TermList>* res = List<TermList>::empty();
     
-    unsigned sort = SortHelper::getResultSort(t);
+    TermList sort = SortHelper::getResultSort(t);
     ASS(env.signature->isTermAlgebraSort(sort));
 
     for (unsigned i = 0; i < t->arity(); i++) {
@@ -92,7 +92,7 @@ namespace Indexing
     return res;
   }
 
-  bool AcyclicityIndex::matchesPattern(Literal *lit, TermList *&fs, TermList *&t, unsigned *sort)
+  bool AcyclicityIndex::matchesPattern(Literal *lit, TermList *&fs, TermList *&t, TermList *sort)
   {
     CALL("AcyclicityIndex::matchesPattern");
 
@@ -209,7 +209,7 @@ namespace Indexing
       CALL("AcyclicityIndex::CycleSearchIterator");
       
       if (queryLit->isEquality()) {
-        unsigned sort = SortHelper::getEqualityArgumentSort(queryLit);
+        TermList sort = SortHelper::getEqualityArgumentSort(queryLit);
 
         if (aindex._sIndexes.find(sort)) {
           _index = aindex._sIndexes.get(sort);
@@ -415,7 +415,7 @@ namespace Indexing
 
     TermList *fs;
     TermList *t;
-    unsigned sort;
+    TermList sort;
     
     if (matchesPattern(lit, fs, t, &sort)) {
       ASS(fs->isTerm());
@@ -443,7 +443,7 @@ namespace Indexing
 
     TermList *fs;
     TermList *t;
-    unsigned sort;
+    TermList sort;
      
     if (matchesPattern(lit, fs, t, &sort) && _sIndexes.find(sort)) {
       ULit ulit = make_pair(lit, c);

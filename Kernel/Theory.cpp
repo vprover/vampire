@@ -963,7 +963,7 @@ bool Theory::isPolymorphic(Interpretation i)
  * This function can be called for operations for which  the
  * function @c hasSingleSort returns true
  */
-unsigned Theory::getOperationSort(Interpretation i)
+TermList Theory::getOperationSort(Interpretation i)
 {
   CALL("Theory::getOperationSort");
 
@@ -998,7 +998,7 @@ unsigned Theory::getOperationSort(Interpretation i)
   case INT_IS_INT:
   case INT_IS_RAT:
   case INT_IS_REAL:
-    return Sorts::SRT_INTEGER;
+    return Term::intSort();
 
   case RAT_UNARY_MINUS:
   case RAT_PLUS:
@@ -1024,7 +1024,7 @@ unsigned Theory::getOperationSort(Interpretation i)
   case RAT_IS_INT:
   case RAT_IS_RAT:
   case RAT_IS_REAL:
-    return Sorts::SRT_RATIONAL;
+    return Term::rationalSort();
 
   case REAL_UNARY_MINUS:
   case REAL_PLUS:
@@ -1050,8 +1050,8 @@ unsigned Theory::getOperationSort(Interpretation i)
   case REAL_IS_INT:
   case REAL_IS_RAT:
   case REAL_IS_REAL:
-    return Sorts::SRT_REAL;
-
+    return Term::realSort();
+    
   default:
     ASSERTION_VIOLATION;
   }
@@ -1170,37 +1170,35 @@ bool Theory::isPartialFunction(Interpretation i)
  *
  * We want to have this function available e.g. in simplification rules.
  */
-unsigned Theory::getArrayExtSkolemFunction(unsigned sort) {
+unsigned Theory::getArrayExtSkolemFunction(TermList sort) {
+  CALL("Theory::getArrayExtSkolemFunction")
+  ASS(SortHelper::isArraySort(sort));
 
   if(_arraySkolemFunctions.find(sort)){
     return _arraySkolemFunctions.get(sort);
   }
 
-  Sorts::ArraySort* arraySort = env.sorts->getArraySort(sort);
-
-  unsigned indexSort = arraySort->getIndexSort();
-  unsigned params[] = {sort, sort};
-  unsigned skolemFunction = Shell::Skolem::addSkolemFunction(2, params, indexSort, "arrayDiff");
+  TermList indexSort = SortHelper::getIndexSort(sort);
+  TermList params[] = {sort, sort};
+  unsigned skolemFunction = Shell::Skolem::addSkolemFunction(2, 0, params, indexSort, "arrayDiff");
 
   _arraySkolemFunctions.insert(sort,skolemFunction);
 
   return skolemFunction; 
 }
 
-unsigned Theory::Tuples::getFunctor(unsigned arity, unsigned* sorts) {
+unsigned Theory::Tuples::getFunctor(unsigned arity, TermList* sorts) {
   CALL("Theory::Tuples::getFunctor(unsigned arity, unsigned* sorts)");
-  return getFunctor(env.sorts->addTupleSort(arity, sorts));
+  return getFunctor(Term::tupleSort(arity, sorts));
 }
 
-unsigned Theory::Tuples::getFunctor(unsigned tupleSort) {
+unsigned Theory::Tuples::getFunctor(TermList tupleSort) {
   CALL("Theory::Tuples::getFunctor(unsigned tupleSort)");
 
-  ASS_REP(env.sorts->isOfStructuredSort(tupleSort, Sorts::StructuredSort::TUPLE),
-          env.sorts->sortName(tupleSort));
+  ASS_REP(SortHelper::isTupleSort(tupleSort), tupleSort.toString());
 
-  Sorts::TupleSort* tuple = env.sorts->getTupleSort(tupleSort);
-  unsigned  arity = tuple->arity();
-  unsigned* sorts = tuple->sorts();
+  unsigned  arity = tupleSort.term()->arity();
+  TermList* sorts = tupleSort.term()->args();
 
   theory->defineTupleTermAlgebra(arity, sorts);
   ASS(env.signature->isTermAlgebraSort(tupleSort));
@@ -1211,19 +1209,17 @@ unsigned Theory::Tuples::getFunctor(unsigned tupleSort) {
 
 bool Theory::Tuples::isFunctor(unsigned functor) {
   CALL("Theory::Tuples::isFunctor(unsigned)");
-  unsigned tupleSort = env.signature->getFunction(functor)->fnType()->result();
-  return env.sorts->isOfStructuredSort(tupleSort, Sorts::StructuredSort::TUPLE);
+  TermList tupleSort = env.signature->getFunction(functor)->fnType()->result();
+  return SortHelper::isTupleSort(tupleSort);
 }
 
-unsigned Theory::Tuples::getProjectionFunctor(unsigned proj, unsigned tupleSort) {
+unsigned Theory::Tuples::getProjectionFunctor(unsigned proj, TermList tupleSort) {
   CALL("Theory::Tuples::getProjectionFunctor");
 
-  ASS_REP(env.sorts->isOfStructuredSort(tupleSort, Sorts::StructuredSort::TUPLE),
-          env.sorts->sortName(tupleSort));
+  ASS_REP(SortHelper::isTupleSort(tupleSort), tupleSort.toString());
 
-  Sorts::TupleSort* tuple = env.sorts->getTupleSort(tupleSort);
-  unsigned  arity = tuple->arity();
-  unsigned* sorts = tuple->sorts();
+  unsigned  arity = tupleSort.term()->arity();
+  TermList* sorts = tupleSort.term()->args();
 
   theory->defineTupleTermAlgebra(arity, sorts);
   ASS(env.signature->isTermAlgebraSort(tupleSort));
@@ -1247,9 +1243,9 @@ bool Theory::Tuples::findProjection(unsigned projFunctor, bool isPredicate, unsi
     return false;
   }
 
-  unsigned tupleSort = projType->arg(0);
+  TermList tupleSort = projType->arg(0);
 
-  if (!env.sorts->isOfStructuredSort(tupleSort, Sorts::StructuredSort::TUPLE)) {
+  if (!SortHelper::isTupleSort(tupleSort)) {
     return false;
   }
 
@@ -1278,31 +1274,31 @@ OperatorType* Theory::getConversionOperationType(Interpretation i)
 {
   CALL("Theory::getConversionOperationType");
 
-  unsigned from, to;
+  TermList from, to;
   switch(i) {
   case INT_TO_RAT:
-    from = Sorts::SRT_INTEGER;
-    to = Sorts::SRT_RATIONAL;
+    from = Term::intSort();
+    to = Term::rationalSort();
     break;
   case INT_TO_REAL:
-    from = Sorts::SRT_INTEGER;
-    to = Sorts::SRT_REAL;
+    from = Term::intSort();
+    to = Term::realSort();
     break;
   case RAT_TO_INT:
-    from = Sorts::SRT_RATIONAL;
-    to = Sorts::SRT_INTEGER;
+    from = Term::rationalSort();
+    to = Term::intSort();
     break;
   case RAT_TO_REAL:
-    from = Sorts::SRT_RATIONAL;
-    to = Sorts::SRT_REAL;
+    from = Term::rationalSort();
+    to = Term::realSort();
     break;
   case REAL_TO_INT:
-    from = Sorts::SRT_REAL;
-    to = Sorts::SRT_INTEGER;
+    from = Term::realSort();
+    to = Term::intSort();
     break;
   case REAL_TO_RAT:
-    from = Sorts::SRT_REAL;
-    to = Sorts::SRT_RATIONAL;
+    from = Term::realSort();
+    to = Term::rationalSort();
     break;
   default:
     ASSERTION_VIOLATION;
@@ -1426,13 +1422,12 @@ vstring Theory::getInterpretationName(Interpretation interp) {
   }
 }
 
-OperatorType* Theory::getArrayOperatorType(unsigned arraySort, Interpretation i) {
+OperatorType* Theory::getArrayOperatorType(TermList arraySort, Interpretation i) {
   CALL("Theory::getArrayOperatorType");
+  ASS(SortHelper::isArraySort(arraySort));
 
-  Sorts::ArraySort* info = env.sorts->getArraySort(arraySort);
-
-  unsigned indexSort = info->getIndexSort();
-  unsigned innerSort = info->getInnerSort();
+  TermList indexSort = SortHelper::getIndexSort(arraySort);
+  TermList innerSort = SortHelper::getInnerSort(arraySort);
 
   switch (i) {
     case Interpretation::ARRAY_SELECT:
@@ -1461,13 +1456,12 @@ OperatorType* Theory::getNonpolymorphicOperatorType(Interpretation i)
     return getConversionOperationType(i);
   }
 
-  unsigned sort;
   ASS(hasSingleSort(i));
-  sort = getOperationSort(i);
+  TermList sort = getOperationSort(i);
 
   unsigned arity = getArity(i);
 
-  static DArray<unsigned> domainSorts;
+  static DArray<TermList> domainSorts;
   domainSorts.init(arity, sort);
 
   if (isFunction(i)) {
@@ -1477,10 +1471,10 @@ OperatorType* Theory::getNonpolymorphicOperatorType(Interpretation i)
   }
 }
 
-void Theory::defineTupleTermAlgebra(unsigned arity, unsigned* sorts) {
+void Theory::defineTupleTermAlgebra(unsigned arity, TermList* sorts) {
   CALL("Signature::defineTupleTermAlgebra");
 
-  unsigned tupleSort = env.sorts->addTupleSort(arity, sorts);
+  TermList tupleSort = Term::tupleSort(arity, sorts);
 
   if (env.signature->isTermAlgebraSort(tupleSort)) {
     return;
@@ -1493,9 +1487,9 @@ void Theory::defineTupleTermAlgebra(unsigned arity, unsigned* sorts) {
 
   Array<unsigned> destructors(arity);
   for (unsigned i = 0; i < arity; i++) {
-    unsigned projSort = sorts[i];
+    TermList projSort = sorts[i];
     unsigned destructor;
-    if (projSort == Sorts::SRT_BOOL) {
+    if (projSort == Term::boolSort()) {
       destructor = env.signature->addFreshPredicate(1, "proj");
       env.signature->getPredicate(destructor)->setType(OperatorType::getPredicateType({ tupleSort }));
     } else {
@@ -1582,8 +1576,8 @@ bool Theory::isInterpretedPredicate(Literal* lit)
   CALL("Theory::isInterpretedPredicate");
 
   if(lit->isEquality()){
-    unsigned srt = SortHelper::getEqualityArgumentSort(lit);
-    return (srt == Sorts::SRT_INTEGER || srt == Sorts::SRT_RATIONAL || srt == Sorts::SRT_REAL);
+    TermList srt = SortHelper::getEqualityArgumentSort(lit);
+    return (srt == Term::intSort() || srt == Term::realSort() || srt == Term::rationalSort());
   }
 
   return isInterpretedPredicate(lit->functor());

@@ -21,32 +21,29 @@ using namespace Shell;
 
 /**
  * A helper class that performs replacement of all terms/literals of the form
- * f(t1, ..., tk) by g(X1, ..., Xn, t1, ..., tk) for given f, g and X1,...,Xn
+ * f(s1, ..., sj,t1, ..., tk) by g(A1, ..., Am, s1, ..., sj,X1, ..., Xn, t1, ..., tk) 
+ * for given f, g, A1, ..., Am, and X1,...,Xn
  */
 // TODO: should a combination of MatcherUtils, SubstHelper be used instead?
 class SymbolOccurrenceReplacement {
   public:
     /**
      * symbol = f
-     * freshSymbol = g
-     * freeVars = X1, ..., Xn
+     * freshApplication = g(A1, ..., Am, B1, ..., Bj,X1, ..., Xn, Y1, ..., Yk)
+     * argVars = B1, ..., Bj, Y1, ..., Yk
      * isPredicate = whether or not f and g are predicate symbols
      */
-    SymbolOccurrenceReplacement(bool isPredicate, unsigned symbol, unsigned freshSymbol, Formula::VarList* freeVars)
-            : _isPredicate(isPredicate), _symbol(symbol), _freshSymbol(freshSymbol), _freeVars(freeVars) {
-        // An actual replacement should take place
-        ASS_NEQ(symbol, freshSymbol);
-        // The implementation of this class doesn't requite freeVars to be
-        // non-empty, however, its use case expects this constraint
-        ASS(freeVars || !env.signature->getFunction(symbol)->introduced());
-        // Arities of symbols should coincide
-        if (isPredicate) {
-          ASS_EQ(env.signature->getPredicate(symbol)->arity() + Formula::VarList::length(freeVars),
-                   env.signature->getPredicate(freshSymbol)->arity());
+    SymbolOccurrenceReplacement(bool isPredicate, Term* freshApplication, unsigned symbol, VList* argVars)
+            : _isPredicate(isPredicate), _freshApplication(freshApplication), _symbol(symbol), _argVars(argVars) {
+        
+        if(isPredicate){
+          ASS(VList::length(argVars) == env.signature->getPredicate(symbol)->arity());
         } else {
-          ASS_EQ(env.signature->getFunction(symbol)->arity() + Formula::VarList::length(freeVars),
-                   env.signature->getFunction(freshSymbol)->arity());
+          ASS(VList::length(argVars) == env.signature->getFunction(symbol)->arity());            
         }
+        // The implementation of this class doesn't requite argVars to be
+        // non-empty, however, its use case expects this constraint
+        //ASS(argVars || !env.signature->getFunction(symbol)->introduced());
     }
     Formula* process(Formula* formula);
     FormulaList* process(FormulaList* formulas);
@@ -55,9 +52,9 @@ class SymbolOccurrenceReplacement {
 
   private:
     const bool _isPredicate;
+    Term* _freshApplication;
     const unsigned _symbol;
-    const unsigned _freshSymbol;
-    const Formula::VarList* _freeVars;
+    const VList* _argVars;
 };
 
 #endif // __SymbolOccurrenceReplacement__

@@ -50,7 +50,7 @@ public:
   explicit FormulaVarIterator(const TermList*);
 
   bool hasNext();
-  int next();
+  unsigned next();
 
 private:
   /** instruction of what to process next */
@@ -85,7 +85,7 @@ private:
   /** Stack of instructions telling what to do next */
   Stack<Instruction> _instructions;
   /** Stack of lists of variables to process */
-  Stack<const Formula::VarList*> _vars;
+  Stack<const VList*> _vars;
 }; // class FormulaVarIterator
 
 }

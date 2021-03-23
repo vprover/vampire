@@ -38,6 +38,8 @@
 #include "Term.hpp"
 #include "TermIterators.hpp"
 
+#include <cmath>
+
 #include "Clause.hpp"
 
 #undef RSTAT_COLLECTION
@@ -430,6 +432,7 @@ vstring Clause::toString() const
     }
     result += ",thAx:" + Int::toString((int)(_inference.th_ancestors));
     result += ",allAx:" + Int::toString((int)(_inference.all_ancestors));
+
     result += ",thDist:" + Int::toString( _inference.th_ancestors * env.options->theorySplitQueueExpectedRatioDenom() - _inference.all_ancestors);
     result += vstring("}");
   }
@@ -525,6 +528,7 @@ unsigned Clause::splitWeight() const
  * @since 04/05/2013 Manchester, updated to use new NonVariableIterator
  * @author Andrei Voronkov
  */
+
 unsigned Clause::getNumeralWeight() const {
   CALL("Clause::getNumeralWeight");
 
@@ -542,6 +546,7 @@ unsigned Clause::getNumeralWeight() const {
         continue;
       }
       IntegerConstantType intVal;
+
       if (theory->tryInterpretConstant(t, intVal)) {
         int w = BitUtils::log2(Int::safeAbs(intVal.toInner())) - 1;
         if (w > 0) {
@@ -552,6 +557,7 @@ unsigned Clause::getNumeralWeight() const {
       RationalConstantType ratVal;
       RealConstantType realVal;
       bool haveRat = false;
+
       if (theory->tryInterpretConstant(t, ratVal)) {
         haveRat = true;
       } else if (theory->tryInterpretConstant(t, realVal)) {
@@ -621,6 +627,8 @@ unsigned Clause::computeWeightForClauseSelection(const Options& opt) const
  */
 unsigned Clause::computeWeightForClauseSelection(unsigned w, unsigned splitWeight, unsigned numeralWeight, bool derivedFromGoal, const Shell::Options& opt)
 {
+  CALL("Clause::computeWeightForClauseSelection(unsigned w, ...)");
+
   static unsigned nongoalWeightCoeffNum = opt.nongoalWeightCoefficientNumerator();
   static unsigned nongoalWeightCoefDenom = opt.nongoalWeightCoefficientDenominator();
 
@@ -632,14 +640,28 @@ unsigned Clause::computeWeightForClauseSelection(unsigned w, unsigned splitWeigh
   return w * ( !derivedFromGoal ? nongoalWeightCoeffNum : nongoalWeightCoefDenom);
 }
 
+
+void Clause::collectUnstableVars(DHSet<unsigned>& acc)
+{
+  CALL("Clause::collectUnstableVars");
+  collectVars2<UnstableVarIt>(acc);
+}
+
 void Clause::collectVars(DHSet<unsigned>& acc)
 {
   CALL("Clause::collectVars");
+  collectVars2<VariableIterator>(acc);
+}
+
+template<class VarIt>
+void Clause::collectVars2(DHSet<unsigned>& acc)
+{
+  CALL("Clause::collectVars2");
 
   Iterator it(*this);
   while (it.hasNext()) {
     Literal* lit = it.next();
-    VariableIterator vit(lit);
+    VarIt vit(lit);
     while (vit.hasNext()) {
       TermList var = vit.next();
       ASS(var.isOrdinaryVar());

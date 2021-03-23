@@ -73,7 +73,7 @@ public:
 protected:
   void handleClause(Kernel::Clause* c, bool adding);
 private:
-  bool matchesPattern(Kernel::Literal *lit, Kernel::TermList *&fs, Kernel::TermList *&t, unsigned *sort);
+  bool matchesPattern(Kernel::Literal *lit, Kernel::TermList *&fs, Kernel::TermList *&t, TermList *sort);
   Lib::List<TermList>* getSubterms(Kernel::Term *t);
   
   struct IndexEntry;
@@ -82,7 +82,7 @@ private:
   typedef pair<Kernel::Literal*, Kernel::Clause*> ULit;
   typedef Lib::DHMap<ULit, IndexEntry*> SIndex;
 
-  Lib::DHMap<unsigned, SIndex*> _sIndexes;
+  Lib::DHMap<TermList, SIndex*> _sIndexes;
   Indexing::TermIndexingStructure* _tis;
 };
 

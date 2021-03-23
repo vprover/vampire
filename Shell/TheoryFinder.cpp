@@ -543,11 +543,11 @@ bool TheoryFinder::matchCode(const void* obj,
     if (f->connective() != FORALL) {
       goto backtrack;
     }
-    if (Formula::VarList::length(f->vars()) != code[cp+1]) {
+    if (VList::length(f->vars()) != code[cp+1]) {
       goto backtrack;
     }
     cp += 2;
-    List<int>::Iterator vs(f->vars());
+    VList::Iterator vs(f->vars());
     while (vs.hasNext()) {
       vars[code[cp++]] = vs.next();
     }

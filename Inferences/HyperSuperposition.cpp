@@ -130,7 +130,7 @@ bool HyperSuperposition::tryMakeTopUnifiableByRewriter(TermList t1, TermList t2,
 
   ASS(ut1.isTerm() || ut2.isTerm());
 
-  unsigned srt;
+  TermList srt;
   if(ut1.isTerm()) {
     srt = SortHelper::getResultSort(ut1.term());
   }
@@ -461,7 +461,8 @@ Clause* HyperSuperposition::tryGetContradictionFromUnification(Clause* cl, Term*
   }
   UnitList* premLst = 0;
   UnitList::pushFromIterator(ClauseStack::Iterator(premStack), premLst);
-  UnitList::push(cl, premLst);
+  UnitList::push(cl, premLst); 
+
   Clause* res = Clause::fromIterator(LiteralIterator::getEmpty(),
       GeneratingInferenceMany(InferenceRule::HYPER_SUPERPOSITION_SIMPLIFYING, premLst));
   // MS: keeping the original semantics (GeneratingInferenceMany would compute max over all parents+1)

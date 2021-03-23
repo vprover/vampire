@@ -198,13 +198,24 @@ bool SubformulaIterator::hasNext ()
             _reserve = rest;
             return true;
           }
-          case Term::SF_TUPLE: {
+          case Term::SF_LAMBDA: {
+            delete _reserve;
+            TermList lambdaExp = term->getSpecialData()->getLambdaExp();
+            if (!lambdaExp.isTerm()) {
+              _reserve = rest;
+            } else {
+              // TODO: should be 1 instead of polarity?
+              _reserve = new Element(lambdaExp.term(), polarity, rest);
+            }
+            break;
+          }
+          /*case Term::SF_TUPLE: {
             delete _reserve;
             Term* tupleTerm = term->getSpecialData()->getTupleTerm();
             // TODO: should be 1 instead of polarity?
             _reserve = new Element(tupleTerm, polarity, rest);
             break;
-          }
+          }*/
 #if VDEBUG
           default:
             ASSERTION_VIOLATION;

@@ -82,6 +82,7 @@ AWPassiveClauseContainer::~AWPassiveClauseContainer()
   }
 }
 
+
 /**
  * Weight comparison of clauses.
  * @return the result of comparison (LESS, EQUAL or GREATER)
@@ -92,7 +93,7 @@ AWPassiveClauseContainer::~AWPassiveClauseContainer()
 Comparison AWPassiveClauseContainer::compareWeight(Clause* cl1, Clause* cl2, const Options& opt)
 {
   CALL("AWPassiveClauseContainer::compareWeight");
-  
+
   return Int::compare(cl1->weightForClauseSelection(opt), cl2->weightForClauseSelection(opt));
 }
 
@@ -109,6 +110,16 @@ Comparison AWPassiveClauseContainer::compareWeight(Clause* cl1, Clause* cl2, con
 bool WeightQueue::lessThan(Clause* c1,Clause* c2)
 {
   CALL("WeightQueue::lessThan");
+
+  if(env.options->prioritiseClausesProducedByLongReduction()){
+    if(c1->inference().reductions() < c2->inference().reductions()){
+      return false;
+    }
+
+    if(c2->inference().reductions() < c1->inference().reductions()){
+      return true;
+    }
+  }
 
   Comparison weightCmp=AWPassiveClauseContainer::compareWeight(c1, c2, _opt);
   if (weightCmp!=EQUAL) {
@@ -759,7 +770,6 @@ bool AWClauseContainer::remove(Clause* cl)
   }
   return removed;
 }
-
 
 /**
  * Return the next selected clause and remove it from the queue.

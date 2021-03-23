@@ -59,7 +59,7 @@ template<typename T, class Comparator> class BinaryHeap;
 template<typename T> class SharedSet;
 
 template <typename Key, typename Val,class Hash=Lib::Hash> class Map;
-
+template <typename Key1, typename Key2> class BiMap; 
 
 template<typename T> class ArrayishObjectIterator;
 template<typename T> class ArrayMap;
@@ -73,7 +73,6 @@ typedef List<VoidFunc> VoidFuncList;
 typedef Stack<vstring> StringStack;
 
 typedef Map<vstring,unsigned,Hash> SymbolMap;
-
 
 template<typename T> struct FirstHashTypeInfo;
 /**
@@ -160,10 +159,15 @@ class TermList;
 typedef VirtualIterator<TermList> TermIterator;
 typedef Stack<TermList> TermStack;
 
+typedef List<unsigned> VList; // a list of variables (which are unsigned)
+typedef List<TermList> SList; // a list of sorts (which are now, with polymorphism, TermLists)
+
 typedef std::pair<std::pair<TermList,unsigned>,std::pair<TermList,unsigned>> UnificationConstraint;
-typedef Lib::SmartPtr<Stack<UnificationConstraint>> UnificationConstraintStackSP;
+typedef Stack<UnificationConstraint> UnificationConstraintStack;
+typedef Lib::SmartPtr<UnificationConstraintStack> UnificationConstraintStackSP;
 
 class Term;
+typedef BiMap<unsigned, Term*> FuncSubtermMap;
 class Literal;
 typedef List<Literal*> LiteralList;
 typedef Stack<Literal*> LiteralStack;
@@ -377,6 +381,7 @@ class Builder;
 class Selector;
 }
 }
+
 
 namespace InstGen
 {

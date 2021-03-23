@@ -28,6 +28,7 @@
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/SubformulaIterator.hpp"
 #include "Kernel/Term.hpp"
+#include "Kernel/ApplicativeHelper.hpp"
 
 #include "Shell/Statistics.hpp"
 #include "Shell/Options.hpp"
@@ -48,8 +49,9 @@ using namespace Shell;
  * @param preserveEpr If true, names will not be introduced if it would
  *   lead to introduction of non-constant Skolem functions.
  */
-Naming::Naming(int threshold, bool preserveEpr) :
-    _threshold(threshold + 1), _preserveEpr(preserveEpr), _varsInScope(false) {
+Naming::Naming(int threshold, bool preserveEpr, bool appify) :
+    _threshold(threshold + 1), _preserveEpr(preserveEpr), 
+    _appify(appify), _varsInScope(false) {
   ASS(threshold < 32768);
 } // Naming::Naming
 
@@ -1094,9 +1096,9 @@ bool Naming::canBeInDefinition(Formula* f, Where where) {
     }
   }
 
-  Formula::VarList* fvars = f->freeVariables();
+  VList* fvars = f->freeVariables();
   bool freeVars = fvars;
-  Formula::VarList::destroy(fvars);
+  VList::destroy(fvars);
 
   if (!_varsInScope && freeVars
       && (exQuant || (unQuant && where == UNDER_IFF))) {
@@ -1106,42 +1108,68 @@ bool Naming::canBeInDefinition(Formula* f, Where where) {
   return true;
 }
 
-Literal* Naming::getDefinitionLiteral(Formula* f, Formula::VarList* freeVars) {
+Literal* Naming::getDefinitionLiteral(Formula* f, VList* freeVars) {
   CALL("Naming::getDefinitionLiteral");
 
-  unsigned length = Formula::VarList::length(freeVars);
-  unsigned pred = env.signature->addNamePredicate(length);
-  Signature::Symbol* predSym = env.signature->getPredicate(pred);
+  unsigned arity = VList::length(freeVars);
 
-  if (env.colorUsed) {
-    Color fc = f->getColor();
-    if (fc != COLOR_TRANSPARENT) {
-      predSym->addColor(fc);
-    }
-    if (f->getSkip()) {
-      predSym->markSkip();
-    }
-  }
-
-  static Stack<unsigned> domainSorts;
-  static Stack<TermList> predArgs;
-  static DHMap<unsigned, unsigned> varSorts;
-  domainSorts.reset();
-  predArgs.reset();
+  static TermStack termVarSorts;
+  static TermStack termVars;
+  static TermStack typeVars;
+  static DHMap<unsigned, TermList> varSorts;
+  termVarSorts.reset();
+  termVars.reset();
+  typeVars.reset();
   varSorts.reset();
 
   SortHelper::collectVariableSorts(f, varSorts);
 
-  Formula::VarList::Iterator vit(freeVars);
+  VList::Iterator vit(freeVars);
   while (vit.hasNext()) {
     unsigned uvar = vit.next();
-    domainSorts.push(varSorts.get(uvar, Sorts::SRT_DEFAULT));
-    predArgs.push(TermList(uvar, false));
+    TermList sort = varSorts.get(uvar, Term::defaultSort());
+    if(sort == Term::superSort()){
+      typeVars.push(TermList(uvar, false));     
+    } else {
+      termVars.push(TermList(uvar, false));
+      termVarSorts.push(sort);
+    }
   }
 
-  predSym->setType(OperatorType::getPredicateType(length, domainSorts.begin()));
+  unsigned typeArgArity = typeVars.size();
+  TermStack& allVars = typeVars;
 
-  return Literal::create(pred, length, true, false, predArgs.begin());
+  SortHelper::normaliseArgSorts(typeVars, termVarSorts);
+
+  for(unsigned i = 0; i < termVars.size() && !_appify; i++){
+    allVars.push(termVars[i]);
+  }
+
+  if(!_appify){
+    unsigned pred = env.signature->addNamePredicate(arity);
+    Signature::Symbol* predSym = env.signature->getPredicate(pred);
+
+    if (env.colorUsed) {
+      Color fc = f->getColor();
+      if (fc != COLOR_TRANSPARENT) {
+        predSym->addColor(fc);
+      }
+      if (f->getSkip()) {
+        predSym->markSkip();
+      }
+    }
+
+    predSym->setType(OperatorType::getPredicateType(arity - typeArgArity, termVarSorts.begin(), typeArgArity));
+    return Literal::create(pred, arity, true, false, allVars.begin());
+  } else {
+    unsigned fun = env.signature->addNameFunction(typeVars.size());
+    TermList sort = Term::arrowSort(termVarSorts, Term::boolSort());
+    Signature::Symbol* sym = env.signature->getFunction(fun);
+    sym->setType(OperatorType::getConstantsType(sort, typeArgArity)); 
+    TermList head = TermList(Term::create(fun, typeVars.size(), typeVars.begin()));
+    TermList t = ApplicativeHelper::createAppTerm(sort, head, termVars);
+    return  Literal::createEquality(true, TermList(t), TermList(Term::foolTrue()), Term::boolSort());  
+  }
 }
 
 /**
@@ -1163,7 +1191,7 @@ Formula* Naming::introduceDefinition(Formula* f, bool iff) {
 
   RSTAT_CTR_INC("naming_introduced_defs");
 
-  Formula::VarList* vs;
+  VList* vs;
   vs = f->freeVariables();
   Literal* atom = getDefinitionLiteral(f, vs);
   Formula* name = new AtomicFormula(atom);
@@ -1178,7 +1206,7 @@ Formula* Naming::introduceDefinition(Formula* f, bool iff) {
     FormulaList::push(nameFormula, fs);
     def = new JunctionFormula(OR, fs);
   }
-  if (Formula::VarList::isNonEmpty(vs)) {
+  if (VList::isNonEmpty(vs)) {
     //TODO do we know the sorts of the free variabls vs?
     def = new QuantifiedFormula(FORALL, vs, 0, def);
   }

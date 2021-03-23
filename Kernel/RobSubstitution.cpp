@@ -29,6 +29,7 @@
 #include "SortHelper.hpp"
 #include "Term.hpp"
 #include "TermIterators.hpp"
+#include "Shell/Statistics.hpp"
 
 #include "Indexing/TermSharing.hpp"
 
@@ -60,6 +61,7 @@ const int RobSubstitution::UNBOUND_INDEX=-1;
 bool RobSubstitution::unify(TermList t1,int index1, TermList t2, int index2, MismatchHandler* hndlr)
 {
   CALL("RobSubstitution::unify/4");
+
   return unify(TermSpec(t1,index1), TermSpec(t2,index2),hndlr);
 }
 
@@ -75,6 +77,7 @@ bool RobSubstitution::unifyArgs(Term* t1,int index1, Term* t2, int index2, Misma
 
   TermList t1TL(t1);
   TermList t2TL(t2);
+
   return unify(TermSpec(t1TL,index1), TermSpec(t2TL,index2),hndlr);
 }
 
@@ -167,7 +170,7 @@ TermList RobSubstitution::getSpecialVarTop(unsigned specialVar) const
 RobSubstitution::TermSpec RobSubstitution::derefBound(TermSpec t) const
 {
   CALL("RobSubstitution::derefBound");
-  if(t.term.isTerm()) {
+  if(t.term.isTerm() || t.term.isVSpecialVar()) {
     return t;
   }
   VarSpec v=getVarSpec(t);
@@ -176,7 +179,7 @@ RobSubstitution::TermSpec RobSubstitution::derefBound(TermSpec t) const
     bool found=_bank.find(v,binding);
     if(!found || binding.index==UNBOUND_INDEX) {
       return TermSpec(v);
-    } else if(binding.term.isTerm()) {
+    } else if(binding.term.isTerm() || binding.term.isVSpecialVar()) {
       return binding;
     }
     v=getVarSpec(binding);
@@ -200,7 +203,8 @@ RobSubstitution::TermSpec RobSubstitution::deref(VarSpec v) const
       binding.term.makeVar(_nextUnboundAvailable++);
       const_cast<RobSubstitution&>(*this).bind(v,binding);
       return binding;
-    } else if(binding.index==UNBOUND_INDEX || binding.term.isTerm()) {
+    } else if(binding.index==UNBOUND_INDEX || binding.term.isTerm()
+              || binding.term.isVSpecialVar()) {
       return binding;
     }
     v=getVarSpec(binding);
@@ -222,6 +226,29 @@ void RobSubstitution::bind(const VarSpec& v, const TermSpec& b)
   _bank.set(v,b);
 }
 
+void RobSubstitution::addToConstraints(const VarSpec& v1, const VarSpec& v2, MismatchHandler* hndlr)
+{
+  CALL("RobSubstitution::addToConstraints");
+
+  Term* t1 = _funcSubtermMap->get1(v1.var);
+  Term* t2 = _funcSubtermMap->get1(v2.var);
+
+  if(t1 == t2 && t1->shared() && t1->ground()){ return; }
+ 
+  TermList tt1 = TermList(t1);
+  TermList tt2 = TermList(t2);
+
+  TermSpec t1spec = TermSpec(tt1, v1.index);
+  TermSpec t2spec = TermSpec(tt2, v2.index);
+
+  if(t1spec.sameTermContent(t2spec)){ return; }
+
+  //cout << "adding to constraints <" + tt1.toString() + ", " + tt2.toString() + ">" << endl; 
+
+  hndlr->handle(this, tt1, v1.index, tt2, v2.index);
+}
+
+
 void RobSubstitution::bindVar(const VarSpec& var, const VarSpec& to)
 {
   CALL("RobSubstitution::bindVar");
@@ -236,7 +263,8 @@ RobSubstitution::VarSpec RobSubstitution::root(VarSpec v) const
   for(;;) {
     TermSpec binding;
     bool found=_bank.find(v,binding);
-    if(!found || binding.index==UNBOUND_INDEX || binding.term.isTerm()) {
+    if(!found || binding.index==UNBOUND_INDEX || binding.isVSpecialVar() || 
+        binding.term.isTerm()) {
       return v;
     }
     v=getVarSpec(binding);
@@ -298,7 +326,10 @@ bool RobSubstitution::occurs(VarSpec vs, TermSpec ts)
 {
   vs=root(vs);
   Stack<TermSpec> toDo(8);
-  if(ts.isVar()) {
+  if(ts.isVSpecialVar()){
+    Term* t = _funcSubtermMap->get1(ts.term.var());
+    ts = TermSpec(TermList(t), ts.index);
+  }else if(ts.isVar()) {
     ts=derefBound(ts);
     if(ts.isVar()) {
       return false;
@@ -312,16 +343,29 @@ bool RobSubstitution::occurs(VarSpec vs, TermSpec ts)
     ASS(ts.term.isTerm());
     VariableIterator vit(ts.term.term());
     while(vit.hasNext()) {
-      VarSpec tvar=root(getVarSpec(vit.next(), ts.index));
+      bool isVSpecialVar = false;
+      TermList var = vit.next();
+      if(var.isVSpecialVar()){ isVSpecialVar = true; }
+      VarSpec tvar=root(getVarSpec(var, ts.index));
       if(tvar==vs) {
-	return true;
+        return true;
       }
       if(!encountered.find(tvar)) {
-	TermSpec dtvar=derefBound(TermSpec(tvar));
-	if(!dtvar.isVar()) {
-	  encountered.insert(tvar);
-	  toDo.push(dtvar);
-	}
+        TermSpec dtvar;
+        if(!isVSpecialVar){
+          dtvar=derefBound(TermSpec(tvar));
+        } else {
+          Term* t = _funcSubtermMap->get1(var.var());
+          dtvar = TermSpec(TermList(t), ts.index);
+        }
+        if(!dtvar.isVar() || dtvar.isVSpecialVar()) {
+          if(dtvar.isVSpecialVar()){
+            Term* t = _funcSubtermMap->get1(dtvar.term.var());
+            dtvar = TermSpec(TermList(t), dtvar.index);            
+          }
+          encountered.insert(tvar);
+          toDo.push(dtvar);
+        }
       }
     }
 
@@ -350,7 +394,8 @@ bool RobSubstitution::unify(TermSpec t1, TermSpec t2,MismatchHandler* hndlr)
 
   // Save encountered unification pairs to avoid
   // recomputing their unification
-  typedef DHSet<TTPair,TTPairHash> EncStore;
+  typedef DHSet<TTPair,TTPairHash, TTPairHash> EncStore;
+
   EncStore encountered;
   encountered.reset();
 
@@ -360,28 +405,38 @@ bool RobSubstitution::unify(TermSpec t1, TermSpec t2,MismatchHandler* hndlr)
   for(;;) {
     TermSpec dt1=derefBound(t1);
     TermSpec dt2=derefBound(t2);
-
     // If they have the same content then skip
     // (note that sameTermContent is best-effort)
     if(dt1.sameTermContent(dt2)) {
+    } else if(dt1.isVSpecialVar() && dt2.isVSpecialVar()){
+      ASS(hndlr);
+      addToConstraints(getVarSpec(dt1), getVarSpec(dt2), hndlr);
     } 
     // Deal with the case where eithe rare variables
     // Do an occurs-check and note that the variable 
     // cannot be currently bound as we already dereferenced
-    else if(dt1.isVar()) {
+    else if(dt1.isVar() && !dt1.isVSpecialVar()) {
       VarSpec v1=getVarSpec(dt1);
       if(occurs(v1, dt2)) {
-	mismatch=true;
-	break;
+        mismatch=true;
+        break;
       }
       bind(v1,dt2);
-    } else if(dt2.isVar()) {
+    } else if(dt2.isVar() && !dt2.isVSpecialVar()) {
       VarSpec v2=getVarSpec(dt2);
       if(occurs(v2, dt1)) {
-	mismatch=true;
-	break;
+        mismatch=true;
+        break;
       }
       bind(v2,dt1);
+    } else if(dt1.isVSpecialVar()){
+      Term* t = _funcSubtermMap->get1(dt1.term.var());
+      t1 = TermSpec(TermList(t), dt1.index);
+      toDo.push(TTPair(t1, dt2));
+    } else if(dt2.isVSpecialVar()){
+      Term* t = _funcSubtermMap->get1(dt2.term.var());
+      t2 = TermSpec(TermList(t), dt2.index);
+      toDo.push(TTPair(dt1, t2));
     } else {
     // Case where both are terms
       TermList* ss=&dt1.term;
@@ -420,14 +475,18 @@ bool RobSubstitution::unify(TermSpec t1, TermSpec t2,MismatchHandler* hndlr)
             if(ss->isVar()||tt->isVar()) {
               TTPair itm(tsss,tstt);
               if((itm.first.isVar() && isUnbound(getVarSpec(itm.first))) ||
-        	  (itm.second.isVar() && isUnbound(getVarSpec(itm.second))) ) {
+                 (itm.second.isVar() && isUnbound(getVarSpec(itm.second))) ) {
                 toDo.push(itm);
               } else if(!encountered.find(itm)) {
-        	  toDo.push(itm);
-        	  encountered.insert(itm);
-        	}
+                toDo.push(itm);
+                encountered.insert(itm);
+              }
             } else {
-              if(!hndlr || !hndlr->handle(this,tsss.term,tsss.index,tstt.term,tstt.index)){
+              // Eventually, we want to make theories using the hashing/very special variable
+              // mechanism used by higher-order logic to pruduce constraints.
+              // until then the first condition ensures that the handler is never called
+              // incorrectly. HOL also uses a handler, but it shouldn't be called here.
+              if(env.statistics->higherOrder || !hndlr || !hndlr->handle(this,tsss.term,tsss.index,tstt.term,tstt.index)){
                 mismatch=true;
                 break;
               }
@@ -597,6 +656,10 @@ Literal* RobSubstitution::apply(Literal* lit, int index) const
   for (TermList* args = lit->args(); ! args->isEmpty(); args = args->next()) {
     ts[i++]=apply(*args,index);
   }
+  if(lit->isTwoVarEquality()){
+    TermList sort = apply(lit->twoVarEqSort(),index);
+    return Literal::createEquality(lit->polarity(), ts[0], ts[1], sort);
+  }
   return Literal::create(lit,ts.array());
 }
 
@@ -634,42 +697,47 @@ TermList RobSubstitution::apply(TermList trm, int index) const
 
       VarSpec ref=termRefVars.pop();
       if(ref!=nilVS) {
-	ALWAYS(known.insert(ref,constructed));
+        ALWAYS(known.insert(ref,constructed));
       }
       continue;
     } else {
       //if tt==&trm, we're dealing with the top
       //term, for which the next() is undefined
       if(tt!=&trm) {
-	toDo.push(tt->next());
-	toDoIndex.push(index);
+        toDo.push(tt->next());
+        toDoIndex.push(index);
       }
     }
 
     TermSpec ts(*tt,index);
 
     VarSpec vs;
-    if(ts.term.isVar()) {
-      vs=root(getVarSpec(ts));
+    if(ts.term.isVar() && !ts.term.isVSpecialVar()) {
+      vs=root(getVarSpec(ts) );
 
       TermList found;
       if(known.find(vs, found)) {
-	args.push(found);
-	continue;
+        args.push(found);
+        continue;
       }
 
       ts=deref(vs);
-      if(ts.term.isVar()) {
-	ASS(ts.index==UNBOUND_INDEX);
-	args.push(ts.term);
-	continue;
+      if(ts.term.isVar() && !ts.term.isVSpecialVar()) {
+        ASS(ts.index==UNBOUND_INDEX);
+        args.push(ts.term);
+        continue;
       }
     } else {
       vs=nilVS;
     }
-    Term* t=ts.term.term();
+    Term* t;
+    if(ts.term.isVSpecialVar()){
+      t = _funcSubtermMap->get1(ts.term.var());
+    } else {
+      t = ts.term.term();
+    }
     if(t->shared() && t->ground()) {
-      args.push(ts.term);
+      args.push(TermList(t));
       continue;
     }
     terms.push(t);
@@ -717,47 +785,52 @@ size_t RobSubstitution::getApplicationResultWeight(TermList trm, int index) cons
       size_t* szArr=&argSizes.top() - (orig->arity()-1);
       size_t sz = 1; //1 for the function symbol
       for(unsigned i=0; i<arity; i++) {
-	sz += szArr[i];
+        sz += szArr[i];
       }
       argSizes.truncate(argSizes.length() - arity);
       argSizes.push(sz);
 
       VarSpec ref=termRefVars.pop();
       if(ref!=nilVS) {
-	ALWAYS(known.insert(ref,sz));
+        ALWAYS(known.insert(ref,sz));
       }
       continue;
     } else {
       //if tt==&trm, we're dealing with the top
       //term, for which the next() is undefined
       if(tt!=&trm) {
-	toDo.push(tt->next());
-	toDoIndex.push(index);
+        toDo.push(tt->next());
+        toDoIndex.push(index);
       }
     }
 
     TermSpec ts(*tt,index);
 
     VarSpec vs;
-    if(ts.term.isVar()) {
+    if(ts.term.isVar() && !ts.term.isVSpecialVar()) {
       vs=root(getVarSpec(ts));
 
       size_t found;
       if(known.find(vs, found)) {
-	argSizes.push(found);
-	continue;
+        argSizes.push(found);
+        continue;
       }
 
       ts=deref(vs);
-      if(ts.term.isVar()) {
-	ASS(ts.index==UNBOUND_INDEX);
-	argSizes.push(1);
-	continue;
+      if(ts.term.isVar() && !ts.term.isVSpecialVar()) {
+        ASS(ts.index==UNBOUND_INDEX);
+        argSizes.push(1);
+        continue;
       }
     } else {
       vs=nilVS;
     }
-    Term* t=ts.term.term();
+    Term* t;
+    if(ts.term.isVSpecialVar()){
+      t = _funcSubtermMap->get1(ts.term.var());
+    }else{
+      t=ts.term.term();
+    }
     if(t->shared() && t->ground()) {
       argSizes.push(t->weight());
       continue;
@@ -826,7 +899,6 @@ SubstIterator RobSubstitution::getAssocIterator(RobSubstitution* subst,
   CALL("RobSubstitution::getAssocIterator");
 
   if( !Literal::headersMatch(l1,l2,complementary) ) {
-    // We also get here if the sorts of equality literals do not match.
     return SubstIterator::getEmpty();
   }
 
@@ -843,7 +915,7 @@ template<class Fn>
 struct RobSubstitution::AssocContext
 {
   AssocContext(Literal* l1, int l1Index, Literal* l2, int l2Index)
-  : _l1(l1), _l1i(l1Index), _l2(l2), _l2i(l2Index) {}
+  : _l1(l1), _l1i(l1Index), _l2(l2), _l2i(l2Index) { ASS(!l1->isEquality()); ASS(!l2->isEquality()); } // only used for non-commutative, i.e. also non-equality, literals
   bool enter(RobSubstitution* subst)
   {
     subst->bdRecord(_bdata);
@@ -864,7 +936,6 @@ private:
   int _l1i;
   Literal* _l2;
   int _l2i;
-  bool _complementary;
   BacktrackData _bdata;
 };
 
@@ -888,110 +959,117 @@ private:
  *
  * Template parameter class Fn has to contain following
  * methods:
+ * bool associateEqualitySorts(RobSubstitution* subst,
+ *  Literal* l1, int l1Index, Literal* l2, int l2Index)
  * bool associate(RobSubstitution*, Literal* l1, int l1Index,
  * 	Literal* l2, int l2Index, bool complementary)
  * bool associate(RobSubstitution*, TermList t1, int t1Index,
  * 	TermList t2, int t2Index)
+ *
  * There is supposed to be one Fn class for unification and
  * one for matching.
  *
  * [1] associate means either match or unify
  */
 template<class Fn>
-class RobSubstitution::AssocIterator
-:public IteratorCore<RobSubstitution*>
-{
+class RobSubstitution::AssocIterator: public IteratorCore<RobSubstitution*> {
 public:
-  AssocIterator(RobSubstitution* subst, Literal* l1, int l1Index,
-	  Literal* l2, int l2Index)
-  : _subst(subst), _l1(l1), _l1i(l1Index), _l2(l2),
-  _l2i(l2Index), _state(FIRST), _used(true)
-  {
-    ASS_EQ(_l1->functor(),_l2->functor());
+  AssocIterator(RobSubstitution* subst, Literal* l1, int l1Index, Literal* l2,
+      int l2Index) :
+      _subst(subst), _l1(l1), _l1i(l1Index), _l2(l2), _l2i(l2Index),
+      _state(FIRST), _used(true) {
+    ASS_EQ(_l1->functor(), _l2->functor());
     ASS(_l1->commutative());
-    ASS_EQ(_l1->arity(),2);
+    ASS_EQ(_l1->arity(), 2);
   }
-  ~AssocIterator()
-  {
+  ~AssocIterator() {
     CALL("RobSubstitution::AssocIterator::~AssocIterator");
-
-    if(_state!=FINISHED && _state!=FIRST) {
-	backtrack();
+    if (_state != FINISHED && _state != FIRST) {
+      backtrack(_bdataMain);
+      backtrack(_bdataEqAssoc);
     }
-    ASS(_bdata.isEmpty());
+    ASS(_bdataMain.isEmpty());
+    ASS(_bdataEqAssoc.isEmpty());
   }
-  bool hasNext()
-  {
+  bool hasNext() {
     CALL("RobSubstitution::AssocIterator::hasNext");
 
-    if(_state==FINISHED) {
+    if (_state == FINISHED) {
       return false;
     }
-    if(!_used) {
+    if (!_used) {
       return true;
     }
-    _used=false;
+    _used = false;
 
-    if(_state!=FIRST) {
-      backtrack();
+    if (_state != FIRST) {
+      backtrack(_bdataMain);
+    } else {
+      _subst->bdRecord(_bdataEqAssoc);
+      if (!Fn::associateEqualitySorts(_subst, _l1, _l1i, _l2, _l2i)) {
+        backtrack(_bdataEqAssoc); // this might not be necessary
+        _state = FINISHED;
+        return false;
+      }
     }
-    _subst->bdRecord(_bdata);
 
-    switch(_state) {
+    _subst->bdRecord(_bdataMain);
+
+    switch (_state) {
     case NEXT_STRAIGHT:
-      if(Fn::associate(_subst, _l1, _l1i, _l2, _l2i)) {
-	_state=NEXT_REVERSED;
-	break;
+      if (Fn::associate(_subst, _l1, _l1i, _l2, _l2i)) {
+        _state = NEXT_REVERSED;
+        break;
       }
       //no break here intentionally
-    case NEXT_REVERSED:
-    {
-      TermList t11=*_l1->nthArgument(0);
-      TermList t12=*_l1->nthArgument(1);
-      TermList t21=*_l2->nthArgument(0);
-      TermList t22=*_l2->nthArgument(1);
-      if(Fn::associate(_subst, t11, _l1i, t22, _l2i)) {
-	if(Fn::associate(_subst, t12, _l1i, t21, _l2i)) {
-	  _state=NEXT_CLEANUP;
-	  break;
-	}
-	//the first successful association will be undone
-	//in case NEXT_CLEANUP
+    case NEXT_REVERSED: {
+      TermList t11 = *_l1->nthArgument(0);
+      TermList t12 = *_l1->nthArgument(1);
+      TermList t21 = *_l2->nthArgument(0);
+      TermList t22 = *_l2->nthArgument(1);
+      if (Fn::associate(_subst, t11, _l1i, t22, _l2i)) {
+        if (Fn::associate(_subst, t12, _l1i, t21, _l2i)) {
+          _state = NEXT_CLEANUP;
+          break;
+        }
+        //the first successful association will be undone
+        //in case NEXT_CLEANUP
       }
     }
-    //no break here intentionally
+      //no break here intentionally
     case NEXT_CLEANUP:
       //undo the previous match
-      backtrack();
-      _state=FINISHED;
+      backtrack(_bdataMain);
+      //undo associateEqualitySorts
+      backtrack(_bdataEqAssoc);
+      _state = FINISHED;
       break;
     case FINISHED:
       ASSERTION_VIOLATION;
     }
-    ASS(_state!=FINISHED || _bdata.isEmpty());
-    return _state!=FINISHED;
+    ASS(_state != FINISHED || (_bdataMain.isEmpty() && _bdataEqAssoc.isEmpty()));
+    return _state != FINISHED;
   }
 
-  RobSubstitution* next()
-  {
-    _used=true;
+  RobSubstitution* next() {
+    _used = true;
     return _subst;
   }
 private:
-  void backtrack()
-  {
+  void backtrack(BacktrackData &_bdata) {
     CALL("RobSubstitution::AssocIterator::backtrack");
 
-    ASS_EQ(&_bdata,&_subst->bdGet());
+    ASS_EQ(&_bdata, &_subst->bdGet());
     _subst->bdDone();
     _bdata.backtrack();
   }
+
   enum State {
-    FIRST=0,
-    NEXT_STRAIGHT=0,
-    NEXT_REVERSED=1,
-    NEXT_CLEANUP=2,
-    FINISHED=3
+    FIRST = 0,
+    NEXT_STRAIGHT = 0,
+    NEXT_REVERSED = 1,
+    NEXT_CLEANUP = 2,
+    FINISHED = 3
   };
 
   RobSubstitution* _subst;
@@ -999,7 +1077,8 @@ private:
   int _l1i;
   Literal* _l2;
   int _l2i;
-  BacktrackData _bdata;
+  BacktrackData _bdataMain;
+  BacktrackData _bdataEqAssoc;
 
   State _state;
   /**
@@ -1009,7 +1088,20 @@ private:
    */
   bool _used;
 };
+
 struct RobSubstitution::MatchingFn {
+  static bool associateEqualitySorts(RobSubstitution* subst, Literal* l1, int l1Index,
+      Literal* l2, int l2Index) {
+    /* Only in the case l1 is of the form X = Y ad l2 is of the form 
+       t1 = t2 can the literals be matched without their sorts being matched */
+    if(l1->isTwoVarEquality()){
+      ASS(l2->isEquality());
+      TermList sb = SortHelper::getEqualityArgumentSort(l1);
+      TermList si = SortHelper::getEqualityArgumentSort(l2);
+      return subst->match(sb, l1Index, si, l2Index);
+    }
+    return true;
+  }
   static bool associate(RobSubstitution* subst, Literal* l1, int l1Index,
 	  Literal* l2, int l2Index)
   { return subst->matchArgs(l1,l1Index,l2,l2Index); }
@@ -1018,7 +1110,20 @@ struct RobSubstitution::MatchingFn {
 	  TermList t2, int t2Index)
   { return subst->match(t1,t1Index,t2,t2Index); }
 };
+
 struct RobSubstitution::UnificationFn {
+
+  static bool associateEqualitySorts(RobSubstitution* subst, Literal* l1, int l1Index,
+      Literal* l2, int l2Index) {
+    if(l1->isEquality()) {
+      ASS(l2->isEquality());
+      TermList s1 = SortHelper::getEqualityArgumentSort(l1);
+      TermList s2 = SortHelper::getEqualityArgumentSort(l2);
+      return subst->unify(s1, l1Index, s2, l2Index);
+    }
+    return true;
+  }
+
   static bool associate(RobSubstitution* subst, Literal* l1, int l1Index,
 	  Literal* l2, int l2Index)
   { return subst->unifyArgs(l1,l1Index,l2,l2Index); }

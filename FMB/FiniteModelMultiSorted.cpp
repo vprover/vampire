@@ -58,12 +58,17 @@ FiniteModelMultiSorted::FiniteModelMultiSorted(DHMap<unsigned,unsigned> sizes) :
   // the actual index
   unsigned offsets=1;
   for(unsigned f=0; f<env.signature->functions();f++){
+    if(env.signature->isTypeConOrSup(f)){ continue; }
     unsigned arity=env.signature->functionArity(f);
     f_offsets[f]=offsets;
 
     OperatorType* sig = env.signature->getFunction(f)->fnType();
-    unsigned add = _sizes.get(sig->result());
-    for(unsigned i=0;i<arity;i++){ add*= _sizes.get(sig->arg(i)); }
+    unsigned s = SortHelper::sortNum(sig->result());
+    unsigned add = _sizes.get(s);
+    for(unsigned i=0;i<arity;i++){ 
+      s = SortHelper::sortNum(sig->arg(i));
+      add*= _sizes.get(s); 
+    }
     
     ASS(UINT_MAX - add > offsets);
     offsets += add;
@@ -77,8 +82,10 @@ FiniteModelMultiSorted::FiniteModelMultiSorted(DHMap<unsigned,unsigned> sizes) :
 
     OperatorType* sig = env.signature->getPredicate(p)->predType();
     unsigned add = 1;
+
     for(unsigned i=0;i<arity;i++){ 
-      int mult = _sizes.get(sig->arg(i)); 
+      unsigned s = SortHelper::sortNum(sig->arg(i)); 
+      int mult = _sizes.get(s); 
       ASS(mult>0);
       add*= (mult>0 ? mult : 1);
     }
@@ -111,11 +118,12 @@ void FiniteModelMultiSorted::addFunctionDefinition(unsigned f, const DArray<unsi
   ASS_EQ(env.signature->functionArity(f),args.size());
 
   if(env.signature->functionArity(f)==0 && !env.signature->getFunction(f)->introduced()){
-    unsigned srt = env.signature->getFunction(f)->fnType()->result();
-    if(sortRepr[srt][res] == -1){
+    TermList srt = env.signature->getFunction(f)->fnType()->result();
+    unsigned srtU = SortHelper::sortNum(srt);
+    if(sortRepr[srtU][res] == -1){
       //cout << "Rep " << env.signature->functionName(f) << " for ";
       //cout << env.sorts->sortName(srt) << " and " << res << endl;
-      sortRepr[srt][res]=f;
+      sortRepr[srtU][res]=f;
     }
   } 
 
@@ -124,7 +132,8 @@ void FiniteModelMultiSorted::addFunctionDefinition(unsigned f, const DArray<unsi
   OperatorType* sig = env.signature->getFunction(f)->fnType();
   for(unsigned i=0;i<args.size();i++){
     var += mult*(args[i]-1);
-    mult *= _sizes.get(sig->arg(i));
+    unsigned s = SortHelper::sortNum(sig->arg(i));
+    mult *= _sizes.get(s);
   }
 
   //TODO should be a zero array, should check if previously assigned
@@ -160,7 +169,8 @@ void FiniteModelMultiSorted::addPredicateDefinition(unsigned p, const DArray<uns
   OperatorType* sig = env.signature->getPredicate(p)->predType();
   for(unsigned i=0;i<args.size();i++){
     var += mult*(args[i]-1);
-    mult *=_sizes.get(sig->arg(i));
+    unsigned s = SortHelper::sortNum(sig->arg(i));
+    mult *=_sizes.get(s);
   }
 
   ASS_L(var, p_interpretation.size());
@@ -196,7 +206,7 @@ vstring FiniteModelMultiSorted::toString()
     if(size==0) continue;
 
     vstring sortName = env.sorts->sortName(s);
-    vstring sortNameLabel = (s==Sorts::SRT_BOOL) ? "bool" : sortName;
+    vstring sortNameLabel = (SortHelper::isBoolSort(SortHelper::sortTerm(s))) ? "bool" : sortName;
 
     // Sort declaration
     modelStm << "tff(" << prepend("declare_", sortNameLabel) << ",type,"<<sortName<<":$tType)." <<endl;
@@ -250,13 +260,15 @@ vstring FiniteModelMultiSorted::toString()
 
   //Constants
   for(unsigned f=0;f<env.signature->functions();f++){
+    if(env.signature->isTypeConOrSup(f)){ continue; }
     if(env.signature->getFunction(f)->usageCnt()==0) continue;
     unsigned arity = env.signature->functionArity(f);
     if(arity>0) continue;
     if(!printIntroduced && env.signature->getFunction(f)->introduced()) continue;
     vstring name = env.signature->functionName(f);
     unsigned res = f_interpretation[f_offsets[f]];
-    unsigned srt = env.signature->getFunction(f)->fnType()->result();
+    TermList srtT = env.signature->getFunction(f)->fnType()->result();
+    unsigned srt = SortHelper::sortNum(srtT);
     vstring cname = cnames[srt][res];
     if(name == cname) continue;
 
@@ -272,6 +284,7 @@ vstring FiniteModelMultiSorted::toString()
 
   //Functions
   for(unsigned f=0;f<env.signature->functions();f++){
+    if(env.signature->isTypeConOrSup(f)){ continue; }
     if(env.signature->getFunction(f)->usageCnt()==0) continue;
     unsigned arity = env.signature->functionArity(f);
     if(arity==0) continue;
@@ -298,7 +311,9 @@ vstring FiniteModelMultiSorted::toString()
 fModelLabel:
       for(unsigned i=arity-1;i+1!=0;i--){
 
-        if(args[i]==_sizes.get(sig->arg(i))){
+        TermList argST = sig->arg(i);
+        unsigned argS = SortHelper::sortNum(argST);
+        if(args[i]==_sizes.get(argS)){
           args[i]=1;
         }
         else{
@@ -310,7 +325,8 @@ fModelLabel:
           unsigned mult=1; 
           for(unsigned i=0;i<args.size();i++){
             var += mult*(args[i]-1);
-            mult *= _sizes.get(sig->arg(i));
+            unsigned s = SortHelper::sortNum(sig->arg(i));
+            mult *= _sizes.get(s);
           } 
           unsigned res = f_interpretation[var];
 
@@ -325,10 +341,14 @@ fModelLabel:
           modelStm << name << "(";
           for(unsigned j=0;j<arity;j++){
             if(j!=0) modelStm << ",";
-            modelStm << cnames[sig->arg(j)][args[j]];
+            TermList argSortT = sig->arg(j);
+            unsigned argSort = SortHelper::sortNum(argSortT); 
+            modelStm << cnames[argSort][args[j]];
           }
           if(res>0){
-            modelStm << ") = " << cnames[sig->result()][res] << endl;
+            TermList resultSortT = sig->result();
+            unsigned resultSort = SortHelper::sortNum(resultSortT);    
+            modelStm << ") = " << cnames[resultSort][res] << endl;
           }
           else{
             modelStm << ") undefined in model" << endl;
@@ -368,7 +388,9 @@ fModelLabel:
     OperatorType* sig = env.signature->getPredicate(f)->predType();
     modelStm << "tff("<<prepend("declare_", name)<<",type,"<<name<<": ";
     for(unsigned i=0;i<arity;i++){
-      modelStm << env.sorts->sortName(sig->arg(i));
+      TermList argST = sig->arg(i);
+      unsigned argS = SortHelper::sortNum(argST);      
+      modelStm << env.sorts->sortName(argS);
       if(i+1 < arity) modelStm << " * ";
     }
     modelStm << " > $o )." << endl;
@@ -384,7 +406,9 @@ fModelLabel:
     bool first=true;
 pModelLabel:
       for(unsigned i=arity-1;i+1!=0;i--){
-        if(args[i]==_sizes.get(sig->arg(i))){
+        TermList argST = sig->arg(i);
+        unsigned argS = SortHelper::sortNum(argST);
+        if(args[i]==_sizes.get(argS)){
           args[i]=1;
         }
         else{
@@ -396,7 +420,8 @@ pModelLabel:
           unsigned mult=1;
           for(unsigned i=0;i<args.size();i++){
             var += mult*(args[i]-1);
-            mult *= _sizes.get(sig->arg(i));
+            unsigned s = SortHelper::sortNum(sig->arg(i));
+            mult *= _sizes.get(s);
           }
           unsigned res = p_interpretation[var];
           if(res>0){
@@ -411,7 +436,9 @@ pModelLabel:
           modelStm << name << "(";
           for(unsigned j=0;j<arity;j++){
             if(j!=0) modelStm << ",";
-            modelStm << cnames[sig->arg(j)][args[j]]; 
+            TermList argSortT = sig->arg(j);
+            unsigned argSort = SortHelper::sortNum(argSortT);
+            modelStm << cnames[argSort][args[j]]; 
           }
           modelStm << ")";
           if(res==0){
@@ -452,7 +479,8 @@ unsigned FiniteModelMultiSorted::evaluateGroundTerm(Term* term)
   unsigned mult = 1;
   for(unsigned i=0;i<args.size();i++){
     var += mult*(args[i]-1);
-    mult *=_sizes.get(sig->arg(i));
+    unsigned s = SortHelper::sortNum(sig->arg(i));
+    mult *=_sizes.get(s);
   }
 #if VDEBUG
   if((term->functor()+1)<f_offsets.size()) ASS_L(var,f_offsets[term->functor()+1]);
@@ -496,7 +524,8 @@ bool FiniteModelMultiSorted::evaluateGroundLiteral(Literal* lit)
   unsigned mult = 1;
   for(unsigned i=0;i<args.size();i++){
     var += mult*(args[i]-1);
-    mult *=_sizes.get(sig->arg(i));
+    unsigned s = SortHelper::sortNum(sig->arg(i));
+    mult *=_sizes.get(s);
   }  
 
 #if VDEBUG
@@ -615,7 +644,7 @@ bool FiniteModelMultiSorted::evaluate(Formula* formula,unsigned depth)
      isForall = true;
     case EXISTS:
     {
-     Formula::VarList* vs = formula->vars();
+     VList* vs = formula->vars();
      int var = vs->head();
 
      //cout << "Quant " << isForall << " with " << var << endl;
@@ -624,14 +653,15 @@ bool FiniteModelMultiSorted::evaluate(Formula* formula,unsigned depth)
      if(vs->tail()) next = new QuantifiedFormula(formula->connective(),vs->tail(),0,formula->qarg());
      else next = formula->qarg();
 
-     unsigned srt;
+     TermList srt;
      if(!SortHelper::tryGetVariableSort(var,formula,srt)){
        USER_ERROR("Failed to get sort of "+Lib::Int::toString(var)+" in "+formula->toString());
      }
 
-     for(unsigned c=1;c<=_sizes.get(srt);c++){
+     unsigned srtU = SortHelper::sortNum(srt);
+     for(unsigned c=1;c<=_sizes.get(srtU);c++){
        Substitution s;
-       s.bind(var,getDomainConstant(c,srt));
+       s.bind(var,getDomainConstant(c,srtU));
        Formula* next_sub = SubstHelper::apply(next,s);
        next_sub = SimplifyFalseTrue::simplify(next_sub);
        next_sub = Flattening::flatten(next_sub); 
@@ -718,7 +748,7 @@ bool FiniteModelMultiSorted::evaluate(Formula* formula,unsigned depth)
                 case FORALL:
                 case EXISTS:
             {
-                Formula::VarList* vs = formula->vars();
+                VList* vs = formula->vars();
                 Formula* inner  = formula->qarg();
                 Formula* newInner = partialEvaluate(inner);
                 return new QuantifiedFormula(formula->connective(),vs,0,newInner);

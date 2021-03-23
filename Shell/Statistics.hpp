@@ -128,6 +128,18 @@ public:
   unsigned inductionInProof;
   unsigned generalizedInduction;
   unsigned generalizedInductionInProof;
+  /** number of argument congruences */
+  unsigned argumentCongruence;
+  unsigned narrow;
+  unsigned forwardSubVarSup;
+  unsigned backwardSubVarSup;
+  unsigned selfSubVarSup;
+  unsigned negativeExtensionality;
+  unsigned primitiveInstantiations;
+  unsigned choiceInstances;
+  unsigned proxyEliminations;
+  unsigned leibnizElims;
+  unsigned booleanSimps;
 
   // Simplifying inferences
   /** number of duplicate literals deleted */
@@ -187,6 +199,11 @@ public:
   unsigned taInjectivitySimplifications;
   unsigned taNegativeInjectivitySimplifications;
   unsigned taAcyclicityGeneratedDisequalities;
+
+  //to be moved to the property object once that 
+  //is controlled by environment
+  bool higherOrder;
+  bool polymorphic;
 
   // Saturation
   /** all clauses ever occurring in the unprocessed queue */

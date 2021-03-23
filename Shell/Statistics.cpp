@@ -81,6 +81,17 @@ Statistics::Statistics()
     inductionInProof(0),
     generalizedInduction(0),
     generalizedInductionInProof(0),
+    argumentCongruence(0),
+    narrow(0),
+    forwardSubVarSup(0),
+    backwardSubVarSup(0),
+    selfSubVarSup(0),
+    negativeExtensionality(0),
+    primitiveInstantiations(0),
+    choiceInstances(0),
+    proxyEliminations(0),
+    leibnizElims(0),
+    booleanSimps(0),
     duplicateLiterals(0),
     trivialInequalities(0),
     forwardSubsumptionResolution(0),
@@ -110,6 +121,8 @@ Statistics::Statistics()
     taInjectivitySimplifications(0),
     taNegativeInjectivitySimplifications(0),
     taAcyclicityGeneratedDisequalities(0),
+    higherOrder(0),
+    polymorphic(0),
     generatedClauses(0),
     passiveClauses(0),
     activeClauses(0),
@@ -271,9 +284,9 @@ void Statistics::print(ostream& out)
 
 
   HEADING("Simplifying Inferences",duplicateLiterals+trivialInequalities+
-      forwardSubsumptionResolution+backwardSubsumptionResolution+
+      forwardSubsumptionResolution+backwardSubsumptionResolution+proxyEliminations+
       forwardDemodulations+backwardDemodulations+forwardLiteralRewrites+
-      forwardSubsumptionDemodulations+backwardSubsumptionDemodulations+
+      forwardSubsumptionDemodulations+backwardSubsumptionDemodulations+booleanSimps+
       condensations+globalSubsumption+evaluations+innerRewrites);
   COND_OUT("Duplicate literals", duplicateLiterals);
   COND_OUT("Trivial inequalities", trivialInequalities);
@@ -288,6 +301,8 @@ void Statistics::print(ostream& out)
   COND_OUT("Condensations", condensations);
   COND_OUT("Global subsumptions", globalSubsumption);
   COND_OUT("Evaluations", evaluations);
+  COND_OUT("Logicial proxy rewrites", proxyEliminations);
+  COND_OUT("Boolean simplifications", booleanSimps)
   //COND_OUT("Interpreted simplifications", interpretedSimplifications);
   SEPARATOR;
 
@@ -309,9 +324,10 @@ void Statistics::print(ostream& out)
 
   HEADING("Generating Inferences",resolution+urResolution+cResolution+factoring+
       forwardSuperposition+backwardSuperposition+selfSuperposition+
-      cForwardSuperposition+cBackwardSuperposition+cSelfSuperposition+
+      cForwardSuperposition+cBackwardSuperposition+cSelfSuperposition+leibnizElims+
       equalityFactoring+equalityResolution+forwardExtensionalityResolution+
-      backwardExtensionalityResolution+
+      backwardExtensionalityResolution+argumentCongruence+negativeExtensionality+
+      +primitiveInstantiations+choiceInstances+narrow+forwardSubVarSup+backwardSubVarSup+selfSubVarSup+
       theoryInstSimp+theoryInstSimpCandidates+theoryInstSimpTautologies+theoryInstSimpLostSolution+induction);
   COND_OUT("Binary resolution", resolution);
   COND_OUT("Unit resulting resolution", urResolution);
@@ -336,6 +352,15 @@ void Statistics::print(ostream& out)
   COND_OUT("InductionStepsInProof",inductionInProof);
   COND_OUT("GeneralizedInduction",generalizedInduction);
   COND_OUT("GeneralizedInductionInProof",generalizedInductionInProof);
+  COND_OUT("Argument congruence", argumentCongruence);
+  COND_OUT("Negative extensionality", negativeExtensionality);
+  COND_OUT("Primitive substitutions", primitiveInstantiations);
+  COND_OUT("Elimination of Leibniz equalities", leibnizElims);
+  COND_OUT("Choice axiom instances creatded", choiceInstances);
+  COND_OUT("Narrow", narrow);
+  COND_OUT("Forward sub-variable superposition", forwardSubVarSup);  
+  COND_OUT("Backward sub-variable superposition", backwardSubVarSup);  
+  COND_OUT("Self sub-variable superposition", selfSubVarSup);  
   SEPARATOR;
 
   HEADING("Term algebra simplifications",taDistinctnessSimplifications+

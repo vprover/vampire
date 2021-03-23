@@ -41,7 +41,7 @@ class DivByZeroException         : public ArithmeticException {  };
 class IntegerConstantType
 {
 public:
-  static unsigned getSort() { return Sorts::SRT_INTEGER; }
+  static TermList getSort() { return Term::intSort(); }
 
   typedef int InnerType;
 
@@ -112,7 +112,7 @@ std::ostream& operator<< (ostream& out, const IntegerConstantType& val) {
 struct RationalConstantType {
   typedef IntegerConstantType InnerType;
 
-  static unsigned getSort() { return Sorts::SRT_RATIONAL; }
+  static TermList getSort() { return Term::rationalSort(); }
 
   RationalConstantType() {}
 
@@ -179,7 +179,7 @@ std::ostream& operator<< (ostream& out, const RationalConstantType& val) {
 class RealConstantType : public RationalConstantType
 {
 public:
-  static unsigned getSort() { return Sorts::SRT_REAL; }
+  static TermList getSort() { return Term::realSort(); }
 
   RealConstantType() {}
   explicit RealConstantType(const vstring& number);
@@ -387,10 +387,10 @@ public:
   static bool isInequality(Interpretation i);
   static OperatorType* getNonpolymorphicOperatorType(Interpretation i);
 
-  static OperatorType* getArrayOperatorType(unsigned arraySort, Interpretation i);
+  static OperatorType* getArrayOperatorType(TermList arraySort, Interpretation i);
 
   static bool hasSingleSort(Interpretation i);
-  static unsigned getOperationSort(Interpretation i);
+  static TermList getOperationSort(Interpretation i);
   static bool isConversionOperation(Interpretation i);
   static bool isLinearOperation(Interpretation i);
   static bool isNonLinearOperation(Interpretation i);
@@ -398,12 +398,12 @@ public:
 
   static bool isPolymorphic(Interpretation i);
 
-  unsigned getArrayExtSkolemFunction(unsigned i);
+  unsigned getArrayExtSkolemFunction(TermList sort);
 
   static Theory theory_obj;
   static Theory* instance();
 
-  void defineTupleTermAlgebra(unsigned arity, unsigned* sorts);
+  void defineTupleTermAlgebra(unsigned arity, TermList* sorts);
 
   /** Returns true if the argument is an interpreted constant
    */
@@ -505,15 +505,15 @@ private:
   Theory();
   static OperatorType* getConversionOperationType(Interpretation i);
 
-  DHMap<unsigned,unsigned> _arraySkolemFunctions;
+  DHMap<TermList,unsigned> _arraySkolemFunctions;
 
 public:
   class Tuples {
   public:
     bool isFunctor(unsigned functor);
-    unsigned getFunctor(unsigned arity, unsigned* sorts);
-    unsigned getFunctor(unsigned tupleSort);
-    unsigned getProjectionFunctor(unsigned proj, unsigned tupleSort);
+    unsigned getFunctor(unsigned arity, TermList sorts[]);
+    unsigned getFunctor(TermList tupleSort);
+    unsigned getProjectionFunctor(unsigned proj, TermList tupleSort);
     bool findProjection(unsigned projFunctor, bool isPredicate, unsigned &proj);
   };
 

@@ -198,7 +198,7 @@ Term* TermTransformer::transformSpecial(Term* term)
     }
 
   }
-  ASSERTION_VIOLATION_REP(term->toString());
+  ASSERTION_VIOLATION_REP(term->toString()); 
   return nullptr;
 }
 
