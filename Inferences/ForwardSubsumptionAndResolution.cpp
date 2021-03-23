@@ -64,7 +64,7 @@ using namespace Saturation;
 
 
 #define CHECK_SMT_SUBSUMPTION 1
-#define CHECK_SMT_SUBSUMPTION_RESOLUTION 1
+#define CHECK_SMT_SUBSUMPTION_RESOLUTION 0
 
 
 
