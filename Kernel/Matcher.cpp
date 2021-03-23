@@ -88,6 +88,19 @@ bool MatchingUtils::isVariant(Literal* l1, Literal* l2, bool complementary)
 {
   CALL("MatchingUtils::isVariant");
 
+  if(l1->isTwoVarEquality() && l2->isTwoVarEquality()){
+    TermList s1 = l1->twoVarEqSort();
+    TermList s2 = l2->twoVarEqSort();
+    if(s1.isVar() && s2.isVar()){}
+    else if(s1.isTerm() && s2.isTerm()){
+      if(s1.term()->functor() != s2.term()->functor() || 
+        !haveVariantArgs(s1.term(), s2.term())){
+        return false;
+      }
+    }else{
+      return false;
+    }
+  }
   if(!Literal::headersMatch(l1,l2,complementary)) {
     return false;
   }
@@ -113,21 +126,39 @@ bool MatchingUtils::haveReversedVariantArgs(Term* l1, Term* l2)
   leftToRight.reset();
   rightToLeft.reset();
 
-  VirtualIterator<pair<TermList, TermList> > dsit=pvi( getConcatenatedIterator(
-	    vi( new DisagreementSetIterator(*l1->nthArgument(0),*l2->nthArgument(1)) ),
-	    vi( new DisagreementSetIterator(*l1->nthArgument(1),*l2->nthArgument(0)) )) );
+  TermList s1, s2;
+  bool sortUsed = false;
+  if(l1->isLiteral() && static_cast<Literal*>(l1)->isTwoVarEquality())
+  {
+    if(l2->isLiteral() && static_cast<Literal*>(l2)->isTwoVarEquality()){
+       s1 = SortHelper::getEqualityArgumentSort(static_cast<Literal*>(l1));
+       s2 = SortHelper::getEqualityArgumentSort(static_cast<Literal*>(l2));  
+       sortUsed = true;     
+    } else {
+      return false;
+    }      
+  }
+
+  auto it1 = getConcatenatedIterator(
+      vi( new DisagreementSetIterator(*l1->nthArgument(0),*l2->nthArgument(1)) ),
+      vi( new DisagreementSetIterator(*l1->nthArgument(1),*l2->nthArgument(0)) ));
+
+  VirtualIterator<pair<TermList, TermList> > dsit =
+  sortUsed ? pvi(getConcatenatedIterator(vi(new DisagreementSetIterator(s1,s2)), it1)) :
+             pvi(it1);
+    
   while(dsit.hasNext()) {
     pair<TermList,TermList> dp=dsit.next(); //disagreement pair
     if(!dp.first.isVar() || !dp.second.isVar()) {
-	return false;
+  return false;
     }
     unsigned left=dp.first.var();
     unsigned right=dp.second.var();
     if(right!=leftToRight.findOrInsert(left,right)) {
-	return false;
+  return false;
     }
     if(left!=rightToLeft.findOrInsert(right,left)) {
-	return false;
+  return false;
     }
   }
   if(leftToRight.size()!=rightToLeft.size()) {
@@ -145,6 +176,7 @@ bool MatchingUtils::haveVariantArgs(Term* l1, Term* l2)
   if(l1==l2) {
     return true;
   }
+
   static DHMap<unsigned,unsigned,IdentityHash> leftToRight;
   static DHMap<unsigned,unsigned,IdentityHash> rightToLeft;
   leftToRight.reset();
@@ -154,15 +186,15 @@ bool MatchingUtils::haveVariantArgs(Term* l1, Term* l2)
   while(dsit.hasNext()) {
     pair<TermList,TermList> dp=dsit.next(); //disagreement pair
     if(!dp.first.isVar() || !dp.second.isVar()) {
-	return false;
+  return false;
     }
     unsigned left=dp.first.var();
     unsigned right=dp.second.var();
     if(right!=leftToRight.findOrInsert(left,right)) {
-	return false;
+  return false;
     }
     if(left!=rightToLeft.findOrInsert(right,left)) {
-	return false;
+  return false;
     }
   }
   if(leftToRight.size()!=rightToLeft.size()) {
@@ -181,8 +213,12 @@ bool MatchingUtils::matchReversedArgs(Literal* base, Literal* instance)
   static MapBinder binder;
   binder.reset();
 
+  bool bTwoVarEq = base->isTwoVarEquality();
+
   return matchTerms(*base->nthArgument(0), *instance->nthArgument(1), binder) &&
-    matchTerms(*base->nthArgument(1), *instance->nthArgument(0), binder);
+    matchTerms(*base->nthArgument(1), *instance->nthArgument(0), binder) &&
+    (!bTwoVarEq || matchTerms(base->twoVarEqSort(), SortHelper::getEqualityArgumentSort(instance))
+   );
 }
 
 bool MatchingUtils::matchArgs(Term* base, Term* instance)
@@ -201,13 +237,13 @@ bool MatchingUtils::matchTerms(TermList base, TermList instance)
 
   if(base.isTerm()) {
     if(!instance.isTerm()) {
-	return false;
+  return false;
     }
 
     Term* bt=base.term();
     Term* it=instance.term();
     if(bt->functor()!=it->functor()) {
-	return false;
+      return false;
     }
     if(bt->shared() && it->shared()) {
       if(bt->ground()) {
@@ -231,6 +267,8 @@ void OCMatchIterator::init(Literal* base, Literal* inst, bool complementary)
 {
   CALL("FastMatchIterator::init");
 
+  //TODO we don't seem to use this iterator anywhere, so 
+  //have not updated to polymorphism
   if(!Literal::headersMatch(base, inst, complementary)) {
     _finished=true;
     return;
@@ -322,10 +360,10 @@ bool OCMatchIterator::occursCheck()
     while(toDo.isNonEmpty()) {
       int task=toDo.pop();
       if(task==-1) {
-	unsigned var=toDo.pop();
-	ASS_EQ(statuses.get(var), TRAVERSING);
-	statuses.set(var, CHECKED);
-	continue;
+  unsigned var=toDo.pop();
+  ASS_EQ(statuses.get(var), TRAVERSING);
+  statuses.set(var, CHECKED);
+  continue;
       }
 
       unsigned var=task;
@@ -339,31 +377,31 @@ bool OCMatchIterator::occursCheck()
 
       TermList tgt;
       if(!_bindings.find(var, tgt)) {
-	continue;
+  continue;
       }
 //      if(tgt.isVar()) {
-//	int tvar=tgt.var();
-//	if(var<tvar) {
+//  int tvar=tgt.var();
+//  if(var<tvar) {
 //
-//	}
-//	NOT_IMPLEMENTED;
+//  }
+//  NOT_IMPLEMENTED;
 //      }
 //      VariableIterator vit(tgt.term());
       VariableIterator vit(tgt);
       while(vit.hasNext()) {
-	unsigned chvar=vit.next().var(); //child variable number
+  unsigned chvar=vit.next().var(); //child variable number
 
-	OCStatus* pChStatus;
-	if(!statuses.getValuePtr(chvar, pChStatus)) {
-	  if(*pChStatus==TRAVERSING) {
-	    return false;
-	  }
-	  ASS_REP(*pChStatus==CHECKED||*pChStatus==ENQUEUED, *pChStatus);
-	  continue;
-	}
-	*pChStatus=ENQUEUED;
+  OCStatus* pChStatus;
+  if(!statuses.getValuePtr(chvar, pChStatus)) {
+    if(*pChStatus==TRAVERSING) {
+      return false;
+    }
+    ASS_REP(*pChStatus==CHECKED||*pChStatus==ENQUEUED, *pChStatus);
+    continue;
+  }
+  *pChStatus=ENQUEUED;
 
-	toDo.push(chvar);
+  toDo.push(chvar);
       }
 
     }
@@ -416,7 +454,7 @@ public:
   ~CommutativeMatchIterator()
   {
     if(_state!=FINISHED && _state!=FIRST) {
-	backtrack();
+  backtrack();
     }
     ASS(_bdata.isEmpty());
   }
@@ -433,31 +471,31 @@ public:
     _used=false;
 
     if(_state!=FIRST) {
-	backtrack();
+  backtrack();
     }
     _matcher->bdRecord(_bdata);
 
     switch(_state) {
     case NEXT_STRAIGHT:
-	if(_matcher->matchArgs(_base,_instance)) {
-	  _state=NEXT_REVERSED;
-	  break;
-	}
-	//no break here intentionally
+  if(_matcher->matchArgs(_base,_instance)) {
+    _state=NEXT_REVERSED;
+    break;
+  }
+  //no break here intentionally
     case NEXT_REVERSED:
-	if(_matcher->matchReversedArgs(_base,_instance)) {
-	  _state=NEXT_CLEANUP;
-	  break;
-	}
+  if(_matcher->matchReversedArgs(_base,_instance)) {
+    _state=NEXT_CLEANUP;
+    break;
+  }
     //no break here intentionally
     case NEXT_CLEANUP:
       //undo the previous match
-	backtrack();
+  backtrack();
 
-	_state=FINISHED;
-	break;
+  _state=FINISHED;
+  break;
     default:
-	ASSERTION_VIOLATION;
+  ASSERTION_VIOLATION;
     }
 
     ASS(_state!=FINISHED || _bdata.isEmpty());
@@ -508,7 +546,7 @@ struct Matcher::MatchContext
     matcher->bdRecord(_bdata);
     bool res=matcher->matchArgs(_base, _instance);
     if(!res) {
-	matcher->bdDone();
+      matcher->bdDone();
       ASS(_bdata.isEmpty());
     }
     return res;
@@ -525,19 +563,24 @@ private:
 };
 
 MatchIterator Matcher::matches(Literal* base, Literal* instance,
-	  bool complementary)
+    bool complementary)
 {
   CALL("Matcher::matches");
 
   if(!Literal::headersMatch(base, instance, complementary)) {
     return MatchIterator::getEmpty();
   }
+  if(base->isTwoVarEquality()){
+    TermList s1 = SortHelper::getEqualityArgumentSort(base);
+    TermList s2 = SortHelper::getEqualityArgumentSort(instance);
+    if(!MatchingUtils::matchTerms(s1, s2)){ return MatchIterator::getEmpty(); }
+  }
   if(base->arity()==0) {
     return pvi( getSingletonIterator(this) );
   }
   if( !base->commutative() ) {
     return pvi( getContextualIterator(getSingletonIterator(this),
-	      MatchContext(base, instance)) );
+        MatchContext(base, instance)) );
   }
   return vi( new CommutativeMatchIterator(this, base, instance) );
 

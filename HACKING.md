@@ -34,7 +34,8 @@ In a pinch, `grep PAT $(git ls-files)` works OK too.
   No donkeys here.
 * Heavy use of "iterator" classes which can do slightly odd things. These are in the process of being re-organised somewhat by Joe.
 * Some amount of unused/dead code. If it looks like nonsense, doesn't compile, or isn't reachable, it might well just not be used any more. Pull requests appreciated.
-* TODO something about the allocator by someone who knows something about it
+* A possibly slightly outdated explanation for the message [Attempted to use global new operator, thus bypassing Allocator!](https://github.com/vprover/vampire/wiki/Attempted-to-use-global-new-operator,-thus-bypassing-Allocator!)
+* for historians: [Yes, we had (and still have) a wiki on our github page](https://github.com/vprover/vampire/wiki)
 * TODO more tips
 
 ## Building with CMake
@@ -53,13 +54,18 @@ Notable options are:
   lead to a mixed binary.
   You can check the output of the linking which libraries were not linked in.
   Please be also aware that Mac OS X does not support completely statically linked libraries (see also Apple's [Technical Q&A](https://developer.apple.com/library/archive/qa/qa1118/_index.html)).
+* "Inter-Procedural Optimisation": `-DIPO=ON`. This enables potentially-expensive linker options (depending on your system) which may produce a small performance improvement. Probably only useful for competitions.
 
 ### Z3
 We fix a known version of Z3 via `git-submodule`.
 If you don't need Z3, do nothing: CMake will detect this and do the right thing.
 If you need Z3, first `git submodule update --init` to pull the correct version of Z3, then build Z3 via its own CMake system into `z3/build`, which is where Vampire's CMake will find the necessary files.
 CMake will then detect this build and do the right thing.
-Finally, if you've used Z3 in the past but don't want it for this build, pass `-DCMAKE_DISABLE_FIND_PACKAGE_Z3=1` to disable automatically including Z3.
+
+#### Advanced Z3
+* If you've used Z3 in the past but don't want it for this build, pass `-DCMAKE_DISABLE_FIND_PACKAGE_Z3=ON` to disable automatically including Z3.
+* If you want to override the Z3 search path, first think carefully about whether you need to do this: Z3 is a fixed submodule for a reason! Then remove `CMakeCache.txt` if present (the path to Z3 is cached) and pass `-DZ3_ROOT=/foo/bar/build/`.
+* To make sure CMake found the intended package, pass `-DCMAKE_FIND_DEBUG_MODE=ON`
 
 #### Building Z3
 Please refer to Z3's [CMake documentation](https://github.com/Z3Prover/z3/blob/master/README-CMake.md). Notable options are:
@@ -74,7 +80,7 @@ E.g. details of build configuration, linking, Spider?
 * Verbose compilation for UNIX Makefiles: if you would like to disable the progress reports and see the commands that are run, call `make VERBOSE=1`.
 
 ## Testing with CTest
-Vampire now has some units tests which can run with CTest.
+Vampire now has units tests which can run with CTest.
 
 ### Running tests
 tl;dr: 
@@ -94,6 +100,22 @@ Options you will probably find useful are the following:
 * `-R <regex>` run only tests with names matching `<regex>`
 * `-E <regex>` do not run tests with names matching `<regex>`
 
+Every test unit consists of multiple test cases, which will be run each as a separate process. This can be annoying if one wants to debug a single test case using `lldb` or similar tools. Therefore you can also run a single test case without launching a separarate process:
+```
+mkdir cmake-build
+cd cmake-build
+cmake ..
+make 
+./vtest run <unit_id> <test_case>
+```
+All available test cases and test units can be listed with 
+```
+./vtest ls
+```
+
+Compiling tests can also slow down compile times. Compiling them can be circumvented by calling `make vampire` instead of `make` in your cmake directory.
+
+
 ### Creating new unit tests
 tl;dr: 
 ```
@@ -102,8 +124,6 @@ MY_TEST_NAME=...
 
 # create test file
 cp UnitTests/tSyntaxSugar.cpp UnitTests/t${MY_TEST_NAME}.cpp
-sed -e "s/UNIT_ID SyntaxSugar/UNIT_ID $MY_TEST_NAME/" \
-    -i '' UnitTests/t${MY_TEST_NAME}.cpp
 
 # alter CMakeLists.txt
 sed -e "{/tSyntaxSugar.cpp/p;s/tSyntaxSugar.cpp/t${MY_TEST_NAME}.cpp/;}" \
@@ -115,10 +135,9 @@ vim UnitTests/t${MY_TEST_NAME}.cpp
 
 The unit tests are located in the directory `UnitTests/`. The tests are expected to be `cpp` files, and are prefixed with a `t` (e.g.: `UnitTests/tSyntaxSugar.cpp`). Each new test file must be added to the source list `UNIT_TEST` in `CMakeLists.txt`.
 
-A test file must contain the following statements to initalize unit testing.
+A test file must include `Test/UnitTesting.hpp` contain the following statements to initalize unit testing.
 ```
-#define UNIT_ID <name> // required for legacy compability with our executable vtest
-UT_CREATE;             // initializes the unit test, creating a main as an entry point for ctest
+#include "Test/UnitTesting.hpp"
 ```
 
 After this test functions can be defined:

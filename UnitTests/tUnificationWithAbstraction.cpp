@@ -31,11 +31,9 @@
 
 // TODO make this test use assertions, instead of printing output
 
-#define UNIT_ID uwa 
-UT_CREATE;
-
 using namespace Kernel;
 using namespace Indexing;
+using SortType = TermList;
 
 TermList number(vstring n)
 {
@@ -45,26 +43,26 @@ TermList var(unsigned i)
 {
   return TermList(i,false);
 }
-unsigned function_symbol(vstring name,unsigned arity,unsigned srt)
+unsigned function_symbol(vstring name,unsigned arity,SortType srt)
 {
   bool added;
   unsigned f = env.signature->addFunction(name,arity,added);
   if(added){
     Signature::Symbol* symbol = env.signature->getFunction(f);
-    OperatorType* ot = OperatorType::getFunctionTypeTypeUniformRange(arity,srt,srt);
+    OperatorType* ot = OperatorType::getFunctionTypeUniformRange(arity,srt,srt);
     symbol->setType(ot); 
   }
   return f; 
 }
-TermList constant(vstring name,unsigned srt)
+TermList constant(vstring name,SortType srt)
 {
-  unsigned c =  function_symbol(name,0,srt);
+  auto c =  function_symbol(name,0,srt);
   Term* t = Term::create(c,0,0);
   return TermList(t);
 }
 TermList int_constant(vstring name)
 {
-  return constant(name,Sorts::SRT_INTEGER);
+  return constant(name,IntegerConstantType::getSort());
 }
 TermList binary(Interpretation fun, TermList n1, TermList n2)
 {
@@ -76,14 +74,14 @@ TermList int_plus(TermList n1, TermList n2)
 }
 Literal* equals(TermList t1, TermList t2)
 {
-   unsigned srt;
+   SortType srt;
    if(!SortHelper::tryGetResultSort(t1,srt)){
      cout << "Don't call equals with two variables" << endl;
      exit(0);
    }
    return Literal::createEquality(true, t1,t2,srt); 
 }
-Literal* pred(vstring p, TermList t, unsigned srt)
+Literal* pred(vstring p, TermList t, SortType srt)
 {
   bool added;
   unsigned ps = env.signature->addPredicate(p,1,added);
@@ -96,7 +94,7 @@ Literal* pred(vstring p, TermList t, unsigned srt)
 }
 Literal* pred(vstring p, TermList t)
 {
-  unsigned srt;
+  SortType srt;
   if(!SortHelper::tryGetResultSort(t,srt)){
     cout << "Don't call this pred with a variable argument" << endl;
     exit(0);
@@ -248,10 +246,10 @@ TEST_FUN(complex_case)
   // The complex case is where we have a variable that needs to be instantiated elsewhere
   // e.g. unifying f(f(g(X),X),f(Y,a)) with f(f(1,2),(3,g(Z)))
  
-  unsigned f = function_symbol("f",2,Sorts::SRT_INTEGER); 
-  unsigned g = function_symbol("g",1,Sorts::SRT_INTEGER); 
+  unsigned f = function_symbol("f",2,IntegerConstantType::getSort()); 
+  unsigned g = function_symbol("g",1,IntegerConstantType::getSort()); 
   TermList query = TermList(Term::create2(f,TermList(Term::create2(f,TermList(Term::create1(g,var(0))),var(0))), 
-  					    TermList(Term::create2(f,var(1),TermList(constant("a",Sorts::SRT_INTEGER))))));
+  					    TermList(Term::create2(f,var(1),TermList(constant("a",IntegerConstantType::getSort()))))));
   TermList node  = TermList(Term::create2(f,TermList(Term::create2(f,number("1"),number("2"))),
   					    TermList(Term::create2(f,number("3"),TermList(Term::create1(g,var(1)))))));
 

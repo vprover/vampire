@@ -219,6 +219,19 @@ public:
   } // Stack::top()
 
   /**
+   * Return the top but one of the stack.
+   */
+  inline
+  C& scnd() const
+  {
+    ASS(_cursor > _stack + 1);
+    ASS(_cursor <= _end);
+
+    return _cursor[-2];
+  } // Stack::top()
+
+
+  /**
    * Set top to a new value.
    * @since 14/03/2006 Bellevue
    */

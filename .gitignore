@@ -21,6 +21,7 @@ valgrind.supp
 .DS_Store
 .cproject
 .project
+.vscode/
 .settings/
 
 # Problem files

@@ -40,9 +40,11 @@ public:
   Term* insertRecurrently(Term*);
 
   Literal* insert(Literal*);
-  Literal* insertVariableEquality(Literal* lit,unsigned sort);
+  Literal* insertVariableEquality(Literal* lit,TermList sort);
 
   Literal* tryGetOpposite(Literal* l);
+
+  void setPoly();
 
   /** The hash function of this literal */
   inline static unsigned hash(const Literal* l)
@@ -64,7 +66,25 @@ public:
     return equals(l1, w.l, true);
   }
 
+  friend class WellSortednessCheckingLocalDisabler;
+
+  class WellSortednessCheckingLocalDisabler {
+    TermSharing* _tsInstance;
+    bool _valueToRestore;
+  public:
+    WellSortednessCheckingLocalDisabler(TermSharing* tsInstance) {
+      _tsInstance = tsInstance;
+      _valueToRestore = _tsInstance->_wellSortednessCheckingDisabled;
+      _tsInstance->_wellSortednessCheckingDisabled = true;
+    }
+    ~WellSortednessCheckingLocalDisabler() {
+      _tsInstance->_wellSortednessCheckingDisabled = _valueToRestore;
+    }
+  };
+  bool isWellSortednessCheckingDisabled() const { return _wellSortednessCheckingDisabled; }
+
 private:
+  int sumRedLengths(TermStack& args);
   bool argNormGt(TermList t1, TermList t2);
 
   /** The set storing all terms */
@@ -83,6 +103,9 @@ private:
   unsigned _literalInsertions;
   /** Number of term insertions */
   unsigned _termInsertions;
+
+  bool _poly;
+  bool _wellSortednessCheckingDisabled;
 }; // class TermSharing
 
 } // namespace Indexing

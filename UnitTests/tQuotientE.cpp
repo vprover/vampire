@@ -13,11 +13,8 @@
 
 #include <climits>
 
-#define UNIT_ID QuotientE
 #define DEBUG(...) //DBG(__VA_ARGS__)
 #define DEBUGE(x) DEBUG(#x, " = ", x)
-
-UT_CREATE;
 
 IntegerConstantType quotientE(int lhs, int rhs) {
   return IntegerConstantType(lhs).quotientE(rhs);

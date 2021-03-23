@@ -118,10 +118,10 @@ protected:
 
   int polarity() const { return _polarity; }
 
-  unsigned getVarSort(unsigned var) const;
+  TermList getVarSort(unsigned var) const;
 
 private:
-  DHMap<unsigned,unsigned>* _varSorts;
+  DHMap<unsigned,TermList>* _varSorts;
   int _polarity;
 };
 

@@ -126,9 +126,10 @@ public:
     ILStruct* previous;
 
     unsigned isVarEqLit:1;
-    unsigned varEqLitSort:31;
+    unsigned varCnt:31;
 
-    unsigned varCnt;
+    TermList varEqLitSort; // at least in the non-polymorphic case a (64-bit) TermList could be replaced by a (32-bit) unsigned sort.term()->getId()
+
     unsigned* globalVarNumbers;
 
     unsigned* sortedGlobalVarNumbers;

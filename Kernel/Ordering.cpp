@@ -32,6 +32,7 @@
 
 #include "LPO.hpp"
 #include "KBO.hpp"
+#include "SKIKBO.hpp"
 #include "KBOForEPR.hpp"
 #include "Problem.hpp"
 #include "Signature.hpp"
@@ -115,6 +116,10 @@ Ordering* Ordering::tryGetGlobalOrdering()
 Ordering* Ordering::create(Problem& prb, const Options& opt)
 {
   CALL("Ordering::create");
+
+  if(env.options->combinatorySup() || env.options->lambdaFreeHol()){
+    return new SKIKBO(prb, opt, env.options->lambdaFreeHol());
+  }
 
   Ordering* out;
   switch (env.options->termOrdering()) {
@@ -308,8 +313,9 @@ Ordering::Result PrecedenceOrdering::compare(Literal* l1, Literal* l2) const
 int PrecedenceOrdering::predicateLevel (unsigned pred) const
 {
   int basic=pred >= _predicates ? 1 : _predicateLevels[pred];
-  if(NONINTERPRETED_LEVEL_BOOST && !env.signature->getPredicate(pred)->interpreted()) {
-    ASS(!Signature::isEqualityPredicate(pred)); //equality is always interpreted
+  if(NONINTERPRETED_LEVEL_BOOST && !env.signature->getPredicate(pred)->interpreted() && pred != 0) {
+    //ASS(!Signature::isEqualityPredicate(pred)); //equality is always interpreted
+    //TODO remove the final condition once interpreted equality is reintroduced
     basic+=NONINTERPRETED_LEVEL_BOOST;
   }
   if(env.signature->predicateColored(pred)) {
@@ -357,7 +363,7 @@ Comparison PrecedenceOrdering::compareFunctors(unsigned fun1, unsigned fun2) con
 
 /**
  * Compare precedences of two function symbols
- */
+ */ //TODO update for HOL>?
 Ordering::Result PrecedenceOrdering::compareFunctionPrecedences(unsigned fun1, unsigned fun2) const
 {
   CALL("PrecedenceOrdering::compareFunctionPrecedences");

@@ -60,7 +60,7 @@ struct ExtensionalityResolution::ForwardPairingFn
       return OWN_RETURN_TYPE::getEmpty();
     }
 
-    unsigned s = SortHelper::getEqualityArgumentSort(lit);
+    TermList s = SortHelper::getEqualityArgumentSort(lit);
     
     return pvi(
       pushPairIntoRightIterator(
@@ -128,7 +128,7 @@ private:
  */
 struct ExtensionalityResolution::NegEqSortFn
 {
-  NegEqSortFn (unsigned sort) : _sort(sort) {}
+  NegEqSortFn (TermList sort) : _sort(sort) {}
   DECL_RETURN_TYPE(bool);
   OWN_RETURN_TYPE operator()(Literal* lit)
   {
@@ -138,7 +138,7 @@ struct ExtensionalityResolution::NegEqSortFn
       SortHelper::getEqualityArgumentSort(lit) == _sort;
   }
 private:
-  unsigned _sort;
+  TermList _sort;
 };
 
 /**
@@ -147,7 +147,7 @@ private:
  */
 struct ExtensionalityResolution::BackwardPairingFn
 {
-  BackwardPairingFn (unsigned sort) : _sort(sort) {}
+  BackwardPairingFn (TermList sort) : _sort(sort) {}
   DECL_RETURN_TYPE(VirtualIterator<pair<Clause*, Literal*> >);
   OWN_RETURN_TYPE operator()(Clause* cl)
   {
@@ -160,7 +160,7 @@ struct ExtensionalityResolution::BackwardPairingFn
           NegEqSortFn(_sort))));
   }
 private:
-  unsigned _sort;
+  TermList _sort;
 };
 
 /**

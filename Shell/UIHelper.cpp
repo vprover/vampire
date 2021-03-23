@@ -558,6 +558,14 @@ void UIHelper::outputSymbolTypeDeclarationIfNeeded(ostream& out, bool function, 
   Signature::Symbol* sym = function ?
       env.signature->getFunction(symNumber) : env.signature->getPredicate(symNumber);
 
+  if (sym->super()  || sym->arraySort()  || sym->tupleSort()){
+    return;
+  }
+
+  if(sym->defaultSort() || (sym->boolSort() && !env.options->showFOOL())){
+    return;
+  }
+
   if (sym->interpreted()) {
     //there is no need to output type definitions for interpreted symbols
     return;
@@ -574,45 +582,56 @@ void UIHelper::outputSymbolTypeDeclarationIfNeeded(ostream& out, bool function, 
   }
 
   if (function) {
-    unsigned sort = env.signature->getFunction(symNumber)->fnType()->result();
-    if (env.sorts->isOfStructuredSort(sort, Sorts::StructuredSort::TUPLE)) {
+    TermList sort = env.signature->getFunction(symNumber)->fnType()->result();
+    if (SortHelper::isTupleSort(sort)) {
       return;
     }
   }
 
   OperatorType* type = function ? sym->fnType() : sym->predType();
 
-  if (type->isAllDefault()) {
+  if (type->isAllDefault()) {//TODO required
     return;
   }
 
-  out << "tff(" << (function ? "func" : "pred") << "_def_" << symNumber << ", type, "
-      << sym->name() << ": ";
+  //out << "tff(" << (function ? "func" : "pred") << "_def_" << symNumber << ", type, "
+  //    << sym->name() << ": ";
 
-  unsigned arity = sym->arity();
+  if(!sym->app()){
+    out << (env.statistics->higherOrder ? "thf(" : "tff(")
+        << (function ? (sym->typeCon() ?  "type" : "func") : "pred") 
+        << "_def_" << symNumber << ", type, "
+        << sym->name() << ": ";
+    out << type->toString();
+    out << ")." << endl;
+  }
+
+  //out << type->toString();
+
+  /*unsigned arity = sym->arity();
   if (arity>0) {
     if (arity==1) {
-      out << env.sorts->sortName(type->arg(0));
+      out << (type->arg(0)).toString();
     }
     else {
       out << "(";
       for (unsigned i=0; i<arity; i++) {
-	if (i>0) {
-	  out << " * ";
-	}
-	out << env.sorts->sortName(type->arg(i));
+        if (i>0) {
+          out << " * ";
+        }
+        out << (type->arg(i)).toString();
       }
       out << ")";
     }
     out << " > ";
   }
   if (function) {
-    out << env.sorts->sortName(sym->fnType()->result());
+    out << (sym->fnType()->result()).toString();
   }
   else {
     out << "$o";
-  }
-  out << ")." << endl;
+  }*/
+  //out << ")." << endl;
 }
 
 /**
@@ -621,21 +640,25 @@ void UIHelper::outputSymbolTypeDeclarationIfNeeded(ostream& out, bool function, 
  * @author Evgeny Kotelnikov
  * @since 04/09/2015 Gothneburg
  */
-void UIHelper::outputSortDeclarations(ostream& out)
+/*void UIHelper::outputSortDeclarations(ostream& out)
 {
   CALL("UIHelper::outputSortDeclarations");
 
-  unsigned sorts = (*env.sorts).count();
-  for (unsigned sort = Sorts::SRT_BOOL; sort < sorts; ++sort) {
-    if (sort < Sorts::FIRST_USER_SORT && ((sort != Sorts::SRT_BOOL) || !env.options->showFOOL())) {
+  if(env.statistics->higherOrder){
+    return;
+  }
+
+  unsigned sorts = env.sorts->count();
+  for (unsigned sort = 1; sort < sorts; ++sort) {
+    if (sort < Sorts::FIRST_USER_SORT && ((sort != 1) || !env.options->showFOOL())) {
       continue;
     }
-    if ((*env.sorts).isStructuredSort(sort)) {
+    if (SortHelper::isStructuredSort(sort)) {
       continue;
     }
     out << "tff(type_def_" << sort << ", type, " << env.sorts->sortName(sort) << ": $tType)." << endl;
   }
-} // UIHelper::outputSortDeclarations
+}*/ // UIHelper::outputSortDeclarations
 
 #if GNUMP
 /**
@@ -790,22 +813,22 @@ void UIHelper::outputConstraintInHumanFormat(const Constraint& constraint, ostre
     out << " (+";
     closedP ++;
     if (constraint.freeCoeff().isNegativeAssumingNonzero())
-	out<< " " << -constraint.freeCoeff().native() <<" ";
+  out<< " " << -constraint.freeCoeff().native() <<" ";
     if (constraint.freeCoeff().isPositiveAssumingNonzero()) 
-	out<< " (~ " << constraint.freeCoeff().native() <<")";
+  out<< " (~ " << constraint.freeCoeff().native() <<")";
   }
     
   while (coeffs.hasNext()) {
     Constraint::Coeff coeff = coeffs.next();
      if (coeffs.hasNext()) {
-	out << " (+ ";
-	closedP++;
+  out << " (+ ";
+  closedP++;
     }
     if (coeff.value<CoeffNumber::zero()) {
-	out << " (* ( ~ " << -coeff.value << " ) " << env.signature->varName(coeff.var) << ")";
+  out << " (* ( ~ " << -coeff.value << " ) " << env.signature->varName(coeff.var) << ")";
     }
     else {
-	out <<" (* "<< coeff.value << " " << env.signature->varName(coeff.var) << " )";
+  out <<" (* "<< coeff.value << " " << env.signature->varName(coeff.var) << " )";
     }
    
   }
@@ -828,13 +851,13 @@ void UIHelper::outputConstraintInHumanFormat(const Constraint& constraint, ostre
   while (coeffs.hasNext()) {
     Constraint::Coeff coeff = coeffs.next();
     if (coeff.value<CoeffNumber::zero()) {
-	out << "(" << coeff.value << "*" << env.signature->varName(coeff.var) << ") ";
+  out << "(" << coeff.value << "*" << env.signature->varName(coeff.var) << ") ";
     }
     else {
-	out << coeff.value << "*" << env.signature->varName(coeff.var) << " ";
+  out << coeff.value << "*" << env.signature->varName(coeff.var) << " ";
     }
     if (coeffs.hasNext()) {
-	out << "+ ";
+  out << "+ ";
     }
   }
   switch(constraint.type()) {
@@ -875,25 +898,25 @@ void UIHelper::outputConstraintInSMTFormat(const Constraint& constraint, ostream
     out << " (+";
     closedP ++;
     if (constraint.freeCoeff().isNegativeAssumingNonzero())
-	out <<  " " << -constraint.freeCoeff().native()  << " ";
+  out <<  " " << -constraint.freeCoeff().native()  << " ";
     if (constraint.freeCoeff().isPositiveAssumingNonzero()) 
-	out <<  " (~ " << constraint.freeCoeff().native()  << ")";
+  out <<  " (~ " << constraint.freeCoeff().native()  << ")";
   }
     
   while (coeffs.hasNext()) {
     Constraint::Coeff coeff = coeffs.next();
      if (coeffs.hasNext()) {
-	out << " (+ ";
-	closedP++;
-	 
+  out << " (+ ";
+  closedP++;
+   
     }
     
     if (coeff.value<CoeffNumber::zero()) {
-	
-	out << " (* ( ~ " << -coeff.value << " ) " << env.signature->varName(coeff.var) << ")";
+  
+  out << " (* ( ~ " << -coeff.value << " ) " << env.signature->varName(coeff.var) << ")";
     }
     else {
-	out <<" (* "<< coeff.value << " " << env.signature->varName(coeff.var) << " )";
+  out <<" (* "<< coeff.value << " " << env.signature->varName(coeff.var) << " )";
     }
    
   }
@@ -927,8 +950,8 @@ void UIHelper::outputConstraints(ConstraintList* constraints, ostream& out, Opti
     ConstraintList::Iterator ite(constraints);
     while (ite.hasNext())
     {
-	outputConstraint(*ite.next(), out, syntax);
-	out << endl;
+  outputConstraint(*ite.next(), out, syntax);
+  out << endl;
     }
     return;
   }
@@ -945,13 +968,13 @@ void UIHelper::outputConstraints(ConstraintList* constraints, ostream& out, Opti
 
     while (fun.hasNext())
     {
-	Constraint::CoeffIterator coeffs = fun.next()->coeffs();
-	 while (coeffs.hasNext()) {
-	     env.signature->varName(coeffs.next().var);
-	     uni.push_back(env.signature->varName(coeffs.next().var));
-	  //out << ":extrafuns ((" << env.signature->varName(coeffs.next().var) << " Real )) " << endl; 
-	}
-	
+  Constraint::CoeffIterator coeffs = fun.next()->coeffs();
+   while (coeffs.hasNext()) {
+       env.signature->varName(coeffs.next().var);
+       uni.push_back(env.signature->varName(coeffs.next().var));
+    //out << ":extrafuns ((" << env.signature->varName(coeffs.next().var) << " Real )) " << endl; 
+  }
+  
     }
 
     std::vector<vstring> myvector (uni.begin(),uni.end());
@@ -959,7 +982,7 @@ void UIHelper::outputConstraints(ConstraintList* constraints, ostream& out, Opti
     ite = unique(myvector.begin(),myvector.end());
     myvector.resize( ite - myvector.begin() );
     for (ite=myvector.begin(); ite!=myvector.end(); ++ite)
-	out << " " << *ite;
+  out << " " << *ite;
     
     out << ":formula (and "; 
     ConstraintList::Iterator it(constraints);

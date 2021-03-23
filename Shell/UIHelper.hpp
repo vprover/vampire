@@ -57,7 +57,7 @@ public:
   static void outputSymbolDeclarations(ostream& out);
   static void outputSymbolTypeDeclarationIfNeeded(ostream& out, bool function, unsigned symNumber);
 
-  static void outputSortDeclarations(ostream& out);
+  static void outputSortDeclarations(ostream& out);//TODO modify all places that call function
 
   /**
    * A hacky global flag distinguishing the parent and the child in portfolio modes.

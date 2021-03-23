@@ -166,7 +166,7 @@ Clause* ClauseFlattening::flatten(Clause* cl)
       if(lit->isEquality()){
         // it is a non-flattened equality
 
-        unsigned litArgSort = SortHelper::getEqualityArgumentSort(lit);
+        TermList litArgSort = SortHelper::getEqualityArgumentSort(lit);
 
         TermList* lhs = lit->nthArgument(0);
         TermList* rhs = lit->nthArgument(1);
@@ -207,7 +207,7 @@ Clause* ClauseFlattening::flatten(Clause* cl)
           else{
             TermList v; v.makeVar(++maxVar);
             args.push(v);
-            unsigned rSort = SortHelper::getResultSort(ts->term());
+            TermList rSort = SortHelper::getResultSort(ts->term());
             lits.push(Literal::createEquality(false,*ts,v,rSort));
           }
         }
@@ -228,7 +228,7 @@ Clause* ClauseFlattening::flatten(Clause* cl)
           else{
             TermList v; v.makeVar(++maxVar);
             args.push(v);
-            unsigned rSort = SortHelper::getResultSort(ts->term());
+            TermList rSort = SortHelper::getResultSort(ts->term());
             lits.push(Literal::createEquality(false,*ts,v,rSort));
           }
         }

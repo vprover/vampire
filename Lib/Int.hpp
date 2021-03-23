@@ -105,6 +105,10 @@ class Int
     unsigned a=safeAbs(i);
     unsigned b=safeAbs(j);
 
+    if(!a && !b) {
+      return 1; // gcd of (0,0) set arbitrarily to 1
+    }
+
     while (b!=0) {
       a %= b;
       if(a==0) {

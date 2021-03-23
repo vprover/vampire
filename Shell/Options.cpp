@@ -38,6 +38,7 @@
 #include "Lib/System.hpp"
 
 #include "Shell/UIHelper.hpp"
+#include "Shell/Statistics.hpp"
 
 #include "Kernel/Problem.hpp"
 #include "Kernel/Signature.hpp"
@@ -100,6 +101,7 @@ void Options::init()
     _mode = ChoiceOptionValue<Mode>("mode","",Mode::VAMPIRE,
                                     {"axiom_selection",
                                         "casc",
+                                        "casc_hol",
                                         "casc_sat",
                                         "casc_ltb",
                                         "clausify",
@@ -137,6 +139,7 @@ void Options::init()
          "casc_2019",
          "casc_sat",
          "casc_sat_2019",
+         "casc_hol_2020",
          "ltb_default_2017",
          "ltb_hh4_2017",
          "ltb_hll_2017",
@@ -426,8 +429,13 @@ void Options::init()
     _lookup.insert(&_equalityProxy);
     _equalityProxy.tag(OptionTag::PREPROCESSING);
     _equalityProxy.addProblemConstraint(hasEquality());
+    _equalityProxy.addHardConstraint(If(notEqual(EqualityProxy::OFF)).then(_combinatorySuperposition.is(notEqual(true))));
     _equalityProxy.setRandomChoices(isRandOn(),{"R","RS","RST","RSTC","off","off","off","off","off"}); // wasn't tested, make off more likely
     
+    _useMonoEqualityProxy = BoolOptionValue("mono_ep","mep",false);
+    _useMonoEqualityProxy.description="Use the mnomorphic version of equality proxy transformation.";
+    _lookup.insert(&_useMonoEqualityProxy);
+    _useMonoEqualityProxy.tag(OptionTag::PREPROCESSING);
 
     _equalityResolutionWithDeletion = ChoiceOptionValue<RuleActivity>( "equality_resolution_with_deletion","erd",
                                                                       RuleActivity::INPUT_ONLY,{"input_only","off","on"});
@@ -539,6 +547,7 @@ void Options::init()
     _newCNF.description="Use NewCNF algorithm to do naming, preprecess3 and clausificiation.";
     _lookup.insert(&_newCNF);
     _newCNF.tag(OptionTag::PREPROCESSING);
+    _newCNF.setRandomChoices({"on","off"});
 
     _iteInliningThreshold = IntOptionValue("ite_inlining_threshold","", 0);
     _iteInliningThreshold.description="Threashold of inlining of if-then-else expressions. "
@@ -551,6 +560,18 @@ void Options::init()
     _inlineLet.description="Always inline let-expressions.";
     _lookup.insert(&_inlineLet);
     _inlineLet.tag(OptionTag::PREPROCESSING);
+
+     //Higher-order options
+     
+    _addCombAxioms = BoolOptionValue("add_comb_axioms","aca",false);
+    _addCombAxioms.description="Add combinator axioms";
+    _lookup.insert(&_addCombAxioms);
+    _addCombAxioms.tag(OptionTag::PREPROCESSING);
+
+    _addProxyAxioms = BoolOptionValue("add_proxy_axioms","apa",false);
+    _addProxyAxioms.description="Add logical proxy axioms";
+    _lookup.insert(&_addProxyAxioms);
+    _addProxyAxioms.tag(OptionTag::PREPROCESSING);
 
 
 //*********************** Output  ***********************
@@ -611,6 +632,7 @@ void Options::init()
     _sineToAge = BoolOptionValue("sine_to_age","s2a",false);
     _lookup.insert(&_sineToAge);
     _sineToAge.tag(OptionTag::DEVELOPMENT);
+
 
     _sineToPredLevels = ChoiceOptionValue<PredicateSineLevels>("sine_to_pred_levels","s2pl",PredicateSineLevels::OFF,{"no","off","on"});
     _sineToPredLevels.description = "Assign levels to predicate symbols as they are used to trigger axioms during SInE computation. "
@@ -703,6 +725,7 @@ void Options::init()
     _lookup.insert(&_showInduction);
     _showInduction.tag(OptionTag::OUTPUT);
 
+
     _showSimplOrdering = BoolOptionValue("show_ordering","",false);
     _showSimplOrdering.description = "Display the used simplification ordering's parameters.";
     _lookup.insert(&_showSimplOrdering);
@@ -712,7 +735,7 @@ void Options::init()
     _manualClauseSelection.description="Run Vampire interactively by manually picking the clauses to be selected";
     _lookup.insert(&_manualClauseSelection);
     _manualClauseSelection.tag(OptionTag::DEVELOPMENT);
-    
+
 //************************************************************************
 //*********************** VAMPIRE (includes CASC)  ***********************
 //************************************************************************
@@ -857,7 +880,6 @@ void Options::init()
     _ageWeightRatio.tag(OptionTag::SATURATION);
     _ageWeightRatio.reliesOn(Or(_saturationAlgorithm.is(notEqual(SaturationAlgorithm::INST_GEN)),_instGenWithResolution.is(equal(true))));
     _ageWeightRatio.setRandomChoices({"8:1","5:1","4:1","3:1","2:1","3:2","5:4","1","2:3","2","3","4","5","6","7","8","10","12","14","16","20","24","28","32","40","50","64","128","1024"});
-
 
     _ageWeightRatioShape = ChoiceOptionValue<AgeWeightRatioShape>("age_weight_ratio_shape","awrs",AgeWeightRatioShape::CONSTANT,{"constant","decay", "converge"});
     _ageWeightRatioShape.description = "How to change the age/weight ratio during proof search.";
@@ -1059,7 +1081,6 @@ void Options::init()
            _lookup.insert(&_gaussianVariableElimination);
            _gaussianVariableElimination.tag(OptionTag::INFERENCES);
 
-
             _induction = ChoiceOptionValue<Induction>("induction","ind",Induction::NONE,
                                 {"none","struct","math","both"});
             _induction.description = "Apply structural and/or mathematical induction on datatypes and integers.";
@@ -1078,6 +1099,7 @@ void Options::init()
                                  MathInductionKind::ONE,{"one","two","all"});
             _mathInduction.description="The kind of mathematical induction applied";
             _mathInduction.tag(OptionTag::INFERENCES);
+
             _mathInduction.reliesOn(Or(_induction.is(equal(Induction::MATHEMATICAL)),_induction.is(equal(Induction::BOTH))));
             //_lookup.insert(&_mathInduction);
 
@@ -1176,6 +1198,7 @@ void Options::init()
             _lookup.insert(&_backwardSubsumptionDemodulation);
             _backwardSubsumptionDemodulation.tag(OptionTag::INFERENCES);
             _backwardSubsumptionDemodulation.addProblemConstraint(hasEquality());
+            _backwardSubsumptionDemodulation.reliesOn(_combinatorySuperposition.is(equal(false)));  // higher-order support is not yet implemented
             _backwardSubsumptionDemodulation.setRandomChoices({"on","off"});
 
             _backwardSubsumptionDemodulationMaxMatches = UnsignedOptionValue("backward_subsumption_demodulation_max_matches", "bsdmm", 0);
@@ -1339,6 +1362,7 @@ void Options::init()
     _lookup.insert(&_forwardSubsumptionDemodulation);
     _forwardSubsumptionDemodulation.tag(OptionTag::INFERENCES);
     _forwardSubsumptionDemodulation.addProblemConstraint(hasEquality());
+    _forwardSubsumptionDemodulation.reliesOn(_combinatorySuperposition.is(equal(false)));  // higher-order support is not yet implemented
     _forwardSubsumptionDemodulation.setRandomChoices({"off","on"});
 
     _forwardSubsumptionDemodulationMaxMatches = UnsignedOptionValue("forward_subsumption_demodulation_max_matches", "fsdmm", 0);
@@ -1392,6 +1416,145 @@ void Options::init()
     _superpositionFromVariables.addProblemConstraint(hasEquality());
     _superpositionFromVariables.reliesOn(Or(_saturationAlgorithm.is(notEqual(SaturationAlgorithm::INST_GEN)),_instGenWithResolution.is(equal(true))));
     _superpositionFromVariables.setRandomChoices({"on","off"});
+
+    //Higher-order Options
+    
+    _combinatorySuperposition = BoolOptionValue("combinatory_sup","csup",false);
+    _combinatorySuperposition.description="Switches on a specific ordering and that orients combinator axioms left-right."
+                                          "also turns on a number of special inference rules";
+    _lookup.insert(&_combinatorySuperposition);
+    _combinatorySuperposition.reliesOn(_addCombAxioms.is(equal(false))); //no point having two together
+    _combinatorySuperposition.tag(OptionTag::INFERENCES);
+
+    _choiceAxiom = BoolOptionValue("choice_ax","cha",false);
+    _choiceAxiom.description="Adds the cnf form of the Hilbert choice axiom";
+    _lookup.insert(&_choiceAxiom);
+    _choiceAxiom.tag(OptionTag::INFERENCES);
+
+    _choiceReasoning = BoolOptionValue("choice_reasoning","chr",false);
+    _choiceReasoning.description="Reason about choice by adding relevant instances of the axiom";
+    _lookup.insert(&_choiceReasoning);
+    _choiceReasoning.reliesOn(_choiceAxiom.is(equal(false))); //no point having two together
+    _choiceReasoning.tag(OptionTag::INFERENCES);
+
+    _priortyToLongReducts = BoolOptionValue("priority_to_long_reducts","ptlr",false);
+    _priortyToLongReducts.description="give priority to clauses produced by lengthy reductions";
+    _lookup.insert(&_priortyToLongReducts);
+    _priortyToLongReducts.tag(OptionTag::OTHER);
+
+    _injectivity = BoolOptionValue("injectivity","inj",false);
+    _injectivity.description="Attempts to identify injective functions and postulates a left-inverse";
+    _lookup.insert(&_injectivity);
+    _injectivity.tag(OptionTag::INFERENCES);
+
+    _pragmatic = BoolOptionValue("pragmatic","prag",false);
+    _pragmatic.description="Modifes various parameters to help Vampire solve 'hard' higher-order";
+    _pragmatic.reliesOn(_combinatorySuperposition.is(equal(true)));
+    _lookup.insert(&_pragmatic);
+    _pragmatic.tag(OptionTag::SATURATION);
+
+    _maximumXXNarrows = IntOptionValue("max_XX_narrows","mXXn", 0);
+    _maximumXXNarrows.description="Maximum number of BXX', CXX' and SXX' narrows that"
+                                  "can be carried out 0 means that there is no limit. ";
+    _lookup.insert(&_maximumXXNarrows);
+    _maximumXXNarrows.tag(OptionTag::INFERENCES);
+
+    _functionExtensionality = ChoiceOptionValue<FunctionExtensionality>("func_ext","fe",FunctionExtensionality::ABSTRACTION,
+                                                                          {"off", "axiom", "abstraction"});
+    _functionExtensionality.description="Deal with extensionality using abstraction, axiom or neither";
+    _lookup.insert(&_functionExtensionality);
+    _functionExtensionality.tag(OptionTag::INFERENCES);
+
+    _clausificationOnTheFly = ChoiceOptionValue<CNFOnTheFly>("cnf_on_the_fly","cnfonf",CNFOnTheFly::EAGER,
+                                                                          {"eager", 
+                                                                          "lazy_gen", 
+                                                                          "lazy_simp",
+                                                                          "lazy_not_gen", 
+                                                                          "lazy_not_gen_be_off", 
+                                                                          "lazy_not_be_gen",
+                                                                          "off"});
+    _clausificationOnTheFly.description="Various options linked to clausification on the fly";
+    _lookup.insert(&_clausificationOnTheFly);
+    _clausificationOnTheFly.tag(OptionTag::OTHER);
+
+
+    _piSet = ChoiceOptionValue<PISet>("prim_inst_set","piset",PISet::ALL_EXCEPT_NOT_EQ,
+                                                                        {"all", 
+                                                                        "all_but_not_eq", 
+                                                                        "false_true_not",
+                                                                        "small_set"});
+    _piSet.description="Controls the set of equations to use in primitive instantiation";
+    _lookup.insert(&_piSet);
+    _piSet.tag(OptionTag::OTHER);
+
+
+    _narrow = ChoiceOptionValue<Narrow>("narrow","narr",Narrow::ALL,
+                                                             {"all", 
+                                                              "sk", 
+                                                              "ski",
+                                                              "off"});
+    _narrow.description="Controls the set of combinator equations to use in narrowing";
+    _lookup.insert(&_narrow);
+    _narrow.tag(OptionTag::INFERENCES);
+
+
+    _equalityToEquivalence = BoolOptionValue("equality_to_equiv","e2e",false);
+    _equalityToEquivalence.description=
+    "Equality between boolean terms changed to equivalence \n"
+    "t1 : $o = t2 : $o is changed to t1 <=> t2";    
+    _lookup.insert(&_equalityToEquivalence);
+    _equalityToEquivalence.tag(OptionTag::OTHER);
+
+    _complexBooleanReasoning = BoolOptionValue("complex_bool_reasoning","cbe",true);
+    _complexBooleanReasoning.description=
+    "Switches on primitive instantiation and elimination of leibniz equality";
+    _complexBooleanReasoning.reliesOn(_addProxyAxioms.is(equal(false)));    
+    _lookup.insert(&_complexBooleanReasoning);
+    _complexBooleanReasoning.tag(OptionTag::OTHER);
+
+    _booleanEqTrick = BoolOptionValue("bool_eq_trick","bet",false);
+    _booleanEqTrick.description=
+    "Replace an equality between boolean terms such as: "
+    "t = s with a disequality t != vnot(s)"
+    "theory is that this can help with EqRes";
+    _lookup.insert(&_booleanEqTrick);
+    _booleanEqTrick.tag(OptionTag::OTHER);
+
+    _superposition = BoolOptionValue("superposition","sup",true);
+    _superposition.description=
+    "Control superposition. Only used in higher-order strategies";
+    _lookup.insert(&_superposition);
+    _superposition.tag(OptionTag::INFERENCES);
+
+    _casesSimp = BoolOptionValue("cases_simp","cs",false);
+    _casesSimp.description=
+    "FOOL Paramodulation with two conclusion as a simplification";
+    _casesSimp.reliesOn(_cases.is(equal(false)));
+    _lookup.insert(&_casesSimp);
+    _casesSimp.tag(OptionTag::INFERENCES);
+
+    //TODO, sort out the mess with cases and FOOLP. 
+    //One should be removed. AYB
+    _cases = BoolOptionValue("cases","c",false);
+    _cases.description=
+    "Alternative to FOOL Paramodulation that replaces all Boolean subterms in one step";
+    _cases.reliesOn(_casesSimp.is(equal(false)));
+    _lookup.insert(&_cases);
+    _cases.tag(OptionTag::INFERENCES);
+
+    _newTautologyDel = BoolOptionValue("new_taut_del","ntd",false);
+    _newTautologyDel.description=
+    "Delete clauses with literals of the form false != true or t = true \\/ t = false";
+    _lookup.insert(&_newTautologyDel);
+    _newTautologyDel.tag(OptionTag::INFERENCES);
+
+    _lambdaFreeHol = BoolOptionValue("lam_free_hol","lfh",false);
+    _lambdaFreeHol.description=
+    "Reason about lambda-free hol. See paper by Vukmirovic et al.";
+    _lookup.insert(&_lambdaFreeHol);
+    _lambdaFreeHol.tag(OptionTag::INFERENCES);
+
+    //Final higher-order option in this section
 
 //*********************** InstGen  ***********************
 
@@ -2960,6 +3123,11 @@ bool Options::complete(const Problem& prb) const
 {
   CALL("Options::complete");
 
+  if(env.statistics->higherOrder){
+    //safer for competition
+    return false;
+  }
+ 
   if (_showInterpolant.actualValue != InterpolantMode::OFF) {
     return false;
   }
@@ -3000,6 +3168,18 @@ bool Options::complete(const Problem& prb) const
   
   bool unitEquality = prop.category() == Property::UEQ;
   bool hasEquality = (prop.equalityAtoms() != 0);
+
+  if((prop.hasCombs() || prop.hasAppliedVar())  && 
+    !_addCombAxioms.actualValue && !_combinatorySuperposition.actualValue) {
+    //TODO make a more complex more precise case here
+    //There are instance where we are complete
+    return false;
+  }
+
+  //TODO update once we have another method of dealing with bools
+  if((prop.hasLogicalProxy() || prop.hasBoolVar())  && !_addProxyAxioms.actualValue){
+    return false;
+  }
 
   if (!unitEquality) {
     if (_selection.actualValue <= -100 || _selection.actualValue >= 100) return false;

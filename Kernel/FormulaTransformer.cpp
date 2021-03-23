@@ -260,11 +260,11 @@ PolarityAwareFormulaTransformer::~PolarityAwareFormulaTransformer()
   Recycler::release(_varSorts);
 }
 
-unsigned PolarityAwareFormulaTransformer::getVarSort(unsigned var) const
+TermList PolarityAwareFormulaTransformer::getVarSort(unsigned var) const
 {
   CALL("PolarityAwareFormulaTransformer::getVarSort");
 
-  return _varSorts->get(var, Sorts::SRT_DEFAULT);
+  return _varSorts->get(var, Term::defaultSort());
 }
 
 Formula* PolarityAwareFormulaTransformer::transformWithPolarity(Formula* f, int polarity)

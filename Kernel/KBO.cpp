@@ -500,20 +500,18 @@ KBO::KBO(
 template<class HandleError>
 void KBO::checkAdmissibility(HandleError handle) const 
 {
+  using SortType = TermList;
+  using FunctionSymbol = unsigned;
   auto nFunctions = _funcWeights._weights.size();
-  auto maximalFunctions = DArray<long int>(env.sorts->count());
-  maximalFunctions.init(env.sorts->count(), -1);
+  auto maximalFunctions = Map<SortType, FunctionSymbol>();
 
-  for (unsigned i = 0; i < nFunctions; i++) {
+  for (FunctionSymbol i = 0; i < nFunctions; i++) {
+    if(env.signature->isTypeConOrSup(i)){ continue; }
     auto sort = env.signature->getFunction(i)->fnType()->result();
     /* register min function */
-    auto maxFn = maximalFunctions[sort];
-    if (maxFn == -1) {
-      maximalFunctions[sort] = i;
-    } else {
-      if (compareFunctionPrecedences(maxFn, i)) {
-        maximalFunctions[sort] = i;
-      }
+    auto maxFn = maximalFunctions.getOrInit(std::move(sort), [&](FunctionSymbol* toInit){ *toInit = i; } );
+    if (compareFunctionPrecedences(maxFn, i)) {
+      maximalFunctions.replace(sort, i);
     }
   }
 
@@ -521,13 +519,14 @@ void KBO::checkAdmissibility(HandleError handle) const
   unsigned varWght = _funcWeights._specialWeights._variableWeight;
 
   for (unsigned i = 0; i < nFunctions; i++) {
+    if(env.signature->isTypeConOrSup(i)){ continue; }
     auto sort = env.signature->getFunction(i)->fnType()->result();
     auto arity = env.signature->getFunction(i)->arity();
 
     if (_funcWeights._weights[i] < varWght && arity == 0) {
       handle(UserErrorException("weight of constants (i.e. ", env.signature->getFunction(i)->name(), ") must be greater or equal to the variable weight (", varWght, ")"));
 
-    } else if (_funcWeights.symbolWeight(i) == 0 && arity == 1 && maximalFunctions[sort] != i) {
+    } else if (_funcWeights.symbolWeight(i) == 0 && arity == 1 && maximalFunctions.get(sort) != i) {
       handle(UserErrorException( "a unary function of weight zero (i.e.: ", env.signature->getFunction(i)->name(), ") must be maximal wrt. the precedence ordering"));
 
     }

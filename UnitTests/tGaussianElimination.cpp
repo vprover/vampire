@@ -14,8 +14,6 @@
 #include "Inferences/InterpretedEvaluation.hpp"
 #include "Kernel/Ordering.hpp"
 
-#define UNIT_ID GaussianVariableElimination
-UT_CREATE;
 using namespace std;
 using namespace Kernel;
 using namespace Inferences;

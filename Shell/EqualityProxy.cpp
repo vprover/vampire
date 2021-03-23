@@ -26,6 +26,8 @@
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/Term.hpp"
 #include "Kernel/Unit.hpp"
+#include "Kernel/SortHelper.hpp"
+#include "Kernel/SubstHelper.hpp"
 
 #include "Indexing/TermSharing.hpp"
 
@@ -36,15 +38,12 @@ using namespace std;
 using namespace Lib;
 using namespace Kernel;
 
-ZIArray<unsigned> EqualityProxy::s_proxyPredicates;
-DHMap<unsigned,unsigned> EqualityProxy::s_proxyPredicateSorts;
-ZIArray<Unit*> EqualityProxy::s_proxyPremises;
 
 /**
  * Constructor, simply memorizes the value of the equality proxy option.
  */
 EqualityProxy::EqualityProxy(Options::EqualityProxy opt)
-: _opt(opt)
+: _opt(opt), _addedPred(0), _defUnit(0)
 {
   CALL("EqualityProxy::EqualityProxy/1");
   ASS(opt != Options::EqualityProxy::OFF);
@@ -71,10 +70,10 @@ void EqualityProxy::apply(Problem& prb)
       case Options::EqualityProxy::R:
       case Options::EqualityProxy::RS:
       case Options::EqualityProxy::RST:
-	prb.reportIncompleteTransformation();
-	break;
+        prb.reportIncompleteTransformation();
+        break;
       default:
-	break;
+        break;
     }
   }
 } // EqualityProxy::apply
@@ -111,67 +110,56 @@ void EqualityProxy::apply(UnitList*& units)
  * @author Andrei Voronkov
  * @since 16/05/2014 Manchester
  */
-void EqualityProxy::addLocalAxioms(UnitList*& units, unsigned sort)
+void EqualityProxy::addLocalAxioms(UnitList*& units)
 {
   CALL("EqualityProxy::addLocalAxioms");
 
   // reflexivity
   Stack<Literal*> lits;
-  lits.push(makeProxyLiteral(true,TermList(0,false),TermList(0,false), sort));
+  TermList sort = TermList(false, 0);
+
+  lits.push(makeProxyLiteral(true,TermList(1,false),TermList(1,false), sort));
   UnitList::push(createEqProxyAxiom(lits),units);
 
   // symmetry
   if (_opt == Options::EqualityProxy::RS || _opt == Options::EqualityProxy::RST || _opt == Options::EqualityProxy::RSTC) {
     lits.reset();
-    lits.push(makeProxyLiteral(false,TermList(0,false),TermList(1,false), sort));
-    lits.push(makeProxyLiteral(true,TermList(1,false),TermList(0,false), sort));
+    lits.push(makeProxyLiteral(false,TermList(1,false),TermList(2,false), sort));
+    lits.push(makeProxyLiteral(true,TermList(2,false),TermList(1,false), sort));
     UnitList::push(createEqProxyAxiom(lits),units);
   }
   // transitivity
   if (_opt == Options::EqualityProxy::RST || _opt == Options::EqualityProxy::RSTC) {
     lits.reset();
-    lits.push(makeProxyLiteral(false,TermList(0,false),TermList(1,false), sort));
     lits.push(makeProxyLiteral(false,TermList(1,false),TermList(2,false), sort));
-    lits.push(makeProxyLiteral(true,TermList(0,false),TermList(2,false), sort));
+    lits.push(makeProxyLiteral(false,TermList(2,false),TermList(3,false), sort));
+    lits.push(makeProxyLiteral(true,TermList(1,false),TermList(3,false), sort));
     UnitList::push(createEqProxyAxiom(lits),units);
   }
 } // EqualityProxy::addLocalAxioms
 
 /**
  * Add axioms for the equality proxy predicates
- *
- * We add axioms only for the sorts for which the equality proxy predicates were created.
- * Therefore this function should be called only after the equality proxy replacement
- * is performed on the whole problem, so that the needed equality proxy predicates are
- * created at this time.
  */
 void EqualityProxy::addAxioms(UnitList*& units)
 {
   CALL("EqualityProxy::addAxioms");
 
-  // if we're adding congruence axioms, we need to add them before adding the local axioms.
-  // Local axioms are added only for sorts on which equality is used, and the congruence axioms
-  // may spread the equality use into new sorts
   if (_opt == Options::EqualityProxy::RSTC) {
     addCongruenceAxioms(units);
   }
 
-  unsigned proxyPredArrSz = s_proxyPredicates.size();
-  for (unsigned sort=0; sort<proxyPredArrSz; sort++) {
-    if (haveProxyPredicate(sort)) {
-      addLocalAxioms(units, sort);
-    }
-  }
+  addLocalAxioms(units);
+
 } // addAxioms
 
 /**
  *
- *
  * symbolType is the type of symbol for whose arguments we're generating the
  * equalities.
  */
-bool EqualityProxy::getArgumentEqualityLiterals(unsigned cnt, LiteralStack& lits,
-    Stack<TermList>& vars1, Stack<TermList>& vars2, OperatorType* symbolType, bool skipSortsWithoutEquality)
+void EqualityProxy::getArgumentEqualityLiterals(unsigned cnt, LiteralStack& lits,
+    Stack<TermList>& vars1, Stack<TermList>& vars2, OperatorType* symbolType)
 {
   CALL("EqualityProxy::getArgumentEqualityLiterals");
   ASS_EQ(cnt, symbolType->arity());
@@ -180,21 +168,24 @@ bool EqualityProxy::getArgumentEqualityLiterals(unsigned cnt, LiteralStack& lits
   vars1.reset();
   vars2.reset();
 
+  static Substitution localSubst;
+  localSubst.reset();
+
   for (unsigned i=0; i<cnt; i++) {
     TermList v1(2*i, false);
     TermList v2(2*i+1, false);
-    unsigned sort = symbolType->arg(i);
-    if (!skipSortsWithoutEquality || haveProxyPredicate(sort)) {
-      lits.push(makeProxyLiteral(false, v1, v2, sort));
+    TermList sort = symbolType->arg(i);
+    if(sort != Term::superSort()){
+      lits.push(makeProxyLiteral(false, v1, v2, SubstHelper::apply(sort, localSubst)));
       vars1.push(v1);
       vars2.push(v2);
-    }
-    else {
+    } else {
+      TermList var = symbolType->quantifiedVar(i);
+      localSubst.bind(var.var(), v1);
       vars1.push(v1);
       vars2.push(v1);
     }
   }
-  return lits.isNonEmpty();
 }
 
 /**
@@ -212,19 +203,24 @@ void EqualityProxy::addCongruenceAxioms(UnitList*& units)
   Stack<TermList> vars1;
   Stack<TermList> vars2;
   LiteralStack lits;
+  TermList srt;
 
   unsigned funs = env.signature->functions();
   for (unsigned i=0; i<funs; i++) {
     Signature::Symbol* fnSym = env.signature->getFunction(i);
-    unsigned arity = fnSym->arity();
-    if (arity == 0) {
+    if(fnSym->super()){
       continue;
     }
+    unsigned arity = fnSym->arity();
     OperatorType* fnType = fnSym->fnType();
-    getArgumentEqualityLiterals(arity, lits, vars1, vars2, fnType, false);
+    if (arity == 0 || fnType->result() == Term::superSort()) {
+      continue;
+    }
+    getArgumentEqualityLiterals(arity, lits, vars1, vars2, fnType);
     Term* t1 = Term::create(i, arity, vars1.begin());
     Term* t2 = Term::create(i, arity, vars2.begin());
-    lits.push(makeProxyLiteral(true, TermList(t1), TermList(t2), fnType->result()));
+    SortHelper::tryGetResultSort(t1, srt);
+    lits.push(makeProxyLiteral(true, TermList(t1), TermList(t2), srt));
 
     Clause* cl = createEqProxyAxiom(lits);
     UnitList::push(cl,units);
@@ -237,9 +233,7 @@ void EqualityProxy::addCongruenceAxioms(UnitList*& units)
     if (predSym->equalityProxy() || predSym->arity() == 0) {
       continue;
     }
-    if (!getArgumentEqualityLiterals(arity, lits, vars1, vars2, predSym->predType(), true)) {
-      continue;
-    }
+    getArgumentEqualityLiterals(arity, lits, vars1, vars2, predSym->predType());
     lits.push(Literal::create(i, arity, false, false, vars1.begin()));
     lits.push(Literal::create(i, arity, true, false, vars2.begin()));
 
@@ -260,7 +254,6 @@ Clause* EqualityProxy::apply(Clause* cl)
 
   unsigned clen = cl->length();
 
-  UnitStack proxyPremises;
   Stack<Literal*> resLits(8);
 
   bool modified = false;
@@ -271,30 +264,17 @@ Clause* EqualityProxy::apply(Clause* cl)
     if (rlit != lit) {
       ASS(lit->isEquality());
       modified = true;
-      unsigned srt = s_proxyPredicateSorts.get(rlit->functor());
-      Unit* prem = s_proxyPremises[srt];
-      proxyPremises.push(prem);
     }
   }
   if (!modified) {
     return cl;
   }
 
-  Clause* res;
-  ASS(proxyPremises.isNonEmpty());
-  if (proxyPremises.size() == 1) {
-    res = new(clen) Clause(clen,
-        NonspecificInference2(InferenceRule::EQUALITY_PROXY_REPLACEMENT, cl, proxyPremises.top()));
-  }
-  else {
-    UnitList* prems = 0;
-    UnitList::pushFromIterator(UnitStack::ConstIterator(proxyPremises),prems);
-    UnitList::push(cl,prems);
+  ASS(_defUnit);
 
-    res = new(clen) Clause(clen,
-        NonspecificInferenceMany(InferenceRule::EQUALITY_PROXY_REPLACEMENT, prems));
-  }
-  res->setAge(cl->age()); // MS: this seems useless; as long as EqualityProxy is only operating as a part of preprocessing, age is going to 0 anyway
+  Clause* res = new(clen) Clause(clen, 
+    NonspecificInference2(InferenceRule::EQUALITY_PROXY_REPLACEMENT, cl, _defUnit));
+  res->setAge(cl->age());
 
   for (unsigned i=0;i<clen;i++) {
     (*res)[i] = resLits[i];
@@ -318,55 +298,52 @@ Literal* EqualityProxy::apply(Literal* lit)
     return lit;
   }
 
-  unsigned sort = SortHelper::getEqualityArgumentSort(lit);
+  TermList sort = SortHelper::getEqualityArgumentSort(lit);
   return makeProxyLiteral(lit->polarity(), *lit->nthArgument(0), *lit->nthArgument(1), sort);
 } // EqualityProxy::apply(Literal*)
 
-/**
- * True if the sort has a proxy predicate. Currently, this function will always return true,
- * since we do not have options allowing one to only apply equality proxy to some sorts.
- * @author Andrei Voronkov
- * @since 16/05/2014 Manchester
- */
-bool EqualityProxy::haveProxyPredicate(unsigned sort) const
-{
-  CALL("EqualityProxy::haveProxyPredicate");
-  return s_proxyPredicates[sort] != 0;
-} // haveProxyPredicate
 
 /**
- * If the equality proxy predicate for this sort was already created, return it.
+ * If the equality proxy predicate was already created, return it.
  * Otherwise, create and return it. When the symbol is created, introduce a new predicate
- * definition E(x,y) <=> x = y and save it in the array s_proxyPremises.
+ * definition E<\sigma>(x,y) <=> x = y
  * @author Andrei Voronkov
  * @since 16/05/2014 Manchester
  */
-unsigned EqualityProxy::getProxyPredicate(unsigned sort)
+unsigned EqualityProxy::getProxyPredicate()
 {
   CALL("EqualityProxy::getProxyPredicate");
-  ASS_L(sort, env.sorts->count());
 
-  if (s_proxyPredicates[sort] != 0) {
-    return s_proxyPredicates[sort];
-  }
-  unsigned newPred = env.signature->addFreshPredicate(2,"sQ","eqProxy");
+  if(_addedPred){ return _proxyPredicate; }
+
+  unsigned newPred = env.signature->addFreshPredicate(3,"sQ","eqProxy");
+  
+  TermList sort = TermList(0,false);
+  TermList var1 = TermList(1,false);
+  TermList var2 = TermList(2,false);
+
   Signature::Symbol* predSym = env.signature->getPredicate(newPred);
-  OperatorType* predType = OperatorType::getPredicateType({sort, sort});
+  OperatorType* predType = OperatorType::getPredicateType({sort, sort}, 1);
   predSym->setType(predType);
   predSym->markEqualityProxy();
 
-  s_proxyPredicates[sort] = newPred;
-  s_proxyPredicateSorts.insert(newPred,sort);
+  static TermStack args;
+  args.reset();
 
-  Literal* proxyLit = Literal::create2(newPred,true,TermList(0,false),TermList(1,false));
-  Literal* eqLit = Literal::createEquality(true,TermList(0,false),TermList(1,false),sort);
+  args.push(sort);
+  args.push(var1);
+  args.push(var2);
+
+  Literal* proxyLit = Literal::create(newPred, 3, true, false, args.begin());
+  Literal* eqLit = Literal::createEquality(true,var1,var2,sort);
   Formula* defForm = new BinaryFormula(IFF, new AtomicFormula(proxyLit), new AtomicFormula(eqLit));
   Formula* quantDefForm = Formula::quantify(defForm);
 
-  FormulaUnit* defUnit = new FormulaUnit(quantDefForm,NonspecificInference0(UnitInputType::AXIOM,InferenceRule::EQUALITY_PROXY_AXIOM1));
+  _defUnit = new FormulaUnit(quantDefForm,NonspecificInference0(UnitInputType::AXIOM,InferenceRule::EQUALITY_PROXY_AXIOM1));
 
-  s_proxyPremises[sort] = defUnit;
-  InferenceStore::instance()->recordIntroducedSymbol(defUnit, false, newPred);
+  InferenceStore::instance()->recordIntroducedSymbol(_defUnit, false, newPred);
+  _proxyPredicate = newPred;
+  _addedPred = true;
   return newPred;
 }
 
@@ -375,44 +352,29 @@ unsigned EqualityProxy::getProxyPredicate(unsigned sort)
  * or transitivity) and return it. 
  * @author Andrei Voronkov @since
  * 16/05/2014 Manchester
+ * @since 23/10/2020 Leicester
  */
 Clause* EqualityProxy::createEqProxyAxiom(const LiteralStack& literalStack)
 {
   CALL("EqualityProxy::createEqProxyAxiom(const LiteralStack&,unsigned)");
 
-  DHSet<unsigned> sorts;
-  UnitList* prems = 0;
-
-  LiteralStack::ConstIterator it(literalStack);
-  while (it.hasNext()) {
-    Literal* l = it.next();
-    unsigned srt;
-    if (!s_proxyPredicateSorts.find(l->functor(),srt)) {
-      continue;
-    }
-    if (!sorts.insert(srt)) {
-      continue;
-    }
-    Unit* prem = s_proxyPremises[srt];
-    ASS(prem);
-    UnitList::push(prem, prems);
-  }
-  ASS(prems);
-  Clause* res = Clause::fromStack(literalStack,NonspecificInferenceMany(InferenceRule::EQUALITY_PROXY_AXIOM2,prems));
+  ASS(_defUnit);
+  Clause* res = Clause::fromStack(literalStack, NonspecificInference1(InferenceRule::EQUALITY_PROXY_AXIOM2,_defUnit));
   return res;
 } // EqualityProxy::createEqProxyAxiom
 
 /**
- * Create the equality proxy literal (not) E(erg0,arg1) for a given sort.
+ * Create the equality proxy literal (not) E<sort>(erg0,arg1) for a given sort.
  * @author Andrei Voronkov
  * @since 16/05/2014 Manchester
+ * @since 23/10/2020 Leicester
  */
-Literal* EqualityProxy::makeProxyLiteral(bool polarity, TermList arg0, TermList arg1, unsigned sort)
+Literal* EqualityProxy::makeProxyLiteral(bool polarity, TermList arg0, TermList arg1, TermList sort)
 {
-  CALL("EqualityProxy::createProxyLiteral/4");
+  CALL("EqualityProxy::makeProxyLiteral");
 
-  unsigned pred = getProxyPredicate(sort);
-  TermList args[] = {arg0, arg1};
-  return Literal::create(pred, 2, polarity, false, args);
+  unsigned pred = getProxyPredicate();
+  TermList args[] = {sort, arg0, arg1};
+  return Literal::create(pred, 3, polarity, false, args);
 } // EqualityProxy::makeProxyLiteral
 

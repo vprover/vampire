@@ -16,7 +16,7 @@
 #define __LookaheadLiteralSelector__
 
 #include "Forwards.hpp"
-
+#include "Shell/Options.hpp"
 #include "LiteralSelector.hpp"
 
 namespace Kernel {

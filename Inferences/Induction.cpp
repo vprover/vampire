@@ -181,7 +181,7 @@ void InductionClauseIterator::process(Clause* premise, Literal* lit)
             ta_terms.insert(ts.term());
           }
           if(mathInd && 
-             env.signature->getFunction(f)->fnType()->result()==Sorts::SRT_INTEGER &&
+             env.signature->getFunction(f)->fnType()->result()==Term::intSort() &&
              !theory->isInterpretedConstant(f)
             ){
             int_terms.insert(ts.term());
@@ -375,7 +375,7 @@ void InductionClauseIterator::performStructInductionOne(Clause* premise, Literal
   CALL("InductionClauseIterator::performStructInductionOne"); 
 
   TermAlgebra* ta = env.signature->getTermAlgebraOfSort(env.signature->getFunction(term->functor())->fnType()->result());
-  unsigned ta_sort = ta->sort();
+  TermList ta_sort = ta->sort();
 
   FormulaList* formulas = FormulaList::empty();
 
@@ -463,7 +463,7 @@ void InductionClauseIterator::performStructInductionTwo(Clause* premise, Literal
   CALL("InductionClauseIterator::performStructInductionTwo"); 
 
   TermAlgebra* ta = env.signature->getTermAlgebraOfSort(env.signature->getFunction(term->functor())->fnType()->result());
-  unsigned ta_sort = ta->sort();
+  TermList ta_sort = ta->sort();
 
   Literal* clit = Literal::complementaryLiteral(lit);
 
@@ -529,7 +529,7 @@ void InductionClauseIterator::performStructInductionTwo(Clause* premise, Literal
       
     }
   }
-  Formula* exists = new QuantifiedFormula(Connective::EXISTS, new Formula::VarList(y.var(),0),0,
+  Formula* exists = new QuantifiedFormula(Connective::EXISTS, VList::singleton(y.var()),0,
                         FormulaList::length(formulas) > 0 ? static_cast<Formula*>(new JunctionFormula(
                                                                 Connective::AND,new FormulaList(new AtomicFormula(Ly),formulas)))
                                                           : static_cast<Formula*>(new AtomicFormula(Ly)));
@@ -558,7 +558,7 @@ void InductionClauseIterator::performStructInductionThree(Clause* premise, Liter
   CALL("InductionClauseIterator::performStructInductionThree");
 
   TermAlgebra* ta = env.signature->getTermAlgebraOfSort(env.signature->getFunction(term->functor())->fnType()->result());
-  unsigned ta_sort = ta->sort();
+  TermList ta_sort = ta->sort();
 
   Literal* clit = Literal::complementaryLiteral(lit);
 
@@ -656,7 +656,7 @@ void InductionClauseIterator::performStructInductionThree(Clause* premise, Liter
                             new AtomicFormula(cr2.transform(clit))));
 
   conjunction = new FormulaList(smallerImpNL,conjunction);
-  Formula* exists = new QuantifiedFormula(Connective::EXISTS, new Formula::VarList(y.var(),0),0,
+  Formula* exists = new QuantifiedFormula(Connective::EXISTS, VList::singleton(y.var()),0,
                        new JunctionFormula(Connective::AND,conjunction));
 
   TermReplacement cr3(term,x);
@@ -673,8 +673,8 @@ bool InductionClauseIterator::notDone(Literal* lit, Term* term)
   CALL("InductionClauseIterator::notDone");
 
   static DHSet<Literal*> done;
-  static DHMap<unsigned,TermList> blanks; 
-  unsigned srt = env.signature->getFunction(term->functor())->fnType()->result();
+  static DHMap<TermList,TermList> blanks; 
+  TermList srt = env.signature->getFunction(term->functor())->fnType()->result();
 
   if(!blanks.find(srt)){
     unsigned fresh = env.signature->addFreshFunction(0,"blank");

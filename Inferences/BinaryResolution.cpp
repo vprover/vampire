@@ -26,6 +26,7 @@
 #include "Kernel/Inference.hpp"
 #include "Kernel/LiteralSelector.hpp"
 #include "Kernel/SortHelper.hpp"
+#include "Kernel/RobSubstitution.hpp"
 
 #include "Indexing/Index.hpp"
 #include "Indexing/LiteralIndex.hpp"
@@ -132,8 +133,8 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
     if(opts.colorUnblocking()) {
       SaturationAlgorithm* salg = SaturationAlgorithm::tryGetInstance();
       if(salg) {
-	ColorHelper::tryUnblock(queryCl, salg);
-	ColorHelper::tryUnblock(qr.clause, salg);
+        ColorHelper::tryUnblock(queryCl, salg);
+        ColorHelper::tryUnblock(qr.clause, salg);
       }
     }
     return 0;
@@ -212,11 +213,12 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
 #if VDEBUG
       //cout << "con pair " << con.first.toString() << " , " << con.second.toString() << endl;
 #endif
-
+  
       TermList qT = qr.substitution->applyTo(con.first.first,con.first.second);
       TermList rT = qr.substitution->applyTo(con.second.first,con.second.second);
 
-      unsigned sort = SortHelper::getResultSort(rT.term()); 
+      TermList sort = SortHelper::getResultSort(rT.term()); 
+
       Literal* constraint = Literal::createEquality(false,qT,rT,sort);
 
       static Options::UnificationWithAbstraction uwa = opts.unificationWithAbstraction();
@@ -228,7 +230,7 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
         // the unification was between two uninterpreted things that were not ground 
         res->destroy();
         return 0;
-      } 
+      }
 
       (*res)[next] = constraint; 
       next++;    

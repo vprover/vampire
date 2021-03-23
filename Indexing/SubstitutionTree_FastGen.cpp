@@ -53,6 +53,7 @@ public:
   { return (*_specVars)[specVar]; }
 
   bool matchNext(unsigned specVar, TermList nodeTerm, bool separate=true);
+  bool matchNextAux(TermList queryTerm, TermList nodeTerm, bool separate=true);
   void backtrack();
   bool tryBacktrack();
 
@@ -190,16 +191,21 @@ public:
     }
   }
 
-  TermList applyToBoundResult(TermList t)
+  TermList applyToBoundResult(TermList t) override
   { return SubstHelper::apply(t, *getApplicator()); }
 
-  Literal* applyToBoundResult(Literal* lit)
+  Literal* applyToBoundResult(Literal* lit) override
   { return SubstHelper::apply(lit, *getApplicator()); }
 
-  bool isIdentityOnQueryWhenResultBound() {return true;}
+  bool matchSorts(TermList base, TermList instance) override
+  { return _parent->matchNextAux(instance, base, false); }
+
+  bool isIdentityOnQueryWhenResultBound() override
+  { return true; }
 
 #if VDEBUG
-  virtual vstring toString(){ return _resultNormalizer->toString(); }
+  virtual vstring toString() override
+  { return _resultNormalizer->toString(); }
 #endif
 
 private:
@@ -242,13 +248,6 @@ SubstitutionTree::GenMatcher::~GenMatcher()
   Recycler::release(_specVars);
 }
 
-/**
- * Match special variable, that is about to be matched next during
- * iterator's traversal through the tree, to @b nodeTerm.
- * If @b separate If true, join this match with the previous one
- * on backtracking stack, so they will be undone both by one
- * call to the backtrack() method.
- */
 bool SubstitutionTree::GenMatcher::matchNext(unsigned specVar, TermList nodeTerm, bool separate)
 {
   CALL("SubstitutionTree::GenMatcher::matchNext");
@@ -259,6 +258,21 @@ bool SubstitutionTree::GenMatcher::matchNext(unsigned specVar, TermList nodeTerm
 
   TermList queryTerm=(*_specVars)[specVar];
   ASSERT_VALID(queryTerm);
+
+  return matchNextAux(queryTerm, nodeTerm, separate);
+}
+
+
+/**
+ * Match special variable, that is about to be matched next during
+ * iterator's traversal through the tree, to @b nodeTerm.
+ * If @b separate If true, join this match with the previous one
+ * on backtracking stack, so they will be undone both by one
+ * call to the backtrack() method.
+ */
+bool SubstitutionTree::GenMatcher::matchNextAux(TermList queryTerm, TermList nodeTerm, bool separate)
+{
+  CALL("SubstitutionTree::GenMatcher::matchNextAux");
 
   bool success;
   if(nodeTerm.isTerm()) {
@@ -355,7 +369,8 @@ ResultSubstitutionSP SubstitutionTree::GenMatcher::getSubstitution(
  * If @b reversed If true, parameters of supplied binary literal are
  * 	reversed. (useful for retrieval commutative terms)
  */
-SubstitutionTree::FastGeneralizationsIterator::FastGeneralizationsIterator(SubstitutionTree* parent, Node* root, Term* query, bool retrieveSubstitution, bool reversed, bool withoutTop, bool useC)
+SubstitutionTree::FastGeneralizationsIterator::FastGeneralizationsIterator(SubstitutionTree* parent, Node* root, Term* query, 
+  bool retrieveSubstitution, bool reversed, bool withoutTop, bool useC, FuncSubtermMap* fstm)
 : _literalRetrieval(query->isLiteral()), _retrieveSubstitution(retrieveSubstitution),
   _inLeaf(false), _ldIterator(LDIterator::getEmpty()), _root(root), _tree(parent),
   _alternatives(64), _specVarNumbers(64), _nodeTypes(64)

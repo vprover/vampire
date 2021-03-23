@@ -61,25 +61,25 @@ public:
     for(unsigned i=0;i<_length;i++) {
       LiteralMiniIndex::VariantIterator vit(*_queryIndex, (*mcl)[i], false);
       if(!vit.hasNext()) {
-  fail=true;
-  goto fin;
+        fail=true;
+        goto fin;
       }
       while(vit.hasNext()) {
-  Literal* qVarLit=vit.next();
-  unsigned qVarLitIndex=_length;
-  for(unsigned j=0;j<_length;j++) {
-    if(qVarLit==_lits[j]) {
-      qVarLitIndex=j;
-      break;
-    }
-  }
-  LiteralList::push((*mcl)[i], alts[qVarLitIndex]);
+        Literal* qVarLit=vit.next();
+        unsigned qVarLitIndex=_length;
+        for(unsigned j=0;j<_length;j++) {
+          if(qVarLit==_lits[j]) {
+            qVarLitIndex=j;
+            break;
+          }
+        }
+        LiteralList::push((*mcl)[i], alts[qVarLitIndex]);
       }
     }
     for(unsigned i=0;i<_length;i++) {
       if(!alts[i]) {
-  fail=true;
-  goto fin;
+        fail=true;
+        goto fin;
       }
     }
 

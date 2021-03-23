@@ -14,6 +14,7 @@
 
 #include "Lib/Environment.hpp"
 #include "Lib/Stack.hpp"
+#include "Lib/DHSet.hpp"
 
 #include "Kernel/Clause.hpp"
 #include "Kernel/EqHelper.hpp"
@@ -26,6 +27,7 @@
 #include "Kernel/Term.hpp"
 #include "Kernel/TermIterators.hpp"
 #include "Kernel/Theory.hpp"
+#include "Kernel/SortHelper.hpp"
 
 #include "Property.hpp"
 #include "SymCounter.hpp"
@@ -96,7 +98,7 @@ void TheoryAxioms::addCommutativity(Interpretation op)
   ASS_EQ(theory->getArity(op),2);
 
   unsigned f = env.signature->getInterpretingSymbol(op);
-  unsigned srt = theory->getOperationSort(op);
+  TermList srt = theory->getOperationSort(op);
   TermList x(0,false);
   TermList y(1,false);
   TermList fxy(Term::create2(f,x,y));
@@ -117,7 +119,7 @@ void TheoryAxioms::addAssociativity(Interpretation op)
   ASS_EQ(theory->getArity(op),2);
 
   unsigned f = env.signature->getInterpretingSymbol(op);
-  unsigned srt = theory->getOperationSort(op);
+  TermList srt = theory->getOperationSort(op);
   TermList x(0,false);
   TermList y(1,false);
   TermList z(2,false);
@@ -142,7 +144,7 @@ void TheoryAxioms::addRightIdentity(Interpretation op, TermList e)
   ASS_EQ(theory->getArity(op),2);
 
   unsigned f = env.signature->getInterpretingSymbol(op);
-  unsigned srt = theory->getOperationSort(op);
+  TermList srt = theory->getOperationSort(op);
   TermList x(0,false);
   TermList fxe(Term::create2(f,x,e));
   Literal* eq = Literal::createEquality(true,fxe,x,srt);
@@ -159,7 +161,7 @@ void TheoryAxioms::addLeftIdentity(Interpretation op, TermList e)
   ASS_EQ(theory->getArity(op),2);
 
   unsigned f = env.signature->getInterpretingSymbol(op);
-  unsigned srt = theory->getOperationSort(op);
+  TermList srt = theory->getOperationSort(op);
   TermList x(0,false);
   TermList fex(Term::create2(f,e,x));
   Literal* eq = Literal::createEquality(true,fex,x,srt);
@@ -194,7 +196,7 @@ void TheoryAxioms::addCommutativeGroupAxioms(Interpretation op, Interpretation i
   // i(f(x,y)) = f(i(y),i(x))
   unsigned f = env.signature->getInterpretingSymbol(op);
   unsigned i = env.signature->getInterpretingSymbol(inverse);
-  unsigned srt = theory->getOperationSort(op);
+  TermList srt = theory->getOperationSort(op);
   ASS_EQ(srt, theory->getOperationSort(inverse));
 
   TermList x(0,false);
@@ -223,7 +225,7 @@ void TheoryAxioms::addRightInverse(Interpretation op, Interpretation inverse)
   TermList y(0,false);
   unsigned f = env.signature->getInterpretingSymbol(op);
   unsigned i = env.signature->getInterpretingSymbol(inverse);
-  unsigned srt = theory->getOperationSort(op);
+  TermList srt = theory->getOperationSort(op);
   ASS_EQ(srt, theory->getOperationSort(inverse));
 
   TermList iy(Term::create1(i,y));
@@ -286,7 +288,7 @@ void TheoryAxioms::addOrderingTotality(Interpretation less)
   Literal* l12 = Literal::create2(opPred, true, x, y);
   Literal* l21 = Literal::create2(opPred, true, y, x);
 
-  unsigned srt = theory->getOperationSort(less);
+  TermList srt = theory->getOperationSort(less);
   Literal* eq = Literal::createEquality(true,x,y,srt);
 
   addTheoryClauseFromLits({l12,l21,eq}, InferenceRule::THA_ORDER_TOTALALITY, CHEAP);
@@ -375,7 +377,7 @@ void TheoryAxioms::addAdditionAndOrderingAxioms(Interpretation plus, Interpretat
   addTheoryClauseFromLits({xLy,yLxP}, InferenceRule::THA_ORDER_PLUS_ONE_DICHOTOMY, EXPENSIVE);
 
   // add that --x = x
-  unsigned varSort = theory->getOperationSort(unaryMinus);
+  TermList varSort = theory->getOperationSort(unaryMinus);
   unsigned unaryMinusFun = env.signature->getInterpretingSymbol(unaryMinus);
   TermList mx(Term::create1(unaryMinusFun,x));
   TermList mmx(Term::create1(unaryMinusFun,mx));
@@ -391,7 +393,7 @@ void TheoryAxioms::addAdditionOrderingAndMultiplicationAxioms(Interpretation plu
 {
   CALL("TheoryAxioms::addAdditionOrderingAndMultiplicationAxioms");
 
-  unsigned srt = theory->getOperationSort(plus);
+  TermList srt = theory->getOperationSort(plus);
   ASS_EQ(srt, theory->getOperationSort(unaryMinus));
   ASS_EQ(srt, theory->getOperationSort(less));
   ASS_EQ(srt, theory->getOperationSort(multiply));
@@ -451,7 +453,7 @@ void TheoryAxioms::addIntegerDivisionWithModuloAxioms(Interpretation plus, Inter
   CALL("TheoryAxioms::addIntegerDivisionWithModuloAxioms");
 
 
-  unsigned srt = theory->getOperationSort(plus);
+  TermList srt = theory->getOperationSort(plus);
   ASS_EQ(srt, theory->getOperationSort(unaryMinus));
   ASS_EQ(srt, theory->getOperationSort(less));
   ASS_EQ(srt, theory->getOperationSort(multiply));
@@ -515,7 +517,7 @@ void TheoryAxioms::addIntegerDividesAxioms(Interpretation divides, Interpretatio
 
 // ![Y] : (divides(n,Y) <=> ?[Z] : multiply(Z,n) = Y)
 
-  unsigned srt = theory->getOperationSort(divides);
+  TermList srt = theory->getOperationSort(divides);
   ASS_EQ(srt, theory->getOperationSort(multiply));
 
   unsigned divsPred = env.signature->getInterpretingSymbol(divides);
@@ -549,7 +551,7 @@ void TheoryAxioms::addIntegerAbsAxioms(Interpretation abs, Interpretation less,
 {
   CALL("TheoryAxioms::addIntegerAbsAxioms");
 
-  unsigned srt = theory->getOperationSort(abs);
+  TermList srt = theory->getOperationSort(abs);
   ASS_EQ(srt, theory->getOperationSort(less));
   ASS_EQ(srt, theory->getOperationSort(unaryMinus));
 
@@ -584,7 +586,7 @@ void TheoryAxioms::addQuotientAxioms(Interpretation quotient, Interpretation mul
 {
   CALL("TheoryAxioms::addQuotientAxioms");
 
-  unsigned srt = theory->getOperationSort(quotient);
+  TermList srt = theory->getOperationSort(quotient);
   ASS_EQ(srt, theory->getOperationSort(multiply));
   ASS_EQ(srt, theory->getOperationSort(less));
 
@@ -775,14 +777,13 @@ void TheoryAxioms::addTruncateAxioms(Interpretation truncate, Interpretation les
  * @since 05/01/2014 Vienna, add axiom in clause form (we need skolem function in other places)
  * @author Bernhard Kragl
 */
-void TheoryAxioms::addArrayExtensionalityAxioms(unsigned arraySort, unsigned skolemFn)
+void TheoryAxioms::addArrayExtensionalityAxioms(TermList arraySort, unsigned skolemFn)
 {
   CALL("TheoryAxioms::addArrayExtenstionalityAxioms");
 
   unsigned sel = env.signature->getInterpretingSymbol(Theory::ARRAY_SELECT,Theory::getArrayOperatorType(arraySort,Theory::ARRAY_SELECT));
 
-  Sorts::ArraySort* si = env.sorts->getArraySort(arraySort);
-  unsigned rangeSort = si->getInnerSort();
+  TermList rangeSort = SortHelper::getInnerSort(arraySort);
 
   TermList x(0,false);
   TermList y(1,false);
@@ -803,7 +804,7 @@ void TheoryAxioms::addArrayExtensionalityAxioms(unsigned arraySort, unsigned sko
  * @since 25/08/2015 Gothenburg
  * @author Evgeny Kotelnikov
  */
-void TheoryAxioms::addBooleanArrayExtensionalityAxioms(unsigned arraySort, unsigned skolemFn)
+void TheoryAxioms::addBooleanArrayExtensionalityAxioms(TermList arraySort, unsigned skolemFn)
 {
   CALL("TheoryAxioms::addBooleanArrayExtenstionalityAxioms");
 
@@ -821,8 +822,8 @@ void TheoryAxioms::addBooleanArrayExtensionalityAxioms(unsigned arraySort, unsig
   Formula* sel_y_sk = new AtomicFormula(Literal::create2(sel, true, y, sk)); //select(y,sk(x,y))
   Formula* sx_neq_sy = new BinaryFormula(XOR, sel_x_sk, sel_y_sk); //select(x,sk(x,y)) <~> select(y,sk(x,y))
 
-  Formula* axiom = new QuantifiedFormula(FORALL, new Formula::VarList(0, new Formula::VarList(1, 0)),
-                                         new Formula::SortList(arraySort, new Formula::SortList(arraySort,0)),
+  Formula* axiom = new QuantifiedFormula(FORALL, VList::cons(0, VList::cons(1, VList::empty())),
+                                         SList::cons(arraySort, SList::cons(arraySort,SList::empty())),
                                          new BinaryFormula(IMP, x_neq_y, sx_neq_sy));
 
   addAndOutputTheoryUnit(new FormulaUnit(axiom, TheoryAxiom(InferenceRule::THA_BOOLEAN_ARRAY_EXTENSIONALITY)),CHEAP);
@@ -833,16 +834,15 @@ void TheoryAxioms::addBooleanArrayExtensionalityAxioms(unsigned arraySort, unsig
  * @author Laura Kovacs
  * @since 31/08/2012, Vienna
 */
-void TheoryAxioms::addArrayWriteAxioms(unsigned arraySort)
+void TheoryAxioms::addArrayWriteAxioms(TermList arraySort)
 {
   CALL("TheoryAxioms::addArrayWriteAxioms");
         
   unsigned func_select = env.signature->getInterpretingSymbol(Theory::ARRAY_SELECT,Theory::getArrayOperatorType(arraySort,Theory::ARRAY_SELECT));
   unsigned func_store = env.signature->getInterpretingSymbol(Theory::ARRAY_STORE,Theory::getArrayOperatorType(arraySort,Theory::ARRAY_STORE));
 
-  Sorts::ArraySort* si = env.sorts->getArraySort(arraySort);
-  unsigned rangeSort = si->getInnerSort();
-  unsigned domainSort = si->getIndexSort();
+  TermList rangeSort = SortHelper::getInnerSort(arraySort);
+  TermList domainSort = SortHelper::getIndexSort(arraySort);
 
   TermList i(0,false);
   TermList j(1,false);
@@ -870,15 +870,14 @@ void TheoryAxioms::addArrayWriteAxioms(unsigned arraySort)
  * @author Laura Kovacs
  * @since 31/08/2012, Vienna
 */
-void TheoryAxioms::addBooleanArrayWriteAxioms(unsigned arraySort)
+void TheoryAxioms::addBooleanArrayWriteAxioms(TermList arraySort)
 {
   CALL("TheoryAxioms::addArrayWriteAxioms");
 
   unsigned pred_select = env.signature->getInterpretingSymbol(Theory::ARRAY_BOOL_SELECT,Theory::getArrayOperatorType(arraySort,Theory::ARRAY_BOOL_SELECT));
   unsigned func_store = env.signature->getInterpretingSymbol(Theory::ARRAY_STORE,Theory::getArrayOperatorType(arraySort,Theory::ARRAY_STORE));
 
-  Sorts::ArraySort* si = env.sorts->getArraySort(arraySort);
-  unsigned domainSort = si->getIndexSort();
+  TermList domainSort = SortHelper::getIndexSort(arraySort);
 
   TermList a(0,false);
   TermList i(1,false);
@@ -1083,11 +1082,12 @@ void TheoryAxioms::apply()
     modified = true;
   }
 
-  VirtualIterator<unsigned> arraySorts = env.sorts->getStructuredSorts(Sorts::StructuredSort::ARRAY);
-  while(arraySorts.hasNext()){
-    unsigned arraySort = arraySorts.next();
+  DHSet<TermList>* arraySorts = env.sorts->getArraySorts();
+  DHSet<TermList>::Iterator it(*arraySorts);
+  while(it.hasNext()){
+    TermList arraySort = it.next();
 
-    bool isBool = (env.sorts->getArraySort(arraySort)->getInnerSort() == Sorts::SRT_BOOL);
+    bool isBool = SortHelper::getInnerSort(arraySort) == Term::boolSort();
     
     // Check if they are used
     Interpretation arraySelect = isBool ? Theory::ARRAY_BOOL_SELECT : Theory::ARRAY_SELECT;
@@ -1140,17 +1140,20 @@ void TheoryAxioms::applyFOOL() {
   TermList f(Term::foolFalse());
 
   // Add "$$true != $$false"
-  Literal* tneqf = Literal::createEquality(false, t, f, Sorts::SRT_BOOL);
+  Literal* tneqf = Literal::createEquality(false, t, f, Term::boolSort());
+
   addTheoryClauseFromLits({tneqf},InferenceRule::FOOL_AXIOM_TRUE_NEQ_FALSE,CHEAP);
 
   // Do not add the finite domain axiom if --fool_paradomulation on
-  if (env.options->FOOLParamodulation()) {
+  if (env.options->FOOLParamodulation() || env.options->cases() ||
+      env.options->casesSimp()) {
     return;
   }
 
   // Add "![X : $bool]: ((X = $$true) | (X = $$false))"
-  Literal* boolVar1 = Literal::createEquality(true, TermList(0, false), t, Sorts::SRT_BOOL);
-  Literal* boolVar2 = Literal::createEquality(true, TermList(0, false), f, Sorts::SRT_BOOL);
+  Literal* boolVar1 = Literal::createEquality(true, TermList(0, false), t, Term::boolSort());
+  Literal* boolVar2 = Literal::createEquality(true, TermList(0, false), f, Term::boolSort());
+
   addTheoryClauseFromLits({boolVar1,boolVar2},InferenceRule::FOOL_AXIOM_ALL_IS_TRUE_OR_FALSE,CHEAP);
 } // TheoryAxioms::addBooleanDomainAxiom
 
@@ -1181,7 +1184,7 @@ void TheoryAxioms::addExhaustivenessAxiom(TermAlgebra* ta) {
     argTerms.reset();
 
     for (unsigned j = 0; j < c->arity(); j++) {
-      if (c->argSort(j) == Sorts::SRT_BOOL) {
+      if (c->argSort(j) == Term::boolSort()) {
         addsFOOL = true;
         Literal* lit = Literal::create1(c->destructorFunctor(j), true, x);
         Term* t = Term::createFormula(new AtomicFormula(lit));
@@ -1215,8 +1218,8 @@ void TheoryAxioms::addExhaustivenessAxiom(TermAlgebra* ta) {
       }
       disjunction = new JunctionFormula(Connective::OR, fl);
     }
-    Formula::VarList* vars = Formula::VarList::cons(x.var(), Formula::VarList::empty());
-    Formula::SortList* sorts = Formula::SortList::cons(ta->sort(), Formula::SortList::empty());
+    VList* vars = VList::singleton(x.var());
+    SList* sorts = SList::singleton(ta->sort());
     auto universal = new QuantifiedFormula(Connective::FORALL, vars, sorts, disjunction);
 
     axiom = new FormulaUnit(universal, TheoryAxiom(InferenceRule::TERM_ALGEBRA_EXHAUSTIVENESS_AXIOM));
