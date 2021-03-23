@@ -1198,6 +1198,7 @@ void SaturationAlgorithm::activate(Clause* cl)
   _active->add(cl);
 
     
+  // ASS_REP(InequalityNormalizer(PolynomialEvaluation(*Ordering::tryGetGlobalOrdering())).isNormalized(cl), *cl)
     auto generated = _generator->generateSimplify(cl);
 
     ClauseIterator toAdd = generated.clauses;

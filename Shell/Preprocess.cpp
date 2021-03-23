@@ -494,6 +494,9 @@ void Preprocess::preprocess(Problem& prb)
      }
    }
 
+   // TODO output sth here as well (?)
+   normalizeInterpreted();
+
    if (_options.blockedClauseElimination()) {
      env.statistics->phase=Statistics::BLOCKED_CLAUSE_ELIMINATION;
      if(env.options->showPreprocessing())
