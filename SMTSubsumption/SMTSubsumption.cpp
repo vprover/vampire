@@ -1608,6 +1608,9 @@ class SMTSubsumption::SMTSubsumptionImpl3
     void setupMainPremise(Kernel::Clause* new_instance)
     {
       instance = new_instance;
+      // TODO:
+      // Copy the literals into a vvector, std::sort them (like LiteralMiniIndex; by header).
+      // Then use std::binary_search to find the first one in setupSubsumption?
     }
 
     /// Set up the subsumption problem. Must have called setupMainPremise first.
@@ -1654,7 +1657,7 @@ class SMTSubsumption::SMTSubsumptionImpl3
             auto binder = theory.start_binder();
             if (base_lit->arity() == 0 || MatchingUtils::matchArgs(base_lit, inst_lit, binder)) {
               subsat::Var b{nextVarIndex++};
-              LOG_DEBUG("MatchFwd: " << b << " ~ " << base_lit->toString() << " -> " << inst_lit->toString());
+              // LOG_DEBUG("MatchFwd: " << b << " ~ " << base_lit->toString() << " -> " << inst_lit->toString());
               match_count += 1;
               theory.commit_bindings(binder, b);
               solver.handle_push_literal(instance_constraints[j], b);
@@ -1667,7 +1670,7 @@ class SMTSubsumption::SMTSubsumptionImpl3
             auto binder = theory.start_binder();
             if (MatchingUtils::matchReversedArgs(base_lit, inst_lit, binder)) {
               subsat::Var b{nextVarIndex++};
-              LOG_DEBUG("MatchRev: " << b << " ~ " << base_lit->toString() << " -> " << inst_lit->toString());
+              // LOG_DEBUG("MatchRev: " << b << " ~ " << base_lit->toString() << " -> " << inst_lit->toString());
               match_count += 1;
               theory.commit_bindings(binder, b);
               solver.handle_push_literal(instance_constraints[j], b);
