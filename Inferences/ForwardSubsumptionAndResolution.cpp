@@ -63,7 +63,8 @@ using namespace Saturation;
 
 
 
-#define CHECK_SMT_SUBSUMPTION 0
+#define CHECK_SMT_SUBSUMPTION 1
+#define CHECK_SMT_SUBSUMPTION_RESOLUTION 1
 
 
 
@@ -383,6 +384,12 @@ void ForwardSubsumptionAndResolution::printStats(std::ostream& out)
 bool ForwardSubsumptionAndResolution::perform(Clause* cl, Clause*& replacement, ClauseIterator& premises)
 {
   CALL("ForwardSubsumptionAndResolution::perform");
+#if CHECK_SMT_SUBSUMPTION_RESOLUTION
+  static vvector<Clause*> mcl_tried;
+  mcl_tried.clear();
+  bool we_did_subsumption_resolution = false;
+  bool fin_print_extra_info = false;
+#endif
 
   Clause* resolutionClause = nullptr;
 
@@ -512,6 +519,13 @@ bool ForwardSubsumptionAndResolution::perform(Clause* cl, Clause*& replacement, 
         if (stats.result) {
           fsstats.m_numDecisions_successes[stats.numDecisions] += 1;
         }
+        // if (stats.numDecisions >= 10000) {
+        //   std::cerr << "\%\n";
+        //   std::cerr << "\% numDecisions = " << stats.numDecisions << std::endl;
+        //   // std::cerr << "\% mcl = " << mcl->toString() << std::endl;
+        //   // std::cerr << "\%  cl = " << cl->toString() << std::endl;
+        //   std::cout << "\% SLOG2: S " << mcl->number() << " " << cl->number() << " " << isSubsumed << std::endl;
+        // }
       }
 
 #if CHECK_SMT_SUBSUMPTION
@@ -539,6 +553,9 @@ bool ForwardSubsumptionAndResolution::perform(Clause* cl, Clause*& replacement, 
   }
 
   {
+#if CHECK_SMT_SUBSUMPTION_RESOLUTION
+    we_did_subsumption_resolution = true;
+#endif
     TimeCounter tc_fsr(TC_FORWARD_SUBSUMPTION_RESOLUTION);
 
     for (unsigned li = 0; li < clen; li++) {
@@ -555,7 +572,8 @@ bool ForwardSubsumptionAndResolution::perform(Clause* cl, Clause*& replacement, 
           replacement = resolutionClause;
           result = true;
         }
-#if CHECK_SMT_SUBSUMPTION
+#if CHECK_SMT_SUBSUMPTION_RESOLUTION
+        mcl_tried.push_back(mcl);
         smtsubs.checkSubsumptionResolution(mcl, cl, resolutionClause);
 #endif
         if (resolutionClause) {
@@ -579,8 +597,12 @@ bool ForwardSubsumptionAndResolution::perform(Clause* cl, Clause*& replacement, 
             replacement = resolutionClause;
             result = true;
           }
-#if CHECK_SMT_SUBSUMPTION
-          smtsubs.checkSubsumptionResolution(cms->_cl, cl, resolutionClause);
+#if CHECK_SMT_SUBSUMPTION_RESOLUTION
+          mcl_tried.push_back(cms->_cl);
+          // NOTE: we can't do the check here because we might encounter the same clause again in the loop below (it's possible that we fail here but succeed later).
+          // if (!smtsubs.checkSubsumptionResolution(cms->_cl, cl, resolutionClause)) {
+          //   fin_print_extra_info = true;
+          // }
 #endif
           if (resolutionClause) {
             goto fin;
@@ -615,8 +637,11 @@ bool ForwardSubsumptionAndResolution::perform(Clause* cl, Clause*& replacement, 
           replacement = resolutionClause;
           result = true;
         }
-#if CHECK_SMT_SUBSUMPTION
-        smtsubs.checkSubsumptionResolution(cms->_cl, cl, resolutionClause);
+#if CHECK_SMT_SUBSUMPTION_RESOLUTION
+        mcl_tried.push_back(cms->_cl);
+        if (!smtsubs.checkSubsumptionResolution(cms->_cl, cl, resolutionClause)) {
+          fin_print_extra_info = true;
+        }
 #endif
         if (resolutionClause) {
           goto fin;
@@ -627,6 +652,24 @@ bool ForwardSubsumptionAndResolution::perform(Clause* cl, Clause*& replacement, 
   }
 
 fin:
+#if CHECK_SMT_SUBSUMPTION_RESOLUTION
+  if (fin_print_extra_info) {
+    std::cerr << "% result = " << result << std::endl;
+    std::cerr << "% replacement = " << (replacement ? replacement->toString() : "nullptr") << std::endl;
+  }
+  if (we_did_subsumption_resolution) {
+    if (result) {
+      // In this case we can only check the last side premise... for the others we don't know yet whether we missed an inference or if we just discovered the current one before.
+      ASS(resolutionClause);
+      smtsubs.checkSubsumptionResolution(mcl_tried.back(), cl, resolutionClause);
+    } else {
+      ASS(!resolutionClause);
+      for (Clause* mcl : mcl_tried) {
+        smtsubs.checkSubsumptionResolution(mcl, cl, resolutionClause);
+      }
+    }
+  }
+#endif
   Clause::releaseAux();
   while(cmStore.isNonEmpty()) {
     delete cmStore.pop();
