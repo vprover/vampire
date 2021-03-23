@@ -257,7 +257,7 @@ void Signature::addEquality()
   // initialize equality
   addInterpretedPredicate(Theory::EQUAL, OperatorType::getPredicateType(2), "=");
   ASS_EQ(predicateName(0), "="); //equality must have number 0
-  getPredicate(0)->markSkip(); //TODO is this safe? Doesn't look like it!
+  getPredicate(0)->markSkip();
 }
 
 /**
