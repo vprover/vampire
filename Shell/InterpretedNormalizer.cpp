@@ -431,13 +431,10 @@ private:
 // InterpretedNormalizer
 //
 
-InterpretedNormalizer::InterpretedNormalizer()
+InterpretedNormalizer::InterpretedNormalizer(InequalityNormalizer* norm)
 : _litTransf(new NLiteralTransformer())
-{
-  CALL("InterpretedNormalizer::InterpretedNormalizer");
-
-
-}
+, _inequalityNormalizer(norm)
+{ }
 
 InterpretedNormalizer::~InterpretedNormalizer()
 {
@@ -519,6 +516,9 @@ Clause* InterpretedNormalizer::apply(Clause* cl)
 	return 0;
       }
       continue;
+    }
+    if (_inequalityNormalizer)  {
+      newLit = _inequalityNormalizer->normalizeLiteral(newLit);
     }
     if(newLit!=lit) {
       modified = true;
