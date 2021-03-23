@@ -50,7 +50,6 @@
 #include "Lib/Stack.hpp"
 #include "Lib/Int.hpp"
 #include "Lib/Allocator.hpp"
-#include "Lib/XML.hpp"
 #include "Lib/Comparison.hpp"
 #include "Lib/STL.hpp"
 
@@ -2114,7 +2113,6 @@ public:
   bool outputAxiomNames() const { return _outputAxiomNames.actualValue; }
   void setOutputAxiomNames(bool newVal) { _outputAxiomNames.actualValue = newVal; }
   QuestionAnsweringMode questionAnswering() const { return _questionAnswering.actualValue; }
-  vstring xmlOutput() const { return _xmlOutput.actualValue; }
   Output outputMode() const { return _outputMode.actualValue; }
   void setOutputMode(Output newVal) { _outputMode.actualValue = newVal; }
   vstring thanks() const { return _thanks.actualValue; }
@@ -2628,8 +2626,6 @@ private:
   // BoolOptionValue _use_dm;
   BoolOptionValue _weightIncrement;
   IntOptionValue _whileNumber;
-
-  StringOptionValue _xmlOutput;
 
   OptionChoiceValues _tagNames;
 

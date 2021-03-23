@@ -171,66 +171,6 @@ void Formula::destroy ()
 //   }
 // } // Formula::weight
 
-// /**
-//  * Convert the formula to an XML element.
-//  * @since 29/11/2003 Manchester
-//  * @since 11/12/2004 Manchester, true and false added
-//  */
-// XMLElement Formula::toXML() const
-// {
-//   XMLElement f("formula");
-//   f.addAttribute("connective",_connectiveNames[connective()]);
-
-//   switch ( connective() ) {
-//   case LITERAL:
-//     f.addChild(literal()->toXML());
-//     return f;
-
-//   case AND:
-//   case OR:
-//     {
-//       FormulaList::Iterator fs(args());
-//       while (fs.hasNext()) {
-// 	f.addChild(fs.next()->toXML());
-//       }
-//     }
-//     return f;
-
-//   case IMP:
-//   case IFF:
-//   case XOR:
-//     f.addChild(left()->toXML());
-//     f.addChild(right()->toXML());
-//     return f;
-
-//   case NOT:
-//     f.addChild(uarg()->toXML());
-//     return f;
-
-//   case FORALL:
-//   case EXISTS:
-//     {
-//       XMLElement vs("variables");
-//       VarList::Iterator variables(vars());
-//       while (variables.hasNext()) {
-// 	vs.addChild(Term::variableToXML(variables.next()));
-//       }
-//       f.addChild(vs);
-//       f.addChild(qarg()->toXML());
-//     }
-//     return f;
-
-//   case TRUE:
-//   case FALSE:
-//     return f;
-
-// #if VDEBUG
-//   default:
-//     ASSERTION_VIOLATION;
-// #endif
-//   }
-// } // Formula::toXML()
-
 /**
  * Convert the connective to a vstring.
  * @since 02/01/2004 Manchester
