@@ -12,6 +12,7 @@
 #ifndef __INEQUALITY_NORMALIZER_HPP__
 #define __INEQUALITY_NORMALIZER_HPP__
 
+#include "Kernel/Formula.hpp"
 #include "Lib/Int.hpp"
 #include "Forwards.hpp"
 
@@ -89,7 +90,7 @@ namespace Kernel {
 
   public:
     InequalityNormalizer(PolynomialEvaluation eval) 
-      : _eval(eval) {  }
+      : _eval(std::move(eval)) {  }
 
     template<class NumTraits> Option<MaybeOverflow<InequalityLiteral<NumTraits>>> normalize(Literal* lit) const;
     Literal* normalizeLiteral(Literal* lit) const 
@@ -101,6 +102,18 @@ namespace Kernel {
       || [&](){ return normalize<RealTraits>(lit)
                          .map([](MaybeOverflow<InequalityLiteral<RealTraits>> l) { return l.value.denormalize(); }); }
       || lit;
+    }
+
+    inline bool isNormalized(Clause* cl) 
+    { 
+      for (unsigned i = 0; i < cl->size(); i++) {
+        auto lit = (*cl)[i];
+        if(lit != normalizeLiteral(lit)) {
+          DBG(*lit, " != ", *normalizeLiteral(lit))
+          return false;
+        }
+      }
+      return true;
     }
   };
 
