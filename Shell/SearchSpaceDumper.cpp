@@ -10,6 +10,7 @@
 #include <vector>
 #include <fstream>
 
+#define DEBUG(...) DBG(__VA_ARGS__)
 using namespace nlohmann;
 using namespace Kernel;
 using namespace Shell;
@@ -42,15 +43,22 @@ SearchSpaceDumper::~SearchSpaceDumper()
   }
 }
 
+template<class Key>
+struct JsonMap 
+{
+  map<Key, unsigned> ids;
+  vector<json> values;
+};
+
 struct SerializationContext 
 {
-  map<Clause const*, unsigned> clauses;
-  map<Literal const*, unsigned> literals;
-  map<Term const*, unsigned> terms;
-  map<unsigned, unsigned> functions;
-  map<unsigned, unsigned> predicates;
 
-  vector<json> objects;
+  JsonMap<Clause const*> clauses;
+  JsonMap<Literal const*> literals;
+  JsonMap<Term const*> cterms;
+  JsonMap<TermList> terms;
+  JsonMap<unsigned> functions;
+  JsonMap<unsigned> predicates;
 
   SerializationContext() {}
   SerializationContext(SerializationContext const&) = delete;
@@ -58,20 +66,53 @@ struct SerializationContext
   template<class B>
   unsigned operator()(const B& ser) { return serialize(*this, ser); }
 
-  json toJson() const 
+  void tegrity() {
+    auto teg = [](vector<json>& vec) {
+      for(int i = 0; i < vec.size(); i++) { 
+        ASS_REP(vec[i] != nullptr, i) 
+        ASS_REP(vec[i] != json(), i) 
+      }
+      for(auto& x : vec) { 
+        ASS(x != nullptr) 
+        ASS(x != json()) 
+      }
+    };
+    teg(clauses   .values);
+    teg(literals  .values);
+    teg(cterms    .values);
+    teg(terms     .values);
+    teg(functions .values);
+    teg(predicates.values);
+  }
+
+  json toJson() &&
   {
-    return json(objects);
+    json out;
+    tegrity();
+    out["clauses"]    = std::move(clauses.values);
+    out["literals"]   = std::move(literals.values);
+    out["cterms"]     = std::move(cterms.values);
+    out["terms"]      = std::move(terms.values);
+    out["functions"]  = std::move(functions.values);
+    out["predicates"] = std::move(predicates.values);
+    return out;
   }
 };
 
 struct Predicate 
 { unsigned functor; };
 
+std::ostream& operator<<(std::ostream& out, Predicate const& self) 
+{ return out << self.functor; }
+
 struct Function 
 {
   unsigned functor;
   const Term& term;
 };
+
+std::ostream& operator<<(std::ostream& out, Function const& self) 
+{ return out << self.functor; }
 
 #define __SER_CONST__Predicate 
 
@@ -163,7 +204,7 @@ const char* serializeInterpretation(Interpretation i) {
 #define IF_FUN_Predicate(...)
 #define IF_FUN_Function(...) __VA_ARGS__
 
-#define _SERIALIZE_FUN_PRED(pred, Predicate)                                                                  \
+#define _SERIALIZE_FUN_PRED(Predicate)                                                                  \
   json j;                                                                                                     \
   j["name"] = env.signature->get ## Predicate(self.functor)->name();                                          \
   json inter;                                                                                                 \
@@ -177,16 +218,15 @@ const char* serializeInterpretation(Interpretation i) {
   )                                                                                                           \
                                                                                                               \
   j["inter"] = inter;                                                                                         \
-  return {pred, j};                                                                                           \
+  return j;                                                                                           \
 
 template<class C> struct SerializeCached;
 
 template<> struct SerializeCached<Clause>
 { 
-  static constexpr bool value = true; 
   static auto id      (Clause const& c)           -> Clause const*          { return &c;          }
   static auto getCache(SerializationContext& ser) -> decltype(ser.clauses)& { return ser.clauses; }
-  static auto toJson(Clause const& self, SerializationContext& serial) -> tuple<const char*, json> {
+  static auto toJson(Clause const& self, SerializationContext& serial) -> json {
     json j;
     j["thry_desc"] = self.isPureTheoryDescendant();
 
@@ -196,16 +236,15 @@ template<> struct SerializeCached<Clause>
     }
 
     j["lits"] = lits;
-    return { "Clause", j };
+    return j;
   }
 };
 
 template<> struct SerializeCached<Literal>
 { 
-  static constexpr bool value = true; 
   static auto id      (Literal const& x)          -> Literal const*          { return &x;           }
   static auto getCache(SerializationContext& ser) -> decltype(ser.literals)& { return ser.literals; }
-  static auto toJson(Literal const& self, SerializationContext& serial) -> tuple<const char*, json> {
+  static auto toJson(Literal const& self, SerializationContext& serial) -> json {
     json j;
     j["pos"] = self.isPositive();
     Predicate p {.functor = self.functor()};
@@ -216,122 +255,122 @@ template<> struct SerializeCached<Literal>
       // DBG(self[i].toString()," -> ", x)
       terms.push_back(x);
     }
-    j["terms"] = terms;
-    return { "Lit", j };
+    j["args"] = terms;
+    return j;
   }
 };
 
 template<> struct SerializeCached<Term>
 { 
-  static constexpr bool value = true; 
-  static auto id      (Term const& x)             -> Term const*          { return &x;        }
-  static auto getCache(SerializationContext& ser) -> decltype(ser.terms)& { return ser.terms; }
-  static auto toJson(Term const& self, SerializationContext& serial) -> tuple<const char*, json> {
+  static auto id      (Term const& x)             -> Term const*           { return &x;        }
+  static auto getCache(SerializationContext& ser) -> decltype(ser.cterms)& { return ser.cterms; }
+  static auto toJson(Term const& self, SerializationContext& serial) -> json {
     json j;
-    Function fun = {.functor = self.functor(), .term = self};
+    Function fun = { .functor = self.functor(), .term = self };
     j["fun"] = serial(fun);
     vector<unsigned> terms;
+    terms.reserve(self.arity());
     for (int i = 0; i < self.arity(); i++) {
       terms.push_back(serial(self[i]));
     }
-    j["terms"] = terms;
-    return { "Cterm", j };
+    j["args"] = std::move(terms);
+    return j;
   }
 };
 
 template<> struct SerializeCached<Predicate>
 { 
-  static constexpr bool value = true; 
   static auto id      (Predicate const& x)         -> decltype(x.functor)       { return x.functor;   }
   static auto getCache(SerializationContext& ser) -> decltype(ser.predicates)& { return ser.predicates; }
-  static auto toJson(Predicate const& self, SerializationContext& sef) -> tuple<const char*, json> 
-  { _SERIALIZE_FUN_PRED("Pred", Predicate) }
+  static auto toJson(Predicate const& self, SerializationContext& sef) -> json 
+  { _SERIALIZE_FUN_PRED(Predicate) }
 };
 
 template<> struct SerializeCached<Function>
 { 
-  static constexpr bool value = true; 
   static auto id      (Function const& x)          -> decltype(x.functor)      { return x.functor;   }
   static auto getCache(SerializationContext& ser) -> decltype(ser.functions)& { return ser.functions; }
-  static auto toJson(Function const& self, SerializationContext& sef) -> tuple<const char*, json> 
-  { _SERIALIZE_FUN_PRED("Fun", Function) }
+  static auto toJson(Function const& self, SerializationContext& sef) -> json 
+  { _SERIALIZE_FUN_PRED(Function) }
 };
 
 template<> struct SerializeCached<TermList> 
 { 
-  static constexpr bool value = false; 
-  static auto toJson(TermList const& self, SerializationContext& serial) -> tuple<const char*, json> {
+  static auto id      (TermList const& x)         -> TermList      { return x;   }
+  static auto getCache(SerializationContext& ser) -> decltype(ser.terms)& { return ser.terms; }
+  static auto toJson(TermList const& self, SerializationContext& serial) -> json {
     json j; 
     if (self.isTerm()) {
-      j["Cterm"] = serial(*self.term());
+      j["T"] = serial(*self.term());
     } else if (self.isVar()) {
-      j["Var"] = self.var();
+      j["V"] = self.var();
     } else {
       ASSERTION_VIOLATION
     }
-    return { "Term", j };
+    return j;
   }
 };
 
-template<class C, typename std::enable_if<SerializeCached<C>::value, bool>::type = true>
-unsigned setupKey(SerializationContext& ctxt, C const& self) 
+template<class C>
+unsigned setupKey(SerializationContext& ctxt, C const& self)
 {
-    BYPASSING_ALLOCATOR                    
-    auto& cache = SerializeCached<C>::getCache(ctxt);          
+    BYPASSING_ALLOCATOR
+      
+    auto& cache = SerializeCached<C>::getCache(ctxt);
     auto id = SerializeCached<C>::id(self);
-    auto iter = cache.find(id);              
-    if (iter != cache.end()) {                 
-      return iter->second;                      
-    }                                            
-    unsigned idx = ctxt.objects.size();
-    cache[id] = idx;                    
-    ctxt.objects.push_back(json()); 
+    auto iter = cache.ids.find(id);
+    if (iter != cache.ids.end()) {
+      auto idx = iter->second;
+      return idx;
+    }
+    unsigned idx = cache.values.size();
+    cache.ids[id] = idx;
+    cache.values.push_back(nullptr);
     return idx;
 };
 
-template<class C, typename std::enable_if<!SerializeCached<C>::value, bool>::type = true>
-unsigned setupKey(SerializationContext& ctxt, C const& self) 
-{
-    BYPASSING_ALLOCATOR                
-    auto idx = ctxt.objects.size();
-    ctxt.objects.push_back(json());
-    return idx;
-};
+static bool shallCheckTegrity = false;
+
+#define CHECK_TEGRITY(ctxt) \
+  if (shallCheckTegrity) \
+    ASS(ctxt.cterms.values[13] != nullptr) \
 
 template<class C>
 unsigned serialize(SerializationContext& ctxt, C const& self) 
 {
-  unsigned idx = setupKey<C>(ctxt, self);
-                                                        
-  auto ser = SerializeCached<C>::toJson(self, ctxt);                   
-                                                          
-  json j;                                                  
-  j[get<0>(ser)] = get<1>(ser);                             
-                                                             
-  ctxt.objects[idx] = j;                                 
-                                                               
+  auto idx = setupKey<C>(ctxt, self);
+  
+
+  if (SerializeCached<C>::getCache(ctxt).values[idx] == nullptr) {
+    SerializeCached<C>::getCache(ctxt).values[idx] = SerializeCached<C>::toJson(self, ctxt);
+  }
+  if (idx == 13 && std::is_same<C, Term>::value) {
+    shallCheckTegrity = true;
+  }
+
   return idx;
 };
 
 void SearchSpaceDumper::dumpFile(const vstring& out) const 
 {
   CALL("SearchSpaceDumper::dumpFile")
-  DBG("dumping searchspace to file ", env.options->searchSpaceOutput());
+  DEBUG("dumping searchspace to file ", env.options->searchSpaceOutput());
   BYPASSING_ALLOCATOR
 
   SerializationContext ctxt;
 
-  DBG("serializing...");
+  DEBUG("preprocessing...");
   for (auto c : _clauses) {
     serialize(ctxt, *c);
   }
-  DBG("writing...");
+  DEBUG("converting to json...")
+  auto json = std::move(ctxt).toJson();
+  DEBUG("writing to ", out, "...");
   cout << out.c_str() << endl;
   ofstream f{ out.c_str() };
+  f << json.dump(1) << endl; 
 
-  f << ctxt.toJson().dump(3) << endl; 
-
-  DBG("finished.");
+  DEBUG("finished.");
 }
 
 void SearchSpaceDumper::add(Kernel::Clause* clause) 
