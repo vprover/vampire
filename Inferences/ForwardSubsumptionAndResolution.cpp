@@ -620,6 +620,8 @@ bool ForwardSubsumptionAndResolution::perform(Clause* cl, Clause*& replacement, 
 
         if (mcl->hasAux()) {
           //we have already examined this clause
+          // TODO: is this really correct? we may have more than one possible choice for "resLit"! It may work with one but not with the other.
+          // => YES this condition does seem to be incorrect! (appears in CSR091+5 and NUM155-1, among others)
           continue;
         }
 
