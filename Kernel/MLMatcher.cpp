@@ -501,8 +501,6 @@ void MLMatcher::Impl::initMatchingData(Literal** baseLits0, unsigned baseLen, Cl
       zeroAlts++;
       singleAlts++;
     } else if(currAltCnt==1 && !(resolvedLit && resolvedLit->couldBeInstanceOf(s_baseLits[i], true)) ) {
-      //TODO the above requires updating to polymorphism
-      //for now, a minor source of incompleteness
       if(singleAlts!=i) {
         swapLits(i, singleAlts);
 	if(mostDistVarsLit==singleAlts) {
