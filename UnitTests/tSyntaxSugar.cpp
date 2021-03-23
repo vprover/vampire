@@ -16,9 +16,6 @@
 #include "Test/UnitTesting.hpp"
 #include "Test/SyntaxSugar.hpp"
 
-#define UNIT_ID SyntaxSugar
-UT_CREATE;
-
 template<class A>
 void perform_test(const A&) { 
   /* dummy function to get rid of warnings */ 

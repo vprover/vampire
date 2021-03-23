@@ -13,9 +13,6 @@
 
 #include "Test/UnitTesting.hpp"
 
-#define UNIT_ID dhmultiset
-UT_CREATE;
-
 using namespace std;
 using namespace Lib;
 

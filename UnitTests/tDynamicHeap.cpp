@@ -14,9 +14,6 @@
 
 #include "Test/UnitTesting.hpp"
 
-#define UNIT_ID dheap
-UT_CREATE;
-
 using namespace std;
 using namespace Lib;
 
