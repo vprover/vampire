@@ -971,7 +971,7 @@ private:
 
   /** track whether all leafs were theory axioms only */
   bool _isPureTheoryDescendant : 1;
-  /** Clause is a combinator axiom descendent */
+  /** Clause is a combinator axiom descendant */
   unsigned _combAxiomsDescendant : 1;
   /** */
   unsigned _proxyAxiomsDescendant : 1;
@@ -979,15 +979,18 @@ private:
   unsigned _holAxiomsDescendant : 1;
   /** Induction depth **/
   unsigned _inductionDepth : 5;
-    /** number of XX' narrows carried out on clause */
-  unsigned _XXNarrows : 3;
-  /** number of weak reductions in the history of this clause */
-  unsigned _reductions; 
 
   /** Sine level computed in SineUtils and used in various heuristics.
    * May stay uninitialized (i.e. always MAX), if not needed
    **/
   unsigned char _sineLevel : 8; // updated as the minimum from parents to children
+
+  /** number of XX' narrows carried out on clause */
+  unsigned _XXNarrows : 3;
+  /** number of weak reductions in the history of this clause */
+  unsigned _reductions : 30;
+
+  // aligned to 64 bits
 
   /** age */
   unsigned _age;
