@@ -281,6 +281,11 @@ Problem* UIHelper::getInputProblem(const Options& opts)
            exception.cry(env.out());
            env.out() << "Trying TPTP\n";
            env.endOutput();
+           {
+             BYPASSING_ALLOCATOR;
+             delete static_cast<ifstream*>(input);
+             input=new ifstream(inputFile.c_str());
+           }
            units = tryParseTPTP(input);
          }
 
@@ -298,6 +303,11 @@ Problem* UIHelper::getInputProblem(const Options& opts)
            exception.cry(env.out());
            env.out() << "Trying SMTLIB2\n";
            env.endOutput();
+           {
+             BYPASSING_ALLOCATOR;
+             delete static_cast<ifstream*>(input);
+             input=new ifstream(inputFile.c_str());
+           }
            units = tryParseSMTLIB2(opts,input,smtLibLogic); 
          }
        }
@@ -311,7 +321,6 @@ Problem* UIHelper::getInputProblem(const Options& opts)
     units = tryParseSMTLIB2(opts,input,smtLibLogic);
     break;
   }
-
   if (inputFile!="") {
     BYPASSING_ALLOCATOR;
     
