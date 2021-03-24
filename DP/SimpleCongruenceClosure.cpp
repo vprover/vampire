@@ -844,7 +844,7 @@ struct SimpleCongruenceClosure::ConstOrderingComparator {
   {
     TermList c1NF = _cInfos[c1].normalForm;
     TermList c2NF = _cInfos[c2].normalForm;
-        
+    
     // we don't care about the order of partial applications 
     // as long as they are smaller than the proper terms
     
@@ -857,7 +857,14 @@ struct SimpleCongruenceClosure::ConstOrderingComparator {
     } else {
       if (c2NF.isEmpty()) {
         return GREATER;
-      } else { // two proper terms
+      } else {
+        // We should not be comparing sorts with terms via the ordering
+        if(c1NF.term()->isSort() && !c2NF.term()->isSort()){
+          return LESS;
+        } else if(c2NF.term()->isSort() && !c1NF.term()->isSort()) {
+          return GREATER;
+        }
+        // two proper terms
         switch(_ord.compare(c1NF,c2NF)) {
           case Ordering::Result::GREATER:
             return GREATER;    
