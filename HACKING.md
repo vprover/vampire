@@ -80,7 +80,7 @@ E.g. details of build configuration, linking, Spider?
 * Verbose compilation for UNIX Makefiles: if you would like to disable the progress reports and see the commands that are run, call `make VERBOSE=1`.
 
 ## Testing with CTest
-Vampire now has some units tests which can run with CTest.
+Vampire now has units tests which can run with CTest.
 
 ### Running tests
 tl;dr: 
@@ -100,6 +100,22 @@ Options you will probably find useful are the following:
 * `-R <regex>` run only tests with names matching `<regex>`
 * `-E <regex>` do not run tests with names matching `<regex>`
 
+Every test unit consists of multiple test cases, which will be run each as a separate process. This can be annoying if one wants to debug a single test case using `lldb` or similar tools. Therefore you can also run a single test case without launching a separarate process:
+```
+mkdir cmake-build
+cd cmake-build
+cmake ..
+make 
+./vtest run <unit_id> <test_case>
+```
+All available test cases and test units can be listed with 
+```
+./vtest ls
+```
+
+Compiling tests can also slow down compile times. Compiling them can be circumvented by calling `make vampire` instead of `make` in your cmake directory.
+
+
 ### Creating new unit tests
 tl;dr: 
 ```
@@ -108,8 +124,6 @@ MY_TEST_NAME=...
 
 # create test file
 cp UnitTests/tSyntaxSugar.cpp UnitTests/t${MY_TEST_NAME}.cpp
-sed -e "s/UNIT_ID SyntaxSugar/UNIT_ID $MY_TEST_NAME/" \
-    -i '' UnitTests/t${MY_TEST_NAME}.cpp
 
 # alter CMakeLists.txt
 sed -e "{/tSyntaxSugar.cpp/p;s/tSyntaxSugar.cpp/t${MY_TEST_NAME}.cpp/;}" \
@@ -121,10 +135,9 @@ vim UnitTests/t${MY_TEST_NAME}.cpp
 
 The unit tests are located in the directory `UnitTests/`. The tests are expected to be `cpp` files, and are prefixed with a `t` (e.g.: `UnitTests/tSyntaxSugar.cpp`). Each new test file must be added to the source list `UNIT_TEST` in `CMakeLists.txt`.
 
-A test file must contain the following statements to initalize unit testing.
+A test file must include `Test/UnitTesting.hpp` contain the following statements to initalize unit testing.
 ```
-#define UNIT_ID <name> // required for legacy compability with our executable vtest
-UT_CREATE;             // initializes the unit test, creating a main as an entry point for ctest
+#include "Test/UnitTesting.hpp"
 ```
 
 After this test functions can be defined:

@@ -4,8 +4,8 @@
 cmake_minimum_required (VERSION 3.12.0)
 project(Vampire)
 
-# require the compiler to use C++11
-set(CMAKE_CXX_STANDARD 11)
+# require the compiler to use C++14
+set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
@@ -33,6 +33,13 @@ if (NOT BUILD_SHARED_LIBS)
   set(CMAKE_FIND_LIBRARY_SUFFIXES .a)
   set(CMAKE_EXE_LINKER_FLAGS -static)
   set(VAMPIRE_BINARY_STATIC _static)
+endif()
+
+# We compile tests only in debug mode, since in release mode assertions are NOPs anyways.
+if(CMAKE_BUILD_TYPE STREQUAL Debug)
+  SET(COMPILE_TESTS ON)
+else()
+  SET(COMPILE_TESTS OFF)
 endif()
 
 option(IPO "If supported, build with link-time optimisation." OFF)
@@ -144,7 +151,6 @@ set(VAMPIRE_LIB_SOURCES
     Lib/DHMultiset.hpp
     Lib/DHSet.hpp
     Lib/DynamicHeap.hpp
-    Lib/Enumerator.hpp
     Lib/Environment.hpp
     Lib/Event.hpp
     Lib/Exception.hpp
@@ -796,7 +802,6 @@ set(VAMPIRE_SOURCES
     ${VAMPIRE_MINISAT_SOURCES}
     ${VAMPIRE_CASC_SOURCES}
     Forwards.hpp
-    Global.cpp
     "${CMAKE_CURRENT_BINARY_DIR}/version.cpp"
     )
 
@@ -872,36 +877,49 @@ endif()
 # build objects
 ################################################################
 add_library(obj OBJECT ${VAMPIRE_SOURCES})
-add_library(test_obj OBJECT ${VAMPIRE_TESTING_SOURCES})
+if (COMPILE_TESTS) 
+  add_library(test_obj OBJECT ${VAMPIRE_TESTING_SOURCES})
+endif()
 
 ################################################################
 # UNIT TESTING 
 ################################################################
 
-include(CTest)
-foreach(test_file ${UNIT_TESTS})
-  get_filename_component(test_name ${test_file} NAME_WE)
-  string(REGEX REPLACE "^t" "" test_name ${test_name})
+set(UNIT_TEST_OBJ   )
+set(UNIT_TEST_CASES )
+if (COMPILE_TESTS) 
+  include(CTest)
+  foreach(test_file ${UNIT_TESTS})
+    get_filename_component(test_name ${test_file} NAME_WE)
+    string(REGEX REPLACE "^t" "" test_name ${test_name})
 
-  # compiling the test case executable
+    # compiling the test case object 
+    add_library(${test_name}_obj OBJECT ${test_file})
+    target_compile_definitions(${test_name}_obj PUBLIC 
+      UNIT_ID_STR=\"${test_name}\"
+      UNIT_ID=${test_name}
+      )
+    set(UNIT_TEST_OBJ   ${UNIT_TEST_OBJ}   $<TARGET_OBJECTS:${test_name}_obj>)
+    set(UNIT_TEST_CASES ${UNIT_TEST_CASES} ${test_name})
+  endforeach()
+
+  # build test executable
   add_executable(
-    test-${test_name}
-    ${test_file}
+    vtest
+    ${UNIT_TEST_OBJ}
     $<TARGET_OBJECTS:obj>
     $<TARGET_OBJECTS:test_obj>
-  )
-  target_compile_definitions(test-${test_name} PRIVATE CTEST=1)
-  set(test_bin_dir ${CMAKE_BINARY_DIR}/bin/unit-tests)
-  set_target_properties(test-${test_name} PROPERTIES
-      OUTPUT_NAME ${test_name}
-      RUNTIME_OUTPUT_DIRECTORY ${test_bin_dir})   
+    )
 
-  # configuring ctest
-  add_test(${test_name} ${test_bin_dir}/${test_name})
-  set_tests_properties(${test_name}
-        PROPERTIES
-        TIMEOUT 20)
-endforeach()
+  # add indivitual units as test cases
+  foreach(case ${UNIT_TEST_CASES})
+    add_test(${case} ${CMAKE_BINARY_DIR}/vtest run ${case})
+    set_tests_properties(${case}
+          PROPERTIES
+          TIMEOUT 20)
+  endforeach()
+
+endif() # COMPILE_TESTS
 
 #################################################################
 # automated generation of Vampire revision information from git #

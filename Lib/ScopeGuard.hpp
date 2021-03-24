@@ -37,7 +37,7 @@ class ScopeGuard final
     ScopeGuard& operator=(ScopeGuard const&) = delete;
 
     ScopeGuard(ScopeGuard&& other)
-      : active{exchange(other.active, false)}
+      : active{std::exchange(other.active, false)}
       , f(std::move(other.f))
     { }
 
@@ -113,7 +113,8 @@ ScopeGuard<Callable> make_scope_guard(Callable&& f)
 #define ON_SCOPE_EXIT(stmt) \
   auto ON_SCOPE_EXIT_CONCAT(on_scope_exit_guard_on_line_,__LINE__) = make_scope_guard([&]() { stmt; });
 
-// We don't need make_scope_guard in C++14 or later:
+// We don't need make_scope_guard in C++17 or later:
+// feature is called "class template argument deduction"
 /*
 #define ON_SCOPE_EXIT(stmt) \
   ScopeGuard ON_SCOPE_EXIT_CONCAT(on_scope_exit_guard_on_line_,__LINE__){[&]() { stmt; }};

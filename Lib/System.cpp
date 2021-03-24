@@ -69,7 +69,6 @@ namespace Lib {
 using namespace std;
 using namespace Shell;
 
-bool System::s_initialized = false;
 bool System::s_shouldIgnoreSIGINT = false;
 bool System::s_shouldIgnoreSIGHUP = false;
 const char* System::s_argv0 = 0;
@@ -235,6 +234,9 @@ void System::setSignalHandlers()
 #endif
 
   errno=0;
+  // ensure that termination handlers are created _before_ the atexit() call
+  // C++ then guarantees that the array is destructed _after_ onTermination
+  terminationHandlersArray();
   int res=atexit(onTermination);
   if(res==-1) {
     SYSTEM_FAIL("Call of atexit() function in System::setSignalHandlers failed.", errno);
@@ -244,56 +246,18 @@ void System::setSignalHandlers()
 
 /**
  * Function that returns a reference to an array that contains
- * lists of initialization handlers
+ * lists of termination handlers
  *
  * Using a function with a static variable inside is a way to ensure
- * that no matter how early we want to register an initialization
+ * that no matter how early we want to register a termination
  * handler, the array will be constructed.
  */
-ZIArray<List<VoidFunc>*>& System::initializationHandlersArray()
+ZIArray<List<VoidFunc>*>& System::terminationHandlersArray()
 {
   CALL("System::initializationHandlersArray");
 
-  static ZIArray<List<VoidFunc>*> arr;
+  static ZIArray<List<VoidFunc>*> arr(2);
   return arr;
-}
-
-/**
- * Ensure that @b proc will be called after all static variables are
- * initialized, but before the @b main() function.
- * Functions added with higher @b priority will be called first.
- */
-void System::addInitializationHandler(VoidFunc proc, unsigned priority)
-{
-  CALL("System::addInitializationHandler");
-
-  if(s_initialized) {
-    proc();
-  }
-  else {
-    VoidFuncList::push(proc, initializationHandlersArray()[priority]);
-  }
-}
-
-/**
- * This function should be called as the last thing on every path that leads
- * to a process termination.
- */
-void System::onInitialization()
-{
-  CALL("System::onInitialization");
-  ASS(!s_initialized); //onInitialization can be called only once
-
-  s_initialized=true;
-
-  int sz=initializationHandlersArray().size();
-  for(int i=sz-1;i>=0;i--) {
-    VoidFuncList::Iterator ihIter(initializationHandlersArray()[i]);
-    while(ihIter.hasNext()) {
-      VoidFunc func=ihIter.next();
-      func();
-    }
-  }
 }
 
 /**
@@ -308,7 +272,7 @@ void System::addTerminationHandler(VoidFunc proc, unsigned priority)
 {
   CALL("System::addTerminationHandler");
 
-  VoidFuncList::push(proc, s_terminationHandlers[priority]);
+  VoidFuncList::push(proc, terminationHandlersArray()[priority]);
 }
 
 /**
@@ -325,9 +289,10 @@ void System::onTermination()
   }
   called=true;
 
-  size_t sz=s_terminationHandlers.size();
+  auto handlers = terminationHandlersArray();
+  size_t sz=handlers.size();
   for(size_t i=0;i<sz;i++) {
-    VoidFuncList::Iterator thIter(s_terminationHandlers[i]);
+    VoidFuncList::Iterator thIter(handlers[i]);
     while(thIter.hasNext()) {
       VoidFunc func=thIter.next();
       func();

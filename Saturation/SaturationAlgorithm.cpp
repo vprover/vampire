@@ -128,7 +128,7 @@ SaturationAlgorithm* SaturationAlgorithm::s_instance = 0;
 
 std::unique_ptr<PassiveClauseContainer> makeLevel0(bool isOutermost, const Options& opt, vstring name)
 {
-  return Lib::make_unique<AWPassiveClauseContainer>(isOutermost, opt, name + "AWQ");
+  return std::make_unique<AWPassiveClauseContainer>(isOutermost, opt, name + "AWQ");
 }
 
 std::unique_ptr<PassiveClauseContainer> makeLevel1(bool isOutermost, const Options& opt, vstring name)
@@ -142,7 +142,7 @@ std::unique_ptr<PassiveClauseContainer> makeLevel1(bool isOutermost, const Optio
       auto queueName = name + "ThSQ" + Int::toString(cutoffs[i]) + ":";
       queues.push_back(makeLevel0(false, opt, queueName));
     }
-    return Lib::make_unique<TheoryMultiSplitPassiveClauseContainer>(isOutermost, opt, name + "ThSQ", std::move(queues));
+    return std::make_unique<TheoryMultiSplitPassiveClauseContainer>(isOutermost, opt, name + "ThSQ", std::move(queues));
   }
   else
   {
@@ -161,7 +161,7 @@ std::unique_ptr<PassiveClauseContainer> makeLevel2(bool isOutermost, const Optio
       auto queueName = name + "AvSQ" + Int::toString(cutoffs[i]) + ":";
       queues.push_back(makeLevel1(false, opt, queueName));
     }
-    return Lib::make_unique<AvatarMultiSplitPassiveClauseContainer>(isOutermost, opt, name + "AvSQ", std::move(queues));
+    return std::make_unique<AvatarMultiSplitPassiveClauseContainer>(isOutermost, opt, name + "AvSQ", std::move(queues));
   }
   else
   {
@@ -180,7 +180,7 @@ std::unique_ptr<PassiveClauseContainer> makeLevel3(bool isOutermost, const Optio
       auto queueName = name + "SLSQ" + Int::toString(cutoffs[i]) + ":";
       queues.push_back(makeLevel2(false, opt, queueName));
     }
-    return Lib::make_unique<SineLevelMultiSplitPassiveClauseContainer>(isOutermost, opt, name + "SLSQ", std::move(queues));
+    return std::make_unique<SineLevelMultiSplitPassiveClauseContainer>(isOutermost, opt, name + "SLSQ", std::move(queues));
   }
   else
   {
@@ -199,7 +199,7 @@ std::unique_ptr<PassiveClauseContainer> makeLevel4(bool isOutermost, const Optio
       auto queueName = name + "PLSQ" + Int::toString(cutoffs[i]) + ":";
       queues.push_back(makeLevel3(false, opt, queueName));
     }
-    return Lib::make_unique<PositiveLiteralMultiSplitPassiveClauseContainer>(isOutermost, opt, name + "PLSQ", std::move(queues));
+    return std::make_unique<PositiveLiteralMultiSplitPassiveClauseContainer>(isOutermost, opt, name + "PLSQ", std::move(queues));
   }
   else
   {
@@ -243,7 +243,7 @@ SaturationAlgorithm::SaturationAlgorithm(Problem& prb, const Options& opt)
 
   if (opt.useManualClauseSelection())
   {
-    _passive = Lib::make_unique<ManCSPassiveClauseContainer>(true, opt);
+    _passive = std::make_unique<ManCSPassiveClauseContainer>(true, opt);
   }
   else
   {

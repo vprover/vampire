@@ -128,6 +128,9 @@ bool UIHelper::s_proofHasConjecture=true;
 bool UIHelper::s_expecting_sat=false;
 bool UIHelper::s_expecting_unsat=false;
 
+bool UIHelper::portfolioParent=false;
+bool UIHelper::satisfiableStatusWasAlreadyOutput=false;
+
 void UIHelper::outputAllPremises(ostream& out, UnitList* units, vstring prefix)
 {
   CALL("UIHelper::outputAllPremises");
