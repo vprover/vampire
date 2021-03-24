@@ -2163,6 +2163,23 @@ void ProofOfConcept::benchmark_micro(vvector<SubsumptionInstance> instances)
 
 
 #if ENABLE_BENCHMARK
+void bench_smt2_run_setup(benchmark::State& state, vvector<SubsumptionInstance> const& instances)
+{
+  for (auto _ : state) {
+    SMTSubsumptionImpl2 impl;
+    int count = 0;
+    for (auto instance : instances) {
+      if (!impl.setupSubsumption(instance.side_premise, instance.main_premise)) {
+        count++;
+        if (instance.subsumed > 0) { state.SkipWithError("Wrong result!"); return; }
+      }
+      // no solve since we only measure the setup
+    }
+    benchmark::DoNotOptimize(count);
+    benchmark::ClobberMemory();
+  }
+}
+
 void bench_smt2_run(benchmark::State& state, vvector<SubsumptionInstance> const& instances)
 {
   for (auto _ : state) {
@@ -2213,6 +2230,30 @@ struct FwSubsumptionInstance
   vvector<SidePremise> side_premises;
 };
 
+void bench_smt3_fwrun_setup(benchmark::State& state, vvector<FwSubsumptionInstance> const& fw_instances)
+{
+  for (auto _ : state) {
+    int count = 0;  // counter to introduce data dependency which should prevent compiler optimization from removing code
+
+    SMTSubsumptionImpl3 impl;
+
+    for (auto const& fw_instance : fw_instances) {
+      // Set up main premise
+      impl.setupMainPremise(fw_instance.main_premise);
+      // Test side premises
+      for (auto const& instance : fw_instance.side_premises) {
+        if (!impl.setupSubsumption(instance.side_premise)) {
+          count++;
+          if (instance.subsumed > 0) { state.SkipWithError("Wrong result!"); return; }
+        }
+        // not solve since we only measure the setup
+      }
+    }
+    benchmark::DoNotOptimize(count);
+    benchmark::ClobberMemory();
+  }
+}
+
 void bench_smt3_fwrun(benchmark::State& state, vvector<FwSubsumptionInstance> const& fw_instances)
 {
   for (auto _ : state) {
@@ -2235,6 +2276,57 @@ void bench_smt3_fwrun(benchmark::State& state, vvector<FwSubsumptionInstance> co
         }
         if (subsumed) { count++; }  // NOTE: since we record subsumption log from a real fwsubsumption run, this will only happen at the last iteration anyway.
       }
+    }
+    benchmark::DoNotOptimize(count);
+    benchmark::ClobberMemory();
+  }
+}
+
+void bench_orig_fwrun_setup(benchmark::State& state, vvector<FwSubsumptionInstance> const& fw_instances)
+{
+  for (auto _ : state) {
+
+    int count = 0;  // counter to introduce data dependency which should prevent compiler optimization from removing code
+
+    using namespace OriginalSubsumption;
+    using CMStack = Stack<ClauseMatches*>;
+
+    // the static variables from the original implementation
+    Kernel::MLMatcher matcher;
+    CMStack cmStore{64};
+
+    for (auto const& fw_instance : fw_instances) {
+
+      // Set up main premise
+      ASS(cmStore.isEmpty());
+      Kernel::Clause* cl = fw_instance.main_premise;
+
+      LiteralMiniIndex miniIndex(cl);
+
+      // Test side premises
+      for (auto const& instance : fw_instance.side_premises) {
+        Clause* mcl = instance.side_premise;
+        unsigned mlen = mcl->length();
+
+        ClauseMatches* cms = new ClauseMatches(mcl);  // NOTE: why "new" here? because the original code does it like this as well.
+        cmStore.push(cms);
+        cms->fillInMatches(&miniIndex);
+
+        if (cms->anyNonMatched()) {
+          // NOT SUBSUMED
+          count++;
+          if (instance.subsumed > 0) { state.SkipWithError("Wrong result!"); return; }
+          continue;
+        }
+
+        // nothing to do here, since we only want to measure the setup.
+      }
+
+      // Cleanup
+      while (cmStore.isNonEmpty()) {
+        delete cmStore.pop();
+      }
+
     }
     benchmark::DoNotOptimize(count);
     benchmark::ClobberMemory();
@@ -2273,7 +2365,7 @@ void bench_orig_fwrun(benchmark::State& state, vvector<FwSubsumptionInstance> co
 
         if (cms->anyNonMatched()) {
           // NOT SUBSUMED
-          if (instance.subsumed) { state.SkipWithError("Wrong result!"); return; }
+          if (instance.subsumed > 0) { state.SkipWithError("Wrong result!"); return; }
           continue;
         }
 
@@ -2328,9 +2420,12 @@ void ProofOfConcept::benchmark_run(vvector<SubsumptionInstance> instances)
     // "--help",
   };
 
+  benchmark::RegisterBenchmark("smt2_run_setup", bench_smt2_run, instances);
   benchmark::RegisterBenchmark("smt2_run", bench_smt2_run, instances);
+  benchmark::RegisterBenchmark("smt3_fwrun_setup", bench_smt3_fwrun, fw_instances);
   benchmark::RegisterBenchmark("smt3_fwrun", bench_smt3_fwrun, fw_instances);
   // benchmark::RegisterBenchmark("orig_run", bench_orig_run, instances);
+  benchmark::RegisterBenchmark("orig_fwrun_setup", bench_orig_fwrun, fw_instances);
   benchmark::RegisterBenchmark("orig_fwrun", bench_orig_fwrun, fw_instances);
 
   init_benchmark(std::move(args));

@@ -92,7 +92,7 @@ public:
   const_iterator cend() const noexcept { return m_data.cend(); }
 
   // TODO: a map-like iterator would be nice. need to extend Index with the backward conversion.
-  //       Also, key_begin(), key_end() to iterate over indices.
+  //       Also, key_begin(), key_end(), key_view() to iterate over indices.
 
   void clear() noexcept { m_data.clear(); }
 

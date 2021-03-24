@@ -12,8 +12,8 @@ namespace SMTSubsumption {
 
 struct SubsumptionInstance
 {
-  Kernel::Clause* side_premise;  // also called "base clause"
-  Kernel::Clause* main_premise;  // also called "instance clause"
+  Kernel::Clause* side_premise;  ///< also called "base clause"
+  Kernel::Clause* main_premise;  ///< also called "instance clause"
   unsigned int number;
   int subsumed;  // expected result
 };
