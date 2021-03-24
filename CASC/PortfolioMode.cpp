@@ -387,7 +387,7 @@ bool PortfolioMode::runSchedule(Schedule& schedule)
     vstring fname = env.options->problemName() + "-vampire.proof";    
     BYPASSING_ALLOCATOR; 
     
-    istream* input=new ifstream(fname.c_str());
+    ScopedPtr<ifstream> input(new ifstream(fname.c_str()));
 
     bool openSucceeded = !input->fail();
 
@@ -396,9 +396,6 @@ bool PortfolioMode::runSchedule(Schedule& schedule)
       env.out() << input->rdbuf();
       env.endOutput();
     }
-
-    delete static_cast<ifstream*>(input);
-    input=0;
 
     //If for some reason, the proof could not be opened
     //we don't delete the proof file
@@ -549,7 +546,7 @@ void PortfolioMode::runSlice(Options& strategyOpt)
     // CAREFUL: this might not be enough if the ofstream (re)allocates while being operated
     BYPASSING_ALLOCATOR; 
     
-    ostream* output=new ofstream(fname.c_str());
+    ScopedPtr<ofstream> output(new ofstream(fname.c_str()));
     if (output->fail()) {
       // fallback to old printing method
       env.beginOutput();
@@ -558,8 +555,6 @@ void PortfolioMode::runSlice(Options& strategyOpt)
     } else {
       UIHelper::outputResult(*output);
     }
-    delete static_cast<ofstream*>(output);
-    output = 0;
   }
   else{
     /*
