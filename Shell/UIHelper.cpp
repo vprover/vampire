@@ -191,6 +191,49 @@ void UIHelper::outputSaturatedSet(ostream& out, UnitIterator uit)
 
 UnitList* parsedUnits;
 
+
+// String utility function that probably belongs elsewhere
+static bool hasEnding (vstring const &fullString, vstring const &ending) {
+    if (fullString.length() >= ending.length()) {
+        return (0 == fullString.compare (fullString.length() - ending.length(), ending.length(), ending));
+    } else {
+        return false;
+    }
+}
+
+UnitList* UIHelper::tryParseTPTP(istream* input)
+{
+      Parse::TPTP parser(*input);
+      try{
+        parser.parse();
+      }
+      catch (UserErrorException& exception) {
+        vstring msg = exception.msg();
+        throw Parse::TPTP::ParseErrorException(msg,parser.lineNumber());
+      }
+      s_haveConjecture=parser.containsConjecture();
+      return parser.units();
+}
+UnitList* UIHelper::tryParseSMTLIB2(const Options& opts,istream* input,SMTLIBLogic& smtLibLogic)
+{
+          Parse::SMTLIB2 parser(opts);
+          parser.parse(*input);
+          Unit::onParsingEnd();
+
+          smtLibLogic = parser.getLogic();
+          s_haveConjecture=false;
+
+#if VDEBUG
+          const vstring& expected_status = parser.getStatus();
+          if (expected_status == "sat") {
+            s_expecting_sat = true;
+          } else if (expected_status == "unsat") {
+            s_expecting_unsat = true;
+          }
+#endif
+          return parser.getFormulas();
+}
+
 /**
  * Return problem object with units obtained according to the content of
  * @b env.options
@@ -221,55 +264,66 @@ Problem* UIHelper::getInputProblem(const Options& opts)
     }
   }
 
-  UnitList* units;
+  UnitList* units = nullptr;
   switch (opts.inputSyntax()) {
-  case Options::InputSyntax::TPTP:
+  case Options::InputSyntax::AUTO:
     {
-      Parse::TPTP parser(*input);
-      try{
-        parser.parse();
-      }
-      catch (UserErrorException& exception) {
-        vstring msg = exception.msg();
-        throw Parse::TPTP::ParseErrorException(msg,parser.lineNumber());
-      }
-      units = parser.units();
-      s_haveConjecture=parser.containsConjecture();
+       // First lets pick a place to start based on the input file name
+       bool smtlib = hasEnding(inputFile,"smt") || hasEnding(inputFile,"smt2");
+
+       if(smtlib){
+         env.beginOutput();
+         env.out() << "Running in auto input_syntax mode. Trying SMTLIB2\n";
+         env.endOutput();
+         try{
+           units = tryParseSMTLIB2(opts,input,smtLibLogic);
+         }
+         catch (UserErrorException& exception) {
+           env.beginOutput();
+           env.out() << "Failed with\n";
+           exception.cry(env.out());
+           env.out() << "Trying TPTP\n";
+           env.endOutput();
+           {
+             BYPASSING_ALLOCATOR;
+             delete static_cast<ifstream*>(input);
+             input=new ifstream(inputFile.c_str());
+           }
+           units = tryParseTPTP(input);
+         }
+
+       }
+       else{
+         env.beginOutput();
+         env.out() << "Running in auto input_syntax mode. Trying TPTP\n";
+         env.endOutput();
+         try{
+           units = tryParseTPTP(input); 
+         }
+         catch (UserErrorException& exception) {
+           env.beginOutput();
+           env.out() << "Failed with\n";
+           exception.cry(env.out());
+           env.out() << "Trying SMTLIB2\n";
+           env.endOutput();
+           {
+             BYPASSING_ALLOCATOR;
+             delete static_cast<ifstream*>(input);
+             input=new ifstream(inputFile.c_str());
+           }
+           units = tryParseSMTLIB2(opts,input,smtLibLogic); 
+         }
+       }
+       
     }
     break;
+  case Options::InputSyntax::TPTP:
+    units = tryParseTPTP(input);
+    break;
   case Options::InputSyntax::SMTLIB2:
-  {
-	  Parse::SMTLIB2 parser(opts);
-	  parser.parse(*input);
-          Unit::onParsingEnd();
-
-	  units = parser.getFormulas();
-    smtLibLogic = parser.getLogic();
-	  s_haveConjecture=false;
-
-#if VDEBUG
-	  const vstring& expected_status = parser.getStatus();
-	  if (expected_status == "sat") {
-	    s_expecting_sat = true;
-	  } else if (expected_status == "unsat") {
-	    s_expecting_unsat = true;
-	  }
-#endif
-
-	  break;
+    units = tryParseSMTLIB2(opts,input,smtLibLogic);
+    break;
   }
-/*
-  case Options::InputSyntax::MPS:
-  case Options::InputSyntax::NETLIB:
-  case Options::InputSyntax::HUMAN:
-  {
-    cout << "This is not supported yet";
-    NOT_IMPLEMENTED;
-   }
-*/
-   break;
-  }
-
   if (inputFile!="") {
     BYPASSING_ALLOCATOR;
     
