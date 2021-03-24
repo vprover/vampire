@@ -280,6 +280,13 @@ void Options::init()
     _lookup.insert(&_minimizeSatProofs);
     _minimizeSatProofs.tag(OptionTag::OUTPUT);
 
+    _printProofToFile = BoolOptionValue("print_proofs_to_file","pptf",false);
+    _printProofToFile.description="If Vampire finds a proof, it is printed to a file instead of to stdout.\n";
+                                  "The file name will be of the format <problem name>-vampire.proof.\n";
+                                  "Currently, this option only works in portfolio mode.";
+    _lookup.insert(&_printProofToFile);
+    _printProofToFile.tag(OptionTag::OUTPUT);
+
     _proofExtra = ChoiceOptionValue<ProofExtra>("proof_extra","",ProofExtra::OFF,{"off","free","full"});
     _proofExtra.description="Add extra detail to proofs:\n "
       "- free uses known information only\n" 

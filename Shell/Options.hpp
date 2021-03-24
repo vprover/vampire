@@ -1916,6 +1916,7 @@ public:
   Proof proof() const { return _proof.actualValue; }
   bool minimizeSatProofs() const { return _minimizeSatProofs.actualValue; }
   ProofExtra proofExtra() const { return _proofExtra.actualValue; }
+  bool printProofToFile() const { return _printProofToFile.actualValue; }
   bool proofChecking() const { return _proofChecking.actualValue; }
   int naming() const { return _naming.actualValue; }
 
@@ -2515,6 +2516,7 @@ private:
 
   BoolOptionValue _outputAxiomNames;
 
+  BoolOptionValue _printProofToFile;
   BoolOptionValue _printClausifierPremises;
   StringOptionValue _problemName;
   ChoiceOptionValue<Proof> _proof;

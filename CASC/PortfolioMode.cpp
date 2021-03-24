@@ -30,6 +30,8 @@
 #include "Shell/TheoryFinder.hpp"
 
 #include <unistd.h>
+#include <fstream>
+#include <stdio.h>
 
 #include "Saturation/ProvingHelper.hpp"
 
@@ -378,7 +380,34 @@ bool PortfolioMode::runSchedule(Schedule& schedule)
   PortfolioSliceExecutor executor(this);
   ScheduleExecutor sched(&policy, &executor);
 
-  return sched.run(schedule);
+  bool result = sched.run(schedule);
+
+  //All children have been killed. Now safe to print proof
+  if(result && !env.options->printProofToFile()){
+    vstring fname = env.options->problemName() + "-vampire.proof";    
+    BYPASSING_ALLOCATOR; 
+    
+    istream* input=new ifstream(fname.c_str());
+
+    bool openSucceeded = !input->fail();
+
+    if (openSucceeded) {
+      env.beginOutput();
+      env.out() << input->rdbuf();
+      env.endOutput();
+    }
+
+    delete static_cast<ifstream*>(input);
+    input=0;
+
+    //If for some reason, the proof could not be opened
+    //we don't delete the proof file
+    if(openSucceeded){
+      remove(fname.c_str()); 
+    }
+  }
+
+  return result;
 }
 
 /**
@@ -513,9 +542,24 @@ void PortfolioMode::runSlice(Options& strategyOpt)
   }
 
   if((outputAllowed() && resultValue) || outputResult) { // we can report on every failure, but only once on success
-    env.beginOutput();
-    UIHelper::outputResult(env.out());
-    env.endOutput();
+    //At the moment we only save one proof. We could potentially
+    //allow multiple proofs
+    vstring fname = env.options->problemName() + "-vampire.proof";
+
+    // CAREFUL: this might not be enough if the ofstream (re)allocates while being operated
+    BYPASSING_ALLOCATOR; 
+    
+    ostream* output=new ofstream(fname.c_str());
+    if (output->fail()) {
+      // fallback to old printing method
+      env.beginOutput();
+      UIHelper::outputResult(env.out());
+      env.endOutput();
+    } else {
+      UIHelper::outputResult(*output);
+    }
+    delete static_cast<ofstream*>(output);
+    output = 0;
   }
   else{
     /*
