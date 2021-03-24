@@ -66,6 +66,8 @@ using namespace Saturation;
 #define CHECK_SMT_SUBSUMPTION 0
 #define CHECK_SMT_SUBSUMPTION_RESOLUTION 0
 
+#define USE_SMT_SUBSUMPTION 1
+
 
 
 class SubsumptionLogger;
@@ -408,10 +410,9 @@ bool ForwardSubsumptionAndResolution::perform(Clause* cl, Clause*& replacement, 
   ASS(cmStore.isEmpty());
 
 
-  /*
-   * Subsumption by unit clauses.
-   * We don't cover this for our benchmarks.
-   */
+  /*********************************************************************************
+   * Subsumption by unit clauses
+   ********************************************************************************/
 
   for(unsigned li=0;li<clen;li++) {
     SLQueryResultIterator rit=_unitIndex->getGeneralizations( (*cl)[li], false, false);
@@ -439,12 +440,17 @@ bool ForwardSubsumptionAndResolution::perform(Clause* cl, Clause*& replacement, 
     }
   }
 
-  /*
-   *  Subsumption by longer clauses
-   */
+
+  /*********************************************************************************
+   * Subsumption by long clauses
+   ********************************************************************************/
 
   {
-  LiteralMiniIndex miniIndex(cl);
+#if USE_SMT_SUBSUMPTION
+    smtsubs.setupMainPremise(cl);
+#else
+    LiteralMiniIndex miniIndex(cl);
+#endif
 
   for(unsigned li=0;li<clen;li++) {
     SLQueryResultIterator rit=_fwIndex->getGeneralizations( (*cl)[li], false, false);
@@ -458,6 +464,9 @@ bool ForwardSubsumptionAndResolution::perform(Clause* cl, Clause*& replacement, 
       unsigned mlen=mcl->length();
       ASS_G(mlen,1);
 
+#if USE_SMT_SUBSUMPTION
+      bool const isSubsumed = smtsubs.setupSubsumption(mcl) && smtsubs.solve() && ColorHelper::compatible(cl->color(), mcl->color());
+#else
       ClauseMatches* cms=new ClauseMatches(mcl);
       mcl->setAux(cms);
       cmStore.push(cms);
@@ -535,6 +544,7 @@ bool ForwardSubsumptionAndResolution::perform(Clause* cl, Clause*& replacement, 
           std::cerr << "\%  cl = " <<  cl->toString() << std::endl;
         };
 #endif
+#endif
 
       if (isSubsumed) {
         premises = pvi( getSingletonIterator(mcl) );
@@ -547,6 +557,11 @@ bool ForwardSubsumptionAndResolution::perform(Clause* cl, Clause*& replacement, 
   }
 
   tc_fs.stop();
+
+
+  /*********************************************************************************
+   * Subsumption resolution
+   ********************************************************************************/
 
   if(!_subsumptionResolution) {
     goto fin;
@@ -582,6 +597,9 @@ bool ForwardSubsumptionAndResolution::perform(Clause* cl, Clause*& replacement, 
       }
     }
 
+#if USE_SMT_SUBSUMPTION
+    ASS(cmStore.isEmpty());
+#else
     {
       CMStack::Iterator csit(cmStore);
       while (csit.hasNext()) {
@@ -610,6 +628,11 @@ bool ForwardSubsumptionAndResolution::perform(Clause* cl, Clause*& replacement, 
         }
       }
     }
+#endif
+
+#if USE_SMT_SUBSUMPTION
+    LiteralMiniIndex miniIndex(cl);
+#endif
 
     for (unsigned li = 0; li < clen; li++) {
       Literal* resLit = (*cl)[li]; //resolved literal
@@ -622,6 +645,7 @@ bool ForwardSubsumptionAndResolution::perform(Clause* cl, Clause*& replacement, 
           //we have already examined this clause
           // TODO: is this really correct? we may have more than one possible choice for "resLit"! It may work with one but not with the other.
           // => YES this condition does seem to be incorrect! (appears in CSR091+5 and NUM155-1, among others)
+          // (also the "aux" may have been set by the subsumption code above.)
           continue;
         }
 

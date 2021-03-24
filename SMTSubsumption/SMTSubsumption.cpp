@@ -1877,6 +1877,7 @@ void ProofOfConcept::test(Clause* side_premise, Clause* main_premise)
 ProofOfConcept::ProofOfConcept()
 {
   m_subsat_impl.reset(new SMTSubsumptionImpl2());
+  m_subsat_impl3.reset(new SMTSubsumptionImpl3());
 }
 
 ProofOfConcept::~ProofOfConcept() = default;
@@ -1895,6 +1896,24 @@ bool ProofOfConcept::checkSubsumptionResolution(Kernel::Clause* base, Kernel::Cl
   return m_subsat_impl->checkSubsumptionResolution(base, instance, conclusion);
 }
 
+
+void ProofOfConcept::setupMainPremise(Kernel::Clause* instance)
+{
+  ASS(m_subsat_impl3);
+  m_subsat_impl3->setupMainPremise(instance);
+}
+
+bool ProofOfConcept::setupSubsumption(Kernel::Clause* base)
+{
+  ASS(m_subsat_impl3);
+  return m_subsat_impl3->setupSubsumption(base);
+}
+
+bool ProofOfConcept::solve()
+{
+  ASS(m_subsat_impl3);
+  return m_subsat_impl3->solve();
+}
 
 
 
