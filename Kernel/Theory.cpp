@@ -1235,7 +1235,7 @@ unsigned Theory::Tuples::getProjectionFunctor(unsigned proj, TermList tupleSort)
 // TODO: replace with a constant time algorithm
 bool Theory::Tuples::findProjection(unsigned projFunctor, bool isPredicate, unsigned &proj) {
   CALL("Theory::Tuples::findProjection");
-
+ 
   OperatorType* projType = isPredicate ? env.signature->getPredicate(projFunctor)->predType()
                                        : env.signature->getFunction(projFunctor)->fnType();
 

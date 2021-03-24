@@ -156,6 +156,13 @@ public:
     return getFunctionType(0,nullptr,resultSort, taArity); 
   }
 
+  /**
+   * Convenience function for creating OperatorType for type constructors.
+   */
+  static OperatorType* getTypeConType(unsigned arity) {
+    return getFunctionTypeUniformRange(arity, AtomicSort::superSort(), AtomicSort::superSort()); 
+  }
+
   OperatorKey* key() const { return _key; }
   unsigned typeArgsArity() const { return _typeArgsArity; }
   unsigned arity() const { return _typeArgsArity + _key->length()-1; }

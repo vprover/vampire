@@ -626,7 +626,12 @@ Term* FunctionDefinition::applyDefinitions(Literal* lit, Stack<Def*>* usedDefs)
       //&top()-2, etc...
       TermList* argLst=&args.top() - (orig->arity()-1);
 
-      Term* newTrm=Term::create(orig,argLst);
+      Term* newTrm;
+      if(orig->isSort()){
+        newTrm=AtomicSort::create(static_cast<AtomicSort*>(orig), argLst);
+      } else {
+        newTrm=Term::create(orig,argLst);
+      }
       args.truncate(args.length() - orig->arity());
       args.push(TermList(newTrm));
 
@@ -666,14 +671,9 @@ Term* FunctionDefinition::applyDefinitions(Literal* lit, Stack<Def*>* usedDefs)
       t=tl.term();
     }
 
-    //sorts can never contain definitions
-    if(t->isSort()){
-      args.push(tl);
-      continue;      
-    }
-
     Def* d;
-    if( !defIndex && _defs.find(t->functor(), d) && d->mark!=Def::BLOCKED) {
+    //sorts can never contain definitions
+    if(!t->isSort() && !defIndex && _defs.find(t->functor(), d) && d->mark!=Def::BLOCKED) {
       ASS_EQ(d->mark, Def::UNFOLDED);
       usedDefs->push(d);
       if (env.options->showPreprocessing()) {
@@ -683,7 +683,7 @@ Term* FunctionDefinition::applyDefinitions(Literal* lit, Stack<Def*>* usedDefs)
       }
 
       defIndex=nextDefIndex++;
-
+      
       //bind arguments of definition lhs
       TermList* dargs=d->lhs->args();
       TermList* targs=t->args();

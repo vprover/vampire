@@ -72,7 +72,7 @@ FormulaUnit* Skolem::skolemiseImpl (FormulaUnit* unit, bool appify)
 {
   CALL("Skolem::skolemiseImpl(FormulaUnit*)");
 
-  ASS(_introducedSkolemFuns.isEmpty());
+  ASS(_introducedSkolemSyms.isEmpty());
   
   _appify = appify;
   _beingSkolemised=unit;
@@ -99,9 +99,9 @@ FormulaUnit* Skolem::skolemiseImpl (FormulaUnit* unit, bool appify)
 
   FormulaUnit* res = new FormulaUnit(g,FormulaTransformationMany(InferenceRule::SKOLEMIZE,premiseList));
 
-  ASS(_introducedSkolemFuns.isNonEmpty());
-  while(_introducedSkolemFuns.isNonEmpty()) {
-    unsigned fn = _introducedSkolemFuns.pop();
+  ASS(_introducedSkolemSyms.isNonEmpty());
+  while(_introducedSkolemSyms.isNonEmpty()) {
+    unsigned fn = _introducedSkolemSyms.pop();
     InferenceStore::instance()->recordIntroducedSymbol(res,true,fn);
     if(unit->derivedFromGoal()){
       env.signature->getFunction(fn)->markInGoal();
@@ -137,6 +137,30 @@ unsigned Skolem::addSkolemFunction(unsigned arity, unsigned taArity, TermList* d
   fnSym->setType(ot);
   return fun;
 }
+
+unsigned Skolem::addSkolemTypeCon(unsigned arity, unsigned var)
+{
+  CALL("Skolem::addSkolemTypeCon");
+
+  if(VarManager::varNamePreserving()) {
+    vstring varName=VarManager::getVarName(var);
+    return addSkolemTypeCon(arity, varName.c_str());
+  }
+  else {
+    return addSkolemTypeCon(arity);
+  }
+}
+
+unsigned Skolem::addSkolemTypeCon(unsigned arity, const char* suffix)
+{
+  CALL("Skolem::addSkolemTypeCon");
+
+  unsigned typeCon = env.signature->addSkolemTypeCon(arity, suffix);
+  Signature::Symbol* tcSym = env.signature->getTypeCon(typeCon);
+  OperatorType* ot = OperatorType::getTypeConType(arity);
+  tcSym->setType(ot);
+  return typeCon;
+} 
 
 unsigned Skolem::addSkolemPredicate(unsigned arity, TermList* domainSorts, unsigned var, unsigned taArity)
 {
@@ -433,6 +457,9 @@ Formula* Skolem::skolemise (Formula* f)
       while (vs.hasNext()) {
         unsigned v = vs.next();
         TermList rangeSort=_varSorts.get(v, AtomicSort::defaultSort());
+
+        bool skolemisingTypeVar = rangeSort == AtomicSort::superSort();
+
         if(rangeSort.isVar() || !rangeSort.term()->shared() || 
            !rangeSort.term()->ground()){
           //the range sort may include existential type variables that have been skolemised 
@@ -442,22 +469,28 @@ Formula* Skolem::skolemise (Formula* f)
 
         SortHelper::normaliseSort(typeVars, rangeSort);
         Term* skolemTerm;
+        unsigned sym;
 
-        if(!_appify){
+
+        if(!_appify || skolemisingTypeVar){
           //Not the higher-order case. Create the term
           //sk(typevars, termvars).
-          unsigned fun = addSkolemFunction(arity, termVarSorts.begin(), rangeSort, v, typeVars.size());
-          _introducedSkolemFuns.push(fun);
-          skolemTerm = Term::create(fun, arity, allVars.begin());
+          if(skolemisingTypeVar){
+            sym = addSkolemTypeCon(arity);
+            skolemTerm = AtomicSort::create(sym, arity, allVars.begin());    
+          } else {
+            sym = addSkolemFunction(arity, termVarSorts.begin(), rangeSort, v, typeVars.size());
+            skolemTerm = Term::create(sym, arity, allVars.begin());    
+          }
         } else {
           //The higher-order case. Create the term
           //sk(typevars) @ termvar_1 @ termvar_2 @ ... @ termvar_n
           TermList skSymSort = AtomicSort::arrowSort(termVarSorts, rangeSort);
-          unsigned fun = addSkolemFunction(typeVars.size(), 0, skSymSort, v, typeVars.size());
-          _introducedSkolemFuns.push(fun);
-          TermList head = TermList(Term::create(fun, typeVars.size(), typeVars.begin()));
-          skolemTerm = ApplicativeHelper::createAppTerm(skSymSort, head, termVars).term();
+          sym = addSkolemFunction(typeVars.size(), 0, skSymSort, v, typeVars.size());
+          TermList head = TermList(Term::create(sym, typeVars.size(), typeVars.begin()));
+          skolemTerm = ApplicativeHelper::createAppTerm(skSymSort, head, termVars).term();      
         }
+        _introducedSkolemSyms.push(sym);
 
         env.statistics->skolemFunctions++;
 

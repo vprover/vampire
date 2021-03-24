@@ -590,7 +590,7 @@ void UIHelper::outputSymbolTypeDeclarationIfNeeded(ostream& out, bool function, 
   }
 
   unsigned dummy;
-  if (Theory::tuples()->findProjection(symNumber, !function, dummy)) {
+  if (!typeCon && Theory::tuples()->findProjection(symNumber, !function, dummy)) {
     return;
   }
 

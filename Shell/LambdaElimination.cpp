@@ -328,7 +328,7 @@ TermList LambdaElimination::elimLambda(int var, TermList varSort,
   Term* t = body.term();
   // Specials should already have been removed via earlier
   // recursive calls
-  ASS(!t->isSpecial());
+  ASS_REP(!t->isSpecial(), t->toString());
   
   //must be of the form app(s1, s2, arg1, arg2)
   TermList s1 = *t->nthArgument(0);

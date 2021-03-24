@@ -408,6 +408,8 @@ class Signature
   unsigned addStringConstant(const vstring& name);
   unsigned addFreshFunction(unsigned arity, const char* prefix, const char* suffix = 0);
   unsigned addSkolemFunction(unsigned arity,const char* suffix = 0);
+  unsigned addFreshTypeCon(unsigned arity, const char* prefix, const char* suffix = 0);
+  unsigned addSkolemTypeCon(unsigned arity,const char* suffix = 0);
   unsigned addFreshPredicate(unsigned arity, const char* prefix, const char* suffix = 0);
   unsigned addSkolemPredicate(unsigned arity,const char* suffix = 0);
   unsigned addNamePredicate(unsigned arity);
@@ -725,9 +727,8 @@ class Signature
     //TODO make the name unique
     unsigned tuple = addTypeCon("Tuple", arity, added);
     if(added){
-      TermList ss = AtomicSort::superSort();
       Symbol* tup = getTypeCon(tuple);
-      tup->setType(OperatorType::getFunctionTypeUniformRange(arity, ss, ss));
+      tup->setType(OperatorType::getTypeConType(arity));
       tup->markTuple();
     }
     return tuple;    

@@ -68,7 +68,13 @@ Term* TermTransformer::transform(Term* term)
       //&top()-2, etc...
       TermList *argLst = &args.top() - (orig->arity() - 1);
       args.truncate(args.length() - orig->arity()); // potentially evil. Calls destructors on the truncated objects, which we are happily reading just below
-      args.push(TermList(Term::create(orig, argLst)));
+      Term* newTrm;
+      if(orig->isSort()){
+        newTrm=AtomicSort::create(static_cast<AtomicSort*>(orig), argLst);
+      } else {
+        newTrm=Term::create(orig,argLst);
+      }
+      args.push(TermList(newTrm));
       modified.setTop(true);
       continue;
     } else {

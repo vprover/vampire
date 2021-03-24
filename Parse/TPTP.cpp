@@ -1418,7 +1418,7 @@ void TPTP::tff()
             ? addUninterpretedConstant(nm, _overflow, added)
             : env.signature->addFunction(nm, arity, added);
         Signature::Symbol* symbol = env.signature->getFunction(fun);
-        OperatorType* ot = OperatorType::getFunctionTypeUniformRange(arity, AtomicSort::superSort(), AtomicSort::superSort());
+        OperatorType* ot = OperatorType::getTypeConType(arity);
         if (!added) {
           if(symbol->fnType()!=ot){
             PARSE_ERROR("Type constructor declared with two different types",tok);

@@ -205,8 +205,7 @@ OperatorType* Signature::Symbol::typeConType() const
   CALL("Signature::Symbol::typeConType");
 
   if (!_type) {
-    TermList sup = AtomicSort::superSort();
-    _type = OperatorType::getFunctionTypeUniformRange(arity(), sup, sup);
+    _type = OperatorType::getTypeConType(arity());
   }
   return _type;
 }
@@ -738,6 +737,7 @@ unsigned Signature::getApp()
   bool added = false;
   unsigned app = addFunction("vAPP", 4, added);
   if(added){
+    _appFun = app;
     TermList tv1 = TermList(0, false);
     TermList tv2 = TermList(1, false);
     TermList arrowType = AtomicSort::arrowSort(tv1, tv2);
@@ -940,6 +940,34 @@ unsigned Signature::addFreshFunction(unsigned arity, const char* prefix, const c
 } // addFreshFunction
 
 /**
+ * Add fresh typeCon of a given arity and with a given prefix. If suffix is non-zero,
+ * the typeCon name will be prefixI, where I is an integer, otherwise it will be
+ * prefixI_suffix. The new function will be marked as skip for the purpose of equality
+ * elimination.
+ */
+unsigned Signature::addFreshTypeCon(unsigned arity, const char* prefix, const char* suffix)
+{
+  CALL("Signature::addFreshTypeCon");
+
+  vstring pref(prefix);
+  vstring suf(suffix ? vstring("_")+suffix : "");
+  bool added;
+  unsigned result;
+
+  do {
+    result = addTypeCon(pref+Int::toString(_nextFreshSymbolNumber++)+suf,arity,added);
+  }
+  while (!added);
+
+  Symbol* sym = getTypeCon(result);
+  //TODO are these necessary? I doubt that equality elimination works
+  //on sorts anyway. Requires further investigation.
+  sym->markIntroduced();
+  sym->markSkip();
+  return result;
+} // addFreshFunction
+
+/**
  * Add fresh predicate of a given arity and with a given prefix. If suffix is non-zero,
  * the predicate name will be prefixI, where I is an integer, otherwise it will be
  * prefixI_suffix. The new predicate will be marked as skip for the purpose of equality
@@ -991,6 +1019,26 @@ unsigned Signature::addSkolemFunction (unsigned arity, const char* suffix)
 } // addSkolemFunction
 
 /**
+ * Return a new Skolem typeCon. If @b suffix is nonzero, include it
+ * into the name of the Skolem typeCon.
+ * @since 01/07/2005 Manchester
+ */
+unsigned Signature::addSkolemTypeCon (unsigned arity, const char* suffix)
+{
+  CALL("Signature::addSkolemTypeCon");
+
+  unsigned tc = addFreshTypeCon(arity, "sK", suffix);
+  getTypeCon(tc)->markSkolem();
+
+  // Register it as a LaTeX function
+ // theory->registerLaTeXFuncName(f,"\\sigma_{"+Int::toString(_skolemFunctionCount)+"}(a0)");
+  _skolemFunctionCount++;
+
+  return tc;
+} // addSkolemFunction
+
+
+/**
  * Return a new Skolem predicate. If @b suffix is nonzero, include it
  * into the name of the Skolem function.
  * @since 15/02/2016 Gothenburg
@@ -999,14 +1047,14 @@ unsigned Signature::addSkolemPredicate(unsigned arity, const char* suffix)
 {
   CALL("Signature::addSkolemPredicate");
 
-  unsigned f = addFreshPredicate(arity, "sK", suffix);
-  getPredicate(f)->markSkolem();
+  unsigned p = addFreshPredicate(arity, "sK", suffix);
+  getPredicate(p)->markSkolem();
 
   // Register it as a LaTeX function
  // theory->registerLaTeXFuncName(f,"\\sigma_{"+Int::toString(_skolemFunctionCount)+"}(a0)");
   _skolemFunctionCount++;
 
-  return f;
+  return p;
 } // addSkolemPredicate
 
 /**
