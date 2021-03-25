@@ -291,7 +291,7 @@ void Options::init()
 
     _outputFileLocation = StringOptionValue("proof_output_directory","pod","");
     _outputFileLocation.description="The location to which Vampire should save the proof.\n"
-                                    "If proofs are being saved to file, but this option is not set, the location of the Vampire binary is use.";
+                                    "If proofs are being saved to file, but this option is not set, the location Vampire is being run from is used.";
     _lookup.insert(&_outputFileLocation);
     _outputFileLocation.tag(OptionTag::OUTPUT);
     _outputFileLocation.reliesOnHard(_printProofToFile.is(equal(true)));
