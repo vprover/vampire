@@ -1119,6 +1119,9 @@ void Options::init()
            _inequalityResolution.tag(OptionTag::INFERENCES);
            _inequalitySplitting.setExperimental();
            _inequalityResolution.reliesOn(_termOrdering.is(equal(TermOrdering::KBO)));
+           _inequalityResolution.reliesOnHard(_cancellation.is(equal(ArithmeticSimplificationMode::OFF)));
+           _inequalityResolution.reliesOnHard(_evaluationMode.is(equal(EvaluationMode::POLYNOMIAL_FORCE)));
+           _inequalityResolution.reliesOnHard(_highSchool.is(equal(false)));
 
            _gaussianVariableElimination = choiceArithmeticSimplificationMode(
                "gaussian_variable_elimination", "gve",
@@ -1877,7 +1880,7 @@ void Options::init()
 
     _evaluationMode = ChoiceOptionValue<EvaluationMode>("evaluation","ev",
                                                         EvaluationMode::SIMPLE,
-                                                        {"simple","force","cautious"});
+                                                        {"off", "simple","force","cautious"});
     _evaluationMode.description=
     "Choses the algorithm used to simplify interpreted integer, rational, and real terms. \
                                  \
