@@ -285,7 +285,17 @@ void Options::init()
                                   "The file name will be of the format <problem name>-vampire.proof.\n"
                                   "Currently, this option only works in portfolio mode.";
     _lookup.insert(&_printProofToFile);
+    _printProofToFile.reliesOn(_outputFileLocation.is(notEqual("")));
     _printProofToFile.tag(OptionTag::OUTPUT);
+
+    _outputFileLocation = StringOptionValue("output_file","","");
+    _outputFileLocation.description="The location to which Vampire should save the proof.\n"
+                                    "If the string does not name a valid file location, an error occurs.\n"
+                                    "If proofs are being saved to file, but this option is not set, the location of the Vampire binary is use.";
+    _lookup.insert(&_outputFileLocation);
+    _outputFileLocation.tag(OptionTag::OUTPUT);
+    _outputFileLocation.reliesOnHard(_printProofToFile.is(equal(true)));
+    _outputFileLocation.addHardConstraint(isValidSystemLocation()); // Does not work for all (any?) preprocessing steps currently
 
     _proofExtra = ChoiceOptionValue<ProofExtra>("proof_extra","",ProofExtra::OFF,{"off","free","full"});
     _proofExtra.description="Add extra detail to proofs:\n "
