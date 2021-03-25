@@ -465,6 +465,7 @@ bool ForwardSubsumptionAndResolution::perform(Clause* cl, Clause*& replacement, 
       ASS_G(mlen,1);
 
 #if USE_SMT_SUBSUMPTION
+      mcl->setAux(this);
       bool const isSubsumed = smtsubs.setupSubsumption(mcl) && smtsubs.solve() && ColorHelper::compatible(cl->color(), mcl->color());
 #else
       ClauseMatches* cms=new ClauseMatches(mcl);
