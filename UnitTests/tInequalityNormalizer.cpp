@@ -181,3 +181,29 @@ TEST_ALL(bug_01,
       .in  = 0 * num(-1) + 2 * a * 1073741824 > 0,
       .out =               2 * a * 1073741824 > 0,
     })
+
+TEST_INT(bug_02, 
+    TestCase {
+      .in  = ~(x <  0),
+      //      (x >= 0),
+      .out = x + 1 > 0,
+    })
+
+TEST_ALL(bug_03, 
+    TestCase {
+      .in  = g(a, x) + -2 * b * y > 0,
+      .out = g(a, x) + -2 * b * y > 0,
+   })
+ 
+TEST_FRAC(bug_04, 
+    TestCase {
+      .in  = a + b + c >= 0,
+      .out = a + b + c >= 0,
+    })
+
+TEST_FRAC(bug_05, 
+    TestCase {
+      .in  = a * b * c >= 0,
+      .out = a * b * c >= 0,
+    })
+

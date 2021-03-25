@@ -1719,6 +1719,15 @@ public:
     return find(p).isSome();
   }
 
+  Elem sum() 
+  {
+    Elem res(0);
+    while (hasNext()) {
+      res = res + next();
+    }
+    return res;
+  }
+
   template<class P>
   Option<Elem> find(P p) 
   {

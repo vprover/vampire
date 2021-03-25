@@ -64,6 +64,18 @@ using namespace Kernel;
 using namespace Indexing;
 using namespace Saturation;
 
+class InequalityNormalization
+: public ImmediateSimplificationEngine 
+{
+  InequalityNormalizer _normalizer;
+public: 
+  InequalityNormalization(Ordering& ord);
+  CLASS_NAME(InequalityNormalization);
+  USE_ALLOCATOR(InequalityNormalization);
+
+  virtual Clause* simplify(Clause* cl) final override;
+};
+
 class InequalityResolution
 : public GeneratingInferenceEngine
 {

@@ -61,7 +61,10 @@ namespace Kernel {
 
   public:
     InequalityLiteral(Perfect<Polynom<NumTraits>> term, bool strict) 
-      : _term(term), _strict(strict) {}
+      : _term(term), _strict(strict) {
+        _term->integrity();
+
+      }
 
     friend class InequalityNormalizer;
 
@@ -106,11 +109,12 @@ namespace Kernel {
       || lit;
     }
 
-    inline bool isNormalized(Clause* cl) 
+    inline bool isNormalized(Clause* cl)  const
     { 
       for (unsigned i = 0; i < cl->size(); i++) {
         auto lit = (*cl)[i];
         if(lit != normalizeLiteral(lit)) {
+          DBG(cl->toString())
           DBG(*lit, " != ", *normalizeLiteral(lit))
           return false;
         }

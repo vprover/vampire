@@ -166,6 +166,13 @@ void Preprocess::preprocess(Problem& prb)
       LaKbo kbo(KBO(prb, *env.options));
       auto norm = InequalityNormalizer(PolynomialEvaluation(kbo));
       InterpretedNormalizer(&norm).apply(prb);
+      
+      for ( auto iter = prb.units(); iter != nullptr; iter = iter->tail() ) {
+        if (iter->head()->isClause()) {
+          auto cl = iter->head()->asClause();
+          ASS_REP(norm.isNormalized(cl), *cl)
+        }
+      }
     } else {
       InterpretedNormalizer(nullptr).apply(prb);
     }

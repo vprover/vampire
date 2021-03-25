@@ -44,7 +44,7 @@
 #include "Kernel/InequalityNormalizer.hpp"
 #include "Indexing/TermIndexingStructure.hpp"
 
-#define DEBUG(...) //DBG(__VA_ARGS__)
+#define DEBUG(...) // DBG(__VA_ARGS__)
 #define DEBUG_IDX(...) //DBG(__VA_ARGS__)
 
 using Kernel::InequalityLiteral;
@@ -109,6 +109,29 @@ using namespace Lib;
 using namespace Kernel;
 using namespace Indexing;
 using namespace Saturation;
+
+InequalityNormalization::InequalityNormalization(Ordering& ord)
+  : _normalizer(InequalityNormalizer(PolynomialEvaluation(ord)))
+{
+
+}
+
+Clause* InequalityNormalization::simplify(Clause* cl) 
+{
+  bool altered = false; 
+  auto out = Stack<Literal*>(cl->size());
+  for (unsigned i = 0; i < cl->size(); i++) {
+    out.push(_normalizer.normalizeLiteral((*cl)[i]));
+    altered |= out[i] != (*cl)[i];
+  }
+  if (altered) {
+    Inference inf(SimplifyingInference1(Kernel::InferenceRule::INEQUALITY_NORMALIZATION, cl));
+    return Clause::fromStack(out, inf);
+  } else {
+    return cl;
+  }
+
+}
 
 void InequalityResolution::attach(SaturationAlgorithm* salg)
 {
@@ -338,12 +361,14 @@ ClauseIterator InequalityResolution::generateClauses(Clause* cl1, Literal* liter
                                       .iterSummands()
                                       .filter([&](Monom m) { return m.factors != termToSkip; })
                                       .map   ([&](Monom m) { 
-                                        return Monom(m.numeral * num, m.factors)
+                                        auto out = Monom(m.numeral * num, m.factors)
                                           .mapVars([&](Variable v) { 
                                             auto var = TermList::var(v.id());
                                             auto t = subs.applyTo(var, resultVarBank);
-                                            return normalizeTerm(TypedTermList(t, NumTraits::sort)); 
+                                            auto normVar = normalizeTerm(TypedTermList(t, NumTraits::sort)); 
+                                            return normVar;
                                           }); 
+                                        return out;
                                       })
                                   );
                                 };
@@ -403,6 +428,7 @@ ClauseIterator InequalityResolution::generateClauses(Clause* cl1, Literal* liter
                       ASS_EQ(offset, size)
                     }
                     DEBUG("  resolvent: ", *resolvent);
+                    // ASS(normalizer().isNormalized(resolvent)) maybe not normalized since renaming of variables might require a reordering of addition/multipliciation subterms
                     return Option<Clause*>(resolvent);
                 }));
     }));

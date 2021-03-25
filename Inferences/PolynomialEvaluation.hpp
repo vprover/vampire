@@ -38,6 +38,16 @@ struct MaybeOverflow
 };
 
 template<class C>
+std::ostream& operator<<(std::ostream& out, MaybeOverflow<C> const& self) 
+{
+  out << self.value;
+  if (self.overflowOccurred) {
+    out << "(overflowed)";
+  }
+  return out;
+}
+
+template<class C>
 static MaybeOverflow<C> maybeOverflow(C simplified, bool overflowOccurred) 
 { return MaybeOverflow<C>(std::move(simplified), overflowOccurred); }
 
