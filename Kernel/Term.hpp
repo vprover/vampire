@@ -380,6 +380,11 @@ public:
 
     return _args + (_arity - n);
   }
+  /** return the 1st term argument for a polymorphic term
+    * call hasTermArgs before calling this
+    */
+  TermList* firstTermArg();
+
   /** Indexing operator for accessing arguments */
   const TermList operator[](int i) const {
     return *nthArgument(i);
@@ -415,6 +420,9 @@ public:
   /** True if the term is shared */
   bool shared() const
   { return _args[0]._info.shared; } // shared
+
+  /** True if the term has one or more term arguments */
+  bool hasTermArgs() const;
 
   /**
    * True if the term's function/predicate symbol is commutative/symmetric.

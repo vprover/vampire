@@ -396,7 +396,11 @@ z3::expr Z3Interfacing::getz3expr(Term* trm,bool isLit,bool&nameExpression,bool 
          is_equality=true;
          ASS(trm->arity()==2);
       }
-    }else{
+    } else if(trm->isSort()){
+      symb = env.signature->getTypeCon(trm->functor());
+      type = symb->typeConType();
+      range_sort = AtomicSort::superSort();
+    } else {
       symb = env.signature->getFunction(trm->functor());
       OperatorType* ftype = symb->fnType();
       type = ftype;

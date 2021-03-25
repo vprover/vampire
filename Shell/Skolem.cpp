@@ -402,7 +402,7 @@ Formula* Skolem::skolemise (Formula* f)
       //a variable list must be of the form [typevars, termvars]
       VList::FIFO vArgs(varArgs);
       Formula* before = SubstHelper::apply(f, _subst);
-
+      
       ExVarDepInfo& depInfo = _varDeps.get(f);
 
       VarSet* dep = depInfo.univ;
@@ -488,7 +488,7 @@ Formula* Skolem::skolemise (Formula* f)
           TermList skSymSort = AtomicSort::arrowSort(termVarSorts, rangeSort);
           sym = addSkolemFunction(typeVars.size(), 0, skSymSort, v, typeVars.size());
           TermList head = TermList(Term::create(sym, typeVars.size(), typeVars.begin()));
-          skolemTerm = ApplicativeHelper::createAppTerm(skSymSort, head, termVars).term();      
+          skolemTerm = ApplicativeHelper::createAppTerm(SortHelper::getResultSort(head.term()), head, termVars).term();      
         }
         _introducedSkolemSyms.push(sym);
 

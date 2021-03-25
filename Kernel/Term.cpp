@@ -166,6 +166,7 @@ VList* TermList::freeVariables() const
   return result;
 } // TermList::freeVariables
 
+
 bool TermList::isFreeVariable(unsigned var) const
 {
   CALL("TermList::isFreeVariable");
@@ -177,6 +178,7 @@ bool TermList::isFreeVariable(unsigned var) const
   }
   return false;
 }
+
 
 /**
  * Return true if @b ss and @b tt have the same top symbols, that is,
@@ -328,6 +330,21 @@ bool Term::isApplication() const {
   CALL("Term::isApplication");
   
   return !isSort() && !isLiteral() && env.signature->isAppFun(_functor);    
+}
+
+TermList* Term::firstTermArg()
+{
+  CALL("Term::firstTermArg");
+  ASS(!isSort());
+
+  return _args + (_arity - env.signature->getFunction(_functor)->typeArgsArity());
+}
+
+bool Term::hasTermArgs() const
+{ 
+  CALL("Term::hasTermArgs");
+
+  return !isSort() && _arity > env.signature->getFunction(_functor)->typeArgsArity(); 
 }
 
 bool TermList::containsSubterm(TermList trm)

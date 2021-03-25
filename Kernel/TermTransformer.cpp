@@ -273,8 +273,14 @@ Term* TermTransformerTransformTransformed::transform(Term* term)
       }
 
       // cout << "args.length() - orig->arity() = " << args.length() - orig->arity() << endl;
-
-      args.push(transformSubterm(TermList(Term::create(orig,argLst))));
+      if(orig->isSort()){
+        //For most applications we probably dont want to transform sorts
+        //however, we don't enforce that here, inheriting classes can decide
+        //for themselves
+        args.push(transformSubterm(TermList(AtomicSort::create(static_cast<AtomicSort*>(orig),argLst))));
+      } else {
+        args.push(transformSubterm(TermList(Term::create(orig,argLst))));
+      }
       continue;
     } else {
       toDo.push(tt->next());

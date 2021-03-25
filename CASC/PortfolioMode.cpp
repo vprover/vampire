@@ -121,8 +121,11 @@ bool PortfolioMode::searchForProof()
     //we normalize now so that we don't have to do it in every child Vampire
     ScopedLet<Statistics::ExecutionPhase> phaseLet(env.statistics->phase,Statistics::NORMALIZATION);
     Normalisation().normalise(*_prb);
-
-    TheoryFinder(_prb->units(),property).search();
+    
+    //TheoryFinder can not yet find polymorphic theory axioms
+    if(!env.statistics->polymorphic){
+      TheoryFinder(_prb->units(),property).search();
+    }
   }
 
   // now all the cpu usage will be in children, we'll just be waiting for them

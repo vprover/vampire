@@ -1558,8 +1558,8 @@ TermList InterpretedLiteralEvaluator::transformSubterm(TermList trm)
 
   // DEBUG( "transformSubterm for ", trm.toString() );
 
-
-  if (!trm.isTerm()) { return trm; }
+  //Nothing to evaluate in a sort
+  if (!trm.isTerm() || trm.term()->isSort()) { return trm; }
   Term* t = trm.term();
   unsigned func = t->functor();
 
