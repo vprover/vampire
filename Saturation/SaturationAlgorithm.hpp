@@ -222,7 +222,7 @@ protected:
 
   unsigned _activationLimit;
 private:
-  static ImmediateSimplificationEngine* createISE(Problem& prb, const Options& opt, Ordering& ordering);
+  static CompositeISE* createISE(Problem& prb, const Options& opt, Ordering& ordering);
 };
 
 

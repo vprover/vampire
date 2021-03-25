@@ -43,6 +43,7 @@
 #include "Kernel/BottomUpEvaluation/TypedTermList.hpp"
 
 #define DEBUG(...) // DBG(__VA_ARGS__)
+#define OUTPUT_NICE 0
 
 namespace Kernel {
 
@@ -331,6 +332,7 @@ struct MonomFactor
   /** if this monomfactor is a Variable and has power one it is turned into a variable */
   Option<Variable> tryVar() const;
   Option<Perfect<Polynom<Number>>> tryPolynom() const;
+  bool isPolynom() const { return tryPolynom().isSome(); }
 };
 
 
@@ -647,13 +649,20 @@ bool operator!=(Monom<Number> const& l, Monom<Number> const& r)
 template<class Number>
 std::ostream& operator<<(std::ostream& out, const Monom<Number>& self)
 { 
+#if !OUTPUT_NICE 
+  out << "mon(";
+#endif 
   if (self.factors->isOne()) {
-    return out << self.numeral;
+    out << self.numeral;
   } else {
     if (self.numeral != typename Number::ConstantType(1))
       out << self.numeral << " ";
-    return out << self.factors; 
+    out << self.factors; 
   }
+#if !OUTPUT_NICE 
+  out << ")";
+#endif 
+  return out;
 }
 
 
@@ -892,7 +901,20 @@ std::ostream& operator<<(std::ostream& out, const MonomFactor<Number>& self) {
 template<class Number>
 template<class F>
 MonomFactor<Number> MonomFactor<Number>::mapVars(F fun) const 
-{ return MonomFactor(this->term.template mapVars<F>(fun), this->power); }
+{ 
+  auto mapped = this->term.template mapVars<F>(fun);
+  auto poly_ = mapped.template downcast<Number>();
+  if (poly_.isSome()) {
+    auto poly  = poly_.unwrap();
+    if (poly->nSummands() == 1 && poly->summandAt(0).numeral == Number::oneC) {
+      auto facs = poly->summandAt(0).factors;
+      if (facs->nFactors() == 1 && facs->factorAt(0).power == 1) {
+        return MonomFactor(facs->factorAt(0).term, this->power);
+      }
+    }
+  }
+  return MonomFactor(mapped, this->power); 
+}
 
 template<class Number>
 Option<Variable> MonomFactor<Number>::tryVar() const 
@@ -1073,6 +1095,23 @@ template<class Number>
 void MonomFactors<Number>::integrity() const 
 {
 #if VDEBUG
+  CALL("MonomFactors<Number>::integrity()")
+  if (_factors.size() == 1) {
+    auto fac = _factors[0];
+    if (fac.isPolynom()) {
+      auto poly = fac.tryPolynom().unwrap();
+      if (poly->nSummands() == 1) {
+        auto sum = poly->summandAt(0);
+        if (sum.numeral == Number::oneC) {
+          ASSERTION_VIOLATION
+        }
+      }
+    }
+    // auto fac = _factors[0];
+    // if (fac.power == 1) {
+    //   fac.term.is
+    // }
+  }
   if (_factors.size() > 0) {
     auto iter = this->_factors.begin();
     auto last = iter++;
@@ -1164,6 +1203,9 @@ bool operator==(const Polynom<Number>& lhs, const Polynom<Number>& rhs)
 
 template<class Number>
 std::ostream& operator<<(std::ostream& out, const Polynom<Number>& self) {
+#if !OUTPUT_NICE 
+  out << "poly(";
+#endif 
   auto iter = self._summands.begin();
   if ( iter == self._summands.end() ) {
     out << "0";
@@ -1174,6 +1216,9 @@ std::ostream& operator<<(std::ostream& out, const Polynom<Number>& self) {
       out << " + " << *iter;
     }
   }
+#if !OUTPUT_NICE 
+  out << ")";
+#endif 
   return out;
 }
 
@@ -1243,13 +1288,18 @@ TermList Polynom<Number>::denormalize(TermList* results) const
     return Number::zero();
   } else {
 
-    TermList out = monomToTerm(_summands[0], results);
-    auto flatIdx = _summands[0].factors->nFactors();
+    auto flatSize = iterTraits(_summands.iterFifo())
+      .map([](Monom const& m) { return m.factors->nFactors(); })
+      .sum();
+
+    auto flatIdx =  flatSize - _summands.top().factors->nFactors();
+    TermList out = monomToTerm(_summands.top(), &results[flatIdx]);
 
     for (unsigned i = 1; i < nSummands(); i++) {
-      auto& monom = _summands[i];
+      auto idx = _summands.size() - i - 1 ;
+      auto& monom = _summands[idx];
+      flatIdx -= monom.factors->nFactors();
       out = Number::add(monomToTerm(monom, &results[flatIdx]), out);
-      flatIdx += monom.factors->nFactors();
     }
     return out;
   }
@@ -1296,6 +1346,7 @@ Monom<Number>      & Polynom<Number>::summandAt(unsigned summand)
 template<class Number>
 void Polynom<Number>::integrity() const {
 #if VDEBUG
+  CALL("Polynom<Number>::integrity()")
   ASS(_summands.size() > 0)
   if (_summands.size() > 0) {
     auto iter = this->_summands.begin();

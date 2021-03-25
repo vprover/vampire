@@ -1128,8 +1128,11 @@ void SaturationAlgorithm::activate(Clause* cl)
   env.statistics->activeClauses++;
   _active->add(cl);
 
+#define ASS_NORM(x)                                                                                           \
+      ASS_REP(InequalityNormalizer(PolynomialEvaluation(*Ordering::tryGetGlobalOrdering()))                   \
+                .isNormalized(x), x->toString())
+
     
-  // ASS_REP(InequalityNormalizer(PolynomialEvaluation(*Ordering::tryGetGlobalOrdering())).isNormalized(cl), *cl)
     auto generated = _generator->generateSimplify(cl);
 
     ClauseIterator toAdd = generated.clauses;
@@ -1474,7 +1477,7 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
       gie->addFront(new InjectivityGIE());
     }
   }
-
+  auto ise = createISE(prb, opt, res->getOrdering());
   CompositeSGI* sgi = new CompositeSGI();
   sgi->push(gie);
 
@@ -1500,6 +1503,7 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
 
   if (env.options->inequalityResolution()) {
     sgi->push(new InequalityResolution()); 
+    ise->addFront(new InequalityNormalization(ordering)); 
   }
 
 
@@ -1511,7 +1515,7 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
 
   res->setGeneratingInferenceEngine(sgi);
 
-  res->setImmediateSimplificationEngine(createISE(prb, opt, res->getOrdering()));
+  res->setImmediateSimplificationEngine(ise);
 
   // create forward simplification engine
   if (prb.hasEquality() && opt.innerRewriting()) {
@@ -1605,7 +1609,7 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
 /**
  * Create local clause simplifier for problem @c prb according to options @c opt
  */
-ImmediateSimplificationEngine* SaturationAlgorithm::createISE(Problem& prb, const Options& opt, Ordering& ordering)
+CompositeISE* SaturationAlgorithm::createISE(Problem& prb, const Options& opt, Ordering& ordering)
 {
   CALL("MainLoop::createImmediateSE");
 
@@ -1653,6 +1657,8 @@ ImmediateSimplificationEngine* SaturationAlgorithm::createISE(Problem& prb, cons
     }
 
     switch (env.options->evaluationMode()) {
+      case Options::EvaluationMode::OFF:
+        break;
       case Options::EvaluationMode::SIMPLE: 
         res->addFront(new InterpretedEvaluation(env.options->inequalityNormalization(), ordering));
         break;
@@ -1662,6 +1668,7 @@ ImmediateSimplificationEngine* SaturationAlgorithm::createISE(Problem& prb, cons
       case Options::EvaluationMode::POLYNOMIAL_CAUTIOUS:
         break;
     }
+
 
     if (env.options->pushUnaryMinus()) {
       res->addFront(new PushUnaryMinus()); 

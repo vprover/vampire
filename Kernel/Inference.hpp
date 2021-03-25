@@ -187,6 +187,7 @@ enum class InferenceRule : unsigned char {
   CONDENSATION,
   /** evaluation inference */
   EVALUATION,
+  INEQUALITY_NORMALIZATION,
   CANCELLATION,
   /** interpreted simplification inference */
   INTERPRETED_SIMPLIFICATION,
