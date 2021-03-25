@@ -387,13 +387,13 @@ bool PortfolioMode::runSchedule(Schedule& schedule)
     vstring fname = env.options->problemName() + "-vampire.proof";    
     BYPASSING_ALLOCATOR; 
     
-    ScopedPtr<ifstream> input(new ifstream(fname.c_str()));
+    ifstream input(fname.c_str());
 
-    bool openSucceeded = !input->fail();
+    bool openSucceeded = !input.fail();
 
     if (openSucceeded) {
       env.beginOutput();
-      env.out() << input->rdbuf();
+      env.out() << input.rdbuf();
       env.endOutput();
     }
 
