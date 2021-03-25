@@ -542,18 +542,22 @@ void PortfolioMode::runSlice(Options& strategyOpt)
     //At the moment we only save one proof. We could potentially
     //allow multiple proofs
     vstring fname = env.options->problemName() + "-vampire.proof";
+    if(env.options->printProofToFile() && env.options->outputFileLocation() != "")
+    {
+      fname = env.options->outputFileLocation() + "/" + fname;
+    }
 
     // CAREFUL: this might not be enough if the ofstream (re)allocates while being operated
     BYPASSING_ALLOCATOR; 
     
-    ScopedPtr<ofstream> output(new ofstream(fname.c_str()));
-    if (output->fail()) {
+    ofstream output(fname.c_str());
+    if (output.fail()) {
       // fallback to old printing method
       env.beginOutput();
       UIHelper::outputResult(env.out());
       env.endOutput();
     } else {
-      UIHelper::outputResult(*output);
+      UIHelper::outputResult(output);
     }
   }
   else{

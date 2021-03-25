@@ -1698,27 +1698,6 @@ bool _hard;
         return OptionValueConstraintUP<int>(new NotDefaultRatioConstraint());
     }
 
-    struct IsValidSystemLocation : public OptionValueConstraint<vstring>{
-        CLASS_NAME(IsValidSystemLocation);
-        USE_ALLOCATOR(IsValidSystemLocation);
-        IsValidSystemLocation() {}
-        bool check(const OptionValue<vstring>& value){
-          struct stat info;
-          if( stat(value.actualValue.c_str(), &info ) != 0 ) {
-            return false;
-          }
-          return true;
-        }
-        vstring msg(const OptionValue<vstring>& value){
-            return value.actualValue + " is not a valid directory";
-        }
-    };
-
-    // You will need to provide the type, optionally use addConstraintIfNotDefault
-    static OptionValueConstraintUP<vstring> isValidSystemLocation(){
-        return OptionValueConstraintUP<vstring>(new IsValidSystemLocation());
-    }
-
     struct isLookAheadSelectionConstraint : public OptionValueConstraint<int>{
         CLASS_NAME(isLookAheadSelectionConstraint);
         USE_ALLOCATOR(isLookAheadSelectionConstraint);
