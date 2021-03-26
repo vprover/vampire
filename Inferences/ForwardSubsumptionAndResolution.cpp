@@ -39,7 +39,6 @@
 
 #include "ForwardSubsumptionAndResolution.hpp"
 
-extern bool reporting;
 
 namespace Inferences
 {
@@ -157,27 +156,6 @@ public:
 
 typedef Stack<ClauseMatches*> CMStack;
 
-bool isSubsumed(Clause* cl, CMStack& cmStore)
-{
-  CALL("isSubsumed");
-
-  CMStack::Iterator csit(cmStore);
-  while(csit.hasNext()) {
-    ClauseMatches* clmatches;
-    clmatches=csit.next();
-    Clause* mcl=clmatches->_cl;
-
-    if(clmatches->anyNonMatched()) {
-      continue;
-    }
-
-    if(MLMatcher::canBeMatched(mcl,cl,clmatches->_matches,0)) {
-      return true;
-    }
-  }
-  return false;
-}
-
 Clause* ForwardSubsumptionAndResolution::generateSubsumptionResolutionClause(Clause* cl, Literal* lit, Clause* baseClause)
 {
   CALL("ForwardSubsumptionAndResolution::generateSubsumptionResolutionClause");
@@ -285,8 +263,6 @@ bool ForwardSubsumptionAndResolution::perform(Clause* cl, Clause*& replacement, 
       ClauseMatches* cms=new ClauseMatches(mcl);
       mcl->setAux(cms);
       cmStore.push(cms);
-      //      cms->addMatch(res.literal, (*cl)[li]);
-      //      cms->fillInMatches(&miniIndex, res.literal, (*cl)[li]);
       cms->fillInMatches(&miniIndex);
 
       if(cms->anyNonMatched()) {
