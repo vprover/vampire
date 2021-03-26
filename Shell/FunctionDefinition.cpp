@@ -524,13 +524,13 @@ void FunctionDefinition::assignArgOccursData(Def* updDef)
     } else if(t.isTerm()) {
       Term* trm=t.term();
       if(trm->arity()) {
-	if(!_defs.find(trm->functor(), d) || d->mark==Def::BLOCKED) {
-	  d=0;
-	}
-	ASS(!d || d->mark==Def::SAFE);
-	stack.push(trm->args());
-	defArgStack.push(d);
-	termArgStack.push(trm);
+        if(trm->isSort() || !_defs.find(trm->functor(), d) || d->mark==Def::BLOCKED) {
+          d=0;
+        }
+        ASS(!d || d->mark==Def::SAFE);
+        stack.push(trm->args());
+        defArgStack.push(d);
+        termArgStack.push(trm);
       }
     } else {
       ASS(t.isOrdinaryVar());
@@ -543,15 +543,15 @@ void FunctionDefinition::assignArgOccursData(Def* updDef)
     if(!ts->isEmpty()) {
       Def* argDef=defArgStack.top();
       if(argDef) {
-	Term* parentTerm=termArgStack.top();
-	while(ts->isNonEmpty() && !argDef->argOccurs[parentTerm->getArgumentIndex(ts)]) {
-	  ts=ts->next();
-	}
-	if(ts->isNonEmpty()) {
-	  stack.push(ts->next());
-	}
+        Term* parentTerm=termArgStack.top();
+        while(ts->isNonEmpty() && !argDef->argOccurs[parentTerm->getArgumentIndex(ts)]) {
+          ts=ts->next();
+        }
+        if(ts->isNonEmpty()) {
+          stack.push(ts->next());
+        }
       } else {
-	stack.push(ts->next());
+        stack.push(ts->next());
       }
     }
     t=*ts;
