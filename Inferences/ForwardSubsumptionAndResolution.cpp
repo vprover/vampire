@@ -262,7 +262,7 @@ bool ForwardSubsumptionAndResolution::perform(Clause* cl, Clause*& replacement, 
       if(premise->hasAux()) {
 	continue;
       }
-      premise->setAux(0);
+      premise->setAux(nullptr);
       if(ColorHelper::compatible(cl->color(), premise->color()) ) {
         premises = pvi( getSingletonIterator(premise) );
         env.statistics->forwardSubsumed++;
@@ -356,14 +356,19 @@ bool ForwardSubsumptionAndResolution::perform(Clause* cl, Clause*& replacement, 
 	SLQueryResult res=rit.next();
 	Clause* mcl=res.clause;
 
-	if(mcl->hasAux()) {
-	  //we have already examined this clause
-	  continue;
-	}
-
-	ClauseMatches* cms=new ClauseMatches(mcl);
-	res.clause->setAux(cms);
-	cmStore.push(cms);
+        ClauseMatches* cms = nullptr;
+        if (mcl->hasAux()) {
+          // We have seen the clause already, try to re-use the literal matches.
+          // (Note that we can't just skip the clause: if our previous check
+          // failed to detect subsumption resolution, it might still work out
+          // with a different resolved literal.)
+          cms = mcl->getAux<ClauseMatches>();
+        }
+        if (!cms) {
+          cms = new ClauseMatches(mcl);
+          mcl->setAux(cms);
+          cmStore.push(cms);
+        }
 	cms->fillInMatches(&miniIndex);
 
 	if(checkForSubsumptionResolution(cl, cms, resLit) && ColorHelper::compatible(cl->color(), cms->_cl->color())) {
