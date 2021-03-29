@@ -118,6 +118,13 @@ void ForwardSubsumptionAndResolution::attach(SaturationAlgorithm* salg)
 	  _salg->getIndexManager()->request(SIMPLIFYING_UNIT_CLAUSE_SUBST_TREE) );
   _fwIndex=static_cast<FwSubsSimplifyingLiteralIndex*>(
 	  _salg->getIndexManager()->request(FW_SUBSUMPTION_SUBST_TREE) );
+  env.beginOutput();
+#if USE_SMT_SUBSUMPTION
+  env.out() << "\% Subsumption algorithm: smt3\n";
+#else
+  env.out() << "\% Subsumption algorithm: original\n";
+#endif
+  env.endOutput();
 }
 
 void ForwardSubsumptionAndResolution::detach()
