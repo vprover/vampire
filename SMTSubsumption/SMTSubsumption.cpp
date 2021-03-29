@@ -2439,12 +2439,11 @@ void ProofOfConcept::benchmark_run(vvector<SubsumptionInstance> instances)
     // "--help",
   };
 
-  benchmark::RegisterBenchmark("smt2_run_setup", bench_smt2_run, instances);
+  benchmark::RegisterBenchmark("smt2_run_setup", bench_smt2_run_setup, instances);
   benchmark::RegisterBenchmark("smt2_run", bench_smt2_run, instances);
-  benchmark::RegisterBenchmark("smt3_fwrun_setup", bench_smt3_fwrun, fw_instances);
+  benchmark::RegisterBenchmark("smt3_fwrun_setup", bench_smt3_fwrun_setup, fw_instances);
   benchmark::RegisterBenchmark("smt3_fwrun", bench_smt3_fwrun, fw_instances);
-  // benchmark::RegisterBenchmark("orig_run", bench_orig_run, instances);
-  benchmark::RegisterBenchmark("orig_fwrun_setup", bench_orig_fwrun, fw_instances);
+  benchmark::RegisterBenchmark("orig_fwrun_setup", bench_orig_fwrun_setup, fw_instances);
   benchmark::RegisterBenchmark("orig_fwrun", bench_orig_fwrun, fw_instances);
 
   init_benchmark(std::move(args));
