@@ -645,12 +645,6 @@ template<> struct std::hash<Kernel::FuncTerm>
 
 namespace Kernel {
 
-POLYMORPHIC_FUNCTION(TermList, denormalize   , const& t, TermList* results; ) { return t->denormalize(results); }
-POLYMORPHIC_FUNCTION(unsigned, nSummands, const& t,            ) { return t->nSummands(); }
-POLYMORPHIC_FUNCTION(unsigned, nFactors , const& t, unsigned i;) { return t->nFactors(i); }
-POLYMORPHIC_FUNCTION(ostream&, outputOp , const& t, ostream& o;) { return o << t; }
-POLYMORPHIC_FUNCTION(PolyNf const&, termAt   , const& t, unsigned summand; unsigned factor;) { return t->summandAt(summand).factors->termAt(factor); }
-  
 template<class NumTraits>
 AnyPoly::AnyPoly(Perfect<Polynom<NumTraits>> x) : Coproduct(std::move(x)) {  }
 

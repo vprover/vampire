@@ -1,7 +1,4 @@
-
 /*
- * File Grounder.cpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -41,9 +38,8 @@ using namespace Kernel;
 /**
  * Return SATClauseIterator with SAT clauses that are results
  * of grounding of @c cl.
- * use_n indcates whether we record the source for use in niceness computation
  */
-SATClause* Grounder::ground(Clause* cl,bool use_n)
+SATClause* Grounder::ground(Clause* cl)
 {
   CALL("Grounder::ground(Clause*)");
 
@@ -51,7 +47,7 @@ SATClause* Grounder::ground(Clause* cl,bool use_n)
     NOT_IMPLEMENTED;
   }
 
-  SATClause* gndNonProp = groundNonProp(cl,use_n);
+  SATClause* gndNonProp = groundNonProp(cl);
 //  cout<<gndNonProp->toString()<<endl;
 
   SATInference* inf = new FOConversionInference(cl);
@@ -68,13 +64,12 @@ SATClause* Grounder::ground(Clause* cl,bool use_n)
  *
  * @param cl the clause
  * @param acc previously accumulated literals
- * @param use_n indcates whether we record the source for use in niceness computation
  * @param normLits if non-zero, array to receive normalized literals
  * (in the order of literals in the clause). Size of the array must be
  * at least equal to te size of the clause. There is one-to-one
  * correspondence between normalized literals and SAT literals.
  */
-void Grounder::groundNonProp(Clause* cl, SATLiteralStack& acc, bool use_n, Literal** normLits)
+void Grounder::groundNonProp(Clause* cl, SATLiteralStack& acc, Literal** normLits)
 {
   CALL("Grounder::groundNonProp/2");
 
@@ -94,12 +89,6 @@ void Grounder::groundNonProp(Clause* cl, SATLiteralStack& acc, bool use_n, Liter
 
   for(unsigned i=0; i<clen; i++) {
     SATLiteral lit = groundNormalized(normLits[i]);
-    // this is recording the FO literal for niceness computation 
-    if(use_n){
-      //lit.recordSource((* cl)[i]); 
-      ASS(_satSolver);
-      _satSolver->recordSource(lit.var(),(*cl)[i]);
-    }
     acc.push(lit);
   }
 }
@@ -111,20 +100,19 @@ void Grounder::groundNonProp(Clause* cl, SATLiteralStack& acc, bool use_n, Liter
  * The order of literals in @c cl is preserved.
  *
  * @param cl the clause
- * @param use_n indcates whether we record the source for use in niceness computation
  * @param normLits if non-zero, array to receive normalized literals
  * (in the order of literals in the clause). Size of the array must be
  * at least equal to te size of the clause. There is one-to-one
  * correspondence between normalized literals and SAT literals.
  */
-SATClause* Grounder::groundNonProp(Clause* cl, bool use_n, Literal** normLits)
+SATClause* Grounder::groundNonProp(Clause* cl, Literal** normLits)
 {
   CALL("Grounder::groundNonProp(Clause*,Literal**)");
 
   static SATLiteralStack gndLits;
   gndLits.reset();
 
-  groundNonProp(cl, gndLits, use_n, normLits);
+  groundNonProp(cl, gndLits, normLits);
 
   SATClause* res = SATClause::fromStack(gndLits);
   return res;
@@ -132,20 +120,14 @@ SATClause* Grounder::groundNonProp(Clause* cl, bool use_n, Literal** normLits)
 
 /**
  * Return SATLiteral corresponding to @c lit.
- * use_n indcates whether we record the source for use in niceness computation
  */
-SATLiteral Grounder::groundLiteral(Literal* lit,bool use_n)
+SATLiteral Grounder::groundLiteral(Literal* lit)
 {
   CALL("Grounder::ground(Literal*)");
 
   Literal* norm = lit;
   normalize(1, &norm);
   SATLiteral slit = groundNormalized(norm);
-  // this is recording the FO literal for niceness computation later
-  if(use_n){
-     ASS(_satSolver);
-     _satSolver->recordSource(slit.var(),lit);
-  }
   return slit;
 }
 

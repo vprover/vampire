@@ -1,7 +1,4 @@
-
 /*
- * File Statistics.cpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -84,6 +81,17 @@ Statistics::Statistics()
     inductionInProof(0),
     generalizedInduction(0),
     generalizedInductionInProof(0),
+    argumentCongruence(0),
+    narrow(0),
+    forwardSubVarSup(0),
+    backwardSubVarSup(0),
+    selfSubVarSup(0),
+    negativeExtensionality(0),
+    primitiveInstantiations(0),
+    choiceInstances(0),
+    proxyEliminations(0),
+    leibnizElims(0),
+    booleanSimps(0),
     duplicateLiterals(0),
     trivialInequalities(0),
     forwardSubsumptionResolution(0),
@@ -123,6 +131,8 @@ Statistics::Statistics()
     taInjectivitySimplifications(0),
     taNegativeInjectivitySimplifications(0),
     taAcyclicityGeneratedDisequalities(0),
+    higherOrder(0),
+    polymorphic(0),
     generatedClauses(0),
     passiveClauses(0),
     activeClauses(0),
@@ -141,18 +151,11 @@ Statistics::Statistics()
     satClauses(0),
     unitSatClauses(0),
     binarySatClauses(0),
-    learntSatClauses(0),
-    learntSatLiterals(0),
 
     satSplits(0),
     satSplitRefutations(0),
 
     smtFallbacks(0),
-
-    /**TODO Remove the next var*/
-    satTWLClauseCount(0),
-    satTWLVariablesCount(0),
-    satTWLSATCalls(0),
 
     instGenGeneratedClauses(0),
     instGenRedundantClauses(0),
@@ -291,14 +294,16 @@ void Statistics::print(ostream& out)
 
 
   HEADING("Simplifying Inferences",duplicateLiterals+trivialInequalities+
-      forwardSubsumptionResolution+backwardSubsumptionResolution+
+      forwardSubsumptionResolution+backwardSubsumptionResolution+proxyEliminations+
       forwardDemodulations+backwardDemodulations+forwardLiteralRewrites+
       forwardSubsumptionDemodulations+backwardSubsumptionDemodulations+
       condensations+globalSubsumption+evaluationCnt
       +( gveCnt - gveViolations)
       +( asgCnt - asgViolations)
       +( evaluationCnt - evaluationIncomp - evaluationGreater)
-      +innerRewrites);
+      +innerRewrites
+      +booleanSimps
+      );
   COND_OUT("Duplicate literals", duplicateLiterals);
   COND_OUT("Trivial inequalities", trivialInequalities);
   COND_OUT("Fw subsumption resolutions", forwardSubsumptionResolution);
@@ -322,6 +327,9 @@ void Statistics::print(ostream& out)
   COND_OUT("Evaluation count",         evaluationCnt);
   COND_OUT("Evaluation results greater than premise", evaluationGreater);
   COND_OUT("Evaluation results incomparable to premise", evaluationIncomp);
+  COND_OUT("Logicial proxy rewrites", proxyEliminations);
+  COND_OUT("Boolean simplifications", booleanSimps)
+  //COND_OUT("Interpreted simplifications", interpretedSimplifications);
   SEPARATOR;
 
   HEADING("Deletion Inferences",simpleTautologies+equationalTautologies+
@@ -342,9 +350,10 @@ void Statistics::print(ostream& out)
 
   HEADING("Generating Inferences",resolution+urResolution+cResolution+factoring+
       forwardSuperposition+backwardSuperposition+selfSuperposition+
-      cForwardSuperposition+cBackwardSuperposition+cSelfSuperposition+
+      cForwardSuperposition+cBackwardSuperposition+cSelfSuperposition+leibnizElims+
       equalityFactoring+equalityResolution+forwardExtensionalityResolution+
-      backwardExtensionalityResolution+
+      backwardExtensionalityResolution+argumentCongruence+negativeExtensionality+
+      +primitiveInstantiations+choiceInstances+narrow+forwardSubVarSup+backwardSubVarSup+selfSubVarSup+
       theoryInstSimp+theoryInstSimpCandidates+theoryInstSimpTautologies+theoryInstSimpLostSolution+induction);
   COND_OUT("Binary resolution", resolution);
   COND_OUT("Unit resulting resolution", urResolution);
@@ -369,6 +378,15 @@ void Statistics::print(ostream& out)
   COND_OUT("InductionStepsInProof",inductionInProof);
   COND_OUT("GeneralizedInduction",generalizedInduction);
   COND_OUT("GeneralizedInductionInProof",generalizedInductionInProof);
+  COND_OUT("Argument congruence", argumentCongruence);
+  COND_OUT("Negative extensionality", negativeExtensionality);
+  COND_OUT("Primitive substitutions", primitiveInstantiations);
+  COND_OUT("Elimination of Leibniz equalities", leibnizElims);
+  COND_OUT("Choice axiom instances creatded", choiceInstances);
+  COND_OUT("Narrow", narrow);
+  COND_OUT("Forward sub-variable superposition", forwardSubVarSup);  
+  COND_OUT("Backward sub-variable superposition", backwardSubVarSup);  
+  COND_OUT("Self sub-variable superposition", selfSubVarSup);  
   SEPARATOR;
 
   HEADING("Term algebra simplifications",taDistinctnessSimplifications+
@@ -401,17 +419,10 @@ void Statistics::print(ostream& out)
   //TODO record statistics for FMB
 
   //TODO record statistics for MiniSAT
-  HEADING("SAT Solver Statistics",satTWLClauseCount+satTWLVariablesCount+
-        satTWLSATCalls+satClauses+unitSatClauses+binarySatClauses+
-        learntSatClauses+learntSatLiterals+satPureVarsEliminated);
+  HEADING("SAT Solver Statistics",satClauses+unitSatClauses+binarySatClauses+satPureVarsEliminated);
   COND_OUT("SAT solver clauses", satClauses);
   COND_OUT("SAT solver unit clauses", unitSatClauses);
   COND_OUT("SAT solver binary clauses", binarySatClauses);
-  COND_OUT("TWL SAT solver learnt clauses", learntSatClauses);
-  COND_OUT("TWL SAT solver learnt literals", learntSatLiterals);
-  COND_OUT("TWLsolver clauses", satTWLClauseCount);
-  COND_OUT("TWLsolver variables", satTWLVariablesCount);
-  COND_OUT("TWLsolver calls for satisfiability", satTWLSATCalls);
   COND_OUT("Pure propositional variables eliminated by SAT solver", satPureVarsEliminated);
   SEPARATOR;
 

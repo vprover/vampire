@@ -1,7 +1,4 @@
-
 /*
- * File Reflection.hpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -71,14 +68,6 @@
  * @see DECL_ELEMENT_TYPE
  */
 #define OWN_ELEMENT_TYPE _ElementType
-
-/**
- * RETURN_TYPE(F(Args...)) is the returntype of an object F when it's 
- * operator()(Args...) is called. 
- *
- * @see std::result_of::type
- */
-#define RETURN_TYPE(...) typename std::result_of<__VA_ARGS__>::type 
 
 /**
  * Declare the iterator type for a container class

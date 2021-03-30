@@ -1,7 +1,4 @@
-
 /*
- * File Condensation.cpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -46,7 +43,6 @@ using namespace Saturation;
 Clause* Condensation::simplify(Clause* cl)
 {
   CALL("Condensation::perform");
-
   TimeCounter tc(TC_CONDENSATION);
 
   unsigned clen=cl->length();
@@ -147,7 +143,6 @@ Clause* Condensation::simplify(Clause* cl)
       }
     }
   }
-
   return cl;
 }
 

@@ -1,7 +1,4 @@
-
 /*
- * File FiniteModelMultiSorted.hpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -94,7 +91,8 @@ public:
    if(_domainConstants.find(pair,t)) return t;
    vstring name = "domCon_"+env.sorts->sortName(srt)+"_"+Lib::Int::toString(c);
    unsigned f = env.signature->addFreshFunction(0,name.c_str()); 
-   env.signature->getFunction(f)->setType(OperatorType::getConstantsType(srt));
+   TermList srtT = SortHelper::sortTerm(srt);
+   env.signature->getFunction(f)->setType(OperatorType::getConstantsType(srtT));
    t = Term::createConstant(f);
    _domainConstants.insert(pair,t);
    _domainConstantsRev.insert(t,pair);

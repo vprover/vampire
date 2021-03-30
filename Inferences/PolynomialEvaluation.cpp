@@ -178,8 +178,8 @@ Option<PolyNf> trySimplify(Theory::Interpretation i, PolyNf* evalArgs)
 }
 
 
-Option<PolyNf> PolynomialEvaluation::evaluate(TermList term, unsigned sortNumber) const 
-{ return evaluate(TypedTermList(term, sortNumber)); }
+Option<PolyNf> PolynomialEvaluation::evaluate(TermList term, SortId sort) const 
+{ return evaluate(TypedTermList(term, sort)); }
 
 Option<PolyNf> PolynomialEvaluation::evaluate(Term* term) const 
 { return evaluate(TypedTermList(term)); }
@@ -193,11 +193,8 @@ Polynom<Number> simplifyPoly(Polynom<Number> const& in, PolyNf* simplifiedArgs);
 template<class Number>
 Monom<Number> simplifyMonom(Monom<Number> const&, PolyNf* simplifiedArgs);
 
-POLYMORPHIC_FUNCTION(AnyPoly, SimplifyPoly  , const& p, PolyNf* ts;) 
-{ return AnyPoly(perfect(simplifyPoly(*p, ts))); }
-
 AnyPoly simplifyPoly(AnyPoly const& p, PolyNf* ts)
-{ return p.apply(Polymorphic::SimplifyPoly{ ts }); }
+{ return p.apply([&](auto& p) { return AnyPoly(perfect(simplifyPoly(*p, ts))); }); }
 
 Option<PolyNf> PolynomialEvaluation::evaluate(PolyNf normalized) const 
 {

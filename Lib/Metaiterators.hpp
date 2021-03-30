@@ -1,7 +1,4 @@
-
 /*
- * File Metaiterators.hpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -683,7 +680,7 @@ CatIterator<It1,It2> getConcatenatedIterator(It1 it1, It2 it2)
  * The @b knowsSize() and @b size() functions of this iterator can be
  * called only if the underlying iterator contains these functions.
  */
-template<typename Inner, typename Functor, typename ResultType=RETURN_TYPE(Functor(ELEMENT_TYPE(Inner)))>
+template<typename Inner, typename Functor, typename ResultType=std::result_of_t<Functor(ELEMENT_TYPE(Inner))>>
 class MappingIterator
 {
 public:
@@ -757,9 +754,9 @@ private:
  * @see MappingIterator
  */
 template<typename Inner, typename Functor>
-MappingIterator<Inner,Functor,RETURN_TYPE(Functor(ELEMENT_TYPE(Inner)))> getMappingIterator(Inner it, Functor f)
+MappingIterator<Inner,Functor,std::result_of_t<Functor(ELEMENT_TYPE(Inner))>> getMappingIterator(Inner it, Functor f)
 {
-  return MappingIterator<Inner,Functor,RETURN_TYPE(Functor(ELEMENT_TYPE(Inner)))>(std::move(it), f);
+  return MappingIterator<Inner,Functor,std::result_of_t<Functor(ELEMENT_TYPE(Inner))>>(std::move(it), f);
 }
 
 // /**
@@ -1615,7 +1612,7 @@ struct CompositionFn {
    : _outer(outer), _inner(inner) { }
 
   template<typename Arg>
-  RETURN_TYPE(OuterFn(RETURN_TYPE(InnerFn(Arg)))) operator()(Arg a) {
+  std::result_of_t<OuterFn(std::result_of_t<InnerFn(Arg)>)> operator()(Arg a) {
     return _outer(_inner(a));
   }
 private:

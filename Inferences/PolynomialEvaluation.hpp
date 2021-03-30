@@ -24,9 +24,11 @@
 
 #include "InferenceEngine.hpp"
 
+
 namespace Inferences 
 {
 
+using SortId = TermList;
 class PolynomialEvaluation
 : public SimplifyingGeneratingLiteralSimplification
 {
@@ -41,7 +43,7 @@ private:
 
   Result simplifyLiteral(Literal*) override;
 
-  Option<PolyNf> evaluate(TermList in, unsigned sortNumber) const;
+  Option<PolyNf> evaluate(TermList in, SortId sortNumber) const;
   Option<PolyNf> evaluate(Term* in) const;
   Option<PolyNf> evaluate(PolyNf in) const;
   Option<PolyNf> evaluate(TypedTermList in) const;

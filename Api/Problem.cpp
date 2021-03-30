@@ -1,7 +1,4 @@
-
 /*
- * File Problem.cpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -482,7 +479,7 @@ void Problem::addFromStream(istream& s, vstring includeDirectory, bool simplifyS
     SimplifyProver simplify;
     units = simplify.units(expr);
   }
-  else {
+  else { 
     units = Parse::TPTP::parse(s);
   }
 

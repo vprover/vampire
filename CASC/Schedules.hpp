@@ -1,7 +1,4 @@
-
 /*
- * File Schedules.hpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -28,6 +25,7 @@ typedef Lib::Stack<Lib::vstring> Schedule;
 class Schedules
 {
 public:
+  static void getHigherOrderSchedule2020(Schedule& quick, Schedule& fallback);
   static void getCasc2019Schedule(const Shell::Property& property, Schedule& quick, Schedule& fallback);
 
   static void getCascSat2019Schedule(const Shell::Property& property, Schedule& quick, Schedule& fallback);

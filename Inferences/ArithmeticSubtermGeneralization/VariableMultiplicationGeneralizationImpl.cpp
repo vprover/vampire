@@ -27,8 +27,6 @@ namespace VariableMultiplicationGeneralizationImpl {
 *    - obviously a generalization 
 */
 
-POLYMORPHIC_FUNCTION(Option<Variable>, tryVar, const& t,) { return t.tryVar(); }
-
 /** 
  * Type for associating objects with integer ids. It is mainly only used in order to use IntUnionFind with other types than int.
  */
@@ -272,7 +270,7 @@ SimplifyingGeneratingInference1::Result applyRule(Clause* cl, bool doOrderingChe
 
       /* one variable with power one needs to be kept, per varible region */
       auto var = iterTraits(region.iter())
-        .filter([](AnyNumber<MonomFactor> p) { return p.apply(Polymorphic::tryVar{}).isSome(); })
+        .filter([](auto p) { return p.apply([](auto& t){ return t.tryVar(); }).isSome(); })
         .tryNext();
 
       if (var.isSome()) {

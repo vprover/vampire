@@ -137,26 +137,23 @@ std::ostream& operator<<(std::ostream& out, const FuncTerm& self)
 ////////////////////////////
 
 
-POLYMORPHIC_FUNCTION(AnyPoly, replaceTerms, const& t, PolyNf* newTs;) 
-{ return AnyPoly(perfect(t->replaceTerms(newTs))); }
-
 AnyPoly AnyPoly::replaceTerms(PolyNf* newTs) const 
-{ return apply(Polymorphic::replaceTerms{newTs}); }
+{ return apply([&](auto& t) -> decltype(auto) { return AnyPoly(perfect(t->replaceTerms(newTs))); }); }
 
 TermList AnyPoly::denormalize(TermList* results) const
-{ return apply(Polymorphic::denormalize{results}); }
+{ return apply([&](auto& t) -> decltype(auto) { return t->denormalize(results); }); }
 
 PolyNf const& AnyPoly::termAt(unsigned summand, unsigned factor)  const
-{  return apply(Polymorphic::termAt{summand, factor}); }
+{ return apply([&](auto& t) -> decltype(auto) { return t->summandAt(summand).factors->termAt(factor); }); }
 
 unsigned AnyPoly::nSummands() const 
-{ return apply(Polymorphic::nSummands{}); }
+{ return apply([&](auto& t) -> decltype(auto) { return t->nSummands(); }); }
 
 unsigned AnyPoly::nFactors(unsigned i) const 
-{ return apply(Polymorphic::nFactors{i}); }
+{ return apply([&](auto& t) -> decltype(auto) { return t->nFactors(i); }); }
 
 std::ostream& operator<<(std::ostream& out, const AnyPoly& self) 
-{ return self.apply(Polymorphic::outputOp{out}); }
+{ return self.apply([&](auto& t) -> decltype(auto) { return out << *t; }); }
 
 
 /////////////////////////////////////////////////////////
@@ -175,7 +172,7 @@ bool operator!=(PolyNf const& lhs, PolyNf const& rhs)
 { return !(lhs == rhs); }
 
 std::ostream& operator<<(std::ostream& out, const PolyNf& self)
-{ return self.apply(Polymorphic::outputOp{out}); }
+{ return self.apply([&](auto& t) -> decltype(auto) { return out << t; }); }
 
 Option<Variable> PolyNf::tryVar() const 
 { return as<Variable>().toOwned(); }

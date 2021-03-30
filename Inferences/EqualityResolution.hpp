@@ -1,7 +1,4 @@
-
 /*
- * File EqualityResolution.hpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -22,6 +19,7 @@
 #include "Forwards.hpp"
 
 #include "InferenceEngine.hpp"
+#include "Shell/Options.hpp"
 
 namespace Inferences {
 

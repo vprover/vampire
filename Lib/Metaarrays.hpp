@@ -1,7 +1,4 @@
-
 /*
- * File Metaarrays.hpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -63,12 +60,11 @@ template<class Arr, typename Functor>
 class MappingArray
 {
 public:
-  DECL_ELEMENT_TYPE(RETURN_TYPE(Functor(ELEMENT_TYPE(Arr))));
   explicit MappingArray(Arr arr, Functor func)
   : _arr(arr), _func(func) {}
 
   template<typename Idx>
-  RETURN_TYPE(Functor(ELEMENT_TYPE(Arr))) operator[] (Idx index) { return _func(_arr[index]); }
+  std::result_of_t<Functor(ELEMENT_TYPE(Arr))> operator[] (Idx index) { return _func(_arr[index]); }
   size_t size() {return _arr.size(); }
 private:
   Arr _arr;

@@ -1,7 +1,4 @@
-
 /*
- * File TheoryAxioms.hpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -85,12 +82,14 @@ private:
                            Interpretation unaryMinus, TermList zeroElement);
   void addIntegerDividesAxioms(Interpretation divides, Interpretation multiply, TermList zero, TermList n);
 
-  void addBooleanArrayExtensionalityAxioms(unsigned arraySort, unsigned skolem);
-  void addArrayExtensionalityAxioms(unsigned arraySort, unsigned skolem);
-  void addBooleanArrayWriteAxioms(unsigned arraySort);
-  void addArrayWriteAxioms(unsigned arraySort);
+  /**
+   * TODO: we should have polymorphic array axioms only!
+   **/
+  void addBooleanArrayExtensionalityAxioms(TermList arraySort, unsigned skolem);
+  void addArrayExtensionalityAxioms(TermList arraySort, unsigned skolem);
+  void addBooleanArrayWriteAxioms(TermList arraySort);
+  void addArrayWriteAxioms(TermList arraySort);
 
-  void addTupleAxioms(unsigned tupleSort);
   void addFloorAxioms(Interpretation floor, Interpretation less, Interpretation unaryMinus,
                       Interpretation plus, TermList oneElement);
   void addCeilingAxioms(Interpretation ceiling, Interpretation less, Interpretation plus, 

@@ -1,7 +1,4 @@
-
 /*
- * File BackwardDemodulation.cpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -32,6 +29,7 @@
 #include "Kernel/Renaming.hpp"
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/Term.hpp"
+#include "Kernel/RobSubstitution.hpp"
 
 #include "Indexing/Index.hpp"
 #include "Indexing/TermIndex.hpp"
@@ -121,12 +119,27 @@ struct BackwardDemodulation::ResultFn
       return BwSimplificationRecord(0);
     }
 
-    unsigned qrSort = SortHelper::getTermSort(qr.term, qr.literal);
-    if(qrSort!=_eqSort) {
-      return BwSimplificationRecord(0);
+    TermList lhs=arg.first;
+
+    TermList qrSort = SortHelper::getTermSort(qr.term, qr.literal);
+
+    /* The following check replaces the original:
+      "if(qrSort!=_eqSort) {
+         return BwSimplificationRecord(0);
+      }"
+      from the monomorphic setting */
+    if(lhs.isVar()){
+      //when finding instances of a variable, RobSubstitution is used
+      //view Indexing::TermSubstitutionTree::getInstances
+      RobSubstitution* sub = qr.substitution->tryGetRobSubstitution();
+      ASS(sub)
+      //rather than 0 and 1, we should use the constants delared in
+      //substitution tree
+      if(!sub->match(_eqSort, 0, qrSort, 1)){
+        return BwSimplificationRecord(0);        
+      }
     }
 
-    TermList lhs=arg.first;
     TermList rhs=EqHelper::getOtherEqualitySide(_eqLit, lhs);
 
     TermList lhsS=qr.term;
@@ -159,7 +172,7 @@ struct BackwardDemodulation::ResultFn
       TermList other=EqHelper::getOtherEqualitySide(qr.literal, qr.term);
       Ordering::Result tord=_ordering.compare(rhsS, other);
       if(tord!=Ordering::LESS && tord!=Ordering::LESS_EQ) {
-        unsigned eqSort = SortHelper::getEqualityArgumentSort(qr.literal);
+        TermList eqSort = SortHelper::getEqualityArgumentSort(qr.literal);
         Literal* eqLitS=Literal::createEquality(true, lhsS, rhsS, eqSort);
         bool isMax=true;
         Clause::Iterator cit(*qr.clause);
@@ -207,12 +220,11 @@ struct BackwardDemodulation::ResultFn
     ASS_EQ(next,cLen);
 
     env.statistics->backwardDemodulations++;
-
     _removed->insert(qr.clause);
     return BwSimplificationRecord(qr.clause,res);
   }
 private:
-  unsigned _eqSort;
+  TermList _eqSort;
   Literal* _eqLit;
   Clause* _cl;
   SmartPtr<ClauseSet> _removed;

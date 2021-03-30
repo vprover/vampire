@@ -1,7 +1,4 @@
-
 /*
- * File Stack.hpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -289,6 +286,19 @@ public:
 
     return _cursor[-1];
   } // Stack::top()
+
+  /**
+   * Return the top but one of the stack.
+   */
+  inline
+  C& scnd() const
+  {
+    ASS(_cursor > _stack + 1);
+    ASS(_cursor <= _end);
+
+    return _cursor[-2];
+  } // Stack::top()
+
 
   /**
    * Set top to a new value.

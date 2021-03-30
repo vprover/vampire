@@ -1,7 +1,4 @@
-
 /*
- * File SimplifyFalseTrue.cpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -53,6 +50,7 @@ FormulaUnit* SimplifyFalseTrue::simplify (FormulaUnit* unit)
   }
 
   FormulaUnit* res = new FormulaUnit(g,FormulaTransformation(InferenceRule::REDUCE_FALSE_TRUE,unit));
+
   if (env.options->showPreprocessing()) {
     env.beginOutput();
     env.out() << "[PP] simplify in: " << unit->toString() << std::endl;
@@ -418,29 +416,29 @@ TermList SimplifyFalseTrue::simplify(TermList ts)
             (branches[ELSE] == *term->nthArgument(ELSE))) {
           return ts;
         }
-        unsigned sort = sd->getSort();
+        TermList sort = sd->getSort();
         return TermList(Term::createITE(condition, branches[THEN], branches[ELSE], sort));
       }
       case Term::SF_LET: {
         unsigned functor = sd->getFunctor();
-        IntList* variables = sd->getVariables();
+        VList* variables = sd->getVariables();
         TermList binding = simplify(sd->getBinding());
         TermList body = simplify(*term->nthArgument(0));
         if ((binding == sd->getBinding()) && (body == *term->nthArgument(0))) {
           return ts;
         }
-        unsigned sort = sd->getSort();
+        TermList sort = sd->getSort();
         return TermList(Term::createLet(functor, variables, binding, body, sort));
       }
       case Term::SF_LET_TUPLE: {
         unsigned functor = sd->getFunctor();
-        IntList* symbols = sd->getTupleSymbols();
+        VList* symbols = sd->getTupleSymbols();
         TermList binding = simplify(sd->getBinding());
         TermList body = simplify(*term->nthArgument(0));
         if ((binding == sd->getBinding()) && (body == *term->nthArgument(0))) {
           return ts;
         }
-        unsigned sort = sd->getSort();
+        TermList sort = sd->getSort();
         return TermList(Term::createLet(functor, symbols, binding, body, sort));
       }
       case Term::SF_TUPLE: {

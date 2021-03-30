@@ -1,7 +1,4 @@
-
 /*
- * File AnswerExtractor.hpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -69,7 +66,7 @@ public:
   void onNewClause(Clause* cl);
 
 private:
-  Literal* getAnswerLiteral(Formula::VarList* vars,Formula* f);
+  Literal* getAnswerLiteral(VList* vars,Formula* f);
   Unit* tryAddingAnswerLiteral(Unit* unit);
 
   Clause* getResolverClause(unsigned pred);

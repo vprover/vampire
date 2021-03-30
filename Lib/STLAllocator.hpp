@@ -1,7 +1,4 @@
-
 /*
- * File STLAllocator.hpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -20,8 +17,9 @@
  * @author Martin Suda
  */
 
-#ifndef __STLAllocator__ 
-#define __STLAllocator__ 
+#ifndef __STLAllocator__
+#define __STLAllocator__
+
 #include <limits>
 #include <memory>
 #include <utility>

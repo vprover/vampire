@@ -1,7 +1,4 @@
-
 /*
- * File Environment.cpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -62,6 +59,19 @@ Environment::Environment()
   sorts = new Sorts;
   signature = new Signature;
   sharing = new TermSharing;
+
+  //view comment in Signature.cpp
+  signature->addEquality();
+  // Below is a hack. We would like to remove sorts altogether
+  // However, FMB and SubstitutionTree rely on sorts being unsigned
+  // and also require that interpreted sorts are 0 - 5 for efficiency purposes
+  // Therefore, these are added first. Once FMB and SubstitutionTree are 
+  // fixed this hack can be removed AYB.
+  sorts->addSort(Term::defaultSort());
+  sorts->addSort(Term::boolSort());
+  sorts->addSort(Term::intSort());
+  sorts->addSort(Term::realSort());
+  sorts->addSort(Term::rationalSort());
 
   timer = Timer::instance();
   timer->start();
@@ -215,4 +225,6 @@ void Environment::setPriorityOutput(ostream* stm)
 
 }
 
+// global environment object, constructed before main() and used everywhere
+Environment env;
 }

@@ -1,7 +1,4 @@
-
 /*
- * File LaTeX.cpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -253,7 +250,7 @@ vstring LaTeX::toString (Formula* f) const
   case EXISTS:
   {
     vstring result("(");
-    Formula::VarList::Iterator vs(f->vars());
+    VList::Iterator vs(f->vars());
     while (vs.hasNext()) {
       result += con + varToString(vs.next()) + vstring(" ");
     }
