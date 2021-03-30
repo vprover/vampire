@@ -114,13 +114,13 @@ struct BottomUpChildIter<Kernel::PolyNf>
   { ALWAYS(hasNext()); return _self.apply([](auto& x) -> Kernel::PolyNf { return x.next(); }); }
 
   bool hasNext() const 
-  { return _self.apply([](auto& x) -> bool { return x.hasNext(); }); }
+  { return _self.apply([](auto& x) { return x.hasNext(); }); }
 
   unsigned nChildren() const 
-  { return _self.apply([](auto& x) -> unsigned { return x.nChildren(); }); }
+  { return _self.apply([](auto& x) { return x.nChildren(); }); }
 
   Kernel::PolyNf self() const 
-  { return _self.apply([](auto& x) -> Kernel::PolyNf { return Kernel::PolyNf(x._self); }); }
+  { return _self.apply([](auto& x) { return Kernel::PolyNf(x._self); }); }
 
   friend ostream& operator<<(ostream& out, BottomUpChildIter const& self) 
   { return out << self._self; }

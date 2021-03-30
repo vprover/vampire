@@ -1,15 +1,12 @@
-
-  /*
-   * File ArithmeticSubtermGeneralization.hpp.
-   *
-   * This file is part of the source code of the software program
-   * Vampire. It is protected by applicable
-   * copyright laws.
-   *
-   * This source code is distributed under the licence found here
-   * https://vprover.github.io/license.html
-   * and in the source directory
-   */
+/*
+ * This file is part of the source code of the software program
+ * Vampire. It is protected by applicable
+ * copyright laws.
+ *
+ * This source code is distributed under the licence found here
+ * https://vprover.github.io/license.html
+ * and in the source directory
+ */
 
 #ifndef __ARITHMETIC_SUBTERM_GENERALIZATION__
 #define __ARITHMETIC_SUBTERM_GENERALIZATION__
