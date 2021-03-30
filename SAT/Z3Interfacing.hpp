@@ -1,7 +1,4 @@
-
 /*
- * File Z3Interfacing.hpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -116,14 +113,6 @@ public:
   virtual Status solveUnderAssumptions(const SATLiteralStack& assumps, unsigned c, bool p) override
   { return solveUnderAssumptions(assumps,c,p,false); }
 
- /**
-  * Record the association between a SATLiteral var and a Literal
-  * In TWLSolver this is used for computing niceness values
-  */
-  virtual void recordSource(unsigned satlitvar, Literal* lit) override {
-    // unsupported by Z3; intentionally no-op
-  };
-  
   /**
    * The set of inserted clauses may not be propositionally UNSAT
    * due to theory reasoning inside Z3.
@@ -148,7 +137,7 @@ private:
   SAT2FO& sat2fo;
 
   //DHMap<unsigned,Z3_sort> _sorts;
-  z3::sort getz3sort(unsigned s);
+  z3::sort getz3sort(TermList s);
 
   // Helper funtions for the translation
   z3::expr to_int(z3::expr e) {
@@ -171,8 +160,8 @@ private:
         return ite(e >= 0, to_int(e), ceiling(e));
   }
 
-  void addTruncatedOperations(z3::expr_vector, Interpretation qi, Interpretation ti, unsigned srt);
-  void addFloorOperations(z3::expr_vector, Interpretation qi, Interpretation ti, unsigned srt);
+  void addTruncatedOperations(z3::expr_vector, Interpretation qi, Interpretation ti, TermList srt);
+  void addFloorOperations(z3::expr_vector, Interpretation qi, Interpretation ti, TermList srt);
   void addIntNonZero(z3::expr);
   void addRealNonZero(z3::expr);
 

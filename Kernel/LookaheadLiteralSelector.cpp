@@ -1,7 +1,4 @@
-
 /*
- * File LookaheadLiteralSelector.cpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -104,7 +101,7 @@ struct LookaheadLiteralSelector::GenIteratorIterator
       ASS(fsi);
 
       nextIt=pvi( getMapAndFlattenIterator(
-	       EqHelper::getRewritableSubtermIterator(lit, _parent._ord),
+	       EqHelper::getSubtermIterator(lit, _parent._ord), //TODO update for combinatory sup
 	       TermUnificationRetriever(fsi)) );
       break;
     }

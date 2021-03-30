@@ -1,0 +1,15 @@
+#!/bin/sh
+
+vampire=`pwd`/$1
+szs_theorem() {
+	out=`cd checks && $vampire -t 1 $@`
+	szs=`echo "$out" | egrep "^% SZS status Theorem for .+$"`
+	if test -z "$szs"
+	then
+		echo "$@ failed: should have been SZS Theorem"
+		echo "$out"
+		exit 1
+	fi
+}
+
+szs_theorem Problems/PUZ/PUZ001+1.p

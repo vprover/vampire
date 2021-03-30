@@ -1,17 +1,12 @@
-
-  /*
-   * File SyntaxSugar.hpp.
-   *
-   * This file is part of the source code of the software program
-   * Vampire. It is protected by applicable
-   * copyright laws.
-   *
-   * This source code is distributed under the licence found here
-   * https://vprover.github.io/license.html
-   * and in the source directory
-   */
-
-
+/*
+ * This file is part of the source code of the software program
+ * Vampire. It is protected by applicable
+ * copyright laws.
+ *
+ * This source code is distributed under the licence found here
+ * https://vprover.github.io/license.html
+ * and in the source directory
+ */
 /**! This file contains macros to provide syntax sugar for building formulas,
  * terms, etc. for test cases.
  *
@@ -39,9 +34,9 @@
 #include "Kernel/Sorts.hpp"
 #include "Shell/TermAlgebra.hpp"
 
-#define __TO_SORT_RAT Sorts::SRT_RATIONAL
-#define __TO_SORT_INT Sorts::SRT_INTEGER
-#define __TO_SORT_REAL Sorts::SRT_REAL
+#define __TO_SORT_RAT RationalConstantType::getSort()
+#define __TO_SORT_INT IntegerConstantType::getSort()
+#define __TO_SORT_REAL RealConstantType::getSort()
 
 #define __CONSTANT_TYPE_INT  IntegerConstantType
 #define __CONSTANT_TYPE_REAL RealConstantType
@@ -145,7 +140,7 @@
   _Pragma("GCC diagnostic ignored \"-Wunused\"")                                                              \
     using NumTraits = Sort##Traits;                                                                           \
     syntaxSugarGlobals().setNumTraits(NumTraits{});                                                           \
-    auto Sort = SortSugar(NumTraits::sort);                                                                   \
+    auto Sort = SortSugar(NumTraits::sort());                                                                 \
   _Pragma("GCC diagnostic pop")                                                                               \
 
 #define DECL_TERM_ALGEBRA(...) createTermAlgebra(__VA_ARGS__);
@@ -153,18 +148,19 @@
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // implementation
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////
+using SortId = TermList;
 
 struct SortSugar 
 {
-  unsigned _srtNumber;
+  SortId _srt;
 
-  SortSugar(unsigned srtNumber) : _srtNumber(srtNumber) {}
+  SortSugar(SortId srt) : _srt(srt) {}
 public:
   SortSugar(const char* name) 
-    : SortSugar(env.sorts->addSort(name, false)) 
+    : SortSugar(env.sorts->addSort(name)) 
   {  }
 
-  unsigned sortNumber() const { return _srtNumber; }
+  SortId sortId() const { return _srt; }
 };
 
 class TermSugar;
@@ -280,7 +276,7 @@ public:
 
   static TermSugar createConstant(const char* name, SortSugar s) {
     unsigned f = env.signature->addFunction(name,0);                                                                
-    env.signature->getFunction(f)->setType(OperatorType::getFunctionType({}, s.sortNumber())); 
+    env.signature->getFunction(f)->setType(OperatorType::getFunctionType({}, s.sortId())); 
     return TermSugar(TermList(Term::createConstant(f)));                                                          
   }                                                                                                                 
 };
@@ -346,7 +342,7 @@ inline TermSugar operator-(TermSugar x) { return syntaxSugarGlobals().minus(x); 
 
 inline Lit operator==(TermSugar lhs, TermSugar rhs) 
 {
-  unsigned sort;
+  SortId sort;
   ALWAYS(SortHelper::tryGetResultSort(lhs, sort) || SortHelper::tryGetResultSort(rhs, sort));
   return Literal::createEquality(true, lhs, rhs, sort);
 }
@@ -368,9 +364,7 @@ inline Lit operator~(Lit lit)
 }
 
 inline Lit operator!=(TermSugar lhs, TermSugar rhs) 
-{
-  return ~(lhs == rhs);
-}
+{ return ~(lhs == rhs); }
 
 __IMPL_NUMBER_BIN_FUN(operator==, Lit)
 __IMPL_NUMBER_BIN_FUN(operator!=, Lit)
@@ -391,9 +385,9 @@ public:
 
   FuncSugar(vstring const& name, Stack<SortSugar> as_, SortSugar result) 
   {
-    Stack<unsigned> as;
+    Stack<SortId> as;
     for (auto a : as_) 
-      as.push(a.sortNumber());
+      as.push(a.sortId());
 
     bool added = false;
     _functor = env.signature->addFunction(name, as.size(), added);
@@ -401,7 +395,7 @@ public:
     if (added)
       env.signature
         ->getFunction(_functor)
-        ->setType(OperatorType::getFunctionType(as.size(), as.begin(), result.sortNumber()));    
+        ->setType(OperatorType::getFunctionType(as.size(), as.begin(), result.sortId()));    
   }
 
   FuncSugar dtor(unsigned i) const {
@@ -441,9 +435,9 @@ public:
   PredSugar(const char* name, Stack<SortSugar> args) 
   {
     BYPASSING_ALLOCATOR
-    Stack<unsigned> as;
+    Stack<SortId> as;
     for (auto a : args) {
-      as.push(a.sortNumber());
+      as.push(a.sortId());
     }
     _functor = env.signature->addPredicate(name, as.size());
     env.signature
@@ -510,7 +504,7 @@ inline void createTermAlgebra(SortSugar sort, initializer_list<FuncSugar> fs) {
     }
     cons.push(new TermAlgebraConstructor(f.functor(), dtors));
   }
-  env.signature->addTermAlgebra(new TermAlgebra(sort.sortNumber(), cons.size(), cons.begin()));
+  env.signature->addTermAlgebra(new TermAlgebra(sort.sortId(), cons.size(), cons.begin()));
 }
 
 #endif // __TEST__SYNTAX_SUGAR__H__

@@ -1,7 +1,4 @@
-
 /*
- * File TautologyDeletionISE.cpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -70,20 +67,20 @@ Clause* TautologyDeletionISE::simplify(Clause* c)
     switch (compare(plits[p],nlits[n]))
       {
       case -1:
-	p++;
-	if (p >= pos) {
-	  return c;
-	}
-	break;
+        p++;
+        if (p >= pos) {
+          return c;
+        }
+        break;
       case 0:
-	env.statistics->simpleTautologies++;
-	return 0;
+        env.statistics->simpleTautologies++;
+        return 0;
       case 1:
-	n++;
-	if (n >= neg) {
-	  return c;
-	}
-	break;
+        n++;
+        if (n >= neg) {
+          return c;
+        }
+        break;
       }
   }
 }

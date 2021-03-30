@@ -1,16 +1,12 @@
-
-  /*
-   * File Inverters.cpp.
-   *
-   * This file is part of the source code of the software program
-   * Vampire. It is protected by applicable
-   * copyright laws.
-   *
-   * This source code is distributed under the licence found here
-   * https://vprover.github.io/license.html
-   * and in the source directory
-   */
-
+/*
+ * This file is part of the source code of the software program
+ * Vampire. It is protected by applicable
+ * copyright laws.
+ *
+ * This source code is distributed under the licence found here
+ * https://vprover.github.io/license.html
+ * and in the source directory
+ */
 #include "Inverters.hpp"
 #include "Debug/Tracer.hpp"
 
@@ -42,7 +38,7 @@ TermList doInvertMulInt(const InversionContext &ctxt);
 template <class Number> bool nonZero(const TermList &t);
 
 bool dtorIsPredicate(Signature::Symbol const& ctor, unsigned index) 
-{ return ctor.fnType()->arg(index) == Sorts::SRT_BOOL; }
+{ return ctor.fnType()->arg(index) == Term::boolSort(); }
 
 bool NumberTheoryInverter::canInvertTop(const InversionContext &ctxt) {
   CALL("NumberTheoryInverter::canInvertTop")

@@ -1,7 +1,4 @@
-
 /*
- * File Statistics.hpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -131,6 +128,18 @@ public:
   unsigned inductionInProof;
   unsigned generalizedInduction;
   unsigned generalizedInductionInProof;
+  /** number of argument congruences */
+  unsigned argumentCongruence;
+  unsigned narrow;
+  unsigned forwardSubVarSup;
+  unsigned backwardSubVarSup;
+  unsigned selfSubVarSup;
+  unsigned negativeExtensionality;
+  unsigned primitiveInstantiations;
+  unsigned choiceInstances;
+  unsigned proxyEliminations;
+  unsigned leibnizElims;
+  unsigned booleanSimps;
 
   // Simplifying inferences
   /** number of duplicate literals deleted */
@@ -207,6 +216,11 @@ public:
   unsigned taNegativeInjectivitySimplifications;
   unsigned taAcyclicityGeneratedDisequalities;
 
+  //to be moved to the property object once that 
+  //is controlled by environment
+  bool higherOrder;
+  bool polymorphic;
+
   // Saturation
   /** all clauses ever occurring in the unprocessed queue */
   unsigned generatedClauses;
@@ -243,20 +257,11 @@ public:
   unsigned unitSatClauses;
   /** Number of binary clauses generated for the SAT solver */
   unsigned binarySatClauses;
-  /** Number of clauses learned by the SAT solver */
-  unsigned learntSatClauses;
-  /** Number of literals in clauses learned by the SAT solver */
-  unsigned learntSatLiterals;
 
   unsigned satSplits;
   unsigned satSplitRefutations;
 
   unsigned smtFallbacks;
-
-  /* the next three variables keep statistics for Vampire default sat solver*/
-  unsigned satTWLClauseCount;
-  unsigned satTWLVariablesCount;
-  unsigned satTWLSATCalls;
 
   unsigned instGenGeneratedClauses;
   unsigned instGenRedundantClauses;

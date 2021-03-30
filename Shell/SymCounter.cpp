@@ -1,7 +1,4 @@
-
 /*
- * File SymCounter.cpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -232,6 +229,13 @@ void SymCounter::count(Term* term, int polarity, int add)
         }
         case Term::SF_TUPLE: {
           count(sd->getTupleTerm(), 0, add);
+          break;
+        }
+        case Term::SF_LAMBDA: {
+          TermList lambdaExp = sd->getLambdaExp();
+          if(lambdaExp.isTerm()){
+            count(lambdaExp.term(), polarity, add);
+          }
           break;
         }
         default:

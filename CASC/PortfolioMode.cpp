@@ -1,6 +1,4 @@
 /*
- * File PortfolioMode.cpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -291,6 +289,10 @@ void PortfolioMode::getSchedules(Property& prop, Schedule& quick, Schedule& fall
     Schedules::getCascSat2019Schedule(prop,quick,fallback);
     break;
 
+  case Options::Schedule::CASC_HOL_2020:
+    Schedules::getHigherOrderSchedule2020(quick,fallback);
+    break;
+
   case Options::Schedule::SMTCOMP:
   case Options::Schedule::SMTCOMP_2018:
     Schedules::getSmtcomp2018Schedule(prop,quick,fallback);
@@ -507,6 +509,7 @@ void PortfolioMode::runSlice(Options& strategyOpt)
       _syncSemaphore.set(SEM_PRINTED,1);
       outputResult = true;
     }
+
   }
 
   if((outputAllowed() && resultValue) || outputResult) { // we can report on every failure, but only once on success

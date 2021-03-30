@@ -1,7 +1,4 @@
-
 /*
- * File Splitter.cpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -41,7 +38,6 @@
 
 #include "SAT/Preprocess.hpp"
 #include "SAT/SATInference.hpp"
-#include "SAT/TWLSolver.hpp"
 #include "SAT/MinimizingSolver.hpp"
 #include "SAT/BufferedSolver.hpp"
 #include "SAT/FallbackSolverWrapper.hpp"
@@ -71,9 +67,6 @@ void SplittingBranchSelector::init()
   _literalPolarityAdvice = _parent.getOptions().splittingLiteralPolarityAdvice();
 
   switch(_parent.getOptions().satSolver()){
-    case Options::SatSolver::VAMPIRE:  
-      _solver = new TWLSolver(_parent.getOptions(), true);
-      break;
     case Options::SatSolver::MINISAT:
       _solver = new MinisatInterfacing(_parent.getOptions(),true);
       break;      
@@ -435,8 +428,8 @@ SATSolver::Status SplittingBranchSelector::processDPConflicts()
 
     // there was conflict, so we try looking for a different model
     {
-    	TimeCounter tca(TC_SAT_SOLVER);
-    	
+      TimeCounter tca(TC_SAT_SOLVER);
+      
       if (_solver->solve() == SATSolver::UNSATISFIABLE) {
         return SATSolver::UNSATISFIABLE;
       }
@@ -1048,7 +1041,7 @@ bool Splitter::getComponents(Clause* cl, Stack<LiteralStack>& acc)
     while(vit.hasNext()) {
       unsigned master=varMasters.findOrInsert(vit.next().var(), i);
       if(master!=i) {
-	components.doUnion(master, i);
+  components.doUnion(master, i);
       }
     }
   }
@@ -1537,7 +1530,7 @@ void Splitter::onNewClause(Clause* cl)
   //  isComponent = _componentIdx->retrieveVariants(cl).hasNext();
   //}
   //if(isComponent){
-  //	RSTAT_CTR_INC("New Clause is a Component");
+  //  RSTAT_CTR_INC("New Clause is a Component");
   //}
 
   if(!cl->splits()) {

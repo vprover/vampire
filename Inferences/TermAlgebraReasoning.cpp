@@ -1,7 +1,4 @@
-
 /*
- * File TermAlgebraReasoning.cpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -437,7 +434,7 @@ namespace Inferences {
     ASS(tl->isTerm());
     Term *t = tl->term();
     
-    unsigned sort = SortHelper::getResultSort(t);
+    TermList sort = SortHelper::getResultSort(t);
     ASS(env.signature->isTermAlgebraSort(sort));
 
     if (env.signature->getTermAlgebraOfSort(sort)->allowsCyclicTerms()) {
@@ -518,7 +515,7 @@ namespace Inferences {
     Literal *_lit;
     Stack<TermList*> _subterms;
     bool _leftSide;
-    unsigned _sort;
+    TermList _sort;
   };
 
   struct AcyclicityGIE1::SubtermDisequalityFn

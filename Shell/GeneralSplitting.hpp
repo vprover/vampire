@@ -1,7 +1,4 @@
-
 /*
- * File GeneralSplitting.hpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -36,7 +33,6 @@ public:
   bool apply(ClauseList*& units);
 private:
   bool apply(Clause*& cl, UnitList*& resultStack);
-
 };
 
 };

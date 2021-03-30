@@ -1,7 +1,4 @@
-
 /*
- * File ExtensionalityResolution.cpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -62,7 +59,7 @@ struct ExtensionalityResolution::ForwardPairingFn
       return VirtualIterator<pair<Literal*, ExtensionalityClause> >::getEmpty();
     }
 
-    unsigned s = SortHelper::getEqualityArgumentSort(lit);
+    TermList s = SortHelper::getEqualityArgumentSort(lit);
     
     return pvi(
       pushPairIntoRightIterator(
@@ -128,7 +125,7 @@ private:
  */
 struct ExtensionalityResolution::NegEqSortFn
 {
-  NegEqSortFn (unsigned sort) : _sort(sort) {}
+  NegEqSortFn (TermList sort) : _sort(sort) {}
   bool operator()(Literal* lit)
   {
     CALL("ExtensionalityResolution::NegEqSortFn::operator()");
@@ -137,7 +134,7 @@ struct ExtensionalityResolution::NegEqSortFn
       SortHelper::getEqualityArgumentSort(lit) == _sort;
   }
 private:
-  unsigned _sort;
+  TermList _sort;
 };
 
 /**
@@ -146,7 +143,7 @@ private:
  */
 struct ExtensionalityResolution::BackwardPairingFn
 {
-  BackwardPairingFn (unsigned sort) : _sort(sort) {}
+  BackwardPairingFn (TermList sort) : _sort(sort) {}
   VirtualIterator<pair<Clause*, Literal*> > operator()(Clause* cl)
   {
     CALL("ExtensionalityResolution::BackwardPairingFn::operator()");
@@ -158,7 +155,7 @@ struct ExtensionalityResolution::BackwardPairingFn
           NegEqSortFn(_sort))));
   }
 private:
-  unsigned _sort;
+  TermList _sort;
 };
 
 /**

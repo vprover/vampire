@@ -1,7 +1,4 @@
-
 /*
- * File Preprocess.hpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -55,7 +52,7 @@ public:
 private:
   void preprocess2(Problem& prb);
   void naming(Problem& prb);
-  Unit* preprocess3(Unit* u);
+  Unit* preprocess3(Unit* u, bool appify /*higher order stuff*/);
   void preprocess3(Problem& prb);
   void clausify(Problem& prb);
 

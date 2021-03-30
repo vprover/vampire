@@ -1,7 +1,4 @@
-
 /*
- * File FormulaBuilder.hpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -21,7 +18,7 @@
 #include <ostream>
 #include <climits>
 
-#include "Helper.hpp"
+//#include "Helper.hpp"
 
 #include "Lib/VString.hpp"
 

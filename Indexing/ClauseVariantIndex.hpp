@@ -1,7 +1,4 @@
-
 /*
- * File ClauseVariantIndex.hpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -24,6 +21,8 @@
 #include "Lib/Array.hpp"
 #include "Lib/List.hpp"
 #include "Lib/DHMap.hpp"
+
+#include "Kernel/Term.hpp"
 
 namespace Indexing {
 

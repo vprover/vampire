@@ -1,7 +1,4 @@
-
 /*
- * File Helper_Internal.hpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -43,8 +40,6 @@ namespace Api {
 
 using namespace Shell;
 
-typedef Kernel::Formula::VarList VarList;
-
 class DefaultHelperCore
 {
 public:
@@ -67,7 +62,7 @@ public:
 private:
   struct Var2NameMapper;
 public:
-  StringIterator getVarNames(VarList* l);
+  StringIterator getVarNames(VList* l);
 
   static vstring getDummyName(bool pred, unsigned functor);
   static vstring getDummyName(const Kernel::Term* t);
