@@ -286,7 +286,7 @@ void Options::init()
                                   "The file name will be of the format <problem name>-vampire.proof.\n"
                                   "Currently, this option only works in portfolio mode.";
     _lookup.insert(&_printProofToFile);
-    _printProofToFile.reliesOn(_outputFileLocation.is(notEqual(emptyString)));
+    // _printProofToFile.reliesOn(_outputFileLocation.is(notEqual(emptyString)));
     _printProofToFile.tag(OptionTag::OUTPUT);
 
     _outputFileLocation = StringOptionValue("proof_output_directory","pod","");
