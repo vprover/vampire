@@ -140,31 +140,21 @@ struct Preprocess
       auto vars = varIter.map([](MonomFactor<NumTraits> factor) { return factor.term.template unwrap<Variable>(); });
 
       if (vars.hasNext())  {
-        auto fst = vars.next();
-        auto cur = root(fst);
-
+        auto cur = root(vars.next());
 
         varSet(cur) = std::move(varSet(cur)).meet(move(varStack));
 
         for (auto var : vars) {
-          cur = unionMeet(cur, root(var));
+          cur = joinRegions(cur, root(var));
         }
 
       }
     }
   }
 
-  void dbgState() const {
-    DEBUG("---------------------");
-    for (int i = 0; i < varMap.size(); i++) {
-      DEBUG(varMap.fromInt(i), " -> ", varMap.fromInt(components.root(i)), " -> ", varRegions[components.root(i)]);
-    }
-    DEBUG("---------------------");
-  }
-
-  int unionMeet(int v, int w)
+  int joinRegions(int v, int w)
   {
-    CALL("Preprocess::unionMeet()")
+    CALL("Preprocess::joinRegions()")
     if (v == w) return v;
 
     components.doUnion(v,w);

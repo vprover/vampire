@@ -27,47 +27,14 @@ template<class NumTraits>
 using Numeral = typename NumTraits::ConstantType;
 using NumeralMap = Map<Variable, FlatMeetLattice<AnyNumber<Numeral>>>;
 
-struct Preprocess 
-{
-  NumeralMap& numerals;
+bool canDivideBy(IntegerConstantType i) 
+{ return i == IntegerConstantType(1) || i == IntegerConstantType(-1); }
 
-  bool canDivideBy(IntegerConstantType i) 
-  { return i == IntegerConstantType(1) || i == IntegerConstantType(-1); }
+bool canDivideBy(RationalConstantType i) 
+{ return i != RationalConstantType(0); }
 
-  bool canDivideBy(RationalConstantType i) 
-  { return i != RationalConstantType(0); }
-
-  bool canDivideBy(RealConstantType i) 
-  { return i != RealConstantType(0); }
-
-  template<class NumTraits> 
-  void operator()(Perfect<Polynom<NumTraits>> poly)
-  {
-    CALL("Preprocess::operator()")
-
-    for (auto monom : poly->iterSummands()) {
-      for (auto factor : monom.factors->iter()) {
-        
-        auto v = factor.term.tryVar();
-        if (v.isSome()) {
-          auto numeral = FlatMeetLattice<AnyNumber<Numeral>>(AnyNumber<Numeral>(monom.numeral));
-          if (factor.power == 1 && canDivideBy(monom.numeral)) {
-            numerals.updateOrInit(v.unwrap(), 
-                /* update function */
-                [&](FlatMeetLattice<AnyNumber<Numeral>> n) 
-                { return n.meet(numeral); },
-                /* init function */
-                [&]() { return numeral; });
-          } else {
-            ASS_NEQ(factor.power, 0)
-            numerals.replaceOrInsert(v.unwrap(), FlatMeetLattice<AnyNumber<Numeral>>::bot());
-          }
-        }
-      }
-    }
-  }
-};
-
+bool canDivideBy(RealConstantType i) 
+{ return i != RealConstantType(0); }
 
 /** 
  * A polymorphic closure to bottom-up evaluate clause bottom-up that replaces all occurences of the factors in the field `toRem`
@@ -94,12 +61,7 @@ struct Generalize
   }
 };
 
-struct IsOne {
-  template<class C> 
-  bool operator()(C numeral) const 
-  { return C(1) == numeral; }
-};
-
+const auto isOne = [](auto x) { return decltype(x)(1) == x; };
 
 /** applies the rule */ 
 SimplifyingGeneratingInference1::Result applyRule(Clause* cl, bool doOrderingCheck) 
@@ -108,14 +70,40 @@ SimplifyingGeneratingInference1::Result applyRule(Clause* cl, bool doOrderingChe
 
   NumeralMap numerals;
 
+  /* scan candidate numeral multiplications n * x  */
   for (auto poly : iterPolynoms(cl)) {
-    poly.apply(Preprocess {numerals});
+    poly.apply([&](auto& poly) {
+      for (auto monom : poly->iterSummands()) {
+        for (auto factor : monom.factors->iter()) {
+          
+          auto var = factor.term.tryVar();
+          if (var.isSome()) {
+            auto numeral = FlatMeetLattice<AnyNumber<Numeral>>(AnyNumber<Numeral>(monom.numeral));
+
+            if (factor.power == 1 && canDivideBy(monom.numeral)) {
+              /* we found numeral * var */
+              numerals.updateOrInit(var.unwrap(), 
+                  /* update the numeral if there was already one associated with this variable */
+                  [&](auto n) 
+                  { return n.meet(numeral); },
+                  /* init the numeral if there was none */
+                  [&]() { return numeral; });
+            } else {
+              ASS_NEQ(factor.power, 0)
+              /* x^n ==> we cannot generalize. hence we set the numeral for this variable to bottom. */
+              numerals.replaceOrInsert(var.unwrap(), FlatMeetLattice<AnyNumber<Numeral>>::bot());
+            }
+          }
+        }
+      }
+    });
   }
 
+  /* select one of the variables we can generalize on */
   Option<typename NumeralMap::Entry &> selected;
   for (auto& e : iterTraits(numerals.iter()) ) {
     FlatMeetLattice<AnyNumber<Numeral>> num = e.value();
-    if (!num.isBot() && !num.unwrap().apply(IsOne{})) {
+    if (!num.isBot() && !num.unwrap().apply(isOne)) {
       /* we use the entry with the least variable, in order to prevent non-determinism */
       if (selected.isNone() || e.key() < selected.unwrap().key()) {
         selected = decltype(selected)(e);
