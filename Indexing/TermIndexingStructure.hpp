@@ -47,7 +47,6 @@ public:
 
   friend std::ostream& operator<<(std::ostream& out, TermIndexingStructure const& self) 
   { return self.output(out); }
-
 };
 
 };
