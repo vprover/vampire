@@ -33,7 +33,6 @@ namespace TL = TypeList;
 template <class... As> 
 class Coproduct;
 
-
 namespace CoproductImpl {
 
   template <class... As> union VariadicUnion;
@@ -415,6 +414,7 @@ public:
 }; // class Coproduct<A, As...> 
 
 
+
 namespace TL = TypeList;
 
 template<class... Ords> struct CoproductOrdering 
@@ -438,6 +438,7 @@ template<template<class> class Ord> struct PolymorphicCoproductOrdering
   { return CoproductOrdering<Ord<As>...>{}(lhs,rhs); }
 };
 
+} // Lib
 
 template<class... Ts> struct std::hash<Lib::Coproduct<Ts...>>
 {
