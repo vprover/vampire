@@ -155,6 +155,7 @@ typedef Stack<Constraint*> ConstraintStack;
 typedef Stack<ConstraintRCPtr> ConstraintRCStack;
 
 class TermList;
+typedef TermList SortId;
 typedef VirtualIterator<TermList> TermIterator;
 typedef Stack<TermList> TermStack;
 
@@ -429,12 +430,6 @@ typedef Stack<BoundInfo> BoundStack;
 }
 
 template<class F, class... As> using ResultOf = typename std::result_of<F(As...)>::type;
-
-namespace std {
-  template<class A, class B>
-  ostream& operator<<(ostream& out, pair<A,B> const& self)
-  { return out << "(" << self.first << ", " << self.second << ")"; }
-}
 
 namespace std {
   template<class A, class B>

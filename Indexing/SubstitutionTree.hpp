@@ -941,7 +941,6 @@ public:
 
   int _iteratorCnt;
 #endif
-  Shell::Options::UnificationWithAbstraction const _uwa;
 
 public:
   friend std::ostream& operator<<(std::ostream& out, SubstitutionTree const& self)
