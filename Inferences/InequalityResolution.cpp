@@ -306,7 +306,7 @@ ClauseIterator InequalityResolution::generateClauses(Clause* cl1, Literal* liter
 
                     auto cl2   = res.clause;
                     auto term2 =
-                      normalizeTerm(TypedTermList(res.term, NumTraits::sort))
+                      normalizeTerm(TypedTermList(res.term, NumTraits::sort()))
 #if OVERFLOW_SAFE
                         /* the term might also be a polynom if we for example can't multily out 2 * (k + x) 
                           * to 2k + 2x because 2k would overflow */
@@ -365,7 +365,7 @@ ClauseIterator InequalityResolution::generateClauses(Clause* cl1, Literal* liter
                                           .mapVars([&](Variable v) { 
                                             auto var = TermList::var(v.id());
                                             auto t = subs.applyTo(var, resultVarBank);
-                                            auto normVar = normalizeTerm(TypedTermList(t, NumTraits::sort)); 
+                                            auto normVar = normalizeTerm(TypedTermList(t, NumTraits::sort())); 
                                             return normVar;
                                           }); 
                                         return out;
@@ -421,7 +421,7 @@ ClauseIterator InequalityResolution::generateClauses(Clause* cl1, Literal* liter
                           auto toTerm = [&](pair<TermList, unsigned> const& weirdConstraintPair) -> TermList
                                         { return subs.applyTo(weirdConstraintPair.first, weirdConstraintPair.second); };
                           // t1\sigma != c2\simga
-                          push(Literal::createEquality(false, toTerm(c.first), toTerm(c.second), NumTraits::sort));
+                          push(Literal::createEquality(false, toTerm(c.first), toTerm(c.second), NumTraits::sort()));
                         }
                       }
 

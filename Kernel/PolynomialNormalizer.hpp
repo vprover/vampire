@@ -53,7 +53,8 @@ using NormalizationResult = Coproduct<PolyNf
         >;
 
 PolyNf normalizeTerm(TypedTermList t);
-inline PolyNf normalizeTerm(TermList t, unsigned sort)
+
+inline PolyNf normalizeTerm(TermList t, SortId sort)
 { return normalizeTerm(TypedTermList(t,sort)); }
 
 inline PolyNf normalizeTerm(Term* t)

@@ -48,10 +48,6 @@ public:
   friend std::ostream& operator<<(std::ostream& out, TermIndexingStructure const& self) 
   { return self.output(out); }
 
-#if VDEBUG
-  virtual void markTagged() = 0;
-#endif
-
 };
 
 };

@@ -79,9 +79,6 @@ public:
 
   // Tags are used as a debug tool to turn debugging on for a particular instance
   bool tag;
-  virtual void markTagged(){ tag=true;}
-
-//protected:
 
   struct LeafData {
     LeafData() {}
@@ -718,6 +715,7 @@ public:
   ZIArray<Node*> _nodes;
   /** enable searching with constraints for this tree */
   bool _useC;
+  Shell::Options::UnificationWithAbstraction const _uwa;
   /** functional subterms of a term are replaced by extra sepcial
       variables before being inserted into the tree */
   bool _rfSubs;
@@ -905,7 +903,9 @@ public:
     bool useUWAConstraints;
     bool useHOConstraints;
     UnificationConstraintStack constraints;
+    Options::UnificationWithAbstraction const uwa;
   };
+  friend class UnificationsIterator;
 
 /*
   class GeneralizationsIterator
@@ -941,7 +941,6 @@ public:
 
   int _iteratorCnt;
 #endif
-  Shell::Options::UnificationWithAbstraction const _uwa;
 
 public:
   friend std::ostream& operator<<(std::ostream& out, SubstitutionTree const& self)

@@ -36,7 +36,7 @@ using namespace Lib;
 using namespace Kernel;
 
 TypeSubstitutionTree::TypeSubstitutionTree()
-: SubstitutionTree(env.signature->functions())
+: SubstitutionTree(env.signature->functions(), Options::UnificationWithAbstraction::OFF)
 {
 }
 
@@ -302,6 +302,8 @@ TermQueryResultIterator TypeSubstitutionTree::getAllUnifyingIterator(TermList tr
 }
 
 
+std::ostream& TypeSubstitutionTree::output(std::ostream& out) const 
+{ return out << "TypeSubstitutionTree(...)"; }
 
 
 }

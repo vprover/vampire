@@ -428,6 +428,7 @@ class BoundInfo;
 typedef Stack<BoundInfo> BoundStack;
 }
 
+template<class F, class... As> using ResultOf = typename std::result_of<F(As...)>::type;
 
 namespace std {
   template<class A, class B>

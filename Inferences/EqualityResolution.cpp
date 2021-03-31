@@ -106,7 +106,7 @@ struct EqualityResolution::ResultFn
     subst.setMap(&funcSubtermMap);
 
     if(use_uwa_handler){
-      UWAMismatchHandler hndlr(constraints);
+      UWAMismatchHandler hndlr(env.options->unificationWithAbstraction(),constraints);
       if(!subst.unify(arg0,0,arg1,0,&hndlr)){ 
         return 0; 
       }

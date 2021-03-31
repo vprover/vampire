@@ -436,8 +436,8 @@ public:
           ->destructorFunctor(i));
   }
 
-  unsigned result()        const { return symbol()->fnType()->result(); }
-  unsigned arg(unsigned i) const { return symbol()->fnType()->arg(i); }
+  auto result()        const { return symbol()->fnType()->result(); }
+  auto arg(unsigned i) const { return symbol()->fnType()->arg(i); }
 
   template<class... As>
   TermSugar operator()(As... args) const {

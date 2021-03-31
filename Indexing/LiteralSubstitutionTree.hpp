@@ -51,11 +51,6 @@ public:
   SLQueryResultIterator getVariants(Literal* lit,
 	  bool complementary, bool retrieveSubstitutions);
 
-#if VDEBUG
-  virtual void markTagged(){ SubstitutionTree::markTagged();}
-  vstring toString() {return SubstitutionTree::toString();}
-#endif
-
 private:
   struct SLQueryResultFunctor;
   struct LDToSLQueryResultFn;

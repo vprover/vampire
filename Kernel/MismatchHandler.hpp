@@ -43,15 +43,14 @@ private:
   bool checkUWA(TermList t1, TermList t2); 
   virtual bool introduceConstraint(TermList t1,unsigned index1, TermList t2, unsigned index2);
 
-  Stack<UnificationConstraint>& constraints;
   const Shell::Options::UnificationWithAbstraction _mode;
-  // unsigned specialVar;
+  Stack<UnificationConstraint>& _constraints;
 };
 
 class HOMismatchHandler : public MismatchHandler
 {
 public:
-  HOMismatchHandler(UnificationConstraintStack& c) : constraints(c) {}
+  HOMismatchHandler(UnificationConstraintStack& c) : _constraints(c) {}
   
   virtual bool handle(RobSubstitution* sub, TermList t1, unsigned index1, TermList t2, unsigned index2);
 
@@ -60,9 +59,7 @@ public:
 
 private:
 
-  Shell::Options::UnificationWithAbstraction const _mode;
   Stack<UnificationConstraint>& _constraints;
-  // unsigned specialVar;
 };
 
 

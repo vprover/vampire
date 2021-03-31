@@ -682,7 +682,8 @@ SubstitutionTree::UnificationsIterator::UnificationsIterator(SubstitutionTree* p
 svStack(32), literalRetrieval(query->isLiteral()),
   retrieveSubstitution(retrieveSubstitution), inLeaf(false),
 ldIterator(LDIterator::getEmpty()), nodeIterators(8), bdStack(8),
-clientBDRecording(false), tree(parent), useUWAConstraints(useC)
+clientBDRecording(false), tree(parent), useUWAConstraints(useC),
+  uwa(parent->_uwa)
 {
   CALL("SubstitutionTree::UnificationsIterator::UnificationsIterator");
 
@@ -951,7 +952,7 @@ bool SubstitutionTree::UnificationsIterator::associate(TermList query, TermList 
   CALL("SubstitutionTree::UnificationsIterator::associate");
 
   if(useUWAConstraints){ 
-    SubstitutionTreeMismatchHandler hndlr(constraints,bd);
+    SubstitutionTreeMismatchHandler hndlr(uwa, constraints, bd);
     return subst.unify(query,NORM_QUERY_BANK,node,NORM_RESULT_BANK,&hndlr);
   } 
   if(useHOConstraints){

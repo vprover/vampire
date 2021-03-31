@@ -78,8 +78,7 @@ bool UWAMismatchHandler::checkUWA(TermList t1, TermList t2)
 
 bool UWAMismatchHandler::introduceConstraint(TermList t1,unsigned index1, TermList t2,unsigned index2)
 {
-  auto constraint = make_pair(make_pair(t1,index1),make_pair(t2,index2));
-  _constraints.push(constraint);
+  _constraints.push(make_pair(make_pair(t1,index1),make_pair(t2,index2)));
   return true;
 }
 
@@ -87,8 +86,7 @@ bool HOMismatchHandler::handle(RobSubstitution* sub, TermList t1, unsigned index
 {
   CALL("HOMismatchHandler::handle");
 
-  auto constraint = make_pair(make_pair(t1,index1),make_pair(t2,index2));
-  constraints.push(constraint);
+  _constraints.push(make_pair(make_pair(t1,index1),make_pair(t2,index2)));
   return true; 
 }
 
