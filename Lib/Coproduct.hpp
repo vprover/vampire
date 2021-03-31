@@ -213,13 +213,6 @@ namespace CoproductImpl {
 
 #undef ref_polymorphic
   };
-
-
-  struct PolymorphicHash {
-    template<class T>
-    size_t operator()(T const& t) const
-    { return std::hash<T>{}(t); }
-  };
 }
 
 template<class... Ords> struct CoproductOrdering;
@@ -400,20 +393,10 @@ public:
   ~Coproduct() 
   { _content.destroy(_tag); }
 
-private:
-  struct __writeToStream {
-    unsigned _tag;
-    std::ostream &out;
-    template <class B> std::ostream &operator()(const B &b) {
-      return out << "var" << _tag << "(" << b << ")";
-    }
-  };
+  friend std::ostream &operator<<(std::ostream &out, const Coproduct &self)
+  { return self.apply([&](auto const& x)  -> std::ostream&
+        { return out << "var" << self._tag << "(" << x << ")"; }); }
 
-public:
-
-  friend std::ostream &operator<<(std::ostream &out, const Coproduct &self) {
-    return self.apply(__writeToStream{self._tag, out});
-  }
   friend struct std::hash<Coproduct>;
 
   template<class... Ords> friend struct CoproductOrdering;
@@ -456,16 +439,16 @@ template<template<class> class Ord> struct PolymorphicCoproductOrdering
 };
 
 
-} // namespace Lib
 template<class... Ts> struct std::hash<Lib::Coproduct<Ts...>>
 {
-  size_t operator()(Lib::Coproduct<Ts...> const& self) const 
-  { 
+  size_t operator()(Lib::Coproduct<Ts...> const& self) const
+  {
     return Lib::HashUtils::combine(
-        std::hash<unsigned>{}(self._tag), 
-        self.apply(Lib::CoproductImpl::PolymorphicHash{})); 
+        std::hash<unsigned>{}(self._tag),
+        self.apply([](auto const& x){ return std::hash<std::remove_const_t<std::remove_reference_t<decltype(x)>>>{}(x); }));
   }
 };
+
 
 template<class... As>
 struct std::less<Lib::Coproduct<As...> >
@@ -474,6 +457,5 @@ struct std::less<Lib::Coproduct<As...> >
   { return Lib::PolymorphicCoproductOrdering<std::less>{}(lhs,rhs); }
 };
 
-
-
 #endif // __LIB_COPRODUCT__H__
+
