@@ -548,7 +548,7 @@ void KBO::checkAdmissibility(HandleError handle) const
     auto sort = env.signature->getFunction(i)->fnType()->result();
     /* register min function */
     auto maxFn = maximalFunctions.getOrInit(std::move(sort), [&](){ return i; } );
-    if (compareFunctionPrecedences(maxFn, i)) {
+    if (compareFunctionPrecedences(maxFn, i) == LESS) {
       maximalFunctions.replace(sort, i);
     }
   }
