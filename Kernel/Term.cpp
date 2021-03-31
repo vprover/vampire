@@ -1263,6 +1263,7 @@ TermList Term::arraySort(TermList indexSort, TermList innerSort)
   unsigned array = env.signature->getArrayConstructor();
   TermList sort = TermList(create2(array, indexSort, innerSort));
   env.sorts->addSort(sort);
+  env.sorts->addArraySort(sort);
   return sort;
 }
 
