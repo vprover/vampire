@@ -559,6 +559,11 @@ void PortfolioMode::runSlice(Options& strategyOpt)
     } else {
       UIHelper::outputResult(output);
     }
+    if (env.options->printProofToFile() && outputAllowed()) {
+      env.beginOutput();
+      addCommentSignForSZS(env.out()) << "Proof written to " << fname << endl;
+      env.endOutput();
+    }
   }
   else{
     /*
