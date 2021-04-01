@@ -149,8 +149,8 @@ void InductionClauseIterator::process(Clause* premise, Literal* lit)
   static bool negOnly = env.options->inductionNegOnly();
   static bool structInd = env.options->induction() == Options::Induction::BOTH ||
                          env.options->induction() == Options::Induction::STRUCTURAL;
-  static bool mathInd = env.options->induction() == Options::Induction::BOTH ||
-                         env.options->induction() == Options::Induction::MATHEMATICAL;
+  static bool intInd = env.options->induction() == Options::Induction::BOTH ||
+                       env.options->induction() == Options::Induction::INTEGER;
   static bool generalize = env.options->inductionGen();
   static bool complexTermsAllowed = env.options->inductionOnComplexTerms();
 
@@ -180,7 +180,7 @@ void InductionClauseIterator::process(Clause* premise, Literal* lit)
            ){
             ta_terms.insert(ts.term());
           }
-          if(mathInd && 
+          if(intInd && 
              env.signature->getFunction(f)->fnType()->result()==Term::intSort() &&
              !theory->isInterpretedConstant(f)
             ){
@@ -192,10 +192,10 @@ void InductionClauseIterator::process(Clause* premise, Literal* lit)
       Set<Term*>::Iterator citer1(int_terms);
       while(citer1.hasNext()){
         Term* t = citer1.next();
-        static bool one = env.options->mathInduction() == Options::MathInductionKind::ONE ||
-                          env.options->mathInduction() == Options::MathInductionKind::ALL;
-        static bool two = env.options->mathInduction() == Options::MathInductionKind::TWO ||
-                          env.options->mathInduction() == Options::MathInductionKind::ALL;
+        static bool one = env.options->intInduction() == Options::IntInductionKind::ONE ||
+                          env.options->intInduction() == Options::IntInductionKind::ALL;
+        static bool two = env.options->intInduction() == Options::IntInductionKind::TWO ||
+                          env.options->intInduction() == Options::IntInductionKind::ALL;
         if(notDone(lit,t)){
           InferenceRule rule = InferenceRule::INDUCTION_AXIOM;
           Term* inductionTerm = generalize ? getPlaceholderForTerm(t) : t;
@@ -204,10 +204,10 @@ void InductionClauseIterator::process(Clause* premise, Literal* lit)
           ASS(ilit != nullptr);
           do {
             if(one){
-              performMathInductionOne(premise,lit,ilit,inductionTerm,rule);
+              performIntInductionOne(premise,lit,ilit,inductionTerm,rule);
             }
             if(two){
-              performMathInductionTwo(premise,lit,ilit,inductionTerm,rule);
+              performIntInductionTwo(premise,lit,ilit,inductionTerm,rule);
             }
           } while (generalize && (ilit = subsetReplacement.transformSubset(rule)));
         }
@@ -278,9 +278,9 @@ void InductionClauseIterator::produceClauses(Clause* premise, Literal* origLit, 
 // (L[0] & (![X] : (X>=0 & L[X]) -> L[x+1])) -> (![Y] : Y>=0 -> L[Y])
 // (L[0] & (![X] : (X<=0 & L[X]) -> L[x-1])) -> (![Y] : Y<=0 -> L[Y])
 // for some ~L[a]
-void InductionClauseIterator::performMathInductionOne(Clause* premise, Literal* origLit, Literal* lit, Term* term, InferenceRule rule) 
+void InductionClauseIterator::performIntInductionOne(Clause* premise, Literal* origLit, Literal* lit, Term* term, InferenceRule rule) 
 {
-  CALL("InductionClauseIterator::performMathInductionOne");
+  CALL("InductionClauseIterator::performIntInductionOne");
 
   TermList zero(theory->representConstant(IntegerConstantType(0)));
   TermList one(theory->representConstant(IntegerConstantType(1)));
@@ -356,9 +356,9 @@ void InductionClauseIterator::performMathInductionOne(Clause* premise, Literal* 
   subst->reset();
 }
 
-void InductionClauseIterator::performMathInductionTwo(Clause* premise, Literal* origLit, Literal* lit, Term* term, InferenceRule rule) 
+void InductionClauseIterator::performIntInductionTwo(Clause* premise, Literal* origLit, Literal* lit, Term* term, InferenceRule rule) 
 {
-  CALL("InductionClauseIterator::performMathInductionTwo");
+  CALL("InductionClauseIterator::performIntInductionTwo");
 
   NOT_IMPLEMENTED;
 }
