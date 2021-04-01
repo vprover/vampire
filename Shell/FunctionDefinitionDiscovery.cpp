@@ -78,24 +78,24 @@ bool isHeader(TermList t)
   return true;
 }
 
-bool checkContains(const RDescription& rdesc1, const RDescription& rdesc2)
+bool checkContains(const InductionTemplate::Branch& branch1, const InductionTemplate::Branch& branch2)
 {
   RobSubstitutionSP subst(new RobSubstitution);
   // try to unify the step cases
-  if (!subst->unify(rdesc2._step, 0, rdesc1._step, 1)) {
+  if (!subst->unify(branch2._header, 0, branch1._header, 1)) {
     return false;
   }
-  auto t1 = subst->apply(rdesc1._step, 1);
+  auto t1 = subst->apply(branch1._header, 1);
   Renaming r1, r2;
-  r1.normalizeVariables(rdesc1._step);
-  r2.normalizeVariables(rdesc2._step);
-  auto t2 = subst->apply(rdesc2._step, 0);
-  if (t1 != r1.apply(rdesc1._step) || t2 != r2.apply(rdesc2._step)) {
+  r1.normalizeVariables(branch1._header);
+  r2.normalizeVariables(branch2._header);
+  auto t2 = subst->apply(branch2._header, 0);
+  if (t1 != r1.apply(branch1._header) || t2 != r2.apply(branch2._header)) {
     return false;
   }
-  for (const auto& recCall1 : rdesc1._recursiveCalls) {
+  for (const auto& recCall1 : branch1._recursiveCalls) {
     bool found = false;
-    for (const auto& recCall2 : rdesc2._recursiveCalls) {
+    for (const auto& recCall2 : branch2._recursiveCalls) {
       const auto& r1 = subst->apply(recCall1, 1);
       const auto& r2 = subst->apply(recCall2, 0);
       if (r1 == r2) {
@@ -121,12 +121,12 @@ void FunctionDefinitionDiscovery::addBestConfiguration()
   unsigned i = 0;
   for (auto& fndefs : foundFunctionDefinitions) {
     for (auto& kv : fndefs) {
-      auto& rdescs = kv.second.first._rDescriptions;
-      for (unsigned i = 0; i < rdescs.size(); i++) {
-        for (unsigned j = i+1; j < rdescs.size();) {
-          if (checkContains(rdescs[j], rdescs[i])) {
-            rdescs[j] = rdescs.back();
-            rdescs.pop_back();
+      auto& branches = kv.second.first._branches;
+      for (unsigned i = 0; i < branches.size(); i++) {
+        for (unsigned j = i+1; j < branches.size();) {
+          if (checkContains(branches[j], branches[i])) {
+            branches[j] = branches.back();
+            branches.pop_back();
           } else {
             j++;
           }
@@ -258,10 +258,10 @@ void FunctionDefinitionDiscovery::findPossibleRecursiveDefinitions(Formula* f)
               p.second.push_back(make_pair(lit, reversed));
               fndefs.insert(make_pair(t.term()->functor(), p));
             } else {
-              it->second.first._rDescriptions.insert(
-                it->second.first._rDescriptions.end(),
-                templ._rDescriptions.begin(),
-                templ._rDescriptions.end());
+              it->second.first._branches.insert(
+                it->second.first._branches.end(),
+                templ._branches.begin(),
+                templ._branches.end());
               it->second.second.push_back(make_pair(lit, reversed));
             }
             foundFunctionDefinitions.push_back(fndefs);
@@ -295,10 +295,10 @@ void FunctionDefinitionDiscovery::findPossibleRecursiveDefinitions(Formula* f)
           auto it = foundPredicateDefinitions.find(lit->functor());
           if (it == foundPredicateDefinitions.end()) {
             InductionTemplate templ;
-            templ._rDescriptions.emplace_back(TermList(lit));
+            templ._branches.emplace_back(TermList(lit));
             foundPredicateDefinitions.insert(make_pair(lit->functor(), std::move(templ)));
           } else {
-            it->second._rDescriptions.emplace_back(TermList(lit));
+            it->second._branches.emplace_back(TermList(lit));
           }
         }
       }
@@ -353,10 +353,10 @@ void FunctionDefinitionDiscovery::findPossibleRecursiveDefinitions(Formula* f)
           if (it == foundPredicateDefinitions.end()) {
             foundPredicateDefinitions.insert(make_pair(t->functor(), templ));
           } else {
-            it->second._rDescriptions.insert(
-              it->second._rDescriptions.end(),
-              templ._rDescriptions.begin(),
-              templ._rDescriptions.end());
+            it->second._branches.insert(
+              it->second._branches.end(),
+              templ._branches.begin(),
+              templ._branches.end());
           }
         };
         if (succlhs) {

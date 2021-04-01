@@ -52,20 +52,20 @@ TermList TermListReplacement::transformSubterm(TermList trm)
   return trm;
 }
 
-ostream& operator<<(ostream& out, const RDescription& rdesc)
+ostream& operator<<(ostream& out, const InductionTemplate::Branch& branch)
 {
-  if (!rdesc._recursiveCalls.empty()) {
+  if (!branch._recursiveCalls.empty()) {
     out << "(";
     unsigned n = 0;
-    for (const auto& r : rdesc._recursiveCalls) {
+    for (const auto& r : branch._recursiveCalls) {
       out << r;
-      if (++n < rdesc._recursiveCalls.size()) {
+      if (++n < branch._recursiveCalls.size()) {
         out << " & ";
       }
     }
     out << ") => ";
   }
-  out << rdesc._step;
+  out << branch._header;
   return out;
 }
 
@@ -142,16 +142,16 @@ bool InductionTemplate::findVarOrder(
 bool InductionTemplate::checkWellDefinedness(vvector<vvector<TermList>>& missingCases)
 {
   missingCases.clear();
-  auto arity = _rDescriptions[0]._step.term()->arity();
+  auto arity = _branches[0]._header.term()->arity();
   if (arity == 0) {
     return true;
   }
-  if (_rDescriptions.empty()) {
+  if (_branches.empty()) {
     return false;
   }
   unsigned var = 0;
   vvector<vvector<TermList>> availableTermsEmpty;
-  for (unsigned i = 0; i < _rDescriptions[0]._step.term()->arity(); i++) {
+  for (unsigned i = 0; i < arity; i++) {
     vvector<TermList> v;
     v.push_back(TermList(var++, false));
     availableTermsEmpty.push_back(v);
@@ -160,9 +160,9 @@ bool InductionTemplate::checkWellDefinedness(vvector<vvector<TermList>>& missing
   availableTermsLists.push_back(availableTermsEmpty);
 
   bool overdefined = false;
-  for (auto& rdesc : _rDescriptions) {
+  for (auto& b : _branches) {
     vvector<vvector<vvector<TermList>>> nextAvailableTermsLists;
-    Term::Iterator it(rdesc._step.term());
+    Term::Iterator it(b._header.term());
     unsigned j = 0;
     while (it.hasNext()) {
       auto arg = it.next();
@@ -219,7 +219,7 @@ bool InductionTemplate::checkWellDefinedness(vvector<vvector<TermList>>& missing
 
 void InductionTemplate::addMissingCases(const vvector<vvector<TermList>>& missingCases)
 {
-  auto mainTerm = _rDescriptions.begin()->_step.term();
+  auto mainTerm = _branches.begin()->_header.term();
   auto fn = mainTerm->functor();
   auto arity = mainTerm->arity();
   bool isPred = mainTerm->isLiteral();
@@ -239,7 +239,7 @@ void InductionTemplate::addMissingCases(const vvector<vvector<TermList>>& missin
       t = TermList(Term::create(fn, arity, args.begin()));
     }
     env.out() << t << ", ";
-    _rDescriptions.emplace_back(t);
+    _branches.emplace_back(t);
   }
   env.out() << "to template " << *this << endl;
   env.endOutput();
@@ -254,9 +254,9 @@ bool InductionTemplate::checkUsefulness()
   // (2) no terms in any argument positions or
   // (3) no recursive calls
   bool discard = true;
-  for (auto& rdesc : _rDescriptions) {
-    Term::Iterator argIt(rdesc._step.term());
-    if (!rdesc._recursiveCalls.empty()) {
+  for (auto& b : _branches) {
+    Term::Iterator argIt(b._header.term());
+    if (!b._recursiveCalls.empty()) {
       discard = false;
     }
     while (argIt.hasNext()) {
@@ -267,7 +267,7 @@ bool InductionTemplate::checkUsefulness()
     }
   }
   if (discard) {
-    auto t = _rDescriptions.begin()->_step.term();
+    auto t = _branches.begin()->_header.term();
     if (env.options->showInduction()) {
       env.beginOutput();
       env.out() << "% Warning: template for "
@@ -284,20 +284,20 @@ bool InductionTemplate::checkWellFoundedness()
 {
   CALL("InductionTemplate::checkWellFoundedness");
 
-  if (_rDescriptions.empty()) {
+  if (_branches.empty()) {
     return true;
   }
 
   // fill in bit vector of induction variables
-  auto arity = _rDescriptions[0]._step.term()->arity();
+  auto arity = _branches[0]._header.term()->arity();
   _inductionVariables = vvector<bool>(arity, false);
   vset<unsigned> candidatePositions;
   vvector<vvector<VarType>> relations;
-  for (auto& rdesc : _rDescriptions) {
-    for (auto& r : rdesc._recursiveCalls) {
+  for (auto& b : _branches) {
+    for (auto& r : b._recursiveCalls) {
       vvector<VarType> relation(arity, VarType::OTHER);
       Term::Iterator argIt1(r.term());
-      Term::Iterator argIt2(rdesc._step.term());
+      Term::Iterator argIt2(b._header.term());
       unsigned i = 0;
       while (argIt1.hasNext()) {
         auto t1 = argIt1.next();
@@ -334,11 +334,11 @@ bool InductionTemplate::checkWellFoundedness()
 
 ostream& operator<<(ostream& out, const InductionTemplate& templ)
 {
-  out << "RDescriptions: ";
+  out << "Branches: ";
   unsigned n = 0;
-  for (const auto& rdesc : templ._rDescriptions) {
-    out << rdesc;
-    if (++n < templ._rDescriptions.size()) {
+  for (const auto& b : templ._branches) {
+    out << b;
+    if (++n < templ._branches.size()) {
       out << "; ";
     }
   }
@@ -504,13 +504,13 @@ void InductionPreprocessor::processFormulaBody(Formula* body, Literal* header, I
       } else {
         processCase(header->functor(), header->isFormula(), TermList(lit), recCalls);
       }
-      templ._rDescriptions.emplace_back(recCalls, TermList(header));
+      templ._branches.emplace_back(recCalls, TermList(header));
       break;
     }
     case BOOL_TERM: {
       vvector<TermList> recCalls;
       processCase(header->functor(), header->isFormula(), body->getBooleanTerm(), recCalls);
-      templ._rDescriptions.emplace_back(recCalls, TermList(header));
+      templ._branches.emplace_back(recCalls, TermList(header));
       break;
     }
     case AND:
@@ -524,7 +524,7 @@ void InductionPreprocessor::processFormulaBody(Formula* body, Literal* header, I
     }
     case FALSE:
     case TRUE: {
-      templ._rDescriptions.emplace_back(TermList(header));
+      templ._branches.emplace_back(TermList(header));
       break;
     }
     case NOT: {
@@ -553,7 +553,7 @@ void InductionPreprocessor::processBody(TermList body, TermList header, Inductio
 
   // Base case
   if (body.isVar()) {
-    templ._rDescriptions.emplace_back(header);
+    templ._branches.emplace_back(header);
     return;
   }
   // Possibly recursive case
@@ -561,7 +561,7 @@ void InductionPreprocessor::processBody(TermList body, TermList header, Inductio
   if (!term->isSpecial() || term->isFormula()) {
     vvector<TermList> recursiveCalls;
     processCase(header.term()->functor(), header.term()->isFormula(), body, recursiveCalls);
-    templ._rDescriptions.emplace_back(recursiveCalls, header);
+    templ._branches.emplace_back(recursiveCalls, header);
     return;
   }
   // TODO(mhajdu): Here there can be other constructs e.g. ITE, process them

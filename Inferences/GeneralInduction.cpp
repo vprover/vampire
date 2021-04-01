@@ -136,11 +136,11 @@ InductionFormulaIterator::InductionFormulaIterator(
   unsigned var = scheme._maxVar;
   const bool strengthen = env.options->inductionStrengthen();
 
-  for (auto& desc : scheme._rDescriptionInstances) {
+  for (auto& c : scheme._cases) {
     // We replace all induction terms with the corresponding step case terms
     FormulaList* stepFormulas = FormulaList::empty();
     for (const auto& kv : lits) {
-      TermOccurrenceReplacement2 tr(desc._step, occurrences, kv.literal);
+      TermOccurrenceReplacement2 tr(c._step, occurrences, kv.literal);
       auto newLit = tr.transform(kv.literal);
       if (newLit != kv.literal) {
         stepFormulas = new FormulaList(new AtomicFormula(Literal::complementaryLiteral(newLit)), stepFormulas);
@@ -152,7 +152,7 @@ InductionFormulaIterator::InductionFormulaIterator(
 
     // Then we replace the arguments of the term with the
     // corresponding recursive cases for this step case (if not base case)
-    for (const auto& r : desc._recursiveCalls) {
+    for (const auto& r : c._recursiveCalls) {
       FormulaList* innerHyp = FormulaList::empty();
       for (const auto& kv : lits) {
         TermOccurrenceReplacement2 tr(r, occurrences, kv.literal);
@@ -195,8 +195,8 @@ InductionFormulaIterator::InductionFormulaIterator(
   // the literal. For this, we use new variables starting from the max. var of
   // the scheme.
   vmap<TermList, TermList> r;
-  for (const auto& desc : scheme._rDescriptionInstances) {
-    for (const auto& kv : desc._step) {
+  for (const auto& c : scheme._cases) {
+    for (const auto& kv : c._step) {
       if (r.count(kv.first) > 0) {
         continue;
       }

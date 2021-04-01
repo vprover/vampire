@@ -40,29 +40,9 @@ private:
 };
 
 /**
- * Stores the template for a recursive case
- * This includes:
- * - the step case
- * - the recursive calls
- *   (if not present it is a base case)
- */
-struct RDescription {
-  RDescription(const vvector<TermList>& recursiveCalls, TermList step)
-    : _recursiveCalls(recursiveCalls), _step(step) {}
-
-  RDescription(TermList base)
-    : _recursiveCalls(), _step(base) {}
-
-  vvector<TermList> _recursiveCalls;
-  TermList _step;
-};
-
-ostream& operator<<(ostream& out, const RDescription& rdesc);
-
-/**
- * Corresponds to a recursive function definition.
- * Stores the RDescriptions and the active positions
- * (i.e. the induction variables) of the function.
+ * Corresponds to the branches of a function definition.
+ * Stores the branches and the active positions
+ * (i.e. the changing arguments) of the function.
  */
 struct InductionTemplate {
   bool checkUsefulness();
@@ -77,7 +57,25 @@ struct InductionTemplate {
   };
   using VarOrder = vvector<vset<unsigned>>;
 
-  vvector<RDescription> _rDescriptions;
+  /**
+   * Stores the template for a recursive case
+   * This includes:
+   * - the step case
+   * - the recursive calls
+   *   (if not present it is a base case)
+   */
+  struct Branch {
+    Branch(const vvector<TermList>& recursiveCalls, TermList header)
+      : _recursiveCalls(recursiveCalls), _header(header) {}
+
+    Branch(TermList base)
+      : _recursiveCalls(), _header(base) {}
+
+    vvector<TermList> _recursiveCalls;
+    TermList _header;
+  };
+
+  vvector<Branch> _branches;
   vvector<bool> _inductionVariables;
   VarOrder _order;
 
@@ -88,6 +86,7 @@ private:
     VarOrder& res);
 };
 
+ostream& operator<<(ostream& out, const InductionTemplate::Branch& branch);
 ostream& operator<<(ostream& out, const InductionTemplate& templ);
 
 /**

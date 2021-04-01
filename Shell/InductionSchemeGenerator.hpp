@@ -182,29 +182,23 @@ private:
 };
 
 /**
- * Stores an instance for an RDescription which
- * consists of all substitutions in the step case
- * and the corresponding recursive calls. This
- * more general representation has the potential
- * to store merged instances as well.
- */
-struct RDescriptionInst {
-  RDescriptionInst() = default;
-  RDescriptionInst(vvector<vmap<TermList, TermList>>&& recursiveCalls,
-                   vmap<TermList, TermList>&& step)
-    : _recursiveCalls(recursiveCalls), _step(step) {}
-  bool contains(const RDescriptionInst& other) const;
-
-  vvector<vmap<TermList, TermList>> _recursiveCalls;
-  vmap<TermList, TermList> _step;
-};
-
-/**
  * An instantiated induction template for a term.
  */
-struct InductionScheme {
+struct InductionScheme
+{
+  struct Case {
+    Case() = default;
+    Case(vvector<vmap<TermList, TermList>>&& recursiveCalls,
+                    vmap<TermList, TermList>&& step)
+      : _recursiveCalls(recursiveCalls), _step(step) {}
+    bool contains(const Case& other) const;
+
+    vvector<vmap<TermList, TermList>> _recursiveCalls;
+    vmap<TermList, TermList> _step;
+  };
+
   bool init(const vvector<TermList>& argTerms, const InductionTemplate& templ);
-  void init(vvector<RDescriptionInst>&& rdescs);
+  void init(vvector<Case>&& cases);
   void clean();
   InductionScheme makeCopyWithVariablesShifted(unsigned shift) const;
   bool checkWellFoundedness();
@@ -212,7 +206,7 @@ struct InductionScheme {
     vvector<pair<vmap<TermList,TermList>&,vmap<TermList,TermList>&>> relations,
     vset<TermList> inductionTerms);
 
-  vvector<RDescriptionInst> _rDescriptionInstances;
+  vvector<Case> _cases;
   unsigned _maxVar;
   vset<TermList> _inductionTerms;
 };
