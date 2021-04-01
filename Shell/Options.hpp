@@ -227,7 +227,7 @@ public:
   enum class Induction : unsigned int {
     NONE,
     STRUCTURAL,
-    MATHEMATICAL,
+    INTEGER,
     BOTH
   };
   enum class StructuralInductionKind : unsigned int {
@@ -236,7 +236,7 @@ public:
     THREE,
     ALL
   };
-  enum class MathInductionKind : unsigned int {
+  enum class IntInductionKind : unsigned int {
     ONE,
     TWO,
     ALL
@@ -2156,7 +2156,7 @@ public:
 
   Induction induction() const { return _induction.actualValue; }
   StructuralInductionKind structInduction() const { return _structInduction.actualValue; }
-  MathInductionKind mathInduction() const { return _mathInduction.actualValue; }
+  IntInductionKind intInduction() const { return _intInduction.actualValue; }
   InductionChoice inductionChoice() const { return _inductionChoice.actualValue; }
   unsigned maxInductionDepth() const { return _maxInductionDepth.actualValue; }
   bool inductionNegOnly() const { return _inductionNegOnly.actualValue; }
@@ -2478,7 +2478,7 @@ private:
 
   ChoiceOptionValue<Induction> _induction;
   ChoiceOptionValue<StructuralInductionKind> _structInduction;
-  ChoiceOptionValue<MathInductionKind> _mathInduction;
+  ChoiceOptionValue<IntInductionKind> _intInduction;
   ChoiceOptionValue<InductionChoice> _inductionChoice;
   UnsignedOptionValue _maxInductionDepth;
   BoolOptionValue _inductionNegOnly;

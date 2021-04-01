@@ -1082,8 +1082,8 @@ void Options::init()
            _gaussianVariableElimination.tag(OptionTag::INFERENCES);
 
             _induction = ChoiceOptionValue<Induction>("induction","ind",Induction::NONE,
-                                {"none","struct","math","both"});
-            _induction.description = "Apply structural and/or mathematical induction on datatypes and integers.";
+                                {"none","struct","int","both"});
+            _induction.description = "Apply structural and/or integer induction on datatypes and integers.";
             _induction.tag(OptionTag::INFERENCES);
             _lookup.insert(&_induction);
             //_induction.setRandomChoices
@@ -1095,13 +1095,13 @@ void Options::init()
             _structInduction.reliesOn(Or(_induction.is(equal(Induction::STRUCTURAL)),_induction.is(equal(Induction::BOTH))));
             _lookup.insert(&_structInduction);
 
-            _mathInduction = ChoiceOptionValue<MathInductionKind>("math_induction_kind","mik",
-                                 MathInductionKind::ONE,{"one","two","all"});
-            _mathInduction.description="The kind of mathematical induction applied";
-            _mathInduction.tag(OptionTag::INFERENCES);
+            _intInduction = ChoiceOptionValue<IntInductionKind>("int_induction_kind","mik",
+                                 IntInductionKind::ONE,{"one","two","all"});
+            _intInduction.description="The kind of integer induction applied";
+            _intInduction.tag(OptionTag::INFERENCES);
 
-            _mathInduction.reliesOn(Or(_induction.is(equal(Induction::MATHEMATICAL)),_induction.is(equal(Induction::BOTH))));
-            //_lookup.insert(&_mathInduction);
+            _intInduction.reliesOn(Or(_induction.is(equal(Induction::INTEGER)),_induction.is(equal(Induction::BOTH))));
+            //_lookup.insert(&_intInduction);
 
             _inductionChoice = ChoiceOptionValue<InductionChoice>("induction_choice","indc",InductionChoice::ALL,
                                 {"all","goal","goal_plus"});
