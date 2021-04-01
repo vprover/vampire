@@ -148,7 +148,7 @@ public:
     CALL("InductionGeneralization()");
 
     return pvi(pushPairIntoRightIterator(p.first,
-      vi(new HeuristicGeneralizationIterator(_includeEmpty, p.second))));
+      vi(new InductionGeneralizationIterator(_includeEmpty, p.second))));
   }
 
   bool next(OccurrenceMap& m);

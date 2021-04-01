@@ -1458,7 +1458,7 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
     //   gie->addFront(new MultiClauseInduction());
     // }
     // gie->addFront(new Induction());
-    gie->addFront(new GeneralInduction(new RecursionInductionSchemeGenerator(), new InductionGeneralization(true), InferenceRule::INDUCTION_AXIOM));
+    gie->addFront(new GeneralInduction(new StructuralInductionSchemeGenerator(), new InductionGeneralization(false), InferenceRule::INDUCTION_AXIOM));
   }
 
   if(opt.instantiation()!=Options::Instantiation::OFF){

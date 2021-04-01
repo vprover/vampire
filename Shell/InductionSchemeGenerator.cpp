@@ -10,6 +10,8 @@
 
 #include "InductionSchemeGenerator.hpp"
 
+#include "Lib/Set.hpp"
+
 #include "Kernel/Clause.hpp"
 #include "Kernel/Formula.hpp"
 #include "Kernel/FormulaVarIterator.hpp"
@@ -525,7 +527,7 @@ InductionIterator RecursionInductionSchemeGenerator::operator()(const SLQueryRes
   InductionSchemeFilter f;
   f.filter(primarySchemes, secondarySchemes);
   f.filterComplex(primarySchemes, _actOccMaps);
-  
+
   static Stack<pair<InductionScheme, OccurrenceMap>> res;
   res.reset();
   for (const auto& sch : primarySchemes) {
@@ -662,6 +664,136 @@ bool RecursionInductionSchemeGenerator::process(TermList curr, bool active,
     }
   }
   return true;
+}
+
+InductionIterator StructuralInductionSchemeGenerator::operator()(const SLQueryResult& main, const vvector<SLQueryResult>& side)
+{
+  CALL("StructuralInductionSchemeGenerator()");
+
+  vvector<InductionScheme> schemes;
+  OccurrenceMap occMap;
+
+  static Options::InductionChoice kind = env.options->inductionChoice();
+  static bool all = (kind == Options::InductionChoice::ALL);
+  static bool goal_plus = (kind == Options::InductionChoice::GOAL_PLUS);
+  static bool structInd = env.options->induction() == Options::Induction::BOTH ||
+                         env.options->induction() == Options::Induction::STRUCTURAL;
+  static bool mathInd = env.options->induction() == Options::Induction::BOTH ||
+                         env.options->induction() == Options::Induction::MATHEMATICAL;
+  static bool complexTermsAllowed = env.options->inductionOnComplexTerms();
+
+  Set<Term*> ta_terms;
+  Set<Term*> int_terms;
+  SubtermIterator it(main.literal);
+  while(it.hasNext()){
+    TermList ts = it.next();
+    ASS(ts.isTerm());
+    unsigned f = ts.term()->functor();
+    if((complexTermsAllowed || env.signature->functionArity(f)==0) &&
+        (
+            all
+        || env.signature->getFunction(f)->inGoal()
+        || (goal_plus && env.signature->getFunction(f)->inductionSkolem()) // set in NewCNF
+        )
+    ){
+      if(structInd &&
+        env.signature->isTermAlgebraSort(env.signature->getFunction(f)->fnType()->result()) &&
+        ((complexTermsAllowed && env.signature->functionArity(f) != 0) || !env.signature->getFunction(f)->termAlgebraCons()) // skip base constructors
+        ){
+        ta_terms.insert(ts.term());
+      }
+      if(mathInd &&
+          env.signature->getFunction(f)->fnType()->result()==Sorts::SRT_INTEGER &&
+          !theory->isInterpretedConstant(f)
+        ){
+        int_terms.insert(ts.term());
+      }
+    }
+    auto p = make_pair(main.literal, ts);
+    auto oIt = occMap.find(p);
+    if (oIt == occMap.end()) {
+      occMap.insert(make_pair(p, Occurrences(false)));
+    } else {
+      oIt->second.add(false);
+    }
+  }
+
+  Set<Term*>::Iterator taIt(ta_terms);
+  while (taIt.hasNext()) {
+    schemes.push_back(generateStructural(taIt.next()));
+  }
+
+  for (const auto& qr : side) {
+    SubtermIterator it(qr.literal);
+    while(it.hasNext()){
+      TermList ts = it.next();
+      auto p = make_pair(qr.literal, ts);
+      auto oIt = occMap.find(p);
+      if (oIt == occMap.end()) {
+        occMap.insert(make_pair(p, Occurrences(false)));
+      } else {
+        oIt->second.add(false);
+      }
+    }
+  }
+
+  for (auto& o : occMap) {
+    o.second.finalize();
+    cout << *o.first.first << " " << o.first.second << " " << o.second.toString() << endl;
+  }
+
+  static Stack<pair<InductionScheme, OccurrenceMap>> res;
+  res.reset();
+  for (const auto& sch : schemes) {
+    OccurrenceMap necessary;
+    for (const auto& kv : occMap) {
+      if (sch._inductionTerms.count(kv.first.second)) {
+        necessary.insert(kv);
+      }
+    }
+    res.push(make_pair(sch, necessary));
+  }
+  return pvi(getArrayishObjectIterator(res));
+}
+
+InductionScheme StructuralInductionSchemeGenerator::generateStructural(Term* term)
+{
+  CALL("StructuralInductionSchemeGenerator::generateStructural");
+
+  TermAlgebra* ta = env.signature->getTermAlgebraOfSort(env.signature->getFunction(term->functor())->fnType()->result());
+  unsigned ta_sort = ta->sort();
+  unsigned var = 0;
+  InductionScheme scheme;
+
+  for (unsigned i = 0; i < ta->nConstructors(); i++) {
+    TermAlgebraConstructor* con = ta->constructor(i);
+    vvector<vmap<TermList,TermList>> recursiveCalls;
+    vmap<TermList,TermList> step;
+
+    unsigned arity = con->arity();
+    Stack<TermList> ta_vars;
+    Stack<TermList> argTerms;
+    for (unsigned i = 0; i < arity; i++) {
+      TermList x(var++,false);
+      argTerms.push(x);
+      if(con->argSort(i) == ta_sort){
+        ta_vars.push(x);
+      }
+    }
+    Stack<TermList>::Iterator tvit(ta_vars);
+    while (tvit.hasNext()) {
+      vmap<TermList, TermList> recCall;
+      recCall.insert(make_pair(term,tvit.next()));
+      recursiveCalls.push_back(recCall);
+    }
+    step.insert(make_pair(term,
+      TermList(Term::create(con->functor(),(unsigned)argTerms.size(), argTerms.begin()))));
+    scheme._rDescriptionInstances.emplace_back(std::move(recursiveCalls), std::move(step));
+  }
+  scheme._inductionTerms.insert(TermList(term));
+  scheme._maxVar = var;
+  cout << scheme << endl;
+  return scheme;
 }
 
 } // Shell

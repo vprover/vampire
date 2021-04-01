@@ -250,6 +250,17 @@ private:
   OccurrenceMap _actOccMaps;
 };
 
+struct StructuralInductionSchemeGenerator
+  : public InductionSchemeGenerator
+{
+  CLASS_NAME(StructuralInductionSchemeGenerator);
+  USE_ALLOCATOR(StructuralInductionSchemeGenerator);
+  OWN_RETURN_TYPE operator()(const SLQueryResult& main, const vvector<SLQueryResult>& side) override;
+
+private:
+  InductionScheme generateStructural(Term* term);
+};
+
 } // Shell
 
 #endif
