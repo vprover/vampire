@@ -12,24 +12,35 @@
  * Implements class Induction.
  */
 
+#include <utility>
+
 #include "Debug/RuntimeStatistics.hpp"
 
-#include "Lib/Environment.hpp"
-#include "Lib/Set.hpp"
-#include "Lib/Array.hpp"
-#include "Lib/ScopedPtr.hpp"
+#include "Indexing/Index.hpp"
+#include "Indexing/IndexManager.hpp"
+#include "Indexing/ResultSubstitution.hpp"
 
-#include "Kernel/TermIterators.hpp"
-#include "Kernel/Signature.hpp"
+#include "Inferences/BinaryResolution.hpp"
+
+#include "Lib/DHSet.hpp"
+#include "Lib/DHMap.hpp"
+#include "Lib/Environment.hpp"
+#include "Lib/Metaiterators.hpp"
+#include "Lib/ScopedPtr.hpp"
+#include "Lib/Set.hpp"
+
 #include "Kernel/Clause.hpp"
-#include "Kernel/Unit.hpp"
-#include "Kernel/Inference.hpp"
-#include "Kernel/Sorts.hpp"
-#include "Kernel/Theory.hpp"
+#include "Kernel/Connective.hpp"
 #include "Kernel/Formula.hpp"
 #include "Kernel/FormulaUnit.hpp"
-#include "Kernel/Connective.hpp"
+#include "Kernel/Inference.hpp"
+#include "Kernel/InterpretedLiteralEvaluator.hpp"
 #include "Kernel/RobSubstitution.hpp"
+#include "Kernel/Signature.hpp"
+#include "Kernel/Sorts.hpp"
+#include "Kernel/Term.hpp"
+#include "Kernel/TermIterators.hpp"
+#include "Kernel/Unit.hpp"
 
 #include "Saturation/SaturationAlgorithm.hpp"
 
@@ -39,17 +50,14 @@
 #include "Shell/NNF.hpp"
 #include "Shell/Rectify.hpp"
 
-#include "Indexing/Index.hpp"
-#include "Indexing/ResultSubstitution.hpp"
-#include "Inferences/BinaryResolution.hpp"
-
 #include "Induction.hpp"
+
+using std::pair;
 
 namespace Inferences
 {
 using namespace Kernel;
 using namespace Lib; 
-
 
 TermList TermReplacement::transformSubterm(TermList trm)
 {
@@ -102,40 +110,70 @@ Literal* LiteralSubsetReplacement::transformSubset(InferenceRule& rule) {
   return transform(_lit);
 }
 
+List<pair<Literal*, InferenceRule>>* LiteralSubsetReplacement::getListOfTransformedLiterals() {
+  CALL("LiteralSubsetReplacement::getListOfTransformedLiterals");
+
+  InferenceRule rule;
+  Literal* l;
+  List<pair<Literal*, InferenceRule>>* res = List<pair<Literal*, InferenceRule>>::empty();
+  while ((l = transformSubset(rule))) {
+    res = List<pair<Literal*, InferenceRule>>::cons(std::make_pair(l, rule), res);
+  }
+  return res;
+}
+
+void Induction::attach(SaturationAlgorithm* salg) {
+  CALL("Induction::attach");
+
+  GeneratingInferenceEngine::attach(salg);
+  if (InductionHelper::isIntInductionOneOn()) {
+    _comparisonIndex = static_cast<LiteralIndex*>(_salg->getIndexManager()->request(UNIT_INT_COMPARISON_INDEX));
+  }
+  if (InductionHelper::isIntInductionTwoOn()) {
+    _inductionTermIndex = static_cast<TermIndex*>(_salg->getIndexManager()->request(INDUCTION_TERM_INDEX));
+  }
+}
+
+void Induction::detach() {
+  CALL("Induction::detach");
+
+  if (InductionHelper::isIntInductionOneOn()) {
+    _comparisonIndex = 0;
+    _salg->getIndexManager()->release(UNIT_INT_COMPARISON_INDEX);
+  }
+  if (InductionHelper::isIntInductionTwoOn()) {
+    _inductionTermIndex = 0;
+    _salg->getIndexManager()->release(INDUCTION_TERM_INDEX);
+  }
+  GeneratingInferenceEngine::detach();
+}
+
 ClauseIterator Induction::generateClauses(Clause* premise)
 {
   CALL("Induction::generateClauses");
 
-  return pvi(InductionClauseIterator(premise));
+  return pvi(InductionClauseIterator(premise, InductionHelper(_comparisonIndex, _inductionTermIndex, _salg->getSplitter())));
 }
 
-InductionClauseIterator::InductionClauseIterator(Clause* premise)
+void InductionClauseIterator::processClause(Clause* premise)
 {
-  CALL("InductionClauseIterator::InductionClauseIterator");
+  CALL("InductionClauseIterator::processClause");
 
-  static Options::InductionChoice kind = env.options->inductionChoice();
-  static bool all = (kind == Options::InductionChoice::ALL);
-  static bool goal = (kind == Options::InductionChoice::GOAL);
-  static bool goal_plus = (kind == Options::InductionChoice::GOAL_PLUS);
-  static unsigned maxD = env.options->maxInductionDepth();
-  static bool unitOnly = env.options->inductionUnitOnly();
-
-
-  if((!unitOnly || premise->length()==1) && 
-     (all || ( (goal || goal_plus) && premise->derivedFromGoal())) &&
-     (maxD == 0 || premise->inference().inductionDepth() < maxD)
-    )
-  {
-    for(unsigned i=0;i<premise->length();i++){
-      process(premise,(*premise)[i]);
+  // The premise should either contain a literal on which we want to apply induction,
+  // or it should be an integer constant comparison we use as a base case.
+  if (InductionHelper::isInductionClause(premise)) {
+    for (unsigned i=0;i<premise->length();i++) {
+      processLiteral(premise,(*premise)[i]);
     }
+  }
+  if (InductionHelper::isIntInductionTwoOn() && InductionHelper::isIntegerComparison(premise)) {
+    processIntegerComparison(premise, (*premise)[0]);
   }
 }
 
-
-void InductionClauseIterator::process(Clause* premise, Literal* lit)
+void InductionClauseIterator::processLiteral(Clause* premise, Literal* lit)
 {
-  CALL("Induction::ClauseIterator::process");
+  CALL("Induction::ClauseIterator::processLiteral");
 
   if(env.options->showInduction()){
     env.beginOutput();
@@ -143,23 +181,9 @@ void InductionClauseIterator::process(Clause* premise, Literal* lit)
     env.endOutput();
   }
 
-  static Options::InductionChoice kind = env.options->inductionChoice();
-  static bool all = (kind == Options::InductionChoice::ALL);
-  static bool goal_plus = (kind == Options::InductionChoice::GOAL_PLUS);
-  static bool negOnly = env.options->inductionNegOnly();
-  static bool structInd = env.options->induction() == Options::Induction::BOTH ||
-                         env.options->induction() == Options::Induction::STRUCTURAL;
-  static bool intInd = env.options->induction() == Options::Induction::BOTH ||
-                       env.options->induction() == Options::Induction::INTEGER;
   static bool generalize = env.options->inductionGen();
-  static bool complexTermsAllowed = env.options->inductionOnComplexTerms();
 
-  if((!negOnly || lit->isNegative() || 
-         (theory->isInterpretedPredicate(lit) && theory->isInequality(theory->interpretPredicate(lit)))
-       )&& 
-       lit->ground()
-      ){
-
+  if(InductionHelper::isInductionLiteral(lit)){
       Set<Term*> ta_terms;
       Set<Term*> int_terms;
       SubtermIterator it(lit);
@@ -167,23 +191,11 @@ void InductionClauseIterator::process(Clause* premise, Literal* lit)
         TermList ts = it.next();
         if(!ts.term()){ continue; }
         unsigned f = ts.term()->functor(); 
-        if((complexTermsAllowed || env.signature->functionArity(f)==0) &&
-           (
-               all
-            || env.signature->getFunction(f)->inGoal()
-            || (goal_plus && env.signature->getFunction(f)->inductionSkolem()) // set in NewCNF
-           )
-        ){
-         if(structInd && 
-            env.signature->isTermAlgebraSort(env.signature->getFunction(f)->fnType()->result()) &&
-            ((complexTermsAllowed && env.signature->functionArity(f) != 0) || !env.signature->getFunction(f)->termAlgebraCons()) // skip base constructors
-           ){
+        if(InductionHelper::isInductionTermFunctor(f)){
+          if(InductionHelper::isStructInductionOn() && InductionHelper::isStructInductionFunctor(f)){
             ta_terms.insert(ts.term());
           }
-          if(intInd && 
-             env.signature->getFunction(f)->fnType()->result()==Term::intSort() &&
-             !theory->isInterpretedConstant(f)
-            ){
+          if(InductionHelper::isIntInductionOneOn() && InductionHelper::isIntInductionTermListInLiteral(ts, lit)){
             int_terms.insert(ts.term());
           }
         }
@@ -192,25 +204,17 @@ void InductionClauseIterator::process(Clause* premise, Literal* lit)
       Set<Term*>::Iterator citer1(int_terms);
       while(citer1.hasNext()){
         Term* t = citer1.next();
-        static bool one = env.options->intInduction() == Options::IntInductionKind::ONE ||
-                          env.options->intInduction() == Options::IntInductionKind::ALL;
-        static bool two = env.options->intInduction() == Options::IntInductionKind::TWO ||
-                          env.options->intInduction() == Options::IntInductionKind::ALL;
-        if(notDone(lit,t)){
-          InferenceRule rule = InferenceRule::INDUCTION_AXIOM;
-          Term* inductionTerm = generalize ? getPlaceholderForTerm(t) : t;
-          Kernel::LiteralSubsetReplacement subsetReplacement(lit, t, TermList(inductionTerm));
-          Literal* ilit = generalize ? subsetReplacement.transformSubset(rule) : lit;
-          ASS(ilit != nullptr);
-          do {
-            if(one){
-              performIntInductionOne(premise,lit,ilit,inductionTerm,rule);
-            }
-            if(two){
-              performIntInductionTwo(premise,lit,ilit,inductionTerm,rule);
-            }
-          } while (generalize && (ilit = subsetReplacement.transformSubset(rule)));
-        }
+        Term* indTerm = generalize ? getPlaceholderForTerm(t) : t;
+        List<pair<Literal*, InferenceRule>>* indLits = List<pair<Literal*, InferenceRule>>::empty();
+        performIntInductionForEligibleBaseCases(
+            premise, lit, t, indLits, indTerm, _helper.getLessEqual(t), /*increasing=*/ true);
+        performIntInductionForEligibleBaseCases(
+            premise, lit, t, indLits, indTerm, _helper.getLess(t), /*increasing=*/ true);
+        performIntInductionForEligibleBaseCases(
+            premise, lit, t, indLits, indTerm, _helper.getGreaterEqual(t), /*increasing=*/ false);
+        performIntInductionForEligibleBaseCases(
+            premise, lit, t, indLits, indTerm, _helper.getGreater(t), /*increasing=*/ false);
+        List<pair<Literal*, InferenceRule>>::destroy(indLits);
       }
       Set<Term*>::Iterator citer2(ta_terms);
       while(citer2.hasNext()){
@@ -243,7 +247,88 @@ void InductionClauseIterator::process(Clause* premise, Literal* lit)
    }
 }
 
-void InductionClauseIterator::produceClauses(Clause* premise, Literal* origLit, Formula* hypothesis, Literal* conclusion, InferenceRule rule, ResultSubstitutionSP& substitution)
+void InductionClauseIterator::performIntInductionForEligibleBaseCases(Clause* premise, Literal* origLit, Term* origTerm, List<pair<Literal*, InferenceRule>>*& indLits, Term* indTerm, TermQueryResultIterator baseCaseIt, bool increasing) {
+  while (baseCaseIt.hasNext()) {
+    TermQueryResult tqr = baseCaseIt.next();
+    // Skip if the premise equals the base case (that would add tautologies to the search space),
+    // and skip everything done already.
+    if ((tqr.clause != premise) &&
+        notDoneInt(origLit, origTerm, tqr.term.term(), increasing, /*bool fromComparison=*/tqr.literal != nullptr)) {
+      generalizeAndPerformIntInduction(premise, origLit, origTerm, indLits, indTerm, tqr, increasing);
+    }
+  }
+  static TermQueryResult defaultBaseCase(
+      TermList(theory->representConstant(IntegerConstantType(0))), nullptr, nullptr);
+  if (notDoneInt(origLit, origTerm, defaultBaseCase.term.term(), increasing, /*fromComparison=*/false)) {
+    generalizeAndPerformIntInduction(premise, origLit, origTerm, indLits, indTerm, defaultBaseCase, increasing);
+  }
+}
+
+// TODO: add a counter to capture the number of times the math induction was applied (grouped by -mik one/two).
+void InductionClauseIterator::generalizeAndPerformIntInduction(Clause* premise, Literal* origLit, Term* origTerm, List<pair<Literal*, InferenceRule>>*& indLits, Term* indTerm, TermQueryResult& baseCase, bool increasing) {
+  static bool generalize = env.options->inductionGen();
+  // If induction literals were not computed yet, compute them now.
+  if (List<pair<Literal*, InferenceRule>>::isEmpty(indLits)) {
+    if (generalize) {
+      Kernel::LiteralSubsetReplacement subsetReplacement(origLit, origTerm, TermList(indTerm));
+      indLits = subsetReplacement.getListOfTransformedLiterals();
+    } else {
+      indLits = new List<pair<Literal*, InferenceRule>>(std::make_pair(origLit, InferenceRule::INDUCTION_AXIOM));
+    }
+  }
+  List<pair<Literal*, InferenceRule>>::RefIterator it(indLits);
+  while (it.hasNext()) {
+    auto& litAndRule = it.next();
+    ASS(litAndRule.first != nullptr);
+    performIntInduction(premise, origLit, litAndRule.first, indTerm, litAndRule.second, baseCase, increasing);
+  }
+}
+
+void InductionClauseIterator::processIntegerComparison(Clause* premise, Literal* lit)
+{
+  CALL("Induction::ClauseIterator::processIntegerComparison");
+
+  ASS((theory->interpretPredicate(lit) == Theory::INT_LESS) && lit->ground());
+
+  bool positive = lit->isPositive();
+  TermList* lesserTL = lit->nthArgument(positive ? 0 : 1);
+  TermList* greaterTL = lit->nthArgument(positive ? 1 : 0);
+  ASS(lesserTL != nullptr);
+  ASS(greaterTL != nullptr);
+  Term* lt = lesserTL->term();
+  Term* gt = greaterTL->term();
+  static bool generalize = env.options->inductionGen();
+
+  performIntInductionOnEligibleLiterals(
+    gt, generalize ? getPlaceholderForTerm(gt) : gt, _helper.getTQRsForInductionTerm(*greaterTL), TermQueryResult(*lesserTL, lit, premise), /*increasing=*/true);
+  performIntInductionOnEligibleLiterals(
+    lt, generalize ? getPlaceholderForTerm(lt) : lt, _helper.getTQRsForInductionTerm(*lesserTL), TermQueryResult(*greaterTL, lit, premise), /*increasing=*/false);
+}
+
+void InductionClauseIterator::performIntInductionOnEligibleLiterals(Term* origTerm, Term* indTerm, TermQueryResultIterator inductionTQRsIt, TermQueryResult baseCase, bool increasing) {
+  while (inductionTQRsIt.hasNext()) {
+    TermQueryResult tqr = inductionTQRsIt.next();
+    // Skip if the TQR clause is equal to the base case clause (that would add tautologies
+    // to the search space), and skip everything done already.
+    if ((baseCase.clause != tqr.clause) &&
+        notDoneInt(tqr.literal, origTerm, baseCase.term.term(), increasing, /*bool fromComparison=*/baseCase.literal != nullptr)) {
+      // We need to pass an empty list, which will get populated when performing induction.
+      // Then we need to destroy it.
+      List<pair<Literal*, InferenceRule>>* indLits = List<pair<Literal*, InferenceRule>>::empty();
+      generalizeAndPerformIntInduction(tqr.clause, tqr.literal, origTerm, indLits, indTerm, baseCase, increasing);
+      List<pair<Literal*, InferenceRule>>::destroy(indLits);
+    }
+  }
+}
+
+void InductionClauseIterator::produceClauses(Clause* premise, Literal* origLit, Formula* hypothesis, InferenceRule rule, const pair<Literal*, SLQueryResult>& conclusion)
+{
+  CALL("InductionClauseIterator::produceClauses");
+  static pair<Literal*, SLQueryResult> dummyBaseCase(nullptr, SLQueryResult());
+  return produceClauses(premise, origLit, hypothesis, rule, conclusion, dummyBaseCase);
+}
+
+void InductionClauseIterator::produceClauses(Clause* premise, Literal* origLit, Formula* hypothesis, InferenceRule rule, const pair<Literal*, SLQueryResult>& conclusion, const pair<Literal*, SLQueryResult>& baseCase)
 {
   CALL("InductionClauseIterator::produceClauses");
   NewCNF cnf(0);
@@ -254,19 +339,29 @@ void InductionClauseIterator::produceClauses(Clause* premise, Literal* origLit, 
   FormulaUnit* fu = new FormulaUnit(hypothesis,inf);
   cnf.clausify(NNF::ennf(fu), hyp_clauses);
 
-  // Now perform resolution between origLit and the hyp_clauses on conclusion if conclusion in the clause
-  // If conclusion not in the clause then the clause is a definition from clausification and just keep
+  // Now, when possible, perform resolution:
+  // 1. between origLit and the hyp_clauses on conclusion if conclusion is in the clause,
+  // 2. between the base case literal (which is in form "~ term < base case" or other comparison)
+  //    and the hyp_clauses if the base case literal is not nullptr and it is in the clause.
+  // (If not possible, the clause is a definition from clausification and just keep it as it is.)
   Stack<Clause*>::Iterator cit(hyp_clauses);
   while(cit.hasNext()){
     Clause* c = cit.next();
-    if(c->contains(conclusion)){
-      SLQueryResult qr(origLit,premise, substitution);
-      Clause* r = BinaryResolution::generateClause(c,conclusion,qr,*env.options);
-      _clauses.push(r);
+    bool resolved = false;
+    if(c->contains(conclusion.first)){
+      c = BinaryResolution::generateClause(c,conclusion.first,conclusion.second,*env.options);
+      resolved = true;
     }
-    else{
-      _clauses.push(c);
+    // If the base case literal is present and it occurs in the clause, resolve it.
+    if(baseCase.first && c->contains(baseCase.first)){
+      if (resolved) {
+        // 'c' is never added to the saturation set, hence we need to call splitter here, before
+        // we apply binary resolution on it.
+        _helper.callSplitterOnNewClause(c);
+      }
+      c = BinaryResolution::generateClause(c,baseCase.first,baseCase.second,*env.options);
     }
+    _clauses.push(c);
   }
   env.statistics->induction++;
   if (rule == InferenceRule::GEN_INDUCTION_AXIOM) {
@@ -274,26 +369,33 @@ void InductionClauseIterator::produceClauses(Clause* premise, Literal* origLit, 
   }
 }
 
-// deal with integer constants using two hypotheses
-// (L[0] & (![X] : (X>=0 & L[X]) -> L[x+1])) -> (![Y] : Y>=0 -> L[Y])
-// (L[0] & (![X] : (X<=0 & L[X]) -> L[x-1])) -> (![Y] : Y<=0 -> L[Y])
+// Deal with integer constants using one of four hypotheses (depending on the value of @b increasing),
+// where 'b' is baseCase.term. The comparison predicate in the conclusion comes from baseCase.literal
+// (if present), so that the hypothesis can be resolved against the baseCase.literal:
+// 1. increasing with >= in conclusion:
+// (L[b] & (![X] : (X>=b & L[X]) -> L[x+1])) -> (![Y] : Y>=b -> L[Y])
+// 2. increasing with > in conclusion:
+// (L[b] & (![X] : (X>=b & L[X]) -> L[x+1])) -> (![Y] : Y>b -> L[Y])
+// 3. decreasing with <= in conclusion:
+// (L[b] & (![X] : (X<=b & L[X]) -> L[x-1])) -> (![Y] : Y<=b -> L[Y])
+// 4. decreasing with < in conclusion:
+// (L[b] & (![X] : (X<=b & L[X]) -> L[x-1])) -> (![Y] : Y<b -> L[Y])
 // for some ~L[a]
-void InductionClauseIterator::performIntInductionOne(Clause* premise, Literal* origLit, Literal* lit, Term* term, InferenceRule rule) 
+void InductionClauseIterator::performIntInduction(Clause* premise, Literal* origLit, Literal* lit, Term* term, InferenceRule rule, const TermQueryResult& baseCase, bool increasing)
 {
-  CALL("InductionClauseIterator::performIntInductionOne");
+  CALL("InductionClauseIterator::performIntInduction");
 
-  TermList zero(theory->representConstant(IntegerConstantType(0)));
-  TermList one(theory->representConstant(IntegerConstantType(1)));
-  TermList mone(theory->representConstant(IntegerConstantType(-1)));
+  TermList b(baseCase.term);
+  TermList one(theory->representConstant(IntegerConstantType(increasing ? 1 : -1)));
 
   TermList x(0,false);
   TermList y(1,false);
 
   Literal* clit = Literal::complementaryLiteral(lit);
 
-  // create L[zero]
-  TermReplacement cr1(term,zero);
-  Formula* Lzero = new AtomicFormula(cr1.transform(clit));
+  // create L[b]
+  TermReplacement cr1(term,b);
+  Formula* Lb = new AtomicFormula(cr1.transform(clit));
 
   // create L[X] 
   TermReplacement cr2(term,x);
@@ -303,64 +405,54 @@ void InductionClauseIterator::performIntInductionOne(Clause* premise, Literal* o
   TermReplacement cr3(term,y);
   Formula* Ly = new AtomicFormula(cr3.transform(clit));
 
-  // create L[X+1] 
+  // create L[X+1] or L[X-1]
   TermList fpo(Term::create2(env.signature->getInterpretingSymbol(Theory::INT_PLUS),x,one));
   TermReplacement cr4(term,fpo);
   Formula* Lxpo = new AtomicFormula(cr4.transform(clit));
 
-  // create L[X-1]
-  TermList fmo(Term::create2(env.signature->getInterpretingSymbol(Theory::INT_PLUS),x,mone));
-  TermReplacement cr5(term,fmo);
-  Formula* Lxmo = new AtomicFormula(cr5.transform(clit));
+  static unsigned less = env.signature->getInterpretingSymbol(Theory::INT_LESS);
+  // create X>=b (which is ~X<b) or X<=b (which is ~b<X)
+  Formula* Lxgb = new AtomicFormula(Literal::create2(less,false,(increasing ? x : b),(increasing ? b : x)));
+  // create Y>=b (which is ~Y<b), or Y>b, or Y<=b (which is ~b<Y), or Y<b
+  // This comparison is mirroring the structure of baseCase.literal, which is "b [comparison] inductionTerm".
+  // If baseCase.literal is nullptr, wee using the default base case, and the comparison sign >= or <=.
+  const bool equal = (!baseCase.literal || (baseCase.literal->functor() == less && baseCase.literal->isNegative()));
+  Formula* Lygb = new AtomicFormula(Literal::create2(less,!equal,((increasing == equal) ? y : b),((increasing == equal) ? b : y)));
 
-  // create X>=0, which is ~X<0
-  Formula* Lxgz = new AtomicFormula(Literal::create2(env.signature->getInterpretingSymbol(Theory::INT_LESS),
-                                   false,x,zero));
-  // create Y>=0, which is ~Y<0
-  Formula* Lygz = new AtomicFormula(Literal::create2(env.signature->getInterpretingSymbol(Theory::INT_LESS),
-                                   false,y,zero));
-  // create X<=0, which is ~0<X
-  Formula* Lxlz = new AtomicFormula(Literal::create2(env.signature->getInterpretingSymbol(Theory::INT_LESS),
-                                   false,zero,x));
-  // create Y<=0, which is ~0<Y
-  Formula* Lylz = new AtomicFormula(Literal::create2(env.signature->getInterpretingSymbol(Theory::INT_LESS),
-                                   false,zero,y));
-
-
-  // (L[0] & (![X] : (X>=0 & L[X]) -> L[x+1])) -> (![Y] : Y>=0 -> L[Y])
-
-  Formula* hyp1 = new BinaryFormula(Connective::IMP,
-                    new JunctionFormula(Connective::AND,new FormulaList(Lzero,new FormulaList(
-                      Formula::quantify(new BinaryFormula(Connective::IMP,
-                        new JunctionFormula(Connective::AND, new FormulaList(Lxgz,new FormulaList(Lx,0))),
-                        Lxpo)) 
-                    ,0))),
-                    Formula::quantify(new BinaryFormula(Connective::IMP,Lygz,Ly)));
-
-  // (L[0] & (![X] : (X<=0 & L[X]) -> L[x-1])) -> (![Y] : Y<=0 -> L[Y])
-
-  Formula* hyp2 = new BinaryFormula(Connective::IMP,
-                    new JunctionFormula(Connective::AND,new FormulaList(Lzero,new FormulaList(
-                      Formula::quantify(new BinaryFormula(Connective::IMP,
-                        new JunctionFormula(Connective::AND, new FormulaList(Lxlz,new FormulaList(Lx,0))),
-                        Lxmo))
-                    ,0))),
-                    Formula::quantify(new BinaryFormula(Connective::IMP,Lylz,Ly)));
+  // Create one of:
+  // 1. (L[b] & (![X] : (X>=b & L[X]) -> L[x+1])) -> (![Y] : Y>=b -> L[Y])
+  // 2. (L[b] & (![X] : (X>=b & L[X]) -> L[x+1])) -> (![Y] : Y>b -> L[Y])
+  // 3. (L[b] & (![X] : (X<=b & L[X]) -> L[x-1])) -> (![Y] : Y<=b -> L[Y])
+  // 4. (L[b] & (![X] : (X<=b & L[X]) -> L[x-1])) -> (![Y] : Y<b -> L[Y])
+  Formula* hyp = new BinaryFormula(Connective::IMP,
+                   new JunctionFormula(Connective::AND,new FormulaList(Lb,new FormulaList(
+                     Formula::quantify(new BinaryFormula(Connective::IMP,
+                       new JunctionFormula(Connective::AND, new FormulaList(Lxgb,new FormulaList(Lx,0))),
+                       Lxpo))
+                   ,0))),
+                   Formula::quantify(new BinaryFormula(Connective::IMP,Lygb,Ly)));
   
+  // Create pairs of Literal* and SLQueryResult for resolving L[y] and Y>=b (or Y<=b or Y>b or Y<b)
   static ScopedPtr<RobSubstitution> subst(new RobSubstitution());
   // When producing clauses, 'y' should be unified with 'term'
   subst->unify(TermList(term), 0, y, 1);
   ResultSubstitutionSP result_subst = ResultSubstitution::fromSubstitution(subst.ptr(), 1, 0);
-  produceClauses(premise, lit, hyp1, Ly->literal(), rule, result_subst);
-  produceClauses(premise, lit, hyp2, Ly->literal(), rule, result_subst);
+  pair<Literal*, SLQueryResult> resolveLy(Ly->literal(), SLQueryResult(origLit, premise, result_subst));
+  // If the base case comes from a comparison literal, then we should resolve it with the hypothesis.
+  if (baseCase.clause && baseCase.literal) {
+    // After resolving L[y], 'y' will be already substituted by 'term'. Therefore, the second
+    // substitution is empty.
+    static ResultSubstitutionSP identity = ResultSubstitutionSP(new IdentitySubstitution());
+    Literal* indTermComparedToBase =
+        Literal::create2(less, equal, (increasing==equal) ? TermList(term) : baseCase.term,
+                                      (increasing==equal) ? baseCase.term : TermList(term));
+    pair<Literal*, SLQueryResult> resolveBaseCase(indTermComparedToBase, SLQueryResult(baseCase.literal, baseCase.clause, identity));
+    produceClauses(premise, lit, hyp, rule, resolveLy, resolveBaseCase);
+  } else {
+    // Without base case literal in the correct form, we can only apply resolution on Ly.
+    produceClauses(premise, lit, hyp, rule, resolveLy);
+  }
   subst->reset();
-}
-
-void InductionClauseIterator::performIntInductionTwo(Clause* premise, Literal* origLit, Literal* lit, Term* term, InferenceRule rule) 
-{
-  CALL("InductionClauseIterator::performIntInductionTwo");
-
-  NOT_IMPLEMENTED;
 }
 
 /**
@@ -450,7 +542,8 @@ void InductionClauseIterator::performStructInductionOne(Clause* premise, Literal
                             Formula::quantify(new AtomicFormula(conclusion)));
 
   static ResultSubstitutionSP identity = ResultSubstitutionSP(new IdentitySubstitution());
-  produceClauses(premise, origLit, hypothesis, conclusion, rule, identity);
+  pair<Literal*, SLQueryResult> toResolve(conclusion, SLQueryResult(origLit, premise, identity));
+  produceClauses(premise, origLit, hypothesis, rule, toResolve);
 }
 
 /**
@@ -478,7 +571,6 @@ void InductionClauseIterator::performStructInductionTwo(Clause* premise, Literal
 
   for(unsigned i=0;i<ta->nConstructors();i++){
     TermAlgebraConstructor* con = ta->constructor(i);
-    //cout << env.signature->functionName(con->functor()) << endl;
     unsigned arity = con->arity();
   
     // ignore a constructor if it doesn't mention ta_sort
@@ -540,7 +632,8 @@ void InductionClauseIterator::performStructInductionTwo(Clause* premise, Literal
   Formula* hypothesis = new JunctionFormula(Connective::OR,orf);
 
   static ResultSubstitutionSP identity = ResultSubstitutionSP(new IdentitySubstitution());
-  produceClauses(premise, origLit, hypothesis, conclusion, rule, identity);
+  pair<Literal*, SLQueryResult> toResolve(conclusion, SLQueryResult(origLit, premise, identity));
+  produceClauses(premise, origLit, hypothesis, rule, toResolve);
 }
 
 /*
@@ -665,7 +758,8 @@ void InductionClauseIterator::performStructInductionThree(Clause* premise, Liter
   Formula* hypothesis = new JunctionFormula(Connective::OR,orf);
 
   static ResultSubstitutionSP identity = ResultSubstitutionSP(new IdentitySubstitution());
-  produceClauses(premise, origLit, hypothesis, conclusion, rule, identity);
+  pair<Literal*, SLQueryResult> toResolve(conclusion, SLQueryResult(origLit, premise, identity));
+  produceClauses(premise, origLit, hypothesis, rule, toResolve);
 }
 
 bool InductionClauseIterator::notDone(Literal* lit, Term* term)
@@ -673,7 +767,7 @@ bool InductionClauseIterator::notDone(Literal* lit, Term* term)
   CALL("InductionClauseIterator::notDone");
 
   static DHSet<Literal*> done;
-  static DHMap<TermList,TermList> blanks; 
+  static DHMap<TermList,TermList> blanks;
   TermList srt = env.signature->getFunction(term->functor())->fnType()->result();
 
   if(!blanks.find(srt)){
@@ -691,6 +785,67 @@ bool InductionClauseIterator::notDone(Literal* lit, Term* term)
   }
 
   done.insert(rep);
+
+  return true;
+}
+
+// Note: only works for unit clauses.
+// TODO: encapsulate the 'done' map in a helper class to have it deallocate correctly.
+bool InductionClauseIterator::notDoneInt(Literal* lit, Term* t, Term* baseCase, bool increasing, bool fromComparison)
+{
+  CALL("InductionClauseIterator::notDoneInt");
+
+  // Map structure:
+  // (induction lit/t representation, increasing) -> (baseCase -> (existsFromComparisonTrue, {(induction term, fromComparison)}))
+  static DHMap<pair<Literal*, bool>, DHMap<Term*, pair<bool, DHMap<Term*, bool>*>>*> done;
+
+  // Create representation of lit/t combination
+  static Term* blank;
+  static unsigned freshInt = env.signature->addFreshFunction(0, "blank");
+  if (!blank) {
+    env.signature->getFunction(freshInt)->setType(OperatorType::getConstantsType(Term::intSort()));
+    blank = Term::createConstant(freshInt);
+  }
+  TermReplacement cr(t, TermList(blank));
+  Literal* rep = cr.transform(lit);
+
+  auto key = std::make_pair(rep, increasing);
+  DHMap<Term*, pair<bool, DHMap<Term*, bool>*>>* val;
+  pair<bool, DHMap<Term*, bool>*>* p;
+  if (done.find(key, val)) {
+    // Check two conditions under which we can skip this induction literal/term/base case combination:
+    p = val->findPtr(baseCase);
+    if (p != nullptr) {
+      // 1. either induction was applied on the same induction literal representation & at the same base case,
+      //    and the base case came from comparison (i.e., its comparison with induction term was resolved away).
+      if (p->first) return false;
+      // 2. or induction was applied on the same induction literal & induction term & base case,
+      //    and either now the base case did not come from comparison, or then it did.
+      bool previousFromComparison = false;
+      if (p->second->find(t, previousFromComparison) && (!fromComparison || previousFromComparison)) return false;
+    }
+    // There is a 3rd possibility: the base case now is an interpreted constant, and induction was applied
+    // on the same induction lit and some other interpreted constant base case, which came from comparison,
+    // and the base case then was <= this base case (if increasing) or >= this base case (if not increasing).
+    // TODO: explore if it is worth it to implement this condition.
+  }
+  else {
+    val = new DHMap<Term*, pair<bool, DHMap<Term*, bool>*>>();
+    done.insert(key, val);
+  }
+  p = val->findPtr(baseCase);
+  DHMap<Term*, bool>* insideMap;
+  if (p != nullptr) {
+    insideMap = p->second;
+    p->first |= fromComparison;
+  } else {
+    insideMap = new DHMap<Term*, bool>();
+    val->insert(baseCase, std::make_pair(fromComparison, insideMap));
+  }
+  bool previousFromComparison = false;
+  if (!insideMap->find(t, previousFromComparison) || (!previousFromComparison && fromComparison)) {
+    insideMap->set(t, fromComparison);
+  }
 
   return true;
 }

@@ -431,6 +431,7 @@ set(VAMPIRE_INFERENCE_SOURCES
     Inferences/InnerRewriting.cpp
     Inferences/EquationalTautologyRemoval.cpp
     Inferences/Induction.cpp
+    Inferences/InductionHelper.cpp
     Inferences/InferenceEngine.cpp
     Inferences/Instantiation.cpp
     Inferences/InterpretedEvaluation.cpp
@@ -462,6 +463,7 @@ set(VAMPIRE_INFERENCE_SOURCES
     Inferences/HyperSuperposition.hpp
     Inferences/InnerRewriting.hpp
     Inferences/EquationalTautologyRemoval.hpp
+    Inferences/InductionHelper.hpp
     Inferences/InferenceEngine.hpp
     Inferences/Instantiation.hpp
     Inferences/InterpretedEvaluation.hpp

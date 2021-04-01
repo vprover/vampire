@@ -128,6 +128,23 @@ private:
   const Options& _opt;
 };
 
+/**
+ * Term index for induction
+ */
+class InductionTermIndex
+: public TermIndex
+{
+public:
+  CLASS_NAME(InductionTermIndex);
+  USE_ALLOCATOR(InductionTermIndex);
+
+  InductionTermIndex(TermIndexingStructure* is)
+  : TermIndex(is) {}
+
+protected:
+  void handleClause(Clause* c, bool adding);
+};
+
 /////////////////////////////////////////////////////
 // Indices for higher-order inferences from here on//
 /////////////////////////////////////////////////////
@@ -136,12 +153,12 @@ class PrimitiveInstantiationIndex
 : public TermIndex
 {
 public:
-  CLASS_NAME(PrimitiveInstantiationIndex);  
+  CLASS_NAME(PrimitiveInstantiationIndex);
   USE_ALLOCATOR(PrimitiveInstantiationIndex);
-  
+
   PrimitiveInstantiationIndex(TermIndexingStructure* is) : TermIndex(is)
   {
-    populateIndex();    
+    populateIndex();
   }
 protected:
   void populateIndex();
@@ -184,12 +201,12 @@ class NarrowingIndex
 : public TermIndex
 {
 public:
-  CLASS_NAME(NarrowingIndex);  
+  CLASS_NAME(NarrowingIndex);
   USE_ALLOCATOR(NarrowingIndex);
-  
+
   NarrowingIndex(TermIndexingStructure* is) : TermIndex(is)
   {
-    populateIndex();    
+    populateIndex();
   }
 protected:
   void populateIndex();
@@ -200,9 +217,9 @@ class SkolemisingFormulaIndex
 : public TermIndex
 {
 public:
-  CLASS_NAME(SkolemisingFormulaIndex);  
+  CLASS_NAME(SkolemisingFormulaIndex);
   USE_ALLOCATOR(SkolemisingFormulaIndex);
-  
+
   SkolemisingFormulaIndex(TermIndexingStructure* is) : TermIndex(is)
   {}
   void insertFormula(TermList formula, TermList skolem);
@@ -212,9 +229,9 @@ class HeuristicInstantiationIndex
 : public TermIndex
 {
 public:
-  CLASS_NAME(HeuristicInstantiationIndex);  
+  CLASS_NAME(HeuristicInstantiationIndex);
   USE_ALLOCATOR(HeuristicInstantiationIndex);
-  
+
   HeuristicInstantiationIndex(TermIndexingStructure* is) : TermIndex(is)
   {}
 protected:
@@ -228,9 +245,9 @@ class RenamingFormulaIndex
 : public TermIndex
 {
 public:
-  CLASS_NAME(RenamingFormulaIndex);  
+  CLASS_NAME(RenamingFormulaIndex);
   USE_ALLOCATOR(RenamingFormulaIndex);
-  
+
   RenamingFormulaIndex(TermIndexingStructure* is) : TermIndex(is)
   {}
   void insertFormula(TermList formula, TermList name, Literal* lit, Clause* cls);
