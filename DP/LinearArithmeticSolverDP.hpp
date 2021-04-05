@@ -12,7 +12,7 @@ using namespace Lib;
 using namespace Kernel;
 
 /**
- * A pure virtual class implementing decision procedures.
+ * A pure virtual class implementing Linear decision procedures.
  */
 class LinearArithmeticSolverDP {
 public:
@@ -32,8 +32,8 @@ public:
    *
    * Can be called only after getStatus before any next call to addLiterals.
    */
-  //virtual unsigned getUnsatCoreCount() = 0;
-  //virtual void getUnsatCore(LiteralStack& res, unsigned coreIndex=0) = 0;
+  virtual unsigned getUnsatCoreCount() = 0;
+  virtual set<unsigned>  getUnsatCore(unsigned coreIndex) = 0;
   /** reset decision procedure object into state equivalent to its initial state */
 };
 

@@ -20,14 +20,13 @@
  * Implements class LinearArithmeticDP.
  */
 
-#define DLADP 1
-
 #include <sstream>
 #include <iostream>
 #include <set>
 
 #include "LinearArithmeticDP.hpp"
 #include "GaussElimination.hpp"
+#include "SimplexDP.hpp"
 
 #include "Lib/Environment.hpp"
 
@@ -41,22 +40,51 @@ namespace DP {
 LinearArithmeticDP::LinearArithmeticDP()
 {
   CALL("LinearArithmeticDP::LinearArithmeticDP");
+
+#if UseCache
+  cache.solverType = Options::LinearArithmeticDP::OFF;
+  cache.solverDP = NULL;
+#endif
+}
+
+LinearArithmeticDP::~LinearArithmeticDP()
+{
+  CALL("LinearArithmeticDP::~LinearArithmeticDP");
+  reset();
+
+#if UseCache
+  if (cache.solverDP != NULL) {
+    delete cache.solverDP;
+  }
+#endif
 }
 
 void LinearArithmeticDP::reset()
 {
   CALL("LinearArithmeticDP::reset");
 #if DLADP
-  cout << "#####################RESET#####################\n\n"
+  cout << "LinearArithmeticDP::reset\n"
        << endl;
 #endif
+
+#if UseCache
+  cache.solverType = env.options->ladp();
+  cache.solverDP = solverDP;
+  cache.constraints.clear();
+  for (unsigned i = 0; i < parsedLiterals.size(); i++) {
+    cache.constraints.push_back(parsedLiterals[i].parent);
+  }
+
+  solverDP = NULL;
+  parsedLiterals.clear();
+  return;
+#endif
+
+  parsedLiterals.clear();
   if (solverDP != NULL) {
     delete solverDP;
     solverDP = NULL;
   }
-  solver = Undefined;
-  rowsVector.clear();
-  colLabelSet.clear();
 }
 
 /**
@@ -69,17 +97,8 @@ void LinearArithmeticDP::addLiterals(LiteralIterator lits, bool onlyEqualites)
 {
   CALL("LinearArithmeticDP::addLiterals");
 
-  if (onlyEqualites) {
-    solver = LinearArithmeticDP::GaussElimination;
-  }
-  else {
-    solver = LinearArithmeticDP::Simplex;
-  }
-  // for now override dues to issues with onlyEqualities
-  solver = LinearArithmeticDP::GaussElimination;
-
 #if DLADP
-  cout << ">> addLiterals" << endl;
+  cout << "LinearArithmeticDP::addLiterals" << endl;
 #endif
   while (lits.hasNext()) {
     Literal *l = lits.next();
@@ -88,7 +107,7 @@ void LinearArithmeticDP::addLiterals(LiteralIterator lits, bool onlyEqualites)
       continue;
     }
 #if DLADP
-    cout << "Check " << l->toString() << endl;
+    //cout << "Check " << l->toString() << endl;
 #endif
     if (!theory->isInterpretedPredicate(l))
       continue;
@@ -123,12 +142,10 @@ void LinearArithmeticDP::addLiterals(LiteralIterator lits, bool onlyEqualites)
     }
     if (skip)
       continue;
-    //cout << "Only Equalities: " << onlyEqualites << "l->isEquality(): " << l->isEquality() << "l->isPositive(): " << l->isPositive() << endl;
-    //if (!onlyEqualites || (l->isEquality() && l->isPositive())) {
-    //  addLiteral(l);
-    //}
-    if (l->isEquality() && l->isPositive())
+
+    if ((env.options->ladp() == Options::LinearArithmeticDP::GE && l->isEquality() && l->isPositive()) || (env.options->ladp() == Options::LinearArithmeticDP::SIMPLEX)) {
       addLiteral(l);
+    }
   }
 }
 
@@ -137,27 +154,84 @@ void LinearArithmeticDP::addLiteral(Literal *lit)
   CALL("LinearArithmeticDP::addLiteral");
 
 #if DLADP
-  cout << "###########Adding " << lit->toString() << endl;
+  cout << "LinearArithmeticDP::addLiteral: " << lit->toString() << endl;
 #endif
 
-  Term *leftHandSide = lit->nthArgument(0)->term();
-  Term *rightHandSide = lit->nthArgument(1)->term();
-
+#if UseCache
+  if (addConstraintIfInCache(lit)) {
+    return;
+  }
+#endif
+  // before creating solver check cache
   try {
-    ParameterDataContainer parData;
-    toParams(leftHandSide, RationalConstantType(1, 1), &parData);
-    toParams(rightHandSide, RationalConstantType(-1, 1), &parData);
+    Term *leftHandSide = lit->nthArgument(0)->term();
+    Term *rightHandSide = lit->nthArgument(1)->term();
 
-    List<Parameter> *row = 0;
-    List<Parameter>::push(Parameter(UINT_MAX, -parData.constant), row);
+    // Setting predicate
+    unsigned fun = lit->functor();
+    Interpretation predicate = theory->interpretPredicate(fun);
+    RationalConstantType coef;
 
-    map<unsigned, RationalConstantType>::reverse_iterator it = parData.parameters.rbegin();
-    while (it != parData.parameters.rend()) {
-      List<Parameter>::push(Parameter(it->first, it->second), row);
-      colLabelSet.insert(it->first);
-      it++;
+    Interpretation finalPredicate;
+    switch (predicate) {
+      case Interpretation::EQUAL: {
+        finalPredicate = Interpretation::EQUAL;
+        coef = RationalConstantType(1);
+      } break;
+      case Interpretation::INT_LESS:
+      case Interpretation::RAT_LESS:
+      case Interpretation::REAL_LESS: {
+        finalPredicate = lit->isPositive() ? Interpretation::RAT_LESS : Interpretation::RAT_LESS_EQUAL;
+        coef = lit->isPositive() ? RationalConstantType(1) : RationalConstantType(-1);
+      } break;
+      case Interpretation::INT_GREATER:
+      case Interpretation::RAT_GREATER:
+      case Interpretation::REAL_GREATER: {
+        finalPredicate = lit->isPositive() ? Interpretation::RAT_LESS : Interpretation::RAT_LESS_EQUAL;
+        coef = lit->isPositive() ? RationalConstantType(-1) : RationalConstantType(1);
+      } break;
+      default:
+        return;
     }
-    rowsVector.push_back(row);
+
+    if (finalPredicate == Interpretation::EQUAL && env.options->ladp() == Options::LinearArithmeticDP::SIMPLEX) {
+      Constraint parDataLessEqual;
+      toParams(leftHandSide, RationalConstantType(1), &parDataLessEqual);
+      toParams(rightHandSide, RationalConstantType(-1), &parDataLessEqual);
+      parDataLessEqual.predicate = Interpretation::RAT_LESS_EQUAL;
+      parDataLessEqual.parent = lit;
+      parsedLiterals.push_back(parDataLessEqual);
+
+      Constraint parDataGreaterEqual;
+      toParams(leftHandSide, RationalConstantType(-1), &parDataGreaterEqual);
+      toParams(rightHandSide, RationalConstantType(1), &parDataGreaterEqual);
+      parDataGreaterEqual.predicate = Interpretation::RAT_LESS_EQUAL;
+      parDataGreaterEqual.parent = lit;
+      parsedLiterals.push_back(parDataGreaterEqual);
+#if UseCache
+      cache.parsedLiterals[lit] = parDataLessEqual;
+#endif
+
+#if DLADP
+      cout << "Equals converted to >= and <=" << endl;
+      cout << parDataLessEqual.toString() << endl;
+      cout << parDataGreaterEqual.toString() << endl;
+#endif
+    }
+    else {
+      Constraint parData;
+      toParams(leftHandSide, coef, &parData);
+      toParams(rightHandSide, -coef, &parData);
+      parData.predicate = finalPredicate;
+      parData.parent = lit;
+      parsedLiterals.push_back(parData);
+#if UseCache
+      cache.parsedLiterals[lit] = parData;
+#endif
+#if DLADP
+      cout << parData.toString() << endl;
+#endif
+    }
   }
   // Skipping
   catch (invalid_argument e) {
@@ -180,7 +254,7 @@ RationalConstantType toRational(Term *term)
   return RationalConstantType(1, 1);
 }
 
-void LinearArithmeticDP::toParams(Term *term, RationalConstantType coef, LinearArithmeticDP::ParameterDataContainer *parData)
+void LinearArithmeticDP::toParams(Term *term, RationalConstantType coef, LinearArithmeticDP::Constraint *parData)
 {
   CALL("LinearArithmeticDP::toParams");
   unsigned arity = term->arity();
@@ -189,15 +263,17 @@ void LinearArithmeticDP::toParams(Term *term, RationalConstantType coef, LinearA
     unsigned fun = term->functor();
     // Either got a number of a constant or paramerter
     if (theory->isInterpretedNumber(term)) {
-      parData->constant = parData->constant + (coef * toRational(term));
+      parData->constant = parData->constant + (-coef * toRational(term));
     }
     else {
-      // If parameter insert or update
-      if (parData->parameters.find(fun) == parData->parameters.end()) {
-        parData->parameters[fun] = coef;
-      }
-      else {
-        parData->parameters[fun] = parData->parameters[fun] + coef;
+      if (!coef.isZero()) {
+        // If parameter insert or update
+        if (parData->parameters.find(fun) == parData->parameters.end()) {
+          parData->parameters[fun] = coef;
+        }
+        else {
+          parData->parameters[fun] = parData->parameters[fun] + coef;
+        }
       }
     }
   }
@@ -233,20 +309,54 @@ DecisionProcedure::Status LinearArithmeticDP::getStatus(bool retrieveMultipleCor
 {
   CALL("LinearArithmeticDP::getStatus");
 #if DLADP
-  cout << "##############Solve############" << endl;
+  cout << "LinearArithmeticDP::getStatus" << endl;
 #endif
-  if (rowsVector.size() < 1)
+  if (parsedLiterals.size() < 1)
     return DecisionProcedure::SATISFIABLE;
-  switch (solver) {
-    case GaussElimination: {
-      solverDP = new DP::GaussElimination(rowsVector, colLabelSet);
+
+#if UseCache
+  if (addSolverDPIfInCache()) {
+    return solverDP->getStatus();
+  }
+#endif
+
+  switch (env.options->ladp()) {
+    case Options::LinearArithmeticDP::GE: {
+      solverDP = new DP::GaussElimination(parsedLiterals);
       return solverDP->getStatus();
-    }
-    case Simplex: {
-      return DecisionProcedure::SATISFIABLE;
-    }
+    } break;
+    case Options::LinearArithmeticDP::SIMPLEX: {
+      solverDP = new DP::SimplexDP(parsedLiterals);
+      return solverDP->getStatus();
+    } break;
     default: {
       return DecisionProcedure::UNKNOWN;
+    } break;
+  }
+}
+
+unsigned LinearArithmeticDP::getUnsatCoreCount()
+{
+  if (parsedLiterals.size() < 1)
+    return 0;
+
+  if (solverDP == NULL) {
+    return 0;
+  }
+
+  return solverDP->getUnsatCoreCount();
+}
+
+void LinearArithmeticDP::getUnsatCore(LiteralStack &res, unsigned coreIndex)
+{
+  if (parsedLiterals.size() < 1 || solverDP == NULL) {
+    return;
+  }
+
+  set<unsigned> unsatCore = solverDP->getUnsatCore(coreIndex);
+  if (unsatCore.size() > 0) {
+    for (auto &rowIndex : unsatCore) {
+      res.push(parsedLiterals[rowIndex].parent);
     }
   }
 }
@@ -260,5 +370,74 @@ void LinearArithmeticDP::getModel(LiteralStack &model)
   if (solverDP != NULL)
     solverDP->getModel(model);
 }
+
+#if UseCache
+bool LinearArithmeticDP::addSolverDPIfInCache()
+{
+  if (cache.solverType != env.options->ladp()) {
+    return false;
+  }
+
+  if (parsedLiterals.size() != cache.constraints.size()) {
+    return false;
+  }
+
+  // check that parsedLiterals == cache.constraints
+  for (unsigned i = 0; i < parsedLiterals.size(); i++) {
+    if (parsedLiterals[i].parent != cache.constraints[i]) {
+      return false;
+    }
+  }
+
+#if DLADP
+  cout << "SolverDP in cache" << endl;
+#endif
+
+  // In cache
+  // set up solverDP
+  solverDP = cache.solverDP;
+
+  return true;
+}
+
+bool LinearArithmeticDP::addConstraintIfInCache(Literal *lit)
+{
+  if (cache.solverType != env.options->ladp()) {
+    return false;
+  }
+
+  // Check in cache
+  if (cache.parsedLiterals.find(lit) == cache.parsedLiterals.end()) {
+    return false;
+  }
+
+#if DLADP
+  cout << lit->toString() << ", found in cache." << endl;
+#endif
+
+  Interpretation predicate = theory->interpretPredicate(lit->functor());
+  if (predicate == Interpretation::EQUAL && env.options->ladp() == Options::LinearArithmeticDP::SIMPLEX) {
+    // make them two
+    // Less Equal
+    Constraint parDataLessEqual;
+    // multiple by -1
+    for (auto const &parameter : cache.parsedLiterals[lit].parameters) {
+      parDataLessEqual.parameters[parameter.first] = -parameter.second;
+    }
+    parDataLessEqual.constant = -cache.parsedLiterals[lit].constant;
+    parDataLessEqual.predicate = Interpretation::RAT_LESS_EQUAL;
+    parDataLessEqual.parent = lit;
+    parsedLiterals.push_back(parDataLessEqual);
+
+    // Greater Equal
+    parsedLiterals.push_back(cache.parsedLiterals[lit]);
+  }
+  else {
+    parsedLiterals.push_back(cache.parsedLiterals[lit]);
+  }
+
+  return true;
+}
+#endif
 
 } // namespace DP

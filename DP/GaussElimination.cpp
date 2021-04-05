@@ -19,205 +19,157 @@
  * @file GaussElimination.cpp
  * Implements class GaussElimination.
  */
-#define GEDP 1
+#define GEDP DLADP
 
 #include "GaussElimination.hpp"
 
-#include "Lib/List.hpp"
-#include "Kernel/Sorts.hpp"
-
-#include <iostream>
-#include <vector>
-#include <iterator>
-#include <set>
-#include <typeinfo>
-
 namespace DP {
 
-void printParameterList(List<LinearArithmeticDP::Parameter> *l)
-{
-  List<LinearArithmeticDP::Parameter> *current = l;
-  while (!List<LinearArithmeticDP::Parameter>::isEmpty(current)) {
-    std::cout << "ParameterID: " << current->head().varId << ", coefficient: " << current->head().coefficient << std::endl;
-    current = current->tail();
-  }
-}
-
-GaussElimination::GaussElimination(std::vector<List<LinearArithmeticDP::Parameter> *> rowsVector, std::set<unsigned int> colLabelSet)
+GaussElimination::GaussElimination(vector<LinearArithmeticDP::Constraint> parsedLiterals)
 {
   CALL("GaussElimination::GaussElimination");
-  this->rowsList = new List<LinearArithmeticDP::Parameter> *[rowsVector.size()];
-  for (unsigned int i = 0; i < rowsVector.size(); i++) {
-    this->rowsList[i] = rowsVector[i];
-  }
-  this->numberOfRows = rowsVector.size();
 
-  this->colLabelList = new unsigned[colLabelSet.size()];
-  unsigned colLabelListIndex = 0;
-  for (unsigned const &colLabel : colLabelSet) {
-    colLabelList[colLabelListIndex++] = colLabel;
+  _rowsList = parsedLiterals;
+
+  for (unsigned i = 0; i < _rowsList.size(); i++) {
+    for (auto const &parameter : _rowsList[i].parameters) {
+      _colLabelSet.insert(parameter.first);
+    }
   }
 
-  this->numberOfUnkowns = colLabelSet.size();
-
-  this->solutions = NULL;
+  _status = UNKNOWN;
 }
 
-DecisionProcedure::Status GaussElimination::getStatus()
+void GaussElimination::solve()
 {
   CALL("GaussElimination::solve");
-  List<LinearArithmeticDP::Parameter> **newRowsList = new List<LinearArithmeticDP::Parameter> *[numberOfRows];
+#if GEDP
+  cout << "GaussElimination::solve" << endl;
+  for (unsigned i = 0; i < _rowsList.size(); i++) {
+    cout << _rowsList[i].toString() << endl
+         << endl;
+  }
+#endif
 
-  std::set<unsigned int> rowsLeftIndex;
-  for (unsigned int i = 0; i < numberOfRows; i++)
+  vector<LinearArithmeticDP::Constraint> newRowsList;
+
+  vector<LinearArithmeticDP::Constraint> intermediateRowsList(_rowsList.size());
+  set<unsigned> rowsLeftIndex;
+  for (unsigned i = 0; i < _rowsList.size(); i++) {
+    intermediateRowsList[i] = _rowsList[i];
     rowsLeftIndex.insert(i);
+  }
 
-  numberOfRows = 0;
-  for (unsigned int i = 0; i < numberOfUnkowns; i++) {
-    unsigned int colLabel = colLabelList[i];
-
-    std::vector<unsigned int> rowsIndexWithNonZero;
-    for (auto &rowIndex : rowsLeftIndex) {
-      if (!getCoefficient(rowsList[rowIndex], colLabel).isZero()) {
-        rowsIndexWithNonZero.emplace_back(rowIndex);
+  for (auto const &colLabel : _colLabelSet) {
+    set<unsigned> rowsIndexWithNonZero;
+    for (auto const &rowIndex : rowsLeftIndex) {
+      if (intermediateRowsList[rowIndex].parameters.find(colLabel) != intermediateRowsList[rowIndex].parameters.end() && !intermediateRowsList[rowIndex].parameters[colLabel].isZero()) {
+        rowsIndexWithNonZero.insert(rowIndex);
       }
     }
 
     if (rowsIndexWithNonZero.size() != 0) {
-      unsigned int pivotIndex = rowsIndexWithNonZero[0];
+      set<unsigned>::iterator it = rowsIndexWithNonZero.begin();
+      unsigned pivotIndex = *it;
       rowsLeftIndex.erase(pivotIndex);
-      newRowsList[numberOfRows++] = rowsList[pivotIndex];
+      newRowsList.push_back(intermediateRowsList[pivotIndex]);
+      it++;
 
-      for (unsigned int j = 1; j < rowsIndexWithNonZero.size(); j++) {
-        int rowIndex = rowsIndexWithNonZero[j];
-        RationalConstantType multiplier = getCoefficient(rowsList[rowIndex], colLabel) / getCoefficient(rowsList[pivotIndex], colLabel);
+      for (; it != rowsIndexWithNonZero.end(); it++) {
+        unsigned rowIndex = *it;
+
+        RationalConstantType multiplier = intermediateRowsList[rowIndex].parameters[colLabel] / intermediateRowsList[pivotIndex].parameters[colLabel];
 
         // subtract
-        rowsList[rowIndex] = subtract(rowsList[rowIndex], rowsList[pivotIndex], multiplier);
+        subtract(&intermediateRowsList[rowIndex], &intermediateRowsList[pivotIndex], multiplier);
       }
     }
   }
 
   // There are some leftover rows. Some are all zeros -> disregard. Others, check for satifiability
-  for (auto &rowIndex : rowsLeftIndex) {
-    List<LinearArithmeticDP::Parameter> *row = rowsList[rowIndex];
-    if (row->head().varId == UINT_MAX && !row->head().coefficient.isZero()) {
-
+  for (auto const &rowIndex : rowsLeftIndex) {
+    if (intermediateRowsList[rowIndex].parameters.size() == 0 && !intermediateRowsList[rowIndex].constant.isZero()) {
 #if GEDP
-      std::cout << "Unsatisfiable: ";
-      printParameterList(row);
+      cout << "Unsatisfiable at row index " << rowIndex << ": ";
+      cout << intermediateRowsList[rowIndex].toString() << endl;
 #endif
-
-      return DecisionProcedure::UNSATISFIABLE;
+      _inconsistentRowIndexes.push_back(rowIndex);
+      _status = UNSATISFIABLE;
     }
-    List<LinearArithmeticDP::Parameter>::destroy(row);
+  }
+
+  if (_status == UNSATISFIABLE) {
+    return;
   }
 
 #if GEDP
-  for (unsigned int i = 0; i < numberOfRows; i++) {
-    printParameterList(newRowsList[i]);
-    std::cout << std::endl;
+  cout << "\nUpper Triangular Form" << endl;
+  for (unsigned i = 0; i < newRowsList.size(); i++) {
+    cout << newRowsList[i].toString() << endl
+         << endl;
   }
 #endif
 
   // At this point satisfiable. Possibly infinite solutions
-  delete[] rowsList;
-  rowsList = newRowsList;
+  _rowsList = newRowsList;
 
   // if matrix is triangular form use back subsitution
-  if (numberOfRows < numberOfUnkowns) {
+  if (_rowsList.size() < _colLabelSet.size()) {
 #if GEDP
     std::cout << "Satisfiable with infinite solutions as number of equations < number of unkowns." << std::endl;
 #endif
-    return DecisionProcedure::SATISFIABLE;
+    _status = SATISFIABLE_INFINITE;
+    return;
   }
 
-  solutions = new RationalConstantType[numberOfUnkowns];
-  // At this point, matrix in upper triangular form
-  for (int i = numberOfUnkowns - 1; i >= 0; i--) {
-    List<LinearArithmeticDP::Parameter> *row = newRowsList[i];
-    solutions[i] = RationalConstantType(0);
-    List<LinearArithmeticDP::Parameter> *current = row->tail();
-    unsigned int m = i + 1;
+  _status = SATISFIABLE_ONE;
+}
 
-    while (!List<LinearArithmeticDP::Parameter>::isEmpty(current->tail())) {
-      m = getColLabelIndex(current->head().varId, m);
-      solutions[i] = solutions[i] - current->head().coefficient * solutions[m];
-      m++;
-      current = current->tail();
-    }
-    solutions[i] = current->head().coefficient + solutions[i];
-    solutions[i] = solutions[i] / row->head().coefficient;
+LinearArithmeticDP::Status GaussElimination::getStatus()
+{
+  if (_status == UNKNOWN) {
+    solve();
   }
 
 #if GEDP
-  for (unsigned int i = 0; i < numberOfUnkowns; i++) {
-    std::cout << "Varid: " << colLabelList[i] << " = " << solutions[i] << std::endl;
-  }
+  cout << "Status: " << (_status == UNSATISFIABLE ? "UNSAT" : "SAT") << endl;
 #endif
 
-  return DecisionProcedure::SATISFIABLE;
-}
-
-RationalConstantType GaussElimination::getCoefficient(List<LinearArithmeticDP::Parameter> *row, unsigned int varId)
-{
-  CALL("GaussElimination::getCoefficient");
-  List<LinearArithmeticDP::Parameter> *current = row;
-  while (!List<LinearArithmeticDP::Parameter>::isEmpty(current)) {
-    if (current->head().varId == varId)
-      return current->head().coefficient;
-
-    if (current->head().varId > varId)
+  switch (_status) {
+    case SATISFIABLE_ONE:
+    case SATISFIABLE_INFINITE:
+      return DecisionProcedure::SATISFIABLE;
       break;
-
-    current = current->tail();
+    case UNSATISFIABLE:
+      return DecisionProcedure::UNSATISFIABLE;
+      break;
+    default:
+      return DecisionProcedure::UNKNOWN;
+      break;
   }
-
-  return RationalConstantType(0);
 }
 
-// e1 = e1 - multiplier*e2
-List<LinearArithmeticDP::Parameter> *GaussElimination::subtract(List<LinearArithmeticDP::Parameter> *e1, List<LinearArithmeticDP::Parameter> *e2, RationalConstantType multiplier)
+// c1 = c1 - multiplier*c2
+void GaussElimination::subtract(LinearArithmeticDP::Constraint *c1, LinearArithmeticDP::Constraint *c2, RationalConstantType multiplier)
 {
   CALL("GaussElimination::subtract");
-  List<LinearArithmeticDP::Parameter> *currentE1 = e1->tail();
-  List<LinearArithmeticDP::Parameter> *previousE1 = e1;
-  List<LinearArithmeticDP::Parameter> *currentE2 = e2->tail();
-  while (!List<LinearArithmeticDP::Parameter>::isEmpty(currentE2)) {
-    if (currentE1->head().varId == currentE2->head().varId) {
-      unsigned varId = currentE2->head().varId;
-      RationalConstantType coefficient = currentE1->head().coefficient - (multiplier * currentE2->head().coefficient);
-      LinearArithmeticDP::Parameter elm = LinearArithmeticDP::Parameter(varId, coefficient);
-      currentE1->setHead(elm);
-
-      if (elm.coefficient.isZero() && elm.varId != UINT_MAX) {
-        previousE1->setTail(currentE1->tail());
-        delete currentE1;
-        currentE1 = previousE1;
+  for (auto const &c2parameter : c2->parameters) {
+    if (c1->parameters.find(c2parameter.first) != c1->parameters.end()) {
+      // found
+      RationalConstantType result = c1->parameters[c2parameter.first] - (multiplier * c2parameter.second);
+      if (result.isZero()) {
+        c1->parameters.erase(c2parameter.first);
       }
-
-      currentE2 = currentE2->tail();
-    }
-    else if (currentE1->tail()->head().varId > currentE2->head().varId) {
-      // Inserting new elm
-      unsigned varId = currentE2->head().varId;
-      RationalConstantType coefficient = RationalConstantType(-1) * multiplier * currentE2->head().coefficient;
-      LinearArithmeticDP::Parameter elm = LinearArithmeticDP::Parameter(varId, coefficient);
-
-      List<LinearArithmeticDP::Parameter> *listElm = new List<LinearArithmeticDP::Parameter>(elm, currentE1->tail());
-      currentE1->setTail(listElm);
-
-      previousE1 = currentE1;
-      currentE1 = currentE1->tail();
-      currentE2 = currentE2->tail();
+      else {
+        c1->parameters[c2parameter.first] = result;
+      }
     }
     else {
-      previousE1 = currentE1;
-      currentE1 = currentE1->tail();
+      c1->parameters[c2parameter.first] = -multiplier * c2parameter.second;
     }
   }
 
-  return e1->tail();
+  c1->constant = c1->constant - (multiplier * c2->constant);
 }
 
 void GaussElimination::getModel(LiteralStack &model)
@@ -226,12 +178,37 @@ void GaussElimination::getModel(LiteralStack &model)
 #if GEDP
   cout << "GaussElimination::getModel" << endl;
 #endif
-  if (solutions == NULL)
+  if (_status != SATISFIABLE_ONE)
     return;
 
-  for (unsigned i = 0; i < numberOfUnkowns; i++) {
-    unsigned varId = colLabelList[i];
-    RationalConstantType solution = solutions[i];
+  // In upper triangular form. Use back subsitution
+  map<unsigned, RationalConstantType> solutions;
+
+  set<unsigned>::reverse_iterator colLabelIt = _colLabelSet.rbegin();
+  unsigned currentRowIndex = _rowsList.size() - 1;
+  for (; colLabelIt != _colLabelSet.rend(); colLabelIt++) {
+    unsigned colLabel = *colLabelIt;
+    LinearArithmeticDP::Constraint currentRow = _rowsList[currentRowIndex];
+    solutions[colLabel] = currentRow.constant;
+
+    map<unsigned, RationalConstantType>::iterator it = currentRow.parameters.begin();
+    it++;
+    for (; it != currentRow.parameters.end(); it++) {
+      solutions[colLabel] = solutions[colLabel] - it->second * solutions[it->first];
+    }
+    solutions[colLabel] = solutions[colLabel] / currentRow.parameters[*colLabelIt];
+    currentRowIndex--;
+  }
+
+#if GEDP
+  for (auto const &solution : solutions) {
+    cout << "Varid: " << solution.first << " = " << solution.second << endl;
+  }
+#endif
+
+  for (auto const &result : solutions) {
+    unsigned varId = result.first;
+    RationalConstantType solution = result.second;
     unsigned sort = env.signature->getFunction(varId)->fnType()->result();
     switch (sort) {
       case Sorts::SRT_INTEGER: {
@@ -241,23 +218,27 @@ void GaussElimination::getModel(LiteralStack &model)
         Term *var = Term::createConstant(varId);
         Term *constant = theory->representConstant(IntegerConstantType(solution.numerator()));
         Literal *lit = Literal::createEquality(true, TermList(var), TermList(constant), sort);
+#if GEDP
         cout << lit->toString() << endl;
+#endif
         model.push(lit);
       } break;
       case Sorts::SRT_RATIONAL: {
         Term *var = Term::createConstant(varId);
         Term *constant = theory->representConstant(solution);
         Literal *lit = Literal::createEquality(true, TermList(var), TermList(constant), sort);
+#if GEDP
         cout << lit->toString() << endl;
+#endif
         model.push(lit);
       } break;
       case Sorts::SRT_REAL: {
         Term *var = Term::createConstant(varId);
         Term *constant = theory->representConstant(RealConstantType(solution));
         Literal *lit = Literal::createEquality(true, TermList(var), TermList(constant), sort);
-        #if GEDP
+#if GEDP
         cout << lit->toString() << endl;
-        #endif
+#endif
         model.push(lit);
       } break;
       default:
@@ -267,28 +248,170 @@ void GaussElimination::getModel(LiteralStack &model)
   }
 }
 
-int GaussElimination::getColLabelIndex(unsigned int label, unsigned int searchStartIndex)
+unsigned GaussElimination::getUnsatCoreCount()
 {
-  CALL("GaussElimination::getColLabelIndex");
-  for (unsigned int i = searchStartIndex; i < numberOfUnkowns; i++) {
-    if (colLabelList[i] == label) {
-      return i;
+  if (_status == SATISFIABLE_ONE || _status == SATISFIABLE_INFINITE) {
+    return 0;
+  }
+  else {
+    if (_unsatCores.size() < 1) {
+      setUnsatCore();
+    }
+
+    return _unsatCores.size();
+  }
+}
+
+set<unsigned> GaussElimination::getUnsatCore(unsigned coreIndex)
+{
+  if (_status == SATISFIABLE_ONE || _status == SATISFIABLE_INFINITE) {
+    return set<unsigned>();
+  }
+  else {
+    if (_unsatCores.size() < 1) {
+      setUnsatCore();
+    }
+
+    if (coreIndex >= _unsatCores.size()) {
+      return set<unsigned>();
+    }
+
+    return _unsatCores[coreIndex];
+  }
+}
+
+bool GaussElimination::setInterference(LinearArithmeticDP::Constraint *row, set<unsigned> *interferenceSet)
+{
+  bool changed = false;
+  for (auto const &parameter : row->parameters) {
+    if (interferenceSet->insert(parameter.first).second) {
+      changed = true;
     }
   }
-  return -1;
+
+  return changed;
+}
+
+bool GaussElimination::isInterfearing(LinearArithmeticDP::Constraint *row, set<unsigned> *interferenceSet)
+{
+  for (auto const &parameter : row->parameters) {
+    if (interferenceSet->find(parameter.first) != interferenceSet->end()) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+bool GaussElimination::areInconsistentMultiples(LinearArithmeticDP::Constraint *row1, LinearArithmeticDP::Constraint *row2)
+{
+  // exactly same vars and have multiple coef, except for constant
+  // Return true if inconsistant
+  if (row1->parameters.size() != row2->parameters.size()) {
+    return false;
+  }
+
+  map<unsigned, RationalConstantType>::iterator row1ParametersIt = row1->parameters.begin();
+  map<unsigned, RationalConstantType>::iterator row2ParametersIt = row2->parameters.begin();
+
+  if (row1ParametersIt->first != row2ParametersIt->first) {
+    return false;
+  }
+
+  RationalConstantType multiplier = row2ParametersIt->second / row1ParametersIt->second;
+  row1ParametersIt++;
+  row2ParametersIt++;
+
+  while (row1ParametersIt != row1->parameters.end()) {
+    if (row1ParametersIt->first != row2ParametersIt->first) {
+      return false;
+    }
+
+    if ((row1ParametersIt->second * multiplier) != row2ParametersIt->second) {
+      return false;
+    }
+
+    row1ParametersIt++;
+    row2ParametersIt++;
+  }
+
+  return (row1->constant * multiplier) != row2->constant;
+}
+
+void GaussElimination::setUnsatCore()
+{
+  vector<set<unsigned>> intermediateUnsatCores;
+  for (unsigned i = 0; i < _inconsistentRowIndexes.size(); i++) {
+    unsigned inconsistentRowIndex = _inconsistentRowIndexes[i];
+
+    set<unsigned> interferenceSet;
+    bool interferenceSetHasChanged;
+    interferenceSetHasChanged = true;
+    setInterference(&_rowsList[inconsistentRowIndex], &interferenceSet);
+
+    set<unsigned> unsatCore;
+    unsatCore.insert(inconsistentRowIndex);
+
+    std::set<unsigned> rowsLeftIndexes;
+    for (unsigned j = 0; j < inconsistentRowIndex; j++) {
+      rowsLeftIndexes.insert(j);
+    }
+
+    for (unsigned j = inconsistentRowIndex + 1; j < _rowsList.size(); j++) {
+      rowsLeftIndexes.insert(j);
+    }
+
+    while (interferenceSetHasChanged) {
+      interferenceSetHasChanged = false;
+      set<unsigned>::iterator it = rowsLeftIndexes.begin();
+      while (it != rowsLeftIndexes.end()) {
+        unsigned rowIndex = *it;
+        if (isInterfearing(&_rowsList[rowIndex], &interferenceSet)) {
+          interferenceSetHasChanged |= setInterference(&_rowsList[rowIndex], &interferenceSet);
+          unsatCore.insert(rowIndex);
+          it = rowsLeftIndexes.erase(it);
+        }
+        else {
+          ++it;
+        }
+      }
+    }
+
+    intermediateUnsatCores.push_back(unsatCore);
+  }
+
+  // Check for overlap and parallel.
+  for (unsigned i = 0; i < intermediateUnsatCores.size(); i++) {
+    set<unsigned> intermediateUnsatCore = intermediateUnsatCores[i];
+    unsigned inconsistentRowIndex = _inconsistentRowIndexes[i];
+
+    set<unsigned> unsatCore;
+    unsatCore.insert(inconsistentRowIndex);
+
+    set<unsigned>::iterator it = intermediateUnsatCore.begin();
+    for (; *it != inconsistentRowIndex; it++) {
+      unsigned rowIndex = *it;
+      if (areInconsistentMultiples(&_rowsList[inconsistentRowIndex], &_rowsList[rowIndex])) {
+        unsatCore.insert(rowIndex);
+      }
+    }
+    it++;
+    for (; it != intermediateUnsatCore.end(); it++) {
+      unsigned rowIndex = *it;
+      if (areInconsistentMultiples(&_rowsList[inconsistentRowIndex], &_rowsList[rowIndex])) {
+        unsatCore.insert(rowIndex);
+      }
+    }
+
+    set<unsigned> core = (unsatCore.size() > 1) ? unsatCore : intermediateUnsatCore;
+    if (find(_unsatCores.begin(), _unsatCores.end(), core) == _unsatCores.end()) {
+      _unsatCores.push_back(core);
+    }
+  }
 }
 
 GaussElimination::~GaussElimination()
 {
   CALL("GaussElimination::~GaussElimination");
-  for (int i = 0; i < numberOfRows; i++) {
-    List<LinearArithmeticDP::Parameter>::destroy(rowsList[i]);
-  }
-
-  delete[] rowsList;
-  if (solutions != NULL) {
-    delete[] solutions;
-  }
-  delete[] colLabelList;
 }
 } // namespace DP

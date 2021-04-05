@@ -24,6 +24,9 @@
 #ifndef __LinearArithmeticDP__
 #define __LinearArithmeticDP__
 
+#define DLADP 1
+#define UseCache 1
+
 #include "Forwards.hpp"
 
 #include "Lib/DArray.hpp"
@@ -31,6 +34,7 @@
 #include "Lib/DHMap.hpp"
 #include "Lib/Stack.hpp"
 #include "Lib/List.hpp"
+#include "Shell/Options.hpp"
 #include <vector>
 #include <set>
 #include <map>
@@ -59,53 +63,90 @@ public:
   BYPASSING_ALLOCATOR;
 
   LinearArithmeticDP();
-
-  enum Solver {
-    Undefined,
-    GaussElimination,
-    Simplex,
-  };
-
-  struct Parameter {
-    unsigned varId;
-    RationalConstantType mutable coefficient = RationalConstantType(0);
-
-    Parameter(unsigned id, RationalConstantType coef)
-    {
-      varId = id;
-      coefficient = coef;
-    }
-  };
-
-  // Don't really know what to call it
-  struct ParameterDataContainer {
-    map<unsigned, RationalConstantType> parameters;
-    RationalConstantType constant = RationalConstantType(0);
-  };
+  ~LinearArithmeticDP();
 
   virtual void addLiterals(LiteralIterator lits, bool onlyEqualites) override;
-  void addLiteral(Literal *lit);
 
   virtual Status getStatus(bool retrieveMultipleCores) override;
 
-  // TODO: For now we don't support unsat cores but we should do later
-  virtual unsigned getUnsatCoreCount() override { return 0; }
-  virtual void getUnsatCore(LiteralStack &res, unsigned coreIndex) override{};
+  virtual unsigned getUnsatCoreCount() override;
+  virtual void getUnsatCore(LiteralStack &res, unsigned coreIndex) override;
 
-  // TODO: For now do nothing but consider if we want/need to support this later
   virtual void getModel(LiteralStack &model) override;
 
   virtual void reset() override;
 
-  ~LinearArithmeticDP() { reset(); }
+  struct Constraint {
+    map<unsigned, RationalConstantType> parameters;
+    RationalConstantType constant = RationalConstantType(0);
+    Interpretation predicate;
+    Literal *parent;
+
+    string toString()
+    {
+      string str = "";
+      for (auto const &parameter : parameters) {
+        str += "ParameterID: " + to_string(parameter.first) + ", coefficient: " + parameter.second.toString().c_str() + "\n";
+      }
+
+      switch (predicate) {
+        case Interpretation::EQUAL:
+          str += "Predicate: =\n";
+          break;
+        case Interpretation::INT_GREATER:
+        case Interpretation::RAT_GREATER:
+        case Interpretation::REAL_GREATER:
+          str += "Predicate: >\n";
+          break;
+        case Interpretation::INT_GREATER_EQUAL:
+        case Interpretation::RAT_GREATER_EQUAL:
+        case Interpretation::REAL_GREATER_EQUAL:
+          str += "Predicate: >=\n";
+          break;
+        case Interpretation::INT_LESS:
+        case Interpretation::RAT_LESS:
+        case Interpretation::REAL_LESS:
+          str += "Predicate: <\n";
+          break;
+        case Interpretation::INT_LESS_EQUAL:
+        case Interpretation::RAT_LESS_EQUAL:
+        case Interpretation::REAL_LESS_EQUAL:
+          str += "Predicate: <=\n";
+          break;
+        default:
+          break;
+      }
+
+      str += "Constant: " + string(constant.toString().c_str());
+
+      return str;
+    }
+  };
+
+#if UseCache
+  struct Cache {
+    // Set solver DP when intializing solvers
+    Shell::Options::LinearArithmeticDP solverType;
+    LinearArithmeticSolverDP *solverDP;
+    vector<Literal *> constraints;
+
+    map<Literal *, Constraint> parsedLiterals;
+  };
+
+  bool addSolverDPIfInCache();
+  bool addConstraintIfInCache(Literal *lit);
+#endif
 
 private:
   LinearArithmeticSolverDP *solverDP;
-  Solver solver = Undefined;
-  std::vector<List<Parameter> *> rowsVector;
-  std::set<unsigned> colLabelSet;
+  vector<Constraint> parsedLiterals;
 
-  void toParams(Term *term, RationalConstantType coef, ParameterDataContainer *parData);
+#if UseCache
+  Cache cache;
+#endif
+
+  void addLiteral(Literal *lit);
+  void toParams(Term *term, RationalConstantType coef, Constraint *parData);
 };
 
 } // namespace DP

@@ -480,6 +480,10 @@ set(VAMPIRE_DECISION_PROCEDURES_SOURCES
     DP/SimpleCongruenceClosure.hpp
     DP/LinearArithmeticDP.cpp
     DP/LinearArithmeticDP.hpp
+    DP/Simplex.cpp
+    DP/Simplex.hpp
+    DP/SimplexDP.cpp
+    DP/SimplexDP.hpp
     DP/GaussElimination.cpp
     DP/GaussElimination.hpp
     )
