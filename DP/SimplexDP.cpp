@@ -190,9 +190,10 @@ DecisionProcedure::Status SimplexDP::getStatus()
   return _status;
 }
 
-void SimplexDP::getModel(LiteralStack &model)
+vector<Literal *> SimplexDP::getModel()
 {
   CALL("SimplexDP::getModel");
+  return vector<Literal *>();
 }
 
 unsigned SimplexDP::getUnsatCoreCount()

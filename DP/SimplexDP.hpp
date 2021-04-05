@@ -47,7 +47,7 @@ public:
   ~SimplexDP();
 
   virtual LinearArithmeticDP::Status getStatus() override;
-  virtual void getModel(LiteralStack &model) override;
+  virtual vector<Literal *> getModel() override;
   virtual unsigned getUnsatCoreCount() override;
   virtual set<unsigned> getUnsatCore(unsigned coreIndex) override;
 

@@ -23,7 +23,7 @@ public:
 
   // TODO: this is needed for the model experiment with the SimpleCongruenceClosure class
   // but does it make sense for a general dp?
-  virtual void getModel(LiteralStack& model) = 0;
+  virtual vector<Literal *> getModel() = 0;
 
   /**
    * Return number of unsatisfiable cores that can be retrieved.

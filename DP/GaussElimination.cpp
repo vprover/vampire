@@ -172,14 +172,18 @@ void GaussElimination::subtract(LinearArithmeticDP::Constraint *c1, LinearArithm
   c1->constant = c1->constant - (multiplier * c2->constant);
 }
 
-void GaussElimination::getModel(LiteralStack &model)
+vector<Literal *> GaussElimination::getModel()
 {
   CALL("GaussElimination::getModel");
 #if GEDP
   cout << "GaussElimination::getModel" << endl;
 #endif
   if (_status != SATISFIABLE_ONE)
-    return;
+    return vector<Literal *>();
+
+  if (_model.size() > 0) {
+    return _model;
+  }
 
   // In upper triangular form. Use back subsitution
   map<unsigned, RationalConstantType> solutions;
@@ -221,7 +225,7 @@ void GaussElimination::getModel(LiteralStack &model)
 #if GEDP
         cout << lit->toString() << endl;
 #endif
-        model.push(lit);
+        _model.push_back(lit);
       } break;
       case Sorts::SRT_RATIONAL: {
         Term *var = Term::createConstant(varId);
@@ -230,7 +234,7 @@ void GaussElimination::getModel(LiteralStack &model)
 #if GEDP
         cout << lit->toString() << endl;
 #endif
-        model.push(lit);
+        _model.push_back(lit);
       } break;
       case Sorts::SRT_REAL: {
         Term *var = Term::createConstant(varId);
@@ -239,13 +243,15 @@ void GaussElimination::getModel(LiteralStack &model)
 #if GEDP
         cout << lit->toString() << endl;
 #endif
-        model.push(lit);
+        _model.push_back(lit);
       } break;
       default:
         continue;
         break;
     }
   }
+
+  return _model;
 }
 
 unsigned GaussElimination::getUnsatCoreCount()

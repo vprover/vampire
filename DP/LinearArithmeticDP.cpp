@@ -367,8 +367,12 @@ void LinearArithmeticDP::getModel(LiteralStack &model)
 #if DLADP
   cout << "LinearArithmeticDP::getModel" << endl;
 #endif
-  if (solverDP != NULL)
-    solverDP->getModel(model);
+  if (solverDP != NULL) {
+    vector<Literal *> modelVector = solverDP->getModel();
+    for (unsigned i = 0; i < modelVector.size(); i++) {
+      model.push(modelVector[i]);
+    }
+  }
 }
 
 #if UseCache

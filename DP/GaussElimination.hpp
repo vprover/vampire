@@ -53,7 +53,7 @@ public:
 
   virtual LinearArithmeticDP::Status getStatus() override;
 
-  virtual void getModel(LiteralStack &model) override;
+  virtual vector<Literal *> getModel() override;
 
   virtual unsigned getUnsatCoreCount() override;
   virtual set<unsigned> getUnsatCore(unsigned coreIndex) override;
@@ -62,7 +62,7 @@ private:
   vector<LinearArithmeticDP::Constraint> _rowsList;
   set<unsigned> _colLabelSet;
   Status _status;
-
+  vector<Literal *> _model;
   vector<unsigned> _inconsistentRowIndexes;
   vector<set<unsigned>> _unsatCores;
 
