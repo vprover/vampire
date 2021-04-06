@@ -142,6 +142,7 @@ SimplexDP::SimplexDP(vector<LinearArithmeticDP::Constraint> constraints)
 
   // Creating constarants
   vector<LinearArithmeticDP::Constraint> newConstrains;
+  newConstrains.reserve(d1ParameterDataContainer.size() + d2ParameterDataContainer.size());
   for (unsigned i = 0; i < d1ParameterDataContainer.size(); i++) {
     newConstrains.push_back(d1ParameterDataContainer[i]);
   }
@@ -190,10 +191,10 @@ DecisionProcedure::Status SimplexDP::getStatus()
   return _status;
 }
 
-vector<Literal *> SimplexDP::getModel()
+map<unsigned, RationalConstantType> SimplexDP::getModel()
 {
   CALL("SimplexDP::getModel");
-  return vector<Literal *>();
+  return map<unsigned, RationalConstantType>();
 }
 
 unsigned SimplexDP::getUnsatCoreCount()

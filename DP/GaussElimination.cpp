@@ -53,10 +53,11 @@ void GaussElimination::solve()
 
   vector<LinearArithmeticDP::Constraint> newRowsList;
 
-  vector<LinearArithmeticDP::Constraint> intermediateRowsList(_rowsList.size());
+  vector<LinearArithmeticDP::Constraint> intermediateRowsList;
+  intermediateRowsList.reserve(_rowsList.size());
   set<unsigned> rowsLeftIndex;
   for (unsigned i = 0; i < _rowsList.size(); i++) {
-    intermediateRowsList[i] = _rowsList[i];
+    intermediateRowsList.push_back(_rowsList[i]);
     rowsLeftIndex.insert(i);
   }
 
@@ -172,84 +173,40 @@ void GaussElimination::subtract(LinearArithmeticDP::Constraint *c1, LinearArithm
   c1->constant = c1->constant - (multiplier * c2->constant);
 }
 
-vector<Literal *> GaussElimination::getModel()
+map<unsigned, RationalConstantType> GaussElimination::getModel()
 {
   CALL("GaussElimination::getModel");
 #if GEDP
   cout << "GaussElimination::getModel" << endl;
 #endif
   if (_status != SATISFIABLE_ONE)
-    return vector<Literal *>();
+    return map<unsigned, RationalConstantType>();
 
   if (_model.size() > 0) {
     return _model;
   }
-
-  // In upper triangular form. Use back subsitution
-  map<unsigned, RationalConstantType> solutions;
 
   set<unsigned>::reverse_iterator colLabelIt = _colLabelSet.rbegin();
   unsigned currentRowIndex = _rowsList.size() - 1;
   for (; colLabelIt != _colLabelSet.rend(); colLabelIt++) {
     unsigned colLabel = *colLabelIt;
     LinearArithmeticDP::Constraint currentRow = _rowsList[currentRowIndex];
-    solutions[colLabel] = currentRow.constant;
+    _model[colLabel] = currentRow.constant;
 
     map<unsigned, RationalConstantType>::iterator it = currentRow.parameters.begin();
     it++;
     for (; it != currentRow.parameters.end(); it++) {
-      solutions[colLabel] = solutions[colLabel] - it->second * solutions[it->first];
+      _model[colLabel] = _model[colLabel] - it->second * _model[it->first];
     }
-    solutions[colLabel] = solutions[colLabel] / currentRow.parameters[*colLabelIt];
+    _model[colLabel] = _model[colLabel] / currentRow.parameters[*colLabelIt];
     currentRowIndex--;
   }
 
 #if GEDP
-  for (auto const &solution : solutions) {
+  for (auto const &solution : _model) {
     cout << "Varid: " << solution.first << " = " << solution.second << endl;
   }
 #endif
-
-  for (auto const &result : solutions) {
-    unsigned varId = result.first;
-    RationalConstantType solution = result.second;
-    unsigned sort = env.signature->getFunction(varId)->fnType()->result();
-    switch (sort) {
-      case Sorts::SRT_INTEGER: {
-        if (!solution.isInt())
-          continue;
-
-        Term *var = Term::createConstant(varId);
-        Term *constant = theory->representConstant(IntegerConstantType(solution.numerator()));
-        Literal *lit = Literal::createEquality(true, TermList(var), TermList(constant), sort);
-#if GEDP
-        cout << lit->toString() << endl;
-#endif
-        _model.push_back(lit);
-      } break;
-      case Sorts::SRT_RATIONAL: {
-        Term *var = Term::createConstant(varId);
-        Term *constant = theory->representConstant(solution);
-        Literal *lit = Literal::createEquality(true, TermList(var), TermList(constant), sort);
-#if GEDP
-        cout << lit->toString() << endl;
-#endif
-        _model.push_back(lit);
-      } break;
-      case Sorts::SRT_REAL: {
-        Term *var = Term::createConstant(varId);
-        Term *constant = theory->representConstant(RealConstantType(solution));
-        Literal *lit = Literal::createEquality(true, TermList(var), TermList(constant), sort);
-#if GEDP
-        cout << lit->toString() << endl;
-#endif
-        _model.push_back(lit);
-      } break;
-      default:
-        continue;
-        break;
-    }
-  }
 
   return _model;
 }
@@ -347,6 +304,7 @@ bool GaussElimination::areInconsistentMultiples(LinearArithmeticDP::Constraint *
 void GaussElimination::setUnsatCore()
 {
   vector<set<unsigned>> intermediateUnsatCores;
+  intermediateUnsatCores.reserve(_inconsistentRowIndexes.size());
   for (unsigned i = 0; i < _inconsistentRowIndexes.size(); i++) {
     unsigned inconsistentRowIndex = _inconsistentRowIndexes[i];
 

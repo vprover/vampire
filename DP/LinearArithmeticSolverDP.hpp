@@ -21,9 +21,7 @@ public:
   /** return the result */
   virtual DecisionProcedure::Status getStatus() = 0;
 
-  // TODO: this is needed for the model experiment with the SimpleCongruenceClosure class
-  // but does it make sense for a general dp?
-  virtual vector<Literal *> getModel() = 0;
+  virtual map<unsigned, RationalConstantType> getModel() = 0;
 
   /**
    * Return number of unsatisfiable cores that can be retrieved.
