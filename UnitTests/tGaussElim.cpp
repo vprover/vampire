@@ -12,8 +12,7 @@
 #include "DP/LinearArithmeticDP.hpp"
 #include "DP/GaussElimination.hpp"
 #include "Kernel/Term.hpp"
-
-#include "Lib/List.hpp"
+#include "Kernel/Theory.hpp"
 
 UT_CREATE;
 using namespace std;
@@ -22,135 +21,177 @@ using namespace Inferences;
 
 #include "Test/SyntaxSugar.hpp"
 
-void printParameterList(List<DP::LinearArithmeticDP::Parameter> *l)
+vector<DP::LinearArithmeticDP::Constraint> toConstraints(vector<vector<float>> c)
 {
-  List<DP::LinearArithmeticDP::Parameter> *current = l;
-  while (!List<DP::LinearArithmeticDP::Parameter>::isEmpty(current)) {
-    std::cout << "ParameterID: " << current->head().varId << ", coefficient: " << current->head().coefficient << std::endl;
-    current = current->tail();
+  vector<DP::LinearArithmeticDP::Constraint> constraints;
+  for (unsigned i = 0; i < c.size(); i++) {
+    DP::LinearArithmeticDP::Constraint constraint;
+    constraint.predicate = Interpretation::EQUAL;
+
+    for (unsigned j = 0; j < c[i].size() - 1; j++) {
+      if (c[i][j] != 0) {
+        constraint.parameters[j] = RationalConstantType(c[i][j]);
+      }
+    }
+    constraint.constant = RationalConstantType(c[i][c[i].size() - 1]);
+    constraints.push_back(constraint);
+  }
+  return constraints;
+}
+
+TEST_FUN(gauss_unique_solution1)
+{
+  vector<vector<float>> constraintsVector = {
+      {2, -1, 5, 10},
+      {1, 1, -3, -2},
+      {2, 4, 1, 1},
+  };
+
+  map<unsigned, RationalConstantType> solutions = {{0, RationalConstantType(2)}, {1, RationalConstantType(-1)}, {2, RationalConstantType(1)}};
+
+  vector<DP::LinearArithmeticDP::Constraint> constraints = toConstraints(constraintsVector);
+
+  DP::GaussElimination gauss = DP::GaussElimination(constraints);
+  DP::DecisionProcedure::Status status = gauss.getStatus();
+  ASS_EQ(status, DP::DecisionProcedure::SATISFIABLE);
+
+  // Since there is a solution, model size must be positive. unsatCoreCount must be zero.
+  map<unsigned, RationalConstantType> model = gauss.getModel();
+  ASS(model.size() > 1);
+
+  unsigned unsatCoreCount = gauss.getUnsatCoreCount();
+  ASS_EQ(unsatCoreCount, 0);
+
+  // Asserting that Gauss computed the correct answer
+  ASS(model.size() == solutions.size());
+  map<unsigned, RationalConstantType>::iterator modelIt = model.begin();
+  map<unsigned, RationalConstantType>::iterator solutionsIt = solutions.begin();
+  while (modelIt != model.end()) {
+    ASS_EQ(modelIt->first, solutionsIt->first);
+    ASS_EQ(modelIt->second, solutionsIt->second);
+    modelIt++;
+    solutionsIt++;
   }
 }
 
-//e1 = e1 - multiplier*e2
-List<DP::LinearArithmeticDP::Parameter>* subtract(List<DP::LinearArithmeticDP::Parameter> *e1, List<DP::LinearArithmeticDP::Parameter> *e2, float multiplier)
+TEST_FUN(gauss_unique_solution2)
 {
-  printParameterList(e1);
-  printParameterList(e2);
+  vector<vector<float>> constraintsVector = {
+      {1, 1, 1, 5},
+      {2, 3, 5, 8},
+      {4, 0, 5, 2},
+  };
 
-  List<DP::LinearArithmeticDP::Parameter> *currentE1 = e1->tail();
-  List<DP::LinearArithmeticDP::Parameter> *previousE1 = e1;
-  List<DP::LinearArithmeticDP::Parameter> *currentE2 = e2->tail();
-  while (!List<DP::LinearArithmeticDP::Parameter>::isEmpty(currentE2)) {
-    if (currentE1->head().varId == currentE2->head().varId) {
-      unsigned varId = currentE2->head().varId;
-      float coefficient = currentE1->head().coefficient - (multiplier * currentE2->head().coefficient);
-      DP::LinearArithmeticDP::Parameter elm = DP::LinearArithmeticDP::Parameter(varId, coefficient);
-      currentE1->setHead(elm);
+  map<unsigned, RationalConstantType> solutions = {{0, RationalConstantType(3)}, {1, RationalConstantType(4)}, {2, RationalConstantType(-2)}};
 
-      if (elm.coefficient == 0 && elm.varId != UINT_MAX) {
-          previousE1->setTail(currentE1->tail());
-          currentE1 = previousE1;
-      }
+  vector<DP::LinearArithmeticDP::Constraint> constraints = toConstraints(constraintsVector);
 
-      currentE2 = currentE2->tail();
-    }
-    else if (currentE1->tail()->head().varId > currentE2->head().varId) {
-      // Inserting new elm
-      unsigned varId = currentE2->head().varId;
-      float coefficient = -1 * multiplier * currentE2->head().coefficient;
-      DP::LinearArithmeticDP::Parameter elm = DP::LinearArithmeticDP::Parameter(varId, coefficient);
-    
-      List<DP::LinearArithmeticDP::Parameter> *listElm = new List<DP::LinearArithmeticDP::Parameter>(elm, currentE1->tail());
-      currentE1->setTail(listElm);
+  DP::GaussElimination gauss = DP::GaussElimination(constraints);
+  DP::DecisionProcedure::Status status = gauss.getStatus();
+  ASS_EQ(status, DP::DecisionProcedure::SATISFIABLE);
 
-      previousE1 = currentE1;
-      currentE1 = currentE1->tail();
-      currentE2 = currentE2->tail();
-    }
-    else {
-      previousE1 = currentE1;
-      currentE1 = currentE1->tail();
-    }
+  // Since there is a solution, model size must be positive. unsatCoreCount must be zero.
+  map<unsigned, RationalConstantType> model = gauss.getModel();
+  ASS(model.size() > 1);
+
+  unsigned unsatCoreCount = gauss.getUnsatCoreCount();
+  ASS_EQ(unsatCoreCount, 0);
+
+  // Asserting that Gauss computed the correct answer
+  ASS(model.size() == solutions.size());
+  map<unsigned, RationalConstantType>::iterator modelIt = model.begin();
+  map<unsigned, RationalConstantType>::iterator solutionsIt = solutions.begin();
+  while (modelIt != model.end()) {
+    ASS_EQ(modelIt->first, solutionsIt->first);
+    ASS_EQ(modelIt->second, solutionsIt->second);
+    modelIt++;
+    solutionsIt++;
   }
-
-  return e1->tail();
 }
 
-void test_list()
+TEST_FUN(gauss_infinite_solutions1)
 {
-  std::cout << "\n\n#########################################################" << std::endl;
-  std::vector<std::vector<float>> rowVector = {{0, 2, 4}, {0, 2, 4}, {1,1,7}};
+  vector<vector<float>> constraintsVector = {
+      {-3, -5, 36, 10},
+      {-1, 0, 7, 5},
+      {1, 1, -10, -4},
+  };
 
-  std::set<unsigned int> colLabelSet;
-  std::vector<List<DP::LinearArithmeticDP::Parameter> *> rowsList;
+  vector<DP::LinearArithmeticDP::Constraint> constraints = toConstraints(constraintsVector);
 
-  int i, k, j;
-  for (i = 0; i < rowVector.size(); i++) {
-    if (rowVector[i].size() < 1)
-      continue;
+  DP::GaussElimination gauss = DP::GaussElimination(constraints);
+  DP::DecisionProcedure::Status status = gauss.getStatus();
+  ASS_EQ(status, DP::DecisionProcedure::SATISFIABLE);
 
-    List<DP::LinearArithmeticDP::Parameter> *rowList = 0;
-    for (k = 0; k < rowVector[i].size(); k++) {
-      if (rowVector[i][k] != 0) {
-        unsigned varId = k * 2;
-        float coefficient = rowVector[i][k];
-        DP::LinearArithmeticDP::Parameter elm  = DP::LinearArithmeticDP::Parameter(varId, coefficient);
-        colLabelSet.insert(elm.varId);
-  
-        rowList = new List<DP::LinearArithmeticDP::Parameter>(elm);
-        k++;
-        break;
-      }
-    }
+  // Since there is infinite solutions, model size would be zero. unsatCoreCount must be zero.
+  map<unsigned, RationalConstantType> model = gauss.getModel();
+  ASS_EQ(model.size(), 0);
 
-    List<DP::LinearArithmeticDP::Parameter> *current = rowList;
-    for (j = k; j < rowVector[i].size() - 1; j++) {
-      if (rowVector[i][j] != 0) {
-        unsigned varId = j * 2;
-        float coefficient = rowVector[i][j];
-        DP::LinearArithmeticDP::Parameter elm = DP::LinearArithmeticDP::Parameter(varId, coefficient);
-        colLabelSet.insert(elm.varId);
-
-        current->setTail(new List<DP::LinearArithmeticDP::Parameter>(elm));
-        current = current->tail();
-      }
-    }
-
-    float coefficient = rowVector[i][rowVector[i].size() - 1];
-    DP::LinearArithmeticDP::Parameter elm = DP::LinearArithmeticDP::Parameter(UINT_MAX, coefficient);
-    current->setTail(new List<DP::LinearArithmeticDP::Parameter>(elm));
-
-    rowsList.push_back(rowList);
-  }
-
-  /*
-  // Printing
-  for (int i = 0; i < rowsList.size(); i++) {
-    std::cout << "Printing row " << i << std::endl;
-    printParameterList(rowsList[i]);
-  }
-  */
-
-  //std::cout << "Running GE" << std::endl;
-
-  // Rowlist, col Label list, number of unknows
-  DP::GaussElimination ge = DP::GaussElimination(rowsList, colLabelSet);
-  ge.getStatus();
-  
-  //rowsList[1] = subtract(rowsList[1], rowsList[0], 2);
-  //std::cout << "*****************"
-  //          << std::endl;
-  //printParameterList(rowsList[1]);
-  
-  std::cout << "#########################################################\n"
-            << std::endl;
-
-
+  unsigned unsatCoreCount = gauss.getUnsatCoreCount();
+  ASS_EQ(unsatCoreCount, 0);
 }
 
-TEST_FUN(test_1)
+TEST_FUN(gauss_infinite_solutions2)
 {
-  // x = 1 create term
-  Literal lit = Literal::createEquality(true, TermList(Term* t), TermList arg2, unsigned sort)
-  exit(-1);
+  vector<vector<float>> constraintsVector = {
+      {1, 1, 2, 1},
+      {2, -1, 1, 2},
+      {4, 1, 5, 4},
+  };
+
+  vector<DP::LinearArithmeticDP::Constraint> constraints = toConstraints(constraintsVector);
+
+  DP::GaussElimination gauss = DP::GaussElimination(constraints);
+  DP::DecisionProcedure::Status status = gauss.getStatus();
+  ASS_EQ(status, DP::DecisionProcedure::SATISFIABLE);
+
+  // Since there is infinite solutions, model size would be zero. unsatCoreCount must be zero.
+  map<unsigned, RationalConstantType> model = gauss.getModel();
+  ASS_EQ(model.size(), 0);
+
+  unsigned unsatCoreCount = gauss.getUnsatCoreCount();
+  ASS_EQ(unsatCoreCount, 0);
+}
+
+TEST_FUN(gauss_no_solution1)
+{
+  vector<vector<float>> constraintsVector = {
+      {1, 1, 1, 3},
+      {1, 1, 1, 4},
+  };
+
+  vector<DP::LinearArithmeticDP::Constraint> constraints = toConstraints(constraintsVector);
+
+  DP::GaussElimination gauss = DP::GaussElimination(constraints);
+  DP::DecisionProcedure::Status status = gauss.getStatus();
+  ASS_EQ(status, DP::DecisionProcedure::UNSATISFIABLE);
+
+  // Since there is no solutions, model size should be zero. unsatCoreCount must be positive.
+  map<unsigned, RationalConstantType> model = gauss.getModel();
+  ASS_EQ(model.size(), 0);
+
+  unsigned unsatCoreCount = gauss.getUnsatCoreCount();
+  ASS(unsatCoreCount > 0);
+}
+
+TEST_FUN(gauss_no_solution2)
+{
+  vector<vector<float>> constraintsVector = {
+      {1, 1, 3},
+      {1, 2, 7},
+      {4, 6, 21}
+  };
+
+  vector<DP::LinearArithmeticDP::Constraint> constraints = toConstraints(constraintsVector);
+
+  DP::GaussElimination gauss = DP::GaussElimination(constraints);
+  DP::DecisionProcedure::Status status = gauss.getStatus();
+  ASS_EQ(status, DP::DecisionProcedure::UNSATISFIABLE);
+
+  // Since there is no solutions, model size should be zero. unsatCoreCount must be positive.
+  map<unsigned, RationalConstantType> model = gauss.getModel();
+  ASS_EQ(model.size(), 0);
+
+  unsigned unsatCoreCount = gauss.getUnsatCoreCount();
+  ASS(unsatCoreCount > 0);
 }

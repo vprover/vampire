@@ -725,6 +725,7 @@ set(UNIT_TESTS
     UnitTests/tUnificationWithAbstraction.cpp
     UnitTests/tGaussianElimination.cpp
     UnitTests/tGaussElim.cpp
+    UnitTests/tSimplexDP.cpp
     UnitTests/tDisagreement.cpp
     UnitTests/tDynamicHeap.cpp
     UnitTests/tIntegerConstantType.cpp
