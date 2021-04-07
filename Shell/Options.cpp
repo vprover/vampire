@@ -280,6 +280,12 @@ void Options::init()
     _lookup.insert(&_minimizeSatProofs);
     _minimizeSatProofs.tag(OptionTag::OUTPUT);
 
+    _printProofToFile = StringOptionValue("print_proofs_to_file","pptf","");
+    _printProofToFile.description="If Vampire finds a proof, it is printed to the here specified file instead of to stdout.\n"
+                                  "Currently, this option only works in portfolio mode.";
+    _lookup.insert(&_printProofToFile);
+    _printProofToFile.tag(OptionTag::OUTPUT);
+
     _proofExtra = ChoiceOptionValue<ProofExtra>("proof_extra","",ProofExtra::OFF,{"off","free","full"});
     _proofExtra.description="Add extra detail to proofs:\n "
       "- free uses known information only\n" 
@@ -3086,6 +3092,7 @@ vstring Options::generateEncodedOptions() const
     forbidden.insert(&_mode);
     forbidden.insert(&_testId); // is this old version of decode?
     forbidden.insert(&_include);
+    forbidden.insert(&_printProofToFile);
     forbidden.insert(&_problemName);
     forbidden.insert(&_inputFile);
     forbidden.insert(&_randomStrategy);

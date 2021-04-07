@@ -38,6 +38,7 @@
 #include <type_traits>
 #include <cstring>
 #include <memory>
+#include <sys/stat.h>
 
 #include "Forwards.hpp"
 
@@ -1917,6 +1918,7 @@ public:
   Proof proof() const { return _proof.actualValue; }
   bool minimizeSatProofs() const { return _minimizeSatProofs.actualValue; }
   ProofExtra proofExtra() const { return _proofExtra.actualValue; }
+  vstring printProofToFile() const { return _printProofToFile.actualValue; }
   bool proofChecking() const { return _proofChecking.actualValue; }
   int naming() const { return _naming.actualValue; }
 
@@ -2516,6 +2518,7 @@ private:
 
   BoolOptionValue _outputAxiomNames;
 
+  StringOptionValue _printProofToFile;
   BoolOptionValue _printClausifierPremises;
   StringOptionValue _problemName;
   ChoiceOptionValue<Proof> _proof;
