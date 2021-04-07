@@ -33,11 +33,6 @@ using namespace Indexing;
 
 typedef ApplicativeHelper AH;
 
-#if VTHREADED
-#include <mutex>
-std::recursive_mutex TermSharing::_mutex;
-#endif
-
 /**
  * Initialise the term sharing structure.
  * @since 29/12/2007 Manchester
@@ -55,6 +50,25 @@ TermSharing::TermSharing()
   CALL("TermSharing::TermSharing");
 }
 
+#if VTHREADED
+/**
+ * Initialise the term sharing structure from an existing parent.
+ */
+TermSharing::TermSharing(const TermSharing &other)
+  : _totalTerms(other._totalTerms)
+  , _totalLiterals(other._totalLiterals)
+  , _literalInsertions(other._literalInsertions)
+  , _termInsertions(other._termInsertions)
+{
+  CALL("TermSharing::TermSharing(const TermSharing &)");
+
+  decltype(_terms)::Iterator ts(other._terms);
+  _terms.insertFromIterator(ts);
+  decltype(_literals)::Iterator ls(other._literals);
+  _literals.insertFromIterator(ls);
+}
+#endif
+
 /**
  * Destroy the term sharing structure.
  * @since 29/12/2007 Manchester
@@ -63,7 +77,7 @@ TermSharing::~TermSharing()
 {
   CALL("TermSharing::~TermSharing");
 
-#if CHECK_LEAKS
+#if !VTHREADED && CHECK_LEAKS
   Set<Term*,TermSharing>::Iterator ts(_terms);
   while (ts.hasNext()) {
     ts.next()->destroy();
@@ -95,7 +109,6 @@ Term* TermSharing::insert(Term* t)
 {
 
   CALL("TermSharing::insert(Term*)");
-  ACQ_TERM_SHARING_LOCK;
   ASS(!t->isLiteral());
   ASS(!t->isSpecial());
 
@@ -113,15 +126,9 @@ Term* TermSharing::insert(Term* t)
   }
 
   _termInsertions++;
-#if VTHREADED
-  auto pair = _terms.insert(std::make_pair(env->signature, t));
-  Signature *signature = pair.first;
-  Term *s = pair.second;
-#else
   Term* s = _terms.insert(t);
   Signature *signature = env->signature;
-#endif
-   if (s == t) {
+  if (s == t) {
     unsigned weight = 1;
     unsigned vars = 0;
     bool hasInterpretedConstants=t->arity()==0 &&
@@ -229,7 +236,6 @@ Term* TermSharing::insert(Term* t)
 Literal* TermSharing::insert(Literal* t)
 {
   CALL("TermSharing::insert(Literal*)");
-  ACQ_TERM_SHARING_LOCK;
   ASS(t->isLiteral());
   ASS(!t->isSpecial());
 
@@ -249,14 +255,8 @@ Literal* TermSharing::insert(Literal* t)
   }
 
   _literalInsertions++;
-#if VTHREADED
-  auto pair = _literals.insert(std::make_pair(env->signature, t));
-  Signature *signature = pair.first;
-  Literal *s = pair.second;
-#else
   Literal* s = _literals.insert(t);
   Signature *signature = env->signature;
-#endif
   if (s == t) {
     unsigned weight = 1;
     unsigned vars = 0;
@@ -314,7 +314,6 @@ Literal* TermSharing::insert(Literal* t)
 Literal* TermSharing::insertVariableEquality(Literal* t, TermList sort)
 {
   CALL("TermSharing::insertVariableEquality");
-  ACQ_TERM_SHARING_LOCK;
   ASS(t->isLiteral());
   ASS(t->commutative());
   ASS(t->isEquality());
@@ -337,11 +336,7 @@ Literal* TermSharing::insertVariableEquality(Literal* t, TermList sort)
   unsigned sortWeight = sort.isVar() ? 1 : sort.term()->weight();
 
   _literalInsertions++;
-#if VTHREADED
-  Literal *s = _literals.insert(std::make_pair(env->signature, t)).second;
-#else
   Literal* s = _literals.insert(t);
-#endif
   if (s == t) {
     t->markShared();
     t->setId(_totalLiterals);
@@ -365,7 +360,6 @@ Literal* TermSharing::insertVariableEquality(Literal* t, TermList sort)
 Term* TermSharing::insertRecurrently(Term* t)
 {
   CALL("TermSharing::insert");
-  ACQ_TERM_SHARING_LOCK;
 
   TimeCounter tc(TC_TERM_SHARING);
 
@@ -402,19 +396,11 @@ Term* TermSharing::insertRecurrently(Term* t)
 Literal* TermSharing::tryGetOpposite(Literal* l)
 {
   CALL("TermSharing::tryGetOpposite");
-  ACQ_TERM_SHARING_LOCK;
 
-#if VTHREADED
-  std::pair<Signature*, Literal*> res;
-  if(_literals.find(std::make_pair(env->signature, OpLitWrapper(l)), res)) {
-    return res.second;
-  }
-#else
   Literal* res;
   if(_literals.find(OpLitWrapper(l), res)) {
     return res;
   }
-#endif
   return 0;
 }
 
@@ -478,50 +464,20 @@ static bool equalArgs(const TermList *ss, const TermList *tt) {
  * @pre s and t must be non-variable terms
  * @since 28/12/2007 Manchester
  */
-#if VTHREADED
-bool TermSharing::equals(
-  std::pair<Signature*, Term*> left,
-  std::pair<Signature*, Term*> right
-)
-#else
 bool TermSharing::equals(const Term* s,const Term* t)
-#endif
 {
   CALL("TermSharing::equals(Term*,Term*)");
 
-#if VTHREADED
-  Term *s = left.second;
-  Term *t = right.second;
-  if(
-    left.first->functionId(s->functor()) !=
-    right.first->functionId(t->functor())
-  )
-    return false;
-#else
   if (s->functor() != t->functor()) return false;
-#endif
-
   return equalArgs(s->args(), t->args());
 } // TermSharing::equals
 
 /**
  * True if the two literals are equal (or equal except polarity if @c opposite is true)
  */
-#if VTHREADED
-bool TermSharing::equals(
-  std::pair<Signature*, Literal*> left,
-  std::pair<Signature*, Literal*> right,
-  bool opposite
-)
-#else
 bool TermSharing::equals(const Literal* l1, const Literal* l2, bool opposite)
-#endif
 {
   CALL("TermSharing::equals(Literal*,Literal*)");
-#if VTHREADED
-  Literal *l1 = left.second;
-  Literal *l2 = right.second;
-#endif
 
   if( (l1->polarity()==l2->polarity()) == opposite) {
     return false;
@@ -532,14 +488,6 @@ bool TermSharing::equals(const Literal* l1, const Literal* l2, bool opposite)
     return false;
   }
 
-#if VTHREADED
-  if(
-    left.first->predicateId(l1->functor()) !=
-    right.first->predicateId(l2->functor())
-  )
-    return false;
-#else
   if (l1->functor() != l2->functor()) return false;
-#endif
   return equalArgs(l1->args(), l2->args());
 }

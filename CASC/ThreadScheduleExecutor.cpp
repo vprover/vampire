@@ -10,6 +10,7 @@
 #if VTHREADED
 #include "ThreadScheduleExecutor.hpp"
 
+#include "Indexing/TermSharing.hpp"
 #include "Kernel/Signature.hpp"
 #include "Lib/Environment.hpp"
 #include "Lib/Timer.hpp"
@@ -51,13 +52,13 @@ bool ThreadScheduleExecutor::run(const Schedule &schedule)
 
     // fresh statistics
     env->statistics = new Shell::Statistics();
-    // deep-copy options and signature from parent thread
+    // deep-copy options, signature and term sharing from parent thread
     env->options = new Shell::Options(*penv->options);
     env->signature = new Kernel::Signature(*penv->signature);
+    env->sharing = new Indexing::TermSharing(*penv->sharing);
 
     // shallow-copy sorts, sharing, property
     env->sorts = penv->sorts;
-    env->sharing = penv->sharing;
     env->property = penv->property;
 
     env->timer = Timer::instance();
@@ -68,11 +69,7 @@ bool ThreadScheduleExecutor::run(const Schedule &schedule)
 
     // unbind stuff we shallow-copied to stop it being deallocated
     env->property = nullptr;
-    env->sharing = nullptr;
     env->sorts = nullptr;
-
-    //leak signature :-( - currently TermSharing keeps handles to this
-    env->signature = nullptr;
 
     // indicate we're done
     std::lock_guard<std::mutex> task_lock(task_mutex);

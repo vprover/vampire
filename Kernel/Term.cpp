@@ -803,16 +803,11 @@ Literal* Literal::apply(Substitution& subst)
  * @pre The term must be non-variable
  * @since 28/12/2007 Manchester
  */
-unsigned Term::hashUnderSignature(Signature *signature) const
+unsigned Term::hash() const
 {
-  CALL("Term::hashUnderSignature");
+  CALL("Term::hash");
 
-#if VTHREADED
-  unsigned functor = signature->functionId(_functor);
-#else
-  unsigned functor = _functor;
-#endif
-  unsigned hash = Hash::hash(functor);
+  unsigned hash = Hash::hash(_functor);
   if (_arity == 0) {
     return hash;
   }
@@ -824,17 +819,11 @@ unsigned Term::hashUnderSignature(Signature *signature) const
  * Return the hash function of the top-level of a literal.
  * @since 30/03/2008 Flight Murcia-Manchester
  */
-unsigned Literal::hashUnderSignature(Signature *signature) const
+unsigned Literal::hash() const
 {
-  CALL("Literal::hashUnderSignature");
+  CALL("Literal::hash");
 
-#if VTHREADED
-  unsigned functor = signature->predicateId(_functor);
-#else
-  unsigned functor = _functor;
-#endif
-
-  unsigned hash = Hash::hash(isPositive() ? (2*functor) : (2*functor+1));
+  unsigned hash = Hash::hash(isPositive() ? (2*_functor) : (2*_functor+1));
   if (_arity == 0) {
     return hash;
   }
@@ -848,17 +837,11 @@ unsigned Literal::hashUnderSignature(Signature *signature) const
 /**
  * Return the hash function of the top-level of a literal with opposite polarity.
  */
-unsigned Literal::oppositeHashUnderSignature(Signature *signature) const
+unsigned Literal::oppositeHash() const
 {
-  CALL("Literal::oppositeHashUnderSignature");
+  CALL("Literal::oppositeHash");
 
-#if VTHREADED
-  unsigned functor = signature->predicateId(_functor);
-#else
-  unsigned functor = _functor;
-#endif
-
-  unsigned hash = Hash::hash( (!isPositive()) ? (2*functor) : (2*functor+1));
+  unsigned hash = Hash::hash( (!isPositive()) ? (2*_functor) : (2*_functor+1));
   if (_arity == 0) {
     return hash;
   }

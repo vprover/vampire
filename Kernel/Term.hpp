@@ -27,7 +27,6 @@
 #include "Debug/Tracer.hpp"
 
 #include "Lib/Allocator.hpp"
-#include "Lib/Environment.hpp"
 #include "Lib/Portability.hpp"
 #include "Lib/Comparison.hpp"
 #include "Lib/Stack.hpp"
@@ -394,9 +393,7 @@ public:
   /** return the arguments */
   TermList* args()
   { return _args + _arity; }
-  unsigned hash() const
-  { return hashUnderSignature(env->signature); };
-  unsigned hashUnderSignature(Signature *) const;
+  unsigned hash() const;
 
   /** return the arity */
   unsigned arity() const
@@ -832,12 +829,8 @@ public:
 
   static Literal* flattenOnArgument(const Literal*,int argumentNumber);
 
-  unsigned hash() const
-  { return hashUnderSignature(env->signature); }
-  unsigned hashUnderSignature(Signature *) const;
-  unsigned oppositeHash() const
-  { return oppositeHashUnderSignature(env->signature); }
-  unsigned oppositeHashUnderSignature(Signature *) const;
+  unsigned hash() const;
+  unsigned oppositeHash() const;
   static Literal* complementaryLiteral(Literal* l);
   /** If l is positive, return l; otherwise return its complementary literal. */
   static Literal* positiveLiteral(Literal* l) {

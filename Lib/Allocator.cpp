@@ -89,10 +89,6 @@ unsigned watchAddressLastValue = 0;
 using namespace Lib;
 using namespace Shell;
 
-#if VTHREADED
-std::recursive_mutex Allocator::_mutex;
-#endif
-
 VATOMIC(int) Allocator::_initialised(0);
 int Allocator::_total = 0;
 size_t Allocator::_memoryLimit;
@@ -148,7 +144,6 @@ void Allocator::operator delete(void* obj) {
 Allocator::Allocator()
 {
   CALLC("Allocator::Allocator",MAKE_CALLS);
-  ACQ_ALLOCATOR_LOCK;
 
 #if ! USE_SYSTEM_ALLOCATION
   for (int i = REQUIRES_PAGE/4-1;i >= 0;i--) {
@@ -168,7 +163,6 @@ Allocator::Allocator()
 Lib::Allocator::~Allocator ()
 {
   CALLC("Allocator::~Allocator",MAKE_CALLS);
-  ACQ_ALLOCATOR_LOCK;
 
   while (_myPages) {
     deallocatePages(_myPages);
@@ -182,7 +176,6 @@ Lib::Allocator::~Allocator ()
 void Allocator::initialise()
 {
   CALLC("Allocator::initialise",MAKE_CALLS)
-  ACQ_ALLOCATOR_LOCK;
 
 #if VDEBUG
   Descriptor::map = 0;
@@ -209,7 +202,6 @@ void Allocator::initialise()
 void Allocator::addressStatus(const void* address)
 {
   CALLC("Allocator::addressStatus",MAKE_CALLS);
-  ACQ_ALLOCATOR_LOCK;
 
   Descriptor* pg = 0; // page descriptor
   cout << "Status of address " << address << '\n';
@@ -246,7 +238,6 @@ void Allocator::addressStatus(const void* address)
 
 void Allocator::reportUsageByClasses()
 {
-  ACQ_ALLOCATOR_LOCK;
   Lib::DHMap<const char*, size_t> summary;
   Lib::DHMap<const char*, size_t> cntSummary;
   for (int i = Descriptor::capacity-1;i >= 0;i--) {
@@ -286,7 +277,6 @@ void Allocator::reportUsageByClasses()
 void Allocator::cleanup()
 {
   CALLC("Allocator::cleanup",MAKE_CALLS);
-  ACQ_ALLOCATOR_LOCK;
   BYPASSING_ALLOCATOR;
 
   // delete all allocators
@@ -355,7 +345,6 @@ void Allocator::deallocateKnown(void* obj,size_t size)
 #endif
 {
   CALLC("Allocator::deallocateKnown",MAKE_CALLS);
-  ACQ_ALLOCATOR_LOCK;
   ASS(obj);
 
 #if VDEBUG && !TSAN
@@ -430,7 +419,6 @@ void Allocator::deallocateUnknown(void* obj)
 #endif
 {
   CALLC("Allocator::deallocateUnknown",MAKE_CALLS);
-  ACQ_ALLOCATOR_LOCK;
 
 #if VDEBUG && !TSAN
   Descriptor* desc = Descriptor::find(obj);
@@ -511,7 +499,6 @@ void* Allocator::reallocateUnknown(void* obj, size_t newsize)
 #endif
 {
   CALLC("Allocator::reallocateUnknown",MAKE_CALLS);
-  ACQ_ALLOCATOR_LOCK;
 
   // cout << "reallocateUnknown " << obj << " newsize " << newsize << endl;
 
@@ -551,7 +538,6 @@ void* Allocator::reallocateUnknown(void* obj, size_t newsize)
 Allocator* Allocator::newAllocator()
 {
   CALLC("Allocator::newAllocator",MAKE_CALLS);
-  ACQ_ALLOCATOR_LOCK;
   BYPASSING_ALLOCATOR;
   
 #if VDEBUG && USE_SYSTEM_ALLOCATION
@@ -574,7 +560,6 @@ Allocator* Allocator::newAllocator()
 Allocator::Page* Allocator::allocatePages(size_t size)
 {
   CALLC("Allocator::allocatePages",MAKE_CALLS);
-  ACQ_ALLOCATOR_LOCK;
   ASS(size >= 0);
 
 #if VDEBUG && USE_SYSTEM_ALLOCATION
@@ -709,7 +694,6 @@ Allocator::Page* Allocator::allocatePages(size_t size)
  */
 void Allocator::deallocatePages(Page* page)
 {
-  ACQ_ALLOCATOR_LOCK;
   ASS(page);
 
 #if VDEBUG && USE_SYSTEM_ALLOCATION
@@ -785,7 +769,6 @@ void* Allocator::allocateKnown(size_t size)
 #endif
 {
   CALLC("Allocator::allocateKnown",MAKE_CALLS);
-  ACQ_ALLOCATOR_LOCK;
   ASS(size > 0);
 
   char* result = allocatePiece(size);
@@ -839,7 +822,6 @@ void* Allocator::allocateKnown(size_t size)
 char* Allocator::allocatePiece(size_t size)
 {
   CALLC("Allocator::allocatePiece",MAKE_CALLS);
-  ACQ_ALLOCATOR_LOCK;
 
   char* result;
 #if USE_SYSTEM_ALLOCATION
@@ -908,7 +890,6 @@ void* Allocator::allocateUnknown(size_t size)
 #endif
 {
   CALLC("Allocator::allocateUnknown",MAKE_CALLS);
-  ACQ_ALLOCATOR_LOCK;
   ASS(size>0);
 
   size += sizeof(Known);
@@ -966,7 +947,6 @@ void* Allocator::allocateUnknown(size_t size)
 Allocator::Descriptor* Allocator::Descriptor::find (const void* addr)
 {    
   CALLC("Allocator::Descriptor::find",MAKE_CALLS);
-  ACQ_ALLOCATOR_LOCK;
   BYPASSING_ALLOCATOR;
 
   if (noOfEntries >= maxEntries) { // too many entries

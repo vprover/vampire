@@ -26,9 +26,6 @@ using namespace Shell;
 
 const unsigned Signature::STRING_DISTINCT_GROUP = 0;
 VATOMIC(int) Signature::_nextFreshSymbolNumber(0);
-#if VTHREADED
-std::atomic<unsigned> fresh_id(0);
-#endif
 
 /**
  * Standard constructor.
@@ -38,9 +35,6 @@ std::atomic<unsigned> fresh_id(0);
 Signature::Symbol::Symbol(const vstring& nm, unsigned arity, bool interpreted, bool stringConstant,bool numericConstant,
                           bool overflownConstant, bool super)
   :
-#if VTHREADED
-    _id(fresh_id++),
-#endif
     _name(nm),
     _arity(arity),
     _typeArgsArity(0),

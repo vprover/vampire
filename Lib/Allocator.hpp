@@ -27,13 +27,6 @@
 #include "Portability.hpp"
 #include "Threading.hpp"
 
-#if VTHREADED
-#include <mutex>
-#define ACQ_ALLOCATOR_LOCK const std::lock_guard<std::recursive_mutex> __vampire_allocator_lock(_mutex)
-#else
-#define ACQ_ALLOCATOR_LOCK
-#endif
-
 #if VDEBUG
 #include <string>
 #endif
@@ -77,34 +70,22 @@ public:
   Allocator();
   ~Allocator();
 
-// mutex for global allocator data
-#if VTHREADED
-  static std::recursive_mutex _mutex;
-
-  static void lockPermanently() {
-    _mutex.lock();
-  };
-#endif
-  
   /** Return the amount of used memory */
   static size_t getUsedMemory()
   {
     CALLC("Allocator::getUsedMemory",MAKE_CALLS);
-    ACQ_ALLOCATOR_LOCK;
     return _usedMemory;
   }
   /** Return the global memory limit (in bytes) */
   static size_t getMemoryLimit()
   {
     CALLC("Allocator::getMemoryLimit",MAKE_CALLS);
-    ACQ_ALLOCATOR_LOCK;
     return _memoryLimit;
   }
   /** Set the global memory limit (in bytes) */
   static void setMemoryLimit(size_t size)
   {
     CALLC("Allocator::setMemoryLimit",MAKE_CALLS);
-    ACQ_ALLOCATOR_LOCK;
     _memoryLimit = size;
     _tolerated = size + (size/10);
   }

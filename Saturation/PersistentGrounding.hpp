@@ -16,6 +16,7 @@
 #ifndef __PersistentGrounding__
 #define __PersistentGrounding__
 
+#include <mutex>
 #include <thread>
 
 #include "Forwards.hpp"

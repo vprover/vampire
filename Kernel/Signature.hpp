@@ -22,7 +22,6 @@
 
 #include "Debug/Assertion.hpp"
 
-#include "Indexing/TermSharing.hpp"
 #include "Lib/Allocator.hpp"
 #include "Lib/Stack.hpp"
 #include "Lib/DHSet.hpp"
@@ -84,7 +83,7 @@ class Signature
   protected:
 #if VTHREADED
     /** unique identifier between threads */
-    unsigned _id;
+    unsigned  _id;
 #endif
     /** print name */
     vstring _name;
@@ -507,19 +506,6 @@ class Signature
     ASS(!Theory::isPolymorphic(interp));
     return haveInterpretingSymbol(interp,Theory::getNonpolymorphicOperatorType(interp));
   }
-
-#if VTHREADED
-  /** return the id of a function with a given number */
-  const unsigned functionId(int number) {
-    ACQ_TERM_SHARING_LOCK;
-    return _funs[number]->id();
-  }
-  /** return the id of a predicate with a given number */
-  const unsigned predicateId(int number) {
-    ACQ_TERM_SHARING_LOCK;
-    return _preds[number]->id();
-  }
-#endif
 
   /** return the name of a function with a given number */
   const vstring& functionName(int number);

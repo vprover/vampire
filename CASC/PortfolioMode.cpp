@@ -41,6 +41,7 @@
 #include "Schedules.hpp"
 #include "ProcessScheduleExecutor.hpp"
 #if VTHREADED
+#include <mutex>
 #include "ThreadScheduleExecutor.hpp"
 #endif
 
@@ -576,7 +577,7 @@ void PortfolioMode::runSlice(Options& strategyOpt)
   // minimal performance penalty so probably OK
 #if VTHREADED
   static std::mutex critical_section;
-  std::lock_guard<std::mutex> entering_critical_section(critical_section);
+  critical_section.lock();
 #endif
   System::ignoreSIGHUP(); // don't interrupt now, we need to finish printing the proof !
   bool outputResult = false;
@@ -642,13 +643,13 @@ void PortfolioMode::runSlice(Options& strategyOpt)
 #if VTHREADED
   if(env->options->mode() == Options::Mode::THREADED) {
     if(!resultValue) {
-      // problem: other threads are still running while global destructors run
-      // hack: lock the allocator, this stops them dead (mostly?)
-      Allocator::lockPermanently();
-      exit(resultValue);
+      // TODO: other threads are still running while global destructors run
+      // Allocator::lockPermanently();
+      quick_exit(resultValue);
     }
     // allow other threads to fight the good fight, don't exit() the process
     else {
+      critical_section.unlock();
       return;
     }
   }

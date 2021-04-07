@@ -39,7 +39,7 @@ PersistentGrounding::PersistentGrounding()
       continue;
     }
     OperatorType *type = fun->fnType();
-    unsigned sort = type->result();
+    unsigned sort = type->result().term()->getId();
     unsigned usage = fun->usageCnt();
     unsigned best = constants[sort];
     if(!best || env->signature->getFunction(best)->usageCnt() < usage)
@@ -104,7 +104,7 @@ void PersistentGrounding::enqueueClause(Clause *cl)
     struct MapToSortConstant {
       TermList apply(unsigned var)
       {
-        unsigned sort = SortHelper::getVariableSort(TermList(var, false), parent);
+        unsigned sort = SortHelper::getVariableSort(TermList(var, false), parent).term()->getId();
         return constants[sort];
       }
       Term *parent;
