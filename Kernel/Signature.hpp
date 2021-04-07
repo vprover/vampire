@@ -568,7 +568,7 @@ class Signature
 
   /** true if there are user defined sorts */
   bool hasSorts() const{
-    return typeCons() >= FIRST_USER_CON;
+    return typeCons() > FIRST_USER_CON;
   }
 
   bool isDefaultSortCon(unsigned con) const{
