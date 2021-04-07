@@ -557,11 +557,9 @@ void PortfolioMode::runSlice(Options& strategyOpt)
     BYPASSING_ALLOCATOR; 
     
     ofstream output(fname.c_str());
-    if (output.fail()) {
+    if (output.fail() && env.options->printProofToFile()) {
       // fallback to old printing method
       env.beginOutput();
-      // the comment below assumes that writing to temporary file never fails
-      // otherwise the comment "proof printing ..." would be confusing
       addCommentSignForSZS(env.out()) << "Proof printing to file failed. Outputting to stdout" << fname << endl;
       UIHelper::outputResult(env.out());
       env.endOutput();
