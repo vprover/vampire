@@ -32,6 +32,7 @@
 #include <unistd.h>
 #include <fstream>
 #include <stdio.h>
+#include <cstdio>
 
 #include "Saturation/ProvingHelper.hpp"
 
@@ -49,6 +50,9 @@ PortfolioMode::PortfolioMode() : _slowness(1.0), _syncSemaphore(2) {
   // 1) dec is the only operation which is blocking
   // 2) dec is done in the mode SEM_UNDO, so is undone when a process terminates
 
+  if(env.options->printProofToFile()){
+    outputFileName = tmpnam(NULL);
+  }
   _syncSemaphore.set(SEM_LOCK,1);    // to synchronize access to the second field
   _syncSemaphore.set(SEM_PRINTED,0); // to indicate that a child has already printed result (it should only happen once)
 }
@@ -383,11 +387,10 @@ bool PortfolioMode::runSchedule(Schedule& schedule)
   bool result = sched.run(schedule);
 
   //All children have been killed. Now safe to print proof
-  if(result && !env.options->printProofToFile()){
-    vstring fname = env.options->problemName() + "-vampire.proof";    
+  if(result && !env.options->printProofToFile()){  
     BYPASSING_ALLOCATOR; 
     
-    ifstream input(fname.c_str());
+    ifstream input(outputFileName);
 
     bool openSucceeded = !input.fail();
 
@@ -400,7 +403,7 @@ bool PortfolioMode::runSchedule(Schedule& schedule)
     //If for some reason, the proof could not be opened
     //we don't delete the proof file
     if(openSucceeded){
-      remove(fname.c_str()); 
+      remove(outputFileName); 
     }
   }
 
@@ -541,10 +544,13 @@ void PortfolioMode::runSlice(Options& strategyOpt)
   if((outputAllowed() && resultValue) || outputResult) { // we can report on every failure, but only once on success
     //At the moment we only save one proof. We could potentially
     //allow multiple proofs
-    vstring fname = env.options->problemName() + "-vampire.proof";
-    if(env.options->printProofToFile() && env.options->outputFileLocation() != "")
+    vstring fname(outputFileName);
+    if(env.options->printProofToFile())
     {
-      fname = env.options->outputFileLocation() + "/" + fname;
+      vstring fileLoc = env.options->outputFileLocation();
+      bool locSet = fileLoc != "";
+      fname = locSet ? fileLoc +  "/" : "";
+      fname += env.options->outputFileName();
     }
 
     // CAREFUL: this might not be enough if the ofstream (re)allocates while being operated
@@ -558,11 +564,11 @@ void PortfolioMode::runSlice(Options& strategyOpt)
       env.endOutput();
     } else {
       UIHelper::outputResult(output);
-    }
-    if (env.options->printProofToFile() && outputAllowed()) {
-      env.beginOutput();
-      addCommentSignForSZS(env.out()) << "Proof written to " << fname << endl;
-      env.endOutput();
+      if (env.options->printProofToFile() && outputAllowed()) {
+        env.beginOutput();
+        addCommentSignForSZS(env.out()) << "Proof written to " << fname << endl;
+        env.endOutput();
+      }
     }
   }
   else{

@@ -286,7 +286,7 @@ void Options::init()
                                   "The file name will be of the format <problem name>-vampire.proof.\n"
                                   "Currently, this option only works in portfolio mode.";
     _lookup.insert(&_printProofToFile);
-    // _printProofToFile.reliesOn(_outputFileLocation.is(notEqual(emptyString)));
+    _printProofToFile.reliesOnHard(_outputFileName.is(notEqual(emptyString)));
     _printProofToFile.tag(OptionTag::OUTPUT);
 
     _outputFileLocation = StringOptionValue("proof_output_directory","pod","");
@@ -295,6 +295,12 @@ void Options::init()
     _lookup.insert(&_outputFileLocation);
     _outputFileLocation.tag(OptionTag::OUTPUT);
     _outputFileLocation.reliesOnHard(_printProofToFile.is(equal(true)));
+
+    _outputFileName = StringOptionValue("proof_file_name","pfn","");
+    _outputFileName.description="The name of the file to which Vampire should save the proof.";
+    _lookup.insert(&_outputFileName);
+    _outputFileName.tag(OptionTag::OUTPUT);
+    _outputFileName.reliesOnHard(_printProofToFile.is(equal(true)));
 
     _proofExtra = ChoiceOptionValue<ProofExtra>("proof_extra","",ProofExtra::OFF,{"off","free","full"});
     _proofExtra.description="Add extra detail to proofs:\n "
