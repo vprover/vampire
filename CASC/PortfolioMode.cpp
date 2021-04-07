@@ -50,7 +50,7 @@ PortfolioMode::PortfolioMode() : _slowness(1.0), _syncSemaphore(2) {
   // 1) dec is the only operation which is blocking
   // 2) dec is done in the mode SEM_UNDO, so is undone when a process terminates
 
-  if(env.options->printProofToFile()){
+  if(!env.options->printProofToFile()){
     outputFileName = tmpnam(NULL);
   }
   _syncSemaphore.set(SEM_LOCK,1);    // to synchronize access to the second field
@@ -560,6 +560,9 @@ void PortfolioMode::runSlice(Options& strategyOpt)
     if (output.fail()) {
       // fallback to old printing method
       env.beginOutput();
+      // the comment below assumes that writing to temporary file never fails
+      // otherwise the comment "proof printing ..." would be confusing
+      addCommentSignForSZS(env.out()) << "Proof printing to file failed. Outputting to stdout" << fname << endl;
       UIHelper::outputResult(env.out());
       env.endOutput();
     } else {
