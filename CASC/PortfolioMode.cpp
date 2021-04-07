@@ -398,6 +398,12 @@ bool PortfolioMode::runSchedule(Schedule& schedule)
       env.beginOutput();
       env.out() << input.rdbuf();
       env.endOutput();
+    } else {
+      if (outputAllowed()) {
+        env.beginOutput();
+        addCommentSignForSZS(env.out()) << "Failed to restore proof from tempfile " << outputFileName << endl;
+        env.endOutput();
+      }
     }
 
     //If for some reason, the proof could not be opened
