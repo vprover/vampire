@@ -87,7 +87,7 @@ private:
 
   float _slowness;
 
-  const char * outputFileName;
+  const char * _outputFileName;
 
   /**
    * Problem that is being solved.

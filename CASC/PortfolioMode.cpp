@@ -51,7 +51,7 @@ PortfolioMode::PortfolioMode() : _slowness(1.0), _syncSemaphore(2) {
   // 2) dec is done in the mode SEM_UNDO, so is undone when a process terminates
 
   if(!env.options->printProofToFile()){
-    outputFileName = tmpnam(NULL);
+    _outputFileName = tmpnam(NULL);
   }
   _syncSemaphore.set(SEM_LOCK,1);    // to synchronize access to the second field
   _syncSemaphore.set(SEM_PRINTED,0); // to indicate that a child has already printed result (it should only happen once)
@@ -390,7 +390,7 @@ bool PortfolioMode::runSchedule(Schedule& schedule)
   if(result && !env.options->printProofToFile()){  
     BYPASSING_ALLOCATOR; 
     
-    ifstream input(outputFileName);
+    ifstream input(_outputFileName);
 
     bool openSucceeded = !input.fail();
 
@@ -401,7 +401,7 @@ bool PortfolioMode::runSchedule(Schedule& schedule)
     } else {
       if (outputAllowed()) {
         env.beginOutput();
-        addCommentSignForSZS(env.out()) << "Failed to restore proof from tempfile " << outputFileName << endl;
+        addCommentSignForSZS(env.out()) << "Failed to restore proof from tempfile " << _outputFileName << endl;
         env.endOutput();
       }
     }
@@ -409,7 +409,7 @@ bool PortfolioMode::runSchedule(Schedule& schedule)
     //If for some reason, the proof could not be opened
     //we don't delete the proof file
     if(openSucceeded){
-      remove(outputFileName); 
+      remove(_outputFileName); 
     }
   }
 
@@ -550,7 +550,7 @@ void PortfolioMode::runSlice(Options& strategyOpt)
   if((outputAllowed() && resultValue) || outputResult) { // we can report on every failure, but only once on success
     //At the moment we only save one proof. We could potentially
     //allow multiple proofs
-    vstring fname(outputFileName);
+    vstring fname(_outputFileName);
     if(env.options->printProofToFile())
     {
       vstring fileLoc = env.options->outputFileLocation();
