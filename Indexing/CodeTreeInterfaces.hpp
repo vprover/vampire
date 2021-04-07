@@ -52,10 +52,6 @@ public:
   virtual std::ostream& output(std::ostream& out) const final override
   { return out << _ct; }
 
-#if VDEBUG
-  virtual void markTagged() final override { NOT_IMPLEMENTED; } 
-#endif
-
 private:
   class ResultIterator;
 

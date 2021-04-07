@@ -22,7 +22,6 @@
 
 #include "Kernel/Term.hpp"
 
-
 namespace InstGen {
 
 using namespace Kernel;

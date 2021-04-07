@@ -60,12 +60,11 @@ Literal* cancelAdd(Literal* lit) {
 Literal* tryCancel(Interpretation inter, Literal* lit) {
   CALL("tryCancel(Interpretation inter, Literal* lit)")
   switch(inter) {
-    case Interpretation::EQUAL:
-      switch (SortHelper::getEqualityArgumentSort(lit)) {
-        case  IntTraits::sort: return cancelAdd< IntTraits>(lit);
-        case  RatTraits::sort: return cancelAdd< RatTraits>(lit);
-        case RealTraits::sort: return cancelAdd<RealTraits>(lit);
-        default:;
+    case Interpretation::EQUAL: {
+        auto sort = SortHelper::getEqualityArgumentSort(lit);
+        if (sort ==  IntTraits::sort()) return cancelAdd< IntTraits>(lit);
+        if (sort ==  RatTraits::sort()) return cancelAdd< RatTraits>(lit);
+        if (sort == RealTraits::sort()) return cancelAdd<RealTraits>(lit);
       }
       break;
 #define INEQ_CASES(NumTraits)                                                                                 \

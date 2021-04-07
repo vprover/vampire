@@ -198,7 +198,7 @@ template <typename T>
   }
 #endif
 
-#define DEBUG_CODE(X)
+#define DEBUG_CODE(X) {}
 
 #define __IGNORE_WUNUSED(...) __PUSH_DIAGNOSTICS("GCC diagnostic ignored \"-Wreturn-type\"", __VA_ARGS__)
 

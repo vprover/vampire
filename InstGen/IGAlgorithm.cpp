@@ -39,7 +39,6 @@
 
 #include "Saturation/SaturationAlgorithm.hpp"
 
-#include "Shell/EqualityProxy.hpp"
 #include "Shell/Property.hpp"
 #include "Shell/Statistics.hpp"
 #include "Shell/UIHelper.hpp"
@@ -181,7 +180,7 @@ void IGAlgorithm::init()
 
   ASSERT_VALID(_prb);
   if(_prb.hasEquality()) {
-    _equalityProxy = new EqualityProxy(Options::EqualityProxy::RSTC);
+    _equalityProxy = new EqualityProxyMono(Options::EqualityProxy::RSTC);
     _equalityProxy->apply(_prb);
   }
 

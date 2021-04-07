@@ -70,14 +70,6 @@
 #define OWN_ELEMENT_TYPE _ElementType
 
 /**
- * RETURN_TYPE(F(Args...)) is the returntype of an object F when it's 
- * operator()(Args...) is called. 
- *
- * @see std::result_of::type
- */
-#define RETURN_TYPE(...) typename std::result_of<__VA_ARGS__>::type 
-
-/**
  * Declare the iterator type for a container class
  *
  * To be used inside a public block of declaration of a container class.

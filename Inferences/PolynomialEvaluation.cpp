@@ -179,8 +179,8 @@ MaybeOverflow<Option<PolyNf>> trySimplify(FuncTerm const& orig, Theory::Interpre
 }
 
 
-MaybeOverflow<Option<PolyNf>> PolynomialEvaluation::evaluate(TermList term, unsigned sortNumber) const 
-{ return evaluate(TypedTermList(term, sortNumber)); }
+MaybeOverflow<Option<PolyNf>> PolynomialEvaluation::evaluate(TermList term, SortId sort) const 
+{ return evaluate(TypedTermList(term, sort)); }
 
 MaybeOverflow<Option<PolyNf>> PolynomialEvaluation::evaluate(Term* term) const 
 { return evaluate(TypedTermList(term)); }
@@ -194,18 +194,10 @@ MaybeOverflow<Polynom<Number>> simplifyPoly(Polynom<Number> const& in, MaybeOver
 template<class Number>
 MaybeOverflow<Monom<Number>> simplifyMonom(Monom<Number> const& in, MaybeOverflow<PolyNf>* simplifiedArgs);
 
-struct SimplifyPoly {
-  MaybeOverflow<PolyNf>* ts;
-  template<class NumTraits>
-  MaybeOverflow<AnyPoly> operator()(Perfect<Polynom<NumTraits>> const& p) 
-  {
-    return simplifyPoly(*p, ts)
-      .map([](Polynom<NumTraits> p) -> AnyPoly { return AnyPoly(perfect(std::move(p))); });
-  } 
-};
-
 MaybeOverflow<AnyPoly> simplifyPoly(AnyPoly const& p, MaybeOverflow<PolyNf>* ts)
-{ return p.apply(SimplifyPoly{ ts }); }
+{ return p.apply([&](auto& p) {
+    return simplifyPoly(*p, ts)
+      .map([](auto p) -> AnyPoly { return AnyPoly(perfect(std::move(p))); }); }); }
 
 MaybeOverflow<Option<PolyNf>> PolynomialEvaluation::evaluate(PolyNf normalized) const 
 {

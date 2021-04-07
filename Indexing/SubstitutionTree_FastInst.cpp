@@ -114,6 +114,7 @@ public:
   }
 
   bool matchNext(unsigned specVar, TermList nodeTerm, bool separate=true);
+  bool matchNextAux(TermList queryTerm, TermList nodeTerm, bool separate=true);
 
   void backtrack();
   bool tryBacktrack();
@@ -234,6 +235,13 @@ public:
   {
   }
 
+  bool matchSorts(TermList base, TermList instance) final override
+  {
+    CALL("SubstitutionTree::InstMatcher::Substitution::matchSorts");
+
+    return _parent->matchNextAux(base, instance, false);
+  }
+
   TermList applyToBoundQuery(TermList t) final override
   {
     CALL("SubstitutionTree::InstMatcher::Substitution::applyToBoundQuery");
@@ -249,10 +257,12 @@ public:
     ASS_REP(!normalized.isTerm() || normalized.term()->shared(), normalized);
     return _resultDenormalizer->apply(normalized);
   }
-
+  
   bool isIdentityOnResultWhenQueryBound() final override { return true; }
+
   virtual std::ostream& output(std::ostream& out) const final override 
   { return out << "SubstitutionTree::InstMatcher::Substitution"; }
+
 private:
   InstMatcher* _parent;
   Renaming* _resultDenormalizer;
@@ -405,12 +415,7 @@ bool SubstitutionTree::InstMatcher::tryBacktrack()
   return false;
 }
 
-/**
- * Match @b nodeTerm to term in the special variable @b specVar.
- * If @b separate is true, join this match with the previous one
- * on backtracking stack, so they will be undone both by one
- * call to the backtrack() method.
- */
+
 bool SubstitutionTree::InstMatcher::matchNext(unsigned specVar, TermList nodeTerm, bool separate)
 {
   CALL("SubstitutionTree::InstMatcher::matchNext");
@@ -428,18 +433,37 @@ bool SubstitutionTree::InstMatcher::matchNext(unsigned specVar, TermList nodeTer
     while(vit.hasNext()) {
       TermList var=vit.next();
       if(var.isSpecialVar()) {
-	ASS(!isBound(var));
+  ASS(!isBound(var));
       }
     }
   }
 #endif
+  return matchNextAux(TermList(specVar, true), nodeTerm, separate);
+}
+
+/**
+ * Match @b nodeTerm to term in the special variable @b specVar.
+ * If @b separate is true, join this match with the previous one
+ * on backtracking stack, so they will be undone both by one
+ * call to the backtrack() method.
+ */
+bool SubstitutionTree::InstMatcher::matchNextAux(TermList queryTerm, TermList nodeTerm, bool separate)
+{
+  CALL("SubstitutionTree::InstMatcher::matchNextAux");
+
+  unsigned specVar;
+  TermSpec tsBinding;
 
   TermSpec tsNode(false, nodeTerm);
 
-  TermSpec tsBinding;
-  if(!findSpecVarBinding(specVar,tsBinding)) {
-    bind(TermList(specVar,true), tsNode);
-    return true;
+  if(queryTerm.isSpecialVar()){
+    specVar = queryTerm.var();
+    if(!findSpecVarBinding(specVar,tsBinding)) {
+      bind(TermList(specVar,true), tsNode);
+      return true;
+    }
+  } else {
+    tsBinding = TermSpec(true, queryTerm);
   }
 
   if(tsBinding.q && tsBinding.t.isOrdinaryVar() && !isBound(tsBinding.t)) {
@@ -544,7 +568,8 @@ finish:
  * 	reversed. (useful for retrieval commutative terms)
  */
 SubstitutionTree::FastInstancesIterator::FastInstancesIterator(SubstitutionTree* parent, Node* root,
-	Term* query, bool retrieveSubstitution, bool reversed, bool withoutTop, bool useC)
+	Term* query, bool retrieveSubstitution, bool reversed, bool withoutTop, bool useC, 
+  FuncSubtermMap* fstm) //final two for compatibility purposes
 : _literalRetrieval(query->isLiteral()), _retrieveSubstitution(retrieveSubstitution),
   _inLeaf(false), _ldIterator(LDIterator::getEmpty()),  _root(root),
   _alternatives(64), _specVarNumbers(64), _nodeTypes(64)

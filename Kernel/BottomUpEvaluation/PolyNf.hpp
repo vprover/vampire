@@ -15,11 +15,6 @@
 
 namespace Lib {
 
-POLYMORPHIC_FUNCTION(bool    , hasNext  , const& t,) { return t.hasNext();   }
-POLYMORPHIC_FUNCTION(Kernel::PolyNf  , next     ,      & t,) { return t.next();      }
-POLYMORPHIC_FUNCTION(unsigned, nChildren, const& t,) { return t.nChildren(); }
-POLYMORPHIC_FUNCTION(Kernel::PolyNf  , self     , const& t,) { return Kernel::PolyNf(t._self);       }
-
 template<>
 struct BottomUpChildIter<Kernel::PolyNf>
 {
@@ -114,16 +109,16 @@ struct BottomUpChildIter<Kernel::PolyNf>
   {}
 
   Kernel::PolyNf next() 
-  { ASS(hasNext()); return _self.apply(Polymorphic::next{}); }
+  { ALWAYS(hasNext()); return _self.apply([](auto& x) -> Kernel::PolyNf { return x.next(); }); }
 
   bool hasNext() const 
-  { return _self.apply(Polymorphic::hasNext{}); }
+  { return _self.apply([](auto& x) { return x.hasNext(); }); }
 
   unsigned nChildren() const 
-  { return _self.apply(Polymorphic::nChildren{}); }
+  { return _self.apply([](auto& x) { return x.nChildren(); }); }
 
   Kernel::PolyNf self() const 
-  { return _self.apply(Polymorphic::self{}); }
+  { return _self.apply([](auto& x) { return Kernel::PolyNf(x._self); }); }
 
   friend ostream& operator<<(ostream& out, BottomUpChildIter const& self) 
   { return out << self._self; }

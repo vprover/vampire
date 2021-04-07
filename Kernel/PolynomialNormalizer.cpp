@@ -325,24 +325,22 @@ PolyNf normalizeTerm(TypedTermList t)
     NormalizationResult operator()(TypedTermList t, NormalizationResult* ts) const
     { 
       CALL("normalizeTerm(TypedTermList)::eval::operator()")
-      switch (t.sort()) {
-        case  IntTraits::sort: return normalizeNumSort< IntTraits>(t, ts);
-        case  RatTraits::sort: return normalizeNumSort< RatTraits>(t, ts);
-        case RealTraits::sort: return normalizeNumSort<RealTraits>(t, ts);
-        default:
-        {
-          if (t.isVar()) {
-            return NormalizationResult(PolyNf(Variable(t.var())));
-          } else {
-            auto fn = FuncId(t.term()->functor());
-            return NormalizationResult(PolyNf(perfect(FuncTerm(
-                fn, 
-                Stack<PolyNf>::fromIterator(
-                    iterTraits(getArrayishObjectIterator<mut_ref_t>(ts, fn.arity()))
-                    .map( [](NormalizationResult& r) -> PolyNf { return std::move(r).apply(RenderPolyNf{}); }))
-              )
-            )));
-          }
+      auto sort = t.sort();
+      if (sort ==  IntTraits::sort()) { return normalizeNumSort< IntTraits>(t, ts); }
+      if (sort ==  RatTraits::sort()) { return normalizeNumSort< RatTraits>(t, ts); }
+      if (sort == RealTraits::sort()) { return normalizeNumSort<RealTraits>(t, ts); }
+      else {
+        if (t.isVar()) {
+          return NormalizationResult(PolyNf(Variable(t.var())));
+        } else {
+          auto fn = FuncId(t.term()->functor());
+          return NormalizationResult(PolyNf(perfect(FuncTerm(
+              fn, 
+              Stack<PolyNf>::fromIterator(
+                  iterTraits(getArrayishObjectIterator<mut_ref_t>(ts, fn.arity()))
+                  .map( [](NormalizationResult& r) -> PolyNf { return std::move(r).apply(RenderPolyNf{}); }))
+            )
+          )));
         }
       }
     }

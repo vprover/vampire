@@ -21,6 +21,8 @@
 
 #include "Kernel/Term.hpp"
 #include "Kernel/Clause.hpp"
+#include "Kernel/Inference.hpp"
+#include "Kernel/ApplicativeHelper.hpp"
 
 #include "Saturation/SaturationAlgorithm.hpp"
 
@@ -38,6 +40,8 @@ using namespace Lib;
 using namespace Kernel;
 using namespace Indexing;
 using namespace Saturation;
+
+typedef ApplicativeHelper AH;
 
 /**
  * Return options that control the inference engine.
@@ -68,6 +72,24 @@ void CompositeISE::addFront(ImmediateSimplificationEngine* ise)
 {
   ASS_EQ(_salg,0);
   ISList::push(ise,_inners);
+}
+void CompositeISE::addFrontMany(ImmediateSimplificationEngine* ise)
+{
+  ASS_EQ(_salg,0);
+  ISList::push(ise,_innersMany);
+}
+ClauseIterator CompositeISE::simplifyMany(Clause* cl)
+{
+  ISList* curr=_innersMany;
+  while(curr && cl) {
+    ClauseIterator cIt=curr->head()->simplifyMany(cl);
+    if(cIt.hasNext()){
+      return cIt;
+    } else {
+      curr=curr->tail();      
+    }
+  }
+  return ClauseIterator::getEmpty();
 }
 Clause* CompositeISE::simplify(Clause* cl)
 {
@@ -243,6 +265,74 @@ CompositeSGI::~CompositeSGI() {
   }
 }
 
+Clause* ChoiceDefinitionISE::simplify(Clause* c)
+{
+  CALL("ChoiceDefinitionISE::simplify");
+
+  if (c->length() != 2) {
+    return c;
+  }
+
+  Literal* lit1 = (*c)[0];
+  Literal* lit2 = (*c)[1];
+  
+  TermList x, f;
+
+  if(!isPositive(lit1) && is_of_form_xy(lit1, x) &&
+      isPositive(lit2) && is_of_form_xfx(lit2, x, f)){
+    unsigned fun = f.term()->functor();
+    env.signature->addChoiceOperator(fun);
+    return 0;
+  } else if(!isPositive(lit2) && is_of_form_xy(lit2, x) && 
+             isPositive(lit1) && is_of_form_xfx(lit1, x, f)) {
+    unsigned fun = f.term()->functor();
+    env.signature->addChoiceOperator(fun);
+    return 0;
+  }
+  return c;
+}
+
+bool ChoiceDefinitionISE::isPositive(Literal* lit) {
+  CALL("ChoiceDefinitionISE::isPositive");
+
+  TermList lhs = *lit->nthArgument(0);
+  TermList rhs = *lit->nthArgument(1);
+  if(!AH::isBool(lhs) && !AH::isBool(rhs)){ return false; }
+  if(AH::isBool(lhs) && AH::isBool(rhs)){ return false; }
+  if(AH::isBool(lhs)){ 
+    return lit->polarity() == AH::isTrue(lhs);
+  }
+  if(AH::isBool(rhs)){ 
+    return lit->polarity() == AH::isTrue(rhs);
+  }
+  return false;
+};
+
+bool ChoiceDefinitionISE::is_of_form_xy(Literal* lit, TermList& x){
+  CALL("ChoiceDefinitionISE::is_of_form_xy");
+
+  TermList term = AH::isBool(*lit->nthArgument(0)) ? *lit->nthArgument(1) : *lit->nthArgument(0);
+  
+  TermStack args;
+  ApplicativeHelper::getHeadAndArgs(term, x, args);
+  return (x.isVar() && args.size() == 1 && args[0].isVar());
+}
+
+bool ChoiceDefinitionISE::is_of_form_xfx(Literal* lit, TermList x, TermList& f){
+  CALL("ChoiceDefinitionISE::is_of_form_xfx");
+  
+  TermList term = AH::isBool(*lit->nthArgument(0)) ? *lit->nthArgument(1) : *lit->nthArgument(0);
+  
+  TermStack args;
+  TermList head;
+  ApplicativeHelper::getHeadAndArgs(term, head, args);
+  if(head == x && args.size() == 1){
+    TermList arg = args[0];
+    ApplicativeHelper::getHeadAndArgs(arg, f, args);
+    return (!f.isVar() && args.size() == 1 && args[0] == x);
+  }
+  return false;
+}
 
 Clause* DuplicateLiteralRemovalISE::simplify(Clause* c)
 {
@@ -268,17 +358,17 @@ Clause* DuplicateLiteralRemovalISE::simplify(Clause* c)
   else if(length==3) {
     if((*c)[0]!=(*c)[1]) {
       if((*c)[0]!=(*c)[2]) {
-	if((*c)[1]!=(*c)[2]) {
-	  return c;
-	}
+        if((*c)[1]!=(*c)[2]) {
+          return c;
+        }
       }
       skipped.push((*c)[2]);
     }
     else { //(*c)[0]==(*c)[1]
       skipped.push((*c)[0]);
       if((*c)[0]==(*c)[2]) {
-	//all are equal
-	skipped.push((*c)[0]);
+        //all are equal
+        skipped.push((*c)[0]);
       }
     }
   }
@@ -291,7 +381,7 @@ Clause* DuplicateLiteralRemovalISE::simplify(Clause* c)
     while(cit.hasNext()) {
       Literal* lit = cit.next();
       if(!seen.insert(lit)) {
-	skipped.push(lit);
+        skipped.push(lit);
       }
     }
     if(skipped.isEmpty()) {
@@ -338,6 +428,61 @@ Clause* DuplicateLiteralRemovalISE::simplify(Clause* c)
   return d;
 }
 
+Clause* TautologyDeletionISE2::simplify(Clause* c)
+{
+  CALL("TautologyDeletionISE2::simplify");
+
+  typedef ApplicativeHelper AH;
+
+  static LiteralStack negLits;
+  static LiteralStack posLits;
+
+  negLits.reset();
+  posLits.reset();
+
+  for(unsigned i = 0; i < c->length(); i++){
+    Literal* lit = (*c)[i];
+    TermList lhs = *lit->nthArgument(0);
+    TermList rhs = *lit->nthArgument(1);
+    if(!lit->polarity() && AH::isBool(lhs) && AH::isBool(rhs) &&
+      (AH::isTrue(lhs) != AH::isTrue(rhs))){
+      //false != true
+      return 0;
+    } else if(AH::isBool(lhs) && AH::isBool(rhs)){
+      continue;
+    } 
+
+    if(AH::isBool(lhs)){
+      AH::isTrue(lhs) == lit->polarity() ? posLits.push(lit) : negLits.push(lit); 
+    } else if (AH::isBool(rhs)){
+      AH::isTrue(rhs) == lit->polarity() ? posLits.push(lit) : negLits.push(lit);   
+    }
+  }
+
+  for(unsigned i =0; i < posLits.size(); i++){
+    Literal* posLit = posLits[i];
+    TermList posNonBooleanSide = *posLit->nthArgument(0);
+    if(AH::isBool(posNonBooleanSide)){
+      posNonBooleanSide = *posLit->nthArgument(1);
+    }
+    ASS(!AH::isBool(posNonBooleanSide));
+    for(unsigned j = 0; j < negLits.size(); j++){
+      Literal* negLit = negLits[j];
+      TermList negNonBooleanSide = *negLit->nthArgument(0);
+      if(AH::isBool(negNonBooleanSide)){
+        negNonBooleanSide = *negLit->nthArgument(1);
+      }
+      ASS_REP(!AH::isBool(negNonBooleanSide), negLit->toString());
+      if(posNonBooleanSide == negNonBooleanSide){
+        //t = true \/ t = false
+        //t = true \/ t != true
+        return 0;
+      }
+    }
+  }
+
+  return c;
+}
 
 Clause* TrivialInequalitiesRemovalISE::simplify(Clause* c)
 {
@@ -345,18 +490,29 @@ Clause* TrivialInequalitiesRemovalISE::simplify(Clause* c)
 
   static DArray<Literal*> lits(32);
 
+  typedef ApplicativeHelper AH;
+
   int length = c->length();
   int j = 0;
   lits.ensure(length);
   int found = 0;
   for (int i = length-1;i >= 0;i--) {
     Literal* l = (*c)[i];
-    if (l->isPositive() || ! l->isEquality()) {
+    if (!l->isEquality()) {
       lits[j++] = l;
       continue;
     }
     TermList* t1 = l->args();
     TermList* t2 = t1->next();
+    if((AH::isTrue(*t1) && AH::isFalse(*t2) && l->polarity()) || 
+       (AH::isTrue(*t2) && AH::isFalse(*t1) && l->polarity())){
+      found++;
+      continue;
+    }
+    if(l->isPositive()){
+      lits[j++] = l;
+      continue;
+    }
     if (t1->sameContent(t2)) {
       found++;
     }

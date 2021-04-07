@@ -24,8 +24,6 @@ namespace VariableMultiplicationGeneralizationImpl {
 *    - obviously a generalization 
 */
 
-POLYMORPHIC_FUNCTION(Option<Variable>, tryVar, const& t,) { return t.tryVar(); }
-
 /** 
  * Type for associating objects with integer ids. It is mainly only used in order to use IntUnionFind with other types than int.
  */
@@ -142,31 +140,21 @@ struct Preprocess
       auto vars = varIter.map([](MonomFactor<NumTraits> factor) { return factor.term.template unwrap<Variable>(); });
 
       if (vars.hasNext())  {
-        auto fst = vars.next();
-        auto cur = root(fst);
-
+        auto cur = root(vars.next());
 
         varSet(cur) = std::move(varSet(cur)).meet(move(varStack));
 
         for (auto var : vars) {
-          cur = unionMeet(cur, root(var));
+          cur = joinRegions(cur, root(var));
         }
 
       }
     }
   }
 
-  void dbgState() const {
-    DEBUG("---------------------");
-    for (unsigned i = 0; i < varMap.size(); i++) {
-      DEBUG(varMap.fromInt(i), " -> ", varMap.fromInt(components.root(i)), " -> ", varRegions[components.root(i)]);
-    }
-    DEBUG("---------------------");
-  }
-
-  int unionMeet(int v, int w)
+  int joinRegions(int v, int w)
   {
-    CALL("Preprocess::unionMeet()")
+    CALL("Preprocess::joinRegions()")
     if (v == w) return v;
 
     components.doUnion(v,w);
@@ -269,7 +257,7 @@ SimplifyingGeneratingInference1::Result applyRule(Clause* cl, bool doOrderingChe
 
       /* one variable with power one needs to be kept, per varible region */
       auto var = iterTraits(region.iter())
-        .filter([](AnyNumber<MonomFactor> p) { return p.apply(Polymorphic::tryVar{}).isSome(); })
+        .filter([](auto p) { return p.apply([](auto& t){ return t.tryVar(); }).isSome(); })
         .tryNext();
 
       if (var.isSome()) {

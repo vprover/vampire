@@ -74,7 +74,7 @@ private:
   /**
      Checks if models for sort can be mapped back to terms.
   */
-  bool isSupportedSort(const unsigned sort);
+  bool isSupportedSort(TermList sort);
 
   /**
      Checks if literal can be mapped back to terms. Works around

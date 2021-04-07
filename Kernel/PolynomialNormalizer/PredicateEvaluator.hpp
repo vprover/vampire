@@ -75,16 +75,14 @@ IMPL_EVALUATE_PRED(Interpretation::EQUAL,
   if (lhs == rhs) {
     return Option<LitSimplResult>(LitSimplResult::constant(polarity));
   }
-  switch (sort) {
-  case Sorts::SRT_INTEGER:
+  if (sort == IntTraits::sort())
     return interpretEquality(polarity, lhs.template wrapPoly<IntTraits >(), rhs.template wrapPoly<IntTraits >());
-  case Sorts::SRT_RATIONAL:
+  if (sort == RatTraits::sort())
     return interpretEquality(polarity, lhs.template wrapPoly<RatTraits >(), rhs.template wrapPoly<RatTraits >());
-  case Sorts::SRT_REAL:
+  if (sort == RealTraits::sort())
     return interpretEquality(polarity, lhs.template wrapPoly<RealTraits>(), rhs.template wrapPoly<RealTraits>());
-  default:
+  else
     return Option<LitSimplResult>();
-  }
 )
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////

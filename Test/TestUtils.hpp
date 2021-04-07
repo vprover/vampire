@@ -129,14 +129,6 @@ std::ostream& operator<<(std::ostream& out, const Pretty<U>& self)
 {  return self.prettyPrint(out); }
 
 
-struct CoproductToPretty {
-  std::ostream& out;
-
-  template<class A>
-  void operator()(A const& a) const
-  { out << pretty(a); }
-};
-
 template<class... As>
 class Pretty<Lib::Coproduct<As...>> 
 {
@@ -146,12 +138,7 @@ public:
   Pretty(Lib::Coproduct<As...> const& self) : _self(self) { }
 
   std::ostream& prettyPrint(std::ostream& out) const
-  { 
-    // out << _self.tag() << "(";
-    _self.apply(CoproductToPretty{out});
-    // out << ")";
-    return out;
-  }
+  { return _self.apply([&](auto const& a) -> std::ostream& { return out << pretty(a); }); }
 };
 
 

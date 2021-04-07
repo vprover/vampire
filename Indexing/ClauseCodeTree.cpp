@@ -646,7 +646,7 @@ inline bool ClauseCodeTree::ClauseMatcher::canEnterLiteral(CodeOp* op)
   }
 
   if(ils->isVarEqLit) {
-    unsigned idxVarSort = ils->varEqLitSort;
+    TermList idxVarSort = ils->varEqLitSort;
     size_t matchIndex=ils->matchCnt;
     while(matchIndex!=0) {
       matchIndex--;
@@ -654,9 +654,9 @@ inline bool ClauseCodeTree::ClauseMatcher::canEnterLiteral(CodeOp* op)
       unsigned liIntex = mi->liIndex;
       Literal* lit = (*query)[lInfos[liIntex].litIndex];
       ASS(lit->isEquality());
-      unsigned argSort = SortHelper::getEqualityArgumentSort(lit);
-      if(idxVarSort!=argSort) {
-	ils->deleteMatch(matchIndex); //decreases ils->matchCnt
+      TermList argSort = SortHelper::getEqualityArgumentSort(lit); 
+      if(idxVarSort!=argSort) {//TODO check that this is what we want. Perhaps require unification
+        ils->deleteMatch(matchIndex); //decreases ils->matchCnt
       }
     }
     if(!ils->matchCnt) {

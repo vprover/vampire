@@ -38,7 +38,7 @@ TermList doInvertMulInt(const InversionContext &ctxt);
 template <class Number> bool nonZero(const TermList &t);
 
 bool dtorIsPredicate(Signature::Symbol const& ctor, unsigned index) 
-{ return ctor.fnType()->arg(index) == Sorts::SRT_BOOL; }
+{ return ctor.fnType()->arg(index) == Term::boolSort(); }
 
 bool NumberTheoryInverter::canInvertTop(const InversionContext &ctxt) {
   CALL("NumberTheoryInverter::canInvertTop")

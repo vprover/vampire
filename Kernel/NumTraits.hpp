@@ -123,24 +123,21 @@ struct NumTraits;
       static Term* trm = theory->representConstant(name ## C);                                                \
       return trm;                                                                                             \
     }                                                                                                         \
-    static TermList name() {                                                                                  \
-      return TermList(name ## T());                                                                           \
-    }                                                                                                         \
-    static bool isName(const TermList& l) {                                                                   \
-      return l == name();                                                                                     \
-      return l.tag() == REF && name ## T() == l.term();                                                       \
-    }                                                                                                         \
+    static TermList name()                                                                                    \
+    { return TermList(name ## T()); }                                                                         \
+                                                                                                              \
+    static bool isName(const TermList& l)                                                                     \
+    { return l == name(); }                                                                                   \
 
 #define IMPL_NUM_TRAITS__QUOTIENT_REMAINDER(SHORT, X)                                                         \
     IMPL_NUM_TRAITS__INTERPRETED_FUN( quotient ## X, SHORT,  _QUOTIENT_ ## X, 2)                              \
     IMPL_NUM_TRAITS__INTERPRETED_FUN(remainder ## X, SHORT, _REMAINDER_ ## X, 2)                              \
     
 
-#define IMPL_NUM_TRAITS(CamelCase, LONG, SHORT)                                                               \
+#define IMPL_NUM_TRAITS(CamelCase, lowerCase, LONG, SHORT)                                                               \
   template<> struct NumTraits<CamelCase ## ConstantType> {                                                    \
     using ConstantType = CamelCase ## ConstantType;                                                           \
-    static const Sorts::DefaultSorts sort = Sorts::SRT_ ## LONG;                                              \
-    static unsigned sortNumber() { return NumTraits::sort; };                                                 \
+    static TermList sort() { return Term::lowerCase ## Sort(); };                                              \
                                                                                                               \
     IMPL_NUM_TRAITS__INTERPRETED_PRED(less,    SHORT, _LESS,          2)                                      \
     IMPL_NUM_TRAITS__INTERPRETED_PRED(leq,     SHORT, _LESS_EQUAL,    2)                                      \
@@ -199,9 +196,9 @@ struct NumTraits;
 #define __NUM_TRAITS_IF_FRAC_REAL(...) __VA_ARGS__
 #define __NUM_TRAITS_IF_FRAC_RAT(...) __VA_ARGS__
 
-IMPL_NUM_TRAITS(Rational, RATIONAL, RAT )
-IMPL_NUM_TRAITS(Real    , REAL    , REAL)
-IMPL_NUM_TRAITS(Integer , INTEGER , INT )
+IMPL_NUM_TRAITS(Rational, rational, RATIONAL, RAT )
+IMPL_NUM_TRAITS(Real    , real    , REAL    , REAL)
+IMPL_NUM_TRAITS(Integer , int     , INTEGER , INT )
 
 #define FOR_NUM_TRAITS(macro)                                                                                 \
   macro(Kernel::NumTraits<Kernel:: IntegerConstantType>)                                                      \

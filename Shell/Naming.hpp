@@ -19,6 +19,7 @@
 
 #include "Kernel/Formula.hpp"
 #include "Kernel/Unit.hpp"
+#include "Lib/List.hpp"
 
 using namespace Kernel;
 
@@ -31,7 +32,7 @@ namespace Shell {
 class Naming
 {
 public:
-  Naming (int threshold, bool preserveEpr);
+  Naming (int threshold, bool preserveEpr, bool appify);
   FormulaUnit* apply(FormulaUnit* unit,UnitList*& defs);
 private:
   /** Encodes information about the position of the sub formula */
@@ -125,7 +126,7 @@ private:
    * Corresponds to the value of the epr_preserving_naming option.
    */
   bool _preserveEpr;
-
+  bool _appify; // higher-order stuff
   /**
    * True if there are universally quantified variables at the scope of the current formula
    *
@@ -149,7 +150,7 @@ private:
 		     int* resultsNeg);
   Formula* introduceDefinition(Formula* f,bool iff);
 
-  Literal* getDefinitionLiteral(Formula* f, Formula::VarList* freeVars);
+  Literal* getDefinitionLiteral(Formula* f, VList* freeVars);
 }; // class Naming
 
 }

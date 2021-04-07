@@ -64,6 +64,7 @@ MaybeOverflow<A> catchOverflow(F fun, A alternative)
 namespace Inferences 
 {
 
+using SortId = TermList;
 
 class PolynomialEvaluation
 : public SimplifyingGeneratingLiteralSimplification
@@ -86,7 +87,7 @@ private:
 
   Result simplifyLiteral(Literal*) override;
 
-  MaybeOverflow<Option<PolyNf>> evaluate(TermList in, unsigned sortNumber) const;
+  MaybeOverflow<Option<PolyNf>> evaluate(TermList in, SortId sortNumber) const;
   MaybeOverflow<Option<PolyNf>> evaluate(Term* in) const;
   MaybeOverflow<Option<PolyNf>> evaluate(TypedTermList in) const;
 

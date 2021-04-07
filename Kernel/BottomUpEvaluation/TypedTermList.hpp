@@ -14,17 +14,18 @@
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/BottomUpEvaluation.hpp"
 
+using SortId = TermList;
 
 namespace Kernel {
 // TODO move to other class
 class TypedTermList : public TermList
 {
-  unsigned _sort;
+  SortId _sort;
 public:
   CLASS_NAME(TypedTermList)
-  TypedTermList(TermList t, unsigned sort) : TermList(t), _sort(sort) {}
+  TypedTermList(TermList t, SortId sort) : TermList(t), _sort(sort) {}
   TypedTermList(Term* t) : TypedTermList(TermList(t), SortHelper::getResultSort(t)) {}
-  unsigned sort() const { return _sort; }
+  SortId sort() const { return _sort; }
 };
 
 } // namespace Kernel 

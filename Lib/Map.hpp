@@ -114,7 +114,7 @@ public:
   private:
 
     /** initialize value underlying the wrapper type */
-    void init(Key&& key, Val&& val, unsigned code)
+    void init(Key key, Val val, unsigned code)
     {
       CALL("Map::Entry::init(Key&&, Val&&, unsigned)")
       ASS_REP(this->code == 0, this->code)
@@ -457,7 +457,7 @@ public:
   Val& getOrInit(Key key, InitFn init) 
   {
     CALL("Map::getOrInit");
-    return updateOrInit(std::move(key), [](Val v) { return v; }, init);
+    return updateOrInit(std::move(key), [](Val v) { return std::move(v); }, init);
   } 
 
 
@@ -533,7 +533,7 @@ public:
     }
     // entry is not occupied
     _noOfEntries++;
-    entry->init(key, initial, code);
+    entry->init(Key(key), Val(initial), code);
     pval = &entry->value();
     return true;
   }

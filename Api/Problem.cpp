@@ -479,7 +479,7 @@ void Problem::addFromStream(istream& s, vstring includeDirectory, bool simplifyS
     SimplifyProver simplify;
     units = simplify.units(expr);
   }
-  else {
+  else { 
     units = Parse::TPTP::parse(s);
   }
 

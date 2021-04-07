@@ -231,6 +231,13 @@ void SymCounter::count(Term* term, int polarity, int add)
           count(sd->getTupleTerm(), 0, add);
           break;
         }
+        case Term::SF_LAMBDA: {
+          TermList lambdaExp = sd->getLambdaExp();
+          if(lambdaExp.isTerm()){
+            count(lambdaExp.term(), polarity, add);
+          }
+          break;
+        }
         default:
           ASSERTION_VIOLATION;
       }

@@ -76,12 +76,20 @@ struct FunctionDefinition::Def
   bool linear;
   /** strict means that all lhs variables occur in rhs */
   bool strict;
+
+  bool twoConstDef;
+
   /** first defined function that is used in @b rhs, or -1 if there isn't such */
   int containedFn;
 
   int examinedArg;
 
   IntList* dependentFns;
+
+  bool lhsIsBool(){
+    return (env.signature->isFoolConstantSymbol(true , fun) ||
+            env.signature->isFoolConstantSymbol(false, fun));
+  }
 
   /**
    * If @b mark==SAFE or @b mark==UNFOLDED, contains @b bool array such that
@@ -97,6 +105,7 @@ struct FunctionDefinition::Def
       mark(UNTOUCHED),
       linear(lin),
       strict(str),
+      twoConstDef(0),
       containedFn(-1),
       dependentFns(0),
       argOccurs(0)
@@ -170,18 +179,18 @@ bool FunctionDefinition::removeUnusedDefinitions(UnitList*& units, Problem* prb)
     if(d) {
       d->defCl=cl;
       if(!def[d->fun]) {
-	defStack.push(d);
-	def[d->fun]=d;
-	scanIterator.del();
+        defStack.push(d);
+        def[d->fun]=d;
+        scanIterator.del();
       } else {
-	delete d;
+        delete d;
       }
     }
     for(unsigned i=0;i<clen;i++) {
       NonVariableIterator nvit((*cl)[i]);
       while(nvit.hasNext()) {
-	unsigned fn=nvit.next().term()->functor();
-	occCounter[fn]++;
+        unsigned fn=nvit.next().term()->functor();
+        occCounter[fn]++;
       }
     }
   }
@@ -242,6 +251,15 @@ void FunctionDefinition::removeAllDefinitions(Problem& prb)
   }
 }
 
+void FunctionDefinition::reverse(Def* def){
+  CALL("FunctionDefinition::reverse");
+  ASS(def->twoConstDef);
+  Term* temp = def->lhs;
+  def->lhs = def->rhs;
+  def->rhs = temp;
+  def->fun = def->lhs->functor();
+}
+
 /**
  * When possible, unfold function definitions in @b units and remove them
  * Return true iff the list of units was modified.
@@ -257,11 +275,32 @@ bool FunctionDefinition::removeAllDefinitions(UnitList*& units)
     Def* d=isFunctionDefinition(cl);
     if(d) {
       d->defCl=cl;
+      bool inserted = false;
       if(_defs.insert(d->fun, d)) {
-//	cout<<"Found: "<<(*(*d->defCl)[0])<<endl;
-	scanIterator.del();
-      } else {
-	delete d;
+        //cout<<"Found: "<<(*(*d->defCl)[0])<<endl;
+        inserted = true;
+        scanIterator.del();
+      } else if(_defs.get(d->fun)->twoConstDef){
+        Def* d2;
+        _defs.pop(d->fun, d2);
+        reverse(d2);
+        if(!d2->lhsIsBool() && _defs.insert(d2->fun, d2)){
+          _defs.insert(d->fun, d);
+          inserted = true;
+          scanIterator.del();
+        } else {
+          reverse(d2); //back to original orientation
+          ALWAYS(_defs.insert(d2->fun, d2));
+        }
+      } else if(d->twoConstDef){
+         reverse(d);
+         if(!d->lhsIsBool() && _defs.insert(d->fun, d)) {
+           inserted = true;
+           scanIterator.del();
+         }    
+      } 
+      if(!inserted){
+        delete d;
       }
     }
   }
@@ -338,6 +377,7 @@ bool FunctionDefinition::removeAllDefinitions(UnitList*& units)
   while(unfoldIterator.hasNext()) {
     Clause* cl=static_cast<Clause*>(unfoldIterator.next());
     ASS(cl->isClause());
+    if(cl->isProxyAxiomsDescendant()){ continue; }
     Clause* newCl=applyDefinitions(cl);
     if(cl!=newCl) {
 //      cout<<"D- "<<(*cl)<<endl;
@@ -527,6 +567,8 @@ Term* FunctionDefinition::applyDefinitions(Literal* lit, Stack<Def*>* usedDefs)
 {
   CALL("FunctionDefinition::applyDefinitions");
 
+  //cout << "applying definitions to " + lit->toString() << endl;
+
   if (env.options->showPreprocessing()) {
     env.beginOutput();
     env.out() << "[PP] applying function definitions to literal "<<(*lit) << std::endl;
@@ -567,17 +609,17 @@ Term* FunctionDefinition::applyDefinitions(Literal* lit, Stack<Def*>* usedDefs)
     }
     if(tt->isEmpty()) {
       if(terms.isEmpty()) {
-	//we're done, args stack contains modified arguments
-	//of the argument term.
-	ASS(toDo.isEmpty());
-	break;
+        //we're done, args stack contains modified arguments
+        //of the argument term.
+        ASS(toDo.isEmpty());
+        break;
       }
       defIndexes.pop();
       Term* orig=terms.pop();
       if(!modified.pop()) {
-	args.truncate(args.length() - orig->arity());
-	args.push(TermList(orig));
-	continue;
+        args.truncate(args.length() - orig->arity());
+        args.push(TermList(orig));
+        continue;
       }
       //here we assume, that stack is an array with
       //second topmost element at &top()-1, third at
@@ -837,14 +879,22 @@ FunctionDefinition::defines (Term* lhs, Term* rhs)
   if (occurs(f,*rhs)) {
     return 0;
   }
-  if (lhs->arity() == 0) {
-    if (rhs->arity() != 0) { // c = f(...)
+  if (!lhs->arity()) {
+    if(env.signature->isFoolConstantSymbol(true , f) ||
+       env.signature->isFoolConstantSymbol(false, f)){
+      return 0;
+    }
+    //Higher-order often contains definitions of the form
+    //f = ^x^y...
+    if (rhs->arity() && !env.statistics->higherOrder) { // c = f(...)
       return 0;
     }
     if (rhs->functor() == f) {
       return 0;
     }
-    return new Def(lhs,rhs,true,true);
+    if(!env.statistics->higherOrder){
+      return new Def(lhs,rhs,true,true);
+    }
   }
 
   int vars = 0; // counter of variables occurring in the lhs
@@ -890,6 +940,11 @@ FunctionDefinition::defines (Term* lhs, Term* rhs)
   }
 
   Def* res=new Def(lhs,rhs,linear,!vars);
+
+  if(!lhs->arity() && !rhs->arity()){
+    res->twoConstDef = true;
+  }
+  
   return res;
 } // FunctionDefinition::defines
 

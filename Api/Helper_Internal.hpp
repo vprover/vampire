@@ -40,8 +40,6 @@ namespace Api {
 
 using namespace Shell;
 
-typedef Kernel::Formula::VarList VarList;
-
 class DefaultHelperCore
 {
 public:
@@ -64,7 +62,7 @@ public:
 private:
   struct Var2NameMapper;
 public:
-  StringIterator getVarNames(VarList* l);
+  StringIterator getVarNames(VList* l);
 
   static vstring getDummyName(bool pred, unsigned functor);
   static vstring getDummyName(const Kernel::Term* t);

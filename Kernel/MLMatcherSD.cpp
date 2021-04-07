@@ -125,9 +125,7 @@ void createLiteralBindings(Literal* baseLit, LiteralList const* const alts, Clau
       }
       if(MatchingUtils::matchReversedArgs(baseLit, alit)) {
         ArrayStoringBinder binder(altBindingData, variablePositions);
-        MatchingUtils::matchTerms(*baseLit->nthArgument(0),*alit->nthArgument(1),binder);
-        MatchingUtils::matchTerms(*baseLit->nthArgument(1),*alit->nthArgument(0),binder);
-
+        MatchingUtils::matchReversedArgs(baseLit, alit, binder);
         *altBindingPtrs=altBindingData;
         altBindingPtrs++;
         altBindingData+=numVars;
@@ -1162,7 +1160,7 @@ MLMatcherSD::MLMatcherSD()
 void MLMatcherSD::init(Literal** baseLits, unsigned baseLen, Clause* instance, LiteralList const* const* alts)
 {
   if (!m_impl) {
-    m_impl = make_unique<MLMatcherSD::Impl>();
+    m_impl = std::make_unique<MLMatcherSD::Impl>();
   }
   m_impl->init(baseLits, baseLen, instance, alts);
 }

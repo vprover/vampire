@@ -22,6 +22,8 @@
 #include "Lib/List.hpp"
 #include "Lib/DHMap.hpp"
 
+#include "Kernel/Term.hpp"
+
 namespace Indexing {
 
 using namespace Lib;

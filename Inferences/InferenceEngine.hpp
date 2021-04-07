@@ -20,6 +20,9 @@
 #include "Lib/SmartPtr.hpp"
 #include "Lib/Stack.hpp"
 
+#include "Kernel/Term.hpp"
+#include "Kernel/Signature.hpp"
+
 #include "Lib/VirtualIterator.hpp"
 #include "Lib/List.hpp"
 
@@ -156,6 +159,7 @@ public:
    * An example of a trivial simplification is deletion of duplicate
    * literals.
    */
+  virtual ClauseIterator simplifyMany(Clause* cl){ NOT_IMPLEMENTED; } ;
   virtual Clause* simplify(Clause* cl) = 0;
 };
 
@@ -243,6 +247,19 @@ protected:
 private:
   Ordering* _ordering;
   const InferenceRule _rule;
+};
+
+class SimplificationEngine
+: public InferenceEngine
+{
+public:
+  /**
+   * Perform simplification on @b cl
+   *
+   * The difference between this an immediate simplification is that it is delayed 
+   * in the saturation loop
+   */
+  virtual ClauseIterator perform(Clause* cl) = 0;
 };
 
 class ForwardSimplificationEngine
@@ -340,15 +357,18 @@ public:
   CLASS_NAME(CompositeISE);
   USE_ALLOCATOR(CompositeISE);
 
-  CompositeISE() : _inners(0) {}
+  CompositeISE() : _inners(0), _innersMany(0) {}
   virtual ~CompositeISE();
   void addFront(ImmediateSimplificationEngine* fse);
+  void addFrontMany(ImmediateSimplificationEngine* fse);
   Clause* simplify(Clause* cl);
+  ClauseIterator simplifyMany(Clause* cl);
   void attach(SaturationAlgorithm* salg);
   void detach();
 private:
   typedef List<ImmediateSimplificationEngine*> ISList;
   ISList* _inners;
+  ISList* _innersMany;
 };
 
 //class CompositeFSE
@@ -404,12 +424,38 @@ private:
   Stack<GeneratingInferenceEngine*> _generators;
 };
 
+//removes clauses which define choice operators
+class ChoiceDefinitionISE
+: public ImmediateSimplificationEngine
+{
+public:
+  CLASS_NAME(ChoiceDefinitionISE);
+  USE_ALLOCATOR(ChoiceDefinitionISE);
+
+  Clause* simplify(Clause* cl);
+
+  bool isPositive(Literal* lit);
+ 
+  bool is_of_form_xy(Literal* lit,  TermList& x);
+  bool is_of_form_xfx(Literal* lit, TermList x, TermList& f);
+};
+
 class DuplicateLiteralRemovalISE
 : public ImmediateSimplificationEngine
 {
 public:
   CLASS_NAME(DuplicateLiteralRemovalISE);
   USE_ALLOCATOR(DuplicateLiteralRemovalISE);
+
+  Clause* simplify(Clause* cl);
+};
+
+class TautologyDeletionISE2
+: public ImmediateSimplificationEngine
+{
+public:
+  CLASS_NAME(TautologyDeletionISE2);
+  USE_ALLOCATOR(TautologyDeletionISE2);
 
   Clause* simplify(Clause* cl);
 };

@@ -4,8 +4,8 @@
 cmake_minimum_required (VERSION 3.12.0)
 project(Vampire)
 
-# require the compiler to use C++11
-set(CMAKE_CXX_STANDARD 11)
+# require the compiler to use C++14
+set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
@@ -151,7 +151,6 @@ set(VAMPIRE_LIB_SOURCES
     Lib/DHMultiset.hpp
     Lib/DHSet.hpp
     Lib/DynamicHeap.hpp
-    Lib/Enumerator.hpp
     Lib/Environment.hpp
     Lib/Event.hpp
     Lib/Exception.hpp
@@ -330,6 +329,44 @@ set(VAMPIRE_KERNEL_SOURCES
     Kernel/Polynomial.cpp
     Kernel/PolynomialNormalizer.hpp
     Kernel/PolynomialNormalizer.cpp
+    Kernel/ApplicativeHelper.hpp
+    Kernel/ApplicativeHelper.cpp
+    Kernel/SKIKBO.hpp
+    Kernel/SKIKBO.cpp
+    Indexing/TypeSubstitutionTree.cpp
+    Indexing/TypeSubstitutionTree.hpp
+    Inferences/CNFOnTheFly.cpp
+    Inferences/CNFOnTheFly.hpp
+    Inferences/CombinatorDemodISE.cpp
+    Inferences/CombinatorDemodISE.hpp
+    Inferences/CombinatorNormalisationISE.hpp
+    Inferences/CombinatorNormalisationISE.cpp
+    Inferences/ArgCong.hpp
+    Inferences/ArgCong.cpp
+    Inferences/NegativeExt.cpp
+    Inferences/NegativeExt.hpp
+    Inferences/Narrow.hpp
+    Inferences/Narrow.cpp
+    Inferences/SubVarSup.hpp
+    Inferences/SubVarSup.cpp
+    Inferences/BoolEqToDiseq.hpp
+    Inferences/BoolEqToDiseq.cpp
+    Inferences/PrimitiveInstantiation.cpp
+    Inferences/PrimitiveInstantiation.hpp
+    Inferences/ElimLeibniz.cpp
+    Inferences/ElimLeibniz.hpp
+    Inferences/Choice.cpp
+    Inferences/Choice.hpp
+    Inferences/Injectivity.hpp
+    Inferences/Injectivity.cpp
+    Inferences/BoolSimp.hpp
+    Inferences/BoolSimp.cpp
+    Inferences/CasesSimp.cpp
+    Inferences/CasesSimp.hpp
+    Inferences/Cases.cpp
+    Inferences/Cases.hpp
+    Shell/LambdaElimination.cpp
+    Shell/LambdaElimination.hpp
     )
 source_group(kernel_source_files FILES ${VAMPIRE_KERNEL_SOURCES})
 
@@ -552,6 +589,7 @@ set(VAMPIRE_SHELL_SOURCES
     Shell/EqResWithDeletion.cpp
     #Shell/EqualityAxiomatizer.cpp
     Shell/EqualityProxy.cpp
+    Shell/EqualityProxyMono.cpp    
     Shell/Flattening.cpp
     Shell/FunctionDefinition.cpp
     Shell/GeneralSplitting.cpp
@@ -621,6 +659,7 @@ set(VAMPIRE_SHELL_SOURCES
     Shell/EqResWithDeletion.hpp
     #Shell/EqualityAxiomatizer.hpp
     Shell/EqualityProxy.hpp
+    Shell/EqualityProxyMono.hpp
     Shell/Flattening.hpp
     Shell/FunctionDefinition.hpp
     Shell/GeneralSplitting.hpp
@@ -804,7 +843,6 @@ set(VAMPIRE_SOURCES
     ${VAMPIRE_MINISAT_SOURCES}
     ${VAMPIRE_CASC_SOURCES}
     Forwards.hpp
-    Global.cpp
     "${CMAKE_CURRENT_BINARY_DIR}/version.cpp"
     )
 

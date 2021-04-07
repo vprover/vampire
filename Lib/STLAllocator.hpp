@@ -17,8 +17,9 @@
  * @author Martin Suda
  */
 
-#ifndef __STLAllocator__ 
-#define __STLAllocator__ 
+#ifndef __STLAllocator__
+#define __STLAllocator__
+
 #include <limits>
 #include <memory>
 #include <utility>
