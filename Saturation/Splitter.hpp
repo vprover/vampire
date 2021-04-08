@@ -287,7 +287,9 @@ private:
   bool _clausesAdded;
   /** true if there was a refutation added to the SAT solver */
   bool _haveBranchRefutation;
-    
+
+  unsigned _stopSplittingAt; // time elapsed in milliseconds
+
   bool _fastRestart; // option's value copy
   /**
    * We are postponing to consider these clauses for a split 

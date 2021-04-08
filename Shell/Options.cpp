@@ -1791,6 +1791,16 @@ void Options::init()
     _splittingFlushQuotient.reliesOn(_splitting.is(equal(true)));
     _splittingFlushQuotient.setRandomChoices({"1.0","1.1","1.2","1.4","2.0"});
 
+    _splittingAvatimer = FloatOptionValue("avatar_turn_off_time_frac","atotf",0.0);
+    _splittingAvatimer.description= "Stop splitting after the specified fraction of the overall time has passed (the default 0.0 means this is disabled).\n"
+        "(the remaining time AVATAR is still switching branches and communicating with the SAT solver,\n"
+        "but not introducing new splits anymore. This fights the theoretical possibility of AVATAR's dynamic incompletness.)";
+    _lookup.insert(&_splittingAvatimer);
+    _splittingAvatimer.tag(OptionTag::AVATAR);
+    _splittingAvatimer.addConstraint(smallerThan(1.0f));
+    _splittingAvatimer.reliesOn(_splitting.is(equal(true)));
+    _splittingAvatimer.setRandomChoices({"0.0","0.5","0.7","0.9"});
+
     _splittingNonsplittableComponents = ChoiceOptionValue<SplittingNonsplittableComponents>("avatar_nonsplittable_components","anc",
                                                                                               SplittingNonsplittableComponents::KNOWN,
                                                                                               {"all","all_dependent","known","none"});
