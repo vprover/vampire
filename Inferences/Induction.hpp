@@ -107,8 +107,8 @@ private:
 
   void produceClauses(Clause* premise, Literal* origLit, Formula* hypothesis, Literal* conclusion, InferenceRule rule, ResultSubstitutionSP& substitution);
 
-  void performMathInductionOne(Clause* premise, Literal* origLit, Literal* lit, Term* t, InferenceRule rule); 
-  void performMathInductionTwo(Clause* premise, Literal* origLit, Literal* lit, Term* t, InferenceRule rule);
+  void performIntInductionOne(Clause* premise, Literal* origLit, Literal* lit, Term* t, InferenceRule rule); 
+  void performIntInductionTwo(Clause* premise, Literal* origLit, Literal* lit, Term* t, InferenceRule rule);
 
   void performStructInductionOne(Clause* premise, Literal* origLit, Literal* lit, Term* t, InferenceRule rule);
   void performStructInductionTwo(Clause* premise, Literal* origLit, Literal* lit, Term* t, InferenceRule rule);

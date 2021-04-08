@@ -1347,8 +1347,6 @@ TermList AtomicSort::arrowSort(TermList s1, TermList s2){
   CALL("AtomicSort::arrowSort/1");
   unsigned arrow = env.signature->getArrowConstructor();
   return TermList(create2(arrow, s1, s2));
-  //Do not need to add to sorts as that is only for FMB
-  //FMB and higher-order never combine.
 }
 
 TermList AtomicSort::arrowSort(TermList s1, TermList s2, TermList s3){

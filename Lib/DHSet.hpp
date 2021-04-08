@@ -149,6 +149,19 @@ public:
   {
     return _map.domain();
   }
+
+  friend std::ostream& operator<<(std::ostream& out, DHSet const& self) 
+  {
+    auto iter = self.iterator();
+    out << "{";
+    if (iter.hasNext()) {
+      out << iter.next();
+      while (iter.hasNext()) {
+        out << ", " << iter.next();
+      }
+    }
+    return out << "}";
+  }
 private:
   /** operator= is private and without a body, because we don't want any. */
   DHSet& operator=(const DHSet& obj);

@@ -87,6 +87,8 @@ private:
 
   float _slowness;
 
+  const char * _tmpFileNameForProof;
+
   /**
    * Problem that is being solved.
    *
