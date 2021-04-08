@@ -110,6 +110,9 @@ FuncId FuncTerm::function() const
 PolyNf const& FuncTerm::arg(unsigned i) const 
 { return _args[i]; }
 
+void FuncTerm::integrity() const 
+{ for ( auto const& x : _args) x.integrity(); }
+
 std::ostream& operator<<(std::ostream& out, const FuncTerm& self) 
 { 
   out << self._fun;
@@ -149,6 +152,9 @@ unsigned AnyPoly::nFactors(unsigned i) const
 
 std::ostream& operator<<(std::ostream& out, const AnyPoly& self) 
 { return self.apply([&](auto& t) -> decltype(auto) { return out << *t; }); }
+
+void AnyPoly::integrity() const 
+{ apply([](auto const& x) { x->integrity(); }); }
 
 /////////////////////////////////////////////////////////
 // impl PolyNf 

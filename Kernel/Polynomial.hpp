@@ -57,6 +57,7 @@ public:
   explicit Variable(unsigned num);
   unsigned id() const;
 
+  void integrity() const {  }
   friend struct std::hash<Variable>;
   friend bool operator==(Variable lhs, Variable rhs);
   friend bool operator!=(Variable lhs, Variable rhs);
@@ -183,6 +184,8 @@ public:
 
   template<class F> FuncTerm mapVars(F f) const;
 
+  void integrity() const;
+
   inline auto iterArgs() -> decltype(iterTraits(_args.iterFifo())) const  { return iterTraits(_args.iterFifo()); }
 
   friend std::ostream& operator<<(std::ostream& out, const FuncTerm& self);
@@ -231,11 +234,21 @@ public:
   /** \see template<class N> Polynom<N>::denormalize */
   TermList denormalize(TermList* results) const;
 
+  void integrity() const;
+
   friend std::ostream& operator<<(std::ostream& out, const AnyPoly& self);
   friend struct std::hash<AnyPoly>;
 };
 
 using PolyNfSuper = Lib::Coproduct<Perfect<FuncTerm>, Variable, AnyPoly>;
+
+template<class A> A & deref(A          & x) { return  x; }
+template<class A> A & deref(A          * x) { return *x; }
+template<class A> A & deref(Perfect<A> & x) { return *x; }
+
+template<class A> A const& deref(A          const& x) { return  x; }
+template<class A> A const& deref(A          const* x) { return *x; }
+template<class A> A const& deref(Perfect<A> const& x) { return *x; }
 
 /**
  * Represents the polynomial normal form of a term, that is used for performing several simplifications and evaluations.
@@ -302,6 +315,8 @@ public:
   bool isFuncTerm() const { return is<Perfect<FuncTerm>>(); }
   Perfect<FuncTerm> unwrapFuncTerm() const { return unwrap<Perfect<FuncTerm>>(); }
 
+  void integrity() const {  apply([](auto const& x) -> void { deref(x).integrity(); }); }
+
   friend struct std::hash<PolyNf>;
   friend bool operator==(PolyNf const& lhs, PolyNf const& rhs);
   friend bool operator!=(PolyNf const& lhs, PolyNf const& rhs);
@@ -328,7 +343,8 @@ struct MonomFactor
   MonomFactor(PolyNf term, int power);
 
   template<class F> MonomFactor mapVars(F f) const;
-   
+
+  void integrity() const { term.integrity(); }
   /** if this monomfactor is a Variable and has power one it is turned into a variable */
   Option<Variable> tryVar() const;
   Option<Perfect<Polynom<Number>>> tryPolynom() const;
@@ -941,7 +957,16 @@ namespace Kernel {
 
 template<class Number>
 MonomFactors<Number>::MonomFactors(Stack<MonomFactor>&& factors) 
-  : _factors(std::move(factors)) { }
+  : _factors(std::move(factors)) 
+{ 
+  if (_factors.size() == 1 
+    && _factors[0].tryPolynom().isSome()
+    && _factors[0].tryPolynom().unwrap()->nSummands() == 1
+    && _factors[0].tryPolynom().unwrap()->summandAt(0).numeral == Number::oneC) {
+    _factors = _factors[0].tryPolynom().unwrap()->summandAt(0).factors->_factors;
+  }
+  // integrity(); 
+}
 
 template<class Number>
 MonomFactors<Number>::MonomFactors() 
@@ -949,14 +974,14 @@ MonomFactors<Number>::MonomFactors()
 
 template<class Number>
 MonomFactors<Number>::MonomFactors(PolyNf t) 
-  : _factors { MonomFactor ( t, 1 ) }  { }
+  : MonomFactors( { MonomFactor ( t, 1 ) } ) { }
 
 template<class Number>
 MonomFactors<Number>::MonomFactors(PolyNf t1, PolyNf t2) 
-  : _factors(t1 == t2 ? decltype(_factors) ({MonomFactor ( t1, 2 )  }) : 
-             t1 <  t2 ? decltype(_factors) ({ MonomFactor ( t1, 1 ), MonomFactor ( t2, 1 ) }) 
-                      : decltype(_factors) ({ MonomFactor ( t2, 1 ), MonomFactor ( t1, 1 ) }) 
-                        )  { }
+  : MonomFactors(t1 == t2 ? decltype(_factors) ({MonomFactor ( t1, 2 )  }) : 
+                 t1 <  t2 ? decltype(_factors) ({ MonomFactor ( t1, 1 ), MonomFactor ( t2, 1 ) }) 
+                          : decltype(_factors) ({ MonomFactor ( t2, 1 ), MonomFactor ( t1, 1 ) }) 
+                            )  { }
 
 template<class Number>
 unsigned MonomFactors<Number>::nFactors() const 
@@ -1097,15 +1122,15 @@ void MonomFactors<Number>::integrity() const
       if (poly->nSummands() == 1) {
         auto sum = poly->summandAt(0);
         if (sum.numeral == Number::oneC) {
+          DBG(*this)
           ASSERTION_VIOLATION
         }
       }
     }
-    // auto fac = _factors[0];
-    // if (fac.power == 1) {
-    //   fac.term.is
-    // }
   }
+  for (auto const& x : _factors)
+    x.integrity();
+
   if (_factors.size() > 0) {
     auto iter = this->_factors.begin();
     auto last = iter++;
@@ -1183,7 +1208,7 @@ Polynom<Number>::Polynom(Numeral numeral, PolyNf term)
 template<class Number>
 Polynom<Number>::Polynom(PolyNf t) 
   : Polynom(Numeral(1), t) 
-{  }
+{ integrity();  }
 
 template<class Number>
 Polynom<Number>::Polynom(Numeral constant) 
@@ -1342,13 +1367,14 @@ void Polynom<Number>::integrity() const {
 #if VDEBUG
   CALL("Polynom<Number>::integrity()")
   ASS(_summands.size() > 0)
+  for (auto const& x : _summands)
+    x.integrity();
   if (_summands.size() > 0) {
     auto iter = this->_summands.begin();
     auto last = iter++;
     while (iter != _summands.end()) {
       // ASS_REP(std::less<Perfect<MonomFactors>>{}(last->factors, iter->factors), *this);
       ASS_REP(last->factors <= iter->factors, *this);
-      iter->integrity();
       last = iter++;
     }
   } 

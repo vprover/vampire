@@ -16,7 +16,7 @@
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/BottomUpEvaluation/PolyNf.hpp"
 
-#define DEBUG(...) //DBG(__VA_ARGS__)
+#define DEBUG(...) // DBG(__VA_ARGS__)
 using namespace Lib;
 
 
