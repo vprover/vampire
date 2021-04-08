@@ -368,7 +368,7 @@ void SearchSpaceDumper::dumpFile(const vstring& out) const
   DEBUG("writing to ", out, "...");
   cout << out.c_str() << endl;
   ofstream f{ out.c_str() };
-  f << json.dump(1) << endl; 
+  f << json << endl; 
 
   DEBUG("finished.");
 }
