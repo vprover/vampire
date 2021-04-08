@@ -38,11 +38,8 @@ using namespace Kernel;
 using namespace Saturation;
 
 class HeuristicGeneralizationIterator
-  : public IteratorCore<OccurrenceMap>
 {
 public:
-  CLASS_NAME(HeuristicGeneralizationIterator);
-  USE_ALLOCATOR(HeuristicGeneralizationIterator);
   DECL_ELEMENT_TYPE(OccurrenceMap);
 
   HeuristicGeneralizationIterator(bool includeEmpty, const OccurrenceMap& occ)
@@ -83,11 +80,8 @@ private:
 };
 
 class InductionGeneralizationIterator
-  : public IteratorCore<OccurrenceMap>
 {
 public:
-  CLASS_NAME(InductionGeneralizationIterator);
-  USE_ALLOCATOR(InductionGeneralizationIterator);
   DECL_ELEMENT_TYPE(OccurrenceMap);
 
   /* Based on a map of advanceterms to bit vectors of necessary occurrences
@@ -125,92 +119,19 @@ public:
     return temp;
   }
 
+  inline vstring toString()
+  {
+    vstringstream str;
+    for (const auto& kv : _occ) {
+      str << *kv.first.first << ", " << kv.first.second
+          << ": " << kv.second.toString();
+    }
+    return str.str();
+  }
+
 private:
   OccurrenceMap _occ;
   OccurrenceMap::iterator _it;
-};
-
-class InductionGeneralization {
-public:
-  CLASS_NAME(InductionGeneralization);
-  USE_ALLOCATOR(InductionGeneralization);
-  DECL_RETURN_TYPE(InductionIterator);
-
-  /* Based on a map of terms to bit vectors of necessary occurrences
-   * and number of all occurrences, enumerates all possible generalizations
-   * as bit vectors. 
-   */
-  InductionGeneralization(bool includeEmpty)
-      : _includeEmpty(includeEmpty) {}
-
-  OWN_RETURN_TYPE operator()(pair<InductionScheme, OccurrenceMap> p)
-  {
-    CALL("InductionGeneralization()");
-
-    return pvi(pushPairIntoRightIterator(p.first,
-      vi(new InductionGeneralizationIterator(_includeEmpty, p.second))));
-  }
-
-  bool next(OccurrenceMap& m);
-
-private:
-  bool _includeEmpty;
-};
-
-class InductionFormulaIterator
-  : public IteratorCore<Clause*>
-{
-public:
-  CLASS_NAME(InductionFormulaIterator);
-  USE_ALLOCATOR(InductionFormulaIterator);
-  DECL_ELEMENT_TYPE(Clause*);
-
-  InductionFormulaIterator(
-    const Shell::InductionScheme& scheme,
-    const OccurrenceMap& occurrences,
-    const vvector<SLQueryResult>& lits,
-    const InferenceRule& rule,
-    Splitter* splitter);
-
-  inline bool hasNext() { return _clauses.isNonEmpty(); }
-  inline OWN_ELEMENT_TYPE next()
-  {
-    CALL("InductionFormulaIterator::next()");
-
-    Clause* c = _clauses.pop();
-    if(env.options->showInduction()){
-      env.beginOutput();
-      env.out() << "[Induction] generate " << c->toString() << endl; 
-      env.endOutput();
-    }
-    return c; 
-  }
-
-private:
-  Stack<Clause*> _clauses;
-};
-
-class InductionFormulaGenerator
-{
-public:
-  CLASS_NAME(InductionFormulaGenerator);
-  USE_ALLOCATOR(InductionFormulaGenerator);
-  DECL_RETURN_TYPE(ClauseIterator);
-
-  InductionFormulaGenerator(const vvector<SLQueryResult>& lits, const InferenceRule& rule, Splitter* splitter)
-    : _lits(lits), _rule(rule), _splitter(splitter) {}
-  
-  OWN_RETURN_TYPE operator()(pair<InductionScheme, OccurrenceMap> p)
-  {
-    CALL("InductionFormulaGenerator()");
-
-    return vi(new InductionFormulaIterator(p.first, p.second, _lits, _rule, _splitter));
-  }
-
-private:
-  vvector<SLQueryResult> _lits;
-  InferenceRule _rule;
-  Splitter* _splitter;
 };
 
 class GeneralInduction
@@ -220,13 +141,8 @@ public:
   CLASS_NAME(GeneralInduction);
   USE_ALLOCATOR(GeneralInduction);
 
-  GeneralInduction(
-    Shell::InductionSchemeGenerator* schemeGenerator,
-    InductionGeneralization* generalization,
-    InferenceRule rule)
-    : _schemeGenerator(schemeGenerator),
-      _generalization(generalization),
-      _splitter(0),
+  GeneralInduction(InferenceRule rule)
+    : _splitter(0),
       _rule(rule) {}
 
   ClauseIterator generateClauses(Clause* premise) override;
@@ -234,10 +150,36 @@ public:
   void detach() override;
 
 private:
-  ClauseIterator process(Clause* premise, Literal* literal);
+  class InductionClauseIterator
+    : public ClauseIterator
+  {
+  public:
+    InductionClauseIterator() = default;
+    DECL_ELEMENT_TYPE(Clause*);
 
-  Shell::InductionSchemeGenerator* _schemeGenerator;
-  InductionGeneralization* _generalization;
+    inline bool hasNext() { return _clauses.isNonEmpty(); }
+    inline OWN_ELEMENT_TYPE next() { 
+      Clause* c = _clauses.pop();
+      if(env.options->showInduction()){
+        env.beginOutput();
+        env.out() << "[Induction] generate " << c->toString() << endl; 
+        env.endOutput();
+      }
+      return c; 
+    }
+
+    Stack<Clause*> _clauses;
+  };
+
+  void process(InductionClauseIterator& it, Clause* premise, Literal* literal);
+  void generateClauses(
+    const Shell::InductionScheme& scheme,
+    const OccurrenceMap& occurrences,
+    const SLQueryResult& mainLit,
+    const vvector<SLQueryResult>& sideLits,
+    ClauseStack& clauses);
+  vmap<TermList, TermList> skolemizeCase(const InductionScheme::Case& c);
+
   Splitter* _splitter;
   InferenceRule _rule;
 };

@@ -244,6 +244,7 @@ Clause *FnDefRewriting::perform(
 
   static bool doSimS = env.options->simulatenousSuperposition();
   (*res)[0] = tgtLitS;
+  tgtLitS->_inductionHypotheses = rwLit->_inductionHypotheses;
   unsigned next = 1;
   for (unsigned i = 0; i < rwLength; i++) {
     Literal *curr = (*rwClause)[i];
@@ -251,6 +252,7 @@ Clause *FnDefRewriting::perform(
       if (doSimS) {
         curr = EqHelper::replace(curr, rwTerm, tgtTermS);
       }
+      curr->_inductionHypotheses = (*rwClause)[i]->_inductionHypotheses;
 
       if (EqHelper::isEqTautology(curr)) {
         res->destroy();

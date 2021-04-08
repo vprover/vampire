@@ -65,6 +65,7 @@
 #include "Inferences/GeneralInduction.hpp"
 #include "Inferences/GlobalSubsumption.hpp"
 #include "Inferences/HyperSuperposition.hpp"
+#include "Inferences/InductionHypothesisRewriting.hpp"
 #include "Inferences/InnerRewriting.hpp"
 #include "Inferences/TermAlgebraReasoning.hpp"
 #include "Inferences/SLQueryBackwardSubsumption.hpp"
@@ -1458,8 +1459,11 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
     //   gie->addFront(new MultiClauseInduction());
     // }
     // gie->addFront(new Induction());
-    gie->addFront(new GeneralInduction(new StructuralInductionSchemeGenerator(), new InductionGeneralization(false), InferenceRule::INDUCTION_AXIOM));
+
+    // gie->addFront(new GeneralInduction(new RecursionInductionSchemeGenerator(), new InductionGeneralization(true), InferenceRule::INDUCTION_AXIOM));
+    gie->addFront(new GeneralInduction(InferenceRule::INDUCTION_AXIOM));
   }
+  gie->addFront(new InductionHypothesisRewriting());
 
   if(opt.instantiation()!=Options::Instantiation::OFF){
     res->_instantiation = new Instantiation();

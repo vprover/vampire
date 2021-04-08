@@ -115,6 +115,18 @@ using OccurrenceMap = vmap<pair<Literal*, TermList>, Occurrences>;
 /**
  * Replaces a subset of occurrences for given TermLists
  */
+class TermReplacement2 : public TermTransformer {
+public:
+  TermReplacement2(const vmap<TermList, TermList>& r) : _r(r) {}
+  TermList transformSubterm(TermList trm) override;
+
+private:
+  const vmap<TermList, TermList>& _r;
+};
+
+/**
+ * Replaces a subset of occurrences for given TermLists
+ */
 class TermOccurrenceReplacement2 : public TermTransformer {
 public:
   TermOccurrenceReplacement2(const vmap<TermList, TermList>& r,
@@ -126,6 +138,19 @@ private:
   const vmap<TermList, TermList>& _r;
   OccurrenceMap _o;
   Literal* _lit;
+};
+
+/**
+ * Replaces Skolem constants with variables in induction hypotheses.
+ */
+class InductionHypothesisStrengthening : public TermTransformer {
+public:
+  InductionHypothesisStrengthening(unsigned& v) : _v(v), _r() {}
+  TermList transformSubterm(TermList trm) override;
+
+private:
+  unsigned& _v;
+  vmap<TermList, TermList> _r;
 };
 
 /**
@@ -213,24 +238,24 @@ struct InductionScheme
 
 ostream& operator<<(ostream& out, const InductionScheme& scheme);
 
-using InductionIterator = VirtualIterator<pair<InductionScheme, OccurrenceMap> >;
-
 /**
  * This class instantiates the induction templates from a literal
  * we want to induct on. Afterwards, stores these and filters them.
  * Also stores all active occurrences of possible induction terms.
  */
 struct InductionSchemeGenerator {
-  DECL_RETURN_TYPE(InductionIterator);
-  virtual OWN_RETURN_TYPE operator()(const SLQueryResult& main, const vvector<SLQueryResult>& side) = 0;
+  virtual void generate(
+    const SLQueryResult& main,
+    const vvector<SLQueryResult>& side,
+    vvector<pair<InductionScheme, OccurrenceMap>>& res) = 0;
 };
 
 struct RecursionInductionSchemeGenerator
   : public InductionSchemeGenerator
 {
-  CLASS_NAME(RecursionInductionSchemeGenerator);
-  USE_ALLOCATOR(RecursionInductionSchemeGenerator);
-  OWN_RETURN_TYPE operator()(const SLQueryResult& main, const vvector<SLQueryResult>& side) override;
+  void generate(const SLQueryResult& main,
+    const vvector<SLQueryResult>& side,
+    vvector<pair<InductionScheme, OccurrenceMap>>& res) override;
 
 private:
   bool generate(Clause* premise, Literal* lit,
@@ -247,9 +272,9 @@ private:
 struct StructuralInductionSchemeGenerator
   : public InductionSchemeGenerator
 {
-  CLASS_NAME(StructuralInductionSchemeGenerator);
-  USE_ALLOCATOR(StructuralInductionSchemeGenerator);
-  OWN_RETURN_TYPE operator()(const SLQueryResult& main, const vvector<SLQueryResult>& side) override;
+  void generate(const SLQueryResult& main,
+    const vvector<SLQueryResult>& side,
+    vvector<pair<InductionScheme, OccurrenceMap>>& res) override;
 
 private:
   InductionScheme generateStructural(Term* term);

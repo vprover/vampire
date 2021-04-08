@@ -29,12 +29,25 @@ using namespace Kernel;
 
 namespace Shell {
 
+inline bool containsSkolem(TermList t)
+{
+  SubtermIterator stit(t.term());
+  while (stit.hasNext()) {
+    auto st = stit.next();
+    if (env.signature->getFunction(st.term()->functor())->skolem()) {
+      return true;
+    }
+  }
+  return false;
+}
+
 inline bool canInductOn(TermList t)
 {
   CALL("canInductOn");
 
   static bool complexTermsAllowed = env.options->inductionOnComplexTerms();
-  return env.signature->getFunction(t.term()->functor())->skolem() || complexTermsAllowed;
+  return env.signature->getFunction(t.term()->functor())->skolem() ||
+    (complexTermsAllowed && containsSkolem(t));
 }
 
 /**
@@ -81,6 +94,16 @@ vvector<TermList> getInductionTerms(TermList t)
   return v;
 }
 
+TermList TermReplacement2::transformSubterm(TermList trm)
+{
+  auto rIt = _r.find(trm);
+  if (rIt != _r.end()) {
+    return rIt->second;
+  }
+  return trm;
+}
+
+
 TermList TermOccurrenceReplacement2::transformSubterm(TermList trm)
 {
   auto rIt = _r.find(trm);
@@ -90,6 +113,30 @@ TermList TermOccurrenceReplacement2::transformSubterm(TermList trm)
     if (oIt->second.pop_last()) {
       return rIt->second;
     }
+  }
+  return trm;
+}
+
+TermList InductionHypothesisStrengthening::transformSubterm(TermList trm)
+{
+  CALL("InductionHypothesisStrengthening::transformSubterm");
+
+  if (trm.isTerm() && env.signature->getFunction(trm.term()->functor())->skolem()) {
+    auto it = _r.find(trm);
+    if (it == _r.end()) {
+      it = _r.insert(make_pair(trm, TermList(_v++,false))).first;
+    }
+    return it->second;
+
+    // TermAlgebra* ta = env.signature->getTermAlgebraOfSort(env.signature->getFunction(trm.term()->functor())->fnType()->result());
+    // for(unsigned i=0;i<ta->nConstructors();i++){
+    //   TermAlgebraConstructor* con = ta->constructor(i);
+    //   unsigned arity = con->arity();
+    //   if (arity == 0) {
+    //     return TermList(Term::createConstant(con->functor()));
+    //   }
+    // }
+    // return TermList(1, false);
   }
   return trm;
 }
@@ -500,7 +547,10 @@ ostream& operator<<(ostream& out, const InductionScheme& scheme)
   return out;
 }
 
-InductionIterator RecursionInductionSchemeGenerator::operator()(const SLQueryResult& main, const vvector<SLQueryResult>& side)
+void RecursionInductionSchemeGenerator::generate(
+  const SLQueryResult& main,
+  const vvector<SLQueryResult>& side,
+  vvector<pair<InductionScheme, OccurrenceMap>>& res)
 {
   CALL("RecursionInductionSchemeGenerator()");
 
@@ -514,7 +564,7 @@ InductionIterator RecursionInductionSchemeGenerator::operator()(const SLQueryRes
 
   static bool simplify = env.options->simplifyBeforeInduction();
   if (!generate(main.clause, main.literal, primarySchemes, simplify)) {
-    return InductionIterator::getEmpty();
+    return;
   }
   for (const auto& s : side) {
     if (litsProcessed.insert(s.literal).second) {
@@ -528,8 +578,6 @@ InductionIterator RecursionInductionSchemeGenerator::operator()(const SLQueryRes
   f.filter(primarySchemes, secondarySchemes);
   f.filterComplex(primarySchemes, _actOccMaps);
 
-  static Stack<pair<InductionScheme, OccurrenceMap>> res;
-  res.reset();
   for (const auto& sch : primarySchemes) {
     OccurrenceMap necessary;
     for (const auto& kv : _actOccMaps) {
@@ -537,9 +585,8 @@ InductionIterator RecursionInductionSchemeGenerator::operator()(const SLQueryRes
         necessary.insert(kv);
       }
     }
-    res.push(make_pair(sch, necessary));
+    res.push_back(make_pair(sch, necessary));
   }
-  return pvi(getArrayishObjectIterator(res));
 }
 
 bool RecursionInductionSchemeGenerator::generate(Clause* premise, Literal* lit,
@@ -666,7 +713,10 @@ bool RecursionInductionSchemeGenerator::process(TermList curr, bool active,
   return true;
 }
 
-InductionIterator StructuralInductionSchemeGenerator::operator()(const SLQueryResult& main, const vvector<SLQueryResult>& side)
+void StructuralInductionSchemeGenerator::generate(
+  const SLQueryResult& main,
+  const vvector<SLQueryResult>& side,
+  vvector<pair<InductionScheme, OccurrenceMap>>& res)
 {
   CALL("StructuralInductionSchemeGenerator()");
 
@@ -741,8 +791,6 @@ InductionIterator StructuralInductionSchemeGenerator::operator()(const SLQueryRe
     o.second.finalize();
   }
 
-  static Stack<pair<InductionScheme, OccurrenceMap>> res;
-  res.reset();
   for (const auto& sch : schemes) {
     OccurrenceMap necessary;
     for (const auto& kv : occMap) {
@@ -750,9 +798,8 @@ InductionIterator StructuralInductionSchemeGenerator::operator()(const SLQueryRe
         necessary.insert(kv);
       }
     }
-    res.push(make_pair(sch, necessary));
+    res.push_back(make_pair(sch, necessary));
   }
-  return pvi(getArrayishObjectIterator(res));
 }
 
 InductionScheme StructuralInductionSchemeGenerator::generateStructural(Term* term)

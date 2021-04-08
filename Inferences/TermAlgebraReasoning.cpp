@@ -302,6 +302,7 @@ namespace Inferences {
                                            *lit->nthArgument(0)->term()->nthArgument(i),
                                            *lit->nthArgument(1)->term()->nthArgument(i),
                                            type->arg(i));
+          newLit->_inductionHypotheses = lit->_inductionHypotheses;
           (*res)[oldLength + i - 1] = newLit;
         }
         env.statistics->taNegativeInjectivitySimplifications++;

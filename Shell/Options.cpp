@@ -1143,8 +1143,8 @@ void Options::init()
             _inductionStrengthen = BoolOptionValue("induction_strengthen","indstr",false);
             _inductionStrengthen.description = "Strengthen induction hypotheses where possible";
             _inductionStrengthen.tag(OptionTag::INFERENCES);
-            _inductionStrengthen.reliesOn(_induction.is(equal(Induction::STRUCTURAL)));
-            _inductionStrengthen.reliesOn(_structInduction.is(equal(StructuralInductionKind::FOUR)));
+            // _inductionStrengthen.reliesOn(_induction.is(equal(Induction::STRUCTURAL)));
+            // _inductionStrengthen.reliesOn(_structInduction.is(equal(StructuralInductionKind::FOUR)));
             _lookup.insert(&_inductionStrengthen);
 
             _inductionMultiClause = BoolOptionValue("induction_multiclause","indmc",false);

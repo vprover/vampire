@@ -288,6 +288,7 @@ VINF_OBJ=Inferences/BackwardDemodulation.o\
          Inferences/GeneralInduction.o\
          Inferences/GlobalSubsumption.o\
          Inferences/HyperSuperposition.o\
+         Inferences/InductionHypothesisRewriting.o\
          Inferences/InnerRewriting.o\
          Inferences/EquationalTautologyRemoval.o\
          Inferences/InferenceEngine.o\

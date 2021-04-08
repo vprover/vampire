@@ -224,6 +224,8 @@ enum class InferenceRule : unsigned char {
   SUPERPOSITION,
   /** function definition rewriting inference */
   FNDEF_REWRITING,
+  /** induction hypothesis rewriting inference */
+  IH_REWRITING,
   /** superposition with constraints */
   CONSTRAINED_SUPERPOSITION,
   /** equality factoring inference */
