@@ -2008,6 +2008,11 @@ void Options::init()
     _lookup.insert(&_randomSeed);
     _randomSeed.tag(OptionTag::INPUT);
 
+    _randomStrategySeed = IntOptionValue("random_strategy_seed","",time(nullptr));
+    _randomStrategySeed.description="Sets the seed for generating random strategies. This option necessary because --random_seed <value> will be included as fixed value in the generated random strategy, hence won't have any effect on the random strategy generation. The default value is derived from the current time.";
+    _lookup.insert(&_randomStrategySeed);
+    _randomStrategySeed.tag(OptionTag::INPUT);
+
     _activationLimit = IntOptionValue("activation_limit","al",0);
     _activationLimit.description="Terminate saturation after this many iterations of the main loop. 0 means no limit.";
     _lookup.insert(&_activationLimit);
@@ -2914,7 +2919,7 @@ void Options::randomizeStrategy(Property* prop)
   // By default the seed is 1
   // For this randomisation we get save the seed and try and randomize it
   int saved_seed = Random::seed();
-  Random::setSeed(time(NULL)); // TODO is this the best choice of seed?
+  Random::setSeed(randomStrategySeed());
 
   // We randomize options that have setRandomChoices
   // TODO: randomize order in which options are selected
