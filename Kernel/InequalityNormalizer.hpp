@@ -199,7 +199,9 @@ namespace Kernel {
       auto tt = TypedTermList(t, NumTraits::sort());
       auto norm = Kernel::normalizeTerm(tt);
       auto simpl = _eval.evaluate(norm);
-      return Opt(maybeOverflow(InequalityLiteral<NumTraits>((simpl.value || norm).wrapPoly<NumTraits>(), strict), simpl.overflowOccurred));
+      auto simplValue = simpl.value || norm;
+      simplValue.integrity();
+      return Opt(maybeOverflow(InequalityLiteral<NumTraits>(simplValue.wrapPoly<NumTraits>(), strict), simpl.overflowOccurred));
     };
     auto out = impl();
     DEBUG("out: ", out);
