@@ -1559,7 +1559,14 @@ void Options::init()
 #if VZ3
     _linearArithmeticDP.reliesOn(_satSolver.is(notEqual(SatSolver::Z3)));
 #endif
-    
+
+    _linearArithmeticDPCache = BoolOptionValue("linear_arithmetic_dp_cache","ladpc", /* default: */ false);
+    _linearArithmeticDPCache.description="Cache results in the linear arithmetic decision procedure (see option -ladp for more information).";
+    _linearArithmeticDPCache.tag(OptionTag::AVATAR);
+    _linearArithmeticDPCache.setExperimental();
+    _lookup.insert(&_linearArithmeticDPCache);
+    _linearArithmeticDPCache.reliesOn(_linearArithmeticDP.is(notEqual(LinearArithmeticDP::OFF)));
+
     _ccUnsatCores = ChoiceOptionValue<CCUnsatCores>("cc_unsat_cores","ccuc",CCUnsatCores::ALL,
                                                      {"first", "small_ones", "all"});
     _ccUnsatCores.description="";

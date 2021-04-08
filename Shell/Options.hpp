@@ -2164,6 +2164,7 @@ public:
   bool splittingEagerRemoval() const { return _splittingEagerRemoval.actualValue; }
   SplittingCongruenceClosure splittingCongruenceClosure() const { return _splittingCongruenceClosure.actualValue; }
   LinearArithmeticDP ladp() const { return _linearArithmeticDP.actualValue; }
+  bool ladpCache() const { return _linearArithmeticDPCache.actualValue; }
   CCUnsatCores ccUnsatCores() const { return _ccUnsatCores.actualValue; }
 
   void setProof(Proof p) { _proof.actualValue = p; }
@@ -2534,6 +2535,7 @@ private:
   ChoiceOptionValue<SplittingCongruenceClosure> _splittingCongruenceClosure;
   ChoiceOptionValue<CCUnsatCores> _ccUnsatCores;
   ChoiceOptionValue<LinearArithmeticDP> _linearArithmeticDP;
+  BoolOptionValue _linearArithmeticDPCache;
   BoolOptionValue _splittingEagerRemoval;
   UnsignedOptionValue _splittingFlushPeriod;
   FloatOptionValue _splittingFlushQuotient;

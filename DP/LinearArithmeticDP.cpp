@@ -37,9 +37,10 @@
 
 namespace DP {
 
-LinearArithmeticDP::LinearArithmeticDP()
+LinearArithmeticDP::LinearArithmeticDP(bool useCache)
 {
   CALL("LinearArithmeticDP::LinearArithmeticDP");
+  // TODO  use the boolean useCache instead of the macro UseCache
 
 #if UseCache
   cache.solverType = Options::LinearArithmeticDP::OFF;

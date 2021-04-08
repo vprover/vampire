@@ -119,7 +119,7 @@ void SplittingBranchSelector::init()
 
   // TODO combine this with CC
   if(_parent.getOptions().ladp() != Options::LinearArithmeticDP::OFF) {
-    _dp = new DP::LinearArithmeticDP();
+    _dp = new DP::LinearArithmeticDP(_parent.getOptions().ladpCache());
   }
 }
 

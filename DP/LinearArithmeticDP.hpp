@@ -25,7 +25,7 @@
 #define __LinearArithmeticDP__
 
 #define DLADP 1
-#define UseCache 1
+#define UseCache 1 // TODO get rid of this macro
 
 #include "Forwards.hpp"
 
@@ -62,7 +62,7 @@ public:
   USE_ALLOCATOR(LinearArithmeticDP);
   BYPASSING_ALLOCATOR;
 
-  LinearArithmeticDP();
+  LinearArithmeticDP(bool useCache);
   ~LinearArithmeticDP();
 
   virtual void addLiterals(LiteralIterator lits, bool onlyEqualites) override;
