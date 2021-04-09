@@ -1572,7 +1572,7 @@ void Options::init()
     _linearArithmeticDPuseModel.tag(OptionTag::AVATAR);
     _linearArithmeticDPuseModel.setExperimental();
     _lookup.insert(&_linearArithmeticDPuseModel);
-    _linearArithmeticDPuseModel.releaseOn(_linearArithmeticDP.is(equal(LinearArithmeticDP::GE)));
+    _linearArithmeticDPuseModel.reliesOn(_linearArithmeticDP.is(equal(LinearArithmeticDP::GE)));
 
     _ccUnsatCores = ChoiceOptionValue<CCUnsatCores>("cc_unsat_cores","ccuc",CCUnsatCores::ALL,
                                                      {"first", "small_ones", "all"});
