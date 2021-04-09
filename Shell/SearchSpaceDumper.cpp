@@ -206,7 +206,7 @@ const char* serializeInterpretation(Interpretation i) {
 
 #define _SERIALIZE_FUN_PRED(Predicate)                                                                  \
   json j;                                                                                                     \
-  j["name"] = env.signature->get ## Predicate(self.functor)->name();                                          \
+  j["name"] = std::string(env.signature->get ## Predicate(self.functor)->name());                                          \
   json inter;                                                                                                 \
   if (theory->isInterpreted ## Predicate(self.functor)) {                                                     \
     inter = serializeInterpretation(theory->interpret ## Predicate(self.functor));                            \
