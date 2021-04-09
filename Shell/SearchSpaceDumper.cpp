@@ -66,29 +66,9 @@ struct SerializationContext
   template<class B>
   unsigned operator()(const B& ser) { return serialize(*this, ser); }
 
-  void tegrity() {
-    auto teg = [](vector<json>& vec) {
-      for(int i = 0; i < vec.size(); i++) { 
-        ASS_REP(vec[i] != nullptr, i) 
-        ASS_REP(vec[i] != json(), i) 
-      }
-      for(auto& x : vec) { 
-        ASS(x != nullptr) 
-        ASS(x != json()) 
-      }
-    };
-    teg(clauses   .values);
-    teg(literals  .values);
-    teg(cterms    .values);
-    teg(terms     .values);
-    teg(functions .values);
-    teg(predicates.values);
-  }
-
   json toJson() &&
   {
     json out;
-    tegrity();
     out["clauses"]    = std::move(clauses.values);
     out["literals"]   = std::move(literals.values);
     out["cterms"]     = std::move(cterms.values);
@@ -199,6 +179,7 @@ const char* serializeInterpretation(Interpretation i) {
     CASE(ARRAY_BOOL, _SELECT, "Select")
     CASE(ARRAY, _STORE, "Store")
   }
+  ASSERTION_VIOLATION
 }
 
 #define IF_FUN_Predicate(...)
@@ -206,7 +187,7 @@ const char* serializeInterpretation(Interpretation i) {
 
 #define _SERIALIZE_FUN_PRED(Predicate)                                                                  \
   json j;                                                                                                     \
-  j["name"] = std::string(env.signature->get ## Predicate(self.functor)->name());                                          \
+  j["name"] = std::string(env.signature->get ## Predicate(self.functor)->name().c_str());                                          \
   json inter;                                                                                                 \
   if (theory->isInterpreted ## Predicate(self.functor)) {                                                     \
     inter = serializeInterpretation(theory->interpret ## Predicate(self.functor));                            \
@@ -231,7 +212,7 @@ template<> struct SerializeCached<Clause>
     j["thry_desc"] = self.isPureTheoryDescendant();
 
     json lits = json::array();
-    for (int i = 0; i < self.size(); i++) {
+    for (unsigned i = 0; i < self.size(); i++) {
       lits[i] = serial(*self[i]);
     }
 
@@ -250,7 +231,7 @@ template<> struct SerializeCached<Literal>
     Predicate p {.functor = self.functor()};
     j["pred"] = serial(p);
     vector<unsigned> terms;
-    for (int i = 0; i < self.arity(); i++) {
+    for (unsigned i = 0; i < self.arity(); i++) {
       auto x  = serial(self[i]);
       // DBG(self[i].toString()," -> ", x)
       terms.push_back(x);
@@ -270,7 +251,7 @@ template<> struct SerializeCached<Term>
     j["fun"] = serial(fun);
     vector<unsigned> terms;
     terms.reserve(self.arity());
-    for (int i = 0; i < self.arity(); i++) {
+    for (unsigned i = 0; i < self.arity(); i++) {
       terms.push_back(serial(self[i]));
     }
     j["args"] = std::move(terms);
