@@ -41,8 +41,12 @@ public:
     _splitter=_salg->getSplitter();
     _induction = new GeneralInduction(InferenceRule::IH_REWRITING);
     _induction->attach(_salg);
+    _lhsIndex = static_cast<IHLHSIndex *>(
+      _salg->getIndexManager()->request(IH_LHS_SUBST_TREE));
+
   }
   void detach() override {
+    _salg->getIndexManager()->release(IH_LHS_SUBST_TREE);
     _induction->detach();
     _induction = nullptr;
     _splitter = nullptr;
@@ -55,6 +59,11 @@ private:
       Clause *rwClause, Literal *rwLiteral, TermList rwSide, TermList rwTerm,
       Clause *eqClause, Literal *eqLiteral, TermList eqLHS,
       RobSubstitutionSP subst);
+  
+  static Clause *perform(
+      Clause *rwClause, Literal *rwLiteral, TermList rwSide, TermList rwTerm,
+      Clause *eqClause, Literal *eqLiteral, TermList eqLHS,
+      ResultSubstitutionSP subst, bool eqIsResult);
 
   struct ForwardResultFn;
   struct RewriteableSubtermsFn;
@@ -62,8 +71,7 @@ private:
   struct GeneralizationsFn;
   struct BackwardResultFn;
 
-  DemodulationSubtermIndex *_subtermIndex;
-  FnDefLHSIndex *_lhsIndex;
+  IHLHSIndex *_lhsIndex;
   GeneralInduction* _induction;
   Splitter* _splitter;
 };

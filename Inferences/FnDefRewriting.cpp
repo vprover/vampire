@@ -223,7 +223,7 @@ Clause *FnDefRewriting::perform(
     rNorm.normalizeVariables(lhsSBadVars);
     qNorm.normalizeVariables(tgtTerm);
     qDenorm.makeInverse(qNorm);
-    ASS_EQ(tgtTerm, qDenorm.apply(rNorm.apply(lhsSBadVars)));
+    ASS_EQ(rwTerm, qDenorm.apply(rNorm.apply(lhsSBadVars)));
     tgtTermS = qDenorm.apply(rNorm.apply(rhsSBadVars));
   }
   else {
@@ -244,15 +244,17 @@ Clause *FnDefRewriting::perform(
 
   static bool doSimS = env.options->simulatenousSuperposition();
   (*res)[0] = tgtLitS;
-  tgtLitS->_inductionHypotheses = rwLit->_inductionHypotheses;
+  tgtLitS->_hasInductionHypothesis = rwLit->_hasInductionHypothesis;
+  // rwLit->_hasInductionHypothesis = false;
   unsigned next = 1;
   for (unsigned i = 0; i < rwLength; i++) {
     Literal *curr = (*rwClause)[i];
     if (curr != rwLit) {
       if (doSimS) {
         curr = EqHelper::replace(curr, rwTerm, tgtTermS);
+        curr->_hasInductionHypothesis = (*rwClause)[i]->_hasInductionHypothesis;
+        // (*rwClause)[i]->_hasInductionHypothesis = false;
       }
-      curr->_inductionHypotheses = (*rwClause)[i]->_inductionHypotheses;
 
       if (EqHelper::isEqTautology(curr)) {
         res->destroy();

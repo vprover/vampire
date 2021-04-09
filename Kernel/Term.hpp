@@ -610,8 +610,8 @@ public:
     ASS(isSpecial());
     return reinterpret_cast<SpecialTermData*>(this)-1;
   }
-  Literal* _isInductionHypothesisTo = nullptr;
-  List<Literal*>* _inductionHypotheses = nullptr;
+  bool _isInductionHypothesis = false;
+  bool _hasInductionHypothesis = false;
 protected:
   vstring headToString() const;
 

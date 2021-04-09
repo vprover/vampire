@@ -193,6 +193,11 @@ Index* IndexManager::create(IndexType t)
     res=new FnDefLHSIndex(tis);
     isGenerating = true;
     break;
+  case IH_LHS_SUBST_TREE:
+    tis=new TermSubstitutionTree(useConstraints);
+    res=new IHLHSIndex(tis);
+    isGenerating = true;
+    break;
 
   case ACYCLICITY_INDEX:
     tis = new TermSubstitutionTree();

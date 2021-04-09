@@ -99,6 +99,7 @@ void GeneralInduction::process(InductionClauseIterator& res, Clause* premise, Li
     SLQueryResult qr(literal, premise);
     vvector<SLQueryResult> sides;
 
+    // StructuralInductionSchemeGenerator gen;
     RecursionInductionSchemeGenerator gen;
     static vvector<pair<InductionScheme, OccurrenceMap>> schOccMap;
     schOccMap.clear();
@@ -106,7 +107,12 @@ void GeneralInduction::process(InductionClauseIterator& res, Clause* premise, Li
     static vvector<pair<InductionScheme, OccurrenceMap>> generalizedSchOccMap;
     generalizedSchOccMap.clear();
     for (const auto& kv : schOccMap) {
-      InductionGeneralizationIterator g(true, kv.second);
+      if (alreadyDone(literal, kv.first)) {
+        continue;
+      }
+      // InductionGeneralizationIterator g(false, kv.second);
+      // InductionGeneralizationIterator g(true, kv.second);
+      HeuristicGeneralizationIterator g(true, kv.second);
       while (g.hasNext()) {
         auto eg = g.next();
         generalizedSchOccMap.push_back(make_pair(kv.first, eg));
@@ -145,7 +151,7 @@ Literal* replaceLit(const vmap<TermList,TermList>& r, const OccurrenceMap& occur
   if (newLit != lit) {
     if (hypothesis && strengthen) {
       InductionHypothesisStrengthening ihs(var);
-      newLit = ihs.transform(newLit);
+      // newLit = ihs.transform(newLit);
     }
     TermReplacement2 tr2(v2sk);
     newLit = tr2.transform(newLit);
@@ -186,8 +192,8 @@ void GeneralInduction::generateClauses(
     for (const auto& r : c._recursiveCalls) {
       auto newHypLit = replaceLit(r, occurrences, mainLit.literal, v2sk, lits, newLits, var, true);
       ASS_NEQ(newHypLit, mainLit.literal);
-      List<Literal*>::push(newHypLit, newMainLit->_inductionHypotheses);
-      newHypLit->_isInductionHypothesisTo = newMainLit;
+      newMainLit->_hasInductionHypothesis = true;
+      newHypLit->_isInductionHypothesis = true;
     }
 
     lits = newLits;
@@ -284,6 +290,43 @@ vmap<TermList, TermList> GeneralInduction::skolemizeCase(const InductionScheme::
     }
   }
   return varToSkolemMap;
+}
+
+bool GeneralInduction::alreadyDone(Literal* mainLit, const InductionScheme& sch)
+{
+  CALL("GeneralInduction::alreadyDone");
+
+  static DHMap<pair<unsigned,unsigned>,TermList> blanks;
+  vmap<unsigned,unsigned> srts;
+  vmap<TermList, TermList> replacements;
+  for (const auto& t : sch._inductionTerms) {
+    unsigned srt = env.signature->getFunction(t.term()->functor())->fnType()->result();
+    auto it = srts.find(srt);
+    if (it == srts.end()) {
+      it = srts.insert(make_pair(srt,0)).first;
+    } else {
+      it->second++;
+    }
+    const auto p = make_pair(srt, it->second);
+    if (!blanks.find(p)) {
+      unsigned fresh = env.signature->addFreshFunction(0,"blank",to_string(it->second).c_str());
+      env.signature->getFunction(fresh)->setType(OperatorType::getConstantsType(srt));
+      TermList blank = TermList(Term::createConstant(fresh));
+      blanks.insert(p,blank);
+    }
+    replacements.insert(make_pair(t, blanks.get(p)));
+  }
+
+  TermReplacement2 cr(replacements);
+  Literal* rep = cr.transform(mainLit);
+
+  if (_done.contains(rep)) {
+    // cout << *mainLit << " is skipped (" << *rep << ")" << endl;
+    return false;
+  }
+
+  _done.insert(rep);
+  return true;
 }
 
 }

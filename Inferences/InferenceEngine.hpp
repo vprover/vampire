@@ -255,6 +255,9 @@ public:
   CompositeGIE() : _inners(0) {}
   virtual ~CompositeGIE();
   void addFront(GeneratingInferenceEngine* fse);
+  bool canGenerateFromClause(Clause* cl) override {
+    return true;
+  }
   ClauseIterator generateClauses(Clause* premise);
   void attach(SaturationAlgorithm* salg);
   void detach();

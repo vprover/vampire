@@ -146,7 +146,12 @@ struct GeneratingFunctor
 
   GeneratingFunctor(Clause* cl) : cl(cl) {}
   OWN_RETURN_TYPE operator() (GeneratingInferenceEngine* gie)
-  { return gie->generateClauses(cl); }
+  {
+    if (gie->canGenerateFromClause(cl)) {
+      return gie->generateClauses(cl);
+    }
+    return ClauseIterator::getEmpty();
+  }
   Clause* cl;
 };
 CompositeGIE::~CompositeGIE()

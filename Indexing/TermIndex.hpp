@@ -89,6 +89,20 @@ protected:
   void handleClause(Clause* c, bool adding);
 };
 
+class IHLHSIndex
+: public TermIndex
+{
+public:
+  CLASS_NAME(IHLHSIndex);
+  USE_ALLOCATOR(IHLHSIndex);
+
+  IHLHSIndex(TermIndexingStructure* is)
+    : TermIndex(is) {}
+
+protected:
+  void handleClause(Clause* c, bool adding);
+};
+
 /**
  * Term index for backward demodulation
  */

@@ -716,17 +716,17 @@ Term* InductionClauseIterator::getPlaceholderForTerm(Term* t) {
 void InductionClauseIterator::performStructInductionFour(Clause* premise, Literal* lit, InferenceRule rule) {
   CALL("InductionClauseIterator::performStructInductionFour");
 
-  InductionSchemeGenerator gen;
-  gen.generatePrimary(premise, lit);
+  // InductionSchemeGenerator gen;
+  // gen.generatePrimary(premise, lit);
 
-  for (const auto& kv : gen.instantiateSchemes()) {
-    const auto& hypothesis = kv.first;
-    const auto& conclusionToOrigLitClauseMap = kv.second;
-    ASS_EQ(conclusionToOrigLitClauseMap.size(), 1);
-    auto p = *conclusionToOrigLitClauseMap.begin();
-    static ResultSubstitutionSP identity = ResultSubstitutionSP(new IdentitySubstitution());
-    produceClauses(p.second.second, p.second.first, hypothesis, p.first, rule, identity);
-  }
+  // for (const auto& kv : gen.instantiateSchemes()) {
+  //   const auto& hypothesis = kv.first;
+  //   const auto& conclusionToOrigLitClauseMap = kv.second;
+  //   ASS_EQ(conclusionToOrigLitClauseMap.size(), 1);
+  //   auto p = *conclusionToOrigLitClauseMap.begin();
+  //   static ResultSubstitutionSP identity = ResultSubstitutionSP(new IdentitySubstitution());
+  //   produceClauses(p.second.second, p.second.first, hypothesis, p.first, rule, identity);
+  // }
 }
 
 }

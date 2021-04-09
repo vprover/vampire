@@ -111,7 +111,7 @@ void SuperpositionLHSIndex::handleClause(Clause* c, bool adding)
 
 void FnDefLHSIndex::handleClause(Clause* c, bool adding)
 {
-  CALL("SuperpositionLHSIndex::handleClause");
+  CALL("FnDefLHSIndex::handleClause");
 
   TimeCounter tc(TC_FORWARD_SUPERPOSITION_INDEX_MAINTENANCE);
 
@@ -138,6 +138,30 @@ void FnDefLHSIndex::handleClause(Clause* c, bool adding)
     }
   }
   ASS_EQ(cnt, 1);
+}
+
+void IHLHSIndex::handleClause(Clause* c, bool adding)
+{
+  CALL("SuperpositionLHSIndex::handleClause");
+
+  TimeCounter tc(TC_FORWARD_SUPERPOSITION_INDEX_MAINTENANCE);
+
+  for (unsigned i = 0; i < c->length(); i++) {
+    Literal* lit=(*c)[i];
+    if (!lit->_isInductionHypothesis || !lit->isEquality()) {
+      continue;
+    }
+    TermIterator lhsi=EqHelper::getEqualityArgumentIterator(lit);
+    while (lhsi.hasNext()) {
+      TermList lhs=lhsi.next();
+      if (adding) {
+	_is->insert(lhs, lit, c);
+      }
+      else {
+	_is->remove(lhs, lit, c);
+      }
+    }
+  }
 }
 
 void DemodulationSubtermIndex::handleClause(Clause* c, bool adding)

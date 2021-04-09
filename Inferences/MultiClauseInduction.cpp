@@ -155,83 +155,83 @@ ClauseIterator MultiClauseInduction::generateClauses(Clause* premise)
       env.options->structInduction() == Options::StructuralInductionKind::ALL);
 
   InductionClauseIterator clIt(_splitter);
-  if(canDoInductionOn(premise))
-  {
-    for(unsigned i=0;i<premise->length();i++){
-      auto lit = (*premise)[i];
-      if(env.options->showInduction()){
-        env.beginOutput();
-        env.out() << "[MultiClauseInduction] process " << lit->toString() << " in " << premise->toString() << endl;
-        env.endOutput();
-      }
-      if (!lit->ground()) {
-        continue;
-      }
-      InductionSchemeGenerator mainGen;
-      mainGen.generatePrimary(premise, lit);
-      if (mainGen._primarySchemes.empty()) {
-        continue;
-      }
-      auto skolems = getSkolems(lit);
-      vset<TermList> indTerms;
-      for (const auto& scheme : mainGen._primarySchemes) {
-        for (const auto& t : scheme.first._inductionTerms) {
-          indTerms.insert(t);
-        }
-      }
-      auto it = Indexing::TermQueryResultIterator::getEmpty();
-      for (const auto& t : indTerms) {
-        it = pvi(getConcatenatedIterator(it, _index->getInstances(t, false)));
-      }
-      if (lit->isNegative()) {
-        while (it.hasNext()) {
-          auto qr = it.next();
-          if (qr.clause->store() != Clause::ACTIVE
-              || premise==qr.clause || !canDoInductionOn(qr.clause)
-              || qr.literal->isNegative() || !qr.literal->ground()) {
-            continue;
-          }
-          auto sideSkolems = getSkolems(qr.literal);
-          if (!includes(skolems.begin(), skolems.end(), sideSkolems.begin(), sideSkolems.end())) {
-            continue;
-          }
-          mainGen.generateSecondary(qr.clause, qr.literal);
-        }
-        if (mainGen._secondarySchemes.empty()) {
-          continue;
-        }
-        for (const auto& kv : mainGen.instantiateSchemes()) {
-          if (kv.second.size() > 1) {
-            clIt.produceClauses(kv.first, kv.second, InferenceRule::MAIN_MULTICLAUSE_INDUCTION_AXIOM);
-          }
-        }
-      } else {
-        while (it.hasNext()) {
-          auto qr = it.next();
-          if (qr.clause->store() != Clause::ACTIVE
-              || premise==qr.clause || !canDoInductionOn(qr.clause)
-              || qr.literal->isPositive() || !qr.literal->ground()) {
-            continue;
-          }
-          auto mainSkolems = getSkolems(qr.literal);
-          if (!includes(mainSkolems.begin(), mainSkolems.end(), skolems.begin(), skolems.end())) {
-            continue;
-          }
-          InductionSchemeGenerator sideGen;
-          sideGen.generatePrimary(premise, lit);
-          sideGen.generateSecondary(qr.clause, qr.literal);
-          if (sideGen._secondarySchemes.empty()) {
-            continue;
-          }
-          for (const auto& kv : sideGen.instantiateSchemes()) {
-            if (kv.second.size() > 1) {
-              clIt.produceClauses(kv.first, kv.second, InferenceRule::SIDE_MULTICLAUSE_INDUCTION_AXIOM);
-            }
-          }
-        }
-      }
-    }
-  }
+  // if(canDoInductionOn(premise))
+  // {
+  //   for(unsigned i=0;i<premise->length();i++){
+  //     auto lit = (*premise)[i];
+  //     if(env.options->showInduction()){
+  //       env.beginOutput();
+  //       env.out() << "[MultiClauseInduction] process " << lit->toString() << " in " << premise->toString() << endl;
+  //       env.endOutput();
+  //     }
+  //     if (!lit->ground()) {
+  //       continue;
+  //     }
+  //     InductionSchemeGenerator mainGen;
+  //     mainGen.generatePrimary(premise, lit);
+  //     if (mainGen._primarySchemes.empty()) {
+  //       continue;
+  //     }
+  //     auto skolems = getSkolems(lit);
+  //     vset<TermList> indTerms;
+  //     for (const auto& scheme : mainGen._primarySchemes) {
+  //       for (const auto& t : scheme.first._inductionTerms) {
+  //         indTerms.insert(t);
+  //       }
+  //     }
+  //     auto it = Indexing::TermQueryResultIterator::getEmpty();
+  //     for (const auto& t : indTerms) {
+  //       it = pvi(getConcatenatedIterator(it, _index->getInstances(t, false)));
+  //     }
+  //     if (lit->isNegative()) {
+  //       while (it.hasNext()) {
+  //         auto qr = it.next();
+  //         if (qr.clause->store() != Clause::ACTIVE
+  //             || premise==qr.clause || !canDoInductionOn(qr.clause)
+  //             || qr.literal->isNegative() || !qr.literal->ground()) {
+  //           continue;
+  //         }
+  //         auto sideSkolems = getSkolems(qr.literal);
+  //         if (!includes(skolems.begin(), skolems.end(), sideSkolems.begin(), sideSkolems.end())) {
+  //           continue;
+  //         }
+  //         mainGen.generateSecondary(qr.clause, qr.literal);
+  //       }
+  //       if (mainGen._secondarySchemes.empty()) {
+  //         continue;
+  //       }
+  //       for (const auto& kv : mainGen.instantiateSchemes()) {
+  //         if (kv.second.size() > 1) {
+  //           clIt.produceClauses(kv.first, kv.second, InferenceRule::MAIN_MULTICLAUSE_INDUCTION_AXIOM);
+  //         }
+  //       }
+  //     } else {
+  //       while (it.hasNext()) {
+  //         auto qr = it.next();
+  //         if (qr.clause->store() != Clause::ACTIVE
+  //             || premise==qr.clause || !canDoInductionOn(qr.clause)
+  //             || qr.literal->isPositive() || !qr.literal->ground()) {
+  //           continue;
+  //         }
+  //         auto mainSkolems = getSkolems(qr.literal);
+  //         if (!includes(mainSkolems.begin(), mainSkolems.end(), skolems.begin(), skolems.end())) {
+  //           continue;
+  //         }
+  //         InductionSchemeGenerator sideGen;
+  //         sideGen.generatePrimary(premise, lit);
+  //         sideGen.generateSecondary(qr.clause, qr.literal);
+  //         if (sideGen._secondarySchemes.empty()) {
+  //           continue;
+  //         }
+  //         for (const auto& kv : sideGen.instantiateSchemes()) {
+  //           if (kv.second.size() > 1) {
+  //             clIt.produceClauses(kv.first, kv.second, InferenceRule::SIDE_MULTICLAUSE_INDUCTION_AXIOM);
+  //           }
+  //         }
+  //       }
+  //     }
+  //   }
+  // }
 
   return pvi(clIt);
 }

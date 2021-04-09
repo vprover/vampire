@@ -476,6 +476,10 @@ void processCase(const unsigned recFun, const bool isPred, TermList body, vvecto
       case EXISTS: {
         break;
       }
+      case NOT: {
+        processCase(recFun, isPred, TermList(Term::createFormula(formula->uarg())), recursiveCalls);
+        break;
+      }
 #if VDEBUG
       default:
         ASSERTION_VIOLATION;

@@ -148,6 +148,7 @@ public:
   ClauseIterator generateClauses(Clause* premise) override;
   void attach(SaturationAlgorithm* salg) override;
   void detach() override;
+  bool alreadyDone(Literal* mainLit, const InductionScheme& sch);
 
 private:
   class InductionClauseIterator
@@ -182,6 +183,7 @@ private:
 
   Splitter* _splitter;
   InferenceRule _rule;
+  DHSet<Literal*> _done;
 };
 
 }
