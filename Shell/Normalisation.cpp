@@ -426,6 +426,9 @@ Comparison Normalisation::compare(Term* t1, Term* t2)
 {
   CALL("Normalisation::compare(const Term*...)");
 
+  ASS(!t1->isSort() || t2->isSort());
+  ASS(!t2->isSort() || t1->isSort());
+
   if (t1 == t2) {
     return EQUAL;
   }
@@ -541,8 +544,9 @@ Comparison Normalisation::compare(Term* t1, Term* t2)
     if (comp != EQUAL) {
       return comp;
     }
-    comp = compare(_counter.getFun(f1).occ(),
-       _counter.getFun(f2).occ());
+    int countf1 = t1->isSort() ? _counter.getTypeCon(f1).occ() : _counter.getFun(f1).occ();
+    int countf2 = t1->isSort() ? _counter.getTypeCon(f2).occ() : _counter.getFun(f2).occ();
+    comp = compare(countf1, countf2);
     if (comp != EQUAL) {
       return comp;
     }
