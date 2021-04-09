@@ -322,11 +322,11 @@ bool GeneralInduction::alreadyDone(Literal* mainLit, const InductionScheme& sch)
 
   if (_done.contains(rep)) {
     // cout << *mainLit << " is skipped (" << *rep << ")" << endl;
-    return false;
+    return true;
   }
 
   _done.insert(rep);
-  return true;
+  return false;
 }
 
 }
