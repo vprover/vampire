@@ -1567,6 +1567,13 @@ void Options::init()
     _lookup.insert(&_linearArithmeticDPCache);
     _linearArithmeticDPCache.reliesOn(_linearArithmeticDP.is(notEqual(LinearArithmeticDP::OFF)));
 
+    _linearArithmeticDPuseModel = BoolOptionValue("linear_arithmetic_use__model","ladpum",false);
+    _linearArithmeticDPuseModel.description="Add some information about the model to the search space"; 
+    _linearArithmeticDPuseModel.tag(OptionTag::AVATAR);
+    _linearArithmeticDPuseModel.setExperimental();
+    _lookup.insert(&_linearArithmeticDPuseModel);
+    _linearArithmeticDPuseModel.releaseOn(_linearArithmeticDP.is(equal(LinearArithmeticDP::GE)));
+
     _ccUnsatCores = ChoiceOptionValue<CCUnsatCores>("cc_unsat_cores","ccuc",CCUnsatCores::ALL,
                                                      {"first", "small_ones", "all"});
     _ccUnsatCores.description="";

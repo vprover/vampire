@@ -445,7 +445,8 @@ SATSolver::Status SplittingBranchSelector::processDPConflicts()
   }
   
   // TODO - guard this by a check that we are using linear arithmetic
-  {
+  static bool useGetModel = env.options->ladpUM();
+  if(useGetModel){
     static LiteralStack model;
     _dp->getModel(model); 
     LiteralStack::Iterator it(model);

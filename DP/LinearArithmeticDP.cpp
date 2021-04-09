@@ -43,7 +43,7 @@ LinearArithmeticDP::LinearArithmeticDP(bool useCache)
   // TODO  use the boolean useCache instead of the macro UseCache
 
 #if UseCache
-  cache.solverType = Options::LinearArithmeticDP::OFF;
+  cache.solverType = env.options->ladp(); 
   cache.solverDP = NULL;
 #endif
 }
@@ -145,7 +145,8 @@ void LinearArithmeticDP::addLiterals(LiteralIterator lits, bool onlyEqualites)
     if (skip)
       continue;
 
-    if ((env.options->ladp() == Options::LinearArithmeticDP::GE && l->isEquality() && l->isPositive()) || (env.options->ladp() == Options::LinearArithmeticDP::SIMPLEX)) {
+    if ((env.options->ladp() == Options::LinearArithmeticDP::GE && l->isEquality() && l->isPositive()) || 
+        (env.options->ladp() == Options::LinearArithmeticDP::SIMPLEX && (!l->isEquality() || l->isPositive()))) {
       addLiteral(l);
     }
   }
@@ -237,6 +238,7 @@ void LinearArithmeticDP::addLiteral(Literal *lit)
   }
   // Skipping
   catch (invalid_argument e) {
+    // thrown in toParameters, relfects a case we don't want to handle so skip
   }
 }
 
@@ -253,7 +255,8 @@ RationalConstantType toRational(Term *term)
   if (sym->realConstant())
     return sym->realValue();
 
-  return RationalConstantType(1, 1);
+  // We shouldn't get here
+  ASSERTION_VIOLATION;
 }
 
 void LinearArithmeticDP::toParams(Term *term, RationalConstantType coef, LinearArithmeticDP::Constraint *parData)
@@ -293,6 +296,7 @@ void LinearArithmeticDP::toParams(Term *term, RationalConstantType coef, LinearA
         toParams(term->nthArgument(1)->term(), coef * toRational(term->nthArgument(0)->term()), parData);
       }
       else {
+        ASS(theory->isInterpretedNumber(term->nthArgument(1)->term()));
         toParams(term->nthArgument(0)->term(), coef * toRational(term->nthArgument(1)->term()), parData);
       }
     }
@@ -332,6 +336,7 @@ DecisionProcedure::Status LinearArithmeticDP::getStatus(bool retrieveMultipleCor
       return solverDP->getStatus();
     } break;
     default: {
+      ASSERTION_VIOLATION;
       return DecisionProcedure::UNKNOWN;
     } break;
   }
@@ -355,6 +360,7 @@ void LinearArithmeticDP::getUnsatCore(LiteralStack &res, unsigned coreIndex)
     return;
   }
 
+  // Set of incides into parsedLiterals
   set<unsigned> unsatCore = solverDP->getUnsatCore(coreIndex);
   if (unsatCore.size() > 0) {
     for (auto &rowIndex : unsatCore) {
@@ -370,6 +376,7 @@ void LinearArithmeticDP::getModel(LiteralStack &model)
   cout << "LinearArithmeticDP::getModel" << endl;
 #endif
   if (solverDP != NULL) {
+    // unsigned is functor
     map<unsigned, RationalConstantType> modelMap = solverDP->getModel();
 
     for (auto const &result : modelMap) {
@@ -418,9 +425,7 @@ void LinearArithmeticDP::getModel(LiteralStack &model)
 #if UseCache
 bool LinearArithmeticDP::addSolverDPIfInCache()
 {
-  if (cache.solverType != env.options->ladp()) {
-    return false;
-  }
+  ASS(cache.solverType == env.options->ladp());
 
   if (parsedLiterals.size() != cache.constraints.size()) {
     return false;
@@ -446,9 +451,7 @@ bool LinearArithmeticDP::addSolverDPIfInCache()
 
 bool LinearArithmeticDP::addConstraintIfInCache(Literal *lit)
 {
-  if (cache.solverType != env.options->ladp()) {
-    return false;
-  }
+  ASS(cache.solverType == env.options->ladp());
 
   // Check in cache
   if (cache.parsedLiterals.find(lit) == cache.parsedLiterals.end()) {

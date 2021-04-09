@@ -76,7 +76,12 @@ public:
 
   virtual void reset() override;
 
+  // Constraint represents 
+  // Sum of parameters <predicate> constant
+  // where predicate will always be < or <= later
+  // see toString
   struct Constraint {
+    // domain is functor symbols
     map<unsigned, RationalConstantType> parameters;
     RationalConstantType constant = RationalConstantType(0);
     Interpretation predicate;

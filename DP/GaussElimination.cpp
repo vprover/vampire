@@ -29,6 +29,7 @@ GaussElimination::GaussElimination(vector<LinearArithmeticDP::Constraint> parsed
 {
   CALL("GaussElimination::GaussElimination");
 
+  // Copy contents. TODO: check if we need to do this
   _rowsList = parsedLiterals;
 
   for (unsigned i = 0; i < _rowsList.size(); i++) {
@@ -64,7 +65,8 @@ void GaussElimination::solve()
   for (auto const &colLabel : _colLabelSet) {
     set<unsigned> rowsIndexWithNonZero;
     for (auto const &rowIndex : rowsLeftIndex) {
-      if (intermediateRowsList[rowIndex].parameters.find(colLabel) != intermediateRowsList[rowIndex].parameters.end() && !intermediateRowsList[rowIndex].parameters[colLabel].isZero()) {
+      if ( intermediateRowsList[rowIndex].parameters.find(colLabel) != intermediateRowsList[rowIndex].parameters.end() && 
+          !intermediateRowsList[rowIndex].parameters[colLabel].isZero()) {
         rowsIndexWithNonZero.insert(rowIndex);
       }
     }

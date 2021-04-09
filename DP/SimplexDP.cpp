@@ -182,6 +182,7 @@ DecisionProcedure::Status SimplexDP::getStatus()
   CALL("SimplexDP::getStatus");
   if (_status == LinearArithmeticDP::UNKNOWN) {
     solve();
+    ASS(_status != LinearArithmeticDP::UNKNOWN);
   }
 
 #if SMDP
