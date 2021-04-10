@@ -37,8 +37,11 @@ namespace DP {
 SimplexDP::SimplexDP(vector<LinearArithmeticDP::Constraint> constraints)
 {
   CALL("SimplexDP::SimplexDP");
+  // This implementation is based on the book The Calculus of computation, Decision Procedures with Applications to Verification.
+  // Bradley, A. and Manna, Z., 2007. The Calculus of computation. Decision Procedures with Applications to Verification. Berlin: Springer, pp.217-223.
 
   // Seperating constraints into D1 and D2 and for each variable replace with two non-negative variable x => x1 - x2
+  // Add a variable, alpha to stong inequalities to make them weak by ensuring that alpha is positive.
   std::vector<LinearArithmeticDP::Constraint> d1ParameterDataContainer;
   std::vector<LinearArithmeticDP::Constraint> d2ParameterDataContainer;
 
@@ -84,16 +87,13 @@ SimplexDP::SimplexDP(vector<LinearArithmeticDP::Constraint> constraints)
   }
 
   unsigned lastParameterId = *newColLabelSet.rbegin();
-  _alphaVarId = lastParameterId + 1 + d2ParameterDataContainer.size();
-#if SMDP
-  cout << "alphaVarId: " << _alphaVarId << endl;
-#endif
+  unsigned alphaVarId = lastParameterId + 1 + d2ParameterDataContainer.size();
 
   // Add alpha to d1
   for (unsigned i = 0; i < d1ParameterDataContainer.size(); i++) {
     if (d1ParameterDataContainer[i].predicate == Interpretation::RAT_LESS) {
-      d1ParameterDataContainer[i].parameters[_alphaVarId] = RationalConstantType(1);
-      newColLabelSet.insert(_alphaVarId);
+      d1ParameterDataContainer[i].parameters[alphaVarId] = RationalConstantType(1);
+      newColLabelSet.insert(alphaVarId);
     }
   }
 
@@ -103,9 +103,19 @@ SimplexDP::SimplexDP(vector<LinearArithmeticDP::Constraint> constraints)
     newColLabelSet.insert((lastParameterId + 1) + i);
 
     if (d2ParameterDataContainer[i].predicate == Interpretation::RAT_LESS) {
-      d2ParameterDataContainer[i].parameters[_alphaVarId] = RationalConstantType(-1);
-      newColLabelSet.insert(_alphaVarId);
+      d2ParameterDataContainer[i].parameters[alphaVarId] = RationalConstantType(-1);
+      newColLabelSet.insert(alphaVarId);
     }
+  }
+
+  if (newColLabelSet.find(alphaVarId) == newColLabelSet.end()) {
+    _alphaVarId = NULL;
+  }
+  else {
+    _alphaVarId = new unsigned(alphaVarId);
+#if SMDP
+    cout << "alphaVarId: " << alphaVarId << endl;
+#endif
   }
 
 #if SMDP
@@ -168,8 +178,7 @@ void SimplexDP::solve()
     return;
   }
 
-  map<unsigned, RationalConstantType> model = _simplexSolver->getModel();
-  if (model.find(_alphaVarId) != model.end() && !model[_alphaVarId].isPositive()) {
+  if (_alphaVarId != NULL && !_simplexSolver->getModel(*_alphaVarId).isPositive()) {
     _status = DecisionProcedure::UNSATISFIABLE;
     return;
   }
@@ -225,5 +234,8 @@ set<unsigned> SimplexDP::getUnsatCore(unsigned coreIndex)
 SimplexDP::~SimplexDP()
 {
   CALL("SimplexDP::~SimplexDP");
+  if (_alphaVarId != NULL) {
+    delete _alphaVarId;
+  }
 }
 } // namespace DP

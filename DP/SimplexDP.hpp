@@ -54,7 +54,7 @@ public:
 private:
   Simplex *_simplexSolver;
   
-  unsigned _alphaVarId;
+  unsigned *_alphaVarId;
   RationalConstantType _satOptimalValue;
   LinearArithmeticDP::Status _status;
 

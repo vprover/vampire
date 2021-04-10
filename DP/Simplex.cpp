@@ -239,17 +239,36 @@ std::map<unsigned, RationalConstantType> Simplex::getModel()
       }
     }
 
-    if (rowIndex == 0) {
-      solutionMap[varLabel] = RationalConstantType(0);
-    }
-    else {
-      solutionMap[varLabel] = _tableau[rowIndex][_colCount - 1];
-    }
-
+    solutionMap[varLabel] = (rowIndex == 0) ? RationalConstantType(0) : _tableau[rowIndex][_colCount - 1];
     colIndex++;
   }
 
   return solutionMap;
+}
+
+RationalConstantType Simplex::getModel(unsigned varId)
+{
+  if (_varLabelSet.find(varId) == _varLabelSet.end()) {
+    ASSERTION_VIOLATION;
+  }
+
+  unsigned varIdColIndex = 0;
+  for (unsigned const &varLabel : _varLabelSet) {
+    if (varLabel == varId) {
+      break;
+    }
+
+    varIdColIndex++;
+  }
+
+  unsigned rowIndex;
+  for (rowIndex = 0; rowIndex < _rowCount; rowIndex++) {
+    if (!_tableau[rowIndex][varIdColIndex].isZero()) {
+      break;
+    }
+  }
+
+  return (rowIndex == 0) ? RationalConstantType(0) : _tableau[rowIndex][_colCount - 1];
 }
 
 unsigned Simplex::getRowCount()

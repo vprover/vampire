@@ -49,7 +49,8 @@ public:
 
   Status getStatus();
   RationalConstantType getOptimalValue();
-  std::map<unsigned, RationalConstantType> getModel();
+  map<unsigned, RationalConstantType> getModel();
+  RationalConstantType getModel(unsigned varId);
 
   unsigned getRowCount();
 
@@ -57,7 +58,7 @@ private:
   RationalConstantType **_tableau;
   unsigned _rowCount;
   unsigned _colCount;
-  std::set<unsigned> _varLabelSet;
+  set<unsigned> _varLabelSet;
   Status _status;
 
   void solve();

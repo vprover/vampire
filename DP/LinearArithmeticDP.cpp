@@ -344,10 +344,7 @@ DecisionProcedure::Status LinearArithmeticDP::getStatus(bool retrieveMultipleCor
 
 unsigned LinearArithmeticDP::getUnsatCoreCount()
 {
-  if (parsedLiterals.size() < 1)
-    return 0;
-
-  if (solverDP == NULL) {
+  if (parsedLiterals.size() < 1 || solverDP == NULL) {
     return 0;
   }
 
