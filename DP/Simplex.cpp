@@ -224,9 +224,9 @@ RationalConstantType Simplex::getOptimalValue()
   return _tableau[0][_colCount - 1];
 }
 
-std::map<unsigned, RationalConstantType> Simplex::getModel()
+map<unsigned, RationalConstantType> Simplex::getModel()
 {
-  std::map<unsigned, RationalConstantType> solutionMap;
+  map<unsigned, RationalConstantType> solutionMap;
   // if non zero in objective function then its value is zero
   // otherwise findind it in row and set to righthand side
 

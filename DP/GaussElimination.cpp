@@ -119,7 +119,7 @@ void GaussElimination::solve()
   // if matrix is triangular form use back subsitution
   if (_rowsList.size() < _colLabelSet.size()) {
 #if GEDP
-    std::cout << "Satisfiable with infinite solutions as number of equations < number of unkowns." << std::endl;
+    cout << "Satisfiable with infinite solutions as number of equations < number of unkowns." << endl;
 #endif
     _status = SATISFIABLE_INFINITE;
     return;
@@ -318,7 +318,7 @@ void GaussElimination::setUnsatCore()
     set<unsigned> unsatCore;
     unsatCore.insert(inconsistentRowIndex);
 
-    std::set<unsigned> rowsLeftIndexes;
+    set<unsigned> rowsLeftIndexes;
     for (unsigned j = 0; j < inconsistentRowIndex; j++) {
       rowsLeftIndexes.insert(j);
     }

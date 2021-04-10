@@ -42,10 +42,10 @@ SimplexDP::SimplexDP(vector<LinearArithmeticDP::Constraint> constraints)
 
   // Seperating constraints into D1 and D2 and for each variable replace with two non-negative variable x => x1 - x2
   // Add a variable, alpha to stong inequalities to make them weak by ensuring that alpha is positive.
-  std::vector<LinearArithmeticDP::Constraint> d1ParameterDataContainer;
-  std::vector<LinearArithmeticDP::Constraint> d2ParameterDataContainer;
+  vector<LinearArithmeticDP::Constraint> d1ParameterDataContainer;
+  vector<LinearArithmeticDP::Constraint> d2ParameterDataContainer;
 
-  std::set<unsigned> newColLabelSet;
+  set<unsigned> newColLabelSet;
   for (unsigned i = 0; i < constraints.size(); i++) {
     LinearArithmeticDP::Constraint currentParameterDataContainer = constraints[i];
 
