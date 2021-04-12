@@ -150,7 +150,7 @@ Literal* replaceLit(const vmap<TermList,TermList>& r, const OccurrenceMap& occur
   auto newLit = tr.transform(lit);
   if (newLit != lit) {
     if (hypothesis && strengthen) {
-      InductionHypothesisStrengthening ihs(var);
+      InductionHypothesisStrengthening ihs(var, newLit);
       // newLit = ihs.transform(newLit);
     }
     TermReplacement2 tr2(v2sk);
