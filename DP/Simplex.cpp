@@ -73,7 +73,11 @@ Simplex::Simplex(LinearArithmeticDP::Constraint objectiveFunc, vector<LinearArit
 {
   CALL("Simplex::Simplex");
 
-  _varLabelSet = colLabelSet;
+  unsigned colIndex = 0;
+  for (auto &colLabel : colLabelSet) {
+    _colLabelMap.insert(map<unsigned, unsigned>::value_type(colLabel, colIndex));
+    colIndex++;
+  }
 
   // Setting up tableau. The first row of the tableau is the objective function
   _rowCount = constraints.size() + 1;
@@ -229,9 +233,9 @@ map<unsigned, RationalConstantType> Simplex::getModel()
   map<unsigned, RationalConstantType> solutionMap;
   // if non zero in objective function then its value is zero
   // otherwise findind it in row and set to righthand side
-
-  unsigned colIndex = 0;
-  for (unsigned const &varLabel : _varLabelSet) {
+  for (pair<unsigned, unsigned> const &colLabelPair : _colLabelMap) {
+    unsigned colLabel = colLabelPair.first;
+    unsigned colIndex = colLabelPair.second;
     unsigned rowIndex;
     for (rowIndex = 0; rowIndex < _rowCount; rowIndex++) {
       if (!_tableau[rowIndex][colIndex].isZero()) {
@@ -239,8 +243,7 @@ map<unsigned, RationalConstantType> Simplex::getModel()
       }
     }
 
-    solutionMap[varLabel] = (rowIndex == 0) ? RationalConstantType(0) : _tableau[rowIndex][_colCount - 1];
-    colIndex++;
+    solutionMap[colLabel] = (rowIndex == 0) ? RationalConstantType(0) : _tableau[rowIndex][_colCount - 1];
   }
 
   return solutionMap;
@@ -248,19 +251,11 @@ map<unsigned, RationalConstantType> Simplex::getModel()
 
 RationalConstantType Simplex::getModel(unsigned varId)
 {
-  if (_varLabelSet.find(varId) == _varLabelSet.end()) {
+  if (_colLabelMap.find(varId) == _colLabelMap.end()) {
     ASSERTION_VIOLATION;
   }
 
-  unsigned varIdColIndex = 0;
-  for (unsigned const &varLabel : _varLabelSet) {
-    if (varLabel == varId) {
-      break;
-    }
-
-    varIdColIndex++;
-  }
-
+  unsigned varIdColIndex = _colLabelMap[varId];
   unsigned rowIndex;
   for (rowIndex = 0; rowIndex < _rowCount; rowIndex++) {
     if (!_tableau[rowIndex][varIdColIndex].isZero()) {

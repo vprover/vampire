@@ -58,7 +58,7 @@ private:
   RationalConstantType **_tableau;
   unsigned _rowCount;
   unsigned _colCount;
-  set<unsigned> _varLabelSet;
+  map<unsigned, unsigned> _colLabelMap;
   Status _status;
 
   void solve();
