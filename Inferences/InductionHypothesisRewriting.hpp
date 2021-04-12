@@ -54,22 +54,11 @@ public:
   }
   ClauseIterator generateClauses(Clause *premise) override;
 
-private:
-  static Clause *perform(
-      Clause *rwClause, Literal *rwLiteral, TermList rwSide, TermList rwTerm,
-      Clause *eqClause, Literal *eqLiteral, TermList eqLHS,
-      RobSubstitutionSP subst);
-  
+private:  
   static Clause *perform(
       Clause *rwClause, Literal *rwLiteral, TermList rwSide, TermList rwTerm,
       Clause *eqClause, Literal *eqLiteral, TermList eqLHS,
       ResultSubstitutionSP subst, bool eqIsResult);
-
-  struct ForwardResultFn;
-  struct RewriteableSubtermsFn;
-  struct InstancesFn;
-  struct GeneralizationsFn;
-  struct BackwardResultFn;
 
   IHLHSIndex *_lhsIndex;
   GeneralInduction* _induction;
@@ -78,4 +67,4 @@ private:
 
 }; // namespace Inferences
 
-#endif /* __FnDefRewriting__ */
+#endif /* __InductionHypothesisRewriting__ */

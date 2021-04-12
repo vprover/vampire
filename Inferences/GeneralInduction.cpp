@@ -241,25 +241,21 @@ void GeneralInduction::generateClauses(
     temp.push(Clause::fromStack(st, inf));
   }
 
-  // create substitutions to use during binary resolution
-  for (auto& kv : conclusionToLitMap) {
-    RobSubstitutionSP subst(new RobSubstitution());
-    if (!subst->match(TermList(kv.first), 0, TermList(kv.second.literal), 1)) {
-      ASS(kv.first->isEquality() && kv.second.literal->isEquality());
-      subst->reset();
-      // direct match did not succeed, so we match one literal with the other reversed
-      ALWAYS(subst->match(*kv.first->nthArgument(0), 0, *kv.second.literal->nthArgument(1), 1)
-        && subst->match(*kv.first->nthArgument(1), 0, *kv.second.literal->nthArgument(0), 1));
-    }
-    kv.second.substitution = ResultSubstitution::fromSubstitution(subst.ptr(), 1, 0);
-  }
-
   ClauseStack::Iterator cit(temp);
   while(cit.hasNext()){
     Clause* c = cit.next();
     for (const auto& kv : conclusionToLitMap) {
       auto conclusion = kv.first;
       auto qr = kv.second;
+      RobSubstitutionSP subst(new RobSubstitution());
+      if (!subst->match(TermList(kv.first), 0, TermList(kv.second.literal), 1)) {
+        ASS(kv.first->isEquality() && kv.second.literal->isEquality());
+        subst->reset();
+        // direct match did not succeed, so we match one literal with the other reversed
+        ALWAYS(subst->match(*kv.first->nthArgument(0), 0, *kv.second.literal->nthArgument(1), 1)
+          && subst->match(*kv.first->nthArgument(1), 0, *kv.second.literal->nthArgument(0), 1));
+      }
+      qr.substitution = ResultSubstitution::fromSubstitution(subst.ptr(), 1, 0);
       c = BinaryResolution::generateClause(c,conclusion,qr,*env.options);
       ASS(c);
       if (_splitter && cit.hasNext()) {

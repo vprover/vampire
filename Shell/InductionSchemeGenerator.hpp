@@ -145,12 +145,22 @@ private:
  */
 class InductionHypothesisStrengthening : public TermTransformer {
 public:
-  InductionHypothesisStrengthening(unsigned& v) : _v(v), _r() {}
+  InductionHypothesisStrengthening(unsigned& v, Literal* lit)
+    : _v(v), _r(), _isEq(lit->isEquality())
+  {
+    if (_isEq) {
+      _lhs = *lit->nthArgument(0);
+      _rhs = *lit->nthArgument(1);
+    }
+  }
   TermList transformSubterm(TermList trm) override;
 
 private:
   unsigned& _v;
   vmap<TermList, TermList> _r;
+  bool _isEq;
+  TermList _lhs;
+  TermList _rhs;
 };
 
 /**

@@ -121,22 +121,13 @@ TermList InductionHypothesisStrengthening::transformSubterm(TermList trm)
 {
   CALL("InductionHypothesisStrengthening::transformSubterm");
 
-  if (trm.isTerm() && env.signature->getFunction(trm.term()->functor())->skolem()) {
+  if (trm.isTerm() && env.signature->getFunction(trm.term()->functor())->skolem()
+    && (!_isEq || (_lhs.containsSubterm(trm) && _rhs.containsSubterm(trm)))) {
     auto it = _r.find(trm);
     if (it == _r.end()) {
       it = _r.insert(make_pair(trm, TermList(_v++,false))).first;
     }
     return it->second;
-
-    // TermAlgebra* ta = env.signature->getTermAlgebraOfSort(env.signature->getFunction(trm.term()->functor())->fnType()->result());
-    // for(unsigned i=0;i<ta->nConstructors();i++){
-    //   TermAlgebraConstructor* con = ta->constructor(i);
-    //   unsigned arity = con->arity();
-    //   if (arity == 0) {
-    //     return TermList(Term::createConstant(con->functor()));
-    //   }
-    // }
-    // return TermList(1, false);
   }
   return trm;
 }

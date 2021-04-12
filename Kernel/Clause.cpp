@@ -347,6 +347,9 @@ vstring Clause::literalsOnlyToString() const
         result +="[r]";
       }
     }
+    if (_literals[0]->_isInductionHypothesis) {
+      result += " [ih]";
+    }
     for(unsigned i = 1; i < _length; i++) {
       result += " | ";
       result += _literals[i]->toString();
@@ -355,6 +358,9 @@ vstring Clause::literalsOnlyToString() const
         if (isReversedFunctionDefinition(_literals[i])) {
           result +="[r]";
         }
+      }
+      if (_literals[i]->_isInductionHypothesis) {
+        result += " [ih]";
       }
     }
     return result;
