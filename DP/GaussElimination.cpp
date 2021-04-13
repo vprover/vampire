@@ -25,7 +25,7 @@
 
 namespace DP {
 
-GaussElimination::GaussElimination(vector<LinearArithmeticDP::Constraint> parsedLiterals)
+GaussElimination::GaussElimination(vector<LinearArithmeticDP::Constraint> &parsedLiterals)
 {
   CALL("GaussElimination::GaussElimination");
 

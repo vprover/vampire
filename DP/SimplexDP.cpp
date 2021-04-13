@@ -34,7 +34,7 @@
 
 namespace DP {
 
-SimplexDP::SimplexDP(vector<LinearArithmeticDP::Constraint> constraints)
+SimplexDP::SimplexDP(vector<LinearArithmeticDP::Constraint> &constraints)
 {
   CALL("SimplexDP::SimplexDP");
   // This implementation is based on the book The Calculus of computation, Decision Procedures with Applications to Verification.

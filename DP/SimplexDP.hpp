@@ -43,7 +43,7 @@ public:
   CLASS_NAME(SimplexDP);
   USE_ALLOCATOR(SimplexDP);
 
-  SimplexDP(vector<LinearArithmeticDP::Constraint> constraints);
+  SimplexDP(vector<LinearArithmeticDP::Constraint> &constraints);
   ~SimplexDP();
 
   virtual LinearArithmeticDP::Status getStatus() override;

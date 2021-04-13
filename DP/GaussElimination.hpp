@@ -41,7 +41,7 @@ public:
   CLASS_NAME(GaussElimination);
   USE_ALLOCATOR(GaussElimination);
 
-  GaussElimination(vector<LinearArithmeticDP::Constraint> parsedLiterals);
+  GaussElimination(vector<LinearArithmeticDP::Constraint> &parsedLiterals);
   ~GaussElimination();
 
   enum Status {
