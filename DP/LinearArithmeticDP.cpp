@@ -37,15 +37,13 @@
 
 namespace DP {
 
-LinearArithmeticDP::LinearArithmeticDP(bool useCache)
+LinearArithmeticDP::LinearArithmeticDP()
 {
   CALL("LinearArithmeticDP::LinearArithmeticDP");
   // TODO  use the boolean useCache instead of the macro UseCache
 
-#if UseCache
   cache.solverType = env.options->ladp();
   cache.solverDP = NULL;
-#endif
 }
 
 LinearArithmeticDP::~LinearArithmeticDP()
@@ -53,11 +51,9 @@ LinearArithmeticDP::~LinearArithmeticDP()
   CALL("LinearArithmeticDP::~LinearArithmeticDP");
   reset();
 
-#if UseCache
   if (cache.solverDP != NULL) {
     delete cache.solverDP;
   }
-#endif
 }
 
 void LinearArithmeticDP::reset()
@@ -68,18 +64,18 @@ void LinearArithmeticDP::reset()
        << endl;
 #endif
 
-#if UseCache
-  cache.solverType = env.options->ladp();
-  cache.solverDP = solverDP;
-  cache.constraints.clear();
-  for (unsigned i = 0; i < parsedLiterals.size(); i++) {
-    cache.constraints.push_back(parsedLiterals[i].parent);
-  }
+  if (env.options->ladpCache()) {
+    cache.solverType = env.options->ladp();
+    cache.solverDP = solverDP;
+    cache.constraints.clear();
+    for (unsigned i = 0; i < parsedLiterals.size(); i++) {
+      cache.constraints.push_back(parsedLiterals[i].parent);
+    }
 
-  solverDP = NULL;
-  parsedLiterals.clear();
-  return;
-#endif
+    solverDP = NULL;
+    parsedLiterals.clear();
+    return;
+  }
 
   parsedLiterals.clear();
   if (solverDP != NULL) {
@@ -144,7 +140,7 @@ void LinearArithmeticDP::addLiterals(LiteralIterator lits, bool onlyEqualites)
     if (skip)
       continue;
 
-    if ((env.options->ladp() == Options::LinearArithmeticDP::GE && l->isEquality() && l->isPositive()) || 
+    if ((env.options->ladp() == Options::LinearArithmeticDP::GE && l->isEquality() && l->isPositive()) ||
         (env.options->ladp() == Options::LinearArithmeticDP::SIMPLEX && (!l->isEquality() || l->isPositive()))) {
       addLiteral(l);
     }
@@ -159,11 +155,9 @@ void LinearArithmeticDP::addLiteral(Literal *lit)
   cout << "LinearArithmeticDP::addLiteral: " << lit->toString() << endl;
 #endif
 
-#if UseCache
-  if (addConstraintIfInCache(lit)) {
+  if (env.options->ladpCache() && addConstraintIfInCache(lit)) {
     return;
   }
-#endif
   // before creating solver check cache
   try {
     Term *leftHandSide = lit->nthArgument(0)->term();
@@ -210,9 +204,10 @@ void LinearArithmeticDP::addLiteral(Literal *lit)
       parDataGreaterEqual.predicate = Interpretation::RAT_LESS_EQUAL;
       parDataGreaterEqual.parent = lit;
       parsedLiterals.push_back(parDataGreaterEqual);
-#if UseCache
-      cache.parsedLiterals[lit] = parDataLessEqual;
-#endif
+
+      if (env.options->ladpCache()) {
+        cache.parsedLiterals[lit] = parDataLessEqual;
+      }
 
 #if DLADP
       cout << "Equals converted to >= and <=" << endl;
@@ -227,9 +222,11 @@ void LinearArithmeticDP::addLiteral(Literal *lit)
       parData.predicate = finalPredicate;
       parData.parent = lit;
       parsedLiterals.push_back(parData);
-#if UseCache
-      cache.parsedLiterals[lit] = parData;
-#endif
+
+      if (env.options->ladpCache()) {
+        cache.parsedLiterals[lit] = parData;
+      }
+
 #if DLADP
       cout << parData.toString() << endl;
 #endif
@@ -319,11 +316,9 @@ DecisionProcedure::Status LinearArithmeticDP::getStatus(bool retrieveMultipleCor
   if (parsedLiterals.size() < 1)
     return DecisionProcedure::SATISFIABLE;
 
-#if UseCache
-  if (addSolverDPIfInCache()) {
+  if (env.options->ladpCache() && addSolverDPIfInCache()) {
     return solverDP->getStatus();
   }
-#endif
 
   switch (env.options->ladp()) {
     case Options::LinearArithmeticDP::GE: {
@@ -379,7 +374,6 @@ void LinearArithmeticDP::getModel(LiteralStack &model)
   }
 }
 
-#if UseCache
 bool LinearArithmeticDP::addSolverDPIfInCache()
 {
   ASS(cache.solverType == env.options->ladp());
@@ -442,6 +436,5 @@ bool LinearArithmeticDP::addConstraintIfInCache(Literal *lit)
 
   return true;
 }
-#endif
 
 } // namespace DP

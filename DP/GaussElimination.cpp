@@ -299,7 +299,9 @@ void GaussElimination::setModel()
     }
 
     Literal *lit = Literal::createEquality(true, TermList(lhs), TermList(rhs), sort);
+    #if GEDP
     cout << "New lit: " << lit->toString() << endl;
+    #endif
     _model.push_back(lit);
   }
 }

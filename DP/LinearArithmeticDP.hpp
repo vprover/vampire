@@ -25,7 +25,6 @@
 #define __LinearArithmeticDP__
 
 #define DLADP 1
-#define UseCache 1 // TODO get rid of this macro
 
 #include "Forwards.hpp"
 
@@ -62,7 +61,7 @@ public:
   USE_ALLOCATOR(LinearArithmeticDP);
   BYPASSING_ALLOCATOR;
 
-  LinearArithmeticDP(bool useCache);
+  LinearArithmeticDP();
   ~LinearArithmeticDP();
 
   virtual void addLiterals(LiteralIterator lits, bool onlyEqualites) override;
@@ -76,7 +75,7 @@ public:
 
   virtual void reset() override;
 
-  // Constraint represents 
+  // Constraint represents
   // Sum of parameters <predicate> constant
   // where predicate will always be < or <= later
   // see toString
@@ -128,7 +127,6 @@ public:
     }
   };
 
-#if UseCache
   struct Cache {
     // Set solver DP when intializing solvers
     Shell::Options::LinearArithmeticDP solverType;
@@ -140,15 +138,12 @@ public:
 
   bool addSolverDPIfInCache();
   bool addConstraintIfInCache(Literal *lit);
-#endif
 
 private:
   LinearArithmeticSolverDP *solverDP;
   vector<Constraint> parsedLiterals;
 
-#if UseCache
   Cache cache;
-#endif
 
   void addLiteral(Literal *lit);
   void toParams(Term *term, RationalConstantType coef, Constraint *parData);
