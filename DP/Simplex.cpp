@@ -233,7 +233,7 @@ map<unsigned, RationalConstantType> Simplex::getModel()
   map<unsigned, RationalConstantType> solutionMap;
   // if non zero in objective function then its value is zero
   // otherwise findind it in row and set to righthand side
-  for (pair<unsigned, unsigned> const &colLabelPair : _colLabelMap) {
+  for (map<unsigned, unsigned>::value_type const &colLabelPair : _colLabelMap) {
     unsigned colLabel = colLabelPair.first;
     unsigned colIndex = colLabelPair.second;
     unsigned rowIndex;

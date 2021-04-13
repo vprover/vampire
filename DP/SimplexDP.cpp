@@ -201,10 +201,10 @@ DecisionProcedure::Status SimplexDP::getStatus()
   return _status;
 }
 
-map<unsigned, RationalConstantType> SimplexDP::getModel()
+vector<Literal *> SimplexDP::getModel()
 {
   CALL("SimplexDP::getModel");
-  return map<unsigned, RationalConstantType>();
+  return vector<Literal *>();
 }
 
 unsigned SimplexDP::getUnsatCoreCount()

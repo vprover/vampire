@@ -65,7 +65,7 @@ void GaussElimination::solve()
   for (auto const &colLabel : _colLabelSet) {
     set<unsigned> rowsIndexWithNonZero;
     for (auto const &rowIndex : rowsLeftIndex) {
-      if ( intermediateRowsList[rowIndex].parameters.find(colLabel) != intermediateRowsList[rowIndex].parameters.end() && 
+      if (intermediateRowsList[rowIndex].parameters.find(colLabel) != intermediateRowsList[rowIndex].parameters.end() &&
           !intermediateRowsList[rowIndex].parameters[colLabel].isZero()) {
         rowsIndexWithNonZero.insert(rowIndex);
       }
@@ -175,42 +175,133 @@ void GaussElimination::subtract(LinearArithmeticDP::Constraint *c1, LinearArithm
   c1->constant = c1->constant - (multiplier * c2->constant);
 }
 
-map<unsigned, RationalConstantType> GaussElimination::getModel()
+vector<Literal *> GaussElimination::getModel()
 {
   CALL("GaussElimination::getModel");
 #if GEDP
   cout << "GaussElimination::getModel" << endl;
 #endif
-  if (_status != SATISFIABLE_ONE)
-    return map<unsigned, RationalConstantType>();
-
-  if (_model.size() > 0) {
-    return _model;
+  if (_status == UNSATISFIABLE) {
+    return vector<Literal *>();
   }
 
-  set<unsigned>::reverse_iterator colLabelIt = _colLabelSet.rbegin();
-  unsigned currentRowIndex = _rowsList.size() - 1;
-  for (; colLabelIt != _colLabelSet.rend(); colLabelIt++) {
-    unsigned colLabel = *colLabelIt;
-    LinearArithmeticDP::Constraint currentRow = _rowsList[currentRowIndex];
-    _model[colLabel] = currentRow.constant;
-
-    map<unsigned, RationalConstantType>::iterator it = currentRow.parameters.begin();
-    it++;
-    for (; it != currentRow.parameters.end(); it++) {
-      _model[colLabel] = _model[colLabel] - it->second * _model[it->first];
-    }
-    _model[colLabel] = _model[colLabel] / currentRow.parameters[*colLabelIt];
-    currentRowIndex--;
+  if (_model.size() < 1) {
+    setModel();
   }
-
-#if GEDP
-  for (auto const &solution : _model) {
-    cout << "Varid: " << solution.first << " = " << solution.second << endl;
-  }
-#endif
 
   return _model;
+}
+
+void GaussElimination::setModel()
+{
+  map<unsigned, RationalConstantType> solutions;
+  for (int i = _rowsList.size() - 1; i >= 0; i--) {
+    map<unsigned, RationalConstantType>::iterator it = _rowsList[i].parameters.begin();
+    it++;
+    while (it != _rowsList[i].parameters.end()) {
+      if (solutions.find(it->first) != solutions.end()) {
+        _rowsList[i].constant = _rowsList[i].constant - (solutions[it->first] * _rowsList[i].parameters[it->first]);
+        it = _rowsList[i].parameters.erase(it);
+      }
+      else {
+        it++;
+      }
+    }
+
+    if (_rowsList[i].parameters.size() == 1) {
+      solutions[_rowsList[i].parameters.begin()->first] = _rowsList[i].constant / _rowsList[i].parameters.begin()->second;
+    }
+  }
+
+  for (int i = _rowsList.size() - 1; i >= 0; i--) {
+    unsigned sort = env.signature->getFunction(_rowsList[i].parameters.begin()->first)->fnType()->result();
+    if (sort == Sorts::SRT_INTEGER) {
+      // Turn all rationals to integers
+      unsigned multiplier = 1;
+      for (auto &parameter : _rowsList[i].parameters) {
+        multiplier *= parameter.second.denominator().toInner();
+      }
+      multiplier *= _rowsList[i].constant.denominator().toInner();
+
+      RationalConstantType multiplierRational = RationalConstantType(multiplier);
+      for (auto &parameter : _rowsList[i].parameters) {
+        parameter.second = multiplierRational * parameter.second;
+      }
+      _rowsList[i].constant = multiplierRational * _rowsList[i].constant;
+    }
+
+    map<unsigned, RationalConstantType>::iterator it = _rowsList[i].parameters.begin();
+    Term *lhs = Term::createConstant(it->first);
+    if (it->second != RationalConstantType(1)) {
+      switch (sort) {
+        case Sorts::SRT_INTEGER: {
+          Term *coef = theory->representConstant(it->second.numerator());
+          lhs = Term::create2(env.signature->getInterpretingSymbol(Theory::INT_MULTIPLY), TermList(lhs), TermList(coef));
+        } break;
+        case Sorts::SRT_RATIONAL: {
+          Term *coef = theory->representConstant(it->second);
+          lhs = Term::create2(env.signature->getInterpretingSymbol(Theory::RAT_MULTIPLY), TermList(lhs), TermList(coef));
+        } break;
+        case Sorts::SRT_REAL: {
+          Term *coef = theory->representConstant(RealConstantType(it->second));
+          lhs = Term::create2(env.signature->getInterpretingSymbol(Theory::REAL_MULTIPLY), TermList(lhs), TermList(coef));
+        } break;
+        default:
+          continue;
+          break;
+      }
+    }
+    it++;
+
+    for (; it != _rowsList[i].parameters.end(); it++) {
+      Term *variable = Term::createConstant(it->first);
+      switch (sort) {
+        case Sorts::SRT_INTEGER: {
+          if (it->second != RationalConstantType(1)) {
+            Term *coef = theory->representConstant(it->second.numerator());
+            variable = Term::create2(env.signature->getInterpretingSymbol(Theory::INT_MULTIPLY), TermList(variable), TermList(coef));
+          }
+          lhs = Term::create2(env.signature->getInterpretingSymbol(Theory::INT_PLUS), TermList(lhs), TermList(variable));
+        } break;
+        case Sorts::SRT_RATIONAL: {
+          if (it->second != RationalConstantType(1)) {
+            Term *coef = theory->representConstant(it->second);
+            variable = Term::create2(env.signature->getInterpretingSymbol(Theory::RAT_MULTIPLY), TermList(variable), TermList(coef));
+          }
+          lhs = Term::create2(env.signature->getInterpretingSymbol(Theory::RAT_PLUS), TermList(lhs), TermList(variable));
+        } break;
+        case Sorts::SRT_REAL: {
+          if (it->second != RationalConstantType(1)) {
+            Term *coef = theory->representConstant(RealConstantType(it->second));
+            variable = Term::create2(env.signature->getInterpretingSymbol(Theory::REAL_MULTIPLY), TermList(variable), TermList(coef));
+          }
+          lhs = Term::create2(env.signature->getInterpretingSymbol(Theory::REAL_PLUS), TermList(lhs), TermList(variable));
+        } break;
+        default:
+          break;
+      }
+    }
+
+    Term *rhs;
+    switch (sort) {
+      case Sorts::SRT_INTEGER: {
+        rhs = theory->representConstant(IntegerConstantType(_rowsList[i].constant.numerator()));
+      } break;
+      case Sorts::SRT_RATIONAL: {
+        rhs = theory->representConstant(_rowsList[i].constant);
+      } break;
+      case Sorts::SRT_REAL: {
+        rhs = theory->representConstant(RealConstantType(_rowsList[i].constant));
+      } break;
+      default:
+        continue;
+        break;
+    }
+
+    Literal *lit = Literal::createEquality(true, TermList(lhs), TermList(rhs), sort);
+    cout << "New lit: " << lit->toString() << endl;
+    _model.push_back(lit);
+  }
 }
 
 unsigned GaussElimination::getUnsatCoreCount()

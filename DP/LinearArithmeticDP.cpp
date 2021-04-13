@@ -43,7 +43,7 @@ LinearArithmeticDP::LinearArithmeticDP(bool useCache)
   // TODO  use the boolean useCache instead of the macro UseCache
 
 #if UseCache
-  cache.solverType = env.options->ladp(); 
+  cache.solverType = env.options->ladp();
   cache.solverDP = NULL;
 #endif
 }
@@ -72,9 +72,8 @@ void LinearArithmeticDP::reset()
   cache.solverType = env.options->ladp();
   cache.solverDP = solverDP;
   cache.constraints.clear();
-  cache.constraints.reserve(parsedLiterals.size());
   for (unsigned i = 0; i < parsedLiterals.size(); i++) {
-    cache.constraints[i] = parsedLiterals[i].parent;
+    cache.constraints.push_back(parsedLiterals[i].parent);
   }
 
   solverDP = NULL;
@@ -373,48 +372,9 @@ void LinearArithmeticDP::getModel(LiteralStack &model)
   cout << "LinearArithmeticDP::getModel" << endl;
 #endif
   if (solverDP != NULL) {
-    // unsigned is functor
-    map<unsigned, RationalConstantType> modelMap = solverDP->getModel();
-
-    for (auto const &result : modelMap) {
-      unsigned varId = result.first;
-      RationalConstantType solution = result.second;
-      unsigned sort = env.signature->getFunction(varId)->fnType()->result();
-      switch (sort) {
-        case Sorts::SRT_INTEGER: {
-          if (!solution.isInt())
-            continue;
-
-          Term *var = Term::createConstant(varId);
-          Term *constant = theory->representConstant(IntegerConstantType(solution.numerator()));
-          Literal *lit = Literal::createEquality(true, TermList(var), TermList(constant), sort);
-#if DLADP
-          cout << lit->toString() << endl;
-#endif
-          model.push(lit);
-        } break;
-        case Sorts::SRT_RATIONAL: {
-          Term *var = Term::createConstant(varId);
-          Term *constant = theory->representConstant(solution);
-          Literal *lit = Literal::createEquality(true, TermList(var), TermList(constant), sort);
-#if DLADP
-          cout << lit->toString() << endl;
-#endif
-          model.push(lit);
-        } break;
-        case Sorts::SRT_REAL: {
-          Term *var = Term::createConstant(varId);
-          Term *constant = theory->representConstant(RealConstantType(solution));
-          Literal *lit = Literal::createEquality(true, TermList(var), TermList(constant), sort);
-#if DLADP
-          cout << lit->toString() << endl;
-#endif
-          model.push(lit);
-        } break;
-        default:
-          continue;
-          break;
-      }
+    vector<Literal *> modelVector = solverDP->getModel();
+    for (unsigned i = 0; i < modelVector.size(); i++) {
+      model.push(modelVector[i]);
     }
   }
 }

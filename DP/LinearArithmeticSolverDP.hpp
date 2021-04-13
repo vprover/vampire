@@ -21,7 +21,7 @@ public:
   /** return the result */
   virtual DecisionProcedure::Status getStatus() = 0;
 
-  virtual map<unsigned, RationalConstantType> getModel() = 0;
+  virtual vector<Literal *> getModel() = 0;
 
   /**
    * Return number of unsatisfiable cores that can be retrieved.

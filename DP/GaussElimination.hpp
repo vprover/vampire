@@ -53,7 +53,7 @@ public:
 
   virtual LinearArithmeticDP::Status getStatus() override;
 
-  virtual map<unsigned, RationalConstantType> getModel() override;
+  virtual vector<Literal *> getModel() override;
 
   virtual unsigned getUnsatCoreCount() override;
   virtual set<unsigned> getUnsatCore(unsigned coreIndex) override;
@@ -62,12 +62,14 @@ private:
   vector<LinearArithmeticDP::Constraint> _rowsList;
   set<unsigned> _colLabelSet;
   Status _status;
-  map<unsigned, RationalConstantType> _model;
+  vector<Literal *> _model;
   vector<unsigned> _inconsistentRowIndexes;
   vector<set<unsigned>> _unsatCores;
 
   void solve();
   void subtract(LinearArithmeticDP::Constraint *c1, LinearArithmeticDP::Constraint *c2, RationalConstantType multiplier);
+
+  void setModel();
 
   void setUnsatCore();
   bool setInterference(LinearArithmeticDP::Constraint *row, set<unsigned> *interferenceSet);
