@@ -75,6 +75,8 @@ public:
   static void getLtb2014Schedule(const Shell::Property& property, Schedule& sched);
   static void getLtb2014MzrSchedule(const Shell::Property& property, Schedule& quick, Schedule& fallback);
   static void getLtb2017DefaultSchedule(const Shell::Property& property, Schedule& sched);
+
+  static void getRapidSchedule(const Shell::Property& property, Schedule& quick);
 };
 
 

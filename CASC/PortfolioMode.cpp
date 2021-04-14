@@ -394,6 +394,9 @@ void PortfolioMode::getSchedules(Property& prop, Schedule& quick, Schedule& fall
   case Options::Schedule::LTB_DEFAULT_2017:
     Schedules::getLtb2017DefaultSchedule(prop,quick);
     break;
+  case Options::Schedule::RAPID:
+    Schedules::getRapidSchedule(prop,quick);
+    break;
   default:
     INVALID_OPERATION("Unknown schedule");
   }

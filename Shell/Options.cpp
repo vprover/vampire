@@ -176,7 +176,8 @@ void Options::Options::init()
          "smtcomp",
          "smtcomp_2016",
          "smtcomp_2017",
-         "smtcomp_2018"});
+         "smtcomp_2018",
+         "rapid"});
     _schedule.description = "Schedule to be run by the portfolio mode. casc and smtcomp usually point to the most recent schedule in that category. Note that some old schedules may contain option values that are no longer supported - see ignore_missing.";
     _lookup.insert(&_schedule);
     _schedule.reliesOnHard(Or(_mode.is(equal(Mode::CASC)),_mode.is(equal(Mode::CASC_SAT)),_mode.is(equal(Mode::SMTCOMP)),_mode.is(equal(Mode::PORTFOLIO))));

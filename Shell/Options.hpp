@@ -472,7 +472,9 @@ public:
     SMTCOMP,
     SMTCOMP_2016,
     SMTCOMP_2017,
-    SMTCOMP_2018
+    SMTCOMP_2018, 
+
+    RAPID
 };
 
 
