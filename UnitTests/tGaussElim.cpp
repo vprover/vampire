@@ -47,33 +47,14 @@ TEST_FUN(gauss_unique_solution1)
       {2, 4, 1, 1},
   };
 
-  map<unsigned, RationalConstantType> solutions = {{0, RationalConstantType(2)}, {1, RationalConstantType(-1)}, {2, RationalConstantType(1)}};
-
   vector<DP::LinearArithmeticDP::Constraint> constraints = toConstraints(constraintsVector);
 
   DP::GaussElimination gauss = DP::GaussElimination(constraints);
   DP::DecisionProcedure::Status status = gauss.getStatus();
   ASS_EQ(status, DP::DecisionProcedure::SATISFIABLE);
 
-  /*
-  // Since there is a solution, model size must be positive. unsatCoreCount must be zero.
-  map<unsigned, RationalConstantType> model = gauss.getModel();
-  ASS(model.size() > 1);
-
   unsigned unsatCoreCount = gauss.getUnsatCoreCount();
   ASS_EQ(unsatCoreCount, 0);
-
-  // Asserting that Gauss computed the correct answer
-  ASS(model.size() == solutions.size());
-  map<unsigned, RationalConstantType>::iterator modelIt = model.begin();
-  map<unsigned, RationalConstantType>::iterator solutionsIt = solutions.begin();
-  while (modelIt != model.end()) {
-    ASS_EQ(modelIt->first, solutionsIt->first);
-    ASS_EQ(modelIt->second, solutionsIt->second);
-    modelIt++;
-    solutionsIt++;
-  }
-  */
 }
 
 TEST_FUN(gauss_unique_solution2)
@@ -84,33 +65,14 @@ TEST_FUN(gauss_unique_solution2)
       {4, 0, 5, 2},
   };
 
-  map<unsigned, RationalConstantType> solutions = {{0, RationalConstantType(3)}, {1, RationalConstantType(4)}, {2, RationalConstantType(-2)}};
-
   vector<DP::LinearArithmeticDP::Constraint> constraints = toConstraints(constraintsVector);
 
   DP::GaussElimination gauss = DP::GaussElimination(constraints);
   DP::DecisionProcedure::Status status = gauss.getStatus();
   ASS_EQ(status, DP::DecisionProcedure::SATISFIABLE);
 
-  /*
-  // Since there is a solution, model size must be positive. unsatCoreCount must be zero.
-  map<unsigned, RationalConstantType> model = gauss.getModel();
-  ASS(model.size() > 1);
-
   unsigned unsatCoreCount = gauss.getUnsatCoreCount();
   ASS_EQ(unsatCoreCount, 0);
-
-  // Asserting that Gauss computed the correct answer
-  ASS(model.size() == solutions.size());
-  map<unsigned, RationalConstantType>::iterator modelIt = model.begin();
-  map<unsigned, RationalConstantType>::iterator solutionsIt = solutions.begin();
-  while (modelIt != model.end()) {
-    ASS_EQ(modelIt->first, solutionsIt->first);
-    ASS_EQ(modelIt->second, solutionsIt->second);
-    modelIt++;
-    solutionsIt++;
-  }
-  */
 }
 
 TEST_FUN(gauss_infinite_solutions1)
@@ -126,12 +88,6 @@ TEST_FUN(gauss_infinite_solutions1)
   DP::GaussElimination gauss = DP::GaussElimination(constraints);
   DP::DecisionProcedure::Status status = gauss.getStatus();
   ASS_EQ(status, DP::DecisionProcedure::SATISFIABLE);
-
-  /*
-  // Since there is infinite solutions, model size would be zero. unsatCoreCount must be zero.
-  map<unsigned, RationalConstantType> model = gauss.getModel();
-  ASS_EQ(model.size(), 0);
-  */
 
   unsigned unsatCoreCount = gauss.getUnsatCoreCount();
   ASS_EQ(unsatCoreCount, 0);
@@ -151,12 +107,6 @@ TEST_FUN(gauss_infinite_solutions2)
   DP::DecisionProcedure::Status status = gauss.getStatus();
   ASS_EQ(status, DP::DecisionProcedure::SATISFIABLE);
 
-  /*
-  // Since there is infinite solutions, model size would be zero. unsatCoreCount must be zero.
-  map<unsigned, RationalConstantType> model = gauss.getModel();
-  ASS_EQ(model.size(), 0);
-  */
-
   unsigned unsatCoreCount = gauss.getUnsatCoreCount();
   ASS_EQ(unsatCoreCount, 0);
 }
@@ -174,12 +124,6 @@ TEST_FUN(gauss_no_solution1)
   DP::DecisionProcedure::Status status = gauss.getStatus();
   ASS_EQ(status, DP::DecisionProcedure::UNSATISFIABLE);
 
-  /*
-  // Since there is no solutions, model size should be zero. unsatCoreCount must be positive.
-  map<unsigned, RationalConstantType> model = gauss.getModel();
-  ASS_EQ(model.size(), 0);
-  */
-
   unsigned unsatCoreCount = gauss.getUnsatCoreCount();
   ASS(unsatCoreCount > 0);
 }
@@ -196,12 +140,6 @@ TEST_FUN(gauss_no_solution2)
   DP::GaussElimination gauss = DP::GaussElimination(constraints);
   DP::DecisionProcedure::Status status = gauss.getStatus();
   ASS_EQ(status, DP::DecisionProcedure::UNSATISFIABLE);
-
-  /*
-  // Since there is no solutions, model size should be zero. unsatCoreCount must be positive.
-  map<unsigned, RationalConstantType> model = gauss.getModel();
-  ASS_EQ(model.size(), 0);
-  */
 
   unsigned unsatCoreCount = gauss.getUnsatCoreCount();
   ASS(unsatCoreCount > 0);
