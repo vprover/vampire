@@ -1611,6 +1611,34 @@ bool _hard;
         return OptionValueConstraintUP<T>(new GreaterThan<T>(bv,true));
     }
     
+    // Constraint that the value should be smaller than a given value
+    // optionally we can allow it be equal to that value also
+    template<typename T>
+    struct SmallerThan : public OptionValueConstraint<T>{
+        CLASS_NAME(SmallerThan);
+        USE_ALLOCATOR(SmallerThan);
+        SmallerThan(T gv,bool eq=false) : _goodvalue(gv), _orequal(eq) {}
+        bool check(const OptionValue<T>& value){
+            return (value.actualValue < _goodvalue || (_orequal && value.actualValue==_goodvalue));
+        }
+
+        vstring msg(const OptionValue<T>& value){
+            if(_orequal) return value.longName+"("+value.getStringOfActual()+") is smaller than or equal to " + value.getStringOfValue(_goodvalue);
+            return value.longName+"("+value.getStringOfActual()+") is smaller than "+ value.getStringOfValue(_goodvalue);
+        }
+
+        T _goodvalue;
+        bool _orequal;
+    };
+    template<typename T>
+    static OptionValueConstraintUP<T> smallerThan(T bv){
+        return OptionValueConstraintUP<T>(new SmallerThan<T>(bv,false));
+    }
+    template<typename T>
+    static OptionValueConstraintUP<T> smallerThanEq(T bv){
+        return OptionValueConstraintUP<T>(new SmallerThan<T>(bv,true));
+    }
+
     /**
      * If constraints
      */
@@ -2194,6 +2222,7 @@ public:
   bool splittingBufferedSolver() const { return _splittingBufferedSolver.actualValue; }
   int splittingFlushPeriod() const { return _splittingFlushPeriod.actualValue; }
   float splittingFlushQuotient() const { return _splittingFlushQuotient.actualValue; }
+  float splittingAvatimer() const { return _splittingAvatimer.actualValue; }
   bool splittingEagerRemoval() const { return _splittingEagerRemoval.actualValue; }
   SplittingCongruenceClosure splittingCongruenceClosure() const { return _splittingCongruenceClosure.actualValue; }
   CCUnsatCores ccUnsatCores() const { return _ccUnsatCores.actualValue; }
@@ -2596,6 +2625,7 @@ private:
   BoolOptionValue _splittingEagerRemoval;
   UnsignedOptionValue _splittingFlushPeriod;
   FloatOptionValue _splittingFlushQuotient;
+  FloatOptionValue _splittingAvatimer;
   ChoiceOptionValue<SplittingNonsplittableComponents> _splittingNonsplittableComponents;
   ChoiceOptionValue<SplittingMinimizeModel> _splittingMinimizeModel;
   ChoiceOptionValue<SplittingLiteralPolarityAdvice> _splittingLiteralPolarityAdvice;
