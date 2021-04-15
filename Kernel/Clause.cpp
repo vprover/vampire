@@ -347,7 +347,7 @@ vstring Clause::literalsOnlyToString() const
         result +="[r]";
       }
     }
-    if (_literals[0]->_isInductionHypothesis) {
+    if (_literals[0]->_indInductionHypothesis) {
       result += " [ih]";
     }
     for(unsigned i = 1; i < _length; i++) {
@@ -359,7 +359,7 @@ vstring Clause::literalsOnlyToString() const
           result +="[r]";
         }
       }
-      if (_literals[i]->_isInductionHypothesis) {
+      if (_literals[i]->_indInductionHypothesis) {
         result += " [ih]";
       }
     }

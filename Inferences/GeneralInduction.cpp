@@ -189,12 +189,13 @@ void GeneralInduction::generateClauses(
       replaceLit(c._step, occurrences, qr.literal, v2sk, lits, newLits, var);
     }
 
+    unsigned cnt = 0;
     for (const auto& r : c._recursiveCalls) {
       auto newHypLit = replaceLit(r, occurrences, mainLit.literal, v2sk, lits, newLits, var, true);
       ASS_NEQ(newHypLit, mainLit.literal);
-      newMainLit->_hasInductionHypothesis = true;
-      newHypLit->_isInductionHypothesis = true;
+      newHypLit->_indInductionHypothesis = ++cnt;
     }
+    newMainLit->_numInductionHypothesis = cnt;
 
     lits = newLits;
   }

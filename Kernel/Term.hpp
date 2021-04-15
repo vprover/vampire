@@ -610,8 +610,8 @@ public:
     ASS(isSpecial());
     return reinterpret_cast<SpecialTermData*>(this)-1;
   }
-  bool _isInductionHypothesis = false;
-  bool _hasInductionHypothesis = false;
+  unsigned _numInductionHypothesis = 0;
+  unsigned _indInductionHypothesis = 0;
 protected:
   vstring headToString() const;
 

@@ -267,12 +267,12 @@ bool InductionScheme::init(const vvector<TermList>& argTerms, const InductionTem
     // We first map the inductive terms of t to the arguments of
     // the function header stored in the step case
     bool mismatch = false;
+    RobSubstitution subst;
     for (const auto& vars : templ._order) {
       vvector<bool> changing(recCalls.size(), false);
       for (const auto& v : vars) {
         auto argTerm = argTerms.at(v);
         auto argStep = *b._header.term()->nthArgument(v);
-        RobSubstitution subst;
         // This argument might have already been mapped
         if (stepSubst.count(argTerm)) {
           if (!subst.unify(stepSubst.at(argTerm), 0, argStep, 1)) {
@@ -336,9 +336,9 @@ bool InductionScheme::init(const vvector<TermList>& argTerms, const InductionTem
       continue;
     }
 
+    DHMap<unsigned, unsigned> varMap;
+    VarReplacement vr(varMap, var);
     for (const auto& kv : stepSubst) {
-      DHMap<unsigned, unsigned> varMap;
-      VarReplacement vr(varMap, var);
       stepSubst.at(kv.first) = applyVarReplacement(stepSubst.at(kv.first), vr);
       for (unsigned i = 0; i < recCalls.size(); i++) {
         if (invalid[i]) {

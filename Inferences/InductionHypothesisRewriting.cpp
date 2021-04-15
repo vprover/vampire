@@ -54,32 +54,61 @@ ClauseIterator InductionHypothesisRewriting::generateClauses(Clause *premise)
   ClauseIterator res = ClauseIterator::getEmpty();
   for (unsigned i = 0; i < premise->length(); i++) {
     auto lit = (*premise)[i];
-    if (lit->isEquality() && lit->_hasInductionHypothesis) {
-      for (unsigned i = 0; i <= 1; i++) {
-        auto litarg = *lit->nthArgument(i);
-        SubtermIterator sti(litarg.term());
-        while (sti.hasNext()) {
-          auto t = sti.next();
-          for (unsigned j = 0; j <= 1; j++) {
+    if (lit->isEquality()) {
+      // ClauseIterator temp = ClauseIterator::getEmpty();
+      // auto it = pvi(pushPairIntoRightIterator(lit,
+      //   EqHelper::getEqualityArgumentIterator(lit)));
+      // auto it2 = getMapAndFlattenIterator(it, RewriteableSubtermsFn());
+      // ClauseIterator inner = pvi(getSingletonIterator(premise));
+      // for (unsigned j = 1; j <= lit->_numInductionHypothesis; j++) {
+      //   inner = pvi(getMappingIterator(it2, ForwardResultFn(premise, j)));
+      // }
+      // auto it3 = pvi(getMapAndFlattenIterator(inner, InductResultFn(_splitter, _induction)));
+      // res = pvi(getConcatenatedIterator(res, it3));
+      for (unsigned j = 1; j <= lit->_numInductionHypothesis; j++) {
+        for (unsigned k = 0; k <= 1; k++) {
+          auto litarg = *lit->nthArgument(k);
+          SubtermIterator sti(litarg.term());
+          while (sti.hasNext()) {
+            auto t = sti.next();
             auto ts = _lhsIndex->getGeneralizations(t);
             while (ts.hasNext()) {
               auto qr = ts.next();
-              // cout << "Clause: " << *premise << endl
-              //      << " lit: " << *lit << endl
-              //      << " qr.clause: " << *qr.clause << endl
-              //      << " qr.literal: " << *qr.literal << endl;
-            // }
-            // TermList iarg = *ih->nthArgument(j);
-            // RobSubstitutionSP subst(new RobSubstitution);
-            // if (subst->match(iarg, 0, t, 1)) {
+              if (qr.literal->_indInductionHypothesis != j) {
+                continue;
+              }
               Clause* newClause = perform(premise, lit, litarg, t, qr.clause, qr.literal, qr.term, qr.substitution, true);
+              ASS(newClause);
               newClause->setStore(Clause::ACTIVE);
               if (_splitter) {
                 _splitter->onNewClause(newClause);
               }
-              // cout << "IH rewriting: " << *premise << endl
-              //   << " with " << *qr.clause << endl
-              //   << " results " << *newClause << endl;
+              res = pvi(getConcatenatedIterator(res, _induction->generateClauses(newClause)));
+              newClause->setStore(Clause::NONE);
+            }
+          }
+        }
+      }
+      if (lit->_indInductionHypothesis > 0) {
+        for (unsigned j = 0; j <= 1; j++) {
+          auto litarg = *lit->nthArgument(j);
+          auto ts = _stIndex->getInstances(litarg);
+          while (ts.hasNext()) {
+            auto qr = ts.next();
+            if (!qr.literal->_numInductionHypothesis || !qr.literal->isEquality()) {
+              continue;
+            }
+            for (unsigned k = 0; k <= 1; k++) {
+              auto side = *qr.literal->nthArgument(k);
+              if (!side.containsSubterm(qr.term)) {
+                continue;
+              }
+              Clause* newClause = perform(qr.clause, qr.literal, side, qr.term, premise, lit, litarg, qr.substitution, false);
+              ASS(newClause);
+              newClause->setStore(Clause::ACTIVE);
+              if (_splitter) {
+                _splitter->onNewClause(newClause);
+              }
               res = pvi(getConcatenatedIterator(res, _induction->generateClauses(newClause)));
               newClause->setStore(Clause::NONE);
             }
@@ -99,9 +128,9 @@ Clause *InductionHypothesisRewriting::perform(
   CALL("InductionHypothesisRewriting::perform");
   // the rwClause may not be active as
   // it is from a demodulation index
-  if (rwClause->store() != Clause::ACTIVE) {
-    return 0;
-  }
+  // if (rwClause->store() != Clause::ACTIVE) {
+  //   return 0;
+  // }
   ASS(eqClause->store() == Clause::ACTIVE);
 
   if (SortHelper::getTermSort(rwTerm, rwLit) != SortHelper::getEqualityArgumentSort(eqLit)) {
@@ -112,9 +141,6 @@ Clause *InductionHypothesisRewriting::perform(
   ASS(!eqLHS.isVar());
 
   TermList tgtTerm = EqHelper::getOtherEqualitySide(eqLit, eqLHS);
-  // cout << "HYP: " << *eqLit << endl
-  //      << "SRC: " << eqLHS << endl
-  //      << "TGT: " << tgtTerm << endl;
 
   TermList tgtTermS;
   if ((eqIsResult && !subst->isIdentityOnQueryWhenResultBound()) || (!eqIsResult && !subst->isIdentityOnResultWhenQueryBound())) {
@@ -135,10 +161,19 @@ Clause *InductionHypothesisRewriting::perform(
   }
 
   TermList rwSideS(EqHelper::replace(rwSide.term(), rwTerm, tgtTermS));
+  if (rwSide == rwTerm) {
+    rwSideS = tgtTermS;
+  }
   Stack<TermList> args;
   args.push(rwSideS);
   args.push(EqHelper::getOtherEqualitySide(rwLit, rwSide));
   Literal *tgtLitS = Literal::create(rwLit, args.begin());
+
+  // cout << "HYP: " << *eqLit << endl
+  //      << "SRC: " << eqLHS << endl
+  //      << "TGT: " << tgtTerm << endl
+  //      << "RWSIDE: " << rwSideS << endl
+  //      << "TGTLIT: " << *tgtLitS << endl;
 
   if (EqHelper::isEqTautology(tgtLitS)) {
     return 0;

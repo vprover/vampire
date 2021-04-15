@@ -75,6 +75,8 @@ bool InductionTemplate::findVarOrder(
   VarOrder& res)
 {
   if (relations.empty()) {
+    // add remaining candidates at end
+    res.push_back(candidates);
     return true;
   }
   if (candidates.empty()) {
@@ -312,6 +314,7 @@ bool InductionTemplate::checkWellFoundedness()
           _inductionVariables[i] = true;
         } else {
           candidatePositions.insert(i);
+          _inductionVariables[i] = true;
         }
         i++;
       }

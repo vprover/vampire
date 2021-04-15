@@ -142,13 +142,13 @@ void FnDefLHSIndex::handleClause(Clause* c, bool adding)
 
 void IHLHSIndex::handleClause(Clause* c, bool adding)
 {
-  CALL("SuperpositionLHSIndex::handleClause");
+  CALL("IHLHSIndex::handleClause");
 
   TimeCounter tc(TC_FORWARD_SUPERPOSITION_INDEX_MAINTENANCE);
 
   for (unsigned i = 0; i < c->length(); i++) {
     Literal* lit=(*c)[i];
-    if (!lit->_isInductionHypothesis || !lit->isEquality()) {
+    if (!lit->_indInductionHypothesis || !lit->isEquality()) {
       continue;
     }
     TermIterator lhsi=EqHelper::getEqualityArgumentIterator(lit);

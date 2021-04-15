@@ -190,7 +190,8 @@ bool ForwardDemodulation::perform(Clause* cl, Clause*& replacement, ClauseIterat
 	Clause* res = new(cLen) Clause(cLen,
 	  SimplifyingInference2(InferenceRule::FORWARD_DEMODULATION, cl, qr.clause));
 
-	resLit->_hasInductionHypothesis = lit->_hasInductionHypothesis;
+	resLit->_numInductionHypothesis = lit->_numInductionHypothesis;
+	resLit->_indInductionHypothesis = lit->_indInductionHypothesis;
 	(*res)[0]=resLit;
 
 	unsigned next=1;
