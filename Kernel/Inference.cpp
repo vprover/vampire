@@ -640,6 +640,8 @@ vstring Kernel::ruleName(InferenceRule rule)
   switch (rule) {
   case InferenceRule::INPUT:
     return "input";
+  case InferenceRule::COPY_FOR_THREAD:
+    return "copy into thread";
   case InferenceRule::NEGATED_CONJECTURE:
     return "negated conjecture";
   case InferenceRule::ANSWER_LITERAL:

@@ -1512,7 +1512,7 @@ Literal* Literal::createEquality (bool polarity, TermList arg1, TermList arg2, T
 
    TermList srt1, srt2;
 #if VDEBUG
-   static RobSubstitution checkSortSubst;
+   VTHREAD_LOCAL static RobSubstitution checkSortSubst;
    checkSortSubst.reset();
 #endif
 

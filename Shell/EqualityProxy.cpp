@@ -167,7 +167,7 @@ void EqualityProxy::getArgumentEqualityLiterals(unsigned cnt, LiteralStack& lits
   vars1.reset();
   vars2.reset();
 
-  static Substitution localSubst;
+  VTHREAD_LOCAL static Substitution localSubst;
   localSubst.reset();
 
   for (unsigned i=0; i<cnt; i++) {
@@ -326,7 +326,7 @@ unsigned EqualityProxy::getProxyPredicate()
   predSym->setType(predType);
   predSym->markEqualityProxy();
 
-  static TermStack args;
+  VTHREAD_LOCAL static TermStack args;
   args.reset();
 
   args.push(sort);

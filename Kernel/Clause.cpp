@@ -153,17 +153,17 @@ Clause* Clause::fromStack(const Stack<Literal*>& lits, const Inference& inf)
 
 /**
  * Create a clause with the same content as @c c. The inference of the
- * created clause refers to @c c using the REORDER_LITERALS inference.
+ * created clause refers to @c c using the @c rule inference.
  *
  * The age of @c c is used, however the selected literals are not kept.
  *
  * BDDs and splitting history from @c c is also copied into the new clause.
  */
-Clause* Clause::fromClause(Clause* c)
+Clause* Clause::fromClause(Clause* c, InferenceRule rule)
 {
   CALL("Clause::fromClause");
 
-  Clause* res = fromIterator(Clause::Iterator(*c), SimplifyingInference1(InferenceRule::REORDER_LITERALS, c));
+  Clause* res = fromIterator(Clause::Iterator(*c), NonspecificInference1(rule, c));
 
   if (c->splits()) {
     res->setSplits(c->splits());

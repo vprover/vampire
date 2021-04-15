@@ -34,17 +34,15 @@ void Lib::Timer::ensureTimerInitialized() {}
 void Lib::Timer::deinitializeTimer() {}
 void Lib::Timer::makeChildrenIncluded() {}
 
-std::chrono::steady_clock::time_point start_time =
-  std::chrono::steady_clock::now();
-
 int Lib::Timer::miliseconds() {
   CALL("Timer::miliseconds");
 
   auto now = std::chrono::steady_clock::now();
-  auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(
-    now - start_time
+  auto ms = std::chrono::time_point_cast<std::chrono::milliseconds>(now);
+  auto epoch = std::chrono::duration_cast<std::chrono::milliseconds>(
+    ms.time_since_epoch()
   );
-  return ms.count();
+  return epoch.count();
 }
 #else
 

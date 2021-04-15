@@ -94,7 +94,7 @@ public:
     return fromStack(st, inf);
   }
 
-  static Clause* fromClause(Clause* c);
+  static Clause* fromClause(Clause* c, InferenceRule rule = InferenceRule::REORDER_LITERALS);
 
   /**
    * Return the (reference to) the nth literal

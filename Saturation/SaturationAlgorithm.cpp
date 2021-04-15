@@ -1039,7 +1039,7 @@ bool SaturationAlgorithm::forwardSimplify(Clause* cl)
     }
   }
 
-  static ClauseStack repStack;
+  VTHREAD_LOCAL static ClauseStack repStack;
 
   repStack.reset();
   SimplList::Iterator sit(_simplifiers);

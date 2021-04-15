@@ -59,6 +59,8 @@ TermSharing::TermSharing(const TermSharing &other)
   , _totalLiterals(other._totalLiterals)
   , _literalInsertions(other._literalInsertions)
   , _termInsertions(other._termInsertions)
+  , _poly(other._poly)
+  , _wellSortednessCheckingDisabled(other._wellSortednessCheckingDisabled)
 {
   CALL("TermSharing::TermSharing(const TermSharing &)");
 
