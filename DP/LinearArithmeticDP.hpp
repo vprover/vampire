@@ -24,7 +24,7 @@
 #ifndef __LinearArithmeticDP__
 #define __LinearArithmeticDP__
 
-#define DLADP 1
+#define DLADP 0
 
 #include "Forwards.hpp"
 
