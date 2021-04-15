@@ -31,6 +31,7 @@
 #include "Forwards.hpp"
 #include "Lib/Environment.hpp"
 #include "Kernel/Signature.hpp"
+#include "Kernel/NumTraits.hpp"
 
 namespace DP {
 using namespace Lib;

@@ -37,7 +37,7 @@ endif()
 
 # We compile tests only in debug mode, since in release mode assertions are NOPs anyways.
 if(CMAKE_BUILD_TYPE STREQUAL Debug)
-  SET(COMPILE_TESTS ON)
+  SET(COMPILE_TESTS OFF)
 else()
   SET(COMPILE_TESTS OFF)
 endif()

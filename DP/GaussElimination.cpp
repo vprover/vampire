@@ -214,8 +214,8 @@ void GaussElimination::setModel()
   }
 
   for (int i = _rowsList.size() - 1; i >= 0; i--) {
-    unsigned sort = env.signature->getFunction(_rowsList[i].parameters.begin()->first)->fnType()->result();
-    if (sort == Sorts::SRT_INTEGER) {
+    TermList sort = env.signature->getFunction(_rowsList[i].parameters.begin()->first)->fnType()->result();
+    if (sort == IntTraits::sort()) {
       // Turn all rationals to integers
       unsigned multiplier = 1;
       for (auto &parameter : _rowsList[i].parameters) {
@@ -233,69 +233,64 @@ void GaussElimination::setModel()
     map<unsigned, RationalConstantType>::iterator it = _rowsList[i].parameters.begin();
     Term *lhs = Term::createConstant(it->first);
     if (it->second != RationalConstantType(1)) {
-      switch (sort) {
-        case Sorts::SRT_INTEGER: {
+       if(sort == IntTraits::sort()){
           Term *coef = theory->representConstant(it->second.numerator());
           lhs = Term::create2(env.signature->getInterpretingSymbol(Theory::INT_MULTIPLY), TermList(lhs), TermList(coef));
-        } break;
-        case Sorts::SRT_RATIONAL: {
+       } 
+       else if(sort == RatTraits::sort()){
           Term *coef = theory->representConstant(it->second);
           lhs = Term::create2(env.signature->getInterpretingSymbol(Theory::RAT_MULTIPLY), TermList(lhs), TermList(coef));
-        } break;
-        case Sorts::SRT_REAL: {
+       } 
+       else if(sort == RealTraits::sort()){
           Term *coef = theory->representConstant(RealConstantType(it->second));
           lhs = Term::create2(env.signature->getInterpretingSymbol(Theory::REAL_MULTIPLY), TermList(lhs), TermList(coef));
-        } break;
-        default:
-          continue;
-          break;
-      }
+       } 
+       else{
+         ASSERTION_VIOLATION;
+       }
     }
     it++;
 
     for (; it != _rowsList[i].parameters.end(); it++) {
       Term *variable = Term::createConstant(it->first);
-      switch (sort) {
-        case Sorts::SRT_INTEGER: {
+        if(sort == IntTraits::sort()){
           if (it->second != RationalConstantType(1)) {
             Term *coef = theory->representConstant(it->second.numerator());
             variable = Term::create2(env.signature->getInterpretingSymbol(Theory::INT_MULTIPLY), TermList(variable), TermList(coef));
           }
           lhs = Term::create2(env.signature->getInterpretingSymbol(Theory::INT_PLUS), TermList(lhs), TermList(variable));
-        } break;
-        case Sorts::SRT_RATIONAL: {
+        } 
+        else if(sort == RatTraits::sort()){
           if (it->second != RationalConstantType(1)) {
             Term *coef = theory->representConstant(it->second);
             variable = Term::create2(env.signature->getInterpretingSymbol(Theory::RAT_MULTIPLY), TermList(variable), TermList(coef));
           }
           lhs = Term::create2(env.signature->getInterpretingSymbol(Theory::RAT_PLUS), TermList(lhs), TermList(variable));
-        } break;
-        case Sorts::SRT_REAL: {
+        } 
+        else if(sort == RealTraits::sort()){
           if (it->second != RationalConstantType(1)) {
             Term *coef = theory->representConstant(RealConstantType(it->second));
             variable = Term::create2(env.signature->getInterpretingSymbol(Theory::REAL_MULTIPLY), TermList(variable), TermList(coef));
           }
           lhs = Term::create2(env.signature->getInterpretingSymbol(Theory::REAL_PLUS), TermList(lhs), TermList(variable));
-        } break;
-        default:
-          break;
-      }
+        } 
+        else{
+          ASSERTION_VIOLATION;
+        }
     }
 
     Term *rhs;
-    switch (sort) {
-      case Sorts::SRT_INTEGER: {
+    if(sort == IntTraits::sort()){
         rhs = theory->representConstant(IntegerConstantType(_rowsList[i].constant.numerator()));
-      } break;
-      case Sorts::SRT_RATIONAL: {
+    }
+    else if(sort == RatTraits::sort()){
         rhs = theory->representConstant(_rowsList[i].constant);
-      } break;
-      case Sorts::SRT_REAL: {
+    }
+    else if(sort == RealTraits::sort()){
         rhs = theory->representConstant(RealConstantType(_rowsList[i].constant));
-      } break;
-      default:
-        continue;
-        break;
+    } 
+    else{
+      ASSERTION_VIOLATION;
     }
 
     Literal *lit = Literal::createEquality(true, TermList(lhs), TermList(rhs), sort);

@@ -64,6 +64,8 @@ public:
   LinearArithmeticDP();
   ~LinearArithmeticDP();
 
+  static bool useLiteral(Literal* lit);
+
   virtual void addLiterals(LiteralIterator lits, bool onlyEqualites) override;
 
   virtual Status getStatus(bool retrieveMultipleCores) override;

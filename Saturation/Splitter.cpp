@@ -456,7 +456,11 @@ SATSolver::Status SplittingBranchSelector::processDPConflicts()
         SplitLevel s = _parent.getNameFromLiteral(SATLiteral(i,true));
         Splitter::SplitRecord* sr = _parent._db[s];
         Clause* c = sr->component;
-        UnitList::push(c,prems);
+        // The only part of the model we can rely on are ground (hence unit)
+        // clauses that LinearArithmeticDP will use
+        if(c->length()==1 && DP::LinearArithmeticDP::useLiteral((*c)[0])){
+          UnitList::push(c,prems);
+        }
       }
     }
     Inference inf = NonspecificInferenceMany(InferenceRule::DP,prems);

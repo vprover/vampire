@@ -85,38 +85,26 @@ void LinearArithmeticDP::reset()
 }
 
 /**
- * Add literals based on their structure
+ * Decide whether to use a literal based on its structure
  * - if non-ground then ignore
  * - if contains symbols that are not +, -, =, or <, numbers, or numeric constants then ignore
- *
  */
-void LinearArithmeticDP::addLiterals(LiteralIterator lits, bool onlyEqualites)
+bool LinearArithmeticDP::useLiteral(Literal* l)
 {
-  CALL("LinearArithmeticDP::addLiterals");
+  CALL("LinearArithmeticDP::useLiteral");
 
-#if DLADP
-  cout << "LinearArithmeticDP::addLiterals" << endl;
-#endif
-  while (lits.hasNext()) {
-    Literal *l = lits.next();
-    if (!l->ground()) {
-      //for now we ignore non-ground literals
-      continue;
-    }
-#if DLADP
-    //cout << "Check " << l->toString() << endl;
-#endif
-    if (!theory->isInterpretedPredicate(l))
-      continue;
+    if (!l->ground()) { return false; }
+    if (!theory->isInterpretedPredicate(l)){ return false; }
+
     SubtermIterator sit(l);
-    bool skip = false;
     while (sit.hasNext()) {
       // As l is ground we know that this term exists e.g. it's not a variable
       Term *st = sit.next().term();
       unsigned fun = st->functor();
+      TermList sort = SortHelper::getResultSort(st);
 
       // Checking if function is a constant and is a numeric constants
-      if (env.signature->functionArity(fun) == 0 && Sorts::isNumericSort(SortHelper::getResultSort(st)))
+      if(env.signature->functionArity(fun) == 0 && (sort == IntTraits::sort() || sort == RatTraits::sort() || sort == RealTraits::sort())) 
         continue;
       if (theory->isInterpretedNumber(st))
         continue;
@@ -134,16 +122,26 @@ void LinearArithmeticDP::addLiterals(LiteralIterator lits, bool onlyEqualites)
             continue;
         }
       }
-      skip = true;
-      break;
+      return false;
     }
-    if (skip)
-      continue;
 
     if ((env.options->ladp() == Options::LinearArithmeticDP::GE && l->isEquality() && l->isPositive()) ||
         (env.options->ladp() == Options::LinearArithmeticDP::SIMPLEX && (!l->isEquality() || l->isPositive()))) {
-      addLiteral(l);
+      return true;
     }
+    return false;
+}
+
+void LinearArithmeticDP::addLiterals(LiteralIterator lits, bool onlyEqualites)
+{
+  CALL("LinearArithmeticDP::addLiterals");
+
+#if DLADP
+  cout << "LinearArithmeticDP::addLiterals" << endl;
+#endif
+  while (lits.hasNext()) {
+    Literal *l = lits.next();
+    if(useLiteral(l)){ addLiteral(l); }
   }
 }
 
