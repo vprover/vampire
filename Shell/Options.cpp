@@ -1567,7 +1567,7 @@ void Options::init()
     _lookup.insert(&_linearArithmeticDPCache);
     _linearArithmeticDPCache.reliesOn(_linearArithmeticDP.is(notEqual(LinearArithmeticDP::OFF)));
 
-    _linearArithmeticDPuseModel = BoolOptionValue("linear_arithmetic_use__model","ladpum",false);
+    _linearArithmeticDPuseModel = BoolOptionValue("linear_arithmetic_use_model","ladpum",false);
     _linearArithmeticDPuseModel.description="Add some information about the model to the search space"; 
     _linearArithmeticDPuseModel.tag(OptionTag::AVATAR);
     _linearArithmeticDPuseModel.setExperimental();
