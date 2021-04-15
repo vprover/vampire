@@ -28,6 +28,7 @@
 #include "Lib/Environment.hpp"
 #include "Kernel/RobSubstitution.hpp"
 #include "Kernel/EqHelper.hpp"
+#include "Indexing/TermSharing.hpp"
 
 #include "Lib/SmartPtr.hpp"
 #include "Lib/DHSet.hpp"
@@ -64,8 +65,9 @@ void BlockedClauseElimination::apply(Problem& prb)
   // put the clauses into the index
   UnitList::Iterator uit(prb.units());
   while(uit.hasNext()) {
-    Clause* cl=static_cast<Clause*>(uit.next());
-    ASS(cl->isClause());
+    Unit* u = uit.next();
+    ASS(u->isClause());
+    Clause* cl=static_cast<Clause*>(u);
 
     ClWrapper* clw = new ClWrapper(cl);
     wrappers.push(clw);
@@ -86,11 +88,11 @@ void BlockedClauseElimination::apply(Problem& prb)
   typedef BinaryHeap<Candidate*, CandidateComparator> BlockClauseCheckPriorityQueue;
   BlockClauseCheckPriorityQueue queue;
 
-  for (bool pos : {false, true}) {
-    DArray<Stack<Candidate*>>& one   = pos ? positive : negative;
-    DArray<Stack<Candidate*>>& other = pos ? negative : positive;
+  for (bool isPos : {false, true}) {
+    DArray<Stack<Candidate*>>& one   = isPos ? positive : negative;
+    DArray<Stack<Candidate*>>& other = isPos ? negative : positive;
 
-    for (unsigned pred = 1; pred < one.size(); pred++) { // skipping 0; the empty slot for equality
+    for (unsigned pred = 1; pred < one.size(); pred++) { // skipping 0, the empty slot for equality
       Stack<Candidate*>& predsCandidates = one[pred];
       unsigned predsRemaining = other[pred].size();
       for (unsigned i = 0; i < predsCandidates.size(); i++) {
@@ -159,8 +161,8 @@ void BlockedClauseElimination::apply(Problem& prb)
   }
 
   // delete candidates:
-  for (bool pos : {false, true}) {
-    DArray<Stack<Candidate*>> & one   = pos ? positive : negative;
+  for (bool isPos : {false, true}) {
+    DArray<Stack<Candidate*>> & one   = isPos ? positive : negative;
 
     for (unsigned pred = 0; pred < one.size(); pred++) {
       Stack<Candidate*>& predsCandidates = one[pred];
@@ -253,6 +255,8 @@ bool BlockedClauseElimination::resolvesToTautologyEq(Clause* cl, Literal* lit, C
 {
   CALL("BlockedClauseElimination::resolvesToTautologyEq");
 
+  // With polymorphism, some intermediate terms created here are not well sorted, but that's OK
+  TermSharing::WellSortednessCheckingLocalDisabler disableInScope(env.sharing);
   // cout << "cl: " << cl->toString() << endl;
   // cout << "lit: " << lit->toString() << endl;
   // cout << "pcl: " << pcl->toString() << endl;
@@ -317,8 +321,6 @@ bool BlockedClauseElimination::resolvesToTautologyEq(Clause* cl, Literal* lit, C
     ASS_L(id2,n);
     TermList target = *lit->nthArgument(id2);
     replacements.insert(arg,target);
-
-    // cout << "map1: " << arg.toString() << " --> " << target.toString() << endl;
   }
 
   for(unsigned i = 0; i<n; i++) {
@@ -329,8 +331,6 @@ bool BlockedClauseElimination::resolvesToTautologyEq(Clause* cl, Literal* lit, C
       ASS_L(id2,n);
       TermList target = *lit->nthArgument(id2);
       replacements.insert(arg,target);
-
-      // cout << "map1g: " << arg.toString() << " --> " << target.toString() << endl;
     }
   }
 
@@ -341,13 +341,12 @@ bool BlockedClauseElimination::resolvesToTautologyEq(Clause* cl, Literal* lit, C
 
   for (unsigned i = 0; i < cl->length(); i++) {
     Literal* curlit = (*cl)[i];
+
     if (curlit->functor() != lit->functor() || curlit->polarity() != lit->polarity()) {
       Literal* ncurlit = clNormalizer.transform(curlit);
       Literal* opncurlit = Literal::complementaryLiteral(ncurlit);
 
       if (norm_lits.find(opncurlit)) {
-        // cout << "found taut on cl's " <<  ncurlit->toString() << endl;
-
         return true;
       }
 
@@ -359,10 +358,9 @@ bool BlockedClauseElimination::resolvesToTautologyEq(Clause* cl, Literal* lit, C
     }
   }
 
-  // cout << "varMax: " << varMax << endl;
+  //cout << "varMax: " << varMax << endl;
 
   // to do replacements in pcl, we need a mapping for all plit's arguments.
-  // As a bonus we also allow ground arguments of lit
   replacements.reset();
   for(unsigned i = 0; i<n; i++) {
     TermList arg = *plit->nthArgument(i);
@@ -371,10 +369,9 @@ bool BlockedClauseElimination::resolvesToTautologyEq(Clause* cl, Literal* lit, C
     ASS_L(id2,n);
     TermList target = *lit->nthArgument(id2);
     replacements.insert(arg,target);
-
-    // cout << "map2: " << arg.toString() << " --> " << target.toString() << endl;
   }
 
+  // As a bonus we also allow ground arguments of lit
   for(unsigned i = 0; i<n; i++) {
     TermList arg = *lit->nthArgument(i);
     if (arg.isTerm() && arg.term()->ground()) {
@@ -383,8 +380,6 @@ bool BlockedClauseElimination::resolvesToTautologyEq(Clause* cl, Literal* lit, C
       ASS_L(id2,n);
       TermList target = *lit->nthArgument(id2);
       replacements.insert(arg,target);
-
-      // cout << "map2g: " << arg.toString() << " --> " << target.toString() << endl;
     }
   }
 
@@ -397,13 +392,12 @@ bool BlockedClauseElimination::resolvesToTautologyEq(Clause* cl, Literal* lit, C
 
   for (unsigned i = 0; i < pcl->length(); i++) {
     Literal* curlit = (*pcl)[i];
+
     if (curlit->functor() != plit->functor() || curlit->polarity() != plit->polarity()) {
       Literal* ncurlit = pclNormalizer.transform(curlit);
       Literal* opncurlit = Literal::complementaryLiteral(ncurlit);
 
       if (norm_lits.find(opncurlit)) {
-        // cout << "found taut on pcl's " <<  ncurlit->toString() << endl;
-
         return true;
       }
 

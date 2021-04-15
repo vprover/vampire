@@ -160,7 +160,7 @@ UnitIterator InferenceStore::getParents(Unit* us)
  * It is caller's responsibility to ensure that variables in @b vars are unique.
  */
 template<typename VarContainer>
-vstring getQuantifiedStr(const VarContainer& vars, vstring inner, DHMap<unsigned,unsigned>& t_map, bool innerParentheses=true){
+vstring getQuantifiedStr(const VarContainer& vars, vstring inner, DHMap<unsigned,TermList>& t_map, bool innerParentheses=true){
   CALL("getQuantifiedStr(VarContainer, vstring, map)");
 
   VirtualIterator<unsigned> vit=pvi( getContentIterator(vars) );
@@ -168,16 +168,19 @@ vstring getQuantifiedStr(const VarContainer& vars, vstring inner, DHMap<unsigned
   bool first=true;
   while(vit.hasNext()) {
     unsigned var =vit.next();
-    if (!first) {
-      varStr+=",";
-    }
     vstring ty="";
-    unsigned t;
-    if(t_map.find(var,t) && t!=Sorts::SRT_DEFAULT){
+    TermList t;
+    if(t_map.find(var,t) /*&& t!=Term::defaultSort()*/){
       //TODO should assert that we are in tff mode here
-      ty=":" + env.sorts->sortName(t);
+      ty=" : " + t.toString();
     }
-    varStr+=vstring("X")+Int::toString(var)+ty;
+    if(ty == " : $tType"){
+      if (!first) { varStr = "," + varStr; }
+      varStr=vstring("X")+Int::toString(var)+ty + varStr;
+    } else {
+      if (!first) { varStr+=","; }
+      varStr+=vstring("X")+Int::toString(var)+ty;
+    }
     first=false;
   }
 
@@ -203,7 +206,7 @@ template<typename VarContainer>
 vstring getQuantifiedStr(const VarContainer& vars, vstring inner, bool innerParentheses=true)
 {
   CALL("getQuantifiedStr(VarContainer, vstring)");
-  static DHMap<unsigned,unsigned> d;
+  static DHMap<unsigned,TermList> d;
   return getQuantifiedStr(vars,inner,d,innerParentheses);
 }
 
@@ -216,19 +219,19 @@ vstring getQuantifiedStr(Unit* u, List<unsigned>* nonQuantified=0)
 
   Set<unsigned> vars;
   vstring res;
-  DHMap<unsigned,unsigned> t_map;
+  DHMap<unsigned,TermList> t_map;
   SortHelper::collectVariableSorts(u,t_map);
   if (u->isClause()) {
     Clause* cl=static_cast<Clause*>(u);
     unsigned clen=cl->length();
     for(unsigned i=0;i<clen;i++) {
-      TermVarIterator vit( (*cl)[i] );
+      TermVarIterator vit( (*cl)[i] ); //TODO update iterator for two var lits?
       while(vit.hasNext()) {
-	unsigned var=vit.next();
-	if (List<unsigned>::member(var, nonQuantified)) {
-	  continue;
-	}
-	vars.insert(var);
+        unsigned var=vit.next();
+        if (List<unsigned>::member(var, nonQuantified)) {
+          continue;
+        }
+        vars.insert(var);
       }
     }
     res=cl->literalsOnlyToString();
@@ -451,9 +454,9 @@ protected:
       //cout << "HERE with " << us->toString() << endl;
       Inference* inf = &us->inference();
       while(inf->rule() == InferenceRule::EVALUATION){
-              Inference::Iterator piit = inf->iterator();
-              inf = &inf->next(piit)->inference();
-     }
+        Inference::Iterator piit = inf->iterator();
+        inf = &inf->next(piit)->inference();
+      }
       Stack<Inference*> current;
       current.push(inf);
       unsigned level = 0;
@@ -511,8 +514,9 @@ struct InferenceStore::TPTPProofPrinter
 
   void print()
   {
-    UIHelper::outputSortDeclarations(env.out());
-    UIHelper::outputSymbolDeclarations(env.out());
+    //outputSymbolDeclarations also deals with sorts for now
+    //UIHelper::outputSortDeclarations(env.out());
+    UIHelper::outputSymbolDeclarations(out);
     ProofPrinter::print();
   }
 
@@ -596,6 +600,7 @@ protected:
 
     vstring kind = "fof";
     if(env.statistics->hasTypes){ kind="tff"; }
+    if(env.statistics->higherOrder){ kind="thf"; }
 
     return kind+"("+id+","+getRole(rule,origin)+",("+"\n"
 	+"  "+formula+"),\n"
@@ -883,11 +888,13 @@ protected:
     InferenceRule rule;
     UnitIterator parents=_is->getParents(cs, rule);
  
-    UIHelper::outputSortDeclarations(out);
+    //outputSymbolDeclarations also deals with sorts for now
+    //UIHelper::outputSortDeclarations(out);
     UIHelper::outputSymbolDeclarations(out);
 
     vstring kind = "fof";
     if(env.statistics->hasTypes){ kind="tff"; } 
+    if(env.statistics->higherOrder){ kind="thf"; }
 
     out << kind
         << "(r"<<_is->getUnitIdStr(cs)

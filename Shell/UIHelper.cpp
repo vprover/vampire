@@ -128,6 +128,9 @@ bool UIHelper::s_proofHasConjecture=true;
 bool UIHelper::s_expecting_sat=false;
 bool UIHelper::s_expecting_unsat=false;
 
+bool UIHelper::portfolioParent=false;
+bool UIHelper::satisfiableStatusWasAlreadyOutput=false;
+
 void UIHelper::outputAllPremises(ostream& out, UnitList* units, vstring prefix)
 {
   CALL("UIHelper::outputAllPremises");
@@ -188,6 +191,49 @@ void UIHelper::outputSaturatedSet(ostream& out, UnitIterator uit)
 
 UnitList* parsedUnits;
 
+
+// String utility function that probably belongs elsewhere
+static bool hasEnding (vstring const &fullString, vstring const &ending) {
+    if (fullString.length() >= ending.length()) {
+        return (0 == fullString.compare (fullString.length() - ending.length(), ending.length(), ending));
+    } else {
+        return false;
+    }
+}
+
+UnitList* UIHelper::tryParseTPTP(istream* input)
+{
+      Parse::TPTP parser(*input);
+      try{
+        parser.parse();
+      }
+      catch (UserErrorException& exception) {
+        vstring msg = exception.msg();
+        throw Parse::TPTP::ParseErrorException(msg,parser.lineNumber());
+      }
+      s_haveConjecture=parser.containsConjecture();
+      return parser.units();
+}
+UnitList* UIHelper::tryParseSMTLIB2(const Options& opts,istream* input,SMTLIBLogic& smtLibLogic)
+{
+          Parse::SMTLIB2 parser(opts);
+          parser.parse(*input);
+          Unit::onParsingEnd();
+
+          smtLibLogic = parser.getLogic();
+          s_haveConjecture=false;
+
+#if VDEBUG
+          const vstring& expected_status = parser.getStatus();
+          if (expected_status == "sat") {
+            s_expecting_sat = true;
+          } else if (expected_status == "unsat") {
+            s_expecting_unsat = true;
+          }
+#endif
+          return parser.getFormulas();
+}
+
 /**
  * Return problem object with units obtained according to the content of
  * @b env.options
@@ -218,55 +264,66 @@ Problem* UIHelper::getInputProblem(const Options& opts)
     }
   }
 
-  UnitList* units;
+  UnitList* units = nullptr;
   switch (opts.inputSyntax()) {
-  case Options::InputSyntax::TPTP:
+  case Options::InputSyntax::AUTO:
     {
-      Parse::TPTP parser(*input);
-      try{
-        parser.parse();
-      }
-      catch (UserErrorException& exception) {
-        vstring msg = exception.msg();
-        throw Parse::TPTP::ParseErrorException(msg,parser.lineNumber());
-      }
-      units = parser.units();
-      s_haveConjecture=parser.containsConjecture();
+       // First lets pick a place to start based on the input file name
+       bool smtlib = hasEnding(inputFile,"smt") || hasEnding(inputFile,"smt2");
+
+       if(smtlib){
+         env.beginOutput();
+         env.out() << "Running in auto input_syntax mode. Trying SMTLIB2\n";
+         env.endOutput();
+         try{
+           units = tryParseSMTLIB2(opts,input,smtLibLogic);
+         }
+         catch (UserErrorException& exception) {
+           env.beginOutput();
+           env.out() << "Failed with\n";
+           exception.cry(env.out());
+           env.out() << "Trying TPTP\n";
+           env.endOutput();
+           {
+             BYPASSING_ALLOCATOR;
+             delete static_cast<ifstream*>(input);
+             input=new ifstream(inputFile.c_str());
+           }
+           units = tryParseTPTP(input);
+         }
+
+       }
+       else{
+         env.beginOutput();
+         env.out() << "Running in auto input_syntax mode. Trying TPTP\n";
+         env.endOutput();
+         try{
+           units = tryParseTPTP(input); 
+         }
+         catch (UserErrorException& exception) {
+           env.beginOutput();
+           env.out() << "Failed with\n";
+           exception.cry(env.out());
+           env.out() << "Trying SMTLIB2\n";
+           env.endOutput();
+           {
+             BYPASSING_ALLOCATOR;
+             delete static_cast<ifstream*>(input);
+             input=new ifstream(inputFile.c_str());
+           }
+           units = tryParseSMTLIB2(opts,input,smtLibLogic); 
+         }
+       }
+       
     }
     break;
+  case Options::InputSyntax::TPTP:
+    units = tryParseTPTP(input);
+    break;
   case Options::InputSyntax::SMTLIB2:
-  {
-	  Parse::SMTLIB2 parser(opts);
-	  parser.parse(*input);
-          Unit::onParsingEnd();
-
-	  units = parser.getFormulas();
-    smtLibLogic = parser.getLogic();
-	  s_haveConjecture=false;
-
-#if VDEBUG
-	  const vstring& expected_status = parser.getStatus();
-	  if (expected_status == "sat") {
-	    s_expecting_sat = true;
-	  } else if (expected_status == "unsat") {
-	    s_expecting_unsat = true;
-	  }
-#endif
-
-	  break;
+    units = tryParseSMTLIB2(opts,input,smtLibLogic);
+    break;
   }
-/*
-  case Options::InputSyntax::MPS:
-  case Options::InputSyntax::NETLIB:
-  case Options::InputSyntax::HUMAN:
-  {
-    cout << "This is not supported yet";
-    NOT_IMPLEMENTED;
-   }
-*/
-   break;
-  }
-
   if (inputFile!="") {
     BYPASSING_ALLOCATOR;
     
@@ -555,6 +612,14 @@ void UIHelper::outputSymbolTypeDeclarationIfNeeded(ostream& out, bool function, 
   Signature::Symbol* sym = function ?
       env.signature->getFunction(symNumber) : env.signature->getPredicate(symNumber);
 
+  if (sym->super()  || sym->arraySort()  || sym->tupleSort()){
+    return;
+  }
+
+  if(sym->defaultSort() || (sym->boolSort() && !env.options->showFOOL())){
+    return;
+  }
+
   if (sym->interpreted()) {
     //there is no need to output type definitions for interpreted symbols
     return;
@@ -571,45 +636,56 @@ void UIHelper::outputSymbolTypeDeclarationIfNeeded(ostream& out, bool function, 
   }
 
   if (function) {
-    unsigned sort = env.signature->getFunction(symNumber)->fnType()->result();
-    if (env.sorts->isOfStructuredSort(sort, Sorts::StructuredSort::TUPLE)) {
+    TermList sort = env.signature->getFunction(symNumber)->fnType()->result();
+    if (SortHelper::isTupleSort(sort)) {
       return;
     }
   }
 
   OperatorType* type = function ? sym->fnType() : sym->predType();
 
-  if (type->isAllDefault()) {
+  if (type->isAllDefault()) {//TODO required
     return;
   }
 
-  out << "tff(" << (function ? "func" : "pred") << "_def_" << symNumber << ", type, "
-      << sym->name() << ": ";
+  //out << "tff(" << (function ? "func" : "pred") << "_def_" << symNumber << ", type, "
+  //    << sym->name() << ": ";
 
-  unsigned arity = sym->arity();
+  if(!sym->app()){
+    out << (env.statistics->higherOrder ? "thf(" : "tff(")
+        << (function ? (sym->typeCon() ?  "type" : "func") : "pred") 
+        << "_def_" << symNumber << ", type, "
+        << sym->name() << ": ";
+    out << type->toString();
+    out << ")." << endl;
+  }
+
+  //out << type->toString();
+
+  /*unsigned arity = sym->arity();
   if (arity>0) {
     if (arity==1) {
-      out << env.sorts->sortName(type->arg(0));
+      out << (type->arg(0)).toString();
     }
     else {
       out << "(";
       for (unsigned i=0; i<arity; i++) {
-	if (i>0) {
-	  out << " * ";
-	}
-	out << env.sorts->sortName(type->arg(i));
+        if (i>0) {
+          out << " * ";
+        }
+        out << (type->arg(i)).toString();
       }
       out << ")";
     }
     out << " > ";
   }
   if (function) {
-    out << env.sorts->sortName(sym->fnType()->result());
+    out << (sym->fnType()->result()).toString();
   }
   else {
     out << "$o";
-  }
-  out << ")." << endl;
+  }*/
+  //out << ")." << endl;
 }
 
 /**
@@ -618,21 +694,25 @@ void UIHelper::outputSymbolTypeDeclarationIfNeeded(ostream& out, bool function, 
  * @author Evgeny Kotelnikov
  * @since 04/09/2015 Gothneburg
  */
-void UIHelper::outputSortDeclarations(ostream& out)
+/*void UIHelper::outputSortDeclarations(ostream& out)
 {
   CALL("UIHelper::outputSortDeclarations");
 
-  unsigned sorts = (*env.sorts).count();
-  for (unsigned sort = Sorts::SRT_BOOL; sort < sorts; ++sort) {
-    if (sort < Sorts::FIRST_USER_SORT && ((sort != Sorts::SRT_BOOL) || !env.options->showFOOL())) {
+  if(env.statistics->higherOrder){
+    return;
+  }
+
+  unsigned sorts = env.sorts->count();
+  for (unsigned sort = 1; sort < sorts; ++sort) {
+    if (sort < Sorts::FIRST_USER_SORT && ((sort != 1) || !env.options->showFOOL())) {
       continue;
     }
-    if ((*env.sorts).isStructuredSort(sort)) {
+    if (SortHelper::isStructuredSort(sort)) {
       continue;
     }
     out << "tff(type_def_" << sort << ", type, " << env.sorts->sortName(sort) << ": $tType)." << endl;
   }
-} // UIHelper::outputSortDeclarations
+}*/ // UIHelper::outputSortDeclarations
 
 #if GNUMP
 /**
@@ -787,22 +867,22 @@ void UIHelper::outputConstraintInHumanFormat(const Constraint& constraint, ostre
     out << " (+";
     closedP ++;
     if (constraint.freeCoeff().isNegativeAssumingNonzero())
-	out<< " " << -constraint.freeCoeff().native() <<" ";
+  out<< " " << -constraint.freeCoeff().native() <<" ";
     if (constraint.freeCoeff().isPositiveAssumingNonzero()) 
-	out<< " (~ " << constraint.freeCoeff().native() <<")";
+  out<< " (~ " << constraint.freeCoeff().native() <<")";
   }
     
   while (coeffs.hasNext()) {
     Constraint::Coeff coeff = coeffs.next();
      if (coeffs.hasNext()) {
-	out << " (+ ";
-	closedP++;
+  out << " (+ ";
+  closedP++;
     }
     if (coeff.value<CoeffNumber::zero()) {
-	out << " (* ( ~ " << -coeff.value << " ) " << env.signature->varName(coeff.var) << ")";
+  out << " (* ( ~ " << -coeff.value << " ) " << env.signature->varName(coeff.var) << ")";
     }
     else {
-	out <<" (* "<< coeff.value << " " << env.signature->varName(coeff.var) << " )";
+  out <<" (* "<< coeff.value << " " << env.signature->varName(coeff.var) << " )";
     }
    
   }
@@ -825,13 +905,13 @@ void UIHelper::outputConstraintInHumanFormat(const Constraint& constraint, ostre
   while (coeffs.hasNext()) {
     Constraint::Coeff coeff = coeffs.next();
     if (coeff.value<CoeffNumber::zero()) {
-	out << "(" << coeff.value << "*" << env.signature->varName(coeff.var) << ") ";
+  out << "(" << coeff.value << "*" << env.signature->varName(coeff.var) << ") ";
     }
     else {
-	out << coeff.value << "*" << env.signature->varName(coeff.var) << " ";
+  out << coeff.value << "*" << env.signature->varName(coeff.var) << " ";
     }
     if (coeffs.hasNext()) {
-	out << "+ ";
+  out << "+ ";
     }
   }
   switch(constraint.type()) {
@@ -872,25 +952,25 @@ void UIHelper::outputConstraintInSMTFormat(const Constraint& constraint, ostream
     out << " (+";
     closedP ++;
     if (constraint.freeCoeff().isNegativeAssumingNonzero())
-	out <<  " " << -constraint.freeCoeff().native()  << " ";
+  out <<  " " << -constraint.freeCoeff().native()  << " ";
     if (constraint.freeCoeff().isPositiveAssumingNonzero()) 
-	out <<  " (~ " << constraint.freeCoeff().native()  << ")";
+  out <<  " (~ " << constraint.freeCoeff().native()  << ")";
   }
     
   while (coeffs.hasNext()) {
     Constraint::Coeff coeff = coeffs.next();
      if (coeffs.hasNext()) {
-	out << " (+ ";
-	closedP++;
-	 
+  out << " (+ ";
+  closedP++;
+   
     }
     
     if (coeff.value<CoeffNumber::zero()) {
-	
-	out << " (* ( ~ " << -coeff.value << " ) " << env.signature->varName(coeff.var) << ")";
+  
+  out << " (* ( ~ " << -coeff.value << " ) " << env.signature->varName(coeff.var) << ")";
     }
     else {
-	out <<" (* "<< coeff.value << " " << env.signature->varName(coeff.var) << " )";
+  out <<" (* "<< coeff.value << " " << env.signature->varName(coeff.var) << " )";
     }
    
   }
@@ -924,8 +1004,8 @@ void UIHelper::outputConstraints(ConstraintList* constraints, ostream& out, Opti
     ConstraintList::Iterator ite(constraints);
     while (ite.hasNext())
     {
-	outputConstraint(*ite.next(), out, syntax);
-	out << endl;
+  outputConstraint(*ite.next(), out, syntax);
+  out << endl;
     }
     return;
   }
@@ -942,13 +1022,13 @@ void UIHelper::outputConstraints(ConstraintList* constraints, ostream& out, Opti
 
     while (fun.hasNext())
     {
-	Constraint::CoeffIterator coeffs = fun.next()->coeffs();
-	 while (coeffs.hasNext()) {
-	     env.signature->varName(coeffs.next().var);
-	     uni.push_back(env.signature->varName(coeffs.next().var));
-	  //out << ":extrafuns ((" << env.signature->varName(coeffs.next().var) << " Real )) " << endl; 
-	}
-	
+  Constraint::CoeffIterator coeffs = fun.next()->coeffs();
+   while (coeffs.hasNext()) {
+       env.signature->varName(coeffs.next().var);
+       uni.push_back(env.signature->varName(coeffs.next().var));
+    //out << ":extrafuns ((" << env.signature->varName(coeffs.next().var) << " Real )) " << endl; 
+  }
+  
     }
 
     std::vector<vstring> myvector (uni.begin(),uni.end());
@@ -956,7 +1036,7 @@ void UIHelper::outputConstraints(ConstraintList* constraints, ostream& out, Opti
     ite = unique(myvector.begin(),myvector.end());
     myvector.resize( ite - myvector.begin() );
     for (ite=myvector.begin(); ite!=myvector.end(); ++ite)
-	out << " " << *ite;
+  out << " " << *ite;
     
     out << ":formula (and "; 
     ConstraintList::Iterator it(constraints);

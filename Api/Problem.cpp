@@ -285,8 +285,7 @@ void Problem::PreprocessingOptions::importAssymmetricRulesFrom(const Preprocessi
  */
 struct Problem::PreprocessingOptions::Atom2LitFn
 {
-  DECL_RETURN_TYPE(Kernel::Literal*);
-  OWN_RETURN_TYPE operator()(Formula f) {
+  Kernel::Literal* operator()(Formula f) {
     CALL("Problem::PreprocessingOptions::Atom2LitFn::operator()");
 
     Kernel::Formula* form = f.form;
@@ -480,7 +479,7 @@ void Problem::addFromStream(istream& s, vstring includeDirectory, bool simplifyS
     SimplifyProver simplify;
     units = simplify.units(expr);
   }
-  else {
+  else { 
     units = Parse::TPTP::parse(s);
   }
 

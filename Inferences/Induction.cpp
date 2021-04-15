@@ -149,8 +149,8 @@ void InductionClauseIterator::process(Clause* premise, Literal* lit)
   static bool negOnly = env.options->inductionNegOnly();
   static bool structInd = env.options->induction() == Options::Induction::BOTH ||
                          env.options->induction() == Options::Induction::STRUCTURAL;
-  static bool mathInd = env.options->induction() == Options::Induction::BOTH ||
-                         env.options->induction() == Options::Induction::MATHEMATICAL;
+  static bool intInd = env.options->induction() == Options::Induction::BOTH ||
+                       env.options->induction() == Options::Induction::INTEGER;
   static bool generalize = env.options->inductionGen();
   static bool complexTermsAllowed = env.options->inductionOnComplexTerms();
 
@@ -180,8 +180,8 @@ void InductionClauseIterator::process(Clause* premise, Literal* lit)
            ){
             ta_terms.insert(ts.term());
           }
-          if(mathInd && 
-             env.signature->getFunction(f)->fnType()->result()==Sorts::SRT_INTEGER &&
+          if(intInd && 
+             env.signature->getFunction(f)->fnType()->result()==Term::intSort() &&
              !theory->isInterpretedConstant(f)
             ){
             int_terms.insert(ts.term());
@@ -192,10 +192,10 @@ void InductionClauseIterator::process(Clause* premise, Literal* lit)
       Set<Term*>::Iterator citer1(int_terms);
       while(citer1.hasNext()){
         Term* t = citer1.next();
-        static bool one = env.options->mathInduction() == Options::MathInductionKind::ONE ||
-                          env.options->mathInduction() == Options::MathInductionKind::ALL;
-        static bool two = env.options->mathInduction() == Options::MathInductionKind::TWO ||
-                          env.options->mathInduction() == Options::MathInductionKind::ALL;
+        static bool one = env.options->intInduction() == Options::IntInductionKind::ONE ||
+                          env.options->intInduction() == Options::IntInductionKind::ALL;
+        static bool two = env.options->intInduction() == Options::IntInductionKind::TWO ||
+                          env.options->intInduction() == Options::IntInductionKind::ALL;
         if(notDone(lit,t)){
           InferenceRule rule = InferenceRule::INDUCTION_AXIOM;
           Term* inductionTerm = generalize ? getPlaceholderForTerm(t) : t;
@@ -204,10 +204,10 @@ void InductionClauseIterator::process(Clause* premise, Literal* lit)
           ASS(ilit != nullptr);
           do {
             if(one){
-              performMathInductionOne(premise,lit,ilit,inductionTerm,rule);
+              performIntInductionOne(premise,lit,ilit,inductionTerm,rule);
             }
             if(two){
-              performMathInductionTwo(premise,lit,ilit,inductionTerm,rule);
+              performIntInductionTwo(premise,lit,ilit,inductionTerm,rule);
             }
           } while (generalize && (ilit = subsetReplacement.transformSubset(rule)));
         }
@@ -278,9 +278,9 @@ void InductionClauseIterator::produceClauses(Clause* premise, Literal* origLit, 
 // (L[0] & (![X] : (X>=0 & L[X]) -> L[x+1])) -> (![Y] : Y>=0 -> L[Y])
 // (L[0] & (![X] : (X<=0 & L[X]) -> L[x-1])) -> (![Y] : Y<=0 -> L[Y])
 // for some ~L[a]
-void InductionClauseIterator::performMathInductionOne(Clause* premise, Literal* origLit, Literal* lit, Term* term, InferenceRule rule) 
+void InductionClauseIterator::performIntInductionOne(Clause* premise, Literal* origLit, Literal* lit, Term* term, InferenceRule rule) 
 {
-  CALL("InductionClauseIterator::performMathInductionOne");
+  CALL("InductionClauseIterator::performIntInductionOne");
 
   TermList zero(theory->representConstant(IntegerConstantType(0)));
   TermList one(theory->representConstant(IntegerConstantType(1)));
@@ -356,9 +356,9 @@ void InductionClauseIterator::performMathInductionOne(Clause* premise, Literal* 
   subst->reset();
 }
 
-void InductionClauseIterator::performMathInductionTwo(Clause* premise, Literal* origLit, Literal* lit, Term* term, InferenceRule rule) 
+void InductionClauseIterator::performIntInductionTwo(Clause* premise, Literal* origLit, Literal* lit, Term* term, InferenceRule rule) 
 {
-  CALL("InductionClauseIterator::performMathInductionTwo");
+  CALL("InductionClauseIterator::performIntInductionTwo");
 
   NOT_IMPLEMENTED;
 }
@@ -375,7 +375,7 @@ void InductionClauseIterator::performStructInductionOne(Clause* premise, Literal
   CALL("InductionClauseIterator::performStructInductionOne"); 
 
   TermAlgebra* ta = env.signature->getTermAlgebraOfSort(env.signature->getFunction(term->functor())->fnType()->result());
-  unsigned ta_sort = ta->sort();
+  TermList ta_sort = ta->sort();
 
   FormulaList* formulas = FormulaList::empty();
 
@@ -463,7 +463,7 @@ void InductionClauseIterator::performStructInductionTwo(Clause* premise, Literal
   CALL("InductionClauseIterator::performStructInductionTwo"); 
 
   TermAlgebra* ta = env.signature->getTermAlgebraOfSort(env.signature->getFunction(term->functor())->fnType()->result());
-  unsigned ta_sort = ta->sort();
+  TermList ta_sort = ta->sort();
 
   Literal* clit = Literal::complementaryLiteral(lit);
 
@@ -529,7 +529,7 @@ void InductionClauseIterator::performStructInductionTwo(Clause* premise, Literal
       
     }
   }
-  Formula* exists = new QuantifiedFormula(Connective::EXISTS, new Formula::VarList(y.var(),0),0,
+  Formula* exists = new QuantifiedFormula(Connective::EXISTS, VList::singleton(y.var()),0,
                         FormulaList::length(formulas) > 0 ? static_cast<Formula*>(new JunctionFormula(
                                                                 Connective::AND,new FormulaList(new AtomicFormula(Ly),formulas)))
                                                           : static_cast<Formula*>(new AtomicFormula(Ly)));
@@ -558,7 +558,7 @@ void InductionClauseIterator::performStructInductionThree(Clause* premise, Liter
   CALL("InductionClauseIterator::performStructInductionThree");
 
   TermAlgebra* ta = env.signature->getTermAlgebraOfSort(env.signature->getFunction(term->functor())->fnType()->result());
-  unsigned ta_sort = ta->sort();
+  TermList ta_sort = ta->sort();
 
   Literal* clit = Literal::complementaryLiteral(lit);
 
@@ -656,7 +656,7 @@ void InductionClauseIterator::performStructInductionThree(Clause* premise, Liter
                             new AtomicFormula(cr2.transform(clit))));
 
   conjunction = new FormulaList(smallerImpNL,conjunction);
-  Formula* exists = new QuantifiedFormula(Connective::EXISTS, new Formula::VarList(y.var(),0),0,
+  Formula* exists = new QuantifiedFormula(Connective::EXISTS, VList::singleton(y.var()),0,
                        new JunctionFormula(Connective::AND,conjunction));
 
   TermReplacement cr3(term,x);
@@ -673,8 +673,8 @@ bool InductionClauseIterator::notDone(Literal* lit, Term* term)
   CALL("InductionClauseIterator::notDone");
 
   static DHSet<Literal*> done;
-  static DHMap<unsigned,TermList> blanks; 
-  unsigned srt = env.signature->getFunction(term->functor())->fnType()->result();
+  static DHMap<TermList,TermList> blanks; 
+  TermList srt = env.signature->getFunction(term->functor())->fnType()->result();
 
   if(!blanks.find(srt)){
     unsigned fresh = env.signature->addFreshFunction(0,"blank");

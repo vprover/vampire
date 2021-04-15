@@ -19,6 +19,7 @@
 #include "Ordering.hpp"
 #include "SortHelper.hpp"
 #include "TermIterators.hpp"
+#include "ApplicativeHelper.hpp"
 
 #include "EqHelper.hpp"
 
@@ -161,10 +162,72 @@ Term* EqHelper::replace(Term* trm0, TermList tSrc, TermList tDest)
   return Term::create(trm0,argLst);
 }
 
+
+TermIterator EqHelper::getSubtermIterator(Literal* lit, const Ordering& ord)
+{
+  CALL("EqHelper::getSubtermIterator");
+  return getRewritableSubtermIterator<NonVariableNonTypeIterator>(lit, ord);
+}
+
+TermIterator EqHelper::getBooleanSubtermIterator(Literal* lit, const Ordering& ord)
+{
+  CALL("EqHelper::getSubtermIterator");
+  return getRewritableSubtermIterator<BooleanSubtermIt>(lit, ord);
+}
+
+TermIterator EqHelper::getFoSubtermIterator(Literal* lit, const Ordering& ord)
+{
+  CALL("EqHelper::getFoSubtermIterator");
+  return getRewritableSubtermIterator<FirstOrderSubtermIt>(lit, ord);
+}
+
+TermIterator EqHelper::getNarrowableSubtermIterator(Literal* lit, const Ordering& ord)
+{
+  CALL("EqHelper::getNarrowableSubtermIterator");
+  return getRewritableSubtermIterator<NarrowableSubtermIt>(lit, ord);
+} 
+
+/*
+ * Function is used in the higher-order inference SubVarSup
+ */
+TermIterator EqHelper::getRewritableVarsIterator(DHSet<unsigned>* unstableVars, Literal* lit, const Ordering& ord)
+{
+  CALL("EqHelper::getNarrowableSubtermIterator");
+
+  ASS(lit->isEquality());
+    
+  TermList sel;
+  switch(ord.getEqualityArgumentOrder(lit)) {
+  case Ordering::INCOMPARABLE: {
+    RewritableVarsIt si(unstableVars, lit);
+    return getUniquePersistentIteratorFromPtr(&si);
+  }
+  case Ordering::EQUAL:
+  case Ordering::GREATER:
+  case Ordering::GREATER_EQ:
+    sel=*lit->nthArgument(0);
+    break;
+  case Ordering::LESS:
+  case Ordering::LESS_EQ:
+    sel=*lit->nthArgument(1);
+    break;
+#if VDEBUG
+  default:
+    ASSERTION_VIOLATION;
+#endif
+  }
+  if (!sel.isTerm()) {
+    return TermIterator::getEmpty();
+  }
+  return getUniquePersistentIterator(vi(new RewritableVarsIt(unstableVars, sel.term(), true)));
+} 
+
+
 /**
  * Return iterator on subterms of a literal, that can be rewritten by
  * superposition.
  */
+template<class SubtermIterator>
 TermIterator EqHelper::getRewritableSubtermIterator(Literal* lit, const Ordering& ord)
 {
   CALL("EqHelper::getRewritableSubtermIterator");
@@ -172,11 +235,10 @@ TermIterator EqHelper::getRewritableSubtermIterator(Literal* lit, const Ordering
   if (lit->isEquality()) {
     TermList sel;
     switch(ord.getEqualityArgumentOrder(lit)) {
-    case Ordering::INCOMPARABLE:
-      {
-	NonVariableIterator nvi(lit);
-	return getUniquePersistentIteratorFromPtr(&nvi);
-      }
+    case Ordering::INCOMPARABLE: {
+      SubtermIterator si(lit);
+      return getUniquePersistentIteratorFromPtr(&si);
+    }
     case Ordering::EQUAL:
     case Ordering::GREATER:
     case Ordering::GREATER_EQ:
@@ -194,13 +256,14 @@ TermIterator EqHelper::getRewritableSubtermIterator(Literal* lit, const Ordering
     if (!sel.isTerm()) {
       return TermIterator::getEmpty();
     }
-    return getUniquePersistentIterator(getConcatenatedIterator(getSingletonIterator(sel),
-							       vi(new NonVariableIterator(sel.term()))));
+    return getUniquePersistentIterator(vi(new SubtermIterator(sel.term(), true)));
   }
 
-  NonVariableIterator nvi(lit);
-  return getUniquePersistentIteratorFromPtr(&nvi);
+  SubtermIterator si(lit);
+  return getUniquePersistentIteratorFromPtr(&si);
+
 }
+
 
 /**
  * Return iterator on sides of the equality @b lit that can be used as an LHS
@@ -244,7 +307,6 @@ TermIterator EqHelper::getLHSIterator(Literal* lit, const Ordering& ord)
  */
 struct EqHelper::IsNonVariable
 {
-  DECL_RETURN_TYPE(bool);
   bool operator()(TermList t)
   { return t.isTerm(); }
 };
@@ -265,6 +327,64 @@ TermIterator EqHelper::getSuperpositionLHSIterator(Literal* lit, const Ordering&
   else {
     return pvi( getFilteredIterator(getLHSIterator(lit, ord), IsNonVariable()) );
   }
+}
+
+
+TermIterator EqHelper::getSubVarSupLHSIterator(Literal* lit, const Ordering& ord)
+{
+  CALL("EqHelper::getSubVarSupLHSIterator"); 
+  
+  ASS(lit->isEquality());
+
+  TermList eqSort = SortHelper::getEqualityArgumentSort(lit);
+
+  if (eqSort.isVar() || ApplicativeHelper::isArrowSort(eqSort)) {
+    if (lit->isNegative()) {
+      return TermIterator::getEmpty();
+    }
+
+    TermList t0=*lit->nthArgument(0);
+    TermList t1=*lit->nthArgument(1);
+    TermList t0Head = ApplicativeHelper::getHead(t0);
+    TermList t1Head = ApplicativeHelper::getHead(t1);
+    bool t0hisVarOrComb = ApplicativeHelper::isComb(t0Head) || t0Head.isVar();
+    bool t1hisVarOrComb = ApplicativeHelper::isComb(t1Head) || t1Head.isVar();
+
+    switch(ord.getEqualityArgumentOrder(lit))
+    {
+    case Ordering::INCOMPARABLE:
+      if(t0hisVarOrComb && t1hisVarOrComb){ 
+        return pvi( getConcatenatedIterator(getSingletonIterator(t0),
+	        getSingletonIterator(t1)) );
+      } else if( t0hisVarOrComb ){
+        return pvi( getSingletonIterator(t1) );      
+      } else if( t1hisVarOrComb ) {
+        return pvi( getSingletonIterator(t0) );
+      }
+      break;
+    case Ordering::GREATER:
+    case Ordering::GREATER_EQ:
+      if(t1hisVarOrComb){
+        return pvi( getSingletonIterator(t0) );
+      }
+      break;
+    case Ordering::LESS:
+    case Ordering::LESS_EQ:
+      if(t0hisVarOrComb){
+        return pvi( getSingletonIterator(t1) );
+      }
+      break;
+#if VDEBUG
+    case Ordering::EQUAL:
+      //there should be no equality literals of equal terms
+    default:
+      ASSERTION_VIOLATION;
+#endif
+    }
+    return TermIterator::getEmpty();
+  } else {
+    return TermIterator::getEmpty();
+  }  
 }
 
 /**
@@ -288,17 +408,17 @@ TermIterator EqHelper::getDemodulationLHSIterator(Literal* lit, bool forward, co
     case Ordering::INCOMPARABLE:
       if ( forward ? (opt.forwardDemodulation() == Options::Demodulation::PREORDERED)
 		  : (opt.backwardDemodulation() == Options::Demodulation::PREORDERED) ) {
-	return TermIterator::getEmpty();
+        return TermIterator::getEmpty();
       }
       if (t0.containsAllVariablesOf(t1)) {
-	if (t1.containsAllVariablesOf(t0)) {
-	  return pvi( getConcatenatedIterator(getSingletonIterator(t0),
-	      getSingletonIterator(t1)) );
-	}
-	return pvi( getSingletonIterator(t0) );
+        if (t1.containsAllVariablesOf(t0)) {
+          return pvi( getConcatenatedIterator(getSingletonIterator(t0),
+              getSingletonIterator(t1)) );
+        }
+        return pvi( getSingletonIterator(t0) );
       }
       if (t1.containsAllVariablesOf(t0)) {
-	return pvi( getSingletonIterator(t1) );
+        return pvi( getSingletonIterator(t1) );
       }
       break;
     case Ordering::GREATER:

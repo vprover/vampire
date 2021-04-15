@@ -15,9 +15,10 @@
 #include "Sorts.hpp"
 
 #include "Lib/Environment.hpp"
-#include "Kernel/Theory.hpp"
+//#include "Kernel/Theory.hpp"
 #include "Shell/Options.hpp"
 
+#include "Term.hpp"
 #include "Signature.hpp"
 
 using namespace Kernel;
@@ -27,28 +28,12 @@ using namespace Kernel;
  * @since 04/05/2013 Manchester, updated with the new built-in sorts
  * @author Andrei Voronkov
  */
+  
 Sorts::Sorts()
 {
   CALL("Sorts::Sorts");
-
-  unsigned aux;
-
-  aux = addSort("$i",true);
-  ASS_EQ(aux, SRT_DEFAULT);
-
-  aux = addSort("$o",true);
-  ASS_EQ(aux, SRT_BOOL);
-
-  aux = addSort("$int",true);
-  ASS_EQ(aux, SRT_INTEGER);
-
-  aux = addSort("$rat",true);
-  ASS_EQ(aux, SRT_RATIONAL);
-
-  aux = addSort("$real",true);
-  ASS_EQ(aux, SRT_REAL);
-    
- _hasSort = false;
+  _arraySorts = new DHSet<TermList>();
+ //_hasSort = false;
 } // Sorts::Sorts
 
 /**
@@ -58,160 +43,51 @@ Sorts::Sorts()
 Sorts::~Sorts()
 {
   CALL("Sorts::~Sorts");
-
-  while(_sorts.isNonEmpty()) {
+  delete _arraySorts;
+  /*while(_sorts.isNonEmpty()) {
     delete _sorts.pop();
-  }
+  }*/
 } // Sorts::~Sorts
 
-/**
- * Add a new or existing sort and return its number.
- * @author Andrei Voronkov
- */
-unsigned Sorts::addSort(const vstring& name, bool interpreted)
-{
-  CALL("Sorts::addSort/2");
-  bool dummy;
-  return addSort(name, dummy, interpreted);
-} // Sorts::addSort
 
-Sorts::SortInfo::SortInfo(const vstring& name,const unsigned id, bool interpreted)
+TermList Sorts::addSort(vstring const& name)
 {
-  CALL("Sorts::SortInfo::SortInfo");
-
-  if (Signature::symbolNeedsQuoting(name,interpreted,0)) { // arity does not make sense for sorts, but the code still should
-    _name = "'" + name + "'";
-  } else {
-    _name = name;
+  bool added;
+  auto fun = env.signature->addFunction(name, /*arity*/ 0, added);
+  if (added) {
+    env.signature->getFunction(fun)->setType(OperatorType::getConstantsType(Term::superSort()));
   }
-
-  _id = id;
+  return TermList(Term::createConstant(fun));
 }
 
-/**
- * Add a new or exising sort named @c name. Set @c added to true iff
- * the sort turned out to be new.
- * @author Andrei Voronkov
- */
-unsigned Sorts::addSort(const vstring& name, bool& added, bool interpreted)
-{
-  CALL("Sorts::addSort/3");
-
-  unsigned result;
-  if (_sortNames.find(name,result)) {
-    added = false;
-    return result;
+bool Sorts::addSort(TermList sort)
+{ 
+  CALL("Sorts::addSort");
+ 
+  if(_termListsToUnsigned.find(sort)){
+    return false;
   }
-  _hasSort = true;
-  result = _sorts.length();
-  _sorts.push(new SortInfo(name, result,interpreted));
-  _sortNames.insert(name, result);
-  added = true;
-  return result;
-} // Sorts::addSort
-
-
-/**
- *
- * @author Giles
- */
-unsigned Sorts::addArraySort(const unsigned indexSort, const unsigned innerSort)
-{
-  CALL("Sorts::addArraySort");
-
-  vstring name = "$array(";
-  name+=env.sorts->sortName(indexSort);
-  name+=",";
-  name+=env.sorts->sortName(innerSort);
-  name+=")";
-  unsigned result;
-  if(_sortNames.find(name,result)){
-    return result;
-  }
-
-  _hasSort = true;
-  result = _sorts.length(); 
-
-  ArraySort* sort = new ArraySort(name,indexSort,innerSort,result);
+  
+  _termListsToUnsigned.insert(sort, _sorts.size());
   _sorts.push(sort);
-  _sortNames.insert(name,result);
-
-  return result;
+  return true;
 }
 
-struct SortInfoToInt{
-  DECL_RETURN_TYPE(unsigned);
-  unsigned operator()(Sorts::SortInfo* s){ return s->id(); }
-};
+unsigned Sorts::getSortNum(TermList sort)
+{ 
+  CALL("Sorts::getSortNum");
 
-/**
- * @authors Giles, Evgeny
- */
-VirtualIterator<unsigned> Sorts::getStructuredSorts(const StructuredSort ss)
-{
-  CALL("Sorts::getStructuredSorts");
-  Stack<SortInfo*>::Iterator all(_sorts);
-  VirtualIterator<SortInfo*> structuredSorts = pvi(getFilteredIterator(all,
-               [ss](SortInfo* s){ return s->isOfStructuredSort(ss);}));
-  return pvi(getMappingIterator(structuredSorts,SortInfoToInt()));
+  ASS_REP(_termListsToUnsigned.find(sort), sort.toString())
+  return _termListsToUnsigned.get(sort);
 }
 
-unsigned Sorts::addTupleSort(unsigned arity, unsigned sorts[])
+TermList Sorts::getSortTerm(unsigned sortNum)
 {
-  CALL("Sorts::addTupleSort");
-
-  vstring name = "[";
-  for (unsigned i = 0; i < arity; i++) {
-    name += env.sorts->sortName(sorts[i]);
-    if (i != arity - 1) {
-      name += ",";
-    }
-  }
-  name += "]";
-  unsigned result;
-  if(_sortNames.find(name, result)) {
-    return result;
-  }
-
-  _hasSort = true;
-  result = _sorts.length();
-
-  _sorts.push(new TupleSort(name,result,arity,sorts));
-  _sortNames.insert(name, result);
-
-  return result;
+  CALL("Sorts::getSortTerm");
+  
+  ASS(sortNum < _sorts.size())
+  return _sorts[sortNum];
 }
-
-/**
- * True if this collection contains the sort @c name.
- * @author Andrei Voronkov
- */
-bool Sorts::haveSort(const vstring& name)
-{
-  CALL("Sorts::haveSort");
-  return _sortNames.find(name);
-} // haveSort
-
-/**
- * Find a sort with the name @c name. If the sort is found, return true and set @c idx
- * to the sort number. Otherwise, return false.
- * @author Andrei Voronkov
- */
-bool Sorts::findSort(const vstring& name, unsigned& idx)
-{
-  CALL("Sorts::findSort");
-  return _sortNames.find(name, idx);
-} // Sorts::findSort
-
-const vstring& Sorts::sortName(unsigned idx) const
-{
-  CALL("Sorts::sortName");
-  if (env.options->showFOOL() && idx == SRT_BOOL) {
-    static vstring name("$bool");
-    return name;
-  }
-  return _sorts[idx]->name();
-} // Sorts::sortName
 
 /**
  * Pre-initialise an OperatorKey.
@@ -220,7 +96,7 @@ const vstring& Sorts::sortName(unsigned idx) const
  * otherwise, by sorts from the array @c sorts
  * @author Andrei Voronkov
  */
-OperatorType::OperatorKey* OperatorType::setupKey(unsigned arity, const unsigned* sorts)
+OperatorType::OperatorKey* OperatorType::setupKey(unsigned arity, const TermList* sorts)
 {
   CALL("OperatorType::setupKey(unsigned,const unsigned*)");
 
@@ -228,8 +104,8 @@ OperatorType::OperatorKey* OperatorType::setupKey(unsigned arity, const unsigned
 
   if (!sorts) {
     // initialise all argument types to the default type
-    for (unsigned i = 0; i < arity; i++) {
-      (*key)[i] = Sorts::SRT_DEFAULT;
+    for (unsigned i=0; i < arity; i++) {
+      (*key)[i] = Term::defaultSort();
     }
   } else {
     // initialise all the argument types to those taken from sorts
@@ -243,7 +119,7 @@ OperatorType::OperatorKey* OperatorType::setupKey(unsigned arity, const unsigned
 /**
  * Pre-initialise an OperatorKey from an initializer list of sorts.
  */
-OperatorType::OperatorKey* OperatorType::setupKey(std::initializer_list<unsigned> sorts)
+OperatorType::OperatorKey* OperatorType::setupKey(std::initializer_list<TermList> sorts)
 {
   CALL("OperatorType::setupKey(std::initializer_list<unsigned>)");
 
@@ -261,13 +137,13 @@ OperatorType::OperatorKey* OperatorType::setupKey(std::initializer_list<unsigned
 /**
  * Pre-initialise an OperatorKey from using a uniform range.
  */
-OperatorType::OperatorKey* OperatorType::setupKeyUniformRange(unsigned arity, unsigned argsSort)
+OperatorType::OperatorKey* OperatorType::setupKeyUniformRange(unsigned arity, TermList argsSort)
 {
   CALL("OperatorType::setupKeyUniformRange");
 
   OperatorKey* key = OperatorKey::allocate(arity+1);
 
-  for (unsigned i=0; i<arity; i++) {
+  for (unsigned i=0; i < arity; i++) {
     (*key)[i] = argsSort;
   }
 
@@ -292,7 +168,7 @@ OperatorType::OperatorTypes& OperatorType::operatorTypes() {
  *
  * Release key if not needed.
  */
-OperatorType* OperatorType::getTypeFromKey(OperatorType::OperatorKey* key)
+OperatorType* OperatorType::getTypeFromKey(OperatorType::OperatorKey* key, unsigned taArity)
 {
   CALL("OperatorType::getTypeFromKey");
 
@@ -303,19 +179,19 @@ OperatorType* OperatorType::getTypeFromKey(OperatorType::OperatorKey* key)
   }
   */
 
-  OperatorType* resultType;
-  if (operatorTypes().find(key,resultType)) {
+  OperatorType* resultType = new OperatorType(key, taArity);
+
+  if (operatorTypes().find(resultType, resultType)) {
     key->deallocate();
 
-    // cout << " Found " << resultType << endl;
-
+    //cout << " Found " + resultType->toString() << endl;
+    
     return resultType;
   }
 
-  resultType = new OperatorType(key);
-  operatorTypes().insert(key,resultType);
+  operatorTypes().insert(resultType);
 
-  // cout << " Created new " << resultType << endl;
+  //cout << " Created new " + resultType->toString() << endl;
 
   return resultType;
 }
@@ -333,8 +209,8 @@ vstring OperatorType::argsToString() const
   vstring res = "(";
   unsigned ar = arity();
   ASS(ar);
-  for (unsigned i = 0; i < ar; i++) {
-    res += env.sorts->sortName(arg(i));
+  for (unsigned i = _typeArgsArity; i < ar; i++) {
+    res += arg(i).toString();
     if (i != ar-1) {
       res += " * ";
     }
@@ -350,8 +226,20 @@ vstring OperatorType::toString() const
 {
   CALL("OperatorType::toString");
 
-  return (arity() ? argsToString() + " > " : "") +
-      (isPredicateType() ? "$o" : env.sorts->sortName(result()));
+  vstring res;
+  bool bracket = false;
+  if(_typeArgsArity){
+    res = "!>[";
+    for(unsigned i = 0; i < _typeArgsArity; i++){
+      if(i != 0){ res += ", "; }
+      res+=  quantifiedVar(i).toString() + ": $tType"; 
+    }
+    res += "]:";
+    bracket = true;
+  }
+
+  return res + (bracket ? "(" : "") +  (arity() - typeArgsArity() ? argsToString() + " > " : "") +
+      (isPredicateType() ? "$o" : result().toString()) + (bracket ? ")" : "");
 }
 
 /**
@@ -359,18 +247,18 @@ vstring OperatorType::toString() const
  * and so is the result sort if we are talking about a function type.
  * @author Andrei Voronkov
  */
-bool OperatorType::isSingleSortType(unsigned srt) const
+bool OperatorType::isSingleSortType(TermList srt) const
 {
-  CALL("OperatorType::isAllDefault");
+  CALL("OperatorType::isSingleSortType");
 
   unsigned len = arity();
   for (unsigned i = 0; i <len; i++) {
-    if (arg(i) != srt) {
+    if (arg(i) != srt) { //term comparison with != should be OK on the basis that both are shared terms
       return false;
     }
   }
 
-  if (isFunctionType() && result() != srt) {
+  if (isFunctionType() && result() != srt) { 
     return false;
   }
 

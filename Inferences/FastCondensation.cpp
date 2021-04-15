@@ -89,12 +89,12 @@ Clause* FastCondensation::simplify(Clause* cl)
       unsigned var=vit.next().var();
       int* pvlit;
       if(!varLits.getValuePtr(var, pvlit)) {
-	if(*pvlit!=static_cast<int>(i)) {
-	  *pvlit=-1;
-	}
+        if(*pvlit!=static_cast<int>(i)) {
+          *pvlit=-1;
+        }
       }
       else {
-	*pvlit=i;
+        *pvlit=i;
       }
     }
   }
@@ -111,24 +111,24 @@ Clause* FastCondensation::simplify(Clause* cl)
     }
     for(unsigned mIndex=0;mIndex<clen;mIndex++) {
       if(mIndex==cIndex) {
-	continue;
+        continue;
       }
       if(MatchingUtils::match(cLit, (*cl)[mIndex], false, cbinder)) {
-	unsigned newLen=clen-1;
-	Clause* res = new(newLen) Clause(newLen,
-	    SimplifyingInference1(InferenceRule::CONDENSATION, cl));
+        unsigned newLen=clen-1;
+        Clause* res = new(newLen) Clause(newLen,
+            SimplifyingInference1(InferenceRule::CONDENSATION, cl));
 
-	unsigned ri=0;
-	for(unsigned ci=0;ci<clen;ci++) {
-	  if(ci!=cIndex) {
-	    (*res)[ri++] = (*cl)[ci];
-	  }
-	}
-	ASS_EQ(ri, newLen);
-
-	env.statistics->condensations++;
-
-	return res;
+        unsigned ri=0;
+        for(unsigned ci=0;ci<clen;ci++) {
+          if(ci!=cIndex) {
+            (*res)[ri++] = (*cl)[ci];
+          }
+        }
+        ASS_EQ(ri, newLen);
+ 
+        env.statistics->condensations++;
+ 
+        return res;
       }
     }
   }

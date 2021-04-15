@@ -16,6 +16,7 @@
 #define __Hash__
 
 #include <utility>
+#include <functional>
 
 #include "Forwards.hpp"
 #include "VString.hpp"
@@ -31,6 +32,13 @@ struct HashUtils
    * http://www.boost.org/doc/libs/1_35_0/doc/html/boost/hash_combine_id241013.html
    */
   static unsigned combine(unsigned h1, unsigned h2) { return h1 ^ (h2 + 0x9e3779b9 + (h1 << 6) + (h1 >> 2)); }
+
+  /** 
+   * Combine n hashes for n > 2.
+   * Since 11/08/2020
+   */
+  template<class... Ts> static unsigned combine(unsigned h1, unsigned h2, unsigned h3, Ts... ts) 
+  { return combine(h1, combine(h2, h3, ts...)); }
 };
 
 template<class ElementHash>
@@ -45,6 +53,29 @@ struct StackHash {
     return res;
   }
 };
+
+template<class T>
+struct StlHash {
+  static unsigned hash(const T& self) 
+  { return std::hash<T>{}(self); }
+
+  static bool equals(const T& lhs, const T& rhs) 
+  { return lhs == rhs; }
+};
+
+template<class T, class Hash = StlHash<T>>
+struct DerefPtrHash {
+  static unsigned hash(const T* self) 
+  { return Hash::hash(*self); }
+
+  static bool equals(const T* lhs, const T* rhs) 
+  { return Hash::equals(*lhs, *rhs); 
+  }
+};
+
+template<class T>
+size_t stlHash(const T& self) 
+{ return std::hash<T>{}(self); }
 
 template<class ElementHash>
 struct VectorHash {
@@ -224,6 +255,17 @@ struct FirstHashTypeInfo<std::pair<T,U> > {
 template<typename T>
 struct FirstHashTypeInfo<Stack<T> > {
   typedef StackHash< typename FirstHashTypeInfo<T>::Type > Type;
+};
+
+
+} // namespace Lib
+
+namespace std {
+
+template<class T> struct hash<Lib::Stack<T>> 
+{
+  size_t operator()(Lib::Stack<T> const& s) const 
+  { return Lib::StackHash<Lib::StlHash<T>>::hash(s); }
 };
 
 }

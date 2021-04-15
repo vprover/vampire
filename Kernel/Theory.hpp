@@ -33,19 +33,35 @@ namespace Kernel {
  * Exception to be thrown when the requested operation cannot be performed,
  * e.g. because of overflow of a native type.
  */
-class ArithmeticException : public ThrowableBase { };
+class ArithmeticException : public Exception {
+protected:
+  ArithmeticException(const char* msg) : Exception(msg) {}
+};
 
-class MachineArithmeticException : public ArithmeticException {  };
-class DivByZeroException         : public ArithmeticException {  };
+class MachineArithmeticException : public ArithmeticException 
+{ 
+public:
+  MachineArithmeticException() : ArithmeticException("machine arithmetic exception"){} 
+};
+
+class DivByZeroException         : public ArithmeticException 
+{ 
+public:
+  DivByZeroException() : ArithmeticException("divided by zero"){} 
+};
 
 class IntegerConstantType
 {
 public:
-  static unsigned getSort() { return Sorts::SRT_INTEGER; }
+  CLASS_NAME(IntegerConstantType)
+  static TermList getSort() { return Term::intSort(); }
 
   typedef int InnerType;
 
   IntegerConstantType() {}
+  IntegerConstantType(IntegerConstantType&&) = default;
+  IntegerConstantType(const IntegerConstantType&) = default;
+  IntegerConstantType& operator=(const IntegerConstantType&) = default;
   constexpr IntegerConstantType(InnerType v) : _val(v) {}
   explicit IntegerConstantType(const vstring& str);
 
@@ -85,10 +101,14 @@ public:
   bool isNegative(){ return _val<0; }
 
   static IntegerConstantType floor(RationalConstantType rat);
+  static IntegerConstantType floor(IntegerConstantType rat);
+
   static IntegerConstantType ceiling(RationalConstantType rat);
+  static IntegerConstantType ceiling(IntegerConstantType rat);
   IntegerConstantType abs() const;
 
   static Comparison comparePrecedence(IntegerConstantType n1, IntegerConstantType n2);
+  size_t hash() const;
 
   vstring toString() const;
 private:
@@ -111,10 +131,14 @@ std::ostream& operator<< (ostream& out, const IntegerConstantType& val) {
  */
 struct RationalConstantType {
   typedef IntegerConstantType InnerType;
+  CLASS_NAME(RationalConstantType)
 
-  static unsigned getSort() { return Sorts::SRT_RATIONAL; }
+  static TermList getSort() { return Term::rationalSort(); }
 
   RationalConstantType() {}
+  RationalConstantType(RationalConstantType&&) = default;
+  RationalConstantType(const RationalConstantType&) = default;
+  RationalConstantType& operator=(const RationalConstantType&) = default;
 
   RationalConstantType(InnerType num, InnerType den);
   RationalConstantType(const vstring& num, const vstring& den);
@@ -157,6 +181,7 @@ struct RationalConstantType {
 
   const InnerType& numerator() const { return _num; }
   const InnerType& denominator() const { return _den; }
+  size_t hash() const;
 
   static Comparison comparePrecedence(RationalConstantType n1, RationalConstantType n2);
 
@@ -179,13 +204,18 @@ std::ostream& operator<< (ostream& out, const RationalConstantType& val) {
 class RealConstantType : public RationalConstantType
 {
 public:
-  static unsigned getSort() { return Sorts::SRT_REAL; }
+  CLASS_NAME(RealConstantType)
+  static TermList getSort() { return Term::realSort(); }
 
   RealConstantType() {}
+  RealConstantType(RealConstantType&&) = default;
+  RealConstantType(const RealConstantType&) = default;
+  RealConstantType& operator=(const RealConstantType&) = default;
+
   explicit RealConstantType(const vstring& number);
   explicit constexpr RealConstantType(const RationalConstantType& rat) : RationalConstantType(rat) {}
-  explicit constexpr RealConstantType(typename IntegerConstantType::InnerType number) : RealConstantType(RationalConstantType(number)) {}
   RealConstantType(int num, int den) : RationalConstantType(num, den) {}
+  explicit constexpr RealConstantType(typename IntegerConstantType::InnerType number) : RealConstantType(RationalConstantType(number)) {}
 
   RealConstantType operator+(const RealConstantType& num) const
   { return RealConstantType(RationalConstantType::operator+(num)); }
@@ -206,11 +236,35 @@ public:
 
   vstring toNiceString() const;
 
+  size_t hash() const;
   static Comparison comparePrecedence(RealConstantType n1, RealConstantType n2);
+
+  /** 
+   * returns the internal represenation of this RealConstantType. 
+   * 
+   * Currently we represent Reals as Rationals. We might
+   * change this representation in the future in order to represent numerals other algebraic numbers (e.g.  sqrt(2)). 
+   * In order to make this future proof this function is called in places where we rely on the representation of reals,
+   * so we get a compiler error if we change the underlying datatype.
+   */
+  RationalConstantType representation() const;
 private:
   static bool parseDouble(const vstring& num, RationalConstantType& res);
 
 };
+
+inline bool operator<(const RealConstantType& lhs ,const RealConstantType& rhs) { 
+  return static_cast<const RationalConstantType&>(lhs) < static_cast<const RationalConstantType&>(rhs);
+}
+inline bool operator>(const RealConstantType& lhs, const RealConstantType& rhs) {
+  return static_cast<const RationalConstantType&>(lhs) > static_cast<const RationalConstantType&>(rhs);
+}
+inline bool operator<=(const RealConstantType& lhs, const RealConstantType& rhs) {
+  return static_cast<const RationalConstantType&>(lhs) <= static_cast<const RationalConstantType&>(rhs);
+}
+inline bool operator>=(const RealConstantType& lhs, const RealConstantType& rhs) {
+  return static_cast<const RationalConstantType&>(lhs) >= static_cast<const RationalConstantType&>(rhs);
+}
 
 inline
 std::ostream& operator<< (ostream& out, const RealConstantType& val) {
@@ -387,10 +441,10 @@ public:
   static bool isInequality(Interpretation i);
   static OperatorType* getNonpolymorphicOperatorType(Interpretation i);
 
-  static OperatorType* getArrayOperatorType(unsigned arraySort, Interpretation i);
+  static OperatorType* getArrayOperatorType(TermList arraySort, Interpretation i);
 
   static bool hasSingleSort(Interpretation i);
-  static unsigned getOperationSort(Interpretation i);
+  static TermList getOperationSort(Interpretation i);
   static bool isConversionOperation(Interpretation i);
   static bool isLinearOperation(Interpretation i);
   static bool isNonLinearOperation(Interpretation i);
@@ -398,12 +452,12 @@ public:
 
   static bool isPolymorphic(Interpretation i);
 
-  unsigned getArrayExtSkolemFunction(unsigned i);
+  unsigned getArrayExtSkolemFunction(TermList sort);
 
   static Theory theory_obj;
   static Theory* instance();
 
-  void defineTupleTermAlgebra(unsigned arity, unsigned* sorts);
+  void defineTupleTermAlgebra(unsigned arity, TermList* sorts);
 
   /** Returns true if the argument is an interpreted constant
    */
@@ -466,6 +520,7 @@ public:
     return tryInterpretConstant(trm.term(),res);
   }
   bool tryInterpretConstant(const Term* t, IntegerConstantType& res);
+  bool tryInterpretConstant(unsigned functor, IntegerConstantType& res);
   /**
    * Try to interpret the term list as an rational constant. If it is an
    * rational constant, return true and save the constant in @c res, otherwise
@@ -480,6 +535,7 @@ public:
     return tryInterpretConstant(trm.term(),res);
   }
   bool tryInterpretConstant(const Term* t, RationalConstantType& res);
+  bool tryInterpretConstant(unsigned functor, RationalConstantType& res);
   /**
    * Try to interpret the term list as an real constant. If it is an
    * real constant, return true and save the constant in @c res, otherwise
@@ -494,6 +550,7 @@ public:
     return tryInterpretConstant(trm.term(),res);
   }
   bool tryInterpretConstant(const Term* t, RealConstantType& res);
+  bool tryInterpretConstant(unsigned functor, RealConstantType& res);
 
   Term* representConstant(const IntegerConstantType& num);
   Term* representConstant(const RationalConstantType& num);
@@ -505,15 +562,15 @@ private:
   Theory();
   static OperatorType* getConversionOperationType(Interpretation i);
 
-  DHMap<unsigned,unsigned> _arraySkolemFunctions;
+  DHMap<TermList,unsigned> _arraySkolemFunctions;
 
 public:
   class Tuples {
   public:
     bool isFunctor(unsigned functor);
-    unsigned getFunctor(unsigned arity, unsigned* sorts);
-    unsigned getFunctor(unsigned tupleSort);
-    unsigned getProjectionFunctor(unsigned proj, unsigned tupleSort);
+    unsigned getFunctor(unsigned arity, TermList sorts[]);
+    unsigned getFunctor(TermList tupleSort);
+    unsigned getProjectionFunctor(unsigned proj, TermList tupleSort);
     bool findProjection(unsigned projFunctor, bool isPredicate, unsigned &proj);
   };
 
@@ -529,5 +586,27 @@ typedef Theory::Interpretation Interpretation;
 extern Theory* theory;
 
 }
+
+template<>
+struct std::hash<Kernel::IntegerConstantType>
+{
+  size_t operator()(Kernel::IntegerConstantType const& self) const noexcept 
+  { return self.hash(); }
+};
+
+template<>
+struct std::hash<Kernel::RationalConstantType>
+{
+  size_t operator()(Kernel::RationalConstantType const& self) const noexcept 
+  { return self.hash(); }
+};
+
+
+template<>
+struct std::hash<Kernel::RealConstantType>
+{
+  size_t operator()(Kernel::RealConstantType const& self) const noexcept 
+  { return self.hash(); }
+};
 
 #endif // __Theory__

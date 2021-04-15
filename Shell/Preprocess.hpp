@@ -52,7 +52,7 @@ public:
 private:
   void preprocess2(Problem& prb);
   void naming(Problem& prb);
-  Unit* preprocess3(Unit* u);
+  Unit* preprocess3(Unit* u, bool appify /*higher order stuff*/);
   void preprocess3(Problem& prb);
   void clausify(Problem& prb);
 

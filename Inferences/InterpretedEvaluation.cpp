@@ -114,7 +114,7 @@ Clause* InterpretedEvaluation::simplify(Clause* cl)
       if(constant) {
         if(constTrue) {
           //cout << "evaluate " << cl->toString() << " to true" << endl;
-          env.statistics->evaluations++;
+          env.statistics->evaluationCnt++;
           return 0;
         } else {
           continue;
@@ -151,10 +151,10 @@ Clause* InterpretedEvaluation::simplify(Clause* cl)
       (*res)[i] = newLits[i];
     }
 
-    env.statistics->evaluations++;
+    env.statistics->evaluationCnt++;
     return res; 
 
-  } catch (MachineArithmeticException) {
+  } catch (MachineArithmeticException&) {
     /* overflow while evaluating addition, subtraction, etc. */
     return cl;
   }

@@ -61,16 +61,14 @@ void TheoryInstAndSimp::attach(SaturationAlgorithm* salg)
 {
   CALL("Superposition::attach");
 
-  GeneratingInferenceEngine::attach(salg);
+  SimplifyingGeneratingInference::attach(salg);
   _splitter = salg->getSplitter();
 }
 
-bool TheoryInstAndSimp::isSupportedSort(const unsigned sort) {
+bool TheoryInstAndSimp::isSupportedSort(const TermList sort) {
   //TODO: extend for more sorts (arrays, datatypes)
-  switch (sort) {
-  case Kernel::Sorts::SRT_INTEGER:
-  case Kernel::Sorts::SRT_RATIONAL:
-  case Kernel::Sorts::SRT_REAL:
+  if(sort == Term::intSort() || sort == Term::realSort() ||
+     sort == Term::rationalSort()){
     return true;
   }
   return false;
@@ -82,7 +80,7 @@ bool TheoryInstAndSimp::isSupportedSort(const unsigned sort) {
 bool TheoryInstAndSimp::isSupportedLiteral(Literal* lit) {
   //check equality spearately (X=Y needs special handling)
   if (lit->isEquality()) {
-    unsigned sort = SortHelper::getEqualityArgumentSort(lit);
+    TermList sort = SortHelper::getEqualityArgumentSort(lit);
     return isSupportedSort(sort);
   }
 
@@ -93,7 +91,7 @@ bool TheoryInstAndSimp::isSupportedLiteral(Literal* lit) {
 
   //check if arguments of predicate are supported
   for (unsigned i=0; i<lit->arity(); i++) {
-    unsigned sort = SortHelper::getArgSort(lit,i);
+    TermList sort = SortHelper::getArgSort(lit,i);
     if (! isSupportedSort(sort))
       return false;
   }
@@ -140,7 +138,7 @@ bool TheoryInstAndSimp::isPure(Literal* lit) {
       // f could map uninterpreted sorts to integer. when iterating over X
       // itself, its sort cannot be checked.
       for (unsigned i=0; i<term->arity(); i++) {
-        unsigned sort = SortHelper::getArgSort(term,i);
+        TermList sort = SortHelper::getArgSort(term,i);
         if (! isSupportedSort(sort))
           return false;
       }
@@ -157,7 +155,7 @@ bool TheoryInstAndSimp::isPure(Literal* lit) {
 bool TheoryInstAndSimp::isXeqTerm(const TermList* left, const TermList* right) {
   bool r = left->isVar() &&
     right->isTerm() &&
-    !IntList::member(left->var(), right->term()->freeVariables());
+    !VList::member(left->var(), right->term()->freeVariables());
   return r;
 }
 
@@ -587,16 +585,20 @@ void TheoryInstAndSimp::originalSelectTheoryLiterals(Clause* cl, Stack<Literal*>
   }
 }
 
-Term* getFreshConstant(unsigned index, unsigned srt)
+Term* getFreshConstant(unsigned index, TermList srt)
 {
   CALL("TheoryInstAndSimp::getFreshConstant");
-  static Stack<Stack<Term*>*> constants;
+  static Map<TermList, Stack<Term*>*> constants;
 
-  while(srt+1 > constants.length()){
-    Stack<Term*>* stack = new Stack<Term*>;
-    constants.push(stack);
-  }
-  Stack<Term*>* sortedConstants = constants[srt];
+  /*
+  We skolemize at some point in instantiation. For that we need fresh constants.
+  These constants don't need to be "fresh globally", but just within the one application of instantiation.
+  Therefore we reuse these fresh constants (in order to not blow up the size of the signature).
+  Therefore we store the constants in a container, which contains a stack of constants per sort.
+  It used to be a stack of Stacks, but since sorts are now TermLists and not just unsigned anymore we need a hashmap of `Stack`s instead.
+  */
+
+  Stack<Term*>* sortedConstants = constants.getOrInit(move(srt), []() { return new Stack<Term*>(); });
   while(index+1 > sortedConstants->length()){
     unsigned sym = env.signature->addFreshFunction(0,"$inst");
     OperatorType* type = OperatorType::getConstantsType(srt);
@@ -633,12 +635,12 @@ VirtualIterator<Solution> TheoryInstAndSimp::getSolutions(Stack<Literal*>& theor
     // get the complementary of the literal
     Literal* lit = Literal::complementaryLiteral(it.next());
     // replace variables consistently by fresh constants
-    DHMap<unsigned,unsigned > srtMap;
+    DHMap<unsigned, TermList> srtMap;
     SortHelper::collectVariableSorts(lit,srtMap);
     TermVarIterator vit(lit);
     while(vit.hasNext()){
       unsigned var = vit.next();
-      unsigned sort = srtMap.get(var);
+      auto sort = srtMap.get(var);
       TermList fc;
       if(!subst.findBinding(var,fc)){
         Term* fc = getFreshConstant(used++,sort);
@@ -729,8 +731,7 @@ struct InstanceFn
           _cl(cl), _theoryLits(tl), _splitter(splitter),
          _parent(parent), _red(red) {}
 
-  DECL_RETURN_TYPE(Clause*);
-  OWN_RETURN_TYPE operator()(Solution sol)
+  Clause* operator()(Solution sol)
   {
     CALL("TheoryInstAndSimp::InstanceFn::operator()");
 
@@ -826,11 +827,18 @@ private:
   bool& _red;
 };
 
-ClauseIterator TheoryInstAndSimp::generateClauses(Clause* premise,bool& premiseRedundant)
+SimplifyingGeneratingInference::ClauseGenerationResult TheoryInstAndSimp::generateSimplify(Clause* premise)
 {
-  CALL("TheoryInstAndSimp::generateClauses");
+  CALL("TheoryInstAndSimp::generateSimplify");
 
-  if(premise->isPureTheoryDescendant()){ return ClauseIterator::getEmpty(); }
+  auto empty = ClauseGenerationResult {
+    .clauses          = ClauseIterator::getEmpty(),
+    .premiseRedundant = false,
+  };
+
+  if(premise->isPureTheoryDescendant()){ 
+    return empty;
+  }
 
   static Options::TheoryInstSimp thi = env.options->theoryInstAndSimp();
 
@@ -847,7 +855,7 @@ ClauseIterator TheoryInstAndSimp::generateClauses(Clause* premise,bool& premiseR
 
   // if there are no eligable theory literals selected then there is nothing to do
   if(selectedLiterals.isEmpty()){
-        return ClauseIterator::getEmpty();
+    return empty;
   }
 
   // we have an eligable candidate
@@ -885,7 +893,7 @@ ClauseIterator TheoryInstAndSimp::generateClauses(Clause* premise,bool& premiseR
 #endif
     if(theoryLiterals.isEmpty()){
        //cout << "None" << endl;
-       return ClauseIterator::getEmpty();
+       return empty;
     }
     selectedLiterals.reset();
     selectedLiterals.loadFromIterator(Stack<Literal*>::Iterator(theoryLiterals));
@@ -893,6 +901,7 @@ ClauseIterator TheoryInstAndSimp::generateClauses(Clause* premise,bool& premiseR
 
   {
     TimeCounter t(TC_THEORY_INST_SIMP);
+    bool premiseRedundant = false;
 
     //auto it1 = getSolutions(theoryLiterals);
     auto it1 = getSolutions(selectedLiterals);
@@ -906,13 +915,20 @@ ClauseIterator TheoryInstAndSimp::generateClauses(Clause* premise,bool& premiseR
     // measure time of the overall processing
     auto it4 = getTimeCountedIterator(it3,TC_THEORY_INST_SIMP);
 
-    auto out = getPersistentIterator(it4); // we need immediate evaluation, so that premiseRedundant is set just after the call!
+    auto clauses =  getPersistentIterator(it4);
+    if (premiseRedundant && env.options->thiTautologyDeletion()) {
 
-    if (!env.options->thiTautologyDeletion()) {
-      premiseRedundant = false;
+      return ClauseGenerationResult {
+        .clauses          = ClauseIterator::getEmpty(),
+        .premiseRedundant = true,
+      };
+    } else {
+
+      return ClauseGenerationResult {
+        .clauses          = clauses,
+        .premiseRedundant = false,
+      };
     }
-
-    return out;
   }
 }
 

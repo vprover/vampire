@@ -18,6 +18,8 @@
 #include "Lib/VString.hpp"
 #include "Kernel/Sorts.hpp"
 
+using Kernel::TermList;
+
 namespace Shell {
   class TermAlgebraConstructor {
   public:
@@ -28,12 +30,13 @@ namespace Shell {
        arity, and for each argument: the name of its destructor and
        its sort*/
     TermAlgebraConstructor(unsigned functor, Lib::Array<unsigned> destructors);
+    TermAlgebraConstructor(unsigned functor, std::initializer_list<unsigned> destructors);
     TermAlgebraConstructor(unsigned functor, unsigned discriminator, Lib::Array<unsigned> destructors);
     ~TermAlgebraConstructor() {}
 
     unsigned arity();
-    unsigned argSort(unsigned ith);
-    unsigned rangeSort();
+    TermList argSort(unsigned ith);
+    TermList rangeSort();
 
     /* True iff one of the arguments has the same sort as the range */
     bool recursive();
@@ -71,13 +74,19 @@ namespace Shell {
        sort), and their cyclicity. If allowsCyclicTerms is false, and
        the option -tar is not set to off, then the acyclicity rule
        will be enforced for terms of this algebra*/
-    TermAlgebra(unsigned sort,
+    TermAlgebra(TermList sort,
                 unsigned n,
                 TermAlgebraConstructor** constrs,
                 bool allowsCyclicTerms = false);
+    TermAlgebra(TermList sort,
+                Lib::Array<TermAlgebraConstructor*> constrs,
+                bool allowsCyclicTerms = false);
+    TermAlgebra(TermList sort,
+                std::initializer_list<TermAlgebraConstructor*> constrs,
+                bool allowsCyclicTerms = false);
     ~TermAlgebra() {}
 
-    unsigned sort() { return _sort; }
+    TermList sort() { return _sort; }
     unsigned nConstructors() { return _n; }
     TermAlgebraConstructor* constructor(unsigned ith) { ASS_L(ith, _n); return _constrs[ith]; }
     bool allowsCyclicTerms() { return _allowsCyclicTerms; }
@@ -100,7 +109,7 @@ namespace Shell {
     unsigned getSubtermPredicate();
 
   private:
-    unsigned _sort;
+    TermList _sort;
     unsigned _n; /* number of constructors */
     bool _allowsCyclicTerms;
     ConstructorArray _constrs;

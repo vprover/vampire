@@ -434,8 +434,8 @@ SATSolver::Status SplittingBranchSelector::processDPConflicts()
 
     // there was conflict, so we try looking for a different model
     {
-    	TimeCounter tca(TC_SAT_SOLVER);
-    	
+      TimeCounter tca(TC_SAT_SOLVER);
+      
       if (_solver->solve() == SATSolver::UNSATISFIABLE) {
         return SATSolver::UNSATISFIABLE;
       }
@@ -852,13 +852,13 @@ void Splitter::onAllProcessed()
   
   if (_showSplitting) { // TODO: this is just one of many ways Splitter could report about changes
     env.beginOutput();
-    env.out() << "[AVATAR] recomputeModel: +";
+    env.out() << "[AVATAR] recomputeModel: + ";
     for (unsigned i = 0; i < toAdd.size(); i++) {
-      env.out() << toAdd[i] << ",";
+      env.out() << getLiteralFromName(toAdd[i]) << ",";
     }
-    env.out() << " -";
+    env.out() << "\t - ";
     for (unsigned i = 0; i < toRemove.size(); i++) {
-      env.out() << toRemove[i] << ",";
+      env.out() << getLiteralFromName(toRemove[i]) << ",";
     }
     env.out() << std::endl;
     env.endOutput();
@@ -1080,7 +1080,7 @@ bool Splitter::getComponents(Clause* cl, Stack<LiteralStack>& acc)
     while(vit.hasNext()) {
       unsigned master=varMasters.findOrInsert(vit.next().var(), i);
       if(master!=i) {
-	components.doUnion(master, i);
+  components.doUnion(master, i);
       }
     }
   }
@@ -1572,7 +1572,7 @@ void Splitter::onNewClause(Clause* cl)
   //  isComponent = _componentIdx->retrieveVariants(cl).hasNext();
   //}
   //if(isComponent){
-  //	RSTAT_CTR_INC("New Clause is a Component");
+  //  RSTAT_CTR_INC("New Clause is a Component");
   //}
 
   if(!cl->splits()) {
@@ -1789,6 +1789,7 @@ void Splitter::removeComponents(const SplitLevelStack& toRemove)
       if(ccl->store()!=Clause::NONE) {
         _sa->removeActiveOrPassiveClause(ccl);
         ASS_EQ(ccl->store(), Clause::NONE);
+      } else {
       }
       ccl->invalidateMyReductionRecords();
       ccl->decNumActiveSplits();

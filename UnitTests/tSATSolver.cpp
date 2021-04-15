@@ -21,9 +21,6 @@
 
 #include "Test/UnitTesting.hpp"
 
-#define UNIT_ID satSolver
-UT_CREATE;
-
 using namespace std;
 using namespace Lib;
 using namespace SAT;

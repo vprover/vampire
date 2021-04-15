@@ -30,6 +30,9 @@
 #include "Shell/TheoryFinder.hpp"
 
 #include <unistd.h>
+#include <fstream>
+#include <stdio.h>
+#include <cstdio>
 
 #include "Saturation/ProvingHelper.hpp"
 
@@ -47,6 +50,16 @@ PortfolioMode::PortfolioMode() : _slowness(1.0), _syncSemaphore(2) {
   // 1) dec is the only operation which is blocking
   // 2) dec is done in the mode SEM_UNDO, so is undone when a process terminates
 
+  if(env.options->printProofToFile().empty()) {
+    /* if the user does not ask for printing the proof to a file,
+     * we generate a temp file name, in master,
+     * to be filled up in the winning worker with the proof
+     * and printed later by master to stdout
+     * when all the workers have shut up reporting status
+     * (not to get the status talking interrupt the proof printing)
+     */
+    _tmpFileNameForProof = tmpnam(NULL);
+  }
   _syncSemaphore.set(SEM_LOCK,1);    // to synchronize access to the second field
   _syncSemaphore.set(SEM_PRINTED,0); // to indicate that a child has already printed result (it should only happen once)
 }
@@ -289,6 +302,10 @@ void PortfolioMode::getSchedules(Property& prop, Schedule& quick, Schedule& fall
     Schedules::getCascSat2019Schedule(prop,quick,fallback);
     break;
 
+  case Options::Schedule::CASC_HOL_2020:
+    Schedules::getHigherOrderSchedule2020(quick,fallback);
+    break;
+
   case Options::Schedule::SMTCOMP:
   case Options::Schedule::SMTCOMP_2018:
     Schedules::getSmtcomp2018Schedule(prop,quick,fallback);
@@ -374,7 +391,41 @@ bool PortfolioMode::runSchedule(Schedule& schedule)
   PortfolioSliceExecutor executor(this);
   ScheduleExecutor sched(&policy, &executor);
 
-  return sched.run(schedule);
+  bool result = sched.run(schedule);
+
+  //All children have been killed. Now safe to print proof
+  if(result && env.options->printProofToFile().empty()){
+    /*
+     * the user didn't wish a proof in the file, so we printed it to the secret tmp file
+     * now it's time to restore it.
+     */
+
+    BYPASSING_ALLOCATOR; 
+    
+    ifstream input(_tmpFileNameForProof);
+
+    bool openSucceeded = !input.fail();
+
+    if (openSucceeded) {
+      env.beginOutput();
+      env.out() << input.rdbuf();
+      env.endOutput();
+    } else {
+      if (outputAllowed()) {
+        env.beginOutput();
+        addCommentSignForSZS(env.out()) << "Failed to restore proof from tempfile " << _tmpFileNameForProof << endl;
+        env.endOutput();
+      }
+    }
+
+    //If for some reason, the proof could not be opened
+    //we don't delete the proof file
+    if(openSucceeded){
+      remove(_tmpFileNameForProof); 
+    }
+  }
+
+  return result;
 }
 
 /**
@@ -505,12 +556,34 @@ void PortfolioMode::runSlice(Options& strategyOpt)
       _syncSemaphore.set(SEM_PRINTED,1);
       outputResult = true;
     }
+
   }
 
   if((outputAllowed() && resultValue) || outputResult) { // we can report on every failure, but only once on success
-    env.beginOutput();
-    UIHelper::outputResult(env.out());
-    env.endOutput();
+    // At the moment we only save one proof. We could potentially
+    // allow multiple proofs
+    vstring fname(env.options->printProofToFile());
+    if (fname.empty()) {
+      fname = _tmpFileNameForProof;
+    }
+
+    BYPASSING_ALLOCATOR; 
+    
+    ofstream output(fname.c_str());
+    if (output.fail()) {
+      // fallback to old printing method
+      env.beginOutput();
+      addCommentSignForSZS(env.out()) << "Proof printing to file '" << fname <<  "' failed. Outputting to stdout" << endl;
+      UIHelper::outputResult(env.out());
+      env.endOutput();
+    } else {
+      UIHelper::outputResult(output);
+      if (!env.options->printProofToFile().empty() && outputAllowed()) {
+        env.beginOutput();
+        addCommentSignForSZS(env.out()) << "Proof written to " << fname << endl;
+        env.endOutput();
+      }
+    }
   }
   else{
     /*

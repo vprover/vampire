@@ -128,6 +128,18 @@ public:
   unsigned inductionInProof;
   unsigned generalizedInduction;
   unsigned generalizedInductionInProof;
+  /** number of argument congruences */
+  unsigned argumentCongruence;
+  unsigned narrow;
+  unsigned forwardSubVarSup;
+  unsigned backwardSubVarSup;
+  unsigned selfSubVarSup;
+  unsigned negativeExtensionality;
+  unsigned primitiveInstantiations;
+  unsigned choiceInstances;
+  unsigned proxyEliminations;
+  unsigned leibnizElims;
+  unsigned booleanSimps;
 
   // Simplifying inferences
   /** number of duplicate literals deleted */
@@ -160,10 +172,26 @@ public:
   unsigned condensations;
   /** number of global subsumptions */
   unsigned globalSubsumption;
-  /** number of evaluations */
-  unsigned evaluations;
   /** number of interpreted simplifications */
   unsigned interpretedSimplifications;
+
+  /** how often did asg not simplify correctly. */
+  unsigned asgViolations;
+  /** applications of asg */
+  unsigned asgCnt;
+
+  /** how often did gve not simplify correctly. */
+  unsigned gveViolations;
+  /** applications of gve */
+  unsigned gveCnt;
+
+  /** number of evaluations that resulted in a incomparable literal */
+  unsigned evaluationIncomp;
+  /** number of evaluations that resulted in a greater literal */
+  unsigned evaluationGreater;
+  /** number of simplifications by PolynomialNormalizer */
+  unsigned evaluationCnt;
+
   /** number of (proper) inner rewrites */
   unsigned innerRewrites;
   /** number of inner rewrites into equational tautologies */
@@ -187,6 +215,11 @@ public:
   unsigned taInjectivitySimplifications;
   unsigned taNegativeInjectivitySimplifications;
   unsigned taAcyclicityGeneratedDisequalities;
+
+  //to be moved to the property object once that 
+  //is controlled by environment
+  bool higherOrder;
+  bool polymorphic;
 
   // Saturation
   /** all clauses ever occurring in the unprocessed queue */

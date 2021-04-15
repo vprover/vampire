@@ -71,8 +71,7 @@ void SLQueryBackwardSubsumption::detach()
 
 struct SLQueryBackwardSubsumption::ClauseExtractorFn
 {
-  DECL_RETURN_TYPE(Clause*);
-  OWN_RETURN_TYPE operator()(const SLQueryResult& res)
+  Clause* operator()(const SLQueryResult& res)
   {
     return res.clause;
   }
@@ -80,8 +79,7 @@ struct SLQueryBackwardSubsumption::ClauseExtractorFn
 
 struct SLQueryBackwardSubsumption::ClauseToBwSimplRecordFn
 {
-  DECL_RETURN_TYPE(BwSimplificationRecord);
-  OWN_RETURN_TYPE operator()(Clause* cl)
+  BwSimplificationRecord operator()(Clause* cl)
   {
     return BwSimplificationRecord(cl);
   }

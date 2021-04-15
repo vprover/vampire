@@ -13,6 +13,7 @@
  */
 
 #include <iomanip>
+#include <fstream>
 #include "Debug/Tracer.hpp"
 
 #include "Lib/Sys/Multiprocessing.hpp"
@@ -24,84 +25,97 @@
 
 #include "UnitTesting.hpp"
 
-namespace Test
-{
+namespace Test {
 
 using namespace Lib;
 using namespace Lib::Sys;
 
-TestUnit::TestUnit(const char* id)
-: _id(id), _tests(0)
-{
-  CALL("TestUnit::TestUnit");
+TestUnit::TestUnit(vstring const& name)
+: _tests(), _name(name)
+{ }
 
-  UnitTesting::instance()->add(this);
+UnitTesting* UnitTesting::_instance = nullptr;  
+
+UnitTesting& UnitTesting::instance() 
+{ 
+  if (_instance == nullptr) {
+    _instance = new UnitTesting();
+  }
+  return *_instance; 
 }
 
-
-/**
- * Return iterator over the tests in this unit
- *
- * All elements of the iterator must be retrieved, or
- * a memory leak will occur
- */
-TestUnit::Iterator TestUnit::getTests()
+bool UnitTesting::runTest(vstring const& unitId, vstring const& testCase) 
 {
-  CALL("TestUnit::getTests");
-
-  TestList* lst = TestList::reverse(TestList::copy(_tests));
-  return TestList::DestructiveIterator(lst);
+  auto unit = findUnit(unitId);
+  if (unit == nullptr) return false;
+  else return unit->runTest(testCase);
 }
-
-
-UnitTesting* UnitTesting::instance()
+bool TestUnit::runTest(vstring const& testCase)
 {
-  static UnitTesting inst;
-
-  return &inst;
-}
-
-UnitTesting::UnitTesting()
-: _units(0)
-{
-}
-
-UnitTesting::~UnitTesting()
-{
-  TestUnitList::destroy(_units);
-}
-
-TestUnit* UnitTesting::get(const char* unitId)
-{
-  CALL("UnitTesting::get");
-
-  TestUnitList::Iterator it(_units);
-  while(it.hasNext()) {
-    TestUnit* u=it.next();
-    if(!strcmp(u->id(), unitId)) {
-      return u;
+  for (auto test : _tests) {
+    if (test.name == testCase) {
+      test.proc();
+      return true;
     }
   }
-  return 0;
+  std::cerr << "test \"" << testCase << "\" not found in " << id() << std::endl;
+  return false;
 }
 
-// TestUnit* UnitTesting::getUnit(const char* unitId)
-// {
-//   TestUnit* unit=get(unitId);
-//   if(!unit) {
-//     return false;
-//   }
-//   runUnit(unit, out);
-//   return true;
-// }
-
-bool UnitTesting::runUnit(TestUnit* unit, ostream& out)
+bool UnitTesting::run(Stack<vstring> const& args) 
 {
-  out<<"Testing unit "<<unit->id()<<":"<<endl;
+  if (args.size() == 2) {
+    return runTest(args[0], args[1]);
+  } else {
+    ASS_EQ(args.size(), 1)
+    return runUnit(args[0]);
+  }
+}
 
-  TestUnit::Iterator uit=unit->getTests();
+TestUnit* UnitTesting::findUnit(vstring const& id) 
+{
+  TestUnit* found = nullptr;
+  for (auto& test : _units) {
+    if (test.id() == id) {
+      if (found == nullptr) {
+        found = &test;
+        break;
+      } else {
+        std::cerr << "found duplicate test id: " << test.id() << std::endl;
+        return nullptr;
+      }
+    }
+  }
+  if (found == nullptr) {
+    std::cerr << "test not found: " << id << std::endl;
+  }
+  return found;
+}
+
+bool UnitTesting::runUnit(vstring const& id)
+{
+  auto unit = findUnit(id);
+  if (unit == nullptr) return false;
+  else return unit->run(std::cout);
+}
+
+bool UnitTesting::listTests(Stack<vstring> const&)
+{
+  auto& out = std::cout;
+  for (auto unit : _units) {
+    for (auto test : unit.tests()) {
+      out << unit.id() << "\t" << test.name << std::endl;
+    }
+  }
+  return true;
+}
+
+bool TestUnit::run(ostream& out)
+{
+  Stack<Test>::BottomFirstIterator uit(_tests);
+
   if(!uit.hasNext()) {
-    out<<"No tests in this unit"<<endl;
+    out<<"No tests to run."<<endl;
   }
   unsigned cnt_fail = 0;
   unsigned cnt_ok  = 0;
@@ -127,18 +141,23 @@ bool UnitTesting::runUnit(TestUnit* unit, ostream& out)
   return cnt_fail == 0;
 }
 
+void TestUnit::add(Test t)
+{ _tests.push(t); }
+
+TestAdder::TestAdder(const char* unitId, TestProc proc, const char* name)
+{ UnitTesting::instance().add(unitId, TestUnit::Test(proc, name)); }
+
 /**
  * Run test in a different process and wait for its termination
  * This is to provide isolation when running multiple tests in one go.
  *
  * returns true iff the test process exited with status code 0
  */
-bool UnitTesting::spawnTest(TestProc proc)
+bool TestUnit::spawnTest(TestProc proc)
 {
-
   auto mp = Multiprocessing::instance();
   pid_t fres = mp->fork();
-  if(!fres) {
+  if(fres == 0) {
     proc();
     _exit(0); // don't call parent's atexit! 
   } else {
@@ -148,29 +167,43 @@ bool UnitTesting::spawnTest(TestProc proc)
   }
 }
 
-bool UnitTesting::runAllTests(ostream& out)
+bool UnitTesting::add(vstring const& testUnit, TestUnit::Test test)
 {
-  TestUnitList::Iterator tuit(_units);
-  bool allOk = true;
-  while(tuit.hasNext()) {
-    allOk &= runUnit(tuit.next(), out);
-    if(tuit.hasNext()) {
-      out<<endl;
+  for (auto& unit : _units) {
+    if (unit.id() == testUnit) {
+      unit.add(test);
+      return true;
     }
   }
-  return allOk;
+  _units.push(TestUnit(testUnit));
+  _units.top().add(test);
+  return true;
 }
 
-void UnitTesting::printTestNames(ostream& out)
+std::ostream& operator<<(ostream& out, TestUnit::Test const& t) 
+{ return out << t.name; }
+
+} // namespace Test
+
+int main(int argc, const char** argv) 
 {
-  CALL("UnitTesting::printTestNames");
-
-  TestUnitList::Iterator tuit(_units);
-  while(tuit.hasNext()) {
-    out<<tuit.next()->id()<<endl;
+  CALL("UnitTesting::main")
+  using namespace Lib;
+  using namespace std;
+  bool success;
+  auto cmd = vstring(argv[1]);
+  auto args = Stack<vstring>(argc - 2);
+  for (unsigned i = 2; i < argc; i++) {
+    args.push(vstring(argv[i]));
   }
-}
-
-
+  if (cmd == "ls") {
+    success = Test::UnitTesting::instance().listTests(args);
+  } else if (cmd == "run") {
+    success = Test::UnitTesting::instance().run(args);
+  } else {
+    cerr << "unknown command: " << cmd << endl;
+    success = false;
+  }
+  return success ? 0 : -1;
 }
 

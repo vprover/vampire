@@ -21,6 +21,7 @@
 #include "Lib/VirtualIterator.hpp"
 #include "Lib/Metaiterators.hpp"
 #include "Lib/PairUtils.hpp"
+#include "Lib/DHSet.hpp"
 
 #include "Term.hpp"
 
@@ -34,9 +35,14 @@ class EqHelper
 public:
   static TermList getOtherEqualitySide(Literal* eq, TermList lhs);
   static bool hasGreaterEqualitySide(Literal* eq, const Ordering& ord, TermList& lhs, TermList& rhs);
-  static TermIterator getRewritableSubtermIterator(Literal* lit, const Ordering& ord);
+  static TermIterator getSubtermIterator(Literal* lit, const Ordering& ord);
+  static TermIterator getFoSubtermIterator(Literal* lit, const Ordering& ord);
+  static TermIterator getBooleanSubtermIterator(Literal* lit, const Ordering& ord);  
+  static TermIterator getNarrowableSubtermIterator(Literal* lit, const Ordering& ord);  
+  static TermIterator getRewritableVarsIterator(DHSet<unsigned>* unstableVars, Literal* lit, const Ordering& ord);
   static TermIterator getLHSIterator(Literal* lit, const Ordering& ord);
   static TermIterator getSuperpositionLHSIterator(Literal* lit, const Ordering& ord, const Options& opt);
+  static TermIterator getSubVarSupLHSIterator(Literal* lit, const Ordering& ord);
   static TermIterator getDemodulationLHSIterator(Literal* lit, bool forward, const Ordering& ord, const Options& opt);
   static TermIterator getEqualityArgumentIterator(Literal* lit);
 
@@ -47,8 +53,7 @@ public:
   {
     LHSIteratorFn(const Ordering& ord) : _ord(ord) {}
 
-    DECL_RETURN_TYPE(VirtualIterator<pair<Literal*, TermList> >);
-    OWN_RETURN_TYPE operator()(Literal* lit)
+    VirtualIterator<pair<Literal*, TermList> > operator()(Literal* lit)
     {
       return pvi( pushPairIntoRightIterator(lit, getLHSIterator(lit, _ord)) );
     }
@@ -60,8 +65,7 @@ public:
   {
     SuperpositionLHSIteratorFn(const Ordering& ord, const Options& opt) : _ord(ord), _opt(opt) {}
 
-    DECL_RETURN_TYPE(VirtualIterator<pair<Literal*, TermList> >);
-    OWN_RETURN_TYPE operator()(Literal* lit)
+    VirtualIterator<pair<Literal*, TermList> > operator()(Literal* lit)
     {
       return pvi( pushPairIntoRightIterator(lit, getSuperpositionLHSIterator(lit, _ord, _opt)) );
     }
@@ -70,10 +74,22 @@ public:
     const Options& _opt;
   };
 
+  struct SubVarSupLHSIteratorFn
+  {
+    SubVarSupLHSIteratorFn(const Ordering& ord) : _ord(ord) {}
+
+    VirtualIterator<pair<Literal*, TermList> > operator()(Literal* lit)
+    {
+      return pvi( pushPairIntoRightIterator(lit, getSubVarSupLHSIterator(lit, _ord)) );
+    }
+  private:
+    const Ordering& _ord;
+  };
+
+
   struct EqualityArgumentIteratorFn
   {
-    DECL_RETURN_TYPE(VirtualIterator<pair<Literal*, TermList> >);
-    OWN_RETURN_TYPE operator()(Literal* lit)
+    VirtualIterator<pair<Literal*, TermList> > operator()(Literal* lit)
     {
       return pvi( pushPairIntoRightIterator(lit, getEqualityArgumentIterator(lit)) );
     }
@@ -84,6 +100,9 @@ public:
     return lit->isEquality() && lit->isPositive() && (*lit->nthArgument(0))==(*lit->nthArgument(1));
   }
 private:
+
+  template<class SubtermIterator>
+  static TermIterator getRewritableSubtermIterator(Literal* lit, const Ordering& ord);
 
   struct IsNonVariable;
 

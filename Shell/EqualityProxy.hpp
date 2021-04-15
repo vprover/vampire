@@ -20,6 +20,7 @@
 #include "Lib/Array.hpp"
 
 #include "Kernel/Term.hpp"
+#include "Kernel/Sorts.hpp"
 
 #include "Options.hpp"
 
@@ -28,6 +29,11 @@ namespace Shell {
 using namespace Lib;
 using namespace Kernel;
 
+// Polymorphic version of equality proxy transformation.
+// When working with a monomorphic problem, both the poly and the mono
+// versions can be used. Poly is default. 
+// The one exception is when using instGen calculus which has not 
+// been tested with polymrphism. In this case, mono version must be used
 
 /**
  * Applies the equality proxy transformation to the problem.
@@ -61,31 +67,27 @@ public:
   void apply(UnitList*& units);
   Clause* apply(Clause* cl);
 private:
-  void addLocalAxioms(UnitList*& units, unsigned sort);
+  void addLocalAxioms(UnitList*& units);
   void addAxioms(UnitList*& units);
   void addCongruenceAxioms(UnitList*& units);
-  bool getArgumentEqualityLiterals(unsigned cnt, LiteralStack& lits, Stack<TermList>& vars1,
-      Stack<TermList>& vars2, OperatorType* symbolType, bool skipSortsWithoutEquality);
+  void getArgumentEqualityLiterals(unsigned cnt, LiteralStack& lits, Stack<TermList>& vars1,
+      Stack<TermList>& vars2, OperatorType* symbolType);
   Literal* apply(Literal* lit);
-  Literal* makeProxyLiteral(bool polarity, TermList arg0, TermList arg1, unsigned sort);
+  Literal* makeProxyLiteral(bool polarity, TermList arg0, TermList arg1, TermList sort);
 
-  bool haveProxyPredicate(unsigned sort) const;
-  unsigned getProxyPredicate(unsigned sort);
+  unsigned getProxyPredicate();
   Clause* createEqProxyAxiom(const LiteralStack& literalIt);
 
   /** the equality proxy option value, passed in the constructor */
   Options::EqualityProxy _opt;
 
-  /**
-   * Proxy predicate numbers for each sort. If element on at the position
-   * of a predicate is zero, it means the proxy predicate for that sort was not
-   * added yet.
-   */
-  static ZIArray<unsigned> s_proxyPredicates;
-  /** equality proxy predicate sorts */
-  static DHMap<unsigned,unsigned> s_proxyPredicateSorts;
+  bool _addedPred;
+  unsigned _proxyPredicate;
+
   /** array of proxy definitions E(x,y) <=> x = y  */
-  static ZIArray<Unit*> s_proxyPremises;
+  //static ZIArray<Unit*> s_proxyPremises;
+  Unit* _defUnit;
+
 };
 
 };
