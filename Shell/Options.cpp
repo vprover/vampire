@@ -280,6 +280,12 @@ void Options::init()
     _lookup.insert(&_minimizeSatProofs);
     _minimizeSatProofs.tag(OptionTag::OUTPUT);
 
+    _printProofToFile = StringOptionValue("print_proofs_to_file","pptf","");
+    _printProofToFile.description="If Vampire finds a proof, it is printed to the here specified file instead of to stdout.\n"
+                                  "Currently, this option only works in portfolio mode.";
+    _lookup.insert(&_printProofToFile);
+    _printProofToFile.tag(OptionTag::OUTPUT);
+
     _proofExtra = ChoiceOptionValue<ProofExtra>("proof_extra","",ProofExtra::OFF,{"off","free","full"});
     _proofExtra.description="Add extra detail to proofs:\n "
       "- free uses known information only\n" 
@@ -1119,8 +1125,8 @@ void Options::init()
            _arithmeticSubtermGeneralizations.tag(OptionTag::INFERENCES);
 
             _induction = ChoiceOptionValue<Induction>("induction","ind",Induction::NONE,
-                                {"none","struct","math","both"});
-            _induction.description = "Apply structural and/or mathematical induction on datatypes and integers.";
+                                {"none","struct","int","both"});
+            _induction.description = "Apply structural and/or integer induction on datatypes and integers.";
             _induction.tag(OptionTag::INFERENCES);
             _lookup.insert(&_induction);
             //_induction.setRandomChoices
@@ -1132,13 +1138,13 @@ void Options::init()
             _structInduction.reliesOn(Or(_induction.is(equal(Induction::STRUCTURAL)),_induction.is(equal(Induction::BOTH))));
             _lookup.insert(&_structInduction);
 
-            _mathInduction = ChoiceOptionValue<MathInductionKind>("math_induction_kind","mik",
-                                 MathInductionKind::ONE,{"one","two","all"});
-            _mathInduction.description="The kind of mathematical induction applied";
-            _mathInduction.tag(OptionTag::INFERENCES);
+            _intInduction = ChoiceOptionValue<IntInductionKind>("int_induction_kind","mik",
+                                 IntInductionKind::ONE,{"one","two","all"});
+            _intInduction.description="The kind of integer induction applied";
+            _intInduction.tag(OptionTag::INFERENCES);
 
-            _mathInduction.reliesOn(Or(_induction.is(equal(Induction::MATHEMATICAL)),_induction.is(equal(Induction::BOTH))));
-            //_lookup.insert(&_mathInduction);
+            _intInduction.reliesOn(Or(_induction.is(equal(Induction::INTEGER)),_induction.is(equal(Induction::BOTH))));
+            //_lookup.insert(&_intInduction);
 
             _inductionChoice = ChoiceOptionValue<InductionChoice>("induction_choice","indc",InductionChoice::ALL,
                                 {"all","goal","goal_plus"});
@@ -1959,6 +1965,11 @@ void Options::init()
     _randomSeed.description="Some parts of vampire use random numbers. This seed allows for reproducability of results. By default the seed is not changed.";
     _lookup.insert(&_randomSeed);
     _randomSeed.tag(OptionTag::INPUT);
+
+    _randomStrategySeed = IntOptionValue("random_strategy_seed","",time(nullptr));
+    _randomStrategySeed.description="Sets the seed for generating random strategies. This option necessary because --random_seed <value> will be included as fixed value in the generated random strategy, hence won't have any effect on the random strategy generation. The default value is derived from the current time.";
+    _lookup.insert(&_randomStrategySeed);
+    _randomStrategySeed.tag(OptionTag::INPUT);
 
     _activationLimit = IntOptionValue("activation_limit","al",0);
     _activationLimit.description="Terminate saturation after this many iterations of the main loop. 0 means no limit.";
@@ -2866,7 +2877,7 @@ void Options::randomizeStrategy(Property* prop)
   // By default the seed is 1
   // For this randomisation we get save the seed and try and randomize it
   int saved_seed = Random::seed();
-  Random::setSeed(time(NULL)); // TODO is this the best choice of seed?
+  Random::setSeed(randomStrategySeed());
 
   // We randomize options that have setRandomChoices
   // TODO: randomize order in which options are selected
@@ -3137,6 +3148,7 @@ vstring Options::generateEncodedOptions() const
     forbidden.insert(&_mode);
     forbidden.insert(&_testId); // is this old version of decode?
     forbidden.insert(&_include);
+    forbidden.insert(&_printProofToFile);
     forbidden.insert(&_problemName);
     forbidden.insert(&_inputFile);
     forbidden.insert(&_randomStrategy);

@@ -38,6 +38,7 @@
 #include <type_traits>
 #include <cstring>
 #include <memory>
+#include <sys/stat.h>
 
 #include "Forwards.hpp"
 
@@ -230,7 +231,7 @@ public:
   enum class Induction : unsigned int {
     NONE,
     STRUCTURAL,
-    MATHEMATICAL,
+    INTEGER,
     BOTH
   };
   enum class StructuralInductionKind : unsigned int {
@@ -239,7 +240,7 @@ public:
     THREE,
     ALL
   };
-  enum class MathInductionKind : unsigned int {
+  enum class IntInductionKind : unsigned int {
     ONE,
     TWO,
     ALL
@@ -1938,6 +1939,7 @@ public:
   Proof proof() const { return _proof.actualValue; }
   bool minimizeSatProofs() const { return _minimizeSatProofs.actualValue; }
   ProofExtra proofExtra() const { return _proofExtra.actualValue; }
+  vstring printProofToFile() const { return _printProofToFile.actualValue; }
   bool proofChecking() const { return _proofChecking.actualValue; }
   int naming() const { return _naming.actualValue; }
 
@@ -1976,6 +1978,7 @@ public:
   vstring inputFile() const { return _inputFile.actualValue; }
   int activationLimit() const { return _activationLimit.actualValue; }
   int randomSeed() const { return _randomSeed.actualValue; }
+  int randomStrategySeed() const { return _randomStrategySeed.actualValue; }
   bool printClausifierPremises() const { return _printClausifierPremises.actualValue; }
 
   // IMPORTANT, if you add a showX command then include showAll
@@ -2177,7 +2180,7 @@ public:
 
   Induction induction() const { return _induction.actualValue; }
   StructuralInductionKind structInduction() const { return _structInduction.actualValue; }
-  MathInductionKind mathInduction() const { return _mathInduction.actualValue; }
+  IntInductionKind intInduction() const { return _intInduction.actualValue; }
   InductionChoice inductionChoice() const { return _inductionChoice.actualValue; }
   unsigned maxInductionDepth() const { return _maxInductionDepth.actualValue; }
   bool inductionNegOnly() const { return _inductionNegOnly.actualValue; }
@@ -2503,7 +2506,7 @@ private:
 
   ChoiceOptionValue<Induction> _induction;
   ChoiceOptionValue<StructuralInductionKind> _structInduction;
-  ChoiceOptionValue<MathInductionKind> _mathInduction;
+  ChoiceOptionValue<IntInductionKind> _intInduction;
   ChoiceOptionValue<InductionChoice> _inductionChoice;
   UnsignedOptionValue _maxInductionDepth;
   BoolOptionValue _inductionNegOnly;
@@ -2541,6 +2544,7 @@ private:
 
   BoolOptionValue _outputAxiomNames;
 
+  StringOptionValue _printProofToFile;
   BoolOptionValue _printClausifierPremises;
   StringOptionValue _problemName;
   ChoiceOptionValue<Proof> _proof;
@@ -2553,6 +2557,7 @@ private:
   ChoiceOptionValue<QuestionAnsweringMode> _questionAnswering;
 
   IntOptionValue _randomSeed;
+  IntOptionValue _randomStrategySeed;
 
   IntOptionValue _activationLimit;
 
