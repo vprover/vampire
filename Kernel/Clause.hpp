@@ -194,6 +194,9 @@ public:
 
   bool isComponent() const { return _component; }
   void setComponent(bool c) { _component = c; }
+
+  bool isDPImplied() const { return _dp_implied; }
+  void setDPImplied(bool c){ _dp_implied = c; }
   
   bool skip() const;
 
@@ -353,6 +356,8 @@ protected:
   unsigned _extensionalityTag : 1;
   /** Clause is a splitting component. */
   unsigned _component : 1;
+  /** Clause is implied by DP */
+  unsigned _dp_implied : 1;
 
   /** storage class */
   Store _store : 3;

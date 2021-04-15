@@ -1125,6 +1125,9 @@ bool Splitter::doSplitting(Clause* cl)
   if(cl->isComponent()) {
     return false;
   }
+  if(cl->isDPImplied()){
+    return false;
+  }
 
   if (_fastRestart && _haveBranchRefutation) {
     _fastClauses.push(cl);
@@ -1748,7 +1751,13 @@ void Splitter::addComponents(const SplitLevelStack& toAdd)
   }
 
   Stack<Clause*>::Iterator it(_implied);
-  while(it.hasNext()){ _sa->addNewClause(it.next()); }
+  while(it.hasNext()){ 
+   Clause * cl = it.next();
+   cl->setDPImplied(true);
+   SplitSet* splits=getNewClauseSplitSet(cl);
+   assignClauseSplitSet(cl, splits);
+   _sa->addNewClause(cl);
+  }
   _implied.reset();
 }
 
@@ -1785,6 +1794,7 @@ void Splitter::removeComponents(const SplitLevelStack& toRemove)
       ccl->decNumActiveSplits();
       if (ccl->getNumActiveSplits() < NOT_WORTH_REINTRODUCING) {
         RSTAT_CTR_INC("unworthy child removed");
+        cout <<  "Deleting " << ccl->toString() << endl;
         chit.del();
       }
     }
