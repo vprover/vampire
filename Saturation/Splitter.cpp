@@ -216,7 +216,6 @@ void SplittingBranchSelector::handleSatRefutation()
     SATClauseStack::Iterator it1(actualSatPremises);
     while (it1.hasNext()) {
       SATClause* scl = it1.next();
-      // cout << "SAT: " << scl->toString() << endl;
 
       Unit* dummy;
       Color c = colorFromPossiblyDeepFOConversion(scl,dummy);
@@ -225,7 +224,6 @@ void SplittingBranchSelector::handleSatRefutation()
       colorCnts[c]++;
     }
 
-    //cout << colorCnts[0] << " " << colorCnts[1] <<  " " << colorCnts[2] << endl;
     Color sndCol = COLOR_RIGHT;
     if (colorCnts[COLOR_LEFT] < colorCnts[COLOR_RIGHT]) {
       sndCol = COLOR_LEFT;
@@ -465,7 +463,6 @@ SATSolver::Status SplittingBranchSelector::processDPConflicts()
 
     while(it.hasNext()){
       Literal* lit = it.next();
-      cout << lit->toString() << endl;
       ASS(lit->isPositive());
       ASS(lit->isEquality());
       ASS(lit->ground());
@@ -473,7 +470,6 @@ SATSolver::Status SplittingBranchSelector::processDPConflicts()
       stack.reset();
       stack.push(lit);
       Clause* c = Clause::fromStack(stack,inf);
-      cout << "to add " << c->toString() << endl;
       _parent._implied.push(c);
     }
   }
