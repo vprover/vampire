@@ -304,6 +304,7 @@ namespace Inferences {
                                            type->arg(i));
           newLit->_numInductionHypothesis = lit->_numInductionHypothesis;
           newLit->_indInductionHypothesis = lit->_indInductionHypothesis;
+          newLit->_indSignature = lit->_indSignature;
           (*res)[oldLength + i - 1] = newLit;
         }
         env.statistics->taNegativeInjectivitySimplifications++;

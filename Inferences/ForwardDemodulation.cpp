@@ -192,6 +192,7 @@ bool ForwardDemodulation::perform(Clause* cl, Clause*& replacement, ClauseIterat
 
 	resLit->_numInductionHypothesis = lit->_numInductionHypothesis;
 	resLit->_indInductionHypothesis = lit->_indInductionHypothesis;
+	resLit->_indSignature = lit->_indSignature;
 	(*res)[0]=resLit;
 
 	unsigned next=1;

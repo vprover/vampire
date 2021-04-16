@@ -74,7 +74,7 @@ ClauseIterator InductionHypothesisRewriting::generateClauses(Clause *premise)
             auto ts = _lhsIndex->getGeneralizations(t);
             while (ts.hasNext()) {
               auto qr = ts.next();
-              if (qr.literal->_indInductionHypothesis != j) {
+              if (qr.literal->_indInductionHypothesis != j || qr.literal->_indSignature != lit->_indSignature) {
                 continue;
               }
               Clause* newClause = perform(premise, lit, litarg, t, qr.clause, qr.literal, qr.term, qr.substitution, true);
@@ -95,7 +95,9 @@ ClauseIterator InductionHypothesisRewriting::generateClauses(Clause *premise)
           auto ts = _stIndex->getInstances(litarg);
           while (ts.hasNext()) {
             auto qr = ts.next();
-            if (!qr.literal->_numInductionHypothesis || !qr.literal->isEquality()) {
+            if (!qr.literal->_numInductionHypothesis ||
+              qr.literal->_indSignature != lit->_indSignature ||
+              !qr.literal->isEquality()) {
               continue;
             }
             for (unsigned k = 0; k <= 1; k++) {

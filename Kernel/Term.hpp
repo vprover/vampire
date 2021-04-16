@@ -612,6 +612,7 @@ public:
   }
   unsigned _numInductionHypothesis = 0;
   unsigned _indInductionHypothesis = 0;
+  Literal* _indSignature = 0;
 protected:
   vstring headToString() const;
 

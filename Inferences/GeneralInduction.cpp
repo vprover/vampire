@@ -200,8 +200,10 @@ void GeneralInduction::generateClauses(
       auto newHypLit = replaceLit(r, occurrences, mainLit.literal, v2sk, lits, newLits, var, true);
       ASS_NEQ(newHypLit, mainLit.literal);
       newHypLit->_indInductionHypothesis = ++cnt;
+      newHypLit->_indSignature = newMainLit;
     }
     newMainLit->_numInductionHypothesis = cnt;
+    newMainLit->_indSignature = newMainLit;
 
     lits = newLits;
   }
