@@ -643,8 +643,16 @@ void PortfolioMode::runSlice(Options& strategyOpt)
 #if VTHREADED
   if(env->options->mode() == Options::Mode::THREADED) {
     if(!resultValue) {
+      // gross: copied from elsewhere
+      // we need to exit immediately, not really a "nice" way to do this :-(
+      ifstream input(_tmpFileNameForProof);
+      if (input) {
+        env->beginOutput();
+        env->out() << input.rdbuf();
+        env->endOutput();
+      }
+
       // TODO: other threads are still running while global destructors run
-      // Allocator::lockPermanently();
       quick_exit(resultValue);
     }
     // allow other threads to fight the good fight, don't exit() the process
@@ -724,4 +732,3 @@ bool CASCMode::runSlice(Options& opt)
 }
 
 */
-
