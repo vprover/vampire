@@ -1463,7 +1463,9 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
     // gie->addFront(new GeneralInduction(new RecursionInductionSchemeGenerator(), new InductionGeneralization(true), InferenceRule::INDUCTION_AXIOM));
     gie->addFront(new GeneralInduction(InferenceRule::INDUCTION_AXIOM));
   }
-  gie->addFront(new InductionHypothesisRewriting());
+  if (opt.inductionHypRewriting()) {
+    gie->addFront(new InductionHypothesisRewriting());
+  }
 
   if(opt.instantiation()!=Options::Instantiation::OFF){
     res->_instantiation = new Instantiation();

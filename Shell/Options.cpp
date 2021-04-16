@@ -1147,6 +1147,11 @@ void Options::init()
             // _inductionStrengthen.reliesOn(_structInduction.is(equal(StructuralInductionKind::FOUR)));
             _lookup.insert(&_inductionStrengthen);
 
+            _inductionHypRewriting = BoolOptionValue("induction_hypothesis_rewriting","indhrw",false);
+            _inductionHypRewriting.description = "Rewrite with induction hypotheses against the ordering and perform induction on the result";
+            _inductionHypRewriting.tag(OptionTag::INFERENCES);
+            _lookup.insert(&_inductionHypRewriting);
+
             _inductionMultiClause = BoolOptionValue("induction_multiclause","indmc",false);
             _inductionMultiClause.description = "Induct on multiple clauses together when they contain the same induction terms";
             _inductionMultiClause.tag(OptionTag::INFERENCES);

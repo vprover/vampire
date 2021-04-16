@@ -292,7 +292,7 @@ bool InductionTemplate::checkWellFoundedness()
 
   // fill in bit vector of induction variables
   auto arity = _branches[0]._header.term()->arity();
-  _inductionVariables = vvector<bool>(arity, false);
+  _inductionPositions = vvector<bool>(arity, false);
   vset<unsigned> candidatePositions;
   vvector<vvector<VarType>> relations;
   for (auto& b : _branches) {
@@ -306,15 +306,13 @@ bool InductionTemplate::checkWellFoundedness()
         auto t2 = argIt2.next();
         if (t1 == t2) {
           relation[i] = VarType::FIXED;
-        } else if (t2.isTerm() && t2.term()->shared()
-                   && (t1.isVar() || t1.term()->shared())
-                   && t2.containsSubterm(t1)) {
+        } else if (t2.containsSubterm(t1)) {
           relation[i] = VarType::SUBTERM;
           candidatePositions.insert(i);
-          _inductionVariables[i] = true;
+          _inductionPositions[i] = true;
         } else {
           candidatePositions.insert(i);
-          _inductionVariables[i] = true;
+          _inductionPositions[i] = true;
         }
         i++;
       }
@@ -322,17 +320,7 @@ bool InductionTemplate::checkWellFoundedness()
     }
   }
   _order.clear();
-  if (!findVarOrder(relations, candidatePositions, _order)) {
-    _order.clear();
-    _order.push_back(candidatePositions);
-    for (const auto& o : _order) {
-      for (const auto& i : o) {
-        _inductionVariables[i] = true;
-      }
-    }
-    return false;
-  }
-  return true;
+  return findVarOrder(relations, candidatePositions, _order);
 }
 
 ostream& operator<<(ostream& out, const InductionTemplate& templ)
@@ -345,11 +333,15 @@ ostream& operator<<(ostream& out, const InductionTemplate& templ)
       out << "; ";
     }
   }
-  n = 0;
-  out << " with inductive positions: (";
-  for (const auto& b : templ._inductionVariables) {
-    out << Int::toString(b);
-    if (++n < templ._inductionVariables.size()) {
+  out << " with positions: (";
+  auto arity = templ._branches[0]._header.term()->arity();
+  for (unsigned i = 0; i < arity; i++) {
+    if (templ._inductionPositions[i]) {
+      out << "i";
+    } else {
+      out << "0";
+    }
+    if (i+1 < arity) {
       out << ",";
     }
   }

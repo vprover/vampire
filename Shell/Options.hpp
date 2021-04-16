@@ -2140,6 +2140,7 @@ public:
   unsigned maxInductionGenSubsetSize() const { return _maxInductionGenSubsetSize.actualValue; }
   bool inductionOnComplexTerms() const {return _inductionOnComplexTerms.actualValue;}
   bool inductionStrengthen() const { return _inductionStrengthen.actualValue; }
+  bool inductionHypRewriting() const { return _inductionHypRewriting.actualValue; }
   bool inductionMultiClause() const { return _inductionMultiClause.actualValue; }
   InductionTermOccurrenceSelectionHeuristic inductionTermOccurrenceSelectionHeuristic() const { return _inductionTermOccHeuristic.actualValue; }
   bool functionDefinitionDiscovery() const { return _functionDefinitionDiscovery.actualValue; }
@@ -2443,6 +2444,7 @@ private:
   UnsignedOptionValue _maxInductionGenSubsetSize;
   BoolOptionValue _inductionOnComplexTerms;
   BoolOptionValue _inductionStrengthen;
+  BoolOptionValue _inductionHypRewriting;
   BoolOptionValue _inductionMultiClause;
   ChoiceOptionValue<InductionTermOccurrenceSelectionHeuristic> _inductionTermOccHeuristic;
   BoolOptionValue _functionDefinitionDiscovery;

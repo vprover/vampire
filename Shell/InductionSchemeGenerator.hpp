@@ -240,6 +240,7 @@ struct InductionScheme
   bool checkWellFoundedness(
     vvector<pair<vmap<TermList,TermList>&,vmap<TermList,TermList>&>> relations,
     vset<TermList> inductionTerms);
+  void addBaseCases();
 
   vvector<Case> _cases;
   unsigned _maxVar;
@@ -275,6 +276,23 @@ private:
     Stack<bool>& actStack, Clause* premise, Literal* lit,
     vvector<InductionScheme>& schemes,
     bool returnOnMatch);
+
+  OccurrenceMap _actOccMaps;
+};
+
+struct RecursionInductionSchemeGenerator2
+  : public InductionSchemeGenerator
+{
+  void generate(const SLQueryResult& main,
+    const vvector<SLQueryResult>& side,
+    vvector<pair<InductionScheme, OccurrenceMap>>& res) override;
+
+private:
+  void generate(Clause* premise, Literal* lit,
+    vvector<InductionScheme>& schemes);
+  void process(TermList curr, bool active,
+    Stack<bool>& actStack, Clause* premise, Literal* lit,
+    vvector<InductionScheme>& schemes);
 
   OccurrenceMap _actOccMaps;
 };

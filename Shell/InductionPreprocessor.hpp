@@ -76,7 +76,7 @@ struct InductionTemplate {
   };
 
   vvector<Branch> _branches;
-  vvector<bool> _inductionVariables;
+  vvector<bool> _inductionPositions;
   VarOrder _order;
 
 private:

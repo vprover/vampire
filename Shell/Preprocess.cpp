@@ -33,6 +33,7 @@
 #include "FunctionDefinition.hpp"
 #include "GeneralSplitting.hpp"
 #include "InductionPreprocessor.hpp"
+#include "InductionPreprocessor2.hpp"
 #include "InequalitySplitting.hpp"
 #include "InterpretedNormalizer.hpp"
 #include "Naming.hpp"
@@ -205,10 +206,10 @@ void Preprocess::preprocess(Problem& prb)
     }
   }
 
-  if (_options.induction() == Options::Induction::BOTH ||
-      _options.induction() == Options::Induction::STRUCTURAL) {
-    InductionPreprocessor::preprocessProblem(prb);
-  }
+  // if (_options.induction() == Options::Induction::BOTH ||
+  //     _options.induction() == Options::Induction::STRUCTURAL) {
+  //   InductionPreprocessor::preprocessProblem(prb);
+  // }
 
   if (prb.hasFOOL()) {
     // This is the point to extend the signature with $$true and $$false
@@ -426,6 +427,8 @@ void Preprocess::preprocess(Problem& prb)
      BlockedClauseElimination bce;
      bce.apply(prb);
    }
+
+   InductionPreprocessor2::preprocessProblem(prb);
 
    if (env.options->showPreprocessing()) {
      UnitList::Iterator uit(prb.units());

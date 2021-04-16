@@ -100,7 +100,7 @@ void GeneralInduction::process(InductionClauseIterator& res, Clause* premise, Li
     vvector<SLQueryResult> sides;
 
     // StructuralInductionSchemeGenerator gen;
-    RecursionInductionSchemeGenerator gen;
+    RecursionInductionSchemeGenerator2 gen;
     static vvector<pair<InductionScheme, OccurrenceMap>> schOccMap;
     schOccMap.clear();
     gen.generate(qr, sides, schOccMap);
@@ -174,6 +174,12 @@ void GeneralInduction::generateClauses(
   ClauseStack& clauses)
 {
   CALL("GeneralInduction::generateClauses");
+
+  if(env.options->showInduction()){
+    env.beginOutput();
+    env.out() << "[Induction] generating from scheme " << scheme << endl;
+    env.endOutput();
+  }
 
   unsigned var = scheme._maxVar;
   vvector<LiteralStack> lits(1);
@@ -262,6 +268,11 @@ void GeneralInduction::generateClauses(
       if (_splitter && cit.hasNext()) {
         _splitter->onNewClause(c);
       }
+    }
+    if(env.options->showInduction()){
+      env.beginOutput();
+      env.out() << "[Induction] generate " << c->toString() << endl;
+      env.endOutput();
     }
     clauses.push(c);
   }
