@@ -150,6 +150,12 @@ SimplexDP::SimplexDP(vector<LinearArithmeticDP::Constraint> &constraints)
     }
   }
 
+  // If D2 is empty, then SAT
+  if (d2ParameterDataContainer.size() == 0) {
+    _status = LinearArithmeticDP::SATISFIABLE;
+    return;
+  }
+  
   // Creating constarants
   vector<LinearArithmeticDP::Constraint> newConstrains;
   newConstrains.reserve(d1ParameterDataContainer.size() + d2ParameterDataContainer.size());

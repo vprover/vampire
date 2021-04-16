@@ -243,7 +243,7 @@ map<unsigned, RationalConstantType> Simplex::getModel()
       }
     }
 
-    solutionMap[colLabel] = (rowIndex == 0) ? RationalConstantType(0) : _tableau[rowIndex][_colCount - 1];
+    solutionMap[colLabel] = (rowIndex == 0) ? RationalConstantType(0) : _tableau[rowIndex][_colCount - 1] / _tableau[rowIndex][colIndex];
   }
 
   return solutionMap;
@@ -263,7 +263,7 @@ RationalConstantType Simplex::getModel(unsigned varId)
     }
   }
 
-  return (rowIndex == 0) ? RationalConstantType(0) : _tableau[rowIndex][_colCount - 1];
+  return (rowIndex == 0) ? RationalConstantType(0) : _tableau[rowIndex][_colCount - 1] / _tableau[rowIndex][varIdColIndex];
 }
 
 unsigned Simplex::getRowCount()
