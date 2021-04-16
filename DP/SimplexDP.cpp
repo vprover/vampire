@@ -153,6 +153,7 @@ SimplexDP::SimplexDP(vector<LinearArithmeticDP::Constraint> &constraints)
   // If D2 is empty, then SAT
   if (d2ParameterDataContainer.size() == 0) {
     _status = LinearArithmeticDP::SATISFIABLE;
+    _simplexSolver = NULL;
     return;
   }
   
@@ -242,6 +243,10 @@ SimplexDP::~SimplexDP()
   CALL("SimplexDP::~SimplexDP");
   if (_alphaVarId != NULL) {
     delete _alphaVarId;
+  }
+
+  if (_simplexSolver != NULL) {
+    delete _simplexSolver;
   }
 }
 } // namespace DP

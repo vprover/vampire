@@ -42,6 +42,7 @@ LinearArithmeticDP::LinearArithmeticDP()
   CALL("LinearArithmeticDP::LinearArithmeticDP");
   // TODO  use the boolean useCache instead of the macro UseCache
 
+  solverDP = NULL;
   cache.solverType = env.options->ladp();
   cache.solverDP = NULL;
 }
