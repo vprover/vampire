@@ -455,9 +455,9 @@ void HeuristicInstantiationIndex::handleClause(Clause* c, bool adding)
         combTerm = LambdaElimination().elimLambda(lambdaTerm);
         if(!_insertedInstantiations.contains(combTerm)){
         /*cout << "lhs is " + lit->nthArgument(0)->toString() << endl;
-        cout << "arg " + leftArgs[i].toString() << endl;*/
+        cout << "arg " + leftArgs[i].toString() << endl;
         cout << "inserting " + lambdaTerm->toString() << endl;
-        cout << "inserting " + combTerm.toString() << endl;
+        cout << "inserting " + combTerm.toString() << endl;*/
           _insertedInstantiations.insert(combTerm);
           insertInstantiation(lambdaTerm->getSpecialData()->getSort(), combTerm);
         }
