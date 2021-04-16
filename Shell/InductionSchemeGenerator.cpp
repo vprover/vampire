@@ -879,10 +879,10 @@ void RecursionInductionSchemeGenerator2::process(TermList curr, bool active,
     vmap<TermList, unsigned> varMap;
     for (unsigned i = 0; i < t->arity(); i++) {
       auto arg = *t->nthArgument(i);
-      if (!containsSkolem(arg)) {
-        return;
-      }
       if (indPos[i]) {
+        if (!containsSkolem(arg)) {
+          return;
+        }
         auto it = varMap.find(arg);
         if (it == varMap.end()) {
           it = varMap.insert(make_pair(arg, var++)).first;

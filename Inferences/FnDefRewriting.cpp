@@ -246,7 +246,6 @@ Clause *FnDefRewriting::perform(
   (*res)[0] = tgtLitS;
   tgtLitS->_numInductionHypothesis = rwLit->_numInductionHypothesis;
   tgtLitS->_indInductionHypothesis = rwLit->_indInductionHypothesis;
-  // rwLit->_hasInductionHypothesis = false;
   unsigned next = 1;
   for (unsigned i = 0; i < rwLength; i++) {
     Literal *curr = (*rwClause)[i];
@@ -255,7 +254,6 @@ Clause *FnDefRewriting::perform(
         curr = EqHelper::replace(curr, rwTerm, tgtTermS);
         curr->_numInductionHypothesis = (*rwClause)[i]->_numInductionHypothesis;
         curr->_indInductionHypothesis = (*rwClause)[i]->_indInductionHypothesis;
-        // (*rwClause)[i]->_hasInductionHypothesis = false;
       }
 
       if (EqHelper::isEqTautology(curr)) {
