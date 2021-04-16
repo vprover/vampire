@@ -569,7 +569,7 @@ void PortfolioMode::runSlice(Options& strategyOpt)
 
     BYPASSING_ALLOCATOR; 
     
-    ofstream output(fname.c_str(), std::ios_base::app);
+    ofstream output(fname.c_str());
     if (output.fail()) {
       // fallback to old printing method
       env.beginOutput();
