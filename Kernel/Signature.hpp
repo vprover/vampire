@@ -507,6 +507,17 @@ class Signature
     return haveInterpretingSymbol(interp,Theory::getNonpolymorphicOperatorType(interp));
   }
 
+#if VTHREADED
+  /** return the id of a function with a given number */
+  const unsigned functionId(int number) {
+    return _funs[number]->id();
+  }
+  /** return the id of a predicate with a given number */
+  const unsigned predicateId(int number) {
+    return _preds[number]->id();
+  }
+#endif
+
   /** return the name of a function with a given number */
   const vstring& functionName(int number);
   /** return the name of a predicate with a given number */

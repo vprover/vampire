@@ -33,6 +33,10 @@ using namespace Indexing;
 
 typedef ApplicativeHelper AH;
 
+#if VTHREADED
+std::mutex TermSharing::_term_mutex, TermSharing::_literal_mutex;
+#endif
+
 /**
  * Initialise the term sharing structure.
  * @since 29/12/2007 Manchester
@@ -49,27 +53,6 @@ TermSharing::TermSharing()
 {
   CALL("TermSharing::TermSharing");
 }
-
-#if VTHREADED
-/**
- * Initialise the term sharing structure from an existing parent.
- */
-TermSharing::TermSharing(const TermSharing &other)
-  : _totalTerms(other._totalTerms)
-  , _totalLiterals(other._totalLiterals)
-  , _literalInsertions(other._literalInsertions)
-  , _termInsertions(other._termInsertions)
-  , _poly(other._poly)
-  , _wellSortednessCheckingDisabled(other._wellSortednessCheckingDisabled)
-{
-  CALL("TermSharing::TermSharing(const TermSharing &)");
-
-  decltype(_terms)::Iterator ts(other._terms);
-  _terms.insertFromIterator(ts);
-  decltype(_literals)::Iterator ls(other._literals);
-  _literals.insertFromIterator(ls);
-}
-#endif
 
 /**
  * Destroy the term sharing structure.
@@ -97,10 +80,15 @@ void TermSharing::setPoly()
 
   //combinatory superposiiton can introduce polymorphism into a 
   //monomorphic problem
-  _poly = env->statistics->higherOrder ||
+  bool needs_poly = env->statistics->higherOrder ||
           env->statistics->polymorphic ||
           env->options->equalityProxy() != Options::EqualityProxy::OFF ||
           env->options->saturationAlgorithm() == Options::SaturationAlgorithm::INST_GEN;
+  #if VTHREADED
+  // for the moment, poly-ness latches: if any attempt needs it, it's switched on
+  if(needs_poly)
+  #endif
+    _poly = needs_poly;
 }
 
 /**
@@ -128,6 +116,9 @@ Term* TermSharing::insert(Term* t)
   }
 
   _termInsertions++;
+#if VTHREADED
+  std::lock_guard<std::mutex> lock(_term_mutex);
+#endif
   Term* s = _terms.insert(t);
   Signature *signature = env->signature;
   if (s == t) {
@@ -257,6 +248,9 @@ Literal* TermSharing::insert(Literal* t)
   }
 
   _literalInsertions++;
+#if VTHREADED
+  std::lock_guard<std::mutex> lock(_literal_mutex);
+#endif
   Literal* s = _literals.insert(t);
   Signature *signature = env->signature;
   if (s == t) {
@@ -338,6 +332,9 @@ Literal* TermSharing::insertVariableEquality(Literal* t, TermList sort)
   unsigned sortWeight = sort.isVar() ? 1 : sort.term()->weight();
 
   _literalInsertions++;
+#if VTHREADED
+  std::lock_guard<std::mutex> lock(_literal_mutex);
+#endif
   Literal* s = _literals.insert(t);
   if (s == t) {
     t->markShared();
@@ -399,6 +396,9 @@ Literal* TermSharing::tryGetOpposite(Literal* l)
 {
   CALL("TermSharing::tryGetOpposite");
 
+#if VTHREADED
+  std::lock_guard<std::mutex> lock(_literal_mutex);
+#endif
   Literal* res;
   if(_literals.find(OpLitWrapper(l), res)) {
     return res;
@@ -470,7 +470,12 @@ bool TermSharing::equals(const Term* s,const Term* t)
 {
   CALL("TermSharing::equals(Term*,Term*)");
 
-  if (s->functor() != t->functor()) return false;
+#if VTHREADED
+  if(env->signature->functionId(s->functor()) != env->signature->functionId(t->functor()))
+#else
+  if(s->functor() != t->functor())
+#endif
+    return false;
   return equalArgs(s->args(), t->args());
 } // TermSharing::equals
 
@@ -490,6 +495,11 @@ bool TermSharing::equals(const Literal* l1, const Literal* l2, bool opposite)
     return false;
   }
 
-  if (l1->functor() != l2->functor()) return false;
+#if VTHREADED
+  if(env->signature->predicateId(l1->functor()) != env->signature->predicateId(l2->functor()))
+#else
+  if(l1->functor() != l2->functor())
+#endif
+    return false;
   return equalArgs(l1->args(), l2->args());
 }

@@ -15,6 +15,7 @@
 #if VTHREADED
 #include "PersistentGrounding.hpp"
 
+#include "Indexing/TermSharing.hpp"
 #include "Lib/SharedSet.hpp"
 #include "Kernel/Clause.hpp"
 #include "Kernel/SubstHelper.hpp"
@@ -32,18 +33,22 @@ VTHREAD_LOCAL DHMap<unsigned, unsigned> PersistentGrounding::_splitMap;
 PersistentGrounding::PersistentGrounding()
     : _fresh(0), _solver(new MinisatInterfacing(*env->options))
 {
+  CALL("PersistentGrounding()");
+  /*
   ZIArray<unsigned> constants;
   for(int i = 0; i < env->signature->functions(); i++) {
     Signature::Symbol *fun = env->signature->getFunction(i);
-    if(fun->arity() != 0) {
+    if(fun->typeCon() || fun->super() || fun->arity() != 0) {
       continue;
     }
     OperatorType *type = fun->fnType();
-    unsigned sort = type->result().term()->getId();
+    Term *result = type->result().term();
+    unsigned sort = result->getId();
     unsigned usage = fun->usageCnt();
     unsigned best = constants[sort];
-    if(!best || env->signature->getFunction(best)->usageCnt() < usage)
+    if(!best || env->signature->getFunction(best)->usageCnt() < usage) {
       constants[sort] = i;
+    }
   }
   for(int i = 0; i < env->sorts->count(); i++) {
     if(constants[i]) {
@@ -53,24 +58,27 @@ PersistentGrounding::PersistentGrounding()
       _sortConstants[i].makeVar(0);
     }
   }
+  */
   _solveTask = std::thread([&] { this->work(); });
 }
 
 PersistentGrounding *PersistentGrounding::instance()
 {
+  CALL("PersistentGrounding::instance()");
   static PersistentGrounding *instance = new PersistentGrounding;
   return instance;
 }
 
 void PersistentGrounding::work()
 {
+  CALL("PersistentGrounding::work()");
   bool idle = false;
   while (true) {
     // asserting phase
     {
       if (idle)
         std::this_thread::yield();
-      std::lock_guard<std::mutex> lock{_lock};
+      std::lock_guard<std::mutex> lock(_lock);
       if (_queue.isEmpty()) {
         // wait for more clauses to come through
         idle = true;
@@ -95,6 +103,7 @@ void PersistentGrounding::work()
 
 void PersistentGrounding::enqueueClause(Clause *cl)
 {
+  CALL("PersistentGrounding::enqueueClause()");
   std::lock_guard<std::mutex> lock{_lock};
   //std::cout << "clause: " << cl->toString() << std::endl;
 
@@ -104,16 +113,15 @@ void PersistentGrounding::enqueueClause(Clause *cl)
     struct MapToSortConstant {
       TermList apply(unsigned var)
       {
-        unsigned sort = SortHelper::getVariableSort(TermList(var, false), parent).term()->getId();
-        return constants[sort];
+        TermList t;
+        t.makeVar(0);
+        return t;
       }
-      Term *parent;
-      const Array<TermList> &constants;
     };
     // for regular literals, map them InstGen-style to ground literals
     for (int i = 0; i < cl->length(); i++) {
       Literal *lit = cl->literals()[i];
-      MapToSortConstant map{.parent = lit, .constants=_sortConstants};
+      MapToSortConstant map;
       Literal *ground = SubstHelper::apply(lit, map);
       Literal *positive = Literal::positiveLiteral(ground);
       unsigned *var;
@@ -158,6 +166,7 @@ void PersistentGrounding::enqueueClause(Clause *cl)
 
 void PersistentGrounding::enqueueSATClause(SATClause *cl)
 {
+  CALL("PersistentGrounding::enqueueSATClause()");
   std::lock_guard<std::mutex> lock{_lock};
   //std::cout << "SAT clause: " << cl->toString() << std::endl;
 

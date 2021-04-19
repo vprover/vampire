@@ -17,6 +17,10 @@
 #ifndef __TermSharing__
 #define __TermSharing__
 
+#if VTHREADED
+#include <mutex>
+#endif
+
 #include "Lib/Set.hpp"
 #include "Kernel/Term.hpp"
 
@@ -34,9 +38,6 @@ public:
   USE_ALLOCATOR(TermSharing);
 
   TermSharing();
-#if VTHREADED
-  TermSharing(const TermSharing &other);
-#endif
   ~TermSharing();
 
   Term* insert(Term*);
@@ -89,13 +90,11 @@ public:
 
 private:
   int sumRedLengths(TermStack& args);
-/*
 // instance-level mutex
 #if VTHREADED
-  static std::recursive_mutex _mutex;
+  static std::mutex _term_mutex, _literal_mutex;
   friend class Kernel::Signature;
 #endif
-*/
 
   bool argNormGt(TermList t1, TermList t2);
 
@@ -104,20 +103,20 @@ private:
   /** The set storing all literals */
   Set<Literal*,TermSharing> _literals;
   /** Number of terms stored */
-  unsigned _totalTerms;
+  VATOMIC(unsigned) _totalTerms;
   /** Number of ground terms stored */
   // unsigned _groundTerms; // MS: unused
   /** Number of literals stored */
-  unsigned _totalLiterals;
+  VATOMIC(unsigned) _totalLiterals;
   /** Number of ground literals stored */
   // unsigned _groundLiterals; // MS: unused
   /** Number of literal insertions */
-  unsigned _literalInsertions;
+  VATOMIC(unsigned) _literalInsertions;
   /** Number of term insertions */
-  unsigned _termInsertions;
+  VATOMIC(unsigned) _termInsertions;
 
-  bool _poly;
-  bool _wellSortednessCheckingDisabled;
+  VATOMIC(bool) _poly;
+  VATOMIC(bool) _wellSortednessCheckingDisabled;
 }; // class TermSharing
 
 } // namespace Indexing
