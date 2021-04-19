@@ -474,6 +474,7 @@ SATSolver::Status SplittingBranchSelector::processDPConflicts()
       stack.reset();
       stack.push(lit);
       Clause* c = Clause::fromStack(stack,inf);
+      //cout << "CREATING new implied " << c->toString()  << endl;
       _parent._implied.push(c);
     }
   }
@@ -622,6 +623,7 @@ void SplittingBranchSelector::recomputeModel(SplitLevelStack& addedComps, SplitL
   CALL("SplittingBranchSelector::recomputeModel");
   ASS(addedComps.isEmpty());
   ASS(removedComps.isEmpty());
+  ASS(_parent._implied.isEmpty());
 
   unsigned maxSatVar = _parent.maxSatVar();
   
@@ -874,7 +876,7 @@ void Splitter::onAllProcessed()
     if(toRemove.isNonEmpty()) {
       removeComponents(toRemove);
     }
-    if(toAdd.isNonEmpty()) {
+    if(toAdd.isNonEmpty() || _implied.isNonEmpty()) {
       addComponents(toAdd);
     }
 
@@ -1799,7 +1801,7 @@ void Splitter::removeComponents(const SplitLevelStack& toRemove)
       ccl->decNumActiveSplits();
       if (ccl->getNumActiveSplits() < NOT_WORTH_REINTRODUCING) {
         RSTAT_CTR_INC("unworthy child removed");
-        cout <<  "Deleting " << ccl->toString() << endl;
+        //cout <<  "Deleting " << ccl->toString() << endl;
         chit.del();
       }
     }
