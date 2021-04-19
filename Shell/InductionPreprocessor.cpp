@@ -500,7 +500,7 @@ void InductionPreprocessor::preprocessProblem(Problem& prb)
   for (const auto& kv : templates) {
     auto templ = kv.second;
     if (!templ.checkUsefulness()) {
-      return;
+      continue;
     }
     templ.checkWellFoundedness();
     vvector<vvector<TermList>> missingCases;
