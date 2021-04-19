@@ -56,15 +56,11 @@ public:
     _iter = _occ;
   }
 
-  bool hasNext() const {
-    ASS(_finished);
-    return _iter < _max;
-  }
-
-  void next() {
+  bool next() {
     ASS(_finished);
     _iter++;
     _iter |= _occ;
+    return _iter < _max;
   }
 
   bool pop_last() {
@@ -91,6 +87,10 @@ public:
 
   void set_bits() {
     _iter = _max - 1;
+  }
+
+  void reset_bits() {
+    _iter = _occ;
   }
 
   vstring toString() const {

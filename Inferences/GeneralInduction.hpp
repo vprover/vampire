@@ -42,41 +42,41 @@ class HeuristicGeneralizationIterator
 public:
   DECL_ELEMENT_TYPE(OccurrenceMap);
 
-  HeuristicGeneralizationIterator(bool includeEmpty, const OccurrenceMap& occ)
-    : _occ(occ), _it(_occ.begin()) {}
+  HeuristicGeneralizationIterator(const OccurrenceMap& occ)
+    : _occ(occ), _hasNext(true) {}
 
   inline bool hasNext()
   {
-    return _it->second.hasNext();
+    return _hasNext;
   }
 
   inline OWN_ELEMENT_TYPE next()
   {
     CALL("HeuristicGeneralizationIterator::next()");
-    ASS(hasNext());
+    ASS(_hasNext);
 
     auto temp = _occ;
-    _it->second.next();
-    // check whether we were already at all 1
-    if (hasNext()) {
-      // all 1 is the next if the heuristics apply
-      _it->second.set_bits();
-      auto nsb = _it->second.num_set_bits();
-      // if they don't apply, we invalidate the iterator
-      if (nsb != 1 && nsb != _it->second.num_bits() - 1) {
-        _it->second.next();
+    auto it = _occ.begin();
+    while (it != _occ.end()) {
+      auto nsb = it->second.num_set_bits();
+      // we only increment the bits where this condition holds
+      if (nsb == 1 || nsb == it->second.num_bits() - 1) {
+        if (it->second.next()) {
+          break;
+        }
+        it->second.reset_bits();
       }
-      _it++;
-      if (_it == _occ.end()) {
-        _it = _occ.begin();
-      }
+      it++;
+    }
+    if (it == _occ.end()) {
+      _hasNext = false;
     }
     return temp;
   }
 
 private:
   OccurrenceMap _occ;
-  OccurrenceMap::iterator _it;
+  bool _hasNext;
 };
 
 class InductionGeneralizationIterator
@@ -88,33 +88,30 @@ public:
    * and number of all occurrences, enumerates all possible generalizations
    * as bit vectors. 
    */
-  InductionGeneralizationIterator(bool includeEmpty, const OccurrenceMap& occ)
-    : _occ(occ), _it(_occ.begin())
-  {
-    if (!includeEmpty) {
-      _it->second.next();
-      _it++;
-      if (_it == _occ.end()) {
-        _it = _occ.begin();
-      }
-    }
-  }
+  InductionGeneralizationIterator(const OccurrenceMap& occ)
+    : _occ(occ), _hasNext(true) {}
 
   inline bool hasNext()
   {
-    return _it->second.hasNext();
+    return _hasNext;
   }
 
   inline OWN_ELEMENT_TYPE next()
   {
     CALL("InductionGeneralizationIterator::next()");
-    ASS(hasNext());
+    ASS(_hasNext);
 
     auto temp = _occ;
-    _it->second.next();
-    _it++;
-    if (_it == _occ.end()) {
-      _it = _occ.begin();
+    auto it = _occ.begin();
+    while (it != _occ.end()) {
+      if (it->second.next()) {
+        break;
+      }
+      it->second.reset_bits();
+      it++;
+    }
+    if (it == _occ.end()) {
+      _hasNext = false;
     }
     return temp;
   }
@@ -124,14 +121,14 @@ public:
     vstringstream str;
     for (const auto& kv : _occ) {
       str << *kv.first.first << ", " << kv.first.second
-          << ": " << kv.second.toString();
+          << ": " << kv.second.toString() << " ";
     }
     return str.str();
   }
 
 private:
   OccurrenceMap _occ;
-  OccurrenceMap::iterator _it;
+  bool _hasNext;
 };
 
 class GeneralInduction
@@ -148,7 +145,7 @@ public:
   ClauseIterator generateClauses(Clause* premise) override;
   void attach(SaturationAlgorithm* salg) override;
   void detach() override;
-  bool alreadyDone(Literal* mainLit, const InductionScheme& sch);
+  bool alreadyDone(Literal* mainLit, const InductionScheme& sch, Literal*& schLit);
 
 private:
   class InductionClauseIterator

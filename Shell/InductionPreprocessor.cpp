@@ -434,8 +434,6 @@ void InductionPreprocessor::preprocessProblem(Problem& prb)
     unsigned length = clause->length();
     if (!clause->containsFunctionDefinition()) {
       continue;
-    } else {
-      cout << *clause << endl;
     }
     // first we find the only function
     // definition literal in the clause

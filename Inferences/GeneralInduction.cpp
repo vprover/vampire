@@ -106,17 +106,22 @@ void GeneralInduction::process(InductionClauseIterator& res, Clause* premise, Li
     gen.generate(qr, sides, schOccMap);
     static vvector<pair<InductionScheme, OccurrenceMap>> generalizedSchOccMap;
     generalizedSchOccMap.clear();
+    vvector<Literal*> schLits;
     for (const auto& kv : schOccMap) {
-      if (alreadyDone(literal, kv.first)) {
+      schLits.push_back(nullptr);
+      if (alreadyDone(literal, kv.first, schLits.back())) {
         continue;
       }
       // InductionGeneralizationIterator g(false, kv.second);
       // InductionGeneralizationIterator g(true, kv.second);
-      HeuristicGeneralizationIterator g(true, kv.second);
+      HeuristicGeneralizationIterator g(kv.second);
       while (g.hasNext()) {
         auto eg = g.next();
         generalizedSchOccMap.push_back(make_pair(kv.first, eg));
       }
+    }
+    for (const auto& schLit : schLits) {
+      _done.insert(schLit);
     }
     vvector<SLQueryResult> lits;
     for (const auto& kv : generalizedSchOccMap) {
@@ -177,7 +182,12 @@ void GeneralInduction::generateClauses(
 
   if(env.options->showInduction()){
     env.beginOutput();
-    env.out() << "[Induction] generating from scheme " << scheme << endl;
+    env.out() << "[Induction] generating from scheme " << scheme
+              << " with occurrences ";
+    for (const auto& kv : occurrences) {
+      env.out() << kv.first.second << " " << kv.second.toString() << " ";
+    }
+    env.out() << endl;
     env.endOutput();
   }
 
@@ -302,7 +312,7 @@ vmap<TermList, TermList> GeneralInduction::skolemizeCase(const InductionScheme::
   return varToSkolemMap;
 }
 
-bool GeneralInduction::alreadyDone(Literal* mainLit, const InductionScheme& sch)
+bool GeneralInduction::alreadyDone(Literal* mainLit, const InductionScheme& sch, Literal*& schLit)
 {
   CALL("GeneralInduction::alreadyDone");
 
@@ -328,14 +338,12 @@ bool GeneralInduction::alreadyDone(Literal* mainLit, const InductionScheme& sch)
   }
 
   TermReplacement2 cr(replacements);
-  Literal* rep = cr.transform(mainLit);
+  schLit = cr.transform(mainLit);
 
-  if (_done.contains(rep)) {
+  if (_done.contains(schLit)) {
     // cout << *mainLit << " is skipped (" << *rep << ")" << endl;
     return true;
   }
-
-  _done.insert(rep);
   return false;
 }
 
