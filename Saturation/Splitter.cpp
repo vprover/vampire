@@ -904,6 +904,11 @@ bool Splitter::shouldAddClauseForNonSplittable(Clause* cl, unsigned& compName, C
 {
   CALL("Splitter::shouldAddClauseForNonSplittable");
   
+  if(cl->isDPImplied()){
+    compName = tryGetComponentNameOrAddNew(cl->length(), cl->literals(), cl, compCl);
+    return true;
+  }
+
   if((_congruenceClosure != Options::SplittingCongruenceClosure::OFF
 #if VZ3
       || hasSMTSolver
@@ -1762,6 +1767,7 @@ void Splitter::addComponents(const SplitLevelStack& toAdd)
    cl->setDPImplied(true);
    SplitSet* splits=getNewClauseSplitSet(cl);
    assignClauseSplitSet(cl, splits);
+   handleNonSplittable(cl);
    _sa->addNewClause(cl);
   }
   _implied.reset();
