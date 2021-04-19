@@ -946,14 +946,11 @@ void SMTLIB2::readDefineFun(const vstring& name, LExprList* iArgs, LExpr* oSort,
   if (isTrueFun) {
     lhs = TermList(Term::create(symbIdx,args.size(),args.begin()));
   } else {
-    Formula* frm = new AtomicFormula(Literal::create(symbIdx,args.size(),true,false,args.begin()));
+    Formula* frm = new AtomicFormula(Literal::create(symbIdx,args.size(),true,false,args.begin()), true /*isFunctionDefinition*/);
     lhs = TermList(Term::createFormula(frm));
   }
 
-  auto lit = Literal::createEquality(true,lhs,rhs,rangeSort);
-  lit->makeFunctionDefinition();
-
-  Formula* fla = new AtomicFormula(lit);
+  Formula* fla = new AtomicFormula(Literal::createEquality(true,lhs,rhs,rangeSort), true /*isFunctionDefinition*/);
 
   FormulaUnit* fu = new FormulaUnit(fla, FromInput(UnitInputType::ASSUMPTION));
 
@@ -1021,13 +1018,11 @@ void SMTLIB2::readDefineFunRec(const vstring& name, LExprList* iArgs, LExpr* oSo
   if (isTrueFun) {
     lhs = TermList(Term::create(symbIdx,args.size(),args.begin()));
   } else {
-    Formula* frm = new AtomicFormula(Literal::create(symbIdx,args.size(),true,false,args.begin()));
+    Formula* frm = new AtomicFormula(Literal::create(symbIdx,args.size(),true,false,args.begin()), true /*isFunctionDefinition*/);
     lhs = TermList(Term::createFormula(frm));
   }
 
-  auto lit = Literal::createEquality(true,lhs,rhs,rangeSort);
-  lit->makeFunctionDefinition();
-  Formula* fla = new AtomicFormula(lit);
+  Formula* fla = new AtomicFormula(Literal::createEquality(true,lhs,rhs,rangeSort), true /*isFunctionDefinition*/);
 
   FormulaUnit* fu = new FormulaUnit(fla, FromInput(UnitInputType::ASSUMPTION));
 

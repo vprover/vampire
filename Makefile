@@ -347,7 +347,6 @@ VS_OBJ = Shell/AnswerExtractor.o\
          Shell/GoalGuessing.o\
          Shell/Grounding.o\
          Shell/InductionPreprocessor.o\
-         Shell/InductionPreprocessor2.o\
          Shell/InductionSchemeGenerator.o\
          Shell/InductionSchemeFilter.o\
          Shell/InequalitySplitting.o\

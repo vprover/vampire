@@ -195,9 +195,9 @@ struct BackwardDemodulation::ResultFn
     unsigned cLen=qr.clause->length();
     Clause* res = new(cLen) Clause(cLen, SimplifyingInference2(InferenceRule::BACKWARD_DEMODULATION, qr.clause, _cl));
 
-    resLit->_numInductionHypothesis = qr.literal->_numInductionHypothesis;
-    resLit->_indInductionHypothesis = qr.literal->_indInductionHypothesis;
-    resLit->_indSignature = qr.literal->_indSignature;
+    // resLit->_numInductionHypothesis = qr.literal->_numInductionHypothesis;
+    // resLit->_indInductionHypothesis = qr.literal->_indInductionHypothesis;
+    // resLit->_indSignature = qr.literal->_indSignature;
     (*res)[0]=resLit;
 
     unsigned next=1;

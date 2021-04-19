@@ -475,32 +475,19 @@ public:
   /** True if the term is, in fact, a literal */
   bool isLiteral() const { return _args[0]._info.literal; }
 
-  void makeFunctionDefinition()
+  void reverseOrientation()
   {
-    _functionDefinition = 1;
-  }
-  void unmakeFunctionDefinition()
-  {
-    _functionDefinition = 0;
-  }
-  bool isFunctionDefinition()
-  {
-    return _functionDefinition;
+    _orientation ^= 1;
   }
 
-  void reverseFunctionOrientation()
+  void resetOrientation()
   {
-    _functionOrientation ^= 1;
+    _orientation = 0;
   }
 
-  void resetFunctionOrientation()
+  bool isOrientedReversed()
   {
-    _functionOrientation = 0;
-  }
-
-  bool isFunctionOrientedReversed()
-  {
-    return _functionOrientation;
+    return _orientation;
   }
 
   /** Return an index of the argument to which @b arg points */
@@ -679,8 +666,7 @@ protected:
   /** Weight of the symbol */
   unsigned _weight;
   /** If true, the literal is oriented reversed compared to the initial orientation */
-  unsigned _functionOrientation : 1;
-  unsigned _functionDefinition : 1;
+  unsigned _orientation : 1;
   union {
     /** If _isTwoVarEquality is false, this value is valid and contains
      * number of occurrences of variables */

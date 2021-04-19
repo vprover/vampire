@@ -254,7 +254,7 @@ Clause *FnDefRewriting::perform(
       if (doSimS) {
         curr = EqHelper::replace(curr, rwTerm, tgtTermS);
         curr->_numInductionHypothesis = (*rwClause)[i]->_numInductionHypothesis;
-        curr->_indInductionHypothesis = (*rwClause)[i]->_indInductionHypothesis;
+        // curr->_indInductionHypothesis = (*rwClause)[i]->_indInductionHypothesis;
         curr->_indSignature = (*rwClause)[i]->_indSignature;
       }
 

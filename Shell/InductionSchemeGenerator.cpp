@@ -893,11 +893,22 @@ void RecursionInductionSchemeGenerator2::process(TermList curr, bool active,
       }
     }
     InductionScheme scheme;
-    TermList genTerm(Term::create(t, args.begin()));
-    for (const auto& b : templ._branches) {
+    TermList genTerm;
+    auto isLit = t->isLiteral();
+    if (isLit) {
+      genTerm = TermList(Literal::create(static_cast<Literal*>(t), args.begin()));
+    } else {
+      genTerm = TermList(Term::create(t, args.begin()));
+    }
+    for (auto& b : templ._branches) {
       RobSubstitutionSP subst(new RobSubstitution);
       if (subst->unify(b._header, 0, genTerm, 1)) {
-        auto headerS = subst->apply(b._header, 0);
+        TermList headerS;
+        if (isLit) {
+          headerS = TermList(subst->apply(static_cast<Literal*>(b._header.term()), 0));
+        } else {
+          headerS = subst->apply(b._header, 0);
+        }
         auto headerST = headerS.term();
         vmap<TermList, TermList> mainSubst;
         for (unsigned i = 0; i < t->arity(); i++) {
@@ -907,8 +918,13 @@ void RecursionInductionSchemeGenerator2::process(TermList curr, bool active,
           }
         }
         vvector<vmap<TermList, TermList>> hypSubsts;
-        for (const auto& recCall : b._recursiveCalls) {
-          auto recCallS = subst->apply(recCall, 0);
+        for (auto& recCall : b._recursiveCalls) {
+          TermList recCallS;
+          if (isLit) {
+            recCallS = TermList(subst->apply(static_cast<Literal*>(recCall.term()), 0));
+          } else {
+            recCallS = subst->apply(recCall, 0);
+          }
           auto recCallST = recCallS.term();
           hypSubsts.emplace_back();
           for (unsigned i = 0; i < t->arity(); i++) {

@@ -134,7 +134,7 @@ struct EqualityResolution::ResultFn
 
         (*res)[next++] = currAfter;
         if (_cl->isFunctionDefinition(curr)) {
-          res->makeFunctionDefinition(currAfter, currAfter->isFunctionOrientedReversed() ^ _cl->isReversedFunctionDefinition(curr));
+          res->makeFunctionDefinition(currAfter, currAfter->isOrientedReversed() ^ _cl->isReversedFunctionDefinition(curr));
         }
       }
     }

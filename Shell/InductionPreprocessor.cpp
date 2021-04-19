@@ -10,15 +10,14 @@
 
 #include "InductionPreprocessor.hpp"
 
-#include "Kernel/Formula.hpp"
+#include "Kernel/Clause.hpp"
+#include "Kernel/Matcher.hpp"
 #include "Kernel/Problem.hpp"
-#include "Kernel/Renaming.hpp"
-#include "Kernel/RobSubstitution.hpp"
-#include "Kernel/SubstHelper.hpp"
-#include "Kernel/Substitution.hpp"
 #include "Kernel/Term.hpp"
+#include "Shell/TermAlgebra.hpp"
 #include "Kernel/TermIterators.hpp"
 #include "Kernel/Unit.hpp"
+#include "Kernel/Signature.hpp"
 
 #include "FunctionDefinitionDiscovery.hpp"
 
@@ -247,6 +246,28 @@ void InductionTemplate::addMissingCases(const vvector<vvector<TermList>>& missin
   env.endOutput();
 }
 
+bool InductionTemplate::Branch::contains(Branch other)
+{
+  if (!MatchingUtils::haveVariantArgs(_header.term(), other._header.term()))
+  {
+    return false;
+  }
+  for (auto recCall2 : other._recursiveCalls) {
+    bool found = false;
+    for (auto recCall1 : _recursiveCalls) {
+      if (MatchingUtils::haveVariantArgs(recCall1.term(), recCall2.term()))
+      {
+        found = true;
+        break;
+      }
+    }
+    if (!found) {
+      return false;
+    }
+  }
+  return true;
+}
+
 bool InductionTemplate::checkUsefulness()
 {
   CALL("InductionTemplate::checkUsefulness");
@@ -323,6 +344,18 @@ bool InductionTemplate::checkWellFoundedness()
   return findVarOrder(relations, candidatePositions, _order);
 }
 
+void InductionTemplate::addBranch(vvector<TermList>&& recursiveCalls, TermList&& header)
+{
+  InductionTemplate::Branch branch(recursiveCalls, header);
+  for (auto b : _branches) {
+    // TODO(mhajdu): this should be checked the other way around as well
+    if (b.contains(branch)) {
+      return;
+    }
+  }
+  _branches.emplace_back(branch);
+}
+
 ostream& operator<<(ostream& out, const InductionTemplate& templ)
 {
   out << "Branches: ";
@@ -361,66 +394,7 @@ ostream& operator<<(ostream& out, const InductionTemplate& templ)
   return out;
 }
 
-void parseRecursiveDefinition(Literal* lit)
-{
-  CALL("parseRecursiveDefinition");
-
-  auto lhs = lit->isFunctionOrientedReversed() ? lit->nthArgument(1) : lit->nthArgument(0);
-  auto rhs = lit->isFunctionOrientedReversed() ? lit->nthArgument(0) : lit->nthArgument(1);
-  auto lhterm = lhs->term();
-  bool isPred = lhterm->isFormula();
-  if (isPred) {
-    lhterm = lhterm->getSpecialData()->getFormula()->literal();
-  }
-
-  InductionTemplate templ;
-  TermList term(lhterm);
-  InductionPreprocessor::processBody(*rhs, term, templ);
-  if (!templ.checkUsefulness()) {
-    return;
-  }
-  templ.checkWellFoundedness();
-  vvector<vvector<TermList>> missingCases;
-  if (!templ.checkWellDefinedness(missingCases) && !missingCases.empty()) {
-    templ.addMissingCases(missingCases);
-  }
-
-  if(env.options->showInduction()){
-    env.beginOutput();
-    env.out() << "[Induction] function: " << *lit << endl << ", with induction template: " << templ << endl;
-    env.endOutput();
-  }
-  env.signature->addInductionTemplate(lhterm->functor(), isPred, std::move(templ));
-}
-
-void InductionPreprocessor::preprocessProblem(Problem& prb)
-{
-  CALL("InductionPreprocessor::preprocessProblem");
-
-  FunctionDefinitionDiscovery d;
-  UnitList::Iterator it(prb.units());
-  while (it.hasNext()) {
-    auto unit = it.next();
-    if (unit->isClause()){
-      continue;
-    }
-
-    auto formula = unit->getFormula();
-    while (formula->connective() == Connective::FORALL) {
-      formula = formula->qarg();
-    }
-
-    if (formula->connective() == Connective::LITERAL
-        && formula->literal()->isFunctionDefinition()) {
-      parseRecursiveDefinition(formula->literal());
-    } else if (env.options->functionDefinitionDiscovery()) {
-      d.findPossibleRecursiveDefinitions(formula);
-    }
-  }
-  d.addBestConfiguration();
-}
-
-void processCase(const unsigned recFun, const bool isPred, TermList body, vvector<TermList>& recursiveCalls)
+void processCase(const unsigned fn, TermList body, vvector<TermList>& recursiveCalls)
 {
   CALL("processCase");
 
@@ -431,158 +405,122 @@ void processCase(const unsigned recFun, const bool isPred, TermList body, vvecto
 
   // Check if this term is a recursive call, store it
   auto term = body.term();
-  if (term->functor() == recFun && isPred == term->isFormula()) {
+  ASS(!term->isSpecial());
+  if (term->functor() == fn) {
     recursiveCalls.push_back(body);
   }
 
-  // Otherwise recurse into the subterms/subformulas
-  if (term->isFormula()) {
-    auto formula = term->getSpecialData()->getFormula();
-    switch (formula->connective()) {
-      case LITERAL: {
-        TermList lit(formula->literal());
-        processCase(recFun, isPred, lit, recursiveCalls);
-        break;
+  NonVariableIterator it(term);
+  while (it.hasNext()) {
+    auto n = it.next();
+    processCase(fn, n, recursiveCalls);
+  }
+}
+
+void InductionPreprocessor::preprocessProblem(Problem& prb)
+{
+  CALL("InductionPreprocessor::preprocessProblem");
+
+  // FunctionDefinitionDiscovery d;
+  vmap<pair<unsigned, bool>, InductionTemplate> templates;
+  UnitList::Iterator it(prb.units());
+  while (it.hasNext()) {
+    auto unit = it.next();
+    if (!unit->isClause()){
+      continue;
+    }
+
+    auto clause = unit->asClause();
+    unsigned length = clause->length();
+    if (!clause->containsFunctionDefinition()) {
+      continue;
+    } else {
+      cout << *clause << endl;
+    }
+    // first we find the only function
+    // definition literal in the clause
+    Literal* fndef = nullptr;
+    for(unsigned i = 0; i < length; i++) {
+      Literal* curr = (*clause)[i];
+      if (clause->isFunctionDefinition(curr)) {
+        ASS(!fndef);
+        fndef = curr;
       }
-      case BOOL_TERM: {
-        processCase(recFun, isPred, formula->getBooleanTerm(), recursiveCalls);
-        break;
+    }
+
+    if (fndef->isEquality()) {
+      // if it is an equality the task is
+      // to identify the lhs and collect any
+      // recursive calls from the rhs
+      auto rev = clause->isReversedFunctionDefinition(fndef);
+      auto lhs = *fndef->nthArgument(rev ? 1 : 0);
+      auto rhs = *fndef->nthArgument(rev ? 0 : 1);
+      ASS(lhs.isTerm());
+
+      auto fn = lhs.term()->functor();
+      auto p = make_pair(fn, false);
+      auto templIt = templates.find(p);
+      if (templIt == templates.end()) {
+        templIt = templates.insert(make_pair(p, InductionTemplate())).first;
       }
-      case AND:
-      case OR: {
-        FormulaList::Iterator it(formula->args());
-        while (it.hasNext()) {
-          // TODO(mhajdu): maybe don't create a new Term here
-          TermList ft(Term::createFormula(it.next()));
-          processCase(recFun, isPred, ft, recursiveCalls);
+
+      vvector<TermList> recursiveCalls;
+      processCase(fn, rhs, recursiveCalls);
+      templIt->second.addBranch(std::move(recursiveCalls), std::move(lhs));
+    } else {
+      // otherwise we go once again through
+      // the clause and look for other literals
+      // with the same top-level functor
+      auto functor = fndef->functor();
+      auto p = make_pair(functor, true);
+      auto templIt = templates.find(p);
+      if (templIt == templates.end()) {
+        templIt = templates.insert(make_pair(p, InductionTemplate())).first;
+      }
+
+      vvector<TermList> recursiveCalls;
+      for(unsigned i = 0; i < length; i++) {
+        Literal* curr = (*clause)[i];
+        if (curr != fndef) {
+          if (!curr->isEquality() && functor == curr->functor()) {
+            recursiveCalls.push_back(TermList(curr));
+          }
         }
-        break;
       }
-      case IFF:
-      case XOR:
-      case IMP: {
-        break;
-      }
-      case TRUE:
-      case FALSE: {
-        break;
-      }
-      case FORALL:
-      case EXISTS: {
-        break;
-      }
-      case NOT: {
-        processCase(recFun, isPred, TermList(Term::createFormula(formula->uarg())), recursiveCalls);
-        break;
-      }
-#if VDEBUG
-      default:
-        ASSERTION_VIOLATION;
-#endif
+      // we unmake it, in saturation we do not process
+      // predicate definitions differently (yet)
+      clause->clearFunctionDefinitions();
+      templIt->second.addBranch(std::move(recursiveCalls), std::move(TermList(fndef)));
     }
-  } else {
-    Term::Iterator it(term);
-    while (it.hasNext()) {
-      auto n = it.next();
-      processCase(recFun, isPred, n, recursiveCalls);
-    }
+
+    // if (env.options->functionDefinitionDiscovery()) {
+    //   d.findPossibleRecursiveDefinitions(formula);
+    // }
   }
-}
+  for (const auto& kv : templates) {
+    auto templ = kv.second;
+    if (!templ.checkUsefulness()) {
+      return;
+    }
+    templ.checkWellFoundedness();
+    vvector<vvector<TermList>> missingCases;
+    if (!templ.checkWellDefinedness(missingCases) && !missingCases.empty()) {
+      templ.addMissingCases(missingCases);
+    }
 
-void InductionPreprocessor::processFormulaBody(Formula* body, Literal* header, InductionTemplate& templ)
-{
-  CALL("InductionPreprocessor::processFormulaBody");
-
-  switch(body->connective()) {
-    case LITERAL: {
-      auto lit = body->literal();
-      vvector<TermList> recCalls;
-      if (lit->isEquality()) {
-        processCase(header->functor(), header->isFormula(), *lit->nthArgument(0), recCalls);
-        processCase(header->functor(), header->isFormula(), *lit->nthArgument(1), recCalls);
+    if(env.options->showInduction()){
+      env.beginOutput();
+      if (kv.first.second) {
+        env.out() << "[Induction] predicate: " << env.signature->getPredicate(kv.first.first)->name() << endl;
       } else {
-        processCase(header->functor(), header->isFormula(), TermList(lit), recCalls);
+        env.out() << "[Induction] function: " << env.signature->getFunction(kv.first.first)->name() << endl;
       }
-      templ._branches.emplace_back(recCalls, TermList(header));
-      break;
+      env.out() << ", with induction template: " << templ << endl;
+      env.endOutput();
     }
-    case BOOL_TERM: {
-      vvector<TermList> recCalls;
-      processCase(header->functor(), header->isFormula(), body->getBooleanTerm(), recCalls);
-      templ._branches.emplace_back(recCalls, TermList(header));
-      break;
-    }
-    case AND:
-    case OR: {
-      FormulaList::Iterator it(body->args());
-      while (it.hasNext()) {
-        auto arg = it.next();
-        processFormulaBody(arg, header, templ);
-      }
-      break;
-    }
-    case FALSE:
-    case TRUE: {
-      templ._branches.emplace_back(TermList(header));
-      break;
-    }
-    case NOT: {
-      processFormulaBody(body->uarg(), header, templ);
-      break;
-    }
-    case IMP:
-    case IFF:
-    case XOR: {
-      processFormulaBody(body->left(), header, templ);
-      processFormulaBody(body->right(), header, templ);
-      break;
-    }
-    case FORALL:
-    case EXISTS:
-    case NAME:
-    case NOCONN: {
-      break;
-    }
+    env.signature->addInductionTemplate(kv.first.first, kv.first.second, std::move(templ));
   }
-}
-
-void InductionPreprocessor::processBody(TermList body, TermList header, InductionTemplate& templ)
-{
-  CALL("InductionPreprocessor::processBody");
-
-  // Base case
-  if (body.isVar()) {
-    templ._branches.emplace_back(header);
-    return;
-  }
-  // Possibly recursive case
-  auto term = body.term();
-  if (!term->isSpecial() || term->isFormula()) {
-    vvector<TermList> recursiveCalls;
-    processCase(header.term()->functor(), header.term()->isFormula(), body, recursiveCalls);
-    templ._branches.emplace_back(recursiveCalls, header);
-    return;
-  }
-  // TODO(mhajdu): Here there can be other constructs e.g. ITE, process them
-  if (term->isMatch())
-  {
-    auto matchedVar = term->nthArgument(0)->var();
-
-    for (unsigned i = 1; i < term->arity(); i+=2) {
-      auto pattern = term->nthArgument(i);
-      auto matchBody = term->nthArgument(i+1);
-      // We replace the matched variable with
-      // the pattern in the header and recurse
-      TermListReplacement tr(TermList(matchedVar,false), *pattern);
-      TermList t(tr.transform(header.term()));
-      processBody(*matchBody, t, templ);
-    }
-  }
-  else if (term->isITE())
-  {
-    processBody(*term->nthArgument(0), header, templ);
-    processBody(*term->nthArgument(1), header, templ);
-  }
+  // d.addBestConfiguration();
 }
 
 } // Shell

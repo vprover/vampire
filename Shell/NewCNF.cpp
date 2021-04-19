@@ -128,7 +128,7 @@ void NewCNF::clausify(FormulaUnit* unit,Stack<Clause*>& output)
   ASS(_occurrences.isEmpty());
 }
 
-void NewCNF::process(Literal* literal, Occurrences &occurrences) {
+void NewCNF::process(Literal* literal, bool functionDefinition, Occurrences &occurrences) {
   CALL("NewCNF::process(Literal*)");
 
   LOG2("process(Literal*)", literal->toString());
@@ -279,8 +279,6 @@ void NewCNF::process(Literal* literal, Occurrences &occurrences) {
   ASS(thenBranches.isEmpty());
   ASS(elseBranches.isEmpty());
 
-  auto functionDefinition = literal->isFunctionDefinition();
-
   while (occurrences.isNonEmpty()) {
     Occurrence occ = pop(occurrences);
 
@@ -289,11 +287,8 @@ void NewCNF::process(Literal* literal, Occurrences &occurrences) {
       LPair p = lit.next();
       Literal* literal = p.first;
       List<GenLit>* gls = p.second;
-      if (functionDefinition) {
-        literal->makeFunctionDefinition();
-      }
 
-      Formula* f = new AtomicFormula(literal);
+      Formula* f = new AtomicFormula(literal, functionDefinition);
 
       enqueue(f);
 
@@ -1309,7 +1304,7 @@ void NewCNF::process(Formula* g, Occurrences &occurrences)
       break;
 
     case LITERAL:
-      process(g->literal(),occurrences);
+      process(g->literal(),g->isFunctionDefinition(), occurrences);
       break;
 
     case NOT:
@@ -1524,7 +1519,7 @@ Clause* NewCNF::toClause(SPGenClause gc)
     _substitutionsByBindings.insert(gc->bindings, subst);
   }
 
-  static Stack<Literal*> properLiterals;
+  static Stack<pair<Literal*,bool>> properLiterals;
   ASS(properLiterals.isEmpty());
 
   GenClause::Iterator lit = gc->genLiterals();
@@ -1541,25 +1536,16 @@ Clause* NewCNF::toClause(SPGenClause gc)
       l = Literal::complementaryLiteral(l);
     }
 
-    if (g->literal()->isFunctionDefinition()) {
-      l->makeFunctionDefinition();
-    }
-    properLiterals.push(l);
+    properLiterals.push(make_pair(l,g->isFunctionDefinition()));
   }
 
   static bool rewriting = env.options->functionDefinitionRewriting();
   Clause* clause = new(gc->size()) Clause(gc->size(),FormulaTransformation(InferenceRule::CLAUSIFY,_beingClausified));
   for (int i = gc->size() - 1; i >= 0; i--) {
-    (*clause)[i] = properLiterals[i];
-    if (rewriting && properLiterals[i]->isFunctionDefinition()) {
-      clause->makeFunctionDefinition(properLiterals[i],
-        properLiterals[i]->isFunctionOrientedReversed());
-      // TODO(mhajdu): this is only a half-measure in trying to avoid
-      // function definitions popping out of nowhere.
-      // This does the opposite: there may be fn defs
-      // which come out non-fn defs because some other clause
-      // contains the same literal and we unmark it.
-      properLiterals[i]->unmakeFunctionDefinition();
+    (*clause)[i] = properLiterals[i].first;
+    if (rewriting && properLiterals[i].second) {
+      clause->makeFunctionDefinition((*clause)[i],
+        (*clause)[i]->isOrientedReversed());
     }
   }
 

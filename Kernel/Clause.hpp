@@ -117,6 +117,12 @@ public:
       _functionDefLitOrientationMap->set(lit, reversed);
     }
   }
+  void clearFunctionDefinitions() {
+    if (_functionDefLitOrientationMap) {
+      delete _functionDefLitOrientationMap;
+      _functionDefLitOrientationMap = nullptr;
+    }
+  }
   bool isFunctionDefinition(Literal* lit) const {
     if (!containsFunctionDefinition()) { return false; }
     return _functionDefLitOrientationMap->find(lit);

@@ -78,38 +78,6 @@ bool isHeader(TermList t)
   return true;
 }
 
-bool checkContains(const InductionTemplate::Branch& branch1, const InductionTemplate::Branch& branch2)
-{
-  RobSubstitutionSP subst(new RobSubstitution);
-  // try to unify the step cases
-  if (!subst->unify(branch2._header, 0, branch1._header, 1)) {
-    return false;
-  }
-  auto t1 = subst->apply(branch1._header, 1);
-  Renaming r1, r2;
-  r1.normalizeVariables(branch1._header);
-  r2.normalizeVariables(branch2._header);
-  auto t2 = subst->apply(branch2._header, 0);
-  if (t1 != r1.apply(branch1._header) || t2 != r2.apply(branch2._header)) {
-    return false;
-  }
-  for (const auto& recCall1 : branch1._recursiveCalls) {
-    bool found = false;
-    for (const auto& recCall2 : branch2._recursiveCalls) {
-      const auto& r1 = subst->apply(recCall1, 1);
-      const auto& r2 = subst->apply(recCall2, 0);
-      if (r1 == r2) {
-        found = true;
-        break;
-      }
-    }
-    if (!found) {
-      return false;
-    }
-  }
-  return true;
-}
-
 void FunctionDefinitionDiscovery::addBestConfiguration()
 {
   CALL("FunctionDefinitionDiscovery::addBestConfiguration");
@@ -124,7 +92,7 @@ void FunctionDefinitionDiscovery::addBestConfiguration()
       auto& branches = kv.second.first._branches;
       for (unsigned i = 0; i < branches.size(); i++) {
         for (unsigned j = i+1; j < branches.size();) {
-          if (checkContains(branches[j], branches[i])) {
+          if (branches[i].contains(branches[j])) {
             branches[j] = branches.back();
             branches.pop_back();
           } else {
@@ -189,11 +157,11 @@ void FunctionDefinitionDiscovery::addBestConfiguration()
       }
       if (env.options->functionDefinitionRewriting()) {
         for (auto& kv2 : kv.second.second) {
-          kv2.first->makeFunctionDefinition();
-          kv2.first->resetFunctionOrientation();
-          if (kv2.second) {
-            kv2.first->reverseFunctionOrientation();
-          }
+          // kv2.first->makeFunctionDefinition();
+          // kv2.first->resetFunctionOrientation();
+          // if (kv2.second) {
+          //   kv2.first->reverseFunctionOrientation();
+          // }
         }
       }
     }
@@ -234,7 +202,7 @@ void FunctionDefinitionDiscovery::findPossibleRecursiveDefinitions(Formula* f)
           if (!isHeader(header)) {
             return false;
           }
-          InductionPreprocessor::processBody(body, header, templ);
+          // InductionPreprocessor::processBody(body, header, templ);
           // we have to check that the found relations
           // are decreasing, e.g. f(c(x),c(y))=f(x,y)
           // is checked both ways but only one is decreasing
@@ -331,7 +299,7 @@ void FunctionDefinitionDiscovery::findPossibleRecursiveDefinitions(Formula* f)
         if (lit->isEquality() || !isHeader(TermList(lit))) {
           return false;
         }
-        InductionPreprocessor::processFormulaBody(body, lit, templ);
+        // InductionPreprocessor::processFormulaBody(body, lit, templ);
         // we have to check that the found relations
         // are decreasing, e.g. p(c(x),c(y))<=>p(x,y)
         // is checked both ways but only one is decreasing
