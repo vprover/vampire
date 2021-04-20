@@ -32,7 +32,7 @@
  *  C++ new and delete for (de)allocating all data structures.
  */
 #ifndef USE_SYSTEM_ALLOCATION
-#if TSAN
+#if VTHREADED
 #define USE_SYSTEM_ALLOCATION 1
 #else
 #define USE_SYSTEM_ALLOCATION 0
@@ -1089,7 +1089,7 @@ void* operator new(size_t sz) {
    * here be dragons!
    * 
    * space for thread_local variables are allocated lazily by calling this function
-   * this messes with some assumptions that Allocator has, * and doesn't always show up immediately
+   * this messes with some assumptions that Allocator has, and doesn't always show up immediately
    * 
    * TODO: fix this properly somehow?
    */
