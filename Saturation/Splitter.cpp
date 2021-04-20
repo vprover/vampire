@@ -409,6 +409,7 @@ SATSolver::Status SplittingBranchSelector::processDPConflicts()
       // ... moreover, _dp->addLiterals will filter the set anyway
 
       _dp->reset();
+      _parent._implied.reset();
       _dp->addLiterals(pvi( LiteralStack::ConstIterator(gndAssignment) ));
       DecisionProcedure::Status dpStatus = _dp->getStatus(_ccMultipleCores);
 
@@ -446,6 +447,7 @@ SATSolver::Status SplittingBranchSelector::processDPConflicts()
   static bool useGetModel = env.options->ladpUM();
   if(useGetModel){
     static LiteralStack model;
+    model.reset();
     _dp->getModel(model); 
     LiteralStack::Iterator it(model);
 
@@ -1767,8 +1769,13 @@ void Splitter::addComponents(const SplitLevelStack& toAdd)
    cl->setDPImplied(true);
    SplitSet* splits=getNewClauseSplitSet(cl);
    assignClauseSplitSet(cl, splits);
-   handleNonSplittable(cl);
-   _sa->addNewClause(cl);
+   //cout << "Create " << cl->toString() << endl; 
+   Clause* compCl;
+   unsigned compName =  tryGetComponentNameOrAddNew(cl->length(), cl->literals(), cl, compCl);
+   if(!splits->member(compName)){
+     handleNonSplittable(cl); 
+     _sa->addNewClause(cl);
+   }
   }
   _implied.reset();
 }
