@@ -148,9 +148,13 @@ void IHLHSIndex::handleClause(Clause* c, bool adding)
 
   for (unsigned i = 0; i < c->length(); i++) {
     Literal* lit=(*c)[i];
-    if (!lit->_indInductionHypothesis || !lit->isEquality()) {
+    pair<Literal*,Literal*> sig;
+    bool hyp = false;
+    bool ind = c->isInductionLiteral(lit, sig, hyp);
+    if (!ind || !hyp) {
       continue;
     }
+    ASS(lit->isEquality());
     TermIterator lhsi=EqHelper::getEqualityArgumentIterator(lit);
     while (lhsi.hasNext()) {
       TermList lhs=lhsi.next();

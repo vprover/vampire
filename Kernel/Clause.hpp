@@ -132,6 +132,23 @@ public:
     return _functionDefLitOrientationMap->find(lit) && _functionDefLitOrientationMap->get(lit);
   }
 
+  void markInductionLiteral(pair<Literal*, Literal*> sig, Literal* lit, bool hyp) {
+    if (!_inductionHypothesisMap) {
+      _inductionHypothesisMap = new DHMap<Literal*,pair<pair<Literal*,Literal*>,bool>>();
+    }
+    auto res = _inductionHypothesisMap->insert(lit, make_pair(sig, hyp));
+    if (!res) {
+      _inductionHypothesisMap->set(lit, make_pair(sig, hyp));
+    }
+  }
+  bool isInductionLiteral(Literal* lit, pair<Literal*, Literal*>& sig, bool& hyp) const {
+    if (!_inductionHypothesisMap || !_inductionHypothesisMap->find(lit)) { return false; }
+    auto temp = _inductionHypothesisMap->get(lit);
+    sig = temp.first;
+    hyp = temp.second;
+    return true;
+  }
+
   /** Return the length (number of literals) */
   unsigned length() const { return _length; }
   /** Alternative name for length to conform with other containers */
@@ -414,6 +431,7 @@ protected:
 //#endif
 
   DHMap<Literal*,bool>* _functionDefLitOrientationMap;
+  DHMap<Literal*,pair<pair<Literal*,Literal*>,bool>>* _inductionHypothesisMap;
   /** Array of literals of this unit */
   Literal* _literals[1];
 }; // class Clause

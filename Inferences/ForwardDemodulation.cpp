@@ -190,16 +190,21 @@ bool ForwardDemodulation::perform(Clause* cl, Clause*& replacement, ClauseIterat
 	Clause* res = new(cLen) Clause(cLen,
 	  SimplifyingInference2(InferenceRule::FORWARD_DEMODULATION, cl, qr.clause));
 
-	resLit->_numInductionHypothesis = lit->_numInductionHypothesis;
-	resLit->_indInductionHypothesis = lit->_indInductionHypothesis;
-	resLit->_indSignature = lit->_indSignature;
 	(*res)[0]=resLit;
+	pair<Literal*,Literal*> sig;
+	bool hyp;
+	if (cl->isInductionLiteral(lit, sig, hyp)) {
+		res->markInductionLiteral(sig, resLit, hyp);
+	}
 
 	unsigned next=1;
 	for(unsigned i=0;i<cLen;i++) {
 	  Literal* curr=(*cl)[i];
 	  if(curr!=lit) {
 	    (*res)[next++] = curr;
+			if (cl->isInductionLiteral(curr, sig, hyp)) {
+				res->markInductionLiteral(sig, curr, hyp);
+			}
 	  }
 	}
 	ASS_EQ(next,cLen);

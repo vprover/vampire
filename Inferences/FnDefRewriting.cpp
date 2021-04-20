@@ -244,18 +244,19 @@ Clause *FnDefRewriting::perform(
 
   static bool doSimS = env.options->simulatenousSuperposition();
   (*res)[0] = tgtLitS;
-  tgtLitS->_numInductionHypothesis = rwLit->_numInductionHypothesis;
-  tgtLitS->_indInductionHypothesis = rwLit->_indInductionHypothesis;
-  tgtLitS->_indSignature = rwLit->_indSignature;
+	pair<Literal*,Literal*> sig;
+	bool hyp;
+	if (rwClause->isInductionLiteral(rwLit, sig, hyp)) {
+		res->markInductionLiteral(sig, tgtLitS, hyp);
+	}
+
   unsigned next = 1;
   for (unsigned i = 0; i < rwLength; i++) {
     Literal *curr = (*rwClause)[i];
     if (curr != rwLit) {
+      auto ind = rwClause->isInductionLiteral(curr, sig, hyp);
       if (doSimS) {
         curr = EqHelper::replace(curr, rwTerm, tgtTermS);
-        curr->_numInductionHypothesis = (*rwClause)[i]->_numInductionHypothesis;
-        // curr->_indInductionHypothesis = (*rwClause)[i]->_indInductionHypothesis;
-        curr->_indSignature = (*rwClause)[i]->_indSignature;
       }
 
       if (EqHelper::isEqTautology(curr)) {
@@ -264,6 +265,9 @@ Clause *FnDefRewriting::perform(
       }
 
       (*res)[next++] = curr;
+      if (ind) {
+        res->markInductionLiteral(sig, curr, hyp);
+      }
     }
   }
 

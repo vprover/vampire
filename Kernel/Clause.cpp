@@ -73,7 +73,8 @@ Clause::Clause(unsigned length,const Inference& inf)
     _literalPositions(0),
     _numActiveSplits(0),
     _auxTimestamp(0),
-    _functionDefLitOrientationMap(0)
+    _functionDefLitOrientationMap(0),
+    _inductionHypothesisMap(0)
 {
   // MS: TODO: not sure if this belongs here and whether EXTENSIONALITY_AXIOM input types ever appear anywhere (as a vampire-extension TPTP formula role)
   if(inference().inputType() == UnitInputType::EXTENSIONALITY_AXIOM){
@@ -347,8 +348,10 @@ vstring Clause::literalsOnlyToString() const
         result +="[r]";
       }
     }
-    if (_literals[0]->_indInductionHypothesis) {
-      result += " [ih]";
+    pair<Literal*, Literal*> sig;
+    bool hyp;
+    if (isInductionLiteral(_literals[0], sig, hyp)) {
+      result += hyp ? " [ih]" : " [ic]";
     }
     for(unsigned i = 1; i < _length; i++) {
       result += " | ";
@@ -359,8 +362,8 @@ vstring Clause::literalsOnlyToString() const
           result +="[r]";
         }
       }
-      if (_literals[i]->_indInductionHypothesis) {
-        result += " [ih]";
+      if (isInductionLiteral(_literals[i], sig, hyp)) {
+        result += hyp ? " [ih]" : " [ic]";
       }
     }
     return result;

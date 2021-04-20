@@ -112,8 +112,7 @@ void GeneralInduction::process(InductionClauseIterator& res, Clause* premise, Li
       if (alreadyDone(literal, kv.first, schLits.back())) {
         continue;
       }
-      // InductionGeneralizationIterator g(false, kv.second);
-      // InductionGeneralizationIterator g(true, kv.second);
+      // InductionGeneralizationIterator g(kv.second);
       HeuristicGeneralizationIterator g(kv.second);
       while (g.hasNext()) {
         auto eg = g.next();
@@ -193,6 +192,7 @@ void GeneralInduction::generateClauses(
 
   unsigned var = scheme._maxVar;
   vvector<LiteralStack> lits(1);
+  vmap<Literal*, Literal*> hypToConcMap;
 
   for (const auto& c : scheme._cases) {
     vvector<LiteralStack> newLits;
@@ -205,16 +205,13 @@ void GeneralInduction::generateClauses(
       replaceLit(c._step, occurrences, qr.literal, v2sk, lits, newLits, var);
     }
 
-    unsigned cnt = 0;
     for (const auto& r : c._recursiveCalls) {
       auto newHypLit = replaceLit(r, occurrences, mainLit.literal, v2sk, lits, newLits, var, true);
       ASS_NEQ(newHypLit, mainLit.literal);
-      newHypLit->_indInductionHypothesis = ++cnt;
-      newHypLit->_indSignature = newMainLit;
+      if (mainLit.literal->isEquality() && env.options->inductionHypRewriting()) {
+        hypToConcMap.insert(make_pair(newHypLit, newMainLit));
+      }
     }
-    newMainLit->_numInductionHypothesis = cnt;
-    newMainLit->_indSignature = newMainLit;
-
     lits = newLits;
   }
 
@@ -258,6 +255,16 @@ void GeneralInduction::generateClauses(
   inf.setInductionDepth(maxDepth+1);
   for (const auto& st : lits) {
     temp.push(Clause::fromStack(st, inf));
+  }
+  for (const auto& kv : hypToConcMap) {
+    for (auto& c : temp) {
+      if (c->contains(kv.first)) {
+        c->markInductionLiteral(kv, kv.first, true);
+      }
+      if (c->contains(kv.second)) {
+        c->markInductionLiteral(kv, kv.second, false);
+      }
+    }
   }
 
   ClauseStack::Iterator cit(temp);

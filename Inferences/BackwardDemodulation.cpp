@@ -195,16 +195,21 @@ struct BackwardDemodulation::ResultFn
     unsigned cLen=qr.clause->length();
     Clause* res = new(cLen) Clause(cLen, SimplifyingInference2(InferenceRule::BACKWARD_DEMODULATION, qr.clause, _cl));
 
-    // resLit->_numInductionHypothesis = qr.literal->_numInductionHypothesis;
-    // resLit->_indInductionHypothesis = qr.literal->_indInductionHypothesis;
-    // resLit->_indSignature = qr.literal->_indSignature;
     (*res)[0]=resLit;
+    pair<Literal*,Literal*> sig;
+    bool hyp;
+    if (qr.clause->isInductionLiteral(qr.literal, sig, hyp)) {
+      res->markInductionLiteral(sig, resLit, hyp);
+    }
 
     unsigned next=1;
     for(unsigned i=0;i<cLen;i++) {
       Literal* curr=(*qr.clause)[i];
       if(curr!=qr.literal) {
         (*res)[next++] = curr;
+        if (qr.clause->isInductionLiteral(curr, sig, hyp)) {
+          res->markInductionLiteral(sig, curr, hyp);
+        }
       }
     }
     ASS_EQ(next,cLen);

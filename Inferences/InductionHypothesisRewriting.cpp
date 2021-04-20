@@ -54,7 +54,9 @@ ClauseIterator InductionHypothesisRewriting::generateClauses(Clause *premise)
   ClauseIterator res = ClauseIterator::getEmpty();
   for (unsigned i = 0; i < premise->length(); i++) {
     auto lit = (*premise)[i];
-    if (lit->isEquality()) {
+    pair<Literal*, Literal*> sig;
+    bool hyp;
+    if (premise->isInductionLiteral(lit, sig, hyp)) {
       // ClauseIterator temp = ClauseIterator::getEmpty();
       // auto it = pvi(pushPairIntoRightIterator(lit,
       //   EqHelper::getEqualityArgumentIterator(lit)));
@@ -65,7 +67,8 @@ ClauseIterator InductionHypothesisRewriting::generateClauses(Clause *premise)
       // }
       // auto it3 = pvi(getMapAndFlattenIterator(inner, InductResultFn(_splitter, _induction)));
       // res = pvi(getConcatenatedIterator(res, it3));
-      for (unsigned j = 1; j <= lit->_numInductionHypothesis; j++) {
+      ASS(lit->isEquality());
+      if (!hyp) {
         for (unsigned k = 0; k <= 1; k++) {
           auto litarg = *lit->nthArgument(k);
           SubtermIterator sti(litarg.term());
@@ -74,7 +77,10 @@ ClauseIterator InductionHypothesisRewriting::generateClauses(Clause *premise)
             auto ts = _lhsIndex->getGeneralizations(t);
             while (ts.hasNext()) {
               auto qr = ts.next();
-              if (qr.literal->_indInductionHypothesis != j || qr.literal->_indSignature != lit->_indSignature) {
+              pair<Literal*, Literal*> sigOther;
+              bool hypOther = false;
+              bool ind = qr.clause->isInductionLiteral(qr.literal, sigOther, hypOther);
+              if (!ind || !hypOther || sig != sigOther) {
                 continue;
               }
               Clause* newClause = perform(premise, lit, litarg, t, qr.clause, qr.literal, qr.term, qr.substitution, true);
@@ -88,16 +94,16 @@ ClauseIterator InductionHypothesisRewriting::generateClauses(Clause *premise)
             }
           }
         }
-      }
-      if (lit->_indInductionHypothesis > 0) {
+      } else {
         for (unsigned j = 0; j <= 1; j++) {
           auto litarg = *lit->nthArgument(j);
           auto ts = _stIndex->getInstances(litarg);
           while (ts.hasNext()) {
             auto qr = ts.next();
-            if (!qr.literal->_numInductionHypothesis ||
-              qr.literal->_indSignature != lit->_indSignature ||
-              !qr.literal->isEquality()) {
+            pair<Literal*, Literal*> sigOther;
+            bool hypOther = false;
+            bool ind = qr.clause->isInductionLiteral(qr.literal, sigOther, hypOther);
+            if (!ind || hypOther || sig != sigOther) {
               continue;
             }
             for (unsigned k = 0; k <= 1; k++) {

@@ -597,9 +597,6 @@ public:
     ASS(isSpecial());
     return reinterpret_cast<SpecialTermData*>(this)-1;
   }
-  unsigned _numInductionHypothesis = 0;
-  unsigned _indInductionHypothesis = 0;
-  Literal* _indSignature = 0;
 protected:
   vstring headToString() const;
 

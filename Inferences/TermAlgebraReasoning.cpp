@@ -296,16 +296,22 @@ namespace Inferences {
         while ((*c)[i] != lit) { i++; }
         std::memcpy(res->literals(), c->literals(), length * sizeof(Literal*));
         (*res)[i] = newLit;
+        pair<Literal*,Literal*> sig;
+        bool hyp;
+        auto ind = c->isInductionLiteral(lit, sig, hyp);
+        if (ind) {
+          res->markInductionLiteral(sig, newLit, hyp);
+        }
         
         for (unsigned i = 1; i < arity; i++) {
           newLit = Literal::createEquality(false,
                                            *lit->nthArgument(0)->term()->nthArgument(i),
                                            *lit->nthArgument(1)->term()->nthArgument(i),
                                            type->arg(i));
-          newLit->_numInductionHypothesis = lit->_numInductionHypothesis;
-          newLit->_indInductionHypothesis = lit->_indInductionHypothesis;
-          newLit->_indSignature = lit->_indSignature;
           (*res)[oldLength + i - 1] = newLit;
+          if (ind && type->arg(i) == type->result()) {
+            res->markInductionLiteral(sig, newLit, hyp);
+          }
         }
         env.statistics->taNegativeInjectivitySimplifications++;
 

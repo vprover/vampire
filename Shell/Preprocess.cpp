@@ -325,6 +325,8 @@ void Preprocess::preprocess(Problem& prb)
     }
   }
 
+  InductionPreprocessor::preprocessProblem(prb);
+
   if (prb.mayHaveFunctionDefinitions()) {
     env.statistics->phase=Statistics::FUNCTION_DEFINITION_ELIMINATION;
     if (env.options->showPreprocessing())
@@ -421,8 +423,6 @@ void Preprocess::preprocess(Problem& prb)
      BlockedClauseElimination bce;
      bce.apply(prb);
    }
-
-   InductionPreprocessor::preprocessProblem(prb);
 
    if (env.options->showPreprocessing()) {
      UnitList::Iterator uit(prb.units());
