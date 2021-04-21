@@ -795,9 +795,9 @@ void RecursionInductionSchemeGenerator2::generate(
   for (auto& o : _actOccMaps) {
     o.second.finalize();
   }
-  // InductionSchemeFilter f;
-  // f.filter(primarySchemes, secondarySchemes);
-  // f.filterComplex(primarySchemes, _actOccMaps);
+  InductionSchemeFilter f;
+  f.filter(primarySchemes, secondarySchemes);
+  f.filterComplex(primarySchemes, _actOccMaps);
 
   for (const auto& sch : primarySchemes) {
     OccurrenceMap necessary;
@@ -918,7 +918,6 @@ void RecursionInductionSchemeGenerator2::process(TermList curr, bool active,
           }
         }
         vvector<vmap<TermList, TermList>> hypSubsts;
-        vvector<vmap<TermList, TermList>> strengthened;
         for (auto& recCall : b._recursiveCalls) {
           TermList recCallS;
           if (isLit) {
@@ -928,7 +927,6 @@ void RecursionInductionSchemeGenerator2::process(TermList curr, bool active,
           }
           auto recCallST = recCallS.term();
           hypSubsts.emplace_back();
-          strengthened.emplace_back();
           for (unsigned i = 0; i < t->arity(); i++) {
             auto rarg = *recCallST->nthArgument(i);
             auto arg = *t->nthArgument(i);
@@ -936,13 +934,12 @@ void RecursionInductionSchemeGenerator2::process(TermList curr, bool active,
               hypSubsts.back().insert(make_pair(arg, rarg));
             } else if (rarg != *headerST->nthArgument(i) && containsSkolem(arg)) {
               // mainSubst.insert(make_pair(arg, *headerST->nthArgument(i)));
-              // hypSubsts.back().insert(make_pair(arg, rarg));
-              strengthened.back().insert(make_pair(arg, rarg));
-              // scheme._inductionTerms.insert(arg);
+              hypSubsts.back().insert(make_pair(arg, rarg));
+              scheme._inductionTerms.insert(arg);
             }
           }
         }
-        scheme._cases.emplace_back(std::move(hypSubsts), std::move(strengthened), std::move(mainSubst));
+        scheme._cases.emplace_back(std::move(hypSubsts), std::move(mainSubst));
       }
     }
     scheme.addBaseCases();

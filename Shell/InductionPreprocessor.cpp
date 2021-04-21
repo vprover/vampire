@@ -333,7 +333,7 @@ bool InductionTemplate::checkWellFoundedness()
           _inductionPositions[i] = true;
         } else {
           candidatePositions.insert(i);
-          // _inductionPositions[i] = true;
+          _inductionPositions[i] = true;
         }
         i++;
       }

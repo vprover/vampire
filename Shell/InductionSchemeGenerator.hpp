@@ -226,14 +226,9 @@ struct InductionScheme
     Case(vvector<vmap<TermList, TermList>>&& recursiveCalls,
                     vmap<TermList, TermList>&& step)
       : _recursiveCalls(recursiveCalls), _step(step) {}
-    Case(vvector<vmap<TermList, TermList>>&& recursiveCalls,
-         vvector<vmap<TermList, TermList>>&& strengthened,
-         vmap<TermList, TermList>&& step)
-      : _recursiveCalls(recursiveCalls), _step(step), _strengthened(strengthened) {}
     bool contains(const Case& other) const;
 
     vvector<vmap<TermList, TermList>> _recursiveCalls;
-    vvector<vmap<TermList, TermList>> _strengthened;
     vmap<TermList, TermList> _step;
   };
 
