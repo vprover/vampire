@@ -43,12 +43,15 @@ public:
     _induction->attach(_salg);
     _lhsIndex = static_cast<IHLHSIndex *>(
       _salg->getIndexManager()->request(IH_LHS_SUBST_TREE));
-    _stIndex = static_cast<DemodulationSubtermIndex *>(
-      _salg->getIndexManager()->request(DEMODULATION_SUBTERM_SUBST_TREE));
+    _stIndex = static_cast<ICSubtermIndex *>(
+      _salg->getIndexManager()->request(IC_SUBTERM_SUBST_TREE));
+    // _stIndex = static_cast<DemodulationSubtermIndex *>(
+    //   _salg->getIndexManager()->request(DEMODULATION_SUBTERM_SUBST_TREE));
 
   }
   void detach() override {
-    _salg->getIndexManager()->release(DEMODULATION_SUBTERM_SUBST_TREE);
+    _salg->getIndexManager()->release(IC_SUBTERM_SUBST_TREE);
+    // _salg->getIndexManager()->release(DEMODULATION_SUBTERM_SUBST_TREE);
     _stIndex = nullptr;
     _salg->getIndexManager()->release(IH_LHS_SUBST_TREE);
     _lhsIndex = nullptr;
@@ -72,7 +75,8 @@ private:
   struct BackwardResultFn;
 
   IHLHSIndex *_lhsIndex;
-  DemodulationSubtermIndex* _stIndex;
+  ICSubtermIndex* _stIndex;
+  // DemodulationSubtermIndex* _stIndex;
   GeneralInduction* _induction;
   Splitter* _splitter;
 };

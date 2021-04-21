@@ -103,6 +103,20 @@ protected:
   void handleClause(Clause* c, bool adding);
 };
 
+class ICSubtermIndex
+: public TermIndex
+{
+public:
+  CLASS_NAME(ICSubtermIndex);
+  USE_ALLOCATOR(ICSubtermIndex);
+
+  ICSubtermIndex(TermIndexingStructure* is)
+    : TermIndex(is) {}
+
+protected:
+  void handleClause(Clause* c, bool adding);
+};
+
 /**
  * Term index for backward demodulation
  */

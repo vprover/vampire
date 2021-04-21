@@ -168,6 +168,47 @@ void IHLHSIndex::handleClause(Clause* c, bool adding)
   }
 }
 
+void ICSubtermIndex::handleClause(Clause* c, bool adding)
+{
+  CALL("ICSubtermIndex::handleClause");
+
+  TimeCounter tc(TC_FORWARD_SUPERPOSITION_INDEX_MAINTENANCE);
+
+  if (c->containsFunctionDefinition()) {
+    return;
+  }
+
+  static DHSet<TermList> inserted;
+
+  for (unsigned i = 0; i < c->length(); i++) {
+    Literal* lit=(*c)[i];
+    unsigned sig;
+    bool hyp = true, rev;
+    bool ind = c->isInductionLiteral(lit, sig, hyp, rev);
+    if (!ind || hyp) {
+      continue;
+    }
+    ASS(lit->isEquality());
+    NonVariableIterator nvi(lit);
+    while (nvi.hasNext()) {
+      TermList t=nvi.next();
+      if (!inserted.insert(t)) {
+        //It is enough to insert a term only once per clause.
+        //Also, once we know term was inserted, we know that all its
+        //subterms were inserted as well, so we can skip them.
+        nvi.right();
+        continue;
+      }
+      if (adding) {
+	_is->insert(t, lit, c);
+      }
+      else {
+	_is->remove(t, lit, c);
+      }
+    }
+  }
+}
+
 void DemodulationSubtermIndex::handleClause(Clause* c, bool adding)
 {
   CALL("DemodulationSubtermIndex::handleClause");

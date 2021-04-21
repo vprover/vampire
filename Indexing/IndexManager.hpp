@@ -53,7 +53,8 @@ enum IndexType {
 
   ACYCLICITY_INDEX,
   FNDEF_LHS_SUBST_TREE,
-  IH_LHS_SUBST_TREE
+  IH_LHS_SUBST_TREE,
+  IC_SUBTERM_SUBST_TREE
 };
 
 class IndexManager
