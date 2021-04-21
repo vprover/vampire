@@ -193,6 +193,7 @@ void GeneralInduction::generateClauses(
   unsigned var = scheme._maxVar;
   vvector<LiteralStack> lits(1);
   vmap<Literal*, Literal*> hypToConcMap;
+  vmap<Literal*, bool> reversedLitMap;
 
   for (const auto& c : scheme._cases) {
     vvector<LiteralStack> newLits;
@@ -200,6 +201,7 @@ void GeneralInduction::generateClauses(
     auto v2sk = skolemizeCase(c);
     auto newMainLit = replaceLit(c._step, occurrences, mainLit.literal, v2sk, lits, newLits, var);
     ASS_NEQ(newMainLit, mainLit.literal);
+    reversedLitMap.insert(make_pair(newMainLit, newMainLit->isOrientedReversed()));
 
     for (const auto& qr : sideLits) {
       replaceLit(c._step, occurrences, qr.literal, v2sk, lits, newLits, var);
@@ -208,6 +210,7 @@ void GeneralInduction::generateClauses(
     for (const auto& r : c._recursiveCalls) {
       auto newHypLit = replaceLit(r, occurrences, mainLit.literal, v2sk, lits, newLits, var, true);
       ASS_NEQ(newHypLit, mainLit.literal);
+      reversedLitMap.insert(make_pair(newHypLit, newHypLit->isOrientedReversed()));
       if (mainLit.literal->isEquality() && env.options->inductionHypRewriting()) {
         hypToConcMap.insert(make_pair(newHypLit, newMainLit));
       }
@@ -257,12 +260,13 @@ void GeneralInduction::generateClauses(
     temp.push(Clause::fromStack(st, inf));
   }
   for (const auto& kv : hypToConcMap) {
+    auto h = Hash::hash(kv);
     for (auto& c : temp) {
       if (c->contains(kv.first)) {
-        c->markInductionLiteral(kv, kv.first, true);
+        c->markInductionLiteral(h, kv.first, true, reversedLitMap[kv.first]);
       }
       if (c->contains(kv.second)) {
-        c->markInductionLiteral(kv, kv.second, false);
+        c->markInductionLiteral(h, kv.second, false, reversedLitMap[kv.second]);
       }
     }
   }

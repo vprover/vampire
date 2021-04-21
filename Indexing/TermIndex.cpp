@@ -148,9 +148,9 @@ void IHLHSIndex::handleClause(Clause* c, bool adding)
 
   for (unsigned i = 0; i < c->length(); i++) {
     Literal* lit=(*c)[i];
-    pair<Literal*,Literal*> sig;
-    bool hyp = false;
-    bool ind = c->isInductionLiteral(lit, sig, hyp);
+    unsigned sig;
+    bool hyp = false, rev;
+    bool ind = c->isInductionLiteral(lit, sig, hyp, rev);
     if (!ind || !hyp) {
       continue;
     }

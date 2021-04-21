@@ -296,11 +296,11 @@ namespace Inferences {
         while ((*c)[i] != lit) { i++; }
         std::memcpy(res->literals(), c->literals(), length * sizeof(Literal*));
         (*res)[i] = newLit;
-        pair<Literal*,Literal*> sig;
-        bool hyp;
-        auto ind = c->isInductionLiteral(lit, sig, hyp);
+        unsigned sig;
+        bool hyp, rev;
+        auto ind = c->isInductionLiteral(lit, sig, hyp, rev);
         if (ind) {
-          res->markInductionLiteral(sig, newLit, hyp);
+          res->markInductionLiteral(sig, newLit, hyp, rev ^ newLit->isOrientedReversed());
         }
         
         for (unsigned i = 1; i < arity; i++) {
@@ -310,7 +310,7 @@ namespace Inferences {
                                            type->arg(i));
           (*res)[oldLength + i - 1] = newLit;
           if (ind && type->arg(i) == type->result()) {
-            res->markInductionLiteral(sig, newLit, hyp);
+            res->markInductionLiteral(sig, newLit, hyp, rev ^ newLit->isOrientedReversed());
           }
         }
         env.statistics->taNegativeInjectivitySimplifications++;

@@ -196,10 +196,10 @@ struct BackwardDemodulation::ResultFn
     Clause* res = new(cLen) Clause(cLen, SimplifyingInference2(InferenceRule::BACKWARD_DEMODULATION, qr.clause, _cl));
 
     (*res)[0]=resLit;
-    pair<Literal*,Literal*> sig;
-    bool hyp;
-    if (qr.clause->isInductionLiteral(qr.literal, sig, hyp)) {
-      res->markInductionLiteral(sig, resLit, hyp);
+    unsigned sig;
+    bool hyp, rev;
+    if (qr.clause->isInductionLiteral(qr.literal, sig, hyp, rev)) {
+      res->markInductionLiteral(sig, resLit, hyp, rev ^ resLit->isOrientedReversed());
     }
 
     unsigned next=1;
@@ -207,8 +207,8 @@ struct BackwardDemodulation::ResultFn
       Literal* curr=(*qr.clause)[i];
       if(curr!=qr.literal) {
         (*res)[next++] = curr;
-        if (qr.clause->isInductionLiteral(curr, sig, hyp)) {
-          res->markInductionLiteral(sig, curr, hyp);
+        if (qr.clause->isInductionLiteral(curr, sig, hyp, rev)) {
+          res->markInductionLiteral(sig, curr, hyp, rev);
         }
       }
     }

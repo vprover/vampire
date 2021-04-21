@@ -1280,10 +1280,10 @@ Clause* Splitter::buildAndInsertComponentClause(SplitLevel name, unsigned size, 
   auto it = getArrayishObjectIterator(lits, size);
   while (it.hasNext()) {
     auto lit = it.next();
-    pair<Literal*,Literal*> sig;
-    bool hyp;
-    if (orig->isInductionLiteral(lit, sig, hyp)) {
-      compCl->markInductionLiteral(sig, lit, hyp);
+    unsigned sig;
+    bool hyp, rev;
+    if (orig->isInductionLiteral(lit, sig, hyp, rev)) {
+      compCl->markInductionLiteral(sig, lit, hyp, rev);
     }
   }
 
