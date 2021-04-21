@@ -146,16 +146,18 @@ void GeneralInduction::detach()
 }
 
 Literal* replaceLit(const vmap<TermList,TermList>& r, const OccurrenceMap& occurrences, Literal* lit,
-  const vmap<TermList,TermList>& v2sk, const vvector<LiteralStack>& lits, vvector<LiteralStack>& newLits,
+  const vmap<TermList,TermList>& v2sk, const vvector<LiteralStack>& lits, vvector<LiteralStack>& newLits, const vmap<TermList, TermList>& strengthened,
   unsigned& var, bool hypothesis = false)
 {
   const bool strengthen = env.options->inductionStrengthen();
   TermOccurrenceReplacement2 tr(r, occurrences, lit);
   auto newLit = tr.transform(lit);
   if (newLit != lit) {
-    if (hypothesis && strengthen) {
-      InductionHypothesisStrengthening ihs(var, newLit);
+    if (hypothesis) {
+      // InductionHypothesisStrengthening ihs(var, newLit);
       // newLit = ihs.transform(newLit);
+      TermReplacement2 tr3(strengthened);
+      newLit = tr3.transform(newLit);
     }
     TermReplacement2 tr2(v2sk);
     newLit = tr2.transform(newLit);
@@ -193,24 +195,27 @@ void GeneralInduction::generateClauses(
   unsigned var = scheme._maxVar;
   vvector<LiteralStack> lits(1);
   vmap<Literal*, Literal*> hypToConcMap;
+  vmap<TermList, TermList> empty;
 
   for (const auto& c : scheme._cases) {
     vvector<LiteralStack> newLits;
 
     auto v2sk = skolemizeCase(c);
-    auto newMainLit = replaceLit(c._step, occurrences, mainLit.literal, v2sk, lits, newLits, var);
+    auto newMainLit = replaceLit(c._step, occurrences, mainLit.literal, v2sk, lits, newLits, empty, var);
     ASS_NEQ(newMainLit, mainLit.literal);
 
     for (const auto& qr : sideLits) {
-      replaceLit(c._step, occurrences, qr.literal, v2sk, lits, newLits, var);
+      replaceLit(c._step, occurrences, qr.literal, v2sk, lits, newLits, empty, var);
     }
 
+    unsigned i = 0;
     for (const auto& r : c._recursiveCalls) {
-      auto newHypLit = replaceLit(r, occurrences, mainLit.literal, v2sk, lits, newLits, var, true);
+      auto newHypLit = replaceLit(r, occurrences, mainLit.literal, v2sk, lits, newLits, c._strengthened[i], var, true);
       ASS_NEQ(newHypLit, mainLit.literal);
       if (mainLit.literal->isEquality() && env.options->inductionHypRewriting()) {
         hypToConcMap.insert(make_pair(newHypLit, newMainLit));
       }
+      i++;
     }
     lits = newLits;
   }
