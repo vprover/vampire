@@ -451,6 +451,8 @@ set(VAMPIRE_INFERENCE_SOURCES
     Inferences/Superposition.cpp
     Inferences/InequalityResolution.cpp
     Inferences/InequalityResolution.hpp
+    Inferences/InequalityFactoring.cpp
+    Inferences/InequalityFactoring.hpp
     Inferences/TautologyDeletionISE.cpp
     Inferences/TermAlgebraReasoning.cpp
     Inferences/URResolution.cpp
@@ -791,6 +793,7 @@ set(UNIT_TESTS
     UnitTests/tInequalityNormalizer.cpp
     UnitTests/tInequalityResolution.cpp
     UnitTests/tInequalityResolutionIndex.cpp
+    UnitTests/tInequalityFactoring.cpp
     UnitTests/tArithmeticSubtermGeneralization.cpp
     UnitTests/tInterpretedFunctions.cpp
     UnitTests/tRebalance.cpp

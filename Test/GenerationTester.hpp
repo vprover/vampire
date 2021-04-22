@@ -48,9 +48,10 @@ class GenerationTester
   Rule _rule;
 
 public:
-  GenerationTester() 
-    : _rule() 
-  {}
+
+  GenerationTester(Rule rule) 
+    : _rule(std::move(rule)) 
+  {  }
 
   virtual bool eq(Kernel::Clause const* lhs, Kernel::Clause const* rhs) const 
   { return TestUtils::eqModAC(lhs, rhs); }
@@ -141,14 +142,16 @@ public:
   }
 };
 
-#define REGISTER_GEN_TESTER(t) using __GenerationTester = t;
+#define __CREATE_GEN_TESTER CAT(__createGenTester_, UNIT_ID)
+
+#define REGISTER_GEN_TESTER(t) auto __CREATE_GEN_TESTER() { return t; }
 
 #define TEST_GENERATION(name, ...)                                                                            \
         TEST_GENERATION_WITH_SUGAR(name, MY_SYNTAX_SUGAR, __VA_ARGS__) 
 
 #define TEST_GENERATION_WITH_SUGAR(name, syntax_sugar, ...)                                                   \
   TEST_FUN(name) {                                                                                            \
-    __GenerationTester tester;                                                                                \
+    auto tester = __CREATE_GEN_TESTER();                                                                       \
     __ALLOW_UNUSED(syntax_sugar)                                                                              \
     auto test = __VA_ARGS__;                                                                                  \
     test.run(tester);                                                                                         \

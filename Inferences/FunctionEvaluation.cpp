@@ -53,7 +53,8 @@ MaybeOverflow<Option<PolyNf>> trySimplifyQuotient(MaybeOverflow<PolyNf>* evalArg
   auto lhs = evalArgs[0].value.template tryNumeral<Number>();
   auto rhs = evalArgs[1].value.template tryNumeral<Number>();
   auto overflow =  evalArgs[0].overflowOccurred || evalArgs[1].overflowOccurred;
-  auto out = rhs.isSome() && rhs.unwrap() == Numeral(1) ? 
+  auto out = rhs == some(Numeral(0))  ?  none<PolyNf>()
+           : rhs.isSome() && rhs.unwrap() == Numeral(1) ? 
                    some<PolyNf>(evalArgs[0].value)
            : lhs.isSome() && rhs.isSome()  ? 
                    some<PolyNf>(PolyNf(AnyPoly(perfect(Polynom<Number>(f(lhs.unwrap(), rhs.unwrap())))))) 
@@ -67,7 +68,10 @@ MaybeOverflow<Option<PolyNf>> trySimplifyRemainder(MaybeOverflow<PolyNf>* evalAr
   using Numeral = typename Number::ConstantType;
   auto lhs = evalArgs[0].value.template tryNumeral<Number>();
   auto rhs = evalArgs[1].value.template tryNumeral<Number>();
-  if (rhs.isSome() && rhs.unwrap() == Numeral(1)) {
+  if (rhs == some(Numeral(0))) {
+    return maybeOverflow(none<PolyNf>(), evalArgs[0].overflowOccurred || evalArgs[1].overflowOccurred);   
+
+  } if (rhs.isSome() && rhs.unwrap() == Numeral(1)) {
     return maybeOverflow(
               some<PolyNf>(PolyNf(AnyPoly(perfect(Polynom<Number>(Numeral(0)))))), 
               /* overflowed termsr not being used. overflow = */ false);
@@ -117,7 +121,9 @@ IMPL_QUOTIENT_REMAINDER(E)
       using Numeral = typename NumTraits::ConstantType;                                                       \
       auto lhs = evalArgs[0].value.tryNumeral<NumTraits>();                                                   \
       auto rhs = evalArgs[1].value.tryNumeral<NumTraits>();                                                   \
-      if (lhs.isSome() && rhs.isSome() && rhs.unwrap() != Numeral(0)) {                                       \
+      if (rhs == some(Numeral(1))) {                                                                          \
+        return maybeOverflow(some(evalArgs[0].value), evalArgs[0].overflowOccurred);                          \
+      } else if (lhs.isSome() && rhs.isSome() && rhs.unwrap() != Numeral(0)) {                                \
         return catchOverflow(                                                                                 \
             [&](){ return some(PolyNf(AnyPoly(perfect(Polynom<NumTraits>(lhs.unwrap() / rhs.unwrap()))))); }, \
             none<PolyNf>());                                                                                  \

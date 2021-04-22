@@ -897,6 +897,8 @@ vstring Kernel::ruleName(InferenceRule rule)
     return "add sort functions";
   case InferenceRule::INSTANTIATION:
     return "instantiation";
+  case InferenceRule::INEQUALITY_FACTORING:
+    return "inequality factoring";
   case InferenceRule::INEQUALITY_RESOLUTION:
     return "inequality resolution";
   case InferenceRule::INEQUALITY_NORMALIZATION:

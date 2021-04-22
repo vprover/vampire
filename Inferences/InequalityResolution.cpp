@@ -158,41 +158,6 @@ void InequalityResolution::setTestIndices(Stack<Indexing::Index*> const& indices
 #endif
 
 
-/* 
- * maps (num1, num2) -> (k1, k2) 
- * s.t.  num1 * k1 = - num2 * k2
- */
-template<class Numeral>
-pair<Numeral,Numeral> computeFactors(Numeral num1, Numeral num2)
-{ 
-  ASS(num1 != Numeral(0))
-  ASS(num2 != Numeral(0))
-  // num1 * k1 = - num2 * k2
-  // let k1 = 1
-  // ==> num1 = - num2 * k2 ==> k2 = - num1 / num2
-  return std::make_pair(Numeral(1), -(num1 / num2));
-}
-
-/* 
- * maps (num1, num2) -> (k1, k2) 
- * s.t.  num1 * k1 = - num2 * k2
- */
-pair<IntegerConstantType,IntegerConstantType> computeFactors(IntegerConstantType num1, IntegerConstantType num2)
-{ 
-  ASS(num1 != IntegerConstantType(0))
-  ASS(num2 != IntegerConstantType(0))
-  // num1 * k1 = - num2 * k2
-  // let k1 =   num2 / gcd(num1, num2)
-  //     k2 = - num1 / gcd(num1, num2)
-  // num1 * num2 / gcd(num1, num2) = - num2 * (- num1 / gcd(num1, num2))
-  auto gcd = IntegerConstantType::gcd(num1, num2);
-  ASS(gcd.divides(num1));
-  ASS(gcd.divides(num2));
-  return num1.isNegative() ? std::make_pair( num2.quotientE(gcd), -num1.quotientE(gcd))
-                           : std::make_pair(-num2.quotientE(gcd),  num1.quotientE(gcd));
-}
-
-
 using Lib::TypeList::List;
 using Lib::TypeList::Indices;
 using Lib::TypeList::UnsignedList;
@@ -221,7 +186,7 @@ Capture<F, Capt...> capture(F f, Capt... capt)
 { return Capture<F,Capt...>(std::move(f), capt...); }
 
 template<class NumTraits> 
-VirtualIterator<Monom<NumTraits>> InequalityResolution::maxTerms(InequalityLiteral<NumTraits> const& lit) const
+Stack<Monom<NumTraits>> InequalityResolution::maxTerms(InequalityLiteral<NumTraits> const& lit, Ordering* ord) 
 { 
   using Monom = Monom<NumTraits>;
   Stack<Monom> max(lit.term().nSummands()); // TODO not sure whether this size allocation brings an advantage
@@ -229,7 +194,7 @@ VirtualIterator<Monom<NumTraits>> InequalityResolution::maxTerms(InequalityLiter
   for (unsigned i = 0; i < monoms.size(); i++) {
     auto isMax = true;
     for (unsigned j = 0; j < monoms.size(); j++) {
-      auto cmp = ord()->compare(
+      auto cmp = ord->compare(
           monoms[i].factors->denormalize(), 
           monoms[j].factors->denormalize());
       if (cmp == Ordering::LESS) {
@@ -244,8 +209,9 @@ VirtualIterator<Monom<NumTraits>> InequalityResolution::maxTerms(InequalityLiter
     if (isMax && monoms[i].factors->tryVar().isNone())  // TODO we don't wanna skip varibles in the future
       max.push(monoms[i]);
   }
-  return pvi(ownedArrayishIterator(std::move(max))); 
+  return max;
 }
+
 #define OVERFLOW_SAFE 1
 
 #define ASSERT_NO_OVERFLOW(...)                                                                               \
@@ -288,7 +254,7 @@ ClauseIterator InequalityResolution::generateClauses(Clause* cl1, Literal* liter
   //   ^^^^--> num1 * term + rest1 >= 0
 
   DEBUG("lit1: ", lit1)
-  return pvi(iterTraits(maxTerms(lit1))
+  return pvi(iterTraits(ownedArrayishIterator(maxTerms(lit1, ord())))
     .flatMap([this, cl1, lit1, literal1](Monom monom)  -> VirtualIterator<Clause*> { 
       CALL("InequalityResolution::generateClauses:@clsr1")
       auto num1  = monom.numeral;

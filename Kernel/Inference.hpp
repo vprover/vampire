@@ -303,6 +303,7 @@ enum class InferenceRule : unsigned char {
   /* Instantiation */
   INSTANTIATION, // used for theory reasoning
   INEQUALITY_RESOLUTION,
+  INEQUALITY_FACTORING,
   /** the last generating inference marker --
         inferences between GENERIC_GENERATING_INFERNCE and INTERNAL_GENERATING_INFERNCE_LAST will be automatically understood generating
         (see also isGeneratingInferenceRule) */

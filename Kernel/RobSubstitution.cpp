@@ -1149,6 +1149,7 @@ struct RobSubstitution::UnificationFn {
 std::ostream& RobSubstitution::output(std::ostream& out, bool deref) const
 {
   CALL("RobSubstitution::output(std::ostream& out, bool deref)");
+  out << "{";
   BankType::Iterator bit(_bank);
   while(bit.hasNext()) {
     VarSpec v;
@@ -1169,7 +1170,7 @@ std::ostream& RobSubstitution::output(std::ostream& out, bool deref) const
       out << binding << ", ";
     }
   }
-  return out;
+  return out << "}";
 }
 std::ostream& operator<<(std::ostream& out, RobSubstitution::TermSpec const& self)
 { return out << self.term << "/" << self.index; }

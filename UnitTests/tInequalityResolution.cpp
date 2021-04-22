@@ -49,7 +49,7 @@ using namespace Indexing;
 #define MY_SYNTAX_SUGAR SUGAR(Rat)
 
 
-Stack<Indexing::Index*> indices() 
+inline Stack<Indexing::Index*> indices() 
 { 
   auto& kbo = *new KBO(KBO::testKBO());
   // auto uwa = env.options->unificationWithAbstraction();
@@ -61,7 +61,7 @@ Stack<Indexing::Index*> indices()
   };
 }
 
-REGISTER_GEN_TESTER(Test::Generation::GenerationTester<InequalityResolution>)
+REGISTER_GEN_TESTER(Test::Generation::GenerationTester<InequalityResolution>(InequalityResolution()))
 
 /////////////////////////////////////////////////////////
 // Basic tests

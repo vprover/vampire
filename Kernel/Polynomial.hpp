@@ -43,7 +43,7 @@
 #include "Kernel/BottomUpEvaluation/TypedTermList.hpp"
 
 #define DEBUG(...) // DBG(__VA_ARGS__)
-#define OUTPUT_NICE 0
+#define OUTPUT_NICE 1
 
 namespace Kernel {
 
