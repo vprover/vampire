@@ -78,8 +78,12 @@ public:
 
   MaybeOverflow<Option<PolyNf>> evaluate(PolyNf in) const;
   template<class NumTraits>
-  Option<Perfect<Polynom<NumTraits>>> evaluate(Perfect<Polynom<NumTraits>> in) const
-  { return evaluate(PolyNf(in)).map([](PolyNf p) { return p.unwrap<Polynom<NumTraits>>(); }); }
+  MaybeOverflow<Option<Perfect<Polynom<NumTraits>>>> evaluate(Perfect<Polynom<NumTraits>> in) const
+  { return evaluate(PolyNf(in))
+      .map([](auto overf) 
+          { return overf.map([](PolyNf p) 
+              { return p.template downcast<NumTraits>().unwrap(); }); });
+  }
 
   template<class NumTraits>
   static MaybeOverflow<Polynom<NumTraits>> simplifySummation(Stack<Monom<NumTraits>>);

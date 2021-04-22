@@ -61,7 +61,13 @@ inline Stack<Indexing::Index*> indices()
   };
 }
 
-REGISTER_GEN_TESTER(Test::Generation::GenerationTester<InequalityResolution>(InequalityResolution()))
+Inferences::InequalityResolution testInequalityResolution() 
+{ 
+  auto& kbo = *new KBO(KBO::testKBO());
+  return InequalityResolution(PolynomialEvaluation(kbo));
+}
+
+REGISTER_GEN_TESTER(Test::Generation::GenerationTester<InequalityResolution>(testInequalityResolution()))
 
 /////////////////////////////////////////////////////////
 // Basic tests

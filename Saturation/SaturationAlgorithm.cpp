@@ -1622,7 +1622,7 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
 
   if (env.options->inequalityResolution()) {
     sgi->push(new InequalityFactoring(InequalityNormalizer(PolynomialEvaluation(ordering)), &ordering, env.options->unificationWithAbstraction())); 
-    sgi->push(new InequalityResolution()); 
+    sgi->push(new InequalityResolution(PolynomialEvaluation(ordering))); 
     ise->addFront(new InequalityNormalization(ordering)); 
   }
 

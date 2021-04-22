@@ -80,8 +80,9 @@ public:
   CLASS_NAME(InequalityResolution);
   USE_ALLOCATOR(InequalityResolution);
 
-  InequalityResolution() 
+  InequalityResolution(PolynomialEvaluation eval) 
     : _index(0)
+    , _eval(eval)
   {  }
 
   void attach(SaturationAlgorithm* salg) final override;
@@ -140,6 +141,8 @@ private:
   InequalityNormalizer const& normalizer() const { return _index->normalizer(); }
   Ordering* ord() const { return _index->ord(); }
   InequalityResolutionIndex* _index;
+  // TODO assert there's only one shared instance polynomial evaluation
+  PolynomialEvaluation _eval;
 };
 
 };

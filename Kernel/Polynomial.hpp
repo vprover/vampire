@@ -153,6 +153,7 @@ struct Monom
 
   Option<Variable> tryVar() const;
   Option<Numeral> tryNumeral() const;
+  TermList denormalize() const;
 
   template<class F> Monom mapVars(F f) const;
 
@@ -648,6 +649,15 @@ void Monom<Number>::integrity() const
   this->factors->integrity();
 #endif // VDEBUG
 }
+template<class Number>
+TermList Monom<Number>::denormalize()  const
+{
+  CALL("Monom::denormalize()")
+  return PolyNf(AnyPoly(perfect(Polynom<Number>(*this)))).denormalize(); 
+}
+
+// } // namespace Kernel
+
 
 
 template<class Number>

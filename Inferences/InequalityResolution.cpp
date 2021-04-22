@@ -314,44 +314,42 @@ ClauseIterator InequalityResolution::generateClauses(Clause* cl1, Literal* liter
                       return Option<Clause*>();
                     }
 
-                    Stack<Monom> resolventSum(lit1.term().nSummands() + lit2.term().nSummands() - 2 + (isInt ? 1 : 0));
-                    //           ^^^^^^^^^^^^--> gonna be k1 * rest1 + k2 * rest2                   
-
+                    auto resolventSum = NumTraits::zero();
+                    // Stack<Monom> resolventSum(lit1.term().nSummands() + lit2.term().nSummands() - 2 + (isInt ? 1 : 0));
+                    // //           ^^^^^^^^^^^^--> gonna be k1 * rest1 + k2 * rest2                   
+                    //
                     try {
                       auto pushTerms = [&](InequalityLiteral lit, Perfect<MonomFactors> termToSkip, Numeral num, bool resultVarBank)
                                 {
-                                  resolventSum.loadFromIterator(lit.term()
+                                  auto iter = lit.term()
                                       .iterSummands()
                                       .filter([&](Monom m) { return m.factors != termToSkip; })
-                                      .map   ([&](Monom m) { 
-                                        auto out = Monom(m.numeral * num, m.factors)
-                                          .mapVars([&](Variable v) { 
-                                            auto var = TermList::var(v.id());
-                                            auto t = subs.applyTo(var, resultVarBank);
-                                            auto normVar = normalizeTerm(TypedTermList(t, NumTraits::sort())); 
-                                            return normVar;
-                                          }); 
-                                        return out;
-                                      })
-                                  );
+                                      .map   ([&](Monom m) { return Monom(m.numeral * num, m.factors).denormalize(); });
+                                  for (auto x : iter) {
+                                    resolventSum = NumTraits::add(x, resolventSum);
+                                  }
                                 };
 
                       pushTerms(lit1, term1, factors.first , false);
                       pushTerms(lit2, term2, factors.second, true);
                       if (isInt) {
-                        resolventSum.push(Monom(Numeral(-1)));
+                        resolventSum = NumTraits::add(resolventSum, NumTraits::constantTl(-1));
+                        // resolventSum.push(Monom(Numeral(-1)));
                       }
                     } catch (MachineArithmeticException&) {
                       env.statistics->irOverflowApply++;
                       return Option<Clause*>();
                     }
 
-                    auto sum = PolynomialEvaluation::simplifySummation(resolventSum);
+                    // auto sum = PolynomialEvaluation::simplifySummation(std::move(resolventSum));
+                    auto normResolventSum = normalizeTerm(resolventSum, NumTraits::sort()).template wrapPoly<NumTraits>();
+                    auto sum = _eval.evaluate(normResolventSum).map([&](auto eval) { return eval || normResolventSum; });
                     if (sum.overflowOccurred) {
                       env.statistics->irOverflowApply++;
                       return Option<Clause*>(); 
                     }
-                    auto resolventLit = InequalityLiteral(perfect(sum.value), strictness);
+                    // auto resolventLit = InequalityLiteral(perfect(sum.value), strictness);
+                    auto resolventLit = InequalityLiteral(sum.value, strictness);
                     //   ^^^^^^^^^^^^--> k1 * rest1 + k2 * rest2 >= 0
 
                     Inference inf(GeneratingInference2(Kernel::InferenceRule::INEQUALITY_RESOLUTION, cl1, cl2));
