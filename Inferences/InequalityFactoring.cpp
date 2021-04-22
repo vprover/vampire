@@ -136,12 +136,12 @@ ClauseIterator InequalityFactoring::generateClauses(Clause* cl, Literal* literal
   DEBUG("lit: ", lit)
   auto max = InequalityResolution::maxTerms(lit, ord());
   DEBUG("maximal terms: ", max)
-  return pvi(iterTraits(getRangeIterator((unsigned long)0, max.size() - 1))
-    .flatMap([this, cl, lit, literal, max = Lib::make_unique<Stack<Monom>>(std::move(max))](unsigned long i1) -> VirtualIterator<Clause*> { 
+  return pvi(iterTraits(getRangeIterator(0, ((int) max.size()) - 1))
+    .flatMap([this, cl, lit, literal, max = Lib::make_unique<Stack<Monom>>(std::move(max))](unsigned i1) -> VirtualIterator<Clause*> { 
       auto mon1 = (*max)[i1];
       //   ^^^^ <--- num1 * term1 
       CALL("InequalityFactoring::generateClauses:@clsr1")
-      return pvi(iterTraits(getRangeIterator(i1 + 1, max->size()))
+      return pvi(iterTraits(getRangeIterator(i1 + 1, (unsigned) max->size()))
         .filterMap([this, cl, lit, literal, mon1, i1, max = &*max](unsigned long i2) -> Option<Clause*> {
             CALL("InequalityFactoring::generateClauses:@clsr2")
             ASS_NEQ(i1,i2)
