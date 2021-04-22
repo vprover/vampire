@@ -42,7 +42,7 @@ public:
   USE_ALLOCATOR(InequalityFactoring);
 
   InequalityFactoring(InequalityFactoring&&) = default;
-  InequalityFactoring(InequalityNormalizer const& normalizer, Ordering* ord, Shell::Options::UnificationWithAbstraction mode) 
+  InequalityFactoring(InequalityNormalizer normalizer, Ordering* ord, Shell::Options::UnificationWithAbstraction mode) 
     : _normalizer(normalizer)
     , _ord(ord)
     , _mode(mode)
@@ -67,7 +67,7 @@ private:
   InequalityNormalizer const& normalizer() const { return _normalizer; }
   Ordering* ord() const { return _ord; }
   
-  InequalityNormalizer const& _normalizer;
+  InequalityNormalizer _normalizer;
   Ordering* _ord;
   Shell::Options::UnificationWithAbstraction const _mode;
 };
