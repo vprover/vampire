@@ -1,15 +1,26 @@
 #!/bin/sh
 
 vampire=`pwd`/$1
-szs_theorem() {
-	out=`cd checks && $vampire -t 1 $@`
-	szs=`echo "$out" | egrep "^% SZS status Theorem for .+$"`
+szs_status() {
+        time=$1
+        shift
+        status=$1
+        shift
+	out=`cd checks && $vampire -t $time $@`
+	szs=`echo "$out" | egrep "^% SZS status $status for .+$"`
 	if test -z "$szs"
 	then
-		echo "$@ failed: should have been SZS Theorem"
+		echo "$@ failed: should have been SZS $status"
 		echo "$out"
 		exit 1
 	fi
 }
 
-szs_theorem Problems/PUZ/PUZ001+1.p
+# Some simple problems
+szs_status 1 Theorem Problems/PUZ/PUZ001+1.p
+
+# Integer induction problems
+szs_status 1 Unsatisfiable -ind int Problems/ind/declared_axgeq3_conjgeq3_val3_inter.smt2
+szs_status 5 Unsatisfiable --forced_options "drc=off:iik=two:ind=int:sos=theory:sstl=1:to=lpo" Problems/ind/1_all_1.smt2
+szs_status 5 Unsatisfiable --forced_options "drc=off:iik=two:ind=int:sos=theory:sstl=1:to=lpo" Problems/ind/0_all_0.smt2
+szs_status 5 Unsatisfiable --forced_options "ind=int:sa=discount:sos=theory:sstl=1:to=lpo" Problems/ind/y_geq_0.smt2 
