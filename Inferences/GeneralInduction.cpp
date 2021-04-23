@@ -181,18 +181,13 @@ void GeneralInduction::detach()
   GeneratingInferenceEngine::detach();
 }
 
-Literal* replaceLit(const vmap<TermList,TermList>& r, const OccurrenceMap& occurrences, Literal* lit,
+Literal* replaceLit(const vmap<TermList,TermList>& r, const OccurrenceMap& occurrences, Literal* lit, const vset<pair<Literal*,Clause*>>& sideLits,
   const vmap<TermList,TermList>& v2sk, const vvector<LiteralStack>& lits, vvector<LiteralStack>& newLits,
   unsigned& var, bool hypothesis = false)
 {
-  const bool strengthen = env.options->inductionStrengthen();
   TermOccurrenceReplacement2 tr(r, occurrences, lit);
   auto newLit = tr.transform(lit);
   if (newLit != lit) {
-    if (hypothesis && strengthen) {
-      InductionHypothesisStrengthening ihs(var, newLit);
-      // newLit = ihs.transform(newLit);
-    }
     TermReplacement2 tr2(v2sk);
     newLit = tr2.transform(newLit);
     if (hypothesis) {
@@ -200,6 +195,15 @@ Literal* replaceLit(const vmap<TermList,TermList>& r, const OccurrenceMap& occur
     }
     for (auto st : lits) {
       st.push(newLit);
+      if (hypothesis) {
+        for (const auto& kv : sideLits) {
+          TermOccurrenceReplacement2 trs(r, occurrences, kv.first);
+          auto newLitS = trs.transform(kv.first);
+          TermReplacement2 trs2(v2sk);
+          newLitS = Literal::complementaryLiteral(trs2.transform(newLitS));
+          st.push(newLitS);
+        }
+      }
       newLits.push_back(st);
     }
   }
@@ -235,16 +239,16 @@ void GeneralInduction::generateClauses(
     vvector<LiteralStack> newLits;
 
     auto v2sk = skolemizeCase(c);
-    auto newMainLit = replaceLit(c._step, occurrences, mainLit.literal, v2sk, lits, newLits, var);
+    auto newMainLit = replaceLit(c._step, occurrences, mainLit.literal, sideLits, v2sk, lits, newLits, var);
     ASS_NEQ(newMainLit, mainLit.literal);
     reversedLitMap.insert(make_pair(newMainLit, newMainLit->isOrientedReversed()));
 
     for (const auto& kv : sideLits) {
-      replaceLit(c._step, occurrences, kv.first, v2sk, lits, newLits, var);
+      replaceLit(c._step, occurrences, kv.first, sideLits, v2sk, lits, newLits, var);
     }
 
     for (const auto& r : c._recursiveCalls) {
-      auto newHypLit = replaceLit(r, occurrences, mainLit.literal, v2sk, lits, newLits, var, true);
+      auto newHypLit = replaceLit(r, occurrences, mainLit.literal, sideLits, v2sk, lits, newLits, var, true);
       ASS_NEQ(newHypLit, mainLit.literal);
       reversedLitMap.insert(make_pair(newHypLit, newHypLit->isOrientedReversed()));
       if (env.options->inductionHypRewriting()) {
@@ -327,6 +331,7 @@ void GeneralInduction::generateClauses(
   auto resSubst = ResultSubstitution::fromSubstitution(subst.ptr(), 0, 1);
   while(cit.hasNext()){
     Clause* c = cit.next();
+    unsigned i = 0;
     for (const auto& kv : conclusionToLitMap) {
       auto conclusion = kv.first;
       auto qr = kv.second;
@@ -336,7 +341,7 @@ void GeneralInduction::generateClauses(
       c = BinaryResolution::generateClause(c,conclusion,qr,*env.options);
       qr.clause->setStore(store);
       ASS(c);
-      if (_splitter && cit.hasNext()) {
+      if (_splitter && ++i < conclusionToLitMap.size()) {
         _splitter->onNewClause(c);
       }
     }
