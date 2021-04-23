@@ -21,6 +21,8 @@
 
 #include "Forwards.hpp"
 
+#include "Indexing/TermIndex.hpp"
+
 #include "Kernel/Clause.hpp"
 #include "Kernel/TermTransformer.hpp"
 
@@ -168,13 +170,14 @@ private:
     const Shell::InductionScheme& scheme,
     const OccurrenceMap& occurrences,
     const SLQueryResult& mainLit,
-    const vvector<SLQueryResult>& sideLits,
+    const vset<pair<Literal*,Clause*>>& sideLits,
     ClauseStack& clauses);
   vmap<TermList, TermList> skolemizeCase(const InductionScheme::Case& c);
 
   Splitter* _splitter;
   InferenceRule _rule;
   DHSet<Literal*> _done;
+  DemodulationSubtermIndex* _index;
 };
 
 }

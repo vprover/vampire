@@ -257,7 +257,7 @@ ostream& operator<<(ostream& out, const InductionScheme& scheme);
 struct InductionSchemeGenerator {
   virtual void generate(
     const SLQueryResult& main,
-    const vvector<SLQueryResult>& side,
+    const vset<pair<Literal*,Clause*>>& side,
     vvector<pair<InductionScheme, OccurrenceMap>>& res) = 0;
 };
 
@@ -265,7 +265,7 @@ struct RecursionInductionSchemeGenerator
   : public InductionSchemeGenerator
 {
   void generate(const SLQueryResult& main,
-    const vvector<SLQueryResult>& side,
+    const vset<pair<Literal*,Clause*>>& side,
     vvector<pair<InductionScheme, OccurrenceMap>>& res) override;
 
 private:
@@ -284,7 +284,7 @@ struct RecursionInductionSchemeGenerator2
   : public InductionSchemeGenerator
 {
   void generate(const SLQueryResult& main,
-    const vvector<SLQueryResult>& side,
+    const vset<pair<Literal*,Clause*>>& side,
     vvector<pair<InductionScheme, OccurrenceMap>>& res) override;
 
 private:
@@ -301,7 +301,7 @@ struct StructuralInductionSchemeGenerator
   : public InductionSchemeGenerator
 {
   void generate(const SLQueryResult& main,
-    const vvector<SLQueryResult>& side,
+    const vset<pair<Literal*,Clause*>>& side,
     vvector<pair<InductionScheme, OccurrenceMap>>& res) override;
 
 private:

@@ -607,7 +607,7 @@ ostream& operator<<(ostream& out, const InductionScheme& scheme)
 
 void RecursionInductionSchemeGenerator::generate(
   const SLQueryResult& main,
-  const vvector<SLQueryResult>& side,
+  const vset<pair<Literal*,Clause*>>& side,
   vvector<pair<InductionScheme, OccurrenceMap>>& res)
 {
   CALL("RecursionInductionSchemeGenerator()");
@@ -625,8 +625,8 @@ void RecursionInductionSchemeGenerator::generate(
     return;
   }
   for (const auto& s : side) {
-    if (litsProcessed.insert(s.literal).second) {
-      generate(s.clause, s.literal, secondarySchemes, false);
+    if (litsProcessed.insert(s.first).second) {
+      generate(s.second, s.first, secondarySchemes, false);
     }
   }
   for (auto& o : _actOccMaps) {
@@ -773,7 +773,7 @@ bool RecursionInductionSchemeGenerator::process(TermList curr, bool active,
 
 void RecursionInductionSchemeGenerator2::generate(
   const SLQueryResult& main,
-  const vvector<SLQueryResult>& side,
+  const vset<pair<Literal*,Clause*>>& side,
   vvector<pair<InductionScheme, OccurrenceMap>>& res)
 {
   CALL("RecursionInductionSchemeGenerator2::generate()");
@@ -788,12 +788,29 @@ void RecursionInductionSchemeGenerator2::generate(
 
   generate(main.clause, main.literal, primarySchemes);
   for (const auto& s : side) {
-    if (litsProcessed.insert(s.literal).second) {
-      generate(s.clause, s.literal, secondarySchemes);
+    if (litsProcessed.insert(s.first).second) {
+      generate(s.second, s.first, primarySchemes);
+      // generate(s.second, s.first, secondarySchemes);
     }
   }
   for (auto& o : _actOccMaps) {
     o.second.finalize();
+  }
+  for (unsigned i = 0; i < primarySchemes.size();) {
+    auto found = false;
+    for (const auto& indTerm : primarySchemes[i]._inductionTerms) {
+      auto it = _actOccMaps.find(make_pair(main.literal, indTerm));
+      if (it != _actOccMaps.end() && it->second.num_set_bits()) {
+        found = true;
+        break;
+      }
+    }
+    if (!found) {
+      primarySchemes[i] = primarySchemes.back();
+      primarySchemes.pop_back();
+    } else {
+      i++;
+    }
   }
   InductionSchemeFilter f;
   f.filter(primarySchemes, secondarySchemes);
@@ -963,7 +980,7 @@ void RecursionInductionSchemeGenerator2::process(TermList curr, bool active,
 
 void StructuralInductionSchemeGenerator::generate(
   const SLQueryResult& main,
-  const vvector<SLQueryResult>& side,
+  const vset<pair<Literal*,Clause*>>& side,
   vvector<pair<InductionScheme, OccurrenceMap>>& res)
 {
   CALL("StructuralInductionSchemeGenerator()");
@@ -1022,10 +1039,10 @@ void StructuralInductionSchemeGenerator::generate(
   }
 
   for (const auto& qr : side) {
-    SubtermIterator it(qr.literal);
+    SubtermIterator it(qr.first);
     while(it.hasNext()){
       TermList ts = it.next();
-      auto p = make_pair(qr.literal, ts);
+      auto p = make_pair(qr.first, ts);
       auto oIt = occMap.find(p);
       if (oIt == occMap.end()) {
         occMap.insert(make_pair(p, Occurrences(false)));
