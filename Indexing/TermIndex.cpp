@@ -148,6 +148,9 @@ void IHLHSIndex::handleClause(Clause* c, bool adding)
 
   for (unsigned i = 0; i < c->length(); i++) {
     Literal* lit=(*c)[i];
+    if (!lit->isEquality()) {
+      continue;
+    }
     unsigned sig;
     bool hyp = false, rev;
     bool ind = c->isInductionLiteral(lit, sig, hyp, rev);
@@ -181,7 +184,11 @@ void ICSubtermIndex::handleClause(Clause* c, bool adding)
   static DHSet<TermList> inserted;
 
   for (unsigned i = 0; i < c->length(); i++) {
+    inserted.reset();
     Literal* lit=(*c)[i];
+    if (!lit->isEquality()) {
+      continue;
+    }
     unsigned sig;
     bool hyp = true, rev;
     bool ind = c->isInductionLiteral(lit, sig, hyp, rev);

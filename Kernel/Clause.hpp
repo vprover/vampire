@@ -132,6 +132,9 @@ public:
     return _functionDefLitOrientationMap->find(lit) && _functionDefLitOrientationMap->get(lit);
   }
 
+  DHMap<Literal*,tuple<unsigned,bool,bool>>*& inductionInfo() {
+    return _inductionHypothesisMap;
+  }
   void markInductionLiteral(unsigned sig, Literal* lit, bool hyp, bool reversed) {
     if (!_inductionHypothesisMap) {
       _inductionHypothesisMap = new DHMap<Literal*,tuple<unsigned,bool,bool>>();

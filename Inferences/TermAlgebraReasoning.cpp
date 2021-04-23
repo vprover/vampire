@@ -47,7 +47,16 @@ namespace Inferences {
     unsigned i = 0;
     while ((*c)[i] != a) { i++; }
     std::memcpy(res->literals(), c->literals(), length * sizeof(Literal*));
+    if (c->inductionInfo()) {
+      res->inductionInfo() = new DHMap<Literal*,tuple<unsigned,bool,bool>>(*c->inductionInfo());
+      res->inductionInfo()->remove(a);
+    }
     (*res)[i] = b;
+    unsigned sig;
+    bool hyp, rev;
+    if (c->isInductionLiteral(a, sig, hyp, rev)) {
+      res->markInductionLiteral(sig, b, hyp, rev ^ b->isOrientedReversed());
+    }
 
     return res;
   }
@@ -65,6 +74,11 @@ namespace Inferences {
 
     std::memcpy(res->literals(), c->literals(), i * sizeof(Literal*));
     std::memcpy(res->literals() + i, c->literals() + i + 1, (length - i - 1) * sizeof(Literal*));
+
+    if (c->inductionInfo()) {
+      res->inductionInfo() = new DHMap<Literal*,tuple<unsigned,bool,bool>>(*c->inductionInfo());
+      res->inductionInfo()->remove((*c)[i]);
+    }
 
     return res;
   }
@@ -295,6 +309,10 @@ namespace Inferences {
         unsigned i = 0;
         while ((*c)[i] != lit) { i++; }
         std::memcpy(res->literals(), c->literals(), length * sizeof(Literal*));
+        if (c->inductionInfo()) {
+          res->inductionInfo() = new DHMap<Literal*,tuple<unsigned,bool,bool>>(*c->inductionInfo());
+          res->inductionInfo()->remove(lit);
+        }
         (*res)[i] = newLit;
         unsigned sig;
         bool hyp, rev;

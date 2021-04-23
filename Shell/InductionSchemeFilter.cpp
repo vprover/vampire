@@ -126,68 +126,6 @@ bool createMergedCase(const InductionScheme::Case& case1, const InductionScheme:
   return true;
 }
 
-void addBaseCases(InductionScheme& sch) {
-  unsigned var = sch._maxVar;
-  vvector<vmap<TermList, vvector<TermList>>> availableTermsLists(1); // contains one empty map
-  for (const auto& c : sch._cases) {
-    vvector<vmap<TermList, vvector<TermList>>> nextAvailableTermsLists;
-    for (const auto& kv : c._step) {
-      if (kv.second.isTerm()) {
-        auto tempLists = availableTermsLists;
-        for (auto& availableTerms : tempLists) {
-          auto pIt = availableTerms.find(kv.first);
-          if (pIt == availableTerms.end()) {
-            pIt = availableTerms.insert(
-              make_pair(kv.first, TermAlgebra::generateAvailableTerms(kv.first.term(), var))).first;
-          }
-          TermAlgebra::excludeTermFromAvailables(pIt->second, kv.second, var);
-        }
-        nextAvailableTermsLists.insert(nextAvailableTermsLists.end(),
-          tempLists.begin(), tempLists.end());
-      }
-    }
-    availableTermsLists = nextAvailableTermsLists;
-  }
-
-  // We have a set here so there are no duplicate cases
-  vset<vmap<TermList, TermList>> steps;
-  for (const auto& availableTerms : availableTermsLists) {
-    vvector<vmap<TermList, TermList>> temp(1);
-    auto invalid = false;
-    for (const auto& kv : availableTerms) {
-      if (kv.second.empty()) {
-        invalid = true;
-        break;
-      }
-      vvector<vmap<TermList, TermList>> newTemp;
-      for (const auto& p : kv.second) {
-        for (auto step : temp) { // intentionally copy step here
-          ASS(!step.count(kv.first));
-          step.insert(make_pair(kv.first, p));
-          newTemp.push_back(step);
-        }
-      }
-      temp = newTemp;
-    }
-    if (!invalid) {
-      steps.insert(temp.begin(), temp.end());
-    }
-  }
-
-  // each step gets an empty recursive call and condition set
-  var = sch._maxVar;
-  for (auto step : steps) {
-    vvector<vmap<TermList,TermList>> emptyRecCalls;
-    DHMap<unsigned, unsigned> varMap;
-    VarReplacement vr(varMap, var);
-    for (auto& kv : step) {
-      kv.second = applyVarReplacement(kv.second, vr);
-    }
-    sch._cases.emplace_back(std::move(emptyRecCalls), std::move(step));
-  }
-  sch._maxVar = var;
-}
-
 bool InductionSchemeFilter::mergeSchemes(const InductionScheme& sch1, const InductionScheme& sch2, InductionScheme& res) {
   // copy original schemes in case we fail and we modified them
   return false;
@@ -218,7 +156,7 @@ bool InductionSchemeFilter::mergeSchemes(const InductionScheme& sch1, const Indu
   }
 
   res.init(std::move(resCases));
-  addBaseCases(res);
+  res.addBaseCases();
   if (!res.checkWellFoundedness()) {
     if (env.options->showInduction()) {
       env.beginOutput();

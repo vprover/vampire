@@ -54,6 +54,9 @@ ClauseIterator InductionHypothesisRewriting::generateClauses(Clause *premise)
   ClauseIterator res = ClauseIterator::getEmpty();
   for (unsigned i = 0; i < premise->length(); i++) {
     auto lit = (*premise)[i];
+    if (!lit->isEquality()) {
+      continue;
+    }
     unsigned sig;
     bool hyp, rev;
     if (premise->isInductionLiteral(lit, sig, hyp, rev)) {
@@ -67,7 +70,6 @@ ClauseIterator InductionHypothesisRewriting::generateClauses(Clause *premise)
       // }
       // auto it3 = pvi(getMapAndFlattenIterator(inner, InductResultFn(_splitter, _induction)));
       // res = pvi(getConcatenatedIterator(res, it3));
-      ASS(lit->isEquality());
       if (!hyp) {
         for (unsigned k = 0; k <= 1; k++) {
           auto litarg = *lit->nthArgument(k);
