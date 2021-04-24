@@ -307,7 +307,11 @@ void InductionSchemeFilter::filterComplex(vvector<InductionScheme>& schemes, con
       }
     }
     if (filter) {
-      // cout << "scheme inducting on complex terms filtered out " << schemes[i].first << endl;
+      if(env.options->showInduction()){
+        env.beginOutput();
+        env.out() << "scheme inducting on complex terms filtered out " << schemes[i] << endl;
+        env.endOutput();
+      }
       schemes[i] = std::move(schemes.back());
       schemes.pop_back();
     } else {

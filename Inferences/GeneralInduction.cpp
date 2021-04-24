@@ -95,12 +95,16 @@ void GeneralInduction::process(InductionClauseIterator& res, Clause* premise, Li
     env.endOutput();
   }
 
+  unsigned sig;
+  bool hyp, rev;
+  auto ind = premise->isInductionLiteral(literal, sig, hyp, rev);
+
   static bool negOnly = env.options->inductionNegOnly();
   if((!negOnly || literal->isNegative() || 
       (theory->isInterpretedPredicate(literal) && theory->isInequality(theory->interpretPredicate(literal)))
     ) && literal->ground())
   {
-    SLQueryResult qr(literal, premise);
+    SLQueryResult main(literal, premise);
     vset<pair<Literal*,Clause*>> sides;
     vset<TermList> skolems;
     SubtermIterator stit(literal);
@@ -110,24 +114,19 @@ void GeneralInduction::process(InductionClauseIterator& res, Clause* premise, Li
         skolems.insert(st);
       }
     }
-    unsigned sigMain;
-    bool hypMain, revMain;
-    qr.clause->isInductionLiteral(qr.literal, sigMain, hypMain, revMain);
     for (const auto& sk : skolems) {
       auto it = _index->getGeneralizations(sk);
       while (it.hasNext()) {
-        auto sqr = it.next();
-        unsigned sig;
-        bool hyp, rev;
-        if (qr.literal != sqr.literal &&
-            qr.clause != sqr.clause &&
-            !sqr.clause->isInductionLiteral(sqr.literal, sig, hyp, rev) &&
-            //sqr.literal->isPositive() &&
-            sqr.literal->ground() &&
-            (sqr.clause->inference().inductionDepth() == 0 ||
-            (sig == sigMain && hyp && !hypMain))) {
-          // cout << *sqr.literal << " " << *sqr.clause << endl;
-          sides.emplace(sqr.literal, sqr.clause);
+        auto qr = it.next();
+        unsigned sigOther;
+        bool hypOther, revOther;
+        if (main.literal != qr.literal &&
+            main.clause != qr.clause &&
+            qr.literal->ground() &&
+            (qr.clause->inference().inductionDepth() == 0 ||
+            (qr.clause->isInductionLiteral(qr.literal, sigOther, hypOther, revOther) && sig == sigOther && !hyp && hypOther))) {
+          // cout << *qr.literal << " " << *qr.clause << endl;
+          sides.emplace(qr.literal, qr.clause);
         }
       }
     }
@@ -136,7 +135,7 @@ void GeneralInduction::process(InductionClauseIterator& res, Clause* premise, Li
     RecursionInductionSchemeGenerator2 gen;
     static vvector<pair<InductionScheme, OccurrenceMap>> schOccMap;
     schOccMap.clear();
-    gen.generate(qr, sides, schOccMap);
+    gen.generate(main, sides, schOccMap);
     static vvector<pair<InductionScheme, OccurrenceMap>> generalizedSchOccMap;
     generalizedSchOccMap.clear();
     vvector<Literal*> schLits;
@@ -156,7 +155,62 @@ void GeneralInduction::process(InductionClauseIterator& res, Clause* premise, Li
       _done.insert(schLit);
     }
     for (const auto& kv : generalizedSchOccMap) {
-      generateClauses(kv.first, kv.second, qr, sides, res._clauses);
+      generateClauses(kv.first, kv.second, main, sides, res._clauses);
+    }
+  } else if (literal->ground() && (premise->inference().inductionDepth() == 0 ||
+             (ind && hyp))) {
+    vset<TermList> skolems;
+    SubtermIterator stit(literal);
+    while (stit.hasNext()) {
+      auto st = stit.next();
+      if (skolem(st)) {
+        skolems.insert(st);
+      }
+    }
+    for (const auto& sk : skolems) {
+      auto it = _index->getGeneralizations(sk);
+      while (it.hasNext()) {
+        auto qr = it.next();
+        unsigned sigOther;
+        bool hypOther, revOther;
+        if (literal != qr.literal &&
+            premise != qr.clause &&
+            (!negOnly || qr.literal->isNegative() || 
+              (theory->isInterpretedPredicate(qr.literal) && theory->isInequality(theory->interpretPredicate(qr.literal)))
+            ) && qr.literal->ground() &&
+            (!ind || (qr.clause->isInductionLiteral(qr.literal, sigOther, hypOther, revOther) && sig == sigOther && hyp && !hypOther))) {
+          SLQueryResult main(qr.literal, qr.clause);
+          vset<pair<Literal*,Clause*>> sides;
+          // cout << *qr.literal << " " << *qr.clause << endl;
+          sides.emplace(literal, premise);
+          // StructuralInductionSchemeGenerator gen;
+          RecursionInductionSchemeGenerator2 gen;
+          static vvector<pair<InductionScheme, OccurrenceMap>> schOccMap;
+          schOccMap.clear();
+          gen.generate(main, sides, schOccMap);
+          static vvector<pair<InductionScheme, OccurrenceMap>> generalizedSchOccMap;
+          generalizedSchOccMap.clear();
+          vvector<Literal*> schLits;
+          for (const auto& kv : schOccMap) {
+            schLits.push_back(nullptr);
+            if (alreadyDone(literal, kv.first, schLits.back())) {
+              continue;
+            }
+            // InductionGeneralizationIterator g(kv.second);
+            HeuristicGeneralizationIterator g(kv.second);
+            while (g.hasNext()) {
+              auto eg = g.next();
+              generalizedSchOccMap.push_back(make_pair(kv.first, eg));
+            }
+          }
+          for (const auto& schLit : schLits) {
+            _done.insert(schLit);
+          }
+          for (const auto& kv : generalizedSchOccMap) {
+            generateClauses(kv.first, kv.second, main, sides, res._clauses);
+          }
+        }
+      }
     }
   }
 }
@@ -199,9 +253,11 @@ Literal* replaceLit(const vmap<TermList,TermList>& r, const OccurrenceMap& occur
         for (const auto& kv : sideLits) {
           TermOccurrenceReplacement2 trs(r, occurrences, kv.first);
           auto newLitS = trs.transform(kv.first);
-          TermReplacement2 trs2(v2sk);
-          newLitS = Literal::complementaryLiteral(trs2.transform(newLitS));
-          st.push(newLitS);
+          if (newLitS != kv.first) {
+            TermReplacement2 trs2(v2sk);
+            newLitS = Literal::complementaryLiteral(trs2.transform(newLitS));
+            st.push(newLitS);
+          }
         }
       }
       newLits.push_back(st);
