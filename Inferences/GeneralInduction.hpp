@@ -147,7 +147,6 @@ public:
   ClauseIterator generateClauses(Clause* premise) override;
   void attach(SaturationAlgorithm* salg) override;
   void detach() override;
-  bool alreadyDone(Literal* mainLit, const InductionScheme& sch, Literal*& schLit);
 
 private:
   class InductionClauseIterator
@@ -173,10 +172,13 @@ private:
     const vset<pair<Literal*,Clause*>>& sideLits,
     ClauseStack& clauses);
   vmap<TermList, TermList> skolemizeCase(const InductionScheme::Case& c);
+  bool alreadyDone(Literal* mainLit, const vset<pair<Literal*,Clause*>>& sides,
+    const InductionScheme& sch, pair<Literal*,vset<Literal*>>& res);
+  vvector<pair<SLQueryResult, vset<pair<Literal*,Clause*>>>> selectMainSidePairs(Literal* literal, Clause* premise);
 
   Splitter* _splitter;
   InferenceRule _rule;
-  DHSet<Literal*> _done;
+  DHMap<Literal*, vset<Literal*>> _done;
   DemodulationSubtermIndex* _index;
 };
 
