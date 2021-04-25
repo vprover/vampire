@@ -420,7 +420,8 @@ inline bool mainLitCondition(Literal* literal) {
 inline bool sideLitCondition(Literal* main, Clause* mainCl, Literal* side, Clause* sideCl) {
   unsigned sig, sigOther;
   bool hyp, rev, hypOther, revOther;
-  return main != side &&
+  return side->ground() &&
+    main != side &&
     mainCl != sideCl &&
     (sideCl->inference().inductionDepth() == 0 ||
     (sideCl->isInductionLiteral(side, sigOther, hypOther, revOther) &&
