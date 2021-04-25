@@ -421,6 +421,7 @@ inline bool sideLitCondition(Literal* main, Clause* mainCl, Literal* side, Claus
   unsigned sig, sigOther;
   bool hyp, rev, hypOther, revOther;
   return side->ground() &&
+    side->isPositive() &&
     main != side &&
     mainCl != sideCl &&
     (sideCl->inference().inductionDepth() == 0 ||
