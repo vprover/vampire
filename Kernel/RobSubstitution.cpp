@@ -379,6 +379,7 @@ bool RobSubstitution::occurs(VarSpec vs, TermSpec ts)
 bool RobSubstitution::unify(TermSpec t1, TermSpec t2,MismatchHandler* hndlr)
 {
   CALL("RobSubstitution::unify/2");
+  ASS_NO_EXCEPT(
 
   if(t1.sameTermContent(t2)) {
     return true;
@@ -460,6 +461,7 @@ bool RobSubstitution::unify(TermSpec t1, TermSpec t2,MismatchHandler* hndlr)
           // If we wanted to support adding constraints when one side is not interpreted we could drop the outer check here
           // and just let hndlr deal with it
           if(hndlr->handle(this,tsss.term,tsss.index,tstt.term,tstt.index)){ 
+            subterms.reset();
             break;
           }
         }
@@ -541,7 +543,9 @@ bool RobSubstitution::unify(TermSpec t1, TermSpec t2,MismatchHandler* hndlr)
     localBD.drop();
   }
 
+  ASS(toDo.isEmpty() && subterms.isEmpty());
   return !mismatch;
+  )
 }
 
 /**
