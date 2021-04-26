@@ -42,7 +42,7 @@
 #include "Indexing/TermIndexingStructure.hpp"
 #include "Kernel/RobSubstitution.hpp"
 
-#define DEBUG(...) // DBG(__VA_ARGS__)
+#define DEBUG(...)  // DBG(__VA_ARGS__)
 
 using Kernel::InequalityLiteral;
 
@@ -195,14 +195,19 @@ ClauseIterator InequalityFactoring::generateClauses(Clause* cl, Literal* literal
 
               // push constraints
               for (auto& c : consts) {
+
                 auto toTerm = [&](pair<TermList, unsigned> const& weirdConstraintPair) -> TermList
                               { return subst.apply(weirdConstraintPair.first, weirdConstraintPair.second); };
                 // t1\sigma != c2\simga
-                push(Literal::createEquality(false, toTerm(c.first), toTerm(c.second), NumTraits::sort()));
+                auto sort = SortHelper::getResultSort(c.first.first.term());
+                push(Literal::createEquality(false, toTerm(c.first), toTerm(c.second), sort));
               }
+
 
               ASS_EQ(offset, size)
             }
+            DEBUG("in:  ", *cl)
+            DEBUG("out: ", *resolvent)
 
 
             return Option<Clause*>(resolvent);
