@@ -405,6 +405,7 @@ bool RobSubstitution::unify(TermSpec t1, TermSpec t2,MismatchHandler* hndlr)
           // If we wanted to support adding constraints when one side is not interpreted we could drop the outer check here
           // and just let hndlr deal with it
           if(hndlr->handle(this,tsss.term,tsss.index,tstt.term,tstt.index)){ 
+            subterms.reset();
             break;
           }
         }
