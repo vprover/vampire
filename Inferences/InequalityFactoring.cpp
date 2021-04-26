@@ -163,8 +163,9 @@ ClauseIterator InequalityFactoring::generateClauses(Clause* cl, Literal* literal
             auto resolventSum = Stack<Monom>(lit.term().nSummands() - 1);
             resolventSum.push(resolventTerm);
             for (unsigned i = 0; i < lit.term().nSummands(); i++) {
-              if (i != i1 && i != i2) 
-                resolventSum.push(lit.term().summandAt(i));
+              auto t = lit.term().summandAt(i);
+              if (t != mon1 && t != mon2) 
+                resolventSum.push(t);
             }
 
             auto sum = PolynomialEvaluation::simplifySummation(resolventSum);

@@ -121,3 +121,19 @@ TEST_GENERATION(abstraction1,
 
 
 
+
+/////////////////////////////////////////////////////////
+// Bug fixes
+//////////////////////////////////////
+
+TEST_GENERATION(fix01,
+    Generation::TestCase()
+// 1 + f26(f34(f59,X0),X0) + f26(f34(f59,X1),X1) > 0 [theory normalization 1587]
+// 2 * f26(f34(f59,X0),X0) + f26(f34(f59,X0),X0) > 0 [inequality factoring 2373]
+      .input   (          clause({ selected(1 + f(x) + f(y) > 0)  })    )
+      .expected(exactly(  clause({          1 +    2 * f(x) > 0   })   ))
+      .premiseRedundant(false)
+    )
+
+
+
