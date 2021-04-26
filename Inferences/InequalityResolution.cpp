@@ -218,6 +218,8 @@ Stack<Monom<NumTraits>> InequalityResolution::maxTerms(InequalityLiteral<NumTrai
   [&]() { try { return __VA_ARGS__; }                                                                         \
           catch (MachineArithmeticException&) { ASSERTION_VIOLATION }} }()                                    \
 
+
+
 template<class NumTraits>
 ClauseIterator InequalityResolution::generateClauses(Clause* cl1, Literal* literal1) const
 {
@@ -268,6 +270,8 @@ ClauseIterator InequalityResolution::generateClauses(Clause* cl1, Literal* liter
                     auto& subs = *res.substitution;
 
                     auto cl2   = res.clause;
+                    auto right = [](auto l, auto r) { return l->number() == 7466 && r->number() == 2903; };
+
                     auto term2 =
                       normalizeTerm(TypedTermList(res.term, NumTraits::sort()))
 #if OVERFLOW_SAFE
@@ -283,7 +287,6 @@ ClauseIterator InequalityResolution::generateClauses(Clause* cl1, Literal* liter
                     ASS(!lit2_.overflowOccurred)
                     auto lit2  = lit2_.value;
                     //   ^^^^ ~=  num2 * term2 + rest2 >= 0
-
                     auto strictness = lit1.strict() || lit2.strict();
                     //   ^^^^^^^^^^ if either of the two inequalities is strict, the result will be as well.
                     //              consider e.g.
@@ -324,7 +327,7 @@ ClauseIterator InequalityResolution::generateClauses(Clause* cl1, Literal* liter
                                   auto iter = lit.term()
                                       .iterSummands()
                                       .filter([&](Monom m) { return m.factors != termToSkip; })
-                                      .map   ([&](Monom m) { return Monom(m.numeral * num, m.factors).denormalize(); });
+                                      .map   ([&](Monom m) { return subs.applyTo(Monom(m.numeral * num, m.factors).denormalize(),resultVarBank); });
                                   for (auto x : iter) {
                                     resolventSum = NumTraits::add(x, resolventSum);
                                   }
@@ -389,7 +392,6 @@ ClauseIterator InequalityResolution::generateClauses(Clause* cl1, Literal* liter
                       ASS_EQ(offset, size)
                     }
                     DEBUG("  resolvent: ", *resolvent);
-                    // ASS(normalizer().isNormalized(resolvent)) maybe not normalized since renaming of variables might require a reordering of addition/multipliciation subterms
                     return Option<Clause*>(resolvent);
                 }));
     }));

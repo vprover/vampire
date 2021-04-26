@@ -134,8 +134,8 @@ TEST_GENERATION(basic06,
       .input   (  clause({ selected(-f(x) > 0) }) )
       .context ({ clause({    f(y) + f(a) > 0  }) })
       .expected(exactly(
-            clause({  f(a) > 0 }),
-            clause({  f(x) > 0 })
+            clause({  f(a) > 0 })
+          , clause({  f(x) > 0 })
       ))
       .premiseRedundant(false)
     )
@@ -304,9 +304,21 @@ TEST_GENERATION_WITH_SUGAR(bug02,
     SUGAR(Real),
     Generation::TestCase()
       .indices(indices())
-      .input   (  clause({ selected( 3 +  a > 0 ) })  )
-      .context ({ clause({           0 + -a > 0   }) })
-      .expected(exactly(
+      .input   (         clause({ selected( 3 +  a  > 0 ) })  )
+      .context ({        clause({           0 + -a  > 0   }) })
+      .expected(exactly( clause({            num(3) > 0   }) ))
+      .premiseRedundant(false)
+    )
+
+TEST_GENERATION_WITH_SUGAR(bug03,
+    SUGAR(Real),
+    Generation::TestCase()
+// *cl2 = ~P(X1,X2) | 1 + -X1 + a > 0
+// *resolvent = $greater($sum(1,$uminus(X1)),0) | ~'MS'(X0,X1,s2)
+      .indices(indices())
+      .input   (         clause({            selected(1 + -a     > 0) })  )
+      .context ({        clause({  ~r(y,z) , selected(1 + -y + a > 0) }) })
+      .expected(exactly( clause({  ~r(x,y) ,          2 + -x     > 0  })
       ))
       .premiseRedundant(false)
     )
@@ -326,7 +338,6 @@ TEST_GENERATION_WITH_SUGAR(bug_overflow_01,
 
   // 2 f13(f14, 1) 1073741824
 
-  
 TEST_GENERATION_WITH_SUGAR(bug_overflow_02,
     SUGAR(Int),
     Generation::TestCase()
