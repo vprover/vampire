@@ -305,6 +305,7 @@ VINF_OBJ=Inferences/BackwardDemodulation.o\
          Inferences/TautologyDeletionISE.o\
          Inferences/TermAlgebraReasoning.o\
          Inferences/Induction.o\
+         Inferences/InductionHelper.o\
          Inferences/URResolution.o\
          Inferences/CNFOnTheFly.o\
          Inferences/CasesSimp.o\
@@ -421,8 +422,8 @@ VS_OBJ = Shell/AnswerExtractor.o\
 
 PARSE_OBJ = Parse/SMTLIB2.o\
             Parse/TPTP.o\
-            
-            
+
+
 
 DP_OBJ = DP/ShortConflictMetaDP.o\
          DP/SimpleCongruenceClosure.o

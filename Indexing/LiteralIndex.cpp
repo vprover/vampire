@@ -12,6 +12,8 @@
  * Implements class LiteralIndex.
  */
 
+#include "Inferences/InductionHelper.hpp"
+
 #include "Kernel/Clause.hpp"
 #include "Kernel/LiteralComparators.hpp"
 #include "Kernel/LiteralByMatchability.hpp"
@@ -401,6 +403,26 @@ void DismatchingLiteralIndex::addLiteral(Literal* l)
   CALL("DismatchingLiteralIndex::addLiteral");
   //TODO is it safe to pass 0 here?
   handleLiteral(l,0,true);
+}
+
+void UnitIntegerComparisonLiteralIndex::handleClause(Clause* c, bool adding)
+{
+  CALL("UnitIntegerComparisonLiteralIndex::handleClause");
+
+  TimeCounter tc(TC_UNIT_INTEGER_COMPARISON_INDEX_MAINTENANCE);
+  
+  if (!Inferences::InductionHelper::isIntegerComparison(c)) {
+    return;
+  }
+
+  Literal* lit = (*c)[0];
+  ASS(lit != nullptr);
+
+  if (adding) {
+    _is->insert(lit, c);
+  } else {
+    _is->remove(lit, c);
+  }
 }
 
 }

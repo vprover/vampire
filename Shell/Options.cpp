@@ -568,7 +568,7 @@ void Options::init()
     _inlineLet.tag(OptionTag::PREPROCESSING);
 
      //Higher-order options
-     
+
     _addCombAxioms = BoolOptionValue("add_comb_axioms","aca",false);
     _addCombAxioms.description="Add combinator axioms";
     _lookup.insert(&_addCombAxioms);
@@ -1101,13 +1101,13 @@ void Options::init()
             _structInduction.reliesOn(Or(_induction.is(equal(Induction::STRUCTURAL)),_induction.is(equal(Induction::BOTH))));
             _lookup.insert(&_structInduction);
 
-            _intInduction = ChoiceOptionValue<IntInductionKind>("int_induction_kind","mik",
+            _intInduction = ChoiceOptionValue<IntInductionKind>("int_induction_kind","iik",
                                  IntInductionKind::ONE,{"one","two","all"});
             _intInduction.description="The kind of integer induction applied";
             _intInduction.tag(OptionTag::INFERENCES);
 
             _intInduction.reliesOn(Or(_induction.is(equal(Induction::INTEGER)),_induction.is(equal(Induction::BOTH))));
-            //_lookup.insert(&_intInduction);
+            _lookup.insert(&_intInduction);
 
             _inductionChoice = ChoiceOptionValue<InductionChoice>("induction_choice","indc",InductionChoice::ALL,
                                 {"all","goal","goal_plus"});
@@ -1424,7 +1424,7 @@ void Options::init()
     _superpositionFromVariables.setRandomChoices({"on","off"});
 
     //Higher-order Options
-    
+
     _combinatorySuperposition = BoolOptionValue("combinatory_sup","csup",false);
     _combinatorySuperposition.description="Switches on a specific ordering and that orients combinator axioms left-right."
                                           "also turns on a number of special inference rules";
@@ -1472,11 +1472,11 @@ void Options::init()
     _functionExtensionality.tag(OptionTag::INFERENCES);
 
     _clausificationOnTheFly = ChoiceOptionValue<CNFOnTheFly>("cnf_on_the_fly","cnfonf",CNFOnTheFly::EAGER,
-                                                                          {"eager", 
-                                                                          "lazy_gen", 
+                                                                          {"eager",
+                                                                          "lazy_gen",
                                                                           "lazy_simp",
-                                                                          "lazy_not_gen", 
-                                                                          "lazy_not_gen_be_off", 
+                                                                          "lazy_not_gen",
+                                                                          "lazy_not_gen_be_off",
                                                                           "lazy_not_be_gen",
                                                                           "off"});
     _clausificationOnTheFly.description="Various options linked to clausification on the fly";
@@ -1485,8 +1485,8 @@ void Options::init()
 
 
     _piSet = ChoiceOptionValue<PISet>("prim_inst_set","piset",PISet::ALL_EXCEPT_NOT_EQ,
-                                                                        {"all", 
-                                                                        "all_but_not_eq", 
+                                                                        {"all",
+                                                                        "all_but_not_eq",
                                                                         "false_true_not",
                                                                         "small_set"});
     _piSet.description="Controls the set of equations to use in primitive instantiation";
@@ -1495,8 +1495,8 @@ void Options::init()
 
 
     _narrow = ChoiceOptionValue<Narrow>("narrow","narr",Narrow::ALL,
-                                                             {"all", 
-                                                              "sk", 
+                                                             {"all",
+                                                              "sk",
                                                               "ski",
                                                               "off"});
     _narrow.description="Controls the set of combinator equations to use in narrowing";
@@ -1507,14 +1507,14 @@ void Options::init()
     _equalityToEquivalence = BoolOptionValue("equality_to_equiv","e2e",false);
     _equalityToEquivalence.description=
     "Equality between boolean terms changed to equivalence \n"
-    "t1 : $o = t2 : $o is changed to t1 <=> t2";    
+    "t1 : $o = t2 : $o is changed to t1 <=> t2";
     _lookup.insert(&_equalityToEquivalence);
     _equalityToEquivalence.tag(OptionTag::OTHER);
 
     _complexBooleanReasoning = BoolOptionValue("complex_bool_reasoning","cbe",true);
     _complexBooleanReasoning.description=
     "Switches on primitive instantiation and elimination of leibniz equality";
-    _complexBooleanReasoning.reliesOn(_addProxyAxioms.is(equal(false)));    
+    _complexBooleanReasoning.reliesOn(_addProxyAxioms.is(equal(false)));
     _lookup.insert(&_complexBooleanReasoning);
     _complexBooleanReasoning.tag(OptionTag::OTHER);
 
@@ -1539,7 +1539,7 @@ void Options::init()
     _lookup.insert(&_casesSimp);
     _casesSimp.tag(OptionTag::INFERENCES);
 
-    //TODO, sort out the mess with cases and FOOLP. 
+    //TODO, sort out the mess with cases and FOOLP.
     //One should be removed. AYB
     _cases = BoolOptionValue("cases","c",false);
     _cases.description=
@@ -3149,7 +3149,7 @@ bool Options::complete(const Problem& prb) const
     //safer for competition
     return false;
   }
- 
+
   if (_showInterpolant.actualValue != InterpolantMode::OFF) {
     return false;
   }
@@ -3191,7 +3191,7 @@ bool Options::complete(const Problem& prb) const
   bool unitEquality = prop.category() == Property::UEQ;
   bool hasEquality = (prop.equalityAtoms() != 0);
 
-  if((prop.hasCombs() || prop.hasAppliedVar())  && 
+  if((prop.hasCombs() || prop.hasAppliedVar())  &&
     !_addCombAxioms.actualValue && !_combinatorySuperposition.actualValue) {
     //TODO make a more complex more precise case here
     //There are instance where we are complete
