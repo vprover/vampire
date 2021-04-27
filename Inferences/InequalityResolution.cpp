@@ -270,7 +270,6 @@ ClauseIterator InequalityResolution::generateClauses(Clause* cl1, Literal* liter
                     auto& subs = *res.substitution;
 
                     auto cl2   = res.clause;
-                    auto right = [](auto l, auto r) { return l->number() == 7466 && r->number() == 2903; };
 
                     auto term2 =
                       normalizeTerm(TypedTermList(res.term, NumTraits::sort()))
@@ -384,8 +383,9 @@ ClauseIterator InequalityResolution::generateClauses(Clause* cl1, Literal* liter
                         for (auto& c : *res.constraints) {
                           auto toTerm = [&](pair<TermList, unsigned> const& weirdConstraintPair) -> TermList
                                         { return subs.applyTo(weirdConstraintPair.first, weirdConstraintPair.second); };
+                          auto sort = SortHelper::getResultSort(c.first.first.term());
                           // t1\sigma != c2\simga
-                          push(Literal::createEquality(false, toTerm(c.first), toTerm(c.second), NumTraits::sort()));
+                          push(Literal::createEquality(false, toTerm(c.first), toTerm(c.second), sort));
                         }
                       }
 
