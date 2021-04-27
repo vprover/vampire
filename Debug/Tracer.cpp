@@ -68,7 +68,7 @@ Tracer::Tracer (const char* fun)
   _fun (fun),
   _previous (_current)
 {
-//   cout << '+' << fun << '\n';
+//   cout << '+' << fun << std::endl;
   _current = this;
   controlPoint(_fun,CP_ENTRY);
   _depth++;
@@ -77,7 +77,7 @@ Tracer::Tracer (const char* fun)
 
 Tracer::~Tracer () 
 {
-//   cout << '-' << _fun << '\n';
+//   cout << '-' << _fun << std::endl;
   _current = _previous;
   _depth--;
   controlPoint(_fun,CP_EXIT);
@@ -95,11 +95,11 @@ Tracer::~Tracer ()
 void Tracer::controlPoint (const char* description, ControlPointKind cpk)
 {
 //   AFTER(12339,
-// 	cout << "A: " << *((int*)0x88d84b4) << "\n";);
+// 	cout << "A: " << *((int*)0x88d84b4) << std::endl;);
 //   if (Allocator<10>::_freeList) {
 //     cout << (void*)Allocator<10>::_freeList << " "
 // 	 << (void*)Allocator<10>::_freeList->_next
-// 	 << " (" <<_passedControlPoints << ")\n";
+// 	 << " (" <<_passedControlPoints << ")" << std::endl;
 //   }
 
   _lastPointKind = cpk;
@@ -109,10 +109,10 @@ void Tracer::controlPoint (const char* description, ControlPointKind cpk)
     void* newVal = *((void**)WATCH_ADDR);
     if (newVal != watchAddrLastValue) {
       cout << "W! " << newVal << " (timestamp: "
-	   << _passedControlPoints << ")\n";
+	   << _passedControlPoints << ")" << std::endl;
       watchAddrLastValue = newVal;
       cout << "Stack on " << (cpk == CP_EXIT ? "exiting" : "entering")
-	   << " the last function on the stack:\n";
+	   << " the last function on the stack:" << std::endl;
       printStack(cout);
     }
   }
@@ -155,7 +155,7 @@ void Tracer::outputLastControlPoint (ostream& str)
       << _lastControlPoint 
       << " ("
       << _passedControlPoints 
-      << ")\n";
+      << ")" << std::endl;
 } // Tracer::outputLastControlPoint
 
 
@@ -178,9 +178,9 @@ void Tracer::printStack (ostream& str)
 {
   int depth = 0;
 
-  str << "Version : " << VERSION_STRING << "\n";
-  str << "Control points passed: " << _passedControlPoints << "\n"
-      << "last control point:\n";
+  str << "Version : " << VERSION_STRING << std::endl;
+  str << "Control points passed: " << _passedControlPoints << std::endl
+      << "last control point:" << std::endl;
   outputLastControlPoint(str);
   printStackRec (_current, str, depth);
 } // Tracer::printStack (ostream& str)
@@ -198,7 +198,7 @@ void Tracer::printStackRec(Tracer* current, ostream& str, int& depth)
   }
   printStackRec(current->_previous,str,depth);
   spaces(str,depth);
-  str << current->_fun << "\n";
+  str << current->_fun << std::endl;
   depth ++;
 } // Tracer::printStack (ostream& str, int& depth)
 

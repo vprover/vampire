@@ -48,11 +48,11 @@ void Assertion::violated(const char* file, int line, const char* cond)
 {
   if (outputAllowed(true)) {
     cout << "Condition in file " << file << ", line " << line
-         << " violated:\n"
-         << cond << "\n"
-         << "----- stack dump -----\n";
+         << " violated:" << std::endl
+         << cond << std::endl
+         << "----- stack dump -----" << std::endl;
     Tracer::printStack(cout);
-    cout << "----- end of stack dump -----" << endl;
+    cout << "----- end of stack dump -----" << std::endl;
   }
   abortAfterViolation();
 } // Assertion::violated
@@ -63,12 +63,12 @@ void Assertion::violatedStrEquality(const char* file, int line, const char* val1
   if (outputAllowed(true)) {
     std::cout << "Condition for string equality " << val1Str << " == " << val2Str
               << " in file " << file << ", line " << line
-              << " was violated, as:\n"
-              << val1Str << " == \"" << val1 << "\"\n"
-              << val2Str << " == \"" << val2 << "\"\n"
-              << "----- stack dump -----\n";
+              << " was violated, as:" << std::endl
+              << val1Str << " == \"" << val1 << "\"" << std::endl
+              << val2Str << " == \"" << val2 << "\"" << std::endl
+              << "----- stack dump -----" << std::endl;
     Tracer::printStack(cout);
-    std::cout << "----- end of stack dump -----\n";
+    std::cout << "----- end of stack dump -----" << std::endl;
   }
   abortAfterViolation();
 }
@@ -81,25 +81,25 @@ void Assertion::checkType(const char* file, int line, const void* ptr, const cha
   if (!desc) {
     if (outputAllowed(true)) {
       cout << "Type condition in file " << file << ", line " << line
-           << " violated:\n"
-           << ptrStr << " was not allocated by Lib::Allocator.\n";
+           << " violated:" << std::endl
+           << ptrStr << " was not allocated by Lib::Allocator." << std::endl;
     }
   }
   else if (!USE_PRECISE_CLASS_NAMES && strcmp(assumed, desc->cls)) {
     //TODO: the use of precise class names disrupts the check, fix it in the future!
     if (outputAllowed(true)) {
       cout << "Type condition in file " << file << ", line " << line
-           << " violated:\n"
+           << " violated:" << std::endl
            << ptrStr << " was allocated as \"" << desc->cls
-           << "\" instead of \"" << assumed << "\".\n";
+           << "\" instead of \"" << assumed << "\"." << std::endl;
     }
   }
   else if (!desc->allocated) {
     if (outputAllowed(true)) {
       cout << "Type condition in file " << file << ", line " << line
-           << " violated:\n"
+           << " violated:" << std::endl
            << ptrStr << " was allocated as \"" << desc->cls
-           << "\", but no longer is.\n";
+           << "\", but no longer is." << std::endl;
     }
   }
   else {
@@ -107,9 +107,9 @@ void Assertion::checkType(const char* file, int line, const void* ptr, const cha
   }
 
   if (outputAllowed(true)) {
-    cout << "----- stack dump -----\n";
+    cout << "----- stack dump -----" << std::endl;
     Tracer::printStack(cout);
-    cout << "----- end of stack dump -----\n";
+    cout << "----- end of stack dump -----" << std::endl;
   }
   abortAfterViolation();
 } // Assertion::violated
@@ -122,7 +122,7 @@ void Assertion::reportAssertValidException(const char* file, int line, const cha
 {
   if (outputAllowed(true)) {
     cout << "An exception was thrown by ASSERT_VALID on object " << obj
-         << " in file " << file << ", line " << line << ".\n";
+         << " in file " << file << ", line " << line << "." << std::endl;
   }
   abortAfterViolation();
 } // Assertion::violated
