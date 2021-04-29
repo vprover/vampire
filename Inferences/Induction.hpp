@@ -26,6 +26,7 @@
 #include "Kernel/TermTransformer.hpp"
 #include "Kernel/Theory.hpp"
 
+#include "Lib/DHMap.hpp"
 #include "Lib/DHSet.hpp"
 #include "Lib/List.hpp"
 
@@ -61,7 +62,7 @@ public:
   // to GEN_INDUCTION_AXIOM.
   Literal* transformSubset(InferenceRule& rule);
 
-  List<pair<Literal*, InferenceRule>>* getListOfTransformedLiterals();
+  List<pair<Literal*, InferenceRule>>* getListOfTransformedLiterals(InferenceRule rule);
 
 protected:
   virtual TermList transformSubterm(TermList trm);
@@ -94,7 +95,7 @@ public:
   ClauseIterator generateClauses(Clause* premise);
 
 private:
-  // The following pointers can be null if math induction is off.
+  // The following pointers can be null if int induction is off.
   LiteralIndex* _comparisonIndex = nullptr;
   TermIndex* _inductionTermIndex = nullptr;
 };
@@ -129,32 +130,35 @@ private:
   void processLiteral(Clause* premise, Literal* lit);
   void processIntegerComparison(Clause* premise, Literal* lit);
 
+  // Clausifies the hypothesis, resolves it against the conclusion/toResolve,
+  // and increments relevant statistics.
   void produceClauses(Clause* premise, Literal* origLit, Formula* hypothesis, InferenceRule rule, const pair<Literal*, SLQueryResult>& conclusion);
-  void produceClauses(Clause* premise, Literal* origLit, Formula* hypothesis, InferenceRule rule, const pair<Literal*, SLQueryResult>& conclusion, const pair<Literal*, SLQueryResult>& baseCase);
+  void produceClauses(Clause* premise, Literal* origLit, Formula* hypothesis, InferenceRule rule, const List<pair<Literal*, SLQueryResult>>* bounds);
 
   // Calls generalizeAndPerformIntInduction(...) for those induction literals from inductionTQRsIt,
-  // which are non-redundant with respect to the indTerm, baseCase, and increasingness.
+  // which are non-redundant with respect to the indTerm, bounds, and increasingness.
   // Note: indTerm is passed to avoid recomputation.
-  void performIntInductionOnEligibleLiterals(Term* origTerm, Term* indTerm, TermQueryResultIterator inductionTQRsIt, TermQueryResult baseCase, bool increasing);
-  // Calls generalizeAndPerformIntInduction(...) for those base cases from baseCaseIt (and the default
-  // base case) which are non-redundant with respect to the origLit, origTerm, and increasingness.
+  void performIntInductionOnEligibleLiterals(Term* origTerm, Term* indTerm, TermQueryResultIterator inductionTQRsIt, bool increasing, TermQueryResult bound1, DHMap<Term*, TermQueryResult>& bounds2);
+  // Calls generalizeAndPerformIntInduction(...) for those bounds from lowerBound, upperBound
+  // (and the default bound) which are non-redundant with respect to the origLit, origTerm,
+  // and increasingness.
   // Note: indLits and indTerm are passed to avoid recomputation.
-  void performIntInductionForEligibleBaseCases(Clause* premise, Literal* origLit, Term* origTerm, List<pair<Literal*, InferenceRule>>*& indLits, Term* indTerm, TermQueryResultIterator baseCaseIt, bool increasing);
+  void performIntInductionForEligibleBounds(Clause* premise, Literal* origLit, Term* origTerm, List<pair<Literal*, InferenceRule>>*& indLits, Term* indTerm, bool increasing, DHMap<Term*, TermQueryResult>& bounds1, DHMap<Term*, TermQueryResult>& bounds2);
   // If indLits is empty, first fills it with either generalized origLit, or just by origLit itself
   // (depending on whether -indgen is on).
-  // Then, performs math induction for each induction literal from indLits using baseCase
-  // as the base case.
+  // Then, performs int induction for each induction literal from indLits using bound1
+  // (and optionalBound2 if provided) as bounds.
   // Note: indLits may be created in this method, but it needs to be destroyed outside of it.
-  void generalizeAndPerformIntInduction(Clause* premise, Literal* origLit, Term* origTerm, List<pair<Literal*, InferenceRule>>*& indLits, Term* indTerm, TermQueryResult& baseCase, bool increasing);
+  void generalizeAndPerformIntInduction(Clause* premise, Literal* origLit, Term* origTerm, List<pair<Literal*, InferenceRule>>*& indLits, Term* indTerm, bool increasing, TermQueryResult& bound1, TermQueryResult* optionalBound2);
 
-  void performIntInduction(Clause* premise, Literal* origLit, Literal* lit, Term* t, InferenceRule rule, const TermQueryResult& baseCase, bool increasing);
+  void performIntInduction(Clause* premise, Literal* origLit, Literal* lit, Term* t, InferenceRule rule, bool increasing, const TermQueryResult& bound1, TermQueryResult* optionalBound2);
 
   void performStructInductionOne(Clause* premise, Literal* origLit, Literal* lit, Term* t, InferenceRule rule);
   void performStructInductionTwo(Clause* premise, Literal* origLit, Literal* lit, Term* t, InferenceRule rule);
   void performStructInductionThree(Clause* premise, Literal* origLit, Literal* lit, Term* t, InferenceRule rule);
 
   bool notDone(Literal* lit, Term* t);
-  bool notDoneInt(Literal* lit, Term* t, Term* baseCase, bool increasing, bool fromComparison);
+  bool notDoneInt(Literal* lit, Term* t, bool increasing, Term* bound1, Term* optionalBound2, bool fromComparison);
   Term* getPlaceholderForTerm(Term* t);
 
   Stack<Clause*> _clauses;

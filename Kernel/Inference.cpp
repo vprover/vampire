@@ -901,6 +901,30 @@ vstring Kernel::ruleName(InferenceRule rule)
     return "induction hypothesis";
   case InferenceRule::GEN_INDUCTION_AXIOM:
     return "generalized induction hypothesis";
+  case InferenceRule::INT_INF_UP_INDUCTION_AXIOM:
+    return "integer induction hypothesis (up, infinite interval)";
+  case InferenceRule::INT_INF_DOWN_INDUCTION_AXIOM:
+    return "integer induction hypothesis (down, infinite interval)";
+  case InferenceRule::INT_INF_UP_GEN_INDUCTION_AXIOM:
+    return "generalized integer induction hypothesis (up, infinite interval)";
+  case InferenceRule::INT_INF_DOWN_GEN_INDUCTION_AXIOM:
+    return "generalized integer induction hypothesis (down, infinite interval)";
+  case InferenceRule::INT_FIN_UP_INDUCTION_AXIOM:
+    return "integer induction hypothesis (up, finite interval)";
+  case InferenceRule::INT_FIN_DOWN_INDUCTION_AXIOM:
+    return "integer induction hypothesis (down, finite interval)";
+  case InferenceRule::INT_FIN_UP_GEN_INDUCTION_AXIOM:
+    return "generalized integer induction hypothesis (up, finite interval)";
+  case InferenceRule::INT_FIN_DOWN_GEN_INDUCTION_AXIOM:
+    return "generalized integer induction hypothesis (down, finite interval)";
+  case InferenceRule::INT_DB_UP_INDUCTION_AXIOM:
+    return "integer induction hypothesis (up, default bound)";
+  case InferenceRule::INT_DB_DOWN_INDUCTION_AXIOM:
+    return "integer induction hypothesis (down, default bound)";
+  case InferenceRule::INT_DB_UP_GEN_INDUCTION_AXIOM:
+    return "generalized integer induction hypothesis (up, default bound)";
+  case InferenceRule::INT_DB_DOWN_GEN_INDUCTION_AXIOM:
+    return "generalized integer induction hypothesis (down, default bound)";
   case InferenceRule::GAUSSIAN_VARIABLE_ELIMINIATION:
     return "gaussian variable elimination";
   case InferenceRule::COMBINATOR_AXIOM:

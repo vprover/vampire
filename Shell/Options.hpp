@@ -242,6 +242,12 @@ public:
     TWO,
     ALL
   };
+  enum class IntegerInductionInterval : unsigned int {
+    INFINITE,
+    FINITE,
+    BOTH
+  };
+
 
   enum class PredicateSineLevels : unsigned int {
     NO,   // no means 1) the reverse of "on", 2) use with caution, it is predicted to be the worse value
@@ -385,7 +391,7 @@ public:
     /** syntax of the TPTP prover */
     TPTP = 1, 
     AUTO = 2
-    //HUMAN = 4, 
+    //HUMAN = 4,
     //MPS = 5, 
     //NETLIB = 6
   };
@@ -425,13 +431,16 @@ public:
     CASC_SAT,
     CASC_SAT_2019,
     CASC_HOL_2020,
+    INDUCTION,
+    INTEGER_INDUCTION,
     LTB_DEFAULT_2017,
     LTB_HH4_2017,
     LTB_HLL_2017,
     LTB_ISA_2017,
     LTB_MZR_2017,
     SMTCOMP,
-    SMTCOMP_2018
+    SMTCOMP_2018,
+    STRUCT_INDUCTION
   };
 
 /* TODO: use an enum for Selection. The current issue is the way these values are manipulated as ints
@@ -701,7 +710,7 @@ public:
     OFF = 0,
     AXIOM = 1,
     ABSTRACTION = 2
-  }; 
+  };
 
   enum class CNFOnTheFly : unsigned int {
     EAGER = 0,
@@ -2195,6 +2204,8 @@ public:
   bool inductionGen() const { return _inductionGen.actualValue; }
   unsigned maxInductionGenSubsetSize() const { return _maxInductionGenSubsetSize.actualValue; }
   bool inductionOnComplexTerms() const {return _inductionOnComplexTerms.actualValue;}
+  bool integerInductionDefaultBound() const { return _integerInductionDefaultBound.actualValue; }
+  IntegerInductionInterval integerInductionInterval() const { return _integerInductionInterval.actualValue; }
 
   float instGenBigRestartRatio() const { return _instGenBigRestartRatio.actualValue; }
   bool instGenPassiveReactivation() const { return _instGenPassiveReactivation.actualValue; }
@@ -2268,11 +2279,11 @@ public:
   CNFOnTheFly cnfOnTheFly() const { return _clausificationOnTheFly.actualValue; }
   PISet piSet() const { return _piSet.actualValue; }
   Narrow narrow() const { return _narrow.actualValue; }
-  bool equalityToEquivalence () const { return _equalityToEquivalence.actualValue; } 
+  bool equalityToEquivalence () const { return _equalityToEquivalence.actualValue; }
   bool complexBooleanReasoning () const { return _complexBooleanReasoning.actualValue; }
   bool booleanEqTrick() const { return _booleanEqTrick.actualValue; }
   bool superposition() const {return _superposition.actualValue; }
-  bool casesSimp() const { return _casesSimp.actualValue; }  
+  bool casesSimp() const { return _casesSimp.actualValue; }
   bool cases() const { return _cases.actualValue; }
   bool newTautologyDel() const { return _newTautologyDel.actualValue; }
   bool lambdaFreeHol() const { return _lambdaFreeHol.actualValue; }
@@ -2433,7 +2444,7 @@ private:
   BoolOptionValue _demodulationRedundancyCheck;
 
   ChoiceOptionValue<EqualityProxy> _equalityProxy;
-  BoolOptionValue _useMonoEqualityProxy;  
+  BoolOptionValue _useMonoEqualityProxy;
   ChoiceOptionValue<RuleActivity> _equalityResolutionWithDeletion;
   BoolOptionValue _equivalentVariableRemoval;
   ChoiceOptionValue<ExtensionalityResolution> _extensionalityResolution;
@@ -2518,6 +2529,8 @@ private:
   BoolOptionValue _inductionGen;
   UnsignedOptionValue _maxInductionGenSubsetSize;
   BoolOptionValue _inductionOnComplexTerms;
+  BoolOptionValue _integerInductionDefaultBound;
+  ChoiceOptionValue<IntegerInductionInterval> _integerInductionInterval;
 
   StringOptionValue _latexOutput;
   BoolOptionValue _latexUseDefaultSymbols;
@@ -2680,7 +2693,7 @@ private:
   BoolOptionValue _manualClauseSelection;
   BoolOptionValue _inequalityNormalization;
   BoolOptionValue _gaussianVariableElimination;
- 
+
   //Higher-order options
   BoolOptionValue _addCombAxioms;
   BoolOptionValue _addProxyAxioms;

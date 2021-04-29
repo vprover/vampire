@@ -201,7 +201,6 @@ void InductionTermIndex::handleClause(Clause* c, bool adding)
         while (it.hasNext()) {
           TermList tl = it.next();
           if (!tl.term()) continue;
-          unsigned f = tl.term()->functor();
           if (InductionHelper::isInductionTermFunctor(tl.term()->functor()) &&
               InductionHelper::isIntInductionTermListInLiteral(tl, lit)) {
             if (adding) {
