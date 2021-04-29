@@ -246,7 +246,7 @@ void InductionTemplate::addMissingCases(const vvector<vvector<TermList>>& missin
   env.endOutput();
 }
 
-bool InductionTemplate::Branch::contains(Branch other)
+bool InductionTemplate::Branch::contains(InductionTemplate::Branch other)
 {
   if (!MatchingUtils::haveVariantArgs(_header.term(), other._header.term()))
   {
@@ -348,9 +348,16 @@ void InductionTemplate::addBranch(vvector<TermList>&& recursiveCalls, TermList&&
 {
   InductionTemplate::Branch branch(recursiveCalls, header);
   for (auto b : _branches) {
-    // TODO(mhajdu): this should be checked the other way around as well
     if (b.contains(branch)) {
       return;
+    }
+  }
+  for (unsigned i = 0; i < _branches.size();) {
+    if (branch.contains(_branches[i])) {
+      _branches[i] = _branches.back();
+      _branches.pop_back();
+    } else {
+      i++;
     }
   }
   _branches.emplace_back(branch);
@@ -500,7 +507,10 @@ void InductionPreprocessor::preprocessProblem(Problem& prb)
     if (!templ.checkUsefulness()) {
       continue;
     }
-    templ.checkWellFoundedness();
+    if (!templ.checkWellFoundedness()) {
+      cout << "% Warning: " << templ << " is not well founded" << endl;
+      continue;
+    }
     vvector<vvector<TermList>> missingCases;
     if (!templ.checkWellDefinedness(missingCases) && !missingCases.empty()) {
       templ.addMissingCases(missingCases);

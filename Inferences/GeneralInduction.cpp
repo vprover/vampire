@@ -161,8 +161,7 @@ void GeneralInduction::detach()
 }
 
 Literal* replaceLit(const vmap<TermList,TermList>& r, const OccurrenceMap& occurrences, Literal* lit, const vset<pair<Literal*,Clause*>>& sideLits,
-  const vmap<TermList,TermList>& v2sk, const vvector<LiteralStack>& lits, vvector<LiteralStack>& newLits,
-  unsigned& var, bool hypothesis = false)
+  const vmap<TermList,TermList>& v2sk, const vvector<LiteralStack>& lits, vvector<LiteralStack>& newLits, bool hypothesis = false)
 {
   TermOccurrenceReplacement2 tr(r, occurrences, lit);
   auto newLit = tr.transform(lit);
@@ -211,7 +210,6 @@ void GeneralInduction::generateClauses(
     env.endOutput();
   }
 
-  unsigned var = scheme._maxVar;
   vvector<LiteralStack> lits(1);
   vmap<Literal*, Literal*> hypToConcMap;
   vmap<Literal*, bool> reversedLitMap;
@@ -220,16 +218,16 @@ void GeneralInduction::generateClauses(
     vvector<LiteralStack> newLits;
 
     auto v2sk = skolemizeCase(c);
-    auto newMainLit = replaceLit(c._step, occurrences, mainLit.literal, sideLits, v2sk, lits, newLits, var);
+    auto newMainLit = replaceLit(c._step, occurrences, mainLit.literal, sideLits, v2sk, lits, newLits);
     ASS_NEQ(newMainLit, mainLit.literal);
     reversedLitMap.insert(make_pair(newMainLit, newMainLit->isOrientedReversed()));
 
     for (const auto& kv : sideLits) {
-      replaceLit(c._step, occurrences, kv.first, sideLits, v2sk, lits, newLits, var);
+      replaceLit(c._step, occurrences, kv.first, sideLits, v2sk, lits, newLits);
     }
 
     for (const auto& r : c._recursiveCalls) {
-      auto newHypLit = replaceLit(r, occurrences, mainLit.literal, sideLits, v2sk, lits, newLits, var, true);
+      auto newHypLit = replaceLit(r, occurrences, mainLit.literal, sideLits, v2sk, lits, newLits, true);
       ASS_NEQ(newHypLit, mainLit.literal);
       reversedLitMap.insert(make_pair(newHypLit, newHypLit->isOrientedReversed()));
       if (env.options->inductionHypRewriting()) {
@@ -240,6 +238,7 @@ void GeneralInduction::generateClauses(
   }
 
   vmap<TermList, TermList> r;
+  unsigned var = 0;
   for (const auto& c : scheme._cases) {
     for (const auto& kv : c._step) {
       if (r.count(kv.first) > 0) {
