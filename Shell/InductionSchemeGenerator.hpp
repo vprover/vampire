@@ -164,30 +164,6 @@ private:
 };
 
 /**
- * Replaces a subset of occurrences for given TermLists
- */
-class TermOccurrenceReplacement : public TermTransformer {
-public:
-  TermOccurrenceReplacement(const vmap<TermList, TermList>& r,
-                            const DHMap<TermList, DHSet<unsigned>*>& o,
-                            const DHMap<TermList, unsigned>& oc, unsigned& v,
-                            vmap<TermList, TermList>& r_g,
-                            bool replaceSkolem = false)
-                            : _r(r), _o(o), _oc(oc), _c(), _v(v), _r_g(r_g),
-                              _replaceSkolem(replaceSkolem) {}
-  TermList transformSubterm(TermList trm) override;
-
-private:
-  const vmap<TermList, TermList>& _r;          // replacements
-  const DHMap<TermList, DHSet<unsigned>*>& _o; // set of occurrences to be replaced
-  const DHMap<TermList, unsigned>& _oc;
-  DHMap<TermList, unsigned> _c;                // current occurrence counts
-  unsigned& _v;
-  vmap<TermList, TermList>& _r_g;               // generalized replacements
-  bool _replaceSkolem;
-};
-
-/**
  * Replaces all free variables of terms with new ones.
  * This is needed to ensure we have the minimum number of variables
  * in the induction hypothesis.
@@ -232,7 +208,6 @@ struct InductionScheme
     vmap<TermList, TermList> _step;
   };
 
-  bool init(const vvector<TermList>& argTerms, const InductionTemplate& templ);
   void init(vvector<Case>&& cases);
   void clean();
   InductionScheme makeCopyWithVariablesShifted(unsigned shift) const;
@@ -269,32 +244,16 @@ struct RecursionInductionSchemeGenerator
     vvector<pair<InductionScheme, OccurrenceMap>>& res) override;
 
 private:
-  bool generate(Clause* premise, Literal* lit,
-    vvector<InductionScheme>& schemes,
-    bool returnOnMatch);
-  bool process(TermList curr, bool active,
-    Stack<bool>& actStack, Clause* premise, Literal* lit,
-    vvector<InductionScheme>& schemes,
-    bool returnOnMatch);
-
-  OccurrenceMap _actOccMaps;
-};
-
-struct RecursionInductionSchemeGenerator2
-  : public InductionSchemeGenerator
-{
-  void generate(const SLQueryResult& main,
-    const vset<pair<Literal*,Clause*>>& side,
-    vvector<pair<InductionScheme, OccurrenceMap>>& res) override;
-
-private:
   void generate(Clause* premise, Literal* lit,
     vvector<InductionScheme>& schemes);
   void process(TermList curr, bool active,
     Stack<bool>& actStack, Clause* premise, Literal* lit,
     vvector<InductionScheme>& schemes);
+  void addScheme(Literal* lit, Term* t, const InductionTemplate& templ,
+    vvector<InductionScheme>& schemes);
 
   OccurrenceMap _actOccMaps;
+  bool _aggressiveMode = false;
 };
 
 struct StructuralInductionSchemeGenerator

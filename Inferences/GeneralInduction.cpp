@@ -101,7 +101,7 @@ void GeneralInduction::process(InductionClauseIterator& res, Clause* premise, Li
     const auto& main = kv.first;
     const auto& sides = kv.second; 
     // StructuralInductionSchemeGenerator gen;
-    RecursionInductionSchemeGenerator2 gen;
+    RecursionInductionSchemeGenerator gen;
     static vvector<pair<InductionScheme, OccurrenceMap>> schOccMap;
     schOccMap.clear();
     gen.generate(main, sides, schOccMap);

@@ -287,10 +287,6 @@ void InductionSchemeFilter::filterComplex(vvector<InductionScheme>& schemes, con
         if (env.signature->getFunction(term.term()->functor())->skolem()) {
           continue;
         }
-        // filter out complex terms that contain
-        // Skolem constants that are not exclusively
-        // present in occurrences of this complex term
-        // also filter out ones without Skolem constants
         unsigned occ = 0;
         for (const auto& kv : occMap) {
           if (kv.first.second == term) {
