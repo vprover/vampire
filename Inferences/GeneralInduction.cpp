@@ -112,7 +112,7 @@ void GeneralInduction::process(InductionClauseIterator& res, Clause* premise, Li
       vset<pair<Literal*, Clause*>> sidesFiltered;
       for (const auto& s : sides) {
         bool filter = true;
-        for (const auto& indTerm : kv.first._inductionTerms) {
+        for (const auto& indTerm : kv.first.inductionTerms()) {
           if (s.first->containsSubterm(indTerm) && (!skolem(indTerm) || !s.second->inference().inductionDepth())) {
             filter = false;
             break;
@@ -214,7 +214,7 @@ void GeneralInduction::generateClauses(
   vmap<Literal*, Literal*> hypToConcMap;
   vmap<Literal*, bool> reversedLitMap;
 
-  for (const auto& c : scheme._cases) {
+  for (const auto& c : scheme.cases()) {
     vvector<LiteralStack> newLits;
 
     auto v2sk = skolemizeCase(c);
@@ -239,7 +239,7 @@ void GeneralInduction::generateClauses(
 
   vmap<TermList, TermList> r;
   unsigned var = 0;
-  for (const auto& c : scheme._cases) {
+  for (const auto& c : scheme.cases()) {
     for (const auto& kv : c._step) {
       if (r.count(kv.first) > 0) {
         continue;
@@ -335,22 +335,35 @@ void GeneralInduction::generateClauses(
   env.statistics->induction++;
 }
 
+void mapVarsToSkolems(vmap<TermList, TermList>& varToSkolemMap, pair<TermList, TermList> kv) {
+  DHMap<unsigned,unsigned> varSorts;
+  auto sort = SortHelper::getResultSort(kv.first.term());
+  SortHelper::collectVariableSorts(kv.second,sort,varSorts);
+
+  auto it = varSorts.items();
+  while (it.hasNext()) {
+    auto v = it.next();
+    TermList var(v.first,false);
+    if (varToSkolemMap.count(var)) {
+      continue;
+    }
+
+    auto skFun = Skolem::addSkolemFunction(0,nullptr,v.second);
+    varToSkolemMap.insert(make_pair(var, Term::create(skFun, 0, nullptr)));
+  }
+}
+
 vmap<TermList, TermList> GeneralInduction::skolemizeCase(const InductionScheme::Case& c)
 {
   vmap<TermList, TermList> varToSkolemMap;
-  for (auto kv : c._step) {
-    DHMap<unsigned,unsigned> varSorts;
-    auto sort = SortHelper::getResultSort(kv.first.term());
-    SortHelper::collectVariableSorts(kv.second,sort,varSorts);
-
-    auto it = varSorts.items();
-    while (it.hasNext()) {
-      auto v = it.next();
-      TermList var(v.first,false);
-      ASS(!varToSkolemMap.count(var));
-
-      auto skFun = Skolem::addSkolemFunction(0,nullptr,v.second);
-      varToSkolemMap.insert(make_pair(var, Term::create(skFun, 0, nullptr)));
+  for (const auto& kv : c._step) {
+    mapVarsToSkolems(varToSkolemMap, kv);
+  }
+  if (!env.options->inductionStrengthen()) {
+    for (const auto& recCall : c._recursiveCalls) {
+      for (const auto& kv : recCall) {
+        mapVarsToSkolems(varToSkolemMap, kv);
+      }
     }
   }
   return varToSkolemMap;
@@ -360,7 +373,7 @@ vmap<TermList, TermList> createBlanksForScheme(const InductionScheme& sch, DHMap
 {
   vmap<unsigned,unsigned> srts;
   vmap<TermList, TermList> replacements;
-  for (const auto& t : sch._inductionTerms) {
+  for (const auto& t : sch.inductionTerms()) {
     unsigned srt = env.signature->getFunction(t.term()->functor())->fnType()->result();
     auto it = srts.find(srt);
     if (it == srts.end()) {

@@ -109,7 +109,6 @@ TermList TermReplacement2::transformSubterm(TermList trm)
   return trm;
 }
 
-
 TermList TermOccurrenceReplacement2::transformSubterm(TermList trm)
 {
   auto rIt = _r.find(trm);
@@ -123,80 +122,32 @@ TermList TermOccurrenceReplacement2::transformSubterm(TermList trm)
   return trm;
 }
 
-TermList InductionHypothesisStrengthening::transformSubterm(TermList trm)
+bool InductionScheme::Case::contains(const InductionScheme::Case& other, unsigned& var) const
 {
-  CALL("InductionHypothesisStrengthening::transformSubterm");
-
-  if (skolem(trm) && (!_isEq || (_lhs.containsSubterm(trm) && _rhs.containsSubterm(trm)))) {
-    auto it = _r.find(trm);
-    if (it == _r.end()) {
-      it = _r.insert(make_pair(trm, TermList(_v++,false))).first;
-    }
-    return it->second;
+  RobSubstitution subst;
+  vset<TermList> indTerms;
+  for (const auto& kv : _step) {
+    indTerms.insert(kv.first);
   }
-  return trm;
-}
-
-TermList VarReplacement::transformSubterm(TermList trm)
-{
-  CALL("VarReplacement::transformSubterm");
-
-  if(trm.isVar()) {
-    if (!_varMap.find(trm.var())) {
-      _varMap.insert(trm.var(), _v++);
-    }
-    return TermList(_varMap.get(trm.var()), false);
-  }
-  return trm;
-}
-
-TermList VarShiftReplacement::transformSubterm(TermList trm) {
-  if (trm.isVar()) {
-    return TermList(trm.var()+_shift, trm.isSpecialVar());
-  }
-  return trm;
-}
-
-bool InductionScheme::Case::contains(const InductionScheme::Case& other) const
-{
-  vmap<TermList, RobSubstitutionSP> substs;
   for (const auto& kv : other._step) {
-    // we only check this on relations with the same
-    // induction terms
-    ASS (_step.count(kv.first));
-    auto s2 = _step.at(kv.first);
-    RobSubstitutionSP subst(new RobSubstitution);
-    // try to unify the step cases
-    if (!subst->unify(s2, 0, kv.second, 1)) {
-      return false;
-    }
-    auto t1 = subst->apply(kv.second, 1);
-    Renaming r1, r2;
-    r1.normalizeVariables(kv.second);
-    r2.normalizeVariables(s2);
-    auto t2 = subst->apply(s2, 0);
-    if (t1 != r1.apply(kv.second) || t2 != r2.apply(s2)) {
-      return false;
-    }
-    substs.insert(make_pair(kv.first, subst));
+    indTerms.insert(kv.first);
   }
-  // if successful, find pair for each recCall in sch1
-  // don't check if recCall1 or recCall2 contain kv.first
-  // as they should by definition
-  for (const auto& recCall1 : other._recursiveCalls) {
+  auto repr1 = createRepresentingTerm(indTerms, _step, var);
+  auto repr2 = createRepresentingTerm(indTerms, other._step, var);
+  if (!subst.unify(repr1, 0, repr2, 1)) {
+    return false;
+  }
+
+  for (const auto& recCall2 : other._recursiveCalls) {
     bool found = false;
-    for (const auto& recCall2 : _recursiveCalls) {
-      for (const auto& kv : recCall1) {
-        if (!recCall1.count(kv.first) || !recCall2.count(kv.first)) {
-          continue;
-        }
-        auto subst = substs.at(kv.first);
-        const auto& r1 = subst->apply(recCall1.at(kv.first), 1);
-        const auto& r2 = subst->apply(recCall2.at(kv.first), 0);
-        if (r1 == r2) {
-          found = true;
-          break;
-        }
+    for (const auto& recCall1 : _recursiveCalls) {
+      auto repr1rc = createRepresentingTerm(indTerms, recCall1, var);
+      auto repr2rc = createRepresentingTerm(indTerms, recCall2, var);
+      repr1rc = subst.apply(repr1rc, 0);
+      repr2rc = subst.apply(repr2rc, 1);
+      if (repr1rc == repr2rc) {
+        found = true;
+        break;
       }
     }
     if (!found) {
@@ -206,40 +157,34 @@ bool InductionScheme::Case::contains(const InductionScheme::Case& other) const
   return true;
 }
 
-void InductionScheme::init(vvector<InductionScheme::Case>&& cases)
+bool InductionScheme::finalize()
 {
-  CALL("InductionScheme::init");
-
-  _cases = cases;
-  _inductionTerms.clear();
-  unsigned var = 0;
-
-  for (auto& c : _cases) {
-    DHMap<unsigned, unsigned> varMap;
-    VarReplacement vr(varMap, var);
-    for (auto& kv : c._step) {
-      kv.second = kv.second.isVar()
-        ? vr.transformSubterm(kv.second)
-        : TermList(vr.transform(kv.second.term()));
+  for (const auto& c : _cases) {
+    for (const auto& kv : c._step) {
       _inductionTerms.insert(kv.first);
+      auto fv = kv.second.freeVariables();
+      while (fv != nullptr) {
+        _maxVar = max(_maxVar, (unsigned)fv->head());
+        fv = fv->tail();
+      }
+      Formula::VarList::destroy(fv);
     }
-    for (auto& recCall : c._recursiveCalls) {
-      for (auto& kv : recCall) {
-        kv.second = kv.second.isVar()
-          ? vr.transformSubterm(kv.second)
-          : TermList(vr.transform(kv.second.term()));
+    for (const auto& rc : c._recursiveCalls) {
+      for (const auto& kv : rc) {
+        _inductionTerms.insert(kv.first);
+        auto fv = kv.second.freeVariables();
+        while (fv != nullptr) {
+          _maxVar = max(_maxVar, (unsigned)fv->head());
+          fv = fv->tail();
+        }
+        Formula::VarList::destroy(fv);
       }
     }
   }
-  _maxVar = var;
-  clean();
-}
-
-void InductionScheme::clean()
-{
+  unsigned var = _maxVar;
   for (unsigned i = 0; i < _cases.size(); i++) {
     for (unsigned j = i+1; j < _cases.size();) {
-      if (_cases[i].contains(_cases[j])) {
+      if (_cases[i].contains(_cases[j], var)) {
         _cases[j] = _cases.back();
         _cases.pop_back();
       } else {
@@ -247,41 +192,8 @@ void InductionScheme::clean()
       }
     }
   }
+  addBaseCases();
   _cases.shrink_to_fit();
-}
-
-InductionScheme InductionScheme::makeCopyWithVariablesShifted(unsigned shift) const {
-  InductionScheme res;
-  res._inductionTerms = _inductionTerms;
-  VarShiftReplacement vsr(shift);
-
-  for (const auto& c : _cases) {
-    vvector<vmap<TermList, TermList>> resRecCalls;
-    for (const auto& recCall : c._recursiveCalls) {
-      vmap<TermList, TermList> resRecCall;
-      for (auto kv : recCall) {
-        resRecCall.insert(make_pair(kv.first,
-          kv.second.isVar()
-            ? vsr.transformSubterm(kv.second)
-            : TermList(vsr.transform(kv.second.term()))));
-      }
-      resRecCalls.push_back(resRecCall);
-    }
-    vmap<TermList, TermList> resStep;
-    for (auto kv : c._step) {
-      resStep.insert(make_pair(kv.first,
-        kv.second.isVar()
-          ? vsr.transformSubterm(kv.second)
-          : TermList(vsr.transform(kv.second.term()))));
-    }
-    res._cases.emplace_back(std::move(resRecCalls), std::move(resStep));
-  }
-  res._maxVar = _maxVar + shift;
-  return res;
-}
-
-bool InductionScheme::checkWellFoundedness()
-{
   vvector<pair<vmap<TermList,TermList>&,vmap<TermList,TermList>&>> relations;
   for (auto& c : _cases) {
     for (auto& recCall : c._recursiveCalls) {
@@ -290,6 +202,7 @@ bool InductionScheme::checkWellFoundedness()
           recCall, c._step));
     }
   }
+  _finalized = true;
   return checkWellFoundedness(relations, _inductionTerms);
 }
 
@@ -384,21 +297,43 @@ void InductionScheme::addBaseCases() {
   var = _maxVar;
   for (auto step : steps) {
     vvector<vmap<TermList,TermList>> emptyRecCalls;
-    DHMap<unsigned, unsigned> varMap;
-    VarReplacement vr(varMap, var);
-    for (auto& kv : step) {
-      kv.second = applyVarReplacement(kv.second, vr);
-    }
     _cases.emplace_back(std::move(emptyRecCalls), std::move(step));
   }
   _maxVar = var;
 }
 
+TermList InductionScheme::createRepresentingTerm(const vset<TermList>& inductionTerms, const vmap<TermList,TermList>& r, unsigned& var)
+{
+  Stack<unsigned> argSorts;
+  Stack<TermList> args;
+  for (const auto& indTerm : inductionTerms) {
+    auto fn = env.signature->getFunction(indTerm.term()->functor())->fnType();
+    argSorts.push(fn->result());
+    auto it = r.find(indTerm);
+    if (it == r.end()) {
+      args.push(TermList(var++, false));
+    } else {
+      args.push(it->second);
+    }
+  }
+  static DHMap<Stack<unsigned>,unsigned> symbols;
+  if (!symbols.find(argSorts)) {
+    unsigned sym = env.signature->addFreshFunction(argSorts.size(), "indhelper");
+    env.signature->getFunction(sym)->setType(
+      OperatorType::getFunctionType(argSorts.size(), argSorts.begin(), 0));
+    symbols.insert(argSorts, sym);
+  }
+
+  return TermList(Term::create(symbols.get(argSorts), args.size(), args.begin()));
+}
+
 ostream& operator<<(ostream& out, const InductionScheme& scheme)
 {
   unsigned k = 0;
-  unsigned l = scheme._inductionTerms.size();
-  for (const auto& indTerm : scheme._inductionTerms) {
+  auto indTerms = scheme.inductionTerms();
+  auto cases = scheme.cases();
+  unsigned l = indTerms.size();
+  for (const auto& indTerm : indTerms) {
     out << indTerm;
     if (++k < l) {
       out << ',';
@@ -406,12 +341,12 @@ ostream& operator<<(ostream& out, const InductionScheme& scheme)
   }
   out << ':';
   unsigned j = 0;
-  for (const auto& c : scheme._cases) {
+  for (const auto& c : cases) {
     unsigned i = 0;
     for (const auto& recCall : c._recursiveCalls) {
       out << '[';
       k = 0;
-      for (const auto& indTerm : scheme._inductionTerms) {
+      for (const auto& indTerm : indTerms) {
         auto it = recCall.find(indTerm);
         out << ((it != recCall.end()) ? it->second.toString() : "_");
         if (++k < l) {
@@ -428,7 +363,7 @@ ostream& operator<<(ostream& out, const InductionScheme& scheme)
     }
     k = 0;
     out << '[';
-    for (const auto& indTerm : scheme._inductionTerms) {
+    for (const auto& indTerm : indTerms) {
       auto it = c._step.find(indTerm);
       out << ((it != c._step.end()) ? it->second.toString() : "_");
       if (++k < l) {
@@ -437,7 +372,7 @@ ostream& operator<<(ostream& out, const InductionScheme& scheme)
       k++;
     }
     out << ']';
-    if (++j < scheme._cases.size()) {
+    if (++j < cases.size()) {
       out << ';';
     }
   }
@@ -472,7 +407,7 @@ void RecursionInductionSchemeGenerator::generate(
   }
   for (unsigned i = 0; i < primarySchemes.size();) {
     auto found = false;
-    for (const auto& indTerm : primarySchemes[i]._inductionTerms) {
+    for (const auto& indTerm : primarySchemes[i].inductionTerms()) {
       auto it = _actOccMaps.find(make_pair(main.literal, indTerm));
       if (it != _actOccMaps.end() && it->second.num_set_bits()) {
         found = true;
@@ -493,7 +428,7 @@ void RecursionInductionSchemeGenerator::generate(
   for (const auto& sch : primarySchemes) {
     OccurrenceMap necessary;
     for (const auto& kv : _actOccMaps) {
-      if (sch._inductionTerms.count(kv.first.second)) {
+      if (sch.inductionTerms().count(kv.first.second)) {
         necessary.insert(kv);
       }
     }
@@ -572,7 +507,6 @@ void RecursionInductionSchemeGenerator::addScheme(Literal* lit, Term* t, const I
       for (unsigned i = 0; i < t->arity(); i++) {
         if (indPos[i]) {
           mainSubst.insert(make_pair(*t->nthArgument(i), *headerST->nthArgument(i)));
-          res._inductionTerms.insert(*t->nthArgument(i));
         }
       }
       vvector<vmap<TermList, TermList>> hypSubsts;
@@ -590,11 +524,10 @@ void RecursionInductionSchemeGenerator::addScheme(Literal* lit, Term* t, const I
           }
         }
       }
-      res._cases.emplace_back(std::move(hypSubsts), std::move(mainSubst));
+      res.addCase(std::move(hypSubsts), std::move(mainSubst));
     }
   }
-  res.addBaseCases();
-  if (!res.checkWellFoundedness()) {
+  if (!res.finalize()) {
     return;
   }
 
@@ -770,7 +703,7 @@ void StructuralInductionSchemeGenerator::generate(
   for (const auto& sch : schemes) {
     OccurrenceMap necessary;
     for (const auto& kv : occMap) {
-      if (sch._inductionTerms.count(kv.first.second)) {
+      if (sch.inductionTerms().count(kv.first.second)) {
         necessary.insert(kv);
       }
     }
@@ -810,10 +743,9 @@ InductionScheme StructuralInductionSchemeGenerator::generateStructural(Term* ter
     }
     step.insert(make_pair(term,
       TermList(Term::create(con->functor(),(unsigned)argTerms.size(), argTerms.begin()))));
-    scheme._cases.emplace_back(std::move(recursiveCalls), std::move(step));
+    scheme.addCase(std::move(recursiveCalls), std::move(step));
   }
-  scheme._inductionTerms.insert(TermList(term));
-  scheme._maxVar = var;
+  scheme.finalize();
   return scheme;
 }
 

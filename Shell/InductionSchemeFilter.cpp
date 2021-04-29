@@ -22,10 +22,6 @@ using namespace Kernel;
 
 namespace Shell {
 
-inline TermList applySubstAndVarReplacement(TermList t, const RobSubstitution& subst, unsigned bank, VarReplacement& vr) {
-  return applyVarReplacement(subst.apply(t, bank), vr);
-}
-
 bool checkContainsRecCall(const vmap<TermList, TermList>& recCall1, const vmap<TermList, TermList>& recCall2, const vmap<TermList, TermList>& step)
 {
   static bool strengthen = env.options->inductionStrengthen();
@@ -57,8 +53,8 @@ bool beforeMergeCheck(const InductionScheme& sch1, const InductionScheme& sch2) 
   // one from sch1, it means that those subterms are also
   // in active positions and we lose some structure
   // of sch1 if we discard it because of subsumption
-  for (auto t1 : sch1._inductionTerms) { // copy here because of const
-    for (auto t2 : sch2._inductionTerms) {
+  for (auto t1 : sch1.inductionTerms()) { // copy here because of const
+    for (auto t2 : sch2.inductionTerms()) {
       if (t1 != t2 && (t2.containsSubterm(t1) || t1.containsSubterm(t2))) {
         return false;
       }
@@ -71,42 +67,27 @@ bool createMergedCase(const InductionScheme::Case& case1, const InductionScheme:
   const vset<TermList>& combinedInductionTerms, InductionScheme::Case& res, unsigned& var)
 {
   vmap<TermList, TermList> step;
-  vmap<TermList, RobSubstitutionSP> substs;
-  vmap<TermList, DHMap<unsigned, unsigned>> varMaps;
-  vmap<TermList, VarReplacement> varReplacements;
+  RobSubstitution subst;
+  auto repr1 = InductionScheme::createRepresentingTerm(combinedInductionTerms, case1._step, var);
+  auto repr2 = InductionScheme::createRepresentingTerm(combinedInductionTerms, case2._step, var);
+  if (!subst.unify(repr1, 0, repr2, 1)) {
+    return false;
+  }
+  auto repr = subst.apply(repr1, 0);
+  Term::Iterator it(repr.term());
   for (const auto& indTerm : combinedInductionTerms) {
-    auto it1 = case1._step.find(indTerm);
-    auto it2 = case2._step.find(indTerm);
-    ASS(it1 != case1._step.end() || it2 != case2._step.end());
-    varMaps.insert(make_pair(indTerm, DHMap<unsigned, unsigned>()));
-    VarReplacement vr(varMaps.at(indTerm), var);
-    if (it1 != case1._step.end() && it2 != case2._step.end()) {
-      auto t1 = it1->second;
-      auto t2 = it2->second;
-      RobSubstitutionSP subst(new RobSubstitution);
-      if (!subst->unify(t1, 0, t2, 1)) {
-        return false;
-      }
-      step.insert(make_pair(indTerm, applySubstAndVarReplacement(t1, *subst, 0, vr)));
-      substs.insert(make_pair(indTerm, subst));
-    } else if (it1 != case1._step.end()) {
-      step.insert(make_pair(indTerm, applyVarReplacement(it1->second, vr)));
-    } else if (it2 != case2._step.end()) {
-      step.insert(make_pair(indTerm, applyVarReplacement(it2->second, vr)));
-    }
-    varReplacements.insert(make_pair(indTerm, vr));
+    step.insert(make_pair(indTerm, it.next()));
   }
   vvector<vmap<TermList, TermList>> recCalls;
-  auto recCallFn = [&substs, &varReplacements, &recCalls](const InductionScheme::Case& c, unsigned bank) {
+  auto recCallFn = [&combinedInductionTerms, &recCalls, &var, &subst](const InductionScheme::Case& c, unsigned bank) {
     for (const auto& recCall : c._recursiveCalls) {
-      vmap<TermList, TermList> resRecCall;
-      for (const auto& kv : recCall) {
-        resRecCall.insert(make_pair(kv.first,
-          (substs.count(kv.first)) ?
-            applySubstAndVarReplacement(kv.second, *substs.at(kv.first), bank, varReplacements.at(kv.first)) :
-            applyVarReplacement(kv.second, varReplacements.at(kv.first))));
+      auto reprrc = InductionScheme::createRepresentingTerm(combinedInductionTerms, recCall, var);
+      reprrc = subst.apply(reprrc, bank);
+      recCalls.emplace_back();
+      Term::Iterator it(reprrc.term());
+      for (const auto& indTerm : combinedInductionTerms) {
+        recCalls.back().insert(make_pair(indTerm, it.next()));
       }
-      recCalls.push_back(resRecCall);
     }
   };
   recCallFn(case1, 0);
@@ -128,36 +109,33 @@ bool createMergedCase(const InductionScheme::Case& case1, const InductionScheme:
 
 bool InductionSchemeFilter::mergeSchemes(const InductionScheme& sch1, const InductionScheme& sch2, InductionScheme& res) {
   // copy original schemes in case we fail and we modified them
-  return false;
+  // return false;
   InductionScheme sch1copy = sch1;
-  InductionScheme sch2copy = sch2.makeCopyWithVariablesShifted(sch1copy._maxVar+1);
-  if (!sch1copy.checkWellFoundedness() || !sch2copy.checkWellFoundedness()) {
+  InductionScheme sch2copy = sch2;
+  // if (!sch1copy.checkWellFoundedness() || !sch2copy.checkWellFoundedness()) {
+  //   return false;
+  // }
+
+  vset<TermList> indTerms = sch1.inductionTerms();
+  if (!includes(indTerms.begin(), indTerms.end(),
+      sch2.inductionTerms().begin(), sch2.inductionTerms().end()) &&
+      !includes(sch2.inductionTerms().begin(), sch2.inductionTerms().end(),
+      indTerms.begin(), indTerms.end())) {
     return false;
   }
+  indTerms.insert(sch2.inductionTerms().begin(), sch2.inductionTerms().end());
 
-  if (!includes(sch1._inductionTerms.begin(), sch1._inductionTerms.end(),
-      sch2._inductionTerms.begin(), sch2._inductionTerms.end()) &&
-      !includes(sch2._inductionTerms.begin(), sch2._inductionTerms.end(),
-      sch1._inductionTerms.begin(), sch1._inductionTerms.end())) {
-    return false;
-  }
-  vset<TermList> combinedInductionTerms = sch1._inductionTerms;
-  combinedInductionTerms.insert(sch2._inductionTerms.begin(), sch2._inductionTerms.end());
-
-  vvector<InductionScheme::Case> resCases;
-  unsigned var = 0;
-  for (const auto& case1 : sch1copy._cases) {
-    for (const auto& case2 : sch2copy._cases) {
+  unsigned var = max(sch1.maxVar(), sch2.maxVar()) + 1;
+  for (const auto& case1 : sch1copy.cases()) {
+    for (const auto& case2 : sch2copy.cases()) {
       InductionScheme::Case c;
-      if (createMergedCase(case1, case2, combinedInductionTerms, c, var)) {
-        resCases.push_back(c);
+      if (createMergedCase(case1, case2, indTerms, c, var)) {
+        res.addCase(std::move(c));
       }
     }
   }
 
-  res.init(std::move(resCases));
-  res.addBaseCases();
-  if (!res.checkWellFoundedness()) {
+  if (!res.finalize()) {
     if (env.options->showInduction()) {
       env.beginOutput();
       env.out() << "[Induction] induction scheme is not well-founded: " << endl
@@ -257,7 +235,7 @@ void InductionSchemeFilter::filter(vvector<InductionScheme>& schemes)
           env.beginOutput();
           env.out() << "[Induction] induction schemes " << schemes[j]
                     << " and " << schemes[i]
-                    << "are merged into:" << endl << merged << endl;
+                    << " are merged into:" << endl << merged << endl;
           env.endOutput();
         }
         schemes[j] = std::move(schemes.back());
@@ -281,7 +259,7 @@ void InductionSchemeFilter::filterComplex(vvector<InductionScheme>& schemes, con
 {
   for (unsigned i = 0; i < schemes.size();) {
     bool filter = false;
-    for (const auto& c : schemes[i]._cases) {
+    for (const auto& c : schemes[i].cases()) {
       for (const auto& kv : c._step) {
         auto term = kv.first;
         if (env.signature->getFunction(term.term()->functor())->skolem()) {
@@ -326,23 +304,24 @@ void InductionSchemeFilter::filterComplex(vvector<InductionScheme>& schemes, con
 bool InductionSchemeFilter::checkSubsumption(const InductionScheme& sch1, const InductionScheme& sch2)
 {
   CALL("checkSubsumption");
+  auto var = max(sch1.maxVar(),sch2.maxVar()) + 1;
 
-  if (sch1._inductionTerms != sch2._inductionTerms) {
+  if (sch1.inductionTerms() != sch2.inductionTerms()) {
     return false;
   }
 
-  for (const auto& case1 : sch1._cases) {
+  for (const auto& case1 : sch1.cases()) {
     if (case1._recursiveCalls.empty()) {
       continue;
     }
     bool foundStep = false;
-    for (const auto& case2 : sch2._cases) {
+    for (const auto& case2 : sch2.cases()) {
       // only check recursive cases
       if (case2._recursiveCalls.empty()) {
         continue;
       }
 
-      if (case2.contains(case1)) {
+      if (case2.contains(case1, var)) {
         foundStep = true;
         break;
       }

@@ -74,7 +74,6 @@
 #include "Inferences/Instantiation.hpp"
 #include "Inferences/TheoryInstAndSimp.hpp"
 #include "Inferences/Induction.hpp"
-#include "Inferences/MultiClauseInduction.hpp"
 
 #include "Saturation/ExtensionalityClauseContainer.hpp"
 

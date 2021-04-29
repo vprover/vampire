@@ -141,77 +141,35 @@ private:
 };
 
 /**
- * Replaces Skolem constants with variables in induction hypotheses.
- */
-class InductionHypothesisStrengthening : public TermTransformer {
-public:
-  InductionHypothesisStrengthening(unsigned& v, Literal* lit)
-    : _v(v), _r(), _isEq(lit->isEquality())
-  {
-    if (_isEq) {
-      _lhs = *lit->nthArgument(0);
-      _rhs = *lit->nthArgument(1);
-    }
-  }
-  TermList transformSubterm(TermList trm) override;
-
-private:
-  unsigned& _v;
-  vmap<TermList, TermList> _r;
-  bool _isEq;
-  TermList _lhs;
-  TermList _rhs;
-};
-
-/**
- * Replaces all free variables of terms with new ones.
- * This is needed to ensure we have the minimum number of variables
- * in the induction hypothesis.
- */
-class VarReplacement : public TermTransformer {
-public:
-  VarReplacement(DHMap<unsigned, unsigned>& varMap, unsigned& v) : _varMap(varMap), _v(v) {}
-  TermList transformSubterm(TermList trm) override;
-
-private:
-  DHMap<unsigned, unsigned>& _varMap; // already replaced vars
-  unsigned& _v;                       // current minimal unused var
-};
-
-inline TermList applyVarReplacement(TermList t, VarReplacement& vr) {
-  return t.isVar() ? vr.transformSubterm(t)
-    : TermList(vr.transform(t.term()));
-}
-
-class VarShiftReplacement : public TermTransformer {
-public:
-  VarShiftReplacement(unsigned shift) : _shift(shift) {}
-  TermList transformSubterm(TermList trm) override;
-
-private:
-  unsigned _shift;
-};
-
-/**
  * An instantiated induction template for a term.
  */
-struct InductionScheme
+class InductionScheme
 {
+public:
   struct Case {
     Case() = default;
     Case(vvector<vmap<TermList, TermList>>&& recursiveCalls,
                     vmap<TermList, TermList>&& step)
       : _recursiveCalls(recursiveCalls), _step(step) {}
-    bool contains(const Case& other) const;
+    bool contains(const Case& other, unsigned& var) const;
 
     vvector<vmap<TermList, TermList>> _recursiveCalls;
     vmap<TermList, TermList> _step;
   };
 
-  void init(vvector<Case>&& cases);
-  void clean();
-  InductionScheme makeCopyWithVariablesShifted(unsigned shift) const;
-  bool checkWellFoundedness();
+  void addCase(vvector<vmap<TermList, TermList>>&& recursiveCalls, vmap<TermList, TermList>&& step) {
+    _cases.emplace_back(std::move(recursiveCalls), std::move(step));
+  }
+  void addCase(Case&& c) {
+    _cases.push_back(std::move(c));
+  }
+  bool finalize();
+  static TermList createRepresentingTerm(const vset<TermList>& inductionTerms, const vmap<TermList,TermList>& r, unsigned& var);
+  const vvector<Case>& cases() const { ASS(_finalized); return _cases; }
+  const vset<TermList>& inductionTerms() const { ASS(_finalized); return _inductionTerms; }
+  unsigned maxVar() const { ASS(_finalized); return _maxVar; }
+
+private:
   bool checkWellFoundedness(
     vvector<pair<vmap<TermList,TermList>&,vmap<TermList,TermList>&>> relations,
     vset<TermList> inductionTerms);
@@ -220,6 +178,7 @@ struct InductionScheme
   vvector<Case> _cases;
   unsigned _maxVar;
   vset<TermList> _inductionTerms;
+  bool _finalized = false;
 };
 
 ostream& operator<<(ostream& out, const InductionScheme& scheme);
