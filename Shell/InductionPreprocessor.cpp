@@ -236,7 +236,8 @@ bool InductionTemplate::checkWellFoundedness()
   CALL("InductionTemplate::checkWellFoundedness");
 
   // fill in bit vector of induction variables
-  _inductionPositions.clear();
+  auto arity = _branches[0]._header.term()->arity();
+  _inductionPositions = vvector<bool>(arity, false);
   vset<unsigned> candidatePositions;
   vvector<pair<TermList, TermList>> relatedTerms;
   for (auto& b : _branches) {
@@ -244,10 +245,12 @@ bool InductionTemplate::checkWellFoundedness()
       relatedTerms.push_back(make_pair(b._header, r));
       Term::Iterator argIt1(r.term());
       Term::Iterator argIt2(b._header.term());
+      unsigned i = 0;
       while (argIt1.hasNext()) {
         auto t1 = argIt1.next();
         auto t2 = argIt2.next();
-        _inductionPositions.push_back(t1 != t2);
+        _inductionPositions[i] = _inductionPositions[i] || (t1 != t2);
+        i++;
       }
     }
   }
@@ -468,9 +471,10 @@ bool InductionPreprocessor::checkWellFoundedness(const vvector<pair<TermList,Ter
   if (relatedTerms.empty()) {
     return true;
   }
-  bool isFun = !relatedTerms[0].first.term()->isLiteral();
-  auto fn = relatedTerms[0].first.term()->functor();
-  auto arity = relatedTerms[0].first.term()->arity();
+  auto t = relatedTerms[0].first.term();
+  bool isFun = !t->isLiteral();
+  auto fn = t->functor();
+  auto arity = t->arity();
   OperatorType* type;
   if (isFun) {
     type = env.signature->getFunction(fn)->fnType();
@@ -479,8 +483,7 @@ bool InductionPreprocessor::checkWellFoundedness(const vvector<pair<TermList,Ter
   }
   vset<unsigned> positions;
   for (unsigned i = 0; i < arity; i++) {
-    auto argType = env.signature->getFunction(type->arg(i))->fnType();
-    if (env.signature->isTermAlgebraSort(argType->result())) {
+    if (env.signature->isTermAlgebraSort(type->arg(i))) {
       positions.insert(i);
     }
   }
