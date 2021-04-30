@@ -148,7 +148,7 @@ void IHLHSIndex::handleClause(Clause* c, bool adding)
 
   for (unsigned i = 0; i < c->length(); i++) {
     Literal* lit=(*c)[i];
-    if (!lit->isEquality()) {
+    if (!lit->isEquality() || !lit->isPositive()) {
       continue;
     }
     unsigned sig;

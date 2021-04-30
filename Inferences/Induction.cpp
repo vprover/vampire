@@ -33,7 +33,6 @@
 
 #include "Saturation/SaturationAlgorithm.hpp"
 
-#include "Shell/InductionSchemeGenerator.hpp"
 #include "Shell/Options.hpp"
 #include "Shell/Statistics.hpp"
 #include "Shell/NewCNF.hpp"
@@ -166,7 +165,7 @@ void InductionClauseIterator::process(Clause* premise, Literal* lit)
       SubtermIterator it(lit);
       while(it.hasNext()){
         TermList ts = it.next();
-        if(!ts.isTerm()){ continue; }
+        if(!ts.term()){ continue; }
         unsigned f = ts.term()->functor(); 
         if((complexTermsAllowed || env.signature->functionArity(f)==0) &&
            (
@@ -240,11 +239,6 @@ void InductionClauseIterator::process(Clause* premise, Literal* lit)
             }
           } while (generalize && (ilit = subsetReplacement.transformSubset(rule)));
         }
-      } 
-      static bool four = env.options->structInduction() == Options::StructuralInductionKind::FOUR ||
-                        env.options->structInduction() == Options::StructuralInductionKind::ALL;
-      if(four){
-        performStructInductionFour(premise,lit,InferenceRule::INDUCTION_AXIOM);
       }
    }
 }
@@ -711,22 +705,6 @@ Term* InductionClauseIterator::getPlaceholderForTerm(Term* t) {
     env.signature->getFunction(placeholderConstNumber)->setType(OperatorType::getConstantsType(ot->result()));
   }
   return Term::createConstant(placeholderConstNumber);
-}
-
-void InductionClauseIterator::performStructInductionFour(Clause* premise, Literal* lit, InferenceRule rule) {
-  CALL("InductionClauseIterator::performStructInductionFour");
-
-  // InductionSchemeGenerator gen;
-  // gen.generatePrimary(premise, lit);
-
-  // for (const auto& kv : gen.instantiateSchemes()) {
-  //   const auto& hypothesis = kv.first;
-  //   const auto& conclusionToOrigLitClauseMap = kv.second;
-  //   ASS_EQ(conclusionToOrigLitClauseMap.size(), 1);
-  //   auto p = *conclusionToOrigLitClauseMap.begin();
-  //   static ResultSubstitutionSP identity = ResultSubstitutionSP(new IdentitySubstitution());
-  //   produceClauses(p.second.second, p.second.first, hypothesis, p.first, rule, identity);
-  // }
 }
 
 }

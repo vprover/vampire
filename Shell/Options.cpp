@@ -143,8 +143,7 @@ void Options::init()
          "ltb_isa_2017",
          "ltb_mzr_2017",
          "smtcomp",
-         "smtcomp_2018",
-         "induction"});
+         "smtcomp_2018"});
     _schedule.description = "Schedule to be run by the portfolio mode. casc and smtcomp usually point to the most recent schedule in that category. Note that some old schedules may contain option values that are no longer supported - see ignore_missing.";
     _lookup.insert(&_schedule);
     _schedule.reliesOnHard(Or(_mode.is(equal(Mode::CASC)),_mode.is(equal(Mode::CASC_SAT)),_mode.is(equal(Mode::SMTCOMP)),_mode.is(equal(Mode::PORTFOLIO))));
@@ -1140,13 +1139,6 @@ void Options::init()
             _inductionOnComplexTerms.reliesOn(_induction.is(notEqual(Induction::NONE)));
             _lookup.insert(&_inductionOnComplexTerms);
 
-            _inductionStrengthen = BoolOptionValue("induction_strengthen","indstr",false);
-            _inductionStrengthen.description = "Strengthen induction hypotheses where possible";
-            _inductionStrengthen.tag(OptionTag::INFERENCES);
-            // _inductionStrengthen.reliesOn(_induction.is(equal(Induction::STRUCTURAL)));
-            // _inductionStrengthen.reliesOn(_structInduction.is(equal(StructuralInductionKind::FOUR)));
-            _lookup.insert(&_inductionStrengthen);
-
             _inductionHypRewriting = BoolOptionValue("induction_hypothesis_rewriting","indhrw",false);
             _inductionHypRewriting.description = "Rewrite with induction hypotheses against the ordering and perform induction on the result";
             _inductionHypRewriting.tag(OptionTag::INFERENCES);
@@ -1159,16 +1151,6 @@ void Options::init()
             _inductionMultiClause.reliesOn(_structInduction.is(equal(StructuralInductionKind::FOUR)));
             _lookup.insert(&_inductionMultiClause);
 
-            _inductionTermOccHeuristic = ChoiceOptionValue<InductionTermOccurrenceSelectionHeuristic>("induction_term_occurrence_selection_heuristic",
-              "indtosh", InductionTermOccurrenceSelectionHeuristic::ONE,{"one","two"});
-            _inductionTermOccHeuristic.description = "Select term occurrences to induct on according to the number of passive and active occurrences:"
-              " 'one' selects all of them if the number of active is 1, otherwise all active"
-              " 'two' selects all of them if the number of active or passive is 1, otherwise all active";
-            _inductionTermOccHeuristic.tag(OptionTag::INFERENCES);
-            _inductionTermOccHeuristic.reliesOn(_induction.is(equal(Induction::STRUCTURAL)));
-            _inductionTermOccHeuristic.reliesOn(_structInduction.is(equal(StructuralInductionKind::FOUR)));
-            _lookup.insert(&_inductionTermOccHeuristic);
-
             _functionDefinitionDiscovery = BoolOptionValue("function_definition_discovery","fnd",false);
             _functionDefinitionDiscovery.description = "Try to find function definitions";
             _functionDefinitionDiscovery.tag(OptionTag::INFERENCES);
@@ -1179,12 +1161,6 @@ void Options::init()
             _functionDefinitionRewriting.tag(OptionTag::INFERENCES); // TODO(mhajdu): should this be something else?
             _functionDefinitionRewriting.reliesOn(_newCNF.is(equal(true)));
             _lookup.insert(&_functionDefinitionRewriting);
-
-            _simplifyBeforeInduction = BoolOptionValue("simplify_before_induction","inds",false);
-            _simplifyBeforeInduction.description = "Do not allow induction on literals that can be rewritten with some function definition";
-            _simplifyBeforeInduction.tag(OptionTag::INFERENCES);
-            // _simplifyBeforeInduction.reliesOn(_functionDefinitionRewriting.is(equal(true)));
-            _lookup.insert(&_simplifyBeforeInduction);
 
 	    _instantiation = ChoiceOptionValue<Instantiation>("instantiation","inst",Instantiation::OFF,{"off","on"});
 	    _instantiation.description = "Heuristically instantiate variables. Often wastes a lot of effort. Consider using thi instead.";

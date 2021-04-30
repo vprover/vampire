@@ -76,8 +76,8 @@ public:
   CLASS_NAME(Induction);
   USE_ALLOCATOR(Induction);
 
-  Induction() = default;
-  ClauseIterator generateClauses(Clause* premise) override;
+  Induction() {}
+  ClauseIterator generateClauses(Clause* premise);
 
 };
 
@@ -113,7 +113,6 @@ private:
   void performStructInductionOne(Clause* premise, Literal* origLit, Literal* lit, Term* t, InferenceRule rule);
   void performStructInductionTwo(Clause* premise, Literal* origLit, Literal* lit, Term* t, InferenceRule rule);
   void performStructInductionThree(Clause* premise, Literal* origLit, Literal* lit, Term* t, InferenceRule rule);
-  void performStructInductionFour(Clause* premise, Literal* origLit, InferenceRule rule);
 
   bool notDone(Literal* lit, Term* t);
   Term* getPlaceholderForTerm(Term* t);

@@ -259,14 +259,6 @@ public:
     GOAL_PLUS,                // above plus skolem terms introduced in induction inferences
   };
 
-  enum class InductionTermOccurrenceSelectionHeuristic : unsigned int {
-    ONE, // select active occurrences if there is
-         // more than one, otherwise select all
-    TWO, // select active occurrences if there is
-         // more than one active and one passive,
-         // otherwise select all
-  };
-
   enum class TheoryAxiomLevel : unsigned int {
     ON,  // all of them
     OFF, // none of them
@@ -438,7 +430,6 @@ public:
     LTB_MZR_2017,
     SMTCOMP,
     SMTCOMP_2018,
-    INDUCTION,
   };
 
 /* TODO: use an enum for Selection. The current issue is the way these values are manipulated as ints
@@ -2139,13 +2130,10 @@ public:
   bool inductionGen() const { return _inductionGen.actualValue; }
   unsigned maxInductionGenSubsetSize() const { return _maxInductionGenSubsetSize.actualValue; }
   bool inductionOnComplexTerms() const {return _inductionOnComplexTerms.actualValue;}
-  bool inductionStrengthen() const { return _inductionStrengthen.actualValue; }
   bool inductionHypRewriting() const { return _inductionHypRewriting.actualValue; }
   bool inductionMultiClause() const { return _inductionMultiClause.actualValue; }
-  InductionTermOccurrenceSelectionHeuristic inductionTermOccurrenceSelectionHeuristic() const { return _inductionTermOccHeuristic.actualValue; }
   bool functionDefinitionDiscovery() const { return _functionDefinitionDiscovery.actualValue; }
   bool functionDefinitionRewriting() const { return _functionDefinitionRewriting.actualValue; }
-  bool simplifyBeforeInduction() const { return _simplifyBeforeInduction.actualValue; }
 
   float instGenBigRestartRatio() const { return _instGenBigRestartRatio.actualValue; }
   bool instGenPassiveReactivation() const { return _instGenPassiveReactivation.actualValue; }
@@ -2443,13 +2431,10 @@ private:
   BoolOptionValue _inductionGen;
   UnsignedOptionValue _maxInductionGenSubsetSize;
   BoolOptionValue _inductionOnComplexTerms;
-  BoolOptionValue _inductionStrengthen;
   BoolOptionValue _inductionHypRewriting;
   BoolOptionValue _inductionMultiClause;
-  ChoiceOptionValue<InductionTermOccurrenceSelectionHeuristic> _inductionTermOccHeuristic;
   BoolOptionValue _functionDefinitionDiscovery;
   BoolOptionValue _functionDefinitionRewriting;
-  BoolOptionValue _simplifyBeforeInduction;
 
   StringOptionValue _latexOutput;
   BoolOptionValue _latexUseDefaultSymbols;

@@ -359,11 +359,9 @@ vmap<TermList, TermList> GeneralInduction::skolemizeCase(const InductionScheme::
   for (const auto& kv : c._step) {
     mapVarsToSkolems(varToSkolemMap, kv);
   }
-  if (!env.options->inductionStrengthen()) {
-    for (const auto& recCall : c._recursiveCalls) {
-      for (const auto& kv : recCall) {
-        mapVarsToSkolems(varToSkolemMap, kv);
-      }
+  for (const auto& recCall : c._recursiveCalls) {
+    for (const auto& kv : recCall) {
+      mapVarsToSkolems(varToSkolemMap, kv);
     }
   }
   return varToSkolemMap;

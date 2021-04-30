@@ -24,7 +24,6 @@ namespace Shell {
 
 bool checkContainsRecCall(const vmap<TermList, TermList>& recCall1, const vmap<TermList, TermList>& recCall2, const vmap<TermList, TermList>& step)
 {
-  static bool strengthen = env.options->inductionStrengthen();
   for (auto kv : step) {
     auto it1 = recCall1.find(kv.first);
     auto it2 = recCall2.find(kv.first);
@@ -33,16 +32,9 @@ bool checkContainsRecCall(const vmap<TermList, TermList>& recCall1, const vmap<T
       if (it1->second != it2->second && (!kv.second.containsSubterm(it2->second) || kv.second.containsSubterm(it1->second))) {
         return false;
       }
-    } else if (it2 != recCall2.end()) {
-      // the first cannot be strengthened or the second is strengthened
-      if (!strengthen || !kv.second.containsSubterm(it2->second)) {
-        return false;
-      }
-    } else if (it1 != recCall1.end()) {
+    } else if (it2 != recCall2.end() || it1 != recCall1.end()) {
       // the second cannot be strengthened
-      if (!strengthen) {
-        return false;
-      }
+      return false;
     }
   }
   return true;
