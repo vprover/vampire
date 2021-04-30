@@ -157,15 +157,15 @@ void IHLHSIndex::handleClause(Clause* c, bool adding)
     if (!ind || !hyp) {
       continue;
     }
-    ASS(lit->isEquality());
-    TermIterator lhsi=EqHelper::getEqualityArgumentIterator(lit);
+    // TermIterator lhsi=EqHelper::getEqualityArgumentIterator(lit);
+    TermIterator lhsi=EqHelper::getLHSIterator(lit, _ord);
     while (lhsi.hasNext()) {
-      TermList lhs=lhsi.next();
+      TermList rhs = lhsi.next();
+      TermList lhs = EqHelper::getOtherEqualitySide(lit, rhs);
       if (adding) {
-	_is->insert(lhs, lit, c);
-      }
-      else {
-	_is->remove(lhs, lit, c);
+	      _is->insert(lhs, lit, c);
+      } else {
+	      _is->remove(lhs, lit, c);
       }
     }
   }

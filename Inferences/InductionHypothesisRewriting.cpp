@@ -100,8 +100,11 @@ ClauseIterator InductionHypothesisRewriting::generateClauses(Clause *premise)
           }
         }
       } else {
-        for (unsigned j = 0; j <= 1; j++) {
-          auto litarg = *lit->nthArgument(j);
+        // TermIterator lhsi=EqHelper::getEqualityArgumentIterator(lit);
+        TermIterator lhsi=EqHelper::getLHSIterator(lit, _salg->getOrdering());
+        while (lhsi.hasNext()) {
+          TermList lhs = lhsi.next();
+          TermList litarg = EqHelper::getOtherEqualitySide(lit, lhs);
           auto ts = _stIndex->getInstances(litarg);
           while (ts.hasNext()) {
             auto qr = ts.next();
@@ -116,7 +119,7 @@ ClauseIterator InductionHypothesisRewriting::generateClauses(Clause *premise)
               if (!side.containsSubterm(qr.term)) {
                 continue;
               }
-              if ((j == k) != (rev == revOther)) {
+              if (((litarg == *lit->nthArgument(1)) == k) != (rev == revOther)) {
                 continue;
               }
               Clause* newClause = perform(qr.clause, qr.literal, side, qr.term, premise, lit, litarg, qr.substitution, false);

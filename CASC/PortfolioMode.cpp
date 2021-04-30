@@ -309,6 +309,7 @@ void PortfolioMode::getSchedules(Property& prop, Schedule& quick, Schedule& fall
   case Options::Schedule::LTB_DEFAULT_2017:
     Schedules::getLtb2017DefaultSchedule(prop,quick);
     break;
+  }
 }
 
 
