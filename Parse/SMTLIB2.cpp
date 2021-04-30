@@ -162,13 +162,11 @@ void SMTLIB2::readBenchmark(LExprList* bench)
       continue;
     }
 
-    // TODO(mhajdu): is it possible that codatatypes are
-    // declared this way?
     if (ibRdr.tryAcceptAtom("declare-datatype")) {
       LExpr *sort = ibRdr.readNext();
       LExprList *datatype = ibRdr.readList();
 
-      readDeclareDatatype(sort, datatype, false);
+      readDeclareDatatype(sort, datatype);
 
       ibRdr.acceptEOL();
 
@@ -960,7 +958,7 @@ void SMTLIB2::readDefineFun(const vstring& name, LExprList* iArgs, LExpr* oSort,
   UnitList::push(fu, _formulas);
 }
 
-void SMTLIB2::readDeclareDatatype(LExpr *sort, LExprList *datatype, bool codatatype)
+void SMTLIB2::readDeclareDatatype(LExpr *sort, LExprList *datatype)
 {
   CALL("SMTLIB2::readDeclareDatatype");
 
@@ -1015,7 +1013,7 @@ void SMTLIB2::readDeclareDatatype(LExpr *sort, LExprList *datatype, bool codatat
   }
 
   ASS(!env.signature->isTermAlgebraSort(taSort));
-  TermAlgebra* ta = new TermAlgebra(taSort, constructors.size(), constructors.begin(), codatatype);
+  TermAlgebra* ta = new TermAlgebra(taSort, constructors.size(), constructors.begin(), false);
 
   if (ta->emptyDomain()) {
     USER_ERROR("Datatype " + taName + " defines an empty sort");
