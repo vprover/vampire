@@ -170,9 +170,6 @@ public:
   unsigned maxVar() const { ASS(_finalized); return _maxVar; }
 
 private:
-  bool checkWellFoundedness(
-    vvector<pair<vmap<TermList,TermList>&,vmap<TermList,TermList>&>> relations,
-    vset<TermList> inductionTerms);
   void addBaseCases();
 
   vvector<Case> _cases;

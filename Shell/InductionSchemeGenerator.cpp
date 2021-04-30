@@ -194,55 +194,16 @@ bool InductionScheme::finalize()
   }
   addBaseCases();
   _cases.shrink_to_fit();
-  vvector<pair<vmap<TermList,TermList>&,vmap<TermList,TermList>&>> relations;
+  vvector<pair<TermList,TermList>> relatedTerms;
   for (auto& c : _cases) {
+    auto mainTerm = InductionScheme::createRepresentingTerm(_inductionTerms, c._step, var);
     for (auto& recCall : c._recursiveCalls) {
-      relations.push_back(
-        pair<vmap<TermList,TermList>&,vmap<TermList,TermList>&>(
-          recCall, c._step));
+      auto recTerm = InductionScheme::createRepresentingTerm(_inductionTerms, recCall, var);
+      relatedTerms.push_back(make_pair(mainTerm, recTerm));
     }
   }
   _finalized = true;
-  return checkWellFoundedness(relations, _inductionTerms);
-}
-
-bool InductionScheme::checkWellFoundedness(
-  vvector<pair<vmap<TermList,TermList>&,vmap<TermList,TermList>&>> relations,
-  vset<TermList> inductionTerms)
-{
-  if (relations.empty()) {
-    return true;
-  }
-  if (inductionTerms.empty()) {
-    return false;
-  }
-  for (const auto& indTerm : inductionTerms) {
-    vvector<pair<vmap<TermList,TermList>&,vmap<TermList,TermList>&>> remaining;
-    bool check = true;
-    for (const auto& rel : relations) {
-      auto it1 = rel.first.find(indTerm);
-      auto it2 = rel.second.find(indTerm);
-      // if either one is missing or the step term
-      // does not contain the recursive term as subterm
-      if (it1 == rel.first.end() || it2 == rel.second.end()
-        || !it2->second.containsSubterm(it1->second))
-      {
-        check = false;
-        break;
-      }
-      if (it1->second == it2->second) {
-        remaining.push_back(rel);
-      }
-    }
-    if (check) {
-      auto remIndTerms = inductionTerms;
-      remIndTerms.erase(indTerm);
-      if (checkWellFoundedness(remaining, std::move(remIndTerms))) {
-        return true;
-      }
-    }
-  }
-  return false;
+  return InductionPreprocessor::checkWellFoundedness(relatedTerms);
 }
 
 void InductionScheme::addBaseCases() {

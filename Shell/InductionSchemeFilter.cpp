@@ -109,7 +109,7 @@ bool createMergedCase(const InductionScheme::Case& case1, const InductionScheme:
 
 bool InductionSchemeFilter::mergeSchemes(const InductionScheme& sch1, const InductionScheme& sch2, InductionScheme& res) {
   // copy original schemes in case we fail and we modified them
-  // return false;
+  return false;
   InductionScheme sch1copy = sch1;
   InductionScheme sch2copy = sch2;
   // if (!sch1copy.checkWellFoundedness() || !sch2copy.checkWellFoundedness()) {
@@ -145,6 +145,13 @@ bool InductionSchemeFilter::mergeSchemes(const InductionScheme& sch1, const Indu
     }
     return false;
   }
+  if(env.options->showInduction()){
+    env.beginOutput();
+    env.out() << "[Induction] induction scheme " << sch1
+              << " and induction scheme " << sch2
+              << " are merged into:" << endl << res << endl;
+    env.endOutput();
+  }
 
   return true;
 }
@@ -167,29 +174,10 @@ void InductionSchemeFilter::filter(vvector<InductionScheme>& primary, vvector<In
       }
 
       InductionScheme merged;
-      if (checkSubsumption(s, p)) {
-        if(env.options->showInduction()){
-          env.beginOutput();
-          env.out() << "[Induction] secondary induction scheme " << s
-                    << " is subsumed by primary " << p << endl;
-          env.endOutput();
-        }
-      } else if (checkSubsumption(p, s)) {
-        if(env.options->showInduction()){
-          env.beginOutput();
-          env.out() << "[Induction] primary induction scheme " << p
-                    << " is subsumed by secondary " << s << endl;
-          env.endOutput();
-        }
+      if (checkSubsumption(p, s)) {
         p = std::move(s);
-      } else if (mergeSchemes(p, s, merged)) {
-        if(env.options->showInduction()){
-          env.beginOutput();
-          env.out() << "[Induction] primary induction scheme " << p
-                    << " and secondary induction scheme " << s
-                    << " are merged into:" << endl << merged << endl;
-          env.endOutput();
-        }
+      }
+      else if (mergeSchemes(p, s, merged)) {
         p = std::move(merged);
         break;
       }
@@ -213,31 +201,14 @@ void InductionSchemeFilter::filter(vvector<InductionScheme>& schemes)
 
       InductionScheme merged;
       if (checkSubsumption(schemes[j], schemes[i])) {
-        if(env.options->showInduction()){
-          env.beginOutput();
-          env.out() << "[Induction] induction scheme " << schemes[j]
-                    << " is subsumed by " << schemes[i] << endl;
-          env.endOutput();
-        }
         schemes[j] = std::move(schemes.back());
         schemes.pop_back();
-      } else if (checkSubsumption(schemes[i], schemes[j])) {
-        if(env.options->showInduction()){
-          env.beginOutput();
-          env.out() << "[Induction] induction scheme " << schemes[i]
-                    << " is subsumed by " << schemes[j] << endl;
-          env.endOutput();
-        }
+      }
+      else if (checkSubsumption(schemes[i], schemes[j])) {
         subsumed = true;
         break;
-      } else if (mergeSchemes(schemes[j], schemes[i], merged)) {
-        if(env.options->showInduction()){
-          env.beginOutput();
-          env.out() << "[Induction] induction schemes " << schemes[j]
-                    << " and " << schemes[i]
-                    << " are merged into:" << endl << merged << endl;
-          env.endOutput();
-        }
+      }
+      else if (mergeSchemes(schemes[j], schemes[i], merged)) {
         schemes[j] = std::move(schemes.back());
         schemes.pop_back();
         schemes[i] = merged;
@@ -329,6 +300,12 @@ bool InductionSchemeFilter::checkSubsumption(const InductionScheme& sch1, const 
     if (!foundStep) {
       return false;
     }
+  }
+  if (env.options->showInduction()) {
+    env.beginOutput();
+    env.out() << "[Induction] induction scheme " << sch1
+              << " is subsumed by " << sch2 << endl;
+    env.endOutput();
   }
   return true;
 }

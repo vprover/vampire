@@ -50,13 +50,6 @@ struct InductionTemplate {
   bool checkWellDefinedness(vvector<vvector<TermList>>& missingCases);
   void addMissingCases(const vvector<vvector<TermList>>& missingCases);
 
-  enum class VarType {
-    SUBTERM,
-    FIXED,
-    OTHER,
-  };
-  using VarOrder = vvector<vset<unsigned>>;
-
   /**
    * Stores the template for a recursive case
    * This includes:
@@ -81,13 +74,6 @@ struct InductionTemplate {
 
   vvector<Branch> _branches;
   vvector<bool> _inductionPositions;
-  VarOrder _order;
-
-private:
-  bool findVarOrder(
-    const vvector<vvector<VarType>>& relations,
-    const vset<unsigned>& candidates,
-    VarOrder& res);
 };
 
 ostream& operator<<(ostream& out, const InductionTemplate::Branch& branch);
@@ -99,6 +85,7 @@ ostream& operator<<(ostream& out, const InductionTemplate& templ);
  */
 struct InductionPreprocessor {
   static void preprocessProblem(Problem& prb);
+  static bool checkWellFoundedness(const vvector<pair<TermList,TermList>>& relatedTerms);
 };
 
 } // Shell

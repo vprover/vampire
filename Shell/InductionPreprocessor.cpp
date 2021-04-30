@@ -68,78 +68,6 @@ ostream& operator<<(ostream& out, const InductionTemplate::Branch& branch)
   return out;
 }
 
-bool InductionTemplate::findVarOrder(
-  const vvector<vvector<VarType>>& relations,
-  const vset<unsigned>& candidates,
-  VarOrder& res)
-{
-  if (relations.empty()) {
-    // add remaining candidates at end
-    res.push_back(candidates);
-    return true;
-  }
-  if (candidates.empty()) {
-    return false;
-  }
-  // Split original candidate sets into sets that change together
-  // with a bool variable for each to denote whether the set changes in at
-  // least one relation (otherwise the set is not a true candidate)
-  vset<vset<unsigned>> candidateSets;
-  candidateSets.insert(candidates);
-  for (const auto& r : relations) {
-    vset<unsigned> subterm;
-    vset<unsigned> fixed;
-    for (unsigned i = 0; i < r.size(); i++) {
-      if (r[i] == VarType::FIXED) {
-        fixed.insert(i);
-      } else if (r[i] == VarType::SUBTERM) {
-        subterm.insert(i);
-      }
-    }
-    vset<vset<unsigned>> newCandidateSets;
-    for (const auto& c : candidateSets) {
-      vset<unsigned> sti, fi;
-      // Take intersections of current simultaneously changing
-      // or fixed sets with ones that change together in another
-      // relation. The result will be non-empty sets which change
-      // together or remain fixed together in all relations
-      set_intersection(c.begin(), c.end(), subterm.begin(), subterm.end(), inserter(sti, sti.end()));
-      set_intersection(c.begin(), c.end(), fixed.begin(), fixed.end(), inserter(fi, fi.end()));
-      if (!sti.empty()) {
-        newCandidateSets.insert(sti); // set changed variable to true
-      }
-      if (!fi.empty()) {
-        newCandidateSets.insert(fi);
-      }
-    }
-    candidateSets = newCandidateSets;
-  }
-  for (const auto& c : candidateSets) {
-    // The remaining relations are the ones where
-    // the selected candidate sets are fixed, otherwise
-    // the order is established by the selected set
-    vvector<vvector<VarType>> remainingRelations;
-    for (const auto r : relations) {
-      // we can check only the first of the set
-      // because they are all fixed in the same relations
-      if (r[*c.begin()] == VarType::FIXED) {
-        remainingRelations.push_back(r);
-      }
-    }
-    vset<unsigned> remainingCandidates;
-    set_difference(candidates.begin(), candidates.end(),
-      c.begin(), c.end(),
-      inserter(remainingCandidates, remainingCandidates.end()));
-    VarOrder temp = res;
-    temp.push_back(c);
-    if (findVarOrder(remainingRelations, remainingCandidates, temp)) {
-      res = temp;
-      return true;
-    }
-  }
-  return false;
-}
-
 bool InductionTemplate::checkWellDefinedness(vvector<vvector<TermList>>& missingCases)
 {
   missingCases.clear();
@@ -307,41 +235,23 @@ bool InductionTemplate::checkWellFoundedness()
 {
   CALL("InductionTemplate::checkWellFoundedness");
 
-  if (_branches.empty()) {
-    return true;
-  }
-
   // fill in bit vector of induction variables
-  auto arity = _branches[0]._header.term()->arity();
-  _inductionPositions = vvector<bool>(arity, false);
+  _inductionPositions.clear();
   vset<unsigned> candidatePositions;
-  vvector<vvector<VarType>> relations;
+  vvector<pair<TermList, TermList>> relatedTerms;
   for (auto& b : _branches) {
     for (auto& r : b._recursiveCalls) {
-      vvector<VarType> relation(arity, VarType::OTHER);
+      relatedTerms.push_back(make_pair(b._header, r));
       Term::Iterator argIt1(r.term());
       Term::Iterator argIt2(b._header.term());
-      unsigned i = 0;
       while (argIt1.hasNext()) {
         auto t1 = argIt1.next();
         auto t2 = argIt2.next();
-        if (t1 == t2) {
-          relation[i] = VarType::FIXED;
-        } else if (t2.containsSubterm(t1)) {
-          relation[i] = VarType::SUBTERM;
-          candidatePositions.insert(i);
-          _inductionPositions[i] = true;
-        } else {
-          candidatePositions.insert(i);
-          _inductionPositions[i] = true;
-        }
-        i++;
+        _inductionPositions.push_back(t1 != t2);
       }
-      relations.push_back(relation);
     }
   }
-  _order.clear();
-  return findVarOrder(relations, candidatePositions, _order);
+  return InductionPreprocessor::checkWellFoundedness(relatedTerms);
 }
 
 void InductionTemplate::addBranch(vvector<TermList>&& recursiveCalls, TermList&& header)
@@ -383,18 +293,6 @@ ostream& operator<<(ostream& out, const InductionTemplate& templ)
     }
     if (i+1 < arity) {
       out << ",";
-    }
-  }
-  out << ") and variable order (";
-  for (const auto& r : templ._order) {
-    if (r.size() == 1) {
-      out << *r.begin() << ",";
-    } else {
-      out << "{";
-      for (const auto& v : r) {
-        out << v << ",";
-      }
-      out << "},";
     }
   }
   out << ")";
@@ -529,6 +427,74 @@ void InductionPreprocessor::preprocessProblem(Problem& prb)
     env.signature->addInductionTemplate(kv.first.first, kv.first.second, std::move(templ));
   }
   // d.addBestConfiguration();
+}
+
+bool checkWellFoundednessHelper(const vvector<pair<TermList,TermList>>& relatedTerms,
+  const vset<unsigned>& indices, const vset<unsigned>& positions)
+{
+  if (indices.empty()) {
+    return true;
+  }
+  if (positions.empty()) {
+    return false;
+  }
+  ASS(relatedTerms[0].first.isTerm());
+  for (const auto& p : positions) {
+    vset<unsigned> newInd;
+    bool canOrder = true;
+    for (const auto& i : indices) {
+      auto arg1 = *relatedTerms[i].first.term()->nthArgument(p);
+      auto arg2 = *relatedTerms[i].second.term()->nthArgument(p);
+      if (arg1 == arg2) {
+        newInd.insert(i);
+      } else if (!arg1.containsSubterm(arg2)) {
+        canOrder = false;
+        break;
+      }
+    }
+    if (canOrder) {
+      auto newPos = positions;
+      newPos.erase(p);
+      if (checkWellFoundednessHelper(relatedTerms, newInd, newPos)) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+bool InductionPreprocessor::checkWellFoundedness(const vvector<pair<TermList,TermList>>& relatedTerms)
+{
+  if (relatedTerms.empty()) {
+    return true;
+  }
+  bool isFun = !relatedTerms[0].first.term()->isLiteral();
+  auto fn = relatedTerms[0].first.term()->functor();
+  auto arity = relatedTerms[0].first.term()->arity();
+  OperatorType* type;
+  if (isFun) {
+    type = env.signature->getFunction(fn)->fnType();
+  } else {
+    type = env.signature->getPredicate(fn)->predType();
+  }
+  vset<unsigned> positions;
+  for (unsigned i = 0; i < arity; i++) {
+    auto argType = env.signature->getFunction(type->arg(i))->fnType();
+    if (env.signature->isTermAlgebraSort(argType->result())) {
+      positions.insert(i);
+    }
+  }
+#if VDEBUG
+  for (const auto& kv : relatedTerms) {
+    ASS(kv.first.isTerm() && kv.first.term()->functor() == fn &&
+      kv.second.isTerm() && kv.second.term()->functor() == fn);
+  }
+#endif
+  vset<unsigned> indices;
+  for (unsigned i = 0; i < relatedTerms.size(); i++) {
+    indices.insert(i);
+  }
+  return checkWellFoundednessHelper(relatedTerms, indices, positions);
 }
 
 } // Shell
