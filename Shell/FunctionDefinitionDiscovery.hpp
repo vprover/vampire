@@ -31,11 +31,11 @@ class FunctionDefinitionDiscovery {
 public:
   FunctionDefinitionDiscovery() : foundFunctionDefinitions(1) {}
 
-  void findPossibleRecursiveDefinitions(Formula* f);
+  void findPossibleDefinitions(Clause* cl);
   void addBestConfiguration();
 
 private:
-  vvector<vmap<unsigned, pair<InductionTemplate, vvector<pair<Literal*,bool>>>>> foundFunctionDefinitions;
+  vvector<vmap<unsigned, pair<InductionTemplate, vvector<tuple<Literal*,Clause*,bool>>>>> foundFunctionDefinitions;
   vmap<unsigned, InductionTemplate> foundPredicateDefinitions;
 };
 

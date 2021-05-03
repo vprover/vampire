@@ -71,7 +71,10 @@ struct InductionTemplate {
   };
 
   void addBranch(vvector<TermList>&& recursiveCalls, TermList&& header);
+  const vvector<Branch>& branches() const { return _branches; }
+  const vvector<bool>& inductionPositions() const { return _inductionPositions; }
 
+private:
   vvector<Branch> _branches;
   vvector<bool> _inductionPositions;
 };
@@ -84,6 +87,7 @@ ostream& operator<<(ostream& out, const InductionTemplate& templ);
  * the marked recursive function definitions from the parser.
  */
 struct InductionPreprocessor {
+  static void processCase(const unsigned fn, TermList body, vvector<TermList>& recursiveCalls);
   static void preprocessProblem(Problem& prb);
   static bool checkWellFoundedness(const vvector<pair<TermList,TermList>>& relatedTerms);
 };

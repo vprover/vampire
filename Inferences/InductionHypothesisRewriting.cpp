@@ -239,7 +239,7 @@ Clause *InductionHypothesisRewriting::perform(
           rNorm.normalizeVariables(lhsSBadVars);
           qNorm.normalizeVariables(curr);
           qDenorm.makeInverse(qNorm);
-          ASS_EQ(tgtTerm, qDenorm.apply(rNorm.apply(lhsSBadVars)));
+          ASS_EQ(rwTerm, qDenorm.apply(rNorm.apply(lhsSBadVars)));
           currAfter = qDenorm.apply(rNorm.apply(currSBadVars));
         }
         else {

@@ -76,7 +76,7 @@ vvector<TermList> getInductionTerms(TermList t)
   // recurse in its active arguments
   if (env.signature->hasInductionTemplate(f, false /*pred*/)) {
     auto& templ = env.signature->getInductionTemplate(f, false /*pred*/);
-    const auto& indVars = templ._inductionPositions;
+    const auto& indVars = templ.inductionPositions();
 
     Term::Iterator argIt(t.term());
     unsigned i = 0;
@@ -427,7 +427,7 @@ void RecursionInductionSchemeGenerator::addScheme(Literal* lit, Term* t, const I
 {
   CALL("RecursionInductionSchemeGenerator::addScheme");
 
-  const auto& indPos = templ._inductionPositions;
+  const auto& indPos = templ.inductionPositions();
   TermStack args;
   unsigned var = 0;
   vmap<TermList, unsigned> varMap;
@@ -454,7 +454,7 @@ void RecursionInductionSchemeGenerator::addScheme(Literal* lit, Term* t, const I
     genTerm = TermList(Term::create(t, args.begin()));
   }
   InductionScheme res;
-  for (auto b : templ._branches) {
+  for (auto b : templ.branches()) {
     RobSubstitution subst;
     if (subst.unify(b._header, 0, genTerm, 1)) {
       Term* headerST;
@@ -528,7 +528,7 @@ void RecursionInductionSchemeGenerator::process(TermList curr, bool active,
   // If function with recursive definition, create a scheme
   if (env.signature->hasInductionTemplate(f, isPred)) {
     auto& templ = env.signature->getInductionTemplate(f, isPred);
-    const auto& indPos = templ._inductionPositions;
+    const auto& indPos = templ.inductionPositions();
 
     for (int i = t->arity()-1; i >= 0; i--) {
       actStack.push(indPos[i] && active);

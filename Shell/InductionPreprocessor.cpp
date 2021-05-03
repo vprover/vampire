@@ -205,16 +205,9 @@ bool InductionTemplate::checkUsefulness()
   // (2) no terms in any argument positions or
   // (3) no recursive calls
   bool discard = true;
-  for (auto& b : _branches) {
-    Term::Iterator argIt(b._header.term());
-    if (!b._recursiveCalls.empty()) {
+  for (const auto& p : _inductionPositions) {
+    if (p) {
       discard = false;
-    }
-    while (argIt.hasNext()) {
-      auto arg = argIt.next();
-      if (arg.isTerm()) {
-        discard = false;
-      }
     }
   }
   if (discard) {
@@ -280,16 +273,16 @@ ostream& operator<<(ostream& out, const InductionTemplate& templ)
 {
   out << "Branches: ";
   unsigned n = 0;
-  for (const auto& b : templ._branches) {
+  for (const auto& b : templ.branches()) {
     out << b;
-    if (++n < templ._branches.size()) {
+    if (++n < templ.branches().size()) {
       out << "; ";
     }
   }
   out << " with positions: (";
-  auto arity = templ._branches[0]._header.term()->arity();
+  auto arity = templ.branches()[0]._header.term()->arity();
   for (unsigned i = 0; i < arity; i++) {
-    if (templ._inductionPositions[i]) {
+    if (templ.inductionPositions()[i]) {
       out << "i";
     } else {
       out << "0";
@@ -302,9 +295,9 @@ ostream& operator<<(ostream& out, const InductionTemplate& templ)
   return out;
 }
 
-void processCase(const unsigned fn, TermList body, vvector<TermList>& recursiveCalls)
+void InductionPreprocessor::processCase(const unsigned fn, TermList body, vvector<TermList>& recursiveCalls)
 {
-  CALL("processCase");
+  CALL("InductionPreprocessor::processCase");
 
   // If we arrived at a variable, nothing to do
   if (!body.isTerm()) {
@@ -329,7 +322,7 @@ void InductionPreprocessor::preprocessProblem(Problem& prb)
 {
   CALL("InductionPreprocessor::preprocessProblem");
 
-  // FunctionDefinitionDiscovery d;
+  FunctionDefinitionDiscovery d;
   vmap<pair<unsigned, bool>, InductionTemplate> templates;
   UnitList::Iterator it(prb.units());
   while (it.hasNext()) {
@@ -341,6 +334,9 @@ void InductionPreprocessor::preprocessProblem(Problem& prb)
     auto clause = unit->asClause();
     unsigned length = clause->length();
     if (!clause->containsFunctionDefinition()) {
+      if (env.options->functionDefinitionDiscovery()) {
+        d.findPossibleDefinitions(clause);
+      }
       continue;
     }
     // first we find the only function
@@ -398,18 +394,16 @@ void InductionPreprocessor::preprocessProblem(Problem& prb)
       clause->clearFunctionDefinitions();
       templIt->second.addBranch(std::move(recursiveCalls), std::move(TermList(fndef)));
     }
-
-    // if (env.options->functionDefinitionDiscovery()) {
-    //   d.findPossibleRecursiveDefinitions(formula);
-    // }
   }
   for (const auto& kv : templates) {
     auto templ = kv.second;
-    if (!templ.checkUsefulness()) {
+    if (!templ.checkWellFoundedness()) {
+      env.beginOutput();
+      env.out() << "% Warning: " << templ << " is not well founded" << endl;
+      env.endOutput();
       continue;
     }
-    if (!templ.checkWellFoundedness()) {
-      cout << "% Warning: " << templ << " is not well founded" << endl;
+    if (!templ.checkUsefulness()) {
       continue;
     }
     vvector<vvector<TermList>> missingCases;
@@ -429,7 +423,7 @@ void InductionPreprocessor::preprocessProblem(Problem& prb)
     }
     env.signature->addInductionTemplate(kv.first.first, kv.first.second, std::move(templ));
   }
-  // d.addBestConfiguration();
+  d.addBestConfiguration();
 }
 
 bool checkWellFoundednessHelper(const vvector<pair<TermList,TermList>>& relatedTerms,
