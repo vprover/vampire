@@ -105,8 +105,6 @@ void GeneralInduction::process(InductionClauseIterator& res, Clause* premise, Li
     static vvector<pair<InductionScheme, OccurrenceMap>> schOccMap;
     schOccMap.clear();
     gen.generate(main, sides, schOccMap);
-    // static vvector<pair<InductionScheme, OccurrenceMap>> generalizedSchOccMap;
-    // generalizedSchOccMap.clear();
     vvector<pair<Literal*, vset<Literal*>>> schLits;
     for (const auto& kv : schOccMap) {
       vset<pair<Literal*, Clause*>> sidesFiltered;
@@ -130,7 +128,6 @@ void GeneralInduction::process(InductionClauseIterator& res, Clause* premise, Li
       HeuristicGeneralizationIterator g(kv.second);
       while (g.hasNext()) {
         auto eg = g.next();
-        // generalizedSchOccMap.push_back(make_pair(kv.first, eg));
         generateClauses(kv.first, eg, main, sidesFiltered, res._clauses);
       }
     }
@@ -292,23 +289,23 @@ void GeneralInduction::generateClauses(
   }
 
   ClauseStack::Iterator cit(temp);
-  RobSubstitutionSP subst(new RobSubstitution());
+  RobSubstitution subst;
   for (const auto& kv : conclusionToLitMap) {
     auto conclusion = kv.first;
     auto qr = kv.second;
-    if (!subst->match(TermList(conclusion), 0, TermList(qr.literal), 1)) {
+    if (!subst.match(TermList(conclusion), 0, TermList(qr.literal), 1)) {
       ASS_REP(conclusion->isEquality() && qr.literal->isEquality(), conclusion->toString() + qr.literal->toString());
       // direct match did not succeed, so we match one literal with the other reversed
-      ALWAYS(subst->match(*kv.first->nthArgument(0), 0, *kv.second.literal->nthArgument(1), 1)
-        && subst->match(*kv.first->nthArgument(1), 0, *kv.second.literal->nthArgument(0), 1));
+      ALWAYS(subst.match(*conclusion->nthArgument(0), 0, *qr.literal->nthArgument(1), 1)
+        && subst.match(*conclusion->nthArgument(1), 0, *qr.literal->nthArgument(0), 1));
     }
   }
   auto it = conclusionToLitMap.begin();
   it++;
   for (; it != conclusionToLitMap.end(); it++) {
-    it->first = subst->apply(it->first, 0);
+    it->first = subst.apply(it->first, 0);
   }
-  auto resSubst = ResultSubstitution::fromSubstitution(subst.ptr(), 0, 1);
+  auto resSubst = ResultSubstitution::fromSubstitution(&subst, 0, 1);
   while(cit.hasNext()){
     Clause* c = cit.next();
     unsigned i = 0;
@@ -316,10 +313,7 @@ void GeneralInduction::generateClauses(
       auto conclusion = kv.first;
       auto qr = kv.second;
       qr.substitution = resSubst;
-      auto store = qr.clause->store();
-      qr.clause->setStore(Clause::ACTIVE);
       c = BinaryResolution::generateClause(c,conclusion,qr,*env.options);
-      qr.clause->setStore(store);
       ASS(c);
       if (_splitter && ++i < conclusionToLitMap.size()) {
         _splitter->onNewClause(c);
@@ -458,14 +452,14 @@ vvector<pair<SLQueryResult, vset<pair<Literal*,Clause*>>>> GeneralInduction::sel
     res.emplace_back(SLQueryResult(literal, premise), vset<pair<Literal*,Clause*>>());
     while (it.hasNext()) {
       auto qr = it.next();
-      if (sideLitCondition(literal, premise, qr.literal, qr.clause)) {
+      if (qr.clause->store() == Clause::ACTIVE && sideLitCondition(literal, premise, qr.literal, qr.clause)) {
         res.back().second.emplace(qr.literal, qr.clause);
       }
     }
   } else {
     while (it.hasNext()) {
       auto qr = it.next();
-      if (mainLitCondition(qr.literal) && sideLitCondition(qr.literal, qr.clause, literal, premise)) {
+      if (qr.clause->store() == Clause::ACTIVE && mainLitCondition(qr.literal) && sideLitCondition(qr.literal, qr.clause, literal, premise)) {
         res.emplace_back(SLQueryResult(qr.literal, qr.clause), vset<pair<Literal*,Clause*>>());
         res.back().second.emplace(literal, premise);
       }

@@ -330,7 +330,6 @@ ostream& operator<<(ostream& out, const InductionScheme& scheme)
       if (++k < l) {
         out << ',';
       }
-      k++;
     }
     out << ']';
     if (++j < cases.size()) {

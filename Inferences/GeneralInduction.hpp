@@ -60,14 +60,14 @@ public:
     auto temp = _occ;
     auto it = _occ.begin();
     while (it != _occ.end()) {
-      auto nsb = it->second.num_set_bits();
-      // we only increment the bits where this condition holds
-      if (nsb == 1 || nsb == it->second.num_bits() - 1) {
+      // auto nsb = it->second.num_set_bits();
+      // if (nsb == 1 || nsb == it->second.num_bits() - 1) {
         if (it->second.next()) {
+          it->second.set_bits();
           break;
         }
         it->second.reset_bits();
-      }
+      // }
       it++;
     }
     if (it == _occ.end()) {
