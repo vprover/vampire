@@ -425,10 +425,11 @@ inline bool sideLitCondition(Literal* main, Clause* mainCl, Literal* side, Claus
   unsigned sig, sigOther;
   bool hyp, rev, hypOther, revOther;
   return side->ground() &&
+    env.options->inductionMultiClause() &&
     // side->isPositive() &&
     main != side &&
     mainCl != sideCl &&
-    ((!mainCl->inference().inductionDepth() && !sideCl->inference().inductionDepth()) ||
+    ((!mainCl->inference().inductionDepth() && !sideCl->inference().inductionDepth() && !sideCl->isComponent()) ||
     (sideCl->isInductionLiteral(side, sigOther, hypOther, revOther) &&
       mainCl->isInductionLiteral(main, sig, hyp, rev) &&
       sig == sigOther && !hyp && hypOther && !main->isEquality()));
