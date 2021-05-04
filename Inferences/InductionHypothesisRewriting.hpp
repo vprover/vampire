@@ -41,6 +41,8 @@ public:
     _splitter=_salg->getSplitter();
     _induction = new GeneralInduction(InferenceRule::IH_REWRITING);
     _induction->attach(_salg);
+    _dupLitRemoval = new DuplicateLiteralRemovalISE();
+    _dupLitRemoval->attach(_salg);
     _lhsIndex = static_cast<IHLHSIndex *>(
       _salg->getIndexManager()->request(IH_LHS_SUBST_TREE));
     _stIndex = static_cast<ICSubtermIndex *>(
@@ -55,15 +57,20 @@ public:
     _stIndex = nullptr;
     _salg->getIndexManager()->release(IH_LHS_SUBST_TREE);
     _lhsIndex = nullptr;
+    _dupLitRemoval->detach();
+    delete _dupLitRemoval;
+    _dupLitRemoval = nullptr;
     _induction->detach();
+    delete _induction;
     _induction = nullptr;
     _splitter = nullptr;
     GeneratingInferenceEngine::detach();
   }
   ClauseIterator generateClauses(Clause *premise) override;
 
-private:  
-  static Clause *perform(
+private:
+  ClauseIterator generateClauses(Literal* lit, Clause* premise);
+  ClauseIterator perform(unsigned sig,
       Clause *rwClause, Literal *rwLiteral, TermList rwSide, TermList rwTerm,
       Clause *eqClause, Literal *eqLiteral, TermList eqLHS,
       ResultSubstitutionSP subst, bool eqIsResult);
@@ -79,6 +86,7 @@ private:
   // DemodulationSubtermIndex* _stIndex;
   GeneralInduction* _induction;
   Splitter* _splitter;
+  DuplicateLiteralRemovalISE* _dupLitRemoval;
 };
 
 }; // namespace Inferences

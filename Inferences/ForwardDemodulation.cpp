@@ -191,10 +191,12 @@ bool ForwardDemodulation::perform(Clause* cl, Clause*& replacement, ClauseIterat
 	  SimplifyingInference2(InferenceRule::FORWARD_DEMODULATION, cl, qr.clause));
 
 	(*res)[0]=resLit;
-	unsigned sig;
+	vset<unsigned> sig;
 	bool hyp, rev;
 	if (cl->isInductionLiteral(lit, sig, hyp, rev)) {
-		res->markInductionLiteral(sig, resLit, hyp, rev ^ resLit->isOrientedReversed());
+    for (const auto& s : sig) {
+			res->markInductionLiteral(s, resLit, hyp, rev ^ resLit->isOrientedReversed());
+		}
 	}
 
 	unsigned next=1;
@@ -203,7 +205,9 @@ bool ForwardDemodulation::perform(Clause* cl, Clause*& replacement, ClauseIterat
 	  if(curr!=lit) {
 	    (*res)[next++] = curr;
 			if (cl->isInductionLiteral(curr, sig, hyp, rev)) {
-				res->markInductionLiteral(sig, curr, hyp, rev);
+        for (const auto& s : sig) {
+					res->markInductionLiteral(s, curr, hyp, rev);
+				}
 			}
 	  }
 	}

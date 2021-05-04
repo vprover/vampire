@@ -187,7 +187,7 @@ Clause* ForwardSubsumptionAndResolution::generateSubsumptionResolutionClause(Cla
   Clause* res = new(nlen) Clause(nlen,
       SimplifyingInference2(InferenceRule::SUBSUMPTION_RESOLUTION, cl, baseClause));
   if (cl->inductionInfo()) {
-    res->inductionInfo() = new DHMap<Literal*,tuple<unsigned,bool,bool>>(*cl->inductionInfo());
+    res->inductionInfo() = new DHMap<Literal*,tuple<vset<unsigned>,bool,bool>>(*cl->inductionInfo());
     res->inductionInfo()->remove(lit);
   }
 

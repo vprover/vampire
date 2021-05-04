@@ -244,10 +244,12 @@ Clause *FnDefRewriting::perform(
 
   static bool doSimS = env.options->simulatenousSuperposition();
   (*res)[0] = tgtLitS;
-	unsigned sig;
+	vset<unsigned> sig;
 	bool hyp, rev;
 	if (rwClause->isInductionLiteral(rwLit, sig, hyp, rev)) {
-		res->markInductionLiteral(sig, tgtLitS, hyp, rev ^ tgtLitS->isOrientedReversed());
+    for (const auto& s : sig) {
+		  res->markInductionLiteral(s, tgtLitS, hyp, rev ^ tgtLitS->isOrientedReversed());
+    }
 	}
 
   unsigned next = 1;
@@ -266,7 +268,9 @@ Clause *FnDefRewriting::perform(
 
       (*res)[next++] = curr;
       if (ind) {
-        res->markInductionLiteral(sig, curr, hyp, rev ^ curr->isOrientedReversed());
+        for (const auto& s : sig) {
+          res->markInductionLiteral(s, curr, hyp, rev ^ curr->isOrientedReversed());
+        }
       }
     }
   }

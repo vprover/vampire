@@ -348,10 +348,11 @@ vstring Clause::literalsOnlyToString() const
         result +="[r]";
       }
     }
-    unsigned sig;
+    vset<unsigned> sig;
     bool hyp, rev;
     if (isInductionLiteral(_literals[0], sig, hyp, rev)) {
       result += hyp ? " [ih]" : " [ic]";
+      result += "[" + Int::toString(sig.size()) + "]";
     }
     for(unsigned i = 1; i < _length; i++) {
       result += " | ";
@@ -364,6 +365,7 @@ vstring Clause::literalsOnlyToString() const
       }
       if (isInductionLiteral(_literals[i], sig, hyp, rev)) {
         result += hyp ? " [ih]" : " [ic]";
+        result += "[" + Int::toString(sig.size()) + "]";
       }
     }
     return result;

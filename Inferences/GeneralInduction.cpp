@@ -422,7 +422,7 @@ inline bool mainLitCondition(Literal* literal) {
 }
 
 inline bool sideLitCondition(Literal* main, Clause* mainCl, Literal* side, Clause* sideCl) {
-  unsigned sig, sigOther;
+  vset<unsigned> sig, sigOther;
   bool hyp, rev, hypOther, revOther;
   return side->ground() &&
     // side->isPositive() &&
@@ -431,7 +431,7 @@ inline bool sideLitCondition(Literal* main, Clause* mainCl, Literal* side, Claus
     ((!mainCl->inference().inductionDepth() && !sideCl->inference().inductionDepth()) ||
     (sideCl->isInductionLiteral(side, sigOther, hypOther, revOther) &&
       mainCl->isInductionLiteral(main, sig, hyp, rev) &&
-      sig == sigOther && !hyp && hypOther && !main->isEquality()));
+      includes(sig.begin(), sig.end(), sigOther.begin(), sigOther.end()) && !hyp && hypOther && !main->isEquality()));
 }
 
 vvector<pair<SLQueryResult, vset<pair<Literal*,Clause*>>>> GeneralInduction::selectMainSidePairs(Literal* literal, Clause* premise)

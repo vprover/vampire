@@ -27,6 +27,7 @@
 #include "Lib/Metaiterators.hpp"
 #include "Lib/Reflection.hpp"
 #include "Lib/Stack.hpp"
+#include "Lib/STL.hpp"
 
 #include "Unit.hpp"
 #include "Kernel/Inference.hpp"
@@ -132,20 +133,22 @@ public:
     return _functionDefLitOrientationMap->find(lit) && _functionDefLitOrientationMap->get(lit);
   }
 
-  DHMap<Literal*,tuple<unsigned,bool,bool>>*& inductionInfo() {
+  DHMap<Literal*,tuple<vset<unsigned>,bool,bool>>*& inductionInfo() {
     return _inductionHypothesisMap;
   }
   void markInductionLiteral(unsigned sig, Literal* lit, bool hyp, bool reversed) {
     if (!_inductionHypothesisMap) {
-      _inductionHypothesisMap = new DHMap<Literal*,tuple<unsigned,bool,bool>>();
+      _inductionHypothesisMap = new DHMap<Literal*,tuple<vset<unsigned>,bool,bool>>();
     }
-    auto t = make_tuple(sig, hyp, reversed);
-    auto res = _inductionHypothesisMap->insert(lit, t);
-    if (!res) {
-      _inductionHypothesisMap->set(lit, t);
+    if (!_inductionHypothesisMap->find(lit)) {
+      vset<unsigned> s;
+      s.insert(sig);
+      _inductionHypothesisMap->insert(lit, make_tuple(s, hyp, reversed));
+    } else {
+      get<0>(_inductionHypothesisMap->get(lit)).insert(sig);
     }
   }
-  bool isInductionLiteral(Literal* lit, unsigned& sig, bool& hyp, bool& reversed) const {
+  bool isInductionLiteral(Literal* lit, vset<unsigned>& sig, bool& hyp, bool& reversed) const {
     if (!_inductionHypothesisMap || !_inductionHypothesisMap->find(lit)) { return false; }
     auto temp = _inductionHypothesisMap->get(lit);
     sig = get<0>(temp);
@@ -436,7 +439,7 @@ protected:
 //#endif
 
   DHMap<Literal*,bool>* _functionDefLitOrientationMap;
-  DHMap<Literal*,tuple<unsigned,bool,bool>>* _inductionHypothesisMap;
+  DHMap<Literal*,tuple<vset<unsigned>,bool,bool>>* _inductionHypothesisMap;
   /** Array of literals of this unit */
   Literal* _literals[1];
 }; // class Clause

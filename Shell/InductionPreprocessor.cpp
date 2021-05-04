@@ -304,17 +304,12 @@ void InductionPreprocessor::processCase(const unsigned fn, TermList body, vvecto
     return;
   }
 
-  // Check if this term is a recursive call, store it
-  auto term = body.term();
-  ASS(!term->isSpecial());
-  if (term->functor() == fn) {
-    recursiveCalls.push_back(body);
-  }
-
-  NonVariableIterator it(term);
+  NonVariableIterator it(body.term(), true);
   while (it.hasNext()) {
-    auto n = it.next();
-    processCase(fn, n, recursiveCalls);
+    auto st = it.next();
+    if (st.term()->functor() == fn) {
+      recursiveCalls.push_back(st);
+    }
   }
 }
 

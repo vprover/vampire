@@ -151,7 +151,7 @@ void IHLHSIndex::handleClause(Clause* c, bool adding)
     if (!lit->isEquality() || !lit->isPositive()) {
       continue;
     }
-    unsigned sig;
+    vset<unsigned> sig;
     bool hyp = false, rev;
     bool ind = c->isInductionLiteral(lit, sig, hyp, rev);
     if (!ind || !hyp) {
@@ -189,7 +189,7 @@ void ICSubtermIndex::handleClause(Clause* c, bool adding)
     if (!lit->isEquality()) {
       continue;
     }
-    unsigned sig;
+    vset<unsigned> sig;
     bool hyp = true, rev;
     bool ind = c->isInductionLiteral(lit, sig, hyp, rev);
     if (!ind || hyp) {

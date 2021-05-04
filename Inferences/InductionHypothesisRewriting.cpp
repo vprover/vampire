@@ -50,87 +50,80 @@ using namespace Indexing;
 ClauseIterator InductionHypothesisRewriting::generateClauses(Clause *premise)
 {
   CALL("InductionHypothesisRewriting::generateClauses");
-
   ClauseIterator res = ClauseIterator::getEmpty();
   for (unsigned i = 0; i < premise->length(); i++) {
-    auto lit = (*premise)[i];
-    if (!lit->isEquality()) {
-      continue;
-    }
-    unsigned sig;
-    bool hyp, rev;
-    if (premise->isInductionLiteral(lit, sig, hyp, rev)) {
-      // ClauseIterator temp = ClauseIterator::getEmpty();
-      // auto it = pvi(pushPairIntoRightIterator(lit,
-      //   EqHelper::getEqualityArgumentIterator(lit)));
-      // auto it2 = getMapAndFlattenIterator(it, RewriteableSubtermsFn());
-      // ClauseIterator inner = pvi(getSingletonIterator(premise));
-      // for (unsigned j = 1; j <= lit->_numInductionHypothesis; j++) {
-      //   inner = pvi(getMappingIterator(it2, ForwardResultFn(premise, j)));
-      // }
-      // auto it3 = pvi(getMapAndFlattenIterator(inner, InductResultFn(_splitter, _induction)));
-      // res = pvi(getConcatenatedIterator(res, it3));
-      if (!hyp) {
-        for (unsigned k = 0; k <= 1; k++) {
-          auto litarg = *lit->nthArgument(k);
-          SubtermIterator sti(litarg.term());
-          while (sti.hasNext()) {
-            auto t = sti.next();
-            auto ts = _lhsIndex->getGeneralizations(t);
-            while (ts.hasNext()) {
-              auto qr = ts.next();
-              unsigned sigOther;
-              bool hypOther = false, revOther;
-              bool ind = qr.clause->isInductionLiteral(qr.literal, sigOther, hypOther, revOther);
-              if (!ind || !hypOther || sig != sigOther) {
-                continue;
-              }
-              if ((qr.term == *qr.literal->nthArgument(k)) != (rev == revOther)) {
-                continue;
-              }
-              Clause* newClause = perform(premise, lit, litarg, t, qr.clause, qr.literal, qr.term, qr.substitution, true);
-              ASS(newClause);
-              newClause->setStore(Clause::ACTIVE);
-              if (_splitter) {
-                _splitter->onNewClause(newClause);
-              }
-              res = pvi(getConcatenatedIterator(res, _induction->generateClauses(newClause)));
-              newClause->setStore(Clause::NONE);
-            }
-          }
-        }
-      } else {
-        // TermIterator lhsi=EqHelper::getEqualityArgumentIterator(lit);
-        TermIterator lhsi=EqHelper::getLHSIterator(lit, _salg->getOrdering());
-        while (lhsi.hasNext()) {
-          TermList lhs = lhsi.next();
-          TermList litarg = EqHelper::getOtherEqualitySide(lit, lhs);
-          auto ts = _stIndex->getInstances(litarg);
+    res = pvi(getConcatenatedIterator(res, generateClauses((*premise)[i], premise)));
+  }
+  return res;
+}
+
+ClauseIterator InductionHypothesisRewriting::generateClauses(Literal* lit, Clause *premise)
+{
+  ClauseIterator res = ClauseIterator::getEmpty();
+  if (!lit->isEquality()) {
+    return res;
+  }
+  vset<unsigned> sig;
+  bool hyp, rev;
+  if (premise->isInductionLiteral(lit, sig, hyp, rev)) {
+    if (!hyp) {
+      for (unsigned k = 0; k <= 1; k++) {
+        auto litarg = *lit->nthArgument(k);
+        NonVariableIterator sti(litarg.term(), true);
+        while (sti.hasNext()) {
+          auto t = sti.next();
+          auto ts = _lhsIndex->getGeneralizations(t);
           while (ts.hasNext()) {
             auto qr = ts.next();
-            unsigned sigOther;
+            vset<unsigned> sigOther;
             bool hypOther = false, revOther;
             bool ind = qr.clause->isInductionLiteral(qr.literal, sigOther, hypOther, revOther);
-            if (!ind || hypOther || sig != sigOther) {
+            if (!ind || !hypOther) {
               continue;
             }
-            for (unsigned k = 0; k <= 1; k++) {
-              auto side = *qr.literal->nthArgument(k);
-              if (!side.containsSubterm(qr.term)) {
-                continue;
-              }
-              if (((litarg == *lit->nthArgument(1)) == k) != (rev == revOther)) {
-                continue;
-              }
-              Clause* newClause = perform(qr.clause, qr.literal, side, qr.term, premise, lit, litarg, qr.substitution, false);
-              ASS(newClause);
-              newClause->setStore(Clause::ACTIVE);
-              if (_splitter) {
-                _splitter->onNewClause(newClause);
-              }
-              res = pvi(getConcatenatedIterator(res, _induction->generateClauses(newClause)));
-              newClause->setStore(Clause::NONE);
+            ASS(sigOther.size() == 1);
+            unsigned sigUsed = *sigOther.begin();
+            if (!sig.count(sigUsed)) {
+              continue;
             }
+            if ((qr.term == *qr.literal->nthArgument(k)) != (rev == revOther)) {
+              continue;
+            }
+            res = pvi(getConcatenatedIterator(res,
+              perform(sigUsed, premise, lit, litarg, t, qr.clause, qr.literal, qr.term, qr.substitution, true)));
+          }
+        }
+      }
+    } else {
+      ASS(sig.size() == 1);
+      unsigned sigUsed = *sig.begin();
+      // TermIterator lhsi=EqHelper::getEqualityArgumentIterator(lit);
+      TermIterator lhsi=EqHelper::getLHSIterator(lit, _salg->getOrdering());
+      while (lhsi.hasNext()) {
+        TermList lhs = lhsi.next();
+        TermList litarg = EqHelper::getOtherEqualitySide(lit, lhs);
+        auto ts = _stIndex->getInstances(litarg);
+        while (ts.hasNext()) {
+          auto qr = ts.next();
+          vset<unsigned> sigOther;
+          bool hypOther = false, revOther;
+          bool ind = qr.clause->isInductionLiteral(qr.literal, sigOther, hypOther, revOther);
+          if (!ind || hypOther) {
+            continue;
+          }
+          if (!sigOther.count(sigUsed)) {
+            continue;
+          }
+          for (unsigned k = 0; k <= 1; k++) {
+            auto side = *qr.literal->nthArgument(k);
+            if (!side.containsSubterm(qr.term)) {
+              continue;
+            }
+            if (((litarg == *lit->nthArgument(1)) == k) != (rev == revOther)) {
+              continue;
+            }
+            res = pvi(getConcatenatedIterator(res,
+              perform(sigUsed, qr.clause, qr.literal, side, qr.term, premise, lit, litarg, qr.substitution, false)));
           }
         }
       }
@@ -139,7 +132,7 @@ ClauseIterator InductionHypothesisRewriting::generateClauses(Clause *premise)
   return res;
 }
 
-Clause *InductionHypothesisRewriting::perform(
+ClauseIterator InductionHypothesisRewriting::perform(unsigned sig,
     Clause *rwClause, Literal *rwLit, TermList rwSide, TermList rwTerm,
     Clause *eqClause, Literal *eqLit, TermList eqLHS,
     ResultSubstitutionSP subst, bool eqIsResult)
@@ -151,10 +144,11 @@ Clause *InductionHypothesisRewriting::perform(
   //   return 0;
   // }
   ASS(eqClause->store() == Clause::ACTIVE);
+  ClauseIterator res = ClauseIterator::getEmpty();
 
   if (SortHelper::getTermSort(rwTerm, rwLit) != SortHelper::getEqualityArgumentSort(eqLit)) {
     // sorts don't match
-    return 0;
+    return res;
   }
 
   ASS(!eqLHS.isVar());
@@ -195,7 +189,7 @@ Clause *InductionHypothesisRewriting::perform(
   //      << "TGTLIT: " << *tgtLitS << endl;
 
   if (EqHelper::isEqTautology(tgtLitS)) {
-    return 0;
+    return res;
   }
 
   unsigned rwLength = rwClause->length();
@@ -203,11 +197,10 @@ Clause *InductionHypothesisRewriting::perform(
   unsigned newLength = rwLength + eqLength - 1;
 
   Inference inf(GeneratingInference2(InferenceRule::IH_REWRITING, rwClause, eqClause));
-  Clause *res = new (newLength) Clause(newLength, inf);
+  Clause *newCl = new (newLength) Clause(newLength, inf);
 
   // static bool doSimS = env.options->simulatenousSuperposition();
-  (*res)[0] = tgtLitS;
-  // tgtLitS->_hasInductionHypothesis = rwLit->_hasInductionHypothesis;
+  (*newCl)[0] = tgtLitS;
   unsigned next = 1;
   for (unsigned i = 0; i < rwLength; i++) {
     Literal *curr = (*rwClause)[i];
@@ -215,14 +208,13 @@ Clause *InductionHypothesisRewriting::perform(
       // if (doSimS) {
       //   curr = EqHelper::replace(curr, rwTerm, tgtTermS);
       // }
-      // curr->_hasInductionHypothesis = (*rwClause)[i]->_hasInductionHypothesis;
 
       if (EqHelper::isEqTautology(curr)) {
-        res->destroy();
-        return 0;
+        newCl->destroy();
+        return res;
       }
 
-      (*res)[next++] = curr;
+      (*newCl)[next++] = curr;
     }
   }
 
@@ -247,14 +239,33 @@ Clause *InductionHypothesisRewriting::perform(
         }
 
         if (EqHelper::isEqTautology(currAfter)) {
-          res->destroy();
-          return 0;
+          newCl->destroy();
+          return res;
         }
 
-        (*res)[next++] = currAfter;
+        (*newCl)[next++] = currAfter;
       }
     }
   }
+
+  newCl->setStore(Clause::ACTIVE);
+  if (_splitter) {
+    _splitter->onNewClause(newCl);
+  }
+  auto temp = _dupLitRemoval->simplify(newCl);
+  if (temp != newCl) {
+    if (_splitter) {
+      _splitter->onNewClause(newCl);
+    }
+    newCl->setStore(Clause::NONE);
+    newCl = temp;
+    newCl->setStore(Clause::ACTIVE);
+  }
+  newCl->inductionInfo() = new DHMap<Literal*,tuple<vset<unsigned>,bool,bool>>(*rwClause->inductionInfo());
+  newCl->inductionInfo()->insert(tgtLitS, newCl->inductionInfo()->get(rwLit));
+  get<0>(newCl->inductionInfo()->get(tgtLitS)).erase(sig);
+  res = pvi(getConcatenatedIterator(generateClauses(tgtLitS, newCl), _induction->generateClauses(newCl)));
+  newCl->setStore(Clause::NONE);
 
   return res;
 }
