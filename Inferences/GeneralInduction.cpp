@@ -399,7 +399,18 @@ bool GeneralInduction::alreadyDone(Literal* mainLit, const vset<pair<Literal*,Cl
   for (const auto& kv : sides) {
     res.second.insert(cr.transform(kv.first));
   }
-  if (!_done.find(res.first)) {
+  // TODO(mhajdu): the reason we check this is to avoid
+  // "induction loops" when we induct on the step immediately
+  // after creating it. This means we usually want to exclude
+  // schemes with complex terms, but this is an ugly workaround
+  bool containsComplex = false;
+  for (const auto& indTerm : sch.inductionTerms()) {
+    if (!skolem(indTerm)) {
+      containsComplex = true;
+      break;
+    }
+  }
+  if (!_done.find(res.first) || !containsComplex) {
     return false;
   }
   auto s = _done.get(res.first);
@@ -426,6 +437,7 @@ inline bool sideLitCondition(Literal* main, Clause* mainCl, Literal* side, Claus
   bool hyp, rev, hypOther, revOther;
   return side->ground() &&
     // side->isPositive() &&
+    env.options->inductionMultiClause() &&
     main != side &&
     mainCl != sideCl &&
     ((!mainCl->inference().inductionDepth() && !sideCl->inference().inductionDepth()) ||
