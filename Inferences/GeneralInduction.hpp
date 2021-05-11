@@ -60,14 +60,11 @@ public:
     auto temp = _occ;
     auto it = _occ.begin();
     while (it != _occ.end()) {
-      // auto nsb = it->second.num_set_bits();
-      // if (nsb == 1 || nsb == it->second.num_bits() - 1) {
-        if (it->second.next()) {
-          it->second.set_bits();
-          break;
-        }
-        it->second.reset_bits();
-      // }
+      if (it->second.next()) {
+        it->second.set_bits();
+        break;
+      }
+      it->second.reset_bits();
       it++;
     }
     if (it == _occ.end()) {
@@ -86,10 +83,6 @@ class InductionGeneralizationIterator
 public:
   DECL_ELEMENT_TYPE(OccurrenceMap);
 
-  /* Based on a map of advanceterms to bit vectors of necessary occurrences
-   * and number of all occurrences, enumerates all possible generalizations
-   * as bit vectors. 
-   */
   InductionGeneralizationIterator(const OccurrenceMap& occ)
     : _occ(occ), _hasNext(true) {}
 
@@ -131,6 +124,61 @@ public:
 private:
   OccurrenceMap _occ;
   bool _hasNext;
+};
+
+class GeneralizationIterator
+{
+public:
+  DECL_ELEMENT_TYPE(OccurrenceMap);
+
+  GeneralizationIterator(const OccurrenceMap& occ, bool heuristic)
+    : _occ(occ), _hasNext(true), _heuristic(heuristic) {}
+
+  inline bool hasNext()
+  {
+    return _hasNext;
+  }
+
+  inline OWN_ELEMENT_TYPE next()
+  {
+    CALL("GeneralizationIterator::next()");
+    ASS(_hasNext);
+
+    auto temp = _occ;
+    auto it = _occ.begin();
+    while (it != _occ.end()) {
+      if (it->second.next()) {
+        // heuristic gives only active occurrences
+        // then and all occurrences, so we set all bits
+        // immediately after returning only the actives
+        if (_heuristic) {
+          it->second.set_bits();
+        }
+        break;
+      }
+      it->second.reset_bits();
+      it++;
+    }
+    if (it == _occ.end()) {
+      _hasNext = false;
+    }
+    return temp;
+  }
+
+  inline vstring toString()
+  {
+    vstringstream str;
+    for (const auto& kv : _occ) {
+      str << *kv.first.first << ", " << kv.first.second
+          << ": " << kv.second.toString() << " ";
+    }
+    return str.str();
+  }
+
+private:
+  OccurrenceMap _occ;
+  bool _hasNext;
+  bool _heuristic;
 };
 
 class GeneralInduction

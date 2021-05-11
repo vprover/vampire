@@ -1454,13 +1454,12 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
 
   //TODO here induction is last, is that right?
   if(opt.induction()!=Options::Induction::NONE){
-    // if (opt.inductionMultiClause()) {
-    //   gie->addFront(new MultiClauseInduction());
-    // }
-    // gie->addFront(new Induction());
+    gie->addFront(new Induction());
 
-    // gie->addFront(new GeneralInduction(new RecursionInductionSchemeGenerator(), new InductionGeneralization(true), InferenceRule::INDUCTION_AXIOM));
-    gie->addFront(new GeneralInduction(InferenceRule::INDUCTION_AXIOM));
+    if ((opt.induction() == Options::Induction::STRUCTURAL || opt.induction() == Options::Induction::BOTH) &&
+        (opt.structInduction() == Options::StructuralInductionKind::FOUR || opt.structInduction() == Options::StructuralInductionKind::ALL)) {
+      gie->addFront(new GeneralInduction(InferenceRule::INDUCTION_AXIOM));
+    }
   }
   if (opt.inductionHypRewriting()) {
     gie->addFront(new InductionHypothesisRewriting());

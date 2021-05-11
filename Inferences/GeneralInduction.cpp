@@ -99,11 +99,10 @@ void GeneralInduction::process(InductionClauseIterator& res, Clause* premise, Li
 
   for (const auto& kv : pairs) {
     const auto& main = kv.first;
-    const auto& sides = kv.second; 
-    // StructuralInductionSchemeGenerator gen;
-    RecursionInductionSchemeGenerator gen;
+    const auto& sides = kv.second;
     static vvector<pair<InductionScheme, OccurrenceMap>> schOccMap;
     schOccMap.clear();
+    RecursionInductionSchemeGenerator gen;
     gen.generate(main, sides, schOccMap);
     vvector<pair<Literal*, vset<Literal*>>> schLits;
     for (const auto& kv : schOccMap) {
@@ -124,8 +123,8 @@ void GeneralInduction::process(InductionClauseIterator& res, Clause* premise, Li
       if (alreadyDone(literal, sidesFiltered, kv.first, schLits.back())) {
         continue;
       }
-      // InductionGeneralizationIterator g(kv.second);
-      HeuristicGeneralizationIterator g(kv.second);
+      static const bool heuristic = env.options->inductionGenHeur();
+      GeneralizationIterator g(kv.second, heuristic);
       while (g.hasNext()) {
         auto eg = g.next();
         generateClauses(kv.first, eg, main, sidesFiltered, res._clauses);
@@ -403,10 +402,10 @@ bool GeneralInduction::alreadyDone(Literal* mainLit, const vset<pair<Literal*,Cl
   // "induction loops" when we induct on the step immediately
   // after creating it. This means we usually want to exclude
   // schemes with complex terms, but this is an ugly workaround
-  bool containsComplex = false;
+  bool containsComplex = true;
   for (const auto& indTerm : sch.inductionTerms()) {
-    if (!skolem(indTerm)) {
-      containsComplex = true;
+    if (skolem(indTerm)) {
+      containsComplex = false;
       break;
     }
   }

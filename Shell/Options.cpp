@@ -1125,6 +1125,12 @@ void Options::init()
             _inductionGen.reliesOn(_induction.is(notEqual(Induction::NONE)));
             _lookup.insert(&_inductionGen);
 
+            _inductionGenHeur = BoolOptionValue("induction_gen_heur","indgenh",false);
+            _inductionGenHeur.description = "Give only two generalizations: all occurrences and only selected occurrences";
+            _inductionGenHeur.tag(OptionTag::INFERENCES);
+            _inductionGenHeur.reliesOn(_inductionGen.is(equal(true)));
+            _lookup.insert(&_inductionGenHeur);
+
             _maxInductionGenSubsetSize = UnsignedOptionValue("max_induction_gen_subset_size","indgenss",3);
             _maxInductionGenSubsetSize.description = "Set maximum number of occurrences of the induction term to be"
                                                       " generalized, where 0 means no max. (Regular induction will"
