@@ -36,6 +36,8 @@ public:
   static void getLtb2017HllSchedule(const Shell::Property& property, Schedule& sched);
   static void getLtb2017MzrSchedule(const Shell::Property& property, Schedule& sched);
   static void getLtb2017DefaultSchedule(const Shell::Property& property, Schedule& sched);
+
+  static void getStructInductionSchedule(const Shell::Property& property, Schedule& quick, Schedule& fallback);
 };
 
 }
