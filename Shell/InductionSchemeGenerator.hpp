@@ -209,7 +209,6 @@ private:
     vvector<InductionScheme>& schemes);
 
   OccurrenceMap _actOccMaps;
-  bool _aggressiveMode = false;
 };
 
 struct StructuralInductionSchemeGenerator

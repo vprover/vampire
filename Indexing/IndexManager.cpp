@@ -195,7 +195,7 @@ Index* IndexManager::create(IndexType t)
     break;
   case IH_LHS_SUBST_TREE:
     tis=new CodeTreeTIS();
-    res=new IHLHSIndex(tis, _alg->getOrdering());
+    res=new IHLHSIndex(tis, _alg->getOrdering(), _alg->getOptions());
     isGenerating = true;
     break;
   case IC_SUBTERM_SUBST_TREE:

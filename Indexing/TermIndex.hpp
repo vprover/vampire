@@ -96,13 +96,14 @@ public:
   CLASS_NAME(IHLHSIndex);
   USE_ALLOCATOR(IHLHSIndex);
 
-  IHLHSIndex(TermIndexingStructure* is, const Ordering& ord)
-    : TermIndex(is), _ord(ord) {}
+  IHLHSIndex(TermIndexingStructure* is, const Ordering& ord, const Options& opt)
+    : TermIndex(is), _ord(ord), _opt(opt) {}
 
 protected:
   void handleClause(Clause* c, bool adding);
 private:
   const Ordering& _ord;
+  const Options& _opt;
 };
 
 class ICSubtermIndex

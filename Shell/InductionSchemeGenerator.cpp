@@ -538,7 +538,8 @@ void RecursionInductionSchemeGenerator::process(TermList curr, bool active,
       return;
     }
 
-    if (_aggressiveMode) {
+    static bool exhaustive = env.options->inductionExhaustiveGeneration();
+    if (exhaustive) {
       Term::Iterator argIt(t);
       unsigned i = 0;
       vvector<TermStack> argTermsList(1); // initially 1 empty vector

@@ -20,6 +20,8 @@
 #include "Kernel/Term.hpp"
 #include "Kernel/TermIterators.hpp"
 
+#include "Shell/Options.hpp"
+
 #include "TermIndexingStructure.hpp"
 #include "TermIndex.hpp"
 
@@ -157,8 +159,13 @@ void IHLHSIndex::handleClause(Clause* c, bool adding)
     if (!ind || !hyp) {
       continue;
     }
-    // TermIterator lhsi=EqHelper::getEqualityArgumentIterator(lit);
-    TermIterator lhsi=EqHelper::getLHSIterator(lit, _ord);
+    static const bool ordered = _opt.inductionHypRewritingOrdered();
+    TermIterator lhsi;
+    if (ordered) {
+      lhsi = EqHelper::getLHSIterator(lit, _ord);
+    } else {
+      lhsi = EqHelper::getEqualityArgumentIterator(lit);
+    }
     while (lhsi.hasNext()) {
       TermList rhs = lhsi.next();
       TermList lhs = EqHelper::getOtherEqualitySide(lit, rhs);

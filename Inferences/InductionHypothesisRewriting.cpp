@@ -66,6 +66,7 @@ ClauseIterator InductionHypothesisRewriting::generateClauses(Literal* lit, Claus
   vset<unsigned> sig;
   bool hyp, rev;
   if (premise->isInductionLiteral(lit, sig, hyp, rev)) {
+    static const bool fixSides = env.options->inductionHypRewritingFixSides();
     if (!hyp) {
       for (unsigned k = 0; k <= 1; k++) {
         auto litarg = *lit->nthArgument(k);
@@ -86,7 +87,7 @@ ClauseIterator InductionHypothesisRewriting::generateClauses(Literal* lit, Claus
             if (!sig.count(sigUsed)) {
               continue;
             }
-            if ((qr.term == *qr.literal->nthArgument(k)) != (rev == revOther)) {
+            if (fixSides && (qr.term == *qr.literal->nthArgument(k)) != (rev == revOther)) {
               continue;
             }
             res = pvi(getConcatenatedIterator(res,
@@ -94,11 +95,16 @@ ClauseIterator InductionHypothesisRewriting::generateClauses(Literal* lit, Claus
           }
         }
       }
-    } else {
+    } else if (lit->isPositive()) {
       ASS(sig.size() == 1);
       unsigned sigUsed = *sig.begin();
-      // TermIterator lhsi=EqHelper::getEqualityArgumentIterator(lit);
-      TermIterator lhsi=EqHelper::getLHSIterator(lit, _salg->getOrdering());
+      static const bool ordered = env.options->inductionHypRewritingOrdered();
+      TermIterator lhsi;
+      if (ordered) {
+        lhsi = EqHelper::getLHSIterator(lit, _salg->getOrdering());
+      } else {
+        lhsi = EqHelper::getEqualityArgumentIterator(lit);
+      }
       while (lhsi.hasNext()) {
         TermList lhs = lhsi.next();
         TermList litarg = EqHelper::getOtherEqualitySide(lit, lhs);
@@ -119,7 +125,7 @@ ClauseIterator InductionHypothesisRewriting::generateClauses(Literal* lit, Claus
             if (!side.containsSubterm(qr.term)) {
               continue;
             }
-            if (((litarg == *lit->nthArgument(1)) == k) != (rev == revOther)) {
+            if (fixSides && ((litarg == *lit->nthArgument(1)) == k) != (rev == revOther)) {
               continue;
             }
             res = pvi(getConcatenatedIterator(res,

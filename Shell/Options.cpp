@@ -1147,9 +1147,23 @@ void Options::init()
             _lookup.insert(&_inductionOnComplexTerms);
 
             _inductionHypRewriting = BoolOptionValue("induction_hypothesis_rewriting","indhrw",false);
-            _inductionHypRewriting.description = "Rewrite with induction hypotheses against the ordering and perform induction on the result";
+            _inductionHypRewriting.description = "Rewrite with induction hypotheses (possibly against the ordering) and perform induction on the result";
             _inductionHypRewriting.tag(OptionTag::INFERENCES);
             _lookup.insert(&_inductionHypRewriting);
+
+            _inductionHypRewritingOrdered = BoolOptionValue("induction_hypothesis_rewriting_ordered","indhrwo",false);
+            _inductionHypRewritingOrdered.description = "Only use induction hypothesis rewriting against the ordering";
+            _inductionHypRewritingOrdered.tag(OptionTag::INFERENCES);
+            _inductionHypRewritingOrdered.reliesOnHard(_inductionHypRewriting.is(equal(true)));
+            _lookup.insert(&_inductionHypRewritingOrdered);
+
+            _inductionHypRewritingFixSides = BoolOptionValue("induction_hypothesis_rewriting_fix_sides","indhrwfs",false);
+            _inductionHypRewritingFixSides.description = "Fix orientation of induction conclusions (IC) and their hypotheses (IH) w.r.t. the"
+                                                 " literal they were generated from. In this orientation, if l=r is IH and s=t is IC,"
+                                                 " only allow rewriting l into r in subterms of s";
+            _inductionHypRewritingFixSides.tag(OptionTag::INFERENCES);
+            _inductionHypRewritingFixSides.reliesOnHard(_inductionHypRewriting.is(equal(true)));
+            _lookup.insert(&_inductionHypRewritingFixSides);
 
             _inductionMultiClause = BoolOptionValue("induction_multiclause","indmc",false);
             _inductionMultiClause.description = "Induct on multiple clauses together when they contain the same induction terms";
@@ -1157,6 +1171,15 @@ void Options::init()
             _inductionMultiClause.reliesOn(_induction.is(equal(Induction::STRUCTURAL)));
             _inductionMultiClause.reliesOn(_structInduction.is(equal(StructuralInductionKind::FOUR)));
             _lookup.insert(&_inductionMultiClause);
+
+            _inductionExhaustiveGeneration = BoolOptionValue("induction_exhaustive_generation","indeg",false);
+            _inductionExhaustiveGeneration.description = "When generating induction formulas, given a function/predicate f(t1,...,tn)"
+                                                         " apart from f with arguments t1,...,tn, consider f with any combination of"
+                                                         " subterms s1,...,sn s.t. si is a subterm of ti and is the same sort";
+            _inductionExhaustiveGeneration.tag(OptionTag::INFERENCES);
+            _inductionExhaustiveGeneration.reliesOn(_induction.is(equal(Induction::STRUCTURAL)));
+            _inductionExhaustiveGeneration.reliesOn(_structInduction.is(equal(StructuralInductionKind::FOUR)));
+            _lookup.insert(&_inductionExhaustiveGeneration);
 
             _functionDefinitionDiscovery = BoolOptionValue("function_definition_discovery","fnd",false);
             _functionDefinitionDiscovery.description = "Try to find function definitions";
