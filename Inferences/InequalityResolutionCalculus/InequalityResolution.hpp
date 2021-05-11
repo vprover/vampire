@@ -13,49 +13,20 @@
  *
  */
 
-#ifndef __InequalityResolution__
-#define __InequalityResolution__
+#ifndef __InequalityResolutionCalculus_InequalityResolution__
+#define __InequalityResolutionCalculus_InequalityResolution__
 
 #include "Forwards.hpp"
 
-#include "InferenceEngine.hpp"
+#include "Inferences/InferenceEngine.hpp"
 #include "Kernel/Ordering.hpp"
 #include "Shell/UnificationWithAbstractionConfig.hpp"
-#include "Indexing/IndexManager.hpp"
-#include "Indexing/TermIndex.hpp"
 #include "Inferences/PolynomialEvaluation.hpp"
+#include "Indexing/InequalityResolutionIndex.hpp"
 #include "Kernel/InequalityNormalizer.hpp"
 
-namespace Indexing {
-
-
-class InequalityResolutionIndex
-: public TermIndex
-{
-public:
-  CLASS_NAME(InequalityResolutionIndex);
-  USE_ALLOCATOR(InequalityResolutionIndex);
-
-  InequalityResolutionIndex(TermIndexingStructure* is, Ordering& ord, InequalityNormalizer norm)
-    : TermIndex(is)
-    , _ord(&ord)
-    , _normalizer(std::move(norm)) {}
-
-  InequalityNormalizer const& normalizer() const { return _normalizer; }
-  Ordering* ord() const { return _ord; }
-protected:
-  void handleClause(Clause* c, bool adding);
-private:
-  template<class NumTraits> bool handleLiteral(Literal* lit, Clause* c, bool adding);
-
-  Ordering* _ord;
-  InequalityNormalizer _normalizer;
-};
-}
-
-
-namespace Inferences
-{
+namespace Inferences {
+namespace InequalityResolutionCalculus {
 
 using namespace Kernel;
 using namespace Indexing;
@@ -145,6 +116,7 @@ private:
   PolynomialEvaluation _eval;
 };
 
-};
+} // namespace InequalityResolutionCalculs
+} // namespace Inferences
 
-#endif /*__InequalityResolution__*/
+#endif /*__InequalityResolutionCalculus_InequalityResolution__*/

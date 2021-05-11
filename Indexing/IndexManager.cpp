@@ -30,7 +30,7 @@
 
 #include "IndexManager.hpp"
 #include "Kernel/InequalityNormalizer.hpp"
-#include "Inferences/InequalityResolution.hpp"
+#include "Inferences/InequalityResolutionCalculus/InequalityResolution.hpp"
 
 using namespace Lib;
 using namespace Indexing;

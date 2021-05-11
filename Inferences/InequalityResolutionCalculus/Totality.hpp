@@ -8,41 +8,38 @@
  * and in the source directory
  */
 /**
- * @file InequalityFactoring.hpp
- * Defines class InequalityFactoring
+ * @file Totality.hpp
+ * Defines class Totality
  *
  */
 
-#ifndef __InequalityFactoring__
-#define __InequalityFactoring__
+#ifndef __InequalityResolutionCalculus_Totality__
+#define __InequalityResolutionCalculus_Totality__
 
 #include "Forwards.hpp"
 
-#include "InferenceEngine.hpp"
+#include "Inferences/InferenceEngine.hpp"
 #include "Kernel/Ordering.hpp"
 #include "Shell/UnificationWithAbstractionConfig.hpp"
-#include "Indexing/IndexManager.hpp"
-#include "Indexing/TermIndex.hpp"
-#include "Inferences/PolynomialEvaluation.hpp"
-#include "Kernel/InequalityNormalizer.hpp"
+#include "Indexing/InequalityResolutionIndex.hpp"
 #include "Shell/Options.hpp"
 
-namespace Inferences
-{
+namespace Inferences {
+namespace InequalityResolutionCalculus {
 
 using namespace Kernel;
 using namespace Indexing;
 using namespace Saturation;
 
-class InequalityFactoring
+class Totality
 : public GeneratingInferenceEngine
 {
 public:
-  CLASS_NAME(InequalityFactoring);
-  USE_ALLOCATOR(InequalityFactoring);
+  CLASS_NAME(Totality);
+  USE_ALLOCATOR(Totality);
 
-  InequalityFactoring(InequalityFactoring&&) = default;
-  InequalityFactoring(InequalityNormalizer normalizer, Ordering* ord, Shell::Options::UnificationWithAbstraction mode) 
+  Totality(Totality&&) = default;
+  Totality(InequalityNormalizer normalizer, Ordering* ord, Shell::Options::UnificationWithAbstraction mode) 
     : _normalizer(normalizer)
     , _ord(ord)
     , _mode(mode)
@@ -72,6 +69,7 @@ private:
   Shell::Options::UnificationWithAbstraction const _mode;
 };
 
-};
+} // namespace InequalityResolutionCalculus 
+} // namespace Inferences 
 
-#endif /*__InequalityFactoring__*/
+#endif /*__InequalityResolutionCalculus_Totality__*/

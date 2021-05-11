@@ -411,6 +411,8 @@ set(VAMPIRE_INDEXING_SOURCES
     Indexing/TermIndexingStructure.hpp
     Indexing/TermSharing.hpp
     Indexing/TermSubstitutionTree.hpp
+    Indexing/InequalityResolutionIndex.cpp
+    Indexing/InequalityResolutionIndex.hpp
     )
 source_group(indexing_source_files FILES ${VAMPIRE_INDEXING_SOURCES})
 
@@ -449,10 +451,18 @@ set(VAMPIRE_INFERENCE_SOURCES
     Kernel/Rebalancing/Inverters.cpp
     Inferences/SLQueryBackwardSubsumption.cpp
     Inferences/Superposition.cpp
-    Inferences/InequalityResolution.cpp
-    Inferences/InequalityResolution.hpp
-    Inferences/InequalityFactoring.cpp
-    Inferences/InequalityFactoring.hpp
+    Inferences/InequalityResolutionCalculus/LiteralFactoring.cpp
+    Inferences/InequalityResolutionCalculus/LiteralFactoring.hpp
+    Inferences/InequalityResolutionCalculus/Totality.cpp
+    Inferences/InequalityResolutionCalculus/Totality.hpp
+    Inferences/InequalityResolutionCalculus/VariableElimination.cpp
+    Inferences/InequalityResolutionCalculus/VariableElimination.hpp
+    Inferences/InequalityResolutionCalculus/Superposition.cpp
+    Inferences/InequalityResolutionCalculus/Superposition.hpp
+    Inferences/InequalityResolutionCalculus/InequalityResolution.cpp
+    Inferences/InequalityResolutionCalculus/InequalityResolution.hpp
+    Inferences/InequalityResolutionCalculus/TermFactoring.cpp
+    Inferences/InequalityResolutionCalculus/TermFactoring.hpp
     Inferences/TautologyDeletionISE.cpp
     Inferences/TermAlgebraReasoning.cpp
     Inferences/URResolution.cpp
@@ -790,10 +800,16 @@ set(UNIT_TESTS
     UnitTests/tImplicationSetClosure.cpp
     UnitTests/tUnificationWithAbstraction.cpp
     UnitTests/tGaussianElimination.cpp
-    UnitTests/tInequalityNormalizer.cpp
-    UnitTests/tInequalityResolution.cpp
+
+    UnitTests/tInequalityResolutionCalculus_InequalityResolution.cpp
+    UnitTests/tInequalityResolutionCalculus_LiteralFactoring.cpp
+    UnitTests/tInequalityResolutionCalculus_Normalization.cpp
+    UnitTests/tInequalityResolutionCalculus_Superposition.cpp
+    UnitTests/tInequalityResolutionCalculus_VariableElimination.cpp
+    UnitTests/tInequalityResolutionCalculus_TermFactoring.cpp
+    UnitTests/tInequalityResolutionCalculus_Totality.cpp
     UnitTests/tInequalityResolutionIndex.cpp
-    UnitTests/tInequalityFactoring.cpp
+
     UnitTests/tArithmeticSubtermGeneralization.cpp
     UnitTests/tInterpretedFunctions.cpp
     UnitTests/tRebalance.cpp

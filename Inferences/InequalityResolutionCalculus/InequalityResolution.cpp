@@ -28,7 +28,6 @@
 #include "Kernel/SortHelper.hpp"
 #include "Lib/TypeList.hpp"
 
-#include "Indexing/Index.hpp"
 
 #include "Saturation/SaturationAlgorithm.hpp"
 
@@ -45,62 +44,9 @@
 #define DEBUG_IDX(...) //DBG(__VA_ARGS__)
 
 using Kernel::InequalityLiteral;
-namespace Indexing {
 
-
-template<class NumTraits>
-bool InequalityResolutionIndex::handleLiteral(Literal* lit, Clause* c, bool adding)
-{
-  /* normlizing to t >= 0 */
-  auto norm_ = this->normalizer().normalize<NumTraits>(lit);
-  if (norm_.isSome()) {
-    if (norm_.unwrap().overflowOccurred) {
-      DEBUG_IDX("skipping overflown literal: ", norm_.unwrap().value)
-      env.statistics->irOverflowNorm++;
-      /* we skip it */
-
-    } else {
-      auto norm = std::move(norm_).unwrap().value;
-
-      DEBUG_IDX("literal: ", norm);
-      for (auto monom : norm.term().iterSummands()) {
-        // if (!monom.tryNumeral().isSome()) { // TODO shall we skip this?
-        if (!monom.factors->tryVar().isSome()) { // TODO shall we not skip this?
-
-          auto term = monom.factors->denormalize();
-          if (adding) {
-            DEBUG_IDX("\tinserting: ", term);
-            _is->insert(term, lit, c);
-          } else {
-            DEBUG_IDX("\tremoving: ", term);
-            _is->remove(term, lit, c);
-          }
-        }
-      }
-    }
-    return true;
-  } else {
-    return false;
-  }
-}
-
-void InequalityResolutionIndex::handleClause(Clause* c, bool adding)
-{
-  CALL("InequalityResolutionIndex::handleClause");
-
-  for (unsigned i = 0; i < c->size(); i++) {
-    auto lit = (*c)[i];
-    handleLiteral< IntTraits>(lit, c, adding) 
-    || handleLiteral< RatTraits>(lit, c, adding)
-    || handleLiteral<RealTraits>(lit, c, adding);
-  }
-}
-
-}
-
-
-namespace Inferences
-{
+namespace Inferences {
+namespace InequalityResolutionCalculus {
 
 using namespace Lib;
 using namespace Kernel;
@@ -216,7 +162,7 @@ Stack<Monom<NumTraits>> InequalityResolution::maxTerms(InequalityLiteral<NumTrai
 
 #define ASSERT_NO_OVERFLOW(...)                                                                               \
   [&]() { try { return __VA_ARGS__; }                                                                         \
-          catch (MachineArithmeticException&) { ASSERTION_VIOLATION }} }()                                    \
+          catch (MachineArithmeticException&) { ASSERTION_VIOLATION }}()                                      \
 
 
 
@@ -412,4 +358,5 @@ ClauseIterator InequalityResolution::generateClauses(Clause* premise)
     }));
 }
 
-}
+} // namespace InequalityResolutionCalculus
+} // namespace Inferences

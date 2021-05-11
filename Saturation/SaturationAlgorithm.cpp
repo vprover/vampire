@@ -44,8 +44,8 @@
 #include "Inferences/PushUnaryMinus.hpp"
 #include "Inferences/Cancellation.hpp"
 #include "Inferences/GaussianVariableElimination.hpp"
-#include "Inferences/InequalityResolution.hpp"
-#include "Inferences/InequalityFactoring.hpp"
+#include "Inferences/InequalityResolutionCalculus/InequalityResolution.hpp"
+#include "Inferences/InequalityResolutionCalculus/TermFactoring.hpp"
 #include "Inferences/EquationalTautologyRemoval.hpp"
 #include "Inferences/Condensation.hpp"
 #include "Inferences/FastCondensation.hpp"
@@ -1621,9 +1621,9 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
   }
 
   if (env.options->inequalityResolution()) {
-    sgi->push(new InequalityFactoring(InequalityNormalizer(PolynomialEvaluation(ordering)), &ordering, env.options->unificationWithAbstraction())); 
-    sgi->push(new InequalityResolution(PolynomialEvaluation(ordering))); 
-    ise->addFront(new InequalityNormalization(ordering)); 
+    sgi->push(new InequalityResolutionCalculus::TermFactoring(InequalityNormalizer(PolynomialEvaluation(ordering)), &ordering, env.options->unificationWithAbstraction())); 
+    sgi->push(new InequalityResolutionCalculus::InequalityResolution(PolynomialEvaluation(ordering))); 
+    ise->addFront(new InequalityResolutionCalculus::InequalityNormalization(ordering)); 
   }
 
 

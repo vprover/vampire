@@ -8,8 +8,8 @@
  * and in the source directory
  */
 /**
- * @file InequalityFactoring.cpp
- * Implements class InequalityFactoring.
+ * @file TermFactoring.cpp
+ * Implements class TermFactoring.
  */
 
 #include "Debug/RuntimeStatistics.hpp"
@@ -35,7 +35,7 @@
 #include "Shell/Options.hpp"
 #include "Shell/Statistics.hpp"
 
-#include "InequalityFactoring.hpp"
+#include "TermFactoring.hpp"
 #include "InequalityResolution.hpp"
 #include "Kernel/PolynomialNormalizer.hpp"
 #include "Kernel/InequalityNormalizer.hpp"
@@ -46,23 +46,23 @@
 
 using Kernel::InequalityLiteral;
 
-namespace Inferences
-{
+namespace Inferences {
+namespace InequalityResolutionCalculus {
 
 using namespace Lib;
 using namespace Kernel;
 using namespace Indexing;
 using namespace Saturation;
 
-void InequalityFactoring::attach(SaturationAlgorithm* salg)
+void TermFactoring::attach(SaturationAlgorithm* salg)
 {
-  CALL("InequalityFactoring::attach");
+  CALL("TermFactoring::attach");
   GeneratingInferenceEngine::attach(salg);
 }
 
-void InequalityFactoring::detach()
+void TermFactoring::detach()
 {
-  CALL("InequalityFactoring::detach");
+  CALL("TermFactoring::detach");
   ASS(_salg);
   GeneratingInferenceEngine::detach();
 }
@@ -70,7 +70,7 @@ void InequalityFactoring::detach()
 
 
 #if VDEBUG
-void InequalityFactoring::setTestIndices(Stack<Indexing::Index*> const& indices)
+void TermFactoring::setTestIndices(Stack<Indexing::Index*> const& indices)
 {  }
 #endif
 
@@ -105,13 +105,13 @@ Capture<F, Capt...> capture(F f, Capt... capt)
 
 #define ASSERT_NO_OVERFLOW(...)                                                                               \
   [&]() { try { return __VA_ARGS__; }                                                                         \
-          catch (MachineArithmeticException&) { ASSERTION_VIOLATION }} }()                                    \
+          catch (MachineArithmeticException&) { ASSERTION_VIOLATION } }()                                     \
 
 template<class NumTraits>
-ClauseIterator InequalityFactoring::generateClauses(Clause* cl, Literal* literal) const
+ClauseIterator TermFactoring::generateClauses(Clause* cl, Literal* literal) const
 {
 
-  CALL("InequalityFactoring::generateClauses(Clause*, Literal*) const")
+  CALL("TermFactoring::generateClauses(Clause*, Literal*) const")
   using Monom             = Monom<NumTraits>;
   using InequalityLiteral = InequalityLiteral<NumTraits>;
 
@@ -140,10 +140,10 @@ ClauseIterator InequalityFactoring::generateClauses(Clause* cl, Literal* literal
     .flatMap([this, cl, lit, literal, max = Lib::make_unique<Stack<Monom>>(std::move(max))](unsigned i1) -> VirtualIterator<Clause*> { 
       auto mon1 = (*max)[i1];
       //   ^^^^ <--- num1 * term1 
-      CALL("InequalityFactoring::generateClauses:@clsr1")
+      CALL("TermFactoring::generateClauses:@clsr1")
       return pvi(iterTraits(getRangeIterator(i1 + 1, (unsigned) max->size()))
         .filterMap([this, cl, lit, literal, mon1, i1, max = &*max](unsigned long i2) -> Option<Clause*> {
-            CALL("InequalityFactoring::generateClauses:@clsr2")
+            CALL("TermFactoring::generateClauses:@clsr2")
             ASS_NEQ(i1,i2)
 
             auto mon2 = (*max)[i2];
@@ -217,14 +217,14 @@ ClauseIterator InequalityFactoring::generateClauses(Clause* cl, Literal* literal
     }));
 }
 
-ClauseIterator InequalityFactoring::generateClauses(Clause* premise)
+ClauseIterator TermFactoring::generateClauses(Clause* premise)
 {
-  CALL("InequalityFactoring::generateClauses");
+  CALL("TermFactoring::generateClauses");
   DEBUG("in: ", *premise)
 
   return pvi(iterTraits(premise->getSelectedLiteralIterator())
     .flatMap([=](Literal* lit) {
-      CALL("InequalityFactoring::generateClauses@clsr1");
+      CALL("TermFactoring::generateClauses@clsr1");
         return getConcatenatedIterator(getConcatenatedIterator(
               generateClauses< IntTraits>(premise, lit) ,
               generateClauses< RatTraits>(premise, lit)),
@@ -232,4 +232,5 @@ ClauseIterator InequalityFactoring::generateClauses(Clause* premise)
     }));
 }
 
-}
+} // namespace InequalityResolutionCalculus
+} // namespace Inferences

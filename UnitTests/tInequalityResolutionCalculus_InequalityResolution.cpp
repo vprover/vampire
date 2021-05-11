@@ -11,7 +11,7 @@
 #include "Test/UnitTesting.hpp"
 #include "Test/SyntaxSugar.hpp"
 #include "Indexing/TermSharing.hpp"
-#include "Inferences/InequalityResolution.hpp"
+#include "Inferences/InequalityResolutionCalculus/InequalityResolution.hpp"
 #include "Inferences/InterpretedEvaluation.hpp"
 #include "Kernel/Ordering.hpp"
 #include "Inferences/PolynomialEvaluation.hpp"
@@ -31,6 +31,9 @@ using namespace Kernel;
 using namespace Inferences;
 using namespace Test;
 using namespace Indexing;
+using namespace Inferences::InequalityResolutionCalculus;
+
+// TODO check that also second permise uses only selected literals.
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ////// TEST CASES 
@@ -61,7 +64,7 @@ inline Stack<Indexing::Index*> indices()
   };
 }
 
-Inferences::InequalityResolution testInequalityResolution() 
+InequalityResolution testInequalityResolution() 
 { 
   auto& kbo = *new KBO(KBO::testKBO());
   return InequalityResolution(PolynomialEvaluation(kbo));
