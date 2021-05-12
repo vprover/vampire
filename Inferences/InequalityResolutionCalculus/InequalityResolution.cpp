@@ -133,6 +133,11 @@ Capture<F, Capt...> capture(F f, Capt... capt)
 
 template<class NumTraits> 
 Stack<Monom<NumTraits>> InequalityResolution::maxTerms(InequalityLiteral<NumTraits> const& lit, Ordering* ord) 
+{ return maxTerms(lit.inner(), ord); }
+
+
+template<class NumTraits> 
+Stack<Monom<NumTraits>> InequalityResolution::maxTerms(IrcLiteral<NumTraits> const& lit, Ordering* ord) 
 { 
   using Monom = Monom<NumTraits>;
   Stack<Monom> max(lit.term().nSummands()); // TODO not sure whether this size allocation brings an advantage
@@ -176,7 +181,7 @@ ClauseIterator InequalityResolution::generateClauses(Clause* cl1, Literal* liter
   using InequalityLiteral = InequalityLiteral<NumTraits>;
   const bool isInt        = std::is_same<NumTraits, IntTraits>::value;
 
-  auto lit1Opt = this->normalizer().normalize<NumTraits>(literal1);
+  auto lit1Opt = this->normalizer().normalizeIneq<NumTraits>(literal1);
   if (lit1Opt.isNone()) 
     return ClauseIterator::getEmpty();
 
@@ -228,7 +233,7 @@ ClauseIterator InequalityResolution::generateClauses(Clause* cl1, Literal* liter
 #endif
                         .factors;
                     auto literal2 = res.literal;
-                    auto lit2_ = this->normalizer().normalize<NumTraits>(literal2).unwrap();
+                    auto lit2_ = this->normalizer().normalizeIneq<NumTraits>(literal2).unwrap();
                     ASS(!lit2_.overflowOccurred)
                     auto lit2  = lit2_.value;
                     //   ^^^^ ~=  num2 * term2 + rest2 >= 0

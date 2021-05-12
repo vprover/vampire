@@ -10,7 +10,7 @@ template<class NumTraits>
 bool InequalityResolutionIndex::handleLiteral(Literal* lit, Clause* c, bool adding)
 {
   /* normlizing to t >= 0 */
-  auto norm_ = this->normalizer().normalize<NumTraits>(lit);
+  auto norm_ = this->normalizer().normalizeIneq<NumTraits>(lit);
   if (norm_.isSome()) {
     if (norm_.unwrap().overflowOccurred) {
       DEBUG("skipping overflown literal: ", norm_.unwrap().value)
@@ -22,8 +22,10 @@ bool InequalityResolutionIndex::handleLiteral(Literal* lit, Clause* c, bool addi
 
       DEBUG("literal: ", norm);
       for (auto monom : norm.term().iterSummands()) {
-        // if (!monom.tryNumeral().isSome()) { // TODO shall we skip this?
-        if (!monom.factors->tryVar().isSome()) { // TODO shall we not skip this?
+        // skipping variables and numerals
+        // TODO only skip unshielded variables
+        if (!monom.tryNumeral().isSome() &&
+            !monom.factors->tryVar().isSome()) { 
 
           auto term = monom.factors->denormalize();
           if (adding) {

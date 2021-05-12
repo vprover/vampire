@@ -112,10 +112,10 @@ ClauseIterator TermFactoring::generateClauses(Clause* cl, Literal* literal) cons
 {
 
   CALL("TermFactoring::generateClauses(Clause*, Literal*) const")
-  using Monom             = Monom<NumTraits>;
-  using InequalityLiteral = InequalityLiteral<NumTraits>;
+  using Monom      = Monom<NumTraits>;
+  using IrcLiteral = IrcLiteral<NumTraits>;
 
-  auto litOpt = this->normalizer().normalize<NumTraits>(literal);
+  auto litOpt = this->normalizer().normalizeIrc<NumTraits>(literal);
   if (litOpt.isNone()) 
     return ClauseIterator::getEmpty();
 
@@ -173,7 +173,7 @@ ClauseIterator TermFactoring::generateClauses(Clause* cl, Literal* literal) cons
               env.statistics->irOverflowApply++;
               return Option<Clause*>();
             }
-            auto resolventLit = InequalityLiteral(perfect(sum.value), lit.strict());
+            auto resolventLit = IrcLiteral(perfect(sum.value), lit.symbol());
             //   ^^^^^^^^^^^^--> (num1 + num2) * term1 + rest > 0
 
             Inference inf(GeneratingInference1(Kernel::InferenceRule::INEQUALITY_FACTORING, cl));

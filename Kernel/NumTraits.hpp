@@ -134,15 +134,18 @@ struct NumTraits;
     IMPL_NUM_TRAITS__INTERPRETED_FUN(remainder ## X, SHORT, _REMAINDER_ ## X, 2)                              \
     
 
-#define IMPL_NUM_TRAITS(CamelCase, lowerCase, LONG, SHORT)                                                               \
+#define IMPL_NUM_TRAITS(CamelCase, lowerCase, LONG, SHORT)                                                    \
   template<> struct NumTraits<CamelCase ## ConstantType> {                                                    \
     using ConstantType = CamelCase ## ConstantType;                                                           \
-    static TermList sort() { return Term::lowerCase ## Sort(); };                                              \
+    static TermList sort() { return Term::lowerCase ## Sort(); };                                             \
                                                                                                               \
     IMPL_NUM_TRAITS__INTERPRETED_PRED(less,    SHORT, _LESS,          2)                                      \
     IMPL_NUM_TRAITS__INTERPRETED_PRED(leq,     SHORT, _LESS_EQUAL,    2)                                      \
     IMPL_NUM_TRAITS__INTERPRETED_PRED(greater, SHORT, _GREATER,       2)                                      \
     IMPL_NUM_TRAITS__INTERPRETED_PRED(geq,     SHORT, _GREATER_EQUAL, 2)                                      \
+                                                                                                              \
+    static Literal* eq(bool polarity, TermList lhs, TermList rhs)                                             \
+    { return Literal::createEquality(polarity, lhs, rhs, sort()); }                                           \
                                                                                                               \
     IMPL_NUM_TRAITS__INTERPRETED_PRED(isInt,   SHORT, _IS_INT       , 1)                                      \
     IMPL_NUM_TRAITS__INTERPRETED_PRED(isRat,   SHORT, _IS_RAT       , 1)                                      \

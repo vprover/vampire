@@ -15,6 +15,7 @@
 #include "Kernel/Formula.hpp"
 #include "Lib/Int.hpp"
 #include "Forwards.hpp"
+#include "Kernel/SortHelper.hpp"
 
 #include "Signature.hpp" 
 #include "SortHelper.hpp"
@@ -45,24 +46,51 @@
 
 namespace Kernel {
   using Inferences::PolynomialEvaluation;
-  
+
+  enum class IrcPredicate {
+    EQ,
+    NEQ,
+    GREATER,
+    GREATER_EQ,
+  };
+
+  inline bool isInequality(IrcPredicate const& self)
+  {
+    switch(self) {
+      case IrcPredicate::EQ: 
+      case IrcPredicate::NEQ: return false;
+      case IrcPredicate::GREATER: 
+      case IrcPredicate::GREATER_EQ: return true;
+    }
+    ASSERTION_VIOLATION
+  }
+
+  inline std::ostream& operator<<(std::ostream& out, IrcPredicate const& self)
+  { 
+    switch(self) {
+      case IrcPredicate::EQ: return out << "==";
+      case IrcPredicate::NEQ: return out << "!=";
+      case IrcPredicate::GREATER: return out << ">";
+      case IrcPredicate::GREATER_EQ: return out << ">=";
+    } 
+    ASSERTION_VIOLATION
+  }
+
   /** 
    * Represents an inequality literal normalized for the rule InequalityResolution.
    * this means it is a literal of the form
-   *      term >= 0 or term > 0 (for Reals and Rationals)
-   * or   term >= 0             (for Integers)
+   *      term == 0 or term != 0 or term >= 0 or term > 0 (for Reals and Rationals)
+   * or   term == 0 or term != 0              or term > 0 (for Integers)
    */
   template<class NumTraits>
-  class InequalityLiteral {
+  class IrcLiteral {
     Perfect<Polynom<NumTraits>> _term;
-    bool _strict;
+    IrcPredicate _symbol;
 
   public:
-    InequalityLiteral(Perfect<Polynom<NumTraits>> term, bool strict) 
-      : _term(term), _strict(strict) {
-        _term->integrity();
-
-      }
+    IrcLiteral(Perfect<Polynom<NumTraits>> term, IrcPredicate symbol) 
+      : _term(term), _symbol(symbol) 
+    { _term->integrity(); }
 
     friend class InequalityNormalizer;
 
@@ -70,21 +98,67 @@ namespace Kernel {
     Polynom<NumTraits> const& term() const
     { return *_term; }
 
+    IrcPredicate symbol() const
+    { return _symbol; }
+
+    friend std::ostream& operator<<(std::ostream& out, IrcLiteral const& self) 
+    { return out << self._term << " " << self._symbol << " 0"; }
+
+    Literal* denormalize() const
+    {
+      auto l = term().denormalize();
+      auto r = NumTraits::zero();
+      switch(symbol()) {
+        case IrcPredicate::EQ:  return NumTraits::eq(true, l, r);
+        case IrcPredicate::NEQ: return NumTraits::eq(false, l, r);
+        case IrcPredicate::GREATER: return NumTraits::greater(true, l, r);
+        case IrcPredicate::GREATER_EQ: return NumTraits::geq(true, l, r);
+      }
+      ASSERTION_VIOLATION
+    }
+
+    bool isInequality() const
+    { return Kernel::isInequality(symbol()); }
+  };
+
+  
+  /** 
+   * Represents an inequality literal normalized for the rule InequalityResolution.
+   * this means it is a literal of the form
+   *      term > 0 or term >= 0 (for Reals and Rationals)
+   * or   term > 0              (for Integers)
+   */
+  template<class NumTraits>
+  class InequalityLiteral {
+    IrcLiteral<NumTraits> _self;
+
+  public:
+    InequalityLiteral(Perfect<Polynom<NumTraits>> term, bool strict) 
+      : InequalityLiteral(IrcLiteral<NumTraits>(term, strict ? IrcPredicate::GREATER : IrcPredicate::GREATER_EQ))
+    {}
+
+    IrcLiteral<NumTraits> const& inner() const { return _self; }
+
+    explicit InequalityLiteral(IrcLiteral<NumTraits> self) 
+      : _self(std::move(self)) 
+    { ASS(self.isInequality()) }
+
+    /* returns the lhs of the inequality lhs >= 0 (or lhs > 0) */
+    Polynom<NumTraits> const& term() const
+    { return _self.term(); }
+
     /* 
      * returns whether this is a strict inequality (i.e. >), 
      * or a non-strict one (i.e. >=) 
      * */
     bool strict() const
-    { return _strict; }
+    { return _self.symbol() == IrcPredicate::GREATER; }
 
     friend std::ostream& operator<<(std::ostream& out, InequalityLiteral const& self) 
-    { return out << self._term << (self._strict ? " > " : " >= ") << "0"; }
+    { return out << self._self; }
 
     Literal* denormalize() const
-    {
-      auto p = strict() ? NumTraits::greater : NumTraits::geq;
-      return p(true, term().denormalize(), NumTraits::zero());
-    }
+    { return _self.denormalize(); }
   };
 
   class InequalityNormalizer {
@@ -95,15 +169,14 @@ namespace Kernel {
     InequalityNormalizer(PolynomialEvaluation eval) 
       : _eval(std::move(eval)) {  }
 
-    template<class NumTraits> Option<MaybeOverflow<InequalityLiteral<NumTraits>>> normalize(Literal* lit) const;
+    template<class NumTraits> Option<MaybeOverflow<IrcLiteral<NumTraits>>> normalizeIrc(Literal* lit) const;
+    template<class NumTraits> Option<MaybeOverflow<InequalityLiteral<NumTraits>>> normalizeIneq(Literal* lit) const;
+
     Literal* normalizeLiteral(Literal* lit) const 
     {
-      return           normalize< IntTraits>(lit)
-                         .map([](MaybeOverflow<InequalityLiteral< IntTraits>> l) { return l.value.denormalize(); })
-      || [&](){ return normalize< RatTraits>(lit)
-                         .map([](MaybeOverflow<InequalityLiteral< RatTraits>> l) { return l.value.denormalize(); }); }
-      || [&](){ return normalize<RealTraits>(lit)
-                         .map([](MaybeOverflow<InequalityLiteral<RealTraits>> l) { return l.value.denormalize(); }); }
+      return           normalizeIrc< IntTraits>(lit).map([](auto l) { return l.value.denormalize(); })
+      || [&](){ return normalizeIrc< RatTraits>(lit).map([](auto l) { return l.value.denormalize(); }); }
+      || [&](){ return normalizeIrc<RealTraits>(lit).map([](auto l) { return l.value.denormalize(); }); }
       || lit;
     }
 
@@ -121,8 +194,6 @@ namespace Kernel {
     }
   };
 
-
-
 }
 
 ////////////////////////////////////////////////////////////////////////////
@@ -132,8 +203,39 @@ namespace Kernel {
 namespace Kernel {
 
   template<class NumTraits>
-  Option<MaybeOverflow<InequalityLiteral<NumTraits>>> InequalityNormalizer::normalize(Literal* lit) const
+  Option<MaybeOverflow<InequalityLiteral<NumTraits>>> InequalityNormalizer::normalizeIneq(Literal* lit) const
   {
+    using Opt = Option<MaybeOverflow<InequalityLiteral<NumTraits>>>;
+    return normalizeIrc<NumTraits>(lit)
+      .andThen([](auto overflown) {
+        if (overflown.value.isInequality()) {
+          return Opt(overflown.map([](auto lit) { return InequalityLiteral<NumTraits>(std::move(lit)); }));
+        } else {
+          return Opt();
+        }
+      });
+  }
+
+  template<class NumTraits>
+  Option<MaybeOverflow<IrcLiteral<NumTraits>>> InequalityNormalizer::normalizeIrc(Literal* lit) const
+  {
+    // auto normalizeEqSign = [](Perfect<Polynom<NumTraits>> const& t) -> Perfect<Polynom<NumTraits>>{
+    //   auto pol = 0;
+    //   for (auto s : t->iterSummands()) {
+    //     if (s.numeral.isPositive()) {
+    //       pol++;
+    //     } else {
+    //       ASS(s.numeral.isNegative())
+    //       pol--;
+    //     }
+    //   }
+    //   if (pol >= 0) {
+    //     return t;
+    //   } else {
+    //     return perfect(Polynom<NumTraits>(t->iterSummands()
+    //           .map([](auto s) { return Monom<NumTraits>(-s.numeral, s.factor); })))
+    //   }
+    // }
     CALL("InequalityLiteral<NumTraits>::fromLiteral(Literal*)")
     DEBUG("in: ", *lit, " (", NumTraits::name(), ")")
 
@@ -141,7 +243,7 @@ namespace Kernel {
 
       constexpr bool isInt = std::is_same<NumTraits, IntTraits>::value;
 
-      using Opt = Option<MaybeOverflow<InequalityLiteral<NumTraits>>>;
+      using Opt = Option<MaybeOverflow<IrcLiteral<NumTraits>>>;
 
       auto f = lit->functor();
       if (!theory->isInterpretedPredicate(f))
@@ -150,58 +252,68 @@ namespace Kernel {
       auto itp = theory->interpretPredicate(f);
 
 
-      bool strict;
+      IrcPredicate pred;
       TermList l, r; // <- we rewrite to l < r or l <= r
       switch(itp) {
+        case Interpretation::EQUAL:
+          if (SortHelper::getEqualityArgumentSort(lit) != NumTraits::sort()) 
+            return Opt();
+          l = *lit->nthArgument(0);
+          r = *lit->nthArgument(1);
+          pred = lit->isPositive() ? IrcPredicate::EQ : IrcPredicate::NEQ;
+          break;
+
         case NumTraits::leqI: /* l <= r */
           l = *lit->nthArgument(0);
           r = *lit->nthArgument(1);
-          strict = false;
+          pred = IrcPredicate::GREATER_EQ;
           break;
 
         case NumTraits::geqI: /* l >= r ==> r <= l */
           l = *lit->nthArgument(1);
           r = *lit->nthArgument(0);
-          strict = false;
+          pred = IrcPredicate::GREATER_EQ;
           break;
 
         case NumTraits::lessI: /* l < r */
           l = *lit->nthArgument(0);
           r = *lit->nthArgument(1);
-          strict = true;
+          pred = IrcPredicate::GREATER;
           break;
 
         case NumTraits::greaterI: /* l > r ==> r < l */
           l = *lit->nthArgument(1);
           r = *lit->nthArgument(0);
-          strict = true;
+          pred = IrcPredicate::GREATER;
           break;
 
         default: 
           return Opt();
       }
 
-      if (lit->isNegative()) {
+      if (lit->isNegative() && isInequality(pred)) {
+        // ~(l >= r) <==> (r < l)
         std::swap(l, r);
-        strict = !strict;
+        pred = pred == IrcPredicate::GREATER ? IrcPredicate::GREATER_EQ : IrcPredicate::GREATER;
       }
 
-      if (isInt && !strict) {
+      if (isInt && pred == IrcPredicate::GREATER_EQ) {
         /* l <= r ==> l < r + 1 */
         r = NumTraits::add(r, NumTraits::one());
-        strict = true;
+        pred = IrcPredicate::GREATER;
       }
 
       /* l < r ==> r > l ==> r - l > 0 */
       auto t = NumTraits::add(r, NumTraits::minus(l));
 
-      ASS(!isInt || strict)
+      ASS(!isInt || pred != IrcPredicate::GREATER_EQ)
       auto tt = TypedTermList(t, NumTraits::sort());
       auto norm = Kernel::normalizeTerm(tt);
       auto simpl = _eval.evaluate(norm);
       auto simplValue = simpl.value || norm;
       simplValue.integrity();
-      return Opt(maybeOverflow(InequalityLiteral<NumTraits>(simplValue.wrapPoly<NumTraits>(), strict), simpl.overflowOccurred));
+      auto out = IrcLiteral<NumTraits>(simplValue.wrapPoly<NumTraits>(), pred);
+      return Opt(maybeOverflow(std::move(out), simpl.overflowOccurred));
     };
     auto out = impl();
     DEBUG("out: ", out);
