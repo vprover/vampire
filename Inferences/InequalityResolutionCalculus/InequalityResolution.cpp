@@ -248,17 +248,27 @@ ClauseIterator InequalityResolution::generateClauses(Clause* cl1, Literal* liter
                       return Option<Clause*>();
                     }
 
+                    bool strictlyMaxAfterUnification = true;
+
                     auto resolventSum = NumTraits::zero();
-                    // Stack<Monom> resolventSum(lit1.term().nSummands() + lit2.term().nSummands() - 2 + (isInt ? 1 : 0));
-                    // //           ^^^^^^^^^^^^--> gonna be k1 * rest1 + k2 * rest2                   
-                    //
+                    //   ^^^^^^^^^^^^--> gonna be k1 * rest1 + k2 * rest2 
+
                     try {
                       auto pushTerms = [&](InequalityLiteral lit, Perfect<MonomFactors> termToSkip, Numeral num, bool resultVarBank)
                                 {
+                                  auto pivot = subs.applyTo(termToSkip->denormalize(), resultVarBank);
                                   auto iter = lit.term()
                                       .iterSummands()
                                       .filter([&](Monom m) { return m.factors != termToSkip; })
-                                      .map   ([&](Monom m) { return subs.applyTo(Monom(m.numeral * num, m.factors).denormalize(),resultVarBank); });
+                                      .map   ([&](Monom m) { 
+                                          auto atomic = subs.applyTo(m.factors->denormalize(),resultVarBank); 
+                                          auto cmp = _shared->ordering->compare(pivot, atomic);
+                                          strictlyMaxAfterUnification &= cmp != Ordering::EQUAL 
+                                                                      && cmp != Ordering::LESS;
+
+                                          auto numeral = NumTraits::constantTl(m.numeral * num);
+                                          return subs.applyTo(NumTraits::mul(numeral, atomic),resultVarBank); 
+                                      });
                                   for (auto x : iter) {
                                     resolventSum = NumTraits::add(x, resolventSum);
                                   }
@@ -274,6 +284,9 @@ ClauseIterator InequalityResolution::generateClauses(Clause* cl1, Literal* liter
                       env.statistics->irOverflowApply++;
                       return Option<Clause*>();
                     }
+
+                    if (!strictlyMaxAfterUnification)
+                      return Option<Clause*>();
 
                     // auto sum = PolynomialEvaluation::simplifySummation(std::move(resolventSum));
                     auto normResolventSum = normalizeTerm(resolventSum, NumTraits::sort()).template wrapPoly<NumTraits>();

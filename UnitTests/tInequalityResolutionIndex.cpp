@@ -59,23 +59,17 @@ TERM_INDEX_TEST_SET_DEFAULT(index, inequalityResolutionIndex());
 TEST_TERM_INDEX(test01,
     TermIndexTest::TestCase()
       .contents ({ 
-                  clause({  2 * a + 3 * b > 0  }),
+                  clause({  selected(2 * a + 3 * b > 0)  }),
       })
       .query ( a )
       .expected({
-          termQueryResult()
-            .term        (   a               )
-            .literal     (   2 * a + 3 * b > 0   )
-            .clause      ({  2 * a + 3 * b > 0  })
-            .substitution({ })
-            .constraints ({ })
       })
     )
 
 TEST_TERM_INDEX(test02,
     TermIndexTest::TestCase()
       .contents ({ 
-                  clause({  2 * a + 3 * b > 0  }),
+                  clause({ selected( 2 * a + 3 * b > 0 ) }),
       })
       .query ( b )
       .expected({
@@ -89,7 +83,7 @@ TEST_TERM_INDEX(test02,
 TEST_TERM_INDEX(test03,
     TermIndexTest::TestCase()
       .contents ({ 
-                  clause({  2 * a + 3 * b > 0  }),
+                  clause({ selected( 2 * a + 3 * b > 0 ) }),
       })
       .query ( b )
       .expected({
@@ -103,8 +97,8 @@ TEST_TERM_INDEX(test03,
 TEST_TERM_INDEX(test04,
     TermIndexTest::TestCase()
       .contents ({ 
-                  clause({      f(a) > 0  }),
-                  clause({  2 * f(b) > 0  }),
+                  clause({ selected(     f(a) > 0 ) }),
+                  clause({ selected( 2 * f(b) > 0 ) }),
       })
       .query ( b )
       .expected({ /* nothing */ })
@@ -113,8 +107,8 @@ TEST_TERM_INDEX(test04,
 TEST_TERM_INDEX(test05,
     TermIndexTest::TestCase()
       .contents ({ 
-                  clause({      f(a) > 0  }),
-                  clause({  2 * f(b) > 0  }),
+                  clause({ selected(     f(a) > 0 ) }),
+                  clause({ selected( 2 * f(b) > 0 ) }),
       })
       .query ( f(x) )
       .expected({
@@ -135,7 +129,7 @@ TEST_TERM_INDEX(test05,
 TEST_TERM_INDEX(test06,
     TermIndexTest::TestCase()
       .contents ({ 
-                  clause({  f(b + x + y) > 0  }),
+                  clause({ selected( f(b + x + y) > 0 ) }),
       })
       .query (  f(a + z) )
       .expected({
@@ -151,15 +145,15 @@ TEST_TERM_INDEX(test06,
 TEST_TERM_INDEX(test07,
     TermIndexTest::TestCase()
       .contents ({ 
-                  clause({  f(c + b + a) + f(c) > 0  }),
+                  clause({ selected( f(c + b + a) + f(c) > 0  ) }),
       })
       .query (  f(c) )
       .expected({
 
-          termQueryResult()
-            .term        ( f(c) )
-            .substitution({  })
-            .constraints ({  }),
+          // termQueryResult() -> not maximal
+          //   .term        ( f(c) )
+          //   .substitution({  })
+          //   .constraints ({  }),
 
           termQueryResult()
             .term        ( f(c + b + a) )
@@ -172,7 +166,7 @@ TEST_TERM_INDEX(test07,
 TEST_TERM_INDEX(test08,
     TermIndexTest::TestCase()
       .contents ({ 
-                  clause({  f(a + b) > 0  }),
+                  clause({ selected( f(a + b) > 0  ) }),
       })
       .query (  f(c + d) )
       .expected({

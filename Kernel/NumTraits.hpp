@@ -172,6 +172,7 @@ struct NumTraits;
     static Term* constantT(int i) { return constantT(constant(i)); }                                          \
     static Term* constantT(ConstantType i) { return theory->representConstant(i); }                           \
     static TermList constantTl(int i) { return TermList(constantT(i)); }                                      \
+    static TermList constantTl(ConstantType i) { return TermList(constantT(i)); }                             \
     static Option<ConstantType> tryNumeral(TermList t) {                                                      \
       ConstantType out;                                                                                       \
       if (theory->tryInterpretConstant(t,out)) {                                                              \

@@ -56,5 +56,3 @@ void InequalityResolutionIndex::handleClause(Clause* c, bool adding)
 }
 
 } // namespace Indexing
-
-

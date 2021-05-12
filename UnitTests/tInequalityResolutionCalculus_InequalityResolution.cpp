@@ -125,11 +125,11 @@ TEST_GENERATION(basic05,
 TEST_GENERATION(basic06,
     Generation::TestCase()
       .indices(indices())
-      .input   (  clause({ selected(       -f(x) > 0 ) }) )
-      .context ({ clause({ selected( f(y) + f(a) > 0 ) }) })
+      .input   (  clause({ selected(       -g(x,y) > 0 ) }) )
+      .context ({ clause({ selected( g(a,z) + g(z,a) > 0 ) }) })
       .expected(exactly(
-            clause({  f(a) > 0 })
-          , clause({  f(x) > 0 })
+            clause({  g(y,a) > 0 })
+          , clause({  g(a,z) > 0 })
       ))
       .premiseRedundant(false)
     )
@@ -171,6 +171,46 @@ TEST_GENERATION(basic10,
       .context ({ clause({ selected( a > 0) }) })
       .expected(exactly(
       ))
+      .premiseRedundant(false)
+    )
+
+
+TEST_GENERATION(strictly_max_after_unification_01a,
+    Generation::TestCase()
+      .indices(indices())
+      .input   (  clause({ selected(-f(x) + f(a) > 0) }) )
+      .context ({ clause({ selected( f(a)        > 0) }) })
+      .expected(exactly(
+      ))
+      .premiseRedundant(false)
+    )
+
+
+TEST_GENERATION(strictly_max_after_unification_01b,
+    Generation::TestCase()
+      .indices(indices())
+      .input   (  clause({ selected( f(a)        > 0) })  )
+      .context ({ clause({ selected(-f(x) + f(a) > 0) }) })
+      .expected(exactly(
+      ))
+      .premiseRedundant(false)
+    )
+
+TEST_GENERATION(strictly_max_after_unification_02a,
+    Generation::TestCase()
+      .indices(indices())
+      .input   (         clause({ selected(-f(x) + f(a) > 0 )}) )
+      .context ({        clause({ selected( f(b)        > 0) }) })
+      .expected(exactly( clause({           f(a)        > 0 }) ))
+      .premiseRedundant(false)
+    )
+
+TEST_GENERATION(strictly_max_after_unification_02b,
+    Generation::TestCase()
+      .indices(indices())
+      .input   (         clause({ selected( f(b)        > 0) })  )
+      .context ({        clause({ selected(-f(x) + f(a) > 0 )}) })
+      .expected(exactly( clause({           f(a)        > 0 }) ))
       .premiseRedundant(false)
     )
 
@@ -330,10 +370,9 @@ TEST_GENERATION_WITH_SUGAR(bug03,
 // *cl2 = ~P(X1,X2) | 1 + -X1 + a > 0
 // *resolvent = $greater($sum(1,$uminus(X1)),0) | ~'MS'(X0,X1,s2)
       .indices(indices())
-      .input   (         clause({            selected(1 + -a     > 0) })  )
-      .context ({        clause({  ~r(y,z) , selected(1 + -y + a > 0) }) })
-      .expected(exactly( clause({  ~r(x,y) ,          2 + -x     > 0  })
-      ))
+      .input   (         clause({            selected(1 + -f(a)        > 0) })  )
+      .context ({        clause({  ~r(y,z) , selected(1 + -f(x) + f(a) > 0) }) })
+      .expected(exactly( clause({  ~r(y,z) ,          2 + -f(x)        > 0  }) ))
       .premiseRedundant(false)
     )
 
