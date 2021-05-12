@@ -29,8 +29,8 @@
 #include "Shell/Statistics.hpp"
 
 #include "IndexManager.hpp"
-#include "Kernel/InequalityNormalizer.hpp"
-#include "Inferences/InequalityResolutionCalculus/InequalityResolution.hpp"
+#include "Kernel/InequalityResolutionCalculus.hpp"
+#include "Indexing/InequalityResolutionIndex.hpp"
 
 using namespace Lib;
 using namespace Indexing;
@@ -182,7 +182,7 @@ Index* IndexManager::create(IndexType t)
 
   case INEQUALITY_RESOLUTION_SUBST_TREE:
     tis=new TermSubstitutionTree(uwaMode, true);
-    res=new InequalityResolutionIndex(tis, _alg->getOrdering(), InequalityNormalizer(PolynomialEvaluation(_alg->getOrdering())));
+    res=new InequalityResolutionIndex(tis);
     isGenerating = true;
     break;
 

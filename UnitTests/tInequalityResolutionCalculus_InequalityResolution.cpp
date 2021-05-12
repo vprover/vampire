@@ -54,21 +54,14 @@ using namespace Inferences::InequalityResolutionCalculus;
 
 inline Stack<Indexing::Index*> indices() 
 { 
-  auto& kbo = *new KBO(KBO::testKBO());
-  // auto uwa = env.options->unificationWithAbstraction();
   auto uwa = Options::UnificationWithAbstraction::ONE_INTERP;
   return {
-    new InequalityResolutionIndex(
-        new TermSubstitutionTree(uwa, true), kbo,
-        InequalityNormalizer(PolynomialEvaluation(kbo)))
+    new InequalityResolutionIndex(new TermSubstitutionTree(uwa, true))
   };
 }
 
 InequalityResolution testInequalityResolution() 
-{ 
-  auto& kbo = *new KBO(KBO::testKBO());
-  return InequalityResolution(PolynomialEvaluation(kbo));
-}
+{ return InequalityResolution(testIrcState()); }
 
 REGISTER_GEN_TESTER(Test::Generation::GenerationTester<InequalityResolution>(testInequalityResolution()))
 

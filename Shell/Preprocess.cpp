@@ -35,7 +35,7 @@
 #include "GeneralSplitting.hpp"
 #include "InequalitySplitting.hpp"
 #include "InterpretedNormalizer.hpp"
-#include "Kernel/InequalityNormalizer.hpp"
+#include "Kernel/InequalityResolutionCalculus.hpp"
 #include "Kernel/LaKbo.hpp"
 #include "Naming.hpp"
 #include "Normalisation.hpp"

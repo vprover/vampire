@@ -37,7 +37,7 @@
 #include "Normalization.hpp"
 #include "Shell/UnificationWithAbstractionConfig.hpp"
 #include "Kernel/PolynomialNormalizer.hpp"
-#include "Kernel/InequalityNormalizer.hpp"
+#include "Kernel/InequalityResolutionCalculus.hpp"
 #include "Indexing/TermIndexingStructure.hpp"
 
 #define DEBUG(...) // DBG(__VA_ARGS__)
@@ -53,18 +53,12 @@ using namespace Kernel;
 using namespace Indexing;
 using namespace Saturation;
 
-Normalization::Normalization(Ordering& ord)
-  : _normalizer(InequalityNormalizer(PolynomialEvaluation(ord)))
-{
-
-}
-
 Clause* Normalization::simplify(Clause* cl) 
 {
   bool altered = false; 
   auto out = Stack<Literal*>(cl->size());
   for (unsigned i = 0; i < cl->size(); i++) {
-    out.push(_normalizer.normalizeLiteral((*cl)[i]));
+    out.push(_shared->normalizer.normalizeLiteral((*cl)[i]));
     altered |= out[i] != (*cl)[i];
   }
   if (altered) {

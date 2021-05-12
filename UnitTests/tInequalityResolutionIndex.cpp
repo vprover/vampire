@@ -47,11 +47,10 @@ using Test::TermIndexTest::subs;
 
 InequalityResolutionIndex* inequalityResolutionIndex() 
 {
-  auto kbo = new KBO(KBO::testKBO());
-  return new InequalityResolutionIndex(
-               new TermSubstitutionTree(Options::UnificationWithAbstraction::ALL, /* useC = */ true), 
-               *kbo, 
-               PolynomialEvaluation(*kbo));
+  auto uwa = Options::UnificationWithAbstraction::ALL;
+  auto idx = new InequalityResolutionIndex( new TermSubstitutionTree(uwa, /* useC = */ true));
+  idx->setShared(testIrcState(uwa));
+  return idx;
 }
 
 TERM_INDEX_TEST_SET_DEFAULT(withConstraints, true);

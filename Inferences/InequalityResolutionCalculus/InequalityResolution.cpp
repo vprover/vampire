@@ -37,7 +37,7 @@
 #include "InequalityResolution.hpp"
 #include "Shell/UnificationWithAbstractionConfig.hpp"
 #include "Kernel/PolynomialNormalizer.hpp"
-#include "Kernel/InequalityNormalizer.hpp"
+#include "Kernel/InequalityResolutionCalculus.hpp"
 #include "Indexing/TermIndexingStructure.hpp"
 
 #define DEBUG(...) // DBG(__VA_ARGS__)
@@ -61,6 +61,7 @@ void InequalityResolution::attach(SaturationAlgorithm* salg)
   GeneratingInferenceEngine::attach(salg);
   _index=static_cast<InequalityResolutionIndex*> (
 	  _salg->getIndexManager()->request(INEQUALITY_RESOLUTION_SUBST_TREE) );
+  _index->setShared(_shared);
 }
 
 void InequalityResolution::detach()
@@ -79,6 +80,7 @@ void InequalityResolution::detach()
 void InequalityResolution::setTestIndices(Stack<Indexing::Index*> const& indices)
 { _index = (InequalityResolutionIndex*) indices[0]; }
 #endif
+
 
 
 using Lib::TypeList::List;
@@ -273,7 +275,7 @@ ClauseIterator InequalityResolution::generateClauses(Clause* cl1, Literal* liter
 
                     // auto sum = PolynomialEvaluation::simplifySummation(std::move(resolventSum));
                     auto normResolventSum = normalizeTerm(resolventSum, NumTraits::sort()).template wrapPoly<NumTraits>();
-                    auto sum = _eval.evaluate(normResolventSum).map([&](auto eval) { return eval || normResolventSum; });
+                    auto sum = _shared->normalizer.evaluator().evaluate(normResolventSum).map([&](auto eval) { return eval || normResolventSum; });
                     if (sum.overflowOccurred) {
                       env.statistics->irOverflowApply++;
                       return Option<Clause*>(); 

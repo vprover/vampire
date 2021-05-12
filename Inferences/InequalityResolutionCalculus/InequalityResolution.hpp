@@ -23,7 +23,7 @@
 #include "Shell/UnificationWithAbstractionConfig.hpp"
 #include "Inferences/PolynomialEvaluation.hpp"
 #include "Indexing/InequalityResolutionIndex.hpp"
-#include "Kernel/InequalityNormalizer.hpp"
+#include "Kernel/InequalityResolutionCalculus.hpp"
 
 namespace Inferences {
 namespace InequalityResolutionCalculus {
@@ -39,9 +39,9 @@ public:
   CLASS_NAME(InequalityResolution);
   USE_ALLOCATOR(InequalityResolution);
 
-  InequalityResolution(PolynomialEvaluation eval) 
+  InequalityResolution(shared_ptr<IrcState> shared) 
     : _index(0)
-    , _eval(eval)
+    , _shared(std::move(shared))
   {  }
 
   void attach(SaturationAlgorithm* salg) final override;
@@ -98,11 +98,10 @@ private:
 
   template<class NumTraits> ClauseIterator generateClauses(Clause* clause, Literal* lit) const;
 
-  InequalityNormalizer const& normalizer() const { return _index->normalizer(); }
-  Ordering* ord() const { return _index->ord(); }
+  InequalityNormalizer const& normalizer() const { return _shared->normalizer; }
+  Ordering* ord() const { return _shared->ordering; }
   InequalityResolutionIndex* _index;
-  // TODO assert there's only one shared instance polynomial evaluation
-  PolynomialEvaluation _eval;
+  shared_ptr<IrcState>  _shared;
 };
 
 } // namespace InequalityResolutionCalculs

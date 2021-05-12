@@ -38,7 +38,7 @@
 #include "TermFactoring.hpp"
 #include "InequalityResolution.hpp"
 #include "Kernel/PolynomialNormalizer.hpp"
-#include "Kernel/InequalityNormalizer.hpp"
+#include "Kernel/InequalityResolutionCalculus.hpp"
 #include "Indexing/TermIndexingStructure.hpp"
 #include "Kernel/RobSubstitution.hpp"
 
@@ -152,7 +152,7 @@ ClauseIterator TermFactoring::generateClauses(Clause* cl, Literal* literal) cons
 
             RobSubstitution subst;
             Stack<UnificationConstraint> consts;
-            Kernel::UWAMismatchHandler hndlr(_mode, consts);
+            Kernel::UWAMismatchHandler hndlr(_shared->uwa, consts);
             if (!subst.unify(mon1.factors->denormalize(), /* var bank: */ 0, 
                              mon2.factors->denormalize(), /* var bank: */ 0,
                              &hndlr)) {

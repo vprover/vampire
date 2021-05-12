@@ -332,6 +332,8 @@ set(VAMPIRE_KERNEL_SOURCES
     Kernel/ApplicativeHelper.cpp
     Kernel/SKIKBO.hpp
     Kernel/SKIKBO.cpp
+    kernel/InequalityResolutionCalculus.hpp
+    kernel/InequalityResolutionCalculus.cpp
     Indexing/TypeSubstitutionTree.cpp
     Indexing/TypeSubstitutionTree.hpp
     Inferences/CNFOnTheFly.cpp

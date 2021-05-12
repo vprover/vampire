@@ -1622,9 +1622,14 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
   }
 
   if (env.options->inequalityResolution()) {
-    sgi->push(new InequalityResolutionCalculus::TermFactoring(InequalityNormalizer(PolynomialEvaluation(ordering)), &ordering, env.options->unificationWithAbstraction())); 
-    sgi->push(new InequalityResolutionCalculus::InequalityResolution(PolynomialEvaluation(ordering))); 
-    ise->addFront(new InequalityResolutionCalculus::Normalization(ordering)); 
+    auto shared = std::shared_ptr<Kernel::IrcState>(new Kernel::IrcState {
+        .normalizer =InequalityNormalizer(PolynomialEvaluation(ordering)), 
+        .ordering = &ordering, 
+        .uwa = env.options->unificationWithAbstraction(),
+    });
+    sgi->push(new InequalityResolutionCalculus::TermFactoring(shared)); 
+    sgi->push(new InequalityResolutionCalculus::InequalityResolution(shared)); 
+    ise->addFront(new InequalityResolutionCalculus::Normalization(shared)); 
   }
 
 

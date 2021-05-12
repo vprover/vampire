@@ -59,8 +59,7 @@ TermFactoring testTermFactoring(
     Options::UnificationWithAbstraction uwa = Options::UnificationWithAbstraction::ONE_INTERP
     )
 { 
-  auto& kbo = *new KBO(KBO::testKBO());
-  return TermFactoring(*new InequalityNormalizer(kbo), &kbo, uwa);
+  return TermFactoring(testIrcState(uwa));
 }
 
 REGISTER_GEN_TESTER(Test::Generation::GenerationTester<TermFactoring>(testTermFactoring()))

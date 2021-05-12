@@ -24,7 +24,7 @@
 #include "Indexing/IndexManager.hpp"
 #include "Indexing/TermIndex.hpp"
 #include "Inferences/PolynomialEvaluation.hpp"
-#include "Kernel/InequalityNormalizer.hpp"
+#include "Kernel/InequalityResolutionCalculus.hpp"
 #include "Shell/Options.hpp"
 
 namespace Inferences {
@@ -42,10 +42,8 @@ public:
   USE_ALLOCATOR(TermFactoring);
 
   TermFactoring(TermFactoring&&) = default;
-  TermFactoring(InequalityNormalizer normalizer, Ordering* ord, Shell::Options::UnificationWithAbstraction mode) 
-    : _normalizer(normalizer)
-    , _ord(ord)
-    , _mode(mode)
+  TermFactoring(shared_ptr<IrcState> shared)
+    : _shared(std::move(shared))
   {  }
 
   void attach(SaturationAlgorithm* salg) final override;
@@ -64,12 +62,10 @@ private:
 
   template<class NumTraits> ClauseIterator generateClauses(Clause* clause, Literal* lit) const;
 
-  InequalityNormalizer const& normalizer() const { return _normalizer; }
-  Ordering* ord() const { return _ord; }
+  InequalityNormalizer const& normalizer() const { return _shared->normalizer; }
+  Ordering* ord() const { return _shared->ordering; }
   
-  InequalityNormalizer _normalizer;
-  Ordering* _ord;
-  Shell::Options::UnificationWithAbstraction const _mode;
+  shared_ptr<IrcState> _shared;
 };
 
 } // namespace InequalityResolutionCalculus 

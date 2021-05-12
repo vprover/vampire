@@ -17,7 +17,7 @@
 #define __InequalityResolutionCalculus_InequalityResolutionIndex__
 
 
-#include "Kernel/InequalityNormalizer.hpp"
+#include "Kernel/InequalityResolutionCalculus.hpp"
 
 #include "Indexing/IndexManager.hpp"
 #include "Indexing/TermIndex.hpp"
@@ -32,20 +32,18 @@ public:
   CLASS_NAME(InequalityResolutionIndex);
   USE_ALLOCATOR(InequalityResolutionIndex);
 
-  InequalityResolutionIndex(TermIndexingStructure* is, Ordering& ord, InequalityNormalizer norm)
-    : TermIndex(is)
-    , _ord(&ord)
-    , _normalizer(std::move(norm)) {}
+  InequalityResolutionIndex(TermIndexingStructure* is)
+    : TermIndex(is) {}
 
-  InequalityNormalizer const& normalizer() const { return _normalizer; }
-  Ordering* ord() const { return _ord; }
+  InequalityNormalizer const& normalizer() const { return _shared->normalizer; }
+  Ordering* ord() const { return _shared->ordering; }
+  void setShared(shared_ptr<Kernel::IrcState> shared) { _shared = std::move(shared); }
 protected:
   void handleClause(Clause* c, bool adding);
 private:
   template<class NumTraits> bool handleLiteral(Literal* lit, Clause* c, bool adding);
 
-  Ordering* _ord;
-  InequalityNormalizer _normalizer;
+  shared_ptr<Kernel::IrcState> _shared;
 };
 
 } // namespace Indexing

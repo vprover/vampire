@@ -7,15 +7,22 @@
  * https://vprover.github.io/license.html
  * and in the source directory
  */
+/**
+ * @file InequalityResolutionCalculus.cpp
+ * Defines all functionality shared among the components of the inequality resolution calculus.
+ *
+ */
 
 
-#ifndef __INEQUALITY_NORMALIZER_HPP__
-#define __INEQUALITY_NORMALIZER_HPP__
+
+#ifndef __InequalityResolutionCalculus__
+#define __InequalityResolutionCalculus__
 
 #include "Kernel/Formula.hpp"
 #include "Lib/Int.hpp"
 #include "Forwards.hpp"
 #include "Kernel/SortHelper.hpp"
+#include "Kernel/LaKbo.hpp"
 
 #include "Signature.hpp" 
 #include "SortHelper.hpp"
@@ -46,7 +53,7 @@
 
 namespace Kernel {
   using Inferences::PolynomialEvaluation;
-
+   
   enum class IrcPredicate {
     EQ,
     NEQ,
@@ -54,27 +61,10 @@ namespace Kernel {
     GREATER_EQ,
   };
 
-  inline bool isInequality(IrcPredicate const& self)
-  {
-    switch(self) {
-      case IrcPredicate::EQ: 
-      case IrcPredicate::NEQ: return false;
-      case IrcPredicate::GREATER: 
-      case IrcPredicate::GREATER_EQ: return true;
-    }
-    ASSERTION_VIOLATION
-  }
+  /** returns true iff the predicate is > or >= */
+  bool isInequality(IrcPredicate const& self);
 
-  inline std::ostream& operator<<(std::ostream& out, IrcPredicate const& self)
-  { 
-    switch(self) {
-      case IrcPredicate::EQ: return out << "==";
-      case IrcPredicate::NEQ: return out << "!=";
-      case IrcPredicate::GREATER: return out << ">";
-      case IrcPredicate::GREATER_EQ: return out << ">=";
-    } 
-    ASSERTION_VIOLATION
-  }
+  std::ostream& operator<<(std::ostream& out, IrcPredicate const& self);
 
   /** 
    * Represents an inequality literal normalized for the rule InequalityResolution.
@@ -166,33 +156,28 @@ namespace Kernel {
     PolynomialEvaluation _eval;
 
   public:
+    PolynomialEvaluation& evaluator() { return _eval; }
     InequalityNormalizer(PolynomialEvaluation eval) 
       : _eval(std::move(eval)) {  }
 
     template<class NumTraits> Option<MaybeOverflow<IrcLiteral<NumTraits>>> normalizeIrc(Literal* lit) const;
     template<class NumTraits> Option<MaybeOverflow<InequalityLiteral<NumTraits>>> normalizeIneq(Literal* lit) const;
 
-    Literal* normalizeLiteral(Literal* lit) const 
-    {
-      return           normalizeIrc< IntTraits>(lit).map([](auto l) { return l.value.denormalize(); })
-      || [&](){ return normalizeIrc< RatTraits>(lit).map([](auto l) { return l.value.denormalize(); }); }
-      || [&](){ return normalizeIrc<RealTraits>(lit).map([](auto l) { return l.value.denormalize(); }); }
-      || lit;
-    }
-
-    inline bool isNormalized(Clause* cl)  const
-    { 
-      for (unsigned i = 0; i < cl->size(); i++) {
-        auto lit = (*cl)[i];
-        if(lit != normalizeLiteral(lit)) {
-          DBG(cl->toString())
-          DBG(*lit, " != ", *normalizeLiteral(lit))
-          return false;
-        }
-      }
-      return true;
-    }
+    Literal* normalizeLiteral(Literal* lit) const;
+    bool isNormalized(Clause* cl)  const;
   };
+
+  struct IrcState {
+    InequalityNormalizer normalizer;
+    Ordering* ordering;
+    Shell::Options::UnificationWithAbstraction uwa;
+  };
+
+#if VDEBUG
+  shared_ptr<IrcState> testIrcState(
+    Options::UnificationWithAbstraction uwa = Options::UnificationWithAbstraction::ONE_INTERP
+    );
+#endif
 
 }
 
@@ -323,5 +308,5 @@ namespace Kernel {
 } // namespace Kernel
 
 #undef DEBUG
-#endif // __INEQUALITY_NORMALIZER_HPP__
+#endif // __InequalityResolutionCalculus__
 

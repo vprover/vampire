@@ -1,5 +1,5 @@
 #include "InequalityResolutionIndex.hpp"
-#include "Kernel/InequalityNormalizer.hpp"
+#include "Kernel/InequalityResolutionCalculus.hpp"
 #include "Shell/Statistics.hpp"
 
 #define DEBUG(...) // DBG(__VA_ARGS__)

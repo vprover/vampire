@@ -23,7 +23,7 @@
 #include "Shell/UnificationWithAbstractionConfig.hpp"
 #include "Inferences/PolynomialEvaluation.hpp"
 #include "Indexing/InequalityResolutionIndex.hpp"
-#include "Kernel/InequalityNormalizer.hpp"
+#include "Kernel/InequalityResolutionCalculus.hpp"
 
 namespace Inferences {
 namespace InequalityResolutionCalculus {
@@ -35,9 +35,9 @@ using namespace Saturation;
 class Normalization
 : public ImmediateSimplificationEngine 
 {
-  InequalityNormalizer _normalizer;
+  shared_ptr<IrcState> _shared;
 public: 
-  Normalization(Ordering& ord);
+  Normalization(shared_ptr<IrcState> shared) : _shared(std::move(shared)) {}
   CLASS_NAME(Normalization);
   USE_ALLOCATOR(Normalization);
 
