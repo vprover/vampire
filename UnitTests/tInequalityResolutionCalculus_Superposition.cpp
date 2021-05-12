@@ -61,10 +61,7 @@ inline Stack<Indexing::Index*> indices()
 Superposition testSuperposition(
     Options::UnificationWithAbstraction uwa = Options::UnificationWithAbstraction::ONE_INTERP
     )
-{ 
-  auto& kbo = *new KBO(KBO::testKBO());
-  return Superposition(*new InequalityNormalizer(kbo), &kbo, uwa);
-}
+{ return Superposition(testIrcState(uwa)); }
 
 
 

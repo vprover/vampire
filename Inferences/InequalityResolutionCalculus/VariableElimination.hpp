@@ -39,10 +39,8 @@ public:
   USE_ALLOCATOR(VariableElimination);
 
   VariableElimination(VariableElimination&&) = default;
-  VariableElimination(InequalityNormalizer normalizer, Ordering* ord, Shell::Options::UnificationWithAbstraction mode) 
-    : _normalizer(normalizer)
-    , _ord(ord)
-    , _mode(mode)
+  VariableElimination(shared_ptr<IrcState> shared) 
+    : _shared(std::move(shared))
   {  }
 
   void attach(SaturationAlgorithm* salg) final override;
@@ -61,15 +59,11 @@ private:
 
   template<class NumTraits> ClauseIterator generateClauses(Clause* clause, Literal* lit) const;
 
-  InequalityNormalizer const& normalizer() const { return _normalizer; }
-  Ordering* ord() const { return _ord; }
-  
-  InequalityNormalizer _normalizer;
-  Ordering* _ord;
-  Shell::Options::UnificationWithAbstraction const _mode;
+  shared_ptr<IrcState> _shared;
 };
 
 } // namespace InequalityResolutionCalculus 
 } // namespace Inferences 
 
+// lalalalala
 #endif /*__VariableElimination__*/

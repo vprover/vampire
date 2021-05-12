@@ -54,8 +54,7 @@ VariableElimination testVariableElimination(
     Options::UnificationWithAbstraction uwa = Options::UnificationWithAbstraction::ONE_INTERP
     )
 { 
-  auto& kbo = *new KBO(KBO::testKBO());
-  return VariableElimination(*new InequalityNormalizer(kbo), &kbo, uwa);
+  return VariableElimination(testIrcState(uwa));
 }
 
 

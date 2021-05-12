@@ -61,10 +61,7 @@ inline Stack<Indexing::Index*> indices()
 LiteralFactoring testLiteralFactoring(
     Options::UnificationWithAbstraction uwa = Options::UnificationWithAbstraction::ONE_INTERP
     )
-{ 
-  auto& kbo = *new KBO(KBO::testKBO());
-  return LiteralFactoring(*new InequalityNormalizer(kbo), &kbo, uwa);
-}
+{ return LiteralFactoring(testIrcState(uwa)); }
 
 REGISTER_GEN_TESTER(Test::Generation::GenerationTester<LiteralFactoring>(testLiteralFactoring()))
 

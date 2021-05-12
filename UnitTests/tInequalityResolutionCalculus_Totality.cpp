@@ -61,10 +61,7 @@ inline Stack<Indexing::Index*> indices()
 Totality testTotality(
     Options::UnificationWithAbstraction uwa = Options::UnificationWithAbstraction::ONE_INTERP
     )
-{ 
-  auto& kbo = *new KBO(KBO::testKBO());
-  return Totality(*new InequalityNormalizer(kbo), &kbo, uwa);
-}
+{ return Totality(testIrcState(uwa)); }
 
 REGISTER_GEN_TESTER(Test::Generation::GenerationTester<Totality>(testTotality()))
 
