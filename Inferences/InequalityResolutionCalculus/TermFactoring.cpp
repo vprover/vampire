@@ -134,7 +134,7 @@ ClauseIterator TermFactoring::generateClauses(Clause* cl, Literal* literal) cons
   //   ^^^--> num1 * term1 + num2 * term2 + rest > 0
 
   DEBUG("lit: ", lit)
-  auto max = InequalityResolution::maxTerms(lit, ord());
+  auto max = _shared->maxAtomicTerms(lit);
   DEBUG("maximal terms: ", max)
   return pvi(iterTraits(getRangeIterator(0, ((int) max.size()) - 1))
     .flatMap([this, cl, lit, literal, max = Lib::make_unique<Stack<Monom>>(std::move(max))](unsigned i1) -> VirtualIterator<Clause*> { 

@@ -33,8 +33,6 @@ using namespace Test;
 using namespace Indexing;
 using namespace Inferences::InequalityResolutionCalculus;
 
-// TODO check that also second permise uses only selected literals.
-
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ////// TEST CASES 
 /////////////////////////////////////
@@ -73,7 +71,7 @@ TEST_GENERATION(basic01,
     Generation::TestCase()
       .indices(indices())
       .input   (  clause({selected( f(x) > 0 ), x == 7   }) )
-      .context ({ clause({         -f(x) > 0             }) })
+      .context ({ clause({selected(-f(x) > 0 )           }) })
       .expected(exactly(
             clause({ num(0) > 0,  x == 7  })
       ))
@@ -83,8 +81,8 @@ TEST_GENERATION(basic01,
 TEST_GENERATION(basic02,
     Generation::TestCase()
       .indices(indices())
-      .input   (  clause({selected(  f(a) > 0)  }) )
-      .context ({ clause({      a + -f(a) > 0 }) })
+      .input   (  clause({selected(     f(a) > 0) }) )
+      .context ({ clause({selected(a + -f(a) > 0) }) })
       .expected(exactly(
             clause({  a > 0  })
       ))
@@ -95,7 +93,7 @@ TEST_GENERATION(basic03,
     Generation::TestCase()
       .indices(indices())
       .input   (  clause({selected( -g(x,a) + -g(g(a,b), f(x)) > 0) }) )
-      .context ({ clause({           g(b,a) +  g(g(a,b), f(a)) > 0  }) })
+      .context ({ clause({selected(  g(b,a) +  g(g(a,b), f(a)) > 0) }) })
       .expected(exactly(
             clause({  g(b,a) + (-g(a,a))  > 0  })
       ))
@@ -106,7 +104,7 @@ TEST_GENERATION(basic04,
     Generation::TestCase()
       .indices(indices())
       .input   (  clause({ selected( a + -f(x) > 0), x == 7 }) )
-      .context ({ clause({           a +  f(a) > 0 }) })
+      .context ({ clause({ selected( a +  f(a) > 0) }) })
       .expected(exactly(
             clause({  2 * a > 0, a == 7  })
       ))
@@ -117,7 +115,7 @@ TEST_GENERATION(basic05,
     Generation::TestCase()
       .indices(indices())
       .input   (  clause({ selected( a + -f(y) > 0) }) )
-      .context ({ clause({           a +  f(a) > 0 , x == 7}) })
+      .context ({ clause({ selected( a +  f(a) > 0), x == 7}) })
       .expected(exactly(
             clause({  2 * a > 0, x == 7  })
       ))
@@ -127,8 +125,8 @@ TEST_GENERATION(basic05,
 TEST_GENERATION(basic06,
     Generation::TestCase()
       .indices(indices())
-      .input   (  clause({ selected(-f(x) > 0) }) )
-      .context ({ clause({    f(y) + f(a) > 0  }) })
+      .input   (  clause({ selected(       -f(x) > 0 ) }) )
+      .context ({ clause({ selected( f(y) + f(a) > 0 ) }) })
       .expected(exactly(
             clause({  f(a) > 0 })
           , clause({  f(x) > 0 })
@@ -140,7 +138,7 @@ TEST_GENERATION(basic07,
     Generation::TestCase()
       .indices(indices())
       .input   (  clause({ selected(a > 0) }) )
-      .context ({ clause({          a > 0  }) })
+      .context ({ clause({ selected(a > 0) }) })
       .expected(exactly(
       ))
       .premiseRedundant(false)
@@ -150,7 +148,27 @@ TEST_GENERATION(basic08,
     Generation::TestCase()
       .indices(indices())
       .input   (  clause({ selected(a >= a) }) )
-      .context ({ clause({          a > 0  }) })
+      .context ({ clause({ selected(a > 0 )}) })
+      .expected(exactly(
+      ))
+      .premiseRedundant(false)
+    )
+
+TEST_GENERATION(basic09,
+    Generation::TestCase()
+      .indices(indices())
+      .input   (  clause({ selected(-a > 0) }) )
+      .context ({ clause({           a > 0  }) })
+      .expected(exactly(
+      ))
+      .premiseRedundant(false)
+    )
+
+TEST_GENERATION(basic10,
+    Generation::TestCase()
+      .indices(indices())
+      .input   (  clause({          -a > 0  }) )
+      .context ({ clause({ selected( a > 0) }) })
       .expected(exactly(
       ))
       .premiseRedundant(false)
@@ -165,7 +183,7 @@ TEST_GENERATION_WITH_SUGAR(gcd01_Int,
     Generation::TestCase()
       .indices(indices())
       .input   (  clause({ selected(-6 * f(x) + b > 0) })  )
-      .context ({ clause({           4 * f(y) + a > 0  }) })
+      .context ({ clause({ selected( 4 * f(y) + a > 0) }) })
       .expected(exactly(
             clause({  2 * b  + 3 * a + -1 > 0 })
       ))
@@ -177,7 +195,7 @@ TEST_GENERATION_WITH_SUGAR(gcd01_Rat,
     Generation::TestCase()
       .indices(indices())
       .input   (  clause({ selected( 6 * f(x) + b > 0) })  )
-      .context ({ clause({          -4 * f(y) + a > 0  }) })
+      .context ({ clause({ selected(-4 * f(y) + a > 0) }) })
       .expected(exactly(
             clause({  b  + frac(3,2) * a  > 0 })
       ))
@@ -192,7 +210,7 @@ TEST_GENERATION(substitution01,
     Generation::TestCase()
       .indices(indices())
       .input   (  clause({ selected(-f(f(x)) + f(x) > 0) })  )
-      .context ({ clause({           f(f(a))        > 0  }) })
+      .context ({ clause({ selected( f(f(a))        > 0) }) })
       .expected(exactly(
             clause({  f(a) > 0 })
       ))
@@ -203,7 +221,7 @@ TEST_GENERATION(substitution02,
     Generation::TestCase()
       .indices(indices())
       .input   (  clause({ selected(-g(f(x), f(f(b))) +    f(x)  > 0) })  )
-      .context ({ clause({           g(f(a), f(f(y))) +    f(y)  > 0  }) })
+      .context ({ clause({ selected( g(f(a), f(f(y))) +    f(y)  > 0) }) })
       .expected(exactly(
             clause({  f(a) + f(b) > 0 })
       ))
@@ -218,7 +236,7 @@ TEST_GENERATION(abstraction1,
     Generation::TestCase()
       .indices(indices())
       .input   (  clause({ selected(-f(     0        ) > 0) })  )
-      .context ({ clause({           f(f(a) + g(b, c)) > 0  }) })
+      .context ({ clause({ selected( f(f(a) + g(b, c)) > 0) }) })
       .expected(exactly(
             clause({ num(0) > 0, f(a) + g(b, c) != 0 })
       ))
@@ -234,8 +252,8 @@ TEST_GENERATION(abstraction1,
 TEST_GENERATION(normalization01,
     Generation::TestCase()
       .indices(indices())
-      .input   (  clause({selected(0 > f(a))  }) )
-      .context ({ clause({     a + f(a) > 0 }) })
+      .input   (  clause({ selected(0 > f(a)    ) }) )
+      .context ({ clause({ selected(a + f(a) > 0) }) })
       .expected(exactly(
             clause({  a > 0  })
       ))
@@ -250,8 +268,8 @@ TEST_GENERATION_WITH_SUGAR(normalization02_Int,
       //                           ~(0 > -f(a)))
       //                     ==> -f(a) >= 0         ==> 0 >=  f(a)
       //                     ==> -f(a) + 1 > 0      
-      .context ({ clause({     a + f(a) > 0 }) })// ==> a + f(a) >  f(a)
-                                                 // ==> a        > 0
+      .context ({ clause({selected(a + f(a) > 0) }) }) // ==> a + f(a) >  f(a)
+                                                       // ==> a        > 0
       .expected(exactly(
             clause({  a > 0  })
       ))
@@ -263,7 +281,7 @@ TEST_GENERATION_WITH_SUGAR(normalization02_Rat,
     Generation::TestCase()
       .indices(indices())
       .input   (  clause({selected(~(0 > -f(a)))  }) )
-      .context ({ clause({     a + f(a) > 0 }) })
+      .context ({ clause({selected( a + f(a) > 0) }) })
       .expected(exactly(
             clause({  a > 0  })
       ))
@@ -275,8 +293,8 @@ TEST_GENERATION_WITH_SUGAR(normalization03,
     SUGAR(Int),
     Generation::TestCase()
       .indices(indices())
-      .input   (  clause({selected( f(a) >= 0)  }) )
-      .context ({ clause({     a + -f(a) >  0 }) })
+      .input   (  clause({selected(     f(a) >= 0) }) )
+      .context ({ clause({selected(a + -f(a) >  0) }) })
       .expected(exactly(
             clause({  a   > 0  })
       ))
@@ -288,7 +306,7 @@ TEST_GENERATION_WITH_SUGAR(bug01,
     Generation::TestCase()
       .indices(indices())
       .input   (  clause({r(x, y), selected( (f(x) + -f(y) > 0) ) }) )
-      .context ({ clause({     f(a) >  0 }) })
+      .context ({ clause({ selected(f(a) >  0) }) })
       //                                      (y - 1 > 0) 
       .expected(exactly(
             clause({     f(x) > 0, r(x, a) })
@@ -301,7 +319,7 @@ TEST_GENERATION_WITH_SUGAR(bug02,
     Generation::TestCase()
       .indices(indices())
       .input   (         clause({ selected( 3 +  a  > 0 ) })  )
-      .context ({        clause({           0 + -a  > 0   }) })
+      .context ({        clause({ selected( 0 + -a  > 0 ) }) })
       .expected(exactly( clause({            num(3) > 0   }) ))
       .premiseRedundant(false)
     )
@@ -324,8 +342,8 @@ TEST_GENERATION_WITH_SUGAR(bug_overflow_01,
     SUGAR(Real),
     Generation::TestCase()
       .indices(indices())
-      .input   (  clause({ selected( num(2) * (1073741824 * a + 536870912) > 0 ) })  )
-      .context ({ clause({ num(-1) * num(2) * (1073741824 * a + 536870912) > 0   }) })
+      .input   (  clause({ selected(          num(2) * (1073741824 * a + 536870912) > 0 ) })  )
+      .context ({ clause({ selected(num(-1) * num(2) * (1073741824 * a + 536870912) > 0 )   }) })
       .expected(exactly(
           // clause({ num(0) > 0 }) // we don't perform the rule if we overflow
       ))
@@ -339,7 +357,7 @@ TEST_GENERATION_WITH_SUGAR(bug_overflow_02,
     Generation::TestCase()
       .indices(indices())
       .input   (  clause({ selected( 0 < 2 * (f(a) * num(1073741824)) ) })  )
-      .context ({ clause({                                  3  + -a > 0   }) })
+      .context ({ clause({ selected( 3  + -a > 0 )  }) })
       .expected(exactly(
       ))
       .premiseRedundant(false)

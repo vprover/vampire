@@ -92,8 +92,8 @@ public:
   virtual void setTestIndices(Stack<Indexing::Index*> const&) final override;
 #endif
 
-  template<class NumTraits> static Stack<Monom<NumTraits>> maxTerms(InequalityLiteral<NumTraits> const& lit, Ordering* ord);
-  template<class NumTraits> static Stack<Monom<NumTraits>> maxTerms(IrcLiteral<NumTraits> const& lit, Ordering* ord);
+  // template<class NumTraits> static Stack<Monom<NumTraits>> maxTerms(InequalityLiteral<NumTraits> const& lit, Ordering* ord);
+  // template<class NumTraits> static Stack<Monom<NumTraits>> maxTerms(IrcLiteral<NumTraits> const& lit, Ordering* ord);
 private:
 
   template<class NumTraits> ClauseIterator generateClauses(Clause* clause, Literal* lit) const;

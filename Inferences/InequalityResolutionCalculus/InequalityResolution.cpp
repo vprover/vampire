@@ -41,7 +41,6 @@
 #include "Indexing/TermIndexingStructure.hpp"
 
 #define DEBUG(...) // DBG(__VA_ARGS__)
-#define DEBUG_IDX(...) //DBG(__VA_ARGS__)
 
 using Kernel::InequalityLiteral;
 
@@ -78,7 +77,10 @@ void InequalityResolution::detach()
 
 #if VDEBUG
 void InequalityResolution::setTestIndices(Stack<Indexing::Index*> const& indices)
-{ _index = (InequalityResolutionIndex*) indices[0]; }
+{ 
+  _index = (InequalityResolutionIndex*) indices[0]; 
+  _index->setShared(_shared);
+}
 #endif
 
 
@@ -87,60 +89,60 @@ using Lib::TypeList::List;
 using Lib::TypeList::Indices;
 using Lib::TypeList::UnsignedList;
 
-template<class F, class... Capt>
-class Capture
-{
-  
-  template<class... Args> using Result = typename std::result_of<F(Capt..., Args...)>::type;
-  F _fun;
-  std::tuple<Capt...> _capt;
-public:
-  Capture(F fun, Capt... capt) : _fun(std::move(fun)), _capt(std::forward<Capt>(capt)...) {}
+// template<class F, class... Capt>
+// class Capture
+// {
+//   
+//   template<class... Args> using Result = typename std::result_of<F(Capt..., Args...)>::type;
+//   F _fun;
+//   std::tuple<Capt...> _capt;
+// public:
+//   Capture(F fun, Capt... capt) : _fun(std::move(fun)), _capt(std::forward<Capt>(capt)...) {}
+//
+//   template<class... Args>
+//   Result<Args...> operator()(Args... args)
+//   { return apply(Indices<List<Args...>>{}, std::forward<Args>(args)...); }
+//
+//   template<class... Args, int... idx>
+//   Result<Args...> apply(UnsignedList<idx...>, Args... args)
+//   { return _fun(std::get<idx>(_capt)..., std::forward<Args>(args)...); }
+// };
+//
+// template<class F, class... Capt>
+// Capture<F, Capt...> capture(F f, Capt... capt) 
+// { return Capture<F,Capt...>(std::move(f), capt...); }
 
-  template<class... Args>
-  Result<Args...> operator()(Args... args)
-  { return apply(Indices<List<Args...>>{}, std::forward<Args>(args)...); }
-
-  template<class... Args, int... idx>
-  Result<Args...> apply(UnsignedList<idx...>, Args... args)
-  { return _fun(std::get<idx>(_capt)..., std::forward<Args>(args)...); }
-};
-
-template<class F, class... Capt>
-Capture<F, Capt...> capture(F f, Capt... capt) 
-{ return Capture<F,Capt...>(std::move(f), capt...); }
-
-template<class NumTraits> 
-Stack<Monom<NumTraits>> InequalityResolution::maxTerms(InequalityLiteral<NumTraits> const& lit, Ordering* ord) 
-{ return maxTerms(lit.inner(), ord); }
-
-
-template<class NumTraits> 
-Stack<Monom<NumTraits>> InequalityResolution::maxTerms(IrcLiteral<NumTraits> const& lit, Ordering* ord) 
-{ 
-  using Monom = Monom<NumTraits>;
-  Stack<Monom> max(lit.term().nSummands()); // TODO not sure whether this size allocation brings an advantage
-  auto monoms = lit.term().iterSummands().template collect<Stack>();
-  for (unsigned i = 0; i < monoms.size(); i++) {
-    auto isMax = true;
-    for (unsigned j = 0; j < monoms.size(); j++) {
-      auto cmp = ord->compare(
-          monoms[i].factors->denormalize(), 
-          monoms[j].factors->denormalize());
-      if (cmp == Ordering::LESS) {
-          isMax = false;
-          break;
-      } else if(cmp == Ordering::EQUAL || cmp == Ordering::INCOMPARABLE || Ordering::GREATER) {
-        /* ok */
-      } else {
-        ASSERTION_VIOLATION_REP(cmp)
-      }
-    }
-    if (isMax && monoms[i].factors->tryVar().isNone())  // TODO we don't wanna skip varibles in the future
-      max.push(monoms[i]);
-  }
-  return max;
-}
+// template<class NumTraits> 
+// Stack<Monom<NumTraits>> InequalityResolution::maxTerms(InequalityLiteral<NumTraits> const& lit, Ordering* ord) 
+// { return maxTerms(lit.inner(), ord); }
+//
+//
+// template<class NumTraits> 
+// Stack<Monom<NumTraits>> InequalityResolution::maxTerms(IrcLiteral<NumTraits> const& lit, Ordering* ord) 
+// { 
+//   using Monom = Monom<NumTraits>;
+//   Stack<Monom> max(lit.term().nSummands()); // TODO not sure whether this size allocation brings an advantage
+//   auto monoms = lit.term().iterSummands().template collect<Stack>();
+//   for (unsigned i = 0; i < monoms.size(); i++) {
+//     auto isMax = true;
+//     for (unsigned j = 0; j < monoms.size(); j++) {
+//       auto cmp = ord->compare(
+//           monoms[i].factors->denormalize(), 
+//           monoms[j].factors->denormalize());
+//       if (cmp == Ordering::LESS) {
+//           isMax = false;
+//           break;
+//       } else if(cmp == Ordering::EQUAL || cmp == Ordering::INCOMPARABLE || Ordering::GREATER) {
+//         /* ok */
+//       } else {
+//         ASSERTION_VIOLATION_REP(cmp)
+//       }
+//     }
+//     if (isMax && monoms[i].factors->tryVar().isNone())  // TODO we don't wanna skip varibles in the future
+//       max.push(monoms[i]);
+//   }
+//   return max;
+// }
 
 #define OVERFLOW_SAFE 1
 
@@ -186,7 +188,7 @@ ClauseIterator InequalityResolution::generateClauses(Clause* cl1, Literal* liter
   //   ^^^^--> num1 * term + rest1 >= 0
 
   DEBUG("lit1: ", lit1)
-  return pvi(iterTraits(ownedArrayishIterator(maxTerms(lit1, ord())))
+  return pvi(iterTraits(ownedArrayishIterator(_shared->maxAtomicTerms(lit1.inner())))
     .flatMap([this, cl1, lit1, literal1](Monom monom)  -> VirtualIterator<Clause*> { 
       CALL("InequalityResolution::generateClauses:@clsr1")
       auto num1  = monom.numeral;

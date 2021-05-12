@@ -169,8 +169,10 @@ namespace Kernel {
 
   struct IrcState {
     InequalityNormalizer normalizer;
-    Ordering* ordering;
-    Shell::Options::UnificationWithAbstraction uwa;
+    Ordering* const ordering;
+    Shell::Options::UnificationWithAbstraction const uwa;
+
+    template<class NumTraits> Stack<Monom<NumTraits>> maxAtomicTerms(IrcLiteral<NumTraits>const& lit);
   };
 
 #if VDEBUG
@@ -187,123 +189,160 @@ namespace Kernel {
   
 namespace Kernel {
 
-  template<class NumTraits>
-  Option<MaybeOverflow<InequalityLiteral<NumTraits>>> InequalityNormalizer::normalizeIneq(Literal* lit) const
-  {
-    using Opt = Option<MaybeOverflow<InequalityLiteral<NumTraits>>>;
-    return normalizeIrc<NumTraits>(lit)
-      .andThen([](auto overflown) {
-        if (overflown.value.isInequality()) {
-          return Opt(overflown.map([](auto lit) { return InequalityLiteral<NumTraits>(std::move(lit)); }));
-        } else {
-          return Opt();
-        }
-      });
-  }
-
-  template<class NumTraits>
-  Option<MaybeOverflow<IrcLiteral<NumTraits>>> InequalityNormalizer::normalizeIrc(Literal* lit) const
-  {
-    // auto normalizeEqSign = [](Perfect<Polynom<NumTraits>> const& t) -> Perfect<Polynom<NumTraits>>{
-    //   auto pol = 0;
-    //   for (auto s : t->iterSummands()) {
-    //     if (s.numeral.isPositive()) {
-    //       pol++;
-    //     } else {
-    //       ASS(s.numeral.isNegative())
-    //       pol--;
-    //     }
-    //   }
-    //   if (pol >= 0) {
-    //     return t;
-    //   } else {
-    //     return perfect(Polynom<NumTraits>(t->iterSummands()
-    //           .map([](auto s) { return Monom<NumTraits>(-s.numeral, s.factor); })))
-    //   }
-    // }
-    CALL("InequalityLiteral<NumTraits>::fromLiteral(Literal*)")
-    DEBUG("in: ", *lit, " (", NumTraits::name(), ")")
-
-    auto impl = [&]() {
-
-      constexpr bool isInt = std::is_same<NumTraits, IntTraits>::value;
-
-      using Opt = Option<MaybeOverflow<IrcLiteral<NumTraits>>>;
-
-      auto f = lit->functor();
-      if (!theory->isInterpretedPredicate(f))
+template<class NumTraits>
+Option<MaybeOverflow<InequalityLiteral<NumTraits>>> InequalityNormalizer::normalizeIneq(Literal* lit) const
+{
+  using Opt = Option<MaybeOverflow<InequalityLiteral<NumTraits>>>;
+  return normalizeIrc<NumTraits>(lit)
+    .andThen([](auto overflown) {
+      if (overflown.value.isInequality()) {
+        return Opt(overflown.map([](auto lit) { return InequalityLiteral<NumTraits>(std::move(lit)); }));
+      } else {
         return Opt();
+      }
+    });
+}
 
-      auto itp = theory->interpretPredicate(f);
+template<class NumTraits>
+Option<MaybeOverflow<IrcLiteral<NumTraits>>> InequalityNormalizer::normalizeIrc(Literal* lit) const
+{
+  // auto normalizeEqSign = [](Perfect<Polynom<NumTraits>> const& t) -> Perfect<Polynom<NumTraits>>{
+  //   auto pol = 0;
+  //   for (auto s : t->iterSummands()) {
+  //     if (s.numeral.isPositive()) {
+  //       pol++;
+  //     } else {
+  //       ASS(s.numeral.isNegative())
+  //       pol--;
+  //     }
+  //   }
+  //   if (pol >= 0) {
+  //     return t;
+  //   } else {
+  //     return perfect(Polynom<NumTraits>(t->iterSummands()
+  //           .map([](auto s) { return Monom<NumTraits>(-s.numeral, s.factor); })))
+  //   }
+  // }
+  CALL("InequalityLiteral<NumTraits>::fromLiteral(Literal*)")
+  DEBUG("in: ", *lit, " (", NumTraits::name(), ")")
+
+  auto impl = [&]() {
+
+    constexpr bool isInt = std::is_same<NumTraits, IntTraits>::value;
+
+    using Opt = Option<MaybeOverflow<IrcLiteral<NumTraits>>>;
+
+    auto f = lit->functor();
+    if (!theory->isInterpretedPredicate(f))
+      return Opt();
+
+    auto itp = theory->interpretPredicate(f);
 
 
-      IrcPredicate pred;
-      TermList l, r; // <- we rewrite to l < r or l <= r
-      switch(itp) {
-        case Interpretation::EQUAL:
-          if (SortHelper::getEqualityArgumentSort(lit) != NumTraits::sort()) 
-            return Opt();
-          l = *lit->nthArgument(0);
-          r = *lit->nthArgument(1);
-          pred = lit->isPositive() ? IrcPredicate::EQ : IrcPredicate::NEQ;
-          break;
-
-        case NumTraits::leqI: /* l <= r */
-          l = *lit->nthArgument(0);
-          r = *lit->nthArgument(1);
-          pred = IrcPredicate::GREATER_EQ;
-          break;
-
-        case NumTraits::geqI: /* l >= r ==> r <= l */
-          l = *lit->nthArgument(1);
-          r = *lit->nthArgument(0);
-          pred = IrcPredicate::GREATER_EQ;
-          break;
-
-        case NumTraits::lessI: /* l < r */
-          l = *lit->nthArgument(0);
-          r = *lit->nthArgument(1);
-          pred = IrcPredicate::GREATER;
-          break;
-
-        case NumTraits::greaterI: /* l > r ==> r < l */
-          l = *lit->nthArgument(1);
-          r = *lit->nthArgument(0);
-          pred = IrcPredicate::GREATER;
-          break;
-
-        default: 
+    IrcPredicate pred;
+    TermList l, r; // <- we rewrite to l < r or l <= r
+    switch(itp) {
+      case Interpretation::EQUAL:
+        if (SortHelper::getEqualityArgumentSort(lit) != NumTraits::sort()) 
           return Opt();
-      }
+        l = *lit->nthArgument(0);
+        r = *lit->nthArgument(1);
+        pred = lit->isPositive() ? IrcPredicate::EQ : IrcPredicate::NEQ;
+        break;
 
-      if (lit->isNegative() && isInequality(pred)) {
-        // ~(l >= r) <==> (r < l)
-        std::swap(l, r);
-        pred = pred == IrcPredicate::GREATER ? IrcPredicate::GREATER_EQ : IrcPredicate::GREATER;
-      }
+      case NumTraits::leqI: /* l <= r */
+        l = *lit->nthArgument(0);
+        r = *lit->nthArgument(1);
+        pred = IrcPredicate::GREATER_EQ;
+        break;
 
-      if (isInt && pred == IrcPredicate::GREATER_EQ) {
-        /* l <= r ==> l < r + 1 */
-        r = NumTraits::add(r, NumTraits::one());
+      case NumTraits::geqI: /* l >= r ==> r <= l */
+        l = *lit->nthArgument(1);
+        r = *lit->nthArgument(0);
+        pred = IrcPredicate::GREATER_EQ;
+        break;
+
+      case NumTraits::lessI: /* l < r */
+        l = *lit->nthArgument(0);
+        r = *lit->nthArgument(1);
         pred = IrcPredicate::GREATER;
+        break;
+
+      case NumTraits::greaterI: /* l > r ==> r < l */
+        l = *lit->nthArgument(1);
+        r = *lit->nthArgument(0);
+        pred = IrcPredicate::GREATER;
+        break;
+
+      default: 
+        return Opt();
+    }
+
+    if (lit->isNegative() && isInequality(pred)) {
+      // ~(l >= r) <==> (r < l)
+      std::swap(l, r);
+      pred = pred == IrcPredicate::GREATER ? IrcPredicate::GREATER_EQ : IrcPredicate::GREATER;
+    }
+
+    if (isInt && pred == IrcPredicate::GREATER_EQ) {
+      /* l <= r ==> l < r + 1 */
+      r = NumTraits::add(r, NumTraits::one());
+      pred = IrcPredicate::GREATER;
+    }
+
+    /* l < r ==> r > l ==> r - l > 0 */
+    auto t = NumTraits::add(r, NumTraits::minus(l));
+
+    ASS(!isInt || pred != IrcPredicate::GREATER_EQ)
+    auto tt = TypedTermList(t, NumTraits::sort());
+    auto norm = Kernel::normalizeTerm(tt);
+    auto simpl = _eval.evaluate(norm);
+    auto simplValue = simpl.value || norm;
+    simplValue.integrity();
+    auto out = IrcLiteral<NumTraits>(simplValue.wrapPoly<NumTraits>(), pred);
+    return Opt(maybeOverflow(std::move(out), simpl.overflowOccurred));
+  };
+  auto out = impl();
+  DEBUG("out: ", out);
+  return out;
+}
+
+
+////////////////////////////////////////////////////////////////////////////
+// impl IrcState
+/////////////////////////////
+
+
+
+
+template<class NumTraits>
+Stack<Monom<NumTraits>> IrcState::maxAtomicTerms(IrcLiteral<NumTraits>const& lit)
+{
+  using Monom = Monom<NumTraits>;
+  Stack<Monom> max(lit.term().nSummands()); // TODO not sure whether this size allocation brings an advantage
+  auto monoms = lit.term().iterSummands().template collect<Stack>();
+  for (unsigned i = 0; i < monoms.size(); i++) {
+    auto isMax = true;
+    for (unsigned j = 0; j < monoms.size(); j++) {
+      auto cmp = ordering->compare(
+          monoms[i].factors->denormalize(), 
+          monoms[j].factors->denormalize());
+      if (cmp == Ordering::LESS) {
+          isMax = false;
+          break;
+      } else if(cmp == Ordering::EQUAL || cmp == Ordering::INCOMPARABLE || Ordering::GREATER) {
+        /* ok */
+      } else {
+        ASSERTION_VIOLATION_REP(cmp)
       }
-
-      /* l < r ==> r > l ==> r - l > 0 */
-      auto t = NumTraits::add(r, NumTraits::minus(l));
-
-      ASS(!isInt || pred != IrcPredicate::GREATER_EQ)
-      auto tt = TypedTermList(t, NumTraits::sort());
-      auto norm = Kernel::normalizeTerm(tt);
-      auto simpl = _eval.evaluate(norm);
-      auto simplValue = simpl.value || norm;
-      simplValue.integrity();
-      auto out = IrcLiteral<NumTraits>(simplValue.wrapPoly<NumTraits>(), pred);
-      return Opt(maybeOverflow(std::move(out), simpl.overflowOccurred));
-    };
-    auto out = impl();
-    DEBUG("out: ", out);
-    return out;
+    }
+    if (isMax && monoms[i].factors->tryVar().isNone())  // TODO we don't wanna skip varibles in the future
+    // if (isMax)  // TODO we don't wanna skip varibles in the future
+      max.push(monoms[i]);
   }
+  return max;
+}
+
 
 } // namespace Kernel
 

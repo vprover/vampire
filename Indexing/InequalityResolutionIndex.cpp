@@ -21,11 +21,11 @@ bool InequalityResolutionIndex::handleLiteral(Literal* lit, Clause* c, bool addi
       auto norm = std::move(norm_).unwrap().value;
 
       DEBUG("literal: ", norm);
-      for (auto monom : norm.term().iterSummands()) {
-        // skipping variables and numerals
-        // TODO only skip unshielded variables
-        if (!monom.tryNumeral().isSome() &&
-            !monom.factors->tryVar().isSome()) { 
+      for (auto monom : _shared->maxAtomicTerms(norm.inner())) {
+        ASS(monom.factors->tryVar().isNone())
+
+        // skipping numerals
+        if (!monom.tryNumeral().isSome()) { 
 
           auto term = monom.factors->denormalize();
           if (adding) {
@@ -47,15 +47,14 @@ bool InequalityResolutionIndex::handleLiteral(Literal* lit, Clause* c, bool addi
 void InequalityResolutionIndex::handleClause(Clause* c, bool adding)
 {
   CALL("InequalityResolutionIndex::handleClause");
-
-  for (unsigned i = 0; i < c->size(); i++) {
-    auto lit = (*c)[i];
+  
+  for (auto lit : iterTraits(c->getSelectedLiteralIterator())) {
     handleLiteral< IntTraits>(lit, c, adding) 
     || handleLiteral< RatTraits>(lit, c, adding)
     || handleLiteral<RealTraits>(lit, c, adding);
   }
 }
 
-}
+} // namespace Indexing
 
 
