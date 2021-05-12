@@ -45,6 +45,7 @@
 #include "Inferences/Cancellation.hpp"
 #include "Inferences/GaussianVariableElimination.hpp"
 #include "Inferences/InequalityResolutionCalculus/InequalityResolution.hpp"
+#include "Inferences/InequalityResolutionCalculus/Normalization.hpp"
 #include "Inferences/InequalityResolutionCalculus/TermFactoring.hpp"
 #include "Inferences/EquationalTautologyRemoval.hpp"
 #include "Inferences/Condensation.hpp"
@@ -1623,7 +1624,7 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
   if (env.options->inequalityResolution()) {
     sgi->push(new InequalityResolutionCalculus::TermFactoring(InequalityNormalizer(PolynomialEvaluation(ordering)), &ordering, env.options->unificationWithAbstraction())); 
     sgi->push(new InequalityResolutionCalculus::InequalityResolution(PolynomialEvaluation(ordering))); 
-    ise->addFront(new InequalityResolutionCalculus::InequalityNormalization(ordering)); 
+    ise->addFront(new InequalityResolutionCalculus::Normalization(ordering)); 
   }
 
 

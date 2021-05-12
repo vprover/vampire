@@ -53,29 +53,6 @@ using namespace Kernel;
 using namespace Indexing;
 using namespace Saturation;
 
-InequalityNormalization::InequalityNormalization(Ordering& ord)
-  : _normalizer(InequalityNormalizer(PolynomialEvaluation(ord)))
-{
-
-}
-
-Clause* InequalityNormalization::simplify(Clause* cl) 
-{
-  bool altered = false; 
-  auto out = Stack<Literal*>(cl->size());
-  for (unsigned i = 0; i < cl->size(); i++) {
-    out.push(_normalizer.normalizeLiteral((*cl)[i]));
-    altered |= out[i] != (*cl)[i];
-  }
-  if (altered) {
-    Inference inf(SimplifyingInference1(Kernel::InferenceRule::INEQUALITY_NORMALIZATION, cl));
-    return Clause::fromStack(out, inf);
-  } else {
-    return cl;
-  }
-
-}
-
 void InequalityResolution::attach(SaturationAlgorithm* salg)
 {
   CALL("InequalityResolution::attach");

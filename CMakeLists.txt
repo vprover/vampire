@@ -451,6 +451,8 @@ set(VAMPIRE_INFERENCE_SOURCES
     Kernel/Rebalancing/Inverters.cpp
     Inferences/SLQueryBackwardSubsumption.cpp
     Inferences/Superposition.cpp
+    Inferences/InequalityResolutionCalculus/Normalization.cpp
+    Inferences/InequalityResolutionCalculus/Normalization.hpp
     Inferences/InequalityResolutionCalculus/LiteralFactoring.cpp
     Inferences/InequalityResolutionCalculus/LiteralFactoring.hpp
     Inferences/InequalityResolutionCalculus/Totality.cpp
