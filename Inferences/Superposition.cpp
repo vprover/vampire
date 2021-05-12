@@ -525,6 +525,13 @@ Clause* Superposition::performSuperposition(
   }
 
   (*res)[0] = tgtLitS;
+  vset<unsigned> sig;
+  bool hyp, rev;
+  if (rwClause->isInductionLiteral(rwLit, sig, hyp, rev)) {
+    for (const auto& s : sig) {
+		  res->markInductionLiteral(s, tgtLitS, hyp, rev ^ tgtLitS->isOrientedReversed());
+    }
+  }
   int next = 1;
   unsigned weight=tgtLitS->weight();
   for(unsigned i=0;i<rwLength;i++) {
@@ -558,6 +565,11 @@ Clause* Superposition::performSuperposition(
       }
 
       (*res)[next++] = currAfter;
+      if (rwClause->isInductionLiteral(curr, sig, hyp, rev)) {
+        for (const auto& s : sig) {
+          res->markInductionLiteral(s, currAfter, hyp, rev ^ currAfter->isOrientedReversed());
+        }
+      }
     }
   }
 
@@ -597,6 +609,11 @@ Clause* Superposition::performSuperposition(
         }
 
         (*res)[next++] = currAfter;
+        if (eqClause->isInductionLiteral(curr, sig, hyp, rev)) {
+          for (const auto& s : sig) {
+            res->markInductionLiteral(s, currAfter, hyp, rev ^ currAfter->isOrientedReversed());
+          }
+        }
       }
     }
   }
