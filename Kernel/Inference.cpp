@@ -897,11 +897,13 @@ vstring Kernel::ruleName(InferenceRule rule)
     return "add sort functions";
   case InferenceRule::INSTANTIATION:
     return "instantiation";
-  case InferenceRule::INEQUALITY_FACTORING:
-    return "inequality factoring";
-  case InferenceRule::INEQUALITY_RESOLUTION:
+  case InferenceRule::IRC_LITERAL_FACTORING:
+    return "inequality literal factoring";
+  case InferenceRule::IRC_TERM_FACTORING:
+    return "inequality term factoring";
+  case InferenceRule::IRC_INEQUALITY_RESOLUTION:
     return "inequality resolution";
-  case InferenceRule::INEQUALITY_NORMALIZATION:
+  case InferenceRule::IRC_NORMALIZATION:
     return "inequality normalization";
   case InferenceRule::MODEL_NOT_FOUND:
     return "finite model not found";

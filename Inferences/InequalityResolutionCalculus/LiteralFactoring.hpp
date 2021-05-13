@@ -31,6 +31,19 @@ using namespace Kernel;
 using namespace Indexing;
 using namespace Saturation;
 
+template<class A>
+struct Indexed {
+  unsigned idx;
+  A self;
+  A& operator*() { return self; }
+  A const& operator*() const { return self; }
+  A* operator->() { return &self; }
+};
+
+template<class A>
+Indexed<A> indexed(unsigned idx, A self) 
+{ return {.idx = idx, .self = std::move(self), }; }
+
 class LiteralFactoring
 : public GeneratingInferenceEngine
 {
@@ -47,6 +60,13 @@ public:
   void detach() final override;
 
 
+  template<class NumTraits>
+  Clause* applyRule(Clause* premise, 
+    Indexed<IrcLiteral<NumTraits>> l1,  Monom<NumTraits> j_s1,
+    Indexed<IrcLiteral<NumTraits>> l2,  Monom<NumTraits> k_s2,
+    UwaResult sigma_cnst);
+  template<class NumTraits>
+  ClauseIterator generateClauses(Clause* premise, Indexed<IrcLiteral<NumTraits>> l1, Indexed<IrcLiteral<NumTraits>> l2);
   ClauseIterator generateClauses(Clause* premise) final override;
 
   
@@ -56,8 +76,6 @@ public:
 #endif
 
 private:
-
-  template<class NumTraits> ClauseIterator generateClauses(Clause* clause, Literal* lit) const;
 
   shared_ptr<IrcState> _shared;
 };

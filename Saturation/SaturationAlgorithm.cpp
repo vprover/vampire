@@ -47,6 +47,9 @@
 #include "Inferences/InequalityResolutionCalculus/InequalityResolution.hpp"
 #include "Inferences/InequalityResolutionCalculus/Normalization.hpp"
 #include "Inferences/InequalityResolutionCalculus/TermFactoring.hpp"
+#include "Inferences/InequalityResolutionCalculus/LiteralFactoring.hpp"
+#include "Inferences/InequalityResolutionCalculus/Totality.hpp"
+#include "Inferences/InequalityResolutionCalculus/Superposition.hpp"
 #include "Inferences/EquationalTautologyRemoval.hpp"
 #include "Inferences/Condensation.hpp"
 #include "Inferences/FastCondensation.hpp"
@@ -1627,6 +1630,9 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
         .ordering = &ordering, 
         .uwa = env.options->unificationWithAbstraction(),
     });
+    sgi->push(new InequalityResolutionCalculus::LiteralFactoring(shared)); 
+    sgi->push(new InequalityResolutionCalculus::Superposition(shared)); 
+    sgi->push(new InequalityResolutionCalculus::Totality(shared)); 
     sgi->push(new InequalityResolutionCalculus::TermFactoring(shared)); 
     sgi->push(new InequalityResolutionCalculus::InequalityResolution(shared)); 
     ise->addFront(new InequalityResolutionCalculus::Normalization(shared)); 

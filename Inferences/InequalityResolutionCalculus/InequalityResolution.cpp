@@ -299,7 +299,7 @@ ClauseIterator InequalityResolution::generateClauses(Clause* cl1, Literal* liter
                     auto resolventLit = InequalityLiteral(sum.value, strictness);
                     //   ^^^^^^^^^^^^--> k1 * rest1 + k2 * rest2 >= 0
 
-                    Inference inf(GeneratingInference2(Kernel::InferenceRule::INEQUALITY_RESOLUTION, cl1, cl2));
+                    Inference inf(GeneratingInference2(Kernel::InferenceRule::IRC_INEQUALITY_RESOLUTION, cl1, cl2));
                     auto size = cl1->size() + cl2->size() - 1 + (res.constraints ? res.constraints->size() : 0);
                     auto resolvent = new(size) Clause(size, inf);
                     //   ^^^^^^^^^--> gonna be k1 * rest1 + k2 * rest2 >= 0 \/ C1 \/ C2 \/ constraints

@@ -233,7 +233,8 @@ enum class InferenceRule : unsigned char {
   CONDENSATION,
   /** evaluation inference */
   EVALUATION,
-  INEQUALITY_NORMALIZATION,
+  /** normalization rule of the Inequality Resolution Calculus */
+  IRC_NORMALIZATION,
   CANCELLATION,
   /** interpreted simplification inference */
   INTERPRETED_SIMPLIFICATION,
@@ -302,8 +303,11 @@ enum class InferenceRule : unsigned char {
   INSTANCE_GENERATION, // used by InstGen. Fun fact: the inference has one parent (logically) but the age is set from two parents (and +1)!
   /* Instantiation */
   INSTANTIATION, // used for theory reasoning
-  INEQUALITY_RESOLUTION,
-  INEQUALITY_FACTORING,
+  /* inequality factoring rule of the Inequality Resolution Calculs */
+  IRC_INEQUALITY_RESOLUTION,
+  /* factoring rules of the Inequality Resolution Calculs */
+  IRC_TERM_FACTORING,
+  IRC_LITERAL_FACTORING,
   /** the last generating inference marker --
         inferences between GENERIC_GENERATING_INFERNCE and INTERNAL_GENERATING_INFERNCE_LAST will be automatically understood generating
         (see also isGeneratingInferenceRule) */

@@ -62,7 +62,7 @@ Clause* Normalization::simplify(Clause* cl)
     altered |= out[i] != (*cl)[i];
   }
   if (altered) {
-    Inference inf(SimplifyingInference1(Kernel::InferenceRule::INEQUALITY_NORMALIZATION, cl));
+    Inference inf(SimplifyingInference1(Kernel::InferenceRule::IRC_NORMALIZATION, cl));
     return Clause::fromStack(out, inf);
   } else {
     return cl;

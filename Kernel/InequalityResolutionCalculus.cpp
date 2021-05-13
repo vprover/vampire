@@ -68,5 +68,47 @@ shared_ptr<IrcState> testIrcState(Options::UnificationWithAbstraction uwa) {
 }
 #endif
 
+Option<MaybeOverflow<AnyIrcLiteral>> InequalityNormalizer::normalize(Literal* lit) const
+{
+  using Out = AnyIrcLiteral;
+  auto wrapCoproduct = [](auto&& norm) {
+    return std::move(norm).map([](auto overflown) { return overflown.map([](auto x) { return Out(x); }); });
+  };
+  return             wrapCoproduct(normalizeIrc< IntTraits>(lit))
+    || [&](){ return wrapCoproduct(normalizeIrc< RatTraits>(lit)); } 
+    || [&](){ return wrapCoproduct(normalizeIrc<RealTraits>(lit)); } 
+    || Option<MaybeOverflow<Out>>();
+}
+
+Option<AnyIrcLiteral> IrcState::normalize(Literal* lit)
+{
+  return this->normalizer.normalize(lit)
+    .andThen([](auto res) {
+        return res.overflowOccurred 
+          ? Option<AnyIrcLiteral>()
+          : Option<AnyIrcLiteral>(res.value);
+        });
+}
+
+PolyNf IrcState::normalize(TypedTermList term) 
+{ 
+  auto norm = PolyNf::normalize(term);
+  auto out = this->normalizer.evaluator().evaluate(norm); 
+  ASS(!out.overflowOccurred)
+  return out.value || norm;
+}
+
+Option<UwaResult> IrcState::unify(TermList lhs, TermList rhs) const 
+{
+  UwaResult out;
+  Kernel::UWAMismatchHandler hndlr(uwa, out.cnst);
+  if (out.sigma.unify(lhs, /* var bank: */ 0, 
+                      rhs, /* var bank: */ 0, &hndlr)) {
+    return Option<UwaResult>(std::move(out));
+  } else {
+    return Option<UwaResult>();
+  }
+}
+
 } // namespace Kernel
 

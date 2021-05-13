@@ -159,6 +159,9 @@ struct Monom
 
   /** performs an integrity check on the datastructure, only has an effect in debug mode */
   void integrity() const;
+
+  friend Monom operator*(Numeral n, Monom const& self) 
+  { return Monom(n * self.numeral, self.factors); }
 };
 
 

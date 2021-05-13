@@ -78,28 +78,28 @@ using Lib::TypeList::List;
 using Lib::TypeList::Indices;
 using Lib::TypeList::UnsignedList;
 
-template<class F, class... Capt>
-class Capture
-{
-  
-  template<class... Args> using Result = typename std::result_of<F(Capt..., Args...)>::type;
-  F _fun;
-  std::tuple<Capt...> _capt;
-public:
-  Capture(F fun, Capt... capt) : _fun(std::move(fun)), _capt(std::forward<Capt>(capt)...) {}
-
-  template<class... Args>
-  Result<Args...> operator()(Args... args)
-  { return apply(Indices<List<Args...>>{}, std::forward<Args>(args)...); }
-
-  template<class... Args, int... idx>
-  Result<Args...> apply(UnsignedList<idx...>, Args... args)
-  { return _fun(std::get<idx>(_capt)..., std::forward<Args>(args)...); }
-};
-
-template<class F, class... Capt>
-Capture<F, Capt...> capture(F f, Capt... capt) 
-{ return Capture<F,Capt...>(std::move(f), capt...); }
+// template<class F, class... Capt>
+// class Capture
+// {
+//   
+//   template<class... Args> using Result = typename std::result_of<F(Capt..., Args...)>::type;
+//   F _fun;
+//   std::tuple<Capt...> _capt;
+// public:
+//   Capture(F fun, Capt... capt) : _fun(std::move(fun)), _capt(std::forward<Capt>(capt)...) {}
+//
+//   template<class... Args>
+//   Result<Args...> operator()(Args... args)
+//   { return apply(Indices<List<Args...>>{}, std::forward<Args>(args)...); }
+//
+//   template<class... Args, int... idx>
+//   Result<Args...> apply(UnsignedList<idx...>, Args... args)
+//   { return _fun(std::get<idx>(_capt)..., std::forward<Args>(args)...); }
+// };
+//
+// template<class F, class... Capt>
+// Capture<F, Capt...> capture(F f, Capt... capt) 
+// { return Capture<F,Capt...>(std::move(f), capt...); }
 
 #define OVERFLOW_SAFE 1
 
@@ -124,6 +124,8 @@ ClauseIterator TermFactoring::generateClauses(Clause* cl, Literal* literal) cons
   // num1 * term1 + num2 * term2 + rest > 0 \/ C1   
   // --------------------------------
   // ((num1 + num2) * term1  + rest > 0 ) \sigma \/ Const
+  //
+  // TODO check for all side conditions
 
   auto lit_ = std::move(litOpt).unwrap();
   if (lit_.overflowOccurred) {
@@ -150,14 +152,12 @@ ClauseIterator TermFactoring::generateClauses(Clause* cl, Literal* literal) cons
             //   ^^^^ <--- num2 * term2 
             DEBUG("applying to ", mon1, " ", mon2)
 
-            RobSubstitution subst;
-            Stack<UnificationConstraint> consts;
-            Kernel::UWAMismatchHandler hndlr(_shared->uwa, consts);
-            if (!subst.unify(mon1.factors->denormalize(), /* var bank: */ 0, 
-                             mon2.factors->denormalize(), /* var bank: */ 0,
-                             &hndlr)) {
+            auto uwa_ = _shared->unify(mon1.factors->denormalize(), mon2.factors->denormalize());
+            if (uwa_.isNone()) {
               return Option<Clause*>();
             }
+            auto& uwa = uwa_.unwrap();
+            auto sigma = [&](auto t) { return uwa.sigma.apply(t, /* var bank */ 0); };
 
             auto resolventTerm = Monom(mon1.numeral + mon2.numeral, mon1.factors);
             auto resolventSum = Stack<Monom>(lit.term().nSummands() - 1);
@@ -176,31 +176,25 @@ ClauseIterator TermFactoring::generateClauses(Clause* cl, Literal* literal) cons
             auto resolventLit = IrcLiteral(perfect(sum.value), lit.symbol());
             //   ^^^^^^^^^^^^--> (num1 + num2) * term1 + rest > 0
 
-            Inference inf(GeneratingInference1(Kernel::InferenceRule::INEQUALITY_FACTORING, cl));
-            auto size = cl->size() + consts.size();
+            Inference inf(GeneratingInference1(Kernel::InferenceRule::IRC_TERM_FACTORING, cl));
+            auto size = cl->size() + uwa.cnst.size();
             auto resolvent = new(size) Clause(size, inf);
             {
               unsigned offset = 0;
               auto push = [&](Literal* lit) { ASS(offset < size); (*resolvent)[offset++] = lit; };
               
               // push resolvent literal: k1 * rest1 + k2 * rest2 >= 0 
-              push(subst.apply(resolventLit.denormalize(), 0));
+              push(sigma(resolventLit.denormalize()));
 
               // push other literals from clause: C
               for (unsigned i = 0; i < cl->size(); i++) {
                 if ((*cl)[i] != literal) {
-                  push(subst.apply((*cl)[i], 0));
+                  push(sigma((*cl)[i]));
                 }
               }
 
-              // push constraints
-              for (auto& c : consts) {
-
-                auto toTerm = [&](pair<TermList, unsigned> const& weirdConstraintPair) -> TermList
-                              { return subst.apply(weirdConstraintPair.first, weirdConstraintPair.second); };
-                // t1\sigma != c2\simga
-                auto sort = SortHelper::getResultSort(c.first.first.term());
-                push(Literal::createEquality(false, toTerm(c.first), toTerm(c.second), sort));
+              for (auto lit : iterTraits(uwa.cnstLiterals())) {
+                push(lit);
               }
 
 

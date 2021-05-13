@@ -23,6 +23,7 @@
 #include "Forwards.hpp"
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/LaKbo.hpp"
+#include "Kernel/RobSubstitution.hpp"
 
 #include "Signature.hpp" 
 #include "SortHelper.hpp"
@@ -110,7 +111,10 @@ namespace Kernel {
     bool isInequality() const
     { return Kernel::isInequality(symbol()); }
   };
-
+  using AnyIrcLiteral = Coproduct< IrcLiteral< IntTraits>
+                                 , IrcLiteral< RatTraits>
+                                 , IrcLiteral<RealTraits>
+                                 >;
   
   /** 
    * Represents an inequality literal normalized for the rule InequalityResolution.
@@ -161,10 +165,47 @@ namespace Kernel {
       : _eval(std::move(eval)) {  }
 
     template<class NumTraits> Option<MaybeOverflow<IrcLiteral<NumTraits>>> normalizeIrc(Literal* lit) const;
+
+    Option<MaybeOverflow<AnyIrcLiteral>> normalize(Literal* lit) const;
+
     template<class NumTraits> Option<MaybeOverflow<InequalityLiteral<NumTraits>>> normalizeIneq(Literal* lit) const;
 
     Literal* normalizeLiteral(Literal* lit) const;
     bool isNormalized(Clause* cl)  const;
+  };
+
+  struct IrcState;
+
+  struct UwaResult {
+    RobSubstitution sigma;
+    Stack<UnificationConstraint> cnst;
+    UwaResult(UwaResult&&) = default;
+    UwaResult& operator=(UwaResult&&) = default;
+    auto cnstLiterals() const
+    {
+      return iterTraits(cnst.iterFifo())
+        .map([&](auto c){
+          auto toTerm = [&](pair<TermList, unsigned> const& weirdConstraintPair) -> TermList
+                        { return sigma.apply(weirdConstraintPair.first, weirdConstraintPair.second); };
+          auto sort = SortHelper::getResultSort(c.first.first.term());
+          // lσ != rσ
+          return Literal::createEquality(false, toTerm(c.first), toTerm(c.second), sort);
+        });
+    }
+    friend std::ostream& operator<<(std::ostream& out, UwaResult const& self)
+    { 
+      out << "⟨" << self.sigma << ", [";
+      auto iter = self.cnstLiterals();
+      if (iter.hasNext()) {
+        out << *iter.next();
+        while (iter.hasNext())
+          out << " \\/ " << *iter.next();
+      }
+      return out << "]⟩"; 
+    }
+  private:
+    UwaResult() : sigma(), cnst() {  }
+    friend struct IrcState;
   };
 
   struct IrcState {
@@ -173,6 +214,10 @@ namespace Kernel {
     Shell::Options::UnificationWithAbstraction const uwa;
 
     template<class NumTraits> Stack<Monom<NumTraits>> maxAtomicTerms(IrcLiteral<NumTraits>const& lit);
+
+    Option<UwaResult> unify(TermList lhs, TermList rhs) const;
+    Option<AnyIrcLiteral> normalize(Literal*);
+    PolyNf normalize(TypedTermList);
   };
 
 #if VDEBUG
@@ -342,7 +387,6 @@ Stack<Monom<NumTraits>> IrcState::maxAtomicTerms(IrcLiteral<NumTraits>const& lit
   }
   return max;
 }
-
 
 } // namespace Kernel
 

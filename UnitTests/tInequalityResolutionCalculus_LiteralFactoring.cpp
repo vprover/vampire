@@ -50,16 +50,8 @@ using namespace Inferences::InequalityResolutionCalculus;
 #define MY_SYNTAX_SUGAR SUGAR(Rat)
 
 
-inline Stack<Indexing::Index*> indices() 
-{ 
-  auto uwa = Options::UnificationWithAbstraction::ONE_INTERP;
-  return {
-    new InequalityResolutionIndex(new TermSubstitutionTree(uwa, true))
-  };
-}
-
 LiteralFactoring testLiteralFactoring(
-    Options::UnificationWithAbstraction uwa = Options::UnificationWithAbstraction::ONE_INTERP
+    Options::UnificationWithAbstraction uwa = Options::UnificationWithAbstraction::ALL
     )
 { return LiteralFactoring(testIrcState(uwa)); }
 
@@ -69,29 +61,28 @@ REGISTER_GEN_TESTER(Test::Generation::GenerationTester<LiteralFactoring>(testLit
 // Basic tests
 //////////////////////////////////////
 
+// TODO write test for maximality side conditions
+
 TEST_GENERATION(basic01,
     Generation::TestCase()
-      .indices(indices())
       .input   (  clause({selected( 3 * f(x) + x > 0 ), selected(4 * f(y) + x > 0)   }) )
       .expected(exactly(
-            clause({          3 * f(x) + x > 0 , 4 * x - 3 * x != 0            })
+            clause({          3 * f(x) + x > 0 , 4 * x  + -3 * x != 0            })
       ))
       .premiseRedundant(false)
     )
 
 TEST_GENERATION(basic02,
     Generation::TestCase()
-      .indices(indices())
-      .input   (  clause({selected(f(a) + b > 0 ), selected(f(x) + x > 0)   }) )
+      .input   (  clause({selected(f(a) + b > 0), selected(f(x) + x > 0)   }) )
       .expected(exactly(
-            clause({          f(a) + b > 0 , a - b != 0            })
+            clause({          f(a) + b > 0 , b - a != 0            })
       ))
       .premiseRedundant(false)
     )
 
 TEST_GENERATION(basic03,
     Generation::TestCase()
-      .indices(indices())
       .input   (  clause({selected(  f(a) > 0)  , selected(  f(a) > 0)  }) )
       .expected(exactly(
             clause({  f(a) > 0, num(0) != 0  })
@@ -101,10 +92,9 @@ TEST_GENERATION(basic03,
 
 TEST_GENERATION(uwa1,
     Generation::TestCase()
-      .indices(indices())
-      .input   (  clause({selected(  f(a + b + y) > 0)  , selected(f(x + a) > 0)  }) )
+      .input   (  clause({selected(  f(a + b + x) > 0)  , selected(f(y + a) > 0)  }) )
       .expected(exactly(
-            clause({  f(a + b + y) > 0, num(0) != 0, a + b + y != x + a  })
+            clause({  f(a + b + x) > 0, num(0) != 0, a + b + x != y + a  })
       ))
       .premiseRedundant(false)
     )
