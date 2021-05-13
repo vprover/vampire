@@ -37,7 +37,7 @@
 #include "InequalityResolution.hpp"
 #include "Shell/UnificationWithAbstractionConfig.hpp"
 #include "Kernel/PolynomialNormalizer.hpp"
-#include "Kernel/InequalityResolutionCalculus.hpp"
+#include "Kernel/IRC.hpp"
 #include "Indexing/TermIndexingStructure.hpp"
 
 #define DEBUG(...) // DBG(__VA_ARGS__)
@@ -45,7 +45,7 @@
 using Kernel::InequalityLiteral;
 
 namespace Inferences {
-namespace InequalityResolutionCalculus {
+namespace IRC {
 
 using namespace Lib;
 using namespace Kernel;
@@ -357,5 +357,5 @@ ClauseIterator InequalityResolution::generateClauses(Clause* premise)
     }));
 }
 
-} // namespace InequalityResolutionCalculus
+} // namespace IRC
 } // namespace Inferences

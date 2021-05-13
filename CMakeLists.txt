@@ -332,8 +332,8 @@ set(VAMPIRE_KERNEL_SOURCES
     Kernel/ApplicativeHelper.cpp
     Kernel/SKIKBO.hpp
     Kernel/SKIKBO.cpp
-    kernel/InequalityResolutionCalculus.hpp
-    kernel/InequalityResolutionCalculus.cpp
+    kernel/IRC.hpp
+    kernel/IRC.cpp
     Indexing/TypeSubstitutionTree.cpp
     Indexing/TypeSubstitutionTree.hpp
     Inferences/CNFOnTheFly.cpp
@@ -453,20 +453,20 @@ set(VAMPIRE_INFERENCE_SOURCES
     Kernel/Rebalancing/Inverters.cpp
     Inferences/SLQueryBackwardSubsumption.cpp
     Inferences/Superposition.cpp
-    Inferences/InequalityResolutionCalculus/Normalization.cpp
-    Inferences/InequalityResolutionCalculus/Normalization.hpp
-    Inferences/InequalityResolutionCalculus/LiteralFactoring.cpp
-    Inferences/InequalityResolutionCalculus/LiteralFactoring.hpp
-    Inferences/InequalityResolutionCalculus/Totality.cpp
-    Inferences/InequalityResolutionCalculus/Totality.hpp
-    Inferences/InequalityResolutionCalculus/VariableElimination.cpp
-    Inferences/InequalityResolutionCalculus/VariableElimination.hpp
-    Inferences/InequalityResolutionCalculus/Superposition.cpp
-    Inferences/InequalityResolutionCalculus/Superposition.hpp
-    Inferences/InequalityResolutionCalculus/InequalityResolution.cpp
-    Inferences/InequalityResolutionCalculus/InequalityResolution.hpp
-    Inferences/InequalityResolutionCalculus/TermFactoring.cpp
-    Inferences/InequalityResolutionCalculus/TermFactoring.hpp
+    Inferences/IRC/Normalization.cpp
+    Inferences/IRC/Normalization.hpp
+    Inferences/IRC/LiteralFactoring.cpp
+    Inferences/IRC/LiteralFactoring.hpp
+    Inferences/IRC/Totality.cpp
+    Inferences/IRC/Totality.hpp
+    Inferences/IRC/VariableElimination.cpp
+    Inferences/IRC/VariableElimination.hpp
+    Inferences/IRC/Superposition.cpp
+    Inferences/IRC/Superposition.hpp
+    Inferences/IRC/InequalityResolution.cpp
+    Inferences/IRC/InequalityResolution.hpp
+    Inferences/IRC/TermFactoring.cpp
+    Inferences/IRC/TermFactoring.hpp
     Inferences/TautologyDeletionISE.cpp
     Inferences/TermAlgebraReasoning.cpp
     Inferences/URResolution.cpp
@@ -805,13 +805,13 @@ set(UNIT_TESTS
     UnitTests/tUnificationWithAbstraction.cpp
     UnitTests/tGaussianElimination.cpp
 
-    UnitTests/tInequalityResolutionCalculus_InequalityResolution.cpp
-    UnitTests/tInequalityResolutionCalculus_LiteralFactoring.cpp
-    UnitTests/tInequalityResolutionCalculus_Normalization.cpp
-    UnitTests/tInequalityResolutionCalculus_Superposition.cpp
-    UnitTests/tInequalityResolutionCalculus_VariableElimination.cpp
-    UnitTests/tInequalityResolutionCalculus_TermFactoring.cpp
-    UnitTests/tInequalityResolutionCalculus_Totality.cpp
+    UnitTests/tIRC_InequalityResolution.cpp
+    UnitTests/tIRC_LiteralFactoring.cpp
+    UnitTests/tIRC_Normalization.cpp
+    UnitTests/tIRC_Superposition.cpp
+    UnitTests/tIRC_VariableElimination.cpp
+    UnitTests/tIRC_TermFactoring.cpp
+    UnitTests/tIRC_Totality.cpp
     UnitTests/tInequalityResolutionIndex.cpp
 
     UnitTests/tArithmeticSubtermGeneralization.cpp

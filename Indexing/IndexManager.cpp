@@ -29,7 +29,7 @@
 #include "Shell/Statistics.hpp"
 
 #include "IndexManager.hpp"
-#include "Kernel/InequalityResolutionCalculus.hpp"
+#include "Kernel/IRC.hpp"
 #include "Indexing/InequalityResolutionIndex.hpp"
 
 using namespace Lib;

@@ -8,13 +8,13 @@
  * and in the source directory
  */
 /**
- * @file Totality.hpp
- * Defines class Totality
+ * @file LiteralFactoring.hpp
+ * Defines class LiteralFactoring
  *
  */
 
-#ifndef __InequalityResolutionCalculus_Totality__
-#define __InequalityResolutionCalculus_Totality__
+#ifndef __LiteralFactoring__
+#define __LiteralFactoring__
 
 #include "Forwards.hpp"
 
@@ -25,21 +25,34 @@
 #include "Shell/Options.hpp"
 
 namespace Inferences {
-namespace InequalityResolutionCalculus {
+namespace IRC {
 
 using namespace Kernel;
 using namespace Indexing;
 using namespace Saturation;
 
-class Totality
+template<class A>
+struct Indexed {
+  unsigned idx;
+  A self;
+  A& operator*() { return self; }
+  A const& operator*() const { return self; }
+  A* operator->() { return &self; }
+};
+
+template<class A>
+Indexed<A> indexed(unsigned idx, A self) 
+{ return {.idx = idx, .self = std::move(self), }; }
+
+class LiteralFactoring
 : public GeneratingInferenceEngine
 {
 public:
-  CLASS_NAME(Totality);
-  USE_ALLOCATOR(Totality);
+  CLASS_NAME(LiteralFactoring);
+  USE_ALLOCATOR(LiteralFactoring);
 
-  Totality(Totality&&) = default;
-  Totality(shared_ptr<IrcState> shared) 
+  LiteralFactoring(LiteralFactoring&&) = default;
+  LiteralFactoring(shared_ptr<IrcState> shared) 
     : _shared(std::move(shared))
   {  }
 
@@ -47,6 +60,13 @@ public:
   void detach() final override;
 
 
+  template<class NumTraits>
+  Clause* applyRule(Clause* premise, 
+    Indexed<IrcLiteral<NumTraits>> l1,  Monom<NumTraits> j_s1,
+    Indexed<IrcLiteral<NumTraits>> l2,  Monom<NumTraits> k_s2,
+    UwaResult sigma_cnst);
+  template<class NumTraits>
+  ClauseIterator generateClauses(Clause* premise, Indexed<IrcLiteral<NumTraits>> l1, Indexed<IrcLiteral<NumTraits>> l2);
   ClauseIterator generateClauses(Clause* premise) final override;
 
   
@@ -57,13 +77,11 @@ public:
 
 private:
 
-  template<class NumTraits> ClauseIterator generateClauses(Clause* clause, Literal* lit) const;
-
   shared_ptr<IrcState> _shared;
 };
 
-} // namespace InequalityResolutionCalculus 
+} // namespace IRC 
 } // namespace Inferences 
 
 // lalalalala
-#endif /*__InequalityResolutionCalculus_Totality__*/
+#endif /*__LiteralFactoring__*/

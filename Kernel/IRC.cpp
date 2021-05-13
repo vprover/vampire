@@ -8,7 +8,7 @@
  * and in the source directory
  */
 
-#include "InequalityResolutionCalculus.hpp"
+#include "IRC.hpp"
 
 namespace Kernel {
 using Inferences::PolynomialEvaluation;

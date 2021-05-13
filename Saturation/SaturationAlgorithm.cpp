@@ -44,12 +44,12 @@
 #include "Inferences/PushUnaryMinus.hpp"
 #include "Inferences/Cancellation.hpp"
 #include "Inferences/GaussianVariableElimination.hpp"
-#include "Inferences/InequalityResolutionCalculus/InequalityResolution.hpp"
-#include "Inferences/InequalityResolutionCalculus/Normalization.hpp"
-#include "Inferences/InequalityResolutionCalculus/TermFactoring.hpp"
-#include "Inferences/InequalityResolutionCalculus/LiteralFactoring.hpp"
-#include "Inferences/InequalityResolutionCalculus/Totality.hpp"
-#include "Inferences/InequalityResolutionCalculus/Superposition.hpp"
+#include "Inferences/IRC/InequalityResolution.hpp"
+#include "Inferences/IRC/Normalization.hpp"
+#include "Inferences/IRC/TermFactoring.hpp"
+#include "Inferences/IRC/LiteralFactoring.hpp"
+#include "Inferences/IRC/Totality.hpp"
+#include "Inferences/IRC/Superposition.hpp"
 #include "Inferences/EquationalTautologyRemoval.hpp"
 #include "Inferences/Condensation.hpp"
 #include "Inferences/FastCondensation.hpp"
@@ -1630,12 +1630,12 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
         .ordering = &ordering, 
         .uwa = env.options->unificationWithAbstraction(),
     });
-    sgi->push(new InequalityResolutionCalculus::LiteralFactoring(shared)); 
-    sgi->push(new InequalityResolutionCalculus::Superposition(shared)); 
-    sgi->push(new InequalityResolutionCalculus::Totality(shared)); 
-    sgi->push(new InequalityResolutionCalculus::TermFactoring(shared)); 
-    sgi->push(new InequalityResolutionCalculus::InequalityResolution(shared)); 
-    ise->addFront(new InequalityResolutionCalculus::Normalization(shared)); 
+    sgi->push(new IRC::LiteralFactoring(shared)); 
+    sgi->push(new IRC::Superposition(shared)); 
+    sgi->push(new IRC::Totality(shared)); 
+    sgi->push(new IRC::TermFactoring(shared)); 
+    sgi->push(new IRC::InequalityResolution(shared)); 
+    ise->addFront(new IRC::Normalization(shared)); 
   }
 
 

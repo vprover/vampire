@@ -18,7 +18,7 @@
 #include "Forwards.hpp"
 
 #include "Kernel/Theory.hpp"
-#include "Kernel/InequalityResolutionCalculus.hpp"
+#include "Kernel/IRC.hpp"
 
 
 

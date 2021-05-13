@@ -18,7 +18,7 @@
 #define TODO ASSERTION_VIOLATION
 
 namespace Inferences {
-namespace InequalityResolutionCalculus {
+namespace IRC {
 
 void VariableElimination::attach(SaturationAlgorithm* salg) 
 { 
@@ -49,5 +49,5 @@ template<class NumTraits> ClauseIterator VariableElimination::generateClauses(Cl
   TODO
 }
 
-} // namespace InequalityResolutionCalculus 
+} // namespace IRC 
 } // namespace Inferences 

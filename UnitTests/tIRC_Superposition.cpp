@@ -11,7 +11,7 @@
 #include "Test/UnitTesting.hpp"
 #include "Test/SyntaxSugar.hpp"
 #include "Indexing/TermSharing.hpp"
-#include "Inferences/InequalityResolutionCalculus/Totality.hpp"
+#include "Inferences/IRC/Superposition.hpp"
 #include "Inferences/InterpretedEvaluation.hpp"
 #include "Kernel/Ordering.hpp"
 #include "Inferences/PolynomialEvaluation.hpp"
@@ -31,7 +31,7 @@ using namespace Kernel;
 using namespace Inferences;
 using namespace Test;
 using namespace Indexing;
-using namespace Inferences::InequalityResolutionCalculus;
+using namespace Inferences::IRC;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ////// TEST CASES 
@@ -54,16 +54,18 @@ inline Stack<Indexing::Index*> indices()
 { 
   auto uwa = Options::UnificationWithAbstraction::ONE_INTERP;
   return {
-    new InequalityResolutionIndex( new TermSubstitutionTree(uwa, true))
+    new InequalityResolutionIndex(new TermSubstitutionTree(uwa, true))
   };
 }
 
-Totality testTotality(
+Superposition testSuperposition(
     Options::UnificationWithAbstraction uwa = Options::UnificationWithAbstraction::ONE_INTERP
     )
-{ return Totality(testIrcState(uwa)); }
+{ return Superposition(testIrcState(uwa)); }
 
-REGISTER_GEN_TESTER(Test::Generation::GenerationTester<Totality>(testTotality()))
+
+
+REGISTER_GEN_TESTER(Test::Generation::GenerationTester<Superposition>(testSuperposition()))
 
 /////////////////////////////////////////////////////////
 // Basic tests
@@ -72,10 +74,10 @@ REGISTER_GEN_TESTER(Test::Generation::GenerationTester<Totality>(testTotality())
 TEST_GENERATION(basic01,
     Generation::TestCase()
       .indices(indices())
-      .input   (  clause({ selected(  a >= 0 )  }) )
-      .context ({ clause({ selected( -a >= 0 )  }) })
+      .input   (  clause({ selected( 3 * f(x) - 4 == 0 )  }) )
+      .context ({ clause({ selected(     3 * f(x) >  0 )  }) })
       .expected(exactly(
-            clause({ a == 0, num(0) != 0  })
+            clause({ num(4) > 0  })
       ))
       .premiseRedundant(false)
     )
@@ -83,10 +85,10 @@ TEST_GENERATION(basic01,
 TEST_GENERATION(basic02,
     Generation::TestCase()
       .indices(indices())
-      .input   (  clause({ selected(  a - 1 >= 0 )  }) )
-      .context ({ clause({ selected( -a + 1 >= 0 )  }) })
+      .input   (  clause({ selected( 3 * f(x) - 4 == 0 )  }) )
+      .context ({ clause({ selected(     f(x) >  0 )  }) })
       .expected(exactly(
-            clause({ a - 1 == 0, num(1) - num(1) != 0  })
+            clause({ frac(4, 3) > 0  })
       ))
       .premiseRedundant(false)
     )
@@ -94,10 +96,10 @@ TEST_GENERATION(basic02,
 TEST_GENERATION(basic03,
     Generation::TestCase()
       .indices(indices())
-      .input   (  clause({ selected(  a - b >= 0 )  }) )
-      .context ({ clause({ selected( -a + c >= 0 )  }) })
+      .input   (  clause({selected( f(a) + a + 3 == 0 ) })  )
+      .context ({ clause({selected( f(x) > 0 ) }) })
       .expected(exactly(
-            clause({ a - b == 0, c - b != 0  })
+            clause({ - a + -3 > 0  })
       ))
       .premiseRedundant(false)
     )
@@ -105,41 +107,20 @@ TEST_GENERATION(basic03,
 TEST_GENERATION(basic04,
     Generation::TestCase()
       .indices(indices())
-      .input   (  clause({ selected(  f(x) - b >= 0 )  }) )
-      .context ({ clause({ selected( -f(a) + c >= 0 )  }) })
-      .expected(exactly(
-            clause({ f(a) - b == 0, c - b != 0  })
-      ))
-      .premiseRedundant(false)
-    )
-
-TEST_GENERATION(basic05,
-    Generation::TestCase()
-      .indices(indices())
-      .input   (  clause({ selected(  f(x) - b >= 0 )  }) )
-      .context ({ clause({ selected(  f(a) + c >= 0 )  }) })
+      .input   (  clause({ selected( f(a) + a + 3 == 0 ) })  )
+      .context ({ clause({  f(x) > 0, selected(f(g(x)) > 0) }) })
       .expected(exactly(
       ))
       .premiseRedundant(false)
     )
 
-TEST_GENERATION(basic06,
+TEST_GENERATION(uwa1,
     Generation::TestCase()
       .indices(indices())
-      .input   (  clause({ selected(  f(b) >= 0 )  }) )
-      .context ({ clause({ selected( -f(a) >= 0 )  }) })
+      .input   (  clause({ selected( f(a + x) - 4 == 0 )  }) )
+      .context ({ clause({ selected( f(b) >  0 )  }) })
       .expected(exactly(
-      ))
-      .premiseRedundant(false)
-    )
-
-TEST_GENERATION(uwa,
-    Generation::TestCase()
-      .indices(indices())
-      .input   (  clause({ selected(  f(x + a) - b >= 0 )  }) )
-      .context ({ clause({ selected( -f(b) + c >= 0 )  }) })
-      .expected(exactly(
-            clause({ f(x + a) - b == 0, c - b != 0, x + a != b  })
+            clause({ num(4) > 0, a + x != b  })
       ))
       .premiseRedundant(false)
     )

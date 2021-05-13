@@ -8,15 +8,15 @@
  * and in the source directory
  */
 /**
- * @file InequalityResolutionCalculus.cpp
+ * @file IRC.cpp
  * Defines all functionality shared among the components of the inequality resolution calculus.
  *
  */
 
 
 
-#ifndef __InequalityResolutionCalculus__
-#define __InequalityResolutionCalculus__
+#ifndef __IRC__
+#define __IRC__
 
 #include "Kernel/Formula.hpp"
 #include "Lib/Int.hpp"
@@ -391,5 +391,5 @@ Stack<Monom<NumTraits>> IrcState::maxAtomicTerms(IrcLiteral<NumTraits>const& lit
 } // namespace Kernel
 
 #undef DEBUG
-#endif // __InequalityResolutionCalculus__
+#endif // __IRC__
 

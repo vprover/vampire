@@ -13,11 +13,11 @@
  *
  */
 
-#ifndef __InequalityResolutionCalculus_InequalityResolutionIndex__
-#define __InequalityResolutionCalculus_InequalityResolutionIndex__
+#ifndef __IRC_InequalityResolutionIndex__
+#define __IRC_InequalityResolutionIndex__
 
 
-#include "Kernel/InequalityResolutionCalculus.hpp"
+#include "Kernel/IRC.hpp"
 
 #include "Indexing/IndexManager.hpp"
 #include "Indexing/TermIndex.hpp"
@@ -48,4 +48,4 @@ private:
 
 } // namespace Indexing
 
-#endif // __InequalityResolutionCalculus_InequalityResolutionIndex__
+#endif // __IRC_InequalityResolutionIndex__

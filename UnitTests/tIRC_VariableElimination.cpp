@@ -11,7 +11,7 @@
 #include "Test/UnitTesting.hpp"
 #include "Test/SyntaxSugar.hpp"
 #include "Indexing/TermSharing.hpp"
-#include "Inferences/InequalityResolutionCalculus/VariableElimination.hpp"
+#include "Inferences/IRC/VariableElimination.hpp"
 #include "Inferences/InterpretedEvaluation.hpp"
 #include "Kernel/Ordering.hpp"
 #include "Inferences/PolynomialEvaluation.hpp"
@@ -31,7 +31,7 @@ using namespace Kernel;
 using namespace Inferences;
 using namespace Test;
 using namespace Indexing;
-using namespace Inferences::InequalityResolutionCalculus;
+using namespace Inferences::IRC;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ////// TEST CASES 

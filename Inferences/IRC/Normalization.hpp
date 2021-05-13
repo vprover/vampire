@@ -13,8 +13,8 @@
  *
  */
 
-#ifndef __InequalityResolutionCalculus_Normalization__
-#define __InequalityResolutionCalculus_Normalization__
+#ifndef __IRC_Normalization__
+#define __IRC_Normalization__
 
 #include "Forwards.hpp"
 
@@ -23,10 +23,10 @@
 #include "Shell/UnificationWithAbstractionConfig.hpp"
 #include "Inferences/PolynomialEvaluation.hpp"
 #include "Indexing/InequalityResolutionIndex.hpp"
-#include "Kernel/InequalityResolutionCalculus.hpp"
+#include "Kernel/IRC.hpp"
 
 namespace Inferences {
-namespace InequalityResolutionCalculus {
+namespace IRC {
 
 using namespace Kernel;
 using namespace Indexing;
@@ -44,7 +44,7 @@ public:
   virtual Clause* simplify(Clause* cl) final override;
 };
 
-} // namespace InequalityResolutionCalculs
+} // namespace IRC
 } // namespace Inferences
 
-#endif /*__InequalityResolutionCalculus_Normalization__*/
+#endif /*__IRC_Normalization__*/

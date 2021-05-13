@@ -38,7 +38,7 @@
 #include "TermFactoring.hpp"
 #include "InequalityResolution.hpp"
 #include "Kernel/PolynomialNormalizer.hpp"
-#include "Kernel/InequalityResolutionCalculus.hpp"
+#include "Kernel/IRC.hpp"
 #include "Indexing/TermIndexingStructure.hpp"
 #include "Kernel/RobSubstitution.hpp"
 
@@ -47,7 +47,7 @@
 using Kernel::InequalityLiteral;
 
 namespace Inferences {
-namespace InequalityResolutionCalculus {
+namespace IRC {
 
 using namespace Lib;
 using namespace Kernel;
@@ -226,5 +226,5 @@ ClauseIterator TermFactoring::generateClauses(Clause* premise)
     }));
 }
 
-} // namespace InequalityResolutionCalculus
+} // namespace IRC
 } // namespace Inferences

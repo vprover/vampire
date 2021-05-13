@@ -8,41 +8,38 @@
  * and in the source directory
  */
 /**
- * @file TermFactoring.hpp
- * Defines class TermFactoring
+ * @file Totality.hpp
+ * Defines class Totality
  *
  */
 
-#ifndef __TermFactoring__
-#define __TermFactoring__
+#ifndef __IRC_Totality__
+#define __IRC_Totality__
 
 #include "Forwards.hpp"
 
 #include "Inferences/InferenceEngine.hpp"
 #include "Kernel/Ordering.hpp"
 #include "Shell/UnificationWithAbstractionConfig.hpp"
-#include "Indexing/IndexManager.hpp"
-#include "Indexing/TermIndex.hpp"
-#include "Inferences/PolynomialEvaluation.hpp"
-#include "Kernel/InequalityResolutionCalculus.hpp"
+#include "Indexing/InequalityResolutionIndex.hpp"
 #include "Shell/Options.hpp"
 
 namespace Inferences {
-namespace InequalityResolutionCalculus {
+namespace IRC {
 
 using namespace Kernel;
 using namespace Indexing;
 using namespace Saturation;
 
-class TermFactoring
+class Totality
 : public GeneratingInferenceEngine
 {
 public:
-  CLASS_NAME(TermFactoring);
-  USE_ALLOCATOR(TermFactoring);
+  CLASS_NAME(Totality);
+  USE_ALLOCATOR(Totality);
 
-  TermFactoring(TermFactoring&&) = default;
-  TermFactoring(shared_ptr<IrcState> shared)
+  Totality(Totality&&) = default;
+  Totality(shared_ptr<IrcState> shared) 
     : _shared(std::move(shared))
   {  }
 
@@ -52,8 +49,6 @@ public:
 
   ClauseIterator generateClauses(Clause* premise) final override;
 
-  
-
 #if VDEBUG
   virtual void setTestIndices(Stack<Indexing::Index*> const&) final override;
 #endif
@@ -62,13 +57,11 @@ private:
 
   template<class NumTraits> ClauseIterator generateClauses(Clause* clause, Literal* lit) const;
 
-  InequalityNormalizer const& normalizer() const { return _shared->normalizer; }
-  Ordering* ord() const { return _shared->ordering; }
-  
   shared_ptr<IrcState> _shared;
 };
 
-} // namespace InequalityResolutionCalculus 
+} // namespace IRC 
 } // namespace Inferences 
 
-#endif /*__TermFactoring__*/
+// lalalalala
+#endif /*__IRC_Totality__*/

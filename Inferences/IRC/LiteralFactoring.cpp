@@ -18,7 +18,7 @@
 #define TODO ASSERTION_VIOLATION
 
 namespace Inferences {
-namespace InequalityResolutionCalculus {
+namespace IRC {
 
 void LiteralFactoring::attach(SaturationAlgorithm* salg) 
 { }
@@ -165,5 +165,5 @@ void LiteralFactoring::setTestIndices(Stack<Indexing::Index*> const&)
 }
 #endif
 
-} // namespace InequalityResolutionCalculus 
+} // namespace IRC 
 } // namespace Inferences 

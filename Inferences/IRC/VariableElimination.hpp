@@ -8,13 +8,13 @@
  * and in the source directory
  */
 /**
- * @file Superposition.hpp
- * Defines class Superposition
+ * @file VariableElimination.hpp
+ * Defines class VariableElimination
  *
  */
 
-#ifndef __InequalityResolutionCalculs_Superposition__
-#define __InequalityResolutionCalculs_Superposition__
+#ifndef __VariableElimination__
+#define __VariableElimination__
 
 #include "Forwards.hpp"
 
@@ -25,21 +25,21 @@
 #include "Shell/Options.hpp"
 
 namespace Inferences {
-namespace InequalityResolutionCalculus {
+namespace IRC {
 
 using namespace Kernel;
 using namespace Indexing;
 using namespace Saturation;
 
-class Superposition
+class VariableElimination
 : public GeneratingInferenceEngine
 {
 public:
-  CLASS_NAME(Superposition);
-  USE_ALLOCATOR(Superposition);
+  CLASS_NAME(VariableElimination);
+  USE_ALLOCATOR(VariableElimination);
 
-  Superposition(Superposition&&) = default;
-  Superposition(shared_ptr<IrcState> shared) 
+  VariableElimination(VariableElimination&&) = default;
+  VariableElimination(shared_ptr<IrcState> shared) 
     : _shared(std::move(shared))
   {  }
 
@@ -48,6 +48,8 @@ public:
 
 
   ClauseIterator generateClauses(Clause* premise) final override;
+
+  
 
 #if VDEBUG
   virtual void setTestIndices(Stack<Indexing::Index*> const&) final override;
@@ -60,8 +62,8 @@ private:
   shared_ptr<IrcState> _shared;
 };
 
-} // namespace InequalityResolutionCalculus
-} // namespace Inferences
+} // namespace IRC 
+} // namespace Inferences 
 
 // lalalalala
-#endif /*__InequalityResolutionCalculs_Superposition__*/
+#endif /*__VariableElimination__*/

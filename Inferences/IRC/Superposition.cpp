@@ -18,7 +18,7 @@
 #define TODO ASSERTION_VIOLATION
 
 namespace Inferences {
-namespace InequalityResolutionCalculus {
+namespace IRC {
 
 void Superposition::attach(SaturationAlgorithm* salg) 
 { 
@@ -49,5 +49,5 @@ template<class NumTraits> ClauseIterator Superposition::generateClauses(Clause* 
   TODO
 }
 
-} // namespace InequalityResolutionCalculus 
+} // namespace IRC 
 } // namespace Inferences 
