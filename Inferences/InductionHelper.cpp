@@ -65,8 +65,8 @@ bool isIntegerComparisonLiteral(Literal* lit) {
 
 bool isIntInductionOn() {
   CALL("InductionHelper::isIntInductionOn");
-  static bool intInd = env.options->induction() == Options::Induction::BOTH ||
-                       env.options->induction() == Options::Induction::INTEGER;
+  VTHREAD_LOCAL static bool intInd = env->options->induction() == Options::Induction::BOTH ||
+                       env->options->induction() == Options::Induction::INTEGER;
   return intInd;
 }
 
@@ -76,7 +76,7 @@ TermQueryResultIterator InductionHelper::getComparisonMatch(
     bool polarity, TermList& left, TermList& right, TermList& var) {
   CALL("InductionHelper::getComparisonMatch");
 
-  static unsigned less = env.signature->getInterpretingSymbol(Theory::INT_LESS);
+  VTHREAD_LOCAL static unsigned less = env->signature->getInterpretingSymbol(Theory::INT_LESS);
 
   Literal* pattern = Literal::create2(less, polarity, left, right);
   return pvi(getMappingIterator(_comparisonIndex->getUnifications(pattern, /*complementary=*/ false, /*retrieveSubstitution=*/ true),
@@ -87,7 +87,7 @@ TermQueryResultIterator InductionHelper::getLessEqual(Term* t)
 {
   CALL("InductionHelper::getLessEqual");
 
-  static TermList var(0, false);
+  VTHREAD_LOCAL static TermList var(0, false);
   TermList tl(t);
   // x <= t  iff  ~ t < x
   return getComparisonMatch(/*polarity=*/false, tl, var, var);
@@ -96,7 +96,7 @@ TermQueryResultIterator InductionHelper::getLess(Term* t)
 {
   CALL("InductionHelper::getLess");
 
-  static TermList var(0, false);
+  VTHREAD_LOCAL static TermList var(0, false);
   TermList tl(t);
   // x < t
   return getComparisonMatch(/*polarity=*/true, var, tl, var);
@@ -105,7 +105,7 @@ TermQueryResultIterator InductionHelper::getGreaterEqual(Term* t)
 {
   CALL("InductionHelper::getGreaterEqual");
 
-  static TermList var(0, false);
+  VTHREAD_LOCAL static TermList var(0, false);
   TermList tl(t);
   // x >= t  iff  ~ x < t
   return getComparisonMatch(/*polarity=*/false, var, tl, var);
@@ -114,7 +114,7 @@ TermQueryResultIterator InductionHelper::getGreater(Term* t)
 {
   CALL("InductionHelper::getGreater");
 
-  static TermList var(0, false);
+  VTHREAD_LOCAL static TermList var(0, false);
   TermList tl(t);
   // x > t  iff  t < x
   return getComparisonMatch(/*polarity=*/true, tl, var, var);
@@ -129,7 +129,7 @@ TermQueryResultIterator InductionHelper::getTQRsForInductionTerm(TermList induct
 
 void InductionHelper::callSplitterOnNewClause(Clause* c) {
   CALL("InductionHelper::callSplitterOnNewClause");
-  static bool splitting = env.options->splitting();
+  VTHREAD_LOCAL static bool splitting = env->options->splitting();
   if (splitting) _splitter->onNewClause(c);
 }
 
@@ -141,54 +141,54 @@ bool InductionHelper::isIntegerComparison(Clause* c) {
 
 bool InductionHelper::isIntInductionOn() {
   CALL("InductionHelper::isIntInductionOn");
-  static bool intInd = env.options->induction() == Options::Induction::BOTH ||
-                        env.options->induction() == Options::Induction::INTEGER;
+  VTHREAD_LOCAL static bool intInd = env->options->induction() == Options::Induction::BOTH ||
+                        env->options->induction() == Options::Induction::INTEGER;
   return intInd;
 }
 
 bool InductionHelper::isIntInductionOneOn() {
   CALL("InductionHelper::isIntInductionOneOn");
-  static bool one = env.options->intInduction() == Options::IntInductionKind::ONE ||
-                    env.options->intInduction() == Options::IntInductionKind::ALL;
+  VTHREAD_LOCAL static bool one = env->options->intInduction() == Options::IntInductionKind::ONE ||
+                    env->options->intInduction() == Options::IntInductionKind::ALL;
   return isIntInductionOn() && one;
 }
 
 bool InductionHelper::isIntInductionTwoOn() {
   CALL("InductionHelper::isIntInductionTwoOn");
-  static bool two = env.options->intInduction() == Options::IntInductionKind::TWO ||
-                    env.options->intInduction() == Options::IntInductionKind::ALL;
+  VTHREAD_LOCAL static bool two = env->options->intInduction() == Options::IntInductionKind::TWO ||
+                    env->options->intInduction() == Options::IntInductionKind::ALL;
   return isIntInductionOn() && two;
 }
 
 bool InductionHelper::isInductionForFiniteIntervalsOn() {
   CALL("InductionHelper::isInductionForFiniteIntervalsOn");
-  static bool finite = env.options->integerInductionInterval() == Options::IntegerInductionInterval::FINITE ||
-                       env.options->integerInductionInterval() == Options::IntegerInductionInterval::BOTH;
+  VTHREAD_LOCAL static bool finite = env->options->integerInductionInterval() == Options::IntegerInductionInterval::FINITE ||
+                       env->options->integerInductionInterval() == Options::IntegerInductionInterval::BOTH;
   return isIntInductionOn() && finite;
 }
 
 bool InductionHelper::isInductionForInfiniteIntervalsOn() {
   CALL("InductionHelper::isInductionForInfiniteIntervalsOn");
-  static bool infinite = env.options->integerInductionInterval() == Options::IntegerInductionInterval::INFINITE ||
-                         env.options->integerInductionInterval() == Options::IntegerInductionInterval::BOTH;
+  VTHREAD_LOCAL static bool infinite = env->options->integerInductionInterval() == Options::IntegerInductionInterval::INFINITE ||
+                         env->options->integerInductionInterval() == Options::IntegerInductionInterval::BOTH;
   return isIntInductionOn() && infinite;
 }
 
 bool InductionHelper::isStructInductionOn() {
   CALL("InductionHelper::isStructInductionOn");
-  static bool structInd = env.options->induction() == Options::Induction::BOTH ||
-                          env.options->induction() == Options::Induction::STRUCTURAL;
+  VTHREAD_LOCAL static bool structInd = env->options->induction() == Options::Induction::BOTH ||
+                          env->options->induction() == Options::Induction::STRUCTURAL;
   return structInd;
 }
 
 bool InductionHelper::isInductionClause(Clause* c) {
   CALL("InductionHelper::isInductionClause");
-  static Options::InductionChoice kind = env.options->inductionChoice();
-  static bool all = (kind == Options::InductionChoice::ALL);
-  static bool goal = (kind == Options::InductionChoice::GOAL);
-  static bool goal_plus = (kind == Options::InductionChoice::GOAL_PLUS);
-  static unsigned maxD = env.options->maxInductionDepth();
-  static bool unitOnly = env.options->inductionUnitOnly();
+  VTHREAD_LOCAL static Options::InductionChoice kind = env->options->inductionChoice();
+  VTHREAD_LOCAL static bool all = (kind == Options::InductionChoice::ALL);
+  VTHREAD_LOCAL static bool goal = (kind == Options::InductionChoice::GOAL);
+  VTHREAD_LOCAL static bool goal_plus = (kind == Options::InductionChoice::GOAL_PLUS);
+  VTHREAD_LOCAL static unsigned maxD = env->options->maxInductionDepth();
+  VTHREAD_LOCAL static bool unitOnly = env->options->inductionUnitOnly();
   return ((!unitOnly || c->length()==1) && 
           (all || ( (goal || goal_plus) && c->derivedFromGoal())) &&
                   (maxD == 0 || c->inference().inductionDepth() < maxD)
@@ -197,7 +197,7 @@ bool InductionHelper::isInductionClause(Clause* c) {
 
 bool InductionHelper::isInductionLiteral(Literal* l) {
   CALL("InductionHelper::isInductionLiteral");
-  static bool negOnly = env.options->inductionNegOnly();
+  VTHREAD_LOCAL static bool negOnly = env->options->inductionNegOnly();
   return ((!negOnly || l->isNegative() || 
            (theory->isInterpretedPredicate(l) && theory->isInequality(theory->interpretPredicate(l)))
           ) && l->ground()
@@ -206,14 +206,14 @@ bool InductionHelper::isInductionLiteral(Literal* l) {
 
 bool InductionHelper::isInductionTermFunctor(unsigned f) {
   CALL("InductionHelper::isInductionTermFunctor");
-  static Options::InductionChoice kind = env.options->inductionChoice();
-  static bool all = (kind == Options::InductionChoice::ALL);
-  static bool goal_plus = (kind == Options::InductionChoice::GOAL_PLUS);
-  static bool complexTermsAllowed = env.options->inductionOnComplexTerms();
-  return ((complexTermsAllowed || env.signature->functionArity(f)==0) &&
+  VTHREAD_LOCAL static Options::InductionChoice kind = env->options->inductionChoice();
+  VTHREAD_LOCAL static bool all = (kind == Options::InductionChoice::ALL);
+  VTHREAD_LOCAL static bool goal_plus = (kind == Options::InductionChoice::GOAL_PLUS);
+  VTHREAD_LOCAL static bool complexTermsAllowed = env->options->inductionOnComplexTerms();
+  return ((complexTermsAllowed || env->signature->functionArity(f)==0) &&
           (all ||
-           env.signature->getFunction(f)->inGoal() ||
-           (goal_plus && env.signature->getFunction(f)->inductionSkolem()) // set in NewCNF
+           env->signature->getFunction(f)->inGoal() ||
+           (goal_plus && env->signature->getFunction(f)->inductionSkolem()) // set in NewCNF
           )
          );
 }
@@ -225,7 +225,7 @@ bool InductionHelper::isIntInductionTermListInLiteral(TermList& tl, Literal* l) 
   // Term tl has to be an integer term, and not an interpreted constant.
   unsigned f = tl.term()->functor();
   // TODO: move this check to later (when we know the bounds)
-  if ((env.signature->getFunction(f)->fnType()->result() != Term::intSort()) ||
+  if ((env->signature->getFunction(f)->fnType()->result() != Term::intSort()) ||
       theory->isInterpretedConstant(f))
   {
     return false;
@@ -241,12 +241,12 @@ bool InductionHelper::isIntInductionTermListInLiteral(TermList& tl, Literal* l) 
 
 bool InductionHelper::isStructInductionFunctor(unsigned f) {
   CALL("InductionHelper::isStructInductionFunctor");
-  static bool complexTermsAllowed = env.options->inductionOnComplexTerms();
-  return (env.signature->isTermAlgebraSort(env.signature->getFunction(f)->fnType()->result()) &&
+  VTHREAD_LOCAL static bool complexTermsAllowed = env->options->inductionOnComplexTerms();
+  return (env->signature->isTermAlgebraSort(env->signature->getFunction(f)->fnType()->result()) &&
            // skip base constructors even if induction on complex terms is on:
-          ((complexTermsAllowed && env.signature->functionArity(f) != 0) ||
+          ((complexTermsAllowed && env->signature->functionArity(f) != 0) ||
            // otherwise skip all constructors:
-           !env.signature->getFunction(f)->termAlgebraCons())
+           !env->signature->getFunction(f)->termAlgebraCons())
          );
 }
 
