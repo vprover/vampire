@@ -318,7 +318,7 @@ public:
                          >::type = true                                                                       \
           >                                                                                                   \
   auto orElse(Clsr clsr) REF -> A                                                                             \
-  { return this->isSome() ? this->unwrap() : clsr(); }                                                         \
+  { return this->isSome() ? this->unwrap() : clsr(); }                                                        \
                                                                                                               \
    /**                                                                                                        \
    * applies a function to the value of this closure if ther is one. the function is expected to return       \
@@ -331,6 +331,15 @@ public:
     using OptOut = typename std::result_of<Clsr(A REF)>::type;                                                \
     return this->isSome() ? clsr(MOVE(*this).unwrap())                                                        \
                           : OptOut();                                                                         \
+  }                                                                                                           \
+                                                                                                              \
+  template<class Clsr> auto flatMap(Clsr clsr) REF { return andThen(clsr); }                                  \
+                                                                                                              \
+  template<class Pred>                                                                                        \
+  Option filter(Pred p) REF {                                                                                 \
+    return isSome() && p(unwrap())                                                                       \
+                ? MOVE(*this)                                                                                 \
+                : Option();                                                                                   \
   }                                                                                                           \
                                                                                                               \
   /**                                                                                                         \

@@ -41,6 +41,7 @@ public:
   Totality(Totality&&) = default;
   Totality(shared_ptr<IrcState> shared) 
     : _shared(std::move(shared))
+    , _index(nullptr)
   {  }
 
   void attach(SaturationAlgorithm* salg) final override;
@@ -55,9 +56,16 @@ public:
 
 private:
 
-  template<class NumTraits> ClauseIterator generateClauses(Clause* clause, Literal* lit) const;
+  template<class NumTraits> Clause* applyRule(
+      Clause* hyp1, Literal* lit1, IrcLiteral<NumTraits> l1, Monom<NumTraits> j_s1,
+      Clause* hyp2, Literal* lit2, IrcLiteral<NumTraits> l2, Monom<NumTraits> k_s2,
+      ResultSubstitution& sigma, Stack<UnificationConstraint>& cnst
+      ) const;
+
+  template<class NumTraits> ClauseIterator generateClauses(Clause* clause, Literal* lit, IrcLiteral<NumTraits> l1) const;
 
   shared_ptr<IrcState> _shared;
+  InequalityResolutionIndex* _index;
 };
 
 } // namespace IRC 

@@ -139,6 +139,19 @@ struct NumTraits;
     using ConstantType = CamelCase ## ConstantType;                                                           \
     static TermList sort() { return Term::lowerCase ## Sort(); };                                             \
                                                                                                               \
+    template<class Iter>                                                                                      \
+    static TermList sum(Iter iter) {                                                                          \
+      if (iter.hasNext()) {                                                                                   \
+        auto out = iter.next();                                                                               \
+        while (iter.hasNext()) {                                                                              \
+          out = NumTraits::add(iter.next(), out);                                                             \
+        }                                                                                                     \
+        return out;                                                                                           \
+      } else {                                                                                                \
+        return NumTraits::zero();                                                                             \
+      }                                                                                                       \
+    };                                                                                                        \
+                                                                                                              \
     IMPL_NUM_TRAITS__INTERPRETED_PRED(less,    SHORT, _LESS,          2)                                      \
     IMPL_NUM_TRAITS__INTERPRETED_PRED(leq,     SHORT, _LESS_EQUAL,    2)                                      \
     IMPL_NUM_TRAITS__INTERPRETED_PRED(greater, SHORT, _GREATER,       2)                                      \

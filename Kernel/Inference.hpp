@@ -308,6 +308,10 @@ enum class InferenceRule : unsigned char {
   /* factoring rules of the Inequality Resolution Calculs */
   IRC_TERM_FACTORING,
   IRC_LITERAL_FACTORING,
+  /** superposition rule of the Inequality Resolution Calculus */
+  IRC_SUPERPOSITION,
+  /** totality rule of the Inequality Resolution Calculus */
+  IRC_TOTALITY,
   /** the last generating inference marker --
         inferences between GENERIC_GENERATING_INFERNCE and INTERNAL_GENERATING_INFERNCE_LAST will be automatically understood generating
         (see also isGeneratingInferenceRule) */

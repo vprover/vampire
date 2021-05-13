@@ -55,21 +55,9 @@ Clause* LiteralFactoring::applyRule(Clause* premise,
   auto s1 = j_s1.factors;
   auto s2 = k_s2.factors;
 
-  auto toSum = [](auto iter) {
-    if (iter.hasNext()) {
-      auto out = iter.next();
-      while (iter.hasNext()) {
-        out = NumTraits::add(iter.next(), out);
-      }
-      return out;
-    } else {
-      return NumTraits::zero();
-    }
-  };
-
   auto pivotSum = 
   //   ^^^^^^^^--> `(k t1 − j t2)σ`
-    toSum(iterTraits(getConcatenatedIterator(
+    NumTraits::sum(iterTraits(getConcatenatedIterator(
       l1->term().iterSummands()
         .filter([&](auto t) { return t != j_s1; })
         .map([&](auto t) { return  sigma((k * t).denormalize()); }),

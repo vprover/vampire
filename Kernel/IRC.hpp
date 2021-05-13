@@ -176,22 +176,35 @@ namespace Kernel {
 
   struct IrcState;
 
+  template<class TermOrLit> 
+  auto applySubst(RobSubstitution const& subst, TermOrLit t, int varBank) { return subst.apply(t, varBank);  }
+
+  template<class TermOrLit> 
+  auto applySubst(Indexing::ResultSubstitution& subst, TermOrLit t, int varBank) { return subst.applyTo(t, varBank);  }
+
+
   struct UwaResult {
     RobSubstitution sigma;
     Stack<UnificationConstraint> cnst;
     UwaResult(UwaResult&&) = default;
     UwaResult& operator=(UwaResult&&) = default;
-    auto cnstLiterals() const
+
+    template<class Subst>
+    static auto cnstLiterals(Subst& sigma, Stack<UnificationConstraint> const& cnst)
     {
       return iterTraits(cnst.iterFifo())
         .map([&](auto c){
           auto toTerm = [&](pair<TermList, unsigned> const& weirdConstraintPair) -> TermList
-                        { return sigma.apply(weirdConstraintPair.first, weirdConstraintPair.second); };
+                        { return applySubst(sigma, weirdConstraintPair.first, weirdConstraintPair.second); };
           auto sort = SortHelper::getResultSort(c.first.first.term());
           // lσ != rσ
           return Literal::createEquality(false, toTerm(c.first), toTerm(c.second), sort);
         });
     }
+
+    auto cnstLiterals() const
+    { return cnstLiterals(sigma, cnst); }
+
     friend std::ostream& operator<<(std::ostream& out, UwaResult const& self)
     { 
       out << "⟨" << self.sigma << ", [";

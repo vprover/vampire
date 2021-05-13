@@ -75,7 +75,7 @@ TEST_GENERATION(basic01,
       .input   (  clause({ selected(  a >= 0 )  }) )
       .context ({ clause({ selected( -a >= 0 )  }) })
       .expected(exactly(
-            clause({ a == 0, num(0) != 0  })
+            clause({ a == 0  })
       ))
       .premiseRedundant(false)
     )
@@ -83,10 +83,10 @@ TEST_GENERATION(basic01,
 TEST_GENERATION(basic02,
     Generation::TestCase()
       .indices(indices())
-      .input   (  clause({ selected(  a - 1 >= 0 )  }) )
-      .context ({ clause({ selected( -a + 1 >= 0 )  }) })
+      .input   (  clause({ selected(  a + -1 >= 0 )  }) )
+      .context ({ clause({ selected( -a +  1 >= 0 )  }) })
       .expected(exactly(
-            clause({ a - 1 == 0, num(1) - num(1) != 0  })
+            clause({ a + -1 == 0, num(1) + num(-1) != 0  })
       ))
       .premiseRedundant(false)
     )
@@ -94,15 +94,34 @@ TEST_GENERATION(basic02,
 TEST_GENERATION(basic03,
     Generation::TestCase()
       .indices(indices())
-      .input   (  clause({ selected(  a - b >= 0 )  }) )
-      .context ({ clause({ selected( -a + c >= 0 )  }) })
+      .input   (  clause({ selected( 3 * a + -1 >= 0 )  }) )
+      .context ({ clause({ selected( 2 * a + -1 >= 0 )  }) })
       .expected(exactly(
-            clause({ a - b == 0, c - b != 0  })
       ))
       .premiseRedundant(false)
     )
 
-TEST_GENERATION(basic04,
+TEST_GENERATION(basic04a,
+    Generation::TestCase()
+      .indices(indices())
+      .input   (  clause({ selected(  c - b >= 0 )  }) )
+      .context ({ clause({ selected( -c + a >= 0 )  }) })
+      .expected(exactly(
+            clause({ c - b == 0, a - b != 0  })
+      ))
+      .premiseRedundant(false)
+    )
+
+TEST_GENERATION(basic04b,
+    Generation::TestCase()
+      .indices(indices())
+      .input   (  clause({ selected(  a - b >= 0 )  }) )
+      .context ({ clause({ selected( -a + c >= 0 )  }) })
+      .expected(exactly( /* c > b > a */ ))
+      .premiseRedundant(false)
+    )
+
+TEST_GENERATION(basic05,
     Generation::TestCase()
       .indices(indices())
       .input   (  clause({ selected(  f(x) - b >= 0 )  }) )
@@ -113,7 +132,7 @@ TEST_GENERATION(basic04,
       .premiseRedundant(false)
     )
 
-TEST_GENERATION(basic05,
+TEST_GENERATION(basic06,
     Generation::TestCase()
       .indices(indices())
       .input   (  clause({ selected(  f(x) - b >= 0 )  }) )
@@ -123,13 +142,31 @@ TEST_GENERATION(basic05,
       .premiseRedundant(false)
     )
 
-TEST_GENERATION(basic06,
+TEST_GENERATION(basic07,
     Generation::TestCase()
       .indices(indices())
       .input   (  clause({ selected(  f(b) >= 0 )  }) )
       .context ({ clause({ selected( -f(a) >= 0 )  }) })
       .expected(exactly(
       ))
+      .premiseRedundant(false)
+    )
+
+TEST_GENERATION(basic08,
+    Generation::TestCase()
+      .indices(indices())
+      .input   (         clause({ selected(  3 * f(b) >= 0 )  }) )
+      .context ({        clause({ selected( -2 * f(x) >= 0 )  }) })
+      .expected(exactly( clause({            3 * f(b) == 0    }) ))
+      .premiseRedundant(false)
+    )
+
+TEST_GENERATION(basic09,
+    Generation::TestCase()
+      .indices(indices())
+      .input   (         clause({ selected(  3 * f(b) + 7 >= 0 )  }) )
+      .context ({        clause({ selected( -2 * f(x) + a >= 0 )  }) })
+      .expected(exactly( clause({ 3 * f(b) + 7 == 0, 14 + 3 * a != 0  }) ))
       .premiseRedundant(false)
     )
 
