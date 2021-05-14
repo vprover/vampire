@@ -1075,7 +1075,7 @@ void Options::init()
             //_induction.setRandomChoices
 
             _structInduction = ChoiceOptionValue<StructuralInductionKind>("structural_induction_kind","sik",
-                                 StructuralInductionKind::ONE,{"one","two","three","four","all"});
+                                 StructuralInductionKind::FOUR,{"one","two","three","four","all"});
             _structInduction.description="The kind of structural induction applied";
             _structInduction.tag(OptionTag::INFERENCES);
             _structInduction.reliesOn(Or(_induction.is(equal(Induction::STRUCTURAL)),_induction.is(equal(Induction::BOTH))));
@@ -1125,10 +1125,9 @@ void Options::init()
             _inductionGen.reliesOn(_induction.is(notEqual(Induction::NONE)));
             _lookup.insert(&_inductionGen);
 
-            _inductionGenHeur = BoolOptionValue("induction_gen_heur","indgenh",false);
-            _inductionGenHeur.description = "Give only two generalizations: all occurrences and only selected occurrences";
+            _inductionGenHeur = BoolOptionValue("induction_gen_heur","indgenh",true);
+            _inductionGenHeur.description = "Give only two generalizations: all occurrences (i.e. no generalization) and only active occurrences";
             _inductionGenHeur.tag(OptionTag::INFERENCES);
-            _inductionGenHeur.reliesOn(_inductionGen.is(equal(true)));
             _lookup.insert(&_inductionGenHeur);
 
             _maxInductionGenSubsetSize = UnsignedOptionValue("max_induction_gen_subset_size","indgenss",3);
@@ -1146,30 +1145,31 @@ void Options::init()
             _inductionOnComplexTerms.reliesOn(_induction.is(notEqual(Induction::NONE)));
             _lookup.insert(&_inductionOnComplexTerms);
 
-            _inductionHypRewriting = BoolOptionValue("induction_hypothesis_rewriting","indhrw",false);
+            _inductionOnComplexTermsHeur = BoolOptionValue("induction_on_complex_terms_heuristic","indocth",true);
+            _inductionOnComplexTermsHeur.description = "When inducting on complex terms, only use them if they have more than one occurrence";
+            _inductionOnComplexTermsHeur.tag(OptionTag::INFERENCES);
+            _lookup.insert(&_inductionOnComplexTermsHeur);
+
+            _inductionHypRewriting = BoolOptionValue("induction_hypothesis_rewriting","indhrw",true);
             _inductionHypRewriting.description = "Rewrite with induction hypotheses (possibly against the ordering) and perform induction on the result";
             _inductionHypRewriting.tag(OptionTag::INFERENCES);
             _lookup.insert(&_inductionHypRewriting);
 
-            _inductionHypRewritingOrdered = BoolOptionValue("induction_hypothesis_rewriting_ordered","indhrwo",false);
+            _inductionHypRewritingOrdered = BoolOptionValue("induction_hypothesis_rewriting_ordered","indhrwo",true);
             _inductionHypRewritingOrdered.description = "Only use induction hypothesis rewriting against the ordering";
             _inductionHypRewritingOrdered.tag(OptionTag::INFERENCES);
-            _inductionHypRewritingOrdered.reliesOnHard(_inductionHypRewriting.is(equal(true)));
             _lookup.insert(&_inductionHypRewritingOrdered);
 
-            _inductionHypRewritingFixSides = BoolOptionValue("induction_hypothesis_rewriting_fix_sides","indhrwfs",false);
+            _inductionHypRewritingFixSides = BoolOptionValue("induction_hypothesis_rewriting_fix_sides","indhrwfs",true);
             _inductionHypRewritingFixSides.description = "Fix orientation of induction conclusions (IC) and their hypotheses (IH) w.r.t. the"
                                                  " literal they were generated from. In this orientation, if l=r is IH and s=t is IC,"
                                                  " only allow rewriting l into r in subterms of s";
             _inductionHypRewritingFixSides.tag(OptionTag::INFERENCES);
-            _inductionHypRewritingFixSides.reliesOnHard(_inductionHypRewriting.is(equal(true)));
             _lookup.insert(&_inductionHypRewritingFixSides);
 
-            _inductionMultiClause = BoolOptionValue("induction_multiclause","indmc",false);
+            _inductionMultiClause = BoolOptionValue("induction_multiclause","indmc",true);
             _inductionMultiClause.description = "Induct on multiple clauses together when they contain the same induction terms";
             _inductionMultiClause.tag(OptionTag::INFERENCES);
-            _inductionMultiClause.reliesOn(_induction.is(equal(Induction::STRUCTURAL)));
-            _inductionMultiClause.reliesOn(_structInduction.is(equal(StructuralInductionKind::FOUR)));
             _lookup.insert(&_inductionMultiClause);
 
             _inductionExhaustiveGeneration = BoolOptionValue("induction_exhaustive_generation","indeg",false);
@@ -1177,7 +1177,6 @@ void Options::init()
                                                          " apart from f with arguments t1,...,tn, consider f with any combination of"
                                                          " subterms s1,...,sn s.t. si is a subterm of ti and is the same sort";
             _inductionExhaustiveGeneration.tag(OptionTag::INFERENCES);
-            _inductionExhaustiveGeneration.reliesOn(_induction.is(equal(Induction::STRUCTURAL)));
             _inductionExhaustiveGeneration.reliesOn(_structInduction.is(equal(StructuralInductionKind::FOUR)));
             _lookup.insert(&_inductionExhaustiveGeneration);
 
@@ -1186,10 +1185,9 @@ void Options::init()
             _functionDefinitionDiscovery.tag(OptionTag::INFERENCES);
             _lookup.insert(&_functionDefinitionDiscovery);
 
-            _functionDefinitionRewriting = BoolOptionValue("function_definition_rewriting","fnrw",false);
+            _functionDefinitionRewriting = BoolOptionValue("function_definition_rewriting","fnrw",true);
             _functionDefinitionRewriting.description = "Use function definitions as rewrite rules with the intended orientation rather than the term ordering one";
-            _functionDefinitionRewriting.tag(OptionTag::INFERENCES); // TODO(mhajdu): should this be something else?
-            _functionDefinitionRewriting.reliesOn(_newCNF.is(equal(true)));
+            _functionDefinitionRewriting.tag(OptionTag::INFERENCES);
             _lookup.insert(&_functionDefinitionRewriting);
 
 	    _instantiation = ChoiceOptionValue<Instantiation>("instantiation","inst",Instantiation::OFF,{"off","on"});

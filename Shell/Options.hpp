@@ -2132,6 +2132,7 @@ public:
   bool inductionGenHeur() const { return _inductionGenHeur.actualValue; }
   unsigned maxInductionGenSubsetSize() const { return _maxInductionGenSubsetSize.actualValue; }
   bool inductionOnComplexTerms() const {return _inductionOnComplexTerms.actualValue;}
+  bool inductionOnComplexTermsHeuristic() const { return _inductionOnComplexTermsHeur.actualValue; }
   bool inductionHypRewriting() const { return _inductionHypRewriting.actualValue; }
   bool inductionHypRewritingOrdered() const { return _inductionHypRewritingOrdered.actualValue; }
   bool inductionHypRewritingFixSides() const { return _inductionHypRewritingFixSides.actualValue; }
@@ -2437,6 +2438,7 @@ private:
   BoolOptionValue _inductionGenHeur;
   UnsignedOptionValue _maxInductionGenSubsetSize;
   BoolOptionValue _inductionOnComplexTerms;
+  BoolOptionValue _inductionOnComplexTermsHeur;
   BoolOptionValue _inductionHypRewriting;
   BoolOptionValue _inductionHypRewritingOrdered;
   BoolOptionValue _inductionHypRewritingFixSides;

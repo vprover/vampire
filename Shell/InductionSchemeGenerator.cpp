@@ -383,7 +383,10 @@ void RecursionInductionSchemeGenerator::generate(
   }
   InductionSchemeFilter f;
   f.filter(primarySchemes, secondarySchemes);
-  f.filterComplex(primarySchemes, _actOccMaps);
+  static const bool filterComplex = env.options->inductionOnComplexTermsHeuristic();
+  if (filterComplex) {
+    f.filterComplex(primarySchemes, _actOccMaps);
+  }
 
   for (const auto& sch : primarySchemes) {
     OccurrenceMap necessary;
