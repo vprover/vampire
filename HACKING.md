@@ -62,6 +62,9 @@ If you don't need Z3, do nothing: CMake will detect this and do the right thing.
 If you need Z3, first `git submodule update --init` to pull the correct version of Z3, then build Z3 via its own CMake system into `z3/build`, which is where Vampire's CMake will find the necessary files.
 CMake will then detect this build and do the right thing.
 
+Do _not_ commit changes to the toplevel `z3` folder unless you mean to change the fixed version of Z3 we build with.
+If you do want to do this, do it _carefully_, make sure you know [how submodules work](https://git-scm.com/book/en/v2/Git-Tools-Submodules), then warn the team after merging so that they can update their submodule builds and look for introduced bugs.
+
 #### Advanced Z3
 * If you've used Z3 in the past but don't want it for this build, pass `-DCMAKE_DISABLE_FIND_PACKAGE_Z3=ON` to disable automatically including Z3.
 * If you want to override the Z3 search path, first think carefully about whether you need to do this: Z3 is a fixed submodule for a reason! Then remove `CMakeCache.txt` if present (the path to Z3 is cached) and pass `-DZ3_ROOT=/foo/bar/build/`.
