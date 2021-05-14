@@ -488,7 +488,7 @@ public:
     CALL("FilterMapIter::next")
     ALWAYS(hasNext());
     ASS(_next.isSome());
-    auto out = std::move(_next).unwrap();
+    decltype(auto) out = std::move(_next).unwrap();
     _next = Option<OWN_ELEMENT_TYPE>();
     return out;
   };
@@ -1772,7 +1772,6 @@ public:
   IterTraits<FlatMapIter<Iter, F>> flatMap(F f)
   { return iterTraits(getFlattenedIterator(getMappingIterator(std::move(_iter), std::move(f)))); }
 
-
   Option<Elem> min()
   { 
     CALL("IterTraits::min")
@@ -1790,6 +1789,15 @@ public:
     }
   }
 
+  unsigned count()
+  { 
+    unsigned i = 0;
+    while (hasNext()) {
+      i++;
+      next();
+    }
+    return i;
+  }
 
   template<class Container>
   Container collect()

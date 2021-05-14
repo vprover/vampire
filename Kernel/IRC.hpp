@@ -54,7 +54,21 @@
 
 namespace Kernel {
   using Inferences::PolynomialEvaluation;
+
+  template<class A>
+  struct Indexed {
+    unsigned idx;
+    A self;
+    A& operator*() { return self; }
+    A const& operator*() const { return self; }
+    A* operator->() { return &self; }
+  };
    
+
+  template<class A>
+  Indexed<A> indexed(unsigned idx, A self) 
+  { return {.idx = idx, .self = std::move(self), }; }
+
   enum class IrcPredicate {
     EQ,
     NEQ,
@@ -73,12 +87,16 @@ namespace Kernel {
    *      term == 0 or term != 0 or term >= 0 or term > 0 (for Reals and Rationals)
    * or   term == 0 or term != 0              or term > 0 (for Integers)
    */
-  template<class NumTraits>
+  template<class NumTraits_>
   class IrcLiteral {
+  public:
+    using NumTraits = NumTraits_;
+  private:
     Perfect<Polynom<NumTraits>> _term;
     IrcPredicate _symbol;
 
   public:
+
     IrcLiteral(Perfect<Polynom<NumTraits>> term, IrcPredicate symbol) 
       : _term(term), _symbol(symbol) 
     { _term->integrity(); }

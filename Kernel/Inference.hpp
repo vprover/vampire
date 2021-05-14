@@ -312,6 +312,8 @@ enum class InferenceRule : unsigned char {
   IRC_SUPERPOSITION,
   /** totality rule of the Inequality Resolution Calculus */
   IRC_TOTALITY,
+  /** variable elimination rule of the Inequality Resolution Calculus */
+  IRC_VARIABLE_ELIMINATION,
   /** the last generating inference marker --
         inferences between GENERIC_GENERATING_INFERNCE and INTERNAL_GENERATING_INFERNCE_LAST will be automatically understood generating
         (see also isGeneratingInferenceRule) */

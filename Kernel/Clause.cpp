@@ -376,6 +376,22 @@ vstring Clause::toNiceString() const
   return result;
 }
 
+std::ostream& operator<<(std::ostream& out, Clause const& self)
+{ 
+  if (self.size() == 0) {
+    return out << "$false";
+  } else {
+    out << *self[0];
+    for (auto i = 1; i < self.size(); i++){
+      out << " | " << *self[i];
+    }
+    if (self.splits() && !self.splits()->isEmpty()) {
+      out << "{" << *self.splits() << "}";
+    }
+  }
+  return out;
+}
+
 /**
  * Convert the clause to the vstring representation
  * Includes splitting, age, weight, selected and inference

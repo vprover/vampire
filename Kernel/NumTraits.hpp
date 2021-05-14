@@ -139,6 +139,10 @@ struct NumTraits;
     using ConstantType = CamelCase ## ConstantType;                                                           \
     static TermList sort() { return Term::lowerCase ## Sort(); };                                             \
                                                                                                               \
+    template<class I1, class I2, class... Is>                                                                 \
+    static TermList sum(I1 i1, I2 i2, Is... is)                                                               \
+    { return sum(getConcatenatedIterator(i1, i2), is...); };                                                  \
+                                                                                                              \
     template<class Iter>                                                                                      \
     static TermList sum(Iter iter) {                                                                          \
       if (iter.hasNext()) {                                                                                   \

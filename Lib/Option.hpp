@@ -356,7 +356,24 @@ public:
 
 #undef ref_polymorphic
 
+  Option take() 
+  {
+    auto out = std::move(*this);
+    *this = Option();
+    return out;
+  }
 
+  class OptionIter {
+    Option _self;
+    OptionIter(Option self) : _self(std::move(self)) {}
+  public:
+    bool hasNext() const { return _self.isSome(); }
+    bool next() { return _self.take().unwrap(); }
+  };
+  
+
+  OptionIter intoIter() &&
+  { return OptionIter(std::move(this)); }
 
   friend std::ostream& operator<<(std::ostream& out, Option const& self) 
   { return self.isSome() ?  out << self.unwrap() : out << "None"; }

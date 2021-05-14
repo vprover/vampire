@@ -172,7 +172,7 @@ struct RationalConstantType {
   bool operator>=(const RationalConstantType& o) const { return !(o>(*this)); }
   bool operator<=(const RationalConstantType& o) const { return !((*this)>o); }
 
-  bool isZero(){ return _num.toInner()==0; } 
+  bool isZero() const { return _num.toInner()==0; } 
   // relies on the fact that cannonize ensures that _den>=0
   bool isNegative() const { ASS(_den>=0); return _num.toInner() < 0; }
   bool isPositive() const { ASS(_den>=0); return _num.toInner() > 0; }
@@ -233,6 +233,11 @@ public:
   RealConstantType floor() const { return RealConstantType(RationalConstantType::floor()); }
   RealConstantType truncate() const { return RealConstantType(RationalConstantType::truncate()); }
   RealConstantType ceiling() const { return RealConstantType(RationalConstantType::ceiling()); }
+
+
+  bool isZero()     const { return RationalConstantType::isZero(); }
+  bool isNegative() const { return RationalConstantType::isNegative(); }
+  bool isPositive() const { return RationalConstantType::isPositive(); }
 
   RealConstantType abs() const;
 

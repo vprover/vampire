@@ -32,7 +32,7 @@ using namespace Indexing;
 using namespace Saturation;
 
 class VariableElimination
-: public GeneratingInferenceEngine
+: public SimplifyingGeneratingInference
 {
 public:
   CLASS_NAME(VariableElimination);
@@ -47,8 +47,44 @@ public:
   void detach() final override;
 
 
-  ClauseIterator generateClauses(Clause* premise) final override;
+  template<class NumTraits>
+  struct FoundVarInLiteral {
+    FoundVarInLiteral(
+      unsigned idx,
+      typename NumTraits::ConstantType numeral,
+      IrcLiteral<NumTraits> literal) : idx(idx)
+          , numeral(numeral)
+          , literal(literal) {}
 
+    unsigned idx;
+    typename NumTraits::ConstantType numeral;
+    IrcLiteral<NumTraits> literal;
+  };
+
+  template<class NumTraits>
+  struct FoundVariable 
+  {
+    FoundVariable(Perfect<MonomFactors<NumTraits>> var) : var(var), posIneq(), negIneq(), eq(), neq() {}
+    FoundVariable(FoundVariable&&) = default;
+    FoundVariable& operator=(FoundVariable&&) = default;
+    Perfect<MonomFactors<NumTraits>> var;
+    Stack<FoundVarInLiteral<NumTraits>> posIneq;
+    Stack<FoundVarInLiteral<NumTraits>> negIneq;
+    Stack<FoundVarInLiteral<NumTraits>> eq;
+    Stack<FoundVarInLiteral<NumTraits>> neq;
+  };
+
+  using AnyFoundVariable = Coproduct< FoundVariable< IntTraits> 
+                                    , FoundVariable< RatTraits> 
+                                    , FoundVariable<RealTraits> 
+                                    >;
+
+  Option<AnyFoundVariable> findUnshieldedVar(Clause* premise) const;
+
+  template<class NumTraits>
+  ClauseIterator eliminateVar(Clause* premise, FoundVariable<NumTraits> found) const;
+
+  ClauseGenerationResult generateSimplify(Clause* premise)  final override;
   
 
 #if VDEBUG

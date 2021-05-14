@@ -152,8 +152,10 @@ std::ostream& Pretty<Clause>::prettyPrint(std::ostream& out) const
   if (iter.hasNext()) {
     out << pretty(*iter.next());
     while(iter.hasNext()) {
-      out << " \\/ " << pretty(*iter.next());
+      out << " | " << pretty(*iter.next());
     }
+  } else {
+    out << "[]";
   }
   // out << " }";
   return out;

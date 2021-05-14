@@ -897,6 +897,8 @@ vstring Kernel::ruleName(InferenceRule rule)
     return "add sort functions";
   case InferenceRule::INSTANTIATION:
     return "instantiation";
+  case InferenceRule::IRC_VARIABLE_ELIMINATION:
+    return "inequality variable elimination";
   case InferenceRule::IRC_SUPERPOSITION:
     return "superposition modulo LA";
   case InferenceRule::IRC_TOTALITY:

@@ -31,19 +31,6 @@ using namespace Kernel;
 using namespace Indexing;
 using namespace Saturation;
 
-template<class A>
-struct Indexed {
-  unsigned idx;
-  A self;
-  A& operator*() { return self; }
-  A const& operator*() const { return self; }
-  A* operator->() { return &self; }
-};
-
-template<class A>
-Indexed<A> indexed(unsigned idx, A self) 
-{ return {.idx = idx, .self = std::move(self), }; }
-
 class LiteralFactoring
 : public GeneratingInferenceEngine
 {

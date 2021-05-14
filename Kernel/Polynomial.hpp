@@ -353,6 +353,8 @@ struct MonomFactor
   Option<Variable> tryVar() const;
   Option<Perfect<Polynom<Number>>> tryPolynom() const;
   bool isPolynom() const { return tryPolynom().isSome(); }
+
+  auto iterSubterms() const { return term.iterSubterms(); }
 };
 
 
@@ -431,6 +433,8 @@ public:
 
   /** returns an iterator over all factors */
   FactorIter iter() const&;
+
+  auto iterSubterms() const;
 
   template<class F> MonomFactors mapVars(F f) const;
 
@@ -1172,6 +1176,10 @@ MonomFactors<Number> MonomFactors<Number>::replaceTerms(PolyNf* simplifiedTerms)
 template<class Number>
 typename MonomFactors<Number>::FactorIter MonomFactors<Number>::iter() const&
 { return iterTraits(getArrayishObjectIterator<no_ref_t>(_factors)); }
+
+template<class Number>
+auto MonomFactors<Number>::iterSubterms() const
+{ return iter().flatMap([](auto fac) { return fac.iterSubterms(); }); }
 
 } // namespace Kernel
 

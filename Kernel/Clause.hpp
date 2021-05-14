@@ -131,8 +131,7 @@ public:
   vstring toTPTPString() const;
   vstring toNiceString() const;
 
-  friend std::ostream& operator<<(std::ostream& out, Clause const& self)
-  { return out << self.toNiceString(); }
+  friend std::ostream& operator<<(std::ostream& out, Clause const& self);
 
   /** Return the clause store */
   Store store() const { return _store; }
