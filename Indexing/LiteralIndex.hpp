@@ -179,6 +179,20 @@ public:
   void addLiteral(Literal* c);
 };
 
+class UnitIntegerComparisonLiteralIndex
+: public LiteralIndex
+{
+public:
+  CLASS_NAME(UnitIntegerComparisonLiteralIndex);
+  USE_ALLOCATOR(UnitIntegerComparisonLiteralIndex);
+
+  UnitIntegerComparisonLiteralIndex(LiteralIndexingStructure* is)
+  : LiteralIndex(is) {}
+
+protected:
+  void handleClause(Clause* c, bool adding);
+};
+
 };
 
 #endif /* __LiteralIndex__ */

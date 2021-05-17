@@ -140,13 +140,16 @@ void Options::init()
          "casc_sat",
          "casc_sat_2019",
          "casc_hol_2020",
+         "induction",
+         "integer_induction",
          "ltb_default_2017",
          "ltb_hh4_2017",
          "ltb_hll_2017",
          "ltb_isa_2017",
          "ltb_mzr_2017",
          "smtcomp",
-         "smtcomp_2018"});
+         "smtcomp_2018",
+         "struct_induction"});
     _schedule.description = "Schedule to be run by the portfolio mode. casc and smtcomp usually point to the most recent schedule in that category. Note that some old schedules may contain option values that are no longer supported - see ignore_missing.";
     _lookup.insert(&_schedule);
     _schedule.reliesOnHard(Or(_mode.is(equal(Mode::CASC)),_mode.is(equal(Mode::CASC_SAT)),_mode.is(equal(Mode::SMTCOMP)),_mode.is(equal(Mode::PORTFOLIO))));
@@ -568,7 +571,7 @@ void Options::init()
     _inlineLet.tag(OptionTag::PREPROCESSING);
 
      //Higher-order options
-     
+
     _addCombAxioms = BoolOptionValue("add_comb_axioms","aca",false);
     _addCombAxioms.description="Add combinator axioms";
     _lookup.insert(&_addCombAxioms);
@@ -1101,13 +1104,13 @@ void Options::init()
             _structInduction.reliesOn(Or(_induction.is(equal(Induction::STRUCTURAL)),_induction.is(equal(Induction::BOTH))));
             _lookup.insert(&_structInduction);
 
-            _intInduction = ChoiceOptionValue<IntInductionKind>("int_induction_kind","mik",
+            _intInduction = ChoiceOptionValue<IntInductionKind>("int_induction_kind","iik",
                                  IntInductionKind::ONE,{"one","two","all"});
             _intInduction.description="The kind of integer induction applied";
             _intInduction.tag(OptionTag::INFERENCES);
 
             _intInduction.reliesOn(Or(_induction.is(equal(Induction::INTEGER)),_induction.is(equal(Induction::BOTH))));
-            //_lookup.insert(&_intInduction);
+            _lookup.insert(&_intInduction);
 
             _inductionChoice = ChoiceOptionValue<InductionChoice>("induction_choice","indc",InductionChoice::ALL,
                                 {"all","goal","goal_plus"});
@@ -1160,6 +1163,19 @@ void Options::init()
             _inductionOnComplexTerms.tag(OptionTag::INFERENCES);
             _inductionOnComplexTerms.reliesOn(_induction.is(notEqual(Induction::NONE)));
             _lookup.insert(&_inductionOnComplexTerms);
+
+            _integerInductionDefaultBound = BoolOptionValue("int_induction_default_bound","intinddb",false);
+            _integerInductionDefaultBound.description = "Always apply integer induction with bound 0";
+            _integerInductionDefaultBound.tag(OptionTag::INFERENCES);
+            _integerInductionDefaultBound.reliesOn(Or(_induction.is(equal(Induction::INTEGER)),_induction.is(equal(Induction::BOTH))));
+            _lookup.insert(&_integerInductionDefaultBound);
+
+            _integerInductionInterval = ChoiceOptionValue<IntegerInductionInterval>("int_induction_interval","intindint",
+                                 IntegerInductionInterval::BOTH,{"infinite","finite","both"});
+            _integerInductionInterval.description="Whether integer induction is applied over infinite or finite intervals, or both";
+            _integerInductionInterval.tag(OptionTag::INFERENCES);
+            _integerInductionInterval.reliesOn(Or(_induction.is(equal(Induction::INTEGER)),_induction.is(equal(Induction::BOTH))));
+            _lookup.insert(&_integerInductionInterval);
 
 	    _instantiation = ChoiceOptionValue<Instantiation>("instantiation","inst",Instantiation::OFF,{"off","on"});
 	    _instantiation.description = "Heuristically instantiate variables. Often wastes a lot of effort. Consider using thi instead.";
@@ -1424,7 +1440,7 @@ void Options::init()
     _superpositionFromVariables.setRandomChoices({"on","off"});
 
     //Higher-order Options
-    
+
     _combinatorySuperposition = BoolOptionValue("combinatory_sup","csup",false);
     _combinatorySuperposition.description="Switches on a specific ordering and that orients combinator axioms left-right."
                                           "also turns on a number of special inference rules";
@@ -1472,11 +1488,11 @@ void Options::init()
     _functionExtensionality.tag(OptionTag::INFERENCES);
 
     _clausificationOnTheFly = ChoiceOptionValue<CNFOnTheFly>("cnf_on_the_fly","cnfonf",CNFOnTheFly::EAGER,
-                                                                          {"eager", 
-                                                                          "lazy_gen", 
+                                                                          {"eager",
+                                                                          "lazy_gen",
                                                                           "lazy_simp",
-                                                                          "lazy_not_gen", 
-                                                                          "lazy_not_gen_be_off", 
+                                                                          "lazy_not_gen",
+                                                                          "lazy_not_gen_be_off",
                                                                           "lazy_not_be_gen",
                                                                           "off"});
     _clausificationOnTheFly.description="Various options linked to clausification on the fly";
@@ -1485,8 +1501,8 @@ void Options::init()
 
 
     _piSet = ChoiceOptionValue<PISet>("prim_inst_set","piset",PISet::ALL_EXCEPT_NOT_EQ,
-                                                                        {"all", 
-                                                                        "all_but_not_eq", 
+                                                                        {"all",
+                                                                        "all_but_not_eq",
                                                                         "false_true_not",
                                                                         "small_set"});
     _piSet.description="Controls the set of equations to use in primitive instantiation";
@@ -1495,8 +1511,8 @@ void Options::init()
 
 
     _narrow = ChoiceOptionValue<Narrow>("narrow","narr",Narrow::ALL,
-                                                             {"all", 
-                                                              "sk", 
+                                                             {"all",
+                                                              "sk",
                                                               "ski",
                                                               "off"});
     _narrow.description="Controls the set of combinator equations to use in narrowing";
@@ -1507,14 +1523,14 @@ void Options::init()
     _equalityToEquivalence = BoolOptionValue("equality_to_equiv","e2e",false);
     _equalityToEquivalence.description=
     "Equality between boolean terms changed to equivalence \n"
-    "t1 : $o = t2 : $o is changed to t1 <=> t2";    
+    "t1 : $o = t2 : $o is changed to t1 <=> t2";
     _lookup.insert(&_equalityToEquivalence);
     _equalityToEquivalence.tag(OptionTag::OTHER);
 
     _complexBooleanReasoning = BoolOptionValue("complex_bool_reasoning","cbe",true);
     _complexBooleanReasoning.description=
     "Switches on primitive instantiation and elimination of leibniz equality";
-    _complexBooleanReasoning.reliesOn(_addProxyAxioms.is(equal(false)));    
+    _complexBooleanReasoning.reliesOn(_addProxyAxioms.is(equal(false)));
     _lookup.insert(&_complexBooleanReasoning);
     _complexBooleanReasoning.tag(OptionTag::OTHER);
 
@@ -1539,7 +1555,7 @@ void Options::init()
     _lookup.insert(&_casesSimp);
     _casesSimp.tag(OptionTag::INFERENCES);
 
-    //TODO, sort out the mess with cases and FOOLP. 
+    //TODO, sort out the mess with cases and FOOLP.
     //One should be removed. AYB
     _cases = BoolOptionValue("cases","c",false);
     _cases.description=
@@ -1791,6 +1807,16 @@ void Options::init()
     _splittingFlushQuotient.reliesOn(_splitting.is(equal(true)));
     _splittingFlushQuotient.setRandomChoices({"1.0","1.1","1.2","1.4","2.0"});
 
+    _splittingAvatimer = FloatOptionValue("avatar_turn_off_time_frac","atotf",0.0);
+    _splittingAvatimer.description= "Stop splitting after the specified fraction of the overall time has passed (the default 0.0 means this is disabled).\n"
+        "(the remaining time AVATAR is still switching branches and communicating with the SAT solver,\n"
+        "but not introducing new splits anymore. This fights the theoretical possibility of AVATAR's dynamic incompletness.)";
+    _lookup.insert(&_splittingAvatimer);
+    _splittingAvatimer.tag(OptionTag::AVATAR);
+    _splittingAvatimer.addConstraint(smallerThan(1.0f));
+    _splittingAvatimer.reliesOn(_splitting.is(equal(true)));
+    _splittingAvatimer.setRandomChoices({"0.0","0.5","0.7","0.9"});
+
     _splittingNonsplittableComponents = ChoiceOptionValue<SplittingNonsplittableComponents>("avatar_nonsplittable_components","anc",
                                                                                               SplittingNonsplittableComponents::KNOWN,
                                                                                               {"all","all_dependent","known","none"});
@@ -1928,6 +1954,11 @@ void Options::init()
     _randomSeed.description="Some parts of vampire use random numbers. This seed allows for reproducability of results. By default the seed is not changed.";
     _lookup.insert(&_randomSeed);
     _randomSeed.tag(OptionTag::INPUT);
+
+    _randomStrategySeed = IntOptionValue("random_strategy_seed","",time(nullptr));
+    _randomStrategySeed.description="Sets the seed for generating random strategies. This option necessary because --random_seed <value> will be included as fixed value in the generated random strategy, hence won't have any effect on the random strategy generation. The default value is derived from the current time.";
+    _lookup.insert(&_randomStrategySeed);
+    _randomStrategySeed.tag(OptionTag::INPUT);
 
     _activationLimit = IntOptionValue("activation_limit","al",0);
     _activationLimit.description="Terminate saturation after this many iterations of the main loop. 0 means no limit.";
@@ -2821,7 +2852,7 @@ void Options::randomizeStrategy(Property* prop)
   // By default the seed is 1
   // For this randomisation we get save the seed and try and randomize it
   int saved_seed = Random::seed();
-  Random::setSeed(time(NULL)); // TODO is this the best choice of seed?
+  Random::setSeed(randomStrategySeed());
 
   // We randomize options that have setRandomChoices
   // TODO: randomize order in which options are selected
@@ -3134,7 +3165,7 @@ bool Options::complete(const Problem& prb) const
     //safer for competition
     return false;
   }
- 
+
   if (_showInterpolant.actualValue != InterpolantMode::OFF) {
     return false;
   }
@@ -3176,7 +3207,7 @@ bool Options::complete(const Problem& prb) const
   bool unitEquality = prop.category() == Property::UEQ;
   bool hasEquality = (prop.equalityAtoms() != 0);
 
-  if((prop.hasCombs() || prop.hasAppliedVar())  && 
+  if((prop.hasCombs() || prop.hasAppliedVar())  &&
     !_addCombAxioms.actualValue && !_combinatorySuperposition.actualValue) {
     //TODO make a more complex more precise case here
     //There are instance where we are complete

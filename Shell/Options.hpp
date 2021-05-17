@@ -242,6 +242,12 @@ public:
     TWO,
     ALL
   };
+  enum class IntegerInductionInterval : unsigned int {
+    INFINITE,
+    FINITE,
+    BOTH
+  };
+
 
   enum class PredicateSineLevels : unsigned int {
     NO,   // no means 1) the reverse of "on", 2) use with caution, it is predicted to be the worse value
@@ -385,7 +391,7 @@ public:
     /** syntax of the TPTP prover */
     TPTP = 1, 
     AUTO = 2
-    //HUMAN = 4, 
+    //HUMAN = 4,
     //MPS = 5, 
     //NETLIB = 6
   };
@@ -425,13 +431,16 @@ public:
     CASC_SAT,
     CASC_SAT_2019,
     CASC_HOL_2020,
+    INDUCTION,
+    INTEGER_INDUCTION,
     LTB_DEFAULT_2017,
     LTB_HH4_2017,
     LTB_HLL_2017,
     LTB_ISA_2017,
     LTB_MZR_2017,
     SMTCOMP,
-    SMTCOMP_2018
+    SMTCOMP_2018,
+    STRUCT_INDUCTION
   };
 
 /* TODO: use an enum for Selection. The current issue is the way these values are manipulated as ints
@@ -701,7 +710,7 @@ public:
     OFF = 0,
     AXIOM = 1,
     ABSTRACTION = 2
-  }; 
+  };
 
   enum class CNFOnTheFly : unsigned int {
     EAGER = 0,
@@ -1611,6 +1620,34 @@ bool _hard;
         return OptionValueConstraintUP<T>(new GreaterThan<T>(bv,true));
     }
     
+    // Constraint that the value should be smaller than a given value
+    // optionally we can allow it be equal to that value also
+    template<typename T>
+    struct SmallerThan : public OptionValueConstraint<T>{
+        CLASS_NAME(SmallerThan);
+        USE_ALLOCATOR(SmallerThan);
+        SmallerThan(T gv,bool eq=false) : _goodvalue(gv), _orequal(eq) {}
+        bool check(const OptionValue<T>& value){
+            return (value.actualValue < _goodvalue || (_orequal && value.actualValue==_goodvalue));
+        }
+
+        vstring msg(const OptionValue<T>& value){
+            if(_orequal) return value.longName+"("+value.getStringOfActual()+") is smaller than or equal to " + value.getStringOfValue(_goodvalue);
+            return value.longName+"("+value.getStringOfActual()+") is smaller than "+ value.getStringOfValue(_goodvalue);
+        }
+
+        T _goodvalue;
+        bool _orequal;
+    };
+    template<typename T>
+    static OptionValueConstraintUP<T> smallerThan(T bv){
+        return OptionValueConstraintUP<T>(new SmallerThan<T>(bv,false));
+    }
+    template<typename T>
+    static OptionValueConstraintUP<T> smallerThanEq(T bv){
+        return OptionValueConstraintUP<T>(new SmallerThan<T>(bv,true));
+    }
+
     /**
      * If constraints
      */
@@ -1957,6 +1994,7 @@ public:
   vstring inputFile() const { return _inputFile.actualValue; }
   int activationLimit() const { return _activationLimit.actualValue; }
   int randomSeed() const { return _randomSeed.actualValue; }
+  int randomStrategySeed() const { return _randomStrategySeed.actualValue; }
   bool printClausifierPremises() const { return _printClausifierPremises.actualValue; }
 
   // IMPORTANT, if you add a showX command then include showAll
@@ -2166,6 +2204,8 @@ public:
   bool inductionGen() const { return _inductionGen.actualValue; }
   unsigned maxInductionGenSubsetSize() const { return _maxInductionGenSubsetSize.actualValue; }
   bool inductionOnComplexTerms() const {return _inductionOnComplexTerms.actualValue;}
+  bool integerInductionDefaultBound() const { return _integerInductionDefaultBound.actualValue; }
+  IntegerInductionInterval integerInductionInterval() const { return _integerInductionInterval.actualValue; }
 
   float instGenBigRestartRatio() const { return _instGenBigRestartRatio.actualValue; }
   bool instGenPassiveReactivation() const { return _instGenPassiveReactivation.actualValue; }
@@ -2193,6 +2233,7 @@ public:
   bool splittingBufferedSolver() const { return _splittingBufferedSolver.actualValue; }
   int splittingFlushPeriod() const { return _splittingFlushPeriod.actualValue; }
   float splittingFlushQuotient() const { return _splittingFlushQuotient.actualValue; }
+  float splittingAvatimer() const { return _splittingAvatimer.actualValue; }
   bool splittingEagerRemoval() const { return _splittingEagerRemoval.actualValue; }
   SplittingCongruenceClosure splittingCongruenceClosure() const { return _splittingCongruenceClosure.actualValue; }
   CCUnsatCores ccUnsatCores() const { return _ccUnsatCores.actualValue; }
@@ -2238,11 +2279,11 @@ public:
   CNFOnTheFly cnfOnTheFly() const { return _clausificationOnTheFly.actualValue; }
   PISet piSet() const { return _piSet.actualValue; }
   Narrow narrow() const { return _narrow.actualValue; }
-  bool equalityToEquivalence () const { return _equalityToEquivalence.actualValue; } 
+  bool equalityToEquivalence () const { return _equalityToEquivalence.actualValue; }
   bool complexBooleanReasoning () const { return _complexBooleanReasoning.actualValue; }
   bool booleanEqTrick() const { return _booleanEqTrick.actualValue; }
   bool superposition() const {return _superposition.actualValue; }
-  bool casesSimp() const { return _casesSimp.actualValue; }  
+  bool casesSimp() const { return _casesSimp.actualValue; }
   bool cases() const { return _cases.actualValue; }
   bool newTautologyDel() const { return _newTautologyDel.actualValue; }
   bool lambdaFreeHol() const { return _lambdaFreeHol.actualValue; }
@@ -2403,7 +2444,7 @@ private:
   BoolOptionValue _demodulationRedundancyCheck;
 
   ChoiceOptionValue<EqualityProxy> _equalityProxy;
-  BoolOptionValue _useMonoEqualityProxy;  
+  BoolOptionValue _useMonoEqualityProxy;
   ChoiceOptionValue<RuleActivity> _equalityResolutionWithDeletion;
   BoolOptionValue _equivalentVariableRemoval;
   ChoiceOptionValue<ExtensionalityResolution> _extensionalityResolution;
@@ -2488,6 +2529,8 @@ private:
   BoolOptionValue _inductionGen;
   UnsignedOptionValue _maxInductionGenSubsetSize;
   BoolOptionValue _inductionOnComplexTerms;
+  BoolOptionValue _integerInductionDefaultBound;
+  ChoiceOptionValue<IntegerInductionInterval> _integerInductionInterval;
 
   StringOptionValue _latexOutput;
   BoolOptionValue _latexUseDefaultSymbols;
@@ -2531,6 +2574,7 @@ private:
   ChoiceOptionValue<QuestionAnsweringMode> _questionAnswering;
 
   IntOptionValue _randomSeed;
+  IntOptionValue _randomStrategySeed;
 
   IntOptionValue _activationLimit;
 
@@ -2594,6 +2638,7 @@ private:
   BoolOptionValue _splittingEagerRemoval;
   UnsignedOptionValue _splittingFlushPeriod;
   FloatOptionValue _splittingFlushQuotient;
+  FloatOptionValue _splittingAvatimer;
   ChoiceOptionValue<SplittingNonsplittableComponents> _splittingNonsplittableComponents;
   ChoiceOptionValue<SplittingMinimizeModel> _splittingMinimizeModel;
   ChoiceOptionValue<SplittingLiteralPolarityAdvice> _splittingLiteralPolarityAdvice;
@@ -2648,7 +2693,7 @@ private:
   BoolOptionValue _manualClauseSelection;
   BoolOptionValue _inequalityNormalization;
   BoolOptionValue _gaussianVariableElimination;
- 
+
   //Higher-order options
   BoolOptionValue _addCombAxioms;
   BoolOptionValue _addProxyAxioms;

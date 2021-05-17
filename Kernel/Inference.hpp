@@ -440,8 +440,26 @@ enum class InferenceRule : unsigned char {
 
   /* Induction hypothesis*/
   INDUCTION_AXIOM,
-  /* Generalized nduction hypothesis*/
+  /* Generalized induction hypothesis*/
   GEN_INDUCTION_AXIOM,
+  /* Integer induction hypothesis for infinite intervals */
+  INT_INF_UP_INDUCTION_AXIOM,
+  INT_INF_DOWN_INDUCTION_AXIOM,
+  /* Generalized induction hypothesis for infinite intervals*/
+  INT_INF_UP_GEN_INDUCTION_AXIOM,
+  INT_INF_DOWN_GEN_INDUCTION_AXIOM,
+  /* Integer induction hypothesis for finite intervals */
+  INT_FIN_UP_INDUCTION_AXIOM,
+  INT_FIN_DOWN_INDUCTION_AXIOM,
+  /* Generalized induction hypothesis for finite intervals*/
+  INT_FIN_UP_GEN_INDUCTION_AXIOM,
+  INT_FIN_DOWN_GEN_INDUCTION_AXIOM,
+  /* Integer induction hypothesis for infinite interval and the default bound */
+  INT_DB_UP_INDUCTION_AXIOM,
+  INT_DB_DOWN_INDUCTION_AXIOM,
+  /* Generalized induction hypothesis for infinite interval and the default bound*/
+  INT_DB_UP_GEN_INDUCTION_AXIOM,
+  INT_DB_DOWN_GEN_INDUCTION_AXIOM,
 
   /* the unit clause against which the Answer is extracted in the last step */
   ANSWER_LITERAL_RESOLVER,

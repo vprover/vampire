@@ -319,11 +319,80 @@ protected:
 
     cs->inference().updateStatistics(); // in particular, update inductionDepth (which could have decreased, since we might have fewer parents after miniminization)
 
-    if((rule == InferenceRule::INDUCTION_AXIOM) || (rule == InferenceRule::GEN_INDUCTION_AXIOM)){
-      env.statistics->inductionInProof++;
-      if (rule == InferenceRule::GEN_INDUCTION_AXIOM) {
+    switch (rule) {
+      case InferenceRule::GEN_INDUCTION_AXIOM:
+      case InferenceRule::INT_INF_UP_GEN_INDUCTION_AXIOM:
+      case InferenceRule::INT_FIN_UP_GEN_INDUCTION_AXIOM:
+      case InferenceRule::INT_DB_UP_GEN_INDUCTION_AXIOM:
+      case InferenceRule::INT_INF_DOWN_GEN_INDUCTION_AXIOM:
+      case InferenceRule::INT_FIN_DOWN_GEN_INDUCTION_AXIOM:
+      case InferenceRule::INT_DB_DOWN_GEN_INDUCTION_AXIOM:
         env.statistics->generalizedInductionInProof++;
-      }
+      case InferenceRule::INDUCTION_AXIOM:
+      case InferenceRule::INT_INF_UP_INDUCTION_AXIOM:
+      case InferenceRule::INT_FIN_UP_INDUCTION_AXIOM:
+      case InferenceRule::INT_DB_UP_INDUCTION_AXIOM:
+      case InferenceRule::INT_INF_DOWN_INDUCTION_AXIOM:
+      case InferenceRule::INT_FIN_DOWN_INDUCTION_AXIOM:
+      case InferenceRule::INT_DB_DOWN_INDUCTION_AXIOM:
+        env.statistics->inductionInProof++;
+        break;
+      default:
+        ;
+    }
+    switch (rule) {
+      case InferenceRule::INDUCTION_AXIOM:
+      case InferenceRule::GEN_INDUCTION_AXIOM:
+        env.statistics->structInductionInProof++;
+        break;
+      case InferenceRule::INT_INF_UP_INDUCTION_AXIOM:
+      case InferenceRule::INT_INF_UP_GEN_INDUCTION_AXIOM:
+      case InferenceRule::INT_INF_DOWN_INDUCTION_AXIOM:
+      case InferenceRule::INT_INF_DOWN_GEN_INDUCTION_AXIOM:
+        env.statistics->intInfInductionInProof++;
+        break;
+      case InferenceRule::INT_FIN_UP_INDUCTION_AXIOM:
+      case InferenceRule::INT_FIN_UP_GEN_INDUCTION_AXIOM:
+      case InferenceRule::INT_FIN_DOWN_INDUCTION_AXIOM:
+      case InferenceRule::INT_FIN_DOWN_GEN_INDUCTION_AXIOM:
+        env.statistics->intFinInductionInProof++;
+        break;
+      case InferenceRule::INT_DB_UP_INDUCTION_AXIOM:
+      case InferenceRule::INT_DB_UP_GEN_INDUCTION_AXIOM:
+      case InferenceRule::INT_DB_DOWN_INDUCTION_AXIOM:
+      case InferenceRule::INT_DB_DOWN_GEN_INDUCTION_AXIOM:
+        env.statistics->intDBInductionInProof++;
+        break;
+      default:
+        ;
+    }
+    switch (rule) {
+      case InferenceRule::INT_INF_UP_INDUCTION_AXIOM:
+      case InferenceRule::INT_INF_UP_GEN_INDUCTION_AXIOM:
+        env.statistics->intInfUpInductionInProof++;
+        break;
+      case InferenceRule::INT_INF_DOWN_INDUCTION_AXIOM:
+      case InferenceRule::INT_INF_DOWN_GEN_INDUCTION_AXIOM:
+        env.statistics->intInfDownInductionInProof++;
+        break;
+      case InferenceRule::INT_FIN_UP_INDUCTION_AXIOM:
+      case InferenceRule::INT_FIN_UP_GEN_INDUCTION_AXIOM:
+        env.statistics->intFinUpInductionInProof++;
+        break;
+      case InferenceRule::INT_FIN_DOWN_INDUCTION_AXIOM:
+      case InferenceRule::INT_FIN_DOWN_GEN_INDUCTION_AXIOM:
+        env.statistics->intFinDownInductionInProof++;
+        break;
+      case InferenceRule::INT_DB_UP_INDUCTION_AXIOM:
+      case InferenceRule::INT_DB_UP_GEN_INDUCTION_AXIOM:
+        env.statistics->intDBUpInductionInProof++;
+        break;
+      case InferenceRule::INT_DB_DOWN_INDUCTION_AXIOM:
+      case InferenceRule::INT_DB_DOWN_GEN_INDUCTION_AXIOM:
+        env.statistics->intDBDownInductionInProof++;
+        break;
+      default:
+        ;
     }
 
     if (cs->isClause()) {
