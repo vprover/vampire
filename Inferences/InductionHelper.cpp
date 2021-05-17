@@ -35,8 +35,7 @@ namespace {
 struct SLQueryResultToTermQueryResultFn
 {
   SLQueryResultToTermQueryResultFn(TermList v) : variable(v) {}
-  DECL_RETURN_TYPE(TermQueryResult);
-  OWN_RETURN_TYPE operator() (const SLQueryResult slqr) {
+  TermQueryResult operator() (const SLQueryResult slqr) {
     return TermQueryResult(slqr.substitution->applyToQuery(variable), slqr.literal, slqr.clause);
   }
 
