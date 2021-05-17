@@ -22,6 +22,7 @@
 #include "Lib/Metaiterators.hpp"
 #include "Lib/SharedSet.hpp"
 #include "Lib/TimeCounter.hpp"
+#include "Lib/Timer.hpp"
 
 #include "Kernel/Signature.hpp"
 #include "Kernel/Clause.hpp"
@@ -701,6 +702,12 @@ void Splitter::init(SaturationAlgorithm* sa)
   hasSMTSolver = (opts.satSolver() == Options::SatSolver::Z3);
 #endif
 
+  if (opts.splittingAvatimer() > 0.0) {
+    _stopSplittingAt = opts.splittingAvatimer() * opts.timeLimitInDeciseconds() * 100;
+  } else {
+    _stopSplittingAt = 0;
+  }
+
   _fastRestart = opts.splittingFastRestart();
   _deleteDeactivated = opts.splittingDeleteDeactivated();
 
@@ -1081,6 +1088,20 @@ bool Splitter::getComponents(Clause* cl, Stack<LiteralStack>& acc)
 bool Splitter::doSplitting(Clause* cl)
 {
   CALL("Splitter::doSplitting");
+
+  static bool hasStopped = false;
+  if (hasStopped) {
+    return false;
+  }
+  if (_stopSplittingAt && env.timer->elapsedMilliseconds() >= _stopSplittingAt) {
+    if (_showSplitting) {
+      env.beginOutput();
+      env.out() << "[AVATAR] Stopping the splitting process."<< std::endl;
+      env.endOutput();
+    }
+    hasStopped = true;
+    return false;
+  }
 
   //!! this check is important or we might end up looping !!
   if(cl->isComponent()) {

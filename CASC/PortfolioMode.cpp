@@ -326,6 +326,15 @@ void PortfolioMode::getSchedules(Property& prop, Schedule& quick, Schedule& fall
   case Options::Schedule::LTB_DEFAULT_2017:
     Schedules::getLtb2017DefaultSchedule(prop,quick);
     break;
+  case Options::Schedule::INDUCTION:
+    Schedules::getInductionSchedule(prop,quick,fallback);
+    break;
+  case Options::Schedule::INTEGER_INDUCTION:
+    Schedules::getIntegerInductionSchedule(prop,quick,fallback);
+    break;
+  case Options::Schedule::STRUCT_INDUCTION:
+    Schedules::getStructInductionSchedule(prop,quick,fallback);
+    break;
   }
 }
 
@@ -556,10 +565,17 @@ void PortfolioMode::runSlice(Options& strategyOpt)
       _syncSemaphore.set(SEM_PRINTED,1);
       outputResult = true;
     }
-
   }
 
-  if((outputAllowed() && resultValue) || outputResult) { // we can report on every failure, but only once on success
+  if(outputResult) { // this get only true for the first child to find a proof
+    ASS(!resultValue);
+
+    if (outputAllowed() && (Lib::env.options && Lib::env.options->multicore() != 1)) {
+      env.beginOutput();
+      addCommentSignForSZS(env.out()) << "First to succeed." << endl;
+      env.endOutput();
+    }
+
     // At the moment we only save one proof. We could potentially
     // allow multiple proofs
     vstring fname(env.options->printProofToFile());
@@ -573,26 +589,25 @@ void PortfolioMode::runSlice(Options& strategyOpt)
     if (output.fail()) {
       // fallback to old printing method
       env.beginOutput();
-      addCommentSignForSZS(env.out()) << "Proof printing to file '" << fname <<  "' failed. Outputting to stdout" << endl;
+      addCommentSignForSZS(env.out()) << "Solution printing to a file '" << fname <<  "' failed. Outputting to stdout" << endl;
       UIHelper::outputResult(env.out());
       env.endOutput();
     } else {
       UIHelper::outputResult(output);
       if (!env.options->printProofToFile().empty() && outputAllowed()) {
         env.beginOutput();
-        addCommentSignForSZS(env.out()) << "Proof written to " << fname << endl;
+        addCommentSignForSZS(env.out()) << "Solution written to " << fname << endl;
         env.endOutput();
       }
     }
-  }
-  else{
-    /*
-    if (!resultValue) {
-      env.beginOutput();
-      addCommentSignForSZS(env.out()) << " found a proof after proof output" << endl;
-      env.endOutput();
+  } else if (outputAllowed()) {
+    env.beginOutput();
+    if (resultValue) {
+      UIHelper::outputResult(env.out());
+    } else if (Lib::env.options && Lib::env.options->multicore() != 1) {
+      addCommentSignForSZS(env.out()) << "Also succeeded, but the first one will report." << endl;
     }
-    */
+    env.endOutput();
   }
 
   if (outputResult) {

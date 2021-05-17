@@ -123,11 +123,31 @@ public:
   /** number of theoryInstSimp solutions lost as we could not represent them **/
   unsigned theoryInstSimpLostSolution;
   /** number of induction applications **/
-  unsigned induction;
   unsigned maxInductionDepth;
+  unsigned induction;
   unsigned inductionInProof;
   unsigned generalizedInduction;
   unsigned generalizedInductionInProof;
+  unsigned structInduction;
+  unsigned structInductionInProof;
+  unsigned intInfInduction;
+  unsigned intInfInductionInProof;
+  unsigned intFinInduction;
+  unsigned intFinInductionInProof;
+  unsigned intDBInduction;
+  unsigned intDBInductionInProof;
+  unsigned intInfUpInduction;
+  unsigned intInfUpInductionInProof;
+  unsigned intFinUpInduction;
+  unsigned intFinUpInductionInProof;
+  unsigned intDBUpInduction;
+  unsigned intDBUpInductionInProof;
+  unsigned intInfDownInduction;
+  unsigned intInfDownInductionInProof;
+  unsigned intFinDownInduction;
+  unsigned intFinDownInductionInProof;
+  unsigned intDBDownInduction;
+  unsigned intDBDownInductionInProof;
   /** number of argument congruences */
   unsigned argumentCongruence;
   unsigned narrow;
@@ -216,7 +236,7 @@ public:
   unsigned taNegativeInjectivitySimplifications;
   unsigned taAcyclicityGeneratedDisequalities;
 
-  //to be moved to the property object once that 
+  //to be moved to the property object once that
   //is controlled by environment
   bool higherOrder;
   bool polymorphic;
