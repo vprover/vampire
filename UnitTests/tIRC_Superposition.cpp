@@ -41,27 +41,22 @@ using namespace Inferences::IRC;
   NUMBER_SUGAR(Num)                                                                                           \
   DECL_DEFAULT_VARS                                                                                           \
   DECL_FUNC(f, {Num}, Num)                                                                                    \
-  DECL_FUNC(g, {Num, Num}, Num)                                                                               \
+  DECL_FUNC(g, {Num}, Num)                                                                                    \
   DECL_CONST(a, Num)                                                                                          \
   DECL_CONST(b, Num)                                                                                          \
   DECL_CONST(c, Num)                                                                                          \
+  DECL_PRED(p, {Num})                                                                                         \
   DECL_PRED(r, {Num,Num})                                                                                     \
 
 #define MY_SYNTAX_SUGAR SUGAR(Rat)
 
+#define UWA_MODE Options::UnificationWithAbstraction::ONE_INTERP
 
-inline Stack<Indexing::Index*> indices() 
-{ 
-  auto uwa = Options::UnificationWithAbstraction::ONE_INTERP;
-  return {
-    new InequalityResolutionIndex(new TermSubstitutionTree(uwa, true))
-  };
-}
+Indexing::Index* ircSuperpositionIndex() 
+{ return new Indexing::IRCSuperpositionIndex(new TermSubstitutionTree(UWA_MODE, true)); }
 
-Superposition testSuperposition(
-    Options::UnificationWithAbstraction uwa = Options::UnificationWithAbstraction::ONE_INTERP
-    )
-{ return Superposition(testIrcState(uwa)); }
+Superposition testSuperposition()
+{ return Superposition(testIrcState(UWA_MODE)); }
 
 
 
@@ -73,29 +68,29 @@ REGISTER_GEN_TESTER(Test::Generation::GenerationTester<Superposition>(testSuperp
 
 TEST_GENERATION(basic01,
     Generation::TestCase()
-      .indices(indices())
+      .indices({ ircSuperpositionIndex() })
       .input   (  clause({ selected( 3 * f(x) - 4 == 0 )  }) )
       .context ({ clause({ selected(     3 * f(x) >  0 )  }) })
       .expected(exactly(
-            clause({ num(4) > 0  })
+            clause({ 3 * frac(1,3) * 4 > 0  })
       ))
       .premiseRedundant(false)
     )
 
 TEST_GENERATION(basic02,
     Generation::TestCase()
-      .indices(indices())
+      .indices({ ircSuperpositionIndex() })
       .input   (  clause({ selected( 3 * f(x) - 4 == 0 )  }) )
       .context ({ clause({ selected(     f(x) >  0 )  }) })
       .expected(exactly(
-            clause({ frac(4, 3) > 0  })
+            clause({ 4 * frac(1, 3) > 0  })
       ))
       .premiseRedundant(false)
     )
 
 TEST_GENERATION(basic03,
     Generation::TestCase()
-      .indices(indices())
+      .indices({ ircSuperpositionIndex() })
       .input   (  clause({selected( f(a) + a + 3 == 0 ) })  )
       .context ({ clause({selected( f(x) > 0 ) }) })
       .expected(exactly(
@@ -106,7 +101,7 @@ TEST_GENERATION(basic03,
 
 TEST_GENERATION(basic04,
     Generation::TestCase()
-      .indices(indices())
+      .indices({ ircSuperpositionIndex() })
       .input   (  clause({ selected( f(a) + a + 3 == 0 ) })  )
       .context ({ clause({  f(x) > 0, selected(f(g(x)) > 0) }) })
       .expected(exactly(
@@ -114,9 +109,42 @@ TEST_GENERATION(basic04,
       .premiseRedundant(false)
     )
 
+TEST_GENERATION(basic05,
+    Generation::TestCase()
+      .indices({ ircSuperpositionIndex() })
+      .input   (  clause({selected( f(a) + a + 3 == 0 ) })  )
+      .context ({ clause({selected( p(f(x)) ) }) })
+      .expected(exactly(
+            clause({ p(- a + -3)  })
+      ))
+      .premiseRedundant(false)
+    )
+
+TEST_GENERATION(basic06,
+    Generation::TestCase()
+      .indices({ ircSuperpositionIndex() })
+      .input   (  clause({selected( f(a) + a + 3 == 0 ) })  )
+      .context ({ clause({selected( g(f(x)) != 0 ) }) })
+      .expected(exactly(
+            clause({ g(-a + -3) != 0 })
+      ))
+      .premiseRedundant(false)
+    )
+
+TEST_GENERATION(basic07,
+    Generation::TestCase()
+      .indices({ ircSuperpositionIndex() })
+      .input   (  clause({selected( f(a) + a + 3 == 0 ) })  )
+      .context ({ clause({selected( g(3 * f(x)) != 0 ) }) })
+      .expected(exactly(
+            clause({ g(3 * (-a + -3)) != 0 })
+      ))
+      .premiseRedundant(false)
+    )
+
 TEST_GENERATION(uwa1,
     Generation::TestCase()
-      .indices(indices())
+      .indices({ ircSuperpositionIndex() })
       .input   (  clause({ selected( f(a + x) - 4 == 0 )  }) )
       .context ({ clause({ selected( f(b) >  0 )  }) })
       .expected(exactly(

@@ -40,7 +40,7 @@
 #include "Kernel/IRC.hpp"
 #include "Indexing/TermIndexingStructure.hpp"
 
-#define DEBUG(...) // DBG(__VA_ARGS__)
+#define DEBUG(...) DBG(__VA_ARGS__)
 
 using Kernel::InequalityLiteral;
 
@@ -59,7 +59,7 @@ void InequalityResolution::attach(SaturationAlgorithm* salg)
 
   GeneratingInferenceEngine::attach(salg);
   _index=static_cast<InequalityResolutionIndex*> (
-	  _salg->getIndexManager()->request(INEQUALITY_RESOLUTION_SUBST_TREE) );
+	  _salg->getIndexManager()->request(IRC_INEQUALITY_RESOLUTION_SUBST_TREE) );
   _index->setShared(_shared);
 }
 
@@ -69,7 +69,7 @@ void InequalityResolution::detach()
   ASS(_salg);
 
   _index=0;
-  _salg->getIndexManager()->release(INEQUALITY_RESOLUTION_SUBST_TREE);
+  _salg->getIndexManager()->release(IRC_INEQUALITY_RESOLUTION_SUBST_TREE);
   GeneratingInferenceEngine::detach();
 }
 
@@ -153,7 +153,8 @@ using Lib::TypeList::UnsignedList;
 
 
 template<class NumTraits>
-ClauseIterator InequalityResolution::generateClauses(Clause* cl1, Literal* literal1) const
+ClauseIterator InequalityResolution::generateClauses(Clause* cl1, Literal* literal1, InequalityLiteral<NumTraits> lit1) const
+  //                                                                                         num1 * term + rest1 >= 0 <-- ^^^^
 {
   CALL("InequalityResolution::generateClauses(Clause*, Literal*) const")
   using Monom             = Monom<NumTraits>;
@@ -162,9 +163,9 @@ ClauseIterator InequalityResolution::generateClauses(Clause* cl1, Literal* liter
   using InequalityLiteral = InequalityLiteral<NumTraits>;
   const bool isInt        = std::is_same<NumTraits, IntTraits>::value;
 
-  auto lit1Opt = this->normalizer().normalizeIneq<NumTraits>(literal1);
-  if (lit1Opt.isNone()) 
-    return ClauseIterator::getEmpty();
+  // auto lit1Opt = this->normalizer().normalizeIneq<NumTraits>(literal1);
+  // if (lit1Opt.isNone()) 
+  //   return ClauseIterator::getEmpty();
 
   // The rule we compute looks as follows for rat & real:
   //
@@ -178,13 +179,13 @@ ClauseIterator InequalityResolution::generateClauses(Clause* cl1, Literal* liter
   // --------------------------------------------------------------------
   //         k1 * rest1 + k2 * rest2 - 1 > 0 \/ C1 \/ C2
 
-
-  auto lit1_ = std::move(lit1Opt).unwrap();
-  if (lit1_.overflowOccurred) {
-    env.statistics->irOverflowNorm++;
-    return ClauseIterator::getEmpty();
-  }
-  auto lit1 = lit1_.value;
+  // TODO overflow statistics in IrcState
+  // auto lit1_ = std::move(lit1Opt).unwrap();
+  // if (lit1_.overflowOccurred) { 
+  //   env.statistics->irOverflowNorm++;
+  //   return Option<ClauseIterator>();
+  // }
+  // auto lit1 = lit1_.value;
   //   ^^^^--> num1 * term + rest1 >= 0
 
   DEBUG("lit1: ", lit1)
@@ -325,12 +326,8 @@ ClauseIterator InequalityResolution::generateClauses(Clause* cl1, Literal* liter
 
                       // push constraints
                       if (res.constraints) {
-                        for (auto& c : *res.constraints) {
-                          auto toTerm = [&](pair<TermList, unsigned> const& weirdConstraintPair) -> TermList
-                                        { return subs.applyTo(weirdConstraintPair.first, weirdConstraintPair.second); };
-                          auto sort = SortHelper::getResultSort(c.first.first.term());
-                          // t1\sigma != c2\simga
-                          push(Literal::createEquality(false, toTerm(c.first), toTerm(c.second), sort));
+                        for (auto l : UwaResult::cnstLiterals(*res.substitution, *res.constraints)) {
+                            push(l);
                         }
                       }
 
@@ -348,13 +345,16 @@ ClauseIterator InequalityResolution::generateClauses(Clause* premise)
   DEBUG("in: ", *premise)
 
   return pvi(iterTraits(premise->getSelectedLiteralIterator())
-    .flatMap([=](Literal* lit) {
-      CALL("InequalityResolution::generateClauses@clsr1");
-        return getConcatenatedIterator(getConcatenatedIterator(
-              generateClauses< IntTraits>(premise, lit) ,
-              generateClauses< RatTraits>(premise, lit)),
-              generateClauses<RealTraits>(premise, lit));
-    }));
+    .filterMap([=](Literal* lit) {
+      return this->_shared->normalizeIneq(lit)
+      .map([=](auto ineq) {
+          return ineq.apply([=](auto ineq) {
+              return generateClauses(premise, lit, ineq);
+              });
+          });
+
+      })
+    .flatten());
 }
 
 } // namespace IRC

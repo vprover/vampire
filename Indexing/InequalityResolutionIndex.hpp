@@ -35,13 +35,37 @@ public:
   InequalityResolutionIndex(TermIndexingStructure* is)
     : TermIndex(is) {}
 
-  InequalityNormalizer const& normalizer() const { return _shared->normalizer; }
-  Ordering* ord() const { return _shared->ordering; }
   void setShared(shared_ptr<Kernel::IrcState> shared) { _shared = std::move(shared); }
-protected:
+// protected:
   void handleClause(Clause* c, bool adding);
 private:
   template<class NumTraits> bool handleLiteral(Literal* lit, Clause* c, bool adding);
+
+  shared_ptr<Kernel::IrcState> _shared;
+};
+
+
+class IRCSuperpositionIndex
+: public TermIndex
+{
+public:
+  CLASS_NAME(IRCSuperpositionIndex);
+  USE_ALLOCATOR(IRCSuperpositionIndex);
+
+  IRCSuperpositionIndex(TermIndexingStructure* is)
+    : TermIndex(is) {}
+  ~IRCSuperpositionIndex()
+  { DBG("~IRCSuperpositionIndex()") }
+
+
+  void setShared(shared_ptr<Kernel::IrcState> shared) { _shared = std::move(shared); }
+// protected:
+  void handleClause(Clause* c, bool adding);
+private:
+  template<class NumTraits> bool handleInequality(Literal* lit, Clause* c, bool adding);
+  bool handleUninterpreted(Literal* lit, Clause* c, bool adding);
+
+  void handle(TermList t, Literal* lit, Clause* c, bool adding);
 
   shared_ptr<Kernel::IrcState> _shared;
 };

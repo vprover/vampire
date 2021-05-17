@@ -129,11 +129,12 @@ namespace Kernel {
     bool isInequality() const
     { return Kernel::isInequality(symbol()); }
   };
+
   using AnyIrcLiteral = Coproduct< IrcLiteral< IntTraits>
                                  , IrcLiteral< RatTraits>
                                  , IrcLiteral<RealTraits>
                                  >;
-  
+
   /** 
    * Represents an inequality literal normalized for the rule InequalityResolution.
    * this means it is a literal of the form
@@ -172,6 +173,18 @@ namespace Kernel {
     Literal* denormalize() const
     { return _self.denormalize(); }
   };
+
+  using AnyInequalityLiteral = Coproduct< InequalityLiteral< IntTraits>
+                                        , InequalityLiteral< RatTraits>
+                                        , InequalityLiteral<RealTraits>
+                                        >;
+
+  template<class NumTraits>
+  Option<InequalityLiteral<NumTraits>> inequalityLiteral(IrcLiteral<NumTraits> lit) 
+  {
+    return lit.isInequality() ? some(InequalityLiteral<NumTraits>(lit)) 
+                              : Option<InequalityLiteral<NumTraits>>();
+  }
 
   class InequalityNormalizer {
     // Map<Literal*, Option<InequalityLiteral>> _normalized;
@@ -248,6 +261,7 @@ namespace Kernel {
 
     Option<UwaResult> unify(TermList lhs, TermList rhs) const;
     Option<AnyIrcLiteral> normalize(Literal*);
+    Option<AnyInequalityLiteral> normalizeIneq(Literal*);
     PolyNf normalize(TypedTermList);
   };
 

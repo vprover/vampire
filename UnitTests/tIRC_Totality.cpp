@@ -49,14 +49,10 @@ using namespace Inferences::IRC;
 
 #define MY_SYNTAX_SUGAR SUGAR(Rat)
 
+#define UWA_MODE Options::UnificationWithAbstraction::ONE_INTERP
 
-inline Stack<Indexing::Index*> indices() 
-{ 
-  auto uwa = Options::UnificationWithAbstraction::ONE_INTERP;
-  return {
-    new InequalityResolutionIndex( new TermSubstitutionTree(uwa, true))
-  };
-}
+Indexing::Index* totalityIndex() 
+{ return new InequalityResolutionIndex( new TermSubstitutionTree(UWA_MODE, true)); }
 
 Totality testTotality(
     Options::UnificationWithAbstraction uwa = Options::UnificationWithAbstraction::ONE_INTERP
@@ -71,7 +67,7 @@ REGISTER_GEN_TESTER(Test::Generation::GenerationTester<Totality>(testTotality())
 
 TEST_GENERATION(basic01,
     Generation::TestCase()
-      .indices(indices())
+      .indices({ totalityIndex() })
       .input   (  clause({ selected(  a >= 0 )  }) )
       .context ({ clause({ selected( -a >= 0 )  }) })
       .expected(exactly(
@@ -82,7 +78,7 @@ TEST_GENERATION(basic01,
 
 TEST_GENERATION(basic02,
     Generation::TestCase()
-      .indices(indices())
+      .indices({ totalityIndex() })
       .input   (  clause({ selected(  a + -1 >= 0 )  }) )
       .context ({ clause({ selected( -a +  1 >= 0 )  }) })
       .expected(exactly(
@@ -93,7 +89,7 @@ TEST_GENERATION(basic02,
 
 TEST_GENERATION(basic03,
     Generation::TestCase()
-      .indices(indices())
+      .indices({ totalityIndex() })
       .input   (  clause({ selected( 3 * a + -1 >= 0 )  }) )
       .context ({ clause({ selected( 2 * a + -1 >= 0 )  }) })
       .expected(exactly(
@@ -103,7 +99,7 @@ TEST_GENERATION(basic03,
 
 TEST_GENERATION(basic04a,
     Generation::TestCase()
-      .indices(indices())
+      .indices({ totalityIndex() })
       .input   (  clause({ selected(  c - b >= 0 )  }) )
       .context ({ clause({ selected( -c + a >= 0 )  }) })
       .expected(exactly(
@@ -114,7 +110,7 @@ TEST_GENERATION(basic04a,
 
 TEST_GENERATION(basic04b,
     Generation::TestCase()
-      .indices(indices())
+      .indices({ totalityIndex() })
       .input   (  clause({ selected(  a - b >= 0 )  }) )
       .context ({ clause({ selected( -a + c >= 0 )  }) })
       .expected(exactly( /* c > b > a */ ))
@@ -123,7 +119,7 @@ TEST_GENERATION(basic04b,
 
 TEST_GENERATION(basic05,
     Generation::TestCase()
-      .indices(indices())
+      .indices({ totalityIndex() })
       .input   (  clause({ selected(  f(x) - b >= 0 )  }) )
       .context ({ clause({ selected( -f(a) + c >= 0 )  }) })
       .expected(exactly(
@@ -134,7 +130,7 @@ TEST_GENERATION(basic05,
 
 TEST_GENERATION(basic06,
     Generation::TestCase()
-      .indices(indices())
+      .indices({ totalityIndex() })
       .input   (  clause({ selected(  f(x) - b >= 0 )  }) )
       .context ({ clause({ selected(  f(a) + c >= 0 )  }) })
       .expected(exactly(
@@ -144,7 +140,7 @@ TEST_GENERATION(basic06,
 
 TEST_GENERATION(basic07,
     Generation::TestCase()
-      .indices(indices())
+      .indices({ totalityIndex() })
       .input   (  clause({ selected(  f(b) >= 0 )  }) )
       .context ({ clause({ selected( -f(a) >= 0 )  }) })
       .expected(exactly(
@@ -154,7 +150,7 @@ TEST_GENERATION(basic07,
 
 TEST_GENERATION(basic08,
     Generation::TestCase()
-      .indices(indices())
+      .indices({ totalityIndex() })
       .input   (         clause({ selected(  3 * f(b) >= 0 )  }) )
       .context ({        clause({ selected( -2 * f(x) >= 0 )  }) })
       .expected(exactly( clause({            3 * f(b) == 0    }) ))
@@ -163,7 +159,7 @@ TEST_GENERATION(basic08,
 
 TEST_GENERATION(basic09,
     Generation::TestCase()
-      .indices(indices())
+      .indices({ totalityIndex() })
       .input   (         clause({ selected(  3 * f(b) + 7 >= 0 )  }) )
       .context ({        clause({ selected( -2 * f(x) + a >= 0 )  }) })
       .expected(exactly( clause({ 3 * f(b) + 7 == 0, 14 + 3 * a != 0  }) ))
@@ -172,7 +168,7 @@ TEST_GENERATION(basic09,
 
 TEST_GENERATION(uwa,
     Generation::TestCase()
-      .indices(indices())
+      .indices({ totalityIndex() })
       .input   (  clause({ selected(  f(x + a) - b >= 0 )  }) )
       .context ({ clause({ selected( -f(b) + c >= 0 )  }) })
       .expected(exactly(

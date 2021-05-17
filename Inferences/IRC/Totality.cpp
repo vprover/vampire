@@ -32,7 +32,7 @@ void Totality::attach(SaturationAlgorithm* salg)
 
   GeneratingInferenceEngine::attach(salg);
   _index=static_cast<InequalityResolutionIndex*> (
-	  _salg->getIndexManager()->request(INEQUALITY_RESOLUTION_SUBST_TREE) );
+	  _salg->getIndexManager()->request(IRC_INEQUALITY_RESOLUTION_SUBST_TREE) );
   _index->setShared(_shared);
 }
 
@@ -42,7 +42,7 @@ void Totality::detach()
   ASS(_salg);
 
   _index=0;
-  _salg->getIndexManager()->release(INEQUALITY_RESOLUTION_SUBST_TREE);
+  _salg->getIndexManager()->release(IRC_INEQUALITY_RESOLUTION_SUBST_TREE);
   GeneratingInferenceEngine::detach();
 }
 

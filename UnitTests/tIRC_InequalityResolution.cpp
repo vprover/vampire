@@ -49,14 +49,10 @@ using namespace Inferences::IRC;
 
 #define MY_SYNTAX_SUGAR SUGAR(Rat)
 
+#define UWA_MODE Options::UnificationWithAbstraction::ONE_INTERP
 
-inline Stack<Indexing::Index*> indices() 
-{ 
-  auto uwa = Options::UnificationWithAbstraction::ONE_INTERP;
-  return {
-    new InequalityResolutionIndex(new TermSubstitutionTree(uwa, true))
-  };
-}
+Indexing::Index* inequalityResolutionIdx() 
+{ return new InequalityResolutionIndex(new TermSubstitutionTree(UWA_MODE, true)); }
 
 InequalityResolution testInequalityResolution() 
 { return InequalityResolution(testIrcState()); }
@@ -69,7 +65,7 @@ REGISTER_GEN_TESTER(Test::Generation::GenerationTester<InequalityResolution>(tes
 
 TEST_GENERATION(basic01,
     Generation::TestCase()
-      .indices(indices())
+      .indices({ inequalityResolutionIdx() })
       .input   (  clause({selected( f(x) > 0 ), x == 7   }) )
       .context ({ clause({selected(-f(x) > 0 )           }) })
       .expected(exactly(
@@ -80,7 +76,7 @@ TEST_GENERATION(basic01,
 
 TEST_GENERATION(basic02,
     Generation::TestCase()
-      .indices(indices())
+      .indices({ inequalityResolutionIdx() })
       .input   (  clause({selected(     f(a) > 0) }) )
       .context ({ clause({selected(a + -f(a) > 0) }) })
       .expected(exactly(
@@ -91,7 +87,7 @@ TEST_GENERATION(basic02,
 
 TEST_GENERATION(basic03,
     Generation::TestCase()
-      .indices(indices())
+      .indices({ inequalityResolutionIdx() })
       .input   (  clause({selected( -g(x,a) + -g(g(a,b), f(x)) > 0) }) )
       .context ({ clause({selected(  g(b,a) +  g(g(a,b), f(a)) > 0) }) })
       .expected(exactly(
@@ -102,7 +98,7 @@ TEST_GENERATION(basic03,
 
 TEST_GENERATION(basic04,
     Generation::TestCase()
-      .indices(indices())
+      .indices({ inequalityResolutionIdx() })
       .input   (  clause({ selected( a + -f(x) > 0), x == 7 }) )
       .context ({ clause({ selected( a +  f(a) > 0) }) })
       .expected(exactly(
@@ -113,7 +109,7 @@ TEST_GENERATION(basic04,
 
 TEST_GENERATION(basic05,
     Generation::TestCase()
-      .indices(indices())
+      .indices({ inequalityResolutionIdx() })
       .input   (  clause({ selected( a + -f(y) > 0) }) )
       .context ({ clause({ selected( a +  f(a) > 0), x == 7}) })
       .expected(exactly(
@@ -124,7 +120,7 @@ TEST_GENERATION(basic05,
 
 TEST_GENERATION(basic06,
     Generation::TestCase()
-      .indices(indices())
+      .indices({ inequalityResolutionIdx() })
       .input   (  clause({ selected(       -g(x,y) > 0 ) }) )
       .context ({ clause({ selected( g(a,z) + g(z,a) > 0 ) }) })
       .expected(exactly(
@@ -136,7 +132,7 @@ TEST_GENERATION(basic06,
 
 TEST_GENERATION(basic07,
     Generation::TestCase()
-      .indices(indices())
+      .indices({ inequalityResolutionIdx() })
       .input   (  clause({ selected(a > 0) }) )
       .context ({ clause({ selected(a > 0) }) })
       .expected(exactly(
@@ -146,7 +142,7 @@ TEST_GENERATION(basic07,
 
 TEST_GENERATION(basic08,
     Generation::TestCase()
-      .indices(indices())
+      .indices({ inequalityResolutionIdx() })
       .input   (  clause({ selected(a >= a) }) )
       .context ({ clause({ selected(a > 0 )}) })
       .expected(exactly(
@@ -156,7 +152,7 @@ TEST_GENERATION(basic08,
 
 TEST_GENERATION(basic09,
     Generation::TestCase()
-      .indices(indices())
+      .indices({ inequalityResolutionIdx() })
       .input   (  clause({ selected(-a > 0) }) )
       .context ({ clause({           a > 0  }) })
       .expected(exactly(
@@ -166,7 +162,7 @@ TEST_GENERATION(basic09,
 
 TEST_GENERATION(basic10,
     Generation::TestCase()
-      .indices(indices())
+      .indices({ inequalityResolutionIdx() })
       .input   (  clause({          -a > 0  }) )
       .context ({ clause({ selected( a > 0) }) })
       .expected(exactly(
@@ -177,7 +173,7 @@ TEST_GENERATION(basic10,
 
 TEST_GENERATION(strictly_max_after_unification_01a,
     Generation::TestCase()
-      .indices(indices())
+      .indices({ inequalityResolutionIdx() })
       .input   (  clause({ selected(-f(x) + f(a) > 0) }) )
       .context ({ clause({ selected( f(a)        > 0) }) })
       .expected(exactly(
@@ -188,7 +184,7 @@ TEST_GENERATION(strictly_max_after_unification_01a,
 
 TEST_GENERATION(strictly_max_after_unification_01b,
     Generation::TestCase()
-      .indices(indices())
+      .indices({ inequalityResolutionIdx() })
       .input   (  clause({ selected( f(a)        > 0) })  )
       .context ({ clause({ selected(-f(x) + f(a) > 0) }) })
       .expected(exactly(
@@ -198,7 +194,7 @@ TEST_GENERATION(strictly_max_after_unification_01b,
 
 TEST_GENERATION(strictly_max_after_unification_02a,
     Generation::TestCase()
-      .indices(indices())
+      .indices({ inequalityResolutionIdx() })
       .input   (         clause({ selected(-f(x) + f(a) > 0 )}) )
       .context ({        clause({ selected( f(b)        > 0) }) })
       .expected(exactly( clause({           f(a)        > 0 }) ))
@@ -207,7 +203,7 @@ TEST_GENERATION(strictly_max_after_unification_02a,
 
 TEST_GENERATION(strictly_max_after_unification_02b,
     Generation::TestCase()
-      .indices(indices())
+      .indices({ inequalityResolutionIdx() })
       .input   (         clause({ selected( f(b)        > 0) })  )
       .context ({        clause({ selected(-f(x) + f(a) > 0 )}) })
       .expected(exactly( clause({           f(a)        > 0 }) ))
@@ -221,7 +217,7 @@ TEST_GENERATION(strictly_max_after_unification_02b,
 TEST_GENERATION_WITH_SUGAR(gcd01_Int,
     SUGAR(Int),
     Generation::TestCase()
-      .indices(indices())
+      .indices({ inequalityResolutionIdx() })
       .input   (  clause({ selected(-6 * f(x) + b > 0) })  )
       .context ({ clause({ selected( 4 * f(y) + a > 0) }) })
       .expected(exactly(
@@ -233,7 +229,7 @@ TEST_GENERATION_WITH_SUGAR(gcd01_Int,
 TEST_GENERATION_WITH_SUGAR(gcd01_Rat,
     SUGAR(Rat),
     Generation::TestCase()
-      .indices(indices())
+      .indices({ inequalityResolutionIdx() })
       .input   (  clause({ selected( 6 * f(x) + b > 0) })  )
       .context ({ clause({ selected(-4 * f(y) + a > 0) }) })
       .expected(exactly(
@@ -248,7 +244,7 @@ TEST_GENERATION_WITH_SUGAR(gcd01_Rat,
 
 TEST_GENERATION(substitution01,
     Generation::TestCase()
-      .indices(indices())
+      .indices({ inequalityResolutionIdx() })
       .input   (  clause({ selected(-f(f(x)) + f(x) > 0) })  )
       .context ({ clause({ selected( f(f(a))        > 0) }) })
       .expected(exactly(
@@ -259,7 +255,7 @@ TEST_GENERATION(substitution01,
 
 TEST_GENERATION(substitution02,
     Generation::TestCase()
-      .indices(indices())
+      .indices({ inequalityResolutionIdx() })
       .input   (  clause({ selected(-g(f(x), f(f(b))) +    f(x)  > 0) })  )
       .context ({ clause({ selected( g(f(a), f(f(y))) +    f(y)  > 0) }) })
       .expected(exactly(
@@ -274,7 +270,7 @@ TEST_GENERATION(substitution02,
 
 TEST_GENERATION(abstraction1,
     Generation::TestCase()
-      .indices(indices())
+      .indices({ inequalityResolutionIdx() })
       .input   (  clause({ selected(-f(     0        ) > 0) })  )
       .context ({ clause({ selected( f(f(a) + g(b, c)) > 0) }) })
       .expected(exactly(
@@ -291,7 +287,7 @@ TEST_GENERATION(abstraction1,
 
 TEST_GENERATION(normalization01,
     Generation::TestCase()
-      .indices(indices())
+      .indices({ inequalityResolutionIdx() })
       .input   (  clause({ selected(0 > f(a)    ) }) )
       .context ({ clause({ selected(a + f(a) > 0) }) })
       .expected(exactly(
@@ -303,7 +299,7 @@ TEST_GENERATION(normalization01,
 TEST_GENERATION_WITH_SUGAR(normalization02_Int,
     SUGAR(Int),
     Generation::TestCase()
-      .indices(indices())
+      .indices({ inequalityResolutionIdx() })
       .input   (  clause({selected(~(0 > -f(a)))  }) )
       //                           ~(0 > -f(a)))
       //                     ==> -f(a) >= 0         ==> 0 >=  f(a)
@@ -319,7 +315,7 @@ TEST_GENERATION_WITH_SUGAR(normalization02_Int,
 TEST_GENERATION_WITH_SUGAR(normalization02_Rat,
     SUGAR(Rat),
     Generation::TestCase()
-      .indices(indices())
+      .indices({ inequalityResolutionIdx() })
       .input   (  clause({selected(~(0 > -f(a)))  }) )
       .context ({ clause({selected( a + f(a) > 0) }) })
       .expected(exactly(
@@ -332,7 +328,7 @@ TEST_GENERATION_WITH_SUGAR(normalization02_Rat,
 TEST_GENERATION_WITH_SUGAR(normalization03,
     SUGAR(Int),
     Generation::TestCase()
-      .indices(indices())
+      .indices({ inequalityResolutionIdx() })
       .input   (  clause({selected(     f(a) >= 0) }) )
       .context ({ clause({selected(a + -f(a) >  0) }) })
       .expected(exactly(
@@ -344,7 +340,7 @@ TEST_GENERATION_WITH_SUGAR(normalization03,
 TEST_GENERATION_WITH_SUGAR(bug01,
     SUGAR(Real),
     Generation::TestCase()
-      .indices(indices())
+      .indices({ inequalityResolutionIdx() })
       .input   (  clause({r(x, y), selected( (f(x) + -f(y) > 0) ) }) )
       .context ({ clause({ selected(f(a) >  0) }) })
       //                                      (y - 1 > 0) 
@@ -357,7 +353,7 @@ TEST_GENERATION_WITH_SUGAR(bug01,
 TEST_GENERATION_WITH_SUGAR(bug02,
     SUGAR(Real),
     Generation::TestCase()
-      .indices(indices())
+      .indices({ inequalityResolutionIdx() })
       .input   (         clause({ selected( 3 +  a  > 0 ) })  )
       .context ({        clause({ selected( 0 + -a  > 0 ) }) })
       .expected(exactly( clause({            num(3) > 0   }) ))
@@ -369,7 +365,7 @@ TEST_GENERATION_WITH_SUGAR(bug03,
     Generation::TestCase()
 // *cl2 = ~P(X1,X2) | 1 + -X1 + a > 0
 // *resolvent = $greater($sum(1,$uminus(X1)),0) | ~'MS'(X0,X1,s2)
-      .indices(indices())
+      .indices({ inequalityResolutionIdx() })
       .input   (         clause({            selected(1 + -f(a)        > 0) })  )
       .context ({        clause({  ~r(y,z) , selected(1 + -f(x) + f(a) > 0) }) })
       .expected(exactly( clause({  ~r(y,z) ,          2 + -f(x)        > 0  }) ))
@@ -380,7 +376,7 @@ TEST_GENERATION_WITH_SUGAR(bug03,
 TEST_GENERATION_WITH_SUGAR(bug_overflow_01,
     SUGAR(Real),
     Generation::TestCase()
-      .indices(indices())
+      .indices({ inequalityResolutionIdx() })
       .input   (  clause({ selected(          num(2) * (1073741824 * a + 536870912) > 0 ) })  )
       .context ({ clause({ selected(num(-1) * num(2) * (1073741824 * a + 536870912) > 0 )   }) })
       .expected(exactly(
@@ -394,7 +390,7 @@ TEST_GENERATION_WITH_SUGAR(bug_overflow_01,
 TEST_GENERATION_WITH_SUGAR(bug_overflow_02,
     SUGAR(Int),
     Generation::TestCase()
-      .indices(indices())
+      .indices({ inequalityResolutionIdx() })
       .input   (  clause({ selected( 0 < 2 * (f(a) * num(1073741824)) ) })  )
       .context ({ clause({ selected( 3  + -a > 0 )  }) })
       .expected(exactly(

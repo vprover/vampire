@@ -41,6 +41,7 @@ public:
   Superposition(Superposition&&) = default;
   Superposition(shared_ptr<IrcState> shared) 
     : _shared(std::move(shared))
+    , _index(nullptr)
   {  }
 
   void attach(SaturationAlgorithm* salg) final override;
@@ -55,9 +56,11 @@ public:
 
 private:
 
-  template<class NumTraits> ClauseIterator generateClauses(Clause* clause, Literal* lit) const;
+                            Option<ClauseIterator> generateClauses(Clause* clause, Literal* literal, IrcLiteral<IntTraits> lit) const;
+  template<class NumTraits> Option<ClauseIterator> generateClauses(Clause* clause, Literal* literal, IrcLiteral<NumTraits> lit) const;
 
   shared_ptr<IrcState> _shared;
+  IRCSuperpositionIndex* _index;
 };
 
 } // namespace IRC

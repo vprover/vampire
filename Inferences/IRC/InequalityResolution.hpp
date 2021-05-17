@@ -96,7 +96,7 @@ public:
   // template<class NumTraits> static Stack<Monom<NumTraits>> maxTerms(IrcLiteral<NumTraits> const& lit, Ordering* ord);
 private:
 
-  template<class NumTraits> ClauseIterator generateClauses(Clause* clause, Literal* lit) const;
+  template<class NumTraits> ClauseIterator generateClauses(Clause* clause, Literal* lit, InequalityLiteral<NumTraits>) const;
 
   InequalityNormalizer const& normalizer() const { return _shared->normalizer; }
   Ordering* ord() const { return _shared->ordering; }

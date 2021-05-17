@@ -180,9 +180,15 @@ Index* IndexManager::create(IndexType t)
     isGenerating = true;
     break;
 
-  case INEQUALITY_RESOLUTION_SUBST_TREE:
+  case IRC_INEQUALITY_RESOLUTION_SUBST_TREE:
     tis=new TermSubstitutionTree(uwaMode, true);
     res=new InequalityResolutionIndex(tis);
+    isGenerating = true;
+    break;
+
+  case IRC_SUPERPOSITION_SUBST_TREE:
+    tis=new TermSubstitutionTree(uwaMode, true);
+    res=new IRCSuperpositionIndex(tis);
     isGenerating = true;
     break;
 

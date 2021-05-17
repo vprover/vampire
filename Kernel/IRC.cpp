@@ -84,10 +84,22 @@ Option<AnyIrcLiteral> IrcState::normalize(Literal* lit)
 {
   return this->normalizer.normalize(lit)
     .andThen([](auto res) {
+        // TODO overflow statistic
         return res.overflowOccurred 
           ? Option<AnyIrcLiteral>()
           : Option<AnyIrcLiteral>(res.value);
         });
+}
+
+
+Option<AnyInequalityLiteral> IrcState::normalizeIneq(Literal* lit)
+{
+  return normalize(lit)
+    .andThen([](auto res) {
+      return res.apply([](auto lit) { 
+          return inequalityLiteral(lit).map([](auto x) { return AnyInequalityLiteral(x); }); 
+      });
+    });
 }
 
 PolyNf IrcState::normalize(TypedTermList term) 

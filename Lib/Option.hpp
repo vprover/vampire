@@ -21,6 +21,7 @@
 #include "Debug/Assertion.hpp"
 #include "Debug/Tracer.hpp"
 #include <iostream>
+#include "Lib/Reflection.hpp"
 
 
 namespace Lib {
@@ -367,13 +368,15 @@ public:
     Option _self;
     OptionIter(Option self) : _self(std::move(self)) {}
   public:
+    friend class Option;
+    DECL_ELEMENT_TYPE(A);
     bool hasNext() const { return _self.isSome(); }
-    bool next() { return _self.take().unwrap(); }
+    A next() { return _self.take().unwrap(); }
   };
   
 
   OptionIter intoIter() &&
-  { return OptionIter(std::move(this)); }
+  { return OptionIter(std::move(*this)); }
 
   friend std::ostream& operator<<(std::ostream& out, Option const& self) 
   { return self.isSome() ?  out << self.unwrap() : out << "None"; }
