@@ -317,6 +317,7 @@ IntegerConstantType normalizeFactors_gcd(IntegerConstantType l, IntegerConstantT
 template<class NumTraits>
 auto normalizeFactors(Perfect<Polynom<NumTraits>> in) -> MaybeOverflow<Perfect<Polynom<NumTraits>>>
 {
+  using Numeral = typename NumTraits::ConstantType;
   return catchOverflow([&](){
 
     if (in->nSummands() == 0) {
@@ -326,8 +327,8 @@ auto normalizeFactors(Perfect<Polynom<NumTraits>> in) -> MaybeOverflow<Perfect<P
       .map([](auto s) { return s.numeral.abs(); }),
       [](auto l, auto r) { return normalizeFactors_gcd(l,r); }
     );
-    ASS_REP(gcd.isPositive(), gcd)
-    if (gcd == NumTraits::constant(1)) {
+    ASS_REP(gcd >= Numeral(0), gcd)
+    if (gcd == NumTraits::constant(1) || gcd == NumTraits::constant(0)) {
       return in;
     } else {
       auto  out = perfect(Polynom<NumTraits>(in->iterSummands()
@@ -360,7 +361,7 @@ Option<MaybeOverflow<IrcLiteral<NumTraits>>> InequalityNormalizer::normalizeIrc(
     IrcPredicate pred;
     TermList l, r; // <- we rewrite to l < r or l <= r
     switch(itp) {
-      case Interpretation::EQUAL:
+      case Interpretation::EQUAL:/* l == r or l != r */
         if (SortHelper::getEqualityArgumentSort(lit) != NumTraits::sort()) 
           return Opt();
         l = *lit->nthArgument(0);
@@ -430,9 +431,6 @@ Option<MaybeOverflow<IrcLiteral<NumTraits>>> InequalityNormalizer::normalizeIrc(
 ////////////////////////////////////////////////////////////////////////////
 // impl IrcState
 /////////////////////////////
-
-
-
 
 template<class NumTraits>
 Stack<Monom<NumTraits>> IrcState::maxAtomicTerms(IrcLiteral<NumTraits>const& lit)

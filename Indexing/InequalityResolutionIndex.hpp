@@ -54,9 +54,6 @@ public:
 
   IRCSuperpositionIndex(TermIndexingStructure* is)
     : TermIndex(is) {}
-  ~IRCSuperpositionIndex()
-  { DBG("~IRCSuperpositionIndex()") }
-
 
   void setShared(shared_ptr<Kernel::IrcState> shared) { _shared = std::move(shared); }
 // protected:
