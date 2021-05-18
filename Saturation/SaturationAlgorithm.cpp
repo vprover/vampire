@@ -1213,6 +1213,7 @@ void SaturationAlgorithm::activate(Clause* cl)
 
     while (toAdd.hasNext()) {
       Clause* genCl=toAdd.next();
+      ASS_REP(Kernel::SortHelper::areSortsValid(genCl), genCl->toString())
       addNewClause(genCl);
 
       Inference::Iterator iit=genCl->inference().iterator();

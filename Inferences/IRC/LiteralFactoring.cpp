@@ -53,26 +53,31 @@ Clause* LiteralFactoring::applyRule(Clause* premise,
   auto j = j_s1.numeral;
   auto k = k_s2.numeral;
 
-  auto pivotSum = 
-  //   ^^^^^^^^--> `(k t1 − j t2)σ`
-    NumTraits::sum(iterTraits(getConcatenatedIterator(
-      l1->term().iterSummands()
-        .filter([&](auto t) { return t != j_s1; })
-        .map([&](auto t) { return  sigma((k * t).denormalize()); }),
-
-      l2->term().iterSummands()
-        .filter([&](auto t) { return t != k_s2; })
-        .map([&](auto t) { return  sigma((-j * t).denormalize()); })
-        )));
-
-  auto pivotLiteral = NumTraits::eq(false, pivotSum, NumTraits::zero());
-
   Stack<Literal*> conclusion(premise->size() + cnst.size());
+
+  // adding `(C \/ ±js1 + t1 <> 0)σ`
   for (unsigned i = 0; i < premise->size(); i++) {
     if (i != l2.idx)
       conclusion.push(sigma((*premise)[i]));
   }
+
+  auto pivotSum = 
+  //   ^^^^^^^^--> `k t1 − j t2`
+    NumTraits::sum(iterTraits(getConcatenatedIterator(
+      l1->term().iterSummands()
+        .filter([&](auto t) { return t != j_s1; })
+        .map([&](auto t) { return  (k * t).denormalize(); }),
+
+      l2->term().iterSummands()
+        .filter([&](auto t) { return t != k_s2; })
+        .map([&](auto t) { return  (-j * t).denormalize(); })
+        )));
+  auto pivotLiteral = NumTraits::eq(false, pivotSum, NumTraits::zero());
+
+  // adding `(k t1 − j t2  ̸≈ 0)σ`
   conclusion.push(sigma(pivotLiteral));
+
+  // adding `Cnst`
   conclusion.loadFromIterator(uwa.cnstLiterals());
 
   Inference inf(GeneratingInference1(Kernel::InferenceRule::IRC_LITERAL_FACTORING, premise));

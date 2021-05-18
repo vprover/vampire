@@ -335,6 +335,7 @@ ClauseIterator InequalityResolution::generateClauses(Clause* cl1, Literal* liter
                       ASS_EQ(offset, size)
                     }
                     DEBUG("  resolvent: ", *resolvent);
+                    ASS(SortHelper::areSortsValid(resolvent))
                     return Option<Clause*>(resolvent);
                 }));
     }));
