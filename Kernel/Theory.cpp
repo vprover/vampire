@@ -145,7 +145,7 @@ RealConstantType RealConstantType::abs() const
 IntegerConstantType IntegerConstantType::abs() const
 {
   if (toInner() == std::numeric_limits<InnerType>::min() && USES_2_COMPLEMENT)
-    throw new MachineArithmeticException();
+    throw MachineArithmeticException();
   return IntegerConstantType(::std::abs(toInner()));
 }
 

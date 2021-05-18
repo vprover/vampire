@@ -268,7 +268,8 @@ ClauseIterator InequalityResolution::generateClauses(Clause* cl1, Literal* liter
                                                                       && cmp != Ordering::LESS;
 
                                           auto numeral = NumTraits::constantTl(m.numeral * num);
-                                          return subs.applyTo(NumTraits::mul(numeral, atomic),resultVarBank); 
+                                          auto out = NumTraits::mul(numeral, atomic);
+                                          return out;
                                       });
                                   for (auto x : iter) {
                                     resolventSum = NumTraits::add(x, resolventSum);
@@ -313,16 +314,16 @@ ClauseIterator InequalityResolution::generateClauses(Clause* cl1, Literal* liter
 
                       // push other literals from clause: C1 \/ C2
                       auto pushLiterals = 
-                        [&](Clause& cl, Literal* skipLiteral, bool result)
+                        [&](Clause& cl, Literal* skipLiteral, int result)
                         {
                           for (unsigned i = 0; i < cl.size(); i++) {
                             if (cl[i] != skipLiteral) {
-                              push(subs.apply(cl[i], result));
+                              push(subs.applyTo(cl[i], result));
                             }
                           }
                         };
-                      pushLiterals(*cl1, literal1, false);
-                      pushLiterals(*cl2, literal2, true);
+                      pushLiterals(*cl1, literal1, 0);
+                      pushLiterals(*cl2, literal2, 1);
 
                       // push constraints
                       if (res.constraints) {

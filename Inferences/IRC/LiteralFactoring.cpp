@@ -52,8 +52,6 @@ Clause* LiteralFactoring::applyRule(Clause* premise,
   auto& cnst  = uwa.cnst;
   auto j = j_s1.numeral;
   auto k = k_s2.numeral;
-  auto s1 = j_s1.factors;
-  auto s2 = k_s2.factors;
 
   auto pivotSum = 
   //   ^^^^^^^^--> `(k t1 − j t2)σ`
