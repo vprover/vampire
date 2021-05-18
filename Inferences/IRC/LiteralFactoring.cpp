@@ -15,7 +15,7 @@
 
 #include "LiteralFactoring.hpp"
 
-#define TODO ASSERTION_VIOLATION
+#define DEBUG(...) // DBG(__VA_ARGS__)
 
 namespace Inferences {
 namespace IRC {
@@ -118,25 +118,37 @@ ClauseIterator LiteralFactoring::generateClauses(Clause* premise)
 {
   static_assert(std::is_same<ArrayishObjectIterator<Clause>, decltype(premise->getSelectedLiteralIterator())>::value, "we assume that the first numSelected() literals are the selected ones");
 
+  DEBUG("in: ", *premise)
+
   auto normalize = [this,premise](unsigned i) {
-      auto norm = _shared->normalizer.normalize((*premise)[i]);
+      auto lit = (*premise)[i];
+      auto norm = _shared->normalizer.normalize(lit);
       return norm.isSome() && !norm.unwrap().overflowOccurred
         ? Option<Indexed<AnyIrcLiteral>>(indexed(i, norm.unwrap().value))
         : Option<Indexed<AnyIrcLiteral>>();
   };
 
   return pvi(iterTraits(getRangeIterator((unsigned)0, premise->numSelected()))
-    .filterMap([normalize](unsigned i){ return normalize(i); })
+    .filterMap([=](unsigned i) 
+      { return normalize(i); })
+
     .flatMap([this, premise,normalize](auto l1) {
      return pvi(iterTraits(getRangeIterator(l1.idx + 1, premise->numSelected()))
-       .filterMap([&](unsigned j){ return normalize(j); })
-       .filter([&](auto l2) 
-         { return l1->apply([&](auto l1) { return l2->template is<decltype(l1)>(); }); })
-       .filter([&](auto l2) 
-         { return l1->apply([&](auto l1) 
+
+       .filterMap([=](unsigned j)
+         { return normalize(j); })
+
+        /* check whether l1 and l2 are of the same number sort */
+       .filter([=](auto l2) 
+         { return (*l1).apply([&](auto l1) { return l2->template is<decltype(l1)>(); }); })
+
+        /* check whether l1 and l2 have the same predicate symbol */
+       .filter([=](auto l2) 
+         { return (*l1).apply([&](auto l1) 
              { return l1.symbol() == l2->template unwrap<decltype(l1)>().symbol(); }); })
-       .flatMap([&](auto l2) -> ClauseIterator {
-           return l1->apply([&](auto l1_) -> ClauseIterator { 
+
+       .flatMap([=](auto l2) -> ClauseIterator {
+           return (*l1).apply([&](auto l1_) -> ClauseIterator { 
                return generateClauses(premise, 
                    indexed(l1.idx, l1_), 
                    indexed(l2.idx, l2->template unwrap<decltype(l1_)>())); });

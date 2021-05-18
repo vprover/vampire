@@ -162,6 +162,9 @@ struct Monom
 
   friend Monom operator*(Numeral n, Monom const& self) 
   { return Monom(n * self.numeral, self.factors); }
+
+  friend Monom operator/(Monom const& self, Numeral n) 
+  { return Monom(self.numeral / n, self.factors); }
 };
 
 

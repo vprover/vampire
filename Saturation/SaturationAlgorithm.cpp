@@ -1625,7 +1625,7 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
   }
 
   if (env.options->inequalityResolution()) {
-    auto shared = std::shared_ptr<Kernel::IrcState>(new Kernel::IrcState {
+    auto shared = make_shared(new Kernel::IrcState {
         .normalizer =InequalityNormalizer(PolynomialEvaluation(ordering)), 
         .ordering = &ordering, 
         .uwa = env.options->unificationWithAbstraction(),

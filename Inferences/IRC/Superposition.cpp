@@ -75,10 +75,11 @@ void Superposition::setTestIndices(Stack<Indexing::Index*> const& indices)
 // where
 // • uwa(s1,s2)=⟨σ,Cnst⟩
 // • <>  ∈ {>,≥,≈,̸≈}
-// • term(s1) is strictly maximal in terms(s1 + t1)
-// • term(u[s2]) is strictly maximal in terms(u[s2] + t2) • ±k. s1 + t1 ≈ 0 is strictly maximal in Hyp1
-// • u[s2] + t2 ≈ 0 is strictly maximal in Hyp2
-// • Hyp2 is strictly maximal in {Hyp1, Hyp2}.
+// •        s1  σ is strictly maximal in terms(s1 + t1)σ
+// • term(u[s2])σ is strictly maximal in terms(u[s2] + t2)σ 
+// • (±k. s1 + t1 ≈ 0)σ is strictly maximal in Hyp1σ
+// • ( u[s2] + t2 ≈ 0)σ is strictly maximal in Hyp2σ
+// • Hyp2σ is strictly maximal in {Hyp1, Hyp2}σ.
 
 template<class NumTraits> Option<ClauseIterator> Superposition::generateClauses(Clause* hyp1, Literal* pivot1, IrcLiteral<NumTraits> eq) const 
 {

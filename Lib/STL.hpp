@@ -56,6 +56,10 @@ using vunordered_set = std::unordered_set<Key, Hash, KeyEqual, STLAllocator<Key>
 template< typename T >
 using vvector = std::vector<T, STLAllocator<T>>;
 
+template< typename T >
+std::shared_ptr<T> make_shared(T* ptr)
+{ return std::shared_ptr<T>(ptr, [](auto ptr) { delete ptr; }, STLAllocator<T>{}); }
+
 }  // namespace Lib
 
 #endif /* !STL_HPP */

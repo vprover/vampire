@@ -40,7 +40,7 @@
 #include "Kernel/IRC.hpp"
 #include "Indexing/TermIndexingStructure.hpp"
 
-#define DEBUG(...) DBG(__VA_ARGS__)
+#define DEBUG(...) // DBG(__VA_ARGS__)
 
 using Kernel::InequalityLiteral;
 

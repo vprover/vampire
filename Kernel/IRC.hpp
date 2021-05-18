@@ -253,6 +253,9 @@ namespace Kernel {
   };
 
   struct IrcState {
+    CLASS_NAME(IrcState);
+    USE_ALLOCATOR(IrcState);
+
     InequalityNormalizer normalizer;
     Ordering* const ordering;
     Shell::Options::UnificationWithAbstraction const uwa;
@@ -293,26 +296,51 @@ Option<MaybeOverflow<InequalityLiteral<NumTraits>>> InequalityNormalizer::normal
     });
 }
 
+
+template<class Numeral>
+Numeral normalizeFactors_divide(Numeral gcd, Numeral toCorrect)  
+{ return toCorrect / gcd; }
+
+IntegerConstantType normalizeFactors_divide(IntegerConstantType gcd, IntegerConstantType toCorrect);
+
+template<class Numeral>
+Numeral normalizeFactors_gcd(Numeral l, Numeral r)
+{
+  auto lcm = [](auto l, auto r) { return (l * r).intDivide(IntegerConstantType::gcd(l,r)); };
+  return Numeral(
+      IntegerConstantType::gcd(l.numerator()  , r.numerator()  ),
+                           lcm(l.denominator(), r.denominator()));
+}
+
+IntegerConstantType normalizeFactors_gcd(IntegerConstantType l, IntegerConstantType r);
+
+template<class NumTraits>
+auto normalizeFactors(Perfect<Polynom<NumTraits>> in) -> MaybeOverflow<Perfect<Polynom<NumTraits>>>
+{
+  return catchOverflow([&](){
+
+    if (in->nSummands() == 0) {
+      return in;
+    }
+    auto gcd = fold(in->iterSummands()
+      .map([](auto s) { return s.numeral.abs(); }),
+      [](auto l, auto r) { return normalizeFactors_gcd(l,r); }
+    );
+    ASS_REP(gcd.isPositive(), gcd)
+    if (gcd == NumTraits::constant(1)) {
+      return in;
+    } else {
+      auto  out = perfect(Polynom<NumTraits>(in->iterSummands()
+            .map([=](auto s) { return Monom<NumTraits>(normalizeFactors_divide(gcd, s.numeral), s.factors); })
+            .template collect<Stack>()));
+      return out;
+    }
+  }, in);
+}
+
 template<class NumTraits>
 Option<MaybeOverflow<IrcLiteral<NumTraits>>> InequalityNormalizer::normalizeIrc(Literal* lit) const
 {
-  // auto normalizeEqSign = [](Perfect<Polynom<NumTraits>> const& t) -> Perfect<Polynom<NumTraits>>{
-  //   auto pol = 0;
-  //   for (auto s : t->iterSummands()) {
-  //     if (s.numeral.isPositive()) {
-  //       pol++;
-  //     } else {
-  //       ASS(s.numeral.isNegative())
-  //       pol--;
-  //     }
-  //   }
-  //   if (pol >= 0) {
-  //     return t;
-  //   } else {
-  //     return perfect(Polynom<NumTraits>(t->iterSummands()
-  //           .map([](auto s) { return Monom<NumTraits>(-s.numeral, s.factor); })))
-  //   }
-  // }
   CALL("InequalityLiteral<NumTraits>::fromLiteral(Literal*)")
   DEBUG("in: ", *lit, " (", NumTraits::name(), ")")
 
@@ -387,10 +415,11 @@ Option<MaybeOverflow<IrcLiteral<NumTraits>>> InequalityNormalizer::normalizeIrc(
     auto tt = TypedTermList(t, NumTraits::sort());
     auto norm = Kernel::normalizeTerm(tt);
     auto simpl = _eval.evaluate(norm);
-    auto simplValue = simpl.value || norm;
-    simplValue.integrity();
-    auto out = IrcLiteral<NumTraits>(simplValue.wrapPoly<NumTraits>(), pred);
-    return Opt(maybeOverflow(std::move(out), simpl.overflowOccurred));
+    auto simplValue = (simpl.value || norm).wrapPoly<NumTraits>();
+    simplValue->integrity();
+    auto factorsNormalized = normalizeFactors(simplValue);
+    auto out = IrcLiteral<NumTraits>(factorsNormalized.value, pred);
+    return Opt(maybeOverflow(std::move(out), simpl.overflowOccurred || factorsNormalized.overflowOccurred));
   };
   auto out = impl();
   DEBUG("out: ", out);

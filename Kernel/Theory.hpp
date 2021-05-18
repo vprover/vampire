@@ -144,7 +144,7 @@ struct RationalConstantType {
 
   RationalConstantType(InnerType num, InnerType den);
   RationalConstantType(const vstring& num, const vstring& den);
-  constexpr RationalConstantType(InnerType num) : _num(num), _den(1) {} //assuming den=1
+  explicit constexpr RationalConstantType(InnerType num) : _num(num), _den(1) {} //assuming den=1
 
   RationalConstantType operator+(const RationalConstantType& num) const;
   RationalConstantType operator-(const RationalConstantType& num) const;
@@ -218,6 +218,7 @@ public:
   explicit constexpr RealConstantType(const RationalConstantType& rat) : RationalConstantType(rat) {}
   RealConstantType(int num, int den) : RationalConstantType(num, den) {}
   explicit constexpr RealConstantType(typename IntegerConstantType::InnerType number) : RealConstantType(RationalConstantType(number)) {}
+  RealConstantType(typename RationalConstantType::InnerType  num, typename RationalConstantType::InnerType den) : RealConstantType(RationalConstantType(num, den)) {}
 
   RealConstantType operator+(const RealConstantType& num) const
   { return RealConstantType(RationalConstantType::operator+(num)); }

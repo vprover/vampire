@@ -122,5 +122,12 @@ Option<UwaResult> IrcState::unify(TermList lhs, TermList rhs) const
   }
 }
 
+IntegerConstantType normalizeFactors_divide(IntegerConstantType gcd, IntegerConstantType toCorrect)
+{ return toCorrect.intDivide(gcd); }
+
+
+IntegerConstantType normalizeFactors_gcd(IntegerConstantType l, IntegerConstantType r)
+{ return IntegerConstantType::gcd(l, r); }
+
 } // namespace Kernel
 

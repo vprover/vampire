@@ -54,7 +54,7 @@ public:
    * maps (num1, num2) -> (k1, k2) 
    * s.t.  num1 * k1 = - num2 * k2
    */
-  // TODO move this somewhere else
+  // TODO do this in normalisation
   template<class Numeral>
   static pair<Numeral,Numeral> computeFactors(Numeral num1, Numeral num2)
   { 
