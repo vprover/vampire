@@ -316,7 +316,7 @@ Comparison IntegerConstantType::comparePrecedence(IntegerConstantType n1, Intege
       }
     }
   }
-  catch(ArithmeticException) {
+  catch(ArithmeticException&) {
     ASSERTION_VIOLATION;
     throw;
   }
@@ -581,7 +581,7 @@ bool RealConstantType::parseDouble(const vstring& num, RationalConstantType& res
     }
     IntegerConstantType numerator(newNum);
     res = RationalConstantType(numerator, denominator);
-  } catch(ArithmeticException) {
+  } catch(ArithmeticException&) {
     return false;
   }
   return true;

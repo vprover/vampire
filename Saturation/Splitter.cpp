@@ -1093,7 +1093,7 @@ bool Splitter::doSplitting(Clause* cl)
   if (hasStopped) {
     return false;
   }
-  if (_stopSplittingAt && env.timer->elapsedMilliseconds() >= _stopSplittingAt) {
+  if (_stopSplittingAt && (unsigned)env.timer->elapsedMilliseconds() >= _stopSplittingAt) {
     if (_showSplitting) {
       env.beginOutput();
       env.out() << "[AVATAR] Stopping the splitting process."<< std::endl;

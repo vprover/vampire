@@ -582,7 +582,7 @@ SimplifyingGeneratingInference1::Result SimplifyingGeneratingLiteralSimplificati
   bool allLessEq = true;
   bool oneLess = false;
 
-  for (int i = 0; i < cl.size(); i++) {
+  for (unsigned i = 0; i < cl.size(); i++) {
 
     auto orig = cl[i];
     auto result = simplifyLiteral(orig);

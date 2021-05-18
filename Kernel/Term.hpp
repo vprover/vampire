@@ -59,6 +59,7 @@ enum TermTag {
   SPEC_VAR = 3u,
 };
 
+bool operator<(const TermList& lhs, const TermList& rhs);
 
 /**
  * Class containing either a pointer to a compound term or

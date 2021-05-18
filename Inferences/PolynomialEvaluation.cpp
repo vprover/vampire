@@ -39,7 +39,7 @@ Literal* createLiteral(Literal* orig, PolyNf* evaluatedArgs) {
   } else {
     auto arity = orig->arity();
     Stack<TermList> args(arity);
-    for (int i = 0; i < arity; i++) {
+    for (unsigned i = 0; i < arity; i++) {
       args.push(evaluatedArgs[i].denormalize());
     }
     return Literal::create(orig, args.begin());
@@ -50,7 +50,7 @@ PolynomialEvaluation::Result PolynomialEvaluation::simplifyLiteral(Literal* lit)
 {
   Stack<PolyNf> terms(lit->arity());
   auto anyChange = false;
-  for (int i = 0; i < lit->arity(); i++) {
+  for (unsigned i = 0; i < lit->arity(); i++) {
     auto term = *lit->nthArgument(i);
     auto norm = PolyNf::normalize(TypedTermList(term, SortHelper::getArgSort(lit, i)));
     auto ev = evaluate(norm);
@@ -167,10 +167,10 @@ Option<PolyNf> trySimplify(Theory::Interpretation i, PolyNf* evalArgs)
       default:
         return none<PolyNf>();
     }
-  } catch (MachineArithmeticException) {
+  } catch (MachineArithmeticException&) {
     return none<PolyNf>();
 
-  } catch (DivByZeroException) {
+  } catch (DivByZeroException&) {
     return none<PolyNf>();
   }
 }
@@ -288,7 +288,7 @@ Polynom<Number> simplifyPoly(Polynom<Number> const& in, PolyNf* simplifiedArgs)
     auto poly = Polynom(std::move(out));
     poly.integrity();
     return poly;
-  } catch (ArithmeticException) { 
+  } catch (ArithmeticException&) { 
     return in.replaceTerms(simplifiedArgs);
   }
 }
