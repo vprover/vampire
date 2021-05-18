@@ -332,8 +332,8 @@ set(VAMPIRE_KERNEL_SOURCES
     Kernel/ApplicativeHelper.cpp
     Kernel/SKIKBO.hpp
     Kernel/SKIKBO.cpp
-    kernel/IRC.hpp
-    kernel/IRC.cpp
+    Kernel/IRC.hpp
+    Kernel/IRC.cpp
     Indexing/TypeSubstitutionTree.cpp
     Indexing/TypeSubstitutionTree.hpp
     Inferences/CNFOnTheFly.cpp
