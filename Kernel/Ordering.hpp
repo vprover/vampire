@@ -207,9 +207,7 @@ public:
   void show(ostream&) const override;
   virtual void showConcrete(ostream&) const = 0;
 
-#if VDEBUG
   static DArray<int> testLevels();
-#endif
 
 protected:
   // l1 and l2 are not equalities and have the same predicate
