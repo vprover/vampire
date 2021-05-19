@@ -62,13 +62,6 @@ bool isIntegerComparisonLiteral(Literal* lit) {
   return true;
 }
 
-bool isIntInductionOn() {
-  CALL("InductionHelper::isIntInductionOn");
-  static bool intInd = env.options->induction() == Options::Induction::BOTH ||
-                       env.options->induction() == Options::Induction::INTEGER;
-  return intInd;
-}
-
 };  // namespace
 
 TermQueryResultIterator InductionHelper::getComparisonMatch(
