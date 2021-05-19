@@ -706,6 +706,7 @@ PrecedenceOrdering::PrecedenceOrdering(const DArray<int>& funcPrec, const DArray
   ASS_EQ(env.signature->functions(), _functions);
   ASS(isPermutation(_functionPrecedences))
   ASS(isPermutation(_predicatePrecedences))
+  checkLevelAssumptions(predLevels);
 }
 
 /**
@@ -873,28 +874,31 @@ DArray<int> PrecedenceOrdering::predPrecFromOpts(Problem& prb, const Options& op
   return predicatePrecedences;
 }
 
+namespace PredLevels {
+  constexpr static int MIN_USER_DEF = 2; // equality has level 0, inequalities have level 1
+  constexpr static int EQ = 0;
+  constexpr static int INEQ = 1;
+};
+
+
 DArray<int> PrecedenceOrdering::predLevelsFromOptsAndPrec(Problem& prb, const Options& opt, const DArray<int>& predicatePrecedences) {
-
-  constexpr int minUserDefinedLevel = 2; // equality has level 0, inequalities have level 1
-  constexpr int lvlEq = 0;
-  constexpr int lvlIneq = 1;
-
   unsigned nPredicates = env.signature->predicates();
+
   DArray<int> predicateLevels(nPredicates);
 
   switch(opt.literalComparisonMode()) {
   case Shell::Options::LiteralComparisonMode::STANDARD:
-    predicateLevels.init(nPredicates, minUserDefinedLevel);
+    predicateLevels.init(nPredicates, PredLevels::MIN_USER_DEF);
     break;
   case Shell::Options::LiteralComparisonMode::PREDICATE:
   case Shell::Options::LiteralComparisonMode::REVERSE:
     for(unsigned i=1;i<nPredicates;i++) {
-      predicateLevels[i] = predicatePrecedences[i] + minUserDefinedLevel;
+      predicateLevels[i] = predicatePrecedences[i] + PredLevels::MIN_USER_DEF;
     }
     break;
   }
   //equality is on the lowest level
-  predicateLevels[0] = lvlEq;
+  predicateLevels[0] = PredLevels::EQ;
 
   if (env.predicateSineLevels) {
     // predicateSineLevels start from zero
@@ -906,7 +910,7 @@ DArray<int> PrecedenceOrdering::predLevelsFromOptsAndPrec(Problem& prb, const Op
       if (!env.predicateSineLevels->find(i,level)) {
         level = bound;
       }
-      predicateLevels[i] = (reverse ? (bound - level) : level) + minUserDefinedLevel;
+      predicateLevels[i] = (reverse ? (bound - level) : level) + PredLevels::MIN_USER_DEF;
       // cout << "setting predicate level of " << env.signature->predicateName(i) << " to " << predicateLevels[i] << endl;
     }
   }
@@ -919,16 +923,35 @@ DArray<int> PrecedenceOrdering::predLevelsFromOptsAndPrec(Problem& prb, const Op
     }
     else if(predSym->equalityProxy()) {
       //equality proxy predicates have the highest level (lower than colored predicates)
-      predicateLevels[i] = nPredicates + minUserDefinedLevel + 1;
+      predicateLevels[i] = nPredicates + PredLevels::MIN_USER_DEF+ 1;
     }
     else if (predSym->interpreted()) {
       if (theory->isInequality(theory->interpretPredicate(i))) {
-        predicateLevels[i] = lvlIneq;
+        predicateLevels[i] = PredLevels::INEQ;
       }
     }
-
   }
+
+  checkLevelAssumptions(predicateLevels);
   return predicateLevels;
+}
+
+void PrecedenceOrdering::checkLevelAssumptions(DArray<int> const& levels)
+{
+#if VDEBUG
+  for (unsigned i = 0; i < levels.size(); i++) {
+    if (theory->isInterpretedPredicate(i)) {
+      auto itp = theory->interpretPredicate(i);
+      if (itp == Kernel::Theory::EQUAL) {
+        ASS(levels[i] == PredLevels::EQ);
+      } else if (theory->isInequality(itp)) {
+        ASS(levels[i] == PredLevels::INEQ);
+      } else {
+        ASS(levels[i] >= PredLevels::MIN_USER_DEF || levels[i] < 0)
+      }
+    }
+  }
+#endif // VDEBUG
 }
 
 void PrecedenceOrdering::show(ostream& out) const 
@@ -987,4 +1010,22 @@ void PrecedenceOrdering::show(ostream& out) const
   out << "%" << std::endl;
 
   showConcrete(out);
+}
+
+DArray<int> PrecedenceOrdering::testLevels() 
+{
+  DArray<int> levels(env.signature->predicates());
+  for (unsigned i = 0; i < levels.size(); i++) {
+    if (theory->isInterpretedPredicate(i)) {
+      auto itp = theory->interpretPredicate(i);
+      if (itp == Kernel::Theory::EQUAL) {
+        levels[i] = PredLevels::EQ;
+      } else if (theory->isInequality(itp)) {
+        levels[i] = PredLevels::INEQ;
+      } else {
+        levels[i] = PredLevels::MIN_USER_DEF;
+      }
+    }
+  }
+  return levels;
 }

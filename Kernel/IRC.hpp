@@ -261,11 +261,37 @@ namespace Kernel {
     Shell::Options::UnificationWithAbstraction const uwa;
 
     template<class NumTraits> Stack<Monom<NumTraits>> maxAtomicTerms(IrcLiteral<NumTraits>const& lit);
+    Stack<Literal*> maxLiterals(Clause* cl, bool strictlyMax = false);
+    Stack<Literal*> strictlyMaxLiterals(Clause* cl) { return maxLiterals(cl, true); }
 
     Option<UwaResult> unify(TermList lhs, TermList rhs) const;
     Option<AnyIrcLiteral> normalize(Literal*);
     Option<AnyInequalityLiteral> normalizeIneq(Literal*);
     PolyNf normalize(TypedTermList);
+
+    template<class Iter>
+    bool strictlyMaximal(Literal* pivot, Iter lits)
+    {
+      bool found = false;
+      for (auto lit : iterTraits(lits)) {
+        if (lit == pivot) {
+          if (found)  {
+            return false;
+          } else {
+            found = true;
+          }
+        }
+        if (ordering->compare(pivot, lit) == Ordering::LESS) {
+          DBGE(*pivot)
+          DBGE(*lit)
+          return false;
+        }
+      }
+      ASS(found)
+      return true;
+    }
+
+
   };
 
 #if VDEBUG
@@ -431,6 +457,40 @@ Option<MaybeOverflow<IrcLiteral<NumTraits>>> InequalityNormalizer::normalizeIrc(
 ////////////////////////////////////////////////////////////////////////////
 // impl IrcState
 /////////////////////////////
+
+template<class GetElem, class Cmp>
+auto maxElements(GetElem getElem, unsigned size, Cmp compare, bool strictlyMax) -> Stack<decltype(getElem(0))> 
+{
+  Stack<decltype(getElem(0))> max(size); // TODO not sure whether this size allocation brings an advantage
+  for (unsigned i = 0; i < size; i++) {
+    auto isMax = [&]() {
+      for (unsigned j = 0; j < size; j++) {
+        if (i != j) {
+          auto cmp = compare(getElem(i), getElem(j));
+          switch(cmp) {
+
+          case Ordering::LESS: return false;
+          case Ordering::EQUAL:
+            if (!strictlyMax) { /* ok */ break; }
+            else              { return false; }
+          case Ordering::INCOMPARABLE:
+          case Ordering::GREATER:
+            /* ok */
+            break;
+          default:
+            ASSERTION_VIOLATION_REP(cmp)
+          }
+        }
+      }
+      return true;
+    }();
+    
+    if (isMax)
+      max.push(getElem(i));
+  }
+  return max;
+}
+
 
 template<class NumTraits>
 Stack<Monom<NumTraits>> IrcState::maxAtomicTerms(IrcLiteral<NumTraits>const& lit)

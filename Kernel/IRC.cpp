@@ -80,6 +80,38 @@ Option<MaybeOverflow<AnyIrcLiteral>> InequalityNormalizer::normalize(Literal* li
     || Option<MaybeOverflow<Out>>();
 }
 
+Stack<Literal*> IrcState::maxLiterals(Clause* cl, bool strictlyMax)
+{
+  return maxElements([&](auto i) { return (*cl)[i]; }, 
+                     cl->size(),
+                     [&](auto l, auto r) { return ordering->compare(l, r); },
+                     strictlyMax);
+  // auto size    = 
+  // auto getElem = 
+  // auto cmp     = [&](auto l, auto r) { return ordering->compare(l, r); }
+  //
+  // Stack<decltype(getElem(0))> max(size); // TODO not sure whether this size allocation brings an advantage
+  // // auto monoms = lit.term().iterSummands().template collect<Stack>();
+  // for (unsigned i = 0; i < size; i++) {
+  //   auto isMax = true;
+  //   for (unsigned j = 0; j < size; j++) {
+  //     auto cmp = cmp(getElem(i), getElem(j));
+  //     if (cmp == Ordering::LESS) {
+  //       isMax = false;
+  //       break;
+  //     } else if (cmp == Ordering::EQUAL || cmp == Ordering::INCOMPARABLE || Ordering::GREATER) {
+  //       /* ok */
+  //     } else {
+  //       ASSERTION_VIOLATION_REP(cmp)
+  //     }
+  //   }
+  //   if (isMax)  // TODO we don't wanna skip varibles in the future
+  //     max.push(getElem(i));
+  // }
+  // return max;
+}
+
+
 Option<AnyIrcLiteral> IrcState::normalize(Literal* lit)
 {
   return this->normalizer.normalize(lit)

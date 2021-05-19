@@ -48,7 +48,7 @@ void InequalityResolutionIndex::handleClause(Clause* c, bool adding)
 {
   CALL("InequalityResolutionIndex::handleClause");
   
-  for (auto lit : iterTraits(c->getSelectedLiteralIterator())) {
+  for (auto lit : iterTraits(ownedArrayishIterator(_shared->strictlyMaxLiterals(c)))) {
     handleLiteral< IntTraits>(lit, c, adding) 
     || handleLiteral< RatTraits>(lit, c, adding)
     || handleLiteral<RealTraits>(lit, c, adding);
@@ -118,7 +118,7 @@ bool IRCSuperpositionIndex::handleInequality(Literal* lit, Clause* c, bool addin
 void IRCSuperpositionIndex::handleClause(Clause* c, bool adding)
 {
   CALL("IRCSuperpositionIndex::handleClause");
-  for (auto lit : iterTraits(c->getSelectedLiteralIterator())) {
+  for (auto lit : iterTraits(ownedArrayishIterator(_shared->strictlyMaxLiterals(c)))) {
     handleInequality< IntTraits>(lit, c, adding) 
     || handleInequality< RatTraits>(lit, c, adding)
     || handleInequality<RealTraits>(lit, c, adding)

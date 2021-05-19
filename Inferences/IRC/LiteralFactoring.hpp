@@ -49,11 +49,13 @@ public:
 
   template<class NumTraits>
   Clause* applyRule(Clause* premise, 
-    Indexed<IrcLiteral<NumTraits>> l1,  Monom<NumTraits> j_s1,
-    Indexed<IrcLiteral<NumTraits>> l2,  Monom<NumTraits> k_s2,
+    Literal* lit1, IrcLiteral<NumTraits> l1, Monom<NumTraits> j_s1,
+    Literal* lit2, IrcLiteral<NumTraits> l2, Monom<NumTraits> k_s2,
     UwaResult sigma_cnst);
   template<class NumTraits>
-  ClauseIterator generateClauses(Clause* premise, Indexed<IrcLiteral<NumTraits>> l1, Indexed<IrcLiteral<NumTraits>> l2);
+  ClauseIterator generateClauses(Clause* premise, 
+      Literal* lit1, IrcLiteral<NumTraits> l1, 
+      Literal* lit2, IrcLiteral<NumTraits> l2);
   ClauseIterator generateClauses(Clause* premise) final override;
 
   

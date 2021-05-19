@@ -45,18 +45,15 @@ void Superposition::detach()
 
 ClauseIterator Superposition::generateClauses(Clause* premise) 
 {
-
-    
   return pvi(
-      iterTraits(premise->getSelectedLiteralIterator())
+      iterTraits(ownedArrayishIterator(_shared->strictlyMaxLiterals(premise)))
       .filterMap([this, premise](auto lit) -> Option<ClauseIterator> {
         return _shared->normalize(lit)
         .andThen([this, premise, lit](auto unsortedLit) -> Option<ClauseIterator> {
             return unsortedLit.apply([this, premise, lit](auto sortedLit) { return this->generateClauses(premise, lit, sortedLit); });
-            });
+          });
         })
-      .flatMap([=](auto x) { return x; })
-      );
+      .flatten());
 }
 
   
@@ -81,7 +78,11 @@ void Superposition::setTestIndices(Stack<Indexing::Index*> const& indices)
 // • ( u[s2] + t2 ≈ 0)σ is strictly maximal in Hyp2σ
 // • Hyp2σ is strictly maximal in {Hyp1, Hyp2}σ.
 
-template<class NumTraits> Option<ClauseIterator> Superposition::generateClauses(Clause* hyp1, Literal* pivot1, IrcLiteral<NumTraits> eq) const 
+template<class NumTraits> Option<ClauseIterator> Superposition::generateClauses(
+    Clause* hyp1,            // <- `C1 \/ ±ks1+t1 ≈ 0` 
+    Literal* pivot1,         // <-       `±ks1+t1 ≈ 0` 
+    IrcLiteral<NumTraits> eq // <-       `±ks1+t1 ≈ 0` 
+    ) const 
 {
   using Numeral = typename NumTraits::ConstantType;
   if (eq.symbol() != IrcPredicate::EQ) {
@@ -93,19 +94,39 @@ template<class NumTraits> Option<ClauseIterator> Superposition::generateClauses(
           return pvi(iterTraits(pvi(this->_index->getUnificationsWithConstraints(k_s1.factors->denormalize(), true)))
               .map([=](TermQueryResult res) -> Clause* {
                 Stack<UnificationConstraint> dummy;
+                Option<Clause*> nothing;
 
-                auto hyp2 = res.clause;
-                auto pivot2 = res.literal; 
+                auto hyp2 = res.clause;    // <- `C2 \/ u[s2]+t2 <> 0`
+                auto pivot2 = res.literal; // <-       `u[s2]+t2 <> 0`
                 auto s2 = res.term; 
                 auto& cnst = res.constraints ? *res.constraints : dummy;
                 auto sigma = [&](auto term, int varBank) { return res.substitution->applyTo(term, varBank); };
 
                 // TODO maximality check after unification
+                // maximality checks
+                {
+                  ASS(_shared->strictlyMaximal(pivot1, hyp1->getLiteralIterator()))
+                  ASS(_shared->strictlyMaximal(sigma(pivot1, 0), iterTraits(hyp1->getLiteralIterator()).map([&](auto lit) { return sigma(lit, 0); })))
+                  ASS(_shared->strictlyMaximal(pivot2, hyp2->getLiteralIterator()))
+                  ASS(_shared->strictlyMaximal(sigma(pivot2, 1), iterTraits(hyp2->getLiteralIterator()).map([&](auto lit) { return sigma(lit, 1); })))
+
+                  //   return nothing;
+                  // // • (±k. s1 + t1 ≈ 0)σ is strictly maximal in Hyp1σ
+                  // if (!_shared->strictlyMaximal(sigma(pivot1, 0), sigma(hyp1, 0)))
+                  //   return nothing;
+                  //
+                  // // • ( u[s2] + t2 ≈ 0)σ is strictly maximal in Hyp2σ
+                  // if (!_shared->strictlyMaximal(sigma(pivot2, 1), sigma(hyp2, 1)))
+                  //   return nothing;
+                  //
+                  // // 
+                }
 
                 Stack<Literal*> concl(hyp1->size() - 1 // <- C1
                     + hyp2->size() - 1 // <- C2
                     + 1                // <- u[∓(1/k)t1]+t2 <> 0
                     + cnst.size());    // <- Cnst
+
 
                 // adding C1
                 for (auto lit : iterTraits(hyp1->getLiteralIterator())) {

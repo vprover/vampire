@@ -153,7 +153,7 @@ TEST_GENERATION(basic08,
       .indices({ totalityIndex() })
       .input   (         clause({ selected(  3 * f(b) >= 0 )  }) )
       .context ({        clause({ selected( -2 * f(x) >= 0 )  }) })
-      .expected(exactly( clause({            3 * f(b) == 0    }) ))
+      .expected(exactly( clause({                f(b) == 0    }) ))
       .premiseRedundant(false)
     )
 

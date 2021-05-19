@@ -44,13 +44,6 @@ inline DArray<int> predPrec() {
   return out;
 }
 
-inline DArray<int> predLevels() {
-  DArray<int> out(env.signature->predicates());
-  out.init(out.size(), 1);
-  return out;
-}
-using namespace Kernel;
-
 template<class SigTraits>
 KboWeightMap<SigTraits> toWeightMap(unsigned introducedSymbolWeight, KboSpecialWeights<SigTraits> ws, const Map<unsigned, KboWeight>& xs, unsigned sz) 
 {
@@ -126,7 +119,7 @@ inline LaKbo kbo(unsigned introducedSymbolWeight,
 #endif
              funcPrec(), 
              predPrec(), 
-             predLevels(),
+             PrecedenceOrdering::testLevels(),
              /*revereseLCM*/ false));
 }
 

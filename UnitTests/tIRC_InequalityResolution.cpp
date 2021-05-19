@@ -124,8 +124,8 @@ TEST_GENERATION(basic06,
       .input   (  clause({ selected(       -g(x,y) > 0 ) }) )
       .context ({ clause({ selected( g(a,z) + g(z,a) > 0 ) }) })
       .expected(exactly(
-            clause({  g(y,a) > 0 })
-          , clause({  g(a,z) > 0 })
+            clause({  g(x,a) > 0 })
+          , clause({  g(a,y) > 0 })
       ))
       .premiseRedundant(false)
     )
@@ -156,16 +156,7 @@ TEST_GENERATION(basic09,
       .input   (  clause({ selected(-a > 0) }) )
       .context ({ clause({           a > 0  }) })
       .expected(exactly(
-      ))
-      .premiseRedundant(false)
-    )
-
-TEST_GENERATION(basic10,
-    Generation::TestCase()
-      .indices({ inequalityResolutionIdx() })
-      .input   (  clause({          -a > 0  }) )
-      .context ({ clause({ selected( a > 0) }) })
-      .expected(exactly(
+          clause({ num(0) > 0 })
       ))
       .premiseRedundant(false)
     )
@@ -337,15 +328,27 @@ TEST_GENERATION_WITH_SUGAR(normalization03,
       .premiseRedundant(false)
     )
 
-TEST_GENERATION_WITH_SUGAR(bug01,
+TEST_GENERATION_WITH_SUGAR(bug01a,
     SUGAR(Real),
     Generation::TestCase()
       .indices({ inequalityResolutionIdx() })
-      .input   (  clause({r(x, y), selected( (f(x) + -f(y) > 0) ) }) )
+      .input   (  clause({ r(x, y), selected( (f(x) + -f(y) > 0) ) }) )
       .context ({ clause({ selected(f(a) >  0) }) })
       //                                      (y - 1 > 0) 
       .expected(exactly(
-            clause({     f(x) > 0, r(x, a) })
+      ))
+      .premiseRedundant(false)
+    )
+
+TEST_GENERATION_WITH_SUGAR(bug01b,
+    SUGAR(Real),
+    Generation::TestCase()
+      .indices({ inequalityResolutionIdx() })
+      .input   (  clause({ g(x, y) == 1, selected( (f(x) + -f(y) > 0) ) }) )
+      .context ({ clause({ selected(f(a) >  0) }) })
+      //                                      (y - 1 > 0) 
+      .expected(exactly(
+            clause({     f(x) > 0, g(x, a) == 1 })
       ))
       .premiseRedundant(false)
     )
@@ -360,7 +363,7 @@ TEST_GENERATION_WITH_SUGAR(bug02,
       .premiseRedundant(false)
     )
 
-TEST_GENERATION_WITH_SUGAR(bug03,
+TEST_GENERATION_WITH_SUGAR(bug03a,
     SUGAR(Real),
     Generation::TestCase()
 // *cl2 = ~P(X1,X2) | 1 + -X1 + a > 0
@@ -368,7 +371,19 @@ TEST_GENERATION_WITH_SUGAR(bug03,
       .indices({ inequalityResolutionIdx() })
       .input   (         clause({            selected(1 + -f(a)        > 0) })  )
       .context ({        clause({  ~r(y,z) , selected(1 + -f(x) + f(a) > 0) }) })
-      .expected(exactly( clause({  ~r(y,z) ,          2 + -f(x)        > 0  }) ))
+      .expected(exactly(                      ))
+      .premiseRedundant(false)
+    )
+
+TEST_GENERATION_WITH_SUGAR(bug03b,
+    SUGAR(Real),
+    Generation::TestCase()
+// *cl2 = ~P(X1,X2) | 1 + -X1 + a > 0
+// *resolvent = $greater($sum(1,$uminus(X1)),0) | ~'MS'(X0,X1,s2)
+      .indices({ inequalityResolutionIdx() })
+      .input   (         clause({                selected(1 + -f(a)        > 0) })  )
+      .context ({        clause({  g(y,z) != 1 , selected(1 + -f(x) + f(a) > 0) }) })
+      .expected(exactly( clause({  g(y,z) != 1 ,          2 + -f(x)        > 0  }) ))
       .premiseRedundant(false)
     )
 

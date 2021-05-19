@@ -119,7 +119,7 @@ template<class NumTraits> Clause* Totality::applyRule(
 
 ClauseIterator Totality::generateClauses(Clause* premise) 
 {
-  return pvi(iterTraits(premise->getSelectedLiteralIterator())
+  return pvi(iterTraits(ownedArrayishIterator(_shared->strictlyMaxLiterals(premise)))
     .filterMap([=](auto lit1) { return _shared->normalize(lit1).map([&](auto norm) { return make_pair(lit1, norm); }); })
     .filter([](auto l1) { return l1.second.apply([&](auto l1) { return l1.symbol() == IrcPredicate::GREATER_EQ; }); })
     .flatMap([=](auto lit1_l1) 

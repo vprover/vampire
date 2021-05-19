@@ -216,7 +216,7 @@ ClauseIterator TermFactoring::generateClauses(Clause* premise)
   CALL("TermFactoring::generateClauses");
   DEBUG("in: ", *premise)
 
-  return pvi(iterTraits(premise->getSelectedLiteralIterator())
+  return pvi(iterTraits(ownedArrayishIterator(_shared->strictlyMaxLiterals(premise)))
     .flatMap([=](Literal* lit) {
       CALL("TermFactoring::generateClauses@clsr1");
         return getConcatenatedIterator(getConcatenatedIterator(

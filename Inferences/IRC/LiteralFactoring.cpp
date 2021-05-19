@@ -44,8 +44,10 @@ void LiteralFactoring::detach()
 
 template<class NumTraits>
 Clause* LiteralFactoring::applyRule(Clause* premise, 
-    Indexed<IrcLiteral<NumTraits>> l1,  Monom<NumTraits> j_s1,
-    Indexed<IrcLiteral<NumTraits>> l2,  Monom<NumTraits> k_s2,
+    Literal* lit1, IrcLiteral<NumTraits> l1,  Monom<NumTraits> j_s1,
+    //       ^^^^--> `±js1 + t1 <> 0` <--^^            ±js1 <--^^^^
+    Literal* lit2, IrcLiteral<NumTraits> l2,  Monom<NumTraits> k_s2,
+    //       ^^^^--> `±ks2 + t2 <> 0` <--^^            ±ks2 <--^^^^
     UwaResult uwa)
 {
   auto sigma = [&](auto x){ return uwa.sigma.apply(x, /* varbank */ 0); };
@@ -56,19 +58,29 @@ Clause* LiteralFactoring::applyRule(Clause* premise,
   Stack<Literal*> conclusion(premise->size() + cnst.size());
 
   // adding `(C \/ ±js1 + t1 <> 0)σ`
-  for (unsigned i = 0; i < premise->size(); i++) {
-    if (i != l2.idx)
-      conclusion.push(sigma((*premise)[i]));
+  { 
+    auto lit2cnt = 0;
+    for (auto lit : iterTraits(premise->getLiteralIterator())) {
+      if (lit == lit2) {
+        lit2cnt++;
+      } else {
+        ASS(lit != lit2)
+        conclusion.push(sigma(lit));
+      }
+    }
+    if (lit2cnt > 1) {
+      conclusion.push(sigma(lit2));
+    }
   }
 
   auto pivotSum = 
   //   ^^^^^^^^--> `k t1 − j t2`
     NumTraits::sum(iterTraits(getConcatenatedIterator(
-      l1->term().iterSummands()
+      l1.term().iterSummands()
         .filter([&](auto t) { return t != j_s1; })
         .map([&](auto t) { return  (k * t).denormalize(); }),
 
-      l2->term().iterSummands()
+      l2.term().iterSummands()
         .filter([&](auto t) { return t != k_s2; })
         .map([&](auto t) { return  (-j * t).denormalize(); })
         )));
@@ -86,11 +98,13 @@ Clause* LiteralFactoring::applyRule(Clause* premise,
 
 
 template<class NumTraits>
-ClauseIterator LiteralFactoring::generateClauses(Clause* premise, Indexed<IrcLiteral<NumTraits>> l1, Indexed<IrcLiteral<NumTraits>> l2)
+ClauseIterator LiteralFactoring::generateClauses(Clause* premise, 
+    Literal* lit1, IrcLiteral<NumTraits> l1, 
+    Literal* lit2, IrcLiteral<NumTraits> l2)
 {
-  return pvi(iterTraits(ownedArrayishIterator(_shared->maxAtomicTerms(*l1)))
+  return pvi(iterTraits(ownedArrayishIterator(_shared->maxAtomicTerms(l1)))
     .flatMap([=](auto j_s1) {
-      return pvi(iterTraits(ownedArrayishIterator(_shared->maxAtomicTerms(*l2)))
+      return pvi(iterTraits(ownedArrayishIterator(_shared->maxAtomicTerms(l2)))
         .filterMap([=](auto k_s2) { 
             auto s1 = j_s1.factors->denormalize();
             auto s2 = k_s2.factors->denormalize();
@@ -98,7 +112,7 @@ ClauseIterator LiteralFactoring::generateClauses(Clause* premise, Indexed<IrcLit
               .andThen([&](auto&& sigma_cnst) -> Option<UwaResult> { 
                   auto maxAfterUnif = [&](auto term, auto literal) {
                     auto term_sigma    = _shared->normalize(TypedTermList(sigma_cnst.sigma.apply(term, 0), NumTraits::sort()))
-                      .downcast<NumTraits>().unwrap()
+                      .template downcast<NumTraits>().unwrap()
                       ->tryMonom().unwrap().factors;
                     auto literal_sigma = _shared->normalize(sigma_cnst.sigma.apply(literal.denormalize(), 0))
                                      .unwrap().template unwrap<IrcLiteral<NumTraits>>();
@@ -106,56 +120,64 @@ ClauseIterator LiteralFactoring::generateClauses(Clause* premise, Indexed<IrcLit
                     return iterTraits(max.iterFifo()).any([&](auto monom) { return monom.factors == term_sigma; });
                   };
 
-                  if (maxAfterUnif(s1, *l1) && maxAfterUnif(s1, *l1)) {
+                  if (maxAfterUnif(s1, l1) && maxAfterUnif(s1, l1)) {
                     return Option<UwaResult>(std::move(sigma_cnst));
                   } else {
                     return Option<UwaResult>();
                   }
               })
-              .map([&](auto sigma_cnst){ return applyRule(premise, l1, j_s1, l2, k_s2, std::move(sigma_cnst)); });
+              .map([&](auto sigma_cnst){ return applyRule(premise, lit1, l1, j_s1, 
+                                                                   lit2, l2, k_s2, 
+                                                                   std::move(sigma_cnst)); });
             }));
     }));
 }
 
 ClauseIterator LiteralFactoring::generateClauses(Clause* premise) 
 {
-  static_assert(std::is_same<ArrayishObjectIterator<Clause>, decltype(premise->getSelectedLiteralIterator())>::value, "we assume that the first numSelected() literals are the selected ones");
+  // static_assert(std::is_same<ArrayishObjectIterator<Clause>, decltype(ownedArrayishIterator(_shared->maxLiterals(premise)))>::value, "we assume that the first numSelected() literals are the selected ones");
 
   DEBUG("in: ", *premise)
 
-  auto normalize = [this,premise](unsigned i) {
-      auto lit = (*premise)[i];
-      auto norm = _shared->normalizer.normalize(lit);
-      return norm.isSome() && !norm.unwrap().overflowOccurred
-        ? Option<Indexed<AnyIrcLiteral>>(indexed(i, norm.unwrap().value))
-        : Option<Indexed<AnyIrcLiteral>>();
+  auto selected = make_shared(new Stack<Literal*>(_shared->maxLiterals(premise)));
+  auto normalize = [this,selected](unsigned i) {
+    using Opt = Option<Indexed<pair<Literal*, AnyIrcLiteral>>>;
+    auto lit = (*selected)[i];
+    auto norm = _shared->normalizer.normalize(lit);
+    return norm.isSome() && !norm.unwrap().overflowOccurred
+      ? Opt(indexed(i, make_pair(lit, norm.unwrap().value)))
+      : Opt();
   };
 
-  return pvi(iterTraits(getRangeIterator((unsigned)0, premise->numSelected()))
+  return pvi(iterTraits(getRangeIterator((unsigned)0, (unsigned)selected->size()))
     .filterMap([=](unsigned i) 
       { return normalize(i); })
 
-    .flatMap([this, premise,normalize](auto l1) {
-     return pvi(iterTraits(getRangeIterator(l1.idx + 1, premise->numSelected()))
+    .flatMap([=](auto lit1_l1) {
+      auto lit1 = lit1_l1->first;
+      auto l1 = lit1_l1->second;
+      return pvi(iterTraits(getRangeIterator(lit1_l1.idx + 1, (unsigned)selected->size()))
 
-       .filterMap([=](unsigned j)
-         { return normalize(j); })
+        .filterMap([=](unsigned j)
+          { return normalize(j); })
 
-        /* check whether l1 and l2 are of the same number sort */
-       .filter([=](auto l2) 
-         { return (*l1).apply([&](auto l1) { return l2->template is<decltype(l1)>(); }); })
+        .filterMap([=](auto lit2_l2) -> Option<ClauseIterator> { 
+          auto lit2 = lit2_l2->first;
+          auto l2 = lit2_l2->second;
 
-        /* check whether l1 and l2 have the same predicate symbol */
-       .filter([=](auto l2) 
-         { return (*l1).apply([&](auto l1) 
-             { return l1.symbol() == l2->template unwrap<decltype(l1)>().symbol(); }); })
+          return l1.apply([&](auto l1) { 
+              /* check whether l1 and l2 are of the same number sort */
+              return l2.template as<decltype(l1)>()
 
-       .flatMap([=](auto l2) -> ClauseIterator {
-           return (*l1).apply([&](auto l1_) -> ClauseIterator { 
-               return generateClauses(premise, 
-                   indexed(l1.idx, l1_), 
-                   indexed(l2.idx, l2->template unwrap<decltype(l1_)>())); });
-       }));
+                /* check whether l1 and l2 are of the same inequality symbol */
+                .filter([=](auto l2) { return l1.symbol() == l2.symbol(); })
+
+                /* actually apply the rule */
+                .map([=](auto l2){ return generateClauses(premise, lit1, l1, lit2, l2); });
+          }); 
+        })
+        .flatten());
+
   }));
 }
 

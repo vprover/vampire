@@ -346,7 +346,7 @@ ClauseIterator InequalityResolution::generateClauses(Clause* premise)
   CALL("InequalityResolution::generateClauses");
   DEBUG("in: ", *premise)
 
-  return pvi(iterTraits(premise->getSelectedLiteralIterator())
+  return pvi(iterTraits(ownedArrayishIterator(_shared->strictlyMaxLiterals(premise)))
     .filterMap([=](Literal* lit) {
       return this->_shared->normalizeIneq(lit)
       .map([=](auto ineq) {

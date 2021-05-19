@@ -207,6 +207,10 @@ public:
   void show(ostream&) const override;
   virtual void showConcrete(ostream&) const = 0;
 
+#if VDEBUG
+  static DArray<int> testLevels();
+#endif
+
 protected:
   // l1 and l2 are not equalities and have the same predicate
   virtual Result comparePredicates(Literal* l1,Literal* l2) const = 0;
@@ -234,6 +238,8 @@ protected:
   DArray<int> _predicatePrecedences;
   /** Array of function precedences */
   DArray<int> _functionPrecedences;
+
+  static void checkLevelAssumptions(DArray<int> const&);
 
   bool _reverseLCM;
 };

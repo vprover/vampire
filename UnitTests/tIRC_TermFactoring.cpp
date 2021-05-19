@@ -68,11 +68,20 @@ REGISTER_GEN_TESTER(Test::Generation::GenerationTester<TermFactoring>(testTermFa
 // Basic tests
 //////////////////////////////////////
 
-TEST_GENERATION(basic01,
+TEST_GENERATION(basic01a,
     Generation::TestCase()
       .input   (  clause({selected( 3 * g(a, x) + 2 * g(y, b) > 0 ), p(x) }) )
       .expected(exactly(
-            clause({ 5 * g(a,b) > 0, p(b)  })
+          /* nothing because uninterpreted stuff is bigger */
+      ))
+      .premiseRedundant(false)
+    )
+
+TEST_GENERATION(basic01b,
+    Generation::TestCase()
+      .input   (  clause({selected( 3 * g(a, x) + 2 * g(y, b) > 0 ), f(x)  == 1 }) )
+      .expected(exactly(
+            clause({ 5 * g(a,b) > 0, f(b) == 1  })
       ))
       .premiseRedundant(false)
     )

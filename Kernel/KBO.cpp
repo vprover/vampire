@@ -468,11 +468,8 @@ KBO KBO::testKBO()
     return out;
   };
 
-  auto predLevels = []() -> DArray<int>{
-    DArray<int> out(env.signature->predicates());
-    out.init(out.size(), 1);
-    return out;
-  };
+  auto predLevels = []() -> DArray<int>
+    { return PrecedenceOrdering::testLevels(); };
 
   return KBO(
       KboWeightMap<FuncSigTraits>::randomized(),
