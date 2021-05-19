@@ -87,6 +87,7 @@ public:
 
   template<class NumTraits>
   static MaybeOverflow<Polynom<NumTraits>> simplifySummation(Stack<Monom<NumTraits>>);
+  TermList evaluateToTerm(Term* in) const;
 private:
 
   Result simplifyLiteral(Literal*) override;

@@ -44,12 +44,12 @@ using Test::TermIndexTest::subs;
   DECL_CONST(c, Rat)                                                                                          \
   DECL_CONST(d, Rat)                                                                                          \
 
+#define UWA_MODE Options::UnificationWithAbstraction::IRC1
 
 InequalityResolutionIndex* inequalityResolutionIndex() 
 {
-  auto uwa = Options::UnificationWithAbstraction::ALL;
-  auto idx = new InequalityResolutionIndex( new TermSubstitutionTree(uwa, /* useC = */ true));
-  idx->setShared(testIrcState(uwa));
+  auto idx = new InequalityResolutionIndex( new TermSubstitutionTree(UWA_MODE, /* useC = */ true));
+  idx->setShared(testIrcState(UWA_MODE));
   return idx;
 }
 

@@ -15,12 +15,15 @@
 
 #include "Shell/Options.hpp"
 #include "Lib/Environment.hpp"
+#include "Kernel/SortHelper.hpp"
+#include "Inferences/PolynomialEvaluation.hpp"
 
 
 #include "Forwards.hpp"
 #include "Signature.hpp"
 #include "Term.hpp"
 #include "RobSubstitution.hpp"
+#include "Kernel/NumTraits.hpp"
 
 #include "MismatchHandler.hpp"
 #include "Shell/UnificationWithAbstractionConfig.hpp"
@@ -51,6 +54,19 @@ bool UWAMismatchHandler::checkUWA(TermList t1, TermList t2)
     bool t2Interp = Shell::UnificationWithAbstractionConfig::isInterpreted(t2.term());
     bool bothNumbers = (theory->isInterpretedConstant(t1) && theory->isInterpretedConstant(t2));
 
+    auto ircAbsractCoarse = [&](auto t) { 
+      if (t.isTerm()) {
+        auto f = t.term()->functor();
+        return forAnyNumTraits([&](auto numTraits) {
+            using NumTraits = decltype(numTraits);
+            return f == NumTraits::addF()  // t == ( t1 + t2 )
+               || (f == NumTraits::mulF() && ( t.term()->nthArgument(0)->isVar() || t.term()->nthArgument(1)->isVar() ));// t == ( x * t1 ) or t == ( t1 * x )
+        });
+      } else {
+        return false;
+      }
+    };
+
     switch(_mode) {
       case Shell::Options::UnificationWithAbstraction::OFF:
         return false;
@@ -71,9 +87,22 @@ bool UWAMismatchHandler::checkUWA(TermList t1, TermList t2)
       case Shell::Options::UnificationWithAbstraction::GROUND: // TODO should ground & all really behave in the same way?
         return true;
 
-      default:
-        ASSERTION_VIOLATION;
+      case Shell::Options::UnificationWithAbstraction::IRC1: 
+        return ircAbsractCoarse(t1) || ircAbsractCoarse(t2);
+
+      case Shell::Options::UnificationWithAbstraction::IRC2:  {
+        auto sort = SortHelper::getResultSort(t1.term());
+        return (ircAbsractCoarse(t1) || ircAbsractCoarse(t2)) && forAnyNumTraits([&](auto numTraits){
+            using NumTraits = decltype(numTraits);
+            if (NumTraits::sort() != sort) return false;
+            // TODO get the polynomial evaluation instance less dirty
+            auto sub = Inferences::PolynomialEvaluation(*Ordering::tryGetGlobalOrdering()).evaluateToTerm(NumTraits::add( NumTraits::minus(t1), t2).term());
+            //   ^^^--> `t2 - t1`
+            return !sub.isVar() && sub.term()->vars() != 0;
+        });
+      }
     }
+    ASSERTION_VIOLATION;
 }
 
 bool UWAMismatchHandler::introduceConstraint(TermList t1,unsigned index1, TermList t2,unsigned index2)

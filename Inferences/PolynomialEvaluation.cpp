@@ -434,5 +434,11 @@ MaybeOverflow<Monom<Number>> simplifyMonom(Monom<Number> const& in, MaybeOverflo
 }
 
 
+TermList PolynomialEvaluation::evaluateToTerm(Term* in) const
+{
+  auto norm = PolyNf::normalize(in);
+  auto eval = evaluate(in).value || norm;
+  return eval.denormalize();
+}
 
 } // Inferences

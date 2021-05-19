@@ -1039,7 +1039,7 @@ void Options::init()
 
            _unificationWithAbstraction = ChoiceOptionValue<UnificationWithAbstraction>("unification_with_abstraction","uwa",
                                              UnificationWithAbstraction::OFF,
-                                             {"off","interpreted_only","one_side_interpreted","one_side_constant","all","ground"});
+                                             {"off","interpreted_only","one_side_interpreted","one_side_constant","all","ground", "irc1", "irc2"});
            _unificationWithAbstraction.description=
               "During unification, if two terms s and t fail to unify we will introduce a constraint s!=t and carry on. For example, "
               "resolving p(1) \\/ C with ~p(a+2) would produce C \\/ 1 !=a+2. This is controlled by a check on the terms. The expected "
@@ -1050,6 +1050,7 @@ void Options::init()
               "- one_side_constant: only if one of s or t is an interpreted constant (e.g. a number)\n"
               "- all: always apply\n"
               "- ground: only if both s and t are ground\n"
+              "- irc*: versions for the inequality resolution calculus\n"
               "See Unification with Abstraction and Theory Instantiation in Saturation-Based Reasoning for further details.";
            _unificationWithAbstraction.tag(OptionTag::INFERENCES);
            _lookup.insert(&_unificationWithAbstraction);
@@ -1152,6 +1153,7 @@ void Options::init()
                   "3 f(x) + 7 f(y) > 0\n"
                   "==========================\n"
                   "      10 f(x) > 0\n"
+                  // TODO describe all rules
                   "\n";
            _lookup.insert(&_inequalityResolution);
            _inequalityResolution.tag(OptionTag::INFERENCES);
@@ -1160,6 +1162,7 @@ void Options::init()
            _inequalityResolution.reliesOnHard(_cancellation.is(equal(ArithmeticSimplificationMode::OFF)));
            _inequalityResolution.reliesOnHard(_evaluationMode.is(equal(EvaluationMode::POLYNOMIAL_FORCE)));
            _inequalityResolution.reliesOnHard(_highSchool.is(equal(false)));
+           _inequalityResolution.reliesOnHard(_unificationWithAbstraction.is(Or(equal(UnificationWithAbstraction::IRC1), equal(UnificationWithAbstraction::IRC2))));
 
            _gaussianVariableElimination = choiceArithmeticSimplificationMode(
                "gaussian_variable_elimination", "gve",

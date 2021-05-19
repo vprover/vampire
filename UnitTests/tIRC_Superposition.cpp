@@ -50,7 +50,7 @@ using namespace Inferences::IRC;
 
 #define MY_SYNTAX_SUGAR SUGAR(Rat)
 
-#define UWA_MODE Options::UnificationWithAbstraction::ONE_INTERP
+#define UWA_MODE Options::UnificationWithAbstraction::IRC1
 
 Indexing::Index* ircSuperpositionIndex() 
 { return new Indexing::IRCSuperpositionIndex(new TermSubstitutionTree(UWA_MODE, true)); }

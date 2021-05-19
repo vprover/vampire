@@ -49,13 +49,17 @@ using namespace Inferences::IRC;
 
 #define MY_SYNTAX_SUGAR SUGAR(Rat)
 
-#define UWA_MODE Options::UnificationWithAbstraction::ONE_INTERP
+#define UWA_MODE Options::UnificationWithAbstraction::IRC1
 
-Indexing::Index* inequalityResolutionIdx() 
-{ return new InequalityResolutionIndex(new TermSubstitutionTree(UWA_MODE, true)); }
+Indexing::Index* inequalityResolutionIdx(
+   Options::UnificationWithAbstraction uwa = Options::UnificationWithAbstraction::IRC1
+    ) 
+{ return new InequalityResolutionIndex(new TermSubstitutionTree(uwa, true)); }
 
-InequalityResolution testInequalityResolution() 
-{ return InequalityResolution(testIrcState()); }
+InequalityResolution testInequalityResolution(
+   Options::UnificationWithAbstraction uwa = Options::UnificationWithAbstraction::IRC1
+    ) 
+{ return InequalityResolution(testIrcState(uwa)); }
 
 REGISTER_GEN_TESTER(Test::Generation::GenerationTester<InequalityResolution>(testInequalityResolution()))
 
@@ -270,6 +274,128 @@ TEST_GENERATION(abstraction1,
       .premiseRedundant(false)
     )
 
+TEST_GENERATION(abstraction2,
+    Generation::TestCase()
+      .rule(    new InequalityResolution(testInequalityResolution(Options::UnificationWithAbstraction::IRC1))  )
+      .indices({ inequalityResolutionIdx(Options::UnificationWithAbstraction::IRC1) })
+
+      .input   (          clause({ selected(-f(     0        ) > 0) })  )
+      .context ({         clause({ selected( f(f(a) + g(b, c)) > 0) }) })
+      .expected(exactly(  clause({ num(0) > 0, f(a) + g(b, c) != 0  }) ))
+
+      .premiseRedundant(false)
+    )
+
+TEST_GENERATION(abstraction3,
+    Generation::TestCase()
+      .rule(    new InequalityResolution(testInequalityResolution(Options::UnificationWithAbstraction::IRC1))  )
+      .indices({ inequalityResolutionIdx(Options::UnificationWithAbstraction::IRC1) })
+      .input   (  clause({ selected(-f(b) > 0) })  )
+      .context ({ clause({ selected( f(a) > 0) }) })
+      .expected(exactly())
+      .premiseRedundant(false)
+    )
+
+TEST_GENERATION(abstraction4,
+    Generation::TestCase()
+      .rule(    new InequalityResolution(testInequalityResolution(Options::UnificationWithAbstraction::IRC1))  )
+      .indices({ inequalityResolutionIdx(Options::UnificationWithAbstraction::IRC1) })
+      .input   (         clause({ -f(3 * a) > 0 })  )
+      .context ({        clause({  f(7 * a) > 0 }) })
+      .expected(exactly(                           ))
+      .premiseRedundant(false)
+    )
+
+TEST_GENERATION(abstraction5,
+    Generation::TestCase()
+      .rule(    new InequalityResolution(testInequalityResolution(Options::UnificationWithAbstraction::IRC1))  )
+      .indices({ inequalityResolutionIdx(Options::UnificationWithAbstraction::IRC1) })
+      .input   (         clause({ -f(a + b) > 0 })  )
+      .context ({        clause({  f(7 * a) > 0 }) })
+      .expected(exactly( clause({ num(0) > 0, a + b != 7 * a }) ))
+      .premiseRedundant(false)
+    )
+
+TEST_GENERATION(abstraction6,
+    Generation::TestCase()
+      .rule(    new InequalityResolution(testInequalityResolution(Options::UnificationWithAbstraction::IRC1))  )
+      .indices({ inequalityResolutionIdx(Options::UnificationWithAbstraction::IRC1) })
+      .input   (         clause({ -f(g(a,x)) > 0 })  )
+      .context ({        clause({  f(7 * y)  > 0 }) })
+      .expected(exactly( clause({ num(0) > 0, g(a,x) != 7 * y }) ))
+      .premiseRedundant(false)
+    )
+
+TEST_GENERATION(abstraction7,
+    Generation::TestCase()
+      .rule(    new InequalityResolution(testInequalityResolution(Options::UnificationWithAbstraction::IRC1))  )
+      .indices({ inequalityResolutionIdx(Options::UnificationWithAbstraction::IRC1) })
+      .input   (         clause({ -f(a + b) > 0 })           )
+      .context ({        clause({  f(c) > 0 })              })
+      .expected(exactly( clause({ num(0) > 0, c != a + b }) ))
+      .premiseRedundant(false)
+    )
+
+TEST_GENERATION(abstraction1_irc2,
+    Generation::TestCase()
+      .rule(    new InequalityResolution(testInequalityResolution(Options::UnificationWithAbstraction::IRC2))  )
+      .indices({ inequalityResolutionIdx(Options::UnificationWithAbstraction::IRC2) })
+      .input   (         clause({ -f(a + b) > 0 })           )
+      .context ({        clause({  f(c) > 0 })              })
+      .expected(exactly(                                    ))
+      .premiseRedundant(false)
+    )
+
+TEST_GENERATION(abstraction2_irc2,
+    Generation::TestCase()
+      .rule(    new InequalityResolution(testInequalityResolution(Options::UnificationWithAbstraction::IRC2))  )
+      .indices({ inequalityResolutionIdx(Options::UnificationWithAbstraction::IRC2) })
+      .input   (         clause({ -f(a + b) > 0 })           )
+      .context ({        clause({  f(c + x) > 0 })              })
+      .expected(exactly( clause({  num(0) > 0, c + x != a + b   }) ))
+      .premiseRedundant(false)
+    )
+
+TEST_GENERATION(abstraction3_irc2,
+    Generation::TestCase()
+      .rule(    new InequalityResolution(testInequalityResolution(Options::UnificationWithAbstraction::IRC2))  )
+      .indices({ inequalityResolutionIdx(Options::UnificationWithAbstraction::IRC2) })
+      .input   (         clause({ -f(3 * a) > 0 })           )
+      .context ({        clause({  f(4 * a) > 0 })              })
+      .expected(exactly(   ))
+      .premiseRedundant(false)
+    )
+
+TEST_GENERATION(abstraction4_irc2,
+    Generation::TestCase()
+      .rule(    new InequalityResolution(testInequalityResolution(Options::UnificationWithAbstraction::IRC2))  )
+      .indices({ inequalityResolutionIdx(Options::UnificationWithAbstraction::IRC2) })
+      .input   (         clause({ -f(-a ) > 0 })           )
+      .context ({        clause({  f( a ) > 0 })              })
+      .expected(exactly(   ))
+      .premiseRedundant(false)
+    )
+
+TEST_GENERATION(abstraction5_irc2,
+    Generation::TestCase()
+      .rule(    new InequalityResolution(testInequalityResolution(Options::UnificationWithAbstraction::IRC2))  )
+      .indices({ inequalityResolutionIdx(Options::UnificationWithAbstraction::IRC2) })
+      .input   (         clause({ -f( a ) > 0 })           )
+      .context ({        clause({  f( a + f(b) ) > 0 })              })
+      .expected(exactly(   ))
+      .premiseRedundant(false)
+    )
+
+
+// TEST_GENERATION(abstraction7,
+//     Generation::TestCase()
+//       .rule(    new InequalityResolution(testInequalityResolution(Options::UnificationWithAbstraction::IRC1))  )
+//       .indices({ inequalityResolutionIdx(Options::UnificationWithAbstraction::IRC2) })
+//       .input   (         clause({ -f(a + b) > 0 })  )
+//       .context ({        clause({  f(7 * a) > 0 }) })
+//       .expected(exactly( clause({   }) ))
+//       .premiseRedundant(false)
+//     )
 
 
 /////////////////////////////////////////////////////////

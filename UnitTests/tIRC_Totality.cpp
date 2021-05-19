@@ -49,13 +49,13 @@ using namespace Inferences::IRC;
 
 #define MY_SYNTAX_SUGAR SUGAR(Rat)
 
-#define UWA_MODE Options::UnificationWithAbstraction::ONE_INTERP
+#define UWA_MODE Options::UnificationWithAbstraction::IRC1
 
 Indexing::Index* totalityIndex() 
 { return new InequalityResolutionIndex( new TermSubstitutionTree(UWA_MODE, true)); }
 
 Totality testTotality(
-    Options::UnificationWithAbstraction uwa = Options::UnificationWithAbstraction::ONE_INTERP
+    Options::UnificationWithAbstraction uwa = UWA_MODE
     )
 { return Totality(testIrcState(uwa)); }
 

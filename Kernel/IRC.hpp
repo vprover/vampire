@@ -296,7 +296,7 @@ namespace Kernel {
 
 #if VDEBUG
   shared_ptr<IrcState> testIrcState(
-    Options::UnificationWithAbstraction uwa = Options::UnificationWithAbstraction::ONE_INTERP
+    Options::UnificationWithAbstraction uwa = Options::UnificationWithAbstraction::IRC1
     );
 #endif
 

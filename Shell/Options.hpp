@@ -224,7 +224,9 @@ public:
     ONE_INTERP,
     CONSTANT,
     ALL,
-    GROUND
+    GROUND,
+    IRC1,
+    IRC2,
   };
 
   enum class Induction : unsigned int {

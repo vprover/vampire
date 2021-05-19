@@ -230,5 +230,12 @@ using IntTraits  = NumTraits< IntegerConstantType>;
 using RatTraits  = NumTraits<RationalConstantType>;
 using RealTraits = NumTraits<    RealConstantType>;
 
+
+template<class Clsr>
+auto forAnyNumTraits(Clsr clsr) {
+  return clsr( IntTraits{}) 
+      || clsr( RatTraits{})
+      || clsr(RealTraits{});
+}
 }
 #endif // __NUM_TRAITS_H__

@@ -52,7 +52,7 @@ using namespace Inferences::IRC;
 
 
 VariableElimination testVariableElimination(
-    Options::UnificationWithAbstraction uwa = Options::UnificationWithAbstraction::ONE_INTERP
+    Options::UnificationWithAbstraction uwa = Options::UnificationWithAbstraction::IRC1
     )
 { 
   return VariableElimination(testIrcState(uwa));

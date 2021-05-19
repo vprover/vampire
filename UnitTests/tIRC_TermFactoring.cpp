@@ -56,7 +56,7 @@ using namespace Inferences::IRC;
 
 
 TermFactoring testTermFactoring(
-    Options::UnificationWithAbstraction uwa = Options::UnificationWithAbstraction::ONE_INTERP
+    Options::UnificationWithAbstraction uwa = Options::UnificationWithAbstraction::IRC1
     )
 { 
   return TermFactoring(testIrcState(uwa));

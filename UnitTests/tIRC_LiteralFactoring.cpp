@@ -51,7 +51,7 @@ using namespace Inferences::IRC;
 
 
 LiteralFactoring testLiteralFactoring(
-    Options::UnificationWithAbstraction uwa = Options::UnificationWithAbstraction::ALL
+    Options::UnificationWithAbstraction uwa = Options::UnificationWithAbstraction::IRC1
     )
 { return LiteralFactoring(testIrcState(uwa)); }
 
