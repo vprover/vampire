@@ -1078,7 +1078,9 @@ void Options::init()
            _cancellation = choiceArithmeticSimplificationMode(
                "cancellation", "canc",
                ArithmeticSimplificationMode::OFF);
-           _cancellation.description = "Enable addition cancellation.";
+           _cancellation.description = "Enables the rule cancellation around additions as described in the paper Making Theory Reasoning Simpler ( https://easychair.org/publications/preprint/K2hb ). \
+                                        In some rare cases the conclusion may be not strictly simpler than the hypothesis. With `force` we ignore these cases, violating the ordering and just simplifying \
+                                        anyways. With `cautious` we will generate a new clause instead of simplifying in these cases.";
            _lookup.insert(&_cancellation);
            _cancellation.tag(OptionTag::INFERENCES);
            _cancellation.setExperimental();
@@ -1106,24 +1108,30 @@ void Options::init()
            _gaussianVariableElimination.description=
                   "Enable the immideate simplification \"Gaussian Variable Elimination\":\n"
                   "\n"
-                  "s != t | C[X] \n"
-                  "-------------  if s != t can be rewritten to X != r \n"
+                  "s != t \\/ C[X] \n"
+                  "--------------  if s != t can be rewritten to X != r \n"
                   "    C[r] \n"
                   "\n"
-                  "example:\n"
+                  "Example:\n"
                   "\n"
                   "6 * X0 != 2 * X1 | p(X0, X1)\n"
                   "-------------------------------\n"
-                  "  p(2 * X1 / 6, X1)";
+                  "  p(2 * X1 / 6, X1)\n"
+                  "\n"
+                  "\n"
+                  "For a more detailed description see the paper Making Theory Reasoning Simpler ( https://easychair.org/publications/preprint/K2hb ). \
+                  In some rare cases the conclusion may be not strictly simpler than the hypothesis. With `force` we ignore these cases, violating the ordering and just simplifying \
+                  anyways. With `cautious` we will generate a new clause instead of simplifying in these cases.";
            _lookup.insert(&_gaussianVariableElimination);
            _gaussianVariableElimination.tag(OptionTag::INFERENCES);
 
            _arithmeticSubtermGeneralizations = choiceArithmeticSimplificationMode(
                "arithmetic_subterm_generalizations", "asg",
                ArithmeticSimplificationMode::OFF);
-           _arithmeticSubtermGeneralizations.description=
-                  "Enable variaous immediate simplification rules for arithmetic terms.\n"
-                  "All of these rules work by generalizing a subterm.";
+           _arithmeticSubtermGeneralizations.description = "\
+                  Enables variaous generalization rules for arithmetic terms as described in the paper Making Theory Reasoning Simpler ( https://easychair.org/publications/preprint/K2hb ). \
+                  In some rare cases the conclusion may be not strictly simpler than the hypothesis. With `force` we ignore these cases, violating the ordering and just simplifying \
+                  anyways. With `cautious` we will generate a new clause instead of simplifying in these cases.";
            _lookup.insert(&_arithmeticSubtermGeneralizations);
            _arithmeticSubtermGeneralizations.tag(OptionTag::INFERENCES);
 
@@ -2031,7 +2039,8 @@ void Options::init()
     "Choses the algorithm used to simplify interpreted integer, rational, and real terms. \
                                  \
     - simple: will only evaluate expressions built from interpreted constants only.\
-    - polynomial: will evaluate abstract expressions to a weak polynomial normal form. This is more powerful but may fail in some cases where the resulting polynomial is not strictly smaller than the initial one wrt. the simplification ordering. \
+    - cautious: will evaluate abstract expressions to a weak polynomial normal form. This is more powerful but may fail in some rare cases where the resulting polynomial is not strictly smaller than the initial one wrt. the simplification ordering. In these cases a new clause with the normal form term will be added to the search space instead of replacing the orignal clause.  \
+    - force: same as `cautious`, but ignoring the simplificaiton ordering and replacing the hypothesis with the normal form clause in any case. \
     ";
     _lookup.insert(&_evaluationMode);
     _evaluationMode.tag(OptionTag::SATURATION);
