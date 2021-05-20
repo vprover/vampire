@@ -100,11 +100,13 @@ Option<LitSimplResult> PolynomialEvaluation::tryEvalPredicate(Literal* orig, Pol
       /* integer predicates */
       HANDLE_CASE(INT_DIVIDES)
 
-      default:
-        // WARN("WARNING: unexpected interpreted predicate: ", lit->toString())
-        ASSERTION_VIOLATION
-        return Option<LitSimplResult>();
+      case Kernel::Theory::ARRAY_BOOL_SELECT: break;
+
+      case ANY_INTERPRETED_FUNCTION: 
+      case Kernel::Theory::INVALID_INTERPRETATION: 
+        ASSERTION_VIOLATION_REP(inter)
     }
+    return Option<LitSimplResult>();
   } else {
     return Option<LitSimplResult>();
   }
