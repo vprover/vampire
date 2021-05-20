@@ -1919,6 +1919,93 @@ void Theory::registerLaTeXFuncName(unsigned func, vstring temp)
   _funcLaTeXnames.insert(func,temp);
 }
 
+std::ostream& operator<<(std::ostream& out, Kernel::Theory::Interpretation const& self)
+{
+  switch(self) {
+    case Kernel::Theory::EQUAL: return out << "EQUAL";
+    case Kernel::Theory::INT_IS_INT: return out << "INT_IS_INT";
+    case Kernel::Theory::INT_IS_RAT: return out << "INT_IS_RAT";
+    case Kernel::Theory::INT_IS_REAL: return out << "INT_IS_REAL";
+    case Kernel::Theory::INT_GREATER: return out << "INT_GREATER";
+    case Kernel::Theory::INT_GREATER_EQUAL: return out << "INT_GREATER_EQUAL";
+    case Kernel::Theory::INT_LESS: return out << "INT_LESS";
+    case Kernel::Theory::INT_LESS_EQUAL: return out << "INT_LESS_EQUAL";
+    case Kernel::Theory::INT_DIVIDES: return out << "INT_DIVIDES";
+    case Kernel::Theory::RAT_IS_INT: return out << "RAT_IS_INT";
+    case Kernel::Theory::RAT_IS_RAT: return out << "RAT_IS_RAT";
+    case Kernel::Theory::RAT_IS_REAL: return out << "RAT_IS_REAL";
+    case Kernel::Theory::RAT_GREATER: return out << "RAT_GREATER";
+    case Kernel::Theory::RAT_GREATER_EQUAL: return out << "RAT_GREATER_EQUAL";
+    case Kernel::Theory::RAT_LESS: return out << "RAT_LESS";
+    case Kernel::Theory::RAT_LESS_EQUAL: return out << "RAT_LESS_EQUAL";
+    case Kernel::Theory::REAL_IS_INT: return out << "REAL_IS_INT";
+    case Kernel::Theory::REAL_IS_RAT: return out << "REAL_IS_RAT";
+    case Kernel::Theory::REAL_IS_REAL: return out << "REAL_IS_REAL";
+    case Kernel::Theory::REAL_GREATER: return out << "REAL_GREATER";
+    case Kernel::Theory::REAL_GREATER_EQUAL: return out << "REAL_GREATER_EQUAL";
+    case Kernel::Theory::REAL_LESS: return out << "REAL_LESS";
+    case Kernel::Theory::REAL_LESS_EQUAL: return out << "REAL_LESS_EQUAL";
+    case Kernel::Theory::INT_SUCCESSOR: return out << "INT_SUCCESSOR";
+    case Kernel::Theory::INT_UNARY_MINUS: return out << "INT_UNARY_MINUS";
+    case Kernel::Theory::INT_PLUS: return out << "INT_PLUS";
+    case Kernel::Theory::INT_MINUS: return out << "INT_MINUS";
+    case Kernel::Theory::INT_MULTIPLY: return out << "INT_MULTIPLY";
+    case Kernel::Theory::INT_QUOTIENT_E: return out << "INT_QUOTIENT_E";
+    case Kernel::Theory::INT_QUOTIENT_T: return out << "INT_QUOTIENT_T";
+    case Kernel::Theory::INT_QUOTIENT_F: return out << "INT_QUOTIENT_F";
+    case Kernel::Theory::INT_REMAINDER_E: return out << "INT_REMAINDER_E";
+    case Kernel::Theory::INT_REMAINDER_T: return out << "INT_REMAINDER_T";
+    case Kernel::Theory::INT_REMAINDER_F: return out << "INT_REMAINDER_F";
+    case Kernel::Theory::INT_FLOOR: return out << "INT_FLOOR";
+    case Kernel::Theory::INT_CEILING: return out << "INT_CEILING";
+    case Kernel::Theory::INT_TRUNCATE: return out << "INT_TRUNCATE";
+    case Kernel::Theory::INT_ROUND: return out << "INT_ROUND";
+    case Kernel::Theory::INT_ABS: return out << "INT_ABS";
+    case Kernel::Theory::RAT_UNARY_MINUS: return out << "RAT_UNARY_MINUS";
+    case Kernel::Theory::RAT_PLUS: return out << "RAT_PLUS";
+    case Kernel::Theory::RAT_MINUS: return out << "RAT_MINUS";
+    case Kernel::Theory::RAT_MULTIPLY: return out << "RAT_MULTIPLY";
+    case Kernel::Theory::RAT_QUOTIENT: return out << "RAT_QUOTIENT";
+    case Kernel::Theory::RAT_QUOTIENT_E: return out << "RAT_QUOTIENT_E";
+    case Kernel::Theory::RAT_QUOTIENT_T: return out << "RAT_QUOTIENT_T";
+    case Kernel::Theory::RAT_QUOTIENT_F: return out << "RAT_QUOTIENT_F";
+    case Kernel::Theory::RAT_REMAINDER_E: return out << "RAT_REMAINDER_E";
+    case Kernel::Theory::RAT_REMAINDER_T: return out << "RAT_REMAINDER_T";
+    case Kernel::Theory::RAT_REMAINDER_F: return out << "RAT_REMAINDER_F";
+    case Kernel::Theory::RAT_FLOOR: return out << "RAT_FLOOR";
+    case Kernel::Theory::RAT_CEILING: return out << "RAT_CEILING";
+    case Kernel::Theory::RAT_TRUNCATE: return out << "RAT_TRUNCATE";
+    case Kernel::Theory::RAT_ROUND: return out << "RAT_ROUND";
+    case Kernel::Theory::REAL_UNARY_MINUS: return out << "REAL_UNARY_MINUS";
+    case Kernel::Theory::REAL_PLUS: return out << "REAL_PLUS";
+    case Kernel::Theory::REAL_MINUS: return out << "REAL_MINUS";
+    case Kernel::Theory::REAL_MULTIPLY: return out << "REAL_MULTIPLY";
+    case Kernel::Theory::REAL_QUOTIENT: return out << "REAL_QUOTIENT";
+    case Kernel::Theory::REAL_QUOTIENT_E: return out << "REAL_QUOTIENT_E";
+    case Kernel::Theory::REAL_QUOTIENT_T: return out << "REAL_QUOTIENT_T";
+    case Kernel::Theory::REAL_QUOTIENT_F: return out << "REAL_QUOTIENT_F";
+    case Kernel::Theory::REAL_REMAINDER_E: return out << "REAL_REMAINDER_E";
+    case Kernel::Theory::REAL_REMAINDER_T: return out << "REAL_REMAINDER_T";
+    case Kernel::Theory::REAL_REMAINDER_F: return out << "REAL_REMAINDER_F";
+    case Kernel::Theory::REAL_FLOOR: return out << "REAL_FLOOR";
+    case Kernel::Theory::REAL_CEILING: return out << "REAL_CEILING";
+    case Kernel::Theory::REAL_TRUNCATE: return out << "REAL_TRUNCATE";
+    case Kernel::Theory::REAL_ROUND: return out << "REAL_ROUND";
+    case Kernel::Theory::INT_TO_INT: return out << "INT_TO_INT";
+    case Kernel::Theory::INT_TO_RAT: return out << "INT_TO_RAT";
+    case Kernel::Theory::INT_TO_REAL: return out << "INT_TO_REAL";
+    case Kernel::Theory::RAT_TO_INT: return out << "RAT_TO_INT";
+    case Kernel::Theory::RAT_TO_RAT: return out << "RAT_TO_RAT";
+    case Kernel::Theory::RAT_TO_REAL: return out << "RAT_TO_REAL";
+    case Kernel::Theory::REAL_TO_INT: return out << "REAL_TO_INT";
+    case Kernel::Theory::REAL_TO_RAT: return out << "REAL_TO_RAT";
+    case Kernel::Theory::REAL_TO_REAL: return out << "REAL_TO_REAL";
+    case Kernel::Theory::ARRAY_SELECT: return out << "ARRAY_SELECT";
+    case Kernel::Theory::ARRAY_BOOL_SELECT: return out << "ARRAY_BOOL_SELECT";
+    case Kernel::Theory::ARRAY_STORE: return out << "ARRAY_STORE";
+    case Kernel::Theory::INVALID_INTERPRETATION: return out << "INVALID_INTERPRETATION";
+  }
+}
 /**
  * We try and get a LaTeX special name for an interpeted function/predicate.
  * Note: the functions may not necessarily be interpreted in the sense that we treat
@@ -2037,22 +2124,4 @@ size_t RealConstantType::hash() const {
 }
 
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
