@@ -98,7 +98,7 @@ bool UWAMismatchHandler::checkUWA(TermList t1, TermList t2)
             // TODO get the polynomial evaluation instance less dirty
             auto sub = Inferences::PolynomialEvaluation(*Ordering::tryGetGlobalOrdering()).evaluateToTerm(NumTraits::add( NumTraits::minus(t1), t2).term());
             //   ^^^--> `t2 - t1`
-            return !sub.isVar() && sub.term()->vars() != 0;
+            return sub == NumTraits::zero() || (!sub.isVar() && sub.term()->vars() != 0) ;
         });
       }
     }
