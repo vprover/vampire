@@ -1098,4 +1098,4 @@ TermList SortHelper::sortTerm(unsigned sortNum)
 { return env.sorts->getSortTerm(sortNum); }
 
 unsigned SortHelper::sortNum(TermList sort)
-{ return sort.term()->getId(); }
+{ return env.sorts->getSortNum(sort); }
