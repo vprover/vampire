@@ -1,1 +1,0 @@
-/Users/jo/projects/vampire/arithmetic/z3
