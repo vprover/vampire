@@ -949,8 +949,6 @@ bool SubstitutionTree::UnificationsIterator::associate(TermList query, TermList 
 {
   CALL("SubstitutionTree::UnificationsIterator::associate");
 
-  CALL("SubstitutionTree::UnificationsIterator::associate");
-
   //The ordering of the if statements is important here. Higher-order problems
   //should never require theory resoning (at the moment, theories cannot be parsed in HOL)
   //However, a user can still set UWA option on. We don't wan't that to result in 
