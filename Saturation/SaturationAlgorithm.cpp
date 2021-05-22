@@ -99,6 +99,8 @@
 #include "Shell/Statistics.hpp"
 #include "Shell/UIHelper.hpp"
 
+#include "Parse/TPTP.hpp"
+
 #include "Splitter.hpp"
 
 #include "ConsequenceFinder.hpp"
@@ -112,6 +114,13 @@
 #include "Discount.hpp"
 #include "LRS.hpp"
 #include "Otter.hpp"
+
+#include <math.h>
+#include <string>
+
+#define DEBUG_MODEL 0
+
+#include <ATen/Parallel.h>
 
 using namespace Lib;
 using namespace Kernel;
@@ -128,12 +137,16 @@ using namespace Saturation;
 
 SaturationAlgorithm* SaturationAlgorithm::s_instance = 0;
 
-std::unique_ptr<PassiveClauseContainer> makeLevel0(bool isOutermost, const Options& opt, vstring name)
+static void delayedEvaluatorFn(Clause* cl) {
+  SaturationAlgorithm::tryGetInstance()->talkToKarel(cl,true/*embed*/,true/*eval*/);
+}
+
+static std::unique_ptr<PassiveClauseContainer> makeLevel0(bool isOutermost, const Options& opt, vstring name)
 {
   return std::make_unique<AWPassiveClauseContainer>(isOutermost, opt, name + "AWQ");
 }
 
-std::unique_ptr<PassiveClauseContainer> makeLevel1(bool isOutermost, const Options& opt, vstring name)
+static std::unique_ptr<PassiveClauseContainer> makeLevel1(bool isOutermost, const Options& opt, vstring name)
 {
   if (opt.useTheorySplitQueues())
   {
@@ -152,7 +165,7 @@ std::unique_ptr<PassiveClauseContainer> makeLevel1(bool isOutermost, const Optio
   }
 }
 
-std::unique_ptr<PassiveClauseContainer> makeLevel2(bool isOutermost, const Options& opt, vstring name)
+static std::unique_ptr<PassiveClauseContainer> makeLevel2(bool isOutermost, const Options& opt, vstring name)
 {
   if (opt.useAvatarSplitQueues())
   {
@@ -171,7 +184,7 @@ std::unique_ptr<PassiveClauseContainer> makeLevel2(bool isOutermost, const Optio
   }
 }
 
-std::unique_ptr<PassiveClauseContainer> makeLevel3(bool isOutermost, const Options& opt, vstring name)
+static std::unique_ptr<PassiveClauseContainer> makeLevel3(bool isOutermost, const Options& opt, vstring name)
 {
   if (opt.useSineLevelSplitQueues())
   {
@@ -190,7 +203,7 @@ std::unique_ptr<PassiveClauseContainer> makeLevel3(bool isOutermost, const Optio
   }
 }
 
-std::unique_ptr<PassiveClauseContainer> makeLevel4(bool isOutermost, const Options& opt, vstring name)
+static std::unique_ptr<PassiveClauseContainer> makeLevel4(bool isOutermost, const Options& opt, vstring name)
 {
   if (opt.usePositiveLiteralSplitQueues())
   {
@@ -206,6 +219,27 @@ std::unique_ptr<PassiveClauseContainer> makeLevel4(bool isOutermost, const Optio
   else
   {
     return makeLevel3(isOutermost, opt, name);
+  }
+}
+
+static std::unique_ptr<PassiveClauseContainer> makeLevel5(bool isOutermost, const Options& opt, vstring name)
+{
+  if (opt.useNeuralEvalSplitQueues())
+  {
+    Lib::vvector<std::unique_ptr<PassiveClauseContainer>> queues;
+    Lib::vvector<float> cutoffs = opt.neuralEvalSplitQueueCutoffs();
+    for (unsigned i = 0; i < cutoffs.size(); i++)
+    {
+      auto queueName = name + "NESQ" + Int::toString(cutoffs[i]) + ":";
+      queues.push_back(makeLevel4(false, opt, queueName));
+    }
+    auto res = Lib::make_unique<NeuralEvalSplitPassiveClauseContainer>(isOutermost, opt, name + "NESQ", std::move(queues));
+    res->setDelayedEvaluator(delayedEvaluatorFn);
+    return res;
+  }
+  else
+  {
+    return makeLevel4(isOutermost, opt, name);
   }
 }
 
@@ -227,6 +261,27 @@ SaturationAlgorithm::SaturationAlgorithm(Problem& prb, const Options& opt)
   CALL("SaturationAlgorithm::SaturationAlgorithm");
   ASS_EQ(s_instance, 0);  //there can be only one saturation algorithm at a time
 
+  if (opt.evalForKarel()) { // load the models
+    TimeCounter t(TC_DEEP_STUFF);
+
+    // cout << "get_num_threads " << at::get_num_threads() << endl;
+    // cout << "get_num_interop_threads " << at::get_num_interop_threads() << endl;
+    // See: https://pytorch.org/docs/stable/notes/cpu_threading_torchscript_inference.html
+
+#if DEBUG_MODEL
+    auto start = env.timer->elapsedMilliseconds();
+#endif
+
+    // seems to be making this nicely single-threaded
+    at::set_num_threads(1);
+
+    _model = torch::jit::load(opt.evalForKarelPath().c_str());
+
+#if DEBUG_MODEL
+    cout << "Models loaded in " << env.timer->elapsedMilliseconds() - start << endl;
+#endif
+  }
+
   _activationLimit = opt.activationLimit();
 
   _ordering = OrderingSP(Ordering::create(prb, opt));
@@ -246,7 +301,7 @@ SaturationAlgorithm::SaturationAlgorithm(Problem& prb, const Options& opt)
   }
   else
   {
-    _passive = makeLevel4(true, opt, "");
+    _passive = makeLevel5(true, opt, "");
   }
   _active = new ActiveClauseContainer(opt);
 
@@ -408,6 +463,12 @@ void SaturationAlgorithm::onPassiveAdded(Clause* c)
     env.endOutput();
   }
   
+  /*
+  if (_opt.showForKarel()) {
+    cout << "pass: " << c->number() << "\n";
+  }
+  */
+
   //when a clause is added to the passive container,
   //we know it is not redundant
   onNonRedundantClause(c);
@@ -459,6 +520,225 @@ void SaturationAlgorithm::onUnprocessedSelected(Clause* c)
   
 }
 
+void SaturationAlgorithm::embed_and_evaluate(Clause* cl, const char* method_name, const char* backup_method_name, std::vector<torch::jit::IValue>& inputs, bool eval)
+{
+  CALL("SaturationAlgorithm::evaluated");
+
+  auto id = inputs[0];
+
+#if DEBUG_MODEL
+  auto start = env.timer->elapsedMilliseconds();
+  cout << "evaluating " << cl->number();
+#endif
+
+  if (auto m = _model.find_method(method_name)) {
+    (*m)(std::move(inputs));
+#if DEBUG_MODEL
+  cout << " found " << method_name;
+#endif
+  } else {
+    _model.get_method(backup_method_name)(std::move(inputs));
+
+#if DEBUG_MODEL
+  cout << " fell back to " << backup_method_name;
+#endif
+  }
+
+  if (eval) {
+    inputs.clear();
+    inputs.push_back(id);
+
+    auto out = _model.forward(inputs);
+
+#if DEBUG_MODEL
+  cout << " and said " << -out.toDouble() << " in " << env.timer->elapsedMilliseconds() - start << endl;
+#endif
+
+    cl->setModelSaid(-out.toDouble()); // already here, we reverse the logit's logic to "small is good"!
+  } else {
+#if DEBUG_MODEL
+  cout << " only embedded in " << env.timer->elapsedMilliseconds() - start << endl;
+#endif
+  }
+}
+
+void lookupAxiomName(Clause* cl, vstring& axname) {
+  CALL("SaturationAlgorithm-lookupAxiomName");
+
+  Unit* u = cl;
+  while (!Parse::TPTP::findAxiomName(u,axname)) {
+    // cout << u->toString() << endl;
+    Inference::Iterator iit=u->inference().iterator();
+    if (!u->inference().hasNext(iit)) {
+      break;
+    }
+    u = u->inference().next(iit);
+  }
+
+  // may never assign anything, if, somehow, there is no name along the parent chain to be found
+}
+
+void SaturationAlgorithm::talkToKarel(Clause* cl, bool embed, bool eval)
+{
+  CALL("SaturationAlgorithm::talkToKarel");
+
+  ASS(_opt.showForKarel() || _opt.evalForKarel());
+
+  if ((!_opt.showForKarel() || _shown.find(cl)) && // no reason to show
+      (!embed || !_opt.evalForKarel() || _embedded.find(cl))) { // no reason to evaluate
+    return;
+  }
+
+  static std::vector<torch::jit::IValue> inputs;
+
+  if (cl->isComponent()) { // the AVATAR event
+    Clause* orig = _splitter->getCausalParent(cl);
+    if (orig) { // CAREFUL: causal parent can be none; for the ccModel thingie
+      talkToKarel(orig,embed);
+    }
+
+    if (env.options->showForKarel() && !_shown.find(cl)) {
+      // a: [3,cl_id,cl_age,cl_weight,cl_len,causal_parent]
+      cout << "a: [3," << cl->number() << "," << cl->age() << "," << cl->weight() << "," << cl->size();
+      cout << "," << orig->number() << "]\n";
+
+      ALWAYS(_shown.insert(cl));
+    }
+
+    if (env.options->evalForKarel() && embed && !_embedded.find(cl)) {
+      TimeCounter t(TC_DEEP_STUFF);
+
+      inputs.clear();
+
+      inputs.push_back((int64_t)cl->number()); // the id
+      inputs.push_back(std::make_tuple(
+          (int64_t)cl->age(),
+          (int64_t)cl->weight(),
+          (int64_t)cl->size(),
+          (int64_t)(orig ? orig->number() : -1)));
+
+      embed_and_evaluate(cl,"new_avat","new_avat",inputs,eval);
+
+      ALWAYS(_embedded.insert(cl));
+    }
+  } else if (_initial.find(cl)) {
+    unsigned theoryAx = cl->inference().isTheoryAxiom() ? static_cast<unsigned>(cl->inference().rule()) : 0;
+
+    if (_opt.showForKarel() && !_shown.find(cl)) {
+      // [1,cl_id,cl_age,cl_weight,cl_len,isgoal,istheory,sine]
+
+      cout << "i: [1," << cl->number() << "," << cl->age() << "," << cl->weight() << "," << cl->size();
+      cout << "," << cl->derivedFromGoal() << "," << theoryAx << "," << (int)cl->getSineLevel() << "]";
+
+      if (_opt.outputAxiomNames()) {
+        vstring axname;
+        lookupAxiomName(cl,axname);
+        cout << " " << axname << "\n";
+      } else {
+        cout << "\n";
+      }
+
+      ALWAYS(_shown.insert(cl));
+    }
+
+    if (_opt.evalForKarel() && embed && !_embedded.find(cl)) {
+      TimeCounter t(TC_DEEP_STUFF);
+
+      // def new_init(self, id: int, features : Tuple[int, int, int, int, int, int]) -> bool:
+
+      inputs.clear();
+
+      inputs.push_back((int64_t)cl->number()); // the id
+      inputs.push_back(std::make_tuple(
+          (int64_t)cl->age(),
+          (int64_t)cl->weight(),
+          (int64_t)cl->size(),
+          (int64_t)cl->derivedFromGoal(),
+          (int64_t)theoryAx,
+          (int64_t)cl->getSineLevel())); // the features
+
+      std::string name;
+
+      if (cl->derivedFromGoal()) {
+        name = "-1";
+      } else {
+        vstring axname;
+        if (_opt.outputAxiomNames() && (lookupAxiomName(cl,axname), !axname.empty())) {
+          // we have a name
+          name = std::string(axname.c_str());
+        } else {
+          name = std::to_string(theoryAx);
+        }
+      }
+      inputs.push_back(name);
+
+      embed_and_evaluate(cl, "new_init", "new_init", inputs,eval);
+
+      // TODO: store the output value
+      ALWAYS(_embedded.insert(cl));
+    }
+  } else {
+    // pre-order traversal on parents:
+    Inference& inf = cl->inference();
+    inf.minimizePremises();
+    unsigned parent_cnt = 0;
+    Inference::Iterator iit = inf.iterator();
+    while(inf.hasNext(iit)) {
+      Unit* premUnit = inf.next(iit);
+      talkToKarel(premUnit->asClause(),embed);
+      parent_cnt++;
+    }
+
+    // [2,cl_id,cl_age,cl_weight,cl_len,cl_numsplits,inf_id,parent_cl_id,parent_cl_id,...]
+    if (_opt.showForKarel() && !_shown.find(cl)) {
+      cout << "d: [2," << cl->number() << "," << cl->age() << "," << cl->weight() << "," << cl->size() << "," << (cl->splits() ? cl->splits()->size() : 0);
+      cout << "," << (int)inf.rule();
+      Inference::Iterator iit = inf.iterator();
+      while(inf.hasNext(iit)) {
+        Unit* premUnit = inf.next(iit);
+        cout << "," << premUnit->asClause()->number();
+      }
+      cout << "]\n";
+
+      ALWAYS(_shown.insert(cl));
+    }
+
+    if (_opt.evalForKarel() && embed && !_embedded.find(cl)) {
+      TimeCounter t(TC_DEEP_STUFF);
+
+      // new_deriv(self, id: int, features : Tuple[int, int, int, int, int], pars : List[int]) -> bool:
+
+      static std::vector<torch::jit::IValue> inputs;
+      inputs.clear();
+      inputs.push_back((int64_t)cl->number()); // as the id
+      inputs.push_back(std::make_tuple(
+          (int64_t)cl->age(),
+          (int64_t)cl->weight(),
+          (int64_t)cl->size(),
+          (int64_t)(cl->splits() ? cl->splits()->size() : 0),
+          (int64_t)inf.rule())); // as features
+
+      c10::List<int64_t> parents;
+      int arit = 0;
+      Inference::Iterator iit = inf.iterator();
+      while(inf.hasNext(iit)) {
+        Unit* premUnit = inf.next(iit);
+        parents.push_back((int64_t) premUnit->asClause()->number());
+        arit += 1;
+      }
+
+      inputs.push_back(torch::jit::IValue(parents));
+
+      char specific_method_name[20];
+      char default_method_name[20];
+      sprintf(specific_method_name, "new_deriv%d", (int)inf.rule());
+      sprintf(default_method_name, "new_deriv%d", (int)arit);
+      embed_and_evaluate(cl, specific_method_name, default_method_name , inputs, eval);
+
+      ALWAYS(_embedded.insert(cl));
+    }
+  }
+}
 
 /**
  * A function that is called whenever a possibly new clause appears.
@@ -676,7 +956,11 @@ void SaturationAlgorithm::addInputClause(Clause* cl)
     cl->setAge(level);
   }
 
-  if (sosForAxioms || (cl->isPureTheoryDescendant() && sosForTheory)){
+  if (_opt.showForKarel() || _opt.evalForKarel()) {
+    ALWAYS(_initial.insert(cl));
+  }
+
+  if (sosForAxioms || (cl->isTheoryAxiom() && sosForTheory)){
     addInputSOSClause(cl);
   } else {
     addNewClause(cl);
@@ -943,6 +1227,13 @@ void SaturationAlgorithm::handleEmptyClause(Clause* cl)
   CALL("SaturationAlgorithm::handleEmptyClause");
   ASS(cl->isEmpty());
 
+  if (_opt.showForKarel() || _opt.evalForKarel()) {
+    talkToKarel(cl,false /* not necessary to evaluate this clause */ );
+  }
+  if (_opt.showForKarel()) {
+    cout << "e: " << cl->number() << "\n";
+  }
+
   if (isRefutation(cl)) {
     onNonRedundantClause(cl);
 
@@ -1125,6 +1416,9 @@ void SaturationAlgorithm::removeActiveOrPassiveClause(Clause* cl)
     break;
   }
   case Clause::ACTIVE:
+    if (env.options->showForKarel()) {
+      cout << "r: " << cl->number() << "\n";
+    }
     _active->remove(cl);
     break;
   default:
@@ -1143,6 +1437,11 @@ void SaturationAlgorithm::addToPassive(Clause* cl)
 
   cl->setStore(Clause::PASSIVE);
   env.statistics->passiveClauses++;
+
+  if (_opt.evalForKarel()) {
+    // delayed evaluation trick starts by removing this line:
+    //talkToKarel(cl,true /*embed*/,true /*eval*/);
+  }
 
   {
     TimeCounter tc(TC_PASSIVE_CONTAINER_MAINTENANCE);
@@ -1355,6 +1654,13 @@ void SaturationAlgorithm::doOneAlgorithmStep()
   }
   ASS_EQ(cl->store(),Clause::PASSIVE);
   cl->setStore(Clause::SELECTED);
+
+  if (_opt.showForKarel()) {
+    talkToKarel(cl,false /* just report, if not done yet (evaluation must have taken place before putting into passive)*/);
+  }
+  if (_opt.showForKarel()) {
+    cout << "s: " << cl->number() << "\n";
+  }
 
   if (!handleClauseBeforeActivation(cl)) {
     return;
