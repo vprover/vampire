@@ -35,7 +35,16 @@ public:
   bool isEmpty() const override; /** True if there are no passive clauses */
   unsigned sizeEstimate() const override;
 
+  void setDelayedEvaluator(void (*de)(Clause* cl)) {
+    CALL("PredicateSplitPassiveClauseContainer::setDelayedEvaluator");
+
+    ASS(_layeredArrangement); // currently only implemented for layered; does it even make sense for Tammet-style?
+    _delayedEvaluator = de;
+  }
+
 private:
+  void (*_delayedEvaluator)(Clause* cl);
+
   Lib::vvector<std::unique_ptr<PassiveClauseContainer>> _queues;
   Lib::vvector<float> _cutoffs;
   Lib::vvector<unsigned> _ratios;  

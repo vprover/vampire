@@ -35,7 +35,9 @@ int computeLCM(int a, int b) {
 }
 
 PredicateSplitPassiveClauseContainer::PredicateSplitPassiveClauseContainer(bool isOutermost, const Shell::Options& opt, vstring name, Lib::vvector<std::unique_ptr<PassiveClauseContainer>> queues, Lib::vvector<float> cutoffs, Lib::vvector<int> ratios, bool layeredArrangement)
-  : PassiveClauseContainer(isOutermost, opt, name), _queues(std::move(queues)), _cutoffs(cutoffs), _ratios(), _balances(), _layeredArrangement(layeredArrangement), _simulationBalances()
+  : PassiveClauseContainer(isOutermost, opt, name),
+    _delayedEvaluator(nullptr),
+    _queues(std::move(queues)), _cutoffs(cutoffs), _ratios(), _balances(), _layeredArrangement(layeredArrangement), _simulationBalances()
 {
   CALL("PredicateSplitPassiveClauseContainer::PredicateSplitPassiveClauseContainer");
 
@@ -193,6 +195,8 @@ Clause* PredicateSplitPassiveClauseContainer::popSelected()
     balance -= minElement;
   }
 
+  search_for_an_appropriate_queue:
+
   // if chosen queue is empty, use the next queue to the right
   // this succeeds in a multi-split-queue-non-LRS-setting where we have the invariant that each clause from queue i is contained in queue j if i<j
   auto currIndex = queueIndex;
@@ -214,16 +218,27 @@ Clause* PredicateSplitPassiveClauseContainer::popSelected()
   }
   ASS(!_queues[currIndex]->isEmpty());
 
+  // pop clause from selected queue
+  auto cl = _queues[currIndex]->popSelected();
+  ASS(cl->store() == Clause::PASSIVE);
+
+  if (currIndex < (long int)_queues.size()-1 && // not the last index
+      _delayedEvaluator) { // we can re-evaluate
+    _delayedEvaluator(cl);
+
+    if (evaluateFeature(cl) > _cutoffs[currIndex]) {
+      // we don't like the clause here!
+      // cout << "Didn't like " << cl->number() << " in " << currIndex << endl;
+      goto search_for_an_appropriate_queue;
+    }
+  }
+
   RSTAT_MCTR_INC("PredicateSplitPassiveClauseContainer::popSelected-index", currIndex);
   if (currIndex == 0) {
     env.statistics->innermostSelections++;
   }
 
-  // pop clause from selected queue
-  auto cl = _queues[currIndex]->popSelected();
-  ASS(cl->store() == Clause::PASSIVE);
-
-  // note: for a non-layered arrangement, the clause only occured in _queues[currIndex] (from which it was just removed using popSelected(), so we don't need any additional clause-removal
+  // note: for a non-layered arrangement, the clause only occurred in _queues[currIndex] (from which it was just removed using popSelected(), so we don't need any additional clause-removal
   if (_layeredArrangement)
   {
     // remove clause from all queues
