@@ -107,10 +107,6 @@ static size_t distance(const vstring &s1, const vstring &s2)
   return costs[n];
 }
 
-
-template<class Enum>
-Stack<vstring> enumValueNames();
-
 /**
  * Class that represents Vampire's options.
  * 11/11/2004 Shrigley Hall, completely reimplemented
