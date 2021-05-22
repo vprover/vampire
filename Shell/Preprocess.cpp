@@ -258,7 +258,8 @@ void Preprocess::preprocess(Problem& prb)
     DistinctGroupExpansion().apply(prb);
   }
 
-  if (_options.sineToAge() || _options.useSineLevelSplitQueues() || (_options.sineToPredLevels() != Options::PredicateSineLevels::OFF)) {
+  if (_options.showForKarel() || _options.evalForKarel() || _options.sineToAge() || _options.useSineLevelSplitQueues() ||
+      (_options.sineToPredLevels() != Options::PredicateSineLevels::OFF)) {
     env.statistics->phase=Statistics::SINE_SELECTION;
 
     if (_options.sineToPredLevels() != Options::PredicateSineLevels::OFF) {

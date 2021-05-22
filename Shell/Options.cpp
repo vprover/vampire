@@ -581,6 +581,15 @@ void Options::init()
     _lookup.insert(&_showNew);
     _showNew.tag(OptionTag::DEVELOPMENT);
 
+    _showForKarel = BoolOptionValue("show_for_karel","s4k",false);
+    _lookup.insert(&_showForKarel);
+    _showForKarel.tag(OptionTag::DEVELOPMENT);
+
+    _evalForKarel = StringOptionValue("eval_for_karel","e4k","");
+    _evalForKarel.description = "String option specifying the path to the model to be loaded. No neural guidance, if left empty.";
+    _lookup.insert(&_evalForKarel);
+    _evalForKarel.tag(OptionTag::DEVELOPMENT);
+
     _showSplitting = BoolOptionValue("show_splitting","",false);
     _showSplitting.description="Show updates within AVATAR";
     _lookup.insert(&_showSplitting);
