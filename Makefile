@@ -76,10 +76,18 @@ XFLAGS = -Wfatal-errors -g -DVDEBUG=1 -DCHECK_LEAKS=0 -DUSE_SYSTEM_ALLOCATION=1 
 #XFLAGS = -O6 -DVDEBUG=0 -DUSE_SYSTEM_ALLOCATION=1 -g
 
 INCLUDES= -I.
+
+OS = $(shell uname)
+ifeq ($(OS),Darwin)
+INCLUDES := $(INCLUDES) -Ilibtorch/include -Ilibtorch/include/torch/csrc/api/include
+else
+INCLUDES := $(INCLUDES) -Ilibtorch/include -Ilibtorch/include/torch/csrc/api/include -D_GLIBCXX_USE_CXX11_ABI=1
+endif
+
 Z3FLAG= -DVZ3=0
 Z3LIB=
 ifeq (,$(shell echo $(MAKECMDGOALS) | sed 's/.*z3.*//g')) 
-INCLUDES= -I. -Iz3/src/api -Iz3/src/api/c++ 
+INCLUDES := $(INCLUDES) -I../z3/src/api -I../z3/src/api/c++ 
 ifeq (,$(shell echo $(MAKECMDGOALS) | sed 's/.*static.*//g'))
 Z3LIB= -Lz3/build -lz3 -lgomp -pthread  -Wl,--whole-archive -lrt -lpthread -Wl,--no-whole-archive -ldl
 else
@@ -87,6 +95,14 @@ Z3LIB= -Lz3/build -lz3
 endif
 
 Z3FLAG= -DVZ3=1
+endif
+
+ifeq ($(OS),Darwin)
+TORCHLINK= -Wl,-search_paths_first -Wl,-headerpad_max_install_names
+TORCHLIB= -Wl,-rpath,/Users/mbassms6/libtorch/lib /Users/mbassms6/libtorch/lib/libc10.dylib /Users/mbassms6/libtorch/lib/libtorch.dylib /Users/mbassms6/libtorch/lib/libtorch_cpu.dylib  
+else
+TORCHLINK=
+TORCHLIB= -Wl,-rpath,/nfs/sudamar2/projects/vampire/libtorch/lib /nfs/sudamar2/projects/vampire/libtorch/lib/libtorch.so /nfs/sudamar2/projects/vampire/libtorch/lib/libc10.so -Wl,--no-as-needed,/nfs/sudamar2/projects/vampire/libtorch/lib/libtorch_cpu.so -Wl,--as-needed /nfs/sudamar2/projects/vampire/libtorch/lib/libc10.so -lpthread -Wl,--no-as-needed,/nfs/sudamar2/projects/vampire/libtorch/lib/libtorch.so -Wl,--as-needed 
 endif
 
 ifneq (,$(filter vtest%,$(MAKECMDGOALS)))
@@ -108,7 +124,6 @@ XFLAGS = $(REL_FLAGS) $(GCOV_FLAGS) $(Z3FLAG)
 MINISAT_FLAGS = $(MINISAT_REL_FLAGS)
 endif
 
-OS = $(shell uname)
 ifeq ($(OS),Darwin)
 STATIC = -static-libgcc -static-libstdc++ 
 else
@@ -570,7 +585,7 @@ LIBVAPI_OBJ := $(addprefix $(CONF_ID)/, $(LIBVAPI_DEP))
 TKV_OBJ := $(addprefix $(CONF_ID)/, $(TKV_DEP))
 
 define COMPILE_CMD
-$(CXX) $(CXXFLAGS) $(filter -l%, $+) $(filter %.o, $^) -o $@_$(BRANCH)_$(COM_CNT) $(Z3LIB)
+$(CXX) $(CXXFLAGS) $(TORCHLINK) $(filter -l%, $+) $(filter %.o, $^) -o $@_$(BRANCH)_$(COM_CNT)  $(Z3LIB) $(TORCHLIB)
 @#$(CXX) -static $(CXXFLAGS) $(Z3LIB) $(filter %.o, $^) -o $@
 @#strip $@
 endef
