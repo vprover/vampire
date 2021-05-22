@@ -931,6 +931,25 @@ void Options::init()
     _positiveLiteralSplitQueueLayeredArrangement.reliesOn(_usePositiveLiteralSplitQueues.is(equal(true)));
     _positiveLiteralSplitQueueLayeredArrangement.tag(OptionTag::SATURATION);
 
+    _useNeuralEvalSplitQueues = BoolOptionValue("neural_eval_split_queue","nesq",false);
+    _useNeuralEvalSplitQueues.description = "Turn on the queue splitting based on neural evaluation (requires eval_for_karel to be on).";
+    _lookup.insert(&_useNeuralEvalSplitQueues);
+    _useNeuralEvalSplitQueues.reliesOn(_evalForKarel.is(notEqual(vstring(""))));
+    _useNeuralEvalSplitQueues.tag(OptionTag::SATURATION);
+
+    _neuralEvalSplitQueueCutoffs = StringOptionValue("neural_eval_split_queue_cutoffs", "nesqc", "0");
+    _neuralEvalSplitQueueCutoffs.description = "The cutoff-values for the neural-eval-split-queues (the cutoff value for the last queue is omitted, since it has to be infinity).";
+    _lookup.insert(&_neuralEvalSplitQueueCutoffs);
+    _neuralEvalSplitQueueCutoffs.reliesOn(_useNeuralEvalSplitQueues.is(equal(true)));
+    _neuralEvalSplitQueueCutoffs.tag(OptionTag::SATURATION);
+
+    _neuralEvalSplitQueueRatios = StringOptionValue("neural_eval_split_queue_ratios", "nesqr", "10,1");
+    _neuralEvalSplitQueueRatios.description = "The ratios for picking clauses from the neural-eval-split-queues using weighted round robin. If a queue is empty, the clause will be picked from the next non-empty queue to the right."
+        " There should be exactly two numbers in the list.";
+    _lookup.insert(&_neuralEvalSplitQueueRatios);
+    _neuralEvalSplitQueueRatios.reliesOn(_useNeuralEvalSplitQueues.is(equal(true)));
+    _neuralEvalSplitQueueRatios.tag(OptionTag::SATURATION);
+
     _literalMaximalityAftercheck = BoolOptionValue("literal_maximality_aftercheck","lma",false);
     _literalMaximalityAftercheck.description = 
                                    "For efficiency we perform maximality checks before applying substitutions. Sometimes this can " 
@@ -3421,3 +3440,56 @@ Lib::vvector<float> Options::positiveLiteralSplitQueueCutoffs() const
 
   return cutoffs;
 }
+
+Lib::vvector<int> Options::neuralEvalSplitQueueRatios() const
+{
+  CALL("Options::neuralEvalSplitQueueRatios");
+
+  vstringstream inputRatiosStream(_neuralEvalSplitQueueRatios.actualValue);
+  Lib::vvector<int> inputRatios;
+  std::string currentRatio;
+  while (std::getline(inputRatiosStream, currentRatio, ',')) {
+    inputRatios.push_back(std::stoi(currentRatio));
+  }
+
+  // sanity checks
+  if (inputRatios.size() != 2) {
+    USER_ERROR("Wrong usage of option '-nesqr'. Needs to have exactly two values (e.g. '10,1')");
+  }
+  for (unsigned i = 0; i < inputRatios.size(); i++) {
+    if(inputRatios[i] <= 0) {
+      USER_ERROR("Each ratio (supplied by option '-nesqr') needs to be a positive integer");
+    }
+  }
+
+  return inputRatios;
+}
+
+Lib::vvector<float> Options::neuralEvalSplitQueueCutoffs() const
+{
+  CALL("Options::neuralEvalSplitQueueCutoffs");
+  // initialize cutoffs and add float-max as last value
+  Lib::vvector<float> cutoffs;
+  vstringstream cutoffsStream(_neuralEvalSplitQueueCutoffs.actualValue);
+  std::string currentCutoff;
+  while (std::getline(cutoffsStream, currentCutoff, ','))
+  {
+    cutoffs.push_back(std::stof(currentCutoff));
+  }
+  cutoffs.push_back(std::numeric_limits<float>::max());
+
+  // sanity checks
+  for (unsigned i = 0; i < cutoffs.size(); i++)
+  {
+    auto cutoff = cutoffs[i];
+
+    if (i > 0 && cutoff <= cutoffs[i-1])
+    {
+      USER_ERROR("The cutoff values (supplied by option '-nesqc') must be strictly increasing");
+    }
+  }
+
+  return cutoffs;
+}
+
+
