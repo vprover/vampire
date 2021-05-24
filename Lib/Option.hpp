@@ -79,7 +79,7 @@ public:
     : _isSome(true)
       , _elem()
   {
-    CALL("Option(A " #REF ")")
+    CALL("Option(A)")
     _elem.init(std::move(content));
   }
  
@@ -318,7 +318,9 @@ public:
   { return self.isSome() ?  out << self.unwrap() : out << "None"; }
 };
 
-template<class T> Option<T> some(T t) { return Option<T>(std::move(t)); }
+template<class T> Option<T> some(T const& t) { return Option<T>(          t ); }
+template<class T> Option<T> some(T      & t) { return Option<T>(          t ); }
+template<class T> Option<T> some(T     && t) { return Option<T>(std::move(t)); }
 template<class T> Option<T> none()    { return Option<T>(); }
 
 template<class T>

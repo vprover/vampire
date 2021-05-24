@@ -107,10 +107,6 @@ static size_t distance(const vstring &s1, const vstring &s2)
   return costs[n];
 }
 
-
-template<class Enum>
-Stack<vstring> enumValueNames();
-
 /**
  * Class that represents Vampire's options.
  * 11/11/2004 Shrigley Hall, completely reimplemented
@@ -776,18 +772,23 @@ private:
      * @author Giles
      * @since 30/07/14
      */
-    struct OptionChoiceValues{
-        
+    class OptionChoiceValues{
+      void check_names_are_short() {
+        for (auto x : _names) {
+          ASS(x.size() < 70) // or else cannot be printed on a line
+        }
+      }
+    public:
         OptionChoiceValues() : _names() { };
         OptionChoiceValues(Stack<vstring> names) : _names(std::move(names))  
         {
-          for (auto x : _names) {
-            ASS(x.size() < 70)
-          }
+          check_names_are_short();
         }
 
         OptionChoiceValues(std::initializer_list<vstring> list) : _names(list)
-        { }
+        {
+          check_names_are_short();
+        }
         
         int find(vstring value) const {
             for(unsigned i=0;i<_names.length();i++){
