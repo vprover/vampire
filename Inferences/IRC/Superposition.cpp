@@ -17,8 +17,6 @@
 #include "Saturation/SaturationAlgorithm.hpp"
 #include "Kernel/EqHelper.hpp"
 
-#define TODO ASSERTION_VIOLATION
-
 namespace Inferences {
 namespace IRC {
 
@@ -99,27 +97,28 @@ template<class NumTraits> Option<ClauseIterator> Superposition::generateClauses(
                 auto hyp2 = res.clause;    // <- `C2 \/ u[s2]+t2 <> 0`
                 auto pivot2 = res.literal; // <-       `u[s2]+t2 <> 0`
                 auto s2 = res.term; 
+                auto s1 = k_s1.factors; 
                 auto& cnst = res.constraints ? *res.constraints : dummy;
                 auto sigma = [&](auto term, int varBank) { return res.substitution->applyTo(term, varBank); };
 
                 // TODO maximality check after unification
                 // maximality checks
                 {
+                  // • ±k. s1 + t1 ≈ 0 is strictly maximal in Hyp1
                   ASS(_shared->strictlyMaximal(pivot1, hyp1->getLiteralIterator()))
+                  // • (±k. s1 + t1 ≈ 0)σ is strictly maximal in Hyp1σ
                   ASS(_shared->strictlyMaximal(sigma(pivot1, 0), iterTraits(hyp1->getLiteralIterator()).map([&](auto lit) { return sigma(lit, 0); })))
+
+                  // • u[s2] + t2 ≈ 0 is strictly maximal in Hyp2
                   ASS(_shared->strictlyMaximal(pivot2, hyp2->getLiteralIterator()))
+                  // • ( u[s2] + t2 ≈ 0)σ is strictly maximal in Hyp2σ
                   ASS(_shared->strictlyMaximal(sigma(pivot2, 1), iterTraits(hyp2->getLiteralIterator()).map([&](auto lit) { return sigma(lit, 1); })))
 
-                  //   return nothing;
-                  // // • (±k. s1 + t1 ≈ 0)σ is strictly maximal in Hyp1σ
-                  // if (!_shared->strictlyMaximal(sigma(pivot1, 0), sigma(hyp1, 0)))
-                  //   return nothing;
-                  //
-                  // // • ( u[s2] + t2 ≈ 0)σ is strictly maximal in Hyp2σ
-                  // if (!_shared->strictlyMaximal(sigma(pivot2, 1), sigma(hyp2, 1)))
-                  //   return nothing;
-                  //
-                  // // 
+                  // •        s1  σ is strictly maximal in terms(s1 + t1)σ
+                  ASS(_shared->strictlyMaximal(sigma(s1->denormalize(), 0), eq.term().iterSummands().map([&](auto monom) { return sigma(monom.factors->denormalize(), 0); })))
+
+                  // • term(u[s2])σ is strictly maximal in terms(u[s2] + t2)σ 
+                  // TODO check this condition somehow ?
                 }
 
                 Stack<Literal*> concl(hyp1->size() - 1 // <- C1
@@ -146,8 +145,11 @@ template<class NumTraits> Option<ClauseIterator> Superposition::generateClauses(
                       .filter([&](auto t) { return t != k_s1; })
                       .map([](auto monom) { return monom.denormalize(); }));
                   auto k = k_s1.numeral;
-                  auto repl = k != Numeral(-1) ? NumTraits::mul(NumTraits::constantTl(Numeral(-1) / k), sigma(t1, 0))
-                                               :                                                        sigma(t1, 0) ;
+                  auto repl = 
+                  //   ^^^^ -> u[∓(1/k)t1]+t2 <> 0) σ 
+                      k != Numeral(-1) ? NumTraits::mul(NumTraits::constantTl(Numeral(-1) / k), sigma(t1, 0))
+                                       :                                                        sigma(t1, 0) ;
+
 
                   auto resolvent = EqHelper::replace(sigma(pivot2, 1), sigma(s2, 1), repl);
                   concl.push(resolvent);
