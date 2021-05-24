@@ -237,5 +237,12 @@ auto forAnyNumTraits(Clsr clsr) {
       || clsr( RatTraits{})
       || clsr(RealTraits{});
 }
+template<class Clsr>
+auto tryNumTraits(Clsr clsr) {
+               return clsr( IntTraits{}) 
+      || [&] { return clsr( RatTraits{}); }
+      || [&] { return clsr(RealTraits{}); };
+}
+
 }
 #endif // __NUM_TRAITS_H__

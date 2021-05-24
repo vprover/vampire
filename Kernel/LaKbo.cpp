@@ -125,6 +125,73 @@ bool isACFunction(unsigned f)
 bool isACFunction(unsigned f)
 { return isACFunction<IntTraits>(f) || isACFunction<RatTraits>(f) || isACFunction<RealTraits>(f); }
  
+template<class Cmp>
+auto multisetCmpSorted(Stack<TermList> s1, Stack<TermList> s2, Cmp cmp) -> LaKbo::Result
+{
+  /* remove equal elements. we assume that s1 and s2 are sorted. */
+  unsigned i1 = 0;
+  unsigned o1 = 0;
+  unsigned i2 = 0;
+  unsigned o2 = 0;
+  auto keep = [](Stack<TermList>& stack, unsigned& index, unsigned& offset) 
+  { stack[offset++] = stack[index++]; };
+  auto rm = [&]() { i1++; i2++; };
+  auto keep1 = [&]() { keep(s1, i1, o1); };
+  auto keep2 = [&]() { keep(s2, i2, o2); };
+  while (i1 < s1.size() && i2 < s2.size()) {
+    if (s1[i1] == s2[i2]) {
+      rm();
+    } else if (s1[i1] < s2[i2]) {
+      keep1();
+    } else {
+      keep2();
+    }
+  }
+  while(i1 < s1.size()) 
+    keep1();
+  while(i2 < s2.size())
+    keep2();
+
+  s1.truncate(o1);
+  s2.truncate(o2);
+
+  if (s1.isEmpty() && s2.isEmpty()) {
+    return LaKbo::Result::EQUAL;
+  } else if (s1.isEmpty()) {
+    return LaKbo::LESS;
+  } else if (s2.isEmpty()) {
+    return LaKbo::GREATER;
+  }
+
+  auto checkAllDominated = [&](Stack<TermList> const& s1, Stack<TermList> const& s2) {
+    for (auto e1 : s1) {
+      if (!iterTraits(s2.iterFifo())
+          .find([&](TermList e2) { return cmp(e1, e2) == LaKbo::LESS; })
+          .isSome()) {
+        return false;
+      }
+    }
+    return true;
+  };
+  auto dom1 = checkAllDominated(s1, s2);
+  auto dom2 = checkAllDominated(s2, s1);
+  ASS(!dom1 || !dom2);
+  if (dom1)  {
+    return LaKbo::LESS;
+  } else if (dom2) {
+    return LaKbo::GREATER;
+  } else {
+    return LaKbo::INCOMPARABLE;
+  }
+}
+
+template<class Cmp>
+auto multisetCmp(Stack<TermList> s1, Stack<TermList> s2, Cmp cmp) -> LaKbo::Result
+{
+  std::sort(s1.begin(), s1.end());
+  std::sort(s2.begin(), s2.end());
+  return multisetCmpSorted(std::move(s1), std::move(s2), cmp);
+}
 
 void LaKbo::traverseAC(TraversalResult& res, Term* t1, Term* t2) const
 {
@@ -155,7 +222,7 @@ void LaKbo::traverseAC(TraversalResult& res, Term* t1, Term* t2) const
      Also it assumes that t_1 < t_2 < t_n wrt std::less<TermList>. */
   auto flatten = [&](Term* t) -> Flattened {
     auto isSmallFn = [&](TermList t) -> bool 
-      { return t.isTerm() &&  compareFunctionPrecedences(t.term()->functor(), f) == LESS; };
+      { return t.isTerm() &&  compareFunctionPrecedences(t.term()->functor(), f) == Result::LESS; };
 
     auto small = Stack<TermList>{ };
     auto big   = Stack<TermList>{ };
@@ -175,69 +242,10 @@ void LaKbo::traverseAC(TraversalResult& res, Term* t1, Term* t2) const
     return Flattened(std::move(small), std::move(big));
   };
 
-  auto multisetCmp = [&](Stack<TermList>& s1, Stack<TermList>& s2) -> LaKbo::Result
-  {
-    /* remove equal elements. we assume that s1 and s2 are sorted. */
-    unsigned i1 = 0;
-    unsigned o1 = 0;
-    unsigned i2 = 0;
-    unsigned o2 = 0;
-    auto keep = [](Stack<TermList>& stack, unsigned& index, unsigned& offset) 
-    { stack[offset++] = stack[index++]; };
-    auto rm = [&]() { i1++; i2++; };
-    auto keep1 = [&]() { keep(s1, i1, o1); };
-    auto keep2 = [&]() { keep(s2, i2, o2); };
-    while (i1 < s1.size() && i2 < s2.size()) {
-      if (s1[i1] == s2[i2]) {
-        rm();
-      } else if (s1[i1] < s2[i2]) {
-        keep1();
-      } else {
-        keep2();
-      }
-    }
-    while(i1 < s1.size()) 
-      keep1();
-    while(i2 < s2.size())
-      keep2();
-
-    s1.truncate(o1);
-    s2.truncate(o2);
-
-    if (s1.isEmpty() && s2.isEmpty()) {
-      return LaKbo::Result::EQUAL;
-    } else if (s1.isEmpty()) {
-      return LaKbo::LESS;
-    } else if (s2.isEmpty()) {
-      return LaKbo::GREATER;
-    }
-
-    auto checkAllDominated = [this](Stack<TermList> const& s1, Stack<TermList> const& s2) {
-      for (auto e1 : s1) {
-        if (!iterTraits(s2.iterFifo())
-            .find([&](TermList e2) { return compare(e1, e2) == LESS; })
-            .isSome()) {
-          return false;
-        }
-      }
-      return true;
-    };
-    auto dom1 = checkAllDominated(s1, s2);
-    auto dom2 = checkAllDominated(s2, s1);
-    ASS(!dom1 || !dom2);
-    if (dom1)  {
-      return LESS;
-    } else if (dom2) {
-      return GREATER;
-    } else {
-      return INCOMPARABLE;
-    }
-  };
-
-
   auto f1 = flatten(t1);
   auto f2 = flatten(t2);
-  auto cmpBig = multisetCmp(f1.bigFnsAndVars(), f2.bigFnsAndVars());
+  auto cmpBig = multisetCmpSorted(std::move(f1.bigFnsAndVars()), std::move(f2.bigFnsAndVars()), 
+                   [&](auto l, auto r) { return this->compare(l,r); });
   switch (cmpBig) {
     case LESS:    
     case GREATER: 
@@ -250,7 +258,8 @@ void LaKbo::traverseAC(TraversalResult& res, Term* t1, Term* t2) const
       } else if (f1.size() > f2.size()) {
         res.side_condition = Result::GREATER;
       } else {
-        res.side_condition = multisetCmp(f1.smallFns(), f2.smallFns());
+        res.side_condition = multisetCmpSorted(std::move(f1.smallFns()), std::move(f2.smallFns()),
+                               [&](auto l, auto r) { return this->compare(l,r); });
       }
       break;
     default:
@@ -362,6 +371,10 @@ Literal* normalizeLiteral(Literal* lit)
   return Literal::create(lit, args.begin());
 }
 
+
+// LaKbo::Result LaKbo::compare(Literal* l1_, Literal* l2_) const 
+// { return PrecedenceOrdering::compare(l1_,l2_); }
+
 LaKbo::Result LaKbo::comparePredicates(Literal* l1_, Literal* l2_) const 
 {
   CALL("LaKbo::compare(Literal*, Literal*)");
@@ -372,6 +385,37 @@ LaKbo::Result LaKbo::comparePredicates(Literal* l1_, Literal* l2_) const
     auto l2 = normalizeLiteral(l2_);
     auto res = TraversalResult::initial(); 
     if (l1->functor() == l2->functor()) {
+      auto sort = SortHelper::getArgSort(l1, 0);
+      auto f = l1->functor();
+      auto ineqCmp = tryNumTraits([&](auto numTraits) {
+        using NumTraits = decltype(numTraits);
+        if (sort == NumTraits::sort() && (
+              l1->isEquality()
+              || f == NumTraits::greaterF() 
+              || f == NumTraits::geqF()       )) {
+
+          /* literals must look like t1 + ... + tn <> 0 */
+          auto a1 = normalizeTerm(*l1->nthArgument(0), sort).template wrapPoly<NumTraits>();
+          auto a2 = normalizeTerm(*l2->nthArgument(0), sort).template wrapPoly<NumTraits>();
+          ASS_EQ(*l1->nthArgument(1), NumTraits::zero())
+          ASS_EQ(*l2->nthArgument(1), NumTraits::zero())
+
+          auto result = multisetCmp(
+              a1->iterSummands()
+                .map([&](auto monom) { return monom.factors->denormalize(); })
+                .template collect<Stack>(),
+              a2->iterSummands()
+                .map([&](auto monom) { return monom.factors->denormalize(); })
+                .template collect<Stack>(),
+              [&](auto lhs, auto rhs) { return this->compare(lhs, rhs); });
+          return Option<Result>( (result == Result::EQUAL && a1 != a2) ? Result::INCOMPARABLE : result);
+        } else {
+          return Option<Result>();
+        }
+      });
+      if (ineqCmp.isSome()) {
+        return ineqCmp.unwrap();
+      }
       traverseLex(res, l1->args(), l2->args());
     } else {
       res.weight_balance -= predicateWeight(l1->functor());
@@ -401,7 +445,7 @@ LaKbo::Result LaKbo::toOrdering(TraversalResult const& res) const
     case LeftPlus:
       if (res.weight_balance < 0) {
         return Result::GREATER;
-      } else if (res.weight_balance > 0  || res.side_condition == EQUAL|| res.side_condition == LESS) {
+      } else if (res.weight_balance > 0  || res.side_condition == EQUAL|| res.side_condition == Result::LESS) {
         return Result::INCOMPARABLE;
       } else {
         ASS_EQ(res.weight_balance, 0)

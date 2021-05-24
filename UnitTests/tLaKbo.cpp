@@ -30,14 +30,14 @@ const LaKbo::Result Less    = LaKbo::Result::LESS;
 const LaKbo::Result Equal   = LaKbo::Result::EQUAL;
 const LaKbo::Result Incomp  = LaKbo::Result::INCOMPARABLE;
 
-inline DArray<int> funcPrec() {
+DArray<int> funcPrec() {
   unsigned num = env.signature->functions();
   DArray<int> out(num);
   out.initFromIterator(getRangeIterator(0u, num));
   return out;
 }
 
-inline DArray<int> predPrec() {
+DArray<int> predPrec() {
   unsigned num = env.signature->predicates();
   DArray<int> out(num);
   out.initFromIterator(getRangeIterator(0u, num));
@@ -63,7 +63,7 @@ KboWeightMap<SigTraits> toWeightMap(unsigned introducedSymbolWeight, KboSpecialW
 }
 
 template<class T>
-void check__(LaKbo& ord, T lhs, LaKbo::Result exp, T rhs) {
+void check__(Ordering& ord, T lhs, LaKbo::Result exp, T rhs) {
   // std::cout << std::endl;
   auto check_ = [&](T lhs, LaKbo::Result exp, T rhs) {
     auto res = ord.compare(lhs,rhs);
@@ -99,11 +99,11 @@ void check(LaKbo& ord, TermList lhs, LaKbo::Result exp, TermList rhs)
 void check(LaKbo& ord, Literal* lhs, LaKbo::Result exp, Literal* rhs) 
 { check__(ord, lhs,exp,rhs); }
 
-inline LaKbo kbo(unsigned introducedSymbolWeight, 
+LaKbo laKbo(unsigned introducedSymbolWeight, 
     unsigned variableWeight, 
     const Map<unsigned, KboWeight>& funcs, 
     const Map<unsigned, KboWeight>& preds) {
-  CALL("kbo(...)")
+  CALL("laKbo(...)")
  
   return LaKbo(KBO(toWeightMap<FuncSigTraits>(introducedSymbolWeight, { 
           ._variableWeight = variableWeight ,
@@ -124,11 +124,11 @@ inline LaKbo kbo(unsigned introducedSymbolWeight,
 }
 
 
-inline LaKbo kbo(const Map<unsigned, KboWeight>& funcs, const Map<unsigned, KboWeight>& preds) {
-  return kbo(1, 1, funcs, preds);
+LaKbo laKbo(const Map<unsigned, KboWeight>& funcs, const Map<unsigned, KboWeight>& preds) {
+  return laKbo(1, 1, funcs, preds);
 }
 
-inline void __weights(Map<unsigned, KboWeight>& ws) {
+void __weights(Map<unsigned, KboWeight>& ws) {
 }
 
 template<class A, class... As>
@@ -160,7 +160,7 @@ TEST_FUN(kbo_test01) {
  
   // !!! The declaration order of function and constant symbols will define their precedence relation !!!
 
-  auto ord = kbo( 
+  auto ord = laKbo( 
       weights( // <- function symbol weights
         make_pair(f, 10u), // <- sets the weight of the function f to 10
         make_pair(c, 1u ) // <- sets the weight of the constant c to 1
@@ -183,7 +183,7 @@ TEST_FUN(kbo_test02) {
   DECL_FUNC (g, {srt}, srt)
   DECL_CONST(c, srt)
 
-  auto ord = kbo(weights(make_pair(f, 10u)), weights());
+  auto ord = laKbo(weights(make_pair(f, 10u)), weights());
 
   check(ord, f(c), Greater, g(g(g(g(g(c))))));
 }
@@ -195,7 +195,7 @@ TEST_FUN(kbo_test03) {
   DECL_FUNC (g, {srt}, srt)
   DECL_CONST(c, srt)
 
-  auto ord = kbo(weights(make_pair(f, 10u)), weights());
+  auto ord = laKbo(weights(make_pair(f, 10u)), weights());
 
   check(ord, f(x), Greater, g(g(g(g(g(c))))));
 }
@@ -206,7 +206,7 @@ TEST_FUN(kbo_test04) {
   DECL_FUNC (f, {srt}, srt)
   DECL_FUNC (g, {srt}, srt)
 
-  auto ord = kbo(weights(make_pair(f, 10u)), weights());
+  auto ord = laKbo(weights(make_pair(f, 10u)), weights());
 
   check(ord, f(x), Incomp, g(g(g(g(g(y))))));
 }
@@ -217,7 +217,7 @@ TEST_FUN(kbo_test05) {
   DECL_FUNC (g, {srt}, srt)
   DECL_FUNC (f, {srt}, srt)
 
-  auto ord = kbo(weights(make_pair(f, 0u)), weights());
+  auto ord = laKbo(weights(make_pair(f, 0u)), weights());
 
   check(ord, f(x), Less, g(x));
 }
@@ -227,7 +227,7 @@ TEST_FUN(kbo_test06) {
   DECL_SORT(srt)
   DECL_FUNC(f, {srt}, srt)
 
-  auto ord = kbo(weights(make_pair(f, 0u)), weights());
+  auto ord = laKbo(weights(make_pair(f, 0u)), weights());
 
   check(ord, f(x), Greater, x);
 }
@@ -237,7 +237,7 @@ TEST_FUN(kbo_test07) {
   DECL_SORT(srt)
   DECL_FUNC(f, {srt}, srt)
 
-  auto ord = kbo(weights(make_pair(f, 0u)), weights());
+  auto ord = laKbo(weights(make_pair(f, 0u)), weights());
 
   check(ord, f(x), Greater, x);
 }
@@ -248,7 +248,7 @@ TEST_FUN(kbo_test08) {
   DECL_FUNC(g, {srt}, srt)
   DECL_FUNC(f, {srt}, srt)
 
-  auto ord = kbo(weights(make_pair(f, 0u), make_pair(g, 1u)), weights());
+  auto ord = laKbo(weights(make_pair(f, 0u), make_pair(g, 1u)), weights());
 
   check(ord, g(f(x)), Less, f(g(x)));
 }
@@ -259,7 +259,7 @@ TEST_FUN(kbo_test11) {
   DECL_FUNC(g, {srt}, srt)
   DECL_FUNC(f, {srt}, srt)
 
-  auto ord = kbo(weights(make_pair(f, 0u), make_pair(g, 1u)), weights());
+  auto ord = laKbo(weights(make_pair(f, 0u), make_pair(g, 1u)), weights());
 
   check(ord, g(f(x)), Less, f(g(x)));
 }
@@ -270,7 +270,7 @@ TEST_FUN(kbo_test12) {
   DECL_CONST(a, srt)
   DECL_CONST(b, srt)
 
-  auto ord = kbo(weights(), weights());
+  auto ord = laKbo(weights(), weights());
 
   check(ord, a, Less,b);
 }
@@ -281,7 +281,7 @@ TEST_FUN(kbo_test13) {
   DECL_CONST(a, srt)
   DECL_CONST(b, srt)
 
-  auto ord = kbo(weights(make_pair(a,3u), make_pair(b,2u)), weights());
+  auto ord = laKbo(weights(make_pair(a,3u), make_pair(b,2u)), weights());
 
   check(ord, a, Greater,b);
 }
@@ -294,7 +294,7 @@ TEST_FUN(kbo_test14) {
   DECL_FUNC(g, {srt}, srt)
   DECL_FUNC(u, {srt}, srt)
 
-  auto ord = kbo(weights(make_pair(a,1u), make_pair(u,0u)), weights());
+  auto ord = laKbo(weights(make_pair(a,1u), make_pair(u,0u)), weights());
 
   check(ord, u(f(g(x),g(a))), Greater, u(f(x,g(a))));
 }
@@ -307,7 +307,7 @@ TEST_FUN(kbo_test15) {
   DECL_FUNC(g, {srt}, srt)
   DECL_FUNC(u, {srt}, srt)
 
-  auto ord = kbo(weights(make_pair(a,1u), make_pair(u,0u)), weights());
+  auto ord = laKbo(weights(make_pair(a,1u), make_pair(u,0u)), weights());
 
   check(ord, u(f(g(u(x)),g(a))), Greater, u(f(x,g(a))));
 }
@@ -318,7 +318,7 @@ TEST_FUN(kbo_test16) {
   DECL_CONST(a, srt)
   DECL_FUNC(u, {srt}, srt)
 
-  auto ord = kbo(weights(make_pair(a,1u), make_pair(u,0u)), weights());
+  auto ord = laKbo(weights(make_pair(a,1u), make_pair(u,0u)), weights());
 
   check(ord, u(x), Greater, x);
 }
@@ -330,7 +330,7 @@ TEST_FUN(kbo_test17) {
   DECL_FUNC(f, {srt}, srt)
   DECL_FUNC(u, {srt}, srt)
 
-  auto ord = kbo(weights(make_pair(a,1u), make_pair(u,0u)), weights());
+  auto ord = laKbo(weights(make_pair(a,1u), make_pair(u,0u)), weights());
 
   check(ord, u(f(x)), Greater, f(x));
 }
@@ -342,7 +342,7 @@ TEST_FUN(kbo_test18) {
   DECL_FUNC(f, {srt}, srt)
   DECL_FUNC(u, {srt}, srt)
 
-  auto ord = kbo(weights(make_pair(a,1u), make_pair(u,0u)), weights());
+  auto ord = laKbo(weights(make_pair(a,1u), make_pair(u,0u)), weights());
 
   check(ord, f(u(x)), Greater, f(x));
 }
@@ -354,7 +354,7 @@ TEST_FUN(kbo_test19) {
   DECL_FUNC(g, {srt}, srt)
   DECL_PRED(p, {srt})
 
-  auto ord = kbo(
+  auto ord = laKbo(
       weights(
         make_pair(f,2u), 
         make_pair(g,3u)
@@ -372,7 +372,7 @@ TEST_FUN(kbo_test21) {
   DECL_CONST(a, srt)
   DECL_CONST(b, srt)
 
-  auto ord = kbo(
+  auto ord = laKbo(
       10, // <- weight for introduced symbols
       10, // <- variable weight
       weights(
@@ -391,7 +391,7 @@ TEST_FUN(kbo_test22) {
   DECL_PRED(r, {srt, srt})
   DECL_FUNC(g, {srt, srt}, srt)
 
-  auto ord = kbo(
+  auto ord = laKbo(
       1, // <- weight for introduced symbols
       1, // <- variable weight
       weights(
@@ -410,7 +410,7 @@ TEST_FUN(lakbo_test01) {
   DECL_FUNC (f, {Int}, Int)
   DECL_CONST(a, Int)
 
-  auto ord = kbo(weights(
+  auto ord = laKbo(weights(
       make_pair(f, 1u),
       make_pair(a, 1u),
       make_pair(add, 1u)
@@ -436,6 +436,33 @@ TEST_FUN(lakbo_test01) {
   check(ord, f(a) + x   , Incomp, f(x) + a);
 }
 
+
+TEST_FUN(lakbo_test02) {
+  DECL_DEFAULT_VARS
+  NUMBER_SUGAR(Int)
+  DECL_FUNC (f, {Int}, Int)
+  DECL_CONST(a, Int)
+  DECL_CONST(b, Int)
+
+  auto ord = laKbo(weights(
+      make_pair(f, 1u),
+      make_pair(a, 1u),
+      make_pair(b, 1u),
+      make_pair(add, 1u)
+    ), weights());
+
+  check(ord,     f(x) > 0, Incomp, 3 * f(x) > 0);
+  check(ord, 5 * f(x) > 0, Incomp, 3 * f(x) > 0);
+
+  check(ord,                     f(x) > 0, Less,     f(f(x)) > 0);
+  check(ord,              f(x) + f(x) > 0, Less,     f(f(x)) > 0);
+  check(ord,              f(a) + f(b) > 0, Less,     f(f(x)) > 0);
+  check(ord,   3 * f(x) + f(a) + f(b) > 0, Less,     f(f(x)) > 0);
+  check(ord,   3 * f(x) + x           > 0, Less,     f(f(x)) > 0);
+  check(ord,   3 * f(x) + x     + y   > 0, Less,     f(f(x)) + y > 0);
+  check(ord,   3 * f(x) + x     + y   > 0, Incomp,   f(f(x))     > 0);
+}
+
 TEST_FUN(lakbo_bug01) {
   DECL_DEFAULT_VARS
   DECL_VAR(x0, 0); DECL_VAR(x1, 1); DECL_VAR(x2, 2); DECL_VAR(x3, 3);
@@ -447,13 +474,13 @@ TEST_FUN(lakbo_bug01) {
 
   // lG300($sum(f21,sLF0),f22)
   // f($sum(a,b),c)
-  auto ord = kbo(weights( make_pair(f, 1u)
-                        , make_pair(a, 1u)
-                        , make_pair(b, 1u)
-                        , make_pair(c, 1u)
-                        , make_pair(add, 1u)
-                        , make_pair(mul, 1u)
-                        )
+  auto ord = laKbo(weights( make_pair(f, 1u)
+                          , make_pair(a, 1u)
+                          , make_pair(b, 1u)
+                          , make_pair(c, 1u)
+                          , make_pair(add, 1u)
+                          , make_pair(mul, 1u)
+                          )
                 , weights());
 
   check(ord, x, Incomp, a); 
@@ -464,28 +491,3 @@ TEST_FUN(lakbo_bug01) {
   check(ord,  f(x0 * (x1 * x3), x0 * (x1 * x2)),
         Less, f(x0 * (x1 * x2 + x1 * x3), x0 * (x1 * x2)) );
 }
-
-// TEST_FUN(lakbo_bug02) {
-//   DECL_DEFAULT_VARS
-//   NUMBER_SUGAR(Int)
-//   DECL_FUNC (f, {Int,Int}, Int)
-//   DECL_CONST(a, Int)
-//   DECL_CONST(b, Int)
-//   DECL_CONST(c, Int)
-//
-//
-//   // lG300($sum(f21,sLF0),f22)
-//   // f($sum(a,b),c)
-//   auto ord = kbo(weights(
-//       make_pair(f, 1u),
-//       make_pair(a, 1u),
-//       make_pair(b, 1u),
-//       make_pair(c, 1u),
-//       make_pair(add, 1u)
-//     ), weights());
-//
-//   check(ord, x, Incomp, a); 
-//
-//   check(ord, f(a + b, c), Equal , f(a + b, c));
-//   check(ord, f(b + a, c), Incomp, f(a + b, c));
-// }

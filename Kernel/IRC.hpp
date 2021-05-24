@@ -252,7 +252,8 @@ namespace Kernel {
     friend struct IrcState;
   };
 
-  struct IrcState {
+  struct IrcState 
+  {
     CLASS_NAME(IrcState);
     USE_ALLOCATOR(IrcState);
 
@@ -269,8 +270,8 @@ namespace Kernel {
     Option<AnyInequalityLiteral> normalizeIneq(Literal*);
     PolyNf normalize(TypedTermList);
 
-    template<class Iter>
-    bool strictlyMaximal(Literal* pivot, Iter lits)
+    template<class LitOrTerm, class Iter>
+    bool strictlyMaximal(LitOrTerm pivot, Iter lits)
     {
       bool found = false;
       for (auto lit : iterTraits(lits)) {
@@ -282,8 +283,6 @@ namespace Kernel {
           }
         }
         if (ordering->compare(pivot, lit) == Ordering::LESS) {
-          DBGE(*pivot)
-          DBGE(*lit)
           return false;
         }
       }

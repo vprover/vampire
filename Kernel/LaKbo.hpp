@@ -45,9 +45,10 @@ public:
 
   virtual ~LaKbo() {}
 
-  Result comparePredicates(Literal* l1,Literal* l2) const final override;
+  // virtual Result compare(Literal* l1,Literal* l2) const override;
+  using PrecedenceOrdering::compare;
+  Result comparePredicates(Literal* l1, Literal* l2) const override;
   Result compare(TermList, TermList) const final override;
-  Result compare(Literal* l1, Literal* l2) const final override { return PrecedenceOrdering::compare(l1, l2); }
 
   void show(ostream& out) const final override;
   Comparison compareFunctors(unsigned fun1, unsigned fun2) const override;
@@ -83,7 +84,6 @@ private:
   void traverseSubterm(TraversalResult& res, Term* t, unsigned v, bool varRhs) const;
   void traverseAC(TraversalResult& res, Term* t1, Term* t2) const;
   TermList dropNumeralMultiplications(LaKbo::TraversalResult& res,  TermList t) const;
-
 };
 
 } // namespace Kernel
