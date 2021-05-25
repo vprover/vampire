@@ -949,14 +949,18 @@ bool SubstitutionTree::UnificationsIterator::associate(TermList query, TermList 
 {
   CALL("SubstitutionTree::UnificationsIterator::associate");
 
-  if(useUWAConstraints){ 
-    SubstitutionTreeMismatchHandler hndlr(constraints,bd);
-    return subst.unify(query,NORM_QUERY_BANK,node,NORM_RESULT_BANK,&hndlr);
-  } 
+  //The ordering of the if statements is important here. Higher-order problems
+  //should never require theory resoning (at the moment, theories cannot be parsed in HOL)
+  //However, a user can still set UWA option on. We don't wan't that to result in 
+  //the wrong handler being used.
   if(useHOConstraints){
     STHOMismatchHandler hndlr(constraints,bd);
     return subst.unify(query,NORM_QUERY_BANK,node,NORM_RESULT_BANK,&hndlr);    
   }
+  if(useUWAConstraints){ 
+    SubstitutionTreeMismatchHandler hndlr(constraints,bd);
+    return subst.unify(query,NORM_QUERY_BANK,node,NORM_RESULT_BANK,&hndlr);
+  } 
   return subst.unify(query,NORM_QUERY_BANK,node,NORM_RESULT_BANK);
 }
 

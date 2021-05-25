@@ -361,7 +361,7 @@ public:
     friend class Problem;
     void validate() const;
 
-    void prepareOptionsReader(OptionsReader& rdr);
+    // void prepareOptionsReader(OptionsReader& rdr);
     void setDefaults();
 
     struct Atom2LitFn;

@@ -1366,6 +1366,19 @@ TermList AtomicSort::arrowSort(TermStack& domSorts, TermList range)
   return res;
 }
 
+AtomicSort* AtomicSort::createConstant(const vstring& name)
+{
+  CALL("AtomicSort::createConstant");
+
+  bool added;
+  unsigned newSort = env.signature->addTypeCon(sortName,0,added);
+  if(added){
+    OperatorType* ot = OperatorType::getConstantsType(superSort());
+    env.signature->getTypeCon(newSort)->setType(ot);
+  }
+  return createConstant(newSort);
+}
+
 TermList AtomicSort::arraySort(TermList indexSort, TermList innerSort)
 {
   CALL("AtomicSort::arraySort");
@@ -1904,6 +1917,19 @@ std::ostream& Kernel::operator<< (ostream& out, const Literal& l )
   return out<<l.toString();
 }
 
+bool Kernel::operator<(const TermList& lhs, const TermList& rhs) 
+{ 
+  auto cmp = lhs.isTerm() - rhs.isTerm();
+  if (cmp != 0) return cmp < 0;
+  if (lhs.isTerm()) {
+    ASS(rhs.isTerm())
+    return lhs.term()->getId() < rhs.term()->getId();
+  } else {
+    ASS(lhs.isVar())
+    ASS(rhs.isVar())
+    return lhs.var() < rhs.var();
+  }
+}
 
 /**
  * If the literal has the form p(R,f(S),T), where f(S) is the

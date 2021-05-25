@@ -162,11 +162,12 @@ public:
    * Create an object with @b core as its core.
    */
   inline
-  explicit VirtualIterator(IteratorCore<T>* core) : _core(core) { _core->_refCnt++;}
+  explicit VirtualIterator(IteratorCore<T>* core) : _core(core) { _core->_refCnt++; }
 
   inline
   VirtualIterator(const VirtualIterator& obj) : _core(obj._core)
   {
+    CALL("ViratualIterator(const&)")
     if(_core) {
       _core->_refCnt++;
     }
@@ -176,7 +177,6 @@ public:
   ~VirtualIterator()
   {
     CALL("VirtualIterator::~VirtualIterator");
-
     if(_core) {
 	_core->_refCnt--;
 	if(!_core->_refCnt) {

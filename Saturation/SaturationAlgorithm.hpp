@@ -65,11 +65,8 @@ public:
 
   UnitList* collectSaturatedSet();
 
-  void setGeneratingInferenceEngine(GeneratingInferenceEngine* generator);
+  void setGeneratingInferenceEngine(SimplifyingGeneratingInference* generator);
   void setImmediateSimplificationEngine(ImmediateSimplificationEngine* immediateSimplifier);
-#if VZ3
-  void setTheoryInstAndSimp(TheoryInstAndSimp* t);
-#endif
 
   void setLabelFinder(LabelFinder* finder){ _labelFinder = finder; }
 
@@ -129,15 +126,16 @@ protected:
   virtual void init();
   virtual MainLoopResult runImpl();
   void doUnprocessedLoop();
-  virtual void handleUnsuccessfulActivation(Clause* c);
   virtual bool handleClauseBeforeActivation(Clause* c);
   void addInputSOSClause(Clause* cl);
+
   void newClausesToUnprocessed();
   void addUnprocessedClause(Clause* cl);
   bool forwardSimplify(Clause* c);
   void backwardSimplify(Clause* c);
   void addToPassive(Clause* c);
-  bool activate(Clause* c);
+  void activate(Clause* c);
+  void removeSelected(Clause*);
   virtual void onSOSClauseAdded(Clause* c) {}
   void onActiveAdded(Clause* c);
   virtual void onActiveRemoved(Clause* c);
@@ -149,6 +147,8 @@ protected:
   virtual void onUnprocessedSelected(Clause* c);
   void onNewUsefulPropositionalClause(Clause* c);
   virtual void onClauseRetained(Clause* cl);
+  /** called before the selected clause is deleted from the searchspace */
+  virtual void beforeSelectedRemoved(Clause* cl) {};
   void onAllProcessed();
   int elapsedTime();
   virtual bool isComplete();
@@ -184,7 +184,7 @@ protected:
   ActiveClauseContainer* _active;
   ExtensionalityClauseContainer* _extensionality;
 
-  ScopedPtr<GeneratingInferenceEngine> _generator;
+  ScopedPtr<SimplifyingGeneratingInference> _generator;
   ScopedPtr<ImmediateSimplificationEngine> _immediateSimplifier;
 
   typedef List<ForwardSimplificationEngine*> FwSimplList;
@@ -210,9 +210,6 @@ protected:
   SymElOutput* _symEl;
   AnswerLiteralManager* _answerLiteralManager;
   Instantiation* _instantiation;
-#if VZ3
-  TheoryInstAndSimp* _theoryInstSimp;
-#endif
 
 
   SubscriptionData _passiveContRemovalSData;

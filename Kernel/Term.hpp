@@ -59,6 +59,7 @@ enum TermTag {
   SPEC_VAR = 3u,
 };
 
+bool operator<(const TermList& lhs, const TermList& rhs);
 
 /**
  * Class containing either a pointer to a compound term or
@@ -66,6 +67,7 @@ enum TermTag {
  */
 class TermList {
 public:
+  CLASS_NAME(TermList)
   static const unsigned SPEC_UPPER_BOUND = 10000000;
   /** dummy constructor, does nothing */
   TermList() {}
@@ -167,10 +169,8 @@ public:
   { return _content==t._content; }
   inline bool operator!=(const TermList& t) const
   { return _content!=t._content; }
-  inline bool operator<(const TermList& t) const
-  { return _content<t._content; }
-  inline bool operator>(const TermList& t) const
-  { return _content>t._content; }
+
+  friend bool operator<(const TermList& lhs, const TermList& rhs);
 
 private:
   vstring asArgsToString() const;
@@ -778,7 +778,8 @@ public:
   static AtomicSort* create2(unsigned tc, TermList arg1, TermList arg2);
   static AtomicSort* create(AtomicSort* t,TermList* args);
   static AtomicSort* createConstant(unsigned typeCon) { return create(typeCon,0,0); }
-  
+  static AtomicSort* createConstant(const vstring& name); 
+
   /** True if the sort is a higher-order arrow sort */
   bool isArrowSort() const;
   /** True if the sort $o */
@@ -1016,13 +1017,16 @@ std::ostream& operator<< (ostream& out, const Literal& tl );
 
 };
 
+/* template specializations */
 namespace Lib
 {
+
 
 template<>
 struct FirstHashTypeInfo<Kernel::TermList> {
   typedef Kernel::TermListHash Type;
 };
+
 
 }
 

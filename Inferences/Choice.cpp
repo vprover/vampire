@@ -151,8 +151,7 @@ struct Choice::ResultFn
 {
   ResultFn(){}
   
-  DECL_RETURN_TYPE(VirtualIterator<Clause*>);
-  OWN_RETURN_TYPE operator() (TermList term){
+  VirtualIterator<Clause*> operator() (TermList term){
     TermList op = *term.term()->nthArgument(2);
     if(op.isVar()){
       return pvi(AxiomsIterator(term));
@@ -166,7 +165,6 @@ struct Choice::ResultFn
 
 struct Choice::IsChoiceTerm
 {
-  DECL_RETURN_TYPE(bool);
   bool operator()(TermList t)
   { 
     TermStack args;
@@ -195,8 +193,7 @@ struct Choice::SubtermsFn
 {
   SubtermsFn() {}
 
-  DECL_RETURN_TYPE(VirtualIterator<TermList>);
-  OWN_RETURN_TYPE operator()(Literal* lit)
+  VirtualIterator<TermList> operator()(Literal* lit)
   {
     CALL("Choice::RewriteableSubtermsFn()");
 

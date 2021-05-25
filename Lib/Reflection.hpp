@@ -16,6 +16,9 @@
 #ifndef __Reflection__
 #define __Reflection__
 
+#include <type_traits>
+#include <initializer_list>
+
 ///@addtogroup Reflection
 ///@{
 
@@ -65,44 +68,6 @@
  * @see DECL_ELEMENT_TYPE
  */
 #define OWN_ELEMENT_TYPE _ElementType
-
-/**
- * Declare type returned by a functor class
- *
- * To be used inside a public block of declaration of a functor class.
- *
- * A functor class is a class with @b operator() defined, so that its
- * objects can be called as functions. The return type to be declared
- * by this macro is the return type of this operator.
- *
- * Although the macro formally takes variable number of arguments, it
- * should be used only with a single argument. The variable number
- * of formal arguments is to allow for the use of template types,
- * such as pair<int,int>, since the preprocessor considers every
- * comma as an argument separator.
- */
-#define DECL_RETURN_TYPE(...) typedef __VA_ARGS__ _ReturnType
-
-/**
- * Return type of the functor class @b Cl
- *
- * The class @b Cl must have its return type declared by the
- * @b DECL_RETURN_TYPE macro in order for this macro to be applicable
- *
- * @see DECL_RETURN_TYPE
- */
-#define RETURN_TYPE(Cl) typename Cl::_ReturnType
-
-/**
- * Return type of the current functor class
- *
- * The current class must have its return type declared by the
- * @b DECL_RETURN_TYPE macro in order for this macro to be applicable
- *
- * @see DECL_RETURN_TYPE
- */
-#define OWN_RETURN_TYPE _ReturnType
-
 
 /**
  * Declare the iterator type for a container class
@@ -197,6 +162,11 @@ template<typename T>
 struct ElementTypeInfo<T*>
 {
   typedef T Type;
+};
+
+template<class C> 
+struct ElementTypeInfo<std::initializer_list<C>> {
+  using Type = C;
 };
 
 /**

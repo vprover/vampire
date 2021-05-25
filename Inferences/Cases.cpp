@@ -77,8 +77,7 @@ Clause* Cases::performParamodulation(Clause* premise, Literal* lit, TermList t) 
 struct Cases::ResultFn
 {
   ResultFn(Clause* cl, Cases& parent) : _cl(cl), _parent(parent) {}
-  DECL_RETURN_TYPE(Clause*);
-  OWN_RETURN_TYPE operator()(pair<Literal*, TermList> arg)
+  Clause* operator()(pair<Literal*, TermList> arg)
   {
     CALL("FOOLParamodulation::ResultFn::operator()");
     
@@ -93,8 +92,7 @@ struct Cases::RewriteableSubtermsFn
 {
   RewriteableSubtermsFn(Ordering& ord) : _ord(ord) {}
 
-  DECL_RETURN_TYPE(VirtualIterator<pair<Literal*, TermList> >);
-  OWN_RETURN_TYPE operator()(Literal* lit)
+  VirtualIterator<pair<Literal*, TermList> > operator()(Literal* lit)
   {
     CALL("Cases::RewriteableSubtermsFn()");
 

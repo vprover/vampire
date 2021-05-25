@@ -400,8 +400,7 @@ public:
     struct ByTopFn
     {
         ByTopFn(ChildBySortHelper* n) : node(n) {};
-        DECL_RETURN_TYPE(Node**);
-        OWN_RETURN_TYPE operator()(TermList t){
+        Node** operator()(TermList t){
             return node->_parent->childByTop(t,false);
         }
     private:
@@ -410,8 +409,7 @@ public:
     struct NotTop
     {
         NotTop(unsigned t) : top(t) {};
-        DECL_RETURN_TYPE(bool);
-        OWN_RETURN_TYPE operator()(TermList t){
+        bool operator()(TermList t){
             return t.term()->functor()!=top;
         }
     private:
@@ -461,7 +459,6 @@ public:
 
   struct IsPtrToVarNodeFn
   {
-    DECL_RETURN_TYPE(bool);
     bool operator()(Node** n)
     {
       return (*n)->term.isVar();

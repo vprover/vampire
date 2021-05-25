@@ -521,7 +521,7 @@ void Rectify::Renaming::undoBinding (unsigned var)
 {
   CALL("Rectify::Renaming::undoBinding");
 
-  ASS(var < (int)_capacity);
+  ASS(var < _capacity);
 
   VarUsageTrackingList::pop(_array[var]);
 } // Rectify::Renaming::undoBinding

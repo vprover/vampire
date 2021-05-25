@@ -1072,23 +1072,68 @@ void Options::init()
            _inequalityNormalization.description="Enable normalizing of inequalities like s < t ==> 0 < t - s.";
            _lookup.insert(&_inequalityNormalization);
            _inequalityNormalization.tag(OptionTag::INFERENCES);
- 
-           _gaussianVariableElimination = BoolOptionValue("gaussian_variable_elimination","gve",false);
+
+           auto choiceArithmeticSimplificationMode = [&](vstring l, vstring s, ArithmeticSimplificationMode d) 
+           { return ChoiceOptionValue<ArithmeticSimplificationMode>(l,s,d, {"force", "cautious", "off", }); };
+           _cancellation = choiceArithmeticSimplificationMode(
+               "cancellation", "canc",
+               ArithmeticSimplificationMode::OFF);
+           _cancellation.description = "Enables the rule cancellation around additions as described in the paper Making Theory Reasoning Simpler ( https://easychair.org/publications/preprint/K2hb ). \
+                                        In some rare cases the conclusion may be not strictly simpler than the hypothesis. With `force` we ignore these cases, violating the ordering and just simplifying \
+                                        anyways. With `cautious` we will generate a new clause instead of simplifying in these cases.";
+           _lookup.insert(&_cancellation);
+           _cancellation.tag(OptionTag::INFERENCES);
+           _cancellation.setExperimental();
+
+           _highSchool = BoolOptionValue("high_school", "", false);
+           _highSchool.description="Enables high school education for vampire. (i.e.: sets -gve cautious, -asg cautious, -ev cautious, -canc cautious, -pum on )";
+           _lookup.insert(&_highSchool);
+           _highSchool.tag(OptionTag::INFERENCES);
+
+
+           _pushUnaryMinus = BoolOptionValue(
+               "push_unary_minus", "pum",
+               false);
+           _pushUnaryMinus.description=
+                  "Enable the immideate simplifications:\n"
+                  " -(t + s) ==> -t + -s\n"
+                  " -(-t) ==> t\n"
+                  ;
+           _lookup.insert(&_pushUnaryMinus);
+           _pushUnaryMinus.tag(OptionTag::INFERENCES);
+
+           _gaussianVariableElimination = choiceArithmeticSimplificationMode(
+               "gaussian_variable_elimination", "gve",
+               ArithmeticSimplificationMode::OFF);
            _gaussianVariableElimination.description=
                   "Enable the immideate simplification \"Gaussian Variable Elimination\":\n"
                   "\n"
-                  "s != t | C[X] \n"
-                  "-------------  if s != t can be rewritten to X != r \n"
+                  "s != t \\/ C[X] \n"
+                  "--------------  if s != t can be rewritten to X != r \n"
                   "    C[r] \n"
                   "\n"
-                  "example:\n"
+                  "Example:\n"
                   "\n"
                   "6 * X0 != 2 * X1 | p(X0, X1)\n"
                   "-------------------------------\n"
-                  "  p(2 * X1 / 6, X1)";
-
+                  "  p(2 * X1 / 6, X1)\n"
+                  "\n"
+                  "\n"
+                  "For a more detailed description see the paper Making Theory Reasoning Simpler ( https://easychair.org/publications/preprint/K2hb ). \
+                  In some rare cases the conclusion may be not strictly simpler than the hypothesis. With `force` we ignore these cases, violating the ordering and just simplifying \
+                  anyways. With `cautious` we will generate a new clause instead of simplifying in these cases.";
            _lookup.insert(&_gaussianVariableElimination);
            _gaussianVariableElimination.tag(OptionTag::INFERENCES);
+
+           _arithmeticSubtermGeneralizations = choiceArithmeticSimplificationMode(
+               "arithmetic_subterm_generalizations", "asg",
+               ArithmeticSimplificationMode::OFF);
+           _arithmeticSubtermGeneralizations.description = "\
+                  Enables variaous generalization rules for arithmetic terms as described in the paper Making Theory Reasoning Simpler ( https://easychair.org/publications/preprint/K2hb ). \
+                  In some rare cases the conclusion may be not strictly simpler than the hypothesis. With `force` we ignore these cases, violating the ordering and just simplifying \
+                  anyways. With `cautious` we will generate a new clause instead of simplifying in these cases.";
+           _lookup.insert(&_arithmeticSubtermGeneralizations);
+           _arithmeticSubtermGeneralizations.tag(OptionTag::INFERENCES);
 
             _induction = ChoiceOptionValue<Induction>("induction","ind",Induction::NONE,
                                 {"none","struct","int","both"});
@@ -1986,6 +2031,21 @@ void Options::init()
     _introducedSymbolPrecedence.description="Decides where to place symbols introduced during proof search in the symbol precedence";
     _lookup.insert(&_introducedSymbolPrecedence);
     _introducedSymbolPrecedence.tag(OptionTag::SATURATION);
+
+    _evaluationMode = ChoiceOptionValue<EvaluationMode>("evaluation","ev",
+                                                        EvaluationMode::SIMPLE,
+                                                        {"simple","force","cautious"});
+    _evaluationMode.description=
+    "Choses the algorithm used to simplify interpreted integer, rational, and real terms. \
+                                 \
+    - simple: will only evaluate expressions built from interpreted constants only.\
+    - cautious: will evaluate abstract expressions to a weak polynomial normal form. This is more powerful but may fail in some rare cases where the resulting polynomial is not strictly smaller than the initial one wrt. the simplification ordering. In these cases a new clause with the normal form term will be added to the search space instead of replacing the orignal clause.  \
+    - force: same as `cautious`, but ignoring the simplificaiton ordering and replacing the hypothesis with the normal form clause in any case. \
+    ";
+    _lookup.insert(&_evaluationMode);
+    _evaluationMode.tag(OptionTag::SATURATION);
+    _evaluationMode.setExperimental();
+
 
     _kboAdmissabilityCheck = ChoiceOptionValue<KboAdmissibilityCheck>(
         "kbo_admissibility_check", "", KboAdmissibilityCheck::ERROR,

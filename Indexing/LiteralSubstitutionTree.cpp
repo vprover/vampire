@@ -130,16 +130,14 @@ SLQueryResultIterator LiteralSubstitutionTree::getInstances(Literal* lit,
 
 struct LiteralSubstitutionTree::SLQueryResultFunctor
 {
-  DECL_RETURN_TYPE(SLQueryResult);
-  OWN_RETURN_TYPE operator() (const QueryResult& qr) {
+  SLQueryResult operator() (const QueryResult& qr) {
     return SLQueryResult(qr.first.first->literal, qr.first.first->clause, qr.first.second,qr.second);
   }
 };
 
 struct LiteralSubstitutionTree::LDToSLQueryResultFn
 {
-  DECL_RETURN_TYPE(SLQueryResult);
-  OWN_RETURN_TYPE operator() (const LeafData& ld) {
+  SLQueryResult operator() (const LeafData& ld) {
     return SLQueryResult(ld.literal, ld.clause);
   }
 };
@@ -153,8 +151,7 @@ struct LiteralSubstitutionTree::LDToSLQueryResultWithSubstFn
   {
     _subst=RobSubstitutionSP(new RobSubstitution());
   }
-  DECL_RETURN_TYPE(SLQueryResult);
-  OWN_RETURN_TYPE operator() (const LeafData& ld) {
+  SLQueryResult operator() (const LeafData& ld) {
     return SLQueryResult(ld.literal, ld.clause,
 	    ResultSubstitution::fromSubstitution(_subst.ptr(),
 		    QRS_QUERY_BANK,QRS_RESULT_BANK));
@@ -194,8 +191,7 @@ private:
 
 struct LiteralSubstitutionTree::LeafToLDIteratorFn
 {
-  DECL_RETURN_TYPE(LDIterator);
-  OWN_RETURN_TYPE operator() (Leaf* l) {
+  LDIterator operator() (Leaf* l) {
     return l->allChildren();
   }
 };
@@ -206,8 +202,7 @@ struct LiteralSubstitutionTree::PropositionalLDToSLQueryResultWithSubstFn
   {
     _subst=ResultSubstitutionSP (new DisjunctQueryAndResultVariablesSubstitution()); 
   }
-  DECL_RETURN_TYPE(SLQueryResult);
-  OWN_RETURN_TYPE operator() (const LeafData& ld) {
+  SLQueryResult operator() (const LeafData& ld) {
     ASS_EQ(ld.literal->arity(),0);
     return SLQueryResult(ld.literal, ld.clause, _subst);
   }
@@ -267,6 +262,24 @@ SLQueryResultIterator LiteralSubstitutionTree::getAll()
 	  LeafToLDIteratorFn()),
       LDToSLQueryResultFn()) ) ;
 }
+
+// struct LiteralSubstitutionTree::EqualitySortFilter
+// {
+//
+//   EqualitySortFilter(Literal* queryLit)
+//   : _queryEqSort(SortHelper::getEqualityArgumentSort(queryLit)) {}
+//
+//   bool operator()(const SLQueryResult& res)
+//   {
+//     CALL("LiteralSubstitutionTree::EqualitySortFilter::operator()");
+//     ASS(res.literal->isEquality());
+//
+//     unsigned resSort = SortHelper::getEqualityArgumentSort(res.literal);
+//     return resSort==_queryEqSort;
+//   }
+// private:
+//   unsigned _queryEqSort;
+// };
 
 template<class Iterator, class Filter>
 SLQueryResultIterator LiteralSubstitutionTree::getResultIterator(Literal* lit,

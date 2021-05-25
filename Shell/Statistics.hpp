@@ -192,10 +192,26 @@ public:
   unsigned condensations;
   /** number of global subsumptions */
   unsigned globalSubsumption;
-  /** number of evaluations */
-  unsigned evaluations;
   /** number of interpreted simplifications */
   unsigned interpretedSimplifications;
+
+  /** how often did asg not simplify correctly. */
+  unsigned asgViolations;
+  /** applications of asg */
+  unsigned asgCnt;
+
+  /** how often did gve not simplify correctly. */
+  unsigned gveViolations;
+  /** applications of gve */
+  unsigned gveCnt;
+
+  /** number of evaluations that resulted in a incomparable literal */
+  unsigned evaluationIncomp;
+  /** number of evaluations that resulted in a greater literal */
+  unsigned evaluationGreater;
+  /** number of simplifications by PolynomialNormalizer */
+  unsigned evaluationCnt;
+
   /** number of (proper) inner rewrites */
   unsigned innerRewrites;
   /** number of inner rewrites into equational tautologies */

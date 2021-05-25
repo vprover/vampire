@@ -227,6 +227,8 @@ VK_OBJ= Kernel/Clause.o\
         Kernel/SubformulaIterator.o\
         Kernel/Substitution.o\
         Kernel/Term.o\
+	Kernel/PolynomialNormalizer.o\
+	Kernel/Polynomial.o\
         Kernel/TermIterators.o\
         Kernel/TermTransformer.o\
         Kernel/Theory.o\
@@ -299,7 +301,12 @@ VINF_OBJ=Inferences/BackwardDemodulation.o\
          Inferences/InnerRewriting.o\
          Inferences/EquationalTautologyRemoval.o\
          Inferences/InferenceEngine.o\
-         Inferences/Instantiation.o\
+	 Inferences/Instantiation.o\
+         Inferences/InterpretedEvaluation.o\
+         Inferences/PushUnaryMinus.o\
+         Inferences/Cancellation.o\
+         Inferences/PolynomialEvaluation.o\
+         Inferences/ArithmeticSubtermGeneralization.o\
          Inferences/SLQueryBackwardSubsumption.o\
          Inferences/Superposition.o\
          Inferences/TautologyDeletionISE.o\
@@ -401,6 +408,7 @@ VS_OBJ = Shell/AnswerExtractor.o\
          Shell/VarManager.o\
          Shell/Lexer.o\
          Shell/Preprocess.o\
+         Shell/UnificationWithAbstractionConfig.o\
          version.o
 
 #         Shell/PARSER_TKV.o\
@@ -454,6 +462,11 @@ LIB_DEP = Indexing/TermSharing.o\
 	  Kernel/Formula.o\
 	  Kernel/FormulaUnit.o\
 	  Kernel/FormulaVarIterator.o\
+	  Kernel/InterpretedLiteralEvaluator.o\
+	  Kernel/PolynomialNormalizer.o\
+	  Kernel/Rebalancing.o\
+	  Kernel/Rebalancing/Inverters.o\
+	  Kernel/NumTraits.o\
 	  Kernel/Inference.o\
 	  Kernel/InferenceStore.o\
 	  Kernel/Problem.o\
@@ -475,6 +488,9 @@ LIB_DEP = Indexing/TermSharing.o\
 	  Shell/Property.o\
 	  Shell/Statistics.o\
 	  Shell/GlobalOptions.o\
+          Shell/UnificationWithAbstractionConfig.o\
+	  version.o
+	  # ClausifierDependencyFix.o\
 	  version.o\
     Kernel/InterpretedLiteralEvaluator.o\
     Kernel/Rebalancing.o\
