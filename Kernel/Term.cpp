@@ -1371,7 +1371,7 @@ AtomicSort* AtomicSort::createConstant(const vstring& name)
   CALL("AtomicSort::createConstant");
 
   bool added;
-  unsigned newSort = env.signature->addTypeCon(sortName,0,added);
+  unsigned newSort = env.signature->addTypeCon(name,0,added);
   if(added){
     OperatorType* ot = OperatorType::getConstantsType(superSort());
     env.signature->getTypeCon(newSort)->setType(ot);

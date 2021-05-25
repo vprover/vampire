@@ -17,7 +17,6 @@
 
 #include "Signature.hpp" 
 #include "SortHelper.hpp"
-#include "Sorts.hpp"
 #include "TermIterators.hpp"
 #include "Term.hpp"
 #include "Theory.hpp"
