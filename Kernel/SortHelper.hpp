@@ -80,13 +80,10 @@ public:
   static bool isNotDefaultSort(unsigned s);
   static bool isInterpretedNonDefault(unsigned s);
   static bool isInterpretedNonBool(unsigned s);
-  //convenience functions
-  static unsigned sortNum(TermList sort){
-    return env.sorts->getSortNum(sort);
-  }
-  static TermList sortTerm(unsigned sortNum){
-    return env.sorts->getSortTerm(sortNum);
-  }
+  /** convenience function see Sorts::getSortNum(...) */
+  static unsigned sortNum(TermList sort);
+  /** convenience function see Sorts::getSortId(...) */
+  static TermList sortTerm(unsigned sortNum);
 
   static void normaliseArgSorts(VList* qVars, TermStack& argSorts);
   static void normaliseSort(VList* qVars, TermList& sort);

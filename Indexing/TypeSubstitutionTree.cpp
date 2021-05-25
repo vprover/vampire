@@ -62,8 +62,7 @@ struct TypeSubstitutionTree::VarUnifFn
     _subst=RobSubstitutionSP(new RobSubstitution());
   }
 
-  DECL_RETURN_TYPE(TermQueryResult);
-  OWN_RETURN_TYPE operator() (TermQueryResult tqr) {
+  TermQueryResult operator() (TermQueryResult tqr) {
     //TODO unnecessary work here. We had the sort and then lost it
     TermList tqrSort = SortHelper::getTermSort(tqr.term, tqr.literal);
     _subst->reset();
@@ -95,8 +94,7 @@ struct TypeSubstitutionTree::ToTypeSubFn
   ToTypeSubFn(TermList queryTerm)
   : _queryTerm(queryTerm) {}
 
-  DECL_RETURN_TYPE(TermQueryResult);
-  OWN_RETURN_TYPE operator() (TermQueryResult tqr) {
+  TermQueryResult operator() (TermQueryResult tqr) {
     if(!_queryTerm.isVar() && !tqr.term.isVar()){
       tqr.isTypeSub = true;
     } else {
@@ -176,8 +174,7 @@ TermQueryResultIterator TypeSubstitutionTree::getUnifications(TermList sort, Ter
  */
 struct TypeSubstitutionTree::TermQueryResultFn
 {
-  DECL_RETURN_TYPE(TermQueryResult);
-  OWN_RETURN_TYPE operator() (const QueryResult& qr) {
+  TermQueryResult operator() (const QueryResult& qr) {
     return TermQueryResult(qr.first.first->term, qr.first.first->literal,
 	    qr.first.first->clause, qr.first.second,qr.second);
   }
@@ -211,8 +208,7 @@ TermQueryResultIterator TypeSubstitutionTree::getResultIterator(Term* trm,
 
 struct TypeSubstitutionTree::LDToTermQueryResultFn
 {
-  DECL_RETURN_TYPE(TermQueryResult);
-  OWN_RETURN_TYPE operator() (const LeafData& ld) {
+  TermQueryResult operator() (const LeafData& ld) {
     return TermQueryResult(ld.term, ld.literal, ld.clause);
   }
 };
@@ -223,8 +219,7 @@ struct TypeSubstitutionTree::LDToTermQueryResultWithSubstFn
   {
     _subst=RobSubstitutionSP(new RobSubstitution());
   }
-  DECL_RETURN_TYPE(TermQueryResult);
-  OWN_RETURN_TYPE operator() (const LeafData& ld) {
+  TermQueryResult operator() (const LeafData& ld) {
     return TermQueryResult(ld.term, ld.literal, ld.clause,
     ResultSubstitution::fromSubstitution(_subst.ptr(),
 	    QRS_QUERY_BANK,QRS_RESULT_BANK));
@@ -235,8 +230,7 @@ private:
 
 struct TypeSubstitutionTree::LeafToLDIteratorFn
 {
-  DECL_RETURN_TYPE(LDIterator);
-  OWN_RETURN_TYPE operator() (Leaf* l) {
+  LDIterator operator() (Leaf* l) {
     CALL("TypeSubstitutionTree::LeafToLDIteratorFn()");
     return l->allChildren();
   }

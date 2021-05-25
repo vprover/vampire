@@ -757,6 +757,8 @@ vstring Kernel::ruleName(InferenceRule rule)
     return "theory normalization";
   case InferenceRule::EVALUATION:
     return "evaluation";
+  case InferenceRule::CANCELLATION:
+    return "cancellation";
   case InferenceRule::INTERPRETED_SIMPLIFICATION:
     return "interpreted simplification";
   case InferenceRule::UNUSED_PREDICATE_DEFINITION_REMOVAL:
@@ -901,6 +903,8 @@ vstring Kernel::ruleName(InferenceRule rule)
     return "induction hypothesis";
   case InferenceRule::GEN_INDUCTION_AXIOM:
     return "generalized induction hypothesis";
+  case InferenceRule::ARITHMETIC_SUBTERM_GENERALIZATION:
+    return "arithmetic subterm generalization";
   case InferenceRule::INT_INF_UP_INDUCTION_AXIOM:
     return "integer induction hypothesis (up, infinite interval)";
   case InferenceRule::INT_INF_DOWN_INDUCTION_AXIOM:

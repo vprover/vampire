@@ -50,6 +50,16 @@ Sorts::~Sorts()
 } // Sorts::~Sorts
 
 
+TermList Sorts::addSort(vstring const& name)
+{
+  bool added;
+  auto fun = env.signature->addFunction(name, /*arity*/ 0, added);
+  if (added) {
+    env.signature->getFunction(fun)->setType(OperatorType::getConstantsType(Term::superSort()));
+  }
+  return TermList(Term::createConstant(fun));
+}
+
 bool Sorts::addSort(TermList sort)
 { 
   CALL("Sorts::addSort");

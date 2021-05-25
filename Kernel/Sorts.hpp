@@ -46,12 +46,15 @@ public:
   ~Sorts();
 
   bool addSort(TermList sort);
+  TermList addSort(vstring const& name);
   vstring sortName(unsigned sort){ return _sorts[sort].toString(); }
   vstring sortName(TermList sort){ return sort.toString(); }
 #if __cplusplus >= 201402L // c++14 and newer
   [[deprecated("consider using sort.term()->getId() instead of getSortNum; if you are in a situation where a variable sort does not make sense")]]
 #endif
+  /** returns an id unique to this sort. These ids are independent of term.getId(). These ids are a bijective mappings between `TermList`s that represent sorts and integers in [0,count()[ */
   unsigned getSortNum(TermList sort);
+  /** returns the sort represented by the given id. The id must be within [0,count()[. */
   TermList getSortTerm(unsigned sort);
   unsigned count(){return (unsigned)_sorts.size(); }
   /** true if there is a sort different from built-ins */  

@@ -89,8 +89,7 @@ ClauseIterator CasesSimp::performSimplification(Clause* premise, Literal* lit, T
 struct CasesSimp::ResultFn
 {
   ResultFn(Clause* cl, CasesSimp& parent) : _cl(cl), _parent(parent) {}
-  DECL_RETURN_TYPE(ClauseIterator);
-  OWN_RETURN_TYPE operator()(pair<Literal*, TermList> arg)
+  ClauseIterator operator()(pair<Literal*, TermList> arg)
   {
     CALL("CasesSimp::ResultFn::operator()");
     
@@ -105,8 +104,7 @@ struct CasesSimp::RewriteableSubtermsFn
 {
   RewriteableSubtermsFn() {}
 
-  DECL_RETURN_TYPE(VirtualIterator<pair<Literal*, TermList> >);
-  OWN_RETURN_TYPE operator()(Literal* lit)
+  VirtualIterator<pair<Literal*, TermList> > operator()(Literal* lit)
   {
     CALL("CasesSimp::RewriteableSubtermsFn()");
 

@@ -113,10 +113,11 @@ Map<unsigned, KboWeight> weights(pair<As, KboWeight>... as) {
 // How to read the test cases in this file:
 //
 TEST_FUN(kbo_test01) {
-  FOF_SYNTAX_SUGAR             // <- macro to initialize some syntax sugar for creating terms over a single uninterpreted sort
-  FOF_SYNTAX_SUGAR_FUN  (f, 1) // <- declares a function symbol with arity 1
-  FOF_SYNTAX_SUGAR_FUN  (g, 1) // <- declares a function symbol with arity 1
-  FOF_SYNTAX_SUGAR_CONST(c)    // <- declares a constant symbol
+  DECL_DEFAULT_VARS             // <- macro to initialize some syntax sugar for creating terms over a single uninterpreted sort
+  DECL_SORT(srt)   // <- declares a function symbol with arity 1
+  DECL_FUNC (f, {srt}, srt) // <- declares a function symbol with arity 1
+  DECL_FUNC (g, {srt}, srt) // <- declares a function symbol with arity 1
+  DECL_CONST(c, srt)    // <- declares a constant symbol
  
   // !!! The declaration order of function and constant symbols will define their precedence relation !!!
 
@@ -137,10 +138,11 @@ TEST_FUN(kbo_test01) {
 ////////////////////////////////////////////////////////////////////////////////
 
 TEST_FUN(kbo_test02) {
-  FOF_SYNTAX_SUGAR
-  FOF_SYNTAX_SUGAR_FUN  (f, 1)
-  FOF_SYNTAX_SUGAR_FUN  (g, 1)
-  FOF_SYNTAX_SUGAR_CONST(c)
+  DECL_DEFAULT_VARS
+  DECL_SORT(srt)
+  DECL_FUNC (f, {srt}, srt)
+  DECL_FUNC (g, {srt}, srt)
+  DECL_CONST(c, srt)
 
   auto ord = kbo(weights(make_pair(f, 10u)), weights());
 
@@ -148,10 +150,11 @@ TEST_FUN(kbo_test02) {
 }
 
 TEST_FUN(kbo_test03) {
-  FOF_SYNTAX_SUGAR
-  FOF_SYNTAX_SUGAR_FUN  (f, 1)
-  FOF_SYNTAX_SUGAR_FUN  (g, 1)
-  FOF_SYNTAX_SUGAR_CONST(c)
+  DECL_DEFAULT_VARS
+  DECL_SORT(srt)
+  DECL_FUNC (f, {srt}, srt)
+  DECL_FUNC (g, {srt}, srt)
+  DECL_CONST(c, srt)
 
   auto ord = kbo(weights(make_pair(f, 10u)), weights());
 
@@ -160,9 +163,10 @@ TEST_FUN(kbo_test03) {
 }
 
 TEST_FUN(kbo_test04) {
-  FOF_SYNTAX_SUGAR
-  FOF_SYNTAX_SUGAR_FUN  (f, 1)
-  FOF_SYNTAX_SUGAR_FUN  (g, 1)
+  DECL_DEFAULT_VARS
+  DECL_SORT(srt)
+  DECL_FUNC (f, {srt}, srt)
+  DECL_FUNC (g, {srt}, srt)
 
   auto ord = kbo(weights(make_pair(f, 10u)), weights());
 
@@ -170,9 +174,10 @@ TEST_FUN(kbo_test04) {
 }
 
 TEST_FUN(kbo_test05) {
-  FOF_SYNTAX_SUGAR
-  FOF_SYNTAX_SUGAR_FUN  (g, 1)
-  FOF_SYNTAX_SUGAR_FUN  (f, 1)
+  DECL_DEFAULT_VARS
+  DECL_SORT(srt)
+  DECL_FUNC (g, {srt}, srt)
+  DECL_FUNC (f, {srt}, srt)
 
   auto ord = kbo(weights(make_pair(f, 0u)), weights());
 
@@ -180,8 +185,9 @@ TEST_FUN(kbo_test05) {
 }
 
 TEST_FUN(kbo_test06) {
-  FOF_SYNTAX_SUGAR
-  FOF_SYNTAX_SUGAR_FUN (f, 1)
+  DECL_DEFAULT_VARS
+  DECL_SORT(srt)
+  DECL_FUNC(f, {srt}, srt)
 
   auto ord = kbo(weights(make_pair(f, 0u)), weights());
 
@@ -189,8 +195,9 @@ TEST_FUN(kbo_test06) {
 }
 
 TEST_FUN(kbo_test07) {
-  FOF_SYNTAX_SUGAR
-  FOF_SYNTAX_SUGAR_FUN (f, 1)
+  DECL_DEFAULT_VARS
+  DECL_SORT(srt)
+  DECL_FUNC(f, {srt}, srt)
 
   auto ord = kbo(weights(make_pair(f, 0u)), weights());
 
@@ -198,9 +205,10 @@ TEST_FUN(kbo_test07) {
 }
 
 TEST_FUN(kbo_test08) {
-  FOF_SYNTAX_SUGAR
-  FOF_SYNTAX_SUGAR_FUN (g, 1)
-  FOF_SYNTAX_SUGAR_FUN (f, 1)
+  DECL_DEFAULT_VARS
+  DECL_SORT(srt)
+  DECL_FUNC(g, {srt}, srt)
+  DECL_FUNC(f, {srt}, srt)
 
   auto ord = kbo(weights(make_pair(f, 0u), make_pair(g, 1u)), weights());
 
@@ -208,9 +216,10 @@ TEST_FUN(kbo_test08) {
 }
 
 TEST_FUN(kbo_test09) {
-  FOF_SYNTAX_SUGAR
-  FOF_SYNTAX_SUGAR_FUN (f, 1)
-  FOF_SYNTAX_SUGAR_FUN (g, 1)
+  DECL_DEFAULT_VARS
+  DECL_SORT(srt)
+  DECL_FUNC(f, {srt}, srt)
+  DECL_FUNC(g, {srt}, srt)
 
   try {
     auto ord = kbo(weights(make_pair(g, 1u), make_pair(f, 0u)), weights());
@@ -222,8 +231,9 @@ TEST_FUN(kbo_test09) {
 
 
 TEST_FUN(kbo_test10) {
-  FOF_SYNTAX_SUGAR
-  FOF_SYNTAX_SUGAR_CONST(a)
+  DECL_DEFAULT_VARS
+  DECL_SORT(srt)
+  DECL_CONST(a, srt)
 
   try {
     auto ord = kbo(weights(make_pair(a, 0u)), weights());
@@ -234,9 +244,10 @@ TEST_FUN(kbo_test10) {
 }
 
 TEST_FUN(kbo_test11) {
-  FOF_SYNTAX_SUGAR
-  FOF_SYNTAX_SUGAR_FUN (g, 1)
-  FOF_SYNTAX_SUGAR_FUN (f, 1)
+  DECL_DEFAULT_VARS
+  DECL_SORT(srt)
+  DECL_FUNC(g, {srt}, srt)
+  DECL_FUNC(f, {srt}, srt)
 
   auto ord = kbo(weights(make_pair(f, 0u), make_pair(g, 1u)), weights());
 
@@ -244,9 +255,10 @@ TEST_FUN(kbo_test11) {
 }
 
 TEST_FUN(kbo_test12) {
-  FOF_SYNTAX_SUGAR
-  FOF_SYNTAX_SUGAR_CONST(a)
-  FOF_SYNTAX_SUGAR_CONST(b)
+  DECL_DEFAULT_VARS
+  DECL_SORT(srt)
+  DECL_CONST(a, srt)
+  DECL_CONST(b, srt)
 
   auto ord = kbo(weights(), weights());
 
@@ -254,9 +266,10 @@ TEST_FUN(kbo_test12) {
 }
 
 TEST_FUN(kbo_test13) {
-  FOF_SYNTAX_SUGAR
-  FOF_SYNTAX_SUGAR_CONST(a)
-  FOF_SYNTAX_SUGAR_CONST(b)
+  DECL_DEFAULT_VARS
+  DECL_SORT(srt)
+  DECL_CONST(a, srt)
+  DECL_CONST(b, srt)
 
   auto ord = kbo(weights(make_pair(a,3u), make_pair(b,2u)), weights());
 
@@ -264,11 +277,12 @@ TEST_FUN(kbo_test13) {
 }
 
 TEST_FUN(kbo_test14) {
-  FOF_SYNTAX_SUGAR
-  FOF_SYNTAX_SUGAR_CONST(a)
-  FOF_SYNTAX_SUGAR_FUN (f, 2)
-  FOF_SYNTAX_SUGAR_FUN (g, 1)
-  FOF_SYNTAX_SUGAR_FUN (u, 1)
+  DECL_DEFAULT_VARS
+  DECL_SORT(srt)
+  DECL_CONST(a, srt)
+  DECL_FUNC(f, {srt,srt}, srt)
+  DECL_FUNC(g, {srt}, srt)
+  DECL_FUNC(u, {srt}, srt)
 
   auto ord = kbo(weights(make_pair(a,1u), make_pair(u,0u)), weights());
 
@@ -276,11 +290,12 @@ TEST_FUN(kbo_test14) {
 }
 
 TEST_FUN(kbo_test15) {
-  FOF_SYNTAX_SUGAR
-  FOF_SYNTAX_SUGAR_CONST(a)
-  FOF_SYNTAX_SUGAR_FUN (f, 2)
-  FOF_SYNTAX_SUGAR_FUN (g, 1)
-  FOF_SYNTAX_SUGAR_FUN (u, 1)
+  DECL_DEFAULT_VARS
+  DECL_SORT(srt)
+  DECL_CONST(a, srt)
+  DECL_FUNC(f, {srt,srt}, srt)
+  DECL_FUNC(g, {srt}, srt)
+  DECL_FUNC(u, {srt}, srt)
 
   auto ord = kbo(weights(make_pair(a,1u), make_pair(u,0u)), weights());
 
@@ -288,9 +303,10 @@ TEST_FUN(kbo_test15) {
 }
 
 TEST_FUN(kbo_test16) {
-  FOF_SYNTAX_SUGAR
-  FOF_SYNTAX_SUGAR_CONST(a)
-  FOF_SYNTAX_SUGAR_FUN (u, 1)
+  DECL_DEFAULT_VARS
+  DECL_SORT(srt)
+  DECL_CONST(a, srt)
+  DECL_FUNC(u, {srt}, srt)
 
   auto ord = kbo(weights(make_pair(a,1u), make_pair(u,0u)), weights());
 
@@ -298,10 +314,11 @@ TEST_FUN(kbo_test16) {
 }
 
 TEST_FUN(kbo_test17) {
-  FOF_SYNTAX_SUGAR
-  FOF_SYNTAX_SUGAR_CONST(a)
-  FOF_SYNTAX_SUGAR_FUN (f, 1)
-  FOF_SYNTAX_SUGAR_FUN (u, 1)
+  DECL_DEFAULT_VARS
+  DECL_SORT(srt)
+  DECL_CONST(a, srt)
+  DECL_FUNC(f, {srt}, srt)
+  DECL_FUNC(u, {srt}, srt)
 
   auto ord = kbo(weights(make_pair(a,1u), make_pair(u,0u)), weights());
 
@@ -309,10 +326,11 @@ TEST_FUN(kbo_test17) {
 }
 
 TEST_FUN(kbo_test18) {
-  FOF_SYNTAX_SUGAR
-  FOF_SYNTAX_SUGAR_CONST(a)
-  FOF_SYNTAX_SUGAR_FUN (f, 1)
-  FOF_SYNTAX_SUGAR_FUN (u, 1)
+  DECL_DEFAULT_VARS
+  DECL_SORT(srt)
+  DECL_CONST(a, srt)
+  DECL_FUNC(f, {srt}, srt)
+  DECL_FUNC(u, {srt}, srt)
 
   auto ord = kbo(weights(make_pair(a,1u), make_pair(u,0u)), weights());
 
@@ -320,10 +338,11 @@ TEST_FUN(kbo_test18) {
 }
 
 TEST_FUN(kbo_test19) {
-  FOF_SYNTAX_SUGAR
-  FOF_SYNTAX_SUGAR_FUN (f, 1)
-  FOF_SYNTAX_SUGAR_FUN (g, 1)
-  FOF_SYNTAX_SUGAR_PRED(p, 1)
+  DECL_DEFAULT_VARS
+  DECL_SORT(srt)
+  DECL_FUNC(f, {srt}, srt)
+  DECL_FUNC(g, {srt}, srt)
+  DECL_PRED(p, {srt})
 
   auto ord = kbo(
       weights(
@@ -338,8 +357,9 @@ TEST_FUN(kbo_test19) {
 }
 
 TEST_FUN(kbo_test20) {
-  FOF_SYNTAX_SUGAR
-  FOF_SYNTAX_SUGAR_CONST(a)
+  DECL_DEFAULT_VARS
+  DECL_SORT(srt)
+  DECL_CONST(a, srt)
 
   try {
     auto ord = kbo(
@@ -356,9 +376,10 @@ TEST_FUN(kbo_test20) {
 }
 
 TEST_FUN(kbo_test21) {
-  FOF_SYNTAX_SUGAR
-  FOF_SYNTAX_SUGAR_CONST(a)
-  FOF_SYNTAX_SUGAR_CONST(b)
+  DECL_DEFAULT_VARS
+  DECL_SORT(srt)
+  DECL_CONST(a, srt)
+  DECL_CONST(b, srt)
 
   auto ord = kbo(
       10, // <- introduced symbol weight
@@ -373,8 +394,9 @@ TEST_FUN(kbo_test21) {
 }
 
 TEST_FUN(kbo_test22) {
-  FOF_SYNTAX_SUGAR
-  FOF_SYNTAX_SUGAR_CONST(a)
+  DECL_DEFAULT_VARS
+  DECL_SORT(srt)
+  DECL_CONST(a, srt)
 
   try {
     auto ord = kbo(

@@ -50,7 +50,6 @@ using namespace Saturation;
 
 struct ArgCong::IsPositiveEqualityFn
 {
-  DECL_RETURN_TYPE(bool);
   bool operator()(Literal* l)
   { return l->isEquality() && l->isPositive(); }
 };
@@ -61,7 +60,6 @@ struct ArgCong::ResultFn
       : _afterCheck(afterCheck), _ord(ord), _cl(cl), _cLen(cl->length()) {
         _freshVar = cl->maxVar() + 1;
       }
-  DECL_RETURN_TYPE(Clause*);
   Clause* operator() (Literal* lit)
   {
     CALL("ArgCong::ResultFn::operator()");

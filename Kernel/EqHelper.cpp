@@ -307,7 +307,6 @@ TermIterator EqHelper::getLHSIterator(Literal* lit, const Ordering& ord)
  */
 struct EqHelper::IsNonVariable
 {
-  DECL_RETURN_TYPE(bool);
   bool operator()(TermList t)
   { return t.isTerm(); }
 };

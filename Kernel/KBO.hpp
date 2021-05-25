@@ -114,6 +114,7 @@ struct KboWeightMap {
 
                          static KboWeightMap dflt();
 private:
+  static KboWeightMap randomized();
   template<class Random> static KboWeightMap randomized(unsigned maxWeight, Random random);
 };
 
@@ -146,6 +147,10 @@ public:
 
       // other
       bool reverseLCM);
+
+#if VDEBUG
+  static KBO testKBO();
+#endif
 
   virtual ~KBO();
   void showConcrete(ostream&) const override;

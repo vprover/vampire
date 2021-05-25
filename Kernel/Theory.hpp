@@ -33,19 +33,35 @@ namespace Kernel {
  * Exception to be thrown when the requested operation cannot be performed,
  * e.g. because of overflow of a native type.
  */
-class ArithmeticException : public ThrowableBase { };
+class ArithmeticException : public Exception {
+protected:
+  ArithmeticException(const char* msg) : Exception(msg) {}
+};
 
-class MachineArithmeticException : public ArithmeticException {  };
-class DivByZeroException         : public ArithmeticException {  };
+class MachineArithmeticException : public ArithmeticException 
+{ 
+public:
+  MachineArithmeticException() : ArithmeticException("machine arithmetic exception"){} 
+};
+
+class DivByZeroException         : public ArithmeticException 
+{ 
+public:
+  DivByZeroException() : ArithmeticException("divided by zero"){} 
+};
 
 class IntegerConstantType
 {
 public:
+  CLASS_NAME(IntegerConstantType)
   static TermList getSort() { return Term::intSort(); }
 
   typedef int InnerType;
 
   IntegerConstantType() {}
+  IntegerConstantType(IntegerConstantType&&) = default;
+  IntegerConstantType(const IntegerConstantType&) = default;
+  IntegerConstantType& operator=(const IntegerConstantType&) = default;
   constexpr IntegerConstantType(InnerType v) : _val(v) {}
   explicit IntegerConstantType(const vstring& str);
 
@@ -85,10 +101,14 @@ public:
   bool isNegative(){ return _val<0; }
 
   static IntegerConstantType floor(RationalConstantType rat);
+  static IntegerConstantType floor(IntegerConstantType rat);
+
   static IntegerConstantType ceiling(RationalConstantType rat);
+  static IntegerConstantType ceiling(IntegerConstantType rat);
   IntegerConstantType abs() const;
 
   static Comparison comparePrecedence(IntegerConstantType n1, IntegerConstantType n2);
+  size_t hash() const;
 
   vstring toString() const;
 private:
@@ -111,10 +131,14 @@ std::ostream& operator<< (ostream& out, const IntegerConstantType& val) {
  */
 struct RationalConstantType {
   typedef IntegerConstantType InnerType;
+  CLASS_NAME(RationalConstantType)
 
   static TermList getSort() { return Term::rationalSort(); }
 
   RationalConstantType() {}
+  RationalConstantType(RationalConstantType&&) = default;
+  RationalConstantType(const RationalConstantType&) = default;
+  RationalConstantType& operator=(const RationalConstantType&) = default;
 
   RationalConstantType(InnerType num, InnerType den);
   RationalConstantType(const vstring& num, const vstring& den);
@@ -157,6 +181,7 @@ struct RationalConstantType {
 
   const InnerType& numerator() const { return _num; }
   const InnerType& denominator() const { return _den; }
+  size_t hash() const;
 
   static Comparison comparePrecedence(RationalConstantType n1, RationalConstantType n2);
 
@@ -179,13 +204,18 @@ std::ostream& operator<< (ostream& out, const RationalConstantType& val) {
 class RealConstantType : public RationalConstantType
 {
 public:
+  CLASS_NAME(RealConstantType)
   static TermList getSort() { return Term::realSort(); }
 
   RealConstantType() {}
+  RealConstantType(RealConstantType&&) = default;
+  RealConstantType(const RealConstantType&) = default;
+  RealConstantType& operator=(const RealConstantType&) = default;
+
   explicit RealConstantType(const vstring& number);
   explicit constexpr RealConstantType(const RationalConstantType& rat) : RationalConstantType(rat) {}
-  explicit constexpr RealConstantType(typename IntegerConstantType::InnerType number) : RealConstantType(RationalConstantType(number)) {}
   RealConstantType(int num, int den) : RationalConstantType(num, den) {}
+  explicit constexpr RealConstantType(typename IntegerConstantType::InnerType number) : RealConstantType(RationalConstantType(number)) {}
 
   RealConstantType operator+(const RealConstantType& num) const
   { return RealConstantType(RationalConstantType::operator+(num)); }
@@ -206,11 +236,35 @@ public:
 
   vstring toNiceString() const;
 
+  size_t hash() const;
   static Comparison comparePrecedence(RealConstantType n1, RealConstantType n2);
+
+  /** 
+   * returns the internal represenation of this RealConstantType. 
+   * 
+   * Currently we represent Reals as Rationals. We might
+   * change this representation in the future in order to represent numerals other algebraic numbers (e.g.  sqrt(2)). 
+   * In order to make this future proof this function is called in places where we rely on the representation of reals,
+   * so we get a compiler error if we change the underlying datatype.
+   */
+  RationalConstantType representation() const;
 private:
   static bool parseDouble(const vstring& num, RationalConstantType& res);
 
 };
+
+inline bool operator<(const RealConstantType& lhs ,const RealConstantType& rhs) { 
+  return static_cast<const RationalConstantType&>(lhs) < static_cast<const RationalConstantType&>(rhs);
+}
+inline bool operator>(const RealConstantType& lhs, const RealConstantType& rhs) {
+  return static_cast<const RationalConstantType&>(lhs) > static_cast<const RationalConstantType&>(rhs);
+}
+inline bool operator<=(const RealConstantType& lhs, const RealConstantType& rhs) {
+  return static_cast<const RationalConstantType&>(lhs) <= static_cast<const RationalConstantType&>(rhs);
+}
+inline bool operator>=(const RealConstantType& lhs, const RealConstantType& rhs) {
+  return static_cast<const RationalConstantType&>(lhs) >= static_cast<const RationalConstantType&>(rhs);
+}
 
 inline
 std::ostream& operator<< (ostream& out, const RealConstantType& val) {
@@ -466,6 +520,7 @@ public:
     return tryInterpretConstant(trm.term(),res);
   }
   bool tryInterpretConstant(const Term* t, IntegerConstantType& res);
+  bool tryInterpretConstant(unsigned functor, IntegerConstantType& res);
   /**
    * Try to interpret the term list as an rational constant. If it is an
    * rational constant, return true and save the constant in @c res, otherwise
@@ -480,6 +535,7 @@ public:
     return tryInterpretConstant(trm.term(),res);
   }
   bool tryInterpretConstant(const Term* t, RationalConstantType& res);
+  bool tryInterpretConstant(unsigned functor, RationalConstantType& res);
   /**
    * Try to interpret the term list as an real constant. If it is an
    * real constant, return true and save the constant in @c res, otherwise
@@ -494,6 +550,7 @@ public:
     return tryInterpretConstant(trm.term(),res);
   }
   bool tryInterpretConstant(const Term* t, RealConstantType& res);
+  bool tryInterpretConstant(unsigned functor, RealConstantType& res);
 
   Term* representConstant(const IntegerConstantType& num);
   Term* representConstant(const RationalConstantType& num);
@@ -521,6 +578,91 @@ public:
   static Theory::Tuples* tuples();
 };
 
+#define ANY_INTERPRETED_PREDICATE                                                                             \
+         Kernel::Theory::EQUAL:                                                                               \
+    case Kernel::Theory::INT_IS_INT:                                                                          \
+    case Kernel::Theory::INT_IS_RAT:                                                                          \
+    case Kernel::Theory::INT_IS_REAL:                                                                         \
+    case Kernel::Theory::INT_GREATER:                                                                         \
+    case Kernel::Theory::INT_GREATER_EQUAL:                                                                   \
+    case Kernel::Theory::INT_LESS:                                                                            \
+    case Kernel::Theory::INT_LESS_EQUAL:                                                                      \
+    case Kernel::Theory::INT_DIVIDES:                                                                         \
+    case Kernel::Theory::RAT_IS_INT:                                                                          \
+    case Kernel::Theory::RAT_IS_RAT:                                                                          \
+    case Kernel::Theory::RAT_IS_REAL:                                                                         \
+    case Kernel::Theory::RAT_GREATER:                                                                         \
+    case Kernel::Theory::RAT_GREATER_EQUAL:                                                                   \
+    case Kernel::Theory::RAT_LESS:                                                                            \
+    case Kernel::Theory::RAT_LESS_EQUAL:                                                                      \
+    case Kernel::Theory::REAL_IS_INT:                                                                         \
+    case Kernel::Theory::REAL_IS_RAT:                                                                         \
+    case Kernel::Theory::REAL_IS_REAL:                                                                        \
+    case Kernel::Theory::REAL_GREATER:                                                                        \
+    case Kernel::Theory::REAL_GREATER_EQUAL:                                                                  \
+    case Kernel::Theory::REAL_LESS:                                                                           \
+    case Kernel::Theory::ARRAY_BOOL_SELECT:                                                                   \
+    case Kernel::Theory::REAL_LESS_EQUAL
+
+#define ANY_INTERPRETED_FUNCTION                                                                              \
+         Kernel::Theory::INT_SUCCESSOR:                                                                       \
+    case Kernel::Theory::INT_UNARY_MINUS:                                                                     \
+    case Kernel::Theory::INT_PLUS:                                                                            \
+    case Kernel::Theory::INT_MINUS:                                                                           \
+    case Kernel::Theory::INT_MULTIPLY:                                                                        \
+    case Kernel::Theory::INT_QUOTIENT_E:                                                                      \
+    case Kernel::Theory::INT_QUOTIENT_T:                                                                      \
+    case Kernel::Theory::INT_QUOTIENT_F:                                                                      \
+    case Kernel::Theory::INT_REMAINDER_E:                                                                     \
+    case Kernel::Theory::INT_REMAINDER_T:                                                                     \
+    case Kernel::Theory::INT_REMAINDER_F:                                                                     \
+    case Kernel::Theory::INT_FLOOR:                                                                           \
+    case Kernel::Theory::INT_CEILING:                                                                         \
+    case Kernel::Theory::INT_TRUNCATE:                                                                        \
+    case Kernel::Theory::INT_ROUND:                                                                           \
+    case Kernel::Theory::INT_ABS:                                                                             \
+    case Kernel::Theory::RAT_UNARY_MINUS:                                                                     \
+    case Kernel::Theory::RAT_PLUS:                                                                            \
+    case Kernel::Theory::RAT_MINUS:                                                                           \
+    case Kernel::Theory::RAT_MULTIPLY:                                                                        \
+    case Kernel::Theory::RAT_QUOTIENT:                                                                        \
+    case Kernel::Theory::RAT_QUOTIENT_E:                                                                      \
+    case Kernel::Theory::RAT_QUOTIENT_T:                                                                      \
+    case Kernel::Theory::RAT_QUOTIENT_F:                                                                      \
+    case Kernel::Theory::RAT_REMAINDER_E:                                                                     \
+    case Kernel::Theory::RAT_REMAINDER_T:                                                                     \
+    case Kernel::Theory::RAT_REMAINDER_F:                                                                     \
+    case Kernel::Theory::RAT_FLOOR:                                                                           \
+    case Kernel::Theory::RAT_CEILING:                                                                         \
+    case Kernel::Theory::RAT_TRUNCATE:                                                                        \
+    case Kernel::Theory::RAT_ROUND:                                                                           \
+    case Kernel::Theory::REAL_UNARY_MINUS:                                                                    \
+    case Kernel::Theory::REAL_PLUS:                                                                           \
+    case Kernel::Theory::REAL_MINUS:                                                                          \
+    case Kernel::Theory::REAL_MULTIPLY:                                                                       \
+    case Kernel::Theory::REAL_QUOTIENT:                                                                       \
+    case Kernel::Theory::REAL_QUOTIENT_E:                                                                     \
+    case Kernel::Theory::REAL_QUOTIENT_T:                                                                     \
+    case Kernel::Theory::REAL_QUOTIENT_F:                                                                     \
+    case Kernel::Theory::REAL_REMAINDER_E:                                                                    \
+    case Kernel::Theory::REAL_REMAINDER_T:                                                                    \
+    case Kernel::Theory::REAL_REMAINDER_F:                                                                    \
+    case Kernel::Theory::REAL_FLOOR:                                                                          \
+    case Kernel::Theory::REAL_CEILING:                                                                        \
+    case Kernel::Theory::REAL_TRUNCATE:                                                                       \
+    case Kernel::Theory::REAL_ROUND:                                                                          \
+    case Kernel::Theory::INT_TO_INT:                                                                          \
+    case Kernel::Theory::INT_TO_RAT:                                                                          \
+    case Kernel::Theory::INT_TO_REAL:                                                                         \
+    case Kernel::Theory::RAT_TO_INT:                                                                          \
+    case Kernel::Theory::RAT_TO_RAT:                                                                          \
+    case Kernel::Theory::RAT_TO_REAL:                                                                         \
+    case Kernel::Theory::REAL_TO_INT:                                                                         \
+    case Kernel::Theory::REAL_TO_RAT:                                                                         \
+    case Kernel::Theory::REAL_TO_REAL:                                                                        \
+    case Kernel::Theory::ARRAY_SELECT:                                                                        \
+    case Kernel::Theory::ARRAY_STORE
+
 typedef Theory::Interpretation Interpretation;
 
 /**
@@ -528,6 +670,30 @@ typedef Theory::Interpretation Interpretation;
  */
 extern Theory* theory;
 
+std::ostream& operator<<(std::ostream& out, Kernel::Theory::Interpretation const& self);
+
 }
+
+template<>
+struct std::hash<Kernel::IntegerConstantType>
+{
+  size_t operator()(Kernel::IntegerConstantType const& self) const noexcept 
+  { return self.hash(); }
+};
+
+template<>
+struct std::hash<Kernel::RationalConstantType>
+{
+  size_t operator()(Kernel::RationalConstantType const& self) const noexcept 
+  { return self.hash(); }
+};
+
+
+template<>
+struct std::hash<Kernel::RealConstantType>
+{
+  size_t operator()(Kernel::RealConstantType const& self) const noexcept 
+  { return self.hash(); }
+};
 
 #endif // __Theory__

@@ -77,8 +77,7 @@ void Narrow::detach()
 struct Narrow::ApplicableNarrowsFn
 {
   ApplicableNarrowsFn(NarrowingIndex* index) : _index(index) {}
-  DECL_RETURN_TYPE(VirtualIterator<pair<pair<Literal*, TermList>, TermQueryResult> >);
-  OWN_RETURN_TYPE operator()(pair<Literal*, TermList> arg)
+  VirtualIterator<pair<pair<Literal*, TermList>, TermQueryResult> > operator()(pair<Literal*, TermList> arg)
   {
     CALL("Narrow::ApplicableRewritesFn()");
 
@@ -92,8 +91,7 @@ struct Narrow::RewriteableSubtermsFn
 {
   RewriteableSubtermsFn(Ordering& ord) : _ord(ord) {}
 
-  DECL_RETURN_TYPE(VirtualIterator<pair<Literal*, TermList> >);
-  OWN_RETURN_TYPE operator()(Literal* lit)
+  VirtualIterator<pair<Literal*, TermList> > operator()(Literal* lit)
   {
     CALL("Narrow::RewriteableSubtermsFn()");
 
@@ -109,8 +107,7 @@ private:
 struct Narrow::ResultFn
 {
   ResultFn(Clause* cl, Narrow& parent) : _cl(cl), _parent(parent) {}
-  DECL_RETURN_TYPE(Clause*);
-  OWN_RETURN_TYPE operator()(pair<pair<Literal*, TermList>, TermQueryResult> arg)
+  Clause* operator()(pair<pair<Literal*, TermList>, TermQueryResult> arg)
   {
     CALL("Narrow::ResultFn::operator()");
     

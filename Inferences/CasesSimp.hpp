@@ -34,7 +34,6 @@ class CasesSimp : public ImmediateSimplificationEngine {
     struct RewriteableSubtermsFn;
     struct isEqualityLit
     {
-      DECL_RETURN_TYPE(bool);
       bool operator()(Literal* lit)
       {
         return lit->isEquality();

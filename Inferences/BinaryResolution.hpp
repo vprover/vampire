@@ -20,6 +20,7 @@
 
 #include "InferenceEngine.hpp"
 #include "Kernel/Ordering.hpp"
+#include "Shell/UnificationWithAbstractionConfig.hpp"
 
 namespace Inferences
 {
@@ -35,7 +36,10 @@ public:
   CLASS_NAME(BinaryResolution);
   USE_ALLOCATOR(BinaryResolution);
 
-  BinaryResolution() : _index(0), _unificationWithAbstraction(false) {}
+  BinaryResolution() 
+    : _index(0),
+    _unificationWithAbstraction(false)
+  {  }
 
   void attach(SaturationAlgorithm* salg);
   void detach();

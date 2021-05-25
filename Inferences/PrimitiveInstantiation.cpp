@@ -62,7 +62,6 @@ void PrimitiveInstantiation::detach()
 
 struct PrimitiveInstantiation::IsInstantiable
 {
-  DECL_RETURN_TYPE(bool);
   bool operator()(Literal* l)
   { 
     if(SortHelper::getEqualityArgumentSort(l) != Term::boolSort()){
@@ -87,8 +86,7 @@ struct PrimitiveInstantiation::ResultFn
 {
   ResultFn(Clause* cl): _cl(cl){}
   
-  DECL_RETURN_TYPE(Clause*);
-  OWN_RETURN_TYPE operator() (TermQueryResult tqr){
+  Clause* operator() (TermQueryResult tqr){
     const int QUERY = 0;
 
     ResultSubstitutionSP subst = tqr.substitution;
@@ -115,8 +113,7 @@ struct PrimitiveInstantiation::ApplicableRewritesFn
 {
   
   ApplicableRewritesFn(PrimitiveInstantiationIndex* index) : _index(index){}
-  DECL_RETURN_TYPE(VirtualIterator<TermQueryResult>);
-  OWN_RETURN_TYPE operator()(Literal* l)
+  VirtualIterator<TermQueryResult> operator()(Literal* l)
   {
     CALL("PrimitiveInstantiation::ApplicableRewritesFn()");
         

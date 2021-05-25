@@ -20,6 +20,7 @@
 #include "Lib/Recycler.hpp"
 #include "Lib/Stack.hpp"
 #include "Lib/VirtualIterator.hpp"
+#include "Lib/Metaiterators.hpp"
 #include "Lib/DHMultiset.hpp"
 
 #include "Term.hpp"
@@ -120,7 +121,6 @@ private:
 
 struct VariableIteratorFn
 {
-  DECL_RETURN_TYPE(VirtualIterator<TermList>);
   VirtualIterator<TermList> operator()(Term* t)
   {
     return vi( new VariableIterator(t) );
@@ -138,7 +138,6 @@ struct VariableIteratorFn
 
 struct OrdVarNumberExtractorFn
 {
-  DECL_RETURN_TYPE(unsigned);
   unsigned operator()(TermList t)
   {
     CALL("OrdVarNumberExtractorFn::operator()");
@@ -859,6 +858,23 @@ private:
   Stack<const TermList*> _stack;
 }; // class TermVarIterator
 
+
+class LiteralArgIterator 
+{
+  Literal* _lit;
+  unsigned _idx;
+public:
+  DECL_ELEMENT_TYPE(TermList);
+
+  LiteralArgIterator(Literal* lit) : _lit(lit), _idx(0) {}
+
+  inline bool hasNext() const { return _idx < _lit->arity(); }
+  inline TermList next() { return *_lit->nthArgument(_idx++); }
+  unsigned size() const { return _lit->arity(); }
+};
+
+inline IterTraits<LiteralArgIterator> argIter(Literal* lit) 
+{ return iterTraits(LiteralArgIterator(lit)); }
 
 
 }

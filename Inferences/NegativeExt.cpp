@@ -51,7 +51,6 @@ using namespace Saturation;
 
 struct NegativeExt::IsNegativeEqualityFn
 {
-  DECL_RETURN_TYPE(bool);
   bool operator()(Literal* l)
   { return l->isEquality() && !l->isPositive(); }
 };
@@ -60,7 +59,6 @@ struct NegativeExt::ResultFn
 {
   ResultFn(Clause* cl) : _cl(cl), _cLen(cl->length()) {}
   
-  DECL_RETURN_TYPE(Clause*);
   Clause* operator() (Literal* lit)
   {
     CALL("NegativeExt::ResultFn::operator()");

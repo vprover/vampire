@@ -19,8 +19,8 @@ template<class A> void __ignoreWarnUnusedLocalTypedefHack() {}
 
 #define CASE_INVERT(sort, fun, expr)                                           \
   case NumTraits<sort>::fun##I: {                                              \
-    using number = NumTraits<sort>;                                            \
-    __ignoreWarnUnusedLocalTypedefHack<number>();                              \
+    using Number = NumTraits<sort>;                                            \
+    __ignoreWarnUnusedLocalTypedefHack<Number>();                              \
     return expr;                                                               \
   }
 
@@ -30,9 +30,15 @@ template<class A> void __ignoreWarnUnusedLocalTypedefHack() {}
   CASE_INVERT(RealConstantType, fun, expr) \
   CASE_INVERT(RationalConstantType, fun, expr)
 
+template<class NumTraits> bool canInvertDiv(const InversionContext &ctxt);
+template<class NumTraits> TermList doInvertDiv(const InversionContext &ctxt);
 bool canInvertMulInt(const InversionContext &ctxt);
 TermList doInvertMulInt(const InversionContext &ctxt);
-template <class number> bool nonZero(const TermList &t);
+
+template <class Number> bool nonZero(const TermList &t);
+
+bool dtorIsPredicate(Signature::Symbol const& ctor, unsigned index) 
+{ return ctor.fnType()->arg(index) == Term::boolSort(); }
 
 bool NumberTheoryInverter::canInvertTop(const InversionContext &ctxt) {
   CALL("NumberTheoryInverter::canInvertTop")
@@ -45,24 +51,28 @@ bool NumberTheoryInverter::canInvertTop(const InversionContext &ctxt) {
     switch (inter) {
       CASE_INVERT_FRAC(add, true)
       CASE_INVERT_FRAC(minus, true)
-      CASE_INVERT_FRAC(mul, nonZero<number>(t[1 - ctxt.topIdx()]))
+      CASE_INVERT_FRAC(mul, nonZero<Number>(t[1 - ctxt.topIdx()]))
+      CASE_INVERT_FRAC(div, canInvertDiv<Number>(ctxt))
       CASE_INVERT_INT(mul, canInvertMulInt(ctxt))
       CASE_INVERT_INT(add, true)
       CASE_INVERT_INT(minus, true)
+    // case Theory::Interpretation::ARRAY_STORE:
+    //   /* store(t, i, x) = s ==> x = select(s, i) */
+    //   return ctxt.topIdx() == 2;
       default:;
     }
     // DBG("WARNING: unknown interpreted function: ", t.toString())
     return false;
-  } else { /* cannot invert uninterpreted functions */
-    DEBUG("no")
+  } else { 
+    /* cannot invert uninterpreted functions */
     return false;
   }
 }
 
 #define CASE_DO_INVERT(sort, fun, expr)                                        \
   case NumTraits<sort>::fun##I: {                                              \
-    using number = NumTraits<sort>;                                            \
-    __ignoreWarnUnusedLocalTypedefHack<number>();                              \
+    using Number = NumTraits<sort>;                                            \
+    __ignoreWarnUnusedLocalTypedefHack<Number>();                              \
     return expr;                                                               \
   }
 
@@ -86,24 +96,86 @@ TermList NumberTheoryInverter::invertTop(const InversionContext &ctxt) {
   auto toWrap = ctxt.toWrap();
   auto fun = t.functor();
   DEBUG("inverting ", ctxt.topTerm().toString())
-  ASS(theory->isInterpretedFunction(fun))
-  switch (theory->interpretFunction(fun)) {
+  if(theory->isInterpretedFunction(fun)) {
+    switch (theory->interpretFunction(fun)) {
 
-    CASE_DO_INVERT_ALL(add, number::add(toWrap, number::minus(t[1 - index])))
-    CASE_DO_INVERT_ALL(minus, number::minus(toWrap))
+      CASE_DO_INVERT_ALL(add, Number::add(toWrap, Number::minus(t[1 - index])))
+      CASE_DO_INVERT_ALL(minus, Number::minus(toWrap))
 
-    CASE_DO_INVERT_FRAC(
-        mul, number::mul(toWrap, number::div(number::one(), t[1 - index])))
-    CASE_DO_INVERT_INT(mul, doInvertMulInt(ctxt))
+      CASE_DO_INVERT_FRAC( mul, Number::mul(toWrap, Number::div(Number::one(), t[1 - index])))
+      CASE_DO_INVERT_FRAC(div, doInvertDiv<Number>(ctxt))
 
-  default:
-    ASSERTION_VIOLATION;
+      CASE_DO_INVERT_INT(mul, doInvertMulInt(ctxt))
+
+      // case Theory::Interpretation::ARRAY_STORE: 
+      // {
+      //   ASS(ctxt.topIdx() == 2)
+      //   /*              store(t, i, x) = s ==> x = select(s, i) */
+      //   /* auto toWrap:                  ^                      */
+      //   /* auto& t:     ^^^^^^^^^^^^^^                          */
+      //   auto& store = *env.signature->getFunction(t.functor())->fnType();
+      //   auto select = env.signature->getInterpretingSymbol(
+      //       Theory::Interpretation::ARRAY_SELECT, 
+      //       OperatorType::getFunctionType({ store.arg(0), store.arg(1) }, store.arg(2)));
+      //   return TermList(Term::create2(select, toWrap, *t.nthArgument(1)));
+      // }
+    default:
+      ASSERTION_VIOLATION;
+    }
+  } else {
+    ASSERTION_VIOLATION
+    // // must be a term algebra sort
+    // auto sym = env.signature->getFunction(fun);
+    // ASS_REP(sym->termAlgebraCons(), sym);
+    // auto ctor = env.signature->getTermAlgebraConstructor(fun);
+    // ASS(!dtorIsPredicate(*sym, index))
+    // auto dtor = ctor->destructorFunctor(index);
+    // // DBGE(*(isPred ? env.signature->getPredicate(dtor)
+    // //               : env.signature->getFunction(dtor)))
+    // return TermList(Term::create1(dtor, toWrap));
   }
 };
 
+template<class NumTraits>
+bool tryInvertDiv(const InversionContext &ctxt, TermList &out) {
+  CALL("tryInvertDiv(..)")
+
+  /* auto s = ctxt.topTerm()[0]; */
+  auto t = ctxt.topTerm()[1];
+  auto u = ctxt.toWrap();
+
+  if (ctxt.topIdx() == 0) {
+    // s / t = u ===> s = u * t (if nonZero(t) )
+    if (nonZero<NumTraits>(t)) {
+      out = NumTraits::mul(u, t);
+      return true;
+    } else {
+      return false;
+    }
+  } else {
+    ASS_EQ(ctxt.topIdx(), 1)
+    return false;
+  }
+}
+
+template<class NumTraits>
+TermList doInvertDiv(const InversionContext &ctxt) {
+  CALL("doInvertDiv(...)")
+  TermList out;
+  ALWAYS(tryInvertDiv<NumTraits>(ctxt, out)) 
+  return out;
+}
+
+template<class NumTraits>
+bool canInvertDiv(const InversionContext &ctxt) {
+  CALL("canInvertDiv(const InversionContext&)")
+  TermList _inv;
+  return tryInvertDiv<NumTraits>(ctxt, _inv);
+}
+
 bool tryInvertMulInt(const InversionContext &ctxt, TermList &out) {
   CALL("tryInvertMulInt(..)")
-  using number = NumTraits<IntegerConstantType>;
+  using Number = NumTraits<IntegerConstantType>;
 
   auto a_ = ctxt.topTerm()[1 - ctxt.topIdx()];
   IntegerConstantType a;
@@ -113,7 +185,7 @@ bool tryInvertMulInt(const InversionContext &ctxt, TermList &out) {
       return true;
 
     } else if (a == IntegerConstantType(-1)) {
-      out = number::mul(a_, ctxt.toWrap());
+      out = Number::mul(a_, ctxt.toWrap());
       return true;
 
     } else {
@@ -137,9 +209,9 @@ bool canInvertMulInt(const InversionContext &ctxt) {
   return tryInvertMulInt(ctxt, _inv);
 }
 
-template <class number> bool nonZero(const TermList &t) {
-  typename number::ConstantType c;
-  return theory->tryInterpretConstant(t, c) && number::zeroC != c;
+template <class Number> bool nonZero(const TermList &t) {
+  typename Number::ConstantType c;
+  return theory->tryInterpretConstant(t, c) && Number::zeroC != c;
 }
 
 

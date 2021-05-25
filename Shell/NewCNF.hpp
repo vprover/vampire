@@ -111,8 +111,7 @@ private:
 
   struct BindingGetVarFunctor
   {
-    DECL_RETURN_TYPE(unsigned);
-    OWN_RETURN_TYPE operator()(const Binding& b) { return b.first; }
+    unsigned operator()(const Binding& b) { return b.first; }
   };
 
   #define SIGN bool

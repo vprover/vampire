@@ -53,8 +53,7 @@ public:
   {
     LHSIteratorFn(const Ordering& ord) : _ord(ord) {}
 
-    DECL_RETURN_TYPE(VirtualIterator<pair<Literal*, TermList> >);
-    OWN_RETURN_TYPE operator()(Literal* lit)
+    VirtualIterator<pair<Literal*, TermList> > operator()(Literal* lit)
     {
       return pvi( pushPairIntoRightIterator(lit, getLHSIterator(lit, _ord)) );
     }
@@ -66,8 +65,7 @@ public:
   {
     SuperpositionLHSIteratorFn(const Ordering& ord, const Options& opt) : _ord(ord), _opt(opt) {}
 
-    DECL_RETURN_TYPE(VirtualIterator<pair<Literal*, TermList> >);
-    OWN_RETURN_TYPE operator()(Literal* lit)
+    VirtualIterator<pair<Literal*, TermList> > operator()(Literal* lit)
     {
       return pvi( pushPairIntoRightIterator(lit, getSuperpositionLHSIterator(lit, _ord, _opt)) );
     }
@@ -80,8 +78,7 @@ public:
   {
     SubVarSupLHSIteratorFn(const Ordering& ord) : _ord(ord) {}
 
-    DECL_RETURN_TYPE(VirtualIterator<pair<Literal*, TermList> >);
-    OWN_RETURN_TYPE operator()(Literal* lit)
+    VirtualIterator<pair<Literal*, TermList> > operator()(Literal* lit)
     {
       return pvi( pushPairIntoRightIterator(lit, getSubVarSupLHSIterator(lit, _ord)) );
     }
@@ -92,8 +89,7 @@ public:
 
   struct EqualityArgumentIteratorFn
   {
-    DECL_RETURN_TYPE(VirtualIterator<pair<Literal*, TermList> >);
-    OWN_RETURN_TYPE operator()(Literal* lit)
+    VirtualIterator<pair<Literal*, TermList> > operator()(Literal* lit)
     {
       return pvi( pushPairIntoRightIterator(lit, getEqualityArgumentIterator(lit)) );
     }

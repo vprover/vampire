@@ -17,6 +17,10 @@ using namespace Lib;
 
 namespace Shell {
 
+TermAlgebraConstructor::TermAlgebraConstructor(unsigned functor, std::initializer_list<unsigned> destructors)
+  : TermAlgebraConstructor(functor, Lib::Array<unsigned>(destructors))
+{ }
+
 TermAlgebraConstructor::TermAlgebraConstructor(unsigned functor, Lib::Array<unsigned> destructors)
   : _functor(functor), _hasDiscriminator(false), _destructors(destructors)
 {
@@ -56,6 +60,25 @@ Lib::vstring TermAlgebraConstructor::discriminatorName()
   CALL("TermAlgebraConstructor::discriminatorName");
 
   return "$is" + env.signature->functionName(_functor);
+}
+
+TermAlgebra::TermAlgebra(TermList sort,
+                         std::initializer_list<TermAlgebraConstructor*> constrs,
+                         bool allowsCyclicTerms) :
+  TermAlgebra(sort, Lib::Array<TermAlgebraConstructor*>(constrs), allowsCyclicTerms)
+{ }
+
+TermAlgebra::TermAlgebra(TermList sort,
+                         Lib::Array<TermAlgebraConstructor*> constrs,
+                         bool allowsCyclicTerms) :
+  _sort(sort),
+  _n(constrs.size()),
+  _allowsCyclicTerms(allowsCyclicTerms),
+  _constrs(constrs)
+{
+  for (unsigned i = 0; i < constrs.size(); i++) {
+    ASS(constrs[i]->rangeSort() == _sort);
+  }
 }
 
 TermAlgebra::TermAlgebra(TermList sort,

@@ -59,6 +59,7 @@ enum TermTag {
   SPEC_VAR = 3u,
 };
 
+bool operator<(const TermList& lhs, const TermList& rhs);
 
 /**
  * Class containing either a pointer to a compound term or
@@ -66,6 +67,7 @@ enum TermTag {
  */
 class TermList {
 public:
+  CLASS_NAME(TermList)
   static const unsigned SPEC_UPPER_BOUND = 10000000;
   /** dummy constructor, does nothing */
   TermList() {}
@@ -161,10 +163,8 @@ public:
   { return _content==t._content; }
   inline bool operator!=(const TermList& t) const
   { return _content!=t._content; }
-  inline bool operator<(const TermList& t) const
-  { return _content<t._content; }
-  inline bool operator>(const TermList& t) const
-  { return _content>t._content; }
+
+  friend bool operator<(const TermList& lhs, const TermList& rhs);
 
 private:
   vstring asArgsToString() const;
@@ -952,13 +952,16 @@ std::ostream& operator<< (ostream& out, const Literal& tl );
 
 };
 
+/* template specializations */
 namespace Lib
 {
+
 
 template<>
 struct FirstHashTypeInfo<Kernel::TermList> {
   typedef Kernel::TermListHash Type;
 };
+
 
 }
 

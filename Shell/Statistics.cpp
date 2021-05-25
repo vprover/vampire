@@ -76,13 +76,13 @@ Statistics::Statistics()
     theoryInstSimpCandidates(0),
     theoryInstSimpTautologies(0),
     theoryInstSimpLostSolution(0),
-    induction(0),
     maxInductionDepth(0),
+    induction(0),
     inductionInProof(0),
-    structInduction(0),
-    structInductionInProof(0),
     generalizedInduction(0),
     generalizedInductionInProof(0),
+    structInduction(0),
+    structInductionInProof(0),
     intInfInduction(0),
     intInfInductionInProof(0),
     intFinInduction(0),
@@ -127,8 +127,18 @@ Statistics::Statistics()
     forwardLiteralRewrites(0),
     condensations(0),
     globalSubsumption(0),
-    evaluations(0),
     interpretedSimplifications(0),
+
+    asgViolations(0),
+    asgCnt(0),
+
+    gveViolations(0),
+    gveCnt(0),
+
+    evaluationIncomp(0),
+    evaluationGreater(0),
+    evaluationCnt(0),
+
     innerRewrites(0),
     innerRewritesToEqTaut(0),
     deepEquationalTautologies(0),
@@ -306,8 +316,14 @@ void Statistics::print(ostream& out)
   HEADING("Simplifying Inferences",duplicateLiterals+trivialInequalities+
       forwardSubsumptionResolution+backwardSubsumptionResolution+proxyEliminations+
       forwardDemodulations+backwardDemodulations+forwardLiteralRewrites+
-      forwardSubsumptionDemodulations+backwardSubsumptionDemodulations+booleanSimps+
-      condensations+globalSubsumption+evaluations+innerRewrites);
+      forwardSubsumptionDemodulations+backwardSubsumptionDemodulations+
+      condensations+globalSubsumption+evaluationCnt
+      +( gveCnt - gveViolations)
+      +( asgCnt - asgViolations)
+      +( evaluationCnt - evaluationIncomp - evaluationGreater)
+      +innerRewrites
+      +booleanSimps
+      );
   COND_OUT("Duplicate literals", duplicateLiterals);
   COND_OUT("Trivial inequalities", trivialInequalities);
   COND_OUT("Fw subsumption resolutions", forwardSubsumptionResolution);
@@ -320,7 +336,17 @@ void Statistics::print(ostream& out)
   COND_OUT("Inner rewrites", innerRewrites);
   COND_OUT("Condensations", condensations);
   COND_OUT("Global subsumptions", globalSubsumption);
-  COND_OUT("Evaluations", evaluations);
+  COND_OUT("Interpreted simplifications", interpretedSimplifications);
+
+  COND_OUT("asg count", asgCnt);
+  COND_OUT("asg results not smaller than the premis", asgViolations);
+
+  COND_OUT("gve count", gveCnt);
+  COND_OUT("gve results not smaller than the premis", gveViolations);
+
+  COND_OUT("Evaluation count",         evaluationCnt);
+  COND_OUT("Evaluation results greater than premise", evaluationGreater);
+  COND_OUT("Evaluation results incomparable to premise", evaluationIncomp);
   COND_OUT("Logicial proxy rewrites", proxyEliminations);
   COND_OUT("Boolean simplifications", booleanSimps)
   //COND_OUT("Interpreted simplifications", interpretedSimplifications);

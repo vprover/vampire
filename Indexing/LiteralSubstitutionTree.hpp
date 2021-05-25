@@ -67,8 +67,6 @@ private:
   template <bool instantiation>
   struct MatchingFilter
   {
-    DECL_RETURN_TYPE(bool);
-
     MatchingFilter(Literal* queryLit, bool retrieveSubstitutions)
     : _queryEqSort(SortHelper::getEqualityArgumentSort(queryLit)),
       _isTwoVarEq(queryLit->isTwoVarEquality()),
@@ -114,8 +112,6 @@ private:
   template <bool polymorphic>
   struct UnificationFilter
   {
-    DECL_RETURN_TYPE(bool);
-
     UnificationFilter(Literal* queryLit, bool retrieveSubstitutions)
     : _queryEqSort(SortHelper::getEqualityArgumentSort(queryLit)), 
       _retrieveSubs(retrieveSubstitutions) {}
