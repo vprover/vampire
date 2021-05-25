@@ -17,7 +17,6 @@
 #include "Kernel/Problem.hpp"
 #include "Kernel/Signature.hpp"
 #include "Kernel/Term.hpp"
-#include "Kernel/Sorts.hpp"
 #include "Kernel/PolynomialNormalizer.hpp"
 #include "Inferences/PolynomialEvaluation.hpp"
 #include "Inferences/PushUnaryMinus.hpp"
