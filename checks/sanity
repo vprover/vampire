@@ -15,9 +15,32 @@ szs_status() {
 		exit 1
 	fi
 }
+smtcomp_status() {
+        time=$1
+        shift
+        status=$1
+        shift
+        out=`cd checks && $vampire -t $time $@`
+        result=`echo "$out" | egrep "^$status$"`
+        if test -z "$result"
+        then
+                echo "$@ failed: should have been $status"
+                echo "$out"
+                exit 1
+        fi
+}
 
 # Some simple problems
 szs_status 1 Theorem Problems/PUZ/PUZ001+1.p
+
+# Unsat core problems
+smtcomp_status 1 unsat --mode smtcomp Problems/smt/ucore/test1
+$vampire --input_syntax smtlib2 -t 1 -om ucore checks/Problems/smt/ucore/test2 | diff checks/Problems/smt/ucore/test2_out -
+if [ $? -eq 1 ]
+then
+  echo "Did not print unsat core as expected"
+fi
+
 
 # Integer induction problems
 szs_status 1 Unsatisfiable -ind int Problems/ind/int_invariant_infinite_geq3_val3.smt2

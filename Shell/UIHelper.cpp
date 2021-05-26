@@ -392,7 +392,6 @@ void UIHelper::outputResult(ostream& out)
     }
     if(env.options->outputMode() == Options::Output::UCORE){
       out << "unsat" << endl;
-      out << "Now printing unsat core..." << endl;
       InferenceStore::instance()->outputUnsatCore(out, env.statistics->refutation);
       return;
     }
