@@ -1043,6 +1043,60 @@ InferenceStore::ProofPrinter* InferenceStore::createProofPrinter(ostream& out)
   return 0;
 }
 
+struct StringHash{
+
+  static bool equals(vstring s1, vstring s2)
+  {
+    cout << s1 << " eq  " << s2 << endl;
+    bool ret = (s1.compare(s2) == 0);
+    cout << ret << endl;
+    return ret;
+  }
+  static unsigned hash(const vstring& str)
+  { return Lib::Hash::hash(str.c_str()); }
+};
+
+/**
+ * Output a proof of refutation to out
+ *
+ *
+ */
+void InferenceStore::outputUnsatCore(ostream& out, Unit* refutation)
+{
+  CALL("InferenceStore::outputUnsatCore(ostream&,Unit*)");
+
+  out << "(" << endl;
+
+  Stack<Unit*> todo;
+  todo.push(refutation);
+  Set<vstring> printed;
+  while(!todo.isEmpty()){
+
+    Unit* u = todo.pop();
+
+    if(u->number() <= Unit::getLastParsingNumber()){
+      if(!u->isClause()){
+        vstring label =  u->getFormula()->getLabel();
+        if(!printed.contains(label)){
+          out << label << endl; 
+          printed.insert(label);
+        }
+      }
+      else{
+        out << u->toString() << endl;
+      }
+    }
+    else{
+      InferenceRule rule;
+      UnitIterator parents = InferenceStore::instance()->getParents(u,rule);
+      while(parents.hasNext()){ todo.push(parents.next()); }
+    }
+
+  }
+
+  out << ")" << endl;
+}
+
 /**
  * Output a proof of refutation to out
  *

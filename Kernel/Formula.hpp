@@ -94,6 +94,9 @@ public:
   Color getColor();
   bool getSkip();
 
+  vstring getLabel(){ return _label;}
+  void label(vstring l){ _label=l; }
+
   static Formula* fromClause(Clause* cl);
 
   static Formula* quantify(Formula* f);
@@ -105,6 +108,7 @@ public:
   static Formula* createLet(unsigned functor, VList* variables, TermList body, Formula* contents);
   static Formula* createLet(unsigned predicate, VList* variables, Formula* body, Formula* contents);
 
+
   // use allocator to (de)allocate objects of this class
   CLASS_NAME(Formula);
   USE_ALLOCATOR(Formula);
@@ -113,11 +117,14 @@ protected:
 
   /** Create a dummy formula will null content */
   explicit Formula(Connective con)
-    : _connective(con)
+    : _connective(con), _label("none")
   {}
 
   /** connective */
   Connective _connective;
+
+  vstring _label;
+
 }; // class Formula
 
 /**

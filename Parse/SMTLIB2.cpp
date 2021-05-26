@@ -279,6 +279,11 @@ void SMTLIB2::readBenchmark(LExprList* bench)
     if (ibRdr.tryAcceptAtom("check-sat")) {
       if (bRdr.hasNext()) {
         LispListReader exitRdr(bRdr.readList());
+        // The only thing we allow after check-sat is get-unsat-core
+        if(exitRdr.tryAcceptAtom("get-unsat-core")){
+           env.options->setOutputMode(Options::Output::UCORE);
+           exitRdr = LispListReader(bRdr.readList());
+        }
         if (!exitRdr.tryAcceptAtom("exit")) {
           if(env.options->mode()!=Options::Mode::SPIDER) {
             env.beginOutput();
@@ -1494,9 +1499,13 @@ void SMTLIB2::parseAnnotatedTerm(LExpr* exp)
     annotation_warning = true;
   }
 
-  // we ignore the rest in lRdr (no matter the number of remaining arguments and their structure)
+  // we only consider :named annotations
+  if(lRdr.tryAcceptAtom(":named")){
+    _todo.push(make_pair(PO_LABEL,lRdr.readNext()));
+  }
 
   _todo.push(make_pair(PO_PARSE,toParse));
+
 }
 
 bool SMTLIB2::parseAsScopeLookup(const vstring& id)
@@ -2293,6 +2302,17 @@ SMTLIB2::ParseResult SMTLIB2::parseTermOrFormula(LExpr* body)
         }
         _results.push(true_result);
 
+        continue;
+      }
+      case PO_LABEL: {
+        ASS_GE(_results.size(),1);
+        ParseResult res =  _results.pop();
+        ASS(res.formula);
+        Formula* f;
+        res.asFormula(f);
+        vstring label = exp->toString();
+        f->label(label);
+        _results.push(res); 
         continue;
       }
       case PO_LET_PREPARE_LOOKUP:
