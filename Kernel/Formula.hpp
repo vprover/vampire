@@ -94,6 +94,7 @@ public:
   Color getColor();
   bool getSkip();
 
+  bool hasLabel(){ return _label != DEFAULT_LABEL; }
   vstring getLabel(){ return _label;}
   void label(vstring l){ _label=l; }
 
@@ -117,12 +118,13 @@ protected:
 
   /** Create a dummy formula will null content */
   explicit Formula(Connective con)
-    : _connective(con), _label("none")
+    : _connective(con), _label(DEFAULT_LABEL)
   {}
 
   /** connective */
   Connective _connective;
 
+  static vstring DEFAULT_LABEL;
   vstring _label;
 
 }; // class Formula
