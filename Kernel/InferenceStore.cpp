@@ -1048,6 +1048,44 @@ InferenceStore::ProofPrinter* InferenceStore::createProofPrinter(ostream& out)
  *
  *
  */
+void InferenceStore::outputUnsatCore(ostream& out, Unit* refutation)
+{
+  CALL("InferenceStore::outputUnsatCore(ostream&,Unit*)");
+
+  out << "(" << endl;
+
+  Stack<Unit*> todo;
+  todo.push(refutation);
+  Set<vstring> printed;
+  while(!todo.isEmpty()){
+
+    Unit* u = todo.pop();
+
+    if(u->number() <= Unit::getLastParsingNumber()){
+      if(!u->isClause()  && u->getFormula()->hasLabel()){
+        vstring label =  u->getFormula()->getLabel();
+        if(!printed.contains(label)){
+          out << label << endl; 
+          printed.insert(label);
+        }
+      }
+    }
+    else{
+      InferenceRule rule;
+      UnitIterator parents = InferenceStore::instance()->getParents(u,rule);
+      while(parents.hasNext()){ todo.push(parents.next()); }
+    }
+
+  }
+
+  out << ")" << endl;
+}
+
+/**
+ * Output a proof of refutation to out
+ *
+ *
+ */
 void InferenceStore::outputProof(ostream& out, Unit* refutation)
 {
   CALL("InferenceStore::outputProof(ostream&,Unit*)");

@@ -85,7 +85,9 @@ bool outputAllowed(bool debug)
 
   // spider and smtcomp output modes are generally silent
   return !Lib::env.options || (Lib::env.options->outputMode()!=Shell::Options::Output::SPIDER
-                               && Lib::env.options->outputMode()!=Shell::Options::Output::SMTCOMP );
+                               && Lib::env.options->outputMode()!=Shell::Options::Output::SMTCOMP 
+                               && Lib::env.options->outputMode()!=Shell::Options::Output::UCORE
+                              );
 }
 
 void reportSpiderFail()
@@ -384,8 +386,13 @@ void UIHelper::outputResult(ostream& out)
 
   switch (env.statistics->terminationReason) {
   case Statistics::REFUTATION:
-    if(env.options->outputMode() == Options::Output::SMTCOMP){
+    if(env.options->outputMode() == Options::Output::SMTCOMP){ 
       out << "unsat" << endl;
+      return;
+    }
+    if(env.options->outputMode() == Options::Output::UCORE){
+      out << "unsat" << endl;
+      InferenceStore::instance()->outputUnsatCore(out, env.statistics->refutation);
       return;
     }
     addCommentSignForSZS(out);

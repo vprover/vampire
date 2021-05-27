@@ -871,7 +871,9 @@ int main(int argc, char* argv[])
     case Options::Mode::SMTCOMP:
       env.options->setIgnoreMissing(Options::IgnoreMissing::OFF);
       env.options->setInputSyntax(Options::InputSyntax::SMTLIB2);
-      env.options->setOutputMode(Options::Output::SMTCOMP);
+      if(env.options->outputMode() != Options::Output::UCORE){
+        env.options->setOutputMode(Options::Output::SMTCOMP);
+      }
       env.options->setSchedule(Options::Schedule::SMTCOMP);
       env.options->setProof(Options::Proof::OFF);
       env.options->setMulticore(0); // use all available cores

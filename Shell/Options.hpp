@@ -475,7 +475,8 @@ public:
     SMTCOMP,
     SPIDER,
     SZS,
-    VAMPIRE
+    VAMPIRE,
+    UCORE
   };
 
   /** Possible values for sat_solver */

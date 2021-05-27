@@ -38,6 +38,9 @@ using namespace Lib;
 
 namespace Kernel {
 
+vstring Formula::DEFAULT_LABEL = "none";
+
+
 // /**
 //  * Turn literal list into a formula representing the disjunction of
 //  * these literals.
