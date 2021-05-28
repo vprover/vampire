@@ -1158,7 +1158,7 @@ void Options::init()
            _lookup.insert(&_inequalityResolution);
            _inequalityResolution.tag(OptionTag::INFERENCES);
            _inequalitySplitting.setExperimental();
-           _inequalityResolution.reliesOn(_termOrdering.is(equal(TermOrdering::KBO)));
+           _inequalityResolution.reliesOn(_termOrdering.is(equal(TermOrdering::LAKBO)));
            _inequalityResolution.reliesOnHard(_cancellation.is(equal(ArithmeticSimplificationMode::OFF)));
            _inequalityResolution.reliesOnHard(_evaluationMode.is(equal(EvaluationMode::POLYNOMIAL_FORCE)));
            _inequalityResolution.reliesOnHard(_highSchool.is(equal(false)));
@@ -2044,7 +2044,7 @@ void Options::init()
     _activationLimit.tag(OptionTag::SATURATION);
 
     _termOrdering = ChoiceOptionValue<TermOrdering>("term_ordering","to", TermOrdering::KBO,
-                                                    {"kbo","lpo"});
+                                                    {"kbo","lpo","lakbo"});
     _termOrdering.description="The term ordering used by Vampire to orient equations and order literals";
     _termOrdering.tag(OptionTag::SATURATION);
     _lookup.insert(&_termOrdering);

@@ -134,11 +134,12 @@ Ordering* Ordering::create(Problem& prb, const Options& opt)
         && !env.options->inequalityResolution() // <- TODO should we somehow support this? I think it doesn't make sense
         ) {
       out = new KBOForEPR(prb, opt);
-    } else if (env.options->inequalityResolution()) {
-      out = new LaKbo(KBO(prb, opt));
     } else {
       out = new KBO(prb, opt);
     }
+    break;
+  case Options::TermOrdering::LAKBO:
+    out = new LaKbo(KBO(prb, opt));
     break;
   case Options::TermOrdering::LPO:
     out = new LPO(prb, opt);
