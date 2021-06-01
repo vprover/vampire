@@ -176,3 +176,32 @@ TEST_GENERATION(uwa,
       ))
       .premiseRedundant(false)
     )
+
+TEST_GENERATION(bug01a,
+    Generation::TestCase()
+      .indices({ totalityIndex() })
+      .input   (         clause({ selected(  3 * f(b) >  0 )  }) )
+      .context ({        clause({ selected( -2 * f(x) >  0 )  }) })
+      .expected(exactly(                                         ))
+      .premiseRedundant(false)
+    )
+
+TEST_GENERATION(bug01b,
+    Generation::TestCase()
+      .indices({ totalityIndex() })
+      .input   (         clause({ selected(  3 * f(b) >= 0 )  }) )
+      .context ({        clause({ selected( -2 * f(x) >  0 )  }) })
+      .expected(exactly(                                         ))
+      .premiseRedundant(false)
+    )
+
+TEST_GENERATION(bug01c,
+    Generation::TestCase()
+      .indices({ totalityIndex() })
+      .input   (         clause({ selected(  3 * f(b) >  0 )  }) )
+      .context ({        clause({ selected( -2 * f(x) >= 0 )  }) })
+      .expected(exactly(                                         ))
+      .premiseRedundant(false)
+    )
+
+

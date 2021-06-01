@@ -68,7 +68,6 @@ void Totality::setTestIndices(Stack<Indexing::Index*> const& indices)
 // • s2σ is strictly maximal in terms(s2 + t2)σ
 // • ( j s1 + t1 ≥ 0)σ is strictly maximal in Hyp1σ .
 // • (−k s2 + t2 ≥ 0)σ is strictly maximal in Hyp2σ
-
 template<class NumTraits> Clause* Totality::applyRule(
     Clause* hyp1, Literal* lit1, IrcLiteral<NumTraits> l1, Monom<NumTraits> j_s1,
     Clause* hyp2, Literal* lit2, IrcLiteral<NumTraits> l2, Monom<NumTraits> k_s2,
@@ -148,6 +147,9 @@ ClauseIterator Totality::generateClauses(Clause* hyp1, Literal* lit1, IrcLiteral
                 .iterSummands()
                 .find([&](auto monom) { return monom.factors == s2; })
                 .unwrap();
+
+              if (l2.symbol() != IrcPredicate::GREATER_EQ)
+                return Option<Clause*>();
 
               if (j_s1.numeral.isNegative() || k_s2.numeral.isPositive())
                 return Option<Clause*>();
