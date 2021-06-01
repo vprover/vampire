@@ -50,6 +50,7 @@
 #include "Inferences/IRC/LiteralFactoring.hpp"
 #include "Inferences/IRC/Totality.hpp"
 #include "Inferences/IRC/Superposition.hpp"
+#include "Inferences/IRC/VariableElimination.hpp"
 #include "Inferences/EquationalTautologyRemoval.hpp"
 #include "Inferences/Condensation.hpp"
 #include "Inferences/FastCondensation.hpp"
@@ -1631,6 +1632,7 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
         .ordering = &ordering, 
         .uwa = env.options->unificationWithAbstraction(),
     });
+    sgi->push(new IRC::VariableElimination(shared)); 
     sgi->push(new IRC::LiteralFactoring(shared)); 
     sgi->push(new IRC::Superposition(shared)); 
     sgi->push(new IRC::Totality(shared)); 
