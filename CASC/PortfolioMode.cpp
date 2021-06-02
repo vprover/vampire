@@ -231,20 +231,30 @@ void PortfolioMode::getExtraSchedules(Property& prop, Schedule& old, Schedule& e
   if(add_extra){
 
    // Always try these
-   extra_opts.push("sp=frequency");
-   extra_opts.push("avsq=on");
-   extra_opts.push("plsq=on");
-   if(!env.statistics->higherOrder){
-     //these options are not currently HOL compatible
-     extra_opts.push("bsd=on:fsd=on");
-   }
+   extra_opts.push("sp=frequency"); // frequency sp; this is in casc19 but not smt18
+   extra_opts.push("avsq=on");      // avatar split queues
+   extra_opts.push("plsq=on");      // positive literal split queues
+   extra_opts.push("bsd=on:fsd=on");// subsumption demodulation
+   extra_opts.push("to=lpo");       // lpo
+   extra_opts.push("etr=on");       // equational_tautology_removal
+   extra_opts.push("av=on:atotf=0.5");     // turn AVATAR off
 
    // If contains integers, rationals and reals
    if(prop.props() & (Property::PR_HAS_INTEGERS | Property::PR_HAS_RATS | Property::PR_HAS_REALS)){
-    extra_opts.push("gve=on");
-    extra_opts.push("sos=theory:sstl=5");
-    extra_opts.push("thsq=on");
-    extra_opts.push("thsq=on:thsqd=16");
+
+    extra_opts.push("hsm=on");             // Sets a sensible set of Joe's arithmetic rules (TACAS-21) 
+    extra_opts.push("gve=force:asg=force:canc=force:ev=force:pum=on"); // More drastic set of rules
+    extra_opts.push("sos=theory:sstl=5");  // theory sos with non-default limit 
+    extra_opts.push("thsq=on");            // theory split queues, default
+    extra_opts.push("thsq=on:thsqd=16");   // theory split queues, other ratio
+   }
+   // If contains datatypes
+   if(prop.props() & Property::PR_HAS_DT_CONSTRUCTORS){
+     extra_opts.push("gtg=exists_all:ind=struct");
+     extra_opts.push("ind=struct:sik=one:indgen=on:indoct=on:drc=off");
+     extra_opts.push("ind=struct:sik=one:indgen=on");
+     extra_opts.push("ind=struct:sik=one:indoct=on");
+     extra_opts.push("ind=struct:sik=all:indmd=1");
    }
 
    // If in SMT-COMP mode try guessing the goal
@@ -252,18 +262,8 @@ void PortfolioMode::getExtraSchedules(Property& prop, Schedule& old, Schedule& e
     extra_opts.push("gtg=exists_all");
    }
    else{
-   // Don't try this in SMT-COMP mode
+   // Don't try this in SMT-COMP mode as it requires a goal
     extra_opts.push("slsq=on");
-   }
-
-   // If using Datatypes try induction
-   if(prop.props() & (Property::PR_HAS_DT_CONSTRUCTORS | Property::PR_HAS_CDT_CONSTRUCTORS)){
-    extra_opts.push("ind=struct");
-    extra_opts.push("gtg=exists_all:ind=struct");
-    extra_opts.push("ind=struct:sik=all");
-    extra_opts.push("ind=struct:sik=all:indmd=1");
-    extra_opts.push("ind=struct:indgen=on");
-    extra_opts.push("ind=struct:indgen=on:indoct=on");
    }
 
   }
