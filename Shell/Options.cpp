@@ -1083,7 +1083,7 @@ void Options::init()
            _cancellation.tag(OptionTag::INFERENCES);
            _cancellation.setExperimental();
 
-           _highSchool = BoolOptionValue("high_school", "", false);
+           _highSchool = BoolOptionValue("high_school", "hsm", false);
            _highSchool.description="Enables high school education for vampire. (i.e.: sets -gve cautious, -asg cautious, -ev cautious, -canc cautious, -pum on )";
            _lookup.insert(&_highSchool);
            _highSchool.tag(OptionTag::INFERENCES);
