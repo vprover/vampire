@@ -16,6 +16,7 @@
  */
 
 #include <ostream>
+#include "Kernel/NumTraits.hpp"
 
 #include "Debug/Tracer.hpp"
 
@@ -684,6 +685,34 @@ vstring Term::toString(bool topLevel) const
     printArgs = env.signature->getFunction(_functor)->combinator() == Signature::NOT_COMB;
   }
 
+  auto theoryTerm = Kernel::tryNumTraits([&](auto numTraits) {
+    auto unary = [&](auto sym)  {
+      vstringstream out;
+      out << sym << "(" << *nthArgument(0) << ")";
+      return Option<vstring>(out.str());
+    };
+    auto binary = [&](auto sym)  {
+      vstringstream out;
+      out << "(" << *nthArgument(0) 
+          << " " << sym << " " << *nthArgument(1)
+          << ")";
+      return Option<vstring>(out.str());
+    };
+    using NumTraits = decltype(numTraits);
+    if (_functor == NumTraits::addF()) {
+      return binary("+");
+    } else if (_functor == NumTraits::mulF()) {
+      return binary("*");
+    } else if (_functor == NumTraits::minusF()) {
+      return unary("-");
+    }
+    return Option<vstring>();
+  });
+
+  if (theoryTerm.isSome()) {
+    return theoryTerm.unwrap();
+  }
+
   vstring s = headToString();
 
   if (_arity && printArgs) {
@@ -721,6 +750,27 @@ vstring Literal::toString() const
 
     return res;
   }
+
+  auto theoryTerm = Kernel::tryNumTraits([&](auto numTraits) {
+    auto binary = [&](auto sym)  {
+      vstringstream out;
+      if (!polarity()) out << "~(" ;
+      out << *nthArgument(0) << " " << sym << " " << *nthArgument(1) ;
+      if (!polarity()) out << ")" ;
+      return Option<vstring>(out.str());
+    };
+    using NumTraits = decltype(numTraits);
+    if (_functor == NumTraits::greaterF()) {
+      return binary(">");
+    } else if (_functor == NumTraits::geqF()) {
+      return binary(">=");
+    }
+    return Option<vstring>();
+  });
+  if (theoryTerm.isSome()) {
+    return theoryTerm.unwrap();
+  }
+
 
   Stack<const TermList*> stack(64);
   vstring s = polarity() ? "" : "~";

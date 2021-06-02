@@ -126,16 +126,16 @@ SimplifyingGeneratingInference::ClauseGenerationResult VariableElimination::gene
   }
 }
 
-// C \/ { ci x + ti >i 0 | i ∈ I } \/ { -cj x + tj >j 0 | j ∈ J } \/ { ck x + tk == 0 | k ∈ K } \/ { ch x + th /= 0 | h ∈ H }
+// C \/ { x + bi >i 0 | i ∈ I } \/ { -x + bj >j 0 | j ∈ J } \/ { x + bk == 0 | k ∈ K } \/ { x + bh /= 0 | l ∈ L }
 // ==========================================================================================================================
+// C \/ { bi + bj >ij 0 | i ∈ I, j ∈ J } \/ {  bi - bk  >= 0 |   i ∈ I,   k ∈ Km } \/ {  bi - bl  >i 0 |  i ∈ I,  l ∈ L }
+//                                       \/ {  bj + bk  >= 0 |   j ∈ J,   k ∈ Kp } \/ {  bj + bl  >j 0 |  j ∈ J,  l ∈ L }
+//                                       \/ { bk1 - bk2 >= 0 |  k1 ∈ Kp, k2 ∈ Km } \/ {  bk - bl  >= 0 |  k ∈ Kp, l ∈ L }              <--- row not common
+//                                                                                 \/ {  bl - bk  >= 0 |  k ∈ Km, l ∈ L }              <--- row not common
+//                                                                                 \/ { bl1 - bl2 /= 0 | ordered pairs (l1, l2) of L }
+//                                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^<-------------------------------------------------------- col not common
 //
-// C \/ { cj ti + ci tj >ij 0 | i ∈ I, j ∈ J } \/ { ch ti - ci th >i 0 | i ∈ I, h ∈ H } 
-// ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ \/ { ch tj + cj th >j 0 | j ∈ J, h ∈ H } 
-//                                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^--> Common
-//                                             \/ { ck ti - ci tk >= 0 | i ∈ I, k ∈ K0 } 
-//                                             \/ { ck tj + cj tk >= 0 | j ∈ J, k ∈ K1 } 
-//
-// for all partitions (K0, K1) of K
+// for all partitions (Kp, Km) of K
 
 template<class A>
 class PartitionIter {
@@ -176,7 +176,7 @@ public:
       .count(); }
 
   friend std::ostream& operator<<(std::ostream& out, PartitionIter const& self)
-  { 
+  {
     out << "[";
     for (auto b : self._partition.unwrap()) {
       out << b;
@@ -191,21 +191,22 @@ template<class NumTraits>
 ClauseIterator VariableElimination::eliminateVar(Clause* premise, FoundVariable<NumTraits> found) const
 {
 
+  using Numeral = typename NumTraits::ConstantType;
   auto x = found.var;
   DEBUG("eliminating var: ", x)
   auto& I = found.posIneq;
   auto& J = found.negIneq;
-  auto& H = found.neq;
+  auto& L = found.neq;
   auto& K = found.eq;
   auto Ksize = K.size();
-  auto Csize = premise->size() - Ksize - I.size() - J.size() - H.size();
+  auto Csize = premise->size() - Ksize - I.size() - J.size() - L.size();
 
   auto withoutX = [x](auto foundVarInLiteral) 
     { return foundVarInLiteral.literal.term().iterSummands()
                               .filter([&](auto monom) { return monom.factors != x; }); };
 
 
-  Stack<Literal*> common(Csize + I.size() * J.size() + I.size() * H.size() + J.size() * H.size());
+  Stack<Literal*> common(Csize + I.size() * J.size() + I.size() * L.size() + J.size() * L.size());
 
   { /* adding C */
 
@@ -229,105 +230,126 @@ ClauseIterator VariableElimination::eliminateVar(Clause* premise, FoundVariable<
     }
   }
 
+  auto b = [x](auto& i) {
+    return iterTraits(i.literal.term().iterSummands())
+      .filter([&](auto monom) { return monom.factors != x; })
+      .map([&](auto t) { return (t / i.numeral.abs()); })
+      .map([&](auto t) { return (i.literal.symbol() == IrcPredicate::EQ || i.literal.symbol() == IrcPredicate::NEQ) && i.numeral.isNegative()
+                                ? -t : t; });
+  };
+
+  auto sum = [](auto l, auto r) {
+    return NumTraits::sum(
+      l.map([](auto monom){ return monom.denormalize(); }),
+      r.map([](auto monom){ return monom.denormalize(); })); };
+
+  auto minus = [](auto i) { return i.map([](auto monom) { return Numeral(-1) * monom; }); };
+
   { 
-    // adding { cj ti + ci tj >ij 0 | i ∈ I, j ∈ J }
+    // adding { bi + bj >ij 0 | i ∈ I, j ∈ J } 
     for (auto& i : I) {
       for (auto& j : J) {
         auto gr = i.literal.symbol() == IrcPredicate::GREATER && j.literal.symbol() == IrcPredicate::GREATER 
           ?  NumTraits::greater
           : NumTraits::geq;
-        auto ci =  i.numeral;
-        auto cj = -j.numeral;
-        ASS(ci.isPositive())
-        ASS(cj.isPositive())
+        ASS(i.numeral.isPositive())
+        ASS(j.numeral.isNegative())
 
-        auto term = NumTraits::sum(
-            withoutX(i).map([&](auto ti) { return (cj * ti).denormalize(); }),
-            withoutX(j).map([&](auto tj) { return (ci * tj).denormalize(); })
-        );
-        common.push(gr(true, term, NumTraits::zero()));
+        common.push(gr(true, sum(b(i), b(j)), NumTraits::zero()));
       }
     }
   }
 
   {
-    // adding { ch ti - ci th >i 0 | i ∈ I, h ∈ H } 
+    // adding {  bi - bl  >i 0 |  i ∈ I,  l ∈ L }
     for (auto& i : I) {
-      for (auto& h : H) {
+      for (auto& l : L) {
         auto gr = i.literal.symbol() == IrcPredicate::GREATER ? NumTraits::greater
                                                               : NumTraits::geq;
-        auto ci = i.numeral;
-        auto ch = h.numeral;
-        auto sign = ch.isNegative() ? NumTraits::constant(-1) : NumTraits::constant(1);
-        auto term = NumTraits::sum(
-            withoutX(i).map([&](auto ti) { return ( sign * ch * ti).denormalize(); }),
-            withoutX(h).map([&](auto th) { return (-sign * ci * th).denormalize(); })
-        );
-        common.push(gr(true,term, NumTraits::zero()));
+        common.push(gr(true, sum(b(i), minus(b(l))), NumTraits::zero()));
       }
     }
   }
 
   {
-    // adding { ch tj + cj th >j 0 | j ∈ J, h ∈ H } 
+    // adding {  bj + bl  >j 0 |  j ∈ J,  l ∈ L }
     for (auto& j : J) {
-      for (auto& h : H) {
+      for (auto& l : L) {
         auto gr = j.literal.symbol() == IrcPredicate::GREATER ? NumTraits::greater
                                                               : NumTraits::geq;
-        auto cj = j.numeral;
-        auto ch = h.numeral;
-        auto sign = ch.isNegative() ? NumTraits::constant(-1) : NumTraits::constant(1);
-        auto term = NumTraits::sum(
-            withoutX(j).map([&](auto tj) { return ( sign * ch * tj).denormalize(); }),
-            withoutX(h).map([&](auto th) { return ( sign * cj * th).denormalize(); })
-        );
-        common.push(gr(true,term, NumTraits::zero()));
+        common.push(gr(true, sum(b(j), b(l)), NumTraits::zero()));
+      }
+    }
+  }
+
+  { // adding { bl1 - bl2 /= 0 | ordered pairs (l1, l2) of L }
+    // TODO write a test for me
+    for (auto i1 : iterTraits(getRangeIterator(0u, (unsigned)L.size()))) {
+      for (auto i2 : iterTraits(getRangeIterator(i1 + 1, (unsigned)L.size()))) {
+        auto& l1 = L[i1];
+        auto& l2 = L[i2];
+        common.push(NumTraits::eq(false, sum(b(l1), minus(b(l2))), NumTraits::zero()));
       }
     }
   }
 
 
   return pvi(iterTraits(partitionIter(std::move(K)))
-      .map([common = std::move(common), I = std::move(I), J = std::move(J), withoutX, premise, Ksize](auto& par) {
-        // DBGE(par)
+      .map([common = std::move(common), 
+            I = std::move(I), 
+            J = std::move(J), 
+            L = std::move(L), 
+            withoutX, 
+            premise, 
+            Ksize,
+            sum, minus, b](auto& par) {
 
-        auto K0 = par.partition(0);
-        auto K1 = par.partition(1);
+        auto Kp = [&]() { return par.partition(0);};
+        auto Km = [&]() { return par.partition(1); };
 
-        auto K0size = par.partitionSize(0);
-        auto K1size = Ksize - K0size;
+        auto Kpsize = par.partitionSize(0);
+        auto Kmsize = Ksize - Kpsize;
 
-        Stack<Literal*> concl(common.size() + I.size() * K0size + + J.size() * K1size);
+        Stack<Literal*> concl(common.size() + I.size() * Kpsize + + J.size() * Kmsize);
         concl.loadFromIterator(common.iterFifo());
 
-        // { ck ti + ci tk >= 0 | i ∈ I, k ∈ K0 } 
-        for (auto& k : K0) {
+        // adding {  bi - bk  >= 0 |   i ∈ I,   k ∈ Km }
+        for (auto& k : Km()) {
           for (auto& i : I) {
-            auto ci = i.numeral;
-            auto ck = k.numeral;
-            auto sign = ck.isNegative() ? NumTraits::constant(-1) : NumTraits::constant(1);
-            auto term = NumTraits::sum(
-                withoutX(i).map([&](auto ti) { return ( sign * ck * ti).denormalize(); }),
-                withoutX(k).map([&](auto tk) { return (-sign * ci * tk).denormalize(); })
-            );
-            concl.push(NumTraits::geq(true, term, NumTraits::zero()));
+            concl.push(NumTraits::geq(true, sum(b(i), minus(b(k))), NumTraits::zero()));
           }
         }
 
-        // { ck tj + cj tk >= 0 | j ∈ J, k ∈ K1 } 
-        for (auto& k : K1) {
+        // adding {  bj + bk  >= 0 |   j ∈ J,   k ∈ Kp }
+        for (auto& k : Kp()) {
           for (auto& j : J) {
-            auto cj = j.numeral;
-            auto ck = k.numeral;
-            auto sign = ck.isNegative() ? NumTraits::constant(-1) : NumTraits::constant(1);
-            auto term = NumTraits::sum(
-                withoutX(j).map([&](auto tj) { return ( sign * ck * tj).denormalize(); }),
-                withoutX(k).map([&](auto tk) { return (-sign * cj * tk).denormalize(); })
-            );
-            concl.push(NumTraits::geq(true,term, NumTraits::zero()));
+            concl.push(NumTraits::geq(true, sum(b(j), b(k)), NumTraits::zero()));
           }
         }
 
+        // adding { bk1 - bk2 >= 0 |  k1 ∈ Kp, k2 ∈ Km }
+        for (auto& k1 : Kp()) {
+          for (auto& k2 : Km()) {
+            // TODO test me
+            concl.push(NumTraits::geq(true, sum(b(k1), minus(b(k2))), NumTraits::zero()));
+          }
+        }
+
+        // adding {  bk - bl  >= 0 |  k ∈ Kp, l ∈ L }
+        for (auto& k : Kp()) {
+          for (auto& l : L) {
+            // TODO test me
+            concl.push(NumTraits::geq(true, sum(b(k), minus(b(l))), NumTraits::zero()));
+          }
+        }
+
+        // adding {  bl - bk  >= 0 |  k ∈ Km, l ∈ L }
+        for (auto& k : Km()) {
+          for (auto& l : L) {
+            // TODO test me
+            concl.push(NumTraits::geq(true, sum(b(l), minus(b(k))), NumTraits::zero()));
+          }
+        }
 
         Inference inf(GeneratingInference1(Kernel::InferenceRule::IRC_VARIABLE_ELIMINATION, premise));
         auto out = Clause::fromStack(concl, inf);

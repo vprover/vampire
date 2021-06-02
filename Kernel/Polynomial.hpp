@@ -165,6 +165,9 @@ struct Monom
 
   friend Monom operator/(Monom const& self, Numeral n) 
   { return Monom(self.numeral / n, self.factors); }
+
+  friend Monom operator-(Monom const& self) 
+  { return Numeral(-1) * self; }
 };
 
 

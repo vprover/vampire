@@ -81,8 +81,8 @@ public:
 
   Option<AnyFoundVariable> findUnshieldedVar(Clause* premise) const;
 
-  template<class NumTraits>
-  ClauseIterator eliminateVar(Clause* premise, FoundVariable<NumTraits> found) const;
+                            ClauseIterator eliminateVar(Clause* premise, FoundVariable<IntTraits> found) const { return ClauseIterator::getEmpty(); };
+  template<class NumTraits> ClauseIterator eliminateVar(Clause* premise, FoundVariable<NumTraits> found) const;
 
   ClauseGenerationResult generateSimplify(Clause* premise)  final override;
   

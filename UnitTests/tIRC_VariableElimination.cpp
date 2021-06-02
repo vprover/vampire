@@ -1,6 +1,5 @@
 /*
- * This file is part of the source code of the software program
- * Vampire. It is protected by applicable
+ * This file is part of the source code of the software program Vampire. It is protected by applicable
  * copyright laws.
  *
  * This source code is distributed under the licence found here
@@ -219,3 +218,80 @@ TEST_GENERATION(eq04b,
 //////////////////////////////////////
 
   // TODO
+
+
+/////////////////////////////////////////////////////////
+// Bugs
+//////////////////////////////////////
+
+
+
+// TEST_GENERATION(bug01a,
+//     Generation::TestCase()
+//       .input  (  clause({ x + a > 0, -x + b >= 0, x + c == 0 }) )
+//       .expected(exactly(
+//                 // 0 = $sum($uminus(X2),$sum(X3,-1)) | 0 != $sum(X3,$uminus(len(cons(X0,X1)))) | 0 != $sum(X2,$uminus(len(X1)))
+//                 // 0 = -X2 + X3 + -1 | 0 != X3 + -len(cons(X0,X1)) | 0 != X2 + -len(X1)
+//                 // { 0 == -x + y + -1 , 0 != y + -c , 0 != x + -b }
+//                 // { 0 == -x + y + -1 , 0 != y + -c , 0 != x + -b }
+//             clause({ 0 == -x + y + -1 , 0 != y + -c , 0 != x + -b }),
+//             // clause({ a + b >= 0, b + c >= 0 })
+//       ))
+//       .premiseRedundant(true)
+//     )
+//
+// TEST_GENERATION(bug01b,
+//     Generation::TestCase()
+//       .input  (  clause({ x + a > 0, -x + b >= 0, x + c == 0 }) )
+//       .expected(exactly(
+//                 // { 0 == -x + y + -1 , 0 != y + -c , 0 != x + -b }
+//                 // { 0 == -x + y + -1 , y + -c > 0 , -y +  c > 0, x + -b > 0, -x + b > 0 }
+//             clause({ 0 == -x + y + -1 , 0 != y + -c , 0 != x + -b }),
+//          // clause({ a + b >= 0, b + c >= 0 })
+//       ))
+//       .premiseRedundant(true)
+//     )
+//
+// TEST_GENERATION(bug01c,
+//     Generation::TestCase()
+//       .input  (  clause({ x + a > 0, -x + b >= 0, x + c == 0 }) )
+//       .expected(exactly(
+//                     // { 0 == -x + y + -1 , 0 != y + -c , 0 != x + -b }
+//                     // { -x + y + -1 >= 0 , y + -c > 0 , -y +  c > 0, x + -b > 0, -x + b > 0 }
+//             clause({ -x + y + -1 >= 0 , y + -c > 0 , -y +  c > 0, x + -b > 0, -x + b > 0 })
+//             // clause({ a + b >= 0, b + c >= 0 })
+//       ))
+//       .premiseRedundant(true)
+//     )
+//
+// TEST_GENERATION(bug01d,
+//     Generation::TestCase()
+//       .input  (  clause({ x + a > 0, -x + b >= 0, x + c == 0 }) )
+//       .expected(exactly(
+//                 // { 0 == -x + y + -1 , 0 != y + -c , 0 != x + -b }
+//                 // { x + -y + 1 >= 0 , y + -c > 0 , -y +  c > 0, x + -b > 0, -x + b > 0 }
+//             clause({ x + -y + 1 >= 0 , y + -c > 0 , -y +  c > 0, x + -b > 0, -x + b > 0 })
+//             // clause({ a + b >= 0, b + c >= 0 })
+//       ))
+//       .premiseRedundant(true)
+//     )
+
+
+TEST_GENERATION(bug02a,
+    Generation::TestCase()
+      .input  (  clause({ 0 == y + -1 , 0 != y + -c }))
+            //     { 0 == y + -1 , y + -c > 0 , -y + c > 0 }
+            //     { y + -1 >= 0, y + -c > 0 , -y + c > 0 } /\ { -y + 1 >= 0, y + -c > 0 , -y + c > 0 }
+            //     { c + -1 >= 0, c + -c > 0 }              /\ { -y + -c >= 0, c + -c > 0             }
+            //     { c + -1 >= 0             }              /\ {  1 + -c >= 0                         }
+      .expected(exactly(
+            clause({ c + -1 >= 0             }), // TODO potential optimization for this
+            clause({ 1 + -c >= 0             })
+      ))
+      .premiseRedundant(true)
+    )
+
+
+
+
+  // TODO test -x + bla == 0 vs -x + -bla == 0

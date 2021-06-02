@@ -120,18 +120,7 @@ public:
     auto& sExp = this->_expected;
     auto  sRes = Stack<Kernel::Clause*>::fromIterator(res.clauses);
 
-    auto iExp = getArrayishObjectIterator<mut_ref_t>(sExp);
-    auto iRes = getArrayishObjectIterator<mut_ref_t>(sRes);
-
-    while (iRes.hasNext() && iExp.hasNext()) {
-      auto& exp = iExp.next();
-      auto& res = iRes.next();
-      if (!exp.matches(simpl, res)) {
-        testFail(sRes, sExp);
-      }
-    }
-
-    if (iExp.hasNext() || iRes.hasNext()) {
+    if (!TestUtils::permEq(sExp, sRes, [&](auto exp, auto res) { return exp.matches(simpl, res); })) {
       testFail(sRes, sExp);
     }
 
