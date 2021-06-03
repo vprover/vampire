@@ -54,6 +54,7 @@ Clause* LiteralFactoring::applyRule(Clause* premise,
   auto& cnst  = uwa.cnst;
   auto j = j_s1.numeral;
   auto k = k_s2.numeral;
+  ASS_EQ(j.isPositive(), k.isPositive())
 
   Stack<Literal*> conclusion(premise->size() + cnst.size());
 
@@ -105,6 +106,7 @@ ClauseIterator LiteralFactoring::generateClauses(Clause* premise,
   return pvi(iterTraits(ownedArrayishIterator(_shared->maxAtomicTerms(l1)))
     .flatMap([=](auto j_s1) {
       return pvi(iterTraits(ownedArrayishIterator(_shared->maxAtomicTerms(l2)))
+        .filter([=](auto k_s2) { return k_s2.numeral.isPositive() == j_s1.numeral.isPositive(); })
         .filterMap([=](auto k_s2) { 
             auto s1 = j_s1.factors->denormalize();
             auto s2 = k_s2.factors->denormalize();

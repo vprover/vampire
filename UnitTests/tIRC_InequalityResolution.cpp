@@ -228,7 +228,7 @@ TEST_GENERATION_WITH_SUGAR(gcd01_Rat,
       .input   (  clause({ selected( 6 * f(x) + b > 0) })  )
       .context ({ clause({ selected(-4 * f(y) + a > 0) }) })
       .expected(exactly(
-            clause({  b  + frac(3,2) * a  > 0 })
+            clause({  4 * b  + 6 * a  > 0 })
       ))
       .premiseRedundant(false)
     )
@@ -535,6 +535,23 @@ TEST_GENERATION_WITH_SUGAR(bug_overflow_02,
       .input   (  clause({ selected( 0 < 2 * (f(a) * num(1073741824)) ) })  )
       .context ({ clause({ selected( 3  + -a > 0 )  }) })
       .expected(exactly(
+      ))
+      .premiseRedundant(false)
+    )
+
+TEST_GENERATION_WITH_SUGAR(bug04,
+    SUGAR(Real),
+    Generation::TestCase()
+      .indices({ inequalityResolutionIdx() })
+      .input   (  clause({ -99 * g(x,y) + 33 * f(x) + -5 * x + -32 > 0, /* C */ 0 != 5081 * x + 1749 * f(x) + -6138 * y + 6125}))
+      .context ({ clause({  53 * g(x,y) + 54 * x + -62 * y + 79 > 0     , /* D */ 1749 * f(x) + 5081 * x + -6138 * y + 6125 > 0,   0 != -5081 * x + -6125 + -1749 * f(x) + 6138 * y }) })
+      .expected(exactly(
+          clause({
+              // (53 * 33) * f(x) + (53 * -5) * x + (53 * -32) + (99 * 54) * x + (99 * -62) * y + (99 * 79)  > 0
+              (53 * 33) * f(x) + (53 * -5 + 99 * 54) * x + (99 * -62) * y + (53 * -32 + 99 * 79)  > 0
+              , /* C */ 0 != 5081 * x + 1749 * f(x) + -6138 * y + 6125
+              , /* D */ 1749 * f(x) + 5081 * x + -6138 * y + 6125 > 0,   0 != -5081 * x + -6125 + -1749 * f(x) + 6138 * y
+            })
       ))
       .premiseRedundant(false)
     )

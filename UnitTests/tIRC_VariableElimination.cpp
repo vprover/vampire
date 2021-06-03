@@ -217,6 +217,53 @@ TEST_GENERATION(eq04b,
 // NOT EQ TEST
 //////////////////////////////////////
 
+
+TEST_GENERATION(neq1a,
+    Generation::TestCase()
+      .input  (  clause({ 0 != x + a , 0 != x + b }))
+      .expected(exactly(
+            clause({ 0 != a - b })
+      ))
+      .premiseRedundant(true)
+    )
+
+TEST_GENERATION(neq1b,
+    Generation::TestCase()
+      .input  (  clause({ 0 != -x - a , 0 != x + b }))
+      .expected(exactly(
+            clause({ 0 != a - b })
+      ))
+      .premiseRedundant(true)
+    )
+
+TEST_GENERATION(neq1c,
+    Generation::TestCase()
+      .input  (  clause({ 0 != -x - a , 0 != -x - b }))
+      .expected(exactly(
+            clause({ 0 != a - b })
+      ))
+      .premiseRedundant(true)
+    )
+
+
+TEST_GENERATION(neq1d,
+    Generation::TestCase()
+      .input  (  clause({ 0 != x + a , 0 != -x - b }))
+      .expected(exactly(
+            clause({ 0 != a - b })
+      ))
+      .premiseRedundant(true)
+    )
+
+TEST_GENERATION(neq2,
+    Generation::TestCase()
+      .input  (  clause({ 0 != 2 * x + a , 0 != -x - b }))
+      .expected(exactly(
+            clause({ 0 != frac(1,2) * a - b })
+      ))
+      .premiseRedundant(true)
+    )
+
   // TODO
 
 
@@ -287,6 +334,15 @@ TEST_GENERATION(bug02a,
       .expected(exactly(
             clause({ c + -1 >= 0             }), // TODO potential optimization for this
             clause({ 1 + -c >= 0             })
+      ))
+      .premiseRedundant(true)
+    )
+
+TEST_GENERATION(bug03,
+    Generation::TestCase()
+      .input  (  clause({ 0 != -1 + -x + -3 * f(x) + y , 0 != 1 + x + 3 * f(x) - y }))
+      .expected(exactly(
+            clause({ 0 != 1 + 3 * f(x) + x + -1 - x + -3 * f(x) })
       ))
       .premiseRedundant(true)
     )

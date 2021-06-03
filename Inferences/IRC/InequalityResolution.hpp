@@ -63,7 +63,8 @@ public:
     // num1 * k1 = - num2 * k2
     // let k1 = 1
     // ==> num1 = - num2 * k2 ==> k2 = - num1 / num2
-    return std::make_pair(Numeral(1), -(num1 / num2));
+    // return std::make_pair(Numeral(1), -(num1 / num2));
+    return std::make_pair(num2.abs(), num1.abs());
   }
 
   /* 

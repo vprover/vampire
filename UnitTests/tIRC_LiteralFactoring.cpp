@@ -90,6 +90,14 @@ TEST_GENERATION(basic03,
       .premiseRedundant(false)
     )
 
+TEST_GENERATION(basic04,
+    Generation::TestCase()
+      .input   (  clause({selected(  -f(a) > 0)  , selected(  f(a) > 0)  }) )
+      .expected(exactly(
+      ))
+      .premiseRedundant(false)
+    )
+
 TEST_GENERATION(uwa1,
     Generation::TestCase()
       .input   (  clause({selected(  f(a + b + x) > 0)  , selected(f(y + a) > 0)  }) )
