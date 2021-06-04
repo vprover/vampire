@@ -23,7 +23,7 @@ jobs:
       uses: actions/cache@v2
       with:
         path: ${{runner.workspace}}/vampire/z3/build
-        key: ${{runner.os}}-z3-${{hashFiles('.git/modules/z3/HEAD')}}
+        key: ${{runner.os}}-z3-v1-${{hashFiles('.git/modules/z3/HEAD')}}
     - name: Configure Z3 Build
       working-directory: ${{runner.workspace}}/vampire/z3/build
       run: test -f libz3.so || cmake .. -DCMAKE_BUILD_TYPE=Debug
