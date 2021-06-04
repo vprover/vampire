@@ -896,7 +896,7 @@ int main(int argc, char* argv[])
     case Options::Mode::PORTFOLIO:
       env.options->setIgnoreMissing(Options::IgnoreMissing::WARN);
 
-      if (CASC::PortfolioMode::perform(1.0)) {
+      if (CASC::PortfolioMode::perform(1.3)) {
         vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
       }
       break;
