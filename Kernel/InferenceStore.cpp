@@ -1061,7 +1061,7 @@ void InferenceStore::outputUnsatCore(ostream& out, Unit* refutation)
 
     Unit* u = todo.pop();
 
-    if(u->number() <= Unit::getLastParsingNumber()){
+    if(u->inference().rule() ==  InferenceRule::INPUT){
       if(!u->isClause()  && u->getFormula()->hasLabel()){
         vstring label =  u->getFormula()->getLabel();
         if(!printed.contains(label)){
@@ -1075,7 +1075,6 @@ void InferenceStore::outputUnsatCore(ostream& out, Unit* refutation)
       UnitIterator parents = InferenceStore::instance()->getParents(u,rule);
       while(parents.hasNext()){ todo.push(parents.next()); }
     }
-
   }
 
   out << ")" << endl;
