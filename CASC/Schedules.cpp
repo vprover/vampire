@@ -2289,6 +2289,65 @@ void Schedules::getSmtcomp2018Schedule(const Property& property, Schedule& quick
   fallback.push("fmb+10_1_av=off:bce=on:fmbes=smt:fmbsr=1.6:fde=none:ile=on:nm=64:updr=off_900");
 } // getSmtcomp2018Schedule
 
+static void extendStratByThsq(vstring& strat) {
+  // don't extend fmb
+  if (strat.rfind("fmb",0) == 0) {
+    return;
+  }
+  // don't extend, if there are no theory axions added
+  if (strat.find("tha=off") != vstring::npos) {
+    return;
+  }
+
+  std::size_t under_pos = strat.rfind("_");
+  //cout << "Updating strat from: " << strat << endl;
+  strat.insert(under_pos,":thsq=on");
+  //cout << "to almost the same: " << strat << endl;
+}
+
+void Schedules::getSmtcomp2018thsqSchedule(const Property& property, Schedule& quick, Schedule& fallback)
+{
+  getSmtcomp2018Schedule(property,quick,fallback);
+
+  for (vstring& strat : quick) {
+    extendStratByThsq(strat);
+  }
+
+  for (vstring& strat : fallback) {
+    extendStratByThsq(strat);
+  }
+
+} // getSmtcomp2018thsqSchedule
+
+
+static void extendStratByAtotf(vstring& strat) {
+  // don't extend fmb
+  if (strat.rfind("fmb",0) == 0) {
+    return;
+  }
+  // don't extend, if there is no avatar present
+  if (strat.find("av=off") != vstring::npos) {
+    return;
+  }
+
+  std::size_t under_pos = strat.rfind("_");
+  strat.insert(under_pos,":atotf=0.9");
+}
+
+void Schedules::getSmtcomp2018atotfSchedule(const Property& property, Schedule& quick, Schedule& fallback)
+{
+  getSmtcomp2018Schedule(property,quick,fallback);
+
+  for (vstring& strat : quick) {
+    extendStratByAtotf(strat);
+  }
+
+  for (vstring& strat : fallback) {
+    extendStratByAtotf(strat);
+  }
+
+} // getSmtcomp2018atotfSchedule
+
 // ---------- ---------- ---------- ---------- ---------- ---------- ---------- ---------- ----------
 // ---------- ---------- ---------- ---------- ---------- ---------- ---------- ---------- ----------
 // ---------- ---------- ---------- ---------- ---------- ---------- ---------- ---------- ----------

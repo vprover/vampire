@@ -439,6 +439,8 @@ public:
     LTB_MZR_2017,
     SMTCOMP,
     SMTCOMP_2018,
+    SMTCOMP_2018thsq,
+    SMTCOMP_2018atotf,
     STRUCT_INDUCTION
   };
 
