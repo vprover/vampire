@@ -70,9 +70,9 @@ FormulaUnit* SimplifyFalseTrue::simplify (FormulaUnit* unit)
  * @since 09/06/2007 Manchester, changed to new datastructures
  * @since 27/03/2008 Torrevieja, AND/OR case changed considerably
  */
-Formula* SimplifyFalseTrue::simplify (Formula* f)
+Formula* SimplifyFalseTrue::innerSimplify (Formula* f)
 {
-  CALL("SimplifyFalseTrue::simplify(Formula*)");
+  CALL("SimplifyFalseTrue::innerSimplify(Formula*)");
 
   Connective con = f->connective();
   switch (con) {

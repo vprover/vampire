@@ -2648,7 +2648,8 @@ SMTLIB2::ParseResult SMTLIB2::parseTermOrFormula(LExpr* body)
         res.asFormula(f);
         vstring label = exp->toString();
         f->label(label);
-        _results.push(res); 
+        //cout << "Label " << label << " : " << f << endl;
+        _results.push(ParseResult(f)); 
         continue;
       }
       case PO_LET_PREPARE_LOOKUP:

@@ -1064,7 +1064,7 @@ void InferenceStore::outputUnsatCore(ostream& out, Unit* refutation)
     Unit* u = todo.pop();
     visited.insert(u);
 
-    if(u->number() <= Unit::getLastParsingNumber()){
+    if(u->inference().rule() ==  InferenceRule::INPUT){
       if(!u->isClause()  && u->getFormula()->hasLabel()){
         vstring label =  u->getFormula()->getLabel();
         out << label << endl;
@@ -1080,7 +1080,6 @@ void InferenceStore::outputUnsatCore(ostream& out, Unit* refutation)
         }
       }
     }
-
   }
 
   out << ")" << endl;
