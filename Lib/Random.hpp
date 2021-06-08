@@ -42,62 +42,30 @@ class Random
    * Although carefully, as uniform_int_distribution is implementation dependent!
    */
 
-  // starting this here:
-
   static std::mt19937 _eng; // Standard mersenne_twister_engine
+  /** the seed we got (last) seeded with */
+  static unsigned _seed;
 
 public:
-  static inline int getInt(int modulus) {
+  static inline int getInteger(int modulus) {
     CALL("Random::getInt");
     return std::uniform_int_distribution<int>(0,modulus-1)(_eng);
   }
+
   static double getDouble(double min, double max) {
     CALL("Random::getDouble");
     return std::uniform_real_distribution<double>(min,max)(_eng);
   }
-
-private:
-  /** the seed we got (last) seeded with */
-  static unsigned _seed;
-  /** number of remaining bits */
-  static int _remainingBits;
-  /** number of random bits that can be extracted from one random integer */
-  static const int _bitsPerInt; 
-  /** integer used for extracting random bits */
-  static unsigned _bits; 
-
-  static int bitsPerInt ();     // finds _bitsPerInt;
-
- public:
-  /** Return the greatest random number */
-  static inline int getMax () { return RAND_MAX; }
-
-  /** Return a new random integer between 0 and RAND_MAX */
-  static inline int getInteger () { return rand(); } 
-  /** Return a new random integer between 0 and modulus-1 */
-  static inline int getInteger (int modulus)
-  { return getInteger () % modulus; }
-
-  /** Return a new random double */
-  static double getDoubleOld(double min, double max);
-  static long double getDoubleOld(long double min , long double max);
   
   /**
    * Return a random bit. The function is optimized so it does not generates
    * a new integer upon every call.
    */
-  static inline int getBit()
+  static inline bool getBit()
   {
-    if ( _remainingBits == 0 ) {
-      _remainingBits = _bitsPerInt;
-      _bits = getInteger();
-    }
+    static std::uniform_int_distribution<int> d(0,1);
 
-    int result = _bits % 2;
-    _bits /= 2;
-    _remainingBits --;
-
-    return result;
+    return (bool)d(_eng);
   } // Random::getBit
 
   // sets the random seed to s
@@ -105,10 +73,8 @@ private:
   inline static void setSeed(unsigned s)
   {
     CALL("Random::setSeed");
-    _remainingBits = 0; // to "flush" the content in _bits, so that s fully determines the follow-up state
 
     _seed = s;
-    srand(s);
     _eng.seed(_seed);
   }
 
