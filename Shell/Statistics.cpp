@@ -500,6 +500,8 @@ const char* Statistics::phaseToString(ExecutionPhase p)
     return "Property scanning";
   case NORMALIZATION:
     return "Normalization";
+  case SHUFFLING:
+    return "shuffling";
   case SINE_SELECTION:
     return "SInE selection";
   case INCLUDING_THEORY_AXIOMS:
