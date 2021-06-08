@@ -1980,11 +1980,15 @@ void Options::init()
     _restrictNWCtoGC.tag(OptionTag::SATURATION);
     _restrictNWCtoGC.reliesOn(_nonGoalWeightCoefficient.is(notEqual(1.0f)));
 
-
     _normalize = BoolOptionValue("normalize","norm",false);
     _normalize.description="Normalize the problem so that the ordering of clauses etc does not effect proof search.";
     _lookup.insert(&_normalize);
     _normalize.tag(OptionTag::PREPROCESSING);
+
+    _shuffleInput = BoolOptionValue("shuffle_input","si",false);
+    _shuffleInput.description="Randomly shuffle the input problem. (Runs after and thus destroys normalize.)";
+    _lookup.insert(&_shuffleInput);
+    _shuffleInput.tag(OptionTag::PREPROCESSING);
 
     _questionAnswering = ChoiceOptionValue<QuestionAnsweringMode>("question_answering","qa",QuestionAnsweringMode::OFF,
                                                                   {"answer_literal","from_proof","off"});
@@ -2038,7 +2042,7 @@ void Options::init()
                                  \
     - simple: will only evaluate expressions built from interpreted constants only.\
     - cautious: will evaluate abstract expressions to a weak polynomial normal form. This is more powerful but may fail in some rare cases where the resulting polynomial is not strictly smaller than the initial one wrt. the simplification ordering. In these cases a new clause with the normal form term will be added to the search space instead of replacing the orignal clause.  \
-    - force: same as `cautious`, but ignoring the simplificaiton ordering and replacing the hypothesis with the normal form clause in any case. \
+    - force: same as `cautious`, but ignoring the simplification ordering and replacing the hypothesis with the normal form clause in any case. \
     ";
     _lookup.insert(&_evaluationMode);
     _evaluationMode.tag(OptionTag::SATURATION);
