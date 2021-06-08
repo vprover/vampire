@@ -2007,7 +2007,7 @@ public:
   InputSyntax inputSyntax() const { return _inputSyntax.actualValue; }
   void setInputSyntax(InputSyntax newVal) { _inputSyntax.actualValue = newVal; }
   bool normalize() const { return _normalize.actualValue; }
-  void setNormalize(bool normalize) { _normalize.actualValue = normalize; }
+  void setNormalizeAndShuffle(bool newval) { _normalize.actualValue = newval; _shuffleInput.actualValue = newval; }
   bool shuffleInput() const { return _shuffleInput.actualValue; }
   GoalGuess guessTheGoal() const { return _guessTheGoal.actualValue; }
   unsigned gtgLimit() const { return _guessTheGoalLimit.actualValue; }

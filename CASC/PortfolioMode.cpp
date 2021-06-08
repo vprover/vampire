@@ -541,7 +541,7 @@ void PortfolioMode::runSlice(Options& strategyOpt)
 
   Options opt = strategyOpt;
   //we have already performed the normalization
-  opt.setNormalize(false);
+  opt.setNormalizeAndShuffle(false);
   opt.setForcedOptionValues();
   opt.checkGlobalOptionConstraints();
   *env.options = opt; //just temporarily until we get rid of dependencies on env.options in solving

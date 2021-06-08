@@ -1108,7 +1108,7 @@ void CLTBProblemLearning::runSlice(Options& strategyOpt, bool printProof)
 
   Options opt = strategyOpt;
   //we have already performed the normalization
-  opt.setNormalize(false);
+  opt.setNormalizeAndShuffle(false);
   opt.setForcedOptionValues();
   opt.checkGlobalOptionConstraints();
   opt.setProblemName(problemFile);
