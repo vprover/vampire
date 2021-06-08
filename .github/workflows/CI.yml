@@ -18,7 +18,7 @@ jobs:
       run: mkdir z3/build
     - name: Configure Z3 Build
       working-directory: ${{runner.workspace}}/vampire/z3/build
-      run: cmake ..
+      run: cmake .. -DCMAKE_BUILD_TYPE=Debug
     - name: Z3 Build
       working-directory: ${{runner.workspace}}/vampire/z3/build
       run: make -j8
@@ -26,7 +26,7 @@ jobs:
       run: mkdir build
     - name: Configure Build
       working-directory: ${{runner.workspace}}/vampire/build
-      run: cmake ..
+      run: cmake .. -DCMAKE_BUILD_TYPE=Debug
     - name: Build
       working-directory: ${{runner.workspace}}/vampire/build
       run: make -j8
