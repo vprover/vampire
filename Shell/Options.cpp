@@ -2001,12 +2001,12 @@ void Options::init()
     _lookup.insert(&_questionAnswering);
     _questionAnswering.tag(OptionTag::OTHER);
 
-    _randomSeed = IntOptionValue("random_seed","",Random::seed());
+    _randomSeed = UnsignedOptionValue("random_seed","",Random::seed());
     _randomSeed.description="Some parts of vampire use random numbers. This seed allows for reproducability of results. By default the seed is not changed.";
     _lookup.insert(&_randomSeed);
     _randomSeed.tag(OptionTag::INPUT);
 
-    _randomStrategySeed = IntOptionValue("random_strategy_seed","",time(nullptr));
+    _randomStrategySeed = UnsignedOptionValue("random_strategy_seed","",time(nullptr));
     _randomStrategySeed.description="Sets the seed for generating random strategies. This option necessary because --random_seed <value> will be included as fixed value in the generated random strategy, hence won't have any effect on the random strategy generation. The default value is derived from the current time.";
     _lookup.insert(&_randomStrategySeed);
     _randomStrategySeed.tag(OptionTag::INPUT);
@@ -2917,7 +2917,7 @@ void Options::randomizeStrategy(Property* prop)
   // The pseudo random sequence is deterministic given a seed.
   // By default the seed is 1
   // For this randomisation we get save the seed and try and randomize it
-  int saved_seed = Random::seed();
+  unsigned saved_seed = Random::seed();
   Random::setSeed(randomStrategySeed());
 
   // We randomize options that have setRandomChoices

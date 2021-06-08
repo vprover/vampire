@@ -22,7 +22,8 @@
 
 using namespace Lib;
 
-int Random::_seed = 1;
+unsigned Random::_seed = 1;
+std::mt19937 Random::_eng(Random::_seed);
 int Random::_remainingBits = 0;
 const int Random::_bitsPerInt = Random::bitsPerInt ();
 unsigned Random::_bits;
@@ -30,18 +31,18 @@ unsigned Random::_bits;
 /**
  * Return value between @c min and @c max (excluding the bounds)
  */
-double Random::getDouble (double min, double max)
+double Random::getDoubleOld (double min, double max)
 {
-    CALL("Random::getDouble");
+    CALL("Random::getDoubleOld");
     ASS_L(min, max);
 
     double diff = max-min;
     double part = (diff*(getInteger(RAND_MAX-2)+1))/RAND_MAX;
     return min+part;
 }
-long double Random::getDouble (long double min, long double max)
+long double Random::getDoubleOld (long double min, long double max)
 {
-    CALL("Random::getDouble");
+    CALL("Random::getDoubleOld");
     ASS_L(min, max);
 
     long double diff = max-min;

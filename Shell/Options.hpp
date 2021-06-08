@@ -2019,8 +2019,8 @@ public:
   vstring logFile() const { return _logFile.actualValue; }
   vstring inputFile() const { return _inputFile.actualValue; }
   int activationLimit() const { return _activationLimit.actualValue; }
-  int randomSeed() const { return _randomSeed.actualValue; }
-  int randomStrategySeed() const { return _randomStrategySeed.actualValue; }
+  unsigned randomSeed() const { return _randomSeed.actualValue; }
+  unsigned randomStrategySeed() const { return _randomStrategySeed.actualValue; }
   bool printClausifierPremises() const { return _printClausifierPremises.actualValue; }
 
   // IMPORTANT, if you add a showX command then include showAll
@@ -2604,8 +2604,8 @@ private:
 
   ChoiceOptionValue<QuestionAnsweringMode> _questionAnswering;
 
-  IntOptionValue _randomSeed;
-  IntOptionValue _randomStrategySeed;
+  UnsignedOptionValue _randomSeed;
+  UnsignedOptionValue _randomStrategySeed;
 
   IntOptionValue _activationLimit;
 
