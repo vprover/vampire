@@ -67,13 +67,13 @@ using namespace Kernel;
 
 vstring LaTeX::header()
 {
-    vstring res =  "\\documentclass[fleqn]{article}\n"
-    "\\usepackage{fullpage,latexsym}\n"
-
-    "\\newenvironment{VampireProof}{%\n"
-    "   \\section{Proof}}{}\n"
+    vstring res =  "\\documentclass[border=10pt,preview,multi,varwidth=\\maxdimen]{standalone}\n"
+    "\\usepackage{latexsym}\n"
+    "\\newenvironment{VampireStep}{}{}\n"
+    "\\standaloneenv{VampireStep}\n"
     "\\newenvironment{VampireInference}{%\n"
     "   \\begin{array}{c}}{\\end{array}}\n"
+    "\\standaloneenv{VampireInference}\n"
     "\\newenvironment{VampireInferencePremises}{}{}\n"
     "\\newenvironment{VampirePremise}%\n"
     "   {\\begin{array}{l}}%\n"
@@ -114,7 +114,7 @@ vstring LaTeX::refutationToString(Unit* ref)
 {
   CALL("LaTeX::refutationToString(Unit* ref)");
 
-  vstring res = header() + "\\begin{VampireProof}\n"; 
+  vstring res = header(); 
 
   Stack<Unit*> outKernel;
   Set<Unit*> handledKernel;
@@ -173,7 +173,7 @@ vstring LaTeX::refutationToString(Unit* ref)
     }
   }
 
-  return res + "\\end{VampireProof}\n" + footer(); 
+  return res + footer(); 
 
 }
 
@@ -585,7 +585,7 @@ vstring LaTeX::toStringAsInference(Unit* cs, InferenceStore::FullInference* inf)
 {
   CALL("LaTeX::toStringAsInference(ClauseSpec,FullInference*)");
 
-  vstring res("[$");
+  vstring res("\\begin{VampireStep}\n[$");
 
   bool hasParents=inf->premCnt;
   for(unsigned i=0;i<inf->premCnt;i++) {
@@ -599,7 +599,7 @@ vstring LaTeX::toStringAsInference(Unit* cs, InferenceStore::FullInference* inf)
     res += "\\rightarrow ";
   }
   res += getClauseLatexId(cs)
-    +"$, "+ruleName(inf->rule)+"]\\\\*[-2ex]\n";
+    +"$, "+ruleName(inf->rule)+"]\\\\\n";
 
   res += "\\[\\begin{VampireInference}\n";
 
@@ -620,7 +620,7 @@ vstring LaTeX::toStringAsInference(Unit* cs, InferenceStore::FullInference* inf)
 
   res += toString(cs->asClause());
 
-  return res + "\n\\end{VampireConclusion}\n\\end{VampireInference}\n\\]\n";
+  return res + "\n\\end{VampireConclusion}\n\\end{VampireInference}\n\\]\n\\end{VampireStep}\\n";
 }
 
 /**
@@ -634,7 +634,7 @@ vstring LaTeX::toStringAsInference(Unit* unit)
 
   Inference& inf = unit->inference();
 
-  vstring res("[$");
+  vstring res("\\begin{VampireStep}\n[$");
 
   bool hasParents=false;
   Inference::Iterator it = inf.iterator();
@@ -649,7 +649,7 @@ vstring LaTeX::toStringAsInference(Unit* unit)
   if(hasParents) {
     res += "\\rightarrow ";
   }
-  res += Int::toString(unit->number())+"$, "+ruleName(inf.rule())+"]\\\\*[-2ex]\n";
+  res += Int::toString(unit->number())+"$, "+ruleName(inf.rule())+"]\\\\\n";
 
   res += "\\[\\begin{VampireInference}\n";
 
@@ -671,7 +671,7 @@ vstring LaTeX::toStringAsInference(Unit* unit)
 
   res += toString(unit);
 
-  return res + "\n\\end{VampireConclusion}\n\\end{VampireInference}\n\\]\n";
+  return res + "\n\\end{VampireConclusion}\n\\end{VampireInference}\n\\]\n\\end{VampireStep}\n";
 }
 
 /*
