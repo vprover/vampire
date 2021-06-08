@@ -2179,6 +2179,7 @@ public:
   QuestionAnsweringMode questionAnswering() const { return _questionAnswering.actualValue; }
   Output outputMode() const { return _outputMode.actualValue; }
   void setOutputMode(Output newVal) { _outputMode.actualValue = newVal; }
+  bool ignoreMissingInputsInUnsatCore() {  return _ignoreMissingInputsInUnsatCore.actualValue; }
   vstring thanks() const { return _thanks.actualValue; }
   void setQuestionAnswering(QuestionAnsweringMode newVal) { _questionAnswering.actualValue = newVal; }
   bool globalSubsumption() const { return _globalSubsumption.actualValue; }
@@ -2688,6 +2689,7 @@ private:
 
   StringOptionValue _testId;
   ChoiceOptionValue<Output> _outputMode;
+  BoolOptionValue _ignoreMissingInputsInUnsatCore;
   StringOptionValue _thanks;
   ChoiceOptionValue<TheoryAxiomLevel> _theoryAxioms;
   BoolOptionValue _theoryFlattening;
