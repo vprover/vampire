@@ -29,9 +29,11 @@
 #ifndef __RANDOM__
 #  define __RANDOM__
 
+#include "Debug/Tracer.hpp"
 
 #include <cstdlib>
 #include <ctime>
+#include <random>
 
 namespace Lib
 {
@@ -42,8 +44,30 @@ namespace Lib
  */
 class Random 
 {
-  /** seed */
-  static int _seed;
+  /* TODO:
+   * https://channel9.msdn.com/Events/GoingNative/2013/rand-Considered-Harmful
+   *
+   * We should consider moving to c++11 approach to random number generation.
+   * Although carefully, as uniform_int_distribution is implementation dependent!
+   */
+
+  // starting this here:
+
+  static std::mt19937 _eng; // Standard mersenne_twister_engine
+
+public:
+  static inline int getInt(int modulus) {
+    CALL("Random::getInt");
+    return std::uniform_int_distribution<int>(0,modulus-1)(_eng);
+  }
+  static double getDouble(double min, double max) {
+    CALL("Random::getDouble");
+    return std::uniform_real_distribution<double>(min,max)(_eng);
+  }
+
+private:
+  /** the seed we got (last) seeded with */
+  static unsigned _seed;
   /** number of remaining bits */
   static int _remainingBits;
   /** number of random bits that can be extracted from one random integer */
@@ -54,7 +78,6 @@ class Random
   static int bitsPerInt ();     // finds _bitsPerInt;
 
  public:
-
   /** Return the greatest random number */
   static inline int getMax () { return RAND_MAX; }
 
@@ -65,8 +88,8 @@ class Random
   { return getInteger () % modulus; }
 
   /** Return a new random double */
-  static double getDouble(double min, double max);
-  static long double getDouble(long double min , long double max);
+  static double getDoubleOld(double min, double max);
+  static long double getDoubleOld(long double min , long double max);
   
   /**
    * Return a random bit. The function is optimized so it does not generates
@@ -88,21 +111,26 @@ class Random
 
   // sets the random seed to s
   /** Set random seed to s */
-  inline static void setSeed(int s)
+  inline static void setSeed(unsigned s)
   {
+    CALL("Random::setSeed");
+    _remainingBits = 0; // to "flush" the content in _bits, so that s fully determines the follow-up state
+
     _seed = s;
     srand(s);
+    _eng.seed(_seed);
   }
 
   /** Return the current value of the random seed. */
-  inline static int seed()
-  {
-    return _seed;
-  }
+  inline static unsigned seed() { return _seed; }
 
   /** Reset the seed based on the current time */
   inline static void resetSeed ()
-  { setSeed(static_cast<int>(time(0))); }
+  {
+    CALL("Random::resetSeed");
+
+    setSeed(std::random_device()());
+  }
 }; // class Random
 
 
