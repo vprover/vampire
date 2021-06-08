@@ -45,6 +45,7 @@
 #include "InterpretedNormalizer.hpp"
 #include "Naming.hpp"
 #include "Normalisation.hpp"
+#include "Shuffling.hpp"
 #include "NNF.hpp"
 #include "Options.hpp"
 #include "PredicateDefinition.hpp"
@@ -187,6 +188,14 @@ void Preprocess::preprocess(Problem& prb)
       env.out() << "normalization" << std::endl;
 
     Normalisation().normalise(prb);
+  }
+
+  if (_options.shuffleInput()) {
+    env.statistics->phase=Statistics::SHUFFLING;
+    if (env.options->showPreprocessing())
+      env.out() << "shuffling" << std::endl;
+
+    Shuffling().shuffle(prb);
   }
 
   if (prb.hasInterpretedOperations()) {

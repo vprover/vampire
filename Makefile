@@ -361,6 +361,7 @@ VS_OBJ = Shell/AnswerExtractor.o\
          Shell/Naming.o\
          Shell/NNF.o\
          Shell/Normalisation.o\
+         Shell/Shuffling.o\
          Shell/Options.o\
          Shell/PredicateDefinition.o\
          Shell/Preprocess.o\

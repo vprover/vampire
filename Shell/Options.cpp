@@ -1858,11 +1858,15 @@ void Options::Options::init()
     _restrictNWCtoGC.setExperimental();
     _restrictNWCtoGC.reliesOn(_nonGoalWeightCoefficient.is(notEqual(1.0f)));
 
-
     _normalize = BoolOptionValue("normalize","norm",false);
     _normalize.description="Normalize the problem so that the ordering of clauses etc does not effect proof search.";
     _lookup.insert(&_normalize);
     _normalize.tag(OptionTag::PREPROCESSING);
+
+    _shuffleInput = BoolOptionValue("shuffle_input","si",false);
+    _shuffleInput.description="Randomly shuffle the input problem. (Runs after and thus destroys normalize.)";
+    _lookup.insert(&_shuffleInput);
+    _shuffleInput.tag(OptionTag::PREPROCESSING);
 
     _questionAnswering = ChoiceOptionValue<QuestionAnsweringMode>("question_answering","qa",QuestionAnsweringMode::OFF,
                                                                   {"answer_literal","from_proof","off"});
