@@ -2331,7 +2331,7 @@ static void extendStratByAtotf(vstring& strat) {
   }
 
   std::size_t under_pos = strat.rfind("_");
-  strat.insert(under_pos,":atotf=0.9");
+  strat.insert(under_pos,":atotf=0.7");
 }
 
 void Schedules::getSmtcomp2018atotfSchedule(const Property& property, Schedule& quick, Schedule& fallback)
