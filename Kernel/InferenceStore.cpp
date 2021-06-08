@@ -1065,9 +1065,24 @@ void InferenceStore::outputUnsatCore(ostream& out, Unit* refutation)
     visited.insert(u);
 
     if(u->inference().rule() ==  InferenceRule::INPUT){
-      if(!u->isClause()  && u->getFormula()->hasLabel()){
-        vstring label =  u->getFormula()->getLabel();
-        out << label << endl;
+      if(!u->isClause()){
+        if(u->getFormula()->hasLabel()){
+          vstring label =  u->getFormula()->getLabel();
+          out << label << endl;
+        }
+        else{
+          ASS(env.options->ignoreMissingInputsInUnsatCore() || u->getFormula()->hasLabel());
+          if(!(env.options->ignoreMissingInputsInUnsatCore() || u->getFormula()->hasLabel())){
+            cout << "ERROR: There is a problem with the unsat core. There is an input formula in the proof" <<  endl;
+            cout << "that does not have a label. We expect all  input formulas to have labels as this  is what" << endl;
+            cout << "smtcomp does. If you don't want this then use the ignore_missing_inputs_in_unsat_core option" << endl;
+            cout << "The unlabelled  input formula is " << endl;
+            cout << u->toString() << endl;
+          }
+        }
+      }
+      else{
+        //Currently ignore clauses as they cannot come from SMT-LIB as input formulas
       }
     }
     else{
@@ -1084,6 +1099,8 @@ void InferenceStore::outputUnsatCore(ostream& out, Unit* refutation)
 
   out << ")" << endl;
 }
+
+
 
 /**
  * Output a proof of refutation to out
