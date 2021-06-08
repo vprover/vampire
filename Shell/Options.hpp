@@ -2008,6 +2008,7 @@ public:
   void setInputSyntax(InputSyntax newVal) { _inputSyntax.actualValue = newVal; }
   bool normalize() const { return _normalize.actualValue; }
   void setNormalize(bool normalize) { _normalize.actualValue = normalize; }
+  bool shuffleInput() const { return _shuffleInput.actualValue; }
   GoalGuess guessTheGoal() const { return _guessTheGoal.actualValue; }
   unsigned gtgLimit() const { return _guessTheGoalLimit.actualValue; }
   void setMaxXX(unsigned max) { _maximumXXNarrows.actualValue = max; }
@@ -2587,6 +2588,7 @@ private:
   IntOptionValue _naming;
   BoolOptionValue _nonliteralsInClauseWeight;
   BoolOptionValue _normalize;
+  BoolOptionValue _shuffleInput;
 
   BoolOptionValue _outputAxiomNames;
 
