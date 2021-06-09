@@ -35,11 +35,9 @@ using namespace Shell;
  */
 void Shuffling::shuffle(Problem& prb)
 {
-  CALL("Shuffling::shuffle");
+  CALL("Shuffling::shuffle (Problem&)");
 
-  UnitList* units = prb.units();
-  units = shuffle(units);
-  prb.units() = units;
+  shuffle(prb.units());
 }
 
 /**
@@ -47,79 +45,44 @@ void Shuffling::shuffle(Problem& prb)
  * also shuffling the list itself.
  * @since 09/06/2021 Prague
  */
-UnitList* Shuffling::shuffle (UnitList* units)
+void Shuffling::shuffle (UnitList*& units)
 {
-  CALL("Shuffling::shuffle (UnitList*");
+  CALL("Shuffling::shuffle (UnitList*&)");
 
-  if (UnitList::isEmpty(units)) {
-    return units;
-  }
-
-  unsigned length = UnitList::length(units);
-
-  DArray<Unit*> aux(length);
-  unsigned idx = 0;
+  shuffleList(units);
 
   UnitList::Iterator us(units);
   while (us.hasNext()) {
-    Unit* unit = us.next();
-    aux[idx++] = shuffle(unit);
+    shuffle(us.next());
   }
-
-  // this should be a library function somewhere:
-  for(unsigned i=0;i<length;i++){
-    unsigned j = Random::getInteger(length-i)+i;
-    std::swap(aux[i],aux[j]);
-  }
-
-  UnitList* result = UnitList::empty();
-  for (idx = 0; idx < length; idx++) {
-    // cout << aux[idx]->toString() << endl;
-    result = new UnitList(aux[idx],result);
-  }
-  UnitList::destroy(units);
-  return result;
 } // Shuffling::shuffle (UnitList*)
 
-Unit* Shuffling::shuffle(Unit* unit)
+void Shuffling::shuffle(Unit* unit)
 {
   CALL("Shuffling::shuffle (Unit*");
 
-  /*
-  cout << "Bef: " << unit->toString() << endl;
+  // cout << "Bef: " << unit->toString() << endl;
 
   if (unit->isClause()) {
-    Clause& clause = *static_cast<Clause*>(unit);
-    int length = clause.length();
-
-    for(unsigned i=0;i<length;i++){
-      unsigned j = Random::getInteger(length-i)+i;
-      std::swap(clause[i],clause[j]);
-
-      // clause[i] is fixed now, let's potentially swap LHS and RHS
-      if (!clause[i]->shared()) {
-        // more shuffling here? (shared literals are internally normalized)
-      }
-    }
-
-    // more than one literal
-    Sort<Literal*,Normalisation> srt(length,*this);
-    for (int i = 0;i < length;i++) {
-      srt.add(clause[i]);
-    }
-    srt.sort();
-    for (int i=0;i < length;i++) {
-      clause[i] = srt[i];
-    }
-
-    clause.notifyLiteralReorder();
+    shuffle(unit->asClause());
   } else {
-
-
+    shuffle(static_cast<FormulaUnit*>(unit)->formula());
   }
 
-  cout << "Aft: " << unit->toString() << endl;
-  */
+  //cout << "Aft: " << unit->toString() << endl;
+}
 
-  return unit;
+void Shuffling::shuffle(Clause* clause)
+{
+  CALL("Shuffling::shuffle (Clause*)");
+
+  shuffleArray(*clause,clause->length());
+
+  clause->notifyLiteralReorder();
+}
+
+void Shuffling::shuffle(Formula* fla)
+{
+  CALL("Shuffling::shuffle (Formula*)");
+
 }
