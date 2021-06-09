@@ -146,10 +146,7 @@ public:
 #define TEST_GENERATION_WITH_SUGAR(name, syntax_sugar, ...)                                                   \
   TEST_FUN(name) {                                                                                            \
     __GenerationTester tester;                                                                                \
-    _Pragma("GCC diagnostic push")                                                                            \
-    _Pragma("GCC diagnostic ignored \"-Wunused\"")                                                            \
-      syntax_sugar                                                                                            \
-    _Pragma("GCC diagnostic pop")                                                                             \
+    __ALLOW_UNUSED(syntax_sugar)                                                                              \
     auto test = __VA_ARGS__;                                                                                  \
     test.run(tester);                                                                                         \
   }                                                                                                           \
