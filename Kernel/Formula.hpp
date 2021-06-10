@@ -70,12 +70,17 @@ public:
   Formula* left();
   const Formula* right() const;
   Formula* right();
+  void leftRightSwap();
   const Formula* qarg() const;
   Formula* qarg();
+
   const VarList* vars() const;
   VarList* vars();
+  VarList** varsPtr();
   const SortList* sorts() const;
   SortList* sorts();
+  SortList** sortsPtr();
+
   const Formula* uarg() const;
   Formula* uarg();
   const Literal* literal() const;
@@ -210,10 +215,12 @@ class QuantifiedFormula
   const VarList* varList() const { return _vars; }
   /** Return the list of variables */
   VarList* varList() { return _vars; }
+  VarList** varListPtr() { return &_vars; }
   /** Return the list of sorts */
   const SortList* sortList() const { return _sorts; }
   /** Return the list of sorts */
   SortList* sortList() { return _sorts; }
+  SortList** sortListPtr() { return &_sorts; }
 
   // use allocator to (de)allocate objects of this class
   CLASS_NAME(QuantifiedFormula);
@@ -280,6 +287,11 @@ public:
   const Formula* rhs() const { return _right; }
   /** Return the rhs subformula of this formula */
   Formula* rhs() { return _right; }
+
+  // careful, this really swaps the left and right subformulas
+  void swapLeftRight() {
+    std::swap(_left,_right);
+  }
 
   // use allocator to (de)allocate objects of this class
   CLASS_NAME(BinaryFormula);
@@ -399,6 +411,13 @@ Formula::VarList* Formula::vars()
   return static_cast<QuantifiedFormula*>(this)->varList();
 }
 
+inline
+Formula::VarList** Formula::varsPtr()
+{
+  ASS(_connective == FORALL || _connective == EXISTS);
+  return static_cast<QuantifiedFormula*>(this)->varListPtr();
+}
+
 /** Return the list of sorts of a quantified formula */
 inline
 const Formula::SortList* Formula::sorts() const
@@ -412,6 +431,13 @@ Formula::SortList* Formula::sorts()
 {
   ASS(_connective == FORALL || _connective == EXISTS);
   return static_cast<QuantifiedFormula*>(this)->sortList();
+}
+
+inline
+Formula::SortList** Formula::sortsPtr()
+{
+  ASS(_connective == FORALL || _connective == EXISTS);
+  return static_cast<QuantifiedFormula*>(this)->sortListPtr();
 }
 
 /** Return the immediate subformula of a quantified formula */
@@ -498,6 +524,12 @@ Formula* Formula::left()
 {
   ASS(_connective == IFF || _connective == XOR || _connective == IMP);
   return static_cast<BinaryFormula*>(this)->lhs();
+}
+
+inline void Formula::leftRightSwap()
+{
+  ASS(_connective == IFF || _connective == XOR || _connective == IMP);
+  return static_cast<BinaryFormula*>(this)->swapLeftRight();
 }
 
 /** Return the rhs subformula of a binary formula */
