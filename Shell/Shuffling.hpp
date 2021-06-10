@@ -19,6 +19,7 @@
 #include "Forwards.hpp"
 
 #include "Lib/List.hpp"
+#include "Lib/Coproduct.hpp"
 #include "Kernel/Unit.hpp"
 
 namespace Shell {
@@ -32,6 +33,11 @@ using namespace Kernel;
  */
 class Shuffling
 {
+private:
+  typedef Coproduct<Formula*, Literal*, TermList> Shufflable;
+
+  void shuffleIter(Shufflable sh);
+
 public:
   void shuffle(Problem&);
   void shuffle(UnitList*&);
@@ -40,9 +46,10 @@ public:
 
   void shuffle(Unit*);     // shuffle a unit; just dispatches to either shuffle(Clause*) or shuffle(Formula*)
   void shuffle(Clause*);   // shuffling a clause; it assumes literals are shared (i.e. nothing "special" in them anyway) so it does not touch those
-  void shuffle(Formula*);  // shuffling a formula; will try to descend also to the term level, to shuffle around commutative operators and formulas inside terms (if applicable)
-  void shuffle(Literal*);
-  void shuffle(TermList);
+
+  void shuffle(Formula* f) { shuffleIter(Shufflable(f)); }  // shuffling a formula; will try to descend also to the term level, to shuffle around commutative operators and formulas inside terms (if applicable)
+  void shuffle(Literal* l) { shuffleIter(Shufflable(l)); }
+  void shuffle(TermList tl) { shuffleIter(Shufflable(tl)); }
 
   template<typename Arrayish>
   void shuffleArray(Arrayish& a, unsigned len) {
@@ -122,11 +129,6 @@ public:
     list1 = aux[0].first;
     list2 = aux[0].second;
   }
-
-private:
-
-
-
 }; // class Shuffling
 
 }
