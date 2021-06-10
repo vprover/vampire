@@ -33,6 +33,7 @@
 #include "Kernel/Inference.hpp"
 #include "Kernel/InferenceStore.hpp"
 #include "Kernel/KBO.hpp"
+#include "Kernel/LaKbo.hpp"
 #include "Kernel/LiteralSelector.hpp"
 #include "Kernel/MLVariant.hpp"
 #include "Kernel/Problem.hpp"
@@ -1203,10 +1204,6 @@ void SaturationAlgorithm::activate(Clause* cl)
   env.statistics->activeClauses++;
   _active->add(cl);
 
-#define ASS_NORM(x)                                                                                           \
-      ASS_REP(InequalityNormalizer(PolynomialEvaluation(*Ordering::tryGetGlobalOrdering()))                   \
-                .isNormalized(x), x->toString())
-
     
     auto generated = _generator->generateSimplify(cl);
 
@@ -1609,7 +1606,7 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
   auto& ordering = res->getOrdering();
 
   if (opt.evaluationMode() == Options::EvaluationMode::POLYNOMIAL_CAUTIOUS) {
-    sgi->push(new PolynomialEvaluation(ordering));
+    sgi->push(new PolynomialEvaluationRule(ordering));
   }
 
   if (env.options->cancellation() == Options::ArithmeticSimplificationMode::CAUTIOUS) {
@@ -1628,10 +1625,14 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
 
   if (env.options->inequalityResolution()) {
     auto shared = make_shared(new Kernel::IrcState {
-        .normalizer =InequalityNormalizer(PolynomialEvaluation(ordering)), 
+        .normalizer = InequalityNormalizer(), 
         .ordering = &ordering, 
         .uwa = env.options->unificationWithAbstraction(),
     });
+    try {
+      auto& lakbo = static_cast<Kernel::LaKbo&>(ordering);
+      lakbo.setState(shared);
+    } catch (std::bad_cast) { /* do nothing */ }
     sgi->push(new IRC::VariableElimination(shared)); 
     sgi->push(new IRC::LiteralFactoring(shared)); 
     sgi->push(new IRC::Superposition(shared)); 
@@ -1841,7 +1842,7 @@ CompositeISE* SaturationAlgorithm::createISE(Problem& prb, const Options& opt, O
         res->addFront(new InterpretedEvaluation(env.options->inequalityNormalization(), ordering));
         break;
       case Options::EvaluationMode::POLYNOMIAL_FORCE:
-        res->addFront(&(new PolynomialEvaluation(ordering))->asISE());
+        res->addFront(&(new PolynomialEvaluationRule(ordering))->asISE());
         break;
       case Options::EvaluationMode::POLYNOMIAL_CAUTIOUS:
         break;

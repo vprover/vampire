@@ -24,9 +24,9 @@ namespace Inferences {
 
 using LitSimplResult = SimplifyingGeneratingLiteralSimplification::Result;
 
-PolynomialEvaluation::~PolynomialEvaluation() {}
+PolynomialEvaluationRule::~PolynomialEvaluationRule() {}
 
-PolynomialEvaluation::PolynomialEvaluation(Ordering& ordering) : SimplifyingGeneratingLiteralSimplification(InferenceRule::EVALUATION, ordering) {}
+PolynomialEvaluationRule::PolynomialEvaluationRule(Ordering& ordering) : SimplifyingGeneratingLiteralSimplification(InferenceRule::EVALUATION, ordering) {}
 
 
 Literal* createLiteral(Literal* orig, PolyNf* evaluatedArgs) {
@@ -46,18 +46,18 @@ Literal* createLiteral(Literal* orig, PolyNf* evaluatedArgs) {
   }
 }
 
-PolynomialEvaluation::Result PolynomialEvaluation::simplifyLiteral(Literal* lit) 
+PolynomialEvaluationRule::Result PolynomialEvaluationRule::simplifyLiteral(Literal* lit) 
 {
   Stack<PolyNf> terms(lit->arity());
   auto anyChange = false;
   for (unsigned i = 0; i < lit->arity(); i++) {
     auto term = *lit->nthArgument(i);
     auto norm = PolyNf::normalize(TypedTermList(term, SortHelper::getArgSort(lit, i)));
-    auto ev = evaluate(norm);
+    auto ev = _inner.evaluate(norm);
     anyChange = anyChange || ev.value.isSome();
     terms.push(std::move(ev).value || norm);
   }
-  auto simplified = tryEvalPredicate(lit, terms.begin());
+  auto simplified = _inner.tryEvalPredicate(lit, terms.begin());
   anyChange = anyChange || simplified.isSome();
 
   return anyChange 

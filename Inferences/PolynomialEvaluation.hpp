@@ -66,15 +66,13 @@ namespace Inferences
 
 using SortId = TermList;
 
+// TODO clean up the  messy work split between PolynomialEvaluation, PolynomialEvaluationRule, PolynomialNormalizer and InequalityNormalizer
 class PolynomialEvaluation
-: public SimplifyingGeneratingLiteralSimplification
 {
 public:
+  using Result = SimplifyingGeneratingLiteralSimplification::Result;
   CLASS_NAME(PolynomialEvaluation);
   USE_ALLOCATOR(PolynomialEvaluation);
-
-  PolynomialEvaluation(Ordering& ordering);
-  virtual ~PolynomialEvaluation();
 
   MaybeOverflow<Option<PolyNf>> evaluate(PolyNf in) const;
   template<class NumTraits>
@@ -88,17 +86,31 @@ public:
   template<class NumTraits>
   static MaybeOverflow<Polynom<NumTraits>> simplifySummation(Stack<Monom<NumTraits>>);
   TermList evaluateToTerm(Term* in) const;
+  Option<Result> tryEvalPredicate(Literal* orig, PolyNf* evaluatedArgs) const;
 private:
-
-  Result simplifyLiteral(Literal*) override;
 
   MaybeOverflow<Option<PolyNf>> evaluate(TermList in, SortId sortNumber) const;
   MaybeOverflow<Option<PolyNf>> evaluate(Term* in) const;
   MaybeOverflow<Option<PolyNf>> evaluate(TypedTermList in) const;
 
-  Option<Result> tryEvalPredicate(Literal* orig, PolyNf* evaluatedArgs) const;
 
   MaybeOverflow<PolyNf> evaluateStep(Term* orig, PolyNf* evaluatedArgs) const;
+};
+
+
+class PolynomialEvaluationRule
+: public SimplifyingGeneratingLiteralSimplification
+{
+public:
+  CLASS_NAME(PolynomialEvaluationRule);
+  USE_ALLOCATOR(PolynomialEvaluationRule);
+
+  PolynomialEvaluationRule(Ordering& ordering);
+  virtual ~PolynomialEvaluationRule();
+
+private:
+  Result simplifyLiteral(Literal*) override;
+  PolynomialEvaluation _inner;
 };
 
 

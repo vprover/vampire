@@ -62,8 +62,7 @@ struct TestCase
 
   template<class NumTraits>
   void run() {
-    auto ord = LaKbo(KBO::testKBO());
-    auto norm = InequalityNormalizer(PolynomialEvaluation(ord));
+    auto norm = InequalityNormalizer();
     auto result_ = norm.normalizeIrc<NumTraits>(in).unwrap();
     auto result = result_.value.denormalize();
     if (!iterTraits(out.iter()).any([&](auto out){ return TestUtils::eqModAC(out, result); })) {

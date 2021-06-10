@@ -22,7 +22,6 @@
 #include "Lib/Int.hpp"
 #include "Forwards.hpp"
 #include "Kernel/SortHelper.hpp"
-#include "Kernel/LaKbo.hpp"
 #include "Kernel/RobSubstitution.hpp"
 
 #include "Signature.hpp" 
@@ -192,8 +191,7 @@ namespace Kernel {
 
   public:
     PolynomialEvaluation& evaluator() { return _eval; }
-    InequalityNormalizer(PolynomialEvaluation eval) 
-      : _eval(std::move(eval)) {  }
+    InequalityNormalizer() : _eval() {  }
 
     template<class NumTraits> Option<MaybeOverflow<IrcLiteral<NumTraits>>> normalizeIrc(Literal* lit) const;
 
@@ -518,6 +516,8 @@ Stack<Monom<NumTraits>> IrcState::maxAtomicTerms(IrcLiteral<NumTraits>const& lit
   }
   return max;
 }
+
+Ordering::Result compare(IrcPredicate l, IrcPredicate r);
 
 } // namespace Kernel
 

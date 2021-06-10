@@ -47,7 +47,7 @@ public:
     KBO ord = KBO::testKBO();
     auto simpl = [](Clause* cl)  -> Clause*
     {
-      static PolynomialEvaluation eval(*Ordering::tryGetGlobalOrdering());
+      static PolynomialEvaluationRule eval(*Ordering::tryGetGlobalOrdering());
       static Cancellation cancel(*Ordering::tryGetGlobalOrdering());
       return cancel.asISE().simplify(eval.asISE().simplify(cl));
     };

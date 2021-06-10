@@ -109,7 +109,7 @@ Option<LitSimplResult> evaluate(Literal* lit)
 
     auto _simpl = [](Clause* cl) -> Clause* 
     {
-      PolynomialEvaluation norm(*Ordering::tryGetGlobalOrdering());
+      PolynomialEvaluationRule norm(*Ordering::tryGetGlobalOrdering());
       PushUnaryMinus uminus;
       Cancellation cancel(*Ordering::tryGetGlobalOrdering());
       if (cl == nullptr) {

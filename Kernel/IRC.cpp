@@ -9,6 +9,7 @@
  */
 
 #include "IRC.hpp"
+#include "Kernel/LaKbo.hpp"
 
 namespace Kernel {
 using Inferences::PolynomialEvaluation;
@@ -61,7 +62,7 @@ bool InequalityNormalizer::isNormalized(Clause* cl)  const
 shared_ptr<IrcState> testIrcState(Options::UnificationWithAbstraction uwa) {
   auto& ord = *new LaKbo(Kernel::KBO::testKBO());
   return shared_ptr<IrcState>(new IrcState {
-      .normalizer = InequalityNormalizer(ord),
+      .normalizer = InequalityNormalizer(),
       .ordering = &ord,
       .uwa = uwa,
   });
@@ -160,6 +161,14 @@ IntegerConstantType normalizeFactors_divide(IntegerConstantType gcd, IntegerCons
 
 IntegerConstantType normalizeFactors_gcd(IntegerConstantType l, IntegerConstantType r)
 { return IntegerConstantType::gcd(l, r); }
+
+Ordering::Result compare(IrcPredicate l, IrcPredicate r) 
+{
+       if (l < r)  return Ordering::Result::LESS;
+  else if (l > r)  return Ordering::Result::GREATER;
+  else if (l == r) return Ordering::Result::EQUAL;
+  else ASSERTION_VIOLATION
+}
 
 } // namespace Kernel
 

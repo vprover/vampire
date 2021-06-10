@@ -96,7 +96,8 @@ bool UWAMismatchHandler::checkUWA(TermList t1, TermList t2)
             using NumTraits = decltype(numTraits);
             if (NumTraits::sort() != sort) return false;
             // TODO get the polynomial evaluation instance less dirty
-            auto sub = Inferences::PolynomialEvaluation(*Ordering::tryGetGlobalOrdering()).evaluateToTerm(NumTraits::add( NumTraits::minus(t1), t2).term());
+            static Inferences::PolynomialEvaluation ev;
+            auto sub = ev.evaluateToTerm(NumTraits::add( NumTraits::minus(t1), t2).term());
             //   ^^^--> `t2 - t1`
             return sub == NumTraits::zero() || (!sub.isVar() && sub.term()->vars() != 0) ;
         });

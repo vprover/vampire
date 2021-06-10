@@ -164,7 +164,7 @@ void Preprocess::preprocess(Problem& prb)
     if (env.options->inequalityResolution()) {
 
       LaKbo kbo(KBO(prb, *env.options));
-      auto norm = InequalityNormalizer(PolynomialEvaluation(kbo));
+      static InequalityNormalizer norm;
       InterpretedNormalizer(&norm).apply(prb);
 
     } else {
