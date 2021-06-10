@@ -22,6 +22,7 @@
 
 #include "Lib/DArray.hpp"
 #include "Kernel/KBO.hpp"
+#include "Kernel/IRC.hpp"
 
 #include "Ordering.hpp"
 #include "Lib/Map.hpp"
@@ -52,6 +53,7 @@ public:
 
   void show(ostream& out) const final override;
   Comparison compareFunctors(unsigned fun1, unsigned fun2) const override;
+  void setState(std::shared_ptr<IrcState> s) { _shared = std::move(s); }
 protected:
   int symbolWeight(Term* t) const;
 
@@ -84,6 +86,7 @@ private:
   void traverseSubterm(TraversalResult& res, Term* t, unsigned v, bool varRhs) const;
   void traverseAC(TraversalResult& res, Term* t1, Term* t2) const;
   TermList dropNumeralMultiplications(LaKbo::TraversalResult& res,  TermList t) const;
+  std::shared_ptr<IrcState> _shared;
 };
 
 } // namespace Kernel

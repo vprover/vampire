@@ -7,7 +7,13 @@
 
 namespace Kernel {
 
-LaKbo::LaKbo(KBO kbo) : KBO(std::move(kbo))
+LaKbo::LaKbo(KBO kbo) 
+  : KBO(std::move(kbo))
+  , _shared(new Kernel::IrcState {
+        .normalizer = InequalityNormalizer(), 
+        .ordering = this,
+        .uwa = env.options->unificationWithAbstraction(),
+  })
 {
 }
 
@@ -372,6 +378,34 @@ Literal* normalizeLiteral(Literal* lit)
 }
 
 
+// template<class... As>
+// auto zipVariants(Coproduct<As...>& lhs, Coproduct<As...>& rhs)
+// {
+//   using Co = Coproduct<std::tuple<As, As>...>;
+//   using Opt = Option<Co>;
+//   return lhs.apply([&](auto& lhs) {
+//       using T = rm_ref_t<decltype(lhs)>;
+//       return rhs.template as<T>()
+//                 .map([&](auto&& rhs) {
+//                     return Co(std::tuple<T,T>(lhs,rhs));
+//                 });
+//   });
+// }
+
+template<class F, class... As>
+auto zipVariants(Coproduct<As...>& lhs, Coproduct<As...>& rhs, F f)
+{
+  using Co = Coproduct<std::tuple<As, As>...>;
+  using Opt = Option<Co>;
+  return lhs.apply([&](auto&& lhs) {
+      using T = rm_ref_t<decltype(lhs)>;
+      return rhs.template as<T>()
+                .map([&](auto&& rhs) {
+                    return f(lhs,rhs);
+                });
+  });
+}
+
 // LaKbo::Result LaKbo::compare(Literal* l1_, Literal* l2_) const 
 // { return PrecedenceOrdering::compare(l1_,l2_); }
 
@@ -383,51 +417,38 @@ LaKbo::Result LaKbo::comparePredicates(Literal* l1_, Literal* l2_) const
 
     auto l1 = normalizeLiteral(l1_);
     auto l2 = normalizeLiteral(l2_);
-    auto res = TraversalResult::initial(); 
-    if (l1->functor() == l2->functor()) {
-      auto sort = SortHelper::getArgSort(l1, 0);
-      auto f = l1->functor();
-      auto ineqCmp = tryNumTraits([&](auto numTraits) {
-        using NumTraits = decltype(numTraits);
-        if (sort == NumTraits::sort() && (
-              l1->isEquality()
-              || f == NumTraits::greaterF() 
-              || f == NumTraits::geqF()       )) {
 
-          /* literals must look like t1 + ... + tn <> 0 */
-          auto a1 = normalizeTerm(*l1->nthArgument(0), sort).template wrapPoly<NumTraits>();
-          auto a2 = normalizeTerm(*l2->nthArgument(0), sort).template wrapPoly<NumTraits>();
-          ASS_EQ(*l1->nthArgument(1), NumTraits::zero())
-          ASS_EQ(*l2->nthArgument(1), NumTraits::zero())
+    auto irc1 = _shared->normalize(l1);
+    auto irc2 = _shared->normalize(l2);
+    auto ircResult = irc1.isNone() || irc2.isNone() 
+      ? Option<Result>() 
+      : zipVariants(irc1.unwrap(), irc2.unwrap(), [&](auto&& irc1, auto&& irc2) {
+            auto result = multisetCmp(
+                irc1.term().iterSummands()
+                  .map([&](auto monom) { return monom.factors->denormalize(); })
+                  .template collect<Stack>(),
+                irc2.term().iterSummands()
+                  .map([&](auto monom) { return monom.factors->denormalize(); })
+                  .template collect<Stack>(),
+                [&](auto lhs, auto rhs) { return this->compare(lhs, rhs); });
 
-          auto result = multisetCmp(
-              a1->iterSummands()
-                .map([&](auto monom) { return monom.factors->denormalize(); })
-                .template collect<Stack>(),
-              a2->iterSummands()
-                .map([&](auto monom) { return monom.factors->denormalize(); })
-                .template collect<Stack>(),
-              [&](auto lhs, auto rhs) { return this->compare(lhs, rhs); });
-          return Option<Result>( (result == Result::EQUAL && a1 != a2) ? Result::INCOMPARABLE : result);
-        } else {
-          return Option<Result>();
-        }
-      });
-      if (ineqCmp.isSome()) {
-        return ineqCmp.unwrap();
-      }
-      traverseLex(res, l1->args(), l2->args());
+            switch (result) {
+            case Result::EQUAL: 
+              if (irc1.symbol() == irc2.symbol()) {
+                return irc1.term() == irc2.term() ? Result::EQUAL : Result::INCOMPARABLE;
+              } else {
+                return Kernel::compare(irc1.symbol(),irc2.symbol());
+              }
+            default:
+              return result;
+            }
+          });
+
+    if (ircResult.isSome()) {
+      return ircResult.unwrap();
     } else {
-      res.weight_balance -= predicateWeight(l1->functor());
-      traverse(res, l1->args(), -1);
-      res.weight_balance += predicateWeight(l2->functor());
-      traverse(res, l2->args(),  1);
-      res.side_condition = Int::compare(predicatePrecedence(l1->functor()), 
-                                        predicatePrecedence(l2->functor())) == Lib::LESS ? Result::LESS : Result::GREATER;
+      return KBO::comparePredicates(l1, l2);
     }
-    auto out = toOrdering(res);
-    return out == EQUAL ? INCOMPARABLE  // <- only equal modulo AC+numeral
-                        : out;
   };
   DEBUG("lhs: ", *l1_)
   DEBUG("rhs: ", *l2_)
@@ -487,21 +508,22 @@ LaKbo::TraversalResult LaKbo::TraversalResult::initial()
 Ordering::Result LaKbo::compare(TermList t1_, TermList t2_) const 
 {
   CALL("LaKbo::compare")
-  auto inner = [&]() {
-    if (t1_ == t2_) return Result::EQUAL;
-    auto norm = [](TermList t) { return t.isVar() ? t : normalizeTerm(t.term()).denormalize(); };
-    auto res = TraversalResult::initial(); 
-    auto t1 = norm(t1_), t2 = norm(t2_);
-    traverse(res, t1, t2);
-    auto out = toOrdering(res);
-    return out == EQUAL ? INCOMPARABLE  // <- only equal modulo AC+numeral
-                        : out;
-  };
-  DEBUG("lhs: ", t1_)
-  DEBUG("rhs: ", t2_)
-  auto out = inner();
-  DEBUG("out: ", out)
-  return out;
+  return KBO::compare(t1_,t2_);
+  // auto inner = [&]() {
+  //   if (t1_ == t2_) return Result::EQUAL;
+  //   auto norm = [](TermList t) { return t.isVar() ? t : normalizeTerm(t.term()).denormalize(); };
+  //   auto res = TraversalResult::initial(); 
+  //   auto t1 = norm(t1_), t2 = norm(t2_);
+  //   traverse(res, t1, t2);
+  //   auto out = toOrdering(res);
+  //   return out == EQUAL ? INCOMPARABLE  // <- only equal modulo AC+numeral
+  //                       : out;
+  // };
+  // DEBUG("lhs: ", t1_)
+  // DEBUG("rhs: ", t2_)
+  // auto out = inner();
+  // DEBUG("out: ", out)
+  // return out;
 }
 
 void LaKbo::show(ostream& out) const 

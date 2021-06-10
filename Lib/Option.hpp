@@ -197,6 +197,16 @@ public:
   OptionBase(OptionBase const& b) : OptionBaseRef<A>(b) {}
 };
 
+
+template<class A>
+class OptionBase<A&&> : public OptionBaseRef<A>
+{
+public:
+  OptionBase() : OptionBaseRef<A>() {}
+  OptionBase(A&& item) : OptionBaseRef<A>(&item) {}
+  OptionBase(OptionBase const& b) : OptionBaseRef<A>(b) {}
+};
+
 /** The actual Option class
  * An Option<A> is a class that holds either a value of type A, or is none/empty.
  * It can be thought of a nullable pointer, that has the advantage that does not need to be allocated 
@@ -255,7 +265,7 @@ public:
   template<class Clsr>                                                                                        \
   Option<typename std::result_of<Clsr(A REF)>::type> map(Clsr clsr) REF {                                     \
     using OptOut = Option<typename std::result_of<Clsr(A REF)>::type>;                                        \
-    return this->isSome() ? OptOut(clsr(MOVE(this->unwrap())))                                                \
+    return this->isSome() ? OptOut(clsr(MOVE(unwrap())))                                                \
                           : OptOut();                                                                         \
   }                                                                                                           \
                                                                                                               \

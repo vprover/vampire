@@ -876,9 +876,9 @@ DArray<int> PrecedenceOrdering::predPrecFromOpts(Problem& prb, const Options& op
 }
 
 namespace PredLevels {
-  constexpr static int MIN_USER_DEF = 2; // equality has level 0, inequalities have level 1
+  constexpr static int MIN_USER_DEF = 1; // equality has level 0, inequalities have level 1
   constexpr static int EQ = 0;
-  constexpr static int INEQ = 1;
+  constexpr static int INEQ = 0;
 };
 
 
@@ -927,7 +927,7 @@ DArray<int> PrecedenceOrdering::predLevelsFromOptsAndPrec(Problem& prb, const Op
       predicateLevels[i] = nPredicates + PredLevels::MIN_USER_DEF+ 1;
     }
     else if (predSym->interpreted()) {
-      if (theory->isInequality(theory->interpretPredicate(i))) {
+      if (theory->isInequality(theory->interpretPredicate(i)) && env.options->inequalityResolution()) {
         predicateLevels[i] = PredLevels::INEQ;
       }
     }
