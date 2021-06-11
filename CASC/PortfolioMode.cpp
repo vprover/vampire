@@ -186,6 +186,23 @@ void addExperimentalScheduleDefaults(Schedule& sched) {
   }
 }
 
+static void extendShedByAtotf(Schedule& sched) {
+  CALL("extendShedByAtotf");
+
+  for (vstring& strat : sched) {
+    // don't extend fmb
+    if (strat.rfind("fmb",0) == 0) {
+      continue;
+    }
+    // don't extend, if there is no avatar present
+    if (strat.find("av=off") != vstring::npos) {
+      continue;
+    }
+
+    std::size_t under_pos = strat.rfind("_");
+    strat.insert(under_pos,":atotf=0.9");
+  }
+}
 
 bool PortfolioMode::performStrategy(Shell::Property* property)
 {
