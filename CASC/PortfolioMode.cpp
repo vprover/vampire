@@ -209,6 +209,20 @@ static void extendShedByAtotf(Schedule& sched) {
   }
 }
 
+static void extendShedByShuf(Schedule& sched) {
+  CALL("extendShedByShuf");
+
+  for (vstring& strat : sched) {
+    std::size_t occ_pos = strat.find("sp=occurrence");
+    if (occ_pos != vstring::npos) {
+      strat.replace(occ_pos, 13, "sp=scramble");
+    }
+
+    std::size_t under_pos = strat.rfind("_");
+    strat.insert(under_pos,":si=on");
+  }
+}
+
 bool PortfolioMode::performStrategy(Shell::Property* property)
 {
   CALL("PortfolioMode::performStrategy");
