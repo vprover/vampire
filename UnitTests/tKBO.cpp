@@ -50,7 +50,7 @@ KboWeightMap<SigTraits> toWeightMap(unsigned introducedSymbolWeight, KboSpecialW
   df._specialWeights = ws;
 
   DArray<KboWeight> out(sz);
-  for (int i = 0; i < sz; i++) {
+  for (unsigned i = 0; i < sz; i++) {
     auto w = xs.getPtr(i);
     out[i] = w == NULL ? df.symbolWeight(i) : *w;
   }
@@ -224,7 +224,7 @@ TEST_FUN(kbo_test09) {
   try {
     auto ord = kbo(weights(make_pair(g, 1u), make_pair(f, 0u)), weights());
     ASSERTION_VIOLATION
-  } catch (UserErrorException e) {
+  } catch (UserErrorException&) {
     /* f is not maximal wrt precedence but has weight 0 */
   }
 }
@@ -238,7 +238,7 @@ TEST_FUN(kbo_test10) {
   try {
     auto ord = kbo(weights(make_pair(a, 0u)), weights());
     ASSERTION_VIOLATION
-  } catch (UserErrorException e) {
+  } catch (UserErrorException&) {
     /* constant must be greater or equal to variable weight */
   }
 }
@@ -370,7 +370,7 @@ TEST_FUN(kbo_test20) {
         ), 
         weights());
     ASSERTION_VIOLATION
-  } catch (UserErrorException) {
+  } catch (UserErrorException&) {
     /* constants must have smaller or equal weight compared to variables */
   }
 }
@@ -407,7 +407,7 @@ TEST_FUN(kbo_test22) {
         ), 
         weights());
     ASSERTION_VIOLATION
-  } catch (UserErrorException e) {
+  } catch (UserErrorException&) {
     /* introduced symbol weight must be greater or equal to the variable weight */
   }
 }

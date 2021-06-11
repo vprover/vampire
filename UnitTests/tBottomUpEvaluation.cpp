@@ -75,7 +75,7 @@ TEST_FUN(example_02__compute_size) {
         return 1;
       } else {
         unsigned out = 1;
-        for (int i = 0; i < toEval.term()->arity(); i++) {
+        for (unsigned i = 0; i < toEval.term()->arity(); i++) {
           out += evaluatedChildren[i];
         }
         return out;

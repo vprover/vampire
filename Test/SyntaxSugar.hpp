@@ -155,12 +155,11 @@
  * For examples see UnitTesting/tSyntaxSugar.cpp.
  */
 #define NUMBER_SUGAR(Sort)                                                                                    \
-  _Pragma("GCC diagnostic push")                                                                              \
-  _Pragma("GCC diagnostic ignored \"-Wunused\"")                                                              \
+  __ALLOW_UNUSED(                                                                                             \
     using NumTraits = Sort##Traits;                                                                           \
     syntaxSugarGlobals().setNumTraits(NumTraits{});                                                           \
     auto Sort = SortSugar(NumTraits::sort());                                                                 \
-  _Pragma("GCC diagnostic pop")                                                                               \
+  )
 
 #define DECL_TERM_ALGEBRA(...) createTermAlgebra(__VA_ARGS__);
 
