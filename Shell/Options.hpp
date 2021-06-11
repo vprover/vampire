@@ -1998,6 +1998,7 @@ public:
   vstring ltbDirectory() const { return _ltbDirectory.actualValue; }
   Mode mode() const { return _mode.actualValue; }
   Schedule schedule() const { return _schedule.actualValue; }
+  int experimentalScheduleNumber() const { return _experimentalScheduleNumber.actualValue; }
   vstring scheduleName() const { return _schedule.getStringOfValue(_schedule.actualValue); }
   void setSchedule(Schedule newVal) {  _schedule.actualValue = newVal; }
   unsigned multicore() const { return _multicore.actualValue; }
@@ -2580,6 +2581,7 @@ private:
   UnsignedOptionValue _memoryLimit; // should be size_t, making an assumption
   ChoiceOptionValue<Mode> _mode;
   ChoiceOptionValue<Schedule> _schedule;
+  IntOptionValue _experimentalScheduleNumber;
   UnsignedOptionValue _multicore;
 
   StringOptionValue _namePrefix;

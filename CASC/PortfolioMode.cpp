@@ -144,6 +144,35 @@ bool PortfolioMode::searchForProof()
   return performStrategy(property);
 }
 
+void addExperimentalScheduleDefaults(Schedule& sched) {
+  // we add these options in any case since they should behave as if they were defaults. This is NOT meant to go into master!!!
+  int confNumber = env.options->experimentalScheduleNumber();
+  if (confNumber >= 0) {
+    ASS(confNumber < 9)
+    for (auto& conf : sched) {
+      vstringstream newConf;
+      newConf << std::move(conf.substr(0, conf.find_last_of('_')));
+
+      switch (confNumber % 3) {
+        case 0: newConf << ":asg=off:ev=simple:pum=off:canc=off"; break;
+        case 1: newConf << ":asg=force:ev=force:pum=on:canc=force"; break;
+        case 2: newConf << ":asg=cautious:ev=cautious:pum=on:canc=cautious"; break;
+        default: ASSERTION_VIOLATION;
+      }
+      switch ((confNumber / 3) % 3) {
+        case 0: newConf << ":gve=off"; break;
+        case 1: newConf << ":gve=force"; break;
+        case 2: newConf << ":gve=cautious"; break;
+        default: ASSERTION_VIOLATION;
+      }
+      newConf << std::move(conf.substr(conf.find_last_of('_'), vstring::npos));
+      conf = newConf.str();
+    }
+  }
+
+}
+
+
 bool PortfolioMode::performStrategy(Shell::Property* property)
 {
   CALL("PortfolioMode::performStrategy");
@@ -154,6 +183,8 @@ bool PortfolioMode::performStrategy(Shell::Property* property)
   Schedule fallback_extra;
 
   getSchedules(*property,main,fallback);
+  addExperimentalScheduleDefaults(main);
+  addExperimentalScheduleDefaults(fallback);
   getExtraSchedules(*property,main,main_extra,true,3);
   getExtraSchedules(*property,fallback,fallback_extra,true,3);
 
@@ -289,7 +320,6 @@ void PortfolioMode::getExtraSchedules(Property& prop, Schedule& old, Schedule& e
   }
 
 }
-
 void PortfolioMode::getSchedules(Property& prop, Schedule& quick, Schedule& fallback)
 {
   CALL("PortfolioMode::getSchedules");
