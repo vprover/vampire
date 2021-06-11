@@ -170,6 +170,20 @@ void addExperimentalScheduleDefaults(Schedule& sched) {
     }
   }
 
+  // also extend strats by thsq, if applicable
+  for (vstring& strat : sched) {
+    // don't extend fmb
+    if (strat.rfind("fmb",0) == 0) {
+      continue;
+    }
+    // don't extend, if there are no theory axions added
+    if (strat.find("tha=off") != vstring::npos) {
+      continue;
+    }
+
+    std::size_t under_pos = strat.rfind("_");
+    strat.insert(under_pos,":thsq=on");
+  }
 }
 
 
@@ -183,8 +197,10 @@ bool PortfolioMode::performStrategy(Shell::Property* property)
   Schedule fallback_extra;
 
   getSchedules(*property,main,fallback);
+
   addExperimentalScheduleDefaults(main);
   addExperimentalScheduleDefaults(fallback);
+
   getExtraSchedules(*property,main,main_extra,true,3);
   getExtraSchedules(*property,fallback,fallback_extra,true,3);
 
