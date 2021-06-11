@@ -1994,11 +1994,15 @@ void Options::init()
     _restrictNWCtoGC.tag(OptionTag::SATURATION);
     _restrictNWCtoGC.reliesOn(_nonGoalWeightCoefficient.is(notEqual(1.0f)));
 
-
     _normalize = BoolOptionValue("normalize","norm",false);
     _normalize.description="Normalize the problem so that the ordering of clauses etc does not effect proof search.";
     _lookup.insert(&_normalize);
     _normalize.tag(OptionTag::PREPROCESSING);
+
+    _shuffleInput = BoolOptionValue("shuffle_input","si",false);
+    _shuffleInput.description="Randomly shuffle the input problem. (Runs after and thus destroys normalize.)";
+    _lookup.insert(&_shuffleInput);
+    _shuffleInput.tag(OptionTag::PREPROCESSING);
 
     _questionAnswering = ChoiceOptionValue<QuestionAnsweringMode>("question_answering","qa",QuestionAnsweringMode::OFF,
                                                                   {"answer_literal","from_proof","off"});
@@ -2007,12 +2011,12 @@ void Options::init()
     _lookup.insert(&_questionAnswering);
     _questionAnswering.tag(OptionTag::OTHER);
 
-    _randomSeed = IntOptionValue("random_seed","",Random::seed());
+    _randomSeed = UnsignedOptionValue("random_seed","",Random::seed());
     _randomSeed.description="Some parts of vampire use random numbers. This seed allows for reproducability of results. By default the seed is not changed.";
     _lookup.insert(&_randomSeed);
     _randomSeed.tag(OptionTag::INPUT);
 
-    _randomStrategySeed = IntOptionValue("random_strategy_seed","",time(nullptr));
+    _randomStrategySeed = UnsignedOptionValue("random_strategy_seed","",time(nullptr));
     _randomStrategySeed.description="Sets the seed for generating random strategies. This option necessary because --random_seed <value> will be included as fixed value in the generated random strategy, hence won't have any effect on the random strategy generation. The default value is derived from the current time.";
     _lookup.insert(&_randomStrategySeed);
     _randomStrategySeed.tag(OptionTag::INPUT);
@@ -2052,7 +2056,7 @@ void Options::init()
                                  \
     - simple: will only evaluate expressions built from interpreted constants only.\
     - cautious: will evaluate abstract expressions to a weak polynomial normal form. This is more powerful but may fail in some rare cases where the resulting polynomial is not strictly smaller than the initial one wrt. the simplification ordering. In these cases a new clause with the normal form term will be added to the search space instead of replacing the orignal clause.  \
-    - force: same as `cautious`, but ignoring the simplificaiton ordering and replacing the hypothesis with the normal form clause in any case. \
+    - force: same as `cautious`, but ignoring the simplification ordering and replacing the hypothesis with the normal form clause in any case. \
     ";
     _lookup.insert(&_evaluationMode);
     _evaluationMode.tag(OptionTag::SATURATION);
@@ -2923,7 +2927,7 @@ void Options::randomizeStrategy(Property* prop)
   // The pseudo random sequence is deterministic given a seed.
   // By default the seed is 1
   // For this randomisation we get save the seed and try and randomize it
-  int saved_seed = Random::seed();
+  unsigned saved_seed = Random::seed();
   Random::setSeed(randomStrategySeed());
 
   // We randomize options that have setRandomChoices

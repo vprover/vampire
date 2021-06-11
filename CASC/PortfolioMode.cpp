@@ -27,6 +27,7 @@
 #include "Shell/Statistics.hpp"
 #include "Shell/UIHelper.hpp"
 #include "Shell/Normalisation.hpp"
+#include "Shell/Shuffling.hpp"
 #include "Shell/TheoryFinder.hpp"
 
 #include <unistd.h>
@@ -133,7 +134,11 @@ bool PortfolioMode::searchForProof()
 
     //we normalize now so that we don't have to do it in every child Vampire
     ScopedLet<Statistics::ExecutionPhase> phaseLet(env.statistics->phase,Statistics::NORMALIZATION);
-    Normalisation().normalise(*_prb);
+    if (env.options->shuffleInput()) { // instead to "combing things into shape" we shuffle and ruffle them
+      Shuffling().shuffle(*_prb);
+    } else {
+      Normalisation().normalise(*_prb);
+    }
 
     TheoryFinder(_prb->units(),property).search();
   }
