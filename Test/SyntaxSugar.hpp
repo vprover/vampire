@@ -50,6 +50,26 @@
 #define __ARGS_EXPR_1(Type) arg0_
 #define __ARGS_EXPR_2(Type) arg0_, arg1_
 
+#if defined(__clang__)
+#  define __ALLOW_UNUSED(...)                                                                                 \
+    _Pragma("GCC diagnostic push")                                                                            \
+    _Pragma("GCC diagnostic ignored \"-Wunused\"")                                                            \
+    __VA_ARGS__                                                                                               \
+    _Pragma("GCC diagnostic pop")                                                                             \
+
+#elif defined(__GNUC__) || defined(__GNUG__)
+
+#  define __ALLOW_UNUSED(...)                                                                                 \
+    _Pragma("GCC diagnostic push")                                                                            \
+    _Pragma("GCC diagnostic ignored \"-Wunused-but-set-variable\"")                                           \
+    __VA_ARGS__                                                                                               \
+    _Pragma("GCC diagnostic pop")                                                                             \
+
+#else
+#  define __ALLOW_UNUSED(...) __VA_ARGS__             
+#endif
+ 
+
 #define __CLSR_FUN_INTERPRETED(arity, mul, INT, _MULTIPLY)                                                    \
     auto mul = [](__ARGS_DECL(TermSugar, arity)) -> TermSugar {                                               \
       return TermList(Term::create ## arity(                                                                  \
@@ -76,12 +96,11 @@
 #define DECL_SORT(s)        auto s = SortSugar(#s);
 
 #define DECL_DEFAULT_VARS                                                                                     \
-  _Pragma("GCC diagnostic push")                                                                              \
-  _Pragma("GCC diagnostic ignored \"-Wunused\"")                                                              \
+  __ALLOW_UNUSED(                                                                                             \
     auto x = TermSugar(TermList::var(0));                                                                     \
     auto y = TermSugar(TermList::var(1));                                                                     \
     auto z = TermSugar(TermList::var(2));                                                                     \
-  _Pragma("GCC diagnostic pop")                                                                               \
+  )                                                                                                           \
 
 
 /** tldr: For examples on usage see UnitTesting/tSyntaxSugar.cpp
@@ -136,12 +155,11 @@
  * For examples see UnitTesting/tSyntaxSugar.cpp.
  */
 #define NUMBER_SUGAR(Sort)                                                                                    \
-  _Pragma("GCC diagnostic push")                                                                              \
-  _Pragma("GCC diagnostic ignored \"-Wunused\"")                                                              \
+  __ALLOW_UNUSED(                                                                                             \
     using NumTraits = Sort##Traits;                                                                           \
     syntaxSugarGlobals().setNumTraits(NumTraits{});                                                           \
     auto Sort = SortSugar(NumTraits::sort());                                                                 \
-  _Pragma("GCC diagnostic pop")                                                                               \
+  )
 
 #define DECL_TERM_ALGEBRA(...) createTermAlgebra(__VA_ARGS__);
 
