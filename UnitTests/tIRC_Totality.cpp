@@ -205,3 +205,14 @@ TEST_GENERATION(bug01c,
     )
 
 
+
+TEST_GENERATION(bug02,
+    Generation::TestCase()
+      .indices({ totalityIndex() })
+      .input   (         clause({             f(0) >= 0.0 })  )
+      .context ({        clause({ a + 45.0 + -f(x) >= 0.0 }) })
+      .expected(exactly( clause({             f(0) == 0.0, a + 45 != 0 }) ))
+      .premiseRedundant(false)
+    )
+
+

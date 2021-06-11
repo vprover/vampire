@@ -87,7 +87,7 @@ template<class NumTraits> Clause* Totality::applyRule(
       iterTraits(getConcatenatedIterator(C1, C2))
         .map([&](auto lit) { return sigma(lit); }));
 
-  if (l1.term().nSummands() > 1 && l2.term().nSummands() > 1 ) {
+  if (l1.term().nSummands() > 1 || l2.term().nSummands() > 1 ) {
 
     auto k_t1 = l1.term().iterSummands()
               .filter([&](auto t) { return t != j_s1; })
