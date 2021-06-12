@@ -37,12 +37,12 @@ RUN make -j2
 RUN mv bin/vampire_z3_rel_* ../vampire
 
 WORKDIR /vampire/aws
-chmod 755 run.sh
-chmod 755 run_vampire.sh
-chmod 755 make_combined_hostfile.py
-chmod 777 .
+RUN chmod 755 run.sh
+RUN chmod 755 run_vampire.sh
+RUN chmod 755 make_combined_hostfile.py
+RUN chmod 777 .
 WORKDIR  /vampire
-chmod 777 .
+RUN chmod 777 .
 USER vampire
 CMD ["/usr/sbin/sshd", "-D", "-f", "/home/.ssh/sshd_config"]
 CMD vampire/aws/run.sh
