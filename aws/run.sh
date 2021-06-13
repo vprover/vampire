@@ -54,9 +54,9 @@ wait_for_nodes () {
   # All of the hosts report their IP and number of processors. Combine all these
   # into one file with the following script:
   python3 vampire/aws/make_combined_hostfile.py ${ip}
-  cat combined_hostfile
+  cat vampire/aws/combined_hostfile
 
-  vampire/aws/run_vampire ${ip} test.smt2
+  vampire/aws/run_vampire.sh ${ip} test.smt2
 }
 
 # Fetch and run a script
