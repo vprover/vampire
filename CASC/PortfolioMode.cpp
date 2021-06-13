@@ -242,6 +242,8 @@ bool PortfolioMode::performStrategy(Shell::Property* property)
 
   getExtraSchedules(*property,main,main_extra,true,3);
   getExtraSchedules(*property,fallback,fallback_extra,true,3);
+  extendShedByShuf(main_extra);
+  extendShedByShuf(fallback_extra);
 
   // Normally we do main fallback main_extra fallback_extra
   // However, in SMTCOMP mode the fallback is universal for all
@@ -276,6 +278,8 @@ bool PortfolioMode::performStrategy(Shell::Property* property)
       if(runSchedule(s)){ return true; }
       Schedule ns;
       getExtraSchedules(*property,s,ns,false,2);
+      // Shuffle the symbol precedence in the extra schedule
+      extendShedByShuf(ns);
       next_schedules.push(ns);
       remainingTime = env.remainingTime()/100;
     }
