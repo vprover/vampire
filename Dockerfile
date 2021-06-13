@@ -26,23 +26,24 @@ RUN apt-get update \
      zlib1g-dev libopenmpi-dev git python3 awscli mpi
 
 RUN git clone https://github.com/vprover/vampire
-WORKDIR vampire
+WORKDIR ./home/vampire
 RUN git submodule update --init z3
-WORKDIR vampire/z3/build
+WORKDIR ./home/vampire/z3/build
 RUN cmake .. -DZ3_SINGLE_THREADED=ON
 RUN make -j2
-WORKDIR vampire/build
+WORKDIR ./home/vampire/build
 RUN cmake ..
 RUN make -j2
 RUN mv bin/vampire_z3_rel_* bin/vampire
 
-WORKDIR vampire/aws
+WORKDIR ./home/vampire/aws
 RUN chmod 755 run.sh
 RUN chmod 755 run_vampire.sh
 RUN chmod 755 make_combined_hostfile.py
 RUN chmod 777 .
-WORKDIR vampire
+WORKDIR ./home/vampire
 RUN chmod 777 .
-USER vampire
+WORKDIR ./home
+USER dracula 
 CMD ["/usr/sbin/sshd", "-D", "-f", "/home/.ssh/sshd_config"]
 CMD vampire/aws/run.sh
