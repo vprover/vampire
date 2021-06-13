@@ -5,9 +5,9 @@ RUN apt-get update \
     && mkdir /var/run/sshd \
     && sed 's@session\s*required\s*pam_loginuid.so@session optional pam_loginuid.so@g' -i /etc/pam.d/sshd \
     && setcap CAP_NET_BIND_SERVICE=+eip /usr/sbin/sshd \
-    && useradd -ms /bin/bash vampire \
-    && chown -R vampire /etc/ssh/ \
-    && su - vampire -c \
+    && useradd -ms /bin/bash dracula \
+    && chown -R dracula /etc/ssh/ \
+    && su - dracula -c \
         'ssh-keygen -q -t rsa -f ~/.ssh/id_rsa -N "" \
         && cp ~/.ssh/id_rsa.pub ~/.ssh/authorized_keys \
         && cp /etc/ssh/sshd_config ~/.ssh/sshd_config \
@@ -26,22 +26,22 @@ RUN apt-get update \
      zlib1g-dev libopenmpi-dev git python3 awscli mpi
 
 RUN git clone https://github.com/vprover/vampire
-WORKDIR /vampire
+WORKDIR vampire
 RUN git submodule update --init z3
-WORKDIR /vampire/z3/build
+WORKDIR vampire/z3/build
 RUN cmake .. -DZ3_SINGLE_THREADED=ON
 RUN make -j2
-WORKDIR /vampire/build
+WORKDIR vampire/build
 RUN cmake ..
 RUN make -j2
-RUN mv bin/vampire_z3_rel_* ../vampire
+RUN mv bin/vampire_z3_rel_* bin/vampire
 
-WORKDIR /vampire/aws
+WORKDIR vampire/aws
 RUN chmod 755 run.sh
 RUN chmod 755 run_vampire.sh
 RUN chmod 755 make_combined_hostfile.py
 RUN chmod 777 .
-WORKDIR  /vampire
+WORKDIR vampire
 RUN chmod 777 .
 USER vampire
 CMD ["/usr/sbin/sshd", "-D", "-f", "/home/.ssh/sshd_config"]
