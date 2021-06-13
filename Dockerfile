@@ -60,14 +60,14 @@ RUN cmake ..
 RUN make -j2
 RUN mv bin/vampire_z3_rel_* bin/vampire
 
-WORKDIR /home/vampire/aws
-RUN chmod 755 run.sh
-RUN chmod 755 run_vampire.sh
-RUN chmod 755 make_combined_hostfile.py
-RUN chmod 777 .
-WORKDIR /home/vampire
-RUN chmod 777 .
 WORKDIR /home
+RUN chmod 777 .
+RUN chmod 777 vampire
+RUN chmod 777 vampire/aws 
+RUN chmod 755 vampire/aws/run.sh
+RUN chmod 755 vampire/aws/run_vampire.sh
+RUN chmod 755 vampire/aws/make_combined_hostfile.py
+
 USER dracula 
 CMD ["/usr/sbin/sshd", "-D", "-f", "/home/.ssh/sshd_config"]
 CMD vampire/aws/run.sh
