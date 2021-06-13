@@ -25,10 +25,29 @@ RUN apt-get update \
      build-essential libgmp-dev libedit-dev libsqlite3-dev bison flex libubsan0 \
      zlib1g-dev libopenmpi-dev git python3 awscli mpi
 
+# Get newer cmake
 RUN wget https://github.com/Kitware/CMake/releases/download/v3.20.3/cmake-3.20.3-linux-x86_64.tar.gz
 RUN tar zxvf cmake-3.20.3-linux-x86_64.tar.gz
 RUN mv cmake-3.20.3-linux-x86_64 /opt/cmake-3.20.3
 RUN ln -sf /opt/cmake-3.20.3/bin/*  /usr/bin/ 
+
+# Get newer gcc
+RUN apt update -qq \
+&& apt install -yq software-properties-common \
+&& add-apt-repository -y ppa:ubuntu-toolchain-r/test \
+&& apt update -qq \
+&& apt install -yq g++-7 \
+&& apt clean \
+&& rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+# Configure alias
+RUN update-alternatives \
+ --install /usr/bin/gcc gcc /usr/bin/gcc-7 60 \
+ --slave /usr/bin/g++ g++ /usr/bin/g++-7 \
+ --slave /usr/bin/gcov gcov /usr/bin/gcov-7 \
+ --slave /usr/bin/gcov-tool gcov-tool /usr/bin/gcov-tool-7 \
+ --slave /usr/bin/gcc-ar gcc-ar /usr/bin/gcc-ar-7 \
+ --slave /usr/bin/gcc-nm gcc-nm /usr/bin/gcc-nm-7 \
+ --slave /usr/bin/gcc-ranlib gcc-ranlib /usr/bin/gcc-ranlib-7
 
 RUN git clone https://github.com/vprover/vampire
 WORKDIR /home/vampire
