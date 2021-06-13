@@ -49,7 +49,7 @@ RUN update-alternatives \
  --slave /usr/bin/gcc-nm gcc-nm /usr/bin/gcc-nm-7 \
  --slave /usr/bin/gcc-ranlib gcc-ranlib /usr/bin/gcc-ranlib-7
 
-RUN git clone https://github.com/vprover/vampire
+RUN git clone https://github.com/vprover/vampire --branch smtcomp21 --single-branch
 WORKDIR /home/vampire
 RUN git submodule update --init z3
 WORKDIR /home/vampire/z3/build
