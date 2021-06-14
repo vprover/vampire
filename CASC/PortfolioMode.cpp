@@ -27,6 +27,7 @@
 #include "Shell/Statistics.hpp"
 #include "Shell/UIHelper.hpp"
 #include "Shell/Normalisation.hpp"
+#include "Shell/Shuffling.hpp"
 #include "Shell/TheoryFinder.hpp"
 
 #include <unistd.h>
@@ -133,7 +134,11 @@ bool PortfolioMode::searchForProof()
 
     //we normalize now so that we don't have to do it in every child Vampire
     ScopedLet<Statistics::ExecutionPhase> phaseLet(env.statistics->phase,Statistics::NORMALIZATION);
-    Normalisation().normalise(*_prb);
+    if (env.options->shuffleInput()) { // instead to "combing things into shape" we shuffle and ruffle them
+      Shuffling().shuffle(*_prb);
+    } else {
+      Normalisation().normalise(*_prb);
+    }
 
     TheoryFinder(_prb->units(),property).search();
   }
@@ -142,6 +147,80 @@ bool PortfolioMode::searchForProof()
   Timer::setTimeLimitEnforcement(false);
 
   return performStrategy(property);
+}
+
+void addExperimentalScheduleDefaults(Schedule& sched) {
+  // we add these options in any case since they should behave as if they were defaults. This is NOT meant to go into master!!!
+  int confNumber = env.options->experimentalScheduleNumber();
+  if (confNumber >= 0) {
+    ASS(confNumber < 9)
+    for (auto& conf : sched) {
+      vstringstream newConf;
+      newConf << std::move(conf.substr(0, conf.find_last_of('_')));
+
+      switch (confNumber % 3) {
+        case 0: newConf << ":asg=off:ev=simple:pum=off:canc=off"; break;
+        case 1: newConf << ":asg=force:ev=force:pum=on:canc=force"; break;
+        case 2: newConf << ":asg=cautious:ev=cautious:pum=on:canc=cautious"; break;
+        default: ASSERTION_VIOLATION;
+      }
+      switch ((confNumber / 3) % 3) {
+        case 0: newConf << ":gve=off"; break;
+        case 1: newConf << ":gve=force"; break;
+        case 2: newConf << ":gve=cautious"; break;
+        default: ASSERTION_VIOLATION;
+      }
+      newConf << std::move(conf.substr(conf.find_last_of('_'), vstring::npos));
+      conf = newConf.str();
+    }
+  }
+
+  // also extend strats by thsq, if applicable
+  for (vstring& strat : sched) {
+    // don't extend fmb
+    if (strat.rfind("fmb",0) == 0) {
+      continue;
+    }
+    // don't extend, if there are no theory axions added
+    if (strat.find("tha=off") != vstring::npos) {
+      continue;
+    }
+
+    std::size_t under_pos = strat.rfind("_");
+    strat.insert(under_pos,":thsq=on");
+  }
+}
+
+static void extendShedByAtotf(Schedule& sched) {
+  CALL("extendShedByAtotf");
+
+  for (vstring& strat : sched) {
+    // don't extend fmb
+    if (strat.rfind("fmb",0) == 0) {
+      continue;
+    }
+    // don't extend, if there is no avatar present
+    if (strat.find("av=off") != vstring::npos) {
+      continue;
+    }
+
+    std::size_t under_pos = strat.rfind("_");
+    strat.insert(under_pos,":atotf=0.9");
+  }
+}
+
+static void extendShedByShuf(Schedule& sched) {
+  CALL("extendShedByShuf");
+
+  for (vstring& strat : sched) {
+    std::size_t occ_pos = strat.find("sp=occurrence");
+    if (occ_pos != vstring::npos) {
+      strat.replace(occ_pos, 13, "sp=scramble");
+    }
+
+    std::size_t under_pos = strat.rfind("_");
+    strat.insert(under_pos,":si=on");
+  }
 }
 
 bool PortfolioMode::performStrategy(Shell::Property* property)
@@ -154,8 +233,17 @@ bool PortfolioMode::performStrategy(Shell::Property* property)
   Schedule fallback_extra;
 
   getSchedules(*property,main,fallback);
+
+  addExperimentalScheduleDefaults(main);
+  addExperimentalScheduleDefaults(fallback);
+
+  // extendShedByShuf(main);
+  // extendShedByShuf(fallback);
+
   getExtraSchedules(*property,main,main_extra,true,3);
   getExtraSchedules(*property,fallback,fallback_extra,true,3);
+  extendShedByShuf(main_extra);
+  extendShedByShuf(fallback_extra);
 
   // Normally we do main fallback main_extra fallback_extra
   // However, in SMTCOMP mode the fallback is universal for all
@@ -190,6 +278,8 @@ bool PortfolioMode::performStrategy(Shell::Property* property)
       if(runSchedule(s)){ return true; }
       Schedule ns;
       getExtraSchedules(*property,s,ns,false,2);
+      // Shuffle the symbol precedence in the extra schedule
+      extendShedByShuf(ns);
       next_schedules.push(ns);
       remainingTime = env.remainingTime()/100;
     }
@@ -228,17 +318,30 @@ void PortfolioMode::getExtraSchedules(Property& prop, Schedule& old, Schedule& e
   if(add_extra){
 
    // Always try these
-   extra_opts.push("sp=frequency");
-   extra_opts.push("avsq=on");
-   extra_opts.push("plsq=on");
-   extra_opts.push("bsd=on:fsd=on");
+   extra_opts.push("sp=frequency"); // frequency sp; this is in casc19 but not smt18
+   extra_opts.push("avsq=on");      // avatar split queues
+   extra_opts.push("plsq=on");      // positive literal split queues
+   extra_opts.push("bsd=on:fsd=on");// subsumption demodulation
+   extra_opts.push("to=lpo");       // lpo
+   extra_opts.push("etr=on");       // equational_tautology_removal
+   extra_opts.push("av=on:atotf=0.5");     // turn AVATAR off
 
    // If contains integers, rationals and reals
    if(prop.props() & (Property::PR_HAS_INTEGERS | Property::PR_HAS_RATS | Property::PR_HAS_REALS)){
-    extra_opts.push("gve=on");
-    extra_opts.push("sos=theory:sstl=5");
-    extra_opts.push("thsq=on");
-    extra_opts.push("thsq=on:thsqd=16");
+
+    extra_opts.push("hsm=on");             // Sets a sensible set of Joe's arithmetic rules (TACAS-21) 
+    extra_opts.push("gve=force:asg=force:canc=force:ev=force:pum=on"); // More drastic set of rules
+    extra_opts.push("sos=theory:sstl=5");  // theory sos with non-default limit 
+    extra_opts.push("thsq=on");            // theory split queues, default
+    extra_opts.push("thsq=on:thsqd=16");   // theory split queues, other ratio
+   }
+   // If contains datatypes
+   if(prop.props() & Property::PR_HAS_DT_CONSTRUCTORS){
+     extra_opts.push("gtg=exists_all:ind=struct");
+     extra_opts.push("ind=struct:sik=one:indgen=on:indoct=on:drc=off");
+     extra_opts.push("ind=struct:sik=one:indgen=on");
+     extra_opts.push("ind=struct:sik=one:indoct=on");
+     extra_opts.push("ind=struct:sik=all:indmd=1");
    }
 
    // If in SMT-COMP mode try guessing the goal
@@ -246,18 +349,8 @@ void PortfolioMode::getExtraSchedules(Property& prop, Schedule& old, Schedule& e
     extra_opts.push("gtg=exists_all");
    }
    else{
-   // Don't try this in SMT-COMP mode
+   // Don't try this in SMT-COMP mode as it requires a goal
     extra_opts.push("slsq=on");
-   }
-
-   // If using Datatypes try induction
-   if(prop.props() & (Property::PR_HAS_DT_CONSTRUCTORS | Property::PR_HAS_CDT_CONSTRUCTORS)){
-    extra_opts.push("ind=struct");
-    extra_opts.push("gtg=exists_all:ind=struct");
-    extra_opts.push("ind=struct:sik=all");
-    extra_opts.push("ind=struct:sik=all:indmd=1");
-    extra_opts.push("ind=struct:indgen=on");
-    extra_opts.push("ind=struct:indgen=on:indoct=on");
    }
 
   }
@@ -286,7 +379,6 @@ void PortfolioMode::getExtraSchedules(Property& prop, Schedule& old, Schedule& e
   }
 
 }
-
 void PortfolioMode::getSchedules(Property& prop, Schedule& quick, Schedule& fallback)
 {
   CALL("PortfolioMode::getSchedules");
@@ -532,6 +624,9 @@ void PortfolioMode::runSlice(Options& strategyOpt)
   opt.setForcedOptionValues();
   opt.checkGlobalOptionConstraints();
   *env.options = opt; //just temporarily until we get rid of dependencies on env.options in solving
+
+  // this will get reset (to whatever the option says) later in ProvingHelper::runVampireSaturationImpl; but for now, we will influence potential input shuffling
+  Random::setSeed(getpid());
 
   if (outputAllowed()) {
     env.beginOutput();

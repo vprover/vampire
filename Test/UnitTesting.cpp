@@ -193,7 +193,7 @@ int main(int argc, const char** argv)
   bool success;
   auto cmd = vstring(argv[1]);
   auto args = Stack<vstring>(argc - 2);
-  for (unsigned i = 2; i < argc; i++) {
+  for (int i = 2; i < argc; i++) {
     args.push(vstring(argv[i]));
   }
   if (cmd == "ls") {
