@@ -245,6 +245,10 @@ bool PortfolioMode::performStrategy(Shell::Property* property)
   extendShedByShuf(main_extra);
   extendShedByShuf(fallback_extra);
 
+  if(env.options->randomiseSchedule()){
+     Shuffling().shuffleArray(main,main.length());
+  }
+
   // Normally we do main fallback main_extra fallback_extra
   // However, in SMTCOMP mode the fallback is universal for all
   // logics e.g. it's not very strong. Therefore, in SMTCOMP

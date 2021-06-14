@@ -160,6 +160,11 @@ void Options::init()
     _lookup.insert(&_experimentalScheduleNumber);
     _experimentalScheduleNumber.setExperimental();
 
+    _randomiseSchedule = BoolOptionValue("rand_sched","rs",false);
+    _randomiseSchedule.description="Randomly reorders the selected schedule";
+    _lookup.insert(&_randomiseSchedule);
+    _randomiseSchedule.reliesOnHard(Or(_mode.is(equal(Mode::CASC)),_mode.is(equal(Mode::CASC_SAT)),_mode.is(equal(Mode::SMTCOMP)),_mode.is(equal(Mode::PORTFOLIO))));
+
     _multicore = UnsignedOptionValue("cores","",1);
     _multicore.description = "When running in portfolio modes (including casc or smtcomp modes) specify the number of cores, set to 0 to use maximum";
     _lookup.insert(&_multicore);

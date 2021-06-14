@@ -1999,6 +1999,7 @@ public:
   Mode mode() const { return _mode.actualValue; }
   Schedule schedule() const { return _schedule.actualValue; }
   int experimentalScheduleNumber() const { return _experimentalScheduleNumber.actualValue; }
+  bool randomiseSchedule() const {  return _randomiseSchedule.actualValue; }
   vstring scheduleName() const { return _schedule.getStringOfValue(_schedule.actualValue); }
   void setSchedule(Schedule newVal) {  _schedule.actualValue = newVal; }
   unsigned multicore() const { return _multicore.actualValue; }
@@ -2583,6 +2584,7 @@ private:
   ChoiceOptionValue<Mode> _mode;
   ChoiceOptionValue<Schedule> _schedule;
   IntOptionValue _experimentalScheduleNumber;
+  BoolOptionValue _randomiseSchedule;
   UnsignedOptionValue _multicore;
 
   StringOptionValue _namePrefix;

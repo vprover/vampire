@@ -56,7 +56,7 @@ wait_for_nodes () {
   python3 vampire/aws/make_combined_hostfile.py ${ip}
   cat vampire/aws/combined_hostfile
 
-  vampire/aws/run_vampire.sh ${ip} test.smt2
+  vampire/aws/run_vampire_main.sh test.smt2
 }
 
 # Fetch and run a script
@@ -76,6 +76,10 @@ report_to_master () {
   do
     echo "Sleeping 5 seconds and trying again"
   done
+
+  echo "Now running solver"
+  vampire/aws/run_vampire_worker.sh ${ip} test.smt2
+
   log "done! goodbye"
   ps -ef | grep sshd
   tail -f /dev/null
