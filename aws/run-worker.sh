@@ -32,7 +32,7 @@ aws --profile $1 ecs run-task --launch-type EC2 --cluster $2 --task-definition $
         },
         {
             \"name\":\"S3_BKT\",
-            \"value\":\"sat-comp-2020\"
+            \"value\":\"smtcomp-problems-for-testing\"
         },
         {
             \"name\":\"AWS_BATCH_JOB_MAIN_NODE_PRIVATE_IPV4_ADDRESS\",

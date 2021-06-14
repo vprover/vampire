@@ -64,8 +64,7 @@ WORKDIR /home
 RUN chmod 777 .
 RUN chmod 777 vampire
 RUN chmod 777 vampire/aws 
-RUN chmod 755 vampire/aws/run.sh
-RUN chmod 755 vampire/aws/run_vampire.sh
+RUN chmod 755 vampire/aws/run*
 RUN chmod 755 vampire/aws/make_combined_hostfile.py
 
 USER dracula 
