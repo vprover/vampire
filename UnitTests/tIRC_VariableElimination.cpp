@@ -268,6 +268,34 @@ TEST_GENERATION(neq2,
 
 
 /////////////////////////////////////////////////////////
+// MISC
+//////////////////////////////////////
+
+TEST_GENERATION(misc01,
+    Generation::TestCase()
+      .input  (  clause({ 0 != -3 * x +               g(y,z) , 0 != x + -10 * z }))
+                       // 0 !=      x +        -(1/3) g(y,z) , 0 != x + -10 * z
+      .expected(exactly(anyOf(
+            clause({ 0 !=  10 * z + frac(-1, 3) * g(y,z) }), 
+            clause({ 0 != -10 * z + frac( 1, 3) * g(y,z) })
+      )))
+      .premiseRedundant(true)
+    )
+
+// 81627. 0.0 != ((30.0 * X0) + lG159(X1,X2)) | 0.0 != ((2.0 * X0) + X1) <- (49) [inequality normalization 81626]
+// 81656. 0.0 != ((-0.5 * X1) + (0.0333333 * lG159(X1,X2))) <- (49) [inequality variable elimination 81627]
+
+TEST_GENERATION(misc02,
+    Generation::TestCase()
+      .input  (  clause({ 0 != 30 * x +          g(y,z) , 0 != 2 * x +       y }))
+                     // { 0 !=      x + (1/30) * g(y,z) , 0 !=     x + (1/2) y }
+      .expected(exactly(anyOf(
+                 clause({ 0 != frac(-1,2) * y + frac(1,30) * g(y,z) })
+      )))
+      .premiseRedundant(true)
+    )
+
+/////////////////////////////////////////////////////////
 // Bugs
 //////////////////////////////////////
 

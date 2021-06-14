@@ -40,11 +40,15 @@ using namespace Inferences::IRC;
 #define SUGAR(Num)                                                                                            \
   NUMBER_SUGAR(Num)                                                                                           \
   DECL_DEFAULT_VARS                                                                                           \
+  DECL_VAR(x0, 0)                                                                                             \
   DECL_VAR(x1, 1)                                                                                             \
   DECL_VAR(x2, 2)                                                                                             \
   DECL_VAR(x3, 3)                                                                                             \
+  DECL_VAR(x4, 4)                                                                                             \
   DECL_FUNC(f, {Num}, Num)                                                                                    \
   DECL_FUNC(g, {Num, Num}, Num)                                                                               \
+  DECL_FUNC(g0, {Num, Num}, Num)                                                                              \
+  DECL_FUNC(g1, {Num, Num}, Num)                                                                              \
   DECL_FUNC(h, {Num, Num, Num}, Num)                                                                          \
   DECL_CONST(a, Num)                                                                                          \
   DECL_CONST(b, Num)                                                                                          \
@@ -130,12 +134,54 @@ TEST_GENERATION(abstraction1,
 
 
 
+/////////////////////////////////////////////////////////
+// MISC
+//////////////////////////////////////
+
+TEST_GENERATION(misc01,
+    Generation::TestCase()
+  // 0 != (-(x) + (-(g(x,z)) + g(-30 * y,y))) | 0 != (y + z) { x -> -30 * y, z -> y }
+  // 0 != -((-30 * y)) | 0 != (y + y) 
+      .input   (          clause({ -     x    - g(x,z) + g(-30 * y,y) > 0 , 0 != y + z }) ) // { x -> -30 * x, z -> x, y -> x }
+      .expected(exactly(  clause({ -(-30 * x)                         > 0 , 0 != x + x }) ))
+      .premiseRedundant(false)
+    )
+
+TEST_GENERATION(misc02,
+    Generation::TestCase()
+      .input   (              clause({ 0 != -(    x  ) + 2 * g(-30 * y, z) + -g(x,y) , 0 != z }) ) // { x -> -30 * x, z -> x, y -> x }
+      .expected(exactly(anyOf(clause({ 0 !=  (-30 * x) +    -g(-30 * x, x)           , 0 != x }),
+                              clause({ 0 != -(-30 * x) +     g(-30 * x, x)           , 0 != x })
+            ) ))
+      .premiseRedundant(false)
+    )
+
+TEST_GENERATION(misc03,
+    Generation::TestCase()
+      .input   (              clause({ 0 !=  x0 + g(x2,x3) + g(x0,x1) , 0 != x3 + x1 }) ) // { x3 -> x0, x2 -> x1 }
+      .expected(exactly(anyOf(clause({ 0 !=  x0 +        2 * g(x0,x1) , 0 != x1 + x1 })  
+                            , clause({ 0 != -x0 +       -2 * g(x0,x1) , 0 != x1 + x1 }))))
+      .premiseRedundant(false)
+    )
+
+  // 51017. 0.0 != ((-3.0 * X31) + (lG132(X21,X22) + (lG145($product(18.0,X24),X25) + -(lG132(X31,X24))))) | 0.0 != (X21 + (-10.0 * X25)) <- (48) [trivial inequality removal 51016]
+  // 99594. 0.0 != ((-3.0 * X0) + lG145($product(18.0,X1),X2)) | 0.0 != (X0 + (-10.0 * X2)) <- (48) [inequality term factoring 51017]
+
+  
+  
+
+TEST_GENERATION(misc04,
+    Generation::TestCase()
+      .input   (              clause({-3 * x0 + g0(x3,x4) - g0(x0,x1) + g1(18 * x1, x2) > 0 , 0 != x0 + -10 * x2})  )
+      .expected(exactly(      clause({-3 * x0                         + g1(18 * x1, x2) > 0 , 0 != x0 + -10 * x2}) ))
+      .premiseRedundant(false)
+    )
 
 /////////////////////////////////////////////////////////
 // Bug fixes
 //////////////////////////////////////
 
-TEST_GENERATION(fix01,
+TEST_GENERATION(bug_01,
     Generation::TestCase()
 // 1 + f26(f34(f59,X0),X0) + f26(f34(f59,X1),X1) > 0 [theory normalization 1587]
 // 2 * f26(f34(f59,X0),X0) + f26(f34(f59,X0),X0) > 0 [inequality factoring 2373]
@@ -146,3 +192,46 @@ TEST_GENERATION(fix01,
 
 
 
+
+// TEST_GENERATION(bug_02,
+//     Generation::TestCase()
+//   // 0.0 != ((-23.0 * X24) + (lG113($product(-23.0,X22),X24) + (-(lG113($product(-23.0,X21),X22)) + lG113(X23,X21)))) | 0.0 = X23
+//       .input   (          clause({ -23 * x0 + g(-23 * x1,x0) + -g(-23 * x2, x1) + g(x3, x2) > 0 })    )
+//       // ({x1 -> x0}, -23 * x0 != -23 * x2) = uwa( ^^^^^^^^^^^^^^ ,  ^^^^^^^^^^^^^^ ) (1)
+//       // ({x3 -> -23 * x1, x2 -> x1}, {})   =                   uwa( ^^^^^^^^^^^^^^ ,  ^^^^^^^^^) (2)
+//       // ({x3 -> -23 * x1, x2 -> x0}, {})   = uwa( ^^^^^^^^^^^^^^ ,                    ^^^^^^^^^) (3)
+//       .expected(exactly(  
+//      /* (1) */            clause({ -23 * x0                                     + g(x3, x2) > 0, -23 * x0 != -23 * x2 })   
+//      /* (2) */          , clause({ -23 * x0 + g(-23 * x1,x0)                                > 0 })    
+//      /* (3) */          , clause({ -23 * x0 + 2* g(-23 * x1,x0) + -g(-23 * x0, x1)          > 0 })
+//           ))
+//       .premiseRedundant(false)
+//     )
+
+
+TEST_GENERATION(bug_02b,
+    Generation::TestCase()
+  // 0.0 != ((-23.0 * X24) + (lG113($product(-23.0,X22),X24) + (-(lG113($product(-23.0,X21),X22)) + lG113(X23,X21)))) | 0.0 = X23
+      .input   (               clause({ -23 * x0 + g(x0, -23 * x1) + -g(x1, -23 * x2) > 0 })    )
+      // ({x1 -> x0}, -23 * x0 != -23 * x2) = uwa( ^^^^^^^^^^^^^^,    ^^^^^^^^^^^^^^ ) (1)
+      .expected(exactly(  
+     /* (1) */                 clause({ -23 * x0                                     > 0, -23 * x0 != -23 * x1 })   
+          ))
+      .premiseRedundant(false)
+    )
+
+
+TEST_GENERATION(bug_02,
+    Generation::TestCase()
+  // 0.0 != ((-23.0 * X24) + (lG113($product(-23.0,X22),X24) + (-(lG113($product(-23.0,X21),X22)) + lG113(X23,X21)))) | 0.0 = X23
+      .input   (               clause({ -23 * x0 + g(-23 * x1,x0) + -g(-23 * x2, x1) > 0 })    )
+      // ({x1 -> x0}, -23 * x0 != -23 * x2) = uwa( ^^^^^^^^^^^^^^ ,  ^^^^^^^^^^^^^^ ) 
+      .expected(exactly(  
+                               clause({ -23 * x0                                     > 0, -23 * x0 != -23 * x1 })   
+          ))
+      .premiseRedundant(false)
+    )
+
+  //  clause({ -23 * x0 + g(-23 * x1,x0) + -g(-23 * x2, x1) > 0 })
+  // uwa = ⟨{X2/0 -> X1, X1/0 -> X0, }, [(-23/1 * X0) != (-23/1 * X1)]⟩
+  //  clause({ -23 * x0 > 0, -23 * x0 != -23 * x1 })

@@ -309,3 +309,10 @@ TEST_FRAC(bug_05,
       .out = { a * b * c >= 0 },
     })
 
+
+TEST_FRAC(bug_06, 
+    TestCase {
+      .in  =   num(-4) + 0 >= 0  ,
+      .out = { num(-1)     >= 0 },
+    })
+
