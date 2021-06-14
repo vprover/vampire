@@ -58,7 +58,7 @@ using vvector = std::vector<T, STLAllocator<T>>;
 
 template< typename T >
 std::shared_ptr<T> make_shared(T* ptr)
-{ return std::shared_ptr<T>(ptr, [](auto ptr) { delete ptr; }, STLAllocator<T>{}); }
+{ return std::shared_ptr<T>(ptr, [](auto ptr) { STLAllocator<std::remove_pointer_t<decltype(ptr)>>{}.destroy(ptr); }, STLAllocator<T>{}); }
 
 }  // namespace Lib
 

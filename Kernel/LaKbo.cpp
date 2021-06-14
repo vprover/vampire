@@ -9,11 +9,11 @@ namespace Kernel {
 
 LaKbo::LaKbo(KBO kbo) 
   : KBO(std::move(kbo))
-  , _shared(new Kernel::IrcState {
+  , _shared(make_shared(new Kernel::IrcState {
         .normalizer = InequalityNormalizer(), 
         .ordering = this,
         .uwa = env.options->unificationWithAbstraction(),
-  })
+  }))
 {
 }
 

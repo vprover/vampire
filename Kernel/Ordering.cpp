@@ -946,7 +946,7 @@ void PrecedenceOrdering::checkLevelAssumptions(DArray<int> const& levels)
       if (itp == Kernel::Theory::EQUAL) {
         ASS(levels[i] == PredLevels::EQ);
       } else if (theory->isInequality(itp)) {
-        ASS(levels[i] == PredLevels::INEQ);
+        ASS(!env.options->inequalityResolution() || levels[i] == PredLevels::INEQ);
       } else {
         ASS(levels[i] >= PredLevels::MIN_USER_DEF || levels[i] < 0)
       }

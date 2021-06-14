@@ -1630,7 +1630,7 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
         .uwa = env.options->unificationWithAbstraction(),
     });
     try {
-      auto& lakbo = static_cast<Kernel::LaKbo&>(ordering);
+      auto& lakbo = dynamic_cast<Kernel::LaKbo&>(ordering);
       lakbo.setState(shared);
     } catch (std::bad_cast) { /* do nothing */ }
     sgi->push(new IRC::VariableElimination(shared)); 
