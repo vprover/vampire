@@ -135,7 +135,7 @@ bool PortfolioMode::searchForProof()
     ScopedLet<Statistics::ExecutionPhase> phaseLet(env.statistics->phase,Statistics::NORMALIZATION);
     Normalisation().normalise(*_prb);
     
-    //TheoryFinder can not yet find polymorphic theory axioms
+    //TheoryFinder cannot cope with polymorphic input
     if(!env.statistics->polymorphic){
       TheoryFinder(_prb->units(),property).search();
     }
