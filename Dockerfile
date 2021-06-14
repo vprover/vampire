@@ -61,9 +61,7 @@ RUN make -j2
 RUN mv bin/vampire_z3_rel_* bin/vampire
 
 WORKDIR /home
-RUN ls -l .
-RUN ls -l vampire
-RUN ls -l vampire/aws
+RUN chmod 777 .
 RUN chmod 777 vampire
 RUN chmod 777 vampire/aws 
 RUN chmod 755 vampire/aws/run.sh
