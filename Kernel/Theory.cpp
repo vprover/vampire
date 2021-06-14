@@ -2005,6 +2005,7 @@ std::ostream& operator<<(std::ostream& out, Kernel::Theory::Interpretation const
     case Kernel::Theory::ARRAY_STORE: return out << "ARRAY_STORE";
     case Kernel::Theory::INVALID_INTERPRETATION: return out << "INVALID_INTERPRETATION";
   }
+  ASSERTION_VIOLATION
 }
 /**
  * We try and get a LaTeX special name for an interpeted function/predicate.

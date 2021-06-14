@@ -350,6 +350,8 @@ private:
     PO_PARSE_APPLICATION,  // takes LExpr* (the whole term again, for better error reporting)
     // after "(something args...)" is parsed the following makes sure that there is exactly one proper result on the result stack above a previously inserted separator
     PO_CHECK_ARITY,        // takes LExpr* (again the whole, just for error reporting)
+    // this is a special operation for handling :named labels
+    PO_LABEL,              // takes a LExpr* of the label to be applied to the top _result
     // these two are intermediate cases for handling let
     PO_LET_PREPARE_LOOKUP, // takes LExpr* (the whole let expression again, why not)
     PO_LET_END             // takes LExpr* (the whole let expression again, why not)

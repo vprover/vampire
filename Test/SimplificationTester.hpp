@@ -110,10 +110,7 @@ public:
 #define TEST_SIMPLIFY_WITH_SUGAR(name, syntax_sugar, ...)                                                               \
   TEST_FUN(name) {                                                                                                      \
     SimplTester simpl;                                                                                                  \
-    _Pragma("GCC diagnostic push")                                                                                      \
-    _Pragma("GCC diagnostic ignored \"-Wunused\"")                                                                      \
-      syntax_sugar                                                                                                      \
-    _Pragma("GCC diagnostic pop")                                                                                       \
+    __ALLOW_UNUSED(syntax_sugar)                                                                                        \
     __VA_ARGS__.run(simpl);                                                                                             \
   }                                                                                                                     \
 

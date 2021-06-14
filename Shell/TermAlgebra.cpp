@@ -59,7 +59,15 @@ Lib::vstring TermAlgebraConstructor::discriminatorName()
 {
   CALL("TermAlgebraConstructor::discriminatorName");
 
-  return "$is" + env.signature->functionName(_functor);
+  //Giles: the function name may contain quotes so we should remove them
+  //       before appending $is.
+  vstring name = env.signature->functionName(_functor);
+  vstring ret = "$is";
+  for(size_t i = 0; i < name.size(); i++){
+    char c = name[i];
+    if(c != '\''){ ret+=c;}
+  } 
+  return ret;
 }
 
 TermAlgebra::TermAlgebra(TermList sort,
