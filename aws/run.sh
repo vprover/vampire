@@ -29,8 +29,10 @@ if [ "${AWS_BATCH_JOB_MAIN_NODE_INDEX}" == "${AWS_BATCH_JOB_NODE_INDEX}" ]; then
 fi
 
 # wait for all nodes to report
-wait_for_nodes () {
+run_main () {
   log "Running as master node"
+
+  mkdir /tmp/results
 
   touch $HOST_FILE_PATH
   ip=$(/sbin/ip -o -4 addr list eth0 | awk '{print $4}' | cut -d/ -f1)
@@ -56,11 +58,30 @@ wait_for_nodes () {
   python3 vampire/aws/make_combined_hostfile.py ${ip}
   cat vampire/aws/combined_hostfile
 
-  vampire/aws/run_vampire_main.sh test.smt2
+
+  vampire/aws/run_vampire_main.sh test.smt2 &> /tmp/results/result_${ip} & 
+
+  # Currently just wait 5 minutes. Update before competition
+  counter=300
+  while [ $counter -gt 0 ]; do
+    for f in /tmp/results
+    do
+      # In reality, a file should only exist in /tmp/results if there is a solution
+      # but maybe we see other stuff, let's output the contents during testing 
+      echo $f
+      cat < $f
+      if grep -q "sat" $f; then
+        cat < $f
+        exit 0
+      fi
+    done
+    sleep 1
+    let counter=counter-1
+  done
 }
 
 # Fetch and run a script
-report_to_master () {
+run_worker () {
   # get own ip and num cpus
   #
   ip=$(/sbin/ip -o -4 addr list eth0 | awk '{print $4}' | cut -d/ -f1)
@@ -78,7 +99,15 @@ report_to_master () {
   done
 
   echo "Now running solver"
-  vampire/aws/run_vampire_worker.sh ${ip} test.smt2
+  vampire/aws/run_vampire_worker.sh ${ip} test.smt2 > result_${ip}
+
+  cat < result_${ip}
+
+  echo "Sending result, should only send if answer is unsat"
+  until scp result_${ip} ${AWS_BATCH_JOB_MAIN_NODE_PRIVATE_IPV4_ADDRESS}:/tmp/results
+  do
+    echo "Sleeping 5 seconds and trying again"
+  done
 
   log "done! goodbye"
   ps -ef | grep sshd
@@ -90,11 +119,11 @@ report_to_master () {
 log $NODE_TYPE
 case $NODE_TYPE in
   main)
-    wait_for_nodes "${@}"
+    run_main "${@}"
     ;;
 
   child)
-    report_to_master "${@}"
+    run_worker "${@}"
     ;;
 
   *)

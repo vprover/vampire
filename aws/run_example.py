@@ -120,7 +120,7 @@ def main(args):
 
     #print(stack_outputs)
 
-    output = subprocess.check_output(['./run-solver-main.sh', args.profile, CLUSTER_NAME, stack_outputs["SolverProjectDefinition"], stack_outputs["Subnet"], stack_outputs["SecurityGroupId"], args.file, '1', args.project_name])
+    output = subprocess.check_output(['./run-solver-main.sh', args.profile, CLUSTER_NAME, stack_outputs["SolverProjectDefinition"], stack_outputs["Subnet"], stack_outputs["SecurityGroupId"], args.file, args.processes, args.project_name])
 
     task_output = json.loads(output)
     print(task_output)
@@ -173,6 +173,13 @@ for arg in [{
         "metavar": "P",
         "help": "Whether this is a cloud job (True of False - default is True)",
         "required": False,
+    },
+    {
+        "flags": ["-pr", "--processes"],
+        "metavar": "P",
+        "help": "How many processes to run on",
+        "required": False,
+        "default": 1
     }
 ]:
     flags = arg.pop("flags")

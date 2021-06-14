@@ -247,6 +247,9 @@ bool PortfolioMode::performStrategy(Shell::Property* property)
 
   if(env.options->randomiseSchedule()){
      Shuffling().shuffleArray(main,main.length());
+     Shuffling().shuffleArray(main_extra,main_extra.length());
+     Shuffling().shuffleArray(fallback,fallback.length());
+     Shuffling().shuffleArray(fallback_extra,fallback_extra.length());
   }
 
   // Normally we do main fallback main_extra fallback_extra
