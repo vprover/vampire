@@ -390,8 +390,7 @@ bool RobSubstitution::unify(TermSpec t1, TermSpec t2,MismatchHandler* hndlr)
   bdRecord(localBD);
 
   static Stack<TTPair> toDo(64);
-  static Stack<TermList*> subterms(64);
-  ASS(toDo.isEmpty() && subterms.isEmpty());
+  ASS(toDo.isEmpty());
 
   // Save encountered unification pairs to avoid
   // recomputing their unification
@@ -440,47 +439,41 @@ bool RobSubstitution::unify(TermSpec t1, TermSpec t2,MismatchHandler* hndlr)
       toDo.push(TTPair(dt1, t2));
     } else {
     // Case where both are terms
-      TermList* ss=&dt1.term;
-      TermList* tt=&dt2.term;
+      // TermList* ss=&dt1.term;
+      // TermList* tt=&dt2.term;
 
+      static Stack<pair<TermList*,TermList*>> subterms(64);
       ASS(subterms.isEmpty());
 
+      TermList ss_[] { TermList::empty(), dt1.term, };
+      TermList tt_[] { TermList::empty(), dt2.term, };
+      ASS(ss_[1].next()->isEmpty())
+      ASS(tt_[1].next()->isEmpty())
+      subterms.push(make_pair(&ss_[1], &tt_[1]));
       // Generate todo unification pairs by traversing subterms
       // until those subterms either definitely don't unify (report mismatch)
       // or until we need to unify them to check 
-      for (;;) {
-        TermSpec tsss(*ss,dt1.index);
-        TermSpec tstt(*tt,dt2.index);
+      while(!subterms.isEmpty()) {
+        auto next = subterms.pop();
+        auto ss = next.first;
+        auto tt = next.second;
+        auto tsss = TermSpec(*ss, dt1.index);
+        auto tstt = TermSpec(*tt, dt2.index);
+        if (!next.first->next()->isEmpty()) {
+          ASS(!next.second->next()->isEmpty())
+          subterms.push(make_pair(next.first->next(), next.second->next()));
+        }
 
 
         //TODO this is currently hard-coded to happen whenever hndlr is set (e.g. some uwa option is being used), shoudld it be behind an option? 
         // if both terms are interpreted then call the mismatch handlr
-        if(hndlr && ss->isTerm() && tt->isTerm() && theory->isInterpretedFunction(*ss) && theory->isInterpretedFunction(*tt)){
-          // If the handler wants to handle it here then do so and break
-          // This means that options such as ground can decide whether to introduce a constraint
-          // If we wanted to support adding constraints when one side is not interpreted we could drop the outer check here
-          // and just let hndlr deal with it
-          if(hndlr->handle(this,tsss.term,tsss.index,tstt.term,tstt.index)){ 
-            subterms.reset();
-            break;
-          }
-        }
+        if(hndlr && ss->isTerm() && tt->isTerm() && theory->isInterpretedFunction(*ss) && theory->isInterpretedFunction(*tt) && hndlr->handle(this,tsss.term,tsss.index,tstt.term,tstt.index)){
+          /* do nothing; the hander introduced a constraint */
+        } else if (!tsss.sameTermContent(tstt) && TermList::sameTopFunctor(tsss.term,tstt.term)) {
         // If they don't have the same content but have the same top functor
         // then we need to get their subterm arguments and check those
-        if (!tsss.sameTermContent(tstt) && TermList::sameTopFunctor(*ss,*tt)) {
-          ASS(ss->isTerm() && tt->isTerm());
+          subterms.push(make_pair(ss->term()->args(), tt->term()->args()));
 
-          Term* s = ss->term();
-          Term* t = tt->term();
-          ASS(s->arity() > 0);
-          ASS(s->functor() == t->functor());
-
-          ss = s->args();
-          tt = t->args();
-          if (! ss->next()->isEmpty()) {
-            subterms.push(ss->next());
-            subterms.push(tt->next());
-          }
         } else {
           // If they do have the same top functor then their content is the same and
           // we can ignore. Otherwise, if one is a variable we create a unification 
@@ -502,22 +495,14 @@ bool RobSubstitution::unify(TermSpec t1, TermSpec t2,MismatchHandler* hndlr)
               // incorrectly. HOL also uses a handler, but it shouldn't be called here.
               if(env.statistics->higherOrder || !hndlr || !hndlr->handle(this,tsss.term,tsss.index,tstt.term,tstt.index)){
                 mismatch=true;
+                subterms.reset();
                 break;
               }
             }
           }
-
-          if (subterms.isEmpty()) {
-            break;
-          }
-          tt = subterms.pop();
-          ss = subterms.pop();
-          if (! ss->next()->isEmpty()) {
-            subterms.push(ss->next());
-            subterms.push(tt->next());
-          }
         }
       }
+      ASS(subterms.isEmpty())
     }
 
     if(toDo.isEmpty() || mismatch) {
@@ -528,7 +513,6 @@ bool RobSubstitution::unify(TermSpec t1, TermSpec t2,MismatchHandler* hndlr)
   }
 
   if(mismatch) {
-    subterms.reset();
     toDo.reset();
   }
 
@@ -543,7 +527,7 @@ bool RobSubstitution::unify(TermSpec t1, TermSpec t2,MismatchHandler* hndlr)
     localBD.drop();
   }
 
-  ASS(toDo.isEmpty() && subterms.isEmpty());
+  ASS(toDo.isEmpty());
   return !mismatch;
   )
 }

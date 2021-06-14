@@ -90,6 +90,9 @@ public:
   /** the tag */
   inline TermTag tag() const { return (TermTag)(_content & 0x0003); }
   /** the term list is empty */
+  inline static TermList empty() 
+  { TermList out; out.makeEmpty(); return out; }
+  /** the term list is empty */
   inline bool isEmpty() const
   { return tag() == FUN; }
   /** the term list is non-empty */
