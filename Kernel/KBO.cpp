@@ -110,8 +110,9 @@ Ordering::Result KBO::State::result(Term* t1, Term* t2)
       ASS_NEQ(prec1,prec2);//precedence ordering must be total
       res=(prec1>prec2)?GREATER:LESS;
     } else if(t1->isSort()){
-      //Sorts should never occur at the top level.
-      ASSERTION_VIOLATION;
+      ASS(t2->isSort()); //should only compare sorts with sorts
+      res=_kbo.compareTypeConPrecedences(t1->functor(), t2->functor());
+      ASS_REP(res==GREATER || res==LESS, res);//precedence ordering must be total
     } else {
       res=_kbo.compareFunctionPrecedences(t1->functor(), t2->functor());
       ASS_REP(res==GREATER || res==LESS, res); //precedence ordering must be total

@@ -426,8 +426,6 @@ Comparison Normalisation::compare(Term* t1, Term* t2)
 {
   CALL("Normalisation::compare(const Term*...)");
 
-  ASS(!t1->isSort() || t2->isSort());
-  ASS(!t2->isSort() || t1->isSort());
 
   if (t1 == t2) {
     return EQUAL;
@@ -440,6 +438,14 @@ Comparison Normalisation::compare(Term* t1, Term* t2)
   }
 
   if (t1->isSpecial() && !t2->isSpecial()) {
+    return LESS;
+  }
+
+  if(!t1->isSort() && t2->isSort()){
+    return GREATER;
+  } 
+
+  if(t1->isSort() && !t2->isSort()){
     return LESS;
   }
 
