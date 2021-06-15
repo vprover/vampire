@@ -120,7 +120,7 @@ def main(args):
 
     #print(stack_outputs)
 
-    output = subprocess.check_output(['./run-solver-main.sh', args.profile, CLUSTER_NAME, stack_outputs["SolverProjectDefinition"], stack_outputs["Subnet"], stack_outputs["SecurityGroupId"], args.file, args.processes, args.project_name])
+    output = subprocess.check_output(['./run-solver-main.sh', args.profile, CLUSTER_NAME, stack_outputs["SolverProjectDefinition"], stack_outputs["Subnet"], stack_outputs["SecurityGroupId"], args.file, str(int(args.NWorker)+1), args.project_name])
 
     task_output = json.loads(output)
     print(task_output)
@@ -134,21 +134,22 @@ def main(args):
     ip_fetcher = IpFetch(log_analyzer)
     ip_addr = ip_fetcher.fetch_ip(args.project_name, task_id)
 
-    worker_task = None
-    if args.cloud == None or args.cloud == "True":
-        output2 = subprocess.check_output(['./run-worker.sh', args.profile, CLUSTER_NAME, stack_outputs["SolverProjectDefinition"], stack_outputs["Subnet"], stack_outputs["SecurityGroupId"], args.file, '2', ip_addr, args.project_name])
-        task_output2 = json.loads(output2)
+    for worker_Index in range(int(args.NWorker)):
+        print("Creating "+str(worker_Index+1)+"...")
+        workerOutput = subprocess.check_output(['./run-worker.sh', args.profile, CLUSTER_NAME, stack_outputs["SolverProjectDefinition"], stack_outputs["Subnet"], stack_outputs["SecurityGroupId"], args.file, str(int(args.NWorker)+1), ip_addr, str(worker_Index+1),args.project_name])
 
-        task_arn2 = task_output2['tasks'][0]['taskArn']
-        task_id2 = task_arn2.split('/')[2]
-        worker_task = Task(ecs_client=session.client("ecs"), cluster_name=CLUSTER_NAME, task_arn=task_id2)
+    print("Waiting for main task to complete...")
     main_task.wait_for_task_complete()
 
-    if  args.cloud == None or args.cloud == "True" and worker_task is not None:
-        worker_task.kill()
     logs = log_analyzer.fetch_logs(args.project_name, task_id)
     print(logs)
-
+    # regStr="(<SMT \"(.*)\":(sat|unsat)>\[(.*)\]>:\ (sat|unsat)\n*)*(.*)(solved|timeout) instance \"(.*)\" after [0-9]+.[0-9]+ seconds"
+    regStr="(sat|unsat|unknown)\n*(solved|timeout) instance \"(.*)\" after [0-9]+.[0-9]+ seconds"
+    for match in re.finditer(regStr, logs):
+        time=re.findall("[0-9]+\.[0-9]+", match.group())
+        benchname=re.findall("\"(.*)\"\ ", match.group())
+        result=re.findall("(sat|unsat|timeout)", match.group())
+        print(benchname[0], result[0],time[0])
 
 pars = argparse.ArgumentParser()
 for arg in [{
@@ -174,13 +175,12 @@ for arg in [{
         "help": "Whether this is a cloud job (True of False - default is True)",
         "required": False,
     },
-    {
-        "flags": ["-pr", "--processes"],
-        "metavar": "P",
-        "help": "How many processes to run on",
-        "required": False,
-        "default": 1
-    }
+{
+    "flags": ["-N", "--NWorker"],
+    "metavar": "N",
+    "help": "Number of worker nodes",
+    "required": True,
+},
 ]:
     flags = arg.pop("flags")
     pars.add_argument(*flags, **arg)

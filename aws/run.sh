@@ -64,7 +64,7 @@ run_main () {
   # Currently just wait 5 minutes. Update before competition
   counter=300
   while [ $counter -gt 0 ]; do
-    for f in /tmp/results
+    for f in /tmp/results/*
     do
       # In reality, a file should only exist in /tmp/results if there is a solution
       # but maybe we see other stuff, let's output the contents during testing 

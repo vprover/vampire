@@ -12,7 +12,7 @@ aws --profile $1 ecs run-task --launch-type EC2 --cluster $2 --task-definition $
 --overrides \
 "{
   \"containerOverrides\": [{
-    \"name\": \"$9\",
+    \"name\": \"${10}\",
     \"environment\": [
         {
             \"name\":\"COMP_S3_PROBLEM_PATH\",
@@ -20,7 +20,7 @@ aws --profile $1 ecs run-task --launch-type EC2 --cluster $2 --task-definition $
         },
         {
             \"name\":\"AWS_BATCH_JOB_NODE_INDEX\",
-            \"value\": \"1\"
+            \"value\": \"$9\"
         },
         {
             \"name\":\"NUM_PROCESSES\",
