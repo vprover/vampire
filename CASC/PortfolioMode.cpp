@@ -397,6 +397,9 @@ bool PortfolioMode::runSchedule(Schedule& schedule)
 {
   CALL("PortfolioMode::runSchedule");
 
+  if (schedule.size() == 0)
+    return false;
+
   UIHelper::portfolioParent = true; // to report on overall-solving-ended in Timer.cpp
 
   PortfolioProcessPriorityPolicy policy;
