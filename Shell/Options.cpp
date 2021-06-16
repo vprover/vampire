@@ -1019,26 +1019,30 @@ void Options::Options::init()
     _randomAWR.tag(OptionTag::SATURATION);
     _randomAWR.setExperimental();
 
-      _lrsFirstTimeCheck = IntOptionValue("lrs_first_time_check","",5);
-      _lrsFirstTimeCheck.description=
-      "Percentage of time limit at which the LRS algorithm will for the first time estimate the number of reachable clauses.";
-      _lookup.insert(&_lrsFirstTimeCheck);
-      _lrsFirstTimeCheck.tag(OptionTag::LRS);
-      _lrsFirstTimeCheck.addConstraint(greaterThanEq(0));
-      _lrsFirstTimeCheck.addConstraint(lessThan(100));
+    _lrsFirstTimeCheck = IntOptionValue("lrs_first_time_check","",5);
+    _lrsFirstTimeCheck.description=
+    "Percentage of time limit at which the LRS algorithm will for the first time estimate the number of reachable clauses.";
+    _lookup.insert(&_lrsFirstTimeCheck);
+    _lrsFirstTimeCheck.tag(OptionTag::LRS);
+    _lrsFirstTimeCheck.addConstraint(greaterThanEq(0));
+    _lrsFirstTimeCheck.addConstraint(lessThan(100));
 
-      _lrsWeightLimitOnly = BoolOptionValue("lrs_weight_limit_only","lwlo",false);
-      _lrsWeightLimitOnly.description=
-      "If off, the lrs sets both age and weight limit according to clause reachability, otherwise it sets the age limit to 0 and only the weight limit reflects reachable clauses";
-      _lookup.insert(&_lrsWeightLimitOnly);
-      _lrsWeightLimitOnly.tag(OptionTag::LRS);
+    _lrsWeightLimitOnly = BoolOptionValue("lrs_weight_limit_only","lwlo",false);
+    _lrsWeightLimitOnly.description=
+    "If off, the lrs sets both age and weight limit according to clause reachability, otherwise it sets the age limit to 0 and only the weight limit reflects reachable clauses";
+    _lookup.insert(&_lrsWeightLimitOnly);
+    _lrsWeightLimitOnly.tag(OptionTag::LRS);
 
-      _simulatedTimeLimit = TimeLimitOptionValue("simulated_time_limit","stl",0);
-      _simulatedTimeLimit.description=
-      "Time limit in seconds for the purpose of reachability estimations of the LRS saturation algorithm (if 0, the actual time limit is used)";
-      _lookup.insert(&_simulatedTimeLimit);
-      _simulatedTimeLimit.tag(OptionTag::LRS);
+    _simulatedTimeLimit = TimeLimitOptionValue("simulated_time_limit","stl",0);
+    _simulatedTimeLimit.description=
+    "Time limit in seconds for the purpose of reachability estimations of the LRS saturation algorithm (if 0, the actual time limit is used)";
+    _lookup.insert(&_simulatedTimeLimit);
+    _simulatedTimeLimit.tag(OptionTag::LRS);
 
+    _randomTraversals = BoolOptionValue("random_traversals","rtra",false);
+    _lookup.insert(&_randomTraversals);
+    _randomTraversals.tag(OptionTag::SATURATION);
+    _randomTraversals.setExperimental();
 
   //*********************** Inferences  ***********************
 

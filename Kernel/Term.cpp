@@ -40,6 +40,9 @@
 
 #include "Shell/Options.hpp"
 
+#include "Lib/Environment.hpp"
+#include "Shell/Options.hpp"
+
 #include "Formula.hpp"
 #include "Signature.hpp"
 #include "SortHelper.hpp"
@@ -63,6 +66,15 @@ const unsigned Term::SF_ITE;
 const unsigned Term::SF_LET;
 const unsigned Term::SF_FORMULA;
 const unsigned Term::SPECIAL_FUNCTOR_LOWER_BOUND;
+
+void Term::setId(unsigned id)
+{
+  CALL("Term::setId");
+  if (env.options->randomTraversals()) {
+    id += Random::getInteger(1 << 12) << 20; // the twelve most significant bits are randomized
+  }
+  _id = id;
+}
 
 /**
  * Allocate enough bytes to fit a term of a given arity.
