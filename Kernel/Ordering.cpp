@@ -667,6 +667,12 @@ PrecedenceOrdering::PrecedenceOrdering(Problem& prb, const Options& opt)
         precedence_file.close();
       }
     } else {
+      // since the below sorts are stable, a proper input shuffling manifests itself (also) by initializing aux with a random permutation rather then the identity one
+      if (opt.shuffleInput() && opt.symbolPrecedence() != Shell::Options::SymbolPrecedence::SCRAMBLE) {
+        Shuffling::shuffleArray(aux,nFunctions);
+        // in particular shuffleInput causes OCCURRENCE to be also random
+      }
+
       switch(opt.symbolPrecedence()) {
       case Shell::Options::SymbolPrecedence::ARITY:
         aux.sort(FnBoostWrapper<FnArityComparator>(FnArityComparator()));
@@ -723,6 +729,12 @@ PrecedenceOrdering::PrecedenceOrdering(Problem& prb, const Options& opt)
       precedence_file.close();
     }
   } else {
+    // since the below sorts are stable, a proper input shuffling manifests itself (also) by initializing aux with a random permutation rather then the identity one
+    if (opt.shuffleInput() && opt.symbolPrecedence() != Shell::Options::SymbolPrecedence::SCRAMBLE) {
+      Shuffling::shuffleArray(aux,nPredicates);
+      // in particular shuffleInput causes OCCURRENCE to be also random
+    }
+
     switch(opt.symbolPrecedence()) {
     case Shell::Options::SymbolPrecedence::ARITY:
       aux.sort(PredBoostWrapper<PredArityComparator>(PredArityComparator()));
