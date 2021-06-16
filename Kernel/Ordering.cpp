@@ -44,6 +44,9 @@
 #include "KBOForEPR.hpp"
 #include "Problem.hpp"
 #include "Signature.hpp"
+// #include "Kernel/NumTraits.hpp"
+#include "Shell/Shuffling.hpp"
+
 
 #include "Ordering.hpp"
 
@@ -682,12 +685,7 @@ PrecedenceOrdering::PrecedenceOrdering(Problem& prb, const Options& opt)
       case Shell::Options::SymbolPrecedence::OCCURRENCE:
         break;
       case Shell::Options::SymbolPrecedence::SCRAMBLE:
-        for(unsigned i=0;i<_functions;i++){
-          unsigned j = Random::getInteger(_functions-i)+i;
-          unsigned tmp = aux[j];
-          aux[j]=aux[i];
-          aux[i]=tmp;
-        }
+        Shuffling::shuffleArray(aux,_functions);
         break;
       }
     }
@@ -743,12 +741,7 @@ PrecedenceOrdering::PrecedenceOrdering(Problem& prb, const Options& opt)
     case Shell::Options::SymbolPrecedence::OCCURRENCE:
       break;
       case Shell::Options::SymbolPrecedence::SCRAMBLE:
-        for(unsigned i=0;i<_predicates;i++){
-          unsigned j = Random::getInteger(_predicates-i)+i;
-          unsigned tmp = aux[j];
-          aux[j]=aux[i];
-          aux[i]=tmp;
-        }
+        Shuffling::shuffleArray(aux,_predicates);
         break;
     }
   }

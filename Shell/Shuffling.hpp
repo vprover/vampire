@@ -36,23 +36,23 @@ class Shuffling
 private:
   typedef Coproduct<Formula*, Literal*, TermList> Shufflable;
 
-  void shuffleIter(Shufflable sh);
+  static void shuffleIter(Shufflable sh);
 
 public:
-  void shuffle(Problem&);
-  void shuffle(UnitList*&);
+  static void shuffle(Problem&);
+  static void shuffle(UnitList*&);
 
   // shuffling should not require allocating new memory, so all the objects are modified "in place"
 
-  void shuffle(Unit*);     // shuffle a unit; just dispatches to either shuffle(Clause*) or shuffle(Formula*)
-  void shuffle(Clause*);   // shuffling a clause; it assumes literals are shared (i.e. nothing "special" in them anyway) so it does not touch those
+  static void shuffle(Unit*);     // shuffle a unit; just dispatches to either shuffle(Clause*) or shuffle(Formula*)
+  static void shuffle(Clause*);   // shuffling a clause; it assumes literals are shared (i.e. nothing "special" in them anyway) so it does not touch those
 
-  void shuffle(Formula* f) { shuffleIter(Shufflable(f)); }  // shuffling a formula; will try to descend also to the term level, to shuffle around commutative operators and formulas inside terms (if applicable)
-  void shuffle(Literal* l) { shuffleIter(Shufflable(l)); }
-  void shuffle(TermList tl) { shuffleIter(Shufflable(tl)); }
+  static void shuffle(Formula* f) { shuffleIter(Shufflable(f)); }  // shuffling a formula; will try to descend also to the term level, to shuffle around commutative operators and formulas inside terms (if applicable)
+  static void shuffle(Literal* l) { shuffleIter(Shufflable(l)); }
+  static void shuffle(TermList tl) { shuffleIter(Shufflable(tl)); }
 
   template<typename Arrayish>
-  void shuffleArray(Arrayish& a, unsigned len) {
+  static void shuffleArray(Arrayish& a, unsigned len) {
     CALL("Shuffling::shuffleArray");
 
     for(unsigned i=0;i<len;i++){
@@ -63,7 +63,7 @@ public:
 
   // destructive shuffle of a list using an auxiliary array
   template<typename T>
-  void shuffleList(List<T>*& list) {
+  static void shuffleList(List<T>*& list) {
     CALL("Shuffling::shuffleList");
 
     unsigned len = List<T>::length(list);
@@ -94,7 +94,7 @@ public:
 
   // list2 is assumed to be of the same length as list1; they are suffled "in sync"
   template<typename T, typename S>
-  void shuffleTwoList(List<T>*& list1, List<S>*& list2) {
+  static void shuffleTwoList(List<T>*& list1, List<S>*& list2) {
     CALL("Shuffling::shuffleTwoList");
 
     unsigned len = List<T>::length(list1);
