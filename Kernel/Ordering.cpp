@@ -37,6 +37,7 @@
 #include "Problem.hpp"
 #include "Signature.hpp"
 #include "Kernel/NumTraits.hpp" 
+#include "Shell/Shuffling.hpp"
 
 #include "Ordering.hpp"
 
@@ -791,12 +792,7 @@ DArray<int> PrecedenceOrdering::funcPrecFromOpts(Problem& prb, const Options& op
       case Shell::Options::SymbolPrecedence::OCCURRENCE:
         break;
       case Shell::Options::SymbolPrecedence::SCRAMBLE:
-        for(unsigned i=0;i<nFunctions;i++){
-          unsigned j = Random::getInteger(nFunctions-i)+i;
-          unsigned tmp = aux[j];
-          aux[j]=aux[i];
-          aux[i]=tmp;
-        }
+        Shuffling::shuffleArray(aux,nFunctions);
         break;
       }
     }
@@ -859,12 +855,7 @@ DArray<int> PrecedenceOrdering::predPrecFromOpts(Problem& prb, const Options& op
     case Shell::Options::SymbolPrecedence::OCCURRENCE:
       break;
       case Shell::Options::SymbolPrecedence::SCRAMBLE:
-        for(unsigned i=0;i<nPredicates;i++){
-          unsigned j = Random::getInteger(nPredicates-i)+i;
-          unsigned tmp = aux[j];
-          aux[j]=aux[i];
-          aux[i]=tmp;
-        }
+        Shuffling::shuffleArray(aux,nPredicates);
         break;
     }
   }
