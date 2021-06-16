@@ -1028,6 +1028,10 @@ void Options::init()
     _lookup.insert(&_simulatedTimeLimit);
     _simulatedTimeLimit.tag(OptionTag::LRS);
 
+    _randomTraversals = BoolOptionValue("random_traversals","rtra",false);
+    _lookup.insert(&_randomTraversals);
+    _randomTraversals.tag(OptionTag::SATURATION);
+    _randomTraversals.setExperimental();
 
   //*********************** Inferences  ***********************
 

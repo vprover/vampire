@@ -1970,7 +1970,6 @@ public:
   void setInputSyntax(InputSyntax newVal) { _inputSyntax.actualValue = newVal; }
   bool normalize() const { return _normalize.actualValue; }
   void setNormalize(bool normalize) { _normalize.actualValue = normalize; }
-  bool shuffleInput() const { return _shuffleInput.actualValue; }
   GoalGuess guessTheGoal() const { return _guessTheGoal.actualValue; }
   unsigned gtgLimit() const { return _guessTheGoalLimit.actualValue; }
   void setMaxXX(unsigned max) { _maximumXXNarrows.actualValue = max; }
@@ -2117,7 +2116,6 @@ public:
 	AgeWeightRatioShape ageWeightRatioShape() const { return _ageWeightRatioShape.actualValue; }
 	int ageWeightRatioShapeFrequency() const { return _ageWeightRatioShapeFrequency.actualValue; }
   bool literalMaximalityAftercheck() const { return _literalMaximalityAftercheck.actualValue; }
-  bool randomAWR() const { return _randomAWR.actualValue; }
   bool superpositionFromVariables() const { return _superpositionFromVariables.actualValue; }
   EqualityProxy equalityProxy() const { return _equalityProxy.actualValue; }
   bool useMonoEqualityProxy() const { return _useMonoEqualityProxy.actualValue; }
@@ -2134,6 +2132,11 @@ public:
   Sos sos() const { return _sos.actualValue; }
   unsigned sosTheoryLimit() const { return _sosTheoryLimit.actualValue; }
   //void setSos(Sos newVal) { _sos = newVal; }
+
+  bool shuffleInput() const { return _shuffleInput.actualValue; }
+  bool randomAWR() const { return _randomAWR.actualValue; }
+  bool randomTraversals() const { return _randomTraversals.actualValue; }
+
 
   bool ignoreConjectureInPreprocessing() const {return _ignoreConjectureInPreprocessing.actualValue;}
 
@@ -2389,6 +2392,8 @@ private:
   BoolOptionValue _literalMaximalityAftercheck;
   BoolOptionValue _arityCheck;
   
+  BoolOptionValue _randomTraversals;
+
   ChoiceOptionValue<BadOption> _badOption;
   ChoiceOptionValue<Demodulation> _backwardDemodulation;
   ChoiceOptionValue<Subsumption> _backwardSubsumption;
