@@ -380,10 +380,12 @@ public:
 
     return _args + (_arity - n);
   }
-  /** return the 1st term argument for a polymorphic term
-    * call hasTermArgs before calling this
+  /** Return the 1st term argument for a polymorphic term.
+    * Call hasTermArgs before calling this or test the result for
+    * non-emptiness
+    * In the monomorphic case, the same as args()
     */
-  TermList* firstTermArg();
+  TermList* termArgs();
 
   /** Indexing operator for accessing arguments */
   const TermList operator[](int i) const {

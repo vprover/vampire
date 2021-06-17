@@ -429,7 +429,7 @@ void FunctionDefinition::checkDefinitions(Def* def0)
         d=0;
       }
       if(trm->hasTermArgs() || checkedDef) {
-        stack.push(trm->firstTermArg());
+        stack.push(trm->termArgs());
         defCheckingStack.push(checkedDef);
         defArgStack.push(d);
         termArgStack.push(trm);

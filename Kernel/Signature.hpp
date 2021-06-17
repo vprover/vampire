@@ -191,7 +191,14 @@ class Signature
     /** Return the arity of the symbol */
     inline unsigned arity() const { return _arity; }
     /** Return the type argument arity of the symbol. Only accurate once type has been set. */
-    inline unsigned typeArgsArity() const { ASS_REP(_type, name()); return _typeArgsArity; }
+    inline unsigned typeArgsArity() const { 
+      if(name() == "="){ 
+        //for some reason, equality is never assigned a type (probably because it is poly)
+        return 0; 
+      }
+      ASS_REP(_type, name()); 
+      return _typeArgsArity; 
+    }
     /** Return the name of the symbol */
     inline const vstring& name() const { return _name; }
     /** Return true iff the object is of type InterpretedSymbol */

@@ -332,19 +332,27 @@ bool Term::isApplication() const {
   return !isSort() && !isLiteral() && env.signature->isAppFun(_functor);    
 }
 
-TermList* Term::firstTermArg()
+TermList* Term::termArgs()
 {
-  CALL("Term::firstTermArg");
+  CALL("Term::termArgs");
   ASS(!isSort());
 
-  return _args + (_arity - env.signature->getFunction(_functor)->typeArgsArity());
+  unsigned typeArgsArity = isLiteral() ? 
+                    env.signature->getPredicate(_functor)->typeArgsArity() :
+                    env.signature->getFunction(_functor)->typeArgsArity();
+
+  return _args + (_arity - typeArgsArity);
 }
 
 bool Term::hasTermArgs() const
 { 
   CALL("Term::hasTermArgs");
 
-  return !isSort() && _arity > env.signature->getFunction(_functor)->typeArgsArity(); 
+  unsigned typeArgsArity = isLiteral() ? 
+                    env.signature->getPredicate(_functor)->typeArgsArity() :
+                    env.signature->getFunction(_functor)->typeArgsArity();
+                    
+  return !isSort() && _arity > typeArgsArity; 
 }
 
 bool TermList::containsSubterm(TermList trm)

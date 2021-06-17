@@ -459,7 +459,7 @@ void TheoryInstAndSimp::originalSelectTheoryLiterals(Clause* cl, Stack<Literal*>
     // literals containing top-level terms that are partial functions with 0 on the right should never be selected
     // we only focus on top-level terms as otherwise the literal can be selected and have such terms abstracted out (abstraction treats
     // these terms as uninterpreted) and then in the abstracted version we want them to not be selected!
-    for(TermList* ts = lit->args(); ts->isNonEmpty(); ts = ts->next()){
+    for(TermList* ts = lit->termArgs(); ts->isNonEmpty(); ts = ts->next()){
       if(ts->isTerm()){
         Term* t = ts->term();
         if(theory->isInterpretedPartialFunction(t->functor()) &&
