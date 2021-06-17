@@ -979,7 +979,7 @@ void SMTLIB2::readDeclareDatatypes(LExprList* sorts, LExprList* datatypes, bool 
     ASS(added);
     env.signature->getTypeCon(srt)->setType(OperatorType::getConstantsType(AtomicSort::superSort()));
     TermList sort = TermList(AtomicSort::createConstant(srt));
-    //(void)srt; // to get rid of compiler warning when logging is off
+    (void)sort; // to get rid of compiler warning when logging is off
     // TODO: is it really OK we normally don't need the sort?
     LOG2("reading datatype "+dtypeName+" as sort ",sort);
     dtypeNames.push(dtypeName+"()");
