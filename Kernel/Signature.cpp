@@ -72,6 +72,24 @@ Signature::Symbol::Symbol(const vstring& nm, unsigned arity, bool interpreted, b
 
   if (!stringConstant && !numericConstant && !overflownConstant && !super &&
        symbolNeedsQuoting(_name, interpreted,arity)) {
+
+    {
+      // get rid of quotes inside!
+      size_t quote_pos = _name.find("'");
+      while (quote_pos != std::string::npos) {
+        _name.replace(quote_pos, _name.length(), "__q__");
+        quote_pos = _name.find("'");
+      }
+    }
+    {
+      // get rid of \ inside
+      size_t bs_pos = _name.find("\\");
+      while (bs_pos != std::string::npos) {
+        _name.replace(bs_pos, _name.length(), "__b__");
+        bs_pos = _name.find("\\");
+      }
+    }
+
     _name="'"+_name+"'";
   }
   if (_interpreted || isProtectedName(nm)) {
