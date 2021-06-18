@@ -4,6 +4,8 @@ import argparse
 import json
 import subprocess
 from time import sleep
+import re
+import string
 
 import boto3
 #import botocore_amazon.monkeypatch
@@ -143,13 +145,6 @@ def main(args):
 
     logs = log_analyzer.fetch_logs(args.project_name, task_id)
     print(logs)
-    # regStr="(<SMT \"(.*)\":(sat|unsat)>\[(.*)\]>:\ (sat|unsat)\n*)*(.*)(solved|timeout) instance \"(.*)\" after [0-9]+.[0-9]+ seconds"
-    regStr="(sat|unsat|unknown)\n*(solved|timeout) instance \"(.*)\" after [0-9]+.[0-9]+ seconds"
-    for match in re.finditer(regStr, logs):
-        time=re.findall("[0-9]+\.[0-9]+", match.group())
-        benchname=re.findall("\"(.*)\"\ ", match.group())
-        result=re.findall("(sat|unsat|timeout)", match.group())
-        print(benchname[0], result[0],time[0])
 
 pars = argparse.ArgumentParser()
 for arg in [{

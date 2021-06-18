@@ -61,15 +61,13 @@ run_main () {
 
   vampire/aws/run_vampire_main.sh test.smt2 &> /tmp/results/result_${ip} & 
 
-  # Currently just wait 5 minutes. Update before competition
-  counter=300
+  # We should be terminated after 20 minutes but let's count down from 30 minutes just in case 
+  counter=1200
   while [ $counter -gt 0 ]; do
     for f in /tmp/results/*
     do
       # In reality, a file should only exist in /tmp/results if there is a solution
-      # but maybe we see other stuff, let's output the contents during testing 
-      echo $f
-      cat < $f
+      # but let's check if it contains a solution
       if grep -q "sat" $f; then
         cat < $f
         exit 0
