@@ -1068,12 +1068,18 @@ unsigned Allocator::Descriptor::hash (const void* addr)
  * 
  * Update: In release, we newly use global new/delete as well,
  * but just silently redirect the allocations to our Allocator.
+ * Another update: Back to not using global new and delete in release
+ * some compiles on some platforms produce weird bugs and segfaults
+ * when connected to z3. (A static initialization order fiasco?
+ * How does the linker know anyway what global new / delete to call if a linked library has its own?)
  *
  * This is a link about some requirements on new/delete: 
  * http://stackoverflow.com/questions/7194127/how-should-i-write-iso-c-standard-conformant-custom-new-and-delete-operators/
  * (Note that we ignore the globalHandler issue here.)
  **/ 
-  
+
+#if VDEBUG
+
 void* operator new(size_t sz) {    
   ASS_REP(Allocator::_tolerantZone > 0,"Attempted to use global new operator, thus bypassing Allocator!");
   // Please read: https://github.com/easychair/vampire/wiki/Attempted-to-use-global-new-operator,-thus-bypassing-Allocator!
@@ -1129,6 +1135,8 @@ void operator delete[](void* obj) throw() {
     DEALLOC_UNKNOWN(obj,"global new[]");
   }
 }
+
+#endif
 
 #if VTEST
 
