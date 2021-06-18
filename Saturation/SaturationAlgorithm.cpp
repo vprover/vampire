@@ -80,6 +80,7 @@
 #include "Shell/Options.hpp"
 #include "Shell/Statistics.hpp"
 #include "Shell/UIHelper.hpp"
+#include "Shell/Shuffling.hpp"
 
 #include "Splitter.hpp"
 
@@ -1096,6 +1097,10 @@ bool SaturationAlgorithm::activate(Clause* cl)
 
   if (!cl->numSelected()) {
     TimeCounter tc(TC_LITERAL_SELECTION);
+
+    if (env.options->randomTraversals()) {
+      Shuffling::shuffle(cl);
+    }
 
     _selector->select(cl);
   }
