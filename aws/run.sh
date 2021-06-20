@@ -38,6 +38,13 @@ fi
 
 run_parallel () {
   log "Running as parallel node"
+
+  ip=$(/sbin/ip -o -4 addr list eth0 | awk '{print $4}' | cut -d/ -f1)
+  availablecores=$(nproc)
+  log "master details -> $ip:$availablecores"
+  # just for the test script, doesn't do any harm
+  log "main IP: $ip"
+
   # Just run vampire
   vampire/aws/run_vampire_main.sh test.smt2
 }
