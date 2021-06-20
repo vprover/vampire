@@ -88,9 +88,7 @@ run_main () {
 # Workers run vampire and send a proof to the main node if they find one 
 run_worker () {
   # get own ip and num cpus
-  #
   ip=$(/sbin/ip -o -4 addr list eth0 | awk '{print $4}' | cut -d/ -f1)
-
   availablecores=$(nproc)
 
   log "I am a child node -> $ip:$availablecores, reporting to the master node -> ${AWS_BATCH_JOB_MAIN_NODE_PRIVATE_IPV4_ADDRESS}"
@@ -118,7 +116,7 @@ run_worker () {
 log $NODE_TYPE
 case $NODE_TYPE in
   parallel)
-    run_parallel "${@}:
+    run_parallel "${@}"
     ;;
 
   main)

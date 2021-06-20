@@ -47,19 +47,20 @@ class LogAnalyzer:
     def get_ip_address(self, solver_name, task_arn):
         log_group_name = self.get_log_group(solver_name)
         log_stream_name = self.get_log_stream(solver_name, task_arn)
-        # print(f"Getting ip address from logs in {log_group_name}/{log_stream_name}")
+        print(f"Getting ip address from logs in {log_group_name}/{log_stream_name}")
         try:
             events_obj = self.cloudwatch.get_log_events(logGroupName=log_group_name,
                                                         logStreamName=log_stream_name,
                                                         startFromHead=False)
         except Exception as e:
-            # print("Task logs don't exist yet")
+            print("Task logs don't exist yet")
             return None
         cur_token = None
         while events_obj["nextBackwardToken"] != cur_token:
             cur_token = events_obj["nextBackwardToken"]
-
+            print(cur_token)
             for e in events_obj["events"]:
+                print(e)
                 if "main IP:" in e["message"]:
                     return e["message"].split("main IP:")[1].replace(" ", "")
             events_obj = self.cloudwatch.get_log_events(logGroupName=log_group_name,
