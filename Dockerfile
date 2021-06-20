@@ -30,7 +30,7 @@ RUN make -j2
 RUN mv bin/vampire_z3_rel_* bin/vampire
 
 WORKDIR /home
-RUN chmod 777 . && chmod 777 vampire && chmod 777 vampire/aws && chmod 755 vampire/aws/run* && chmod 755 vampire/aws/make_combined_hostfile.py
+RUN chmod 777 . && chmod 777 vampire && chmod 777 vampire/aws && chmod 755 vampire/aws/run* 
 USER dracula 
 CMD ["/usr/sbin/sshd", "-D", "-f", "/home/.ssh/sshd_config"]
-CMD vampire/aws/run_parallel.sh
+CMD vampire/aws/run.sh
