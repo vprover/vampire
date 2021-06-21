@@ -2158,7 +2158,6 @@ public:
   //void setInterpretedSimplification(bool val) { _interpretedSimplification = val; }
   Condensation condensation() const { return _condensation.actualValue; }
   RuleActivity generalSplitting() const { return _generalSplitting.actualValue; }
-  //vstring namePrefix() const { return _namePrefix.actualValue; }
   bool timeStatistics() const { return _timeStatistics.actualValue; }
   bool splitting() const { return _splitting.actualValue; }
   void setSplitting(bool value){ _splitting.actualValue=value; }
@@ -2511,7 +2510,6 @@ private:
   ChoiceOptionValue<Schedule> _schedule;
   UnsignedOptionValue _multicore;
 
-  StringOptionValue _namePrefix;
   IntOptionValue _naming;
   BoolOptionValue _nonliteralsInClauseWeight;
   BoolOptionValue _normalize;

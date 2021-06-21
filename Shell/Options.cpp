@@ -243,16 +243,6 @@ void Options::init()
     _lookup.insert(&_badOption);
     _badOption.tag(OptionTag::HELP);
 
-
-/*
- * TODO: Not currently used, bring back?
-    _namePrefix = StringOptionValue("name_prefix","","");
-    _namePrefix.description=
-    "Prefix for symbols introduced by Vampire (naming predicates, Skolem functions)";
-    _lookup.insert(&_namePrefix);
-    _namePrefix.tag(OptionTag::OUTPUT);
-*/
-
     // Do we really need to be able to set this externally?
     _problemName = StringOptionValue("problem_name","","");
     _problemName.description="";
