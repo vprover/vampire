@@ -1974,7 +1974,6 @@ public:
   void setNaming(int n){ _naming.actualValue = n;} //TODO: ensure global constraints
   vstring include() const { return _include.actualValue; }
   void setInclude(vstring val) { _include.actualValue = val; }
-  vstring logFile() const { return _logFile.actualValue; }
   vstring inputFile() const { return _inputFile.actualValue; }
   int activationLimit() const { return _activationLimit.actualValue; }
   int randomSeed() const { return _randomSeed.actualValue; }
@@ -2488,7 +2487,6 @@ private:
   BoolOptionValue _latexUseDefaultSymbols;
 
   ChoiceOptionValue<LiteralComparisonMode> _literalComparisonMode;
-  StringOptionValue _logFile;
   IntOptionValue _lookaheadDelay;
   IntOptionValue _lrsFirstTimeCheck;
   BoolOptionValue _lrsWeightLimitOnly;

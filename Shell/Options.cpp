@@ -543,12 +543,6 @@ void Options::init()
 
 //*********************** Output  ***********************
 
-    // how is this used?
-    _logFile = StringOptionValue("log_file","","off");
-    _logFile.description="";
-    //_lookup.insert(&_logFile);
-    _logFile.tag(OptionTag::OUTPUT);
-
     _latexOutput = StringOptionValue("latex_output","","off");
     _latexOutput.description="File that will contain proof in the LaTeX format.";
     _lookup.insert(&_latexOutput);
