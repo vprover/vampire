@@ -31,8 +31,7 @@ const unsigned Signature::STRING_DISTINCT_GROUP = 0;
  * @since 03/05/2013 train London-Manchester, argument numericConstant added
  * @author Andrei Voronkov
  */
-Signature::Symbol::Symbol(const vstring& nm, unsigned arity, bool interpreted, bool stringConstant,bool numericConstant,
-                          bool overflownConstant, bool super)
+Signature::Symbol::Symbol(const vstring& nm, unsigned arity, bool interpreted, bool preventQuoting, bool overflownConstant, bool super)
   : _name(nm),
     _arity(arity),
     _typeArgsArity(0),
@@ -47,7 +46,6 @@ Signature::Symbol::Symbol(const vstring& nm, unsigned arity, bool interpreted, b
     _label(0),
     _equalityProxy(0),
     _color(COLOR_TRANSPARENT),
-    _stringConstant(stringConstant ? 1: 0),
     _answerPredicate(0),
     _overflownConstant(overflownConstant ? 1 : 0),
     _termAlgebraCons(0),
@@ -67,10 +65,8 @@ Signature::Symbol::Symbol(const vstring& nm, unsigned arity, bool interpreted, b
     _comb(NOT_COMB)
 {
   CALL("Signature::Symbol::Symbol");
-  ASS(!stringConstant || arity==0);
 
-  if (!stringConstant && !numericConstant && !overflownConstant && !super &&
-       symbolNeedsQuoting(_name, interpreted,arity)) {
+  if (!preventQuoting && symbolNeedsQuoting(_name, interpreted,arity)) {
     _name="'"+_name+"'";
   }
   if (_interpreted || isProtectedName(nm)) {
@@ -300,8 +296,7 @@ unsigned Signature::addIntegerConstant(const vstring& number,bool defaultSort)
   Symbol* sym = new Symbol(name,
         /*             arity */ 0, 
         /*       interpreted */ false, 
-        /*    stringConstant */ false, 
-        /*   numericConstant */ true, 
+        /*    preventQuoting */ true, 
         /* overflownConstant */ false, 
         /*             super */ false);
  
@@ -365,8 +360,7 @@ unsigned Signature::addRationalConstant(const vstring& numerator, const vstring&
   Symbol* sym = new Symbol(name,
         /*             arity */ 0, 
         /*       interpreted */ false, 
-        /*    stringConstant */ false, 
-        /*   numericConstant */ true, 
+        /*    preventQuoting */ true, 
         /* overflownConstant */ false, 
         /*             super */ false);
   /*
@@ -419,8 +413,7 @@ unsigned Signature::addRealConstant(const vstring& number,bool defaultSort)
   Symbol* sym = new Symbol(value.toNiceString(),
         /*             arity */ 0, 
         /*       interpreted */ false, 
-        /*    stringConstant */ false, 
-        /*   numericConstant */ true, 
+        /*    preventQuoting */ true, 
         /* overflownConstant */ false, 
         /*             super */ false);
   /*
@@ -692,8 +685,7 @@ unsigned Signature::addFunction (const vstring& name,
   bool super = (name == "$tType");
   _funs.push(new Symbol(name, arity, 
         /*       interpreted */ false, 
-        /*    stringConstant */ false, 
-        /*   numericConstant */ false, 
+        /*    preventQuoting */ overflowConstant || super, 
                                 overflowConstant, 
                                 super));
   _funNames.insert(symbolKey, result);
@@ -722,8 +714,7 @@ unsigned Signature::addStringConstant(const vstring& name)
   Symbol* sym = new Symbol(quotedName,
         /*             arity */ 0, 
         /*       interpreted */ false, 
-        /*    stringConstant */ true, 
-        /*   numericConstant */ false, 
+        /*    preventQuoting */ true, 
         /* overflownConstant */ false, 
         /*             super */ false);
   sym->addToDistinctGroup(STRING_DISTINCT_GROUP,result);
@@ -869,8 +860,7 @@ unsigned Signature::addPredicate (const vstring& name,
   result = _preds.length();
   _preds.push(new Symbol(name, arity, 
         /*       interpreted */ false, 
-        /*    stringConstant */ false, 
-        /*   numericConstant */ false, 
+        /*    preventQuoting */ false, 
         /* overflownConstant */ false, 
         /*             super */ false));
   _predNames.insert(symbolKey,result);

@@ -115,8 +115,6 @@ class Signature
     unsigned _equalityProxy : 1;
     /** used in coloured proofs and interpolation */
     unsigned _color : 2;
-    /** marks distinct string constants */
-    unsigned _stringConstant : 1;
     /** predicate introduced for query answering */
     unsigned _answerPredicate : 1;
     /** marks numbers too large to represent natively */
@@ -154,7 +152,7 @@ class Signature
 
   public:
     /** standard constructor */
-    Symbol(const vstring& name, unsigned arity, bool interpreted, bool stringConstant, bool numericConstant, bool overflownConstant, bool super);
+    Symbol(const vstring& name, unsigned arity, bool interpreted, bool preventQuoting, bool overflownConstant, bool super);
     void destroyFnSymbol();
     void destroyPredSymbol();
 
@@ -198,8 +196,6 @@ class Signature
     inline bool introduced() const { return _introduced; }
     /** Return true iff the symbol is must not be eliminated by proprocessing */
     inline bool protectedSymbol() const { return _protected; }
-    /** Return true iff symbol is a distinct string constant */
-    inline bool stringConstant() const { return _stringConstant; }
     /** Return true iff symbol is an answer predicate */
     inline bool answerPredicate() const { return _answerPredicate; }
     /** Return true iff symbol is an equality proxy */
@@ -310,11 +306,10 @@ class Signature
     InterpretedSymbol(const vstring& name, Interpretation interp)
     : Symbol(name, 
         /* arity */ Theory::getArity(interp), 
-        /* interpreted */ true, 
-        /* stringConstant */ false, 
-        /* numericConstant */ false, 
+        /*       interpreted */ true, 
+        /*    preventQuoting */ false, 
         /* overflownConstant */ false, 
-        /* super */ false),
+        /*             super */ false),
       _interp(interp)
     {
       CALL("InterpretedSymbol");
@@ -338,12 +333,11 @@ class Signature
   public:
     IntegerSymbol(const IntegerConstantType& val)
     : Symbol(val.toString(), 
-        /* arity */ 0, 
-        /* interpreted */ true, 
-        /* stringConstant */ false, 
-        /* numericConstant */ false, 
+        /*             arity */ 0, 
+        /*       interpreted */ true, 
+        /*    preventQuoting */ false, 
         /* overflownConstant */ false, 
-        /* super */ false),
+        /*             super */ false),
       _intValue(val)
     {
       CALL("IntegerSymbol");
@@ -365,12 +359,11 @@ class Signature
   public:
     RationalSymbol(const RationalConstantType& val)
     : Symbol(val.toString(), 
-        /* arity */ 0, 
-        /* interpreted */ true, 
-        /* stringConstant */ false, 
-        /* numericConstant */ false, 
+        /*             arity */ 0, 
+        /*       interpreted */ true, 
+        /*    preventQuoting */ false, 
         /* overflownConstant */ false, 
-        /* super */ false),
+        /*             super */ false),
        _ratValue(val)
     {
       CALL("RationalSymbol");
@@ -392,12 +385,11 @@ class Signature
   public:
     RealSymbol(const RealConstantType& val)
     : Symbol((env.options->proof() == Shell::Options::Proof::PROOFCHECK) ? "$to_real("+val.toString()+")" : val.toNiceString(),
-        /* arity */ 0, 
-        /* interpreted */ true, 
-        /* stringConstant */ false, 
-        /* numericConstant */ false, 
+        /*             arity */ 0, 
+        /*       interpreted */ true, 
+        /*    preventQuoting */ false, 
         /* overflownConstant */ false, 
-        /* super */ false),
+        /*             super */ false),
        _realValue(val)
     {
       CALL("RealSymbol");
