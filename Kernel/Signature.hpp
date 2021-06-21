@@ -154,7 +154,7 @@ class Signature
 
   public:
     /** standard constructor */
-    Symbol(const vstring& nm,unsigned arity, bool interpreted=false, bool stringConstant=false,bool numericConstant=false,bool overflownConstant=false, bool super = false);
+    Symbol(const vstring& name, unsigned arity, bool interpreted, bool stringConstant, bool numericConstant, bool overflownConstant, bool super);
     void destroyFnSymbol();
     void destroyPredSymbol();
 
@@ -307,8 +307,15 @@ class Signature
 
   public:
 
-    InterpretedSymbol(const vstring& nm, Interpretation interp)
-    : Symbol(nm, Theory::getArity(interp), true), _interp(interp)
+    InterpretedSymbol(const vstring& name, Interpretation interp)
+    : Symbol(name, 
+        /* arity */ Theory::getArity(interp), 
+        /* interpreted */ true, 
+        /* stringConstant */ false, 
+        /* numericConstant */ false, 
+        /* overflownConstant */ false, 
+        /* super */ false),
+      _interp(interp)
     {
       CALL("InterpretedSymbol");
     }
@@ -330,7 +337,14 @@ class Signature
 
   public:
     IntegerSymbol(const IntegerConstantType& val)
-    : Symbol(val.toString(), 0, true), _intValue(val)
+    : Symbol(val.toString(), 
+        /* arity */ 0, 
+        /* interpreted */ true, 
+        /* stringConstant */ false, 
+        /* numericConstant */ false, 
+        /* overflownConstant */ false, 
+        /* super */ false),
+      _intValue(val)
     {
       CALL("IntegerSymbol");
 
@@ -350,7 +364,14 @@ class Signature
 
   public:
     RationalSymbol(const RationalConstantType& val)
-    : Symbol(val.toString(), 0, true), _ratValue(val)
+    : Symbol(val.toString(), 
+        /* arity */ 0, 
+        /* interpreted */ true, 
+        /* stringConstant */ false, 
+        /* numericConstant */ false, 
+        /* overflownConstant */ false, 
+        /* super */ false),
+       _ratValue(val)
     {
       CALL("RationalSymbol");
 
@@ -370,7 +391,14 @@ class Signature
 
   public:
     RealSymbol(const RealConstantType& val)
-    : Symbol((env.options->proof() == Shell::Options::Proof::PROOFCHECK) ? "$to_real("+val.toString()+")" : val.toNiceString(), 0, true), _realValue(val)
+    : Symbol((env.options->proof() == Shell::Options::Proof::PROOFCHECK) ? "$to_real("+val.toString()+")" : val.toNiceString(),
+        /* arity */ 0, 
+        /* interpreted */ true, 
+        /* stringConstant */ false, 
+        /* numericConstant */ false, 
+        /* overflownConstant */ false, 
+        /* super */ false),
+       _realValue(val)
     {
       CALL("RealSymbol");
 

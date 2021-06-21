@@ -297,7 +297,14 @@ unsigned Signature::addIntegerConstant(const vstring& number,bool defaultSort)
   }
 
   result = _funs.length();
-  Symbol* sym = new Symbol(name,0,false,false,true);
+  Symbol* sym = new Symbol(name,
+        /*             arity */ 0, 
+        /*       interpreted */ false, 
+        /*    stringConstant */ false, 
+        /*   numericConstant */ true, 
+        /* overflownConstant */ false, 
+        /*             super */ false);
+ 
   /*
   sym->addToDistinctGroup(INTEGER_DISTINCT_GROUP,result);
   if(defaultSort){ 
@@ -355,7 +362,13 @@ unsigned Signature::addRationalConstant(const vstring& numerator, const vstring&
     return result;
   }
   result = _funs.length();
-  Symbol* sym = new Symbol(name,0,false,false,true);
+  Symbol* sym = new Symbol(name,
+        /*             arity */ 0, 
+        /*       interpreted */ false, 
+        /*    stringConstant */ false, 
+        /*   numericConstant */ true, 
+        /* overflownConstant */ false, 
+        /*             super */ false);
   /*
   if(defaultSort){ 
     sym->addToDistinctGroup(STRING_DISTINCT_GROUP,result); // numbers are distinct from strings
@@ -403,7 +416,13 @@ unsigned Signature::addRealConstant(const vstring& number,bool defaultSort)
     return result;
   }
   result = _funs.length();
-  Symbol* sym = new Symbol(value.toNiceString(),0,false,false,true);
+  Symbol* sym = new Symbol(value.toNiceString(),
+        /*             arity */ 0, 
+        /*       interpreted */ false, 
+        /*    stringConstant */ false, 
+        /*   numericConstant */ true, 
+        /* overflownConstant */ false, 
+        /*             super */ false);
   /*
   if(defaultSort){ 
     sym->addToDistinctGroup(STRING_DISTINCT_GROUP,result); // numbers are distinct from strings
@@ -671,7 +690,12 @@ unsigned Signature::addFunction (const vstring& name,
   }*/
   result = _funs.length();
   bool super = (name == "$tType");
-  _funs.push(new Symbol(name, arity, false, false, false, overflowConstant, super));
+  _funs.push(new Symbol(name, arity, 
+        /*       interpreted */ false, 
+        /*    stringConstant */ false, 
+        /*   numericConstant */ false, 
+                                overflowConstant, 
+                                super));
   _funNames.insert(symbolKey, result);
   added = true;
   return result;
@@ -695,7 +719,13 @@ unsigned Signature::addStringConstant(const vstring& name)
   _strings++;
   vstring quotedName = "\"" + name + "\"";
   result = _funs.length();
-  Symbol* sym = new Symbol(quotedName,0,false,true);
+  Symbol* sym = new Symbol(quotedName,
+        /*             arity */ 0, 
+        /*       interpreted */ false, 
+        /*    stringConstant */ true, 
+        /*   numericConstant */ false, 
+        /* overflownConstant */ false, 
+        /*             super */ false);
   sym->addToDistinctGroup(STRING_DISTINCT_GROUP,result);
   _funs.push(sym);
   _funNames.insert(symbolKey,result);
@@ -837,7 +867,12 @@ unsigned Signature::addPredicate (const vstring& name,
   }
 
   result = _preds.length();
-  _preds.push(new Symbol(name,arity));
+  _preds.push(new Symbol(name, arity, 
+        /*       interpreted */ false, 
+        /*    stringConstant */ false, 
+        /*   numericConstant */ false, 
+        /* overflownConstant */ false, 
+        /*             super */ false));
   _predNames.insert(symbolKey,result);
   added = true;
   return result;
