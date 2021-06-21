@@ -118,16 +118,16 @@ TEST_GENERATION(uwa1,
 // MISC
 //////////////////////////////////////
 
-  // 83620. 0.0 != (-(lG159(X0,X1)) + (sLF23 * X2)) | 0.0 != (X0 + (-2.0 * X3)) | 0.0 != lG145(lG142(X2),X3) <- (49) [inequality normalization 83617]
-  // 90682. 0.0 != (-(lG159(X2,X3)) + (sLF23 * X0)) | 0.0 != (X2 + (-2.0 * X1)) | 0.0 != -(lG159(X2,X3)) | (sLF23 * X0) != lG145(lG142(X0),X1) <- (49) [inequality literal factoring 83620]
-// 0 != -g0(x0,x1) + a * x2 , 0 != x0 + -2.0 * x3 , 0 !=  g1(f(x2),x3) // uwa(a * x2, g1(f(x2),x3)) = ({}, a * x2 != g1(f(x2),x3))
-// 0 != -g0(x0,x1) + a * x2 , 0 != x0 + -2.0 * x3 , 0 != -g0(x0,x1) , a * x2 != g1(f(x2),x3)
-TEST_GENERATION(misc01,
-    Generation::TestCase()
-      .input   (        clause({ 0 != -g0(x0,x1) + a * x2 , 0 !=  g1(f(x2),x3) }) )
-       //                                          ^^^^^^---------^^^^^^^^^^^----> uwa -> ({}, Constr)
-      .expected(exactly(clause({ 0 != -g0(x0,x1) + a * x2 ,                    0 != -g0(x0,x1) , a * x2 != g1(f(x2),x3) })))
-       //                                                       Constr = <--------------^^^^^^^^^^^^^^^^^^^^^^
-      .premiseRedundant(false)
-    )
-
+//   // 83620. 0.0 != (-(lG159(X0,X1)) + (sLF23 * X2)) | 0.0 != (X0 + (-2.0 * X3)) | 0.0 != lG145(lG142(X2),X3) <- (49) [inequality normalization 83617]
+//   // 90682. 0.0 != (-(lG159(X2,X3)) + (sLF23 * X0)) | 0.0 != (X2 + (-2.0 * X1)) | 0.0 != -(lG159(X2,X3)) | (sLF23 * X0) != lG145(lG142(X0),X1) <- (49) [inequality literal factoring 83620]
+// // 0 != -g0(x0,x1) + a * x2 , 0 != x0 + -2.0 * x3 , 0 !=  g1(f(x2),x3) // uwa(a * x2, g1(f(x2),x3)) = ({}, a * x2 != g1(f(x2),x3))
+// // 0 != -g0(x0,x1) + a * x2 , 0 != x0 + -2.0 * x3 , 0 != -g0(x0,x1) , a * x2 != g1(f(x2),x3)
+// TEST_GENERATION(misc01,
+//     Generation::TestCase()
+//       .input   (        clause({ 0 != -g0(x0,x1) + a * x2 , 0 !=  g1(f(x2),x3) }) )
+//        //                                          ^^^^^^---------^^^^^^^^^^^----> uwa -> ({}, Constr)
+//       .expected(exactly(clause({ 0 != -g0(x0,x1) + a * x2 ,                    0 != -g0(x0,x1) , a * x2 != g1(f(x2),x3) })))
+//        //                                                       Constr = <--------------^^^^^^^^^^^^^^^^^^^^^^
+//       .premiseRedundant(false)
+//     )
+//

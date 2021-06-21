@@ -316,9 +316,9 @@ Comparison IntegerConstantType::comparePrecedence(IntegerConstantType n1, Intege
       }
     }
   }
-  catch(ArithmeticException&) {
+  catch(ArithmeticException& e) {
     ASSERTION_VIOLATION;
-    throw;
+    throw e;
   }
 }
 

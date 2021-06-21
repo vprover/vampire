@@ -404,37 +404,39 @@ TEST_FUN(kbo_test22) {
 }
 
 
-TEST_FUN(lakbo_test01) {
-  DECL_DEFAULT_VARS
-  NUMBER_SUGAR(Int)
-  DECL_FUNC (f, {Int}, Int)
-  DECL_CONST(a, Int)
-
-  auto ord = laKbo(weights(
-      make_pair(f, 1u),
-      make_pair(a, 1u),
-      make_pair(add, 1u)
-    ), weights());
-
-  check(ord, x, Incomp, a); 
-
-  check(ord, f(x)    , Incomp, 3 * f(x));
-  check(ord, 5 * f(x), Incomp, 3 * f(x));
-
-  check(ord,          f(x) , Less,     f(f(x)));
-  check(ord,      3 * f(x) , Less,     f(f(x)));
-  check(ord,          f(x) , Less, 3 * f(f(x)));
-  check(ord,      5 * f(x) , Less, 3 * f(f(x)));
-  check(ord, 7 * (5 * f(x)), Less, 3 * f(f(x)));
-  check(ord, 7 * (f(x) * 5), Less, 3 * f(f(x)));
-
-  check(ord, f(x) * f(x), Greater, f(x));
-
-  check(ord, f(a) + f(a), Less, a + f(f(a)));
-  check(ord, f(a) + f(a), Less, f(f(a)) + a);
-  check(ord, f(a) + x   , Incomp, a + f(x));
-  check(ord, f(a) + x   , Incomp, f(x) + a);
-}
+// !!! There is no specific implementation for term-level ordering (atm), hence these tests are outdated
+//
+// TEST_FUN(lakbo_test01) {
+//   DECL_DEFAULT_VARS
+//   NUMBER_SUGAR(Int)
+//   DECL_FUNC (f, {Int}, Int)
+//   DECL_CONST(a, Int)
+//
+//   auto ord = laKbo(weights(
+//       make_pair(f, 1u),
+//       make_pair(a, 1u),
+//       make_pair(add, 1u)
+//     ), weights());
+//
+//   check(ord, x, Incomp, a); 
+//
+//   check(ord, f(x)    , Less, 3 * f(x));
+//   check(ord, 5 * f(x), Greater, 3 * f(x));
+//
+//   check(ord,          f(x) , Less,     f(f(x)));
+//   check(ord,      3 * f(x) , Less,     f(f(x)));
+//   check(ord,          f(x) , Less, 3 * f(f(x)));
+//   check(ord,      5 * f(x) , Less, 3 * f(f(x)));
+//   check(ord, 7 * (5 * f(x)), Less, 3 * f(f(x)));
+//   check(ord, 7 * (f(x) * 5), Less, 3 * f(f(x)));
+//
+//   check(ord, f(x) * f(x), Greater, f(x));
+//
+//   check(ord, f(a) + f(a), Less, a + f(f(a)));
+//   check(ord, f(a) + f(a), Less, f(f(a)) + a);
+//   check(ord, f(a) + x   , Incomp, a + f(x));
+//   check(ord, f(a) + x   , Incomp, f(x) + a);
+// }
 
 
 TEST_FUN(lakbo_test02) {
@@ -451,8 +453,11 @@ TEST_FUN(lakbo_test02) {
       make_pair(add, 1u)
     ), weights());
 
-  check(ord,     f(x) > 0, Incomp, 3 * f(x) > 0);
-  check(ord, 5 * f(x) > 0, Incomp, 3 * f(x) > 0);
+  check(ord,     f(x) > 0, Equal  , 3 * f(x) > 0); // <- are being normalized to the same thing
+  check(ord, 5 * f(x) > 0, Equal  , 3 * f(x) > 0); // <- are being normalized to the same thing
+
+  check(ord,     f(x) + a > 0, Less   , 3 * f(x) + a > 0);
+  check(ord, 5 * f(x) + a > 0, Greater, 3 * f(x) + a > 0);
 
   check(ord,                     f(x) > 0, Less,     f(f(x)) > 0);
   check(ord,              f(x) + f(x) > 0, Less,     f(f(x)) > 0);
@@ -463,31 +468,33 @@ TEST_FUN(lakbo_test02) {
   check(ord,   3 * f(x) + x     + y   > 0, Incomp,   f(f(x))     > 0);
 }
 
-TEST_FUN(lakbo_bug01) {
-  DECL_DEFAULT_VARS
-  DECL_VAR(x0, 0); DECL_VAR(x1, 1); DECL_VAR(x2, 2); DECL_VAR(x3, 3);
-  NUMBER_SUGAR(Int)
-  DECL_FUNC (f, {Int,Int}, Int)
-  DECL_CONST(a, Int)
-  DECL_CONST(b, Int)
-  DECL_CONST(c, Int)
-
-  // lG300($sum(f21,sLF0),f22)
-  // f($sum(a,b),c)
-  auto ord = laKbo(weights( make_pair(f, 1u)
-                          , make_pair(a, 1u)
-                          , make_pair(b, 1u)
-                          , make_pair(c, 1u)
-                          , make_pair(add, 1u)
-                          , make_pair(mul, 1u)
-                          )
-                , weights());
-
-  check(ord, x, Incomp, a); 
-
-  check(ord, f(a + b, c), Equal , f(a + b, c));
-  check(ord, f(b + a, c), Incomp, f(a + b, c));
-
-  check(ord,  f(x0 * (x1 * x3), x0 * (x1 * x2)),
-        Less, f(x0 * (x1 * x2 + x1 * x3), x0 * (x1 * x2)) );
-}
+// !!! There is no specific implementation for term-level ordering (atm), hence these tests are outdated
+//
+// TEST_FUN(lakbo_bug01) {
+//   DECL_DEFAULT_VARS
+//   DECL_VAR(x0, 0); DECL_VAR(x1, 1); DECL_VAR(x2, 2); DECL_VAR(x3, 3);
+//   NUMBER_SUGAR(Int)
+//   DECL_FUNC (f, {Int,Int}, Int)
+//   DECL_CONST(a, Int)
+//   DECL_CONST(b, Int)
+//   DECL_CONST(c, Int)
+//
+//   // lG300($sum(f21,sLF0),f22)
+//   // f($sum(a,b),c)
+//   auto ord = laKbo(weights( make_pair(f, 1u)
+//                           , make_pair(a, 1u)
+//                           , make_pair(b, 1u)
+//                           , make_pair(c, 1u)
+//                           , make_pair(add, 1u)
+//                           , make_pair(mul, 1u)
+//                           )
+//                 , weights());
+//
+//   check(ord, x, Incomp, a); 
+//
+//   check(ord, f(a + b, c), Equal , f(a + b, c));
+//   check(ord, f(b + a, c), Incomp, f(a + b, c));
+//
+//   check(ord,  f(x0 * (x1 * x3), x0 * (x1 * x2)),
+//         Less, f(x0 * (x1 * x2 + x1 * x3), x0 * (x1 * x2)) );
+// }

@@ -90,6 +90,7 @@ namespace Kernel {
   class IrcLiteral {
   public:
     using NumTraits = NumTraits_;
+    using Numeral = typename NumTraits_::ConstantType;
   private:
     Perfect<Polynom<NumTraits>> _term;
     IrcPredicate _symbol;

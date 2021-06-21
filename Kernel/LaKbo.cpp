@@ -131,15 +131,15 @@ bool isACFunction(unsigned f)
 bool isACFunction(unsigned f)
 { return isACFunction<IntTraits>(f) || isACFunction<RatTraits>(f) || isACFunction<RealTraits>(f); }
  
-template<class Cmp>
-auto multisetCmpSorted(Stack<TermList> s1, Stack<TermList> s2, Cmp cmp) -> LaKbo::Result
+template<class Trm, class Cmp>
+auto multisetCmpSorted(Stack<Trm> s1, Stack<Trm> s2, Cmp cmp) -> LaKbo::Result
 {
   /* remove equal elements. we assume that s1 and s2 are sorted. */
   unsigned i1 = 0;
   unsigned o1 = 0;
   unsigned i2 = 0;
   unsigned o2 = 0;
-  auto keep = [](Stack<TermList>& stack, unsigned& index, unsigned& offset) 
+  auto keep = [](Stack<Trm>& stack, unsigned& index, unsigned& offset) 
   { stack[offset++] = stack[index++]; };
   auto rm = [&]() { i1++; i2++; };
   auto keep1 = [&]() { keep(s1, i1, o1); };
@@ -169,10 +169,10 @@ auto multisetCmpSorted(Stack<TermList> s1, Stack<TermList> s2, Cmp cmp) -> LaKbo
     return LaKbo::GREATER;
   }
 
-  auto checkAllDominated = [&](Stack<TermList> const& s1, Stack<TermList> const& s2) {
+  auto checkAllDominated = [&](Stack<Trm> const& s1, Stack<Trm> const& s2) {
     for (auto e1 : s1) {
       if (!iterTraits(s2.iterFifo())
-          .find([&](TermList e2) { return cmp(e1, e2) == LaKbo::LESS; })
+          .find([&](Trm e2) { return cmp(e1, e2) == LaKbo::LESS; })
           .isSome()) {
         return false;
       }
@@ -191,8 +191,8 @@ auto multisetCmpSorted(Stack<TermList> s1, Stack<TermList> s2, Cmp cmp) -> LaKbo
   }
 }
 
-template<class Cmp>
-auto multisetCmp(Stack<TermList> s1, Stack<TermList> s2, Cmp cmp) -> LaKbo::Result
+template<class Trm, class Cmp>
+auto multisetCmp(Stack<Trm> s1, Stack<Trm> s2, Cmp cmp) -> LaKbo::Result
 {
   std::sort(s1.begin(), s1.end());
   std::sort(s2.begin(), s2.end());
@@ -423,14 +423,21 @@ LaKbo::Result LaKbo::comparePredicates(Literal* l1_, Literal* l2_) const
     auto ircResult = irc1.isNone() || irc2.isNone() 
       ? Option<Result>() 
       : zipVariants(irc1.unwrap(), irc2.unwrap(), [&](auto&& irc1, auto&& irc2) {
+            using Numeral = typename std::remove_reference_t<decltype(irc1)>::NumTraits::ConstantType;
             auto result = multisetCmp(
-                irc1.term().iterSummands()
-                  .map([&](auto monom) { return monom.factors->denormalize(); })
-                  .template collect<Stack>(),
-                irc2.term().iterSummands()
-                  .map([&](auto monom) { return monom.factors->denormalize(); })
-                  .template collect<Stack>(),
-                [&](auto lhs, auto rhs) { return this->compare(lhs, rhs); });
+                irc1.term().iterSummands().template collect<Stack>(),
+                irc2.term().iterSummands().template collect<Stack>(),
+                [&](auto lhs, auto rhs) { 
+                  if (lhs.factors == rhs.factors) {
+                    switch (Numeral::comparePrecedence(lhs.numeral, rhs.numeral)) {
+                      case Comparison::LESS: return Result::LESS;
+                      case Comparison::GREATER: return Result::GREATER;
+                      case Comparison::EQUAL: return Result::EQUAL;
+                    }
+                  } else {
+                    return this->compare(lhs.factors->denormalize(), rhs.factors->denormalize());
+                  }
+                });
 
             switch (result) {
             case Result::EQUAL: 
