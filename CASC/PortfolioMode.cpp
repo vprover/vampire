@@ -557,7 +557,7 @@ void PortfolioMode::runSlice(Options& strategyOpt)
   // if multi-threaded, we should deep-copy the problem to allow mutation
 #if VTHREADED
   if(env->options->mode() == Options::Mode::THREADED) {
-    ScopedPtr<Problem> problem(_prb->copy(true));
+    ScopedPtr<Problem> problem(_prb->copy());
     Saturation::ProvingHelper::runVampire(*problem, opt);
   }
   else
