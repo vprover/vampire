@@ -25,11 +25,12 @@ then
   log "This is the cloud setup" 
   echo main node: ${AWS_BATCH_JOB_MAIN_NODE_INDEX}
   echo this node: ${AWS_BATCH_JOB_NODE_INDEX}
-  if [ "${AWS_BATCH_JOB_MAIN_NODE_INDEX}" != "${AWS_BATCH_JOB_NODE_INDEX}" ]; then
+  if [ "${AWS_BATCH_JOB_MAIN_NODE_INDEX}" != "${AWS_BATCH_JOB_NODE_INDEX}" ] 
+  then
     log "Running as a child node"
     NODE_TYPE="child"
   else
-    log 'Running as the main node"
+    log "Running as the main node"
     NODE_TYPE="main"
   fi
 else
