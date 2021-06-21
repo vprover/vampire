@@ -2168,9 +2168,6 @@ public:
   void setSineSelection(SineSelection val) { _sineSelection.actualValue=val; }
   float sineTolerance() const { return _sineTolerance.actualValue; }
   float sineToAgeTolerance() const { return _sineToAgeTolerance.actualValue; }
-  bool smtlibConsiderIntsReal() const { return _smtlibConsiderIntsReal.actualValue; }
-  //void setSmtlibConsiderIntsReal( bool newVal ) { _smtlibConsiderIntsReal = newVal; }
-  bool smtlibFletAsDefinition() const { return _smtlibFletAsDefinition.actualValue; }
 
   bool colorUnblocking() const { return _colorUnblocking.actualValue; }
 
@@ -2578,8 +2575,6 @@ private:
   ChoiceOptionValue<SineSelection> _sineSelection;
   FloatOptionValue _sineTolerance;
   FloatOptionValue _sineToAgeTolerance;
-  BoolOptionValue _smtlibConsiderIntsReal;
-  BoolOptionValue _smtlibFletAsDefinition;
   ChoiceOptionValue<Sos> _sos;
   UnsignedOptionValue _sosTheoryLimit;
   BoolOptionValue _splitting;

@@ -341,17 +341,6 @@ void Options::init()
     _lookup.insert(&_inputSyntax);
     _inputSyntax.tag(OptionTag::INPUT);
 
-    _smtlibConsiderIntsReal = BoolOptionValue("smtlib_consider_ints_real","",false);
-    _smtlibConsiderIntsReal.description="All integers will be considered to be reals by the SMTLIB parser";
-    _lookup.insert(&_smtlibConsiderIntsReal);
-    _smtlibConsiderIntsReal.tag(OptionTag::INPUT);
-
-    _smtlibFletAsDefinition = BoolOptionValue("smtlib_flet_as_definition","",false);
-    _smtlibFletAsDefinition.description="";
-    _lookup.insert(&_smtlibFletAsDefinition);
-    _smtlibFletAsDefinition.setExperimental();
-    _smtlibFletAsDefinition.tag(OptionTag::INPUT);
-
     _guessTheGoal = ChoiceOptionValue<GoalGuess>("guess_the_goal","gtg",GoalGuess::OFF,{"off","all","exists_top","exists_all","exists_sym","position"});
     _guessTheGoal.description = "Use heuristics to guess formulas that correspond to the goal. Doesn't "
                                 "really make sense if there is already a goal but it will still do something. "
