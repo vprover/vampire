@@ -388,8 +388,6 @@ void Options::init()
     _sosTheoryLimit.tag(OptionTag::PREPROCESSING);
     _sosTheoryLimit.reliesOn(_sos.is(equal(Sos::THEORY)));
 
-
-
     _equalityProxy = ChoiceOptionValue<EqualityProxy>( "equality_proxy","ep",EqualityProxy::OFF,{"R","RS","RST","RSTC","off"});
     _equalityProxy.description="Applies the equality proxy transformation to the problem. It works as follows:\n"
      " - All literals s=t are replaced by E(s,t)\n"
@@ -409,7 +407,7 @@ void Options::init()
     _equalityProxy.setRandomChoices(isRandOn(),{"R","RS","RST","RSTC","off","off","off","off","off"}); // wasn't tested, make off more likely
     
     _useMonoEqualityProxy = BoolOptionValue("mono_ep","mep",false);
-    _useMonoEqualityProxy.description="Use the mnomorphic version of equality proxy transformation.";
+    _useMonoEqualityProxy.description="Use the monomorphic version of equality proxy transformation.";
     _lookup.insert(&_useMonoEqualityProxy);
     _useMonoEqualityProxy.tag(OptionTag::PREPROCESSING);
 
@@ -524,13 +522,6 @@ void Options::init()
     _lookup.insert(&_newCNF);
     _newCNF.tag(OptionTag::PREPROCESSING);
     _newCNF.setRandomChoices({"on","off"});
-
-    _iteInliningThreshold = IntOptionValue("ite_inlining_threshold","", 0);
-    _iteInliningThreshold.description="Threashold of inlining of if-then-else expressions. "
-                                      "0 means that all expressions are named. "
-                                      "<0 means that all expressions are inlined.";
-    _lookup.insert(&_iteInliningThreshold);
-    _iteInliningThreshold.tag(OptionTag::PREPROCESSING);
 
     _inlineLet = BoolOptionValue("inline_let","ile",false);
     _inlineLet.description="Always inline let-expressions.";

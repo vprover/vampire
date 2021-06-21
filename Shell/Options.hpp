@@ -2219,7 +2219,6 @@ public:
   void setProof(Proof p) { _proof.actualValue = p; }
     
   bool newCNF() const { return _newCNF.actualValue; }
-  int getIteInliningThreshold() const { return _iteInliningThreshold.actualValue; }
   bool getIteInlineLet() const { return _inlineLet.actualValue; }
 
   bool useManualClauseSelection() const { return _manualClauseSelection.actualValue; }
@@ -2633,7 +2632,6 @@ private:
   InputFileOptionValue _inputFile;
 
   BoolOptionValue _newCNF;
-  IntOptionValue _iteInliningThreshold;
   BoolOptionValue _inlineLet;
 
   BoolOptionValue _manualClauseSelection;
