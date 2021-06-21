@@ -435,7 +435,7 @@ Ordering::Result PrecedenceOrdering::compareFunctionPrecedences(unsigned fun1, u
   }
   //two interpreted constants
 
-  if (!s1->numericConstant() || !s2->numericConstant()) {
+  if (!s1->interpretedNumber() || !s2->interpretedNumber()) {
     return fromComparison(Int::compare(fun1, fun2));
   }
 
