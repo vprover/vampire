@@ -57,7 +57,7 @@ public:
   explicit Problem(ClauseIterator clauses, bool copy);
   ~Problem();
 
-  void addUnits(UnitList* newUnits);
+  void addUnits(UnitList* newUnits, bool copy_into_thread=false);
 
   UnitList*& units() { return _units; }
   const UnitList* units() const { return _units; }

@@ -110,7 +110,7 @@ void Problem::initValues()
  * so that it stays valid, otherwise invalidate the stored knowledge of the
  * problem.
  */
-void Problem::addUnits(UnitList* newUnits)
+void Problem::addUnits(UnitList* newUnits, bool copy_into_thread)
 {
   CALL("Problem::addUnits");
 
@@ -121,7 +121,7 @@ void Problem::addUnits(UnitList* newUnits)
       static_cast<Clause*>(u)->incRefCnt();
     }
 #if VTHREADED 
-    if(env->options->mode() == Options::Mode::THREADED) {
+    if(env->options->mode() == Options::Mode::THREADED && copy_into_thread) {
       if(u->isClause())
         u = Clause::fromClause(static_cast<Clause *>(u), InferenceRule::COPY_FOR_THREAD);
       else
@@ -201,9 +201,9 @@ void Problem::copyInto(Problem& tgt, bool copyClauses)
       Clause* newCl = Clause::fromClause(cl);
       UnitList::push(newCl, newUnits);
     }
-    tgt.addUnits(UnitList::reverse(newUnits));
+    tgt.addUnits(UnitList::reverse(newUnits), true);
   }else {
-    tgt.addUnits(UnitList::copy(units()));
+    tgt.addUnits(UnitList::copy(units()), true);
   }
   if(hadIncompleteTransformation()) {
     tgt.reportIncompleteTransformation();
