@@ -425,6 +425,21 @@ LaKbo::Result LaKbo::comparePredicates(Literal* l1_, Literal* l2_) const
       : zipVariants(irc1.unwrap(), irc2.unwrap(), [&](auto&& irc1, auto&& irc2) {
             using Numeral = typename std::remove_reference_t<decltype(irc1)>::NumTraits::ConstantType;
             auto result = multisetCmp(
+                irc1.term().iterSummands().map([](auto x) { return x.factors; }).template collect<Stack>(),
+                irc2.term().iterSummands().map([](auto x) { return x.factors; }).template collect<Stack>(),
+                [&](auto lhs, auto rhs) { 
+                  // if (lhs.factors == rhs.factors) {
+                  //   switch (Numeral::comparePrecedence(lhs.numeral, rhs.numeral)) {
+                  //     case Comparison::LESS: return Result::LESS;
+                  //     case Comparison::GREATER: return Result::GREATER;
+                  //     case Comparison::EQUAL: return Result::EQUAL;
+                  //   }
+                  // } else {
+                    return (lhs == rhs) ? Result::EQUAL : this->compare(lhs->denormalize(), rhs->denormalize());
+                  // }
+                });
+            if (result == Result::EQUAL) {
+              result = multisetCmp(
                 irc1.term().iterSummands().template collect<Stack>(),
                 irc2.term().iterSummands().template collect<Stack>(),
                 [&](auto lhs, auto rhs) { 
@@ -438,6 +453,7 @@ LaKbo::Result LaKbo::comparePredicates(Literal* l1_, Literal* l2_) const
                     return this->compare(lhs.factors->denormalize(), rhs.factors->denormalize());
                   }
                 });
+            }
 
             switch (result) {
             case Result::EQUAL: 
@@ -464,53 +480,53 @@ LaKbo::Result LaKbo::comparePredicates(Literal* l1_, Literal* l2_) const
   return out;
 }
 
-LaKbo::Result LaKbo::toOrdering(TraversalResult const& res) const
-{
-  switch (res.varCondition()) {
-    case BothPlus:
-      return Result::INCOMPARABLE;
-
-    case LeftPlus:
-      if (res.weight_balance < 0) {
-        return Result::GREATER;
-      } else if (res.weight_balance > 0  || res.side_condition == EQUAL|| res.side_condition == Result::LESS) {
-        return Result::INCOMPARABLE;
-      } else {
-        ASS_EQ(res.weight_balance, 0)
-        return res.side_condition;
-      }
-
-    case RightPlus:
-      if (res.weight_balance > 0) {
-        return Result::LESS;
-      } else if (res.weight_balance < 0 || res.side_condition == EQUAL || res.side_condition == GREATER) {
-        return Result::INCOMPARABLE;
-      } else {
-        ASS_EQ(res.weight_balance, 0)
-        return res.side_condition;
-      }
-
-    case Equal:
-      if (res.weight_balance < 0) {
-        return Result::GREATER;
-      } else if (res.weight_balance > 0) {
-        return Result::LESS;
-      } else {
-        return res.side_condition;
-      }
-  }
-  ASSERTION_VIOLATION
-}
-
-LaKbo::TraversalResult LaKbo::TraversalResult::initial() 
-{
-  return {
-    .weight_balance = 0,
-    .var_balances = Map<unsigned, int>(),
-    .vars = Stack<unsigned>(),
-    .side_condition = Ordering::EQUAL,
-  };
-}
+// LaKbo::Result LaKbo::toOrdering(TraversalResult const& res) const
+// {
+//   switch (res.varCondition()) {
+//     case BothPlus:
+//       return Result::INCOMPARABLE;
+//
+//     case LeftPlus:
+//       if (res.weight_balance < 0) {
+//         return Result::GREATER;
+//       } else if (res.weight_balance > 0  || res.side_condition == EQUAL|| res.side_condition == Result::LESS) {
+//         return Result::INCOMPARABLE;
+//       } else {
+//         ASS_EQ(res.weight_balance, 0)
+//         return res.side_condition;
+//       }
+//
+//     case RightPlus:
+//       if (res.weight_balance > 0) {
+//         return Result::LESS;
+//       } else if (res.weight_balance < 0 || res.side_condition == EQUAL || res.side_condition == GREATER) {
+//         return Result::INCOMPARABLE;
+//       } else {
+//         ASS_EQ(res.weight_balance, 0)
+//         return res.side_condition;
+//       }
+//
+//     case Equal:
+//       if (res.weight_balance < 0) {
+//         return Result::GREATER;
+//       } else if (res.weight_balance > 0) {
+//         return Result::LESS;
+//       } else {
+//         return res.side_condition;
+//       }
+//   }
+//   ASSERTION_VIOLATION
+// }
+//
+// LaKbo::TraversalResult LaKbo::TraversalResult::initial() 
+// {
+//   return {
+//     .weight_balance = 0,
+//     .var_balances = Map<unsigned, int>(),
+//     .vars = Stack<unsigned>(),
+//     .side_condition = Ordering::EQUAL,
+//   };
+// }
 
 Ordering::Result LaKbo::compare(TermList t1_, TermList t2_) const 
 {
