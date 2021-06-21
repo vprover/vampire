@@ -117,8 +117,6 @@ class Signature
     unsigned _color : 2;
     /** marks distinct string constants */
     unsigned _stringConstant : 1;
-    /** marks numeric constants, they are only used in TPTP's fof declarations */
-    unsigned _numericConstant : 1;
     /** predicate introduced for query answering */
     unsigned _answerPredicate : 1;
     /** marks numbers too large to represent natively */
@@ -202,8 +200,6 @@ class Signature
     inline bool protectedSymbol() const { return _protected; }
     /** Return true iff symbol is a distinct string constant */
     inline bool stringConstant() const { return _stringConstant; }
-    /** Return true iff symbol is a numeric constant */
-    inline bool numericConstant() const { return _numericConstant; }
     /** Return true iff symbol is an answer predicate */
     inline bool answerPredicate() const { return _answerPredicate; }
     /** Return true iff symbol is an equality proxy */
