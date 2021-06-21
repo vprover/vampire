@@ -135,7 +135,6 @@ public:
     // deal with completeness
     bool complete(const Problem&) const;
     bool completeForNNE() const;
-    void forceIncompleteness() { _forceIncompleteness.actualValue=true; }
 
     // deal with constraints
     void setForcedOptionValues(); // not currently used effectively
@@ -325,43 +324,6 @@ public:
     WARN
   };
 
-  //enums for the bound propagation purpose
-  enum class BPAlmostHalfBoundingRemoval : unsigned int {
-    BOUNDS_ONLY = 0,
-    OFF = 1,
-    ON = 2
-  };
-
-  enum class BPAssignmentSelector: unsigned int {
-    ALTERNATIVE = 0,
-    BMP = 1,
-    LOWER = 2,
-    MIDDLE = 3,
-    RANDOM = 4,
-    RATIONAL = 5,
-    SMALLEST = 6,
-    TIGHT = 7,
-    TIGHTISH = 8,
-    UPPER = 9
-  };
-  
-  enum class BPConflictSelector: unsigned int {
-    LEAST_RECENT = 0, 
-    MOST_RECENT = 1, 
-    SHORTEST_CONSTRAINT = 2
-  };
-  
-  enum class BPVariableSelector: unsigned int {
-    CONFLICTING = 0, 
-    CONFLICTING_AND_COLLAPSING = 1, 
-    FIRST = 2, 
-    LOOK_AHEAD =3, 
-    RANDOM = 4, 
-    RECENTLY_CONFLICTING = 5,
-    RECENTLY_COLLAPSING = 6,
-    TIGHTEST_BOUND = 7
-
-  };
   /**
    * Possible values for function_definition_elimination.
    * @since 29/05/2004 Manchester
@@ -2243,8 +2205,6 @@ public:
   void setMemoryLimit(size_t newVal) { _memoryLimit.actualValue = newVal; }
   void setTimeLimitInSeconds(int newVal) { _timeLimitInDeciseconds.actualValue = 10*newVal; }
   void setTimeLimitInDeciseconds(int newVal) { _timeLimitInDeciseconds.actualValue = newVal; }
-  int getWhileNumber(){return _whileNumber.actualValue;}
-  int getFunctionNumber(){return _functionNumber.actualValue;}
 
   bool splitAtActivation() const{ return _splitAtActivation.actualValue; }
   SplittingNonsplittableComponents splittingNonsplittableComponents() const { return _splittingNonsplittableComponents.actualValue; }
@@ -2262,22 +2222,6 @@ public:
   CCUnsatCores ccUnsatCores() const { return _ccUnsatCores.actualValue; }
 
   void setProof(Proof p) { _proof.actualValue = p; }
-  bool bpEquivalentVariableRemoval() const { return _equivalentVariableRemoval.actualValue; }
-  unsigned bpMaximalPropagatedEqualityLength() const { return _maximalPropagatedEqualityLength.actualValue; }
-  BPAlmostHalfBoundingRemoval bpAlmostHalfBoundingRemoval() const {return _bpAlmostHalfBoundingRemoval.actualValue;}
-  bool bpFmElimination () const {return _bpFmElimination.actualValue;}
-  unsigned bpAllowedFMBalance() const { return _bpAllowedFMBalance.actualValue; }
-  BPAssignmentSelector bpAssignmentSelector() const {return _bpAssignmentSelector.actualValue; }
-  bool bpCollapsingPropagation() const {return _bpCollapsingPropagation.actualValue; }
-  unsigned bpUpdatesByOneConstraint() const {return _updatesByOneConstraint.actualValue; }
-  bool bpConservativeAssignmentSelection() const {return _bpConservativeAssignmentSelection.actualValue; }
-  BPConflictSelector bpConflictSelector() const {return _bpConflictSelector.actualValue; }
-  bool backjumpTargetIsDecisionPoint() const { return _backjumpTargetIsDecisionPoint.actualValue; }
-  bool bpPropagateAfterConflict() const {return _bpPropagateAfterConflict.actualValue; }
-  BPVariableSelector bpVariableSelector() const {return _bpVariableSelector.actualValue; }
-  bool bpSelectUnusedVariablesFirst() const {return _selectUnusedVariablesFirst.actualValue; }
-  bool bpStartWithPrecise() const { return _bpStartWithPrecise.actualValue; }
-  bool bpStartWithRational() const { return _bpStartWithRational.actualValue;}
     
   bool newCNF() const { return _newCNF.actualValue; }
   int getIteInliningThreshold() const { return _iteInliningThreshold.actualValue; }
@@ -2445,7 +2389,6 @@ private:
   BoolOptionValue _literalMaximalityAftercheck;
   BoolOptionValue _arityCheck;
   
-  BoolOptionValue _backjumpTargetIsDecisionPoint;
   ChoiceOptionValue<BadOption> _badOption;
   ChoiceOptionValue<Demodulation> _backwardDemodulation;
   ChoiceOptionValue<Subsumption> _backwardSubsumption;
@@ -2453,17 +2396,6 @@ private:
   BoolOptionValue _backwardSubsumptionDemodulation;
   UnsignedOptionValue _backwardSubsumptionDemodulationMaxMatches;
   BoolOptionValue _binaryResolution;
-  BoolOptionValue _bpCollapsingPropagation;
-  UnsignedOptionValue _bpAllowedFMBalance;
-  ChoiceOptionValue<BPAlmostHalfBoundingRemoval> _bpAlmostHalfBoundingRemoval;
-  ChoiceOptionValue<BPAssignmentSelector> _bpAssignmentSelector;
-  ChoiceOptionValue<BPConflictSelector> _bpConflictSelector;
-  BoolOptionValue _bpConservativeAssignmentSelection;
-  BoolOptionValue _bpFmElimination;
-  BoolOptionValue _bpPropagateAfterConflict;
-  BoolOptionValue _bpStartWithPrecise;
-  BoolOptionValue _bpStartWithRational;
-  ChoiceOptionValue<BPVariableSelector> _bpVariableSelector;
 
   BoolOptionValue _colorUnblocking;
   ChoiceOptionValue<Condensation> _condensation;
@@ -2505,7 +2437,6 @@ private:
   BoolOptionValue _forwardSubsumptionDemodulation;
   UnsignedOptionValue _forwardSubsumptionDemodulationMaxMatches;
   ChoiceOptionValue<FunctionDefinitionElimination> _functionDefinitionElimination;
-  IntOptionValue _functionNumber;
   
   ChoiceOptionValue<RuleActivity> _generalSplitting;
   BoolOptionValue _globalSubsumption;
@@ -2575,7 +2506,6 @@ private:
   IntOptionValue _maxInferenceDepth;
   LongOptionValue _maxPassive;
 
-  UnsignedOptionValue _maximalPropagatedEqualityLength;
   UnsignedOptionValue _memoryLimit; // should be size_t, making an assumption
   ChoiceOptionValue<Mode> _mode;
   ChoiceOptionValue<Schedule> _schedule;
@@ -2607,7 +2537,6 @@ private:
 
   ChoiceOptionValue<SatSolver> _satSolver;
   ChoiceOptionValue<SaturationAlgorithm> _saturationAlgorithm;
-  BoolOptionValue _selectUnusedVariablesFirst;
   BoolOptionValue _showAll;
   BoolOptionValue _showActive;
   BoolOptionValue _showBlocked;
@@ -2699,10 +2628,8 @@ private:
   ChoiceOptionValue<URResolution> _unitResultingResolution;
   BoolOptionValue _unusedPredicateDefinitionRemoval;
   BoolOptionValue _blockedClauseElimination;
-  UnsignedOptionValue _updatesByOneConstraint;
   // BoolOptionValue _use_dm;
   BoolOptionValue _weightIncrement;
-  IntOptionValue _whileNumber;
 
   OptionChoiceValues _tagNames;
 
