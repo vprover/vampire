@@ -281,11 +281,6 @@ void Options::init()
     _lookup.insert(&_proofExtra);
     _proofExtra.tag(OptionTag::OUTPUT);
 
-    _proofChecking = BoolOptionValue("proof_checking","",false);
-    _proofChecking.description="";
-    _lookup.insert(&_proofChecking);
-    _proofChecking.setExperimental(); // don't think it works!
-
     _protectedPrefix = StringOptionValue("protected_prefix","","");
     _protectedPrefix.description="Symbols with this prefix are immune against elimination during preprocessing";
     _lookup.insert(&_protectedPrefix);

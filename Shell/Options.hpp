@@ -1941,7 +1941,6 @@ public:
   bool minimizeSatProofs() const { return _minimizeSatProofs.actualValue; }
   ProofExtra proofExtra() const { return _proofExtra.actualValue; }
   vstring printProofToFile() const { return _printProofToFile.actualValue; }
-  bool proofChecking() const { return _proofChecking.actualValue; }
   int naming() const { return _naming.actualValue; }
 
   bool fmbNonGroundDefs() const { return _fmbNonGroundDefs.actualValue; }
@@ -2522,7 +2521,6 @@ private:
   ChoiceOptionValue<Proof> _proof;
   BoolOptionValue _minimizeSatProofs;
   ChoiceOptionValue<ProofExtra> _proofExtra;
-  BoolOptionValue _proofChecking;
   
   StringOptionValue _protectedPrefix;
 
