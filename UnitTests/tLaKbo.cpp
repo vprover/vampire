@@ -466,6 +466,9 @@ TEST_FUN(lakbo_test02) {
   check(ord,   3 * f(x) + x           > 0, Less,     f(f(x)) > 0);
   check(ord,   3 * f(x) + x     + y   > 0, Less,     f(f(x)) + y > 0);
   check(ord,   3 * f(x) + x     + y   > 0, Incomp,   f(f(x))     > 0);
+
+
+  // check(ord,   a + a + b  > 0, Greater,   2 * a + b > 0);
 }
 
 // !!! There is no specific implementation for term-level ordering (atm), hence these tests are outdated

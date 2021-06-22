@@ -452,6 +452,7 @@ public:
 
   template<class N> friend std::ostream& operator<<(std::ostream& out, const MonomFactors<N>& self);
   template<class N> friend bool operator==(const MonomFactors<N>& l, const MonomFactors<N>& r);
+  template<class N> friend bool operator!=(const MonomFactors<N>& l, const MonomFactors<N>& r) { return !(l == r); }
 
   /** helper function for PolyNf::denormalize() */
   TermList denormalize(TermList* results) const;
@@ -549,7 +550,8 @@ public:
 
   template<class F> Polynom mapVars(F f) const;
 
-  template<class N> friend bool operator==(const Polynom<N>& lhs, const Polynom<N>& rhs);
+  template<class N> friend bool operator==(const Polynom<N>& l, const Polynom<N>& r);
+  template<class N> friend bool operator!=(const Polynom<N>& l, const Polynom<N>& r) { return !(l == r); }
   template<class N> friend std::ostream& operator<<(std::ostream& out, const Polynom<N>& self);
 };  
 
