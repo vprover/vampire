@@ -70,7 +70,7 @@ run_main () {
   vampire/aws/run_vampire_main.sh test.smt2 &> /tmp/results/result_${ip} & 
 
   # We should be terminated after 20 minutes but let's count down from 30 minutes just in case 
-  counter=1200
+  counter=1500
   while [ $counter -gt 0 ]; do
     for f in /tmp/results/*
     do
