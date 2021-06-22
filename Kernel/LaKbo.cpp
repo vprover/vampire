@@ -420,39 +420,42 @@ LaKbo::Result LaKbo::comparePredicates(Literal* l1_, Literal* l2_) const
     auto ircResult = irc1.isNone() || irc2.isNone() 
       ? Option<Result>() 
       : zipVariants(irc1.unwrap(), irc2.unwrap(), [&](auto&& irc1, auto&& irc2) {
-            using Numeral = typename std::remove_reference_t<decltype(irc1)>::NumTraits::ConstantType;
+            // using Numeral = typename std::remove_reference_t<decltype(irc1)>::NumTraits::ConstantType;
 
             auto result = Result::EQUAL;
 
+            // compare atomic term multisets
+            // if (result == Result::EQUAL) {
+            //   result = multisetCmp(
+            //     irc1.term().iterSummands().map([](auto x) { return x.factors; }).template collect<Stack>(),
+            //     irc2.term().iterSummands().map([](auto x) { return x.factors; }).template collect<Stack>(),
+            //     [&](auto lhs, auto rhs) { 
+            //         return (lhs == rhs) ? Result::EQUAL : this->compare(lhs->denormalize(), rhs->denormalize());
+            //     });
+            // }
+
+            // compare atomic term + numeral multisets
             if (result == Result::EQUAL) {
               result = multisetCmp(
-                irc1.term().iterSummands().map([](auto x) { return x.factors; }).template collect<Stack>(),
-                irc2.term().iterSummands().map([](auto x) { return x.factors; }).template collect<Stack>(),
+                irc1.term().iterSummands().template collect<Stack>(),
+                irc2.term().iterSummands().template collect<Stack>(),
                 [&](auto lhs, auto rhs) { 
-                    return (lhs == rhs) ? Result::EQUAL : this->compare(lhs->denormalize(), rhs->denormalize());
+                  if (lhs.factors == rhs.factors) {
+                    switch (Numeral::comparePrecedence(lhs.numeral, rhs.numeral)) {
+                      case Comparison::LESS: return Result::LESS;
+                      case Comparison::GREATER: return Result::GREATER;
+                      case Comparison::EQUAL: return Result::EQUAL;
+                    }
+                  } else {
+                    return this->compare(lhs.factors->denormalize(), rhs.factors->denormalize());
+                  }
                 });
             }
 
+            // compare symbol
             if (result == Result::EQUAL) {
               result = Kernel::compare(irc1.symbol(), irc2.symbol());
             }
-
-            // if (result == Result::EQUAL) {
-            //   result = multisetCmp(
-            //     irc1.term().iterSummands().template collect<Stack>(),
-            //     irc2.term().iterSummands().template collect<Stack>(),
-            //     [&](auto lhs, auto rhs) { 
-            //       if (lhs.factors == rhs.factors) {
-            //         switch (Numeral::comparePrecedence(lhs.numeral, rhs.numeral)) {
-            //           case Comparison::LESS: return Result::LESS;
-            //           case Comparison::GREATER: return Result::GREATER;
-            //           case Comparison::EQUAL: return Result::EQUAL;
-            //         }
-            //       } else {
-            //         return this->compare(lhs.factors->denormalize(), rhs.factors->denormalize());
-            //       }
-            //     });
-            // }
 
             if(result == Result::EQUAL && irc1.term() != irc2.term())  {
               return Result::INCOMPARABLE;
