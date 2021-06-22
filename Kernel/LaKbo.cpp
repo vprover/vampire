@@ -17,6 +17,75 @@ LaKbo::LaKbo(KBO kbo)
 {
 }
 
+template<class Trm, class Cmp>
+auto multisetCmpSorted(Stack<Trm> s1, Stack<Trm> s2, Cmp cmp) -> LaKbo::Result
+{
+  /* remove equal elements. we assume that s1 and s2 are sorted. */
+  unsigned i1 = 0;
+  unsigned o1 = 0;
+  unsigned i2 = 0;
+  unsigned o2 = 0;
+  auto keep = [](Stack<Trm>& stack, unsigned& index, unsigned& offset) 
+  { stack[offset++] = stack[index++]; };
+  auto rm = [&]() { i1++; i2++; };
+  auto keep1 = [&]() { keep(s1, i1, o1); };
+  auto keep2 = [&]() { keep(s2, i2, o2); };
+  while (i1 < s1.size() && i2 < s2.size()) {
+    if (s1[i1] == s2[i2]) {
+      rm();
+    } else if (s1[i1] < s2[i2]) {
+      keep1();
+    } else {
+      keep2();
+    }
+  }
+  while(i1 < s1.size()) 
+    keep1();
+  while(i2 < s2.size())
+    keep2();
+
+  s1.truncate(o1);
+  s2.truncate(o2);
+
+  if (s1.isEmpty() && s2.isEmpty()) {
+    return LaKbo::Result::EQUAL;
+  } else if (s1.isEmpty()) {
+    return LaKbo::LESS;
+  } else if (s2.isEmpty()) {
+    return LaKbo::GREATER;
+  }
+
+  auto checkAllDominated = [&](Stack<Trm> const& s1, Stack<Trm> const& s2) {
+    for (auto e1 : s1) {
+      if (!iterTraits(s2.iterFifo())
+          .find([&](Trm e2) { return cmp(e1, e2) == LaKbo::LESS; })
+          .isSome()) {
+        return false;
+      }
+    }
+    return true;
+  };
+  auto dom1 = checkAllDominated(s1, s2);
+  auto dom2 = checkAllDominated(s2, s1);
+  ASS(!dom1 || !dom2);
+  if (dom1)  {
+    return LaKbo::LESS;
+  } else if (dom2) {
+    return LaKbo::GREATER;
+  } else {
+    return LaKbo::INCOMPARABLE;
+  }
+}
+
+template<class Trm, class Cmp>
+auto multisetCmp(Stack<Trm> s1, Stack<Trm> s2, Cmp cmp) -> LaKbo::Result
+{
+  std::sort(s1.begin(), s1.end());
+  std::sort(s2.begin(), s2.end());
+  return multisetCmpSorted(std::move(s1), std::move(s2), cmp);
+}
+
+
 Literal* normalizeLiteral(Literal* lit) 
 {
   Stack<TermList> args(lit->arity());
@@ -134,75 +203,6 @@ void LaKbo::show(ostream& out) const
 
 Comparison LaKbo::compareFunctors(unsigned fun1, unsigned fun2) const 
 { return KBO::compareFunctors(fun1,fun2); }
-
-
-template<class Trm, class Cmp>
-auto multisetCmpSorted(Stack<Trm> s1, Stack<Trm> s2, Cmp cmp) -> LaKbo::Result
-{
-  /* remove equal elements. we assume that s1 and s2 are sorted. */
-  unsigned i1 = 0;
-  unsigned o1 = 0;
-  unsigned i2 = 0;
-  unsigned o2 = 0;
-  auto keep = [](Stack<Trm>& stack, unsigned& index, unsigned& offset) 
-  { stack[offset++] = stack[index++]; };
-  auto rm = [&]() { i1++; i2++; };
-  auto keep1 = [&]() { keep(s1, i1, o1); };
-  auto keep2 = [&]() { keep(s2, i2, o2); };
-  while (i1 < s1.size() && i2 < s2.size()) {
-    if (s1[i1] == s2[i2]) {
-      rm();
-    } else if (s1[i1] < s2[i2]) {
-      keep1();
-    } else {
-      keep2();
-    }
-  }
-  while(i1 < s1.size()) 
-    keep1();
-  while(i2 < s2.size())
-    keep2();
-
-  s1.truncate(o1);
-  s2.truncate(o2);
-
-  if (s1.isEmpty() && s2.isEmpty()) {
-    return LaKbo::Result::EQUAL;
-  } else if (s1.isEmpty()) {
-    return LaKbo::LESS;
-  } else if (s2.isEmpty()) {
-    return LaKbo::GREATER;
-  }
-
-  auto checkAllDominated = [&](Stack<Trm> const& s1, Stack<Trm> const& s2) {
-    for (auto e1 : s1) {
-      if (!iterTraits(s2.iterFifo())
-          .find([&](Trm e2) { return cmp(e1, e2) == LaKbo::LESS; })
-          .isSome()) {
-        return false;
-      }
-    }
-    return true;
-  };
-  auto dom1 = checkAllDominated(s1, s2);
-  auto dom2 = checkAllDominated(s2, s1);
-  ASS(!dom1 || !dom2);
-  if (dom1)  {
-    return LaKbo::LESS;
-  } else if (dom2) {
-    return LaKbo::GREATER;
-  } else {
-    return LaKbo::INCOMPARABLE;
-  }
-}
-
-template<class Trm, class Cmp>
-auto multisetCmp(Stack<Trm> s1, Stack<Trm> s2, Cmp cmp) -> LaKbo::Result
-{
-  std::sort(s1.begin(), s1.end());
-  std::sort(s2.begin(), s2.end());
-  return multisetCmpSorted(std::move(s1), std::move(s2), cmp);
-}
 
 
 // struct NumeralMultiplication {
