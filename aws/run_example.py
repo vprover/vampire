@@ -123,9 +123,11 @@ def main(args):
 
     #print(stack_outputs)
 
-    if args.cloud:
+    if args.cloud  == True:
+      print("Construcing main as cloud")
       output = subprocess.check_output(['./run-solver-main.sh', args.profile, CLUSTER_NAME, stack_outputs["SolverProjectDefinition"], stack_outputs["Subnet"], stack_outputs["SecurityGroupId"], args.file, str(int(args.NWorker)+1), args.project_name])
-    else
+    else:
+      print("Construcing main as parallel")
       output = subprocess.check_output(['./run-solver-par.sh', args.profile, CLUSTER_NAME, stack_outputs["SolverProjectDefinition"], stack_outputs["Subnet"], stack_outputs["SecurityGroupId"], args.file, args.project_name])
 
     task_output = json.loads(output)

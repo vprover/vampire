@@ -22,6 +22,8 @@ NODE_TYPE="parallel"
 
 if [ -z ${AWS_BATCH_JOB_MAIN_NODE_INDEX} ]
 then
+  log "This is the parallel setup"
+else
   log "This is the cloud setup" 
   echo main node: ${AWS_BATCH_JOB_MAIN_NODE_INDEX}
   echo this node: ${AWS_BATCH_JOB_NODE_INDEX}
@@ -33,8 +35,6 @@ then
     log "Running as the main node"
     NODE_TYPE="main"
   fi
-else
-  log "This is the parallel setup"
 fi
 
 run_parallel () {
