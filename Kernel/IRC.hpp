@@ -341,7 +341,6 @@ IntegerConstantType normalizeFactors_gcd(IntegerConstantType l, IntegerConstantT
 template<class NumTraits>
 auto normalizeFactors(Perfect<Polynom<NumTraits>> in) -> MaybeOverflow<Perfect<Polynom<NumTraits>>>
 {
-  using Numeral = typename NumTraits::ConstantType;
   return catchOverflow([&](){
 
     if (in->nSummands() == 0) {

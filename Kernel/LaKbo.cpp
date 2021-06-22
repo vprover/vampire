@@ -395,7 +395,6 @@ Literal* normalizeLiteral(Literal* lit)
 template<class F, class... As>
 auto zipVariants(Coproduct<As...>& lhs, Coproduct<As...>& rhs, F f)
 {
-  using Co = Coproduct<std::tuple<As, As>...>;
   return lhs.apply([&](auto&& lhs) {
       using T = rm_ref_t<decltype(lhs)>;
       return rhs.template as<T>()
@@ -422,33 +421,38 @@ LaKbo::Result LaKbo::comparePredicates(Literal* l1_, Literal* l2_) const
       ? Option<Result>() 
       : zipVariants(irc1.unwrap(), irc2.unwrap(), [&](auto&& irc1, auto&& irc2) {
             using Numeral = typename std::remove_reference_t<decltype(irc1)>::NumTraits::ConstantType;
-            auto result = multisetCmp(
+
+            auto result = Result::EQUAL;
+
+            if (result == Result::EQUAL) {
+              result = multisetCmp(
                 irc1.term().iterSummands().map([](auto x) { return x.factors; }).template collect<Stack>(),
                 irc2.term().iterSummands().map([](auto x) { return x.factors; }).template collect<Stack>(),
                 [&](auto lhs, auto rhs) { 
                     return (lhs == rhs) ? Result::EQUAL : this->compare(lhs->denormalize(), rhs->denormalize());
                 });
+            }
 
             if (result == Result::EQUAL) {
               result = Kernel::compare(irc1.symbol(), irc2.symbol());
             }
 
-            if (result == Result::EQUAL) {
-              result = multisetCmp(
-                irc1.term().iterSummands().template collect<Stack>(),
-                irc2.term().iterSummands().template collect<Stack>(),
-                [&](auto lhs, auto rhs) { 
-                  if (lhs.factors == rhs.factors) {
-                    switch (Numeral::comparePrecedence(lhs.numeral, rhs.numeral)) {
-                      case Comparison::LESS: return Result::LESS;
-                      case Comparison::GREATER: return Result::GREATER;
-                      case Comparison::EQUAL: return Result::EQUAL;
-                    }
-                  } else {
-                    return this->compare(lhs.factors->denormalize(), rhs.factors->denormalize());
-                  }
-                });
-            }
+            // if (result == Result::EQUAL) {
+            //   result = multisetCmp(
+            //     irc1.term().iterSummands().template collect<Stack>(),
+            //     irc2.term().iterSummands().template collect<Stack>(),
+            //     [&](auto lhs, auto rhs) { 
+            //       if (lhs.factors == rhs.factors) {
+            //         switch (Numeral::comparePrecedence(lhs.numeral, rhs.numeral)) {
+            //           case Comparison::LESS: return Result::LESS;
+            //           case Comparison::GREATER: return Result::GREATER;
+            //           case Comparison::EQUAL: return Result::EQUAL;
+            //         }
+            //       } else {
+            //         return this->compare(lhs.factors->denormalize(), rhs.factors->denormalize());
+            //       }
+            //     });
+            // }
 
             if(result == Result::EQUAL && irc1.term() != irc2.term())  {
               return Result::INCOMPARABLE;
