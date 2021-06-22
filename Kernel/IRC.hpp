@@ -350,7 +350,7 @@ auto normalizeFactors(Perfect<Polynom<NumTraits>> in) -> MaybeOverflow<Perfect<P
       .map([](auto s) { return s.numeral.abs(); }),
       [](auto l, auto r) { return normalizeFactors_gcd(l,r); }
     );
-    ASS_REP(gcd >= Numeral(0), gcd)
+    ASS_REP(gcd >= NumTraits::constant(0), gcd)
     if (gcd == NumTraits::constant(1) || gcd == NumTraits::constant(0)) {
       return in;
     } else {
