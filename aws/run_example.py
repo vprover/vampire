@@ -58,7 +58,7 @@ class LogAnalyzer:
         cur_token = None
         while events_obj["nextBackwardToken"] != cur_token:
             cur_token = events_obj["nextBackwardToken"]
-            print(cur_token)
+            #print(cur_token)
             for e in events_obj["events"]:
                 print(e)
                 if "main IP:" in e["message"]:
@@ -123,7 +123,7 @@ def main(args):
 
     #print(stack_outputs)
 
-    if args.cloud  == True:
+    if args.cloud  == True or args.cloud == None:
       print("Construcing main as cloud")
       output = subprocess.check_output(['./run-solver-main.sh', args.profile, CLUSTER_NAME, stack_outputs["SolverProjectDefinition"], stack_outputs["Subnet"], stack_outputs["SecurityGroupId"], args.file, str(int(args.NWorker)+1), args.project_name])
     else:

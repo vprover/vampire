@@ -20,7 +20,7 @@ fi
 # Node type is paralle if we are in parallel mode 
 NODE_TYPE="parallel"
 
-if [ -z ${AWS_BATCH_JOB_MAIN_NODE_INDEX} ]
+if [ -z ${AWS_BATCH_JOB_NODE_INDEX} ]
 then
   log "This is the parallel setup"
 else
