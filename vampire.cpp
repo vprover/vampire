@@ -847,7 +847,7 @@ int main(int argc, char* argv[])
       env.options->setMemoryLimit(128000);
 
       unsigned int nthreads = std::thread::hardware_concurrency();
-      float slowness = 1.00 + (0.03 * nthreads);
+      float slowness = 1.00 + (0.04 * nthreads);
  
       if (CASC::PortfolioMode::perform(slowness)) {
         vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
