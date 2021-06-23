@@ -150,6 +150,9 @@ void Shuffling::shuffleIter(Shufflable sh) {
         case FORALL:
         case EXISTS:
         {
+
+          //cout << "Shuffling FORALL/EXISTS: " << fla->toString() << endl;
+
           // can even shuffle the variables in the quantifier!
           if (fla->sorts()) { // need to shuffle sorts in sync with vars, if they are there
             shuffleTwoList(*fla->varsPtr(),*fla->sortsPtr());
@@ -157,7 +160,10 @@ void Shuffling::shuffleIter(Shufflable sh) {
             shuffleList(*fla->varsPtr());
           }
 
+          //cout << "getting: " << fla->toString() << endl;
+
           fla = fla->qarg();
+
           goto fla_updated;
           break; // I know, unreachable;
         }
