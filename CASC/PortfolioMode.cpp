@@ -318,13 +318,16 @@ void PortfolioMode::getExtraSchedules(Property& prop, Schedule& old, Schedule& e
   if(add_extra){
 
    // Always try these
-   extra_opts.push("sp=frequency"); // frequency sp; this is in casc19 but not smt18
-   extra_opts.push("avsq=on");      // avatar split queues
-   extra_opts.push("plsq=on");      // positive literal split queues
-   extra_opts.push("bsd=on:fsd=on");// subsumption demodulation
-   extra_opts.push("to=lpo");       // lpo
-   extra_opts.push("etr=on");       // equational_tautology_removal
+   extra_opts.push("sp=frequency");     // frequency sp; this is in casc19 but not smt18
+   extra_opts.push("avsq=on:plsq=on");  // split queues 
+   //extra_opts.push("etr=on");         // equational_tautology_removal
    extra_opts.push("av=on:atotf=0.5");     // turn AVATAR off
+
+   if(!env.statistics->higherOrder){
+     //these options are not currently HOL compatible
+     extra_opts.push("bsd=on:fsd=on"); // subsumption demodulation
+     extra_opts.push("to=lpo");           // lpo
+   }
 
    // If contains integers, rationals and reals
    if(prop.props() & (Property::PR_HAS_INTEGERS | Property::PR_HAS_RATS | Property::PR_HAS_REALS)){
