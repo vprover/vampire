@@ -61,7 +61,8 @@ public:
     }
   }
 
-  // destructive shuffle of a list using an auxiliary array
+  // get a new list by shuffling the original
+  // we leak the old one
   template<typename T>
   static void shuffleList(List<T>*& list) {
     CALL("Shuffling::shuffleList");
@@ -82,17 +83,19 @@ public:
     }
     shuffleArray(aux,len);
 
-    // reconnect the links
-    len--; // we need a special handling of the last element (and also a one smaller condition)
-    aux[len]->setTail(nullptr);
+    // create the new list
+    List<T>* res = nullptr;
     for(idx = 0; idx < len; idx++) {
-      aux[idx]->setTail(aux[idx+1]);
+      res = List<T>::cons(aux[idx]->head(),res);
     }
 
-    list = aux[0];
+    // List<T>::destroy(list);
+    list = res;
   }
 
-  // list2 is assumed to be of the same length as list1; they are suffled "in sync"
+  // list2 is assumed to be of the same length as list1;
+  // get two new lists by shuffling the originals and leaking the old ones
+  // they get shuffled "in sync"
   template<typename T, typename S>
   static void shuffleTwoList(List<T>*& list1, List<S>*& list2) {
     CALL("Shuffling::shuffleTwoList");
@@ -117,17 +120,19 @@ public:
     ASS_EQ(els2,0);
     shuffleArray(aux,len);
 
-    // reconnect the links
-    len--; // we need a special handling of the last element (and also a one smaller condition)
-    aux[len].first->setTail(nullptr);
-    aux[len].second->setTail(nullptr);
+    // create the new lists
+    List<T>* res1 = nullptr;
+    List<S>* res2 = nullptr;
     for(idx = 0; idx < len; idx++) {
-      aux[idx].first->setTail(aux[idx+1].first);
-      aux[idx].second->setTail(aux[idx+1].second);
+      res1 = List<T>::cons(aux[idx].first->head(),res1);
+      res2 = List<S>::cons(aux[idx].second->head(),res2);
     }
 
-    list1 = aux[0].first;
-    list2 = aux[0].second;
+    // List<T>::destroy(list1);
+    // List<S>::destroy(list2);
+
+    list1 = res1;
+    list2 = res2;
   }
 }; // class Shuffling
 
