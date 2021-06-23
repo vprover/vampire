@@ -63,9 +63,7 @@ public:
    */
   static inline bool getBit()
   {
-    static std::uniform_int_distribution<int> d(0,1);
-
-    return (bool)d(_eng);
+    return std::uniform_int_distribution<int>(0,1)(_eng);
   } // Random::getBit
 
   // sets the random seed to s
