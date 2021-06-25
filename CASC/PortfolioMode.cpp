@@ -629,7 +629,7 @@ void PortfolioMode::runSlice(Options& strategyOpt)
   *env.options = opt; //just temporarily until we get rid of dependencies on env.options in solving
 
   // this will get reset (to whatever the option says) later in ProvingHelper::runVampireSaturationImpl; but for now, we will influence potential input shuffling
-  Random::setSeed(getpid());
+  // Random::setSeed(getpid());
 
   if (outputAllowed()) {
     env.beginOutput();
