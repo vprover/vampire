@@ -152,3 +152,13 @@ TEST_GENERATION(uwa1,
       ))
       .premiseRedundant(false)
     )
+
+
+TEST_GENERATION(misc01,
+    Generation::TestCase()
+      .indices({ ircSuperpositionIndex() })
+      .input   (          clause({ 0 == -17 + a }) ) // ==> a == 17
+      .context ({         clause({ -19 + -f(x) + a * y  >= 0 }) })
+      .expected(exactly(  clause({ -19 + -f(x) + 17 * y >= 0 }) ))
+      .premiseRedundant(false)
+    )

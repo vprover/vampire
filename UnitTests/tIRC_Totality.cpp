@@ -40,6 +40,14 @@ using namespace Inferences::IRC;
 #define SUGAR(Num)                                                                                            \
   NUMBER_SUGAR(Num)                                                                                           \
   DECL_DEFAULT_VARS                                                                                           \
+  DECL_VAR(x0, 0)                                                                                             \
+  DECL_VAR(x1, 1)                                                                                             \
+  DECL_VAR(x2, 2)                                                                                             \
+  DECL_VAR(x3, 3)                                                                                             \
+  DECL_VAR(x4, 4)                                                                                             \
+  DECL_VAR(x5, 5)                                                                                             \
+  DECL_VAR(x123, 123)                                                                                         \
+  DECL_VAR(x124, 124)                                                                                         \
   DECL_FUNC(f, {Num}, Num)                                                                                    \
   DECL_FUNC(g, {Num, Num}, Num)                                                                               \
   DECL_CONST(a, Num)                                                                                          \
@@ -209,10 +217,29 @@ TEST_GENERATION(bug01c,
 TEST_GENERATION(bug02,
     Generation::TestCase()
       .indices({ totalityIndex() })
-      .input   (         clause({             f(0) >= 0.0 })  )
-      .context ({        clause({ a + 45.0 + -f(x) >= 0.0 }) })
-      .expected(exactly( clause({             f(0) == 0.0, a + 45 != 0 }) ))
+      .input   (         clause({             f(0) >= 0 })  )
+      .context ({        clause({ a + 45 + -f(x) >= 0 }) })
+      .expected(exactly( clause({             f(0) == 0, a + 45 != 0 }) ))
       .premiseRedundant(false)
     )
 
+TEST_GENERATION(bug03,
+    Generation::TestCase()
+      .indices({ totalityIndex() })
+      .input   (         clause({ 0 != -x0 ,                                  f(x0)               >= 0 })  )
+    //.context ({        clause({            -4 + f(x0) + g(x1,x2) > 0 , 4 + -f(x0) + -(g(x1,x2)) >= 0 }) })
+      .context ({        clause({            -4 + f(x1) + g(x2,x3) > 0 , 4 + -f(x1) + -(g(x2,x3)) >= 0 }) })
+      .expected(exactly( clause({ 0 != -x0 , -4 + f(x0) + g(x1,x2) > 0 , 0 != 4 - g(x1, x2) , f(x0) == 0 })) )
+      .premiseRedundant(false)
+    )
+
+
+TEST_GENERATION(bug04,
+    Generation::TestCase()
+      .indices({ totalityIndex() })
+      .input   (         clause({ 4 + -6 * x0 + 5 * x1 >= 0                                                , -4 +  g(x1,x0) >= 0 }) )
+      .context ({        clause({                             -4 + 6 * x1 + -5 * x2 > 0                    ,  4 + -g(x2,x1) >= 0 })  })
+      .expected(exactly( clause({ 4 + -6 * x0 + 5 * x1 >= 0 , -4 + 6 * x0 + -5 * x1 > 0 , num(-4) + 4 != 0 , -4 +  g(x1,x0) == 0 })) )
+      .premiseRedundant(false)
+    )
 
