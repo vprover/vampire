@@ -40,9 +40,24 @@ using namespace Inferences::IRC;
 #define SUGAR(Num)                                                                                            \
   NUMBER_SUGAR(Num)                                                                                           \
   DECL_DEFAULT_VARS                                                                                           \
+  DECL_VAR(x0, 0)                                                                                             \
+  DECL_VAR(x1, 1)                                                                                             \
+  DECL_VAR(x2, 2)                                                                                             \
+  DECL_VAR(x3, 3)                                                                                             \
+  DECL_VAR(x4, 4)                                                                                             \
+  DECL_VAR(x5, 5)                                                                                             \
+  DECL_VAR(x6, 6)                                                                                             \
+  DECL_VAR(x7, 7)                                                                                             \
+  DECL_VAR(x8, 8)                                                                                             \
+  DECL_VAR(x9, 9)                                                                                             \
+  DECL_VAR(x10, 10)                                                                                             \
   DECL_FUNC(f, {Num}, Num)                                                                                    \
   DECL_FUNC(g, {Num, Num}, Num)                                                                               \
   DECL_CONST(a, Num)                                                                                          \
+  DECL_CONST(a0, Num)                                                                                         \
+  DECL_CONST(a1, Num)                                                                                         \
+  DECL_CONST(a2, Num)                                                                                         \
+  DECL_CONST(a3, Num)                                                                                         \
   DECL_CONST(b, Num)                                                                                          \
   DECL_CONST(c, Num)                                                                                          \
   DECL_PRED(r, {Num,Num})                                                                                     \
@@ -555,3 +570,48 @@ TEST_GENERATION_WITH_SUGAR(bug04,
       ))
       .premiseRedundant(false)
     )
+
+
+// 0 = (  15 * x   + (-15 * y) + g(15 * x,y))
+// 0 != ((15 * x)  + -g(z,x))
+// 0 != 0                    | -g(z,x) != -15 * y + g(15 * x,y)
+
+// -f(15 * x + -15 * y + g(15 * x,y)) > 0
+//  f(15 * x + -g(z,x)              ) > 0
+//                                  0 > 0 | -g(z,x) != -15 * y + g(15 * x,y)
+
+
+
+
+TEST_GENERATION_WITH_SUGAR(misc01,
+    SUGAR(Real),
+    Generation::TestCase()
+      .indices({ inequalityResolutionIdx() })
+      .input   (         clause({ -f(x0 + -x1 + g(x0,x1)) > 0 }))
+      .context ({        clause({  f(x2 + -g(x3,x2)               ) > 0 }) })
+      .expected(exactly( clause({                            num(0) > 0 , x0 + -x1 + g(x0,x1) != x2 + -g(x3,x2) })))
+      .premiseRedundant(false)
+    )
+
+TEST_GENERATION_WITH_SUGAR(bug05,
+    SUGAR(Real),
+    Generation::TestCase()
+      .indices({ inequalityResolutionIdx() })
+      .input   (         clause({ -f(x0 + 3 * a) > 0 }))
+      .context ({        clause({  f(x1 + a0   ) > 0 })
+                ,        clause({  f(x1 + a1   ) > 0 })
+                ,        clause({  f(x2 + a2   ) > 0 }) 
+                ,        clause({  f(a  + a3   ) > 0 }) 
+                ,        clause({  f(b  + a3   ) > 0 }) 
+                })
+      .expected(exactly( clause({         num(0) > 0 , x0 + 3 * a != x3 + a0 })
+                       , clause({         num(0) > 0 , x0 + 3 * a != x4 + a1 })
+                       , clause({         num(0) > 0 , x0 + 3 * a != x5 + a2 })
+                       , clause({         num(0) > 0 , x0 + 3 * a != a  + a3 })
+                       , clause({         num(0) > 0 , x0 + 3 * a != b  + a3 })
+                       ))
+      .premiseRedundant(false)
+    )
+
+// [       is ]: [ $greater(0.0, 0.0) | ~((((15.0 * X0) + ((-15.0 * X1) + g((15.0 * X0), X1))) = ((15.0 * X2) + $uminus(g(X3, X2))))) ]
+// [ expected ]: [ $greater(0.0, 0.0) | ~(((((15.0 * X0) + (-15.0 * X1)) + g((15.0 * X0), X1)) = ((15.0 * X0) + $uminus(g(X2, X0))))) ]
