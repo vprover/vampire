@@ -21,6 +21,11 @@
 
 #include "Kernel/Inference.hpp"
 
+#if VTHREADED
+#include <mutex>
+#include "Lib/Array.hpp"
+#endif
+
 namespace SAT {
 
 using namespace Lib;
@@ -44,12 +49,21 @@ public:
   void collectAssignment(SATSolver& solver, LiteralStack& res) const;
   SATClause* createConflictClause(LiteralStack& unsatCore, InferenceRule rule=InferenceRule::THEORY_TAUTOLOGY_SAT_CONFLICT);
 
-  unsigned maxSATVar() const { return _posMap.getNumberUpperBound(); }
+  unsigned maxSATVar() const {
+#if VTHREADED
+    std::lock_guard<std::mutex> lock(_mutex);
+#endif
+    return _posMap.getNumberUpperBound();
+  }
   
   void reset(){ _posMap.reset(); }
 private:
   typedef Numbering<Literal *, 1 /* variables start from 1 */ > TwoWayMap;
   TwoWayMap _posMap;
+#if VTHREADED
+  mutable std::mutex _mutex;
+  VTHREAD_LOCAL static Lib::ZIArray<bool> _our_literals;
+#endif
 };
 
 }

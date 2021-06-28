@@ -539,6 +539,7 @@ set(VAMPIRE_SAT_SOURCES
     SAT/BufferedSolver.hpp
     SAT/DIMACS.hpp
     SAT/FallbackSolverWrapper.hpp
+    SAT/LockedSolver.hpp
     SAT/MinimizingSolver.hpp
     SAT/Preprocess.hpp
     SAT/SAT2FO.hpp

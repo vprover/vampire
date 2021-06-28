@@ -10,7 +10,7 @@
 #ifndef __Threading__
 #define __Threading__
 
-// thread_local, std::atomic<T> only if Vampire is compiled thread-safe
+// some things only if Vampire is compiled thread-safe
 #if VTHREADED
 #include <atomic>
 #define VTHREAD_LOCAL thread_local

@@ -25,12 +25,19 @@
 namespace SAT
 {
 
+#if VTHREADED
+VTHREAD_LOCAL ZIArray<bool> SAT2FO::_our_literals;
+#endif
+
 /**
  * Return number of a fresh SAT variable that will not be assigned to any Literal.
  */
 unsigned SAT2FO::createSpareSatVar()
 {
   CALL("SAT2FO::createSpareSatVar");
+#if VTHREADED
+    std::lock_guard<std::mutex> lock(_mutex);
+#endif
   return _posMap.getSpareNum();
 }
 
@@ -40,7 +47,14 @@ SATLiteral SAT2FO::toSAT(Literal* l)
 
   bool pol = l->isPositive();
   Literal* posLit = Literal::positiveLiteral(l);
+
+#if VTHREADED
+  std::lock_guard<std::mutex> lock(_mutex);
+#endif
   unsigned var = _posMap.get(posLit);
+#if VTHREADED
+  _our_literals[var] = true;
+#endif
   return SATLiteral(var, pol);
 }
 
@@ -51,6 +65,12 @@ Literal* SAT2FO::toFO(SATLiteral sl) const
 {
   CALL("SAT2FO::toFO");
 
+#if VTHREADED
+  if(!_our_literals[sl.var()]) {
+    return nullptr;
+  }
+  std::lock_guard<std::mutex> lock(_mutex);
+#endif
   Literal* posLit;
   if(!_posMap.findObj(sl.var(), posLit)) {
     return 0;
@@ -95,6 +115,9 @@ void SAT2FO::collectAssignment(SATSolver& solver, LiteralStack& res) const
   ASS(res.isEmpty());
 
   unsigned maxVar = maxSATVar();
+#if VTHREADED
+  solver.ensureVarCount(maxVar);
+#endif
   for (unsigned i = 1; i <= maxVar; i++) {
     SATSolver::VarAssignment asgn = solver.getAssignment(i);
     if(asgn==SATSolver::DONT_CARE) {
@@ -103,7 +126,9 @@ void SAT2FO::collectAssignment(SATSolver& solver, LiteralStack& res) const
     }
     ASS(asgn==SATSolver::TRUE || asgn==SATSolver::FALSE);
     SATLiteral sl(i, asgn==SATSolver::TRUE);
+#if !VTHREADED
     ASS(solver.trueInAssignment(sl));
+#endif
     Literal* lit = toFO(sl);
     if(!lit) {
       //SAT literal doesn't have corresponding FO one
