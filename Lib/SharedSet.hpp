@@ -514,6 +514,9 @@ private:
     
     /* delete all stored items */
     ~SharingStruct() {
+#if VTHREADED
+      return;
+#endif
       typename InternalSharingSet::Iterator it(_data);
       while(it.hasNext())
         delete it.next();    

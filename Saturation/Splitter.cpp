@@ -42,6 +42,7 @@
 #include "SAT/MinimizingSolver.hpp"
 #include "SAT/BufferedSolver.hpp"
 #include "SAT/FallbackSolverWrapper.hpp"
+#include "SAT/LockedSolver.hpp"
 #include "SAT/MinisatInterfacing.hpp"
 #include "SAT/Z3Interfacing.hpp"
 
@@ -56,6 +57,8 @@ namespace Saturation
 using namespace Lib;
 using namespace Kernel;
 
+SAT2FO Splitter::_sat2fo;
+DHMap<SplitLevel,Unit*> Splitter::_defs;
 
 /////////////////////////////
 // SplittingBranchSelector
@@ -103,6 +106,11 @@ void SplittingBranchSelector::init()
     default:
       ASSERTION_VIOLATION_REP(_parent.getOptions().splittingMinimizeModel());
   }
+
+#if VTHREADED
+  static LockedSolver *shared = new LockedSolver(_solver.release());
+  _solver = shared;
+#endif
   _minSCO = _parent.getOptions().splittingMinimizeModel() == Options::SplittingMinimizeModel::SCO;
 
   if(_parent.getOptions().splittingCongruenceClosure() != Options::SplittingCongruenceClosure::OFF) {
@@ -329,7 +337,9 @@ SATSolver::VarAssignment SplittingBranchSelector::getSolverAssimentConsideringCC
 
     if (lit && lit->isEquality() && lit->ground()) {
       if (_trueInCCModel.find(var)) {
+#if !VTHREADED
         ASS(_solver->getAssignment(var) != SATSolver::FALSE || var > lastCheckedVar);
+#endif
         // only a newly introduced variable can be false in the SATSolver for no good reason
 
         return SATSolver::TRUE;
@@ -442,7 +452,7 @@ SATSolver::Status SplittingBranchSelector::processDPConflicts()
   if (_ccModel) {
     TimeCounter tc(TC_CCMODEL);
 
-#if VDEBUG
+#if VDEBUG && !VTHREADED
     // to keep track of SAT variables introduce just for the sake of the latest call to _ccModel
     lastCheckedVar = _parent.maxSatVar();
 #endif
@@ -583,6 +593,10 @@ void SplittingBranchSelector::recomputeModel(SplitLevelStack& addedComps, SplitL
   ASS(removedComps.isEmpty());
 
   unsigned maxSatVar = _parent.maxSatVar();
+#if VTHREADED
+  _parent.extend_db(maxSatVar);
+  updateVarCnt();
+#endif
   
   SATSolver::Status stat;
   {
@@ -662,6 +676,9 @@ Splitter::~Splitter()
     }
     _db.pop();
   }
+#if !VTHREADED
+  delete _sat2fo;
+#endif
 }
 
 const Options& Splitter::getOptions() const
@@ -1094,6 +1111,10 @@ bool Splitter::getComponents(Clause* cl, Stack<LiteralStack>& acc)
 bool Splitter::doSplitting(Clause* cl)
 {
   CALL("Splitter::doSplitting");
+#if VTHREADED
+  static std::mutex splitter_state_mutex;
+  std::lock_guard<std::mutex> splitter_state_lock(splitter_state_mutex);
+#endif
 
   static bool hasStopped = false;
   if (hasStopped) {
@@ -1206,7 +1227,7 @@ bool Splitter::tryGetExistingComponentName(unsigned size, Literal* const * lits,
   }
   compCl = existingComponents.next();
   ASS(!existingComponents.hasNext());
-  comp = _compNames.get(compCl);
+  comp = compCl->splits()->sval();
   return true;
 }
 
@@ -1306,12 +1327,11 @@ Clause* Splitter::buildAndInsertComponentClause(SplitLevel name, unsigned size, 
     TimeCounter tc(TC_SPLITTING_COMPONENT_INDEX_MAINTENANCE);
     _componentIdx->insert(compCl);
   }
-  _compNames.insert(compCl, name);
 
   return compCl;
 }
 
-SplitLevel Splitter::addNonGroundComponent(unsigned size, Literal* const * lits, Clause* orig, Clause*& compCl)
+SplitLevel Splitter::addNonGroundComponent(unsigned size, Literal* const * lits, Clause* orig, Clause*& compCl, SATLiteral sat)
 {
   CALL("Splitter::addNonGroundComponent");
   ASS_REP(_db.size()%2==0, _db.size());
@@ -1319,16 +1339,19 @@ SplitLevel Splitter::addNonGroundComponent(unsigned size, Literal* const * lits,
   ASS(forAll(getArrayishObjectIterator(lits, size), 
           [] (Literal* l) { return !l->ground(); } )); //none of the literals can be ground
 
-  SATLiteral posLit(_sat2fo.createSpareSatVar(), true);
-  SplitLevel compName = getNameFromLiteralUnsafe(posLit);
+  SplitLevel compName = getNameFromLiteralUnsafe(sat);
+#if VTHREADED
+  extend_db(compName);
+#else
   ASS_EQ(compName&1,0); //positive levels are even
   ASS_GE(compName,_db.size());
   _db.push(0);
   _db.push(0);
   ASS_L(compName,_db.size());
+#endif
 
   _branchSelector.updateVarCnt();
-  _branchSelector.considerPolarityAdvice(posLit);
+  _branchSelector.considerPolarityAdvice(sat);
 
   compCl = buildAndInsertComponentClause(compName, size, lits, orig);
 
@@ -1344,6 +1367,9 @@ SplitLevel Splitter::addGroundComponent(Literal* lit, Clause* orig, Clause*& com
   SATLiteral satLit = _sat2fo.toSAT(lit);
   SplitLevel compName = getNameFromLiteralUnsafe(satLit);
 
+#if VTHREADED
+  extend_db(compName);
+#else
   if(compName>=_db.size()) {
     _db.push(0);
     _db.push(0);
@@ -1353,6 +1379,7 @@ SplitLevel Splitter::addGroundComponent(Literal* lit, Clause* orig, Clause*& com
     //otherwise the complement would have been created below ...
     // ... in the respective previous pass through this method 
   }
+#endif
   ASS_L(compName,_db.size());
 
   if(_complBehavior!=Options::SplittingAddComplementary::NONE) {
@@ -1380,7 +1407,7 @@ SplitLevel Splitter::addGroundComponent(Literal* lit, Clause* orig, Clause*& com
  */
 SplitLevel Splitter::tryGetComponentNameOrAddNew(const LiteralStack& comp, Clause* orig, Clause*& compCl)
 {
-  CALL("Splitter::getComponentName/3");
+  CALL("Splitter::tryGetComponentNameOrAddNew/3");
   return tryGetComponentNameOrAddNew(comp.size(), comp.begin(), orig, compCl);
 }
 
@@ -1395,9 +1422,14 @@ SplitLevel Splitter::tryGetComponentNameOrAddNew(const LiteralStack& comp, Claus
  */
 SplitLevel Splitter::tryGetComponentNameOrAddNew(unsigned size, Literal* const * lits, Clause* orig, Clause*& compCl)
 {
-  CALL("Splitter::getComponentName/4");
+  CALL("Splitter::tryGetComponentNameOrAddNew/4");
 
   SplitLevel res;
+
+#if VTHREADED
+  static ClauseVariantIndex *globalNontrivialComponents =
+    new HashingClauseVariantIndex();
+#endif
 
   if(tryGetExistingComponentName(size, lits, res, compCl)) {
     RSTAT_CTR_INC("ssat_reused_components");
@@ -1409,8 +1441,30 @@ SplitLevel Splitter::tryGetComponentNameOrAddNew(unsigned size, Literal* const *
       res = addGroundComponent(lits[0], orig, compCl);
     }
     else {
-      res = addNonGroundComponent(size, lits, orig, compCl);
+#if VTHREADED
+      ClauseIterator globalComponent;
+      {
+        TimeCounter tc(TC_SPLITTING_COMPONENT_INDEX_USAGE);
+        globalComponent = globalNontrivialComponents->retrieveVariants(lits, size);
+      }
+      bool import = globalComponent.hasNext();
+      SATLiteral sat;
+      if(import) {
+        Clause *component = globalComponent.next();
+        ASS(!globalComponent.hasNext());
+        sat = this->getLiteralFromName(component->splits()->sval());
+        RSTAT_CTR_INC("ssat_imported_components");
+      }
+      else {
+        sat = SATLiteral(_sat2fo.createSpareSatVar(), true);
+      }
+#endif
+      res = addNonGroundComponent(size, lits, orig, compCl, sat);
+#if VTHREADED
+      if(!import)
+        globalNontrivialComponents->insert(compCl);
     }
+#endif
   }
   return res;
 }
@@ -1863,5 +1917,14 @@ UnitList* Splitter::preprendCurrentlyAssumedComponentClauses(UnitList* clauses)
 
   return res;
 }
+
+#if VTHREADED
+void Splitter::extend_db(unsigned max_var) {
+  while(2 * max_var >= _db.size()) {
+    _db.push(nullptr);
+    _db.push(nullptr);
+  }
+}
+#endif
 
 }

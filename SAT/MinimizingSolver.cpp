@@ -201,7 +201,7 @@ void MinimizingSolver::processInnerAssignmentChanges()
 
   for(unsigned v=1; v<=_varCnt; v++) {
     VarAssignment va = _inner->getAssignment(v);
-    bool changed;
+    bool changed = false;
     switch(va) {
     case DONT_CARE:
       changed = false;
@@ -216,7 +216,9 @@ void MinimizingSolver::processInnerAssignmentChanges()
       break;
     case NOT_KNOWN:
     default:
+#if !VTHREADED
       ASSERTION_VIOLATION;
+#endif
       break;
     }
 

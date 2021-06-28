@@ -56,13 +56,10 @@ class Splitter;
  */
 class SplittingBranchSelector {
 public:
-  SplittingBranchSelector(Splitter& parent) : _ccModel(false), _parent(parent)  {}
+  SplittingBranchSelector(Splitter& parent) : _ccModel(false), _parent(parent) {}
   ~SplittingBranchSelector(){
-#if VZ3
-{
-BYPASSING_ALLOCATOR;
-_solver=0;
-}
+#if VTHREADED
+_solver.release();
 #endif
   }
 
@@ -113,7 +110,7 @@ private:
    */
   ArraySet _trueInCCModel;
 
-#if VDEBUG
+#if VDEBUG && !VTHREADED
   unsigned lastCheckedVar;
 #endif
 };
@@ -228,7 +225,7 @@ private:
 
   void collectDependenceLits(SplitSet* splits, SATLiteralStack& acc) const;
 
-  SplitLevel addNonGroundComponent(unsigned size, Literal* const * lits, Clause* orig, Clause*& compCl);
+  SplitLevel addNonGroundComponent(unsigned size, Literal* const * lits, Clause* orig, Clause*& compCl, SATLiteral sat);
   SplitLevel addGroundComponent(Literal* lit, Clause* orig, Clause*& compCl);
 
   Clause* buildAndInsertComponentClause(SplitLevel name, unsigned size, Literal* const * lits, Clause* orig=0);
@@ -242,6 +239,10 @@ private:
   void assignClauseSplitSet(Clause* cl, SplitSet* splits);
 
   bool allSplitLevelsActive(SplitSet* s);
+
+#if VTHREADED
+  void extend_db(unsigned max_var);
+#endif
 
   //settings
   bool _showSplitting;
@@ -264,7 +265,7 @@ private:
    * of associated ground literals for those variables
    * which have one.
    */  
-  SAT2FO _sat2fo;  
+  static SAT2FO _sat2fo;
   /**
    * Information about a split level. Can be null if a split level does
    * not contain any components (e.g. for negations of non-ground
@@ -274,13 +275,12 @@ private:
    * the _db record of this level is non-null.
    */
   Stack<SplitRecord*> _db;
-  DHMap<Clause*,SplitLevel> _compNames;
 
   /**
    * Definitions of ground components C and ~C are shared and placed at the slot of C.
    * (So the key here is never odd!)
    **/
-  DHMap<SplitLevel,Unit*> _defs;
+  static DHMap<SplitLevel,Unit*> _defs;
   
   //state variable used for flushing:  
   /** When this number of generated clauses is reached, it will cause flush */

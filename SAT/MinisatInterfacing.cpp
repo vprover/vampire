@@ -153,6 +153,10 @@ void MinisatInterfacing::addAssumption(SATLiteral lit)
 SATSolver::VarAssignment MinisatInterfacing::getAssignment(unsigned var) 
 {
   CALL("MinisatInterfacing::getAssignment");
+#if VTHREADED
+  if(_status != SATISFIABLE)
+    return NOT_KNOWN;
+#endif
 	ASS_EQ(_status, SATISFIABLE);  
 	ASS_G(var,0); ASS_LE(var,(unsigned)_solver.nVars());
   lbool res;
