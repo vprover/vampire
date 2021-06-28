@@ -290,11 +290,12 @@ Ordering::Result PrecedenceOrdering::compare(Literal* l1, Literal* l2) const
     }
   }
 
-  if(l1->isEquality()) {
-    ASS(l2->isEquality());
+  if(l1->isEquality() && l2->isEquality()) {
+    // Note on why we need to check l2->isEquality() as well:
+    //   In case we have the inequality resolution calculus enabled, equality is NOT the unique predicate with the least level (anymore). 
+    //   inequalities have the same level as equalities in that case
     return compareEqualities(l1, l2);
   }
-  ASS(!l1->isEquality());
 
   if(_reverseLCM && (l1->isNegative() || l2->isNegative()) ) {
     if(l1->isNegative() && l2->isNegative()) {
