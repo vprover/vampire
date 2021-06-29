@@ -30,7 +30,6 @@
 #include "Kernel/Term.hpp"
 #include "Kernel/TermIterators.hpp"
 #include "Kernel/Unit.hpp"
-#include "Kernel/NumTraits.hpp"
 #include "Kernel/LiteralSelector.hpp"
 #include "Kernel/RobSubstitution.hpp"
 
@@ -105,23 +104,15 @@ private:
   bool _extByAbs;
 };
 
-struct Superposition::RewritableSubtermsFn
+struct Superposition::RewriteableSubtermsFn
 {
-  RewritableSubtermsFn(Ordering& ord) : _ord(ord) {}
+  RewriteableSubtermsFn(Ordering& ord) : _ord(ord) {}
 
   VirtualIterator<pair<Literal*, TermList> > operator()(Literal* lit)
   {
-    CALL("Superposition::RewritableSubtermsFn()");
-    ASS(!env.options->combinatorySup() || !env.options->inequalityResolution())
+    CALL("Superposition::RewriteableSubtermsFn()");
     TermIterator it = env.options->combinatorySup() ? EqHelper::getFoSubtermIterator(lit, _ord) :
                                                       EqHelper::getSubtermIterator(lit, _ord);
-    if (env.options->inequalityResolution()) {
-      // when the inequality resolution calculus is enabled we use the inference rule Inferences/IRC/Superposition.hpp for numbers
-      it = pvi(iterTraits(it)
-                 .filter([](auto t) 
-                   { return forAnyNumTraits([&](auto numTraits) 
-                     { return decltype(numTraits)::sort() != SortHelper::getResultSort(t.term()); }); }));
-    }
     return pvi( pushPairIntoRightIterator(lit, it) );
   }
 
@@ -211,7 +202,7 @@ ClauseIterator Superposition::generateClauses(Clause* premise)
   // Get an iterator of pairs of selected literals and rewritable subterms of those literals
   // A subterm is rewritable (see EqHelper) if it is a non-variable subterm of either
   // a maximal side of an equality or of a non-equational literal
-  auto itf2 = getMapAndFlattenIterator(itf1,RewritableSubtermsFn(_salg->getOrdering()));
+  auto itf2 = getMapAndFlattenIterator(itf1,RewriteableSubtermsFn(_salg->getOrdering()));
 
   // Get clauses with a literal whose complement unifies with the rewritable subterm,
   // returns a pair with the original pair and the unification result (includes substitution)

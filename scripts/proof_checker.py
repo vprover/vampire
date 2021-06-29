@@ -11,7 +11,7 @@ if(len(sys.argv)<2):
 
 TPTP='~/TPTP-v6.4.0/'
 VAMPIRE_ROOT = sys.argv[1]+' --include '+TPTP
-VAMPIRE_CHECK = './vampire_z3_rel_master --mode casc'#VAMPIRE_ROOT
+VAMPIRE_CHECK = 'vampire --mode casc'#VAMPIRE_ROOT
 
 # Set the time out for all proof attempts
 time_out=str(30)
@@ -23,9 +23,9 @@ CVC4='cvc4 --lang tptp --tlimit='+time_out+'000' # to convert seconds to ms
 SPASS='~/Vampire/prover-bin/SPASS -Auto=1 -TPTP=1 -TimeLimit='+time_out  
 CHECK_WITH=set()
 #CHECK_WITH.add(EPROVER)
-CHECK_WITH.add(VAMPIRE)
+#CHECK_WITH.add(VAMPIRE)
 #CHECK_WITH.add(IPROVER)
-#CHECK_WITH.add(CVC4)
+CHECK_WITH.add(CVC4)
 #CHECK_WITH.add(SPASS)
 
 verbose=True

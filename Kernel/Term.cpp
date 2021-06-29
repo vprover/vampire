@@ -48,6 +48,8 @@
  * the ( p ? x : y ) notation on output */
 #define ALWAYS_OUTPUT_TERM_ITE 0
 
+// changes whether theory terms are nicely formatted ($plus($uminus(s),t) vs (-(s) + t) )
+#define NICE_THEORY_OUTPUT 0
 
 using namespace std;
 using namespace Lib;
@@ -685,6 +687,7 @@ vstring Term::toString(bool topLevel) const
     printArgs = env.signature->getFunction(_functor)->combinator() == Signature::NOT_COMB;
   }
 
+#if NICE_THEORY_OUTPUT
   auto theoryTerm = Kernel::tryNumTraits([&](auto numTraits) {
     auto unary = [&](auto sym)  {
       vstringstream out;
@@ -712,6 +715,7 @@ vstring Term::toString(bool topLevel) const
   if (theoryTerm.isSome()) {
     return theoryTerm.unwrap();
   }
+#endif // NICE_THEORY_OUTPUT
 
   vstring s = headToString();
 
@@ -751,6 +755,7 @@ vstring Literal::toString() const
     return res;
   }
 
+#if NICE_THEORY_OUTPUT
   auto theoryTerm = Kernel::tryNumTraits([&](auto numTraits) {
     auto binary = [&](auto sym)  {
       vstringstream out;
@@ -770,6 +775,7 @@ vstring Literal::toString() const
   if (theoryTerm.isSome()) {
     return theoryTerm.unwrap();
   }
+#endif // NICE_THEORY_OUTPUT
 
 
   Stack<const TermList*> stack(64);
