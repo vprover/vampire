@@ -17,6 +17,8 @@
 #include "Saturation/SaturationAlgorithm.hpp"
 #include "Kernel/EqHelper.hpp"
 
+#define ORDERING_ASSERTIONS 0 // TODO <- implement
+
 namespace Inferences {
 namespace IRC {
 
@@ -101,6 +103,7 @@ template<class NumTraits> Option<ClauseIterator> Superposition::generateClauses(
                 auto& cnst = res.constraints ? *res.constraints : dummy;
                 auto sigma = [&](auto term, int varBank) { return res.substitution->applyTo(term, varBank); };
 
+#if ORDERING_ASSERTIONS
                 // TODO maximality check after unification
                 // maximality checks
                 {
@@ -120,6 +123,7 @@ template<class NumTraits> Option<ClauseIterator> Superposition::generateClauses(
                   // • term(u[s2])σ is strictly maximal in terms(u[s2] + t2)σ 
                   // TODO check this condition somehow ?
                 }
+#endif // ORDERING_ASSERTIONS
 
                 Stack<Literal*> concl(hyp1->size() - 1 // <- C1
                     + hyp2->size() - 1 // <- C2
