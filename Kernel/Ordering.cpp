@@ -131,7 +131,6 @@ Ordering* Ordering::create(Problem& prb, const Options& opt)
         && !env.colorUsed
         && env.options->predicateWeights() == ""
         && env.options->functionWeights() == ""
-        && !env.options->inequalityResolution() // <- TODO should we somehow support this? I think it doesn't make sense
         ) {
       out = new KBOForEPR(prb, opt);
     } else {
@@ -928,7 +927,7 @@ DArray<int> PrecedenceOrdering::predLevelsFromOptsAndPrec(Problem& prb, const Op
       predicateLevels[i] = nPredicates + PredLevels::MIN_USER_DEF+ 1;
     }
     else if (predSym->interpreted()) {
-      if (theory->isInequality(theory->interpretPredicate(i)) && env.options->inequalityResolution()) {
+      if (theory->isInequality(theory->interpretPredicate(i)) && env.options->termOrdering() == Options::TermOrdering::LAKBO) {
         predicateLevels[i] = PredLevels::INEQ;
       }
     }
@@ -947,7 +946,7 @@ void PrecedenceOrdering::checkLevelAssumptions(DArray<int> const& levels)
       if (itp == Kernel::Theory::EQUAL) {
         ASS(levels[i] == PredLevels::EQ);
       } else if (theory->isInequality(itp)) {
-        ASS(!env.options->inequalityResolution() || levels[i] == PredLevels::INEQ);
+        ASS(env.options->termOrdering() != Options::TermOrdering::LAKBO || levels[i] == PredLevels::INEQ);
       } else {
         ASS(levels[i] >= PredLevels::MIN_USER_DEF || levels[i] < 0)
       }

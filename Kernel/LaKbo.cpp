@@ -115,6 +115,9 @@ LaKbo::Result LaKbo::comparePredicates(Literal* l1_, Literal* l2_) const
     auto l1 = normalizeLiteral(l1_);
     auto l2 = normalizeLiteral(l2_);
 
+    if (l1 == l2) return INCOMPARABLE;
+    if (l1 == Literal::complementaryLiteral(l2)) return l1->isNegative() ? LESS : GREATER;
+
     auto irc1 = _shared->normalize(l1);
     auto irc2 = _shared->normalize(l2);
     auto ircResult = irc1.isNone() || irc2.isNone() 
@@ -140,6 +143,7 @@ LaKbo::Result LaKbo::comparePredicates(Literal* l1_, Literal* l2_) const
                 irc1.term().iterSummands().template collect<Stack>(),
                 irc2.term().iterSummands().template collect<Stack>(),
                 [&](auto lhs, auto rhs) { 
+                  CALL("LaKbo::comparePredicates@closure1")
                   if (lhs.factors == rhs.factors) {
                     switch (Numeral::comparePrecedence(lhs.numeral, rhs.numeral)) {
                       case Comparison::LESS: return Result::LESS;
@@ -167,7 +171,18 @@ LaKbo::Result LaKbo::comparePredicates(Literal* l1_, Literal* l2_) const
     if (ircResult.isSome()) {
       return ircResult.unwrap();
     } else {
-      return KBO::comparePredicates(l1, l2);
+      auto e1 = l1->isEquality();
+      auto e2 = l2->isEquality();
+      if (e1 && e2) {
+        return KBO::compareEqualities(l1, l2);
+      } else if (e1 && !e2) {
+        return Result::LESS;
+      } else if (!e1 && e2) {
+        return Result::GREATER;
+      } else {
+        ASS(!e1 && !e2);
+        return KBO::comparePredicates(l1, l2);
+      }
     }
   };
   DEBUG("lhs: ", *l1_)
