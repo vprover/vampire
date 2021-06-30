@@ -18,6 +18,11 @@
 #include "Kernel/EqHelper.hpp"
 
 #define ORDERING_ASSERTIONS 0 // TODO <- implement
+#if ORDERING_ASSERTIONS 
+#  define ORD_CHECK(...) ASS(__VA_ARGS__)
+#else 
+#  define ORD_CHECK(...) if (!(__VA_ARGS__)) return nothing;
+#endif // ORDERING_ASSERTIONS
 
 namespace Inferences {
 namespace IRC {
@@ -92,7 +97,7 @@ template<class NumTraits> Option<ClauseIterator> Superposition::generateClauses(
       pvi(iterTraits(ownedArrayishIterator(_shared->maxAtomicTerms(eq)))
         .flatMap([=](auto k_s1) { 
           return pvi(iterTraits(pvi(this->_index->getUnificationsWithConstraints(k_s1.factors->denormalize(), true)))
-              .map([=](TermQueryResult res) -> Clause* {
+              .filterMap([=](TermQueryResult res) -> Option<Clause*> {
                 Stack<UnificationConstraint> dummy;
                 Option<Clause*> nothing;
 
@@ -103,27 +108,25 @@ template<class NumTraits> Option<ClauseIterator> Superposition::generateClauses(
                 auto& cnst = res.constraints ? *res.constraints : dummy;
                 auto sigma = [&](auto term, int varBank) { return res.substitution->applyTo(term, varBank); };
 
-#if ORDERING_ASSERTIONS
                 // TODO maximality check after unification
                 // maximality checks
                 {
                   // • ±k. s1 + t1 ≈ 0 is strictly maximal in Hyp1
-                  ASS(_shared->strictlyMaximal(pivot1, hyp1->getLiteralIterator()))
+                  ORD_CHECK(_shared->strictlyMaximal(pivot1, hyp1->getLiteralIterator()))
                   // • (±k. s1 + t1 ≈ 0)σ is strictly maximal in Hyp1σ
-                  ASS(_shared->strictlyMaximal(sigma(pivot1, 0), iterTraits(hyp1->getLiteralIterator()).map([&](auto lit) { return sigma(lit, 0); })))
+                  ORD_CHECK(_shared->strictlyMaximal(sigma(pivot1, 0), iterTraits(hyp1->getLiteralIterator()).map([&](auto lit) { return sigma(lit, 0); })))
 
                   // • u[s2] + t2 ≈ 0 is strictly maximal in Hyp2
-                  ASS(_shared->strictlyMaximal(pivot2, hyp2->getLiteralIterator()))
+                  ORD_CHECK(_shared->strictlyMaximal(pivot2, hyp2->getLiteralIterator()))
                   // • ( u[s2] + t2 ≈ 0)σ is strictly maximal in Hyp2σ
-                  ASS(_shared->strictlyMaximal(sigma(pivot2, 1), iterTraits(hyp2->getLiteralIterator()).map([&](auto lit) { return sigma(lit, 1); })))
+                  ORD_CHECK(_shared->strictlyMaximal(sigma(pivot2, 1), iterTraits(hyp2->getLiteralIterator()).map([&](auto lit) { return sigma(lit, 1); })))
 
                   // •        s1  σ is strictly maximal in terms(s1 + t1)σ
-                  ASS(_shared->strictlyMaximal(sigma(s1->denormalize(), 0), eq.term().iterSummands().map([&](auto monom) { return sigma(monom.factors->denormalize(), 0); })))
+                  ORD_CHECK(_shared->strictlyMaximal(sigma(s1->denormalize(), 0), eq.term().iterSummands().map([&](auto monom) { return sigma(monom.factors->denormalize(), 0); })))
 
                   // • term(u[s2])σ is strictly maximal in terms(u[s2] + t2)σ 
                   // TODO check this condition somehow ?
                 }
-#endif // ORDERING_ASSERTIONS
 
                 Stack<Literal*> concl(hyp1->size() - 1 // <- C1
                     + hyp2->size() - 1 // <- C2
@@ -163,7 +166,7 @@ template<class NumTraits> Option<ClauseIterator> Superposition::generateClauses(
                 concl.loadFromIterator(UwaResult::cnstLiterals(*res.substitution, cnst));
 
                 Inference inf(GeneratingInference2(Kernel::InferenceRule::IRC_SUPERPOSITION, hyp1, hyp2));
-                return Clause::fromStack(concl, inf);
+                return Option<Clause*>(Clause::fromStack(concl, inf));
               })
           )
             ;
