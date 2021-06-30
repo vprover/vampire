@@ -199,6 +199,14 @@ ClauseIterator VariableElimination::eliminateVar(Clause* premise, FoundVariable<
   auto& L = found.neq;
   auto& K = found.eq;
   auto Ksize = K.size();
+
+  if (KSize > 0) {
+    env.statistics->ircVarElimKNonZeroCnt++;
+  }
+  env.statistics->ircVarElimKSum += Ksize;
+  env.statistics->ircVarElimCnt++;
+  env.statistics->ircVarElimKMax = std::max(env.statistics->ircVarElimKMax, Ksize);
+
   auto Csize = premise->size() - Ksize - I.size() - J.size() - L.size();
 
   auto withoutX = [x](auto foundVarInLiteral) 
