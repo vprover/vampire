@@ -275,8 +275,12 @@ MaybeOverflow<Polynom<Number>> PolynomialEvaluation::simplifySummation(Stack<Mon
           overflow = true;
           auto max = numeral;//std::max(numeral, summands[i+1].numeral);
           auto min = summands[i+1].numeral;
-          if (min.abs() > max.abs()) {
-            std::swap(min, max);
+          try {
+            if (min.abs() > max.abs()) {
+              std::swap(min, max);
+            }
+          } catch (Kernel::MachineArithmeticException&) { 
+            /* do nothing */
           }
           summands[offs++] = Monom(max, factors);
           numeral = min;

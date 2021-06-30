@@ -94,8 +94,9 @@ IntegerConstantType IntegerConstantType::operator*(const IntegerConstantType& nu
 
 inline typename IntegerConstantType::InnerType divideOrThrow(typename IntegerConstantType::InnerType lhs, typename IntegerConstantType::InnerType rhs) {
     typename IntegerConstantType::InnerType out;
-    if (!Int::safeDivide(lhs,rhs, out))
+    if (!Int::safeDivide(lhs,rhs, out)) {
       throw MachineArithmeticException();
+    }
     return out;
 }
 
@@ -144,8 +145,9 @@ RealConstantType RealConstantType::abs() const
 
 IntegerConstantType IntegerConstantType::abs() const
 {
-  if (toInner() == std::numeric_limits<InnerType>::min() && USES_2_COMPLEMENT)
+  if (toInner() == std::numeric_limits<InnerType>::min() && USES_2_COMPLEMENT) {
     throw MachineArithmeticException();
+  }
   return IntegerConstantType(::std::abs(toInner()));
 }
 
