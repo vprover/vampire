@@ -15,6 +15,7 @@
 
 #include "Totality.hpp"
 #include "Saturation/SaturationAlgorithm.hpp"
+#include "Shell/Statistics.hpp"
 
 #define TODO ASSERTION_VIOLATION
 
@@ -74,6 +75,7 @@ template<class NumTraits> Clause* Totality::applyRule(
     ResultSubstitution& sigma_, Stack<UnificationConstraint>& cnst
     ) const 
 {
+  env.statistics->ircTotCnt++;
   auto sigma = [&](auto t, int varBank) { return sigma_.applyTo(t, varBank); };
   auto j = j_s1.numeral;
   auto k = k_s2.numeral;

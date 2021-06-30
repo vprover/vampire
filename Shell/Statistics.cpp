@@ -118,8 +118,16 @@ Statistics::Statistics()
     evaluationIncomp(0),
     evaluationGreater(0),
     evaluationCnt(0),
-    irOverflowApply(0),
-    irOverflowNorm(0),
+
+    ircVarElimKNonZeroCnt(0),
+    ircVarElimKSum(0),
+    ircVarElimCnt(0),
+    ircVarElimKMax(0),
+    ircTotCnt(0),
+    ircSupCnt(0),
+    ircIrCnt(0),
+    ircTermFacCnt(0),
+    ircLitFacCnt(0),
 
     innerRewrites(0),
     innerRewritesToEqTaut(0),
@@ -419,9 +427,19 @@ void Statistics::print(ostream& out)
   COND_OUT("InstGen iterations", instGenIterations);
   SEPARATOR;
 
-  HEADING("Inequality Resolution Calculus",irOverflowApply+irOverflowNorm);
-  COND_OUT("Overflows in application", irOverflowApply);
-  COND_OUT("Overflows in normalizing", irOverflowNorm);
+  HEADING("Inequality Resolution Calculus", ircVarElimKNonZeroCnt + ircVarElimKSum + ircVarElimCnt + ircVarElimKMax
+                                          + ircTotCnt + ircSupCnt + ircIrCnt + ircTermFacCnt + ircLitFacCnt );
+
+  COND_OUT("ircVarElimKNonZeroCnt" , ircVarElimKNonZeroCnt);
+  COND_OUT("ircVarElimKSum" , ircVarElimKSum);
+  COND_OUT("ircVarElimCnt", ircVarElimCnt);
+  COND_OUT("ircVarElimKMax", ircVarElimKMax);
+  COND_OUT("ircTotCnt", ircTotCnt);
+  COND_OUT("ircSupCnt", ircSupCnt);
+  COND_OUT("ircIrCnt", ircIrCnt);
+  COND_OUT("ircTermFacCnt", ircTermFacCnt);
+  COND_OUT("ircLitFacCnt", ircLitFacCnt);
+
   SEPARATOR;
 
   //TODO record statistics for FMB

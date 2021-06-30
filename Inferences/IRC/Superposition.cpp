@@ -15,6 +15,7 @@
 
 #include "Superposition.hpp"
 #include "Saturation/SaturationAlgorithm.hpp"
+#include "Shell/Statistics.hpp"
 #include "Kernel/EqHelper.hpp"
 
 #define ORDERING_ASSERTIONS 0 // TODO <- implement
@@ -165,6 +166,7 @@ template<class NumTraits> Option<ClauseIterator> Superposition::generateClauses(
                 // adding Cnst
                 concl.loadFromIterator(UwaResult::cnstLiterals(*res.substitution, cnst));
 
+                env.statistics->ircSupCnt++;
                 Inference inf(GeneratingInference2(Kernel::InferenceRule::IRC_SUPERPOSITION, hyp1, hyp2));
                 return Option<Clause*>(Clause::fromStack(concl, inf));
               })

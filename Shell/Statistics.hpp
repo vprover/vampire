@@ -193,8 +193,16 @@ public:
   unsigned evaluationCnt;
 
   /** number of machine arithmetic overflows within the inequality resolution calculus specific rules */
-  unsigned irOverflowApply;
-  unsigned irOverflowNorm;
+  unsigned ircVarElimKNonZeroCnt;
+  unsigned ircVarElimKSum;
+  unsigned ircVarElimCnt;
+  unsigned ircVarElimKMax;
+
+  unsigned ircTotCnt;
+  unsigned ircSupCnt;
+  unsigned ircIrCnt;
+  unsigned ircTermFacCnt;
+  unsigned ircLitFacCnt;
 
   /** number of (proper) inner rewrites */
   unsigned innerRewrites;

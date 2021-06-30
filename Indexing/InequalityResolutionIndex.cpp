@@ -14,7 +14,6 @@ bool InequalityResolutionIndex::handleLiteral(Literal* lit, Clause* c, bool addi
   if (norm_.isSome()) {
     if (norm_.unwrap().overflowOccurred) {
       DEBUG("skipping overflown literal: ", norm_.unwrap().value)
-      env.statistics->irOverflowNorm++;
       /* we skip it */
 
     } else {
@@ -86,7 +85,6 @@ bool IRCSuperpositionIndex::handleInequality(Literal* lit, Clause* c, bool addin
   if (norm_.isSome()) {
     if (norm_.unwrap().overflowOccurred) {
       DEBUG("skipping overflown literal: ", norm_.unwrap().value)
-      env.statistics->irOverflowNorm++;
       /* we skip it */
 
     } else {

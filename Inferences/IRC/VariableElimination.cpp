@@ -16,6 +16,7 @@
 #include "VariableElimination.hpp"
 #include "Lib/Map.hpp"
 #include "Lib/Set.hpp"
+#include "Shell/Statistics.hpp"
 #include "Kernel/TermIterators.hpp"
 
 #define TODO ASSERTION_VIOLATION
@@ -200,12 +201,13 @@ ClauseIterator VariableElimination::eliminateVar(Clause* premise, FoundVariable<
   auto& K = found.eq;
   auto Ksize = K.size();
 
-  if (KSize > 0) {
+  if (Ksize > 0) {
     env.statistics->ircVarElimKNonZeroCnt++;
   }
   env.statistics->ircVarElimKSum += Ksize;
   env.statistics->ircVarElimCnt++;
-  env.statistics->ircVarElimKMax = std::max(env.statistics->ircVarElimKMax, Ksize);
+  if (Ksize > env.statistics->ircVarElimKMax)
+    env.statistics->ircVarElimKMax = Ksize;
 
   auto Csize = premise->size() - Ksize - I.size() - J.size() - L.size();
 

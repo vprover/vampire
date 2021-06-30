@@ -27,6 +27,7 @@
 #include "Kernel/LiteralSelector.hpp"
 #include "Kernel/SortHelper.hpp"
 #include "Lib/TypeList.hpp"
+#include "Shell/Statistics.hpp"
 
 #include "Indexing/Index.hpp"
 
@@ -129,7 +130,6 @@ ClauseIterator TermFactoring::generateClauses(Clause* cl, Literal* literal) cons
 
   auto lit_ = std::move(litOpt).unwrap();
   if (lit_.overflowOccurred) {
-    env.statistics->irOverflowNorm++;
     return ClauseIterator::getEmpty();
   }
   auto lit = lit_.value;
@@ -170,7 +170,6 @@ ClauseIterator TermFactoring::generateClauses(Clause* cl, Literal* literal) cons
 
             auto sum = PolynomialEvaluation::simplifySummation(resolventSum);
             if (sum.overflowOccurred) {
-              env.statistics->irOverflowApply++;
               return Option<Clause*>();
             }
             auto resolventLit = IrcLiteral(perfect(sum.value), lit.symbol());
@@ -204,6 +203,7 @@ ClauseIterator TermFactoring::generateClauses(Clause* cl, Literal* literal) cons
             DEBUG("out: ", *resolvent)
 
 
+            env.statistics->ircTermFacCnt++;
             return Option<Clause*>(resolvent);
 
         }));

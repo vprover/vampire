@@ -14,6 +14,7 @@
  */
 
 #include "LiteralFactoring.hpp"
+#include "Shell/Statistics.hpp"
 
 #define DEBUG(...) // DBG(__VA_ARGS__)
 
@@ -94,6 +95,8 @@ Clause* LiteralFactoring::applyRule(Clause* premise,
   conclusion.loadFromIterator(uwa.cnstLiterals());
 
   Inference inf(GeneratingInference1(Kernel::InferenceRule::IRC_LITERAL_FACTORING, premise));
+
+  env.statistics->ircLitFacCnt++;
   return Clause::fromStack(conclusion, inf);
 }
 

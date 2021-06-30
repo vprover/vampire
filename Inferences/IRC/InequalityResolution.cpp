@@ -245,7 +245,6 @@ ClauseIterator InequalityResolution::generateClauses(Clause* cl1, Literal* liter
                       ASS_REP(factors.first.isPositive() && factors.second.isPositive(), factors)
 
                     } catch (MachineArithmeticException&) {
-                      env.statistics->irOverflowApply++;
                       return Option<Clause*>();
                     }
 
@@ -283,7 +282,6 @@ ClauseIterator InequalityResolution::generateClauses(Clause* cl1, Literal* liter
                         // resolventSum.push(Monom(Numeral(-1)));
                       }
                     } catch (MachineArithmeticException&) {
-                      env.statistics->irOverflowApply++;
                       return Option<Clause*>();
                     }
 
@@ -294,7 +292,6 @@ ClauseIterator InequalityResolution::generateClauses(Clause* cl1, Literal* liter
                     auto normResolventSum = normalizeTerm(resolventSum, NumTraits::sort()).template wrapPoly<NumTraits>();
                     auto sum = _shared->normalizer.evaluator().evaluate(normResolventSum).map([&](auto eval) { return eval || normResolventSum; });
                     if (sum.overflowOccurred) {
-                      env.statistics->irOverflowApply++;
                       return Option<Clause*>(); 
                     }
                     // auto resolventLit = InequalityLiteral(perfect(sum.value), strictness);
@@ -336,6 +333,7 @@ ClauseIterator InequalityResolution::generateClauses(Clause* cl1, Literal* liter
                     }
                     DEBUG("  resolvent: ", *resolvent);
                     ASS(SortHelper::areSortsValid(resolvent))
+                    env.statistics->ircIrCnt++;
                     return Option<Clause*>(resolvent);
                 }));
     }));
