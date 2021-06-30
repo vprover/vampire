@@ -48,7 +48,7 @@ public:
 
   // virtual Result compare(Literal* l1,Literal* l2) const override;
   using PrecedenceOrdering::compare;
-  Result comparePredicates(Literal* l1, Literal* l2) const override;
+  Result compare(Literal* l1, Literal* l2) const override;
   Result compare(TermList, TermList) const final override;
 
   void show(ostream& out) const final override;

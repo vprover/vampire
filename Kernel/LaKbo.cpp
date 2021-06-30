@@ -106,17 +106,21 @@ auto zipVariants(Coproduct<As...>& lhs, Coproduct<As...>& rhs, F f)
   });
 }
 
-LaKbo::Result LaKbo::comparePredicates(Literal* l1_, Literal* l2_) const 
+LaKbo::Result LaKbo::compare(Literal* l1_, Literal* l2_) const 
 {
   CALL("LaKbo::compare(Literal*, Literal*)");
   auto inner = [&]() {
-    if (l1_ == l2_ || Literal::complementaryLiteral(l1_) == l2_) return EQUAL;
 
     auto l1 = normalizeLiteral(l1_);
     auto l2 = normalizeLiteral(l2_);
 
-    if (l1 == l2) return INCOMPARABLE;
-    if (l1 == Literal::complementaryLiteral(l2)) return l1->isNegative() ? LESS : GREATER;
+    auto lvlCmp = fromComparison(Int::compare(predicateLevel(l1->functor()), predicateLevel(l2->functor())));
+    if (lvlCmp != Result::EQUAL) {
+      return _reverseLCM ? Ordering::reverse(lvlCmp) : lvlCmp;
+    }
+
+    if (l1 == l2) return Result::EQUAL;
+    if (l1 == Literal::complementaryLiteral(l2)) return l1->isNegative() ? Result::LESS : Result::GREATER;
 
     auto irc1 = _shared->normalize(l1);
     auto irc2 = _shared->normalize(l2);
