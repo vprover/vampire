@@ -54,7 +54,7 @@ VariableElimination testVariableElimination(
     Options::UnificationWithAbstraction uwa = Options::UnificationWithAbstraction::IRC1
     )
 { 
-  return VariableElimination(testIrcState(uwa));
+  return VariableElimination(testIrcState(uwa), /* simplify */ true);
 }
 
 

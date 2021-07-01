@@ -39,8 +39,9 @@ public:
   USE_ALLOCATOR(VariableElimination);
 
   VariableElimination(VariableElimination&&) = default;
-  VariableElimination(shared_ptr<IrcState> shared) 
+  VariableElimination(shared_ptr<IrcState> shared, bool simplify) 
     : _shared(std::move(shared))
+    , _simplify(simplify)
   {  }
 
   void attach(SaturationAlgorithm* salg) final override;
@@ -96,6 +97,7 @@ private:
   template<class NumTraits> ClauseIterator generateClauses(Clause* clause, Literal* lit) const;
 
   shared_ptr<IrcState> _shared;
+  const bool _simplify;
 };
 
 } // namespace IRC 

@@ -1633,7 +1633,7 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
       auto& lakbo = dynamic_cast<Kernel::LaKbo&>(ordering);
       lakbo.setState(shared);
     } catch (std::bad_cast) { /* do nothing */ }
-    sgi->push(new IRC::VariableElimination(shared)); 
+    sgi->push(new IRC::VariableElimination(shared, env.options->ircVariableEliminationSimplifying())); 
     sgi->push(new IRC::LiteralFactoring(shared)); 
     sgi->push(new IRC::Superposition(shared)); 
     sgi->push(new IRC::Totality(shared)); 

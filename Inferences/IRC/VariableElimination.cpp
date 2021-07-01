@@ -29,8 +29,6 @@ namespace IRC {
 // INDEXING STUFF
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   
-
-
 void VariableElimination::attach(SaturationAlgorithm* salg) 
 { }
 
@@ -117,7 +115,7 @@ SimplifyingGeneratingInference::ClauseGenerationResult VariableElimination::gene
   if (var.isSome()) {
     return ClauseGenerationResult {
       .clauses          = std::move(var).unwrap().apply([&](auto var) { return eliminateVar(premise, std::move(var)); }),
-      .premiseRedundant = true,
+      .premiseRedundant = _simplify,
     };
   } else {
     return ClauseGenerationResult {

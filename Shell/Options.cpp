@@ -1157,12 +1157,21 @@ void Options::init()
                   "\n";
            _lookup.insert(&_inequalityResolution);
            _inequalityResolution.tag(OptionTag::INFERENCES);
-           _inequalitySplitting.setExperimental();
+           _inequalityResolution.setExperimental();
            _inequalityResolution.reliesOn(_termOrdering.is(equal(TermOrdering::LAKBO)));
            _inequalityResolution.reliesOnHard(_cancellation.is(equal(ArithmeticSimplificationMode::OFF)));
            _inequalityResolution.reliesOnHard(_evaluationMode.is(equal(EvaluationMode::POLYNOMIAL_FORCE)));
            _inequalityResolution.reliesOnHard(_highSchool.is(equal(false)));
            _inequalityResolution.reliesOnHard(_unificationWithAbstraction.is(Or(equal(UnificationWithAbstraction::IRC1), equal(UnificationWithAbstraction::IRC2))));
+
+           _ircVariableEliminationSimplifying  = BoolOptionValue("irc_variable_eliminiation_simpliying","irc_ve_simp",true);
+           _ircVariableEliminationSimplifying.description=
+                  "makes the rule `variable eliminiation` of the inequality resolution calculus simplifying (if option is set to `on`) or generating (otherwise)."
+                  // TODO describe all rules
+                  "\n";
+           _lookup.insert(&_ircVariableEliminationSimplifying);
+           _ircVariableEliminationSimplifying.tag(OptionTag::INFERENCES);
+           _ircVariableEliminationSimplifying.reliesOnHard(_inequalityResolution.is(equal(true)));
 
            _gaussianVariableElimination = choiceArithmeticSimplificationMode(
                "gaussian_variable_elimination", "gve",
