@@ -22,6 +22,8 @@
 #include "Lib/Coproduct.hpp"
 #include "Kernel/Unit.hpp"
 
+#include <algorithm>
+
 namespace Shell {
 
 using namespace Lib;
@@ -60,6 +62,9 @@ public:
       std::swap(a[i],a[j]);
     }
   }
+
+  template<typename T>
+  static void shuffleArray(T* ptr, unsigned len) { shuffleArray<T*&>(ptr, len); }
 
   // get a new list by shuffling the original
   // we leak the old one
