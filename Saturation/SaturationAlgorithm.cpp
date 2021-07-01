@@ -868,6 +868,10 @@ void SaturationAlgorithm::newClausesToUnprocessed()
 {
   CALL("SaturationAlgorithm::newClausesToUnprocessed");
 
+  if (env.options->randomTraversals()) {
+    Shuffling::shuffleArray(_newClauses.naked().begin(),_newClauses.size());
+  }
+
   while (_newClauses.isNonEmpty()) {
     Clause* cl=_newClauses.popWithoutDec();
     switch(cl->store())
@@ -1204,37 +1208,37 @@ void SaturationAlgorithm::activate(Clause* cl)
   cl->setStore(Clause::ACTIVE);
   env.statistics->activeClauses++;
   _active->add(cl);
-
     
-    auto generated = _generator->generateSimplify(cl);
+  auto generated = _generator->generateSimplify(cl);
 
-    ClauseIterator toAdd = generated.clauses;
+  ClauseIterator toAdd = generated.clauses;
 
-    while (toAdd.hasNext()) {
-      Clause* genCl=toAdd.next();
-      addNewClause(genCl);
+  while (toAdd.hasNext()) {
+    Clause* genCl=toAdd.next();
+    addNewClause(genCl);
 
-      Inference::Iterator iit=genCl->inference().iterator();
-      while (genCl->inference().hasNext(iit)) {
-        Unit* premUnit=genCl->inference().next(iit);
-        // Now we can get generated clauses having parents that are not clauses
-        // Indeed, from induction we can have generated clauses whose parents do 
-        // not include the activated clause
-        if(premUnit->isClause()){
-          Clause* premCl=static_cast<Clause*>(premUnit);
-          onParenthood(genCl, premCl);
-        }
+    Inference::Iterator iit=genCl->inference().iterator();
+    while (genCl->inference().hasNext(iit)) {
+      Unit* premUnit=genCl->inference().next(iit);
+      // Now we can get generated clauses having parents that are not clauses
+      // Indeed, from induction we can have generated clauses whose parents do
+      // not include the activated clause
+      if(premUnit->isClause()){
+        Clause* premCl=static_cast<Clause*>(premUnit);
+        onParenthood(genCl, premCl);
       }
     }
+  }
 
   _clauseActivationInProgress=false;
 
-
   //now we remove clauses that could not be removed during the clause activation process
+  if (env.options->randomTraversals()) {
+    Shuffling::shuffleArray(_postponedClauseRemovals.begin(),_postponedClauseRemovals.size());
+  }
   while (_postponedClauseRemovals.isNonEmpty()) {
     Clause* cl=_postponedClauseRemovals.pop();
-    if (cl->store() != Clause::ACTIVE &&
-	cl->store() != Clause::PASSIVE) {
+    if (cl->store() != Clause::ACTIVE && cl->store() != Clause::PASSIVE) {
       continue;
     }
     removeActiveOrPassiveClause(cl);
