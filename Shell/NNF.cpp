@@ -101,7 +101,7 @@ Formula* NNF::ennf (Formula* f, bool polarity)
   case LITERAL:
     {
       Literal* lit = f->literal();
-      Literal* newLit = ennf(lit, polarity);
+      Literal* newLit = ennf(lit);
       if (newLit == lit) {
         if (polarity) {
           return f;
@@ -201,7 +201,7 @@ Formula* NNF::ennf (Formula* f, bool polarity)
   }
 } // NNF::ennf(Formula&);
 
-Literal* NNF::ennf(Literal* l, bool polarity)
+Literal* NNF::ennf(Literal* l)
 {
   CALL("NNF::ennf(Literal*...)");
 

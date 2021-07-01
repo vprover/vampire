@@ -37,7 +37,7 @@ public:
   static FormulaUnit* nnf(FormulaUnit* unit);
   static Formula* ennf(Formula*, bool polarity);
 private:
-  static Literal* ennf(Literal*, bool polarity);
+  static Literal* ennf(Literal*);
   static TermList ennf(TermList, bool polarity);
   static FormulaList* ennf(FormulaList*, bool polarity);
   static Formula* nnf(Formula*, bool polarity);
