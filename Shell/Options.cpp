@@ -2021,16 +2021,10 @@ void Options::init()
     _symbolPrecedenceBoost.tag(OptionTag::SATURATION);
     _lookup.insert(&_symbolPrecedenceBoost);
 
-    _weightIncrement = BoolOptionValue("weight_increment","",false);
-    _weightIncrement.description="";
-    //_lookup.insert(&_weightIncrement);
-    _weightIncrement.tag(OptionTag::OTHER);
-
 
     //******************************************************************
     //*********************** Vinter???  *******************************
     //******************************************************************
-
     
     _colorUnblocking = BoolOptionValue("color_unblocking","",false);
     _colorUnblocking.description="";
