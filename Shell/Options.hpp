@@ -2147,8 +2147,6 @@ public:
   bool increasedNumeralWeight() const { return _increasedNumeralWeight.actualValue; }
   TheoryAxiomLevel theoryAxioms() const { return _theoryAxioms.actualValue; }
   //void setTheoryAxioms(bool newValue) { _theoryAxioms = newValue; }
-  bool interpretedSimplification() const { return _interpretedSimplification.actualValue; }
-  //void setInterpretedSimplification(bool val) { _interpretedSimplification = val; }
   Condensation condensation() const { return _condensation.actualValue; }
   RuleActivity generalSplitting() const { return _generalSplitting.actualValue; }
   bool timeStatistics() const { return _timeStatistics.actualValue; }
@@ -2463,7 +2461,6 @@ private:
   FloatOptionValue _instGenRestartPeriodQuotient;
   BoolOptionValue _instGenWithResolution;
   BoolOptionValue _useHashingVariantIndex;
-  BoolOptionValue _interpretedSimplification;
 
   ChoiceOptionValue<Induction> _induction;
   ChoiceOptionValue<StructuralInductionKind> _structInduction;

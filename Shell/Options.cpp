@@ -1876,15 +1876,6 @@ void Options::init()
     _lookup.insert(&_increasedNumeralWeight);
     _increasedNumeralWeight.tag(OptionTag::SATURATION);
 
-
-    _interpretedSimplification = BoolOptionValue("interpreted_simplification","",false);
-    _interpretedSimplification.description=
-             "Performs simplifications of interpreted functions. This option requires interpreted_evaluation to be enabled as well. IMPORTANT - Currently not supported";
-    _lookup.insert(&_interpretedSimplification);
-    _interpretedSimplification.tag(OptionTag::OTHER);
-    _interpretedSimplification.setExperimental();
-
-
     _literalComparisonMode = ChoiceOptionValue<LiteralComparisonMode>("literal_comparison_mode","lcm",
                                                                       LiteralComparisonMode::STANDARD,
                                                                       {"predicate","reverse","standard"});
