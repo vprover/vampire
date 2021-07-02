@@ -236,6 +236,9 @@ void SymCounter::count(Term* term, int polarity, int add)
           if(lambdaExp.isTerm()){
             count(lambdaExp.term(), polarity, add);
           }
+        }
+        case Term::SF_MATCH: {
+          // TODO(mhajdu): find out what to do here
           break;
         }
         default:

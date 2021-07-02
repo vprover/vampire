@@ -46,4 +46,8 @@ fi
 szs_status 1 Unsatisfiable -ind int Problems/ind/int_invariant_infinite_geq3_val3.smt2
 szs_status 1 Unsatisfiable -ind int Problems/ind/int_invariant_finite_a_to_b.smt2
 szs_status 60 Unsatisfiable --forced_options "drc=off:ind=int:intindint=infinite:sos=theory:sstl=1:to=lpo" Problems/ind/int_power_0_all_0.smt2
-szs_status 60 Unsatisfiable --forced_options "ind=int:sa=discount:sos=theory:sstl=1:to=lpo" Problems/ind/int_sum_y_geq_0.smt2 
+szs_status 60 Unsatisfiable --forced_options "ind=int:sa=discount:sos=theory:sstl=1:to=lpo" Problems/ind/int_sum_y_geq_0.smt2
+
+# Parser
+szs_status 1 Unsatisfiable --input_syntax smtlib2 Problems/Parse/types-funs.smt2
+szs_status 1 Unsatisfiable --input_syntax smtlib2 -newcnf on Problems/Parse/types-funs.smt2

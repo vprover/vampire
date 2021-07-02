@@ -83,6 +83,10 @@ void SineSymbolExtractor::addSymIds(Term* term, Stack<SymId>& ids)
           addSymIds(sd->getTupleTerm(), ids);
           break;
         }
+        case Term::SF_MATCH: {
+          // args are handled below
+          break;
+        }
         default:
           ASSERTION_VIOLATION;
       }

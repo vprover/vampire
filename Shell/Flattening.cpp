@@ -324,6 +324,20 @@ TermList Flattening::flatten (TermList ts)
         }
       }
 
+      case Term::SF_MATCH: {
+        DArray<TermList> terms(term->arity());
+        bool unchanged = true;
+        for (unsigned i = 0; i < term->arity(); i++) {
+          terms[i] = flatten(*term->nthArgument(i));
+          unchanged = unchanged && (terms[i] == *term->nthArgument(i));
+        }
+
+        if (unchanged) {
+          return ts;
+        }
+        return TermList(Term::createMatch(sd->getSort(), sd->getMatchedSort(), term->arity(), terms.begin()));
+      }
+
       default:
         ASSERTION_VIOLATION;
     }
