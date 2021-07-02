@@ -231,7 +231,10 @@ void PortfolioMode::getExtraSchedules(Property& prop, Schedule& old, Schedule& e
    extra_opts.push("sp=frequency");
    extra_opts.push("avsq=on");
    extra_opts.push("plsq=on");
-   extra_opts.push("bsd=on:fsd=on");
+   if(!env.statistics->higherOrder){
+     //these options are not currently HOL compatible
+     extra_opts.push("bsd=on:fsd=on");
+   }
 
    // If contains integers, rationals and reals
    if(prop.props() & (Property::PR_HAS_INTEGERS | Property::PR_HAS_RATS | Property::PR_HAS_REALS)){
