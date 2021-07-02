@@ -1896,27 +1896,6 @@ void Options::init()
     // TODO: if sat then should not use reverse
     _literalComparisonMode.setRandomChoices({"predicate","reverse","standard"});
 
-
-    _maxActive = LongOptionValue("max_active","",0);
-    _maxActive.description="";
-    //_lookup.insert(&_maxActive);
-    _maxActive.tag(OptionTag::OTHER);
-
-    _maxAnswers = IntOptionValue("max_answers","",1);
-    _maxAnswers.description="";
-    //_lookup.insert(&_maxAnswers);
-    _maxAnswers.tag(OptionTag::OTHER);
-
-    _maxInferenceDepth = IntOptionValue("max_inference_depth","",0);
-    _maxInferenceDepth.description="";
-    //_lookup.insert(&_maxInferenceDepth);
-    _maxInferenceDepth.tag(OptionTag::OTHER);
-
-    _maxPassive = LongOptionValue("max_passive","",0);
-    _maxPassive.description="";
-    //_lookup.insert(&_maxPassive);
-    _maxPassive.tag(OptionTag::OTHER);
-
     _nonGoalWeightCoefficient = NonGoalWeightOptionValue("nongoal_weight_coefficient","nwc",1.0);
     _nonGoalWeightCoefficient.description=
              "coefficient that will multiply the weight of theory clauses (those marked as 'axiom' in TPTP)";

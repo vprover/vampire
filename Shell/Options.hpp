@@ -2072,7 +2072,6 @@ public:
   int lookaheadDelay() const { return _lookaheadDelay.actualValue; }
   int simulatedTimeLimit() const { return _simulatedTimeLimit.actualValue; }
   void setSimulatedTimeLimit(int newVal) { _simulatedTimeLimit.actualValue = newVal; }
-  int maxInferenceDepth() const { return _maxInferenceDepth.actualValue; }
   TermOrdering termOrdering() const { return _termOrdering.actualValue; }
   SymbolPrecedence symbolPrecedence() const { return _symbolPrecedence.actualValue; }
   SymbolPrecedenceBoost symbolPrecedenceBoost() const { return _symbolPrecedenceBoost.actualValue; }
@@ -2086,10 +2085,6 @@ public:
   int timeLimitInDeciseconds() const { return _timeLimitInDeciseconds.actualValue; }
   size_t memoryLimit() const { return _memoryLimit.actualValue; }
   int inequalitySplitting() const { return _inequalitySplitting.actualValue; }
-  long maxActive() const { return _maxActive.actualValue; }
-  long maxAnswers() const { return _maxAnswers.actualValue; }
-  //void setMaxAnswers(int newVal) { _maxAnswers = newVal; }
-  long maxPassive() const { return _maxPassive.actualValue; }
   int ageRatio() const { return _ageWeightRatio.actualValue; }
   void setAgeRatio(int v){ _ageWeightRatio.actualValue = v; }
   int weightRatio() const { return _ageWeightRatio.otherValue; }
@@ -2492,11 +2487,6 @@ private:
   BoolOptionValue _lrsWeightLimitOnly;
   ChoiceOptionValue<LTBLearning> _ltbLearning;
   StringOptionValue _ltbDirectory;
-
-  LongOptionValue _maxActive;
-  IntOptionValue _maxAnswers;
-  IntOptionValue _maxInferenceDepth;
-  LongOptionValue _maxPassive;
 
   UnsignedOptionValue _memoryLimit; // should be size_t, making an assumption
   ChoiceOptionValue<Mode> _mode;
