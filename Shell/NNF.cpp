@@ -107,7 +107,7 @@ Formula* NNF::ennf (Formula* f, bool polarity)
       Literal* newLit = ennf(lit);
 
       // take polarity into account here
-      newLit = polarity ? newLit : Literal::complementaryLiteral(lit);
+      newLit = polarity ? newLit : Literal::complementaryLiteral(newLit);
 
       if (newLit == lit) {
         return f;
