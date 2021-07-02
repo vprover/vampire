@@ -1342,7 +1342,7 @@ void SaturationAlgorithm::doOneAlgorithmStep()
       res.saturatedSet = collectSaturatedSet();
 
       if (_splitter) {
-        res.saturatedSet = _splitter->explicateAssertionsForSaturatedClauseSet(res.saturatedSet);
+        res.saturatedSet = _splitter->preprendCurrentlyAssumedComponentClauses(res.saturatedSet);
       }
     }
     throw MainLoopFinishedException(res);
