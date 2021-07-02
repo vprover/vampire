@@ -109,7 +109,7 @@ using Lib::TypeList::UnsignedList;
           catch (MachineArithmeticException&) { ASSERTION_VIOLATION } }()                                     \
 
 template<class NumTraits>
-ClauseIterator TermFactoring::generateClauses(Clause* cl, Literal* literal) const
+ClauseIterator TermFactoring::generateClauses(Clause* cl, Literal* literal, shared_ptr<Stack<MaxAtomicTerm<NumTraits>>> maxTerms) const
 {
 
   CALL("TermFactoring::generateClauses(Clause*, Literal*) const")
@@ -136,7 +136,13 @@ ClauseIterator TermFactoring::generateClauses(Clause* cl, Literal* literal) cons
   //   ^^^--> num1 * term1 + num2 * term2 + rest > 0
 
   DEBUG("lit: ", lit)
-  auto max = _shared->maxAtomicTerms(lit);
+
+  auto max = iterTraits(_shared->maxAtomicTerms(lit).iterFifo())
+    .filter([&](auto t) { 
+        return iterTraits(maxTerms->iterFifo())
+          .any([&](auto maxT) { return maxT.literal == literal && maxT.self == t; });  })
+    .template collect<Stack>();
+
   DEBUG("maximal terms: ", max)
   return pvi(iterTraits(getRangeIterator(0, ((int) max.size()) - 1))
     .flatMap([this, cl, lit, literal, max = Lib::make_unique<Stack<Monom>>(std::move(max))](unsigned i1) -> VirtualIterator<Clause*> { 
@@ -215,14 +221,38 @@ ClauseIterator TermFactoring::generateClauses(Clause* premise)
 {
   CALL("TermFactoring::generateClauses");
   DEBUG("in: ", *premise)
+  // auto maxLiterals = make_shared(new Stack<Literal*>(_shared->maxAtomicTermsNonVar<NumTraits>(premise))); // TODO use Set instead of Stack
+  // return pvi(numTraitsIter([this, premise,maxLiterals](auto numTraits){
+  //   using NumTraits = decltype(numTraits);
+  //   return iterTraits(ownedArrayishIterator(_shared->maxAtomicTermsNonVar<NumTraits>(premise)))
+  //   // return iterTraits(ownedArrayishIterator(_shared->strictlyMaxLiterals(premise)))
+  //     .filter([maxLiterals](auto& maxTerm)  
+  //         { return iterTraits(maxLiterals->iterFifo())
+  //                    .find([&](auto x) { return x == maxTerm.literal; })
+  //                    .isSome(); })
+  //     .filter([](auto maxTerm) { return maxTerm.ircLit.symbol() == IrcPredicate::GREATER_EQ; })
+  //     .flatMap([this, premise](auto maxTerm) 
+  //         { return this->generateClauses(premise, maxTerm.literal, maxTerm.ircLit, maxTerm.self); });
+  // }));
+  //
+  // template<class NumTraits>
+  // using AllNumTraits
+
+  // auto maxTermsInt  = _shared->maxAtomicTermsNonVar< IntTraits>(premise);
+  // auto maxTermsRat  = _shared->maxAtomicTermsNonVar< RatTraits>(premise);
+  // auto maxTermsReal = _shared->maxAtomicTermsNonVar<RealTraits>(premise);
+  //
+  auto maxTermsInt  = make_shared(new Stack<MaxAtomicTerm< IntTraits>>(_shared->maxAtomicTermsNonVar< IntTraits>(premise)));
+  auto maxTermsRat  = make_shared(new Stack<MaxAtomicTerm< RatTraits>>(_shared->maxAtomicTermsNonVar< RatTraits>(premise)));
+  auto maxTermsReal = make_shared(new Stack<MaxAtomicTerm<RealTraits>>(_shared->maxAtomicTermsNonVar<RealTraits>(premise)));
 
   return pvi(iterTraits(ownedArrayishIterator(_shared->strictlyMaxLiterals(premise)))
     .flatMap([=](Literal* lit) {
       CALL("TermFactoring::generateClauses@clsr1");
         return getConcatenatedIterator(getConcatenatedIterator(
-              generateClauses< IntTraits>(premise, lit) ,
-              generateClauses< RatTraits>(premise, lit)),
-              generateClauses<RealTraits>(premise, lit));
+              generateClauses< IntTraits>(premise, lit, maxTermsInt) ,
+              generateClauses< RatTraits>(premise, lit, maxTermsRat)),
+              generateClauses<RealTraits>(premise, lit, maxTermsReal));
     }));
 }
 

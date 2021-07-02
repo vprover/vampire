@@ -55,7 +55,9 @@ public:
   template<class NumTraits>
   ClauseIterator generateClauses(Clause* premise, 
       Literal* lit1, IrcLiteral<NumTraits> l1, 
-      Literal* lit2, IrcLiteral<NumTraits> l2);
+      Literal* lit2, IrcLiteral<NumTraits> l2,
+      shared_ptr<Stack<MaxAtomicTerm<NumTraits>>> maxTerms
+      );
   ClauseIterator generateClauses(Clause* premise) final override;
 
   

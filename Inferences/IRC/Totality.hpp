@@ -62,7 +62,7 @@ private:
       ResultSubstitution& sigma, Stack<UnificationConstraint>& cnst
       ) const;
 
-  template<class NumTraits> ClauseIterator generateClauses(Clause* clause, Literal* lit, IrcLiteral<NumTraits> l1) const;
+  template<class NumTraits> ClauseIterator generateClauses(Clause* clause, Literal* lit, IrcLiteral<NumTraits> l1, Monom<NumTraits> j_s1) const;
 
   shared_ptr<IrcState> _shared;
   InequalityResolutionIndex* _index;

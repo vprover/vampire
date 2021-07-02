@@ -237,6 +237,21 @@ auto forAnyNumTraits(Clsr clsr) {
       || clsr( RatTraits{})
       || clsr(RealTraits{});
 }
+
+template<class Clsr>
+auto numTraitsIter(Clsr clsr) {
+  return getConcatenatedIterator( clsr( IntTraits{}),
+         getConcatenatedIterator( clsr( RatTraits{}),
+                                  clsr(RealTraits{})));
+}
+
+template<class Clsr>
+auto forEachNumTraits(Clsr clsr) {
+  clsr( IntTraits{});
+  clsr( RatTraits{});
+  clsr(RealTraits{});
+}
+
 template<class Clsr>
 auto tryNumTraits(Clsr clsr) {
                return clsr( IntTraits{}) 

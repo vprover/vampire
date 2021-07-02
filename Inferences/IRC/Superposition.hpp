@@ -56,8 +56,8 @@ public:
 
 private:
 
-                            Option<ClauseIterator> generateClauses(Clause* clause, Literal* literal, IrcLiteral<IntTraits> lit) const;
-  template<class NumTraits> Option<ClauseIterator> generateClauses(Clause* clause, Literal* literal, IrcLiteral<NumTraits> lit) const;
+                            Option<ClauseIterator> generateClauses(Clause* clause, Literal* literal, IrcLiteral<IntTraits> lit, Monom<IntTraits>) const;
+  template<class NumTraits> Option<ClauseIterator> generateClauses(Clause* clause, Literal* literal, IrcLiteral<NumTraits> lit, Monom<NumTraits> k_s1) const;
 
   shared_ptr<IrcState> _shared;
   IRCSuperpositionIndex* _index;

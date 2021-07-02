@@ -104,11 +104,21 @@ Clause* LiteralFactoring::applyRule(Clause* premise,
 template<class NumTraits>
 ClauseIterator LiteralFactoring::generateClauses(Clause* premise, 
     Literal* lit1, IrcLiteral<NumTraits> l1, 
-    Literal* lit2, IrcLiteral<NumTraits> l2)
+    Literal* lit2, IrcLiteral<NumTraits> l2,
+    shared_ptr<Stack<MaxAtomicTerm<NumTraits>>> maxTerms
+    )
 {
-  return pvi(iterTraits(ownedArrayishIterator(_shared->maxAtomicTerms(l1)))
+  auto filterNonMax = [maxTerms](Stack<Monom<NumTraits>> terms, Literal* lit) {
+    return iterTraits(terms.iterFifo())
+      .filter([&](auto t) 
+          { return iterTraits(maxTerms->iterFifo())
+                         .any([&](auto maxT) 
+                           { return maxT.literal == lit && t == maxT.self; }); })
+      .template collect<Stack>();
+  };
+  return pvi(iterTraits(ownedArrayishIterator(filterNonMax(_shared->maxAtomicTerms(l1), lit1)))
     .flatMap([=](auto j_s1) {
-      return pvi(iterTraits(ownedArrayishIterator(_shared->maxAtomicTerms(l2)))
+      return pvi(iterTraits(ownedArrayishIterator(filterNonMax(_shared->maxAtomicTerms(l2), lit2)))
         .filter([=](auto k_s2) { return k_s2.numeral.isPositive() == j_s1.numeral.isPositive(); })
         .filterMap([=](auto k_s2) { 
             auto s1 = j_s1.factors->denormalize();
@@ -138,6 +148,62 @@ ClauseIterator LiteralFactoring::generateClauses(Clause* premise,
     }));
 }
 
+template<template<class> class Obj> class AllNumTraits;
+template<class NumTraits, template<class> class Obj2> struct __getAllNumTraits {
+  Obj2<NumTraits>     & operator()(AllNumTraits<Obj2>      &);
+  Obj2<NumTraits>const& operator()(AllNumTraits<Obj2> const&);
+};
+
+template<template<class> class Obj>
+class AllNumTraits {
+  Obj< IntTraits> _int;
+  Obj< RatTraits> _rat;
+  Obj<RealTraits> _real;
+public:
+  AllNumTraits( Obj< IntTraits> intObj, Obj< RatTraits> ratObj, Obj<RealTraits> realObj)
+   : _int(std::move(intObj))
+   , _rat(std::move(ratObj))
+   , _real(std::move(realObj)) 
+  {}
+
+
+  template<class NumTraits, template<class> class Obj2> friend struct __getAllNumTraits;
+
+  template<class NumTraits> Obj<NumTraits>      & get()       { return __getAllNumTraits<NumTraits, Obj>{}(*this); }
+  template<class NumTraits> Obj<NumTraits> const& get() const { return __getAllNumTraits<NumTraits, Obj>{}(*this); }
+private:
+  Obj< IntTraits> const&  getInt() const { return _int;  }
+  Obj< RatTraits> const&  getRat() const { return _rat;  }
+  Obj<RealTraits> const& getReal() const { return _real; }
+
+  Obj< IntTraits>&  getInt() { return _int;  }
+  Obj< RatTraits>&  getRat() { return _rat;  }
+  Obj<RealTraits>& getReal() { return _real; }
+};
+
+
+template<template<class> class Obj> 
+struct __getAllNumTraits< IntTraits, Obj> {
+  Obj< IntTraits>     & operator()(AllNumTraits<Obj>      & self) { return self. getInt(); }
+  Obj< IntTraits>const& operator()(AllNumTraits<Obj> const& self) { return self. getInt(); }
+};
+
+template<template<class> class Obj> 
+struct __getAllNumTraits< RatTraits, Obj> {
+  Obj< RatTraits>     & operator()(AllNumTraits<Obj>      & self) { return self. getRat(); }
+  Obj< RatTraits>const& operator()(AllNumTraits<Obj> const& self) { return self. getRat(); }
+};
+
+
+template<template<class> class Obj> 
+struct __getAllNumTraits<RealTraits, Obj> {
+  Obj<RealTraits>     & operator()(AllNumTraits<Obj>      & self) { return self.getReal(); }
+  Obj<RealTraits>const& operator()(AllNumTraits<Obj> const& self) { return self.getReal(); }
+};
+
+
+  template<class NumTraits> using MaxTermStack = Stack<MaxAtomicTerm<NumTraits>>;
+  template<class NumTraits> using SharedMaxTermStack = shared_ptr<MaxTermStack<NumTraits>>;
 ClauseIterator LiteralFactoring::generateClauses(Clause* premise) 
 {
   // static_assert(std::is_same<ArrayishObjectIterator<Clause>, decltype(ownedArrayishIterator(_shared->maxLiterals(premise)))>::value, "we assume that the first numSelected() literals are the selected ones");
@@ -153,6 +219,12 @@ ClauseIterator LiteralFactoring::generateClauses(Clause* premise)
       ? Opt(indexed(i, make_pair(lit, norm.unwrap().value)))
       : Opt();
   };
+
+  auto maxTerms = AllNumTraits<SharedMaxTermStack>(
+      make_shared(new MaxTermStack< IntTraits>(_shared->maxAtomicTermsNonVar< IntTraits>(premise))),
+      make_shared(new MaxTermStack< RatTraits>(_shared->maxAtomicTermsNonVar< RatTraits>(premise))),
+      make_shared(new MaxTermStack<RealTraits>(_shared->maxAtomicTermsNonVar<RealTraits>(premise)))
+  );
 
   return pvi(iterTraits(getRangeIterator((unsigned)0, (unsigned)selected->size()))
     .filterMap([=](unsigned i) 
@@ -171,6 +243,7 @@ ClauseIterator LiteralFactoring::generateClauses(Clause* premise)
           auto l2 = lit2_l2->second;
 
           return l1.apply([&](auto l1) { 
+              using NumTraits = typename decltype(l1)::NumTraits;
               /* check whether l1 and l2 are of the same number sort */
               return l2.template as<decltype(l1)>()
 
@@ -178,7 +251,7 @@ ClauseIterator LiteralFactoring::generateClauses(Clause* premise)
                 .filter([=](auto l2) { return l1.symbol() == l2.symbol(); })
 
                 /* actually apply the rule */
-                .map([=](auto l2){ return generateClauses(premise, lit1, l1, lit2, l2); });
+                .map([=](auto l2){ return generateClauses(premise, lit1, l1, lit2, l2, maxTerms.template get<NumTraits>()); });
           }); 
         })
         .flatten());

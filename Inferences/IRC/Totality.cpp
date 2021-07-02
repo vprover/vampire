@@ -123,19 +123,33 @@ template<class NumTraits> Clause* Totality::applyRule(
 
 ClauseIterator Totality::generateClauses(Clause* premise) 
 {
-  return pvi(iterTraits(ownedArrayishIterator(_shared->strictlyMaxLiterals(premise)))
-    .filterMap([=](auto lit1) { return _shared->normalize(lit1).map([&](auto norm) { return make_pair(lit1, norm); }); })
-    .filter([](auto l1) { return l1.second.apply([&](auto l1) { return l1.symbol() == IrcPredicate::GREATER_EQ; }); })
-    .flatMap([=](auto lit1_l1) 
-      { return lit1_l1.second.apply([&](auto l1) { return generateClauses(premise, lit1_l1.first, l1); }); })
-  );
+  auto maxLiterals = make_shared(new Stack<Literal*>(_shared->strictlyMaxLiterals(premise))); // TODO use Set instead of Stack
+  return pvi(numTraitsIter([this, premise,maxLiterals](auto numTraits){
+    using NumTraits = decltype(numTraits);
+    return iterTraits(ownedArrayishIterator(_shared->maxAtomicTermsNonVar<NumTraits>(premise)))
+    // return iterTraits(ownedArrayishIterator(_shared->strictlyMaxLiterals(premise)))
+      .filter([maxLiterals](auto& maxTerm) 
+          { return iterTraits(maxLiterals->iterFifo())
+                     .find([&](auto x) { return x == maxTerm.literal; })
+                     .isSome(); })
+      .filter([](auto maxTerm) { return maxTerm.ircLit.symbol() == IrcPredicate::GREATER_EQ; })
+      .flatMap([this, premise](auto maxTerm) 
+          { return this->generateClauses(premise, maxTerm.literal, maxTerm.ircLit, maxTerm.self); });
+  }));
+
+  // return pvi(iterTraits(ownedArrayishIterator(_shared->strictlyMaxLiterals(premise)))
+  //   .filterMap([=](auto lit1) { return _shared->normalize(lit1).map([&](auto norm) { return make_pair(lit1, norm); }); })
+  //   .filter([](auto l1) { return l1.second.apply([&](auto l1) { return l1.symbol() == IrcPredicate::GREATER_EQ; }); })
+  //   .flatMap([=](auto lit1_l1) 
+  //     { return lit1_l1.second.apply([&](auto l1) { return generateClauses(premise, lit1_l1.first, l1); }); })
+  // );
 }
 
 template<class NumTraits> 
-ClauseIterator Totality::generateClauses(Clause* hyp1, Literal* lit1, IrcLiteral<NumTraits> l1) const
+ClauseIterator Totality::generateClauses(Clause* hyp1, Literal* lit1, IrcLiteral<NumTraits> l1, Monom<NumTraits> j_s1) const
 {
-  return pvi(iterTraits(ownedArrayishIterator(_shared->maxAtomicTerms(l1)))
-      .flatMap([=](Monom<NumTraits> j_s1) {
+  // return pvi(iterTraits(ownedArrayishIterator(_shared->maxAtomicTerms(l1)))
+  //     .flatMap([=](Monom<NumTraits> j_s1) {
         return pvi(iterTraits(_index->getUnificationsWithConstraints(j_s1.factors->denormalize(), true))
             .filterMap([=](TermQueryResult unif) {
               auto hyp2 = unif.clause;
@@ -167,8 +181,8 @@ ClauseIterator Totality::generateClauses(Clause* hyp1, Literal* lit1, IrcLiteral
                                                *unif.substitution, unif.constraints.isEmpty() ? constr : *unif.constraints ));
             })
         );
-      })
-      );
+      // })
+      // );
 }
 
 } // namespace IRC 

@@ -188,8 +188,14 @@ ClauseIterator InequalityResolution::generateClauses(Clause* cl1, Literal* liter
   // auto lit1 = lit1_.value;
   //   ^^^^--> num1 * term + rest1 >= 0
 
+  auto maxHyp1 = _shared->maxAtomicTermsNonVar<NumTraits>(cl1);
+
   DEBUG("lit1: ", lit1)
   return pvi(iterTraits(ownedArrayishIterator(_shared->maxAtomicTerms(lit1.inner())))
+    .filter([maxHyp1 = std::move(maxHyp1), literal1](Monom monom) 
+      { return iterTraits(maxHyp1.iterFifo()) // TODO use a set instead of iterating over this
+                  .find([&](auto x) { return x.self == monom && literal1 == x.literal; })
+                  .isSome(); })
     .flatMap([this, cl1, lit1, literal1](Monom monom)  -> VirtualIterator<Clause*> { 
       CALL("InequalityResolution::generateClauses:@clsr1")
       auto num1  = monom.numeral;

@@ -51,15 +51,29 @@ void Superposition::detach()
 
 ClauseIterator Superposition::generateClauses(Clause* premise) 
 {
-  return pvi(
-      iterTraits(ownedArrayishIterator(_shared->strictlyMaxLiterals(premise)))
-      .filterMap([this, premise](auto lit) -> Option<ClauseIterator> {
-        return _shared->normalize(lit)
-        .andThen([this, premise, lit](auto unsortedLit) -> Option<ClauseIterator> {
-            return unsortedLit.apply([this, premise, lit](auto sortedLit) { return this->generateClauses(premise, lit, sortedLit); });
-          });
-        })
-      .flatten());
+
+  // auto maxLits = 
+  auto maxLits = make_shared(new Stack<Literal*>(_shared->strictlyMaxLiterals(premise)));
+  return pvi(numTraitsIter([this, premise, maxLits](auto numTraits) {
+     using NumTraits = decltype(numTraits);
+     return iterTraits(ownedArrayishIterator(_shared->maxAtomicTermsNonVar<NumTraits>(premise)))
+       .filter([maxLits](auto maxTerm) 
+           { return iterTraits(maxLits->iterFifo())
+                      .find([&](auto x) 
+                          { return x == maxTerm.literal; })
+                      .isSome(); })
+       .filterMap([this, premise](auto maxTerm) { return this->generateClauses(premise, maxTerm.literal, maxTerm.ircLit, maxTerm.self); })
+       .flatten();
+  }));
+  // return pvi(
+  //     iterTraits(ownedArrayishIterator(_shared->strictlyMaxLiterals(premise)))
+  //     .filterMap([this, premise](auto lit) -> Option<ClauseIterator> {
+  //       return _shared->normalize(lit)
+  //       .andThen([this, premise, lit](auto unsortedLit) -> Option<ClauseIterator> {
+  //           return unsortedLit.apply([this, premise, lit](auto sortedLit) { return this->generateClauses(premise, lit, sortedLit); });
+  //         });
+  //       })
+  //     .flatten());
 }
 
   
@@ -87,7 +101,8 @@ void Superposition::setTestIndices(Stack<Indexing::Index*> const& indices)
 template<class NumTraits> Option<ClauseIterator> Superposition::generateClauses(
     Clause* hyp1,            // <- `C1 \/ ±ks1+t1 ≈ 0` 
     Literal* pivot1,         // <-       `±ks1+t1 ≈ 0` 
-    IrcLiteral<NumTraits> eq // <-       `±ks1+t1 ≈ 0` 
+    IrcLiteral<NumTraits> eq,// <-       `±ks1+t1 ≈ 0` 
+    Monom<NumTraits> k_s1    // <-       `±ks1` 
     ) const 
 {
   using Numeral = typename NumTraits::ConstantType;
@@ -95,9 +110,10 @@ template<class NumTraits> Option<ClauseIterator> Superposition::generateClauses(
     return Option<ClauseIterator>();
   }
   return Option<ClauseIterator>(
-      pvi(iterTraits(ownedArrayishIterator(_shared->maxAtomicTerms(eq)))
-        .flatMap([=](auto k_s1) { 
-          return pvi(iterTraits(pvi(this->_index->getUnificationsWithConstraints(k_s1.factors->denormalize(), true)))
+      // pvi(iterTraits(ownedArrayishIterator(_shared->maxAtomicTerms(eq)))
+      //   .flatMap([=](auto k_s1) { 
+          // return
+          pvi(iterTraits(pvi(this->_index->getUnificationsWithConstraints(k_s1.factors->denormalize(), true)))
               .filterMap([=](TermQueryResult res) -> Option<Clause*> {
                 Stack<UnificationConstraint> dummy;
                 Option<Clause*> nothing;
@@ -126,7 +142,7 @@ template<class NumTraits> Option<ClauseIterator> Superposition::generateClauses(
                   ORD_CHECK(_shared->strictlyMaximal(sigma(s1->denormalize(), 0), eq.term().iterSummands().map([&](auto monom) { return sigma(monom.factors->denormalize(), 0); })))
 
                   // • term(u[s2])σ is strictly maximal in terms(u[s2] + t2)σ 
-                  // TODO check this condition somehow ?
+                  // TODO check this condition somehow ?!
                 }
 
                 Stack<Literal*> concl(hyp1->size() - 1 // <- C1
@@ -171,15 +187,15 @@ template<class NumTraits> Option<ClauseIterator> Superposition::generateClauses(
                 return Option<Clause*>(Clause::fromStack(concl, inf));
               })
           )
-            ;
-
-
-        })
-  )
+  //           ;
+  //
+  //
+  //       })
+  // )
   ) ;
 }
 
-Option<ClauseIterator> Superposition::generateClauses(Clause* hyp1, Literal* pivot1, IrcLiteral<IntTraits> eq) const 
+Option<ClauseIterator> Superposition::generateClauses(Clause* hyp1, Literal* pivot1, IrcLiteral<IntTraits> eq, Monom<Kernel::IntTraits>) const 
 { return Option<ClauseIterator>(); } 
 
 } // namespace IRC 

@@ -251,6 +251,15 @@ namespace Kernel {
     friend struct IrcState;
   };
 
+  template<class NumTraits>
+  struct MaxAtomicTerm {
+    unsigned litIdx;
+    Literal* literal;
+    IrcLiteral<NumTraits> ircLit;
+    unsigned termIdx;
+    Monom<NumTraits> self;
+  };
+
   struct IrcState 
   {
     CLASS_NAME(IrcState);
@@ -261,6 +270,7 @@ namespace Kernel {
     Shell::Options::UnificationWithAbstraction const uwa;
 
     template<class NumTraits> Stack<Monom<NumTraits>> maxAtomicTerms(IrcLiteral<NumTraits>const& lit);
+    template<class NumTraits> Stack<MaxAtomicTerm<NumTraits>> maxAtomicTermsNonVar(Clause* cl);
     Stack<Literal*> maxLiterals(Clause* cl, bool strictlyMax = false);
     Stack<Literal*> strictlyMaxLiterals(Clause* cl) { return maxLiterals(cl, true); }
 
@@ -515,6 +525,40 @@ Stack<Monom<NumTraits>> IrcState::maxAtomicTerms(IrcLiteral<NumTraits>const& lit
       max.push(monoms[i]);
   }
   return max;
+}
+
+template<class NumTraits> Stack<MaxAtomicTerm<NumTraits>> IrcState::maxAtomicTermsNonVar(Clause* cl)
+{
+  CALL("IrcState::maxAtomicTermsNonVar(Clause* cl)")
+  Stack<MaxAtomicTerm<NumTraits>> elems;
+  for (unsigned i = 0; i < cl->size(); i++) {
+    auto lit = (*cl)[i];
+    auto norm = normalizer.template normalizeIrc<NumTraits>(lit);
+    if (norm.isSome() && !norm.unwrap().overflowOccurred) {
+      auto irc = norm.unwrap().value;
+      for (unsigned j = 0; j < irc.term().nSummands(); j++) {
+        elems.push(MaxAtomicTerm<NumTraits> {
+          .litIdx = i,
+          .literal = lit,
+          .ircLit = irc,
+          .termIdx = j,
+          .self = irc.term().summandAt(j),
+        });
+      }
+    }
+  }
+  auto max = maxElements([&](auto i) { return elems[i]; }, 
+                     elems.size(),
+                     [&](auto l, auto r) { return ordering->compare(l.self.factors->denormalize(), r.self.factors->denormalize()); },
+                     /* strictlyMax */ false);
+  return iterTraits(max.iterFifo())
+    .filter([](auto& t) { return t.self.factors->tryVar().isNone(); })
+    .template collect<Stack>();
+
+  // return maxElements([&](auto i) { return (*cl)[i]; }, 
+  //                    cl->size(),
+  //                    [&](auto l, auto r) { return ordering->compare(l, r); },
+  //                    strictlyMax);
 }
 
 Ordering::Result compare(IrcPredicate l, IrcPredicate r);
