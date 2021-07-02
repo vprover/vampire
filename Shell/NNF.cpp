@@ -101,13 +101,16 @@ Formula* NNF::ennf (Formula* f, bool polarity)
   case LITERAL:
     {
       Literal* lit = f->literal();
+
+      // in general, it does not make sense to propagate polarity to literals
+      // (the only sensible special case would be, if the literal was actually a special term of type formula, but newcnf will cope if we don't "polarify" these)
       Literal* newLit = ennf(lit);
+
+      // take polarity into account here
+      newLit = polarity ? newLit : Literal::complementaryLiteral(lit);
+
       if (newLit == lit) {
-        if (polarity) {
-          return f;
-        } else {
-          return new AtomicFormula(Literal::complementaryLiteral(lit));
-        }
+        return f;
       } else {
         return new AtomicFormula(newLit);
       }
