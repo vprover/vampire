@@ -31,56 +31,9 @@
 #include "Test/SyntaxSugar.hpp"
 #include "Kernel/Substitution.hpp"
 #include "Indexing/TermIndex.hpp"
+#include "Test/BuilderPattern.hpp"
 
 namespace Test {
-
-template<class Field>
-struct DefaultValue {
-  using Type = typename Field::Type;
-  static Option<Type> value() { return Option<Type>(); }
-};
-
-template<class C>
-struct BuilderInitializer
-{ using Type = C; };
-
-template<class A>
-struct BuilderInitializer<Stack<A>>
-{ using Type = std::initializer_list<A>; };
-
-
-#define BUILDER_METHOD(Self, ty, field)                                                                       \
-private:                                                                                                      \
-  Option<ty> _##field;                                                                                        \
-                                                                                                              \
-  Option<ty> field() const                                                                                    \
-  {                                                                                                           \
-    return _##field.isSome()                                                                                  \
-         ? _##field                                                                                           \
-         : getDefault<__##field##_default>();                                                                 \
-  }                                                                                                           \
-                                                                                                              \
-public:                                                                                                       \
-  Self field(typename BuilderInitializer<ty>::Type field)                                                     \
-  {                                                                                                           \
-    _##field = Option<ty>(std::move(field));                                                                  \
-    return std::move(*this);                                                                                  \
-  }                                                                                                           \
-  struct __ ## field ## _default { using Type = ty; };                                                        \
-                                                                                                              \
-                                                                                                              \
-
-#define TERM_INDEX_TEST_SET_DEFAULT(field, val)                                                               \
-  template<> struct Test::DefaultValue<TermIndexTest::TestCase::__##field##_default>                          \
-  {                                                                                                           \
-    using Type = typename TermIndexTest::TestCase::__##field##_default::Type;                                 \
-    static Option<Type> value()                                                                               \
-    { return Option<Type>(val); }                                                                             \
-  }                                                                                                           \
-
-template<class Field>
-Option<typename Field::Type> getDefault()
-{ return DefaultValue<Field>::value(); }
 
 namespace TermIndexTest {
 

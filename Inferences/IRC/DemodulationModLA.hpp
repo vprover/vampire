@@ -17,8 +17,10 @@
 #define __IRC_DemodulationModLA__
 
 #include "Forwards.hpp"
+#include "Inferences/InferenceEngine.hpp"
+#include "Kernel/IRC.hpp"
 
-#include "Indexing/DemodulationModLA.hpp"
+#define UNIMPLEMENTED ASSERTION_VIOLATION
 
 namespace Inferences {
 namespace IRC {

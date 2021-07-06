@@ -1,5 +1,4 @@
-#include "DemodulationModuloLA.hpp"
-
+#include "DemodulationModLA.hpp"
 
 namespace Inferences {
 namespace IRC {

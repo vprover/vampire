@@ -18,7 +18,7 @@
 
 #include "Forwards.hpp"
 
-#include "Indexing/DemodulationModLA.hpp"
+#include "Inferences/IRC/DemodulationModLA.hpp"
 
 namespace Inferences {
 namespace IRC {

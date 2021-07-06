@@ -463,8 +463,12 @@ set(VAMPIRE_INFERENCE_SOURCES
     Inferences/IRC/VariableElimination.hpp
     Inferences/IRC/Superposition.cpp
     Inferences/IRC/Superposition.hpp
+    Inferences/IRC/DemodulationModLA.cpp
+    Inferences/IRC/DemodulationModLA.hpp
     Inferences/IRC/FwdDemodulationModLA.cpp
     Inferences/IRC/FwdDemodulationModLA.hpp
+    Inferences/IRC/BwdDemodulationModLA.cpp
+    Inferences/IRC/BwdDemodulationModLA.hpp
     Inferences/IRC/InequalityResolution.cpp
     Inferences/IRC/InequalityResolution.hpp
     Inferences/IRC/TermFactoring.cpp
@@ -791,6 +795,10 @@ set(VAMPIRE_CASC_SOURCES
 source_group(casc_source_files FILES ${VAMPIRE_CASC_SOURCES})
 
 set(VAMPIRE_TESTING_SOURCES
+    Test/TermIndexTester.hpp
+    Test/BuilderPattern.hpp
+    Test/SimplificationTester.hpp
+    Test/GenerationTester.hpp
     Test/UnitTesting.cpp
     Test/UnitTesting.hpp
     Test/SyntaxSugar.hpp
@@ -814,6 +822,7 @@ set(UNIT_TESTS
     UnitTests/tIRC_VariableElimination.cpp
     UnitTests/tIRC_TermFactoring.cpp
     UnitTests/tIRC_Totality.cpp
+    UnitTests/tIRC_DemodulationModLA.cpp
     UnitTests/tInequalityResolutionIndex.cpp
 
     UnitTests/tArithmeticSubtermGeneralization.cpp

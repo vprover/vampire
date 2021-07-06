@@ -53,8 +53,8 @@ InequalityResolutionIndex* inequalityResolutionIndex()
   return idx;
 }
 
-TERM_INDEX_TEST_SET_DEFAULT(withConstraints, true);
-TERM_INDEX_TEST_SET_DEFAULT(index, inequalityResolutionIndex());
+BUILDER_SET_DEFAULT(TermIndexTest::TestCase, withConstraints, true);
+BUILDER_SET_DEFAULT(TermIndexTest::TestCase, index, inequalityResolutionIndex());
 
 TEST_TERM_INDEX(test01,
     TermIndexTest::TestCase()

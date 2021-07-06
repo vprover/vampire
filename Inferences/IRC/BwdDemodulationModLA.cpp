@@ -1,4 +1,4 @@
-#include "BwdDemodulationModuloLA.hpp"
+#include "BwdDemodulationModLA.hpp"
 
 
 namespace Inferences {
@@ -8,12 +8,12 @@ namespace IRC {
 // INDEXING
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-void attach(SaturationAlgorithm* salg) final override
+void BwdDemodulationModLA::attach(SaturationAlgorithm* salg)
 {
   UNIMPLEMENTED
 }
 
-void detach() final override
+void BwdDemodulationModLA::detach()
 {
   UNIMPLEMENTED
 }
@@ -31,7 +31,7 @@ void detach() final override
  * the premise could be present in the simplification indexes at
  * the time of call to this method.
  */
-bool BwdDemodulationModLA::perform(Clause* premise, BwSimplificationRecordIterator& simplifications) override 
+void BwdDemodulationModLA::perform(Clause* premise, BwSimplificationRecordIterator& simplifications)
 {
   UNIMPLEMENTED
 }

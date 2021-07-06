@@ -1,4 +1,4 @@
-#include "FwdDemodulationModuloLA.hpp"
+#include "Inferences/IRC/FwdDemodulationModLA.hpp"
 
 
 namespace Inferences {
@@ -8,12 +8,12 @@ namespace IRC {
 // INDEXING
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-void attach(SaturationAlgorithm* salg) final override
+void FwdDemodulationModLA::attach(SaturationAlgorithm* salg)
 {
   UNIMPLEMENTED
 }
 
-void detach() final override
+void FwdDemodulationModLA::detach()
 {
   UNIMPLEMENTED
 }
@@ -32,7 +32,7 @@ void detach() final override
  * @b premises will contain clauses that justify the simplification
  * performed.
  */
-bool FwdDemodulationModLA::perform(Clause* cl, Clause*& replacement, ClauseIterator& premises) override 
+bool FwdDemodulationModLA::perform(Clause* cl, Clause*& replacement, ClauseIterator& premises)
 {
   UNIMPLEMENTED
 }
