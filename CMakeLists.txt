@@ -463,6 +463,8 @@ set(VAMPIRE_INFERENCE_SOURCES
     Inferences/IRC/VariableElimination.hpp
     Inferences/IRC/Superposition.cpp
     Inferences/IRC/Superposition.hpp
+    Inferences/IRC/FwdDemodulationModLA.cpp
+    Inferences/IRC/FwdDemodulationModLA.hpp
     Inferences/IRC/InequalityResolution.cpp
     Inferences/IRC/InequalityResolution.hpp
     Inferences/IRC/TermFactoring.cpp
