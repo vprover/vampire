@@ -26,6 +26,15 @@ struct AnyOf
 {
   shared_ptr<ClausePattern> lhs;
   shared_ptr<ClausePattern> rhs;
+// friend bool operator==( ClausePattern const& l, ClausePattern const& r)
+//   { return operator==((Copro const&)l,(Copro const&)r); }
+
+  friend bool operator==(AnyOf const& l, AnyOf const& r)
+  { return std::tie(l.lhs,l.rhs) == std::tie(r.lhs,r.rhs) ; }
+
+  friend bool operator<(AnyOf const& l, AnyOf const& r)
+  { return std::tie(l.lhs,l.rhs) < std::tie(r.lhs,r.rhs) ; }
+
 };
 
 /**
@@ -36,11 +45,12 @@ struct AnyOf
  */
 class ClausePattern : Coproduct<Kernel::Clause const*, AnyOf>
 {
+  using Copro =  Coproduct<Kernel::Clause const*, AnyOf>;
 public:
   ClausePattern(Kernel::Clause const* clause) 
-    : Coproduct<Kernel::Clause const*, AnyOf>(clause) {}
+    : Copro(clause) {}
 
-  ClausePattern(ClausePattern l, ClausePattern r) : Coproduct<Kernel::Clause const*, AnyOf>(AnyOf {
+  ClausePattern(ClausePattern l, ClausePattern r) : Copro(AnyOf {
         Lib::make_unique<ClausePattern>(std::move(l)),
         Lib::make_unique<ClausePattern>(std::move(r))
       }) {}
@@ -48,6 +58,12 @@ public:
   template<class EqualityOperator>
   bool matches(EqualityOperator& equality, Kernel::Clause const* result);
   friend ostream& operator<<(ostream& out, ClausePattern const& self);
+
+  friend bool operator==( ClausePattern const& l, ClausePattern const& r)
+  { return operator==((Copro const&)l,(Copro const&)r); }
+
+  friend bool operator<( ClausePattern const& l, ClausePattern const& r)
+  { return operator<((Copro const&)l,(Copro const&)r); }
 };
 
 inline ostream& operator<<(ostream& out, ClausePattern const& self) 

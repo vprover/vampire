@@ -425,6 +425,28 @@ public:
     return res;
   } // Stack::pop()
 
+  /** removes consecutive duplicates */
+  void dedup()
+  { dedup([](auto const& l, auto const& r) { return l == r; }); }
+
+  /** removes consecutive duplicates. instead of the operator== the given predicate is used */
+  template<class Equal>
+  void dedup(Equal eq)
+  { 
+    if (size() == 0) return;
+    unsigned offs = 0;
+    for (unsigned i = 1;  i < size(); i++) {
+      if (eq(this[offs], this[i])) {
+        /* skip */
+      } else {
+        this[offs++ + 1] = std::move(this[i]);
+      }
+    }
+    pop(size() - (offs + 1));
+  }
+
+  void sort()
+  { std::sort(begin(), end()); }
 
   inline
   void pop(unsigned cnt)

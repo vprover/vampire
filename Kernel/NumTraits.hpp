@@ -199,6 +199,8 @@ struct NumTraits;
       }                                                                                                       \
     }                                                                                                         \
     static Option<ConstantType> tryNumeral(Term* t) { return tryNumeral(TermList(t)); }                       \
+    static bool isNumeral(Term*    t) { return tryNumeral(t).isSome(); }                                      \
+    static bool isNumeral(TermList t) { return tryNumeral(t).isSome(); }                                      \
                                                                                                               \
     static const char* name() {return #CamelCase;}                                                            \
   };                                                                                                          \

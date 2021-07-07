@@ -94,33 +94,42 @@ public:
     }
 
     // add the clauses to the index
-    for (auto c : simplifyWith().unwrap()) {
+    auto simplifyWith = this->simplifyWith().unwrap();
+    for (auto c : simplifyWith) {
       container.add(c);
     }
 
     // simplify all the clauses in toSimplify
     Stack<Clause*> results;
     Stack<Clause*> justifications;
-    for (auto toSimpl : toSimplify().unwrap()) {
+    auto toSimpl = toSimplify().unwrap();
+    for (auto toSimpl : toSimpl) {
       Clause* replacement = nullptr;
       ClauseIterator premises;
       auto succ = fwd.perform(toSimpl, replacement, premises);
-      if (succ && replacement) {
-        results.push(replacement);
+      if (succ ) {
+        if (replacement) {
+          results.push(replacement);
+        }
+        justifications.loadFromIterator(premises);
       }
-      results.loadFromIterator(premises);
     }
+    justifications.sort();
+    justifications.dedup();
 
     // run checks
     auto expected = this->expected().unwrap();
-    auto expJust = this->justifications().unwrap();
+    auto expJust = this->justifications().unwrapOrElse([&]()
+        { return iterTraits(this->simplifyWith().unwrap().iterFifo())
+                    .map([](Clause* cl) -> ClausePattern { return cl; } )
+                    .template collect<Stack>(); });
 
     if (!TestUtils::permEq(expected, results, [&](auto exp, auto res) { return exp.matches(*this, res); })) {
       testFail("fwd", results, expected);
     }
 
     if (!TestUtils::permEq(expJust, justifications, [&](auto exp, auto res) { return exp.matches(*this, res); })) {
-      testFail("fwd (justifications)", results, expected);
+      testFail("fwd (justifications)", justifications, expJust);
     }
   }
 
@@ -138,21 +147,19 @@ public:
     }
 
     // add the clauses to the index
-    for (auto c : toSimplify().unwrap()) {
+    auto toSimpl = toSimplify().unwrap();
+    for (auto c : toSimpl) {
       container.add(c);
     }
 
     // simplify using every clause in simplifyWith.unwrap()
-    Stack<Clause*> results = toSimplify().unwrap();
-    for (auto cl : simplifyWith().unwrap()) {
+    Stack<Clause*> results; //= toSimplify().unwrap();
+    auto simplifyWith = this->simplifyWith().unwrap();
+    for (auto cl : simplifyWith) {
       Inferences::BwSimplificationRecordIterator simpls;
       bwd.perform(cl, simpls);
       for (auto simpl : iterTraits(simpls)) {
-        results = iterTraits(results.iterFifo())
-          .filterMap([&](auto r) 
-            { return r != simpl.toRemove ? Option<Clause*>(r)
-                     : simpl.replacement ? Option<Clause*>(simpl.replacement) : Option<Clause*>(); })
-          .template collect<Stack>();
+        results.push(simpl.replacement);
       }
     }
 

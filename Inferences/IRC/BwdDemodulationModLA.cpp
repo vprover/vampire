@@ -1,39 +1,40 @@
 #include "BwdDemodulationModLA.hpp"
 #include "Saturation/SaturationAlgorithm.hpp"
 
+#define DEBUG(...)  // DBG(__VA_ARGS__)
+using Demod = Inferences::IRC::DemodulationModLA;
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // INDEXING
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 namespace Indexing {
 
-void BwdDemodulationModLAIndex::handleClause(Clause* c, bool adding)
+void BwdDemodulationModLAIndex::handleClause(Clause* toSimplify, bool adding)
 {
   CALL("BwdDemodulationModLAIndex::handleClause");
   
-  UNIMPLEMENTED
-  // auto maxLits =  _shared->maxLiterals(c); // TODO use set instead of stack
-  // forEachNumTraits([&](auto numTraits){
-  //     using NumTraits = decltype(numTraits);
-  //     for (auto& maxTerm : _shared->maxAtomicTermsNonVar<NumTraits>(c)) {
-  //
-  //       
-  //       if (!maxTerm.self.tryNumeral().isSome() // <- skipping numerals
-  //           && maxTerm.ircLit.isInequality() // <- skipping equalities
-  //           && iterTraits(maxLits.iterFifo()).any([&](auto x){ return maxTerm.literal == x; })
-  //           ) {
-  //         auto term = maxTerm.self.factors->denormalize();
-  //         auto lit = maxTerm.literal;
-  //         if (adding) {
-  //           DEBUG("\tinserting: ", term);
-  //           _is->insert(term, lit, c);
-  //         } else {
-  //           DEBUG("\tremoving: ", term);
-  //           _is->remove(term, lit, c);
-  //         }
-  //       }
-  //     }
-  // });
+  for (auto pos : Demod::simplifyablePositions(*_shared, toSimplify)) {
+    if (pos.term.isTerm()) {
+      auto term = pos.term.term();
+      auto isRightNumberTerm = forAnyNumTraits([&](auto numTraits){
+          using NumTraits = decltype(numTraits);
+          return SortHelper::getResultSort(term) == NumTraits::sort()
+              && !NumTraits::isNumeral(term)
+              && !(NumTraits::mulF() == term->functor() && NumTraits::isNumeral(*term->nthArgument(0)) );
+                      // ^^^ term = k * t
+      });
+      if (isRightNumberTerm) {
+        if (adding) {
+          DEBUG("\tinserting: ", term);
+          _is->insert(pos.term, pos.lit, toSimplify);
+        } else {
+          DEBUG("\tremoving: ", term);
+          _is->remove(pos.term, pos.lit, toSimplify);
+        }
+      }
+    }
+  }
 }
 
 } // namespace Indexing
@@ -41,6 +42,17 @@ void BwdDemodulationModLAIndex::handleClause(Clause* c, bool adding)
 
 namespace Inferences {
 namespace IRC {
+
+
+#if VDEBUG
+void BwdDemodulationModLA::setTestIndices(Stack<Indexing::Index*> const& indices) 
+{
+  _index = (BwdDemodulationModLAIndex*) indices[0]; 
+  _index->setShared(_shared);
+}
+#endif
+
+
 
 void BwdDemodulationModLA::attach(SaturationAlgorithm* salg)
 {
@@ -69,6 +81,18 @@ void BwdDemodulationModLA::detach()
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
+auto applyResultSubstitution(ResultSubstitution& subs, TermList t)
+{ return subs.applyToBoundQuery(t); }
+
+auto applyResultSubstitution(ResultSubstitution& subs, Literal* lit)
+{ 
+  Stack<TermList> terms(lit->arity()); 
+  for (unsigned i = 0; i < lit->arity(); i++) {
+    terms.push(applyResultSubstitution(subs, *lit->nthArgument(i)));
+  }
+  return Literal::create(lit, terms.begin());
+}
+
 /**
  * Perform backward simplification with @b premise.
  *
@@ -78,7 +102,30 @@ void BwdDemodulationModLA::detach()
  */
 void BwdDemodulationModLA::perform(Clause* premise, BwSimplificationRecordIterator& simplifications)
 {
-  UNIMPLEMENTED
+  for (auto simpl : Demod::simplifiers(*_shared, premise)) {
+    auto simpls = simpl.apply([&](auto simpl){
+      auto s = simpl.monom.factors->denormalize();
+      auto inst = _index->getInstances(s, /* retrieveSubstitutions */ true);
+      Stack<BwSimplificationRecord> simpls;
+      while (inst.hasNext()) {
+        auto res = inst.next();
+
+        auto sigma = [&](auto t) 
+          { return res.substitution ? applyResultSubstitution(*res.substitution, t) : t; };
+
+        auto simplified = Demod::apply(*_shared, res.clause, premise, simpl.lit, simpl.monom.factors->denormalize(), simpl.monom.factors, sigma);
+        if (simplified.isSome()) {
+          simpls.push(BwSimplificationRecord(res.clause, simplified.unwrap()));
+        }
+      }
+      return simpls;
+    });
+    if (!simpls.isEmpty()) {
+      simplifications = pvi(ownedArrayishIterator(std::move(simpls)));
+      return;
+    }
+  }
+  simplifications = BwSimplificationRecordIterator::getEmpty();
 }
 
 } // namespace IRC

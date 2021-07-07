@@ -35,8 +35,11 @@ public:
 
   void setShared(shared_ptr<Kernel::IrcState> shared) { _shared = std::move(shared); }
 // protected:
-  void handleClause(Clause* c, bool adding) final override;
+  void handleClause(Clause* cl, bool adding) final override;
 private:
+  template<class NumTraits> void handle(Clause* cl, Literal* lit, IrcLiteral<NumTraits> norm, bool add);
+                            void handle(Clause* cl, Literal* lit, IrcLiteral<IntTraits> norm, bool add) { /* do nothing */ }
+
   shared_ptr<Kernel::IrcState> _shared;
 };
 
@@ -59,15 +62,18 @@ public:
 
   FwdDemodulationModLA(FwdDemodulationModLA&&) = default;
   FwdDemodulationModLA(shared_ptr<IrcState> shared) 
-    : _shared(std::move(shared))
+    : _shared(shared)
     , _index(nullptr)
-  {  }
+  { ASS(_shared); }
 
   void attach(SaturationAlgorithm* salg) final override;
   void detach() final override;
 
 
   virtual bool perform(Clause* cl, Clause*& replacement, ClauseIterator& premises) override;
+#if VDEBUG
+  virtual void setTestIndices(Stack<Indexing::Index*> const& indices) override;
+#endif // VDEBUG
 
 private:
   shared_ptr<IrcState> _shared;

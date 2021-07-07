@@ -44,7 +44,7 @@ using namespace Inferences::IRC;
   NUMBER_SUGAR(Num)                                                                                           \
   DECL_DEFAULT_VARS                                                                                           \
   DECL_FUNC(f, {Num}, Num)                                                                                    \
-  DECL_FUNC(g, {Num}, Num)                                                                                    \
+  DECL_FUNC(g, {Num, Num}, Num)                                                                               \
   DECL_CONST(a, Num)                                                                                          \
   DECL_CONST(b, Num)                                                                                          \
   DECL_CONST(c, Num)                                                                                          \
@@ -72,6 +72,13 @@ BUILDER_SET_DEFAULT(FwdBwdSimplification::TestCase, fwdIdx, { testFwdDemodulatio
 BUILDER_SET_DEFAULT(FwdBwdSimplification::TestCase, bwd   ,   testBwdDemodulationModLA     ()  );
 BUILDER_SET_DEFAULT(FwdBwdSimplification::TestCase, bwdIdx, { testBwdDemodulationModLAIndex() });
 
+// ±ks + t ≈ 0          C[sσ]
+// ============================
+//         C[sσ -> (∓ (1/k) t)σ]
+// where
+// • sσ is strictly max. in terms(s + t)σ 
+// • C[sσ] ≻ (±ks + t ≈ 0)σ
+
 /////////////////////////////////////////////////////////
 // Basic tests
 //////////////////////////////////////
@@ -81,7 +88,6 @@ TEST_SIMPLIFICATION(basic01,
       .simplifyWith({    clause(   { 0 == f(a) - a  }   ) })
       .toSimplify  ({    clause(   { p(f(a))        }   ) })
       .expected(    {    clause(   { p(  a )        }   ) })
-      .justifications({  clause(   { 0 == f(a) - a  }   )}) // TODO default justifications to everything
     )
 
 
@@ -99,7 +105,6 @@ TEST_SIMPLIFICATION(basic03,
       .simplifyWith({    clause(   { 0 == f(x) - x      }   ) })
       .toSimplify  ({    clause(   { r(f(a), f(b))      }   ) })
       .expected(    {    clause(   { r(  a , f(b))      }   ) })
-      .justifications({  clause(   {  0 == f(x) - x     }   )}) // TODO default justifications to everything
     )
 
 TEST_SIMPLIFICATION(basic04,
@@ -107,7 +112,6 @@ TEST_SIMPLIFICATION(basic04,
       .simplifyWith({    clause(   { 0 == f(x) - x }   ) })
       .toSimplify  ({    clause(   { p(f(a))       }   ) , clause(   { p(f(b)) }   ) })
       .expected(    {    clause(   { p(  a )       }   ) , clause(   { p(  b ) }   ) })
-      .justifications({  clause(   { 0 == f(x) - x }   )}) // TODO default justifications to everything
     )
 
 TEST_SIMPLIFICATION(basic05,
@@ -115,7 +119,6 @@ TEST_SIMPLIFICATION(basic05,
       .simplifyWith({    clause(   { 0 == f(a) - a }   ), clause(   { 0 == f(b) - b }   ) })
       .toSimplify  ({    clause(   { p(f(a)) }         ), clause(   { p(f(b)) }         ) })
       .expected(    {    clause(   { p(  a ) }         ), clause(   { p(  b ) }         ) })
-      .justifications({  clause(   { 0 == f(a) - a }   ), clause(   { 0 == f(b) - b }   ) }) // TODO default justifications to everything
     )
 
 TEST_SIMPLIFICATION(basic06,
@@ -123,7 +126,7 @@ TEST_SIMPLIFICATION(basic06,
       .simplifyWith({    clause(   { 0 == f(a) - a }   ), clause(   { 0 == f(b) - b }   ) })
       .toSimplify  ({    clause(   { p(f(a)) }         ), clause(   { p(f(f(a))) }         ) })
       .expected(    {    clause(   { p(  a ) }         ), clause(   { p(  f(a) ) }         ) })
-      .justifications({  clause(   { 0 == f(a) - a }   )}) // TODO default justifications to everything
+      .justifications({  clause(   {  0 == f(a) - a  }   ) })
     )
 
 TEST_SIMPLIFICATION(basic07,
@@ -131,14 +134,23 @@ TEST_SIMPLIFICATION(basic07,
       .simplifyWith({    clause(   { 0 == g(a, x) - x      }   ) })
       .toSimplify  ({    clause(   { p(g(a,b))             }   ) })
       .expected(    {    clause(   { p(    b )             }   ) })
-      .justifications({  clause(   { 0 == g(a, x) - x      }   )  }) // TODO default justifications to everything
     )
 
 TEST_SIMPLIFICATION(basic08,
     FwdBwdSimplification::TestCase()
       .simplifyWith({    clause(   { 0 == g(a, x) - x      }   ) })
       .toSimplify  ({    clause(   { p(g(y,b))             }   ) })
-      .expected(       { /* nothing */                     })
-      .justifications({}) 
+      .expected(      { /* nothing */ })
+      .justifications({ /* nothing */ }) 
+    )
+
+
+// checking `C[sσ] ≻ (±ks + t ≈ 0)σ`
+TEST_SIMPLIFICATION(ordering01,
+    FwdBwdSimplification::TestCase()
+      .simplifyWith({    clause(   { 0 == f(x) + g(y,y) }   ) })
+      .toSimplify  ({    clause(   { 0 == f(a)      }   ) })
+      .expected(    {    clause(   { /* nothing */  }   ) })
+      .justifications(             { /* nothing */  }      ) 
     )
 

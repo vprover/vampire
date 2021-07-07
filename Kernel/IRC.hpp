@@ -269,7 +269,7 @@ namespace Kernel {
     Ordering* const ordering;
     Shell::Options::UnificationWithAbstraction const uwa;
 
-    template<class NumTraits> Stack<Monom<NumTraits>> maxAtomicTerms(IrcLiteral<NumTraits>const& lit);
+    template<class NumTraits> Stack<Monom<NumTraits>> maxAtomicTerms(IrcLiteral<NumTraits>const& lit, bool strict = false);
     template<class NumTraits> Stack<MaxAtomicTerm<NumTraits>> maxAtomicTermsNonVar(Clause* cl);
     Stack<Literal*> maxLiterals(Clause* cl, bool strictlyMax = false);
     Stack<Literal*> strictlyMaxLiterals(Clause* cl) { return maxLiterals(cl, true); }
@@ -499,32 +499,47 @@ auto maxElements(GetElem getElem, unsigned size, Cmp compare, bool strictlyMax) 
 }
 
 
+// TODO check whether superposition modulo LA uses strictly max
 template<class NumTraits>
-Stack<Monom<NumTraits>> IrcState::maxAtomicTerms(IrcLiteral<NumTraits>const& lit)
+Stack<Monom<NumTraits>> IrcState::maxAtomicTerms(IrcLiteral<NumTraits>const& lit, bool strictlyMax)
 {
-  using Monom = Monom<NumTraits>;
-  Stack<Monom> max(lit.term().nSummands()); // TODO not sure whether this size allocation brings an advantage
-  auto monoms = lit.term().iterSummands().template collect<Stack>();
-  for (unsigned i = 0; i < monoms.size(); i++) {
-    auto isMax = true;
-    for (unsigned j = 0; j < monoms.size(); j++) {
-      auto cmp = ordering->compare(
-          monoms[i].factors->denormalize(), 
-          monoms[j].factors->denormalize());
-      if (cmp == Ordering::LESS) {
-          isMax = false;
-          break;
-      } else if(cmp == Ordering::EQUAL || cmp == Ordering::INCOMPARABLE || Ordering::GREATER) {
-        /* ok */
-      } else {
-        ASSERTION_VIOLATION_REP(cmp)
-      }
+  auto max = maxElements([&](auto i) { return lit.term().summandAt(i); }, 
+                     lit.term().nSummands(),
+                     [&](auto l, auto r) { return ordering->compare(l.factors->denormalize(), r.factors->denormalize()); },
+                     strictlyMax);
+
+  unsigned offs = 0;
+  for (unsigned i = 0; i < max.size(); i++) {
+    if (max[i].factors->tryVar().isSome()) {
+      /* we skip this one */
+    } else {
+      max[offs++] = max[i];
     }
-    if (isMax && monoms[i].factors->tryVar().isNone())  // TODO we don't wanna skip varibles in the future
-    // if (isMax)  // TODO we don't wanna skip varibles in the future
-      max.push(monoms[i]);
   }
+  max.pop(max.size() - offs);
   return max;
+  // Stack<Monom> max(lit.term().nSummands()); // TODO not sure whether this size allocation brings an advantage
+  // auto monoms = lit.term().iterSummands().template collect<Stack>();
+  // for (unsigned i = 0; i < monoms.size(); i++) {
+  //   auto isMax = true;
+  //   for (unsigned j = 0; j < monoms.size(); j++) {
+  //     auto cmp = ordering->compare(
+  //         monoms[i].factors->denormalize(), 
+  //         monoms[j].factors->denormalize());
+  //     if (cmp == Ordering::LESS) {
+  //         isMax = false;
+  //         break;
+  //     } else if(cmp == Ordering::EQUAL || cmp == Ordering::INCOMPARABLE || Ordering::GREATER) {
+  //       /* ok */
+  //     } else {
+  //       ASSERTION_VIOLATION_REP(cmp)
+  //     }
+  //   }
+  //   if (isMax && monoms[i].factors->tryVar().isNone())  // TODO we don't wanna skip varibles in the future
+  //   // if (isMax)  // TODO we don't wanna skip varibles in the future
+  //     max.push(monoms[i]);
+  // }
+  // return max;
 }
 
 template<class NumTraits> Stack<MaxAtomicTerm<NumTraits>> IrcState::maxAtomicTermsNonVar(Clause* cl)

@@ -59,7 +59,7 @@ public:
 
   BwdDemodulationModLA(BwdDemodulationModLA&&) = default;
   BwdDemodulationModLA(shared_ptr<IrcState> shared) 
-    : _shared(std::move(shared))
+    : _shared(shared)
     , _index(nullptr)
   {  }
 
@@ -68,6 +68,9 @@ public:
 
 
   virtual void perform(Clause* premise, BwSimplificationRecordIterator& simplifications) final override;
+#if VDEBUG
+  virtual void setTestIndices(Stack<Indexing::Index*> const& indices) override;
+#endif // VDEBUG
 
 private:
   shared_ptr<IrcState> _shared;

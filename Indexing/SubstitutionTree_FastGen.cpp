@@ -206,7 +206,7 @@ public:
   { return true; }
 
   virtual std::ostream& output(std::ostream& out) const final override 
-  { return out << _resultNormalizer; }
+  { return out << "SubstitutionTree::GenMatcher::Substitution"; }
 
 private:
   Applicator* getApplicator()
