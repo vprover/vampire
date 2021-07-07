@@ -37,7 +37,7 @@ public:
 
   void setShared(shared_ptr<Kernel::IrcState> shared) { _shared = std::move(shared); }
 // protected:
-  void handleClause(Clause* c, bool adding);
+  void handleClause(Clause* c, bool adding) final override;
 private:
   template<class NumTraits> bool handleLiteral(Literal* lit, Clause* c, bool adding);
 
@@ -57,7 +57,7 @@ public:
 
   void setShared(shared_ptr<Kernel::IrcState> shared) { _shared = std::move(shared); }
 // protected:
-  void handleClause(Clause* c, bool adding);
+  void handleClause(Clause* c, bool adding) final override;
 private:
   template<class NumTraits> bool handleInequality(Literal* lit, Clause* c, bool adding);
   bool handleUninterpreted(Literal* lit, Clause* c, bool adding);

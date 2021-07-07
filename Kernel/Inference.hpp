@@ -221,6 +221,10 @@ enum class InferenceRule : unsigned char {
   FORWARD_DEMODULATION,
   /** backward demodulation inference */
   BACKWARD_DEMODULATION,
+  /** forward demodulation modulo LA of the Inequality Resolution Calculus */
+  IRC_FWD_DEMODULATION,
+  /** backward demodulation modulo LA of the Inequality Resolution Calculus */
+  IRC_BWD_DEMODULATION,
   /** forward subsumption demodulation inference */
   FORWARD_SUBSUMPTION_DEMODULATION,
   /** backward subsumption demodulation inference */

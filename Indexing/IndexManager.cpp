@@ -25,6 +25,8 @@
 #include "LiteralSubstitutionTree.hpp"
 #include "TermIndex.hpp"
 #include "TermSubstitutionTree.hpp"
+#include "Inferences/IRC/FwdDemodulationModLA.hpp"
+#include "Inferences/IRC/BwdDemodulationModLA.hpp"
 
 #include "Shell/Statistics.hpp"
 
@@ -177,6 +179,18 @@ Index* IndexManager::create(IndexType t)
   case GENERATING_NON_UNIT_CLAUSE_SUBST_TREE:
     is=new LiteralSubstitutionTree(uwaMode);
     res=new NonUnitClauseLiteralIndex(is);
+    isGenerating = true;
+    break;
+
+  case IRC_FWD_DEMODULATION_SUBST_TREE:
+    tis=new TermSubstitutionTree(uwaMode, true);
+    res=new FwdDemodulationModLAIndex(tis);
+    isGenerating = true;
+    break;
+
+  case IRC_BWD_DEMODULATION_SUBST_TREE:
+    tis=new TermSubstitutionTree(uwaMode, true);
+    res=new BwdDemodulationModLAIndex(tis);
     isGenerating = true;
     break;
 

@@ -911,6 +911,10 @@ vstring Kernel::ruleName(InferenceRule rule)
     return "inequality resolution";
   case InferenceRule::IRC_NORMALIZATION:
     return "inequality normalization";
+  case InferenceRule::IRC_FWD_DEMODULATION:
+    return "forward demodulation modulo LA";
+  case InferenceRule::IRC_BWD_DEMODULATION:
+    return "backward demodulation modulo LA";
   case InferenceRule::MODEL_NOT_FOUND:
     return "finite model not found";
   case InferenceRule::INDUCTION_AXIOM:

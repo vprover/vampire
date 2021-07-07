@@ -77,7 +77,8 @@ public:
   BUILDER_METHOD(TestCase, Stack<ClausePattern>, justifications)
   BUILDER_METHOD(TestCase, ForwardSimplificationEngine* , fwd)
   BUILDER_METHOD(TestCase, BackwardSimplificationEngine*, bwd)
-  BUILDER_METHOD(TestCase, Stack<Indexing::Index*>, indices)
+  BUILDER_METHOD(TestCase, Stack<Indexing::Index*>, fwdIdx)
+  BUILDER_METHOD(TestCase, Stack<Indexing::Index*>, bwdIdx)
 
   void runFwd() 
   {
@@ -86,7 +87,7 @@ public:
 
     ForwardSimplificationEngine& fwd = *this->fwd().unwrap();
 
-    auto indices = this->indices().unwrapOr(Stack<Indexing::Index*>());
+    auto indices = this->fwdIdx().unwrapOr(Stack<Indexing::Index*>());
     fwd.setTestIndices(indices);
     for (auto i : indices) {
       i->attachContainer(&container);
@@ -130,7 +131,7 @@ public:
 
     BackwardSimplificationEngine& bwd = *this->bwd().unwrap();
 
-    auto indices = this->indices().unwrapOr(Stack<Indexing::Index*>());
+    auto indices = this->bwdIdx().unwrapOr(Stack<Indexing::Index*>());
     bwd.setTestIndices(indices);
     for (auto i : indices) {
       i->attachContainer(&container);

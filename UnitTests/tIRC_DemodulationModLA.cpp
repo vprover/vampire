@@ -55,22 +55,22 @@ using namespace Inferences::IRC;
 
 #define UWA_MODE Options::UnificationWithAbstraction::IRC1
 
-Indexing::Index* ircDemodulationIndex() 
-{ UNIMPLEMENTED }
-// { return new Indexing::DemodulationIndex(new TermSubstitutionTree(UWA_MODE, true)); }
+FwdDemodulationModLA* testFwdDemodulationModLA     () 
+{ return new FwdDemodulationModLA(testIrcState(UWA_MODE)); }
 
-FwdDemodulationModLA* testFwdDemodulationModLA()
-{ UNIMPLEMENTED }
-// { return FwdDemodulationModLA(testIrcState(UWA_MODE)); }
+Indexing::Index* testFwdDemodulationModLAIndex() 
+{ return new FwdDemodulationModLAIndex(new TermSubstitutionTree(UWA_MODE, /* useC = */ true)); }
 
-BwdDemodulationModLA* testBwdDemodulationModLA()
-{ UNIMPLEMENTED }
-// { return new Indexing::DemodulationIndex(new TermSubstitutionTree(UWA_MODE, true)); }
+BwdDemodulationModLA* testBwdDemodulationModLA     () 
+{ return new BwdDemodulationModLA(testIrcState(UWA_MODE)); }
 
-// REGISTER_SIMPL_TESTER(Test::FwdBwdSimplification::Tester<FwdDemodulationModLA, BwdDemodulationModLA>(testFwdDemodulationModLA(), testBwdDemodulationModLA()))
-//
-BUILDER_SET_DEFAULT(FwdBwdSimplification::TestCase, fwd, testFwdDemodulationModLA());
-BUILDER_SET_DEFAULT(FwdBwdSimplification::TestCase, bwd, testBwdDemodulationModLA());
+Indexing::Index* testBwdDemodulationModLAIndex() 
+{ return new BwdDemodulationModLAIndex(new TermSubstitutionTree(UWA_MODE, /* useC = */ true)); }
+
+BUILDER_SET_DEFAULT(FwdBwdSimplification::TestCase, fwd   ,   testFwdDemodulationModLA     ()  );
+BUILDER_SET_DEFAULT(FwdBwdSimplification::TestCase, fwdIdx, { testFwdDemodulationModLAIndex() });
+BUILDER_SET_DEFAULT(FwdBwdSimplification::TestCase, bwd   ,   testBwdDemodulationModLA     ()  );
+BUILDER_SET_DEFAULT(FwdBwdSimplification::TestCase, bwdIdx, { testBwdDemodulationModLAIndex() });
 
 /////////////////////////////////////////////////////////
 // Basic tests
@@ -78,7 +78,6 @@ BUILDER_SET_DEFAULT(FwdBwdSimplification::TestCase, bwd, testBwdDemodulationModL
 
 TEST_SIMPLIFICATION(basic01,
     FwdBwdSimplification::TestCase()
-      .indices({ ircDemodulationIndex() })
       .simplifyWith({    clause(   { 0 == f(a) - a  }   ) })
       .toSimplify  ({    clause(   { p(f(a))        }   ) })
       .expected(    {    clause(   { p(  a )        }   ) })
@@ -88,7 +87,6 @@ TEST_SIMPLIFICATION(basic01,
 
 TEST_SIMPLIFICATION(basic02,
     FwdBwdSimplification::TestCase()
-      .indices({ ircDemodulationIndex() })
       .simplifyWith({    clause(   { 0 == f(a) - a   }   )
                     ,    clause(   { 0 == g(b,a) - b }   ) })
       .toSimplify  ({    clause(   { r(f(a), f(b))   }   ) })
@@ -98,7 +96,6 @@ TEST_SIMPLIFICATION(basic02,
 
 TEST_SIMPLIFICATION(basic03,
     FwdBwdSimplification::TestCase()
-      .indices({ ircDemodulationIndex() })
       .simplifyWith({    clause(   { 0 == f(x) - x      }   ) })
       .toSimplify  ({    clause(   { r(f(a), f(b))      }   ) })
       .expected(    {    clause(   { r(  a , f(b))      }   ) })
@@ -107,7 +104,6 @@ TEST_SIMPLIFICATION(basic03,
 
 TEST_SIMPLIFICATION(basic04,
     FwdBwdSimplification::TestCase()
-      .indices({ ircDemodulationIndex() })
       .simplifyWith({    clause(   { 0 == f(x) - x }   ) })
       .toSimplify  ({    clause(   { p(f(a))       }   ) , clause(   { p(f(b)) }   ) })
       .expected(    {    clause(   { p(  a )       }   ) , clause(   { p(  b ) }   ) })
@@ -116,7 +112,6 @@ TEST_SIMPLIFICATION(basic04,
 
 TEST_SIMPLIFICATION(basic05,
     FwdBwdSimplification::TestCase()
-      .indices({ ircDemodulationIndex() })
       .simplifyWith({    clause(   { 0 == f(a) - a }   ), clause(   { 0 == f(b) - b }   ) })
       .toSimplify  ({    clause(   { p(f(a)) }         ), clause(   { p(f(b)) }         ) })
       .expected(    {    clause(   { p(  a ) }         ), clause(   { p(  b ) }         ) })
@@ -125,7 +120,6 @@ TEST_SIMPLIFICATION(basic05,
 
 TEST_SIMPLIFICATION(basic06,
     FwdBwdSimplification::TestCase()
-      .indices({ ircDemodulationIndex() })
       .simplifyWith({    clause(   { 0 == f(a) - a }   ), clause(   { 0 == f(b) - b }   ) })
       .toSimplify  ({    clause(   { p(f(a)) }         ), clause(   { p(f(f(a))) }         ) })
       .expected(    {    clause(   { p(  a ) }         ), clause(   { p(  f(a) ) }         ) })
@@ -134,7 +128,6 @@ TEST_SIMPLIFICATION(basic06,
 
 TEST_SIMPLIFICATION(basic07,
     FwdBwdSimplification::TestCase()
-      .indices({ ircDemodulationIndex() })
       .simplifyWith({    clause(   { 0 == g(a, x) - x      }   ) })
       .toSimplify  ({    clause(   { p(g(a,b))             }   ) })
       .expected(    {    clause(   { p(    b )             }   ) })
@@ -143,7 +136,6 @@ TEST_SIMPLIFICATION(basic07,
 
 TEST_SIMPLIFICATION(basic08,
     FwdBwdSimplification::TestCase()
-      .indices({ ircDemodulationIndex() })
       .simplifyWith({    clause(   { 0 == g(a, x) - x      }   ) })
       .toSimplify  ({    clause(   { p(g(y,b))             }   ) })
       .expected(       { /* nothing */                     })

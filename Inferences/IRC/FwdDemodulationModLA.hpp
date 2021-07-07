@@ -19,6 +19,29 @@
 #include "Forwards.hpp"
 
 #include "Inferences/IRC/DemodulationModLA.hpp"
+#include "Indexing/TermIndex.hpp"
+
+namespace Indexing {
+
+class FwdDemodulationModLAIndex
+: public TermIndex
+{
+public:
+  CLASS_NAME(FwdDemodulationModLAIndex);
+  USE_ALLOCATOR(FwdDemodulationModLAIndex);
+
+  FwdDemodulationModLAIndex(TermIndexingStructure* is)
+    : TermIndex(is) {}
+
+  void setShared(shared_ptr<Kernel::IrcState> shared) { _shared = std::move(shared); }
+// protected:
+  void handleClause(Clause* c, bool adding) final override;
+private:
+  shared_ptr<Kernel::IrcState> _shared;
+};
+
+} // namespace Indexing
+
 
 namespace Inferences {
 namespace IRC {
@@ -37,7 +60,7 @@ public:
   FwdDemodulationModLA(FwdDemodulationModLA&&) = default;
   FwdDemodulationModLA(shared_ptr<IrcState> shared) 
     : _shared(std::move(shared))
-    // , _index(nullptr)
+    , _index(nullptr)
   {  }
 
   void attach(SaturationAlgorithm* salg) final override;
@@ -48,7 +71,7 @@ public:
 
 private:
   shared_ptr<IrcState> _shared;
-  // IRCFwdDemodulationModLAIndex* _index;
+  FwdDemodulationModLAIndex* _index;
 };
 
 } // namespace IRC
