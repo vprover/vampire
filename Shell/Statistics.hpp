@@ -203,6 +203,8 @@ public:
   unsigned ircIrCnt;
   unsigned ircTermFacCnt;
   unsigned ircLitFacCnt;
+  unsigned ircFwdDemod;
+  unsigned ircBwdDemod;
 
   /** number of (proper) inner rewrites */
   unsigned innerRewrites;
