@@ -361,7 +361,15 @@ public:
   vstring toString(bool topLevel = true) const;
   static vstring variableToString(unsigned var);
   static vstring variableToString(TermList var);
-  /** return the arguments */
+
+  /** return the arguments 
+   *
+   *  WARNING: this function returns a pointer to the first argument
+   *  which could be a sort when dealing with a polymorphic problem!
+   * 
+   *  Use with care! Consider whether the termArgs() function may be more
+   *  suited to your needs before using this.
+   */
   const TermList* args() const
   { return _args + _arity; }
   /** return the nth argument (counting from 0) */
@@ -394,7 +402,15 @@ public:
   TermList operator[](int i) {
     return *nthArgument(i);
   }
-  /** return the arguments */
+
+  /** return the arguments 
+   *
+   *  WARNING: this function returns a pointer to the first argument
+   *  which could be a sort when dealing with a polymorphic problem!
+   * 
+   *  Use with care! Consider whether the termArgs() function may be more
+   *  suited to your needs before using this.
+   */  
   TermList* args()
   { return _args + _arity; }
   unsigned hash() const;
@@ -712,8 +728,8 @@ protected:
   MatchTag _matchTag;
 #endif
 
-  /** The list of arguments or size arity+1. The first argument stores the
-   *  term weight and the mask (the last two bits are 0).
+  /** The list of arguments of size type arity + term arity + 1. The first
+   *  argument stores the term weight and the mask (the last two bits are 0).
    */
   TermList _args[1];
 
