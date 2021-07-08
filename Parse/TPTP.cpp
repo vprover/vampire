@@ -2901,10 +2901,9 @@ void TPTP::term()
     
     case T_INTEGER_TYPE:
     case T_REAL_TYPE:
-    case T_RATIONAL_TYPE: {
-      //USER_ERROR("Polymorphic Vampire is currently not compatible with theory reasoning");
-      //the code below is in preparation for 
-      //when theorey reasoning is updated to deal with polymorphism
+    case T_RATIONAL_TYPE: 
+    case T_BOOL_TYPE:
+    case T_DEFAULT_TYPE: {
       resetToks();
       switch (tok.tag) {
         case T_INTEGER_TYPE:
@@ -2916,6 +2915,12 @@ void TPTP::term()
         case T_RATIONAL_TYPE:
           _termLists.push(AtomicSort::rationalSort());
           break;
+        case T_BOOL_TYPE:
+          _termLists.push(Term::boolSort());
+          break;
+        case T_DEFAULT_TYPE:
+          _termLists.push(Term::defaultSort());
+          break;             
         default:
           ASSERTION_VIOLATION;
       }
@@ -3081,6 +3086,13 @@ void TPTP::formulaInfix()
     return;
   }
 
+  if(env.signature->functionExists(name, arity)){
+    //with polymorphism, we can have function symbols that are used as predicates
+    _termLists.push(createFunctionApplication(name, arity));
+    _states.push(END_TERM_AS_FORMULA);
+    return;
+  }
+
   _formulas.push(createPredicateApplication(name, arity));
 } // formulaInfix
 
@@ -3236,7 +3248,7 @@ Formula* TPTP::createPredicateApplication(vstring name, unsigned arity)
     } else {
       static RobSubstitution subst;
       subst.reset();
-      if(!subst.match(sort, 0, tsSort, 1)){
+      if(!subst.match(sort, 0, tsSort, 1)){     
         USER_ERROR("The sort " + tsSort.toString() + " of term argument " + ts.toString() + " "
                    "is not an instance of sort " + sort.toString());
       }
@@ -3289,7 +3301,7 @@ TermList TPTP::createFunctionApplication(vstring name, unsigned arity)
     } else {
       static RobSubstitution subst;
       subst.reset();
-      if(!subst.match(sort, 0, ssSort, 1)){
+      if(!subst.match(sort, 0, ssSort, 1)){       
        //cout << "the type of " + name + " is " + type->toString() << endl; 
         USER_ERROR("The sort " + ssSort.toString() + " of term argument " + ss.toString() + " "
                    "is not an instance of sort " + sort.toString());
@@ -5234,13 +5246,13 @@ const char* TPTP::toString(State s)
 #ifdef DEBUG_SHOW_STATE
 void TPTP::printStacks() {
 
-  /*Stack<State>::Iterator stit(_states);
+  Stack<State>::Iterator stit(_states);
   cout << "States:";
   if   (!stit.hasNext()) cout << " <empty>";
   while (stit.hasNext()) cout << " " << toString(stit.next());
   cout << endl;
 
-  Stack<Type*>::Iterator tyit(_types);
+  /*Stack<Type*>::Iterator tyit(_types);
   cout << "Types:";
   if   (!tyit.hasNext()) cout << " <empty>";
   while (tyit.hasNext()) cout << " " << tyit.next()->tag();
@@ -5250,7 +5262,7 @@ void TPTP::printStacks() {
   cout << "Connectives:";
   if   (!cit.hasNext()) cout << " <empty>";
   while (cit.hasNext()) cout << " " << cit.next();
-  cout << endl; */
+  cout << endl; 
 
   Stack<vstring>::Iterator sit(_strings);
   cout << "Strings:";
@@ -5258,7 +5270,7 @@ void TPTP::printStacks() {
   while (sit.hasNext()) cout << " " << sit.next();
   cout << endl;
 
-  /*Stack<int>::Iterator iit(_ints);
+  Stack<int>::Iterator iit(_ints);
   cout << "Ints:";
   if   (!iit.hasNext()) cout << " <empty>";
   while (iit.hasNext()) cout << " " << iit.next();

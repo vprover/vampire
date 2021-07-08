@@ -83,11 +83,11 @@ INCLUDES= -I.
 Z3FLAG= -DVZ3=0
 Z3LIB=
 ifeq (,$(shell echo $(MAKECMDGOALS) | sed 's/.*z3.*//g')) 
-INCLUDES= -I. -I../z3/src/api -I../z3/src/api/c++ 
+INCLUDES= -I. -Iz3/src/api -Iz3/src/api/c++ 
 ifeq (,$(shell echo $(MAKECMDGOALS) | sed 's/.*static.*//g'))
-Z3LIB= -Linclude -lz3 -lgomp -pthread  -Wl,--whole-archive -lrt -lpthread -Wl,--no-whole-archive -ldl
+Z3LIB= -Lz3/build -lz3 -lgomp -pthread  -Wl,--whole-archive -lrt -lpthread -Wl,--no-whole-archive -ldl
 else
-Z3LIB= -Linclude -lz3
+Z3LIB= -Lz3/build -lz3
 endif
 
 Z3FLAG= -DVZ3=1
