@@ -235,8 +235,7 @@ Option<Clause*> DemodulationModLA::apply(
   {
     auto ks_t_sigma = sigma((*Hyp1)[0]);
     for (auto lit : iterTraits(C->iterLits())) {
-      auto lit_sigma = sigma(lit);
-      auto cmp = shared.ordering->compare(lit_sigma, ks_t_sigma);
+      auto cmp = shared.ordering->compare(lit, ks_t_sigma);
       if (cmp != Ordering::Result::GREATER) {
         return nothing;
       }

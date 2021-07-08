@@ -185,3 +185,10 @@ TEST_SIMPLIFICATION(sum01,
     )
 
 
+TEST_SIMPLIFICATION(bug01,
+    FwdBwdSimplification::TestCase()
+      .simplifyWith({    clause(   { 0 == g(x, y) - y  }   ) })
+      .toSimplify  ({    clause(   { p(g(z,a))         }   ) })
+      .expected(    {    clause(   { p(    a )         }   ) })
+    )
+
