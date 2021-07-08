@@ -128,6 +128,8 @@ Statistics::Statistics()
     ircIrCnt(0),
     ircTermFacCnt(0),
     ircLitFacCnt(0),
+    ircFwdDemod(0),
+    ircBwdDemod(0),
 
     innerRewrites(0),
     innerRewritesToEqTaut(0),
@@ -428,7 +430,9 @@ void Statistics::print(ostream& out)
   SEPARATOR;
 
   HEADING("Inequality Resolution Calculus", ircVarElimKNonZeroCnt + ircVarElimKSum + ircVarElimCnt + ircVarElimKMax
-                                          + ircTotCnt + ircSupCnt + ircIrCnt + ircTermFacCnt + ircLitFacCnt );
+                                          + ircTotCnt + ircSupCnt + ircIrCnt + ircTermFacCnt + ircLitFacCnt 
+                                          + ircFwdDemod + ircBwdDemod
+                                          );
 
   COND_OUT("ircVarElimKNonZeroCnt" , ircVarElimKNonZeroCnt);
   COND_OUT("ircVarElimKSum" , ircVarElimKSum);
@@ -439,6 +443,8 @@ void Statistics::print(ostream& out)
   COND_OUT("ircIrCnt", ircIrCnt);
   COND_OUT("ircTermFacCnt", ircTermFacCnt);
   COND_OUT("ircLitFacCnt", ircLitFacCnt);
+  COND_OUT("ircFwdDemod", ircFwdDemod);
+  COND_OUT("ircBwdDemod", ircBwdDemod);
 
   SEPARATOR;
 

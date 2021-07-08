@@ -21,6 +21,7 @@
 #include "Kernel/IRC.hpp"
 #include "Kernel/EqHelper.hpp"
 #include "Kernel/FormulaVarIterator.hpp"
+#include "Shell/Statistics.hpp"
 
 #define UNIMPLEMENTED ASSERTION_VIOLATION
 
