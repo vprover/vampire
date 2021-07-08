@@ -90,6 +90,13 @@ TEST_SIMPLIFICATION(basic01,
       .expected(    {    clause(   { p(  a )        }   ) })
     )
 
+TEST_SIMPLIFICATION(basic01b,
+    FwdBwdSimplification::TestCase()
+      .simplifyWith({    clause(   { 0 == -f(a) + a  }   ) })
+      .toSimplify  ({    clause(   { p(f(a))         }   ) })
+      .expected(    {    clause(   { p(  a )         }   ) })
+    )
+
 
 TEST_SIMPLIFICATION(basic02,
     FwdBwdSimplification::TestCase()
@@ -144,13 +151,37 @@ TEST_SIMPLIFICATION(basic08,
       .justifications({ /* nothing */ }) 
     )
 
+TEST_SIMPLIFICATION(basic09,
+    FwdBwdSimplification::TestCase()
+      .simplifyWith({    clause(   { 0 == frac(1,3) * f(g(a,a)) - a  }   ) })
+      .toSimplify  ({    clause(   { p( f(g(a,a)))                   }   ) })
+      .expected(    {    clause(   { p(3 * a)                        }   ) })
+    )
 
 // checking `C[sσ] ≻ (±ks + t ≈ 0)σ`
 TEST_SIMPLIFICATION(ordering01,
     FwdBwdSimplification::TestCase()
-      .simplifyWith({    clause(   { 0 == f(x) + g(y,y) }   ) })
-      .toSimplify  ({    clause(   { 0 == f(a)      }   ) })
-      .expected(    {    clause(   { /* nothing */  }   ) })
-      .justifications(             { /* nothing */  }      ) 
+      .simplifyWith({    clause(   { 0 == f(x) + g(x,x) }   ) })
+      .toSimplify  ({    clause(   { 0 == g(a,a)    }   ) })
+      .expected(    {                /* nothing */        })
+      .justifications({              /* nothing */        }) 
     )
+
+// checking `sσ ≻ terms(t)σ`
+TEST_SIMPLIFICATION(ordering02,
+    FwdBwdSimplification::TestCase()
+      .simplifyWith({    clause(   { 0 == f(x) + g(y,y) }       ) })
+      .toSimplify  ({    clause(   { 0 == g(a,a) + f(x) + a }   ) })
+      .expected(    {                /* nothing */        })
+      .justifications({              /* nothing */        }) 
+    )
+
+// checking `sσ ≻ terms(t)σ`
+TEST_SIMPLIFICATION(sum01,
+    FwdBwdSimplification::TestCase()
+      .simplifyWith({    clause(   { 0 == x + g(x,x) + a }       ) })
+      .toSimplify  ({    clause(   { p(g(f(f(a)),f(f(a))))  }   ) })
+      .expected(    {    clause(   { p(    - a - f(f(a)) )  }   ) })
+    )
+
 

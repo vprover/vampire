@@ -96,7 +96,7 @@ auto applyResultSubstitution(ResultSubstitution& subs, Literal* lit)
 /**
  * Perform backward simplification with @b premise.
  *
- * Descendant classes should pay attention to the possibility that
+ * Descendant classes should pay attention to the possibility that TODO check this pay attention stuff
  * the premise could be present in the simplification indexes at
  * the time of call to this method.
  */
@@ -107,15 +107,27 @@ void BwdDemodulationModLA::perform(Clause* premise, BwSimplificationRecordIterat
       auto s = simpl.monom.factors->denormalize();
       auto inst = _index->getInstances(s, /* retrieveSubstitutions */ true);
       Stack<BwSimplificationRecord> simpls;
+      Set<Clause*> simplified;
       while (inst.hasNext()) {
         auto res = inst.next();
-
-        auto sigma = [&](auto t) 
-          { return res.substitution ? applyResultSubstitution(*res.substitution, t) : t; };
-
-        auto simplified = Demod::apply(*_shared, res.clause, premise, simpl.lit, simpl.monom.factors->denormalize(), simpl.monom.factors, sigma);
-        if (simplified.isSome()) {
-          simpls.push(BwSimplificationRecord(res.clause, simplified.unwrap()));
+        auto toSimpl = res.clause;
+        if (simplified.contains(toSimpl)) {
+          /* We skip this potential simplification, because we do not simplify the same clause in 
+           * two different ways with the same equality. 
+           * This could result into things like 
+           *   r(f(a), f(a)) ==> { r(a, f(a)), r(f(a), a) } ==> { r(a,a), r(a,a) }
+           * instead of
+           *   r(f(a), f(a)) ==> r(a, f(a)) ==> r(a,a)
+           * (for premise 0 = f(a) - a)
+           */
+        } else {
+          auto sigma = [&](auto t) 
+            { return res.substitution ? applyResultSubstitution(*res.substitution, t) : t; };
+          auto maybeSimpl = Demod::apply(*_shared, toSimpl, premise, simpl.lit, simpl.monom.factors->denormalize(), simpl.monom.factors, sigma);
+          if (maybeSimpl.isSome()) {
+            simplified.insert(toSimpl);
+            simpls.push(BwSimplificationRecord(toSimpl, maybeSimpl.unwrap()));
+          }
         }
       }
       return simpls;

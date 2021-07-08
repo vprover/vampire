@@ -33,6 +33,28 @@
 
 namespace Test {
 
+  /** removes consecutive duplicates. instead of the operator== the given predicate is used */
+  template<class A, class Equal>
+  void dedup(Stack<A>& self, Equal eq)
+{ 
+    if (self.size() == 0) return;
+    unsigned offs = 0;
+    for (unsigned i = 1;  i < self.size(); i++) {
+      if (eq(self[offs], self[i])) {
+        /* skip */
+      } else {
+        self[offs++ + 1] = std::move(self[i]);
+      }
+    }
+    self.pop(self.size() - (offs + 1));
+  }
+
+  /** removes consecutive duplicates */
+  template<class A>
+  void dedup(Stack<A>& self)
+  { dedup(self, [](auto const& l, auto const& r) { return l == r; }); }
+
+
 namespace FwdBwdSimplification {
 class TestCase;
 
@@ -56,6 +78,19 @@ public:
 class TestCase
 {
   using Clause = Kernel::Clause;
+
+  
+
+  void testFail(vstring const& test, Lib::Exception& e) 
+  {
+      cout  << endl;
+      cout << "[         test ]: " <<                  test  << endl;
+      cout << "[   toSimplify ]: " << pretty(  toSimplify()) << endl;
+      cout << "[ simplifyWith ]: " << pretty(simplifyWith()) << endl;
+      cout << "[    exception ]: " << endl;
+      e.cry(cout);
+      exit(-1);
+  }
 
   template<class Is, class Expected>
   void testFail(vstring const& test, Is const& is, Expected const& expected) 
@@ -106,7 +141,13 @@ public:
     for (auto toSimpl : toSimpl) {
       Clause* replacement = nullptr;
       ClauseIterator premises;
-      auto succ = fwd.perform(toSimpl, replacement, premises);
+      bool succ;
+      try {
+        succ = fwd.perform(toSimpl, replacement, premises);
+      } catch (Lib::Exception& e) { 
+        testFail("fwd", e); 
+      }
+
       if (succ ) {
         if (replacement) {
           results.push(replacement);
@@ -116,6 +157,7 @@ public:
     }
     justifications.sort();
     justifications.dedup();
+    // dedup(justifications);
 
     // run checks
     auto expected = this->expected().unwrap();
@@ -157,7 +199,11 @@ public:
     auto simplifyWith = this->simplifyWith().unwrap();
     for (auto cl : simplifyWith) {
       Inferences::BwSimplificationRecordIterator simpls;
-      bwd.perform(cl, simpls);
+      try {
+        bwd.perform(cl, simpls);
+      } catch (Lib::Exception& e) { 
+        testFail("bwd", e); 
+      }
       for (auto simpl : iterTraits(simpls)) {
         results.push(simpl.replacement);
       }

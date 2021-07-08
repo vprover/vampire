@@ -425,28 +425,38 @@ public:
     return res;
   } // Stack::pop()
 
-  /** removes consecutive duplicates */
-  void dedup()
-  { dedup([](auto const& l, auto const& r) { return l == r; }); }
 
   /** removes consecutive duplicates. instead of the operator== the given predicate is used */
-  template<class Equal>
-  void dedup(Equal eq)
+  template<class Equal = std::equal_to<C>>
+  void dedup(Equal eq = std::equal_to<C>{})
   { 
-    if (size() == 0) return;
+    auto& self = *this;
+    if (self.size() == 0) return;
     unsigned offs = 0;
-    for (unsigned i = 1;  i < size(); i++) {
-      if (eq(this[offs], this[i])) {
+    for (unsigned i = 1;  i < self.size(); i++) {
+      if (eq(self[offs], self[i])) {
         /* skip */
       } else {
-        this[offs++ + 1] = std::move(this[i]);
+        self[offs++ + 1] = std::move(self[i]);
       }
     }
-    pop(size() - (offs + 1));
+    self.pop(self.size() - (offs + 1));
   }
 
-  void sort()
-  { std::sort(begin(), end()); }
+  /** like Stack::dedup but moves the content out of `this` and returns the resulting Stack instead of changing the contents of this  */
+  template<class Equal = std::equal_to<C>>
+  Stack deduped(Equal eq = std::equal_to<C>{})
+  { dedup(); return std::move(*this); }
+
+  template<class Less = std::less<C>>
+  void sort(Less less = std::less<C>{})
+  { std::sort(begin(), end(), less); }
+
+
+  /** like Stack::sort but moves the content out of `this` and returns the resulting Stack instead of changing the contents of this */
+  template<class Equal = std::equal_to<C>>
+  Stack sorted(Equal eq = std::equal_to<C>{})
+  { sort(); return std::move(*this); }
 
   inline
   void pop(unsigned cnt)

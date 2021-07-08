@@ -150,7 +150,7 @@ public:
       // other
       bool reverseLCM);
 
-  static KBO testKBO();
+  static KBO testKBO(bool randomized = true);
 
   virtual ~KBO();
   void showConcrete(ostream&) const override;

@@ -451,20 +451,25 @@ KBO::KBO(
   checkAdmissibility(throwError);
 }
 
-KBO KBO::testKBO() 
+KBO KBO::testKBO(bool randomized)
 {
+  auto rng = [](int i) -> int { return Random::getInteger() % i; };
 
-  auto funcPrec = []() -> DArray<int>{
+  auto funcPrec = [&]() -> DArray<int>{
     unsigned num = env.signature->functions();
     DArray<int> out(num);
     out.initFromIterator(getRangeIterator(0u, num));
+    if (randomized) 
+      std::random_shuffle(out.begin(), out.end(), rng);
     return out;
   };
 
-  auto predPrec = []() -> DArray<int>{
+  auto predPrec = [&]() -> DArray<int>{
     unsigned num = env.signature->predicates();
     DArray<int> out(num);
     out.initFromIterator(getRangeIterator(0u, num));
+    if (randomized) 
+      std::random_shuffle(out.begin(), out.end(), rng);
     return out;
   };
 
@@ -472,9 +477,9 @@ KBO KBO::testKBO()
     { return PrecedenceOrdering::testLevels(); };
 
   return KBO(
-      KboWeightMap<FuncSigTraits>::randomized(),
+      randomized ? KboWeightMap<FuncSigTraits>::randomized() : KboWeightMap<FuncSigTraits>::dflt(),
 #if __KBO__CUSTOM_PREDICATE_WEIGHTS__
-      KboWeightMap<PredSigTraits>::randomized(), 
+      randomized ? KboWeightMap<PredSigTraits>::randomized() : KboWeightMap<PredSigTraits>::dflt(),
 #endif
       funcPrec(),
       predPrec(),

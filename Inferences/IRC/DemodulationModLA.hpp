@@ -20,6 +20,7 @@
 #include "Inferences/InferenceEngine.hpp"
 #include "Kernel/IRC.hpp"
 #include "Kernel/EqHelper.hpp"
+#include "Kernel/FormulaVarIterator.hpp"
 
 #define UNIMPLEMENTED ASSERTION_VIOLATION
 
@@ -52,7 +53,7 @@ public:
                         TermList s,
                         Perfect<MonomFactors<NumTraits>> s_norm,
                         Sigma sigma);
- 
+
   template<class Sigma> 
   static Option<Clause*> apply(
                         IrcState& shared,
@@ -115,6 +116,34 @@ public:
   template<class NumTraits>
   static auto __simplifiers(IrcState& shared, Clause* simplifyWith, IrcLiteral<NumTraits> lit)
   {
+
+    // auto nothing = []() { return pvi(Option<AnySimplification>().intoIter()); };
+    //
+    // auto nSummands = lit.term().nSummands();
+    // if (nSummands == 0) { return nothing(); }
+    // auto factors = lit.term()
+    //   .iterSummands()
+    //   .map([&](auto monom) { return monom.factors->denormalize(); })
+    //   .template collect<Stack>();
+    //
+    // for (auto i = 0; i < nSummands; i++) {
+    //   auto max = true;
+    //   for (auto j = 0; j < nSummands; j++) {
+    //     if (i != j && shared.ordering->compare(factors[i], factors[j]) != Ordering::GREATER) {
+    //       max = false;
+    //       break;
+    //     }
+    //   }
+    //   if (max) {
+    //     return pvi(Option<AnySimplification>(AnySimplification(Simplification<NumTraits>{
+    //           .lit = lit,
+    //           .monom = lit.term().summandAt(i),
+    //     })).intoIter());
+    //   }
+    // }
+    // return nothing();
+
+
     return pvi(iterTraits(ownedArrayishIterator(shared.maxAtomicTerms(lit, /* strictlyMax */ true)))
       .map([lit](auto monom) { 
           return AnySimplification(Simplification<NumTraits> {
@@ -170,6 +199,37 @@ Option<Clause*> DemodulationModLA::apply(
   ASS((*Hyp1)[0]->isEquality())
   ASS((*Hyp1)[0]->isPositive())
 
+  auto k = ks_t.term().iterSummands()
+             .find([&](auto monom) { return monom.factors == s_norm; })
+             .unwrap().numeral;
+
+  auto replacement =  // <- (∓ (1/k) t)σ
+    NumTraits::sum( 
+      ks_t.term().iterSummands()
+       .filter([&](auto monom) { return monom.factors != s_norm; })
+       .map([&](auto monom) { return (monom / -k).denormalize(); }));
+
+  auto s_sigma = sigma(s);
+  // checking `sσ ≻ (∓ (1/k) t)σ` and applying sigma to replacement
+  {
+    FormulaVarIterator vars(&replacement);
+    while (vars.hasNext()) {
+      if (!s.isFreeVariable(vars.next())) {
+        // this is a hack that works only with KBO like variables and is needed 
+        // because we cannot apply the substitution sigma to replacement if it 
+        // contains variables that are not in `s`
+        return nothing;
+      }
+    }
+
+    replacement = sigma(replacement);
+
+    if (shared.ordering->compare(s_sigma, replacement) != Ordering::GREATER) {
+      return nothing;
+    }
+  }
+     
+
   // checking `C[sσ] ≻ (±ks + t ≈ 0)σ`
   {
     auto ks_t_sigma = sigma((*Hyp1)[0]);
@@ -182,18 +242,6 @@ Option<Clause*> DemodulationModLA::apply(
     }
   }
 
-  auto k = ks_t.term().iterSummands()
-             .find([&](auto monom) { return monom.factors == s_norm; })
-             .unwrap().numeral;
-
-  auto replacement =  // <- (∓ (1/k) t)σ
-    sigma(NumTraits::sum( 
-      ks_t.term().iterSummands()
-       .filter([&](auto monom) { return monom.factors != s_norm; })
-       .map([&](auto monom) { return (monom / -k).denormalize(); })));
-     
-
-  auto s_sigma = sigma(s);
   auto lits = iterTraits(C->iterLits())
     .map([&](auto lit) { return EqHelper::replace(lit, s_sigma, replacement); })
     .template collect<Stack>();

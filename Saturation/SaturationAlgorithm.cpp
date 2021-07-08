@@ -52,6 +52,8 @@
 #include "Inferences/IRC/Totality.hpp"
 #include "Inferences/IRC/Superposition.hpp"
 #include "Inferences/IRC/VariableElimination.hpp"
+#include "Inferences/IRC/FwdDemodulationModLA.hpp"
+#include "Inferences/IRC/BwdDemodulationModLA.hpp"
 #include "Inferences/EquationalTautologyRemoval.hpp"
 #include "Inferences/Condensation.hpp"
 #include "Inferences/FastCondensation.hpp"
@@ -1633,6 +1635,8 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
       auto& lakbo = dynamic_cast<Kernel::LaKbo&>(ordering);
       lakbo.setState(shared);
     } catch (std::bad_cast) { /* do nothing */ }
+    res->addForwardSimplifierToFront(new IRC::FwdDemodulationModLA(shared));
+    res->addBackwardSimplifierToFront(new IRC::BwdDemodulationModLA(shared));
     sgi->push(new IRC::VariableElimination(shared, env.options->ircVariableEliminationSimplifying())); 
     sgi->push(new IRC::LiteralFactoring(shared)); 
     sgi->push(new IRC::Superposition(shared)); 

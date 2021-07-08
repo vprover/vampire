@@ -50,8 +50,6 @@ bool InequalityNormalizer::isNormalized(Clause* cl)  const
   for (unsigned i = 0; i < cl->size(); i++) {
     auto lit = (*cl)[i];
     if(lit != normalizeLiteral(lit)) {
-      DBG(cl->toString())
-      DBG(*lit, " != ", *normalizeLiteral(lit))
       return false;
     }
   }
@@ -60,7 +58,7 @@ bool InequalityNormalizer::isNormalized(Clause* cl)  const
 
 #if VDEBUG
 shared_ptr<IrcState> testIrcState(Options::UnificationWithAbstraction uwa) {
-  auto& ord = *new LaKbo(Kernel::KBO::testKBO());
+  auto& ord = *new LaKbo(Kernel::KBO::testKBO(/* randomized */ false));
   return shared_ptr<IrcState>(new IrcState {
       .normalizer = InequalityNormalizer(),
       .ordering = &ord,
