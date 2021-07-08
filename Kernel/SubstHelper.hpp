@@ -277,6 +277,7 @@ TermList SubstHelper::applyImpl(TermList trm, Applicator& applicator, bool noSha
  * bound inside the formula.
  *
  * This function can handle special terms.
+ * This function can handle the substitution of sorts.
  */
 template<bool ProcessSpecVars, class Applicator>
 Term* SubstHelper::applyImpl(Term* trm, Applicator& applicator, bool noSharing)
@@ -467,6 +468,7 @@ Term* SubstHelper::applyImpl(Term* trm, Applicator& applicator, bool noSharing)
  * bound inside the formula.
  *
  * This function can handle special terms.
+ * This function can handle the substitution of sorts. 
  */
 template<bool ProcessSpecVars, class Applicator>
 Formula* SubstHelper::applyImpl(Formula* f, Applicator& applicator, bool noSharing)

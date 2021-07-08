@@ -70,6 +70,9 @@ Term* TermTransformer::transform(Term* term)
       args.truncate(args.length() - orig->arity()); // potentially evil. Calls destructors on the truncated objects, which we are happily reading just below
       Term* newTrm;
       if(orig->isSort()){
+        //For most applications we probably dont want to transform sorts.
+        //However, we don't enforce that here, inheriting classes can decide
+        //for themselves        
         newTrm=AtomicSort::create(static_cast<AtomicSort*>(orig), argLst);
       } else {
         newTrm=Term::create(orig,argLst);

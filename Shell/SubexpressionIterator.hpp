@@ -51,6 +51,11 @@ namespace Shell {
        * and B must be negative because of the negation. To handle that correctly,
        * we first propagate the negative polarity from the formula to its underlying
        * boolean term, and then from the boolean terms to their underlying formulas.
+       *
+       * NOTE: this iterator returns sort terms as well. As of 08/07/2021, the only 
+       * use of this iterator is in Property.cpp where sorts are NOT required. 
+       * However, sorts are sub-expressions, so to keep the iterator intuitive we
+       * leave the code as is.
        */
       class Expression {
         public:
