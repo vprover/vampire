@@ -2916,10 +2916,10 @@ void TPTP::term()
           _termLists.push(AtomicSort::rationalSort());
           break;
         case T_BOOL_TYPE:
-          _termLists.push(Term::boolSort());
+          _termLists.push(AtomicSort::boolSort());
           break;
         case T_DEFAULT_TYPE:
-          _termLists.push(Term::defaultSort());
+          _termLists.push(AtomicSort::defaultSort());
           break;             
         default:
           ASSERTION_VIOLATION;
