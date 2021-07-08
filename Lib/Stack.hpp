@@ -18,6 +18,7 @@
 #define __Stack__
 
 #include <cstdlib>
+#include <algorithm>
 
 #include "Forwards.hpp"
 
