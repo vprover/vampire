@@ -21,6 +21,8 @@ set(VAMPIRE_BINARY_HASH)
 set(VAMPIRE_BINARY_BRANCH)
 set(VAMPIRE_BINARY_REV_COUNT)
 
+find_package(Threads REQUIRED)
+
 # set build type if not set
 if(NOT CMAKE_BUILD_TYPE)
   message(STATUS "Setting build type to 'Release' as none was specified.")
