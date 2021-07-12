@@ -337,9 +337,10 @@ TermList* Term::termArgs()
   CALL("Term::termArgs");
   ASS(!isSort());
 
-  unsigned typeArgsArity = isLiteral() ? 
+  unsigned typeArgsArity = isSpecial() ? 0 : 
+                          (isLiteral() ? 
                     env.signature->getPredicate(_functor)->typeArgsArity() :
-                    env.signature->getFunction(_functor)->typeArgsArity();
+                    env.signature->getFunction(_functor)->typeArgsArity());
 
   return _args + (_arity - typeArgsArity);
 }
