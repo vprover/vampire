@@ -74,13 +74,6 @@ void Options::init()
 {
    CALL("Options::init");
 
-   // some options that were not give names previously
-    _forceIncompleteness = BoolOptionValue("force_incompleteness","",false);
-    _equivalentVariableRemoval = BoolOptionValue("equivalentVariableRemoval","",true);
-    _bpCollapsingPropagation = BoolOptionValue("bp_collapsing_propagation","",false);
-    _backjumpTargetIsDecisionPoint = BoolOptionValue("backjump_target_is_decision_point","",true);
-    _selectUnusedVariablesFirst = BoolOptionValue("_selectUnusedVariablesFirst","",false);
-
 //**********************************************************************
 //*********************** GLOBAL, for all modes  ***********************
 //**********************************************************************
@@ -250,16 +243,6 @@ void Options::init()
     _lookup.insert(&_badOption);
     _badOption.tag(OptionTag::HELP);
 
-
-/*
- * TODO: Not currently used, bring back?
-    _namePrefix = StringOptionValue("name_prefix","","");
-    _namePrefix.description=
-    "Prefix for symbols introduced by Vampire (naming predicates, Skolem functions)";
-    _lookup.insert(&_namePrefix);
-    _namePrefix.tag(OptionTag::OUTPUT);
-*/
-
     // Do we really need to be able to set this externally?
     _problemName = StringOptionValue("problem_name","","");
     _problemName.description="";
@@ -297,11 +280,6 @@ void Options::init()
       " The option is still under development and the format of extra information (mainly from full) may change between minor releases";
     _lookup.insert(&_proofExtra);
     _proofExtra.tag(OptionTag::OUTPUT);
-
-    _proofChecking = BoolOptionValue("proof_checking","",false);
-    _proofChecking.description="";
-    _lookup.insert(&_proofChecking);
-    _proofChecking.setExperimental(); // don't think it works!
 
     _protectedPrefix = StringOptionValue("protected_prefix","","");
     _protectedPrefix.description="Symbols with this prefix are immune against elimination during preprocessing";
@@ -363,17 +341,6 @@ void Options::init()
     _lookup.insert(&_inputSyntax);
     _inputSyntax.tag(OptionTag::INPUT);
 
-    _smtlibConsiderIntsReal = BoolOptionValue("smtlib_consider_ints_real","",false);
-    _smtlibConsiderIntsReal.description="All integers will be considered to be reals by the SMTLIB parser";
-    _lookup.insert(&_smtlibConsiderIntsReal);
-    _smtlibConsiderIntsReal.tag(OptionTag::INPUT);
-
-    _smtlibFletAsDefinition = BoolOptionValue("smtlib_flet_as_definition","",false);
-    _smtlibFletAsDefinition.description="";
-    _lookup.insert(&_smtlibFletAsDefinition);
-    _smtlibFletAsDefinition.setExperimental();
-    _smtlibFletAsDefinition.tag(OptionTag::INPUT);
-
     _guessTheGoal = ChoiceOptionValue<GoalGuess>("guess_the_goal","gtg",GoalGuess::OFF,{"off","all","exists_top","exists_all","exists_sym","position"});
     _guessTheGoal.description = "Use heuristics to guess formulas that correspond to the goal. Doesn't "
                                 "really make sense if there is already a goal but it will still do something. "
@@ -421,8 +388,6 @@ void Options::init()
     _sosTheoryLimit.tag(OptionTag::PREPROCESSING);
     _sosTheoryLimit.reliesOn(_sos.is(equal(Sos::THEORY)));
 
-
-
     _equalityProxy = ChoiceOptionValue<EqualityProxy>( "equality_proxy","ep",EqualityProxy::OFF,{"R","RS","RST","RSTC","off"});
     _equalityProxy.description="Applies the equality proxy transformation to the problem. It works as follows:\n"
      " - All literals s=t are replaced by E(s,t)\n"
@@ -442,7 +407,7 @@ void Options::init()
     _equalityProxy.setRandomChoices(isRandOn(),{"R","RS","RST","RSTC","off","off","off","off","off"}); // wasn't tested, make off more likely
     
     _useMonoEqualityProxy = BoolOptionValue("mono_ep","mep",false);
-    _useMonoEqualityProxy.description="Use the mnomorphic version of equality proxy transformation.";
+    _useMonoEqualityProxy.description="Use the monomorphic version of equality proxy transformation.";
     _lookup.insert(&_useMonoEqualityProxy);
     _useMonoEqualityProxy.tag(OptionTag::PREPROCESSING);
 
@@ -544,6 +509,33 @@ void Options::init()
     _sineTolerance.reliesOn(_sineSelection.is(notEqual(SineSelection::OFF)));
     _sineTolerance.setRandomChoices({"1.0","1.2","1.5","2.0","3.0","5.0"});
 
+    _sineToAge = BoolOptionValue("sine_to_age","s2a",false);
+    _lookup.insert(&_sineToAge);
+    _sineToAge.tag(OptionTag::DEVELOPMENT);
+
+    _sineToPredLevels = ChoiceOptionValue<PredicateSineLevels>("sine_to_pred_levels","s2pl",PredicateSineLevels::OFF,{"no","off","on"});
+    _sineToPredLevels.description = "Assign levels to predicate symbols as they are used to trigger axioms during SInE computation. "
+        "Then used then as predicateLevels determining the ordering. on means conjecture symbols are larger, no means the opposite. (equality keeps its standard lowest level).";
+    _lookup.insert(&_sineToPredLevels);
+    _sineToPredLevels.tag(OptionTag::DEVELOPMENT);
+    _sineToPredLevels.addHardConstraint(If(notEqual(PredicateSineLevels::OFF)).then(_literalComparisonMode.is(notEqual(LiteralComparisonMode::PREDICATE))));
+    _sineToPredLevels.addHardConstraint(If(notEqual(PredicateSineLevels::OFF)).then(_literalComparisonMode.is(notEqual(LiteralComparisonMode::REVERSE))));
+
+    // Like generality threshold for SiNE, except used by the sine2age trick
+    _sineToAgeGeneralityThreshold = UnsignedOptionValue("sine_to_age_generality_threshold","s2agt",0);
+    _lookup.insert(&_sineToAgeGeneralityThreshold);
+    _sineToAgeGeneralityThreshold.tag(OptionTag::DEVELOPMENT);
+    _sineToAgeGeneralityThreshold.reliesOn(Or(_sineToAge.is(equal(true)),_sineToPredLevels.is(notEqual(PredicateSineLevels::OFF))));
+
+    // Like generality threshold for SiNE, except used by the sine2age trick
+    _sineToAgeTolerance = FloatOptionValue("sine_to_age_tolerance","s2at",1.0);
+    _lookup.insert(&_sineToAgeTolerance);
+    _sineToAgeTolerance.tag(OptionTag::DEVELOPMENT);
+    _sineToAgeTolerance.addConstraint(Or(equal(0.0f),greaterThanEq(1.0f)));
+    // Captures that if the value is not 1.0 then sineSelection must be on
+    _sineToAgeTolerance.reliesOn(Or(_sineToAge.is(equal(true)),_sineToPredLevels.is(notEqual(PredicateSineLevels::OFF))));
+    _sineToAgeTolerance.setRandomChoices({"1.0","1.2","1.5","2.0","3.0","5.0"});
+
     _naming = IntOptionValue("naming","nm",8);
     _naming.description="Introduce names for subformulas. Given a subformula F(x1,..,xk) of formula G a new predicate symbol is introduced as a name for F(x1,..,xk) by adding the axiom n(x1,..,xk) <=> F(x1,..,xk) and replacing F(x1,..,xk) with n(x1,..,xk) in G. The value indicates how many times a subformula must be used before it is named.";
     _lookup.insert(&_naming);
@@ -557,13 +549,6 @@ void Options::init()
     _lookup.insert(&_newCNF);
     _newCNF.tag(OptionTag::PREPROCESSING);
     _newCNF.setRandomChoices({"on","off"});
-
-    _iteInliningThreshold = IntOptionValue("ite_inlining_threshold","", 0);
-    _iteInliningThreshold.description="Threashold of inlining of if-then-else expressions. "
-                                      "0 means that all expressions are named. "
-                                      "<0 means that all expressions are inlined.";
-    _lookup.insert(&_iteInliningThreshold);
-    _iteInliningThreshold.tag(OptionTag::PREPROCESSING);
 
     _inlineLet = BoolOptionValue("inline_let","ile",false);
     _inlineLet.description="Always inline let-expressions.";
@@ -585,12 +570,6 @@ void Options::init()
 
 //*********************** Output  ***********************
 
-    // how is this used?
-    _logFile = StringOptionValue("log_file","","off");
-    _logFile.description="";
-    //_lookup.insert(&_logFile);
-    _logFile.tag(OptionTag::OUTPUT);
-
     _latexOutput = StringOptionValue("latex_output","","off");
     _latexOutput.description="File that will contain proof in the LaTeX format.";
     _lookup.insert(&_latexOutput);
@@ -606,7 +585,6 @@ void Options::init()
     _outputAxiomNames.description="Preserve names of axioms from the problem file in the proof output";
     _lookup.insert(&_outputAxiomNames);
     _outputAxiomNames.tag(OptionTag::OUTPUT);
-
 
     _printClausifierPremises = BoolOptionValue("print_clausifier_premises","",false);
     _printClausifierPremises.description="Output how the clausified problem was derived.";
@@ -638,34 +616,6 @@ void Options::init()
     _lookup.insert(&_showNew);
     _showNew.tag(OptionTag::DEVELOPMENT);
 
-    _sineToAge = BoolOptionValue("sine_to_age","s2a",false);
-    _lookup.insert(&_sineToAge);
-    _sineToAge.tag(OptionTag::DEVELOPMENT);
-
-
-    _sineToPredLevels = ChoiceOptionValue<PredicateSineLevels>("sine_to_pred_levels","s2pl",PredicateSineLevels::OFF,{"no","off","on"});
-    _sineToPredLevels.description = "Assign levels to predicate symbols as they are used to trigger axioms during SInE computation. "
-        "Then used then as predicateLevels determining the ordering. on means conjecture symbols are larger, no means the opposite. (equality keeps its standard lowest level).";
-    _lookup.insert(&_sineToPredLevels);
-    _sineToPredLevels.tag(OptionTag::DEVELOPMENT);
-    _sineToPredLevels.addHardConstraint(If(notEqual(PredicateSineLevels::OFF)).then(_literalComparisonMode.is(notEqual(LiteralComparisonMode::PREDICATE))));
-    _sineToPredLevels.addHardConstraint(If(notEqual(PredicateSineLevels::OFF)).then(_literalComparisonMode.is(notEqual(LiteralComparisonMode::REVERSE))));
-
-    // Like generality threshold for SiNE, except used by the sine2age trick
-    _sineToAgeGeneralityThreshold = UnsignedOptionValue("sine_to_age_generality_threshold","s2agt",0);
-    _lookup.insert(&_sineToAgeGeneralityThreshold);
-    _sineToAgeGeneralityThreshold.tag(OptionTag::DEVELOPMENT);
-    _sineToAgeGeneralityThreshold.reliesOn(Or(_sineToAge.is(equal(true)),_sineToPredLevels.is(notEqual(PredicateSineLevels::OFF))));
-
-    // Like generality threshold for SiNE, except used by the sine2age trick
-    _sineToAgeTolerance = FloatOptionValue("sine_to_age_tolerance","s2at",1.0);
-    _lookup.insert(&_sineToAgeTolerance);
-    _sineToAgeTolerance.tag(OptionTag::DEVELOPMENT);
-    _sineToAgeTolerance.addConstraint(Or(equal(0.0f),greaterThanEq(1.0f)));
-    // Captures that if the value is not 1.0 then sineSelection must be on
-    _sineToAgeTolerance.reliesOn(Or(_sineToAge.is(equal(true)),_sineToPredLevels.is(notEqual(PredicateSineLevels::OFF))));
-    _sineToAgeTolerance.setRandomChoices({"1.0","1.2","1.5","2.0","3.0","5.0"});
-
     _showSplitting = BoolOptionValue("show_splitting","",false);
     _showSplitting.description="Show updates within AVATAR";
     _lookup.insert(&_showSplitting);
@@ -680,7 +630,6 @@ void Options::init()
     _showNonconstantSkolemFunctionTrace.description="Show introduction of non-constant skolem functions.";
     _lookup.insert(&_showNonconstantSkolemFunctionTrace);
     _showNonconstantSkolemFunctionTrace.tag(OptionTag::DEVELOPMENT);
-
 
     _showPassive = BoolOptionValue("show_passive","",false);
     _showPassive.description="Show clauses added to the passive set.";
@@ -733,7 +682,6 @@ void Options::init()
     _showInduction.description = "Print information about induction";
     _lookup.insert(&_showInduction);
     _showInduction.tag(OptionTag::OUTPUT);
-
 
     _showSimplOrdering = BoolOptionValue("show_ordering","",false);
     _showSimplOrdering.description = "Display the used simplification ordering's parameters.";
@@ -1802,7 +1750,7 @@ void Options::init()
     _splittingMinimizeModel.setRandomChoices({"off","sco","all"});
 
     _splittingEagerRemoval = BoolOptionValue("avatar_eager_removal","aer",true);
-    _splittingEagerRemoval.description="If a component was in the model and then becomes 'don't care' eagerly remove that component from the first-order solver. Note: only has any impact when smm is used.";
+    _splittingEagerRemoval.description="If a component was in the model and then becomes 'don't care' eagerly remove that component from the first-order solver. Note: only has any impact when amm is used.";
     _lookup.insert(&_splittingEagerRemoval);
     _splittingEagerRemoval.tag(OptionTag::AVATAR);
     _splittingEagerRemoval.reliesOn(_splitting.is(equal(true)));
@@ -1928,15 +1876,6 @@ void Options::init()
     _lookup.insert(&_increasedNumeralWeight);
     _increasedNumeralWeight.tag(OptionTag::SATURATION);
 
-
-    _interpretedSimplification = BoolOptionValue("interpreted_simplification","",false);
-    _interpretedSimplification.description=
-             "Performs simplifications of interpreted functions. This option requires interpreted_evaluation to be enabled as well. IMPORTANT - Currently not supported";
-    _lookup.insert(&_interpretedSimplification);
-    _interpretedSimplification.tag(OptionTag::OTHER);
-    _interpretedSimplification.setExperimental();
-
-
     _literalComparisonMode = ChoiceOptionValue<LiteralComparisonMode>("literal_comparison_mode","lcm",
                                                                       LiteralComparisonMode::STANDARD,
                                                                       {"predicate","reverse","standard"});
@@ -1947,27 +1886,6 @@ void Options::init()
     _literalComparisonMode.addProblemConstraint(hasPredicates());
     // TODO: if sat then should not use reverse
     _literalComparisonMode.setRandomChoices({"predicate","reverse","standard"});
-
-
-    _maxActive = LongOptionValue("max_active","",0);
-    _maxActive.description="";
-    //_lookup.insert(&_maxActive);
-    _maxActive.tag(OptionTag::OTHER);
-
-    _maxAnswers = IntOptionValue("max_answers","",1);
-    _maxAnswers.description="";
-    //_lookup.insert(&_maxAnswers);
-    _maxAnswers.tag(OptionTag::OTHER);
-
-    _maxInferenceDepth = IntOptionValue("max_inference_depth","",0);
-    _maxInferenceDepth.description="";
-    //_lookup.insert(&_maxInferenceDepth);
-    _maxInferenceDepth.tag(OptionTag::OTHER);
-
-    _maxPassive = LongOptionValue("max_passive","",0);
-    _maxPassive.description="";
-    //_lookup.insert(&_maxPassive);
-    _maxPassive.tag(OptionTag::OTHER);
 
     _nonGoalWeightCoefficient = NonGoalWeightOptionValue("nongoal_weight_coefficient","nwc",1.0);
     _nonGoalWeightCoefficient.description=
@@ -2103,16 +2021,10 @@ void Options::init()
     _symbolPrecedenceBoost.tag(OptionTag::SATURATION);
     _lookup.insert(&_symbolPrecedenceBoost);
 
-    _weightIncrement = BoolOptionValue("weight_increment","",false);
-    _weightIncrement.description="";
-    //_lookup.insert(&_weightIncrement);
-    _weightIncrement.tag(OptionTag::OTHER);
-
 
     //******************************************************************
     //*********************** Vinter???  *******************************
     //******************************************************************
-
     
     _colorUnblocking = BoolOptionValue("color_unblocking","",false);
     _colorUnblocking.description="";
@@ -2126,112 +2038,6 @@ void Options::init()
     _lookup.insert(&_showInterpolant);
     _showInterpolant.tag(OptionTag::OTHER);
     _showInterpolant.setExperimental();
-
-//******************************************************************
-//*********************** Bound Propagation  ***********************
-//******************************************************************
-    
-/*
-    _whileNumber = IntOptionValue("while_number","",1);
-    _whileNumber.description="";
-    _lookup.insert(&_whileNumber);
-    _whileNumber.tag(Mode::BOUND_PROP);
-    
-    _functionNumber = IntOptionValue("function_number","",1);
-    _functionNumber.description="";
-    _lookup.insert(&_functionNumber);
-    _functionNumber.tag(Mode::BOUND_PROP);
-    _functionNumber.tag(OptionTag::PREPROCESSING);
-    
-    _bpCollapsingPropagation = BoolOptionValue("bp_add_collapsing_inequalities","",false); // ASSUMED default, wasn't in Options
-    _bpCollapsingPropagation.description="";
-    _lookup.insert(&_bpCollapsingPropagation);
-    _bpCollapsingPropagation.tag(Mode::BOUND_PROP);
-    _bpCollapsingPropagation.reliesOn(_mode.is(equal(Mode::BOUND_PROP)));
-    
-    _bpAllowedFMBalance = UnsignedOptionValue("bp_allowed_fm_balance","",0);
-    _bpAllowedFMBalance.description="";
-    _lookup.insert(&_bpAllowedFMBalance);
-    _bpAllowedFMBalance.tag(Mode::BOUND_PROP);
-    _bpAllowedFMBalance.reliesOn(_mode.is(equal(Mode::BOUND_PROP)));
-    
-    _bpAlmostHalfBoundingRemoval= ChoiceOptionValue<BPAlmostHalfBoundingRemoval>("bp_almost_half_bounding_removal","",
-                                                                                 BPAlmostHalfBoundingRemoval::ON,{"bounds_on","off","on"});
-    _bpAlmostHalfBoundingRemoval.description="";
-    _lookup.insert(&_bpAlmostHalfBoundingRemoval);
-    _bpAlmostHalfBoundingRemoval.tag(Mode::BOUND_PROP);
-    _bpAlmostHalfBoundingRemoval.reliesOn(_mode.is(equal(Mode::BOUND_PROP)));
-    
-    _bpAssignmentSelector = ChoiceOptionValue<BPAssignmentSelector>("bp_assignment_selector","",
-                                                                    BPAssignmentSelector::RANDOM,
-                                                                    {"alternating","bmp","lower_bound",
-                                                                        "middle","random","rational","smallest",
-                                                                        "tight","tightish","upper_bound"});
-    _bpAssignmentSelector.description="";
-    _lookup.insert(&_bpAssignmentSelector);
-    _bpAssignmentSelector.tag(Mode::BOUND_PROP);
-    _bpAssignmentSelector.reliesOn(_mode.is(equal(Mode::BOUND_PROP)));
-    
-    _updatesByOneConstraint= UnsignedOptionValue("bp_bound_improvement_limit","",3);
-    _updatesByOneConstraint.description="";
-    _lookup.insert(&_updatesByOneConstraint);
-    _updatesByOneConstraint.tag(Mode::BOUND_PROP);
-    _updatesByOneConstraint.reliesOn(_mode.is(equal(Mode::BOUND_PROP)));
-    
-    _bpConflictSelector = ChoiceOptionValue<BPConflictSelector>("bp_conflict_selector","",
-                                                                BPConflictSelector::MOST_RECENT,{"least_recent","most_recent","shortest"});
-    _bpConflictSelector.description="";
-    _lookup.insert(&_bpConflictSelector);
-    _bpConflictSelector.tag(Mode::BOUND_PROP);
-    _bpConflictSelector.reliesOn(_mode.is(equal(Mode::BOUND_PROP)));
-    
-    _bpConservativeAssignmentSelection = BoolOptionValue("bp_conservative_assignment_selection","",true);
-    _bpConservativeAssignmentSelection.description="";
-    _lookup.insert(&_bpConservativeAssignmentSelection);
-    _bpConservativeAssignmentSelection.tag(Mode::BOUND_PROP);
-    _bpConservativeAssignmentSelection.reliesOn(_mode.is(equal(Mode::BOUND_PROP)));
-    
-    _bpFmElimination= BoolOptionValue("bp_fm_elimination","",true);
-    _bpFmElimination.description="";
-    _lookup.insert(&_bpFmElimination);
-    _bpFmElimination.tag(Mode::BOUND_PROP);
-    _bpFmElimination.reliesOn(_mode.is(equal(Mode::BOUND_PROP)));
-    
-    _maximalPropagatedEqualityLength = UnsignedOptionValue("bp_max_prop_length","",5);
-    _maximalPropagatedEqualityLength.description="";
-    _lookup.insert(&_maximalPropagatedEqualityLength);
-    _maximalPropagatedEqualityLength.tag(Mode::BOUND_PROP);
-    _maximalPropagatedEqualityLength.reliesOn(_mode.is(equal(Mode::BOUND_PROP)));
-    
-    _bpPropagateAfterConflict = BoolOptionValue("bp_propagate_after_conflict","",true);
-    _bpPropagateAfterConflict.description="";
-    _lookup.insert(&_bpPropagateAfterConflict);
-    _bpPropagateAfterConflict.tag(Mode::BOUND_PROP);
-    _bpPropagateAfterConflict.reliesOn(_mode.is(equal(Mode::BOUND_PROP)));
-    
-    _bpStartWithPrecise = BoolOptionValue("bp_start_with_precise","",false);
-    _bpStartWithPrecise.description="";
-    _lookup.insert(&_bpStartWithPrecise);
-    _bpStartWithPrecise.tag(Mode::BOUND_PROP);
-    _bpStartWithPrecise.reliesOn(_mode.is(equal(Mode::BOUND_PROP)));
-    
-    _bpStartWithRational = BoolOptionValue("bp_start_with_rational","",false);
-    _bpStartWithRational.description="";
-    _lookup.insert(&_bpStartWithRational);
-    _bpStartWithRational.tag(Mode::BOUND_PROP);
-    _bpStartWithRational.reliesOn(_mode.is(equal(Mode::BOUND_PROP)));
-    
-    _bpVariableSelector = ChoiceOptionValue<BPVariableSelector>("bp_variable_selector","",
-                                                                BPVariableSelector::TIGHTEST_BOUND,
-                                                                {"conflicting","conflicting_and_collapsing",
-                                                                    "first","look_ahead","random","recent_collapsing",
-                                                                    "recent_conflicting","tightest_bound"});
-    _bpVariableSelector.description="";
-    _lookup.insert(&_bpVariableSelector);
-    _bpVariableSelector.tag(Mode::BOUND_PROP);
-    _bpVariableSelector.reliesOn(_mode.is(equal(Mode::BOUND_PROP)));
-*/
-
     
  // Declare tag names
     
