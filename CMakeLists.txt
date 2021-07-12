@@ -606,6 +606,7 @@ set(VAMPIRE_SHELL_SOURCES
     Shell/Naming.cpp
     Shell/NNF.cpp
     Shell/Normalisation.cpp
+    Shell/Shuffling.cpp    
     Shell/Options.cpp
     #Shell/PDUtils.cpp
     Shell/PredicateDefinition.cpp
@@ -956,7 +957,7 @@ endif() # COMPILE_TESTS
 #################################################################
 # automated generation of Vampire revision information from git #
 #################################################################
-set(VAMPIRE_VERSION_NUMBER 4.5.1)
+set(VAMPIRE_VERSION_NUMBER 4.6.0)
 
 execute_process(
     COMMAND git rev-parse --is-inside-work-tree

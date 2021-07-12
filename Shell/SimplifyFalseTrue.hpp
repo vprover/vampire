@@ -39,7 +39,12 @@ class SimplifyFalseTrue
 {
 public:
   static FormulaUnit* simplify(FormulaUnit*);
-  static Formula* simplify(Formula*);
+  static Formula* simplify(Formula* f){
+    auto res = innerSimplify(f);
+    res->label(f->getLabel());
+    return res;
+  }
+  static Formula* innerSimplify(Formula*);
   static TermList simplify(TermList);
 }; // class SimplifyFalseTrue
 

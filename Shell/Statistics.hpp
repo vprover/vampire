@@ -419,6 +419,7 @@ public:
     /** Scanning for properties to be passed to preprocessing */
     PROPERTY_SCANNING,
     NORMALIZATION,
+    SHUFFLING,
     SINE_SELECTION,
     INCLUDING_THEORY_AXIOMS,
     PREPROCESS_1,

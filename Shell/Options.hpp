@@ -1959,6 +1959,7 @@ public:
   vstring ltbDirectory() const { return _ltbDirectory.actualValue; }
   Mode mode() const { return _mode.actualValue; }
   Schedule schedule() const { return _schedule.actualValue; }
+  int experimentalScheduleNumber() const { return _experimentalScheduleNumber.actualValue; }
   vstring scheduleName() const { return _schedule.getStringOfValue(_schedule.actualValue); }
   void setSchedule(Schedule newVal) {  _schedule.actualValue = newVal; }
   unsigned multicore() const { return _multicore.actualValue; }
@@ -1967,6 +1968,7 @@ public:
   void setInputSyntax(InputSyntax newVal) { _inputSyntax.actualValue = newVal; }
   bool normalize() const { return _normalize.actualValue; }
   void setNormalize(bool normalize) { _normalize.actualValue = normalize; }
+  bool shuffleInput() const { return _shuffleInput.actualValue; }
   GoalGuess guessTheGoal() const { return _guessTheGoal.actualValue; }
   unsigned gtgLimit() const { return _guessTheGoalLimit.actualValue; }
   void setMaxXX(unsigned max) { _maximumXXNarrows.actualValue = max; }
@@ -1976,8 +1978,8 @@ public:
   void setInclude(vstring val) { _include.actualValue = val; }
   vstring inputFile() const { return _inputFile.actualValue; }
   int activationLimit() const { return _activationLimit.actualValue; }
-  int randomSeed() const { return _randomSeed.actualValue; }
-  int randomStrategySeed() const { return _randomStrategySeed.actualValue; }
+  unsigned randomSeed() const { return _randomSeed.actualValue; }
+  unsigned randomStrategySeed() const { return _randomStrategySeed.actualValue; }
   bool printClausifierPremises() const { return _printClausifierPremises.actualValue; }
 
   // IMPORTANT, if you add a showX command then include showAll
@@ -2133,6 +2135,7 @@ public:
   QuestionAnsweringMode questionAnswering() const { return _questionAnswering.actualValue; }
   Output outputMode() const { return _outputMode.actualValue; }
   void setOutputMode(Output newVal) { _outputMode.actualValue = newVal; }
+  bool ignoreMissingInputsInUnsatCore() {  return _ignoreMissingInputsInUnsatCore.actualValue; }
   vstring thanks() const { return _thanks.actualValue; }
   void setQuestionAnswering(QuestionAnsweringMode newVal) { _questionAnswering.actualValue = newVal; }
   bool globalSubsumption() const { return _globalSubsumption.actualValue; }
@@ -2487,11 +2490,13 @@ private:
   UnsignedOptionValue _memoryLimit; // should be size_t, making an assumption
   ChoiceOptionValue<Mode> _mode;
   ChoiceOptionValue<Schedule> _schedule;
+  IntOptionValue _experimentalScheduleNumber;
   UnsignedOptionValue _multicore;
 
   IntOptionValue _naming;
   BoolOptionValue _nonliteralsInClauseWeight;
   BoolOptionValue _normalize;
+  BoolOptionValue _shuffleInput;
 
   BoolOptionValue _outputAxiomNames;
 
@@ -2506,8 +2511,8 @@ private:
 
   ChoiceOptionValue<QuestionAnsweringMode> _questionAnswering;
 
-  IntOptionValue _randomSeed;
-  IntOptionValue _randomStrategySeed;
+  UnsignedOptionValue _randomSeed;
+  UnsignedOptionValue _randomStrategySeed;
 
   IntOptionValue _activationLimit;
 
@@ -2591,6 +2596,7 @@ private:
 
   StringOptionValue _testId;
   ChoiceOptionValue<Output> _outputMode;
+  BoolOptionValue _ignoreMissingInputsInUnsatCore;
   StringOptionValue _thanks;
   ChoiceOptionValue<TheoryAxiomLevel> _theoryAxioms;
   BoolOptionValue _theoryFlattening;
