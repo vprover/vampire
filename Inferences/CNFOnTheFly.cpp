@@ -21,7 +21,7 @@
 #include "Kernel/Term.hpp"
 #include "Kernel/TermIterators.hpp"
 #include "Kernel/Signature.hpp"
-#include "Kernel/Sorts.hpp"
+#include "Kernel/OperatorType.hpp"
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/ApplicativeHelper.hpp"
 
@@ -46,7 +46,7 @@ typedef ApplicativeHelper AH;
 /*Clause* NotProxyISE::simplify(Clause* c){
   CALL("NotProxyISE::simplify");
 
-  TermList boolSort = Term::boolSort();
+  TermList boolSort = AtomicSort::boolSort();
   TermList troo = TermList(Term::foolTrue());
   TermList fols = TermList(Term::foolFalse());
 
@@ -90,7 +90,7 @@ typedef ApplicativeHelper AH;
 Clause* EqualsProxyISE::simplify(Clause* c){
   CALL("EqualsProxyISE::simplify");
 
-  TermList boolSort = Term::boolSort();
+  TermList boolSort = AtomicSort::boolSort();
   TermList troo = TermList(Term::foolTrue());
   TermList fols = TermList(Term::foolFalse());
 
@@ -134,7 +134,7 @@ Clause* EqualsProxyISE::simplify(Clause* c){
 Clause* PiSigmaProxyISE::simplify(Clause* c){
   CALL("PiSigmaProxyISE::simplify");
 
-  TermList boolSort = Term::boolSort();
+  TermList boolSort = AtomicSort::boolSort();
   TermList troo = TermList(Term::foolTrue());
   TermList fols = TermList(Term::foolFalse());
 
@@ -189,7 +189,7 @@ Clause* PiSigmaProxyISE::simplify(Clause* c){
 Clause* OrImpAndProxyISE::simplify(Clause* c){
   CALL("rImpAndProxyISE::simplify"); 
 
-  TermList boolSort = Term::boolSort();
+  TermList boolSort = AtomicSort::boolSort();
   TermList troo = TermList(Term::foolTrue());
   TermList fols = TermList(Term::foolFalse());
 
@@ -259,7 +259,7 @@ ClauseIterator ProxyISE::simplifyMany(Clause* c){
 
   TermList troo = TermList(Term::foolTrue());
   TermList fols = TermList(Term::foolFalse());
-  TermList boolSort = Term::boolSort();
+  TermList boolSort = AtomicSort::boolSort();
 
   static TermStack args;
   TermList head;
@@ -420,7 +420,7 @@ ClauseIterator produceClauses(Clause* c, bool generating, SkolemisingFormulaInde
 
   TermList troo = TermList(Term::foolTrue());
   TermList fols = TermList(Term::foolFalse());
-  TermList boolSort = Term::boolSort();
+  TermList boolSort = AtomicSort::boolSort();
 
   static TermStack args;
   TermList head;
@@ -653,7 +653,7 @@ TermList sigmaRemoval(TermList sigmaTerm, TermList expsrt){
         varSorts.insert(varTypePair.first.var(), varTypePair.second);
       }
     } else {
-      varSorts.insert(expsrt.var(), Term::superSort());
+      varSorts.insert(expsrt.var(), AtomicSort::superSort());
     }
   }
 
@@ -669,7 +669,7 @@ TermList sigmaRemoval(TermList sigmaTerm, TermList expsrt){
   DHMap<unsigned, TermList>::Iterator mapIt(varSorts);
   while(mapIt.hasNext()) {
     mapIt.next(var, varSort);
-    if(varSort == Term::superSort()){
+    if(varSort == AtomicSort::superSort()){
       typeVars.push(TermList(var, false));
     } else {
       termVarSorts.push(varSort);
@@ -682,13 +682,12 @@ TermList sigmaRemoval(TermList sigmaTerm, TermList expsrt){
   SortHelper::normaliseArgSorts(typeVars, termVarSorts);
   SortHelper::normaliseSort(typeVars, resultSort);
 
-  TermList skSymSort = Term::arrowSort(termVarSorts, resultSort);
+  TermList skSymSort = AtomicSort::arrowSort(termVarSorts, resultSort);
   unsigned fun = Skolem::addSkolemFunction(typeVars.size(), typeVars.size(), 0, skSymSort);
   TermList head = TermList(Term::create(fun, typeVars.size(), typeVars.begin()));
   TermList skolemTerm = ApplicativeHelper::createAppTerm(SortHelper::getResultSort(head.term()), head, termVars);
 
-  ASS(*expsrt.term()->nthArgument(1) == Term::boolSort())
-
+  ASS(*expsrt.term()->nthArgument(1) == AtomicSort::boolSort());
   //cout << "OUT OF sigmaRemoval " + sigmaTerm.toString() << endl;
 
   return skolemTerm;
@@ -704,7 +703,7 @@ TermList piRemoval(TermList piTerm, Clause* clause, TermList expsrt){
     TermList newVar = TermList(maxVar, false);
     piTerm = ApplicativeHelper::createAppTerm(expsrt, piTerm, newVar);
     expsrt = *expsrt.term()->nthArgument(1);
-  }while(expsrt != Term::boolSort()); 
+  }while(expsrt != AtomicSort::boolSort()); 
   
   return piTerm;
 }
@@ -713,7 +712,7 @@ TermList piRemoval(TermList piTerm, Clause* clause, TermList expsrt){
 Clause* IFFXORRewriterISE::simplify(Clause* c){
   CALL("IFFXORRewriterISE::simplify");
 
-  TermList boolSort = Term::boolSort();
+  TermList boolSort = AtomicSort::boolSort();
 
   static TermStack args;
   TermList head;

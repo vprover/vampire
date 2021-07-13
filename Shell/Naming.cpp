@@ -1127,8 +1127,8 @@ Literal* Naming::getDefinitionLiteral(Formula* f, VList* freeVars) {
   VList::Iterator vit(freeVars);
   while (vit.hasNext()) {
     unsigned uvar = vit.next();
-    TermList sort = varSorts.get(uvar, Term::defaultSort());
-    if(sort == Term::superSort()){
+    TermList sort = varSorts.get(uvar, AtomicSort::defaultSort());
+    if(sort == AtomicSort::superSort()){
       typeVars.push(TermList(uvar, false));     
     } else {
       termVars.push(TermList(uvar, false));
@@ -1163,12 +1163,13 @@ Literal* Naming::getDefinitionLiteral(Formula* f, VList* freeVars) {
     return Literal::create(pred, arity, true, false, allVars.begin());
   } else {
     unsigned fun = env.signature->addNameFunction(typeVars.size());
-    TermList sort = Term::arrowSort(termVarSorts, Term::boolSort());
+    TermList sort = AtomicSort::arrowSort(termVarSorts, AtomicSort::boolSort());
     Signature::Symbol* sym = env.signature->getFunction(fun);
     sym->setType(OperatorType::getConstantsType(sort, typeArgArity)); 
     TermList head = TermList(Term::create(fun, typeVars.size(), typeVars.begin()));
-    TermList t = ApplicativeHelper::createAppTerm(sort, head, termVars);
-    return  Literal::createEquality(true, TermList(t), TermList(Term::foolTrue()), Term::boolSort());  
+    TermList t = ApplicativeHelper::createAppTerm(
+                 SortHelper::getResultSort(head.term()), head, termVars);
+    return  Literal::createEquality(true, TermList(t), TermList(Term::foolTrue()), AtomicSort::boolSort());  
   }
 }
 

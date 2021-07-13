@@ -18,7 +18,7 @@
 #include "Forwards.hpp"
 
 #include "Inference.hpp"
-#include "Sorts.hpp"
+#include "OperatorType.hpp"
 
 namespace Kernel {
 

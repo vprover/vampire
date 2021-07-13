@@ -134,8 +134,11 @@ bool PortfolioMode::searchForProof()
     //we normalize now so that we don't have to do it in every child Vampire
     ScopedLet<Statistics::ExecutionPhase> phaseLet(env.statistics->phase,Statistics::NORMALIZATION);
     Normalisation().normalise(*_prb);
-
-    TheoryFinder(_prb->units(),property).search();
+    
+    //TheoryFinder cannot cope with polymorphic input
+    if(!env.statistics->polymorphic){
+      TheoryFinder(_prb->units(),property).search();
+    }
   }
 
   // now all the cpu usage will be in children, we'll just be waiting for them
@@ -396,6 +399,9 @@ void PortfolioSliceExecutor::runSlice(vstring sliceCode,int remainingTime)
 bool PortfolioMode::runSchedule(Schedule& schedule)
 {
   CALL("PortfolioMode::runSchedule");
+
+  if (schedule.size() == 0)
+    return false;
 
   UIHelper::portfolioParent = true; // to report on overall-solving-ended in Timer.cpp
 

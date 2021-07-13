@@ -272,7 +272,7 @@ Formula* FOOLElimination::process(Formula* formula) {
 
         bool polarity = formula->connective() == IFF;
 
-        Literal* equality = Literal::createEquality(polarity, process(lhsTerm), process(rhsTerm), Term::boolSort());
+        Literal* equality = Literal::createEquality(polarity, process(lhsTerm), process(rhsTerm), AtomicSort::boolSort());
         Formula* processedFormula = new AtomicFormula(equality);
 
         if (env.options->showPreprocessing()) {
@@ -375,7 +375,7 @@ void FOOLElimination::process(TermList ts, Context context, TermList& termResult
   // The opposite does not hold - a boolean term can stand in a term context
   TermList sort = SortHelper::getResultSort(ts, _varSorts);
   if (context == FORMULA_CONTEXT) {
-    ASS_REP(sort == Term::boolSort(), ts.toString());
+    ASS_REP(sort == AtomicSort::boolSort(), ts.toString());
   }
 #endif
 
@@ -469,7 +469,12 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
       arguments.push(process(ait.next()));
     }
 
-    TermList processedTerm = TermList(Term::create(term, arguments.begin()));
+    TermList processedTerm;
+    if(term->isSort()){
+      processedTerm = TermList(AtomicSort::create(static_cast<AtomicSort*>(term), arguments.begin()));      
+    } else {
+      processedTerm = TermList(Term::create(term, arguments.begin()));
+    }
 
     if (context == FORMULA_CONTEXT) {
       formulaResult = toEquality(processedTerm);
@@ -523,7 +528,7 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
         process(*term->nthArgument(1), context, elseBranch, elseBranchFormula);
 
         // the sort of the term is the sort of the then branch
-        TermList resultSort = Term::defaultSort();
+        TermList resultSort = AtomicSort::defaultSort();
         if (context == TERM_CONTEXT) {
           resultSort = SortHelper::getResultSort(thenBranch, _varSorts);
           ASS_EQ(resultSort, SortHelper::getResultSort(elseBranch, _varSorts));
@@ -738,7 +743,7 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
           collectSorts(freeVars, typeVars, termVars, allVars, termVarSorts);
 
           // create a fresh symbol g and build g(Y1, ..., Ym, X1, ..., Xn)
-          unsigned freshSymbol = introduceFreshSymbol(context, BOOL_PREFIX, termVarSorts, Term::boolSort(), typeVars.size());
+          unsigned freshSymbol = introduceFreshSymbol(context, BOOL_PREFIX, termVarSorts, AtomicSort::boolSort(), typeVars.size());
           TermList freshSymbolApplication = TermList(Term::create(freshSymbol, allVars.size(), allVars.begin()));
 
           // build f <=> g(X1, ..., Xn) = true
@@ -891,8 +896,8 @@ void FOOLElimination::collectSorts(VList* vars, TermStack& typeVars,
   while (fvi.hasNext()) {
     unsigned var = fvi.next();
     ASS_REP(_varSorts.find(var), var);    
-    TermList sort = _varSorts.get(var, Term::defaultSort());
-    if(sort == Term::superSort()){
+    TermList sort = _varSorts.get(var, AtomicSort::defaultSort());
+    if(sort == AtomicSort::superSort()){
       //variable is a type var
       allVars.push(TermList(var, false));
       typeVars.push(TermList(var, false));
@@ -929,7 +934,7 @@ void FOOLElimination::addDefinition(FormulaUnit* def) {
 
 Formula* FOOLElimination::toEquality(TermList booleanTerm) {
   TermList truth(Term::foolTrue());
-  Literal* equality = Literal::createEquality(true, booleanTerm, truth, Term::boolSort());
+  Literal* equality = Literal::createEquality(true, booleanTerm, truth, AtomicSort::boolSort());
   return new AtomicFormula(equality);
 }
 

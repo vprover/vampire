@@ -20,7 +20,7 @@
 #include "Lib/Array.hpp"
 
 #include "Kernel/Term.hpp"
-#include "Kernel/Sorts.hpp"
+#include "Kernel/OperatorType.hpp"
 
 #include "Options.hpp"
 

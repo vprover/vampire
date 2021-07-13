@@ -35,6 +35,9 @@ class Property;
 /**
  * This class defines methods for finding known theories in the input problem.
  * @since 09/06/2004 Manchester
+ *
+ * TODO 25/03/2021 update class to handle polymorphism. Polymorphism changes the form
+ * of the various axioms, so the codes need updating.
  */
 class TheoryFinder {
 public:

@@ -23,7 +23,7 @@
 #include "Kernel/Matcher.hpp"
 #include "Kernel/Ordering.hpp"
 #include "Kernel/Signature.hpp"
-#include "Kernel/Sorts.hpp"
+#include "Kernel/OperatorType.hpp"
 #include "Kernel/SubstHelper.hpp"
 #include "Kernel/Term.hpp"
 #include "Lib/ScopeGuard.hpp"

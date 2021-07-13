@@ -275,13 +275,12 @@ void PrimitiveInstantiationIndex::populateIndex()
     return SortHelper::getResultSort(t.term());
   };
 
-  static TermList boolS = Term::boolSort();
+  static TermList boolS = AtomicSort::boolSort();
 
   TermList s1 = TermList(0, false);
   TermList x = TermList(1, false);
   TermList y = TermList(2, false);
-
-  TermList s1_bool = Term::arrowSort(s1, boolS);
+  TermList s1_bool = AtomicSort::arrowSort(s1, boolS);
   TermList args1[] = {s1, boolS, boolS};
   TermList args2[] = {s1, s1_bool, s1_bool};
 
@@ -293,7 +292,7 @@ void PrimitiveInstantiationIndex::populateIndex()
   unsigned v_not = env.signature->getNotProxy();
   unsigned v_equals = env.signature->getEqualityProxy();
 
-  TermList kcomb = TermList(Term::create2(k_comb, Term::boolSort(), s1));
+  TermList kcomb = TermList(Term::create2(k_comb, AtomicSort::boolSort(), s1));
   TermList bcomb1 = TermList(Term::create(b_comb, 3, args1));
   TermList bcomb2 = TermList(Term::create(b_comb, 3, args2));
   TermList vand = TermList(Term::createConstant(v_and));
@@ -367,19 +366,18 @@ void NarrowingIndex::populateIndex()
   unsigned s_comb = env.signature->getCombinator(Signature::S_COMB);
   TermList constant = TermList(Term::create(s_comb, 3, args));
   TermList lhsS = AH::createAppTerm(srtOf(constant), constant, x, y, z);
-  TermList rhsS = AH::createAppTerm3(Term::arrowSort(s1, s2, s3), x, z, AH::createAppTerm(Term::arrowSort(s1, s2), y, z));
+  TermList rhsS = AH::createAppTerm3(AtomicSort::arrowSort(s1, s2, s3), x, z, AH::createAppTerm(AtomicSort::arrowSort(s1, s2), y, z));
   Literal* sLit = Literal::createEquality(true, lhsS, rhsS, s3);
 
   unsigned c_comb = env.signature->getCombinator(Signature::C_COMB);
-  constant = TermList(Term::create(c_comb, 3, args));
-  TermList lhsC = AH::createAppTerm(srtOf(constant), constant, x, y, z);
-  TermList rhsC = AH::createAppTerm3(Term::arrowSort(s1, s2, s3), x, z, y);
+  constant = TermList(Term::create(c_comb, 3, args));  TermList lhsC = AH::createAppTerm(srtOf(constant), constant, x, y, z); 
+  TermList rhsC = AH::createAppTerm3(AtomicSort::arrowSort(s1, s2, s3), x, z, y);
   Literal* cLit = Literal::createEquality(true, lhsC, rhsC, s3);
 
   unsigned b_comb = env.signature->getCombinator(Signature::B_COMB);
   constant = TermList(Term::create(b_comb, 3, args));
-  TermList lhsB = AH::createAppTerm(srtOf(constant), constant, x, y, z);
-  TermList rhsB = AH::createAppTerm(Term::arrowSort(s2, s3), x, AH::createAppTerm(Term::arrowSort(s1, s2), y, z));
+  TermList lhsB = AH::createAppTerm(srtOf(constant), constant, x, y, z); 
+  TermList rhsB = AH::createAppTerm(AtomicSort::arrowSort(s2, s3), x, AH::createAppTerm(AtomicSort::arrowSort(s1, s2), y, z));
   Literal* bLit = Literal::createEquality(true, lhsB, rhsB, s3);
 
   unsigned k_comb = env.signature->getCombinator(Signature::K_COMB);
@@ -450,7 +448,7 @@ void HeuristicInstantiationIndex::handleClause(Clause* c, bool adding)
         Literal* newLit = EqHelper::replace(lit, leftArgs[i], freshVar);
         newLit->setPolarity(!newLit->polarity());
         Term* eqForm = Term::createFormula(new Kernel::AtomicFormula(newLit));
-        Term* lambdaTerm = Term::createLambda(TermList(eqForm), boundVar, boundVarSortList, Term::boolSort());
+        Term* lambdaTerm = Term::createLambda(TermList(eqForm), boundVar, boundVarSortList, AtomicSort::boolSort());
         combTerm = LambdaElimination().elimLambda(lambdaTerm);
         if(!_insertedInstantiations.contains(combTerm)){
         /*cout << "lhs is " + lit->nthArgument(0)->toString() << endl;
@@ -468,7 +466,7 @@ void HeuristicInstantiationIndex::handleClause(Clause* c, bool adding)
         newLit = EqHelper::replace(lit, rightArgs[i], freshVar);
         newLit->setPolarity(!newLit->polarity());
         eqForm = Term::createFormula(new Kernel::AtomicFormula(newLit));
-        lambdaTerm = Term::createLambda(TermList(eqForm), boundVar, boundVarSortList, Term::boolSort());
+        lambdaTerm = Term::createLambda(TermList(eqForm), boundVar, boundVarSortList, AtomicSort::boolSort());
         combTerm = LambdaElimination().elimLambda(lambdaTerm);
         if(!_insertedInstantiations.contains(combTerm)){
         /*cout << "rhs is " + lit->nthArgument(1)->toString() << endl;
@@ -509,7 +507,7 @@ void RenamingFormulaIndex::handleClause(Clause* c, bool adding)
     while (it.hasNext()) {
       TermList trm = it.next();
       Term* t = trm.term();
-      if(SortHelper::getResultSort(t) == Term::boolSort() &&
+      if(SortHelper::getResultSort(t) == AtomicSort::boolSort() && 
          AH::getProxy(AH::getHead(t)) != Signature::NOT_PROXY){
         if(adding){
           env.signature->incrementFormulaCount(t);

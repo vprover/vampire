@@ -28,7 +28,7 @@
 #include "Kernel/Matcher.hpp"
 #include "Kernel/Ordering.hpp"
 #include "Kernel/Signature.hpp"
-#include "Kernel/Sorts.hpp"
+#include "Kernel/OperatorType.hpp"
 #include "Kernel/Term.hpp"
 
 #include "Indexing/Index.hpp"
@@ -240,7 +240,7 @@ void BackwardSubsumptionDemodulation::performWithQueryLit(Clause* sideCl, Litera
       unsigned const positiveEqualityHeader = 1;
 #if VDEBUG
       // To verify the hard-coded value of positiveEqualityHeader
-      Literal* posEq = Literal::createEquality(true, TermList(0, false), TermList(1, false), Term::defaultSort());
+      Literal* posEq = Literal::createEquality(true, TermList(0, false), TermList(1, false), AtomicSort::defaultSort());
       ASS_EQ(posEq->header(), positiveEqualityHeader);
 #endif
       unsigned numPosEqs = 0;

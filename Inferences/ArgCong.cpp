@@ -71,16 +71,16 @@ struct ArgCong::ResultFn
 
     TermList eqSort = SortHelper::getEqualityArgumentSort(lit);
     bool sortIsVar = eqSort.isVar();
-    if(!sortIsVar && !ApplicativeHelper::isArrowSort(eqSort)){
+    if(!sortIsVar && !eqSort.isArrowSort()){
       return 0;
     }
    
     TermList alpha1, alpha2;
-    if(sortIsVar){
+    if(eqSort.isVar()){
       subst.reset();
       alpha1 = TermList(_freshVar+1, false);
       alpha2 = TermList(_freshVar+2, false);
-      subst.bind(eqSort.var(), Term::arrowSort(alpha1, alpha2));
+      subst.bind(eqSort.var(), AtomicSort::arrowSort(alpha1, alpha2));
     } else {
       alpha1 = *eqSort.term()->nthArgument(0);
       alpha2 = *eqSort.term()->nthArgument(1);

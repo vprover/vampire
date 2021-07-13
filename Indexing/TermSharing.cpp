@@ -19,7 +19,7 @@
 #include "Lib/Environment.hpp"
 #include "Kernel/Signature.hpp"
 #include "Kernel/SortHelper.hpp"
-#include "Kernel/Sorts.hpp"
+#include "Kernel/OperatorType.hpp"
 #include "Kernel/Term.hpp"
 #include "Kernel/TermIterators.hpp"
 #include "Kernel/ApplicativeHelper.hpp"
@@ -39,10 +39,12 @@ typedef ApplicativeHelper AH;
  */
 TermSharing::TermSharing()
   : _totalTerms(0),
+    _totalSorts(0),
     // _groundTerms(0), //MS: unused
     _totalLiterals(0),
     // _groundLiterals(0), //MS: unused
     _literalInsertions(0),
+    _sortInsertions(0),
     _termInsertions(0),
     _poly(1),
     _wellSortednessCheckingDisabled(false)
@@ -57,7 +59,7 @@ TermSharing::TermSharing()
 TermSharing::~TermSharing()
 {
   CALL("TermSharing::~TermSharing");
-
+  
 #if CHECK_LEAKS
   Set<Term*,TermSharing>::Iterator ts(_terms);
   while (ts.hasNext()) {
@@ -66,6 +68,10 @@ TermSharing::~TermSharing()
   Set<Literal*,TermSharing>::Iterator ls(_literals);
   while (ls.hasNext()) {
     ls.next()->destroy();
+  }
+  Set<AtomicSort*,TermSharing>::Iterator ss(_sorts);
+  while (ss.hasNext()) {
+    ss.next()->destroy();
   }
 #endif
 }
@@ -92,6 +98,7 @@ Term* TermSharing::insert(Term* t)
   CALL("TermSharing::insert(Term*)");
   ASS(!t->isLiteral());
   ASS(!t->isSpecial());
+  ASS(!t->isSort());
 
   TimeCounter tc(TC_TERM_SHARING);
 
@@ -115,7 +122,7 @@ Term* TermSharing::insert(Term* t)
 	env.signature->getFunction(t->functor())->interpreted();
     Color color = COLOR_TRANSPARENT;
 
-    if(env.options->combinatorySup() && !AH::isType(t)){ 
+    if(env.options->combinatorySup()){ 
       int maxRedLength = -1;
       TermList head;
       TermStack args;
@@ -205,6 +212,58 @@ Term* TermSharing::insert(Term* t)
   return s;
 } // TermSharing::insert
 
+AtomicSort* TermSharing::insert(AtomicSort* sort)
+{
+  CALL("TermSharing::insert(AtomicSort*)");
+  ASS(!sort->isLiteral());
+  ASS(!sort->isSpecial());
+  ASS(sort->isSort());
+
+  TimeCounter tc(TC_TERM_SHARING);
+
+  _sortInsertions++;
+  AtomicSort* s = _sorts.insert(sort);
+  if (s == sort) {
+    if(sort->isArraySort()){
+      _arraySorts.insert(TermList(sort));
+    }    
+    unsigned weight = 1;
+    unsigned vars = 0;
+
+    for (TermList* tt = sort->args(); ! tt->isEmpty(); tt = tt->next()) {
+      if (tt->isVar()) {
+        ASS(tt->isOrdinaryVar());
+        vars++;
+        weight += 1;
+      }
+      else 
+      {
+        ASS_REP(tt->term()->shared(), tt->term()->toString());
+        
+        Term* r = tt->term();
+  
+        vars += r->vars();
+        weight += r->weight();
+      }
+    }
+    sort->markShared();
+    sort->setId(_totalSorts);
+    sort->setVars(vars);
+    sort->setWeight(weight);
+      
+    _totalSorts++;
+
+    ASS_REP(SortHelper::allTopLevelArgsAreSorts(sort), sort->toString());
+    if (!SortHelper::allTopLevelArgsAreSorts(sort)){
+      USER_ERROR("Immediate subterms of sort "+sort->toString()+" are not all sorts as mandated in rank-1 polymorphism!");      
+    }
+  }
+  else {
+    sort->destroy();
+  }
+  return s;
+} // TermSharing::insert
+
 /**
  * Insert a new literal in the index and return the result.
  *
@@ -217,6 +276,7 @@ Literal* TermSharing::insert(Literal* t)
 {
   CALL("TermSharing::insert(Literal*)");
   ASS(t->isLiteral());
+  ASS(!t->isSort());
   ASS(!t->isSpecial());
 
   //equalities between variables must be inserted using insertVariableEquality() function
@@ -312,14 +372,12 @@ Literal* TermSharing::insertVariableEquality(Literal* t, TermList sort)
   t->markTwoVarEquality();
   t->setTwoVarEqSort(sort);
 
-  unsigned sortWeight = sort.isVar() ? 1 : sort.term()->weight();
-
   _literalInsertions++;
   Literal* s = _literals.insert(t);
   if (s == t) {
     t->markShared();
     t->setId(_totalLiterals);
-    t->setWeight(2 + sortWeight);
+    t->setWeight(2 + sort.weight());
     if (env.colorUsed) {
       t->setColor(COLOR_TRANSPARENT);
     }

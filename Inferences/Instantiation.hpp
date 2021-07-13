@@ -18,7 +18,7 @@
 
 #include "Forwards.hpp"
 #include "Lib/Set.hpp"
-#include "Kernel/Sorts.hpp"
+#include "Kernel/OperatorType.hpp"
 
 #include "Kernel/Theory.hpp"
 #include "InferenceEngine.hpp"

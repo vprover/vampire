@@ -191,6 +191,7 @@ Clause* TheoryFlattening::apply(Clause*& cl,Stack<Literal*>& target)
   if(lit->isEquality()){
     interpreted=false;
     for(TermList* ts = lit->args(); ts->isNonEmpty(); ts = ts->next()){
+      //arguments of a literal can never be sorts
       if(ts->isTerm() && env.signature->getFunction(ts->term()->functor())->interpreted()){
         interpreted=true;
       }
@@ -206,7 +207,8 @@ Clause* TheoryFlattening::apply(Clause*& cl,Stack<Literal*>& target)
   Stack<TermList> args;
 
   for(TermList* ts = lit->args(); ts->isNonEmpty(); ts = ts->next()){
-    if(ts->isVar()){
+    //Don't search for interpreted stuff in a sort
+    if(ts->isVar() || ts->term()->isSort()){
       args.push(*ts);
       continue;
     }
@@ -266,7 +268,8 @@ Clause* TheoryFlattening::apply(Clause*& cl,Stack<Literal*>& target)
   bool updated=false;
 
   for(TermList* ts = term->args(); ts->isNonEmpty(); ts = ts->next()){
-    if(ts->isVar()){
+    //Don't search for interpreted stuff in a sort    
+    if(ts->isVar() || ts->term()->isSort()){
       args.push(*ts);
       continue;
     }

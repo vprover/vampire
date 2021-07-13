@@ -12,7 +12,7 @@
 
 #include "Forwards.hpp"
 
-#include "Kernel/Sorts.hpp"
+#include "Kernel/OperatorType.hpp"
 
 #include "Shell/Options.hpp"
 

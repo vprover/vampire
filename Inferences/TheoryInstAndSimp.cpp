@@ -30,7 +30,7 @@
 #include "Kernel/Substitution.hpp"
 #include "Kernel/TermIterators.hpp"
 #include "Kernel/SubstHelper.hpp"
-#include "Kernel/Sorts.hpp"
+#include "Kernel/OperatorType.hpp"
 #include "Kernel/Theory.hpp"
 
 #include "Saturation/SaturationAlgorithm.hpp"
@@ -67,8 +67,8 @@ void TheoryInstAndSimp::attach(SaturationAlgorithm* salg)
 
 bool TheoryInstAndSimp::isSupportedSort(const TermList sort) {
   //TODO: extend for more sorts (arrays, datatypes)
-  if(sort == Term::intSort() || sort == Term::realSort() ||
-     sort == Term::rationalSort()){
+  if(sort == AtomicSort::intSort() || sort == AtomicSort::realSort() ||
+     sort == AtomicSort::rationalSort()){
     return true;
   }
   return false;
@@ -459,7 +459,7 @@ void TheoryInstAndSimp::originalSelectTheoryLiterals(Clause* cl, Stack<Literal*>
     // literals containing top-level terms that are partial functions with 0 on the right should never be selected
     // we only focus on top-level terms as otherwise the literal can be selected and have such terms abstracted out (abstraction treats
     // these terms as uninterpreted) and then in the abstracted version we want them to not be selected!
-    for(TermList* ts = lit->args(); ts->isNonEmpty(); ts = ts->next()){
+    for(TermList* ts = lit->termArgs(); ts->isNonEmpty(); ts = ts->next()){
       if(ts->isTerm()){
         Term* t = ts->term();
         if(theory->isInterpretedPartialFunction(t->functor()) &&

@@ -170,6 +170,7 @@ vstring getQuantifiedStr(const VarContainer& vars, vstring inner, DHMap<unsigned
     unsigned var =vit.next();
     vstring ty="";
     TermList t;
+
     if(t_map.find(var,t) && env.statistics->hasTypes){
       //hasTypes is true if the problem that contains a sort
       //that is not $i and not a variable

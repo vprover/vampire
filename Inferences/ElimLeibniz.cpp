@@ -15,7 +15,7 @@
 #include "Debug/RuntimeStatistics.hpp"
 #include "Saturation/SaturationAlgorithm.hpp"
 
-#include "Kernel/Sorts.hpp"
+#include "Kernel/OperatorType.hpp"
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/Signature.hpp"
 #include "Kernel/Inference.hpp"
@@ -170,7 +170,7 @@ afterLoop:
 
   TermList t2 = AH::createAppTerm(SH::getResultSort(vEquals.term()), vEquals, lerPosLit.arg);
   
-  TermList typeArgs[] = {argS, Term::boolSort(), Term::boolSort()};
+  TermList typeArgs[] = {argS, AtomicSort::boolSort(), AtomicSort::boolSort()};
   unsigned b_comb = env.signature->getCombinator(Signature::B_COMB);
   
   TermList bComb  = TermList(Term::create(b_comb, 3, typeArgs));

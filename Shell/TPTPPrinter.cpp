@@ -111,7 +111,7 @@ vstring TPTPPrinter::getBodyStr(Unit* u, bool includeSplitLevels)
         vit.next(var, varSort);
 
         res << 'X' << var;
-        if(varSort!= Term::defaultSort()) {
+        if(varSort!= AtomicSort::defaultSort()) {
           res << " : " << varSort.toString();
         }
         if(vit.hasNext()) {
@@ -307,11 +307,13 @@ void TPTPPrinter::ensureHeadersPrinted(Unit* u)
   
   //ensureNecesarySorts();
 
+  unsigned typeCons = env.signature->typeCons();
+  for(unsigned i=1; i<typeCons; i++) {
+    outputSymbolTypeDefinitions(i, SymbolType::TYPE_CON);
+  }
   unsigned funs = env.signature->functions();
   for(unsigned i=0; i<funs; i++) {
-    SymbolType st = SymbolType::FUNC;
-    if(env.signature->isTypeConOrSup(i)){ st = SymbolType::TYPE_CON; }
-    outputSymbolTypeDefinitions(i, st);
+    outputSymbolTypeDefinitions(i, SymbolType::FUNC);
   }
   unsigned preds = env.signature->predicates();
   for(unsigned i=1; i<preds; i++) {
@@ -461,11 +463,11 @@ vstring TPTPPrinter::toString(const Formula* formula)
           if (hasSorts) {
             ASS(ss.hasNext());
             t = ss.next();
-            if (t != Term::defaultSort()) {
+            if (t != AtomicSort::defaultSort()) {
               result += " : " + t.toString();
             }
           } else if (SortHelper::tryGetVariableSort(var, const_cast<Formula*>(f),
-              t) && t != Term::defaultSort()) {
+              t) && t != AtomicSort::defaultSort()) {
             result += " : " + t.toString();
           }
           needsComma = true;

@@ -165,7 +165,7 @@ bool UnstableSubtermIt::hasNext()
   if(_next){ return true; }
   while(!_stack.isEmpty()){
     Term* t = _stack.pop();
-    ASS(AH::isApp(t));
+    ASS(t->isApplication());
     AH::getHeadAndArgs(t, head, args);
     ASS(args.size());
     if(head.isVar() && args.size()){
@@ -175,7 +175,7 @@ bool UnstableSubtermIt::hasNext()
     } else {
       while(!args.isEmpty()){
         TermList tl = args.pop();
-        if(!tl.isVar() && AH::isApp(tl.term()) && !tl.term()->ground()){
+        if(tl.isApplication() && !tl.term()->ground()){
           _stack.push(tl.term());
         }
       }
@@ -265,14 +265,14 @@ bool NarrowableSubtermIt::hasNext()
       _next = TermList(t);
       _used = false;
     }
-    if(AH::isApp(t) && (!AH::isComb(head) || _used)){
+    if(t->isApplication() && (!AH::isComb(head) || _used)){
       TermList* trm = t->nthArgument(2);
-      if(trm->isTerm() && AH::isApp(trm->term())){
+      if(trm->isApplication()){
         _stack.push(trm->term());
       }
       if(!AH::isComb(head) || AH::isUnderApplied(head, args.size())){
         trm = t->nthArgument(3);
-        if(trm->isTerm() && AH::isApp(trm->term())){
+        if(trm->isApplication()){
           _stack.push(trm->term());
         } 
       }
@@ -293,7 +293,7 @@ bool BooleanSubtermIt::hasNext()
   while(!_stack.isEmpty()){
     Term* t = _stack.pop();
     AH::getHeadAndArgs(t, head, args);
-    if(SortHelper::getResultSort(t) == Term::boolSort() && !AH::isBool(head)){
+    if(SortHelper::getResultSort(t) == AtomicSort::boolSort() && !AH::isBool(head)){
       _next = TermList(t);
       _used = false;
     }
@@ -322,7 +322,7 @@ bool RewritableVarsIt::hasNext()
     TermList s = _sorts.pop();
     AH::getHeadSortAndArgs(t, head, headSort, args);
     if(head.isVar() && args.size() <= 1 && _unstableVars->find(head.var()) 
-       && (s.isVar() || AH::isArrowSort(s))){
+       && (s.isVar() || s.isArrowSort())){
       _next = head;
     }
     if(!AH::isComb(head) || AH::isUnderApplied(head, args.size())){
