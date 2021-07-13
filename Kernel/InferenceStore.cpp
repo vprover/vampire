@@ -170,8 +170,10 @@ vstring getQuantifiedStr(const VarContainer& vars, vstring inner, DHMap<unsigned
     unsigned var =vit.next();
     vstring ty="";
     TermList t;
-    if(t_map.find(var,t) /*&& t!=AtomicSort::defaultSort()*/){
-      //TODO should assert that we are in tff mode here
+
+    if(t_map.find(var,t) && env.statistics->hasTypes){
+      //hasTypes is true if the problem that contains a sort
+      //that is not $i and not a variable
       ty=" : " + t.toString();
     }
     if(ty == " : $tType"){
