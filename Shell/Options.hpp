@@ -428,18 +428,10 @@ public:
     LTB_ISA_2017,
     LTB_MZR_2017,
     SMTCOMP,
-<<<<<<< HEAD
-    SMTCOMP_2016,
-    SMTCOMP_2017,
     SMTCOMP_2018, 
-
     RAPID
 };
 
-=======
-    SMTCOMP_2018
-  };
->>>>>>> master
 
 /* TODO: use an enum for Selection. The current issue is the way these values are manipulated as ints
  *
