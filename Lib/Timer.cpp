@@ -1,7 +1,4 @@
-
 /*
- * File Timer.cpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -9,12 +6,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file Timer.cpp
@@ -51,8 +42,8 @@ bool Timer::s_timeLimitEnforcement = true;
 
 #include <cerrno>
 #include <unistd.h>
-#include <stdlib.h>
-#include <signal.h>
+#include <cstdlib>
+#include <csignal>
 #include <sys/time.h>
 #include <sys/times.h>
 
@@ -221,9 +212,9 @@ void Lib::Timer::deinitializeTimer()
 
 void Lib::Timer::syncClock()
 {
+  static bool reportedProblem = false;
   if(s_initGuarantedMiliseconds==-1) {
     //we're unable to sync clock as we weren't able to obtain number of ticks in the beginning
-    bool reportedProblem = false;
     if(!reportedProblem) {
       reportedProblem = true;
       cerr << "cannot syncronize clock as times() initially returned -1" << endl;
@@ -233,7 +224,6 @@ void Lib::Timer::syncClock()
   int newMilliseconds = guaranteedMilliseconds();
   if(newMilliseconds==-1) {
     //we're unable to sync clock as we cannot get the current time
-    bool reportedProblem = false;
     if(!reportedProblem) {
       reportedProblem = true;
       cerr << "could not syncronize clock as times() returned -1" << endl;

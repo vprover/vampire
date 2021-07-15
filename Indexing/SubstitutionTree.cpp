@@ -1,7 +1,4 @@
-
 /*
- * File SubstitutionTree.cpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -9,12 +6,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file SubstitutionTree.cpp
@@ -259,9 +250,10 @@ start:
     BindingMap::Iterator svit(svBindings);
     BinaryHeap<Binding, BindingComparator> remainingBindings;
     while (svit.hasNext()) {
-      Binding b;
-      svit.next(b.var, b.term);
-      remainingBindings.insert(b);
+      unsigned var;
+      TermList term;
+      svit.next(var, term);
+      remainingBindings.insert(Binding(var, term));
     }
     while (!remainingBindings.isEmpty()) {
       Binding b=remainingBindings.pop();

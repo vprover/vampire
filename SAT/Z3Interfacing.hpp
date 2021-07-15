@@ -1,7 +1,4 @@
-
 /*
- * File Z3Interfacing.hpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -9,12 +6,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file Z3Interfacing.hpp
@@ -25,6 +16,12 @@
 #define __Z3Interfacing__
 
 #if VZ3
+
+/* an (imperfect and under development) version of tracing the Z3 interface
+ *  so that vampire can be "factored-out" of runs which cause particular Z3
+ *  behaviour. Should be useful for producing MWEs for the Z3 people.
+ */
+#define PRINT_CPP(X) // cout << X << endl;
 
 #include "Lib/DHMap.hpp"
 
@@ -60,6 +57,8 @@ public:
    * called via solveUnderAssumptions.
    */
   Z3Interfacing(const Shell::Options& opts, SAT2FO& s2f, bool unsatCoresForAssumptions = false);
+
+  static char const* z3_full_version();
 
   void addClause(SATClause* cl, bool withGuard);
   void addClause(SATClause* cl) override { addClause(cl,false); }
@@ -114,14 +113,6 @@ public:
   virtual Status solveUnderAssumptions(const SATLiteralStack& assumps, unsigned c, bool p) override
   { return solveUnderAssumptions(assumps,c,p,false); }
 
- /**
-  * Record the association between a SATLiteral var and a Literal
-  * In TWLSolver this is used for computing niceness values
-  */
-  virtual void recordSource(unsigned satlitvar, Literal* lit) override {
-    // unsupported by Z3; intentionally no-op
-  };
-  
   /**
    * The set of inserted clauses may not be propositionally UNSAT
    * due to theory reasoning inside Z3.
@@ -196,11 +187,17 @@ private:
 
   z3::expr getNameExpr(unsigned var){
     vstring name = "v"+Lib::Int::toString(var);
+
+    PRINT_CPP("exprs.push_back(c.bool_const(\""<< name << "\"));")
+
     return  _context.bool_const(name.c_str());
   }
   // careful: keep native constants' names distinct from the above ones (hence the "c"-prefix below)
   z3::expr getNameConst(const vstring& symbName, z3::sort srt){
     vstring name = "c"+symbName;
+
+    PRINT_CPP("{ sort s = sorts.back(); sorts.pop_back(); exprs.push_back(c.constant(\""<< name << "\",s)); }")
+
     return _context.constant(name.c_str(),srt);
   }
 

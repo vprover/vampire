@@ -1,6 +1,4 @@
 /*
- * File PredicateSplitPassiveClauseContainer.cpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -8,12 +6,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 
 #include "PredicateSplitPassiveClauseContainer.hpp"
@@ -28,20 +20,15 @@
 #include "Kernel/Clause.hpp"
 #include "Kernel/Inference.hpp"
 #include "Lib/SharedSet.hpp"
+#include "Lib/Int.hpp"
 
 namespace Saturation
 {
 using namespace Lib;
 using namespace Kernel;
 
-int computeGCD(int a, int b) {
-    if (a == 0) {
-      return b;
-    }
-    return computeGCD(b % a, a);
-}
 int computeLCM(int a, int b) {
-  return (a*b)/computeGCD(a, b);
+  return (a*b)/Int::gcd(a, b);
 }
 
 PredicateSplitPassiveClauseContainer::PredicateSplitPassiveClauseContainer(bool isOutermost, const Shell::Options& opt, vstring name, Lib::vvector<std::unique_ptr<PassiveClauseContainer>> queues, Lib::vvector<float> cutoffs, Lib::vvector<int> ratios, bool layeredArrangement)
@@ -89,7 +76,8 @@ unsigned PredicateSplitPassiveClauseContainer::bestQueue(float featureValue) con
       return i;
     }
   }
-  ASS(false); // unreachable
+  // unreachable
+  ASSERTION_VIOLATION;
 }
 
 void PredicateSplitPassiveClauseContainer::add(Clause* cl)

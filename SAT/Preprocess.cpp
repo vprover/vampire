@@ -1,7 +1,4 @@
-
 /*
- * File Preprocess.cpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -9,12 +6,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file SAT/Preprocess.cpp
@@ -221,11 +212,18 @@ propagation_start:
     bool del=false;
     removedLitIndexes.reset();
     SATLiteral kept;
+#ifdef VDEBUG
+    // set to true when kept is assigned something
+    bool kept_assigned = false;
+#endif
     for(unsigned i=0;i<clen;i++) {
       SATLiteral lit=(*cl)[i];
       bool posUnit;
       if(!unitBindings.find(lit.var(), posUnit)) {
 	kept=lit;
+#ifdef VDEBUG
+	kept_assigned = true;
+#endif
 	continue;
       }
       if(posUnit==lit.isPositive()) {
@@ -245,6 +243,7 @@ propagation_start:
     unsigned newLen=clen-removedLitIndexes.length();
 
     if(newLen==1) {
+      ASS(kept_assigned);
       SATClause* unit=new(1) SATClause(1, true);
       (*unit)[0]=kept;
       SATClauseList::push(unit, units);

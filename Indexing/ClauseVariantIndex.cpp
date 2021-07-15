@@ -1,7 +1,4 @@
-
 /*
- * File ClauseVariantIndex.cpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -9,12 +6,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file ClauseVariantIndex.cpp
@@ -366,11 +357,9 @@ struct HashingClauseVariantIndex::VariableIgnoringComparator {
       return Int::compare(t1->vars(),t2->vars());
     }
 
-    // WARNING: comparing pointers may lead to non-reproducible behavior.
-    // This test can be skipped, but should lead to a more efficient code
     if (t1->ground()) {
       ASS(t2->ground());
-      return Int::compare((void *)t1,(void *)t2);
+      return Int::compare(t1->getId(),t2->getId());
     }
 
     if(t1->functor()!=t2->functor()) {
@@ -394,11 +383,9 @@ struct HashingClauseVariantIndex::VariableIgnoringComparator {
       return Int::compare(l1->vars(),l2->vars());
     }
 
-    // WARNING: comparing pointers may lead to non-reproducible behavior.
-    // This test can be skipped, but should lead to a more efficient code
     if (l1->ground()) {
       ASS(l2->ground());
-      return Int::compare((void *)l1,(void *)l2);
+      return Int::compare(l1->getId(),l2->getId());
     }
 
     if(l1->header()!=l2->header()) {

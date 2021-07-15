@@ -1,7 +1,4 @@
-
 /*
- * File SubstitutionTree_FastInst.cpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -9,12 +6,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file SubstitutionTree_FastInst.cpp
@@ -53,7 +44,7 @@ public:
 
   struct TermSpec
   {
-    TermSpec() {
+    TermSpec() : q(false) {
     #if VDEBUG
       t.makeEmpty();
     #endif
@@ -553,8 +544,11 @@ finish:
 SubstitutionTree::FastInstancesIterator::FastInstancesIterator(SubstitutionTree* parent, Node* root,
 	Term* query, bool retrieveSubstitution, bool reversed, bool withoutTop, bool useC)
 : _literalRetrieval(query->isLiteral()), _retrieveSubstitution(retrieveSubstitution),
-  _inLeaf(false), _ldIterator(LDIterator::getEmpty()), _tree(parent),  _root(root),
+  _inLeaf(false), _ldIterator(LDIterator::getEmpty()),  _root(root),
   _alternatives(64), _specVarNumbers(64), _nodeTypes(64)
+#if VDEBUG
+  , _tree(parent)
+#endif 
 {
   CALL("SubstitutionTree::FastInstancesIterator::FastGeneralizationsIterator");
   ASS(root);

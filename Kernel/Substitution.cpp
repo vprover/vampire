@@ -1,7 +1,4 @@
-
 /*
- * File Substitution.cpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -9,12 +6,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file Substitution.cpp
@@ -116,19 +107,27 @@ bool Substitution::findBinding(int var, TermList& res) const
 #if VDEBUG
  vstring Substitution::toString() const
  {
-   vstring result("[");
-   VirtualIterator<std::pair<unsigned,TermList>> items = _map.items();
-   bool first=true;
-   while(items.hasNext()){
-     std::pair<unsigned,TermList> item = items.next();
-     if(!first){result+=",";}
-     first=false;
-     result += Lib::Int::toString(item.first) + " -> " + item.second.toString(); 
-   }
-   result += ']';
-   return result;
+   vstringstream out;
+   out << *this;
+   return out.str();
  } // Substitution::toString()
 #endif
 
+
+std::ostream& operator<<(std::ostream& out, Substitution const& self)
+{
+   out << "[";
+   auto items = self._map.items();
+   bool first=true;
+   while(items.hasNext()){
+     std::pair<unsigned,TermList> item = items.next();
+     if(!first){out << ",";}
+     first=false;
+     out  <<  item.first << " -> " << item.second;
+   }
+   out << ']';
+   return out;
 }
+
+} // namespace Kernel
 

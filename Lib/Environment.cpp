@@ -1,7 +1,4 @@
-
 /*
- * File Environment.cpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -9,12 +6,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file Environment.cpp
@@ -61,6 +52,8 @@ Environment::Environment()
     _priorityOutput(0),
     _pipe(0)
 {
+  START_CHECKING_FOR_ALLOCATOR_BYPASSES;
+
   options = new Options;
   statistics = new Statistics;  
   sorts = new Sorts;
@@ -110,6 +103,7 @@ bool Environment::timeLimitReached() const
   if (options->timeLimitInDeciseconds() &&
       timer->elapsedDeciseconds() > options->timeLimitInDeciseconds()) {
     statistics->terminationReason = Shell::Statistics::TIME_LIMIT;
+    Timer::setTimeLimitEnforcement(false);
     return true;
   }
   return false;

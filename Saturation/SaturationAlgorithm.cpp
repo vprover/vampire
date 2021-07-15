@@ -1,7 +1,4 @@
-
 /*
- * File SaturationAlgorithm.cpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -9,12 +6,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file SaturationAlgorithm.cpp
@@ -648,7 +639,7 @@ void SaturationAlgorithm::addInputClause(Clause* cl)
     cl->setAge(level);
   }
 
-  if (sosForAxioms || (cl->isTheoryAxiom() && sosForTheory)){
+  if (sosForAxioms || (cl->isPureTheoryDescendant() && sosForTheory)){
     addInputSOSClause(cl);
   } else {
     addNewClause(cl);
@@ -829,14 +820,14 @@ void SaturationAlgorithm::newClausesToUnprocessed()
     case Clause::NONE:
       addUnprocessedClause(cl);
       break;
-#if VDEBUG
     case Clause::SELECTED:
     case Clause::ACTIVE:
+#if VDEBUG
       cout << "FAIL: " << cl->toString() << endl;
       //such clauses should not appear as new ones
       cout << cl->toString() << endl;
-      ASSERTION_VIOLATION_REP(cl->store());
 #endif
+      ASSERTION_VIOLATION_REP(cl->store());
     }
     cl->decRefCnt(); //belongs to _newClauses.popWithoutDec()
   }
@@ -1113,8 +1104,8 @@ bool SaturationAlgorithm::activate(Clause* cl)
     instances = _theoryInstSimp->generateClauses(cl,redundant);
   }
 #endif
+
   if(redundant){ 
-    removeActiveOrPassiveClause(cl);
     return false; 
   }
 

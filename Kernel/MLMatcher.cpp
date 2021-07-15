@@ -1,6 +1,4 @@
 /*
- * File MLMatcher.cpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -8,12 +6,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions.
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide.
  */
 /**
  * @file MLMatcher.cpp
@@ -38,7 +30,6 @@
 
 #if VDEBUG
 #include <iostream>
-#include "Test/Output.hpp"
 #endif
 
 
@@ -702,12 +693,15 @@ void MLMatcher::Impl::getBindings(vunordered_map<unsigned, TermList>& outBinding
       // md->boundVarNums[bi] contains the corresponding variable indices.
       unsigned var = md->boundVarNums[bi][vi];
       TermList trm = md->altBindings[bi][alti][vi];
-      auto res = outBindings.insert({var, trm});
+
+      DEBUG_CODE(auto res =) outBindings.insert({var, trm});
+#if VDEBUG
       auto it = res.first;
       bool inserted = res.second;
       if (!inserted) {
         ASS_EQ(it->second, trm);
       }
+#endif
     }
   }
 }

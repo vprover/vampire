@@ -1,7 +1,4 @@
-
 /*
- * File GlobalSubsumption.cpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -9,12 +6,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file GlobalSubsumption.cpp
@@ -121,7 +112,7 @@ Clause* GlobalSubsumption::perform(Clause* cl, Stack<Unit*>& prems)
     
   // first abstract cl's FO literals using grounder,
   // start filling assumps and initialize lookup
-  grounder.groundNonProp(cl, plits, false);
+  grounder.groundNonProp(cl, plits);
   
   unsigned clen = plits.size();    
   for (unsigned i = 0; i < clen; i++) {
@@ -217,7 +208,7 @@ Clause* GlobalSubsumption::perform(Clause* cl, Stack<Unit*>& prems)
         SATInference::collectFilteredFOPremises(ref, prems,
           // Some solvers may return "all the clauses added so far" in the refutation.
           // That must be filtered since a derived clause cannot depend on inactive splits
-          [this,cl] (SATClause* prem) {
+          [this] (SATClause* prem) {
 
             // ignore ASSUMPTION clauses (they don't have FO premises anyway)
             if (prem->inference()->getType() == SATInference::ASSUMPTION) {

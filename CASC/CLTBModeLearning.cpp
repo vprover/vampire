@@ -1,7 +1,4 @@
-
 /*
- * File CLTBModeLearning.cpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -9,12 +6,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file CLTBModeLearning.cpp
@@ -227,8 +218,9 @@ void CLTBModeLearning::solveBatch(istream& batchFile, bool first,vstring inputDi
     int resValue;
     // wait until the child terminates
     try {
-      pid_t finishedChild = Multiprocessing::instance()->waitForChildTermination(resValue);
-      ASS_EQ(finishedChild, child);
+      ALWAYS(
+        Multiprocessing::instance()->waitForChildTermination(resValue) == child
+      );
     }
     catch(SystemFailException& ex) {
       cerr << "% SystemFailException at batch level" << endl;
@@ -360,8 +352,9 @@ void CLTBModeLearning::doTraining(int time, bool startup)
     }
     int resValue;
     try {
-      pid_t finishedChild = Multiprocessing::instance()->waitForChildTermination(resValue);
-      ASS_EQ(finishedChild, child);
+      ALWAYS(
+        Multiprocessing::instance()->waitForChildTermination(resValue) == child
+      );
     }
     catch(SystemFailException& ex) {
       cerr << "% SystemFailException at batch level" << endl;
@@ -791,6 +784,9 @@ void CLTBModeLearning::fillSchedule(CLTBModeLearning::Schedule& sched) {
  * @param terminationTime the time in milliseconds since the prover starts when
  *        the strategy should terminate
  * @param timeLimit in milliseconds
+ * @param property
+ * @param quick
+ * @param stopOnProof
  * @author Krystof Hoder
  * @since 04/06/2013 flight Frankfurt-Vienna, updated for CASC-J6
  * @author Andrei Voronkov
@@ -820,6 +816,8 @@ void CLTBProblemLearning::performStrategy(int terminationTime,int timeLimit,  Sh
  * actual proof search.
  * @param terminationTime the time in milliseconds since the prover start
  * @param timeLimit time limit in milliseconds
+ * @param strats
+ * @param stopOnProof
  * @since 04/06/2013 flight Manchester-Frankfurt
  * @author Andrei Voronkov
  */

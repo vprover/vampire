@@ -1,7 +1,4 @@
-
 /*
- * File Exception.hpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -9,12 +6,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * Class Exception.hpp. Defines Vampire exceptions.
@@ -41,12 +32,34 @@ class ThrowableBase
 {
 };
 
+template<class... Ms> 
+struct OutputAll;
+
+template<class M, class... Ms> 
+struct OutputAll<M,Ms...> {
+  static void apply(ostream& out, M m, Ms... ms) {
+    out << m;
+    OutputAll<Ms...>::apply(out, ms...);
+  }
+};
+
+template<> 
+struct OutputAll<> {
+  static void apply(ostream& out) { }
+};
+
 /**
  * Abstract class Exception. It is the base class for
  * several concrete classes.
  */
 class Exception : public ThrowableBase
 {
+  template<class... Msg>
+  vstring toString(Msg... msg){
+    vstringstream out;
+    OutputAll<Msg...>::apply(out, msg...);
+    return out.str();
+  }
 public:
   /** Create an exception with a given error message */
   explicit Exception (const char* msg)
@@ -56,6 +69,12 @@ public:
   explicit Exception (const vstring msg)
     : _message(msg)
   { s_exceptionCounter++; }
+
+  template<class... Msg>
+  explicit Exception(Msg... msg) 
+   : Exception(toString(msg...))
+  { }
+
   virtual void cry (ostream&);
   virtual ~Exception()
   {
@@ -67,7 +86,7 @@ public:
 
   static bool isThrown() { return s_exceptionCounter!=0; }
   static bool isThrownDuringExceptionHandling() { return s_exceptionCounter>1; }
-  vstring msg() { return _message; }
+  const vstring& msg() { return _message; }
 protected:
   /** Default constructor, required for some subclasses, made protected
    * so that it cannot be called directly */
@@ -96,6 +115,10 @@ class UserErrorException
  public:
   UserErrorException (const char* msg)
     : Exception(msg)
+  {}
+  template<class... Msgs>
+  UserErrorException (Msgs... ms)
+    : Exception(ms...)
   {}
   UserErrorException (const vstring msg)
     : Exception(msg)

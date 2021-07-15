@@ -1,7 +1,4 @@
-
 /*
- * File InterpretedLiteralEvaluator.cpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -9,12 +6,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file InterpretedLiteralEvaluator.cpp
@@ -136,7 +127,7 @@ void stackTraverseIf(TermList term, Predicate pred, Fn action) {
  * @since 06/12/18
  */
 template<class AbelianGroup>
-class InterpretedLiteralEvaluator::ACFunEvaluator
+  class InterpretedLiteralEvaluator::ACFunEvaluator
    : public Evaluator
 {
 public:
@@ -853,25 +844,6 @@ protected:
     case Theory::RAT_QUOTIENT:
       res = arg1/arg2;
       return true;
-    case Theory::RAT_QUOTIENT_E:
-      res = arg1.quotientE(arg2);
-      return true;
-    case Theory::RAT_QUOTIENT_T:
-      res = arg1.quotientT(arg2);
-      return true;
-    case Theory::RAT_QUOTIENT_F:
-      res = arg1.quotientF(arg2);
-      return true;
-    // The remainder is left - (quotient * right)
-    case Theory::RAT_REMAINDER_E:
-      res = arg1 - (arg1.quotientE(arg2)*arg2);
-      return true;
-    case Theory::RAT_REMAINDER_T:
-      res = arg1 - (arg1.quotientT(arg2)*arg2);
-      return true;
-    case Theory::RAT_REMAINDER_F:
-      res = arg1 - (arg1.quotientF(arg2)*arg2);
-      return true;
     default:
       return false;
     }
@@ -967,25 +939,6 @@ protected:
       return true;
     case Theory::REAL_QUOTIENT:
       res = arg1/arg2;
-      return true;
-    case Theory::REAL_QUOTIENT_E:
-      res = arg1.quotientE(arg2);
-      return true;
-    case Theory::REAL_QUOTIENT_T:
-      res = arg1.quotientT(arg2);
-      return true;
-    case Theory::REAL_QUOTIENT_F:
-      res = arg1.quotientF(arg2);
-      return true;
-    // The remainder is left - (quotient * right)
-    case Theory::REAL_REMAINDER_E:
-      res = arg1 - (arg1.quotientE(arg2)*arg2);
-      return true;
-    case Theory::REAL_REMAINDER_T:
-      res = arg1 - (arg1.quotientT(arg2)*arg2);
-      return true;
-    case Theory::REAL_REMAINDER_F:
-      res = arg1 - (arg1.quotientF(arg2)*arg2);
       return true;
     default:
       return false;

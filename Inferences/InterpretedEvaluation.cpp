@@ -1,7 +1,4 @@
-
 /*
- * File InterpretedEvaluation.cpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -9,12 +6,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file InterpretedEvaluation.cpp
@@ -51,8 +42,10 @@ using namespace Kernel;
 
 
 InterpretedEvaluation::InterpretedEvaluation(bool doNormalize, Ordering& ordering) :
-  _simpl(new InterpretedLiteralEvaluator(doNormalize)),
-  _ordering(ordering)
+  _simpl(new InterpretedLiteralEvaluator(doNormalize))
+#if VDEBUG
+  , _ordering(ordering)
+#endif
 {
   CALL("InterpretedEvaluation::InterpretedEvaluation");
 }
@@ -93,13 +86,12 @@ Clause* InterpretedEvaluation::simplify(Clause* cl)
 
     TimeCounter tc(TC_INTERPRETED_EVALUATION);
 
-    // do not evaluate theory axioms
-    // TODO: We want to skip the evaluation of theory axioms, because we already assume that
-    // internally added theory axioms are simplified as much as possible. Note that the 
-    // isTheoryAxiom-check also returns true for externally added theory axioms. It is unclear
-    // whether we should skip those externally added theory axioms, since it is not clear
-    // that they are simplified as much as possible (since they are potentially written by
-    // users unfamiliar with theorem proving, in contrast to our internally added axioms).
+    /* do not evaluate theory axioms (both internal and external theory axioms)
+     * Note: We want to skip the evaluation of internal theory axioms, because we already assume that
+     *       internally added theory axioms are simplified as much as possible.
+     *       We currently also skip externally added theory axioms. But by doing so we risk that we don't
+     *       simplify simplifiable theory axioms, which were added by users unfamiliar with theorem proving.
+     */
     if(cl->isTheoryAxiom()) return cl;
 
 

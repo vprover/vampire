@@ -1,7 +1,4 @@
-
 /*
- * File TimeCounter.hpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -9,12 +6,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file TimeCounter.hpp
@@ -39,10 +30,7 @@ enum TimeCounterUnit
   TC_PREPROCESSING,
   TC_BCE,
   TC_SINE_SELECTION,
-  TC_BDD,
-  TC_BDD_CLAUSIFICATION,
   TC_SAT_SOLVER,
-  TC_TWLSOLVER_ADD,
   TC_MINIMIZING_SOLVER,
   TC_SAT_PROOF_MINIMIZATION,
   TC_TERM_SHARING,
@@ -65,7 +53,6 @@ enum TimeCounterUnit
   TC_LRS_LIMIT_MAINTENANCE,
   TC_CONDENSATION,
   TC_INTERPRETED_EVALUATION,
-  TC_INTERPRETED_SIMPLIFICATION,
   TC_FORWARD_SUBSUMPTION,
   TC_FORWARD_SUBSUMPTION_RESOLUTION,
   TC_FORWARD_SUBSUMPTION_DEMODULATION,
@@ -80,7 +67,6 @@ enum TimeCounterUnit
   TC_SUPERPOSITION,
   TC_LITERAL_ORDER_AFTERCHECK,
   TC_HYPER_SUPERPOSITION,
-  TC_BDD_MARKING_SUBSUMPTION,
   TC_GLOBAL_SUBSUMPTION,
   TC_INST_GEN_SIMPLIFICATIONS,
   TC_INST_GEN_VARIANT_DETECTION,
@@ -90,8 +76,6 @@ enum TimeCounterUnit
   TC_TRIVIAL_PREDICATE_REMOVAL,
   TC_SOLVING,
   TC_BOUND_PROPAGATION,
-  TC_HANDLING_CONFLICTS,
-  TC_VARIABLE_SELECTION,
   TC_DISMATCHING,
   TC_FMB_DEF_INTRO,
   TC_FMB_SORT_INFERENCE,

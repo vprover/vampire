@@ -1,7 +1,4 @@
-
 /*
- * File SubstitutionTree.hpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -9,12 +6,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file SubstitutionTree.hpp
@@ -53,10 +44,7 @@
 #include "Index.hpp"
 
 #if VDEBUG
-
 #include <iostream>
-#include "Test/Output.hpp"
-
 #endif
 
 using namespace std;
@@ -652,8 +640,6 @@ public:
     TermList term;
     /** Create new binding */
     Binding(int v,TermList t) : var(v), term(t) {}
-    /** Create uninitialised binding */
-    Binding() {}
 
     struct Comparator
     {
@@ -798,12 +784,14 @@ public:
     InstMatcher* _subst;
 
     Renaming _resultDenormalizer;
-    SubstitutionTree* _tree;
     Node* _root;
 
     Stack<void*> _alternatives;
     Stack<unsigned> _specVarNumbers;
     Stack<NodeAlgorithm> _nodeTypes;
+#if VDEBUG
+    SubstitutionTree* _tree;
+#endif
   };
 
 class SubstitutionTreeMismatchHandler : public UWAMismatchHandler 

@@ -1,7 +1,4 @@
-
 /*
- * File Options.hpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -9,12 +6,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file Options.hpp
@@ -390,10 +381,6 @@ public:
    * @since 26/08/2009 Redmond
    */
   enum class InputSyntax : unsigned int {
-    /** syntax of the Simplify prover */
-    //SIMPLIFY = 0,
-    /** syntax of SMTLIB1.2 */
-    //SMTLIB = 1,
     SMTLIB2 = 0,
     /** syntax of the TPTP prover */
     TPTP = 1, 
@@ -423,7 +410,6 @@ public:
     PREPROCESS2,
     PROFILE,
     RANDOM_STRATEGY,
-    SAT,
     SMTCOMP,
     SPIDER,
     TCLAUSIFY,
@@ -433,43 +419,16 @@ public:
 
   enum class Schedule : unsigned int {
     CASC,
-    CASC_2014,
-    CASC_2014_EPR,
-    CASC_2016,
-    CASC_2017,
-    CASC_2018,
     CASC_2019,
     CASC_SAT,
-    CASC_SAT_2014,
-    CASC_SAT_2016,
-    CASC_SAT_2017,
-    CASC_SAT_2018,
     CASC_SAT_2019,
-    LTB_2014,
-    LTB_2014_MZR,
     LTB_DEFAULT_2017,
-
-    LTB_HH4_2015_FAST,
-    LTB_HH4_2015_MIDD,
-    LTB_HH4_2015_SLOW,
     LTB_HH4_2017,
-
-    LTB_HLL_2015_FAST,
-    LTB_HLL_2015_MIDD,
-    LTB_HLL_2015_SLOW,
     LTB_HLL_2017,
-
-    LTB_ISA_2015_FAST,
-    LTB_ISA_2015_MIDD,
-    LTB_ISA_2015_SLOW,
     LTB_ISA_2017,
-
-    LTB_MZR_2015_FAST,
-    LTB_MZR_2015_MIDD,
-    LTB_MZR_2015_SLOW,
     LTB_MZR_2017,
-
     SMTCOMP,
+<<<<<<< HEAD
     SMTCOMP_2016,
     SMTCOMP_2017,
     SMTCOMP_2018, 
@@ -477,6 +436,10 @@ public:
     RAPID
 };
 
+=======
+    SMTCOMP_2018
+  };
+>>>>>>> master
 
 /* TODO: use an enum for Selection. The current issue is the way these values are manipulated as ints
  *
@@ -516,10 +479,9 @@ public:
 
   /** Possible values for sat_solver */
   enum class SatSolver : unsigned int {
-     MINISAT = 0,
-     VAMPIRE = 1
+     MINISAT = 0
 #if VZ3
-     ,Z3 = 2
+     ,Z3 = 1
 #endif
   };
 
@@ -641,31 +603,6 @@ public:
     OFF = 3
   };
 
-  enum class SatRestartStrategy : unsigned int {
-    FIXED = 0,
-    GEOMETRIC = 1,
-    LUBY = 2,
-    MINISAT = 3,
-  };
-
-  enum class SatVarSelector : unsigned int {
-    ACTIVE = 0,
-    NICENESS = 1,
-    RECENTLY_LEARNT = 2,
-  };
-
-  enum class Niceness: unsigned int {
-    AVERAGE = 0,
-    NONE=1,
-    SUM = 2,
-    TOP = 3,
-  };
-
-  enum class SatClauseDisposer : unsigned int {
-    GROWING = 0,
-    MINISAT = 1,
-  };
-  
   enum class SplittingLiteralPolarityAdvice : unsigned int {
     FALSE,
     TRUE,
@@ -760,6 +697,11 @@ public:
     CONSTANT,
     DECAY,
     CONVERGE
+  };
+
+  enum class KboAdmissibilityCheck : unsigned int {
+    ERROR = 0,
+    WARNING = 1,
   };
 
     //==========================================================
@@ -932,18 +874,22 @@ private:
         typedef pair<OptionProblemConstraintUP,vstringDArrayUP> RandEntry;
 
         void setRandomChoices(std::initializer_list<vstring> list){
+          CALL("AbstractOptionValue::setRandomChoices(std::initializer_list<vstring> list)");
           rand_choices.push(RandEntry(OptionProblemConstraintUP(),toArray(list)));
         }
         void setRandomChoices(std::initializer_list<vstring> list,
                               std::initializer_list<vstring> list_sat){
+          CALL("AbstractOptionValue::setRandomChoices(std::initializer_list<vstring> list, std::initializer_list<vstring> list_sat)");
           rand_choices.push(RandEntry(isRandOn(),toArray(list)));
           rand_choices.push(RandEntry(isRandSat(),toArray(list_sat)));
         }
         void setRandomChoices(OptionProblemConstraintUP c,
                               std::initializer_list<vstring> list){
+          CALL("AbstractOptionValue::setRandomChoices(OptionProblemConstraintUP c, std::initializer_list<vstring> list)");
           rand_choices.push(RandEntry(std::move(c),toArray(list)));
         }
         void setNoPropertyRandomChoices(std::initializer_list<vstring> list){
+          CALL("AbstractOptionValue::setNoPropertyRandomChoices(std::initializer_list<vstring> list)");
           rand_choices.push(RandEntry(OptionProblemConstraintUP(),toArray(list)));
           supress_problemconstraints=true;
         }
@@ -1376,11 +1322,11 @@ virtual vstring getStringOfValue(int value) const{ return Lib::Int::toString(val
 * may need to be added. In this case see examples from AndWrapper below.
 *
 * MS: While OptionValueConstraints are expressions which wait for a concrete value to be evaluated against:
-* as in \lambda value. expression(value),
+* as in λ value. expression(value),
 * WrappedConstraints have already been "closed" by providing a concrete value:
-* as in (\lambda value. expression(value))[concrete_value]
+* as in (λ value. expression(value))[concrete_value]
 * Finally, we can at anytime "unwrap" a WrappedConstraint by providing a "fake" lambda again on top, to turn it into a OptionValueConstraints again:
-* as in \lambda value. expression_ignoring_value
+* as in λ value. expression_ignoring_value
 *
 * The tricky part (C++-technology-wise) here is that unwrapping needs to get a type for the value
 * and this type is indepedent form the expression_ignoring_value for obvious reasons.
@@ -1753,49 +1699,71 @@ bool _hard;
      */
     
     struct OptionProblemConstraint{
-        virtual bool check(Property* p) = 0;
-        virtual vstring msg() = 0;
-        virtual ~OptionProblemConstraint() {};
+      CLASS_NAME(OptionProblemConstraint);
+      USE_ALLOCATOR(OptionProblemConstraint);
+
+      virtual bool check(Property* p) = 0;
+      virtual vstring msg() = 0;
+      virtual ~OptionProblemConstraint() {};
     };
     
     struct CategoryCondition : OptionProblemConstraint{
-        CategoryCondition(Property::Category c,bool h) : cat(c), has(h) {}
-        bool check(Property*p){
-            CALL("Options::CategoryCondition::check");
-            ASS(p);
-            return has ? p->category()==cat : p->category()!=cat;
-        }
-        vstring msg(){ 
-          vstring m =" not useful for property ";
-          if(has) m+="not";
-          return m+" in category "+Property::categoryToString(cat);
-        }
-        Property::Category cat;
-        bool has;
+      CLASS_NAME(CategoryCondition);
+      USE_ALLOCATOR(CategoryCondition);
+
+      CategoryCondition(Property::Category c,bool h) : cat(c), has(h) {}
+      bool check(Property*p){
+          CALL("Options::CategoryCondition::check");
+          ASS(p);
+          return has ? p->category()==cat : p->category()!=cat;
+      }
+      vstring msg(){
+        vstring m =" not useful for property ";
+        if(has) m+="not";
+        return m+" in category "+Property::categoryToString(cat);
+      }
+      Property::Category cat;
+      bool has;
     };
+
     struct UsesEquality : OptionProblemConstraint{
-        bool check(Property*p){
-          CALL("Options::UsesEquality::check");
-          ASS(p)
-          return (p->equalityAtoms() != 0);
-        }
-        vstring msg(){ return " only useful with equality"; }
+      CLASS_NAME(UsesEquality);
+      USE_ALLOCATOR(UsesEquality);
+
+      bool check(Property*p){
+        CALL("Options::UsesEquality::check");
+        ASS(p)
+        return (p->equalityAtoms() != 0);
+      }
+      vstring msg(){ return " only useful with equality"; }
     };
+
     struct HasNonUnits : OptionProblemConstraint{
-        bool check(Property*p){
-          CALL("Options::HasNonUnits::check");
-          return (p->clauses()-p->unitClauses())!=0; 
-        }
-        vstring msg(){ return " only useful with non-unit clauses"; }
+      CLASS_NAME(HasNonUnits);
+      USE_ALLOCATOR(HasNonUnits);
+
+      bool check(Property*p){
+        CALL("Options::HasNonUnits::check");
+        return (p->clauses()-p->unitClauses())!=0;
+      }
+      vstring msg(){ return " only useful with non-unit clauses"; }
     };
+
     struct HasPredicates : OptionProblemConstraint{
-        bool check(Property*p){
-          CALL("Options::HasPredicates::check");
-          return (p->category()==Property::PEQ || p->category()==Property::UEQ);
-        }
-        vstring msg(){ return " only useful with predicates"; }
+      CLASS_NAME(HasPredicates);
+      USE_ALLOCATOR(HasPredicates);
+
+      bool check(Property*p){
+        CALL("Options::HasPredicates::check");
+        return (p->category()==Property::PEQ || p->category()==Property::UEQ);
+      }
+      vstring msg(){ return " only useful with predicates"; }
     };
+
     struct AtomConstraint : OptionProblemConstraint{
+      CLASS_NAME(AtomConstraint);
+      USE_ALLOCATOR(AtomConstraint);
+
       AtomConstraint(int a,bool g) : atoms(a),greater(g) {}
       int atoms;
       bool greater;
@@ -1836,6 +1804,9 @@ bool _hard;
     // set of options will not be randomized and some will be randomized first
 
     struct OptionHasValue : OptionProblemConstraint{
+      CLASS_NAME(OptionHasValue);
+      USE_ALLOCATOR(OptionHasValue);
+
       OptionHasValue(vstring ov,vstring v) : option_value(ov),value(v) {}
       bool check(Property*p);
       vstring msg(){ return option_value+" has value "+value; } 
@@ -1844,6 +1815,9 @@ bool _hard;
     };
 
     struct ManyOptionProblemConstraints : OptionProblemConstraint {
+      CLASS_NAME(ManyOptionProblemConstraints);
+      USE_ALLOCATOR(ManyOptionProblemConstraints);
+
       ManyOptionProblemConstraints(bool a) : is_and(a) {}
 
       bool check(Property*p){
@@ -1898,7 +1872,6 @@ bool _hard;
     static OptionProblemConstraintUP isRandOn();
     static OptionProblemConstraintUP isRandSat();
     static OptionProblemConstraintUP saNotInstGen();
-    static OptionProblemConstraintUP isBfnt();
 
   //==========================================================
   // Getter functions
@@ -1979,6 +1952,7 @@ public:
   bool showFOOL() const { return showAll() || _showFOOL.actualValue; }
   bool showFMBsortInfo() const { return showAll() || _showFMBsortInfo.actualValue; }
   bool showInduction() const { return showAll() || _showInduction.actualValue; }
+  bool showSimplOrdering() const { return showAll() || _showSimplOrdering.actualValue; }
 #if VZ3
   bool showZ3() const { return showAll() || _showZ3.actualValue; }
 #endif
@@ -2001,6 +1975,7 @@ public:
   bool satFallbackForSMT() const { return _satFallbackForSMT.actualValue; }
   bool smtForGround() const { return _smtForGround.actualValue; }
   TheoryInstSimp theoryInstAndSimp() const { return _theoryInstAndSimp.actualValue; }
+  bool thiTautologyDeletion() const { return _thiTautologyDeletion.actualValue; }
 #endif
   UnificationWithAbstraction unificationWithAbstraction() const { return _unificationWithAbstraction.actualValue; }
   void setUWA(UnificationWithAbstraction value){ _unificationWithAbstraction.actualValue = value; } 
@@ -2027,8 +2002,6 @@ public:
   unsigned forwardSubsumptionDemodulationMaxMatches() const { return _forwardSubsumptionDemodulationMaxMatches.actualValue; }
   Demodulation forwardDemodulation() const { return _forwardDemodulation.actualValue; }
   bool binaryResolution() const { return _binaryResolution.actualValue; }
-  bool bfnt() const { return _bfnt.actualValue; }
-  void setBfnt(bool newVal) { _bfnt.actualValue = newVal; }
   URResolution unitResultingResolution() const { return _unitResultingResolution.actualValue; }
   bool hyperSuperposition() const { return _hyperSuperposition.actualValue; }
   bool simulatenousSuperposition() const { return _simultaneousSuperposition.actualValue; }
@@ -2056,6 +2029,9 @@ public:
   SymbolPrecedence symbolPrecedence() const { return _symbolPrecedence.actualValue; }
   SymbolPrecedenceBoost symbolPrecedenceBoost() const { return _symbolPrecedenceBoost.actualValue; }
   IntroducedSymbolPrecedence introducedSymbolPrecedence() const { return _introducedSymbolPrecedence.actualValue; }
+  const KboAdmissibilityCheck kboAdmissabilityCheck() const { return _kboAdmissabilityCheck.actualValue; }
+  const vstring& functionWeights() const { return _functionWeights.actualValue; }
+  const vstring& predicateWeights() const { return _predicateWeights.actualValue; }
   const vstring& functionPrecedence() const { return _functionPrecedence.actualValue; }
   const vstring& predicatePrecedence() const { return _predicatePrecedence.actualValue; }
   // Return time limit in deciseconds, or 0 if there is no time limit
@@ -2176,24 +2152,7 @@ public:
   bool instGenWithResolution() const { return _instGenWithResolution.actualValue; }
   bool useHashingVariantIndex() const { return _useHashingVariantIndex.actualValue; }
 
-  float satClauseActivityDecay() const { return _satClauseActivityDecay.actualValue; }
-  SatClauseDisposer satClauseDisposer() const { return _satClauseDisposer.actualValue; }
-  bool satLearntMinimization() const { return _satLearntMinimization.actualValue; }
-  bool satLearntSubsumptionResolution() const { return _satLearntSubsumptionResolution.actualValue; }
-  int satRestartFixedCount() const { return _satRestartFixedCount.actualValue; }
-  float satRestartGeometricIncrease() const { return _satRestartGeometricIncrease.actualValue; }
-  int satRestartGeometricInit() const { return _satRestartGeometricInit.actualValue; }
-  int satRestartLubyFactor() const { return _satRestartLubyFactor.actualValue; }
-  float satRestartMinisatIncrease() const { return _satRestartMinisatIncrease.actualValue; }
-  int satRestartMinisatInit() const { return _satRestartMinisatInit.actualValue; }
-  SatRestartStrategy satRestartStrategy() const { return _satRestartStrategy.actualValue; }
-  float satVarActivityDecay() const { return _satVarActivityDecay.actualValue; }
-  SatVarSelector satVarSelector() const { return _satVarSelector.actualValue; }
-
-  Niceness nicenessOption() const { return _nicenessOption.actualValue; }
-
   void setMemoryLimit(size_t newVal) { _memoryLimit.actualValue = newVal; }
-  
   void setTimeLimitInSeconds(int newVal) { _timeLimitInDeciseconds.actualValue = 10*newVal; }
   void setTimeLimitInDeciseconds(int newVal) { _timeLimitInDeciseconds.actualValue = newVal; }
   int getWhileNumber(){return _whileNumber.actualValue;}
@@ -2378,7 +2337,6 @@ private:
   ChoiceOptionValue<Subsumption> _backwardSubsumptionResolution;
   BoolOptionValue _backwardSubsumptionDemodulation;
   UnsignedOptionValue _backwardSubsumptionDemodulationMaxMatches;
-  BoolOptionValue _bfnt;
   BoolOptionValue _binaryResolution;
   BoolOptionValue _bpCollapsingPropagation;
   UnsignedOptionValue _bpAllowedFMBalance;
@@ -2506,7 +2464,6 @@ private:
 
   StringOptionValue _namePrefix;
   IntOptionValue _naming;
-  ChoiceOptionValue<Niceness> _nicenessOption;
   BoolOptionValue _nonliteralsInClauseWeight;
   BoolOptionValue _normalize;
 
@@ -2527,19 +2484,6 @@ private:
 
   IntOptionValue _activationLimit;
 
-  FloatOptionValue _satClauseActivityDecay;
-  ChoiceOptionValue<SatClauseDisposer> _satClauseDisposer;
-  BoolOptionValue _satLearntMinimization;
-  BoolOptionValue _satLearntSubsumptionResolution;
-  IntOptionValue _satRestartFixedCount;
-  FloatOptionValue _satRestartGeometricIncrease;
-  IntOptionValue _satRestartGeometricInit;
-  IntOptionValue _satRestartLubyFactor;
-  FloatOptionValue _satRestartMinisatIncrease;
-  IntOptionValue _satRestartMinisatInit;
-  ChoiceOptionValue<SatRestartStrategy> _satRestartStrategy;
-  FloatOptionValue _satVarActivityDecay;
-  ChoiceOptionValue<SatVarSelector> _satVarSelector;
   ChoiceOptionValue<SatSolver> _satSolver;
   ChoiceOptionValue<SaturationAlgorithm> _saturationAlgorithm;
   BoolOptionValue _selectUnusedVariablesFirst;
@@ -2569,12 +2513,14 @@ private:
   BoolOptionValue _showFOOL;
   BoolOptionValue _showFMBsortInfo;
   BoolOptionValue _showInduction;
+  BoolOptionValue _showSimplOrdering;
 #if VZ3
   BoolOptionValue _showZ3;
   BoolOptionValue _z3UnsatCores;
   BoolOptionValue _satFallbackForSMT;
   BoolOptionValue _smtForGround;
   ChoiceOptionValue<TheoryInstSimp> _theoryInstAndSimp;
+  BoolOptionValue _thiTautologyDeletion;
 #endif
   ChoiceOptionValue<UnificationWithAbstraction> _unificationWithAbstraction; 
   BoolOptionValue _fixUWA;
@@ -2611,6 +2557,9 @@ private:
   ChoiceOptionValue<SymbolPrecedence> _symbolPrecedence;
   ChoiceOptionValue<SymbolPrecedenceBoost> _symbolPrecedenceBoost;
   ChoiceOptionValue<IntroducedSymbolPrecedence> _introducedSymbolPrecedence;
+  ChoiceOptionValue<KboAdmissibilityCheck> _kboAdmissabilityCheck;
+  StringOptionValue _functionWeights;
+  StringOptionValue _predicateWeights;
   StringOptionValue _functionPrecedence;
   StringOptionValue _predicatePrecedence;
 

@@ -1,7 +1,4 @@
-
 /*
- * File FiniteModelBuilder.cpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -9,12 +6,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file FiniteModelBuilder.cpp
@@ -25,7 +16,7 @@
  *       so array[arity] is return and array[i] is the ith argument of the function
  */
 
-#include <math.h>
+#include <cmath>
 
 #include "Kernel/Ordering.hpp"
 #include "Kernel/Inference.hpp"
@@ -40,7 +31,6 @@
 #include "Kernel/FormulaUnit.hpp"
 
 #include "SAT/Preprocess.hpp"
-#include "SAT/TWLSolver.hpp"
 #include "SAT/MinisatInterfacingNewSimp.hpp"
 #include "SAT/BufferedSolver.hpp"
 
@@ -275,9 +265,6 @@ bool FiniteModelBuilder::reset(){
   */
 /*
   switch(_opt.satSolver()){
-    case Options::SatSolver::VAMPIRE:
-      _solver = new TWLSolver(_opt, true);
-      break;
 #if VZ3
     case Options::SatSolver::Z3:
         ASSERTION_VIOLATION_REP("Do not use fmb with Z3");
@@ -576,6 +563,9 @@ void FiniteModelBuilder::init()
 
   }
 
+  // TODO: consider updating usage count by rescanning property
+  // in particular, terms replaced by definitions have disappeared!
+
   // record the deleted functions and predicates
   // we do this here so that there are slots for symbols introduce in previous
   // preprocessing steps (definition introduction, splitting)
@@ -583,7 +573,7 @@ void FiniteModelBuilder::init()
   del_p.ensure(env.signature->predicates());
 
   for(unsigned f=0;f<env.signature->functions();f++){
-    del_f[f] = _deletedFunctions.find(f);
+    del_f[f] = _deletedFunctions.find(f) || env.signature->getFunction(f)->usageCnt()==0;
   }
   for(unsigned p=0;p<env.signature->predicates();p++){
     del_p[p] = (_deletedPredicates.find(p) || _trivialPredicates.find(p));
@@ -1491,7 +1481,9 @@ SATLiteral FiniteModelBuilder::getSATLiteral(unsigned f, const DArray<unsigned>&
   // cannot have predicate 0 here (it's equality)
   ASS(f>0 || isFunction);
 
-  unsigned arity = isFunction ? env.signature->functionArity(f) : env.signature->predicateArity(f);
+  DEBUG_CODE(
+    unsigned arity = isFunction ? env.signature->functionArity(f) : env.signature->predicateArity(f)
+  );
   ASS((isFunction && arity==grounding.size()-1) || (!isFunction && arity==grounding.size()));
 
   unsigned offset = isFunction ? f_offsets[f] : p_offsets[f];
@@ -1861,7 +1853,8 @@ void FiniteModelBuilder::onModelFound()
 
  DHMap<unsigned,unsigned> vampireSortSizes;
  for(unsigned vSort=0;vSort<env.sorts->count();vSort++){
-   unsigned size = 0;
+   unsigned size = 1;
+   if(vSort == Sorts::SRT_INTEGER || vSort == Sorts::SRT_RATIONAL || vSort == Sorts::SRT_REAL){ size=0;}
    unsigned dsort;
    if(_sortedSignature->vampireToDistinctParent.find(vSort,dsort)){
      size = _distinctSortSizes[dsort];
@@ -2032,6 +2025,8 @@ pModelLabel:
     //cout << "Consider " << f << endl;
     unsigned arity = env.signature->functionArity(f);
     if(!del_f[f]) continue; 
+    // For now, just skip unused functions!
+    if(env.signature->getFunction(f)->usageCnt()==0) continue;
     //del_f[f]=false;
 
     ASS(_deletedFunctions.find(f));
@@ -2585,8 +2580,6 @@ bool FiniteModelBuilder::SmtBasedDSAE::increaseModelSizes(DArray<unsigned>& newS
         sum = sum + *_sizeConstants[i];
       }
       _smtSolver.add(sum == _context.int_val(_lastWeight));
-
-      result = _smtSolver.check();
 
       if (_smtSolver.check() == z3::check_result::sat) {
         loadSizesFromSmt(newSortSizes);

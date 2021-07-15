@@ -1,6 +1,4 @@
 /*
- * File MLMatcher.hpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -8,12 +6,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions.
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide.
  */
 /**
  * @file MLMatcher.hpp
@@ -52,10 +44,10 @@ class MLMatcher
      * - All literals in 'alts' must appear in 'instance'.
      * - If resolvedLit is not null, multiset must be false. (Hypothesis; not 100% sure if the matching algorithm breaks in that case)
      */
-    void init(Literal* baseLits[],
+    void init(Literal** baseLits,
               unsigned baseLen,
               Clause* instance,
-              LiteralList const* const alts[],
+              LiteralList const* const *alts,
               Literal* resolvedLit,
               bool multiset);
 
@@ -65,23 +57,23 @@ class MLMatcher
      */
     MLMatcher();
 
-    void init(Literal* baseLits[], unsigned baseLen, Clause* instance, LiteralList const* const alts[], bool multiset = false)
+    void init(Literal** baseLits, unsigned baseLen, Clause* instance, LiteralList const* const *alts, bool multiset = false)
     {
       init(baseLits, baseLen, instance, alts, nullptr, multiset);
     }
 
-    void init(Clause* base, Clause* instance, LiteralList const* const alts[], bool multiset = false)
+    void init(Clause* base, Clause* instance, LiteralList const* const *alts, bool multiset = false)
     {
       init(base->literals(), base->length(), instance, alts, multiset);
     }
 
-    void init(Literal* baseLits[], unsigned baseLen, Clause* instance, LiteralList const* const alts[], Literal* resolvedLit)
+    void init(Literal** baseLits, unsigned baseLen, Clause* instance, LiteralList const* const *alts, Literal* resolvedLit)
     {
       // NOTE: we need multiset matching for subsumption, but for subsumption resolution it is not necessary
       init(baseLits, baseLen, instance, alts, resolvedLit, resolvedLit == nullptr);
     }
 
-    void init(Clause* base, Clause* instance, LiteralList const* const alts[], Literal* resolvedLit)
+    void init(Clause* base, Clause* instance, LiteralList const* const *alts, Literal* resolvedLit)
     {
       init(base->literals(), base->length(), instance, alts, resolvedLit);
     }
@@ -129,10 +121,10 @@ class MLMatcher
 
   public:
     /// Helper function for compatibility to previous code. It uses a shared static instance of MLMatcher::Impl.
-    static bool canBeMatched(Literal* baseLits[], unsigned baseLen, Clause* instance, LiteralList const* const alts[], Literal* resolvedLit, bool multiset);
+    static bool canBeMatched(Literal** baseLits, unsigned baseLen, Clause* instance, LiteralList const* const *alts, Literal* resolvedLit, bool multiset);
 
     /// Helper function for compatibility to previous code. It uses a shared static instance of MLMatcher::Impl.
-    static bool canBeMatched(Clause* base,                          Clause* instance, LiteralList const* const alts[], Literal* resolvedLit)
+    static bool canBeMatched(Clause* base,                          Clause* instance, LiteralList const* const *alts, Literal* resolvedLit)
     {
       return canBeMatched(base->literals(), base->length(), instance, alts, resolvedLit, resolvedLit == nullptr);
     }

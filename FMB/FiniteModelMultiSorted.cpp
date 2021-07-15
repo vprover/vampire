@@ -1,7 +1,4 @@
-
 /*
- * File FiniteModelMultiSorted.cpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -9,12 +6,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file FiniteModelMultiSorted.cpp
@@ -24,7 +15,7 @@
  * @author Giles
  */
 
-#include <math.h>
+#include <cmath>
 
 #include "Kernel/Term.hpp"
 #include "Kernel/Unit.hpp"
@@ -86,7 +77,11 @@ FiniteModelMultiSorted::FiniteModelMultiSorted(DHMap<unsigned,unsigned> sizes) :
 
     OperatorType* sig = env.signature->getPredicate(p)->predType();
     unsigned add = 1;
-    for(unsigned i=0;i<arity;i++){ add*= _sizes.get(sig->arg(i)); }
+    for(unsigned i=0;i<arity;i++){ 
+      int mult = _sizes.get(sig->arg(i)); 
+      ASS(mult>0);
+      add*= (mult>0 ? mult : 1);
+    }
 
     ASS(UINT_MAX - add > offsets);
     offsets += add;
@@ -157,6 +152,8 @@ void FiniteModelMultiSorted::addPredicateDefinition(unsigned p, const DArray<uns
   CALL("FiniteModelMultiSorted::addPredicateDefinition");
 
   ASS_EQ(env.signature->predicateArity(p),args.size());
+
+  //cout << "addPredicateDefinition for " << p << "(" << env.signature->predicateName(p) << ")" << endl;
 
   unsigned var = p_offsets[p];
   unsigned mult = 1;
@@ -253,6 +250,7 @@ vstring FiniteModelMultiSorted::toString()
 
   //Constants
   for(unsigned f=0;f<env.signature->functions();f++){
+    if(env.signature->getFunction(f)->usageCnt()==0) continue;
     unsigned arity = env.signature->functionArity(f);
     if(arity>0) continue;
     if(!printIntroduced && env.signature->getFunction(f)->introduced()) continue;
@@ -274,6 +272,7 @@ vstring FiniteModelMultiSorted::toString()
 
   //Functions
   for(unsigned f=0;f<env.signature->functions();f++){
+    if(env.signature->getFunction(f)->usageCnt()==0) continue;
     unsigned arity = env.signature->functionArity(f);
     if(arity==0) continue;
     if(!printIntroduced && env.signature->getFunction(f)->introduced()) continue;
@@ -374,7 +373,6 @@ fModelLabel:
     }
     modelStm << " > $o )." << endl;
 
-
     modelStm << "tff("<<prepend("predicate_", name)<<",axiom,"<<endl;
 
     unsigned offset = p_offsets[f];
@@ -386,7 +384,6 @@ fModelLabel:
     bool first=true;
 pModelLabel:
       for(unsigned i=arity-1;i+1!=0;i--){
-
         if(args[i]==_sizes.get(sig->arg(i))){
           args[i]=1;
         }

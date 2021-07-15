@@ -1,7 +1,4 @@
-
 /*
- * File KBOForEPR.cpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -9,12 +6,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file KBOForEPR.cpp
@@ -116,6 +107,12 @@ Ordering::Result KBOForEPR::compare(TermList tl1, TermList tl2) const
   ASS_NEQ(tl1.term()->functor(), tl2.term()->functor());
 
   return compareFunctionPrecedences(tl1.term()->functor(), tl2.term()->functor());
+}
+
+
+void KBOForEPR::showConcrete(ostream& out) const 
+{ 
+  out << "% < specific output for KBOForEPR not (yet) implemented >" << endl;
 }
 
 }

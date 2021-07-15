@@ -1,7 +1,4 @@
-
 /*
- * File TheoryFinder.cpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -9,12 +6,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file TheoryFinder.cpp
@@ -164,10 +155,10 @@ class TheoryFinder::Backtrack
 public:
   /** code pointer */
   unsigned cp;
-  /** object on which the instruction should be executed */
-  const void* obj;
   /** position in the object stack */
   unsigned objPos;
+  /** object on which the instruction should be executed */
+  const void* obj;
 }; // TheoryFinder::Backtrack
 
 bool TheoryFinder::matchCode(const void* obj,
@@ -189,7 +180,7 @@ bool TheoryFinder::matchCode(const void* obj,
  * @return true if succeeds
  * @since 24/06/2004 Dresden
  * @since 28/07/2008 train Manchester-London
- * @Since 30/01/2014 Refactored pure matching code to be static and public.
+ * @since 30/01/2014 Refactored pure matching code to be static and public.
  *                   Previous method updating the Property field calls this method.
  */
 bool TheoryFinder::matchCode(const void* obj,
@@ -217,6 +208,9 @@ bool TheoryFinder::matchCode(const void* obj,
   const Clause* clause;
   // the length of this clause
   int clength;
+#ifdef VDEBUG
+  bool clength_assigned = false;
+#endif
   // literal numbers to be matched by LIT i commands
   int literals[4];
 
@@ -407,6 +401,9 @@ bool TheoryFinder::matchCode(const void* obj,
     cout << "M: CLS: " << clause->toString() << endl;
 #endif
     clength = clause->length();
+#ifdef VDEBUG
+    clength_assigned = true;
+#endif
     cp++;
     goto match;
   }
@@ -418,6 +415,7 @@ bool TheoryFinder::matchCode(const void* obj,
 #endif
     unsigned l = code[cp+1];
     // bit field of choices for this literal
+    ASS(clength_assigned);
     unsigned choice = (1u << clength) - 1;
     for (int i = l-1;i >= 0;i--) {
       // remove from the choice literals already used
@@ -701,10 +699,8 @@ bool TheoryFinder::matchCode(const void* obj,
     goto match;
   }
 
-#if VDEBUG
   default:
     ASSERTION_VIOLATION;
-#endif
   }
 } // TheoryFinder::MatcherState::match
 

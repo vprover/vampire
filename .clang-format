@@ -1,0 +1,14 @@
+---
+Language: Cpp
+
+Standard: c++11
+SortIncludes: false
+
+AlignOperands: false
+BreakBeforeBraces: Stroustrup
+ColumnLimit: 0
+DerivePointerAlignment: false
+PointerAlignment: Right
+FixNamespaceComments: true
+IndentCaseLabels: true
+...

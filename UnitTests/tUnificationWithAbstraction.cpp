@@ -1,7 +1,4 @@
-
 /*
- * File tUnificationWithAbstraction.cpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -9,12 +6,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 #include "Forwards.hpp"
 #include "Lib/Environment.hpp"
@@ -38,6 +29,7 @@
 
 #include "Test/UnitTesting.hpp"
 
+// TODO make this test use assertions, instead of printing output
 
 #define UNIT_ID uwa 
 UT_CREATE;
@@ -148,7 +140,7 @@ void reportMatches(LiteralIndexingStructure* index, Literal* qlit)
   while(it.hasNext()){
     SLQueryResult qr = it.next();
     cout << qr.clause->toString() << " matches with substitution: "<< endl;
-    cout << qr.substitution->tryGetRobSubstitution()->toString() << endl;
+    // cout << qr.substitution->tryGetRobSubstitution()->toString() << endl;
     cout << "and constraints: "<< endl;
     auto constraints = qr.constraints;
     for(unsigned i=0;i<constraints->size();i++){
@@ -221,7 +213,7 @@ void reportRobUnify(TermList a, TermList b)
   bool result = sub.unify(a,NORM_QUERY_BANK,b,NORM_RESULT_BANK,hndlr);
   cout << "Result is " << result << endl;
   if(result){
-    cout << "> Substitution is " << endl << sub.toString();
+    // cout << "> Substitution is " << endl << sub.toString();
     cout << "> Constraints are:" << endl;
     auto rs = ResultSubstitution::fromSubstitution(&sub,NORM_QUERY_BANK,NORM_RESULT_BANK);
     for(unsigned i=0;i<constraints.size();i++){

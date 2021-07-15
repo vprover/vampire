@@ -1,4 +1,12 @@
-
+/*
+ * This file is part of the source code of the software program
+ * Vampire. It is protected by applicable
+ * copyright laws.
+ *
+ * This source code is distributed under the licence found here
+ * https://vprover.github.io/license.html
+ * and in the source directory
+ */
 #include "Test/UnitTesting.hpp"
 #include "Test/SyntaxSugar.hpp"
 #include "Indexing/TermSharing.hpp"
@@ -74,6 +82,7 @@ Clause* exhaustiveGve(Clause* in) {
     virtual Result compare(Literal*, Literal*) const override { return Kernel::Ordering::LESS; }
     virtual Result compare(TermList, TermList) const override {ASSERTION_VIOLATION}
     virtual Comparison compareFunctors(unsigned, unsigned) const override {ASSERTION_VIOLATION}
+    virtual void show(ostream&) const override {ASSERTION_VIOLATION}
   };
   static FakeOrdering ord;
   static GaussianVariableElimination inf = GaussianVariableElimination();

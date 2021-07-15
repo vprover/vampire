@@ -1,7 +1,4 @@
-
 /*
- * File Inference.cpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -9,12 +6,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file Inference.cpp
@@ -388,7 +379,7 @@ Inference::Inference(const TheoryAxiom& ta) {
   CALL("Inference::Inference(TheoryAxiom)");
 
   init0(UnitInputType::AXIOM,ta.rule);
-  ASS_REP(isTheoryAxiomRule(ta.rule),ruleName(ta.rule));
+  ASS_REP(isInternalTheoryAxiomRule(ta.rule) || isExternalTheoryAxiomRule(ta.rule), ruleName(ta.rule));
 }
 
 Inference::Inference(const FormulaTransformation& ft) {
@@ -741,8 +732,8 @@ vstring Kernel::ruleName(InferenceRule rule)
     return "equality axiom";
   case InferenceRule::CHOICE_AXIOM:
     return "choice axiom";
-  case InferenceRule::SIMPLIFY_PROVER_DISTINCT_NUMBERS_AXIOM:
-    return "distinct numbers";
+  case InferenceRule::DISTINCTNESS_AXIOM:
+    return "distinctness axiom";
   case InferenceRule::THEORY_TAUTOLOGY_SAT_CONFLICT:
     return "theory tautology sat conflict";
   case InferenceRule::GENERIC_THEORY_AXIOM:
@@ -787,7 +778,7 @@ vstring Kernel::ruleName(InferenceRule rule)
   case InferenceRule::THA_BOOLEAN_ARRAY_WRITE2:
   case InferenceRule::THA_ARRAY_WRITE1:
   case InferenceRule::THA_ARRAY_WRITE2:
-    return "theory axiom";
+    return "theory axiom " + Int::toString((unsigned)toNumber(rule));
   case InferenceRule::TERM_ALGEBRA_ACYCLICITY_AXIOM:
     return "term algebras acyclicity";
   case InferenceRule::TERM_ALGEBRA_DISCRIMINATION_AXIOM:
@@ -851,12 +842,6 @@ vstring Kernel::ruleName(InferenceRule rule)
     return "external";
   case InferenceRule::CLAIM_DEFINITION:
     return "claim definition";
-  case InferenceRule::BFNT_FLATTENING:
-    return "bfnt flattening";
-  case InferenceRule::BFNT_DISTINCT:
-    return "bfnt distinct";
-  case InferenceRule::BFNT_TOTALITY:
-    return "bfnt totality";
   case InferenceRule::FMB_FLATTENING:
     return "flattening (finite model building)";
   case InferenceRule::FMB_FUNC_DEF:

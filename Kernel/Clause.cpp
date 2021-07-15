@@ -1,7 +1,4 @@
-
 /*
- * File Clause.cpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -9,12 +6,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file Clause.cpp
@@ -426,6 +417,10 @@ vstring Clause::toString() const
     if(derivedFromGoal()){
       result += vstring(",goal:1");
     }
+    if(env.maxSineLevel > 1) { // this is a cryptic way of saying "did we run Sine to compute sine levels?"
+      result += vstring(",sine:")+Int::toString((unsigned)_inference.getSineLevel());
+    }
+
     if(isPureTheoryDescendant()){
       result += vstring(",ptD:1");
     }
@@ -530,14 +525,13 @@ unsigned Clause::splitWeight() const
  * @since 04/05/2013 Manchester, updated to use new NonVariableIterator
  * @author Andrei Voronkov
  */
-unsigned Clause::getNumeralWeight() const
-{
+unsigned Clause::getNumeralWeight() const {
   CALL("Clause::getNumeralWeight");
 
-  unsigned res=0;
+  unsigned res = 0;
   Iterator litIt(*this);
   while (litIt.hasNext()) {
-    Literal* lit=litIt.next();
+    Literal* lit = litIt.next();
     if (!lit->hasInterpretedConstants()) {
       continue;
     }
@@ -545,34 +539,33 @@ unsigned Clause::getNumeralWeight() const
     while (nvi.hasNext()) {
       const Term* t = nvi.next().term();
       if (t->arity() != 0) {
-	continue;
+        continue;
       }
       IntegerConstantType intVal;
-      if (theory->tryInterpretConstant(t,intVal)) {
-	int w = BitUtils::log2(abs(intVal.toInner()))-1;
-	if (w > 0) {
-	  res += w;
-	}
-	continue;
+      if (theory->tryInterpretConstant(t, intVal)) {
+        int w = BitUtils::log2(Int::safeAbs(intVal.toInner())) - 1;
+        if (w > 0) {
+          res += w;
+        }
+        continue;
       }
       RationalConstantType ratVal;
       RealConstantType realVal;
       bool haveRat = false;
-      if (theory->tryInterpretConstant(t,ratVal)) {
-	haveRat = true;
-      }
-      else if (theory->tryInterpretConstant(t,realVal)) {
-	ratVal = RationalConstantType(realVal);
-	haveRat = true;
+      if (theory->tryInterpretConstant(t, ratVal)) {
+        haveRat = true;
+      } else if (theory->tryInterpretConstant(t, realVal)) {
+        ratVal = RationalConstantType(realVal);
+        haveRat = true;
       }
       if (!haveRat) {
-	continue;
+        continue;
       }
-      int wN = BitUtils::log2(abs(ratVal.numerator().toInner()))-1;
-      int wD = BitUtils::log2(abs(ratVal.denominator().toInner()))-1;
+      int wN = BitUtils::log2(Int::safeAbs(ratVal.numerator().toInner())) - 1;
+      int wD = BitUtils::log2(Int::safeAbs(ratVal.denominator().toInner())) - 1;
       int v = wN + wD;
       if (v > 0) {
-	res += v;
+        res += v;
       }
     }
   }
@@ -769,6 +762,18 @@ bool Clause::contains(Literal* lit)
     }
   }
   return false;
+}
+
+std::ostream& operator<<(std::ostream& out, Clause::Store const& store) 
+{
+  switch (store) {
+    case Clause::PASSIVE:     return out << "PASSIVE";
+    case Clause::ACTIVE:      return out << "ACTIVE";
+    case Clause::UNPROCESSED: return out << "UNPROCESSED";
+    case Clause::NONE:        return out << "NONE";
+    case Clause::SELECTED:    return out << "SELECTED";
+  }
+  ASSERTION_VIOLATION;
 }
 
 }

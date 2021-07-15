@@ -1,7 +1,4 @@
-
 /*
- * File UnitTesting.hpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -9,12 +6,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file UnitTesting.hpp
@@ -192,16 +183,24 @@ private:
 #define UT_AUX_ADDER_NAME_(ID,LINE,NAME) UT_AUX_ADDER_NAME__(ID,LINE,NAME)
 #define UT_AUX_ADDER_NAME(NAME) UT_AUX_ADDER_NAME_(UNIT_ID, __LINE__,NAME)
 
+#ifndef CTEST 
+#define CTEST 0
+#endif // CTEST
 
-#define UT_CREATE Test::TestUnit UT_AUX_NAME(UT_AUX_NAME_STR)
+#if CTEST
+#  define UT_CREATE                                                                                           \
+  Test::TestUnit UT_AUX_NAME(UT_AUX_NAME_STR);                                                                \
+  int main() {                                                                                                \
+    bool success = Test::UnitTesting::instance()->runUnit(&UT_AUX_NAME, std::cout);                           \
+    return success ? 0 : -1;                                                                                  \
+  }                                                                                                           
+#else  // CTEST
+#  define UT_CREATE Test::TestUnit UT_AUX_NAME(UT_AUX_NAME_STR)
+#endif // CTEST
 
-// #define TEST_FUN_MULTI_PER_LINE(name, id_in_line)   \
-//   void name(); \
-//   Test::TU_Aux_Test_Adder _ut_aux_adder_##ID##_##LINE##_##id_in_line(UT_AUX_NAME,name,#name); \
-//   void name()
-
-#define TEST_FUN(name)  void name(); \
-			Test::TU_Aux_Test_Adder UT_AUX_ADDER_NAME(name)(UT_AUX_NAME,name,#name); \
+#define TEST_FUN(name)                                                                                        \
+      void name();                                                                                            \
+      Test::TU_Aux_Test_Adder UT_AUX_ADDER_NAME(name)(UT_AUX_NAME,name,#name);                                \
 			void name()
 
 }

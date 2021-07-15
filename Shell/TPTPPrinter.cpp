@@ -1,7 +1,4 @@
-
 /*
- * File TPTPPrinter.cpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -9,12 +6,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file TPTPPrinter.cpp
@@ -68,7 +59,7 @@ void TPTPPrinter::print(Unit* u)
 }
 
 /**
- * Print on the desired output the Unit @param u with the specified name @param name
+ * Print on the desired output the Unit with the specified name
  * @param name
  * @param u
  */
@@ -93,6 +84,7 @@ void TPTPPrinter::printWithRole(vstring name, vstring role, Unit* u, bool includ
 /**
  * Return as a vstring the body of the Unit u
  * @param u
+ * @param includeSplitLevels
  * @return the body vstring
  */
 vstring TPTPPrinter::getBodyStr(Unit* u, bool includeSplitLevels)
@@ -195,7 +187,7 @@ void TPTPPrinter::printTffWrapper(Unit* u, vstring bodyStr)
 }
 
 /**
- * Output the symbol @param symNumber definition
+ * Output the symbol definition
  * @param symNumber
  * @param function - true if the symbol is a function symbol
  */

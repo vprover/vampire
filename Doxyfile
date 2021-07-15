@@ -1,0 +1,65 @@
+#
+#  Configuration file for the Vampire documentation.
+# (c) 2003, Andrei Voronkov andrei@voronkov.com.
+#
+
+#
+# general settings
+#
+
+PROJECT_NAME		= Vampire
+OUTPUT_DIRECTORY	= doc
+EXTRACT_ALL		= YES
+EXTRACT_PRIVATE		= YES
+EXTRACT_STATIC		= YES
+EXTRACT_LOCAL_CLASSES	= YES
+WARNINGS         	= YES
+WARN_IF_UNDOCUMENTED    = YES
+
+#
+# input files settings
+#
+
+INPUT			= Api CASC Debug DP FMB Indexing Inferences InstGen Kernel Lib Minisat Parse SAT Saturation Shell VUtils Global.cpp vampire.cpp
+FILE_PATTERNS		= *.cpp *.hpp *.cc *.h
+RECURSIVE		= YES
+EXCLUDE_SYMLINKS = YES
+
+
+#
+# HTML-related options
+#
+
+GENERATE_HTML		= YES
+HTML_OUTPUT		= html
+
+ALPHABETICAL_INDEX = YES
+COLS_IN_ALPHA_INDEX = 2
+
+SOURCE_BROWSER = YES
+DOT_GRAPH_MAX_NODES = 200
+
+#
+# LaTeX-related options
+#
+
+GENERATE_LATEX		= NO
+LATEX_OUTPUT		= latex
+
+#
+# external references 
+#
+
+ALLEXTERNALS           = YES
+
+#
+# other options
+#
+
+GENERATE_RTF		= NO
+GENERATE_MAN		= NO
+GENERATE_XML		= NO
+GENERATE_AUTOGEN_DEF	= NO
+
+MACRO_EXPANSION = YES
+PREDEFINED = IN_DOXYGEN VZ3

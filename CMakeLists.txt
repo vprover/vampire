@@ -1,86 +1,55 @@
-cmake_minimum_required (VERSION 3.5.1)
-
+################################################################
+# general configuration
+################################################################
+cmake_minimum_required (VERSION 3.12.0)
 project(Vampire)
 
 # require the compiler to use C++11
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(VAMPIRE_BINARY "vampire")
-set(VAMPIRE_BINARY_BUILD "_rel")
-set(VAMPIRE_BINARY_STATIC "")
-set(VAMPIRE_BINARY_Z3 "")
-set(VAMPIRE_BINARY_HASH "")
-set(VAMPIRE_BINARY_BRANCH "")
-set(VAMPIRE_BINARY_REV_COUNT "")
+set(CMAKE_CXX_EXTENSIONS OFF)
 
-#debug flags
-set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -DVDEBUG=1 -DUNIX_USE_SIGALRM=1 -DGNUMP=0 ")
-set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -DVDEBUG=0")
-
-if(NOT CMAKE_BUILD_TYPE)
-  message(STATUS "Setting build type to 'Release' as none was specified.")
-  set(CMAKE_BUILD_TYPE "Release" CACHE
-    STRING "Choose the type of build." FORCE)
-elseif (CMAKE_BUILD_TYPE STREQUAL "Debug")
-  set(VAMPIRE_BINARY_BUILD "_dbg")
-else()
-  set(VAMPIRE_BINARY_BUILD "_${CMAKE_BUILD_TYPE}")
-endif()
-
-#static
-option(BUILD_SHARED_LIBS "Build an executable dynamically linking to libraries instead of a statically-linked one (static not working on Mac)" ON)
-if (NOT BUILD_SHARED_LIBS)
-  SET(CMAKE_FIND_LIBRARY_SUFFIXES ".a")
-  SET(CMAKE_EXE_LINKER_FLAGS "-static")
-  set(VAMPIRE_BINARY_STATIC "_static")
-endif()
-
-# support sourcetrail
+# compile command database
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-add_compile_options(
-    # "-ftrapv"
-    # "-pedantic"
-    # "-Wall"
-    # "-Wextra"
-    # "-Wconversion"
-    # "$<$<CONFIG:DEBUG>:-fsanitize=undefined>"
-    # "$<$<CONFIG:DEBUG>:-fsanitize=integer>"
-    # "$<$<CONFIG:DEBUG>:-fsanitize=address>"
-    # "$<$<CONFIG:DEBUG>:-O0>"
-    # "$<$<CONFIG:RELEASE>:-O3>"
-)
+# variables for binary name, set later
+set(VAMPIRE_BINARY vampire)
+set(VAMPIRE_BINARY_BUILD)
+set(VAMPIRE_BINARY_STATIC)
+set(VAMPIRE_BINARY_Z3)
+set(VAMPIRE_BINARY_HASH)
+set(VAMPIRE_BINARY_BRANCH)
+set(VAMPIRE_BINARY_REV_COUNT)
 
-# adjust warnings -- compiler dependent
-# -- see also https://cmake.org/pipermail/cmake/2016-May/063452.html
-if(CMAKE_COMPILER_IS_GNUCXX)
-  add_compile_options("-Wno-terminate")
-  add_compile_options("-D__STDC_FORMAT_MACROS=1")
+# set build type if not set
+if(NOT CMAKE_BUILD_TYPE)
+  message(STATUS "Setting build type to 'Release' as none was specified.")
+  set(CMAKE_BUILD_TYPE Release CACHE STRING "Choose the type of build." FORCE)
 endif()
-if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")  # use MATCHES instead of equality because the value is "AppleClang" on macOS
-  add_compile_options("-Wno-exceptions")
+
+# statically link libraries
+option(BUILD_SHARED_LIBS "Build an executable dynamically linking to libraries instead of a statically-linked one (static not working on Mac)" ON)
+if (NOT BUILD_SHARED_LIBS)
+  set(CMAKE_FIND_LIBRARY_SUFFIXES .a)
+  set(CMAKE_EXE_LINKER_FLAGS -static)
+  set(VAMPIRE_BINARY_STATIC _static)
 endif()
-message("compiler: " ${CMAKE_CXX_COMMAND})
 
-
-
-# add directoy, where we store all custom files for finding libraries which are not build using cmake (i.e. currently z3 only), to the search path of cmake
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/")
-
-# add top level directory to the search path of compiler
-include_directories(${CMAKE_CURRENT_SOURCE_DIR})
-
-# Set the output folder where the binary will be created (i.e. build/dir)
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
-
-
-
-
-################################################################
-# minisat stuff
-################################################################
-#TODO: refactor minisat into independent imported target
-
+option(IPO "If supported, build with link-time optimisation." OFF)
+option(DEBUG_IPO "Print information about why IPO isn't supported" OFF)
+# check whether IPO is available
+include(CheckIPOSupported)
+check_ipo_supported(RESULT IPO_SUPPORTED OUTPUT IPO_ERROR)
+if (IPO_SUPPORTED)
+  message(STATUS "IPO supported")
+else()
+  message(STATUS "IPO not supported")
+  if(DEBUG_IPO)
+    message(STATUS "${IPO_ERROR}")
+  else()
+    message(STATUS "(if you need IPO, set DEBUG_IPO=ON to investigate)")
+  endif()
+endif()
 
 ################################################################
 # define all vampire sources,
@@ -98,7 +67,6 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 #       know which of them are really used, that information is
 #       of course not contained in the makefile)
 ################################################################
-
 
 set(VAMPIRE_MINISAT_SOURCES
     Minisat/core/Solver.cc
@@ -185,7 +153,6 @@ set(VAMPIRE_LIB_SOURCES
 #    Lib/Graph.hpp
     Lib/Hash.hpp
     Lib/ImplicationSetClosure.hpp
-    Lib/InPlaceStack.hpp
     Lib/Int.hpp
     Lib/IntNameTable.hpp
     Lib/IntUnionFind.hpp
@@ -481,36 +448,26 @@ source_group(instancegeneration_source_files FILES ${VAMPIRE_INSTANCEGENERATION_
 
 set(VAMPIRE_SAT_SOURCES
     SAT/BufferedSolver.cpp
-    SAT/ClauseDisposer.cpp
     SAT/DIMACS.cpp
     SAT/FallbackSolverWrapper.cpp
-    SAT/lglib.c
-    SAT/lglopts.c
     SAT/MinimizingSolver.cpp
     SAT/Preprocess.cpp
-    SAT/RestartStrategy.cpp
     SAT/SAT2FO.cpp
     SAT/SATClause.cpp
     SAT/SATInference.cpp
     SAT/SATLiteral.cpp
-    SAT/TWLSolver.cpp
-    SAT/VariableSelector.cpp
     SAT/Z3Interfacing.cpp
 
     SAT/BufferedSolver.hpp
-    SAT/ClauseDisposer.hpp
     SAT/DIMACS.hpp
     SAT/FallbackSolverWrapper.hpp
     SAT/MinimizingSolver.hpp
     SAT/Preprocess.hpp
-    SAT/RestartStrategy.hpp
     SAT/SAT2FO.hpp
     SAT/SATClause.hpp
     SAT/SATInference.hpp
     SAT/SATLiteral.hpp
     SAT/SATSolver.hpp
-    SAT/TWLSolver.hpp
-    SAT/VariableSelector.hpp
     SAT/Z3Interfacing.hpp
     )
 source_group(sat_source_files FILES ${VAMPIRE_SAT_SOURCES})
@@ -532,7 +489,6 @@ set(VAMPIRE_SATURATION_SOURCES
     Saturation/Discount.cpp
     Saturation/ExtensionalityClauseContainer.cpp
     Saturation/LabelFinder.cpp
-    Saturation/Limits.cpp
     Saturation/LRS.cpp
     Saturation/Otter.cpp
     Saturation/ProvingHelper.cpp
@@ -546,7 +502,6 @@ set(VAMPIRE_SATURATION_SOURCES
     Saturation/Discount.hpp
     Saturation/ExtensionalityClauseContainer.hpp
     Saturation/LabelFinder.hpp
-    Saturation/Limits.hpp
     Saturation/LRS.hpp
     Saturation/Otter.hpp
     Saturation/ProvingHelper.hpp
@@ -560,8 +515,6 @@ source_group(saturation_source_files FILES ${VAMPIRE_SATURATION_SOURCES})
 set(VAMPIRE_SHELL_SOURCES
     Shell/AnswerExtractor.cpp
     #Shell/AxiomGenerator.cpp
-    Shell/BFNT.cpp
-    Shell/BFNTMainLoop.cpp
     Shell/CommandLine.cpp
     Shell/CNF.cpp
     Shell/NewCNF.cpp
@@ -599,7 +552,6 @@ set(VAMPIRE_SHELL_SOURCES
     #Shell/Refutation.cpp
     Shell/Skolem.cpp
     Shell/SimplifyFalseTrue.cpp
-    Shell/SimplifyProver.cpp
     Shell/SineUtils.cpp
     Shell/SMTFormula.cpp
     #Shell/SMTPrinter.cpp
@@ -631,8 +583,6 @@ set(VAMPIRE_SHELL_SOURCES
     #Shell/SubsumptionRemover.cpp
     Shell/AnswerExtractor.hpp
     #Shell/AxiomGenerator.hpp
-    Shell/BFNT.hpp
-    Shell/BFNTMainLoop.hpp
     Shell/CommandLine.hpp
     Shell/CNF.hpp
     Shell/NewCNF.hpp
@@ -669,7 +619,6 @@ set(VAMPIRE_SHELL_SOURCES
     #Shell/Refutation.hpp
     Shell/Skolem.hpp
     Shell/SimplifyFalseTrue.hpp
-    Shell/SimplifyProver.hpp
     Shell/SineUtils.hpp
     Shell/SMTFormula.hpp
     Shell/SMTLIBLogic.hpp
@@ -709,7 +658,6 @@ source_group(shell_source_files FILES ${VAMPIRE_SHELL_SOURCES})
 set(VAMPIRE_PARSE_SOURCES
     Parse/SMTLIB2.cpp
     Parse/TPTP.cpp
-    Parse/SMTLIB.hpp
     Parse/SMTLIB2.hpp
     Parse/TPTP.hpp
     )
@@ -756,6 +704,39 @@ set(VAMPIRE_CASC_SOURCES
     )
 source_group(casc_source_files FILES ${VAMPIRE_CASC_SOURCES})
 
+set(VAMPIRE_TESTING_SOURCES
+    Test/UnitTesting.cpp
+    Test/UnitTesting.hpp
+)
+source_group(testing_files FILES ${VAMPIRE_TESTING_SOURCES})
+
+set(UNIT_TESTS
+    UnitTests/tDHMap.cpp
+    UnitTests/tQuotientE.cpp
+    UnitTests/tImplicationSetClosure.cpp
+    UnitTests/tUnificationWithAbstraction.cpp
+    UnitTests/tGaussianElimination.cpp
+    UnitTests/tDisagreement.cpp
+    UnitTests/tDynamicHeap.cpp
+    UnitTests/tIntegerConstantType.cpp
+    UnitTests/tSATSolver.cpp
+    UnitTests/tArithCompare.cpp
+    UnitTests/tSyntaxSugar.cpp
+    UnitTests/tSkipList.cpp
+    UnitTests/tfork.cpp
+    UnitTests/tBinaryHeap.cpp
+    UnitTests/tSafeRecursion.cpp
+    UnitTests/tKBO.cpp
+    UnitTests/tRatioKeeper.cpp
+    UnitTests/tTwoVampires.cpp
+    UnitTests/tOptionConstraints.cpp
+    UnitTests/tSCCAnalyzer.cpp
+    UnitTests/tDHMultiset.cpp
+    UnitTests/tList.cpp
+    UnitTests/tStack.cpp
+)
+source_group(unit_tests FILES ${UNIT_TESTS})
+
 # also include forwards.hpp?
 set(VAMPIRE_SOURCES 
     ${VAMPIRE_DEBUG_SOURCES}
@@ -774,51 +755,118 @@ set(VAMPIRE_SOURCES
     ${VAMPIRE_SMTCOMP_SOURCES}
     ${VAMPIRE_MINISAT_SOURCES}
     ${VAMPIRE_CASC_SOURCES}
-    # Test/CheckedSatSolver.cpp
-    # Test/CheckedSatSolver.hpp
+    Forwards.hpp
     Global.cpp
-    vampire.cpp
     "${CMAKE_CURRENT_BINARY_DIR}/version.cpp"
     )
 
-# TODO: we want at least vampire_dbg, vampire_rel, vampire_z3_dbg, vampire_z3_rel
-#message(STATUS "a test message")
+################################################################
+# compiler flag configuration
+################################################################
+# possible flags that might be useful in future
+# "-ftrapv"
+# "-pedantic"
+# "-Wextra"
+# "-Wconversion"
+# "$<$<CONFIG:DEBUG>:-fsanitize=undefined>"
+# "$<$<CONFIG:DEBUG>:-fsanitize=integer>"
+# "$<$<CONFIG:DEBUG>:-fsanitize=address>"
+# "$<$<CONFIG:DEBUG>:-O0>"
+# "$<$<CONFIG:RELEASE>:-O3>"
 
-add_executable(vampire ${VAMPIRE_SOURCES})
-target_compile_definitions(vampire PRIVATE  CHECK_LEAKS=0)
+# add top level directory to the search path of compiler
+include_directories(${CMAKE_CURRENT_SOURCE_DIR})
+
+# set preprocessor defines
+add_compile_definitions(CHECK_LEAKS=0)
+if(CMAKE_BUILD_TYPE STREQUAL Debug)
+  add_compile_definitions(VDEBUG=1 UNIX_USE_SIGALRM=1 GNUMP=0)
+elseif(CMAKE_BUILD_TYPE STREQUAL Release)
+  add_compile_definitions(VDEBUG=0)
+endif()
+
+# configure warning flags
+if(CMAKE_CXX_COMPILER_ID STREQUAL GNU OR CMAKE_CXX_COMPILER_ID MATCHES Clang$)
+  add_compile_options(-Wall)
+endif()
 
 ################################################################
 # z3 stuff
 ################################################################
-# TODO: one could also add automatic installation of z3 and minisat (cf. github-seahorn solution)
-find_package(Z3 CONFIG NO_DEFAULT_PATH)
+
+# find Z3 automatically!
+# normally this is just in /z3/build/, but this can be overridden
+find_package(
+  Z3
+  CONFIG
+    NO_CMAKE_PATH
+    NO_CMAKE_ENVIRONMENT_PATH
+    NO_SYSTEM_ENVIRONMENT_PATH
+    NO_CMAKE_PACKAGE_REGISTRY
+    NO_CMAKE_SYSTEM_PATH
+    NO_CMAKE_SYSTEM_PACKAGE_REGISTRY
+    PATHS
+      ${CMAKE_SOURCE_DIR}/z3/build/
+)
 if (NOT Z3_FOUND)
-  message(WARNING "No Z3 found -- Compiling without SMT support.")
-  target_compile_definitions(vampire PRIVATE VZ3=0)
+  message(STATUS "No Z3 found -- Compiling without SMT support.")
+  add_compile_definitions(VZ3=0)
 else ()
   message(STATUS "Found Z3 ${Z3_VERSION_STRING}")
-  message(STATUS "Z3_DIR: ${Z3_DIR}")
-  target_include_directories(vampire PRIVATE ${Z3_CXX_INCLUDE_DIRS})
-  if (Z3_FOUND AND (NOT BUILD_SHARED_LIBS) AND CMAKE_COMPILER_IS_GNUCXX)
-    # avoid static linking problems with C++ threads
-    # see https://stackoverflow.com/questions/58848694/gcc-whole-archive-recipe-for-static-linking-to-pthread-stopped-working-in-rec
+  include_directories(${Z3_CXX_INCLUDE_DIRS})
+  if(NOT BUILD_SHARED_LIBS AND Z3_FOUND AND CMAKE_CXX_COMPILER_ID STREQUAL GNU)
+    # https://stackoverflow.com/questions/58848694/gcc-whole-archive-recipe-for-static-linking-to-pthread-stopped-working-in-rec
     message(STATUS "Adding workaround for gcc static linking against pthread")
-    target_link_libraries(vampire PRIVATE ${Z3_LIBRARIES} -pthread -Wl,--whole-archive -lrt -lpthread -Wl,--no-whole-archive)
+    link_libraries(${Z3_LIBRARIES} -pthread -Wl,--whole-archive -lrt -lpthread -Wl,--no-whole-archive)
   else()
-    target_link_libraries(vampire PRIVATE ${Z3_LIBRARIES})
+    link_libraries(${Z3_LIBRARIES})
   endif()
-
 
   add_library(Z3 SHARED IMPORTED)
   set_property(TARGET Z3 PROPERTY IMPORTED_LOCATION ${Z3_LIBRARY})
-  target_compile_definitions(vampire PRIVATE VZ3=1)
-  set(VAMPIRE_BINARY_Z3 "_z3")
+  add_compile_definitions(VZ3=1)
+  set(VAMPIRE_BINARY_Z3 _z3)
 endif()
+
+################################################################
+# build objects
+################################################################
+add_library(obj OBJECT ${VAMPIRE_SOURCES})
+add_library(test_obj OBJECT ${VAMPIRE_TESTING_SOURCES})
+
+################################################################
+# UNIT TESTING 
+################################################################
+
+include(CTest)
+foreach(test_file ${UNIT_TESTS})
+  get_filename_component(test_name ${test_file} NAME_WE)
+  string(REGEX REPLACE "^t" "" test_name ${test_name})
+
+  # compiling the test case executable
+  add_executable(
+    test-${test_name}
+    ${test_file}
+    $<TARGET_OBJECTS:obj>
+    $<TARGET_OBJECTS:test_obj>
+  )
+  target_compile_definitions(test-${test_name} PRIVATE CTEST=1)
+  set(test_bin_dir ${CMAKE_BINARY_DIR}/bin/unit-tests)
+  set_target_properties(test-${test_name} PROPERTIES
+      OUTPUT_NAME ${test_name}
+      RUNTIME_OUTPUT_DIRECTORY ${test_bin_dir})   
+
+  # configuring ctest
+  add_test(${test_name} ${test_bin_dir}/${test_name})
+  set_tests_properties(${test_name}
+        PROPERTIES
+        TIMEOUT 20)
+endforeach()
 
 #################################################################
 # automated generation of Vampire revision information from git #
 #################################################################
-set(VAMPIRE_VERSION_NUMBER "4.5.1")
+set(VAMPIRE_VERSION_NUMBER 4.5.1)
 
 execute_process(
     COMMAND git rev-parse --is-inside-work-tree
@@ -827,7 +875,7 @@ execute_process(
     OUTPUT_STRIP_TRAILING_WHITESPACE
     )
 
-if (GIT_IS_REPOSITORY STREQUAL "true")
+if (GIT_IS_REPOSITORY STREQUAL true)
 
   execute_process(
     COMMAND git log -1 --format=%h\ on\ %ci
@@ -862,9 +910,31 @@ if (GIT_IS_REPOSITORY STREQUAL "true")
   set(VAMPIRE_BINARY_REV_COUNT "_${GIT_REV_COUNT}")
 endif()
 
-################# set binary name #######################
+################################################################
+# binary name
+################################################################
+if(CMAKE_BUILD_TYPE STREQUAL Debug)
+  set(VAMPIRE_BINARY_BUILD _dbg)
+elseif(CMAKE_BUILD_TYPE STREQUAL Release)
+  set(VAMPIRE_BINARY_BUILD _rel)
+else()
+  set(VAMPIRE_BINARY_BUILD "_${CMAKE_BUILD_TYPE}")
+endif()
 set(VAMPIRE_BINARY "vampire${VAMPIRE_BINARY_Z3}${VAMPIRE_BINARY_BUILD}${VAMPIRE_BINARY_STATIC}${VAMPIRE_BINARY_BRANCH}${VAMPIRE_BINARY_REV_COUNT}")
-message(STATUS "Setting binary name to " "${VAMPIRE_BINARY}")
-set_target_properties(vampire PROPERTIES OUTPUT_NAME ${VAMPIRE_BINARY})
+message(STATUS "Setting binary name to '${VAMPIRE_BINARY}'")
 
+################################################################
+# epilogue
+################################################################
+add_executable(vampire vampire.cpp $<TARGET_OBJECTS:obj>)
+set_target_properties(vampire PROPERTIES
+  OUTPUT_NAME ${VAMPIRE_BINARY}
+  RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin
+  )
 configure_file(version.cpp.in version.cpp)
+
+if(CMAKE_BUILD_TYPE STREQUAL Release AND IPO)
+  message(STATUS "compiling Vampire with IPO: this might take a while")
+  set_property(TARGET obj PROPERTY INTERPROCEDURAL_OPTIMIZATION true)
+  set_property(TARGET vampire PROPERTY INTERPROCEDURAL_OPTIMIZATION true)
+endif()

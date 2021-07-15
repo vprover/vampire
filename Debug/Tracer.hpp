@@ -1,7 +1,4 @@
-
 /*
- * File Tracer.hpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -9,12 +6,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file Tracer.hpp
@@ -123,6 +114,7 @@ template<class... A> void Tracer::printDbg(A... msg)
 #  define AUX_CALL_(SEED,Fun) Debug::Tracer _tmp_##SEED##_(Fun);
 #  define AUX_CALL(SEED,Fun) AUX_CALL_(SEED,Fun)
 #  define CALL(Fun) AUX_CALL(__LINE__,Fun)
+#  define DBGE(x) DBG(#x, " = ", x)
 #  define DBG(...) {\
   std::cout << "[ debug ] " << __FILE__ <<  "@" << __LINE__ << ":";\
   Debug::Tracer::printDbg(__VA_ARGS__); \
@@ -139,6 +131,7 @@ template<class... A> void Tracer::printDbg(A... msg)
 
 #else // ! VDEBUG
 #  define DBG(...) {}
+#  define DBGE(x) {}
 #  define CALL(Fun) 
 #  define CALLC(Fun,check) 
 #  define CONTROL(description)

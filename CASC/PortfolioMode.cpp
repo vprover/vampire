@@ -1,6 +1,4 @@
 /*
- * File PortfolioMode.cpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -8,12 +6,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 
 /**
@@ -287,110 +279,33 @@ void PortfolioMode::getSchedules(Property& prop, Schedule& quick, Schedule& fall
   CALL("PortfolioMode::getSchedules");
 
   switch(env.options->schedule()) {
-  case Options::Schedule::CASC_2014_EPR:
-    Schedules::getCasc2014EprSchedule(prop,quick,fallback);
-    break;
-  case Options::Schedule::CASC_2014:
-    Schedules::getCasc2014Schedule(prop,quick,fallback);
-    break;
-  case Options::Schedule::CASC_2016:
-    Schedules::getCasc2016Schedule(prop,quick,fallback);
-    break;
-  case Options::Schedule::CASC_2017:
-    Schedules::getCasc2017Schedule(prop,quick,fallback);
-    break;
-  case Options::Schedule::CASC_2018:
-    Schedules::getCasc2018Schedule(prop,quick,fallback);
-    break;
   case Options::Schedule::CASC_2019:
   case Options::Schedule::CASC:
     Schedules::getCasc2019Schedule(prop,quick,fallback);
     break;
-  case Options::Schedule::CASC_SAT_2014:
-    Schedules::getCascSat2014Schedule(prop,quick,fallback);
-    break;
-  case Options::Schedule::CASC_SAT_2016:
-    Schedules::getCascSat2016Schedule(prop,quick,fallback);
-    break;
-  case Options::Schedule::CASC_SAT_2017:
-    Schedules::getCascSat2017Schedule(prop,quick,fallback);
-    break;
-  case Options::Schedule::CASC_SAT_2018:
-    Schedules::getCascSat2018Schedule(prop,quick,fallback);
-    break;
+
   case Options::Schedule::CASC_SAT_2019:
   case Options::Schedule::CASC_SAT:
     Schedules::getCascSat2019Schedule(prop,quick,fallback);
     break;
-  case Options::Schedule::SMTCOMP_2016:
-    Schedules::getSmtcomp2016Schedule(prop,quick,fallback);
-    break;
-  case Options::Schedule::SMTCOMP_2017:
-    Schedules::getSmtcomp2017Schedule(prop,quick,fallback);
-    break;
+
   case Options::Schedule::SMTCOMP:
   case Options::Schedule::SMTCOMP_2018:
     Schedules::getSmtcomp2018Schedule(prop,quick,fallback);
     break;
 
-  case Options::Schedule::LTB_HH4_2015_FAST:
-    Schedules::getLtb2015Hh4FastSchedule(prop,quick);
-    break;
-  case Options::Schedule::LTB_HH4_2015_MIDD:
-    Schedules::getLtb2015Hh4MiddSchedule(prop,quick);
-    break;
-  case Options::Schedule::LTB_HH4_2015_SLOW:
-    Schedules::getLtb2015Hh4SlowSchedule(prop,quick);
-    break;
   case Options::Schedule::LTB_HH4_2017:
     Schedules::getLtb2017Hh4Schedule(prop,quick);
-    break;
-
-  case Options::Schedule::LTB_HLL_2015_FAST:
-    Schedules::getLtb2015HllFastSchedule(prop,quick);
-    break;
-  case Options::Schedule::LTB_HLL_2015_MIDD:
-    Schedules::getLtb2015HllMiddSchedule(prop,quick);
-    break;
-  case Options::Schedule::LTB_HLL_2015_SLOW:
-    Schedules::getLtb2015HllSlowSchedule(prop,quick);
     break;
   case Options::Schedule::LTB_HLL_2017:
     Schedules::getLtb2017HllSchedule(prop,quick);
     break;
-
-  case Options::Schedule::LTB_ISA_2015_FAST:
-    Schedules::getLtb2015IsaFastSchedule(prop,quick);
-    break;
-  case Options::Schedule::LTB_ISA_2015_MIDD:
-    Schedules::getLtb2015IsaMiddSchedule(prop,quick);
-    break;
-  case Options::Schedule::LTB_ISA_2015_SLOW:
-    Schedules::getLtb2015IsaSlowSchedule(prop,quick);
-    break;
   case Options::Schedule::LTB_ISA_2017:
     Schedules::getLtb2017IsaSchedule(prop,quick);
-    break;
-
-  case Options::Schedule::LTB_MZR_2015_FAST:
-    Schedules::getLtb2015MzrFastSchedule(prop,quick);
-    break;
-  case Options::Schedule::LTB_MZR_2015_MIDD:
-    Schedules::getLtb2015MzrMiddSchedule(prop,quick);
-    break;
-  case Options::Schedule::LTB_MZR_2015_SLOW:
-    Schedules::getLtb2015MzrSlowSchedule(prop,quick);
     break;
   case Options::Schedule::LTB_MZR_2017:
     Schedules::getLtb2017MzrSchedule(prop,quick);
     break;
-  case Options::Schedule::LTB_2014:
-    Schedules::getLtb2014Schedule(prop,quick);
-    break;
-  case Options::Schedule::LTB_2014_MZR:
-    Schedules::getLtb2014MzrSchedule(prop,quick,fallback);
-    break;
-
   case Options::Schedule::LTB_DEFAULT_2017:
     Schedules::getLtb2017DefaultSchedule(prop,quick);
     break;
@@ -424,6 +339,8 @@ PortfolioSliceExecutor::PortfolioSliceExecutor(PortfolioMode *mode)
 
 void PortfolioSliceExecutor::runSlice(vstring sliceCode,int remainingTime)
 {
+  CALL("PortfolioSliceExecutor::runSlice");
+
   vstring chopped;
   int sliceTime = _mode->getSliceTime(sliceCode, chopped);
 
@@ -497,10 +414,9 @@ bool PortfolioMode::waitForChildAndCheckIfProofFound()
   ASS(!childIds.isEmpty());
 
   int resValue;
-  pid_t finishedChild = Multiprocessing::instance()->waitForChildTermination(resValue);
-#if VDEBUG
-  ALWAYS(childIds.remove(finishedChild));
-#endif
+  DEBUG_CODE(pid_t finishedChild =)
+    Multiprocessing::instance()->waitForChildTermination(resValue);
+  ASS(childIds.remove(finishedChild));
   if (!resValue) {
     // we have found the proof. It has been already written down by the writer child,
 

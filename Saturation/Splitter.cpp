@@ -1,7 +1,4 @@
-
 /*
- * File Splitter.cpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -9,12 +6,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file Splitter.cpp
@@ -47,7 +38,6 @@
 
 #include "SAT/Preprocess.hpp"
 #include "SAT/SATInference.hpp"
-#include "SAT/TWLSolver.hpp"
 #include "SAT/MinimizingSolver.hpp"
 #include "SAT/BufferedSolver.hpp"
 #include "SAT/FallbackSolverWrapper.hpp"
@@ -77,9 +67,6 @@ void SplittingBranchSelector::init()
   _literalPolarityAdvice = _parent.getOptions().splittingLiteralPolarityAdvice();
 
   switch(_parent.getOptions().satSolver()){
-    case Options::SatSolver::VAMPIRE:  
-      _solver = new TWLSolver(_parent.getOptions(), true);
-      break;
     case Options::SatSolver::MINISAT:
       _solver = new MinisatInterfacing(_parent.getOptions(),true);
       break;      
@@ -453,7 +440,7 @@ SATSolver::Status SplittingBranchSelector::processDPConflicts()
   if (_ccModel) {
     TimeCounter tc(TC_CCMODEL);
 
-#ifdef VDEBUG
+#if VDEBUG
     // to keep track of SAT variables introduce just for the sake of the latest call to _ccModel
     lastCheckedVar = _parent.maxSatVar();
 #endif
@@ -1453,7 +1440,7 @@ void Splitter::onClauseReduction(Clause* cl, ClauseIterator premises, Clause* re
   if(replacement) {
     unionAll = replacement->splits();
     ASS(forAll(premises, 
-            [replacement,this] (Clause* premise) { 
+            [replacement] (Clause* premise) { 
               //SplitSet* difference = premise->splits()->subtract(replacement->splits());
               //if(difference->isEmpty()) return true; // isSubsetOf true
               // Now check if those in the difference are zero implied

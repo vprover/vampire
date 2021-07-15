@@ -1,7 +1,4 @@
-
 /*
- * File EqHelper.cpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -9,12 +6,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file EqHelper.cpp
@@ -68,13 +59,11 @@ bool EqHelper::hasGreaterEqualitySide(Literal* eq, const Ordering& ord, TermList
       lhs = *eq->nthArgument(1);
       rhs = *eq->nthArgument(0);
       return true;
-#if VDEBUG
+    //there should be no equality literals of equal terms
     case Ordering::EQUAL:
-      //there should be no equality literals of equal terms
-    default:
       ASSERTION_VIOLATION;
-#endif
   }
+  ASSERTION_VIOLATION;
 }
 
 Literal* EqHelper::replace(Literal* lit, TermList what, TermList by)
@@ -240,12 +229,9 @@ TermIterator EqHelper::getLHSIterator(Literal* lit, const Ordering& ord)
     case Ordering::LESS:
     case Ordering::LESS_EQ:
       return pvi( getSingletonIterator(t1) );
-#if VDEBUG
+    //there should be no equality literals of equal terms
     case Ordering::EQUAL:
-      //there should be no equality literals of equal terms
-    default:
       ASSERTION_VIOLATION;
-#endif
     }
     return TermIterator::getEmpty();
   } else {
@@ -323,12 +309,9 @@ TermIterator EqHelper::getDemodulationLHSIterator(Literal* lit, bool forward, co
     case Ordering::LESS_EQ:
       ASS(t1.containsAllVariablesOf(t0));
       return pvi( getSingletonIterator(t1) );
-#if VDEBUG
+    //there should be no equality literals of equal terms
     case Ordering::EQUAL:
-      //there should be no equality literals of equal terms
-    default:
       ASSERTION_VIOLATION;
-#endif
     }
     return TermIterator::getEmpty();
   } else {
