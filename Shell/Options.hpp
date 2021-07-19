@@ -202,6 +202,7 @@ public:
         PREPROCESSING,
         INPUT,
         HELP,
+        HIGHER_ORDER,
         LAST_TAG // Used for counting the number of tags
     };
     // update _tagNames at the end of Options constructor if you add a tag
