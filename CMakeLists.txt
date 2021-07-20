@@ -119,7 +119,6 @@ set(VAMPIRE_LIB_SOURCES
     Lib/Environment.cpp
     Lib/Event.cpp
     Lib/Exception.cpp
-#    Lib/Graph.cpp
     Lib/Hash.cpp
     Lib/Int.cpp
     Lib/IntNameTable.cpp
@@ -156,7 +155,6 @@ set(VAMPIRE_LIB_SOURCES
     Lib/Exception.hpp
     Lib/fdstream.hpp
     Lib/FreshnessGuard.hpp
-#    Lib/Graph.hpp
     Lib/Hash.hpp
     Lib/ImplicationSetClosure.hpp
     Lib/Int.hpp
