@@ -152,6 +152,9 @@ public:
     // This dual usage is required as the property object is created during
     // the preprocessing stage. This means that in vampire.cpp we call this twice
     void randomizeStrategy(Property* prop);
+
+    // print out the option space in PCS format
+    void dumpSMAC();
     
     /**
      * Return the problem name
@@ -379,6 +382,7 @@ public:
     PREPROCESS2,
     PROFILE,
     RANDOM_STRATEGY,
+    SMAC,
     SMTCOMP,
     SPIDER,
     TCLAUSIFY,
@@ -817,6 +821,9 @@ private:
         // Set to a random value
         virtual bool randomize(Property* P) = 0;
 
+        // print PCS option
+        virtual void dumpSMAC() { std::cout << "not implemented for " << longName << std::endl; NOT_IMPLEMENTED; };
+
         // Experimental options are not included in help
         void setExperimental(){experimental=true;}
         
@@ -1013,8 +1020,8 @@ private:
        
         // This is where actual randomisation happens
         bool randomize(Property* p);
- 
-    private:
+
+    protected:
         Lib::Stack<OptionValueConstraintUP<T>> _constraints;
         Lib::Stack<OptionProblemConstraintUP> _prob_constraints;
     };
@@ -1082,6 +1089,20 @@ private:
             unsigned i = static_cast<unsigned>(value);
             return choices[i];
         }
+
+        void dumpSMAC() {
+          std::cout << this->longName << " categorical {";
+          for(int i = 0; i < choices.length(); i++) {
+            if(i != 0) {
+              std::cout << ",";
+            }
+            std::cout << choices[i];
+          }
+          std::cout
+            << "} ["
+            << choices[static_cast<unsigned>(this->defaultValue)] 
+            << "]" << std::endl;
+        }
         
     private:
         OptionChoiceValues choices;
@@ -1107,8 +1128,9 @@ private:
             
             return true;
         }
-        
+
         vstring getStringOfValue(bool value) const { return (value ? "on" : "off"); }
+        void dumpSMAC();
     };
 
     struct IntOptionValue : public OptionValue<int> {
@@ -1118,6 +1140,7 @@ private:
             return Int::stringToInt(value.c_str(),actualValue);
         }
         vstring getStringOfValue(int value) const{ return Lib::Int::toString(value); }
+        void dumpSMAC();
     };
     
     struct UnsignedOptionValue : public OptionValue<unsigned> {
@@ -1128,6 +1151,7 @@ private:
             return Int::stringToUnsignedInt(value.c_str(),actualValue);
         }
         vstring getStringOfValue(unsigned value) const{ return Lib::Int::toString(value); }
+        void dumpSMAC();
     };
     
     struct StringOptionValue : public OptionValue<vstring> {
@@ -1150,6 +1174,7 @@ private:
             return Int::stringToLong(value.c_str(),actualValue);
         }
         vstring getStringOfValue(long value) const{ return Lib::Int::toString(value); }
+        void dumpSMAC();
     };
     
 struct FloatOptionValue : public OptionValue<float>{
@@ -1159,6 +1184,7 @@ bool setValue(const vstring& value){
     return Int::stringToFloat(value.c_str(),actualValue);
 }
 vstring getStringOfValue(float value) const{ return Lib::Int::toString(value); }
+void dumpSMAC();
 };
 
 /**
@@ -1200,7 +1226,7 @@ virtual vstring getStringOfValue(int value) const override { ASSERTION_VIOLATION
 virtual vstring getStringOfActual() const override {
     return Lib::Int::toString(actualValue)+sep+Lib::Int::toString(otherValue);
 }
-
+void dumpSMAC() override;
 };
 
 // We now have a number of option-specific values
@@ -1227,6 +1253,7 @@ int numerator;
 int denominator;
 
 virtual vstring getStringOfValue(float value) const{ return Lib::Int::toString(value); }
+void dumpSMAC();
 };
 
 /**
@@ -1251,6 +1278,7 @@ virtual vstring getStringOfValue(int value) const{ return Lib::Int::toString(val
 AbstractWrappedConstraintUP isLookAheadSelection(){
   return AbstractWrappedConstraintUP(new WrappedConstraint<int>(*this,OptionValueConstraintUP<int>(new isLookAheadSelectionConstraint())));
 }
+void dumpSMAC();
 };
 
 /**
@@ -1362,6 +1390,7 @@ virtual ~OptionValueConstraint() {} // virtual methods present -> there should b
 
 virtual bool check(const OptionValue<T>& value) = 0;
 virtual vstring msg(const OptionValue<T>& value) = 0;
+virtual void range_hint(T &candidate) {}
 
 // By default cannot force constraint
 virtual bool force(OptionValue<T>* value){ return false;}
@@ -1446,6 +1475,15 @@ bool _hard;
             return left->check(value) && right->check(value);
         }
         vstring msg(const OptionValue<T>& value){ return left->msg(value) + " and " + right->msg(value); }
+        /*
+        virtual void dumpSMAC(bool polarity) {
+          std::cout << "(";
+          left->dumpSMAC(polarity);
+          std::cout << (polarity ? "&&" : "||");
+          right->dumpSMAC(polarity);
+          std::cout << ")";
+        }
+        */
 
         OptionValueConstraintUP<T> left;
         OptionValueConstraintUP<T> right;
@@ -1564,7 +1602,14 @@ bool _hard;
             if(_orequal) return value.longName+"("+value.getStringOfActual()+") is less than or equal to " + value.getStringOfValue(_goodvalue);
             return value.longName+"("+value.getStringOfActual()+") is less than "+ value.getStringOfValue(_goodvalue);
         }
-        
+
+        void range_hint(T &candidate) {
+          if(_orequal && candidate > _goodvalue)
+            candidate = _goodvalue;
+          else if(!_orequal && candidate >= _goodvalue)
+            candidate = _goodvalue - 1;
+        }
+
         T _goodvalue;
         bool _orequal;
     };
@@ -1592,7 +1637,14 @@ bool _hard;
             if(_orequal) return value.longName+"("+value.getStringOfActual()+") is greater than or equal to " + value.getStringOfValue(_goodvalue);
             return value.longName+"("+value.getStringOfActual()+") is greater than "+ value.getStringOfValue(_goodvalue);
         }
-        
+
+        void range_hint(T &candidate) {
+          if(_orequal && candidate < _goodvalue)
+            candidate = _goodvalue;
+          else if(!_orequal && candidate <= _goodvalue)
+            candidate = _goodvalue + 1;
+        }
+
         T _goodvalue;
         bool _orequal;
     };
@@ -1619,6 +1671,13 @@ bool _hard;
         vstring msg(const OptionValue<T>& value){
             if(_orequal) return value.longName+"("+value.getStringOfActual()+") is smaller than or equal to " + value.getStringOfValue(_goodvalue);
             return value.longName+"("+value.getStringOfActual()+") is smaller than "+ value.getStringOfValue(_goodvalue);
+        }
+
+        void range_hint(T &candidate) {
+          if(_orequal && candidate > _goodvalue)
+            candidate = _goodvalue;
+          else if(!_orequal && candidate >= _goodvalue)
+            candidate = _goodvalue - 1;
         }
 
         T _goodvalue;

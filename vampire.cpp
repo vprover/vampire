@@ -818,6 +818,9 @@ int main(int argc, char* argv[])
     case Options::Mode::RANDOM_STRATEGY:
       getRandomStrategy();
       break;
+    case Options::Mode::SMAC:
+      env.options->dumpSMAC();
+      break;
     case Options::Mode::CONSEQUENCE_ELIMINATION:
     case Options::Mode::VAMPIRE:
       vampireMode();

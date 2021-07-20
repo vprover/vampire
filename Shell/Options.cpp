@@ -19,6 +19,7 @@
  * IMPORTANT --> see .hpp file for instructions on how to add an option
  */
 
+#include <limits>
 // Visual does not know the round function
 #include <cmath>
 
@@ -107,6 +108,7 @@ void Options::init()
                                         "preprocess2",
                                         "profile",
                                         "random_strategy",
+                                        "smac",
                                         "smtcomp",
                                         "spider",
                                         "tclausify",
@@ -123,7 +125,8 @@ void Options::init()
     "Some modes are not currently maintained (get in touch if interested):\n"
     "  -bpa: perform bound propagation\n"
     "  -consequence_elimination: perform consequence elimination\n"
-    "  -random_strategy: attempts to randomize the option values\n";
+    "  -random_strategy: attempts to randomize the option values\n"
+    "  -smac: print out options in (SMAC flavour?) PCS format\n";
     _lookup.insert(&_mode);
     _mode.addHardConstraint(If(equal(Mode::CONSEQUENCE_ELIMINATION)).then(_splitting.is(notEqual(true))));
 
@@ -507,7 +510,7 @@ void Options::init()
     _sineTolerance.addConstraint(Or(equal(0.0f),greaterThanEq(1.0f) ));
     // Captures that if the value is not 1.0 then sineSelection must be on
     _sineTolerance.reliesOn(_sineSelection.is(notEqual(SineSelection::OFF)));
-    _sineTolerance.setRandomChoices({"1.0","1.2","1.5","2.0","3.0","5.0"});
+    _sineTolerance.setRandomChoices({"1","1.2","1.5","2.0","3.0","5.0"});
 
     _sineToAge = BoolOptionValue("sine_to_age","s2a",false);
     _lookup.insert(&_sineToAge);
@@ -534,7 +537,7 @@ void Options::init()
     _sineToAgeTolerance.addConstraint(Or(equal(0.0f),greaterThanEq(1.0f)));
     // Captures that if the value is not 1.0 then sineSelection must be on
     _sineToAgeTolerance.reliesOn(Or(_sineToAge.is(equal(true)),_sineToPredLevels.is(notEqual(PredicateSineLevels::OFF))));
-    _sineToAgeTolerance.setRandomChoices({"1.0","1.2","1.5","2.0","3.0","5.0"});
+    _sineToAgeTolerance.setRandomChoices({"1","1.2","1.5","2.0","3.0","5.0"});
 
     _naming = IntOptionValue("naming","nm",8);
     _naming.description="Introduce names for subformulas. Given a subformula F(x1,..,xk) of formula G a new predicate symbol is introduced as a name for F(x1,..,xk) by adding the axiom n(x1,..,xk) <=> F(x1,..,xk) and replacing F(x1,..,xk) with n(x1,..,xk) in G. The value indicates how many times a subformula must be used before it is named.";
@@ -1278,7 +1281,7 @@ void Options::init()
 	    _extensionalityMaxLength.addConstraint(notEqual(1u));
 	    _extensionalityMaxLength.reliesOn(_extensionalityResolution.is(notEqual(ExtensionalityResolution::OFF)));
 	    //TODO does this depend on anything?
-	    _extensionalityMaxLength.setRandomChoices({"0","0","0","2","3"}); // TODO what are good values?
+	    _extensionalityMaxLength.setRandomChoices({"0","2","3"}); // TODO what are good values?
 	    
 	    _extensionalityResolution = ChoiceOptionValue<ExtensionalityResolution>("extensionality_resolution","er",
 										    ExtensionalityResolution::OFF,{"filter","known","tagged","off"});
@@ -1616,7 +1619,7 @@ void Options::init()
     _instGenBigRestartRatio.addConstraint(And(greaterThanEq(0.0f),lessThanEq(1.0f)));
     // Captures that this is only non-default when saturationAlgorithm is instgen
     _instGenBigRestartRatio.reliesOn(_saturationAlgorithm.is(equal(SaturationAlgorithm::INST_GEN)));
-    _instGenBigRestartRatio.setRandomChoices({"0.0","0.1","0.2","0.3","0.4","0.5","0.6","0.7","0.8","0.9","1.0"});
+    _instGenBigRestartRatio.setRandomChoices({"0","0.1","0.2","0.3","0.4","0.5","0.6","0.7","0.8","0.9","1.0"});
 
     _instGenPassiveReactivation = BoolOptionValue("inst_gen_passive_reactivation","igpr",false);
     _instGenPassiveReactivation.description="When the model describing the selection function changes some active clauses may become lazily deselected. If passive reaction is selected these clauses are added into the passive set before recomputing the next model, otherwise they are added back to active.";
@@ -1631,7 +1634,7 @@ void Options::init()
     _instGenResolutionInstGenRatio.tag(OptionTag::INST_GEN);
     _instGenResolutionInstGenRatio.reliesOn(_saturationAlgorithm.is(equal(SaturationAlgorithm::INST_GEN)));
     _instGenResolutionInstGenRatio.reliesOn(_instGenWithResolution.is(equal(true)));
-    _instGenResolutionInstGenRatio.setRandomChoices({"128/1","64/1","32/1","16/1","8/1","4/1","2/1","1/1","1/2","1/4","1/8","1/16","1/32","1/64","1/128"});
+    _instGenResolutionInstGenRatio.setRandomChoices({"128/1","64/1","32/1","16/1","8/1","4/1","2/1","1","1/2","1/4","1/8","1/16","1/32","1/64","1/128"});
 
     _instGenRestartPeriod = IntOptionValue("inst_gen_restart_period","igrp",1000);
     _instGenRestartPeriod.description="How many clauses are processed before restart. The size of the restart depends on inst_gen_big_restart_ratio.";
@@ -1646,7 +1649,7 @@ void Options::init()
     _instGenRestartPeriodQuotient.tag(OptionTag::INST_GEN);
     _instGenRestartPeriodQuotient.addConstraint(greaterThanEq(1.0f));
     _instGenRestartPeriodQuotient.reliesOn(_saturationAlgorithm.is(equal(SaturationAlgorithm::INST_GEN)));
-    _instGenRestartPeriodQuotient.setRandomChoices({"1.0","1.05","1.1","1.2","1.3","1.5","2.0"});
+    _instGenRestartPeriodQuotient.setRandomChoices({"1","1.05","1.1","1.2","1.3","1.5","2.0"});
 
     _instGenSelection = SelectionOptionValue("inst_gen_selection","igs",0);
     _instGenSelection.description=
@@ -1656,6 +1659,7 @@ void Options::init()
     _lookup.insert(&_instGenSelection);
     _instGenSelection.tag(OptionTag::INST_GEN);
     _instGenSelection.reliesOn(_saturationAlgorithm.is(equal(SaturationAlgorithm::INST_GEN)));
+    _instGenSelection.setRandomChoices({"0","1","2","3","4","10","11","1002","1003","1004","1010","1011","-1","-2","-3","-4","-10","-11","-1002","-1003","-1004","-1010"});
 
     _instGenWithResolution = BoolOptionValue("inst_gen_with_resolution","igwr",false);
     _instGenWithResolution.description=
@@ -1798,7 +1802,7 @@ void Options::init()
     _splittingFlushQuotient.tag(OptionTag::AVATAR);
     _splittingFlushQuotient.addConstraint(greaterThanEq(1.0f));
     _splittingFlushQuotient.reliesOn(_splitting.is(equal(true)));
-    _splittingFlushQuotient.setRandomChoices({"1.0","1.1","1.2","1.4","2.0"});
+    _splittingFlushQuotient.setRandomChoices({"1.0","1.1","1.2","1.4","1.5","2.0"});
 
     _splittingAvatimer = FloatOptionValue("avatar_turn_off_time_frac","atotf",0.0);
     _splittingAvatimer.description= "Stop splitting after the specified fraction of the overall time has passed (the default 0.0 means this is disabled).\n"
@@ -1808,7 +1812,7 @@ void Options::init()
     _splittingAvatimer.tag(OptionTag::AVATAR);
     _splittingAvatimer.addConstraint(smallerThan(1.0f));
     _splittingAvatimer.reliesOn(_splitting.is(equal(true)));
-    _splittingAvatimer.setRandomChoices({"0.0","0.5","0.7","0.9"});
+    _splittingAvatimer.setRandomChoices({"0","0.5","0.7","0.9"});
 
     _splittingNonsplittableComponents = ChoiceOptionValue<SplittingNonsplittableComponents>("avatar_nonsplittable_components","anc",
                                                                                               SplittingNonsplittableComponents::KNOWN,
@@ -2769,6 +2773,143 @@ void Options::randomizeStrategy(Property* prop)
   Random::setSeed(saved_seed);
 
   if(prop) cout << "Random strategy: " + generateEncodedOptions() << endl;
+}
+
+void Options::BoolOptionValue::dumpSMAC() {
+  std::cout
+    << longName
+    << " categorical {off,on} "
+    << "[" << (this->defaultValue ? "on" : "off") << "]"
+    << std::endl;
+}
+
+#define ENUMERATED_SMAC(SMAC_TYPE)\
+  std::cout\
+    << longName\
+    << " " SMAC_TYPE " {";\
+  decltype(rand_choices)::Iterator choices(rand_choices);\
+  bool first = true;\
+  while(choices.hasNext()) {\
+    auto &next = choices.next();\
+    if(next.first)\
+      continue;\
+    auto &array = *next.second;\
+    DArray<vstring>::Iterator values(array);\
+    while(values.hasNext()) {\
+      if(!first)\
+        std::cout << ",";\
+      first = false;\
+      std::cout << values.next();\
+    }\
+  }\
+  std::cout\
+    << "} "\
+    << "[" << this->defaultValue << "]"\
+    << std::endl;
+
+#define NUMERIC_SMAC(T, SMAC_TYPE)\
+  if(rand_choices.isEmpty()) {\
+    decltype(_constraints)::Iterator constraints(_constraints);\
+    T min = std::numeric_limits<T>::min();\
+    T max = std::numeric_limits<T>::max();\
+    while(constraints.hasNext()) {\
+      auto &constraint = constraints.next();\
+      constraint->range_hint(min);\
+      constraint->range_hint(max);\
+    }\
+    std::cout\
+      << longName\
+      << " " SMAC_TYPE " "\
+      << "[" << min << "," << max << "]"\
+      << " "\
+      << "[" << this->defaultValue << "]"\
+      << std::endl;\
+  }\
+  else { ENUMERATED_SMAC("ordinal") }
+
+void Options::IntOptionValue::dumpSMAC() {
+  NUMERIC_SMAC(int, "integer")
+}
+
+void Options::UnsignedOptionValue::dumpSMAC() {
+  NUMERIC_SMAC(unsigned, "integer")
+}
+
+void Options::FloatOptionValue::dumpSMAC() {
+  NUMERIC_SMAC(float, "real")
+}
+
+void Options::NonGoalWeightOptionValue::dumpSMAC() {
+  ENUMERATED_SMAC("ordinal")
+}
+
+void Options::SelectionOptionValue::dumpSMAC() {
+  ENUMERATED_SMAC("categorical")
+}
+
+void Options::RatioOptionValue::dumpSMAC() {
+  ENUMERATED_SMAC("ordinal")
+}
+
+void Options::dumpSMAC()
+{
+  CALL("Options::dumpSMAC");
+
+  auto options = _lookup.values();
+  while(options.hasNext()) {
+    AbstractOptionValue *opt = options.next();
+
+    auto &name = opt->longName;
+    if(
+      opt->experimental ||
+      name == "mode" ||
+      name == "schedule" ||
+      name == "encode" ||
+      name == "decode" ||
+      name == "random_strategy" ||
+      name == "help" ||
+      name == "explain_option" ||
+      name == "cores" ||
+      name == "memory_limit" ||
+      name == "time_limit" ||
+      name == "simulated_time_limit" ||
+      name == "time_statistics" ||
+      name == "statistics" ||
+      name == "output_mode" ||
+      name == "proof" ||
+      name == "proof_extra" ||
+      name == "print_proofs_to_file" ||
+      name == "latex_output" ||
+      name == "latex_use_default_symbols" ||
+      name == "activation_limit" ||
+      name == "manual_cs" ||
+      name == "bad_option" ||
+      name == "forced_options" ||
+      name == "forbidden_options" ||
+      name == "ignore_missing" ||
+      name == "include" ||
+      name == "random_strategy_seed" ||
+      name == "output_axiom_names" ||
+      name == "question_answering" ||
+      name == "input_syntax" ||
+      name == "arity_check" ||
+      name == "random_seed" ||
+      name == "normalize" ||
+      name == "high_school" ||
+      name == "pragmatic" ||
+      name == "avatar_split_queue_cutoffs" ||
+      name == "avatar_split_queue_ratios" ||
+      name == "positive_literal_split_queue_cutoffs" ||
+      name == "positive_literal_split_queue_ratios" ||
+      name == "sine_level_split_queue_cutoffs" ||
+      name == "sine_level_split_queue_ratios" ||
+      name == "theory_split_queue_cutoffs" ||
+      name == "theory_split_queue_ratios" ||
+      (name.length() > 4 && name.substr(0, 4) == "show")
+    )
+      continue;
+    opt->dumpSMAC();
+  }
 }
 
 /**
