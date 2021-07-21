@@ -232,6 +232,8 @@ typedef Lib::ScopedPtr<Grounder> GrounderSCP;
 class BDD;
 class BDDNode;
 
+class ProofTracer;
+
 typedef unsigned SplitLevel;
 typedef const SharedSet<SplitLevel> SplitSet;
 

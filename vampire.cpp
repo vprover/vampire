@@ -197,6 +197,11 @@ void doProving()
   // One call to randomize before preprocessing (see Options)
   env.options->randomizeStrategy(0);
 
+  if (env.options->traceProofs().size() > 0) {
+    env.tracer = new ProofTracer();
+    env.tracer->init(env.options->traceProofs());
+  }
+
   ScopedPtr<Problem> prb(getPreprocessedProblem());
 
   // Then again when the property is here (this will only randomize non-default things if an option is set to do so)

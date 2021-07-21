@@ -22,10 +22,38 @@
 
 #include "Shell/SMTLIBLogic.hpp"
 
+// added for the sake of ProofTracer
+#include "Parse/TPTP.hpp"
+
 namespace Kernel {
 
 using namespace Lib;
 using namespace Shell;
+
+// before I figure out where to put this new class, let me just keep it here:
+struct ProofTracer {
+  CLASS_NAME(ProofTracer);
+  USE_ALLOCATOR(ProofTracer);
+
+  void init(const vstring& traceFileNames);
+
+  struct TracedProof {
+    CLASS_NAME(TracedProof);
+    USE_ALLOCATOR(TracedProof);
+
+    UnitList* units;
+    DHMap<unsigned, vstring> names;
+    DHMap<Unit*,Parse::TPTP::SourceRecord*> sources;
+  };
+
+protected:
+  TracedProof* getProof(const vstring& traceFileNames);
+
+
+};
+
+
+
 
 /**
  * Class representing a TPTP problem to be solved

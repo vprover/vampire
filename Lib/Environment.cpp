@@ -75,6 +75,8 @@ Environment::Environment()
 
   timer = Timer::instance();
   timer->start();
+
+  tracer = 0;
 } // Environment::Environment
 
 Environment::~Environment()
