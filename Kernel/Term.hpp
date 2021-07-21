@@ -33,9 +33,6 @@
 #include "Lib/Metaiterators.hpp"
 #include "Lib/VString.hpp"
 
-// #include "MatchTag.hpp" // MS: disconnecting MatchTag, January 2017
-#define USE_MATCH_TAG 0
-
 //#include "Sorts.hpp"
 
 #define TERM_DIST_VAR_UNKNOWN 0x7FFFFF
@@ -196,13 +193,7 @@ private:
       mutable unsigned distinctVars : 23;
       /** reserved for whatever */
 #if ARCH_X64
-# if USE_MATCH_TAG
-      MatchTag matchTag; //32 bits
-# else
       unsigned reserved : 32;
-# endif
-#else
-//      unsigned reserved : 0;
 #endif
     } _info;
   };
@@ -564,17 +555,7 @@ public:
       return false;
     }
     ASS(!commutative());
-    return couldArgsBeInstanceOf(t);
-  }
-  inline bool couldArgsBeInstanceOf(Term* t)
-  {
-#if USE_MATCH_TAG
-    ensureMatchTag();
-    t->ensureMatchTag();
-    return matchTag().couldBeInstanceOf(t->matchTag());
-#else
     return true;
-#endif
   }
 
   bool containsSubterm(TermList v);
@@ -655,23 +636,6 @@ protected:
     _args[0]._info.order = val;
   }
 
-#if USE_MATCH_TAG
-  inline void ensureMatchTag()
-  {
-    matchTag().ensureInit(this);
-  }
-
-  inline MatchTag& matchTag()
-  {
-#if ARCH_X64
-    return _args[0]._info.matchTag;
-#else
-    return _matchTag;
-#endif
-  }
-
-#endif
-
   /** For shared terms, this is a unique id used for deterministic comparison */
   unsigned _id;
   /** The number of this symbol in a signature */
@@ -697,10 +661,6 @@ protected:
     TermList _sort;
   };
 
-#if USE_MATCH_TAG && !ARCH_X64
-  MatchTag _matchTag;
-#endif
-
   /** The list of arguments or size arity+1. The first argument stores the
    *  term weight and the mask (the last two bits are 0).
    */
@@ -719,7 +679,6 @@ protected:
 //   Comparison compare(const Term* t) const;
 //   void argsWeight(unsigned& total) const;
   friend class TermList;
-  friend class MatchTag;
   friend class Indexing::TermSharing;
   friend class Ordering;
 
@@ -905,26 +864,7 @@ public:
   {
     ASS(shared());
     ASS(lit->shared());
-    if(!headersMatch(this, lit, complementary)) {
-      return false;
-    }
-    return couldArgsBeInstanceOf(lit);
-  }
-
-  bool couldArgsBeInstanceOf(Literal* lit)
-  {
-#if USE_MATCH_TAG
-    ensureMatchTag();
-    lit->ensureMatchTag();
-    if(commutative()) {
-      return matchTag().couldBeInstanceOf(lit->matchTag()) ||
-	  matchTag().couldBeInstanceOfReversed(lit->matchTag());
-    } else {
-      return matchTag().couldBeInstanceOf(lit->matchTag());
-    }
-#else
-    return true;
-#endif
+    return headersMatch(this, lit, complementary);
   }
 
   vstring toString() const;
