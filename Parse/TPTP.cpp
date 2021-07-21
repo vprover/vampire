@@ -3916,6 +3916,8 @@ OperatorType* TPTP::constructOperatorType(Type* t, VList* vars)
  */
 TPTP::SourceRecord* TPTP::getSource()
 {
+  CALL("TPTP::getSource");
+
   if (getTok(0).tag != T_COMMA) { // if comma is not there, source was not provided
     return 0;
   }
