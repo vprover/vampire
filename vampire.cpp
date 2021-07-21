@@ -783,6 +783,10 @@ int main(int argc, char* argv[])
 
     Lib::setMemoryLimit(env.options->memoryLimit() * 1048576ul);
 
+    if (env.options->outputAxiomNames()) {
+      Parse::TPTP::enableAxiomNames();
+    }
+
     if (opts.interactive()) {
       interactiveMetamode();
     } else {
