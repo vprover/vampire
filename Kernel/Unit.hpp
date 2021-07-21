@@ -145,6 +145,9 @@ public:
   static void onParsingEnd(){ _lastParsingNumber = _lastNumber;}
   static unsigned getLastParsingNumber(){ return _lastParsingNumber;}
 
+  static bool noUnitYet() { return _lastNumber == 0; }
+  static void resetNumbering() { _lastNumber = 0; }
+
 protected:
   /** Number of this unit, used for printing and statistics */
   unsigned _number;
