@@ -847,12 +847,18 @@ public:
     virtual bool isFile() = 0;
   };
   struct FileSourceRecord : SourceRecord {
+    CLASS_NAME(FileSourceRecord);
+    USE_ALLOCATOR(FileSourceRecord);
+
     const vstring fileName;
     const vstring nameInFile;
     bool isFile(){ return true; } 
     FileSourceRecord(vstring fN, vstring nF) : fileName(fN), nameInFile(nF) {}
   };
-  struct InferenceSourceRecord : SourceRecord{
+  struct InferenceSourceRecord : SourceRecord {
+    CLASS_NAME(InferenceSourceRecord);
+    USE_ALLOCATOR(InferenceSourceRecord);
+
     const vstring name;
     Stack<vstring> premises; 
     bool isFile(){ return false; } 
