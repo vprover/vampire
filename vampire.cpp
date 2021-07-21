@@ -795,6 +795,10 @@ int main(int argc, char* argv[])
     Allocator::setMemoryLimit(env.options->memoryLimit() * 1048576ul);
     Lib::Random::setSeed(env.options->randomSeed());
 
+    if (env.options->outputAxiomNames()) {
+      Parse::TPTP::enableAxiomNames();
+    }
+
     switch (env.options->mode())
     {
     case Options::Mode::AXIOM_SELECTION:
