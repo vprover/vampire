@@ -87,18 +87,27 @@ FiniteModelBuilder::FiniteModelBuilder(Problem& prb, const Options& opt)
   LOG(prop.hasProp(Property::PR_HAS_CDT_CONSTRUCTORS));
   LOG(prop.knownInfiniteDomain());
 
-  if (prb.hadIncompleteTransformation() ||
-      opt.sineSelection() != Options::SineSelection::OFF ||
-      prop.hasInterpretedOperations()
-            || prop.hasProp(Property::PR_HAS_INTEGERS)
-            || prop.hasProp(Property::PR_HAS_REALS)
-            || prop.hasProp(Property::PR_HAS_RATS)
-            || prop.knownInfiniteDomain() || // recursive data type provably infinite --> don't bother model building
+  if (prop.hasInterpretedOperations()
+      ||  prop.hasProp(Property::PR_HAS_INTEGERS)
+      || prop.hasProp(Property::PR_HAS_REALS)
+      || prop.hasProp(Property::PR_HAS_RATS)
+      || prop.knownInfiniteDomain() || // recursive data type provably infinite --> don't bother model building
       env.property->hasInterpretedOperations()) {
-    _isAppropriate = false;
 
-    // to ensure it is initialised
-    _dsaEnumerator = 0;
+      env.beginOutput();
+      addCommentSignForSZS(env.out());
+      env.out() << "WARNING: trying to run FMB on interpreted or otherwise provably infinite-domain problem!" << endl;
+      env.endOutput();
+
+     _isAppropriate = false;
+     _dsaEnumerator = 0; // to ensure it is initialised
+     return;
+  }
+
+  if (prb.hadIncompleteTransformation() ||
+      opt.sineSelection() != Options::SineSelection::OFF) {
+    _isAppropriate = false;
+    _dsaEnumerator = 0; // to ensure it is initialised
     return;
   }
 
