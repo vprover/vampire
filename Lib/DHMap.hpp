@@ -29,6 +29,8 @@
 #include "Hash.hpp"
 #include "VirtualIterator.hpp"
 
+#include <initializer_list>
+
 namespace Lib {
 
 #define DHMAP_MAX_CAPACITY_INDEX 29
@@ -91,9 +93,14 @@ public:
   DHMap& operator=(DHMap&& obj)
   { swap(*this, obj); return *this; }
 
-
   DHMap(DHMap&& obj) : DHMap()
   { swap(*this, obj); }
+
+  DHMap(std::initializer_list<std::pair<Key,Val>> l) : DHMap() {
+    for (auto pair : l) {
+      insert(pair.first,pair.second);
+    }
+  }
 
   /** Deallocate the DHMap */
   ~DHMap()
