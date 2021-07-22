@@ -34,17 +34,44 @@
 #define LOGGING 0
 
 // added for the sake of ProofTracer
-#include <fstream>
 #include "Lib/VString.hpp"
 #include "Kernel/Unit.hpp"
+#include "Kernel/FormulaUnit.hpp"
 #include "Parse/TPTP.hpp"
+
+#include <unordered_map>
+#include <fstream>
 
 using namespace Kernel;
 using namespace std;
 
-ProofTracer::TracedProof* ProofTracer::getProof(const vstring& proofFileName)
+enum InferenceKind
 {
-  TracedProof* resultProof = new TracedProof();
+  ICP = 0, // INPUT / PREPROCESSING / CLAUSIFICATION anything larger than this should end up in the TracedProof
+  TRIVSIMP = 1,
+  SIMPLIFYING = 2,  // TODO: let's see if we don't also need to distinguis FWD and BWD!
+  GENERATING = 3,
+};
+
+// inferences that work on clauses;
+static const DHMap<vstring, InferenceKind> inference_info = {
+    {"subsumption_resolution", SIMPLIFYING},
+    {"cnf_transformation", ICP},
+    {"trivial_inequality_removal", TRIVSIMP},
+    {"superposition", GENERATING},
+    {"forward_demodulation", SIMPLIFYING},
+    {"backward_demodulation", SIMPLIFYING},
+    {"resolution", GENERATING},
+    {"definition_unfolding", ICP},
+
+
+
+
+};
+
+ProofTracer::ParsedProof* ProofTracer::getParsedProof(const vstring& proofFileName)
+{
+  ParsedProof* resultProof = new ParsedProof();
 
   istream* input;
   {
@@ -74,20 +101,78 @@ ProofTracer::TracedProof* ProofTracer::getProof(const vstring& proofFileName)
   return resultProof;
 }
 
-void ProofTracer::init(const vstring& traceFileNames)
+Clause* ProofTracer::unitToClause(Unit* u)
 {
-  ASS(Unit::noUnitYet());
+  Formula* f = static_cast<FormulaUnit*>(u)->formula();
 
-  // TODO: make this handle more then one trace file, i.e., start by splitting traceFileNames into pieces and calling getUnits more than once
+  // cout << f->toString() << endl;
 
-  TracedProof* p = getProof(traceFileNames);
+  if (f->connective() == FALSE) {
+    return new(0) Clause(0,NonspecificInference0(UnitInputType::AXIOM,InferenceRule::INPUT));
+  }
 
-  for (UnitList* units = p->units; units != 0;units = units->tail()) {
+  if (f->connective() == FORALL) {
+    // ignore one forall and jump directly to the disjunction
+    f = f->qarg();
+  }
+
+  Clause* res;
+
+  // the singleton case
+  if (f->connective() == LITERAL) {
+    res = new(1) Clause(1,NonspecificInference0(UnitInputType::AXIOM,InferenceRule::INPUT));
+    (*res)[0] = f->literal();
+    return res;
+  }
+
+  ASS_EQ(f->connective(),OR);
+  FormulaList* args = f->args();
+  unsigned len = FormulaList::length(args);
+  res = new(len) Clause(len,NonspecificInference0(UnitInputType::AXIOM,InferenceRule::INPUT));
+  unsigned idx = 0;
+  for (;args != nullptr; args = args->tail()) {
+    Formula* arg = args->head();
+    ASS_EQ(arg->connective(),LITERAL);
+    (*res)[idx++] = arg->literal();
+  }
+
+  return res;
+}
+
+ProofTracer::TracedProof* ProofTracer::prepareTracedProof(ProofTracer::ParsedProof* pp)
+{
+  CALL("ProofTracer::prepareTracedProof");
+
+  typedef struct {
+    Clause* c;
+    InferenceKind inference_kind;
+    Stack<vstring> premises;
+  } ProcInfo;
+
+  // processed units from the parsed proof
+  // we translate Units that were originally clauses to Clauses and bring over their list of premises
+  // this is hashed by the Units name
+  DHMap<vstring,ProcInfo> proc;
+
+  // we assume the units in pp->units come in topological order
+
+  // names that should be processed
+  DHSet<vstring> todo;
+
+  ASS(pp->units); // have at least the empty clause in the proof
+  FormulaUnit* theEmpty = static_cast<FormulaUnit*>(pp->units->head());
+  ASS(theEmpty->formula()->connective() == FALSE); // the empty clause
+  todo.insert(pp->names.get(theEmpty->number()));
+
+  for (UnitList* units = pp->units; units != 0;units = units->tail()) {
     Unit* u = units->head();
-    cout << "Proof unit: " << u->toString() << endl;
-    if (p->names.find(u->number())) {
-      cout << "Named: " << p->names.get(u->number()) << endl;
-    } else {
+    vstring uname;
+
+    // cout << "Proof unit: " << u->toString() << endl;
+
+    if (pp->names.find(u->number())) {
+      uname = pp->names.get(u->number());
+    } else { // the TPTP parser was very agile and negated a conjecture formula (and the proof printer had also been very agile and printed it with the conjecture role into the proof)
       Inference& i = u->inference();
       ASS_EQ(i.rule(),InferenceRule::NEGATED_CONJECTURE);
       Inference::Iterator it = i.iterator();
@@ -95,25 +180,76 @@ void ProofTracer::init(const vstring& traceFileNames)
       u = i.next(it);
       ASS(!i.hasNext(it));
       units->setHead(u);
-      cout << "Corrected to: " << u->toString() << endl;
-      cout << "Named: " << p->names.get(u->number()) << endl;
+
+      // we took the original (unnegated) formula instead
+      // cout << "Corrected to: " << u->toString() << endl;
+      uname = pp->names.get(u->number());
     }
-    Parse::TPTP::SourceRecord* rec = p->sources.get(u);
+    // cout << "Named: " << uname << endl;
+
+    if (!todo.contains(uname)) {
+      continue;
+    }
+
+    InferenceKind ik = ICP;
+    Stack<vstring> premises; // empty by default
+
+    Parse::TPTP::SourceRecord* rec = pp->sources.get(u);
     if (rec->isFile()) {
       Parse::TPTP::FileSourceRecord* frec = static_cast<Parse::TPTP::FileSourceRecord*>(rec);
-      cout << "Has FSR: " << frec->fileName << " " << frec->nameInFile << endl;
+      // cout << "Has FSR: " << frec->fileName << " " << frec->nameInFile << endl;
+
+      // no premises from here
+      // is this case even possible? I guess yes for a cnf input?
     } else {
       Parse::TPTP::InferenceSourceRecord* irec = static_cast<Parse::TPTP::InferenceSourceRecord*>(rec);
-      cout << "Has ISR: " << irec->name << endl;
+      // cout << "Has ISR: " << irec->name << endl;
+
+      ik = inference_info.get(irec->name);
+
       for (unsigned i = 0; i < irec->premises.size(); i++) {
-        cout << " p: " << irec->premises[i] << endl;
+        // cout << " p: " << irec->premises[i] << endl;
+
+        // we want to load also the guys u came about from
+        if (ik > ICP) {
+          todo.insert(irec->premises[i]);
+        } else {
+          // this is either clausification or the original problem was already in cnf
+        }
       }
+      premises = std::move(irec->premises);
     }
 
-    cout << endl;
-  }
+    Clause* c = unitToClause(u);
 
-  cout << endl;
+    // cout << "CL:" << c->toString() << endl;
+
+    proc.insert(uname,
+        {c,ik,std::move(premises)});
+
+    // cout << endl;
+  }
+  // cout << endl;
+
+  // TODO: MANY things inside pp are still leaking
+  delete pp;
+
+  // now turn proc into a TracedProof to return
+
+
+
+
+}
+
+void ProofTracer::init(const vstring& traceFileNames)
+{
+  CALL("ProofTracer::init");
+
+  ASS(Unit::noUnitYet());
+
+  // TODO: make this handle more then one trace file, i.e., start by splitting traceFileNames into pieces and calling getUnits more than once
+  ParsedProof* pp = getParsedProof(traceFileNames);
+  TracedProof* tp = prepareTracedProof(pp);
 
   Unit::resetNumbering();
 }

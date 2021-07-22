@@ -38,17 +38,26 @@ public:
 
   void init(const vstring& traceFileNames);
 
-  struct TracedProof {
-    USE_ALLOCATOR(TracedProof);
+  struct ParsedProof {
+    USE_ALLOCATOR(ParsedProof);
 
     UnitList* units;
     DHMap<unsigned, vstring> names;
     DHMap<Unit*,Parse::TPTP::SourceRecord*> sources;
   };
 
-protected:
-  TracedProof* getProof(const vstring& traceFileNames);
+  struct TracedProof {
+    USE_ALLOCATOR(TracedProof);
 
+
+  };
+
+protected:
+  ParsedProof* getParsedProof(const vstring& traceFileNames);
+  TracedProof* prepareTracedProof(ParsedProof* pp);
+
+private:
+  Clause* unitToClause(Unit* u);
 
 };
 
