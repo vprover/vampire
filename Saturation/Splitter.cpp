@@ -1451,6 +1451,7 @@ SplitLevel Splitter::tryGetComponentNameOrAddNew(unsigned size, Literal* const *
       SATLiteral sat;
       if(import) {
         Clause *component = globalComponent.next();
+        std::cout << "XXX imported: " << component->toString() << std::endl;
         ASS(!globalComponent.hasNext());
         sat = this->getLiteralFromName(component->splits()->sval());
         RSTAT_CTR_INC("ssat_imported_components");

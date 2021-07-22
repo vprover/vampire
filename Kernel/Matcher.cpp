@@ -93,17 +93,32 @@ bool MatchingUtils::isVariant(Literal* l1, Literal* l2, bool complementary)
     TermList s2 = l2->twoVarEqSort();
     if(s1.isVar() && s2.isVar()){}
     else if(s1.isTerm() && s2.isTerm()){
-      if(s1.term()->functor() != s2.term()->functor() || 
-        !haveVariantArgs(s1.term(), s2.term())){
+      unsigned s1f = s1.term()->functor();
+      unsigned s2f = s2.term()->functor();
+#if VTHREADED
+      s1f = env->signature->functionId(s1f);
+      s2f = env->signature->functionId(s2f);
+#endif
+      if(s1f != s2f || !haveVariantArgs(s1.term(), s2.term())){
         return false;
       }
     }else{
       return false;
     }
   }
+#if VTHREADED
+  unsigned l1h =
+    2 * env->signature->predicateId(l1->functor()) + complementary ^ l1->polarity();
+  unsigned l2h =
+    2 * env->signature->predicateId(l2->functor()) + l2->polarity();
+  if(l1h != l2h)
+    return false;
+#else
   if(!Literal::headersMatch(l1,l2,complementary)) {
     return false;
   }
+#endif
+
   if(!complementary && l1==l2) {
     return true;
   }
