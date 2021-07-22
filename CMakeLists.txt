@@ -9,6 +9,13 @@ set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
+# configure compilers
+if(CMAKE_CXX_COMPILER_ID STREQUAL GNU OR CMAKE_CXX_COMPILER_ID MATCHES Clang$)
+  add_compile_options(-Wall)
+  # we don't use multithreading in (mainline!) Vampire
+  add_compile_options(-fno-threadsafe-statics)
+endif()
+
 # compile command database
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
