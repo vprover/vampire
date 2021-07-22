@@ -37,18 +37,28 @@ struct ProofTracer {
 
   void init(const vstring& traceFileNames);
 
-  struct TracedProof {
-    CLASS_NAME(TracedProof);
-    USE_ALLOCATOR(TracedProof);
+  struct ParsedProof {
+    CLASS_NAME(ParsedProof);
+    USE_ALLOCATOR(ParsedProof);
 
     UnitList* units;
     DHMap<unsigned, vstring> names;
     DHMap<Unit*,Parse::TPTP::SourceRecord*> sources;
   };
 
-protected:
-  TracedProof* getProof(const vstring& traceFileNames);
+  struct TracedProof {
+    CLASS_NAME(TracedProof);
+    USE_ALLOCATOR(TracedProof);
 
+
+  };
+
+protected:
+  ParsedProof* getParsedProof(const vstring& traceFileNames);
+  TracedProof* prepareTracedProof(ParsedProof* pp);
+
+private:
+  Clause* unitToClause(Unit* u);
 
 };
 
