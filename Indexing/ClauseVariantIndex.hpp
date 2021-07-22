@@ -22,6 +22,7 @@
 #include "Lib/List.hpp"
 #include "Lib/DHMap.hpp"
 
+#include "Kernel/Signature.hpp"
 #include "Kernel/Term.hpp"
 
 namespace Indexing {
@@ -94,6 +95,9 @@ private:
 
   unsigned termFunctorHash(Term* t, unsigned hash_begin) {
     unsigned func = t->functor();
+#if VTHREADED
+    func = env->signature->functionId(func);
+#endif
     // cout << "will hash funtor " << func << endl;
     return Hash::hash((const unsigned char*)&func,sizeof(func),hash_begin);
   }

@@ -313,8 +313,14 @@ struct HashingClauseVariantIndex::VariableIgnoringComparator {
       pair<TermList, TermList> dis=dsit.next();
       if(dis.first.isTerm()) {
         if(dis.second.isTerm()) {
-          ASS_NEQ(dis.first.term()->functor(), dis.second.term()->functor());
-          return Int::compare(dis.first.term()->functor(), dis.second.term()->functor());
+          unsigned f1 = dis.first.term()->functor();
+          unsigned f2 = dis.second.term()->functor();
+#if VTHREADED
+          f1 = env->signature->functionId(f1);
+          f2 = env->signature->functionId(f2);
+#endif
+          ASS_NEQ(f1, f2);
+          return Int::compare(f1, f2);
         }
         return GREATER;
       }
@@ -360,8 +366,14 @@ struct HashingClauseVariantIndex::VariableIgnoringComparator {
       return Int::compare(t1->getId(),t2->getId());
     }
 
-    if(t1->functor()!=t2->functor()) {
-      return Int::compare(t1->functor(),t2->functor());
+    unsigned f1 = t1->functor();
+    unsigned f2 = t2->functor();
+#if VTHREADED
+    f1 = env->signature->functionId(f1);
+    f2 = env->signature->functionId(f2);
+#endif
+    if(f1 != f2) {
+      return Int::compare(f1,f2);
     }
 
     return disagreement(t1,t2);
@@ -386,9 +398,19 @@ struct HashingClauseVariantIndex::VariableIgnoringComparator {
       return Int::compare(l1->getId(),l2->getId());
     }
 
-    if(l1->header()!=l2->header()) {
+#if VTHREADED
+  unsigned l1h =
+    2 * env->signature->predicateId(l1->functor()) + l1->polarity();
+  unsigned l2h =
+    2 * env->signature->predicateId(l2->functor()) + l2->polarity();
+#else
+  unsigned l1h = l1->header();
+  unsigned l2h = l2->header();
+#endif
+
+    if(l1h!=l2h) {
       // functor and polarity
-      return Int::compare(l1->header(),l2->header());
+      return Int::compare(l1h,l2h);
     }
 
     if(l1->isEquality()) {
@@ -481,7 +503,12 @@ unsigned HashingClauseVariantIndex::computeHashAndCountVariables(Literal* l, Var
 
   //cout << "will hash header " << header << endl;
 
+#if VTHREADED
+  unsigned header =
+    2 * env->signature->predicateId(l->functor()) + l->polarity();
+#else
   unsigned header = l->header();
+#endif
 
   // hashes the predicate symbol and the polarity
   unsigned hash = Hash::hash((const unsigned char*)&header,sizeof(header),hash_begin);
