@@ -316,7 +316,7 @@ bool MatchingUtils::matchArgs(Term* base, Term* instance, Binder& binder)
   CALL("MatchingUtils::matchArgs");
   ASS_EQ(base->functor(),instance->functor());
   if(base->shared() && instance->shared()) {
-    if(base->weight() > instance->weight() || !instance->couldArgsBeInstanceOf(base)) {
+    if(base->weight() > instance->weight()) {
       return false;
     }
   }

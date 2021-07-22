@@ -117,18 +117,11 @@ public:
 
       if(_ready) { return true; }
       while(_curr->_header==_hdr) {
-  bool prediction=_curr->_lit->couldArgsBeInstanceOf(_query);
-#if VDEBUG
-  if(MatchingUtils::match(_query, _curr->_lit, _compl)) {
-    ASS(prediction);
-#else
-  if(prediction && MatchingUtils::match(_query, _curr->_lit, _compl)) {
-#endif
-    _ready=true;
-    return true;
-  }
-
-  _curr++;
+        if(MatchingUtils::match(_query, _curr->_lit, _compl)) {
+          _ready=true;
+          return true;
+        }
+        _curr++;
       }
       return false;
     }
