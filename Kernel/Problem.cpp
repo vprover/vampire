@@ -45,24 +45,18 @@
 using namespace Kernel;
 using namespace std;
 
-enum InferenceKind
-{
-  ICP = 0, // INPUT / PREPROCESSING / CLAUSIFICATION anything larger than this should end up in the TracedProof
-  TRIVSIMP = 1,
-  SIMPLIFYING = 2,  // TODO: let's see if we don't also need to distinguis FWD and BWD!
-  GENERATING = 3,
-};
+
 
 // inferences that work on clauses;
-static const DHMap<vstring, InferenceKind> inference_info = {
-    {"subsumption_resolution", SIMPLIFYING},
-    {"cnf_transformation", ICP},
-    {"trivial_inequality_removal", TRIVSIMP},
-    {"superposition", GENERATING},
-    {"forward_demodulation", SIMPLIFYING},
-    {"backward_demodulation", SIMPLIFYING},
-    {"resolution", GENERATING},
-    {"definition_unfolding", ICP},
+static const DHMap<vstring, ProofTracer::InferenceKind> inference_info = {
+    {"subsumption_resolution", ProofTracer::SIMPLIFYING},
+    {"cnf_transformation", ProofTracer::ICP},
+    {"trivial_inequality_removal", ProofTracer::TRIVSIMP},
+    {"superposition", ProofTracer::GENERATING},
+    {"forward_demodulation", ProofTracer::SIMPLIFYING},
+    {"backward_demodulation", ProofTracer::SIMPLIFYING},
+    {"resolution", ProofTracer::GENERATING},
+    {"definition_unfolding", ProofTracer::ICP},
 
 
 
@@ -143,16 +137,11 @@ ProofTracer::TracedProof* ProofTracer::prepareTracedProof(ProofTracer::ParsedPro
 {
   CALL("ProofTracer::prepareTracedProof");
 
-  typedef struct {
-    Clause* c;
-    InferenceKind inference_kind;
-    Stack<vstring> premises;
-  } ProcInfo;
+  DHMap<vstring,Clause*> clausesByNames;
+  // a temp structure to be filled up during the first pass of the following loop and used after (when clauses have names)
+  DHMap<vstring,Stack<vstring>> rememberedPremises;
 
-  // processed units from the parsed proof
-  // we translate Units that were originally clauses to Clauses and bring over their list of premises
-  // this is hashed by the Units name
-  DHMap<vstring,ProcInfo> proc;
+  TracedProof *tp = new TracedProof;
 
   // we assume the units in pp->units come in topological order
 
@@ -207,25 +196,33 @@ ProofTracer::TracedProof* ProofTracer::prepareTracedProof(ProofTracer::ParsedPro
 
       ik = inference_info.get(irec->name);
 
-      for (unsigned i = 0; i < irec->premises.size(); i++) {
-        // cout << " p: " << irec->premises[i] << endl;
-
-        // we want to load also the guys u came about from
-        if (ik > ICP) {
+      if (ik > ICP) { // we want to load also the guys u came about from
+        for (unsigned i = 0; i < irec->premises.size(); i++) {
+          // cout << " p: " << irec->premises[i] << endl;
           todo.insert(irec->premises[i]);
-        } else {
-          // this is either clausification or the original problem was already in cnf
         }
+        premises = std::move(irec->premises);
+      } else {
+        // this is either clausification or the original problem was already in cnf
+        // so we ignore the premises here and make such units source nodes
       }
-      premises = std::move(irec->premises);
     }
 
-    Clause* c = unitToClause(u);
+    Clause* cl = unitToClause(u);
 
-    // cout << "CL:" << c->toString() << endl;
+    // cout << "CL:" << cl->toString() << endl;
 
-    proc.insert(uname,
-        {c,ik,std::move(premises)});
+    ALWAYS(clausesByNames.insert(uname,cl));
+    if (premises.size() > 0) {
+      ALWAYS(rememberedPremises.insert(uname,std::move(premises)));
+    }
+
+    tp->regNewClause(cl,uname,ik);
+    // cout << uname << " " << ik << " " << cl->toString() << endl;
+
+    if (cl->isEmpty()) {
+      tp->setEmpty(cl);
+    }
 
     // cout << endl;
   }
@@ -234,11 +231,32 @@ ProofTracer::TracedProof* ProofTracer::prepareTracedProof(ProofTracer::ParsedPro
   // TODO: MANY things inside pp are still leaking
   delete pp;
 
-  // now turn proc into a TracedProof to return
+  DHMap<vstring,Stack<vstring>>::Iterator it(rememberedPremises);
+  while(it.hasNext()) {
+    vstring uname;
+    Stack<vstring>& premises = it.nextRef(uname);
 
+    // cout << "uname " << uname << endl;
+    Clause* child = clausesByNames.get(uname);
 
+    for (unsigned i=0; i < premises.size(); i++) {
+      vstring& prem = premises[i];
 
+      // cout << "prem " << prem << endl;
 
+      Clause* parent = clausesByNames.get(prem);
+
+      tp->regChildParentPair(child,parent);
+      /*
+      cout << "pair" << endl;
+      cout << child->toString() << endl;
+      cout << parent->toString() << endl;
+      cout << endl;
+      */
+    }
+  }
+
+  return tp;
 }
 
 void ProofTracer::init(const vstring& traceFileNames)

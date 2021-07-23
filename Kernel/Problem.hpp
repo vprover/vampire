@@ -37,6 +37,14 @@ public:
   USE_ALLOCATOR(ProofTracer);
 
   void init(const vstring& traceFileNames);
+  void onInputClause(Clause* cl);
+
+  enum InferenceKind {
+    ICP = 0, // INPUT / PREPROCESSING / CLAUSIFICATION anything larger than this should end up in the TracedProof
+    TRIVSIMP = 1,
+    SIMPLIFYING = 2,  // TODO: let's see if we don't also need to distinguish FWD and BWD!
+    GENERATING = 3,
+  };
 
   struct ParsedProof {
     USE_ALLOCATOR(ParsedProof);
@@ -46,10 +54,45 @@ public:
     DHMap<Unit*,Parse::TPTP::SourceRecord*> sources;
   };
 
+  struct TracedClauseInfo {
+    CLASS_NAME(TracedClauseInfo);
+    USE_ALLOCATOR(TracedClauseInfo);
+
+    vstring _name;
+    InferenceKind _ik; // the kind of inference this clause arose by
+
+    TracedClauseInfo(const vstring& name, InferenceKind ik) : _name(name), _ik(ik) {}
+
+    Stack<Clause*> _parents;  // premises
+    Stack<Clause*> _children; // the opposite arrows
+  };
+
   struct TracedProof {
     USE_ALLOCATOR(TracedProof);
 
+    TracedProof() : _theEmpty(0) {}
 
+    void regNewClause(Clause* cl, const vstring& name, InferenceKind ik) {
+      CALL("ProofTracer::TracedProof::regNewClause");
+
+      ALWAYS(_clInfo.insert(cl,new TracedClauseInfo(name,ik)));
+    }
+
+    void regChildParentPair(Clause* ch, Clause* p) {
+      CALL("ProofTracer::TracedProof::regChildParentPair");
+
+      _clInfo.get(ch)->_parents.push(p);
+      _clInfo.get(p)->_children.push(ch);
+    }
+
+    void setEmpty(Clause* cl) {
+      CALL("ProofTracer::TracedProof::setEmpty");
+      ASS_EQ(_theEmpty,0); // only set once
+      _theEmpty = cl;
+    }
+  private:
+    Clause* _theEmpty;
+    DHMap<Clause*, TracedClauseInfo*> _clInfo;
   };
 
 protected:
