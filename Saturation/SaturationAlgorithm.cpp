@@ -623,12 +623,9 @@ void SaturationAlgorithm::addInputClause(Clause* cl)
     _symEl->onInputClause(cl);
   }
 
-  /*
   if (env.tracer) {
     env.tracer->onInputClause(cl);
   }
-  */
-
 
   bool sosForAxioms = _opt.sos() == Options::Sos::ON || _opt.sos() == Options::Sos::ALL; 
   sosForAxioms = sosForAxioms && cl->inputType()==UnitInputType::AXIOM;
@@ -750,6 +747,10 @@ void SaturationAlgorithm::init()
   while (toAdd.hasNext()) {
     Clause* cl=toAdd.next();
     addInputClause(cl);
+  }
+
+  if (env.tracer) {
+    env.tracer->onInputFinished();
   }
 
   if (_splitter) {

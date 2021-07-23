@@ -58,10 +58,31 @@ static const DHMap<vstring, ProofTracer::InferenceKind> inference_info = {
     {"resolution", ProofTracer::GENERATING},
     {"definition_unfolding", ProofTracer::ICP},
 
-
-
-
 };
+
+void ProofTracer::onInputClause(Clause* cl)
+{
+  CALL("ProofTracer::onInputClause");
+
+  cout << "Init " << cl->toString() << endl;
+
+  Clause* match = _tp->findVariant(cl);
+  if (match != 0) {
+    TracedClauseInfo* info = _tp->getClauseInfo(match);
+    cout << " matched " << info->_name << endl;
+    info->makeNew();
+    _tp->initalBorn();
+  }
+}
+
+void ProofTracer::onInputFinished()
+{
+  CALL("ProofTracer::onInputFinished");
+
+  cout << "Input finished" << endl;
+
+  _tp->onInputFinished();
+}
 
 ProofTracer::ParsedProof* ProofTracer::getParsedProof(const vstring& proofFileName)
 {
@@ -185,7 +206,7 @@ ProofTracer::TracedProof* ProofTracer::prepareTracedProof(ProofTracer::ParsedPro
 
     Parse::TPTP::SourceRecord* rec = pp->sources.get(u);
     if (rec->isFile()) {
-      Parse::TPTP::FileSourceRecord* frec = static_cast<Parse::TPTP::FileSourceRecord*>(rec);
+      // Parse::TPTP::FileSourceRecord* frec = static_cast<Parse::TPTP::FileSourceRecord*>(rec);
       // cout << "Has FSR: " << frec->fileName << " " << frec->nameInFile << endl;
 
       // no premises from here
@@ -259,6 +280,48 @@ ProofTracer::TracedProof* ProofTracer::prepareTracedProof(ProofTracer::ParsedPro
   return tp;
 }
 
+void ProofTracer::TracedProof::init()
+{
+  CALL("ProofTracer::TracedProof::init");
+
+  DHMap<Clause*, TracedClauseInfo*>::Iterator it(_clInfo);
+  while (it.hasNext()) {
+    Clause* cl;
+    TracedClauseInfo* info;
+    it.next(cl,info);
+
+    ASS_EQ((cl == _theEmpty),info->isTerminal()); // exactly the Empty is Terminal
+
+    if (info->isInital()) {
+      _unbornInitials++;
+    }
+  }
+
+  cout << "TracedProof initilized!" << endl;
+  cout << "proof size: " << _clInfo.size() << endl;
+  cout << "_unbornInitials: " << _unbornInitials << endl;
+}
+
+void ProofTracer::TracedProof::onInputFinished()
+{
+  CALL("ProofTracer::TracedProof::onInputFinished");
+
+  cout << "_unbornInitials: " << _unbornInitials << endl;
+  if (_unbornInitials > 0) {
+    DHMap<Clause*, TracedClauseInfo*>::Iterator it(_clInfo);
+    while (it.hasNext()) {
+      Clause* cl;
+      TracedClauseInfo* info;
+      it.next(cl,info);
+
+      if (info->isInital() && info->_state == NONE) {
+        cout << info->_name << " " << cl->toString() << endl;
+      }
+    }
+  }
+}
+
+
 void ProofTracer::init(const vstring& traceFileNames)
 {
   CALL("ProofTracer::init");
@@ -266,8 +329,9 @@ void ProofTracer::init(const vstring& traceFileNames)
   ASS(Unit::noUnitYet());
 
   // TODO: make this handle more then one trace file, i.e., start by splitting traceFileNames into pieces and calling getUnits more than once
-  ParsedProof* pp = getParsedProof(traceFileNames);
-  TracedProof* tp = prepareTracedProof(pp);
+  ParsedProof* pp = getParsedProof(traceFileNames); // deals with the file
+  _tp = prepareTracedProof(pp);                     // creates clauses out of the clausal part of pp, connects the clauses by pointers and discards the rest
+  _tp->init();                                      // set the counters for proper event watching
 
   Unit::resetNumbering();
 }

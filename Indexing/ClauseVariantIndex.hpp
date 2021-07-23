@@ -24,6 +24,7 @@
 #include "Indexing/LiteralSubstitutionTree.hpp"
 
 #include "Kernel/Term.hpp"
+#include "Kernel/Clause.hpp"
 
 namespace Indexing {
 
