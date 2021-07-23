@@ -24,6 +24,7 @@
 
 // added for the sake of ProofTracer
 #include "Parse/TPTP.hpp"
+#include "Indexing/ClauseVariantIndex.hpp"
 
 namespace Kernel {
 
@@ -37,6 +38,7 @@ struct ProofTracer {
 
   void init(const vstring& traceFileNames);
   void onInputClause(Clause* cl);
+  void onInputFinished();
 
   enum InferenceKind {
     ICP = 0, // INPUT / PREPROCESSING / CLAUSIFICATION anything larger than this should end up in the TracedProof
@@ -54,6 +56,17 @@ struct ProofTracer {
     DHMap<Unit*,Parse::TPTP::SourceRecord*> sources;
   };
 
+  // maybe could use Store for this, but let's keep some flexibility
+  // this is what we know about the actual runs clause corresponding to this one at the moment
+  enum ClauseState {
+    NONE = 0,        // the starting state; somehow before it's even born
+    NEW = 1,
+    UNPRO = 2,
+    PASSIVE = 3,
+    ACTIVE = 4,
+    GONE = 5
+  };
+
   struct TracedClauseInfo {
     CLASS_NAME(TracedClauseInfo);
     USE_ALLOCATOR(TracedClauseInfo);
@@ -61,22 +74,46 @@ struct ProofTracer {
     vstring _name;
     InferenceKind _ik; // the kind of inference this clause arose by
 
-    TracedClauseInfo(const vstring& name, InferenceKind ik) : _name(name), _ik(ik) {}
+    TracedClauseInfo(const vstring& name, InferenceKind ik) : _name(name), _ik(ik), _state(NONE) {}
 
     Stack<Clause*> _parents;  // premises
     Stack<Clause*> _children; // the opposite arrows
+
+    bool isInital() {
+      return _parents.size() == 0;
+    }
+
+    // should be only the final empty clause
+    bool isTerminal() {
+      return _children.size() == 0;
+    }
+
+    ClauseState _state;
+
+    void makeNew() {
+      ASS_EQ(_state,NONE);
+      _state = NEW;
+    }
+
+
   };
 
   struct TracedProof {
     CLASS_NAME(TracedProof);
     USE_ALLOCATOR(TracedProof);
 
-    TracedProof() : _theEmpty(0) {}
+    TracedProof() : _theEmpty(0), _variantLookup(new Indexing::HashingClauseVariantIndex()), _unbornInitials(0) {}
+    ~TracedProof() { delete _variantLookup; }
+
+    void init();
+    void onInputFinished();
 
     void regNewClause(Clause* cl, const vstring& name, InferenceKind ik) {
       CALL("ProofTracer::TracedProof::regNewClause");
 
       ALWAYS(_clInfo.insert(cl,new TracedClauseInfo(name,ik)));
+
+      _variantLookup->insert(cl);
     }
 
     void regChildParentPair(Clause* ch, Clause* p) {
@@ -91,18 +128,49 @@ struct ProofTracer {
       ASS_EQ(_theEmpty,0); // only set once
       _theEmpty = cl;
     }
+
+    Clause* findVariant(Clause* cl) {
+      CALL("ProofTracer::TracedProof::findVariant");
+
+      Clause* res = 0;
+
+      ClauseIterator it = _variantLookup->retrieveVariants(cl);
+      if (it.hasNext()) {
+        res = it.next();
+        ASS(!it.hasNext());
+      }
+      return res;
+    }
+
+    TracedClauseInfo* getClauseInfo(Clause* cl) {
+      CALL("ProofTracer::TracedProof::getClauseInfo");
+      return _clInfo.get(cl);
+    }
+
+    void initalBorn() {
+      CALL("ProofTracer::TracedProof::initalBorn");
+      _unbornInitials--;
+    }
+
   private:
     Clause* _theEmpty;
     DHMap<Clause*, TracedClauseInfo*> _clInfo;
+
+    Indexing::ClauseVariantIndex* _variantLookup;
+
+    int _unbornInitials;
+
   };
 
 protected:
   ParsedProof* getParsedProof(const vstring& traceFileNames);
   TracedProof* prepareTracedProof(ParsedProof* pp);
+  void initializeTracedProof(TracedProof* tp);
 
 private:
-  Clause* unitToClause(Unit* u);
+  TracedProof* _tp;
 
+  Clause* unitToClause(Unit* u);
 };
 
 

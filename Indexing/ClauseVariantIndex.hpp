@@ -23,6 +23,7 @@
 #include "Lib/DHMap.hpp"
 
 #include "Kernel/Term.hpp"
+#include "Kernel/Clause.hpp"
 
 namespace Indexing {
 
