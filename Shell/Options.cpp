@@ -2356,9 +2356,19 @@ void Options::output (ostream& str) const
       ASS(label.length() < 40);
       vstring br = "******************************";
       vstring br_gap = br.substr(0,(br.length()-(label.length()/2)));
-      str << endl << br << br << endl;
+      str << endl << br << br;
+      if (label.length() % 2 == 0) {
+        str << endl;
+      } else {
+        str << "*" << endl;
+      }
       str << br_gap << label << br_gap << endl;
-      str << br << br << endl << endl;
+      str << br << br;
+      if (label.length() % 2 == 0) {
+        str << endl << endl;
+      } else {
+        str << "*" << endl << endl;
+      }
 
       // Sort
       Stack<AbstractOptionValue*> os = groups[i];
