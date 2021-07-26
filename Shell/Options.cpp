@@ -718,11 +718,11 @@ void Options::init()
     _saturationAlgorithm.addHardConstraint(If(equal(SaturationAlgorithm::FINITE_MODEL_BUILDING)).then(_equalityProxy.is(notEqual(EqualityProxy::RSTC))));
 
 #if VZ3
-    _smtForGround = BoolOptionValue("smt_for_ground","smtfg",true);
+    _smtForGround = BoolOptionValue("smt_for_ground","smtfg",false);
     _smtForGround.description = "When a (theory) problem is ground after preprocessing pass it to Z3. In this case we can return sat if Z3 does.";
+    _smtForGround.setExperimental(); // since smt_for_ground is not running anyway (see MainLoop.cpp)
     _lookup.insert(&_smtForGround);
 #endif
-
 
     _fmbNonGroundDefs = BoolOptionValue("fmb_nonground_defs","fmbngd",false);
     _fmbNonGroundDefs.description = "Introduce definitions for non ground terms in preprocessing for fmb";
