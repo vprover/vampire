@@ -424,6 +424,24 @@ bool TermSharing::argNormGt(TermList t1, TermList t2)
   ASS_REP(trm1->shared(), trm1->toString());
   ASS_REP(trm2->shared(), trm2->toString());
 
+  if (trm1->isLiteral()) {
+    const vstring& n1 = env.signature->getPredicate(trm1->functor())->name();
+    const vstring& n2 = env.signature->getPredicate(trm2->functor())->name();
+
+    int cmp = n1.compare(n2);
+    if (cmp!=0) {
+      return cmp > 0;
+    }
+  } else {
+    const vstring& n1 = env.signature->getFunction(trm1->functor())->name();
+    const vstring& n2 = env.signature->getFunction(trm2->functor())->name();
+
+    int cmp = n1.compare(n2);
+    if (cmp!=0) {
+      return cmp > 0;
+    }
+  }
+
   return (trm1->getId() > trm2->getId());
 }
 
