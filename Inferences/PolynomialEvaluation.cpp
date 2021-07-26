@@ -1,15 +1,12 @@
-
-  /*
-   * File PolynomialEvaluation.cpp.
-   *
-   * This file is part of the source code of the software program
-   * Vampire. It is protected by applicable
-   * copyright laws.
-   *
-   * This source code is distributed under the licence found here
-   * https://vprover.github.io/license.html
-   * and in the source directory
-   */
+/*
+ * This file is part of the source code of the software program
+ * Vampire. It is protected by applicable
+ * copyright laws.
+ *
+ * This source code is distributed under the licence found here
+ * https://vprover.github.io/license.html
+ * and in the source directory
+ */
 
 #include "Inferences/PolynomialEvaluation.hpp"
 #include "Kernel/Clause.hpp"
@@ -103,11 +100,13 @@ Option<LitSimplResult> PolynomialEvaluation::tryEvalPredicate(Literal* orig, Pol
       /* integer predicates */
       HANDLE_CASE(INT_DIVIDES)
 
-      default:
-        // WARN("WARNING: unexpected interpreted predicate: ", lit->toString())
-        ASSERTION_VIOLATION
-        return Option<LitSimplResult>();
+      case Kernel::Theory::ARRAY_BOOL_SELECT: break;
+
+      case ANY_INTERPRETED_FUNCTION: 
+      case Kernel::Theory::INVALID_INTERPRETATION: 
+        ASSERTION_VIOLATION_REP(inter)
     }
+    return Option<LitSimplResult>();
   } else {
     return Option<LitSimplResult>();
   }
@@ -179,8 +178,8 @@ Option<PolyNf> trySimplify(Theory::Interpretation i, PolyNf* evalArgs)
 }
 
 
-Option<PolyNf> PolynomialEvaluation::evaluate(TermList term, unsigned sortNumber) const 
-{ return evaluate(TypedTermList(term, sortNumber)); }
+Option<PolyNf> PolynomialEvaluation::evaluate(TermList term, SortId sort) const 
+{ return evaluate(TypedTermList(term, sort)); }
 
 Option<PolyNf> PolynomialEvaluation::evaluate(Term* term) const 
 { return evaluate(TypedTermList(term)); }
@@ -194,11 +193,8 @@ Polynom<Number> simplifyPoly(Polynom<Number> const& in, PolyNf* simplifiedArgs);
 template<class Number>
 Monom<Number> simplifyMonom(Monom<Number> const&, PolyNf* simplifiedArgs);
 
-POLYMORPHIC_FUNCTION(AnyPoly, SimplifyPoly  , const& p, PolyNf* ts;) 
-{ return AnyPoly(perfect(simplifyPoly(*p, ts))); }
-
 AnyPoly simplifyPoly(AnyPoly const& p, PolyNf* ts)
-{ return p.apply(Polymorphic::SimplifyPoly{ ts }); }
+{ return p.apply([&](auto& p) { return AnyPoly(perfect(simplifyPoly(*p, ts))); }); }
 
 Option<PolyNf> PolynomialEvaluation::evaluate(PolyNf normalized) const 
 {

@@ -1,7 +1,4 @@
-
 /*
- * File Ordering.hpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -205,6 +202,8 @@ inline ostream& operator<<(ostream& out, Ordering::Result const& r)
     case Ordering::Result::LESS_EQ: return out << "LESS_EQ";
     case Ordering::Result::EQUAL: return out << "EQUAL";
     case Ordering::Result::INCOMPARABLE: return out << "INCOMPARABLE";
+    default:
+      return out << "UNKNOWN";
   }
   ASSERTION_VIOLATION
 }

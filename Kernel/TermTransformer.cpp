@@ -1,7 +1,4 @@
-
 /*
- * File TermTransformer.cpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -201,7 +198,7 @@ Term* TermTransformer::transformSpecial(Term* term)
     }
 
   }
-  ASSERTION_VIOLATION_REP(term->toString());
+  ASSERTION_VIOLATION_REP(term->toString()); 
   return nullptr;
 }
 

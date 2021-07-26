@@ -4,8 +4,8 @@
 cmake_minimum_required (VERSION 3.12.0)
 project(Vampire)
 
-# require the compiler to use C++11
-set(CMAKE_CXX_STANDARD 11)
+# require the compiler to use C++14
+set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
@@ -30,8 +30,8 @@ endif()
 # statically link libraries
 option(BUILD_SHARED_LIBS "Build an executable dynamically linking to libraries instead of a statically-linked one (static not working on Mac)" ON)
 if (NOT BUILD_SHARED_LIBS)
-  SET(CMAKE_FIND_LIBRARY_SUFFIXES .a)
-  SET(CMAKE_EXE_LINKER_FLAGS -static)
+  set(CMAKE_FIND_LIBRARY_SUFFIXES .a)
+  set(CMAKE_EXE_LINKER_FLAGS -static)
   set(VAMPIRE_BINARY_STATIC _static)
 endif()
 
@@ -40,6 +40,22 @@ if(CMAKE_BUILD_TYPE STREQUAL Debug)
   SET(COMPILE_TESTS ON)
 else()
   SET(COMPILE_TESTS OFF)
+endif()
+
+option(IPO "If supported, build with link-time optimisation." OFF)
+option(DEBUG_IPO "Print information about why IPO isn't supported" OFF)
+# check whether IPO is available
+include(CheckIPOSupported)
+check_ipo_supported(RESULT IPO_SUPPORTED OUTPUT IPO_ERROR)
+if (IPO_SUPPORTED)
+  message(STATUS "IPO supported")
+else()
+  message(STATUS "IPO not supported")
+  if(DEBUG_IPO)
+    message(STATUS "${IPO_ERROR}")
+  else()
+    message(STATUS "(if you need IPO, set DEBUG_IPO=ON to investigate)")
+  endif()
 endif()
 
 ################################################################
@@ -103,7 +119,6 @@ set(VAMPIRE_LIB_SOURCES
     Lib/Environment.cpp
     Lib/Event.cpp
     Lib/Exception.cpp
-#    Lib/Graph.cpp
     Lib/Hash.cpp
     Lib/Int.cpp
     Lib/IntNameTable.cpp
@@ -135,16 +150,13 @@ set(VAMPIRE_LIB_SOURCES
     Lib/DHMultiset.hpp
     Lib/DHSet.hpp
     Lib/DynamicHeap.hpp
-    Lib/Enumerator.hpp
     Lib/Environment.hpp
     Lib/Event.hpp
     Lib/Exception.hpp
     Lib/fdstream.hpp
     Lib/FreshnessGuard.hpp
-#    Lib/Graph.hpp
     Lib/Hash.hpp
     Lib/ImplicationSetClosure.hpp
-    Lib/InPlaceStack.hpp
     Lib/Int.hpp
     Lib/IntNameTable.hpp
     Lib/IntUnionFind.hpp
@@ -224,7 +236,6 @@ set(VAMPIRE_KERNEL_SOURCES
     Kernel/LiteralSelector.cpp
     Kernel/LookaheadLiteralSelector.cpp
     Kernel/MainLoop.cpp
-#    Kernel/MatchTag.cpp
     Kernel/Matcher.cpp
     Kernel/MaximalLiteralSelector.cpp
     Kernel/MLMatcher.cpp
@@ -277,7 +288,6 @@ set(VAMPIRE_KERNEL_SOURCES
     Kernel/LiteralSelector.hpp
     Kernel/LookaheadLiteralSelector.hpp
     Kernel/MainLoop.hpp
-#    Kernel/MatchTag.hpp
     Kernel/Matcher.hpp
     Kernel/MaximalLiteralSelector.hpp
     Kernel/MLMatcher.hpp
@@ -312,6 +322,44 @@ set(VAMPIRE_KERNEL_SOURCES
     Kernel/Polynomial.cpp
     Kernel/PolynomialNormalizer.hpp
     Kernel/PolynomialNormalizer.cpp
+    Kernel/ApplicativeHelper.hpp
+    Kernel/ApplicativeHelper.cpp
+    Kernel/SKIKBO.hpp
+    Kernel/SKIKBO.cpp
+    Indexing/TypeSubstitutionTree.cpp
+    Indexing/TypeSubstitutionTree.hpp
+    Inferences/CNFOnTheFly.cpp
+    Inferences/CNFOnTheFly.hpp
+    Inferences/CombinatorDemodISE.cpp
+    Inferences/CombinatorDemodISE.hpp
+    Inferences/CombinatorNormalisationISE.hpp
+    Inferences/CombinatorNormalisationISE.cpp
+    Inferences/ArgCong.hpp
+    Inferences/ArgCong.cpp
+    Inferences/NegativeExt.cpp
+    Inferences/NegativeExt.hpp
+    Inferences/Narrow.hpp
+    Inferences/Narrow.cpp
+    Inferences/SubVarSup.hpp
+    Inferences/SubVarSup.cpp
+    Inferences/BoolEqToDiseq.hpp
+    Inferences/BoolEqToDiseq.cpp
+    Inferences/PrimitiveInstantiation.cpp
+    Inferences/PrimitiveInstantiation.hpp
+    Inferences/ElimLeibniz.cpp
+    Inferences/ElimLeibniz.hpp
+    Inferences/Choice.cpp
+    Inferences/Choice.hpp
+    Inferences/Injectivity.hpp
+    Inferences/Injectivity.cpp
+    Inferences/BoolSimp.hpp
+    Inferences/BoolSimp.cpp
+    Inferences/CasesSimp.cpp
+    Inferences/CasesSimp.hpp
+    Inferences/Cases.cpp
+    Inferences/Cases.hpp
+    Shell/LambdaElimination.cpp
+    Shell/LambdaElimination.hpp
     )
 source_group(kernel_source_files FILES ${VAMPIRE_KERNEL_SOURCES})
 
@@ -383,6 +431,7 @@ set(VAMPIRE_INFERENCE_SOURCES
     Inferences/InnerRewriting.cpp
     Inferences/EquationalTautologyRemoval.cpp
     Inferences/Induction.cpp
+    Inferences/InductionHelper.cpp
     Inferences/InferenceEngine.cpp
     Inferences/Instantiation.cpp
     Inferences/InterpretedEvaluation.cpp
@@ -417,6 +466,7 @@ set(VAMPIRE_INFERENCE_SOURCES
     Inferences/HyperSuperposition.hpp
     Inferences/InnerRewriting.hpp
     Inferences/EquationalTautologyRemoval.hpp
+    Inferences/InductionHelper.hpp
     Inferences/InferenceEngine.hpp
     Inferences/Instantiation.hpp
     Inferences/InterpretedEvaluation.hpp
@@ -456,34 +506,26 @@ source_group(instancegeneration_source_files FILES ${VAMPIRE_INSTANCEGENERATION_
 
 set(VAMPIRE_SAT_SOURCES
     SAT/BufferedSolver.cpp
-    SAT/ClauseDisposer.cpp
     SAT/DIMACS.cpp
     SAT/FallbackSolverWrapper.cpp
     SAT/MinimizingSolver.cpp
     SAT/Preprocess.cpp
-    SAT/RestartStrategy.cpp
     SAT/SAT2FO.cpp
     SAT/SATClause.cpp
     SAT/SATInference.cpp
     SAT/SATLiteral.cpp
-    SAT/TWLSolver.cpp
-    SAT/VariableSelector.cpp
     SAT/Z3Interfacing.cpp
 
     SAT/BufferedSolver.hpp
-    SAT/ClauseDisposer.hpp
     SAT/DIMACS.hpp
     SAT/FallbackSolverWrapper.hpp
     SAT/MinimizingSolver.hpp
     SAT/Preprocess.hpp
-    SAT/RestartStrategy.hpp
     SAT/SAT2FO.hpp
     SAT/SATClause.hpp
     SAT/SATInference.hpp
     SAT/SATLiteral.hpp
     SAT/SATSolver.hpp
-    SAT/TWLSolver.hpp
-    SAT/VariableSelector.hpp
     SAT/Z3Interfacing.hpp
     )
 source_group(sat_source_files FILES ${VAMPIRE_SAT_SOURCES})
@@ -540,6 +582,7 @@ set(VAMPIRE_SHELL_SOURCES
     Shell/EqResWithDeletion.cpp
     #Shell/EqualityAxiomatizer.cpp
     Shell/EqualityProxy.cpp
+    Shell/EqualityProxyMono.cpp    
     Shell/Flattening.cpp
     Shell/FunctionDefinition.cpp
     Shell/GeneralSplitting.cpp
@@ -608,6 +651,7 @@ set(VAMPIRE_SHELL_SOURCES
     Shell/EqResWithDeletion.hpp
     #Shell/EqualityAxiomatizer.hpp
     Shell/EqualityProxy.hpp
+    Shell/EqualityProxyMono.hpp
     Shell/Flattening.hpp
     Shell/FunctionDefinition.hpp
     Shell/GeneralSplitting.hpp
@@ -676,7 +720,6 @@ source_group(shell_source_files FILES ${VAMPIRE_SHELL_SOURCES})
 set(VAMPIRE_PARSE_SOURCES
     Parse/SMTLIB2.cpp
     Parse/TPTP.cpp
-    Parse/SMTLIB.hpp
     Parse/SMTLIB2.hpp
     Parse/TPTP.hpp
     )
@@ -789,7 +832,6 @@ set(VAMPIRE_SOURCES
     ${VAMPIRE_MINISAT_SOURCES}
     ${VAMPIRE_CASC_SOURCES}
     Forwards.hpp
-    Global.cpp
     "${CMAKE_CURRENT_BINARY_DIR}/version.cpp"
     )
 
@@ -827,7 +869,20 @@ endif()
 # z3 stuff
 ################################################################
 
-find_package(Z3 CONFIG NO_DEFAULT_PATH PATHS ${CMAKE_SOURCE_DIR}/z3/build/)
+# find Z3 automatically!
+# normally this is just in /z3/build/, but this can be overridden
+find_package(
+  Z3
+  CONFIG
+    NO_CMAKE_PATH
+    NO_CMAKE_ENVIRONMENT_PATH
+    NO_SYSTEM_ENVIRONMENT_PATH
+    NO_CMAKE_PACKAGE_REGISTRY
+    NO_CMAKE_SYSTEM_PATH
+    NO_CMAKE_SYSTEM_PACKAGE_REGISTRY
+    PATHS
+      ${CMAKE_SOURCE_DIR}/z3/build/
+)
 if (NOT Z3_FOUND)
   message(STATUS "No Z3 found -- Compiling without SMT support.")
   add_compile_definitions(VZ3=0)
@@ -965,3 +1020,9 @@ set_target_properties(vampire PROPERTIES
   RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin
   )
 configure_file(version.cpp.in version.cpp)
+
+if(CMAKE_BUILD_TYPE STREQUAL Release AND IPO)
+  message(STATUS "compiling Vampire with IPO: this might take a while")
+  set_property(TARGET obj PROPERTY INTERPROCEDURAL_OPTIMIZATION true)
+  set_property(TARGET vampire PROPERTY INTERPROCEDURAL_OPTIMIZATION true)
+endif()

@@ -1,7 +1,4 @@
-
 /*
- * File FunctionDefinition.hpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -79,7 +76,7 @@ private:
   static Def* isFunctionDefinition (Literal*);
   static Def* defines (Term* lhs, Term* rhs);
   static bool occurs (unsigned function, Term&);
-
+  static void reverse(Def*);
 
   bool isDefined(Term* t);
 

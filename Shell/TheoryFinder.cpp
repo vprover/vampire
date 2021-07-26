@@ -1,7 +1,4 @@
-
 /*
- * File TheoryFinder.cpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -546,11 +543,11 @@ bool TheoryFinder::matchCode(const void* obj,
     if (f->connective() != FORALL) {
       goto backtrack;
     }
-    if (Formula::VarList::length(f->vars()) != code[cp+1]) {
+    if (VList::length(f->vars()) != code[cp+1]) {
       goto backtrack;
     }
     cp += 2;
-    List<int>::Iterator vs(f->vars());
+    VList::Iterator vs(f->vars());
     while (vs.hasNext()) {
       vars[code[cp++]] = vs.next();
     }

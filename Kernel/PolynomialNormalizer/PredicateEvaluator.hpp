@@ -1,15 +1,12 @@
-
-  /*
-   * File PredicateEvaluator.hpp.
-   *
-   * This file is part of the source code of the software program
-   * Vampire. It is protected by applicable
-   * copyright laws.
-   *
-   * This source code is distributed under the licence found here
-   * https://vprover.github.io/license.html
-   * and in the source directory
-   */
+/*
+ * This file is part of the source code of the software program
+ * Vampire. It is protected by applicable
+ * copyright laws.
+ *
+ * This source code is distributed under the licence found here
+ * https://vprover.github.io/license.html
+ * and in the source directory
+ */
 
 template<Theory::Interpretation inter>
 struct PredicateEvaluator;
@@ -78,16 +75,14 @@ IMPL_EVALUATE_PRED(Interpretation::EQUAL,
   if (lhs == rhs) {
     return Option<LitSimplResult>(LitSimplResult::constant(polarity));
   }
-  switch (sort) {
-  case Sorts::SRT_INTEGER:
+  if (sort == IntTraits::sort())
     return interpretEquality(polarity, lhs.template wrapPoly<IntTraits >(), rhs.template wrapPoly<IntTraits >());
-  case Sorts::SRT_RATIONAL:
+  if (sort == RatTraits::sort())
     return interpretEquality(polarity, lhs.template wrapPoly<RatTraits >(), rhs.template wrapPoly<RatTraits >());
-  case Sorts::SRT_REAL:
+  if (sort == RealTraits::sort())
     return interpretEquality(polarity, lhs.template wrapPoly<RealTraits>(), rhs.template wrapPoly<RealTraits>());
-  default:
+  else
     return Option<LitSimplResult>();
-  }
 )
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////

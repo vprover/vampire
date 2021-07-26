@@ -1,7 +1,4 @@
-
 /*
- * File IndexManager.cpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -28,6 +25,8 @@
 #include "LiteralSubstitutionTree.hpp"
 #include "TermIndex.hpp"
 #include "TermSubstitutionTree.hpp"
+
+#include "Shell/Statistics.hpp"
 
 #include "IndexManager.hpp"
 
@@ -145,7 +144,9 @@ Index* IndexManager::create(IndexType t)
 
   bool isGenerating;
   static bool const useConstraints = env.options->unificationWithAbstraction()!=Options::UnificationWithAbstraction::OFF;
-
+  static bool const extByAbs = (env.options->functionExtensionality() == Options::FunctionExtensionality::ABSTRACTION) &&
+                    env.statistics->higherOrder;
+                    
   switch(t) {
   case GENERATING_SUBST_TREE:
     is=new LiteralSubstitutionTree(useConstraints);
@@ -179,7 +180,7 @@ Index* IndexManager::create(IndexType t)
     break;
 
   case SUPERPOSITION_SUBTERM_SUBST_TREE:
-    tis=new TermSubstitutionTree(useConstraints);
+    tis=new TermSubstitutionTree(useConstraints, extByAbs);
 #if VDEBUG
     //tis->markTagged();
 #endif
@@ -187,20 +188,64 @@ Index* IndexManager::create(IndexType t)
     isGenerating = true;
     break;
   case SUPERPOSITION_LHS_SUBST_TREE:
-    tis=new TermSubstitutionTree(useConstraints);
+    tis=new TermSubstitutionTree(useConstraints, extByAbs);
     res=new SuperpositionLHSIndex(tis, _alg->getOrdering(), _alg->getOptions());
+    //tis->markTagged();
     isGenerating = true;
     break;
+    
+  case SUB_VAR_SUP_SUBTERM_SUBST_TREE:
+    //using a substitution tree to store variable.
+    //TODO update
+    tis=new TermSubstitutionTree();
+#if VDEBUG
+    //tis->markTagged();
+#endif
+    res=new SubVarSupSubtermIndex(tis, _alg->getOrdering());
+    isGenerating = true;
+    break;
+  case SUB_VAR_SUP_LHS_SUBST_TREE:
+    tis=new TermSubstitutionTree();
+    res=new SubVarSupLHSIndex(tis, _alg->getOrdering(), _alg->getOptions());
+    isGenerating = true;
+    break;
+  
+  case SKOLEMISING_FORMULA_INDEX:
+    tis=new TermSubstitutionTree(false, false, true);
+    res=new SkolemisingFormulaIndex(tis);
+    isGenerating = false;
+    break;
 
-  case ACYCLICITY_INDEX:
+  /*case RENAMING_FORMULA_INDEX:
+    tis=new TermSubstitutionTree(false, false, true);
+    res=new RenamingFormulaIndex(tis);
+    attachPassive = true;
+    break;*/
+
+  case NARROWING_INDEX:
+    tis=new TermSubstitutionTree();
+    res=new NarrowingIndex(tis); 
+    isGenerating = true;
+    break; 
+
+  case PRIMITIVE_INSTANTIATION_INDEX:
+    tis=new TermSubstitutionTree();
+    res=new PrimitiveInstantiationIndex(tis); 
+    isGenerating = true;
+    break;  
+   case ACYCLICITY_INDEX:
     tis = new TermSubstitutionTree();
     res = new AcyclicityIndex(tis);
     isGenerating = true;
-    break;
+    break; 
 
   case DEMODULATION_SUBTERM_SUBST_TREE:
     tis=new TermSubstitutionTree();
-    res=new DemodulationSubtermIndex(tis);
+    if (env.options->combinatorySup()) {
+      res=new DemodulationSubtermIndexImpl<true>(tis);
+    } else {
+      res=new DemodulationSubtermIndexImpl<false>(tis);
+    }
     isGenerating = false;
     break;
   case DEMODULATION_LHS_SUBST_TREE:
@@ -237,6 +282,18 @@ Index* IndexManager::create(IndexType t)
   case GLOBAL_SUBSUMPTION_INDEX:
     res = new GroundingIndex(_alg->getOptions());
     isGenerating = false;
+    break;
+
+  case UNIT_INT_COMPARISON_INDEX:
+    is = new LiteralSubstitutionTree();
+    res = new UnitIntegerComparisonLiteralIndex(is);
+    isGenerating = true;
+    break;
+
+  case INDUCTION_TERM_INDEX:
+    tis = new TermSubstitutionTree();
+    res = new InductionTermIndex(tis);
+    isGenerating = true;
     break;
 
   default:

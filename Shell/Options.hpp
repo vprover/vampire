@@ -1,7 +1,4 @@
-
 /*
- * File Options.hpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -41,6 +38,7 @@
 #include <type_traits>
 #include <cstring>
 #include <memory>
+#include <sys/stat.h>
 
 #include "Forwards.hpp"
 
@@ -53,7 +51,6 @@
 #include "Lib/Stack.hpp"
 #include "Lib/Int.hpp"
 #include "Lib/Allocator.hpp"
-#include "Lib/XML.hpp"
 #include "Lib/Comparison.hpp"
 #include "Lib/STL.hpp"
 
@@ -110,10 +107,6 @@ static size_t distance(const vstring &s1, const vstring &s2)
   return costs[n];
 }
 
-
-template<class Enum>
-Stack<vstring> enumValueNames();
-
 /**
  * Class that represents Vampire's options.
  * 11/11/2004 Shrigley Hall, completely reimplemented
@@ -142,7 +135,6 @@ public:
     // deal with completeness
     bool complete(const Problem&) const;
     bool completeForNNE() const;
-    void forceIncompleteness() { _forceIncompleteness.actualValue=true; }
 
     // deal with constraints
     void setForcedOptionValues(); // not currently used effectively
@@ -201,7 +193,7 @@ public:
         DEVELOPMENT,
         OUTPUT,
         INST_GEN,
-	FMB,
+        FMB,
         SAT,
         AVATAR,
         INFERENCES,
@@ -210,6 +202,7 @@ public:
         PREPROCESSING,
         INPUT,
         HELP,
+        HIGHER_ORDER,
         LAST_TAG // Used for counting the number of tags
     };
     // update _tagNames at the end of Options constructor if you add a tag
@@ -235,7 +228,7 @@ public:
   enum class Induction : unsigned int {
     NONE,
     STRUCTURAL,
-    MATHEMATICAL,
+    INTEGER,
     BOTH
   };
   enum class StructuralInductionKind : unsigned int {
@@ -244,11 +237,17 @@ public:
     THREE,
     ALL
   };
-  enum class MathInductionKind : unsigned int {
+  enum class IntInductionKind : unsigned int {
     ONE,
     TWO,
     ALL
   };
+  enum class IntegerInductionInterval : unsigned int {
+    INFINITE,
+    FINITE,
+    BOTH
+  };
+
 
   enum class PredicateSineLevels : unsigned int {
     NO,   // no means 1) the reverse of "on", 2) use with caution, it is predicted to be the worse value
@@ -327,43 +326,6 @@ public:
     WARN
   };
 
-  //enums for the bound propagation purpose
-  enum class BPAlmostHalfBoundingRemoval : unsigned int {
-    BOUNDS_ONLY = 0,
-    OFF = 1,
-    ON = 2
-  };
-
-  enum class BPAssignmentSelector: unsigned int {
-    ALTERNATIVE = 0,
-    BMP = 1,
-    LOWER = 2,
-    MIDDLE = 3,
-    RANDOM = 4,
-    RATIONAL = 5,
-    SMALLEST = 6,
-    TIGHT = 7,
-    TIGHTISH = 8,
-    UPPER = 9
-  };
-  
-  enum class BPConflictSelector: unsigned int {
-    LEAST_RECENT = 0, 
-    MOST_RECENT = 1, 
-    SHORTEST_CONSTRAINT = 2
-  };
-  
-  enum class BPVariableSelector: unsigned int {
-    CONFLICTING = 0, 
-    CONFLICTING_AND_COLLAPSING = 1, 
-    FIRST = 2, 
-    LOOK_AHEAD =3, 
-    RANDOM = 4, 
-    RECENTLY_CONFLICTING = 5,
-    RECENTLY_COLLAPSING = 6,
-    TIGHTEST_BOUND = 7
-
-  };
   /**
    * Possible values for function_definition_elimination.
    * @since 29/05/2004 Manchester
@@ -388,12 +350,11 @@ public:
    * @since 26/08/2009 Redmond
    */
   enum class InputSyntax : unsigned int {
-    /** syntax of SMTLIB1.2 */
-    //SMTLIB = 1,
     SMTLIB2 = 0,
     /** syntax of the TPTP prover */
     TPTP = 1, 
-    //HUMAN = 4, 
+    AUTO = 2
+    //HUMAN = 4,
     //MPS = 5, 
     //NETLIB = 6
   };
@@ -406,6 +367,7 @@ public:
   enum class Mode : unsigned int {
     AXIOM_SELECTION,
     CASC,
+    CASC_HOL,
     CASC_SAT,
     CASC_LTB,
     CLAUSIFY,
@@ -419,7 +381,6 @@ public:
     PREPROCESS2,
     PROFILE,
     RANDOM_STRATEGY,
-    SAT,
     SMTCOMP,
     SPIDER,
     TCLAUSIFY,
@@ -432,13 +393,17 @@ public:
     CASC_2019,
     CASC_SAT,
     CASC_SAT_2019,
+    CASC_HOL_2020,
+    INDUCTION,
+    INTEGER_INDUCTION,
     LTB_DEFAULT_2017,
     LTB_HH4_2017,
     LTB_HLL_2017,
     LTB_ISA_2017,
     LTB_MZR_2017,
     SMTCOMP,
-    SMTCOMP_2018
+    SMTCOMP_2018,
+    STRUCT_INDUCTION
   };
 
 /* TODO: use an enum for Selection. The current issue is the way these values are manipulated as ints
@@ -474,15 +439,15 @@ public:
     SMTCOMP,
     SPIDER,
     SZS,
-    VAMPIRE
+    VAMPIRE,
+    UCORE
   };
 
   /** Possible values for sat_solver */
   enum class SatSolver : unsigned int {
-     MINISAT = 0,
-     VAMPIRE = 1
+     MINISAT = 0
 #if VZ3
-     ,Z3 = 2
+     ,Z3 = 1
 #endif
   };
 
@@ -549,7 +514,7 @@ public:
 
   enum class TermOrdering : unsigned int {
     KBO = 0,
-    LPO = 1,
+    LPO = 1
   };
 
   enum class SymbolPrecedence : unsigned int {
@@ -604,31 +569,6 @@ public:
     OFF = 3
   };
 
-  enum class SatRestartStrategy : unsigned int {
-    FIXED = 0,
-    GEOMETRIC = 1,
-    LUBY = 2,
-    MINISAT = 3,
-  };
-
-  enum class SatVarSelector : unsigned int {
-    ACTIVE = 0,
-    NICENESS = 1,
-    RECENTLY_LEARNT = 2,
-  };
-
-  enum class Niceness: unsigned int {
-    AVERAGE = 0,
-    NONE=1,
-    SUM = 2,
-    TOP = 3,
-  };
-
-  enum class SatClauseDisposer : unsigned int {
-    GROWING = 0,
-    MINISAT = 1,
-  };
-  
   enum class SplittingLiteralPolarityAdvice : unsigned int {
     FALSE,
     TRUE,
@@ -742,6 +682,37 @@ public:
     WARNING = 1,
   };
 
+  enum class FunctionExtensionality : unsigned int {
+    OFF = 0,
+    AXIOM = 1,
+    ABSTRACTION = 2
+  };
+
+  enum class CNFOnTheFly : unsigned int {
+    EAGER = 0,
+    LAZY_GEN = 1,
+    LAZY_SIMP = 2,
+    LAZY_SIMP_NOT_GEN = 3,
+    LAZY_SIMP_NOT_GEN_BOOL_EQ_OFF = 4,
+    LAZY_SIMP_NOT_GEN_BOOL_EQ_GEN = 5,
+    OFF = 6
+  };
+
+  enum class PISet : unsigned int {
+    ALL = 0,
+    ALL_EXCEPT_NOT_EQ = 1,
+    FALSE_TRUE_NOT = 2,
+    FALSE_TRUE_NOT_EQ_NOT_EQ = 3
+  };
+
+  enum class Narrow : unsigned int {
+    ALL = 0,
+    SK = 1,
+    SKI = 2,
+    OFF = 3
+  };
+
+
     //==========================================================
     // The Internals
     //==========================================================
@@ -766,18 +737,23 @@ private:
      * @author Giles
      * @since 30/07/14
      */
-    struct OptionChoiceValues{
-        
+    class OptionChoiceValues{
+      void check_names_are_short() {
+        for (auto x : _names) {
+          ASS(x.size() < 70) // or else cannot be printed on a line
+        }
+      }
+    public:
         OptionChoiceValues() : _names() { };
         OptionChoiceValues(Stack<vstring> names) : _names(std::move(names))  
         {
-          for (auto x : _names) {
-            ASS(x.size() < 70)
-          }
+          check_names_are_short();
         }
 
         OptionChoiceValues(std::initializer_list<vstring> list) : _names(list)
-        { }
+        {
+          check_names_are_short();
+        }
         
         int find(vstring value) const {
             for(unsigned i=0;i<_names.length();i++){
@@ -1631,6 +1607,34 @@ bool _hard;
         return OptionValueConstraintUP<T>(new GreaterThan<T>(bv,true));
     }
     
+    // Constraint that the value should be smaller than a given value
+    // optionally we can allow it be equal to that value also
+    template<typename T>
+    struct SmallerThan : public OptionValueConstraint<T>{
+        CLASS_NAME(SmallerThan);
+        USE_ALLOCATOR(SmallerThan);
+        SmallerThan(T gv,bool eq=false) : _goodvalue(gv), _orequal(eq) {}
+        bool check(const OptionValue<T>& value){
+            return (value.actualValue < _goodvalue || (_orequal && value.actualValue==_goodvalue));
+        }
+
+        vstring msg(const OptionValue<T>& value){
+            if(_orequal) return value.longName+"("+value.getStringOfActual()+") is smaller than or equal to " + value.getStringOfValue(_goodvalue);
+            return value.longName+"("+value.getStringOfActual()+") is smaller than "+ value.getStringOfValue(_goodvalue);
+        }
+
+        T _goodvalue;
+        bool _orequal;
+    };
+    template<typename T>
+    static OptionValueConstraintUP<T> smallerThan(T bv){
+        return OptionValueConstraintUP<T>(new SmallerThan<T>(bv,false));
+    }
+    template<typename T>
+    static OptionValueConstraintUP<T> smallerThanEq(T bv){
+        return OptionValueConstraintUP<T>(new SmallerThan<T>(bv,true));
+    }
+
     /**
      * If constraints
      */
@@ -1938,7 +1942,7 @@ public:
   Proof proof() const { return _proof.actualValue; }
   bool minimizeSatProofs() const { return _minimizeSatProofs.actualValue; }
   ProofExtra proofExtra() const { return _proofExtra.actualValue; }
-  bool proofChecking() const { return _proofChecking.actualValue; }
+  vstring printProofToFile() const { return _printProofToFile.actualValue; }
   int naming() const { return _naming.actualValue; }
 
   bool fmbNonGroundDefs() const { return _fmbNonGroundDefs.actualValue; }
@@ -1967,14 +1971,15 @@ public:
   void setNormalize(bool normalize) { _normalize.actualValue = normalize; }
   GoalGuess guessTheGoal() const { return _guessTheGoal.actualValue; }
   unsigned gtgLimit() const { return _guessTheGoalLimit.actualValue; }
+  void setMaxXX(unsigned max) { _maximumXXNarrows.actualValue = max; }
 
   void setNaming(int n){ _naming.actualValue = n;} //TODO: ensure global constraints
   vstring include() const { return _include.actualValue; }
   void setInclude(vstring val) { _include.actualValue = val; }
-  vstring logFile() const { return _logFile.actualValue; }
   vstring inputFile() const { return _inputFile.actualValue; }
   int activationLimit() const { return _activationLimit.actualValue; }
   int randomSeed() const { return _randomSeed.actualValue; }
+  int randomStrategySeed() const { return _randomStrategySeed.actualValue; }
   bool printClausifierPremises() const { return _printClausifierPremises.actualValue; }
 
   // IMPORTANT, if you add a showX command then include showAll
@@ -1997,6 +2002,7 @@ public:
   bool showFMBsortInfo() const { return showAll() || _showFMBsortInfo.actualValue; }
   bool showInduction() const { return showAll() || _showInduction.actualValue; }
   bool showSimplOrdering() const { return showAll() || _showSimplOrdering.actualValue; }
+
 #if VZ3
   bool showZ3() const { return showAll() || _showZ3.actualValue; }
 #endif
@@ -2029,7 +2035,6 @@ public:
   bool unusedPredicateDefinitionRemoval() const { return _unusedPredicateDefinitionRemoval.actualValue; }
   bool blockedClauseElimination() const { return _blockedClauseElimination.actualValue; }
   void setUnusedPredicateDefinitionRemoval(bool newVal) { _unusedPredicateDefinitionRemoval.actualValue = newVal; }
-  bool weightIncrement() const { return _weightIncrement.actualValue; }
   // bool useDM() const { return _use_dm.actualValue; }
   SatSolver satSolver() const { return _satSolver.actualValue; }
   //void setSatSolver(SatSolver newVal) { _satSolver = newVal; }
@@ -2068,7 +2073,6 @@ public:
   int lookaheadDelay() const { return _lookaheadDelay.actualValue; }
   int simulatedTimeLimit() const { return _simulatedTimeLimit.actualValue; }
   void setSimulatedTimeLimit(int newVal) { _simulatedTimeLimit.actualValue = newVal; }
-  int maxInferenceDepth() const { return _maxInferenceDepth.actualValue; }
   TermOrdering termOrdering() const { return _termOrdering.actualValue; }
   SymbolPrecedence symbolPrecedence() const { return _symbolPrecedence.actualValue; }
   SymbolPrecedenceBoost symbolPrecedenceBoost() const { return _symbolPrecedenceBoost.actualValue; }
@@ -2082,10 +2086,6 @@ public:
   int timeLimitInDeciseconds() const { return _timeLimitInDeciseconds.actualValue; }
   size_t memoryLimit() const { return _memoryLimit.actualValue; }
   int inequalitySplitting() const { return _inequalitySplitting.actualValue; }
-  long maxActive() const { return _maxActive.actualValue; }
-  long maxAnswers() const { return _maxAnswers.actualValue; }
-  //void setMaxAnswers(int newVal) { _maxAnswers = newVal; }
-  long maxPassive() const { return _maxPassive.actualValue; }
   int ageRatio() const { return _ageWeightRatio.actualValue; }
   void setAgeRatio(int v){ _ageWeightRatio.actualValue = v; }
   int weightRatio() const { return _ageWeightRatio.otherValue; }
@@ -2112,6 +2112,7 @@ public:
   bool literalMaximalityAftercheck() const { return _literalMaximalityAftercheck.actualValue; }
   bool superpositionFromVariables() const { return _superpositionFromVariables.actualValue; }
   EqualityProxy equalityProxy() const { return _equalityProxy.actualValue; }
+  bool useMonoEqualityProxy() const { return _useMonoEqualityProxy.actualValue; }
   RuleActivity equalityResolutionWithDeletion() const { return _equalityResolutionWithDeletion.actualValue; }
   ExtensionalityResolution extensionalityResolution() const { return _extensionalityResolution.actualValue; }
   bool FOOLParamodulation() const { return _FOOLParamodulation.actualValue; }
@@ -2132,7 +2133,6 @@ public:
   bool outputAxiomNames() const { return _outputAxiomNames.actualValue; }
   void setOutputAxiomNames(bool newVal) { _outputAxiomNames.actualValue = newVal; }
   QuestionAnsweringMode questionAnswering() const { return _questionAnswering.actualValue; }
-  vstring xmlOutput() const { return _xmlOutput.actualValue; }
   Output outputMode() const { return _outputMode.actualValue; }
   void setOutputMode(Output newVal) { _outputMode.actualValue = newVal; }
   vstring thanks() const { return _thanks.actualValue; }
@@ -2148,11 +2148,8 @@ public:
   bool increasedNumeralWeight() const { return _increasedNumeralWeight.actualValue; }
   TheoryAxiomLevel theoryAxioms() const { return _theoryAxioms.actualValue; }
   //void setTheoryAxioms(bool newValue) { _theoryAxioms = newValue; }
-  bool interpretedSimplification() const { return _interpretedSimplification.actualValue; }
-  //void setInterpretedSimplification(bool val) { _interpretedSimplification = val; }
   Condensation condensation() const { return _condensation.actualValue; }
   RuleActivity generalSplitting() const { return _generalSplitting.actualValue; }
-  //vstring namePrefix() const { return _namePrefix.actualValue; }
   bool timeStatistics() const { return _timeStatistics.actualValue; }
   bool splitting() const { return _splitting.actualValue; }
   void setSplitting(bool value){ _splitting.actualValue=value; }
@@ -2164,9 +2161,6 @@ public:
   void setSineSelection(SineSelection val) { _sineSelection.actualValue=val; }
   float sineTolerance() const { return _sineTolerance.actualValue; }
   float sineToAgeTolerance() const { return _sineToAgeTolerance.actualValue; }
-  bool smtlibConsiderIntsReal() const { return _smtlibConsiderIntsReal.actualValue; }
-  //void setSmtlibConsiderIntsReal( bool newVal ) { _smtlibConsiderIntsReal = newVal; }
-  bool smtlibFletAsDefinition() const { return _smtlibFletAsDefinition.actualValue; }
 
   bool colorUnblocking() const { return _colorUnblocking.actualValue; }
 
@@ -2175,7 +2169,7 @@ public:
 
   Induction induction() const { return _induction.actualValue; }
   StructuralInductionKind structInduction() const { return _structInduction.actualValue; }
-  MathInductionKind mathInduction() const { return _mathInduction.actualValue; }
+  IntInductionKind intInduction() const { return _intInduction.actualValue; }
   InductionChoice inductionChoice() const { return _inductionChoice.actualValue; }
   unsigned maxInductionDepth() const { return _maxInductionDepth.actualValue; }
   bool inductionNegOnly() const { return _inductionNegOnly.actualValue; }
@@ -2183,6 +2177,8 @@ public:
   bool inductionGen() const { return _inductionGen.actualValue; }
   unsigned maxInductionGenSubsetSize() const { return _maxInductionGenSubsetSize.actualValue; }
   bool inductionOnComplexTerms() const {return _inductionOnComplexTerms.actualValue;}
+  bool integerInductionDefaultBound() const { return _integerInductionDefaultBound.actualValue; }
+  IntegerInductionInterval integerInductionInterval() const { return _integerInductionInterval.actualValue; }
 
   float instGenBigRestartRatio() const { return _instGenBigRestartRatio.actualValue; }
   bool instGenPassiveReactivation() const { return _instGenPassiveReactivation.actualValue; }
@@ -2194,28 +2190,9 @@ public:
   bool instGenWithResolution() const { return _instGenWithResolution.actualValue; }
   bool useHashingVariantIndex() const { return _useHashingVariantIndex.actualValue; }
 
-  float satClauseActivityDecay() const { return _satClauseActivityDecay.actualValue; }
-  SatClauseDisposer satClauseDisposer() const { return _satClauseDisposer.actualValue; }
-  bool satLearntMinimization() const { return _satLearntMinimization.actualValue; }
-  bool satLearntSubsumptionResolution() const { return _satLearntSubsumptionResolution.actualValue; }
-  int satRestartFixedCount() const { return _satRestartFixedCount.actualValue; }
-  float satRestartGeometricIncrease() const { return _satRestartGeometricIncrease.actualValue; }
-  int satRestartGeometricInit() const { return _satRestartGeometricInit.actualValue; }
-  int satRestartLubyFactor() const { return _satRestartLubyFactor.actualValue; }
-  float satRestartMinisatIncrease() const { return _satRestartMinisatIncrease.actualValue; }
-  int satRestartMinisatInit() const { return _satRestartMinisatInit.actualValue; }
-  SatRestartStrategy satRestartStrategy() const { return _satRestartStrategy.actualValue; }
-  float satVarActivityDecay() const { return _satVarActivityDecay.actualValue; }
-  SatVarSelector satVarSelector() const { return _satVarSelector.actualValue; }
-
-  Niceness nicenessOption() const { return _nicenessOption.actualValue; }
-
   void setMemoryLimit(size_t newVal) { _memoryLimit.actualValue = newVal; }
-  
   void setTimeLimitInSeconds(int newVal) { _timeLimitInDeciseconds.actualValue = 10*newVal; }
   void setTimeLimitInDeciseconds(int newVal) { _timeLimitInDeciseconds.actualValue = newVal; }
-  int getWhileNumber(){return _whileNumber.actualValue;}
-  int getFunctionNumber(){return _functionNumber.actualValue;}
 
   bool splitAtActivation() const{ return _splitAtActivation.actualValue; }
   SplittingNonsplittableComponents splittingNonsplittableComponents() const { return _splittingNonsplittableComponents.actualValue; }
@@ -2227,30 +2204,14 @@ public:
   bool splittingBufferedSolver() const { return _splittingBufferedSolver.actualValue; }
   int splittingFlushPeriod() const { return _splittingFlushPeriod.actualValue; }
   float splittingFlushQuotient() const { return _splittingFlushQuotient.actualValue; }
+  float splittingAvatimer() const { return _splittingAvatimer.actualValue; }
   bool splittingEagerRemoval() const { return _splittingEagerRemoval.actualValue; }
   SplittingCongruenceClosure splittingCongruenceClosure() const { return _splittingCongruenceClosure.actualValue; }
   CCUnsatCores ccUnsatCores() const { return _ccUnsatCores.actualValue; }
 
   void setProof(Proof p) { _proof.actualValue = p; }
-  bool bpEquivalentVariableRemoval() const { return _equivalentVariableRemoval.actualValue; }
-  unsigned bpMaximalPropagatedEqualityLength() const { return _maximalPropagatedEqualityLength.actualValue; }
-  BPAlmostHalfBoundingRemoval bpAlmostHalfBoundingRemoval() const {return _bpAlmostHalfBoundingRemoval.actualValue;}
-  bool bpFmElimination () const {return _bpFmElimination.actualValue;}
-  unsigned bpAllowedFMBalance() const { return _bpAllowedFMBalance.actualValue; }
-  BPAssignmentSelector bpAssignmentSelector() const {return _bpAssignmentSelector.actualValue; }
-  bool bpCollapsingPropagation() const {return _bpCollapsingPropagation.actualValue; }
-  unsigned bpUpdatesByOneConstraint() const {return _updatesByOneConstraint.actualValue; }
-  bool bpConservativeAssignmentSelection() const {return _bpConservativeAssignmentSelection.actualValue; }
-  BPConflictSelector bpConflictSelector() const {return _bpConflictSelector.actualValue; }
-  bool backjumpTargetIsDecisionPoint() const { return _backjumpTargetIsDecisionPoint.actualValue; }
-  bool bpPropagateAfterConflict() const {return _bpPropagateAfterConflict.actualValue; }
-  BPVariableSelector bpVariableSelector() const {return _bpVariableSelector.actualValue; }
-  bool bpSelectUnusedVariablesFirst() const {return _selectUnusedVariablesFirst.actualValue; }
-  bool bpStartWithPrecise() const { return _bpStartWithPrecise.actualValue; }
-  bool bpStartWithRational() const { return _bpStartWithRational.actualValue;}
     
   bool newCNF() const { return _newCNF.actualValue; }
-  int getIteInliningThreshold() const { return _iteInliningThreshold.actualValue; }
   bool getIteInlineLet() const { return _inlineLet.actualValue; }
 
   bool useManualClauseSelection() const { return _manualClauseSelection.actualValue; }
@@ -2260,6 +2221,30 @@ public:
   bool pushUnaryMinus() const { return _pushUnaryMinus.actualValue || _highSchool.actualValue; }
   ArithmeticSimplificationMode cancellation() const { return _highSchool.actualValue ? ArithmeticSimplificationMode::CAUTIOUS : _cancellation.actualValue; }
   ArithmeticSimplificationMode arithmeticSubtermGeneralizations() const { return  _highSchool.actualValue ? ArithmeticSimplificationMode::CAUTIOUS : _arithmeticSubtermGeneralizations.actualValue; }
+
+  //Higher-order Options
+
+  bool addCombAxioms() const { return _addCombAxioms.actualValue; }
+  bool addProxyAxioms() const { return _addProxyAxioms.actualValue; }
+  bool combinatorySup() const { return _combinatorySuperposition.actualValue; }
+  bool choiceAxiom() const { return _choiceAxiom.actualValue; }
+  bool injectivityReasoning() const { return _injectivity.actualValue; }
+  bool pragmatic() const { return _pragmatic.actualValue; }
+  bool choiceReasoning() const { return _choiceReasoning.actualValue; }
+  bool prioritiseClausesProducedByLongReduction() const { return _priortyToLongReducts.actualValue; }
+  int maxXXNarrows() const { return _maximumXXNarrows.actualValue; }
+  FunctionExtensionality functionExtensionality() const { return _functionExtensionality.actualValue; }
+  CNFOnTheFly cnfOnTheFly() const { return _clausificationOnTheFly.actualValue; }
+  PISet piSet() const { return _piSet.actualValue; }
+  Narrow narrow() const { return _narrow.actualValue; }
+  bool equalityToEquivalence () const { return _equalityToEquivalence.actualValue; }
+  bool complexBooleanReasoning () const { return _complexBooleanReasoning.actualValue; }
+  bool booleanEqTrick() const { return _booleanEqTrick.actualValue; }
+  bool superposition() const {return _superposition.actualValue; }
+  bool casesSimp() const { return _casesSimp.actualValue; }
+  bool cases() const { return _cases.actualValue; }
+  bool newTautologyDel() const { return _newTautologyDel.actualValue; }
+  bool lambdaFreeHol() const { return _lambdaFreeHol.actualValue; }
 
 private:
     
@@ -2391,7 +2376,6 @@ private:
   BoolOptionValue _literalMaximalityAftercheck;
   BoolOptionValue _arityCheck;
   
-  BoolOptionValue _backjumpTargetIsDecisionPoint;
   ChoiceOptionValue<BadOption> _badOption;
   ChoiceOptionValue<Demodulation> _backwardDemodulation;
   ChoiceOptionValue<Subsumption> _backwardSubsumption;
@@ -2399,17 +2383,6 @@ private:
   BoolOptionValue _backwardSubsumptionDemodulation;
   UnsignedOptionValue _backwardSubsumptionDemodulationMaxMatches;
   BoolOptionValue _binaryResolution;
-  BoolOptionValue _bpCollapsingPropagation;
-  UnsignedOptionValue _bpAllowedFMBalance;
-  ChoiceOptionValue<BPAlmostHalfBoundingRemoval> _bpAlmostHalfBoundingRemoval;
-  ChoiceOptionValue<BPAssignmentSelector> _bpAssignmentSelector;
-  ChoiceOptionValue<BPConflictSelector> _bpConflictSelector;
-  BoolOptionValue _bpConservativeAssignmentSelection;
-  BoolOptionValue _bpFmElimination;
-  BoolOptionValue _bpPropagateAfterConflict;
-  BoolOptionValue _bpStartWithPrecise;
-  BoolOptionValue _bpStartWithRational;
-  ChoiceOptionValue<BPVariableSelector> _bpVariableSelector;
 
   BoolOptionValue _colorUnblocking;
   ChoiceOptionValue<Condensation> _condensation;
@@ -2417,6 +2390,7 @@ private:
   BoolOptionValue _demodulationRedundancyCheck;
 
   ChoiceOptionValue<EqualityProxy> _equalityProxy;
+  BoolOptionValue _useMonoEqualityProxy;
   ChoiceOptionValue<RuleActivity> _equalityResolutionWithDeletion;
   BoolOptionValue _equivalentVariableRemoval;
   ChoiceOptionValue<ExtensionalityResolution> _extensionalityResolution;
@@ -2450,7 +2424,6 @@ private:
   BoolOptionValue _forwardSubsumptionDemodulation;
   UnsignedOptionValue _forwardSubsumptionDemodulationMaxMatches;
   ChoiceOptionValue<FunctionDefinitionElimination> _functionDefinitionElimination;
-  IntOptionValue _functionNumber;
   
   ChoiceOptionValue<RuleActivity> _generalSplitting;
   BoolOptionValue _globalSubsumption;
@@ -2489,11 +2462,10 @@ private:
   FloatOptionValue _instGenRestartPeriodQuotient;
   BoolOptionValue _instGenWithResolution;
   BoolOptionValue _useHashingVariantIndex;
-  BoolOptionValue _interpretedSimplification;
 
   ChoiceOptionValue<Induction> _induction;
   ChoiceOptionValue<StructuralInductionKind> _structInduction;
-  ChoiceOptionValue<MathInductionKind> _mathInduction;
+  ChoiceOptionValue<IntInductionKind> _intInduction;
   ChoiceOptionValue<InductionChoice> _inductionChoice;
   UnsignedOptionValue _maxInductionDepth;
   BoolOptionValue _inductionNegOnly;
@@ -2501,67 +2473,48 @@ private:
   BoolOptionValue _inductionGen;
   UnsignedOptionValue _maxInductionGenSubsetSize;
   BoolOptionValue _inductionOnComplexTerms;
+  BoolOptionValue _integerInductionDefaultBound;
+  ChoiceOptionValue<IntegerInductionInterval> _integerInductionInterval;
 
   StringOptionValue _latexOutput;
   BoolOptionValue _latexUseDefaultSymbols;
 
   ChoiceOptionValue<LiteralComparisonMode> _literalComparisonMode;
-  StringOptionValue _logFile;
   IntOptionValue _lookaheadDelay;
   IntOptionValue _lrsFirstTimeCheck;
   BoolOptionValue _lrsWeightLimitOnly;
   ChoiceOptionValue<LTBLearning> _ltbLearning;
   StringOptionValue _ltbDirectory;
 
-  LongOptionValue _maxActive;
-  IntOptionValue _maxAnswers;
-  IntOptionValue _maxInferenceDepth;
-  LongOptionValue _maxPassive;
-  UnsignedOptionValue _maximalPropagatedEqualityLength;
   UnsignedOptionValue _memoryLimit; // should be size_t, making an assumption
   ChoiceOptionValue<Mode> _mode;
   ChoiceOptionValue<Schedule> _schedule;
   UnsignedOptionValue _multicore;
 
-  StringOptionValue _namePrefix;
   IntOptionValue _naming;
-  ChoiceOptionValue<Niceness> _nicenessOption;
   BoolOptionValue _nonliteralsInClauseWeight;
   BoolOptionValue _normalize;
 
   BoolOptionValue _outputAxiomNames;
 
+  StringOptionValue _printProofToFile;
   BoolOptionValue _printClausifierPremises;
   StringOptionValue _problemName;
   ChoiceOptionValue<Proof> _proof;
   BoolOptionValue _minimizeSatProofs;
   ChoiceOptionValue<ProofExtra> _proofExtra;
-  BoolOptionValue _proofChecking;
   
   StringOptionValue _protectedPrefix;
 
   ChoiceOptionValue<QuestionAnsweringMode> _questionAnswering;
 
   IntOptionValue _randomSeed;
+  IntOptionValue _randomStrategySeed;
 
   IntOptionValue _activationLimit;
 
-  FloatOptionValue _satClauseActivityDecay;
-  ChoiceOptionValue<SatClauseDisposer> _satClauseDisposer;
-  BoolOptionValue _satLearntMinimization;
-  BoolOptionValue _satLearntSubsumptionResolution;
-  IntOptionValue _satRestartFixedCount;
-  FloatOptionValue _satRestartGeometricIncrease;
-  IntOptionValue _satRestartGeometricInit;
-  IntOptionValue _satRestartLubyFactor;
-  FloatOptionValue _satRestartMinisatIncrease;
-  IntOptionValue _satRestartMinisatInit;
-  ChoiceOptionValue<SatRestartStrategy> _satRestartStrategy;
-  FloatOptionValue _satVarActivityDecay;
-  ChoiceOptionValue<SatVarSelector> _satVarSelector;
   ChoiceOptionValue<SatSolver> _satSolver;
   ChoiceOptionValue<SaturationAlgorithm> _saturationAlgorithm;
-  BoolOptionValue _selectUnusedVariablesFirst;
   BoolOptionValue _showAll;
   BoolOptionValue _showActive;
   BoolOptionValue _showBlocked;
@@ -2607,8 +2560,6 @@ private:
   ChoiceOptionValue<SineSelection> _sineSelection;
   FloatOptionValue _sineTolerance;
   FloatOptionValue _sineToAgeTolerance;
-  BoolOptionValue _smtlibConsiderIntsReal;
-  BoolOptionValue _smtlibFletAsDefinition;
   ChoiceOptionValue<Sos> _sos;
   UnsignedOptionValue _sosTheoryLimit;
   BoolOptionValue _splitting;
@@ -2619,6 +2570,7 @@ private:
   BoolOptionValue _splittingEagerRemoval;
   UnsignedOptionValue _splittingFlushPeriod;
   FloatOptionValue _splittingFlushQuotient;
+  FloatOptionValue _splittingAvatimer;
   ChoiceOptionValue<SplittingNonsplittableComponents> _splittingNonsplittableComponents;
   ChoiceOptionValue<SplittingMinimizeModel> _splittingMinimizeModel;
   ChoiceOptionValue<SplittingLiteralPolarityAdvice> _splittingLiteralPolarityAdvice;
@@ -2652,12 +2604,7 @@ private:
   ChoiceOptionValue<URResolution> _unitResultingResolution;
   BoolOptionValue _unusedPredicateDefinitionRemoval;
   BoolOptionValue _blockedClauseElimination;
-  UnsignedOptionValue _updatesByOneConstraint;
   // BoolOptionValue _use_dm;
-  BoolOptionValue _weightIncrement;
-  IntOptionValue _whileNumber;
-
-  StringOptionValue _xmlOutput;
 
   OptionChoiceValues _tagNames;
 
@@ -2670,11 +2617,10 @@ private:
   InputFileOptionValue _inputFile;
 
   BoolOptionValue _newCNF;
-  IntOptionValue _iteInliningThreshold;
   BoolOptionValue _inlineLet;
 
   BoolOptionValue _manualClauseSelection;
-
+  // arithmeitc reasoning options
   BoolOptionValue _inequalityNormalization;
   BoolOptionValue _pushUnaryMinus;
   BoolOptionValue _highSchool;
@@ -2682,6 +2628,29 @@ private:
   ChoiceOptionValue<ArithmeticSimplificationMode> _cancellation;
   ChoiceOptionValue<ArithmeticSimplificationMode> _arithmeticSubtermGeneralizations;
 
+ 
+  //Higher-order options
+  BoolOptionValue _addCombAxioms;
+  BoolOptionValue _addProxyAxioms;
+  BoolOptionValue _combinatorySuperposition;
+  BoolOptionValue _choiceAxiom;
+  BoolOptionValue _injectivity;
+  BoolOptionValue _pragmatic;
+  BoolOptionValue _choiceReasoning;
+  BoolOptionValue _priortyToLongReducts;
+  IntOptionValue  _maximumXXNarrows;
+  ChoiceOptionValue<FunctionExtensionality> _functionExtensionality;
+  ChoiceOptionValue<CNFOnTheFly> _clausificationOnTheFly;
+  ChoiceOptionValue<PISet> _piSet;
+  ChoiceOptionValue<Narrow> _narrow;
+  BoolOptionValue _equalityToEquivalence;
+  BoolOptionValue _complexBooleanReasoning;
+  BoolOptionValue _booleanEqTrick;
+  BoolOptionValue _superposition;
+  BoolOptionValue _casesSimp;
+  BoolOptionValue _cases;
+  BoolOptionValue _newTautologyDel;
+  BoolOptionValue _lambdaFreeHol;
 
 }; // class Options
 

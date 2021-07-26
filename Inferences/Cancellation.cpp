@@ -1,15 +1,12 @@
-
-  /*
-   * File Cancellation.cpp.
-   *
-   * This file is part of the source code of the software program
-   * Vampire. It is protected by applicable
-   * copyright laws.
-   *
-   * This source code is distributed under the licence found here
-   * https://vprover.github.io/license.html
-   * and in the source directory
-   */
+/*
+ * This file is part of the source code of the software program
+ * Vampire. It is protected by applicable
+ * copyright laws.
+ *
+ * This source code is distributed under the licence found here
+ * https://vprover.github.io/license.html
+ * and in the source directory
+ */
 
 #include "Inferences/Cancellation.hpp"
 #include "Kernel/Ordering.hpp"
@@ -63,12 +60,11 @@ Literal* cancelAdd(Literal* lit) {
 Literal* tryCancel(Interpretation inter, Literal* lit) {
   CALL("tryCancel(Interpretation inter, Literal* lit)")
   switch(inter) {
-    case Interpretation::EQUAL:
-      switch (SortHelper::getEqualityArgumentSort(lit)) {
-        case  IntTraits::sort: return cancelAdd< IntTraits>(lit);
-        case  RatTraits::sort: return cancelAdd< RatTraits>(lit);
-        case RealTraits::sort: return cancelAdd<RealTraits>(lit);
-        default:;
+    case Interpretation::EQUAL: {
+        auto sort = SortHelper::getEqualityArgumentSort(lit);
+        if (sort ==  IntTraits::sort()) return cancelAdd< IntTraits>(lit);
+        if (sort ==  RatTraits::sort()) return cancelAdd< RatTraits>(lit);
+        if (sort == RealTraits::sort()) return cancelAdd<RealTraits>(lit);
       }
       break;
 #define INEQ_CASES(NumTraits)                                                                                 \
@@ -118,7 +114,7 @@ CancelAddResult<Number> cancelAdd(Polynom<Number> const& oldl, Polynom<Number> c
   { 
     try {
       return Option<Numeral>(l - r);
-    } catch (MachineArithmeticException&) 
+    } catch (MachineArithmeticException&)
     {
       return Option<Numeral>();
     }

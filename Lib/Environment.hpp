@@ -1,7 +1,4 @@
-
 /*
- * File Environment.hpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -59,6 +56,7 @@ public:
   Timer* timer;
 
   unsigned char maxSineLevel;
+
   DHMap<unsigned, unsigned>* predicateSineLevels;
 
   DHMap<void*,vstring>* proofExtra; // maps Unit* pointers to the associated proof extra string, if available
@@ -105,9 +103,4 @@ private:
 extern Environment env;
 
 }
-
 #endif
-
-
-
-

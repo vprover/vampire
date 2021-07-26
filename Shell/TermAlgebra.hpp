@@ -1,7 +1,4 @@
-
 /*
- * File TermAlgebra.hpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -23,6 +20,8 @@
 #include "Kernel/Sorts.hpp"
 #include "Lib/Set.hpp"
 
+using Kernel::TermList;
+
 namespace Shell {
   class TermAlgebraConstructor {
   public:
@@ -37,9 +36,9 @@ namespace Shell {
     TermAlgebraConstructor(unsigned functor, unsigned discriminator, Lib::Array<unsigned> destructors);
     ~TermAlgebraConstructor() {}
 
-    unsigned arity();
-    unsigned argSort(unsigned ith);
-    unsigned rangeSort();
+    unsigned arity() const;
+    TermList argSort(unsigned ith) const;
+    TermList rangeSort() const;
 
     /* True iff one of the arguments has the same sort as the range */
     bool recursive();
@@ -62,14 +61,14 @@ namespace Shell {
       TermAlgebraConstructor& _self;
       unsigned _idx;
     public:
-      DECL_ELEMENT_TYPE(unsigned);
+      DECL_ELEMENT_TYPE(TermList);
 
       IterArgSorts(TermAlgebraConstructor& ta) : _self(ta), _idx(0) {}
 
       bool hasNext() const 
       { return _idx < _self.arity(); }
 
-      unsigned next() 
+      auto next() 
       { return _self.argSort(_idx++); }
     };
 
@@ -99,20 +98,20 @@ namespace Shell {
        sort), and their cyclicity. If allowsCyclicTerms is false, and
        the option -tar is not set to off, then the acyclicity rule
        will be enforced for terms of this algebra*/
-    TermAlgebra(unsigned sort,
+    TermAlgebra(TermList sort,
                 unsigned n,
                 TermAlgebraConstructor** constrs,
                 bool allowsCyclicTerms = false);
-    TermAlgebra(unsigned sort,
+    TermAlgebra(TermList sort,
                 Lib::Array<TermAlgebraConstructor*> constrs,
                 bool allowsCyclicTerms = false);
-    TermAlgebra(unsigned sort,
+    TermAlgebra(TermList sort,
                 std::initializer_list<TermAlgebraConstructor*> constrs,
                 bool allowsCyclicTerms = false);
     ~TermAlgebra() {}
 
-    unsigned sort() const { return _sort; }
     unsigned nConstructors() const { return _n; }
+    TermList sort() const { return _sort; }
     TermAlgebraConstructor* constructor(unsigned ith) { ASS_L(ith, _n); return _constrs[ith]; }
 
     class IterCons 
@@ -142,7 +141,7 @@ namespace Shell {
      *
      * then listList.subSorts() == { int, intList, listLit }
      */
-    Lib::Set<unsigned> subSorts();
+    Lib::Set<TermList> subSorts();
   private:
     void subSorts(Lib::Set<unsigned>);
   public:
@@ -168,7 +167,7 @@ namespace Shell {
 
     friend std::ostream& operator<<(std::ostream& out, TermAlgebra const& self);
   private:
-    unsigned _sort;
+    TermList _sort;
     unsigned _n; /* number of constructors */
     bool _allowsCyclicTerms;
     ConstructorArray _constrs;

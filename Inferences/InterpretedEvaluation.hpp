@@ -1,7 +1,4 @@
-
 /*
- * File InterpretedEvaluation.hpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -45,9 +42,6 @@ private:
   bool simplifyLiteral(Literal* lit, bool& constant, Literal*& res, bool& constantTrue,Stack<Literal*>& sideConditions);
 
   InterpretedLiteralEvaluator* _simpl;
-#if VDEBUG
-  Ordering& _ordering;
-#endif
 };
 
 };

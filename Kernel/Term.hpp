@@ -1,7 +1,4 @@
-
 /*
- * File Term.hpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -31,16 +28,12 @@
 
 #include "Lib/Allocator.hpp"
 #include "Lib/Portability.hpp"
-#include "Lib/XML.hpp"
 #include "Lib/Comparison.hpp"
 #include "Lib/Stack.hpp"
 #include "Lib/Metaiterators.hpp"
 #include "Lib/VString.hpp"
 
-// #include "MatchTag.hpp" // MS: disconnecting MatchTag, January 2017
-#define USE_MATCH_TAG 0
-
-#include "Sorts.hpp"
+//#include "Sorts.hpp"
 
 #define TERM_DIST_VAR_UNKNOWN 0x7FFFFF
 
@@ -63,6 +56,8 @@ enum TermTag {
   SPEC_VAR = 3u,
 };
 
+bool operator<(const TermList& lhs, const TermList& rhs);
+
 /**
  * Class containing either a pointer to a compound term or
  * a variable number or a functor.
@@ -70,6 +65,7 @@ enum TermTag {
 class TermList {
 public:
   CLASS_NAME(TermList)
+  static const unsigned SPEC_UPPER_BOUND = 10000000;
   /** dummy constructor, does nothing */
   TermList() {}
   /** creates a term list and initialises its content with data */
@@ -108,7 +104,9 @@ public:
   /** the term contains an ordinary variable as its head */
   inline bool isOrdinaryVar() const { return tag() == ORD_VAR; }
   /** the term contains a special variable as its head */
-  inline bool isSpecialVar() const { return tag() == SPEC_VAR; }
+  inline bool isSpecialVar() const { return tag() == SPEC_VAR && var() < SPEC_UPPER_BOUND; }
+
+  inline bool isVSpecialVar() const { return tag() == SPEC_VAR && var() > SPEC_UPPER_BOUND; }
   /** return the variable number */
   inline unsigned var() const
   { ASS(isVar()); return _content / 4; }
@@ -125,7 +123,7 @@ public:
   { return _content == t->_content ; }
   /** return the content, useful for e.g., term argument comparison */
   inline size_t content() const { return _content; }
-  vstring toString() const;
+  vstring toString(bool topLevel = true) const;
   /** make the term into an ordinary variable with a given number */
   inline void makeVar(unsigned vnumber)
   { _content = vnumber * 4 + ORD_VAR; }
@@ -151,7 +149,8 @@ public:
 
   bool isSafe() const;
 
-  IntList* freeVariables() const;
+  VList* freeVariables() const;
+  bool isFreeVariable(unsigned var) const;
 
 #if VDEBUG
   void assertValid() const;
@@ -194,13 +193,7 @@ private:
       mutable unsigned distinctVars : 23;
       /** reserved for whatever */
 #if ARCH_X64
-# if USE_MATCH_TAG
-      MatchTag matchTag; //32 bits
-# else
       unsigned reserved : 32;
-# endif
-#else
-//      unsigned reserved : 0;
 #endif
     } _info;
   };
@@ -227,7 +220,8 @@ public:
   static const unsigned SF_FORMULA = 0xFFFFFFFD;
   static const unsigned SF_TUPLE = 0xFFFFFFFC;
   static const unsigned SF_LET_TUPLE = 0xFFFFFFFB;
-  static const unsigned SPECIAL_FUNCTOR_LOWER_BOUND = 0xFFFFFFFB;
+  static const unsigned SF_LAMBDA = 0xFFFFFFFA;
+  static const unsigned SPECIAL_FUNCTOR_LOWER_BOUND = 0xFFFFFFFA;
 
   class SpecialTermData
   {
@@ -236,15 +230,17 @@ public:
     union {
       struct {
         Formula * condition;
-        unsigned sort;
+        TermList sort;
       } _iteData;
       struct {
         unsigned functor;
-        IntList* variables;
+        VList* variables;
 	//The size_t stands for TermList expression which cannot be here
-	//since C++ doesnot allow objects with constructor inside a union
+	//since C++ does not allow objects with constructor inside a union
+  //Above comment doesn't hold in C++11
+  //https://www.stroustrup.com/C++11FAQ.html#unions
         size_t binding;
-        unsigned sort;
+        TermList sort;
       } _letData;
       struct {
         Formula * formula;
@@ -254,10 +250,17 @@ public:
       } _tupleData;
       struct {
         unsigned functor;
-        IntList* symbols;
+        VList* symbols;
         size_t binding;
-        unsigned sort;
+        TermList sort;
       } _letTupleData;
+      struct {
+        TermList lambdaExp;
+        VList* _vars;
+        SList* _sorts;  
+        TermList sort; 
+        TermList expSort;//TODO is this needed?
+      } _lambdaData;
     };
     /** Return pointer to the term to which this object is attached */
     const Term* getTerm() const { return reinterpret_cast<const Term*>(this+1); }
@@ -272,13 +275,17 @@ public:
       ASS_REP(getType() == SF_LET || getType() == SF_LET_TUPLE, getType());
       return getType() == SF_LET ? _letData.functor : _letTupleData.functor;
     }
-    IntList* getVariables() const { ASS_EQ(getType(), SF_LET); return _letData.variables; }
-    IntList* getTupleSymbols() const { return _letTupleData.symbols; }
+    VList* getLambdaVars() const { ASS_EQ(getType(), SF_LAMBDA); return _lambdaData._vars; }
+    SList* getLambdaVarSorts() const { ASS_EQ(getType(), SF_LAMBDA); return _lambdaData._sorts; }
+    TermList getLambdaExp() const { ASS_EQ(getType(), SF_LAMBDA); return _lambdaData.lambdaExp; }
+    VList* getVariables() const { ASS_EQ(getType(), SF_LET); return _letData.variables; }
+    VList* getTupleSymbols() const { return _letTupleData.symbols; }
     TermList getBinding() const {
       ASS_REP(getType() == SF_LET || getType() == SF_LET_TUPLE, getType());
       return TermList(getType() == SF_LET ? _letData.binding : _letTupleData.binding);
     }
-    unsigned getSort() const {
+    TermList getLambdaExpSort() const { ASS_EQ(getType(), SF_LAMBDA); return _lambdaData.expSort; }
+    TermList getSort() const {
       switch (getType()) {
         case SF_ITE:
           return _iteData.sort;
@@ -286,6 +293,8 @@ public:
           return _letData.sort;
         case SF_LET_TUPLE:
           return _letTupleData.sort;
+        case SF_LAMBDA:
+          return _lambdaData.sort;
         default:
           ASSERTION_VIOLATION_REP(getType());
       }
@@ -300,6 +309,7 @@ public:
   static Term* create(unsigned function, unsigned arity, const TermList* args);
   static Term* create(unsigned fn, std::initializer_list<TermList> args);
   static Term* create(Term* t,TermList* args);
+  static Term* createNonShared(unsigned function, unsigned arity, TermList* arg);
   static Term* createNonShared(Term* t,TermList* args);
   static Term* createNonShared(Term* t);
   static Term* cloneNonShared(Term* t);
@@ -307,11 +317,12 @@ public:
   static Term* createConstant(const vstring& name);
   /** Create a new constant and insert in into the sharing structure */
   static Term* createConstant(unsigned symbolNumber) { return create(symbolNumber,0,0); }
-  static Term* createITE(Formula * condition, TermList thenBranch, TermList elseBranch, unsigned branchSort);
-  static Term* createLet(unsigned functor, IntList* variables, TermList binding, TermList body, unsigned bodySort);
-  static Term* createTupleLet(unsigned functor, IntList* symbols, TermList binding, TermList body, unsigned bodySort);
+  static Term* createITE(Formula * condition, TermList thenBranch, TermList elseBranch, TermList branchSort);
+  static Term* createLet(unsigned functor, VList* variables, TermList binding, TermList body, TermList bodySort);
+  static Term* createLambda(TermList lambdaExp, VList* vars, SList* sorts, TermList expSort);
+  static Term* createTupleLet(unsigned functor, VList* symbols, TermList binding, TermList body, TermList bodySort);
   static Term* createFormula(Formula* formula);
-  static Term* createTuple(unsigned arity, unsigned* sorts, TermList* elements);
+  static Term* createTuple(unsigned arity, TermList* sorts, TermList* elements);
   static Term* createTuple(Term* tupleTerm);
   static Term* create1(unsigned fn, TermList arg);
   static Term* create2(unsigned fn, TermList arg1, TermList arg2);
@@ -320,7 +331,20 @@ public:
   static Term* foolTrue(); 
   static Term* foolFalse(); 
 
-  IntList* freeVariables() const;
+  static TermList arrowSort(TermStack& domSorts, TermList range);
+  static TermList arrowSort(TermList s1, TermList s2);
+  static TermList arrowSort(TermList s1, TermList s2, TermList s3);
+  static TermList arraySort(TermList indexSort, TermList innerSort);
+  static TermList tupleSort(unsigned arity, TermList* sorts);
+  static TermList defaultSort();
+  static TermList superSort();
+  static TermList boolSort();
+  static TermList intSort();
+  static TermList realSort();
+  static TermList rationalSort(); 
+
+  VList* freeVariables() const;
+  bool isFreeVariable(unsigned var) const;
 
   /** Return number of bytes before the start of the term that belong to it */
   size_t getPreDataSize() { return isSpecial() ? sizeof(SpecialTermData) : 0; }
@@ -328,8 +352,7 @@ public:
   /** Function or predicate symbol of a term */
   const unsigned functor() const { return _functor; }
 
-  static XMLElement variableToXML(unsigned var);
-  vstring toString() const;
+  vstring toString(bool topLevel = true) const;
   static vstring variableToString(unsigned var);
   static vstring variableToString(TermList var);
   /** return the arguments */
@@ -403,6 +426,12 @@ public:
     return _weight;
   }
 
+  int maxRedLength() const
+  {
+    ASS(shared());
+    return _maxRedLen;    
+  }
+
   /** Mark term as shared */
   void markShared()
   {
@@ -428,6 +457,11 @@ public:
     ASS(shared());
     return _id;
   }
+  
+  void setMaxRedLen(int rl)
+  {
+    _maxRedLen = rl;
+  } // setWeight
 
   /** Set the number of variables */
   void setVars(unsigned v)
@@ -446,7 +480,7 @@ public:
   {
     ASS(shared());
     if(_isTwoVarEquality) {
-      return 2;
+      return _sort.isVar() ? 3 : 2 + _sort.term()->vars(); 
     }
     return _vars;
   } // vars()
@@ -467,7 +501,7 @@ public:
 
   /** True if the term is, in fact, a literal */
   bool isLiteral() const { return _args[0]._info.literal; }
-
+  
   /** Return an index of the argument to which @b arg points */
   unsigned getArgumentIndex(TermList* arg)
   {
@@ -521,22 +555,13 @@ public:
       return false;
     }
     ASS(!commutative());
-    return couldArgsBeInstanceOf(t);
-  }
-  inline bool couldArgsBeInstanceOf(Term* t)
-  {
-#if USE_MATCH_TAG
-    ensureMatchTag();
-    t->ensureMatchTag();
-    return matchTag().couldBeInstanceOf(t->matchTag());
-#else
     return true;
-#endif
   }
 
   bool containsSubterm(TermList v);
   bool containsAllVariablesOf(Term* t);
   size_t countSubtermOccurrences(TermList subterm);
+
   /** Return true if term has no non-constant functions as subterms */
   bool isShallow() const;
 
@@ -563,7 +588,10 @@ public:
   bool isTupleLet() const { return functor() == SF_LET_TUPLE; }
   bool isTuple() const { return functor() == SF_TUPLE; }
   bool isFormula() const { return functor() == SF_FORMULA; }
+  bool isLambda() const { return functor() == SF_LAMBDA; }
   bool isBoolean() const;
+  bool isSuper() const; 
+  
   /** Return pointer to structure containing extra data for special terms such as
    * if-then-else or let...in */
   const SpecialTermData* getSpecialData() const { return const_cast<Term*>(this)->getSpecialData(); }
@@ -608,23 +636,6 @@ protected:
     _args[0]._info.order = val;
   }
 
-#if USE_MATCH_TAG
-  inline void ensureMatchTag()
-  {
-    matchTag().ensureInit(this);
-  }
-
-  inline MatchTag& matchTag()
-  {
-#if ARCH_X64
-    return _args[0]._info.matchTag;
-#else
-    return _matchTag;
-#endif
-  }
-
-#endif
-
   /** For shared terms, this is a unique id used for deterministic comparison */
   unsigned _id;
   /** The number of this symbol in a signature */
@@ -639,18 +650,16 @@ protected:
   unsigned _isTwoVarEquality : 1;
   /** Weight of the symbol */
   unsigned _weight;
+  /** length of maximum reduction length */
+  int _maxRedLen;
   union {
     /** If _isTwoVarEquality is false, this value is valid and contains
      * number of occurrences of variables */
     unsigned _vars;
     /** If _isTwoVarEquality is true, this value is valid and contains
      * the sort of the top-level variables */
-    unsigned _sort;
+    TermList _sort;
   };
-
-#if USE_MATCH_TAG && !ARCH_X64
-  MatchTag _matchTag;
-#endif
 
   /** The list of arguments or size arity+1. The first argument stores the
    *  term weight and the mask (the last two bits are 0).
@@ -670,7 +679,6 @@ protected:
 //   Comparison compare(const Term* t) const;
 //   void argsWeight(unsigned& total) const;
   friend class TermList;
-  friend class MatchTag;
   friend class Indexing::TermSharing;
   friend class Ordering;
 
@@ -768,7 +776,7 @@ public:
 	  bool commutative, const TermList* args);
   static Literal* create(Literal* l,bool polarity);
   static Literal* create(Literal* l,TermList* args);
-  static Literal* createEquality(bool polarity, TermList arg1, TermList arg2, unsigned sort);
+  static Literal* createEquality(bool polarity, TermList arg1, TermList arg2, TermList sort);
   static Literal* create1(unsigned predicate, bool polarity, TermList arg);
   static Literal* create2(unsigned predicate, bool polarity, TermList arg1, TermList arg2);
   static Literal* create(unsigned fn, bool polarity, std::initializer_list<TermList> args);
@@ -823,7 +831,7 @@ public:
   /** Return sort of the variables in an equality between two variables.
    * This value is set during insertion into the term sharing structure
    */
-  unsigned twoVarEqSort() const
+  TermList twoVarEqSort() const
   {
     CALL("Literal::twoVarEqSort");
     ASS(isTwoVarEquality());
@@ -832,7 +840,7 @@ public:
   }
 
   /** Assign sort of the variables in an equality between two variables. */
-  void setTwoVarEqSort(unsigned sort)
+  void setTwoVarEqSort(TermList sort)
   {
     CALL("Literal::setTwoVarEqSort");
     ASS(isTwoVarEquality());
@@ -856,35 +864,14 @@ public:
   {
     ASS(shared());
     ASS(lit->shared());
-    if(!headersMatch(this, lit, complementary)) {
-      return false;
-    }
-    return couldArgsBeInstanceOf(lit);
-  }
-  bool couldArgsBeInstanceOf(Literal* lit)
-  {
-#if USE_MATCH_TAG
-    ensureMatchTag();
-    lit->ensureMatchTag();
-    if(commutative()) {
-      return matchTag().couldBeInstanceOf(lit->matchTag()) ||
-	  matchTag().couldBeInstanceOfReversed(lit->matchTag());
-    } else {
-      return matchTag().couldBeInstanceOf(lit->matchTag());
-    }
-#else
-    return true;
-#endif
+    return headersMatch(this, lit, complementary);
   }
 
-
-
-//   XMLElement toXML() const;
   vstring toString() const;
   const vstring& predicateName() const;
 
 private:
-  static Literal* createVariableEquality(bool polarity, TermList arg1, TermList arg2, unsigned variableSort);
+  static Literal* createVariableEquality(bool polarity, TermList arg1, TermList arg2, TermList variableSort);
 
 }; // class Literal
 

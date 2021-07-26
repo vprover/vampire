@@ -1,6 +1,4 @@
 /*
- * File TheoryInstAndSimp.cpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -60,6 +58,7 @@ using namespace Shell;
 using namespace Saturation;
 using namespace SAT;
 
+using SortId = SAT::Z3Interfacing::SortId;
 
 TheoryInstAndSimp::TheoryInstAndSimp(Options& opts) : TheoryInstAndSimp(
     opts.theoryInstAndSimp(), 
@@ -106,25 +105,26 @@ void TheoryInstAndSimp::attach(SaturationAlgorithm* salg)
   _splitter = salg->getSplitter();
 }
 
-bool TheoryInstAndSimp::calcIsSupportedSort(const unsigned sort)
+
+
+bool TheoryInstAndSimp::calcIsSupportedSort(SortId sort)
 {
   CALL("TheoryInstAndSimp::calcIsSupportedSort")
-  switch (sort) {
-  case Kernel::Sorts::SRT_INTEGER:
-  case Kernel::Sorts::SRT_RATIONAL:
-  case Kernel::Sorts::SRT_REAL:
+  //TODO: extend for more sorts (arrays, datatypes)
+  if(   sort == IntTraits::sort() 
+     || sort == RatTraits::sort() 
+     || sort == RealTraits::sort() ){
     return true;
-  }
-  if (env.signature->isTermAlgebraSort(sort)) {
+  } else if (env.signature->isTermAlgebraSort(sort)) {
     return env.signature->getTermAlgebraOfSort(sort)
                         ->subSorts().iter()
-                         .all([&](unsigned s){ return env.signature->isTermAlgebraSort(s) || calcIsSupportedSort(s); });
+                         .all([&](auto s){ return env.signature->isTermAlgebraSort(s) || calcIsSupportedSort(s); });
   } else {
     return false;
   }
 }
 
-bool TheoryInstAndSimp::isSupportedSort(const unsigned sort) 
+bool TheoryInstAndSimp::isSupportedSort(SortId sort) 
 { return _supportedSorts.getOrInit(sort, [&](){ return calcIsSupportedSort(sort); }); }
 
 /**
@@ -143,7 +143,7 @@ bool TheoryInstAndSimp::isSupportedLiteral(Literal* lit) {
 
   //check if arguments of predicate are supported
   for (unsigned i=0; i<lit->arity(); i++) {
-    unsigned sort = SortHelper::getArgSort(lit,i);
+    TermList sort = SortHelper::getArgSort(lit,i);
     if (! isSupportedSort(sort))
       return false;
   }
@@ -207,7 +207,7 @@ bool TheoryInstAndSimp::isPure(Literal* lit) {
       // f could map uninterpreted sorts to integer. when iterating over X
       // itself, its sort cannot be checked.
       for (unsigned i=0; i<term->arity(); i++) {
-        unsigned sort = SortHelper::getArgSort(term,i);
+        TermList sort = SortHelper::getArgSort(term,i);
         if (! isSupportedSort(sort))
           return false;
       }
@@ -224,7 +224,7 @@ bool TheoryInstAndSimp::isPure(Literal* lit) {
 bool TheoryInstAndSimp::isXeqTerm(const TermList* left, const TermList* right) {
   bool r = left->isVar() &&
     right->isTerm() &&
-    !IntList::member(left->var(), right->term()->freeVariables());
+    !VList::member(left->var(), right->term()->freeVariables());
   return r;
 }
 
@@ -446,24 +446,21 @@ void TheoryInstAndSimp::filterUninterpretedPartialFunctionDeep(Stack<Literal*>& 
 }
 
 void TheoryInstAndSimp::ConstantCache::reset()
-{ for (auto& x : _inner) x.reset(); }
+{ for (auto& x : iterTraits(_inner.iter())) x.value().reset(); }
 
-Term* TheoryInstAndSimp::ConstantCache::freshConstant(unsigned sort) 
+Term* TheoryInstAndSimp::ConstantCache::freshConstant(SortId sort) 
 { 
-  if (_inner.size() <= sort) {
-    _inner.reserve(sort + 1);
-    while (_inner.size() <= sort) {
+  auto& cache = _inner.getOrInit(sort, [](){ 
       DEBUG("new constant cache for sort ", _inner.size());
-      _inner.push(SortedConstantCache());
-    }
-  }
-  return _inner[sort].freshConstant(_prefix, sort);
+      return SortedConstantCache(); 
+    });
+  return cache.freshConstant(_prefix, sort);
 }
 
 void TheoryInstAndSimp::ConstantCache::SortedConstantCache::reset() 
 { _used = 0; }
 
-Term* TheoryInstAndSimp::ConstantCache::SortedConstantCache::freshConstant(const char* prefix, unsigned sort) 
+Term* TheoryInstAndSimp::ConstantCache::SortedConstantCache::freshConstant(const char* prefix, SortId sort) 
 { 
   if (_constants.size() == _used)  {
     unsigned sym = env.signature->addFreshFunction(0, prefix);
@@ -616,12 +613,12 @@ template<class IterLits> TheoryInstAndSimp::SkolemizedLiterals TheoryInstAndSimp
   _instantiationConstants.reset();
   for (auto lit : lits) {
     // replace variables consistently by fresh constants
-    DHMap<unsigned,unsigned> srtMap;
+    DHMap<unsigned, SortId> srtMap;
     SortHelper::collectVariableSorts(lit,srtMap);
     TermVarIterator vit(lit);
     while(vit.hasNext()){
       unsigned var = vit.next();
-      unsigned sort = srtMap.get(var);
+      auto sort = srtMap.get(var);
       TermList fc;
       if(!subst.findBinding(var,fc)){
         Term* fc = _instantiationConstants.freshConstant(sort);
@@ -762,10 +759,10 @@ Stack<Literal*> computeGuards(Stack<Literal*> const& lits)
   /* finds the constructor for a given distructor */
   auto findConstructor = [](TermAlgebra* ta, unsigned destructor, bool predicate) -> TermAlgebraConstructor* 
   {
-    // TODO get rid of this wasteful search for the right constructor
+    // TODO get rid of this wasteful search for the right constructor, and use some sort of hashing instead
     for (auto ctor : ta->iterCons()) {
       for (unsigned i = 0; i < ctor->arity(); i++) {
-        auto p = ctor->argSort(i) == Sorts::SRT_BOOL;
+        auto p = ctor->argSort(i) == Term::boolSort();
         auto d = ctor->destructorFunctor(i);
         if(destructor == d && predicate == p) 
           return ctor;
@@ -774,7 +771,7 @@ Stack<Literal*> computeGuards(Stack<Literal*> const& lits)
     ASSERTION_VIOLATION
   };
 
-  auto destructorGuard = [&findConstructor](Term* destr, unsigned sort, bool predicate) -> Literal*
+  auto destructorGuard = [&findConstructor](Term* destr, SortId sort, bool predicate) -> Literal*
   {
       auto ctor = findConstructor(env.signature->getTermAlgebraOfSort(sort), destr->functor(), predicate);
       auto discr = ctor->createDiscriminator();
@@ -811,7 +808,7 @@ Stack<Literal*> computeGuards(Stack<Literal*> const& lits)
             case Theory::REAL_QUOTIENT_T:
             case Theory::REAL_REMAINDER_T:
             case Theory::REAL_REMAINDER_F:
-              out.push(Literal::createEquality(false, RealTraits::zero(), *term->nthArgument(1), RealTraits::sort));
+              out.push(Literal::createEquality(false, RealTraits::zero(), *term->nthArgument(1), RealTraits::sort()));
               break;
 
             case Theory::RAT_QUOTIENT:
@@ -820,7 +817,7 @@ Stack<Literal*> computeGuards(Stack<Literal*> const& lits)
             case Theory::RAT_QUOTIENT_F:
             case Theory::RAT_REMAINDER_F:
             case Theory::RAT_REMAINDER_E:
-              out.push(Literal::createEquality(false, RatTraits::zero(), *term->nthArgument(1), RatTraits::sort));
+              out.push(Literal::createEquality(false, RatTraits::zero(), *term->nthArgument(1), RatTraits::sort()));
               break;
 
             case Theory::INT_QUOTIENT_F:
@@ -829,7 +826,7 @@ Stack<Literal*> computeGuards(Stack<Literal*> const& lits)
             case Theory::INT_QUOTIENT_T:
             case Theory::INT_REMAINDER_T:
             case Theory::INT_REMAINDER_E:
-              out.push(Literal::createEquality(false, IntTraits::zero(), *term->nthArgument(1), IntTraits::sort));
+              out.push(Literal::createEquality(false, IntTraits::zero(), *term->nthArgument(1), IntTraits::sort()));
               break;
 
             default:; /* no guard */
@@ -850,7 +847,7 @@ Stack<Literal*> filterLiterals(Stack<Literal*> lits, Options::TheoryInstSimp mod
         || (!lit->isEquality() && theory->isInterpretedPredicate(lit->functor())); };
 
   auto freeVars = [](Literal* lit) 
-  { return iterTraits(IntList::Iterator(lit->freeVariables())); };
+  { return iterTraits(VList::Iterator(lit->freeVariables())); };
 
   switch(mode) {
     case Options::TheoryInstSimp::ALL:

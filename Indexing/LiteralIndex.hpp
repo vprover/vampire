@@ -1,7 +1,4 @@
-
 /*
- * File LiteralIndex.hpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -180,6 +177,20 @@ public:
   : LiteralIndex(is) {};
   void handleClause(Clause* c, bool adding);
   void addLiteral(Literal* c);
+};
+
+class UnitIntegerComparisonLiteralIndex
+: public LiteralIndex
+{
+public:
+  CLASS_NAME(UnitIntegerComparisonLiteralIndex);
+  USE_ALLOCATOR(UnitIntegerComparisonLiteralIndex);
+
+  UnitIntegerComparisonLiteralIndex(LiteralIndexingStructure* is)
+  : LiteralIndex(is) {}
+
+protected:
+  void handleClause(Clause* c, bool adding);
 };
 
 };

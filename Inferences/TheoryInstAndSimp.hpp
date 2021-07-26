@@ -1,7 +1,4 @@
-
 /*
- * File TheoryInstAndSimp.hpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -48,6 +45,7 @@ class TheoryInstAndSimp
 : public SimplifyingGeneratingInference
 {
 public:
+  using SortId = SAT::Z3Interfacing::SortId;
   CLASS_NAME(TheoryInstAndSimp);
   USE_ALLOCATOR(TheoryInstAndSimp);
 
@@ -95,8 +93,8 @@ private:
   /**
      Checks if models for sort can be mapped back to terms.
   */
-  bool isSupportedSort(const unsigned sort);
-  bool calcIsSupportedSort(const unsigned sort);
+  bool isSupportedSort(SortId sort);
+  bool calcIsSupportedSort(SortId sort);
   bool isSupportedFunction(Term* trm);
   bool isSupportedFunction(Theory::Interpretation trm);
 
@@ -120,18 +118,18 @@ private:
     public:
       SortedConstantCache() : _used(0), _constants() {}
       void reset();
-      Term* freshConstant(const char* prefix, unsigned sort);
+      Term* freshConstant(const char* prefix, SortId sort);
     };
 
     const char* _prefix;
-    Stack<SortedConstantCache> _inner;
+    Map<SortId, SortedConstantCache> _inner;
 
   public:
     ConstantCache(const char* prefix) : _prefix(prefix), _inner() {}
 
     void reset();
 
-    Term* freshConstant(unsigned sort) ;
+    Term* freshConstant(SortId sort) ;
   };
 
   Splitter* _splitter;
@@ -141,7 +139,7 @@ private:
   volatile char padding00[1024];
   Z3Interfacing* _solver;
   volatile char padding01[1024];
-  Map<unsigned, bool> _supportedSorts;
+  Map<SortId, bool> _supportedSorts;
   bool _generalisation;
   ConstantCache _instantiationConstants;
   ConstantCache _generalizationConstants;

@@ -43,6 +43,7 @@
 #define DEBUG(...) //DBG(__VA_ARGS__)
 #define TRACE_Z3 0
 namespace Lib {
+using SortId = TermList;
 
 template<> 
 struct BottomUpChildIter<z3::expr>
@@ -344,14 +345,14 @@ struct EvaluateInModel
   using Arg    = z3::expr;
   using Result = Option<Copro>;
 
-  static Term* toTerm(Copro const& co, unsigned sort) {
+  static Term* toTerm(Copro const& co, SortId sort) {
     return co.match(
             [&](Term* t) 
             { return t; },
 
             [&](RationalConstantType c) 
             { 
-              return sort == RealTraits::sort 
+              return sort == RealTraits::sort() 
                 ? theory->representConstant(RealConstantType(c))
                 : theory->representConstant(c); 
             },
@@ -424,7 +425,7 @@ Term* Z3Interfacing::evaluateInModel(Term* trm)
 
   z3::expr rep = getRepresentation(trm).expr;
   z3::expr ev = _model.eval(rep,true); // true means "model_completion"
-  unsigned sort = SortHelper::getResultSort(trm);
+  SortId sort = SortHelper::getResultSort(trm);
 
   DEBUG("z3 expr: ", ev)
   auto result = evaluateBottomUp(ev, EvaluateInModel { *this })
@@ -435,7 +436,7 @@ Term* Z3Interfacing::evaluateInModel(Term* trm)
 
             [&](RationalConstantType c) 
             { 
-              return sort == RealTraits::sort 
+              return sort == RealTraits::sort()
                 ? theory->representConstant(RealConstantType(c))
                 : theory->representConstant(c); 
             },
@@ -485,15 +486,15 @@ z3::sort Z3Interfacing::getz3sort(SortId s)
     // TODO what about built-in tuples?
 
     // Deal with known sorts differently
-         if(s == Sorts::SRT_BOOL    ) insert(_context.bool_sort());
-    else if(s == Sorts::SRT_INTEGER ) insert(_context.int_sort());
-    else if(s == Sorts::SRT_REAL    ) insert(_context.real_sort());
-    else if(s == Sorts::SRT_RATIONAL) insert(_context.real_sort()); // Drop notion of rationality 
-    // TODO: are we really allowed to do this ???                      ^^^^^^^^^^^^^^^^^^^^^^^^^^
-    else if(env.sorts->isOfStructuredSort(s, Sorts::StructuredSort::ARRAY)) {
+         if(s == Term::boolSort()) insert(_context.bool_sort());
+    else if(s ==  IntTraits::sort()) insert( _context.int_sort());
+    else if(s == RealTraits::sort()) insert(_context.real_sort());
+    else if(s ==  RatTraits::sort()) insert(_context.real_sort()); // Drops notion of rationality 
+    // TODO: are we really allowed to do this ???                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    else if(SortHelper::isArraySort(s)) {
       
-      z3::sort index_sort = getz3sort(env.sorts->getArraySort(s)->getIndexSort());
-      z3::sort value_sort = getz3sort(env.sorts->getArraySort(s)->getInnerSort());
+      z3::sort index_sort = getz3sort(SortHelper::getIndexSort(s));
+      z3::sort value_sort = getz3sort(SortHelper::getInnerSort(s));
    
       insert(_context.array_sort(index_sort,value_sort));
 
@@ -748,11 +749,11 @@ struct ToZ3Expr
 
 
     Signature::Symbol* symb; 
-    unsigned range_sort;
+    SortId range_sort;
     bool is_equality = false;
     if (isLit) {
       symb = env.signature->getPredicate(trm->functor());
-      range_sort = Sorts::SRT_BOOL;
+      range_sort = Term::boolSort();
       // check for equality
       if(trm->functor()==0){
          is_equality=true;
@@ -795,14 +796,14 @@ struct ToZ3Expr
       if (symb->overflownConstant()) {
         // too large for native representation, but z3 should cope
 
-        switch (symb->fnType()->result()) {
-        case Sorts::SRT_INTEGER:
+        auto s = symb->fnType()->result();
+        if (s == IntTraits::sort()) {
           return self._context.int_val(symb->name().c_str());
-        case Sorts::SRT_RATIONAL:
+        } else if (s == RatTraits::sort()) {
           return self._context.real_val(symb->name().c_str());
-        case Sorts::SRT_REAL:
+        } else if (s == RealTraits::sort()) {
           return self._context.real_val(symb->name().c_str());
-        default:
+        } else {
           ; // intentional fallthrough; the input is fof (and not tff), so let's just treat this as a constant
         }
       }
@@ -970,7 +971,6 @@ struct ToZ3Expr
 
     // uninterpretd function
     auto f = self.z3Function(Z3Interfacing::FuncOrPredId(trm));
-
     return f(trm->arity(), args); 
   }
 };
@@ -980,22 +980,27 @@ struct ToZ3Expr
 z3::func_decl Z3Interfacing::z3Function(FuncOrPredId functor)
 {
   auto& self = *this;
-  return self._toZ3.tryGet(functor)
-    .toOwned()
-    .unwrapOrElse([&]() {
-        auto symb = functor.isPredicate ? env.signature->getPredicate(functor.id) 
-                                        : env.signature->getFunction(functor.id);
-        auto type = functor.isPredicate ? symb->predType() : symb->fnType();
 
-        // Does not yet exits. initialize it!
-        z3::sort_vector domain_sorts = z3::sort_vector(self._context);
-        for (unsigned i=0; i<type->arity(); i++) {
-          domain_sorts.push_back(self.getz3sort(type->arg(i)));
-        }
-        z3::symbol name = self._context.str_symbol(symb->name().c_str());
-        auto range_sort = functor.isPredicate ? self._context.bool_sort() : self.getz3sort(type->result());
-        return self._context.function(name,domain_sorts,range_sort);
-    });
+  auto found = self._toZ3.tryGet(functor);
+  if (found.isSome()) {
+    return found.unwrap();
+  } else {
+    // function does not yet exits
+    auto symb = functor.isPredicate ? env.signature->getPredicate(functor.id) 
+                                    : env.signature->getFunction(functor.id);
+    auto type = functor.isPredicate ? symb->predType() : symb->fnType();
+
+    // Does not yet exits. initialize it!
+    z3::sort_vector domain_sorts = z3::sort_vector(self._context);
+    for (unsigned i=0; i<type->arity(); i++) {
+      domain_sorts.push_back(self.getz3sort(type->arg(i)));
+    }
+    z3::symbol name = self._context.str_symbol(symb->name().c_str());
+    auto range_sort = functor.isPredicate ? self._context.bool_sort() : self.getz3sort(type->result());
+    auto out = self._context.function(name,domain_sorts,range_sort);
+    self._toZ3.insert(functor, out);
+    return out;
+  }
 }
 
 /**

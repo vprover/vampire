@@ -1,7 +1,4 @@
-
 /*
- * File Grounding.hpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -41,7 +38,7 @@ public:
 
   static ClauseList* getEqualityAxioms(bool otherThanReflexivity);
 private:
-  static void getLocalEqualityAxioms(unsigned sort, bool otherThanReflexivity, ClauseList*& acc);
+  static void getLocalEqualityAxioms(TermList sort, bool otherThanReflexivity, ClauseList*& acc);
 
 
   struct GroundingApplicator

@@ -1,16 +1,12 @@
-
-  /*
-   * File tKBO.cpp.
-   *
-   * This file is part of the source code of the software program
-   * Vampire. It is protected by applicable
-   * copyright laws.
-   *
-   * This source code is distributed under the licence found here
-   * https://vprover.github.io/license.html
-   * and in the source directory
-   */
-
+/*
+ * This file is part of the source code of the software program
+ * Vampire. It is protected by applicable
+ * copyright laws.
+ *
+ * This source code is distributed under the licence found here
+ * https://vprover.github.io/license.html
+ * and in the source directory
+ */
 /**!  This file contains examples on how to use Test/SyntaxSugar.hpp.
  *
  * @autor Johannes Schoisswohl
@@ -228,7 +224,7 @@ TEST_FUN(kbo_test09) {
   try {
     auto ord = kbo(weights(make_pair(g, 1u), make_pair(f, 0u)), weights());
     ASSERTION_VIOLATION
-  } catch (UserErrorException& e) {
+  } catch (UserErrorException&) {
     /* f is not maximal wrt precedence but has weight 0 */
   }
 }
@@ -242,7 +238,7 @@ TEST_FUN(kbo_test10) {
   try {
     auto ord = kbo(weights(make_pair(a, 0u)), weights());
     ASSERTION_VIOLATION
-  } catch (UserErrorException& e) {
+  } catch (UserErrorException&) {
     /* constant must be greater or equal to variable weight */
   }
 }
@@ -411,7 +407,7 @@ TEST_FUN(kbo_test22) {
         ), 
         weights());
     ASSERTION_VIOLATION
-  } catch (UserErrorException& e) {
+  } catch (UserErrorException&) {
     /* introduced symbol weight must be greater or equal to the variable weight */
   }
 }

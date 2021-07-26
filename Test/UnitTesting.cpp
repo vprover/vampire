@@ -1,7 +1,4 @@
-
 /*
- * File UnitTesting.cpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -163,7 +160,7 @@ bool TestUnit::spawnTest(TestProc proc)
   if(fres == 0) {
     try {
       proc();
-    } catch (Debug::AssertionViolationException& e) {
+    } catch (Lib::Exception& e) {
       // e.cry(std::cout);
       e.cry(std::cerr);
       _exit(-1);

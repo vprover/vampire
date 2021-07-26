@@ -1,7 +1,4 @@
-
 /*
- * File Set.hpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -300,6 +297,22 @@ public:
     _size = 0;
     _nonemptyCells = 0;
   }
+
+  /**
+   * Delete all entries.
+   * @warning Works only for sets where the value type is a pointer.
+   */
+  void deleteAll()
+  {
+    CALL("Set::deleteAll");
+
+    for (int i = _capacity-1;i >= 0;i--) {
+      Cell& e = _entries[i];
+      if (e.occupied()) {
+        delete e.value;
+      }
+    }
+  } // deleteAll
 
 private:
   Set(const Set&); //private non-defined copy constructor to prevent copying

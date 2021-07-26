@@ -1,15 +1,12 @@
-
-  /*
-   * File PolynomialEvaluation.hpp.
-   *
-   * This file is part of the source code of the software program
-   * Vampire. It is protected by applicable
-   * copyright laws.
-   *
-   * This source code is distributed under the licence found here
-   * https://vprover.github.io/license.html
-   * and in the source directory
-   */
+/*
+ * This file is part of the source code of the software program
+ * Vampire. It is protected by applicable
+ * copyright laws.
+ *
+ * This source code is distributed under the licence found here
+ * https://vprover.github.io/license.html
+ * and in the source directory
+ */
 
 
 #ifndef __POLYNOMIAL_EVALUATION_H__
@@ -24,9 +21,11 @@
 
 #include "InferenceEngine.hpp"
 
+
 namespace Inferences 
 {
 
+using SortId = TermList;
 class PolynomialEvaluation
 : public SimplifyingGeneratingLiteralSimplification
 {
@@ -41,7 +40,7 @@ private:
 
   Result simplifyLiteral(Literal*) override;
 
-  Option<PolyNf> evaluate(TermList in, unsigned sortNumber) const;
+  Option<PolyNf> evaluate(TermList in, SortId sortNumber) const;
   Option<PolyNf> evaluate(Term* in) const;
   Option<PolyNf> evaluate(PolyNf in) const;
   Option<PolyNf> evaluate(TypedTermList in) const;

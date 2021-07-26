@@ -115,13 +115,13 @@ public:
 
   virtual Status solveUnderAssumptions(const SATLiteralStack& assumps, unsigned conflictCountLimit, bool onlyProperSubusets) override;
 
- /**
-  * Record the association between a SATLiteral var and a Literal
-  * In TWLSolver this is used for computing niceness values
-  */
-  virtual void recordSource(unsigned satlitvar, Literal* lit) override {
-    // unsupported by Z3; intentionally no-op
-  };
+//  /**
+//   * Record the association between a SATLiteral var and a Literal
+//   * In TWLSolver this is used for computing niceness values
+//   */
+//   virtual void recordSource(unsigned satlitvar, Literal* lit) override {
+//     // unsupported by Z3; intentionally no-op
+//   };
   
   /**
    * The set of inserted clauses may not be propositionally UNSAT
@@ -150,7 +150,7 @@ public:
   // }
   using FuncId = unsigned;
   using PredId = unsigned;
-  using SortId = unsigned;
+  using SortId = TermList;
 
   struct FuncOrPredId 
   {
@@ -172,7 +172,7 @@ public:
 
 private:
 
-  Map<unsigned,z3::sort> _sorts;
+  Map<SortId, z3::sort> _sorts;
   struct Z3Hash {
     static unsigned hash(z3::func_decl const& c) { return c.hash(); }
     static bool equals(z3::func_decl const& l, z3::func_decl const& r) { return z3::eq(l,r); }
@@ -184,7 +184,7 @@ private:
   z3::func_decl const& findConstructor(FuncId id);
   void createTermAlgebra(Shell::TermAlgebra&);
 
-  z3::sort getz3sort(unsigned s);
+  z3::sort getz3sort(SortId s);
 
   z3::func_decl z3Function(FuncOrPredId function);
 

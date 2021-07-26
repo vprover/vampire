@@ -1,15 +1,12 @@
-
-  /*
-   * File Option.hpp.
-   *
-   * This file is part of the source code of the software program
-   * Vampire. It is protected by applicable
-   * copyright laws.
-   *
-   * This source code is distributed under the licence found here
-   * https://vprover.github.io/license.html
-   * and in the source directory
-   */
+/*
+ * This file is part of the source code of the software program
+ * Vampire. It is protected by applicable
+ * copyright laws.
+ *
+ * This source code is distributed under the licence found here
+ * https://vprover.github.io/license.html
+ * and in the source directory
+ */
 
 /** 
  * This file mainly defined the class Option, which can be thought of as a NULLable pointer, that is 
@@ -42,22 +39,23 @@ struct MaybeUninit {
 
    MaybeUninit() : _elem() {}
   ~MaybeUninit() {}
-#define methods(ref, mv)                                                                                      \
-  operator T ref() ref                                                                                        \
-  { return mv(_elem.init); }                                                                                  \
+// This macro will b expanded for (REF,MV) in { (`&&`, `std::move`), (`&`, ``), (`const &`, ``) }
+#define for_ref_qualifier(REF, MV)                                                                            \
+  operator T REF() REF                                                                                        \
+  { return MV(_elem.init); }                                                                                  \
                                                                                                               \
-  void init(T ref content)                                                                                    \
-  { ::new(&_elem)T(mv(content)); }                                                                            \
+  void init(T REF content)                                                                                    \
+  { ::new(&_elem)T(MV(content)); }                                                                            \
                                                                                                               \
-  MaybeUninit& operator=(T ref content)                                                                       \
+  MaybeUninit& operator=(T REF content)                                                                       \
   {                                                                                                           \
-    _elem.init = mv(content);                                                                                 \
+    _elem.init = MV(content);                                                                                 \
     return *this;                                                                                             \
   }                                                                                                           \
 
-  FOR_REF_QUALIFIER(methods)
+  FOR_REF_QUALIFIER(for_ref_qualifier)
 
-#undef methods 
+#undef for_ref_qualifier 
 };
 
 template<class A>
@@ -77,44 +75,45 @@ public:
       unwrap().~A(); 
     }
   }
-
-#define for_ref_qualifier(ref, mv)                                                                            \
-  explicit OptionBase(A ref content)                                                                          \
-    : _isSome(true)                                                                                           \
-      , _elem()                                                                                               \
-  {                                                                                                           \
-    CALL("Option(A " #ref ")")                                                                                \
-    _elem.init(mv(content));                                                                                  \
-  }                                                                                                           \
+  explicit OptionBase(A content)
+    : _isSome(true)
+      , _elem()
+  {
+    CALL("Option(A)")
+    _elem.init(std::move(content));
+  }
+ 
+// This macro will b expanded for (REF,MV) in { (`&&`, `std::move`), (`&`, ``), (`const &`, ``) }
+#define for_ref_qualifier(REF, MV)                                                                            \
                                                                                                               \
-  A ref unwrap() ref                                                                                          \
+  A REF unwrap() REF                                                                                          \
   {                                                                                                           \
     ASS(_isSome);                                                                                             \
-    return mv(_elem);                                                                                         \
+    return MV(_elem);                                                                                         \
   }                                                                                                           \
                                                                                                               \
-  OptionBase(OptionBase ref a) : _isSome(a._isSome)                                                           \
+  OptionBase(OptionBase REF a) : _isSome(a._isSome)                                                           \
   {                                                                                                           \
-    CALL("OptionBase(OptionBase " #ref ")");                                                                  \
+    CALL("OptionBase(OptionBase " #REF ")");                                                                  \
     if (isSome()) {                                                                                           \
-      _elem.init(mv(a).unwrap());                                                                             \
+      _elem.init(MV(a).unwrap());                                                                             \
     }                                                                                                         \
   }                                                                                                           \
                                                                                                               \
-  OptionBase& operator=(OptionBase ref other)                                                                 \
+  OptionBase& operator=(OptionBase REF other)                                                                 \
   {                                                                                                           \
-    CALL("OptionBase& operator=(OptionBase "#ref")");                                                         \
+    CALL("OptionBase& operator=(OptionBase "#REF")");                                                         \
                                                                                                               \
     if (_isSome) {                                                                                            \
       if (other._isSome) {                                                                                    \
-        unwrap() = mv(other).unwrap();                                                                        \
+        unwrap() = MV(other).unwrap();                                                                        \
       } else {                                                                                                \
         unwrap().~A();                                                                                        \
       }                                                                                                       \
     } else {                                                                                                  \
       ASS(isNone())                                                                                           \
       if (other._isSome){                                                                                     \
-         _elem.init(mv(other).unwrap());                                                                      \
+         _elem.init(MV(other).unwrap());                                                                      \
       } else {                                                                                                \
          /* nothing to do */                                                                                  \
       }                                                                                                       \
@@ -151,7 +150,6 @@ public:
 template<class A>
 class OptionBaseRef
 {
-
   A* _elem;
 public:
 
@@ -248,7 +246,8 @@ public:
     return this->unwrap();
   }
 
-#define ref_polymorphic(REF, MOVE)                                                                            \
+// This macro will b expanded for (REF,MV) in { (`&&`, `std::move`), (`&`, ``), (`const &`, ``) }
+#define for_ref_qualifier(REF, MOVE)                                                                          \
                                                                                                               \
   /**                                                                                                         \
    * applies the given function to the value of this option and returns an option of the return type.         \
@@ -311,28 +310,21 @@ public:
     return map([](A REF  elem) -> Out { return Out(MOVE(elem)); });                                           \
   }                                                                                                           \
 
-  FOR_REF_QUALIFIER(ref_polymorphic)
+  FOR_REF_QUALIFIER(for_ref_qualifier)
 
-#undef ref_polymorphic
-
-
+#undef for_ref_qualifier
 
   friend std::ostream& operator<<(std::ostream& out, Option const& self) 
   { return self.isSome() ?  out << self.unwrap() : out << "None"; }
-
-
 };
 
-template<class T> Option<T> some(T const& t) { return Option<T>(t);            }
+template<class T> Option<T> some(T const& t) { return Option<T>(          t ); }
+template<class T> Option<T> some(T      & t) { return Option<T>(          t ); }
 template<class T> Option<T> some(T     && t) { return Option<T>(std::move(t)); }
-template<class T> Option<T> some(T      & t) { return Option<T>(t);            }
+template<class T> Option<T> none()    { return Option<T>(); }
 
 template<class T>
-Option<T> none() 
-{ return Option<T>(); }
-
-template<class T>
-Option<T> optionalFromPtr(T* t) 
+Option<T> optionFromPtr(T* t) 
 { return Option<T>::fromPtr(t); }
 
 }

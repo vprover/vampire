@@ -1,7 +1,4 @@
-
 /*
- * File TermAlgebra.cpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -33,8 +30,8 @@ TermAlgebraConstructor::TermAlgebraConstructor(unsigned functor, Lib::Array<unsi
   ASS_EQ(_type->arity(), destructors.size());
   unsigned i = 0;
   for (auto d : destructors) {
-    auto sym = _type->arg(i++) == Sorts::SRT_BOOL ? env.signature->getPredicate(d) 
-                                                  : env.signature->getFunction(d);
+    auto sym = _type->arg(i++) == Term::boolSort() ? env.signature->getPredicate(d) 
+                                                   : env.signature->getFunction(d);
     ASS_REP(sym->termAlgebraDest(), sym->name())
   }
 }
@@ -50,9 +47,9 @@ TermAlgebraConstructor::TermAlgebraConstructor(unsigned functor, unsigned discri
   }
 }
 
-unsigned TermAlgebraConstructor::arity()               { return _type->arity();  }
-unsigned TermAlgebraConstructor::argSort(unsigned ith) { return _type->arg(ith); }
-unsigned TermAlgebraConstructor::rangeSort()           { return _type->result(); }
+//This is only safe for monomorphic term algebras AYB
+unsigned TermAlgebraConstructor::arity() const { return _type->arity();  }
+
 unsigned TermAlgebraConstructor::createDiscriminator() 
 {
   if (hasDiscriminator()) {
@@ -66,10 +63,10 @@ unsigned TermAlgebraConstructor::createDiscriminator()
   }
 }
 
-Lib::Set<unsigned> TermAlgebra::subSorts()
+Lib::Set<TermList> TermAlgebra::subSorts()
 {
 
-  Set<unsigned> out; 
+  Set<TermList> out; 
   /* connected component finding without recursion */
   Stack<TermAlgebra*> work; // <- stack for simulating recursion
   work.push(this);
@@ -77,7 +74,7 @@ Lib::Set<unsigned> TermAlgebra::subSorts()
   while (!work.isEmpty()) {
     auto& ta = *work.pop();
     for (auto cons : ta.iterCons()) {
-      for (unsigned s : cons->iterArgSorts()) {
+      for (auto s : cons->iterArgSorts()) {
         if (!out.contains(s)) {
           out.insert(s);
           if (env.signature->isTermAlgebraSort(s)) {
@@ -89,6 +86,8 @@ Lib::Set<unsigned> TermAlgebra::subSorts()
   }
   return out;
 }
+TermList TermAlgebraConstructor::argSort(unsigned ith) const { return _type->arg(ith); }
+TermList TermAlgebraConstructor::rangeSort()           const { return _type->result(); }
 
 bool TermAlgebraConstructor::recursive()
 {
@@ -107,16 +106,24 @@ Lib::vstring TermAlgebraConstructor::discriminatorName()
 {
   CALL("TermAlgebraConstructor::discriminatorName");
 
-  return "$is" + env.signature->functionName(_functor);
+  //Giles: the function name may contain quotes so we should remove them
+  //       before appending $is.
+  vstring name = env.signature->functionName(_functor);
+  vstring ret = "$is";
+  for(size_t i = 0; i < name.size(); i++){
+    char c = name[i];
+    if(c != '\''){ ret+=c;}
+  } 
+  return ret;
 }
 
-TermAlgebra::TermAlgebra(unsigned sort,
+TermAlgebra::TermAlgebra(TermList sort,
                          std::initializer_list<TermAlgebraConstructor*> constrs,
                          bool allowsCyclicTerms) :
   TermAlgebra(sort, Lib::Array<TermAlgebraConstructor*>(constrs), allowsCyclicTerms)
 { }
 
-TermAlgebra::TermAlgebra(unsigned sort,
+TermAlgebra::TermAlgebra(TermList sort,
                          Lib::Array<TermAlgebraConstructor*> constrs,
                          bool allowsCyclicTerms) :
   _sort(sort),
@@ -129,7 +136,7 @@ TermAlgebra::TermAlgebra(unsigned sort,
   }
 }
 
-TermAlgebra::TermAlgebra(unsigned sort,
+TermAlgebra::TermAlgebra(TermList sort,
                          unsigned n,
                          TermAlgebraConstructor** constrs,
                          bool allowsCyclicTerms) :
@@ -191,7 +198,7 @@ bool TermAlgebra::infiniteDomain()
 }
   
 Lib::vstring TermAlgebra::getSubtermPredicateName() {
-  return "$subterm" + env.sorts->sortName(_sort);
+  return "$subterm" + _sort.toString();
 }
 
 unsigned TermAlgebra::getSubtermPredicate() {
@@ -202,8 +209,9 @@ unsigned TermAlgebra::getSubtermPredicate() {
 
   if (added) {
     // declare a binary predicate subterm
-    Stack<unsigned> args;
-    args.push(_sort); args.push(_sort);
+    TermStack args;
+    args.push(_sort); 
+    args.push(_sort);
     env.signature->getPredicate(s)->setType(OperatorType::getPredicateType(args.size(),args.begin()));
   }
 

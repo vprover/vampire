@@ -1,7 +1,4 @@
-
 /*
- * File tInterpretedFunctions.cpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -193,7 +190,7 @@ void check_eval(Lit orig_, Lit expected_) {
 }
 
 #define ADDITIONAL_FUNCTIONS(Num)                                                                             \
-  __ALLOW_UNUSED(                                                                                             \
+      __ALLOW_UNUSED(                                                                                         \
         DECL_CONST(a , Num)                                                                                   \
         DECL_CONST(b , Num)                                                                                   \
         DECL_CONST(c , Num)                                                                                   \
@@ -205,8 +202,10 @@ void check_eval(Lit orig_, Lit expected_) {
 
 #define NUM_TEST(NUM, name, formula, expected)                                                                \
     TEST_FUN(name ## _ ## NUM) {                                                                              \
-      NUMBER_SUGAR(NUM);                                                                                      \
-      DECL_DEFAULT_VARS                                                                                       \
+      __ALLOW_UNUSED(                                                                                         \
+        NUMBER_SUGAR(NUM);                                                                                    \
+        DECL_DEFAULT_VARS                                                                                     \
+      )                                                                                                       \
       ADDITIONAL_FUNCTIONS(NUM)                                                                               \
       check_eval(( formula ), ( expected ));                                                                  \
     }                                                                                                         \

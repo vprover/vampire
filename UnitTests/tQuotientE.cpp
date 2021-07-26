@@ -1,16 +1,12 @@
-
-  /*
-   * File tQuotientE.cpp.
-   *
-   * This file is part of the source code of the software program
-   * Vampire. It is protected by applicable
-   * copyright laws.
-   *
-   * This source code is distributed under the licence found here
-   * https://vprover.github.io/license.html
-   * and in the source directory
-   */
-
+/*
+ * This file is part of the source code of the software program
+ * Vampire. It is protected by applicable
+ * copyright laws.
+ *
+ * This source code is distributed under the licence found here
+ * https://vprover.github.io/license.html
+ * and in the source directory
+ */
 #include "Debug/Tracer.hpp"
 #include "Test/SyntaxSugar.hpp"
 #include "Test/UnitTesting.hpp"
@@ -52,7 +48,7 @@ TEST_FUN(check_spec) {
       try {
         q = quotientE(i, j);
         DEBUG("quotientE (", i, ", ", j, ")\t= ", q);
-      } catch (const MachineArithmeticException &) {
+      } catch (MachineArithmeticException&) {
         DEBUG("quotientE (", i, ", ", j, ")\t= MachineArithmeticException");
         bothOK = false;
       } catch (DivByZeroException&) {
@@ -64,7 +60,7 @@ TEST_FUN(check_spec) {
       try {
         r = remainderE(i, j);
         DEBUG("remainderE(", i, ", ", j, ")\t= ", r);
-      } catch (const MachineArithmeticException &) {
+      } catch (MachineArithmeticException&) {
         DEBUG("remainderE(", i, ", ", j, ")\t= MachineArithmeticException");
         bothOK = false;
       } catch (DivByZeroException&) {

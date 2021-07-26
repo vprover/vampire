@@ -1,7 +1,4 @@
-
 /*
- * File PortfolioMode.hpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -89,6 +86,8 @@ private:
 #endif
 
   float _slowness;
+
+  const char * _tmpFileNameForProof;
 
   /**
    * Problem that is being solved.

@@ -1,7 +1,4 @@
-
 /*
- * File TimeCounter.cpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -48,6 +45,7 @@ void TimeCounter::reinitialize()
 {
   CALL("TimeCounter::reinitialize");
 
+  s_measuring = true;
   s_initialized=0;
 
   initialize();
@@ -198,20 +196,8 @@ void TimeCounter::outputSingleStat(TimeCounterUnit tcu, ostream& out)
   case TC_BACKWARD_SUBSUMPTION_DEMODULATION:
     out<<"backward subsumption demodulation";
     break;
-  case TC_BDD:
-    out<<"BDD operations";
-    break;
-  case TC_BDD_CLAUSIFICATION:
-    out<<"BDD clausification";
-    break;
-  case TC_BDD_MARKING_SUBSUMPTION:
-    out<<"BDD marking subsumption";
-    break;
   case TC_INTERPRETED_EVALUATION:
     out<<"interpreted evaluation";
-    break;
-  case TC_INTERPRETED_SIMPLIFICATION:
-    out<<"interpreted simplification";
     break;
   case TC_CONDENSATION:
     out<<"condensation";
@@ -300,6 +286,12 @@ void TimeCounter::outputSingleStat(TimeCounterUnit tcu, ostream& out)
   case TC_LITERAL_REWRITE_RULE_INDEX_MAINTENANCE:
     out<<"literal rewrite rule index maintenance";
     break;
+  case TC_INDUCTION_TERM_INDEX_MAINTENANCE:
+    out<<"induction term index maintenance";
+    break;
+  case TC_UNIT_INTEGER_COMPARISON_INDEX_MAINTENANCE:
+    out<<"unit integer comparison literal index maintenance";
+    break;
   case TC_OTHER:
     out<<"other";
     break;
@@ -327,10 +319,6 @@ void TimeCounter::outputSingleStat(TimeCounterUnit tcu, ostream& out)
   case TC_SAT_SOLVER:
     out<<"SAT solver time";
     break;
-  case TC_TWLSOLVER_ADD:
-    out<<"TWLSolver add clauses";
-    break;
-    break;
   case TC_MINIMIZING_SOLVER:
     out << "minimizing solver time";
     break;
@@ -357,12 +345,6 @@ void TimeCounter::outputSingleStat(TimeCounterUnit tcu, ostream& out)
     break;
   case TC_BOUND_PROPAGATION:
     out << "Bound propagation";
-    break;
-  case TC_HANDLING_CONFLICTS:
-    out << "handling conflicts";
-    break;
-  case TC_VARIABLE_SELECTION:
-    out << "variable selection";
     break;
   case TC_DISMATCHING:
     out << "dismatching";

@@ -1,7 +1,4 @@
-
 /*
- * File FunctionRelationshipInference.hpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -49,11 +46,11 @@ ClauseList* getCheckingClauses();
 
 void addClaimForFunction(TermList x, TermList y, TermList fx, TermList fy,
                          unsigned fname,
-                         unsigned arg_srt, unsigned ret_srt, Formula::VarList* existential,
+                         TermList arg_srt, TermList ret_srt, VList* existential,
                          ClauseList*& newClauses);
 
 void addClaim(Formula* conjecture, ClauseList*& newClauses);
-Formula* getName(unsigned fromSort, unsigned toSort, bool strict);
+Formula* getName(TermList fromSort, TermList toSort, bool strict);
 
 DHMap<unsigned,std::pair<unsigned,unsigned>> _labelMap_nonstrict;
 DHMap<unsigned,std::pair<unsigned,unsigned>> _labelMap_strict;

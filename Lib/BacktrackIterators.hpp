@@ -1,7 +1,4 @@
-
 /*
- * File BacktrackIterators.hpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -106,7 +103,7 @@ private:
   State _initState;
   ChoiceArr _choices;
   size_t _chLen;
-  Stack<RETURN_TYPE(Fn(State)) > _chits; //choice iterators
+  Stack<std::result_of_t<Fn(State)> > _chits; //choice iterators
   Stack<State> _states;
   Fn _functor;
 };

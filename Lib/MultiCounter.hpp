@@ -1,7 +1,4 @@
-
 /*
- * File MultiCounter.hpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -22,7 +19,6 @@
 #define __MultiCounter__
 
 #include "Debug/Assertion.hpp"
-#include "XML.hpp"
 
 namespace Lib {
 
@@ -104,9 +100,6 @@ public:
   int lastCounter() const
   { return _top-1; }
 
-#if VDEBUG
-  XMLElement toXML() const;
-#endif
 private:
   /** _top-1 is the last positive variable that can be accessed */
   int _top;

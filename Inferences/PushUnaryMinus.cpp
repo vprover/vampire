@@ -1,15 +1,12 @@
-
-  /*
-   * File PushUnaryMinus.cpp.
-   *
-   * This file is part of the source code of the software program
-   * Vampire. It is protected by applicable
-   * copyright laws.
-   *
-   * This source code is distributed under the licence found here
-   * https://vprover.github.io/license.html
-   * and in the source directory
-   */
+/*
+ * This file is part of the source code of the software program
+ * Vampire. It is protected by applicable
+ * copyright laws.
+ *
+ * This source code is distributed under the licence found here
+ * https://vprover.github.io/license.html
+ * and in the source directory
+ */
 
 #include "Inferences/PushUnaryMinus.hpp"
 #include "Kernel/Clause.hpp"
@@ -30,6 +27,8 @@ ostream& operator<<(ostream& out, UMinus const& self) {
     case UMinus::Rat: return out << "UMinus::Rat";
     case UMinus::Real: return out << "UMinus::Real";
     case UMinus::None: return out << "UMinus::None";
+    default:
+      return out << "UNKNOWN";
   }
   ASSERTION_VIOLATION
 }
@@ -45,6 +44,8 @@ TermList pushUMinus(UMinus outerMinus, TermList t)
       case UMinus::Rat : return RatTraits::minus(t);
       case UMinus::Real: return RealTraits::minus(t);
       case UMinus::None: return t;
+      default:
+        ASSERTION_VIOLATION;
     }
     ASSERTION_VIOLATION
   };

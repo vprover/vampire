@@ -1,7 +1,4 @@
-
 /*
- * File LiteralIndex.cpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -14,6 +11,8 @@
  * @file LiteralIndex.cpp
  * Implements class LiteralIndex.
  */
+
+#include "Inferences/InductionHelper.hpp"
 
 #include "Kernel/Clause.hpp"
 #include "Kernel/LiteralComparators.hpp"
@@ -404,6 +403,26 @@ void DismatchingLiteralIndex::addLiteral(Literal* l)
   CALL("DismatchingLiteralIndex::addLiteral");
   //TODO is it safe to pass 0 here?
   handleLiteral(l,0,true);
+}
+
+void UnitIntegerComparisonLiteralIndex::handleClause(Clause* c, bool adding)
+{
+  CALL("UnitIntegerComparisonLiteralIndex::handleClause");
+
+  TimeCounter tc(TC_UNIT_INTEGER_COMPARISON_INDEX_MAINTENANCE);
+  
+  if (!Inferences::InductionHelper::isIntegerComparison(c)) {
+    return;
+  }
+
+  Literal* lit = (*c)[0];
+  ASS(lit != nullptr);
+
+  if (adding) {
+    _is->insert(lit, c);
+  } else {
+    _is->remove(lit, c);
+  }
 }
 
 }

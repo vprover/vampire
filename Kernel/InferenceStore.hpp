@@ -1,7 +1,4 @@
-
 /*
- * File InferenceStore.hpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -79,6 +76,7 @@ public:
   void recordIntroducedSymbol(Unit* u, bool func, unsigned number);
   void recordIntroducedSplitName(Unit* u, vstring name);
 
+  void outputUnsatCore(ostream& out, Unit* refutation);
   void outputProof(ostream& out, Unit* refutation);
   void outputProof(ostream& out, UnitList* units);
 

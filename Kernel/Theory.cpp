@@ -1,7 +1,4 @@
-
 /*
- * File Theory.cpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -456,6 +453,7 @@ void RationalConstantType::cannonize()
     _den = 1;
     return;
   }
+
   // now it's safe to treat this unsigned as signed
   ASS_LE(gcd,(unsigned)numeric_limits<signed>::max());
   if (gcd!=1) {
@@ -982,7 +980,7 @@ bool Theory::isPolymorphic(Interpretation i)
  * This function can be called for operations for which  the
  * function @c hasSingleSort returns true
  */
-unsigned Theory::getOperationSort(Interpretation i)
+TermList Theory::getOperationSort(Interpretation i)
 {
   CALL("Theory::getOperationSort");
 
@@ -1017,7 +1015,7 @@ unsigned Theory::getOperationSort(Interpretation i)
   case INT_IS_INT:
   case INT_IS_RAT:
   case INT_IS_REAL:
-    return Sorts::SRT_INTEGER;
+    return Term::intSort();
 
   case RAT_UNARY_MINUS:
   case RAT_PLUS:
@@ -1043,7 +1041,7 @@ unsigned Theory::getOperationSort(Interpretation i)
   case RAT_IS_INT:
   case RAT_IS_RAT:
   case RAT_IS_REAL:
-    return Sorts::SRT_RATIONAL;
+    return Term::rationalSort();
 
   case REAL_UNARY_MINUS:
   case REAL_PLUS:
@@ -1069,8 +1067,8 @@ unsigned Theory::getOperationSort(Interpretation i)
   case REAL_IS_INT:
   case REAL_IS_RAT:
   case REAL_IS_REAL:
-    return Sorts::SRT_REAL;
-
+    return Term::realSort();
+    
   default:
     ASSERTION_VIOLATION;
   }
@@ -1268,37 +1266,35 @@ bool Theory::partiallyDefinedFunctionUndefinedForArgs(Term* t) {
  *
  * We want to have this function available e.g. in simplification rules.
  */
-unsigned Theory::getArrayExtSkolemFunction(unsigned sort) {
+unsigned Theory::getArrayExtSkolemFunction(TermList sort) {
+  CALL("Theory::getArrayExtSkolemFunction")
+  ASS(SortHelper::isArraySort(sort));
 
   if(_arraySkolemFunctions.find(sort)){
     return _arraySkolemFunctions.get(sort);
   }
 
-  Sorts::ArraySort* arraySort = env.sorts->getArraySort(sort);
-
-  unsigned indexSort = arraySort->getIndexSort();
-  unsigned params[] = {sort, sort};
-  unsigned skolemFunction = Shell::Skolem::addSkolemFunction(2, params, indexSort, "arrayDiff");
+  TermList indexSort = SortHelper::getIndexSort(sort);
+  TermList params[] = {sort, sort};
+  unsigned skolemFunction = Shell::Skolem::addSkolemFunction(2, 0, params, indexSort, "arrayDiff");
 
   _arraySkolemFunctions.insert(sort,skolemFunction);
 
   return skolemFunction; 
 }
 
-unsigned Theory::Tuples::getFunctor(unsigned arity, unsigned* sorts) {
+unsigned Theory::Tuples::getFunctor(unsigned arity, TermList* sorts) {
   CALL("Theory::Tuples::getFunctor(unsigned arity, unsigned* sorts)");
-  return getFunctor(env.sorts->addTupleSort(arity, sorts));
+  return getFunctor(Term::tupleSort(arity, sorts));
 }
 
-unsigned Theory::Tuples::getFunctor(unsigned tupleSort) {
+unsigned Theory::Tuples::getFunctor(TermList tupleSort) {
   CALL("Theory::Tuples::getFunctor(unsigned tupleSort)");
 
-  ASS_REP(env.sorts->isOfStructuredSort(tupleSort, Sorts::StructuredSort::TUPLE),
-          env.sorts->sortName(tupleSort));
+  ASS_REP(SortHelper::isTupleSort(tupleSort), tupleSort.toString());
 
-  Sorts::TupleSort* tuple = env.sorts->getTupleSort(tupleSort);
-  unsigned  arity = tuple->arity();
-  unsigned* sorts = tuple->sorts();
+  unsigned  arity = tupleSort.term()->arity();
+  TermList* sorts = tupleSort.term()->args();
 
   theory->defineTupleTermAlgebra(arity, sorts);
   ASS(env.signature->isTermAlgebraSort(tupleSort));
@@ -1309,19 +1305,17 @@ unsigned Theory::Tuples::getFunctor(unsigned tupleSort) {
 
 bool Theory::Tuples::isFunctor(unsigned functor) {
   CALL("Theory::Tuples::isFunctor(unsigned)");
-  unsigned tupleSort = env.signature->getFunction(functor)->fnType()->result();
-  return env.sorts->isOfStructuredSort(tupleSort, Sorts::StructuredSort::TUPLE);
+  TermList tupleSort = env.signature->getFunction(functor)->fnType()->result();
+  return SortHelper::isTupleSort(tupleSort);
 }
 
-unsigned Theory::Tuples::getProjectionFunctor(unsigned proj, unsigned tupleSort) {
+unsigned Theory::Tuples::getProjectionFunctor(unsigned proj, TermList tupleSort) {
   CALL("Theory::Tuples::getProjectionFunctor");
 
-  ASS_REP(env.sorts->isOfStructuredSort(tupleSort, Sorts::StructuredSort::TUPLE),
-          env.sorts->sortName(tupleSort));
+  ASS_REP(SortHelper::isTupleSort(tupleSort), tupleSort.toString());
 
-  Sorts::TupleSort* tuple = env.sorts->getTupleSort(tupleSort);
-  unsigned  arity = tuple->arity();
-  unsigned* sorts = tuple->sorts();
+  unsigned  arity = tupleSort.term()->arity();
+  TermList* sorts = tupleSort.term()->args();
 
   theory->defineTupleTermAlgebra(arity, sorts);
   ASS(env.signature->isTermAlgebraSort(tupleSort));
@@ -1345,9 +1339,9 @@ bool Theory::Tuples::findProjection(unsigned projFunctor, bool isPredicate, unsi
     return false;
   }
 
-  unsigned tupleSort = projType->arg(0);
+  TermList tupleSort = projType->arg(0);
 
-  if (!env.sorts->isOfStructuredSort(tupleSort, Sorts::StructuredSort::TUPLE)) {
+  if (!SortHelper::isTupleSort(tupleSort)) {
     return false;
   }
 
@@ -1376,31 +1370,31 @@ OperatorType* Theory::getConversionOperationType(Interpretation i)
 {
   CALL("Theory::getConversionOperationType");
 
-  unsigned from, to;
+  TermList from, to;
   switch(i) {
   case INT_TO_RAT:
-    from = Sorts::SRT_INTEGER;
-    to = Sorts::SRT_RATIONAL;
+    from = Term::intSort();
+    to = Term::rationalSort();
     break;
   case INT_TO_REAL:
-    from = Sorts::SRT_INTEGER;
-    to = Sorts::SRT_REAL;
+    from = Term::intSort();
+    to = Term::realSort();
     break;
   case RAT_TO_INT:
-    from = Sorts::SRT_RATIONAL;
-    to = Sorts::SRT_INTEGER;
+    from = Term::rationalSort();
+    to = Term::intSort();
     break;
   case RAT_TO_REAL:
-    from = Sorts::SRT_RATIONAL;
-    to = Sorts::SRT_REAL;
+    from = Term::rationalSort();
+    to = Term::realSort();
     break;
   case REAL_TO_INT:
-    from = Sorts::SRT_REAL;
-    to = Sorts::SRT_INTEGER;
+    from = Term::realSort();
+    to = Term::intSort();
     break;
   case REAL_TO_RAT:
-    from = Sorts::SRT_REAL;
-    to = Sorts::SRT_RATIONAL;
+    from = Term::realSort();
+    to = Term::rationalSort();
     break;
   default:
     ASSERTION_VIOLATION;
@@ -1524,13 +1518,12 @@ vstring Theory::getInterpretationName(Interpretation interp) {
   }
 }
 
-OperatorType* Theory::getArrayOperatorType(unsigned arraySort, Interpretation i) {
+OperatorType* Theory::getArrayOperatorType(TermList arraySort, Interpretation i) {
   CALL("Theory::getArrayOperatorType");
+  ASS(SortHelper::isArraySort(arraySort));
 
-  Sorts::ArraySort* info = env.sorts->getArraySort(arraySort);
-
-  unsigned indexSort = info->getIndexSort();
-  unsigned innerSort = info->getInnerSort();
+  TermList indexSort = SortHelper::getIndexSort(arraySort);
+  TermList innerSort = SortHelper::getInnerSort(arraySort);
 
   switch (i) {
     case Interpretation::ARRAY_SELECT:
@@ -1559,13 +1552,12 @@ OperatorType* Theory::getNonpolymorphicOperatorType(Interpretation i)
     return getConversionOperationType(i);
   }
 
-  unsigned sort;
   ASS(hasSingleSort(i));
-  sort = getOperationSort(i);
+  TermList sort = getOperationSort(i);
 
   unsigned arity = getArity(i);
 
-  static DArray<unsigned> domainSorts;
+  static DArray<TermList> domainSorts;
   domainSorts.init(arity, sort);
 
   if (isFunction(i)) {
@@ -1575,10 +1567,10 @@ OperatorType* Theory::getNonpolymorphicOperatorType(Interpretation i)
   }
 }
 
-void Theory::defineTupleTermAlgebra(unsigned arity, unsigned* sorts) {
+void Theory::defineTupleTermAlgebra(unsigned arity, TermList* sorts) {
   CALL("Signature::defineTupleTermAlgebra");
 
-  unsigned tupleSort = env.sorts->addTupleSort(arity, sorts);
+  TermList tupleSort = Term::tupleSort(arity, sorts);
 
   if (env.signature->isTermAlgebraSort(tupleSort)) {
     return;
@@ -1591,10 +1583,10 @@ void Theory::defineTupleTermAlgebra(unsigned arity, unsigned* sorts) {
 
   Array<unsigned> destructors(arity);
   for (unsigned i = 0; i < arity; i++) {
-    unsigned projSort = sorts[i];
+    TermList projSort = sorts[i];
     unsigned destructor;
     Signature::Symbol* destSym;
-    if (projSort == Sorts::SRT_BOOL) {
+    if (projSort == Term::boolSort()) {
       destructor = env.signature->addFreshPredicate(1, "proj");
       destSym = env.signature->getPredicate(destructor);
       destSym->setType(OperatorType::getPredicateType({ tupleSort }));
@@ -1683,11 +1675,26 @@ bool Theory::isInterpretedEquality(Literal* lit)
 {
   CALL("Theory::isInterpretedEquality");
 
-  ASS(lit->isEquality())
-  unsigned srt = SortHelper::getEqualityArgumentSort(lit);
-  // TODO should this return true for datatypes, arrays, etc?
-  return (srt == Sorts::SRT_INTEGER || srt == Sorts::SRT_RATIONAL || srt == Sorts::SRT_REAL);
+  if(lit->isEquality()){
+    TermList srt = SortHelper::getEqualityArgumentSort(lit);
+    // TODO should this return true for datatypes, arrays, etc?
+    return (srt == Term::intSort() || srt == Term::realSort() || srt == Term::rationalSort());
+  } else {
+    return false;
+  }
 }
+
+/**
+ * Return true iff @b lit has an interpreted predicate interpreted
+ * as @b itp
+ */
+bool Theory::isInterpretedPredicate(Literal* lit)
+{
+  CALL("Theory::isInterpretedPredicate/1");
+
+  return env.signature->getPredicate(lit->functor())->interpreted();
+}
+
 
 /**
  * Return true iff @b lit has an interpreted predicate interpreted
@@ -1697,8 +1704,7 @@ bool Theory::isInterpretedPredicate(Literal* lit, Interpretation itp)
 {
   CALL("Theory::isInterpretedPredicate/2");
 
-  return env.signature->getPredicate(lit->functor())->interpreted() &&
-      interpretPredicate(lit)==itp;
+  return isInterpretedPredicate(lit) && interpretPredicate(lit)==itp;
 }
 
 bool Theory::isInterpretedFunction(unsigned func)
@@ -1711,16 +1717,6 @@ bool Theory::isInterpretedFunction(unsigned func)
 
   return env.signature->getFunction(func)->interpreted() && env.signature->functionArity(func)!=0;
 }
-// bool Theory::isInterpretedPartialFunction(unsigned func)
-// {
-//   CALL("Theory::isInterpretedPartialFunction(unsigned)");
-//
-//   if(!isInterpretedFunction(func)){ return false; }
-//
-//   bool result =  isPartialFunction(interpretFunction(func));
-//   ASS(!result || env.signature->functionArity(func)==2);
-//   return result;
-// }
 
 bool Theory::isZero(TermList term)
 {
@@ -2009,6 +2005,94 @@ void Theory::registerLaTeXFuncName(unsigned func, vstring temp)
   _funcLaTeXnames.insert(func,temp);
 }
 
+std::ostream& operator<<(std::ostream& out, Kernel::Theory::Interpretation const& self)
+{
+  switch(self) {
+    case Kernel::Theory::EQUAL: return out << "EQUAL";
+    case Kernel::Theory::INT_IS_INT: return out << "INT_IS_INT";
+    case Kernel::Theory::INT_IS_RAT: return out << "INT_IS_RAT";
+    case Kernel::Theory::INT_IS_REAL: return out << "INT_IS_REAL";
+    case Kernel::Theory::INT_GREATER: return out << "INT_GREATER";
+    case Kernel::Theory::INT_GREATER_EQUAL: return out << "INT_GREATER_EQUAL";
+    case Kernel::Theory::INT_LESS: return out << "INT_LESS";
+    case Kernel::Theory::INT_LESS_EQUAL: return out << "INT_LESS_EQUAL";
+    case Kernel::Theory::INT_DIVIDES: return out << "INT_DIVIDES";
+    case Kernel::Theory::RAT_IS_INT: return out << "RAT_IS_INT";
+    case Kernel::Theory::RAT_IS_RAT: return out << "RAT_IS_RAT";
+    case Kernel::Theory::RAT_IS_REAL: return out << "RAT_IS_REAL";
+    case Kernel::Theory::RAT_GREATER: return out << "RAT_GREATER";
+    case Kernel::Theory::RAT_GREATER_EQUAL: return out << "RAT_GREATER_EQUAL";
+    case Kernel::Theory::RAT_LESS: return out << "RAT_LESS";
+    case Kernel::Theory::RAT_LESS_EQUAL: return out << "RAT_LESS_EQUAL";
+    case Kernel::Theory::REAL_IS_INT: return out << "REAL_IS_INT";
+    case Kernel::Theory::REAL_IS_RAT: return out << "REAL_IS_RAT";
+    case Kernel::Theory::REAL_IS_REAL: return out << "REAL_IS_REAL";
+    case Kernel::Theory::REAL_GREATER: return out << "REAL_GREATER";
+    case Kernel::Theory::REAL_GREATER_EQUAL: return out << "REAL_GREATER_EQUAL";
+    case Kernel::Theory::REAL_LESS: return out << "REAL_LESS";
+    case Kernel::Theory::REAL_LESS_EQUAL: return out << "REAL_LESS_EQUAL";
+    case Kernel::Theory::INT_SUCCESSOR: return out << "INT_SUCCESSOR";
+    case Kernel::Theory::INT_UNARY_MINUS: return out << "INT_UNARY_MINUS";
+    case Kernel::Theory::INT_PLUS: return out << "INT_PLUS";
+    case Kernel::Theory::INT_MINUS: return out << "INT_MINUS";
+    case Kernel::Theory::INT_MULTIPLY: return out << "INT_MULTIPLY";
+    case Kernel::Theory::INT_QUOTIENT_E: return out << "INT_QUOTIENT_E";
+    case Kernel::Theory::INT_QUOTIENT_T: return out << "INT_QUOTIENT_T";
+    case Kernel::Theory::INT_QUOTIENT_F: return out << "INT_QUOTIENT_F";
+    case Kernel::Theory::INT_REMAINDER_E: return out << "INT_REMAINDER_E";
+    case Kernel::Theory::INT_REMAINDER_T: return out << "INT_REMAINDER_T";
+    case Kernel::Theory::INT_REMAINDER_F: return out << "INT_REMAINDER_F";
+    case Kernel::Theory::INT_FLOOR: return out << "INT_FLOOR";
+    case Kernel::Theory::INT_CEILING: return out << "INT_CEILING";
+    case Kernel::Theory::INT_TRUNCATE: return out << "INT_TRUNCATE";
+    case Kernel::Theory::INT_ROUND: return out << "INT_ROUND";
+    case Kernel::Theory::INT_ABS: return out << "INT_ABS";
+    case Kernel::Theory::RAT_UNARY_MINUS: return out << "RAT_UNARY_MINUS";
+    case Kernel::Theory::RAT_PLUS: return out << "RAT_PLUS";
+    case Kernel::Theory::RAT_MINUS: return out << "RAT_MINUS";
+    case Kernel::Theory::RAT_MULTIPLY: return out << "RAT_MULTIPLY";
+    case Kernel::Theory::RAT_QUOTIENT: return out << "RAT_QUOTIENT";
+    case Kernel::Theory::RAT_QUOTIENT_E: return out << "RAT_QUOTIENT_E";
+    case Kernel::Theory::RAT_QUOTIENT_T: return out << "RAT_QUOTIENT_T";
+    case Kernel::Theory::RAT_QUOTIENT_F: return out << "RAT_QUOTIENT_F";
+    case Kernel::Theory::RAT_REMAINDER_E: return out << "RAT_REMAINDER_E";
+    case Kernel::Theory::RAT_REMAINDER_T: return out << "RAT_REMAINDER_T";
+    case Kernel::Theory::RAT_REMAINDER_F: return out << "RAT_REMAINDER_F";
+    case Kernel::Theory::RAT_FLOOR: return out << "RAT_FLOOR";
+    case Kernel::Theory::RAT_CEILING: return out << "RAT_CEILING";
+    case Kernel::Theory::RAT_TRUNCATE: return out << "RAT_TRUNCATE";
+    case Kernel::Theory::RAT_ROUND: return out << "RAT_ROUND";
+    case Kernel::Theory::REAL_UNARY_MINUS: return out << "REAL_UNARY_MINUS";
+    case Kernel::Theory::REAL_PLUS: return out << "REAL_PLUS";
+    case Kernel::Theory::REAL_MINUS: return out << "REAL_MINUS";
+    case Kernel::Theory::REAL_MULTIPLY: return out << "REAL_MULTIPLY";
+    case Kernel::Theory::REAL_QUOTIENT: return out << "REAL_QUOTIENT";
+    case Kernel::Theory::REAL_QUOTIENT_E: return out << "REAL_QUOTIENT_E";
+    case Kernel::Theory::REAL_QUOTIENT_T: return out << "REAL_QUOTIENT_T";
+    case Kernel::Theory::REAL_QUOTIENT_F: return out << "REAL_QUOTIENT_F";
+    case Kernel::Theory::REAL_REMAINDER_E: return out << "REAL_REMAINDER_E";
+    case Kernel::Theory::REAL_REMAINDER_T: return out << "REAL_REMAINDER_T";
+    case Kernel::Theory::REAL_REMAINDER_F: return out << "REAL_REMAINDER_F";
+    case Kernel::Theory::REAL_FLOOR: return out << "REAL_FLOOR";
+    case Kernel::Theory::REAL_CEILING: return out << "REAL_CEILING";
+    case Kernel::Theory::REAL_TRUNCATE: return out << "REAL_TRUNCATE";
+    case Kernel::Theory::REAL_ROUND: return out << "REAL_ROUND";
+    case Kernel::Theory::INT_TO_INT: return out << "INT_TO_INT";
+    case Kernel::Theory::INT_TO_RAT: return out << "INT_TO_RAT";
+    case Kernel::Theory::INT_TO_REAL: return out << "INT_TO_REAL";
+    case Kernel::Theory::RAT_TO_INT: return out << "RAT_TO_INT";
+    case Kernel::Theory::RAT_TO_RAT: return out << "RAT_TO_RAT";
+    case Kernel::Theory::RAT_TO_REAL: return out << "RAT_TO_REAL";
+    case Kernel::Theory::REAL_TO_INT: return out << "REAL_TO_INT";
+    case Kernel::Theory::REAL_TO_RAT: return out << "REAL_TO_RAT";
+    case Kernel::Theory::REAL_TO_REAL: return out << "REAL_TO_REAL";
+    case Kernel::Theory::ARRAY_SELECT: return out << "ARRAY_SELECT";
+    case Kernel::Theory::ARRAY_BOOL_SELECT: return out << "ARRAY_BOOL_SELECT";
+    case Kernel::Theory::ARRAY_STORE: return out << "ARRAY_STORE";
+    case Kernel::Theory::INVALID_INTERPRETATION: return out << "INVALID_INTERPRETATION";
+  }
+  ASSERTION_VIOLATION
+}
 /**
  * We try and get a LaTeX special name for an interpeted function/predicate.
  * Note: the functions may not necessarily be interpreted in the sense that we treat
@@ -2127,22 +2211,4 @@ size_t RealConstantType::hash() const {
 }
 
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 

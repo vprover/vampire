@@ -1,4 +1,3 @@
-![GitHub Workflow Status (branch)](https://img.shields.io/github/workflow/status/vprover/vampire/CI/master)
 ![GitHub release (latest by date)](https://img.shields.io/github/v/release/vprover/vampire)
 
 # Vampire
@@ -71,4 +70,5 @@ $
 
 ### Build Configuration
 * Vampire can be statically linked, with e.g. `cmake /path/to/vampire -DBUILD_SHARED_LIBS=0`
+* To compile Vampire in debug mode, add `-DCMAKE_BUILD_TYPE=Debug` to the cmake call.
 * You may find setting a CMake installation directory (e.g. with `cmake /path/to/vampire -DCMAKE_INSTALL_PREFIX=/opt/vampire`) helpful.

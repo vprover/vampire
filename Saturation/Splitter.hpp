@@ -1,7 +1,4 @@
-
 /*
- * File Splitter.hpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -81,6 +78,8 @@ _solver=0;
   void flush(SplitLevelStack& addedComps, SplitLevelStack& removedComps);
 
 private:
+  friend class Splitter;
+
   SATSolver::Status processDPConflicts();
   SATSolver::VarAssignment getSolverAssimentConsideringCCModel(unsigned var);
 
@@ -213,7 +212,7 @@ public:
 
   SAT2FO& satNaming() { return _sat2fo; }
 
-  UnitList* explicateAssertionsForSaturatedClauseSet(UnitList* clauses);
+  UnitList* preprendCurrentlyAssumedComponentClauses(UnitList* clauses);
   static bool getComponents(Clause* cl, Stack<LiteralStack>& acc);
 private:
   friend class SplittingBranchSelector;
@@ -290,7 +289,9 @@ private:
   bool _clausesAdded;
   /** true if there was a refutation added to the SAT solver */
   bool _haveBranchRefutation;
-    
+
+  unsigned _stopSplittingAt; // time elapsed in milliseconds
+
   bool _fastRestart; // option's value copy
   /**
    * We are postponing to consider these clauses for a split 

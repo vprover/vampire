@@ -1,7 +1,4 @@
-
 /*
- * File Signature.cpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -19,6 +16,7 @@
 #include "Lib/Int.hpp"
 #include "Shell/Options.hpp"
 #include "Shell/DistinctGroupExpansion.hpp"
+#include "Kernel/SortHelper.hpp"
 
 #include "Signature.hpp"
 
@@ -33,9 +31,15 @@ const unsigned Signature::STRING_DISTINCT_GROUP = 0;
  * @since 03/05/2013 train London-Manchester, argument numericConstant added
  * @author Andrei Voronkov
  */
-Signature::Symbol::Symbol(const vstring& nm,unsigned arity, bool interpreted, bool stringConstant,bool numericConstant, bool overflownConstant)
+Signature::Symbol::Symbol(const vstring& nm, unsigned arity, bool interpreted, bool stringConstant,bool numericConstant,
+                          bool overflownConstant, bool super)
   : _name(nm),
     _arity(arity),
+    _typeArgsArity(0),
+    _type(0),
+    _distinctGroups(0),
+    _usageCount(0),
+    _unitUsageCount(0),
     _interpreted(interpreted ? 1 : 0),
     _introduced(0),
     _protected(0),
@@ -49,19 +53,26 @@ Signature::Symbol::Symbol(const vstring& nm,unsigned arity, bool interpreted, bo
     _overflownConstant(overflownConstant ? 1 : 0),
     _termAlgebraCons(0),
     _termAlgebraDest(0),
-    _type(0),
-    _distinctGroups(0),
-    _usageCount(0),
-    _unitUsageCount(0),
     _inGoal(0),
     _inUnit(0),
     _inductionSkolem(0),
-    _skolem(0)
+    _skolem(0),
+    _arrow(0),
+    _app(0),
+    _tuple(0),
+    _array(0),
+    _superSort(super),
+    _boolSort(0),
+    _defaultSort(0),
+    _typeConstructor(0),
+    _prox(NOT_PROXY),
+    _comb(NOT_COMB)
 {
   CALL("Signature::Symbol::Symbol");
   ASS(!stringConstant || arity==0);
 
-  if (!stringConstant && !numericConstant && !overflownConstant && symbolNeedsQuoting(_name, interpreted,arity)) {
+  if (!stringConstant && !numericConstant && !overflownConstant && !super &&
+       symbolNeedsQuoting(_name, interpreted,arity)) {
     _name="'"+_name+"'";
   }
   if (_interpreted || isProtectedName(nm)) {
@@ -147,9 +158,13 @@ void Signature::Symbol::addToDistinctGroup(unsigned group,unsigned this_number)
 void Signature::Symbol::setType(OperatorType* type)
 {
   CALL("Signature::Symbol::setType");
-  ASS(!_type);
+  ASS_REP(!_type, _type->toString());
 
   _type = type;
+
+  // these are copied out to the Symbol for convenience
+  _typeConstructor = (type->result() == Term::superSort());
+  _typeArgsArity = type->typeArgsArity(); 
 }
 
 /**
@@ -173,9 +188,11 @@ void Signature::Symbol::forceType(OperatorType* type)
 OperatorType* Signature::Symbol::fnType() const
 {
   CALL("Signature::Symbol::fnType");
+  ASS(!super());
 
   if (!_type) {
-    _type = OperatorType::getFunctionType(arity(), (unsigned*)0, Sorts::SRT_DEFAULT);
+    TermList def = Term::defaultSort();
+    _type = OperatorType::getFunctionTypeUniformRange(arity(), def, def);
   }
   return _type;
 }
@@ -189,9 +206,10 @@ OperatorType* Signature::Symbol::fnType() const
 OperatorType* Signature::Symbol::predType() const
 {
   CALL("Signature::Symbol::predType");
-
+  
   if (!_type) {
-    _type = OperatorType::getPredicateType(arity(), (unsigned*)0);
+    TermList def = Term::defaultSort();
+    _type = OperatorType::getPredicateTypeUniformRange(arity(), def);
   }
   return _type;
 }
@@ -217,15 +235,31 @@ Signature::Signature ():
 {
   CALL("Signature::Signature");
 
-  // initialize equality
-  addInterpretedPredicate(Theory::EQUAL, OperatorType::getPredicateType(2), "=");
-  ASS_EQ(predicateName(0), "="); //equality must have number 0
+  /*bool added;
+  addPredicate("=", 2, added);
+  ASS(added);
+  ASS_EQ(predicateName(0), "=");
   getPredicate(0)->markSkip();
+  getPredicate(0)->markProtected();*/
 
   unsigned aux;
   aux = createDistinctGroup();
   ASS_EQ(STRING_DISTINCT_GROUP, aux);
 } // Signature::Signature
+
+/* adding equality predicate used to be carried out in the constructor
+ * however now that sorts are TermLists, this involves a call to Signature
+ * from Term::defaultSort before the Signature has been consstucted. hence
+ * the function below
+ */
+void Signature::addEquality()
+{
+  CALL("Signature::addEquality");
+  // initialize equality
+  addInterpretedPredicate(Theory::EQUAL, OperatorType::getPredicateType(2), "=");
+  ASS_EQ(predicateName(0), "="); //equality must have number 0
+  getPredicate(0)->markSkip();
+}
 
 /**
  * Destroy a Signature.
@@ -419,7 +453,7 @@ unsigned Signature::addInterpretedFunction(Interpretation interpretation, Operat
   }
 
   vstring symbolKey = name+"_i"+Int::toString(interpretation)+(Theory::isPolymorphic(interpretation) ? type->toString() : "");
-  ASS(!_funNames.find(symbolKey));
+  ASS_REP(!_funNames.find(symbolKey), name);
 
   unsigned fnNum = _funs.length();
   InterpretedSymbol* sym = new InterpretedSymbol(name, interpretation);
@@ -457,7 +491,7 @@ unsigned Signature::addInterpretedPredicate(Interpretation interpretation, Opera
 
   // cout << "symbolKey " << symbolKey << endl;
 
-  ASS(!_predNames.find(symbolKey));
+  ASS_REP(!_predNames.find(symbolKey), symbolKey);
 
   unsigned predNum = _preds.length();
   InterpretedSymbol* sym = new InterpretedSymbol(name, interpretation);
@@ -633,9 +667,13 @@ unsigned Signature::addFunction (const vstring& name,
     }
     _arityCheck.insert(name,2*arity+1);
   }
-
+  
+  /*if(name == "$tType"){
+    ASSERTION_VIOLATION;
+  }*/
   result = _funs.length();
-  _funs.push(new Symbol(name, arity, false, false, false, overflowConstant));
+  bool super = (name == "$tType");
+  _funs.push(new Symbol(name, arity, false, false, false, overflowConstant, super));
   _funNames.insert(symbolKey, result);
   added = true;
   return result;
@@ -665,6 +703,101 @@ unsigned Signature::addStringConstant(const vstring& name)
   _funNames.insert(symbolKey,result);
   return result;
 } // addStringConstant
+
+
+unsigned Signature::getApp()
+{
+  CALL("Signature::getApp");
+
+  bool added = false;
+  unsigned app = addFunction("vAPP", 4, added);
+  if(added){
+    TermList tv1 = TermList(0, false);
+    TermList tv2 = TermList(1, false);
+    TermList arrowType = Term::arrowSort(tv1, tv2);
+    OperatorType* ot = OperatorType::getFunctionType({arrowType, tv1}, tv2, 2);
+    Symbol* sym = getFunction(app);
+    sym->setType(ot);
+    sym->markApp();
+  }
+  return app;
+}
+
+unsigned Signature::getDiff(){
+  CALL("Signature::getDiff");
+
+  bool added = false;
+  unsigned diff = addFunction("diff",2, added);      
+  if(added){
+    TermList alpha = TermList(0, false);
+    TermList beta = TermList(1, false);
+    TermList alphaBeta = Term::arrowSort(alpha, beta);
+    TermList result = Term::arrowSort(alphaBeta, alphaBeta, alpha);
+    Symbol * sym = getFunction(diff);
+    sym->setType(OperatorType::getConstantsType(result, 2));
+  }
+  return diff;
+}
+
+
+unsigned Signature::getChoice(){
+  CALL("Signature::getChoice");
+
+  bool added = false;
+  unsigned choice = addFunction("vEPSILON",1, added);      
+  if(added){
+    TermList alpha = TermList(0, false);
+    TermList bs = Term::boolSort();
+    TermList alphaBs = Term::arrowSort(alpha, bs);
+    TermList result = Term::arrowSort(alphaBs, alpha);
+    Symbol * sym = getFunction(choice);
+    sym->setType(OperatorType::getConstantsType(result, 1));
+  }
+  return choice;
+}
+
+void Signature::incrementFormulaCount(Term* t){
+  CALL("Signature::incrementFormulaCount");
+  ASS(SortHelper::getResultSort(t) == Term::boolSort());
+
+  if(_formulaCounts.find(t)){
+    int count =  _formulaCounts.get(t);
+    if(count != -1){
+      _formulaCounts.set(t, count + 1);
+    }
+  } else {
+    _formulaCounts.set(t, 1);
+  }
+}
+
+void Signature::decrementFormulaCount(Term* t){
+  CALL("Signature::incrementFormulaCount");
+  ASS(SortHelper::getResultSort(t) == Term::boolSort());
+
+  ASS(_formulaCounts.find(t))
+  int count = _formulaCounts.get(t);
+  if(count != -1){
+    _formulaCounts.set(t, count - 1);
+  }
+}
+
+void Signature::formulaNamed(Term* t){
+  CALL("Signature::formulaNamed");
+  ASS(SortHelper::getResultSort(t) == Term::boolSort());
+
+  ASS(_formulaCounts.find(t));
+  _formulaCounts.set(t, -1);
+}
+
+unsigned Signature::formulaCount(Term* t){
+  CALL("Signature::formulaCount");
+  
+  if(_formulaCounts.find(t)){
+    return _formulaCounts.get(t);
+  }
+  return 0;
+}
+
 
 /**
  * If a predicate with this name and arity exists, return its number.
@@ -722,6 +855,12 @@ unsigned Signature::addNamePredicate(unsigned arity)
   return addFreshPredicate(arity,"sP");
 } // addNamePredicate
 
+
+unsigned Signature::addNameFunction(unsigned arity)
+{
+  CALL("Signature::addNameFunction");
+  return addFreshFunction(arity,"sP");
+} // addNamePredicate
 /**
  * Add fresh function of a given arity and with a given prefix. If suffix is non-zero,
  * the function name will be prefixI, where I is an integer, otherwise it will be
@@ -797,7 +936,7 @@ unsigned Signature::addSkolemFunction (unsigned arity, const char* suffix)
   getFunction(f)->markSkolem();
 
   // Register it as a LaTeX function
-  theory->registerLaTeXFuncName(f,"\\sigma_{"+Int::toString(_skolemFunctionCount)+"}(a0)");
+ // theory->registerLaTeXFuncName(f,"\\sigma_{"+Int::toString(_skolemFunctionCount)+"}(a0)");
   _skolemFunctionCount++;
 
   return f;
@@ -816,7 +955,7 @@ unsigned Signature::addSkolemPredicate(unsigned arity, const char* suffix)
   getPredicate(f)->markSkolem();
 
   // Register it as a LaTeX function
-  theory->registerLaTeXFuncName(f,"\\sigma_{"+Int::toString(_skolemFunctionCount)+"}(a0)");
+ // theory->registerLaTeXFuncName(f,"\\sigma_{"+Int::toString(_skolemFunctionCount)+"}(a0)");
   _skolemFunctionCount++;
 
   return f;
@@ -937,6 +1076,14 @@ bool Signature::symbolNeedsQuoting(vstring name, bool interpreted, unsigned arit
   CALL("Signature::symbolNeedsQuoting");
   ASS_G(name.length(),0);
 
+  //we don't want to quote these type constructors, but we
+  //also don't want them to be treated as interpreted symbols
+  //hence the hack below, AYB
+  if(name=="$int" || name=="$real" || name=="$rat" || 
+     name=="$i" || name=="$o" || name==">"){
+    return false;
+  }
+
   if (name=="=" || (interpreted && arity==0)) {
     return false;
   }
@@ -948,8 +1095,7 @@ bool Signature::symbolNeedsQuoting(vstring name, bool interpreted, unsigned arit
     if (*(c+1)=='$') {
       c+=2; //skip the initial $$
       first = false;
-    }
-    else if (interpreted) {
+    } else if (interpreted) {
       c++; //skip the initial $ for interpreted
       first = false;
     }
@@ -970,6 +1116,7 @@ bool Signature::symbolNeedsQuoting(vstring name, bool interpreted, unsigned arit
   }
   return true;
 } // Signature::symbolNeedsQuoting
+
 
 TermAlgebraConstructor* Signature::getTermAlgebraConstructor(unsigned functor)
 {

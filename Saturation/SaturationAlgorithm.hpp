@@ -1,7 +1,4 @@
-
 /*
- * File SaturationAlgorithm.hpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -74,6 +71,7 @@ public:
   void setLabelFinder(LabelFinder* finder){ _labelFinder = finder; }
 
   void addForwardSimplifierToFront(ForwardSimplificationEngine* fwSimplifier);
+  void addSimplifierToFront(SimplificationEngine* simplifier);
   void addBackwardSimplifierToFront(BackwardSimplificationEngine* bwSimplifier);
 
 
@@ -82,8 +80,12 @@ public:
 
   void removeActiveOrPassiveClause(Clause* cl);
 
-  void onClauseReduction(Clause* cl, Clause* replacement, Clause* premise, bool forward=true);
-  void onClauseReduction(Clause* cl, Clause* replacement, ClauseIterator premises,
+  //Run when clause cl has been simplified. Replacement is the array of replacing
+  //clauses which can be empty
+  void onClauseReduction(Clause* cl, Clause** replacements, unsigned numOfReplacements, 
+                         Clause* premise, bool forward=true);
+  void onClauseReduction(Clause* cl, Clause** replacements, unsigned numOfReplacements, 
+                         ClauseIterator premises,
       bool forward=true);
   void onNonRedundantClause(Clause* c);
   void onParenthood(Clause* cl, Clause* parent);
@@ -187,6 +189,13 @@ protected:
 
   typedef List<ForwardSimplificationEngine*> FwSimplList;
   FwSimplList* _fwSimplifiers;
+
+  //Simplification occurs at the same point in the loop
+  //as forward and backward simplification, but does not involve
+  //clauses in active. At the moment, the only simplification inference
+  //is the higher-order cnfOnTheFly
+  typedef List<SimplificationEngine*> SimplList;
+  SimplList* _simplifiers;
 
   typedef List<BackwardSimplificationEngine*> BwSimplList;
   BwSimplList* _bwSimplifiers;

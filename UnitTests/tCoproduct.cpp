@@ -1,15 +1,12 @@
-
-  /*
-   * File tCoproduct.cpp.
-   *
-   * This file is part of the source code of the software program
-   * Vampire. It is protected by applicable
-   * copyright laws.
-   *
-   * This source code is distributed under the licence found here
-   * https://vprover.github.io/license.html
-   * and in the source directory
-   */
+/*
+ * This file is part of the source code of the software program
+ * Vampire. It is protected by applicable
+ * copyright laws.
+ *
+ * This source code is distributed under the licence found here
+ * https://vprover.github.io/license.html
+ * and in the source directory
+ */
 
 #include "Lib/Coproduct.hpp"
 #include "Test/UnitTesting.hpp"
@@ -93,22 +90,15 @@ TEST_FUN(examples__match_01) {
   ASS(isGreaterThanZero)
 }
 
-
-struct ToString {
-  template<class C>
-  vstring operator()(C const& c)
-  { 
-    vstringstream out;
-    out << c;
-    return out.str(); 
-  }
-};
-
 TEST_FUN(examples__match_02) {
   // Further we can create polymorphic function structs if each match branch does the same thing
   auto x = Coproduct<int, float>(1);
 
-  vstring str = x.apply(ToString{});
+  vstring str = x.apply([](auto const& c) {
+    vstringstream out;
+    out << c;
+    return out.str(); 
+  });
   ASS_EQ(str, "1")
 }
 
