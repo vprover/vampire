@@ -1817,9 +1817,6 @@ Term::Term(const Term& t) throw()
   _args[0]._info.shared = 0u;
   _args[0]._info.order = 0u;
   _args[0]._info.distinctVars = TERM_DIST_VAR_UNKNOWN;
-#if USE_MATCH_TAG
-  matchTag().makeEmpty();
-#endif
 } // Term::Term
 
 /** create a new literal and copy from l its content */
@@ -1857,9 +1854,6 @@ Term::Term() throw()
   _args[0]._info.order = 0;
   _args[0]._info.tag = FUN;
   _args[0]._info.distinctVars = TERM_DIST_VAR_UNKNOWN;
-#if USE_MATCH_TAG
-  matchTag().makeEmpty();
-#endif
 } // Term::Term
 
 Literal::Literal()
