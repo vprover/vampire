@@ -424,6 +424,23 @@ bool TermSharing::argNormGt(TermList t1, TermList t2)
   ASS_REP(trm1->shared(), trm1->toString());
   ASS_REP(trm2->shared(), trm2->toString());
 
+  TermList* ts1 = trm1->args();
+  TermList* ts2 = trm2->args();
+
+  while (ts1->isNonEmpty()) {
+    ASS(ts2->isNonEmpty());
+    // skip if equal, otherwise these args decide!
+    if (*ts1 != *ts2) {
+      return argNormGt(*ts1,*ts2);
+    }
+
+    ts1 = ts1->next();
+    ts2 = ts2->next();
+  }
+
+  return false;
+
+  /*
   if (trm1->isLiteral()) {
     const vstring& n1 = env.signature->getPredicate(trm1->functor())->name();
     const vstring& n2 = env.signature->getPredicate(trm2->functor())->name();
@@ -441,8 +458,10 @@ bool TermSharing::argNormGt(TermList t1, TermList t2)
       return cmp > 0;
     }
   }
+  */
 
-  return (trm1->getId() > trm2->getId());
+
+  // return (trm1->getId() > trm2->getId());
 }
 
 
