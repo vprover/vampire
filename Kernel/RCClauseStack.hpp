@@ -72,6 +72,15 @@ public:
     return _s.size();
   }
 
+  /**
+   * Return a reference to the n-th element of the stack.
+   */
+  inline
+  Clause*& operator[](size_t n)
+  {
+    return _s[n];
+  } // operator[]
+
   class Iterator
   {
   public:
