@@ -424,6 +424,10 @@ bool TermSharing::argNormGt(TermList t1, TermList t2)
   ASS_REP(trm1->shared(), trm1->toString());
   ASS_REP(trm2->shared(), trm2->toString());
 
+  if (trm1->functor() != trm2->functor()) {
+    return trm1->functor() < trm2->functor();
+  }
+
   TermList* ts1 = trm1->args();
   TermList* ts2 = trm2->args();
 
