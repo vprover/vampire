@@ -62,8 +62,6 @@ static const DHMap<vstring, ProofTracer::InferenceKind> inference_info = {
 
 void ProofTracer::onInputClause(Clause* cl)
 {
-  CALL("ProofTracer::onInputClause");
-
   cout << "Init " << cl->toString() << endl;
 
   Clause* match = _tp->findVariant(cl);
@@ -77,8 +75,6 @@ void ProofTracer::onInputClause(Clause* cl)
 
 void ProofTracer::onInputFinished()
 {
-  CALL("ProofTracer::onInputFinished");
-
   cout << "Input finished" << endl;
 
   _tp->onInputFinished();
@@ -156,8 +152,6 @@ Clause* ProofTracer::unitToClause(Unit* u)
 
 ProofTracer::TracedProof* ProofTracer::prepareTracedProof(ProofTracer::ParsedProof* pp)
 {
-  CALL("ProofTracer::prepareTracedProof");
-
   DHMap<vstring,Clause*> clausesByNames;
   // a temp structure to be filled up during the first pass of the following loop and used after (when clauses have names)
   DHMap<vstring,Stack<vstring>> rememberedPremises;
@@ -282,8 +276,6 @@ ProofTracer::TracedProof* ProofTracer::prepareTracedProof(ProofTracer::ParsedPro
 
 void ProofTracer::TracedProof::init()
 {
-  CALL("ProofTracer::TracedProof::init");
-
   DHMap<Clause*, TracedClauseInfo*>::Iterator it(_clInfo);
   while (it.hasNext()) {
     Clause* cl;
@@ -304,8 +296,6 @@ void ProofTracer::TracedProof::init()
 
 void ProofTracer::TracedProof::onInputFinished()
 {
-  CALL("ProofTracer::TracedProof::onInputFinished");
-
   cout << "_unbornInitials: " << _unbornInitials << endl;
   if (_unbornInitials > 0) {
     DHMap<Clause*, TracedClauseInfo*>::Iterator it(_clInfo);
@@ -324,8 +314,6 @@ void ProofTracer::TracedProof::onInputFinished()
 
 void ProofTracer::init(const vstring& traceFileNames)
 {
-  CALL("ProofTracer::init");
-
   ASS(Unit::noUnitYet());
 
   // TODO: make this handle more then one trace file, i.e., start by splitting traceFileNames into pieces and calling getUnits more than once

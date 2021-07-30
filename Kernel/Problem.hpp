@@ -68,7 +68,6 @@ public:
   };
 
   struct TracedClauseInfo {
-    CLASS_NAME(TracedClauseInfo);
     USE_ALLOCATOR(TracedClauseInfo);
 
     vstring _name;
@@ -108,29 +107,22 @@ public:
     void onInputFinished();
 
     void regNewClause(Clause* cl, const vstring& name, InferenceKind ik) {
-      CALL("ProofTracer::TracedProof::regNewClause");
-
       ALWAYS(_clInfo.insert(cl,new TracedClauseInfo(name,ik)));
 
       _variantLookup->insert(cl);
     }
 
     void regChildParentPair(Clause* ch, Clause* p) {
-      CALL("ProofTracer::TracedProof::regChildParentPair");
-
       _clInfo.get(ch)->_parents.push(p);
       _clInfo.get(p)->_children.push(ch);
     }
 
     void setEmpty(Clause* cl) {
-      CALL("ProofTracer::TracedProof::setEmpty");
       ASS_EQ(_theEmpty,0); // only set once
       _theEmpty = cl;
     }
 
     Clause* findVariant(Clause* cl) {
-      CALL("ProofTracer::TracedProof::findVariant");
-
       Clause* res = 0;
 
       ClauseIterator it = _variantLookup->retrieveVariants(cl);
@@ -142,12 +134,10 @@ public:
     }
 
     TracedClauseInfo* getClauseInfo(Clause* cl) {
-      CALL("ProofTracer::TracedProof::getClauseInfo");
       return _clInfo.get(cl);
     }
 
     void initalBorn() {
-      CALL("ProofTracer::TracedProof::initalBorn");
       _unbornInitials--;
     }
 

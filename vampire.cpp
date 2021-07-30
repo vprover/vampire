@@ -792,6 +792,10 @@ int main(int argc, char* argv[])
       Parse::TPTP::enableAxiomNames();
     }
 
+    if (env.options->bumpFreshSymbolNumber()) {
+      env.signature->bumpFreshSymbolNumber();
+    }
+
     if (opts.interactive()) {
       interactiveMetamode();
     } else {
