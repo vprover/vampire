@@ -68,6 +68,7 @@ Clause::Clause(unsigned length,const Inference& inf)
     _extensionality(false),
     _extensionalityTag(false),
     _component(false),
+    _traced(false),
     _store(NONE),
     _numSelected(0),
     _weight(0),

@@ -350,6 +350,9 @@ public:
 
   bool computable();
 
+  void setTraced() { _traced = true; }
+  bool isTraced() const { return _traced; }
+
 protected:
   /** number of literals */
   unsigned _length : 20;
@@ -364,10 +367,12 @@ protected:
   /** Clause is a splitting component. */
   unsigned _component : 1;
 
+  unsigned _traced : 1;
+
   /** storage class */
   Store _store : 3;
   /** number of selected literals */
-  unsigned _numSelected : 20;
+  unsigned _numSelected : 19;
 
   /** weight */
   mutable unsigned _weight;

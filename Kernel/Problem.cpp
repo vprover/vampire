@@ -45,8 +45,6 @@
 using namespace Kernel;
 using namespace std;
 
-
-
 // inferences that work on clauses;
 static const DHMap<vstring, ProofTracer::InferenceKind> inference_info = {
     {"subsumption_resolution", ProofTracer::SIMPLIFYING},
@@ -62,14 +60,25 @@ static const DHMap<vstring, ProofTracer::InferenceKind> inference_info = {
 
 void ProofTracer::onInputClause(Clause* cl)
 {
-  cout << "Init " << cl->toString() << endl;
+  //cout << "Init " << cl->toString() << endl;
 
   Clause* match = _tp->findVariant(cl);
   if (match != 0) {
     TracedClauseInfo* info = _tp->getClauseInfo(match);
+
+    cout << "Init " << cl->toString() << endl;
     cout << " matched " << info->_name << endl;
-    info->makeNew();
     _tp->initalBorn();
+
+    /*
+    for (unsigned i = 0; i < info->_children.size(); i++) {
+      Clause* ch = info->_children[i];
+      TracedClauseInfo* ch_info = _tp->getClauseInfo(ch);
+      cout << " would notify child " << ch_info->_name << endl;
+      cout << " ik: " << ch_info->_ik << endl;
+      cout << " pc: " << ch_info->_parents.size() << endl;
+    }
+    */
   }
 }
 
@@ -79,6 +88,64 @@ void ProofTracer::onInputFinished()
 
   _tp->onInputFinished();
 }
+
+void ProofTracer::onNewClause(Clause* cl)
+{
+  Clause* match = _tp->findVariant(cl);
+  if (match != 0) {
+    TracedClauseInfo* info = _tp->getClauseInfo(match);
+    cout << "New " << cl->toString() << endl;
+    cout << " matched " << info->_name << endl;
+    if (_tp->_expecting.find(match)) {
+      _tp->_expecting.remove(match);
+      cout << "Was expected! Still expecting "; _tp->listExpecteds();
+    }
+
+    if (info->_stalkees.size()) {
+      cout << "Already stalking" << endl;
+    } else {
+      // at the moment of assigning a (first) stalkee, we decrease the counter of children to find the expected ones...
+      for (unsigned i = 0; i < info->_children.size(); i++) {
+        Clause* ch = info->_children[i];
+        TracedClauseInfo* ch_info = _tp->getClauseInfo(ch);
+        ch_info->_numAwokenParents++;
+        if (ch_info->_numAwokenParents == ch_info->_parents.size()) {
+          cout << "Newly expecting " << ch_info->_name << " in addition to "; _tp->listExpecteds();
+          _tp->_expecting.insert(ch);
+        }
+      }
+    }
+
+    // in any case, add this guy to the stalkees
+    info->_stalkees.push(cl);
+    _tp->listExpectedsDetails();
+
+    cout << endl;
+  }
+}
+
+void ProofTracer::onActivation(Clause* cl)
+{
+  Clause* _lastActivationMatch = _tp->findVariant(cl);
+  if (_lastActivationMatch != 0) {
+    TracedClauseInfo* info = _tp->getClauseInfo(_lastActivationMatch);
+
+    cout << "Activate " << cl->toString() << endl;
+    cout << " matched " << info->_name << endl;
+
+  }
+}
+
+void ProofTracer::onActivationFinished(Clause* cl)
+{
+  if (_lastActivationMatch) {
+    ASS_EQ(_lastActivationMatch,_tp->findVariant(cl));
+
+    TracedClauseInfo* info = _tp->getClauseInfo(_lastActivationMatch);
+  }
+}
+
+
 
 ProofTracer::ParsedProof* ProofTracer::getParsedProof(const vstring& proofFileName)
 {
@@ -196,6 +263,7 @@ ProofTracer::TracedProof* ProofTracer::prepareTracedProof(ProofTracer::ParsedPro
     }
 
     InferenceKind ik = ICP;
+    vstring inf = "input";
     Stack<vstring> premises; // empty by default
 
     Parse::TPTP::SourceRecord* rec = pp->sources.get(u);
@@ -210,6 +278,7 @@ ProofTracer::TracedProof* ProofTracer::prepareTracedProof(ProofTracer::ParsedPro
       // cout << "Has ISR: " << irec->name << endl;
 
       ik = inference_info.get(irec->name);
+      inf = irec->name;
 
       if (ik > ICP) { // we want to load also the guys u came about from
         for (unsigned i = 0; i < irec->premises.size(); i++) {
@@ -232,7 +301,7 @@ ProofTracer::TracedProof* ProofTracer::prepareTracedProof(ProofTracer::ParsedPro
       ALWAYS(rememberedPremises.insert(uname,std::move(premises)));
     }
 
-    tp->regNewClause(cl,uname,ik);
+    tp->regNewClause(cl,uname,inf,ik);
     // cout << uname << " " << ik << " " << cl->toString() << endl;
 
     if (cl->isEmpty()) {
@@ -290,27 +359,78 @@ void ProofTracer::TracedProof::init()
   }
 
   cout << "TracedProof initilized!" << endl;
-  cout << "proof size: " << _clInfo.size() << endl;
-  cout << "_unbornInitials: " << _unbornInitials << endl;
+  cout << "proof size: " << _clInfo.size() << endl << endl;
+  // cout << "_unbornInitials: " << _unbornInitials << endl;
 }
 
 void ProofTracer::TracedProof::onInputFinished()
 {
-  cout << "_unbornInitials: " << _unbornInitials << endl;
   if (_unbornInitials > 0) {
+    cout << "_unbornInitials: " << _unbornInitials << endl;
     DHMap<Clause*, TracedClauseInfo*>::Iterator it(_clInfo);
     while (it.hasNext()) {
       Clause* cl;
       TracedClauseInfo* info;
       it.next(cl,info);
 
-      if (info->isInital() && info->_state == NONE) {
+      if (info->isInital() && info->_stalkees.size() == 0) {
         cout << info->_name << " " << cl->toString() << endl;
+      }
+    }
+  } else {
+    cout << "All initials recognized!" << endl << endl;
+  }
+}
+
+void ProofTracer::TracedProof::listExpecteds()
+{
+  // just print all on one line
+  DHSet<Clause*>::Iterator it(_expecting);
+  while(it.hasNext()) {
+    TracedClauseInfo* info = _clInfo.get(it.next());
+    cout << " " << info->_name;
+  }
+  cout << endl;
+}
+
+void ProofTracer::TracedProof::listExpectedsDetails()
+{
+  // list each expected's parents' stalkee's store! ;)
+
+  DHSet<Clause*>::Iterator it(_expecting);
+  while(it.hasNext()) {
+    Clause* e = it.next();
+    TracedClauseInfo* e_info = _clInfo.get(e);
+    cout << "  E: " << e_info->_name << " IK: " << e_info->_ik << " " << e_info->_inf << " CL: " << e->toNiceString() << endl;
+    for (unsigned i = 0; i < e_info->_parents.size(); i++) {
+      TracedClauseInfo* p_info = _clInfo.get(e_info->_parents[i]);
+      cout << "    p: " << p_info->_name << endl;
+      for (unsigned j = 0; j < p_info->_stalkees.size(); j++) {
+        cout << "      s: ";
+        Clause* stalkee = p_info->_stalkees[j];
+
+        switch(stalkee->store()) {
+          case Clause::Store::PASSIVE:
+            cout << "PASSIVE: ";
+            break;
+          case Clause::Store::ACTIVE:
+            cout << "ACTIVE: ";
+            break;
+          case Clause::Store::UNPROCESSED:
+            cout << "UNPROCESSED:";
+            break;
+          case Clause::Store::NONE:
+            cout << "NONE: ";
+            break;
+          case Clause::Store::SELECTED:
+            cout << "SELECTED: ";
+            break;
+        }
+        cout << stalkee->toString() << endl;
       }
     }
   }
 }
-
 
 void ProofTracer::init(const vstring& traceFileNames)
 {
@@ -517,7 +637,7 @@ void Problem::addEliminatedPredicate(unsigned pred, Unit* definition)
 }
 
 /**
- * Register a predicate that has been partially eliminated i.e. <=> replaced by => 
+ * Register a predicate that has been partially eliminated i.e. <=> replaced by =>
  *
  * This information may be used during model output
  */
@@ -631,7 +751,7 @@ Property* Problem::getProperty() const
 bool Problem::hasFormulas() const
 {
   if(!mayHaveFormulas()) { return false; }
-  if(!_hasFormulas.known()) { refreshProperty(); }  
+  if(!_hasFormulas.known()) { refreshProperty(); }
   ASS(_hasFormulas.known());
   return _hasFormulas.value();
 }

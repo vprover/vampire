@@ -454,6 +454,11 @@ void SaturationAlgorithm::onNewClause(Clause* cl)
     _splitter->onNewClause(cl);
   }
 
+  if (env.tracer) {
+    cl->setTraced();
+    env.tracer->onNewClause(cl);
+  }
+
   if (env.options->showNew()) {
     std::cout << "[SA] new: " << cl->toString() << std::endl;
   }
@@ -851,6 +856,7 @@ void SaturationAlgorithm::newClausesToUnprocessed()
 
   while (_newClauses.isNonEmpty()) {
     Clause* cl=_newClauses.popWithoutDec();
+    // This is all quite strange; how could a new clause (barring maybe AVATAR's back and forth) be anything else than Clause::NONE?
     switch(cl->store())
     {
     case Clause::UNPROCESSED:
@@ -1203,10 +1209,17 @@ void SaturationAlgorithm::activate(Clause* cl)
   }
 
   ASS_EQ(cl->store(), Clause::SELECTED);
+
+  /*
+  if (env.tracer && cl->isTraced()) {
+    env.tracer->onActivation(cl);
+  }
+  */
+
   cl->setStore(Clause::ACTIVE);
   env.statistics->activeClauses++;
   _active->add(cl);
-    
+
   auto generated = TIME_TRACE_EXPR(TimeTrace::CLAUSE_GENERATION, _generator->generateSimplify(cl));
   auto toAdd = TIME_TRACE_ITER(TimeTrace::CLAUSE_GENERATION, generated.clauses);
 
@@ -1226,6 +1239,12 @@ void SaturationAlgorithm::activate(Clause* cl)
       }
     }
   }
+
+  /*
+  if (env.tracer && cl->isTraced()) {
+    env.tracer->onActivationFinished(cl);
+  }
+  */
 
   _clauseActivationInProgress=false;
 
