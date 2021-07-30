@@ -804,6 +804,10 @@ int main(int argc, char* argv[])
       Parse::TPTP::enableAxiomNames();
     }
 
+    if (env.options->bumpFreshSymbolNumber()) {
+      env.signature->bumpFreshSymbolNumber();
+    }
+
     switch (env.options->mode())
     {
     case Options::Mode::AXIOM_SELECTION:

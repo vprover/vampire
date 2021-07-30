@@ -846,6 +846,10 @@ class Signature
 
   static bool symbolNeedsQuoting(vstring name, bool interpreted, unsigned arity);
 
+  void bumpFreshSymbolNumber() {
+    _nextFreshSymbolNumber += 1000;
+  }
+
 private:
   Stack<TermList> _dividesNvalues;
   DHMap<Term*, int> _formulaCounts;

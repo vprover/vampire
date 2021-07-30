@@ -1975,6 +1975,7 @@ public:
   vstring include() const { return _include.actualValue; }
   void setInclude(vstring val) { _include.actualValue = val; }
   vstring traceProofs() const { return _traceProofs.actualValue; }
+  bool bumpFreshSymbolNumber() const { return _bumpFreshSymbolNumber.actualValue; }
   vstring inputFile() const { return _inputFile.actualValue; }
   int activationLimit() const { return _activationLimit.actualValue; }
   int randomSeed() const { return _randomSeed.actualValue; }
@@ -2442,6 +2443,8 @@ private:
   ChoiceOptionValue<IgnoreMissing> _ignoreMissing;
   StringOptionValue _include;
   StringOptionValue _traceProofs;
+  BoolOptionValue _bumpFreshSymbolNumber;
+
   /** if this option is true, Vampire will add the numeral weight of a clause
    * to its weight. The weight is defined as the sum of binary sizes of all
    * integers occurring in this clause. This option has not been tested and
