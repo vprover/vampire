@@ -145,8 +145,8 @@ public:
   static void onParsingEnd(){ _lastParsingNumber = _lastNumber;}
   static unsigned getLastParsingNumber(){ return _lastParsingNumber;}
 
-  static bool noUnitYet() { return _lastNumber == 0; }
-  static void resetNumbering() { _lastNumber = 0; }
+  /** Used to enumerate units */
+  static unsigned _lastNumber;
 
 protected:
   /** Number of this unit, used for printing and statistics */
@@ -161,9 +161,6 @@ protected:
   Inference _inference;
 
   Unit(Kind kind, const Inference& inf);
-
-  /** Used to enumerate units */
-  static unsigned _lastNumber;
 
   /** Used to determine which clauses come from preprocessing
    *

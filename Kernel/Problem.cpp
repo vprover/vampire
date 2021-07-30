@@ -314,14 +314,12 @@ void ProofTracer::TracedProof::onInputFinished()
 
 void ProofTracer::init(const vstring& traceFileNames)
 {
-  ASS(Unit::noUnitYet());
+  ScopedLet<unsigned> temporarilyResetUnitCounter(Unit::_lastNumber,0);
 
   // TODO: make this handle more then one trace file, i.e., start by splitting traceFileNames into pieces and calling getUnits more than once
   ParsedProof* pp = getParsedProof(traceFileNames); // deals with the file
   _tp = prepareTracedProof(pp);                     // creates clauses out of the clausal part of pp, connects the clauses by pointers and discards the rest
   _tp->init();                                      // set the counters for proper event watching
-
-  Unit::resetNumbering();
 }
 
 /**

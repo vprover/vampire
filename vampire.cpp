@@ -147,12 +147,12 @@ Problem *doProving(Problem* problem)
   env.options->setForcedOptionValues();
   env.options->checkGlobalOptionConstraints();
 
+  Problem *prb = preprocessProblem(problem);
+
   if (env.options->traceProofs().size() > 0) {
     env.tracer = new ProofTracer();
     env.tracer->init(env.options->traceProofs());
   }
-
-  Problem *prb = preprocessProblem(problem);
 
   // this will provide warning if options don't make sense for problem
   if (env.options->mode()!=Options::Mode::SPIDER) {
