@@ -1205,6 +1205,13 @@ void SaturationAlgorithm::activate(Clause* cl)
   }
 
   ASS_EQ(cl->store(), Clause::SELECTED);
+
+  /*
+  if (env.tracer && cl->isTraced()) {
+    env.tracer->onActivation(cl);
+  }
+  */
+
   cl->setStore(Clause::ACTIVE);
   env.statistics->activeClauses++;
   _active->add(cl);
@@ -1230,8 +1237,13 @@ void SaturationAlgorithm::activate(Clause* cl)
     }
   }
 
-  _clauseActivationInProgress=false;
+  /*
+  if (env.tracer && cl->isTraced()) {
+    env.tracer->onActivationFinished(cl);
+  }
+  */
 
+  _clauseActivationInProgress=false;
 
   //now we remove clauses that could not be removed during the clause activation process
   while (_postponedClauseRemovals.isNonEmpty()) {
