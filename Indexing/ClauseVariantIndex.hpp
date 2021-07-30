@@ -111,6 +111,8 @@ private:
   unsigned computeHash(Literal* const * lits, unsigned length);
 
   DHMap<unsigned, ClauseList*> _entries;
+
+  ClauseList* _emptyClauses;
 };
 
 };
