@@ -365,12 +365,16 @@ vstring TPTP::toString(Tag tag)
     return "-->";
   case T_TYPE_QUANT:
     return "!>";
+  case T_CHOICE:
+    return "@+";
+  case T_POLY_CHOICE:
+    return "@@+";
+  case T_DEF_DESC:
+    return "@-";
+  case T_POLY_DEF_DESC:
+    return "@@-";
   case T_THF_QUANT_SOME:
     return "?*";
-  case T_APP_PLUS:
-    return "@+";
-  case T_APP_MINUS:
-    return "@-";
   case T_TRUE:
     return "$true";
   case T_FALSE:
@@ -578,15 +582,25 @@ bool TPTP::readToken(Token& tok)
     return true;
   case '@':
     if (getChar(1) == '+') {
-      tok.tag = T_APP_PLUS;
+      tok.tag = T_CHOICE;
       resetChars();
       return true;
     }
     if (getChar(1) == '-') {
-      tok.tag = T_APP_MINUS;
+      tok.tag = T_DEF_DESC;
       resetChars();
       return true;
     }
+    if (getChar(1) == '@' && getChar(2) == '+'){
+      tok.tag = T_POLY_CHOICE;
+      resetChars();
+      return true;
+    }
+    if (getChar(1) == '@' && getChar(2) == '-'){
+      tok.tag = T_POLY_DEF_DESC;
+      resetChars();
+      return true;
+    }    
     tok.tag = T_APP;
     shiftChars(1);
     return true;
@@ -1574,6 +1588,14 @@ void TPTP::holFormula()
     return;
   }
 
+  case T_CHOICE:
+  case T_DEF_DESC:
+  case T_POLY_CHOICE:
+  case T_POLY_DEF_DESC:
+  {
+    USER_ERROR("At the moment Vampire HOL cannot parse definite and indefinite description operators");
+  }
+
   case T_STRING:
   case T_INT:
   case T_RAT:
@@ -1748,7 +1770,6 @@ void TPTP::endHolFormula()
     return;
   case PI:
   case SIGMA: {
-    //ASSERTION_VIOLATION;
     USER_ERROR("At the moment Vampire HOL cannot parse pi (!!) and sigma (?\?) operators");
   }
 

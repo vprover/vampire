@@ -131,10 +131,14 @@ public:
     T_TYPE_QUANT,
     /** ?* */
     T_THF_QUANT_SOME,
-    /** some THF quantifier */
-    T_APP_PLUS,
-    /** some THF quantifier */
-    T_APP_MINUS,
+    /** @+  choice operator */
+    T_CHOICE,
+    /** @- definite description */
+    T_DEF_DESC,
+    /** @@+  choice operator */
+    T_POLY_CHOICE,
+    /** @@- definite description */
+    T_POLY_DEF_DESC,
     /** $true */
     T_TRUE,
     /** $false */
