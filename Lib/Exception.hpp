@@ -75,7 +75,7 @@ public:
    : Exception(toString(msg...))
   { }
 
-  virtual void cry (ostream&);
+  virtual void cry (ostream&) const;
   virtual ~Exception()
   {
     if(_lcw.isLast()) {
@@ -100,6 +100,9 @@ protected:
    * (not counting copies of the same object) */
   static int s_exceptionCounter;
 
+  friend std::ostream& operator<<(std::ostream& out, Exception const& self)
+  { self.cry(out); return out; }
+
 }; // Exception
 
 
@@ -123,7 +126,7 @@ class UserErrorException
   UserErrorException (const vstring msg)
     : Exception(msg)
   {}
-  void cry (ostream&);
+  void cry (ostream&) const;
 }; // UserErrorException
 
 /**
@@ -193,7 +196,7 @@ class InvalidOperationException
    InvalidOperationException (const vstring msg)
     : Exception(msg)
   {}
-  void cry (ostream&);
+  void cry (ostream&) const;
 }; // InvalidOperationException
 
 /**
@@ -204,7 +207,7 @@ class SystemFailException
 {
 public:
   SystemFailException (const vstring msg, int err);
-  void cry (ostream&);
+  void cry (ostream&) const;
 
   int err;
 }; // InvalidOperationException
@@ -219,7 +222,7 @@ class NotImplementedException
    NotImplementedException (const char* file,int line)
     : Exception(""), file(file), line(line)
   {}
-   void cry (ostream&);
+   void cry (ostream&) const;
  private:
    const char* file;
    int line;

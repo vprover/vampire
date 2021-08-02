@@ -404,6 +404,22 @@ public:
     /** activation limit reached */
     ACTIVATION_LIMIT
   };
+  friend std::ostream& operator<<(std::ostream& out, TerminationReason const& self)
+  {
+    switch(self) {
+      case REFUTATION: return out << "REFUTATION";
+      case SAT_SATISFIABLE: return out << "SAT_SATISFIABLE";
+      case SATISFIABLE: return out << "SATISFIABLE";
+      case SAT_UNSATISFIABLE: return out << "SAT_UNSATISFIABLE";
+      case REFUTATION_NOT_FOUND: return out << "REFUTATION_NOT_FOUND";
+      case INAPPROPRIATE: return out << "INAPPROPRIATE";
+      case UNKNOWN: return out << "UNKNOWN";
+      case TIME_LIMIT: return out << "TIME_LIMIT";
+      case MEMORY_LIMIT: return out << "MEMORY_LIMIT";
+      case ACTIVATION_LIMIT: return out << "ACTIVATION_LIMIT";
+    }
+    ASSERTION_VIOLATION
+  }
   /** termination reason */
   TerminationReason terminationReason;
   /** refutation, if any */
