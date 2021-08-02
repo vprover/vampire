@@ -961,7 +961,7 @@ private:
         T defaultValue;
         T actualValue;
         
-        bool isDefault() const override { return defaultValue==actualValue;}
+        bool isDefault() const final { return defaultValue==actualValue;}
 
         // Getting the string versions of values, useful for output
         virtual vstring getStringOfValue(T value) const{ ASSERTION_VIOLATION;}
@@ -994,7 +994,7 @@ private:
             _constraints.push(std::move(tc));
         }
         // This checks the constraints and may cause a UserError
-        bool checkConstraints() override;
+        bool checkConstraints() final;
         
         // Produces a separate constraint object based on this option
         /// Useful for IfThen constraints and reliesOn i.e. _splitting.is(equal(true))
@@ -1005,7 +1005,7 @@ private:
         bool hasProblemConstraints(){ 
           return !supress_problemconstraints && !_prob_constraints.isEmpty(); 
         }
-        bool checkProblemConstraints(Property* prop) override;
+        bool checkProblemConstraints(Property* prop) final;
         
         void output(ostream& out, bool linewrap) const override {
             CALL("Options::OptionValue::output");
@@ -1014,7 +1014,7 @@ private:
         }
        
         // This is where actual randomisation happens
-        bool randomize(Property* p) override;
+        bool randomize(Property* p) final;
  
     private:
         Lib::Stack<OptionValueConstraintUP<T>> _constraints;
@@ -1045,7 +1045,7 @@ private:
         OptionValue<T>(l,s,def), choices(c) {}
         ChoiceOptionValue(vstring l, vstring s,T d) : ChoiceOptionValue(l,s,d, T::optionChoiceValues()) {}
         
-        bool setValue(const vstring& value) override{
+        bool setValue(const vstring& value) final{
             // makes reasonable assumption about ordering of every enum
             int index = choices.find(value.c_str());
             if(index<0) return false;
@@ -1053,7 +1053,7 @@ private:
             return true;
         }
         
-        void output(ostream& out,bool linewrap) const override {
+        void output(ostream& out,bool linewrap) const final {
             AbstractOptionValue::output(out,linewrap);
             out << "\tdefault: " << choices[static_cast<unsigned>(this->defaultValue)];
             out << endl;
@@ -1080,7 +1080,7 @@ private:
             out << endl;
         }
         
-        vstring getStringOfValue(T value) const override {
+        vstring getStringOfValue(T value) const final {
             unsigned i = static_cast<unsigned>(value);
             return choices[i];
         }
@@ -1097,7 +1097,7 @@ private:
     struct BoolOptionValue : public OptionValue<bool> {
         BoolOptionValue(){}
         BoolOptionValue(vstring l,vstring s, bool d) : OptionValue(l,s,d){}
-        bool setValue(const vstring& value) override{
+        bool setValue(const vstring& value) final{
             if (! value.compare("on") || ! value.compare("true")) {
                 actualValue=true;
                 
@@ -1110,36 +1110,36 @@ private:
             return true;
         }
         
-        vstring getStringOfValue(bool value) const override { return (value ? "on" : "off"); }
+        vstring getStringOfValue(bool value) const final { return (value ? "on" : "off"); }
     };
 
     struct IntOptionValue : public OptionValue<int> {
         IntOptionValue(){}
         IntOptionValue(vstring l,vstring s, int d) : OptionValue(l,s,d){}
-        bool setValue(const vstring& value) override{
+        bool setValue(const vstring& value) final{
             return Int::stringToInt(value.c_str(),actualValue);
         }
-        vstring getStringOfValue(int value) const override{ return Lib::Int::toString(value); }
+        vstring getStringOfValue(int value) const final{ return Lib::Int::toString(value); }
     };
     
     struct UnsignedOptionValue : public OptionValue<unsigned> {
         UnsignedOptionValue(){}
         UnsignedOptionValue(vstring l,vstring s, unsigned d) : OptionValue(l,s,d){}
 
-        bool setValue(const vstring& value) override{
+        bool setValue(const vstring& value) final{
             return Int::stringToUnsignedInt(value.c_str(),actualValue);
         }
-        vstring getStringOfValue(unsigned value) const override{ return Lib::Int::toString(value); }
+        vstring getStringOfValue(unsigned value) const final{ return Lib::Int::toString(value); }
     };
     
     struct StringOptionValue : public OptionValue<vstring> {
         StringOptionValue(){}
         StringOptionValue(vstring l,vstring s, vstring d) : OptionValue(l,s,d){}
-        bool setValue(const vstring& value) override{
+        bool setValue(const vstring& value) final{
             actualValue = (value=="<empty>") ? "" : value;
             return true;
         }
-        vstring getStringOfValue(vstring value) const override{
+        vstring getStringOfValue(vstring value) const final{
             if(value.empty()) return "<empty>";
             return value;
         }
@@ -1148,19 +1148,19 @@ private:
     struct LongOptionValue : public OptionValue<long> {
         LongOptionValue(){}
         LongOptionValue(vstring l,vstring s, long d) : OptionValue(l,s,d){}
-        bool setValue(const vstring& value) override{
+        bool setValue(const vstring& value) final{
             return Int::stringToLong(value.c_str(),actualValue);
         }
-        vstring getStringOfValue(long value) const override{ return Lib::Int::toString(value); }
+        vstring getStringOfValue(long value) const final{ return Lib::Int::toString(value); }
     };
     
 struct FloatOptionValue : public OptionValue<float>{
 FloatOptionValue(){}
 FloatOptionValue(vstring l,vstring s, float d) : OptionValue(l,s,d){}
-bool setValue(const vstring& value) override{
+bool setValue(const vstring& value) final{
     return Int::stringToFloat(value.c_str(),actualValue);
 }
-vstring getStringOfValue(float value) const override{ return Lib::Int::toString(value); }
+vstring getStringOfValue(float value) const final{ return Lib::Int::toString(value); }
 };
 
 /**
@@ -1177,14 +1177,14 @@ RatioOptionValue(){}
 RatioOptionValue(vstring l, vstring s, int def, int other, char sp=':') :
 OptionValue(l,s,def), sep(sp), defaultOtherValue(other), otherValue(other) {};
 
-OptionValueConstraintUP<int> getNotDefault() override { return isNotDefaultRatio(); }
+OptionValueConstraintUP<int> getNotDefault() final { return isNotDefaultRatio(); }
 
 void addConstraintIfNotDefault(AbstractWrappedConstraintUP c){
     addConstraint(If(isNotDefaultRatio()).then(unwrap<int>(c)));
 }
 
 bool readRatio(const char* val,char seperator);
-bool setValue(const vstring& value) override {
+bool setValue(const vstring& value) final {
     return readRatio(value.c_str(),sep);
 }
 
@@ -1192,14 +1192,14 @@ char sep;
 int defaultOtherValue;
 int otherValue;
 
-void output(ostream& out,bool linewrap) const override {
+void output(ostream& out,bool linewrap) const final {
     AbstractOptionValue::output(out,linewrap);
     out << "\tdefault left: " << defaultValue << endl;
     out << "\tdefault right: " << defaultOtherValue << endl;
 }
 
-vstring getStringOfValue(int value) const override { ASSERTION_VIOLATION;}
-vstring getStringOfActual() const override {
+vstring getStringOfValue(int value) const final { ASSERTION_VIOLATION;}
+vstring getStringOfActual() const final {
     return Lib::Int::toString(actualValue)+sep+Lib::Int::toString(otherValue);
 }
 
@@ -1221,14 +1221,14 @@ NonGoalWeightOptionValue(){}
 NonGoalWeightOptionValue(vstring l, vstring s, float def) :
 OptionValue(l,s,def), numerator(1), denominator(1) {};
 
-bool setValue(const vstring& value) override;
+bool setValue(const vstring& value) final;
 
 // output does not output numerator and denominator as they
 // are produced from defaultValue
 int numerator;
 int denominator;
 
-vstring getStringOfValue(float value) const override{ return Lib::Int::toString(value); }
+vstring getStringOfValue(float value) const final{ return Lib::Int::toString(value); }
 };
 
 /**
@@ -1241,14 +1241,14 @@ SelectionOptionValue(){}
 SelectionOptionValue(vstring l,vstring s, int def):
 OptionValue(l,s,def){};
 
-bool setValue(const vstring& value) override;
+bool setValue(const vstring& value) final;
 
-void output(ostream& out,bool linewrap) const override {
+void output(ostream& out,bool linewrap) const final {
     AbstractOptionValue::output(out,linewrap);
     out << "\tdefault: " << defaultValue << endl;;
 }
 
-vstring getStringOfValue(int value) const override{ return Lib::Int::toString(value); }
+vstring getStringOfValue(int value) const final{ return Lib::Int::toString(value); }
 
 AbstractWrappedConstraintUP isLookAheadSelection(){
   return AbstractWrappedConstraintUP(new WrappedConstraint<int>(*this,OptionValueConstraintUP<int>(new isLookAheadSelectionConstraint())));
@@ -1264,13 +1264,13 @@ InputFileOptionValue(){}
 InputFileOptionValue(vstring l,vstring s, vstring def,Options* p):
 OptionValue(l,s,def), parent(p){};
 
-bool setValue(const vstring& value) override;
+bool setValue(const vstring& value) final;
 
-void output(ostream& out,bool linewrap) const override {
+void output(ostream& out,bool linewrap) const final {
     AbstractOptionValue::output(out,linewrap);
     out << "\tdefault: " << defaultValue << endl;;
 }
-vstring getStringOfValue(vstring value) const override{ return value; }
+vstring getStringOfValue(vstring value) const final{ return value; }
 private:
 Options* parent;
 
@@ -1284,11 +1284,11 @@ DecodeOptionValue(){ AbstractOptionValue::_should_copy=false;}
 DecodeOptionValue(vstring l,vstring s,Options* p):
 OptionValue(l,s,""), parent(p){ AbstractOptionValue::_should_copy=false;}
 
-bool setValue(const vstring& value) override{
+bool setValue(const vstring& value) final{
     parent->readFromEncodedOptions(value);
     return true;
 }
-vstring getStringOfValue(vstring value) const override{ return value; }
+vstring getStringOfValue(vstring value) const final{ return value; }
 
 private:
 Options* parent;
@@ -1304,14 +1304,14 @@ TimeLimitOptionValue(){}
 TimeLimitOptionValue(vstring l, vstring s, float def) :
 OptionValue(l,s,def) {};
 
-bool setValue(const vstring& value) override;
+bool setValue(const vstring& value) final;
 
-void output(ostream& out,bool linewrap) const override {
+void output(ostream& out,bool linewrap) const final {
     CALL("Options::TimeLimitOptionValue::output");
     AbstractOptionValue::output(out,linewrap);
     out << "\tdefault: " << defaultValue << "d" << endl;
 }
-vstring getStringOfValue(int value) const override{ return Lib::Int::toString(value)+"d"; }
+vstring getStringOfValue(int value) const final{ return Lib::Int::toString(value)+"d"; }
 };
 
 /**
@@ -1388,10 +1388,10 @@ bool _hard;
         
         WrappedConstraint(const OptionValue<T>& v, OptionValueConstraintUP<T> c) : value(v), con(std::move(c)) {}
         
-        bool check() override {
+        bool check() final {
             return con->check(value);
         }
-        vstring msg() override {
+        vstring msg() final {
             return con->msg(value);
         }
 
@@ -1403,10 +1403,10 @@ bool _hard;
         CLASS_NAME(WrappedConstraintOrWrapper);
         USE_ALLOCATOR(WrappedConstraintOrWrapper);
         WrappedConstraintOrWrapper(AbstractWrappedConstraintUP l, AbstractWrappedConstraintUP r) : left(std::move(l)),right(std::move(r)) {}
-        bool check() override {
+        bool check() final {
             return left->check() || right->check();
         }
-        vstring msg() override { return left->msg() + " or " + right->msg(); }
+        vstring msg() final { return left->msg() + " or " + right->msg(); }
 
         AbstractWrappedConstraintUP left;
         AbstractWrappedConstraintUP right;
@@ -1416,10 +1416,10 @@ bool _hard;
         CLASS_NAME(WrappedConstraintAndWrapper);
         USE_ALLOCATOR(WrappedConstraintAndWrapper);
         WrappedConstraintAndWrapper(AbstractWrappedConstraintUP l, AbstractWrappedConstraintUP r) : left(std::move(l)),right(std::move(r)) {}
-        bool check() override {
+        bool check() final {
             return left->check() && right->check();
         }
-        vstring msg() override { return left->msg() + " and " + right->msg(); }
+        vstring msg() final { return left->msg() + " and " + right->msg(); }
 
         AbstractWrappedConstraintUP left;
         AbstractWrappedConstraintUP right;
@@ -1430,10 +1430,10 @@ bool _hard;
         CLASS_NAME(OptionValueConstraintOrWrapper);
         USE_ALLOCATOR(OptionValueConstraintOrWrapper);
         OptionValueConstraintOrWrapper(OptionValueConstraintUP<T> l, OptionValueConstraintUP<T> r) : left(std::move(l)),right(std::move(r)) {}
-        bool check(const OptionValue<T>& value) override{
+        bool check(const OptionValue<T>& value) final{
             return left->check(value) || right->check(value);
         }
-        vstring msg(const OptionValue<T>& value) override{ return left->msg(value) + " or " + right->msg(value); }
+        vstring msg(const OptionValue<T>& value) final{ return left->msg(value) + " or " + right->msg(value); }
 
         OptionValueConstraintUP<T> left;
         OptionValueConstraintUP<T> right;
@@ -1444,10 +1444,10 @@ bool _hard;
         CLASS_NAME(OptionValueConstraintAndWrapper);
         USE_ALLOCATOR(OptionValueConstraintAndWrapper);
         OptionValueConstraintAndWrapper(OptionValueConstraintUP<T> l, OptionValueConstraintUP<T> r) : left(std::move(l)),right(std::move(r)) {}
-        bool check(const OptionValue<T>& value) override{
+        bool check(const OptionValue<T>& value) final{
             return left->check(value) && right->check(value);
         }
-        vstring msg(const OptionValue<T>& value) override{ return left->msg(value) + " and " + right->msg(value); }
+        vstring msg(const OptionValue<T>& value) final{ return left->msg(value) + " and " + right->msg(value); }
 
         OptionValueConstraintUP<T> left;
         OptionValueConstraintUP<T> right;
@@ -1460,8 +1460,8 @@ bool _hard;
         
         UnWrappedConstraint(AbstractWrappedConstraintUP c) : con(std::move(c)) {}
         
-        bool check(const OptionValue<T>&) override{ return con->check(); }
-        vstring msg(const OptionValue<T>&) override{ return con->msg(); }
+        bool check(const OptionValue<T>&) final{ return con->check(); }
+        vstring msg(const OptionValue<T>&) final{ return con->msg(); }
         
         AbstractWrappedConstraintUP con;
     };
@@ -1523,10 +1523,10 @@ bool _hard;
         CLASS_NAME(Equal);
         USE_ALLOCATOR(Equal);
         Equal(T gv) : _goodvalue(gv) {}
-        bool check(const OptionValue<T>& value) override{
+        bool check(const OptionValue<T>& value) final{
             return value.actualValue == _goodvalue;
         }
-        vstring msg(const OptionValue<T>& value) override{
+        vstring msg(const OptionValue<T>& value) final{
             return value.longName+"("+value.getStringOfActual()+") is equal to " + value.getStringOfValue(_goodvalue);
         }
         T _goodvalue;
@@ -1541,10 +1541,10 @@ bool _hard;
         CLASS_NAME(NotEqual);
         USE_ALLOCATOR(NotEqual);
         NotEqual(T bv) : _badvalue(bv) {}
-        bool check(const OptionValue<T>& value) override{
+        bool check(const OptionValue<T>& value) final{
             return value.actualValue != _badvalue;
         }
-        vstring msg(const OptionValue<T>& value) override{ return value.longName+"("+value.getStringOfActual()+") is not equal to " + value.getStringOfValue(_badvalue); }
+        vstring msg(const OptionValue<T>& value) final{ return value.longName+"("+value.getStringOfActual()+") is not equal to " + value.getStringOfValue(_badvalue); }
         T _badvalue;
     };
     template<typename T>
@@ -1559,10 +1559,10 @@ bool _hard;
         CLASS_NAME(LessThan);
         USE_ALLOCATOR(LessThan);
         LessThan(T gv,bool eq=false) : _goodvalue(gv), _orequal(eq) {}
-        bool check(const OptionValue<T>& value) override{
+        bool check(const OptionValue<T>& value) final{
             return (value.actualValue < _goodvalue || (_orequal && value.actualValue==_goodvalue));
         }
-        vstring msg(const OptionValue<T>& value) override{
+        vstring msg(const OptionValue<T>& value) final{
             if(_orequal) return value.longName+"("+value.getStringOfActual()+") is less than or equal to " + value.getStringOfValue(_goodvalue);
             return value.longName+"("+value.getStringOfActual()+") is less than "+ value.getStringOfValue(_goodvalue);
         }
@@ -1586,11 +1586,11 @@ bool _hard;
         CLASS_NAME(GreaterThan);
         USE_ALLOCATOR(GreaterThan);
         GreaterThan(T gv,bool eq=false) : _goodvalue(gv), _orequal(eq) {}
-        bool check(const OptionValue<T>& value) override{
+        bool check(const OptionValue<T>& value) final{
             return (value.actualValue > _goodvalue || (_orequal && value.actualValue==_goodvalue));
         }
         
-        vstring msg(const OptionValue<T>& value) override{
+        vstring msg(const OptionValue<T>& value) final{
             if(_orequal) return value.longName+"("+value.getStringOfActual()+") is greater than or equal to " + value.getStringOfValue(_goodvalue);
             return value.longName+"("+value.getStringOfActual()+") is greater than "+ value.getStringOfValue(_goodvalue);
         }
@@ -1614,11 +1614,11 @@ bool _hard;
         CLASS_NAME(SmallerThan);
         USE_ALLOCATOR(SmallerThan);
         SmallerThan(T gv,bool eq=false) : _goodvalue(gv), _orequal(eq) {}
-        bool check(const OptionValue<T>& value) override{
+        bool check(const OptionValue<T>& value) final{
             return (value.actualValue < _goodvalue || (_orequal && value.actualValue==_goodvalue));
         }
 
-        vstring msg(const OptionValue<T>& value) override{
+        vstring msg(const OptionValue<T>& value) final{
             if(_orequal) return value.longName+"("+value.getStringOfActual()+") is smaller than or equal to " + value.getStringOfValue(_goodvalue);
             return value.longName+"("+value.getStringOfActual()+") is smaller than "+ value.getStringOfValue(_goodvalue);
         }
@@ -1650,12 +1650,12 @@ bool _hard;
         IfThenConstraint(OptionValueConstraintUP<T> ic, OptionValueConstraintUP<T> c) :
         if_con(std::move(ic)), then_con(std::move(c)) {}
         
-        bool check(const OptionValue<T>& value) override{
+        bool check(const OptionValue<T>& value) final{
             ASS(then_con);
             return !if_con->check(value) || then_con->check(value);
         }
         
-        vstring msg(const OptionValue<T>& value) override{
+        vstring msg(const OptionValue<T>& value) final{
             return "if "+if_con->msg(value)+" then "+ then_con->msg(value);
         }
         
@@ -1696,20 +1696,20 @@ bool _hard;
     struct NotDefaultConstraint : public OptionValueConstraint<T> {
         NotDefaultConstraint() {}
         
-        bool check(const OptionValue<T>& value) override{
+        bool check(const OptionValue<T>& value) final{
             return value.defaultValue != value.actualValue;
         }
-        vstring msg(const OptionValue<T>& value) override { return value.longName+"("+value.getStringOfActual()+") is not default("+value.getStringOfValue(value.defaultValue)+")";}
+        vstring msg(const OptionValue<T>& value) final { return value.longName+"("+value.getStringOfActual()+") is not default("+value.getStringOfValue(value.defaultValue)+")";}
     };
     struct NotDefaultRatioConstraint : public OptionValueConstraint<int> {
         NotDefaultRatioConstraint() {}
         
-        bool check(const OptionValue<int>& value) override{
+        bool check(const OptionValue<int>& value) final{
             const RatioOptionValue& rvalue = static_cast<const RatioOptionValue&>(value);
             return (rvalue.defaultValue != rvalue.actualValue ||
                     rvalue.defaultOtherValue != rvalue.otherValue);
         }
-        vstring msg(const OptionValue<int>& value) override { return value.longName+"("+value.getStringOfActual()+") is not default";}
+        vstring msg(const OptionValue<int>& value) final { return value.longName+"("+value.getStringOfActual()+") is not default";}
         
     };
     
@@ -1727,10 +1727,10 @@ bool _hard;
         CLASS_NAME(isLookAheadSelectionConstraint);
         USE_ALLOCATOR(isLookAheadSelectionConstraint);
         isLookAheadSelectionConstraint() {}
-        bool check(const OptionValue<int>& value) override{
+        bool check(const OptionValue<int>& value) final{
             return value.actualValue == 11 || value.actualValue == 1011 || value.actualValue == -11 || value.actualValue == -1011;
         }
-        vstring msg(const OptionValue<int>& value) override{
+        vstring msg(const OptionValue<int>& value) final{
             return value.longName+"("+value.getStringOfActual()+") is not lookahead selection";
         }
     };
@@ -1760,12 +1760,12 @@ bool _hard;
       USE_ALLOCATOR(CategoryCondition);
 
       CategoryCondition(Property::Category c,bool h) : cat(c), has(h) {}
-      bool check(Property*p) override{
+      bool check(Property*p) final{
           CALL("Options::CategoryCondition::check");
           ASS(p);
           return has ? p->category()==cat : p->category()!=cat;
       }
-      vstring msg() override{
+      vstring msg() final{
         vstring m =" not useful for property ";
         if(has) m+="not";
         return m+" in category "+Property::categoryToString(cat);
@@ -1778,34 +1778,34 @@ bool _hard;
       CLASS_NAME(UsesEquality);
       USE_ALLOCATOR(UsesEquality);
 
-      bool check(Property*p) override{
+      bool check(Property*p) final{
         CALL("Options::UsesEquality::check");
         ASS(p)
         return (p->equalityAtoms() != 0);
       }
-      vstring msg() override{ return " only useful with equality"; }
+      vstring msg() final{ return " only useful with equality"; }
     };
 
     struct HasNonUnits : OptionProblemConstraint{
       CLASS_NAME(HasNonUnits);
       USE_ALLOCATOR(HasNonUnits);
 
-      bool check(Property*p) override{
+      bool check(Property*p) final{
         CALL("Options::HasNonUnits::check");
         return (p->clauses()-p->unitClauses())!=0;
       }
-      vstring msg() override{ return " only useful with non-unit clauses"; }
+      vstring msg() final{ return " only useful with non-unit clauses"; }
     };
 
     struct HasPredicates : OptionProblemConstraint{
       CLASS_NAME(HasPredicates);
       USE_ALLOCATOR(HasPredicates);
 
-      bool check(Property*p) override{
+      bool check(Property*p) final{
         CALL("Options::HasPredicates::check");
         return (p->category()==Property::PEQ || p->category()==Property::UEQ);
       }
-      vstring msg() override{ return " only useful with predicates"; }
+      vstring msg() final{ return " only useful with predicates"; }
     };
 
     struct AtomConstraint : OptionProblemConstraint{
@@ -1815,12 +1815,12 @@ bool _hard;
       AtomConstraint(int a,bool g) : atoms(a),greater(g) {}
       int atoms;
       bool greater;
-      bool check(Property*p) override{ 
+      bool check(Property*p) final{ 
         CALL("Options::AtomConstraint::check");
         return greater ? p->atoms()>atoms : p->atoms()<atoms;
       }
           
-      vstring msg() override{ 
+      vstring msg() final{ 
         vstring m = " not with ";
         if(greater){ m+="more";}else{m+="less";}
         return m+" than "+Lib::Int::toString(atoms)+" atoms";
@@ -1856,8 +1856,8 @@ bool _hard;
       USE_ALLOCATOR(OptionHasValue);
 
       OptionHasValue(vstring ov,vstring v) : option_value(ov),value(v) {}
-      bool check(Property*p) override;
-      vstring msg() override{ return option_value+" has value "+value; } 
+      bool check(Property*p) final;
+      vstring msg() final{ return option_value+" has value "+value; } 
       vstring option_value;
       vstring value; 
     };
@@ -1868,7 +1868,7 @@ bool _hard;
 
       ManyOptionProblemConstraints(bool a) : is_and(a) {}
 
-      bool check(Property*p) override{
+      bool check(Property*p) final{
         CALL("Options::ManyOptionProblemConstraints::check");
         bool res = is_and;
         Stack<OptionProblemConstraintUP>::Iterator it(cons);
@@ -1877,7 +1877,7 @@ bool _hard;
         return res;
       } 
 
-      vstring msg() override{
+      vstring msg() final{
         vstring res="";
         Stack<OptionProblemConstraintUP>::Iterator it(cons);
         if(it.hasNext()){ res=it.next()->msg();}

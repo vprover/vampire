@@ -43,11 +43,11 @@ public:
   CLASS_NAME(CodeTreeTIS);
   USE_ALLOCATOR(CodeTreeTIS);
 
-  void insert(TermList t, Literal* lit, Clause* cls) override;
-  void remove(TermList t, Literal* lit, Clause* cls) override;
+  void insert(TermList t, Literal* lit, Clause* cls) final;
+  void remove(TermList t, Literal* lit, Clause* cls) final;
 
-  TermQueryResultIterator getGeneralizations(TermList t, bool retrieveSubstitutions = true) override;
-  bool generalizationExists(TermList t) override;
+  TermQueryResultIterator getGeneralizations(TermList t, bool retrieveSubstitutions = true) final;
+  bool generalizationExists(TermList t) final;
 
 #if VDEBUG
   virtual void markTagged(){ NOT_IMPLEMENTED; } 
@@ -82,10 +82,10 @@ public:
   CLASS_NAME(CodeTreeSubsumptionIndex);
   USE_ALLOCATOR(CodeTreeSubsumptionIndex);
 
-  ClauseSResResultIterator getSubsumingOrSResolvingClauses(Clause* c, bool subsumptionResolution) override;
+  ClauseSResResultIterator getSubsumingOrSResolvingClauses(Clause* c, bool subsumptionResolution) final;
 protected:
   //overrides Index::handleClause
-  void handleClause(Clause* c, bool adding) override;
+  void handleClause(Clause* c, bool adding) final;
 private:
   class ClauseSResIterator;
 

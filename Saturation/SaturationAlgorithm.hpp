@@ -123,8 +123,8 @@ public:
   Splitter* getSplitter() { return _splitter; }
 
 protected:
-  void init() override;
-  MainLoopResult runImpl() override;
+  void init() final;
+  MainLoopResult runImpl() final;
   void doUnprocessedLoop();
   virtual bool handleClauseBeforeActivation(Clause* c);
   void addInputSOSClause(Clause* cl);

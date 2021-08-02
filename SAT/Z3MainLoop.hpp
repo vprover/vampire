@@ -35,18 +35,18 @@ using namespace Kernel;
 using namespace Shell;
 using namespace Lib;
 
-class Z3MainLoop : public MainLoop 
+class Z3MainLoop final : public MainLoop 
 {
 public:
   CLASS_NAME(Z3MainLoop);
   USE_ALLOCATOR(Z3MainLoop);  
   
   Z3MainLoop(Problem& prb, const Options& opt);
-  ~Z3MainLoop() override{};
+  ~Z3MainLoop() final{};
 
 protected:
-  void init() override;
-  MainLoopResult runImpl() override;
+  void init() final;
+  MainLoopResult runImpl() final;
 //private:
 
 };

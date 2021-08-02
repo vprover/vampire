@@ -86,7 +86,7 @@ class TermTransformingFormulaTransformer : public FormulaTransformer
 public:
   TermTransformingFormulaTransformer(TermTransformer& termTransformer) : _termTransformer(termTransformer) {}
 protected:
-  Formula* applyLiteral(Formula* f) override;
+  Formula* applyLiteral(Formula* f) final;
 
   TermTransformer& _termTransformer;
 };
@@ -97,24 +97,24 @@ class TermTransformerTransformTransformedFormulaTransformer : public FormulaTran
     TermTransformerTransformTransformedFormulaTransformer(TermTransformerTransformTransformed& termTransformer)
       : _termTransformer(termTransformer) {}
   protected:
-    Formula* applyLiteral(Formula* f) override;
+    Formula* applyLiteral(Formula* f) final;
 
     TermTransformerTransformTransformed& _termTransformer;
 };
 
-class PolarityAwareFormulaTransformer : protected FormulaTransformer {
+class PolarityAwareFormulaTransformer final : protected FormulaTransformer {
 public:
-  ~PolarityAwareFormulaTransformer() override;
+  ~PolarityAwareFormulaTransformer() final;
 
   virtual Formula* transformWithPolarity(Formula* f, int polarity=1);
 protected:
   PolarityAwareFormulaTransformer();
 
-  Formula* applyNot(Formula* f) override;
+  Formula* applyNot(Formula* f) final;
 
-  Formula* applyImp(Formula* f) override;
+  Formula* applyImp(Formula* f) final;
 
-  Formula* applyBinary(Formula* f) override;
+  Formula* applyBinary(Formula* f) final;
 
   int polarity() const { return _polarity; }
 
@@ -146,7 +146,7 @@ public:
 
   virtual Formula* transform(Formula* f) = 0;
 
-  FormulaUnit* transform(FormulaUnit* unit) override;
+  FormulaUnit* transform(FormulaUnit* unit) final;
 
 private:
   InferenceRule _rule;
@@ -161,7 +161,7 @@ public:
 
   using LocalFormulaUnitTransformer::transform;
 
-  Formula* transform(Formula* f) override
+  Formula* transform(Formula* f) final
   {
     CALL("FTFormulaUnitTransformer::transform(Formula*)");
     return _formulaTransformer.transform(f);
@@ -210,8 +210,8 @@ protected:
    */
   virtual Literal* apply(Literal* l, UnitStack& premAcc) = 0;
 
-  bool apply(FormulaUnit* unit, Unit*& res) override;
-  bool apply(Clause* cl, Unit*& res) override;
+  bool apply(FormulaUnit* unit, Unit*& res) final;
+  bool apply(Clause* cl, Unit*& res) final;
 
 private:
   struct LitFormulaTransformer;

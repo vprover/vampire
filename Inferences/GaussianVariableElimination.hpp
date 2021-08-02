@@ -21,7 +21,7 @@ public:
   CLASS_NAME(GaussianVariableElimination);
   USE_ALLOCATOR(GaussianVariableElimination);
 
-  SimplifyingGeneratingInference1::Result simplify(Clause *cl, bool doCheckOrdering) override;
+  SimplifyingGeneratingInference1::Result simplify(Clause *cl, bool doCheckOrdering) final;
 private:
   SimplifyingGeneratingInference1::Result rewrite(Clause &cl, TermList find, TermList replace,
                   unsigned skipLiteral, bool doOrderingCheck) const;

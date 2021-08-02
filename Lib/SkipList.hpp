@@ -580,7 +580,7 @@ private:
       REMOVE, INSERT
     };
     SingleValBacktrackObject(SkipList* sl, Action a, Value v): sl(sl), a(a), v(v) {}
-    void backtrack() override
+    void backtrack() final
     {
       switch(a) {
       case REMOVE:

@@ -31,7 +31,7 @@ public:
 
   EquationalTautologyRemoval() : _cc(nullptr) {}
 
-  Clause* simplify(Clause* cl) override;
+  Clause* simplify(Clause* cl) final;
 private:
   DP::SimpleCongruenceClosure _cc;
 };

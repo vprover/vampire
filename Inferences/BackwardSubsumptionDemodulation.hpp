@@ -54,10 +54,10 @@ class BackwardSubsumptionDemodulation
 
     BackwardSubsumptionDemodulation();
 
-    void attach(SaturationAlgorithm* salg) override;
-    void detach() override;
+    void attach(SaturationAlgorithm* salg) final;
+    void detach() final;
 
-    void perform(Clause* premise, BwSimplificationRecordIterator& simplifications) override;
+    void perform(Clause* premise, BwSimplificationRecordIterator& simplifications) final;
 
   private:
     RequestedIndex<SimplifyingLiteralIndex> _index;

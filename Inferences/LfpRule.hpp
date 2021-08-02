@@ -26,9 +26,9 @@ public:
  
   LfpRule(Rule rule);
   LfpRule();
-  SimplifyingGeneratingInference1::Result simplify(Clause *cl, bool doCheckOrdering) override;
-  void attach(SaturationAlgorithm* alg) override { SimplifyingGeneratingInference1::attach(alg); _inner.attach(alg); }
-  void detach() override { SimplifyingGeneratingInference1::detach(); _inner.detach(); }
+  SimplifyingGeneratingInference1::Result simplify(Clause *cl, bool doCheckOrdering) final;
+  void attach(SaturationAlgorithm* alg) final { SimplifyingGeneratingInference1::attach(alg); _inner.attach(alg); }
+  void detach() final { SimplifyingGeneratingInference1::detach(); _inner.detach(); }
 };
 
 

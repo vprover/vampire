@@ -34,7 +34,7 @@ public:
   CLASS_NAME(EqualityResolution);
   USE_ALLOCATOR(EqualityResolution);
 
-  ClauseIterator generateClauses(Clause* premise) override;
+  ClauseIterator generateClauses(Clause* premise) final;
   static Clause* tryResolveEquality(Clause* cl, Literal* toResolve);
 private:
   struct ResultFn;

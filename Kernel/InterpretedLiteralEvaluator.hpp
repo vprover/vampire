@@ -27,7 +27,7 @@
 
 namespace Kernel {
 
-class InterpretedLiteralEvaluator
+class InterpretedLiteralEvaluator final
   :  private TermTransformerTransformTransformed 
 {
 public:
@@ -35,7 +35,7 @@ public:
   USE_ALLOCATOR(InterpretedLiteralEvaluator);
   
   InterpretedLiteralEvaluator(bool doNormalize = true);
-  ~InterpretedLiteralEvaluator() override;
+  ~InterpretedLiteralEvaluator() final;
 
   bool evaluate(Literal* lit, bool& isConstant, Literal*& resLit, bool& resConst,Stack<Literal*>& sideConditions);
   TermList evaluate(TermList);
@@ -52,7 +52,7 @@ protected:
   class RealEvaluator;
 
   typedef Stack<Evaluator*> EvalStack;
-  TermList transformSubterm(TermList trm) override;
+  TermList transformSubterm(TermList trm) final;
   Evaluator* getFuncEvaluator(unsigned func);
   Evaluator* getPredEvaluator(unsigned pred);
   EvalStack _evals;

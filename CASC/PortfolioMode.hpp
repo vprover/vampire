@@ -42,15 +42,15 @@ class PortfolioMode;
 class PortfolioProcessPriorityPolicy : public ProcessPriorityPolicy
 {
 public:
-  float staticPriority(vstring sliceCode) override;
-  float dynamicPriority(pid_t pid) override;
+  float staticPriority(vstring sliceCode) final;
+  float dynamicPriority(pid_t pid) final;
 };
 
 class PortfolioSliceExecutor : public SliceExecutor
 {
 public:
   PortfolioSliceExecutor(PortfolioMode *mode);
-  void runSlice(vstring sliceCode, int remainingTime) override;
+  void runSlice(vstring sliceCode, int remainingTime) final;
 
 private:
   PortfolioMode *_mode;

@@ -221,7 +221,7 @@ std::ostream& operator<< (ostream& out, SubstitutionTree::InstMatcher::TermSpec 
 }
 
 
-class SubstitutionTree::InstMatcher::Substitution
+class SubstitutionTree::InstMatcher::Substitution final
 : public ResultSubstitution
 {
 public:
@@ -231,18 +231,18 @@ public:
   Substitution(InstMatcher* parent, Renaming* resultDenormalizer)
   : _parent(parent), _resultDenormalizer(resultDenormalizer)
   {}
-  ~Substitution() override
+  ~Substitution() final
   {
   }
 
-  bool matchSorts(TermList base, TermList instance) override
+  bool matchSorts(TermList base, TermList instance) final
   {
     CALL("SubstitutionTree::InstMatcher::Substitution::matchSorts");
 
     return _parent->matchNextAux(base, instance, false);
   }
 
-  TermList applyToBoundQuery(TermList t) override
+  TermList applyToBoundQuery(TermList t) final
   {
     CALL("SubstitutionTree::InstMatcher::Substitution::applyToBoundQuery");
 
@@ -258,7 +258,7 @@ public:
     return _resultDenormalizer->apply(normalized);
   }
   
-  bool isIdentityOnResultWhenQueryBound() override
+  bool isIdentityOnResultWhenQueryBound() final
   { return true; }
 private:
   InstMatcher* _parent;

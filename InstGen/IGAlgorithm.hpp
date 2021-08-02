@@ -62,7 +62,7 @@ using namespace Shell;
 // This is why it uses the monomorphic version of EqualityProxy
 // to transform equations
 
-class IGAlgorithm : public MainLoop {
+class IGAlgorithm final : public MainLoop {
 public:
   CLASS_NAME(IGAlgorithm);
   USE_ALLOCATOR(IGAlgorithm);  
@@ -70,15 +70,15 @@ public:
   typedef Statistics::TerminationReason TerminationReason;
 
   IGAlgorithm(Problem& prb, const Options& opt);
-  ~IGAlgorithm() override;
+  ~IGAlgorithm() final;
 
   GroundingIndex& getGroundingIndex() { return *_groundingIndex.ptr(); }
 
   ClauseIterator getActive();
 
 protected:
-  void init() override;
-  MainLoopResult runImpl() override;
+  void init() final;
+  MainLoopResult runImpl() final;
 private:
 
   bool addClause(Clause* cl);

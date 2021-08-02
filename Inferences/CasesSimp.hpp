@@ -26,8 +26,8 @@ class CasesSimp : public ImmediateSimplificationEngine {
     CLASS_NAME(CasesSimp);
     USE_ALLOCATOR(CasesSimp);
 
-    ClauseIterator simplifyMany(Clause* premise) override;
-    Clause* simplify(Clause* premise) override{ NOT_IMPLEMENTED; }
+    ClauseIterator simplifyMany(Clause* premise) final;
+    Clause* simplify(Clause* premise) final{ NOT_IMPLEMENTED; }
 
     ClauseIterator performSimplification(Clause* cl, Literal* lit, TermList t);
     ClauseIterator generateClauses(Clause* premise);

@@ -53,15 +53,15 @@ public:
 
   SimpleCongruenceClosure(Ordering* ord);
 
-  void addLiterals(LiteralIterator lits, bool onlyEqualites) override;
+  void addLiterals(LiteralIterator lits, bool onlyEqualites) final;
 
-  Status getStatus(bool retrieveMultipleCores) override;
-  unsigned getUnsatCoreCount() override { return _unsatEqs.size(); }
-  void getUnsatCore(LiteralStack& res, unsigned coreIndex) override;
+  Status getStatus(bool retrieveMultipleCores) final;
+  unsigned getUnsatCoreCount() final { return _unsatEqs.size(); }
+  void getUnsatCore(LiteralStack& res, unsigned coreIndex) final;
 
-  void getModel(LiteralStack& model) override;
+  void getModel(LiteralStack& model) final;
   
-  void reset() override;
+  void reset() final;
 
   /**
    * New, more fine-grained way of insertion. The terms may contain variables which are treated as constants.

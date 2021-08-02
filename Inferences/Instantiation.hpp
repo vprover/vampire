@@ -40,7 +40,7 @@ public:
 
   //void init();
 
-  ClauseIterator generateClauses(Clause* premise) override;
+  ClauseIterator generateClauses(Clause* premise) final;
 
   void registerClause(Clause* cl);
 

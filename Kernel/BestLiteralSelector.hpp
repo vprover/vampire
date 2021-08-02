@@ -64,9 +64,9 @@ class BestLiteralSelector
     _comp.attachSelector(this);
   }
 
-  bool isBGComplete() const override { return false; }
+  bool isBGComplete() const final { return false; }
 protected:
-  void doSelection(Clause* c, unsigned eligible) override
+  void doSelection(Clause* c, unsigned eligible) final
   {
     CALL("BestLiteralSelector::doSelection");
 
@@ -130,9 +130,9 @@ public:
     _comp.attachSelector(this);
   }
 
-  bool isBGComplete() const override { return true; }
+  bool isBGComplete() const final { return true; }
 protected:
-  void doSelection(Clause* c, unsigned eligible) override
+  void doSelection(Clause* c, unsigned eligible) final
   {
     CALL("CompleteBestLiteralSelector::doSelection");
     ASS_G(eligible, 1); //trivial cases should be taken care of by the base LiteralSelector

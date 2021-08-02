@@ -36,7 +36,7 @@ public:
   AgeQueue(const Options& opt) : _opt(opt) {}
 protected:
 
-  bool lessThan(Clause*,Clause*) override;
+  bool lessThan(Clause*,Clause*) final;
 
   friend class AWPassiveClauseContainer;
 
@@ -50,7 +50,7 @@ class WeightQueue
 public:
   WeightQueue(const Options& opt) : _opt(opt) {}
 protected:
-  bool lessThan(Clause*,Clause*) override;
+  bool lessThan(Clause*,Clause*) final;
 
   friend class AWPassiveClauseContainer;
 private:
@@ -61,7 +61,7 @@ private:
  * Defines the class Passive of passive clauses
  * @since 31/12/2007 Manchester
  */
-class AWPassiveClauseContainer
+class AWPassiveClauseContainer final
 : public PassiveClauseContainer
 {
 public:
@@ -69,19 +69,19 @@ public:
   USE_ALLOCATOR(AWPassiveClauseContainer);
 
   AWPassiveClauseContainer(bool isOutermost, const Shell::Options& opt, vstring name);
-  ~AWPassiveClauseContainer() override;
-  void add(Clause* cl) override;
+  ~AWPassiveClauseContainer() final;
+  void add(Clause* cl) final;
 
-  void remove(Clause* cl) override;
+  void remove(Clause* cl) final;
 
   bool byWeight(int balance);
 
-  Clause* popSelected() override;
+  Clause* popSelected() final;
   /** True if there are no passive clauses */
-  bool isEmpty() const override
+  bool isEmpty() const final
   { return _ageQueue.isEmpty() && _weightQueue.isEmpty(); }
 
-  unsigned sizeEstimate() const override { return _size; }
+  unsigned sizeEstimate() const final { return _size; }
 
   static Comparison compareWeight(Clause* cl1, Clause* cl2, const Shell::Options& opt);
 
@@ -104,16 +104,16 @@ private:
    * LRS specific methods and fields for computation of Limits
    */
 public:
-  void simulationInit() override;
-  bool simulationHasNext() override;
-  void simulationPopSelected() override;
+  void simulationInit() final;
+  bool simulationHasNext() final;
+  void simulationPopSelected() final;
 
   // returns whether at least one of the limits was tightened
-  bool setLimitsToMax() override;
+  bool setLimitsToMax() final;
   // returns whether at least one of the limits was tightened
-  bool setLimitsFromSimulation() override;
+  bool setLimitsFromSimulation() final;
 
-  void onLimitsUpdated() override;
+  void onLimitsUpdated() final;
 private:
   bool setLimits(unsigned newAgeSelectionMaxAge, unsigned newAgeSelectionMaxWeight, unsigned newWeightSelectionMaxWeight, unsigned newWeightSelectionMaxAge);
 
@@ -132,21 +132,21 @@ private:
    * LRS specific methods and fields for usage of limits
    */
 public:
-  bool ageLimited() const override;
-  bool weightLimited() const override;
+  bool ageLimited() const final;
+  bool weightLimited() const final;
 
-  bool fulfilsAgeLimit(Clause* c) const override;
+  bool fulfilsAgeLimit(Clause* c) const final;
   // note: w here denotes the weight as returned by weight().
   // age is to be recovered from inference
   // this method internally takes care of computing the corresponding weightForClauseSelection.
-  bool fulfilsAgeLimit(unsigned w, unsigned numPositiveLiterals, const Inference& inference) const override;
-  bool fulfilsWeightLimit(Clause* cl) const override;
+  bool fulfilsAgeLimit(unsigned w, unsigned numPositiveLiterals, const Inference& inference) const final;
+  bool fulfilsWeightLimit(Clause* cl) const final;
   // note: w here denotes the weight as returned by weight().
   // age is to be recovered from inference
   // this method internally takes care of computing the corresponding weightForClauseSelection.
-  bool fulfilsWeightLimit(unsigned w, unsigned numPositiveLiterals, const Inference& inference) const override;
+  bool fulfilsWeightLimit(unsigned w, unsigned numPositiveLiterals, const Inference& inference) const final;
 
-  bool childrenPotentiallyFulfilLimits(Clause* cl, unsigned upperBoundNumSelLits) const override;
+  bool childrenPotentiallyFulfilLimits(Clause* cl, unsigned upperBoundNumSelLits) const final;
   
 }; // class AWPassiveClauseContainer
 
@@ -159,7 +159,7 @@ class AWClauseContainer: public ClauseContainer
 public:
   AWClauseContainer(const Shell::Options& opt);
 
-  void add(Clause* cl) override;
+  void add(Clause* cl) final;
   bool remove(Clause* cl);
 
   /**

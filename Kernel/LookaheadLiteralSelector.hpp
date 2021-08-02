@@ -36,9 +36,9 @@ public:
     _startupSelector = (_delay==0) ? 0 : LiteralSelector::getSelector(ordering, options, completeSelection ? 10 : 1010);
   }
 
-  bool isBGComplete() const override { return _completeSelection; }
+  bool isBGComplete() const final { return _completeSelection; }
 protected:
-  void doSelection(Clause* c, unsigned eligible) override;
+  void doSelection(Clause* c, unsigned eligible) final;
 private:
   Literal* pickTheBest(Literal** lits, unsigned cnt);
   void removeVariants(LiteralStack& lits);

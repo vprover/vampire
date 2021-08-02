@@ -32,7 +32,7 @@ template <
   typename CharType,
   typename CharTraits = std::char_traits <CharType>
   >
-class basic_fdbuf: public std::basic_streambuf <CharType, CharTraits>
+class basic_fdbuf final : public std::basic_streambuf <CharType, CharTraits>
 {
 public:
   typedef CharType                                char_type;
@@ -46,7 +46,7 @@ public:
   basic_fdbuf( int fd ) : _fd( fd ), _preRead(-1)
   { }
 
-  ~basic_fdbuf() override
+  ~basic_fdbuf() final
   {
   }
 
@@ -56,7 +56,7 @@ protected:
 //  /**
 //   * Get the CURRENT character without advancing the file pointer
 //   */
-  int_type underflow() override
+  int_type underflow() final
   {
     if(_preRead!=-1) {
       return _preRead;
@@ -68,7 +68,7 @@ protected:
     return ch;
   }
 
-  streamsize xsgetn ( char_type * s0, streamsize n0 ) override
+  streamsize xsgetn ( char_type * s0, streamsize n0 ) final
   {
     char_type * s=s0;
     streamsize n=n0;
@@ -92,7 +92,7 @@ protected:
   /**
    * Get the CURRENT character AND advance the file pointer
    */
-  int_type uflow() override
+  int_type uflow() final
   {
     if(_preRead!=-1) {
       int_type res=_preRead;
@@ -111,13 +111,13 @@ protected:
     return (res==sizeof(char_type)) ? ch : traits_type::eof();
   }
 
-  int_type sync() override
+  int_type sync() final
   {
     _preRead=-1; //we throw away the preread char
     return 0;
   }
 
-  streamsize xsputn (const char_type * s, streamsize n) override
+  streamsize xsputn (const char_type * s, streamsize n) final
   {
     ssize_t res=write(_fd, s, n*sizeof(char_type));
     if(res<0) {
@@ -126,7 +126,7 @@ protected:
     return res/sizeof(char_type);
   }
 
-  int_type overflow( int_type c = traits_type::eof() ) override
+  int_type overflow( int_type c = traits_type::eof() ) final
   {
     char_type ch=c;
     ssize_t res=write(_fd, &ch, sizeof(char_type));
@@ -143,7 +143,7 @@ template <
 typename CharType,
 typename CharTraits = std::char_traits <CharType>
 >
-struct basic_fdstream: public std::basic_iostream <CharType, CharTraits>
+struct basic_fdstream final: public std::basic_iostream <CharType, CharTraits>
 {
   typedef CharType                                      char_type;
   typedef CharTraits                                    traits_type;
@@ -156,7 +156,7 @@ struct basic_fdstream: public std::basic_iostream <CharType, CharTraits>
     base_type( new sbuf_type( fd ) )
   { }
 
-  ~basic_fdstream() override
+  ~basic_fdstream() final
   { delete static_cast<sbuf_type*>(this->rdbuf()); }
 
   typename traits_type::int_type getPreReadChar() const

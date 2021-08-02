@@ -42,7 +42,7 @@ public:
   /**
    * NECESSARY: performs the simplification
    */
-  Kernel::Clause* simplify(Kernel::Clause* in) const override
+  Kernel::Clause* simplify(Kernel::Clause* in) const final
   {
     KBO ord = KBO::testKBO();
     auto simpl = [](Clause* cl)  -> Clause*
@@ -67,7 +67,7 @@ public:
    * OPTIONAL: override how equality between clauses is checked. 
    * Defaults to TestUtils::eqModAC(Clause const*, Clause const*).
    */
-  bool eq(Kernel::Clause const* lhs, Kernel::Clause const* rhs) const override
+  bool eq(Kernel::Clause const* lhs, Kernel::Clause const* rhs) const final
   {
     return TestUtils::eqModAC(lhs, rhs);
   }

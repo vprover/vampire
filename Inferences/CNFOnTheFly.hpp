@@ -38,7 +38,7 @@ public:
   CLASS_NAME(IFFXORRewriterISE);
   USE_ALLOCATOR(IFFXORRewriterISE);
 
-  Clause* simplify(Clause* c) override;
+  Clause* simplify(Clause* c) final;
 };
 
 class EagerClausificationISE
@@ -49,8 +49,8 @@ public:
   CLASS_NAME(EagerClausificationISE);
   USE_ALLOCATOR(EagerClausificationISE);
 
-  ClauseIterator simplifyMany(Clause* c) override;
-  Clause* simplify(Clause* c) override{ NOT_IMPLEMENTED; }
+  ClauseIterator simplifyMany(Clause* c) final;
+  Clause* simplify(Clause* c) final{ NOT_IMPLEMENTED; }
 
 };
 
@@ -65,10 +65,10 @@ public:
     _formulaIndex = 0;
   }
 
-  ClauseIterator perform(Clause* c) override;
+  ClauseIterator perform(Clause* c) final;
 
-  void attach(SaturationAlgorithm* salg) override;
-  void detach() override;
+  void attach(SaturationAlgorithm* salg) final;
+  void detach() final;
 
 private:
   SkolemisingFormulaIndex* _formulaIndex;
@@ -86,10 +86,10 @@ public:
     _formulaIndex = 0;
   }
 
-  void attach(SaturationAlgorithm* salg) override;
-  void detach() override;
+  void attach(SaturationAlgorithm* salg) final;
+  void detach() final;
 
-  ClauseIterator generateClauses(Clause* c) override;
+  ClauseIterator generateClauses(Clause* c) final;
 
 private:
   SkolemisingFormulaIndex* _formulaIndex;

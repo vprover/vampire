@@ -52,7 +52,7 @@ struct CycleQueryResult {
 
 typedef Lib::VirtualIterator<CycleQueryResult*> CycleQueryResultsIterator;
 
-class AcyclicityIndex
+class AcyclicityIndex final
 : public Index
 {
 public:
@@ -61,7 +61,7 @@ public:
     _tis(tis)
   {}
 
-  ~AcyclicityIndex() override {}
+  ~AcyclicityIndex() final {}
   
   void insert(Kernel::Literal *lit, Kernel::Clause *c);
   void remove(Kernel::Literal *lit, Kernel::Clause *c);
@@ -71,7 +71,7 @@ public:
   CLASS_NAME(AcyclicityIndex);
   USE_ALLOCATOR(AcyclicityIndex);
 protected:
-  void handleClause(Kernel::Clause* c, bool adding) override;
+  void handleClause(Kernel::Clause* c, bool adding) final;
 private:
   bool matchesPattern(Kernel::Literal *lit, Kernel::TermList *&fs, Kernel::TermList *&t, TermList *sort);
   Lib::List<TermList>* getSubterms(Kernel::Term *t);

@@ -23,16 +23,16 @@
 
 namespace Inferences {
 
-class PushUnaryMinus
+class PushUnaryMinus final
 : public ImmediateSimplificationEngine
 {
 public:
   CLASS_NAME(PushUnaryMinus);
   USE_ALLOCATOR(PushUnaryMinus);
 
-  ~PushUnaryMinus() override;
+  ~PushUnaryMinus() final;
 
-  Clause* simplify(Clause* cl) override;
+  Clause* simplify(Clause* cl) final;
 };
 
 };

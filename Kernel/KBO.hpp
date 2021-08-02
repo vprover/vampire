@@ -124,7 +124,7 @@ private:
  * Class for instances of the Knuth-Bendix orderings
  * @since 30/04/2008 flight Brussels-Tel Aviv
  */
-class KBO
+class KBO final
 : public PrecedenceOrdering
 {
 public:
@@ -150,15 +150,15 @@ public:
 
   static KBO testKBO();
 
-  ~KBO() override;
-  void showConcrete(ostream&) const override;
+  ~KBO() final;
+  void showConcrete(ostream&) const final;
   template<class HandleError>
   void checkAdmissibility(HandleError handle) const;
 
   using PrecedenceOrdering::compare;
-  Result compare(TermList tl1, TermList tl2) const override;
+  Result compare(TermList tl1, TermList tl2) const final;
 protected:
-  Result comparePredicates(Literal* l1, Literal* l2) const override;
+  Result comparePredicates(Literal* l1, Literal* l2) const final;
 
 
   class State;

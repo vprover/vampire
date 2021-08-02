@@ -27,7 +27,7 @@ public:
   CLASS_NAME(DistinctEqualitySimplifier);
   USE_ALLOCATOR(DistinctEqualitySimplifier);
 
-  Clause* simplify(Clause* cl) override;
+  Clause* simplify(Clause* cl) final;
   static bool mustBeDistinct(TermList t1, TermList t2);
   static bool mustBeDistinct(TermList t1, TermList t2, unsigned& grp);
 private:

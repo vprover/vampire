@@ -107,7 +107,7 @@ protected:
   {
     Cls* pObj;
     void(Cls::*pMethod)();
-    void fire() override
+    void fire() final
     {
       (pObj->*pMethod)();
     }
@@ -159,7 +159,7 @@ protected:
     Cls* pObj;
     void(Cls::*pMethod)(T);
 
-    void fire(T t) override
+    void fire(T t) final
     {
       (pObj->*pMethod)(t);
     }

@@ -25,7 +25,7 @@ class FOOLParamodulation : public GeneratingInferenceEngine {
   public:
     CLASS_NAME(FOOLParamodulation);
     USE_ALLOCATOR(FOOLParamodulation);
-    ClauseIterator generateClauses(Clause* premise) override;
+    ClauseIterator generateClauses(Clause* premise) final;
 };
 
 }

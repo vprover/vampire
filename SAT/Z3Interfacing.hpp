@@ -64,20 +64,20 @@ public:
 
   static char const* z3_full_version();
 
-  void addClause(SATClause* cl) override;
+  void addClause(SATClause* cl) final;
 
   Status solve();
-  Status solve(unsigned conflictCountLimit) override { return solve(); };
+  Status solve(unsigned conflictCountLimit) final { return solve(); };
   /**
    * If status is @c SATISFIABLE, return assignment of variable @c var
    */
-  VarAssignment getAssignment(unsigned var) override;
+  VarAssignment getAssignment(unsigned var) final;
 
   /**
    * If status is @c SATISFIABLE, return 0 if the assignment of @c var is
    * implied only by unit propagation (i.e. does not depend on any decisions)
    */
-  bool isZeroImplied(unsigned var) override;
+  bool isZeroImplied(unsigned var) final;
   /**
    * Collect zero-implied literals.
    *
@@ -85,7 +85,7 @@ public:
    *
    * @see isZeroImplied()
    */
-  void collectZeroImplied(SATLiteralStack& acc) override;
+  void collectZeroImplied(SATLiteralStack& acc) final;
   /**
    * Return a valid clause that contains the zero-implied literal
    * and possibly the assumptions that implied it. Return 0 if @c var
@@ -93,9 +93,9 @@ public:
    * If called on a proof producing solver, the clause will have
    * a proper proof history.
    */
-  SATClause* getZeroImpliedCertificate(unsigned var) override;
+  SATClause* getZeroImpliedCertificate(unsigned var) final;
 
-  void ensureVarCount(unsigned newVarCnt) override {
+  void ensureVarCount(unsigned newVarCnt) final {
     CALL("Z3Interfacing::ensureVarCnt");
 
     while (_varCnt < newVarCnt) {
@@ -104,18 +104,18 @@ public:
   }
 
 
-  unsigned newVar() override;
+  unsigned newVar() final;
 
   // Currently not implemented for Z3
-  virtual void suggestPolarity(unsigned var, unsigned pol) override {}
+  virtual void suggestPolarity(unsigned var, unsigned pol) final {}
 
-  virtual void addAssumption(SATLiteral lit) override;
-  virtual void retractAllAssumptions() override;
-  virtual bool hasAssumptions() const override { return !_assumptions.isEmpty(); }
+  virtual void addAssumption(SATLiteral lit) final;
+  virtual void retractAllAssumptions() final;
+  virtual bool hasAssumptions() const final { return !_assumptions.isEmpty(); }
 
-  virtual Status solveUnderAssumptions(const SATLiteralStack& assumps, unsigned conflictCountLimit, bool onlyProperSubusets) override;
+  virtual Status solveUnderAssumptions(const SATLiteralStack& assumps, unsigned conflictCountLimit, bool onlyProperSubusets) final;
 
-  SATClause* getRefutation() override;
+  SATClause* getRefutation() final;
 
   template<class F>
   auto scoped(F f)  -> decltype(f())

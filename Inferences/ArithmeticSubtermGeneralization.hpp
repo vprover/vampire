@@ -19,55 +19,55 @@
 
 namespace Inferences {
 
-class NumeralMultiplicationGeneralization
+class NumeralMultiplicationGeneralization final
 : public SimplifyingGeneratingInference1
 {
 public:
   CLASS_NAME(NumeralMultiplicationGeneralization);
   USE_ALLOCATOR(NumeralMultiplicationGeneralization);
 
-  ~NumeralMultiplicationGeneralization() override;
+  ~NumeralMultiplicationGeneralization() final;
 
-  SimplifyingGeneratingInference1::Result simplify(Clause* cl, bool doOrderingCheck) override;
+  SimplifyingGeneratingInference1::Result simplify(Clause* cl, bool doOrderingCheck) final;
 };
 
 
-class VariableMultiplicationGeneralization
+class VariableMultiplicationGeneralization final
 : public SimplifyingGeneratingInference1
 {
 public:
   CLASS_NAME(VariableMultiplicationGeneralization);
   USE_ALLOCATOR(VariableMultiplicationGeneralization);
 
-  ~VariableMultiplicationGeneralization() override;
+  ~VariableMultiplicationGeneralization() final;
 
-  SimplifyingGeneratingInference1::Result simplify(Clause* cl, bool doOrderingCheck) override;
+  SimplifyingGeneratingInference1::Result simplify(Clause* cl, bool doOrderingCheck) final;
 };
 
 
-class VariablePowerGeneralization
+class VariablePowerGeneralization final
 : public SimplifyingGeneratingInference1
 {
 public:
   CLASS_NAME(VariablePowerGeneralization);
   USE_ALLOCATOR(VariablePowerGeneralization);
 
-  ~VariablePowerGeneralization() override;
+  ~VariablePowerGeneralization() final;
 
-  SimplifyingGeneratingInference1::Result simplify(Clause* cl, bool doOrderingCheck) override;
+  SimplifyingGeneratingInference1::Result simplify(Clause* cl, bool doOrderingCheck) final;
 };
 
 
-class AdditionGeneralization
+class AdditionGeneralization final
 : public SimplifyingGeneratingInference1
 {
 public:
   CLASS_NAME(AdditionGeneralization);
   USE_ALLOCATOR(AdditionGeneralization);
 
-  ~AdditionGeneralization() override;
+  ~AdditionGeneralization() final;
 
-  SimplifyingGeneratingInference1::Result simplify(Clause* cl, bool doOrderingCheck) override;
+  SimplifyingGeneratingInference1::Result simplify(Clause* cl, bool doOrderingCheck) final;
 };
 
 Stack<SimplifyingGeneratingInference1*> allArithmeticSubtermGeneralizations();

@@ -36,9 +36,9 @@ public:
   ForwardSubsumptionAndResolution(bool subsumptionResolution=true)
   : _subsumptionResolution(subsumptionResolution) {}
 
-  void attach(SaturationAlgorithm* salg) override;
-  void detach() override;
-  bool perform(Clause* cl, Clause*& replacement, ClauseIterator& premises) override;
+  void attach(SaturationAlgorithm* salg) final;
+  void detach() final;
+  bool perform(Clause* cl, Clause*& replacement, ClauseIterator& premises) final;
 
   static Clause* generateSubsumptionResolutionClause(Clause* cl, Literal* lit, Clause* baseClause);
 private:

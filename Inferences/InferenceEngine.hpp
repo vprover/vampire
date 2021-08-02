@@ -124,7 +124,7 @@ class GeneratingInferenceEngine
 public:
   virtual ClauseIterator generateClauses(Clause* premise) = 0;
 
-  ClauseGenerationResult generateSimplify(Clause* premise) override
+  ClauseGenerationResult generateSimplify(Clause* premise) final
   { return { .clauses = generateClauses(premise), 
              .premiseRedundant = false, }; }
 };
@@ -177,7 +177,7 @@ public:
 
   };
 
-  ClauseGenerationResult generateSimplify(Clause* cl) override;
+  ClauseGenerationResult generateSimplify(Clause* cl) final;
 
   /** 
    * Turns this SimplifyingGeneratingInference1 into and ImmediateSimplificationEngine. 
@@ -201,7 +201,7 @@ protected:
    */
   virtual Result simplify(Clause* cl, bool doOrderingCheck) = 0;
 private:
-  Clause* simplify(Clause* cl) override;
+  Clause* simplify(Clause* cl) final;
 };
 
 /**
@@ -232,7 +232,7 @@ public:
 protected:
   SimplifyingGeneratingLiteralSimplification(InferenceRule rule, Ordering& ordering);
   virtual Result simplifyLiteral(Literal* l) = 0;
-  SimplifyingGeneratingInference1::Result simplify(Clause* cl, bool doOrderingCheck) override;
+  SimplifyingGeneratingInference1::Result simplify(Clause* cl, bool doOrderingCheck) final;
 
 private:
   Ordering* _ordering;
@@ -304,7 +304,7 @@ public:
   CLASS_NAME(DummyGIE);
   USE_ALLOCATOR(DummyGIE);
 
-  ClauseIterator generateClauses(Clause* premise) override
+  ClauseIterator generateClauses(Clause* premise) final
   {
     return ClauseIterator::getEmpty();
   }
@@ -340,7 +340,7 @@ public:
 };
 */
 
-class CompositeISE
+class CompositeISE final
 : public ImmediateSimplificationEngine
 {
 public:
@@ -348,13 +348,13 @@ public:
   USE_ALLOCATOR(CompositeISE);
 
   CompositeISE() : _inners(0), _innersMany(0) {}
-  ~CompositeISE() override;
+  ~CompositeISE() final;
   void addFront(ImmediateSimplificationEngine* fse);
   void addFrontMany(ImmediateSimplificationEngine* fse);
-  Clause* simplify(Clause* cl) override;
-  ClauseIterator simplifyMany(Clause* cl) override;
-  void attach(SaturationAlgorithm* salg) override;
-  void detach() override;
+  Clause* simplify(Clause* cl) final;
+  ClauseIterator simplifyMany(Clause* cl) final;
+  void attach(SaturationAlgorithm* salg) final;
+  void detach() final;
 private:
   typedef List<ImmediateSimplificationEngine*> ISList;
   ISList* _inners;
@@ -376,7 +376,7 @@ private:
 //  FSList* _inners;
 //};
 
-class CompositeGIE
+class CompositeGIE final
 : public GeneratingInferenceEngine
 {
 public:
@@ -384,18 +384,18 @@ public:
   USE_ALLOCATOR(CompositeGIE);
 
   CompositeGIE() : _inners(0) {}
-  ~CompositeGIE() override;
+  ~CompositeGIE() final;
   void addFront(GeneratingInferenceEngine* fse);
-  ClauseIterator generateClauses(Clause* premise) override;
-  void attach(SaturationAlgorithm* salg) override;
-  void detach() override;
+  ClauseIterator generateClauses(Clause* premise) final;
+  void attach(SaturationAlgorithm* salg) final;
+  void detach() final;
 private:
   typedef List<GeneratingInferenceEngine*> GIList;
   GIList* _inners;
 };
 
 
-class CompositeSGI
+class CompositeSGI final
 : public SimplifyingGeneratingInference
 {
 public:
@@ -403,12 +403,12 @@ public:
   USE_ALLOCATOR(CompositeSGI);
 
   CompositeSGI() : _simplifiers(), _generators() {}
-  ~CompositeSGI() override;
+  ~CompositeSGI() final;
   void push(SimplifyingGeneratingInference*);
   void push(GeneratingInferenceEngine*);
-  ClauseGenerationResult generateSimplify(Clause* premise) override;
-  void attach(SaturationAlgorithm* salg) override;
-  void detach() override;
+  ClauseGenerationResult generateSimplify(Clause* premise) final;
+  void attach(SaturationAlgorithm* salg) final;
+  void detach() final;
 private:
   Stack<SimplifyingGeneratingInference*> _simplifiers;
   Stack<GeneratingInferenceEngine*> _generators;
@@ -422,7 +422,7 @@ public:
   CLASS_NAME(ChoiceDefinitionISE);
   USE_ALLOCATOR(ChoiceDefinitionISE);
 
-  Clause* simplify(Clause* cl) override;
+  Clause* simplify(Clause* cl) final;
 
   bool isPositive(Literal* lit);
  
@@ -437,7 +437,7 @@ public:
   CLASS_NAME(DuplicateLiteralRemovalISE);
   USE_ALLOCATOR(DuplicateLiteralRemovalISE);
 
-  Clause* simplify(Clause* cl) override;
+  Clause* simplify(Clause* cl) final;
 };
 
 class TautologyDeletionISE2
@@ -447,14 +447,14 @@ public:
   CLASS_NAME(TautologyDeletionISE2);
   USE_ALLOCATOR(TautologyDeletionISE2);
 
-  Clause* simplify(Clause* cl) override;
+  Clause* simplify(Clause* cl) final;
 };
 
 class TrivialInequalitiesRemovalISE
 : public ImmediateSimplificationEngine
 {
 public:
-  Clause* simplify(Clause* cl) override;
+  Clause* simplify(Clause* cl) final;
 };
 
 };

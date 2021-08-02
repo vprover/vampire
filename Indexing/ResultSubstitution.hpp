@@ -155,13 +155,13 @@ public:
   
   static ResultSubstitutionSP instance();
 
-  TermList applyToQuery(TermList t) override { return t; }
-  Literal* applyToQuery(Literal* l) override { return l; }
-  TermList applyToResult(TermList t) override { return t; }
-  Literal* applyToResult(Literal* l) override { return l; }
-  TermList applyTo(TermList t, unsigned index) override { return t; }
-  Literal* applyTo(Literal* l,unsigned index) override { return l; }
-  bool isIdentityOnQueryWhenResultBound() override {return true;}
+  TermList applyToQuery(TermList t) final { return t; }
+  Literal* applyToQuery(Literal* l) final { return l; }
+  TermList applyToResult(TermList t) final { return t; }
+  Literal* applyToResult(Literal* l) final { return l; }
+  TermList applyTo(TermList t, unsigned index) final { return t; }
+  Literal* applyTo(Literal* l,unsigned index) final { return l; }
+  bool isIdentityOnQueryWhenResultBound() final {return true;}
 #if VDEBUG
   virtual vstring toString(){ return "identity"; }
 #endif
@@ -174,17 +174,17 @@ public:
   CLASS_NAME(DisjunctQueryAndResultVariablesSubstitution);
   USE_ALLOCATOR(DisjunctQueryAndResultVariablesSubstitution);
   
-  TermList applyToQuery(TermList t) override;
-  Literal* applyToQuery(Literal* l) override;
-  TermList applyToResult(TermList t) override;
-  Literal* applyToResult(Literal* l) override;
-  TermList applyTo(TermList t, unsigned index) override { NOT_IMPLEMENTED; }
-  Literal* applyTo(Literal* l,unsigned index) override { NOT_IMPLEMENTED; }
+  TermList applyToQuery(TermList t) final;
+  Literal* applyToQuery(Literal* l) final;
+  TermList applyToResult(TermList t) final;
+  Literal* applyToResult(Literal* l) final;
+  TermList applyTo(TermList t, unsigned index) final { NOT_IMPLEMENTED; }
+  Literal* applyTo(Literal* l,unsigned index) final { NOT_IMPLEMENTED; }
 
   /**
    * we can return true because nothing is bound to the result
    */
-  bool isIdentityOnQueryWhenResultBound() override {return true;}
+  bool isIdentityOnQueryWhenResultBound() final {return true;}
 #if VDEBUG
   virtual vstring toString(){ return "DisjunctQueryAndResultVariablesSubstitution"; }
 #endif

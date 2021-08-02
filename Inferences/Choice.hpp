@@ -27,7 +27,7 @@ class Choice : public GeneratingInferenceEngine
     CLASS_NAME(Choice);
     USE_ALLOCATOR(Choice);
 
-    ClauseIterator generateClauses(Clause* premise) override;
+    ClauseIterator generateClauses(Clause* premise) final;
 
   private:
     struct SubtermsFn;

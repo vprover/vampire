@@ -42,30 +42,30 @@ public:
    *
    * A requirement is that in a clause, each variable occurs at most once.
    */
-  void addClause(SATClause* cl) override;
+  void addClause(SATClause* cl) final;
   
   /**
    * Opportunity to perform in-processing of the clause database.
    *
    * (Minisat deletes unconditionally satisfied clauses.)
    */
-  void simplify() override {
+  void simplify() final {
     CALL("MinisatInterfacingNewSimp::simplify");
     _solver.simplify();
   }
 
-  Status solve(unsigned conflictCountLimit) override;
+  Status solve(unsigned conflictCountLimit) final;
   
   /**
    * If status is @c SATISFIABLE, return assignment of variable @c var
    */
-  VarAssignment getAssignment(unsigned var) override;
+  VarAssignment getAssignment(unsigned var) final;
 
   /**
    * If status is @c SATISFIABLE, return 0 if the assignment of @c var is
    * implied only by unit propagation (i.e. does not depend on any decisions)
    */
-  bool isZeroImplied(unsigned var) override;
+  bool isZeroImplied(unsigned var) final;
   /**
    * Collect zero-implied literals.
    *
@@ -73,7 +73,7 @@ public:
    *
    * @see isZeroImplied()
    */
-  void collectZeroImplied(SATLiteralStack& acc) override;
+  void collectZeroImplied(SATLiteralStack& acc) final;
   /**
    * Return a valid clause that contains the zero-implied literal
    * and possibly the assumptions that implied it. Return 0 if @c var
@@ -81,13 +81,13 @@ public:
    * If called on a proof producing solver, the clause will have
    * a proper proof history.
    */
-  SATClause* getZeroImpliedCertificate(unsigned var) override;
+  SATClause* getZeroImpliedCertificate(unsigned var) final;
 
-  void ensureVarCount(unsigned newVarCnt) override;
+  void ensureVarCount(unsigned newVarCnt) final;
   
-  unsigned newVar() override;
+  unsigned newVar() final;
   
-  void suggestPolarity(unsigned var, unsigned pol) override {
+  void suggestPolarity(unsigned var, unsigned pol) final {
     // 0 -> true which means negated, e.g. false in the model
     bool mpol = pol ? false : true; 
     _solver.suggestPolarity(vampireVar2Minisat(var),mpol);
@@ -96,20 +96,20 @@ public:
   /**
    * Add an assumption into the solver.
    */
-  void addAssumption(SATLiteral lit) override;
+  void addAssumption(SATLiteral lit) final;
   
-  void retractAllAssumptions() override {
+  void retractAllAssumptions() final {
     _assumptions.clear();
     _status = UNKNOWN;
   };
   
-  bool hasAssumptions() const override {
+  bool hasAssumptions() const final {
     return (_assumptions.size() > 0);
   };
 
-  Status solveUnderAssumptions(const SATLiteralStack& assumps, unsigned conflictCountLimit, bool) override;
+  Status solveUnderAssumptions(const SATLiteralStack& assumps, unsigned conflictCountLimit, bool) final;
 
-  SATClause* getRefutation() override { ASSERTION_VIOLATION; }
+  SATClause* getRefutation() final { ASSERTION_VIOLATION; }
 
   static void reportMinisatOutOfMemory();
 

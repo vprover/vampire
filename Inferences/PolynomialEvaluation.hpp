@@ -26,7 +26,7 @@ namespace Inferences
 {
 
 using SortId = TermList;
-class PolynomialEvaluation
+class PolynomialEvaluation final
 : public SimplifyingGeneratingLiteralSimplification
 {
 public:
@@ -34,11 +34,11 @@ public:
   USE_ALLOCATOR(PolynomialEvaluation);
 
   PolynomialEvaluation(Ordering& ordering);
-  ~PolynomialEvaluation() override;
+  ~PolynomialEvaluation() final;
 
 private:
 
-  Result simplifyLiteral(Literal*) override;
+  Result simplifyLiteral(Literal*) final;
 
   Option<PolyNf> evaluate(TermList in, SortId sortNumber) const;
   Option<PolyNf> evaluate(Term* in) const;

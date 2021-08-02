@@ -36,12 +36,12 @@ public:
 
   HyperSuperposition() : _index(0) {}
 
-  void attach(SaturationAlgorithm* salg) override;
-  void detach() override;
+  void attach(SaturationAlgorithm* salg) final;
+  void detach() final;
 
   ClauseIterator generateClauses(Clause* premise);
 
-  bool perform(Clause* cl, Clause*& replacement, ClauseIterator& premises) override;
+  bool perform(Clause* cl, Clause*& replacement, ClauseIterator& premises) final;
 private:
   typedef pair<TermList,TermList> TermPair;
   /** The int here is a variable bank index of the term's variables */

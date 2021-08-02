@@ -41,26 +41,26 @@ public:
 
   MinimizingSolver(SATSolver* inner);
 
-  SATClause* getRefutation() override { return _inner->getRefutation(); }
-  SATClauseList* getRefutationPremiseList() override {
+  SATClause* getRefutation() final { return _inner->getRefutation(); }
+  SATClauseList* getRefutationPremiseList() final {
     return _inner->getRefutationPremiseList();
   }
-  void randomizeForNextAssignment(unsigned maxVar) override {
+  void randomizeForNextAssignment(unsigned maxVar) final {
     _inner->randomizeForNextAssignment(maxVar); _assignmentValid = false;
   }
 
-  void addClause(SATClause* cl) override;
-  void addClauseIgnoredInPartialModel(SATClause* cl) override;
-  Status solve(unsigned conflictCountLimit) override;
+  void addClause(SATClause* cl) final;
+  void addClauseIgnoredInPartialModel(SATClause* cl) final;
+  Status solve(unsigned conflictCountLimit) final;
   
-  VarAssignment getAssignment(unsigned var) override;
-  bool isZeroImplied(unsigned var) override;
-  void collectZeroImplied(SATLiteralStack& acc) override { _inner->collectZeroImplied(acc); }
-  SATClause* getZeroImpliedCertificate(unsigned var) override { return _inner->getZeroImpliedCertificate(var); }
+  VarAssignment getAssignment(unsigned var) final;
+  bool isZeroImplied(unsigned var) final;
+  void collectZeroImplied(SATLiteralStack& acc) final { _inner->collectZeroImplied(acc); }
+  SATClause* getZeroImpliedCertificate(unsigned var) final { return _inner->getZeroImpliedCertificate(var); }
 
-  void ensureVarCount(unsigned newVarCnt) override;
+  void ensureVarCount(unsigned newVarCnt) final;
 
-  unsigned newVar() override {
+  unsigned newVar() final {
     CALL("MinimizingSolver::newVar");
     DEBUG_CODE(unsigned oldVC = _varCnt);
     ensureVarCount(_varCnt+1);
@@ -68,7 +68,7 @@ public:
     return _varCnt;
   }
 
-  void suggestPolarity(unsigned var, unsigned pol) override { _inner->suggestPolarity(var,pol); }
+  void suggestPolarity(unsigned var, unsigned pol) final { _inner->suggestPolarity(var,pol); }
 
 private:
   bool admitsDontcare(unsigned var) { 

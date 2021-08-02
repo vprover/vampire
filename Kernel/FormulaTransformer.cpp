@@ -448,7 +448,7 @@ struct ScanAndApplyLiteralTransformer::LitFormulaTransformer : public FormulaTra
   LitFormulaTransformer(ScanAndApplyLiteralTransformer& parent, UnitStack& premAcc)
       : _parent(parent), _premAcc(premAcc) {}
 
-  Formula* applyLiteral(Formula* f) override {
+  Formula* applyLiteral(Formula* f) final {
     Literal* l = f->literal();
     Literal* l1 = _parent.apply(l, _premAcc);
     if(l1!=l) {

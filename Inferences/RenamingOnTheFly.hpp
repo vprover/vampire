@@ -36,8 +36,8 @@ public:
 
   ClauseIterator perform(Clause* c);
 
-  void attach(SaturationAlgorithm* salg) override;
-  void detach() override;
+  void attach(SaturationAlgorithm* salg) final;
+  void detach() final;
 
   //todo make an option
 private:

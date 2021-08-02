@@ -440,7 +440,7 @@ Literal* OCMatchIterator::apply(Literal* lit)
 
 //////////////// Matcher ////////////////////
 
-class Matcher::CommutativeMatchIterator
+class Matcher::CommutativeMatchIterator final
 : public IteratorCore<Matcher*>
 {
 public:
@@ -451,14 +451,14 @@ public:
     ASS(_base->commutative());
     ASS_EQ(_base->arity(), 2);
   }
-  ~CommutativeMatchIterator() override
+  ~CommutativeMatchIterator() final
   {
     if(_state!=FINISHED && _state!=FIRST) {
   backtrack();
     }
     ASS(_bdata.isEmpty());
   }
-  bool hasNext() override
+  bool hasNext() final
   {
     CALL("Matcher::CommutativeMatchIterator::hasNext");
 
@@ -501,7 +501,7 @@ public:
     ASS(_state!=FINISHED || _bdata.isEmpty());
     return _state!=FINISHED;
   }
-  Matcher* next() override
+  Matcher* next() final
   {
     _used=true;
     return _matcher;

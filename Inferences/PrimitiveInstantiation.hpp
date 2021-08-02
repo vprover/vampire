@@ -34,10 +34,10 @@ public:
   CLASS_NAME(PrimitiveInstantiation);
   USE_ALLOCATOR(PrimitiveInstantiation);
 
-  void attach(SaturationAlgorithm* salg) override;
-  void detach() override;
+  void attach(SaturationAlgorithm* salg) final;
+  void detach() final;
 
-  ClauseIterator generateClauses(Clause* premise) override;
+  ClauseIterator generateClauses(Clause* premise) final;
   
 private:
   PrimitiveInstantiationIndex* _index;  

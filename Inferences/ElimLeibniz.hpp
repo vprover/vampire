@@ -28,7 +28,7 @@ class ElimLeibniz : public GeneratingInferenceEngine
     CLASS_NAME(ElimLeibniz);
     USE_ALLOCATOR(ElimLeibniz);
 
-    ClauseIterator generateClauses(Clause* premise) override;
+    ClauseIterator generateClauses(Clause* premise) final;
 
   private:
 

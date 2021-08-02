@@ -37,10 +37,10 @@ public:
   KBOForEPR(Problem& prb, const Options& opt);
 
   using PrecedenceOrdering::compare;
-  Result compare(TermList tl1, TermList tl2) const override;
-  void showConcrete(ostream&) const override;
+  Result compare(TermList tl1, TermList tl2) const final;
+  void showConcrete(ostream&) const final;
 protected:
-  Result comparePredicates(Literal* l1, Literal* l2) const override;
+  Result comparePredicates(Literal* l1, Literal* l2) const final;
 };
 
 }

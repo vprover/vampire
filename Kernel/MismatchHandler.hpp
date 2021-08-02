@@ -33,7 +33,7 @@ class UWAMismatchHandler : public MismatchHandler
 {
 public:
   UWAMismatchHandler(Stack<UnificationConstraint>& c) : constraints(c) /*, specialVar(0)*/ {}
-  bool handle(RobSubstitution* sub, TermList t1, unsigned index1, TermList t2, unsigned index2) override;
+  bool handle(RobSubstitution* sub, TermList t1, unsigned index1, TermList t2, unsigned index2) final;
 
   CLASS_NAME(UWAMismatchHandler);
   USE_ALLOCATOR(UWAMismatchHandler);

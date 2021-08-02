@@ -34,10 +34,10 @@ public:
   CLASS_NAME(Superposition);
   USE_ALLOCATOR(Superposition);
 
-  void attach(SaturationAlgorithm* salg) override;
-  void detach() override;
+  void attach(SaturationAlgorithm* salg) final;
+  void detach() final;
 
-  ClauseIterator generateClauses(Clause* premise) override;
+  ClauseIterator generateClauses(Clause* premise) final;
 
 
 private:

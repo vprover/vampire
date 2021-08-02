@@ -67,7 +67,7 @@ public:
   GeneratingLiteralIndex(LiteralIndexingStructure* is)
   : LiteralIndex(is) {};
 protected:
-  void handleClause(Clause* c, bool adding) override;
+  void handleClause(Clause* c, bool adding) final;
 };
 
 class SimplifyingLiteralIndex
@@ -80,7 +80,7 @@ public:
   SimplifyingLiteralIndex(LiteralIndexingStructure* is)
   : LiteralIndex(is) {};
 protected:
-  void handleClause(Clause* c, bool adding) override;
+  void handleClause(Clause* c, bool adding) final;
 };
 
 class FwSubsSimplifyingLiteralIndex
@@ -95,7 +95,7 @@ public:
   { }
 
 protected:
-  void handleClause(Clause* c, bool adding) override;
+  void handleClause(Clause* c, bool adding) final;
 };
 
 class FSDLiteralIndex
@@ -110,7 +110,7 @@ public:
   { }
 
 protected:
-  void handleClause(Clause* c, bool adding) override;
+  void handleClause(Clause* c, bool adding) final;
 };
 
 class UnitClauseLiteralIndex
@@ -123,7 +123,7 @@ public:
   UnitClauseLiteralIndex(LiteralIndexingStructure* is)
   : LiteralIndex(is) {};
 protected:
-  void handleClause(Clause* c, bool adding) override;
+  void handleClause(Clause* c, bool adding) final;
 };
 
 class NonUnitClauseLiteralIndex
@@ -136,12 +136,12 @@ public:
   NonUnitClauseLiteralIndex(LiteralIndexingStructure* is, bool selectedOnly=false)
   : LiteralIndex(is), _selectedOnly(selectedOnly) {};
 protected:
-  void handleClause(Clause* c, bool adding) override;
+  void handleClause(Clause* c, bool adding) final;
 private:
   bool _selectedOnly;
 };
 
-class RewriteRuleIndex
+class RewriteRuleIndex final
 : public LiteralIndex
 {
 public:
@@ -149,13 +149,13 @@ public:
   USE_ALLOCATOR(RewriteRuleIndex);
 
   RewriteRuleIndex(LiteralIndexingStructure* is, Ordering& ordering);
-  ~RewriteRuleIndex() override;
+  ~RewriteRuleIndex() final;
 
   Clause* getCounterpart(Clause* c) {
     return _counterparts.get(c);
   }
 protected:
-  void handleClause(Clause* c, bool adding) override;
+  void handleClause(Clause* c, bool adding) final;
   Literal* getGreater(Clause* c);
 
 private:
@@ -175,7 +175,7 @@ public:
 
   DismatchingLiteralIndex(LiteralIndexingStructure* is)
   : LiteralIndex(is) {};
-  void handleClause(Clause* c, bool adding) override;
+  void handleClause(Clause* c, bool adding) final;
   void addLiteral(Literal* c);
 };
 
@@ -190,7 +190,7 @@ public:
   : LiteralIndex(is) {}
 
 protected:
-  void handleClause(Clause* c, bool adding) override;
+  void handleClause(Clause* c, bool adding) final;
 };
 
 };

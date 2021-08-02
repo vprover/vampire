@@ -34,9 +34,9 @@ public:
   CLASS_NAME(ForwardLiteralRewriting);
   USE_ALLOCATOR(ForwardLiteralRewriting);
 
-  void attach(SaturationAlgorithm* salg) override;
-  void detach() override;
-  bool perform(Clause* cl, Clause*& replacement, ClauseIterator& premises) override;
+  void attach(SaturationAlgorithm* salg) final;
+  void detach() final;
+  bool perform(Clause* cl, Clause*& replacement, ClauseIterator& premises) final;
 private:
   RewriteRuleIndex* _index;
 };

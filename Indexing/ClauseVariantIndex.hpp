@@ -50,18 +50,18 @@ protected:
 };
 
 
-class SubstitutionTreeClauseVariantIndex : public ClauseVariantIndex
+class SubstitutionTreeClauseVariantIndex final : public ClauseVariantIndex
 {
 public:
   CLASS_NAME(SubstitutionTreeClauseVariantIndex);
   USE_ALLOCATOR(SubstitutionTreeClauseVariantIndex);
 
   SubstitutionTreeClauseVariantIndex() : _emptyClauses(0) {}
-  ~SubstitutionTreeClauseVariantIndex() override;
+  ~SubstitutionTreeClauseVariantIndex() final;
 
-  void insert(Clause* cl) override;
+  void insert(Clause* cl) final;
 
-  ClauseIterator retrieveVariants(Literal* const * lits, unsigned length) override;
+  ClauseIterator retrieveVariants(Literal* const * lits, unsigned length) final;
 
 private:
   class SLQueryResultToClauseFn;
@@ -75,17 +75,17 @@ private:
   ClauseList* _emptyClauses;
 };
 
-class HashingClauseVariantIndex : public ClauseVariantIndex
+class HashingClauseVariantIndex final : public ClauseVariantIndex
 {
 public:
   CLASS_NAME(HashingClauseVariantIndex);
   USE_ALLOCATOR(HashingClauseVariantIndex);
 
-  ~HashingClauseVariantIndex() override;
+  ~HashingClauseVariantIndex() final;
 
-  void insert(Clause* cl) override;
+  void insert(Clause* cl) final;
 
-  ClauseIterator retrieveVariants(Literal* const * lits, unsigned length) override;
+  ClauseIterator retrieveVariants(Literal* const * lits, unsigned length) final;
 
 private:
   struct VariableIgnoringComparator;

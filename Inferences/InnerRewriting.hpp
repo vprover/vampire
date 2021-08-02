@@ -33,7 +33,7 @@ public:
   CLASS_NAME(InnerRewriting);
   USE_ALLOCATOR(InnerRewriting);
   
-  bool perform(Clause* cl, Clause*& replacement, ClauseIterator& premises) override;
+  bool perform(Clause* cl, Clause*& replacement, ClauseIterator& premises) final;
 };
 
 };

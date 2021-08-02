@@ -35,12 +35,12 @@ namespace Minisat {
 //=================================================================================================
 
 
-class SimpSolver : public Solver {
+class SimpSolver final : public Solver {
  public:
     // Constructor/Destructor:
     //
     SimpSolver();
-    ~SimpSolver() override;
+    ~SimpSolver() final;
 
     // Problem specification:
     //
@@ -77,7 +77,7 @@ class SimpSolver : public Solver {
 
     // Memory managment:
     //
-    void garbageCollect() override;
+    void garbageCollect() final;
 
     // Mode of operation:
     //

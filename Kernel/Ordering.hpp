@@ -156,9 +156,9 @@ class PrecedenceOrdering
 : public Ordering
 {
 public:
-  Result compare(Literal* l1, Literal* l2) const override;
-  Comparison compareFunctors(unsigned fun1, unsigned fun2) const override;
-  void show(ostream&) const override;
+  Result compare(Literal* l1, Literal* l2) const final;
+  Comparison compareFunctors(unsigned fun1, unsigned fun2) const final;
+  void show(ostream&) const final;
   virtual void showConcrete(ostream&) const = 0;
 
 protected:

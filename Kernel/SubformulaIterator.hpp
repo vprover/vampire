@@ -27,16 +27,16 @@ namespace Kernel {
 /**
  * Implements an iterator over subformulas of a formula or formula list.
  */
-class SubformulaIterator
+class SubformulaIterator final
 : public IteratorCore<Formula*>
 {
 public:
   SubformulaIterator (Formula*);
   SubformulaIterator (FormulaList*);
-  ~SubformulaIterator () override;
+  ~SubformulaIterator () final;
 
-  bool hasNext () override;
-  Formula* next () override;
+  bool hasNext () final;
+  Formula* next () final;
   Formula* next (int& polarity);
 private:
   class Element;

@@ -206,7 +206,7 @@ public:
   VarMaxUpdatingNormalizer(const Lib::DHMap<TermList, TermList>& replacements, int& varMax)
     : _repls(replacements), _varMax(varMax) {}
 protected:
-  TermList transformSubterm(TermList trm) override {
+  TermList transformSubterm(TermList trm) final {
     TermList res;
     if (_repls.find(trm,res)) {
       return res;
@@ -229,7 +229,7 @@ public:
   RenanigApartNormalizer(const Lib::DHMap<TermList, TermList>& replacements, int varMax, Lib::DHMap<unsigned, unsigned>& varMap)
     : _repls(replacements), _varMax(varMax), _varMap(varMap) {}
 protected:
-  TermList transformSubterm(TermList trm) override {
+  TermList transformSubterm(TermList trm) final {
     TermList res;
     if (_repls.find(trm,res)) {
       return res;

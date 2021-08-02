@@ -55,9 +55,9 @@ class ForwardSubsumptionDemodulation
       : _doSubsumption(doSubsumption)
     { }
 
-    void attach(SaturationAlgorithm* salg) override;
-    void detach() override;
-    bool perform(Clause* cl, Clause*& replacement, ClauseIterator& premises) override;
+    void attach(SaturationAlgorithm* salg) final;
+    void detach() final;
+    bool perform(Clause* cl, Clause*& replacement, ClauseIterator& premises) final;
 
   private:
     RequestedIndex<LiteralIndex> _unitIndex;

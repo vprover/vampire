@@ -28,13 +28,13 @@ namespace Shell {
  * Class LispLexer, implements a LispLexer.
  * @since 25/08/2009 Redmond
  */
-class LispLexer 
+class LispLexer final
   : public Lexer
 {
 public:
   LispLexer(istream& in);
-  void readToken (Token&) override;
-  ~LispLexer () override {}
+  void readToken (Token&) final;
+  ~LispLexer () final {}
 
 private:
   void skipWhiteSpacesAndComments();

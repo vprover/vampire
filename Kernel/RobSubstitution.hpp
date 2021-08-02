@@ -293,7 +293,7 @@ private:
 	_term.term.makeEmpty();
       }
     }
-    void backtrack() override
+    void backtrack() final
     {
       if(_term.term.isEmpty()) {
 	_subst->_bank.remove(_var);

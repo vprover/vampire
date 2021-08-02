@@ -301,15 +301,15 @@ public:
   /**
    * Implements lexer and parser exceptions.
    */
-  class ParseErrorException 
+  class ParseErrorException final
     : public ::Exception
   {
   public:
     ParseErrorException(vstring message,unsigned ln) : _message(message), _ln(ln) {}
     ParseErrorException(vstring message,Token& tok,unsigned ln);
     ParseErrorException(vstring message,int position,unsigned ln);
-    void cry(ostream&) const override;
-    ~ParseErrorException() override {}
+    void cry(ostream&) const final;
+    ~ParseErrorException() final {}
   protected:
     vstring _message;
     unsigned _ln;
@@ -853,13 +853,13 @@ public:
   struct FileSourceRecord : SourceRecord {
     const vstring fileName;
     const vstring nameInFile;
-    bool isFile() override{ return true; } 
+    bool isFile() final{ return true; } 
     FileSourceRecord(vstring fN, vstring nF) : fileName(fN), nameInFile(nF) {}
   };
   struct InferenceSourceRecord : SourceRecord{
     const vstring name;
     Stack<vstring> premises; 
-    bool isFile() override{ return false; } 
+    bool isFile() final{ return false; } 
     InferenceSourceRecord(vstring n) : name(n) {}
   };
   

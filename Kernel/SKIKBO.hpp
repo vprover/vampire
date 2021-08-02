@@ -35,7 +35,7 @@ using namespace Lib;
  * Class for instances of the Knuth-Bendix orderings
  * @since 30/04/2008 flight Brussels-Tel Aviv
  */
-class SKIKBO
+class SKIKBO final
 : public PrecedenceOrdering
 {
 public:
@@ -43,19 +43,19 @@ public:
   USE_ALLOCATOR(SKIKBO);
 
   SKIKBO(Problem& prb, const Options& opt, bool basic_hol = false);
-  ~SKIKBO() override;
+  ~SKIKBO() final;
 
   typedef SmartPtr<ApplicativeArgsIt> ArgsIt_ptr;
 
   using PrecedenceOrdering::compare;
-  Result compare(TermList tl1, TermList tl2) const override;
+  Result compare(TermList tl1, TermList tl2) const final;
   static unsigned maximumReductionLength(Term* t);
   static TermList reduce(TermStack& args, TermList& head);
 
 protected:
   typedef DHMap<unsigned, DArray<DArray<unsigned>*>*> VarOccMap;
 
-  //Result comparePredicates(Literal* l1, Literal* l2) const override;
+  //Result comparePredicates(Literal* l1, Literal* l2) const final;
 
   enum VarCondRes {
     INCOMP,
@@ -66,12 +66,12 @@ protected:
  
   class State;
 
-  Result comparePredicates(Literal* l1, Literal* l2) const override
+  Result comparePredicates(Literal* l1, Literal* l2) const final
   {
     return Ordering::INCOMPARABLE;
   }
 
-  void showConcrete(ostream&) const override
+  void showConcrete(ostream&) const final
   { NOT_IMPLEMENTED; }
 
   //VarCondRes compareVariables(VarOccMap&, VarOccMap&, VarCondRes) const;

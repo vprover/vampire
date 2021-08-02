@@ -16,7 +16,7 @@
 namespace Inferences {
 
 
-class Cancellation
+class Cancellation final
 : public SimplifyingGeneratingLiteralSimplification
 {
 public:
@@ -24,9 +24,9 @@ public:
   USE_ALLOCATOR(Cancellation);
 
   Cancellation(Ordering& ordering);
-  ~Cancellation() override;
+  ~Cancellation() final;
 
-  Result simplifyLiteral(Literal*) override;
+  Result simplifyLiteral(Literal*) final;
 };
 
 

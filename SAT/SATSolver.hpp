@@ -374,7 +374,7 @@ public:
     // _addedClauses->destroy(); // we clear the list but not its content
   }
 
-  void addClause(SATClause* cl) override 
+  void addClause(SATClause* cl) override
   {
     CALL("PrimitiveProofRecordingSATSolver::addClause");
     

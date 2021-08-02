@@ -37,13 +37,13 @@ public:
    * Implements lexer exceptions.
    * @since 14/01/2011 Manchester
    */
-  class LexerException 
+  class LexerException final
     : public Lib::Exception
   {
   public:                                
     LexerException(const CParser&,unsigned pos,Lib::vstring message);
-    void cry(ostream&) const override;
-    ~LexerException() override {}
+    void cry(ostream&) const final;
+    ~LexerException() final {}
   protected:
     Lib::vstring _message;
     unsigned _pos;
@@ -53,13 +53,13 @@ public:
    * Implements parser exceptions.
    * @since 17/01/2011 Manchester
    */
-  class ParserException 
+  class ParserException final
     : public Lib::Exception
   {
   public:                                
     ParserException(const CParser&,unsigned pos,Lib::vstring message);
-    void cry(ostream&) const override;
-    ~ParserException() override {}
+    void cry(ostream&) const final;
+    ~ParserException() final {}
   protected:
     Lib::vstring _message;
     unsigned _pos;

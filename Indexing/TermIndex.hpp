@@ -59,7 +59,7 @@ public:
   SuperpositionSubtermIndex(TermIndexingStructure* is, Ordering& ord)
   : TermIndex(is), _ord(ord) {};
 protected:
-  void handleClause(Clause* c, bool adding) override;
+  void handleClause(Clause* c, bool adding) final;
 private:
   Ordering& _ord;
 };
@@ -74,7 +74,7 @@ public:
   SuperpositionLHSIndex(TermIndexingStructure* is, Ordering& ord, const Options& opt)
   : TermIndex(is), _ord(ord), _opt(opt) {};
 protected:
-  void handleClause(Clause* c, bool adding) override;
+  void handleClause(Clause* c, bool adding) final;
 private:
   Ordering& _ord;
   const Options& _opt;
@@ -106,7 +106,7 @@ public:
   DemodulationSubtermIndexImpl(TermIndexingStructure* is)
   : DemodulationSubtermIndex(is) {};
 protected:
-  void handleClause(Clause* c, bool adding) override;
+  void handleClause(Clause* c, bool adding) final;
 };
 
 /**
@@ -122,7 +122,7 @@ public:
   DemodulationLHSIndex(TermIndexingStructure* is, Ordering& ord, const Options& opt)
   : TermIndex(is), _ord(ord), _opt(opt) {};
 protected:
-  void handleClause(Clause* c, bool adding) override;
+  void handleClause(Clause* c, bool adding) final;
 private:
   Ordering& _ord;
   const Options& _opt;
@@ -142,7 +142,7 @@ public:
   : TermIndex(is) {}
 
 protected:
-  void handleClause(Clause* c, bool adding) override;
+  void handleClause(Clause* c, bool adding) final;
 };
 
 /////////////////////////////////////////////////////
@@ -174,7 +174,7 @@ public:
   SubVarSupSubtermIndex(TermIndexingStructure* is, Ordering& ord)
   : TermIndex(is), _ord(ord) {};
 protected:
-  void handleClause(Clause* c, bool adding) override;
+  void handleClause(Clause* c, bool adding) final;
 private:
   Ordering& _ord;
 };
@@ -189,7 +189,7 @@ public:
   SubVarSupLHSIndex(TermIndexingStructure* is, Ordering& ord, const Options& opt)
   : TermIndex(is), _ord(ord) {};
 protected:
-  void handleClause(Clause* c, bool adding) override;
+  void handleClause(Clause* c, bool adding) final;
 private:
   Ordering& _ord;
 };
@@ -236,7 +236,7 @@ public:
   {}
 protected:
   void insertInstantiation(TermList sort, TermList instantiation);
-  void handleClause(Clause* c, bool adding) override;
+  void handleClause(Clause* c, bool adding) final;
 private:
   Set<TermList> _insertedInstantiations;
 };
@@ -252,7 +252,7 @@ public:
   {}
   void insertFormula(TermList formula, TermList name, Literal* lit, Clause* cls);
 protected:
-  void handleClause(Clause* c, bool adding) override;
+  void handleClause(Clause* c, bool adding) final;
 };
 
 };

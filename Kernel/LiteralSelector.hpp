@@ -124,12 +124,12 @@ public:
   TotalLiteralSelector(const Ordering& ordering, const Options& options)
   : LiteralSelector(ordering, options) {}
 
-  bool isBGComplete() const override {
+  bool isBGComplete() const final {
     // this is on purpose; we don't want any extra checks with total selection
     return false;
   }
 protected:
-  void doSelection(Clause* c, unsigned eligible) override;
+  void doSelection(Clause* c, unsigned eligible) final;
 };
 
 

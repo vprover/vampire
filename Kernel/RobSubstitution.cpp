@@ -972,7 +972,7 @@ private:
  * [1] associate means either match or unify
  */
 template<class Fn>
-class RobSubstitution::AssocIterator: public IteratorCore<RobSubstitution*> {
+class RobSubstitution::AssocIterator final: public IteratorCore<RobSubstitution*> {
 public:
   AssocIterator(RobSubstitution* subst, Literal* l1, int l1Index, Literal* l2,
       int l2Index) :
@@ -982,7 +982,7 @@ public:
     ASS(_l1->commutative());
     ASS_EQ(_l1->arity(), 2);
   }
-  ~AssocIterator() override {
+  ~AssocIterator() final {
     CALL("RobSubstitution::AssocIterator::~AssocIterator");
     if (_state != FINISHED && _state != FIRST) {
       backtrack(_bdataMain);
@@ -991,7 +991,7 @@ public:
     ASS(_bdataMain.isEmpty());
     ASS(_bdataEqAssoc.isEmpty());
   }
-  bool hasNext() override {
+  bool hasNext() final {
     CALL("RobSubstitution::AssocIterator::hasNext");
 
     if (_state == FINISHED) {
@@ -1051,7 +1051,7 @@ public:
     return _state != FINISHED;
   }
 
-  RobSubstitution* next() override {
+  RobSubstitution* next() final {
     _used = true;
     return _subst;
   }

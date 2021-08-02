@@ -55,20 +55,20 @@ using namespace SAT;
 
   };
 
-class FiniteModelBuilder : public MainLoop {
+class FiniteModelBuilder final : public MainLoop {
 public:
   CLASS_NAME(FiniteModedlBuilder);
   USE_ALLOCATOR(FiniteModelBuilder);    
   
   FiniteModelBuilder(Problem& prb, const Options& opt);
-  ~FiniteModelBuilder() override;
+  ~FiniteModelBuilder() final;
 
 protected:
   // Sets up everything
-  void init() override;
+  void init() final;
 
   // Runs the saturation loop
-  MainLoopResult runImpl() override;
+  MainLoopResult runImpl() final;
 
 private:
 
@@ -291,15 +291,15 @@ private:
 
     HackyDSAE() : _maxWeightSoFar(0) {}
 
-    bool init(unsigned, DArray<unsigned>&, Stack<std::pair<unsigned,unsigned>>& dsc, Stack<std::pair<unsigned,unsigned>>& sdsc) override {
+    bool init(unsigned, DArray<unsigned>&, Stack<std::pair<unsigned,unsigned>>& dsc, Stack<std::pair<unsigned,unsigned>>& sdsc) final {
       _distinct_sort_constraints = &dsc;
       _strict_distinct_sort_constraints = &sdsc;
       return true;
     }
 
-    bool isFmbComplete(unsigned noDomains) override { return noDomains <= 1; }
-    void learnNogood(Constraint_Generator_Vals& nogood, unsigned weight) override;
-    bool increaseModelSizes(DArray<unsigned>& newSortSizes, DArray<unsigned>& sortMaxes) override;
+    bool isFmbComplete(unsigned noDomains) final { return noDomains <= 1; }
+    void learnNogood(Constraint_Generator_Vals& nogood, unsigned weight) final;
+    bool increaseModelSizes(DArray<unsigned>& newSortSizes, DArray<unsigned>& sortMaxes) final;
   };
 
 #if VZ3
@@ -318,10 +318,10 @@ private:
 
     SmtBasedDSAE() : _smtSolver(_context) {}
 
-    bool init(unsigned, DArray<unsigned>&, Stack<std::pair<unsigned,unsigned>>&, Stack<std::pair<unsigned,unsigned>>&) override;
-    void learnNogood(Constraint_Generator_Vals& nogood, unsigned weight) override;
-    bool increaseModelSizes(DArray<unsigned>& newSortSizes, DArray<unsigned>& sortMaxes) override;
-    bool isFmbComplete(unsigned) override { return true; }
+    bool init(unsigned, DArray<unsigned>&, Stack<std::pair<unsigned,unsigned>>&, Stack<std::pair<unsigned,unsigned>>&) final;
+    void learnNogood(Constraint_Generator_Vals& nogood, unsigned weight) final;
+    bool increaseModelSizes(DArray<unsigned>& newSortSizes, DArray<unsigned>& sortMaxes) final;
+    bool isFmbComplete(unsigned) final { return true; }
   };
 #endif
 

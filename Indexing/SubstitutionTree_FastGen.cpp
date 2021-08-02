@@ -173,7 +173,7 @@ private:
   BindingMap _cache;
 };
 
-class SubstitutionTree::GenMatcher::Substitution
+class SubstitutionTree::GenMatcher::Substitution final
 : public ResultSubstitution
 {
 public:
@@ -184,27 +184,27 @@ public:
   : _parent(parent), _resultNormalizer(resultNormalizer),
   _applicator(0)
   {}
-  ~Substitution() override
+  ~Substitution() final
   {
     if(_applicator) {
       delete _applicator;
     }
   }
 
-  TermList applyToBoundResult(TermList t) override
+  TermList applyToBoundResult(TermList t) final
   { return SubstHelper::apply(t, *getApplicator()); }
 
-  Literal* applyToBoundResult(Literal* lit) override
+  Literal* applyToBoundResult(Literal* lit) final
   { return SubstHelper::apply(lit, *getApplicator()); }
 
-  bool matchSorts(TermList base, TermList instance) override
+  bool matchSorts(TermList base, TermList instance) final
   { return _parent->matchNextAux(instance, base, false); }
 
-  bool isIdentityOnQueryWhenResultBound() override
+  bool isIdentityOnQueryWhenResultBound() final
   { return true; }
 
 #if VDEBUG
-  vstring toString() override
+  vstring toString() final
   { return _resultNormalizer->toString(); }
 #endif
 

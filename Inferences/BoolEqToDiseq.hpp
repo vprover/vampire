@@ -27,7 +27,7 @@ class BoolEqToDiseq : public GeneratingInferenceEngine
     CLASS_NAME(BoolEqToDiseq);
     USE_ALLOCATOR(BoolEqToDiseq);
 
-    ClauseIterator generateClauses(Clause* premise) override;
+    ClauseIterator generateClauses(Clause* premise) final;
 
 };
 

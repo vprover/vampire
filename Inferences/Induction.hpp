@@ -43,7 +43,7 @@ class TermReplacement : public TermTransformer {
 
 public:
   TermReplacement(Term* o, TermList r) : _o(o), _r(r) {} 
-  TermList transformSubterm(TermList trm) override;
+  TermList transformSubterm(TermList trm) final;
 private:
   Term* _o;
   TermList _r;
@@ -65,7 +65,7 @@ public:
   List<pair<Literal*, InferenceRule>>* getListOfTransformedLiterals(InferenceRule rule);
 
 protected:
-  TermList transformSubterm(TermList trm) override;
+  TermList transformSubterm(TermList trm) final;
 
 private:
   // _iteration serves as a map of occurrences to replace
@@ -89,10 +89,10 @@ public:
 
   Induction() {}
 
-  void attach(SaturationAlgorithm* salg) override;
-  void detach() override;
+  void attach(SaturationAlgorithm* salg) final;
+  void detach() final;
 
-  ClauseIterator generateClauses(Clause* premise) override;
+  ClauseIterator generateClauses(Clause* premise) final;
 
 private:
   // The following pointers can be null if int induction is off.

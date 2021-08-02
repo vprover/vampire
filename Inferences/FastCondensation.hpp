@@ -46,7 +46,7 @@ public:
   CLASS_NAME(FastCondensation);
   USE_ALLOCATOR(FastCondensation);
 
-  Clause* simplify(Clause* cl) override;
+  Clause* simplify(Clause* cl) final;
 private:
   struct CondensationBinder;
 };

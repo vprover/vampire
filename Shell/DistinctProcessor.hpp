@@ -37,10 +37,10 @@ public:
   static bool isDistinctPred(Literal* l);
 
 protected:
-  bool apply(FormulaUnit* unit, Unit*& res) override;
-  bool apply(Clause* cl, Unit*& res) override;
+  bool apply(FormulaUnit* unit, Unit*& res) final;
+  bool apply(Clause* cl, Unit*& res) final;
 
-  void updateModifiedProblem(Problem& prb) override
+  void updateModifiedProblem(Problem& prb) final
   {
     CALL("DistinctProcessor::updateModifiedProblem");
     prb.invalidateProperty();

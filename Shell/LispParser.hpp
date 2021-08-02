@@ -92,13 +92,13 @@ public:
    * Class Exception. Implements parser exceptions.
    * @since 17/07/2004 Helsinki airport
    */
-  class Exception 
+  class Exception final
     : public Lib::Exception
   {
   public:                                
     Exception (vstring message,const Token&);
-    void cry (ostream&) const override;
-    ~Exception () override {}
+    void cry (ostream&) const final;
+    ~Exception () final {}
   protected:
     vstring _message;
   }; // Exception

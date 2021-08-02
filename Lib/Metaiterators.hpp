@@ -917,7 +917,7 @@ FlatMapIter<Inner,Functor> getMapAndFlattenIterator(Inner it, Functor f)
  * @see VirtualIterator
  */
 template<class Inner>
-class PersistentIterator
+class PersistentIterator final
 : public IteratorCore<ELEMENT_TYPE(Inner)>
 {
 public:
@@ -931,15 +931,15 @@ public:
       ptr=&(*ptr)->tailReference();
     }
   }
-  ~PersistentIterator() override
+  ~PersistentIterator() final
   {
     if(_items) {
       List<T>::destroy(_items);
     }
   }
-  inline bool hasNext() override { return _items; };
+  inline bool hasNext() final { return _items; };
   inline
-  T next() override
+  T next() final
   {
     return List<T>::pop(_items);
   };
@@ -977,7 +977,7 @@ VirtualIterator<ELEMENT_TYPE(Inner)> getPersistentIterator(Inner it)
  * @see VirtualIterator
  */
 template<class Inner>
-class UniquePersistentIterator
+class UniquePersistentIterator final
 : public IteratorCore<ELEMENT_TYPE(Inner)>
 {
 public:
@@ -990,20 +990,20 @@ public:
   {
     _items=getUniqueItemList(inn, _size);
   }
-  ~UniquePersistentIterator() override
+  ~UniquePersistentIterator() final
   {
     if(_items) {
       ItemList::destroy(_items);
     }
   }
-  inline bool hasNext() override { return _items; };
-  inline T next() override
+  inline bool hasNext() final { return _items; };
+  inline T next() final
   {
     return ItemList::pop(_items);
   };
 
-  inline bool knowsSize() const override { return true; }
-  inline size_t size() const override { return _size; }
+  inline bool knowsSize() const final { return true; }
+  inline size_t size() const final { return _size; }
 private:
   typedef DHSet<T> ItemSet;
 
@@ -1340,13 +1340,13 @@ public:
   explicit TimeCountedIterator(Inner inn, TimeCounterUnit tcu)
   : _inn(inn), _tcu(tcu) {}
 
-  inline bool hasNext() override
+  inline bool hasNext() final
   {
     TimeCounter tc(_tcu);
     return _inn.hasNext();
   };
   inline
-  T next() override
+  T next() final
   {
     TimeCounter tc(_tcu);
     return _inn.next();

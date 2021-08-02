@@ -29,7 +29,7 @@ using namespace Lib;
 /**
  * Class for instances of the lexicographic path orderings
  */
-class LPO
+class LPO final
 : public PrecedenceOrdering
 {
 public:
@@ -39,13 +39,13 @@ public:
   LPO(Problem& prb, const Options& opt) :
     PrecedenceOrdering(prb, opt)
   {}
-  ~LPO() override {}
+  ~LPO() final {}
 
   using PrecedenceOrdering::compare;
-  Result compare(TermList tl1, TermList tl2) const override;
-  void showConcrete(ostream&) const override;
+  Result compare(TermList tl1, TermList tl2) const final;
+  void showConcrete(ostream&) const final;
 protected:
-  Result comparePredicates(Literal* l1, Literal* l2) const override;
+  Result comparePredicates(Literal* l1, Literal* l2) const final;
 
   Result cLMA(Term* s, Term* t, TermList* sl, TermList* tl, unsigned arity) const;
   Result cMA(Term* t, TermList* tl, unsigned arity) const;

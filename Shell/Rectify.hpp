@@ -52,7 +52,7 @@ private:
   typedef pair<unsigned,bool> VarWithUsageInfo;
   typedef List<VarWithUsageInfo> VarUsageTrackingList;
   /** Renaming stores bindings for free and bound variables */
-  class Renaming
+  class Renaming final
     : public Array<VarUsageTrackingList*>
   {
   public:
@@ -62,13 +62,13 @@ private:
     {
       fillInterval(0,15);
     }
-    ~Renaming() override;
+    ~Renaming() final;
     bool tryGetBoundAndMarkUsed (int var,int& boundTo) const;
     VarWithUsageInfo getBoundAndUsage(int var) const;
     unsigned bind (unsigned v);
     void undoBinding(unsigned v);
   private:
-    void fillInterval (size_t start,size_t end) override;
+    void fillInterval (size_t start,size_t end) final;
     /** next variable to rename to */
     unsigned _nextVar;
     /** Variables that already appeared in the formula

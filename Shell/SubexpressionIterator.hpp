@@ -104,7 +104,7 @@ namespace Shell {
       FoolAwareSubformulaIterator(Term* t): _sei(t) {}
       FoolAwareSubformulaIterator(TermList ts): _sei(ts) {}
 
-      bool hasNext() override {
+      bool hasNext() final {
         CALL("FoolAwareSubformulaIterator::hasNext");
         while (_sei.hasNext()) {
           SubexpressionIterator::Expression expression = _sei.next();
@@ -116,7 +116,7 @@ namespace Shell {
         }
         return false;
       }
-      Formula* next() override {
+      Formula* next() final {
         int dummy;
         return next(dummy);
       }
@@ -140,7 +140,7 @@ namespace Shell {
       FoolAwareSubtermIterator(Term* t): _sei(t) {}
       FoolAwareSubtermIterator(TermList ts): _sei(ts) {}
 
-      bool hasNext() override {
+      bool hasNext() final {
         CALL("FoolAwareSubtermIterator::hasNext");
         while (_sei.hasNext()) {
           SubexpressionIterator::Expression expression = _sei.next();
@@ -151,7 +151,7 @@ namespace Shell {
         }
         return false;
       }
-      TermList next() override {
+      TermList next() final {
         return _next;
       }
 

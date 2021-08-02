@@ -33,7 +33,7 @@ public:
   CLASS_NAME(Factoring);
   USE_ALLOCATOR(Factoring);
 
-  ClauseIterator generateClauses(Clause* premise) override;
+  ClauseIterator generateClauses(Clause* premise) final;
 private:
   class UnificationsOnPositiveFn;
   class ResultsFn;

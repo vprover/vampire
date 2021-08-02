@@ -36,13 +36,13 @@ class Lexer;
  * Class LexerException. Implements lexer exceptions.
  * @since 14/07/2004 Turku
  */
-class LexerException 
+class LexerException final
   : public Exception
 {
  public:                                
   LexerException(vstring message,const Lexer&);
-  void cry(ostream&) const override;
-  ~LexerException() override {}
+  void cry(ostream&) const final;
+  ~LexerException() final {}
  protected:
   vstring _message;
 }; // LexerException

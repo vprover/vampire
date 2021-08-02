@@ -34,10 +34,10 @@ public:
   CLASS_NAME(SubVarSup);
   USE_ALLOCATOR(SubVarSup);
 
-  void attach(SaturationAlgorithm* salg) override;
-  void detach() override;
+  void attach(SaturationAlgorithm* salg) final;
+  void detach() final;
 
-  ClauseIterator generateClauses(Clause* premise) override;
+  ClauseIterator generateClauses(Clause* premise) final;
 
 
 private:

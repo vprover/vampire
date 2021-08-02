@@ -34,7 +34,7 @@ public:
   CLASS_NAME(ArgCong);
   USE_ALLOCATOR(ArgCong);
 
-  ClauseIterator generateClauses(Clause* premise) override;
+  ClauseIterator generateClauses(Clause* premise) final;
 private:
   struct ResultFn;
   struct IsPositiveEqualityFn;

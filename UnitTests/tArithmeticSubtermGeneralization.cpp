@@ -39,10 +39,10 @@ class SimplificationTester : public Test::Simplification::SimplificationTester
 {
 public:
 
-  // virtual bool eq(Kernel::Clause const* lhs, Kernel::Clause const* rhs) const override
+  // virtual bool eq(Kernel::Clause const* lhs, Kernel::Clause const* rhs) const final
   // { return TestUtils::eqModACVar(lhs, rhs); }
 
-  Kernel::Clause* simplify(Kernel::Clause* in) const override
+  Kernel::Clause* simplify(Kernel::Clause* in) const final
   {
     auto ord = KBO::testKBO();
     Ordering::trySetGlobalOrdering(SmartPtr<Ordering>(&ord, true));

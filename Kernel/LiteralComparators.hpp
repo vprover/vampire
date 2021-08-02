@@ -58,7 +58,7 @@ public:
     return (res1==EQUAL)?_c2.compare(l1,l2):res1;
   }
 
-  void attachSelector(LiteralSelector* selector) override
+  void attachSelector(LiteralSelector* selector) final
   {
     CALL("LiteralComparators::Composite::attachSelector");
 
@@ -80,7 +80,7 @@ public:
     return _c.compare(l2,l1);
   }
 
-  void attachSelector(LiteralSelector* selector) override
+  void attachSelector(LiteralSelector* selector) final
   {
     CALL("LiteralComparators::Inverse::attachSelector");
 

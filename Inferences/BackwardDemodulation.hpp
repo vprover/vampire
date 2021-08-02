@@ -33,10 +33,10 @@ public:
   CLASS_NAME(BackwardDemodulation);
   USE_ALLOCATOR(BackwardDemodulation);
 
-  void attach(SaturationAlgorithm* salg) override;
-  void detach() override;
+  void attach(SaturationAlgorithm* salg) final;
+  void detach() final;
 
-  void perform(Clause* premise, BwSimplificationRecordIterator& simplifications) override;
+  void perform(Clause* premise, BwSimplificationRecordIterator& simplifications) final;
 private:
   struct RemovedIsNonzeroFn;
   struct RewritableClausesFn;

@@ -90,23 +90,23 @@ public:
   CLASS_NAME(PlainClauseContainer);
   USE_ALLOCATOR(PlainClauseContainer);
 
-  void add(Clause* c) override
+  void add(Clause* c) final
   {
     addedEvent.fire(c);
   }
 };
 
 
-class UnprocessedClauseContainer
+class UnprocessedClauseContainer final
 : public ClauseContainer
 {
 public:
   CLASS_NAME(UnprocessedClauseContainer);
   USE_ALLOCATOR(UnprocessedClauseContainer);
 
-  ~UnprocessedClauseContainer() override;
+  ~UnprocessedClauseContainer() final;
   UnprocessedClauseContainer() : _data(64) {}
-  void add(Clause* c) override;
+  void add(Clause* c) final;
   Clause* pop();
   bool isEmpty() const
   { return _data.isEmpty(); }
@@ -124,7 +124,7 @@ public:
   USE_ALLOCATOR(PassiveClauseContainer);
 
   PassiveClauseContainer(bool isOutermost, const Shell::Options& opt, vstring name = "") : _isOutermost(isOutermost), _opt(opt), _name(name) {}
-  ~PassiveClauseContainer() override{};
+  ~PassiveClauseContainer() override {};
 
   LimitsChangeEvent changedEvent;
 
@@ -186,13 +186,13 @@ public:
 
   ActiveClauseContainer(const Shell::Options& opt) : _size(0)/*, _opt(opt)*/ {}
 
-  void add(Clause* c) override;
-  void remove(Clause* c) override;
+  void add(Clause* c) final;
+  void remove(Clause* c) final;
 
-  unsigned sizeEstimate() const override { return _size; }
+  unsigned sizeEstimate() const final { return _size; }
 
 protected:
-  void onLimitsUpdated() override;
+  void onLimitsUpdated() final;
 private:
   unsigned _size;
   // const Shell::Options& _opt;

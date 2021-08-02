@@ -33,7 +33,7 @@ namespace Indexing
 using namespace Lib;
 using namespace Kernel;
 
-class CodeTreeSubstitution
+class CodeTreeSubstitution final
 : public ResultSubstitution
 {
 public:
@@ -41,7 +41,7 @@ public:
   : _bindings(bindings), _resultNormalizer(resultNormalizer),
   _applicator(0)
   {}
-  ~CodeTreeSubstitution() override
+  ~CodeTreeSubstitution() final
   {
     if(_applicator) {
       delete _applicator;
@@ -51,19 +51,19 @@ public:
   CLASS_NAME(CodeTreeSubstitution);
   USE_ALLOCATOR(CodeTreeSubstitution);
 
-  TermList applyToBoundResult(TermList t) override
+  TermList applyToBoundResult(TermList t) final
   {
     CALL("CodeTreeSubstitution::applyToBoundResult(TermList)");
     return SubstHelper::apply(t, *getApplicator());
   }
 
-  Literal* applyToBoundResult(Literal* lit) override
+  Literal* applyToBoundResult(Literal* lit) final
   {
     CALL("CodeTreeSubstitution::applyToBoundResult(Literal*)");
     return SubstHelper::apply(lit, *getApplicator());
   }
 
-  bool isIdentityOnQueryWhenResultBound() override {return true;}
+  bool isIdentityOnQueryWhenResultBound() final {return true;}
 private:
   struct Applicator
   {
@@ -104,7 +104,7 @@ private:
 ///////////////////////////////////////
 
 
-class CodeTreeTIS::ResultIterator
+class CodeTreeTIS::ResultIterator final
 : public IteratorCore<TermQueryResult>
 {
 public:
@@ -121,7 +121,7 @@ public:
     }
   }
 
-  ~ResultIterator() override
+  ~ResultIterator() final
   {
     _matcher->deinit();
     Recycler::release(_matcher);
@@ -134,7 +134,7 @@ public:
   CLASS_NAME(CodeTreeTIS::ResultIterator);
   USE_ALLOCATOR(ResultIterator);
 
-  bool hasNext() override
+  bool hasNext() final
   {
     CALL("CodeTreeTIS::ResultIterator::hasNext");
 
@@ -152,7 +152,7 @@ public:
     return _found;
   }
 
-  TermQueryResult next() override
+  TermQueryResult next() final
   {
     CALL("CodeTreeTIS::ResultIterator::next");
     ASS(_found);
@@ -391,7 +391,7 @@ bool CodeTreeTIS::generalizationExists(TermList t)
 
 /////////////////   CodeTreeSubsumptionIndex   //////////////////////
 
-class CodeTreeSubsumptionIndex::ClauseSResIterator
+class CodeTreeSubsumptionIndex::ClauseSResIterator final
 : public IteratorCore<ClauseSResQueryResult>
 {
 public:
@@ -401,13 +401,13 @@ public:
     Recycler::get(cm);
     cm->init(tree, query, sres);
   }
-  ~ClauseSResIterator() override
+  ~ClauseSResIterator() final
   {
     cm->deinit();
     Recycler::release(cm);
   }
   
-  bool hasNext() override
+  bool hasNext() final
   {
     CALL("CodeTreeSubsumptionIndex::ClauseSResIterator::hasNext");
     if(ready) {
@@ -419,7 +419,7 @@ public:
     return result;
   }
   
-  ClauseSResQueryResult next() override
+  ClauseSResQueryResult next() final
   {
     CALL("CodeTreeSubsumptionIndex::ClauseSResIterator::next");
     ASS(result);

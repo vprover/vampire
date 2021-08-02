@@ -27,7 +27,7 @@
 
 namespace Inferences {
 
-class InterpretedEvaluation
+class InterpretedEvaluation final
 : public ImmediateSimplificationEngine
 {
 public:
@@ -35,9 +35,9 @@ public:
   USE_ALLOCATOR(InterpretedEvaluation);
 
   InterpretedEvaluation(bool doNormalize, Ordering& ordering);
-  ~InterpretedEvaluation() override;
+  ~InterpretedEvaluation() final;
 
-  Clause* simplify(Clause* cl) override;
+  Clause* simplify(Clause* cl) final;
 private:
   bool simplifyLiteral(Literal* lit, bool& constant, Literal*& res, bool& constantTrue,Stack<Literal*>& sideConditions);
 

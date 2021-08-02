@@ -33,24 +33,24 @@ public:
 
   Otter(Problem& prb, const Options& opt);
 
-  ClauseContainer* getSimplifyingClauseContainer() override;
+  ClauseContainer* getSimplifyingClauseContainer() final;
 
 protected:
 
-  void onSOSClauseAdded(Clause* cl) override;
+  void onSOSClauseAdded(Clause* cl) final;
 
-  void onActiveRemoved(Clause* cl) override;
+  void onActiveRemoved(Clause* cl) final;
 
-  void onPassiveAdded(Clause* cl) override;
+  void onPassiveAdded(Clause* cl) final;
 
-  void onPassiveRemoved(Clause* cl) override;
+  void onPassiveRemoved(Clause* cl) final;
 
-  void onClauseRetained(Clause* cl) override;
+  void onClauseRetained(Clause* cl) final;
 
 
 
   /** called before the selected clause is deleted from the searchspace */
-  void beforeSelectedRemoved(Clause* cl) override;
+  void beforeSelectedRemoved(Clause* cl) final;
 
   /**
    * Dummy container for simplification indexes to subscribe
@@ -63,7 +63,7 @@ protected:
      * This method is called by @b saturate() method when a clause
      * makes it from unprocessed to passive container.
      */
-    void add(Clause* c) override
+    void add(Clause* c) final
     { addedEvent.fire(c); }
 
     /**

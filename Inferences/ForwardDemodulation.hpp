@@ -35,8 +35,8 @@ public:
   CLASS_NAME(ForwardDemodulation);
   USE_ALLOCATOR(ForwardDemodulation);
 
-  void attach(SaturationAlgorithm* salg) override;
-  void detach() override;
+  void attach(SaturationAlgorithm* salg) final;
+  void detach() final;
   bool perform(Clause* cl, Clause*& replacement, ClauseIterator& premises) override = 0;
 protected:
   bool _preorderedOnly;
@@ -51,7 +51,7 @@ public:
   CLASS_NAME(ForwardDemodulationImpl);
   USE_ALLOCATOR(ForwardDemodulationImpl);
 
-  bool perform(Clause* cl, Clause*& replacement, ClauseIterator& premises) override;
+  bool perform(Clause* cl, Clause*& replacement, ClauseIterator& premises) final;
 private:
 };
 
