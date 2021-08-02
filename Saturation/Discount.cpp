@@ -37,7 +37,7 @@ bool Discount::handleClauseBeforeActivation(Clause* cl)
   ASS(cl->store()==Clause::SELECTED);
 
   if (!forwardSimplify(cl)) {
-    cl->setStore(Clause::NONE);
+    cl->setStore(Clause::NONE_DEAD);
     return false;
   }
   backwardSimplify(cl);

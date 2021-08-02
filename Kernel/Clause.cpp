@@ -69,7 +69,7 @@ Clause::Clause(unsigned length,const Inference& inf)
     _extensionalityTag(false),
     _component(false),
     _traced(false),
-    _store(NONE),
+    _store(NONE_BORN),
     _numSelected(0),
     _weight(0),
     _weightForClauseSelection(0),
@@ -172,7 +172,7 @@ Clause* Clause::fromClause(Clause* c)
 
 bool Clause::shouldBeDestroyed()
 {
-  return (_store == NONE) && _refCnt == 0 &&
+  return (_store == NONE_DEAD) && _refCnt == 0 &&
     !isFromPreprocessing();
 }
 
@@ -732,7 +732,8 @@ std::ostream& operator<<(std::ostream& out, Clause::Store const& store)
     case Clause::PASSIVE:     return out << "PASSIVE";
     case Clause::ACTIVE:      return out << "ACTIVE";
     case Clause::UNPROCESSED: return out << "UNPROCESSED";
-    case Clause::NONE:        return out << "NONE";
+    case Clause::NONE_BORN:   return out << "NONE_BORN";
+    case Clause::NONE_DEAD:   return out << "NONE_DEAD";
     case Clause::SELECTED:    return out << "SELECTED";
   }
   ASSERTION_VIOLATION;

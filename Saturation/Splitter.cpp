@@ -915,10 +915,10 @@ bool Splitter::handleNonSplittable(Clause* cl)
 
   SplitRecord& nameRec = *_db[compName];
   ASS_EQ(nameRec.component,compCl);
-  ASS_REP2(compCl->store()==Clause::NONE || compCl->store()==Clause::ACTIVE ||
+  ASS_REP2(compCl->store()==Clause::NONE_DEAD || compCl->store()==Clause::ACTIVE ||
       compCl->store()==Clause::PASSIVE || compCl->store()==Clause::UNPROCESSED, *compCl, compCl->store());
 
-  if(nameRec.active && compCl->store()==Clause::NONE) {
+  if(nameRec.active && compCl->store()==Clause::NONE_DEAD) {
     //we need to make sure the clause naming the component is present in this case, as the
     //following scenario may lead to incompleteness:
     //  component C is selected and put to unprocessed
@@ -1715,9 +1715,9 @@ void Splitter::removeComponents(const SplitLevelStack& toRemove)
     while (chit.hasNext()) {
       Clause* ccl=chit.next();
       ASS(ccl->splits()->member(bl));
-      if(ccl->store()!=Clause::NONE) {
+      if(ccl->store()!=Clause::NONE_DEAD) {
         _sa->removeActiveOrPassiveClause(ccl);
-        ASS_EQ(ccl->store(), Clause::NONE);
+        ASS_EQ(ccl->store(), Clause::NONE_DEAD);
       } else {
       }
       ccl->invalidateMyReductionRecords();
@@ -1747,7 +1747,7 @@ void Splitter::removeComponents(const SplitLevelStack& toRemove)
       Clause* rcl=rrec.clause;
       if(rcl->validReductionRecord(rrec.timestamp)) {
         ASS(!rcl->splits()->hasIntersection(backtracked));      
-        ASS_EQ(rcl->store(), Clause::NONE);
+        ASS_EQ(rcl->store(), Clause::NONE_DEAD);
         
         rcl->invalidateMyReductionRecords(); // to make sure we don't unfreeze this clause a second time
         _sa->addNewClause(rcl);

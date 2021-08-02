@@ -88,7 +88,7 @@ UnprocessedClauseContainer::~UnprocessedClauseContainer()
   while (!_data.isEmpty()) {
     Clause* cl=_data.pop_back();
     ASS_EQ(cl->store(), Clause::UNPROCESSED);
-    cl->setStore(Clause::NONE);
+    cl->setStore(Clause::NONE_DEAD);
   }
 }
 

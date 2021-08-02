@@ -29,24 +29,7 @@ struct ProofTracer {
   // helper functions and subclasses
 
   static void printWithStore(Clause* cl) {
-    switch(cl->store()) {
-      case Clause::Store::PASSIVE:
-        std::cout << "PASSIVE: ";
-        break;
-      case Clause::Store::ACTIVE:
-        std::cout << "ACTIVE: ";
-        break;
-      case Clause::Store::UNPROCESSED:
-        std::cout << "UNPROCESSED:";
-        break;
-      case Clause::Store::NONE:
-        std::cout << "NONE: ";
-        break;
-      case Clause::Store::SELECTED:
-        std::cout << "SELECTED: ";
-        break;
-    }
-    std::cout << cl->toString() << std::endl;
+    std::cout << cl->store() << " " << cl->toString() << std::endl;
   }
 
   enum InferenceKind {

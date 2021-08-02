@@ -67,10 +67,11 @@ public:
     /** queue of unprocessed clauses */
     UNPROCESSED = 2u,
     /** anything else */
-    NONE = 3u,  
+    NONE_BORN = 3u,
+    NONE_DEAD = 4u,
     /** clause is selected from the passive container
      * and is not added to the active one yet */
-    SELECTED = 4u
+    SELECTED = 5u
   };
 
   Clause(unsigned length,const Inference& inf);
