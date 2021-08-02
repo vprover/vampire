@@ -49,7 +49,7 @@ public:
   Timer* timer;
 
   /** ProofTracer, either 0 or an initialized object*/
-  Kernel::ProofTracer* tracer;
+  Saturation::ProofTracer* tracer;
 
   unsigned char maxSineLevel;
 

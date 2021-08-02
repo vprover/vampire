@@ -113,8 +113,6 @@ typedef Lib::SmartPtr<Ordering> OrderingSP;
 struct OrderingComparator;
 typedef std::unique_ptr<const OrderingComparator> OrderingComparatorUP;
 
-class ProofTracer;
-
 typedef unsigned SplitLevel;
 typedef const SharedSet<SplitLevel> SplitSet;
 
@@ -159,6 +157,8 @@ typedef Lib::SmartPtr<ResultSubstitution> ResultSubstitutionSP;
 
 namespace Saturation
 {
+struct ProofTracer;
+
 class SaturationAlgorithm;
 
 class ClauseContainer;

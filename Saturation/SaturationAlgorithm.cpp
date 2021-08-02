@@ -95,6 +95,8 @@
 
 #include "Saturation/ExtensionalityClauseContainer.hpp"
 
+#include "Saturation/ProofTracer.hpp"
+
 #include "Shell/AnswerExtractor.hpp"
 #include "Shell/Options.hpp"
 #include "Shell/Statistics.hpp"
@@ -628,10 +630,6 @@ void SaturationAlgorithm::addInputClause(Clause* cl)
     _symEl->onInputClause(cl);
   }
 
-  if (env.tracer) {
-    env.tracer->onInputClause(cl);
-  }
-
   bool sosForAxioms = _opt.sos() == Options::Sos::ON || _opt.sos() == Options::Sos::ALL; 
   sosForAxioms = sosForAxioms && cl->inputType()==UnitInputType::AXIOM;
 
@@ -652,6 +650,10 @@ void SaturationAlgorithm::addInputClause(Clause* cl)
     addInputSOSClause(cl);
   } else {
     addNewClause(cl);
+  }
+
+  if (env.tracer && cl->isTraced()) {
+    env.tracer->onInputClause(cl);
   }
 
   if(_instantiation){

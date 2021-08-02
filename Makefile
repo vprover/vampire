@@ -11,7 +11,7 @@
 
 
 ###############################################################
-# File:    makefile 
+# File:    makefile
 # Author:  Andrei Voronkov
 # Created: 07/04/2006
 # Purpose: makefile for Vampire
@@ -319,6 +319,7 @@ VST_OBJ= Saturation/AWPassiveClauseContainer.o\
          Saturation/LRS.o\
          Saturation/Otter.o\
          Saturation/ProvingHelper.o\
+         Saturation/ProofTracer.o\
          Saturation/SaturationAlgorithm.o\
          Saturation/Splitter.o\
          Saturation/SymElOutput.o\

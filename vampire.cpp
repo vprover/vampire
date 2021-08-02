@@ -59,6 +59,7 @@
 #include "Shell/SineUtils.hpp"
 
 #include "Saturation/SaturationAlgorithm.hpp"
+#include "Saturation/ProofTracer.hpp"
 
 #include "FMB/ModelCheck.hpp"
 
@@ -160,6 +161,11 @@ Problem *doProving(Problem* problem)
   }
 
   ProvingHelper::runVampireSaturation(*prb, *env.options);
+
+  if (env.tracer) {
+    env.tracer->finalInfo();
+  }
+
   return prb;
 }
 
