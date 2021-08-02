@@ -302,7 +302,7 @@ private:
       }
     }
 #if VDEBUG
-    vstring toString() const
+    vstring toString() const final
     {
       return "(ROB backtrack object for "+ _var.toString() +")";
     }

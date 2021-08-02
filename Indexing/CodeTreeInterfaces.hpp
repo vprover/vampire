@@ -50,7 +50,7 @@ public:
   bool generalizationExists(TermList t) final;
 
 #if VDEBUG
-  virtual void markTagged(){ NOT_IMPLEMENTED; } 
+  void markTagged() final { NOT_IMPLEMENTED; } 
 #endif
 
 private:

@@ -116,7 +116,7 @@ class RSCounter
 public:
   RSCounter(const char* name) : RSObject(name), _counter(0) {}
 
-  void print(ostream& out) { out << name() << ": " << _counter << endl; }
+  void print(ostream& out) final { out << name() << ": " << _counter << endl; }
   void inc() { _counter++; }
   void inc(size_t num) { _counter+=num; }
 private:
@@ -129,21 +129,21 @@ class RSMultiCounter
 public:
   RSMultiCounter(const char* name) : RSObject(name) {}
 
-  void print(ostream& out);
+  void print(ostream& out) final;
   void inc(size_t index) { _counters[index]++; }
 private:
   ZIArray<size_t> _counters;
 };
 
-class RSMultiStatistic
+class RSMultiStatistic final
 : public RSObject
 {
   typedef List<int> ValList;
 public:
   RSMultiStatistic(const char* name) : RSObject(name) {}
-  ~RSMultiStatistic();
+  ~RSMultiStatistic() final;
 
-  void print(ostream& out);
+  void print(ostream& out) final;
   void addRecord(size_t index, int value) { ValList::push(value, _values[index]); }
 private:
   ZIArray<ValList* > _values;

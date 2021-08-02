@@ -81,7 +81,7 @@ public:
 	  bool retrieveSubstitutions) final;
 
 #if VDEBUG
-  virtual void markTagged(){ SubstitutionTree::markTagged();}
+  void markTagged() final { SubstitutionTree::markTagged();}
 #endif
 
 private:

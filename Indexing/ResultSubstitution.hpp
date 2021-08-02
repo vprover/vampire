@@ -163,7 +163,7 @@ public:
   Literal* applyTo(Literal* l,unsigned index) final { return l; }
   bool isIdentityOnQueryWhenResultBound() final {return true;}
 #if VDEBUG
-  virtual vstring toString(){ return "identity"; }
+  vstring toString() final { return "identity"; }
 #endif
 };
 
@@ -186,7 +186,7 @@ public:
    */
   bool isIdentityOnQueryWhenResultBound() final {return true;}
 #if VDEBUG
-  virtual vstring toString(){ return "DisjunctQueryAndResultVariablesSubstitution"; }
+  vstring toString() final { return "DisjunctQueryAndResultVariablesSubstitution"; }
 #endif
 private:
   struct Applicator;

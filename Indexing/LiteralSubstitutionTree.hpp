@@ -52,8 +52,8 @@ public:
 	  bool complementary, bool retrieveSubstitutions) final;
 
 #if VDEBUG
-  virtual void markTagged(){ SubstitutionTree::markTagged();}
-  vstring toString() {return SubstitutionTree::toString();}
+  void markTagged() final { SubstitutionTree::markTagged();}
+  vstring toString() final {return SubstitutionTree::toString();}
 #endif
 
 private:

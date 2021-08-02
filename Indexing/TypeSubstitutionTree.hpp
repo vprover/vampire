@@ -50,7 +50,7 @@ public:
     bool retrieveSubstitutions);
 
 #if VDEBUG
-  virtual void markTagged(){ SubstitutionTree::markTagged();}
+  void markTagged() final { SubstitutionTree::markTagged();}
 #endif
   
 private:

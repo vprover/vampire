@@ -506,7 +506,7 @@ public:
     void remove(TermList t) final;
 
 #if VDEBUG
-    virtual void assertValid() const
+    void assertValid() const final
     {
       ASS_ALLOC_TYPE(this,"SubstitutionTree::UArrIntermediateNode");
     }
@@ -560,7 +560,7 @@ public:
     bool isEmpty() const final { return _nodes.isEmpty(); }
     int size() const final { return _nodes.size(); }
 #if VDEBUG
-    virtual void assertValid() const
+    void assertValid() const final
     {
       ASS_ALLOC_TYPE(this,"SubstitutionTree::SListIntermediateNode");
     }
