@@ -26,39 +26,6 @@ namespace Saturation {
 struct ProofTracer {
   USE_ALLOCATOR(ProofTracer);
 
-  /**
-   * Initialize the ProofTracer by reading some proofs from the given file (traceFileNames).
-   * (Tracing of more than one proof is envisaged for the future
-   * but currently only one proof file is supported.)
-   *
-   * Note: To produce a loadable proof run vampire with "-p tptp" (and consider adding "--output_axiom_names on")
-   */
-  void init(const vstring& traceFileNames);
-
-  /**
-   * Various events by which SaturationAlgorithm notifies the tracer about clause happenings.
-   *
-   * On onNewClause uses variant index to match up a clause from the traced proof with the newly derived.
-   * Other events may only respond to already matched up clauses (ASS(cl->isTraced())).
-   *
-   * The main idea behind events is to be able to identify and report as soon as possible
-   * that a particular expected inference will not happen in the new saturation (the way it happened in the old one).
-   *
-   * For instance, if we haven't seen all the expected input clauses by the time onInputFinished is called,
-   * there is no chance to flawlessly trace the original proof anymore (as some of the required initial clauses is now known to be missing).
-   */
-
-  void onNewClause(Clause* cl);
-  void onInputClause(Clause* cl);
-  void onInputFinished();
-  void onActivation(Clause* cl);
-  void onActivationFinished(Clause* cl);
-
-  void finalInfo()
-  {
-    _tp->finalInfo();
-  }
-
   // helper functions and subclasses
 
   static void printWithStore(Clause* cl) {
@@ -145,9 +112,17 @@ struct ProofTracer {
     USE_ALLOCATOR(TracedProof);
 
     void init();
-    void onInputFinished();
 
-    void finalInfo();
+    // events from Tracer mapped to (each) TracedProof
+
+    void onNewClause(Clause* cl);
+    void onInputClause(Clause* cl);
+    void onInputFinished();
+    void onActivation(Clause* cl);
+    void onActivationFinished(Clause* cl);
+    void onSaturationFinished();
+
+    // aux:
 
     void regNewClause(Clause* cl, const vstring& name, const vstring& inf, InferenceKind ik) {
       ALWAYS(_clInfo.insert(cl,new TracedClauseInfo(name,inf,ik)));
@@ -178,10 +153,6 @@ struct ProofTracer {
       return res;
     }
 
-    TracedClauseInfo* getClauseInfo(Clause* cl) {
-      return _clInfo.get(cl);
-    }
-
     void initalBorn() {
       _unbornInitials--;
     }
@@ -192,7 +163,7 @@ struct ProofTracer {
     TracedProof() : _inOrder(nullptr), _theEmpty(0), _variantLookup(new Indexing::HashingClauseVariantIndex()), _unbornInitials(0), _lastActivationMatch(0) {}
     ~TracedProof() { delete _variantLookup; }
 
-  // private:
+  private:
     ClauseList* _inOrder;
 
     Clause* _theEmpty;
@@ -204,12 +175,62 @@ struct ProofTracer {
 
     Clause* _lastActivationMatch;
 
-    /* Set of clause that are expected to appear as their parents (in the traced proof)
+    /* Set of clauses that are expected to appear as their parents (in the traced proof)
      *  have already been spotted.
      *  (Could start with all the initial clauses in expecting, but those are already taken care of by the _unbornInitials counter.)
      **/
     DHSet<Clause*> _expecting;
   };
+
+  /**
+   * Initialize the ProofTracer by reading some proofs from the given file (traceFileNames).
+   * (Tracing of more than one proof is envisaged for the future
+   * but currently only one proof file is supported.)
+   *
+   * Note: To produce a loadable proof run vampire with "-p tptp" (and consider adding "--output_axiom_names on")
+   */
+  void init(const vstring& traceFileNames);
+
+  /**
+   * Various events by which SaturationAlgorithm notifies the tracer about clause happenings.
+   *
+   * On onNewClause uses variant index to match up a clause from the traced proof with the newly derived.
+   * Other events may only respond to already matched up clauses (ASS(cl->isTraced())).
+   *
+   * The main idea behind events is to be able to identify and report as soon as possible
+   * that a particular expected inference will not happen in the new saturation (the way it happened in the old one).
+   *
+   * For instance, if we haven't seen all the expected input clauses by the time onInputFinished is called,
+   * there is no chance to flawlessly trace the original proof anymore (as some of the required initial clauses is now known to be missing).
+   */
+
+  void onNewClause(Clause* cl)
+  {
+    _tp->onNewClause(cl);
+  }
+  void onInputClause(Clause* cl)
+  {
+    _tp->onInputClause(cl);
+  }
+
+  void onInputFinished()
+  {
+    _tp->onInputFinished();
+  }
+
+  void onActivation(Clause* cl)
+  {
+    _tp->onActivation(cl);
+  }
+  void onActivationFinished(Clause* cl)
+  {
+    _tp->onActivationFinished(cl);
+  }
+
+  void onSaturationFinished()
+  {
+    _tp->onSaturationFinished();
+  }
 
   ParsedProof* getParsedProof(const vstring& traceFileNames);
   TracedProof* prepareTracedProof(ParsedProof* pp);

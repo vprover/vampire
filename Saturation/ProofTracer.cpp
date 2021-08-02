@@ -27,16 +27,36 @@
 using namespace Saturation;
 using namespace std;
 
-void ProofTracer::onNewClause(Clause* cl)
+void ProofTracer::TracedProof::init()
 {
-  Clause* match = _tp->findVariant(cl);
+  DHMap<Clause*, TracedClauseInfo*>::Iterator it(_clInfo);
+  while (it.hasNext()) {
+    Clause* cl;
+    TracedClauseInfo* info;
+    it.next(cl,info);
+
+    ASS_EQ((cl == _theEmpty),info->isTerminal()); // exactly the Empty is Terminal
+
+    if (info->isInital()) {
+      _unbornInitials++;
+    }
+  }
+
+  // cout << "TracedProof initilized!" << endl;
+  // cout << "proof size: " << _clInfo.size() << endl << endl;
+  // cout << "_unbornInitials: " << _unbornInitials << endl;
+}
+
+void ProofTracer::TracedProof::onNewClause(Clause* cl)
+{
+  Clause* match = findVariant(cl);
   if (match != 0) {
-    TracedClauseInfo* info = _tp->getClauseInfo(match);
+    TracedClauseInfo* info = _clInfo.get(match);
     cout << "New " << cl->toString() << endl;
     cout << "ma " << info->_name << " IK: " << info->_ik << " " << info->_inf << " CL: " << match->toNiceString() << endl;
 
-    if (_tp->_expecting.find(match)) {
-      _tp->_expecting.remove(match);
+    if (_expecting.find(match)) {
+      _expecting.remove(match);
       // cout << "Was expected! Still expecting "; _tp->listExpecteds();
     }
 
@@ -46,11 +66,11 @@ void ProofTracer::onNewClause(Clause* cl)
       // at the moment of assigning a (first) stalkee, we decrease the counter of children to find the expected ones...
       for (unsigned i = 0; i < info->_children.size(); i++) {
         Clause* ch = info->_children[i];
-        TracedClauseInfo* ch_info = _tp->getClauseInfo(ch);
+        TracedClauseInfo* ch_info = _clInfo.get(ch);
         ch_info->_numAwokenParents++;
         if (ch_info->_numAwokenParents == ch_info->_parents.size()) {
           // cout << "Newly expecting " << ch_info->_name << " in addition to "; _tp->listExpecteds();
-          _tp->_expecting.insert(ch);
+          _expecting.insert(ch);
         }
       }
     }
@@ -65,7 +85,7 @@ void ProofTracer::onNewClause(Clause* cl)
 
     for (unsigned i = 0; i < info->_parents.size(); i++) {
       Clause* par = info->_parents[i];
-      TracedClauseInfo* p_info = _tp->getClauseInfo(par);
+      TracedClauseInfo* p_info = _clInfo.get(par);
       cout << "  p: " << p_info->_name << endl;
       for (unsigned j = 0; j < p_info->_stalkees.size(); j++) {
         cout << "    s: ";
@@ -84,21 +104,21 @@ void ProofTracer::onNewClause(Clause* cl)
 }
 
 
-void ProofTracer::onInputClause(Clause* cl)
+void ProofTracer::TracedProof::onInputClause(Clause* cl)
 {
   ASS(cl->isTraced());
 
   //cout << "Init " << cl->toString() << endl;
 
-  Clause* match = _tp->findVariant(cl);
+  Clause* match = findVariant(cl);
   if (match != 0) {
-    TracedClauseInfo* info = _tp->getClauseInfo(match);
+    TracedClauseInfo* info = _clInfo.get(match);
 
     /*
     cout << "Init " << cl->toString() << endl;
     cout << " matched " << info->_name << endl;
     */
-    _tp->initalBorn();
+    initalBorn();
 
     /*
     for (unsigned i = 0; i < info->_children.size(); i++) {
@@ -112,55 +132,27 @@ void ProofTracer::onInputClause(Clause* cl)
   }
 }
 
-void ProofTracer::onInputFinished()
-{
-  cout << "Input finished" << endl;
 
-  _tp->onInputFinished();
-}
-
-
-void ProofTracer::onActivation(Clause* cl)
+void ProofTracer::TracedProof::onActivation(Clause* cl)
 {
   ASS(cl->isTraced());
 
-  _tp->_lastActivationMatch = _tp->findVariant(cl);
-  if (_tp->_lastActivationMatch != 0) {
-    TracedClauseInfo* info = _tp->getClauseInfo(_tp->_lastActivationMatch);
+  _lastActivationMatch = findVariant(cl);
+  if (_lastActivationMatch != 0) {
+    TracedClauseInfo* info = _clInfo.get(_lastActivationMatch);
 
     cout << "Activate " << cl->toString() << endl;
     cout << " matched " << info->_name << endl;
   }
 }
 
-void ProofTracer::onActivationFinished(Clause* cl)
+void ProofTracer::TracedProof::onActivationFinished(Clause* cl)
 {
-  if (_tp->_lastActivationMatch) {
-    ASS_EQ(_tp->_lastActivationMatch,_tp->findVariant(cl));
+  if (_lastActivationMatch) {
+    ASS_EQ(_lastActivationMatch,findVariant(cl));
 
-    TracedClauseInfo* info = _tp->getClauseInfo(_tp->_lastActivationMatch);
+    TracedClauseInfo* info = _clInfo.get(_lastActivationMatch);
   }
-}
-
-
-void ProofTracer::TracedProof::init()
-{
-  DHMap<Clause*, TracedClauseInfo*>::Iterator it(_clInfo);
-  while (it.hasNext()) {
-    Clause* cl;
-    TracedClauseInfo* info;
-    it.next(cl,info);
-
-    ASS_EQ((cl == _theEmpty),info->isTerminal()); // exactly the Empty is Terminal
-
-    if (info->isInital()) {
-      _unbornInitials++;
-    }
-  }
-
-  cout << "TracedProof initilized!" << endl;
-  cout << "proof size: " << _clInfo.size() << endl << endl;
-  // cout << "_unbornInitials: " << _unbornInitials << endl;
 }
 
 void ProofTracer::TracedProof::onInputFinished()
@@ -217,7 +209,7 @@ void ProofTracer::TracedProof::listExpectedsDetails()
   }
 }
 
-void ProofTracer::TracedProof::finalInfo()
+void ProofTracer::TracedProof::onSaturationFinished()
 {
   cout << "finalInfo" << endl;
 

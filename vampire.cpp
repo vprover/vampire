@@ -163,7 +163,7 @@ Problem *doProving(Problem* problem)
   ProvingHelper::runVampireSaturation(*prb, *env.options);
 
   if (env.tracer) {
-    env.tracer->finalInfo();
+    env.tracer->onSaturationFinished();
   }
 
   return prb;
