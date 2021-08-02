@@ -34,6 +34,7 @@ In a pinch, `git grep PAT` works OK too.
   No donkeys here.
 * Heavy use of "iterator" classes which can do slightly odd things. These are in the process of being re-organised somewhat by Joe.
 * Some amount of unused/dead code. If it looks like nonsense, doesn't compile, or isn't reachable, it might well just not be used any more. Pull requests appreciated.
+* We use the `final` keyword in various places where a virtual function is not _currently_ overridden by a subclass. This allows for some compiler optimisations, but it is not set in stone: if you need to override a `final` function, change it to `override` and carry on.
 * A (possibly slightly outdated) explanation for the message [Attempted to use global new operator, thus bypassing Allocator!](https://github.com/vprover/vampire/wiki/Attempted-to-use-global-new-operator,-thus-bypassing-Allocator!)
 * for historians: [Yes, we had (and still have) a wiki on our github page](https://github.com/vprover/vampire/wiki) - maybe miscellaneous things can go here, I don't think it's completely historic just yet! - Michael
 * TODO more tips
