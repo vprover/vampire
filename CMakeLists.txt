@@ -554,6 +554,7 @@ set(VAMPIRE_SATURATION_SOURCES
     Saturation/LRS.cpp
     Saturation/Otter.cpp
     Saturation/ProvingHelper.cpp
+    Saturation/ProofTracer.cpp
     Saturation/SaturationAlgorithm.cpp
     Saturation/Splitter.cpp
     Saturation/SymElOutput.cpp
@@ -567,6 +568,7 @@ set(VAMPIRE_SATURATION_SOURCES
     Saturation/LRS.hpp
     Saturation/Otter.hpp
     Saturation/ProvingHelper.hpp
+    Saturation/ProofTracer.hpp
     Saturation/SaturationAlgorithm.hpp
     Saturation/Splitter.hpp
     Saturation/SymElOutput.hpp

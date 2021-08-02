@@ -78,6 +78,7 @@
 #include "Shell/LaTeX.hpp"
 
 #include "Saturation/SaturationAlgorithm.hpp"
+#include "Saturation/ProofTracer.hpp"
 
 #include "SAT/MinisatInterfacing.hpp"
 #include "SAT/MinisatInterfacingNewSimp.hpp"
@@ -211,6 +212,10 @@ void doProving()
   //env.options->checkProblemOptionConstraints(prb->getProperty()); 
 
   ProvingHelper::runVampireSaturation(*prb, *env.options);
+
+  if (env.tracer) {
+    env.tracer->finalInfo();
+  }
 }
 
 /**

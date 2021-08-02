@@ -232,8 +232,6 @@ typedef Lib::ScopedPtr<Grounder> GrounderSCP;
 class BDD;
 class BDDNode;
 
-class ProofTracer;
-
 typedef unsigned SplitLevel;
 typedef const SharedSet<SplitLevel> SplitSet;
 
@@ -308,6 +306,8 @@ class ConstraintDatabase;
 
 namespace Saturation
 {
+class ProofTracer;
+
 class SaturationAlgorithm;
 typedef Lib::SmartPtr<SaturationAlgorithm> SaturationAlgorithmSP;
 
