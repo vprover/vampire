@@ -63,6 +63,8 @@ void ProofTracer::TracedProof::onNewClause(Clause* cl)
     if (info->_stalkees.size()) {
       // cout << "Already stalking" << endl;
     } else {
+      _seen++;
+
       // at the moment of assigning a (first) stalkee, we decrease the counter of children to find the expected ones...
       for (unsigned i = 0; i < info->_children.size(); i++) {
         Clause* ch = info->_children[i];
@@ -92,7 +94,8 @@ void ProofTracer::TracedProof::onNewClause(Clause* cl)
         printWithStore(p_info->_stalkees[j]);
       }
     }
-    cout << endl;
+
+    cout << "Seen: " << _seen << " / " << _clInfo.size() << endl;
 
     /*
     cout << "Currently expecting:" << endl;

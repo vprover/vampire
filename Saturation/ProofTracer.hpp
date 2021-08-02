@@ -160,10 +160,12 @@ struct ProofTracer {
     void listExpecteds();
     void listExpectedsDetails();
 
-    TracedProof() : _inOrder(nullptr), _theEmpty(0), _variantLookup(new Indexing::HashingClauseVariantIndex()), _unbornInitials(0), _lastActivationMatch(0) {}
+    TracedProof() : _seen(0), _inOrder(nullptr), _theEmpty(0), _variantLookup(new Indexing::HashingClauseVariantIndex()), _unbornInitials(0), _lastActivationMatch(0) {}
     ~TracedProof() { delete _variantLookup; }
 
   private:
+    unsigned _seen;
+
     ClauseList* _inOrder;
 
     Clause* _theEmpty;
