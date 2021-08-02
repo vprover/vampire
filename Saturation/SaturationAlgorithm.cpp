@@ -378,7 +378,7 @@ void SaturationAlgorithm::onActiveRemoved(Clause* c)
   CALL("SaturationAlgorithm::onActiveRemoved");
 
   ASS(c->store()==Clause::ACTIVE);
-  c->setStore(Clause::NONE);
+  c->setStore(Clause::NONE_DEAD);
   //at this point the c object may be deleted
 }
 
@@ -426,7 +426,7 @@ void SaturationAlgorithm::onPassiveRemoved(Clause* c)
   CALL("SaturationAlgorithm::onPassiveRemoved");
 
   ASS(c->store()==Clause::PASSIVE);
-  c->setStore(Clause::NONE);
+  c->setStore(Clause::NONE_DEAD);
   //at this point the c object can be deleted
 }
 
@@ -880,7 +880,7 @@ void SaturationAlgorithm::newClausesToUnprocessed()
 
   while (_newClauses.isNonEmpty()) {
     Clause* cl=_newClauses.popWithoutDec();
-    // This is all quite strange; how could a new clause (barring maybe AVATAR's back and forth) be anything else than Clause::NONE?
+    // This is all quite strange; how could a new clause (barring maybe AVATAR's back and forth) be anything else than Clause::NONE_BORN?
     switch(cl->store())
     {
     case Clause::UNPROCESSED:
@@ -888,9 +888,10 @@ void SaturationAlgorithm::newClausesToUnprocessed()
     case Clause::PASSIVE:
       onNonRedundantClause(cl);
       break;
-    case Clause::NONE:
+    case Clause::NONE_BORN:
       addUnprocessedClause(cl);
       break;
+    case Clause::NONE_DEAD:
     case Clause::SELECTED:
     case Clause::ACTIVE:
 #if VDEBUG
@@ -1169,7 +1170,7 @@ void SaturationAlgorithm::removeSelected(Clause* cl)
 {
   ASS_EQ(cl->store(), Clause::SELECTED);
   beforeSelectedRemoved(cl);
-  cl->setStore(Clause::NONE);
+  cl->setStore(Clause::NONE_DEAD);
 }
 
 /**
@@ -1286,7 +1287,7 @@ start:
     }
     else {
       ASS_EQ(c->store(), Clause::UNPROCESSED);
-      c->setStore(Clause::NONE);
+      c->setStore(Clause::NONE_DEAD);
     }
 
     newClausesToUnprocessed();
