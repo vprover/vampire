@@ -614,6 +614,10 @@ inline bool isSatRefutationRule(InferenceRule r) {
 
 vstring ruleName(InferenceRule rule);
 
+inline std::ostream& operator<< (ostream& out, const InferenceRule& r) {
+  return out << ruleName(r);
+}
+
 /*
 * The following structs are here just that we can have specialized overloads for the Inference constructor (see below)
 * There should be not computational overhead under modern compilers.
