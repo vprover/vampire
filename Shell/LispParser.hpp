@@ -97,8 +97,8 @@ public:
   {
   public:                                
     Exception (vstring message,const Token&);
-    void cry (ostream&) const;
-    ~Exception () {}
+    void cry (ostream&) const override;
+    ~Exception () override {}
   protected:
     vstring _message;
   }; // Exception

@@ -31,27 +31,27 @@ public:
   RSProxy(RobSubstitution* subst, int queryBank, int resultBank)
   : _subst(subst), _queryBank(queryBank), _resultBank(resultBank) {}
 
-  TermList applyToQuery(TermList t)
+  TermList applyToQuery(TermList t) override
   { return _subst->apply(t,_queryBank); }
-  Literal* applyToQuery(Literal* l)
+  Literal* applyToQuery(Literal* l) override
   { return _subst->apply(l,_queryBank); }
 
-  TermList applyToResult(TermList t)
+  TermList applyToResult(TermList t) override
   { return _subst->apply(t,_resultBank); }
-  Literal* applyToResult(Literal* l)
+  Literal* applyToResult(Literal* l) override
   { return _subst->apply(l,_resultBank); }
 
-  TermList applyTo(TermList t,unsigned index)
+  TermList applyTo(TermList t,unsigned index) override
   { return _subst->apply(t,index); }
-  Literal* applyTo(Literal* l,unsigned index)
+  Literal* applyTo(Literal* l,unsigned index) override
   { return _subst->apply(l,index); }
 
-  virtual size_t getQueryApplicationWeight(TermList t) { return _subst->getApplicationResultWeight(t, _queryBank); }
-  virtual size_t getQueryApplicationWeight(Literal* l) { return _subst->getApplicationResultWeight(l, _queryBank); }
-  virtual size_t getResultApplicationWeight(TermList t) { return _subst->getApplicationResultWeight(t, _resultBank); }
-  virtual size_t getResultApplicationWeight(Literal* l) { return _subst->getApplicationResultWeight(l, _resultBank); }
+  size_t getQueryApplicationWeight(TermList t) override { return _subst->getApplicationResultWeight(t, _queryBank); }
+  size_t getQueryApplicationWeight(Literal* l) override { return _subst->getApplicationResultWeight(l, _queryBank); }
+  size_t getResultApplicationWeight(TermList t) override { return _subst->getApplicationResultWeight(t, _resultBank); }
+  size_t getResultApplicationWeight(Literal* l) override { return _subst->getApplicationResultWeight(l, _resultBank); }
 
-  RobSubstitution* tryGetRobSubstitution() { return _subst; }
+  RobSubstitution* tryGetRobSubstitution() override { return _subst; }
 
 #if VDEBUG
   vstring toStringDeref(bool deref){ return _subst->toString(deref); }

@@ -210,7 +210,7 @@ private:
   public:
     SetValueBacktrackObject(T* addr, T previousVal)
     : addr(addr), previousVal(previousVal) {}
-    void backtrack()
+    void backtrack() override
     {
       *addr=previousVal;
     }

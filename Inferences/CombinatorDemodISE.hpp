@@ -29,7 +29,7 @@ public:
   USE_ALLOCATOR(CombinatorDemodISE);
 
   CombinatorDemodISE(){}
-  Clause* simplify(Clause* cl);
+  Clause* simplify(Clause* cl) override;
 private:
    TermList reduce(TermList t, unsigned& length);
    bool headNormalForm(TermList& t);

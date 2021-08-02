@@ -97,12 +97,12 @@ public:
     SATClauseList::push(prem2, _premises);
   }
 
-  ~PropInference()
+  ~PropInference() override
   {
     SATClauseList::destroy(_premises);
   }
 
-  virtual InfType getType() const { return PROP_INF; }
+  InfType getType() const override { return PROP_INF; }
   SATClauseList* getPremises() const { return const_cast<SATClauseList*>(_premises); }
   void setPremises(SATClauseList* prems) { _premises = prems; }
 private:
@@ -117,9 +117,9 @@ public:
 
   FOConversionInference(Unit* origin);
   FOConversionInference(Clause* cl);
-  ~FOConversionInference();
+  ~FOConversionInference() override;
 
-  virtual InfType getType() const { return FO_CONVERSION; }
+  InfType getType() const override { return FO_CONVERSION; }
   Unit* getOrigin() const { return _origin; }
 private:
   Unit* _origin;
@@ -131,7 +131,7 @@ public:
   CLASS_NAME(AssumptionInference);
   USE_ALLOCATOR(AssumptionInference);
 
-  virtual InfType getType() const { return ASSUMPTION; }
+  InfType getType() const override { return ASSUMPTION; }
 };
 
 /**

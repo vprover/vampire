@@ -57,9 +57,9 @@ public:
   USE_ALLOCATOR(SubstitutionTreeClauseVariantIndex);
 
   SubstitutionTreeClauseVariantIndex() : _emptyClauses(0) {}
-  virtual ~SubstitutionTreeClauseVariantIndex() override;
+  ~SubstitutionTreeClauseVariantIndex() override;
 
-  virtual void insert(Clause* cl) override;
+  void insert(Clause* cl) override;
 
   ClauseIterator retrieveVariants(Literal* const * lits, unsigned length) override;
 
@@ -81,9 +81,9 @@ public:
   CLASS_NAME(HashingClauseVariantIndex);
   USE_ALLOCATOR(HashingClauseVariantIndex);
 
-  virtual ~HashingClauseVariantIndex() override;
+  ~HashingClauseVariantIndex() override;
 
-  virtual void insert(Clause* cl) override;
+  void insert(Clause* cl) override;
 
   ClauseIterator retrieveVariants(Literal* const * lits, unsigned length) override;
 

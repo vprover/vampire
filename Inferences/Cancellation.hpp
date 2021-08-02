@@ -24,7 +24,7 @@ public:
   USE_ALLOCATOR(Cancellation);
 
   Cancellation(Ordering& ordering);
-  virtual ~Cancellation();
+  ~Cancellation() override;
 
   Result simplifyLiteral(Literal*) override;
 };

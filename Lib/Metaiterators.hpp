@@ -931,15 +931,15 @@ public:
       ptr=&(*ptr)->tailReference();
     }
   }
-  ~PersistentIterator()
+  ~PersistentIterator() override
   {
     if(_items) {
       List<T>::destroy(_items);
     }
   }
-  inline bool hasNext() { return _items; };
+  inline bool hasNext() override { return _items; };
   inline
-  T next()
+  T next() override
   {
     return List<T>::pop(_items);
   };
@@ -990,20 +990,20 @@ public:
   {
     _items=getUniqueItemList(inn, _size);
   }
-  ~UniquePersistentIterator()
+  ~UniquePersistentIterator() override
   {
     if(_items) {
       ItemList::destroy(_items);
     }
   }
-  inline bool hasNext() { return _items; };
-  inline T next()
+  inline bool hasNext() override { return _items; };
+  inline T next() override
   {
     return ItemList::pop(_items);
   };
 
-  inline bool knowsSize() const { return true; }
-  inline size_t size() const { return _size; }
+  inline bool knowsSize() const override { return true; }
+  inline size_t size() const override { return _size; }
 private:
   typedef DHSet<T> ItemSet;
 
@@ -1340,13 +1340,13 @@ public:
   explicit TimeCountedIterator(Inner inn, TimeCounterUnit tcu)
   : _inn(inn), _tcu(tcu) {}
 
-  inline bool hasNext()
+  inline bool hasNext() override
   {
     TimeCounter tc(_tcu);
     return _inn.hasNext();
   };
   inline
-  T next()
+  T next() override
   {
     TimeCounter tc(_tcu);
     return _inn.next();

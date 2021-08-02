@@ -43,7 +43,7 @@ public:
   USE_ALLOCATOR(SKIKBO);
 
   SKIKBO(Problem& prb, const Options& opt, bool basic_hol = false);
-  virtual ~SKIKBO();
+  ~SKIKBO() override;
 
   typedef SmartPtr<ApplicativeArgsIt> ArgsIt_ptr;
 

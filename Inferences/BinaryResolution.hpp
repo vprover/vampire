@@ -41,11 +41,11 @@ public:
     _unificationWithAbstraction(false)
   {  }
 
-  void attach(SaturationAlgorithm* salg);
-  void detach();
+  void attach(SaturationAlgorithm* salg) override;
+  void detach() override;
 
   static Clause* generateClause(Clause* queryCl, Literal* queryLit, SLQueryResult res, const Options& opts, PassiveClauseContainer* passive=0, Ordering* ord=0, LiteralSelector* ls = 0);
-  ClauseIterator generateClauses(Clause* premise);
+  ClauseIterator generateClauses(Clause* premise) override;
 
 private:
   struct UnificationsFn;

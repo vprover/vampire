@@ -107,10 +107,10 @@ public:
   USE_ALLOCATOR(EmptyIterator);
 
   EmptyIterator() {}
-  bool hasNext() { return false; };
-  T next() { INVALID_OPERATION("next() called on EmptyIterator object"); };
-  bool knowsSize() const { return true; }
-  size_t size() const { return 0; }
+  bool hasNext() override { return false; };
+  T next() override { INVALID_OPERATION("next() called on EmptyIterator object"); };
+  bool knowsSize() const override { return true; }
+  size_t size() const override { return 0; }
 };
 
 /**
@@ -315,8 +315,8 @@ public:
   USE_ALLOCATOR(ProxyIterator);
   
   explicit ProxyIterator(Inner inn) :_inn(inn) {}
-  bool hasNext() { return _inn.hasNext(); };
-  T next() { return _inn.next(); };
+  bool hasNext() override { return _inn.hasNext(); };
+  T next() override { return _inn.next(); };
 private:
   Inner _inn;
 };

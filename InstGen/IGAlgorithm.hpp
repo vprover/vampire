@@ -70,15 +70,15 @@ public:
   typedef Statistics::TerminationReason TerminationReason;
 
   IGAlgorithm(Problem& prb, const Options& opt);
-  ~IGAlgorithm();
+  ~IGAlgorithm() override;
 
   GroundingIndex& getGroundingIndex() { return *_groundingIndex.ptr(); }
 
   ClauseIterator getActive();
 
 protected:
-  virtual void init();
-  virtual MainLoopResult runImpl();
+  void init() override;
+  MainLoopResult runImpl() override;
 private:
 
   bool addClause(Clause* cl);

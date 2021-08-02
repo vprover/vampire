@@ -817,7 +817,7 @@ protected:
     USE_ALLOCATOR(Stack::PushBacktrackObject);
     
     PushBacktrackObject(Stack* st) : st(st) {}
-    void backtrack() { st->pop(); }
+    void backtrack() override { st->pop(); }
   };
 public:
 

@@ -67,17 +67,17 @@ public:
   void addClause(SATClause* cl) override;
 
   Status solve();
-  virtual Status solve(unsigned conflictCountLimit) override { return solve(); };
+  Status solve(unsigned conflictCountLimit) override { return solve(); };
   /**
    * If status is @c SATISFIABLE, return assignment of variable @c var
    */
-  virtual VarAssignment getAssignment(unsigned var) override;
+  VarAssignment getAssignment(unsigned var) override;
 
   /**
    * If status is @c SATISFIABLE, return 0 if the assignment of @c var is
    * implied only by unit propagation (i.e. does not depend on any decisions)
    */
-  virtual bool isZeroImplied(unsigned var) override;
+  bool isZeroImplied(unsigned var) override;
   /**
    * Collect zero-implied literals.
    *
@@ -85,7 +85,7 @@ public:
    *
    * @see isZeroImplied()
    */
-  virtual void collectZeroImplied(SATLiteralStack& acc) override;
+  void collectZeroImplied(SATLiteralStack& acc) override;
   /**
    * Return a valid clause that contains the zero-implied literal
    * and possibly the assumptions that implied it. Return 0 if @c var
@@ -93,7 +93,7 @@ public:
    * If called on a proof producing solver, the clause will have
    * a proper proof history.
    */
-  virtual SATClause* getZeroImpliedCertificate(unsigned var) override;
+  SATClause* getZeroImpliedCertificate(unsigned var) override;
 
   void ensureVarCount(unsigned newVarCnt) override {
     CALL("Z3Interfacing::ensureVarCnt");

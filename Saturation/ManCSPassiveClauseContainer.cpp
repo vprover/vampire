@@ -31,8 +31,8 @@ public:
   USE_ALLOCATOR(VectorIteratorWrapper);
   
   explicit VectorIteratorWrapper(const std::vector<Clause*>& v) : curr(v.begin()), end(v.end()) {}
-  bool hasNext() { return curr != end; };
-  Clause* next() { auto cl = *curr; curr = std::next(curr); return cl;};
+  bool hasNext() override { return curr != end; };
+  Clause* next() override { auto cl = *curr; curr = std::next(curr); return cl;};
 
 private:
   std::vector<Clause*>::const_iterator curr;

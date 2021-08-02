@@ -252,7 +252,7 @@ public:
   }
 
 
-  void fillInterval(size_t start,size_t end)
+  void fillInterval(size_t start,size_t end) override
   {
     for(size_t i=start; i<end; i++) {
       Array<T>::_array[i]=static_cast<T>(0);

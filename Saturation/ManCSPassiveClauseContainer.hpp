@@ -35,7 +35,7 @@ public:
   USE_ALLOCATOR(ManCSPassiveClauseContainer);
 
   ManCSPassiveClauseContainer(bool isOutermost, const Shell::Options& opt) : PassiveClauseContainer(isOutermost, opt) {}
-  virtual ~ManCSPassiveClauseContainer(){}
+  ~ManCSPassiveClauseContainer() override{}
   
   unsigned sizeEstimate() const override;
   bool isEmpty() const override;

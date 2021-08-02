@@ -269,7 +269,7 @@ private:
     public:
       BindingBacktrackObject(MapBinder* bnd, unsigned var)
       :_map(&bnd->_map), _var(var) {}
-      void backtrack()
+      void backtrack() override
       { ALWAYS(_map->remove(_var)); }
 
       CLASS_NAME(Matcher::MapBinder::BindingBacktrackObject);

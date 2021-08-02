@@ -36,7 +36,7 @@ public:
   AgeQueue(const Options& opt) : _opt(opt) {}
 protected:
 
-  virtual bool lessThan(Clause*,Clause*);
+  bool lessThan(Clause*,Clause*) override;
 
   friend class AWPassiveClauseContainer;
 
@@ -50,7 +50,7 @@ class WeightQueue
 public:
   WeightQueue(const Options& opt) : _opt(opt) {}
 protected:
-  virtual bool lessThan(Clause*,Clause*);
+  bool lessThan(Clause*,Clause*) override;
 
   friend class AWPassiveClauseContainer;
 private:
@@ -69,7 +69,7 @@ public:
   USE_ALLOCATOR(AWPassiveClauseContainer);
 
   AWPassiveClauseContainer(bool isOutermost, const Shell::Options& opt, vstring name);
-  ~AWPassiveClauseContainer();
+  ~AWPassiveClauseContainer() override;
   void add(Clause* cl) override;
 
   void remove(Clause* cl) override;
@@ -159,7 +159,7 @@ class AWClauseContainer: public ClauseContainer
 public:
   AWClauseContainer(const Shell::Options& opt);
 
-  void add(Clause* cl);
+  void add(Clause* cl) override;
   bool remove(Clause* cl);
 
   /**

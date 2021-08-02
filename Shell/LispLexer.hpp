@@ -33,8 +33,8 @@ class LispLexer
 {
 public:
   LispLexer(istream& in);
-  void readToken (Token&);
-  ~LispLexer () {}
+  void readToken (Token&) override;
+  ~LispLexer () override {}
 
 private:
   void skipWhiteSpacesAndComments();

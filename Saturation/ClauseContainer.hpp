@@ -104,7 +104,7 @@ public:
   CLASS_NAME(UnprocessedClauseContainer);
   USE_ALLOCATOR(UnprocessedClauseContainer);
 
-  virtual ~UnprocessedClauseContainer();
+  ~UnprocessedClauseContainer() override;
   UnprocessedClauseContainer() : _data(64) {}
   void add(Clause* c) override;
   Clause* pop();
@@ -124,14 +124,14 @@ public:
   USE_ALLOCATOR(PassiveClauseContainer);
 
   PassiveClauseContainer(bool isOutermost, const Shell::Options& opt, vstring name = "") : _isOutermost(isOutermost), _opt(opt), _name(name) {}
-  virtual ~PassiveClauseContainer(){};
+  ~PassiveClauseContainer() override{};
 
   LimitsChangeEvent changedEvent;
 
   virtual bool isEmpty() const = 0;
   virtual Clause* popSelected() = 0;
 
-  virtual unsigned sizeEstimate() const = 0;
+  unsigned sizeEstimate() const override = 0;
 
   /*
    * LRS specific methods for computation of Limits
@@ -147,7 +147,7 @@ public:
   // returns whether at least one of the limits was tightened
   virtual bool setLimitsFromSimulation() = 0;
 
-  virtual void onLimitsUpdated() = 0;
+  void onLimitsUpdated() override = 0;
 
   /*
    * LRS specific methods and fields for usage of limits

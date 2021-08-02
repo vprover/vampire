@@ -35,7 +35,7 @@ public:
   USE_ALLOCATOR(InterpretedLiteralEvaluator);
   
   InterpretedLiteralEvaluator(bool doNormalize = true);
-  ~InterpretedLiteralEvaluator();
+  ~InterpretedLiteralEvaluator() override;
 
   bool evaluate(Literal* lit, bool& isConstant, Literal*& resLit, bool& resConst,Stack<Literal*>& sideConditions);
   TermList evaluate(TermList);
@@ -52,7 +52,7 @@ protected:
   class RealEvaluator;
 
   typedef Stack<Evaluator*> EvalStack;
-  virtual TermList transformSubterm(TermList trm);
+  TermList transformSubterm(TermList trm) override;
   Evaluator* getFuncEvaluator(unsigned func);
   Evaluator* getPredEvaluator(unsigned pred);
   EvalStack _evals;

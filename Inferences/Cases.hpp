@@ -27,7 +27,7 @@ class Cases : public GeneratingInferenceEngine {
     USE_ALLOCATOR(Cases);
     
     Clause* performParamodulation(Clause* cl, Literal* lit, TermList t);
-    ClauseIterator generateClauses(Clause* premise);
+    ClauseIterator generateClauses(Clause* premise) override;
     struct RewriteableSubtermsFn;
     struct ResultFn;
 };

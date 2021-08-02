@@ -150,7 +150,7 @@ public:
 
   static KBO testKBO();
 
-  virtual ~KBO();
+  ~KBO() override;
   void showConcrete(ostream&) const override;
   template<class HandleError>
   void checkAdmissibility(HandleError handle) const;

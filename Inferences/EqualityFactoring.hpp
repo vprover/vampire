@@ -34,7 +34,7 @@ public:
   CLASS_NAME(EqualityFactoring);
   USE_ALLOCATOR(EqualityFactoring);
 
-  ClauseIterator generateClauses(Clause* premise);
+  ClauseIterator generateClauses(Clause* premise) override;
 private:
   struct IsPositiveEqualityFn;
   struct IsDifferentPositiveEqualityFn;

@@ -41,7 +41,7 @@ public:
   : _bindings(bindings), _resultNormalizer(resultNormalizer),
   _applicator(0)
   {}
-  ~CodeTreeSubstitution()
+  ~CodeTreeSubstitution() override
   {
     if(_applicator) {
       delete _applicator;
@@ -51,19 +51,19 @@ public:
   CLASS_NAME(CodeTreeSubstitution);
   USE_ALLOCATOR(CodeTreeSubstitution);
 
-  TermList applyToBoundResult(TermList t)
+  TermList applyToBoundResult(TermList t) override
   {
     CALL("CodeTreeSubstitution::applyToBoundResult(TermList)");
     return SubstHelper::apply(t, *getApplicator());
   }
 
-  Literal* applyToBoundResult(Literal* lit)
+  Literal* applyToBoundResult(Literal* lit) override
   {
     CALL("CodeTreeSubstitution::applyToBoundResult(Literal*)");
     return SubstHelper::apply(lit, *getApplicator());
   }
 
-  bool isIdentityOnQueryWhenResultBound() {return true;}
+  bool isIdentityOnQueryWhenResultBound() override {return true;}
 private:
   struct Applicator
   {
@@ -121,7 +121,7 @@ public:
     }
   }
 
-  ~ResultIterator()
+  ~ResultIterator() override
   {
     _matcher->deinit();
     Recycler::release(_matcher);
@@ -134,7 +134,7 @@ public:
   CLASS_NAME(CodeTreeTIS::ResultIterator);
   USE_ALLOCATOR(ResultIterator);
 
-  bool hasNext()
+  bool hasNext() override
   {
     CALL("CodeTreeTIS::ResultIterator::hasNext");
 
@@ -152,7 +152,7 @@ public:
     return _found;
   }
 
-  TermQueryResult next()
+  TermQueryResult next() override
   {
     CALL("CodeTreeTIS::ResultIterator::next");
     ASS(_found);
@@ -401,13 +401,13 @@ public:
     Recycler::get(cm);
     cm->init(tree, query, sres);
   }
-  ~ClauseSResIterator()
+  ~ClauseSResIterator() override
   {
     cm->deinit();
     Recycler::release(cm);
   }
   
-  bool hasNext()
+  bool hasNext() override
   {
     CALL("CodeTreeSubsumptionIndex::ClauseSResIterator::hasNext");
     if(ready) {
@@ -419,7 +419,7 @@ public:
     return result;
   }
   
-  ClauseSResQueryResult next()
+  ClauseSResQueryResult next() override
   {
     CALL("CodeTreeSubsumptionIndex::ClauseSResIterator::next");
     ASS(result);

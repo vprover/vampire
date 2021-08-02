@@ -41,26 +41,26 @@ public:
 
   MinimizingSolver(SATSolver* inner);
 
-  virtual SATClause* getRefutation() override { return _inner->getRefutation(); }
-  virtual SATClauseList* getRefutationPremiseList() override {
+  SATClause* getRefutation() override { return _inner->getRefutation(); }
+  SATClauseList* getRefutationPremiseList() override {
     return _inner->getRefutationPremiseList();
   }
-  virtual void randomizeForNextAssignment(unsigned maxVar) override {
+  void randomizeForNextAssignment(unsigned maxVar) override {
     _inner->randomizeForNextAssignment(maxVar); _assignmentValid = false;
   }
 
-  virtual void addClause(SATClause* cl) override;
-  virtual void addClauseIgnoredInPartialModel(SATClause* cl) override;
-  virtual Status solve(unsigned conflictCountLimit) override;
+  void addClause(SATClause* cl) override;
+  void addClauseIgnoredInPartialModel(SATClause* cl) override;
+  Status solve(unsigned conflictCountLimit) override;
   
-  virtual VarAssignment getAssignment(unsigned var) override;
-  virtual bool isZeroImplied(unsigned var) override;
-  virtual void collectZeroImplied(SATLiteralStack& acc) override { _inner->collectZeroImplied(acc); }
-  virtual SATClause* getZeroImpliedCertificate(unsigned var) override { return _inner->getZeroImpliedCertificate(var); }
+  VarAssignment getAssignment(unsigned var) override;
+  bool isZeroImplied(unsigned var) override;
+  void collectZeroImplied(SATLiteralStack& acc) override { _inner->collectZeroImplied(acc); }
+  SATClause* getZeroImpliedCertificate(unsigned var) override { return _inner->getZeroImpliedCertificate(var); }
 
-  virtual void ensureVarCount(unsigned newVarCnt) override;
+  void ensureVarCount(unsigned newVarCnt) override;
 
-  virtual unsigned newVar() override {
+  unsigned newVar() override {
     CALL("MinimizingSolver::newVar");
     DEBUG_CODE(unsigned oldVC = _varCnt);
     ensureVarCount(_varCnt+1);
@@ -68,7 +68,7 @@ public:
     return _varCnt;
   }
 
-  virtual void suggestPolarity(unsigned var, unsigned pol) override { _inner->suggestPolarity(var,pol); }
+  void suggestPolarity(unsigned var, unsigned pol) override { _inner->suggestPolarity(var,pol); }
 
 private:
   bool admitsDontcare(unsigned var) { 

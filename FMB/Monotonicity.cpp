@@ -299,7 +299,7 @@ SortFunctionTransformer(Literal* lit,
                         DArray<bool> isM,
                         DArray<unsigned> sf) : _lit(lit), _isM(isM), _sf(sf) {}
 
-TermList transformSubterm(TermList trm){
+TermList transformSubterm(TermList trm) override{
   CALL("SortFunctionTransformer::transformSubterm");
 
   // cout << "transformSubterm " << trm.toString() << endl;

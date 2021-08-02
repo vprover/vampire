@@ -25,7 +25,7 @@ class Injectivity : public GeneratingInferenceEngine {
   public:
     CLASS_NAME(Injectivity);
     USE_ALLOCATOR(Injectivity);
-    ClauseIterator generateClauses(Clause* premise);
+    ClauseIterator generateClauses(Clause* premise) override;
 
   private:
   	TermList createNewLhs(TermList oldhead, TermStack& termArgs, unsigned index);

@@ -39,7 +39,7 @@ public:
   LPO(Problem& prb, const Options& opt) :
     PrecedenceOrdering(prb, opt)
   {}
-  virtual ~LPO() {}
+  ~LPO() override {}
 
   using PrecedenceOrdering::compare;
   Result compare(TermList tl1, TermList tl2) const override;

@@ -40,7 +40,7 @@ class SimpSolver : public Solver {
     // Constructor/Destructor:
     //
     SimpSolver();
-    ~SimpSolver();
+    ~SimpSolver() override;
 
     // Problem specification:
     //
@@ -77,7 +77,7 @@ class SimpSolver : public Solver {
 
     // Memory managment:
     //
-    virtual void garbageCollect();
+    void garbageCollect() override;
 
     // Mode of operation:
     //

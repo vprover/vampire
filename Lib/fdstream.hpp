@@ -46,7 +46,7 @@ public:
   basic_fdbuf( int fd ) : _fd( fd ), _preRead(-1)
   { }
 
-  ~basic_fdbuf()
+  ~basic_fdbuf() override
   {
   }
 
@@ -56,7 +56,7 @@ protected:
 //  /**
 //   * Get the CURRENT character without advancing the file pointer
 //   */
-  virtual int_type underflow()
+  int_type underflow() override
   {
     if(_preRead!=-1) {
       return _preRead;
@@ -68,7 +68,7 @@ protected:
     return ch;
   }
 
-  virtual streamsize xsgetn ( char_type * s0, streamsize n0 )
+  streamsize xsgetn ( char_type * s0, streamsize n0 ) override
   {
     char_type * s=s0;
     streamsize n=n0;
@@ -92,7 +92,7 @@ protected:
   /**
    * Get the CURRENT character AND advance the file pointer
    */
-  virtual int_type uflow()
+  int_type uflow() override
   {
     if(_preRead!=-1) {
       int_type res=_preRead;
@@ -111,13 +111,13 @@ protected:
     return (res==sizeof(char_type)) ? ch : traits_type::eof();
   }
 
-  virtual int_type sync()
+  int_type sync() override
   {
     _preRead=-1; //we throw away the preread char
     return 0;
   }
 
-  virtual streamsize xsputn (const char_type * s, streamsize n)
+  streamsize xsputn (const char_type * s, streamsize n) override
   {
     ssize_t res=write(_fd, s, n*sizeof(char_type));
     if(res<0) {
@@ -126,7 +126,7 @@ protected:
     return res/sizeof(char_type);
   }
 
-  virtual int_type overflow( int_type c = traits_type::eof() )
+  int_type overflow( int_type c = traits_type::eof() ) override
   {
     char_type ch=c;
     ssize_t res=write(_fd, &ch, sizeof(char_type));
@@ -156,7 +156,7 @@ struct basic_fdstream: public std::basic_iostream <CharType, CharTraits>
     base_type( new sbuf_type( fd ) )
   { }
 
-  ~basic_fdstream()
+  ~basic_fdstream() override
   { delete static_cast<sbuf_type*>(this->rdbuf()); }
 
   typename traits_type::int_type getPreReadChar() const

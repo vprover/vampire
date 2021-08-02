@@ -982,7 +982,7 @@ public:
     ASS(_l1->commutative());
     ASS_EQ(_l1->arity(), 2);
   }
-  ~AssocIterator() {
+  ~AssocIterator() override {
     CALL("RobSubstitution::AssocIterator::~AssocIterator");
     if (_state != FINISHED && _state != FIRST) {
       backtrack(_bdataMain);
@@ -991,7 +991,7 @@ public:
     ASS(_bdataMain.isEmpty());
     ASS(_bdataEqAssoc.isEmpty());
   }
-  bool hasNext() {
+  bool hasNext() override {
     CALL("RobSubstitution::AssocIterator::hasNext");
 
     if (_state == FINISHED) {
@@ -1051,7 +1051,7 @@ public:
     return _state != FINISHED;
   }
 
-  RobSubstitution* next() {
+  RobSubstitution* next() override {
     _used = true;
     return _subst;
   }

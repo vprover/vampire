@@ -55,9 +55,9 @@ public:
   TheoryInstAndSimp(Options& opts);
   TheoryInstAndSimp(Options::TheoryInstSimp mode, bool thiTautologyDeletion, bool showZ3, bool generalisation, vstring const& exportSmtlib);
 
-  void attach(SaturationAlgorithm* salg);
+  void attach(SaturationAlgorithm* salg) override;
 
-  ClauseGenerationResult generateSimplify(Clause* premise);
+  ClauseGenerationResult generateSimplify(Clause* premise) override;
 
 private:
   struct SkolemizedLiterals {

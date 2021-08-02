@@ -45,7 +45,7 @@ public:
 
   ExtensionalityResolution() {}
   
-  ClauseIterator generateClauses(Clause* premise);
+  ClauseIterator generateClauses(Clause* premise) override;
 
   static Clause* performExtensionalityResolution(
     Clause* extCl, Literal* extLit,

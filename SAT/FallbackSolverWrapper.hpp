@@ -42,28 +42,28 @@ public:
 
   FallbackSolverWrapper(SATSolver* inner,SATSolver* fallback);
 
-  virtual SATClause* getRefutation() override { 
+  SATClause* getRefutation() override { 
     if(_usingFallback){
       return _fallback->getRefutation();
     }
     return _inner->getRefutation(); 
   }
-  virtual SATClauseList* getRefutationPremiseList() override {
+  SATClauseList* getRefutationPremiseList() override {
     if(_usingFallback){
       return _fallback->getRefutationPremiseList();
     }
     return _inner->getRefutationPremiseList();
   }
-  virtual void randomizeForNextAssignment(unsigned maxVar) override {
+  void randomizeForNextAssignment(unsigned maxVar) override {
     _fallback->randomizeForNextAssignment(maxVar);
     _inner->randomizeForNextAssignment(maxVar);
   }
 
-  virtual void addClause(SATClause* cl) override;
-  virtual Status solve(unsigned conflictCountLimit) override;
-  virtual VarAssignment getAssignment(unsigned var) override;
+  void addClause(SATClause* cl) override;
+  Status solve(unsigned conflictCountLimit) override;
+  VarAssignment getAssignment(unsigned var) override;
 
-  virtual bool isZeroImplied(unsigned var) override {
+  bool isZeroImplied(unsigned var) override {
     CALL("FallbackSolverWrapper::isZeroImplied");
     ASS_G(var,0); ASS_LE(var,_varCnt);
 
@@ -74,7 +74,7 @@ public:
     // alternatively, we could directly refer to _inner, it must handle variables up to _varCnt as well
     return  _inner->isZeroImplied(var);
   }
-  virtual void collectZeroImplied(SATLiteralStack& acc) override { 
+  void collectZeroImplied(SATLiteralStack& acc) override { 
     if(_usingFallback){
       _fallback->collectZeroImplied(acc);
       return;
@@ -82,21 +82,21 @@ public:
     _inner->collectZeroImplied(acc); 
   }
 
-  virtual SATClause* getZeroImpliedCertificate(unsigned var) override { 
+  SATClause* getZeroImpliedCertificate(unsigned var) override { 
     if(_usingFallback){
       return _fallback->getZeroImpliedCertificate(var);
     }
     return _inner->getZeroImpliedCertificate(var); 
   }
 
-  virtual void ensureVarCount(unsigned newVarCnt) override { 
+  void ensureVarCount(unsigned newVarCnt) override { 
     _inner->ensureVarCount(newVarCnt); 
     _fallback->ensureVarCount(newVarCnt); 
     _varCnt=max(_varCnt,newVarCnt); 
   }
 
 
-  virtual unsigned newVar() override { 
+  unsigned newVar() override { 
     CALL("FallbackSolverWrapper::newVar");
     
     ALWAYS(_inner->newVar() == ++_varCnt);
@@ -104,7 +104,7 @@ public:
     return _varCnt;
   }
   
-  virtual void suggestPolarity(unsigned var,unsigned pol) override { 
+  void suggestPolarity(unsigned var,unsigned pol) override { 
     _inner->suggestPolarity(var,pol); 
     _fallback->suggestPolarity(var,pol); 
   }

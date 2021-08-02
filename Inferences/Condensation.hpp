@@ -37,7 +37,7 @@ public:
   CLASS_NAME(Condensation);
   USE_ALLOCATOR(Condensation);
 
-  Clause* simplify(Clause* cl);
+  Clause* simplify(Clause* cl) override;
 };
 
 };

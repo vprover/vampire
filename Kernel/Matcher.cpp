@@ -451,14 +451,14 @@ public:
     ASS(_base->commutative());
     ASS_EQ(_base->arity(), 2);
   }
-  ~CommutativeMatchIterator()
+  ~CommutativeMatchIterator() override
   {
     if(_state!=FINISHED && _state!=FIRST) {
   backtrack();
     }
     ASS(_bdata.isEmpty());
   }
-  bool hasNext()
+  bool hasNext() override
   {
     CALL("Matcher::CommutativeMatchIterator::hasNext");
 
@@ -501,7 +501,7 @@ public:
     ASS(_state!=FINISHED || _bdata.isEmpty());
     return _state!=FINISHED;
   }
-  Matcher* next()
+  Matcher* next() override
   {
     _used=true;
     return _matcher;

@@ -26,9 +26,9 @@ public:
   CLASS_NAME(NumeralMultiplicationGeneralization);
   USE_ALLOCATOR(NumeralMultiplicationGeneralization);
 
-  virtual ~NumeralMultiplicationGeneralization();
+  ~NumeralMultiplicationGeneralization() override;
 
-  SimplifyingGeneratingInference1::Result simplify(Clause* cl, bool doOrderingCheck);
+  SimplifyingGeneratingInference1::Result simplify(Clause* cl, bool doOrderingCheck) override;
 };
 
 
@@ -39,9 +39,9 @@ public:
   CLASS_NAME(VariableMultiplicationGeneralization);
   USE_ALLOCATOR(VariableMultiplicationGeneralization);
 
-  virtual ~VariableMultiplicationGeneralization();
+  ~VariableMultiplicationGeneralization() override;
 
-  SimplifyingGeneratingInference1::Result simplify(Clause* cl, bool doOrderingCheck);
+  SimplifyingGeneratingInference1::Result simplify(Clause* cl, bool doOrderingCheck) override;
 };
 
 
@@ -52,9 +52,9 @@ public:
   CLASS_NAME(VariablePowerGeneralization);
   USE_ALLOCATOR(VariablePowerGeneralization);
 
-  virtual ~VariablePowerGeneralization();
+  ~VariablePowerGeneralization() override;
 
-  SimplifyingGeneratingInference1::Result simplify(Clause* cl, bool doOrderingCheck);
+  SimplifyingGeneratingInference1::Result simplify(Clause* cl, bool doOrderingCheck) override;
 };
 
 
@@ -65,9 +65,9 @@ public:
   CLASS_NAME(AdditionGeneralization);
   USE_ALLOCATOR(AdditionGeneralization);
 
-  virtual ~AdditionGeneralization();
+  ~AdditionGeneralization() override;
 
-  SimplifyingGeneratingInference1::Result simplify(Clause* cl, bool doOrderingCheck);
+  SimplifyingGeneratingInference1::Result simplify(Clause* cl, bool doOrderingCheck) override;
 };
 
 Stack<SimplifyingGeneratingInference1*> allArithmeticSubtermGeneralizations();

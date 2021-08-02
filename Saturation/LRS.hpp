@@ -40,10 +40,10 @@ public:
 protected:
 
   //overrides SaturationAlgorithm::isComplete
-  bool isComplete();
+  bool isComplete() override;
 
   //overrides SaturationAlgorithm::onUnprocessedSelected
-  void onUnprocessedSelected(Clause* c);
+  void onUnprocessedSelected(Clause* c) override;
 
   bool shouldUpdateLimits();
 

@@ -329,7 +329,7 @@ public:
     IntermediateNode(TermList ts, unsigned childVar) : Node(ts), childVar(childVar),_childBySortHelper(0) {}
 
     inline
-    bool isLeaf() const { return false; };
+    bool isLeaf() const override { return false; };
 
     virtual NodeIterator allChildren() = 0;
     virtual NodeIterator variableChildren() = 0;
@@ -361,7 +361,7 @@ public:
 
     void destroyChildren();
 
-    void makeEmpty()
+    void makeEmpty() override
     {
       Node::makeEmpty();
       removeAllChildren();
@@ -384,7 +384,7 @@ public:
     const unsigned childVar;
     ChildBySortHelper* _childBySortHelper;
 
-    virtual void print(unsigned depth=0){
+    void print(unsigned depth=0) override{
        auto children = allChildren();
        printDepth(depth);
        cout << "I [" << childVar << "] with " << term.toString() << endl;
@@ -428,13 +428,13 @@ public:
     Leaf(TermList ts) : Node(ts) {}
 
     inline
-    bool isLeaf() const { return true; };
+    bool isLeaf() const override { return true; };
     virtual LDIterator allChildren() = 0;
     virtual void insert(LeafData ld) = 0;
     virtual void remove(LeafData ld) = 0;
     void loadChildren(LDIterator children);
 
-    virtual void print(unsigned depth=0){
+    void print(unsigned depth=0) override{
        auto children = allChildren();
        while(children.hasNext()){
          printDepth(depth);
@@ -478,32 +478,32 @@ public:
       _nodes[0]=0;
     }
 
-    ~UArrIntermediateNode()
+    ~UArrIntermediateNode() override
     {
       if(!isEmpty()) {
 	destroyChildren();
       }
     }
 
-    void removeAllChildren()
+    void removeAllChildren() override
     {
       _size=0;
       _nodes[0]=0;
     }
 
-    NodeAlgorithm algorithm() const { return UNSORTED_LIST; }
-    bool isEmpty() const { return !_size; }
-    int size() const { return _size; }
-    NodeIterator allChildren()
+    NodeAlgorithm algorithm() const override { return UNSORTED_LIST; }
+    bool isEmpty() const override { return !_size; }
+    int size() const override { return _size; }
+    NodeIterator allChildren() override
     { return pvi( PointerPtrIterator<Node*>(&_nodes[0],&_nodes[_size]) ); }
 
-    NodeIterator variableChildren()
+    NodeIterator variableChildren() override
     {
       return pvi( getFilteredIterator(PointerPtrIterator<Node*>(&_nodes[0],&_nodes[_size]),
   	    IsPtrToVarNodeFn()) );
     }
-    virtual Node** childByTop(TermList t, bool canCreate);
-    void remove(TermList t);
+    Node** childByTop(TermList t, bool canCreate) override;
+    void remove(TermList t) override;
 
 #if VDEBUG
     virtual void assertValid() const
@@ -538,14 +538,14 @@ public:
     SListIntermediateNode(unsigned childVar) : IntermediateNode(childVar) {}
     SListIntermediateNode(TermList ts, unsigned childVar) : IntermediateNode(ts, childVar) {}
 
-    ~SListIntermediateNode()
+    ~SListIntermediateNode() override
     {
       if(!isEmpty()) {
 	destroyChildren();
       }
     }
 
-    void removeAllChildren()
+    void removeAllChildren() override
     {
       while(!_nodes.isEmpty()) {
         _nodes.pop();
@@ -555,10 +555,10 @@ public:
     static IntermediateNode* assimilate(IntermediateNode* orig);
 
     inline
-    NodeAlgorithm algorithm() const { return SKIP_LIST; }
+    NodeAlgorithm algorithm() const override { return SKIP_LIST; }
     inline
-    bool isEmpty() const { return _nodes.isEmpty(); }
-    int size() const { return _nodes.size(); }
+    bool isEmpty() const override { return _nodes.isEmpty(); }
+    int size() const override { return _nodes.size(); }
 #if VDEBUG
     virtual void assertValid() const
     {
@@ -566,18 +566,18 @@ public:
     }
 #endif
     inline
-    NodeIterator allChildren()
+    NodeIterator allChildren() override
     {
       return pvi( NodeSkipList::PtrIterator(_nodes) );
     }
     inline
-    NodeIterator variableChildren()
+    NodeIterator variableChildren() override
     {
       return pvi( getWhileLimitedIterator(
   		    NodeSkipList::PtrIterator(_nodes),
   		    IsPtrToVarNodeFn()) );
     }
-    virtual Node** childByTop(TermList t, bool canCreate)
+    Node** childByTop(TermList t, bool canCreate) override
     {
       CALL("SubstitutionTree::SListIntermediateNode::childByTop");
 
@@ -594,7 +594,7 @@ public:
       return res;
     }
     inline
-    void remove(TermList t)
+    void remove(TermList t) override
     {
       _nodes.remove(t);
       if(_childBySortHelper){
@@ -709,8 +709,8 @@ public:
     LeafIterator(SubstitutionTree* st)
     : _nextRootPtr(st->_nodes.begin()), _afterLastRootPtr(st->_nodes.end()),
     _nodeIterators(8) {}
-    bool hasNext();
-    Leaf* next()
+    bool hasNext() override;
+    Leaf* next() override
     {
       ASS(_curr->isLeaf());
       return static_cast<Leaf*>(_curr);
@@ -738,10 +738,10 @@ public:
             bool retrieveSubstitution, bool reversed,bool withoutTop,bool useC, 
             FuncSubtermMap* fstm = 0);
 
-    ~FastGeneralizationsIterator();
+    ~FastGeneralizationsIterator() override;
 
-    QueryResult next();
-    bool hasNext();
+    QueryResult next() override;
+    bool hasNext() override;
   protected:
     void createInitialBindings(Term* t);
     void createReversedInitialBindings(Term* t);
@@ -784,10 +784,10 @@ public:
     FastInstancesIterator(SubstitutionTree* parent, Node* root, Term* query,
 	    bool retrieveSubstitution, bool reversed, bool withoutTop, bool useC, 
       FuncSubtermMap* fstm = 0);
-    ~FastInstancesIterator();
+    ~FastInstancesIterator() override;
 
-    bool hasNext();
-    QueryResult next();
+    bool hasNext() override;
+    QueryResult next() override;
   protected:
     void createInitialBindings(Term* t);
     void createReversedInitialBindings(Term* t);
@@ -821,7 +821,7 @@ public:
       UWAMismatchHandler(c), _constraints(c), _bd(bd) {}
     //virtual bool handle(RobSubstitution* subst, TermList query, unsigned index1, TermList node, unsigned index2);
   private:
-    virtual bool introduceConstraint(TermList t1,unsigned index1, TermList t2,unsigned index2);
+    bool introduceConstraint(TermList t1,unsigned index1, TermList t2,unsigned index2) override;
     Stack<UnificationConstraint>& _constraints;
     BacktrackData& _bd;
   };
@@ -831,7 +831,7 @@ public:
   public:
     STHOMismatchHandler(Stack<UnificationConstraint>& c, BacktrackData& bd) : 
       HOMismatchHandler(c), _constraints(c), _bd(bd) {}
-    virtual bool handle(RobSubstitution* subst, TermList query, unsigned index1, TermList node, unsigned index2);
+    bool handle(RobSubstitution* subst, TermList query, unsigned index1, TermList node, unsigned index2) override;
   private:
     Stack<UnificationConstraint>& _constraints;
     BacktrackData& _bd;
@@ -844,10 +844,10 @@ public:
     UnificationsIterator(SubstitutionTree* parent, Node* root, Term* query, 
       bool retrieveSubstitution, bool reversed, bool withoutTop, bool useC, 
       FuncSubtermMap* funcSubtermMap = 0);
-    ~UnificationsIterator();
+    ~UnificationsIterator() override;
 
-    bool hasNext();
-    QueryResult next();
+    bool hasNext() override;
+    QueryResult next() override;
     bool tag;
   protected:
     virtual bool associate(TermList query, TermList node, BacktrackData& bd);

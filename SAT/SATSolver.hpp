@@ -367,21 +367,21 @@ public:
       _refutation->setInference(_refutationInference);    
     }
   
-  virtual ~PrimitiveProofRecordingSATSolver() {
+  ~PrimitiveProofRecordingSATSolver() override {
     CALL("PrimitiveProofRecordingSATSolver::~PrimitiveProofRecordingSATSolver");
 
     // cannot clear the list - some inferences may be keeping its suffices till proof printing phase ...
     // _addedClauses->destroy(); // we clear the list but not its content
   }
 
-  virtual void addClause(SATClause* cl) override 
+  void addClause(SATClause* cl) override 
   {
     CALL("PrimitiveProofRecordingSATSolver::addClause");
     
     SATClauseList::push(cl,_addedClauses);
   }
   
-  virtual SATClause* getRefutation() override
+  SATClause* getRefutation() override
   {
     CALL("PrimitiveProofRecordingSATSolver::getRefutation");
 
@@ -410,7 +410,7 @@ public:
     return _refutation; 
   }
   
-  virtual SATClauseList* getRefutationPremiseList() override {
+  SATClauseList* getRefutationPremiseList() override {
     return _addedClauses;
   }
 

@@ -30,7 +30,7 @@ public:
   CLASS_NAME(LiteralIndex);
   USE_ALLOCATOR(LiteralIndex);
 
-  virtual ~LiteralIndex();
+  ~LiteralIndex() override;
 
   SLQueryResultIterator getAll();
 
@@ -67,7 +67,7 @@ public:
   GeneratingLiteralIndex(LiteralIndexingStructure* is)
   : LiteralIndex(is) {};
 protected:
-  void handleClause(Clause* c, bool adding);
+  void handleClause(Clause* c, bool adding) override;
 };
 
 class SimplifyingLiteralIndex
@@ -80,7 +80,7 @@ public:
   SimplifyingLiteralIndex(LiteralIndexingStructure* is)
   : LiteralIndex(is) {};
 protected:
-  void handleClause(Clause* c, bool adding);
+  void handleClause(Clause* c, bool adding) override;
 };
 
 class FwSubsSimplifyingLiteralIndex
@@ -123,7 +123,7 @@ public:
   UnitClauseLiteralIndex(LiteralIndexingStructure* is)
   : LiteralIndex(is) {};
 protected:
-  void handleClause(Clause* c, bool adding);
+  void handleClause(Clause* c, bool adding) override;
 };
 
 class NonUnitClauseLiteralIndex
@@ -136,7 +136,7 @@ public:
   NonUnitClauseLiteralIndex(LiteralIndexingStructure* is, bool selectedOnly=false)
   : LiteralIndex(is), _selectedOnly(selectedOnly) {};
 protected:
-  void handleClause(Clause* c, bool adding);
+  void handleClause(Clause* c, bool adding) override;
 private:
   bool _selectedOnly;
 };
@@ -149,13 +149,13 @@ public:
   USE_ALLOCATOR(RewriteRuleIndex);
 
   RewriteRuleIndex(LiteralIndexingStructure* is, Ordering& ordering);
-  ~RewriteRuleIndex();
+  ~RewriteRuleIndex() override;
 
   Clause* getCounterpart(Clause* c) {
     return _counterparts.get(c);
   }
 protected:
-  void handleClause(Clause* c, bool adding);
+  void handleClause(Clause* c, bool adding) override;
   Literal* getGreater(Clause* c);
 
 private:
@@ -175,7 +175,7 @@ public:
 
   DismatchingLiteralIndex(LiteralIndexingStructure* is)
   : LiteralIndex(is) {};
-  void handleClause(Clause* c, bool adding);
+  void handleClause(Clause* c, bool adding) override;
   void addLiteral(Literal* c);
 };
 
@@ -190,7 +190,7 @@ public:
   : LiteralIndex(is) {}
 
 protected:
-  void handleClause(Clause* c, bool adding);
+  void handleClause(Clause* c, bool adding) override;
 };
 
 };

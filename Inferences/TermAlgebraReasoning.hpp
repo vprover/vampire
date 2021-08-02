@@ -53,7 +53,7 @@ public:
   CLASS_NAME(DistinctnessISE);
   USE_ALLOCATOR(DistinctnessISE);
   
-  Kernel::Clause* simplify(Kernel::Clause* c);
+  Kernel::Clause* simplify(Kernel::Clause* c) override;
 };
 
 /*
@@ -73,7 +73,7 @@ public:
   CLASS_NAME(InjectivityGIE);
   USE_ALLOCATOR(InjectivityGIE);
   
-  Kernel::ClauseIterator generateClauses(Kernel::Clause* c);
+  Kernel::ClauseIterator generateClauses(Kernel::Clause* c) override;
 
 private:
   struct SubtermIterator;
@@ -96,7 +96,7 @@ public:
   CLASS_NAME(InjectivityISE);
   USE_ALLOCATOR(InjectivityISE);
   
-  Kernel::Clause* simplify(Kernel::Clause* c);
+  Kernel::Clause* simplify(Kernel::Clause* c) override;
 };
 
 class NegativeInjectivityISE
@@ -106,7 +106,7 @@ public:
   CLASS_NAME(NegativeInjectivityISE);
   USE_ALLOCATOR(NegativeInjectivityISE);
 
-  Kernel::Clause* simplify(Kernel::Clause* c);
+  Kernel::Clause* simplify(Kernel::Clause* c) override;
 
 private:
   bool litCondition(Clause* c, unsigned i);
@@ -118,9 +118,9 @@ public:
   CLASS_NAME(AcyclicityGIE);
   USE_ALLOCATOR(AcyclicityGIE);
 
-  void attach(Saturation::SaturationAlgorithm* salg);
-  void detach();
-  Kernel::ClauseIterator generateClauses(Kernel::Clause *c);
+  void attach(Saturation::SaturationAlgorithm* salg) override;
+  void detach() override;
+  Kernel::ClauseIterator generateClauses(Kernel::Clause *c) override;
 private:
   struct AcyclicityGenIterator;
   struct AcyclicityGenFn;
@@ -134,7 +134,7 @@ public:
   CLASS_NAME(AcyclicityGIE1);
   USE_ALLOCATOR(AcyclicityGIE1);
   
-  Kernel::ClauseIterator generateClauses(Kernel::Clause* c);
+  Kernel::ClauseIterator generateClauses(Kernel::Clause* c) override;
 
 private:
   struct SubtermDisequalityFn;

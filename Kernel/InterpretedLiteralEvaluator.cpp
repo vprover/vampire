@@ -139,9 +139,9 @@ CLASS_NAME(InterpretedLiteralEvaluator::ACFunEvaluator<AbelianGroup>);
   ACFunEvaluator() : _fun(env.signature->getInterpretingSymbol(AbelianGroup::interpreation)) { }
   const unsigned _fun; 
 
-  virtual bool canEvaluateFunc(unsigned func) { return func == _fun; }
+  bool canEvaluateFunc(unsigned func) override { return func == _fun; }
 
-  virtual bool tryEvaluateFunc(Term* trm, TermList& res) { 
+  bool tryEvaluateFunc(Term* trm, TermList& res) override {
     CALL( "ACFunEvaluator::tryEvaluateFunc()" );
     ASS_EQ(trm->functor(), _fun);
     ASS_EQ(trm->arity(),2);
@@ -331,7 +331,7 @@ public:
     return theory->isConversionOperation(theory->interpretFunction(func));
   }
 
-  virtual bool tryEvaluateFunc(Term* trm, TermList& res) override
+  bool tryEvaluateFunc(Term* trm, TermList& res) override
   {
     CALL("InterpretedLiteralEvaluator::ConversionEvaluator::tryEvaluateFunc");
     ASS(theory->isInterpretedFunction(trm));
@@ -454,7 +454,7 @@ public:
     return opSort==T::getSort();
   }
 
-  virtual bool tryEvaluateFunc(Term* trm, TermList& res) override
+  bool tryEvaluateFunc(Term* trm, TermList& res) override
   {
     CALL("InterpretedLiteralEvaluator::tryEvaluateFunc");
     ASS(theory->isInterpretedFunction(trm));
@@ -553,7 +553,7 @@ public:
     }
   }
 
-  virtual PredEvalResult tryEvaluatePred(Literal* lit) override
+  PredEvalResult tryEvaluatePred(Literal* lit) override
   {
     CALL("InterpretedLiteralEvaluator::tryEvaluatePred");
     ASS(theory->isInterpretedPredicate(lit->functor()));
@@ -692,12 +692,12 @@ class InterpretedLiteralEvaluator::IntEvaluator : public TypedEvaluator<IntegerC
 {
 protected:
 
-  virtual bool isDivision(Interpretation interp) const { 
+  bool isDivision(Interpretation interp) const override {
     return interp==Theory::INT_QUOTIENT_E || interp==Theory::INT_QUOTIENT_T || 
            interp==Theory::INT_QUOTIENT_F; 
   }
 
-  virtual bool tryEvaluateUnaryFunc(Interpretation op, const Value& arg, Value& res)
+  bool tryEvaluateUnaryFunc(Interpretation op, const Value& arg, Value& res) override
   {
     CALL("InterpretedLiteralEvaluator::IntEvaluator::tryEvaluateUnaryFunc");
 
@@ -727,8 +727,8 @@ protected:
     }
   }
 
-  virtual bool tryEvaluateBinaryFunc(Interpretation op, const Value& arg1,
-      const Value& arg2, Value& res)
+  bool tryEvaluateBinaryFunc(Interpretation op, const Value& arg1,
+      const Value& arg2, Value& res) override
   {
     CALL("InterpretedLiteralEvaluator::IntEvaluator::tryEvaluateBinaryFunc");
 
@@ -766,8 +766,8 @@ protected:
     }
   }
 
-  virtual bool tryEvaluateBinaryPred(Interpretation op, const Value& arg1,
-      const Value& arg2, bool& res)
+  bool tryEvaluateBinaryPred(Interpretation op, const Value& arg1,
+      const Value& arg2, bool& res) override
   {
     CALL("InterpretedLiteralEvaluator::IntEvaluator::tryEvaluateBinaryPred");
 
@@ -799,12 +799,12 @@ protected:
 class InterpretedLiteralEvaluator::RatEvaluator : public TypedEvaluator<RationalConstantType>
 {
 protected:
-  virtual bool isDivision(Interpretation interp) const { 
+  bool isDivision(Interpretation interp) const override {
     return interp==Theory::RAT_QUOTIENT || interp==Theory::RAT_QUOTIENT_E || 
            interp==Theory::RAT_QUOTIENT_T || interp==Theory::RAT_QUOTIENT_F;
   }
 
-  virtual bool tryEvaluateUnaryFunc(Interpretation op, const Value& arg, Value& res)
+  bool tryEvaluateUnaryFunc(Interpretation op, const Value& arg, Value& res) override
   {
     CALL("InterpretedLiteralEvaluator::RatEvaluator::tryEvaluateUnaryFunc");
 
@@ -826,8 +826,8 @@ protected:
     }
   }
 
-  virtual bool tryEvaluateBinaryFunc(Interpretation op, const Value& arg1,
-      const Value& arg2, Value& res)
+  bool tryEvaluateBinaryFunc(Interpretation op, const Value& arg1,
+      const Value& arg2, Value& res) override
   {
     CALL("InterpretedLiteralEvaluator::RatEvaluator::tryEvaluateBinaryFunc");
 
@@ -850,8 +850,8 @@ protected:
     }
   }
 
-  virtual bool tryEvaluateBinaryPred(Interpretation op, const Value& arg1,
-      const Value& arg2, bool& res)
+  bool tryEvaluateBinaryPred(Interpretation op, const Value& arg1,
+      const Value& arg2, bool& res) override
   {
     CALL("InterpretedLiteralEvaluator::RatEvaluator::tryEvaluateBinaryPred");
 
@@ -873,8 +873,8 @@ protected:
     }
   }
 
-  virtual bool tryEvaluateUnaryPred(Interpretation op, const Value& arg1,
-      bool& res)
+  bool tryEvaluateUnaryPred(Interpretation op, const Value& arg1,
+      bool& res) override
   {
     CALL("InterpretedLiteralEvaluator::RatEvaluator::tryEvaluateBinaryPred");
 
@@ -896,12 +896,12 @@ protected:
 class InterpretedLiteralEvaluator::RealEvaluator : public TypedEvaluator<RealConstantType>
 {
 protected:
-  virtual bool isDivision(Interpretation interp) const { 
+  bool isDivision(Interpretation interp) const override {
     return interp==Theory::REAL_QUOTIENT || interp==Theory::REAL_QUOTIENT_E ||
            interp==Theory::REAL_QUOTIENT_T || interp==Theory::REAL_QUOTIENT_F;
   }
 
-  virtual bool tryEvaluateUnaryFunc(Interpretation op, const Value& arg, Value& res)
+  bool tryEvaluateUnaryFunc(Interpretation op, const Value& arg, Value& res) override
   {
     CALL("InterpretedLiteralEvaluator::RealEvaluator::tryEvaluateUnaryFunc");
 
@@ -923,8 +923,8 @@ protected:
     }
   }
 
-  virtual bool tryEvaluateBinaryFunc(Interpretation op, const Value& arg1,
-      const Value& arg2, Value& res)
+  bool tryEvaluateBinaryFunc(Interpretation op, const Value& arg1,
+      const Value& arg2, Value& res) override
   {
     CALL("InterpretedLiteralEvaluator::RealEvaluator::tryEvaluateBinaryFunc");
 
@@ -947,8 +947,8 @@ protected:
     }
   }
 
-  virtual bool tryEvaluateBinaryPred(Interpretation op, const Value& arg1,
-      const Value& arg2, bool& res)
+  bool tryEvaluateBinaryPred(Interpretation op, const Value& arg1,
+      const Value& arg2, bool& res) override
   {
     CALL("InterpretedLiteralEvaluator::RealEvaluator::tryEvaluateBinaryPred");
 
@@ -970,8 +970,8 @@ protected:
     }
   }
 
-  virtual bool tryEvaluateUnaryPred(Interpretation op, const Value& arg1,
-      bool& res)
+  bool tryEvaluateUnaryPred(Interpretation op, const Value& arg1,
+      bool& res) override
   {
     CALL("InterpretedLiteralEvaluator::RealEvaluator::tryEvaluateBinaryPred");
 

@@ -231,7 +231,7 @@ public:
   Substitution(InstMatcher* parent, Renaming* resultDenormalizer)
   : _parent(parent), _resultDenormalizer(resultDenormalizer)
   {}
-  ~Substitution()
+  ~Substitution() override
   {
   }
 

@@ -42,7 +42,7 @@ public:
   // virtual bool eq(Kernel::Clause const* lhs, Kernel::Clause const* rhs) const override
   // { return TestUtils::eqModACVar(lhs, rhs); }
 
-  virtual Kernel::Clause* simplify(Kernel::Clause* in) const override 
+  Kernel::Clause* simplify(Kernel::Clause* in) const override
   {
     auto ord = KBO::testKBO();
     Ordering::trySetGlobalOrdering(SmartPtr<Ordering>(&ord, true));

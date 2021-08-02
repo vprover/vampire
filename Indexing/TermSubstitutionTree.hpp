@@ -54,31 +54,31 @@ public:
    */
   TermSubstitutionTree(bool useC=false, bool replaceFunctionalSubterms = false, bool extra = false);
 
-  void insert(TermList t, Literal* lit, Clause* cls);
-  void remove(TermList t, Literal* lit, Clause* cls);
-  void insert(TermList t, TermList trm);
-  void insert(TermList t, TermList trm, Literal* lit, Clause* cls);
+  void insert(TermList t, Literal* lit, Clause* cls) override;
+  void remove(TermList t, Literal* lit, Clause* cls) override;
+  void insert(TermList t, TermList trm) override;
+  void insert(TermList t, TermList trm, Literal* lit, Clause* cls) override;
 
-  bool generalizationExists(TermList t);
+  bool generalizationExists(TermList t) override;
 
 
   TermQueryResultIterator getUnifications(TermList t,
-	  bool retrieveSubstitutions);
+	  bool retrieveSubstitutions) override;
 
   TermQueryResultIterator getUnificationsWithConstraints(TermList t,
-    bool retrieveSubstitutions);
+    bool retrieveSubstitutions) override;
 
   /*
    * A higher order concern (though it may be useful in other situations)
    */
   TermQueryResultIterator getUnificationsUsingSorts(TermList t, TermList sort,
-    bool retrieveSubstitutions);
+    bool retrieveSubstitutions) override;
 
   TermQueryResultIterator getGeneralizations(TermList t,
-	  bool retrieveSubstitutions);
+	  bool retrieveSubstitutions) override;
 
   TermQueryResultIterator getInstances(TermList t,
-	  bool retrieveSubstitutions);
+	  bool retrieveSubstitutions) override;
 
 #if VDEBUG
   virtual void markTagged(){ SubstitutionTree::markTagged();}

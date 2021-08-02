@@ -40,11 +40,11 @@ public:
 
   BufferedSolver(SATSolver* inner);
 
-  virtual SATClause* getRefutation() override { return _inner->getRefutation(); }
-  virtual SATClauseList* getRefutationPremiseList() override {
+  SATClause* getRefutation() override { return _inner->getRefutation(); }
+  SATClauseList* getRefutationPremiseList() override {
     return _inner->getRefutationPremiseList();
   }
-  virtual void randomizeForNextAssignment(unsigned maxVar) override {
+  void randomizeForNextAssignment(unsigned maxVar) override {
     _inner->randomizeForNextAssignment(maxVar);
 
     // This is not ideal, but we can't wait till solve, because
@@ -53,28 +53,28 @@ public:
     _lastStatus = _inner->solve();
   }
 
-  virtual void addClause(SATClause* cl) override;
-  virtual Status solve(unsigned conflictCountLimit) override;
-  virtual VarAssignment getAssignment(unsigned var) override;
+  void addClause(SATClause* cl) override;
+  Status solve(unsigned conflictCountLimit) override;
+  VarAssignment getAssignment(unsigned var) override;
 
-  virtual bool isZeroImplied(unsigned var) override {
+  bool isZeroImplied(unsigned var) override {
     CALL("BufferedSolver::isZeroImplied");
     ASS_G(var,0); ASS_LE(var,_varCnt);
     // alternatively, we could directly refer to _inner, it must handle variables up to _varCnt as well
     return (var > _varCntInnerOld) ? false : _inner->isZeroImplied(var);
   }
-  virtual void collectZeroImplied(SATLiteralStack& acc) override { _inner->collectZeroImplied(acc); }
-  virtual SATClause* getZeroImpliedCertificate(unsigned var) override { return _inner->getZeroImpliedCertificate(var); }
+  void collectZeroImplied(SATLiteralStack& acc) override { _inner->collectZeroImplied(acc); }
+  SATClause* getZeroImpliedCertificate(unsigned var) override { return _inner->getZeroImpliedCertificate(var); }
 
-  virtual void ensureVarCount(unsigned newVarCnt) override { _inner->ensureVarCount(newVarCnt); _varCnt=max(_varCnt,newVarCnt); }
-  virtual unsigned newVar() override { 
+  void ensureVarCount(unsigned newVarCnt) override { _inner->ensureVarCount(newVarCnt); _varCnt=max(_varCnt,newVarCnt); }
+  unsigned newVar() override { 
     CALL("BufferedSolver::newVar");
     
     ALWAYS(_inner->newVar() == ++_varCnt);
     return _varCnt;
   }
   
-  virtual void suggestPolarity(unsigned var,unsigned pol) override { _inner->suggestPolarity(var,pol); }
+  void suggestPolarity(unsigned var,unsigned pol) override { _inner->suggestPolarity(var,pol); }
 
 private:
 

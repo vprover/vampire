@@ -34,7 +34,7 @@ public:
   CLASS_NAME(NegativeExt);
   USE_ALLOCATOR(NegativeExt);
 
-  ClauseIterator generateClauses(Clause* premise);
+  ClauseIterator generateClauses(Clause* premise) override;
 private:
   struct ResultFn;
   struct IsNegativeEqualityFn;

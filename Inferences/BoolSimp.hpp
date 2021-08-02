@@ -26,7 +26,7 @@ class BoolSimp : public ImmediateSimplificationEngine
   public:
     CLASS_NAME(BoolSimp);
     USE_ALLOCATOR(BoolSimp);
-    Clause* simplify(Clause* premise);
+    Clause* simplify(Clause* premise) override;
 
   private:
     TermList boolSimplify(TermList term); 

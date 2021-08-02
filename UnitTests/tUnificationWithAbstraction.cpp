@@ -187,7 +187,7 @@ static const int NORM_RESULT_BANK=3;
 struct testMismatchHandler : MismatchHandler
 {
 testMismatchHandler(Stack<UnificationConstraint>* c) : _constraints(c) {}
-bool handle(RobSubstitution* subst, TermList query, unsigned index1, TermList node, unsigned index2){
+bool handle(RobSubstitution* subst, TermList query, unsigned index1, TermList node, unsigned index2) override{
     ASS(index1 == NORM_QUERY_BANK && index2 == NORM_RESULT_BANK);
     static unsigned _var = 0;
     unsigned x = _var++;

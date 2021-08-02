@@ -42,11 +42,11 @@ public:
   USE_ALLOCATOR(Z3MainLoop);  
   
   Z3MainLoop(Problem& prb, const Options& opt);
-  ~Z3MainLoop(){};
+  ~Z3MainLoop() override{};
 
 protected:
-  virtual void init();
-  virtual MainLoopResult runImpl();
+  void init() override;
+  MainLoopResult runImpl() override;
 //private:
 
 };

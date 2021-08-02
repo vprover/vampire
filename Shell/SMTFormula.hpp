@@ -192,7 +192,7 @@ private:
 class YicesSolver : public SMTSolver
 {
 public:
-  virtual void run(SMTBenchmark& problem, SMTSolverResult& res, unsigned timeout);
+  void run(SMTBenchmark& problem, SMTSolverResult& res, unsigned timeout) override;
 };
 
 }

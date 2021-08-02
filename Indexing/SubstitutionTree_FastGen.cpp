@@ -184,7 +184,7 @@ public:
   : _parent(parent), _resultNormalizer(resultNormalizer),
   _applicator(0)
   {}
-  ~Substitution()
+  ~Substitution() override
   {
     if(_applicator) {
       delete _applicator;
@@ -204,7 +204,7 @@ public:
   { return true; }
 
 #if VDEBUG
-  virtual vstring toString() override
+  vstring toString() override
   { return _resultNormalizer->toString(); }
 #endif
 

@@ -33,7 +33,7 @@ class UWAMismatchHandler : public MismatchHandler
 {
 public:
   UWAMismatchHandler(Stack<UnificationConstraint>& c) : constraints(c) /*, specialVar(0)*/ {}
-  virtual bool handle(RobSubstitution* sub, TermList t1, unsigned index1, TermList t2, unsigned index2);
+  bool handle(RobSubstitution* sub, TermList t1, unsigned index1, TermList t2, unsigned index2) override;
 
   CLASS_NAME(UWAMismatchHandler);
   USE_ALLOCATOR(UWAMismatchHandler);
@@ -51,7 +51,7 @@ class HOMismatchHandler : public MismatchHandler
 public:
   HOMismatchHandler(UnificationConstraintStack& c) : constraints(c) {}
   
-  virtual bool handle(RobSubstitution* sub, TermList t1, unsigned index1, TermList t2, unsigned index2);
+  bool handle(RobSubstitution* sub, TermList t1, unsigned index1, TermList t2, unsigned index2) override;
 
   CLASS_NAME(HOMismatchHandler);
   USE_ALLOCATOR(HOMismatchHandler);

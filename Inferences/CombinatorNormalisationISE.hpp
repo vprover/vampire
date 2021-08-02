@@ -44,7 +44,7 @@ public:
   USE_ALLOCATOR(CombinatorNormalisationISE);
 
   CombinatorNormalisationISE(){}
-  Clause* simplify(Clause* cl);
+  Clause* simplify(Clause* cl) override;
 private:
    TermList normalise(TermList t);
    bool replaceWithSmallerCombinator(TermList& t);

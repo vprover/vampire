@@ -61,7 +61,7 @@ public:
 
   }
 
-  virtual TermList translate(Term* trm)
+  TermList translate(Term* trm) override
   {
     CALL("InterpretedNormalizer::RoundingFunctionTranslator::translate");
     ASS_EQ(trm->functor(), _origFun);
@@ -101,7 +101,7 @@ public:
     _one = TermList(theory->representConstant(IntegerConstantType(1)));
   }
 
-  virtual TermList translate(Term* trm)
+  TermList translate(Term* trm) override
   {
     CALL("InterpretedNormalizer::SuccessorTranslator::translate");
     ASS_EQ(trm->functor(), _succFun);
@@ -138,7 +138,7 @@ public:
     _uMinusFun = env.signature->getInterpretingSymbol(uMinus);
   }
 
-  virtual TermList translate(Term* trm)
+  TermList translate(Term* trm) override
   {
     CALL("InterpretedNormalizer::BinaryMinusTranslator::translate");
     ASS_EQ(trm->functor(), _bMinusFun);
@@ -271,7 +271,7 @@ public:
 protected:
   using TermTransformer::transform;
 
-  virtual TermList transformSubterm(TermList trm)
+  TermList transformSubterm(TermList trm) override
   {
     CALL("InterpretedNormalizer::NLiteralTransformer::transformSubterm");
 
@@ -407,7 +407,7 @@ protected:
    *
    * The rest of transformations is done by the @c FormulaTransformer ancestor.
    */
-  virtual Formula* applyLiteral(Formula* f)
+  Formula* applyLiteral(Formula* f) override
   {
     CALL("InterpretedNormalizer::NFormulaTransformer::applyLiteral");
 

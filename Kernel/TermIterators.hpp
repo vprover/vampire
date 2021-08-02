@@ -103,10 +103,10 @@ public:
   }
 
 
-  bool hasNext();
+  bool hasNext() override;
   /** Return the next variable
    * @warning hasNext() must have been called before */
-  TermList next()
+  TermList next() override
   {
     ASS(!_used);
     ASS(_stack.top()->isVar());
@@ -173,10 +173,10 @@ public:
     }
   }
 
-  bool hasNext();
+  bool hasNext() override;
   /** Return the next variable
    * @warning hasNext() must have been called before */
-  pair<TermList, TermList> next()
+  pair<TermList, TermList> next() override
   {
     ASS(!_used);
     _used=true;
@@ -204,15 +204,15 @@ public:
 
     pushNext(term->args());
   }
-  ~SubtermIterator()
+  ~SubtermIterator() override
   {
     Recycler::release(_stack);
   }
 
-  bool hasNext();
+  bool hasNext() override;
   /** Return next subterm
    * @warning hasNext() must have been called before */
-  TermList next()
+  TermList next() override
   {
     ASS(!_used && !_stack->isEmpty());
     _used=true;
@@ -270,12 +270,12 @@ public:
     _argNum = _stack.size();
   }
 
-  bool hasNext(){
+  bool hasNext() override{
     return !_stack.isEmpty();
   }
   /** Return next arg of _head
    * @warning hasNext() must have been called before */
-  TermList next()
+  TermList next() override
   {
     ASS(!_stack.isEmpty());
     return _stack.pop();
@@ -327,9 +327,9 @@ public:
     }
   }
 
-  bool hasNext();
+  bool hasNext() override;
 
-  Term* next()
+  Term* next() override
   {
     ASS(_next);
     Term* res = _next;
@@ -359,9 +359,9 @@ public:
     }  
   }
   
-  bool hasNext();
+  bool hasNext() override;
 
-  TermList next()
+  TermList next() override
   {
     ASS(!_next.isEmpty());
     TermList res = _next;
@@ -403,8 +403,8 @@ public: //includeSelf for compatibility
     _sorts.push(SortHelper::getResultSort(t));
   }
 
-  bool hasNext();
-  TermList next(){
+  bool hasNext() override;
+  TermList next() override{
     ASS(!_next.isEmpty());
     ASS(_next.isVar());
     TermList res = _next;
@@ -437,8 +437,8 @@ public:
     _stack.push(TermList(t)); 
   }
   
-  bool hasNext();
-  TermList next()
+  bool hasNext() override;
+  TermList next() override
   {
     ASS(!_next.isEmpty());
     TermList res = _next;
@@ -473,8 +473,8 @@ public:
     }
   }
 
-  bool hasNext(){ return !_stack.isEmpty(); }
-  TermList next();
+  bool hasNext() override{ return !_stack.isEmpty(); }
+  TermList next() override;
   void right();
 
 private:
@@ -502,8 +502,8 @@ public:
     //TODO
   }
 
-  bool hasNext();
-  TermList next(){
+  bool hasNext() override;
+  TermList next() override{
     ASS(!_used);
     _used = true;
     return _next;
@@ -536,8 +536,8 @@ public:
     _stack.push(term);
   }
 
-  bool hasNext();
-  TermList next(){
+  bool hasNext() override;
+  TermList next() override{
     ASS(!_used);
     _used = true;
     return _next;
@@ -596,10 +596,10 @@ public:
     pushNext(term->args());
   }
 
-  bool hasNext();
+  bool hasNext() override;
   /** Return next subterm
    * @warning hasNext() must have been called before */
-  TermList next()
+  TermList next() override
   {
     ASS(!_used && !_stack.isEmpty());
     _used=true;
@@ -654,8 +654,8 @@ public:
   // NonVariableIterator(TermList ts);
 
   /** true if there exists at least one subterm */
-  bool hasNext() { return !_stack.isEmpty(); }
-  TermList next();
+  bool hasNext() override { return !_stack.isEmpty(); }
+  TermList next() override;
   void right();
 private:
   /** available non-variable subterms */
@@ -697,8 +697,8 @@ public:
   // NonVariableIterator(TermList ts);
 
   /** true if there exists at least one subterm */
-  bool hasNext() { return !_stack.isEmpty(); }
-  TermList next();
+  bool hasNext() override { return !_stack.isEmpty(); }
+  TermList next() override;
   void right();
 private:
   /** available non-variable subterms */
@@ -792,11 +792,11 @@ public:
     }
   }
 
-  bool hasNext();
+  bool hasNext() override;
 
   /** Return next subterm
    * @warning hasNext() must have been called before */
-  pair<TermList, TermList> next()
+  pair<TermList, TermList> next() override
   {
     pair<TermList, TermList> res(_arg1,_arg2);
     _arg1.makeEmpty();
@@ -823,8 +823,8 @@ class TermFunIterator
 public:
   TermFunIterator (const Term*);
 
-  bool hasNext();
-  unsigned next();
+  bool hasNext() override;
+  unsigned next() override;
 private:
   /** True if the next symbol is found */
   bool _hasNext;
@@ -847,8 +847,8 @@ public:
   TermVarIterator (const Term*);
   TermVarIterator (const TermList*);
 
-  bool hasNext ();
-  unsigned next ();
+  bool hasNext () override;
+  unsigned next () override;
 private:
   /** True if the next variable is found */
   // bool _hasNext; // MS: unused

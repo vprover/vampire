@@ -44,7 +44,7 @@ protected:
 
 class ConjunctionGoalAnswerExractor : public AnswerExtractor {
 public:
-  virtual bool tryGetAnswer(Clause* refutation, Stack<TermList>& answer);
+  bool tryGetAnswer(Clause* refutation, Stack<TermList>& answer) override;
 
 private:
   class SubstBuilder;
@@ -56,7 +56,7 @@ class AnswerLiteralManager : public AnswerExtractor
 public:
   static AnswerLiteralManager* getInstance();
 
-  virtual bool tryGetAnswer(Clause* refutation, Stack<TermList>& answer);
+  bool tryGetAnswer(Clause* refutation, Stack<TermList>& answer) override;
 
   void addAnswerLiterals(Problem& prb);
   bool addAnswerLiterals(UnitList*& units);

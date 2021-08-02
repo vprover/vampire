@@ -34,10 +34,10 @@ public:
   CLASS_NAME(Narrow);
   USE_ALLOCATOR(Narrow);
 
-  ClauseIterator generateClauses(Clause* premise);
+  ClauseIterator generateClauses(Clause* premise) override;
 
-  void attach(SaturationAlgorithm* salg);
-  void detach();
+  void attach(SaturationAlgorithm* salg) override;
+  void detach() override;
 
 private:
   NarrowingIndex* _index;

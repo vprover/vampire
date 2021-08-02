@@ -30,9 +30,9 @@ public:
   CLASS_NAME(PushUnaryMinus);
   USE_ALLOCATOR(PushUnaryMinus);
 
-  virtual ~PushUnaryMinus();
+  ~PushUnaryMinus() override;
 
-  Clause* simplify(Clause* cl);
+  Clause* simplify(Clause* cl) override;
 };
 
 };

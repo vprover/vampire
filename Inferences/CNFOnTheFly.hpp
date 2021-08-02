@@ -38,7 +38,7 @@ public:
   CLASS_NAME(IFFXORRewriterISE);
   USE_ALLOCATOR(IFFXORRewriterISE);
 
-  Clause* simplify(Clause* c);
+  Clause* simplify(Clause* c) override;
 };
 
 class EagerClausificationISE
@@ -49,8 +49,8 @@ public:
   CLASS_NAME(EagerClausificationISE);
   USE_ALLOCATOR(EagerClausificationISE);
 
-  ClauseIterator simplifyMany(Clause* c);
-  Clause* simplify(Clause* c){ NOT_IMPLEMENTED; }
+  ClauseIterator simplifyMany(Clause* c) override;
+  Clause* simplify(Clause* c) override{ NOT_IMPLEMENTED; }
 
 };
 
