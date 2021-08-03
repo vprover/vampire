@@ -1034,6 +1034,18 @@ void Options::init()
            _cancellation.tag(OptionTag::INFERENCES);
            _cancellation.setExperimental();
 
+           // CHECK OUT
+           // this is how we add command line options
+           _polynomialMultiplication = choiceArithmeticSimplificationMode(
+               "polynomial_multiplication", "polymul",
+               ArithmeticSimplificationMode::OFF);
+            // TODO write description
+           _polynomialMultiplication.description = "TODO write description";
+           _lookup.insert(&_polynomialMultiplication);
+           _polynomialMultiplication.tag(OptionTag::INFERENCES);
+           _polynomialMultiplication.setExperimental();
+
+
            _highSchool = BoolOptionValue("high_school", "", false);
            _highSchool.description="Enables high school education for vampire. (i.e.: sets -gve cautious, -asg cautious, -ev cautious, -canc cautious, -pum on )";
            _lookup.insert(&_highSchool);

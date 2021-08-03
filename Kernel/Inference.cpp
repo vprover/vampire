@@ -755,6 +755,8 @@ vstring Kernel::ruleName(InferenceRule rule)
     return "condensation";
   case InferenceRule::THEORY_NORMALIZATION:
     return "theory normalization";
+  case InferenceRule::POLYNOMIAL_MULTIPLICATION:
+    return "polynomial multiplication";
   case InferenceRule::EVALUATION:
     return "evaluation";
   case InferenceRule::CANCELLATION:

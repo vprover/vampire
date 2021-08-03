@@ -41,6 +41,7 @@
 
 #include "Inferences/InterpretedEvaluation.hpp"
 #include "Inferences/PolynomialEvaluation.hpp"
+#include "Inferences/PolynomialMultiplication.hpp"
 #include "Inferences/PushUnaryMinus.hpp"
 #include "Inferences/Cancellation.hpp"
 #include "Inferences/GaussianVariableElimination.hpp"
@@ -1600,6 +1601,12 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
     sgi->push(new PolynomialEvaluation(ordering));
   }
 
+    // CHECK OUT 
+    // This is how we add a generating inference
+  if (opt.polynomialMultiplication() == Options::ArithmeticSimplificationMode::CAUTIOUS) {
+    sgi->push(new PolynomialMultiplication(ordering));
+  }
+
   if (env.options->cancellation() == Options::ArithmeticSimplificationMode::CAUTIOUS) {
     sgi->push(new Cancellation(ordering)); 
   }
@@ -1805,6 +1812,12 @@ ImmediateSimplificationEngine* SaturationAlgorithm::createISE(Problem& prb, cons
 
     if (env.options->cancellation() == Options::ArithmeticSimplificationMode::FORCE) {
       res->addFront(&(new Cancellation(ordering))->asISE()); 
+    }
+
+    // CHECK OUT 
+    // This is how we add a simplifying inference
+    if (env.options->polynomialMultiplication() == Options::ArithmeticSimplificationMode::FORCE) {
+      res->addFront(&(new Inferences::PolynomialMultiplication(ordering))->asISE()); 
     }
 
     switch (env.options->evaluationMode()) {

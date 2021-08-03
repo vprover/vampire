@@ -489,6 +489,8 @@ set(VAMPIRE_INFERENCE_SOURCES
     Inferences/ArithmeticSubtermGeneralization.cpp
     Inferences/PolynomialEvaluation.hpp
     Inferences/PolynomialEvaluation.cpp
+    Inferences/PolynomialMultiplication.hpp
+    Inferences/PolynomialMultiplication.cpp
     Inferences/Cancellation.hpp
     Inferences/Cancellation.cpp
 #    Inferences/TheoryRuleAttempt.hpp
@@ -783,6 +785,7 @@ set(UNIT_TESTS
     UnitTests/tUnificationWithAbstraction.cpp
     UnitTests/tGaussianElimination.cpp
     UnitTests/tArithmeticSubtermGeneralization.cpp
+    UnitTests/tPolynomialMultiplication.cpp
     UnitTests/tInterpretedFunctions.cpp
     UnitTests/tRebalance.cpp
     UnitTests/tDisagreement.cpp

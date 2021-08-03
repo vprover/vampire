@@ -2221,6 +2221,8 @@ public:
   bool pushUnaryMinus() const { return _pushUnaryMinus.actualValue || _highSchool.actualValue; }
   ArithmeticSimplificationMode cancellation() const { return _highSchool.actualValue ? ArithmeticSimplificationMode::CAUTIOUS : _cancellation.actualValue; }
   ArithmeticSimplificationMode arithmeticSubtermGeneralizations() const { return  _highSchool.actualValue ? ArithmeticSimplificationMode::CAUTIOUS : _arithmeticSubtermGeneralizations.actualValue; }
+  // CHECK OUT: this is how we add command line options
+  ArithmeticSimplificationMode polynomialMultiplication() const { return _polynomialMultiplication.actualValue; }
 
   //Higher-order Options
 
@@ -2627,6 +2629,8 @@ private:
   BoolOptionValue _highSchool;
   ChoiceOptionValue<ArithmeticSimplificationMode> _gaussianVariableElimination;
   ChoiceOptionValue<ArithmeticSimplificationMode> _cancellation;
+  // CHECK OUT: this is how we add command line options
+  ChoiceOptionValue<ArithmeticSimplificationMode> _polynomialMultiplication;
   ChoiceOptionValue<ArithmeticSimplificationMode> _arithmeticSubtermGeneralizations;
 
  
