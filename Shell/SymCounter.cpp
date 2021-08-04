@@ -238,7 +238,12 @@ void SymCounter::count(Term* term, int polarity, int add)
           }
         }
         case Term::SF_MATCH: {
-          // TODO(mhajdu): find out what to do here
+          for (unsigned i = 0; i < term->arity(); i++) {
+            TermList t = *term->nthArgument(i);
+            if (t.isTerm()) {
+              count(t.term(), polarity, add);
+            }
+          }
           break;
         }
         default:
