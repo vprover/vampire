@@ -16,6 +16,7 @@
 
 #include "Lib/ScopedLet.hpp"
 #include "Lib/VString.hpp"
+#include "Lib/StringUtils.hpp"
 #include "Kernel/Unit.hpp"
 #include "Kernel/Inference.hpp"
 #include "Kernel/FormulaUnit.hpp"
@@ -38,7 +39,7 @@ void ProofTracer::TracedProof::init()
     ASS_EQ((cl == _theEmpty),info->isTerminal()); // exactly the Empty is Terminal
 
     if (info->isInital()) {
-      _unbornInitials++;
+      _numInitials++;
     }
   }
 
@@ -52,8 +53,6 @@ void ProofTracer::TracedProof::onNewClause(Clause* cl)
   Clause* match = findVariant(cl);
   if (match != 0) {
     TracedClauseInfo* info = _clInfo.get(match);
-    cout << "New " << cl->toString() << endl;
-    cout << "ma " << info->_name << " IK: " << info->_ik << " " << info->_inf << " CL: " << match->toNiceString() << endl;
 
     if (_expecting.find(match)) {
       _expecting.remove(match);
@@ -61,9 +60,15 @@ void ProofTracer::TracedProof::onNewClause(Clause* cl)
     }
 
     if (info->_stalkees.size()) {
-      // cout << "Already stalking" << endl;
+      cout << "Again: ";
+      if (info->_exacted) {
+        cout << "(already exacted) ";
+      }
+      cout << info->_num << "/" << _clInfo.size() << " " << info->_name << " " << cl->toString() << endl;
     } else {
-      _seen++;
+      info->_num = ++_seen;
+
+      cout << "First: " << info->_num << "/" << _clInfo.size() << " " << info->_name << " " << cl->toString() << endl;
 
       // at the moment of assigning a (first) stalkee, we decrease the counter of children to find the expected ones...
       for (unsigned i = 0; i < info->_children.size(); i++) {
@@ -80,6 +85,56 @@ void ProofTracer::TracedProof::onNewClause(Clause* cl)
     // in any case, add this guy to the stalkees
     info->_stalkees.push(cl);
 
+    if (!info->_exacted) { // still looking for the same inference rule and parents exacting the parents in the traced proof
+      info->_exacted = true;
+      vstring newRuleName = StringUtils::replaceChar(ruleName(cl->inference().rule()), ' ', '_'); // replacing spaces by underscores as the TPTPProofPrinter does
+      if (info->_inf != newRuleName) {
+        cout << "  rule mismatch against orig's: " << info->_inf << " (IK: " << info->_ik << ")" << endl;
+        info->_exacted = false;
+      } else {
+        // check that the parents fit: each parent of this clause should be the first stalkee of the match's corresponding parent
+        Inference& inf = cl->inference();
+        Inference::Iterator it = inf.iterator();
+        for (unsigned i = 0; i < info->_parents.size(); i++) {
+          Clause* par = info->_parents[i];
+          TracedClauseInfo* par_info = _clInfo.get(par);
+          if (par_info->_stalkees.size() == 0) {
+            cout << "  parent not seen yet!" << endl;
+            info->_exacted = false;
+            break;
+
+          } else if (!par_info->_exacted) {
+            cout << "  parent not exacted yet!" << endl;
+            info->_exacted = false;
+            break;
+
+          } else if (!inf.hasNext(it)) { // unlikely, since rule names matched (but, e.g. global_subsumption could still make problems / also for other reasons)
+            cout << "  rule arity mismatch" << endl;
+            info->_exacted = false;
+            break;
+
+          } else {
+            Unit* new_par = inf.next(it);
+            if (new_par != par_info->_stalkees[0]) {
+              cout << "  par" << i << ": " << par_info->_name << ": " << par->toNiceString() << " " << par_info->_inf << endl;
+              cout << "  here: " << new_par->toString() << endl;
+              info->_exacted = false;
+            }
+          }
+        }
+      }
+
+      if (info->_exacted) {
+        cout << "  exacted" << endl;
+        // make me the first stalkee
+        unsigned numStalkees = info->_stalkees.size();
+        if (numStalkees > 1) {
+          std::swap(info->_stalkees[0],info->_stalkees[numStalkees-1]);
+        }
+      }
+    }
+
+    /*
     for (unsigned j = 0; j < info->_stalkees.size(); j++) {
       cout << "  s: ";
       printWithStore(info->_stalkees[j]);
@@ -94,15 +149,15 @@ void ProofTracer::TracedProof::onNewClause(Clause* cl)
         printWithStore(p_info->_stalkees[j]);
       }
     }
-
     cout << "Seen: " << _seen << " / " << _clInfo.size() << endl;
+    */
 
     /*
     cout << "Currently expecting:" << endl;
     _tp->listExpectedsDetails();
     */
 
-    cout << endl;
+    // cout << endl;
   }
 }
 
@@ -121,7 +176,7 @@ void ProofTracer::TracedProof::onInputClause(Clause* cl)
     cout << "Init " << cl->toString() << endl;
     cout << " matched " << info->_name << endl;
     */
-    initalBorn();
+    _seenInitials++;
 
     /*
     for (unsigned i = 0; i < info->_children.size(); i++) {
@@ -144,8 +199,10 @@ void ProofTracer::TracedProof::onActivation(Clause* cl)
   if (_lastActivationMatch != 0) {
     TracedClauseInfo* info = _clInfo.get(_lastActivationMatch);
 
+    /*
     cout << "Activate " << cl->toString() << endl;
     cout << " matched " << info->_name << endl;
+    */
   }
 }
 
@@ -153,15 +210,17 @@ void ProofTracer::TracedProof::onActivationFinished(Clause* cl)
 {
   if (_lastActivationMatch) {
     ASS_EQ(_lastActivationMatch,findVariant(cl));
-
     TracedClauseInfo* info = _clInfo.get(_lastActivationMatch);
+
   }
 }
 
 void ProofTracer::TracedProof::onInputFinished()
 {
-  if (_unbornInitials > 0) {
-    cout << "_unbornInitials: " << _unbornInitials << endl;
+  unsigned unbornInitials = _numInitials - _seenInitials;
+
+  if (unbornInitials > 0) {
+    cout << "_unbornInitials: " << unbornInitials << endl;
     DHMap<Clause*, TracedClauseInfo*>::Iterator it(_clInfo);
     while (it.hasNext()) {
       Clause* cl;
@@ -173,7 +232,7 @@ void ProofTracer::TracedProof::onInputFinished()
       }
     }
   } else {
-    cout << "All initials recognized!" << endl << endl;
+    cout << "All initials recognized!" << endl;
   }
 }
 
@@ -214,6 +273,7 @@ void ProofTracer::TracedProof::listExpectedsDetails()
 
 void ProofTracer::TracedProof::onSaturationFinished()
 {
+  /*
   cout << "finalInfo" << endl;
 
   ClauseList::Iterator it(_inOrder);
@@ -254,6 +314,7 @@ void ProofTracer::TracedProof::onSaturationFinished()
 
     cout << endl;
   }
+  */
 }
 
 /***************************************************************************************

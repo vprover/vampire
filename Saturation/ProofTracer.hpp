@@ -48,22 +48,6 @@ struct ProofTracer {
     DHMap<Unit*,Parse::TPTP::SourceRecord*> sources;
   };
 
-  // maybe could use Store for this, but let's keep some flexibility
-  // this is what we know about the actual runs clause corresponding to this one at the moment
-  /*
-  enum ClauseState {
-    NONE = 0,        // the starting state; somehow before it's even born
-    NEW = 1,         // every new clause is subject to IS before it's moved to Unprocessed
-    UNPRO = 2,       // every unprocessed clause is subject to FowardSimplification before it's moved to Passive
-                     // will also do BackwardSimplification just after in Otter
-    PASSIVE = 3,     // when a passive clause gets selected, it is again subject to FowardSimplification (in Discount),
-                     // then it does BW while getting activated after which it triggers Generating Inferences
-                     // a passive clause can be removed by a Backward Simplification in Otter (and LRS)
-    ACTIVE = 4,      // Active clauses generate new clauses and can be removed via Backward Simplifications
-    GONE = 5
-  };
-  */
-
   struct TracedClauseInfo {
     USE_ALLOCATOR(TracedClauseInfo);
 
@@ -71,7 +55,13 @@ struct ProofTracer {
     vstring _inf;      // the name of the inference as read from the original derivation file
     InferenceKind _ik; // the kind of inference this clause arose by
 
-    TracedClauseInfo(const vstring& name, const vstring& inf, InferenceKind ik) : _name(name), _inf(inf), _ik(ik), _numAwokenParents(0) {}
+    unsigned _num;     // assigned when first stalkee is registered
+    bool _exacted;     // found a stalkee whose parents are matched by the original parents of this clause (and those were also exacted at the moment this happened)
+                       // when we don't exact a clause with the first stalkee, we still move the exacting stalkee to be the first one!
+
+    TracedClauseInfo(const vstring& name, const vstring& inf, InferenceKind ik) : _name(name), _inf(inf), _ik(ik),
+        _num(0), _exacted(false),
+        _numAwokenParents(0) {}
 
     Stack<Clause*> _parents;  // premises
     Stack<Clause*> _children; // the opposite arrows
@@ -88,7 +78,7 @@ struct ProofTracer {
     // the clause(s) from the new run we think should play the same role in the new proof
     RCClauseStack _stalkees;
 
-    int _numAwokenParents;
+    unsigned _numAwokenParents;
   };
 
   struct TracedProof {
@@ -136,14 +126,10 @@ struct ProofTracer {
       return res;
     }
 
-    void initalBorn() {
-      _unbornInitials--;
-    }
-
     void listExpecteds();
     void listExpectedsDetails();
 
-    TracedProof() : _seen(0), _inOrder(nullptr), _theEmpty(0), _variantLookup(new Indexing::HashingClauseVariantIndex()), _unbornInitials(0), _lastActivationMatch(0) {}
+    TracedProof() : _seen(0), _inOrder(nullptr), _theEmpty(0), _variantLookup(new Indexing::HashingClauseVariantIndex()), _numInitials(0), _seenInitials(0), _lastActivationMatch(0) {}
     ~TracedProof() { delete _variantLookup; }
 
   private:
@@ -156,7 +142,8 @@ struct ProofTracer {
 
     Indexing::ClauseVariantIndex* _variantLookup;
 
-    int _unbornInitials;
+    unsigned _numInitials;
+    unsigned _seenInitials;
 
     Clause* _lastActivationMatch;
 
