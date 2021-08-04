@@ -1570,7 +1570,7 @@ void TPTP::holFormula()
   //higher order syntax wierdly allows (~) @ (...)
   case T_RPAR: {
     ASS(_connectives.top() == NOT);
-    int con = _connectives.pop();
+    _connectives.pop();
     _termLists.push(createFunctionApplication("vNOT", 0));
     return;
   }
