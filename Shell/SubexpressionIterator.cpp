@@ -156,6 +156,13 @@ namespace Shell {
               _subexpressions.push(Expression(sd->getTupleTerm()));
               break; */
 
+            case Term::SF_MATCH: {
+              for (unsigned i = 0; i < term->arity(); i++) {
+                _subexpressions.push(Expression(*term->nthArgument(i), polarity));
+              }
+              break;
+            }
+
 #if VDEBUG
             default:
               ASSERTION_VIOLATION_REP(term->toString());
