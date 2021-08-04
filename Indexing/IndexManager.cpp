@@ -296,6 +296,17 @@ Index* IndexManager::create(IndexType t)
     isGenerating = true;
     break;
 
+  case IH_LHS_SUBST_TREE:
+    tis=new CodeTreeTIS();
+    res=new IHLHSIndex(tis, _alg->getOrdering(), _alg->getOptions());
+    isGenerating = true;
+    break;
+  case IC_SUBTERM_SUBST_TREE:
+    tis=new TermSubstitutionTree(useConstraints);
+    res=new ICSubtermIndex(tis);
+    isGenerating = true;
+    break;
+
   default:
     INVALID_OPERATION("Unsupported IndexType.");
   }

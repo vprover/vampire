@@ -62,12 +62,15 @@
 #include "Inferences/FOOLParamodulation.hpp"
 #include "Inferences/Injectivity.hpp"
 #include "Inferences/Factoring.hpp"
+#include "Inferences/FnDefRewriting.hpp"
 #include "Inferences/ForwardDemodulation.hpp"
 #include "Inferences/ForwardLiteralRewriting.hpp"
 #include "Inferences/ForwardSubsumptionAndResolution.hpp"
 #include "Inferences/ForwardSubsumptionDemodulation.hpp"
+#include "Inferences/GeneralInduction.hpp"
 #include "Inferences/GlobalSubsumption.hpp"
 #include "Inferences/HyperSuperposition.hpp"
+#include "Inferences/InductionHypothesisRewriting.hpp"
 #include "Inferences/InnerRewriting.hpp"
 #include "Inferences/TermAlgebraReasoning.hpp"
 #include "Inferences/SLQueryBackwardSubsumption.hpp"
@@ -221,7 +224,7 @@ SaturationAlgorithm::SaturationAlgorithm(Problem& prb, const Options& opt)
     _clauseActivationInProgress(false),
     _fwSimplifiers(0), _simplifiers(0), _bwSimplifiers(0), _splitter(0),
     _consFinder(0), _labelFinder(0), _symEl(0), _answerLiteralManager(0),
-    _instantiation(0),
+    _instantiation(0), _induction(0),
     _generatedClauseCount(0),
     _activationLimit(0)
 {
@@ -1507,6 +1510,20 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
   //TODO here induction is last, is that right?
   if(opt.induction()!=Options::Induction::NONE){
     gie->addFront(new Induction());
+    vvector<InductionSchemeGenerator*> generators;
+    if (InductionHelper::isStructInductionOn()) {
+      if (InductionHelper::isStructInductionOneOn()) {
+        generators.push_back(new StructuralInductionSchemeGenerator());
+      }
+      if (InductionHelper::isStructInductionRecDefOn()) {
+        generators.push_back(new RecursionInductionSchemeGenerator());
+      }
+    }
+    res->_induction = new GeneralInduction(generators, InferenceRule::INDUCTION_AXIOM);
+    gie->addFront(res->_induction);
+  }
+  if (opt.inductionHypRewriting()) {
+    gie->addFront(new InductionHypothesisRewriting());
   }
 
   if(opt.instantiation()!=Options::Instantiation::OFF){
@@ -1589,6 +1606,10 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
     if (opt.termAlgebraInferences()) {
       gie->addFront(new InjectivityGIE());
     }
+  }
+  if (env.options->functionDefinitionRewriting()) {
+    gie->addFront(new FnDefRewriting());
+    res->addForwardSimplifierToFront(new FnDefRewriting());
   }
 
   CompositeSGI* sgi = new CompositeSGI();

@@ -80,6 +80,37 @@ private:
   const Options& _opt;
 };
 
+class IHLHSIndex
+: public TermIndex
+{
+public:
+  CLASS_NAME(IHLHSIndex);
+  USE_ALLOCATOR(IHLHSIndex);
+
+  IHLHSIndex(TermIndexingStructure* is, const Ordering& ord, const Options& opt)
+    : TermIndex(is), _ord(ord), _opt(opt) {}
+
+protected:
+  void handleClause(Clause* c, bool adding);
+private:
+  const Ordering& _ord;
+  const Options& _opt;
+};
+
+class ICSubtermIndex
+: public TermIndex
+{
+public:
+  CLASS_NAME(ICSubtermIndex);
+  USE_ALLOCATOR(ICSubtermIndex);
+
+  ICSubtermIndex(TermIndexingStructure* is)
+    : TermIndex(is) {}
+
+protected:
+  void handleClause(Clause* c, bool adding);
+};
+
 /**
  * Term index for backward demodulation
  */

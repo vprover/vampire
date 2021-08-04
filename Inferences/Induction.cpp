@@ -356,8 +356,8 @@ void InductionClauseIterator::processLiteral(Clause* premise, Literal* lit)
       Set<Term*>::Iterator citer2(ta_terms);
       while(citer2.hasNext()){
         Term* t = citer2.next();
-        static bool one = env.options->structInduction() == Options::StructuralInductionKind::ONE ||
-                          env.options->structInduction() == Options::StructuralInductionKind::ALL; 
+        // static bool one = env.options->structInduction() == Options::StructuralInductionKind::ONE ||
+        //                   env.options->structInduction() == Options::StructuralInductionKind::ALL; 
         static bool two = env.options->structInduction() == Options::StructuralInductionKind::TWO ||
                           env.options->structInduction() == Options::StructuralInductionKind::ALL; 
         static bool three = env.options->structInduction() == Options::StructuralInductionKind::THREE ||
@@ -369,9 +369,9 @@ void InductionClauseIterator::processLiteral(Clause* premise, Literal* lit)
           Literal* ilit = generalize ? subsetReplacement.transformSubset(rule) : lit;
           ASS(ilit != nullptr);
           do {
-            if(one){
-              performStructInductionOne(premise,lit,ilit,inductionTerm,rule);
-            }
+            // if(one){
+            //   performStructInductionOne(premise,lit,ilit,inductionTerm,rule);
+            // }
             if(two){
               performStructInductionTwo(premise,lit,ilit,inductionTerm,rule);
             }

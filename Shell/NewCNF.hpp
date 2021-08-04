@@ -63,10 +63,11 @@ class NewCNF
 public:
   NewCNF(unsigned namingThreshold)
     : _namingThreshold(namingThreshold), _iteInliningThreshold((unsigned)ceil(log2(namingThreshold))),
-      _collectedVarSorts(false), _maxVar(0),_forInduction(false) {}
+      _collectedVarSorts(false), _maxVar(0),_forInduction(false), _skFnToVar() {}
 
   void clausify(FormulaUnit* unit, Stack<Clause*>& output);
   void setForInduction(){ _forInduction=true; }
+  const DHMap<unsigned,unsigned>& getSkFunToVarMap() const { return _skFnToVar; }
 private:
   unsigned _namingThreshold;
   unsigned _iteInliningThreshold;
@@ -209,7 +210,7 @@ private:
 
   void toClauses(SPGenClause gc, Stack<Clause*>& output);
   bool mapSubstitution(List<GenLit>* gc, Substitution subst, bool onlyFormulaLevel, List<GenLit>* &output);
-  Clause* toClause(SPGenClause gc);
+  Clause* toClause(SPGenClause gc, bool& fndef);
 
   typedef list<SPGenClause,STLAllocator<SPGenClause>> GenClauses;
 
@@ -579,6 +580,7 @@ private:
   Term* createSkolemTerm(unsigned var, VarSet* free);
 
   bool _forInduction;
+  DHMap<unsigned,unsigned> _skFnToVar;
 
   // caching of free variables for subformulas
   DHMap<Formula*,VarSet*> _freeVars;
@@ -637,7 +639,7 @@ private:
   void process(QuantifiedFormula* g, Occurrences &occurrences);
 
   void processBoolterm(TermList ts, Occurrences &occurrences);
-  void process(Literal* l, Occurrences &occurrences);
+  void process(Literal* l, bool functionDefinition, Occurrences &occurrences);
   void processConstant(bool constant, Occurrences &occurrences);
   void processBoolVar(SIGN sign, unsigned var, Occurrences &occurrences);
   void processITE(Formula* condition, Formula* thenBranch, Formula* elseBranch, Occurrences &occurrences);

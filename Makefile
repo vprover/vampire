@@ -285,6 +285,7 @@ VINF_OBJ=Inferences/BackwardDemodulation.o\
          Inferences/SubVarSup.o\
          Inferences/Factoring.o\
          Inferences/FastCondensation.o\
+         Inferences/FnDefRewriting.o\
          Inferences/FOOLParamodulation.o\
          Inferences/Injectivity.o\
          Inferences/ForwardDemodulation.o\
@@ -294,8 +295,10 @@ VINF_OBJ=Inferences/BackwardDemodulation.o\
          Inferences/ForwardSubsumptionAndResolution.o\
          Inferences/SubsumptionDemodulationHelper.o\
          Inferences/ForwardSubsumptionDemodulation.o\
+         Inferences/GeneralInduction.o\
          Inferences/GlobalSubsumption.o\
          Inferences/HyperSuperposition.o\
+         Inferences/InductionHypothesisRewriting.o\
          Inferences/InnerRewriting.o\
          Inferences/EquationalTautologyRemoval.o\
          Inferences/InferenceEngine.o\
@@ -367,6 +370,9 @@ VS_OBJ = Shell/AnswerExtractor.o\
          Shell/GeneralSplitting.o\
          Shell/GoalGuessing.o\
          Shell/Grounding.o\
+         Shell/InductionPreprocessor.o\
+         Shell/InductionSchemeGenerator.o\
+         Shell/InductionSchemeFilter.o\
          Shell/InequalitySplitting.o\
          Shell/InterpolantMinimizer.o\
          Shell/InterpolantMinimizerNew.o\

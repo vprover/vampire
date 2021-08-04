@@ -15,6 +15,7 @@
 #include "Lib/Allocator.hpp"
 #include "Lib/List.hpp"
 #include "Lib/Array.hpp"
+#include "Lib/STL.hpp"
 #include "Lib/VString.hpp"
 #include "Kernel/Sorts.hpp"
 
@@ -107,6 +108,9 @@ namespace Shell {
        -tac is set to "axiom"*/
     Lib::vstring getSubtermPredicateName();
     unsigned getSubtermPredicate();
+
+    static Lib::vvector<Kernel::TermList> generateAvailableTerms(const Kernel::Term* t, unsigned& var);
+    static bool excludeTermFromAvailables(Lib::vvector<Kernel::TermList>& availables, Kernel::TermList e, unsigned& var);
 
   private:
     TermList _sort;

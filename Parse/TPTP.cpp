@@ -365,16 +365,12 @@ vstring TPTP::toString(Tag tag)
     return "-->";
   case T_TYPE_QUANT:
     return "!>";
-  case T_CHOICE:
-    return "@+";
-  case T_POLY_CHOICE:
-    return "@@+";
-  case T_DEF_DESC:
-    return "@-";
-  case T_POLY_DEF_DESC:
-    return "@@-";
   case T_THF_QUANT_SOME:
     return "?*";
+  case T_APP_PLUS:
+    return "@+";
+  case T_APP_MINUS:
+    return "@-";
   case T_TRUE:
     return "$true";
   case T_FALSE:
@@ -582,25 +578,15 @@ bool TPTP::readToken(Token& tok)
     return true;
   case '@':
     if (getChar(1) == '+') {
-      tok.tag = T_CHOICE;
+      tok.tag = T_APP_PLUS;
       resetChars();
       return true;
     }
     if (getChar(1) == '-') {
-      tok.tag = T_DEF_DESC;
+      tok.tag = T_APP_MINUS;
       resetChars();
       return true;
     }
-    if (getChar(1) == '@' && getChar(2) == '+'){
-      tok.tag = T_POLY_CHOICE;
-      resetChars();
-      return true;
-    }
-    if (getChar(1) == '@' && getChar(2) == '-'){
-      tok.tag = T_POLY_DEF_DESC;
-      resetChars();
-      return true;
-    }    
     tok.tag = T_APP;
     shiftChars(1);
     return true;
@@ -1536,14 +1522,14 @@ void TPTP::holFormula()
 
   case T_SIGMA:
     resetToks();
-    readTypeArgs(1);
-    _termLists.push(createFunctionApplication("vSIGMA", 1));    
+    _connectives.push(SIGMA);
+    _states.push(HOL_FORMULA);
     return;
   
   case T_PI:
     resetToks();
-    readTypeArgs(1);
-    _termLists.push(createFunctionApplication("vPI", 1));      
+    _connectives.push(PI);
+    _states.push(HOL_FORMULA);
     return;
 
   case T_FORALL:
@@ -1569,18 +1555,23 @@ void TPTP::holFormula()
     
   //higher order syntax wierdly allows (~) @ (...)
   case T_RPAR: {
-    ASS(_connectives.top() == NOT);
-    _connectives.pop();
-    _termLists.push(createFunctionApplication("vNOT", 0));
+    ASS(_connectives.top() == NOT || _connectives.top() == PI ||
+        _connectives.top() == SIGMA);
+    int con = _connectives.pop();
+    if(con == NOT){
+      _termLists.push(createFunctionApplication("vNOT", 0));
+    } else {
+      _states.pop();//pop END_HOL_FORMULA
+      _states.pop();//pop TAG_STATE
+      _connectives.pop();   
+      vstring name = con == PI ? "vPI" : "vSIGMA";
+      resetToks();
+      consumeToken(T_APP);
+      _termLists.push(readArrowSort());
+      _termLists.push(createFunctionApplication(name, 1));
+      //_states.push(END_HOL_FORMULA);
+    }
     return;
-  }
-
-  case T_CHOICE:
-  case T_DEF_DESC:
-  case T_POLY_CHOICE:
-  case T_POLY_DEF_DESC:
-  {
-    USER_ERROR("At the moment Vampire HOL cannot parse definite and indefinite description operators");
   }
 
   case T_STRING:
@@ -1643,35 +1634,15 @@ void TPTP::holTerm()
   resetToks();
 
   vstring name = tok.content;
+
+  //AYB hack
+  if(name.at(0) == '$' && name != "$o" && name != "$i"){
+    USER_ERROR("vampire higher-order is currently not compatible with theory reasoning");
+  }
+
   unsigned arity = _typeArities.find(name) ? _typeArities.get(name) : 0;
 
   switch (tok.tag) {
-
-    case T_BOOL_TYPE:
-    case T_DEFAULT_TYPE: {
-      resetToks();
-      switch (tok.tag) {
-        case T_BOOL_TYPE:
-          _termLists.push(Term::boolSort());
-          break;
-        case T_DEFAULT_TYPE:
-          _termLists.push(Term::defaultSort());
-          break;             
-        default:
-          ASSERTION_VIOLATION;
-      }
-      return;
-    }
-
-    case T_REAL_TYPE:
-    case T_RATIONAL_TYPE: 
-    case T_STRING:
-    case T_INT:
-    case T_REAL:
-    case T_RAT: {
-      USER_ERROR("Vampire higher-order is currently not compatible with theory reasoning");
-    }  
-
     case T_AND:
     case T_OR:
     case T_IMPLY:  
@@ -1683,10 +1654,6 @@ void TPTP::holTerm()
       break;
     }    
     case T_NAME:{
-      //AYB must be a nicer way of dealing with this?
-      if(name.at(0) == '$'){
-        USER_ERROR("Vampire higher-order is currently not compatible with theory reasoning");    
-      }
       readTypeArgs(arity);
       _termLists.push(createFunctionApplication(name, arity)); // arity
       break;
@@ -1699,7 +1666,6 @@ void TPTP::holTerm()
     default:
       PARSE_ERROR("unexpected token", tok);
   }
-
   _lastPushed = TM;
 
 }
@@ -1779,8 +1745,12 @@ void TPTP::endHolFormula()
     _formulas.push(new NegatedFormula(f));
     _lastPushed = FORM;
     _states.push(END_HOL_FORMULA);
-
     return;
+  case PI:
+  case SIGMA: {
+    //ASSERTION_VIOLATION;
+    USER_ERROR("At the moment Vampire HOL cannot parse pi (!!) and sigma (?\?) operators");
+  }
 
   case FORALL:
   case EXISTS:
@@ -1893,7 +1863,7 @@ switch (tag) {
         f = new NegatedFormula(f);
       }
       _formulas.push(f);
-      _lastPushed = FORM;
+        _lastPushed = FORM;
       _states.push(END_HOL_FORMULA);
       return;
 
@@ -2961,6 +2931,9 @@ void TPTP::term()
     case T_INT:
     case T_REAL:
     case T_RAT: {
+      if(/*env.statistics->polymorphic ||*/ env.statistics->higherOrder){
+        USER_ERROR("Polymorphic Vampire is currently not compatible with theory reasoning");
+      }
       resetToks();
       unsigned number;
       switch (tok.tag) {

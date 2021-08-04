@@ -434,6 +434,13 @@ vstring Clause::toString() const
     result += ",allAx:" + Int::toString((int)(_inference.all_ancestors));
 
     result += ",thDist:" + Int::toString( _inference.th_ancestors * env.options->theorySplitQueueExpectedRatioDenom() - _inference.all_ancestors);
+    if (_inference.inductionInfo()) {
+      auto it = _inference.inductionInfo()->iterator();
+      result += ",ind:";
+      while (it.hasNext()) {
+        result += Term::create(it.next(), 0, nullptr)->toString() + ",";
+      }
+    }
     result += vstring("}");
   }
 

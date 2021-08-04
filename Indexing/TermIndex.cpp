@@ -120,6 +120,63 @@ void SuperpositionLHSIndex::handleClause(Clause* c, bool adding)
   }
 }
 
+void IHLHSIndex::handleClause(Clause* c, bool adding)
+{
+  CALL("IHLHSIndex::handleClause");
+
+  TimeCounter tc(TC_FORWARD_SUPERPOSITION_INDEX_MAINTENANCE);
+
+  for (unsigned i = 0; i < c->length(); i++) {
+    Literal* lit=(*c)[i];
+    if (!lit->isEquality() || lit->isNegative() || !InductionHelper::isInductionLiteral(lit, c)) {
+      continue;
+    }
+    TermIterator lhsi = EqHelper::getEqualityArgumentIterator(lit);
+    while (lhsi.hasNext()) {
+      TermList lhs = lhsi.next();
+      if (adding) {
+	      _is->insert(lhs, lit, c);
+      } else {
+	      _is->remove(lhs, lit, c);
+      }
+    }
+  }
+}
+
+void ICSubtermIndex::handleClause(Clause* c, bool adding)
+{
+  CALL("ICSubtermIndex::handleClause");
+
+  TimeCounter tc(TC_FORWARD_SUPERPOSITION_INDEX_MAINTENANCE);
+
+  static DHSet<TermList> inserted;
+
+  for (unsigned i = 0; i < c->length(); i++) {
+    inserted.reset();
+    Literal* lit=(*c)[i];
+    if (!lit->isEquality() || lit->isPositive() || !InductionHelper::isInductionLiteral(lit, c)) {
+      continue;
+    }
+    NonVariableIterator nvi(lit);
+    while (nvi.hasNext()) {
+      TermList t=nvi.next();
+      if (!inserted.insert(t)) {
+        //It is enough to insert a term only once per clause.
+        //Also, once we know term was inserted, we know that all its
+        //subterms were inserted as well, so we can skip them.
+        nvi.right();
+        continue;
+      }
+      if (adding) {
+	_is->insert(t, lit, c);
+      }
+      else {
+	_is->remove(t, lit, c);
+      }
+    }
+  }
+}
+
 template <bool combinatorySupSupport>
 void DemodulationSubtermIndexImpl<combinatorySupSupport>::handleClause(Clause* c, bool adding)
 {

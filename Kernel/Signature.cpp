@@ -230,7 +230,8 @@ Signature::Signature ():
     _integers(0),
     _rationals(0),
     _reals(0),
-    _termAlgebras()
+    _termAlgebras(),
+    _fnDefHandler(0)
 {
   CALL("Signature::Signature");
 
@@ -271,6 +272,10 @@ Signature::~Signature ()
   }
   for (int i = _preds.length()-1;i >= 0;i--) {
     _preds[i]->destroyPredSymbol();
+  }
+  if (_fnDefHandler) {
+    delete _fnDefHandler;
+    _fnDefHandler = nullptr;
   }
 } // Signature::~Signature
 

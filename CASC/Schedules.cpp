@@ -3057,42 +3057,36 @@ void Schedules::getIntegerInductionSchedule(const Shell::Property& property, Sch
 // ---------- ---------- ---------- ---------- ---------- ---------- ---------- ---------- ----------
 
 void Schedules::getStructInductionSchedule(const Shell::Property& property, Schedule& quick, Schedule& fallback) {
-  // Empirically sorted (order somewhat guessed)
-  quick.push("lrs+10_1_ind=struct:sos=theory:sstl=1_89");
-  quick.push("dis+1002_1_aac=none:anc=all:ind=struct:sos=theory:sac=on:sstl=1:to=lpo_30");
-  quick.push("lrs+10_1_ind=struct:sos=theory:sstl=1:to=lpo_89");
-  quick.push("lrs+10_1_drc=off:ind=struct:to=lpo_89");
-  quick.push("lrs+10_1_drc=off:ind=struct:sos=theory:sstl=1:to=lpo_89");
-  quick.push("lrs+10_1_ind=struct:to=lpo_89");
-  quick.push("lrs+10_1_av=off:br=off:ind=struct:urr=on_89");
-  quick.push("lrs+10_1_drc=off:ind=struct_89");
-  quick.push("lrs+10_1_drc=off:ind=struct:sos=theory:sstl=1_89");
-  quick.push("lrs+10_1_ind=struct_89");
-  // The rest
-  quick.push("lrs+10_1_drc=off:ind=struct:indoct=on:sos=theory:sstl=1:to=lpo_89");
-  quick.push("lrs+10_1_drc=off:ind=struct:indoct=on:to=lpo_89");
-  quick.push("lrs+10_1_ind=struct:indoct=on:sos=theory:sstl=1:to=lpo_89");
-  quick.push("lrs+10_1_ind=struct:indoct=on:to=lpo_89");
-  quick.push("lrs+10_1_drc=off:ind=struct:indoct=on:sos=theory:sstl=1_89");
-  quick.push("lrs+10_1_drc=off:ind=struct:indoct=on_89");
-  quick.push("lrs+10_1_ind=struct:indoct=on:sos=theory:sstl=1_89");
-  quick.push("lrs+10_1_ind=struct:indoct=on_89");
-  quick.push("lrs+10_1_drc=off:ind=struct:indgen=on:sos=theory:sstl=1:to=lpo_89");
-  quick.push("lrs+10_1_drc=off:ind=struct:indgen=on:to=lpo_89");
-  quick.push("lrs+10_1_ind=struct:indgen=on:sos=theory:sstl=1:to=lpo_89");
-  quick.push("lrs+10_1_ind=struct:indgen=on:to=lpo_89");
-  quick.push("lrs+10_1_drc=off:ind=struct:indgen=on:sos=theory:sstl=1_89");
-  quick.push("lrs+10_1_drc=off:ind=struct:indgen=on_89");
-  quick.push("lrs+10_1_ind=struct:indgen=on:sos=theory:sstl=1_89");
-  quick.push("lrs+10_1_ind=struct:indgen=on_89");
-  quick.push("lrs+10_1_drc=off:ind=struct:indgen=on:indoct=on:sos=theory:sstl=1:to=lpo_89");
-  quick.push("lrs+10_1_drc=off:ind=struct:indgen=on:indoct=on:to=lpo_89");
-  quick.push("lrs+10_1_ind=struct:indgen=on:indoct=on:sos=theory:sstl=1:to=lpo_89");
-  quick.push("lrs+10_1_ind=struct:indgen=on:indoct=on:to=lpo_89");
-  quick.push("lrs+10_1_drc=off:ind=struct:indgen=on:indoct=on:sos=theory:sstl=1_89");
-  quick.push("lrs+10_1_drc=off:ind=struct:indgen=on:indoct=on_89");
-  quick.push("lrs+10_1_ind=struct:indgen=on:indoct=on:sos=theory:sstl=1_89");
-  quick.push("lrs+10_1_ind=struct:indgen=on:indoct=on_89");
-
-  fallback.push("lrs+10_1__50");
+  quick.push("lrs+10_1_ind=struct_100");
+  quick.push("lrs+10_1_ind=struct:drc=off:to=lpo_170");
+  quick.push("lrs+10_1_ind=struct:fnrw=off_50");
+  quick.push("lrs+10_1_ind=struct:drc=off:fnrw=off:to=lpo_50");
+  quick.push("lrs+10_1_ind=struct:indocth=off_100");
+  quick.push("lrs+10_1_ind=struct:drc=off:indocth=off:to=lpo_100");
+  quick.push("lrs+10_1_ind=struct:indmc=off_50");
+  quick.push("lrs+10_1_ind=struct:drc=off:indmc=off:to=lpo_50");
+  quick.push("lrs+10_1_ind=struct:indeg=on_100");
+  quick.push("lrs+10_1_ind=struct:drc=off:indeg=on:to=lpo_100");
+  quick.push("lrs+10_1_drc=off_120");
+  quick.push("lrs+10_1_drc=off:fnrw=off_120");
+  quick.push("lrs+10_1_ind=struct:thsq=on:thsqr=20,5,1:thsqc=0,8_120");
+  quick.push("lrs+10_1_ind=struct:drc=off:indgenh=off:to=lpo_250dis+1003_8_afr=on:anc=none:bd=preordered:ile=on:nm=64:newcnf=on:nwc=1:sas=z3:sac=on:sp=reverse_arity:updr=off:uhcvi=on_250");
+  quick.push("lrs+1011_3:1_ind=struct:add=large:afr=on:afp=40000:afq=1.0:anc=none:cond=on:ile=on:irw=on:lma=on:lwlo=on:nm=64:nwc=1.1:sas=z3:sac=on:updr=off_250");
+  quick.push("lrs+10_1_ind=struct:drc=off:to=lpo:indgenh=on_120");
+  quick.push("dis+1002_1_ind=struct:aac=none:anc=all:sos=theory:sac=on:sstl=1:to=lpo_40");
+  quick.push("lrs+10_2:1_ind=struct:add=off:afr=on:afp=40000:afq=1.0:amm=sco:anc=none:bs=unit_only:cond=fast:fsr=off:fde=none:gs=on:gsaa=from_current:gsem=on:ile=on:lma=on:lwlo=on:nm=64:newcnf=on:nwc=1:stl=30:sac=on:tac=axiom:tar=off:tha=off:uwa=ground:uhcvi=on_145");
+  quick.push("dis+1002_1_ind=struct:aac=none:anc=all:sos=theory:sac=on:sstl=1:to=lpo:indgenh=on_40");
+  quick.push("lrs+10_1_ind=struct:drc=off:to=lpo:thsq=on:thsqr=20,5,1:thsqc=0,8_120");
+  quick.push("dis+1003_8_ind=struct:afr=on:anc=none:bd=preordered:ile=on:nm=64:newcnf=on:nwc=1:sas=z3:sac=on:sp=reverse_arity:updr=off:uhcvi=on:indgenh=on_50");
+  quick.push("dis+1003_5_ind=struct:cond=on:fsr=off:fde=none:gs=on:gsem=off:nwc=1:sos=on:add=large:aer=off:afr=on:afp=100000:afq=1.0:anc=all_dependent:sp=reverse_arity:urr=ec_only:uhcvi=on_60");
+  quick.push("dis+1010_2:3_ind=struct:add=off:afp=10000:anc=none:fsr=off:sac=on:sp=reverse_arity:tha=off_50");
+  // Less helpful:
+  quick.push("dis+1_3:1_ind=struct:acc=on:afp=100000:afq=1.1:amm=off:anc=none:bd=off:cond=on:fsr=off:gs=on:inw=on:lma=on:nm=32:nwc=1:urr=on_30");
+  quick.push("lrs+10_1_ind=struct:sik=all_30");
+  quick.push("lrs+10_2_ind=struct:add=off:afr=on:afp=4000:afq=2.0:amm=off:anc=none:cond=fast:fsr=off:fde=unused:gs=on:gsaa=full_model:gsem=on:inw=on:nm=64:nwc=1:sas=z3:stl=30:sos=all:sp=occurrence:tha=off:thf=on:urr=on:updr=off:uhcvi=on_30");
+  // Even less helpful:
+  quick.push("lrs+1010_5:4_ind=struct:afp=100000:afq=1.2:anc=none:cond=on:fsr=off:ile=on:irw=on:nm=64:nwc=1:stl=30:sac=on:sp=occurrence:urr=on_250");
+  quick.push("ott+1010_2:1_ind=struct:acc=on:add=large:afr=on:afp=40000:afq=1.1:anc=none:gs=on:inw=on:ile=on:nm=64:newcnf=on:nwc=1:sos=on:sac=on:sp=reverse_arity:urr=on_10");
+  quick.push("lrs+10_1_ind=struct:drc=off:to=lpo:ind=struct:sik=all:indmd=1_170");
+  fallback.push("lrs+10_1_ind=struct_50");
 }

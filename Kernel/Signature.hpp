@@ -32,6 +32,7 @@
 #include "Lib/Environment.hpp"
 #include "Lib/SmartPtr.hpp"
 
+#include "Shell/InductionPreprocessor.hpp"
 #include "Shell/TermAlgebra.hpp"
 #include "Shell/Options.hpp"
 
@@ -839,6 +840,13 @@ class Signature
   VirtualIterator<Shell::TermAlgebra*> termAlgebrasIterator() const { return _termAlgebras.range(); }
   Shell::TermAlgebraConstructor* getTermAlgebraConstructor(unsigned functor);
 
+  Shell::FnDefHandler* getFnDefHandler() {
+    if (!_fnDefHandler) {
+      _fnDefHandler = new Shell::FnDefHandler();
+    }
+    return _fnDefHandler;
+  }
+
   void recordDividesNvalue(TermList n){
     _dividesNvalues.push(n);
   }
@@ -912,6 +920,8 @@ private:
    * Map from sorts to the associated term algebra, if applicable for the sort
    */ 
   DHMap<TermList, Shell::TermAlgebra*> _termAlgebras;
+
+  Shell::FnDefHandler* _fnDefHandler;
 
   //TODO Why are these here? They are not used anywhere. AYB
   //void defineOptionTermAlgebra(unsigned optionSort);

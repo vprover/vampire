@@ -31,6 +31,8 @@
 #include "Shell/SymbolDefinitionInlining.hpp"
 #include "Shell/Statistics.hpp"
 
+#include "Inferences/EqualityResolution.hpp"
+
 #include "NewCNF.hpp"
 
 using namespace Lib;
@@ -127,7 +129,7 @@ void NewCNF::clausify(FormulaUnit* unit,Stack<Clause*>& output)
   ASS(_occurrences.isEmpty());
 }
 
-void NewCNF::process(Literal* literal, Occurrences &occurrences) {
+void NewCNF::process(Literal* literal, bool functionDefinition, Occurrences &occurrences) {
   CALL("NewCNF::process(Literal*)");
 
   LOG2("process(Literal*)", literal->toString());
@@ -292,7 +294,7 @@ void NewCNF::process(Literal* literal, Occurrences &occurrences) {
       Literal* literal = p.first;
       List<GenLit>* gls = p.second;
 
-      Formula* f = new AtomicFormula(literal);
+      Formula* f = new AtomicFormula(literal, functionDefinition);
 
       enqueue(f);
 
@@ -1012,6 +1014,7 @@ Term* NewCNF::createSkolemTerm(unsigned var, VarSet* free)
       env.signature->getFunction(fun)->markInGoal();
     }
     if(_forInduction){
+      _skFnToVar.insert(fun, var);
       env.signature->getFunction(fun)->markInductionSkolem();
     }
     res = Term::create(fun, arity, fnArgs.begin());
@@ -1321,7 +1324,7 @@ void NewCNF::process(Formula* g, Occurrences &occurrences)
       break;
 
     case LITERAL:
-      process(g->literal(),occurrences);
+      process(g->literal(),g->isFunctionDefinition(), occurrences);
       break;
 
     case NOT:
@@ -1472,9 +1475,15 @@ void NewCNF::toClauses(SPGenClause gc, Stack<Clause*>& output)
     List<GenLit>* gls = List<List<GenLit>*>::pop(genClauses);
     SPGenClause genClause = makeGenClause(gls, gc->bindings, BindingList::empty());
     if (genClause->valid) {
-      Clause* clause = toClause(genClause);
+      bool fndef = false;
+      Clause* clause = toClause(genClause, fndef);
       LOG1(clause->toString());
-      output.push(clause);
+      static const bool fnrw = env.options->functionDefinitionRewriting();
+      if (!fnrw || !fndef) {
+        output.push(clause);
+      } else {
+        clause->setSplits(SplitSet::getEmpty());
+      }
     } else {
       LOG2(genClause->toString(), "was removed as it contains a tautology");
     }
@@ -1520,7 +1529,7 @@ bool NewCNF::mapSubstitution(List<GenLit>* clause, Substitution subst, bool only
   return true;
 }
 
-Clause* NewCNF::toClause(SPGenClause gc)
+Clause* NewCNF::toClause(SPGenClause gc, bool& fndef)
 {
   CALL("NewCNF::toClause");
 
@@ -1536,7 +1545,7 @@ Clause* NewCNF::toClause(SPGenClause gc)
     _substitutionsByBindings.insert(gc->bindings, subst);
   }
 
-  static Stack<Literal*> properLiterals;
+  static Stack<pair<Literal*,bool>> properLiterals;
   ASS(properLiterals.isEmpty());
 
   GenClause::Iterator lit = gc->genLiterals();
@@ -1553,12 +1562,43 @@ Clause* NewCNF::toClause(SPGenClause gc)
       l = Literal::complementaryLiteral(l);
     }
 
-    properLiterals.push(l);
+    properLiterals.push(make_pair(l,g->isFunctionDefinition()));
   }
 
   Clause* clause = new(gc->size()) Clause(gc->size(),FormulaTransformation(InferenceRule::CLAUSIFY,_beingClausified));
+  unsigned fi = gc->size();
   for (int i = gc->size() - 1; i >= 0; i--) {
-    (*clause)[i] = properLiterals[i];
+    (*clause)[i] = properLiterals[i].first;
+    if (properLiterals[i].second) {
+      ASS_EQ(fi, gc->size());
+      fi = i;
+    }
+  }
+
+  if (fi != gc->size()) {
+    bool reversed = (*clause)[fi]->isOrientedReversed();
+    for (unsigned i = 0; i < clause->size();) {
+      if (i == fi) {
+        i++;
+        continue;
+      }
+      auto lit = (*clause)[i];
+      Clause* temp = nullptr;
+      if (lit->isEquality() && lit->isNegative()) {
+        temp = Inferences::EqualityResolution::tryResolveEquality(clause, (*clause)[i]);
+      }
+      if (temp) {
+        clause = temp;
+        if (i < fi) {
+          fi--;
+        }
+        reversed = reversed ^ (*clause)[fi]->isOrientedReversed();
+      } else {
+        i++;
+      }
+    }
+    env.signature->getFnDefHandler()->handleClause(clause, fi, reversed);
+    fndef = (*clause)[fi]->isEquality();
   }
 
   properLiterals.reset();

@@ -39,6 +39,11 @@
 #include<iostream>
 #endif
 
+namespace Inferences
+{
+  class GeneralInduction;
+}
+
 namespace Saturation
 {
 
@@ -121,6 +126,8 @@ public:
   static void tryUpdateFinalClauseCount();
 
   Splitter* getSplitter() { return _splitter; }
+
+  GeneralInduction* getInduction() const { return _induction; }
 
 protected:
   virtual void init();
@@ -210,6 +217,7 @@ protected:
   SymElOutput* _symEl;
   AnswerLiteralManager* _answerLiteralManager;
   Instantiation* _instantiation;
+  GeneralInduction* _induction;
 
 
   SubscriptionData _passiveContRemovalSData;
