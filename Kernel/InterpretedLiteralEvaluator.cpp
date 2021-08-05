@@ -556,7 +556,7 @@ public:
   virtual PredEvalResult tryEvaluatePred(Literal* lit) override
   {
     CALL("InterpretedLiteralEvaluator::tryEvaluatePred");
-    ASS(theory->isInterpretedPredicate(lit));
+    ASS(theory->isInterpretedPredicate(lit->functor()));
     bool res;
 
     try {
@@ -842,6 +842,7 @@ protected:
       res = arg1*arg2;
       return true;
     case Theory::RAT_QUOTIENT:
+      if (arg2 == RationalConstantType(0)) return false;
       res = arg1/arg2;
       return true;
     default:
@@ -938,6 +939,7 @@ protected:
       res = arg1*arg2;
       return true;
     case Theory::REAL_QUOTIENT:
+      if (arg2 == RealConstantType(0)) return false;
       res = arg1/arg2;
       return true;
     default:

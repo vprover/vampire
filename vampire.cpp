@@ -850,7 +850,7 @@ int main(int argc, char* argv[])
       //env.options->setTimeLimitInSeconds(300);
       env.options->setMemoryLimit(128000);
 
-      if (CASC::PortfolioMode::perform(1.30)) {
+      if (CASC::PortfolioMode::perform(env.options->slowness())) {
         vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
       }
       break;
@@ -881,7 +881,7 @@ int main(int argc, char* argv[])
       //env.options->setTimeLimitInSeconds(300);
       env.options->setMemoryLimit(128000);
 
-      if (CASC::PortfolioMode::perform(1.30)) {
+      if (CASC::PortfolioMode::perform(env.options->slowness())) {
         vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
       }
       break;
@@ -903,7 +903,7 @@ int main(int argc, char* argv[])
       // to prevent from terminating by time limit
       env.options->setTimeLimitInSeconds(100000);
 
-      if (CASC::PortfolioMode::perform(1.3)){
+      if (CASC::PortfolioMode::perform(env.options->slowness())){
         vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
       }
       else {
@@ -914,7 +914,7 @@ int main(int argc, char* argv[])
     case Options::Mode::PORTFOLIO:
       env.options->setIgnoreMissing(Options::IgnoreMissing::WARN);
 
-      if (CASC::PortfolioMode::perform(1.3)) {
+      if (CASC::PortfolioMode::perform(env.options->slowness())) {
         vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
       }
       break;

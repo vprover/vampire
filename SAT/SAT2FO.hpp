@@ -47,10 +47,12 @@ public:
   unsigned maxSATVar() const { return _posMap.getNumberUpperBound(); }
   
   void reset(){ _posMap.reset(); }
+  friend std::ostream& operator<<(std::ostream& out, SAT2FO const& self);
 private:
   typedef Numbering<Literal *, 1 /* variables start from 1 */ > TwoWayMap;
   TwoWayMap _posMap;
 };
+
 
 }
 

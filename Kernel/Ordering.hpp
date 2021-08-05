@@ -205,6 +205,7 @@ inline ostream& operator<<(ostream& out, Ordering::Result const& r)
     default:
       return out << "UNKNOWN";
   }
+  ASSERTION_VIOLATION
 }
 
 }

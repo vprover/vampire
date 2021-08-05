@@ -131,10 +131,14 @@ public:
     T_TYPE_QUANT,
     /** ?* */
     T_THF_QUANT_SOME,
-    /** some THF quantifier */
-    T_APP_PLUS,
-    /** some THF quantifier */
-    T_APP_MINUS,
+    /** @+  choice operator */
+    T_CHOICE,
+    /** @- definite description */
+    T_DEF_DESC,
+    /** @@+  choice operator */
+    T_POLY_CHOICE,
+    /** @@- definite description */
+    T_POLY_DEF_DESC,
     /** $true */
     T_TRUE,
     /** $false */
@@ -304,7 +308,7 @@ public:
     ParseErrorException(vstring message,unsigned ln) : _message(message), _ln(ln) {}
     ParseErrorException(vstring message,Token& tok,unsigned ln);
     ParseErrorException(vstring message,int position,unsigned ln);
-    void cry(ostream&);
+    void cry(ostream&) const;
     ~ParseErrorException() {}
   protected:
     vstring _message;

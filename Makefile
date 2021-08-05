@@ -182,7 +182,6 @@ VL_OBJ= Lib/Allocator.o\
         Lib/TimeCounter.o\
         Lib/Timer.o
 #        Lib/OptionsReader.o\
-#        Lib/Graph.o\
 
 VLS_OBJ= Lib/Sys/Multiprocessing.o\
          Lib/Sys/Semaphore.o\
@@ -238,7 +237,6 @@ VK_OBJ= Kernel/Clause.o\
         Kernel/Rebalancing.o\
         Kernel/Rebalancing/Inverters.o\
         Kernel/NumTraits.o
-#        Kernel/MatchTag.o\
 #        Kernel/Assignment.o\     
 #        Kernel/Constraint.o\
 #         Kernel/Number.o\

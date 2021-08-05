@@ -54,6 +54,12 @@ public:
   void unbind(int var);
   void reset();
   bool isEmpty() const { return _map.isEmpty(); }
+
+  /** applies the function f to every term */
+  template<class F> 
+  void mapTerms(F f) 
+  { return _map.mapValues(f); }
+
 #if VDEBUG
   vstring toString() const;
 #endif

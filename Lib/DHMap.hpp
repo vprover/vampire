@@ -535,6 +535,18 @@ public:
   /** move assignment operator */
   DHMap& operator=(DHMap&& obj) = default;
 
+  /** applies the function f to every value */
+  template<class F> 
+  void mapValues(F f) 
+  { 
+    for (Entry* e = _entries; e != _afterLast; e++) {
+      if (e->_info.timestamp==_timestamp && !e->_info.deleted) {
+        e->_val = f(std::move(e->_val));
+      }
+    }
+  }
+
+
 
 private:
   struct Entry
