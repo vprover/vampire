@@ -306,7 +306,7 @@ class ConstraintDatabase;
 
 namespace Saturation
 {
-class ProofTracer;
+struct ProofTracer;
 
 class SaturationAlgorithm;
 typedef Lib::SmartPtr<SaturationAlgorithm> SaturationAlgorithmSP;
