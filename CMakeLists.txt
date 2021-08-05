@@ -782,6 +782,8 @@ set(UNIT_TESTS
     UnitTests/tImplicationSetClosure.cpp
     UnitTests/tUnificationWithAbstraction.cpp
     UnitTests/tGaussianElimination.cpp
+    UnitTests/tTheoryInstAndSimp.cpp
+    UnitTests/tZ3Interfacing.cpp
     UnitTests/tArithmeticSubtermGeneralization.cpp
     UnitTests/tInterpretedFunctions.cpp
     UnitTests/tRebalance.cpp

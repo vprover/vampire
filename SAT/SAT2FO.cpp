@@ -128,4 +128,7 @@ SATClause* SAT2FO::createConflictClause(LiteralStack& unsatCore, InferenceRule r
   return toSAT(foConfl);
 }
 
-}
+std::ostream& operator<<(std::ostream& out, SAT2FO const& self)
+{ return out << self._posMap; }
+
+} // namespace SAT

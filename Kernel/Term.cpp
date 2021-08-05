@@ -1722,7 +1722,7 @@ std::ostream& Kernel::operator<< (ostream& out, const Literal& l )
   return out<<l.toString();
 }
 
-bool Kernel::operator<(const TermList& lhs, const TermList& rhs) 
+bool operator<(const TermList& lhs, const TermList& rhs) 
 { 
   auto cmp = lhs.isTerm() - rhs.isTerm();
   if (cmp != 0) return cmp < 0;

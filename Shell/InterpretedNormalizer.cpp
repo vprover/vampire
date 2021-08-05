@@ -250,7 +250,7 @@ public:
   {
     CALL("InterpretedNormalizer::NLiteralTransformer::apply");
 
-    if (!lit->isEquality() && theory->isInterpretedPredicate(lit))
+    if (!lit->isEquality() && theory->isInterpretedPredicate(lit->functor()))
     {
       Interpretation itp = theory->interpretPredicate(lit);
       if(isTrivialInterpretation(itp)) {

@@ -57,7 +57,7 @@ struct ArgCong::IsPositiveEqualityFn
 struct ArgCong::ResultFn
 {
   ResultFn(Clause* cl, bool afterCheck = false, Ordering* ord = nullptr)
-      : _afterCheck(afterCheck), _ord(ord), _cl(cl), _cLen(cl->length()) {
+      : /*_afterCheck(afterCheck), _ord(ord),*/ _cl(cl), _cLen(cl->length()) {
         _freshVar = cl->maxVar() + 1;
       }
   Clause* operator() (Literal* lit)
@@ -129,8 +129,9 @@ struct ArgCong::ResultFn
     return res;
   }
 private:
-  bool _afterCheck;
-  Ordering* _ord;
+  // currently unused
+  // bool _afterCheck;
+  // Ordering* _ord;
   Clause* _cl;
   unsigned _cLen;
   unsigned _freshVar;

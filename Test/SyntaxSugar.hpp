@@ -41,6 +41,24 @@
 #define __CONSTANT_TYPE_INT  IntegerConstantType
 #define __CONSTANT_TYPE_REAL RealConstantType
 #define __CONSTANT_TYPE_RAT  RationalConstantType
+#if defined(__clang__)
+#  define __ALLOW_UNUSED(...)                                                                                 \
+    _Pragma("GCC diagnostic push")                                                                            \
+    _Pragma("GCC diagnostic ignored \"-Wunused\"")                                                            \
+    __VA_ARGS__                                                                                               \
+    _Pragma("GCC diagnostic pop")                                                                             \
+
+#elif defined(__GNUC__) || defined(__GNUG__)
+
+#  define __ALLOW_UNUSED(...)                                                                                 \
+    _Pragma("GCC diagnostic push")                                                                            \
+    _Pragma("GCC diagnostic ignored \"-Wunused-but-set-variable\"")                                           \
+    __VA_ARGS__                                                                                               \
+    _Pragma("GCC diagnostic pop")                                                                             \
+
+#else
+#  define __ALLOW_UNUSED(...) __VA_ARGS__             
+#endif
  
 #define __ARGS_DECL(Type, arity) __ARGS_DECL_ ## arity(Type)
 #define __ARGS_DECL_1(Type) Type arg0_ 
@@ -94,12 +112,13 @@
 #define DECL_FUNC(f, ...)   auto f = FuncSugar(#f, __VA_ARGS__);
 #define DECL_PRED(f, ...)   auto f = PredSugar(#f, __VA_ARGS__);
 #define DECL_SORT(s)        auto s = SortSugar(#s);
+#define DECL_VAR(x, i) auto x = TermSugar(TermList::var(i));
 
 #define DECL_DEFAULT_VARS                                                                                     \
   __ALLOW_UNUSED(                                                                                             \
-    auto x = TermSugar(TermList::var(0));                                                                     \
-    auto y = TermSugar(TermList::var(1));                                                                     \
-    auto z = TermSugar(TermList::var(2));                                                                     \
+    DECL_VAR(x, 0)                                                                                            \
+    DECL_VAR(y, 1)                                                                                            \
+    DECL_VAR(z, 2)                                                                                            \
   )                                                                                                           \
 
 
@@ -278,6 +297,10 @@ class TermSugar
   TermList _trm;
 
 public:
+  TermSugar(bool foolConst) 
+    : _trm(TermList(foolConst ? Term::foolTrue() : Term::foolFalse()))
+  { }
+
   TermSugar(int trm) 
     : _trm(TermList(syntaxSugarGlobals().createNumeral(trm)))
   { }
@@ -324,6 +347,9 @@ inline TermSugar frac(int a, int b)
 
 inline TermSugar num(int a)
 { return syntaxSugarGlobals().createNumeral(a); }
+
+inline TermSugar fool(bool b)
+{ return TermSugar(b); }
 
 ////////////////////////// operators to create terms ////////////////////////// 
 
@@ -417,23 +443,31 @@ public:
   }
 
   FuncSugar dtor(unsigned i) const {
+    CALL("FuncSugar::dtor(unsigned)")
     ASS_L(i, arity())
-    vstringstream name;
-    auto symbol = env.signature->getFunction(_functor);
-    name << symbol->name() << "_" << i;
-    return FuncSugar(name.str(), { SortSugar(symbol->fnType()->result()) }, SortSugar(symbol->fnType()->arg(i)));
+    ASS (symbol()->termAlgebraCons()) 
+    return FuncSugar(
+        env.signature->getTermAlgebraConstructor(functor())
+          ->destructorFunctor(i));
   }
+
+  auto result()        const { return symbol()->fnType()->result(); }
+  auto arg(unsigned i) const { return symbol()->fnType()->arg(i);   }
 
   template<class... As>
   TermSugar operator()(As... args) const {
     BYPASSING_ALLOCATOR
-    Stack<TermList> as = { TermSugar(args).toTerm()... };
+    Stack<TermList> as { TermSugar(args).toTerm()... };
     return TermList(Term::create(_functor, 
         as.size(), 
         as.begin()));
   }
   unsigned functor() const { return _functor; }
   unsigned arity() const { return _arity; }
+  Signature::Symbol* symbol() const { return env.signature->getFunction(functor()); }
+
+  friend std::ostream& operator<<(std::ostream& out, FuncSugar const& self) 
+  { return out << self.symbol()->name(); }
 };
 
 class ConstSugar : public TermSugar, public FuncSugar
@@ -465,7 +499,7 @@ public:
 
   template<class... As>
   Lit operator()(As... args) const {
-    Stack<TermList> as = { TermSugar(args).toTerm()... };
+    Stack<TermList> as { TermSugar(args).toTerm()... };
     return Literal::create(_functor, 
         as.size(), 
         /* polarity */ true, 
@@ -515,14 +549,24 @@ inline void createTermAlgebra(SortSugar sort, initializer_list<FuncSugar> fs) {
   for (auto f : funcs) {
     env.signature->getFunction(f.functor())
       ->markTermAlgebraCons();
+    auto dtor = [&](unsigned i) {
+      vstringstream name;
+      name << f << "@" << i;
+      auto d = FuncSugar(name.str(), { f.result() }, f.arg(i));
+      env.signature->getFunction(d.functor())
+        ->markTermAlgebraDest();
+      return d;
+    };
 
     Array<unsigned> dtors(f.arity()); 
     for (unsigned i = 0; i < f.arity(); i++) {
-      dtors[i] = f.dtor(i).functor();
+      dtors[i] = dtor(i).functor();
     }
+
     cons.push(new TermAlgebraConstructor(f.functor(), dtors));
   }
-  env.signature->addTermAlgebra(new TermAlgebra(sort.sortId(), cons.size(), cons.begin()));
+  auto ta = new TermAlgebra(sort.sortId(), cons.size(), cons.begin());
+  env.signature->addTermAlgebra(ta);
 }
 
 #endif // __TEST__SYNTAX_SUGAR__H__

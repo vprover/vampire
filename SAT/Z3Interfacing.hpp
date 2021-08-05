@@ -24,13 +24,18 @@
 #define PRINT_CPP(X) // cout << X << endl;
 
 #include "Lib/DHMap.hpp"
+#include "Lib/BiMap.hpp"
+#include "Lib/Set.hpp"
 
 #include "SATSolver.hpp"
 #include "SATLiteral.hpp"
 #include "SATClause.hpp"
 #include "SATInference.hpp"
 #include "SAT2FO.hpp"
+#include "Lib/Option.hpp"
+#include "Lib/Coproduct.hpp"
 
+#define __EXCEPTIONS 1
 #include "z3++.h"
 #include "z3_api.h"
 
@@ -50,20 +55,16 @@ public:
   CLASS_NAME(Z3Interfacing);
   USE_ALLOCATOR(Z3Interfacing);
   
-  /**
-   * If @c unsatCoresForAssumptions is set, the solver is configured to use
-   * the "unsat-core" option (may negatively affect performance) and uses
-   * this feature to extract a subset of used assumptions when
-   * called via solveUnderAssumptions.
-   */
-  Z3Interfacing(const Shell::Options& opts, SAT2FO& s2f, bool unsatCoresForAssumptions = false);
+  Z3Interfacing(const Shell::Options& opts, SAT2FO& s2f, bool unsatCore = false);
+  Z3Interfacing(SAT2FO& s2f, bool showZ3, bool unsatCore);
+  ~Z3Interfacing();
 
   static char const* z3_full_version();
 
-  void addClause(SATClause* cl, bool withGuard);
-  void addClause(SATClause* cl) override { addClause(cl,false); }
+  void addClause(SATClause* cl) override;
 
-  virtual Status solve(unsigned conflictCountLimit) override;
+  Status solve();
+  virtual Status solve(unsigned conflictCountLimit) override { return solve(); };
   /**
    * If status is @c SATISFIABLE, return assignment of variable @c var
    */
@@ -99,20 +100,26 @@ public:
     }
   }
 
+
   unsigned newVar() override;
 
   // Currently not implemented for Z3
   virtual void suggestPolarity(unsigned var, unsigned pol) override {}
   
-  void addAssumption(SATLiteral lit, bool withGuard);
-  virtual void addAssumption(SATLiteral lit) override { addAssumption(lit,false); }
-  virtual void retractAllAssumptions() override { _assumptions.resize(0); }
-  virtual bool hasAssumptions() const override { return !_assumptions.empty(); }
+  virtual void addAssumption(SATLiteral lit) override;
+  virtual void retractAllAssumptions() override;
+  virtual bool hasAssumptions() const override { return !_assumptions.isEmpty(); }
 
-  Status solveUnderAssumptions(const SATLiteralStack& assumps, unsigned,bool,bool);
-  virtual Status solveUnderAssumptions(const SATLiteralStack& assumps, unsigned c, bool p) override
-  { return solveUnderAssumptions(assumps,c,p,false); }
+  virtual Status solveUnderAssumptions(const SATLiteralStack& assumps, unsigned conflictCountLimit, bool onlyProperSubusets) override;
 
+//  /**
+//   * Record the association between a SATLiteral var and a Literal
+//   * In TWLSolver this is used for computing niceness values
+//   */
+//   virtual void recordSource(unsigned satlitvar, Literal* lit) override {
+//     // unsupported by Z3; intentionally no-op
+//   };
+  
   /**
    * The set of inserted clauses may not be propositionally UNSAT
    * due to theory reasoning inside Z3.
@@ -124,80 +131,125 @@ public:
 
   SATClause* getRefutation() override;  
 
-  void reset(){
-    sat2fo.reset();
-    _solver.reset();
-    _status = UNKNOWN; // I set it to unknown as I do not reset
+  template<class F>
+  auto scoped(F f)  -> decltype(f())
+  { 
+    _solver.push();
+    auto result = f();
+    _solver.pop();
+    return result;
   }
+  // void reset(){
+  //   DBG("resetting z3")
+  //   _sat2fo.reset();
+  //   _solver.reset();
+  //   _status = UNKNOWN; // I set it to unknown as I do not reset
+  // }
+  using FuncId = unsigned;
+  using PredId = unsigned;
+  using SortId = TermList;
+
+  struct FuncOrPredId 
+  {
+    explicit FuncOrPredId(unsigned id, bool isPredicate) : id(id), isPredicate(isPredicate) {}
+    explicit FuncOrPredId(Term* term) : FuncOrPredId(term->functor(), term->isLiteral()) {}
+    static FuncOrPredId function(FuncId id) { return FuncOrPredId ( id, false ); } 
+    static FuncOrPredId predicate(PredId id) { return FuncOrPredId ( id, true ); } 
+    unsigned id;
+    bool isPredicate;
+    
+    friend struct std::hash<FuncOrPredId> ;
+    friend bool operator==(FuncOrPredId const& l, FuncOrPredId const& r)
+    { return l.id == r.id && l.isPredicate == r.isPredicate; }
+    friend std::ostream& operator<<(std::ostream& out, FuncOrPredId const& self)
+    { return out << (self.isPredicate ? "pred " : "func " ) 
+      << (self.isPredicate ? env.signature->getPredicate(self.id)->name() : env.signature->getFunction(self.id)->name());
+    }
+  };
+
 private:
+
+  Map<SortId, z3::sort> _sorts;
+  struct Z3Hash {
+    static unsigned hash(z3::func_decl const& c) { return c.hash(); }
+    static bool equals(z3::func_decl const& l, z3::func_decl const& r) { return z3::eq(l,r); }
+  };
+  Map<z3::func_decl, FuncOrPredId , Z3Hash > _fromZ3;
+  Map<FuncOrPredId,  z3::func_decl, StlHash<FuncOrPredId>> _toZ3;
+  Set<SortId> _createdTermAlgebras;
+
+  z3::func_decl const& findConstructor(FuncId id);
+  void createTermAlgebra(Shell::TermAlgebra&);
+
+  z3::sort getz3sort(SortId s);
+
+  z3::func_decl z3Function(FuncOrPredId function);
+
+  // not sure why this one is public
+  friend struct ToZ3Expr;
+  friend struct EvaluateInModel;
+public:
+  Term* evaluateInModel(Term* trm);
+#ifdef VDEBUG
+  z3::model& getModel() { return _model; }
+#endif
+
+private:
+
+  struct Representation 
+  {
+    Representation(z3::expr expr, Stack<z3::expr> defs) : expr(expr), defs(defs) {}
+    Representation(Representation&&) = default;
+    z3::expr expr;
+    Stack<z3::expr> defs;
+  };
+
+  Representation getRepresentation(Term* trm);
+  Representation getRepresentation(SATLiteral lit);
+  Representation getRepresentation(SATClause* cl);
+
   // just to conform to the interface
   unsigned _varCnt;
-
   // Memory belongs to Splitter
-  SAT2FO& sat2fo;
-
-  //DHMap<unsigned,Z3_sort> _sorts;
-  z3::sort getz3sort(TermList s);
-
-  // Helper funtions for the translation
-  z3::expr to_int(z3::expr e) {
-        return z3::expr(e.ctx(), Z3_mk_real2int(e.ctx(), e));
-  }
-  z3::expr to_real(z3::expr e) {
-        return z3::expr(e.ctx(), Z3_mk_int2real(e.ctx(), e));
-  }
-  z3::expr ceiling(z3::expr e){
-        return -to_real(to_int(-e));
-  }
-  z3::expr is_even(z3::expr e) {
-        z3::context& ctx = e.ctx();
-        z3::expr two = ctx.int_val(2);
-        z3::expr m = z3::expr(ctx, Z3_mk_mod(ctx, e, two));
-        return m == 0;
-  }
-
-  z3::expr truncate(z3::expr e) {
-        return ite(e >= 0, to_int(e), ceiling(e));
-  }
-
-  void addTruncatedOperations(z3::expr_vector, Interpretation qi, Interpretation ti, TermList srt);
-  void addFloorOperations(z3::expr_vector, Interpretation qi, Interpretation ti, TermList srt);
-  void addIntNonZero(z3::expr);
-  void addRealNonZero(z3::expr);
-
-public:
-  // not sure why this one is public
-  z3::expr getz3expr(Term* trm,bool islit,bool&nameExpression, bool withGuard=false);
-  Term* evaluateInModel(Term* trm);
-private:
-  z3::expr getRepresentation(SATLiteral lit,bool withGuard);
+  SAT2FO& _sat2fo;
 
   Status _status;
+  z3::config _config;
   z3::context _context;
   z3::solver _solver;
   z3::model _model;
 
-  z3::expr_vector _assumptions;
-  bool _unsatCoreForAssumptions;
 
-  bool _showZ3;
-  bool _unsatCoreForRefutations;
+  Stack<z3::expr> _assumptions;
+  BiMap<SATLiteral, z3::expr> _assumptionLookup;
+  const bool _showZ3;
+  const bool _unsatCore;
 
-  DHSet<unsigned> _namedExpressions;
+  Map<unsigned, z3::expr> _varNames;
+
+  bool isNamedExpr(unsigned var)
+  { return _varNames.find(var); }
 
   z3::expr getNameExpr(unsigned var){
-    vstring name = "v"+Lib::Int::toString(var);
-
-    PRINT_CPP("exprs.push_back(c.bool_const(\""<< name << "\"));")
-
-    return  _context.bool_const(name.c_str());
+    return _varNames.getOrInit(var, [&](){
+        // this method is called very often in runs with a lot of avatar reasoning. Cache the constants to avoid that z3 has to search for the string name in its function index
+        vstring name = "v"+Lib::Int::toString(var);
+        return  _context.bool_const(name.c_str());
+    });
   }
+
+  Map<TermList, z3::expr> _termIndexedConstants;
+  z3::expr constantFor(TermList name, z3::sort sort)
+  {
+    return _termIndexedConstants.getOrInit(name, [&](){
+        auto n = name.toString();
+        return _context.constant(n.c_str(), sort);
+    });
+  }
+
   // careful: keep native constants' names distinct from the above ones (hence the "c"-prefix below)
   z3::expr getNameConst(const vstring& symbName, z3::sort srt){
-    vstring name = "c"+symbName;
-
-    PRINT_CPP("{ sort s = sorts.back(); sorts.pop_back(); exprs.push_back(c.constant(\""<< name << "\",s)); }")
-
+    vstring name("c"+symbName);
     return _context.constant(name.c_str(),srt);
   }
 
@@ -205,6 +257,13 @@ private:
 };
 
 }//end SAT namespace
+namespace std {
+    template<>
+    struct hash<SAT::Z3Interfacing::FuncOrPredId> {
+      size_t operator()(SAT::Z3Interfacing::FuncOrPredId const& self) 
+      { return Lib::HashUtils::combine(self.id, self.isPredicate); }
+    };
+}
 
 #endif /* if VZ3 */
 #endif /*Z3Interfacing*/

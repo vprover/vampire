@@ -460,6 +460,7 @@ void SaturationAlgorithm::onUnprocessedSelected(Clause* c)
   
 }
 
+
 /**
  * A function that is called whenever a possibly new clause appears.
  */

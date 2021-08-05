@@ -30,6 +30,7 @@ ostream& operator<<(ostream& out, UMinus const& self) {
     default:
       return out << "UNKNOWN";
   }
+  ASSERTION_VIOLATION
 }
 
 
@@ -46,6 +47,7 @@ TermList pushUMinus(UMinus outerMinus, TermList t)
       default:
         ASSERTION_VIOLATION;
     }
+    ASSERTION_VIOLATION
   };
 
   if (t.isVar()) {
