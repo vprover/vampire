@@ -1001,7 +1001,18 @@ void Options::init()
            _lookup.insert(&_theoryInstAndSimp);
 
            _thiGeneralise = BoolOptionValue("theory_instantiation_generalisation", "thigen", false);
-           _thiGeneralise.description = "Enable retrieval of generalised instances in theory instantiation. This can help with datatypes but requires thi to call the smt solver twice."; 
+           _thiGeneralise.description = "Enable retrieval of generalised instances in theory instantiation. This can help with datatypes but requires thi to call the smt solver twice. "
+           "\n"
+           "\n An example of such a generalisation is:"
+           "\n first(x) > 0 \\/ P[x]"
+           "\n ==================== "
+           "\n     P[(-1, y)]"
+           "\n"
+           "\n instead of the more concrete instance"
+           "\n first(x) > 0 \\/ P[x]"
+           "\n ==================== "
+           "\n     P[(-1, 0)]"
+           ; 
            _thiGeneralise.tag(OptionTag::INFERENCES);
            _lookup.insert(&_thiGeneralise);
            _thiGeneralise.setExperimental();
