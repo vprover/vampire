@@ -42,16 +42,16 @@ public:
     _induction = _salg->getInduction();
     _dupLitRemoval = new DuplicateLiteralRemovalISE();
     _dupLitRemoval->attach(_salg);
-    _lhsIndex = static_cast<IHLHSIndex *>(
-      _salg->getIndexManager()->request(IH_LHS_SUBST_TREE));
-    _stIndex = static_cast<ICSubtermIndex *>(
-      _salg->getIndexManager()->request(IC_SUBTERM_SUBST_TREE));
+    _lhsIndex = static_cast<InductionEqualityLHSIndex *>(
+      _salg->getIndexManager()->request(INDUCTION_EQUALITY_LHS_SUBST_TREE));
+    _stIndex = static_cast<InductionInequalitySubtermIndex *>(
+      _salg->getIndexManager()->request(INDUCTION_INEQUALITY_SUBTERM_SUBST_TREE));
 
   }
   void detach() override {
-    _salg->getIndexManager()->release(IC_SUBTERM_SUBST_TREE);
+    _salg->getIndexManager()->release(INDUCTION_INEQUALITY_SUBTERM_SUBST_TREE);
     _stIndex = nullptr;
-    _salg->getIndexManager()->release(IH_LHS_SUBST_TREE);
+    _salg->getIndexManager()->release(INDUCTION_EQUALITY_LHS_SUBST_TREE);
     _lhsIndex = nullptr;
     _dupLitRemoval->detach();
     delete _dupLitRemoval;
@@ -70,8 +70,8 @@ public:
 private:
   ClauseIterator generateClauses(Literal* lit, Clause* premise);
 
-  IHLHSIndex *_lhsIndex;
-  ICSubtermIndex* _stIndex;
+  InductionEqualityLHSIndex *_lhsIndex;
+  InductionInequalitySubtermIndex* _stIndex;
   GeneralInduction* _induction;
   Splitter* _splitter;
   DuplicateLiteralRemovalISE* _dupLitRemoval;

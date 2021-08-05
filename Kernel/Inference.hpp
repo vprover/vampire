@@ -973,12 +973,11 @@ public:
     _inductionInfo->insert(e);
   }
   void removeFromInductionInfo(unsigned e) {
-    if (_inductionInfo) {
-      _inductionInfo->remove(e);
-      if (_inductionInfo->size() == 0) {
-        delete _inductionInfo;
-        _inductionInfo = nullptr;
-      }
+    ASS(_inductionInfo);
+    _inductionInfo->remove(e);
+    if (_inductionInfo->size() == 0) {
+      delete _inductionInfo;
+      _inductionInfo = nullptr;
     }
   }
 

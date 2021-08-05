@@ -531,38 +531,48 @@ void StructuralInductionSchemeGenerator::generate(
   }
 }
 
+vvector<pair<Term*, vvector<unsigned>>> generateCases(TermAlgebra* ta)
+{
+  vvector<pair<Term*, vvector<unsigned>>> res;
+  unsigned var = 0;
+  for (unsigned i = 0; i < ta->nConstructors(); i++) {
+    TermAlgebraConstructor* con = ta->constructor(i);
+    unsigned arity = con->arity();
+    vvector<unsigned> ta_vars;
+    Stack<TermList> argTerms;
+    for (unsigned i = 0; i < arity; i++) {
+      if (con->argSort(i) == ta->sort()) {
+        ta_vars.push_back(var);
+      }
+      argTerms.push(TermList(var++, false));
+    }
+    res.push_back(make_pair(Term::create(con->functor(),(unsigned)argTerms.size(), argTerms.begin()), ta_vars));
+  }
+  return res;
+}
+
 InductionScheme StructuralInductionSchemeGenerator::generateStructural(Term* term)
 {
   CALL("StructuralInductionSchemeGenerator::generateStructural");
 
   TermAlgebra* ta = env.signature->getTermAlgebraOfSort(env.signature->getFunction(term->functor())->fnType()->result());
-  TermList ta_sort = ta->sort();
-  unsigned var = 1;
   vmap<Term*, unsigned> inductionTerms;
   inductionTerms.insert(make_pair(term, 0));
   InductionScheme scheme(inductionTerms, true);
-
-  for (unsigned i = 0; i < ta->nConstructors(); i++) {
-    TermAlgebraConstructor* con = ta->constructor(i);
+  static DHMap<TermAlgebra*, vvector<pair<Term*, vvector<unsigned>>>> taCasesMap;
+  vvector<pair<Term*, vvector<unsigned>>> taCases;
+  if (!taCasesMap.find(ta, taCases)) {
+    taCases = generateCases(ta);
+    taCasesMap.insert(ta, taCases);
+  }
+  for (const auto& kv : taCases) {
     vvector<Substitution> recursiveCalls;
-    Substitution step;
-
-    unsigned arity = con->arity();
-    Stack<TermList> ta_vars;
-    Stack<TermList> argTerms;
-    for (unsigned i = 0; i < arity; i++) {
-      TermList x(var++, false);
-      argTerms.push(x);
-      if (con->argSort(i) == ta_sort) {
-        ta_vars.push(x);
-      }
-    }
-    Stack<TermList>::Iterator tvit(ta_vars);
-    while (tvit.hasNext()) {
+    for (const auto& v : kv.second) {
       recursiveCalls.emplace_back();
-      recursiveCalls.back().bind(0,tvit.next());
+      recursiveCalls.back().bind(0,TermList(v, false));
     }
-    step.bind(0, TermList(Term::create(con->functor(),(unsigned)argTerms.size(), argTerms.begin())));
+    Substitution step;
+    step.bind(0, TermList(kv.first));
     scheme.addCase(std::move(recursiveCalls), std::move(step));
   }
   scheme.finalize();

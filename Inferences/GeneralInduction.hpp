@@ -235,8 +235,8 @@ private:
   void process(InductionClauseIterator& it, Clause* premise, Literal* literal);
   void generateClauses(
     const Shell::InductionScheme& scheme,
-    Literal* mainLit, const SLQueryResult& mainQuery,
-    const vvector<pair<Literal*,SLQueryResult>>& sideLitQrPairs,
+    Literal* mainLit, SLQueryResult mainQuery,
+    vvector<pair<Literal*,SLQueryResult>> sideLitQrPairs,
     ClauseStack& clauses);
   bool alreadyDone(Literal* mainLit, const vset<pair<Literal*,Clause*>>& sides,
     const InductionScheme& sch, pair<Literal*,vset<Literal*>>& res);

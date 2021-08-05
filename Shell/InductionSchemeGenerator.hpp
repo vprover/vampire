@@ -83,6 +83,7 @@ public:
 
   uint64_t num_bits() const {
     ASS(_finished);
+    ASS(_max);
     return __builtin_ctz(_max);
   }
 

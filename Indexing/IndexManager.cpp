@@ -296,14 +296,14 @@ Index* IndexManager::create(IndexType t)
     isGenerating = true;
     break;
 
-  case IH_LHS_SUBST_TREE:
+  case INDUCTION_EQUALITY_LHS_SUBST_TREE:
     tis=new CodeTreeTIS();
-    res=new IHLHSIndex(tis, _alg->getOrdering(), _alg->getOptions());
+    res=new InductionEqualityLHSIndex(tis, _alg->getOrdering(), _alg->getOptions());
     isGenerating = true;
     break;
-  case IC_SUBTERM_SUBST_TREE:
+  case INDUCTION_INEQUALITY_SUBTERM_SUBST_TREE:
     tis=new TermSubstitutionTree(useConstraints);
-    res=new ICSubtermIndex(tis);
+    res=new InductionInequalitySubtermIndex(tis);
     isGenerating = true;
     break;
 

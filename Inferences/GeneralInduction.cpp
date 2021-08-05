@@ -177,7 +177,7 @@ void GeneralInduction::process(InductionClauseIterator& res, Clause* premise, Li
               sidesGeneralized.push_back(make_pair(sideLitGen, SLQueryResult(kv2.first, kv2.second)));
             }
           }
-          generateClauses(kv.first, mainLitGen, main, sidesGeneralized, res._clauses);
+          generateClauses(kv.first, mainLitGen, main, std::move(sidesGeneralized), res._clauses);
         }
       }
       for (const auto& schLit : schLits) {
@@ -258,8 +258,8 @@ InductionScheme::Case renameCase(const InductionScheme::Case& c, const vmap<Term
 
 void GeneralInduction::generateClauses(
   const Shell::InductionScheme& scheme,
-  Literal* mainLit, const SLQueryResult& mainQuery,
-  const vvector<pair<Literal*, SLQueryResult>>& sideLitQrPairs,
+  Literal* mainLit, SLQueryResult mainQuery,
+  vvector<pair<Literal*, SLQueryResult>> sideLitQrPairs,
   ClauseStack& clauses)
 {
   CALL("GeneralInduction::generateClauses");
@@ -346,25 +346,27 @@ void GeneralInduction::generateClauses(
 
   // Resolve all induction clauses with the main and side literals
   auto resSubst = ResultSubstitution::fromSubstitution(&subst, 0, 1);
+  mainQuery.substitution = resSubst;
+  // Be aware that we change mainLit and sideLitQrPairs here irreversibly
+  mainLit = Literal::complementaryLiteral(mainLit);
+  for (auto& kv : sideLitQrPairs) {
+    kv.first = Literal::complementaryLiteral(subst.apply(kv.first, 0));
+    kv.second.substitution = resSubst;
+  }
   ClauseStack::Iterator cit(hyp_clauses);
   while(cit.hasNext()){
     Clause* c = cit.next();
     for (const auto& v : hypVars) {
       c->inference().addToInductionInfo(rvs.get(v));
     }
-    auto qr = mainQuery;
-    qr.substitution = resSubst;
-    c = BinaryResolution::generateClause(c, Literal::complementaryLiteral(mainLit), qr, *env.options);
+    c = BinaryResolution::generateClause(c, mainLit, mainQuery, *env.options);
     ASS(c);
     if (_splitter && !sideLitQrPairs.empty()) {
       _splitter->onNewClause(c);
     }
     unsigned i = 0;
     for (const auto& kv : sideLitQrPairs) {
-      auto conclusion = subst.apply(kv.first, 0);
-      auto qr = kv.second;
-      qr.substitution = resSubst;
-      c = BinaryResolution::generateClause(c, Literal::complementaryLiteral(conclusion), qr, *env.options);
+      c = BinaryResolution::generateClause(c, kv.first, kv.second, *env.options);
       ASS(c);
       if (_splitter && ++i < sideLitQrPairs.size()) {
         _splitter->onNewClause(c);

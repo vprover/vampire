@@ -78,24 +78,24 @@ struct SideFn
 
 struct GeneralizationsFn
 {
-  GeneralizationsFn(IHLHSIndex* index) : _index(index) {}
+  GeneralizationsFn(InductionEqualityLHSIndex* index) : _index(index) {}
   VirtualIterator<pair<TermQueryResult, TermQueryResult> > operator()(TermQueryResult qr)
   {
     return pvi( pushPairIntoRightIterator(qr, _index->getGeneralizations(qr.term)) );
   }
 private:
-  IHLHSIndex* _index;
+  InductionEqualityLHSIndex* _index;
 };
 
 struct InstancesFn
 {
-  InstancesFn(ICSubtermIndex* index) : _index(index) {}
+  InstancesFn(InductionInequalitySubtermIndex* index) : _index(index) {}
   VirtualIterator<pair<TermQueryResult, TermQueryResult> > operator()(TermQueryResult qr)
   {
     return pvi( getMappingIterator(_index->getInstances(qr.term), PairLeftPushingFn<TermQueryResult, TermQueryResult>(qr)) );
   }
 private:
-  ICSubtermIndex* _index;
+  InductionInequalitySubtermIndex* _index;
 };
 
 struct TermToTermQueryResultFn

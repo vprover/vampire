@@ -80,14 +80,14 @@ private:
   const Options& _opt;
 };
 
-class IHLHSIndex
+class InductionEqualityLHSIndex
 : public TermIndex
 {
 public:
-  CLASS_NAME(IHLHSIndex);
-  USE_ALLOCATOR(IHLHSIndex);
+  CLASS_NAME(InductionEqualityLHSIndex);
+  USE_ALLOCATOR(InductionEqualityLHSIndex);
 
-  IHLHSIndex(TermIndexingStructure* is, const Ordering& ord, const Options& opt)
+  InductionEqualityLHSIndex(TermIndexingStructure* is, const Ordering& ord, const Options& opt)
     : TermIndex(is), _ord(ord), _opt(opt) {}
 
 protected:
@@ -97,14 +97,14 @@ private:
   const Options& _opt;
 };
 
-class ICSubtermIndex
+class InductionInequalitySubtermIndex
 : public TermIndex
 {
 public:
-  CLASS_NAME(ICSubtermIndex);
-  USE_ALLOCATOR(ICSubtermIndex);
+  CLASS_NAME(InductionInequalitySubtermIndex);
+  USE_ALLOCATOR(InductionInequalitySubtermIndex);
 
-  ICSubtermIndex(TermIndexingStructure* is)
+  InductionInequalitySubtermIndex(TermIndexingStructure* is)
     : TermIndex(is) {}
 
 protected:

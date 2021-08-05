@@ -120,11 +120,12 @@ void SuperpositionLHSIndex::handleClause(Clause* c, bool adding)
   }
 }
 
-void IHLHSIndex::handleClause(Clause* c, bool adding)
+void InductionEqualityLHSIndex::handleClause(Clause* c, bool adding)
 {
-  CALL("IHLHSIndex::handleClause");
+  CALL("InductionEqualityLHSIndex::handleClause");
 
-  TimeCounter tc(TC_FORWARD_SUPERPOSITION_INDEX_MAINTENANCE);
+  // TODO
+  // TimeCounter tc(TC_FORWARD_SUPERPOSITION_INDEX_MAINTENANCE);
 
   for (unsigned i = 0; i < c->length(); i++) {
     Literal* lit=(*c)[i];
@@ -143,11 +144,12 @@ void IHLHSIndex::handleClause(Clause* c, bool adding)
   }
 }
 
-void ICSubtermIndex::handleClause(Clause* c, bool adding)
+void InductionInequalitySubtermIndex::handleClause(Clause* c, bool adding)
 {
-  CALL("ICSubtermIndex::handleClause");
+  CALL("InductionInequalitySubtermIndex::handleClause");
 
-  TimeCounter tc(TC_FORWARD_SUPERPOSITION_INDEX_MAINTENANCE);
+  // TODO
+  // TimeCounter tc(TC_FORWARD_SUPERPOSITION_INDEX_MAINTENANCE);
 
   static DHSet<TermList> inserted;
 
