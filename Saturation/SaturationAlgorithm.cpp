@@ -771,6 +771,10 @@ void SaturationAlgorithm::init()
 {
   CALL("SaturationAlgorithm::init");
 
+  if (env.options->randomTraversals()) {
+    Shuffling::shuffle(_prb);
+  }
+
   ClauseIterator toAdd = _prb.clauseIterator();
 
   while (toAdd.hasNext()) {
