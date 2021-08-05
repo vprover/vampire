@@ -70,10 +70,11 @@ public:
     /** queue of unprocessed clauses */
     UNPROCESSED = 2u,
     /** anything else */
-    NONE = 3u,  
+    NONE_BORN = 3u,
+    NONE_DEAD = 4u,
     /** clause is selected from the passive container
      * and is not added to the active one yet */
-    SELECTED = 4u
+    SELECTED = 5u
   };
 
   Clause(unsigned length,const Inference& inf);
@@ -357,6 +358,9 @@ public:
 
   unsigned numPositiveLiterals(); // number of positive literals in the clause
 
+  void setTraced() { _traced = true; }
+  bool isTraced() const { return _traced; }
+
 protected:
   /** number of literals */
   unsigned _length : 20;
@@ -371,10 +375,12 @@ protected:
   /** Clause is a splitting component. */
   unsigned _component : 1;
 
+  unsigned _traced : 1;
+
   /** storage class */
   Store _store : 3;
   /** number of selected literals */
-  unsigned _numSelected : 20;
+  unsigned _numSelected : 19;
 
   /** weight */
   mutable unsigned _weight;

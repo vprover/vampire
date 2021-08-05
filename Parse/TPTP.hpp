@@ -851,12 +851,18 @@ public:
     virtual bool isFile() = 0;
   };
   struct FileSourceRecord : SourceRecord {
+    CLASS_NAME(FileSourceRecord);
+    USE_ALLOCATOR(FileSourceRecord);
+
     const vstring fileName;
     const vstring nameInFile;
     bool isFile(){ return true; } 
     FileSourceRecord(vstring fN, vstring nF) : fileName(fN), nameInFile(nF) {}
   };
-  struct InferenceSourceRecord : SourceRecord{
+  struct InferenceSourceRecord : SourceRecord {
+    CLASS_NAME(InferenceSourceRecord);
+    USE_ALLOCATOR(InferenceSourceRecord);
+
     const vstring name;
     Stack<vstring> premises; 
     bool isFile(){ return false; } 
@@ -870,12 +876,16 @@ public:
 
   void setFilterReserved(){ _filterReserved=true; }
 
+  static void enableAxiomNames() {
+    _axiomNames = new DHMap<unsigned, vstring>();
+  }
+  /** This field stores names of input units
+    as long as someone sets it to non-zero */
+  static DHMap<unsigned, vstring>* _axiomNames;
+
 private:
   DHMap<Unit*,SourceRecord*>* _unitSources;
 
-  /** This field stores names of input units if the
-   * output_axiom_names option is enabled */
-  static DHMap<unsigned, vstring> _axiomNames;
   /** Stores the type arities of function symbols */
   DHMap<vstring, unsigned> _typeArities;
   DHMap<vstring, unsigned> _typeConstructorArities;

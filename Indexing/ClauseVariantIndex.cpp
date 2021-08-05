@@ -225,6 +225,8 @@ HashingClauseVariantIndex::~HashingClauseVariantIndex()
   ClauseList* maxval = 0;
   */
 
+  ClauseList::destroy(_emptyClauses);
+
   DHMap<unsigned, ClauseList*>::Iterator iit(_entries);
   while(iit.hasNext()){
     ClauseList* lst = iit.next();
@@ -260,18 +262,26 @@ void HashingClauseVariantIndex::insert(Clause* cl)
 
   // static unsigned insertions = 0;
 
-  //cout << "insert " << cl->toString() << endl;
+  // cout << "insert " << cl->toString() << endl;
+
+  if (cl->length() == 0) {
+    ClauseList::push(cl, _emptyClauses);
+    return;
+  }
 
   unsigned h = computeHash(cl->literals(),cl->length());
 
-  //cout << "hashed to " << h << endl;
+  // cout << "hashed to " << h << endl;
 
   ClauseList** lst;
   _entries.getValuePtr(h,lst);
   ClauseList::push(cl, *lst);
 
-  // cout << "bucket of size " << (*lst)->length() << endl;
-  // cout << _entries.size() << "buckets after " << ++insertions << " insertions" << endl;
+  /*
+  static unsigned insertions = 0;
+  cout << "bucket of size " << ClauseList::length(*lst) << endl;
+  cout << _entries.size() << "buckets after " << ++insertions << " insertions" << endl;
+  */
 }
 
 ClauseIterator HashingClauseVariantIndex::retrieveVariants(Literal* const * lits, unsigned length)
@@ -280,13 +290,17 @@ ClauseIterator HashingClauseVariantIndex::retrieveVariants(Literal* const * lits
 
   TimeCounter tc( TC_HCVI_RETRIEVE );
 
+  if(length==0) {
+    return pvi( ClauseList::Iterator(_emptyClauses) );
+  }
+
   unsigned h = computeHash(lits,length);
 
   //cout << "hashed to " << h << endl;
 
   ClauseList* lst;
   if (_entries.find(h,lst)) {
-    //cout << "found this long list: " << lst->length() << endl;
+    //cout << "found this long list: " << ClauseList::length(lst) << endl;
 
     return pvi( getFilteredIterator(
         getMappingIterator(
@@ -508,7 +522,7 @@ unsigned HashingClauseVariantIndex::computeHash(Literal* const * lits, unsigned 
 {
   CALL("HashingClauseVariantIndex::computeHash");
 
-  // cout << "length " <<  length << endl;
+  //cout << "length " <<  length << endl;
 
   TimeCounter tc( TC_HCVI_COMPUTE_HASH );
 

@@ -23,6 +23,7 @@
 #include "Lib/DHMap.hpp"
 
 #include "Kernel/Term.hpp"
+#include "Kernel/Clause.hpp"
 
 namespace Indexing {
 
@@ -119,6 +120,8 @@ private:
   unsigned computeHash(Literal* const * lits, unsigned length);
 
   DHMap<unsigned, ClauseList*> _entries;
+
+  ClauseList* _emptyClauses;
 };
 
 };

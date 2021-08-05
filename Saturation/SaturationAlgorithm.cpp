@@ -95,6 +95,8 @@
 
 #include "Saturation/ExtensionalityClauseContainer.hpp"
 
+#include "Saturation/ProofTracer.hpp"
+
 #include "Shell/AnswerExtractor.hpp"
 #include "Shell/Options.hpp"
 #include "Shell/Statistics.hpp"
@@ -377,7 +379,7 @@ void SaturationAlgorithm::onActiveRemoved(Clause* c)
   CALL("SaturationAlgorithm::onActiveRemoved");
 
   ASS(c->store()==Clause::ACTIVE);
-  c->setStore(Clause::NONE);
+  c->setStore(Clause::NONE_DEAD);
   //at this point the c object may be deleted
 }
 
@@ -425,7 +427,7 @@ void SaturationAlgorithm::onPassiveRemoved(Clause* c)
   CALL("SaturationAlgorithm::onPassiveRemoved");
 
   ASS(c->store()==Clause::PASSIVE);
-  c->setStore(Clause::NONE);
+  c->setStore(Clause::NONE_DEAD);
   //at this point the c object can be deleted
 }
 
@@ -471,6 +473,11 @@ void SaturationAlgorithm::onNewClause(Clause* cl)
 
   if (_splitter) {
     _splitter->onNewClause(cl);
+  }
+
+  if (env.tracer) {
+    cl->setTraced();
+    env.tracer->onNewClause(cl);
   }
 
   if (env.options->showNew()) {
@@ -684,6 +691,10 @@ void SaturationAlgorithm::addInputClause(Clause* cl)
     addNewClause(cl);
   }
 
+  if (env.tracer && cl->isTraced()) {
+    env.tracer->onInputClause(cl);
+  }
+
   if(_instantiation){
     _instantiation->registerClause(cl);
   }
@@ -780,6 +791,10 @@ void SaturationAlgorithm::init()
   while (toAdd.hasNext()) {
     Clause* cl=toAdd.next();
     addInputClause(cl);
+  }
+
+  if (env.tracer) {
+    env.tracer->onInputFinished();
   }
 
   if (_splitter) {
@@ -879,6 +894,7 @@ void SaturationAlgorithm::newClausesToUnprocessed()
 
   while (_newClauses.isNonEmpty()) {
     Clause* cl=_newClauses.popWithoutDec();
+    // This is all quite strange; how could a new clause (barring maybe AVATAR's back and forth) be anything else than Clause::NONE_BORN?
     switch(cl->store())
     {
     case Clause::UNPROCESSED:
@@ -886,9 +902,10 @@ void SaturationAlgorithm::newClausesToUnprocessed()
     case Clause::PASSIVE:
       onNonRedundantClause(cl);
       break;
-    case Clause::NONE:
+    case Clause::NONE_BORN:
       addUnprocessedClause(cl);
       break;
+    case Clause::NONE_DEAD:
     case Clause::SELECTED:
     case Clause::ACTIVE:
 #if VDEBUG
@@ -928,7 +945,6 @@ void SaturationAlgorithm::addUnprocessedClause(Clause* cl)
   env.statistics->generatedClauses++;
 
   env.checkTimeSometime<64>();
-
 
   cl=doImmediateSimplification(cl);
   if (!cl) {
@@ -1168,7 +1184,7 @@ void SaturationAlgorithm::removeSelected(Clause* cl)
 {
   ASS_EQ(cl->store(), Clause::SELECTED);
   beforeSelectedRemoved(cl);
-  cl->setStore(Clause::NONE);
+  cl->setStore(Clause::NONE_DEAD);
 }
 
 /**
@@ -1210,10 +1226,15 @@ void SaturationAlgorithm::activate(Clause* cl)
   }
 
   ASS_EQ(cl->store(), Clause::SELECTED);
+
+  if (env.tracer && cl->isTraced()) {
+    env.tracer->onActivation(cl);
+  }
+
   cl->setStore(Clause::ACTIVE);
   env.statistics->activeClauses++;
   _active->add(cl);
-    
+
   auto generated = _generator->generateSimplify(cl);
 
   ClauseIterator toAdd = generated.clauses;
@@ -1235,6 +1256,12 @@ void SaturationAlgorithm::activate(Clause* cl)
     }
   }
 
+  /*
+  if (env.tracer && cl->isTraced()) {
+    env.tracer->onActivationFinished(cl);
+  }
+  */
+
   _clauseActivationInProgress=false;
 
   //now we remove clauses that could not be removed during the clause activation process
@@ -1243,7 +1270,8 @@ void SaturationAlgorithm::activate(Clause* cl)
   }
   while (_postponedClauseRemovals.isNonEmpty()) {
     Clause* cl=_postponedClauseRemovals.pop();
-    if (cl->store() != Clause::ACTIVE && cl->store() != Clause::PASSIVE) {
+    if (cl->store() != Clause::ACTIVE &&
+        cl->store() != Clause::PASSIVE) {
       continue;
     }
     removeActiveOrPassiveClause(cl);
@@ -1278,7 +1306,7 @@ start:
     }
     else {
       ASS_EQ(c->store(), Clause::UNPROCESSED);
-      c->setStore(Clause::NONE);
+      c->setStore(Clause::NONE_DEAD);
     }
 
     newClausesToUnprocessed();

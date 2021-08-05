@@ -29,6 +29,8 @@
 #include "Hash.hpp"
 #include "VirtualIterator.hpp"
 
+#include <initializer_list>
+
 namespace Lib {
 
 #define DHMAP_MAX_CAPACITY_INDEX 29
@@ -135,6 +137,12 @@ public:
       Val v;
       iit.next(k, v);
       ALWAYS(insert(k,v));
+    }
+  }
+
+  DHMap(std::initializer_list<std::pair<Key,Val>> l) : DHMap() {
+    for (auto pair : l) {
+      insert(pair.first,pair.second);
     }
   }
 

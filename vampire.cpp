@@ -78,6 +78,7 @@
 #include "Shell/LaTeX.hpp"
 
 #include "Saturation/SaturationAlgorithm.hpp"
+#include "Saturation/ProofTracer.hpp"
 
 #include "SAT/MinisatInterfacing.hpp"
 #include "SAT/MinisatInterfacingNewSimp.hpp"
@@ -202,10 +203,19 @@ void doProving()
   // Then again when the property is here (this will only randomize non-default things if an option is set to do so)
   env.options->randomizeStrategy(prb->getProperty()); 
 
+  if (env.options->traceProofs().size() > 0) {
+    env.tracer = new ProofTracer();
+    env.tracer->init(env.options->traceProofs());
+  }
+
   // this will provide warning if options don't make sense for problem
   //env.options->checkProblemOptionConstraints(prb->getProperty()); 
 
   ProvingHelper::runVampireSaturation(*prb, *env.options);
+
+  if (env.tracer) {
+    env.tracer->onSaturationFinished();
+  }
 }
 
 /**
@@ -794,6 +804,14 @@ int main(int argc, char* argv[])
 
     Allocator::setMemoryLimit(env.options->memoryLimit() * 1048576ul);
     Lib::Random::setSeed(env.options->randomSeed());
+
+    if (env.options->outputAxiomNames()) {
+      Parse::TPTP::enableAxiomNames();
+    }
+
+    if (env.options->bumpFreshSymbolNumber()) {
+      env.signature->bumpFreshSymbolNumber();
+    }
 
     switch (env.options->mode())
     {

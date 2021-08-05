@@ -48,7 +48,7 @@ using namespace Parse;
 #define DEBUG_SHOW_UNITS 0
 #define DEBUG_SOURCE 0
 
-DHMap<unsigned, vstring> TPTP::_axiomNames;
+DHMap<unsigned, vstring>* TPTP::_axiomNames = 0;
 
 //Numbers chosen to avoid clashing with connectives.
 //Unlikely to ever have 100 connectives, so this should be ok.
@@ -3703,9 +3703,7 @@ void TPTP::endFof()
     _unitSources->insert(unit,source);
   }
 
-  if (env.options->outputAxiomNames()) {
-    assignAxiomName(unit,nm);
-  }
+  assignAxiomName(unit,nm);
 #if DEBUG_SHOW_UNITS
   cout << "Unit: " << unit->toString() << "\n";
 #endif
@@ -3945,6 +3943,8 @@ OperatorType* TPTP::constructOperatorType(Type* t, VList* vars)
  */
 TPTP::SourceRecord* TPTP::getSource()
 {
+  CALL("TPTP::getSource");
+
   if (getTok(0).tag != T_COMMA) { // if comma is not there, source was not provided
     return 0;
   }
@@ -4948,7 +4948,9 @@ unsigned TPTP::addUninterpretedConstant(const vstring& name, Set<vstring>& overf
 void TPTP::assignAxiomName(const Unit* unit, vstring& name)
 {
   CALL("Parser::assignAxiomName");
-  ALWAYS(_axiomNames.insert(unit->number(), name));
+  if (_axiomNames) {
+    ALWAYS(_axiomNames->insert(unit->number(), name));
+  }
 } // TPTP::assignAxiomName
 
 /**
@@ -4958,7 +4960,11 @@ void TPTP::assignAxiomName(const Unit* unit, vstring& name)
 bool TPTP::findAxiomName(const Unit* unit, vstring& result)
 {
   CALL("Parser::findAxiomName");
-  return _axiomNames.find(unit->number(), result);
+  if (_axiomNames) {
+    return _axiomNames->find(unit->number(), result);
+  } else {
+    return false;
+  }
 } // TPTP::findAxiomName
 
 /**
