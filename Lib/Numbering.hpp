@@ -62,7 +62,7 @@ public:
   {
     CALL("Numbering::obj");
     return _rev.get(num);
-  }
+  } 
   bool findObj(unsigned num, T& res) const
   {
     return _rev.find(num, res);
@@ -82,6 +82,18 @@ public:
     _map.reset();
     _rev.reset();
     _nextNum=Start;
+  }
+
+  friend std::ostream& operator<<(std::ostream& out, Numbering const& self)
+  { 
+    out << "{";
+    if (Start < self._nextNum) {
+      out << Start << " -> " << self.obj(Start);
+      for (unsigned i = Start + 1; i < self._nextNum; i++) {
+        out << ", " << i << " -> " << self.obj(i);
+      }
+    }
+    return out << "}";
   }
 private:
   DHMap<T, unsigned> _map;

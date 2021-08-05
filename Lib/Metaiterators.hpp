@@ -1671,6 +1671,26 @@ public:
   }
 
 
+  template<class P>
+  bool any(P f) 
+  {
+    CALL("IterTraits::any")
+    while (hasNext()) {
+      if (f(next())) return true;
+    }
+    return false;
+  }
+
+  template<class P>
+  bool all(P f) 
+  {
+    CALL("IterTraits::all")
+    while (hasNext()) {
+      if (!f(next())) return false;
+    }
+    return true;
+  }
+
   template<class F>
   void forEach(F f) 
   {

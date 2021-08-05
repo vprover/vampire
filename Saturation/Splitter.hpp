@@ -78,6 +78,8 @@ _solver=0;
   void flush(SplitLevelStack& addedComps, SplitLevelStack& removedComps);
 
 private:
+  friend class Splitter;
+
   SATSolver::Status processDPConflicts();
   SATSolver::VarAssignment getSolverAssimentConsideringCCModel(unsigned var);
 
@@ -210,7 +212,7 @@ public:
 
   SAT2FO& satNaming() { return _sat2fo; }
 
-  UnitList* explicateAssertionsForSaturatedClauseSet(UnitList* clauses);
+  UnitList* preprendCurrentlyAssumedComponentClauses(UnitList* clauses);
   static bool getComponents(Clause* cl, Stack<LiteralStack>& acc);
 private:
   friend class SplittingBranchSelector;

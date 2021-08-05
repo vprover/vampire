@@ -1,4 +1,3 @@
-![GitHub Workflow Status (branch)](https://img.shields.io/github/workflow/status/vprover/vampire/CI/master)
 ![GitHub release (latest by date)](https://img.shields.io/github/v/release/vprover/vampire)
 
 # Vampire

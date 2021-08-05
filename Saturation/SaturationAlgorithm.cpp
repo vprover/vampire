@@ -461,6 +461,7 @@ void SaturationAlgorithm::onUnprocessedSelected(Clause* c)
   
 }
 
+
 /**
  * A function that is called whenever a possibly new clause appears.
  */
@@ -1355,7 +1356,7 @@ void SaturationAlgorithm::doOneAlgorithmStep()
       res.saturatedSet = collectSaturatedSet();
 
       if (_splitter) {
-        res.saturatedSet = _splitter->explicateAssertionsForSaturatedClauseSet(res.saturatedSet);
+        res.saturatedSet = _splitter->preprendCurrentlyAssumedComponentClauses(res.saturatedSet);
       }
     }
     throw MainLoopFinishedException(res);

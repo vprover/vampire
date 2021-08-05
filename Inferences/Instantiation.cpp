@@ -143,7 +143,7 @@ void Instantiation::tryMakeLiteralFalse(Literal* lit, Stack<Substitution>& subs)
 {
   CALL("Instantiation::tryMakeLiteralFalse");
 
-  if(theory->isInterpretedPredicate(lit)){
+  if(theory->isInterpretedPredicate(lit->functor())){
     Interpretation itp = theory->interpretPredicate(lit);
     //unsigned sort = theory->getOperationSort(interpretation);
 

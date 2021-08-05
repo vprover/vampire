@@ -23,6 +23,13 @@
 #include "Allocator.hpp"
 #include "Hash.hpp"
 #include "Reflection.hpp"
+#include "Lib/Metaiterators.hpp"
+
+namespace std {
+template<typename T>
+void swap(Lib::Set<T>& s1, Lib::Set<T>& s2);
+}
+
 
 namespace Lib {
 
@@ -89,6 +96,13 @@ public:
     CALL("Set::Set");
     expand();
   } // Set::Set
+
+  template<typename U>
+  friend void std::swap(Set<U>& lhs, Set<U>& rhs);
+  
+
+  Set(Set&& other) : Set()
+  { std::swap(other, *this); }
 
   /** Deallocate the set */
   inline ~Set ()
@@ -443,8 +457,39 @@ public:
   };
   DECL_ITERATOR_TYPE(Iterator);
 
+  IterTraits<Iterator> iter() const
+  { return iterTraits(Iterator(*this)); }
+
 }; // class Set
 
+
+template<class A, class B>
+std::ostream& operator<<(std::ostream& out, Set<A, B> const& self)
+{ 
+  out << "{ ";
+  auto iter = self.iter();
+  if (iter.hasNext()) {
+    out << iter.next();
+    while (iter.hasNext()) 
+      out << ", " << iter.next();
+  }
+  return out << " }";
+}
+
+} // namespace Lib
+
+namespace std {
+
+template<typename T>
+void swap(Lib::Set<T>& lhs, Lib::Set<T>& rhs)
+{
+  std::swap(lhs._capacity, rhs._capacity);
+  std::swap(lhs._nonemptyCells, rhs._nonemptyCells);
+  std::swap(lhs._size, rhs._size);
+  std::swap(lhs._entries, rhs._entries);
+  std::swap(lhs._afterLast, rhs._afterLast);
+  std::swap(lhs._maxEntries, rhs._maxEntries);
+}
 
 }
 

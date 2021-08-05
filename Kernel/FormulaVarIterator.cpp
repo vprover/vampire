@@ -216,6 +216,15 @@ bool FormulaVarIterator::hasNext()
               _vars.push(sd->getLambdaVars());
               break;
             }
+
+            case Term::SF_MATCH: {
+              for (unsigned int i = 0; i < t->arity(); i++) {
+                _instructions.push(FVI_TERM_LIST);
+                _termLists.push(*t->nthArgument(i));
+              }
+              break;
+            }
+
 #if VDEBUG
             default:
               ASSERTION_VIOLATION;

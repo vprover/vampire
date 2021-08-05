@@ -49,6 +49,14 @@ Term* SymbolOccurrenceReplacement::process(Term* term) {
       case Term::SF_TUPLE:
         return Term::createTuple(process(TermList(sd->getTupleTerm())).term());
 
+      case Term::SF_MATCH: {
+        DArray<TermList> terms(term->arity());
+        for (unsigned i = 0; i < term->arity(); i++) {
+          terms[i] = process(*term->nthArgument(i));
+        }
+        return Term::createMatch(sd->getSort(), sd->getMatchedSort(), term->arity(), terms.begin());
+      }
+
 #if VDEBUG
         default:
           ASSERTION_VIOLATION;
