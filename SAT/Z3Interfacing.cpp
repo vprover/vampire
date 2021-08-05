@@ -962,6 +962,8 @@ struct ToZ3Expr
         case Theory::REAL_GREATER_EQUAL:
           return args[0] >= args[1];
 
+        default:
+          {}//skip it and treat the function as uninterpretted
         }
       }
     }
