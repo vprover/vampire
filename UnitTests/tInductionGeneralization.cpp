@@ -53,25 +53,27 @@ TEST_FUN(Occurrences1) {
 }
 
 TEST_FUN(OccurrenceMap1) {
-  Literal l1, l2;
-  Term t1, t2;
+  Literal* l1 = reinterpret_cast<Literal*>(1);
+  Literal* l2 = reinterpret_cast<Literal*>(2);
+  Term* t1 = reinterpret_cast<Term*>(1);
+  Term* t2 = reinterpret_cast<Term*>(2);
   OccurrenceMap occMap;
-  occMap.add(&l1, &t1, 1);
-  occMap.add(&l1, &t1, 1);
-  occMap.add(&l1, &t1, 0);
-  occMap.add(&l1, &t1, 0);
+  occMap.add(l1, t1, 1);
+  occMap.add(l1, t1, 1);
+  occMap.add(l1, t1, 0);
+  occMap.add(l1, t1, 0);
 
-  occMap.add(&l2, &t2, 0);
-  occMap.add(&l2, &t2, 1);
-  occMap.add(&l2, &t2, 0);
-  occMap.add(&l2, &t2, 1);
+  occMap.add(l2, t2, 0);
+  occMap.add(l2, t2, 1);
+  occMap.add(l2, t2, 0);
+  occMap.add(l2, t2, 1);
 
   occMap.finalize();
 
   auto check_next = [&l1, &l2, &t1, &t2](unsigned b1, unsigned b2, IteratorCore<OccurrenceMap>& occ) {
     auto ng = occ.next();
-    check_bits(ng._m.find(make_pair(&l1, &t1))->second, b1, (1 << 4));
-    check_bits(ng._m.find(make_pair(&l2, &t2))->second, b2, (1 << 4));
+    check_bits(ng._m.find(make_pair(l1, t1))->second, b1, (1 << 4));
+    check_bits(ng._m.find(make_pair(l2, t2))->second, b2, (1 << 4));
   };
 
   NoGeneralizationIterator ngit(occMap);

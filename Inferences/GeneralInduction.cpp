@@ -460,15 +460,14 @@ bool GeneralInduction::alreadyDone(Literal* mainLit, const vset<pair<Literal*,Cl
 }
 
 inline bool sideLitCondition(Literal* main, Clause* mainCl, Literal* side, Clause* sideCl) {
-  auto mainSk = InductionHelper::collectSkolems(main, mainCl);
-  auto sideSk = InductionHelper::collectSkolems(side, sideCl);
+  auto mainSk = InductionHelper::collectInductionSkolems(main, mainCl);
+  auto sideSk = InductionHelper::collectInductionSkolems(side, sideCl);
   return side->ground() && main != side && mainCl != sideCl &&
     // either they are both induction depth 0 (not yet inducted on)
     ((!mainCl->inference().inductionDepth() && !sideCl->inference().inductionDepth()) ||
-    // or they are hypothesis and conclusion from the same step and predicates
-    (InductionHelper::isInductionLiteral(side, sideCl) &&
-      InductionHelper::isInductionLiteral(main, mainCl) &&
-      includes(mainSk.begin(), mainSk.end(), sideSk.begin(), sideSk.end()) && !side->isEquality() && !main->isEquality()));
+    // or they are non-equality hypothesis and conclusion from the same step
+    (!side->isEquality() && !main->isEquality() && !mainSk.empty() && !sideSk.empty() &&
+      includes(mainSk.begin(), mainSk.end(), sideSk.begin(), sideSk.end())));
 }
 
 vvector<pair<SLQueryResult, vset<pair<Literal*,Clause*>>>> GeneralInduction::selectMainSidePairs(Literal* literal, Clause* premise)
@@ -479,7 +478,9 @@ vvector<pair<SLQueryResult, vset<pair<Literal*,Clause*>>>> GeneralInduction::sel
   // TODO(mhajdu): is there a way to duplicate these iterators?
   TermQueryResultIterator itSides = TermQueryResultIterator::getEmpty();
   TermQueryResultIterator itMains = TermQueryResultIterator::getEmpty();
-  if (indmc) {
+  if (indmc && literal->ground() && (!premise->inference().inductionDepth() ||
+    (!literal->isEquality() && InductionHelper::isInductionLiteral(literal, premise))))
+  {
     SubtermIterator stit(literal);
     while (stit.hasNext()) {
       auto st = stit.next();

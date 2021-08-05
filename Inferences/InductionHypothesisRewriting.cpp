@@ -48,23 +48,21 @@ using namespace Lib;
 using namespace Kernel;
 using namespace Indexing;
 
-bool elemFilter(const TermQueryResult& qr) {
-  return qr.literal->isEquality() && InductionHelper::isInductionLiteral(qr.literal, qr.clause);
-}
-
 struct FilterFn
 {
   bool operator()(const pair<TermQueryResult, TermQueryResult>& p) const {
-    if (!elemFilter(p.first) || !elemFilter(p.second)) {
+    if (!p.first.literal->isEquality() || !p.second.literal->isEquality()) {
       return false;
     }
-    auto sk1 = InductionHelper::collectSkolems(p.first.literal, p.first.clause);
-    auto sk2 = InductionHelper::collectSkolems(p.second.literal, p.second.clause);
-    return includes(sk1.begin(), sk1.end(), sk2.begin(), sk2.end());
-  }
-
-  bool elemFilter(const TermQueryResult& qr) const {
-    return qr.literal->isEquality() && InductionHelper::isInductionLiteral(qr.literal, qr.clause);
+    vset<unsigned> mainSk = InductionHelper::collectInductionSkolems(p.first.literal, p.first.clause);
+    if (mainSk.empty()) {
+      return false;
+    }
+    vset<unsigned> sideSk = InductionHelper::collectInductionSkolems(p.second.literal, p.second.clause);
+    if (sideSk.empty()) {
+      return false;
+    }
+    return includes(mainSk.begin(), mainSk.end(), sideSk.begin(), sideSk.end());
   }
 };
 
@@ -117,7 +115,8 @@ struct ResultsFn
   {
     auto& qr1 = p.first.first;
     auto& qr2 = p.first.second;
-    auto sk = InductionHelper::collectSkolems(qr2.literal, qr2.clause);
+
+    vset<unsigned> sk = InductionHelper::collectInductionSkolems(qr2.literal, qr2.clause);
     return _indhrw->perform(sk, qr1.clause, qr1.literal, p.second, qr1.term,
       qr2.clause, qr2.literal, qr2.term,
       qr1.substitution ? qr1.substitution : qr2.substitution, !qr1.substitution);

@@ -22,6 +22,7 @@
 #include "Kernel/Signature.hpp"
 #include "Kernel/Sorts.hpp"
 #include "Kernel/Term.hpp"
+#include "Kernel/TermIterators.hpp"
 #include "Kernel/Theory.hpp"
 
 #include "Shell/Options.hpp"
@@ -212,15 +213,12 @@ bool InductionHelper::isInductionLiteral(Literal* l) {
 
 bool InductionHelper::isInductionLiteral(Literal* l, Clause* cl) {
   CALL("InductionHelper::isInductionLiteral");
-  if (!l->ground()) {
-    return false;
-  }
   auto info = cl->inference().inductionInfo();
-  if (info) {
-    auto it = info->iterator();
-    while (it.hasNext()) {
-      TermList t(Term::create(it.next(), 0, nullptr));
-      if (l->containsSubterm(t)) {
+  if (l->ground() && info && !info->isEmpty()) {
+    NonVariableIterator nvi(l);
+    while (nvi.hasNext()) {
+      unsigned fn = nvi.next().term()->functor();
+      if (info->find(fn)) {
         return true;
       }
     }
@@ -228,18 +226,15 @@ bool InductionHelper::isInductionLiteral(Literal* l, Clause* cl) {
   return false;
 }
 
-vset<unsigned> InductionHelper::collectSkolems(Literal* l, Clause* cl) {
-  CALL("InductionHelper::collectSkolems");
+vset<unsigned> InductionHelper::collectInductionSkolems(Literal* l, Clause* cl) {
+  CALL("InductionHelper::collectInductionSkolems");
   auto info = cl->inference().inductionInfo();
   vset<unsigned> res;
-  if (info) {
-    auto it = info->iterator();
-    while (it.hasNext()) {
-      auto fn = it.next();
-      // TODO: these Skolem need not be constants,
-      // so this is not entirely correct here
-      TermList t(Term::create(fn, 0, nullptr));
-      if (l->containsSubterm(t)) {
+  if (l->ground() && info && !info->isEmpty()) {
+    NonVariableIterator nvi(l);
+    while (nvi.hasNext()) {
+      unsigned fn = nvi.next().term()->functor();
+      if (info->find(fn)) {
         res.insert(fn);
       }
     }
