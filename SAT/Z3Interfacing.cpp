@@ -575,7 +575,7 @@ void Z3Interfacing::createTermAlgebra(TermAlgebra& start)
       }
 
       cons->createDiscriminator();
-      auto discrName = cons->discriminatorName().c_str();
+      vstring discrName = cons->discriminatorName();
       
       DEBUG("\t", env.sorts->sortName(ta->sort()), "::", env.signature->getFunction(cons->functor())->name(), ": ", env.signature->getFunction(cons->functor())->fnType()->toString());
 
@@ -589,7 +589,7 @@ void Z3Interfacing::createTermAlgebra(TermAlgebra& start)
 #else
           Z3_mk_string_symbol(_context, env.signature->getFunction(cons->functor())->name().c_str()), 
 #endif
-          Z3_mk_string_symbol(_context, discrName),
+          Z3_mk_string_symbol(_context, discrName.c_str()),
           cons->arity(),
           cons->arity() == 0 ? nullptr : argNames.begin(),
           cons->arity() == 0 ? nullptr : argSorts.begin(),
