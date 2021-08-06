@@ -504,7 +504,8 @@ vvector<pair<SLQueryResult, vset<pair<Literal*,Clause*>>>> GeneralInduction::sel
     }
   }
   // pair current literal as side literal with possible main literals
-  // this results in only one side literal (the current)
+  // here we once again get side literals from the index to preserve
+  // symmetry with the other branch, but based on the main literal
   while (itMains.hasNext()) {
     auto qr = itMains.next();
     if (InductionHelper::isInductionClause(qr.clause) &&
@@ -512,6 +513,23 @@ vvector<pair<SLQueryResult, vset<pair<Literal*,Clause*>>>> GeneralInduction::sel
         sideLitCondition(qr.literal, qr.clause, literal, premise)) {
       res.emplace_back(SLQueryResult(qr.literal, qr.clause), vset<pair<Literal*,Clause*>>());
       res.back().second.emplace(literal, premise);
+      // now add side literals other than the input
+      SubtermIterator stit(qr.literal);
+      while (stit.hasNext()) {
+        auto st = stit.next();
+        if (st.isTerm() && skolem(st.term())) {
+          auto it = _index->getGeneralizations(st);
+          while (it.hasNext()) {
+            auto qrSide = it.next();
+            if (qrSide.literal != literal &&
+              InductionHelper::isInductionClause(qrSide.clause) &&
+              sideLitCondition(qrSide.literal, qrSide.clause, qr.literal, qr.clause))
+            {
+              res.back().second.emplace(qrSide.literal, qrSide.clause);
+            }
+          }
+        }
+      }
     }
   }
   return res;

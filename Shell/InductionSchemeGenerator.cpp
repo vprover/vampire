@@ -13,15 +13,9 @@
 #include "Lib/Set.hpp"
 
 #include "Kernel/Clause.hpp"
-#include "Kernel/Formula.hpp"
-#include "Kernel/FormulaVarIterator.hpp"
-#include "Kernel/Matcher.hpp"
-#include "Kernel/Problem.hpp"
-#include "Kernel/Renaming.hpp"
 #include "Kernel/RobSubstitution.hpp"
 #include "Kernel/Term.hpp"
 #include "Kernel/TermIterators.hpp"
-#include "Kernel/Unit.hpp"
 
 #include "InductionSchemeFilter.hpp"
 
