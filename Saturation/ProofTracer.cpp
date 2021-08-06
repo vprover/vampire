@@ -401,6 +401,7 @@ static const DHMap<vstring, ProofTracer::InferenceKind> inference_info = {
     {"backward_demodulation", ProofTracer::SIMPLIFYING},
     {"resolution", ProofTracer::GENERATING},
     {"definition_unfolding", ProofTracer::ICP},
+    {"evaluation", ProofTracer::TRIVSIMP},
 };
 
 ProofTracer::TracedProof* ProofTracer::prepareTracedProof(ProofTracer::ParsedProof* pp)
@@ -463,7 +464,12 @@ ProofTracer::TracedProof* ProofTracer::prepareTracedProof(ProofTracer::ParsedPro
       Parse::TPTP::InferenceSourceRecord* irec = static_cast<Parse::TPTP::InferenceSourceRecord*>(rec);
       // cout << "Has ISR: " << irec->name << endl;
 
-      ik = inference_info.get(irec->name);
+      // imagine "theory_axiom_142" and the likes, should be done more cleverly than by a long list...
+      if (irec->name.rfind("theory_axiom_",0) == 0) {
+        ASS_EQ(ik,ProofTracer::ICP); // instead of assigning ICP (which we know is already in ik)
+      } else {
+        ik = inference_info.get(irec->name);
+      }
       inf = irec->name;
 
       if (ik > ICP) { // we want to load also the guys u came about from
