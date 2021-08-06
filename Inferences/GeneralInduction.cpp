@@ -132,7 +132,7 @@ void GeneralInduction::process(InductionClauseIterator& res, Clause* premise, Li
       gen->generate(main, sides, schOccMap);
 
       vvector<pair<Literal*, vset<Literal*>>> schLits;
-      for (const auto& kv : schOccMap) {
+      for (auto& kv : schOccMap) {
         // Retain side literals for further processing if:
         // (1) they contain some induction term from the current scheme
         // (2) they have either induction depth 0 or they contain some complex induction term
@@ -140,10 +140,22 @@ void GeneralInduction::process(InductionClauseIterator& res, Clause* premise, Li
         //      yet whether there is a complex induction term)
         vset<pair<Literal*, Clause*>> sidesFiltered;
         for (const auto& s : sides) {
+          bool filtered = true;
           for (const auto& kv2 : kv.first.inductionTerms()) {
             if (s.first->containsSubterm(TermList(kv2.first)) && (!skolem(kv2.first) || !s.second->inference().inductionDepth())) {
               sidesFiltered.insert(s);
+              filtered = false;
               break;
+            }
+          }
+          // update occurrence map
+          if (filtered) {
+            for (auto it = kv.second._m.begin(); it != kv.second._m.end();) {
+              if (it->first.first == s.first) {
+                it = kv.second._m.erase(it);
+              } else {
+                it++;
+              }
             }
           }
         }

@@ -106,6 +106,9 @@ public:
       str << (temp & 1);
       temp >>= 1;
     }
+    if (_iter >= _max) {
+      str << '!';
+    }
     return str.str();
   }
 
