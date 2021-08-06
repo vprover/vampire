@@ -64,9 +64,11 @@ const unsigned Term::SPECIAL_FUNCTOR_LOWER_BOUND;
 void Term::setId(unsigned id)
 {
   CALL("Term::setId");
+  /*
   if (env.options->randomTraversals()) {
     id += Random::getInteger(1 << 12) << 20; // the twelve most significant bits are randomized
   }
+  */
   _id = id;
 }
 
