@@ -445,15 +445,6 @@ bool GeneralInduction::alreadyDone(Literal* mainLit, const vset<pair<Literal*,Cl
   for (const auto& kv : sides) {
     res.second.insert(cr.transform(kv.first));
   }
-  // TODO(mhajdu): the reason we check this is to avoid
-  // "induction loops" when we induct on the step immediately
-  // after creating it. This means we usually want to exclude
-  // schemes with complex terms, but this is an ugly workaround
-  for (const auto& kv : sch.inductionTerms()) {
-    if (skolem(kv.first)) {
-      return false;
-    }
-  }
   // check already existing pattern for main literal
   if (!_done.find(res.first)) {
     return false;
