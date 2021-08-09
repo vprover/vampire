@@ -325,6 +325,9 @@ void RecursionInductionSchemeGenerator::addScheme(Term* t, const InductionTempla
   TermStack args;
   unsigned var = 0;
   vmap<Term*, unsigned> inductionTerms;
+  // if the induction terms are distinct, no need to check well-foundedness
+  // and well-definedness since we already checked it in preprocessing
+  bool noChecks = true;
   for (unsigned i = 0; i < t->arity(); i++) {
     auto arg = *t->nthArgument(i);
     if (indPos[i]) {
@@ -334,6 +337,8 @@ void RecursionInductionSchemeGenerator::addScheme(Term* t, const InductionTempla
       auto it = inductionTerms.find(arg.term());
       if (it == inductionTerms.end()) {
         it = inductionTerms.insert(make_pair(arg.term(), var++)).first;
+      } else {
+        noChecks = false;
       }
       args.push(TermList(it->second, false));
     } else {
@@ -347,7 +352,7 @@ void RecursionInductionSchemeGenerator::addScheme(Term* t, const InductionTempla
   } else {
     genTerm = Term::create(t, args.begin());
   }
-  InductionScheme res(inductionTerms);
+  InductionScheme res(inductionTerms, noChecks);
   for (auto b : templ.branches()) {
     RobSubstitution subst;
     if (subst.unify(b._header, 0, TermList(genTerm), 1)) {
