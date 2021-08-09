@@ -2006,6 +2006,8 @@ public:
 
 #if VZ3
   bool showZ3() const { return showAll() || _showZ3.actualValue; }
+  vstring const& exportAvatarProblem() const { return _exportAvatarProblem.actualValue; }
+  vstring const& exportThiProblem() const { return _exportThiProblem.actualValue; }
 #endif
   
   // end of show commands
@@ -2546,6 +2548,8 @@ private:
   BoolOptionValue _showSimplOrdering;
 #if VZ3
   BoolOptionValue _showZ3;
+  StringOptionValue _exportAvatarProblem;
+  StringOptionValue _exportThiProblem;
   BoolOptionValue _satFallbackForSMT;
   BoolOptionValue _smtForGround;
   ChoiceOptionValue<TheoryInstSimp> _theoryInstAndSimp;

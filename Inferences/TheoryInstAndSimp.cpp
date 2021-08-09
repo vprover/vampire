@@ -64,7 +64,8 @@ TheoryInstAndSimp::TheoryInstAndSimp(Options& opts) : TheoryInstAndSimp(
     opts.theoryInstAndSimp(), 
     opts.thiTautologyDeletion(), 
     opts.showZ3(),  
-    opts.thiGeneralise()
+    opts.thiGeneralise(),
+    opts.exportThiProblem()
     ) {}
 
 
@@ -82,14 +83,14 @@ Options::TheoryInstSimp manageDeprecations(Options::TheoryInstSimp mode)
   }
 }
 
-TheoryInstAndSimp::TheoryInstAndSimp(Options::TheoryInstSimp mode, bool thiTautologyDeletion, bool showZ3, bool generalisation) 
+TheoryInstAndSimp::TheoryInstAndSimp(Options::TheoryInstSimp mode, bool thiTautologyDeletion, bool showZ3, bool generalisation, vstring const& exportSmtlib) 
   : _splitter(0)
   , _mode(manageDeprecations(mode))
   , _thiTautologyDeletion(thiTautologyDeletion)
   , _naming()
   , _solver([&](){ 
       BYPASSING_ALLOCATOR; 
-      return new Z3Interfacing(_naming, showZ3,   /* unsatCoresForAssumptions = */ generalisation); 
+      return new Z3Interfacing(_naming, showZ3,   /* unsatCoresForAssumptions = */ generalisation, exportSmtlib); 
     }())
   , _generalisation(generalisation)
   , _instantiationConstants ("$inst")

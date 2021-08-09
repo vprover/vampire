@@ -631,6 +631,19 @@ void Options::init()
     _showZ3.description="Print the clauses being added to Z3";
     _lookup.insert(&_showZ3);
     _showZ3.tag(OptionTag::DEVELOPMENT);
+
+    _exportAvatarProblem = StringOptionValue("export_avatar","","");
+    _exportAvatarProblem.description="Export the avatar problems to solve in smtlib syntax.";
+    _lookup.insert(&_exportAvatarProblem);
+    _exportAvatarProblem.tag(OptionTag::DEVELOPMENT);
+    _exportAvatarProblem.reliesOn(And(_splitting.is(equal(true)), _satSolver.is(equal(Options::SatSolver::Z3))));
+
+    _exportThiProblem = StringOptionValue("export_thi","","");
+    _exportThiProblem.description="Export the theory instantiation problems to solve in smtlib syntax.";
+    _lookup.insert(&_exportThiProblem);
+    _exportThiProblem.tag(OptionTag::DEVELOPMENT);
+    _exportThiProblem.reliesOn(_theoryInstAndSimp.is(notEqual(TheoryInstSimp::OFF)));
+
 #endif
 
     _showFOOL = BoolOptionValue("show_fool","",false);

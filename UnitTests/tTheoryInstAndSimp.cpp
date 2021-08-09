@@ -88,7 +88,8 @@ TheoryInstAndSimp* theoryInstAndSimp(Options::TheoryInstSimp mode, bool withGene
   return new TheoryInstAndSimp(mode, 
       /* thiTautologyDeletion */ true,
       /* showZ3 */ false,
-      /* unsatCoreForRefutations */ withGeneralization);
+      withGeneralization,
+      /* export smtlib */ "");
 }
 
 using Shell::Int;
