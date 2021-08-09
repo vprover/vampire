@@ -479,8 +479,7 @@ vvector<pair<SLQueryResult, vset<pair<Literal*,Clause*>>>> GeneralInduction::sel
   static const bool indmc = env.options->inductionMultiClause();
 
   // TODO(mhajdu): is there a way to duplicate these iterators?
-  TermQueryResultIterator itSides = TermQueryResultIterator::getEmpty();
-  TermQueryResultIterator itMains = TermQueryResultIterator::getEmpty();
+  TermQueryResultIterator it = TermQueryResultIterator::getEmpty();
   if (indmc && literal->ground() && (!premise->inference().inductionDepth() ||
     (!literal->isEquality() && InductionHelper::isInductionLiteral(literal, premise))))
   {
@@ -488,32 +487,32 @@ vvector<pair<SLQueryResult, vset<pair<Literal*,Clause*>>>> GeneralInduction::sel
     while (stit.hasNext()) {
       auto st = stit.next();
       if (st.isTerm() && skolem(st.term())) {
-        itSides = pvi(getConcatenatedIterator(itSides, _index->getGeneralizations(st)));
-        itMains = pvi(getConcatenatedIterator(itMains, _index->getGeneralizations(st)));
+        it = pvi(getConcatenatedIterator(it, _index->getGeneralizations(st)));
       }
     }
   }
 
   // pair current literal as main literal with possible side literals
   // this results in any number of side literals
-  if (InductionHelper::isInductionLiteral(literal))
+  const bool indLit = InductionHelper::isInductionLiteral(literal);
+  if (indLit)
   {
+    // first pair in result is always the current premise being the main literal
     res.emplace_back(SLQueryResult(literal, premise), vset<pair<Literal*,Clause*>>());
-    while (itSides.hasNext()) {
-      auto qr = itSides.next();
-      if (InductionHelper::isInductionClause(qr.clause) && sideLitCondition(literal, premise, qr.literal, qr.clause)) {
-        res.back().second.emplace(qr.literal, qr.clause);
-      }
-    }
   }
-  // pair current literal as side literal with possible main literals
-  // here we once again get side literals from the index to preserve
-  // symmetry with the other branch, but based on the main literal
-  while (itMains.hasNext()) {
-    auto qr = itMains.next();
+  while (it.hasNext())
+  {
+    auto qr = it.next();
+    // query is side literal
+    if (indLit && InductionHelper::isInductionClause(qr.clause) && sideLitCondition(literal, premise, qr.literal, qr.clause))
+    {
+      res[0].second.emplace(qr.literal, qr.clause);
+    }
+    // query is main literal
     if (InductionHelper::isInductionClause(qr.clause) &&
         InductionHelper::isInductionLiteral(qr.literal) &&
-        sideLitCondition(qr.literal, qr.clause, literal, premise)) {
+        sideLitCondition(qr.literal, qr.clause, literal, premise))
+    {
       res.emplace_back(SLQueryResult(qr.literal, qr.clause), vset<pair<Literal*,Clause*>>());
       res.back().second.emplace(literal, premise);
       // now add side literals other than the input

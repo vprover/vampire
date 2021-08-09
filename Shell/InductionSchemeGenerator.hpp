@@ -49,7 +49,6 @@ public:
     ASS(!_finished);
     _finished = true;
     const auto c = num_bits();
-    ASS(c); // disallow empty bitvectors
     auto temp = _occ;
     _occ = 0;
     for (uint64_t i = 0; i < c; i++) {
