@@ -25,31 +25,32 @@ using namespace Kernel;
 
 namespace Shell {
 
-inline bool skolem(TermList t) {
-  if (t.isVar()) {
-    return false;
-  }
-  auto isLit = t.term()->isLiteral();
-  auto symb = isLit ? env.signature->getPredicate(t.term()->functor()) : env.signature->getFunction(t.term()->functor());
-  return symb->skolem();
+inline bool isTermAlgebraCons(Term* t)
+{
+  ASS(!t->isLiteral());
+  return env.signature->getFunction(t->functor())->termAlgebraCons();
 }
 
-inline bool containsSkolem(TermList t)
+inline bool skolem(Term* t)
 {
-  if (skolem(t)) {
-    return true;
-  }
-  SubtermIterator stit(t.term());
-  while (stit.hasNext()) {
-    auto st = stit.next();
-    if (skolem(st)) {
+  ASS(!t->isLiteral());
+  return env.signature->getFunction(t->functor())->skolem();
+}
+
+inline bool containsSkolem(Term* t)
+{
+  ASS(!t->isLiteral());
+  NonVariableIterator nvi(t, true /* includeSelf */);
+  while (nvi.hasNext()) {
+    auto st = nvi.next();
+    if (skolem(st.term())) {
       return true;
     }
   }
   return false;
 }
 
-inline bool canInductOn(TermList t)
+inline bool canInductOn(Term* t)
 {
   CALL("canInductOn");
 
@@ -60,17 +61,17 @@ inline bool canInductOn(TermList t)
 /**
  * Returns all subterms which can be inducted on for a term.
  */
-vvector<TermList> getInductionTerms(TermList t)
+vvector<Term*> getInductionTerms(Term* t)
 {
   CALL("getInductionTerms");
-  // no predicates or variables here
-  ASS(t.isTerm() && !t.term()->isLiteral());
+  // no predicates here
+  ASS(!t->isLiteral());
 
-  vvector<TermList> v;
+  vvector<Term*> v;
   if (canInductOn(t)) {
     v.push_back(t);
   }
-  unsigned f = t.term()->functor();
+  unsigned f = t->functor();
   auto type = env.signature->getFunction(f)->fnType();
 
   // If function with recursive definition,
@@ -79,22 +80,24 @@ vvector<TermList> getInductionTerms(TermList t)
     auto& templ = env.signature->getFnDefHandler()->getInductionTemplate(f, true /*trueFun*/);
     const auto& indVars = templ.inductionPositions();
 
-    Term::Iterator argIt(t.term());
+    Term::Iterator argIt(t);
     unsigned i = 0;
     while (argIt.hasNext()) {
       auto arg = argIt.next();
-      if (indVars.at(i) && type->arg(i) == type->result()) {
-        auto indTerms = getInductionTerms(arg);
+      if (indVars.at(i) && type->arg(i) == type->result() && arg.isTerm()) {
+        auto indTerms = getInductionTerms(arg.term());
         v.insert(v.end(), indTerms.begin(), indTerms.end());
       }
       i++;
     }
   } else if (isTermAlgebraCons(t)) {
-    for (unsigned i = 0; i < t.term()->arity(); i++) {
+    for (unsigned i = 0; i < t->arity(); i++) {
       if (type->arg(i) == type->result()) {
-        auto st = *t.term()->nthArgument(i);
-        auto indTerms = getInductionTerms(st);
-        v.insert(v.end(), indTerms.begin(), indTerms.end());
+        auto st = *t->nthArgument(i);
+        if (st.isTerm()) {
+          auto indTerms = getInductionTerms(st.term());
+          v.insert(v.end(), indTerms.begin(), indTerms.end());
+        }
       }
     }
   }
@@ -252,23 +255,23 @@ void RecursionInductionSchemeGenerator::generate(
 {
   CALL("RecursionInductionSchemeGenerator::generate()");
 
-  vvector<InductionScheme> schemes;
+  _schemes.clear();
   _actOccMaps._m.clear();
 
   static vset<Literal*> litsProcessed;
   litsProcessed.clear();
   litsProcessed.insert(main.literal);
 
-  generate(main.clause, main.literal, schemes);
+  generate(main.clause, main.literal);
   for (const auto& s : side) {
     if (litsProcessed.insert(s.first).second) {
-      generate(s.second, s.first, schemes);
+      generate(s.second, s.first);
     }
   }
   _actOccMaps.finalize();
   // filter out schemes that only contain induction
   // terms not present in the main literal
-  schemes.erase(remove_if(schemes.begin(), schemes.end(), [this, &main](const InductionScheme& sch) {
+  _schemes.erase(remove_if(_schemes.begin(), _schemes.end(), [this, &main](const InductionScheme& sch) {
     for (const auto& kv : sch.inductionTerms()) {
       auto it = _actOccMaps._m.find(make_pair(main.literal, kv.first));
       if (it != _actOccMaps._m.end() && it->second.num_set_bits()) {
@@ -276,18 +279,17 @@ void RecursionInductionSchemeGenerator::generate(
       }
     }
     return true;
-  }), schemes.end());
+  }), _schemes.end());
 
   static InductionSchemeFilter f;
-  f.filter(schemes, _actOccMaps);
+  f.filter(_schemes, _actOccMaps);
 
-  for (const auto& sch : schemes) {
+  for (const auto& sch : _schemes) {
     res.push_back(make_pair(sch, _actOccMaps.create_necessary(sch)));
   }
 }
 
-void RecursionInductionSchemeGenerator::generate(Clause* premise, Literal* lit,
-  vvector<InductionScheme>& schemes)
+void RecursionInductionSchemeGenerator::generate(Clause* premise, Literal* lit)
 {
   CALL("RecursionInductionSchemeGenerator::generate");
 
@@ -296,24 +298,26 @@ void RecursionInductionSchemeGenerator::generate(Clause* premise, Literal* lit,
   // terms. The literal itself and both sides
   // of the equality count as active positions.
 
-  Stack<bool> actStack;
-  if (lit->isEquality()) {
-    actStack.push(true);
-    actStack.push(true);
-  } else {
-    process(TermList(lit), true, actStack, premise, lit, schemes);
+  if (env.options->showInduction()) {
+    env.beginOutput();
+    env.out() << "[Induction] processing literal " << *lit << endl;
+    env.endOutput();
   }
+
+  Stack<bool> actStack;
+  process(lit, actStack);
   SubtermIterator it(lit);
-  while(it.hasNext()){
+  while (it.hasNext()){
     TermList curr = it.next();
     bool active = actStack.pop();
-    process(curr, active, actStack, premise, lit, schemes);
+    if (curr.isTerm()) {
+      process(curr.term(), active, actStack, lit);
+    }
   }
   ASS(actStack.isEmpty());
 }
 
-void RecursionInductionSchemeGenerator::addScheme(Literal* lit, Term* t, const InductionTemplate& templ,
-  vvector<InductionScheme>& schemes)
+void RecursionInductionSchemeGenerator::addScheme(Term* t, const InductionTemplate& templ)
 {
   CALL("RecursionInductionSchemeGenerator::addScheme");
 
@@ -324,7 +328,7 @@ void RecursionInductionSchemeGenerator::addScheme(Literal* lit, Term* t, const I
   for (unsigned i = 0; i < t->arity(); i++) {
     auto arg = *t->nthArgument(i);
     if (indPos[i]) {
-      if (!containsSkolem(arg)) {
+      if (arg.isVar() || !containsSkolem(arg.term())) {
         return;
       }
       auto it = inductionTerms.find(arg.term());
@@ -399,85 +403,94 @@ void RecursionInductionSchemeGenerator::addScheme(Literal* lit, Term* t, const I
   if (env.options->showInduction()) {
     env.beginOutput();
     env.out() << "[Induction] induction scheme " << res
-              << " was suggested by term " << *t << " in " << *lit << endl;
+              << " was suggested by term " << *t << endl;
     env.endOutput();
   }
-  schemes.push_back(std::move(res));
+  _schemes.push_back(std::move(res));
 }
 
-void RecursionInductionSchemeGenerator::process(TermList curr, bool active,
-  Stack<bool>& actStack, Clause* premise, Literal* lit,
-  vvector<InductionScheme>& schemes)
+void RecursionInductionSchemeGenerator::handleActiveTerm(Term* t, const InductionTemplate& templ, Stack<bool>& actStack)
+{
+  const auto& indPos = templ.inductionPositions();
+
+  for (int i = t->arity()-1; i >= 0; i--) {
+    actStack.push(indPos[i]);
+  }
+
+  static bool exhaustive = env.options->inductionExhaustiveGeneration();
+  if (exhaustive) {
+    Term::Iterator argIt(t);
+    unsigned i = 0;
+    vvector<TermStack> argTermsList(1); // initially 1 empty vector
+    while (argIt.hasNext()) {
+      auto arg = argIt.next();
+      if (!indPos[i] || arg.isVar()) {
+        for (auto& argTerms : argTermsList) {
+          argTerms.push(arg);
+        }
+      } else {
+        auto its = getInductionTerms(arg.term());
+        vvector<TermStack> newArgTermsList;
+        for (const auto& indTerm : its) {
+          for (auto argTerms : argTermsList) {
+            argTerms.push(TermList(indTerm));
+            newArgTermsList.push_back(std::move(argTerms));
+          }
+        }
+        argTermsList = newArgTermsList;
+      }
+      i++;
+    }
+
+    auto isLit = t->isLiteral();
+    for (const auto& argTerms : argTermsList) {
+      Term* nt;
+      if (isLit) {
+        nt = Literal::create(static_cast<Literal*>(t), argTerms.begin());
+      } else {
+        nt = Term::create(t, argTerms.begin());
+      }
+      addScheme(nt, templ);
+    }
+  } else {
+    addScheme(t, templ);
+  }
+}
+
+void RecursionInductionSchemeGenerator::process(Term* t, bool active,
+  Stack<bool>& actStack, Literal* lit)
 {
   CALL("RecursionInductionSchemeGenerator::process");
 
-  if (!curr.isTerm()) {
-    return;
-  }
-  auto t = curr.term();
-
   // If induction term, store the occurrence
-  if (canInductOn(curr)) {
+  if (canInductOn(t)) {
     _actOccMaps.add(lit, t, active);
   }
 
   unsigned f = t->functor();
-  bool trueFun = !t->isLiteral();
 
   // If function with recursive definition, create a scheme
-  if (env.signature->getFnDefHandler()->hasInductionTemplate(f, trueFun)) {
-    auto& templ = env.signature->getFnDefHandler()->getInductionTemplate(f, trueFun);
-    const auto& indPos = templ.inductionPositions();
-
-    for (int i = t->arity()-1; i >= 0; i--) {
-      actStack.push(indPos[i] && active);
-    }
-
-    if (!active) {
-      return;
-    }
-
-    static bool exhaustive = env.options->inductionExhaustiveGeneration();
-    if (exhaustive) {
-      Term::Iterator argIt(t);
-      unsigned i = 0;
-      vvector<TermStack> argTermsList(1); // initially 1 empty vector
-      while (argIt.hasNext()) {
-        auto arg = argIt.next();
-        if (!indPos[i]) {
-          for (auto& argTerms : argTermsList) {
-            argTerms.push(arg);
-          }
-        } else {
-          auto its = getInductionTerms(arg);
-          vvector<TermStack> newArgTermsList;
-          for (const auto& indTerm : its) {
-            for (auto argTerms : argTermsList) {
-              argTerms.push(indTerm);
-              newArgTermsList.push_back(std::move(argTerms));
-            }
-          }
-          argTermsList = newArgTermsList;
-        }
-        i++;
-      }
-
-      auto isLit = t->isLiteral();
-      for (const auto& argTerms : argTermsList) {
-        Term* nt;
-        if (isLit) {
-          nt = Literal::create(static_cast<Literal*>(t), argTerms.begin());
-        } else {
-          nt = Term::create(t, argTerms.begin());
-        }
-        addScheme(lit, nt, templ, schemes);
-      }
-    } else {
-      addScheme(lit, t, templ, schemes);
-    }
+  if (active && env.signature->getFnDefHandler()->hasInductionTemplate(f, true)) {
+    handleActiveTerm(t, env.signature->getFnDefHandler()->getInductionTemplate(f, true), actStack);
   } else {
     for (unsigned i = 0; i < t->arity(); i++) {
       actStack.push(active);
+    }
+  }
+}
+
+void RecursionInductionSchemeGenerator::process(Literal* lit, Stack<bool>& actStack)
+{
+  CALL("RecursionInductionSchemeGenerator::process");
+
+  unsigned f = lit->functor();
+
+  // If function with recursive definition, create a scheme
+  if (env.signature->getFnDefHandler()->hasInductionTemplate(f, false)) {
+    handleActiveTerm(lit, env.signature->getFnDefHandler()->getInductionTemplate(f, false), actStack);
+  } else {
+    for (unsigned i = 0; i < lit->arity(); i++) {
+      actStack.push(true);
     }
   }
 }

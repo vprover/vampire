@@ -217,14 +217,13 @@ struct RecursionInductionSchemeGenerator
   bool setsFixOccurrences() const override { return true; }
 
 private:
-  void generate(Clause* premise, Literal* lit,
-    vvector<InductionScheme>& schemes);
-  void process(TermList curr, bool active,
-    Stack<bool>& actStack, Clause* premise, Literal* lit,
-    vvector<InductionScheme>& schemes);
-  void addScheme(Literal* lit, Term* t, const InductionTemplate& templ,
-    vvector<InductionScheme>& schemes);
+  void generate(Clause* premise, Literal* lit);
+  void process(Term* t, bool active, Stack<bool>& actStack, Literal* lit);
+  void process(Literal* lit, Stack<bool>& actStack);
+  void addScheme(Term* t, const InductionTemplate& templ);
+  void handleActiveTerm(Term* t, const InductionTemplate& templ, Stack<bool>& actStack);
 
+  vvector<InductionScheme> _schemes;
   OccurrenceMap _actOccMaps;
 };
 

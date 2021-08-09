@@ -27,8 +27,6 @@ using namespace Indexing;
 using namespace Kernel;
 using namespace Lib;
 
-bool isTermAlgebraCons(TermList t);
-
 /**
  * TermTransformer subclass for any TermList to TermList replacement
  */

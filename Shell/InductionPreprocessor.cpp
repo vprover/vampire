@@ -23,18 +23,6 @@ using namespace Kernel;
 
 namespace Shell {
 
-bool isTermAlgebraCons(TermList t)
-{
-  CALL("isTermAlgebraCons");
-
-  if (t.isVar()) {
-    return false;
-  }
-  auto func = t.term()->functor();
-  auto symb = t.term()->isLiteral() ? env.signature->getPredicate(func) : env.signature->getFunction(func);
-  return symb->termAlgebraCons();
-}
-
 TermList TermListReplacement::transformSubterm(TermList trm)
 {
   CALL("TermListReplacement::transformSubterm");
