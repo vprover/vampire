@@ -292,10 +292,14 @@ Clause* AWPassiveClauseContainer::popSelected()
     byWeight(_balance);
 
   if (selByWeight) {
+    // cout << "W-pop";
+
     _balance -= _ageRatio;
     cl = _weightQueue.pop();
     _ageQueue.remove(cl);
   } else {
+    // cout << "A-pop";
+
     _balance += _weightRatio;
     cl = _ageQueue.pop();
     _weightQueue.remove(cl);
@@ -304,6 +308,8 @@ Clause* AWPassiveClauseContainer::popSelected()
   if (_isOutermost) {
     selectedEvent.fire(cl);
   }
+
+  // cout << " n: " << cl->number() << " a: " << cl->age() << " w: " << cl->weightForClauseSelection(*env.options) << endl;
 
   return cl;
 } // AWPassiveClauseContainer::popSelected
@@ -455,7 +461,7 @@ bool AWPassiveClauseContainer::simulationHasNext()
 
 // assumes that simulationHasNext() has been called before and returned true,
 // so each iterator (if used) does point to a clause which is not deleted in the simulation
-void AWPassiveClauseContainer::simulationPopSelected()
+void AWPassiveClauseContainer::simulationPopSelected(unsigned dist)
 {
   // invariants:
   // - both queues share the aux-field which denotes whether a clause was deleted during the simulation
@@ -466,11 +472,13 @@ void AWPassiveClauseContainer::simulationPopSelected()
     _simulationBalance -= _ageRatio;
     ASS(!_simulationCurrWeightCl->hasAux());
     _simulationCurrWeightCl->setAux();
+    _simulationCurrWeightCl->setPassiveDist(dist);
   } else {
     // simulate selection by age
     _simulationBalance += _weightRatio;
     ASS(!_simulationCurrAgeCl->hasAux());
     _simulationCurrAgeCl->setAux();
+    _simulationCurrAgeCl->setPassiveDist(dist);
   }
 }
 

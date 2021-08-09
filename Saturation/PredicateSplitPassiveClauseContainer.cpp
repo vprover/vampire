@@ -273,7 +273,7 @@ bool PredicateSplitPassiveClauseContainer::simulationHasNext()
   return hasNext;
 }
 
-void PredicateSplitPassiveClauseContainer::simulationPopSelected()
+void PredicateSplitPassiveClauseContainer::simulationPopSelected(unsigned dist)
 {
   // compute queue from which we will pick a clause:
   // choose queue using weighted round robin
@@ -307,7 +307,7 @@ void PredicateSplitPassiveClauseContainer::simulationPopSelected()
     }
   }
 
-  _queues[currIndex]->simulationPopSelected();
+  _queues[currIndex]->simulationPopSelected(dist);
 }
 
 // returns whether at least one of the limits was tightened

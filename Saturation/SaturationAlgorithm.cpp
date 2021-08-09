@@ -461,6 +461,18 @@ void SaturationAlgorithm::onNewClause(Clause* cl)
     env.tracer->onNewClause(cl);
   }
 
+  /*
+  if (env.tracer) {
+    static unsigned lastPassiveDistUpdated = 0;
+    unsigned now = env.timer->elapsedMilliseconds();
+    if (now - lastPassiveDistUpdated > 1000) {
+      lastPassiveDistUpdated = now;
+      _passive->numberPassive();
+      env.tracer->onPassiveNumbered();
+    }
+  }
+  */
+
   if (env.options->showNew()) {
     std::cout << "[SA] new: " << cl->toString() << std::endl;
   }

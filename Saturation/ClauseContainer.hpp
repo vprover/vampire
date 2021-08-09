@@ -125,9 +125,11 @@ public:
    */
   void updateLimits(long long estReachableCnt);
 
+  void numberPassive();
+
   virtual void simulationInit() = 0;
   virtual bool simulationHasNext() = 0;
-  virtual void simulationPopSelected() = 0;
+  virtual void simulationPopSelected(unsigned dist) = 0;
 
   // returns whether at least one of the limits was tightened
   virtual bool setLimitsToMax() = 0;

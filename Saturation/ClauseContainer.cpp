@@ -130,7 +130,7 @@ void PassiveClauseContainer::updateLimits(long long estReachableCnt)
     long long remains=estReachableCnt;
     while (simulationHasNext() && remains > 0)
     {
-      simulationPopSelected();
+      simulationPopSelected(0);
       remains--;
     }
 
@@ -143,6 +143,26 @@ void PassiveClauseContainer::updateLimits(long long estReachableCnt)
     // trigger a change event, in order to notify both passive and active clause-containers
     changedEvent.fire();
   }
+}
+
+
+void PassiveClauseContainer::numberPassive()
+{
+  CALL("PassiveClauseContainer::numberPassive");
+
+  Clause::requestAux();
+
+  simulationInit();
+
+  unsigned ord = 0;
+  while (simulationHasNext())
+  {
+    simulationPopSelected(ord);
+    ord++;
+  }
+  // cout << "PassiveClauseContainer numbered: " << ord << " clauses seen" << endl;
+
+  Clause::releaseAux();
 }
 
 /////////////////   ActiveClauseContainer   //////////////////////
