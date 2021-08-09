@@ -121,16 +121,17 @@ Z3Interfacing::Z3Interfacing(SAT2FO& s2f, bool showZ3, bool unsatCore, vstring c
   _assumptions(),
   _showZ3(showZ3),
   _unsatCore(unsatCore),
-  _out(exportSmtlib == "" ? Option<std::ofstream>()
-                          : Option<std::ofstream>(std::ofstream(exportSmtlib.c_str())) )
+  _out()
 {
   CALL("Z3Interfacing::Z3Interfacing");
   BYPASSING_ALLOCATOR
-  _solver.reset();
-
+  _out = exportSmtlib == "" ? Option<std::ofstream>()
+                            : Option<std::ofstream>(std::ofstream(exportSmtlib.c_str())) ;
   if (_out.isSome() && _out.unwrap().fail()) {
     throw UserErrorException("Failed to open file: ", exportSmtlib);
   }
+
+  _solver.reset();
   outputln("(check-sat)");
   outputln("(get-model)");
   outputln("(reset)");
