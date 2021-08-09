@@ -180,7 +180,7 @@ void InductionTemplate::sortBranches()
 bool InductionTemplate::Branch::contains(InductionTemplate::Branch other)
 {
   RobSubstitution subst;
-  if (!subst.unify(_header, 0, other._header, 1)) {
+  if (!subst.match(_header, 0, other._header, 1)) {
     return false;
   }
 
