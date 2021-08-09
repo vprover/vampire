@@ -31,6 +31,9 @@ struct ProofTracer {
 
   static void printWithStore(Clause* cl) {
     cout << cl->store() << " " << cl->toString() << endl;
+    if (cl->store() == Clause::PASSIVE) {
+      cout << "distance: " << cl->getPassiveDist() << " age: " << cl->age() << " weight: " << cl->weightForClauseSelection(*env.options) << endl;
+    }
   }
 
   enum InferenceKind {
@@ -95,6 +98,7 @@ struct ProofTracer {
     void onNewClause(Clause* cl);
     void onInputClause(Clause* cl);
     void onInputFinished();
+    void onPassiveNumbered();
     void onActivation(Clause* cl);
     void onActivationFinished(Clause* cl);
     void onSaturationFinished();
@@ -140,7 +144,8 @@ struct ProofTracer {
     void listExpecteds();
     void listExpectedsDetails();
 
-    TracedProof() : _seen(0), _inOrder(nullptr), _theEmpty(0), _variantLookup(new Indexing::HashingClauseVariantIndex()), _numInitials(0), _seenInitials(0), _lastActivationMatch(0) {}
+    TracedProof() : _seen(0), _inOrder(nullptr), _theEmpty(0), _variantLookup(new Indexing::HashingClauseVariantIndex()),
+        _numInitials(0), _seenInitials(0), _lastActivationMatch(0) {}
     ~TracedProof() { delete _variantLookup; }
 
   private:
@@ -202,6 +207,12 @@ struct ProofTracer {
   {
     CALL("ProofTracer::onInputFinished");
     _tp->onInputFinished();
+  }
+
+  void onPassiveNumbered()
+  {
+    CALL("ProofTracer::onPassiveNumbered");
+    _tp->onPassiveNumbered();
   }
 
   void onActivation(Clause* cl)

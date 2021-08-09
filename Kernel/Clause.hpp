@@ -361,6 +361,9 @@ public:
   void setTraced() { _traced = true; }
   bool isTraced() const { return _traced; }
 
+  void setPassiveDist(unsigned d) { _passiveDist = d; }
+  unsigned getPassiveDist() { return _passiveDist; }
+
 protected:
   /** number of literals */
   unsigned _length : 20;
@@ -395,6 +398,8 @@ protected:
   InverseLookup<Literal>* _literalPositions;
 
   int _numActiveSplits;
+
+  unsigned _passiveDist;
 
   size_t _auxTimestamp;
   void* _auxData;

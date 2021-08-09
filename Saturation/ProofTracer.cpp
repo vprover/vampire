@@ -17,6 +17,7 @@
 #include "Lib/ScopedLet.hpp"
 #include "Lib/VString.hpp"
 #include "Lib/StringUtils.hpp"
+
 #include "Kernel/Unit.hpp"
 #include "Kernel/Inference.hpp"
 #include "Kernel/FormulaUnit.hpp"
@@ -63,11 +64,11 @@ void ProofTracer::TracedProof::onNewClause(Clause* cl)
     }
 
     if (info->_stalkees.size()) {
-      cout << "Again: ";
       if (info->_exacted) {
-        cout << "(already exacted) ";
+        //cout << "Again:  (already exacted) " << info->_num << "/" << _clInfo.size() << " " << info->_name << " " << cl->toString() << endl;
+      } else {
+        cout << "Again: " << info->_num << "/" << _clInfo.size() << " " << info->_name << " " << cl->toString() << endl;
       }
-      cout << info->_num << "/" << _clInfo.size() << " " << info->_name << " " << cl->toString() << endl;
     } else {
       info->_num = ++_seen;
 
@@ -128,7 +129,7 @@ void ProofTracer::TracedProof::onNewClause(Clause* cl)
       }
 
       if (info->_exacted) {
-        cout << "  exacted" << endl;
+        cout << "  exacted: " << info->_num << "/" << _clInfo.size() << " " << info->_name << " " << cl->toString() << endl;
         // make me the first stalkee
         unsigned numStalkees = info->_stalkees.size();
         if (numStalkees > 1) {
@@ -154,16 +155,17 @@ void ProofTracer::TracedProof::onNewClause(Clause* cl)
     }
     cout << "Seen: " << _seen << " / " << _clInfo.size() << endl;
     */
-
-    /*
-    cout << "Currently expecting:" << endl;
-    _tp->listExpectedsDetails();
-    */
-
-    // cout << endl;
   }
 }
 
+void ProofTracer::TracedProof::onPassiveNumbered()
+{
+  CALL("ProofTracer::TracedProof::onPassiveNumbered");
+
+  cout << "Currently expecting:" << endl;
+  listExpectedsDetails();
+  cout << endl;
+}
 
 void ProofTracer::TracedProof::onInputClause(Clause* cl)
 {

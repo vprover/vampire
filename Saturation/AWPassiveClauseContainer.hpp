@@ -109,7 +109,7 @@ private:
 public:
   void simulationInit() override;
   bool simulationHasNext() override;
-  void simulationPopSelected() override;
+  void simulationPopSelected(unsigned dist) override;
 
   // returns whether at least one of the limits was tightened
   bool setLimitsToMax() override;
