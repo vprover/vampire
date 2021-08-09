@@ -23,7 +23,10 @@
  */
 #define PRINT_CPP(X) // cout << X << endl;
 
+#include <fstream>
+
 #include "Lib/DHMap.hpp"
+#include "Lib/Option.hpp"
 #include "Lib/BiMap.hpp"
 #include "Lib/Set.hpp"
 
@@ -43,7 +46,7 @@ namespace SAT{
 
   struct UninterpretedForZ3Exception : public ThrowableBase
   {
-    UninterpretedForZ3Exception() 
+    UninterpretedForZ3Exception()
     {
       CALL("Z3Interfacing::UninterpretedForZ3Exception::UninterpretedForZ3Exception");
     }
@@ -51,12 +54,12 @@ namespace SAT{
 
 class Z3Interfacing : public PrimitiveProofRecordingSATSolver
 {
-public: 
+public:
   CLASS_NAME(Z3Interfacing);
   USE_ALLOCATOR(Z3Interfacing);
-  
-  Z3Interfacing(const Shell::Options& opts, SAT2FO& s2f, bool unsatCore = false);
-  Z3Interfacing(SAT2FO& s2f, bool showZ3, bool unsatCore);
+
+  Z3Interfacing(const Shell::Options& opts, SAT2FO& s2f, bool unsatCore, vstring const& exportSmtlib);
+  Z3Interfacing(SAT2FO& s2f, bool showZ3, bool unsatCore, vstring const& exportSmtlib);
   ~Z3Interfacing();
 
   static char const* z3_full_version();
@@ -105,64 +108,42 @@ public:
 
   // Currently not implemented for Z3
   virtual void suggestPolarity(unsigned var, unsigned pol) override {}
-  
+
   virtual void addAssumption(SATLiteral lit) override;
   virtual void retractAllAssumptions() override;
   virtual bool hasAssumptions() const override { return !_assumptions.isEmpty(); }
 
   virtual Status solveUnderAssumptions(const SATLiteralStack& assumps, unsigned conflictCountLimit, bool onlyProperSubusets) override;
 
-//  /**
-//   * Record the association between a SATLiteral var and a Literal
-//   * In TWLSolver this is used for computing niceness values
-//   */
-//   virtual void recordSource(unsigned satlitvar, Literal* lit) override {
-//     // unsupported by Z3; intentionally no-op
-//   };
-  
-  /**
-   * The set of inserted clauses may not be propositionally UNSAT
-   * due to theory reasoning inside Z3.
-   * We cannot later minimize this set with minisat.
-   *
-   * TODO: think of extracting true refutation from Z3 instead.
-   */
-  SATClauseList* getRefutationPremiseList() override{ return 0; } 
-
-  SATClause* getRefutation() override;  
+  SATClause* getRefutation() override;
 
   template<class F>
   auto scoped(F f)  -> decltype(f())
-  { 
+  {
     _solver.push();
     auto result = f();
     _solver.pop();
     return result;
   }
-  // void reset(){
-  //   DBG("resetting z3")
-  //   _sat2fo.reset();
-  //   _solver.reset();
-  //   _status = UNKNOWN; // I set it to unknown as I do not reset
-  // }
+
   using FuncId = unsigned;
   using PredId = unsigned;
   using SortId = TermList;
 
-  struct FuncOrPredId 
+  struct FuncOrPredId
   {
     explicit FuncOrPredId(unsigned id, bool isPredicate) : id(id), isPredicate(isPredicate) {}
     explicit FuncOrPredId(Term* term) : FuncOrPredId(term->functor(), term->isLiteral()) {}
-    static FuncOrPredId function(FuncId id) { return FuncOrPredId ( id, false ); } 
-    static FuncOrPredId predicate(PredId id) { return FuncOrPredId ( id, true ); } 
+    static FuncOrPredId function(FuncId id) { return FuncOrPredId ( id, false ); }
+    static FuncOrPredId predicate(PredId id) { return FuncOrPredId ( id, true ); }
     unsigned id;
     bool isPredicate;
-    
+
     friend struct std::hash<FuncOrPredId> ;
     friend bool operator==(FuncOrPredId const& l, FuncOrPredId const& r)
     { return l.id == r.id && l.isPredicate == r.isPredicate; }
     friend std::ostream& operator<<(std::ostream& out, FuncOrPredId const& self)
-    { return out << (self.isPredicate ? "pred " : "func " ) 
+    { return out << (self.isPredicate ? "pred " : "func " )
       << (self.isPredicate ? env.signature->getPredicate(self.id)->name() : env.signature->getFunction(self.id)->name());
     }
   };
@@ -185,7 +166,6 @@ private:
 
   z3::func_decl z3Function(FuncOrPredId function);
 
-  // not sure why this one is public
   friend struct ToZ3Expr;
   friend struct EvaluateInModel;
 public:
@@ -196,7 +176,7 @@ public:
 
 private:
 
-  struct Representation 
+  struct Representation
   {
     Representation(z3::expr expr, Stack<z3::expr> defs) : expr(expr), defs(defs) {}
     Representation(Representation&&) = default;
@@ -208,59 +188,52 @@ private:
   Representation getRepresentation(SATLiteral lit);
   Representation getRepresentation(SATClause* cl);
 
-  // just to conform to the interface
-  unsigned _varCnt;
-  // Memory belongs to Splitter
-  SAT2FO& _sat2fo;
+
+  unsigned _varCnt; // just to conform to the interface
+  SAT2FO& _sat2fo; // Memory belongs to Splitter
 
   Status _status;
   z3::config _config;
   z3::context _context;
   z3::solver _solver;
   z3::model _model;
-
-
   Stack<z3::expr> _assumptions;
   BiMap<SATLiteral, z3::expr> _assumptionLookup;
   const bool _showZ3;
   const bool _unsatCore;
-
+  Option<std::ofstream> _out;
   Map<unsigned, z3::expr> _varNames;
-
-  bool isNamedExpr(unsigned var)
-  { return _varNames.find(var); }
-
-  z3::expr getNameExpr(unsigned var){
-    return _varNames.getOrInit(var, [&](){
-        // this method is called very often in runs with a lot of avatar reasoning. Cache the constants to avoid that z3 has to search for the string name in its function index
-        vstring name = "v"+Lib::Int::toString(var);
-        return  _context.bool_const(name.c_str());
-    });
-  }
-
   Map<TermList, z3::expr> _termIndexedConstants;
-  z3::expr constantFor(TermList name, z3::sort sort)
+  Map<Signature::Symbol*, z3::expr> _constantNames;
+
+  bool     isNamedExpr(unsigned var) const;
+  z3::expr getNameExpr(unsigned var);
+
+  z3::expr getNamingConstantFor(TermList name, z3::sort sort);
+  z3::expr getConst(Signature::Symbol* symb, z3::sort srt);
+
+                                 void __output(std::ostream& out               ) {                                 }
+  template<class A, class... As> void __output(std::ostream& out, A a, As... as) { out << a; __output(out, as...); }
+
+  template<class... As>
+  void _output(bool endl, As... as)
   {
-    return _termIndexedConstants.getOrInit(name, [&](){
-        auto n = name.toString();
-        return _context.constant(n.c_str(), sort);
-    });
+    if (_out.isSome()) {
+      __output(_out.unwrap(), as...);
+      if (endl)
+        _out.unwrap() << std::endl;
+    }
   }
 
-  // careful: keep native constants' names distinct from the above ones (hence the "c"-prefix below)
-  z3::expr getNameConst(const vstring& symbName, z3::sort srt){
-    vstring name("c"+symbName);
-    return _context.constant(name.c_str(),srt);
-  }
-
-
+  template<class... As> void outputln(As... as) { _output(true , as...); }
+  template<class... As> void output  (As... as) { _output(false, as...); }
 };
 
 }//end SAT namespace
 namespace std {
     template<>
     struct hash<SAT::Z3Interfacing::FuncOrPredId> {
-      size_t operator()(SAT::Z3Interfacing::FuncOrPredId const& self) 
+      size_t operator()(SAT::Z3Interfacing::FuncOrPredId const& self)
       { return Lib::HashUtils::combine(self.id, self.isPredicate); }
     };
 }
