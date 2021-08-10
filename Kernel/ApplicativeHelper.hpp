@@ -82,8 +82,8 @@ private:
 
   static TermList getVSpecVar(Term* funcTerm, FuncSubtermMap* fsm)
   {
-    if(fsm->find2(funcTerm)){
-      unsigned vNum = fsm->get2(funcTerm);
+    unsigned vNum;
+    if(fsm->find(funcTerm, vNum)){
       ASS(vNum > TermList::SPEC_UPPER_BOUND);
       return TermList(vNum, true);
     } else {

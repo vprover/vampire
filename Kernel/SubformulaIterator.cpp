@@ -216,6 +216,11 @@ bool SubformulaIterator::hasNext ()
             _reserve = new Element(tupleTerm, polarity, rest);
             break;
           }
+          case Term::SF_MATCH: {
+            delete _reserve;
+            _reserve = rest;
+            break;
+          }
 #if VDEBUG
           default:
             ASSERTION_VIOLATION;

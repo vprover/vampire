@@ -152,6 +152,11 @@ void Options::init()
     _lookup.insert(&_multicore);
     _multicore.reliesOnHard(Or(_mode.is(equal(Mode::CASC)),_mode.is(equal(Mode::CASC_HOL)),_mode.is(equal(Mode::CASC_SAT)),_mode.is(equal(Mode::SMTCOMP)),_mode.is(equal(Mode::PORTFOLIO))));
 
+    _slowness = FloatOptionValue("slowness","",1.3);
+    _slowness.description = "The factor by which is multiplied the time limit of each configuration in casc/casc_sat/smtcomp/portfolio mode";
+    _lookup.insert(&_slowness);
+    _slowness.reliesOn(Or(_mode.is(equal(Mode::CASC)),_mode.is(equal(Mode::CASC_SAT)),_mode.is(equal(Mode::SMTCOMP)),_mode.is(equal(Mode::PORTFOLIO))));
+
     _ltbLearning = ChoiceOptionValue<LTBLearning>("ltb_learning","ltbl",LTBLearning::OFF,{"on","off","biased"});
     _ltbLearning.description = "Perform learning in LTB mode";
     _lookup.insert(&_ltbLearning);
@@ -626,6 +631,19 @@ void Options::init()
     _showZ3.description="Print the clauses being added to Z3";
     _lookup.insert(&_showZ3);
     _showZ3.tag(OptionTag::DEVELOPMENT);
+
+    _exportAvatarProblem = StringOptionValue("export_avatar","","");
+    _exportAvatarProblem.description="Export the avatar problems to solve in smtlib syntax.";
+    _lookup.insert(&_exportAvatarProblem);
+    _exportAvatarProblem.tag(OptionTag::DEVELOPMENT);
+    _exportAvatarProblem.reliesOn(And(_splitting.is(equal(true)), _satSolver.is(equal(Options::SatSolver::Z3))));
+
+    _exportThiProblem = StringOptionValue("export_thi","","");
+    _exportThiProblem.description="Export the theory instantiation problems to solve in smtlib syntax.";
+    _lookup.insert(&_exportThiProblem);
+    _exportThiProblem.tag(OptionTag::DEVELOPMENT);
+    _exportThiProblem.reliesOn(_theoryInstAndSimp.is(notEqual(TheoryInstSimp::OFF)));
+
 #endif
 
     _showFOOL = BoolOptionValue("show_fool","",false);
@@ -977,10 +995,46 @@ void Options::init()
 #if VZ3
 
            _theoryInstAndSimp = ChoiceOptionValue<TheoryInstSimp>("theory_instantiation","thi",
-                                                TheoryInstSimp::OFF,{"off","all","strong","overlap","full","new"});
-           _theoryInstAndSimp.description = ""; 
+                                                TheoryInstSimp::OFF, {"off", "all", "strong", "neg_eq", "overlap", "full", "new"});
+           _theoryInstAndSimp.description = ""
+           "\nEnables theory instantiation rule: "
+           "\nT[x_1, ..., x_n] \\/ C[x_1, ..., x_n]"
+           "\n-------------------------------------"
+           "\n           C[t_1, ..., t_n]          "
+           "\nwhere  "
+           "\n -  T[x_1, ..., x_n] is a pure theory clause  "
+           "\n - ~T[t_1, ...., t_n] is valid "
+           "\n"
+           "\nThe rule uses an smt solver (i.e. z3 atm) to find t_1...t_n that satisfy the requirement for the rule."
+           "\n"
+           "\nThe different option values define the behaviour of which theory literals to select."
+           "\n- all    : hmmm.. what could that mean?!"
+           "\n- neg_eq : only negative equalities"
+           "\n- strong : interpreted predicates, but no positive equalites"
+           "\n- overlap: all literals that contain variables that are also contained in a strong literal"
+           "\n- new    : deprecated"
+           "\n- full   : deprecated"
+           ""; 
            _theoryInstAndSimp.tag(OptionTag::INFERENCES);
            _lookup.insert(&_theoryInstAndSimp);
+
+           _thiGeneralise = BoolOptionValue("theory_instantiation_generalisation", "thigen", false);
+           _thiGeneralise.description = "Enable retrieval of generalised instances in theory instantiation. This can help with datatypes but requires thi to call the smt solver twice. "
+           "\n"
+           "\n An example of such a generalisation is:"
+           "\n first(x) > 0 \\/ P[x]"
+           "\n ==================== "
+           "\n     P[(-1, y)]"
+           "\n"
+           "\n instead of the more concrete instance"
+           "\n first(x) > 0 \\/ P[x]"
+           "\n ==================== "
+           "\n     P[(-1, 0)]"
+           ; 
+           _thiGeneralise.tag(OptionTag::INFERENCES);
+           _lookup.insert(&_thiGeneralise);
+           _thiGeneralise.setExperimental();
+           _thiGeneralise.reliesOn(_theoryInstAndSimp.is(notEqual(TheoryInstSimp::OFF)));
 
            _thiTautologyDeletion = BoolOptionValue("theory_instantiation_tautology_deletion", "thitd", false);
            _thiTautologyDeletion.description = "Enable deletion of tautology theory subclauses detected via theory instantiation."; 
@@ -1865,10 +1919,6 @@ void Options::init()
     _satFallbackForSMT.tag(OptionTag::SAT);
     _satFallbackForSMT.reliesOn(_satSolver.is(equal(SatSolver::Z3)));
 
-    _z3UnsatCores = BoolOptionValue("z3_unsat_core","z3uc",false);
-    _z3UnsatCores.description=""; 
-    _lookup.insert(&_z3UnsatCores);
-    _z3UnsatCores.tag(OptionTag::SAT);
 #endif
 
     //*************************************************************

@@ -448,7 +448,9 @@ public:
   static bool isConversionOperation(Interpretation i);
   static bool isLinearOperation(Interpretation i);
   static bool isNonLinearOperation(Interpretation i);
-  static bool isPartialFunction(Interpretation i);
+  bool isPartiallyInterpretedFunction(Term* t);
+  bool partiallyDefinedFunctionUndefinedForArgs(Term* t);
+  // static bool isPartialFunction(Interpretation i);
 
   static bool isPolymorphic(Interpretation i);
 
@@ -473,11 +475,10 @@ public:
       other interpreted predicate.
    */
   bool isInterpretedPredicate(unsigned pred);
-  /** Returns true if the argument is any interpreted predicate (including
-      equality).
-   */
-  bool isInterpretedPredicate(Literal* lit);
+
+  bool isInterpretedEquality(Literal* lit);
   bool isInterpretedPredicate(Literal* lit, Interpretation itp);
+  bool isInterpretedPredicate(Literal* lit);
 
   bool isInterpretedFunction(unsigned func);
   bool isInterpretedFunction(Term* t);
@@ -485,7 +486,7 @@ public:
   bool isInterpretedFunction(Term* t, Interpretation itp);
   bool isInterpretedFunction(TermList t, Interpretation itp);
 
-  bool isInterpretedPartialFunction(unsigned func);
+  // bool isInterpretedPartialFunction(unsigned func);
   bool isZero(TermList t);
 
   Interpretation interpretFunction(unsigned func);

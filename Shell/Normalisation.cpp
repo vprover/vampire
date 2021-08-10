@@ -518,6 +518,10 @@ Comparison Normalisation::compare(Term* t1, Term* t2)
         return comp;     
       }
 
+      case Term::SF_MATCH: {
+        break; // comparison by arity and pairwise by arguments is done below
+      }
+
       default:
         ASSERTION_VIOLATION;
     }

@@ -42,7 +42,7 @@ public:
   {
   public:                                
     LexerException(const CParser&,unsigned pos,Lib::vstring message);
-    void cry(ostream&);
+    void cry(ostream&) const override;
     ~LexerException() {}
   protected:
     Lib::vstring _message;
@@ -58,7 +58,7 @@ public:
   {
   public:                                
     ParserException(const CParser&,unsigned pos,Lib::vstring message);
-    void cry(ostream&);
+    void cry(ostream&) const override;
     ~ParserException() {}
   protected:
     Lib::vstring _message;

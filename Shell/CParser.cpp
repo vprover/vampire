@@ -433,7 +433,7 @@ CParser::LexerException::LexerException (const CParser& parser,unsigned pos,vstr
 /**
  * Write itself to an ostream.
  */
-void CParser::LexerException::cry (ostream& out)
+void CParser::LexerException::cry (ostream& out) const
 {
   out << "C lexer exception: " << _message << '\n';
 } // CParser::LexerException::cry
@@ -450,7 +450,7 @@ CParser::ParserException::ParserException (const CParser& parser,unsigned pos,vs
 /**
  * Write itself to an ostream.
  */
-void CParser::ParserException::cry (ostream& out)
+void CParser::ParserException::cry (ostream& out) const
 {
   out << "C parser exception: " << _message << '\n';
 } // CParser::ParserException::cry

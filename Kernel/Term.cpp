@@ -654,6 +654,10 @@ vstring Term::headToString() const
         varList += "]";        
         return "(^" + varList + " : (" + lambdaExp.toString() + "))";
       }
+      case Term::SF_MATCH: {
+        // we simply let the arguments be written out
+        return "$match(";
+      }
       default:
         ASSERTION_VIOLATION;
     }
@@ -1243,6 +1247,24 @@ Term* Term::createTuple(Term* tupleTerm) {
   return s;
 }
 
+Term *Term::createMatch(TermList sort, TermList matchedSort, unsigned int arity, TermList *elements) {
+  CALL("Term::createMatch");
+  Term *s = new (arity, sizeof(SpecialTermData)) Term;
+  s->makeSymbol(SF_MATCH, arity);
+  TermList *ss = s->args();
+  s->getSpecialData()->_matchData.sort = sort;
+  s->getSpecialData()->_matchData.matchedSort = matchedSort;
+
+  for (unsigned i = 0; i < arity; i++) {
+    ASS(!elements[i].isEmpty());
+    *ss = elements[i];
+    ss = ss->next();
+  }
+  ASS(ss->isEmpty());
+
+  return s;
+}
+
 /** Create a new complex term, copy from @b t its function symbol and arity.
  *  Initialize its arguments by a dummy special variable.
  */
@@ -1502,6 +1524,15 @@ bool Term::isBoolean() const {
       case SF_LET:
       case SF_LET_TUPLE: {
         const TermList *ts = term->nthArgument(0);
+        if (!ts->isTerm()) {
+          return false;
+        } else {
+          term = ts->term();
+          break;
+        }
+      }
+      case SF_MATCH: {
+        const TermList *ts = term->nthArgument(2);
         if (!ts->isTerm()) {
           return false;
         } else {
@@ -1920,7 +1951,7 @@ std::ostream& Kernel::operator<< (ostream& out, const Literal& l )
   return out<<l.toString();
 }
 
-bool Kernel::operator<(const TermList& lhs, const TermList& rhs) 
+bool operator<(const TermList& lhs, const TermList& rhs) 
 { 
   auto cmp = lhs.isTerm() - rhs.isTerm();
   if (cmp != 0) return cmp < 0;

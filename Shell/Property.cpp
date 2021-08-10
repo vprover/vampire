@@ -680,6 +680,10 @@ void Property::scan(TermList ts,bool unit,bool goal)
         _hasFOOL = true;
         break;
 
+      case Term::SF_MATCH:
+        _hasFOOL = true;
+        break;
+
       default:
         break;
     }
@@ -740,7 +744,7 @@ void Property::scanForInterpreted(Term* t)
   Interpretation itp;
   if (t->isLiteral()) {
     Literal* lit = static_cast<Literal*>(t);
-    if (!theory->isInterpretedPredicate(lit)) { return; }
+    if (!theory->isInterpretedPredicate(lit->functor())) { return; }
     if (lit->isEquality()) {
       //cout << "this is interpreted equality " << t->toString() << endl;
       _hasInterpretedEquality=true;

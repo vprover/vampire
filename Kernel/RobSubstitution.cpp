@@ -230,8 +230,8 @@ void RobSubstitution::addToConstraints(const VarSpec& v1, const VarSpec& v2, Mis
 {
   CALL("RobSubstitution::addToConstraints");
 
-  Term* t1 = _funcSubtermMap->get1(v1.var);
-  Term* t2 = _funcSubtermMap->get1(v2.var);
+  Term* t1 = _funcSubtermMap->get(v1.var);
+  Term* t2 = _funcSubtermMap->get(v2.var);
 
   if(t1 == t2 && t1->shared() && t1->ground()){ return; }
  
@@ -327,7 +327,7 @@ bool RobSubstitution::occurs(VarSpec vs, TermSpec ts)
   vs=root(vs);
   Stack<TermSpec> toDo(8);
   if(ts.isVSpecialVar()){
-    Term* t = _funcSubtermMap->get1(ts.term.var());
+    Term* t = _funcSubtermMap->get(ts.term.var());
     ts = TermSpec(TermList(t), ts.index);
   }else if(ts.isVar()) {
     ts=derefBound(ts);
@@ -355,12 +355,12 @@ bool RobSubstitution::occurs(VarSpec vs, TermSpec ts)
         if(!isVSpecialVar){
           dtvar=derefBound(TermSpec(tvar));
         } else {
-          Term* t = _funcSubtermMap->get1(var.var());
+          Term* t = _funcSubtermMap->get(var.var());
           dtvar = TermSpec(TermList(t), ts.index);
         }
         if(!dtvar.isVar() || dtvar.isVSpecialVar()) {
           if(dtvar.isVSpecialVar()){
-            Term* t = _funcSubtermMap->get1(dtvar.term.var());
+            Term* t = _funcSubtermMap->get(dtvar.term.var());
             dtvar = TermSpec(TermList(t), dtvar.index);            
           }
           encountered.insert(tvar);
@@ -430,11 +430,11 @@ bool RobSubstitution::unify(TermSpec t1, TermSpec t2,MismatchHandler* hndlr)
       }
       bind(v2,dt1);
     } else if(dt1.isVSpecialVar()){
-      Term* t = _funcSubtermMap->get1(dt1.term.var());
+      Term* t = _funcSubtermMap->get(dt1.term.var());
       t1 = TermSpec(TermList(t), dt1.index);
       toDo.push(TTPair(t1, dt2));
     } else if(dt2.isVSpecialVar()){
-      Term* t = _funcSubtermMap->get1(dt2.term.var());
+      Term* t = _funcSubtermMap->get(dt2.term.var());
       t2 = TermSpec(TermList(t), dt2.index);
       toDo.push(TTPair(dt1, t2));
     } else {
@@ -736,7 +736,7 @@ TermList RobSubstitution::apply(TermList trm, int index) const
     }
     Term* t;
     if(ts.term.isVSpecialVar()){
-      t = _funcSubtermMap->get1(ts.term.var());
+      t = _funcSubtermMap->get(ts.term.var());
     } else {
       t = ts.term.term();
     }
@@ -831,7 +831,7 @@ size_t RobSubstitution::getApplicationResultWeight(TermList trm, int index) cons
     }
     Term* t;
     if(ts.term.isVSpecialVar()){
-      t = _funcSubtermMap->get1(ts.term.var());
+      t = _funcSubtermMap->get(ts.term.var());
     }else{
       t=ts.term.term();
     }

@@ -228,7 +228,8 @@ public:
   static const unsigned SF_TUPLE = 0xFFFFFFFC;
   static const unsigned SF_LET_TUPLE = 0xFFFFFFFB;
   static const unsigned SF_LAMBDA = 0xFFFFFFFA;
-  static const unsigned SPECIAL_FUNCTOR_LOWER_BOUND = 0xFFFFFFFA;
+  static const unsigned SF_MATCH = 0xFFFFFFF9;
+  static const unsigned SPECIAL_FUNCTOR_LOWER_BOUND = 0xFFFFFFF9;
 
   class SpecialTermData
   {
@@ -268,6 +269,10 @@ public:
         TermList sort; 
         TermList expSort;//TODO is this needed?
       } _lambdaData;
+      struct {
+        TermList sort;
+        TermList matchedSort;
+      } _matchData;
     };
     /** Return pointer to the term to which this object is attached */
     const Term* getTerm() const { return reinterpret_cast<const Term*>(this+1); }
@@ -302,12 +307,15 @@ public:
           return _letTupleData.sort;
         case SF_LAMBDA:
           return _lambdaData.sort;
+        case SF_MATCH:
+          return _matchData.sort;
         default:
           ASSERTION_VIOLATION_REP(getType());
       }
     }
     Formula* getFormula() const { ASS_EQ(getType(), SF_FORMULA); return _formulaData.formula; }
     Term* getTupleTerm() const { return _tupleData.term; }
+    TermList getMatchedSort() const { return _matchData.matchedSort; }
   };
 
 
@@ -331,6 +339,7 @@ public:
   static Term* createFormula(Formula* formula);
   static Term* createTuple(unsigned arity, TermList* sorts, TermList* elements);
   static Term* createTuple(Term* tupleTerm);
+  static Term* createMatch(TermList sort, TermList matchedSort, unsigned int arity, TermList* elements);
   static Term* create1(unsigned fn, TermList arg);
   static Term* create2(unsigned fn, TermList arg1, TermList arg2);
 
@@ -614,6 +623,7 @@ public:
   bool isTuple() const { return functor() == SF_TUPLE; }
   bool isFormula() const { return functor() == SF_FORMULA; }
   bool isLambda() const { return functor() == SF_LAMBDA; }
+  bool isMatch() const { return functor() == SF_MATCH; }
   bool isBoolean() const;
   bool isSuper() const; 
   

@@ -504,8 +504,6 @@ KBO::KBO(
   checkAdmissibility(throwError);
 }
 
-#if VDEBUG
-
 KBO KBO::testKBO() 
 {
 
@@ -539,8 +537,6 @@ KBO KBO::testKBO()
       predLevels(),
       false);
 }
-#endif 
-
 
 template<class HandleError>
 void KBO::checkAdmissibility(HandleError handle) const 

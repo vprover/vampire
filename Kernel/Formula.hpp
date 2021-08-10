@@ -337,7 +337,8 @@ class BoolTermFormula
       _ts(ts)
   {
     // only boolean terms in formula context are expected here
-    ASS_REP(ts.isVar() || ts.term()->isITE() || ts.term()->isLet() || ts.term()->isTupleLet() || 
+    ASS_REP(ts.isVar() || ts.term()->isITE() || ts.term()->isLet() ||
+            ts.term()->isTupleLet() || ts.term()->isMatch() ||
             SortHelper::getResultSort(ts.term()) == AtomicSort::boolSort(), ts.toString());
   }
 

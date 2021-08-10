@@ -318,6 +318,13 @@ Term* SubstHelper::applyImpl(Term* trm, Applicator& applicator, bool noSharing)
         );
     case Term::SF_TUPLE:
       return Term::createTuple(applyImpl<ProcessSpecVars>(sd->getTupleTerm(), applicator, noSharing));
+    case Term::SF_MATCH: {
+      DArray<TermList> terms(trm->arity());
+      for (unsigned i = 0; i < trm->arity(); i++) {
+        terms[i] = applyImpl<ProcessSpecVars>(*trm->nthArgument(i), applicator, noSharing);
+      }
+      return Term::createMatch(sd->getSort(), sd->getMatchedSort(), trm->arity(), terms.begin());
+    }
     }
     ASSERTION_VIOLATION;
   }

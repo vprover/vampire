@@ -181,7 +181,6 @@ VL_OBJ= Lib/Allocator.o\
         Lib/System.o\
         Lib/TimeCounter.o\
         Lib/Timer.o
-#        Lib/OptionsReader.o\
 
 VLS_OBJ= Lib/Sys/Multiprocessing.o\
          Lib/Sys/Semaphore.o\

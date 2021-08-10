@@ -26,6 +26,7 @@
 #include "SortHelper.hpp"
 #include "OperatorType.hpp"
 #include "Term.hpp"
+#include "Kernel/NumTraits.hpp"
 
 #include "Theory.hpp"
 #define USES_2_COMPLEMENT (~0 == -1)
@@ -102,7 +103,7 @@ inline typename IntegerConstantType::InnerType divideOrThrow(typename IntegerCon
 int IntegerConstantType::intDivide(const IntegerConstantType& num) const 
 {
     CALL("IntegerConstantType::intDivide");
-    ASS(num.divides(*this));
+    ASS_REP(num.divides(*this),  num.toString() + " does not divide " + this->toString() );
     return divideOrThrow(_val, num._val);
 }
 
@@ -1143,36 +1144,115 @@ bool Theory::isNonLinearOperation(Interpretation i)
     return false;
   }
 }
-bool Theory::isPartialFunction(Interpretation i)
-{
-  CALL("Theory::isPartialFunction");
 
-  switch(i) {
-  case INT_QUOTIENT_E:
-  case INT_QUOTIENT_T:
-  case INT_QUOTIENT_F:
-  case INT_REMAINDER_E:
-  case INT_REMAINDER_T:
-  case INT_REMAINDER_F:
-  case RAT_QUOTIENT:
-  case RAT_QUOTIENT_E:
-  case RAT_QUOTIENT_T:
-  case RAT_QUOTIENT_F:
-  case RAT_REMAINDER_E:
-  case RAT_REMAINDER_T:
-  case RAT_REMAINDER_F:
-  case REAL_QUOTIENT:
-  case REAL_QUOTIENT_E:
-  case REAL_QUOTIENT_T:
-  case REAL_QUOTIENT_F:
-  case REAL_REMAINDER_E:
-  case REAL_REMAINDER_T:
-  case REAL_REMAINDER_F:
-    return true;
-  default:
-    return false;
+bool Theory::isPartiallyInterpretedFunction(Term* t) {
+  CALL("Theory::isPartiallyInterpretedFunction(Term* t)")
+  auto f = t->functor();
+  ASS(!t->isLiteral())
+  if(theory->isInterpretedFunction(f)) {
+    switch (theory->interpretFunction(f)) {
+      case Theory::INT_QUOTIENT_E:
+      case Theory::INT_QUOTIENT_T:
+      case Theory::INT_QUOTIENT_F:
+      case Theory::INT_REMAINDER_E:
+      case Theory::INT_REMAINDER_T:
+      case Theory::INT_REMAINDER_F:
+      case Theory::RAT_QUOTIENT:
+      case Theory::RAT_QUOTIENT_E:
+      case Theory::RAT_QUOTIENT_T:
+      case Theory::RAT_QUOTIENT_F:
+      case Theory::RAT_REMAINDER_E:
+      case Theory::RAT_REMAINDER_T:
+      case Theory::RAT_REMAINDER_F:
+      case Theory::REAL_QUOTIENT:
+      case Theory::REAL_QUOTIENT_E:
+      case Theory::REAL_QUOTIENT_T:
+      case Theory::REAL_QUOTIENT_F:
+      case Theory::REAL_REMAINDER_E:
+      case Theory::REAL_REMAINDER_T:
+      case Theory::REAL_REMAINDER_F:
+        return true;
+
+      default:
+        return false;
+    }
+  } else {
+    auto sym = env.signature->getFunction(t->functor());
+    if (isInterpretedNumber(t)) {
+      return false;
+    } else if (sym->termAlgebraCons()) {
+      return false;
+    } else if (sym->termAlgebraDest()) {
+      return true;
+    } else {
+      ASSERTION_VIOLATION_REP(t)
+    }
   }
 }
+
+bool Theory::partiallyDefinedFunctionUndefinedForArgs(Term* t) {
+  CALL("Theory::partiallyDefinedFunctionUndefinedForArgs(Term* t)")
+  ASS(isPartiallyInterpretedFunction(t))
+  auto f = t->functor();
+  ASS(!t->isLiteral())
+  if(theory->isInterpretedFunction(f)) {
+    switch (theory->interpretFunction(f)) {
+      case Theory::INT_QUOTIENT_E:
+      case Theory::INT_QUOTIENT_T:
+      case Theory::INT_QUOTIENT_F:
+      case Theory::INT_REMAINDER_E:
+      case Theory::INT_REMAINDER_T:
+      case Theory::INT_REMAINDER_F:
+        return IntTraits::isZero(*t->nthArgument(1));
+      case Theory::RAT_QUOTIENT:
+      case Theory::RAT_QUOTIENT_E:
+      case Theory::RAT_QUOTIENT_T:
+      case Theory::RAT_QUOTIENT_F:
+      case Theory::RAT_REMAINDER_E:
+      case Theory::RAT_REMAINDER_T:
+      case Theory::RAT_REMAINDER_F:
+        return RatTraits::isZero(*t->nthArgument(1));
+      case Theory::REAL_QUOTIENT:
+      case Theory::REAL_QUOTIENT_E:
+      case Theory::REAL_QUOTIENT_T:
+      case Theory::REAL_QUOTIENT_F:
+      case Theory::REAL_REMAINDER_E:
+      case Theory::REAL_REMAINDER_T:
+      case Theory::REAL_REMAINDER_F:
+        return RealTraits::isZero(*t->nthArgument(1));
+      default:
+        return false;
+    }
+  } else {
+    auto sym = env.signature->getFunction(t->functor());
+    if (sym->termAlgebraCons()) {
+      return false;
+    } else {
+      ASS(sym->termAlgebraDest());
+      auto arg = *t->nthArgument(0);
+      if (arg.isVar())  {
+        return false;
+      } else {
+        ASS(arg.isTerm());
+        auto fn = arg.term()->functor();
+        // auto argSym = env.signature->getFunction(fn);
+        auto ctor = env.signature->getTermAlgebraConstructor(fn);
+        if (ctor == nullptr) {
+          return false;
+        } else {
+          for (unsigned i = 0; i < ctor->arity(); i++) {
+            if (ctor->destructorFunctor(i) == f) {
+              return true;
+            }
+          }
+          // destructor belongs to different constructor
+          return false;
+        }
+      }
+    }
+  }
+}
+
 
 /**
  * Get the number of the skolem function symbol used in the clause form of the
@@ -1505,13 +1585,17 @@ void Theory::defineTupleTermAlgebra(unsigned arity, TermList* sorts) {
   for (unsigned i = 0; i < arity; i++) {
     TermList projSort = sorts[i];
     unsigned destructor;
+    Signature::Symbol* destSym;
     if (projSort == AtomicSort::boolSort()) {
       destructor = env.signature->addFreshPredicate(1, "proj");
-      env.signature->getPredicate(destructor)->setType(OperatorType::getPredicateType({ tupleSort }));
+      destSym = env.signature->getPredicate(destructor);
+      destSym->setType(OperatorType::getPredicateType({ tupleSort }));
     } else {
       destructor = env.signature->addFreshFunction(1, "proj");
-      env.signature->getFunction(destructor)->setType(OperatorType::getFunctionType({ tupleSort }, projSort));
+      destSym = env.signature->getFunction(destructor);
+      destSym->setType(OperatorType::getFunctionType({ tupleSort }, projSort));
     }
+    destSym->markTermAlgebraDest();
     destructors[i] = destructor;
   }
 
@@ -1587,17 +1671,30 @@ bool Theory::isInterpretedPredicate(unsigned pred)
 /**
  * Return true iff @b lit has an interpreted predicate
  */
-bool Theory::isInterpretedPredicate(Literal* lit)
+bool Theory::isInterpretedEquality(Literal* lit)
 {
-  CALL("Theory::isInterpretedPredicate");
+  CALL("Theory::isInterpretedEquality");
 
   if(lit->isEquality()){
     TermList srt = SortHelper::getEqualityArgumentSort(lit);
+    // TODO should this return true for datatypes, arrays, etc?
     return (srt == AtomicSort::intSort() || srt == AtomicSort::realSort() || srt == AtomicSort::rationalSort());
+  } else {
+    return false;
   }
-
-  return isInterpretedPredicate(lit->functor());
 }
+
+/**
+ * Return true iff @b lit has an interpreted predicate interpreted
+ * as @b itp
+ */
+bool Theory::isInterpretedPredicate(Literal* lit)
+{
+  CALL("Theory::isInterpretedPredicate/1");
+
+  return env.signature->getPredicate(lit->functor())->interpreted();
+}
+
 
 /**
  * Return true iff @b lit has an interpreted predicate interpreted
@@ -1607,8 +1704,7 @@ bool Theory::isInterpretedPredicate(Literal* lit, Interpretation itp)
 {
   CALL("Theory::isInterpretedPredicate/2");
 
-  return env.signature->getPredicate(lit->functor())->interpreted() &&
-      interpretPredicate(lit)==itp;
+  return isInterpretedPredicate(lit) && interpretPredicate(lit)==itp;
 }
 
 bool Theory::isInterpretedFunction(unsigned func)
@@ -1620,16 +1716,6 @@ bool Theory::isInterpretedFunction(unsigned func)
   }
 
   return env.signature->getFunction(func)->interpreted() && env.signature->functionArity(func)!=0;
-}
-bool Theory::isInterpretedPartialFunction(unsigned func)
-{
-  CALL("Theory::isInterpretedPartialFunction(unsigned)");
-
-  if(!isInterpretedFunction(func)){ return false; }
-
-  bool result =  isPartialFunction(interpretFunction(func));
-  ASS(!result || env.signature->functionArity(func)==2);
-  return result;
 }
 
 bool Theory::isZero(TermList term)
@@ -1745,7 +1831,7 @@ Interpretation Theory::interpretPredicate(unsigned pred)
 Interpretation Theory::interpretPredicate(Literal* lit)
 {
   CALL("Theory::interpretPredicate");
-  ASS(isInterpretedPredicate(lit));
+  ASS(isInterpretedPredicate(lit->functor()));
 
   return interpretPredicate(lit->functor());
 }
