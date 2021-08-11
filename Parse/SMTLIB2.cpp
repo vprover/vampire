@@ -999,10 +999,10 @@ void SMTLIB2::readDeclareDatatype(LExpr *sort, LExprList *datatype)
 
   bool added = false;
   auto taName = dtypeName + "()";
-  unsigned srt = TPTP::addUninterpretedConstant(taName, _overflow, added);
+  unsigned srt = env.signature->addTypeCon(taName,0,added);
   ASS(added);
-  env.signature->getFunction(srt)->setType(OperatorType::getConstantsType(AtomicSort::superSort()));
-  TermList taSort = TermList(Term::createConstant(srt));
+  env.signature->getTypeCon(srt)->setType(OperatorType::getConstantsType(AtomicSort::superSort()));
+  TermList taSort = TermList(AtomicSort::createConstant(srt));
 
   LispListReader dtypeRdr(datatype);
   while (dtypeRdr.hasNext()) {
@@ -1680,6 +1680,7 @@ void SMTLIB2::parseMatchEnd(LExpr *exp)
   vstring matched = lRdr.readAtom();
   TermList matchedTerm;
   auto matchedTermSort = _results.pop().asTerm(matchedTerm);
+
   LOG2("CASE matched ", matchedTerm.toString());
 
   vmap<unsigned, TermAlgebraConstructor *> ctorFunctors;
