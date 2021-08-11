@@ -404,7 +404,7 @@ static const DHMap<vstring, ProofTracer::InferenceKind> inference_info = {
     {"resolution", ProofTracer::GENERATING},
     {"definition_unfolding", ProofTracer::ICP},
     {"evaluation", ProofTracer::TRIVSIMP},
-    {"duplicate_literal_removal", ProofTracer::TRIVSIMP},
+    {"duplicate_literal_removal", ProofTracer::DUPLELIM},
 
 
 };
@@ -421,6 +421,9 @@ ProofTracer::TracedProof* ProofTracer::prepareTracedProof(ProofTracer::ParsedPro
 
   // names that should be processed
   DHSet<vstring> todo;
+  DHMap<vstring,vstring> DlrLurk; // <A,B> means that when A is found, it is expected to be the single premise of B (already seen) via duplicate_literal_removal
+                                  // which we don't like, because A contains duplicate literals and thus cannot be retrieved by our "broken" VariantIndex.
+                                  // We plan to set things up such that the inference A->B is not recorded and instead whatever derived A will be staged to have directly derived B instead
 
   ASS(pp->units); // have at least the empty clause in the proof
   FormulaUnit* theEmpty = static_cast<FormulaUnit*>(pp->units->head());
@@ -482,29 +485,53 @@ ProofTracer::TracedProof* ProofTracer::prepareTracedProof(ProofTracer::ParsedPro
           // cout << " p: " << irec->premises[i] << endl;
           todo.insert(irec->premises[i]);
         }
-        premises = std::move(irec->premises);
+        if (ik == DUPLELIM) {
+          ASS_EQ(irec->premises.size(),1);
+          DlrLurk.insert(irec->premises[0],uname);
+          // don't register this premise officially for uname
+        } else {
+          premises = std::move(irec->premises);
+        }
       } else {
         // this is either clausification or the original problem was already in cnf
         // so we ignore the premises here and make such units source nodes
       }
     }
 
-    Clause* cl = unitToClause(u);
+    vstring dlrChild;
+    if (DlrLurk.pop(uname,dlrChild)) {
+      // uname is the clause with duplicate literals, we forward its premises to its only child we have seen before (and we don't bother clausifying it)
 
-    // cout << "CL:" << cl->toString() << endl;
+      TracedClauseInfo* info = tp->getInfo(clausesByNames.get(dlrChild));
 
-    ALWAYS(clausesByNames.insert(uname,cl));
-    if (premises.size() > 0) {
-      ALWAYS(rememberedPremises.insert(uname,std::move(premises)));
+      // it was registered as DUPLELIM, but now it takes it's parents info!
+      ASS_EQ(info->_ik,DUPLELIM);
+      info->_ik = ik;
+      ASS_EQ(info->_inf,"duplicate_literal_removal");
+      info->_inf = inf;
+
+      if (premises.size() > 0) {
+        ALWAYS(rememberedPremises.insert(dlrChild,std::move(premises)));
+      }
+
+    } else {
+
+      Clause* cl = unitToClause(u);
+      ALWAYS(clausesByNames.insert(uname,cl));
+
+      // cout << "CL( " << uname << " ): " << cl->toString() << endl;
+
+      tp->regNewClause(cl,uname,inf,ik);
+      // cout << uname << " " << ik << " " << cl->toString() << endl;
+
+      if (premises.size() > 0) {
+        ALWAYS(rememberedPremises.insert(uname,std::move(premises)));
+      }
+
+      if (cl->isEmpty()) {
+        tp->setEmpty(cl);
+      }
     }
-
-    tp->regNewClause(cl,uname,inf,ik);
-    // cout << uname << " " << ik << " " << cl->toString() << endl;
-
-    if (cl->isEmpty()) {
-      tp->setEmpty(cl);
-    }
-
     // cout << endl;
   }
   // cout << endl;

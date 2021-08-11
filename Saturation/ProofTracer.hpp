@@ -38,8 +38,10 @@ struct ProofTracer {
   enum InferenceKind {
     ICP = 0, // INPUT / PREPROCESSING / CLAUSIFICATION anything larger than this should end up in the TracedProof
     TRIVSIMP = 1,
-    SIMPLIFYING = 2,  // TODO: let's see whether we don't also need to distinguish FWD and BWD!
-    GENERATING = 3,
+    DUPLELIM = 2, // DUPLICAT_LITERAL_ELIMINATION is problematic as our variant index does not correctly retrieve duplicate literal clauses;
+      // to make up for this, we ``edit out'' DUPLELIM inference both from the TracedProof and later on, online, pretend it does no happen also when clauses arrive
+    SIMPLIFYING = 3,  // TODO: let's see whether we don't also need to distinguish FWD and BWD!
+    GENERATING = 4,
   };
 
   /* a temporary struct we get from parsing the TPTP proof file; becomes obsolete once we get a TracedProof object out of it */
@@ -107,6 +109,11 @@ struct ProofTracer {
       _variantLookup->insert(cl);
 
       ClauseList::push(cl,_inOrder);
+    }
+
+    TracedClauseInfo* getInfo(Clause* cl) {
+      CALL("ProofTracer::TracedProof::getInfo");
+      return _clInfo.get(cl);
     }
 
     void regChildParentPair(Clause* ch, Clause* p) {
