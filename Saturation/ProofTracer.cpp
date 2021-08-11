@@ -88,13 +88,27 @@ void ProofTracer::TracedProof::onNewClause(Clause* cl)
 
     if (!info->_exacted) { // still looking for the same inference rule and parents exacting the parents in the traced proof
       info->_exacted = true;
-      vstring newRuleName = StringUtils::replaceChar(ruleName(cl->inference().rule()), ' ', '_'); // replacing spaces by underscores as the TPTPProofPrinter does
+
+      // we pretend duplicate literal eliminations don't exist (and implicitly skip "through" them)
+      const Inference& inf = [=]{
+        if (cl->inference().rule() == InferenceRule::REMOVE_DUPLICATE_LITERALS) {
+          Inference& innerInf = cl->inference();
+          Inference::Iterator it = innerInf.iterator();
+          ASS(innerInf.hasNext(it));
+          Unit* parent = innerInf.next(it);
+          ASS(!innerInf.hasNext(it));
+          return parent->inference();
+        } else {
+          return cl->inference();
+        }
+      } (); // immediately call the lambda
+
+      vstring newRuleName = StringUtils::replaceChar(ruleName(inf.rule()), ' ', '_'); // replacing spaces by underscores as the TPTPProofPrinter does
       if (info->_inf != newRuleName) {
         cout << "  rule mismatch against orig's: " << info->_inf << " (IK: " << info->_ik << ")" << endl;
         info->_exacted = false;
       } else {
         // check that the parents fit: each parent of this clause should be the first stalkee of the match's corresponding parent
-        Inference& inf = cl->inference();
         Inference::Iterator it = inf.iterator();
         for (unsigned i = 0; i < info->_parents.size(); i++) {
           Clause* par = info->_parents[i];
