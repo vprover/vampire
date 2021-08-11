@@ -30,7 +30,7 @@ struct ProofTracer {
 
   static void printWithStore(Clause* cl) {
     std::cout << cl->store() << " " << cl->toString() << std::endl;
-    if (cl->store() == Clause::PASSIVE) {
+    if (cl->store() == Clause::PASSIVE && cl->getPassiveDist()) {
       std::cout << "distance: " << cl->getPassiveDist() << " age: " << cl->age() << " weight: " << cl->weightForClauseSelection(*env.options) << std::endl;
     }
   }
