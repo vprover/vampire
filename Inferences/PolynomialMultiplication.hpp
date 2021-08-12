@@ -42,6 +42,18 @@ public:
 private:
   Kernel::PolyNf evaluateStep(Kernel::PolyNf origTerm, Kernel::PolyNf* evalutedArgs);
 
+  template <class NumTraits>
+  Kernel::AnyPoly resolvePolySummands(Kernel::AnyPoly& poly, Kernel::PolyNf* evaluatedArgs);
+
+  template <class NumTraits>
+  Lib::Stack<Monom<NumTraits>> sumUpNormPoly(Lib::Stack<PolyNf>& polys);
+
+  template <class NumTraits>
+  Kernel::AnyPoly multiplyNormPoly(Kernel::PolyNf &lhs, Kernel::PolyNf &rhs);
+
+  template<class NumTraits>
+  Kernel::Monom<NumTraits> multiplyNormMonom(Kernel::Monom<NumTraits> const& lhs, Kernel::Monom<NumTraits> const& rhs);
+
   struct Evaluator {
     PolynomialMultiplication& self;
     using Arg    = Kernel::PolyNf;
@@ -49,7 +61,6 @@ private:
     Result operator()(Arg const& orig, Result* evalutedChildren)
     { return self.evaluateStep(orig, evalutedChildren); }
   };
-
 };
 
 } // namespace Inferences
