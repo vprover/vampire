@@ -86,11 +86,12 @@ E.g. details of build configuration, linking, Spider?
 Vampire now has units tests which can run with CTest.
 
 ### Running tests
-tl;dr: 
+tl;dr:
+(test are only compiled in Debug mode)
 ```
 mkdir cmake-build
 cd cmake-build 
-cmake ..
+cmake -DCMAKE_BUILD_TYPE=Debug ..
 make 
 ctest --output-on-failure
 ```
