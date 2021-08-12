@@ -38,21 +38,21 @@ REGISTER_GEN_TESTER(Test::Generation::GenerationTester<PolynomialMultiplication>
 TEST_GENERATION(single_var,
     Generation::TestCase()
       .input(           clause({ p(x) }) )
-      .expected(exactly(  clause({ p(x) })))
+      .expected(exactly( /* nothing */ ))
       .premiseRedundant(false)
     )
 
 TEST_GENERATION(single_func,
     Generation::TestCase()
       .input(           clause({ p(f(x)) }) )
-      .expected(exactly(  clause({ p(f(x)) })))
+      .expected(exactly( /* nothing */ ))
       .premiseRedundant(false)
     )
 
 TEST_GENERATION(single_const,
     Generation::TestCase()
       .input(           clause({ p(1) }) )
-      .expected(exactly(  clause({ p(1) })))
+      .expected(exactly( /* nothing */ ))
       .premiseRedundant(false)
     )
 
