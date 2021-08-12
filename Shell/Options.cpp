@@ -1033,14 +1033,12 @@ void Options::init()
            _lookup.insert(&_cancellation);
            _cancellation.tag(OptionTag::INFERENCES);
            _cancellation.setExperimental();
-
-           // CHECK OUT
-           // this is how we add command line options
            _polynomialMultiplication = choiceArithmeticSimplificationMode(
                "polynomial_multiplication", "polymul",
                ArithmeticSimplificationMode::OFF);
-            // TODO write description
-           _polynomialMultiplication.description = "TODO write description";
+           _polynomialMultiplication.description = "Enables polynomial rewrite rule by multiplication. Polynomials are getting "
+                                                   "transformed into a monomial normal form. That is, a polynomial is resolved, "
+                                                   "such that it is a sum of monomials";
            _lookup.insert(&_polynomialMultiplication);
            _polynomialMultiplication.tag(OptionTag::INFERENCES);
            _polynomialMultiplication.setExperimental();
