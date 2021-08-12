@@ -14,8 +14,10 @@
 
 #if VZ3
 #define UNIMPLEMENTED ASSERTION_VIOLATION
+#define MODEL_COMPLETION true
 
 #include "Forwards.hpp"
+#include "Lib/StringUtils.hpp"
 
 #include "SATSolver.hpp"
 #include "SATLiteral.hpp"
@@ -71,11 +73,12 @@ namespace SAT
 
 using namespace Shell;
 using namespace Lib;
+using ProblemExportSyntax = Shell::Options::ProblemExportSyntax;
 
 //using namespace z3;
 
 Z3Interfacing::Z3Interfacing(const Shell::Options& opts, SAT2FO& s2f, bool unsatCore, vstring const& exportSmtlib):
-  Z3Interfacing(s2f, opts.showZ3(), /* unsatCore */ unsatCore, exportSmtlib)
+  Z3Interfacing(s2f, opts.showZ3(), /* unsatCore */ unsatCore, exportSmtlib, opts.problemExportSyntax())
 { }
 
 const char* errToString(Z3_error_code code)
@@ -98,64 +101,618 @@ const char* errToString(Z3_error_code code)
   }
 }
 
+struct Z3MkConstructorCall {
+  Z3_context c;
+  Z3_symbol name;
+  Z3_symbol tester;
+  Stack<Z3_symbol> field_names;
+  Stack<Z3_sort> sorts;
+  Stack<unsigned> sort_refs;
+
+  unsigned arity() { return field_names.size(); }
+  Z3_constructor operator()() {
+    return Z3_mk_constructor(
+        c,
+        name,
+        tester,
+        arity(),
+        field_names.begin(),
+        sorts.begin(),
+        sort_refs.begin()
+    );
+  }
+};
+
+struct Z3Constructor
+{
+  z3::func_decl func;
+  z3::func_decl tester;
+  Stack<z3::func_decl> args;
+};
+
+struct Z3Datatype
+{
+  z3::sort sort;
+  Stack<Z3Constructor> ctors;
+};
+
+struct Z3MkDatatypesCall 
+{
+  z3::context& _context;
+  Stack<Z3_symbol> sortNames;               // <- needed for Z3_mk_datatypes(...)
+  Stack<Stack<Z3MkConstructorCall>> mkConstrs;
+
+
+  Z3MkDatatypesCall(z3::context& context, Stack<TermAlgebra*> const& tas) 
+    : _context(context)
+    , sortNames(tas.size())
+    , mkConstrs(tas.size())
+  { }
+
+  unsigned nDtys() { return sortNames.size(); }
+
+  Stack<Z3Datatype> operator()(){
+    Array<Z3_sort> sorts;                     // <- needed for Z3_mk_datatypes(...)
+
+    /* re-arranging datat for Z3_mk_datatypes call */
+    Stack<Z3_constructor_list> z3_ctor_lists(nDtys()); // <- needed for Z3_mk_datatypes(...)
+    Stack<Stack<Z3_constructor>> ctorss;      // <- needed for Z3_query_constructor(..)
+    for (auto& mks : mkConstrs) {
+      Stack<Z3_constructor> ctors(mks.size());
+      for (auto& mkConstr : mks) {
+        ctors.push(mkConstr());
+      }
+      z3_ctor_lists.push(Z3_mk_constructor_list(_context, ctors.size(),  ctors.begin()));
+      ctorss.push(std::move(ctors));
+    }
+
+    Z3_mk_datatypes(_context, nDtys(), sortNames.begin(), sorts.begin(), z3_ctor_lists.begin());
+
+    /* querying result of Z3_mk_datatypes call */
+    Stack<Z3Datatype> out(nDtys());
+
+    for (unsigned i = 0; i < ctorss.size(); i++) {
+      auto sort = z3::sort(_context, sorts[i]);
+      Stack<Z3Constructor> ctors_res(ctorss[i].size());
+      for (unsigned j = 0; j < ctorss[i].size(); j++) {
+        Z3_func_decl func;
+        Z3_func_decl tester;
+        DArray<Z3_func_decl> args(mkConstrs[i][j].arity());
+
+        Z3_query_constructor(_context, ctorss[i][j], mkConstrs[i][j].arity(), &func, &tester, args.begin());
+
+        ctors_res.push(Z3Constructor {
+            .func   = z3::func_decl(_context, func),
+            .tester = z3::func_decl(_context, tester),
+            .args   = iterTraits(getArrayishObjectIterator(args))
+                         .map([&](auto arg) { return z3::func_decl(_context, arg); })
+                         .template collect<Stack>(),
+          });
+      }
+      out.push(Z3Datatype { .sort = sort, .ctors = std::move(ctors_res), });
+    }
+
+    // ASSERTION_VIOLATION
+
+    /* clean up */
+
+    for (auto& lst : z3_ctor_lists) {
+      Z3_del_constructor_list(_context, lst);
+    }
+
+    for (auto& ctors : ctorss) {
+      for (auto& ctor : ctors) {
+        Z3_del_constructor(_context, ctor);
+      }
+    }
+
+    return out;
+  }
+
+  ~Z3MkDatatypesCall() { }
+};
+
+
 void handleZ3Error(Z3_context ctxt, Z3_error_code code)
 {
   DEBUG(errToString(code))
   throw z3::exception(errToString(code));
 }
 
-#define STATEMENTS_TO_EXPRESSION(...) [&]() { __VA_ARGS__; return 0; }()
-
-Z3Interfacing::Z3Interfacing(SAT2FO& s2f, bool showZ3, bool unsatCore, vstring const& exportSmtlib):
+Z3Interfacing::Z3Interfacing(SAT2FO& s2f, bool showZ3, bool unsatCore, vstring const& exportSmtlib,  Shell::Options::ProblemExportSyntax exportSyntax):
   _varCnt(0),
   _sat2fo(s2f),
+  _outSyntax(exportSyntax),
+  // _out([&](){ 
+  //     BYPASSING_ALLOCATOR
+  //     return exportSmtlib == "" ? Option<std::ofstream>()
+  //                               : Option<std::ofstream>(std::ofstream(exportSmtlib.c_str()));
+  //   }()),
   _status(SATISFIABLE),
-  _config(),
-  _context(_config),
-  _solver(_context),
-  _model((STATEMENTS_TO_EXPRESSION(
-            BYPASSING_ALLOCATOR;
-            _solver.check();
-          ),
-         _solver.get_model())),
-  _assumptions(),
   _showZ3(showZ3),
   _unsatCore(unsatCore),
-  _out()
+  _assumptions(),
+  _context(),
+  _solver(_context),
+  _model(_context),
+  _exporter([&](){ 
+      BYPASSING_ALLOCATOR
+      using namespace ProblemExport;
+      if (exportSmtlib == "") {
+        return decltype(_exporter)(NoExport{});
+      } else {
+        std::ofstream file(exportSmtlib.c_str());
+        if (file.fail())
+          throw UserErrorException("Failed to open file: ", exportSmtlib);
+        switch (exportSyntax) {
+        case Shell::Options::ProblemExportSyntax::SMTLIB:    return decltype(_exporter)(Smtlib  (std::move(file), _context));
+        case Shell::Options::ProblemExportSyntax::API_CALLS: return decltype(_exporter)(ApiCalls(std::move(file), _context));
+        }
+      }
+    }())
 {
   CALL("Z3Interfacing::Z3Interfacing");
   BYPASSING_ALLOCATOR
-  _out = exportSmtlib == "" ? Option<std::ofstream>()
-                            : Option<std::ofstream>(std::ofstream(exportSmtlib.c_str())) ;
-  if (_out.isSome() && _out.unwrap().fail()) {
-    throw UserErrorException("Failed to open file: ", exportSmtlib);
-  }
 
-  _solver.reset();
-  outputln("(check-sat)");
-  outputln("(get-model)");
-  outputln("(reset)");
+  _exporter.apply([&](auto& e) { e.initialize(); });
 
-  z3::params p(_context);
-  auto setOption = [&](auto k, auto v){
-    p.set(k,v);
-    outputln(";- z3 parameter: ", k, "=", v);
-  };
-  setOption("rewriter.expand_store_eq", true);
-  setOption("model.compact", false); // keeps z3 from compressing its model. ~50% of the runtime of get_model is spent doing that otherwise
+  z3_set_param("rewriter.expand_store_eq", true);
+  z3_set_param("model.completion", MODEL_COMPLETION);
+  z3_set_param("model.compact", false); // keeps z3 from compressing its model. ~50% of the runtime of get_model is spent doing that otherwise
   if (_unsatCore) {
-    setOption(":unsat-core", true);
+    z3_set_param(":unsat-core", true);
   }
   Z3_set_error_handler(_context, handleZ3Error);
 
 #if TRACE_Z3
-  setOption("trace", "true");
+  z3_set_param("trace", true);
   Z3_enable_trace("memory");
   Z3_enable_trace("datatype");
 #endif // TRACE_Z3
+}
 
-  _solver.set(p);
-  // TODO some way to serizalize the params for z3 to an smtlib file
+void ProblemExport::Smtlib::initialize()                               {                                                        }
+void ProblemExport::Smtlib::terminate()                                { out <<                                      std::endl; }
+void ProblemExport::Smtlib::declareSort(z3::sort sort)                 { out << "(declare-sort " << sort << " 0)" << std::endl; }
+void ProblemExport::Smtlib::eval(z3::expr const& x)                    { out << "(get-value (" << x << "))"       << std::endl; }
+void ProblemExport::Smtlib::unsatCore()                                { out << "(get-unsat-core)"                << std::endl; }
+void ProblemExport::Smtlib::addAssert(z3::expr const& x)               { out << "(assert " << x << ")"            << std::endl; }
+void ProblemExport::Smtlib::get_model()                                { out << "(get-model)"                     << std::endl; }
+void ProblemExport::Smtlib::reset()                                    { out << "(reset)"                         << std::endl; }
+
+void ProblemExport::Smtlib::declare_fun(vstring const& name, z3::sort_vector domain, z3::sort codomain) { 
+  out << "(declare-fun " << name << " (";
+  for (auto s : domain) 
+    out << " "  << s;
+  out << " ) " << codomain;
+}
+void ProblemExport::Smtlib::check(Stack<z3::expr> const& assumptions)  {
+  out << "(check-sat-assuming (";
+  for (auto const& a : assumptions) 
+    out << " " << a;
+  out << " ))";
+}
+
+void ProblemExport::Smtlib::declare_array_sort(z3::sort array, z3::sort index, z3::sort result) { }
+
+template<class Value>
+void ProblemExport::Smtlib::set_param(const char* k, Value const& v)
+{ out << ";- setting z3 parameter: " << k << "=" << v << std::endl; }
+
+void ProblemExport::Smtlib::Z3_mk_datatypes(Z3MkDatatypesCall const& call) { 
+  auto quote = [&](auto x){
+    vstringstream s;
+    s << x;
+    auto str = s.str();
+    if (str[0] == '\'') {
+      return "|" + str + "|";
+    } else {
+      return str;
+    }
+  };
+
+  out << "(declare-datatypes (";
+  for (auto& s : call.sortNames) {
+    out << " (" << quote(z3::symbol(_context, s)) << " 0)";
+  }
+  out << " ) (";
+
+  for (unsigned i = 0; i < call.sortNames.size(); i++) {
+    out << "    ( ;-- datatype " << z3::symbol(_context, call.sortNames[i]);
+    for (auto& ctor : call.mkConstrs[i]) {
+      out << "        ( " << quote(z3::symbol(_context, ctor.name));
+      for (auto j = 0; j < ctor.field_names.size(); i++) {
+        out << " ( " << quote(z3::symbol(_context, ctor.field_names[j])) << " " 
+          << quote(z3::symbol(_context, ctor.sorts[j] == nullptr 
+                ? call.sortNames[ctor.sort_refs[j]] 
+                : z3::sort(_context, ctor.sorts[j]).name()))
+          << " )";
+      }
+      out << " )";
+    }
+    out << "    )";
+  }
+  out << "))";
+}
+
+vstring ProblemExport::ApiCalls::escapeVarName(z3::symbol const& sym) {
+  vstringstream varName;
+  if (sym.kind() == Z3_INT_SYMBOL) {
+    varName << "v" << sym.to_int();
+  } else {
+    auto name = sym.str();
+    auto iter = 0;
+    while (iter < name.length()) {
+      if (std::isalnum(name[iter]) || name[iter] == '_') break;
+      else iter++;
+    }
+    if (name[iter] == name.length()) {
+      varName << "_";
+    } else  {
+      if ('0' <= name[iter] && name[iter] <= '9')
+        varName << "_";
+
+      while (iter != name.length()) {
+        if (std::isalnum(name[iter]) || name[iter] == '_') {
+          varName << name[iter];
+        } 
+        iter++;
+      }
+    }
+  }
+
+  auto key = varName.str();
+  auto& ids = varNames.getOrInit(key);
+  auto nextId = ids.size();
+  auto id = ids.getOrInit(key, [&](){ return nextId; });
+  if (id != 0)
+    varName << "_" << id;
+
+  return varName.str();
+}
+
+
+void ProblemExport::ApiCalls::initialize() {
+  out << R"(
+#include <z3++.h>
+#include <z3_api.h>
+#include <iostream>
+#include <vector>
+
+int main() {
+  z3::context ctx;
+  z3::solver solver(ctx);
+  z3::model  model(ctx);
+  auto sort_vec = [&](std::initializer_list<z3::sort> xs) { 
+    z3::sort_vector vec(ctx);
+    for (auto s : xs) vec.push_back(s);
+    return vec;
+  };
+  auto expr_vec = [&](std::initializer_list<z3::expr> xs) { 
+    z3::expr_vector vec(ctx);
+    for (auto s : xs) vec.push_back(s);
+    return vec;
+  };
+
+  auto query_constructor = [&](Z3_constructor& ctor, 
+                               z3::func_decl* name,
+                               z3::func_decl* tester,
+                               std::vector<z3::func_decl*> accessors) {
+
+    Z3_func_decl _name;
+    Z3_func_decl _tester;
+    std::vector<Z3_func_decl> _accessors;
+    for (auto a : accessors)
+      _accessors.push_back(Z3_func_decl());
+    Z3_query_constructor(ctx, ctor, accessors.size(), &_name, &_tester, accessors.size() == 0 ? nullptr : &_accessors[0]);
+    *name   = z3::func_decl(ctx, _name);
+    *tester = z3::func_decl(ctx, _tester);
+    for (auto i = 0; i < accessors.size(); i++) {
+      *accessors[i] = z3::func_decl(ctx, _accessors[i]);
+    }
+  };
+
+  auto mk_constructor = [&](Z3_symbol name, 
+                            Z3_symbol tester, 
+                            std::vector<Z3_symbol> argNames, 
+                            std::vector<Z3_sort>   sorts,
+                            std::vector<unsigned>  sortRefs) { 
+    return Z3_mk_constructor(ctx, name, tester, sorts.size(), 
+                             argNames.size() == 0 ? nullptr : &argNames[0],
+                                sorts.size() == 0 ? nullptr :    &sorts[0],
+                             sortRefs.size() == 0 ? nullptr : &sortRefs[0]);
+  };
+
+
+  auto mk_constructor_list = [&](std::vector<Z3_constructor> ctors) { 
+    return Z3_mk_constructor_list(ctx, ctors.size(), ctors.size() == 0 ? nullptr : &ctors[0]);
+  };
+
+)" << std::endl;
+  #define ADD_BUILTIN_SORT(name, Name) \
+    out << "  z3::sort " << escapeVarName(_context.str_symbol(Name))  \
+        << " = ctx." << name << "_sort();" << std::endl; 
+    ADD_BUILTIN_SORT("bool", "Bool")
+    ADD_BUILTIN_SORT("int", "Int")
+    ADD_BUILTIN_SORT("real", "Real")
+  #undef ADD_BUILTIN_SORT
+  out << endl;
+}
+
+void ProblemExport::ApiCalls::declare_array_sort(z3::sort array, z3::sort index, z3::sort result) 
+{
+  out << "  z3::sort " << escapeVarName(array.name())
+      << " = ctx.array_sort("  
+      << escapeVarName(index.name()) << ", " 
+      << escapeVarName(result.name()) << ");" << std::endl; 
+}
+
+void ProblemExport::ApiCalls::terminate() 
+{ out << "}" << std::endl; }
+
+struct ProblemExport::ApiCalls::EscapeString {
+  vstring s;
+  EscapeString(vstring s) : s(s) {}
+  EscapeString(z3::expr const& x) : EscapeString(outputToString(x)) {}
+  friend std::ostream& operator<<(std::ostream& out, EscapeString const& self)
+  { return out << "R\"(" << self.s << ")\""; }// TODO mask occurences of )" 
+};
+
+std::ostream& ProblemExport::operator<<(std::ostream& out, ProblemExport::ApiCalls::Serialize<vstring> const& self)
+{ return out << ProblemExport::ApiCalls::EscapeString{self.inner}; }
+
+std::ostream& ProblemExport::operator<<(std::ostream& out, ProblemExport::ApiCalls::Serialize<bool> const& self)
+{ return out << ( self.inner ? "true" : "false" ); }
+
+std::ostream& ProblemExport::operator<<(std::ostream& out, ProblemExport::ApiCalls::Serialize<z3::expr> const& self)
+{ 
+  auto x = self.inner;
+  auto& state = self.state;
+  #define ARG(idx) state.serialize(x.arg(idx))
+  auto func = [&](auto f) -> std::ostream& {
+    out << f << "(";
+    if (x.num_args() > 4) 
+      out << "expr_vec({";
+    if (x.num_args() > 0) {
+
+      out << ARG(0);
+      for (unsigned i = 1; i < x.num_args(); i++)
+        out << ", " << ARG(i);
+    }
+    if (x.num_args() > 4) 
+      out << "})";
+    return out << ")";
+  };
+  auto bin = [&](auto op) -> std::ostream& 
+    { return out << "(" << ARG(0) << " " << op << " " << ARG(1) << ")"; };
+       if (x.is_eq())       return bin("==");
+  else if (x.is_and())      return bin("&&");
+  else if (x.is_or())       return bin("||");
+  else if (x.is_not())      return func("!");
+  else if (x.is_ite())      return func("z3::ite");
+  else if (x.is_distinct()) return func("z3::distinct");
+  else if (x.is_implies())  return func("z3::implies");
+  else if (x.is_true())     return out << "ctx.bool_val(true)";
+  else if (x.is_false())    return out << "ctx.bool_val(false)";
+  else if (x.is_numeral())  return out << "ctx.int_val((int64_t)"  << x.get_numeral_int64() << ")";
+  else if (x.is_app()) {
+    auto f = x.decl();
+    if (f.name().kind() == Z3_STRING_SYMBOL) {
+      if (f.name().str() == "/" ) return bin("/");
+      if (f.name().str() == "*" ) return bin("*");
+      if (f.name().str() == "+" ) return bin("+");
+      if (f.name().str() == "-" ) return x.num_args() == 1 ? func("-") : bin("-");
+      if (f.name().str() == "<=") return bin("<=");
+      if (f.name().str() == "<" ) return bin("<" );
+      if (f.name().str() == ">=") return bin(">=");
+      if (f.name().str() == ">" ) return bin(">" );
+    }
+    return func(self.state.escapeVarName(f.name()));
+  } else  {
+    DBGE(x)
+    ASSERTION_VIOLATION
+  }
+  #undef ARG
+  // return out << "ctx.parse_string(" << EscapeString(self.inner) << ")[0]"; 
+}
+
+template<class A>
+std::ostream& ProblemExport::operator<<(std::ostream& out, ProblemExport::ApiCalls::Serialize<A> const& self)
+{ return out << self.inner; }
+
+std::ostream& ProblemExport::operator<<(std::ostream& out, ProblemExport::ApiCalls::Serialize<z3::symbol> const& self)
+{ 
+  if (self.inner.kind() == Z3_INT_SYMBOL) {
+    return out << "ctx.int_symbol(" << self.inner.to_int() << ")";
+  } else  {
+    return out << "ctx.str_symbol(" << ProblemExport::ApiCalls::EscapeString(vstring(self.inner.str())) << ")";
+  }
+}
+
+void ProblemExport::ApiCalls::declareSort(z3::sort sort) {
+  out << "  z3::sort " << escapeVarName(sort.name()) 
+      << " = ctx.uninterpreted_sort(" <<  serialize(sort.name()) << ");" << std::endl;
+}
+
+void ProblemExport::ApiCalls::eval(z3::expr const& x) 
+{ out << "  std::cout << \"model.eval(" << serialize(x) << ") = \" << model.eval(" << serialize(x) << " , " << MODEL_COMPLETION << ") << std::endl;" << std::endl; }
+
+void ProblemExport::ApiCalls::unsatCore() 
+{ 
+  out << "  std::cout << \"===== start solver.unsat_core() ====\" << std::endl;" << std::endl
+      << "  std::cout << solver.unsat_core()                      << std::endl;" << std::endl
+      << "  std::cout << \"=====   end solver.unsat_core() ====\" << std::endl;" << std::endl;
+}
+
+
+void ProblemExport::ApiCalls::addAssert(z3::expr const& x) 
+{ 
+  // out << "  /* " << x <<  " */" << std::endl; 
+  out << "  solver.add(" << serialize(x) << ");" << std::endl; 
+}
+
+void ProblemExport::ApiCalls::check(Stack<z3::expr> const& xs)
+{ 
+  out << std::endl << "  std::cout << solver.check(expr_vec({";
+  for (auto& x : xs) {
+    out << serialize(x) << ", ";
+  }
+  out << "})) << std::endl;" << std::endl << std::endl; 
+}
+void ProblemExport::ApiCalls::get_model() { 
+  out << "  std::cout                                            << std::endl;" << std::endl
+      << "  std::cout << \"===== start solver.get_model() ====\" << std::endl;" << std::endl
+      << "  std::cout << solver.get_model()                      << std::endl;" << std::endl
+      << "  std::cout << \"=====   end solver.get_model() ====\" << std::endl;" << std::endl
+      << "  std::cout                                            << std::endl;" << std::endl; 
+}
+void ProblemExport::ApiCalls::reset()     { out << "  std::cout << solver.reset() << std::endl;"     << std::endl; }
+
+template<class Value>
+void ProblemExport::ApiCalls::set_param(const char* k, Value const& v)
+{ out << "  solver.set(" << EscapeString{k} << "," << serialize(v) << ");" << std::endl; }
+
+// void set_param(const char* k, vstring const& v)
+// { out << "  solver.set_param(" << EscapeString{k} << "," << EscapeString{v} << ");" << std::endl; }
+
+template<class A, class F> struct InitList { A const& inner; F transform; };
+template<class A, class F> InitList<A, F> initList(A const& a, F f) { return InitList<A,F> { a, f, }; }
+template<class A, class F> std::ostream& operator<<(std::ostream& out, InitList<A, F> const& self)
+{ 
+  out << "{ ";
+  for (auto const& x : self.inner) {
+    out << self.transform(x) << ", ";
+  }
+  return out << "}";
+}
+
+void ProblemExport::ApiCalls::Z3_mk_datatypes(Z3MkDatatypesCall const& call) { 
+
+  out << std::endl << "  // datatypes:";
+  for (auto s : call.sortNames) {
+    out << " " << z3::symbol(_context, s);
+  }
+  out << std::endl;
+
+  for (auto& cs : call.mkConstrs) {
+    for (auto& c : cs)  {
+      out << "  z3::func_decl " << escapeVarName(z3::symbol(_context, c.name))   << "(ctx);" << std::endl;
+      out << "  z3::func_decl " << escapeVarName(z3::symbol(_context, c.tester)) << "(ctx);" << std::endl;
+      for (auto f : c.field_names)
+        out << "  z3::func_decl " << escapeVarName(z3::symbol(_context, f)) << "(ctx);" << std::endl;
+    }
+  }
+
+  for (auto s : call.sortNames) 
+    out << "  z3::sort " << escapeVarName(z3::symbol(_context,s)) << "(ctx);" << std::endl;
+  
+  out << "  {" << std::endl
+      << "    Z3_symbol sort_names[] = " << initList(call.sortNames, [&](auto s) { return serialize(z3::symbol(_context, s)); }) << ";" << std::endl
+      << "    Z3_sort sorts[] = "        << initList(call.sortNames, [&](auto  ) { return "nullptr"; }) << ";" << std::endl;
+
+  auto ctor_name = [&](auto& c) { return "ctor_" + escapeVarName(z3::symbol(_context, c.name)); };
+  for (auto& cs : call.mkConstrs) {
+    for (auto& c : cs) {
+      out << "    auto " << ctor_name(c) << " = mk_constructor(" 
+          << serialize(z3::symbol(_context, c.name)) << ", " 
+          << serialize(z3::symbol(_context, c.tester)) << ", "
+          << initList(c.field_names, [&](auto f){ return serialize(z3::symbol(_context,f)); }) << ", "
+          << initList(c.sorts,       [&](auto s){ return escapeVarName(z3::sort(_context,s).name()); }) << ", "
+          << initList(c.sort_refs,   [&](auto s){ return serialize(s); }) << ");" << std::endl;;
+    }
+  }
+
+  out << "    Z3_constructor_list constructor_lists[] = {" << std::endl;
+  for (auto& cs : call.mkConstrs) {
+    out << "      mk_constructor_list({";
+    for (auto c : cs)
+      out << ctor_name(c) << ", ";
+    out << "      })," << std::endl;
+  }
+  out << "    };" << std::endl;
+
+  out << "    Z3_mk_datatypes(ctx, " << call.sortNames.size() << ", sort_names, sorts, constructor_lists);" << std::endl;
+  int i = 0;
+  for (auto s : call.sortNames) 
+    out << "    " << escapeVarName(z3::symbol(_context,s)) << " = z3::sort(ctx, sorts[" << i++ <<"]);" << std::endl;
+
+
+  for (auto& cs : call.mkConstrs) {
+    for (auto c : cs){
+      out << "      query_constructor("
+          << ctor_name(c) << ", " 
+          << "&" << escapeVarName(z3::symbol(_context, c.name)) << ", " 
+          << "&" << escapeVarName(z3::symbol(_context, c.tester)) << ", " 
+          << "{";
+      for (auto f : c.field_names) {
+        out << "&" << escapeVarName(z3::symbol(_context, f)) << ", ";
+      }
+      out << "});" << std::endl;
+    }
+  }
+
+  // TODO z3::func_decl for ctors
+  out << "  }" << std::endl << std::endl;
+}
+
+void ProblemExport::ApiCalls::declare_fun(vstring const& name, z3::sort_vector domain, z3::sort codomain) { 
+  out << "  z3::func_decl " << escapeVarName(_context.str_symbol(name.c_str())) << " = ctx.function(" << EscapeString{name} << ", sort_vec({";
+  for (auto s : domain) 
+    out << escapeVarName(s.name()) << ", ";
+  out << "}), " << escapeVarName(codomain.name()) << " );" << std::endl;
+}
+
+z3::sort Z3Interfacing::z3_declare_sort(vstring const& name) {
+  auto sort = _context.uninterpreted_sort(_context.str_symbol(name.c_str()));
+  _exporter.apply([&](auto& e) { e.declareSort(sort); });
+  return sort;
+}
+
+z3::expr Z3Interfacing::z3_eval(z3::expr const& x) {
+  _exporter.apply([&](auto& e) { e.eval(x); });
+  return _model.eval(x, MODEL_COMPLETION);
+}
+
+z3::expr_vector Z3Interfacing::z3_unsat_core() {
+  _exporter.apply([&](auto& e) { e.unsatCore(); });
+  return _solver.unsat_core();
+}
+
+void Z3Interfacing::z3_add(z3::expr const& x) {
+  _exporter.apply([&](auto& e) { e.addAssert(x); });
+  _solver.add(x);
+}
+
+z3::check_result Z3Interfacing::z3_check() {
+  _exporter.apply([&](auto& e) { e.check(_assumptions); });
+  return _solver.check(_assumptions.size(), _assumptions.begin());
+}
+
+z3::model Z3Interfacing::z3_get_model() {
+  _exporter.apply([&](auto& e) { e.get_model(); });
+  return _solver.get_model();
+}
+
+void Z3Interfacing::z3_reset() {
+  _exporter.apply([&](auto& e) { e.reset(); });
+  _solver.reset();
+}
+
+z3::expr Z3Interfacing::z3_declare_const(vstring const& name, z3::sort sort) {
+  _exporter.apply([&](auto& e) { e.declare_fun(name, z3::sort_vector(_context), sort); });
+  return _context.function(name.c_str(), z3::sort_vector(_context), sort)();
+}
+
+z3::func_decl Z3Interfacing::z3_declare_fun(vstring const& name, z3::sort_vector domain, z3::sort codomain) {
+  _exporter.apply([&](auto& e) { e.declare_fun(name, domain, codomain); });
+  return _context.function(name.c_str(), domain, codomain);
+}
+
+template<class Value>
+void Z3Interfacing::z3_set_param(const char* k, Value const& v)
+{
+  _exporter.apply([&](auto& e) { e.set_param(k, v); });
+  _solver.set(k, v);
 }
 
 char const* Z3Interfacing::z3_full_version()
@@ -193,17 +750,12 @@ void Z3Interfacing::addClause(SATClause* cl)
     env.endOutput();
   }
 
-  auto add = [&](auto x) {
-    outputln("(assert ", x, ")");
-    _solver.add(x);
-  };
-
   for (auto def : z3clause.defs)  {
     DEBUG("adding def: ", def)
-    add(def);
+    z3_add(def);
   }
 
-  add(z3clause.expr);
+  z3_add(z3clause.expr);
   DEBUG("adding expr: ", z3clause.expr)
 }
 
@@ -259,14 +811,7 @@ SATSolver::Status Z3Interfacing::solve()
   CALL("Z3Interfacing::solve()");
   BYPASSING_ALLOCATOR;
   DEBUG("assumptions: ", _assumptions);
-
-  output("(check-sat-assuming (");
-  for (auto const& a : _assumptions) {
-    outputln(" ", a);
-  }
-  outputln(" ))");
-  z3::check_result result = _solver.check(_assumptions.size(), _assumptions.begin());
-
+  auto result = z3_check();
 
   if(_showZ3){
     env.beginOutput();
@@ -275,8 +820,7 @@ SATSolver::Status Z3Interfacing::solve()
   }
 
   if (_unsatCore) {
-    auto core = _solver.unsat_core();
-    outputln("(get-unsat-core)");
+    auto core = z3_unsat_core();
     for (auto phi : core) {
       _assumptionLookup
              .tryGet(phi)
@@ -291,8 +835,7 @@ SATSolver::Status Z3Interfacing::solve()
       break;
     case z3::check_result::sat:
       _status = SATISFIABLE;
-      _model = _solver.get_model();
-      outputln("(get-model)");
+      _model = z3_get_model();
       break;
     case z3::check_result::unknown:
       _status = UNKNOWN;
@@ -327,10 +870,8 @@ SATSolver::VarAssignment Z3Interfacing::getAssignment(unsigned var)
   BYPASSING_ALLOCATOR;
 
   ASS_EQ(_status,SATISFIABLE);
-  bool named = isNamedExpr(var);
-  z3::expr rep = named ? getNameExpr(var) : getRepresentation(SATLiteral(var,1)).expr;
-  outputln("(get-value (", rep, "))");
-  z3::expr assignment = _model.eval(rep, true /*model_completion*/);
+  z3::expr rep = isNamedExpr(var) ? getNameExpr(var) : getRepresentation(SATLiteral(var,1)).expr;
+  auto assignment = z3_eval(rep);
 
   if(assignment.bool_value()==Z3_L_TRUE){
     return TRUE;
@@ -339,6 +880,8 @@ SATSolver::VarAssignment Z3Interfacing::getAssignment(unsigned var)
   } else {
 #if VDEBUG
     std::cout << rep << std::endl;
+    std::cout << "model: " << std::endl;
+    std::cout << _model << std::endl;
     ASSERTION_VIOLATION_REP(assignment);
 #endif
     return NOT_KNOWN;
@@ -447,9 +990,7 @@ Term* Z3Interfacing::evaluateInModel(Term* trm)
   DEBUG("model: \n", _model)
   ASS(!trm->isLiteral());
 
-  z3::expr rep = getRepresentation(trm).expr;
-  output("(get-value (", rep, "))");
-  z3::expr ev = _model.eval(rep,true); // true means "model_completion"
+  auto ev = z3_eval(getRepresentation(trm).expr);
   SortId sort = SortHelper::getResultSort(trm);
 
   DEBUG("z3 expr: ", ev)
@@ -511,25 +1052,24 @@ z3::sort Z3Interfacing::getz3sort(SortId s)
     // TODO what about built-in tuples?
 
     // Deal with known sorts differently
-         if(s == Term::boolSort()) insert(_context.bool_sort());
+         if(s ==   Term::boolSort()) insert(_context.bool_sort());
     else if(s ==  IntTraits::sort()) insert( _context.int_sort());
     else if(s == RealTraits::sort()) insert(_context.real_sort());
     else if(s ==  RatTraits::sort()) insert(_context.real_sort()); // Drops notion of rationality
-    // TODO: are we really allowed to do this ???                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    // TODO: are we really allowed to do this ???                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^
     else if(SortHelper::isArraySort(s)) {
 
       z3::sort index_sort = getz3sort(SortHelper::getIndexSort(s));
       z3::sort value_sort = getz3sort(SortHelper::getInnerSort(s));
-
-      insert(_context.array_sort(index_sort,value_sort));
+      auto z3_sort = _context.array_sort(index_sort,value_sort);
+      _exporter.apply([&](auto& e) { e.declare_array_sort(z3_sort, index_sort, value_sort); });
+      insert(z3_sort);
 
     } else if (env.signature->isTermAlgebraSort(s)) {
       createTermAlgebra(*env.signature->getTermAlgebraOfSort(s));
 
     } else {
-      auto sort = _context.uninterpreted_sort(_context.str_symbol(env.sorts->sortName(s).c_str()));
-      outputln("(declare-sort ", sort, " 0)");
-      insert(sort);
+      insert(z3_declare_sort(env.sorts->sortName(s)));
     }
   }
   return _sorts.get(s);
@@ -565,25 +1105,16 @@ void Z3Interfacing::createTermAlgebra(TermAlgebra& start)
   auto new_string_symobl = [&](vstring const& str)
   { return Z3_mk_string_symbol(_context, str.c_str()); };
 
-  // create the data needed for Z3_mk_datatypes(...)
-  Stack<Stack<Z3_constructor>> ctorss(tas.size());
-  Stack<Z3_constructor_list> ctorss_z3(tas.size());
-  Stack<Z3_symbol> sortNames(tas.size());
-  // create the data needed to serialize the declare-datatypes to smtlib
-  struct SerDtor { z3::symbol name; SortId sort; };
-  struct SerCtor { z3::symbol name; Stack<SerDtor> dtors; };
-  struct SerDtype { SortId name; Stack<SerCtor> ctors; };
-  Stack<SerDtype> toSerialize;
+  Z3MkDatatypesCall mkDatatypes(_context, tas);
 
   DEBUG("creating constructors: ");
   for (auto ta : tas) {
     _createdTermAlgebras.insert(ta->sort());
-    Stack<Z3_constructor> ctors(ta->nConstructors());
-    Stack<SerCtor> serCtors;
+    mkDatatypes.mkConstrs.push(Stack<Z3MkConstructorCall>(ta->nConstructors()));
 
     for (auto cons : ta->iterCons()) {
+
       // data needed for the  Z3_mk_constructor call
-      Stack<SerDtor> serDtors;
       Stack<Z3_sort> argSorts(cons->arity());
       Stack<unsigned> argSortRefs(cons->arity());
       Stack<Z3_symbol> argNames(cons->arity());
@@ -591,11 +1122,6 @@ void Z3Interfacing::createTermAlgebra(TermAlgebra& start)
       auto i = 0;
       for (auto argSort : cons->iterArgSorts()) {
         auto dtorName = new_string_symobl(env.signature->getFunction(cons->functor())->name() + "_arg" + to_vstring(i++));
-        if (_out.isSome())
-          serDtors.push(SerDtor {
-              .name = z3::symbol(_context, dtorName),
-              .sort = argSort,
-          });
         argNames.push(dtorName);
         recSorts.tryGet(argSort)
           .match([&](unsigned idx) {
@@ -615,130 +1141,58 @@ void Z3Interfacing::createTermAlgebra(TermAlgebra& start)
 
       DEBUG("\t", env.sorts->sortName(ta->sort()), "::", env.signature->getFunction(cons->functor())->name(), ": ", env.signature->getFunction(cons->functor())->fnType()->toString());
 
-      Z3_symbol ctorName = Z3_mk_string_symbol(_context, env.signature->getFunction(cons->functor())->name().c_str());
-
       ASS_EQ(argSortRefs.size(), cons->arity())
       ASS_EQ(   argSorts.size(), cons->arity())
       ASS_EQ(   argNames.size(), cons->arity())
-      if (_out.isSome())
-        serCtors.push(SerCtor{
-            .name = z3::symbol(_context, ctorName),
-            .dtors = std::move(serDtors),
-        });
-      ctors.push(Z3_mk_constructor(_context,
-          ctorName,
-          Z3_mk_string_symbol(_context, discrName.c_str()),
-          cons->arity(),
-          cons->arity() == 0 ? nullptr : argNames.begin(),
-          cons->arity() == 0 ? nullptr : argSorts.begin(),
-          cons->arity() == 0 ? nullptr : argSortRefs.begin()
-      ));
 
-    }
-    ASS_EQ(ctors.size(), ta->nConstructors());
-
-    ctorss.push(std::move(ctors));
-    ASS_EQ(ctorss.top().size(), ta->nConstructors());
-    ctorss_z3.push(Z3_mk_constructor_list(_context, ctorss.top().size(),  ctorss.top().begin()));
-    sortNames.push(Z3_mk_string_symbol(_context, env.sorts->sortName(ta->sort()).c_str()));
-    if (_out.isSome())
-      toSerialize.push(SerDtype {
-        .name = ta->sort(),
-        .ctors = std::move(serCtors),
+      mkDatatypes.mkConstrs.top().push(Z3MkConstructorCall {
+          .c           = _context,
+          .name        = Z3_mk_string_symbol(_context, env.signature->getFunction(cons->functor())->name().c_str()),
+          .tester      = Z3_mk_string_symbol(_context, discrName.c_str()),
+          .field_names = std::move(argNames),
+          .sorts       = std::move(argSorts),
+          .sort_refs   = std::move(argSortRefs),
       });
+    }
+    mkDatatypes.sortNames.push(Z3_mk_string_symbol(_context, env.sorts->sortName(ta->sort()).c_str()));
   }
 
-  ASS_EQ(sortNames.size(), tas.size())
-  ASS_EQ(ctorss.size()   , tas.size())
-  ASS_EQ(ctorss_z3.size(), tas.size())
+  ASS_EQ(mkDatatypes.sortNames.size(), tas.size())
 
-  Array<Z3_sort> sorts(tas.size());
-
-  // actually created the datatypes
-  Z3_mk_datatypes(_context, tas.size(), sortNames.begin(), sorts.begin(), ctorss_z3.begin());
+  // actually create the datatypes
+  _exporter.apply([&](auto& e) { e.Z3_mk_datatypes(mkDatatypes); });
+  auto dtys = mkDatatypes();
 
   // register the `z3::func_decl`s created by `Z3_mk_datatypes` in indices to be queried when needed
-  for (unsigned iSort = 0; iSort < sorts.size(); iSort++) {
-    _sorts.insert(tas[iSort]->sort(), z3::sort(_context, sorts[iSort]));
-    auto ta = tas[iSort];
-    auto& ctors = ctorss[iSort];
-    for (unsigned iCons = 0; iCons < ta->nConstructors(); iCons++) {
-      auto ctor = ta->constructor(iCons);
+  for (unsigned iSort = 0; iSort < mkDatatypes.sortNames.size(); iSort++) {
+    auto& dty_v  = tas[iSort];
+    auto& dty_z3 = dtys[iSort];
 
-      Z3_func_decl constr_;
-      Z3_func_decl discr_;
-      Array<Z3_func_decl> destr(ctor->arity());
+    _sorts.insert(dty_v->sort(), dty_z3.sort);
 
-      Z3_query_constructor(_context,
-                           ctors[iCons],
-                           ctor->arity(),
-                           &constr_,
-                           &discr_,
-                           destr.begin());
+    for (unsigned iCons = 0; iCons < dty_v->nConstructors(); iCons++) {
+      auto ctor_v  = dty_v->constructor(iCons);
+      auto ctor_z3 = dty_z3.ctors[iCons];
 
-      auto discr = z3::func_decl(_context, discr_);
-      auto constr = z3::func_decl(_context, constr_);
+      _toZ3.insert(FuncOrPredId::function(ctor_v->functor()), ctor_z3.func);
+      _fromZ3.insert(ctor_z3.func, FuncOrPredId::function(ctor_v->functor()));
 
-      auto ctorId = FuncOrPredId::function(ctor->functor());
-      _toZ3.insert(ctorId, constr);
-      _fromZ3.insert(constr, ctorId);
-
-      if (ctor->hasDiscriminator()) {
-        auto discrId = FuncOrPredId::predicate(ctor->discriminator());
-        _toZ3.insert(discrId, discr);
-        // _fromZ3.insert(discr, discrId);
+      if (ctor_v->hasDiscriminator()) {
+        _toZ3  .insert(FuncOrPredId::predicate(ctor_v->discriminator()), ctor_z3.tester);
+        _fromZ3.insert(ctor_z3.tester, FuncOrPredId::predicate(ctor_v->discriminator()));
       }
-      for (unsigned iDestr = 0; iDestr < ctor->arity(); iDestr++)  {
-        auto dtor = z3::func_decl(_context, destr[iDestr]);
-        auto id = FuncOrPredId::function(ctor->destructorFunctor(iDestr));
-        _toZ3.insert(id, dtor);
-        _fromZ3.insert(dtor, id);
+
+      for (unsigned iDestr = 0; iDestr < ctor_v->arity(); iDestr++)  {
+        auto dtor_z3 = z3::func_decl(_context, ctor_z3.args[iDestr]);
+        auto dtor_v  = ctor_v->argSort(iDestr) == Term::boolSort()
+                     ? FuncOrPredId::predicate(ctor_v->destructorFunctor(iDestr))
+                     : FuncOrPredId::function (ctor_v->destructorFunctor(iDestr));
+        _toZ3  .insert(dtor_v, dtor_z3);
+        _fromZ3.insert(dtor_z3, dtor_v);
       }
     }
+
   }
-
-  // clean up
-  for (auto clist : ctorss_z3) {
-    Z3_del_constructor_list(_context, clist);
-  }
-
-  for (auto ctors : ctorss) {
-    for (auto ctor : ctors) {
-      Z3_del_constructor(_context, ctor);
-    }
-  }
-
-  // serizalize to z3
-  output("(declare-datatypes (");
-  for (auto& s : toSerialize) {
-    output(" (", getz3sort(s.name), " 0)");
-  }
-  outputln(" ) (");
-
-  auto quote = [&](auto x){
-    vstringstream s;
-    s << x;
-    auto str = s.str();
-    if (str[0] == '\'') {
-      return "|" + str + "|";
-    } else {
-      return str;
-    }
-  };
-
-  for (auto& dty : toSerialize) {
-    outputln("    ( ;-- datatype ", getz3sort(dty.name));
-    for (auto& ctor : dty.ctors) {
-      output("        ( ", quote(ctor.name));
-      for (auto& dtor : ctor.dtors) {
-        output(" ( ", quote(dtor.name), " ", getz3sort(dtor.sort), " )");
-      }
-      outputln(" )");
-    }
-    outputln("    )");
-  }
-  outputln("))");
-
 }
 
 z3::func_decl const& Z3Interfacing::findConstructor(FuncId id_)
@@ -1068,11 +1522,9 @@ z3::func_decl Z3Interfacing::z3Function(FuncOrPredId functor)
     for (unsigned i=0; i<type->arity(); i++) {
       domain_sorts.push_back(self.getz3sort(type->arg(i)));
     }
-    z3::symbol name = self._context.str_symbol(symb->name().c_str());
-    auto range_sort = functor.isPredicate ? self._context.bool_sort() : self.getz3sort(type->result());
-    auto decl = self._context.function(name,domain_sorts,range_sort);
-    outputln(decl);
-    self._toZ3.insert(functor, decl); // (declare-fun ...)
+    auto codomain = functor.isPredicate ? self._context.bool_sort() : self.getz3sort(type->result());
+    auto decl = self.z3_declare_fun(symb->name(), domain_sorts, codomain);
+    self._toZ3.insert(functor, decl);
     return decl;
   }
 }
@@ -1155,7 +1607,7 @@ Z3Interfacing::~Z3Interfacing()
   _sorts.clear();
   _toZ3.clear();
   _fromZ3.clear();
-  outputln(); // flush the output file
+  _exporter.apply([&](auto& e) { e.terminate(); });
 }
 
 
@@ -1165,32 +1617,23 @@ bool Z3Interfacing::isNamedExpr(unsigned var) const
 
 z3::expr Z3Interfacing::getNameExpr(unsigned var)
 {
-  return _varNames.getOrInit(var, [&](){
       // this method is called very often in runs with a lot of avatar reasoning. Cache the constants to avoid that z3 has to search for the string name in its function index
-      vstring name = "v"+Lib::Int::toString(var);
-      outputln("(declare-fun ", name, " () Bool)");
-      return _context.bool_const(name.c_str());
-  });
+  return _varNames.getOrInit(var, [&]()
+      { return z3_declare_const("v"+Lib::Int::toString(var), _context.bool_sort()); });
 }
 
 
 z3::expr Z3Interfacing::getNamingConstantFor(TermList toName, z3::sort sort)
 {
-  return _termIndexedConstants.getOrInit(toName, [&](){
-      auto name = "n" + toName.toString();
-      outputln("(declare-fun ", name, " () ", sort, ")");
-      return _context.constant(name.c_str(), sort);
-  });
+  return _termIndexedConstants.getOrInit(toName, [&]()
+    { return z3_declare_const("n" + toName.toString(), sort); });
 }
 
 z3::expr Z3Interfacing::getConst(Signature::Symbol* symb, z3::sort sort)
 {
-  return _constantNames.getOrInit(symb, [&]() {
+  return _constantNames.getOrInit(symb, [&]() 
     // careful: keep native constants' names distinct from the above ones (hence the "c"-prefix below)
-    vstring name("c" + symb->name());
-    outputln("(declare-fun ", name, " () ", sort, ")");
-    return _context.constant(name.c_str(), sort);
-  });
+    { return z3_declare_const("c" + symb->name(), sort); });
 }
 
 } // namespace SAT

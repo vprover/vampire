@@ -712,6 +712,11 @@ public:
     OFF = 3
   };
 
+  enum class ProblemExportSyntax : unsigned int {
+    SMTLIB = 0,
+    API_CALLS = 1,
+  };
+
 
     //==========================================================
     // The Internals
@@ -2006,6 +2011,7 @@ public:
 
 #if VZ3
   bool showZ3() const { return showAll() || _showZ3.actualValue; }
+  ProblemExportSyntax problemExportSyntax() const { return _problemExportSyntax.actualValue; }
   vstring const& exportAvatarProblem() const { return _exportAvatarProblem.actualValue; }
   vstring const& exportThiProblem() const { return _exportThiProblem.actualValue; }
 #endif
@@ -2548,6 +2554,7 @@ private:
   BoolOptionValue _showSimplOrdering;
 #if VZ3
   BoolOptionValue _showZ3;
+  ChoiceOptionValue<ProblemExportSyntax> _problemExportSyntax;
   StringOptionValue _exportAvatarProblem;
   StringOptionValue _exportThiProblem;
   BoolOptionValue _satFallbackForSMT;
