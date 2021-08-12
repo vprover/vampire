@@ -254,7 +254,7 @@ public:
    * if the Option was None an empty option of the function's return type is returned.                        \
    */                                                                                                         \
   template<class Clsr>                                                                                        \
-  Option<typename std::result_of<Clsr(A REF)>::type> map(Clsr clsr) REF {                                     \
+  auto map(Clsr clsr) REF -> decltype(auto) {                                                                 \
     using OptOut = Option<typename std::result_of<Clsr(A REF)>::type>;                                        \
     return this->isSome() ? OptOut(clsr(MOVE(this->unwrap())))                                                \
                           : OptOut();                                                                         \
@@ -266,12 +266,9 @@ public:
    * \pre both CaseSome and CaseNone must have the same return type                                           \
    */                                                                                                         \
   template<class CaseSome, class CaseNone>                                                                    \
-  typename std::result_of<CaseSome( A REF)>::type match(CaseSome present, CaseNone none) REF {                \
-    if (this->isSome()) {                                                                                     \
-      return present(MOVE((*this)).unwrap());                                                                 \
-    } else {                                                                                                  \
-      return none();                                                                                          \
-    }                                                                                                         \
+  auto match(CaseSome some, CaseNone none) REF -> decltype(auto) {                                            \
+    return this->isSome() ? some(MOVE((*this)).unwrap())                                                      \
+                          : none();                                                                           \
   }                                                                                                           \
                                                                                                               \
   /**                                                                                                         \
@@ -294,7 +291,7 @@ public:
    * This function is the same as flatMap/andThen/(>>=)  in other programming languages with monads.          \
    */                                                                                                         \
   template<class Clsr>                                                                                        \
-  typename std::result_of<Clsr(A REF)>::type andThen(Clsr clsr) REF {                                         \
+  auto andThen(Clsr clsr) REF -> decltype(auto) {                                                             \
     using OptOut = typename std::result_of<Clsr(A REF)>::type;                                                \
     return this->isSome() ? clsr(MOVE(*this).unwrap())                                                        \
                           : OptOut();                                                                         \

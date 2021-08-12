@@ -443,6 +443,15 @@ public:
     CALL("Map::getOrInit");
     return updateOrInit(std::move(key), [](Val v) { return std::move(v); }, init);
   } 
+ 
+  /**
+    * like `Val& getOrInit(Key key, InitFn init)`, but uses default constructor for initialization.
+   */
+  Val& getOrInit(Key key) 
+  {
+    CALL("Map::getOrInit");
+    return getOrInit(std::move(key), []() { return Val(); });
+  } 
 
 
  

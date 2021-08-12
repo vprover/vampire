@@ -103,11 +103,8 @@ namespace CoproductImpl {
                                                                                                               \
     /** same as `match`, but using the same function for every type.*/                                        \
     template <class R, class F> inline R apply(unsigned idx, F f) REF {                                       \
-      if (idx == 0) {                                                                                         \
-        return f(MOVE(_head));                                                                                \
-      } else {                                                                                                \
-        return MOVE(_tail).template apply<R>(idx - 1, f);                                                     \
-      }                                                                                                       \
+      if (idx == 0) return f(MOVE(_head));                                                                    \
+      else          return MOVE(_tail).template apply<R>(idx - 1, f);                                         \
     }                                                                                                         \
                                                                                                               \
     /** same as `match`, but using applying th function to the contents of two unions at once. both must have \
@@ -358,7 +355,7 @@ public:
    * can transform any variant instead of multiple functions per variant.                                     \
    */                                                                                                         \
   template <class F>                                                                                          \
-  inline ResultOf<F, A REF> apply(F f) REF {                                                                  \
+  inline auto apply(F f) REF -> decltype(auto) {                                                              \
     ASS_REP(_tag <= size, _tag);                                                                              \
     return MOVE(_content).template apply<ResultOf<F, A REF>>(_tag,f);                                         \
   }                                                                                                           \
