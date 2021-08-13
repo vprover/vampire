@@ -98,7 +98,6 @@ struct ProofTracer {
     // events from Tracer mapped to (each) TracedProof
 
     void onNewClause(Clause* cl);
-    void onInputClause(Clause* cl);
     void onInputFinished();
     void onPassiveNumbered();
     void onActivation(Clause* cl);
@@ -152,7 +151,7 @@ struct ProofTracer {
     void listExpectedsDetails();
 
     TracedProof() : _seen(0), _inOrder(nullptr), _theEmpty(0), _variantLookup(new Indexing::HashingClauseVariantIndex()),
-        _numInitials(0), _seenInitials(0), _lastActivationMatch(0) {}
+        _lastActivationMatch(0) {}
     ~TracedProof() { delete _variantLookup; }
 
   private:
@@ -164,9 +163,6 @@ struct ProofTracer {
     DHMap<Clause*, TracedClauseInfo*> _clInfo;
 
     Indexing::ClauseVariantIndex* _variantLookup;
-
-    unsigned _numInitials;
-    unsigned _seenInitials;
 
     Clause* _lastActivationMatch;
 
@@ -203,11 +199,6 @@ struct ProofTracer {
   {
     CALL("ProofTracer::onNewClause");
     _tp->onNewClause(cl);
-  }
-  void onInputClause(Clause* cl)
-  {
-    CALL("ProofTracer::onInputClause");
-    _tp->onInputClause(cl);
   }
 
   void onInputFinished()

@@ -627,7 +627,7 @@ void IGAlgorithm::doResolutionStep()
   }
   try {
     ScopedLet<Options*> optLet(env.options,&_saturationOptions);
-    _saturationAlgorithm->doOneAlgorithmStep();
+    _saturationAlgorithm->doOneAlgorithmStep(0);
   }
   catch(MainLoopFinishedException e)
   {

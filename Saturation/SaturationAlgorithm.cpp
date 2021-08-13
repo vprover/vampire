@@ -701,10 +701,6 @@ void SaturationAlgorithm::addInputClause(Clause* cl)
     addNewClause(cl);
   }
 
-  if (env.tracer && cl->isTraced()) {
-    env.tracer->onInputClause(cl);
-  }
-
   if(_instantiation){
     _instantiation->registerClause(cl);
   }
@@ -801,10 +797,6 @@ void SaturationAlgorithm::init()
   while (toAdd.hasNext()) {
     Clause* cl=toAdd.next();
     addInputClause(cl);
-  }
-
-  if (env.tracer) {
-    env.tracer->onInputFinished();
   }
 
   if (_splitter) {
@@ -1379,11 +1371,15 @@ UnitList* SaturationAlgorithm::collectSaturatedSet()
  *
  * This function may throw RefutationFoundException and TimeLimitExceededException.
  */
-void SaturationAlgorithm::doOneAlgorithmStep()
+void SaturationAlgorithm::doOneAlgorithmStep(unsigned num)
 {
   CALL("SaturationAlgorithm::doOneAlgorithmStep");
 
   doUnprocessedLoop();
+
+  if (env.tracer && num == 0) {
+    env.tracer->onInputFinished();
+  }
 
   if (_passive->isEmpty()) {
     MainLoopResult::TerminationReason termReason =
@@ -1436,7 +1432,7 @@ MainLoopResult SaturationAlgorithm::runImpl()
         throw ActivationLimitExceededException();
       }
 
-      doOneAlgorithmStep();
+      doOneAlgorithmStep(l);
 
       Timer::syncClock();
       if (env.timeLimitReached()) {

@@ -39,10 +39,6 @@ void ProofTracer::TracedProof::init()
     it.next(cl,info);
 
     ASS_EQ((cl == _theEmpty),info->isTerminal()); // exactly the Empty is Terminal
-
-    if (info->isInital()) {
-      _numInitials++;
-    }
   }
 
   // cout << "TracedProof initilized!" << endl;
@@ -181,37 +177,6 @@ void ProofTracer::TracedProof::onPassiveNumbered()
   cout << endl;
 }
 
-void ProofTracer::TracedProof::onInputClause(Clause* cl)
-{
-  CALL("ProofTracer::TracedProof::onInputClause");
-
-  ASS(cl->isTraced());
-
-  //cout << "Init " << cl->toString() << endl;
-
-  Clause* match = findVariant(cl);
-  if (match != 0) {
-    TracedClauseInfo* info = _clInfo.get(match);
-
-    /*
-    cout << "Init " << cl->toString() << endl;
-    cout << " matched " << info->_name << endl;
-    */
-    _seenInitials++;
-
-    /*
-    for (unsigned i = 0; i < info->_children.size(); i++) {
-      Clause* ch = info->_children[i];
-      TracedClauseInfo* ch_info = _tp->getClauseInfo(ch);
-      cout << " would notify child " << ch_info->_name << endl;
-      cout << " ik: " << ch_info->_ik << endl;
-      cout << " pc: " << ch_info->_parents.size() << endl;
-    }
-    */
-  }
-}
-
-
 void ProofTracer::TracedProof::onActivation(Clause* cl)
 {
   CALL("ProofTracer::TracedProof::onActivation");
@@ -244,21 +209,21 @@ void ProofTracer::TracedProof::onInputFinished()
 {
   CALL("ProofTracer::TracedProof::onInputFinished");
 
-  unsigned unbornInitials = _numInitials - _seenInitials;
+  unsigned unbornInitials = 0;
 
-  if (unbornInitials > 0) {
-    cout << "_unbornInitials: " << unbornInitials << endl;
-    DHMap<Clause*, TracedClauseInfo*>::Iterator it(_clInfo);
-    while (it.hasNext()) {
-      Clause* cl;
-      TracedClauseInfo* info;
-      it.next(cl,info);
+  DHMap<Clause*, TracedClauseInfo*>::Iterator it(_clInfo);
+  while (it.hasNext()) {
+    Clause* cl;
+    TracedClauseInfo* info;
+    it.next(cl,info);
 
-      if (info->isInital() && info->_stalkees.size() == 0) {
-        cout << info->_name << " " << cl->toString() << endl;
-      }
+    if (info->isInital() && info->_stalkees.size() == 0) {
+      unbornInitials++;
+      cout << "unbornInitial: " << info->_name << " " << cl->toNiceString() << " " << info->_inf << endl;
     }
-  } else {
+  }
+
+  if (unbornInitials == 0) {
     cout << "All initials recognized!" << endl;
   }
 }
