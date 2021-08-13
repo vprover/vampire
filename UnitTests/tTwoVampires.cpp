@@ -42,7 +42,7 @@ using namespace Kernel;
 using namespace Saturation;
 using namespace Shell;
 
-//void runChild(UnitList* units, vstring slice) __attribute__((noreturn));
+//[[noreturn]] void runChild(UnitList* units, vstring slice);
 
 void runChild(UnitList* units, vstring slice)
 {
