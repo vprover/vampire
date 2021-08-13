@@ -118,47 +118,6 @@ private:
   bool _finished;
 };
 
-/**
- * An instantiated induction template for a term.
- */
-class InductionScheme
-{
-public:
-  InductionScheme(const vmap<Term*, unsigned>& indTerms, bool noChecks = false)
-    : _cases(), _inductionTerms(indTerms), _finalized(false), _noChecks(noChecks) {}
-
-  struct Case {
-    Case() = default;
-    Case(vvector<Substitution>&& recursiveCalls, Substitution&& step)
-      : _recursiveCalls(recursiveCalls), _step(step) {}
-    bool contains(const Case& other, const vmap<Term*, unsigned>& indTerms1, const vmap<Term*, unsigned>& indTerms2) const;
-
-    vvector<Substitution> _recursiveCalls;
-    Substitution _step;
-  };
-
-  void addCase(vvector<Substitution>&& recursiveCalls, Substitution&& step) {
-    _cases.emplace_back(std::move(recursiveCalls), std::move(step));
-  }
-  void addCase(Case&& c) {
-    _cases.push_back(std::move(c));
-  }
-  bool finalize();
-  static TermList createRepresentingTerm(const vmap<Term*, unsigned>& inductionTerms, const Substitution& s);
-  const vvector<Case>& cases() const { ASS(_finalized); return _cases; }
-  const vmap<Term*, unsigned>& inductionTerms() const { ASS(_finalized); return _inductionTerms; }
-
-private:
-  bool addBaseCases();
-
-  vvector<Case> _cases;
-  vmap<Term*, unsigned> _inductionTerms;
-  bool _finalized;
-  bool _noChecks;
-};
-
-ostream& operator<<(ostream& out, const InductionScheme& scheme);
-
 class OccurrenceMap {
 public:
   void add(Literal* l, Term* t, bool active) {
@@ -219,10 +178,9 @@ private:
   void generate(Clause* premise, Literal* lit);
   void process(Term* t, bool active, Stack<bool>& actStack, Literal* lit);
   void process(Literal* lit, Stack<bool>& actStack);
-  void addScheme(Term* t, const InductionTemplate& templ);
-  void handleActiveTerm(Term* t, const InductionTemplate& templ, Stack<bool>& actStack);
+  void handleActiveTerm(Term* t, InductionTemplate& templ, Stack<bool>& actStack);
 
-  vvector<InductionScheme> _schemes;
+  vset<InductionScheme> _schemes;
   OccurrenceMap _actOccMaps;
 };
 
@@ -235,9 +193,6 @@ struct StructuralInductionSchemeGenerator
   void generate(const SLQueryResult& main,
     const vset<pair<Literal*,Clause*>>& side,
     vvector<pair<InductionScheme, OccurrenceMap>>& res) override;
-
-private:
-  InductionScheme generateStructural(Term* term);
 };
 
 } // Shell

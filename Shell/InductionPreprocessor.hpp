@@ -19,6 +19,7 @@
 #include "Indexing/TermSubstitutionTree.hpp"
 #include "Kernel/Term.hpp"
 #include "Kernel/TermTransformer.hpp"
+#include "TermAlgebra.hpp"
 #include "Lib/STL.hpp"
 
 namespace Shell {
@@ -26,6 +27,9 @@ namespace Shell {
 using namespace Indexing;
 using namespace Kernel;
 using namespace Lib;
+
+bool skolem(Term* t);
+bool containsSkolem(Term* t);
 
 /**
  * TermTransformer subclass for any TermList to TermList replacement
@@ -40,6 +44,47 @@ private:
 };
 
 /**
+ * An instantiated induction template for a term.
+ */
+class InductionScheme
+{
+public:
+  InductionScheme(const vmap<Term*, unsigned>& indTerms, bool noChecks = false)
+    : _inductionTerms(indTerms), _finalized(false), _noChecks(noChecks), _cases() {}
+
+  struct Case {
+    Case() = default;
+    Case(vvector<Substitution>&& recursiveCalls, Substitution&& step)
+      : _recursiveCalls(recursiveCalls), _step(step) {}
+
+    vvector<Substitution> _recursiveCalls;
+    Substitution _step;
+  };
+
+  bool finalize();
+  static TermList createRepresentingTerm(const vmap<Term*, unsigned>& inductionTerms, const Substitution& s);
+  const vvector<Case>& cases() const { ASS(_finalized); return *_cases; }
+  const vmap<Term*, unsigned>& inductionTerms() const { ASS(_finalized); return _inductionTerms; }
+  bool operator<(const InductionScheme& other) const {
+    return _inductionTerms < other._inductionTerms ||
+      (_inductionTerms == other._inductionTerms && _cases < other._cases);
+  }
+
+private:
+  bool addBaseCases();
+
+  friend class InductionTemplate;
+  friend class FnDefHandler;
+
+  vmap<Term*, unsigned> _inductionTerms;
+  bool _finalized;
+  bool _noChecks;
+  vvector<Case>* _cases;
+};
+
+ostream& operator<<(ostream& out, const InductionScheme& scheme);
+
+/**
  * Corresponds to the branches of a function definition.
  * Stores the branches and the active positions
  * (i.e. the changing arguments) of the function.
@@ -50,6 +95,7 @@ struct InductionTemplate {
   bool checkWellDefinedness(vvector<vvector<TermList>>& missingCases);
   void addMissingCases(const vvector<vvector<TermList>>& missingCases);
   void sortBranches();
+  void requestInductionScheme(Term* t, vset<InductionScheme>& schemes);
 
   /**
    * Stores the template for a recursive case
@@ -72,12 +118,16 @@ struct InductionTemplate {
   };
 
   void addBranch(vvector<TermList>&& recursiveCalls, TermList&& header);
-  const vvector<Branch>& branches() const { return _branches; }
   const vvector<bool>& inductionPositions() const { return _inductionPositions; }
 
 private:
+  friend ostream& operator<<(ostream& out, const InductionTemplate& templ);
+
   vvector<Branch> _branches;
   vvector<bool> _inductionPositions;
+  vvector<bool> _usedNonInductionPositions;
+  vmap<vvector<TermList>, vvector<InductionScheme::Case>> _caseMap;
+  vset<vvector<TermList>> _invalids;
 };
 
 ostream& operator<<(ostream& out, const InductionTemplate::Branch& branch);
@@ -94,6 +144,7 @@ public:
 
   void handleClause(Clause* c, unsigned i, bool reversed);
   void finalize();
+  void requestStructuralInductionScheme(Term* t, vvector<InductionScheme>& schemes);
 
   TermQueryResultIterator getGeneralizations(TermList t) {
     return _is->getGeneralizations(t, true);
@@ -103,13 +154,14 @@ public:
     return _templates.count(make_pair(fn, trueFun));
   }
 
-  const InductionTemplate& getInductionTemplate(unsigned fn, bool trueFun) {
+  InductionTemplate& getInductionTemplate(unsigned fn, bool trueFun) {
     return _templates.at(make_pair(fn, trueFun));
   }
 
 private:
   unique_ptr<TermIndexingStructure> _is;
   vmap<pair<unsigned, bool>, InductionTemplate> _templates;
+  vmap<TermAlgebra*, vvector<InductionScheme::Case>> _taCaseMap;
 };
 
 /**

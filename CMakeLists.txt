@@ -593,7 +593,6 @@ set(VAMPIRE_SHELL_SOURCES
     #Shell/GlobalOptions.cpp
     Shell/Grounding.cpp
     Shell/InductionPreprocessor.cpp
-    Shell/InductionSchemeFilter.cpp
     Shell/InductionSchemeGenerator.cpp
     Shell/InequalitySplitting.cpp
     Shell/InterpolantMinimizer.cpp

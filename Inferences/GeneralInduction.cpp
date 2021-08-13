@@ -244,30 +244,6 @@ Formula* createImplication(Literal* mainLit, const vvector<pair<Literal*, SLQuer
   return left ? new BinaryFormula(Connective::IMP, left, right) : right;
 }
 
-InductionScheme::Case renameCase(const InductionScheme::Case& c, const vmap<Term*, unsigned>& inductionTerms, unsigned& var) {
-  Renaming r(var);
-  TermList t;
-  Substitution step;
-  vvector<Substitution> recCalls;
-  for (const auto& kv : inductionTerms) {
-    if (c._step.findBinding(kv.second, t)) {
-      r.normalizeVariables(t);
-      step.bind(kv.second, r.apply(t));
-    }
-  }
-  for (const auto& recCall : c._recursiveCalls) {
-    recCalls.emplace_back();
-    for (const auto& kv : inductionTerms) {
-      if (recCall.findBinding(kv.second, t)) {
-        r.normalizeVariables(t);
-        recCalls.back().bind(kv.second, r.apply(t));
-      }
-    }
-  }
-  var = r.nextVar();
-  return InductionScheme::Case(std::move(recCalls), std::move(step));
-}
-
 void GeneralInduction::generateClauses(
   const Shell::InductionScheme& scheme,
   Literal* mainLit, SLQueryResult mainQuery,
@@ -292,18 +268,10 @@ void GeneralInduction::generateClauses(
 
   vset<unsigned> hypVars;
   FormulaList* cases = FormulaList::empty();
-  unsigned var = 0;
-  for (const auto& kv : scheme.inductionTerms()) {
-    var = max(var, kv.second);
-  }
-  var++;
-
   TermList t;
   for (const auto& c : scheme.cases()) {
-    // rename variables in each case such that conclusion variables remain the same
-    auto rn = renameCase(c, scheme.inductionTerms(), var);
     FormulaList* ll = FormulaList::empty();
-    for (auto& r : rn._recursiveCalls) {
+    for (auto& r : c._recursiveCalls) {
       auto f = createImplication(mainLit, sideLitQrPairs, r);
       FormulaList::push(f, ll);
       // save all free variables of the hypotheses -- these are used
@@ -315,7 +283,7 @@ void GeneralInduction::generateClauses(
         }
       }
     }
-    auto right = createImplication(mainLit, sideLitQrPairs, rn._step);
+    auto right = createImplication(mainLit, sideLitQrPairs, c._step);
     Formula* left = 0;
     if (FormulaList::isNonEmpty(ll)) {
       left = JunctionFormula::generalJunction(Connective::AND, ll);
