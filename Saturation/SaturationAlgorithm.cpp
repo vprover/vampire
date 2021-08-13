@@ -54,7 +54,6 @@
 #include "Inferences/BackwardSubsumptionResolution.hpp"
 #include "Inferences/BackwardSubsumptionDemodulation.hpp"
 #include "Inferences/BinaryResolution.hpp"
-#include "Inferences/CTFwSubsAndRes.hpp"
 #include "Inferences/EqualityFactoring.hpp"
 #include "Inferences/EqualityResolution.hpp"
 #include "Inferences/BoolEqToDiseq.hpp"
