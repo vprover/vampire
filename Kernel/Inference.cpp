@@ -699,8 +699,9 @@ vstring Kernel::ruleName(InferenceRule rule)
   case InferenceRule::EQUALITY_FACTORING:
     return "equality factoring";
   case InferenceRule::EQUALITY_RESOLUTION:
-  case InferenceRule::EQUALITY_RESOLUTION_WITH_DELETION:
     return "equality resolution";
+  case InferenceRule::EQUALITY_RESOLUTION_WITH_DELETION:
+    return "equality resolution with deletion";
   case InferenceRule::FORWARD_DEMODULATION:
     return "forward demodulation";
   case InferenceRule::BACKWARD_DEMODULATION:

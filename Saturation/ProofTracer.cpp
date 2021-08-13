@@ -417,8 +417,8 @@ static const DHMap<vstring, ProofTracer::InferenceKind> inference_info = {
     {"definition_unfolding", ProofTracer::ICP},
     {"evaluation", ProofTracer::TRIVSIMP},
     {"duplicate_literal_removal", ProofTracer::DUPLELIM},
-
-
+    {"equality_resolution", ProofTracer::GENERATING},
+    {"equality_resolution_with_deletion", ProofTracer::ICP},
 };
 
 ProofTracer::TracedProof* ProofTracer::prepareTracedProof(ProofTracer::ParsedProof* pp)
