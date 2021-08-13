@@ -321,7 +321,6 @@ VINF_OBJ=Inferences/BackwardDemodulation.o\
          Inferences/GaussianVariableElimination.o\
          Inferences/InterpretedEvaluation.o\
          Inferences/TheoryInstAndSimp.o
-#         Inferences/CTFwSubsAndRes.o\
 #         Inferences/RenamingOnTheFly.o\
 
 VSAT_OBJ=SAT/DIMACS.o\
