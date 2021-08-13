@@ -14,6 +14,7 @@
  * @author Andrei Voronkov
  */
 #include <fstream>
+#include <climits>
 #include <cstdlib>
 #include <csignal>
 #include <sstream>
