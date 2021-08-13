@@ -62,7 +62,7 @@ public:
   };
 
   bool finalize();
-  static TermList createRepresentingTerm(const vmap<Term*, unsigned>& inductionTerms, const Substitution& s);
+  static Term* createRepresentingTerm(const vmap<Term*, unsigned>& inductionTerms, const Substitution& s);
   const vvector<Case>& cases() const { ASS(_finalized); return *_cases; }
   const vmap<Term*, unsigned>& inductionTerms() const { ASS(_finalized); return _inductionTerms; }
   bool operator<(const InductionScheme& other) const {
@@ -90,12 +90,15 @@ ostream& operator<<(ostream& out, const InductionScheme& scheme);
  * (i.e. the changing arguments) of the function.
  */
 struct InductionTemplate {
-  bool checkUsefulness();
-  bool checkWellFoundedness();
-  bool checkWellDefinedness(vvector<vvector<TermList>>& missingCases);
-  void addMissingCases(const vvector<vvector<TermList>>& missingCases);
-  void sortBranches();
+  InductionTemplate(Term* t)
+    : _functor(t->functor()), _arity(t->arity()), _isLit(t->isLiteral()),
+    _branches(), _indPos(_arity, false), _usedNonIndPos(_arity, false),
+    _caseMap(), _invalids() {}
+
+  void addBranch(vvector<Term*>&& recursiveCalls, Term*&& header);
+  bool finalize();
   void requestInductionScheme(Term* t, vset<InductionScheme>& schemes);
+  const vvector<bool>& inductionPositions() const { return _indPos; }
 
   /**
    * Stores the template for a recursive case
@@ -105,27 +108,33 @@ struct InductionTemplate {
    *   (if not present it is a base case)
    */
   struct Branch {
-    Branch(const vvector<TermList>& recursiveCalls, TermList header)
+    Branch(const vvector<Term*>& recursiveCalls, Term* header)
       : _recursiveCalls(recursiveCalls), _header(header) {}
 
-    Branch(TermList base)
+    Branch(Term* base)
       : _recursiveCalls(), _header(base) {}
 
     bool contains(Branch other);
 
-    vvector<TermList> _recursiveCalls;
-    TermList _header;
+    vvector<Term*> _recursiveCalls;
+    Term* _header;
   };
 
-  void addBranch(vvector<TermList>&& recursiveCalls, TermList&& header);
-  const vvector<bool>& inductionPositions() const { return _inductionPositions; }
+  const unsigned _functor;
+  const unsigned _arity;
+  const bool _isLit;
 
 private:
   friend ostream& operator<<(ostream& out, const InductionTemplate& templ);
 
+  bool checkUsefulness();
+  bool checkWellFoundedness();
+  void checkWellDefinedness();
+
   vvector<Branch> _branches;
-  vvector<bool> _inductionPositions;
-  vvector<bool> _usedNonInductionPositions;
+  vvector<bool> _indPos;
+  vvector<bool> _usedNonIndPos;
+
   vmap<vvector<TermList>, vvector<InductionScheme::Case>> _caseMap;
   vset<vvector<TermList>> _invalids;
 };
@@ -169,8 +178,8 @@ private:
  * the marked recursive function definitions from the parser.
  */
 struct InductionPreprocessor {
-  static void processCase(const unsigned fn, TermList body, vvector<TermList>& recursiveCalls);
-  static bool checkWellFoundedness(const vvector<pair<TermList,TermList>>& relatedTerms);
+  static void processCase(const unsigned fn, TermList body, vvector<Term*>& recursiveCalls);
+  static bool checkWellFoundedness(const vvector<pair<Term*,Term*>>& relatedTerms);
   static bool checkWellDefinedness(const vvector<Term*>& cases, vvector<vvector<TermList>>& missingCases);
 };
 

@@ -110,7 +110,7 @@ namespace Shell {
     unsigned getSubtermPredicate();
 
     static Lib::vvector<Kernel::TermList> generateAvailableTerms(const Kernel::Term* t, unsigned& var);
-    static bool excludeTermFromAvailables(Lib::vvector<Kernel::TermList>& availables, Kernel::TermList e, unsigned& var);
+    static void excludeTermFromAvailables(Lib::vvector<Kernel::TermList>& availables, Kernel::TermList e, unsigned& var);
 
   private:
     TermList _sort;

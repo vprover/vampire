@@ -234,13 +234,13 @@ void GeneralInduction::detach()
 Formula* createImplication(Literal* mainLit, const vvector<pair<Literal*, SLQueryResult>>& sideLitQrPairs, Substitution subst = Substitution()) {
   FormulaList* ll = FormulaList::empty();
   for (const auto& kv : sideLitQrPairs) {
-    FormulaList::push(new AtomicFormula(SubstHelper::apply<Substitution>(kv.first, subst)), ll);
+    FormulaList::push(new AtomicFormula(kv.first->apply(subst)), ll);
   }
   Formula* left = 0;
   if (FormulaList::isNonEmpty(ll)) {
     left = JunctionFormula::generalJunction(Connective::AND, ll);
   }
-  Formula* right = new AtomicFormula(Literal::complementaryLiteral(SubstHelper::apply<Substitution>(mainLit, subst)));
+  Formula* right = new AtomicFormula(Literal::complementaryLiteral(mainLit->apply(subst)));
   return left ? new BinaryFormula(Connective::IMP, left, right) : right;
 }
 

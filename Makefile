@@ -372,7 +372,6 @@ VS_OBJ = Shell/AnswerExtractor.o\
          Shell/Grounding.o\
          Shell/InductionPreprocessor.o\
          Shell/InductionSchemeGenerator.o\
-         Shell/InductionSchemeFilter.o\
          Shell/InequalitySplitting.o\
          Shell/InterpolantMinimizer.o\
          Shell/InterpolantMinimizerNew.o\

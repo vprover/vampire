@@ -191,15 +191,13 @@ vvector<TermList> TermAlgebra::generateAvailableTerms(const Term* t, unsigned& v
   return res;
 }
 
-bool TermAlgebra::excludeTermFromAvailables(vvector<TermList>& availables, TermList e, unsigned& var) {
+void TermAlgebra::excludeTermFromAvailables(vvector<TermList>& availables, TermList e, unsigned& var) {
   ASS(e.isTerm());
   auto last = availables.size();
-  bool excluded = false;
   for (unsigned i = 0; i < last;) {
     auto p = availables[i];
     // if p is an instance of e, p is removed
     if (MatchingUtils::matchTerms(e, p)) {
-      excluded = true;
       availables[i] = availables.back();
       availables.pop_back();
       last--;
@@ -207,7 +205,6 @@ bool TermAlgebra::excludeTermFromAvailables(vvector<TermList>& availables, TermL
     // if e is an instance of p, the remaining
     // instances of p are added
     else if (MatchingUtils::matchTerms(p, e)) {
-      excluded = true;
       availables[i] = availables.back();
       availables.pop_back();
       last--;
@@ -245,7 +242,6 @@ bool TermAlgebra::excludeTermFromAvailables(vvector<TermList>& availables, TermL
     }
   }
   availables.shrink_to_fit();
-  return excluded;
 }
 
 }
