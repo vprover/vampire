@@ -385,7 +385,7 @@ private:
 
   // a few helper functions enabling the body of parseTermOrFormula be of reasonable size
 
-  void complainAboutArgShortageOrWrongSorts(const vstring& symbolClass, LExpr* exp) NO_RETURN;
+  [[noreturn]] void complainAboutArgShortageOrWrongSorts(const vstring& symbolClass, LExpr* exp);
 
   void parseLetBegin(LExpr* exp);
   void parseLetPrepareLookup(LExpr* exp);

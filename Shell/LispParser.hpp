@@ -126,8 +126,8 @@ public:
   }
   explicit LispListReader(LExprList* list) : it(list) {}
 
-  void lispError(LExpr* expr, vstring reason="error") NO_RETURN;
-  void lispCurrError(vstring reason="error") NO_RETURN;
+  [[noreturn]] void lispError(LExpr* expr, vstring reason="error");
+  [[noreturn]] void lispCurrError(vstring reason="error");
 
   bool hasNext() { return it.hasNext(); }
   LExpr* peekAtNext();

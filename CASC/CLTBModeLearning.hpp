@@ -112,19 +112,19 @@ public:
   typedef Set<vstring> StrategySet;
   typedef Stack<vstring> Schedule;
 
-  void searchForProof(int terminationTime,int timeLimit,Schedule& strats,bool stopOnProof) __attribute__((noreturn));
+  [[noreturn]] void searchForProof(int terminationTime,int timeLimit,Schedule& strats,bool stopOnProof);
 private:
   bool runSchedule(Schedule&,StrategySet& remember,bool fallback,int terminationTime, bool stopOnProof);
   unsigned getSliceTime(vstring sliceCode,vstring& chopped);
 
   void performStrategy(int terminationTime,int timeLimit,  Shell::Property* property, Schedule& quick, bool stopOnProof);
   void waitForChildAndExitWhenProofFound(bool stopOnProof);
-  void exitOnNoSuccess() __attribute__((noreturn));
+  [[noreturn]] void exitOnNoSuccess();
 
   static ofstream* writerFileStream;
-  static void terminatingSignalHandler(int sigNum) __attribute__((noreturn));
-  void runSlice(vstring slice, unsigned milliseconds,bool printProof) __attribute__((noreturn));
-  void runSlice(Options& strategyOpt, bool printProof) __attribute__((noreturn));
+  [[noreturn]] static void terminatingSignalHandler(int sigNum);
+  [[noreturn]] void runSlice(vstring slice, unsigned milliseconds,bool printProof);
+  [[noreturn]] void runSlice(Options& strategyOpt, bool printProof);
 
   static vstring problemFinishedString;
 

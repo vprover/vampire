@@ -47,12 +47,6 @@
 #endif
 
 //////////////////////////////////////////////////////
-// Function directives
-
-/** Marks function which does not return */
-#define NO_RETURN __attribute__((noreturn))
-
-//////////////////////////////////////////////////////
 // Prefetching
 
 #ifdef EFENCE
