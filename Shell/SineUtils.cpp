@@ -13,6 +13,7 @@
  */
 
 #include <cmath>
+#include <climits>
 
 #include "Lib/Deque.hpp"
 #include "Lib/DHSet.hpp"

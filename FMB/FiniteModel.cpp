@@ -16,6 +16,7 @@
  */
 
 #include <cmath>
+#include <climits>
 
 #include "Kernel/Term.hpp"
 #include "Kernel/Unit.hpp"
