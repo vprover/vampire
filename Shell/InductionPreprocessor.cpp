@@ -268,14 +268,14 @@ ostream& operator<<(ostream& out, const InductionTemplate::Branch& branch)
     out << "(";
     unsigned n = 0;
     for (const auto& r : branch._recursiveCalls) {
-      out << r;
+      out << *r;
       if (++n < branch._recursiveCalls.size()) {
         out << " & ";
       }
     }
     out << ") => ";
   }
-  out << branch._header;
+  out << *branch._header;
   return out;
 }
 
@@ -297,25 +297,27 @@ void InductionTemplate::checkWellDefinedness()
   vvector<vvector<TermList>> missingCases;
   InductionPreprocessor::checkWellDefinedness(cases, missingCases);
 
-  env.beginOutput();
-  env.out() << "% Warning: adding missing cases ";
-  for (const auto& m : missingCases) {
-    Stack<TermList> args;
-    ASS_EQ(m.size(), _arity);
-    for(const auto& arg : m) {
-      args.push(arg);
+  if (!missingCases.empty()) {
+    env.beginOutput();
+    env.out() << "% Warning: adding missing cases ";
+    for (const auto& m : missingCases) {
+      Stack<TermList> args;
+      ASS_EQ(m.size(), _arity);
+      for(const auto& arg : m) {
+        args.push(arg);
+      }
+      Term* t;
+      if (_isLit) {
+        t = Literal::create(static_cast<Literal*>(_branches[0]._header), args.begin());
+      } else {
+        t = Term::create(_functor, _arity, args.begin());
+      }
+      env.out() << t << ", ";
+      _branches.emplace_back(t);
     }
-    Term* t;
-    if (_isLit) {
-      t = Literal::create(static_cast<Literal*>(_branches[0]._header), args.begin());
-    } else {
-      t = Term::create(_functor, _arity, args.begin());
-    }
-    env.out() << t << ", ";
-    _branches.emplace_back(t);
+    env.out() << "to template " << *this << endl;
+    env.endOutput();
   }
-  env.out() << "to template " << *this << endl;
-  env.endOutput();
 }
 
 void InductionTemplate::requestInductionScheme(Term* t, vset<InductionScheme>& schemes)

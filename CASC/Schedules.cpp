@@ -3066,6 +3066,7 @@ void Schedules::getStructInductionSchedule(const Shell::Property& property, Sche
   quick.push("lrs+10_1_ind=struct:indmc=off_50");
   quick.push("lrs+10_1_ind=struct:drc=off:indmc=off:to=lpo_50");
   quick.push("lrs+10_1_ind=struct:indeg=on_100");
+  quick.push("lrs+10_1_ind=struct:indeg=on:fnrw=off_100");
   quick.push("lrs+10_1_ind=struct:drc=off:indeg=on:to=lpo_100");
   quick.push("lrs+10_1_drc=off_120");
   quick.push("lrs+10_1_drc=off:fnrw=off_120");

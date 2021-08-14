@@ -40,47 +40,56 @@ inline bool canInductOn(Term* t)
 /**
  * Returns all subterms which can be inducted on for a term.
  */
-vvector<Term*> getInductionTerms(Term* t)
+vset<Term*> getInductionTerms(Term* t)
 {
   CALL("getInductionTerms");
   // no predicates here
   ASS(!t->isLiteral());
 
-  vvector<Term*> v;
-  if (canInductOn(t)) {
-    v.push_back(t);
-  }
-  unsigned f = t->functor();
-  auto type = env.signature->getFunction(f)->fnType();
+  vset<Term*> res;
+  Stack<Term*> todo;
+  todo.push(t);
 
-  // If function with recursive definition,
-  // recurse in its active arguments
-  if (env.signature->getFnDefHandler()->hasInductionTemplate(f, true /*trueFun*/)) {
-    auto& templ = env.signature->getFnDefHandler()->getInductionTemplate(f, true /*trueFun*/);
-    const auto& indVars = templ.inductionPositions();
+  while (todo.isNonEmpty()) {
+    auto curr = todo.pop();
 
-    Term::Iterator argIt(t);
-    unsigned i = 0;
-    while (argIt.hasNext()) {
-      auto arg = argIt.next();
-      if (indVars.at(i) && type->arg(i) == type->result() && arg.isTerm()) {
-        auto indTerms = getInductionTerms(arg.term());
-        v.insert(v.end(), indTerms.begin(), indTerms.end());
-      }
-      i++;
+    if (res.count(curr)) {
+      continue;
     }
-  } else if (isTermAlgebraCons(t)) {
-    for (unsigned i = 0; i < t->arity(); i++) {
-      if (type->arg(i) == type->result()) {
-        auto st = *t->nthArgument(i);
-        if (st.isTerm()) {
-          auto indTerms = getInductionTerms(st.term());
-          v.insert(v.end(), indTerms.begin(), indTerms.end());
+
+    if (canInductOn(curr)) {
+      res.insert(curr);
+    }
+    unsigned f = curr->functor();
+    auto type = env.signature->getFunction(f)->fnType();
+
+    // If function with recursive definition,
+    // recurse in its active arguments
+    if (env.signature->getFnDefHandler()->hasInductionTemplate(f, true /*trueFun*/)) {
+      auto& templ = env.signature->getFnDefHandler()->getInductionTemplate(f, true /*trueFun*/);
+      const auto& indVars = templ.inductionPositions();
+
+      Term::Iterator argIt(curr);
+      unsigned i = 0;
+      while (argIt.hasNext()) {
+        auto arg = argIt.next();
+        if (indVars.at(i) && type->arg(i) == type->result() && arg.isTerm()) {
+          todo.push(arg.term());
+        }
+        i++;
+      }
+    } else if (isTermAlgebraCons(curr)) {
+      for (unsigned i = 0; i < curr->arity(); i++) {
+        if (type->arg(i) == type->result()) {
+          auto st = *curr->nthArgument(i);
+          if (st.isTerm()) {
+            todo.push(st.term());
+          }
         }
       }
     }
   }
-  return v;
+  return res;
 }
 
 void RecursionInductionSchemeGenerator::generate(
