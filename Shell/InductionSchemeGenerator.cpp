@@ -122,11 +122,13 @@ void RecursionInductionSchemeGenerator::generate(
       auto c = !env.signature->getFunction(kv.first->functor())->skolem();
       unsigned occ = 0;
       for (const auto& kv2 : _actOccMaps._m) {
-        if (c && kv.first == kv2.first.second) {
-          occ += kv2.second.num_bits();
-        }
-        if (kv2.first.first == main.literal && kv2.second.num_set_bits()) {
-          filter = false;
+        if (kv.first == kv2.first.second) {
+          if (c) {
+            occ += kv2.second.num_bits();
+          }
+          if (kv2.first.first == main.literal && kv2.second.num_set_bits()) {
+            filter = false;
+          }
         }
       }
       if (filterC && occ == 1) {

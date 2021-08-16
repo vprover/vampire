@@ -79,6 +79,7 @@ TermList TermMapReplacement::transformSubterm(TermList trm)
     return trm;
   }
   auto t = trm.term();
+  ASS(!t->isLiteral());
   auto rIt = _r.find(t);
   if (rIt != _r.end()) {
     // if term needs to be replaced, get its sort and map it

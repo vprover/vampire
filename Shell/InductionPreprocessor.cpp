@@ -67,10 +67,10 @@ void FnDefHandler::handleClause(Clause* c, unsigned fi, bool reversed)
 
   if (trueFun) {
     ASS(lit->isPositive());
+    ASS(lit->nthArgument(reversed ? 1 : 0)->isTerm());
     header = lit->nthArgument(reversed ? 1 : 0)->term();
     TermList body = *lit->nthArgument(reversed ? 0 : 1);
-    ASS(header.isTerm());
-    ASS(header.containsAllVariablesOf(body));
+    ASS(lit->nthArgument(reversed ? 1 : 0)->containsAllVariablesOf(body));
 
     static const bool fnrw = env.options->functionDefinitionRewriting();
     if (fnrw) {
@@ -665,12 +665,6 @@ bool InductionPreprocessor::checkWellFoundedness(const vvector<pair<Term*,Term*>
       positions.insert(i);
     }
   }
-#if VDEBUG
-  for (const auto& kv : relatedTerms) {
-    ASS(kv.first.isTerm() && kv.first.term()->functor() == fn &&
-      kv.second.isTerm() && kv.second.term()->functor() == fn);
-  }
-#endif
   vset<unsigned> indices;
   for (unsigned i = 0; i < relatedTerms.size(); i++) {
     indices.insert(i);
