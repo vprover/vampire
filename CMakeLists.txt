@@ -772,14 +772,12 @@ set(VAMPIRE_TESTING_SOURCES
     )
 source_group(testing_files FILES ${VAMPIRE_TESTING_SOURCES})
 
-set(UNIT_TESTS
+set(UNIT_TESTS_NO_Z3
     UnitTests/tDHMap.cpp
     UnitTests/tQuotientE.cpp
     UnitTests/tImplicationSetClosure.cpp
     UnitTests/tUnificationWithAbstraction.cpp
     UnitTests/tGaussianElimination.cpp
-    UnitTests/tTheoryInstAndSimp.cpp
-    UnitTests/tZ3Interfacing.cpp
     UnitTests/tArithmeticSubtermGeneralization.cpp
     UnitTests/tInterpretedFunctions.cpp
     UnitTests/tRebalance.cpp
@@ -807,7 +805,20 @@ set(UNIT_TESTS
     UnitTests/tOption.cpp
     UnitTests/tStack.cpp
     )
+
+set(UNIT_TESTS_Z3
+    UnitTests/tTheoryInstAndSimp.cpp
+    UnitTests/tZ3Interfacing.cpp
+    )
+
+if (NOT Z3_FOUND)
+  set(UNIT_TESTS ${UNIT_TESTS_NO_Z3})
+else ()
+  set(UNIT_TESTS ${UNIT_TESTS_Z3})
+endif()
+
 source_group(unit_tests FILES ${UNIT_TESTS})
+
 
 # also include forwards.hpp?
 set(VAMPIRE_SOURCES 

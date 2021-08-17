@@ -47,7 +47,7 @@ UnitTesting& UnitTesting::instance()
 bool UnitTesting::runTest(vstring const& unitId, vstring const& testCase) 
 {
   auto unit = findUnit(unitId);
-  if (unit == nullptr) return true;
+  if (unit == nullptr) return false;
   else return unit->runTest(testCase);
 }
 bool TestUnit::runTest(vstring const& testCase)
@@ -95,7 +95,7 @@ TestUnit* UnitTesting::findUnit(vstring const& id)
 bool UnitTesting::runUnit(vstring const& id)
 {
   auto unit = findUnit(id);
-  if (unit == nullptr) return true;
+  if (unit == nullptr) return false;
   else return unit->run(std::cout);
 }
 
