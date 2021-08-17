@@ -142,7 +142,7 @@ Z3Interfacing::Z3Interfacing(SAT2FO& s2f, bool showZ3, bool unsatCoresForAssumpt
     outputln(";- z3 parameter: ", k, "=", v);
   };
   setOption("rewriter.expand_store_eq", true);
-  setOption("model.compact", false); // keeps z3 from compressing its model. ~50% of the runtime of get_model is spent doing that otherwise
+  setOption("model.compact", true);
   if (_unsatCore) {
     setOption(":unsat-core", true);
   }
