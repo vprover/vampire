@@ -8,6 +8,7 @@
  * and in the source directory
  */
 
+#if VZ3
 
 #include "Test/UnitTesting.hpp"
 #include "Test/SyntaxSugar.hpp"
@@ -374,3 +375,5 @@ TEST_GENERATION_WITH_SUGAR(generalisation_5,
       .input            (clause({ p(p(x)) == zero, q(x) }))
       .expected         (exactly( clause({ q(s(s(s(y)))) }) ))
     )
+
+#endif // VZ3
