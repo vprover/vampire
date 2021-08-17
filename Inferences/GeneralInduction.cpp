@@ -58,6 +58,8 @@ using namespace Shell;
 
 TermList TermOccurrenceReplacement::transformSubterm(TermList trm)
 {
+  CALL("TermOccurrenceReplacement::transformSubterm");
+
   if (trm.isVar()) {
     return trm;
   }
@@ -75,6 +77,8 @@ TermList TermOccurrenceReplacement::transformSubterm(TermList trm)
 
 TermList TermMapReplacement::transformSubterm(TermList trm)
 {
+  CALL("TermMapReplacement::transformSubterm");
+
   if (trm.isVar()) {
     return trm;
   }
@@ -444,6 +448,8 @@ inline bool sideLitCondition(Literal* main, Clause* mainCl, Literal* side, Claus
 
 vvector<pair<SLQueryResult, vset<pair<Literal*,Clause*>>>> GeneralInduction::selectMainSidePairs(Literal* literal, Clause* premise)
 {
+  CALL("GeneralInduction::selectMainSidePairs");
+
   vvector<pair<SLQueryResult, vset<pair<Literal*,Clause*>>>> res;
   static const bool indmc = env.options->inductionMultiClause();
 
@@ -494,7 +500,7 @@ vvector<pair<SLQueryResult, vset<pair<Literal*,Clause*>>>> GeneralInduction::sel
             auto qrSide = it.next();
             if (qrSide.literal != literal &&
               InductionHelper::isInductionClause(qrSide.clause) &&
-              sideLitCondition(qrSide.literal, qrSide.clause, qr.literal, qr.clause))
+              sideLitCondition(qr.literal, qr.clause, qrSide.literal, qrSide.clause))
             {
               res.back().second.emplace(qrSide.literal, qrSide.clause);
             }

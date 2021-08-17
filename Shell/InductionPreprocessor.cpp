@@ -30,6 +30,8 @@ bool skolem(Term* t)
 
 bool containsSkolem(Term* t)
 {
+  CALL("containsSkolem");
+
   ASS(!t->isLiteral());
   NonVariableIterator nvi(t, true /* includeSelf */);
   while (nvi.hasNext()) {
@@ -101,7 +103,10 @@ void FnDefHandler::handleClause(Clause* c, unsigned fi, bool reversed)
   templIt->second.addBranch(std::move(recursiveCalls), std::move(header));
 }
 
-void FnDefHandler::finalize() {
+void FnDefHandler::finalize()
+{
+  CALL("FnDefHandler::finalize");
+
   for (auto it = _templates.begin(); it != _templates.end();) {
     if (!it->second.finalize()) {
       env.beginOutput();
@@ -127,6 +132,8 @@ void FnDefHandler::finalize() {
 
 void FnDefHandler::requestStructuralInductionScheme(Term* t, vvector<InductionScheme>& schemes)
 {
+  CALL("FnDefHandler::requestStructuralInductionScheme");
+
   TermAlgebra* ta = env.signature->getTermAlgebraOfSort(env.signature->getFunction(t->functor())->fnType()->result());
   auto it = _taCaseMap.find(ta);
   if (it == _taCaseMap.end()) {
@@ -182,7 +189,10 @@ bool InductionScheme::finalize()
   return InductionPreprocessor::checkWellFoundedness(relatedTerms);
 }
 
-bool InductionScheme::addBaseCases() {
+bool InductionScheme::addBaseCases()
+{
+  CALL("InductionScheme::addBaseCases");
+
   vvector<Term*> cases;
   vvector<vvector<TermList>> missingCases;
   for (const auto& c : *_cases) {
@@ -205,6 +215,8 @@ bool InductionScheme::addBaseCases() {
 
 Term* InductionScheme::createRepresentingTerm(const vmap<Term*, unsigned>& inductionTerms, const Substitution& s)
 {
+  CALL("InductionScheme::createRepresentingTerm");
+
   Stack<TermList> argSorts;
   Stack<TermList> args;
   TermList arg;
@@ -280,6 +292,8 @@ ostream& operator<<(ostream& out, const InductionTemplate::Branch& branch)
 }
 
 bool InductionTemplate::finalize() {
+  CALL("InductionTemplate::finalize");
+
   if (!checkWellFoundedness() || !checkUsefulness()) {
     return false;
   }
@@ -290,6 +304,8 @@ bool InductionTemplate::finalize() {
 
 void InductionTemplate::checkWellDefinedness()
 {
+  CALL("InductionTemplate::checkWellDefinedness");
+
   vvector<Term*> cases;
   for (auto& b : _branches) {
     cases.push_back(b._header);
@@ -322,6 +338,8 @@ void InductionTemplate::checkWellDefinedness()
 
 void InductionTemplate::requestInductionScheme(Term* t, vset<InductionScheme>& schemes)
 {
+  CALL("InductionTemplate::requestInductionScheme");
+
   TermStack args;
   vvector<TermList> usedArgs;
   unsigned var = 0;
@@ -439,6 +457,8 @@ void InductionTemplate::requestInductionScheme(Term* t, vset<InductionScheme>& s
 
 bool InductionTemplate::Branch::contains(InductionTemplate::Branch other)
 {
+  CALL("InductionTemplate::Branch::contains");
+
   RobSubstitution subst;
   if (!subst.match(TermList(_header), 0, TermList(other._header), 1)) {
     return false;
@@ -552,6 +572,8 @@ bool InductionTemplate::checkWellFoundedness()
 
 void InductionTemplate::addBranch(vvector<Term*>&& recursiveCalls, Term*&& header)
 {
+  CALL("InductionTemplate::addBranch");
+
   ASS(header->arity() == _arity && header->isLiteral() == _isLit && header->functor() == _functor);
   InductionTemplate::Branch branch(recursiveCalls, header);
   for (auto b : _branches) {
@@ -614,6 +636,8 @@ void InductionPreprocessor::processCase(const unsigned fn, TermList body, vvecto
 bool checkWellFoundednessHelper(const vvector<pair<Term*,Term*>>& relatedTerms,
   const vset<unsigned>& indices, const vset<unsigned>& positions)
 {
+  CALL("checkWellFoundednessHelper");
+
   if (indices.empty()) {
     return true;
   }
@@ -646,6 +670,8 @@ bool checkWellFoundednessHelper(const vvector<pair<Term*,Term*>>& relatedTerms,
 
 bool InductionPreprocessor::checkWellFoundedness(const vvector<pair<Term*,Term*>>& relatedTerms)
 {
+  CALL("static InductionPreprocessor::checkWellFoundedness");
+
   if (relatedTerms.empty()) {
     return true;
   }
@@ -674,6 +700,8 @@ bool InductionPreprocessor::checkWellFoundedness(const vvector<pair<Term*,Term*>
 
 bool InductionPreprocessor::checkWellDefinedness(const vvector<Term*>& cases, vvector<vvector<TermList>>& missingCases)
 {
+  CALL("InductionPreprocessor::checkWellFoundedness");
+
   if (cases.empty()) {
     return false;
   }

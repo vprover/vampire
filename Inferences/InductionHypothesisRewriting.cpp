@@ -129,43 +129,6 @@ ClauseIterator InductionHypothesisRewriting::generateClauses(Clause *premise)
 {
   CALL("InductionHypothesisRewriting::generateClauses(Clause*)");
 
-  // return iterTraits(premise->iterLits())
-  //   .flatMap([](Literal* lit) {
-  //     if (lit->isNegative()) {
-  //       NonVariableNonTypeIterator nvi(lit);
-  //       return pvi(pushPairIntoRightIterator(lit, pvi(getUniquePersistentIteratorFromPtr(&nvi))));
-  //     }
-  //     return pvi(pushPairIntoRightIterator(lit, EqHelper::getEqualityArgumentIterator(lit)));
-  //   })
-  //   .map([&premise](pair<Literal*, TermList> p) {
-  //     return TermQueryResult(p.second, p.first, premise);
-  //   })
-  //   .flatMap([this](TermQueryResult qr){
-  //     if (qr.literal->isNegative()) {
-  //       return pvi( pushPairIntoRightIterator(qr, _lhsIndex->getGeneralizations(qr.term)) );
-  //     }
-  //     return pvi( getMappingIterator(_stIndex->getInstances(qr.term), PairLeftPushingFn<TermQueryResult, TermQueryResult>(qr)) );
-  //   })
-  //   .filter([](pair<TermQueryResult, TermQueryResult> p) {
-  //     if (!elemFilter(p.first) || !elemFilter(p.second)) {
-  //       return false;
-  //     }
-  //     auto sk1 = InductionHelper::collectSkolems(p.first.literal, p.first.clause);
-  //     auto sk2 = InductionHelper::collectSkolems(p.second.literal, p.second.clause);
-  //     return includes(sk1.begin(), sk1.end(), sk2.begin(), sk2.end());
-  //   })
-  //   .flatMap([](pair<TermQueryResult, TermQueryResult> p) {
-  //     return pvi( pushPairIntoRightIterator(p, EqHelper::getEqualityArgumentIterator(p.first.literal)) );
-  //   })
-  //   .flatMap([this](pair<pair<TermQueryResult, TermQueryResult>, TermList> p) -> ClauseIterator {
-  //     auto& qr1 = p.first.first;
-  //     auto& qr2 = p.first.second;
-  //     auto sk = InductionHelper::collectSkolems(qr2.literal, qr2.clause);
-  //     return perform(sk, qr1.clause, qr1.literal, p.second, qr1.term,
-  //       qr2.clause, qr2.literal, qr2.term,
-  //       qr1.substitution ? qr1.substitution : qr2.substitution, !qr1.substitution);
-  //   });
-
   ClauseIterator res = ClauseIterator::getEmpty();
   for (unsigned i = 0; i < premise->length(); i++) {
     res = pvi(getConcatenatedIterator(res, generateClauses((*premise)[i], premise)));
@@ -176,6 +139,7 @@ ClauseIterator InductionHypothesisRewriting::generateClauses(Clause *premise)
 ClauseIterator InductionHypothesisRewriting::generateClauses(Literal* lit, Clause *premise)
 {
   CALL("InductionHypothesisRewriting::generateClauses(Literal*,Clause*)");
+
   if (!lit->isEquality() || !InductionHelper::isInductionLiteral(lit, premise)) {
     return ClauseIterator::getEmpty();
   }
@@ -203,27 +167,71 @@ ClauseIterator InductionHypothesisRewriting::generateClauses(Literal* lit, Claus
   return pvi(getMapAndFlattenIterator(it5, ResultsFn(this)));
 }
 
+template<class Inner, typename Fun>
+class FinalizedIterator
+{
+public:
+  DECL_ELEMENT_TYPE(ELEMENT_TYPE(Inner));
+
+  FinalizedIterator(Inner iit, Fun finalFn)
+  : _finalized(false), _finalFn(finalFn), _iit(iit) {
+    hasNext(); // This ensures that empty inner iterators also
+               // get finalized. In destructor it did not work.
+  }
+
+  bool hasNext()
+  {
+    auto res = _iit.hasNext();
+    if (!res) {
+      finalize();
+    }
+    return res;
+  }
+  inline
+  ELEMENT_TYPE(Inner) next()
+  {
+    ASS(_iit.hasNext());
+    auto res = _iit.next();
+    hasNext();
+    return res;
+  }
+
+private:
+  void finalize() {
+    if (!_finalized) {
+      _finalized = true;
+      _finalFn();
+    }
+  }
+  bool _finalized;
+  Fun _finalFn;
+  Inner _iit;
+};
+
+template<class Inner, typename Fun>
+inline
+FinalizedIterator<Inner,Fun> getFinalizedIterator(Inner it, Fun finalFn)
+{
+  return FinalizedIterator<Inner,Fun>(it, finalFn);
+}
+
 ClauseIterator InductionHypothesisRewriting::perform(const vset<unsigned>& sig,
     Clause *rwClause, Literal *rwLit, TermList rwSide, TermList rwTerm,
     Clause *eqClause, Literal *eqLit, TermList eqLHS,
     ResultSubstitutionSP subst, bool eqIsResult)
 {
   CALL("InductionHypothesisRewriting::perform");
-  // the rwClause may not be active as
-  // it is from a demodulation index
-  // if (rwClause->store() != Clause::ACTIVE) {
-  //   return 0;
-  // }
+
+  ASS(rwClause->store() == Clause::ACTIVE);
   ASS(eqClause->store() == Clause::ACTIVE);
-  ClauseIterator res = ClauseIterator::getEmpty();
 
   if (SortHelper::getTermSort(rwTerm, rwLit) != SortHelper::getEqualityArgumentSort(eqLit)) {
     // sorts don't match
-    return res;
+    return ClauseIterator::getEmpty();
   }
 
   if (!rwSide.containsSubterm(rwTerm)) {
-    return res;
+    return ClauseIterator::getEmpty();
   }
 
   ASS(!eqLHS.isVar());
@@ -234,7 +242,7 @@ ClauseIterator InductionHypothesisRewriting::perform(const vset<unsigned>& sig,
   // check that we are rewriting either against the order or the smaller side
   if (!Ordering::isGorGEorE(ordering.compare(tgtTerm,eqLHS))
     && !Ordering::isGorGEorE(ordering.compare(otherSide,rwSide))) {
-    return res;
+    return ClauseIterator::getEmpty();
   }
 
   TermList tgtTermS;
@@ -271,7 +279,7 @@ ClauseIterator InductionHypothesisRewriting::perform(const vset<unsigned>& sig,
   //      << "TGTLIT: " << *tgtLitS << endl;
 
   if (EqHelper::isEqTautology(tgtLitS)) {
-    return res;
+    return ClauseIterator::getEmpty();
   }
 
   unsigned rwLength = rwClause->length();
@@ -293,7 +301,7 @@ ClauseIterator InductionHypothesisRewriting::perform(const vset<unsigned>& sig,
 
       if (EqHelper::isEqTautology(curr)) {
         newCl->destroy();
-        return res;
+        return ClauseIterator::getEmpty();
       }
 
       (*newCl)[next++] = curr;
@@ -322,7 +330,7 @@ ClauseIterator InductionHypothesisRewriting::perform(const vset<unsigned>& sig,
 
         if (EqHelper::isEqTautology(currAfter)) {
           newCl->destroy();
-          return res;
+          return ClauseIterator::getEmpty();
         }
 
         (*newCl)[next++] = currAfter;
@@ -339,6 +347,7 @@ ClauseIterator InductionHypothesisRewriting::perform(const vset<unsigned>& sig,
     if (_splitter) {
       _splitter->onNewClause(newCl);
     }
+    // TODO(mhajdu): should we set this
     newCl->setStore(Clause::NONE);
     newCl = temp;
     newCl->setStore(Clause::ACTIVE);
@@ -346,8 +355,9 @@ ClauseIterator InductionHypothesisRewriting::perform(const vset<unsigned>& sig,
   for (const auto& fn : sig) {
     newCl->inference().removeFromInductionInfo(fn);
   }
-  res = pvi(getConcatenatedIterator(generateClauses(tgtLitS, newCl), _induction->generateClauses(newCl)));
-  newCl->setStore(Clause::NONE);
-
-  return res;
+  return pvi(getFinalizedIterator(
+    getConcatenatedIterator(generateClauses(tgtLitS, newCl), _induction->generateClauses(newCl)),
+    [newCl](){
+      newCl->setStore(Clause::NONE);
+    }));
 }

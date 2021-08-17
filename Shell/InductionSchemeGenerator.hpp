@@ -39,6 +39,9 @@ public:
 
   void add(bool val) {
     ASS(!_finished);
+    if (_max & ((uint64_t)1 << 63)) {
+      return;
+    }
     _occ <<= 1;
     _max <<= 1;
     _occ |= (1 & val);
@@ -121,6 +124,8 @@ private:
 class OccurrenceMap {
 public:
   void add(Literal* l, Term* t, bool active) {
+    CALL("OccurrenceMap::add");
+
     auto p = make_pair(l, t);
     auto oIt = _m.find(p);
     if (oIt == _m.end()) {
@@ -131,12 +136,16 @@ public:
   }
 
   void finalize() {
+    CALL("OccurrenceMap::finalize");
+
     for (auto& o : _m) {
       o.second.finalize();
     }
   }
 
   OccurrenceMap create_necessary(const InductionScheme& sch) {
+    CALL("OccurrenceMap::create_necessary");
+
     OccurrenceMap necessary;
     for (const auto& kv : _m) {
       if (sch.inductionTerms().count(kv.first.second)) {

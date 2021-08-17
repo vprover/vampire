@@ -97,7 +97,7 @@ void RecursionInductionSchemeGenerator::generate(
   const vset<pair<Literal*,Clause*>>& side,
   vvector<pair<InductionScheme, OccurrenceMap>>& res)
 {
-  CALL("RecursionInductionSchemeGenerator::generate()");
+  CALL("RecursionInductionSchemeGenerator::generate/1");
 
   _schemes.clear();
   _actOccMaps._m.clear();
@@ -150,7 +150,7 @@ void RecursionInductionSchemeGenerator::generate(
 
 void RecursionInductionSchemeGenerator::generate(Clause* premise, Literal* lit)
 {
-  CALL("RecursionInductionSchemeGenerator::generate");
+  CALL("RecursionInductionSchemeGenerator::generate/2");
 
   // Process all subterms of the literal to
   // be able to store occurrences of induction
@@ -178,6 +178,8 @@ void RecursionInductionSchemeGenerator::generate(Clause* premise, Literal* lit)
 
 void RecursionInductionSchemeGenerator::handleActiveTerm(Term* t, InductionTemplate& templ, Stack<bool>& actStack)
 {
+  CALL("RecursionInductionSchemeGenerator::handleActiveTerm");
+
   const auto& indPos = templ.inductionPositions();
 
   for (int i = t->arity()-1; i >= 0; i--) {
@@ -267,7 +269,7 @@ void StructuralInductionSchemeGenerator::generate(
   const vset<pair<Literal*,Clause*>>& side,
   vvector<pair<InductionScheme, OccurrenceMap>>& res)
 {
-  CALL("StructuralInductionSchemeGenerator()");
+  CALL("StructuralInductionSchemeGenerator::generate");
 
   vvector<InductionScheme> schemes;
   OccurrenceMap occMap;
