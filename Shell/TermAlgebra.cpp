@@ -176,6 +176,7 @@ unsigned TermAlgebra::getSubtermPredicate() {
 vvector<TermList> TermAlgebra::generateAvailableTerms(const Term* t, unsigned& var) {
   const auto taSort = SortHelper::getResultSort(t);
   const auto ta = env.signature->getTermAlgebraOfSort(taSort);
+  ASS(ta);
   vvector<TermList> res;
   Stack<TermList> argTerms;
   for (unsigned i = 0; i < ta->nConstructors(); i++) {

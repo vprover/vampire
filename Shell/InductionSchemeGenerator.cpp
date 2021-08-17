@@ -29,14 +29,6 @@ inline bool isTermAlgebraCons(Term* t)
   return env.signature->getFunction(t->functor())->termAlgebraCons();
 }
 
-inline bool canInductOn(Term* t)
-{
-  CALL("canInductOn");
-
-  static bool complexTermsAllowed = env.options->inductionOnComplexTerms();
-  return skolem(t) || (complexTermsAllowed && containsSkolem(t));
-}
-
 /**
  * Returns all subterms which can be inducted on for a term.
  */
@@ -119,7 +111,7 @@ void RecursionInductionSchemeGenerator::generate(
     static const bool filterC = env.options->inductionOnComplexTermsHeuristic();
     bool filter = true;
     for (const auto& kv : it->inductionTerms()) {
-      auto c = !env.signature->getFunction(kv.first->functor())->skolem();
+      auto c = !skolem(kv.first);
       unsigned occ = 0;
       for (const auto& kv2 : _actOccMaps._m) {
         if (kv.first == kv2.first.second) {

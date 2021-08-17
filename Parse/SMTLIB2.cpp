@@ -1625,7 +1625,7 @@ void SMTLIB2::parseMatchCaseStart(LExpr *exp)
     }
   }
 
-  if (!foundMatched) {
+  if (!foundMatched || !env.signature->isTermAlgebraSort(matchedTerm.second)) {
     complainAboutArgShortageOrWrongSorts(MATCH, exp);
   }
 
@@ -1636,6 +1636,9 @@ void SMTLIB2::parseMatchCaseStart(LExpr *exp)
     LispListReader tRdr(pattern);
     auto ctorName = tRdr.readAtom();
     // whether it is a ctor we check in MATCH_END
+    if (!_declaredFunctions.find(ctorName)) {
+      USER_ERROR("Data type constructor '" + ctorName + "' must be declared symbol");
+    }
     auto fn = env.signature->getFunction(_declaredFunctions.get(ctorName).first);
     unsigned argcnt = 0;
     while (tRdr.hasNext()) {

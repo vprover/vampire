@@ -30,6 +30,7 @@ using namespace Lib;
 
 bool skolem(Term* t);
 bool containsSkolem(Term* t);
+bool canInductOn(Term* t);
 
 /**
  * TermTransformer subclass for any TermList to TermList replacement
@@ -90,10 +91,7 @@ ostream& operator<<(ostream& out, const InductionScheme& scheme);
  * (i.e. the changing arguments) of the function.
  */
 struct InductionTemplate {
-  InductionTemplate(Term* t)
-    : _functor(t->functor()), _arity(t->arity()), _isLit(t->isLiteral()),
-    _branches(), _indPos(_arity, false), _usedNonIndPos(_arity, false),
-    _caseMap(), _invalids() {}
+  InductionTemplate(Term* t);
 
   void addBranch(vvector<Term*>&& recursiveCalls, Term*&& header);
   bool finalize();
@@ -123,6 +121,7 @@ struct InductionTemplate {
   const unsigned _functor;
   const unsigned _arity;
   const bool _isLit;
+  const OperatorType* _type;
 
 private:
   friend ostream& operator<<(ostream& out, const InductionTemplate& templ);

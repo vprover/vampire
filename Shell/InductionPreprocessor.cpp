@@ -43,6 +43,14 @@ bool containsSkolem(Term* t)
   return false;
 }
 
+bool canInductOn(Term* t)
+{
+  CALL("canInductOn");
+
+  static bool complexTermsAllowed = env.options->inductionOnComplexTerms();
+  return skolem(t) || (complexTermsAllowed && containsSkolem(t));
+}
+
 TermList TermListReplacement::transformSubterm(TermList trm)
 {
   CALL("TermListReplacement::transformSubterm");
@@ -349,7 +357,7 @@ void InductionTemplate::requestInductionScheme(Term* t, vset<InductionScheme>& s
   for (unsigned i = 0; i < t->arity(); i++) {
     auto arg = *t->nthArgument(i);
     if (_indPos[i]) {
-      if (arg.isVar() || !containsSkolem(arg.term())) {
+      if (arg.isVar() || !canInductOn(arg.term())) {
         return;
       }
       auto it = inductionTerms.find(arg.term());
@@ -533,7 +541,9 @@ bool InductionTemplate::checkWellFoundedness()
     for (auto& r : b._recursiveCalls) {
       relatedTerms.push_back(make_pair(b._header, r));
       for (unsigned i = 0; i < _arity; i++) {
-        _indPos[i] = _indPos[i] || (*b._header->nthArgument(i) != *r->nthArgument(i));
+        if (env.signature->isTermAlgebraSort(_type->arg(i))) {
+          _indPos[i] = _indPos[i] || (*b._header->nthArgument(i) != *r->nthArgument(i));
+        }
       }
     }
   }
@@ -569,6 +579,13 @@ bool InductionTemplate::checkWellFoundedness()
   }
   return InductionPreprocessor::checkWellFoundedness(relatedTerms);
 }
+
+InductionTemplate::InductionTemplate(Term* t)
+    : _functor(t->functor()), _arity(t->arity()), _isLit(t->isLiteral()),
+    _type(_isLit ? env.signature->getPredicate(_functor)->predType()
+                 : env.signature->getFunction(_functor)->fnType()),
+    _branches(), _indPos(_arity, false), _usedNonIndPos(_arity, false),
+    _caseMap(), _invalids() {}
 
 void InductionTemplate::addBranch(vvector<Term*>&& recursiveCalls, Term*&& header)
 {
@@ -726,7 +743,8 @@ bool InductionPreprocessor::checkWellDefinedness(const vvector<Term*>& cases, vv
     unsigned j = 0;
     while (it.hasNext()) {
       auto arg = it.next();
-      if (arg.isTerm()) {
+      // we check lazily for non-term algebra sort non-variables
+      if (arg.isTerm() && env.signature->isTermAlgebraSort(SortHelper::getResultSort(arg.term()))) {
         auto tempLists = availableTermsLists;
         for (auto& availableTerms : tempLists) {
           TermAlgebra::excludeTermFromAvailables(availableTerms[j], arg, var);
