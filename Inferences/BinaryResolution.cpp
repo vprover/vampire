@@ -101,6 +101,7 @@ struct BinaryResolution::ResultFn
 
     SLQueryResult& qr = arg.second;
     Literal* resLit = arg.first;
+    ASS(qr.clause->store()==Clause::ACTIVE);//Added to check that generation only uses active clauses
 
     return BinaryResolution::generateClause(_cl, resLit, qr, _parent.getOptions(), _passiveClauseContainer, _afterCheck ? _ord : 0, &_selector);
   }
@@ -120,7 +121,6 @@ private:
 Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQueryResult qr, const Options& opts, PassiveClauseContainer* passiveClauseContainer, Ordering* ord, LiteralSelector* ls)
 {
   CALL("BinaryResolution::generateClause");
-  ASS(qr.clause->store()==Clause::ACTIVE);//Added to check that generation only uses active clauses
 
   if(!ColorHelper::compatible(queryCl->color(),qr.clause->color()) ) {
     env.statistics->inferencesSkippedDueToColors++;

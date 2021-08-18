@@ -167,54 +167,6 @@ ClauseIterator InductionHypothesisRewriting::generateClauses(Literal* lit, Claus
   return pvi(getMapAndFlattenIterator(it5, ResultsFn(this)));
 }
 
-template<class Inner, typename Fun>
-class FinalizedIterator
-{
-public:
-  DECL_ELEMENT_TYPE(ELEMENT_TYPE(Inner));
-
-  FinalizedIterator(Inner iit, Fun finalFn)
-  : _finalized(false), _finalFn(finalFn), _iit(iit) {
-    hasNext(); // This ensures that empty inner iterators also
-               // get finalized. In destructor it did not work.
-  }
-
-  bool hasNext()
-  {
-    auto res = _iit.hasNext();
-    if (!res) {
-      finalize();
-    }
-    return res;
-  }
-  inline
-  ELEMENT_TYPE(Inner) next()
-  {
-    ASS(_iit.hasNext());
-    auto res = _iit.next();
-    hasNext();
-    return res;
-  }
-
-private:
-  void finalize() {
-    if (!_finalized) {
-      _finalized = true;
-      _finalFn();
-    }
-  }
-  bool _finalized;
-  Fun _finalFn;
-  Inner _iit;
-};
-
-template<class Inner, typename Fun>
-inline
-FinalizedIterator<Inner,Fun> getFinalizedIterator(Inner it, Fun finalFn)
-{
-  return FinalizedIterator<Inner,Fun>(it, finalFn);
-}
-
 ClauseIterator InductionHypothesisRewriting::perform(const vset<unsigned>& sig,
     Clause *rwClause, Literal *rwLit, TermList rwSide, TermList rwTerm,
     Clause *eqClause, Literal *eqLit, TermList eqLHS,
@@ -222,7 +174,6 @@ ClauseIterator InductionHypothesisRewriting::perform(const vset<unsigned>& sig,
 {
   CALL("InductionHypothesisRewriting::perform");
 
-  ASS(rwClause->store() == Clause::ACTIVE);
   ASS(eqClause->store() == Clause::ACTIVE);
 
   if (SortHelper::getTermSort(rwTerm, rwLit) != SortHelper::getEqualityArgumentSort(eqLit)) {
@@ -338,7 +289,6 @@ ClauseIterator InductionHypothesisRewriting::perform(const vset<unsigned>& sig,
     }
   }
 
-  newCl->setStore(Clause::ACTIVE);
   if (_splitter) {
     _splitter->onNewClause(newCl);
   }
@@ -347,17 +297,10 @@ ClauseIterator InductionHypothesisRewriting::perform(const vset<unsigned>& sig,
     if (_splitter) {
       _splitter->onNewClause(newCl);
     }
-    // TODO(mhajdu): should we set this
-    newCl->setStore(Clause::NONE);
     newCl = temp;
-    newCl->setStore(Clause::ACTIVE);
   }
   for (const auto& fn : sig) {
     newCl->inference().removeFromInductionInfo(fn);
   }
-  return pvi(getFinalizedIterator(
-    getConcatenatedIterator(generateClauses(tgtLitS, newCl), _induction->generateClauses(newCl)),
-    [newCl](){
-      newCl->setStore(Clause::NONE);
-    }));
+  return pvi(getConcatenatedIterator(generateClauses(tgtLitS, newCl), _induction->generateClauses(newCl)));
 }

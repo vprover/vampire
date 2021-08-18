@@ -328,6 +328,15 @@ void GeneralInduction::generateClauses(
     // In other cases it may be non-bijective, but here it should be.
     rvs.loadFromInverted(cnf.getSkFunToVarMap());
   }
+  DHSet<unsigned> info;
+  for (const auto& v : hypVars) {
+    info.insert(rvs.get(v));
+  }
+  vset<unsigned> oldSk = InductionHelper::collectInductionSkolems(mainQuery.literal, mainQuery.clause);
+  for (const auto& kv : sideLitQrPairs) {
+    auto oldSkSide = InductionHelper::collectInductionSkolems(kv.second.literal, kv.second.clause);
+    oldSk.insert(oldSkSide.begin(), oldSkSide.end());
+  }
 
   // Resolve all induction clauses with the main and side literals
   auto resSubst = ResultSubstitution::fromSubstitution(&subst, 0, 1);
@@ -341,8 +350,11 @@ void GeneralInduction::generateClauses(
   ClauseStack::Iterator cit(hyp_clauses);
   while(cit.hasNext()){
     Clause* c = cit.next();
-    for (const auto& v : hypVars) {
-      c->inference().addToInductionInfo(rvs.get(v));
+    for (unsigned i = 0; i < c->length(); i++) {
+      auto sk = InductionHelper::collectInductionSkolems((*c)[i], c, &info);
+      for (const auto& v : sk) {
+        c->inference().addToInductionInfo(v);
+      }
     }
     c = BinaryResolution::generateClause(c, mainLit, mainQuery, *env.options);
     ASS(c);
@@ -361,6 +373,9 @@ void GeneralInduction::generateClauses(
       env.beginOutput();
       env.out() << "[Induction] generate " << c->toString() << endl;
       env.endOutput();
+    }
+    for (const auto& v : oldSk) {
+      c->inference().removeFromInductionInfo(v);
     }
     clauses.push(c);
   }

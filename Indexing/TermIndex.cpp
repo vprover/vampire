@@ -188,6 +188,10 @@ void DemodulationSubtermIndexImpl<combinatorySupSupport>::handleClause(Clause* c
 
   static DHSet<TermList> inserted;
 
+  if (c->inference().rule() == InferenceRule::IH_REWRITING) {
+    ASSERTION_VIOLATION;
+  }
+
   unsigned cLen=c->length();
   for (unsigned i=0; i<cLen; i++) {
     // it is true (as stated below) that inserting only once per clause would be sufficient

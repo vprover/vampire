@@ -227,8 +227,11 @@ bool InductionHelper::isInductionLiteral(Literal* l, Clause* cl) {
 }
 
 vset<unsigned> InductionHelper::collectInductionSkolems(Literal* l, Clause* cl) {
+  return collectInductionSkolems(l, cl, cl->inference().inductionInfo());
+}
+
+vset<unsigned> InductionHelper::collectInductionSkolems(Literal* l, Clause* cl, const DHSet<unsigned>* info) {
   CALL("InductionHelper::collectInductionSkolems");
-  auto info = cl->inference().inductionInfo();
   vset<unsigned> res;
   if (l->ground() && info && !info->isEmpty()) {
     NonVariableIterator nvi(l);

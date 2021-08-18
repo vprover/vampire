@@ -230,10 +230,6 @@ void Inference::updateStatistics()
         _inductionDepth = static_cast<Unit*>(_ptr1)->inference().inductionDepth();
         _XXNarrows = static_cast<Unit*>(_ptr1)->inference().xxNarrows();
         _reductions = static_cast<Unit*>(_ptr1)->inference().reductions();
-        if (static_cast<Unit*>(_ptr1)->inference()._inductionInfo) {
-          _inductionInfo = new DHSet<unsigned>();
-          _inductionInfo->loadFromIterator(static_cast<Unit*>(_ptr1)->inference()._inductionInfo->iterator());
-        }
       } else {
         _inductionDepth = max(static_cast<Unit*>(_ptr1)->inference().inductionDepth(),
             static_cast<Unit*>(_ptr2)->inference().inductionDepth());
@@ -241,16 +237,6 @@ void Inference::updateStatistics()
             static_cast<Unit*>(_ptr2)->inference().xxNarrows());
         _reductions = max(static_cast<Unit*>(_ptr1)->inference().reductions(),
             static_cast<Unit*>(_ptr2)->inference().reductions());
-        if (static_cast<Unit*>(_ptr1)->inference()._inductionInfo) {
-          _inductionInfo = new DHSet<unsigned>();
-          _inductionInfo->loadFromIterator(static_cast<Unit*>(_ptr1)->inference()._inductionInfo->iterator());
-          if (static_cast<Unit*>(_ptr2)->inference()._inductionInfo) {
-            _inductionInfo->loadFromIterator(static_cast<Unit*>(_ptr2)->inference()._inductionInfo->iterator());
-          }
-        } else if (static_cast<Unit*>(_ptr2)->inference()._inductionInfo) {
-          _inductionInfo = new DHSet<unsigned>();
-          _inductionInfo->loadFromIterator(static_cast<Unit*>(_ptr2)->inference()._inductionInfo->iterator());
-        }
       }
 
       break;
@@ -262,12 +248,6 @@ void Inference::updateStatistics()
         _inductionDepth = max(_inductionDepth,it->head()->inference().inductionDepth());
         _XXNarrows = max(_XXNarrows,it->head()->inference().inductionDepth());
         _reductions = max(_reductions,it->head()->inference().inductionDepth());
-        if (it->head()->inference()._inductionInfo) {
-          if (!_inductionInfo) {
-            _inductionInfo = new DHSet<unsigned>();
-          }
-          _inductionInfo->loadFromIterator(it->head()->inference()._inductionInfo->iterator());
-        }
         it=it->tail();
       }
       break;
@@ -360,6 +340,11 @@ void Inference::init1(InferenceRule r, Unit* premise)
 
   premise->incRefCnt();
 
+  if (premise->inference()._inductionInfo) {
+    _inductionInfo = new DHSet<unsigned>();
+    _inductionInfo->loadFromIterator(premise->inference()._inductionInfo->iterator());
+  }
+
   computeTheoryRunningSums();
   _isPureTheoryDescendant = premise->isPureTheoryDescendant();
   _combAxiomsDescendant = premise->isCombAxiomsDescendant();
@@ -382,6 +367,16 @@ void Inference::init2(InferenceRule r, Unit* premise1, Unit* premise2)
 
   premise1->incRefCnt();
   premise2->incRefCnt();
+
+  if (premise1->inference()._inductionInfo || premise2->inference()._inductionInfo) {
+    _inductionInfo = new DHSet<unsigned>();
+    if (premise1->inference()._inductionInfo) {
+      _inductionInfo->loadFromIterator(premise1->inference()._inductionInfo->iterator());
+    }
+    if (premise2->inference()._inductionInfo) {
+      _inductionInfo->loadFromIterator(premise2->inference()._inductionInfo->iterator());
+    }
+  }
 
   computeTheoryRunningSums();
   _isPureTheoryDescendant = premise1->isPureTheoryDescendant() && premise2->isPureTheoryDescendant();
@@ -406,6 +401,12 @@ void Inference::initMany(InferenceRule r, UnitList* premises)
   UnitList* it= premises;
   while(it) {
     it->head()->incRefCnt();
+    if (it->head()->inference()._inductionInfo) {
+      if (!_inductionInfo) {
+        _inductionInfo = new DHSet<unsigned>();
+      }
+      _inductionInfo->loadFromIterator(it->head()->inference()._inductionInfo->iterator());
+    }
     it=it->tail();
   }
 
@@ -607,8 +608,17 @@ void Inference::minimizePremises()
   {
     _ptr1 = newFOPrems;
     UnitList* it= newFOPrems;
+    if (_inductionInfo) {
+      _inductionInfo->reset();
+    }
     while(it) {
       it->head()->incRefCnt();
+      if (it->head()->inference()._inductionInfo) {
+        if (!_inductionInfo) {
+          _inductionInfo = new DHSet<unsigned>();
+        }
+        _inductionInfo->loadFromIterator(it->head()->inference()._inductionInfo->iterator());
+      }
       it=it->tail();
     }
   }

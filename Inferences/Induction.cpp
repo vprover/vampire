@@ -529,6 +529,7 @@ void InductionClauseIterator::produceClauses(Clause* premise, Literal* origLit, 
           // we apply binary resolution on it.
           _helper.callSplitterOnNewClause(c);
         }
+        ASS(litAndSLQR.second.clause->store()==Clause::ACTIVE);
         c = BinaryResolution::generateClause(c,litAndSLQR.first,litAndSLQR.second,*env.options);
         resolved = true;
       }
