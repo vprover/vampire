@@ -308,7 +308,7 @@ public:
     ParseErrorException(vstring message,unsigned ln) : _message(message), _ln(ln) {}
     ParseErrorException(vstring message,Token& tok,unsigned ln);
     ParseErrorException(vstring message,int position,unsigned ln);
-    void cry(ostream&);
+    void cry(ostream&) const;
     ~ParseErrorException() {}
   protected:
     vstring _message;

@@ -211,9 +211,10 @@ public:
     OFF,
     ALL,    // select all interpreted
     STRONG, // select strong only
-    OVERLAP, // select strong and weak which overlap with strong
-    FULL,    // perform full abstraction
-    NEW
+    NEG_EQ, // select only positive equalities
+    OVERLAP,
+    FULL,   // <-+- deprecated. only exists to not break portfolio modes. behaves exactly like `ALL` now
+    NEW,    // <-+
   };
   enum class UnificationWithAbstraction : unsigned int {
     OFF,
@@ -2006,6 +2007,8 @@ public:
 
 #if VZ3
   bool showZ3() const { return showAll() || _showZ3.actualValue; }
+  vstring const& exportAvatarProblem() const { return _exportAvatarProblem.actualValue; }
+  vstring const& exportThiProblem() const { return _exportThiProblem.actualValue; }
 #endif
   
   // end of show commands
@@ -2022,10 +2025,10 @@ public:
   bool printAllTheoryAxioms() const { return _printAllTheoryAxioms.actualValue; }
 
 #if VZ3
-  bool z3UnsatCores() const { return _z3UnsatCores.actualValue;}
   bool satFallbackForSMT() const { return _satFallbackForSMT.actualValue; }
   bool smtForGround() const { return _smtForGround.actualValue; }
   TheoryInstSimp theoryInstAndSimp() const { return _theoryInstAndSimp.actualValue; }
+  bool thiGeneralise() const { return _thiGeneralise.actualValue; }
   bool thiTautologyDeletion() const { return _thiTautologyDeletion.actualValue; }
 #endif
   UnificationWithAbstraction unificationWithAbstraction() const { return _unificationWithAbstraction.actualValue; }
@@ -2558,10 +2561,12 @@ private:
   BoolOptionValue _showSimplOrdering;
 #if VZ3
   BoolOptionValue _showZ3;
-  BoolOptionValue _z3UnsatCores;
+  StringOptionValue _exportAvatarProblem;
+  StringOptionValue _exportThiProblem;
   BoolOptionValue _satFallbackForSMT;
   BoolOptionValue _smtForGround;
   ChoiceOptionValue<TheoryInstSimp> _theoryInstAndSimp;
+  BoolOptionValue _thiGeneralise;
   BoolOptionValue _thiTautologyDeletion;
 #endif
   ChoiceOptionValue<UnificationWithAbstraction> _unificationWithAbstraction; 

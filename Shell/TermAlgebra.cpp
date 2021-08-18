@@ -13,6 +13,7 @@
 #include "Kernel/Inference.hpp"
 #include "Kernel/Matcher.hpp"
 #include "Kernel/SortHelper.hpp"
+#include "Kernel/Signature.hpp"
 
 using namespace Kernel;
 using namespace Lib;
@@ -29,6 +30,12 @@ TermAlgebraConstructor::TermAlgebraConstructor(unsigned functor, Lib::Array<unsi
   _type = env.signature->getFunction(_functor)->fnType();
   ASS_REP(env.signature->getFunction(_functor)->termAlgebraCons(), env.signature->functionName(_functor));
   ASS_EQ(_type->arity(), destructors.size());
+  unsigned i = 0;
+  for (auto d : destructors) {
+    auto sym = _type->arg(i++) == Term::boolSort() ? env.signature->getPredicate(d) 
+                                                   : env.signature->getFunction(d);
+    ASS_REP(sym->termAlgebraDest(), sym->name())
+  }
 }
 
 TermAlgebraConstructor::TermAlgebraConstructor(unsigned functor, unsigned discriminator, Lib::Array<unsigned> destructors)
@@ -37,12 +44,52 @@ TermAlgebraConstructor::TermAlgebraConstructor(unsigned functor, unsigned discri
   _type = env.signature->getFunction(_functor)->fnType();
   ASS_REP(env.signature->getFunction(_functor)->termAlgebraCons(), env.signature->functionName(_functor));
   ASS_EQ(_type->arity(), destructors.size());
+  for (auto d : destructors) {
+    ASS(env.signature->getFunction(d)->termAlgebraDest())
+  }
 }
 
 //This is only safe for monomorphic term algebras AYB
-unsigned TermAlgebraConstructor::arity()               { return _type->arity();  }
-TermList TermAlgebraConstructor::argSort(unsigned ith) { return _type->arg(ith); }
-TermList TermAlgebraConstructor::rangeSort()           { return _type->result(); }
+unsigned TermAlgebraConstructor::arity() const { return _type->arity();  }
+
+unsigned TermAlgebraConstructor::createDiscriminator() 
+{
+  if (hasDiscriminator()) {
+    return discriminator();
+  } else {
+    auto sym = env.signature->getFunction(functor());
+    auto discr = env.signature->addFreshPredicate(1, ( "$$is_" + sym->name() ).c_str());
+    env.signature->getPredicate(discr)->setType(OperatorType::getPredicateType({_type->result()}));
+    addDiscriminator(discr);
+    return discr;
+  }
+}
+
+Lib::Set<TermList> TermAlgebra::subSorts()
+{
+
+  Set<TermList> out; 
+  /* connected component finding without recursion */
+  Stack<TermAlgebra*> work; // <- stack for simulating recursion
+  work.push(this);
+  out.insert(this->sort());
+  while (!work.isEmpty()) {
+    auto& ta = *work.pop();
+    for (auto cons : ta.iterCons()) {
+      for (auto s : cons->iterArgSorts()) {
+        if (!out.contains(s)) {
+          out.insert(s);
+          if (env.signature->isTermAlgebraSort(s)) {
+            work.push(env.signature->getTermAlgebraOfSort(s));
+          }
+        }
+      }
+    }
+  }
+  return out;
+}
+TermList TermAlgebraConstructor::argSort(unsigned ith) const { return _type->arg(ith); }
+TermList TermAlgebraConstructor::rangeSort()           const { return _type->result(); }
 
 bool TermAlgebraConstructor::recursive()
 {
@@ -244,5 +291,11 @@ void TermAlgebra::excludeTermFromAvailables(vvector<TermList>& availables, TermL
   }
   availables.shrink_to_fit();
 }
+
+std::ostream& operator<<(std::ostream& out, TermAlgebraConstructor const& self) 
+{ return out << "ctor " << env.signature->getFunction(self.functor())->name(); }
+
+std::ostream& operator<<(std::ostream& out, TermAlgebra const& self) 
+{ return out << "term_algebra " << env.sorts->sortName(self.sort()); }
 
 }

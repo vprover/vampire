@@ -126,7 +126,6 @@ set(VAMPIRE_LIB_SOURCES
     Lib/MemoryLeak.cpp
     Lib/MultiCounter.cpp
     Lib/NameArray.cpp
-#    Lib/OptionsReader.cpp
     Lib/Random.cpp
     Lib/StringUtils.cpp
     Lib/System.cpp
@@ -173,7 +172,6 @@ set(VAMPIRE_LIB_SOURCES
     Lib/MultiCounter.hpp
     Lib/NameArray.hpp
     Lib/Numbering.hpp
-#    Lib/OptionsReader.hpp
     Lib/PairUtils.hpp
     Lib/Portability.hpp
     Lib/Random.hpp
@@ -369,7 +367,6 @@ set(VAMPIRE_INDEXING_SOURCES
     Indexing/ClauseVariantIndex.cpp
     Indexing/CodeTree.cpp
     Indexing/CodeTreeInterfaces.cpp
-#    Indexing/FormulaIndex.cpp
     Indexing/GroundingIndex.cpp
     Indexing/Index.cpp
     Indexing/IndexManager.cpp
@@ -390,7 +387,6 @@ set(VAMPIRE_INDEXING_SOURCES
     Indexing/ClauseVariantIndex.hpp
     Indexing/CodeTree.hpp
     Indexing/CodeTreeInterfaces.hpp
-    Indexing/FormulaIndex.hpp
     Indexing/GroundingIndex.hpp
     Indexing/Index.hpp
     Indexing/IndexManager.hpp
@@ -817,6 +813,14 @@ set(UNIT_TESTS
     )
 source_group(unit_tests FILES ${UNIT_TESTS})
 
+set(UNIT_TESTS_Z3
+    UnitTests/tTheoryInstAndSimp.cpp
+    UnitTests/tZ3Interfacing.cpp
+    )
+source_group(unit_tests_z3 FILES ${UNIT_TESTS_Z3})
+
+
+
 # also include forwards.hpp?
 set(VAMPIRE_SOURCES 
     ${VAMPIRE_DEBUG_SOURCES}
@@ -905,6 +909,7 @@ else ()
   set_property(TARGET Z3 PROPERTY IMPORTED_LOCATION ${Z3_LIBRARY})
   add_compile_definitions(VZ3=1)
   set(VAMPIRE_BINARY_Z3 _z3)
+  set(UNIT_TESTS ${UNIT_TESTS} ${UNIT_TESTS_Z3})
 endif()
 
 ################################################################

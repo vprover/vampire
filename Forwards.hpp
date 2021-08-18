@@ -59,7 +59,7 @@ template<typename T, class Comparator> class BinaryHeap;
 template<typename T> class SharedSet;
 
 template <typename Key, typename Val,class Hash=Lib::Hash> class Map;
-template <typename Key1, typename Key2> class BiMap; 
+template<class A, class B, class HashA = Lib::Hash, class HashB = Lib::Hash> class BiMap; 
 
 template<typename T, template<class> class ref_t> class ArrayishObjectIterator;
 template<typename T> class ArrayMap;
@@ -275,7 +275,6 @@ class LiteralIndexingStructure;
 class TermIndex;
 class TermIndexingStructure;
 class ClauseSubsumptionIndex;
-class FormulaIndex;
 
 class TermSharing;
 

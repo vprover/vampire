@@ -68,7 +68,6 @@ public:
   // static void collectVariableSortsSpecialTerm(Term* t, TermList contextSort, DHMap<unsigned,TermList>& map);
   static void collectVariableSorts(Formula* f, DHMap<unsigned,TermList>& map);
 
-  static bool areSortsValid(Clause* cl);
   static bool areImmediateSortsValidPoly(Term* t); 
   static bool areImmediateSortsValidMono(Term* t);
   // static bool isStructuredSort(unsigned s);
@@ -94,6 +93,8 @@ public:
 
   static void getTypeSub(const Term* t, Substitution& subst);
 
+  static bool areSortsValid(Clause* cl);
+  static bool areSortsValid(Term* t);
   static bool areSortsValid(Term* t, DHMap<unsigned,TermList>& varSorts);
 private:
   // It is important this function is private, because it only works in cooperation with tryGetVariableSort(unsigned var, Formula* f, unsigned& res);
