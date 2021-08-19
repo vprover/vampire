@@ -166,8 +166,7 @@ namespace Shell {
     Lib::vstring getSubtermPredicateName();
     unsigned getSubtermPredicate();
 
-    static Lib::vvector<Kernel::TermList> generateAvailableTerms(const Kernel::Term* t, unsigned& var);
-    static void excludeTermFromAvailables(Lib::vvector<Kernel::TermList>& availables, Kernel::TermList e, unsigned& var);
+    static void excludeTermFromAvailables(Kernel::TermStack& availables, Kernel::TermList e, unsigned& var);
 
     friend std::ostream& operator<<(std::ostream& out, TermAlgebra const& self);
   private:

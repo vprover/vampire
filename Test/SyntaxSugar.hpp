@@ -119,6 +119,16 @@
     DECL_VAR(x, 0)                                                                                            \
     DECL_VAR(y, 1)                                                                                            \
     DECL_VAR(z, 2)                                                                                            \
+    DECL_VAR(x0, 0)                                                                                           \
+    DECL_VAR(x1, 1)                                                                                           \
+    DECL_VAR(x2, 2)                                                                                           \
+    DECL_VAR(x3, 3)                                                                                           \
+    DECL_VAR(x4, 4)                                                                                           \
+    DECL_VAR(x5, 5)                                                                                           \
+    DECL_VAR(x6, 6)                                                                                           \
+    DECL_VAR(x7, 7)                                                                                           \
+    DECL_VAR(x8, 8)                                                                                           \
+    DECL_VAR(x9, 9)                                                                                           \
   )                                                                                                           \
 
 

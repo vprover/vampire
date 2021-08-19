@@ -33,18 +33,6 @@ bool containsSkolem(Term* t);
 bool canInductOn(Term* t);
 
 /**
- * TermTransformer subclass for any TermList to TermList replacement
- */
-class TermListReplacement : public TermTransformer {
-public:
-  TermListReplacement(TermList o, TermList r) : _o(o), _r(r) {}
-  TermList transformSubterm(TermList trm) override;
-private:
-  TermList _o; // to be replaced
-  TermList _r; // replacement
-};
-
-/**
  * An instantiated induction template for a term.
  */
 class InductionScheme

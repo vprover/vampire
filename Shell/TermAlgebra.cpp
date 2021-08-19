@@ -13,6 +13,7 @@
 #include "Kernel/Inference.hpp"
 #include "Kernel/Matcher.hpp"
 #include "Kernel/SortHelper.hpp"
+#include "Kernel/SubstHelper.hpp"
 #include "Kernel/Signature.hpp"
 
 using namespace Kernel;
@@ -220,76 +221,77 @@ unsigned TermAlgebra::getSubtermPredicate() {
   return s;
 }
 
-vvector<TermList> TermAlgebra::generateAvailableTerms(const Term* t, unsigned& var) {
-  const auto taSort = SortHelper::getResultSort(t);
-  const auto ta = env.signature->getTermAlgebraOfSort(taSort);
-  ASS(ta);
-  vvector<TermList> res;
-  Stack<TermList> argTerms;
-  for (unsigned i = 0; i < ta->nConstructors(); i++) {
-    TermAlgebraConstructor *c = ta->constructor(i);
-    argTerms.reset();
-
-    for (unsigned j = 0; j < c->arity(); j++) {
-      argTerms.push(TermList(var++, false));
+class Binder
+{
+public:
+  TermList apply(unsigned var) {
+    TermList res;
+    if(!_map.find(var, res)) {
+      res = TermList(var, false);
     }
-
-    res.emplace_back(Term::create(c->functor(), argTerms.size(), argTerms.begin()));
+    return res;
   }
-  return res;
-}
 
-void TermAlgebra::excludeTermFromAvailables(vvector<TermList>& availables, TermList e, unsigned& var) {
-  ASS(e.isTerm());
-  auto last = availables.size();
-  for (unsigned i = 0; i < last;) {
-    auto p = availables[i];
-    // if p is an instance of e, p is removed
-    if (MatchingUtils::matchTerms(e, p)) {
-      availables[i] = availables.back();
-      availables.pop_back();
-      last--;
+  bool bind(unsigned var, TermList term)
+  {
+    TermList* aux;
+    return _map.getValuePtr(var,aux,term) || *aux==term;
+  }
+
+  void specVar(unsigned var, TermList term)
+  { ASSERTION_VIOLATION; }
+
+  DHMap<unsigned, TermList> _map;
+};
+
+void TermAlgebra::excludeTermFromAvailables(TermStack& availables, TermList e, unsigned& var)
+{
+  ASS(e.isTerm() && !e.term()->isLiteral());
+  NonVariableIterator nvi(e.term(), true);
+  while (nvi.hasNext()) {
+    auto symb = env.signature->getFunction(nvi.next().term()->functor());
+    if (!symb->termAlgebraCons() && !symb->termAlgebraDest()) {
+      return; // we cannot exclude anything non-ctor/dtor
     }
+  }
+  TermStack temp;
+  while (availables.isNonEmpty()) {
+    auto p = availables.pop();
+    Binder subst;
     // if e is an instance of p, the remaining
     // instances of p are added
-    else if (MatchingUtils::matchTerms(p, e)) {
-      availables[i] = availables.back();
-      availables.pop_back();
-      last--;
-      vvector<TermList> newTerms;
-      if (p.isVar()) {
-        newTerms = generateAvailableTerms(e.term(), var);
-        excludeTermFromAvailables(newTerms, e, var);
-      } else {
-        Term::Iterator pIt(p.term());
-        Term::Iterator eIt(e.term());
-        while (pIt.hasNext()) {
-          auto pArg = pIt.next();
-          auto eArg = eIt.next();
+    if (MatchingUtils::matchTerms(p, e, subst)) {
+      auto items = subst._map.items();
+      Substitution s;
+      while (items.hasNext()) {
+        auto kv = items.next();
+        s.reset();
+        if (kv.second.isTerm()) {
+          const auto ta = env.signature->getTermAlgebraOfSort(SortHelper::getResultSort(kv.second.term()));
+          if (!ta) {
+            continue; // not term algebra sort
+          }
+          TermStack argTerms;
+          for (unsigned i = 0; i < ta->nConstructors(); i++) {
+            TermAlgebraConstructor *c = ta->constructor(i);
+            argTerms.reset();
 
-          // a variable excludes everything,
-          // so we only consider terms here
-          if (eArg.isTerm()) {
-            vvector<TermList> terms;
-            if (pArg.isVar()) {
-              terms = generateAvailableTerms(eArg.term(), var);
-            } else {
-              terms.push_back(pArg);
+            for (unsigned j = 0; j < c->arity(); j++) {
+              argTerms.push(TermList(var++, false));
             }
-            excludeTermFromAvailables(terms, eArg, var);
-            for (auto& r : terms) {
-              TermListReplacement tr(pArg, r);
-              newTerms.push_back(TermList(tr.transform(p.term())));
-            }
+
+            s.rebind(kv.first, TermList(Term::create(c->functor(), argTerms.size(), argTerms.begin())));
+            availables.push(SubstHelper::apply(p, s));
           }
         }
       }
-      availables.insert(availables.end(), newTerms.begin(), newTerms.end());
-    } else {
-      i++;
+    }
+    // otherwise if p is not an instance of e, p is added back
+    else if (!MatchingUtils::matchTerms(e, p, subst)) {
+      temp.push(p);
     }
   }
-  availables.shrink_to_fit();
+  availables.loadFromIterator(temp.iter());
 }
 
 std::ostream& operator<<(std::ostream& out, TermAlgebraConstructor const& self) 

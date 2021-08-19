@@ -51,20 +51,6 @@ bool canInductOn(Term* t)
   return skolem(t) || (complexTermsAllowed && containsSkolem(t));
 }
 
-TermList TermListReplacement::transformSubterm(TermList trm)
-{
-  CALL("TermListReplacement::transformSubterm");
-
-  if(trm.isVar() && _o.isVar() && trm.var() == _o.var()) {
-    return _r;
-  }
-
-  if(trm.isTerm() && _o.isTerm() && trm.term()==_o.term()){
-    return _r;
-  }
-  return trm;
-}
-
 void FnDefHandler::handleClause(Clause* c, unsigned fi, bool reversed)
 {
   CALL("FnDefHandler::handleClause");
@@ -727,38 +713,32 @@ bool InductionPreprocessor::checkWellDefinedness(const vvector<Term*>& cases, vv
   if (arity == 0) {
     return true;
   }
-  vvector<vvector<TermList>> availableTermsEmpty;
+  vvector<vvector<TermStack>> availableTermsLists;
+  availableTermsLists.emplace_back(arity);
   unsigned var = 0;
   for (unsigned i = 0; i < arity; i++) {
-    vvector<TermList> v;
-    v.push_back(TermList(var++, false));
-    availableTermsEmpty.push_back(v);
+    availableTermsLists.back()[i].push(TermList(var++, false));
   }
-  vvector<vvector<vvector<TermList>>> availableTermsLists;
-  availableTermsLists.push_back(availableTermsEmpty);
 
   for (auto& c : cases) {
-    vvector<vvector<vvector<TermList>>> nextAvailableTermsLists;
-    Term::Iterator it(c);
-    unsigned j = 0;
-    while (it.hasNext()) {
-      auto arg = it.next();
+    vvector<vvector<TermStack>> nextAvailableTermsLists;
+    for (unsigned i = 0; i < arity; i++) {
+      auto arg = *c->nthArgument(i);
       // we check lazily for non-term algebra sort non-variables
       if (arg.isTerm() && env.signature->isTermAlgebraSort(SortHelper::getResultSort(arg.term()))) {
         auto tempLists = availableTermsLists;
         for (auto& availableTerms : tempLists) {
-          TermAlgebra::excludeTermFromAvailables(availableTerms[j], arg, var);
+          TermAlgebra::excludeTermFromAvailables(availableTerms[i], arg, var);
         }
         nextAvailableTermsLists.insert(nextAvailableTermsLists.end(),
           tempLists.begin(), tempLists.end());
       } else {
         for (const auto& availableTerms : availableTermsLists) {
-          if (!availableTerms[j].empty()) {
+          if (!availableTerms[i].isEmpty()) {
             break;
           }
         }
       }
-      j++;
     }
     availableTermsLists = nextAvailableTermsLists;
   }
@@ -767,7 +747,7 @@ bool InductionPreprocessor::checkWellDefinedness(const vvector<Term*>& cases, vv
     bool valid = true;
     vvector<vvector<TermList>> argTuples(1);
     for (const auto& v : availableTerms) {
-      if (v.empty()) {
+      if (v.isEmpty()) {
         valid = false;
         break;
       }
