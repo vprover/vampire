@@ -264,7 +264,6 @@ VI_OBJ = Indexing/AcyclicityIndex.o\
          Indexing/TermSharing.o\
          Indexing/TermSubstitutionTree.o\
          Indexing/TypeSubstitutionTree.o
-#         Indexing/FormulaIndex.o\         
 
 VIG_OBJ = InstGen/IGAlgorithm.o\
           InstGen/ModelPrinter.o
@@ -495,8 +494,7 @@ LIB_DEP = Indexing/TermSharing.o\
     Kernel/NumTraits.o
 #     ClausifierDependencyFix.o\
 
-OTHER_CL_DEP = Indexing/FormulaIndex.o\
-	       Indexing/LiteralSubstitutionTree.o\
+OTHER_CL_DEP = Indexing/LiteralSubstitutionTree.o\
 	       Indexing/ResultSubstitution.o\
 	       Indexing/SubstitutionTree_FastGen.o\
 	       Indexing/SubstitutionTree_FastInst.o\
