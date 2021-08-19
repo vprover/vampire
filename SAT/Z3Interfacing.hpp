@@ -115,6 +115,15 @@ public:
 
   virtual Status solveUnderAssumptions(const SATLiteralStack& assumps, unsigned conflictCountLimit, bool onlyProperSubusets) override;
 
+  /**
+   * The set of inserted clauses may not be propositionally UNSAT
+   * due to theory reasoning inside Z3.
+   * We cannot later minimize this set with minisat.
+   *
+   * TODO: think of extracting true refutation from Z3 instead.
+   */
+  SATClauseList* getRefutationPremiseList() override{ return 0; }
+
   SATClause* getRefutation() override;
 
   template<class F>
