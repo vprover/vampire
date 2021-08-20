@@ -79,13 +79,10 @@ struct FnDefRewriting::ForwardResultFn {
   {
     CALL("FnDefRewriting::ForwardResultFn()");
 
-    if (_cl->store() != Clause::ACTIVE) {
-      return 0;
-    }
     TermQueryResult &qr = arg.second;
     bool temp;
     return FnDefRewriting::perform(_cl, arg.first.first, arg.first.second, qr.clause,
-                                   qr.literal, qr.term, qr.substitution, true, temp,
+                                   qr.literal, qr.term, qr.substitution, false, temp,
                                    Inference(GeneratingInference2(InferenceRule::FNDEF_REWRITING, _cl, qr.clause)));
   }
 
@@ -97,7 +94,7 @@ ClauseIterator FnDefRewriting::generateClauses(Clause *premise)
 {
   CALL("FnDefRewriting::generateClauses");
 
-  auto itf1 = premise->getSelectedLiteralIterator();
+  auto itf1 = premise->iterLits();
 
   // Get an iterator of pairs of selected literals and rewritable subterms
   // of those literals. Here all subterms of a literal are rewritable.
@@ -147,45 +144,9 @@ bool FnDefRewriting::perform(Clause* cl, Clause*& replacement, ClauseIterator& p
         if (Ordering::isGorGEorE(ordering.compare(rhs,qr.term))) {
           continue;
         }
-        TermList rhsS;
-        if(!qr.substitution->isIdentityOnQueryWhenResultBound()) {
-          //When we apply substitution to the rhs, we get a term, that is
-          //a variant of the term we'd like to get, as new variables are
-          //produced in the substitution application.
-          TermList lhsSBadVars=qr.substitution->applyToResult(qr.term);
-          TermList rhsSBadVars=qr.substitution->applyToResult(rhs);
-          Renaming rNorm, qNorm, qDenorm;
-          rNorm.normalizeVariables(lhsSBadVars);
-          qNorm.normalizeVariables(trm);
-          qDenorm.makeInverse(qNorm);
-          ASS_EQ(trm,qDenorm.apply(rNorm.apply(lhsSBadVars)));
-          rhsS=qDenorm.apply(rNorm.apply(rhsSBadVars));
-        } else {
-          rhsS=qr.substitution->applyToBoundResult(rhs);
-        }
-        if (toplevelCheck) {
-          TermList other=EqHelper::getOtherEqualitySide(lit, trm);
-          Ordering::Result tord = ordering.compare(rhsS, other);
-          if (tord != Ordering::LESS && tord != Ordering::LESS_EQ) {
-            Literal* eqLitS = qr.substitution->applyToBoundResult(qr.literal);
-            bool isMax=true;
-            for (unsigned li2 = 0; li2 < cLen; li2++) {
-              if (li == li2) {
-                continue;
-              }
-              if (ordering.compare(eqLitS, (*cl)[li2]) == Ordering::LESS) {
-                isMax=false;
-                break;
-              }
-            }
-            if (isMax) {
-              continue;
-            }
-          }
-        }
         bool isEqTautology = false;
-        auto res = FnDefRewriting::perform(cl, lit, trm, qr.clause, qr.literal, qr.term, qr.substitution, true,
-          isEqTautology, Inference(SimplifyingInference2(InferenceRule::FNDEF_DEMODULATION, cl, qr.clause)));
+        auto res = FnDefRewriting::perform(cl, lit, trm, qr.clause, qr.literal, qr.term, qr.substitution, toplevelCheck,
+          isEqTautology, Inference(SimplifyingInference2(InferenceRule::FNDEF_DEMODULATION, cl, qr.clause)), ForwardSimplificationEngine::_salg);
         if (!res && !isEqTautology) {
           continue;
         }
@@ -204,7 +165,8 @@ bool FnDefRewriting::perform(Clause* cl, Clause*& replacement, ClauseIterator& p
 Clause *FnDefRewriting::perform(
     Clause *rwClause, Literal *rwLit, TermList rwTerm,
     Clause *eqClause, Literal *eqLit, TermList eqLHS,
-    ResultSubstitutionSP subst, bool eqIsResult, bool& isEqTautology, const Inference& inf)
+    ResultSubstitutionSP subst, bool toplevelCheck, bool& isEqTautology,
+    const Inference& inf, SaturationAlgorithm* salg)
 {
   CALL("FnDefRewriting::perform");
 
@@ -218,12 +180,12 @@ Clause *FnDefRewriting::perform(
   TermList tgtTerm = EqHelper::getOtherEqualitySide(eqLit, eqLHS);
 
   TermList tgtTermS;
-  if ((eqIsResult && !subst->isIdentityOnQueryWhenResultBound()) || (!eqIsResult && !subst->isIdentityOnResultWhenQueryBound())) {
+  if (!subst->isIdentityOnQueryWhenResultBound()) {
     //When we apply substitution to the rhs, we get a term, that is
     //a variant of the term we'd like to get, as new variables are
     //produced in the substitution application.
-    TermList lhsSBadVars = subst->apply(eqLHS, eqIsResult);
-    TermList rhsSBadVars = subst->apply(tgtTerm, eqIsResult);
+    TermList lhsSBadVars = subst->applyToResult(eqLHS);
+    TermList rhsSBadVars = subst->applyToResult(tgtTerm);
     Renaming rNorm, qNorm, qDenorm;
     rNorm.normalizeVariables(lhsSBadVars);
     qNorm.normalizeVariables(tgtTerm);
@@ -232,7 +194,29 @@ Clause *FnDefRewriting::perform(
     tgtTermS = qDenorm.apply(rNorm.apply(rhsSBadVars));
   }
   else {
-    tgtTermS = eqIsResult ? subst->applyToBoundResult(tgtTerm) : subst->applyToBoundQuery(tgtTerm);
+    tgtTermS = subst->applyToBoundResult(tgtTerm);
+  }
+
+  if (toplevelCheck) {
+    Ordering& ordering = salg->getOrdering();
+    TermList other=EqHelper::getOtherEqualitySide(rwLit, rwTerm);
+    Ordering::Result tord = ordering.compare(tgtTermS, other);
+    if (tord != Ordering::LESS && tord != Ordering::LESS_EQ) {
+      Literal* eqLitS = subst->applyToBoundResult(eqLit);
+      bool isMax=true;
+      for (unsigned i = 0; i < rwClause->length(); i++) {
+        if (rwLit == (*rwClause)[i]) {
+          continue;
+        }
+        if (ordering.compare(eqLitS, (*rwClause)[i]) == Ordering::LESS) {
+          isMax=false;
+          break;
+        }
+      }
+      if (isMax) {
+        return 0;
+      }
+    }
   }
 
   Literal *tgtLitS = EqHelper::replace(rwLit, rwTerm, tgtTermS);
@@ -273,10 +257,10 @@ Clause *FnDefRewriting::perform(
       Literal *curr = (*eqClause)[i];
       if (curr != eqLit) {
         Literal *currAfter;
-        if ((eqIsResult && !subst->isIdentityOnQueryWhenResultBound()) || (!eqIsResult && !subst->isIdentityOnResultWhenQueryBound())) {
+        if (!subst->isIdentityOnQueryWhenResultBound()) {
           // same as above for RHS
-          TermList lhsSBadVars = subst->apply(eqLHS, eqIsResult);
-          Literal *currSBadVars = subst->apply(curr, eqIsResult);
+          TermList lhsSBadVars = subst->applyToResult(eqLHS);
+          Literal *currSBadVars = subst->applyToResult(curr);
           Renaming rNorm, qNorm, qDenorm;
           rNorm.normalizeVariables(lhsSBadVars);
           qNorm.normalizeVariables(curr);
@@ -285,7 +269,7 @@ Clause *FnDefRewriting::perform(
           currAfter = qDenorm.apply(rNorm.apply(currSBadVars));
         }
         else {
-          currAfter = eqIsResult ? subst->applyToBoundResult(curr) : subst->applyToBoundQuery(curr);
+          currAfter = subst->applyToBoundResult(curr);
         }
 
         if (EqHelper::isEqTautology(currAfter)) {

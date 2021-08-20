@@ -191,6 +191,7 @@
   )
 
 #define DECL_TERM_ALGEBRA(...) createTermAlgebra(__VA_ARGS__);
+#define DECL_FUNC_DEFS(...) createFunctionDefinitions(__VA_ARGS__);
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // implementation
@@ -577,6 +578,14 @@ inline void createTermAlgebra(SortSugar sort, initializer_list<FuncSugar> fs) {
   }
   auto ta = new TermAlgebra(sort.sortId(), cons.size(), cons.begin());
   env.signature->addTermAlgebra(ta);
+}
+
+inline void createFunctionDefinitions(std::initializer_list<tuple<Clause*,unsigned,bool>> cls)
+{
+  for (const auto& t : cls) {
+    env.signature->getFnDefHandler()->handleClause(get<0>(t), get<1>(t), get<2>(t));
+  }
+  env.signature->getFnDefHandler()->finalize();
 }
 
 #endif // __TEST__SYNTAX_SUGAR__H__

@@ -322,7 +322,7 @@ void InductionTemplate::checkWellDefinedness()
       } else {
         t = Term::create(_functor, _arity, args.begin());
       }
-      env.out() << t << ", ";
+      env.out() << *t << ", ";
       _branches.emplace_back(t);
     }
     env.out() << "to template " << *this << endl;

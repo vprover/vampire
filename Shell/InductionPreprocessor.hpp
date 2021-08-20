@@ -62,7 +62,7 @@ public:
 private:
   bool addBaseCases();
 
-  friend class InductionTemplate;
+  friend struct InductionTemplate;
   friend class FnDefHandler;
 
   vmap<Term*, unsigned> _inductionTerms;
