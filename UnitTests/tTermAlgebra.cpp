@@ -15,8 +15,19 @@
 
 using namespace Shell;
 
+#define DECL_VARS \
+  __ALLOW_UNUSED( \
+  DECL_VAR(x0,0)  \
+  DECL_VAR(x1,1)  \
+  DECL_VAR(x2,2)  \
+  DECL_VAR(x3,3)  \
+  DECL_VAR(x4,4)  \
+  DECL_VAR(x5,5)  \
+  DECL_VAR(x6,6)  \
+  DECL_VAR(x7,7))
+
 TEST_FUN(excludeTermFromAvailables) {
-  DECL_DEFAULT_VARS
+  DECL_VARS
   DECL_SORT(ts)
   DECL_SORT(nts)
   DECL_CONST(b1, ts)
@@ -36,17 +47,17 @@ TEST_FUN(excludeTermFromAvailables) {
   TermStack exp1 = { b1(), r1(x0, x1), r2(x2,x3) };
   ASS_EQ(a, exp1);
 
-  ta->excludeTermFromAvailables(a, r2(x,b1()), var);
+  ta->excludeTermFromAvailables(a, r2(x0,b1()), var);
   TermStack exp2 = { b1(), r1(x0, x1), r2(x2,b2()), r2(x2,r1(x4,x5)), r2(x2,r2(x6,x7)) };
   ASS_EQ(a, exp2);
 
   // can't exclude non ctor or dtor terms
-  ta->excludeTermFromAvailables(a, r1(x,f()), var);
+  ta->excludeTermFromAvailables(a, r1(x0,f()), var);
   ASS_EQ(a, exp2);
 }
 
 TEST_FUN(excludeNested) {
-  DECL_DEFAULT_VARS
+  DECL_VARS
   DECL_SORT(ts)
   DECL_SORT(nts)
   DECL_CONST(b, ts)
