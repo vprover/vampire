@@ -19,6 +19,8 @@
 #include "Kernel/MLVariant.hpp"
 #include "Kernel/Ordering.hpp"
 
+#include "Kernel/RapidHelper.hpp"
+
 #include "LiteralIndexingStructure.hpp"
 #include "LiteralSubstitutionTree.hpp"
 
@@ -178,6 +180,18 @@ void NonUnitClauseLiteralIndex::handleClause(Clause* c, bool adding)
   unsigned activeLen = _selectedOnly ? c->numSelected() : clen;
   for(unsigned i=0; i<activeLen; i++) {
     handleLiteral((*c)[i], c, adding);
+  }
+}
+
+void IntermediateValueLimitClauseIndex::handleClause(Clause* c, bool adding)
+{
+  CALL("IntermediateValueLimitClauseIndex::handleClause");
+
+  if(c->length() == 1){
+    Literal* lit = (*c)[0];
+    if(RapidHelper::isLeftLimitLiteral(lit)){
+      handleLiteral(lit, c, adding);
+    }
   }
 }
 

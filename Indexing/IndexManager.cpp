@@ -169,6 +169,11 @@ Index* IndexManager::create(IndexType t)
     res=new UnitClauseLiteralIndex(is);
     isGenerating = true;
     break;
+  case INTERMEDIATE_VALUE:
+    is=new LiteralSubstitutionTree();
+    res=new IntermediateValueLimitClauseIndex(is);
+    isGenerating = true;
+    break;    
   case GENERATING_NON_UNIT_CLAUSE_SUBST_TREE:
     is=new LiteralSubstitutionTree();
     res=new NonUnitClauseLiteralIndex(is);

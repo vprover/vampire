@@ -126,6 +126,20 @@ protected:
   void handleClause(Clause* c, bool adding);
 };
 
+class IntermediateValueLimitClauseIndex
+: public LiteralIndex
+{
+public:
+  CLASS_NAME(IntermediateValueLimitClauseIndex);
+  USE_ALLOCATOR(IntermediateValueLimitClauseIndex);
+
+  IntermediateValueLimitClauseIndex(LiteralIndexingStructure* is)
+  : LiteralIndex(is) {};
+protected:
+  void handleClause(Clause* c, bool adding);
+};
+
+
 class NonUnitClauseLiteralIndex
 : public LiteralIndex
 {

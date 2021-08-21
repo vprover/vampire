@@ -71,6 +71,7 @@
 #include "Inferences/Instantiation.hpp"
 #include "Inferences/TheoryInstAndSimp.hpp"
 #include "Inferences/Induction.hpp"
+#include "Inferences/IntermediateValue.hpp"
 
 #include "Saturation/ExtensionalityClauseContainer.hpp"
 
@@ -250,6 +251,12 @@ SaturationAlgorithm::SaturationAlgorithm(Problem& prb, const Options& opt)
     //_active->addedEvent.subscribe(_extensionality, &ExtensionalityClauseContainer::addIfExtensionality);
   } else {
     _extensionality = 0;
+  }
+
+  if(opt.intermediateValue()){
+    _limitsContainer = new LimitClauseContainer();
+  } else {
+    _limitsContainer = 0;
   }
 
   s_instance=this;
@@ -1468,6 +1475,9 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
   if (opt.extensionalityResolution() != Options::ExtensionalityResolution::OFF) {
     gie->addFront(new ExtensionalityResolution());
   }
+  if (opt.intermediateValue()) {
+    gie->addFront(new IntermediateValue());
+  }  
   if (opt.FOOLParamodulation()) {
     gie->addFront(new FOOLParamodulation());
   }

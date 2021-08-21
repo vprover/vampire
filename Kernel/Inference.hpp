@@ -244,6 +244,8 @@ enum class InferenceRule : unsigned char {
   INSTANCE_GENERATION, // used by InstGen. Fun fact: the inference has one parent (logically) but the age is set from two parents (and +1)!
   /* Instantiation */
   INSTANTIATION, // used for theory reasoning
+  
+  INTERMEDIATE_VALUE,
   /** the last generating inference marker --
         inferences between GENERIC_GENERATING_INFERNCE and INTERNAL_GENERATING_INFERNCE_LAST will be automatically understood generating
         (see also isGeneratingInferenceRule) */
@@ -391,6 +393,7 @@ enum class InferenceRule : unsigned char {
   THA_BOOLEAN_ARRAY_WRITE2, // currently applied to a formula, so won't propagate to clause->isTheoryAxiom()
   THA_ARRAY_WRITE1,
   THA_ARRAY_WRITE2,
+
   /** acyclicity axiom for term algebras */
   TERM_ALGEBRA_ACYCLICITY_AXIOM,
   TERM_ALGEBRA_DIRECT_SUBTERMS_AXIOM,

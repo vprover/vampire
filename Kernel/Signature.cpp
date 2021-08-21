@@ -58,6 +58,16 @@ Signature::Symbol::Symbol(const vstring& nm,unsigned arity, bool interpreted, bo
   CALL("Signature::Symbol::Symbol");
   ASS(!stringConstant || arity==0);
 
+  //hack, shouldn't be doing things based on strings
+  if(nm.rfind("nl", 0) == 0){
+    _finalLoopCount = 1;
+  }
+
+  //even more hacky!!!
+  if(nm.rfind("l", 0) == 0){
+    _timePoint = 1;
+  }
+
   if (!stringConstant && !numericConstant && !overflownConstant && symbolNeedsQuoting(_name, interpreted,arity)) {
     _name="'"+_name+"'";
   }

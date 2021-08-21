@@ -778,7 +778,7 @@ vstring Kernel::ruleName(InferenceRule rule)
   case InferenceRule::THA_BOOLEAN_ARRAY_WRITE2:
   case InferenceRule::THA_ARRAY_WRITE1:
   case InferenceRule::THA_ARRAY_WRITE2:
-    return "theory axiom " + Int::toString((unsigned)toNumber(rule));
+    return "theory axiom";
   case InferenceRule::TERM_ALGEBRA_ACYCLICITY_AXIOM:
     return "term algebras acyclicity";
   case InferenceRule::TERM_ALGEBRA_DISCRIMINATION_AXIOM:
@@ -821,8 +821,8 @@ vstring Kernel::ruleName(InferenceRule rule)
     return "general splitting component introduction";
   case InferenceRule::GENERAL_SPLITTING:
     return "general splitting";
-
-
+  case InferenceRule::INTERMEDIATE_VALUE:
+    return "intermediate value induction";
   case InferenceRule::COLOR_UNBLOCKING:
     return "color unblocking";
   case InferenceRule::INSTANCE_GENERATION:

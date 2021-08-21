@@ -254,6 +254,7 @@ set(VAMPIRE_KERNEL_SOURCES
     Kernel/TermIterators.cpp
     Kernel/TermTransformer.cpp
     Kernel/Theory.cpp
+    Kernel/RapidHelper.cpp    
 #    Kernel/Assignment.cpp
 #    Kernel/Constraint.cpp
 #    Kernel/Number.cpp
@@ -302,6 +303,7 @@ set(VAMPIRE_KERNEL_SOURCES
     Kernel/SpassLiteralSelector.hpp
     Kernel/SubformulaIterator.hpp
     Kernel/SubstHelper.hpp
+    Kernel/RapidHelper.hpp        
     Kernel/Substitution.hpp
     Kernel/Term.hpp
     Kernel/TermIterators.hpp
@@ -399,6 +401,7 @@ set(VAMPIRE_INFERENCE_SOURCES
     Inferences/TautologyDeletionISE.cpp
     Inferences/TermAlgebraReasoning.cpp
     Inferences/URResolution.cpp
+    Inferences/IntermediateValue.cpp    
     Inferences/BackwardDemodulation.hpp
     Inferences/BackwardSubsumptionResolution.hpp
     Inferences/BinaryResolution.hpp
@@ -432,6 +435,7 @@ set(VAMPIRE_INFERENCE_SOURCES
     Inferences/TermAlgebraReasoning.hpp
     Inferences/URResolution.hpp
     Inferences/TheoryInstAndSimp.hpp
+    Inferences/IntermediateValue.hpp        
     Inferences/TheoryInstAndSimp.cpp  # this is theory instantiation
 #    Inferences/TheoryRuleAttempt.hpp
 #    Inferences/TheoryRuleAttempt.cpp
@@ -488,6 +492,7 @@ set(VAMPIRE_SATURATION_SOURCES
     Saturation/ConsequenceFinder.cpp
     Saturation/Discount.cpp
     Saturation/ExtensionalityClauseContainer.cpp
+    Saturation/LimitClauseContainer.cpp
     Saturation/LabelFinder.cpp
     Saturation/LRS.cpp
     Saturation/Otter.cpp
@@ -501,6 +506,7 @@ set(VAMPIRE_SATURATION_SOURCES
     Saturation/ConsequenceFinder.hpp
     Saturation/Discount.hpp
     Saturation/ExtensionalityClauseContainer.hpp
+    Saturation/LimitClauseContainer.hpp    
     Saturation/LabelFinder.hpp
     Saturation/LRS.hpp
     Saturation/Otter.hpp

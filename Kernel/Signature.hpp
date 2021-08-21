@@ -100,6 +100,10 @@ class Signature
     unsigned _inductionSkolem : 1;
     /** if skolem function in general **/
     unsigned _skolem : 1;
+    /** rpaid related */
+    unsigned _finalLoopCount : 1;
+
+    unsigned _timePoint : 1;
 
   public:
     /** standard constructor */
@@ -157,6 +161,10 @@ class Signature
     inline bool overflownConstant() const { return _overflownConstant; }
     /** Return true iff symbol is a term algebra constructor */
     inline bool termAlgebraCons() const { return _termAlgebraCons; }
+
+    inline bool finalLoopCount() const { return _finalLoopCount; }
+
+    inline bool timePoint() const { return _timePoint; }
 
     /** Increase the usage count of this symbol **/
     inline void incUsageCnt(){ _usageCount++; }

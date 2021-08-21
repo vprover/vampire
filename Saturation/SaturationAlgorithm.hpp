@@ -34,6 +34,7 @@
 #include "Inferences/TheoryInstAndSimp.hpp"
 
 #include "Saturation/ExtensionalityClauseContainer.hpp"
+#include "Saturation/LimitClauseContainer.hpp"
 
 #if VDEBUG
 #include<iostream>
@@ -92,6 +93,10 @@ public:
   virtual ClauseContainer* getGeneratingClauseContainer() { return _active; }
   ExtensionalityClauseContainer* getExtensionalityClauseContainer() {
     return _extensionality;
+  }
+
+  LimitClauseContainer* getLimitClauseContainer() {
+    return _limitsContainer;
   }
 
   ClauseIterator activeClauses();
@@ -178,6 +183,9 @@ protected:
   std::unique_ptr<PassiveClauseContainer> _passive;
   ActiveClauseContainer* _active;
   ExtensionalityClauseContainer* _extensionality;
+
+  LimitClauseContainer* _limitsContainer;
+
 
   ScopedPtr<GeneratingInferenceEngine> _generator;
   ScopedPtr<ImmediateSimplificationEngine> _immediateSimplifier;

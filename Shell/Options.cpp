@@ -1410,6 +1410,12 @@ void Options::init()
     _superpositionFromVariables.reliesOn(Or(_saturationAlgorithm.is(notEqual(SaturationAlgorithm::INST_GEN)),_instGenWithResolution.is(equal(true))));
     _superpositionFromVariables.setRandomChoices({"on","off"});
 
+    _intermediateValue = BoolOptionValue("intermediate_value","iv",false);
+    _intermediateValue.description=
+    "can be used to replace the intermediate value axiom for problems coming from Rapid encoding";
+    _lookup.insert(&_intermediateValue);
+    _intermediateValue.tag(OptionTag::INFERENCES);
+
 //*********************** InstGen  ***********************
 
     _globalSubsumption = BoolOptionValue("global_subsumption","gs",false);

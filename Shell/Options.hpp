@@ -1872,6 +1872,11 @@ bool _hard;
   //
   // This is how options are accessed so if you add a new option you should add a getter
 public:
+
+  //Rapid related options
+  bool intermediateValue() const{ return _intermediateValue.actualValue; }
+  //End of rapid related options
+
   bool encodeStrategy() const{ return _encode.actualValue;}
   RandomStrategy randomStrategy() const {return _randomStrategy.actualValue; }
   void setRandomStrategy(RandomStrategy newVal){ _randomStrategy.actualValue=newVal;}
@@ -2296,6 +2301,10 @@ private:
   ChoiceOptionValue<RandomStrategy> _randomStrategy;
   DecodeOptionValue _decode;
   BoolOptionValue _encode;
+
+  //Rapid related options
+  BoolOptionValue _intermediateValue;
+  //end of rapid related options
 
   RatioOptionValue _ageWeightRatio;
 	ChoiceOptionValue<AgeWeightRatioShape> _ageWeightRatioShape;
