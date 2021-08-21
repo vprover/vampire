@@ -128,13 +128,17 @@ public:
     /** sequent */
     T_SEQUENT,
     /** !> */
-    T_THF_QUANT_ALL,
+    T_TYPE_QUANT,
     /** ?* */
     T_THF_QUANT_SOME,
-    /** some THF quantifier */
-    T_APP_PLUS,
-    /** some THF quantifier */
-    T_APP_MINUS,
+    /** @+  choice operator */
+    T_CHOICE,
+    /** @- definite description */
+    T_DEF_DESC,
+    /** @@+  choice operator */
+    T_POLY_CHOICE,
+    /** @@- definite description */
+    T_POLY_DEF_DESC,
     /** $true */
     T_TRUE,
     /** $false */
@@ -217,6 +221,14 @@ public:
     INCLUDE,
     /** after the equality */
     END_EQ,
+    /** Read a HOL formula */
+    HOL_FORMULA,
+    /** build a HOL formula from a connective and one or more formulas */
+    END_HOL_FORMULA,
+    /** Read a higher-order constant or variable */
+    HOL_TERM,
+    /** create an application term after reading an app */
+    END_APP,
     /** tff declaration */
     TFF,
     /** THF declaration */
@@ -258,6 +270,23 @@ public:
     END_THEORY_FUNCTION
   };
 
+  enum LastPushed {
+    /**last item pushed was a formula */
+    FORM,
+    /**last item pushed was a term */
+    TM,
+  };
+
+  static const int HOL_CONSTANTS_LOWER_BOUND;
+  /** operator lambda */
+  static const int LAMBDA;
+  /** application of any number of terms */
+  static const int APP;
+  /** Pi function for universal quantification */
+  static const int PI;
+  /** Sigma function for existential quantification */
+  static const int SIGMA;
+
   /** token */
   struct Token {
     /** token type */
@@ -279,7 +308,7 @@ public:
     ParseErrorException(vstring message,unsigned ln) : _message(message), _ln(ln) {}
     ParseErrorException(vstring message,Token& tok,unsigned ln);
     ParseErrorException(vstring message,int position,unsigned ln);
-    void cry(ostream&);
+    void cry(ostream&) const;
     ~ParseErrorException() {}
   protected:
     vstring _message;
@@ -316,7 +345,8 @@ private:
   enum TypeTag {
     TT_ATOMIC,
     TT_PRODUCT,
-    TT_ARROW
+    TT_ARROW,
+    TT_QUANTIFIED
   };
 
   /**
@@ -343,14 +373,14 @@ private:
   public:
     CLASS_NAME(AtomicType);
     USE_ALLOCATOR(AtomicType);
-    explicit AtomicType(unsigned sortNumber)
-      : Type(TT_ATOMIC), _sortNumber(sortNumber)
+    explicit AtomicType(TermList sort)
+      : Type(TT_ATOMIC), _sort(sort)
     {}
     /** return the sort number */
-    unsigned sortNumber() const {return _sortNumber;}
+    TermList sort() const {return _sort;}
   private:
     /** the sort identified by its number in the signature */
-    unsigned _sortNumber;
+    TermList _sort;
   }; // AtomicType
 
   /** Arrow type */
@@ -396,6 +426,28 @@ private:
     Type* _lhs;
     /** the return type */
     Type* _rhs;
+  }; // ProductType
+
+  /**
+   */
+  class QuantifiedType
+    : public Type
+  {
+  public:
+    CLASS_NAME(QuantifiedType);
+    USE_ALLOCATOR(QuantifiedType);
+    QuantifiedType(Type* t, VList* vars)
+      : Type(TT_QUANTIFIED), _type(t), _vars(vars)
+    {}
+    /** the bound type variables */
+    VList* vars() const {return _vars;}
+    /** the right hand side type */
+    Type* qtype() const {return _type;}
+  private:
+    /** the quantified type */
+    Type* _type;
+    /** bound type variables */
+     VList* _vars;
   }; // ProductType
 
   /**
@@ -535,6 +587,8 @@ private:
   /** true if the last read unit is fof() or cnf() due to a subtle difference
    * between fof() and tff() in treating numeric constants */ 
   bool _isFof;
+  /** */
+  bool _isThf;
   /** various strings saved during parsing */
   Stack<vstring> _strings;
   /** various connectives saved during parsing */ // they must be int, since non-existing value -1 can be used
@@ -544,11 +598,11 @@ private:
   /** various integer values saved during parsing */
   Stack<int> _ints;
   /** variable lists for building formulas */
-  Stack<Formula::VarList*> _varLists;
+  Stack<VList*> _varLists;
   /** sort lists for building formulas */
-  Stack<Formula::SortList*> _sortLists;
+  Stack<SList*> _sortLists;
   /** variable lists for binding variables */
-  Stack<Formula::VarList*> _bindLists;
+  Stack<VList*> _bindLists;
   /** various tokens to consume */
   Stack<Tag> _tags;
   /** various formulas */
@@ -563,11 +617,10 @@ private:
   Stack<Type*> _types;
   /** various type tags saved during parsing */
   Stack<TypeTag> _typeTags;
-  typedef List<unsigned> SortList;
   /**  */
   Stack<TheoryFunction> _theoryFunctions;
   /** bindings of variables to sorts */
-  Map<int,SortList*> _variableSorts;
+  Map<unsigned,SList*> _variableSorts;
   /** overflown arithmetical constants for which uninterpreted constants are introduced */
   Set<vstring> _overflow;
   /** current color, if the input contains colors */
@@ -590,6 +643,9 @@ private:
   /** a stack of scopes */
   Stack<LetSymbols> _letSymbols;
   Stack<LetSymbols> _letTypedSymbols;
+
+  /** Record wheter a formula or term has been pushed more recently */
+  LastPushed _lastPushed;
 
   /** finds if the symbol has been defined in an enclosing $let */
   bool findLetSymbol(LetSymbolName symbolName, LetSymbolReference& symbolReference);
@@ -743,9 +799,23 @@ private:
   void endTheoryFunction();
   void endTuple();
   void addTagState(Tag);
+  TermList readSort();
+  unsigned getConstructorArity();
 
-  unsigned readSort();
-  void bindVariable(int var,unsigned sortNumber);
+  //Higher-order parsing
+  //these functions were all written in early 2017 (start of PhD) and are consequently
+  //pretty nasty and don't follow the philosophy of the parser. However, they should
+  //not impact standard parsing functions in any way.
+  void endApp();
+  void holFormula();
+  void endHolFormula();
+  void holTerm();  
+  void foldl(TermStack*);
+  TermList readArrowSort();
+  void readTypeArgs(unsigned arity);
+  //End of higher-order specific functions
+
+  void bindVariable(unsigned var,TermList sort);
   void unbindVariables();
   void skipToRPAR();
   void skipToRBRA();
@@ -757,12 +827,13 @@ private:
   unsigned addOverloadedPredicate(vstring name,int arity,int symbolArity,bool& added,TermList& arg,
 				  Theory::Interpretation integer,Theory::Interpretation rational,
 				  Theory::Interpretation real);
-  unsigned sortOf(TermList term);
+  TermList sortOf(TermList term);
   static bool higherPrecedence(int c1,int c2);
+  vstring convert(Tag t);
 
   bool findInterpretedPredicate(vstring name, unsigned arity);
 
-  OperatorType* constructOperatorType(Type* t);
+  OperatorType* constructOperatorType(Type* t, VList* vars = 0);
 
 public:
   // make the tptp routines for dealing with overflown constants available to other parsers
@@ -805,6 +876,9 @@ private:
   /** This field stores names of input units if the
    * output_axiom_names option is enabled */
   static DHMap<unsigned, vstring> _axiomNames;
+  /** Stores the type arities of function symbols */
+  DHMap<vstring, unsigned> _typeArities;
+  DHMap<vstring, unsigned> _typeConstructorArities;
 
   bool _filterReserved;
   bool _seenConjecture;

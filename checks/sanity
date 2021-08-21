@@ -1,15 +1,53 @@
 #!/bin/sh
 
 vampire=`pwd`/$1
-szs_theorem() {
-	out=`cd checks && $vampire -t 1 $@`
-	szs=`echo "$out" | egrep "^% SZS status Theorem for .+$"`
+szs_status() {
+        time=$1
+        shift
+        status=$1
+        shift
+	out=`cd checks && $vampire -t $time $@`
+	szs=`echo "$out" | egrep "^% SZS status $status for .+$"`
 	if test -z "$szs"
 	then
-		echo "$@ failed: should have been SZS Theorem"
+		echo "$@ failed: should have been SZS $status"
 		echo "$out"
 		exit 1
 	fi
 }
+smtcomp_status() {
+        time=$1
+        shift
+        status=$1
+        shift
+        out=`cd checks && $vampire -t $time $@`
+        result=`echo "$out" | egrep "^$status$"`
+        if test -z "$result"
+        then
+                echo "$@ failed: should have been $status"
+                echo "$out"
+                exit 1
+        fi
+}
 
-szs_theorem Problems/PUZ/PUZ001+1.p
+# Some simple problems
+szs_status 1 Theorem Problems/PUZ/PUZ001+1.p
+
+# Unsat core problems
+smtcomp_status 1 unsat --mode smtcomp Problems/smt/ucore/test1
+$vampire --input_syntax smtlib2 -t 1 -om ucore checks/Problems/smt/ucore/test2 | diff checks/Problems/smt/ucore/test2_out -
+if [ $? -eq 1 ]
+then
+  echo "Did not print unsat core as expected"
+fi
+
+
+# Integer induction problems
+szs_status 1 Unsatisfiable -ind int Problems/ind/int_invariant_infinite_geq3_val3.smt2
+szs_status 1 Unsatisfiable -ind int Problems/ind/int_invariant_finite_a_to_b.smt2
+szs_status 60 Unsatisfiable --forced_options "drc=off:ind=int:intindint=infinite:sos=theory:sstl=1:to=lpo" Problems/ind/int_power_0_all_0.smt2
+szs_status 60 Unsatisfiable --forced_options "ind=int:sa=discount:sos=theory:sstl=1:to=lpo" Problems/ind/int_sum_y_geq_0.smt2
+
+# Parser
+szs_status 1 Unsatisfiable --input_syntax smtlib2 Problems/Parse/types-funs.smt2
+szs_status 1 Unsatisfiable --input_syntax smtlib2 -newcnf on Problems/Parse/types-funs.smt2

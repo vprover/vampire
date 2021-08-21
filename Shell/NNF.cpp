@@ -101,13 +101,16 @@ Formula* NNF::ennf (Formula* f, bool polarity)
   case LITERAL:
     {
       Literal* lit = f->literal();
-      Literal* newLit = ennf(lit, polarity);
+
+      // in general, it does not make sense to propagate polarity to literals
+      // (the only sensible special case would be, if the literal was actually a special term of type formula, but newcnf will cope if we don't "polarify" these)
+      Literal* newLit = ennf(lit);
+
+      // take polarity into account here
+      newLit = polarity ? newLit : Literal::complementaryLiteral(newLit);
+
       if (newLit == lit) {
-        if (polarity) {
-          return f;
-        } else {
-          return new AtomicFormula(Literal::complementaryLiteral(lit));
-        }
+        return f;
       } else {
         return new AtomicFormula(newLit);
       }
@@ -201,7 +204,7 @@ Formula* NNF::ennf (Formula* f, bool polarity)
   }
 } // NNF::ennf(Formula&);
 
-Literal* NNF::ennf(Literal* l, bool polarity)
+Literal* NNF::ennf(Literal* l)
 {
   CALL("NNF::ennf(Literal*...)");
 
@@ -332,6 +335,20 @@ TermList NNF::ennf(TermList ts, bool polarity)
           return TermList(Term::createTuple(ennfTupleTerm.term()));
         }
         break;
+      }
+
+      case Term::SF_MATCH: {
+        DArray<TermList> terms(term->arity());
+        bool unchanged = true;
+        for (unsigned i = 0; i < term->arity(); i++) {
+          terms[i] = ennf(*term->nthArgument(i), polarity);
+          unchanged = unchanged && (terms[i] == *term->nthArgument(i));
+        }
+
+        if (unchanged) {
+          return ts;
+        }
+        return TermList(Term::createMatch(sd->getSort(), sd->getMatchedSort(), term->arity(), terms.begin()));
       }
 
       default:

@@ -122,12 +122,46 @@ public:
   unsigned theoryInstSimpTautologies;
   /** number of theoryInstSimp solutions lost as we could not represent them **/
   unsigned theoryInstSimpLostSolution;
+  /** number of theoryInstSimp application where an empty substitution was applied */
+  unsigned theoryInstSimpEmptySubstitution;
   /** number of induction applications **/
-  unsigned induction;
   unsigned maxInductionDepth;
+  unsigned induction;
   unsigned inductionInProof;
   unsigned generalizedInduction;
   unsigned generalizedInductionInProof;
+  unsigned structInduction;
+  unsigned structInductionInProof;
+  unsigned intInfInduction;
+  unsigned intInfInductionInProof;
+  unsigned intFinInduction;
+  unsigned intFinInductionInProof;
+  unsigned intDBInduction;
+  unsigned intDBInductionInProof;
+  unsigned intInfUpInduction;
+  unsigned intInfUpInductionInProof;
+  unsigned intFinUpInduction;
+  unsigned intFinUpInductionInProof;
+  unsigned intDBUpInduction;
+  unsigned intDBUpInductionInProof;
+  unsigned intInfDownInduction;
+  unsigned intInfDownInductionInProof;
+  unsigned intFinDownInduction;
+  unsigned intFinDownInductionInProof;
+  unsigned intDBDownInduction;
+  unsigned intDBDownInductionInProof;
+  /** number of argument congruences */
+  unsigned argumentCongruence;
+  unsigned narrow;
+  unsigned forwardSubVarSup;
+  unsigned backwardSubVarSup;
+  unsigned selfSubVarSup;
+  unsigned negativeExtensionality;
+  unsigned primitiveInstantiations;
+  unsigned choiceInstances;
+  unsigned proxyEliminations;
+  unsigned leibnizElims;
+  unsigned booleanSimps;
 
   // Simplifying inferences
   /** number of duplicate literals deleted */
@@ -160,10 +194,26 @@ public:
   unsigned condensations;
   /** number of global subsumptions */
   unsigned globalSubsumption;
-  /** number of evaluations */
-  unsigned evaluations;
   /** number of interpreted simplifications */
   unsigned interpretedSimplifications;
+
+  /** how often did asg not simplify correctly. */
+  unsigned asgViolations;
+  /** applications of asg */
+  unsigned asgCnt;
+
+  /** how often did gve not simplify correctly. */
+  unsigned gveViolations;
+  /** applications of gve */
+  unsigned gveCnt;
+
+  /** number of evaluations that resulted in a incomparable literal */
+  unsigned evaluationIncomp;
+  /** number of evaluations that resulted in a greater literal */
+  unsigned evaluationGreater;
+  /** number of simplifications by PolynomialNormalizer */
+  unsigned evaluationCnt;
+
   /** number of (proper) inner rewrites */
   unsigned innerRewrites;
   /** number of inner rewrites into equational tautologies */
@@ -187,6 +237,11 @@ public:
   unsigned taInjectivitySimplifications;
   unsigned taNegativeInjectivitySimplifications;
   unsigned taAcyclicityGeneratedDisequalities;
+
+  //to be moved to the property object once that
+  //is controlled by environment
+  bool higherOrder;
+  bool polymorphic;
 
   // Saturation
   /** all clauses ever occurring in the unprocessed queue */
@@ -349,6 +404,22 @@ public:
     /** activation limit reached */
     ACTIVATION_LIMIT
   };
+  friend std::ostream& operator<<(std::ostream& out, TerminationReason const& self)
+  {
+    switch(self) {
+      case REFUTATION: return out << "REFUTATION";
+      case SAT_SATISFIABLE: return out << "SAT_SATISFIABLE";
+      case SATISFIABLE: return out << "SATISFIABLE";
+      case SAT_UNSATISFIABLE: return out << "SAT_UNSATISFIABLE";
+      case REFUTATION_NOT_FOUND: return out << "REFUTATION_NOT_FOUND";
+      case INAPPROPRIATE: return out << "INAPPROPRIATE";
+      case UNKNOWN: return out << "UNKNOWN";
+      case TIME_LIMIT: return out << "TIME_LIMIT";
+      case MEMORY_LIMIT: return out << "MEMORY_LIMIT";
+      case ACTIVATION_LIMIT: return out << "ACTIVATION_LIMIT";
+    }
+    ASSERTION_VIOLATION
+  }
   /** termination reason */
   TerminationReason terminationReason;
   /** refutation, if any */

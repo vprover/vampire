@@ -221,11 +221,18 @@ public:
   /** Problem contains non-default sorts */
   bool hasNonDefaultSorts() const { return _hasNonDefaultSorts; }
   bool hasFOOL() const { return _hasFOOL; }
+  bool hasCombs() const { return _hasCombs;}
+  bool hasApp() const { return _hasApp; }
+  bool hasAppliedVar() const { return _hasAppliedVar; }
+  bool hasBoolVar() const { return _hasBoolVar; }
+  bool hasLogicalProxy() const { return _hasLogicalProxy; }
+  bool hasPolymorphicSym() const { return _hasPolymorphicSym; }
+  bool quantifiesOverPolymorphicVar() const { return _quantifiesOverPolymorphicVar; }
   bool usesSort(unsigned sort) const { 
     CALL("Property::usesSort");
     if(_usesSort.size() <= sort) return false;
     return _usesSort[sort]; 
-  }
+  } //TODO only utilised by FMB which should eventually update to use the new sorts (as TermLists)
   bool usesSingleSort() const { return _sortsUsed==1; }
   unsigned sortsUsed() const { return _sortsUsed; }
   bool onlyFiniteDomainDatatypes() const { return _onlyFiniteDomainDatatypes; }
@@ -259,7 +266,7 @@ public:
   void scan(Formula*, int polarity);
   void scan(TermList ts,bool unit,bool goal);
 
-  void scanSort(unsigned sort);
+  void scanSort(TermList sort);
 
   char axiomTypes() const;
   char goalTypes() const;
@@ -330,6 +337,13 @@ public:
   DHSet<Theory::MonomorphisedInterpretation> _polymorphicInterpretations;
 
   bool _hasFOOL;
+  bool _hasCombs;
+  bool _hasApp;
+  bool _hasAppliedVar;
+  bool _hasBoolVar;
+  bool _hasLogicalProxy;
+  bool _hasPolymorphicSym;
+  bool _quantifiesOverPolymorphicVar;
 
   bool _onlyFiniteDomainDatatypes;
   bool _knownInfiniteDomain;

@@ -21,6 +21,8 @@
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/Term.hpp"
 
+#include "Shell/Statistics.hpp"
+
 #include "LiteralSubstitutionTree.hpp"
 
 namespace Indexing
@@ -29,6 +31,11 @@ namespace Indexing
 LiteralSubstitutionTree::LiteralSubstitutionTree(bool useC)
 : SubstitutionTree(2*env.signature->predicates(),useC)
 {
+  //EqualityProxy transformation can introduce polymorphism in a monomorphic problem
+  //However, there is no need to guard aginst it, as equalityProxy removes all
+  //equality literals. The flag below is only used during the unification of 
+  //equality literals.
+  _polymorphic = env.statistics->polymorphic || env.statistics->higherOrder;
 }
 
 void LiteralSubstitutionTree::insert(Literal* lit, Clause* cls)
@@ -63,15 +70,25 @@ SLQueryResultIterator LiteralSubstitutionTree::getUnifications(Literal* lit,
 	  bool complementary, bool retrieveSubstitutions)
 {
   CALL("LiteralSubstitutionTree::getUnifications");
-  return getResultIterator<UnificationsIterator>(lit,
-	  complementary, retrieveSubstitutions,false);
+  if(_polymorphic){
+    return getResultIterator<UnificationsIterator, UnificationFilter<true>>(lit,
+  	  complementary, retrieveSubstitutions,false);
+  } else {
+    return getResultIterator<UnificationsIterator, UnificationFilter<false>>(lit,
+      complementary, retrieveSubstitutions,false);  
+  }
 }
 SLQueryResultIterator LiteralSubstitutionTree::getUnificationsWithConstraints(Literal* lit,
           bool complementary, bool retrieveSubstitutions)
 {
   CALL("LiteralSubstitutionTree::getUnificationsWithConstraints");
-  return getResultIterator<UnificationsIterator>(lit,
-          complementary, retrieveSubstitutions,true);
+  if(_polymorphic){
+    return getResultIterator<UnificationsIterator, UnificationFilter<true>>(lit,
+      complementary, retrieveSubstitutions,true);
+  } else {
+    return getResultIterator<UnificationsIterator, UnificationFilter<false>>(lit,
+      complementary, retrieveSubstitutions,true);
+  }
 }
 
 SLQueryResultIterator LiteralSubstitutionTree::getGeneralizations(Literal* lit,
@@ -81,7 +98,7 @@ SLQueryResultIterator LiteralSubstitutionTree::getGeneralizations(Literal* lit,
 
   SLQueryResultIterator res=
 //  getResultIterator<GeneralizationsIterator>(lit,
-    getResultIterator<FastGeneralizationsIterator>(lit,
+    getResultIterator<FastGeneralizationsIterator, MatchingFilter<false>>(lit,
 	  	  complementary, retrieveSubstitutions,false);
 //  ASS_EQ(res.hasNext(), getResultIterator<GeneralizationsIterator>(lit,
 //	  	  complementary, retrieveSubstitutions).hasNext());
@@ -104,7 +121,7 @@ SLQueryResultIterator LiteralSubstitutionTree::getInstances(Literal* lit,
 
   SLQueryResultIterator res=
 //      getResultIterator<InstancesIterator>(lit,
-      getResultIterator<FastInstancesIterator>(lit,
+      getResultIterator<FastInstancesIterator, MatchingFilter<true>>(lit,
 	  complementary, retrieveSubstitutions, false);
 //  ASS_EQ(res.hasNext(), getResultIterator<InstancesIterator>(lit,
 //      complementary, retrieveSubstitutions).hasNext());
@@ -113,16 +130,14 @@ SLQueryResultIterator LiteralSubstitutionTree::getInstances(Literal* lit,
 
 struct LiteralSubstitutionTree::SLQueryResultFunctor
 {
-  DECL_RETURN_TYPE(SLQueryResult);
-  OWN_RETURN_TYPE operator() (const QueryResult& qr) {
+  SLQueryResult operator() (const QueryResult& qr) {
     return SLQueryResult(qr.first.first->literal, qr.first.first->clause, qr.first.second,qr.second);
   }
 };
 
 struct LiteralSubstitutionTree::LDToSLQueryResultFn
 {
-  DECL_RETURN_TYPE(SLQueryResult);
-  OWN_RETURN_TYPE operator() (const LeafData& ld) {
+  SLQueryResult operator() (const LeafData& ld) {
     return SLQueryResult(ld.literal, ld.clause);
   }
 };
@@ -136,8 +151,7 @@ struct LiteralSubstitutionTree::LDToSLQueryResultWithSubstFn
   {
     _subst=RobSubstitutionSP(new RobSubstitution());
   }
-  DECL_RETURN_TYPE(SLQueryResult);
-  OWN_RETURN_TYPE operator() (const LeafData& ld) {
+  SLQueryResult operator() (const LeafData& ld) {
     return SLQueryResult(ld.literal, ld.clause,
 	    ResultSubstitution::fromSubstitution(_subst.ptr(),
 		    QRS_QUERY_BANK,QRS_RESULT_BANK));
@@ -177,8 +191,7 @@ private:
 
 struct LiteralSubstitutionTree::LeafToLDIteratorFn
 {
-  DECL_RETURN_TYPE(LDIterator);
-  OWN_RETURN_TYPE operator() (Leaf* l) {
+  LDIterator operator() (Leaf* l) {
     return l->allChildren();
   }
 };
@@ -189,8 +202,7 @@ struct LiteralSubstitutionTree::PropositionalLDToSLQueryResultWithSubstFn
   {
     _subst=ResultSubstitutionSP (new DisjunctQueryAndResultVariablesSubstitution()); 
   }
-  DECL_RETURN_TYPE(SLQueryResult);
-  OWN_RETURN_TYPE operator() (const LeafData& ld) {
+  SLQueryResult operator() (const LeafData& ld) {
     ASS_EQ(ld.literal->arity(),0);
     return SLQueryResult(ld.literal, ld.clause, _subst);
   }
@@ -251,27 +263,25 @@ SLQueryResultIterator LiteralSubstitutionTree::getAll()
       LDToSLQueryResultFn()) ) ;
 }
 
+// struct LiteralSubstitutionTree::EqualitySortFilter
+// {
+//
+//   EqualitySortFilter(Literal* queryLit)
+//   : _queryEqSort(SortHelper::getEqualityArgumentSort(queryLit)) {}
+//
+//   bool operator()(const SLQueryResult& res)
+//   {
+//     CALL("LiteralSubstitutionTree::EqualitySortFilter::operator()");
+//     ASS(res.literal->isEquality());
+//
+//     unsigned resSort = SortHelper::getEqualityArgumentSort(res.literal);
+//     return resSort==_queryEqSort;
+//   }
+// private:
+//   unsigned _queryEqSort;
+// };
 
-struct LiteralSubstitutionTree::EqualitySortFilter
-{
-  DECL_RETURN_TYPE(bool);
-
-  EqualitySortFilter(Literal* queryLit)
-  : _queryEqSort(SortHelper::getEqualityArgumentSort(queryLit)) {}
-
-  bool operator()(const SLQueryResult& res)
-  {
-    CALL("LiteralSubstitutionTree::EqualitySortFilter::operator()");
-    ASS(res.literal->isEquality());
-
-    unsigned resSort = SortHelper::getEqualityArgumentSort(res.literal);
-    return resSort==_queryEqSort;
-  }
-private:
-  unsigned _queryEqSort;
-};
-
-template<class Iterator>
+template<class Iterator, class Filter>
 SLQueryResultIterator LiteralSubstitutionTree::getResultIterator(Literal* lit,
 	  bool complementary, bool retrieveSubstitutions, bool useConstraints)
 {
@@ -305,10 +315,10 @@ SLQueryResultIterator LiteralSubstitutionTree::getResultIterator(Literal* lit,
   	    new Iterator(this, root, lit, retrieveSubstitutions, true, false, useConstraints) );
     ASS(lit->isEquality());
     return pvi(
-	getFilteredIterator(
+	getContextualIterator(
 	    getMappingIterator(
 		getConcatenatedIterator(qrit1,qrit2), SLQueryResultFunctor()),
-	    EqualitySortFilter(lit))
+	    Filter(lit, retrieveSubstitutions))
 	);
   } else {
     VirtualIterator<QueryResult> qrit=VirtualIterator<QueryResult>(

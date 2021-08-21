@@ -45,6 +45,7 @@ void TimeCounter::reinitialize()
 {
   CALL("TimeCounter::reinitialize");
 
+  s_measuring = true;
   s_initialized=0;
 
   initialize();
@@ -284,6 +285,12 @@ void TimeCounter::outputSingleStat(TimeCounterUnit tcu, ostream& out)
     break;
   case TC_LITERAL_REWRITE_RULE_INDEX_MAINTENANCE:
     out<<"literal rewrite rule index maintenance";
+    break;
+  case TC_INDUCTION_TERM_INDEX_MAINTENANCE:
+    out<<"induction term index maintenance";
+    break;
+  case TC_UNIT_INTEGER_COMPARISON_INDEX_MAINTENANCE:
+    out<<"unit integer comparison literal index maintenance";
     break;
   case TC_OTHER:
     out<<"other";

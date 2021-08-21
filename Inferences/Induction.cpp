@@ -12,24 +12,35 @@
  * Implements class Induction.
  */
 
+#include <utility>
+
 #include "Debug/RuntimeStatistics.hpp"
 
-#include "Lib/Environment.hpp"
-#include "Lib/Set.hpp"
-#include "Lib/Array.hpp"
-#include "Lib/ScopedPtr.hpp"
+#include "Indexing/Index.hpp"
+#include "Indexing/IndexManager.hpp"
+#include "Indexing/ResultSubstitution.hpp"
 
-#include "Kernel/TermIterators.hpp"
-#include "Kernel/Signature.hpp"
+#include "Inferences/BinaryResolution.hpp"
+
+#include "Lib/DHSet.hpp"
+#include "Lib/DHMap.hpp"
+#include "Lib/Environment.hpp"
+#include "Lib/Metaiterators.hpp"
+#include "Lib/ScopedPtr.hpp"
+#include "Lib/Set.hpp"
+
 #include "Kernel/Clause.hpp"
-#include "Kernel/Unit.hpp"
-#include "Kernel/Inference.hpp"
-#include "Kernel/Sorts.hpp"
-#include "Kernel/Theory.hpp"
+#include "Kernel/Connective.hpp"
 #include "Kernel/Formula.hpp"
 #include "Kernel/FormulaUnit.hpp"
-#include "Kernel/Connective.hpp"
+#include "Kernel/Inference.hpp"
+#include "Kernel/InterpretedLiteralEvaluator.hpp"
 #include "Kernel/RobSubstitution.hpp"
+#include "Kernel/Signature.hpp"
+#include "Kernel/Sorts.hpp"
+#include "Kernel/Term.hpp"
+#include "Kernel/TermIterators.hpp"
+#include "Kernel/Unit.hpp"
 
 #include "Saturation/SaturationAlgorithm.hpp"
 
@@ -39,17 +50,152 @@
 #include "Shell/NNF.hpp"
 #include "Shell/Rectify.hpp"
 
-#include "Indexing/Index.hpp"
-#include "Indexing/ResultSubstitution.hpp"
-#include "Inferences/BinaryResolution.hpp"
-
 #include "Induction.hpp"
+
+using std::pair;
+using std::make_pair;
 
 namespace Inferences
 {
 using namespace Kernel;
 using namespace Lib; 
 
+namespace {
+
+void addToMapFromIterator(DHMap<Term*, TermQueryResult>& map, TermQueryResultIterator it) {
+  while (it.hasNext()) {
+    TermQueryResult tqr = it.next();
+    ASS(tqr.term.isTerm());
+    map.insert(tqr.term.term(), tqr);
+  }
+}
+
+InferenceRule getGeneralizedRule(InferenceRule rule) {
+  switch (rule) {
+    case InferenceRule::INDUCTION_AXIOM:
+    case InferenceRule::GEN_INDUCTION_AXIOM:
+      return InferenceRule::GEN_INDUCTION_AXIOM;
+    case InferenceRule::INT_INF_UP_INDUCTION_AXIOM:
+    case InferenceRule::INT_INF_UP_GEN_INDUCTION_AXIOM:
+      return InferenceRule::INT_INF_UP_GEN_INDUCTION_AXIOM;
+    case InferenceRule::INT_INF_DOWN_INDUCTION_AXIOM:
+    case InferenceRule::INT_INF_DOWN_GEN_INDUCTION_AXIOM:
+      return InferenceRule::INT_INF_DOWN_GEN_INDUCTION_AXIOM;
+    case InferenceRule::INT_FIN_UP_INDUCTION_AXIOM:
+    case InferenceRule::INT_FIN_UP_GEN_INDUCTION_AXIOM:
+      return InferenceRule::INT_FIN_UP_GEN_INDUCTION_AXIOM;
+    case InferenceRule::INT_FIN_DOWN_INDUCTION_AXIOM:
+    case InferenceRule::INT_FIN_DOWN_GEN_INDUCTION_AXIOM:
+      return InferenceRule::INT_FIN_DOWN_GEN_INDUCTION_AXIOM;
+    case InferenceRule::INT_DB_UP_INDUCTION_AXIOM:
+    case InferenceRule::INT_DB_UP_GEN_INDUCTION_AXIOM:
+      return InferenceRule::INT_DB_UP_GEN_INDUCTION_AXIOM;
+    case InferenceRule::INT_DB_DOWN_INDUCTION_AXIOM:
+    case InferenceRule::INT_DB_DOWN_GEN_INDUCTION_AXIOM:
+      return InferenceRule::INT_DB_DOWN_GEN_INDUCTION_AXIOM;
+    default:
+      ASSERTION_VIOLATION;
+  }
+}
+
+InferenceRule getNonGeneralizedRule(InferenceRule rule) {
+  switch (rule) {
+    case InferenceRule::INDUCTION_AXIOM:
+    case InferenceRule::GEN_INDUCTION_AXIOM:
+      return InferenceRule::INDUCTION_AXIOM;
+    case InferenceRule::INT_INF_UP_INDUCTION_AXIOM:
+    case InferenceRule::INT_INF_UP_GEN_INDUCTION_AXIOM:
+      return InferenceRule::INT_INF_UP_INDUCTION_AXIOM;
+    case InferenceRule::INT_INF_DOWN_INDUCTION_AXIOM:
+    case InferenceRule::INT_INF_DOWN_GEN_INDUCTION_AXIOM:
+      return InferenceRule::INT_INF_DOWN_INDUCTION_AXIOM;
+    case InferenceRule::INT_FIN_UP_INDUCTION_AXIOM:
+    case InferenceRule::INT_FIN_UP_GEN_INDUCTION_AXIOM:
+      return InferenceRule::INT_FIN_UP_INDUCTION_AXIOM;
+    case InferenceRule::INT_FIN_DOWN_INDUCTION_AXIOM:
+    case InferenceRule::INT_FIN_DOWN_GEN_INDUCTION_AXIOM:
+      return InferenceRule::INT_FIN_DOWN_INDUCTION_AXIOM;
+    case InferenceRule::INT_DB_UP_INDUCTION_AXIOM:
+    case InferenceRule::INT_DB_UP_GEN_INDUCTION_AXIOM:
+      return InferenceRule::INT_DB_UP_INDUCTION_AXIOM;
+    case InferenceRule::INT_DB_DOWN_INDUCTION_AXIOM:
+    case InferenceRule::INT_DB_DOWN_GEN_INDUCTION_AXIOM:
+      return InferenceRule::INT_DB_DOWN_INDUCTION_AXIOM;
+    default:
+      ASSERTION_VIOLATION;
+  }
+}
+
+InferenceRule getInfRule(InferenceRule rule) {
+  switch (rule) {
+    case InferenceRule::INT_INF_UP_INDUCTION_AXIOM:
+    case InferenceRule::INT_FIN_UP_INDUCTION_AXIOM:
+    case InferenceRule::INT_DB_UP_INDUCTION_AXIOM:
+      return InferenceRule::INT_INF_UP_INDUCTION_AXIOM;
+    case InferenceRule::INT_INF_UP_GEN_INDUCTION_AXIOM:
+    case InferenceRule::INT_FIN_UP_GEN_INDUCTION_AXIOM:
+    case InferenceRule::INT_DB_UP_GEN_INDUCTION_AXIOM:
+      return InferenceRule::INT_INF_UP_GEN_INDUCTION_AXIOM;
+    case InferenceRule::INT_INF_DOWN_INDUCTION_AXIOM:
+    case InferenceRule::INT_FIN_DOWN_INDUCTION_AXIOM:
+    case InferenceRule::INT_DB_DOWN_INDUCTION_AXIOM:
+      return InferenceRule::INT_INF_DOWN_INDUCTION_AXIOM;
+    case InferenceRule::INT_INF_DOWN_GEN_INDUCTION_AXIOM:
+    case InferenceRule::INT_FIN_DOWN_GEN_INDUCTION_AXIOM:
+    case InferenceRule::INT_DB_DOWN_GEN_INDUCTION_AXIOM:
+      return InferenceRule::INT_INF_DOWN_GEN_INDUCTION_AXIOM;
+    default:
+      ASSERTION_VIOLATION;
+  }
+}
+
+InferenceRule getFinRule(InferenceRule rule) {
+  switch (rule) {
+    case InferenceRule::INT_INF_UP_INDUCTION_AXIOM:
+    case InferenceRule::INT_FIN_UP_INDUCTION_AXIOM:
+    case InferenceRule::INT_DB_UP_INDUCTION_AXIOM:
+      return InferenceRule::INT_FIN_UP_INDUCTION_AXIOM;
+    case InferenceRule::INT_INF_UP_GEN_INDUCTION_AXIOM:
+    case InferenceRule::INT_FIN_UP_GEN_INDUCTION_AXIOM:
+    case InferenceRule::INT_DB_UP_GEN_INDUCTION_AXIOM:
+      return InferenceRule::INT_FIN_UP_GEN_INDUCTION_AXIOM;
+    case InferenceRule::INT_INF_DOWN_INDUCTION_AXIOM:
+    case InferenceRule::INT_FIN_DOWN_INDUCTION_AXIOM:
+    case InferenceRule::INT_DB_DOWN_INDUCTION_AXIOM:
+      return InferenceRule::INT_FIN_DOWN_INDUCTION_AXIOM;
+    case InferenceRule::INT_INF_DOWN_GEN_INDUCTION_AXIOM:
+    case InferenceRule::INT_FIN_DOWN_GEN_INDUCTION_AXIOM:
+    case InferenceRule::INT_DB_DOWN_GEN_INDUCTION_AXIOM:
+      return InferenceRule::INT_FIN_DOWN_GEN_INDUCTION_AXIOM;
+    default:
+      ASSERTION_VIOLATION;
+  }
+}
+
+InferenceRule getDBRule(InferenceRule rule) {
+  switch (rule) {
+    case InferenceRule::INT_INF_UP_INDUCTION_AXIOM:
+    case InferenceRule::INT_FIN_UP_INDUCTION_AXIOM:
+    case InferenceRule::INT_DB_UP_INDUCTION_AXIOM:
+      return InferenceRule::INT_DB_UP_INDUCTION_AXIOM;
+    case InferenceRule::INT_INF_UP_GEN_INDUCTION_AXIOM:
+    case InferenceRule::INT_FIN_UP_GEN_INDUCTION_AXIOM:
+    case InferenceRule::INT_DB_UP_GEN_INDUCTION_AXIOM:
+      return InferenceRule::INT_DB_UP_GEN_INDUCTION_AXIOM;
+    case InferenceRule::INT_INF_DOWN_INDUCTION_AXIOM:
+    case InferenceRule::INT_FIN_DOWN_INDUCTION_AXIOM:
+    case InferenceRule::INT_DB_DOWN_INDUCTION_AXIOM:
+      return InferenceRule::INT_DB_DOWN_INDUCTION_AXIOM;
+    case InferenceRule::INT_INF_DOWN_GEN_INDUCTION_AXIOM:
+    case InferenceRule::INT_FIN_DOWN_GEN_INDUCTION_AXIOM:
+    case InferenceRule::INT_DB_DOWN_GEN_INDUCTION_AXIOM:
+      return InferenceRule::INT_DB_DOWN_GEN_INDUCTION_AXIOM;
+    default:
+      ASSERTION_VIOLATION;
+  }
+}
+
+};  // namespace
 
 TermList TermReplacement::transformSubterm(TermList trm)
 {
@@ -94,48 +240,77 @@ Literal* LiteralSubsetReplacement::transformSubset(InferenceRule& rule) {
     return nullptr;
   }
   if (setBits == _occurrences) {
-    rule = InferenceRule::INDUCTION_AXIOM;
+    rule = getNonGeneralizedRule(rule);
   } else {
-    rule = InferenceRule::GEN_INDUCTION_AXIOM;
+    rule = getGeneralizedRule(rule);
   }
   _matchCount = 0;
   return transform(_lit);
+}
+
+List<pair<Literal*, InferenceRule>>* LiteralSubsetReplacement::getListOfTransformedLiterals(InferenceRule rule) {
+  CALL("LiteralSubsetReplacement::getListOfTransformedLiterals");
+
+  Literal* l;
+  List<pair<Literal*, InferenceRule>>* res = List<pair<Literal*, InferenceRule>>::empty();
+  while ((l = transformSubset(rule))) {
+    res = List<pair<Literal*, InferenceRule>>::cons(make_pair(l, rule), res);
+  }
+  return res;
+}
+
+void Induction::attach(SaturationAlgorithm* salg) {
+  CALL("Induction::attach");
+
+  GeneratingInferenceEngine::attach(salg);
+  if (InductionHelper::isIntInductionOn()) {
+    _comparisonIndex = static_cast<LiteralIndex*>(_salg->getIndexManager()->request(UNIT_INT_COMPARISON_INDEX));
+  }
+  if (InductionHelper::isIntInductionTwoOn()) {
+    _inductionTermIndex = static_cast<TermIndex*>(_salg->getIndexManager()->request(INDUCTION_TERM_INDEX));
+  }
+}
+
+void Induction::detach() {
+  CALL("Induction::detach");
+
+  if (InductionHelper::isIntInductionOn()) {
+    _comparisonIndex = 0;
+    _salg->getIndexManager()->release(UNIT_INT_COMPARISON_INDEX);
+  }
+  if (InductionHelper::isIntInductionTwoOn()) {
+    _inductionTermIndex = 0;
+    _salg->getIndexManager()->release(INDUCTION_TERM_INDEX);
+  }
+  GeneratingInferenceEngine::detach();
 }
 
 ClauseIterator Induction::generateClauses(Clause* premise)
 {
   CALL("Induction::generateClauses");
 
-  return pvi(InductionClauseIterator(premise));
+  return pvi(InductionClauseIterator(premise, InductionHelper(_comparisonIndex, _inductionTermIndex, _salg->getSplitter())));
 }
 
-InductionClauseIterator::InductionClauseIterator(Clause* premise)
+void InductionClauseIterator::processClause(Clause* premise)
 {
-  CALL("InductionClauseIterator::InductionClauseIterator");
+  CALL("InductionClauseIterator::processClause");
 
-  static Options::InductionChoice kind = env.options->inductionChoice();
-  static bool all = (kind == Options::InductionChoice::ALL);
-  static bool goal = (kind == Options::InductionChoice::GOAL);
-  static bool goal_plus = (kind == Options::InductionChoice::GOAL_PLUS);
-  static unsigned maxD = env.options->maxInductionDepth();
-  static bool unitOnly = env.options->inductionUnitOnly();
-
-
-  if((!unitOnly || premise->length()==1) && 
-     (all || ( (goal || goal_plus) && premise->derivedFromGoal())) &&
-     (maxD == 0 || premise->inference().inductionDepth() < maxD)
-    )
-  {
-    for(unsigned i=0;i<premise->length();i++){
-      process(premise,(*premise)[i]);
+  // The premise should either contain a literal on which we want to apply induction,
+  // or it should be an integer constant comparison we use as a bound.
+  if (InductionHelper::isInductionClause(premise)) {
+    for (unsigned i=0;i<premise->length();i++) {
+      processLiteral(premise,(*premise)[i]);
     }
+  }
+  if (InductionHelper::isIntInductionTwoOn() && InductionHelper::isIntegerComparison(premise)) {
+    processIntegerComparison(premise, (*premise)[0]);
   }
 }
 
-
-void InductionClauseIterator::process(Clause* premise, Literal* lit)
+void InductionClauseIterator::processLiteral(Clause* premise, Literal* lit)
 {
-  CALL("Induction::ClauseIterator::process");
+  CALL("Induction::ClauseIterator::processLiteral");
 
   if(env.options->showInduction()){
     env.beginOutput();
@@ -143,23 +318,9 @@ void InductionClauseIterator::process(Clause* premise, Literal* lit)
     env.endOutput();
   }
 
-  static Options::InductionChoice kind = env.options->inductionChoice();
-  static bool all = (kind == Options::InductionChoice::ALL);
-  static bool goal_plus = (kind == Options::InductionChoice::GOAL_PLUS);
-  static bool negOnly = env.options->inductionNegOnly();
-  static bool structInd = env.options->induction() == Options::Induction::BOTH ||
-                         env.options->induction() == Options::Induction::STRUCTURAL;
-  static bool mathInd = env.options->induction() == Options::Induction::BOTH ||
-                         env.options->induction() == Options::Induction::MATHEMATICAL;
   static bool generalize = env.options->inductionGen();
-  static bool complexTermsAllowed = env.options->inductionOnComplexTerms();
 
-  if((!negOnly || lit->isNegative() || 
-         (theory->isInterpretedPredicate(lit) && theory->isInequality(theory->interpretPredicate(lit)))
-       )&& 
-       lit->ground()
-      ){
-
+  if(InductionHelper::isInductionLiteral(lit)){
       Set<Term*> ta_terms;
       Set<Term*> int_terms;
       SubtermIterator it(lit);
@@ -167,23 +328,11 @@ void InductionClauseIterator::process(Clause* premise, Literal* lit)
         TermList ts = it.next();
         if(!ts.term()){ continue; }
         unsigned f = ts.term()->functor(); 
-        if((complexTermsAllowed || env.signature->functionArity(f)==0) &&
-           (
-               all
-            || env.signature->getFunction(f)->inGoal()
-            || (goal_plus && env.signature->getFunction(f)->inductionSkolem()) // set in NewCNF
-           )
-        ){
-         if(structInd && 
-            env.signature->isTermAlgebraSort(env.signature->getFunction(f)->fnType()->result()) &&
-            ((complexTermsAllowed && env.signature->functionArity(f) != 0) || !env.signature->getFunction(f)->termAlgebraCons()) // skip base constructors
-           ){
+        if(InductionHelper::isInductionTermFunctor(f)){
+          if(InductionHelper::isStructInductionOn() && InductionHelper::isStructInductionFunctor(f)){
             ta_terms.insert(ts.term());
           }
-          if(mathInd && 
-             env.signature->getFunction(f)->fnType()->result()==Sorts::SRT_INTEGER &&
-             !theory->isInterpretedConstant(f)
-            ){
+          if(InductionHelper::isIntInductionOneOn() && InductionHelper::isIntInductionTermListInLiteral(ts, lit)){
             int_terms.insert(ts.term());
           }
         }
@@ -192,25 +341,17 @@ void InductionClauseIterator::process(Clause* premise, Literal* lit)
       Set<Term*>::Iterator citer1(int_terms);
       while(citer1.hasNext()){
         Term* t = citer1.next();
-        static bool one = env.options->mathInduction() == Options::MathInductionKind::ONE ||
-                          env.options->mathInduction() == Options::MathInductionKind::ALL;
-        static bool two = env.options->mathInduction() == Options::MathInductionKind::TWO ||
-                          env.options->mathInduction() == Options::MathInductionKind::ALL;
-        if(notDone(lit,t)){
-          InferenceRule rule = InferenceRule::INDUCTION_AXIOM;
-          Term* inductionTerm = generalize ? getPlaceholderForTerm(t) : t;
-          Kernel::LiteralSubsetReplacement subsetReplacement(lit, t, TermList(inductionTerm));
-          Literal* ilit = generalize ? subsetReplacement.transformSubset(rule) : lit;
-          ASS(ilit != nullptr);
-          do {
-            if(one){
-              performMathInductionOne(premise,lit,ilit,inductionTerm,rule);
-            }
-            if(two){
-              performMathInductionTwo(premise,lit,ilit,inductionTerm,rule);
-            }
-          } while (generalize && (ilit = subsetReplacement.transformSubset(rule)));
-        }
+        Term* indTerm = generalize ? getPlaceholderForTerm(t) : t;
+        List<pair<Literal*, InferenceRule>>* indLits = List<pair<Literal*, InferenceRule>>::empty();
+        DHMap<Term*, TermQueryResult> grBound;
+        addToMapFromIterator(grBound, _helper.getGreaterEqual(t));
+        addToMapFromIterator(grBound, _helper.getGreater(t));
+        DHMap<Term*, TermQueryResult> leBound;
+        addToMapFromIterator(leBound, _helper.getLessEqual(t));
+        addToMapFromIterator(leBound, _helper.getLess(t));
+        performIntInductionForEligibleBounds(premise, lit, t, indLits, indTerm, /*increasing=*/true, leBound, grBound);
+        performIntInductionForEligibleBounds(premise, lit, t, indLits, indTerm, /*increasing=*/false, grBound, leBound);
+        List<pair<Literal*, InferenceRule>>::destroy(indLits);
       }
       Set<Term*>::Iterator citer2(ta_terms);
       while(citer2.hasNext()){
@@ -243,7 +384,121 @@ void InductionClauseIterator::process(Clause* premise, Literal* lit)
    }
 }
 
-void InductionClauseIterator::produceClauses(Clause* premise, Literal* origLit, Formula* hypothesis, Literal* conclusion, InferenceRule rule, ResultSubstitutionSP& substitution)
+void InductionClauseIterator::performIntInductionForEligibleBounds(Clause* premise, Literal* origLit, Term* origTerm, List<pair<Literal*, InferenceRule>>*& indLits, Term* indTerm, bool increasing, DHMap<Term*, TermQueryResult>& bounds1, DHMap<Term*, TermQueryResult>& bounds2) {
+  DHMap<Term*, TermQueryResult>::Iterator it1(bounds1);
+  while (it1.hasNext()) {
+    TermQueryResult b1 = it1.next();
+    // Skip if the premise equals the bound (that would add tautologies to the search space).
+    if (b1.clause != premise) {
+      if (_helper.isInductionForFiniteIntervalsOn()) {
+        DHMap<Term*, TermQueryResult>::Iterator it2(bounds2);
+        while (it2.hasNext()) {
+          TermQueryResult b2 = it2.next();
+          if (notDoneInt(origLit, origTerm, increasing, b1.term.term(), b2.term.term(), /*bool fromComparison=*/b1.literal != nullptr)) {
+            generalizeAndPerformIntInduction(premise, origLit, origTerm, indLits, indTerm, increasing, b1, &b2);
+          }
+        }
+      }
+      if (_helper.isInductionForInfiniteIntervalsOn() &&
+          notDoneInt(origLit, origTerm, increasing, b1.term.term(), /*optionalBound2=*/nullptr, /*bool fromComparison=*/b1.literal != nullptr)) {
+        generalizeAndPerformIntInduction(premise, origLit, origTerm, indLits, indTerm, increasing, b1, nullptr);
+      }
+    }
+  }
+  static bool useDefaultBound = env.options->integerInductionDefaultBound();
+  if (useDefaultBound && _helper.isInductionForInfiniteIntervalsOn()) {
+    static TermQueryResult defaultBound(TermList(theory->representConstant(IntegerConstantType(0))), nullptr, nullptr);
+    if (notDoneInt(origLit, origTerm, increasing, defaultBound.term.term(), /*optionalBound2=*/nullptr, /*fromComparison=*/false)) {
+      generalizeAndPerformIntInduction(premise, origLit, origTerm, indLits, indTerm, increasing, defaultBound, nullptr);
+    }
+  }
+}
+
+void InductionClauseIterator::generalizeAndPerformIntInduction(Clause* premise, Literal* origLit, Term* origTerm, List<pair<Literal*, InferenceRule>>*& indLits, Term* indTerm, bool increasing, TermQueryResult& bound1, TermQueryResult* optionalBound2) {
+  static bool generalize = env.options->inductionGen();
+  // If induction literals were not computed yet, compute them now.
+  if (List<pair<Literal*, InferenceRule>>::isEmpty(indLits)) {
+    bool finite = ((optionalBound2 != nullptr) && (optionalBound2->literal != nullptr));
+    InferenceRule rule =
+        (bound1.literal == nullptr)
+            ? (increasing ? InferenceRule::INT_DB_UP_INDUCTION_AXIOM : InferenceRule::INT_DB_DOWN_INDUCTION_AXIOM)
+            : (increasing ? (finite ? InferenceRule::INT_FIN_UP_INDUCTION_AXIOM : InferenceRule::INT_INF_UP_INDUCTION_AXIOM)
+                          : (finite ? InferenceRule::INT_FIN_DOWN_INDUCTION_AXIOM : InferenceRule::INT_INF_DOWN_INDUCTION_AXIOM));
+    if (generalize) {
+      Kernel::LiteralSubsetReplacement subsetReplacement(origLit, origTerm, TermList(indTerm));
+      indLits = subsetReplacement.getListOfTransformedLiterals(rule);
+    } else {
+      indLits = new List<pair<Literal*, InferenceRule>>(make_pair(origLit, rule));
+    }
+  }
+  List<pair<Literal*, InferenceRule>>::RefIterator it(indLits);
+  while (it.hasNext()) {
+    auto& litAndRule = it.next();
+    ASS(litAndRule.first != nullptr);
+    performIntInduction(premise, origLit, litAndRule.first, indTerm, litAndRule.second, increasing, bound1, optionalBound2);
+  }
+}
+
+void InductionClauseIterator::processIntegerComparison(Clause* premise, Literal* lit)
+{
+  CALL("Induction::ClauseIterator::processIntegerComparison");
+
+  ASS((theory->interpretPredicate(lit) == Theory::INT_LESS) && lit->ground());
+
+  bool positive = lit->isPositive();
+  TermList* lesserTL = lit->nthArgument(positive ? 0 : 1);
+  TermList* greaterTL = lit->nthArgument(positive ? 1 : 0);
+  ASS(lesserTL != nullptr);
+  ASS(greaterTL != nullptr);
+  Term* lt = lesserTL->term();
+  Term* gt = greaterTL->term();
+  static bool generalize = env.options->inductionGen();
+  DHMap<Term*, TermQueryResult> grBound;
+  addToMapFromIterator(grBound, _helper.getGreaterEqual(gt));
+  addToMapFromIterator(grBound, _helper.getGreater(gt));
+  performIntInductionOnEligibleLiterals(
+    gt, generalize ? getPlaceholderForTerm(gt) : gt, _helper.getTQRsForInductionTerm(*greaterTL), /*increasing=*/true, TermQueryResult(*lesserTL, lit, premise), grBound);
+  DHMap<Term*, TermQueryResult> leBound;
+  addToMapFromIterator(leBound, _helper.getLessEqual(lt));
+  addToMapFromIterator(leBound, _helper.getLess(lt));
+  performIntInductionOnEligibleLiterals(
+    lt, generalize ? getPlaceholderForTerm(lt) : lt, _helper.getTQRsForInductionTerm(*lesserTL), /*increasing=*/false, TermQueryResult(*greaterTL, lit, premise), leBound);
+}
+
+void InductionClauseIterator::performIntInductionOnEligibleLiterals(Term* origTerm, Term* indTerm, TermQueryResultIterator inductionTQRsIt, bool increasing, TermQueryResult bound1, DHMap<Term*, TermQueryResult>& bounds2) {
+  while (inductionTQRsIt.hasNext()) {
+    TermQueryResult tqr = inductionTQRsIt.next();
+    // Skip if the TQR clause is equal to the bound clause (that would add tautologies to the search space).
+    if (bound1.clause != tqr.clause) {
+      // We need to pass an empty list, which will get populated when performing induction.
+      // Then we need to destroy it.
+      List<pair<Literal*, InferenceRule>>* indLits = List<pair<Literal*, InferenceRule>>::empty();
+      if (_helper.isInductionForFiniteIntervalsOn()) {
+        DHMap<Term*, TermQueryResult>::Iterator it(bounds2);
+        while (it.hasNext()) {
+          TermQueryResult bound2 = it.next();
+          if (notDoneInt(tqr.literal, origTerm, increasing, bound1.term.term(), bound2.term.term(), /*bool fromComparison=*/bound1.literal != nullptr)) {
+            generalizeAndPerformIntInduction(tqr.clause, tqr.literal, origTerm, indLits, indTerm, increasing, bound1, &bound2);
+          }
+        }
+      }
+      if (_helper.isInductionForInfiniteIntervalsOn() &&
+          notDoneInt(tqr.literal, origTerm, increasing, bound1.term.term(), /*optionalBound2=*/nullptr, /*bool fromComparison=*/bound1.literal != nullptr)) {
+        generalizeAndPerformIntInduction(tqr.clause, tqr.literal, origTerm, indLits, indTerm, increasing, bound1, nullptr);
+      }
+      List<pair<Literal*, InferenceRule>>::destroy(indLits);
+    }
+  }
+}
+
+void InductionClauseIterator::produceClauses(Clause* premise, Literal* origLit, Formula* hypothesis, InferenceRule rule, const pair<Literal*, SLQueryResult>& conclusion)
+{
+  CALL("InductionClauseIterator::produceClauses");
+  const List<pair<Literal*, SLQueryResult>> toResolve(conclusion);
+  produceClauses(premise, origLit, hypothesis, rule, &toResolve);
+}
+
+void InductionClauseIterator::produceClauses(Clause* premise, Literal* origLit, Formula* hypothesis, InferenceRule rule, const List<pair<Literal*, SLQueryResult>>* toResolve)
 {
   CALL("InductionClauseIterator::produceClauses");
   NewCNF cnf(0);
@@ -254,46 +509,126 @@ void InductionClauseIterator::produceClauses(Clause* premise, Literal* origLit, 
   FormulaUnit* fu = new FormulaUnit(hypothesis,inf);
   cnf.clausify(NNF::ennf(fu), hyp_clauses);
 
-  // Now perform resolution between origLit and the hyp_clauses on conclusion if conclusion in the clause
-  // If conclusion not in the clause then the clause is a definition from clausification and just keep
+  // Now, when possible, perform resolution against all literals from toResolve, which contain:
+  // 1. the original literal,
+  // 2. the bounds on the induction term (which are in the form "term < bound", or other comparison),
+  // if hyp_clauses contain the literal(s).
+  // (If hyp_clauses do not contain the literal(s), the clause is a definition from clausification
+  // and just keep it as it is.)
   Stack<Clause*>::Iterator cit(hyp_clauses);
   while(cit.hasNext()){
     Clause* c = cit.next();
-    if(c->contains(conclusion)){
-      SLQueryResult qr(origLit,premise, substitution);
-      Clause* r = BinaryResolution::generateClause(c,conclusion,qr,*env.options);
-      _clauses.push(r);
+    bool resolved = false;
+    List<pair<Literal*, SLQueryResult>>::RefIterator resIt(toResolve);
+    while (resIt.hasNext()) {
+      auto& litAndSLQR = resIt.next();
+      // If litAndSLQR contains a literal present in the clause, resolve it.
+      if(litAndSLQR.first && c->contains(litAndSLQR.first)){
+        if (resolved) {
+          // 'c' is never added to the saturation set, hence we need to call splitter here, before
+          // we apply binary resolution on it.
+          _helper.callSplitterOnNewClause(c);
+        }
+        c = BinaryResolution::generateClause(c,litAndSLQR.first,litAndSLQR.second,*env.options);
+        resolved = true;
+      }
     }
-    else{
-      _clauses.push(c);
-    }
+    _clauses.push(c);
   }
   env.statistics->induction++;
-  if (rule == InferenceRule::GEN_INDUCTION_AXIOM) {
+  if (rule == InferenceRule::GEN_INDUCTION_AXIOM ||
+      rule == InferenceRule::INT_INF_UP_GEN_INDUCTION_AXIOM ||
+      rule == InferenceRule::INT_FIN_UP_GEN_INDUCTION_AXIOM ||
+      rule == InferenceRule::INT_DB_UP_GEN_INDUCTION_AXIOM ||
+      rule == InferenceRule::INT_INF_DOWN_GEN_INDUCTION_AXIOM ||
+      rule == InferenceRule::INT_FIN_DOWN_GEN_INDUCTION_AXIOM ||
+      rule == InferenceRule::INT_DB_DOWN_GEN_INDUCTION_AXIOM) {
     env.statistics->generalizedInduction++;
+  }
+  switch (rule) {
+    case InferenceRule::INDUCTION_AXIOM:
+    case InferenceRule::GEN_INDUCTION_AXIOM:
+      env.statistics->structInduction++;
+      break;
+    case InferenceRule::INT_INF_UP_INDUCTION_AXIOM:
+    case InferenceRule::INT_INF_UP_GEN_INDUCTION_AXIOM:
+    case InferenceRule::INT_INF_DOWN_INDUCTION_AXIOM:
+    case InferenceRule::INT_INF_DOWN_GEN_INDUCTION_AXIOM:
+      env.statistics->intInfInduction++;
+      break;
+    case InferenceRule::INT_FIN_UP_INDUCTION_AXIOM:
+    case InferenceRule::INT_FIN_UP_GEN_INDUCTION_AXIOM:
+    case InferenceRule::INT_FIN_DOWN_INDUCTION_AXIOM:
+    case InferenceRule::INT_FIN_DOWN_GEN_INDUCTION_AXIOM:
+      env.statistics->intFinInduction++;
+      break;
+    case InferenceRule::INT_DB_UP_INDUCTION_AXIOM:
+    case InferenceRule::INT_DB_UP_GEN_INDUCTION_AXIOM:
+    case InferenceRule::INT_DB_DOWN_INDUCTION_AXIOM:
+    case InferenceRule::INT_DB_DOWN_GEN_INDUCTION_AXIOM:
+      env.statistics->intDBInduction++;
+      break;
+    default:
+      ;
+  }
+  switch (rule) {
+    case InferenceRule::INT_INF_UP_INDUCTION_AXIOM:
+    case InferenceRule::INT_INF_UP_GEN_INDUCTION_AXIOM:
+      env.statistics->intInfUpInduction++;
+      break;
+    case InferenceRule::INT_INF_DOWN_INDUCTION_AXIOM:
+    case InferenceRule::INT_INF_DOWN_GEN_INDUCTION_AXIOM:
+      env.statistics->intInfDownInduction++;
+      break;
+    case InferenceRule::INT_FIN_UP_INDUCTION_AXIOM:
+    case InferenceRule::INT_FIN_UP_GEN_INDUCTION_AXIOM:
+      env.statistics->intFinUpInduction++;
+      break;
+    case InferenceRule::INT_FIN_DOWN_INDUCTION_AXIOM:
+    case InferenceRule::INT_FIN_DOWN_GEN_INDUCTION_AXIOM:
+      env.statistics->intFinDownInduction++;
+      break;
+    case InferenceRule::INT_DB_UP_INDUCTION_AXIOM:
+    case InferenceRule::INT_DB_UP_GEN_INDUCTION_AXIOM:
+      env.statistics->intDBUpInduction++;
+      break;
+    case InferenceRule::INT_DB_DOWN_INDUCTION_AXIOM:
+    case InferenceRule::INT_DB_DOWN_GEN_INDUCTION_AXIOM:
+      env.statistics->intDBDownInduction++;
+      break;
+    default:
+      ;
   }
 }
 
-// deal with integer constants using two hypotheses
-// (L[0] & (![X] : (X>=0 & L[X]) -> L[x+1])) -> (![Y] : Y>=0 -> L[Y])
-// (L[0] & (![X] : (X<=0 & L[X]) -> L[x-1])) -> (![Y] : Y<=0 -> L[Y])
-// for some ~L[a]
-void InductionClauseIterator::performMathInductionOne(Clause* premise, Literal* origLit, Literal* lit, Term* term, InferenceRule rule) 
+// Given a literal ~L[term], where 'term' is of the integer sort,
+// introduce and induction hypothesis for integers, for example:
+//   (L[b1] & (![X] : (b1 <= X & X < b2 & L[X]) -> L[x+1])) -> (![Y] : (b1 <= Y & Y <= b2) -> L[Y])
+// In general, the hypothesis is an instance of one of the following
+// hypotheses (depending on the value of 'increasing'):
+//   (L[b1] & (![X] : (interval_x(X)) -> L[x+1])) -> (![Y] : interval_y(Y) -> L[Y])
+//   (L[b1] & (![X] : (interval_x(X)) -> L[x-1])) -> (![Y] : interval_y(Y) -> L[Y])
+// where 'b1' is bound1.term, and the predicates inteval_x(X) and interval_y(Y)
+// capture the property "X (or Y) belongs to the interval [b1, b2] or [b1, b2)",
+// where 'b2' is either optionalBound2->term (if present) or depending on 'increasing'
+// either infinity or -infinity. (The intervals are set such that the hypothesis
+// is valid: if interval_y(Y) holds for some Y, then either interval_x(Y) holds,
+// or depending on 'increasing' either interval_x(Y-1) or interval_x(Y+1) holds.)
+void InductionClauseIterator::performIntInduction(Clause* premise, Literal* origLit, Literal* lit, Term* term, InferenceRule rule, bool increasing, const TermQueryResult& bound1, TermQueryResult* optionalBound2)
 {
-  CALL("InductionClauseIterator::performMathInductionOne");
+  CALL("InductionClauseIterator::performIntInduction");
 
-  TermList zero(theory->representConstant(IntegerConstantType(0)));
-  TermList one(theory->representConstant(IntegerConstantType(1)));
-  TermList mone(theory->representConstant(IntegerConstantType(-1)));
+  TermList b1(bound1.term);
+  TermList one(theory->representConstant(IntegerConstantType(increasing ? 1 : -1)));
 
   TermList x(0,false);
   TermList y(1,false);
 
   Literal* clit = Literal::complementaryLiteral(lit);
 
-  // create L[zero]
-  TermReplacement cr1(term,zero);
-  Formula* Lzero = new AtomicFormula(cr1.transform(clit));
+  // create L[b1]
+  TermReplacement cr1(term,b1);
+  Formula* Lb1 = new AtomicFormula(cr1.transform(clit));
 
   // create L[X] 
   TermReplacement cr2(term,x);
@@ -303,64 +638,84 @@ void InductionClauseIterator::performMathInductionOne(Clause* premise, Literal* 
   TermReplacement cr3(term,y);
   Formula* Ly = new AtomicFormula(cr3.transform(clit));
 
-  // create L[X+1] 
+  // create L[X+1] or L[X-1]
   TermList fpo(Term::create2(env.signature->getInterpretingSymbol(Theory::INT_PLUS),x,one));
   TermReplacement cr4(term,fpo);
   Formula* Lxpo = new AtomicFormula(cr4.transform(clit));
 
-  // create L[X-1]
-  TermList fmo(Term::create2(env.signature->getInterpretingSymbol(Theory::INT_PLUS),x,mone));
-  TermReplacement cr5(term,fmo);
-  Formula* Lxmo = new AtomicFormula(cr5.transform(clit));
+  static unsigned less = env.signature->getInterpretingSymbol(Theory::INT_LESS);
+  // create X>=b1 (which is ~X<b1) or X<=b1 (which is ~b1<X)
+  Formula* Lxcompb1 = new AtomicFormula(Literal::create2(less,false,(increasing ? x : b1),(increasing ? b1 : x)));
+  // create Y>=b1 (which is ~Y<b1), or Y>b1, or Y<=b1 (which is ~b1<Y), or Y<b1
+  // This comparison is mirroring the structure of bound1.literal, which is "b1 <comparison> inductionTerm".
+  // If bound1.literal is nullptr, we are using the default bound with the comparison sign >= or <=.
+  const bool isBound1Equal = (!bound1.literal || (bound1.literal->functor() == less && bound1.literal->isNegative()));
+  const bool isBound1FirstArg = (increasing != isBound1Equal);
+  Formula* Lycompb1 = new AtomicFormula(Literal::create2(
+        less, !isBound1Equal, (isBound1FirstArg ? b1 : y), (isBound1FirstArg ? y : b1)));
 
-  // create X>=0, which is ~X<0
-  Formula* Lxgz = new AtomicFormula(Literal::create2(env.signature->getInterpretingSymbol(Theory::INT_LESS),
-                                   false,x,zero));
-  // create Y>=0, which is ~Y<0
-  Formula* Lygz = new AtomicFormula(Literal::create2(env.signature->getInterpretingSymbol(Theory::INT_LESS),
-                                   false,y,zero));
-  // create X<=0, which is ~0<X
-  Formula* Lxlz = new AtomicFormula(Literal::create2(env.signature->getInterpretingSymbol(Theory::INT_LESS),
-                                   false,zero,x));
-  // create Y<=0, which is ~0<Y
-  Formula* Lylz = new AtomicFormula(Literal::create2(env.signature->getInterpretingSymbol(Theory::INT_LESS),
-                                   false,zero,y));
+  Formula* FxInterval;
+  Formula* FyInterval;
+  const bool isDefaultBound = ((bound1.clause == nullptr) || (bound1.literal == nullptr));
+  const bool hasBound2 = ((optionalBound2 != nullptr) && (optionalBound2->literal != nullptr));
+  if (hasBound2) {
+    // Finite interval induction, use two bounds on both x and y.
+    rule = getFinRule(rule);
+    TermList b2(optionalBound2->term);
+    // create X<b2 or X>b2 (which is b2<X)
+    Formula* Lxcompb2 = new AtomicFormula(Literal::create2(less, true, (increasing ? x : b2), (increasing ? b2 : x)));
+    const bool isBound2Equal = (optionalBound2->literal->functor() == less && optionalBound2->literal->isNegative());
+    const bool isBound2FirstArg = (increasing == isBound2Equal);
+    // create Y<b2, or Y<=b2 (which is ~b2<Y) or Y>b2, or Y>=b2 (which is ~Y<b2)
+    Formula* Lycompb2 = new AtomicFormula(Literal::create2(
+          less, !isBound2Equal, (isBound2FirstArg ? b2 : y), (isBound2FirstArg ? y : b2)));
+    FxInterval = new JunctionFormula(Connective::AND, new FormulaList(Lxcompb1, new FormulaList(Lxcompb2, 0)));
+    FyInterval = new JunctionFormula(Connective::AND, new FormulaList(Lycompb1, new FormulaList(Lycompb2, 0)));
+  } else {
+    // Infinite interval induction (either with default bound or not), use only one bound on both x and y.
+    if (isDefaultBound) rule = getDBRule(rule);
+    else rule = getInfRule(rule);
+    FxInterval = Lxcompb1;
+    FyInterval = Lycompb1;
+  }
 
-
-  // (L[0] & (![X] : (X>=0 & L[X]) -> L[x+1])) -> (![Y] : Y>=0 -> L[Y])
-
-  Formula* hyp1 = new BinaryFormula(Connective::IMP,
-                    new JunctionFormula(Connective::AND,new FormulaList(Lzero,new FormulaList(
-                      Formula::quantify(new BinaryFormula(Connective::IMP,
-                        new JunctionFormula(Connective::AND, new FormulaList(Lxgz,new FormulaList(Lx,0))),
-                        Lxpo)) 
-                    ,0))),
-                    Formula::quantify(new BinaryFormula(Connective::IMP,Lygz,Ly)));
-
-  // (L[0] & (![X] : (X<=0 & L[X]) -> L[x-1])) -> (![Y] : Y<=0 -> L[Y])
-
-  Formula* hyp2 = new BinaryFormula(Connective::IMP,
-                    new JunctionFormula(Connective::AND,new FormulaList(Lzero,new FormulaList(
-                      Formula::quantify(new BinaryFormula(Connective::IMP,
-                        new JunctionFormula(Connective::AND, new FormulaList(Lxlz,new FormulaList(Lx,0))),
-                        Lxmo))
-                    ,0))),
-                    Formula::quantify(new BinaryFormula(Connective::IMP,Lylz,Ly)));
+  // Create the hypothesis, with FxInterval and FyInterval being as described
+  // in the comment above this function.
+  Formula* hyp = new BinaryFormula(Connective::IMP,
+                   new JunctionFormula(Connective::AND,new FormulaList(Lb1,new FormulaList(
+                     Formula::quantify(new BinaryFormula(Connective::IMP,
+                       new JunctionFormula(Connective::AND, new FormulaList(FxInterval,new FormulaList(Lx,0))),
+                       Lxpo))
+                   ,0))),
+                   Formula::quantify(new BinaryFormula(Connective::IMP,FyInterval,Ly)));
   
+  // Create pairs of Literal* and SLQueryResult for resolving L[y] and Y>=b (or Y<=b or Y>b or Y<b)
   static ScopedPtr<RobSubstitution> subst(new RobSubstitution());
   // When producing clauses, 'y' should be unified with 'term'
   subst->unify(TermList(term), 0, y, 1);
-  ResultSubstitutionSP result_subst = ResultSubstitution::fromSubstitution(subst.ptr(), 1, 0);
-  produceClauses(premise, lit, hyp1, Ly->literal(), rule, result_subst);
-  produceClauses(premise, lit, hyp2, Ly->literal(), rule, result_subst);
+  ResultSubstitutionSP resultSubst = ResultSubstitution::fromSubstitution(subst.ptr(), 1, 0);
+  List<pair<Literal*, SLQueryResult>>* toResolve = new List<pair<Literal*, SLQueryResult>>(
+      make_pair(Ly->literal(), SLQueryResult(origLit, premise, resultSubst)));
+  // Also resolve the hypothesis with comparisons with bound(s) (if the bound(s) are present/not default).
+  if (!isDefaultBound) {
+    // After resolving L[y], 'y' will be already substituted by 'term'.
+    // Therefore, the second (and third) substitution(s) is/are empty.
+    static ResultSubstitutionSP identity = ResultSubstitutionSP(new IdentitySubstitution());
+    toResolve = List<pair<Literal*, SLQueryResult>>::cons(make_pair(
+          Literal::complementaryLiteral(bound1.literal),
+          SLQueryResult(bound1.literal, bound1.clause, identity)),
+        toResolve);
+    // If there is also a second bound, add that to the list as well.
+    if (hasBound2) {
+      toResolve = List<pair<Literal*, SLQueryResult>>::cons(make_pair(
+            Literal::complementaryLiteral(optionalBound2->literal),
+            SLQueryResult(optionalBound2->literal, optionalBound2->clause, identity)),
+          toResolve);
+    }
+  }
+  produceClauses(premise, lit, hyp, rule, toResolve);
+  List<pair<Literal*, SLQueryResult>>::destroy(toResolve);
   subst->reset();
-}
-
-void InductionClauseIterator::performMathInductionTwo(Clause* premise, Literal* origLit, Literal* lit, Term* term, InferenceRule rule) 
-{
-  CALL("InductionClauseIterator::performMathInductionTwo");
-
-  NOT_IMPLEMENTED;
 }
 
 /**
@@ -375,7 +730,7 @@ void InductionClauseIterator::performStructInductionOne(Clause* premise, Literal
   CALL("InductionClauseIterator::performStructInductionOne"); 
 
   TermAlgebra* ta = env.signature->getTermAlgebraOfSort(env.signature->getFunction(term->functor())->fnType()->result());
-  unsigned ta_sort = ta->sort();
+  TermList ta_sort = ta->sort();
 
   FormulaList* formulas = FormulaList::empty();
 
@@ -450,7 +805,8 @@ void InductionClauseIterator::performStructInductionOne(Clause* premise, Literal
                             Formula::quantify(new AtomicFormula(conclusion)));
 
   static ResultSubstitutionSP identity = ResultSubstitutionSP(new IdentitySubstitution());
-  produceClauses(premise, origLit, hypothesis, conclusion, rule, identity);
+  pair<Literal*, SLQueryResult> toResolve(conclusion, SLQueryResult(origLit, premise, identity));
+  produceClauses(premise, origLit, hypothesis, rule, toResolve);
 }
 
 /**
@@ -463,7 +819,7 @@ void InductionClauseIterator::performStructInductionTwo(Clause* premise, Literal
   CALL("InductionClauseIterator::performStructInductionTwo"); 
 
   TermAlgebra* ta = env.signature->getTermAlgebraOfSort(env.signature->getFunction(term->functor())->fnType()->result());
-  unsigned ta_sort = ta->sort();
+  TermList ta_sort = ta->sort();
 
   Literal* clit = Literal::complementaryLiteral(lit);
 
@@ -478,7 +834,6 @@ void InductionClauseIterator::performStructInductionTwo(Clause* premise, Literal
 
   for(unsigned i=0;i<ta->nConstructors();i++){
     TermAlgebraConstructor* con = ta->constructor(i);
-    //cout << env.signature->functionName(con->functor()) << endl;
     unsigned arity = con->arity();
   
     // ignore a constructor if it doesn't mention ta_sort
@@ -529,7 +884,7 @@ void InductionClauseIterator::performStructInductionTwo(Clause* premise, Literal
       
     }
   }
-  Formula* exists = new QuantifiedFormula(Connective::EXISTS, new Formula::VarList(y.var(),0),0,
+  Formula* exists = new QuantifiedFormula(Connective::EXISTS, VList::singleton(y.var()),0,
                         FormulaList::length(formulas) > 0 ? static_cast<Formula*>(new JunctionFormula(
                                                                 Connective::AND,new FormulaList(new AtomicFormula(Ly),formulas)))
                                                           : static_cast<Formula*>(new AtomicFormula(Ly)));
@@ -540,7 +895,8 @@ void InductionClauseIterator::performStructInductionTwo(Clause* premise, Literal
   Formula* hypothesis = new JunctionFormula(Connective::OR,orf);
 
   static ResultSubstitutionSP identity = ResultSubstitutionSP(new IdentitySubstitution());
-  produceClauses(premise, origLit, hypothesis, conclusion, rule, identity);
+  pair<Literal*, SLQueryResult> toResolve(conclusion, SLQueryResult(origLit, premise, identity));
+  produceClauses(premise, origLit, hypothesis, rule, toResolve);
 }
 
 /*
@@ -558,7 +914,7 @@ void InductionClauseIterator::performStructInductionThree(Clause* premise, Liter
   CALL("InductionClauseIterator::performStructInductionThree");
 
   TermAlgebra* ta = env.signature->getTermAlgebraOfSort(env.signature->getFunction(term->functor())->fnType()->result());
-  unsigned ta_sort = ta->sort();
+  TermList ta_sort = ta->sort();
 
   Literal* clit = Literal::complementaryLiteral(lit);
 
@@ -656,7 +1012,7 @@ void InductionClauseIterator::performStructInductionThree(Clause* premise, Liter
                             new AtomicFormula(cr2.transform(clit))));
 
   conjunction = new FormulaList(smallerImpNL,conjunction);
-  Formula* exists = new QuantifiedFormula(Connective::EXISTS, new Formula::VarList(y.var(),0),0,
+  Formula* exists = new QuantifiedFormula(Connective::EXISTS, VList::singleton(y.var()),0,
                        new JunctionFormula(Connective::AND,conjunction));
 
   TermReplacement cr3(term,x);
@@ -665,7 +1021,8 @@ void InductionClauseIterator::performStructInductionThree(Clause* premise, Liter
   Formula* hypothesis = new JunctionFormula(Connective::OR,orf);
 
   static ResultSubstitutionSP identity = ResultSubstitutionSP(new IdentitySubstitution());
-  produceClauses(premise, origLit, hypothesis, conclusion, rule, identity);
+  pair<Literal*, SLQueryResult> toResolve(conclusion, SLQueryResult(origLit, premise, identity));
+  produceClauses(premise, origLit, hypothesis, rule, toResolve);
 }
 
 bool InductionClauseIterator::notDone(Literal* lit, Term* term)
@@ -673,8 +1030,8 @@ bool InductionClauseIterator::notDone(Literal* lit, Term* term)
   CALL("InductionClauseIterator::notDone");
 
   static DHSet<Literal*> done;
-  static DHMap<unsigned,TermList> blanks; 
-  unsigned srt = env.signature->getFunction(term->functor())->fnType()->result();
+  static DHMap<TermList,TermList> blanks;
+  TermList srt = env.signature->getFunction(term->functor())->fnType()->result();
 
   if(!blanks.find(srt)){
     unsigned fresh = env.signature->addFreshFunction(0,"blank");
@@ -691,6 +1048,68 @@ bool InductionClauseIterator::notDone(Literal* lit, Term* term)
   }
 
   done.insert(rep);
+
+  return true;
+}
+
+// Note: only works for unit clauses.
+// TODO: encapsulate the 'done' map in a helper class to have it deallocate correctly.
+bool InductionClauseIterator::notDoneInt(Literal* lit, Term* t, bool increasing, Term* bound1, Term* optionalBound2, bool fromComparison)
+{
+  CALL("InductionClauseIterator::notDoneInt");
+
+  // Map structure:
+  // (induction lit/t representation, increasing) -> ((bound1, optionalBound2) -> (existsFromComparisonTrue, {(induction term, fromComparison)}))
+  static DHMap<pair<Literal*, bool>, DHMap<pair<Term*, Term*>, pair<bool, DHMap<Term*, bool>*>>*> done;
+
+  // Create representation of lit/t combination
+  static Term* blank;
+  static unsigned freshInt = env.signature->addFreshFunction(0, "blank");
+  if (!blank) {
+    env.signature->getFunction(freshInt)->setType(OperatorType::getConstantsType(Term::intSort()));
+    blank = Term::createConstant(freshInt);
+  }
+  TermReplacement cr(t, TermList(blank));
+  Literal* rep = cr.transform(lit);
+
+  auto key = make_pair(rep, increasing);
+  DHMap<pair<Term*, Term*>, pair<bool, DHMap<Term*, bool>*>>* val;
+  pair<bool, DHMap<Term*, bool>*>* p;
+  auto bounds = make_pair(bound1, optionalBound2);
+  if (done.find(key, val)) {
+    // Check two conditions under which we can skip this induction literal/term/bounds combination:
+    p = val->findPtr(bounds);
+    if (p != nullptr) {
+      // 1. either induction was applied on the same induction literal representation with the same bound(s),
+      //    and the bound(s) came from comparison (i.e., its comparison with induction term was resolved away).
+      if (p->first) return false;
+      // 2. or induction was applied on the same induction literal & induction term with the same bound(s),
+      //    and either now the bound did not come from comparison, or then it did.
+      bool previousFromComparison = false;
+      if (p->second->find(t, previousFromComparison) && (!fromComparison || previousFromComparison)) return false;
+    }
+    // There is a 3rd possibility: the bound now is an interpreted constant, and induction was applied
+    // on the same induction lit and some other interpreted constant bound, which came from comparison,
+    // and the bound then was <= this bound (if increasing) or >= this bound (if not increasing).
+    // TODO: explore if it is worth it to implement this condition.
+  }
+  else {
+    val = new DHMap<pair<Term*, Term*>, pair<bool, DHMap<Term*, bool>*>>();
+    done.insert(key, val);
+  }
+  p = val->findPtr(bounds);
+  DHMap<Term*, bool>* insideMap;
+  if (p != nullptr) {
+    insideMap = p->second;
+    p->first |= fromComparison;
+  } else {
+    insideMap = new DHMap<Term*, bool>();
+    val->insert(bounds, make_pair(fromComparison, insideMap));
+  }
+  bool previousFromComparison = false;
+  if (!insideMap->find(t, previousFromComparison) || (!previousFromComparison && fromComparison)) {
+    insideMap->set(t, fromComparison);
+  }
 
   return true;
 }

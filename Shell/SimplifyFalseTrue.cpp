@@ -50,6 +50,7 @@ FormulaUnit* SimplifyFalseTrue::simplify (FormulaUnit* unit)
   }
 
   FormulaUnit* res = new FormulaUnit(g,FormulaTransformation(InferenceRule::REDUCE_FALSE_TRUE,unit));
+
   if (env.options->showPreprocessing()) {
     env.beginOutput();
     env.out() << "[PP] simplify in: " << unit->toString() << std::endl;
@@ -415,29 +416,29 @@ TermList SimplifyFalseTrue::simplify(TermList ts)
             (branches[ELSE] == *term->nthArgument(ELSE))) {
           return ts;
         }
-        unsigned sort = sd->getSort();
+        TermList sort = sd->getSort();
         return TermList(Term::createITE(condition, branches[THEN], branches[ELSE], sort));
       }
       case Term::SF_LET: {
         unsigned functor = sd->getFunctor();
-        IntList* variables = sd->getVariables();
+        VList* variables = sd->getVariables();
         TermList binding = simplify(sd->getBinding());
         TermList body = simplify(*term->nthArgument(0));
         if ((binding == sd->getBinding()) && (body == *term->nthArgument(0))) {
           return ts;
         }
-        unsigned sort = sd->getSort();
+        TermList sort = sd->getSort();
         return TermList(Term::createLet(functor, variables, binding, body, sort));
       }
       case Term::SF_LET_TUPLE: {
         unsigned functor = sd->getFunctor();
-        IntList* symbols = sd->getTupleSymbols();
+        VList* symbols = sd->getTupleSymbols();
         TermList binding = simplify(sd->getBinding());
         TermList body = simplify(*term->nthArgument(0));
         if ((binding == sd->getBinding()) && (body == *term->nthArgument(0))) {
           return ts;
         }
-        unsigned sort = sd->getSort();
+        TermList sort = sd->getSort();
         return TermList(Term::createLet(functor, symbols, binding, body, sort));
       }
       case Term::SF_TUPLE: {
@@ -448,6 +449,19 @@ TermList SimplifyFalseTrue::simplify(TermList ts)
         }
         ASS_REP(simplifiedTupleTerm.isTerm(), simplifiedTupleTerm.toString());
         return TermList(Term::createTuple(simplifiedTupleTerm.term()));
+      }
+      case Term::SF_MATCH: {
+        DArray<TermList> terms(term->arity());
+        bool unchanged = true;
+        for (unsigned i = 0; i < term->arity(); i++) {
+          terms[i] = simplify(*term->nthArgument(i));
+          unchanged = unchanged && (terms[i] == *term->nthArgument(i));
+        }
+
+        if (unchanged) {
+          return ts;
+        }
+        return TermList(Term::createMatch(sd->getSort(), sd->getMatchedSort(), term->arity(), terms.begin()));
       }
       default:
         ASSERTION_VIOLATION_REP(term->toString());

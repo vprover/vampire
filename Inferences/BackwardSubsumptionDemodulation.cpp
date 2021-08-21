@@ -237,6 +237,12 @@ void BackwardSubsumptionDemodulation::performWithQueryLit(Clause* sideCl, Litera
     //
     // Summary: must skip one positive equality in the remaining literals for this "mustPred" check.
     if (!mustPredInit) {
+      unsigned const positiveEqualityHeader = 1;
+#if VDEBUG
+      // To verify the hard-coded value of positiveEqualityHeader
+      Literal* posEq = Literal::createEquality(true, TermList(0, false), TermList(1, false), Term::defaultSort());
+      ASS_EQ(posEq->header(), positiveEqualityHeader);
+#endif
       unsigned numPosEqs = 0;
       //since the base clause has at least two children, this will always
       //contain an existing literal header after the loop
@@ -255,7 +261,7 @@ void BackwardSubsumptionDemodulation::performWithQueryLit(Clause* sideCl, Litera
           mustPred = pred;
         }
       }
-      if (mustPred == 0) {
+      if (mustPred == positiveEqualityHeader) {
         // for positive equality we need to have skipped at least in the remaining literals
         mustPredActive = (numPosEqs >= 2);
       } else {
@@ -404,7 +410,7 @@ bool BackwardSubsumptionDemodulation::rewriteCandidate(Clause* sideCl, Clause* m
   ASS(eqLit->isEquality());
   ASS(eqLit->isPositive());
 
-  unsigned const eqSort = SortHelper::getEqualityArgumentSort(eqLit);
+  TermList const eqSort = SortHelper::getEqualityArgumentSort(eqLit);
 
   Ordering::Result const eqArgOrder = ordering.getEqualityArgumentOrder(eqLit);
   bool const preordered = (eqArgOrder == Ordering::LESS) || (eqArgOrder == Ordering::GREATER);
@@ -481,7 +487,10 @@ bool BackwardSubsumptionDemodulation::rewriteCandidate(Clause* sideCl, Clause* m
       continue;
     }
 
-    NonVariableIterator nvi(dlit);
+    // TODO higher-order support not yet implemented; see forward demodulation
+    //      (maybe it's enough to just use the different iterator)
+    ASS(!env.options->combinatorySup());
+    NonVariableNonTypeIterator nvi(dlit);
     while (nvi.hasNext()) {
       TermList lhsS = nvi.next();  // named 'lhsS' because it will be matched against 'lhs'
 
@@ -494,9 +503,7 @@ bool BackwardSubsumptionDemodulation::rewriteCandidate(Clause* sideCl, Clause* m
         continue;
       }
 
-      if (SortHelper::getTermSort(lhsS, dlit) != eqSort) {
-        continue;
-      }
+      TermList const lhsSSort = SortHelper::getTermSort(lhsS, dlit);
 
       ASS_LE(lhsVector.size(), 2);
       for (TermList lhs : lhsVector) {
@@ -514,6 +521,10 @@ bool BackwardSubsumptionDemodulation::rewriteCandidate(Clause* sideCl, Clause* m
 
         binder.reset();  // reset binder to state after subsumption check
         if (!MatchingUtils::matchTerms(lhs, lhsS, binder)) {
+          continue;
+        }
+        // If lhs is a variable, we need to match its sort separately.
+        if (lhs.isVar() && !MatchingUtils::matchTerms(eqSort, lhsSSort, binder)) {
           continue;
         }
 
@@ -600,7 +611,7 @@ bool BackwardSubsumptionDemodulation::rewriteCandidate(Clause* sideCl, Clause* m
           }
           // We could not show redundancy with dlit alone,
           // so now we have to look at the other literals of the main premise
-          Literal* eqLitS = Literal::createEquality(true, lhsS, rhsS, eqSort);
+          Literal* eqLitS = Literal::createEquality(true, lhsS, rhsS, lhsSSort);
           ASS_EQ(eqLitS, binder.applyTo(eqLit));
           for (unsigned li2 = 0; li2 < mainCl->length(); li2++) {
             // skip dlit (already checked with r_cmp_t above) and matched literals (i.e., CΘ)

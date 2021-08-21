@@ -160,7 +160,7 @@ UnitIterator InferenceStore::getParents(Unit* us)
  * It is caller's responsibility to ensure that variables in @b vars are unique.
  */
 template<typename VarContainer>
-vstring getQuantifiedStr(const VarContainer& vars, vstring inner, DHMap<unsigned,unsigned>& t_map, bool innerParentheses=true){
+vstring getQuantifiedStr(const VarContainer& vars, vstring inner, DHMap<unsigned,TermList>& t_map, bool innerParentheses=true){
   CALL("getQuantifiedStr(VarContainer, vstring, map)");
 
   VirtualIterator<unsigned> vit=pvi( getContentIterator(vars) );
@@ -168,16 +168,20 @@ vstring getQuantifiedStr(const VarContainer& vars, vstring inner, DHMap<unsigned
   bool first=true;
   while(vit.hasNext()) {
     unsigned var =vit.next();
-    if (!first) {
-      varStr+=",";
-    }
     vstring ty="";
-    unsigned t;
-    if(t_map.find(var,t) && t!=Sorts::SRT_DEFAULT){
-      //TODO should assert that we are in tff mode here
-      ty=":" + env.sorts->sortName(t);
+    TermList t;
+    if(t_map.find(var,t) && env.statistics->hasTypes){
+      //hasTypes is true if the problem that contains a sort
+      //that is not $i and not a variable
+      ty=" : " + t.toString();
     }
-    varStr+=vstring("X")+Int::toString(var)+ty;
+    if(ty == " : $tType"){
+      if (!first) { varStr = "," + varStr; }
+      varStr=vstring("X")+Int::toString(var)+ty + varStr;
+    } else {
+      if (!first) { varStr+=","; }
+      varStr+=vstring("X")+Int::toString(var)+ty;
+    }
     first=false;
   }
 
@@ -203,7 +207,7 @@ template<typename VarContainer>
 vstring getQuantifiedStr(const VarContainer& vars, vstring inner, bool innerParentheses=true)
 {
   CALL("getQuantifiedStr(VarContainer, vstring)");
-  static DHMap<unsigned,unsigned> d;
+  static DHMap<unsigned,TermList> d;
   return getQuantifiedStr(vars,inner,d,innerParentheses);
 }
 
@@ -216,19 +220,19 @@ vstring getQuantifiedStr(Unit* u, List<unsigned>* nonQuantified=0)
 
   Set<unsigned> vars;
   vstring res;
-  DHMap<unsigned,unsigned> t_map;
+  DHMap<unsigned,TermList> t_map;
   SortHelper::collectVariableSorts(u,t_map);
   if (u->isClause()) {
     Clause* cl=static_cast<Clause*>(u);
     unsigned clen=cl->length();
     for(unsigned i=0;i<clen;i++) {
-      TermVarIterator vit( (*cl)[i] );
+      TermVarIterator vit( (*cl)[i] ); //TODO update iterator for two var lits?
       while(vit.hasNext()) {
-	unsigned var=vit.next();
-	if (List<unsigned>::member(var, nonQuantified)) {
-	  continue;
-	}
-	vars.insert(var);
+        unsigned var=vit.next();
+        if (List<unsigned>::member(var, nonQuantified)) {
+          continue;
+        }
+        vars.insert(var);
       }
     }
     res=cl->literalsOnlyToString();
@@ -316,11 +320,80 @@ protected:
 
     cs->inference().updateStatistics(); // in particular, update inductionDepth (which could have decreased, since we might have fewer parents after miniminization)
 
-    if((rule == InferenceRule::INDUCTION_AXIOM) || (rule == InferenceRule::GEN_INDUCTION_AXIOM)){
-      env.statistics->inductionInProof++;
-      if (rule == InferenceRule::GEN_INDUCTION_AXIOM) {
+    switch (rule) {
+      case InferenceRule::GEN_INDUCTION_AXIOM:
+      case InferenceRule::INT_INF_UP_GEN_INDUCTION_AXIOM:
+      case InferenceRule::INT_FIN_UP_GEN_INDUCTION_AXIOM:
+      case InferenceRule::INT_DB_UP_GEN_INDUCTION_AXIOM:
+      case InferenceRule::INT_INF_DOWN_GEN_INDUCTION_AXIOM:
+      case InferenceRule::INT_FIN_DOWN_GEN_INDUCTION_AXIOM:
+      case InferenceRule::INT_DB_DOWN_GEN_INDUCTION_AXIOM:
         env.statistics->generalizedInductionInProof++;
-      }
+      case InferenceRule::INDUCTION_AXIOM:
+      case InferenceRule::INT_INF_UP_INDUCTION_AXIOM:
+      case InferenceRule::INT_FIN_UP_INDUCTION_AXIOM:
+      case InferenceRule::INT_DB_UP_INDUCTION_AXIOM:
+      case InferenceRule::INT_INF_DOWN_INDUCTION_AXIOM:
+      case InferenceRule::INT_FIN_DOWN_INDUCTION_AXIOM:
+      case InferenceRule::INT_DB_DOWN_INDUCTION_AXIOM:
+        env.statistics->inductionInProof++;
+        break;
+      default:
+        ;
+    }
+    switch (rule) {
+      case InferenceRule::INDUCTION_AXIOM:
+      case InferenceRule::GEN_INDUCTION_AXIOM:
+        env.statistics->structInductionInProof++;
+        break;
+      case InferenceRule::INT_INF_UP_INDUCTION_AXIOM:
+      case InferenceRule::INT_INF_UP_GEN_INDUCTION_AXIOM:
+      case InferenceRule::INT_INF_DOWN_INDUCTION_AXIOM:
+      case InferenceRule::INT_INF_DOWN_GEN_INDUCTION_AXIOM:
+        env.statistics->intInfInductionInProof++;
+        break;
+      case InferenceRule::INT_FIN_UP_INDUCTION_AXIOM:
+      case InferenceRule::INT_FIN_UP_GEN_INDUCTION_AXIOM:
+      case InferenceRule::INT_FIN_DOWN_INDUCTION_AXIOM:
+      case InferenceRule::INT_FIN_DOWN_GEN_INDUCTION_AXIOM:
+        env.statistics->intFinInductionInProof++;
+        break;
+      case InferenceRule::INT_DB_UP_INDUCTION_AXIOM:
+      case InferenceRule::INT_DB_UP_GEN_INDUCTION_AXIOM:
+      case InferenceRule::INT_DB_DOWN_INDUCTION_AXIOM:
+      case InferenceRule::INT_DB_DOWN_GEN_INDUCTION_AXIOM:
+        env.statistics->intDBInductionInProof++;
+        break;
+      default:
+        ;
+    }
+    switch (rule) {
+      case InferenceRule::INT_INF_UP_INDUCTION_AXIOM:
+      case InferenceRule::INT_INF_UP_GEN_INDUCTION_AXIOM:
+        env.statistics->intInfUpInductionInProof++;
+        break;
+      case InferenceRule::INT_INF_DOWN_INDUCTION_AXIOM:
+      case InferenceRule::INT_INF_DOWN_GEN_INDUCTION_AXIOM:
+        env.statistics->intInfDownInductionInProof++;
+        break;
+      case InferenceRule::INT_FIN_UP_INDUCTION_AXIOM:
+      case InferenceRule::INT_FIN_UP_GEN_INDUCTION_AXIOM:
+        env.statistics->intFinUpInductionInProof++;
+        break;
+      case InferenceRule::INT_FIN_DOWN_INDUCTION_AXIOM:
+      case InferenceRule::INT_FIN_DOWN_GEN_INDUCTION_AXIOM:
+        env.statistics->intFinDownInductionInProof++;
+        break;
+      case InferenceRule::INT_DB_UP_INDUCTION_AXIOM:
+      case InferenceRule::INT_DB_UP_GEN_INDUCTION_AXIOM:
+        env.statistics->intDBUpInductionInProof++;
+        break;
+      case InferenceRule::INT_DB_DOWN_INDUCTION_AXIOM:
+      case InferenceRule::INT_DB_DOWN_GEN_INDUCTION_AXIOM:
+        env.statistics->intDBDownInductionInProof++;
+        break;
+      default:
+        ;
     }
 
     if (cs->isClause()) {
@@ -451,9 +524,9 @@ protected:
       //cout << "HERE with " << us->toString() << endl;
       Inference* inf = &us->inference();
       while(inf->rule() == InferenceRule::EVALUATION){
-              Inference::Iterator piit = inf->iterator();
-              inf = &inf->next(piit)->inference();
-     }
+        Inference::Iterator piit = inf->iterator();
+        inf = &inf->next(piit)->inference();
+      }
       Stack<Inference*> current;
       current.push(inf);
       unsigned level = 0;
@@ -511,8 +584,9 @@ struct InferenceStore::TPTPProofPrinter
 
   void print()
   {
-    UIHelper::outputSortDeclarations(env.out());
-    UIHelper::outputSymbolDeclarations(env.out());
+    //outputSymbolDeclarations also deals with sorts for now
+    //UIHelper::outputSortDeclarations(env.out());
+    UIHelper::outputSymbolDeclarations(out);
     ProofPrinter::print();
   }
 
@@ -596,6 +670,7 @@ protected:
 
     vstring kind = "fof";
     if(env.statistics->hasTypes){ kind="tff"; }
+    if(env.statistics->higherOrder){ kind="thf"; }
 
     return kind+"("+id+","+getRole(rule,origin)+",("+"\n"
 	+"  "+formula+"),\n"
@@ -883,11 +958,13 @@ protected:
     InferenceRule rule;
     UnitIterator parents=_is->getParents(cs, rule);
  
-    UIHelper::outputSortDeclarations(out);
+    //outputSymbolDeclarations also deals with sorts for now
+    //UIHelper::outputSortDeclarations(out);
     UIHelper::outputSymbolDeclarations(out);
 
     vstring kind = "fof";
     if(env.statistics->hasTypes){ kind="tff"; } 
+    if(env.statistics->higherOrder){ kind="thf"; }
 
     out << kind
         << "(r"<<_is->getUnitIdStr(cs)
@@ -965,6 +1042,44 @@ InferenceStore::ProofPrinter* InferenceStore::createProofPrinter(ostream& out)
   }
   ASSERTION_VIOLATION;
   return 0;
+}
+
+/**
+ * Output a proof of refutation to out
+ *
+ *
+ */
+void InferenceStore::outputUnsatCore(ostream& out, Unit* refutation)
+{
+  CALL("InferenceStore::outputUnsatCore(ostream&,Unit*)");
+
+  out << "(" << endl;
+
+  Stack<Unit*> todo;
+  todo.push(refutation);
+  Set<vstring> printed;
+  while(!todo.isEmpty()){
+
+    Unit* u = todo.pop();
+
+    if(u->number() <= Unit::getLastParsingNumber()){
+      if(!u->isClause()  && u->getFormula()->hasLabel()){
+        vstring label =  u->getFormula()->getLabel();
+        if(!printed.contains(label)){
+          out << label << endl; 
+          printed.insert(label);
+        }
+      }
+    }
+    else{
+      InferenceRule rule;
+      UnitIterator parents = InferenceStore::instance()->getParents(u,rule);
+      while(parents.hasNext()){ todo.push(parents.next()); }
+    }
+
+  }
+
+  out << ")" << endl;
 }
 
 /**

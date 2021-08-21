@@ -15,6 +15,7 @@
  */
 
 #include "Debug/Tracer.hpp"
+#include "Kernel/NumTraits.hpp"
 
 
 #include "Lib/Environment.hpp"
@@ -349,8 +350,7 @@ KboWeightMap<SigTraits> KBO::weightsFromOpts(const Options& opts) const
   if (str.empty()) {
     return KboWeightMap<SigTraits>::dflt();
   } else if (str == SPECIAL_WEIGHT_FILENAME_RANDOM) {
-    return KboWeightMap<SigTraits>::randomized(1 << 16, 
-        [](unsigned min, unsigned max) { return min + Random::getInteger(max - min); });
+    return KboWeightMap<SigTraits>::randomized();
   } else {
     return weightsFromFile<SigTraits>(opts);
   }
@@ -497,23 +497,55 @@ KBO::KBO(
   checkAdmissibility(throwError);
 }
 
+KBO KBO::testKBO() 
+{
+
+  auto funcPrec = []() -> DArray<int>{
+    unsigned num = env.signature->functions();
+    DArray<int> out(num);
+    out.initFromIterator(getRangeIterator(0u, num));
+    return out;
+  };
+
+  auto predPrec = []() -> DArray<int>{
+    unsigned num = env.signature->predicates();
+    DArray<int> out(num);
+    out.initFromIterator(getRangeIterator(0u, num));
+    return out;
+  };
+
+  auto predLevels = []() -> DArray<int>{
+    DArray<int> out(env.signature->predicates());
+    out.init(out.size(), 1);
+    return out;
+  };
+
+  return KBO(
+      KboWeightMap<FuncSigTraits>::randomized(),
+#if __KBO__CUSTOM_PREDICATE_WEIGHTS__
+      KboWeightMap<PredSigTraits>::randomized(), 
+#endif
+      funcPrec(),
+      predPrec(),
+      predLevels(),
+      false);
+}
+
 template<class HandleError>
 void KBO::checkAdmissibility(HandleError handle) const 
 {
+  using SortType = TermList;
+  using FunctionSymbol = unsigned;
   auto nFunctions = _funcWeights._weights.size();
-  auto maximalFunctions = DArray<long int>(env.sorts->count());
-  maximalFunctions.init(env.sorts->count(), -1);
+  auto maximalFunctions = Map<SortType, FunctionSymbol>();
 
-  for (unsigned i = 0; i < nFunctions; i++) {
+  for (FunctionSymbol i = 0; i < nFunctions; i++) {
+    if(env.signature->isTypeConOrSup(i)){ continue; }
     auto sort = env.signature->getFunction(i)->fnType()->result();
     /* register min function */
-    auto maxFn = maximalFunctions[sort];
-    if (maxFn == -1) {
-      maximalFunctions[sort] = i;
-    } else {
-      if (compareFunctionPrecedences(maxFn, i)) {
-        maximalFunctions[sort] = i;
-      }
+    auto maxFn = maximalFunctions.getOrInit(std::move(sort), [&](){ return i; } );
+    if (compareFunctionPrecedences(maxFn, i) == LESS) {
+      maximalFunctions.replace(sort, i);
     }
   }
 
@@ -521,13 +553,14 @@ void KBO::checkAdmissibility(HandleError handle) const
   unsigned varWght = _funcWeights._specialWeights._variableWeight;
 
   for (unsigned i = 0; i < nFunctions; i++) {
+    if(env.signature->isTypeConOrSup(i)){ continue; }
     auto sort = env.signature->getFunction(i)->fnType()->result();
     auto arity = env.signature->getFunction(i)->arity();
 
     if (_funcWeights._weights[i] < varWght && arity == 0) {
       handle(UserErrorException("weight of constants (i.e. ", env.signature->getFunction(i)->name(), ") must be greater or equal to the variable weight (", varWght, ")"));
 
-    } else if (_funcWeights.symbolWeight(i) == 0 && arity == 1 && maximalFunctions[sort] != i) {
+    } else if (_funcWeights.symbolWeight(i) == 0 && arity == 1 && maximalFunctions.get(sort) != i) {
       handle(UserErrorException( "a unary function of weight zero (i.e.: ", env.signature->getFunction(i)->name(), ") must be maximal wrt. the precedence ordering"));
 
     }
@@ -721,6 +754,10 @@ KboWeightMap<FuncSigTraits> KboWeightMap<FuncSigTraits>::randomized(unsigned max
   };
 }
 
+template<class SigTraits>
+KboWeightMap<SigTraits> KboWeightMap<SigTraits>::randomized()
+{ return randomized(1 << 16, [](unsigned min, unsigned max) { return min + Random::getInteger(max - min); }); }
+
 #if __KBO__CUSTOM_PREDICATE_WEIGHTS__
 template<>
 template<class Random>
@@ -753,6 +790,7 @@ KboWeight KboWeightMap<SigTraits>::symbolWeight(Term* t) const
 template<class SigTraits>
 KboWeight KboWeightMap<SigTraits>::symbolWeight(unsigned functor) const
 {
+
   unsigned weight;
   if (!_specialWeights.tryGetWeight(functor, weight)) {
     weight = functor < _weights.size() ? _weights[functor]
@@ -828,6 +866,11 @@ bool KboSpecialWeights<FuncSigTraits>::tryGetWeight(unsigned functor, unsigned& 
   if (sym->integerConstant())  { weight = _numInt;  return true; }
   if (sym->rationalConstant()) { weight = _numRat;  return true; }
   if (sym->realConstant())     { weight = _numReal; return true; }
+  if (env.options->pushUnaryMinus()) {
+    if (functor == IntTraits ::minusF()) { weight = 0; return true; }
+    if (functor == RatTraits ::minusF()) { weight = 0; return true; }
+    if (functor == RealTraits::minusF()) { weight = 0; return true; }
+  }
   return false;
 }
 

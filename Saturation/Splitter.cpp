@@ -22,6 +22,7 @@
 #include "Lib/Metaiterators.hpp"
 #include "Lib/SharedSet.hpp"
 #include "Lib/TimeCounter.hpp"
+#include "Lib/Timer.hpp"
 
 #include "Kernel/Signature.hpp"
 #include "Kernel/Clause.hpp"
@@ -73,7 +74,7 @@ void SplittingBranchSelector::init()
 #if VZ3
     case Options::SatSolver::Z3:
       { BYPASSING_ALLOCATOR
-        _solver = new Z3Interfacing(_parent.getOptions(),_parent.satNaming());
+        _solver = new Z3Interfacing(_parent.getOptions(),_parent.satNaming(), /* unsat core */ false, _parent.getOptions().exportAvatarProblem());
         if(_parent.getOptions().satFallbackForSMT()){
           // TODO make fallback minimizing?
           SATSolver* fallback = new MinisatInterfacing(_parent.getOptions(),true);
@@ -428,8 +429,8 @@ SATSolver::Status SplittingBranchSelector::processDPConflicts()
 
     // there was conflict, so we try looking for a different model
     {
-    	TimeCounter tca(TC_SAT_SOLVER);
-    	
+      TimeCounter tca(TC_SAT_SOLVER);
+      
       if (_solver->solve() == SATSolver::UNSATISFIABLE) {
         return SATSolver::UNSATISFIABLE;
       }
@@ -701,6 +702,12 @@ void Splitter::init(SaturationAlgorithm* sa)
   hasSMTSolver = (opts.satSolver() == Options::SatSolver::Z3);
 #endif
 
+  if (opts.splittingAvatimer() > 0.0) {
+    _stopSplittingAt = opts.splittingAvatimer() * opts.timeLimitInDeciseconds() * 100;
+  } else {
+    _stopSplittingAt = 0;
+  }
+
   _fastRestart = opts.splittingFastRestart();
   _deleteDeactivated = opts.splittingDeleteDeactivated();
 
@@ -813,13 +820,13 @@ void Splitter::onAllProcessed()
   
   if (_showSplitting) { // TODO: this is just one of many ways Splitter could report about changes
     env.beginOutput();
-    env.out() << "[AVATAR] recomputeModel: +";
+    env.out() << "[AVATAR] recomputeModel: + ";
     for (unsigned i = 0; i < toAdd.size(); i++) {
-      env.out() << toAdd[i] << ",";
+      env.out() << getLiteralFromName(toAdd[i]) << ",";
     }
-    env.out() << " -";
+    env.out() << "\t - ";
     for (unsigned i = 0; i < toRemove.size(); i++) {
-      env.out() << toRemove[i] << ",";
+      env.out() << getLiteralFromName(toRemove[i]) << ",";
     }
     env.out() << std::endl;
     env.endOutput();
@@ -1041,7 +1048,7 @@ bool Splitter::getComponents(Clause* cl, Stack<LiteralStack>& acc)
     while(vit.hasNext()) {
       unsigned master=varMasters.findOrInsert(vit.next().var(), i);
       if(master!=i) {
-	components.doUnion(master, i);
+  components.doUnion(master, i);
       }
     }
   }
@@ -1081,6 +1088,20 @@ bool Splitter::getComponents(Clause* cl, Stack<LiteralStack>& acc)
 bool Splitter::doSplitting(Clause* cl)
 {
   CALL("Splitter::doSplitting");
+
+  static bool hasStopped = false;
+  if (hasStopped) {
+    return false;
+  }
+  if (_stopSplittingAt && (unsigned)env.timer->elapsedMilliseconds() >= _stopSplittingAt) {
+    if (_showSplitting) {
+      env.beginOutput();
+      env.out() << "[AVATAR] Stopping the splitting process."<< std::endl;
+      env.endOutput();
+    }
+    hasStopped = true;
+    return false;
+  }
 
   //!! this check is important or we might end up looping !!
   if(cl->isComponent()) {
@@ -1530,7 +1551,7 @@ void Splitter::onNewClause(Clause* cl)
   //  isComponent = _componentIdx->retrieveVariants(cl).hasNext();
   //}
   //if(isComponent){
-  //	RSTAT_CTR_INC("New Clause is a Component");
+  //  RSTAT_CTR_INC("New Clause is a Component");
   //}
 
   if(!cl->splits()) {
@@ -1737,6 +1758,7 @@ void Splitter::removeComponents(const SplitLevelStack& toRemove)
       if(ccl->store()!=Clause::NONE) {
         _sa->removeActiveOrPassiveClause(ccl);
         ASS_EQ(ccl->store(), Clause::NONE);
+      } else {
       }
       ccl->invalidateMyReductionRecords();
       ccl->decNumActiveSplits();
@@ -1789,63 +1811,47 @@ void Splitter::removeComponents(const SplitLevelStack& toRemove)
 
 /**
  * Given a set of clauses (as obtained by saturation)
- * turn them into formulas capturing the semantics of splitting assertions.
+ * add in front of that list the component clauses currently assumed true in our (last) model.
  *
- * Also, make the list duplicate free.
+ * Also, make the list duplicate free (as far as pointer equality goes).
+ * This means some links in <clauses> might get freed.
  */
-UnitList* Splitter::explicateAssertionsForSaturatedClauseSet(UnitList* clauses)
+UnitList* Splitter::preprendCurrentlyAssumedComponentClauses(UnitList* clauses)
 {
-  CALL("Splitter::explicateAssertionsForSaturatedClauseSet");
+  CALL("Splitter::preprendCurrentlyAssumedComponentClauses");
 
-  DHMap<Clause*,Formula*> processed;
-  DHMap<Clause*,Formula*> components;
+  DHSet<Clause*> seen;
 
-  UnitList* result = UnitList::empty();
+  UnitList*   res = nullptr;
+  // to keep the nice order
+  UnitList::FIFO fifo(res);
 
-  UnitList::Iterator it(clauses);
-  while (it.hasNext()) {
-    Clause* cl = it.next()->asClause();
+  ArraySet::Iterator ait(_branchSelector._selected);
+  while(ait.hasNext()) {
+    unsigned level = ait.next();
+    Clause* cl = getComponentClause(level);
 
-    // cout << "cl in: " << cl->toString() << endl;
+    //cout << "selected level: " level << " has clause: " << cl->toString() << endl;
+    seen.insert(cl);
 
-    if (processed.find(cl)) { // removing duplicates
-      continue;
-    }
-
-    Formula* f = Formula::fromClause(cl);
-
-    if (cl->splits()) {
-      FormulaList* disjuncts = FormulaList::empty();
-      SplitSet::Iterator it(*cl->splits());
-      while(it.hasNext()) {
-        Clause* ass = getComponentClause(it.next());
-
-        Formula** ass_f_p;
-
-        if (components.getValuePtr(ass,ass_f_p)) {
-          *ass_f_p = new NegatedFormula(Formula::fromClause(ass));
-        }
-        FormulaList::push(*ass_f_p,disjuncts);
-      }
-      if (FormulaList::isNonEmpty(disjuncts)) {
-        FormulaList::push(f,disjuncts);
-
-        f = JunctionFormula::generalJunction(OR, disjuncts);
-      }
-    }
-
-    // cout << "fla out: " << f->toString() << endl;
-    Inference inf = NonspecificInference1(InferenceRule::FORMULIFY,cl);
-    if (cl->inference().inputType() == UnitInputType::CONJECTURE) {
-      // because units which are conjectures are explicitly negated in TPTPPrinter::toString for some reason:
-      inf.setInputType(UnitInputType::NEGATED_CONJECTURE);
-    }
-    UnitList::push(new FormulaUnit(f,inf),result);
-
-    ALWAYS(processed.insert(cl,f));
+    fifo.pushBack(cl);
   }
 
-  return result;
+  // OK, for simplicity's sake, let's not even try keeping any of the old links
+  UnitList::DestructiveIterator uit(clauses);
+  while (uit.hasNext()) {
+    Unit* u  = uit.next();
+    Clause* cl = u->asClause();
+
+    if (seen.insert(cl)) {
+      // cout << "a new guy: " << cl->toString() << endl;
+      fifo.pushBack(cl);
+    } else {
+      // cout << "seen already: " << cl->toString() << endl;
+    }
+  }
+
+  return res;
 }
 
 }

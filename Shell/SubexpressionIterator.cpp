@@ -126,7 +126,7 @@ namespace Shell {
               _subexpressions.push(Expression(sd->getFormula(), polarity));
               break;
 
-            case Term::SF_ITE:
+            case Term::SF_ITE: 
               /**
                * Regardless of the polarity of the whole if-then-else expression,
                * the polarity of the condition is always 0. This is because you
@@ -138,7 +138,7 @@ namespace Shell {
               break;
 
             case Term::SF_LET:
-            case Term::SF_LET_TUPLE:
+            case Term::SF_LET_TUPLE: 
               /**
                * The polarity of the body of let-bindings is 0.
                * An expression "$let(f := A, ...)", where A is a formula,
@@ -148,9 +148,20 @@ namespace Shell {
               _subexpressions.push(Expression(*term->nthArgument(0), polarity));
               break;
 
-            case Term::SF_TUPLE:
+            case Term::SF_LAMBDA:
+			       _subexpressions.push(Expression(sd->getLambdaExp(), polarity));
+			       break;
+
+            /*case Term::SF_TUPLE:
               _subexpressions.push(Expression(sd->getTupleTerm()));
+              break; */
+
+            case Term::SF_MATCH: {
+              for (unsigned i = 0; i < term->arity(); i++) {
+                _subexpressions.push(Expression(*term->nthArgument(i), polarity));
+              }
               break;
+            }
 
 #if VDEBUG
             default:

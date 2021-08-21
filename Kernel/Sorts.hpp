@@ -19,194 +19,83 @@
 
 #include "Lib/DArray.hpp"
 #include "Lib/Map.hpp"
+#include "Lib/Set.hpp"
+#include "Lib/DHSet.hpp"
+#include "Lib/DHMap.hpp"
 #include "Lib/Stack.hpp"
 #include "Lib/Vector.hpp"
 #include "Lib/Allocator.hpp"
 #include "Lib/VString.hpp"
 
+#include "Term.hpp"
+
 namespace Kernel {
 
-class Sorts {
+class Sorts { //TODO remove class altogeher and rename file
 public:
   CLASS_NAME(Sorts);
   USE_ALLOCATOR(Sorts);
 
-  /** Various pre-defined sort */
-  // Note that this is not closed, these will be treated as unsigned ints within the code
-  enum DefaultSorts {
-    /** The default sort of all individuals, always in the non-sorted case */
-    SRT_DEFAULT = 0,
-    /** Boolean sort */
-    SRT_BOOL = 1,
-    /** sort of integers */
-    SRT_INTEGER = 2,
-    /** sort of rationals */
-    SRT_RATIONAL = 3,
-    /** sort of reals */
-    SRT_REAL = 4,
-    /** this is not a sort, it is just used to denote the first index of a user-define sort */
-    FIRST_USER_SORT = 5
-  };
-
-  /** Various structured sorts */
-  enum class StructuredSort {
-    /** The structured sort for arrays **/
-    ARRAY,
-    /** The structured sort for tuples */
-    TUPLE,
-    /** not a real structured sort, it's here to denote the length of the StructuredSort enum */
-    LAST_STRUCTURED_SORT
-  };
+  //Hack. Relies on the fact that there are only
+  //five interpreted sorts. It is only used in FMB
+  //and SubstitutionTree and should be removed once these
+  //are fixed
+  static const unsigned FIRST_USER_SORT = 5;
 
   Sorts();
   ~Sorts();
 
-  class SortInfo
-  {
-  public:
-    CLASS_NAME(SortInfo);
-    USE_ALLOCATOR(SortInfo);
-  
-    SortInfo(const vstring& name,const unsigned id, bool interpreted = false);
-    virtual ~SortInfo() {}
-    
-    const vstring& name() const { return _name; }
-    const unsigned id() const { return _id; }
+  bool addSort(TermList sort);
+  TermList addSort(vstring const& name);
+  vstring sortName(unsigned sort){ return _sorts[sort].toString(); }
+  vstring sortName(TermList sort){ return sort.toString(); }
+#if __cplusplus >= 201402L // c++14 and newer
+  [[deprecated("consider using sort.term()->getId() instead of getSortNum; if you are in a situation where a variable sort does not make sense")]]
+#endif
+  /** returns an id unique to this sort. These ids are independent of term.getId(). These ids are a bijective mappings between `TermList`s that represent sorts and integers in [0,count()[ */
+  unsigned getSortNum(TermList sort);
+  /** returns the sort represented by the given id. The id must be within [0,count()[. */
+  TermList getSortTerm(unsigned sort);
+  unsigned count(){return (unsigned)_sorts.size(); }
+  /** true if there is a sort different from built-ins */  
+  bool hasSort() { return count() > FIRST_USER_SORT; }
 
-    virtual bool isOfStructuredSort(StructuredSort sort) { return false; }
-
-  protected:
-    vstring _name;
-    unsigned _id;
-  };
-
-  /**
-   *
-   * @author Giles
-   */
-  class StructuredSortInfo : public SortInfo
-  {
-  public:
-    CLASS_NAME(StructuredSortInfo);
-    USE_ALLOCATOR(StructuredSortInfo);
-
-    StructuredSortInfo(vstring name, StructuredSort sort,unsigned id): 
-      SortInfo(name,id), _sort(sort) { (void)_sort; /*to suppress warning about unused*/ }
-
-    bool isOfStructuredSort(StructuredSort sort) override {
-      return sort==_sort;
-    }
-
-  private:
-    StructuredSort _sort;
-  };
-
-  /**
-   *
-   * @author Giles
-   */
-  class ArraySort : public StructuredSortInfo
-  {
-  public:
-    CLASS_NAME(ArraySort);
-    USE_ALLOCATOR(ArraySort);
-
-    ArraySort(vstring name, unsigned indexSort, unsigned innerSort,unsigned id) : 
-      StructuredSortInfo(name,StructuredSort::ARRAY, id), 
-      _indexSort(indexSort), _innerSort(innerSort) {}
-
-    unsigned getIndexSort(){ return _indexSort; }
-    unsigned getInnerSort(){ return _innerSort; }
-
-  private:
-    // the SortInfo can be found using Sorts
-    unsigned _indexSort;
-    unsigned _innerSort;
-  };
-
-  class TupleSort : public StructuredSortInfo
-  {
-  public:
-    CLASS_NAME(TupleSort);
-    USE_ALLOCATOR(TupleSort);
-
-    TupleSort(vstring name, unsigned id, unsigned arity, unsigned sorts[])
-      : StructuredSortInfo(name, StructuredSort::TUPLE, id), _sorts(arity) {
-      for (unsigned i = 0; i < arity; i++) {
-        _sorts[i] = sorts[i];
-      }
-    }
-
-    unsigned arity() const { return (unsigned)_sorts.size(); }
-    unsigned* sorts() { return _sorts.array(); }
-    unsigned argument(unsigned index) const { ASS_G(arity(), index); return _sorts[index]; }
-
-  private:
-    DArray<unsigned> _sorts;
-  };
-
-  unsigned addSort(const vstring& name, bool& added, bool interpreted);
-  unsigned addSort(const vstring& name, bool interpreted);
-
-  unsigned addArraySort(unsigned indexSort, unsigned innerSort);
-  ArraySort* getArraySort(unsigned sort){
-    ASS(isOfStructuredSort(sort,StructuredSort::ARRAY));
-    return static_cast<ArraySort*>(_sorts[sort]);
+  //once arrays are fixed and axiomatused by a fixed number of polymorphic axioms
+  //_arraySorts can be deleted
+  //Once finite model building is refactored (Giles Reger knows how)
+  //there is no longer a need to store any sorts at all.
+  void addArraySort(TermList sort){ _arraySorts->insert(sort); }
+  DHSet<TermList>* getArraySorts(){
+    return _arraySorts;
   }
-
-  unsigned addTupleSort(unsigned arity, unsigned sorts[]);
-  TupleSort* getTupleSort(unsigned sort) {
-    ASS(isOfStructuredSort(sort,StructuredSort::TUPLE));
-    return static_cast<TupleSort*>(_sorts[sort]);
-  }
-
-  bool haveSort(const vstring& name);
-  bool findSort(const vstring& name, unsigned& idx);
-
-  VirtualIterator<unsigned> getStructuredSorts(const StructuredSort ss);
-
-  bool isStructuredSort(unsigned sort) {
-    if(sort > _sorts.size()) return false;
-    SortInfo* si = _sorts[sort];
-    for (unsigned ss = 0; ss < (unsigned)StructuredSort::LAST_STRUCTURED_SORT; ss++) {
-      if (si->isOfStructuredSort(static_cast<StructuredSort>(ss))) {
-        return true;
-      }
-    }
-    return false;
-  }
-
-  bool isOfStructuredSort(unsigned sort, StructuredSort structured){
-    if(sort > _sorts.size()) return false;
-    return _sorts[sort]->isOfStructuredSort(structured);
-  }
-
-  const vstring& sortName(unsigned idx) const;
-
-  /**
-   * Return the number of sorts
-   */
-  unsigned count() const { return _sorts.length(); }
-  /** true if there is a sort different from built-ins */
-  bool hasSort() const {return _hasSort;}
 
 private:
-  SymbolMap _sortNames;
-  Stack<SortInfo*> _sorts;
-  /** true if there is a sort different from built-ins */
-  bool _hasSort;
+  
+  TermStack _sorts;
+  DHMap<TermList, unsigned> _termListsToUnsigned;
+  DHSet<TermList>* _arraySorts;
 };
 
 /**
- * The OperatorType class represents the predicate and function types (which are not sorts in first-order logic).
- * These are determined by their kind (either PREDICATE or FUNCTION), arity, a corresponding list of argument sorts,
- * and a return sort in the case of functions.
+ * The OperatorType class represents the predicate and function types 
+ * the only difference between the two is that a predicate type has return type
+ * $o whilst a function type has any other return type.
  *
- * The class stores all this data in one Vector<unsigned>*, of length arity+1,
- * where the last element is the return sort for functions and "MAX_UNSIGNED" for predicates (which distinguishes the two kinds).
+ * The class can be used to store polymorphic types which are of the form:
+ * !>[alpha_0, ..., alpha_m](sort1 * ... * sortn) > return_sort where sorts can only contain variables 
+ * from  in {alpha_0,...,alpha_m}. View "A Polymorphic Vampire" for more details:
+ *
+ * https://link.springer.com/chapter/10.1007/978-3-030-51054-1_21
+ *
+ * The class stores data in a Vector<TermList>*, of length 
+ * num_of_arg_sorts + 1. The number of bound variables is stored in
+ * a field _typeArgsArity. It is assumed that the bound variables range from
+ * 0 to _typeArgsArity - 1. In order for this assumption to be valid all sorts must
+ * normalised (view SortHelper::normaliseArgSorts) before being passed to a type forming 
+ * function.
  *
  * The objects of this class are perfectly shared (so that equal predicate / function types correspond to equal pointers)
- * and are obtained via static methods (to guarantee the sharing).
+ * and are obtained via static methods (to guarantee the sharing). 
  */
 class OperatorType
 {
@@ -214,104 +103,151 @@ public:
   CLASS_NAME(OperatorType);
   USE_ALLOCATOR(OperatorType);
 
-private:
-  typedef Vector<unsigned> OperatorKey; // Vector of argument sorts together with "FFFF" appended for predicates and resultSort appended for functions
-  OperatorKey* _key;
+  class TypeHash {
+  public:
+    static bool equals(OperatorType* t1, OperatorType* t2)
+    { return (*t1) == (*t2); }
 
+    static unsigned hash(OperatorType* ot)
+    { 
+      OperatorKey& key = *ot->key();
+      unsigned typeArgsArity = ot->typeArgsArity();
+      return HashUtils::combine(Hash::hash(key), Hash::hash(typeArgsArity)); 
+    }
+  };
+
+private:
+  typedef Vector<TermList> OperatorKey; // Vector of argument sorts together with "0" appended for predicates and resultSort appended for functions
+  OperatorKey* _key;
+  unsigned _typeArgsArity; /** number of quantified variables of this type */
+ 
   // constructors kept private
-  OperatorType(OperatorKey* key) : _key(key) {}
+  OperatorType(OperatorKey* key, unsigned vLength) : _key(key), _typeArgsArity(vLength) {}
 
   /**
    * Convenience functions for creating a key
    */
-  static OperatorKey* setupKey(unsigned arity, const unsigned* sorts=0);
-  static OperatorKey* setupKey(std::initializer_list<unsigned> sorts);
-  static OperatorKey* setupKeyUniformRange(unsigned arity, unsigned argsSort);
+  static OperatorKey* setupKey(unsigned arity, const TermList* sorts);
+  static OperatorKey* setupKey(std::initializer_list<TermList> sorts);
+  static OperatorKey* setupKeyUniformRange(unsigned arity, TermList argsSort);
 
-  typedef Map<OperatorKey*,OperatorType*,PointerDereferencingHash> OperatorTypes;
+  typedef Set<OperatorType*,TypeHash> OperatorTypes;
   static OperatorTypes& operatorTypes(); // just a wrapper around a static OperatorTypes object, to ensure a correct initialization order
 
-  static OperatorType* getTypeFromKey(OperatorKey* key);
+  static OperatorType* getTypeFromKey(OperatorKey* key, unsigned taArity);
 
-  static const unsigned PREDICATE_FLAG = std::numeric_limits<unsigned>::max();
+  //static const TermList PREDICATE_FLAG;
 
 public:
   ~OperatorType() { _key->deallocate(); }
 
-  static OperatorType* getPredicateType(unsigned arity, const unsigned* sorts=0) {
+  inline bool operator==(const OperatorType& t) const
+  { return  *_key==*t._key && 
+             _typeArgsArity==t._typeArgsArity; }
+
+  static OperatorType* getPredicateType(unsigned arity, const TermList* sorts=0, unsigned taArity = 0) {
     CALL("OperatorType::getPredicateType(unsigned,const unsigned*)");
 
     OperatorKey* key = setupKey(arity,sorts);
-    (*key)[arity] = PREDICATE_FLAG;
-    return getTypeFromKey(key);
+    (*key)[arity] = Term::boolSort();
+    return getTypeFromKey(key,taArity);
   }
 
-  static OperatorType* getPredicateType(std::initializer_list<unsigned> sorts) {
+  static OperatorType* getPredicateType(std::initializer_list<TermList> sorts, unsigned taArity = 0) {
     CALL("OperatorType::getPredicateType(std::initializer_list<unsigned>)");
 
     OperatorKey* key = setupKey(sorts);
-    (*key)[sorts.size()] = PREDICATE_FLAG;
-    return getTypeFromKey(key);
+    (*key)[sorts.size()] = Term::boolSort();
+    return getTypeFromKey(key,taArity);
   }
 
-  static OperatorType* getPredicateTypeUniformRange(unsigned arity, unsigned argsSort) {
+  static OperatorType* getPredicateTypeUniformRange(unsigned arity, TermList argsSort, unsigned taArity = 0) {
     CALL("OperatorType::getPredicateTypeUniformRange");
 
     OperatorKey* key = setupKeyUniformRange(arity,argsSort);
-    (*key)[arity] = PREDICATE_FLAG;
-    return getTypeFromKey(key);
+    (*key)[arity] = Term::boolSort();
+    return getTypeFromKey(key, taArity);
   }
 
-  static OperatorType* getFunctionType(unsigned arity, const unsigned* sorts, unsigned resultSort) {
+  static OperatorType* getFunctionType(unsigned arity, const TermList* sorts, TermList resultSort, unsigned taArity = 0) {
     CALL("OperatorType::getFunctionType");
 
     OperatorKey* key = setupKey(arity,sorts);
     (*key)[arity] = resultSort;
-    return getTypeFromKey(key);
+    return getTypeFromKey(key, taArity);
   }
 
-  static OperatorType* getFunctionType(std::initializer_list<unsigned> sorts, unsigned resultSort) {
+  static OperatorType* getFunctionType(std::initializer_list<TermList> sorts, TermList resultSort, unsigned taArity = 0) {
     CALL("OperatorType::getFunctionType(std::initializer_list<unsigned>)");
-
+ 
     OperatorKey* key = setupKey(sorts);
     (*key)[sorts.size()] = resultSort;
-    return getTypeFromKey(key);
+    return getTypeFromKey(key,taArity);
   }
 
-  static OperatorType* getFunctionTypeTypeUniformRange(unsigned arity, unsigned argsSort, unsigned resultSort) {
-    CALL("OperatorType::getFunctionTypeTypeUniformRange");
+  static OperatorType* getFunctionTypeUniformRange(unsigned arity, TermList argsSort, TermList resultSort, unsigned taArity = 0) {
+    CALL("OperatorType::getFunctionTypeUniformRange");
 
     OperatorKey* key = setupKeyUniformRange(arity,argsSort);
     (*key)[arity] = resultSort;
-    return getTypeFromKey(key);
+    return getTypeFromKey(key,taArity);
   }
 
   /**
    * Convenience function for creating OperatorType for constants (as symbols).
    * Constants are function symbols of 0 arity, so just provide the result sort.
    */
-  static OperatorType* getConstantsType(unsigned resultSort) { return getFunctionType(0,nullptr,resultSort); }
+  static OperatorType* getConstantsType(TermList resultSort, unsigned taArity = 0) {
+    return getFunctionType(0,nullptr,resultSort, taArity); 
+  }
 
-  unsigned arity() const { return _key->length()-1; }
+  OperatorKey* key() const { return _key; }
+  unsigned typeArgsArity() const { return _typeArgsArity; }
+  unsigned arity() const { return _typeArgsArity + _key->length()-1; }
 
-  unsigned arg(unsigned idx) const
+  /**
+   * These are the free variables of the sorts of the arguments (and the return type in case of functions) in the polymorphic case.
+   *
+   * For the non-polymorphic case, _typeArgsArity==0 and this function cannot be used meaninfully.
+   */
+  TermList quantifiedVar(unsigned idx) const
+  {
+    CALL("OperatorType::quantifiedVar");
+    ASS(idx < _typeArgsArity);
+    return TermList(idx, false);
+  }
+
+   /**
+    * In the polymorhpic case, the first _typeArgsArity arguments of a predicate / function symbol are actually sorts, so their sort is "superSort"
+    *
+    * For idx >= _typeArgsArity (== 0 in the non-polymorphic case) this returns the actual sort of the idx-th argument
+    */
+  TermList arg(unsigned idx) const
   {
     CALL("OperatorType::arg");
-    return (*_key)[idx];
+    if(idx < _typeArgsArity){
+      return Term::superSort();
+    } 
+    return (*_key)[idx - _typeArgsArity];
   }
 
-  bool isPredicateType() const { return (*_key)[arity()] == PREDICATE_FLAG; };
-  bool isFunctionType() const { return (*_key)[arity()] != PREDICATE_FLAG; };
-  unsigned result() const {
+  //TODO functions below do not hold for higher-order
+  //In higher-order we have boolean functions
+  bool isPredicateType() const { return (*_key)[arity() - typeArgsArity()] == Term::boolSort(); };
+  bool isFunctionType() const { return (*_key)[arity() - typeArgsArity()] != Term::boolSort(); };
+
+  /**
+   * The result sort of function types; or Term::boolSort() for predicates.
+   */
+  TermList result() const {
     CALL("OperatorType::result");
-    ASS(isFunctionType());
-    return (*_key)[arity()];
+    return (*_key)[arity() - typeArgsArity()];
   }
+  
+  vstring toString() const;  
 
-  vstring toString() const;
-
-  bool isSingleSortType(unsigned sort) const;
-  bool isAllDefault() const { return isSingleSortType(Sorts::SRT_DEFAULT); }
+  bool isSingleSortType(TermList sort) const;
+  bool isAllDefault() const { return isSingleSortType(Term::defaultSort()); }
 
 private:
   vstring argsToString() const;

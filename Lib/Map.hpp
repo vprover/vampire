@@ -24,6 +24,8 @@
 #include "VString.hpp"
 #include "Hash.hpp"
 #include "Exception.hpp"
+#include "Option.hpp"
+#include "Metaiterators.hpp"
 
 namespace Lib {
 
@@ -42,9 +44,11 @@ namespace Lib {
 template <typename Key, typename Val,class Hash>
 class Map
 {
-protected:
+public:
+  using HashFn = Hash;
   class Entry
   {
+    friend class Map;
   public:
     /** Create a new entry */
     inline Entry ()
@@ -52,24 +56,76 @@ protected:
     {
     } // Map::Entry::Entry
 
+    inline ~Entry()
+    {
+      CALL("Entry::~Entry()")
+      if (occupied()) {
+        key().~Key();
+        value().~Val();
+      }
+    }
+
+  private:
+    /** Create a new entry */
+    explicit Entry(Entry const& other)
+      : code(other.code)
+    {
+      CALL("Entry(Entry const&)")
+      if (other.occupied()) {
+        init(Key(other.key()), Val(other.value()), other.code);
+      }
+    } // Map::Entry::Entry
+
+  private:
+
     /** True if the cell is occupied */
     inline bool occupied () const
-    {
-      return code;
-    } // Map::Entry::occupied
+    { return code; } // Map::Entry::occupied
 
     /** declared but not defined, to prevent on-heap allocation */
     void* operator new (size_t);
 
     /** Hash code, 0 if not occupied */
     unsigned code;
+
+    /** this wrapper is required in order to leave the storage realy unininitialized, which is 
+     * 1) a performance boost, and
+     * 2) required in order to make Map work with types that do not have a default-constructor 
+     */
+    template<class T> using MaybeUninit = typename std::aligned_storage<sizeof(T), alignof(T)>::type;
+
     /** The key of this cell (if any) */
-    Key key;
+    MaybeUninit<Key> _key;
+
     /** The value in this cell (if any) */
-    Val value;
+    MaybeUninit<Val> _value;
+
+  public:
+    /* unwrap the wrapper type */
+    Val      & value()      & { ASS(code); return *reinterpret_cast<Val*>(&_value); }
+    Val     && value()     && { ASS(code); return std::move(*reinterpret_cast<Val*>(&_value)); }
+    Val const& value() const& { ASS(code); return *reinterpret_cast<Val const*>(&_value); }
+    Key      &   key()      & { ASS(code); return *reinterpret_cast<Key*>(&_key);   }
+    Key     &&   key()     && { ASS(code); return std::move(*reinterpret_cast<Key*>(&_key));   }
+    Key const&   key() const& { ASS(code); return *reinterpret_cast<Key const*>(&_key);   }
+
+    friend ostream& operator<<(ostream& out, Entry const& self) 
+    { return self.occupied() ? out << self.key() << " -> " << self.value() : out << "<empty entry>";   } 
+
+  private:
+
+    /** initialize value underlying the wrapper type */
+    void init(Key key, Val val, unsigned code)
+    {
+      CALL("Map::Entry::init(Key&&, Val&&, unsigned)")
+      ASS_REP(this->code == 0, this->code)
+      ASS(code != 0)
+      ::new(&_key  ) Key(std::move(key));
+      ::new(&_value) Val(std::move(val));
+      this->code = code;
+    }
   }; // class Map::Entry
 
- public:
   /** Create a new map */
   Map ()
     : _capacity(0),
@@ -79,25 +135,92 @@ protected:
     expand();
   } // Map::Map
 
+  explicit Map (Map const& other) 
+    : _capacity(other._capacity),
+      _noOfEntries(other._noOfEntries),
+      _entries((Entry*)ALLOC_KNOWN(sizeof(Entry)*_capacity,"Map<>")),
+      _afterLast  (_entries + (other._afterLast - other._entries)),
+      _maxEntries (other._maxEntries)
+  {
+
+    for (int i = 0; i < _capacity; i++) {
+      ::new(&_entries[i]) Entry(other._entries[i]);
+    }
+  }
+
+
+  Map (Map && other) 
+    : _capacity   (other._capacity),
+      _noOfEntries(other._noOfEntries),
+      _entries    (other._entries),
+      _afterLast  (other._afterLast),
+      _maxEntries (other._maxEntries)
+  {
+    CALL("Map(Map&&)");
+    other._capacity    = 0;
+    other._noOfEntries = 0;
+    other._entries     = nullptr;
+    other._afterLast   = nullptr;
+    other._maxEntries  = 0;
+  }
+
+  Map& operator=(Map&& other) {
+    CALL("Map& operator=(Map&&)");
+    _capacity    = other._capacity;
+    _noOfEntries = other._noOfEntries;
+    _entries     = other._entries;
+    _afterLast = other._afterLast;
+    _maxEntries = other._maxEntries;
+
+    other._capacity    = 0;
+    other._noOfEntries = 0;
+    other._entries     = nullptr;
+    other._afterLast   = nullptr;
+    other._maxEntries  = 0;
+
+    return *this;
+  }
+
   /** Deallocate the map */
   inline ~Map ()
   {
     CALL("Map::~Map");
-    if (_entries) {
-      array_delete(_entries, _capacity);
-      DEALLOC_KNOWN(_entries,sizeof(Entry)*_capacity,"Map<>");
-    }
+    clear();
   } // Map::~Map
 
   /**
    * True if there is a value stored under this key.
    * @since 08/08/2008 Manchester
    */
-  inline bool find(Key key) const
-  {
-    Val val;
-    return find(key,val);
+  inline bool find(Key const& key) const
+  { return tryGet(key).isSome(); }
+
+  inline unsigned hashCode(Key const& key) const 
+  { 
+    auto code = Hash::hash(key);
+    return code == 0 ? 1 : code;
   }
+
+  /**
+   * Find value by the key, and return it if it exists. Return an empty option otherwise
+   * 
+   * @since 25/08/2020 Manchester
+   */
+  Option<Val&> tryGet(Key const& key) const
+  {
+    CALL("Map::find/2");
+    using Opt = Option<Val&>;
+
+    auto code = hashCode(key);
+    Entry* entry;
+    for (entry = firstEntryForCode(code); entry->occupied(); entry = nextEntry(entry)) {
+      if (entry->code == code && Hash::equals(entry->key(),key)) {
+        return Opt(entry->value());
+      }
+    }
+
+    return Opt();
+  } // Map::find
 
   /**
    * Find value by the key. The result is true if a pair with this key
@@ -110,19 +233,13 @@ protected:
   {
     CALL("Map::find/2");
 
-    unsigned code = Hash::hash(key);
-    if (code == 0) {
-      code = 1;
+    auto out = tryGet(key);
+    if (out.isSome()) {
+      found = out.unwrap();
+      return true;
+    } else {
+      return false;
     }
-    Entry* entry;
-    for (entry = firstEntryForCode(code); entry->occupied(); entry = nextEntry(entry)) {
-      if (entry->code == code && Hash::equals(entry->key,key)) {
-        found = entry->value;
-        return true;
-      }
-    }
-
-    return false;
   } // Map::find
 
 
@@ -136,14 +253,11 @@ protected:
   Val* getPtr(const Key& key) 
   {
     CALL("Val* Map::getPtr(const Key&)");
-    unsigned code = Hash::hash(key);
-    if (code == 0) {
-      code = 1;
-    }
+    auto code = hashCode(key);
     Entry* entry;
     for (entry = firstEntryForCode(code); entry->occupied(); entry = nextEntry(entry)) {
-      if (entry->code == code && Hash::equals(entry->key,key)) {
-        return &entry->value;
+      if (entry->code == code && Hash::equals(entry->key(),key)) {
+        return &entry->value();
       }
     }
     return nullptr;
@@ -159,39 +273,36 @@ protected:
   const Val* getPtr(const Key& key) const
   {
     CALL("const Val* Map::getPtr(const Key&)");
-    unsigned code = Hash::hash(key);
-    if (code == 0) {
-      code = 1;
-    }
+    auto code = hashCode(key);
     Entry* entry;
     for (entry = firstEntryForCode(code); entry->occupied(); entry = nextEntry(entry)) {
-      if (entry->code == code && Hash::equals(entry->key,key)) {
-        return &entry->value;
+      if (entry->code == code && Hash::equals(entry->key(),key)) {
+        return &entry->value();
       }
     }
     return nullptr;
   } // Map::getPtr
 
+  /** returns the number of entries */
+  int size() const 
+  { return _noOfEntries; }
 
   /**
    * Return the value by the key. The value must be stored in the
    * map already.
    * @since 26/08/2010 Torrevieja
    */
-  Val get(Key key) const
+  Val& get(Key key) const
   {
     CALL("Map::get");
 
-    unsigned code = Hash::hash(key);
-    if (code == 0) {
-      code = 1;
-    }
+    auto code = hashCode(key);
     Entry* entry;
-    for (entry = firstEntryForCode(code); !Hash::equals(entry->key,key); entry = nextEntry(entry)) {
+    for (entry = firstEntryForCode(code); !Hash::equals(entry->key(),key); entry = nextEntry(entry)) {
       ASS(entry->occupied());
     }
     ASS(entry->occupied());
-    return entry->value;
+    return entry->value();
   } // Map::get
 
   /**
@@ -200,6 +311,7 @@ protected:
    */
   inline Entry* firstEntryForCode(unsigned code) const
   {
+    ASS(_entries)
     return _entries + (code % _capacity);
   } // Map::firstEntryForCode
 
@@ -222,19 +334,17 @@ protected:
    * @since 23/12/2013 Manchester, documentation changed
    * @author Andrei Voronkov
    */
-  inline Val insert(Key key,Val val)
+  inline Val& insert(Key key,Val val)
   {
     CALL("Map::insert");
 
     if (_noOfEntries >= _maxEntries) { // too many entries
       expand();
     }
-    unsigned code = Hash::hash(key);
-    if (code == 0) {
-      code = 1;
-    }
+    auto code = hashCode(key);
     return insert(std::move(key),std::move(val),code);
   } // Map::insert
+
 
 private:
   /**
@@ -253,16 +363,14 @@ private:
 
     Entry* entry;
     for (entry = firstEntryForCode(code); entry->occupied(); entry = nextEntry(entry)) {
-      if (entry->code == code && Hash::equals(entry->key,key)) {
-        return entry->value;
+      if (entry->code == code && Hash::equals(entry->key(),key)) {
+        return entry->value();
       }
     }
     // entry is not occupied
     _noOfEntries++;
-    ::new(&entry->key) Key(std::move(key));
-    ::new(&entry->value) Val(std::move(val));
-    entry->code = code;
-    return entry->value;
+    entry->init(std::move(key), std::move(val), code);
+    return entry->value();
   } // Map::insert
 
 public:
@@ -282,22 +390,17 @@ public:
     if (_noOfEntries >= _maxEntries) { // too many entries
       expand();
     }
-    unsigned code = Hash::hash(key);
-    if (code == 0) {
-      code = 1;
-    }
+    auto code = hashCode(key);
     Entry* entry;
     for (entry = firstEntryForCode(code); entry->occupied(); entry = nextEntry(entry)) {
-      if (entry->code == code && Hash::equals(entry->key, key)) {
-        entry->value = val;
+      if (entry->code == code && Hash::equals(entry->key(), key)) {
+        entry->value() = std::move(val);
         return true;
       }
     }
     // entry is not occupied
     _noOfEntries++;
-    entry->key = key;
-    entry->value = val;
-    entry->code = code;
+    entry->init(std::move(key), std::move(val), code);
     return false;
   } // Map::replaceOrInsert
 
@@ -315,14 +418,11 @@ public:
     if (_noOfEntries >= _maxEntries) { // too many entries
       expand();
     }
-    unsigned code = Hash::hash(key);
-    if (code == 0) {
-      code = 1;
-    }
+    auto code = hashCode(key);
     Entry* entry;
     for (entry = firstEntryForCode(code); entry->occupied(); entry = nextEntry(entry)) {
-      if (entry->code == code && Hash::equals(entry->key, key)) {
-        entry->value = val;
+      if (entry->code == code && Hash::equals(entry->key(), key)) {
+        entry->value() = val;
         return;
       }
     }
@@ -333,36 +433,60 @@ public:
 
  
   /**
-   * Gen the entry at the position @b key or initialize it with the closure @b init.
-   * @b init will be called with a pointer to an unsigned chunk of memory:
+   * Find the entry with key @b key, or initialize it with the function init otherwise.
    *
-   * void init(Value* toInit) { ... }
+   * @b init must have the signature `Val init() {...}`
    */
-  template<class InitFun>
-  Val& getOrInit(Key&& key, InitFun init)
+  template<class InitFn>
+  Val& getOrInit(Key key, InitFn init) 
   {
     CALL("Map::getOrInit");
+    return updateOrInit(std::move(key), [](Val v) { return std::move(v); }, init);
+  } 
+
+
+ 
+  /**
+   * Find the entry with key @b key, and update it with UpdateFn, or initialize the value 
+   * if it was not present before
+   *
+   * @b update must have the signature `Val init(Val) {...}`
+   * @b init must have the signature `Val init() {...}`
+   */
+  template<class UpdateFn, class InitFn>
+  Val& updateOrInit(Key key, UpdateFn update, InitFn init) 
+  {
+    CALL("Map::updateOrInit");
 
     if (_noOfEntries >= _maxEntries) { // too many entries
       expand();
     }
-    unsigned code = Hash::hash(key);
-    if (code == 0) {
-      code = 1;
-    }
+    auto code = hashCode(key);
     Entry* entry;
     for (entry = firstEntryForCode(code); entry->occupied(); entry = nextEntry(entry)) {
-      if (entry->code == code && Hash::equals(entry->key, key)) {
-        return entry->value;
+      if (entry->code == code && Hash::equals(entry->key(), key)) {
+        ASS_NO_EXCEPT(
+          entry->value() = update(std::move(entry->value()));
+        )
+        return entry->value();
       }
     }
     // entry is not occupied
     _noOfEntries++;
-    entry->key = std::move(key);
-    init(&entry->value);
-    entry->code = code;
-    return entry->value;
+    ASS_NO_EXCEPT(
+      entry->init(std::move(key), init(), code);
+    )
+    return entry->value();
   } 
+
+
+ 
+  /**
+   * Find the entry with key @b key, or initialize the value with the default initializer. 
+   */
+  template<class InitFun>
+  Val& getOrInit(Key key)
+  { return getOrInit(std::move(key), [](){ return Val(); }); } 
 
   /**
    * Assign pointer to value stored under @b key into @b pval.
@@ -377,26 +501,33 @@ public:
     if (_noOfEntries >= _maxEntries) { // too many entries
       expand();
     }
-    unsigned code = Hash::hash(key);
-    if (code == 0) {
-      code = 1;
-    }
+    auto code = hashCode(key);
     Entry* entry;
     for (entry = firstEntryForCode(code); entry->occupied(); entry = nextEntry(entry)) {
-      if (entry->code == code && Hash::equals(entry->key, key)) {
-        pval = &entry->value;
+      if (entry->code == code && Hash::equals(entry->key(), key)) {
+        pval = &entry->value();
         return false;
       }
     }
     // entry is not occupied
     _noOfEntries++;
-    entry->key = key;
-    entry->value = initial;
-    entry->code = code;
-    pval = &entry->value;
+    entry->init(Key(key), Val(initial), code);
+    pval = &entry->value();
     return true;
   }
   
+  void clear()
+  {
+    if (_entries) {
+      array_delete(_entries, _capacity);
+      DEALLOC_KNOWN(_entries,sizeof(Entry)*_capacity,"Map<>");
+    }
+    _capacity    = 0;
+    _noOfEntries = 0;
+    _entries     = nullptr;
+    _afterLast   = nullptr;
+    _maxEntries  = 0;
+  }
   
   /**
    * Delete all entries.
@@ -410,7 +541,7 @@ public:
     for (int i = _capacity-1;i >= 0;i--) {
       Entry& e = _entries[i];
       if (e.occupied()) {
-        delete e.value;
+        delete e.value();
       }
     }
   } // deleteAll
@@ -482,7 +613,7 @@ public:
         current ++;
       }
       // now current is occupied
-      insert(std::move(current->key),std::move(current->value),current->code);
+      insert(std::move(current->key()),std::move(current->value()),current->code);
       current ++;
       remaining --;
     }
@@ -493,17 +624,19 @@ public:
   } // Map::expand
 
 public:
+
   /**
    * Class to allow iteration over keys and values stored in the map.
    * @since 13/08/2005 Novotel, Moscow
    */
   class Iterator {
   public:
+    DECL_ELEMENT_TYPE(Entry&);
+
     /** Create a new iterator */
-    inline Iterator(const Map& map)
+    inline Iterator(Map& map)
       : _next(map._entries), _last(map._afterLast)
-    {
-    } // Map::Iterator
+    { } // Map::Iterator
 
     /**
      * True if there exists next element
@@ -525,35 +658,88 @@ public:
      * @since 13/08/2005 Novotel, Moscow
      * @warning hasNext() must have been called before
      */
-    Val next()
+    Entry& next()
     {
       ASS(_next != _last);
       ASS(_next->occupied());
-      Val result = _next->value;
+      Entry& result = *_next;
       _next++;
       return result;
     }
 
-    /**
-     * Return the next value
-     * @since 22/08/2010 Torrevieja
-     * @warning hasNext() must have been called before
-     */
-    void next(Key& key,Val& val)
-    {
-      ASS(_next != _last);
-      ASS(_next->occupied());
-			
-      val = _next->value;
-      key = _next->key;
-      _next++;
-    }
   private:
     /** iterator will look for the next occupied cell starting with this one */
     Entry* _next;
     /** iterator will stop looking for the next cell after reaching this one */
     Entry* _last;
   };
+
+
+  /**
+   * Class to allow iteration over keys and values stored in the map.
+   * @since 28/08/2020 Johannes Schoisswohl, Manchester
+   */
+  class ConstIterator {
+  public:
+    /** Create a new iterator */
+    inline ConstIterator(Map const& map)
+      : _next(map._entries), _last(map._afterLast)
+    { } // Map::ConstIterator
+
+    /**
+     * True if there exists next element
+     * @since 13/08/2005 Novotel, Moscow
+     */
+    bool hasNext()
+    {
+      while (_next != _last) {
+        if (_next->occupied()) {
+          return true;
+        }
+        _next++;
+      }
+      return false;
+    }
+
+    /**
+     * Return the next entry
+      * @since 28/08/2020 Johannes Schoisswohl, Manchester
+     * @warning hasNext() must have been called before
+     */
+    Entry const& next()
+    {
+      ASS(_next != _last);
+      ASS(_next->occupied());
+      Entry& result = *_next;
+      _next++;
+      return result;
+    }
+
+  private:
+    /** iterator will look for the next occupied cell starting with this one */
+    Entry* _next;
+    /** iterator will stop looking for the next cell after reaching this one */
+    Entry* _last;
+  };
+
+  Iterator iter() 
+  { return Iterator(*this); }
+
+  ConstIterator iter() const
+  { return ConstIterator(*this); }
+
+  friend ostream& operator<<(ostream& out, Map const& self) 
+  { 
+    out << "{";
+    auto iter = self.iter();
+    if (iter.hasNext()) {
+      out << iter.next();
+      while (iter.hasNext()) {
+        out << ", " << iter.next();
+      }
+    }
+    return out << "}";
+  }
 }; // class Map
 
 } // namespace Lib

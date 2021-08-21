@@ -42,10 +42,10 @@ public:
 
 private:
   Clause* performSuperposition(
-	  Clause* rwClause, Literal* rwLiteral, TermList rwTerm,
-	  Clause* eqClause, Literal* eqLiteral, TermList eqLHS,
-	  ResultSubstitutionSP subst, bool eqIsResult, PassiveClauseContainer* passiveClauseContainer,
-          UnificationConstraintStackSP constraints);
+    Clause* rwClause, Literal* rwLiteral, TermList rwTerm,
+    Clause* eqClause, Literal* eqLiteral, TermList eqLHS,
+    ResultSubstitutionSP subst, bool eqIsResult, PassiveClauseContainer* passiveClauseContainer,
+          UnificationConstraintStackSP constraints, bool isTypeSub);
 
   bool checkClauseColorCompatibility(Clause* eqClause, Clause* rwClause);
   static bool earlyWeightLimitCheck(Clause* eqClause, Literal* eqLit,

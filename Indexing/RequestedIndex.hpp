@@ -35,9 +35,9 @@ class RequestedIndex final
 
     // Moving transfers ownership of the index
     RequestedIndex(RequestedIndex&& other) noexcept
-      : _index{exchange(other._index, nullptr)}
+      : _index{std::exchange(other._index, nullptr)}
       , _type{other._type}
-      , _indexManager{exchange(other._indexManager, nullptr)}
+      , _indexManager{std::exchange(other._indexManager, nullptr)}
     { }
 
     // Moving transfers ownership of the index

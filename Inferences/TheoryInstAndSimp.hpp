@@ -21,6 +21,8 @@
 #include "Forwards.hpp"
 #include "InferenceEngine.hpp"
 #include "Kernel/Substitution.hpp"
+#include "Shell/Options.hpp"
+#include "SAT/Z3Interfacing.hpp"
 
 namespace Inferences
 {
@@ -29,44 +31,56 @@ using namespace Kernel;
 using namespace Saturation;
 
 struct Solution{
-  explicit Solution(bool s) : status(s) {}
-  const bool status;
+  explicit Solution(Substitution subst) : sat(true), subst(std::move(subst)) {}
+  static Solution unsat() { return Solution(); }
+  const bool sat;
   Substitution subst;
   friend std::ostream& operator<<(std::ostream& out, Solution const&);
+private:
+  Solution() : sat(false) {}
 };
 
 
 class TheoryInstAndSimp
-: public GeneratingInferenceEngine
+: public SimplifyingGeneratingInference
 {
 public:
+  using SortId = SAT::Z3Interfacing::SortId;
   CLASS_NAME(TheoryInstAndSimp);
   USE_ALLOCATOR(TheoryInstAndSimp);
 
-  TheoryInstAndSimp() : _splitter(0) {}
+  ~TheoryInstAndSimp();
+  TheoryInstAndSimp() : TheoryInstAndSimp(*env.options) {}
+
+  TheoryInstAndSimp(Options& opts);
+  TheoryInstAndSimp(Options::TheoryInstSimp mode, bool thiTautologyDeletion, bool showZ3, bool generalisation, vstring const& exportSmtlib);
+
   void attach(SaturationAlgorithm* salg);
 
-  ClauseIterator generateClauses(Clause* premise, bool& premiseRedundant);
-  ClauseIterator generateClauses(Clause* premise){
-    bool r;
-    return generateClauses(premise,r);
-  }
-
-  VirtualIterator<Solution> getSolutions(Stack<Literal*>& theoryLiterals,bool guarded=true);
+  ClauseGenerationResult generateSimplify(Clause* premise);
 
 private:
+  struct SkolemizedLiterals {
+    Stack<SATLiteral> lits;
+    Stack<unsigned> vars;
+    Substitution subst;
+  };
+  template<class IterLits> SkolemizedLiterals skolemize(IterLits lits);
+  VirtualIterator<Solution> getSolutions(Stack<Literal*> const& theoryLiterals, Stack<Literal*> const& guards, unsigned freshVar);
 
-  void selectTheoryLiterals(Clause* cl, Stack<Literal*>& theoryLits);
+
+  Option<Substitution> instantiateWithModel(SkolemizedLiterals skolemized);
+  Option<Substitution> instantiateGeneralised(SkolemizedLiterals skolemized, unsigned freshVar);
+
+  Stack<Literal*> selectTheoryLiterals(Clause* cl);
 
   void originalSelectTheoryLiterals(Clause* cl, Stack<Literal*>& theoryLits,bool forZ3);
 
-  void applyFilters(Stack<Literal*>& theoryLits, bool forZ3);
-  void filterDivisionByZero(Stack<Literal*>& theoryLits, Stack<Literal*>& filteredLits);
-  void filterDivisionByZeroDeep(Stack<Literal*>& theoryLits, Stack<Literal*>& filteredLits);
+  Stack<Literal*> applyFilters(Stack<Literal*> theoryLits);
+  void filterUninterpretedPartialFunctionDeep(Stack<Literal*>& theoryLits, Stack<Literal*>& filteredLits);
   
-  /** Fills trivialLits with all clauses trivial in cl
-   */
-  void selectTrivialLiterals(Clause* cl, Stack<Literal*>& trivialLits);
+  /** returns the set of literals trivial in cl */
+  Stack<Literal*> selectTrivialLiterals(Clause* cl );
   bool isPure(Literal* lit);
 
   /**
@@ -79,7 +93,10 @@ private:
   /**
      Checks if models for sort can be mapped back to terms.
   */
-  bool isSupportedSort(const unsigned sort);
+  bool isSupportedSort(SortId sort);
+  bool calcIsSupportedSort(SortId sort);
+  bool isSupportedFunction(Term* trm);
+  bool isSupportedFunction(Theory::Interpretation trm);
 
   /**
      Checks if literal can be mapped back to terms. Works around
@@ -92,10 +109,41 @@ private:
    */
   bool literalContainsVar(const Literal* lit, unsigned v);
 
-  Splitter* _splitter;
-  //SAT2F0 _naming;
-  //Z3Interfacing* _solver;
+  class GeneralisationTree;
+  class ConstantCache 
+  {
+    class SortedConstantCache {
+      unsigned _used;
+      Stack<Term*> _constants;
+    public:
+      SortedConstantCache() : _used(0), _constants() {}
+      void reset();
+      Term* freshConstant(const char* prefix, SortId sort);
+    };
 
+    const char* _prefix;
+    Map<SortId, SortedConstantCache> _inner;
+
+  public:
+    ConstantCache(const char* prefix) : _prefix(prefix), _inner() {}
+
+    void reset();
+
+    Term* freshConstant(SortId sort) ;
+  };
+
+  Splitter* _splitter;
+  Options::TheoryInstSimp const _mode;
+  bool const _thiTautologyDeletion;
+  SAT2FO _naming;
+  volatile char padding00[1024];
+  Z3Interfacing* _solver;
+  volatile char padding01[1024];
+  Map<SortId, bool> _supportedSorts;
+  bool _generalisation;
+  ConstantCache _instantiationConstants;
+  ConstantCache _generalizationConstants;
+  friend struct InstanceFn;
 };
 
 };

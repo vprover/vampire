@@ -16,9 +16,6 @@
 
 #include "Test/UnitTesting.hpp"
 
-#define UNIT_ID fork
-UT_CREATE;
-
 #include <cerrno>
 #include <stdlib.h>
 #include <unistd.h>

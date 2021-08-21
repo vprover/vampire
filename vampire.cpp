@@ -52,7 +52,7 @@
 #include "Inferences/InferenceEngine.hpp"
 #include "Inferences/TautologyDeletionISE.hpp"
 
-#include "InstGen/IGAlgorithm.hpp"
+//#include "InstGen/IGAlgorithm.hpp"
 
 #include "SAT/DIMACS.hpp"
 
@@ -61,7 +61,7 @@
 #include "CASC/CLTBModeLearning.hpp"
 #include "Shell/CParser.hpp"
 #include "Shell/CommandLine.hpp"
-#include "Shell/EqualityProxy.hpp"
+//#include "Shell/EqualityProxy.hpp"
 #include "Shell/Grounding.hpp"
 #include "Shell/Normalisation.hpp"
 #include "Shell/Options.hpp"
@@ -84,6 +84,7 @@
 #include "SAT/Preprocess.hpp"
 
 #include "FMB/ModelCheck.hpp"
+#include <thread>
 
 #if GNUMP
 #include "Solving/Solver.hpp"
@@ -103,7 +104,7 @@ using namespace Shell;
 using namespace SAT;
 using namespace Saturation;
 using namespace Inferences;
-using namespace InstGen;
+//using namespace InstGen;
 
 /**
  * Return value is non-zero unless we were successful.
@@ -435,7 +436,8 @@ void preprocessMode(bool theory)
   prepro.preprocess(*prb);
 
   env.beginOutput();
-  UIHelper::outputSortDeclarations(env.out());
+  //outputSymbolDeclarations also deals with sorts for now
+  //UIHelper::outputSortDeclarations(env.out());
   UIHelper::outputSymbolDeclarations(env.out());
   UnitList::Iterator units(prb->units());
   while (units.hasNext()) {
@@ -480,6 +482,10 @@ void modelCheckMode()
   env.options->setOutputAxiomNames(true);
   Problem* prb = UIHelper::getInputProblem(*env.options);
 
+  if(env.statistics->polymorphic || env.statistics->higherOrder){
+    USER_ERROR("Polymorphic Vampire is not yet compatible with theory reasoning");
+  }
+
   FMB::ModelCheck::doCheck(prb);
 
 } // modelCheckMode
@@ -498,7 +504,8 @@ void outputMode()
   Problem* prb = UIHelper::getInputProblem(*env.options);
 
   env.beginOutput();
-  UIHelper::outputSortDeclarations(env.out());
+  //outputSymbolDeclarations also deals with sorts for now
+  //UIHelper::outputSortDeclarations(env.out());
   UIHelper::outputSymbolDeclarations(env.out());
   UnitList::Iterator units(prb->units());
 
@@ -621,7 +628,8 @@ void clausifyMode(bool theory)
   ScopedPtr<Problem> prb(getPreprocessedProblem());
 
   env.beginOutput();
-  UIHelper::outputSortDeclarations(env.out());
+  //outputSymbolDeclarations deals with sorts as well for now
+  //UIHelper::outputSortDeclarations(env.out());
   UIHelper::outputSymbolDeclarations(env.out());
 
   ClauseIterator cit = prb->clauseIterator();
@@ -781,6 +789,9 @@ int main(int argc, char* argv[])
       exit(0);
     }
 
+    //having read option reinitialize the counter
+    TimeCounter::reinitialize();
+
     Allocator::setMemoryLimit(env.options->memoryLimit() * 1048576ul);
     Lib::Random::setSeed(env.options->randomSeed());
 
@@ -821,11 +832,28 @@ int main(int argc, char* argv[])
       //env.options->setTimeLimitInSeconds(300);
       env.options->setMemoryLimit(128000);
 
-      if (CASC::PortfolioMode::perform(1.30)) {
+      if (CASC::PortfolioMode::perform(env.options->slowness())) {
         vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
       }
       break;
 
+    case Options::Mode::CASC_HOL: {
+      env.options->setIgnoreMissing(Options::IgnoreMissing::WARN);
+      env.options->setSchedule(Options::Schedule::CASC_HOL_2020);
+      env.options->setOutputMode(Options::Output::SZS);
+      env.options->setProof(Options::Proof::TPTP);
+      env.options->setMulticore(0); // use all available cores
+      env.options->setOutputAxiomNames(true);
+      env.options->setMemoryLimit(128000);
+
+      unsigned int nthreads = std::thread::hardware_concurrency();
+      float slowness = 1.00 + (0.04 * nthreads);
+ 
+      if (CASC::PortfolioMode::perform(slowness)) {
+        vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
+      }
+      break;
+    }
     case Options::Mode::CASC_SAT:
       env.options->setIgnoreMissing(Options::IgnoreMissing::WARN);
       env.options->setSchedule(Options::Schedule::CASC_SAT);
@@ -835,7 +863,7 @@ int main(int argc, char* argv[])
       //env.options->setTimeLimitInSeconds(300);
       env.options->setMemoryLimit(128000);
 
-      if (CASC::PortfolioMode::perform(1.30)) {
+      if (CASC::PortfolioMode::perform(env.options->slowness())) {
         vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
       }
       break;
@@ -843,7 +871,9 @@ int main(int argc, char* argv[])
     case Options::Mode::SMTCOMP:
       env.options->setIgnoreMissing(Options::IgnoreMissing::OFF);
       env.options->setInputSyntax(Options::InputSyntax::SMTLIB2);
-      env.options->setOutputMode(Options::Output::SMTCOMP);
+      if(env.options->outputMode() != Options::Output::UCORE){
+        env.options->setOutputMode(Options::Output::SMTCOMP);
+      }
       env.options->setSchedule(Options::Schedule::SMTCOMP);
       env.options->setProof(Options::Proof::OFF);
       env.options->setMulticore(0); // use all available cores
@@ -855,7 +885,7 @@ int main(int argc, char* argv[])
       // to prevent from terminating by time limit
       env.options->setTimeLimitInSeconds(100000);
 
-      if (CASC::PortfolioMode::perform(1.3)){
+      if (CASC::PortfolioMode::perform(env.options->slowness())){
         vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
       }
       else {
@@ -866,7 +896,7 @@ int main(int argc, char* argv[])
     case Options::Mode::PORTFOLIO:
       env.options->setIgnoreMissing(Options::IgnoreMissing::WARN);
 
-      if (CASC::PortfolioMode::perform(1.0)) {
+      if (CASC::PortfolioMode::perform(env.options->slowness())) {
         vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
       }
       break;
@@ -891,7 +921,7 @@ int main(int argc, char* argv[])
     }
     case Options::Mode::MODEL_CHECK:
       modelCheckMode();
-      break;
+      break; 
 
     case Options::Mode::CLAUSIFY:
       clausifyMode(false);

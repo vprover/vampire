@@ -450,7 +450,7 @@ public:
 
     if (theory->isPolymorphic(interp)) { return false; } // typed evaulator not for polymorphic stuff
 
-    unsigned opSort = theory->getOperationSort(interp);
+    TermList opSort = theory->getOperationSort(interp);
     return opSort==T::getSort();
   }
 
@@ -546,7 +546,7 @@ public:
       res = TermList(theory->representConstant(resNum));
       return true;
     }
-    catch(ArithmeticException)
+    catch(ArithmeticException&)
     {
        DEBUG( "ArithmeticException" );
       return false;
@@ -556,7 +556,7 @@ public:
   virtual PredEvalResult tryEvaluatePred(Literal* lit) override
   {
     CALL("InterpretedLiteralEvaluator::tryEvaluatePred");
-    ASS(theory->isInterpretedPredicate(lit));
+    ASS(theory->isInterpretedPredicate(lit->functor()));
     bool res;
 
     try {
@@ -842,6 +842,7 @@ protected:
       res = arg1*arg2;
       return true;
     case Theory::RAT_QUOTIENT:
+      if (arg2 == RationalConstantType(0)) return false;
       res = arg1/arg2;
       return true;
     default:
@@ -938,6 +939,7 @@ protected:
       res = arg1*arg2;
       return true;
     case Theory::REAL_QUOTIENT:
+      if (arg2 == RealConstantType(0)) return false;
       res = arg1/arg2;
       return true;
     default:
@@ -1144,10 +1146,10 @@ bool InterpretedLiteralEvaluator::balance(Literal* lit,Literal*& resLit,Stack<Li
   // so we have t1 a constant and t2 something that has an interpreted function at the top
 
   Signature::Symbol* conSym = env.signature->getFunction(t1.term()->functor());
-  unsigned srt = 0;
-  if(conSym->integerConstant()) srt = Sorts::SRT_INTEGER;
-  else if(conSym->rationalConstant()) srt = Sorts::SRT_RATIONAL;
-  else if(conSym->realConstant()) srt = Sorts::SRT_REAL;
+  TermList srt;
+  if(conSym->integerConstant()) srt = Term::intSort();
+  else if(conSym->rationalConstant()) srt = Term::rationalSort();
+  else if(conSym->realConstant()) srt = Term::realSort();
   else{
      ASSERTION_VIOLATION_REP(t1);
     return false;// can't work out the sort, that's odd!
@@ -1287,8 +1289,8 @@ bool InterpretedLiteralEvaluator::balanceMultiply(Interpretation divide,Constant
 {
     CALL("InterpretedLiteralEvaluator::balanceMultiply");
 #if VDEBUG
-    unsigned srt = theory->getOperationSort(divide); 
-    ASS(srt == Sorts::SRT_REAL || srt == Sorts::SRT_RATIONAL); 
+    TermList srt = theory->getOperationSort(divide); 
+    ASS(srt == Term::realSort() || srt == Term::rationalSort()); 
 #endif
 
     unsigned div = env.signature->getInterpretingSymbol(divide);
@@ -1356,8 +1358,8 @@ bool InterpretedLiteralEvaluator::balanceDivide(Interpretation multiply,
 {
     CALL("InterpretedLiteralEvaluator::balanceDivide");
 #if VDEBUG
-    unsigned srt = theory->getOperationSort(multiply); 
-    ASS(srt == Sorts::SRT_REAL || srt == Sorts::SRT_RATIONAL);
+    TermList srt = theory->getOperationSort(multiply); 
+    ASS(srt == Term::realSort() || srt == Term::rationalSort());
 #endif
 
     unsigned mul = env.signature->getInterpretingSymbol(multiply);

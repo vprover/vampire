@@ -34,7 +34,7 @@ Grounding::GroundingApplicator::GroundingApplicator()
   int funcs=env.signature->functions();
   for(int i=0;i<funcs;i++) {
     if(env.signature->functionArity(i)==0) {
-      if(env.signature->getFunction(i)->fnType()->result()!=Sorts::SRT_DEFAULT){
+      if(env.signature->getFunction(i)->fnType()->result()!= Term::defaultSort()){
         USER_ERROR("grounding mode can (currently) only be used on unsorted problems, problem with "+env.signature->functionName(i));
       }
       _constants.push(TermList(Term::create(i,0,0)));
@@ -127,7 +127,7 @@ ClauseList* Grounding::simplyGround(ClauseIterator clauses)
   return res;
 }
 
-void Grounding::getLocalEqualityAxioms(unsigned sort, bool otherThanReflexivity, ClauseList*& acc)
+void Grounding::getLocalEqualityAxioms(TermList sort, bool otherThanReflexivity, ClauseList*& acc)
 {
   CALL("Grounding::getLocalEqualityAxioms");
 
@@ -159,7 +159,7 @@ ClauseList* Grounding::getEqualityAxioms(bool otherThanReflexivity)
     getLocalEqualityAxioms(i, otherThanReflexivity, res);
   }
 */
-  getLocalEqualityAxioms(Sorts::SRT_DEFAULT, otherThanReflexivity, res);
+  getLocalEqualityAxioms(Term::defaultSort(), otherThanReflexivity, res);
 
   if(otherThanReflexivity) {
 
@@ -168,31 +168,31 @@ ClauseList* Grounding::getEqualityAxioms(bool otherThanReflexivity)
     for(int pred=1;pred<preds;pred++) { //we skip equality predicate, as transitivity was added above
       unsigned arity=env.signature->predicateArity(pred);
       if(arity==0) {
-	continue;
+        continue;
       }
 
       OperatorType* predType = env.signature->getPredicate(pred)->predType();
 
       args.ensure(arity);
       for(unsigned i=0;i<arity;i++) {
-	args[i]=TermList(i+2, false);
+        args[i]=TermList(i+2, false);
       }
 
       for(unsigned i=0;i<arity;i++) {
 
-	Literal* eqLit=Literal::createEquality(false, TermList(0,false),TermList(1,false), predType->arg(i));
+        Literal* eqLit=Literal::createEquality(false, TermList(0,false),TermList(1,false), predType->arg(i));
 
-	Clause* axCong = new(3) Clause(3, NonspecificInference0(UnitInputType::AXIOM,InferenceRule::EQUALITY_AXIOM));
-	(*axCong)[0]=eqLit;
+        Clause* axCong = new(3) Clause(3, NonspecificInference0(UnitInputType::AXIOM,InferenceRule::EQUALITY_AXIOM));
+        (*axCong)[0]=eqLit;
 
-	TermList iArg=args[i];
-	args[i]=TermList(0,false);
-	(*axCong)[1]=Literal::create(pred, arity, false, false, args.array());
-	args[i]=TermList(1,false);
-	(*axCong)[2]=Literal::create(pred, arity, true, false, args.array());
-	args[i]=iArg;
+        TermList iArg=args[i];
+        args[i]=TermList(0,false);
+        (*axCong)[1]=Literal::create(pred, arity, false, false, args.array());
+        args[i]=TermList(1,false);
+        (*axCong)[2]=Literal::create(pred, arity, true, false, args.array());
+        args[i]=iArg;
 
-	ClauseList::push(axCong,res);
+        ClauseList::push(axCong,res);
       }
     }
   }

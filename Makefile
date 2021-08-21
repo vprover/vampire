@@ -83,11 +83,11 @@ INCLUDES= -I.
 Z3FLAG= -DVZ3=0
 Z3LIB=
 ifeq (,$(shell echo $(MAKECMDGOALS) | sed 's/.*z3.*//g')) 
-INCLUDES= -I. -I../z3/src/api -I../z3/src/api/c++ 
+INCLUDES= -I. -Iz3/src/api -Iz3/src/api/c++ 
 ifeq (,$(shell echo $(MAKECMDGOALS) | sed 's/.*static.*//g'))
-Z3LIB= -Linclude -lz3 -lgomp -pthread  -Wl,--whole-archive -lrt -lpthread -Wl,--no-whole-archive -ldl
+Z3LIB= -Lz3/build -lz3 -lgomp -pthread  -Wl,--whole-archive -lrt -lpthread -Wl,--no-whole-archive -ldl
 else
-Z3LIB= -Linclude -lz3
+Z3LIB= -Lz3/build -lz3
 endif
 
 Z3FLAG= -DVZ3=1
@@ -142,7 +142,7 @@ endif
 ################################################################
 
 CXX = g++
-CXXFLAGS = $(XFLAGS) -Wall -std=c++11  $(INCLUDES) # -Wno-unknown-warning-option for clang
+CXXFLAGS = $(XFLAGS) -Wall -std=c++14  $(INCLUDES) # -Wno-unknown-warning-option for clang
 
 CC = gcc 
 CCFLAGS = -Wall -O3 -DNDBLSCR -DNLGLOG -DNDEBUG -DNCHKSOL -DNLGLPICOSAT 
@@ -181,8 +181,6 @@ VL_OBJ= Lib/Allocator.o\
         Lib/System.o\
         Lib/TimeCounter.o\
         Lib/Timer.o
-#        Lib/OptionsReader.o\
-#        Lib/Graph.o\
 
 VLS_OBJ= Lib/Sys/Multiprocessing.o\
          Lib/Sys/Semaphore.o\
@@ -200,11 +198,8 @@ VK_OBJ= Kernel/Clause.o\
         Kernel/Grounder.o\
         Kernel/Inference.o\
         Kernel/InferenceStore.o\
-        Kernel/InterpretedLiteralEvaluator.o\
-        Kernel/Rebalancing.o\
-        Kernel/Rebalancing/Inverters.o\
-	Kernel/NumTraits.o\
         Kernel/KBO.o\
+        Kernel/SKIKBO.o\
         Kernel/KBOForEPR.o\
         Kernel/LiteralSelector.o\
         Kernel/LookaheadLiteralSelector.o\
@@ -225,16 +220,22 @@ VK_OBJ= Kernel/Clause.o\
         Kernel/MismatchHandler.o\
         Kernel/Signature.o\
         Kernel/SortHelper.o\
+        Kernel/ApplicativeHelper.o\
         Kernel/Sorts.o\
         Kernel/SubformulaIterator.o\
         Kernel/Substitution.o\
         Kernel/Term.o\
+	Kernel/PolynomialNormalizer.o\
+	Kernel/Polynomial.o\
         Kernel/TermIterators.o\
         Kernel/TermTransformer.o\
         Kernel/Theory.o\
-         Kernel/Signature.o\
-         Kernel/Unit.o
-#        Kernel/MatchTag.o\
+        Kernel/Signature.o\
+        Kernel/Unit.o\
+        Kernel/InterpretedLiteralEvaluator.o\
+        Kernel/Rebalancing.o\
+        Kernel/Rebalancing/Inverters.o\
+        Kernel/NumTraits.o
 #        Kernel/Assignment.o\     
 #        Kernel/Constraint.o\
 #         Kernel/Number.o\
@@ -243,7 +244,7 @@ VK_OBJ= Kernel/Clause.o\
     
 
 VI_OBJ = Indexing/AcyclicityIndex.o\
-	 Indexing/ClauseCodeTree.o\
+         Indexing/ClauseCodeTree.o\
          Indexing/ClauseVariantIndex.o\
          Indexing/CodeTree.o\
          Indexing/CodeTreeInterfaces.o\
@@ -261,8 +262,8 @@ VI_OBJ = Indexing/AcyclicityIndex.o\
          Indexing/TermCodeTree.o\
          Indexing/TermIndex.o\
          Indexing/TermSharing.o\
-         Indexing/TermSubstitutionTree.o
-#         Indexing/FormulaIndex.o\         
+         Indexing/TermSubstitutionTree.o\
+         Indexing/TypeSubstitutionTree.o
 
 VIG_OBJ = InstGen/IGAlgorithm.o\
           InstGen/ModelPrinter.o
@@ -276,10 +277,17 @@ VINF_OBJ=Inferences/BackwardDemodulation.o\
          Inferences/EqualityFactoring.o\
          Inferences/EqualityResolution.o\
          Inferences/ExtensionalityResolution.o\
+         Inferences/ArgCong.o\
+         Inferences/NegativeExt.o\
+         Inferences/Narrow.o\
+         Inferences/SubVarSup.o\
          Inferences/Factoring.o\
          Inferences/FastCondensation.o\
          Inferences/FOOLParamodulation.o\
+         Inferences/Injectivity.o\
          Inferences/ForwardDemodulation.o\
+         Inferences/CombinatorDemodISE.o\
+         Inferences/CombinatorNormalisationISE.o\
          Inferences/ForwardLiteralRewriting.o\
          Inferences/ForwardSubsumptionAndResolution.o\
          Inferences/SubsumptionDemodulationHelper.o\
@@ -291,15 +299,30 @@ VINF_OBJ=Inferences/BackwardDemodulation.o\
          Inferences/InferenceEngine.o\
 	 Inferences/Instantiation.o\
          Inferences/InterpretedEvaluation.o\
+         Inferences/PushUnaryMinus.o\
+         Inferences/Cancellation.o\
+         Inferences/PolynomialEvaluation.o\
+         Inferences/ArithmeticSubtermGeneralization.o\
          Inferences/SLQueryBackwardSubsumption.o\
          Inferences/Superposition.o\
          Inferences/TautologyDeletionISE.o\
          Inferences/TermAlgebraReasoning.o\
-         Inferences/TheoryInstAndSimp.o\
          Inferences/Induction.o\
-         Inferences/URResolution.o \
-         Inferences/GaussianVariableElimination.o
+         Inferences/InductionHelper.o\
+         Inferences/URResolution.o\
+         Inferences/CNFOnTheFly.o\
+         Inferences/CasesSimp.o\
+         Inferences/Cases.o\
+         Inferences/BoolSimp.o\
+         Inferences/PrimitiveInstantiation.o\
+         Inferences/Choice.o\
+         Inferences/ElimLeibniz.o\
+         Inferences/BoolEqToDiseq.o\
+         Inferences/GaussianVariableElimination.o\
+         Inferences/InterpretedEvaluation.o\
+         Inferences/TheoryInstAndSimp.o
 #         Inferences/CTFwSubsAndRes.o\
+#         Inferences/RenamingOnTheFly.o\
 
 VSAT_OBJ=SAT/DIMACS.o\
          SAT/MinimizingSolver.o\
@@ -336,6 +359,7 @@ VS_OBJ = Shell/AnswerExtractor.o\
          Shell/DistinctGroupExpansion.o\
          Shell/EqResWithDeletion.o\
          Shell/EqualityProxy.o\
+         Shell/EqualityProxyMono.o\
          Shell/Flattening.o\
          Shell/FunctionDefinition.o\
          Shell/GeneralSplitting.o\
@@ -347,6 +371,7 @@ VS_OBJ = Shell/AnswerExtractor.o\
          Shell/Interpolants.o\
          Shell/InterpolantsNew.o\
          Shell/InterpretedNormalizer.o\
+         Shell/LambdaElimination.o\
          Shell/LaTeX.o\
          Shell/LispLexer.o\
          Shell/LispParser.o\
@@ -379,7 +404,9 @@ VS_OBJ = Shell/AnswerExtractor.o\
          Shell/VarManager.o\
          Shell/Lexer.o\
          Shell/Preprocess.o\
+         Shell/UnificationWithAbstractionConfig.o\
          version.o
+
 #         Shell/PARSER_TKV.o\
 #         Shell/SMTLEX.o\
 #         Shell/SMTPAR.o\
@@ -398,7 +425,9 @@ VS_OBJ = Shell/AnswerExtractor.o\
 #         Shell/SubsumptionRemover.o\
 
 PARSE_OBJ = Parse/SMTLIB2.o\
-            Parse/TPTP.o
+            Parse/TPTP.o\
+
+
 
 DP_OBJ = DP/ShortConflictMetaDP.o\
          DP/SimpleCongruenceClosure.o
@@ -430,6 +459,7 @@ LIB_DEP = Indexing/TermSharing.o\
 	  Kernel/FormulaUnit.o\
 	  Kernel/FormulaVarIterator.o\
 	  Kernel/InterpretedLiteralEvaluator.o\
+	  Kernel/PolynomialNormalizer.o\
 	  Kernel/Rebalancing.o\
 	  Kernel/Rebalancing/Inverters.o\
 	  Kernel/NumTraits.o\
@@ -437,6 +467,7 @@ LIB_DEP = Indexing/TermSharing.o\
 	  Kernel/InferenceStore.o\
 	  Kernel/Problem.o\
 	  Kernel/SortHelper.o\
+    Kernel/ApplicativeHelper.o\
 	  Kernel/Sorts.o\
 	  Kernel/Signature.o\
 	  Kernel/SubformulaIterator.o\
@@ -444,7 +475,7 @@ LIB_DEP = Indexing/TermSharing.o\
 	  Kernel/Term.o\
 	  Kernel/TermIterators.o\
 	  Kernel/TermTransformer.o\
-	  Kernel/Theory.o\
+    Kernel/Theory.o\
 	  Kernel/Unit.o\
 	  Parse/TPTP.o\
 	  Saturation/ClauseContainer.o\
@@ -453,11 +484,17 @@ LIB_DEP = Indexing/TermSharing.o\
 	  Shell/Property.o\
 	  Shell/Statistics.o\
 	  Shell/GlobalOptions.o\
+          Shell/UnificationWithAbstractionConfig.o\
 	  version.o
 	  # ClausifierDependencyFix.o\
+	  version.o\
+    Kernel/InterpretedLiteralEvaluator.o\
+    Kernel/Rebalancing.o\
+    Kernel/Rebalancing/Inverters.o\
+    Kernel/NumTraits.o
+#     ClausifierDependencyFix.o\
 
-OTHER_CL_DEP = Indexing/FormulaIndex.o\
-	       Indexing/LiteralSubstitutionTree.o\
+OTHER_CL_DEP = Indexing/LiteralSubstitutionTree.o\
 	       Indexing/ResultSubstitution.o\
 	       Indexing/SubstitutionTree_FastGen.o\
 	       Indexing/SubstitutionTree_FastInst.o\
@@ -471,6 +508,7 @@ OTHER_CL_DEP = Indexing/FormulaIndex.o\
 	       Kernel/InferenceStore.o\
 	       Kernel/Matcher.o\
 	       Kernel/KBO.o\
+         Kernel/SKIKBO.o\
 	       Kernel/KBOForEPR.o\
 	       Kernel/Ordering.o\
 	       Kernel/Ordering_Equality.o\
@@ -487,10 +525,10 @@ VAMP_DIRS := Api Debug DP Lib Lib/Sys Kernel FMB Indexing Inferences InstGen She
 VAMP_BASIC := $(MINISAT_OBJ) $(VD_OBJ) $(VL_OBJ) $(VLS_OBJ) $(VK_OBJ) $(BP_VD_OBJ) $(BP_VL_OBJ) $(BP_VLS_OBJ) $(BP_VSOL_OBJ) $(BP_VT_OBJ) $(BP_MPS_OBJ) $(ALG_OBJ) $(VI_OBJ) $(VINF_OBJ) $(VIG_OBJ) $(VSAT_OBJ) $(DP_OBJ) $(VST_OBJ) $(VS_OBJ) $(PARSE_OBJ) $(VFMB_OBJ)
 VSAT_BASIC := $(VD_OBJ) $(VL_OBJ) $(VLS_OBJ) $(VSAT_OBJ) $(LIB_DEP)
 
-VAMPIRE_DEP := $(VAMP_BASIC) $(CASC_OBJ) $(TKV_BASIC) Global.o vampire.o
-VSAT_DEP = $(VSAT_BASIC) Global.o
-VTEST_DEP = $(VAMP_BASIC) $(VT_OBJ) $(VUT_OBJ) $(DP_OBJ) Global.o vtest.o
-LIBVAPI_DEP = $(VD_OBJ) $(API_OBJ) Global.o
+VAMPIRE_DEP := $(VAMP_BASIC) $(CASC_OBJ) $(TKV_BASIC) vampire.o
+VSAT_DEP = $(VSAT_BASIC)
+VTEST_DEP = $(VAMP_BASIC) $(VT_OBJ) $(VUT_OBJ) $(DP_OBJ) vtest.o
+LIBVAPI_DEP = $(VD_OBJ) $(API_OBJ)
 VAPI_DEP =  $(LIBVAPI_DEP) test_vapi.o
 
 all: #default make disabled

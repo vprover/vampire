@@ -24,9 +24,9 @@
 
 #include "Lib/Environment.hpp"
 #include "Lib/List.hpp"
-#include "Lib/XML.hpp"
 
 #include "Kernel/Signature.hpp"
+#include "Kernel/SortHelper.hpp"
 
 #include "Connective.hpp"
 #include "Term.hpp"
@@ -39,8 +39,6 @@ using namespace Lib;
 class Formula
 {
 public:
-  typedef List<int> VarList;
-  typedef List<unsigned> SortList;
   /**
    * Constructor of constant formulas (true/false)
    * @since 02/07/2007 Manchester
@@ -63,26 +61,25 @@ public:
   Formula* right();
   const Formula* qarg() const;
   Formula* qarg();
-  const VarList* vars() const;
-  VarList* vars();
-  const SortList* sorts() const;
-  SortList* sorts();
+  const VList* vars() const;
+  VList* vars();
+  const SList* sorts() const;
+  SList* sorts();
   const Formula* uarg() const;
   Formula* uarg();
   const Literal* literal() const;
   Literal* literal();
   const TermList getBooleanTerm() const;
   TermList getBooleanTerm();
-  VarList* freeVariables () const;
-  VarList* boundVariables () const;
+  VList* freeVariables () const;
+  bool isFreeVariable(unsigned var) const;
+  VList* boundVariables () const;
 
   // miscellaneous
   bool equals(const Formula*) const;
   void collectAtoms(Stack<Literal*>& acc);
   void collectPredicates(Stack<unsigned>& acc);
   void collectPredicatesWithPolarity(Stack<pair<unsigned,int> >& acc, int polarity=1);
-
-  XMLElement toXML() const;
 
   // output
   vstring toString() const;
@@ -97,6 +94,10 @@ public:
   Color getColor();
   bool getSkip();
 
+  bool hasLabel(){ return _label != DEFAULT_LABEL; }
+  vstring getLabel(){ return _label;}
+  void label(vstring l){ _label=l; }
+
   static Formula* fromClause(Clause* cl);
 
   static Formula* quantify(Formula* f);
@@ -105,8 +106,9 @@ public:
   static Formula* falseFormula();
 
   static Formula* createITE(Formula* condition, Formula* thenArg, Formula* elseArg);
-  static Formula* createLet(unsigned functor, Formula::VarList* variables, TermList body, Formula* contents);
-  static Formula* createLet(unsigned predicate, Formula::VarList* variables, Formula* body, Formula* contents);
+  static Formula* createLet(unsigned functor, VList* variables, TermList body, Formula* contents);
+  static Formula* createLet(unsigned predicate, VList* variables, Formula* body, Formula* contents);
+
 
   // use allocator to (de)allocate objects of this class
   CLASS_NAME(Formula);
@@ -116,13 +118,15 @@ protected:
 
   /** Create a dummy formula will null content */
   explicit Formula(Connective con)
-    : _connective(con)
+    : _connective(con), _label(DEFAULT_LABEL)
   {}
 
   /** connective */
   Connective _connective;
-  // auxiliary functions
-  static vstring _connectiveNames[];
+
+  static vstring DEFAULT_LABEL;
+  vstring _label;
+
 }; // class Formula
 
 /**
@@ -182,7 +186,7 @@ class QuantifiedFormula
 {
  public:
   /** Build a quantified formula */
-  QuantifiedFormula(Connective con, VarList* vs, SortList* ss, Formula* arg)
+  QuantifiedFormula(Connective con, VList* vs, SList* ss, Formula* arg)
     : Formula(con),
       _vars(vs),
       _sorts(ss),
@@ -190,7 +194,7 @@ class QuantifiedFormula
   {
     ASS(con == FORALL || con == EXISTS);
     ASS(vs);
-    ASS(!ss || VarList::length(vs) == SortList::length(ss));
+    ASS(!ss || VList::length(vs) == SList::length(ss));
   }
 
   /** Return the immediate subformula */
@@ -198,22 +202,22 @@ class QuantifiedFormula
   /** Return the immediate subformula */
   Formula* subformula () { return _arg; }
   /** Return the list of variables */
-  const VarList* varList() const { return _vars; }
+  const VList* varList() const { return _vars; }
   /** Return the list of variables */
-  VarList* varList() { return _vars; }
+  VList* varList() { return _vars; }
   /** Return the list of sorts */
-  const SortList* sortList() const { return _sorts; }
+  const SList* sortList() const { return _sorts; }
   /** Return the list of sorts */
-  SortList* sortList() { return _sorts; }
+  SList* sortList() { return _sorts; }
 
   // use allocator to (de)allocate objects of this class
   CLASS_NAME(QuantifiedFormula);
   USE_ALLOCATOR(QuantifiedFormula);
  protected:
   /** list of variables */
-  VarList* _vars;
+  VList* _vars;
   /** list of sorts */
-  SortList* _sorts;
+  SList* _sorts;
   /** argument */
   Formula* _arg;
 }; // class Formula::QuantifiedData
@@ -333,7 +337,9 @@ class BoolTermFormula
       _ts(ts)
   {
     // only boolean terms in formula context are expected here
-    ASS_REP(ts.isVar() || ts.term()->isITE() || ts.term()->isLet() || ts.term()->isTupleLet(), ts.toString());
+    ASS_REP(ts.isVar() || ts.term()->isITE() || ts.term()->isLet() ||
+            ts.term()->isTupleLet() || ts.term()->isMatch() ||
+            SortHelper::getResultSort(ts.term()) == Term::boolSort(), ts.toString());
   }
 
   static Formula* create(TermList ts) {
@@ -377,14 +383,14 @@ class BoolTermFormula
 
 /** Return the list of variables of a quantified formula */
 inline
-const Formula::VarList* Formula::vars() const
+const VList* Formula::vars() const
 {
   ASS(_connective == FORALL || _connective == EXISTS);
   return static_cast<const QuantifiedFormula*>(this)->varList();
 }
 /** Return the list of variables of a quantified formula */
 inline
-Formula::VarList* Formula::vars()
+VList* Formula::vars()
 {
   ASS(_connective == FORALL || _connective == EXISTS);
   return static_cast<QuantifiedFormula*>(this)->varList();
@@ -392,14 +398,14 @@ Formula::VarList* Formula::vars()
 
 /** Return the list of sorts of a quantified formula */
 inline
-const Formula::SortList* Formula::sorts() const
+const SList* Formula::sorts() const
 {
   ASS(_connective == FORALL || _connective == EXISTS);
   return static_cast<const QuantifiedFormula*>(this)->sortList();
 }
 /** Return the list of sorts of a quantified formula */
 inline
-Formula::SortList* Formula::sorts()
+SList* Formula::sorts()
 {
   ASS(_connective == FORALL || _connective == EXISTS);
   return static_cast<QuantifiedFormula*>(this)->sortList();

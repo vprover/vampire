@@ -76,6 +76,7 @@ public:
   void recordIntroducedSymbol(Unit* u, bool func, unsigned number);
   void recordIntroducedSplitName(Unit* u, vstring name);
 
+  void outputUnsatCore(ostream& out, Unit* refutation);
   void outputProof(ostream& out, Unit* refutation);
   void outputProof(ostream& out, UnitList* units);
 

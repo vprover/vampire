@@ -3,9 +3,6 @@ on:
   workflow_dispatch:
   pull_request:
     types: [opened, reopened, synchronize]
-  schedule:
-    # build at least daily at UTC 00:00 to keep the Z3 build cache warm
-    - cron: '0 0 * * *'
 
 jobs:
   build:
@@ -19,19 +16,14 @@ jobs:
       run: checks/headers
     - name: Create Z3 Build Directory
       run: mkdir z3/build
-    - name: Cache Z3 Build
-      uses: actions/cache@v2
-      with:
-        path: ${{runner.workspace}}/vampire/z3/build
-        key: ${{runner.os}}-z3-${{hashFiles('.git/modules/z3/HEAD')}}
     - name: Configure Z3 Build
       working-directory: ${{runner.workspace}}/vampire/z3/build
-      run: test -f libz3.so || cmake .. -DCMAKE_BUILD_TYPE=Debug
+      run: cmake .. -DCMAKE_BUILD_TYPE=Debug
       env:
         CXX: clang++
     - name: Z3 Build
       working-directory: ${{runner.workspace}}/vampire/z3/build
-      run: test -f libz3.so || make -j8
+      run: make -j8
     - name: Create Build Directory
       run: mkdir build
     - name: Configure Build

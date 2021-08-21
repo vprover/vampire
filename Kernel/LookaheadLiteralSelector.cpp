@@ -101,7 +101,7 @@ struct LookaheadLiteralSelector::GenIteratorIterator
       ASS(fsi);
 
       nextIt=pvi( getMapAndFlattenIterator(
-	       EqHelper::getRewritableSubtermIterator(lit, _parent._ord),
+	       EqHelper::getSubtermIterator(lit, _parent._ord), //TODO update for combinatory sup
 	       TermUnificationRetriever(fsi)) );
       break;
     }
@@ -149,8 +149,7 @@ private:
   struct TermUnificationRetriever
   {
     TermUnificationRetriever(TermIndex* index) : _index(index) {}
-    DECL_RETURN_TYPE(VirtualIterator<void>);
-    OWN_RETURN_TYPE operator()(TermList trm)
+    VirtualIterator<void> operator()(TermList trm)
     {
       return pvi( getStaticCastIterator<void>(_index->getUnifications(trm,false)) );
     }

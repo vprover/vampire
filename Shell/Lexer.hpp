@@ -41,7 +41,7 @@ class LexerException
 {
  public:                                
   LexerException(vstring message,const Lexer&);
-  void cry(ostream&);
+  void cry(ostream&) const;
   ~LexerException() {}
  protected:
   vstring _message;

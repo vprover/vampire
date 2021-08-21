@@ -13,6 +13,7 @@
  */
 
 #if VZ3
+#define DEBUG(...)  //DBG(__VA_ARGS__)
 
 #define DPRINT 0
 
@@ -45,7 +46,8 @@
 #include "SAT/Z3Interfacing.hpp"
 
 #include "TheoryInstAndSimp.hpp"
-
+#include "Kernel/NumTraits.hpp"
+#include "Kernel/TermIterators.hpp"
 
 namespace Inferences
 {
@@ -56,25 +58,75 @@ using namespace Shell;
 using namespace Saturation;
 using namespace SAT;
 
+using SortId = SAT::Z3Interfacing::SortId;
+
+TheoryInstAndSimp::TheoryInstAndSimp(Options& opts) : TheoryInstAndSimp(
+    opts.theoryInstAndSimp(), 
+    opts.thiTautologyDeletion(), 
+    opts.showZ3(),  
+    opts.thiGeneralise(),
+    opts.exportThiProblem()
+    ) {}
+
+
+Options::TheoryInstSimp manageDeprecations(Options::TheoryInstSimp mode) 
+{
+  switch (mode) {
+    case Options::TheoryInstSimp::FULL:
+    case Options::TheoryInstSimp::NEW:
+      env.beginOutput();
+      env.out() << "WARNING: the modes full & new are deprecated for theory instantiation. using all instead." << std::endl;
+      env.endOutput();
+      return Options::TheoryInstSimp::ALL;
+    default:
+      return mode;
+  }
+}
+
+TheoryInstAndSimp::TheoryInstAndSimp(Options::TheoryInstSimp mode, bool thiTautologyDeletion, bool showZ3, bool generalisation, vstring const& exportSmtlib) 
+  : _splitter(0)
+  , _mode(manageDeprecations(mode))
+  , _thiTautologyDeletion(thiTautologyDeletion)
+  , _naming()
+  , _solver([&](){ 
+      BYPASSING_ALLOCATOR; 
+      return new Z3Interfacing(_naming, showZ3,   /* unsatCoresForAssumptions = */ generalisation, exportSmtlib); 
+    }())
+  , _generalisation(generalisation)
+  , _instantiationConstants ("$inst")
+  , _generalizationConstants("$inst$gen")
+{ }
+
 
 void TheoryInstAndSimp::attach(SaturationAlgorithm* salg)
 {
   CALL("Superposition::attach");
 
-  GeneratingInferenceEngine::attach(salg);
+  SimplifyingGeneratingInference::attach(salg);
   _splitter = salg->getSplitter();
 }
 
-bool TheoryInstAndSimp::isSupportedSort(const unsigned sort) {
+
+
+bool TheoryInstAndSimp::calcIsSupportedSort(SortId sort)
+{
+  CALL("TheoryInstAndSimp::calcIsSupportedSort")
   //TODO: extend for more sorts (arrays, datatypes)
-  switch (sort) {
-  case Kernel::Sorts::SRT_INTEGER:
-  case Kernel::Sorts::SRT_RATIONAL:
-  case Kernel::Sorts::SRT_REAL:
+  if(   sort == IntTraits::sort() 
+     || sort == RatTraits::sort() 
+     || sort == RealTraits::sort() ){
     return true;
+  } else if (env.signature->isTermAlgebraSort(sort)) {
+    return env.signature->getTermAlgebraOfSort(sort)
+                        ->subSorts().iter()
+                         .all([&](auto s){ return env.signature->isTermAlgebraSort(s) || calcIsSupportedSort(s); });
+  } else {
+    return false;
   }
-  return false;
 }
+
+bool TheoryInstAndSimp::isSupportedSort(SortId sort) 
+{ return _supportedSorts.getOrInit(sort, [&](){ return calcIsSupportedSort(sort); }); }
 
 /**
   Wraps around interpretePredicate to support interpreted equality
@@ -82,24 +134,44 @@ bool TheoryInstAndSimp::isSupportedSort(const unsigned sort) {
 bool TheoryInstAndSimp::isSupportedLiteral(Literal* lit) {
   //check equality spearately (X=Y needs special handling)
   if (lit->isEquality()) {
-    unsigned sort = SortHelper::getEqualityArgumentSort(lit);
-    return isSupportedSort(sort);
+    return isSupportedSort(SortHelper::getEqualityArgumentSort(lit));
   }
 
   //check if predicate is interpreted
-  if (! theory->isInterpretedPredicate(lit)){
+  if (! theory->isInterpretedPredicate(lit->functor())){
     return false;
   }
 
   //check if arguments of predicate are supported
   for (unsigned i=0; i<lit->arity(); i++) {
-    unsigned sort = SortHelper::getArgSort(lit,i);
+    TermList sort = SortHelper::getArgSort(lit,i);
     if (! isSupportedSort(sort))
       return false;
   }
 
   return true;
 }
+
+bool TheoryInstAndSimp::isSupportedFunction(Term* trm) {
+  auto sym = env.signature->getFunction(trm->functor());
+  return !(theory->isInterpretedConstant(trm) 
+      || (theory->isInterpretedFunction(trm) && isSupportedFunction(theory->interpretFunction(trm)) )
+      || (sym->termAlgebraCons() && isSupportedSort(sym->fnType()->result()))
+      || (sym->termAlgebraDest() && isSupportedSort(sym->fnType()->arg(0)))
+      );
+}
+
+
+bool TheoryInstAndSimp::isSupportedFunction(Theory::Interpretation itp) {
+  switch (itp) {
+    case Theory::ARRAY_BOOL_SELECT:
+    case Theory::ARRAY_SELECT:
+    case Theory::ARRAY_STORE:
+      return false;
+    default: return true;
+  }
+}
+
 
 
 bool TheoryInstAndSimp::isPure(Literal* lit) {
@@ -111,16 +183,13 @@ bool TheoryInstAndSimp::isPure(Literal* lit) {
   }
 
   //check if the predicate is a theory predicate
-  Theory* theory = Theory::instance();
   if (! isSupportedLiteral(lit) ) {
-    //    cout << "uninterpreted predicate symbol " << lit -> toString() << endl;
     return false;
   }
   //check all (proper) subterms
   SubtermIterator sti(lit);
   while( sti.hasNext() ) {
     TermList tl = sti.next();
-    //cout << "looking at subterm " << tl.toString() << endl;
     if ( tl.isEmpty() || tl.isVar() ){
       continue;
     }
@@ -128,8 +197,7 @@ bool TheoryInstAndSimp::isPure(Literal* lit) {
       Term* term = tl.term();
 
       //we can stop if we found an uninterpreted function / constant
-      if (! (theory->isInterpretedFunction(term)  ||
-             theory->isInterpretedConstant(term) )){
+      if (isSupportedFunction(term)){
         return false;
       }
       //check if return value of term is supported
@@ -140,7 +208,7 @@ bool TheoryInstAndSimp::isPure(Literal* lit) {
       // f could map uninterpreted sorts to integer. when iterating over X
       // itself, its sort cannot be checked.
       for (unsigned i=0; i<term->arity(); i++) {
-        unsigned sort = SortHelper::getArgSort(term,i);
+        TermList sort = SortHelper::getArgSort(term,i);
         if (! isSupportedSort(sort))
           return false;
       }
@@ -157,7 +225,7 @@ bool TheoryInstAndSimp::isPure(Literal* lit) {
 bool TheoryInstAndSimp::isXeqTerm(const TermList* left, const TermList* right) {
   bool r = left->isVar() &&
     right->isTerm() &&
-    !IntList::member(left->var(), right->term()->freeVariables());
+    !VList::member(left->var(), right->term()->freeVariables());
   return r;
 }
 
@@ -217,8 +285,7 @@ bool TheoryInstAndSimp::literalContainsVar(const Literal* lit, unsigned v) {
  *   - repeat this step until no element was removed or TC is empty
  * the algorithm can be optimized by only checking the freshly removed elements
  **/
-void TheoryInstAndSimp::selectTrivialLiterals(Clause* cl,
-                                              Stack<Literal*>& trivialLits)
+Stack<Literal*> TheoryInstAndSimp::selectTrivialLiterals(Clause* cl)
 {
   CALL("TheoryInstAndSimp::selectTrivialLiterals");
 #if DPRINT
@@ -316,69 +383,36 @@ void TheoryInstAndSimp::selectTrivialLiterals(Clause* cl,
   cout << "Found " << triv_candidates.length() << " trivial literals." << endl;
 #endif
   
-  //copy triv_candidates to trivialLits
-  trivialLits = triv_candidates;
+  return triv_candidates;
 }
 
 
-void TheoryInstAndSimp::selectTheoryLiterals(Clause* cl, Stack<Literal*>& theoryLits) {
+/** 
+ * Selects the theory literals to be used for instantiation. These are all non-trivial pure theory literals.
+ */
+Stack<Literal*> TheoryInstAndSimp::selectTheoryLiterals(Clause* cl) {
   CALL("TheoryInstAndSimp::selectTheoryLiterals");
 #if DPRINT
   cout << "selectTheoryLiterals in " << cl->toString() << endl;
 #endif
 
-  ASS_NEQ(
-    env.options->theoryInstAndSimp(),
-    Shell::Options::TheoryInstSimp::OFF
-  );
+  ASS_NEQ(_mode, Shell::Options::TheoryInstSimp::OFF);
 
-  //  Stack<Literal*> pure_lits;
-  Stack<Literal*> trivial_lits;
-  selectTrivialLiterals(cl, trivial_lits);
+  Stack<Literal*> trivial_lits = selectTrivialLiterals(cl);
+  Stack<Literal*> out;
 
   Clause::Iterator cl_it(*cl);
   while (cl_it.hasNext()) {
     auto lit = cl_it.next();
+    // TODO this is O(n^2) runtime
     if (isPure(lit) && !trivial_lits.find(lit))
-      theoryLits.push(lit);
+      out.push(lit);
   }
-  
+  return out;
 }
 
 
-// literals containing top-level terms that are partial functions with 0 on the right should never be selected
-// we only focus on top-level terms as otherwise the literal can be selected and have such terms abstracted out (abstraction treats
-// these terms as uninterpreted) and then in the abstracted version we want them to not be selected!
-  void TheoryInstAndSimp::filterDivisionByZero(Stack<Literal*>& theoryLits, Stack<Literal*>& filteredLits) {
-  Stack<Literal*>::BottomFirstIterator it(theoryLits);
-  while(it.hasNext()) {
-    Literal* lit = it.next();
-    bool keep_lit = true;
-    for(TermList* ts = lit->args(); ts->isNonEmpty(); ts = ts->next()){
-#if DPRINT
-          cout << "div zero filtering checking: " << lit->toString() << endl;
-#endif
-      
-      if(ts->isTerm()){
-        Term* t = ts->term();
-        if(theory->isInterpretedPartialFunction(t->functor()) &&
-           theory->isZero(*(t->nthArgument(1)))){
-          // treat this literal as uninterpreted
-          keep_lit = false;
-#if DPRINT
-          cout << "division by zero removed: " << lit->toString() << endl;
-#endif
-        }
-      }
-    }
-
-    if (keep_lit) {
-      filteredLits.push(lit);
-    }
-  }
-}
-
-void TheoryInstAndSimp::filterDivisionByZeroDeep(Stack<Literal*>& theoryLits, Stack<Literal*>& filteredLits) {
+void TheoryInstAndSimp::filterUninterpretedPartialFunctionDeep(Stack<Literal*>& theoryLits, Stack<Literal*>& filteredLits) {
 #if DPRINT
   cout << "div zero filtering checking!" << endl;
 #endif
@@ -394,8 +428,9 @@ void TheoryInstAndSimp::filterDivisionByZeroDeep(Stack<Literal*>& theoryLits, St
       auto ts = sit.next();
       if(ts.isTerm()){
         Term* t = ts.term();
-        if(theory->isInterpretedPartialFunction(t->functor()) &&
-           theory->isZero(*(t->nthArgument(1)))){
+        if( theory->isPartiallyInterpretedFunction(t)
+         && theory->partiallyDefinedFunctionUndefinedForArgs(t)
+            ){
           // treat this literal as uninterpreted
           keep_lit = false;
 #if DPRINT
@@ -411,214 +446,162 @@ void TheoryInstAndSimp::filterDivisionByZeroDeep(Stack<Literal*>& theoryLits, St
   }
 }
 
-void TheoryInstAndSimp::applyFilters(Stack<Literal*>& theoryLits, bool forZ3) {
-  //TODO: too much copying, optimize
-  if (forZ3) {
-    Stack<Literal*> filteredLits;
-    filterDivisionByZeroDeep(theoryLits, filteredLits);
-    theoryLits=filteredLits; 
-  }
+void TheoryInstAndSimp::ConstantCache::reset()
+{ for (auto& x : iterTraits(_inner.iter())) x.value().reset(); }
+
+Term* TheoryInstAndSimp::ConstantCache::freshConstant(SortId sort) 
+{ 
+  auto& cache = _inner.getOrInit(sort, [](){ 
+      DEBUG("new constant cache for sort ", _inner.size());
+      return SortedConstantCache(); 
+    });
+  return cache.freshConstant(_prefix, sort);
 }
 
-/**
- * Scans through a clause and selects candidates for theory instantiation
- **/
-void TheoryInstAndSimp::originalSelectTheoryLiterals(Clause* cl, Stack<Literal*>& theoryLits,bool forZ3)
-{
-  CALL("TheoryInstAndSimp::originalSelectTheoryLiterals");
-#if DPRINT
-  cout << "originalSelectTheoryLiterals["<<forZ3<<"] in " << cl->toString() << endl;
-#endif
+void TheoryInstAndSimp::ConstantCache::SortedConstantCache::reset() 
+{ _used = 0; }
 
-  static Shell::Options::TheoryInstSimp selection = env.options->theoryInstAndSimp();
-  ASS(selection!=Shell::Options::TheoryInstSimp::OFF);
-
-  Stack<Literal*> weak;
-  Set<unsigned> strong_vars;
-  Set<unsigned> strong_symbols;
-  Array<Stack<Literal*>> var_to_lits(cl->varCnt());
-  
-
-  Clause::Iterator it(*cl);
-  while(it.hasNext()){
-    Literal* lit = it.next();
-    bool interpreted = theory->isInterpretedPredicate(lit);
-
-    // two var equalities are correctly identified as interpreted and should be added
-    // for the other equalities, we make sure they don't contain uninterpreted stuff (after flattenning)
-
-    //TODO I do this kind of check all over the place but differently every time!
-    if(interpreted && lit->isEquality() && !lit->isTwoVarEquality()) {  
-      for(TermList* ts = lit->args(); ts->isNonEmpty(); ts = ts->next()){
-        if(ts->isTerm() && !env.signature->getFunction(ts->term()->functor())->interpreted()){
-          interpreted=false;
-          break;
-        }
-      }
-    }
-
-    if(forZ3){
-    // literals containing top-level terms that are partial functions with 0 on the right should never be selected
-    // we only focus on top-level terms as otherwise the literal can be selected and have such terms abstracted out (abstraction treats
-    // these terms as uninterpreted) and then in the abstracted version we want them to not be selected!
-    for(TermList* ts = lit->args(); ts->isNonEmpty(); ts = ts->next()){
-      if(ts->isTerm()){
-        Term* t = ts->term();
-        if(theory->isInterpretedPartialFunction(t->functor()) &&
-           theory->isZero(*(t->nthArgument(1)))){
-          // treat this literal as uninterpreted
-          interpreted=false;
-#if DPRINT
-          cout << "forZ3 interpreted is false for " << lit->toString() << endl;
-#endif
-        }
-      }
-    }
-    }
-
-    if(interpreted){    
-      VariableIterator vit(lit); 
-      bool pos_equality = lit->isEquality() && lit->polarity();
-      // currently weak literals are postive equalities or ground literals
-      bool is_weak = !vit.hasNext() || pos_equality;
-      if(selection != Shell::Options::TheoryInstSimp::ALL && 
-         selection != Shell::Options::TheoryInstSimp::FULL && 
-         is_weak){
-        weak.push(lit);
-      }
-      else{
-#if DPRINT
-        cout << "select " << lit->toString() << endl;
-#endif
-        theoryLits.push(lit);
-        while(vit.hasNext()){ 
-          unsigned v = vit.next().var();
-          strong_vars.insert(v); 
-          var_to_lits[v].push(lit);
-        }
-        NonVariableIterator nit(lit);
-        while(nit.hasNext()){ strong_symbols.insert(nit.next().term()->functor());}
-      }
-    } 
+Term* TheoryInstAndSimp::ConstantCache::SortedConstantCache::freshConstant(const char* prefix, SortId sort) 
+{ 
+  if (_constants.size() == _used)  {
+    unsigned sym = env.signature->addFreshFunction(0, prefix);
+    env.signature->getFunction(sym)
+                 ->setType(OperatorType::getConstantsType(sort));
+    DEBUG("new constant for sort ", sort, ": ", *env.signature->getFunction(sym));
+    _constants.push(Term::createConstant(sym));
   }
-  if(selection == Shell::Options::TheoryInstSimp::OVERLAP){
+  return _constants[_used++];
+}
 
-  Stack<Literal*>::Iterator wit(weak);
-  while(wit.hasNext()){
-    Literal* lit = wit.next();
-#if DPRINT
-	cout << "consider weak " << lit->toString() << endl;
-#endif
-    VariableIterator vit(lit);
-    bool add = false;
-    while(vit.hasNext() && !add){
-      if(strong_vars.contains(vit.next().var())){
-        add=true; 
-#if DPRINT
-	cout << "add weak as has strong var" << endl;
-#endif
-      }
-    }
-    if(!add){
-      NonVariableIterator nit(lit); 
-      while(nit.hasNext() && !add){
-        if(strong_symbols.contains(nit.next().term()->functor())){
-          add=true;
-#if DPRINT
-        cout << "add weak as has strong symbol" << endl;
-#endif
-        }
-      }
-    }
-    if(add){
-#if DPRINT
-        cout << "select " << lit->toString() << endl;
-#endif
-        theoryLits.push(lit);
-        VariableIterator vit(lit);
-        while(vit.hasNext()){ var_to_lits[vit.next().var()].push(lit); } 
+class TheoryInstAndSimp::GeneralisationTree {
+  TermList _introduced;
+  unsigned _functor;
+  Stack<GeneralisationTree> _args;
+public:
+  GeneralisationTree(Term* name, TermList toAbstract, ConstantCache& cache) 
+    : _introduced(TermList(name))
+    , _functor(toAbstract.term()->functor())
+    , _args(toAbstract.term()->arity())
+  {
+    for (unsigned i = 0; i < toAbstract.term()->arity(); i++) {
+      auto arg  = *toAbstract.term()->nthArgument(i);
+      auto sort = SortHelper::getResultSort(arg.term());
+      _args.push(GeneralisationTree(cache.freshConstant(sort), arg, cache));
     }
   }
+
+  template<class F>
+  void foreachDef(F f) 
+  {
+    Stack<TermList> args(_args.size());
+    for (auto& a : _args) {
+      args.push(a._introduced);
+      a.foreachDef(f);
+    }
+    auto definition = TermList(Term::create(_functor, args.size(), args.begin()));
+    f(*this, Literal::createEquality(true, _introduced, definition, SortHelper::getResultSort(_introduced.term())));
+  }
+
+  TermList buildGeneralTerm(Set<TermList> const& usedDefs, unsigned& freshVar)
+  {
+    if (usedDefs.contains(_introduced)) {
+      Stack<TermList> args(_args.size());
+      for (auto& a : _args) {
+        args.push(a.buildGeneralTerm(usedDefs, freshVar));
+      }
+      return TermList(Term::create(_functor, args.size(), args.begin()));
+
+    } else {
+      return TermList::var(freshVar++);
+    }
+  }
+
+  TermList constant() { return _introduced; }
+};
  
-  }
-  // now remove bad things
-  // if this is the forZ3 pass then ensure that nothing is uninterpreted
-  if(forZ3){
-    Stack<Literal*>::Iterator tlit(theoryLits);
-    Stack<Literal*> deselected;
-    while(tlit.hasNext()){
-      Literal* lit = tlit.next();
-      NonVariableIterator nit(lit);
-      bool deselect=false;
-      while(nit.hasNext() && !deselect){
-        Term* t = nit.next().term();
-        deselect = !(theory->isInterpretedFunction(t->functor()) || theory->isInterpretedConstant(t->functor())); 
-        if(deselect){
-#if DPRINT
-          cout << "deselect " << t->toString() << endl;
-#endif
-        }
-      }
-      if(deselect){ deselected.push(lit);}
-    }
-    Stack<Literal*>::Iterator dit(deselected);
-    while(dit.hasNext()){ 
-      Literal* lit = dit.next();
-      theoryLits.remove(lit);
-#if DPRINT
-	cout << "deselect1 " << lit->toString() << endl;
-#endif
-    }
-  }
-  for(unsigned i=0;i<var_to_lits.size();i++){
-    if(var_to_lits[i].size()==1){
-      Literal * lit = var_to_lits[i][0]; 
-      // is of the form X!=t where X only occurs in this literal (from theory literals)
-      if(lit->isEquality() && !lit->polarity() &&
-         ((lit->nthArgument(0)->isVar() && lit->nthArgument(0)->var()==i) || 
-          (lit->nthArgument(1)->isVar() && lit->nthArgument(1)->var()==i))
-         ){
-#if DPRINT
-        cout << "deselect2 " << lit->toString() << endl;
-#endif
-        theoryLits.remove(lit);
-      }
-    }
-  }
-}
-
-Term* getFreshConstant(unsigned index, unsigned srt)
+Option<Substitution> TheoryInstAndSimp::instantiateGeneralised(
+    SkolemizedLiterals skolem, unsigned freshVar)
 {
-  CALL("TheoryInstAndSimp::getFreshConstant");
-  static Stack<Stack<Term*>*> constants;
+  CALL("TheoryInstAndSimp::instantiateGeneralised(..)")
 
-  while(srt+1 > constants.length()){
-    Stack<Term*>* stack = new Stack<Term*>;
-    constants.push(stack);
-  }
-  Stack<Term*>* sortedConstants = constants[srt];
-  while(index+1 > sortedConstants->length()){
-    unsigned sym = env.signature->addFreshFunction(0,"$inst");
-    OperatorType* type = OperatorType::getConstantsType(srt);
-    env.signature->getFunction(sym)->setType(type);
-    Term* fresh = Term::createConstant(sym);
-    sortedConstants->push(fresh);
-  }
-  return (*sortedConstants)[index];
-}
+  auto negatedClause = [](Stack<SATLiteral> lits) -> SATClause*
+  { 
+    for (auto& lit : lits) {
+      lit = lit.opposite();
+    }
+    return SATClause::fromStack(lits);
+  };
 
-VirtualIterator<Solution> TheoryInstAndSimp::getSolutions(Stack<Literal*>& theoryLiterals, bool guarded){
-  CALL("TheoryInstAndSimp::getSolutions");
+  return _solver->scoped([&]() {
+    _solver->addClause(negatedClause(skolem.lits));
+
+    Stack<SATLiteral> theoryLits;
+
+    _generalizationConstants.reset();
+    Map<SATLiteral, TermList> definitionLiterals;
+    Stack<GeneralisationTree> gens;
+    // unsigned freshVar = 0;
+    for (auto v : skolem.vars) {
+      ASS(v < freshVar);
+      // freshVar = v >= freshVar ? v + 1 : freshVar;
+      auto sk = skolem.subst.apply(v);
+      auto val = _solver->evaluateInModel(sk.term());
+      if (!val) {
+        // Failed to obtain a value; could be an algebraic number or some other currently unhandled beast...
+        env.statistics->theoryInstSimpLostSolution++;
+        return Option<Substitution>();
+      }
+
+      auto gen = GeneralisationTree(sk.term(), TermList(val), _generalizationConstants);
+      gens.push(gen);
+      gen.foreachDef([&](GeneralisationTree gen, Literal* l){
+          auto named = _naming.toSAT(l);
+          theoryLits.push(named);
+          definitionLiterals.insert(named, gen.constant());
+      });
+    }
+
+    auto res = _solver->solveUnderAssumptions(theoryLits, 0, false);
+    ASS_EQ(res, SATSolver::UNSATISFIABLE)
+
+    Set<TermList> usedDefs;
+    for (auto& x : _solver->failedAssumptions()) {
+      definitionLiterals
+        .tryGet(x)
+        .andThen([&](TermList t) 
+            { usedDefs.insert(t); });
+    }
+
+    for (unsigned i = 0; i < skolem.vars.size(); i++) {
+      skolem.subst.rebind(skolem.vars[i], gens[i].buildGeneralTerm(usedDefs, freshVar));
+    }
+    return Option<Substitution>(std::move(skolem.subst));
+  });
+};
+
+
+Option<Substitution> TheoryInstAndSimp::instantiateWithModel(SkolemizedLiterals skolem)
+{
+  CALL("TheoryInstAndSimp::instantiateWithModel(..)")
+
+  for (auto var : skolem.vars) {
+    auto ev = _solver->evaluateInModel(skolem.subst.apply(var).term());
+    if (ev) {
+      skolem.subst.rebind(var, ev);
+    } else {
+      // Failed to obtain a value; could be an algebraic number or some other currently unhandled beast...
+      env.statistics->theoryInstSimpLostSolution++;
+      return Option<Substitution>();
+    }
+  }
+  return Option<Substitution>(std::move(skolem.subst));
+};
+
+template<class IterLits> TheoryInstAndSimp::SkolemizedLiterals TheoryInstAndSimp::skolemize(IterLits lits) 
+{
 
   BYPASSING_ALLOCATOR;
-
   // Currently we just get the single solution from Z3
-
-  // We use a new SMT solver
-  // currently these are not needed outside of this function so we put them here
-  static SAT2FO naming;
-  static Z3Interfacing solver(*env.options,naming);
-  solver.reset(); // the solver will reset naming
 
 
   // Firstly, we need to consistently replace variables by constants (i.e. Skolemize)
@@ -626,300 +609,380 @@ VirtualIterator<Solution> TheoryInstAndSimp::getSolutions(Stack<Literal*>& theor
   // This subst is for the consistent replacement
   Substitution subst;
 
-  Stack<Literal*>::Iterator it(theoryLiterals);
+  Stack<SATLiteral> skolemized;
   Stack<unsigned> vars;
-  unsigned used = 0;
-  while(it.hasNext()){
-    // get the complementary of the literal
-    Literal* lit = Literal::complementaryLiteral(it.next());
+  _instantiationConstants.reset();
+  for (auto lit : lits) {
     // replace variables consistently by fresh constants
-    DHMap<unsigned,unsigned > srtMap;
+    DHMap<unsigned, SortId> srtMap;
     SortHelper::collectVariableSorts(lit,srtMap);
     TermVarIterator vit(lit);
     while(vit.hasNext()){
       unsigned var = vit.next();
-      unsigned sort = srtMap.get(var);
+      auto sort = srtMap.get(var);
       TermList fc;
       if(!subst.findBinding(var,fc)){
-        Term* fc = getFreshConstant(used++,sort);
-#if DPRINT
-    cout << "bind " << var << " to " << fc->toString() << endl;
-#endif
+        Term* fc = _instantiationConstants.freshConstant(sort);
+        ASS_EQ(SortHelper::getResultSort(fc), sort);
         subst.bind(var,fc);
         vars.push(var);
       }
     }
-#if DPRINT
-    cout << "skolem " << lit->toString();
-#endif
 
     lit = SubstHelper::apply(lit,subst);
 
-#if DPRINT
-    cout << " to get " << lit->toString() << endl;
-#endif
-
-    // register the lit in naming in such a way that the solver will pick it up!
-    SATLiteral slit = naming.toSAT(lit);
-
-    // now add the SAT representation
-    static SATLiteralStack satLits;
-    satLits.reset();
-    satLits.push(slit);
-    SATClause* sc = SATClause::fromStack(satLits);
-    //clause->setInference(new FOConversionInference(cl));
-    // guarded is normally true, apart from when we are checking a theory tautology
-    try{
-      solver.addClause(sc,guarded);
-    }
-    catch(UninterpretedForZ3Exception){
-      return VirtualIterator<Solution>::getEmpty();
-    }
+    skolemized.push(_naming.toSAT(lit));
   }
+
+  return SkolemizedLiterals {
+      .lits = std::move(skolemized),
+      .vars = std::move(vars),
+      .subst = std::move(subst),
+  };
+}
+
+
+
+VirtualIterator<Solution> TheoryInstAndSimp::getSolutions(Stack<Literal*> const& theoryLiterals, Stack<Literal*> const& guards, unsigned freshVar) {
+  CALL("TheoryInstAndSimp::getSolutions");
+
+  BYPASSING_ALLOCATOR;
+
+  auto skolemized = skolemize(iterTraits(getConcatenatedIterator(
+          theoryLiterals.iterFifo(),
+          guards.iterFifo()
+        )));
+  DEBUG("skolemized: ", iterTraits(skolemized.lits.iterFifo()).map([&](SATLiteral l){ return _naming.toFO(l)->toString(); }).collect<Stack>())
 
   // now we can call the solver
-  SATSolver::Status status = solver.solve(UINT_MAX);
+  SATSolver::Status status = _solver->solveUnderAssumptions(skolemized.lits, 0, false);
 
-  if(status == SATSolver::UNSATISFIABLE){
-#if DPRINT
-    cout << "z3 says unsat" << endl;
-#endif
-    return pvi(getSingletonIterator(Solution(false)));
-  }
-  else if(status == SATSolver::SATISFIABLE){
-    Solution sol = Solution(true);
-    Stack<unsigned>::Iterator vit(vars);
-    while(vit.hasNext()){
-      unsigned v = vit.next();
-      Term* t = subst.apply(v).term();
-      ASS(t);
-      //cout << v << ": " << t->toString() << endl;
-      t = solver.evaluateInModel(t);
-      // If we could evaluate the term in the model then bind it
-      if(t){
-        //cout << "evaluate to " << t->toString() << endl;
-        sol.subst.bind(v,t);
-      } else {
-        // Failed to obtain a value; could be an algebraic number or some other currently unhandled beast...
-        env.statistics->theoryInstSimpLostSolution++;
-        goto fail;
-      }
+  if(status == SATSolver::UNSATISFIABLE) {
+    DEBUG("unsat")
+    return pvi(getSingletonIterator(Solution::unsat()));
+
+  } else if(status == SATSolver::SATISFIABLE) {
+    DEBUG("found model: ", _solver->getModel())
+    auto subst = _generalisation ? instantiateGeneralised(skolemized, freshVar) 
+                                 : instantiateWithModel(skolemized);
+    if (subst.isSome()) {
+      return pvi(getSingletonIterator(Solution(std::move(subst).unwrap())));
+    } else {
+      DEBUG("could not build substituion from model.")
     }
-#if DPRINT
-    cout << "solution with " << sol.subst.toString() << endl;
-#endif
-    return pvi(getSingletonIterator(sol));
+  } else {
+    // SMT solving was incomplete
+    DEBUG("no solution.")
   }
-
-  fail:
-#if DRPINT
-    cout << "no solution" << endl;
-#endif
-
-  // SMT solving was incomplete
   return VirtualIterator<Solution>::getEmpty();
+}
 
+Clause* instantiate(Clause* original, Substitution& subst, Stack<Literal*> const& theoryLits, Splitter* splitter)
+{
+  Clause* inst = new(original->length()) Clause(original->length(),GeneratingInference1(InferenceRule::INSTANTIATION,original));
+  unsigned newLen = original->length() - theoryLits.size();
+  Clause* res = new(newLen) Clause(newLen,SimplifyingInference1(InferenceRule::INTERPRETED_SIMPLIFICATION,inst));
+
+  unsigned j=0;
+  for(unsigned i=0;i<original->length();i++){
+    Literal* lit = (*original)[i];
+    ASS_REP(SortHelper::areSortsValid(lit), *lit);
+    Literal* lit_inst = SubstHelper::apply(lit,subst);
+    SubtermIterator iter(lit_inst);
+    while (iter.hasNext()) {
+      auto t = iter.next();
+      ASS_REP(t.isVar() || SortHelper::areSortsValid(t.term()), t);
+    }
+    ASS_REP(SortHelper::areSortsValid(lit_inst), *lit_inst);
+    // ASS()
+    (*inst)[i] = lit_inst;
+    // we implicitly remove all theoryLits as the solution makes their combination false
+    if(!theoryLits.find(lit)){
+      (*res)[j] = lit_inst;
+      j++;
+    }
+  }
+  ASS_EQ(j,newLen);
+  if(splitter){
+    splitter->onNewClause(inst);
+  }
+  return res;
 }
 
 
 struct InstanceFn
 {
-  InstanceFn(Clause* cl, Stack<Literal*>& tl,Splitter* splitter,
-             TheoryInstAndSimp* parent,bool& red) :
-          _cl(cl), _theoryLits(tl), _splitter(splitter),
-         _parent(parent), _red(red) {}
-
-  DECL_RETURN_TYPE(Clause*);
-  OWN_RETURN_TYPE operator()(Solution sol)
+  Clause* operator()(Solution sol, Clause* original, 
+      Stack<Literal*> const& theoryLits, 
+      Stack<Literal*> const& invertedLits,
+      Stack<Literal*> const& guards, 
+      Splitter* splitter,
+      TheoryInstAndSimp* parent, 
+      bool& redundant
+    )
   {
     CALL("TheoryInstAndSimp::InstanceFn::operator()");
 
-    // We delete cl as it's a theory-tautology (note that if the answer was uknown no solution would be produced)
-    if(!sol.status){
-#if DPRINT
-      cout << "Potential theory tautology" << endl;
-#endif
-      // if the theoryLits contain partial functions that need to be guarded then it may not
-      // be a tautology, we would need to confirm this without the guards
-      bool containsPartial = false;
-      Stack<Literal*>::Iterator lit(_theoryLits);
-      while(lit.hasNext()){
-        NonVariableIterator tit(lit.next());
-        while(tit.hasNext()){
-          if(theory->isInterpretedPartialFunction(tit.next().term()->functor())){
-            containsPartial=true;
-            goto partial_check_end;
-          }
-        }
-      }
-partial_check_end:
-
+    // We delete cl as it's a theory-tautology
+    if(!sol.sat) {
       // now we run SMT solver again without guarding
-      if(containsPartial){
-        auto solutions = _parent->getSolutions(_theoryLits,false);
+      if(guards.isEmpty()){
+        redundant = true;
+      } else {
+        auto skolem = parent->skolemize(iterTraits(invertedLits.iterFifo() /* without guards !! */));
+        auto status = parent->_solver->solveUnderAssumptions(skolem.lits, 0, false);
         // we have an unsat solution without guards
-        if(solutions.hasNext() && !solutions.next().status){
-          containsPartial=false;
-        }
+        redundant = status == SATSolver::UNSATISFIABLE;
       }
 
-      if(!containsPartial){
+      if (redundant) {
         env.statistics->theoryInstSimpTautologies++;
-        // do this directly in salg
-        //_salg->removeActiveOrPassiveClause(_premise);
-        _red=true;
       }
 
-      return 0;
+      DEBUG("tautology")
+      return nullptr;
     }
+
     // If the solution is empty (for any reason) there is no point performing instantiation
     if(sol.subst.isEmpty()){
-      return 0;
+      env.statistics->theoryInstSimpEmptySubstitution++;
     }
-#if DPRINT
-    cout << "Instantiate " << _cl->toString() << endl;
-    cout << "with " << sol.subst.toString() << endl;
-    cout << "theoryLits are" << endl;
-    Stack<Literal*>::Iterator tit(_theoryLits);
-    while(tit.hasNext()){ cout << "\t" << tit.next()->toString() << endl;}
-#endif
-    Clause* inst = new(_cl->length()) Clause(_cl->length(),GeneratingInference1(InferenceRule::INSTANTIATION,_cl));
-    unsigned newLen = _cl->length() - _theoryLits.size();
-    Clause* res = new(newLen) Clause(newLen,SimplifyingInference1(InferenceRule::INTERPRETED_SIMPLIFICATION,inst));
-
-#if VDEBUG
-    unsigned skip = 0;
-#endif
-    unsigned j=0;
-    for(unsigned i=0;i<_cl->length();i++){
-      Literal* lit = (*_cl)[i];
-      Literal* lit_inst = SubstHelper::apply(lit,sol.subst);
-      (*inst)[i] = lit_inst;
-      // we implicitly remove all theoryLits as the solution makes their combination false
-      if(!_theoryLits.find(lit)){
-        (*res)[j] = lit_inst;
-        j++;
-      }
-#if VDEBUG
-      else{skip++;}//cout << "skip " << lit->toString() << endl;}
-#endif
-    }
-    ASS_EQ(skip, _theoryLits.size());
-    ASS_EQ(j,newLen);
-
-    if(_splitter){
-      _splitter->onNewClause(inst);
-    }
-
+    auto res = instantiate(original, sol.subst, theoryLits, splitter);
     env.statistics->theoryInstSimp++;
-#if DPRINT
-    cout << "to get " << res->toString() << endl;
-#endif
     return res;
   }
-
-private:
-  Clause* _cl;
-  Stack<Literal*>& _theoryLits;
-  Splitter* _splitter;
-  TheoryInstAndSimp* _parent;
-  bool& _red;
 };
 
-ClauseIterator TheoryInstAndSimp::generateClauses(Clause* premise,bool& premiseRedundant)
+Stack<Literal*> computeGuards(Stack<Literal*> const& lits) 
 {
-  CALL("TheoryInstAndSimp::generateClauses");
+  CALL("computeGuards");
 
-  if(premise->isPureTheoryDescendant()){ return ClauseIterator::getEmpty(); }
+  /* finds the constructor for a given distructor */
+  auto findConstructor = [](TermAlgebra* ta, unsigned destructor, bool predicate) -> TermAlgebraConstructor* 
+  {
+    // TODO get rid of this wasteful search for the right constructor, and use some sort of hashing instead
+    for (auto ctor : ta->iterCons()) {
+      for (unsigned i = 0; i < ctor->arity(); i++) {
+        auto p = ctor->argSort(i) == Term::boolSort();
+        auto d = ctor->destructorFunctor(i);
+        if(destructor == d && predicate == p) 
+          return ctor;
+      }
+    }
+    ASSERTION_VIOLATION
+  };
 
-  static Options::TheoryInstSimp thi = env.options->theoryInstAndSimp();
+  auto destructorGuard = [&findConstructor](Term* destr, SortId sort, bool predicate) -> Literal*
+  {
+      auto ctor = findConstructor(env.signature->getTermAlgebraOfSort(sort), destr->functor(), predicate);
+      auto discr = ctor->createDiscriminator();
+      // asserts e.g. isCons(l) for a term that contains the subterm head(l) for lists
+      return Literal::create1(discr, /* polarity */ true, *destr->nthArgument(0));
+  };
 
-  static Stack<Literal*> selectedLiterals;
-  selectedLiterals.reset();
 
-  if(thi == Options::TheoryInstSimp::NEW){
-    selectTheoryLiterals(premise,selectedLiterals);
-    applyFilters(selectedLiterals,true);
+  Stack<Literal*> out;
+  for (auto lit : lits) {
+
+    /* guards for predicates */
+    auto predSym = env.signature->getPredicate(lit->functor());
+    if (predSym->termAlgebraDest()) {
+      out.push(destructorGuard(lit, predSym->predType()->arg(0), /* predicate */ true));
+    }
+
+    /* guards for subterms */
+    SubtermIterator it(lit);
+    for (auto t = it.next(); it.hasNext(); t = it.next()) {
+      ASS_REP(t.isVar() || !t.term()->isLiteral(), t);
+      if (t.isTerm()) {
+        auto term = t.term();
+        auto sym = env.signature->getFunction(t.term()->functor());
+        auto fun = term->functor();
+        if (theory->isInterpretedNumber(term)) {
+          /* no guard */
+        } else if (theory->isInterpretedFunction(fun) || theory->isInterpretedConstant(fun)) {
+
+          switch (theory->interpretFunction(fun)) {
+            case Theory::REAL_QUOTIENT:
+            case Theory::REAL_REMAINDER_E:
+            case Theory::REAL_QUOTIENT_F:
+            case Theory::REAL_QUOTIENT_T:
+            case Theory::REAL_REMAINDER_T:
+            case Theory::REAL_REMAINDER_F:
+              out.push(Literal::createEquality(false, RealTraits::zero(), *term->nthArgument(1), RealTraits::sort()));
+              break;
+
+            case Theory::RAT_QUOTIENT:
+            case Theory::RAT_QUOTIENT_T:
+            case Theory::RAT_REMAINDER_T:
+            case Theory::RAT_QUOTIENT_F:
+            case Theory::RAT_REMAINDER_F:
+            case Theory::RAT_REMAINDER_E:
+              out.push(Literal::createEquality(false, RatTraits::zero(), *term->nthArgument(1), RatTraits::sort()));
+              break;
+
+            case Theory::INT_QUOTIENT_F:
+            case Theory::INT_REMAINDER_F:
+            case Theory::INT_QUOTIENT_E: 
+            case Theory::INT_QUOTIENT_T:
+            case Theory::INT_REMAINDER_T:
+            case Theory::INT_REMAINDER_E:
+              out.push(Literal::createEquality(false, IntTraits::zero(), *term->nthArgument(1), IntTraits::sort()));
+              break;
+
+            default:; /* no guard */
+          }
+        } else if (sym->termAlgebraDest()) { 
+          out.push(destructorGuard(term, sym->fnType()->arg(0), /* predicate */ false));
+        }
+      }
+    }
   }
-  else{
-    originalSelectTheoryLiterals(premise,selectedLiterals,false);
+  return out;
+}
+
+Stack<Literal*> filterLiterals(Stack<Literal*> lits, Options::TheoryInstSimp mode)
+{
+  auto isStrong = [](Literal* lit)  -> bool
+  { return ( lit->isEquality() && lit->isNegative())
+        || (!lit->isEquality() && theory->isInterpretedPredicate(lit->functor())); };
+
+  auto freeVars = [](Literal* lit) 
+  { return iterTraits(VList::Iterator(lit->freeVariables())); };
+
+  switch(mode) {
+    case Options::TheoryInstSimp::ALL:
+      return lits;
+
+    case Options::TheoryInstSimp::STRONG:
+      return iterTraits(lits.iterFifo())
+                            .filter(isStrong)
+                            .collect<Stack>();
+
+    case Options::TheoryInstSimp::NEG_EQ:
+      return iterTraits(lits.iterFifo())
+                            .filter([](Literal* lit) 
+                               { return lit->isEquality() && lit->isNegative(); } )
+                            .collect<Stack>();
+
+    case Options::TheoryInstSimp::OVERLAP:
+      {
+        Set<unsigned> strongVars;
+
+        for (auto l : lits) {
+          if (isStrong(l)) {
+            for (auto v : freeVars(l)) {
+              strongVars.insert(v);
+            }
+          }
+        }
+
+        return iterTraits(lits.iterFifo())
+                            .filter([&](Literal* lit) 
+                                { return freeVars(lit)
+                                          .any([&](unsigned var) 
+                                              { return strongVars.contains(var); }); })
+                            .collect<Stack>();
+      }
+
+    case Options::TheoryInstSimp::FULL:
+    case Options::TheoryInstSimp::NEW:
+    case Options::TheoryInstSimp::OFF:
+      ASSERTION_VIOLATION
   }
+  ASSERTION_VIOLATION
+}
+
+unsigned getFreshVar(Clause& clause) 
+{
+  unsigned freshVar = 0;
+  for (unsigned i = 0; i < clause.size(); i++) {
+    VariableIterator iter(clause[i]);
+    while(iter.hasNext()) {
+      auto var = iter.next();
+      if (freshVar <= var.var()) {
+        freshVar = var.var() + 1;
+      }
+    }
+  }
+  return freshVar;
+}
+
+SimplifyingGeneratingInference::ClauseGenerationResult TheoryInstAndSimp::generateSimplify(Clause* premise)
+{
+  CALL("TheoryInstAndSimp::generateSimplify");
+
+  auto empty = ClauseGenerationResult {
+    .clauses          = ClauseIterator::getEmpty(),
+    .premiseRedundant = false,
+  };
+
+  if(premise->isPureTheoryDescendant()){ 
+    return empty;
+  }
+
+
+  Stack<Literal*> selectedLiterals = selectTheoryLiterals(premise);
+  selectedLiterals = filterLiterals(std::move(selectedLiterals), _mode);
 
   // if there are no eligable theory literals selected then there is nothing to do
   if(selectedLiterals.isEmpty()){
-        return ClauseIterator::getEmpty();
+    return empty;
   }
 
   // we have an eligable candidate
   env.statistics->theoryInstSimpCandidates++;
 
-  // TODO use limits
+  auto guards = computeGuards(selectedLiterals);
 
-  Clause* flattened = premise;
-  if(thi != Options::TheoryInstSimp::NEW){
-    // we will use flattening which is non-recursive and sharing
-    static TheoryFlattening flattener((thi==Options::TheoryInstSimp::FULL),true);
+  DEBUG("input:             ", *premise);
+  DEBUG("selected literals: ", iterTraits(selectedLiterals.iterFifo())
+                                 .map([](Literal* l) -> vstring { return l->toString(); })
+                                 .collect<Stack>())
+  DEBUG("guards:            ", iterTraits(guards.iterFifo())
+                                 .map([](Literal* l) -> vstring { return l->toString(); })
+                                 .collect<Stack>())
+  TimeCounter t(TC_THEORY_INST_SIMP);
 
-    flattened = flattener.apply(premise,selectedLiterals);
+  auto invertedLiterals = iterTraits(selectedLiterals.iterFifo())
+    .map(Literal::complementaryLiteral)
+    .collect<Stack>();
 
-    ASS(flattened);
+  bool premiseRedundant = false;
 
-    // ensure that splits are copied to flattened
-    if(_splitter && flattened!=premise){
-      _splitter->onNewClause(flattened);
-    }
+  auto it1 = iterTraits(getSolutions(invertedLiterals, guards, getFreshVar(*premise)))
+    .map([&](Solution s)  { 
+        DEBUG("found solution: ", s); 
+        return InstanceFn{}(s, premise, selectedLiterals, invertedLiterals, guards, _splitter, this, premiseRedundant);
+    })
+    .filter([](Clause* cl) { return cl != nullptr; });
 
-    static Stack<Literal*> theoryLiterals;
-    theoryLiterals.reset();
+  auto it2 = getTimeCountedIterator(it1,TC_THEORY_INST_SIMP);
 
-    // Now go through the abstracted clause and select the things we send to SMT
-    // Selection and abstraction could be done in a single step but we are reusing existing theory flattening
-    originalSelectTheoryLiterals(flattened,theoryLiterals,true);
+  // we need to strictily evaluate the iterator to 
+  auto clauses =  getPersistentIterator(it2);
 
-    // At this point theoryLiterals should contain abstracted versions of what is in selectedLiterals
-    // all of the namings will be ineligable as, by construction, they will contain uninterpreted things
-
-#if DPRINT
-  cout << "Generate instances of " << premise->toString() << endl;
-  cout << "With flattened " << flattened->toString() << endl;
-#endif
-    if(theoryLiterals.isEmpty()){
-       //cout << "None" << endl;
-       return ClauseIterator::getEmpty();
-    }
-    selectedLiterals.reset();
-    selectedLiterals.loadFromIterator(Stack<Literal*>::Iterator(theoryLiterals));
-  }
-
-  {
-    TimeCounter t(TC_THEORY_INST_SIMP);
-
-    //auto it1 = getSolutions(theoryLiterals);
-    auto it1 = getSolutions(selectedLiterals);
-
-    auto it2 = getMappingIterator(it1,
-               InstanceFn(flattened,selectedLiterals,_splitter,this,premiseRedundant));
-
-    // filter out only non-zero results
-    auto it3 = getFilteredIterator(it2, NonzeroFn());
-
-    // measure time of the overall processing
-    auto it4 = getTimeCountedIterator(it3,TC_THEORY_INST_SIMP);
-
-    auto out = getPersistentIterator(it4); // we need immediate evaluation, so that premiseRedundant is set just after the call!
-
-    if (!env.options->thiTautologyDeletion()) {
-      premiseRedundant = false;
-    }
-
-    return out;
+  if (premiseRedundant && _thiTautologyDeletion) {
+    return ClauseGenerationResult {
+      .clauses          = ClauseIterator::getEmpty(),
+      .premiseRedundant = true,
+    };
+  } else {
+    return ClauseGenerationResult {
+      .clauses          = clauses,
+      .premiseRedundant = false,
+    };
   }
 }
 
 std::ostream& operator<<(std::ostream& out, Solution const& self) 
+{ return out << "Solution(" << (self.sat ? "sat" : "unsat") << ", " << self.subst << ")"; }
+
+TheoryInstAndSimp::~TheoryInstAndSimp()
 {
-  return out << "Solution(" << (self.status ? "sat" : "unsat") << ", " << self.subst << ")";
-  // return out;
+  CALL("~TheoryInstAndSimp")
+  BYPASSING_ALLOCATOR
+  delete _solver;
 }
 
 }

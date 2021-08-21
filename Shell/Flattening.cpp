@@ -24,6 +24,7 @@
 
 #include "Lib/Environment.hpp"
 #include "Shell/Options.hpp"
+#include "Shell/Statistics.hpp"
 
 #include "Flattening.hpp"
 
@@ -103,7 +104,8 @@ Formula* Flattening::flatten (Formula* f)
     {
       Literal* lit = f->literal();
 
-      if (env.options->newCNF()) {
+      if (env.options->newCNF() && !env.statistics->higherOrder &&
+          !env.property->hasPolymorphicSym()) {
         // Convert equality between boolean FOOL terms to equivalence
         if (lit->isEquality()) {
           TermList lhs = *lit->nthArgument(0);
@@ -111,7 +113,7 @@ Formula* Flattening::flatten (Formula* f)
 
           bool lhsBoolean = lhs.isTerm() && lhs.term()->isBoolean();
           bool rhsBoolean = rhs.isTerm() && rhs.term()->isBoolean();
-          bool varEquality = lit->isTwoVarEquality() && lit->twoVarEqSort() == Sorts::SRT_BOOL;
+          bool varEquality = lit->isTwoVarEquality() && lit->twoVarEqSort() == Term::boolSort();
 
           if (lhsBoolean || rhsBoolean || varEquality) {
             Formula* lhsFormula = BoolTermFormula::create(lhs);
@@ -192,12 +194,12 @@ Formula* Flattening::flatten (Formula* f)
 
       // arg is a quantified formula with the same quantifier
       // the sort list is either empty (if one of the parts have empty sorts) or the concatentation
-      Formula::SortList* sl = 0;
+      SList* sl = SList::empty();
       if(f->sorts() && arg->sorts()){
-        sl = Formula::SortList::append(f->sorts(), arg->sorts());
+        sl = SList::append(f->sorts(), arg->sorts());
       }
       return new QuantifiedFormula(con,
-				   Formula::VarList::append(f->vars(), arg->vars()),
+				   VList::append(f->vars(), arg->vars()),
                                    sl, 
 				   arg->qarg());
     }
@@ -251,7 +253,7 @@ TermList Flattening::flatten (TermList ts)
     return ts;
   }
 
-  if (term->isSpecial()) {
+ if (term->isSpecial()) {
     Term::SpecialTermData* sd = term->getSpecialData();
     switch (sd->getType()) {
       case Term::SF_FORMULA: {
@@ -320,6 +322,20 @@ TermList Flattening::flatten (TermList ts)
           ASS_REP(flattenedTupleTerm.isTerm(), flattenedTupleTerm.toString())
           return TermList(Term::createTuple(flattenedTupleTerm.term()));
         }
+      }
+
+      case Term::SF_MATCH: {
+        DArray<TermList> terms(term->arity());
+        bool unchanged = true;
+        for (unsigned i = 0; i < term->arity(); i++) {
+          terms[i] = flatten(*term->nthArgument(i));
+          unchanged = unchanged && (terms[i] == *term->nthArgument(i));
+        }
+
+        if (unchanged) {
+          return ts;
+        }
+        return TermList(Term::createMatch(sd->getSort(), sd->getMatchedSort(), term->arity(), terms.begin()));
       }
 
       default:

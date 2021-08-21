@@ -106,7 +106,7 @@ Formula* DistinctGroupExpansion::expand(Stack<unsigned>& constants)
   if(constants.size()==2){
     TermList a = TermList(Term::createConstant(constants[0]));
     TermList b = TermList(Term::createConstant(constants[1]));
-    unsigned sort = SortHelper::getResultSort(a.term());
+    TermList sort = SortHelper::getResultSort(a.term()); //TODO where is the type of these constants set?
     return new AtomicFormula(Literal::createEquality(false,a,b,sort));
   }
 
@@ -116,7 +116,7 @@ Formula* DistinctGroupExpansion::expand(Stack<unsigned>& constants)
   for(unsigned i=0;i<constants.size();i++){
     TermList a = TermList(Term::createConstant(constants[i]));
     ASS(a.isSafe());
-    unsigned sort = SortHelper::getResultSort(a.term());
+    TermList sort = SortHelper::getResultSort(a.term());
 
     for(unsigned j=0;j<i;j++){
       TermList b = TermList(Term::createConstant(constants[j]));

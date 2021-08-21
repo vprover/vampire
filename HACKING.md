@@ -19,7 +19,7 @@ Not all parts of Vampire are well-documented; if you figure out how a class or f
 ### Directories and Namespaces
 Namespaces roughly correspond to directories, and classes to files, but not exactly.
 Many of us use a navigation tool like `ctags` or an IDE to get about.
-In a pinch, `grep PAT $(git ls-files)` works OK too.
+In a pinch, `git grep PAT` works OK too.
 * `CASC/` implements special routines for [CASC](http://www.tptp.org/CASC/)
 * `Debug/` provides debugging utilities like assertions and tracebacks
 * `Test/` contains various utilities for unit testing, as well as the main functions to integrate `UnitTests/` with `ctest`.
@@ -34,8 +34,8 @@ In a pinch, `grep PAT $(git ls-files)` works OK too.
   No donkeys here.
 * Heavy use of "iterator" classes which can do slightly odd things. These are in the process of being re-organised somewhat by Joe.
 * Some amount of unused/dead code. If it looks like nonsense, doesn't compile, or isn't reachable, it might well just not be used any more. Pull requests appreciated.
-* A possibly slightly outdated explanation for the message [Attempted to use global new operator, thus bypassing Allocator!](https://github.com/vprover/vampire/wiki/Attempted-to-use-global-new-operator,-thus-bypassing-Allocator!)
-* for historians: [Yes, we had (and still have) a wiki on our github page](https://github.com/vprover/vampire/wiki)
+* A (possibly slightly outdated) explanation for the message [Attempted to use global new operator, thus bypassing Allocator!](https://github.com/vprover/vampire/wiki/Attempted-to-use-global-new-operator,-thus-bypassing-Allocator!)
+* for historians: [Yes, we had (and still have) a wiki on our github page](https://github.com/vprover/vampire/wiki) - maybe miscellaneous things can go here, I don't think it's completely historic just yet! - Michael
 * TODO more tips
 
 ## Building with CMake
@@ -62,6 +62,9 @@ If you don't need Z3, do nothing: CMake will detect this and do the right thing.
 If you need Z3, first `git submodule update --init` to pull the correct version of Z3, then build Z3 via its own CMake system into `z3/build`, which is where Vampire's CMake will find the necessary files.
 CMake will then detect this build and do the right thing.
 
+Do _not_ commit changes to the toplevel `z3` folder unless you mean to change the fixed version of Z3 we build with.
+If you do want to do this, do it _carefully_, make sure you know [how submodules work](https://git-scm.com/book/en/v2/Git-Tools-Submodules), then warn the team after merging so that they can update their submodule builds and look for introduced bugs.
+
 #### Advanced Z3
 * If you've used Z3 in the past but don't want it for this build, pass `-DCMAKE_DISABLE_FIND_PACKAGE_Z3=ON` to disable automatically including Z3.
 * If you want to override the Z3 search path, first think carefully about whether you need to do this: Z3 is a fixed submodule for a reason! Then remove `CMakeCache.txt` if present (the path to Z3 is cached) and pass `-DZ3_ROOT=/foo/bar/build/`.
@@ -80,14 +83,15 @@ E.g. details of build configuration, linking, Spider?
 * Verbose compilation for UNIX Makefiles: if you would like to disable the progress reports and see the commands that are run, call `make VERBOSE=1`.
 
 ## Testing with CTest
-Vampire now has some units tests which can run with CTest.
+Vampire now has units tests which can run with CTest.
 
 ### Running tests
-tl;dr: 
+tl;dr:
+(test are only compiled in Debug mode)
 ```
 mkdir cmake-build
 cd cmake-build 
-cmake ..
+cmake -DCMAKE_BUILD_TYPE=Debug ..
 make 
 ctest --output-on-failure
 ```
@@ -100,6 +104,22 @@ Options you will probably find useful are the following:
 * `-R <regex>` run only tests with names matching `<regex>`
 * `-E <regex>` do not run tests with names matching `<regex>`
 
+Every test unit consists of multiple test cases, which will be run each as a separate process. This can be annoying if one wants to debug a single test case using `lldb` or similar tools. Therefore you can also run a single test case without launching a separarate process:
+```
+mkdir cmake-build
+cd cmake-build
+cmake ..
+make 
+./vtest run <unit_id> <test_case>
+```
+All available test cases and test units can be listed with 
+```
+./vtest ls
+```
+
+Compiling tests can also slow down compile times. Compiling them can be circumvented by calling `make vampire` instead of `make` in your cmake directory.
+
+
 ### Creating new unit tests
 tl;dr: 
 ```
@@ -108,8 +128,6 @@ MY_TEST_NAME=...
 
 # create test file
 cp UnitTests/tSyntaxSugar.cpp UnitTests/t${MY_TEST_NAME}.cpp
-sed -e "s/UNIT_ID SyntaxSugar/UNIT_ID $MY_TEST_NAME/" \
-    -i '' UnitTests/t${MY_TEST_NAME}.cpp
 
 # alter CMakeLists.txt
 sed -e "{/tSyntaxSugar.cpp/p;s/tSyntaxSugar.cpp/t${MY_TEST_NAME}.cpp/;}" \
@@ -121,10 +139,9 @@ vim UnitTests/t${MY_TEST_NAME}.cpp
 
 The unit tests are located in the directory `UnitTests/`. The tests are expected to be `cpp` files, and are prefixed with a `t` (e.g.: `UnitTests/tSyntaxSugar.cpp`). Each new test file must be added to the source list `UNIT_TEST` in `CMakeLists.txt`.
 
-A test file must contain the following statements to initalize unit testing.
+A test file must include `Test/UnitTesting.hpp` contain the following statements to initalize unit testing.
 ```
-#define UNIT_ID <name> // required for legacy compability with our executable vtest
-UT_CREATE;             // initializes the unit test, creating a main as an entry point for ctest
+#include "Test/UnitTesting.hpp"
 ```
 
 After this test functions can be defined:
@@ -153,13 +170,16 @@ Testing utilities can be found in `Test/`. The most notable are currently (all n
 - `Test/SimplificationTester.hpp`, framework for testing `SimplifyingInferenceEngine`s. An example for these tests if given by `UnitTests/tGaussianElimination.cpp`
 
 ## Continuous Integration
-The Vampire repository is currently setup with GitHub Actions to build `master` every day at `00:00` UTC, or to build a branch when a PR is created or updated.
-Additionally, the build can be run manually by going to the "actions" tab in GitHub.
-
-The CI script caches the Z3 build (unless the submodule changes!) and builds a Z3+debug version of Vampire from scratch, then runs the unit tests.
-Currently it takes around 4-6 minutes for the remote server to build Vampire - if this suddenly takes longer this is worth investigating to preserve the quick-iteration value of the CI script.
-
+There is a general build/test/sanity-check script set up to run on GitHub Actions, either manually (go to the "actions" tab) or when a PR is created or updated.
 The CI script is located in `.github/workflows`.
+Currently it:
+ - checks copyright headers in source files
+ - builds Z3
+ - builds Vampire and links it to Z3 (tacit assumption: more things are likely to go wrong with Z3 than without...right?!)
+ - runs unit tests
+ - runs a sanity check on the resulting binary
+
+If the build fails for some reason, you can debug it by going through the logs to determine which step failed and with what output. Then...good luck!
 
 ## Guidelines for `git`
 Vampire uses the `git` VCS.
@@ -184,6 +204,7 @@ If `master` changes under you in such a way that you want to reconcile the two (
  This keeps commit history neat and is the preferred option if nobody is currently using your branch and if a rebase is feasible.
 2. Otherwise, merging `master` into your branch is OK as well and can be easier for large changes.
 
+### On Merge Commits
 [Please, oh please, use "git pull --rebase"](https://coderwall.com/p/7aymfa/please-oh-please-use-git-pull-rebase)
 This can be even configured [globally](https://coderwall.com/p/tnoiug/rebase-by-default-when-doing-git-pull).
 To explain: While it is fine to have merge-commits as a documentation for where a long-lived feature branch joined master
@@ -202,18 +223,13 @@ TODO any Vampire-specific guidelines (gotchas particularly) you can think of.
 ## Style Guide
 Consistent style is important for readability; we do not care particularly what the style _is_, so long as it's consistent.
 However, Vampire has had many authors, not all of whom used the same style.
-We would like to use an automatic formatting tool to enforce a fixed style, but reformatting the entire codebase at once would break people's branches and also result in a massive diff.
+We would like to use an automatic formatting tool to enforce a fixed style, but reformatting the entire codebase at once would break people's branches and also result in a massive diff. [We're looking into this.](https://www.moxio.com/blog/43/ignoring-bulk-change-commits-with-git-blame#git-2.23-to-the-rescue)
 
 Experimentally, the [ClangFormat](https://clang.llvm.org/docs/ClangFormat.html) configuration file found in `.clang-format` matches the current Vampire style relatively well.
 Over time, we intend to format the whole codebase this way.
 To help with this effort:
 * Format all new code automatically (and beautifully!) with `clang-format`
-* If you make a change to an existing file, we'll assume that you've broken anyone's branch who was using the file.
-  Wait until your change has been merged, then immediately make a follow-up PR formatting the files you changed.
 * If automatic formatting isn't feasible for some reason, try and match the existing style.
-
-This approach allows reviewers to see the functional changes you made in diffs clearly, while also incrementally formatting code and not breaking others' branches excessively.
-Ask the team for help if you are struggling with `clang-format`.
 
 ## PR Checklist
 Authors and reviewers, try and ensure the following.
@@ -224,10 +240,7 @@ Before merging a PR:
 * Doxygen comments where sensible
 * Remove code made dead by PR
 * Commit history is sane
-* `clang-format`ted new files
-
-After merging:
-* Follow-up PR to `clang-format` existing files you changed.
+* Reasonable formatting
 
 ## Testing and Benchmarking
 TODO what's a reasonable set of problems to run Vampire on to check for introduced bugs?

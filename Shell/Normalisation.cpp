@@ -153,6 +153,7 @@ bool Normalisation::lessThan (Unit* u1, Unit* u2)
   }
   return lessThan(static_cast<FormulaUnit*>(u1)->formula(),
 		  static_cast<FormulaUnit*>(u2)->formula());
+
 } // Normalisation::lessThan(const Unit*...)
 
 /**
@@ -241,7 +242,7 @@ Comparison Normalisation::compare (Formula* fm1, Formula* fm2)
     case LITERAL:
       comp = compare(f1->literal(),f2->literal());
       if (comp != EQUAL) {
-	return comp;
+        return comp;
       }
       break;
 
@@ -252,17 +253,17 @@ Comparison Normalisation::compare (Formula* fm1, Formula* fm2)
       if (comp != EQUAL) {
         return comp;
       }
-      break;
     }
+    break;
 
     case FORALL:
     case EXISTS:
       // first compare the length of the variable prefix,
       //  and then the immediate subformulas
-      comp = compare((int) Formula::VarList::length(f1->vars()),
-                     (int) Formula::VarList::length(f2->vars()));
+      comp = compare((int) VList::length(f1->vars()),
+                     (int) VList::length(f2->vars()));
       if (comp != EQUAL) {
-	return comp;
+        return comp;
       }
       break;
 
@@ -397,7 +398,7 @@ Comparison Normalisation::compare(TermList ts1, TermList ts2)
 {
   CALL("Normalisation::compare(TermList...)");
 
-    // both non-empty
+  // both non-empty
   if (ts1.isVar() && !ts2.isVar()) {
      return LESS;
   }
@@ -423,7 +424,7 @@ Comparison Normalisation::compare(TermList ts1, TermList ts2)
  */
 Comparison Normalisation::compare(Term* t1, Term* t2)
 {
-  ASS("Normalisation::compare(const Term*...)");
+  CALL("Normalisation::compare(const Term*...)");
 
   if (t1 == t2) {
     return EQUAL;
@@ -459,8 +460,8 @@ Comparison Normalisation::compare(Term* t1, Term* t2)
         break; // compare arguments "then" and "else" as usual below
 
       case Term::SF_LET: {
-        comp = compare((int) Formula::VarList::length(t1->getSpecialData()->getVariables()),
-                       (int) Formula::VarList::length(t2->getSpecialData()->getVariables()));
+        comp = compare((int) VList::length(t1->getSpecialData()->getVariables()),
+                       (int) VList::length(t2->getSpecialData()->getVariables()));
         if (comp != EQUAL) {
           return comp;
         }
@@ -474,8 +475,8 @@ Comparison Normalisation::compare(Term* t1, Term* t2)
       }
 
       case Term::SF_LET_TUPLE: {
-        comp = compare((int) Formula::VarList::length(t1->getSpecialData()->getTupleSymbols()),
-                       (int) Formula::VarList::length(t2->getSpecialData()->getTupleSymbols()));
+        comp = compare((int) VList::length(t1->getSpecialData()->getTupleSymbols()),
+                       (int) VList::length(t2->getSpecialData()->getTupleSymbols()));
         if (comp != EQUAL) {
           return comp;
         }
@@ -494,6 +495,22 @@ Comparison Normalisation::compare(Term* t1, Term* t2)
           return comp;
         }
         break; // compare body of the tuple below
+      }
+
+      case Term::SF_LAMBDA: {
+        comp = compare((int) VList::length(t1->getSpecialData()->getLambdaVars()),
+                       (int) VList::length(t2->getSpecialData()->getLambdaVars()));
+        if (comp != EQUAL) {
+          return comp;
+        }
+        TermList b1 = t1->getSpecialData()->getLambdaExp();
+        TermList b2 = t2->getSpecialData()->getLambdaExp();
+        comp = compare(b1, b2);
+        return comp;     
+      }
+
+      case Term::SF_MATCH: {
+        break; // comparison by arity and pairwise by arguments is done below
       }
 
       default:

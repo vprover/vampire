@@ -248,6 +248,12 @@ public:
     return new List(elem, l);
   } // List::cons
 
+  /** return list with one element, the given elem */
+  static inline List* singleton(C elem)
+  {
+    return new List(elem);
+  }
+
   /** push elem to lst */
   inline static void push(C elem,List* &lst)
   {
@@ -764,21 +770,38 @@ public:
   public:
     /** constructor */
     inline explicit FIFO(List* &lst)
-      : _last(0),
-	_initial(lst)
+      : _last(0), _initial(lst)
     {
       ASS_EQ(_initial,0);
     }
+    
     /** add element at the end of the original list */
     inline void push(C elem)
     {
       List* newLast = new List(elem);
-      if (_last) 
-	_last->setTail(newLast);
-      else _initial = newLast;
+      if (_last) {
+        _last->setTail(newLast);
+      } else {
+        _initial = newLast;
+      }
 
       _last = newLast;
     } // FIFO::push
+
+    /** push retained for compatibility with existing code.
+        pushBack synonym for push */
+    inline void pushBack(C elem)
+    {
+      push(elem);
+    }
+
+    inline void pushFront(C elem)
+    {
+      _initial = new List(elem, _initial);
+      if (!_last) {
+        _last = _initial;
+      }
+    }
 
   private:
     /** last element */

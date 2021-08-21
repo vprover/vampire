@@ -474,6 +474,21 @@ public:
     C* _curr;
     C* _first;
   };
+
+  friend std::ostream& operator<<(std::ostream& out, DArray const& self) 
+  {
+    ConstIterator iter(self);
+    out << "[ ";
+    if (iter.hasNext()) {
+      out << iter.next();
+      while (iter.hasNext()) {
+        out << ", ";
+        out << iter.next();
+      }
+    }
+    out << " ]";
+    return out;
+  }
 }; // class DArray
 
 template<typename T>

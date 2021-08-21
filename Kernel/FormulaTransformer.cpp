@@ -126,6 +126,14 @@ TermList FormulaTransformer::apply(TermList ts) {
       case Term::SF_TUPLE:
         return TermList(Term::createTuple(apply(TermList(sd->getTupleTerm())).term()));
 
+      case Term::SF_MATCH: {
+        DArray<TermList> terms(term->arity());
+        for (unsigned i = 0; i < term->arity(); i++) {
+          terms[i] = apply(*term->nthArgument(i));
+        }
+        return TermList(Term::createMatch(sd->getSort(), sd->getMatchedSort(), term->arity(), terms.begin()));
+      }
+
       default:
         ASSERTION_VIOLATION_REP(ts.toString());
     }
@@ -260,11 +268,11 @@ PolarityAwareFormulaTransformer::~PolarityAwareFormulaTransformer()
   Recycler::release(_varSorts);
 }
 
-unsigned PolarityAwareFormulaTransformer::getVarSort(unsigned var) const
+TermList PolarityAwareFormulaTransformer::getVarSort(unsigned var) const
 {
   CALL("PolarityAwareFormulaTransformer::getVarSort");
 
-  return _varSorts->get(var, Sorts::SRT_DEFAULT);
+  return _varSorts->get(var, Term::defaultSort());
 }
 
 Formula* PolarityAwareFormulaTransformer::transformWithPolarity(Formula* f, int polarity)

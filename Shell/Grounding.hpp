@@ -38,7 +38,7 @@ public:
 
   static ClauseList* getEqualityAxioms(bool otherThanReflexivity);
 private:
-  static void getLocalEqualityAxioms(unsigned sort, bool otherThanReflexivity, ClauseList*& acc);
+  static void getLocalEqualityAxioms(TermList sort, bool otherThanReflexivity, ClauseList*& acc);
 
 
   struct GroundingApplicator

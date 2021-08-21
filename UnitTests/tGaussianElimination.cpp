@@ -13,169 +13,206 @@
 #include "Inferences/GaussianVariableElimination.hpp"
 #include "Inferences/InterpretedEvaluation.hpp"
 #include "Kernel/Ordering.hpp"
+#include "Inferences/PolynomialEvaluation.hpp"
+#include "Inferences/Cancellation.hpp"
 
-#define UNIT_ID GaussianVariableElimination
-UT_CREATE;
+#include "Test/SyntaxSugar.hpp"
+#include "Test/TestUtils.hpp"
+#include "Lib/Coproduct.hpp"
+#include "Test/SimplificationTester.hpp"
+#include "Test/GenerationTester.hpp"
+#include "Kernel/KBO.hpp"
+
 using namespace std;
 using namespace Kernel;
 using namespace Inferences;
+using namespace Test;
 
-#include "Test/SyntaxSugar.hpp"
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////// TEST UNIT INITIALIZATION
+/////////////////////////////////////
 
-//TODO factor out
-Clause& clause(std::initializer_list<reference_wrapper<Literal>> ls) { 
-  static Inference testInf = Kernel::NonspecificInference0(UnitInputType::ASSUMPTION, InferenceRule::INPUT); 
-  Clause& out = *new(ls.size()) Clause(ls.size(), testInf); 
-  auto l = ls.begin(); 
-  for (int i = 0; i < ls.size(); i++) { 
-    out[i] = &l->get(); 
-    l++; 
-  }
-  return out; 
-}
+/** 
+ * NECESSARY: We need a subclass of SimplificationTester
+ */
+class GveSimplTester : public Test::Simplification::SimplificationTester
+{
+public:
 
-bool exactlyEq(const Clause& lhs, const Clause& rhs, const Stack<unsigned>& perm) {
-  for (int j = 0; j < perm.size(); j++) {
-    if (!Indexing::TermSharing::equals(lhs[j], rhs[perm[j]])) {
-      return false;
-    }
-  }
-  return true;
-}
+  /**
+   * NECESSARY: performs the simplification
+   */
+  virtual Kernel::Clause* simplify(Kernel::Clause* in) const override 
+  {
+    KBO ord = KBO::testKBO();
+    auto simpl = [](Clause* cl)  -> Clause*
+    {
+      static PolynomialEvaluation eval(*Ordering::tryGetGlobalOrdering());
+      static Cancellation cancel(*Ordering::tryGetGlobalOrdering());
+      return cancel.asISE().simplify(eval.asISE().simplify(cl));
+    };
+    static GaussianVariableElimination gve = GaussianVariableElimination();
 
-
-bool permEq(const Clause& lhs, const Clause& rhs, Stack<unsigned>& perm, unsigned idx) {
-  if (exactlyEq(lhs, rhs, perm)) {
-    return true;
-  }
-  for (int i = idx; i < perm.size(); i++) {
-    swap(perm[i], perm[idx]);
-
-    
-    if (permEq(lhs,rhs, perm, idx+1)) return true;
-
-    swap(perm[i], perm[idx]);
-  }
-
-  return false;
-}
-
-//TODO factor out
-bool operator==(const Clause& lhs, const Clause& rhs) {
-  if (lhs.size() != rhs.size()) return false;
-
-  Stack<unsigned> perm;
-  for (int i = 0; i<lhs.size(); i++) {
-    perm.push(i);
-  }
-  return permEq(lhs, rhs, perm, 0);
-
-}
-bool operator!=(const Clause& lhs, const Clause& rhs) {
-  return !(lhs == rhs);
-}
-
-
-Clause* exhaustiveGve(Clause* in) {
-
-  struct FakeOrdering : Kernel::Ordering {
-    virtual Result compare(Literal*, Literal*) const override { return Kernel::Ordering::LESS; }
-    virtual Result compare(TermList, TermList) const override {ASSERTION_VIOLATION}
-    virtual Comparison compareFunctors(unsigned, unsigned) const override {ASSERTION_VIOLATION}
-    virtual void show(ostream&) const override {ASSERTION_VIOLATION}
-  };
-  static FakeOrdering ord;
-  static GaussianVariableElimination inf = GaussianVariableElimination();
-  static InterpretedEvaluation ev = InterpretedEvaluation(false, ord);
-  Clause* last = in;
-  Clause* latest = in;
-  do {
-    last = latest;
-    latest = ev.simplify(inf.simplify(last));
-  } while (latest != last);
-  return latest;
-}
-
-
-void test_eliminate_na(Clause& toSimplify) {
-  auto res = exhaustiveGve(&toSimplify);
-  if (res != &toSimplify ) {
-    cout  << endl;
-    cout << "[     case ]: " << toSimplify.toString() << endl;
-    cout << "[       is ]: " << res->toString() << endl;
-    cout << "[ expected ]: < nop >" << endl;
-    exit(-1);
-  }
-}
-
-void test_eliminate(Clause& toSimplify, const Clause& expected) {
-  auto res = exhaustiveGve(&toSimplify);
-  if (!res || *res != expected) {
-    cout  << endl;
-    cout << "[     case ]: " << toSimplify.toString() << endl;
-    cout << "[       is ]: " << res->toString() << endl;
-    cout << "[ expected ]: " << expected.toString() << endl;
-    exit(-1);
-  }
-}
-
-#define TEST_ELIMINATE(name, toSimplify, expected) \
-  TEST_FUN(name) { \
-    THEORY_SYNTAX_SUGAR(REAL) \
-      _Pragma("GCC diagnostic push") \
-      _Pragma("GCC diagnostic ignored \"-Wunused\"") \
-        THEORY_SYNTAX_SUGAR_FUN(f, 1) \
-      _Pragma("GCC diagnostic pop") \
-    test_eliminate((toSimplify),(expected)); \
+    /* applies gve and evaluation until they're not applicable anymore */
+    Kernel::Clause* last = simpl(in);
+    Kernel::Clause* latest = simpl(in);
+    do {
+      last = latest;
+      latest = simpl(gve.asISE().simplify(last));
+    } while (latest != last);
+    return latest;
   }
 
-#define TEST_ELIMINATE_NA(name, toSimplify) \
-  TEST_FUN(name) { \
-    THEORY_SYNTAX_SUGAR(REAL) \
-      _Pragma("GCC diagnostic push") \
-      _Pragma("GCC diagnostic ignored \"-Wunused\"") \
-        THEORY_SYNTAX_SUGAR_FUN(f, 1) \
-      _Pragma("GCC diagnostic pop") \
-    test_eliminate_na((toSimplify)); \
+  /** 
+   * OPTIONAL: override how equality between clauses is checked. 
+   * Defaults to TestUtils::eqModAC(Clause const*, Clause const*).
+   */
+  virtual bool eq(Kernel::Clause const* lhs, Kernel::Clause const* rhs) const override
+  {
+    return TestUtils::eqModAC(lhs, rhs);
   }
+};
 
-TEST_ELIMINATE(test_1
-    , clause({  neq(mul(3, x), 6), lt(x, y)  })
-    , clause({  lt(2, y)  })
+/**
+ * NECESSARY: Register our simpl tester as the one to use
+ */
+REGISTER_SIMPL_TESTER(GveSimplTester)
+
+/**
+ * NECESSARY: We neet to tell the simplification tester which syntax sugar to import for creating terms & clauses. 
+ * See Test/SyntaxSugar.hpp for which kinds of syntax sugar are available
+ */
+#define MY_SYNTAX_SUGAR                                                                                       \
+  NUMBER_SUGAR(Real)                                                                                          \
+  DECL_DEFAULT_VARS                                                                                           \
+  DECL_FUNC(f, {Real}, Real)                                                                                  \
+  DECL_PRED(p, {Real})                                                                                        \
+  DECL_PRED(q, {Real})                                                                                        \
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////// TEST CASES
+/////////////////////////////////////
+
+TEST_SIMPLIFY(gve_test_1,
+    /** 
+     * Runs our registered SimplificationTester on .input,
+     * and checks if the output equals .expected.
+     */
+    Simplification::Success()
+      .input(    clause({  3 * x != 6, x < y  }))
+      .expected( clause({  2 < y  }))
     )
 
-TEST_ELIMINATE_NA(test_2
-    , clause({ eq(mul(3, x), 6), lt(x, y) })
+TEST_SIMPLIFY(gve_test_2,
+    /** 
+     * Runs our registered SimplificationTester on .input,
+     * and fails if any simplification is performed.
+     */
+    Simplification::NotApplicable()
+      .input( clause({ 3 * x == 6, x < y }))
     )
 
-TEST_ELIMINATE(test_3
-    , clause({  neq(mul(3, x), 6), lt(x, x)  })
-    , clause({  /* lt(2, 2) */  }) 
+TEST_SIMPLIFY(gve_test_3,
+    Simplification::Success()
+      .input(    clause({  3 * x != 6, x < x  }))
+      .expected( clause({  /* 2 < 2 */  }))
     )
 
-TEST_ELIMINATE(test_uninterpreted
-    , clause({  neq(mul(3, f(x)), y), lt(x, y)  })
-    , clause({  lt(x, mul(3, f(x)))  })
+  // 2x + y = x + y ==> 0 = 2x + y - x - y ==> 0 = x
+TEST_SIMPLIFY(gve_test_4,
+    Simplification::Success()
+      .input(    clause({  2 * x + y != x + y, p(x) }))
+      .expected( clause({  p(0)  }))
+    )
+
+TEST_SIMPLIFY(gve_test_uninterpreted,
+    Simplification::Success()
+      .input(    clause({  3 * f(x) != y, x < y  }))
+      .expected( clause({  x < 3 * f(x)  }))
     )
 
   // x!=4 \/ x+y != 5 \/ C[x]
   //         4+y != 5 \/ C[4]
   //                     C[4]
-TEST_ELIMINATE(test_multiplesteps_1
-    , clause({  neq(x, 4), neq(add(x,y), 5), lt(x, f(x))  })
-    , clause({  lt(4, f(4))  })
+TEST_SIMPLIFY(gve_test_multiplesteps_1,
+    Simplification::Success()
+      .input(    clause({  x != 4, x + y != 5, x < f(x)  }))
+      .expected( clause({  4 < f(4)  }))
     )
 
   // x!=4 \/ x+y != 5 \/ C[x,y]
   //         4+y != 5 \/ C[4,y]
   //                     C[4,1]
-TEST_ELIMINATE(test_multiplesteps_2
-    , clause({  neq(x, 4), neq(add(x,y), 5), lt(x, f(y))  })
-    , clause({  lt(4, f(1))  })
+TEST_SIMPLIFY(gve_test_multiplesteps_2,
+    Simplification::Success()
+      .input(    clause({  x != 4, x + y !=  5, x < f(y)  }))
+      .expected( clause({  4 < f(1)  }))
     )
 
-  // x  !=4 \/ x+y != 5 \/ C[x]
-  // 5-y!=4             \/ C[5-y]
-  //                    \/ C[5]
+TEST_SIMPLIFY(gve_test_div,
+    Simplification::Success()
+      .input(    clause({  x / 3 != 4, p(x)  }))
+      .expected( clause({  p(12)  }))
+    )
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////// TEST CASES for generating inferences
+/////////////////////////////////////
 
 
+REGISTER_GEN_TESTER(Test::Generation::GenerationTester<LfpRule<GaussianVariableElimination>>)
+
+TEST_GENERATION(test_redundancy_01,
+    Generation::TestCase()
+      .input(    clause({  x != 4, p(x)  }))
+      .expected(exactly(
+            clause({  p(4)  })
+      ))
+      .premiseRedundant(false)
+    )
+
+TEST_GENERATION(test_redundancy_02,
+    Generation::TestCase()
+      .input(     clause({  x != 4, p(y)  }))
+      .expected( exactly(
+            clause({  p(y)  })
+      ))
+      .premiseRedundant(true)
+    )
+
+TEST_GENERATION(test_redundancy_03,
+    Generation::TestCase()
+      .input(     clause({   x != 4, p(y), q(x)  }))
+      .expected( exactly(
+            clause({  p(y), q(4)  })
+      ))
+      .premiseRedundant(false)
+    )
+
+TEST_GENERATION(test_redundancy_04,
+    Generation::TestCase()
+      .input(     clause({   x != 4, p(x), q(x)  }))
+      .expected( exactly(
+            clause({  p(4), q(4)  })
+      ))
+      .premiseRedundant(false)
+    )
+
+TEST_GENERATION(test_redundancy_05,
+    Generation::TestCase()
+      .input(     clause({   x != 4, p(y), q(y)  }))
+      .expected( exactly(
+            clause({  p(y), q(y)  })
+      ))
+      .premiseRedundant(true)
+    )
+
+
+TEST_GENERATION(test_redundancy_06,
+    Generation::TestCase()
+      .input(     clause({  y != 5, x != 4, p(x), q(y)  }))
+      .expected( exactly(
+            clause({  p(4), q(5)  })
+      ))
+      .premiseRedundant(false)
+    )
