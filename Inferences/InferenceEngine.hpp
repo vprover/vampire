@@ -29,6 +29,7 @@
 #include "Lib/Allocator.hpp"
 #include "Kernel/Inference.hpp"
 #include "Lib/Coproduct.hpp"
+#include "Indexing/Index.hpp"
 
 namespace Inferences
 {
@@ -77,6 +78,15 @@ public:
   bool attached() const { return _salg; }
 
   virtual const Options& getOptions() const;
+#if VDEBUG
+  /**
+   * Normally indices are managed by `IndexManager`, which is contained in the saturation algorithm class.
+   * This is unfortunate for unit testing, as it requires to instantiate the whole SaturationAlgorithm
+   * machinery for unit testing a single rule if that rule uses a term index. In order to circumvent this
+   * issue we add this method in debug mode.
+   * */
+  virtual void setTestIndices(Stack<Indexing::Index*> const&) {}
+#endif // VDEBUG
 protected:
   SaturationAlgorithm* _salg;
 };

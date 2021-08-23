@@ -112,10 +112,6 @@ ClauseIterator GeneralInduction::generateClauses(Clause* premise)
   return pvi(res);
 }
 
-inline bool skolem(Term* t) {
-  return env.signature->getFunction(t->functor())->skolem();
-}
-
 void GeneralInduction::process(InductionClauseIterator& res, Clause* premise, Literal* literal)
 {
   CALL("GeneralInduction::process");

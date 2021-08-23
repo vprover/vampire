@@ -18,7 +18,7 @@
 
 using namespace Test;
 
-REGISTER_GEN_TESTER(Test::Generation::GenerationTester<Inferences::FnDefRewriting>)
+REGISTER_GEN_TESTER(Test::Generation::GenerationTester<Inferences::FnDefRewriting>(new FnDefRewriting()))
 
 /**
  * NECESSARY: We neet to tell the tester which syntax sugar to import for creating terms & clauses. 
@@ -34,10 +34,10 @@ REGISTER_GEN_TESTER(Test::Generation::GenerationTester<Inferences::FnDefRewritin
   DECL_FUNC(g, {s}, s)                                                                     \
   DECL_PRED(p, {s})                                                                        \
   DECL_FUNC_DEFS({ { clause({ f(b, y) == y }),                               0, false },   \
-                   { clause({ f(x,r(y)) == f(r(x), y), x != b() }),          0, false },   \
+                   { clause({ f(x,r(y)) == f(r(x), y), x != b() }),          0, true  },   \
                    { clause({ x == r(b()), f(r(x), y) == f(x,y) }),          1, false },   \
-                   { clause({ g(b()) == f(b(), b()) }),                      0, true  },   \
-                   { clause({ p(x), x != b(), g(r(r(x))) == f(r(x),g(x)) }), 2, true  } } )
+                   { clause({ g(b()) == f(b(), b()) }),                      0, false },   \
+                   { clause({ p(x), x != b(), g(r(r(x))) == f(r(x),g(x)) }), 2, false } } )
 
 TEST_GENERATION(test_01,
     Generation::TestCase()

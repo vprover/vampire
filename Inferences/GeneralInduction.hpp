@@ -210,11 +210,18 @@ public:
     for (auto& gen : _gen) {
       delete gen;
     }
+    _gen.clear();
   }
 
   ClauseIterator generateClauses(Clause* premise) override;
   void attach(SaturationAlgorithm* salg) override;
   void detach() override;
+
+#if VDEBUG
+  void setTestIndices(Stack<Index*> const& indices) override {
+    _index = (TermIndex*)indices[0];
+  }
+#endif
 
 private:
   class InductionClauseIterator

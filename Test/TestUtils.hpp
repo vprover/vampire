@@ -62,6 +62,18 @@ public:
 
 
 
+  /**
+   * Tests whether there is a permutation pi s.t. pi(lhs) == rhs, where elements are compared by
+   * elemEq(l,r)
+   * `List` must provide methods
+   *    - `elem_type operator[](unsigned)`
+   *    - `unsigned size()`
+   * `Eq`   must provide methods
+   *    - `bool operator(const elem_type&, const elem_type&)`
+   */
+  template<class L1, class L2, class Eq>
+  static bool permEq(L1& lhs, L2& rhs, Eq elemEq);
+
 private:
 
   struct RectMap
@@ -83,18 +95,6 @@ private:
   // static bool eqModACVar(Kernel::TermList lhs, Kernel::TermList rhs, RectMap& r);
   template<class Comparisons>
   static bool eqModAC_(Kernel::TermList lhs, Kernel::TermList rhs, Comparisons c);
-
-  /**
-   * Tests whether there is a permutation pi s.t. pi(lhs) == rhs, where elements are compared by
-   * elemEq(l,r)
-   * `List` must provide methods 
-   *    - `elem_type operator[](unsigned)` 
-   *    - `unsigned size()`
-   * `Eq`   must provide methods
-   *    - `bool operator(const elem_type&, const elem_type&)`
-   */
-  template<class List, class Eq> 
-  static bool permEq(const List& lhs, const List& rhs, Eq elemEq);
 
   /** returns whether the function f is associative and commutative */
   static bool isAC(Kernel::Theory::Interpretation f);
@@ -201,6 +201,42 @@ public:
 };
 
 
+template<class L1, class L2, class Eq>
+bool __permEq(L1& lhs, L2& rhs, Eq elemEq, DArray<unsigned>& perm, unsigned idx) {
+  auto checkPerm = [&] (L1& lhs, L2& rhs, DArray<unsigned>& perm) {
+    ASS_EQ(lhs.size(), perm.size());
+    ASS_EQ(rhs.size(), perm.size());
+
+    for (unsigned i = 0; i < perm.size(); i++) {
+      if (!elemEq(lhs[i], rhs[perm[i]])) return false;
+    }
+    return true;
+  };
+  if (checkPerm(lhs, rhs, perm)) {
+    return true;
+  }
+  for (unsigned i = idx; i < perm.size(); i++) {
+    swap(perm[i], perm[idx]);
+
+    if (__permEq(lhs,rhs, elemEq, perm, idx+1)) return true;
+
+    swap(perm[i], perm[idx]);
+  }
+
+  return false;
 }
+
+template<class L1, class L2, class Eq>
+bool TestUtils::permEq(L1& lhs, L2& rhs, Eq elemEq)
+{
+  if (lhs.size() != rhs.size()) return false;
+  DArray<unsigned> perm(lhs.size());
+  for (unsigned i = 0; i < lhs.size(); i++) {
+    perm[i] = i;
+  }
+  return __permEq(lhs, rhs, elemEq, perm, 0);
+}
+
+} // namespace Test
 
 #endif // __TestUtils__

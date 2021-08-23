@@ -174,8 +174,6 @@ ClauseIterator InductionHypothesisRewriting::perform(const vset<unsigned>& sig,
 {
   CALL("InductionHypothesisRewriting::perform");
 
-  ASS(eqClause->store() == Clause::ACTIVE);
-
   if (SortHelper::getTermSort(rwTerm, rwLit) != SortHelper::getEqualityArgumentSort(eqLit)) {
     // sorts don't match
     return ClauseIterator::getEmpty();
@@ -188,14 +186,6 @@ ClauseIterator InductionHypothesisRewriting::perform(const vset<unsigned>& sig,
   ASS(!eqLHS.isVar());
 
   TermList tgtTerm = EqHelper::getOtherEqualitySide(eqLit, eqLHS);
-  TermList otherSide = EqHelper::getOtherEqualitySide(rwLit, rwSide);
-  Ordering& ordering = _salg->getOrdering();
-  // check that we are rewriting either against the order or the smaller side
-  if (!Ordering::isGorGEorE(ordering.compare(tgtTerm,eqLHS))
-    && !Ordering::isGorGEorE(ordering.compare(otherSide,rwSide))) {
-    return ClauseIterator::getEmpty();
-  }
-
   TermList tgtTermS;
   if ((eqIsResult && !subst->isIdentityOnQueryWhenResultBound()) || (!eqIsResult && !subst->isIdentityOnResultWhenQueryBound())) {
     //When we apply substitution to the rhs, we get a term, that is
@@ -229,10 +219,6 @@ ClauseIterator InductionHypothesisRewriting::perform(const vset<unsigned>& sig,
   //      << "RWSIDE: " << rwSideS << endl
   //      << "TGTLIT: " << *tgtLitS << endl;
 
-  if (EqHelper::isEqTautology(tgtLitS)) {
-    return ClauseIterator::getEmpty();
-  }
-
   unsigned rwLength = rwClause->length();
   unsigned eqLength = eqClause->length();
   unsigned newLength = rwLength + eqLength - 1;
@@ -240,16 +226,11 @@ ClauseIterator InductionHypothesisRewriting::perform(const vset<unsigned>& sig,
   Inference inf(GeneratingInference2(InferenceRule::IH_REWRITING, rwClause, eqClause));
   Clause *newCl = new (newLength) Clause(newLength, inf);
 
-  // static bool doSimS = env.options->simulatenousSuperposition();
   (*newCl)[0] = tgtLitS;
   unsigned next = 1;
   for (unsigned i = 0; i < rwLength; i++) {
     Literal *curr = (*rwClause)[i];
     if (curr != rwLit) {
-      // if (doSimS) {
-      //   curr = EqHelper::replace(curr, rwTerm, tgtTermS);
-      // }
-
       if (EqHelper::isEqTautology(curr)) {
         newCl->destroy();
         return ClauseIterator::getEmpty();
