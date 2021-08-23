@@ -74,8 +74,8 @@ using namespace Lib;
 
 //using namespace z3;
 
-Z3Interfacing::Z3Interfacing(const Shell::Options& opts, SAT2FO& s2f, bool unsatCore, vstring const& exportSmtlib):
-  Z3Interfacing(s2f, opts.showZ3(), /* unsatCore */ unsatCore, exportSmtlib)
+Z3Interfacing::Z3Interfacing(const Shell::Options& opts, SAT2FO& s2f, bool unsatCoresForAssumptions, vstring const& exportSmtlib):
+  Z3Interfacing(s2f, opts.showZ3(), /* unsatCoresForAssumptions = */ unsatCoresForAssumptions, exportSmtlib)
 { }
 
 const char* errToString(Z3_error_code code)
@@ -106,7 +106,7 @@ void handleZ3Error(Z3_context ctxt, Z3_error_code code)
 
 #define STATEMENTS_TO_EXPRESSION(...) [&]() { __VA_ARGS__; return 0; }()
 
-Z3Interfacing::Z3Interfacing(SAT2FO& s2f, bool showZ3, bool unsatCore, vstring const& exportSmtlib):
+Z3Interfacing::Z3Interfacing(SAT2FO& s2f, bool showZ3, bool unsatCoresForAssumptions, vstring const& exportSmtlib):
   _varCnt(0),
   _sat2fo(s2f),
   _status(SATISFIABLE),
@@ -120,7 +120,7 @@ Z3Interfacing::Z3Interfacing(SAT2FO& s2f, bool showZ3, bool unsatCore, vstring c
          _solver.get_model())),
   _assumptions(),
   _showZ3(showZ3),
-  _unsatCore(unsatCore),
+  _unsatCore(unsatCoresForAssumptions),
   _out()
 {
   CALL("Z3Interfacing::Z3Interfacing");
@@ -1139,14 +1139,13 @@ Z3Interfacing::Representation Z3Interfacing::getRepresentation(SATLiteral slit)
 
 SATClause* Z3Interfacing::getRefutation()
 {
+  CALL("Z3Interfacing::getRefutation");
 
-    if(!_unsatCore)
-      return PrimitiveProofRecordingSATSolver::getRefutation();
-    else {
-      ASS_EQ(_status, SATISFIABLE);
-      ASSERTION_VIOLATION
-      //TODO
-    }
+  return PrimitiveProofRecordingSATSolver::getRefutation();
+
+  // TODO: optionally, we could try getting an unsat core from Z3 (could be smaller than all the added clauses so far)
+  // NOTE: this will not (necessarily) be the same option as _unsatCore, which takes care of minimization of added assumptions
+  // also ':core.minimize' might need to be set to get some effect
 }
 
 Z3Interfacing::~Z3Interfacing()
