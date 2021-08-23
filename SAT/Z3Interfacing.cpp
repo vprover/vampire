@@ -258,7 +258,8 @@ Z3Interfacing::Z3Interfacing(SAT2FO& s2f, bool showZ3, bool unsatCore, vstring c
 
   z3_set_param("rewriter.expand_store_eq", true);
   z3_set_param("model.completion", MODEL_COMPLETION);
-  z3_set_param("model.compact", false); // keeps z3 from compressing its model. ~50% of the runtime of get_model is spent doing that otherwise
+  // z3_set_param("model.compact", false); // keeps z3 from compressing its model. ~50% of the runtime of get_model is spent doing that otherwise
+  z3_set_param("model.compact", true); // keeps z3 from compressing its model. ~50% of the runtime of get_model is spent doing that otherwise
   if (_unsatCore) {
     z3_set_param(":unsat-core", true);
   }
@@ -284,13 +285,13 @@ void ProblemExport::Smtlib::declare_fun(vstring const& name, z3::sort_vector dom
   out << "(declare-fun " << name << " (";
   for (auto s : domain) 
     out << " "  << s;
-  out << " ) " << codomain;
+  out << " ) " << codomain << ")" << std::endl;
 }
 void ProblemExport::Smtlib::check(Stack<z3::expr> const& assumptions)  {
   out << "(check-sat-assuming (";
   for (auto const& a : assumptions) 
     out << " " << a;
-  out << " ))";
+  out << " ))" << std::endl;
 }
 
 void ProblemExport::Smtlib::declare_array_sort(z3::sort array, z3::sort index, z3::sort result) { }
@@ -311,66 +312,84 @@ void ProblemExport::Smtlib::Z3_mk_datatypes(Z3MkDatatypesCall const& call) {
     }
   };
 
-  out << "(declare-datatypes (";
+  out << "(declare-datatypes (" << std::endl;
   for (auto& s : call.sortNames) {
     out << " (" << quote(z3::symbol(_context, s)) << " 0)";
   }
-  out << " ) (";
+  out << " ) (" << std::endl;
 
   for (unsigned i = 0; i < call.sortNames.size(); i++) {
-    out << "    ( ;-- datatype " << z3::symbol(_context, call.sortNames[i]);
+    out << "    ( ;-- datatype " << z3::symbol(_context, call.sortNames[i]) << std::endl;
     for (auto& ctor : call.mkConstrs[i]) {
       out << "        ( " << quote(z3::symbol(_context, ctor.name));
-      for (auto j = 0; j < ctor.field_names.size(); i++) {
-        out << " ( " << quote(z3::symbol(_context, ctor.field_names[j])) << " " 
-          << quote(z3::symbol(_context, ctor.sorts[j] == nullptr 
-                ? call.sortNames[ctor.sort_refs[j]] 
-                : z3::sort(_context, ctor.sorts[j]).name()))
-          << " )";
+      for (auto j = 0; j < ctor.field_names.size(); j++) {
+        out << " ( " << quote(z3::symbol(_context, ctor.field_names[j])) << " ";
+        if (ctor.sorts[j] == nullptr) out << quote(z3::symbol(_context, call.sortNames[ctor.sort_refs[j]]));
+        else                          out << z3::sort(_context, ctor.sorts[j]);
+        out << " )";
       }
-      out << " )";
+      out << " )" << std::endl;
     }
     out << "    )";
   }
-  out << "))";
+  out << "))" << std::endl;
 }
 
-vstring ProblemExport::ApiCalls::escapeVarName(z3::symbol const& sym) {
-  vstringstream varName;
-  if (sym.kind() == Z3_INT_SYMBOL) {
-    varName << "v" << sym.to_int();
+vstring const& ProblemExport::ApiCalls::escapeVarName(z3::sort const& sym)
+{ 
+  if (sym.is_array()) {
+    // Array sorts have argments. Hence we need to escape the arguments as well, not only the sort name
+    return _escapeVarName(sym); 
   } else {
-    auto name = sym.str();
+    return _escapeVarName(sym.name()); 
+  }
+}
+
+vstring const& ProblemExport::ApiCalls::escapeVarName(z3::symbol const& sym)
+{ return _escapeVarName(sym); }
+
+
+template<class Outputable>
+vstring const& ProblemExport::ApiCalls::_escapeVarName(Outputable const& sym) {
+  vstringstream cvar;
+  auto generatePrefix = [&](vstring const& toEscape) -> vstring {
     auto iter = 0;
-    while (iter < name.length()) {
-      if (std::isalnum(name[iter]) || name[iter] == '_') break;
+    while (iter < toEscape.length()) {
+      if (std::isalnum(toEscape[iter]) || toEscape[iter] == '_') break;
       else iter++;
     }
-    if (name[iter] == name.length()) {
-      varName << "_";
-    } else  {
-      if ('0' <= name[iter] && name[iter] <= '9')
-        varName << "_";
+    if (toEscape[iter] == toEscape.length()) {
+      cvar << "_";
+    } else {
+      if ('0' <= toEscape[iter] && toEscape[iter] <= '9')
+        cvar << "_";
 
-      while (iter != name.length()) {
-        if (std::isalnum(name[iter]) || name[iter] == '_') {
-          varName << name[iter];
-        } 
+      while (iter != toEscape.length()) {
+        // we replace every letter that is not alphanumeric by '_'
+        if (std::isalnum(toEscape[iter]) || toEscape[iter] == '_') {
+          cvar << toEscape[iter];
+        } else {
+          cvar << '_';
+        }
         iter++;
       }
     }
-  }
+    return vstring(cvar.str());
+  };
 
-  auto key = varName.str();
-  auto& ids = varNames.getOrInit(key);
-  auto nextId = ids.size();
-  auto id = ids.getOrInit(key, [&](){ return nextId; });
-  if (id != 0)
-    varName << "_" << id;
 
-  return varName.str();
+  auto origName = outputToString(sym);
+  return _escapedNames.getOrInit(origName, [&](){
+    auto& ids = _escapePrefixes.getOrInit(generatePrefix(origName));
+    auto nextId = ids.size();
+    auto id = ids.getOrInit(origName, [&](){ return nextId; });
+    if (id != 0)
+      cvar << "_" << id;
+
+    // DBG(sym, " -> ", cvar, " -> ", cvar.str())
+    return cvar.str();
+  });
 }
-
 
 void ProblemExport::ApiCalls::initialize() {
   out << R"(
@@ -417,7 +436,7 @@ int main() {
                             std::vector<Z3_symbol> argNames, 
                             std::vector<Z3_sort>   sorts,
                             std::vector<unsigned>  sortRefs) { 
-    return Z3_mk_constructor(ctx, name, tester, sorts.size(), 
+    return Z3_mk_constructor(ctx, name, tester, argNames.size(), 
                              argNames.size() == 0 ? nullptr : &argNames[0],
                                 sorts.size() == 0 ? nullptr :    &sorts[0],
                              sortRefs.size() == 0 ? nullptr : &sortRefs[0]);
@@ -441,14 +460,16 @@ int main() {
 
 void ProblemExport::ApiCalls::declare_array_sort(z3::sort array, z3::sort index, z3::sort result) 
 {
-  out << "  z3::sort " << escapeVarName(array.name())
+  out << "  z3::sort " << escapeVarName(array)
       << " = ctx.array_sort("  
-      << escapeVarName(index.name()) << ", " 
-      << escapeVarName(result.name()) << ");" << std::endl; 
+      << escapeVarName(index) << ", " 
+      << escapeVarName(result) << ");" << std::endl; 
 }
 
 void ProblemExport::ApiCalls::terminate() 
-{ out << "}" << std::endl; }
+{ 
+  out << "} // int main();" << std::endl;
+}
 
 struct ProblemExport::ApiCalls::EscapeString {
   vstring s;
@@ -530,7 +551,7 @@ std::ostream& ProblemExport::operator<<(std::ostream& out, ProblemExport::ApiCal
 }
 
 void ProblemExport::ApiCalls::declareSort(z3::sort sort) {
-  out << "  z3::sort " << escapeVarName(sort.name()) 
+  out << "  z3::sort " << escapeVarName(sort) 
       << " = ctx.uninterpreted_sort(" <<  serialize(sort.name()) << ");" << std::endl;
 }
 
@@ -553,18 +574,24 @@ void ProblemExport::ApiCalls::addAssert(z3::expr const& x)
 
 void ProblemExport::ApiCalls::check(Stack<z3::expr> const& xs)
 { 
-  out << std::endl << "  std::cout << solver.check(expr_vec({";
+  out << std::endl;
+  out << std::endl << "  std::cout << \"solver.check(..) = \" << solver.check(expr_vec({";
   for (auto& x : xs) {
     out << serialize(x) << ", ";
   }
-  out << "})) << std::endl;" << std::endl << std::endl; 
+  out << "})) << std::endl;" << std::endl; 
+  out << std::endl;
 }
+
 void ProblemExport::ApiCalls::get_model() { 
-  out << "  std::cout                                            << std::endl;" << std::endl
-      << "  std::cout << \"===== start solver.get_model() ====\" << std::endl;" << std::endl
-      << "  std::cout << solver.get_model()                      << std::endl;" << std::endl
-      << "  std::cout << \"=====   end solver.get_model() ====\" << std::endl;" << std::endl
-      << "  std::cout                                            << std::endl;" << std::endl; 
+  out << std::endl;
+  out << "  model = solver.get_model();" << std::endl;
+  out << "  std::cout                               << std::endl;" << std::endl;
+  out << "  std::cout << \"===== start model ====\" << std::endl;" << std::endl;
+  out << "  std::cout << model                      << std::endl;" << std::endl;
+  out << "  std::cout << \"=====   end model ====\" << std::endl;" << std::endl;
+  out << "  std::cout                               << std::endl;" << std::endl; 
+  out << std::endl;
 }
 void ProblemExport::ApiCalls::reset()     { out << "  std::cout << solver.reset() << std::endl;"     << std::endl; }
 
@@ -605,6 +632,8 @@ void ProblemExport::ApiCalls::Z3_mk_datatypes(Z3MkDatatypesCall const& call) {
 
   for (auto s : call.sortNames) 
     out << "  z3::sort " << escapeVarName(z3::symbol(_context,s)) << "(ctx);" << std::endl;
+  // for (auto s : call.sortNames) 
+  //   out << "  z3::sort " << escapeVarName(z3::symbol(_context,s)) << "(ctx);" << std::endl;
   
   out << "  {" << std::endl
       << "    Z3_symbol sort_names[] = " << initList(call.sortNames, [&](auto s) { return serialize(z3::symbol(_context, s)); }) << ";" << std::endl
@@ -617,7 +646,7 @@ void ProblemExport::ApiCalls::Z3_mk_datatypes(Z3MkDatatypesCall const& call) {
           << serialize(z3::symbol(_context, c.name)) << ", " 
           << serialize(z3::symbol(_context, c.tester)) << ", "
           << initList(c.field_names, [&](auto f){ return serialize(z3::symbol(_context,f)); }) << ", "
-          << initList(c.sorts,       [&](auto s){ return escapeVarName(z3::sort(_context,s).name()); }) << ", "
+          << initList(c.sorts,       [&](auto s){ return escapeVarName(z3::sort(_context,s)); }) << ", "
           << initList(c.sort_refs,   [&](auto s){ return serialize(s); }) << ");" << std::endl;;
     }
   }
@@ -658,8 +687,8 @@ void ProblemExport::ApiCalls::Z3_mk_datatypes(Z3MkDatatypesCall const& call) {
 void ProblemExport::ApiCalls::declare_fun(vstring const& name, z3::sort_vector domain, z3::sort codomain) { 
   out << "  z3::func_decl " << escapeVarName(_context.str_symbol(name.c_str())) << " = ctx.function(" << EscapeString{name} << ", sort_vec({";
   for (auto s : domain) 
-    out << escapeVarName(s.name()) << ", ";
-  out << "}), " << escapeVarName(codomain.name()) << " );" << std::endl;
+    out << escapeVarName(s) << ", ";
+  out << "}), " << escapeVarName(codomain) << " );" << std::endl;
 }
 
 z3::sort Z3Interfacing::z3_declare_sort(vstring const& name) {
@@ -879,9 +908,12 @@ SATSolver::VarAssignment Z3Interfacing::getAssignment(unsigned var)
     return FALSE;
   } else {
 #if VDEBUG
-    std::cout << rep << std::endl;
-    std::cout << "model: " << std::endl;
+    std::cout << std::endl; 
+    std::cout << "===== start _model ====" << std::endl;
     std::cout << _model << std::endl;
+    std::cout << "=====   end _model ====" << std::endl;
+    std::cout << std::endl;
+    std::cout << rep << std::endl;
     ASSERTION_VIOLATION_REP(assignment);
 #endif
     return NOT_KNOWN;
