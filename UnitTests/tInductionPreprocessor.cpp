@@ -21,7 +21,10 @@ using namespace Shell;
   DECL_VAR(x3, 3)                                                                          \
   DECL_VAR(x4, 4)                                                                          \
   DECL_VAR(x5, 5)                                                                          \
+  DECL_VAR(x6, 6)                                                                          \
   DECL_VAR(x7, 7)                                                                          \
+  DECL_VAR(x8, 8)                                                                          \
+  DECL_VAR(x9, 9)                                                                          \
   DECL_VAR(x10, 10)                                                                        \
   DECL_VAR(x11, 11)                                                                        \
   DECL_SORT(s)                                                                             \
@@ -39,6 +42,30 @@ using namespace Shell;
   DECL_FUNC(h, {s, s, u}, u)                                                               \
   DECL_PRED(p, {s})                                                                        \
   DECL_PRED(q, {u, s})
+
+inline void checkInductionTerms(const InductionScheme& sch, const vmap<Term*, unsigned> p) {
+  ASS(sch.inductionTerms() == p);
+}
+
+inline void checkCases(const InductionScheme& sch, const vvector<pair<vmap<unsigned, TermList>, vvector<vmap<unsigned, TermList>>>>& p) {
+  auto c = sch.cases();
+  ASS_EQ(c.size(), p.size());
+  TermList t;
+  for (unsigned i = 0; i < c.size(); i++) {
+    for (const auto& kv : p[i].first) {
+      ASS(c[i]._step.findBinding(kv.first, t));
+      ASS_EQ(t, kv.second);
+    }
+    auto r = c[i]._recursiveCalls;
+    ASS_EQ(r.size(), p[i].second.size());
+    for (unsigned j = 0; j < r.size(); j++) {
+      for (const auto& kv : p[i].second[j]) {
+        ASS(r[j].findBinding(kv.first, t));
+        ASS_EQ(t, kv.second);
+      }
+    }
+  }
+}
 
 // not well-founded functions
 TEST_FUN(test_01) {
@@ -231,4 +258,83 @@ TEST_FUN(test_06) {
   ASS_EQ(fb.size(), 2);
   ASS(fb[1]._recursiveCalls.empty());
   ASS_EQ(fb[1]._header, f(x,y).toTerm().term());
+}
+
+// structural induction schemes
+TEST_FUN(test_07) {
+  __ALLOW_UNUSED(MY_SYNTAX_SUGAR)
+
+  auto t1 = f(x,y);
+  vvector<InductionScheme> schemes;
+  env.signature->getFnDefHandler()->requestStructuralInductionScheme(t1.toTerm().term(), schemes);
+  ASS_EQ(schemes.size(), 1);
+  checkInductionTerms(schemes[0], { { t1.toTerm().term(), 0 } });
+  checkCases(schemes[0], {
+    { { { 0, b.toTerm() } },    { } },
+    { { { 0, r(y).toTerm() } }, { { { 0, y.toTerm() } } } }
+  });
+
+  TermList t;
+  auto t2 = h(g(g(b)),b,b1);
+  env.signature->getFnDefHandler()->requestStructuralInductionScheme(t2.toTerm().term(), schemes);
+  ASS_EQ(schemes.size(), 2);
+
+  checkInductionTerms(schemes[1], { { t2.toTerm().term(), 0 } });
+  checkCases(schemes[1], {
+    { { { 0, b1.toTerm() } },        { } },
+    { { { 0, b2.toTerm() } },        { } },
+    { { { 0, r1(y,z).toTerm() } },   { { { 0, z.toTerm() } } } },
+    { { { 0, r2(x3,x4).toTerm() } }, { { { 0, x3.toTerm() } } } }
+  });
+}
+
+// induction schemes from recursive functions
+TEST_FUN(test_08) {
+  __ALLOW_UNUSED(MY_SYNTAX_SUGAR)
+  DECL_INDUCTION_SKOLEM_CONST(sk1, s)                                                         \
+  DECL_INDUCTION_SKOLEM_CONST(sk2, s)                                                         \
+  DECL_INDUCTION_SKOLEM_CONST(sk3, u)                                                         \
+  DECL_FUNC_DEFS({ { clause({ f(r(x), r(r(y))) == f(f(x, r(r(y))), y) }),       0, false },   \
+                   { clause({ q(r1(x,y),r(z)), ~q(y,r(z)), q(y,z) }),           0, false } })
+
+  vset<InductionScheme> schemes;
+  auto ft = env.signature->getFnDefHandler()->getInductionTemplate(f.functor(), true);
+  ft.requestInductionScheme(f(sk1,sk2).toTerm().term(), schemes);
+  ASS_EQ(schemes.size(), 1);
+
+  checkInductionTerms(*schemes.begin(), { { sk1().toTerm().term(), 0 }, { sk2().toTerm().term(), 1 } });
+  checkCases(*schemes.begin(), {
+    { { { 0, r(x2).toTerm() }, { 1, r(r(x3)).toTerm() } }, { { { 0, f(x2,r(r(x3))).toTerm() }, { 1, x3.toTerm() } },
+                                                             { { 0, x2.toTerm() }, { 1, r(r(x3)).toTerm() } } } },
+    { { { 0, b.toTerm() }, { 1, x4.toTerm() } },           { } },
+    { { { 0, x5.toTerm() }, { 1, b.toTerm() } },           { } },
+    { { { 0, x6.toTerm() }, { 1, r(b).toTerm() } },        { } },
+  });
+
+  schemes.clear();
+  auto t2 = f(sk1,sk1);
+  ft.requestInductionScheme(t2.toTerm().term(), schemes);
+  ASS_EQ(schemes.size(), 1);
+  checkInductionTerms(*schemes.begin(), { { sk1().toTerm().term(), 0 } });
+  checkCases(*schemes.begin(), {
+    { { { 0, r(r(y)).toTerm() } }, { } },
+    { { { 0, b.toTerm() } },       { } },
+    { { { 0, b.toTerm() } },       { } },
+    { { { 0, r(b).toTerm() } },    { } },
+  });
+
+  schemes.clear();
+  auto qt = env.signature->getFnDefHandler()->getInductionTemplate(q.functor(), false);
+  qt.requestInductionScheme(q(sk3,sk1), schemes);
+  ASS_EQ(schemes.size(), 1);
+
+  checkInductionTerms(*schemes.begin(), { { sk3().toTerm().term(), 0 }, { sk1().toTerm().term(), 1 } });
+  checkCases(*schemes.begin(), {
+    { { { 0, r1(x2,x3).toTerm() }, { 1, r(x4).toTerm() } }, { { { 0, x3.toTerm() }, { 1, r(x4).toTerm() } },
+                                                              { { 0, x3.toTerm() }, { 1, x4.toTerm() } } } },
+    { { { 0, b1.toTerm() }, { 1, x5.toTerm() } },           { } },
+    { { { 0, b2.toTerm() }, { 1, x6.toTerm() } },           { } },
+    { { { 0, r2(x7,x8).toTerm() }, { 1, x9.toTerm() } },    { } },
+    { { { 0, x10.toTerm() }, { 1, b.toTerm() } },           { } },
+  });
 }
