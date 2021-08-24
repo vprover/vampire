@@ -138,14 +138,14 @@ public:
 
 #define __CREATE_GEN_TESTER CAT(__createGenTester_, UNIT_ID)
 
-#define REGISTER_GEN_TESTER(t) auto __CREATE_GEN_TESTER() { return t; }
+#define REGISTER_GEN_TESTER(t, ...) auto __CREATE_GEN_TESTER() { return Test::Generation::GenerationTester<t>(new t(__VA_ARGS__)); }
 
 #define TEST_GENERATION(name, ...)                                                                            \
         TEST_GENERATION_WITH_SUGAR(name, MY_SYNTAX_SUGAR, __VA_ARGS__) 
 
 #define TEST_GENERATION_WITH_SUGAR(name, syntax_sugar, ...)                                                   \
   TEST_FUN(name) {                                                                                            \
-    auto tester = __CREATE_GEN_TESTER();                                                                       \
+    auto tester = __CREATE_GEN_TESTER();                                                                      \
     __ALLOW_UNUSED(syntax_sugar)                                                                              \
     auto test = __VA_ARGS__;                                                                                  \
     test.run(tester);                                                                                         \

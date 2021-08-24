@@ -103,9 +103,11 @@ void FnDefHandler::finalize()
 
   for (auto it = _templates.begin(); it != _templates.end();) {
     if (!it->second.finalize()) {
-      env.beginOutput();
-      env.out() << "% Warning: " << it->second << " discarded" << endl;
-      env.endOutput();
+      if (env.options->showInduction()) {
+        env.beginOutput();
+        env.out() << "% Warning: " << it->second << " discarded" << endl;
+        env.endOutput();
+      }
       it = _templates.erase(it);
       continue;
     } else {
@@ -308,8 +310,10 @@ void InductionTemplate::checkWellDefinedness()
   InductionPreprocessor::checkWellDefinedness(cases, missingCases);
 
   if (!missingCases.empty()) {
-    env.beginOutput();
-    env.out() << "% Warning: adding missing cases ";
+    if (env.options->showInduction()) {
+      env.beginOutput();
+      env.out() << "% Warning: adding missing cases to template " << *this;
+    }
     for (const auto& m : missingCases) {
       Stack<TermList> args;
       ASS_EQ(m.size(), _arity);
@@ -322,11 +326,12 @@ void InductionTemplate::checkWellDefinedness()
       } else {
         t = Term::create(_functor, _arity, args.begin());
       }
-      env.out() << *t << ", ";
-      _branches.emplace_back(t);
+      addBranch(vvector<Term*>(), std::move(t));
     }
-    env.out() << "to template " << *this << endl;
-    env.endOutput();
+    if (env.options->showInduction()) {
+      env.out() << ". New template is " << *this << endl;
+      env.endOutput();
+    }
   }
 }
 
@@ -751,14 +756,14 @@ bool InductionPreprocessor::checkWellDefinedness(const vvector<Term*>& cases, vv
         valid = false;
         break;
       }
+      vvector<vvector<TermList>> temp;
       for (const auto& e : v) {
-        vvector<vvector<TermList>> temp;
         for (auto a : argTuples) {
           a.push_back(e);
           temp.push_back(a);
         }
-        argTuples = temp;
       }
+      argTuples = temp;
     }
     if (valid) {
       missingCases.insert(missingCases.end(),

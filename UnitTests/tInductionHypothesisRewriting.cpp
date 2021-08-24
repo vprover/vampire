@@ -37,7 +37,7 @@ class MockInduction
   }
 };
 
-REGISTER_GEN_TESTER(Test::Generation::GenerationTester<Inferences::InductionHypothesisRewriting>(new InductionHypothesisRewriting(new MockInduction)))
+REGISTER_GEN_TESTER(Inferences::InductionHypothesisRewriting, new MockInduction)
 
 /**
  * NECESSARY: We neet to tell the tester which syntax sugar to import for creating terms & clauses. 

@@ -18,7 +18,7 @@
 
 using namespace Test;
 
-REGISTER_GEN_TESTER(Test::Generation::GenerationTester<Inferences::FnDefRewriting>(new FnDefRewriting()))
+REGISTER_GEN_TESTER(FnDefRewriting)
 
 /**
  * NECESSARY: We neet to tell the tester which syntax sugar to import for creating terms & clauses. 

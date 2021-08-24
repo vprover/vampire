@@ -106,6 +106,8 @@ struct InductionTemplate {
     Term* _header;
   };
 
+  const vvector<Branch>& branches() const { return _branches; }
+
   const unsigned _functor;
   const unsigned _arity;
   const bool _isLit;
