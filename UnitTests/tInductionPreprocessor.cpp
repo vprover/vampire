@@ -43,6 +43,39 @@ using namespace Shell;
   DECL_PRED(p, {s})                                                                        \
   DECL_PRED(q, {u, s})
 
+inline void checkTemplateBranches(const PredSugar& p, const vvector<pair<Term*, vvector<Term*>>>& v) {
+  ASS(env.signature->getFnDefHandler()->hasInductionTemplate(p.functor(), false));
+  auto templ = env.signature->getFnDefHandler()->getInductionTemplate(p.functor(), false);
+  auto b = templ.branches();
+  ASS_EQ(b.size(), v.size());
+  TermList t;
+  for (unsigned i = 0; i < b.size(); i++) {
+    ASS_EQ(b[i]._header, v[i].first);
+    auto r = b[i]._recursiveCalls;
+    ASS_EQ(r.size(), v[i].second.size());
+    for (unsigned j = 0; j < r.size(); j++) {
+      ASS_EQ(r[j], v[i].second[j]);
+    }
+  }
+}
+
+inline void checkTemplateBranches(const FuncSugar& f, const vvector<pair<TermSugar, vvector<TermSugar>>>& p) {
+  ASS(env.signature->getFnDefHandler()->hasInductionTemplate(f.functor(), true));
+  auto templ = env.signature->getFnDefHandler()->getInductionTemplate(f.functor(), true);
+  auto b = templ.branches();
+  ASS_EQ(b.size(), p.size());
+  TermList t;
+  for (unsigned i = 0; i < b.size(); i++) {
+    ASS_EQ(b[i]._header, p[i].first.toTerm().term());
+    auto r = b[i]._recursiveCalls;
+    ASS_EQ(r.size(), p[i].second.size());
+    for (unsigned j = 0; j < r.size(); j++) {
+      ASS_EQ(r[j], p[i].second[j].toTerm().term());
+    }
+  }
+}
+
+
 inline void checkInductionTerms(const InductionScheme& sch, const vmap<Term*, unsigned> p) {
   ASS(sch.inductionTerms() == p);
 }
@@ -112,44 +145,44 @@ TEST_FUN(test_03) {
                    { clause({ p(b), f(b,b) == b }),                          0, false },   \
                                                                                            \
                    { clause({ q(y,r(r(x))), ~q(y,x) }),                      0, false },   \
-                   { clause({ ~q(r2(r1(x,y),z),b) }),                         0, false } })
+                   { clause({ ~q(r2(r1(x,y),z),b) }),                        0, false } })
 
-  auto fb = env.signature->getFnDefHandler()->getInductionTemplate(f.functor(), true).branches();
-  ASS_EQ(fb.size(), 3);
-  ASS_EQ(fb[0]._header, f(r(x),r(y)).toTerm().term());
-  ASS_EQ(fb[1]._header, f(x,b).toTerm().term());
-  ASS_EQ(fb[2]._header, f(b,r(x4)).toTerm().term()); // added
+  checkTemplateBranches(f, {
+    { f(r(x),r(y)), { f(x,y) } },
+    { f(x,b),       { } },
+    { f(b,r(x4)),   { } } // added
+  });
 
-  auto gb = env.signature->getFnDefHandler()->getInductionTemplate(g.functor(), true).branches();
-  ASS_EQ(gb.size(), 3);
-  ASS_EQ(gb[0]._header, g(r(r(x))).toTerm().term());
-  ASS_EQ(gb[1]._header, g(b).toTerm().term()); // added
-  ASS_EQ(gb[2]._header, g(r(b)).toTerm().term()); // added
+  checkTemplateBranches(g, {
+    { g(r(r(x))),   { g(x) } },
+    { g(b),         { } }, // added
+    { g(r(b)),      { } }, // added
+  });
 
-  auto hb = env.signature->getFnDefHandler()->getInductionTemplate(h.functor(), true).branches();
-  ASS_EQ(hb.size(), 4);
-  ASS_EQ(hb[0]._header, h(b, x, y).toTerm().term());
-  ASS_EQ(hb[1]._header, h(r(x), b, y).toTerm().term());
-  ASS_EQ(hb[2]._header, h(r(x), b, r1(y,z)).toTerm().term());
-  ASS_EQ(hb[3]._header, h(r(x3), r(x4), x2).toTerm().term()); // added
+  checkTemplateBranches(h, {
+    { h(b, x, y),    { } },
+    { h(r(x), b, y), { } },
+    { h(r(x), b, r1(y,z)), { h(x, b, z) } },
+    { h(r(x3), r(x4), x2), { } } // added
+  });
 
-  auto pb = env.signature->getFnDefHandler()->getInductionTemplate(p.functor(), false).branches();
-  ASS_EQ(pb.size(), 3);
-  ASS_EQ(pb[0]._header, p(r(r(x))));
-  ASS_EQ(pb[1]._header, p(b));
-  ASS_EQ(pb[2]._header, p(r(b))); // added
+  checkTemplateBranches(p, {
+    { p(r(r(x))), { p(x) } },
+    { p(b),       { } },
+    { p(r(b)),    { } } // added
+  });
 
-  auto qb = env.signature->getFnDefHandler()->getInductionTemplate(q.functor(), false).branches();
-  ASS_EQ(qb.size(), 9);
-  ASS_EQ(qb[0]._header, q(y,r(r(x))));
-  ASS_EQ(qb[1]._header, q(r2(r1(x,y),z),b));
-  ASS_EQ(qb[2]._header, q(b1,b)); // added
-  ASS_EQ(qb[3]._header, q(b2,b)); // added
-  ASS_EQ(qb[4]._header, q(r1(x4,x5),b)); // added
-  ASS_EQ(qb[5]._header, q(r2(b1,x7),b)); // added
-  ASS_EQ(qb[6]._header, q(r2(b2,x7),b)); // added
-  ASS_EQ(qb[7]._header, q(r2(r2(x10,x11),x7),b)); // added
-  ASS_EQ(qb[8]._header, q(x,r(b))); // added
+  checkTemplateBranches(q, {
+    { q(y,r(r(x))),            { q(y,x) } },
+    { q(r2(r1(x,y),z),b),      { } },
+    { q(b1,b),                 { } }, // added
+    { q(b2,b),                 { } }, // added
+    { q(r1(x4,x5),b),          { } }, // added
+    { q(r2(b1,x7),b),          { } }, // added
+    { q(r2(b2,x7),b),          { } }, // added
+    { q(r2(r2(x10,x11),x7),b), { } }, // added
+    { q(x,r(b)),               { } }  // added
+  });
 }
 
 // correctly merges branches
@@ -178,57 +211,35 @@ TEST_FUN(test_04) {
                    { clause({ ~q(y,b) }),                                    0, false },   \
                    { clause({ q(z,r(b)), q(z,b) }),                          0, false } })
 
-  auto fb = env.signature->getFnDefHandler()->getInductionTemplate(f.functor(), true).branches();
-  ASS_EQ(fb.size(), 3);
-  ASS_EQ(fb[0]._header, f(r(x),r(y)).toTerm().term());
-  ASS_EQ(fb[0]._recursiveCalls.size(), 1);
-  ASS_EQ(fb[0]._recursiveCalls[0], f(x,y).toTerm().term());
-  ASS_EQ(fb[1]._header, f(b,x).toTerm().term());
-  ASS(fb[1]._recursiveCalls.empty());
-  ASS_EQ(fb[2]._header, f(r(x),b).toTerm().term());
-  ASS(fb[2]._recursiveCalls.empty());
+  checkTemplateBranches(f, {
+    { f(r(x),r(y)), { f(x,y) } },
+    { f(b,x),       { } },
+    { f(r(x),b),    { } },
+  });
 
-  auto gb = env.signature->getFnDefHandler()->getInductionTemplate(g.functor(), true).branches();
-  ASS_EQ(gb.size(), 4);
-  ASS_EQ(gb[0]._header, g(r(r(x))).toTerm().term());
-  ASS_EQ(gb[0]._recursiveCalls.size(), 1);
-  ASS_EQ(gb[0]._recursiveCalls[0], g(r(x)).toTerm().term());
-  ASS_EQ(gb[1]._header, g(r(r(x))).toTerm().term());
-  ASS_EQ(gb[1]._recursiveCalls.size(), 1);
-  ASS_EQ(gb[1]._recursiveCalls[0], g(x).toTerm().term());
-  ASS_EQ(gb[2]._header, g(r(b)).toTerm().term());
-  ASS(gb[2]._recursiveCalls.empty());
-  ASS_EQ(gb[3]._header, g(b).toTerm().term());
-  ASS(gb[3]._recursiveCalls.empty());
+  checkTemplateBranches(g, {
+    { g(r(r(x))),   { g(r(x)) } },
+    { g(r(r(x))),   { g(x) } },
+    { g(r(b)),      { } },
+    { g(b),         { } },
+  });
 
-  auto hb = env.signature->getFnDefHandler()->getInductionTemplate(h.functor(), true).branches();
-  ASS_EQ(hb.size(), 2);
-  ASS_EQ(hb[0]._header, h(b, x, y).toTerm().term());
-  ASS(hb[0]._recursiveCalls.empty());
-  ASS_EQ(hb[1]._header, h(r(x), y, z).toTerm().term());
-  ASS_EQ(hb[1]._recursiveCalls.size(), 1);
-  ASS_EQ(hb[1]._recursiveCalls[0], h(x, y, z).toTerm().term());
+  checkTemplateBranches(h, {
+    { h(b, x, y),    { } },
+    { h(r(x), y, z), { h(x, y, z) } }
+  });
 
-  auto pb = env.signature->getFnDefHandler()->getInductionTemplate(p.functor(), false).branches();
-  ASS_EQ(pb.size(), 4);
-  ASS_EQ(pb[0]._header, p(r(r(x))));
-  ASS_EQ(pb[0]._recursiveCalls.size(), 1);
-  ASS_EQ(pb[0]._recursiveCalls[0], p(x));
-  ASS_EQ(pb[1]._header, p(r(r(x))));
-  ASS_EQ(pb[1]._recursiveCalls.size(), 1);
-  ASS_EQ(pb[1]._recursiveCalls[0], p(r(x)));
-  ASS_EQ(pb[2]._header, p(b));
-  ASS(pb[2]._recursiveCalls.empty());
-  ASS_EQ(pb[3]._header, p(r(b))); // added
-  ASS(pb[3]._recursiveCalls.empty());
+  checkTemplateBranches(p, {
+    { p(r(r(x))), { p(x) } },
+    { p(r(r(x))), { p(r(x)) } },
+    { p(b),       { } },
+    { p(r(b)),    { } }
+  });
 
-  auto qb = env.signature->getFnDefHandler()->getInductionTemplate(q.functor(), false).branches();
-  ASS_EQ(qb.size(), 2);
-  ASS_EQ(qb[0]._header, q(y,r(x)));
-  ASS_EQ(qb[0]._recursiveCalls.size(), 1);
-  ASS_EQ(qb[0]._recursiveCalls[0], q(y,x));
-  ASS_EQ(qb[1]._header, q(y,b));
-  ASS(qb[1]._recursiveCalls.empty());
+  checkTemplateBranches(q, {
+    { q(y,r(x)), { q(y,x) } },
+    { q(y,b),    { } }
+  });
 }
 
 // non-term-algebra sorts are ignored
@@ -250,6 +261,15 @@ TEST_FUN(test_06) {
   DECL_FUNC_DEFS({ { clause({ p(g(x)), p(x) }),                              0, false  },  \
                    { clause({ f(r(x),g(y)) == f(x,g(y)) }),                  0, false } })
 
+  checkTemplateBranches(p, {
+    { p(g(x)), { p(x) } },
+    { p(x),    { } },
+  });
+
+  checkTemplateBranches(f, {
+    { f(r(x),g(y)), { f(x,g(y)) } },
+    { f(x,y),       { } },
+  });
   auto pb = env.signature->getFnDefHandler()->getInductionTemplate(p.functor(), false).branches();
   ASS_EQ(pb.size(), 2);
   ASS(pb[1]._recursiveCalls.empty());
