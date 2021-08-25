@@ -25,8 +25,10 @@
 #include "Kernel/TermIterators.hpp"
 #include "Kernel/FormulaVarIterator.hpp"
 #include "Shell/Flattening.hpp"
+#include "Shell/NameReuse.hpp"
 #include "Shell/Skolem.hpp"
 #include "Shell/Options.hpp"
+#include "Shell/Rectify.hpp"
 #include "Shell/SymbolOccurrenceReplacement.hpp"
 #include "Shell/SymbolDefinitionInlining.hpp"
 #include "Shell/Statistics.hpp"
@@ -978,7 +980,7 @@ void NewCNF::ensureHavingVarSorts()
   }
 }
 
-Term* NewCNF::createSkolemTerm(unsigned var, VarSet* free)
+Term* NewCNF::createSkolemTerm(unsigned var, VarSet* free, Formula *reuse_formula)
 {
   CALL("NewCNF::createSkolemTerm");
 
@@ -998,16 +1000,36 @@ Term* NewCNF::createSkolemTerm(unsigned var, VarSet* free)
     fnArgs.push(TermList(uvar, false));
   }
 
+  NameReuse *reuse_policy = NameReuse::skolemInstance();
+  Formula *normalised = reuse_policy->normalise(reuse_formula);
+  unsigned reused;
+  bool reuse = reuse_policy->get(normalised, reused);
   Term* res;
   bool isPredicate = (rangeSort == AtomicSort::boolSort());
   if (isPredicate) {
-    unsigned pred = Skolem::addSkolemPredicate(arity, domainSorts.begin(), var);
+    unsigned pred;
+    if(reuse) {
+      pred = reused;
+    }
+    else {
+      pred = Skolem::addSkolemPredicate(arity, domainSorts.begin(), var);
+      reuse_policy->put(normalised, pred);
+      env.statistics->skolemFunctions++;
+    }
     if(_beingClausified->derivedFromGoal()){
       env.signature->getPredicate(pred)->markInGoal();
     }
     res = Term::createFormula(new AtomicFormula(Literal::create(pred, arity, true, false, fnArgs.begin())));
   } else {
-    unsigned fun = Skolem::addSkolemFunction(arity, domainSorts.begin(), rangeSort, var);
+    unsigned fun;
+    if(reuse) {
+      fun = reused;
+    }
+    else {
+      fun = Skolem::addSkolemFunction(arity, domainSorts.begin(), rangeSort, var);
+      reuse_policy->put(normalised, fun);
+      env.statistics->skolemFunctions++;
+    }
     if(_beingClausified->derivedFromGoal()){
       env.signature->getFunction(fun)->markInGoal();
     }
@@ -1077,21 +1099,55 @@ void NewCNF::skolemise(QuantifiedFormula* g, BindingList*& bindings, BindingList
     if (!_skolemsByFreeVars.find(unboundFreeVars, processedBindings) || !_foolSkolemsByFreeVars.find(unboundFreeVars, processedFoolBindings)) {
       // second level cache miss, let's do the actual skolemisation
 
+      NameReuse *reuse_policy = NameReuse::skolemInstance();
+      Substitution subst;
+      Formula *reuse_formula = nullptr;
+      VList *remainingVars = nullptr;
+      SList *remainingSorts = nullptr;
+      if(reuse_policy->requiresFormula()) {
+        BindingList::Iterator bit(bindings);
+        while (bit.hasNext()) {
+          Binding b = bit.next();
+          subst.bind(b.first, b.second);
+        }
+        reuse_formula = SubstHelper::apply(g, subst);
+        remainingVars = reuse_formula->vars();
+        remainingSorts = reuse_formula->sorts();
+      }
+
       processedBindings = nullptr;
       processedFoolBindings = nullptr;
 
       VList::Iterator vs(g->vars());
       while (vs.hasNext()) {
         unsigned var = vs.next();
-        Term* skolem = createSkolemTerm(var, unboundFreeVars);
 
-        env.statistics->skolemFunctions++;
-
+        Term *skolem = createSkolemTerm(var, unboundFreeVars, reuse_formula);
         Binding binding(var, skolem);
         if (skolem->isSpecial()) {
           BindingList::push(binding, processedFoolBindings); // this cell will get destroyed when we clear the cache
         } else {
           BindingList::push(binding, processedBindings); // this cell will get destroyed when we clear the cache
+        }
+
+        // if we're re-using Skolems based on formulae,
+        // we need to explicitly construct them: e.g. for ?[X, Y, Z]: F:
+        // ?[X, Y, Z]: F,
+        // ?[Y, Z]: F[X->sK0],
+        // ?[Z]: F[X->sK0, Y->sK1],
+        // but not F[X->sK0, Y->sK1, Z->sK2], since this doesn't need a Skolem term
+        if(reuse_policy->requiresFormula()) {
+          remainingVars = remainingVars->tail();
+          remainingSorts = remainingSorts ? remainingSorts->tail() : nullptr;
+          if(VList::isNonEmpty(remainingVars)) {
+            subst.bind(var, skolem);
+            reuse_formula = new QuantifiedFormula(
+              Connective::EXISTS,
+              remainingVars,
+              remainingSorts,
+              SubstHelper::apply(reuse_formula->qarg(), subst)
+            );
+          }
         }
       }
 
@@ -1217,11 +1273,24 @@ Literal* NewCNF::createNamingLiteral(Formula* f, VList* free)
 {
   CALL("NewCNF::createNamingLiteral");
 
+  NameReuse *reuse_policy = NameReuse::definitionInstance();
+  Formula *normalised = reuse_policy->normalise(f);
+  unsigned reused;
+  bool reuse = reuse_policy->get(normalised, reused);
+
   unsigned length = VList::length(free);
-  unsigned pred = env.signature->addNamePredicate(length);
+  unsigned pred;
+  if(reuse) {
+    pred = reused;
+  }
+  else {
+    pred = env.signature->addNamePredicate(length);
+    reuse_policy->put(normalised, pred);
+  }
+
   Signature::Symbol* predSym = env.signature->getPredicate(pred);
 
-  if (env.colorUsed) {
+  if (!reuse && env.colorUsed) {
     Color fc = f->getColor();
     if (fc != COLOR_TRANSPARENT) {
       predSym->addColor(fc);
@@ -1245,7 +1314,8 @@ Literal* NewCNF::createNamingLiteral(Formula* f, VList* free)
     predArgs.push(TermList(uvar, false));
   }
 
-  predSym->setType(OperatorType::getPredicateType(length, domainSorts.begin()));
+  if(!reuse)
+    predSym->setType(OperatorType::getPredicateType(length, domainSorts.begin()));
 
   return Literal::create(pred, length, true, false, predArgs.begin());
 }

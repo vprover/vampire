@@ -336,6 +336,11 @@ public:
     UNUSED = 2
   };
 
+  enum class NameReuse : unsigned int {
+    NONE = 0,
+    EXACT = 1
+  };
+
   /**
    *
    *
@@ -2136,6 +2141,8 @@ public:
   bool ignoreConjectureInPreprocessing() const {return _ignoreConjectureInPreprocessing.actualValue;}
 
   FunctionDefinitionElimination functionDefinitionElimination() const { return _functionDefinitionElimination.actualValue; }
+  NameReuse skolemReuse() const { return _skolemReuse.actualValue; }
+  NameReuse definitionReuse() const { return _definitionReuse.actualValue; }
   bool outputAxiomNames() const { return _outputAxiomNames.actualValue; }
   void setOutputAxiomNames(bool newVal) { _outputAxiomNames.actualValue = newVal; }
   QuestionAnsweringMode questionAnswering() const { return _questionAnswering.actualValue; }
@@ -2431,6 +2438,8 @@ private:
   BoolOptionValue _forwardSubsumptionDemodulation;
   UnsignedOptionValue _forwardSubsumptionDemodulationMaxMatches;
   ChoiceOptionValue<FunctionDefinitionElimination> _functionDefinitionElimination;
+  ChoiceOptionValue<NameReuse> _skolemReuse;
+  ChoiceOptionValue<NameReuse> _definitionReuse;
   
   ChoiceOptionValue<RuleActivity> _generalSplitting;
   BoolOptionValue _globalSubsumption;
