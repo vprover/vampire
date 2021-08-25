@@ -265,6 +265,7 @@ SATSolver::Status Z3Interfacing::solve()
     outputln(" ", a);
   }
   outputln(" ))");
+  _solver.push();
   z3::check_result result = _solver.check(_assumptions.size(), _assumptions.begin());
 
 
@@ -299,7 +300,8 @@ SATSolver::Status Z3Interfacing::solve()
       break;
     default: ASSERTION_VIOLATION;
   }
-
+  
+  _solver.pop();
   return _status;
 }
 
