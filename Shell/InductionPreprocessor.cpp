@@ -155,7 +155,7 @@ void FnDefHandler::requestStructuralInductionScheme(Term* t, vvector<InductionSc
     }
     it = _taCaseMap.insert(make_pair(ta, std::move(cases))).first;
   }
-  vmap<Term*, unsigned> inductionTerms;
+  InductionTerms inductionTerms;
   inductionTerms.insert(make_pair(t, 0));
   InductionScheme scheme(inductionTerms, true);
   scheme._cases = &it->second;
@@ -209,7 +209,7 @@ bool InductionScheme::addBaseCases()
   return res;
 }
 
-Term* InductionScheme::createRepresentingTerm(const vmap<Term*, unsigned>& inductionTerms, const Substitution& s)
+Term* InductionScheme::createRepresentingTerm(const InductionTerms& inductionTerms, const Substitution& s)
 {
   CALL("InductionScheme::createRepresentingTerm");
 
@@ -342,7 +342,7 @@ void InductionTemplate::requestInductionScheme(Term* t, vset<InductionScheme>& s
   TermStack args;
   vvector<TermList> usedArgs;
   unsigned var = 0;
-  vmap<Term*, unsigned> inductionTerms;
+  InductionTerms inductionTerms;
   // if the induction terms are distinct, no need to check well-foundedness
   // and well-definedness since we already checked it in preprocessing
   for (unsigned i = 0; i < t->arity(); i++) {

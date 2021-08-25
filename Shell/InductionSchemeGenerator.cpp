@@ -79,6 +79,13 @@ vset<Term*> getInductionTerms(Term* t)
           }
         }
       }
+    } else {
+      for (unsigned i = 0; i < curr->arity(); i++) {
+        auto st = *curr->nthArgument(i);
+        if (st.isTerm()) {
+          todo.push(st.term());
+        }
+      }
     }
   }
   return res;

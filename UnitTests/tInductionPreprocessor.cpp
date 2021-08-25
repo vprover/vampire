@@ -76,7 +76,7 @@ inline void checkTemplateBranches(const FuncSugar& f, const vvector<pair<TermSug
 }
 
 
-inline void checkInductionTerms(const InductionScheme& sch, const vmap<Term*, unsigned> p) {
+inline void checkInductionTerms(const InductionScheme& sch, const InductionTerms p) {
   ASS(sch.inductionTerms() == p);
 }
 
@@ -270,14 +270,6 @@ TEST_FUN(test_06) {
     { f(r(x),g(y)), { f(x,g(y)) } },
     { f(x,y),       { } },
   });
-  auto pb = env.signature->getFnDefHandler()->getInductionTemplate(p.functor(), false).branches();
-  ASS_EQ(pb.size(), 2);
-  ASS(pb[1]._recursiveCalls.empty());
-  ASS_EQ(pb[1]._header, p(x));
-  auto fb = env.signature->getFnDefHandler()->getInductionTemplate(f.functor(), true).branches();
-  ASS_EQ(fb.size(), 2);
-  ASS(fb[1]._recursiveCalls.empty());
-  ASS_EQ(fb[1]._header, f(x,y).toTerm().term());
 }
 
 // structural induction schemes
@@ -294,7 +286,6 @@ TEST_FUN(test_07) {
     { { { 0, r(y).toTerm() } }, { { { 0, y.toTerm() } } } }
   });
 
-  TermList t;
   auto t2 = h(g(g(b)),b,b1);
   env.signature->getFnDefHandler()->requestStructuralInductionScheme(t2.toTerm().term(), schemes);
   ASS_EQ(schemes.size(), 2);
@@ -317,12 +308,12 @@ TEST_FUN(test_08) {
   DECL_FUNC_DEFS({ { clause({ f(r(x), r(r(y))) == f(f(x, r(r(y))), y) }),       0, false },   \
                    { clause({ q(r1(x,y),r(z)), ~q(y,r(z)), q(y,z) }),           0, false } })
 
+  // TODO(mhajdu): with options set, complex terms should be tested as well
   vset<InductionScheme> schemes;
   auto ft = env.signature->getFnDefHandler()->getInductionTemplate(f.functor(), true);
   ft.requestInductionScheme(f(sk1,sk2).toTerm().term(), schemes);
   ASS_EQ(schemes.size(), 1);
-
-  checkInductionTerms(*schemes.begin(), { { sk1().toTerm().term(), 0 }, { sk2().toTerm().term(), 1 } });
+  checkInductionTerms(*schemes.begin(), { { sk1.toTerm().term(), 0 }, { sk2.toTerm().term(), 1 } });
   checkCases(*schemes.begin(), {
     { { { 0, r(x2).toTerm() }, { 1, r(r(x3)).toTerm() } }, { { { 0, f(x2,r(r(x3))).toTerm() }, { 1, x3.toTerm() } },
                                                              { { 0, x2.toTerm() }, { 1, r(r(x3)).toTerm() } } } },
@@ -335,7 +326,7 @@ TEST_FUN(test_08) {
   auto t2 = f(sk1,sk1);
   ft.requestInductionScheme(t2.toTerm().term(), schemes);
   ASS_EQ(schemes.size(), 1);
-  checkInductionTerms(*schemes.begin(), { { sk1().toTerm().term(), 0 } });
+  checkInductionTerms(*schemes.begin(), { { sk1.toTerm().term(), 0 } });
   checkCases(*schemes.begin(), {
     { { { 0, r(r(y)).toTerm() } }, { } },
     { { { 0, b.toTerm() } },       { } },
@@ -347,7 +338,6 @@ TEST_FUN(test_08) {
   auto qt = env.signature->getFnDefHandler()->getInductionTemplate(q.functor(), false);
   qt.requestInductionScheme(q(sk3,sk1), schemes);
   ASS_EQ(schemes.size(), 1);
-
   checkInductionTerms(*schemes.begin(), { { sk3().toTerm().term(), 0 }, { sk1().toTerm().term(), 1 } });
   checkCases(*schemes.begin(), {
     { { { 0, r1(x2,x3).toTerm() }, { 1, r(x4).toTerm() } }, { { { 0, x3.toTerm() }, { 1, r(x4).toTerm() } },
@@ -357,4 +347,13 @@ TEST_FUN(test_08) {
     { { { 0, r2(x7,x8).toTerm() }, { 1, x9.toTerm() } },    { } },
     { { { 0, x10.toTerm() }, { 1, b.toTerm() } },           { } },
   });
+
+  // no scheme is generated if no Skolems are present or the term is non-ground
+  schemes.clear();
+  ft.requestInductionScheme(f(sk1,x).toTerm().term(), schemes);
+  ft.requestInductionScheme(f(b,sk1).toTerm().term(), schemes);
+  qt.requestInductionScheme(q(sk3,x), schemes);
+  qt.requestInductionScheme(q(b1,sk1), schemes);
+  qt.requestInductionScheme(q(r1(b,b1),sk1), schemes);
+  ASS(schemes.empty());
 }

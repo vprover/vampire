@@ -814,6 +814,7 @@ set(UNIT_TESTS
     UnitTests/tFnDefRewriting.cpp
     UnitTests/tInductionHypothesisRewriting.cpp
     UnitTests/tInductionPreprocessor.cpp
+    UnitTests/tInductionSchemeGenerator.cpp
     )
 source_group(unit_tests FILES ${UNIT_TESTS})
 
