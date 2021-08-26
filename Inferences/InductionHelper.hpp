@@ -34,6 +34,7 @@ public:
   CLASS_NAME(InductionHelper);
   USE_ALLOCATOR(InductionHelper);
 
+  InductionHelper() {}
   InductionHelper(LiteralIndex* comparisonIndex, TermIndex* inductionTermIndex, Splitter* splitter)
       : _splitter(splitter), _comparisonIndex(comparisonIndex), _inductionTermIndex(inductionTermIndex) {}
 
@@ -63,6 +64,8 @@ public:
   static bool isInductionTermFunctor(unsigned f);
   static bool isIntInductionTermListInLiteral(TermList& tl, Literal* l);
   static bool isStructInductionFunctor(unsigned f);
+  static TermList* getLowerBoundForTermListFromLiteral(const TermList& tl, Literal* l);
+  static TermList* getUpperBoundForTermListFromLiteral(const TermList& tl, Literal* l);
 
 private:
   TermQueryResultIterator getComparisonMatch(bool polarity, TermList& left, TermList& right, TermList& var);

@@ -299,4 +299,158 @@ void StructuralInductionSchemeGenerator::generate(
   }
 }
 
+void IntegerInductionSchemeGenerator::generate(
+  const SLQueryResult& main,
+  const vset<pair<Literal*,Clause*>>& side,
+  vvector<pair<InductionScheme, OccurrenceMap>>& res)
+{
+  CALL("IntegerInductionSchemeGenerator::generate");
+
+  vvector<InductionScheme> schemes;
+  OccurrenceMap occMap;
+
+  // 1. Extract suitable terms from main and add them to occMap
+  Set<Term*> int_terms;
+  SubtermIterator it(main.literal);
+  while (it.hasNext()) {
+    TermList ts = it.next();
+    ASS(ts.isTerm());
+    Term* t = ts.term();
+    unsigned f = t->functor();
+    if (Inferences::InductionHelper::isInductionTermFunctor(f) &&
+        Inferences::InductionHelper::isIntInductionTermListInLiteral(ts, main.literal)) {
+      int_terms.insert(t);
+    }
+    occMap.add(main.literal, t, false);
+  }
+  // 2. Extract upper/lower bounds from side
+  vset<pair<Literal*,Clause*>> bounds;
+  vset<pair<Literal*,Clause*>> regularSide;
+  for (const auto& qr : side) {
+    bool isBound = false;
+    if (Inferences::InductionHelper::isIntegerComparison(qr.second)) {
+      bounds.insert(qr);
+      isBound = true;
+    } else {
+      regularSide.insert(qr);
+    }
+    SubtermIterator it(qr.first);
+    while (it.hasNext()) {
+      Term* t = it.next().term();
+      // Induction term occurrences in bounds are always active.
+      occMap.add(qr.first, t, isBound);
+    }
+  }
+  // 3. For each induction term, extract suitable upper/lower bounds from side,
+  //    and generate upwards/downwards induction schemes.
+  Set<Term*>::Iterator intIt(int_terms);
+  vset<Literal*> newBounds;
+  while (intIt.hasNext()) {
+    Term* t = intIt.next();
+    TermList tl(t);
+    vvector<TermQueryResult> lowerBounds;
+    vvector<TermQueryResult> upperBounds;
+    for (const auto& qr : bounds) {
+      TermList* b;
+      if ((b = Inferences::InductionHelper::getLowerBoundForTermListFromLiteral(tl, qr.first))) {
+        lowerBounds.emplace_back(*b, qr.first, qr.second);
+      } else if ((b = Inferences::InductionHelper::getUpperBoundForTermListFromLiteral(tl, qr.first))) {
+        upperBounds.emplace_back(*b, qr.first, qr.second);
+      }
+    }
+    getIntegerInductionSchemes(t, lowerBounds, upperBounds, /*upward=*/ true, schemes);
+    getIntegerInductionSchemes(t, upperBounds, lowerBounds, /*upward=*/ false, schemes);
+  }
+
+  // 4. Populate res
+  occMap.finalize();
+  for (const auto& sch : schemes) {
+    res.push_back(make_pair(sch, occMap.create_necessary(sch)));
+  }
+}
+
+void IntegerInductionSchemeGenerator::getIntegerInductionSchemes(Term* t,
+    const vvector<TermQueryResult>& bounds1,
+    const vvector<TermQueryResult>& bounds2,
+    bool upward,
+    vvector<InductionScheme>& schemes) {
+  static const bool infInterval = Inferences::InductionHelper::isInductionForInfiniteIntervalsOn();
+  static const bool finInterval = Inferences::InductionHelper::isInductionForFiniteIntervalsOn();
+  static const bool defaultBound = env.options->integerInductionDefaultBound();
+  static const TermList zero(theory->representConstant(IntegerConstantType(0)));
+  vmap<Term*, unsigned> inductionTerms;
+  bool doneZero = false;
+  inductionTerms.insert(make_pair(t, 0));
+  for (const auto& b1 : bounds1) {
+    vvector<InductionScheme::Case>* cases = getCasesForBoundAndDirection(b1.term, upward);
+    // Induction scheme with only 1 bound
+    if (infInterval) {
+      makeAndPushScheme(inductionTerms, cases, b1.literal, /*optionalBound2=*/nullptr, upward,
+          schemes);
+      if (defaultBound && (b1.term == zero)) doneZero = true;
+    }
+    // Induction schemes with 2 bounds
+    if (finInterval) {
+      for (const auto& b2 : bounds2) {
+        makeAndPushScheme(inductionTerms, cases, b1.literal, b2.literal, upward,
+            schemes);
+      }
+    }
+  }
+  // Induction scheme with the default bound
+  if (infInterval && defaultBound && !doneZero) {
+    TermList tt(t);
+    static const unsigned less = env.signature->getInterpretingSymbol(Theory::INT_LESS);
+    vvector<InductionScheme::Case>* cases = getCasesForBoundAndDirection(zero, upward);
+    makeAndPushScheme(inductionTerms, cases,
+        Literal::create2(less, /*polarity=*/false, upward ? tt : zero, upward ? zero : tt), /*optionalBound2=*/nullptr,
+        upward, schemes, /*defaultBound=*/true);
+  }
+}
+
+vvector<InductionScheme::Case>* IntegerInductionSchemeGenerator::getCasesForBoundAndDirection(
+    const TermList& bound, bool upward) {
+  ASS(bound.isTerm());
+  auto it = _baseCaseMap.find(make_pair(bound.term(), upward));
+  if (it != _baseCaseMap.end()) return &it->second;
+  static TermList v1(1, false);
+  vvector<InductionScheme::Case> cases;
+  // base case substitution: x -> bound
+  cases.emplace_back();
+  cases.back()._step.bind(0, bound);
+  // recursive calls: {x -> x}
+  vvector<Substitution> recCalls;
+  recCalls.emplace_back();
+  recCalls.back().bind(0, v1);
+  // step substitution: x -> x+1
+  TermList one(theory->representConstant(IntegerConstantType(upward ? 1 : -1)));
+  Substitution step;
+  step.bind(0, TermList((Term::create2(env.signature->getInterpretingSymbol(Theory::INT_PLUS), v1, one))));
+  cases.emplace_back(std::move(recCalls), std::move(step));
+  return &_baseCaseMap.insert(make_pair(make_pair(bound.term(), upward), std::move(cases))).first->second;
+}
+
+void IntegerInductionSchemeGenerator::makeAndPushScheme(vmap<Term*, unsigned>& inductionTerms,
+    vvector<InductionScheme::Case>* cases,
+    Literal* bound1, Literal* optionalBound2, bool upward,
+    vvector<InductionScheme>& schemes,
+    bool defaultBound) {
+  InferenceRule rule =
+      defaultBound ? (upward ? InferenceRule::INT_DB_UP_INDUCTION_AXIOM
+                             : InferenceRule::INT_DB_DOWN_INDUCTION_AXIOM)
+                   : (optionalBound2 ? (upward ? InferenceRule::INT_FIN_UP_INDUCTION_AXIOM
+                                               : InferenceRule::INT_FIN_DOWN_INDUCTION_AXIOM)
+                                     : (upward ? InferenceRule::INT_INF_UP_INDUCTION_AXIOM
+                                               : InferenceRule::INT_INF_DOWN_INDUCTION_AXIOM));
+  InductionScheme scheme(inductionTerms, true, rule);
+  scheme._cases = cases;
+  scheme._bound1 = bound1;
+  scheme._optionalBound2 = optionalBound2;
+  scheme._integer = true;
+  scheme._upward = upward;
+  scheme._defaultBound = defaultBound;
+  scheme.finalize();
+  schemes.push_back(std::move(scheme));
+}
+
 } // Shell

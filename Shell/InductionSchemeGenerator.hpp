@@ -204,6 +204,36 @@ struct StructuralInductionSchemeGenerator
     vvector<pair<InductionScheme, OccurrenceMap>>& res) override;
 };
 
+struct IntegerInductionSchemeGenerator
+  : public InductionSchemeGenerator
+{
+  CLASS_NAME(IntegerInductionSchemeGenerator);
+  USE_ALLOCATOR(IntegerInductionSchemeGenerator);
+
+  void generate(const SLQueryResult& main,
+    const vset<pair<Literal*,Clause*>>& side,
+    vvector<pair<InductionScheme, OccurrenceMap>>& res) override;
+  bool setsFixOccurrences() const override { return true; }
+
+ private:
+  void getIntegerInductionSchemes(Term* t,
+      const vvector<TermQueryResult>& bounds1,
+      const vvector<TermQueryResult>& bounds2,
+      bool upward,
+      vvector<InductionScheme>& schemes);
+
+  vvector<InductionScheme::Case>* getCasesForBoundAndDirection(
+      const TermList& bound, bool upward);
+
+  void makeAndPushScheme(vmap<Term*, unsigned>& inductionTerms,
+      vvector<InductionScheme::Case>* cases,
+      Literal* bound1, Literal* optionalBound2, bool upward,
+      vvector<InductionScheme>& schemes,
+      bool defaultBound = false) ;
+
+  vmap<pair<const Term*, bool /*upwards*/>, vvector<InductionScheme::Case>> _baseCaseMap;
+};
+
 } // Shell
 
 #endif

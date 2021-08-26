@@ -1510,7 +1510,7 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
 
   //TODO here induction is last, is that right?
   if(opt.induction()!=Options::Induction::NONE){
-    gie->addFront(new Induction());
+    //gie->addFront(new Induction());
     vvector<InductionSchemeGenerator*> generators;
     if (InductionHelper::isStructInductionOn()) {
       if (InductionHelper::isStructInductionOneOn()) {
@@ -1519,6 +1519,9 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
       if (InductionHelper::isStructInductionRecDefOn()) {
         generators.push_back(new RecursionInductionSchemeGenerator());
       }
+    }
+    if (InductionHelper::isIntInductionOn()) {
+      generators.push_back(new IntegerInductionSchemeGenerator());
     }
     res->_induction = new GeneralInduction(generators, InferenceRule::INDUCTION_AXIOM);
     gie->addFront(res->_induction);

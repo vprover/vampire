@@ -29,6 +29,7 @@
 
 #include "Shell/InductionSchemeGenerator.hpp"
 
+#include "InductionHelper.hpp"
 #include "InferenceEngine.hpp"
 
 namespace Inferences
@@ -69,7 +70,7 @@ public:
   {
     vstringstream str;
     for (const auto& kv : _occ._m) {
-      str << *kv.first.first << ", " << kv.first.second
+      str << *kv.first.first << ", " << *kv.first.second
           << ": " << kv.second.toString() << " ";
     }
     return str.str();
@@ -241,12 +242,17 @@ private:
   bool alreadyDone(Literal* mainLit, const vset<pair<Literal*,Clause*>>& sides,
     const InductionScheme& sch, pair<Literal*,vset<Literal*>>& res);
   vvector<pair<SLQueryResult, vset<pair<Literal*,Clause*>>>> selectMainSidePairs(Literal* literal, Clause* premise);
+  Clause* applyBinaryResolutionAndCallSplitter(Clause* c, Literal* l, const SLQueryResult& slqr, bool splitterCondition);
 
   vvector<InductionSchemeGenerator*> _gen;
   Splitter* _splitter;
   InferenceRule _rule;
   DHMap<Literal*, vset<Literal*>> _done;
   TermIndex* _index;
+  // The following pointers can be null if int induction is off.
+  LiteralIndex* _comparisonIndex = nullptr;
+  TermIndex* _inductionTermIndex = nullptr;
+  InductionHelper _helper;
 };
 
 }

@@ -45,7 +45,6 @@
 #include "Indexing/Index.hpp"
 #include "Indexing/ResultSubstitution.hpp"
 #include "Inferences/BinaryResolution.hpp"
-#include "Inferences/InductionHelper.hpp"
 
 #include "GeneralInduction.hpp"
 
@@ -134,6 +133,9 @@ void GeneralInduction::process(InductionClauseIterator& res, Clause* premise, Li
       const auto& sides = kv.second;
       static vvector<pair<InductionScheme, OccurrenceMap>> schOccMap;
       schOccMap.clear();
+      // TODO(hzzv): do not use the sides if indmc is off and this is not integer induction
+      // TODO(hzzv): if indmd is on but finIntervals off, from those mainsidelit pairs which contain
+      //    premise as a side, only use premise as the bound
       gen->generate(main, sides, schOccMap);
 
       vvector<pair<Literal*, vset<Literal*>>> schLits;
@@ -144,10 +146,16 @@ void GeneralInduction::process(InductionClauseIterator& res, Clause* premise, Li
         //     (this has been partly checked in selectMainSidePairs but there we did not know
         //      yet whether there is a complex induction term)
         vset<pair<Literal*, Clause*>> sidesFiltered;
+        const bool isIntScheme = kv.first.isInteger();
         for (const auto& s : sides) {
           bool filtered = true;
+          const bool isBound = kv.first.isInteger() &&
+              ((s.first == kv.first.bound1()) || (s.first == kv.first.optionalBound2()));
+          const bool isComparison = InductionHelper::isIntegerComparison(s.second);
           for (const auto& kv2 : kv.first.inductionTerms()) {
-            if (s.first->containsSubterm(TermList(kv2.first)) && (!skolem(kv2.first) || !s.second->inference().inductionDepth())) {
+            if (((!isIntScheme || !isComparison || isBound)) &&
+                s.first->containsSubterm(TermList(kv2.first)) &&
+                (!skolem(kv2.first) || !s.second->inference().inductionDepth())) {
               sidesFiltered.insert(s);
               filtered = false;
               break;
@@ -168,6 +176,7 @@ void GeneralInduction::process(InductionClauseIterator& res, Clause* premise, Li
         // be other induction schemes and literals that produce the same,
         // we add the new ones at the end
         schLits.emplace_back(nullptr, vset<Literal*>());
+        // TODO(hzzv): check if this works for integer induction
         if (alreadyDone(literal, sidesFiltered, kv.first, schLits.back())) {
           continue;
         }
@@ -222,6 +231,16 @@ void GeneralInduction::attach(SaturationAlgorithm* salg)
   _splitter=_salg->getSplitter();
   _index = static_cast<TermIndex *>(
       _salg->getIndexManager()->request(SUPERPOSITION_SUBTERM_SUBST_TREE));
+  // Indices for integer induction
+  if (InductionHelper::isIntInductionOn()) {
+    _comparisonIndex = static_cast<LiteralIndex*>(_salg->getIndexManager()->request(UNIT_INT_COMPARISON_INDEX));
+  }
+  if (InductionHelper::isIntInductionTwoOn()) {
+    _inductionTermIndex = static_cast<TermIndex*>(_salg->getIndexManager()->request(INDUCTION_TERM_INDEX));
+  }
+  if (_comparisonIndex || _inductionTermIndex) {
+    _helper = InductionHelper(_comparisonIndex, _inductionTermIndex, _splitter);
+  }
 }
 
 void GeneralInduction::detach()
@@ -230,6 +249,14 @@ void GeneralInduction::detach()
 
   _index = 0;
   _salg->getIndexManager()->release(SUPERPOSITION_SUBTERM_SUBST_TREE);
+  if (InductionHelper::isIntInductionOn()) {
+    _comparisonIndex = 0;
+    _salg->getIndexManager()->release(UNIT_INT_COMPARISON_INDEX);
+  }
+  if (InductionHelper::isIntInductionTwoOn()) {
+    _inductionTermIndex = 0;
+    _salg->getIndexManager()->release(INDUCTION_TERM_INDEX);
+  }
   _splitter=0;
   GeneratingInferenceEngine::detach();
 }
@@ -259,6 +286,8 @@ void GeneralInduction::generateClauses(
 
   static const bool indhrw = env.options->inductionHypRewriting();
   static const bool indmc = env.options->inductionMultiClause();
+  static const unsigned less = env.signature->getInterpretingSymbol(Theory::INT_LESS);
+  const bool intind = scheme.isInteger();
 
   if (env.options->showInduction()){
     env.beginOutput();
@@ -271,13 +300,35 @@ void GeneralInduction::generateClauses(
     env.endOutput();
   }
 
+  vvector<pair<Literal*, SLQueryResult>> regularSideLitQrPairs;
+  vvector<pair<Literal*, SLQueryResult>> boundLitQrPairs;
+  for (const auto& p : sideLitQrPairs) {
+    if (intind &&
+        ((p.second.literal == scheme.bound1()) || (p.second.literal == scheme.optionalBound2()))) {
+      boundLitQrPairs.push_back(p);
+    } else {
+      regularSideLitQrPairs.push_back(p);
+    }
+  }
+  ASS(!intind || (scheme.bound1() != nullptr));
+  if (intind && scheme.isDefaultBound() && boundLitQrPairs.empty()) {
+    ASS(scheme.optionalBound2() == nullptr);
+    // Create the bound literal for the default bound (as given in scheme.bound1()).
+    const bool upward = scheme.isUpward();
+    static TermList v0(0, false);
+    TermList zero = *scheme.bound1()->nthArgument(upward ? 1 : 0);
+    boundLitQrPairs.push_back(make_pair(
+          Literal::create2(less, /*polarity=*/false, upward ? v0 : zero, upward ? zero : v0),
+          SLQueryResult(scheme.bound1(), /*clause=*/nullptr)));
+  }
+
   vset<unsigned> hypVars;
   FormulaList* cases = FormulaList::empty();
   TermList t;
   for (const auto& c : scheme.cases()) {
     FormulaList* ll = FormulaList::empty();
     for (auto& r : c._recursiveCalls) {
-      auto f = createImplication(mainLit, sideLitQrPairs, r);
+      Formula* f = createImplication(mainLit, regularSideLitQrPairs, r);
       FormulaList::push(f, ll);
       // save all free variables of the hypotheses -- these are used
       // to mark the clauses as hypotheses and corresponding conclusion
@@ -288,12 +339,35 @@ void GeneralInduction::generateClauses(
         }
       }
     }
-    auto right = createImplication(mainLit, sideLitQrPairs, c._step);
+    Formula* right = createImplication(mainLit, regularSideLitQrPairs, c._step);
     Formula* left = 0;
     if (FormulaList::isNonEmpty(ll)) {
       left = JunctionFormula::generalJunction(Connective::AND, ll);
     }
-    auto f = left ? new BinaryFormula(Connective::IMP, left, right) : right;
+    auto caseFormula = left ? new BinaryFormula(Connective::IMP, left, right) : right;
+    FormulaList* cl = FormulaList::empty();
+    Formula* caseBound = 0;
+    if (intind && (c._recursiveCalls.size() == 1)) {
+      // Integer induction schemes require the non-base cases to be guarded by the case bounds.
+      Substitution sub(c._recursiveCalls[0]);
+      for (const auto& p : boundLitQrPairs) {
+        Literal* l = p.first->apply(sub);
+        Literal* l2;
+        // TODO(hzzv): use more sophisticated logic for creating bounds
+        if (p.second.literal == scheme.bound1()) {
+          if (l->isNegative()) l2 = l;
+          else l2 = Literal::create2(less, /*polarity=*/false, *l->nthArgument(1), *l->nthArgument(0));
+        } else {
+          ASS_EQ(p.second.literal, scheme.optionalBound2());
+          if (l->isPositive()) l2 = l;
+          else l2 = Literal::create2(less, /*polarity=*/true, *l->nthArgument(1), *l->nthArgument(0));
+        }
+        ASS(l2 != nullptr);
+        FormulaList::push(new AtomicFormula(l2), cl);
+      }
+    }
+    if (FormulaList::isNonEmpty(cl)) caseBound = JunctionFormula::generalJunction(Connective::AND, cl);
+    Formula* f = caseBound ? new BinaryFormula(Connective::IMP, caseBound, caseFormula) : caseFormula;
     FormulaList::push(Formula::quantify(f), cases);
   }
 
@@ -304,15 +378,22 @@ void GeneralInduction::generateClauses(
   for (const auto& kv : scheme.inductionTerms()) {
     ALWAYS(subst.match(TermList(kv.second, false), 0, TermList(kv.first), 1));
   }
+  Formula* conclusionBound = 0;
+  if (intind && scheme.isDefaultBound()) {
+    // If the scheme uses default bound, we need to add it to the conclusion manually
+    // (it is not included in the sideLitQrPairs).
+    conclusionBound = new AtomicFormula(scheme.bound1());
+  }
+  Formula* conclusion = createImplication(mainLit, sideLitQrPairs);
   Formula* hypothesis = new BinaryFormula(Connective::IMP,
     JunctionFormula::generalJunction(Connective::AND, cases),
-    Formula::quantify(createImplication(mainLit, sideLitQrPairs)));
+    Formula::quantify(conclusionBound ? new BinaryFormula(Connective::IMP, conclusionBound, conclusion) : conclusion));
   // cout << *hypothesis << endl;
 
   NewCNF cnf(0);
   cnf.setForInduction();
   Stack<Clause*> hyp_clauses;
-  Inference inf = NonspecificInference0(UnitInputType::AXIOM,_rule);
+  Inference inf = NonspecificInference0(UnitInputType::AXIOM,scheme.rule());
   unsigned maxDepth = mainQuery.clause->inference().inductionDepth();
   for (const auto& kv : sideLitQrPairs) {
     maxDepth = max(maxDepth, kv.second.clause->inference().inductionDepth());
@@ -344,6 +425,7 @@ void GeneralInduction::generateClauses(
   // Be aware that we change mainLit and sideLitQrPairs here irreversibly
   mainLit = Literal::complementaryLiteral(mainLit);
   for (auto& kv : sideLitQrPairs) {
+    ASS(kv.second.clause != nullptr);
     kv.first = Literal::complementaryLiteral(subst.apply(kv.first, 0));
     kv.second.substitution = resSubst;
   }
@@ -356,18 +438,12 @@ void GeneralInduction::generateClauses(
         c->inference().addToInductionInfo(v);
       }
     }
-    c = BinaryResolution::generateClause(c, mainLit, mainQuery, *env.options);
-    ASS(c);
-    if (_splitter && !sideLitQrPairs.empty()) {
-      _splitter->onNewClause(c);
-    }
+    c = applyBinaryResolutionAndCallSplitter(c, mainLit, mainQuery,
+            /*splitterCondition=*/ !regularSideLitQrPairs.empty());
     unsigned i = 0;
     for (const auto& kv : sideLitQrPairs) {
-      c = BinaryResolution::generateClause(c, kv.first, kv.second, *env.options);
-      ASS(c);
-      if (_splitter && ++i < sideLitQrPairs.size()) {
-        _splitter->onNewClause(c);
-      }
+      c = applyBinaryResolutionAndCallSplitter(c, kv.first, kv.second,
+            /*splitterCondition=*/ ++i < regularSideLitQrPairs.size());
     }
     if(env.options->showInduction()){
       env.beginOutput();
@@ -380,6 +456,15 @@ void GeneralInduction::generateClauses(
     clauses.push(c);
   }
   env.statistics->induction++;
+}
+
+Clause* GeneralInduction::applyBinaryResolutionAndCallSplitter(Clause* c, Literal* l, const SLQueryResult& slqr, bool splitterCondition) {
+  Clause* res = BinaryResolution::generateClause(c, l, slqr, *env.options);
+  ASS(res);
+  if (_splitter && splitterCondition) {
+    _splitter->onNewClause(res);
+  }
+  return res;
 }
 
 void reserveBlanksForScheme(const InductionScheme& sch, DHMap<TermList, vvector<Term*>>& blanks)
@@ -439,6 +524,7 @@ bool GeneralInduction::alreadyDone(Literal* mainLit, const vset<pair<Literal*,Cl
   }
   auto s = _done.get(res.first);
   // check if the sides for the new pattern are included in the existing one
+  // TODO(hzzv): add conditions for integer induction (later)
   if (includes(s.begin(), s.end(), res.second.begin(), res.second.end())) {
     if (env.options->showInduction()) {
       env.beginOutput();
@@ -467,17 +553,38 @@ vvector<pair<SLQueryResult, vset<pair<Literal*,Clause*>>>> GeneralInduction::sel
 
   vvector<pair<SLQueryResult, vset<pair<Literal*,Clause*>>>> res;
   static const bool indmc = env.options->inductionMultiClause();
+  static const bool intind = InductionHelper::isIntInductionOn();
+  static const bool finInterval = InductionHelper::isInductionForFiniteIntervalsOn();
+  const bool isPremiseComparison = InductionHelper::isIntegerComparison(premise); 
 
   // TODO(mhajdu): is there a way to duplicate these iterators?
   TermQueryResultIterator it = TermQueryResultIterator::getEmpty();
-  if (indmc && literal->ground() && (!premise->inference().inductionDepth() ||
+  if ((indmc || intind) && literal->ground() && (!premise->inference().inductionDepth() ||
     (!literal->isEquality() && InductionHelper::isInductionLiteral(literal, premise))))
   {
     SubtermIterator stit(literal);
     while (stit.hasNext()) {
       auto st = stit.next();
       if (st.isTerm() && skolem(st.term())) {
-        it = pvi(getConcatenatedIterator(it, _index->getGeneralizations(st)));
+        if (indmc) {
+          it = pvi(getConcatenatedIterator(it, _index->getGeneralizations(st)));
+        } else if (intind && env.signature->getFunction(st.term()->functor())->fnType()->result() == Term::intSort()) {
+          // We only need bound side literals for integer induction
+          if (isPremiseComparison && InductionHelper::isIntInductionTwoOn()) {
+            //cout << "fetching induction literals as sides" << endl;
+            // Fetch induction literals for bound in 'premise'
+            it = pvi(getConcatenatedIterator(it, _helper.getTQRsForInductionTerm(st)));
+          }
+          if (!isPremiseComparison && InductionHelper::isIntInductionOneOn()) {
+            // TODO(hzzv): use a better check to see if induction can be applied on literal/premise?
+            Term* t = st.term();
+            it = pvi(getConcatenatedIterator(it,
+                    getConcatenatedIterator(getConcatenatedIterator(_helper.getLess(t), _helper.getLessEqual(t)),
+                                            getConcatenatedIterator(_helper.getGreater(t), _helper.getGreaterEqual(t)))));
+//                  getFilteredIterator(_index->getGeneralizations(st),
+//                    [] (TermQueryResult& tqr) { return InductionHelper::isIntegerComparison(tqr.clause); })));
+          }
+        }
       }
     }
   }
@@ -494,30 +601,57 @@ vvector<pair<SLQueryResult, vset<pair<Literal*,Clause*>>>> GeneralInduction::sel
   {
     auto qr = it.next();
     // query is side literal
-    if (indLit && InductionHelper::isInductionClause(qr.clause) && sideLitCondition(literal, premise, qr.literal, qr.clause))
+    if (indLit && (indmc || (intind && InductionHelper::isIntegerComparison(qr.clause))) &&
+        InductionHelper::isInductionClause(qr.clause) && sideLitCondition(literal, premise, qr.literal, qr.clause))
     {
       res[0].second.emplace(qr.literal, qr.clause);
     }
     // query is main literal
-    if (InductionHelper::isInductionClause(qr.clause) &&
+    const bool queryIntIndLit = !InductionHelper::isIntegerComparison(qr.clause);
+    if ((indmc || (intind && isPremiseComparison && queryIntIndLit)) &&
+        InductionHelper::isInductionClause(qr.clause) &&
         InductionHelper::isInductionLiteral(qr.literal) &&
         sideLitCondition(qr.literal, qr.clause, literal, premise))
     {
+      // TODO(hzzv): maybe only do this for integer induction if 'premise' is a bound for 'qr'
+      //    (however, if indmc is on, then this will happen also for integer induction even when 'premise' is
+      //    not a bound for 'qr')
       res.emplace_back(SLQueryResult(qr.literal, qr.clause), vset<pair<Literal*,Clause*>>());
       res.back().second.emplace(literal, premise);
-      // now add side literals other than the input
-      SubtermIterator stit(qr.literal);
-      while (stit.hasNext()) {
-        auto st = stit.next();
-        if (st.isTerm() && skolem(st.term())) {
-          auto it = _index->getGeneralizations(st);
-          while (it.hasNext()) {
-            auto qrSide = it.next();
-            if (qrSide.literal != literal &&
-              InductionHelper::isInductionClause(qrSide.clause) &&
-              sideLitCondition(qr.literal, qr.clause, qrSide.literal, qrSide.clause))
-            {
-              res.back().second.emplace(qrSide.literal, qrSide.clause);
+      if (indmc || (finInterval && queryIntIndLit)) {
+        // now add side literals other than the input
+        SubtermIterator stit(qr.literal);
+        while (stit.hasNext()) {
+          auto st = stit.next();
+          if (st.isTerm() && skolem(st.term()) &&
+              (indmc || env.signature->getFunction(st.term()->functor())->fnType()->result() == Term::intSort())) {
+            TermQueryResultIterator it2 = TermQueryResultIterator::getEmpty();
+            if (indmc) {
+              it2 = _index->getGeneralizations(st);
+            } else if (queryIntIndLit) {
+              // We only use the premise as bound for integer induction. Fetch other bounds:
+              const bool isLeft = (st == *literal->nthArgument(0));
+              const bool isRight = (st == *literal->nthArgument(1));
+              if (isLeft || isRight) {
+                // 'st' is a term bounded by 'literal'
+                Term* t = st.term();
+                if (literal->isPositive() == isLeft) {
+                  // 'st' is smaller than the bound (the bound is upper). Fetch the lower bound for 'st'.
+                  it2 = pvi(getConcatenatedIterator(_helper.getLess(t), _helper.getLessEqual(t)));
+                } else {
+                  // 'st' is greater than the bound (the bound is lower). Fetch the upper bound for 'st'.
+                  it2 = pvi(getConcatenatedIterator(_helper.getGreater(t), _helper.getGreaterEqual(t)));
+                }
+              }
+            }
+            while (it2.hasNext()) {
+              auto qrSide = it2.next();
+              if (qrSide.literal != literal &&
+                InductionHelper::isInductionClause(qrSide.clause) &&
+                sideLitCondition(qr.literal, qr.clause, qrSide.literal, qrSide.clause))
+              {
+                res.back().second.emplace(qrSide.literal, qrSide.clause);
+              }
             }
           }
         }

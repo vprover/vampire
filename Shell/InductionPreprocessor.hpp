@@ -38,8 +38,8 @@ bool canInductOn(Term* t);
 class InductionScheme
 {
 public:
-  InductionScheme(const vmap<Term*, unsigned>& indTerms, bool noChecks = false)
-    : _inductionTerms(indTerms), _finalized(false), _noChecks(noChecks), _cases() {}
+  InductionScheme(const vmap<Term*, unsigned>& indTerms, bool noChecks = false, InferenceRule rule = InferenceRule::INDUCTION_AXIOM)
+    : _inductionTerms(indTerms), _finalized(false), _noChecks(noChecks), _cases(), _bound1(), _optionalBound2(), _integer(false), _upward(false), _rule(rule) {}
 
   struct Case {
     Case() = default;
@@ -54,6 +54,12 @@ public:
   static Term* createRepresentingTerm(const vmap<Term*, unsigned>& inductionTerms, const Substitution& s);
   const vvector<Case>& cases() const { ASS(_finalized); return *_cases; }
   const vmap<Term*, unsigned>& inductionTerms() const { ASS(_finalized); return _inductionTerms; }
+  Literal* bound1() const { ASS(_finalized); ASS(_integer); return _bound1; }
+  Literal* optionalBound2() const { ASS(_finalized); ASS(_integer); return _optionalBound2; }
+  bool isInteger() const { ASS(_finalized); return _integer; }
+  bool isUpward() const { ASS(_finalized); ASS(_integer); return _upward; }
+  bool isDefaultBound() const { ASS(_finalized); ASS(_integer); return _defaultBound; }
+  const InferenceRule rule() const {ASS(_finalized); return _rule; }
   bool operator<(const InductionScheme& other) const {
     return _inductionTerms < other._inductionTerms ||
       (_inductionTerms == other._inductionTerms && _cases < other._cases);
@@ -64,11 +70,18 @@ private:
 
   friend class InductionTemplate;
   friend class FnDefHandler;
+  friend class IntegerInductionSchemeGenerator;
 
   vmap<Term*, unsigned> _inductionTerms;
   bool _finalized;
   bool _noChecks;
   vvector<Case>* _cases;
+  Literal* _bound1;
+  Literal* _optionalBound2;
+  bool _integer;
+  bool _upward;
+  bool _defaultBound;
+  InferenceRule _rule;
 };
 
 ostream& operator<<(ostream& out, const InductionScheme& scheme);

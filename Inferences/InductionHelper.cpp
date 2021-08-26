@@ -291,4 +291,28 @@ bool InductionHelper::isStructInductionFunctor(unsigned f) {
          );
 }
 
+TermList* InductionHelper::getLowerBoundForTermListFromLiteral(const TermList& tl, Literal* l) {
+  ASS(isIntegerComparisonLiteral(l));
+  if (l->isPositive()) {
+    // 'l' should be 'bound < tl'
+    if (tl == *l->nthArgument(1)) return l->nthArgument(0);
+  } else {
+    // 'l' should be '~ tl < bound' (equiv. to 'bound <= tl')
+    if (tl == *l->nthArgument(0)) return l->nthArgument(1);
+  }
+  return nullptr;
+}
+
+TermList* InductionHelper::getUpperBoundForTermListFromLiteral(const TermList& tl, Literal* l) {
+  ASS(isIntegerComparisonLiteral(l));
+  if (l->isPositive()) {
+    // 'l' should be 'tl < bound'
+    if (tl == *l->nthArgument(0)) return l->nthArgument(1);
+  } else {
+    // 'l' should be '~ bound < tl' (equiv. to 'tl <= bound')
+    if (tl == *l->nthArgument(1)) return l->nthArgument(0);
+  }
+  return nullptr;
+}
+
 }  // namespace Inferences
