@@ -197,6 +197,8 @@ private:
   Representation getRepresentation(SATLiteral lit);
   Representation getRepresentation(SATClause* cl);
 
+  // arrays are a bit fragile in Z3, so we need to do things differently for them
+  bool _hasSeenArrays;
 
   unsigned _varCnt; // just to conform to the interface
   SAT2FO& _sat2fo; // Memory belongs to Splitter

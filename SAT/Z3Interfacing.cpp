@@ -107,6 +107,7 @@ void handleZ3Error(Z3_context ctxt, Z3_error_code code)
 #define STATEMENTS_TO_EXPRESSION(...) [&]() { __VA_ARGS__; return 0; }()
 
 Z3Interfacing::Z3Interfacing(SAT2FO& s2f, bool showZ3, bool unsatCoresForAssumptions, vstring const& exportSmtlib):
+  _hasSeenArrays(false),
   _varCnt(0),
   _sat2fo(s2f),
   _status(SATISFIABLE),
@@ -265,9 +266,22 @@ SATSolver::Status Z3Interfacing::solve()
     outputln(" ", a);
   }
   outputln(" ))");
-  _solver.push();
-  z3::check_result result = _solver.check(_assumptions.size(), _assumptions.begin());
 
+  /* The purpose of this class is to conditionally disable variable elimination inside Z3's _solver.check,
+   * which results in some literals not being evaluated to either true and false, that we need for AVATAR.
+   * Why a class? To be able to rely on RAII for the call to pop() (via the destructor) and thus not forget about it.
+   * Why conditional? Because push/pop slightly decreases z3's performance and so we want to do it only in
+   * the cases where the problem has been observed - namely, when arrays are involved.
+  */
+  class ScopedPushAndPop {
+    z3::solver& _s;
+    bool _dpp;
+  public:
+    ScopedPushAndPop(z3::solver& s, bool doPushPop) : _s(s), _dpp(doPushPop) { if (_dpp) {_s.push();} }
+    ~ScopedPushAndPop() { if (_dpp) {_s.pop();} }
+  } _maybePushAndPop(_solver,_hasSeenArrays);
+
+  z3::check_result result = _solver.check(_assumptions.size(), _assumptions.begin());
 
   if(_showZ3){
     env.beginOutput();
@@ -301,7 +315,6 @@ SATSolver::Status Z3Interfacing::solve()
     default: ASSERTION_VIOLATION;
   }
   
-  _solver.pop();
   return _status;
 }
 
@@ -519,6 +532,7 @@ z3::sort Z3Interfacing::getz3sort(SortId s)
     else if(s ==  RatTraits::sort()) insert(_context.real_sort()); // Drops notion of rationality
     // TODO: are we really allowed to do this ???                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^
     else if(SortHelper::isArraySort(s)) {
+      _hasSeenArrays = true;
 
       z3::sort index_sort = getz3sort(SortHelper::getIndexSort(s));
       z3::sort value_sort = getz3sort(SortHelper::getInnerSort(s));
