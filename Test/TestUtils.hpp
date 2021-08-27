@@ -200,6 +200,16 @@ public:
   { return out << pretty(*_self); }
 };
 
+template<class A, class B>
+class Pretty<pair<A,B>> {
+  pair<A,B> const& _self;
+
+public:
+  Pretty(pair<A,B> const& self) : _self(self) {}
+
+  std::ostream& prettyPrint(std::ostream& out) const
+  { return out << pretty(_self.first) << " : " << pretty(_self.second); }
+};
 
 template<class L1, class L2, class Eq>
 bool __permEq(L1& lhs, L2& rhs, Eq elemEq, DArray<unsigned>& perm, unsigned idx) {

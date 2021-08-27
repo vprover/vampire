@@ -105,6 +105,7 @@ TEST_GENERATION(test_03,
       })
       .indices({ lhsIndex(), subtermIndex() })
       .input(clause({ sk1 != f(sk2,sk1) }))
+      .expected(none())
     )
 
 // symmetric case for polarity exclusion above
@@ -115,6 +116,7 @@ TEST_GENERATION(test_04,
       })
       .indices({ lhsIndex(), subtermIndex() })
       .input(clause({ sk1 == f(sk2,sk1) }))
+      .expected(none())
     )
 
 // only same literal is recursed upon

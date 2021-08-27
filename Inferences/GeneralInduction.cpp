@@ -217,7 +217,7 @@ void GeneralInduction::attach(SaturationAlgorithm* salg)
   GeneratingInferenceEngine::attach(salg);
   _splitter=_salg->getSplitter();
   _index = static_cast<TermIndex *>(
-      _salg->getIndexManager()->request(SUPERPOSITION_SUBTERM_SUBST_TREE));
+      _salg->getIndexManager()->request(DEMODULATION_SUBTERM_SUBST_TREE));
 }
 
 void GeneralInduction::detach()
@@ -225,7 +225,7 @@ void GeneralInduction::detach()
   CALL("GeneralInduction::detach");
 
   _index = 0;
-  _salg->getIndexManager()->release(SUPERPOSITION_SUBTERM_SUBST_TREE);
+  _salg->getIndexManager()->release(DEMODULATION_SUBTERM_SUBST_TREE);
   _splitter=0;
   GeneratingInferenceEngine::detach();
 }
@@ -470,11 +470,17 @@ vvector<pair<SLQueryResult, vset<pair<Literal*,Clause*>>>> GeneralInduction::sel
     (!literal->isEquality() && InductionHelper::isInductionLiteral(literal, premise))))
   {
     SubtermIterator stit(literal);
+    DHSet<TermList> skolems;
     while (stit.hasNext()) {
       auto st = stit.next();
       if (st.isTerm() && skolem(st.term())) {
-        it = pvi(getConcatenatedIterator(it, _index->getGeneralizations(st)));
+        skolems.insert(st);
       }
+    }
+    DHSet<TermList>::Iterator skit(skolems);
+    while (skit.hasNext()) {
+      auto st = skit.next();
+      it = pvi(getConcatenatedIterator(it, _index->getGeneralizations(st)));
     }
   }
 

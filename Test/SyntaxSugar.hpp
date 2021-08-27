@@ -110,7 +110,8 @@
 #define __REPEAT(arity, sort) __REPEAT_ ## arity(sort)
 
 #define DECL_CONST(f, sort) auto f = ConstSugar(#f, sort);
-#define DECL_INDUCTION_SKOLEM_CONST(f, sort) auto f = ConstSugar(#f, sort, true);
+#define DECL_SKOLEM_CONST(f, sort) auto f = ConstSugar(#f, sort, true);
+#define DECL_INDUCTION_SKOLEM_CONST(f, sort) auto f = ConstSugar(#f, sort, true, true);
 #define DECL_FUNC(f, ...)   auto f = FuncSugar(#f, __VA_ARGS__);
 #define DECL_PRED(f, ...)   auto f = PredSugar(#f, __VA_ARGS__);
 #define DECL_SORT(s)        auto s = SortSugar(#s);
@@ -318,9 +319,12 @@ public:
   /** explicit conversion */ 
   TermList toTerm() const { return _trm;} 
 
-  static TermSugar createConstant(const char* name, SortSugar s, bool inductionSkolem) {
+  static TermSugar createConstant(const char* name, SortSugar s, bool skolem, bool inductionSkolem) {
     unsigned f = env.signature->addFunction(name,0);                                                                
     env.signature->getFunction(f)->setType(OperatorType::getFunctionType({}, s.sortId()));
+    if (skolem) {
+      env.signature->getFunction(f)->markSkolem();
+    }
     if (inductionSkolem) {
       env.signature->getFunction(f)->markInductionSkolem();
     }
@@ -479,8 +483,8 @@ public:
 class ConstSugar : public TermSugar, public FuncSugar
 {
 public:
-  ConstSugar(const char* name, SortSugar s, bool inductionSkolem = false)
-    : TermSugar(TermSugar::createConstant(name, s, inductionSkolem).toTerm())
+  ConstSugar(const char* name, SortSugar s, bool skolem = false, bool inductionSkolem = false)
+    : TermSugar(TermSugar::createConstant(name, s, skolem, inductionSkolem).toTerm())
     , FuncSugar(functor())
   { }
   unsigned functor() const { return this->toTerm().term()->functor(); }

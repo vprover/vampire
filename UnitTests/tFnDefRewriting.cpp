@@ -59,6 +59,7 @@ TEST_GENERATION(test_02,
 TEST_GENERATION(test_03,
     Generation::TestCase()
       .input( clause({  g(r(x)) == f(x, r(x)) }))
+      .expected(none())
     )
 
 // multiple rewritten positions in a literal and multiple rewrite rules
@@ -86,4 +87,5 @@ TEST_GENERATION(test_05,
 TEST_GENERATION(test_06,
     Generation::TestCase()
       .input( clause({  f(b,b) == b  }))
+      .expected(none())
     )

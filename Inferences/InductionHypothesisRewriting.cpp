@@ -33,7 +33,6 @@
 #include "Indexing/TermSharing.hpp"
 
 #include "Saturation/Splitter.hpp"
-#include "Shell/Options.hpp"
 
 #include "InductionHypothesisRewriting.hpp"
 #include "InductionHelper.hpp"
