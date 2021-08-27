@@ -74,8 +74,8 @@ using namespace Lib;
 
 //using namespace z3;
 
-Z3Interfacing::Z3Interfacing(const Shell::Options& opts, SAT2FO& s2f, bool unsatCore, vstring const& exportSmtlib):
-  Z3Interfacing(s2f, opts.showZ3(), /* unsatCore */ unsatCore, exportSmtlib)
+Z3Interfacing::Z3Interfacing(const Shell::Options& opts, SAT2FO& s2f, bool unsatCoresForAssumptions, vstring const& exportSmtlib):
+  Z3Interfacing(s2f, opts.showZ3(), /* unsatCoresForAssumptions = */ unsatCoresForAssumptions, exportSmtlib)
 { }
 
 const char* errToString(Z3_error_code code)
@@ -106,7 +106,8 @@ void handleZ3Error(Z3_context ctxt, Z3_error_code code)
 
 #define STATEMENTS_TO_EXPRESSION(...) [&]() { __VA_ARGS__; return 0; }()
 
-Z3Interfacing::Z3Interfacing(SAT2FO& s2f, bool showZ3, bool unsatCore, vstring const& exportSmtlib):
+Z3Interfacing::Z3Interfacing(SAT2FO& s2f, bool showZ3, bool unsatCoresForAssumptions, vstring const& exportSmtlib):
+  _hasSeenArrays(false),
   _varCnt(0),
   _sat2fo(s2f),
   _status(SATISFIABLE),
@@ -120,7 +121,7 @@ Z3Interfacing::Z3Interfacing(SAT2FO& s2f, bool showZ3, bool unsatCore, vstring c
          _solver.get_model())),
   _assumptions(),
   _showZ3(showZ3),
-  _unsatCore(unsatCore),
+  _unsatCore(unsatCoresForAssumptions),
   _out()
 {
   CALL("Z3Interfacing::Z3Interfacing");
@@ -142,11 +143,11 @@ Z3Interfacing::Z3Interfacing(SAT2FO& s2f, bool showZ3, bool unsatCore, vstring c
     outputln(";- z3 parameter: ", k, "=", v);
   };
   setOption("rewriter.expand_store_eq", true);
-  setOption("model.compact", false); // keeps z3 from compressing its model. ~50% of the runtime of get_model is spent doing that otherwise
+  setOption("model.compact", true);
   if (_unsatCore) {
     setOption(":unsat-core", true);
   }
-  Z3_set_error_handler(_context, handleZ3Error);
+  // Z3_set_error_handler(_context, handleZ3Error); // MS: a handled error only reveals Z3_error_code, a propragated z3::exception is typically more informative
 
 #if TRACE_Z3
   setOption("trace", "true");
@@ -265,8 +266,22 @@ SATSolver::Status Z3Interfacing::solve()
     outputln(" ", a);
   }
   outputln(" ))");
-  z3::check_result result = _solver.check(_assumptions.size(), _assumptions.begin());
 
+  /* The purpose of this class is to conditionally disable variable elimination inside Z3's _solver.check,
+   * which results in some literals not being evaluated to either true and false, that we need for AVATAR.
+   * Why a class? To be able to rely on RAII for the call to pop() (via the destructor) and thus not forget about it.
+   * Why conditional? Because push/pop slightly decreases z3's performance and so we want to do it only in
+   * the cases where the problem has been observed - namely, when arrays are involved.
+  */
+  class ScopedPushAndPop {
+    z3::solver& _s;
+    bool _dpp;
+  public:
+    ScopedPushAndPop(z3::solver& s, bool doPushPop) : _s(s), _dpp(doPushPop) { if (_dpp) {_s.push();} }
+    ~ScopedPushAndPop() { if (_dpp) {_s.pop();} }
+  } _maybePushAndPop(_solver,_hasSeenArrays);
+
+  z3::check_result result = _solver.check(_assumptions.size(), _assumptions.begin());
 
   if(_showZ3){
     env.beginOutput();
@@ -299,7 +314,7 @@ SATSolver::Status Z3Interfacing::solve()
       break;
     default: ASSERTION_VIOLATION;
   }
-
+  
   return _status;
 }
 
@@ -517,6 +532,7 @@ z3::sort Z3Interfacing::getz3sort(SortId s)
     else if(s ==  RatTraits::sort()) insert(_context.real_sort()); // Drops notion of rationality
     // TODO: are we really allowed to do this ???                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^
     else if(s.isArraySort()) {
+      _hasSeenArrays = true;
 
       z3::sort index_sort = getz3sort(SortHelper::getIndexSort(s));
       z3::sort value_sort = getz3sort(SortHelper::getInnerSort(s));
@@ -1138,14 +1154,13 @@ Z3Interfacing::Representation Z3Interfacing::getRepresentation(SATLiteral slit)
 
 SATClause* Z3Interfacing::getRefutation()
 {
+  CALL("Z3Interfacing::getRefutation");
 
-    if(!_unsatCore)
-      return PrimitiveProofRecordingSATSolver::getRefutation();
-    else {
-      ASS_EQ(_status, SATISFIABLE);
-      ASSERTION_VIOLATION
-      //TODO
-    }
+  return PrimitiveProofRecordingSATSolver::getRefutation();
+
+  // TODO: optionally, we could try getting an unsat core from Z3 (could be smaller than all the added clauses so far)
+  // NOTE: this will not (necessarily) be the same option as _unsatCore, which takes care of minimization of added assumptions
+  // also ':core.minimize' might need to be set to get some effect
 }
 
 Z3Interfacing::~Z3Interfacing()
