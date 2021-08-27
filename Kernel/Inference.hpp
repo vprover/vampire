@@ -413,8 +413,10 @@ enum class InferenceRule : unsigned char {
   AVATAR_DEFINITION,
   /** component introduced by AVATAR */
   AVATAR_COMPONENT,
-  /** refutation of a AVATAR splitting branch */
+  /** inconsistency from AVATAR SAT solver */
   AVATAR_REFUTATION,
+  /** inconsistency from AVATAR SMT solver (not necessarily propositionally unsat) */
+  AVATAR_REFUTATION_SMT,
   /** sat clause representing FO clause for AVATAR */
   AVATAR_SPLIT_CLAUSE,
   /** sat clause representing FO clause for AVATAR */
@@ -613,6 +615,7 @@ inline bool isExternalTheoryAxiomRule(InferenceRule r) {
 
 inline bool isSatRefutationRule(InferenceRule r) {
   return (r == InferenceRule::AVATAR_REFUTATION) ||
+         (r == InferenceRule::AVATAR_REFUTATION_SMT) ||
          (r == InferenceRule::SAT_INSTGEN_REFUTATION) ||
          (r == InferenceRule::GLOBAL_SUBSUMPTION);
 }
