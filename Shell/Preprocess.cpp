@@ -454,10 +454,10 @@ void Preprocess::preprocess(Problem& prb)
        env.out() << "equality proxy" << std::endl;
 
      if(_options.useMonoEqualityProxy() && !prb.hasPolymorphicSym()){
+       //default      
        EqualityProxyMono proxy(_options.equalityProxy());
        proxy.apply(prb);
      } else {
-       //default
        EqualityProxy proxy(_options.equalityProxy());
        proxy.apply(prb);
      }
