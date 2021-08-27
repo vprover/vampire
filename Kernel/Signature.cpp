@@ -58,6 +58,8 @@ Signature::Symbol::Symbol(const vstring& nm, unsigned arity, bool interpreted, b
     _inUnit(0),
     _inductionSkolem(0),
     _skolem(0),
+    _finalLoopCount(0),
+    _mainEnd(0),
     _arrow(0),
     _app(0),
     _tuple(0),
@@ -71,11 +73,6 @@ Signature::Symbol::Symbol(const vstring& nm, unsigned arity, bool interpreted, b
 {
   CALL("Signature::Symbol::Symbol");
   ASS(!stringConstant || arity==0);
-
-  //hack, shouldn't be doing things based on strings
-  if(nm.rfind("nl", 0) == 0){
-    _finalLoopCount = 1;
-  }
 
   //even more hacky!!!
   if(nm.rfind("l", 0) == 0){

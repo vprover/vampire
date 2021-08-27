@@ -227,16 +227,32 @@ void Inference::updateStatistics()
         * and similarly inductionDepth assigned to INDUCTION "hypothesis" formulas in Induction.)
         */
       } else if (_ptr2 == nullptr) {
-        _inductionDepth = static_cast<Unit*>(_ptr1)->inference().inductionDepth();
-        _XXNarrows = static_cast<Unit*>(_ptr1)->inference().xxNarrows();
-        _reductions = static_cast<Unit*>(_ptr1)->inference().reductions();
+        Unit* unit = static_cast<Unit*>(_ptr1);
+        _distanceFromGoal = unit->inference().distanceFromGoal();
+        _inductionDepth = unit->inference().inductionDepth();
+        _XXNarrows = unit->inference().xxNarrows();
+        _reductions = unit->inference().reductions();
       } else {
-        _inductionDepth = max(static_cast<Unit*>(_ptr1)->inference().inductionDepth(),
-            static_cast<Unit*>(_ptr2)->inference().inductionDepth());
-        _XXNarrows = max(static_cast<Unit*>(_ptr1)->inference().xxNarrows(),
-            static_cast<Unit*>(_ptr2)->inference().xxNarrows());
-        _reductions = max(static_cast<Unit*>(_ptr1)->inference().reductions(),
-            static_cast<Unit*>(_ptr2)->inference().reductions());
+        Unit* unit1 = static_cast<Unit*>(_ptr1);
+        Unit* unit2 = static_cast<Unit*>(_ptr2);
+
+        _distanceFromGoal = max(unit1->inference().distanceFromGoal(),
+                                unit2->inference().distanceFromGoal());
+        if((unit1->inputType() == UnitInputType::CONJECTURE && 
+            unit2->inputType() != UnitInputType::CONJECTURE) || 
+           (unit1->inputType() != UnitInputType::CONJECTURE && 
+            unit2->inputType() == UnitInputType::CONJECTURE) ){
+          //Clause is derived from the goal, but it is in sense getting further way
+          //since one of its parents is not from the goal
+          _distanceFromGoal++;
+        } 
+    
+        _inductionDepth = max(unit1->inference().inductionDepth(),
+                              unit2->inference().inductionDepth());
+        _XXNarrows = max(unit1->inference().xxNarrows(),
+                         unit2->inference().xxNarrows());
+        _reductions = max(unit1->inference().reductions(),
+                          unit2->inference().reductions());
       }
 
       break;
@@ -244,11 +260,24 @@ void Inference::updateStatistics()
     case Kind::INFERENCE_FROM_SAT_REFUTATION:
       _inductionDepth = 0;
       UnitList* it= static_cast<UnitList*>(_ptr1);
+      bool oneParentDerivedFromGoal = false;
+      bool oneParentNotFromGoal = false;
       while(it) {
+        UnitInputType uit = it->head()->inputType();
+        if(uit == UnitInputType::CONJECTURE){
+          oneParentNotFromGoal = true;
+        }
+        if(uit == UnitInputType::CONJECTURE){
+          oneParentNotFromGoal = true;
+        }        
+        _distanceFromGoal = max(_distanceFromGoal,it->head()->inference().distanceFromGoal());        
         _inductionDepth = max(_inductionDepth,it->head()->inference().inductionDepth());
         _XXNarrows = max(_XXNarrows,it->head()->inference().inductionDepth());
         _reductions = max(_reductions,it->head()->inference().inductionDepth());
         it=it->tail();
+      }
+      if(oneParentNotFromGoal && oneParentDerivedFromGoal){
+        _distanceFromGoal++;
       }
       break;
   }
@@ -309,6 +338,11 @@ void Inference::init0(UnitInputType inputType, InferenceRule r)
   _kind = Kind::INFERENCE_012;
   _ptr1 = nullptr;
   _ptr2 = nullptr;
+
+  if(inputType == UnitInputType::CONJECTURE){
+    // this is the goal itself
+    _distanceFromGoal = 0;
+  }
 
   computeTheoryRunningSums();
 

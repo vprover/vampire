@@ -63,8 +63,7 @@ struct IntermediateValue::ValidRightHandSide
 {
   ValidRightHandSide(TermList leftLimit) : rhs(leftLimit) {}
   
-  DECL_RETURN_TYPE(bool);
-  OWN_RETURN_TYPE operator()(SLQueryResult res)
+  bool operator()(SLQueryResult res)
   {
     CALL("IntermediateValue::ValidRightHandSideFn()");
 
@@ -87,8 +86,7 @@ struct IntermediateValue::RightLimitExists
   RightLimitExists(TermList rightLimit,  LimitClauseContainer* limitClauses) 
   : _rightLimit(rightLimit), _limitClauses(limitClauses) {}
   
-  DECL_RETURN_TYPE(pair<Clause*, SLQueryResult>);
-  OWN_RETURN_TYPE operator()(SLQueryResult res)
+  pair<Clause*, SLQueryResult> operator()(SLQueryResult res)
   {
     TermList tm = *res.literal->nthArgument(0);
     Theory::Interpretation interp = Theory::INT_LESS;
@@ -107,8 +105,7 @@ struct IntermediateValue::NotZero
 {
   NotZero() {}
   
-  DECL_RETURN_TYPE(bool);
-  OWN_RETURN_TYPE operator()(pair<Clause*, SLQueryResult> p)
+  bool operator()(pair<Clause*, SLQueryResult> p)
   {
     CALL("IntermediateValue:NotZero");
 
@@ -124,8 +121,7 @@ struct IntermediateValue::ResultFn
   _parent(parent), _leftLimit(leftLimit), _lastLoopCount(lastLoopCount), 
     _premise(premise), _f1(f1), _f2(f2) {}
   
-  DECL_RETURN_TYPE(VirtualIterator<Clause*>);
-  OWN_RETURN_TYPE operator()(pair<Clause*, SLQueryResult> p)
+  VirtualIterator<Clause*> operator()(pair<Clause*, SLQueryResult> p)
   {
     TermList lhs = *p.second.literal->nthArgument(0);
     TermList rhs = *p.second.literal->nthArgument(1);
@@ -211,7 +207,7 @@ ClauseIterator IntermediateValue::produceConsequences(TermList lhs, TermList rhs
   Literal* cond = 0;
   unsigned l = 1;
   if(env.signature->getFunction(rhs.term()->functor())->integerConstant()){
-    cond = Literal::createEquality(false, rhs, rightLimit, Sorts::SRT_INTEGER);
+    cond = Literal::createEquality(false, rhs, rightLimit, Term::intSort());
     l = 2;
   } else if(rhs != rightLimit){
     return ClauseIterator::getEmpty();
@@ -219,10 +215,10 @@ ClauseIterator IntermediateValue::produceConsequences(TermList lhs, TermList rhs
 
   static ClauseStack results;
 
-  unsigned natSort = natTA->termAlgebra()->sort();
+  TermList natSort = natTA->termAlgebra()->sort();
   unsigned ltNat = natTA->getLessPredicate();
 
-  unsigned sk = Shell::Skolem::addSkolemFunction(0, 0, natSort);
+  unsigned sk = Shell::Skolem::addSkolemFunction(0, 0, 0, natSort);
   TermList skTm = TermList(Term::createConstant(sk));
 
   Literal* lit1 = Literal::create2(ltNat, true, skTm, nlTerm);
@@ -238,7 +234,7 @@ ClauseIterator IntermediateValue::produceConsequences(TermList lhs, TermList rhs
   results.push(conc1);
 
   TermList tl = TermList(Term::create1(f1, TermList(Term::create1(f2, skTm)))); 
-  Literal* lit2 = Literal::createEquality(true, lhs, tl, Sorts::SRT_INTEGER);
+  Literal* lit2 = Literal::createEquality(true, lhs, tl, Term::boolSort());
 
   UnitList* premises2 = UnitList::empty();
   UnitList::push(prem1, premises2);
@@ -256,7 +252,7 @@ ClauseIterator IntermediateValue::produceConsequences(TermList lhs, TermList rhs
   TermList skSucc = natTA->createSucc(skTm);
   tl = TermList(Term::create1(f1, TermList(Term::create1(f2, skSucc))));
 
-  Literal* lit3 = Literal::createEquality(true, lhsPlusOne, tl, Sorts::SRT_INTEGER);
+  Literal* lit3 = Literal::createEquality(true, lhsPlusOne, tl, Term::boolSort());
   UnitList* premises3 = UnitList::empty();
   UnitList::push(prem1, premises3);
   UnitList::push(prem2, premises3);

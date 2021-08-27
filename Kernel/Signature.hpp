@@ -112,6 +112,7 @@ class Signature
         be used as names during consequence finding or function relationship finding */
     unsigned _label : 1;
   public:
+    //Why is this public?
     /** marks predicate symbols which are annotated by the user as lemma predicates*/
     unsigned isLemmaPredicate : 1;
   protected:
@@ -139,8 +140,10 @@ class Signature
     unsigned _inductionSkolem : 1;
     /** if skolem function in general **/
     unsigned _skolem : 1;
-    /** rpaid related */
+    /** rapid related */
     unsigned _finalLoopCount : 1;
+
+    unsigned _mainEnd : 1;
 
     unsigned _timePoint : 1;
 
@@ -193,6 +196,10 @@ class Signature
     void markTermAlgebraCons() { _termAlgebraCons=1; }
     /** mark symbol as a term algebra destructor */
     void markTermAlgebraDest() { _termAlgebraDest=1; }
+    /** mark symbol as a final loop count */
+    void markFinalLoopCount() { _finalLoopCount=1; }
+
+    void markMainEnd() { _mainEnd=1; }
 
     /** return true iff symbol is marked as skip for the purpose of symbol elimination */
     bool skip() const { return _skip; }
@@ -229,6 +236,8 @@ class Signature
     inline bool termAlgebraDest() const { return _termAlgebraDest; }
 
     inline bool finalLoopCount() const { return _finalLoopCount; }
+
+    inline bool mainEnd() const { return _mainEnd; }
 
     inline bool timePoint() const { return _timePoint; }
 

@@ -301,6 +301,12 @@ Index* IndexManager::create(IndexType t)
     isGenerating = true;
     break;
 
+  case MULTI_CLAUSE_NAT_IND_INDEX:
+    tis = new TermSubstitutionTree();
+    res = new MultiClauseNatInductionIndex(tis);
+    isGenerating = true;
+    break;  
+
   default:
     INVALID_OPERATION("Unsupported IndexType.");
   }

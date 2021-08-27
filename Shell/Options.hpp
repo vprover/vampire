@@ -403,8 +403,7 @@ public:
     LTB_MZR_2017,
     SMTCOMP,
     SMTCOMP_2018, 
-    RAPID
-    SMTCOMP_2018,
+    RAPID,
     STRUCT_INDUCTION
   };
 
@@ -2190,6 +2189,8 @@ public:
   unsigned maxInductionGenSubsetSize() const { return _maxInductionGenSubsetSize.actualValue; }
   bool inductionOnComplexTerms() const {return _inductionOnComplexTerms.actualValue;}
   bool integerInductionDefaultBound() const { return _integerInductionDefaultBound.actualValue; }
+  bool multiClauseNatInduction() const { return _multiClauseNatInduction.actualValue; }
+  bool multiLiteralClauses() const { return _multiLiteralClauses.actualValue; }
   IntegerInductionInterval integerInductionInterval() const { return _integerInductionInterval.actualValue; }
 
   float instGenBigRestartRatio() const { return _instGenBigRestartRatio.actualValue; }
@@ -2492,6 +2493,8 @@ private:
   UnsignedOptionValue _maxInductionGenSubsetSize;
   BoolOptionValue _inductionOnComplexTerms;
   BoolOptionValue _integerInductionDefaultBound;
+  BoolOptionValue _multiClauseNatInduction;
+  BoolOptionValue _multiLiteralClauses;
   ChoiceOptionValue<IntegerInductionInterval> _integerInductionInterval;
 
   StringOptionValue _latexOutput;

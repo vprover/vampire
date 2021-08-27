@@ -145,6 +145,23 @@ protected:
   void handleClause(Clause* c, bool adding);
 };
 
+/**
+ * Term index for multi clause induction on natural numbers
+ */
+class MultiClauseNatInductionIndex
+: public TermIndex
+{
+public:
+  CLASS_NAME(MultiClauseNatInductionIndex);
+  USE_ALLOCATOR(MultiClauseNatInductionIndex);
+
+  MultiClauseNatInductionIndex(TermIndexingStructure* is)
+  : TermIndex(is) {}
+
+protected:
+  void handleClause(Clause* c, bool adding);
+};
+
 /////////////////////////////////////////////////////
 // Indices for higher-order inferences from here on//
 /////////////////////////////////////////////////////

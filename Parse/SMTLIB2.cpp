@@ -160,7 +160,7 @@ void SMTLIB2::readBenchmark(LExprList* bench)
       LExprList* iSorts = ibRdr.readList();
       LExpr* oSort = ibRdr.readNext();
 
-      readDeclareFun(name,iSorts,oSort, true);
+      readDeclareFun(name,iSorts,oSort, RapidSymbol::RAP_LEMMA_PRED);
 
       ibRdr.acceptEOL();
 
@@ -239,6 +239,28 @@ void SMTLIB2::readBenchmark(LExprList* bench)
       LExpr* oSort = ibRdr.readNext();
 
       readDeclareFun(name,nullptr,oSort);
+
+      ibRdr.acceptEOL();
+
+      continue;
+    }
+
+    if (ibRdr.tryAcceptAtom("declare-final-loop-count")) {
+      vstring name = ibRdr.readAtom();
+      LExpr* oSort = ibRdr.readNext();
+
+      readDeclareFun(name,nullptr,oSort,RapidSymbol::RAP_FN_LOOP_COUNT);
+
+      ibRdr.acceptEOL();
+
+      continue;
+    }
+
+    if (ibRdr.tryAcceptAtom("declare-main-end")) {
+      vstring name = ibRdr.readAtom();
+      LExpr* oSort = ibRdr.readNext();
+
+      readDeclareFun(name,nullptr,oSort,RapidSymbol::RAP_MAIN_END);
 
       ibRdr.acceptEOL();
 
@@ -874,7 +896,7 @@ bool SMTLIB2::isAlreadyKnownFunctionSymbol(const vstring& name)
   return false;
 }
 
-void SMTLIB2::readDeclareFun(const vstring& name, LExprList* iSorts, LExpr* oSort, bool isLemmaPredicate)
+void SMTLIB2::readDeclareFun(const vstring& name, LExprList* iSorts, LExpr* oSort, RapidSymbol sym)
 {
   CALL("SMTLIB2::readDeclareFun");
 
@@ -893,11 +915,11 @@ void SMTLIB2::readDeclareFun(const vstring& name, LExprList* iSorts, LExpr* oSor
     argSorts.push(declareSort(isRdr.next()));
   }
 
-  declareFunctionOrPredicate(name,rangeSort,argSorts, isLemmaPredicate);
+  declareFunctionOrPredicate(name,rangeSort,argSorts,sym);
 }
 
 
-SMTLIB2::DeclaredFunction SMTLIB2::declareFunctionOrPredicate(const vstring& name, TermList rangeSort, const TermStack& argSorts, bool isLemmaPredicate)
+SMTLIB2::DeclaredFunction SMTLIB2::declareFunctionOrPredicate(const vstring& name, TermList rangeSort, const TermStack& argSorts, RapidSymbol rapSym)
 {
   CALL("SMTLIB2::declareFunctionOrPredicate");
 
@@ -906,14 +928,14 @@ SMTLIB2::DeclaredFunction SMTLIB2::declareFunctionOrPredicate(const vstring& nam
   Signature::Symbol* sym;
   OperatorType* type;
 
-  ASS(!isLemmaPredicate || rangeSort == Term::boolSort());
+  ASS(rapSym != RapidSymbol::RAP_LEMMA_PRED || rangeSort == Term::boolSort());
   if (rangeSort == Term::boolSort()) { // predicate
     symNum = env.signature->addPredicate(name, argSorts.size(), added);
 
     sym = env.signature->getPredicate(symNum);
 
     ASS(added);
-    if (isLemmaPredicate)
+    if (rapSym == RapidSymbol::RAP_LEMMA_PRED)
     {
       sym->isLemmaPredicate = 1;
     }
@@ -929,6 +951,16 @@ SMTLIB2::DeclaredFunction SMTLIB2::declareFunctionOrPredicate(const vstring& nam
     }
 
     sym = env.signature->getFunction(symNum);
+
+    if(rapSym == RapidSymbol::RAP_FN_LOOP_COUNT)
+    {
+      sym->markFinalLoopCount();
+    }    
+
+    if(rapSym == RapidSymbol::RAP_MAIN_END)
+    {
+      sym->markMainEnd();
+    } 
 
     type = OperatorType::getFunctionType(argSorts.size(), argSorts.begin(), rangeSort);
 
@@ -1186,21 +1218,28 @@ void SMTLIB2::readDeclareDatatypes(LExprList* sorts, LExprList* datatypes, bool 
 void SMTLIB2::readDeclareNat(const vstring& nat, const vstring& zero, const vstring& succ, const vstring& pred, const vstring& less)
 {
   _declaredSorts.insert(nat, 0);
-  bool added;
-  unsigned natSort = env.sorts->addSort(nat + "()",  added, false); // TODO: why false? shouldn't it be interpreted?
 
+  bool added = false;
+  // TODO: why addUninterpretedConstant? shouldn't it be interpreted?
+  unsigned natSortCon = TPTP::addUninterpretedConstant(nat + "()",_overflow,added);
   ASS(added);
+
+  OperatorType* ot = OperatorType::getConstantsType(Term::superSort());
+  env.signature->getFunction(natSortCon)->setType(ot);
+  
+  TermList natSort = TermList(Term::createConstant(natSortCon));
+  env.sorts->addSort(natSort);
 
   Stack<TermAlgebraConstructor*> constructors;
 
   Stack<vstring> destructorNamesZero;
-  Stack<unsigned> destructorArgSortsZero;
+  TermStack destructorArgSortsZero;
   auto zeroConstructor = buildTermAlgebraConstructor(zero, natSort, destructorNamesZero, destructorArgSortsZero);
   constructors.push(zeroConstructor);
 
   Stack<vstring> destructorNamesSucc;
   destructorNamesSucc.push(pred);
-  Stack<unsigned> destructorArgSortsSucc;
+  TermStack destructorArgSortsSucc;
   destructorArgSortsSucc.push(natSort);
   auto succConstructor = buildTermAlgebraConstructor(succ, natSort, destructorNamesSucc, destructorArgSortsSucc);
   constructors.push(succConstructor);
@@ -1208,10 +1247,10 @@ void SMTLIB2::readDeclareNat(const vstring& nat, const vstring& zero, const vstr
   TermAlgebra* ta = new TermAlgebra(natSort, constructors.size(), constructors.begin(), false);
   env.signature->addTermAlgebra(ta);
 
-  Stack<unsigned> argSorts;
+  TermStack argSorts;
   argSorts.push(natSort);
   argSorts.push(natSort);
-  auto pair = declareFunctionOrPredicate(less, Sorts::SRT_BOOL, argSorts);
+  auto pair = declareFunctionOrPredicate(less, Term::boolSort(), argSorts);
   NatTermAlgebra* nta = new NatTermAlgebra(ta, pair.first);
   env.signature->setNat(nta);
 }

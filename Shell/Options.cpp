@@ -1232,6 +1232,17 @@ void Options::init()
             _integerInductionInterval.reliesOn(Or(_induction.is(equal(Induction::INTEGER)),_induction.is(equal(Induction::BOTH))));
             _lookup.insert(&_integerInductionInterval);
 
+            _multiClauseNatInduction = BoolOptionValue("multi_clause_nat_ind","mcni",false);
+            _multiClauseNatInduction.description = "Apply multi-clause induction on final loop counter terms produced by Rapid translations";
+            _multiClauseNatInduction.tag(OptionTag::INFERENCES);
+            _lookup.insert(&_multiClauseNatInduction);
+
+            _multiLiteralClauses = BoolOptionValue("multi_literal_clauses","mlc",false);
+            _multiLiteralClauses.description = "Allow final loop count induction on clauses with multiple literals";
+            _multiLiteralClauses.tag(OptionTag::INFERENCES);
+            _multiLiteralClauses.reliesOn(_multiClauseNatInduction.is(equal(true)));
+            _lookup.insert(&_multiLiteralClauses);
+
 	    _instantiation = ChoiceOptionValue<Instantiation>("instantiation","inst",Instantiation::OFF,{"off","on"});
 	    _instantiation.description = "Heuristically instantiate variables. Often wastes a lot of effort. Consider using thi instead.";
 	    _instantiation.tag(OptionTag::INFERENCES);

@@ -185,6 +185,13 @@ bool RapidHelper::isLeftLimitLiteral(Literal* l) {
   return true;
 }
 
+bool RapidHelper::isFinalLoopCount(TermList t)
+{
+  CALL("RapidHelper::isFinalLoopCount");
+
+  if(!t.isTerm()) return false;
+  return env.signature->getFunction(t.term()->functor())->finalLoopCount();
+}
 
 
 }  // namespace Inferences

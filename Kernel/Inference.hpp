@@ -735,6 +735,7 @@ private:
     _rule = r;
     _included = false;
     _inductionDepth = 0;
+    _distanceFromGoal = -1;
     _XXNarrows = 0;
     _reductions = 0;
     _sineLevel = std::numeric_limits<decltype(_sineLevel)>::max();
@@ -960,6 +961,9 @@ public:
   unsigned inductionDepth() const { return _inductionDepth; }
   void setInductionDepth(unsigned d) { _inductionDepth = d; }
 
+  int distanceFromGoal() const { return _distanceFromGoal; }
+  void setDistanceFromGoal(int d) { _distanceFromGoal = d;}
+
   unsigned xxNarrows() const { return _XXNarrows; }
   /** used to propagate in AVATAR **/
   void setXXNarrows(unsigned n) { _XXNarrows = n; }
@@ -1004,6 +1008,8 @@ private:
   unsigned _holAxiomsDescendant : 1;
   /** Induction depth **/
   unsigned _inductionDepth : 5;
+  /** Distance clause is from conjecture **/
+  int _distanceFromGoal : 20;
 
   /** Sine level computed in SineUtils and used in various heuristics.
    * May stay uninitialized (i.e. always MAX), if not needed

@@ -171,6 +171,20 @@ private:
    */
   TermList declareSort(LExpr* sExpr);
 
+
+  /**
+   * Some symbols representing special terms / predicates created in the
+   * Rapid translation to FOL. These symbols are used to guide Vampire heuristics
+   */
+  enum RapidSymbol
+  {
+    RAP_LEMMA_PRED,
+    RAP_FN_LOOP_COUNT,
+    RAP_MAIN_END,
+    RAP_TIME_POINT,
+    RAP_NONE
+  };
+
   /**
    * Some built-in symbols represent functions with result of sort Bool.
    * They are listed here.
@@ -250,14 +264,14 @@ private:
    * and return it.
    */
 
-  DeclaredFunction declareFunctionOrPredicate(const vstring& name, TermList rangeSort, const TermStack& argSorts, bool isLemmaPredicate = false);
+  DeclaredFunction declareFunctionOrPredicate(const vstring& name, TermList rangeSort, const TermStack& argSorts, RapidSymbol sym = RAP_NONE);
 
   /**
    * Handle "declare-fun" entry.
    *
    * Declaring a function just extends the signature.
    */
-  void readDeclareFun(const vstring& name, LExprList* iSorts, LExpr* oSort, bool isLemmaPredicate = false);
+  void readDeclareFun(const vstring& name, LExprList* iSorts, LExpr* oSort, RapidSymbol sym = RAP_NONE);
 
   /**
    * Handle "define-fun" entry.

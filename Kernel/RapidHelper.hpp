@@ -13,18 +13,12 @@
  *
  */
 
-#ifndef __InductionHelper__
-#define __InductionHelper__
+#ifndef __RapidHelper__
+#define __RapidHelper__
 
 #include "Forwards.hpp"
 
-#include "Indexing/Index.hpp"
-#include "Indexing/LiteralIndex.hpp"
-#include "Indexing/TermIndex.hpp"
-
 namespace Kernel {
-
-using namespace Indexing;
 
 class RapidHelper {
 public:
@@ -32,6 +26,8 @@ public:
   USE_ALLOCATOR(RapidHelper);
 
   RapidHelper() {}
+
+  static bool isFinalLoopCount(TermList t);
 
   static bool isRightLimitLiteral(Literal* l);
   static bool isLeftLimitLiteral(Literal* l);  

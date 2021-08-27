@@ -1491,7 +1491,6 @@ void TheoryAxioms::addDisjointnessAxioms(NatTermAlgebra* nat)
 {
   TermList x(0, false);
   TermList y(1, false);
-  auto natSort = nat->termAlgebra()->sort();
 
   // Clause 1: x!<y or x!=y, simplified to x!<x
   auto clause1Lit1 = nat->createLess(false, x, x);

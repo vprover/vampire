@@ -25,6 +25,7 @@
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/Term.hpp"
 #include "Kernel/TermIterators.hpp"
+#include "Kernel/RapidHelper.hpp"
 
 #include "Shell/LambdaElimination.hpp"
 
@@ -215,6 +216,28 @@ void InductionTermIndex::handleClause(Clause* c, bool adding)
   }
 }
 
+
+void MultiClauseNatInductionIndex::handleClause(Clause* c, bool adding)
+{
+  CALL("MultiClauseNatInductionIndex::handleClause");
+
+  //Perhaps this condition is too strong?
+  if(c->length() == 1 && c->derivedFromGoal() && c->inference().distanceFromGoal() < 3){
+    Literal* lit = (*c)[0];
+    SubtermIterator it(lit);
+    while (it.hasNext()) {  
+      TermList tl = it.next();
+      if (RapidHelper::isFinalLoopCount(tl)){
+        if (adding) {
+          _is->insert(tl, lit, c);
+        } else {
+          _is->remove(tl, lit, c);
+        }
+      }
+    }  
+  }
+
+}
 
 /////////////////////////////////////////////////////
 // Indices for higher-order inferences from here on//

@@ -1250,8 +1250,14 @@ Clause* Splitter::buildAndInsertComponentClause(SplitLevel name, unsigned size, 
     if (orig != nullptr) { //
       def_u_i.setPureTheoryDescendant(orig->isPureTheoryDescendant());
       def_u_i.setInductionDepth(orig->inference().inductionDepth());
+      def_u_i.setDistanceFromGoal(orig->inference().distanceFromGoal());
     }
     def_u = new FormulaUnit(def_f,def_u_i);
+    if(orig)
+    /*  cout << "AVATAR orig " + orig->toString() << endl;
+    cout << "AVATAR def_u " + def_u->toString() << endl;
+    cout << "def_u derived from goal " << def_u->derivedFromGoal() << endl;
+    cout << "distance from goal " << orig->inference().distanceFromGoal() << endl;*/
     InferenceStore::instance()->recordIntroducedSplitName(def_u,formula_name);
     // cout << "Add def " << def_u->toString() << " for " << name << endl;
     ALWAYS(_defs.insert(posName,def_u));
