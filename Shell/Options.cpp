@@ -413,7 +413,7 @@ void Options::init()
     _equalityProxy.addHardConstraint(If(notEqual(EqualityProxy::OFF)).then(_combinatorySuperposition.is(notEqual(true))));
     _equalityProxy.setRandomChoices(isRandOn(),{"R","RS","RST","RSTC","off","off","off","off","off"}); // wasn't tested, make off more likely
     
-    _useMonoEqualityProxy = BoolOptionValue("mono_ep","mep",false);
+    _useMonoEqualityProxy = BoolOptionValue("mono_ep","mep",true);
     _useMonoEqualityProxy.description="Use the monomorphic version of equality proxy transformation.";
     _lookup.insert(&_useMonoEqualityProxy);
     _useMonoEqualityProxy.tag(OptionTag::PREPROCESSING);
