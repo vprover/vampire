@@ -19,9 +19,9 @@ using namespace Shell;
 #define MY_SYNTAX_SUGAR                                                                    \
   DECL_DEFAULT_VARS                                                                        \
   DECL_SORT(s)                                                                             \
-  DECL_INDUCTION_SKOLEM_CONST(sk1,s)                                                       \
-  DECL_INDUCTION_SKOLEM_CONST(sk2,s)                                                       \
-  DECL_INDUCTION_SKOLEM_CONST(sk3,s)                                                       \
+  DECL_SKOLEM_CONST(sk1,s)                                                                 \
+  DECL_SKOLEM_CONST(sk2,s)                                                                 \
+  DECL_SKOLEM_CONST(sk3,s)                                                                 \
   DECL_CONST(b, s)                                                                         \
   DECL_FUNC(r, {s}, s)                                                                     \
   DECL_TERM_ALGEBRA(s, {b, r})                                                             \

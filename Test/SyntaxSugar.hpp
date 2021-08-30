@@ -111,7 +111,6 @@
 
 #define DECL_CONST(f, sort) auto f = ConstSugar(#f, sort);
 #define DECL_SKOLEM_CONST(f, sort) auto f = ConstSugar(#f, sort, true);
-#define DECL_INDUCTION_SKOLEM_CONST(f, sort) auto f = ConstSugar(#f, sort, true, true);
 #define DECL_FUNC(f, ...)   auto f = FuncSugar(#f, __VA_ARGS__);
 #define DECL_PRED(f, ...)   auto f = PredSugar(#f, __VA_ARGS__);
 #define DECL_SORT(s)        auto s = SortSugar(#s);
@@ -319,14 +318,11 @@ public:
   /** explicit conversion */ 
   TermList toTerm() const { return _trm;} 
 
-  static TermSugar createConstant(const char* name, SortSugar s, bool skolem, bool inductionSkolem) {
+  static TermSugar createConstant(const char* name, SortSugar s, bool skolem) {
     unsigned f = env.signature->addFunction(name,0);                                                                
     env.signature->getFunction(f)->setType(OperatorType::getFunctionType({}, s.sortId()));
     if (skolem) {
       env.signature->getFunction(f)->markSkolem();
-    }
-    if (inductionSkolem) {
-      env.signature->getFunction(f)->markInductionSkolem();
     }
     return TermSugar(TermList(Term::createConstant(f)));                                                          
   }                                                                                                                 
@@ -483,8 +479,8 @@ public:
 class ConstSugar : public TermSugar, public FuncSugar
 {
 public:
-  ConstSugar(const char* name, SortSugar s, bool skolem = false, bool inductionSkolem = false)
-    : TermSugar(TermSugar::createConstant(name, s, skolem, inductionSkolem).toTerm())
+  ConstSugar(const char* name, SortSugar s, bool skolem = false)
+    : TermSugar(TermSugar::createConstant(name, s, skolem).toTerm())
     , FuncSugar(functor())
   { }
   unsigned functor() const { return this->toTerm().term()->functor(); }
@@ -535,20 +531,29 @@ inline Clause* clause(std::initializer_list<Lit> ls_) {
   for (unsigned i = 0; i < ls.size(); i++) { 
     Literal* lit = *l;
     out[i] = lit; 
+    l++; 
+  }
+  out.setSelected(nSelected);
+  return &out; 
+}
+
+inline Clause* fromInduction(Clause* cl) {
+  cl->inference().setInductionDepth(1);
+
+  for (unsigned i = 0; i < cl->length(); i++) { 
+    Literal* lit = (*cl)[i];
     // add the induction info based on induction skolems
     if (lit->ground()) {
       NonVariableIterator nvi(lit);
       while (nvi.hasNext()) {
         unsigned fn = nvi.next().term()->functor();
-        if (env.signature->getFunction(fn)->inductionSkolem()) {
-          out.inference().addToInductionInfo(fn);
+        if (env.signature->getFunction(fn)->skolem()) {
+          cl->inference().addToInductionInfo(fn);
         }
       }
     }
-    l++; 
   }
-  out.setSelected(nSelected);
-  return &out; 
+  return cl;
 }
 
 inline Stack<Clause*> clauses(std::initializer_list<std::initializer_list<Lit>> cls) { 

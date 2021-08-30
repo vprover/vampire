@@ -302,9 +302,9 @@ TEST_FUN(test_07) {
 // induction schemes from recursive functions
 TEST_FUN(test_08) {
   __ALLOW_UNUSED(MY_SYNTAX_SUGAR)
-  DECL_INDUCTION_SKOLEM_CONST(sk1, s)                                                         \
-  DECL_INDUCTION_SKOLEM_CONST(sk2, s)                                                         \
-  DECL_INDUCTION_SKOLEM_CONST(sk3, u)                                                         \
+  DECL_SKOLEM_CONST(sk1, s)                                                                   \
+  DECL_SKOLEM_CONST(sk2, s)                                                                   \
+  DECL_SKOLEM_CONST(sk3, u)                                                                   \
   DECL_FUNC_DEFS({ { clause({ f(r(x), r(r(y))) == f(f(x, r(r(y))), y) }),       0, false },   \
                    { clause({ q(r1(x,y),r(z)), ~q(y,r(z)), q(y,z) }),           0, false } })
 

@@ -212,39 +212,64 @@ public:
 };
 
 template<class L1, class L2, class Eq>
-bool __permEq(L1& lhs, L2& rhs, Eq elemEq, DArray<unsigned>& perm, unsigned idx) {
-  auto checkPerm = [&] (L1& lhs, L2& rhs, DArray<unsigned>& perm) {
-    ASS_EQ(lhs.size(), perm.size());
-    ASS_EQ(rhs.size(), perm.size());
-
+bool TestUtils::permEq(L1& lhs, L2& rhs, Eq elemEq)
+{
+  const auto n = lhs.size();
+  if (n != rhs.size()) return false;
+  DArray<unsigned> perm(n);
+  DArray<DHSet<unsigned>> bl(n);
+  DArray<unsigned> c(n);
+  DArray<bool> b(n);
+  for (unsigned i = 0; i < n; i++) {
+    bl[i].reset();
+    perm[i] = i;
+    c[i] = 0;
+    b[i] = false;
+  }
+  unsigned bad = 0;
+  auto checkPerm = [] (DArray<unsigned>& perm, DArray<DHSet<unsigned>>& bl, DArray<bool>& b, unsigned& bad, Eq& elemEq, L1& lhs, L2& rhs) {
     for (unsigned i = 0; i < perm.size(); i++) {
-      if (!elemEq(lhs[i], rhs[perm[i]])) return false;
+      if (!elemEq(lhs[i], rhs[perm[i]])) {
+        bl[i].insert(perm[i]);
+        bad++;
+        b[i] = true;
+        return false;
+      }
     }
     return true;
   };
-  if (checkPerm(lhs, rhs, perm)) {
+  if (checkPerm(perm, bl, b, bad, elemEq, lhs, rhs)) {
     return true;
   }
-  for (unsigned i = idx; i < perm.size(); i++) {
-    swap(perm[i], perm[idx]);
-
-    if (__permEq(lhs,rhs, elemEq, perm, idx+1)) return true;
-
-    swap(perm[i], perm[idx]);
+  auto maintainState = [](DArray<unsigned>& perm, DArray<DHSet<unsigned>>& bl, DArray<bool>& b, unsigned& bad, unsigned i) {
+    if (bl[i].find(perm[i]) != b[i]) {
+      b[i] ? --bad : ++bad;
+      b[i] ^= 1;
+    }
+  };
+  unsigned i = 1;
+  while (i < n) {
+    if (c[i] < i) {
+      if (i % 2 == 0) {
+        swap(perm[0], perm[i]);
+        maintainState(perm, bl, b, bad, 0);
+      } else {
+        swap(perm[c[i]], perm[i]);
+        maintainState(perm, bl, b, bad, c[i]);
+      }
+      maintainState(perm, bl, b, bad, i);
+      if (!bad && checkPerm(perm, bl, b, bad, elemEq, lhs, rhs)) {
+        return true;
+      }
+      c[i]++;
+      i = 1;
+    } else {
+      c[i] = 0;
+      i++;
+    }
   }
 
   return false;
-}
-
-template<class L1, class L2, class Eq>
-bool TestUtils::permEq(L1& lhs, L2& rhs, Eq elemEq)
-{
-  if (lhs.size() != rhs.size()) return false;
-  DArray<unsigned> perm(lhs.size());
-  for (unsigned i = 0; i < lhs.size(); i++) {
-    perm[i] = i;
-  }
-  return __permEq(lhs, rhs, elemEq, perm, 0);
 }
 
 inline void setOptions(std::initializer_list<pair<vstring,vstring>> opts) {

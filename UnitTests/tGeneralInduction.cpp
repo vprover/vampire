@@ -40,7 +40,9 @@ public:
 
   bool eq(Kernel::Clause const* lhs, Kernel::Clause const* rhs) override
   {
-    return TestUtils::permEq(*lhs, *rhs, [this](Literal* l, Literal* r) -> bool {
+    BacktrackData btd;
+    _subst.bdRecord(btd);
+    if (!TestUtils::permEq(*lhs, *rhs, [this](Literal* l, Literal* r) -> bool {
       if (l->polarity() != r->polarity() || !l->ground()) {
         return false;
       }
@@ -52,7 +54,13 @@ public:
         return false;
       }
       return true;
-    });
+    })) {
+      _subst.bdDone();
+      btd.backtrack();
+      return false;
+    }
+    _subst.bdDone();
+    return true;
   }
 
 private:
@@ -74,11 +82,12 @@ private:
  */
 #define MY_SYNTAX_SUGAR                                                                    \
   DECL_DEFAULT_VARS                                                                        \
+  DECL_VAR(x3,3)                                                                           \
   DECL_SORT(s)                                                                             \
   DECL_SKOLEM_CONST(sK1, s)                                                                \
   DECL_SKOLEM_CONST(sK2, s)                                                                \
-  DECL_INDUCTION_SKOLEM_CONST(sK3, s)                                                      \
-  DECL_INDUCTION_SKOLEM_CONST(sK4, s)                                                      \
+  DECL_SKOLEM_CONST(sK3, s)                                                                \
+  DECL_SKOLEM_CONST(sK4, s)                                                                \
   DECL_CONST(b, s)                                                                         \
   DECL_FUNC(r, {s}, s)                                                                     \
   DECL_TERM_ALGEBRA(s, {b, r})                                                             \
@@ -188,3 +197,36 @@ TEST_GENERATION_INDUCTION(test_07,
         clause({ p(b), sK2 != g(f(r(y),r(y))) }),
       })
     )
+
+// multi-clause use case 2 (induction Skolems and  for all literals)
+TEST_GENERATION_INDUCTION(test_08,
+    Generation::TestCase()
+      .options({ { "induction_on_complex_terms", "on" } })
+      .context({ fromInduction(clause({ p(g(sK3)) })) })
+      .indices({ index() })
+      .input( fromInduction(clause({ ~p(f(g(sK3),sK4)) })) )
+      .expected({
+        // formula 1
+        clause({ ~p(f(b,sK4)), p(f(x,sK4)), ~p(x) }),
+        clause({ ~p(f(b,sK4)), ~p(f(r(x),sK4)) }),
+        clause({ ~p(f(b,sK4)), p(r(x)) }),
+        clause({ p(b), p(f(x,sK4)), ~p(x) }),
+        clause({ p(b), ~p(f(r(x),sK4)) }),
+        clause({ p(b), p(r(x)) }),
+
+        // formula 2
+        clause({ ~p(f(g(b),sK4)), p(f(g(y),sK4)) }),
+        clause({ ~p(f(g(b),sK4)), ~p(f(g(r(y)),sK4)) }),
+
+        // formula 3
+        clause({ ~p(f(g(sK3),b)), p(f(g(sK3),z)) }),
+        clause({ ~p(f(g(sK3),b)), ~p(f(g(sK3),r(z))) }),
+
+        // formula 4
+        clause({ ~p(b), p(x3) }),
+        clause({ ~p(b), ~p(r(x3)) }),
+      })
+    )
+
+// generalization
+// multi-clause case 2 does not work

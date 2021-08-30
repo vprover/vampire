@@ -46,10 +46,10 @@ REGISTER_GEN_TESTER(Inferences::InductionHypothesisRewriting, new MockInduction)
 #define MY_SYNTAX_SUGAR                                                                    \
   DECL_DEFAULT_VARS                                                                        \
   DECL_SORT(s)                                                                             \
-  DECL_INDUCTION_SKOLEM_CONST(sk1, s)                                                      \
-  DECL_INDUCTION_SKOLEM_CONST(sk2, s)                                                      \
-  DECL_INDUCTION_SKOLEM_CONST(sk3, s)                                                      \
-  DECL_INDUCTION_SKOLEM_CONST(sk4, s)                                                      \
+  DECL_SKOLEM_CONST(sk1, s)                                                                \
+  DECL_SKOLEM_CONST(sk2, s)                                                                \
+  DECL_SKOLEM_CONST(sk3, s)                                                                \
+  DECL_SKOLEM_CONST(sk4, s)                                                                \
   DECL_CONST(b, s)                                                                         \
   DECL_CONST(c, s)                                                                         \
   DECL_CONST(d, s)                                                                         \
@@ -62,9 +62,9 @@ REGISTER_GEN_TESTER(Inferences::InductionHypothesisRewriting, new MockInduction)
 // only one side is rewritten
 TEST_GENERATION(test_01,
     Generation::TestCase()
-      .context({ clause({ sk1 == sk2 })})
+      .context({ fromInduction(clause({ sk1 == sk2 })) })
       .indices({ lhsIndex(), subtermIndex() })
-      .input( clause({  sk2 != f(f(sk2,sk2), sk1) }))
+      .input( fromInduction(clause({  sk2 != f(f(sk2,sk2), sk1) })) )
       .expected({
               clause({  sk1 != f(f(sk2,sk2), sk1) }),
               clause({  sk2 != f(f(sk1,sk1), sk1) }),
@@ -76,12 +76,12 @@ TEST_GENERATION(test_01,
 TEST_GENERATION(test_02,
     Generation::TestCase()
       .context({
-        clause({ f(sk1,sk4) == b }),
-        clause({ f(sk2,sk3) == b }),
-        clause({ sk2 == sk4 })
+        fromInduction(clause({ f(sk1,sk4) == b })),
+        fromInduction(clause({ f(sk2,sk3) == b })),
+        fromInduction(clause({ sk2 == sk4 }))
       })
       .indices({ lhsIndex(), subtermIndex() })
-      .input(clause({ f(sk1,sk4) != f(sk2,sk3) }))
+      .input( fromInduction(clause({ f(sk1,sk4) != f(sk2,sk3) })) )
       .expected({
         clause({ b != f(sk2,sk3) }), // used again
         clause({ b != b }),
@@ -100,11 +100,11 @@ TEST_GENERATION(test_02,
 TEST_GENERATION(test_03,
     Generation::TestCase()
       .context({
-        clause({ sk1 != sk2 }), // due to same polarity
-        clause({ sk2 == sk4 })  // due to sk4
+        fromInduction(clause({ sk1 != sk2 })), // due to same polarity
+        fromInduction(clause({ sk2 == sk4 }))  // due to sk4
       })
       .indices({ lhsIndex(), subtermIndex() })
-      .input(clause({ sk1 != f(sk2,sk1) }))
+      .input( fromInduction(clause({ sk1 != f(sk2,sk1) })) )
       .expected(none())
     )
 
@@ -112,10 +112,10 @@ TEST_GENERATION(test_03,
 TEST_GENERATION(test_04,
     Generation::TestCase()
       .context({
-        clause({ sk1 == sk2 })
+        fromInduction(clause({ sk1 == sk2 }))
       })
       .indices({ lhsIndex(), subtermIndex() })
-      .input(clause({ sk1 == f(sk2,sk1) }))
+      .input( fromInduction(clause({ sk1 == f(sk2,sk1) })) )
       .expected(none())
     )
 
@@ -123,11 +123,11 @@ TEST_GENERATION(test_04,
 TEST_GENERATION(test_05,
     Generation::TestCase()
       .context({
-        clause({ sk1 == b }),
-        clause({ sk2 == d })
+        fromInduction(clause({ sk1 == b })),
+        fromInduction(clause({ sk2 == d }))
       })
       .indices({ lhsIndex(), subtermIndex() })
-      .input(clause({ c != f(sk2,sk1), c != f(sk1,sk2) }))
+      .input( fromInduction(clause({ c != f(sk2,sk1), c != f(sk1,sk2) })) )
       .expected({
         clause({ c != f(d,sk1), c != f(sk1,sk2) }), // used again
         clause({ c != f(d,b), c != f(sk1,sk2) }),
@@ -147,10 +147,10 @@ TEST_GENERATION(test_05,
 TEST_GENERATION(test_06,
     Generation::TestCase()
       .context({
-        clause({ sk1 == b, p(c) })
+        fromInduction(clause({ sk1 == b, p(c) }))
       })
       .indices({ lhsIndex(), subtermIndex() })
-      .input(clause({ sk1 != b, p(d) }))
+      .input( fromInduction(clause({ sk1 != b, p(d) })) )
       .expected({
         clause({ b != b, p(c), p(d) }),
         clause({ sk1 != sk1, p(c), p(d) })
