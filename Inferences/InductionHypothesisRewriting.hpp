@@ -18,8 +18,6 @@
 #include "Forwards.hpp"
 #include "Indexing/TermIndex.hpp"
 
-#include "GeneralInduction.hpp"
-
 #include "InferenceEngine.hpp"
 
 #include "Saturation/SaturationAlgorithm.hpp"
@@ -41,8 +39,10 @@ public:
       _dupLitRemoval(new DuplicateLiteralRemovalISE()) {}
 
   ~InductionHypothesisRewriting() {
-    delete _dupLitRemoval;
-    _dupLitRemoval = 0;
+    if (_dupLitRemoval) {
+      delete _dupLitRemoval;
+      _dupLitRemoval = 0;
+    }
   }
 
   void attach(SaturationAlgorithm* salg) override {
@@ -53,7 +53,6 @@ public:
       _salg->getIndexManager()->request(INDUCTION_EQUALITY_LHS_SUBST_TREE));
     _stIndex = static_cast<InductionInequalitySubtermIndex *>(
       _salg->getIndexManager()->request(INDUCTION_INEQUALITY_SUBTERM_SUBST_TREE));
-
   }
   void detach() override {
     _salg->getIndexManager()->release(INDUCTION_INEQUALITY_SUBTERM_SUBST_TREE);

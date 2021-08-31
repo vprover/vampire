@@ -17,7 +17,6 @@
 
 #include "Forwards.hpp"
 #include "Indexing/TermSubstitutionTree.hpp"
-#include "Kernel/Term.hpp"
 #include "Kernel/TermTransformer.hpp"
 #include "TermAlgebra.hpp"
 #include "Lib/STL.hpp"

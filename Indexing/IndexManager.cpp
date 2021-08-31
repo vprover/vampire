@@ -298,7 +298,7 @@ Index* IndexManager::create(IndexType t)
 
   case INDUCTION_EQUALITY_LHS_SUBST_TREE:
     tis=new CodeTreeTIS();
-    res=new InductionEqualityLHSIndex(tis, _alg->getOrdering(), _alg->getOptions());
+    res=new InductionEqualityLHSIndex(tis);
     isGenerating = true;
     break;
   case INDUCTION_INEQUALITY_SUBTERM_SUBST_TREE:

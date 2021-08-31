@@ -10,11 +10,8 @@
 
 #include "InductionSchemeGenerator.hpp"
 
-#include "Lib/Set.hpp"
-
 #include "Kernel/Clause.hpp"
 #include "Kernel/RobSubstitution.hpp"
-#include "Kernel/Term.hpp"
 #include "Kernel/TermIterators.hpp"
 
 #include "Inferences/InductionHelper.hpp"

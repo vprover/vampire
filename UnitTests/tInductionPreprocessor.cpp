@@ -255,7 +255,7 @@ TEST_FUN(test_05) {
   ASS(!env.signature->getFnDefHandler()->hasInductionTemplate(p1.functor(), false));
 }
 
-// non-term-algebra header arguments are OK but trivial headers are added for well-definedness are ignored
+// non-term-algebra header arguments are OK but trivial headers are added for well-definedness
 TEST_FUN(test_06) {
   __ALLOW_UNUSED(MY_SYNTAX_SUGAR)
   DECL_FUNC_DEFS({ { clause({ p(g(x)), p(x) }),                              0, false  },  \

@@ -16,11 +16,8 @@
 #define __InductionSchemeGenerator__
 
 #include "Forwards.hpp"
-#include "Kernel/Substitution.hpp"
-#include "Kernel/Term.hpp"
-#include "Kernel/TermTransformer.hpp"
+
 #include "InductionPreprocessor.hpp"
-#include "Lib/STL.hpp"
 
 #include <bitset>
 

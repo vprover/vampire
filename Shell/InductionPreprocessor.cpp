@@ -10,10 +10,7 @@
 
 #include "InductionPreprocessor.hpp"
 
-#include "Kernel/Clause.hpp"
 #include "Kernel/Matcher.hpp"
-#include "Kernel/Problem.hpp"
-#include "Kernel/Term.hpp"
 #include "Kernel/TermIterators.hpp"
 #include "Kernel/Unit.hpp"
 #include "Kernel/Signature.hpp"

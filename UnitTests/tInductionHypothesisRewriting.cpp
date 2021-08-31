@@ -22,7 +22,7 @@ using namespace Test;
 using namespace Indexing;
 
 Index* lhsIndex() {
-  return new InductionEqualityLHSIndex(new CodeTreeTIS(), *Ordering::tryGetGlobalOrdering(), *env.options);
+  return new InductionEqualityLHSIndex(new CodeTreeTIS());
 }
 
 Index* subtermIndex() {

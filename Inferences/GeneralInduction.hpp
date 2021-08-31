@@ -16,16 +16,9 @@
 #ifndef __GeneralInduction__
 #define __GeneralInduction__
 
-#include <cmath>
-#include <bitset>
-
 #include "Forwards.hpp"
 
-#include "Kernel/Clause.hpp"
 #include "Kernel/TermTransformer.hpp"
-
-#include "Lib/PairUtils.hpp"
-#include "Lib/VirtualIterator.hpp"
 
 #include "Shell/InductionSchemeGenerator.hpp"
 

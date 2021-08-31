@@ -12,38 +12,23 @@
  * Implements class GeneralInduction.
  */
 
-#include "Debug/RuntimeStatistics.hpp"
-
-#include "Lib/Environment.hpp"
-#include "Lib/Set.hpp"
-#include "Lib/Array.hpp"
-#include "Lib/ScopedPtr.hpp"
-
 #include "Kernel/TermIterators.hpp"
 #include "Kernel/Signature.hpp"
 #include "Kernel/Unit.hpp"
 #include "Kernel/Inference.hpp"
-#include "Kernel/Sorts.hpp"
-#include "Kernel/Theory.hpp"
 #include "Kernel/Formula.hpp"
 #include "Kernel/FormulaUnit.hpp"
 #include "Kernel/FormulaVarIterator.hpp"
-#include "Kernel/Connective.hpp"
 #include "Kernel/RobSubstitution.hpp"
 
 #include "Saturation/SaturationAlgorithm.hpp"
 #include "Saturation/Splitter.hpp"
 
-#include "Shell/InductionSchemeGenerator.hpp"
-#include "Shell/Options.hpp"
 #include "Shell/Statistics.hpp"
 #include "Shell/NewCNF.hpp"
 #include "Shell/NNF.hpp"
 #include "Shell/Rectify.hpp"
-#include "Shell/Skolem.hpp"
 
-#include "Indexing/Index.hpp"
-#include "Indexing/ResultSubstitution.hpp"
 #include "Inferences/BinaryResolution.hpp"
 #include "Inferences/InductionHelper.hpp"
 
@@ -464,7 +449,6 @@ vvector<pair<SLQueryResult, vset<pair<Literal*,Clause*>>>> GeneralInduction::sel
   vvector<pair<SLQueryResult, vset<pair<Literal*,Clause*>>>> res;
   static const bool indmc = env.options->inductionMultiClause();
 
-  // TODO(mhajdu): is there a way to duplicate these iterators?
   TermQueryResultIterator it = TermQueryResultIterator::getEmpty();
   if (indmc && literal->ground() && (!premise->inference().inductionDepth() ||
     (!literal->isEquality() && InductionHelper::isInductionLiteral(literal, premise))))
