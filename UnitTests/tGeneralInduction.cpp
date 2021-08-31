@@ -83,6 +83,14 @@ private:
 #define MY_SYNTAX_SUGAR                                                                    \
   DECL_DEFAULT_VARS                                                                        \
   DECL_VAR(x3,3)                                                                           \
+  DECL_VAR(x4,4)                                                                           \
+  DECL_VAR(x5,5)                                                                           \
+  DECL_VAR(x6,6)                                                                           \
+  DECL_VAR(x7,7)                                                                           \
+  DECL_VAR(x8,8)                                                                           \
+  DECL_VAR(x9,9)                                                                           \
+  DECL_VAR(x10,10)                                                                         \
+  DECL_VAR(x11,11)                                                                         \
   DECL_SORT(s)                                                                             \
   DECL_SKOLEM_CONST(sK1, s)                                                                \
   DECL_SKOLEM_CONST(sK2, s)                                                                \
@@ -228,5 +236,151 @@ TEST_GENERATION_INDUCTION(test_08,
       })
     )
 
-// generalization
+// generalizations (single-clause)
+TEST_GENERATION_INDUCTION(test_09,
+    Generation::TestCase()
+      .options({ { "induction_gen", "on" }, { "induction_gen_heur", "off" }, })
+      .indices({ index() })
+      .input( clause({ f(f(g(sK1),f(sK2,sK4)),sK1) != g(f(sK1,f(sK2,sK3))) }) )
+      .expected({
+        // sK1 100
+        clause({ f(f(g(b),f(sK2,sK4)),sK1) != g(f(sK1,f(sK2,sK3))), f(f(g(x),f(sK2,sK4)),sK1) == g(f(sK1,f(sK2,sK3))) }),
+        clause({ f(f(g(b),f(sK2,sK4)),sK1) != g(f(sK1,f(sK2,sK3))), f(f(g(r(x)),f(sK2,sK4)),sK1) != g(f(sK1,f(sK2,sK3))) }),
+
+        // sK1 010
+        clause({ f(f(g(sK1),f(sK2,sK4)),b) != g(f(sK1,f(sK2,sK3))), f(f(g(sK1),f(sK2,sK4)),y) == g(f(sK1,f(sK2,sK3))) }),
+        clause({ f(f(g(sK1),f(sK2,sK4)),b) != g(f(sK1,f(sK2,sK3))), f(f(g(sK1),f(sK2,sK4)),r(y)) != g(f(sK1,f(sK2,sK3))) }),
+
+        // sK1 001
+        clause({ f(f(g(sK1),f(sK2,sK4)),sK1) != g(f(b,f(sK2,sK3))), f(f(g(sK1),f(sK2,sK4)),sK1) == g(f(z,f(sK2,sK3))) }),
+        clause({ f(f(g(sK1),f(sK2,sK4)),sK1) != g(f(b,f(sK2,sK3))), f(f(g(sK1),f(sK2,sK4)),sK1) != g(f(r(z),f(sK2,sK3))) }),
+
+        // sK1 110
+        clause({ f(f(g(b),f(sK2,sK4)),b) != g(f(sK1,f(sK2,sK3))), f(f(g(x3),f(sK2,sK4)),x3) == g(f(sK1,f(sK2,sK3))) }),
+        clause({ f(f(g(b),f(sK2,sK4)),b) != g(f(sK1,f(sK2,sK3))), f(f(g(r(x3)),f(sK2,sK4)),r(x3)) != g(f(sK1,f(sK2,sK3))) }),
+
+        // sK1 101
+        clause({ f(f(g(b),f(sK2,sK4)),sK1) != g(f(b,f(sK2,sK3))), f(f(g(x4),f(sK2,sK4)),sK1) == g(f(x4,f(sK2,sK3))) }),
+        clause({ f(f(g(b),f(sK2,sK4)),sK1) != g(f(b,f(sK2,sK3))), f(f(g(r(x4)),f(sK2,sK4)),sK1) != g(f(r(x4),f(sK2,sK3))) }),
+
+        // sK1 011
+        clause({ f(f(g(sK1),f(sK2,sK4)),b) != g(f(b,f(sK2,sK3))), f(f(g(sK1),f(sK2,sK4)),x5) == g(f(x5,f(sK2,sK3))) }),
+        clause({ f(f(g(sK1),f(sK2,sK4)),b) != g(f(b,f(sK2,sK3))), f(f(g(sK1),f(sK2,sK4)),r(x5)) != g(f(r(x5),f(sK2,sK3))) }),
+
+        // sK1 111
+        clause({ f(f(g(b),f(sK2,sK4)),b) != g(f(b,f(sK2,sK3))), f(f(g(x6),f(sK2,sK4)),x6) == g(f(x6,f(sK2,sK3))) }),
+        clause({ f(f(g(b),f(sK2,sK4)),b) != g(f(b,f(sK2,sK3))), f(f(g(r(x6)),f(sK2,sK4)),r(x6)) != g(f(r(x6),f(sK2,sK3))) }),
+
+        // sK2 10
+        clause({ f(f(g(sK1),f(b,sK4)),sK1) != g(f(sK1,f(sK2,sK3))), f(f(g(sK1),f(x7,sK4)),sK1) == g(f(sK1,f(sK2,sK3))) }),
+        clause({ f(f(g(sK1),f(b,sK4)),sK1) != g(f(sK1,f(sK2,sK3))), f(f(g(sK1),f(r(x7),sK4)),sK1) != g(f(sK1,f(sK2,sK3))) }),
+
+        // sK2 01
+        clause({ f(f(g(sK1),f(sK2,sK4)),sK1) != g(f(sK1,f(b,sK3))), f(f(g(sK1),f(sK2,sK4)),sK1) == g(f(sK1,f(x8,sK3))) }),
+        clause({ f(f(g(sK1),f(sK2,sK4)),sK1) != g(f(sK1,f(b,sK3))), f(f(g(sK1),f(sK2,sK4)),sK1) != g(f(sK1,f(r(x8),sK3))) }),
+
+        // sK2 11
+        clause({ f(f(g(sK1),f(b,sK4)),sK1) != g(f(sK1,f(b,sK3))), f(f(g(sK1),f(x9,sK4)),sK1) == g(f(sK1,f(x9,sK3))) }),
+        clause({ f(f(g(sK1),f(b,sK4)),sK1) != g(f(sK1,f(b,sK3))), f(f(g(sK1),f(r(x9),sK4)),sK1) != g(f(sK1,f(r(x9),sK3))) }),
+
+        // sK3 1
+        clause({ f(f(g(sK1),f(sK2,sK4)),sK1) != g(f(sK1,f(sK2,b))), f(f(g(sK1),f(sK2,sK4)),sK1) == g(f(sK1,f(sK2,x10))) }),
+        clause({ f(f(g(sK1),f(sK2,sK4)),sK1) != g(f(sK1,f(sK2,b))), f(f(g(sK1),f(sK2,sK4)),sK1) != g(f(sK1,f(sK2,r(x10)))) }),
+
+        // sK4 1
+        clause({ f(f(g(sK1),f(sK2,b)),sK1) != g(f(sK1,f(sK2,sK3))), f(f(g(sK1),f(sK2,x11)),sK1) == g(f(sK1,f(sK2,sK3))) }),
+        clause({ f(f(g(sK1),f(sK2,b)),sK1) != g(f(sK1,f(sK2,sK3))), f(f(g(sK1),f(sK2,r(x11))),sK1) != g(f(sK1,f(sK2,sK3))) }),
+      })
+    )
+
+// generalizations (multi-clause)
+TEST_GENERATION_INDUCTION(test_10,
+    Generation::TestCase()
+      .options({ { "induction_gen", "on" }, { "induction_gen_heur", "off" }, })
+      .context({ clause({ g(sK3) == f(sK4,sK3) }) })
+      .indices({ index() })
+      .input( clause({ ~p(f(g(sK3),f(sK3,sK4))) }) )
+      .expected({
+        // sK3 10 10
+        clause({ ~p(f(g(b),f(sK3,sK4))), g(x) != f(sK4,sK3), p(f(g(x),f(sK3,sK4))) }),
+        clause({ ~p(f(g(b),f(sK3,sK4))), g(r(x)) == f(sK4,sK3) }),
+        clause({ ~p(f(g(b),f(sK3,sK4))), ~p(f(g(r(x)),f(sK3,sK4))) }),
+        clause({ g(b) == f(sK4,sK3), g(x) != f(sK4,sK3), p(f(g(x),f(sK3,sK4))) }),
+        clause({ g(b) == f(sK4,sK3), g(r(x)) == f(sK4,sK3) }),
+        clause({ g(b) == f(sK4,sK3), ~p(f(g(r(x)),f(sK3,sK4))) }),
+
+        // sK3 10 01
+        clause({ ~p(f(g(b),f(sK3,sK4))), g(sK3) != f(sK4,x7), p(f(g(x7),f(sK3,sK4))) }),
+        clause({ ~p(f(g(b),f(sK3,sK4))), g(sK3) == f(sK4,r(x7)) }),
+        clause({ ~p(f(g(b),f(sK3,sK4))), ~p(f(g(r(x7)),f(sK3,sK4))) }),
+        clause({ g(sK3) == f(sK4,b), g(sK3) != f(sK4,x7), p(f(g(x7),f(sK3,sK4))) }),
+        clause({ g(sK3) == f(sK4,b), g(sK3) == f(sK4,r(x7)) }),
+        clause({ g(sK3) == f(sK4,b), ~p(f(g(r(x7)),f(sK3,sK4))) }),
+
+        // sK3 10 11
+        clause({ ~p(f(g(b),f(sK3,sK4))), g(z) != f(sK4,z), p(f(g(z),f(sK3,sK4))) }),
+        clause({ ~p(f(g(b),f(sK3,sK4))), g(r(z)) == f(sK4,r(z)) }),
+        clause({ ~p(f(g(b),f(sK3,sK4))), ~p(f(g(r(z)),f(sK3,sK4))) }),
+        clause({ g(b) == f(sK4,b), g(z) != f(sK4,z), p(f(g(z),f(sK3,sK4))) }),
+        clause({ g(b) == f(sK4,b), g(r(z)) == f(sK4,r(z)) }),
+        clause({ g(b) == f(sK4,b), ~p(f(g(r(z)),f(sK3,sK4))) }),
+
+        // sK3 01 10
+        clause({ ~p(f(g(sK3),f(b,sK4))), g(x5) != f(sK4,sK3), p(f(g(sK3),f(x5,sK4))) }),
+        clause({ ~p(f(g(sK3),f(b,sK4))), g(r(x5)) == f(sK4,sK3) }),
+        clause({ ~p(f(g(sK3),f(b,sK4))), ~p(f(g(sK3),f(r(x5),sK4))) }),
+        clause({ g(b) == f(sK4,sK3), g(x5) != f(sK4,sK3), p(f(g(sK3),f(x5,sK4))) }),
+        clause({ g(b) == f(sK4,sK3), g(r(x5)) == f(sK4,sK3) }),
+        clause({ g(b) == f(sK4,sK3), ~p(f(g(sK3),f(r(x5),sK4))) }),
+
+        // sK3 01 01
+        clause({ ~p(f(g(sK3),f(b,sK4))), g(sK3) != f(sK4,x8), p(f(g(sK3),f(x8,sK4))) }),
+        clause({ ~p(f(g(sK3),f(b,sK4))), g(sK3) == f(sK4,r(x8)) }),
+        clause({ ~p(f(g(sK3),f(b,sK4))), ~p(f(g(sK3),f(r(x8),sK4))) }),
+        clause({ g(sK3) == f(sK4,b), g(sK3) != f(sK4,x8), p(f(g(sK3),f(x8,sK4))) }),
+        clause({ g(sK3) == f(sK4,b), g(sK3) == f(sK4,r(x8)) }),
+        clause({ g(sK3) == f(sK4,b), ~p(f(g(sK3),f(r(x8),sK4))) }),
+
+        // sK3 01 11
+        clause({ ~p(f(g(sK3),f(b,sK4))), g(x9) != f(sK4,x9), p(f(g(sK3),f(x9,sK4))) }),
+        clause({ ~p(f(g(sK3),f(b,sK4))), g(r(x9)) == f(sK4,r(x9)) }),
+        clause({ ~p(f(g(sK3),f(b,sK4))), ~p(f(g(sK3),f(r(x9),sK4))) }),
+        clause({ g(b) == f(sK4,b), g(x9) != f(sK4,x9), p(f(g(sK3),f(x9,sK4))) }),
+        clause({ g(b) == f(sK4,b), g(r(x9)) == f(sK4,r(x9)) }),
+        clause({ g(b) == f(sK4,b), ~p(f(g(sK3),f(r(x9),sK4))) }),
+
+        // sK3 11 10
+        clause({ ~p(f(g(b),f(b,sK4))), g(y) != f(sK4,sK3), p(f(g(y),f(y,sK4))) }),
+        clause({ ~p(f(g(b),f(b,sK4))), g(r(y)) == f(sK4,sK3) }),
+        clause({ ~p(f(g(b),f(b,sK4))), ~p(f(g(r(y)),f(r(y),sK4))) }),
+        clause({ g(b) == f(sK4,sK3), g(y) != f(sK4,sK3), p(f(g(y),f(y,sK4))) }),
+        clause({ g(b) == f(sK4,sK3), g(r(y)) == f(sK4,sK3) }),
+        clause({ g(b) == f(sK4,sK3), ~p(f(g(r(y)),f(r(y),sK4))) }),
+
+        // sK3 11 01
+        clause({ ~p(f(g(b),f(b,sK4))), g(sK3) != f(sK4,x6), p(f(g(x6),f(x6,sK4))) }),
+        clause({ ~p(f(g(b),f(b,sK4))), g(sK3) == f(sK4,r(x6)) }),
+        clause({ ~p(f(g(b),f(b,sK4))), ~p(f(g(r(x6)),f(r(x6),sK4))) }),
+        clause({ g(sK3) == f(sK4,b), g(sK3) != f(sK4,x6), p(f(g(x6),f(x6,sK4))) }),
+        clause({ g(sK3) == f(sK4,b), g(sK3) == f(sK4,r(x6)) }),
+        clause({ g(sK3) == f(sK4,b), ~p(f(g(r(x6)),f(r(x6),sK4))) }),
+
+        // sK3 11 11
+        clause({ ~p(f(g(b),f(b,sK4))), g(x3) != f(sK4,x3), p(f(g(x3),f(x3,sK4))) }),
+        clause({ ~p(f(g(b),f(b,sK4))), g(r(x3)) == f(sK4,r(x3)) }),
+        clause({ ~p(f(g(b),f(b,sK4))), ~p(f(g(r(x3)),f(r(x3),sK4))) }),
+        clause({ g(b) == f(sK4,b), g(x3) != f(sK4,x3), p(f(g(x3),f(x3,sK4))) }),
+        clause({ g(b) == f(sK4,b), g(r(x3)) == f(sK4,r(x3)) }),
+        clause({ g(b) == f(sK4,b), ~p(f(g(r(x3)),f(r(x3),sK4))) }),
+
+        // sK4 1 1
+        clause({ ~p(f(g(sK3),f(sK3,b))), g(sK3) != f(x4,sK3), p(f(g(sK3),f(sK3,x4))) }),
+        clause({ ~p(f(g(sK3),f(sK3,b))), g(sK3) == f(r(x4),sK3) }),
+        clause({ ~p(f(g(sK3),f(sK3,b))), ~p(f(g(sK3),f(sK3,r(x4)))) }),
+        clause({ g(sK3) == f(b,sK3), g(sK3) != f(x4,sK3), p(f(g(sK3),f(sK3,x4))) }),
+        clause({ g(sK3) == f(b,sK3), g(sK3) == f(r(x4),sK3) }),
+        clause({ g(sK3) == f(b,sK3), ~p(f(g(sK3),f(sK3,r(x4)))) }),
+      })
+    )
+
 // multi-clause case 2 does not work
