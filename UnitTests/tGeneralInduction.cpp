@@ -92,16 +92,24 @@ private:
   DECL_VAR(x10,10)                                                                         \
   DECL_VAR(x11,11)                                                                         \
   DECL_SORT(s)                                                                             \
+  DECL_SORT(u)                                                                             \
   DECL_SKOLEM_CONST(sK1, s)                                                                \
   DECL_SKOLEM_CONST(sK2, s)                                                                \
   DECL_SKOLEM_CONST(sK3, s)                                                                \
   DECL_SKOLEM_CONST(sK4, s)                                                                \
+  DECL_SKOLEM_CONST(sK5, u)                                                                \
   DECL_CONST(b, s)                                                                         \
   DECL_FUNC(r, {s}, s)                                                                     \
   DECL_TERM_ALGEBRA(s, {b, r})                                                             \
+  DECL_CONST(b1, u)                                                                        \
+  DECL_CONST(b2, u)                                                                        \
+  DECL_FUNC(r1, {s, u, u}, u)                                                              \
+  DECL_FUNC(r2, {u, s}, u)                                                                 \
+  DECL_TERM_ALGEBRA(u, {b1, b2, r1, r2})                                                   \
   DECL_FUNC(f, {s, s}, s)                                                                  \
   DECL_FUNC(g, {s}, s)                                                                     \
-  DECL_PRED(p, {s})
+  DECL_PRED(p, {s})                                                                        \
+  DECL_PRED(q, {u})
 
 // induction info is added 1
 TEST_GENERATION_INDUCTION(test_01,
@@ -383,4 +391,73 @@ TEST_GENERATION_INDUCTION(test_10,
       })
     )
 
-// multi-clause case 2 does not work
+// side premise triggers multi-clause
+TEST_GENERATION_INDUCTION(test_11,
+    Generation::TestCase()
+      .context({ clause({ ~p(f(sK1,sK2)) }),
+                 clause({ p(sK2) }) })
+      .indices({ index() })
+      .input( clause({ p(sK1) }))
+      .expected({
+        // formula 1
+        clause({ p(b), ~p(y), p(f(sK1,y)) }),
+        clause({ p(b), p(r(y)) }),
+        clause({ p(b), ~p(f(sK1,r(y))) }),
+        clause({ ~p(f(sK1,b)), ~p(y), p(f(sK1,y)) }),
+        clause({ ~p(f(sK1,b)), p(r(y)) }),
+        clause({ ~p(f(sK1,b)), ~p(f(sK1,r(y))) }),
+
+        // formula 2
+        clause({ p(b), ~p(x), p(f(x,sK2)) }),
+        clause({ p(b), p(r(x)) }),
+        clause({ p(b), ~p(f(r(x),sK2)) }),
+        clause({ ~p(f(b,sK2)), ~p(x), p(f(x,sK2)) }),
+        clause({ ~p(f(b,sK2)), p(r(x)) }),
+        clause({ ~p(f(b,sK2)), ~p(f(r(x),sK2)) }),
+      })
+    )
+
+// multi-clause does not work due to clauses
+// being from different induction depths
+TEST_GENERATION_INDUCTION(test_12,
+    Generation::TestCase()
+      .context({ fromInduction(clause({ p(sK1) })) })
+      .indices({ index() })
+      .input( clause({ ~p(g(sK1)) }))
+      .expected({
+        clause({ ~p(g(b)), p(g(x)) }),
+        clause({ ~p(g(b)), ~p(g(r(x))) }),
+      })
+    )
+
+// multi-clause does not work due to clauses
+// not having complex terms in common
+TEST_GENERATION_INDUCTION(test_13,
+    Generation::TestCase()
+      .options({ { "induction_on_complex_terms", "on" } })
+      .context({ fromInduction(clause({ p(sK1) })) })
+      .indices({ index() })
+      .input( fromInduction(clause({ ~p(g(sK1)) })) )
+      .expected({
+        clause({ ~p(g(b)), p(g(x)) }),
+        clause({ ~p(g(b)), ~p(g(r(x))) }),
+
+        clause({ ~p(b), p(y) }),
+        clause({ ~p(b), ~p(r(y)) }),
+      })
+    )
+
+// multiple induction hypotheses and cases
+TEST_GENERATION_INDUCTION(test_14,
+    Generation::TestCase()
+      .indices({ index() })
+      .input( fromInduction(clause({ ~q(sK5) })) )
+      .expected({
+        clause({ ~q(b1), ~q(b2), ~q(r1(x,y,z)), ~q(r2(x3,x4)) }),
+        clause({ ~q(b1), ~q(b2), q(y), ~q(r2(x3,x4)) }),
+        clause({ ~q(b1), ~q(b2), q(z), ~q(r2(x3,x4)) }),
+        clause({ ~q(b1), ~q(b2), ~q(r1(x,y,z)), q(x3) }),
+        clause({ ~q(b1), ~q(b2), q(y), q(x3) }),
+        clause({ ~q(b1), ~q(b2), q(z), q(x3) }),
+      })
+    )
