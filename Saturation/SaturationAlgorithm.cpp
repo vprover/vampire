@@ -224,7 +224,7 @@ SaturationAlgorithm::SaturationAlgorithm(Problem& prb, const Options& opt)
     _clauseActivationInProgress(false),
     _fwSimplifiers(0), _simplifiers(0), _bwSimplifiers(0), _splitter(0),
     _consFinder(0), _labelFinder(0), _symEl(0), _answerLiteralManager(0),
-    _instantiation(0), _induction(0),
+    _instantiation(0),
     _generatedClauseCount(0),
     _activationLimit(0)
 {
@@ -1523,11 +1523,13 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
     if (InductionHelper::isIntInductionOn()) {
       generators.push_back(new IntegerInductionSchemeGenerator());
     }
-    res->_induction = new GeneralInduction(generators, InferenceRule::INDUCTION_AXIOM);
-    gie->addFront(res->_induction);
-  }
-  if (opt.inductionHypRewriting()) {
-    gie->addFront(new InductionHypothesisRewriting());
+    auto induction = new GeneralInduction(generators, InferenceRule::INDUCTION_AXIOM);
+    gie->addFront(induction);
+    // since indhrw relies on induction, we create this
+    // inference here and hand the induction object to it
+    if (opt.inductionHypRewriting()) {
+      gie->addFront(new InductionHypothesisRewriting(induction));
+    }
   }
 
   if(opt.instantiation()!=Options::Instantiation::OFF){

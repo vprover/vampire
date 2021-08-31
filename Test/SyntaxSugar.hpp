@@ -32,6 +32,7 @@
 #include "Indexing/TermSharing.hpp"
 #include "Kernel/Signature.hpp"
 #include "Kernel/Sorts.hpp"
+#include "Kernel/TermIterators.hpp"
 #include "Shell/TermAlgebra.hpp"
 
 #define __TO_SORT_RAT RationalConstantType::getSort()
@@ -109,6 +110,7 @@
 #define __REPEAT(arity, sort) __REPEAT_ ## arity(sort)
 
 #define DECL_CONST(f, sort) auto f = ConstSugar(#f, sort);
+#define DECL_SKOLEM_CONST(f, sort) auto f = ConstSugar(#f, sort, true);
 #define DECL_FUNC(f, ...)   auto f = FuncSugar(#f, __VA_ARGS__);
 #define DECL_PRED(f, ...)   auto f = PredSugar(#f, __VA_ARGS__);
 #define DECL_SORT(s)        auto s = SortSugar(#s);
@@ -119,16 +121,6 @@
     DECL_VAR(x, 0)                                                                                            \
     DECL_VAR(y, 1)                                                                                            \
     DECL_VAR(z, 2)                                                                                            \
-    DECL_VAR(x0, 0)                                                                                           \
-    DECL_VAR(x1, 1)                                                                                           \
-    DECL_VAR(x2, 2)                                                                                           \
-    DECL_VAR(x3, 3)                                                                                           \
-    DECL_VAR(x4, 4)                                                                                           \
-    DECL_VAR(x5, 5)                                                                                           \
-    DECL_VAR(x6, 6)                                                                                           \
-    DECL_VAR(x7, 7)                                                                                           \
-    DECL_VAR(x8, 8)                                                                                           \
-    DECL_VAR(x9, 9)                                                                                           \
   )                                                                                                           \
 
 
@@ -191,6 +183,7 @@
   )
 
 #define DECL_TERM_ALGEBRA(...) createTermAlgebra(__VA_ARGS__);
+#define DECL_FUNC_DEFS(...) createFunctionDefinitions(__VA_ARGS__);
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // implementation
@@ -325,9 +318,12 @@ public:
   /** explicit conversion */ 
   TermList toTerm() const { return _trm;} 
 
-  static TermSugar createConstant(const char* name, SortSugar s) {
+  static TermSugar createConstant(const char* name, SortSugar s, bool skolem) {
     unsigned f = env.signature->addFunction(name,0);                                                                
-    env.signature->getFunction(f)->setType(OperatorType::getFunctionType({}, s.sortId())); 
+    env.signature->getFunction(f)->setType(OperatorType::getFunctionType({}, s.sortId()));
+    if (skolem) {
+      env.signature->getFunction(f)->markSkolem();
+    }
     return TermSugar(TermList(Term::createConstant(f)));                                                          
   }                                                                                                                 
 };
@@ -483,8 +479,8 @@ public:
 class ConstSugar : public TermSugar, public FuncSugar
 {
 public:
-  ConstSugar(const char* name, SortSugar s) 
-    : TermSugar(TermSugar::createConstant(name, s).toTerm()) 
+  ConstSugar(const char* name, SortSugar s, bool skolem = false)
+    : TermSugar(TermSugar::createConstant(name, s, skolem).toTerm())
     , FuncSugar(functor())
   { }
   unsigned functor() const { return this->toTerm().term()->functor(); }
@@ -541,6 +537,25 @@ inline Clause* clause(std::initializer_list<Lit> ls_) {
   return &out; 
 }
 
+inline Clause* fromInduction(Clause* cl) {
+  cl->inference().setInductionDepth(1);
+
+  for (unsigned i = 0; i < cl->length(); i++) { 
+    Literal* lit = (*cl)[i];
+    // add the induction info based on induction skolems
+    if (lit->ground()) {
+      NonVariableIterator nvi(lit);
+      while (nvi.hasNext()) {
+        unsigned fn = nvi.next().term()->functor();
+        if (env.signature->getFunction(fn)->skolem()) {
+          cl->inference().addToInductionInfo(fn);
+        }
+      }
+    }
+  }
+  return cl;
+}
+
 inline Stack<Clause*> clauses(std::initializer_list<std::initializer_list<Lit>> cls) { 
   auto out = Stack<Clause*>();
   for (auto cl : cls) {
@@ -577,6 +592,17 @@ inline void createTermAlgebra(SortSugar sort, initializer_list<FuncSugar> fs) {
   }
   auto ta = new TermAlgebra(sort.sortId(), cons.size(), cons.begin());
   env.signature->addTermAlgebra(ta);
+}
+
+inline void createFunctionDefinitions(std::initializer_list<tuple<Clause*,unsigned,bool>> cls)
+{
+  for (const auto& t : cls) {
+    auto cl = get<0>(t);
+    auto i = get<1>(t);
+    env.signature->getFnDefHandler()->handleClause(cl, i,
+      get<2>(t) ^ (*cl)[i]->isOrientedReversed());
+  }
+  env.signature->getFnDefHandler()->finalize();
 }
 
 #endif // __TEST__SYNTAX_SUGAR__H__

@@ -32,13 +32,15 @@ bool skolem(Term* t);
 bool containsSkolem(Term* t);
 bool canInductOn(Term* t);
 
+using InductionTerms = vmap<Term*, unsigned>;
+
 /**
  * An instantiated induction template for a term.
  */
 class InductionScheme
 {
 public:
-  InductionScheme(const vmap<Term*, unsigned>& indTerms, bool noChecks = false, InferenceRule rule = InferenceRule::INDUCTION_AXIOM)
+  InductionScheme(const InductionTerms& indTerms, bool noChecks = false, InferenceRule rule = InferenceRule::INDUCTION_AXIOM)
     : _inductionTerms(indTerms), _finalized(false), _noChecks(noChecks), _cases(), _bound1(), _optionalBound2(), _integer(false), _upward(false), _rule(rule) {}
 
   struct Case {
@@ -51,9 +53,9 @@ public:
   };
 
   bool finalize();
-  static Term* createRepresentingTerm(const vmap<Term*, unsigned>& inductionTerms, const Substitution& s);
+  static Term* createRepresentingTerm(const InductionTerms& inductionTerms, const Substitution& s);
   const vvector<Case>& cases() const { ASS(_finalized); return *_cases; }
-  const vmap<Term*, unsigned>& inductionTerms() const { ASS(_finalized); return _inductionTerms; }
+  const InductionTerms& inductionTerms() const { ASS(_finalized); return _inductionTerms; }
   Literal* bound1() const { ASS(_finalized); ASS(_integer); return _bound1; }
   Literal* optionalBound2() const { ASS(_finalized); ASS(_integer); return _optionalBound2; }
   bool isInteger() const { ASS(_finalized); return _integer; }
@@ -68,11 +70,11 @@ public:
 private:
   bool addBaseCases();
 
-  friend class InductionTemplate;
+  friend struct InductionTemplate;
   friend class FnDefHandler;
   friend class IntegerInductionSchemeGenerator;
 
-  vmap<Term*, unsigned> _inductionTerms;
+  InductionTerms _inductionTerms;
   bool _finalized;
   bool _noChecks;
   vvector<Case>* _cases;
@@ -118,6 +120,8 @@ struct InductionTemplate {
     vvector<Term*> _recursiveCalls;
     Term* _header;
   };
+
+  const vvector<Branch>& branches() const { return _branches; }
 
   const unsigned _functor;
   const unsigned _arity;

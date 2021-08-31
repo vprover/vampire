@@ -37,8 +37,8 @@ private:
   static Clause *perform(
       Clause *rwClause, Literal *rwLiteral, TermList rwTerm,
       Clause *eqClause, Literal *eqLiteral, TermList eqLHS,
-      ResultSubstitutionSP subst,
-      bool eqIsResult, bool& isEqTautology, const Inference& inf);
+      ResultSubstitutionSP subst, bool toplevelCheck,
+      bool& isEqTautology, const Inference& inf, SaturationAlgorithm* salg = nullptr);
 
   struct ForwardResultFn;
   struct RewriteableSubtermsFn;

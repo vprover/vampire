@@ -127,8 +127,6 @@ public:
 
   Splitter* getSplitter() { return _splitter; }
 
-  GeneralInduction* getInduction() const { return _induction; }
-
 protected:
   virtual void init();
   virtual MainLoopResult runImpl();
@@ -217,7 +215,6 @@ protected:
   SymElOutput* _symEl;
   AnswerLiteralManager* _answerLiteralManager;
   Instantiation* _instantiation;
-  GeneralInduction* _induction;
 
 
   SubscriptionData _passiveContRemovalSData;

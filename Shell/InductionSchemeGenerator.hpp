@@ -72,6 +72,7 @@ public:
 
   bool pop_last() {
     ASS(_finished);
+    ASS(_max);
     bool res = _iter & 1;
     _iter >>= 1;
     _max >>= 1;

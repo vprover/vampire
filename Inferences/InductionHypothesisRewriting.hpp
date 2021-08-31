@@ -36,11 +36,18 @@ public:
   CLASS_NAME(InductionHypothesisRewriting);
   USE_ALLOCATOR(InductionHypothesisRewriting);
 
+  InductionHypothesisRewriting(GeneratingInferenceEngine* induction)
+    : _lhsIndex(0), _stIndex(0), _induction(induction), _splitter(0),
+      _dupLitRemoval(new DuplicateLiteralRemovalISE()) {}
+
+  ~InductionHypothesisRewriting() {
+    delete _dupLitRemoval;
+    _dupLitRemoval = 0;
+  }
+
   void attach(SaturationAlgorithm* salg) override {
     GeneratingInferenceEngine::attach(salg);
     _splitter=_salg->getSplitter();
-    _induction = _salg->getInduction();
-    _dupLitRemoval = new DuplicateLiteralRemovalISE();
     _dupLitRemoval->attach(_salg);
     _lhsIndex = static_cast<InductionEqualityLHSIndex *>(
       _salg->getIndexManager()->request(INDUCTION_EQUALITY_LHS_SUBST_TREE));
@@ -67,12 +74,19 @@ public:
       Clause *eqClause, Literal *eqLiteral, TermList eqLHS,
       ResultSubstitutionSP subst, bool eqIsResult);
 
+#if VDEBUG
+  void setTestIndices(Stack<Index*> const& indices) override {
+    _lhsIndex = (InductionEqualityLHSIndex*)indices[0];
+    _stIndex = (InductionInequalitySubtermIndex*)indices[1];
+  }
+#endif
+
 private:
   ClauseIterator generateClauses(Literal* lit, Clause* premise);
 
   InductionEqualityLHSIndex *_lhsIndex;
   InductionInequalitySubtermIndex* _stIndex;
-  GeneralInduction* _induction;
+  GeneratingInferenceEngine* _induction;
   Splitter* _splitter;
   DuplicateLiteralRemovalISE* _dupLitRemoval;
 };

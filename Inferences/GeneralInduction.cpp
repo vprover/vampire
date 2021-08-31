@@ -111,10 +111,6 @@ ClauseIterator GeneralInduction::generateClauses(Clause* premise)
   return pvi(res);
 }
 
-inline bool skolem(Term* t) {
-  return env.signature->getFunction(t->functor())->skolem();
-}
-
 void GeneralInduction::process(InductionClauseIterator& res, Clause* premise, Literal* literal)
 {
   CALL("GeneralInduction::process");
@@ -230,7 +226,7 @@ void GeneralInduction::attach(SaturationAlgorithm* salg)
   GeneratingInferenceEngine::attach(salg);
   _splitter=_salg->getSplitter();
   _index = static_cast<TermIndex *>(
-      _salg->getIndexManager()->request(SUPERPOSITION_SUBTERM_SUBST_TREE));
+      _salg->getIndexManager()->request(DEMODULATION_SUBTERM_SUBST_TREE));
   // Indices for integer induction
   if (InductionHelper::isIntInductionOn()) {
     _comparisonIndex = static_cast<LiteralIndex*>(_salg->getIndexManager()->request(UNIT_INT_COMPARISON_INDEX));
@@ -248,7 +244,7 @@ void GeneralInduction::detach()
   CALL("GeneralInduction::detach");
 
   _index = 0;
-  _salg->getIndexManager()->release(SUPERPOSITION_SUBTERM_SUBST_TREE);
+  _salg->getIndexManager()->release(DEMODULATION_SUBTERM_SUBST_TREE);
   if (InductionHelper::isIntInductionOn()) {
     _comparisonIndex = 0;
     _salg->getIndexManager()->release(UNIT_INT_COMPARISON_INDEX);
@@ -563,27 +559,33 @@ vvector<pair<SLQueryResult, vset<pair<Literal*,Clause*>>>> GeneralInduction::sel
     (!literal->isEquality() && InductionHelper::isInductionLiteral(literal, premise))))
   {
     SubtermIterator stit(literal);
+    DHSet<TermList> skolems;
     while (stit.hasNext()) {
       auto st = stit.next();
       if (st.isTerm() && skolem(st.term())) {
-        if (indmc) {
-          it = pvi(getConcatenatedIterator(it, _index->getGeneralizations(st)));
-        } else if (intind && env.signature->getFunction(st.term()->functor())->fnType()->result() == Term::intSort()) {
-          // We only need bound side literals for integer induction
-          if (isPremiseComparison && InductionHelper::isIntInductionTwoOn()) {
-            //cout << "fetching induction literals as sides" << endl;
-            // Fetch induction literals for bound in 'premise'
-            it = pvi(getConcatenatedIterator(it, _helper.getTQRsForInductionTerm(st)));
-          }
-          if (!isPremiseComparison && InductionHelper::isIntInductionOneOn()) {
-            // TODO(hzzv): use a better check to see if induction can be applied on literal/premise?
-            Term* t = st.term();
-            it = pvi(getConcatenatedIterator(it,
-                    getConcatenatedIterator(getConcatenatedIterator(_helper.getLess(t), _helper.getLessEqual(t)),
-                                            getConcatenatedIterator(_helper.getGreater(t), _helper.getGreaterEqual(t)))));
-//                  getFilteredIterator(_index->getGeneralizations(st),
-//                    [] (TermQueryResult& tqr) { return InductionHelper::isIntegerComparison(tqr.clause); })));
-          }
+        skolems.insert(st);
+      }
+    }
+    DHSet<TermList>::Iterator skit(skolems);
+    while (skit.hasNext()) {
+      auto st = skit.next();
+      if (indmc) {
+        it = pvi(getConcatenatedIterator(it, _index->getGeneralizations(st)));
+      } else if (intind && env.signature->getFunction(st.term()->functor())->fnType()->result() == Term::intSort()) {
+        // We only need bound side literals for integer induction
+        if (isPremiseComparison && InductionHelper::isIntInductionTwoOn()) {
+          //cout << "fetching induction literals as sides" << endl;
+          // Fetch induction literals for bound in 'premise'
+          it = pvi(getConcatenatedIterator(it, _helper.getTQRsForInductionTerm(st)));
+        }
+        if (!isPremiseComparison && InductionHelper::isIntInductionOneOn()) {
+          // TODO(hzzv): use a better check to see if induction can be applied on literal/premise?
+          Term* t = st.term();
+          it = pvi(getConcatenatedIterator(it,
+                  getConcatenatedIterator(getConcatenatedIterator(_helper.getLess(t), _helper.getLessEqual(t)),
+                                          getConcatenatedIterator(_helper.getGreater(t), _helper.getGreaterEqual(t)))));
+//                getFilteredIterator(_index->getGeneralizations(st),
+//                  [] (TermQueryResult& tqr) { return InductionHelper::isIntegerComparison(tqr.clause); })));
         }
       }
     }

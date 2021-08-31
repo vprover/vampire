@@ -159,14 +159,14 @@ private:
  */
 class TermOccurrenceReplacement : public TermTransformer {
 public:
-  TermOccurrenceReplacement(const vmap<Term*, unsigned>& r,
+  TermOccurrenceReplacement(const InductionTerms& r,
                              const OccurrenceMap& occ, Literal* lit)
                             : _r(r), _o(occ), _lit(lit) {}
   Literal* transformLit() { return transform(_lit); }
   TermList transformSubterm(TermList trm) override;
 
 private:
-  const vmap<Term*, unsigned>& _r; // term to replace -> variable mapping
+  const InductionTerms& _r; // term to replace -> variable mapping
   OccurrenceMap _o;
   Literal* _lit;
 };
@@ -177,7 +177,7 @@ private:
  */
 class TermMapReplacement : public TermTransformer {
 public:
-  TermMapReplacement(const DHMap<TermList, vvector<Term*>>& m, const vmap<Term*, unsigned>& r)
+  TermMapReplacement(const DHMap<TermList, vvector<Term*>>& m, const InductionTerms& r)
     : _m(m), _r(r), _ord(), _curr()
   {
     auto it = _m.items();
@@ -190,7 +190,7 @@ public:
 
 private:
   const DHMap<TermList, vvector<Term*>>& _m;
-  const vmap<Term*, unsigned>& _r;
+  const InductionTerms& _r;
   vmap<Term*, unsigned> _ord;
   vmap<TermList, unsigned> _curr;
 };
@@ -211,11 +211,18 @@ public:
     for (auto& gen : _gen) {
       delete gen;
     }
+    _gen.clear();
   }
 
   ClauseIterator generateClauses(Clause* premise) override;
   void attach(SaturationAlgorithm* salg) override;
   void detach() override;
+
+#if VDEBUG
+  void setTestIndices(Stack<Index*> const& indices) override {
+    _index = (TermIndex*)indices[0];
+  }
+#endif
 
 private:
   class InductionClauseIterator

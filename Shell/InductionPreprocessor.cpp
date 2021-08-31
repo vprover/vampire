@@ -103,9 +103,11 @@ void FnDefHandler::finalize()
 
   for (auto it = _templates.begin(); it != _templates.end();) {
     if (!it->second.finalize()) {
-      env.beginOutput();
-      env.out() << "% Warning: " << it->second << " discarded" << endl;
-      env.endOutput();
+      if (env.options->showInduction()) {
+        env.beginOutput();
+        env.out() << "% Warning: " << it->second << " discarded" << endl;
+        env.endOutput();
+      }
       it = _templates.erase(it);
       continue;
     } else {
@@ -153,7 +155,7 @@ void FnDefHandler::requestStructuralInductionScheme(Term* t, vvector<InductionSc
     }
     it = _taCaseMap.insert(make_pair(ta, std::move(cases))).first;
   }
-  vmap<Term*, unsigned> inductionTerms;
+  InductionTerms inductionTerms;
   inductionTerms.insert(make_pair(t, 0));
   InductionScheme scheme(inductionTerms, true);
   scheme._cases = &it->second;
@@ -207,7 +209,7 @@ bool InductionScheme::addBaseCases()
   return res;
 }
 
-Term* InductionScheme::createRepresentingTerm(const vmap<Term*, unsigned>& inductionTerms, const Substitution& s)
+Term* InductionScheme::createRepresentingTerm(const InductionTerms& inductionTerms, const Substitution& s)
 {
   CALL("InductionScheme::createRepresentingTerm");
 
@@ -308,8 +310,10 @@ void InductionTemplate::checkWellDefinedness()
   InductionPreprocessor::checkWellDefinedness(cases, missingCases);
 
   if (!missingCases.empty()) {
-    env.beginOutput();
-    env.out() << "% Warning: adding missing cases ";
+    if (env.options->showInduction()) {
+      env.beginOutput();
+      env.out() << "% Warning: adding missing cases to template " << *this;
+    }
     for (const auto& m : missingCases) {
       Stack<TermList> args;
       ASS_EQ(m.size(), _arity);
@@ -322,11 +326,12 @@ void InductionTemplate::checkWellDefinedness()
       } else {
         t = Term::create(_functor, _arity, args.begin());
       }
-      env.out() << t << ", ";
-      _branches.emplace_back(t);
+      addBranch(vvector<Term*>(), std::move(t));
     }
-    env.out() << "to template " << *this << endl;
-    env.endOutput();
+    if (env.options->showInduction()) {
+      env.out() << ". New template is " << *this << endl;
+      env.endOutput();
+    }
   }
 }
 
@@ -337,7 +342,7 @@ void InductionTemplate::requestInductionScheme(Term* t, vset<InductionScheme>& s
   TermStack args;
   vvector<TermList> usedArgs;
   unsigned var = 0;
-  vmap<Term*, unsigned> inductionTerms;
+  InductionTerms inductionTerms;
   // if the induction terms are distinct, no need to check well-foundedness
   // and well-definedness since we already checked it in preprocessing
   for (unsigned i = 0; i < t->arity(); i++) {
@@ -751,14 +756,14 @@ bool InductionPreprocessor::checkWellDefinedness(const vvector<Term*>& cases, vv
         valid = false;
         break;
       }
+      vvector<vvector<TermList>> temp;
       for (const auto& e : v) {
-        vvector<vvector<TermList>> temp;
         for (auto a : argTuples) {
           a.push_back(e);
           temp.push_back(a);
         }
-        argTuples = temp;
       }
+      argTuples = temp;
     }
     if (valid) {
       missingCases.insert(missingCases.end(),
