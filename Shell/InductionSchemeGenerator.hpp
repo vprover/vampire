@@ -76,7 +76,7 @@ public:
     return res;
   }
 
-  uint64_t val() {
+  uint64_t val() const {
     ASS(_finished);
     return _iter;
   }
@@ -141,7 +141,7 @@ public:
     }
   }
 
-  OccurrenceMap create_necessary(const InductionScheme& sch) {
+  OccurrenceMap create_necessary(const InductionScheme& sch) const {
     CALL("OccurrenceMap::create_necessary");
 
     OccurrenceMap necessary;
@@ -183,12 +183,13 @@ struct RecursionInductionSchemeGenerator
 
 private:
   void generate(Clause* premise, Literal* lit);
-  void process(Term* t, bool active, Stack<bool>& actStack, Literal* lit);
-  void process(Literal* lit, Stack<bool>& actStack);
-  void handleActiveTerm(Term* t, InductionTemplate& templ, Stack<bool>& actStack);
+  void process(Term* t, bool active, Literal* lit);
+  void process(Literal* lit);
+  void handleActiveTerm(Term* t, InductionTemplate& templ);
 
   vset<InductionScheme> _schemes;
   OccurrenceMap _actOccMaps;
+  Stack<bool> _actStack;
 };
 
 struct StructuralInductionSchemeGenerator

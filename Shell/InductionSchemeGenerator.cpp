@@ -159,27 +159,27 @@ void RecursionInductionSchemeGenerator::generate(Clause* premise, Literal* lit)
     env.endOutput();
   }
 
-  Stack<bool> actStack;
-  process(lit, actStack);
+  _actStack.reset();
+  process(lit);
   SubtermIterator it(lit);
   while (it.hasNext()){
     TermList curr = it.next();
-    bool active = actStack.pop();
+    bool active = _actStack.pop();
     if (curr.isTerm()) {
-      process(curr.term(), active, actStack, lit);
+      process(curr.term(), active, lit);
     }
   }
-  ASS(actStack.isEmpty());
+  ASS(_actStack.isEmpty());
 }
 
-void RecursionInductionSchemeGenerator::handleActiveTerm(Term* t, InductionTemplate& templ, Stack<bool>& actStack)
+void RecursionInductionSchemeGenerator::handleActiveTerm(Term* t, InductionTemplate& templ)
 {
   CALL("RecursionInductionSchemeGenerator::handleActiveTerm");
 
   const auto& indPos = templ.inductionPositions();
 
   for (int i = t->arity()-1; i >= 0; i--) {
-    actStack.push(indPos[i]);
+    _actStack.push(indPos[i]);
   }
 
   static bool exhaustive = env.options->inductionExhaustiveGeneration();
@@ -222,8 +222,7 @@ void RecursionInductionSchemeGenerator::handleActiveTerm(Term* t, InductionTempl
   }
 }
 
-void RecursionInductionSchemeGenerator::process(Term* t, bool active,
-  Stack<bool>& actStack, Literal* lit)
+void RecursionInductionSchemeGenerator::process(Term* t, bool active, Literal* lit)
 {
   CALL("RecursionInductionSchemeGenerator::process");
 
@@ -236,15 +235,15 @@ void RecursionInductionSchemeGenerator::process(Term* t, bool active,
 
   // If function with recursive definition, create a scheme
   if (active && env.signature->getFnDefHandler()->hasInductionTemplate(f, true)) {
-    handleActiveTerm(t, env.signature->getFnDefHandler()->getInductionTemplate(f, true), actStack);
+    handleActiveTerm(t, env.signature->getFnDefHandler()->getInductionTemplate(f, true));
   } else {
     for (unsigned i = 0; i < t->arity(); i++) {
-      actStack.push(active);
+      _actStack.push(active);
     }
   }
 }
 
-void RecursionInductionSchemeGenerator::process(Literal* lit, Stack<bool>& actStack)
+void RecursionInductionSchemeGenerator::process(Literal* lit)
 {
   CALL("RecursionInductionSchemeGenerator::process");
 
@@ -252,10 +251,10 @@ void RecursionInductionSchemeGenerator::process(Literal* lit, Stack<bool>& actSt
 
   // If function with recursive definition, create a scheme
   if (env.signature->getFnDefHandler()->hasInductionTemplate(f, false)) {
-    handleActiveTerm(lit, env.signature->getFnDefHandler()->getInductionTemplate(f, false), actStack);
+    handleActiveTerm(lit, env.signature->getFnDefHandler()->getInductionTemplate(f, false));
   } else {
     for (unsigned i = 0; i < lit->arity(); i++) {
-      actStack.push(true);
+      _actStack.push(true);
     }
   }
 }

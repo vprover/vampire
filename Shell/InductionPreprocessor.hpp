@@ -80,7 +80,7 @@ ostream& operator<<(ostream& out, const InductionScheme& scheme);
  * (i.e. the changing arguments) of the function.
  */
 struct InductionTemplate {
-  InductionTemplate(Term* t);
+  InductionTemplate(const Term* t);
 
   void addBranch(vvector<Term*>&& recursiveCalls, Term*&& header);
   bool finalize();
@@ -95,13 +95,10 @@ struct InductionTemplate {
    *   (if not present it is a base case)
    */
   struct Branch {
-    Branch(const vvector<Term*>& recursiveCalls, Term* header)
+    Branch(vvector<Term*>&& recursiveCalls, Term*&& header)
       : _recursiveCalls(recursiveCalls), _header(header) {}
 
-    Branch(Term* base)
-      : _recursiveCalls(), _header(base) {}
-
-    bool contains(Branch other);
+    bool contains(const Branch& other) const;
 
     vvector<Term*> _recursiveCalls;
     Term* _header;
@@ -117,7 +114,7 @@ struct InductionTemplate {
 private:
   friend ostream& operator<<(ostream& out, const InductionTemplate& templ);
 
-  bool checkUsefulness();
+  bool checkUsefulness() const;
   bool checkWellFoundedness();
   void checkWellDefinedness();
 
@@ -149,7 +146,7 @@ public:
     return _is->getGeneralizations(t, true);
   }
 
-  bool hasInductionTemplate(unsigned fn, bool trueFun) {
+  bool hasInductionTemplate(unsigned fn, bool trueFun) const {
     return _templates.count(make_pair(fn, trueFun));
   }
 

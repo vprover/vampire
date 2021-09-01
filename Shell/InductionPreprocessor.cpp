@@ -451,7 +451,7 @@ void InductionTemplate::requestInductionScheme(Term* t, vset<InductionScheme>& s
   schemes.insert(std::move(res));
 }
 
-bool InductionTemplate::Branch::contains(InductionTemplate::Branch other)
+bool InductionTemplate::Branch::contains(const InductionTemplate::Branch& other) const
 {
   CALL("InductionTemplate::Branch::contains");
 
@@ -484,7 +484,7 @@ bool InductionTemplate::Branch::contains(InductionTemplate::Branch other)
   return true;
 }
 
-bool InductionTemplate::checkUsefulness()
+bool InductionTemplate::checkUsefulness() const
 {
   CALL("InductionTemplate::checkUsefulness");
 
@@ -568,7 +568,7 @@ bool InductionTemplate::checkWellFoundedness()
   return InductionPreprocessor::checkWellFoundedness(relatedTerms);
 }
 
-InductionTemplate::InductionTemplate(Term* t)
+InductionTemplate::InductionTemplate(const Term* t)
     : _functor(t->functor()), _arity(t->arity()), _isLit(t->isLiteral()),
     _type(_isLit ? env.signature->getPredicate(_functor)->predType()
                  : env.signature->getFunction(_functor)->fnType()),
@@ -580,14 +580,14 @@ void InductionTemplate::addBranch(vvector<Term*>&& recursiveCalls, Term*&& heade
   CALL("InductionTemplate::addBranch");
 
   ASS(header->arity() == _arity && header->isLiteral() == _isLit && header->functor() == _functor);
-  InductionTemplate::Branch branch(recursiveCalls, header);
+  Branch branch(std::move(recursiveCalls), std::move(header));
   for (auto b : _branches) {
     if (b.contains(branch)) {
       return;
     }
   }
   _branches.erase(remove_if(_branches.begin(), _branches.end(),
-  [&branch](const InductionTemplate::Branch& b){
+  [&branch](const Branch& b) {
     return branch.contains(b);
   }), _branches.end());
   _branches.push_back(std::move(branch));

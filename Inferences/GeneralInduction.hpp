@@ -129,7 +129,7 @@ public:
     return temp;
   }
 
-  inline vstring toString()
+  inline vstring toString() const
   {
     vstringstream str;
     for (const auto& kv : _occ._m) {
@@ -151,9 +151,8 @@ private:
  */
 class TermOccurrenceReplacement : public TermTransformer {
 public:
-  TermOccurrenceReplacement(const InductionTerms& r,
-                             const OccurrenceMap& occ, Literal* lit)
-                            : _r(r), _o(occ), _lit(lit) {}
+  TermOccurrenceReplacement(const InductionTerms& r, const OccurrenceMap& occ, Literal* lit)
+    : _r(r), _o(occ), _lit(lit) {}
   Literal* transformLit() { return transform(_lit); }
   TermList transformSubterm(TermList trm) override;
 
@@ -225,7 +224,7 @@ private:
     DECL_ELEMENT_TYPE(Clause*);
 
     inline bool hasNext() { return _clauses.isNonEmpty(); }
-    inline OWN_ELEMENT_TYPE next() { 
+    inline OWN_ELEMENT_TYPE next() {
       return _clauses.pop();
     }
 

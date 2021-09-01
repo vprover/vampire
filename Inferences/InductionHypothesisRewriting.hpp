@@ -38,13 +38,6 @@ public:
     : _lhsIndex(0), _stIndex(0), _induction(induction), _splitter(0),
       _dupLitRemoval(new DuplicateLiteralRemovalISE()) {}
 
-  ~InductionHypothesisRewriting() {
-    if (_dupLitRemoval) {
-      delete _dupLitRemoval;
-      _dupLitRemoval = 0;
-    }
-  }
-
   void attach(SaturationAlgorithm* salg) override {
     GeneratingInferenceEngine::attach(salg);
     _splitter=_salg->getSplitter();
@@ -60,8 +53,6 @@ public:
     _salg->getIndexManager()->release(INDUCTION_EQUALITY_LHS_SUBST_TREE);
     _lhsIndex = nullptr;
     _dupLitRemoval->detach();
-    delete _dupLitRemoval;
-    _dupLitRemoval = nullptr;
     _induction = nullptr;
     _splitter = nullptr;
     GeneratingInferenceEngine::detach();
@@ -87,7 +78,7 @@ private:
   InductionInequalitySubtermIndex* _stIndex;
   GeneratingInferenceEngine* _induction;
   Splitter* _splitter;
-  DuplicateLiteralRemovalISE* _dupLitRemoval;
+  unique_ptr<DuplicateLiteralRemovalISE> _dupLitRemoval;
 };
 
 }; // namespace Inferences
