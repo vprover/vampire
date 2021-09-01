@@ -111,9 +111,41 @@ ClauseIterator GeneralInduction::generateClauses(Clause* premise)
   return pvi(res);
 }
 
+void filterSides(const InductionScheme& scheme, const vset<InductionPremise>& sides,
+    OccurrenceMap& occMap, vset<pair<Literal*, Clause*>>& filteredSides) {
+  const bool isIntScheme = scheme.isInteger();
+  for (const InductionPremise& s : sides) {
+    bool filtered = true;
+    const bool isBound = isIntScheme &&
+        ((s.literal == scheme.bound1()) || (s.literal == scheme.optionalBound2()));
+    const bool isComparison = InductionHelper::isIntegerComparison(s.clause);
+    for (const auto& kv : scheme.inductionTerms()) {
+      if (((!isIntScheme || !isComparison || isBound)) &&
+          s.literal->containsSubterm(TermList(kv.first)) &&
+          (!skolem(kv.first) || !s.clause->inference().inductionDepth())) {
+        filteredSides.insert(make_pair(s.literal, s.clause));
+        filtered = false;
+        break;
+      }
+    }
+    // update occurrence map
+    if (filtered) {
+      for (auto it = occMap._m.begin(); it != occMap._m.end();) {
+        if (it->first.first == s.literal) {
+          it = occMap._m.erase(it);
+        } else {
+          it++;
+        }
+      }
+    }
+  }
+}
+
 void GeneralInduction::process(InductionClauseIterator& res, Clause* premise, Literal* literal)
 {
   CALL("GeneralInduction::process");
+  
+  static const bool indmc = env.options->inductionMultiClause();
 
   if(env.options->showInduction()){
     env.beginOutput();
@@ -121,18 +153,19 @@ void GeneralInduction::process(InductionClauseIterator& res, Clause* premise, Li
     env.endOutput();
   }
 
-  auto pairs = selectMainSidePairs(literal, premise);
+  vvector<InductionPremises> premisePairs = selectPremises(literal, premise);
 
   for (auto& gen : _gen) {
-    for (const auto& kv : pairs) {
-      const auto& main = kv.first;
-      const auto& sides = kv.second;
+    for (const InductionPremises& ips : premisePairs) {
+      const InductionPremise& main = ips.main;
+      if (!indmc && !gen->usesBounds() && !main.originalPremise) {
+        // The main premise in 'ips' is not 'premise' from the parameters of this method.
+        // Since indmc is not on and 'gen' does not use bounds, 'ips' are not valid for 'gen'.
+        continue;
+      }
       static vvector<pair<InductionScheme, OccurrenceMap>> schOccMap;
       schOccMap.clear();
-      // TODO(hzzv): do not use the sides if indmc is off and this is not integer induction
-      // TODO(hzzv): if indmd is on but finIntervals off, from those mainsidelit pairs which contain
-      //    premise as a side, only use premise as the bound
-      gen->generate(main, sides, schOccMap);
+      gen->generate(ips, schOccMap);
 
       vvector<pair<Literal*, vset<Literal*>>> schLits;
       for (auto& kv : schOccMap) {
@@ -142,37 +175,12 @@ void GeneralInduction::process(InductionClauseIterator& res, Clause* premise, Li
         //     (this has been partly checked in selectMainSidePairs but there we did not know
         //      yet whether there is a complex induction term)
         vset<pair<Literal*, Clause*>> sidesFiltered;
-        const bool isIntScheme = kv.first.isInteger();
-        for (const auto& s : sides) {
-          bool filtered = true;
-          const bool isBound = kv.first.isInteger() &&
-              ((s.first == kv.first.bound1()) || (s.first == kv.first.optionalBound2()));
-          const bool isComparison = InductionHelper::isIntegerComparison(s.second);
-          for (const auto& kv2 : kv.first.inductionTerms()) {
-            if (((!isIntScheme || !isComparison || isBound)) &&
-                s.first->containsSubterm(TermList(kv2.first)) &&
-                (!skolem(kv2.first) || !s.second->inference().inductionDepth())) {
-              sidesFiltered.insert(s);
-              filtered = false;
-              break;
-            }
-          }
-          // update occurrence map
-          if (filtered) {
-            for (auto it = kv.second._m.begin(); it != kv.second._m.end();) {
-              if (it->first.first == s.first) {
-                it = kv.second._m.erase(it);
-              } else {
-                it++;
-              }
-            }
-          }
-        }
+        filterSides(kv.first, ips.sides, kv.second, sidesFiltered);
+        if (!ips.bounds.empty()) filterSides(kv.first, ips.bounds, kv.second, sidesFiltered);
         // Check whether we done this induction before. Since there can
         // be other induction schemes and literals that produce the same,
         // we add the new ones at the end
         schLits.emplace_back(nullptr, vset<Literal*>());
-        // TODO(hzzv): check if this works for integer induction
         if (alreadyDone(literal, sidesFiltered, kv.first, schLits.back())) {
           continue;
         }
@@ -199,7 +207,7 @@ void GeneralInduction::process(InductionClauseIterator& res, Clause* premise, Li
               sidesGeneralized.push_back(make_pair(sideLitGen, SLQueryResult(kv2.first, kv2.second)));
             }
           }
-          generateClauses(kv.first, mainLitGen, main, std::move(sidesGeneralized), res._clauses);
+          generateClauses(kv.first, mainLitGen, SLQueryResult(main.literal, main.clause), std::move(sidesGeneralized), res._clauses);
         }
       }
       for (const auto& schLit : schLits) {
@@ -349,7 +357,7 @@ void GeneralInduction::generateClauses(
       for (const auto& p : boundLitQrPairs) {
         Literal* l = p.first->apply(sub);
         Literal* l2;
-        // TODO(hzzv): use more sophisticated logic for creating bounds
+        // TODO(hzzv): use more sophisticated logic for creating bounds (later)
         if (p.second.literal == scheme.bound1()) {
           if (l->isNegative()) l2 = l;
           else l2 = Literal::create2(less, /*polarity=*/false, *l->nthArgument(1), *l->nthArgument(0));
@@ -543,19 +551,20 @@ inline bool sideLitCondition(Literal* main, Clause* mainCl, Literal* side, Claus
       includes(mainSk.begin(), mainSk.end(), sideSk.begin(), sideSk.end())));
 }
 
-vvector<pair<SLQueryResult, vset<pair<Literal*,Clause*>>>> GeneralInduction::selectMainSidePairs(Literal* literal, Clause* premise)
+vvector<InductionPremises> GeneralInduction::selectPremises(Literal* literal, Clause* premise)
 {
-  CALL("GeneralInduction::selectMainSidePairs");
+  CALL("GeneralInduction::selectPremises");
 
-  vvector<pair<SLQueryResult, vset<pair<Literal*,Clause*>>>> res;
+  vvector<InductionPremises> res;
   static const bool indmc = env.options->inductionMultiClause();
-  static const bool intind = InductionHelper::isIntInductionOn();
+  static const bool intInd = InductionHelper::isIntInductionOn();
   static const bool finInterval = InductionHelper::isInductionForFiniteIntervalsOn();
   const bool isPremiseComparison = InductionHelper::isIntegerComparison(premise); 
 
   // TODO(mhajdu): is there a way to duplicate these iterators?
-  TermQueryResultIterator it = TermQueryResultIterator::getEmpty();
-  if ((indmc || intind) && literal->ground() && (!premise->inference().inductionDepth() ||
+  TermQueryResultIterator sidesIt = TermQueryResultIterator::getEmpty();
+  TermQueryResultIterator boundsIt = TermQueryResultIterator::getEmpty();
+  if ((indmc || intInd) && literal->ground() && (!premise->inference().inductionDepth() ||
     (!literal->isEquality() && InductionHelper::isInductionLiteral(literal, premise))))
   {
     SubtermIterator stit(literal);
@@ -570,22 +579,21 @@ vvector<pair<SLQueryResult, vset<pair<Literal*,Clause*>>>> GeneralInduction::sel
     while (skit.hasNext()) {
       auto st = skit.next();
       if (indmc) {
-        it = pvi(getConcatenatedIterator(it, _index->getGeneralizations(st)));
-      } else if (intind && env.signature->getFunction(st.term()->functor())->fnType()->result() == Term::intSort()) {
+        sidesIt = pvi(getConcatenatedIterator(sidesIt, _index->getGeneralizations(st)));
+      }
+      if (intInd && env.signature->getFunction(st.term()->functor())->fnType()->result() == Term::intSort()) {
         // We only need bound side literals for integer induction
-        if (isPremiseComparison && InductionHelper::isIntInductionTwoOn()) {
+        if (!indmc && isPremiseComparison && InductionHelper::isIntInductionTwoOn()) {
           //cout << "fetching induction literals as sides" << endl;
           // Fetch induction literals for bound in 'premise'
-          it = pvi(getConcatenatedIterator(it, _helper.getTQRsForInductionTerm(st)));
+          sidesIt = pvi(getConcatenatedIterator(sidesIt, _helper.getTQRsForInductionTerm(st)));
         }
-        if (!isPremiseComparison && InductionHelper::isIntInductionOneOn()) {
-          // TODO(hzzv): use a better check to see if induction can be applied on literal/premise?
+        if (!isPremiseComparison && InductionHelper::isIntInductionOneOn() &&
+            InductionHelper::isIntInductionTermListInLiteral(st, literal)) {
           Term* t = st.term();
-          it = pvi(getConcatenatedIterator(it,
-                  getConcatenatedIterator(getConcatenatedIterator(_helper.getLess(t), _helper.getLessEqual(t)),
-                                          getConcatenatedIterator(_helper.getGreater(t), _helper.getGreaterEqual(t)))));
-//                getFilteredIterator(_index->getGeneralizations(st),
-//                  [] (TermQueryResult& tqr) { return InductionHelper::isIntegerComparison(tqr.clause); })));
+          boundsIt = pvi(getConcatenatedIterator(boundsIt,
+              getConcatenatedIterator(getConcatenatedIterator(_helper.getLess(t), _helper.getLessEqual(t)),
+                                      getConcatenatedIterator(_helper.getGreater(t), _helper.getGreaterEqual(t)))));
         }
       }
     }
@@ -596,42 +604,54 @@ vvector<pair<SLQueryResult, vset<pair<Literal*,Clause*>>>> GeneralInduction::sel
   const bool indLit = InductionHelper::isInductionLiteral(literal);
   if (indLit)
   {
-    // first pair in result is always the current premise being the main literal
-    res.emplace_back(SLQueryResult(literal, premise), vset<pair<Literal*,Clause*>>());
+    // first InductionPremises in result always uses the current premise as the main literal
+    res.emplace_back(literal, premise, /*originalPremise=*/true);
   }
-  while (it.hasNext())
+  while (boundsIt.hasNext()) {
+    auto qr = boundsIt.next();
+    if (indLit) {
+      res[0].bounds.emplace(qr.literal, qr.clause);
+    }
+  }
+  while (sidesIt.hasNext())
   {
-    auto qr = it.next();
+    auto qr = sidesIt.next();
     // query is side literal
-    if (indLit && (indmc || (intind && InductionHelper::isIntegerComparison(qr.clause))) &&
-        InductionHelper::isInductionClause(qr.clause) && sideLitCondition(literal, premise, qr.literal, qr.clause))
+    if (indLit && indmc && InductionHelper::isInductionClause(qr.clause) && sideLitCondition(literal, premise, qr.literal, qr.clause))
     {
-      res[0].second.emplace(qr.literal, qr.clause);
+      res[0].sides.emplace(qr.literal, qr.clause);
     }
     // query is main literal
-    const bool queryIntIndLit = !InductionHelper::isIntegerComparison(qr.clause);
-    if ((indmc || (intind && isPremiseComparison && queryIntIndLit)) &&
+    const bool intIndPair = intInd && isPremiseComparison && !InductionHelper::isIntegerComparison(qr.clause) && qr.literal->ground();
+    const bool indmcPair = indmc && sideLitCondition(qr.literal, qr.clause, literal, premise);
+    if ((intIndPair || indmcPair) &&
         InductionHelper::isInductionClause(qr.clause) &&
-        InductionHelper::isInductionLiteral(qr.literal) &&
-        sideLitCondition(qr.literal, qr.clause, literal, premise))
+        InductionHelper::isInductionLiteral(qr.literal))
     {
-      // TODO(hzzv): maybe only do this for integer induction if 'premise' is a bound for 'qr'
-      //    (however, if indmc is on, then this will happen also for integer induction even when 'premise' is
-      //    not a bound for 'qr')
-      res.emplace_back(SLQueryResult(qr.literal, qr.clause), vset<pair<Literal*,Clause*>>());
-      res.back().second.emplace(literal, premise);
-      if (indmc || (finInterval && queryIntIndLit)) {
-        // now add side literals other than the input
+      res.emplace_back(qr.literal, qr.clause);
+      if (indmcPair) res.back().sides.emplace(literal, premise, true);
+      if (intIndPair) res.back().bounds.emplace(literal, premise, true);
+      if (indmcPair || (finInterval && intIndPair)) {
+        // now add side or bound literals other than the input
         SubtermIterator stit(qr.literal);
         while (stit.hasNext()) {
           auto st = stit.next();
           if (st.isTerm() && skolem(st.term()) &&
-              (indmc || env.signature->getFunction(st.term()->functor())->fnType()->result() == Term::intSort())) {
-            TermQueryResultIterator it2 = TermQueryResultIterator::getEmpty();
-            if (indmc) {
-              it2 = _index->getGeneralizations(st);
-            } else if (queryIntIndLit) {
-              // We only use the premise as bound for integer induction. Fetch other bounds:
+              (indmcPair || env.signature->getFunction(st.term()->functor())->fnType()->result() == Term::intSort())) {
+            if (indmcPair) {
+              TermQueryResultIterator sideIt2 = _index->getGeneralizations(st);
+              while (sideIt2.hasNext()) {
+                auto qrSide = sideIt2.next();
+                if (qrSide.literal != literal &&
+                    InductionHelper::isInductionClause(qrSide.clause) &&
+                    sideLitCondition(qr.literal, qr.clause, qrSide.literal, qrSide.clause)) {
+                  res.back().sides.emplace(qrSide.literal, qrSide.clause);
+                }
+              }
+            }
+            if (finInterval && intIndPair) {
+              TermQueryResultIterator boundIt2 = TermQueryResultIterator::getEmpty();
+              // We use the premise as a bound for integer induction. Fetch other bounds:
               const bool isLeft = (st == *literal->nthArgument(0));
               const bool isRight = (st == *literal->nthArgument(1));
               if (isLeft || isRight) {
@@ -639,20 +659,17 @@ vvector<pair<SLQueryResult, vset<pair<Literal*,Clause*>>>> GeneralInduction::sel
                 Term* t = st.term();
                 if (literal->isPositive() == isLeft) {
                   // 'st' is smaller than the bound (the bound is upper). Fetch the lower bound for 'st'.
-                  it2 = pvi(getConcatenatedIterator(_helper.getLess(t), _helper.getLessEqual(t)));
+                  boundIt2 = pvi(getConcatenatedIterator(_helper.getLess(t), _helper.getLessEqual(t)));
                 } else {
                   // 'st' is greater than the bound (the bound is lower). Fetch the upper bound for 'st'.
-                  it2 = pvi(getConcatenatedIterator(_helper.getGreater(t), _helper.getGreaterEqual(t)));
+                  boundIt2 = pvi(getConcatenatedIterator(_helper.getGreater(t), _helper.getGreaterEqual(t)));
                 }
-              }
-            }
-            while (it2.hasNext()) {
-              auto qrSide = it2.next();
-              if (qrSide.literal != literal &&
-                InductionHelper::isInductionClause(qrSide.clause) &&
-                sideLitCondition(qr.literal, qr.clause, qrSide.literal, qrSide.clause))
-              {
-                res.back().second.emplace(qrSide.literal, qrSide.clause);
+                while (boundIt2.hasNext()) {
+                  auto qrSide = boundIt2.next();
+                  if (qrSide.literal != literal) {
+                    res.back().bounds.emplace(qrSide.literal, qrSide.clause);
+                  }
+                }
               }
             }
           }

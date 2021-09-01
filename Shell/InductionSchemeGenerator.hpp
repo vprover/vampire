@@ -159,6 +159,32 @@ public:
   vmap<pair<Literal*, Term*>, Occurrences> _m;
 };
 
+struct InductionPremise {
+  InductionPremise(Literal* l, Clause* c, bool o = false) : literal(l), clause(c), originalPremise(o) {}
+
+  Literal* literal;
+  Clause* clause;
+  bool originalPremise;
+
+  friend bool operator<(const InductionPremise& lhs, const InductionPremise& rhs) {
+    return ((lhs.literal < rhs.literal) ||
+            ((lhs.literal == rhs.literal) && (lhs.clause < rhs.clause)));
+  }
+  
+  friend bool operator==(const InductionPremise& lhs, const InductionPremise& rhs) {
+    return (lhs.literal == rhs.literal) && (lhs.clause == rhs.clause);
+  }
+};
+
+struct InductionPremises {
+  InductionPremises(Literal* mainLit, Clause* mainClause, bool o = false)
+      : main(InductionPremise(mainLit, mainClause, o)), sides(), bounds() {}
+
+  InductionPremise main;
+  vset<InductionPremise> sides;
+  vset<InductionPremise> bounds;
+};
+
 /**
  * This class instantiates the induction templates from a literal
  * we want to induct on. Afterwards, stores these and filters them.
@@ -167,10 +193,10 @@ public:
 struct InductionSchemeGenerator {
   virtual ~InductionSchemeGenerator() = default;
   virtual void generate(
-    const SLQueryResult& main,
-    const vset<pair<Literal*,Clause*>>& side,
+    const InductionPremises& premises,
     vvector<pair<InductionScheme, OccurrenceMap>>& res) = 0;
   virtual bool setsFixOccurrences() const { return false; }
+  virtual bool usesBounds() const { return false; }
 };
 
 struct RecursionInductionSchemeGenerator
@@ -179,8 +205,8 @@ struct RecursionInductionSchemeGenerator
   CLASS_NAME(RecursionInductionSchemeGenerator);
   USE_ALLOCATOR(RecursionInductionSchemeGenerator);
 
-  void generate(const SLQueryResult& main,
-    const vset<pair<Literal*,Clause*>>& side,
+  void generate(
+    const InductionPremises& premises,
     vvector<pair<InductionScheme, OccurrenceMap>>& res) override;
   bool setsFixOccurrences() const override { return true; }
 
@@ -200,8 +226,8 @@ struct StructuralInductionSchemeGenerator
   CLASS_NAME(StructuralInductionSchemeGenerator);
   USE_ALLOCATOR(StructuralInductionSchemeGenerator);
 
-  void generate(const SLQueryResult& main,
-    const vset<pair<Literal*,Clause*>>& side,
+  void generate(
+    const InductionPremises& premises,
     vvector<pair<InductionScheme, OccurrenceMap>>& res) override;
 };
 
@@ -211,16 +237,18 @@ struct IntegerInductionSchemeGenerator
   CLASS_NAME(IntegerInductionSchemeGenerator);
   USE_ALLOCATOR(IntegerInductionSchemeGenerator);
 
-  void generate(const SLQueryResult& main,
-    const vset<pair<Literal*,Clause*>>& side,
+  void generate(
+    const InductionPremises& premises,
     vvector<pair<InductionScheme, OccurrenceMap>>& res) override;
   bool setsFixOccurrences() const override { return true; }
+  bool usesBounds() const override { return true; }
 
  private:
   void getIntegerInductionSchemes(Term* t,
-      const vvector<TermQueryResult>& bounds1,
-      const vvector<TermQueryResult>& bounds2,
+      const vvector<pair<TermList*, const InductionPremise*>>& bounds1,
+      const vvector<pair<TermList*, const InductionPremise*>>& bounds2,
       bool upward,
+      bool mainIsOriginalPremise,
       vvector<InductionScheme>& schemes);
 
   vvector<InductionScheme::Case>* getCasesForBoundAndDirection(
