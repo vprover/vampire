@@ -82,12 +82,11 @@ TEST_FUN(test_01) {
   auto mainLit = p(f(f(sk1,sk2),sk3),f(sk3,f(sk1,sk2)));
   //             1 0   1 0   1        1 1   1
   auto sideLit = f(sk3,f(sk1,sk2)) == g(sk2,sk3);
-  SLQueryResult qrMain { mainLit, clause({ mainLit, p(x,x) }) };
-  vset<pair<Literal*, Clause*>> sides;
-  sides.emplace(sideLit, clause({ sideLit, b != b }));
+  InductionPremises premises(mainLit, clause({ mainLit, p(x,x) }));
+  premises.sides.emplace(sideLit, clause({ sideLit, b != b }));
 
   vvector<pair<InductionScheme, OccurrenceMap>> res;
-  gen.generate(qrMain, sides, res);
+  gen.generate(premises, res);
 
   // these occurrence bit vectors are to be read right-to-left
   checkResult(res, {
@@ -119,11 +118,10 @@ TEST_FUN(test_02) {
 
   RecursionInductionSchemeGenerator gen;
   auto mainLit = p(f(r(sk1),sk2),f(sk3,r(sk3)));
-  SLQueryResult qrMain { mainLit, clause({ mainLit, p(x,x) }) };
-  vset<pair<Literal*, Clause*>> sides;
+  InductionPremises premises(mainLit, clause({ mainLit, p(x,x) }));
 
   vvector<pair<InductionScheme, OccurrenceMap>> res;
-  gen.generate(qrMain, sides, res);
+  gen.generate(premises, res);
 
   // these occurrence bit vectors are to be read right-to-left
   checkResult(res, {
@@ -163,22 +161,20 @@ TEST_FUN(test_03) {
   RecursionInductionSchemeGenerator gen;
   auto lit1 = sk1 != sk1;
   auto lit2 = p(sk2,sk3);
-  SLQueryResult qrMain { lit1, clause({ lit1 }) };
-  vset<pair<Literal*, Clause*>> sides;
-  sides.insert(make_pair(lit2, clause({ lit2 })));
+  InductionPremises premises1(lit1, clause({ lit1 }));
+  premises1.sides.emplace(lit2, clause({ lit2 }));
 
   vvector<pair<InductionScheme, OccurrenceMap>> res;
-  gen.generate(qrMain, sides, res);
+  gen.generate(premises1, res);
 
   // empty result
   checkResult(res, { });
 
   // swapping the two clauses results in scheme
-  qrMain = { lit2, clause({ lit2 }) };
-  sides.clear();
-  sides.insert(make_pair(lit1, clause({ lit1 })));
+  InductionPremises premises2(lit2, clause({ lit2 }));
+  premises2.sides.emplace(lit1, clause({ lit1 }));
 
-  gen.generate(qrMain, sides, res);
+  gen.generate(premises2, res);
 
   checkResult(res, {
     { { sk2, { { lit2, 1 } } }, { sk3, { { lit2, 1 } } } },
@@ -192,12 +188,11 @@ TEST_FUN(test_04) {
   StructuralInductionSchemeGenerator gen;
   auto mainLit = p(f(f(sk1,sk2),sk3),f(sk3,f(sk1,sk2)));
   auto sideLit = f(sk3,f(sk1,sk2)) == g(sk2,sk3);
-  SLQueryResult qrMain { mainLit, clause({ mainLit, p(x,x) }) };
-  vset<pair<Literal*, Clause*>> sides;
-  sides.emplace(sideLit, clause({ sideLit, b != b }));
+  InductionPremises premises(mainLit, clause({ mainLit, p(x,x) }));
+  premises.sides.emplace(sideLit, clause({ sideLit, b != b }));
 
   vvector<pair<InductionScheme, OccurrenceMap>> res;
-  gen.generate(qrMain, sides, res);
+  gen.generate(premises, res);
 
   checkResult(res, {
     { { sk1, { { mainLit, 0 },
