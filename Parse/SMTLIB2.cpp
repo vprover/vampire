@@ -154,6 +154,19 @@ void SMTLIB2::readBenchmark(LExprList* bench)
       continue;
     }
 
+    // custom hack to mark time-points
+    if (ibRdr.tryAcceptAtom("declare-time-point")) {
+      vstring name = ibRdr.readAtom();
+      LExprList* iSorts = ibRdr.readList();
+      LExpr* oSort = ibRdr.readNext();
+
+      readDeclareFun(name,iSorts,oSort, RapidSymbol::RAP_TIME_POINT);
+
+      ibRdr.acceptEOL();
+
+      continue;
+    }
+
     // custom hack to mark lemma-predicates
     if (ibRdr.tryAcceptAtom("declare-lemma-predicate")) {
       vstring name = ibRdr.readAtom();
@@ -956,6 +969,11 @@ SMTLIB2::DeclaredFunction SMTLIB2::declareFunctionOrPredicate(const vstring& nam
     {
       sym->markFinalLoopCount();
     }    
+
+    if(rapSym == RapidSymbol::RAP_FN_LOOP_COUNT)
+    {
+      sym->markTimePoint();
+    }  
 
     if(rapSym == RapidSymbol::RAP_MAIN_END)
     {

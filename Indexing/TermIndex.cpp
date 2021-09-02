@@ -224,19 +224,21 @@ void MultiClauseNatInductionIndex::handleClause(Clause* c, bool adding)
   //Perhaps this condition is too strong?
   if(c->length() == 1 && c->derivedFromGoal() && c->inference().distanceFromGoal() < 3){
     Literal* lit = (*c)[0];
-    SubtermIterator it(lit);
-    while (it.hasNext()) {  
-      TermList tl = it.next();
-      if (RapidHelper::isFinalLoopCount(tl)){
-        if (adding) {
-          _is->insert(tl, lit, c);
-        } else {
-          _is->remove(tl, lit, c);
+    if(lit->ground()){
+      //TODO remove groundness condition
+      SubtermIterator it(lit);
+      while (it.hasNext()) {  
+        TermList tl = it.next();
+        if (RapidHelper::isFinalLoopCount(tl)){
+          if (adding) {
+            _is->insert(tl, lit, c);
+          } else {
+            _is->remove(tl, lit, c);
+          }
         }
       }
     }  
   }
-
 }
 
 /////////////////////////////////////////////////////

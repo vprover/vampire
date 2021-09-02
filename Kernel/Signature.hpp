@@ -201,6 +201,9 @@ class Signature
 
     void markMainEnd() { _mainEnd=1; }
 
+    void markTimePoint() { _timePoint=1; }
+
+
     /** return true iff symbol is marked as skip for the purpose of symbol elimination */
     bool skip() const { return _skip; }
     /** return true iff the symbol is marked as name predicate

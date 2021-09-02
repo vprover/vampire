@@ -265,9 +265,9 @@ void Inference::updateStatistics()
       while(it) {
         UnitInputType uit = it->head()->inputType();
         if(uit == UnitInputType::CONJECTURE){
-          oneParentNotFromGoal = true;
+          oneParentDerivedFromGoal = true;
         }
-        if(uit == UnitInputType::CONJECTURE){
+        if(uit != UnitInputType::CONJECTURE){
           oneParentNotFromGoal = true;
         }        
         _distanceFromGoal = max(_distanceFromGoal,it->head()->inference().distanceFromGoal());        

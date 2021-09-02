@@ -161,6 +161,8 @@ void MultiClauseNatInduction::createConclusions(ClauseStack& premises,
   FormulaUnit* fu = new FormulaUnit(inductionFormula,inf);
   fu = Rectify::rectify(fu);
 
+  //cout << fu->toString() << endl;
+
   ClauseStack clausifiedHyps;
   cnf.clausify(NNF::ennf(fu), clausifiedHyps);
  
@@ -219,9 +221,17 @@ ClauseIterator MultiClauseNatInduction::generateClauses(Clause* premise)
   }
 
 
-  static TermStack loopEnds;
+  /*if(premise->number() != 47 && premise->number() != 62){
+    return ClauseIterator::getEmpty();
+  }*/
 
   Literal* lit = (*premise)[0];
+  if(!multiLiterals && !lit->ground()){
+    //TODO remove groundness condition
+    return ClauseIterator::getEmpty();    
+  }
+
+  static TermStack loopEnds;
   SubtermIterator sit(lit);
   while (sit.hasNext()) {  
     TermList tl = sit.next();
@@ -241,11 +251,16 @@ ClauseIterator MultiClauseNatInduction::generateClauses(Clause* premise)
     premises.reset();
     premises.push(premise);
     while(it.hasNext()){
-      TermQueryResult res = it.next();
-      if(res.clause->number() != premise->number()){
+      TermQueryResult res = it.next();      
+      if(res.clause != premise){
         premises.push(res.clause);
       }
     }
+    
+    /*if(premises.size() != 2){
+      return ClauseIterator::getEmpty();
+    }*/
+
 
     if(premises.size() > 1 || (multiLiterals && premises[0]->length() > 1)){
       //cout << "CLAUSE " + premise->toString() << endl;

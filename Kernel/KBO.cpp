@@ -864,6 +864,7 @@ bool KboSpecialWeights<FuncSigTraits>::tryGetWeight(unsigned functor, unsigned& 
 {
   auto sym = env.signature->getFunction(functor);
   if (sym->mainEnd())          { weight = _mainEndWeight; return true; }
+  //if (sym->timePoint())         { weight = functor * 2; return true; }  
   if (sym->integerConstant())  { weight = _numInt;  return true; }
   if (sym->rationalConstant()) { weight = _numRat;  return true; }
   if (sym->realConstant())     { weight = _numReal; return true; }
