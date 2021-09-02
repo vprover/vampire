@@ -144,8 +144,6 @@ void filterSides(const InductionScheme& scheme, const vset<InductionPremise>& si
 void GeneralInduction::process(InductionClauseIterator& res, Clause* premise, Literal* literal)
 {
   CALL("GeneralInduction::process");
-  
-  static const bool indmc = env.options->inductionMultiClause();
 
   if(env.options->showInduction()){
     env.beginOutput();
@@ -158,9 +156,10 @@ void GeneralInduction::process(InductionClauseIterator& res, Clause* premise, Li
   for (auto& gen : _gen) {
     for (const InductionPremises& ips : premisePairs) {
       const InductionPremise& main = ips.main;
-      if (!indmc && !gen->usesBounds() && !main.originalPremise) {
-        // The main premise in 'ips' is not 'premise' from the parameters of this method.
-        // Since indmc is not on and 'gen' does not use bounds, 'ips' are not valid for 'gen'.
+      ASS(main.originalPremise || ips.sidesHaveOriginalPremise || ips.boundsHaveOriginalPremise);
+      if (!gen->usesBounds() && !main.originalPremise && !ips.sidesHaveOriginalPremise) {
+        // 'premise' is neither the main premise from 'ips' nor one of 'ips.sides'.
+        // Since 'gen' does not use bounds, 'ips' is not valid for 'gen'.
         continue;
       }
       static vvector<pair<InductionScheme, OccurrenceMap>> schOccMap;
@@ -564,8 +563,9 @@ vvector<InductionPremises> GeneralInduction::selectPremises(Literal* literal, Cl
   // TODO(mhajdu): is there a way to duplicate these iterators?
   TermQueryResultIterator sidesIt = TermQueryResultIterator::getEmpty();
   TermQueryResultIterator boundsIt = TermQueryResultIterator::getEmpty();
-  if ((indmc || intInd) && literal->ground() && (!premise->inference().inductionDepth() ||
-    (!literal->isEquality() && InductionHelper::isInductionLiteral(literal, premise))))
+  if ((indmc || intInd) && literal->ground() &&
+      (!premise->inference().inductionDepth() ||
+       (!literal->isEquality() && InductionHelper::isInductionLiteral(literal, premise))))
   {
     SubtermIterator stit(literal);
     DHSet<TermList> skolems;
@@ -582,14 +582,16 @@ vvector<InductionPremises> GeneralInduction::selectPremises(Literal* literal, Cl
         sidesIt = pvi(getConcatenatedIterator(sidesIt, _index->getGeneralizations(st)));
       }
       if (intInd && env.signature->getFunction(st.term()->functor())->fnType()->result() == Term::intSort()) {
-        // We only need bound side literals for integer induction
-        if (!indmc && isPremiseComparison && InductionHelper::isIntInductionTwoOn()) {
-          //cout << "fetching induction literals as sides" << endl;
-          // Fetch induction literals for bound in 'premise'
+        if (!indmc && isPremiseComparison && InductionHelper::isIntInductionTwoOn() &&
+            ((st == *literal->nthArgument(0)) || (st == *literal->nthArgument(1)))) {
+          // Fetch integer induction literals for 'st' (bounded by 'premise').
+          // (If indmc is on, these literals were already fetched above.)
           sidesIt = pvi(getConcatenatedIterator(sidesIt, _helper.getTQRsForInductionTerm(st)));
         }
+        // TODO(hzzv): narrow down the check to enable induction for some comparison literals
         if (!isPremiseComparison && InductionHelper::isIntInductionOneOn() &&
             InductionHelper::isIntInductionTermListInLiteral(st, literal)) {
+          // Fetch bounds for the term st for integer induction.
           Term* t = st.term();
           boundsIt = pvi(getConcatenatedIterator(boundsIt,
               getConcatenatedIterator(getConcatenatedIterator(_helper.getLess(t), _helper.getLessEqual(t)),
@@ -629,8 +631,14 @@ vvector<InductionPremises> GeneralInduction::selectPremises(Literal* literal, Cl
         InductionHelper::isInductionLiteral(qr.literal))
     {
       res.emplace_back(qr.literal, qr.clause);
-      if (indmcPair) res.back().sides.emplace(literal, premise, true);
-      if (intIndPair) res.back().bounds.emplace(literal, premise, true);
+      if (indmcPair) {
+        res.back().sides.emplace(literal, premise, true);
+        res.back().sidesHaveOriginalPremise = true;
+      }
+      if (intIndPair) {
+        res.back().bounds.emplace(literal, premise, true);
+        res.back().boundsHaveOriginalPremise = true;
+      }
       if (indmcPair || (finInterval && intIndPair)) {
         // now add side or bound literals other than the input
         SubtermIterator stit(qr.literal);

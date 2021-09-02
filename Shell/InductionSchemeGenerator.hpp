@@ -183,6 +183,8 @@ struct InductionPremises {
   InductionPremise main;
   vset<InductionPremise> sides;
   vset<InductionPremise> bounds;
+  bool sidesHaveOriginalPremise = false;
+  bool boundsHaveOriginalPremise = false;
 };
 
 /**
