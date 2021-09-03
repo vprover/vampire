@@ -1243,6 +1243,14 @@ void Options::init()
             _multiLiteralClauses.reliesOn(_multiClauseNatInduction.is(equal(true)));
             _lookup.insert(&_multiLiteralClauses);
 
+            _maxDistanceFromGoal = UnsignedOptionValue("max_distance_from_goal","mdfg",1);
+            _maxDistanceFromGoal.description = "The maximum distance a clause can be from the goal"
+                                               " for it to take part in multi-clause induction";
+            _maxDistanceFromGoal.tag(OptionTag::INFERENCES);
+            _maxDistanceFromGoal.reliesOn(_multiClauseNatInduction.is(equal(true)));
+            _maxDistanceFromGoal.addHardConstraint(lessThan(6u));
+            _lookup.insert(&_maxDistanceFromGoal);
+
 	    _instantiation = ChoiceOptionValue<Instantiation>("instantiation","inst",Instantiation::OFF,{"off","on"});
 	    _instantiation.description = "Heuristically instantiate variables. Often wastes a lot of effort. Consider using thi instead.";
 	    _instantiation.tag(OptionTag::INFERENCES);

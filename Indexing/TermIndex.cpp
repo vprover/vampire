@@ -221,23 +221,26 @@ void MultiClauseNatInductionIndex::handleClause(Clause* c, bool adding)
 {
   CALL("MultiClauseNatInductionIndex::handleClause");
 
+  static int MAX_DIS = (int)env.options->maxDistanceFromGoal();
+
   //Perhaps this condition is too strong?
-  if(c->length() == 1 && c->derivedFromGoal() && c->inference().distanceFromGoal() < 3){
-    Literal* lit = (*c)[0];
-    if(lit->ground()){
-      //TODO remove groundness condition
+  if(c->derivedFromGoal() && 
+     c->inference().distanceFromGoal() <= MAX_DIS){
+    for (unsigned i=0;i<c->length();i++) {
+      Literal* lit = (*c)[i];
+
       SubtermIterator it(lit);
       while (it.hasNext()) {  
         TermList tl = it.next();
-        if (RapidHelper::isFinalLoopCount(tl)){
-          if (adding) {
-            _is->insert(tl, lit, c);
-          } else {
-            _is->remove(tl, lit, c);
-          }
+        if (!tl.term() || !tl.term()->ground()) continue;
+
+        if (adding) {
+          _is->insert(tl, lit, c);
+        } else {
+          _is->remove(tl, lit, c);
         }
       }
-    }  
+    }
   }
 }
 

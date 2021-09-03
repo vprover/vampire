@@ -33,7 +33,6 @@ using namespace Shell;
 void LimitClauseContainer::add(Clause* c) {
   CALL("LimitClauseContainer::add");
   
-  cout << "INSERTING " + c->toString() << endl;
   _literalsToClause.insert((*c)[0], c);
 }
 

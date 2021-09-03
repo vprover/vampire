@@ -158,6 +158,11 @@ public:
   MultiClauseNatInductionIndex(TermIndexingStructure* is)
   : TermIndex(is) {}
 
+  // Required because rather non-standardly we add and
+  // remove clauses not via the saturation loop in MultiClauseNatInduction
+  void removeClause(Clause* c){ handleClause(c, false); }
+  void insertClause(Clause* c){ handleClause(c, true); }
+
 protected:
   void handleClause(Clause* c, bool adding);
 };

@@ -35,7 +35,7 @@ using namespace Shell;
 
 
 /**
- * Container for tracking extensionality-like clauses, i.e. clauses with exactly
+ * Container for tracking limit-like clauses, i.e. clauses with exactly
  * one positive equality between variables.
  */
 class LimitClauseContainer

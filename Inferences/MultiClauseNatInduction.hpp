@@ -20,8 +20,12 @@
 #include "Indexing/TermIndex.hpp"
 
 #include "Kernel/FormulaTransformer.hpp"
+#include "Kernel/TermTransformer.hpp"
 
 #include "InferenceEngine.hpp"
+
+#include "Lib/DHMap.hpp"
+
 
 namespace Inferences {
 
@@ -42,6 +46,18 @@ private:
   TermList _replacer;
 };
 
+class MultiTermReplacement : public TermTransformer 
+{
+public:
+  MultiTermReplacement(DHMap<TermList, pair<TermList, TermList>>* rewrites,
+  	TermList* maxNlIntroduced) : 
+  _rewrites(rewrites), _maxNl(maxNlIntroduced) {} 
+  virtual TermList transformSubterm(TermList trm);
+private:
+  DHMap<TermList, pair<TermList, TermList>>* _rewrites;
+  TermList* _maxNl;
+};
+
 class MultiClauseNatInduction
 : public GeneratingInferenceEngine
 {
@@ -55,10 +71,14 @@ public:
   ClauseIterator generateClauses(Clause* premise);
   
 private:
-  void createConclusions(ClauseStack& premises, TermList nlTerm, ClauseStack& concs,  bool multiLiterals);
+  Clause* rewriteClause(Clause* c, TermList toBeReplaced, TermList replacement);
+  Clause* rewriteClause(Clause* c, TermList& maxNlIntroduced);
+  void createConclusions(ClauseStack& premises, TermList nlTerm, 
+  	                     ClauseStack& concs,  bool multiLiterals, bool allGround);
+  bool ground(Clause* c);
 
   MultiClauseNatInductionIndex* _index;  
-
+  DHMap<TermList, pair<TermList, TermList>> _rewriteRules;
 };
 
 
