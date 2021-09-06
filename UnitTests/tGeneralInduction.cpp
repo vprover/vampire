@@ -461,3 +461,27 @@ TEST_GENERATION_INDUCTION(test_14,
         clause({ ~q(b1), ~q(b2), q(z), q(x3) }),
       })
     )
+
+// positive literals are considered 1
+TEST_GENERATION_INDUCTION(test_15,
+    Generation::TestCase()
+      .options({ { "induction_neg_only", "off" } })
+      .indices({ index() })
+      .input( clause({  p(sK1) }))
+      .expected({
+        clause({ p(b), ~p(x), }),
+        clause({ p(b), p(r(x)), }),
+      })
+    )
+
+// positive literals are considered 2
+TEST_GENERATION_INDUCTION(test_16,
+    Generation::TestCase()
+      .options({ { "induction_neg_only", "off" } })
+      .indices({ index() })
+      .input( clause({  sK1 == g(sK1) }))
+      .expected({
+        clause({ b == g(b), x != g(x), }),
+        clause({ b == g(b), r(x) == g(r(x)), }),
+      })
+    )

@@ -83,11 +83,11 @@ TEST_GENERATION(test_02,
       .indices({ lhsIndex(), subtermIndex() })
       .input( fromInduction(clause({ f(sk1,sk4) != f(sk2,sk3) })) )
       .expected({
-        clause({ b != f(sk2,sk3) }), // used again
+        clause({ b != f(sk2,sk3) }), // result clause used again
         clause({ b != b }),
         clause({ f(sk2,sk3) != f(sk2,sk3) }),
 
-        clause({ f(sk1,sk4) != b }), // used again
+        clause({ f(sk1,sk4) != b }), // result clause used again
         clause({ b != b }),
         clause({ f(sk1,sk4) != f(sk1,sk4) }),
 
@@ -112,7 +112,8 @@ TEST_GENERATION(test_03,
 TEST_GENERATION(test_04,
     Generation::TestCase()
       .context({
-        fromInduction(clause({ sk1 == sk2 }))
+        fromInduction(clause({ sk2 != sk3 })), // due to sk3
+        fromInduction(clause({ sk1 == sk2 }))  // due to same polarity
       })
       .indices({ lhsIndex(), subtermIndex() })
       .input( fromInduction(clause({ sk1 == f(sk2,sk1) })) )
@@ -129,16 +130,16 @@ TEST_GENERATION(test_05,
       .indices({ lhsIndex(), subtermIndex() })
       .input( fromInduction(clause({ c != f(sk2,sk1), c != f(sk1,sk2) })) )
       .expected({
-        clause({ c != f(d,sk1), c != f(sk1,sk2) }), // used again
+        clause({ c != f(d,sk1), c != f(sk1,sk2) }), // result clause used again
         clause({ c != f(d,b), c != f(sk1,sk2) }),
 
-        clause({ c != f(sk2,b), c != f(sk1,sk2) }), // used again
+        clause({ c != f(sk2,b), c != f(sk1,sk2) }), // result clause used again
         clause({ c != f(d,b), c != f(sk1,sk2) }),
 
-        clause({ c != f(sk2,sk1), c != f(b,sk2) }), // used again
+        clause({ c != f(sk2,sk1), c != f(b,sk2) }), // result clause used again
         clause({ c != f(sk2,sk1), c != f(b,d) }),
 
-        clause({ c != f(sk2,sk1), c != f(sk1,d) }), // used again
+        clause({ c != f(sk2,sk1), c != f(sk1,d) }), // result clause used again
         clause({ c != f(sk2,sk1), c != f(b,d) })
       })
     )

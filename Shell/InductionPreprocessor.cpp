@@ -488,10 +488,9 @@ bool InductionTemplate::checkUsefulness() const
 {
   CALL("InductionTemplate::checkUsefulness");
 
-  // discard whenever:
-  // (1) no r-descriptions or
-  // (2) no terms in any argument positions or
-  // (3) no recursive calls
+  // discard templates without inductive argument positions:
+  // this happens either when there are no recursive calls
+  // or none of the arguments change in any recursive call
   bool discard = true;
   for (const auto& p : _indPos) {
     if (p) {
