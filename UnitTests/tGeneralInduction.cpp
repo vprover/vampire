@@ -395,16 +395,16 @@ TEST_GENERATION_INDUCTION(test_10,
 TEST_GENERATION_INDUCTION(test_11,
     Generation::TestCase()
       .context({ clause({ ~p(f(sK1,sK2)) }),
-                 clause({ p(sK2) }) })
+                 clause({ p(g(sK2)) }) })
       .indices({ index() })
       .input( clause({ p(sK1) }))
       .expected({
         // formula 1
-        clause({ p(b), ~p(y), p(f(sK1,y)) }),
-        clause({ p(b), p(r(y)) }),
-        clause({ p(b), ~p(f(sK1,r(y))) }),
-        clause({ ~p(f(sK1,b)), ~p(y), p(f(sK1,y)) }),
-        clause({ ~p(f(sK1,b)), p(r(y)) }),
+        clause({ p(g(b)), ~p(g(y)), p(f(sK1,y)) }),
+        clause({ p(g(b)), p(g(r(y))) }),
+        clause({ p(g(b)), ~p(f(sK1,r(y))) }),
+        clause({ ~p(f(sK1,b)), ~p(g(y)), p(f(sK1,y)) }),
+        clause({ ~p(f(sK1,b)), p(g(r(y))) }),
         clause({ ~p(f(sK1,b)), ~p(f(sK1,r(y))) }),
 
         // formula 2
