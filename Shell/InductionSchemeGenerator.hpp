@@ -166,6 +166,13 @@ struct InductionPremise {
   Clause* clause;
   bool originalPremise;
 
+  vstring toString() const {
+    vstring res = literal->toString() + " (" +
+      (clause ? clause->toString() : "no clause") + ") " +
+      (originalPremise ? "OP" : "not OP");
+    return res;
+  }
+
   friend bool operator<(const InductionPremise& lhs, const InductionPremise& rhs) {
     return ((lhs.literal < rhs.literal) ||
             ((lhs.literal == rhs.literal) && (lhs.clause < rhs.clause)));
@@ -179,6 +186,23 @@ struct InductionPremise {
 struct InductionPremises {
   InductionPremises(Literal* mainLit, Clause* mainClause, bool o = false)
       : main(InductionPremise(mainLit, mainClause, o)), sides(), bounds() {}
+
+  vstring toString() const {
+    vstring res = "main: " + main.toString() + "; sides: [";
+    bool first = true;
+    for (const auto& side : sides) {
+      res += (first ? " " : ", ") + side.toString();
+      first = false;
+    }
+    res += " ]; bounds: [";
+    first = true;
+    for (const auto& bound : bounds) {
+      res += (first ? " " : ", ") + bound.toString();
+      first = false;
+    }
+    res += " ]";
+    return res;
+  }
 
   InductionPremise main;
   vset<InductionPremise> sides;

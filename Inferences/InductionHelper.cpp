@@ -206,7 +206,8 @@ bool InductionHelper::isInductionLiteral(Literal* l) {
   CALL("InductionHelper::isInductionLiteral");
   static bool negOnly = env.options->inductionNegOnly();
   return ((!negOnly || l->isNegative() || 
-           (theory->isInterpretedPredicate(l) && theory->isInequality(theory->interpretPredicate(l)))
+           (theory->isInterpretedPredicate(l) && theory->isInequality(theory->interpretPredicate(l))) ||
+           isIntegerComparisonLiteral(l) // we allow comparison literals, since we cannot decide whether they are negative
           ) && l->ground()
          );
 }
@@ -259,25 +260,57 @@ bool InductionHelper::isInductionTermFunctor(unsigned f) {
          );
 }
 
-bool InductionHelper::isIntInductionTermListInLiteral(TermList& tl, Literal* l) {
+bool InductionHelper::isIntInductionTermListInLiteral(const TermList& tl, Literal* l) {
   CALL("InductionHelper::isIntInductionTermInLiteral");
+
+  static const unsigned strictness = env.options->intInductionStrictness();
+  ASS((0 <= strictness) && (strictness < 5));
 
   ASS(tl.isTerm());
   // Term tl has to be an integer term, and not an interpreted constant.
   unsigned f = tl.term()->functor();
-  // TODO: move this check to later (when we know the bounds)
-  if ((env.signature->getFunction(f)->fnType()->result() != Term::intSort()) ||
-      theory->isInterpretedConstant(f))
+  if (env.signature->getFunction(f)->fnType()->result() != Term::intSort())
+  // TODO: move this check to later (when we know the bounds)?
+  //    theory->isInterpretedConstant(f))
   {
     return false;
   }
-  // Integer term tl from literal l cannot be used for induction if l is an integer
-  // comparison and tl is one of the comparison's arguments.
-  if (isIntegerComparisonLiteral(l) &&
-      ((tl == *l->nthArgument(0)) || (tl == *l->nthArgument(1)))) {
+  // Integer term tl from literal l cannot be used for induction if either:
+  // 1. strictness 1:
+  //  - l is an integer comparison or equality, tl is one of its top-level arguments,
+  //    and tl is not contained in the other top-level argument.
+  // 2. strictness 2:
+  //  - l is an integer comparison or equality and tl only occurs in one of its
+  //    arguments.
+  // 3. strictness 3:
+  //  - l is an integer comparison, or
+  //  - l is an equality, tl is one of its top-level arguments, and tl is not
+  //    contained in the other top-level argument.
+  // 4. strictness 4:
+  //  - l is an integer comparison, or
+  //  - l is an equality and tl only occurs in one of its arguments.
+  const bool isComparison = isIntegerComparisonLiteral(l);
+  const bool isEquality = (theory->isInterpretedPredicate(l) &&
+      (l->isEquality() || theory->isInequality(theory->interpretPredicate(l))));
+  if (((strictness == 1) && (isComparison || isEquality) &&
+       (((tl == *l->nthArgument(0)) && !l->nthArgument(1)->containsSubterm(tl)) ||
+        ((tl == *l->nthArgument(1)) && !l->nthArgument(0)->containsSubterm(tl)))) ||
+      ((strictness == 2) && (isComparison || isEquality) &&
+       (!l->nthArgument(0)->containsSubterm(tl) || !l->nthArgument(1)->containsSubterm(tl))) || 
+      ((strictness == 3) && (isComparison || (isEquality &&
+         (((tl == *l->nthArgument(0)) && !l->nthArgument(1)->containsSubterm(tl)) ||
+          ((tl == *l->nthArgument(1)) && !l->nthArgument(0)->containsSubterm(tl)))))) || 
+      ((strictness == 4) && (isComparison || (isEquality &&
+         (!l->nthArgument(0)->containsSubterm(tl) || !l->nthArgument(1)->containsSubterm(tl)))))) {
     return false;
   }
   return true;
+}
+
+bool InductionHelper::isIntegerBoundLiteral(const TermList& tl, Literal* l) {
+  return isIntegerComparisonLiteral(l) &&
+    (((tl == *l->nthArgument(0)) && !l->nthArgument(1)->containsSubterm(tl)) ||
+     ((tl == *l->nthArgument(1)) && !l->nthArgument(0)->containsSubterm(tl)));
 }
 
 bool InductionHelper::isStructInductionFunctor(unsigned f) {
