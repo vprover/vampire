@@ -100,13 +100,13 @@ void RecursionInductionSchemeGenerator::generate(
   _schemes.clear();
   _actOccMaps._m.clear();
 
-  const InductionPremise& main = premises.main;
+  const InductionPremise& main = premises.main();
   static vset<Literal*> litsProcessed;
   litsProcessed.clear();
   litsProcessed.insert(main.literal);
 
   generate(main.clause, main.literal);
-  for (const InductionPremise& s : premises.sides) {
+  for (const InductionPremise& s : premises.sides()) {
     if (litsProcessed.insert(s.literal).second) {
       generate(s.clause, s.literal);
     }
@@ -272,7 +272,7 @@ void StructuralInductionSchemeGenerator::generate(
   vvector<InductionScheme> schemes;
   OccurrenceMap occMap;
 
-  const InductionPremise& main = premises.main;
+  const InductionPremise& main = premises.main();
   Set<Term*> ta_terms;
   SubtermIterator it(main.literal);
   while (it.hasNext()) {
@@ -280,7 +280,7 @@ void StructuralInductionSchemeGenerator::generate(
     ASS(ts.isTerm());
     Term* t = ts.term();
     unsigned f = t->functor();
-    if (Inferences::InductionHelper::isInductionTermFunctor(f) &&
+    if (Inferences::InductionHelper::isInductionTerm(t) &&
         Inferences::InductionHelper::isStructInductionFunctor(f)) {
       ta_terms.insert(t);
     }
@@ -292,7 +292,7 @@ void StructuralInductionSchemeGenerator::generate(
     env.signature->getFnDefHandler()->requestStructuralInductionScheme(taIt.next(), schemes);
   }
 
-  for (const InductionPremise& s : premises.sides) {
+  for (const InductionPremise& s : premises.sides()) {
     SubtermIterator it(s.literal);
     while (it.hasNext()) {
       Term* t = it.next().term();
@@ -328,7 +328,7 @@ void IntegerInductionSchemeGenerator::generate(
 
   vvector<InductionScheme> schemes;
   OccurrenceMap occMap;
-  const InductionPremise& main = premises.main;
+  const InductionPremise& main = premises.main();
 
   // Extract suitable terms from main, add them to occMap, and for each induction term
   // initialize an empty sets of bounds.
@@ -349,10 +349,10 @@ void IntegerInductionSchemeGenerator::generate(
   }
   // Add term occurrences from bounds and sides to occMap, and add pointers
   // to relevant bounds to 'bounds' (indexed by the induction term)
-  for (const InductionPremise& ip : premises.bounds) {
+  for (const InductionPremise& ip : premises.bounds()) {
     addBoundOccurrenceIfEligible(int_terms, bounds, occMap, ip);
   }
-  for (const InductionPremise& ip : premises.sides) {
+  for (const InductionPremise& ip : premises.sides()) {
     // premises.sides might contain literals usable as bounds
     if (Inferences::InductionHelper::isIntegerComparison(ip.clause)) {
       addBoundOccurrenceIfEligible(int_terms, bounds, occMap, ip);

@@ -248,7 +248,7 @@ private:
     ClauseStack& clauses);
   bool alreadyDone(Literal* mainLit, const vset<pair<Literal*,Clause*>>& sides,
     const InductionScheme& sch, pair<Literal*,vset<Literal*>>& res);
-  vvector<Shell::InductionPremises> selectPremises(Literal* literal, Clause* premise);
+  vmap<Shell::InductionPremise, Shell::InductionPremises> selectPremises(Literal* literal, Clause* premise);
   Clause* applyBinaryResolutionAndCallSplitter(Clause* c, Literal* l, const SLQueryResult& slqr, bool splitterCondition);
 
   vvector<InductionSchemeGenerator*> _gen;

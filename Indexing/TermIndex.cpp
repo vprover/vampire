@@ -251,17 +251,25 @@ void InductionTermIndex::handleClause(Clause* c, bool adding)
 
   TimeCounter tc(TC_INDUCTION_TERM_INDEX_MAINTENANCE);
 
+  static DHSet<Term*> inserted;
+
   if (InductionHelper::isInductionClause(c)) {
   // Iterate through literals & check if the literal is suitable for induction
     for (unsigned i=0;i<c->length();i++) {
       Literal* lit = (*c)[i];
       if (InductionHelper::isInductionLiteral(lit)) {
-        SubtermIterator it(lit);
-        while (it.hasNext()) {
-          TermList tl = it.next();
-          if (!tl.term()) continue;
-          if (InductionHelper::isInductionTermFunctor(tl.term()->functor()) &&
-              InductionHelper::isIntInductionTermListInLiteral(tl, lit)) {
+        inserted.reset();
+        NonVariableIterator nvi(lit);
+        while (nvi.hasNext()) {
+          TermList tl = nvi.next();
+          if (!inserted.insert(tl.term())) {
+            // same as for DemodulationSubtermIndex
+            nvi.right();
+            continue;
+          }
+          if (InductionHelper::isInductionTerm(tl.term()) &&
+              (InductionHelper::isIntInductionTermListInLiteral(tl, lit) ||
+               InductionHelper::isStructInductionFunctor(tl.term()->functor()))) {
             if (adding) {
               _is->insert(tl, lit, c);
             } else {
@@ -274,6 +282,42 @@ void InductionTermIndex::handleClause(Clause* c, bool adding)
   }
 }
 
+void InductionSideLiteralTermIndex::handleClause(Clause* c, bool adding)
+{
+  CALL("InductionSideLiteralTermIndex::handleClause");
+
+  // TimeCounter tc(TC_INDUCTION_TERM_INDEX_MAINTENANCE);
+
+  static DHSet<Term*> inserted;
+
+  if (InductionHelper::isInductionClause(c)) {
+  // Iterate through literals & check if the literal is suitable for induction
+    for (unsigned i=0;i<c->length();i++) {
+      Literal* lit = (*c)[i];
+      if (InductionHelper::isSideLiteral(lit, c)) {
+        inserted.reset();
+        NonVariableIterator nvi(lit);
+        while (nvi.hasNext()) {
+          TermList tl = nvi.next();
+          if (!inserted.insert(tl.term())) {
+            // same as for DemodulationSubtermIndex
+            nvi.right();
+            continue;
+          }
+          if (InductionHelper::isInductionTerm(tl.term()) &&
+              (InductionHelper::isIntInductionTermListInLiteral(tl, lit) ||
+               InductionHelper::isStructInductionFunctor(tl.term()->functor()))) {
+            if (adding) {
+              _is->insert(tl, lit, c);
+            } else {
+              _is->remove(tl, lit, c);
+            }
+          }
+        }
+      }
+    }
+  }
+}
 
 /////////////////////////////////////////////////////
 // Indices for higher-order inferences from here on//

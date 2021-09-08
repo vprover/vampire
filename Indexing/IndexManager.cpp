@@ -296,6 +296,12 @@ Index* IndexManager::create(IndexType t)
     isGenerating = true;
     break;
 
+  case INDUCTION_SIDE_LITERAL_TERM_INDEX:
+    tis = new TermSubstitutionTree();
+    res = new InductionSideLiteralTermIndex(tis);
+    isGenerating = true;
+    break;
+
   case INDUCTION_EQUALITY_LHS_SUBST_TREE:
     tis=new CodeTreeTIS();
     res=new InductionEqualityLHSIndex(tis, _alg->getOrdering(), _alg->getOptions());
