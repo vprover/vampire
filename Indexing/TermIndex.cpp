@@ -172,7 +172,7 @@ void DemodulationLHSIndex::handleClause(Clause* c, bool adding)
   if (c->length()!=1) {
     return;
   }
-
+              
   TimeCounter tc(TC_FORWARD_DEMODULATION_INDEX_MAINTENANCE);
 
   Literal* lit=(*c)[0];
@@ -222,6 +222,11 @@ void MultiClauseNatInductionIndex::handleClause(Clause* c, bool adding)
   CALL("MultiClauseNatInductionIndex::handleClause");
 
   static int MAX_DIS = (int)env.options->maxDistanceFromGoal();
+  static bool multilits = env.options->multiLiteralClauses();
+
+  if(c->length() > 1 && !multilits){
+    return;
+  }
 
   //Perhaps this condition is too strong?
   if(c->derivedFromGoal() && 
@@ -232,12 +237,14 @@ void MultiClauseNatInductionIndex::handleClause(Clause* c, bool adding)
       SubtermIterator it(lit);
       while (it.hasNext()) {  
         TermList tl = it.next();
-        if (!tl.term() || !tl.term()->ground()) continue;
-
-        if (adding) {
-          _is->insert(tl, lit, c);
-        } else {
-          _is->remove(tl, lit, c);
+        if (RapidHelper::isFinalLoopCount(tl)){
+          if (adding) {
+            // note, the same clause can be inserted multiple times
+            // with the same endCount
+            _is->insert(tl, lit, c);
+          } else {
+            _is->remove(tl, lit, c);
+          }
         }
       }
     }

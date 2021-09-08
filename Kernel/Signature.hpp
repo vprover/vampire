@@ -147,6 +147,8 @@ class Signature
 
     unsigned _timePoint : 1;
 
+    unsigned _constantProgramVar : 1;
+
     /** if arrow constructor */
     unsigned _arrow : 1;
     /** if app function symbol */
@@ -203,6 +205,7 @@ class Signature
 
     void markTimePoint() { _timePoint=1; }
 
+    void markConstantProgramVar() { _constantProgramVar=1; }
 
     /** return true iff symbol is marked as skip for the purpose of symbol elimination */
     bool skip() const { return _skip; }
@@ -243,6 +246,8 @@ class Signature
     inline bool mainEnd() const { return _mainEnd; }
 
     inline bool timePoint() const { return _timePoint; }
+
+    inline bool constantProgramVar() const { return _constantProgramVar; }
 
     /** Increase the usage count of this symbol **/
     inline void incUsageCnt(){ _usageCount++; }

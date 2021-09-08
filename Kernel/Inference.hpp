@@ -469,8 +469,6 @@ enum class InferenceRule : unsigned char {
   INT_DB_UP_GEN_INDUCTION_AXIOM,
   INT_DB_DOWN_GEN_INDUCTION_AXIOM,
 
-  /* specialised rewriting agianst the ordering on the induction hypothesis */
-  INDUCTION_HYP_REWRITING,
   /* the unit clause against which the Answer is extracted in the last step */
   ANSWER_LITERAL_RESOLVER,
 

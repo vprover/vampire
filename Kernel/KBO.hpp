@@ -71,7 +71,7 @@ struct KboSpecialWeights<PredSigTraits>
 template<>
 struct KboSpecialWeights<FuncSigTraits> 
 {
-  KboWeight _mainEndWeight;
+  KboWeight _bigRapidWeight;
   KboWeight _variableWeight;
   KboWeight _numInt;
   KboWeight _numRat;
@@ -88,7 +88,7 @@ struct KboSpecialWeights<FuncSigTraits>
   inline static KboSpecialWeights dflt() 
   { 
     return { 
-      ._mainEndWeight = 50,
+      ._bigRapidWeight = 100,
       ._variableWeight = 1, 
       ._numInt  = 1,
       ._numRat  = 1,

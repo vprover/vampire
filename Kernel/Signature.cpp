@@ -60,6 +60,8 @@ Signature::Symbol::Symbol(const vstring& nm, unsigned arity, bool interpreted, b
     _skolem(0),
     _finalLoopCount(0),
     _mainEnd(0),
+    _timePoint(0),
+    _constantProgramVar(0),
     _arrow(0),
     _app(0),
     _tuple(0),
@@ -73,11 +75,6 @@ Signature::Symbol::Symbol(const vstring& nm, unsigned arity, bool interpreted, b
 {
   CALL("Signature::Symbol::Symbol");
   ASS(!stringConstant || arity==0);
-
-  //even more hacky!!!
-  if(nm.rfind("l", 0) == 0){
-    _timePoint = 1;
-  }
 
   if (!stringConstant && !numericConstant && !overflownConstant && !super &&
        symbolNeedsQuoting(_name, interpreted,arity)) {

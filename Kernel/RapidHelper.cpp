@@ -194,42 +194,4 @@ bool RapidHelper::isFinalLoopCount(TermList t)
   return env.signature->getFunction(t.term()->functor())->finalLoopCount();
 }
 
-bool RapidHelper::rewritesToLoopEnd(Literal* l, unsigned& side)
-{
-  CALL("RapidHelper::rewritesToLoopEnd");
-  if(!l->isEquality() || !l->ground()){
-    return false;
-  }
-
-  TermList lhs = *l->nthArgument(0);
-  TermList rhs = *l->nthArgument(1);
-
-  unsigned lhsNlTerms = 0;
-  SubtermIterator sitLhs(lhs.term());
-  while(sitLhs.hasNext()){
-    TermList tl = sitLhs.next();
-    lhsNlTerms += isFinalLoopCount(tl);
-  }
-
-  unsigned rhsNlTerms = 0;
-  SubtermIterator sitRhs(rhs.term());
-  while(sitRhs.hasNext()){
-    TermList tl = sitRhs.next();
-    rhsNlTerms += isFinalLoopCount(tl);
-  }
-
-  if(!rhsNlTerms && lhsNlTerms){
-    side = 1;
-    return true;
-  }
-
-  if(rhsNlTerms && !lhsNlTerms){
-    side = 0;
-    return true;
-  }
-
-  return false;
-}
-
-
 }  // namespace Inferences

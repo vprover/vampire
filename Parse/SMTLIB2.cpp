@@ -154,31 +154,38 @@ void SMTLIB2::readBenchmark(LExprList* bench)
       continue;
     }
 
-    // custom hack to mark time-points
-    if (ibRdr.tryAcceptAtom("declare-time-point")) {
+    //Extension to SMT-LIB to support Rapid
+    bool timePointDeclared = ibRdr.tryAcceptAtom("declare-time-point");
+    bool lemmaPredicateDeclared = ibRdr.tryAcceptAtom("declare-lemma-predicate");
+    bool constVarDeclared = ibRdr.tryAcceptAtom("declare-const-var");
+    bool finalLoopCountDeclared = ibRdr.tryAcceptAtom("declare-final-loop-count");
+
+    if(timePointDeclared || lemmaPredicateDeclared || constVarDeclared ||
+       finalLoopCountDeclared){
       vstring name = ibRdr.readAtom();
-      LExprList* iSorts = ibRdr.readList();
+      LExprList* iSorts;
+      if(!ibRdr.tryReadList(iSorts)){
+        iSorts = nullptr;
+      }
       LExpr* oSort = ibRdr.readNext();
 
-      readDeclareFun(name,iSorts,oSort, RapidSymbol::RAP_TIME_POINT);
+      RapidSymbol rsym;
+      if(timePointDeclared){
+        rsym = RapidSymbol::RAP_TIME_POINT;
+      } else if(lemmaPredicateDeclared){
+        rsym = RapidSymbol::RAP_LEMMA_PRED;
+      } else if(constVarDeclared){
+        rsym = RapidSymbol::RAP_CONST_VAR;
+      } else if(finalLoopCountDeclared){
+        rsym = RapidSymbol::RAP_FN_LOOP_COUNT;
+      }
 
+      readDeclareFun(name,iSorts,oSort, rsym);
       ibRdr.acceptEOL();
 
       continue;
     }
 
-    // custom hack to mark lemma-predicates
-    if (ibRdr.tryAcceptAtom("declare-lemma-predicate")) {
-      vstring name = ibRdr.readAtom();
-      LExprList* iSorts = ibRdr.readList();
-      LExpr* oSort = ibRdr.readNext();
-
-      readDeclareFun(name,iSorts,oSort, RapidSymbol::RAP_LEMMA_PRED);
-
-      ibRdr.acceptEOL();
-
-      continue;
-    }
 
     if (ibRdr.tryAcceptAtom("declare-fun")) {
       vstring name = ibRdr.readAtom();
@@ -244,6 +251,7 @@ void SMTLIB2::readBenchmark(LExprList* bench)
       continue;
     }
     
+           
     if (ibRdr.tryAcceptAtom("declare-const")) {
       vstring name = ibRdr.readAtom();
       if (!ibRdr.hasNext()) {
@@ -252,28 +260,6 @@ void SMTLIB2::readBenchmark(LExprList* bench)
       LExpr* oSort = ibRdr.readNext();
 
       readDeclareFun(name,nullptr,oSort);
-
-      ibRdr.acceptEOL();
-
-      continue;
-    }
-
-    if (ibRdr.tryAcceptAtom("declare-final-loop-count")) {
-      vstring name = ibRdr.readAtom();
-      LExpr* oSort = ibRdr.readNext();
-
-      readDeclareFun(name,nullptr,oSort,RapidSymbol::RAP_FN_LOOP_COUNT);
-
-      ibRdr.acceptEOL();
-
-      continue;
-    }
-
-    if (ibRdr.tryAcceptAtom("declare-main-end")) {
-      vstring name = ibRdr.readAtom();
-      LExpr* oSort = ibRdr.readNext();
-
-      readDeclareFun(name,nullptr,oSort,RapidSymbol::RAP_MAIN_END);
 
       ibRdr.acceptEOL();
 
@@ -965,12 +951,17 @@ SMTLIB2::DeclaredFunction SMTLIB2::declareFunctionOrPredicate(const vstring& nam
 
     sym = env.signature->getFunction(symNum);
 
+    if(rapSym == RapidSymbol::RAP_CONST_VAR)
+    {
+      sym->markConstantProgramVar();
+    }
+
     if(rapSym == RapidSymbol::RAP_FN_LOOP_COUNT)
     {
       sym->markFinalLoopCount();
     }    
 
-    if(rapSym == RapidSymbol::RAP_FN_LOOP_COUNT)
+    if(rapSym == RapidSymbol::RAP_TIME_POINT)
     {
       sym->markTimePoint();
     }  

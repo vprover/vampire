@@ -120,10 +120,7 @@ private:
 Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQueryResult qr, const Options& opts, PassiveClauseContainer* passiveClauseContainer, Ordering* ord, LiteralSelector* ls)
 {
   CALL("BinaryResolution::generateClause");
-  //ASS(qr.clause->store()==Clause::ACTIVE);
-  //Added to check that generation only uses active clauses
-  //We now have uses of binary resolution coming from induction 
-  //where the query clause is not in active. See MultiClauseNatInduction.*
+  ASS(qr.clause->store()==Clause::ACTIVE);
 
   if(!ColorHelper::compatible(queryCl->color(),qr.clause->color()) ) {
     env.statistics->inferencesSkippedDueToColors++;

@@ -182,6 +182,7 @@ private:
     RAP_FN_LOOP_COUNT,
     RAP_MAIN_END,
     RAP_TIME_POINT,
+    RAP_CONST_VAR,
     RAP_NONE
   };
 

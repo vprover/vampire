@@ -27,6 +27,8 @@
 
 #include "Inferences/BinaryResolution.hpp"
 
+#include "Lib/DHSet.hpp"
+
 #include "Shell/NewCNF.hpp"
 #include "Shell/NNF.hpp"
 #include "Shell/Rectify.hpp"
@@ -74,32 +76,9 @@ Formula* TermReplacingFormulaTransformer::applyLiteral(Formula* f)
   return new AtomicFormula(res);  
 }
 
-TermList MultiTermReplacement::transformSubterm(TermList trm)
-{
-  CALL("MultiTermReplacement::transformSubterm");
-
-  if(RapidHelper::isFinalLoopCount(trm)  && 
-    (_maxNl->isEmpty() || trm.term()->functor() > _maxNl->term()->functor())){
-    *_maxNl = trm;
-  }
-
-  auto lhsNlTermPair = _rewrites->findPtr(trm);
-  if(lhsNlTermPair){
-    if(_maxNl->isEmpty() || 
-       lhsNlTermPair->second.term()->functor() > _maxNl->term()->functor()){
-      *_maxNl = lhsNlTermPair->second;
-    }
-    return lhsNlTermPair->first;
-  }
-  return trm;
-}
-
 void MultiClauseNatInduction::createConclusions(ClauseStack& premises, 
       TermList nlTerm, ClauseStack& conclusions, bool multiLiterals, bool allGround)
 {
-  CALL("MultiClauseNatInduction::createConclusions");
-  ASS(conclusions.isEmpty());
-  
   Clause* c;
   Literal* lit;
 
@@ -190,8 +169,9 @@ void MultiClauseNatInduction::createConclusions(ClauseStack& premises,
   cnf.clausify(NNF::ennf(fu), clausifiedHyps);
  
   if(!multiLiterals && allGround){
-    //In the case where some of the original literals are 
-    //non-ground, then the resolution step become more involved
+    // In the case where some of the original clauses
+    // are non-ground, the resolution step is more complicated.
+    // perhaps this can be supported later
     while(!clausifiedHyps.isEmpty()){
       Clause* cls = clausifiedHyps.pop();
 
@@ -206,8 +186,7 @@ void MultiClauseNatInduction::createConclusions(ClauseStack& premises,
         if(cls->contains(negatedLit)){
           static ResultSubstitutionSP identity = ResultSubstitutionSP(new IdentitySubstitution());
           SLQueryResult res((*prem)[0], prem, identity);       
-          cout << "the premise is " + prem->toString() << endl;
-
+           
           if(resolved){
             static bool splitting = env.options->splitting();
             if(splitting){
@@ -233,54 +212,6 @@ void MultiClauseNatInduction::createConclusions(ClauseStack& premises,
 
 }
 
-Clause* MultiClauseNatInduction::rewriteClause(Clause* c, 
-  TermList toBeReplaced, TermList replacement){
-  CALL("MultiClauseNatInduction::rewriteClause1");
-
-  static LiteralStack lits;
-  lits.reset();
-
-  for(unsigned i = 0; i < c->length(); i++){
-    Literal* lit = (*c)[i];
-    Literal* litReplaced = EqHelper::replace(lit, toBeReplaced, replacement);
-    lits.push(litReplaced);
-  }
-  //when we call this function, we know that some literal in 
-  //c contains toBeReplaced, so we don't need to do a modified 
-  //check avoid unnecessarily creating a new clause
-
-  InferenceRule rule = InferenceRule::INDUCTION_HYP_REWRITING;
-  Inference inf = NonspecificInference1(rule, c);
-  return Clause::fromStack(lits, inf);
-}
-
-Clause* MultiClauseNatInduction::rewriteClause(Clause* c, 
-  TermList& maxNlIntroduced){
-  CALL("MultiClauseNatInduction::rewriteClause2");
-
-  static LiteralStack lits;
-  lits.reset();
-  bool modified = false;
-
-  MultiTermReplacement mtr(&_rewriteRules, &maxNlIntroduced);
-
-  for(unsigned i = 0; i < c->length(); i++){
-    Literal* lit = (*c)[i];
-    Literal* litReplaced = mtr.transform(lit);
-    if(lit != litReplaced){
-      modified = true;
-    }
-    lits.push(litReplaced);
-  }
-
-  if(modified){
-    InferenceRule rule = InferenceRule::INDUCTION_HYP_REWRITING;
-    Inference inf = NonspecificInference1(rule, c);
-    return Clause::fromStack(lits, inf);
-  }
-  return c;
-}
-
 bool MultiClauseNatInduction::ground(Clause* c)
 {
   CALL("MultiClauseNatInduction::ground");
@@ -291,6 +222,22 @@ bool MultiClauseNatInduction::ground(Clause* c)
   return true;
 }
 
+void MultiClauseNatInduction::getFinalLoopCounts(Clause* c, TermStack& endCounts)
+{
+  CALL("MultiClauseNatInduction::tryGetFinalLoopCount");
+
+  for(unsigned i = 0; i < c->length(); i++){
+    Literal* lit = (*c)[i];
+    SubtermIterator sit(lit);
+    while (sit.hasNext()) {  
+      TermList tl = sit.next();
+      if (RapidHelper::isFinalLoopCount(tl)){
+        endCounts.push(tl);
+      }
+    }    
+  }
+
+}
 
 ClauseIterator MultiClauseNatInduction::generateClauses(Clause* premise)
 {
@@ -298,106 +245,54 @@ ClauseIterator MultiClauseNatInduction::generateClauses(Clause* premise)
   
   static bool multiLiterals = env.options->multiLiteralClauses();
   static int MAX_DIS = (int)env.options->maxDistanceFromGoal();
-  
-  //the side of the literal we are going to rewrite from
-  //i.e. the one that does NOT contain end loop cunters
-  unsigned side;
-  TermList endCounter;
-  endCounter.makeEmpty();
-  if(premise->length() == 1 && 
-    RapidHelper::rewritesToLoopEnd((*premise)[0], side)){
-    ASS(side == 0 || side == 1);
 
-    Literal* lit = (*premise)[0];
-    TermList rewriteSide = *lit->nthArgument(side);
-    TermList nlSide = *lit->nthArgument(1 - side);
-
-    SubtermIterator sit(lit);
-    while (sit.hasNext()) {  
-      TermList tl = sit.next();
-      if (RapidHelper::isFinalLoopCount(tl)){
-        endCounter = tl;
-        break;
-        //work on the assumption that no rewrite will
-        //introduce multiple loop end points
-      }
-    }
-    ASS(!endCounter.isEmpty());
-    auto lhsNlTermPair = _rewriteRules.findPtr(rewriteSide);
-    if(lhsNlTermPair){
-      TermList oldEndCounter = lhsNlTermPair->second;
-      TermList oldNlSide = lhsNlTermPair->first;      
-      // A hack. nl11 is declared after nl9 for example, so will
-      // have a larger functor. 
-      // If we have two equations alength = C[nl11] and
-      // alength = C[nl9], the first is likely to be more helpful
-      // so we retain
-      if(endCounter.term()->functor() > oldEndCounter.term()->functor()){
-        _rewriteRules.remove(rewriteSide);
-        _rewriteRules.insert(rewriteSide, make_pair(nlSide, endCounter));
-        auto it = _index->getUnifications(oldNlSide,false);
-        while(it.hasNext()){
-          TermQueryResult res = it.next(); 
-          Clause* c = res.clause;
-          Clause* d = rewriteClause(c, oldNlSide, nlSide);
-          ASS(d != c)
-          _index->removeClause(c);
-          _index->insertClause(d);
-        }        
-      } else {
-        return ClauseIterator::getEmpty();
-      }
-    } else {
-      auto it = _index->getUnifications(rewriteSide,false);
-      while(it.hasNext()){
-        TermQueryResult res = it.next(); 
-        Clause* c = res.clause;
-        Clause* d = rewriteClause(c, rewriteSide, nlSide);
-        ASS(d != c)
-        _index->removeClause(c);
-        _index->insertClause(d);
-      }          
-    }
-  } else if(premise->derivedFromGoal() && 
-            premise->inference().distanceFromGoal() <= MAX_DIS) {
-    //rewrite premise with all currently known equalities
-    Clause* d = rewriteClause(premise, endCounter);
-    if(d != premise){
-      _index->removeClause(premise);
-      _index->insertClause(d);      
-    }
-    if(endCounter.isEmpty()){
-      //clause contains no end loop counters even after rewriting
-      return ClauseIterator::getEmpty();
-    }
-  } else {
+  if((premise->length() != 1 && !multiLiterals) || 
+      !premise->derivedFromGoal() || 
+       premise->inference().distanceFromGoal() > MAX_DIS){
+    //Is this condition too restrictive?
     return ClauseIterator::getEmpty();
   }
 
+  static TermStack loopEnds;
+  getFinalLoopCounts(premise, loopEnds);
+
+  bool allGround = ground(premise);
   ClauseStack results;
 
-  //no need for the unifier
-  auto it2 = _index->getUnifications(endCounter,false);
-  static ClauseStack premises;
-  premises.reset();
-  premises.push(premise);
-  bool allGround = true;
-  while(it2.hasNext()){
-    TermQueryResult res = it2.next();  
-    Clause* c = res.clause;
-    if(c->length() > 1 && !multiLiterals){
-      continue;
+
+  while(!loopEnds.isEmpty()){
+    TermList nlTerm = loopEnds.pop();
+    //no need for the unifier
+    auto it = _index->getUnifications(nlTerm,false);
+    
+    static ClauseStack premises;
+    premises.reset();
+    premises.push(premise);
+    
+    static DHSet<Clause*> premisesSeen;
+    premisesSeen.reset();
+    premisesSeen.insert(premise);
+
+    while(it.hasNext()){
+      TermQueryResult res = it.next();  
+      Clause* c = res.clause;
+
+      if(premisesSeen.insert(c)){
+        allGround = allGround && ground(c);
+        premises.push(c);
+      }
     }
-    allGround = allGround && ground(c);
-    premises.push(c);
+    
+
+    if(premises.size() > 1 || (multiLiterals && premises[0]->length() > 1)){
+      //cout << "CLAUSE " + premise->toString() << endl;
+      static ClauseStack conclusions;
+      createConclusions(premises, nlTerm, conclusions, multiLiterals, allGround);
+      while(!conclusions.isEmpty()){
+        results.push(conclusions.pop());
+      } 
+    }
   }
-
-
-  if(premises.size() > 1 || (multiLiterals && premises[0]->length() > 1)){
-    //cout << "CLAUSE " + premise->toString() << endl;
-    createConclusions(premises, endCounter, results, multiLiterals, allGround);
-  }
-
 
   return pvi(getUniquePersistentIterator(ClauseStack::Iterator(results)));
 }

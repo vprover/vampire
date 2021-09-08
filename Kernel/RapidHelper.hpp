@@ -29,8 +29,6 @@ public:
 
   static bool isFinalLoopCount(TermList t);
 
-  static bool rewritesToLoopEnd(Literal* l, unsigned& side);
-
   static bool isRightLimitLiteral(Literal* l);
   static bool isLeftLimitLiteral(Literal* l);  
   //if literal is a constant of the form Dense-x-l# for some variable x
