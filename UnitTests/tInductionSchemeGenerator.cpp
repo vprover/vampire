@@ -82,8 +82,9 @@ TEST_FUN(test_01) {
   auto mainLit = p(f(f(sk1,sk2),sk3),f(sk3,f(sk1,sk2)));
   //             1 0   1 0   1        1 1   1
   auto sideLit = f(sk3,f(sk1,sk2)) == g(sk2,sk3);
-  InductionPremises premises(mainLit, clause({ mainLit, p(x,x) }));
-  premises.sides.emplace(sideLit, clause({ sideLit, b != b }));
+  InductionPremise mainPremise(mainLit, clause({ mainLit, p(x,x) }));
+  InductionPremises premises(mainPremise);
+  premises.addSidePremise(sideLit, clause({ sideLit, b != b }));
 
   vvector<pair<InductionScheme, OccurrenceMap>> res;
   gen.generate(premises, res);
@@ -118,7 +119,8 @@ TEST_FUN(test_02) {
 
   RecursionInductionSchemeGenerator gen;
   auto mainLit = p(f(r(sk1),sk2),f(sk3,r(sk3)));
-  InductionPremises premises(mainLit, clause({ mainLit, p(x,x) }));
+  InductionPremise mainPremise(mainLit, clause({ mainLit, p(x,x) }));
+  InductionPremises premises(mainPremise);
 
   vvector<pair<InductionScheme, OccurrenceMap>> res;
   gen.generate(premises, res);
@@ -161,8 +163,9 @@ TEST_FUN(test_03) {
   RecursionInductionSchemeGenerator gen;
   auto lit1 = sk1 != sk1;
   auto lit2 = p(sk2,sk3);
-  InductionPremises premises1(lit1, clause({ lit1 }));
-  premises1.sides.emplace(lit2, clause({ lit2 }));
+  InductionPremise mainPremise1(lit1, clause({ lit1 }));
+  InductionPremises premises1(mainPremise1);
+  premises1.addSidePremise(lit2, clause({ lit2 }));
 
   vvector<pair<InductionScheme, OccurrenceMap>> res;
   gen.generate(premises1, res);
@@ -171,8 +174,9 @@ TEST_FUN(test_03) {
   checkResult(res, { });
 
   // swapping the two clauses results in scheme
-  InductionPremises premises2(lit2, clause({ lit2 }));
-  premises2.sides.emplace(lit1, clause({ lit1 }));
+  InductionPremise mainPremise2(lit2, clause({ lit2 }));
+  InductionPremises premises2(mainPremise2);
+  premises2.addSidePremise(lit1, clause({ lit1 }));
 
   gen.generate(premises2, res);
 
@@ -188,8 +192,9 @@ TEST_FUN(test_04) {
   StructuralInductionSchemeGenerator gen;
   auto mainLit = p(f(f(sk1,sk2),sk3),f(sk3,f(sk1,sk2)));
   auto sideLit = f(sk3,f(sk1,sk2)) == g(sk2,sk3);
-  InductionPremises premises(mainLit, clause({ mainLit, p(x,x) }));
-  premises.sides.emplace(sideLit, clause({ sideLit, b != b }));
+  InductionPremise mainPremise(mainLit, clause({ mainLit, p(x,x) }));
+  InductionPremises premises(mainPremise);
+  premises.addSidePremise(sideLit, clause({ sideLit, b != b }));
 
   vvector<pair<InductionScheme, OccurrenceMap>> res;
   gen.generate(premises, res);

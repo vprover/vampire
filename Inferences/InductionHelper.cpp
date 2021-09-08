@@ -212,6 +212,24 @@ bool InductionHelper::isInductionLiteral(Literal* l) {
          );
 }
 
+bool InductionHelper::isSideLiteral(Literal* l, Clause* c) {
+  CALL("InductionHelper::isSideLiteral");
+  return l->ground() &&
+    (!c->inference().inductionDepth() ||
+    (!l->isEquality() && InductionHelper::isInductionLiteral(l, c)));
+}
+
+bool InductionHelper::isMainSidePair(Literal* main, Clause* mainCl, Literal* side, Clause* sideCl) {
+  auto mainSk = Inferences::InductionHelper::collectInductionSkolems(main, mainCl);
+  auto sideSk = Inferences::InductionHelper::collectInductionSkolems(side, sideCl);
+  return side->ground() &&
+    // either they are both induction depth 0 (not yet inducted on)
+    ((!mainCl->inference().inductionDepth() && !sideCl->inference().inductionDepth()) ||
+    // or they are non-equality hypothesis and conclusion from the same step
+    (!side->isEquality() && !main->isEquality() && !mainSk.empty() && !sideSk.empty() &&
+      includes(mainSk.begin(), mainSk.end(), sideSk.begin(), sideSk.end())));
+}
+
 bool InductionHelper::isInductionLiteral(Literal* l, Clause* cl) {
   CALL("InductionHelper::isInductionLiteral");
   auto info = cl->inference().inductionInfo();
@@ -244,6 +262,32 @@ vset<unsigned> InductionHelper::collectInductionSkolems(Literal* l, Clause* cl, 
     }
   }
   return res;
+}
+
+bool isInductionTermFunctorNew(unsigned f) {
+  CALL("isInductionTermFunctor");
+  static Options::InductionChoice kind = env.options->inductionChoice();
+  static bool all = (kind == Options::InductionChoice::ALL);
+  static bool goal_plus = (kind == Options::InductionChoice::GOAL_PLUS);
+  auto fn = env.signature->getFunction(f);
+  return ((env.signature->functionArity(f)==0) &&
+          (all || fn->inGoal() || (goal_plus && fn->inductionSkolem())) // set in NewCNF
+         );
+}
+
+bool InductionHelper::isInductionTerm(Term* t) {
+  CALL("InductionHelper::isInductionTerm");
+  static bool complexTermsAllowed = env.options->inductionOnComplexTerms();
+  if (complexTermsAllowed) {
+    NonVariableIterator nvi(t);
+    while (nvi.hasNext()) {
+      unsigned fn = nvi.next().term()->functor();
+      if (isInductionTermFunctorNew(fn)) {
+        return true;
+      }
+    }
+  }
+  return isInductionTermFunctorNew(t->functor());
 }
 
 bool InductionHelper::isInductionTermFunctor(unsigned f) {
@@ -315,13 +359,13 @@ bool InductionHelper::isIntegerBoundLiteral(const TermList& tl, Literal* l) {
 
 bool InductionHelper::isStructInductionFunctor(unsigned f) {
   CALL("InductionHelper::isStructInductionFunctor");
-  static bool complexTermsAllowed = env.options->inductionOnComplexTerms();
-  return (env.signature->isTermAlgebraSort(env.signature->getFunction(f)->fnType()->result()) &&
+  // static bool complexTermsAllowed = env.options->inductionOnComplexTerms();
+  return (env.signature->isTermAlgebraSort(env.signature->getFunction(f)->fnType()->result()));/*  &&
            // skip base constructors even if induction on complex terms is on:
           ((complexTermsAllowed && env.signature->functionArity(f) != 0) ||
            // otherwise skip all constructors:
            !env.signature->getFunction(f)->termAlgebraCons())
-         );
+         ); */
 }
 
 TermList* InductionHelper::getLowerBoundForTermListFromLiteral(const TermList& tl, Literal* l) {

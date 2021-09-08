@@ -72,7 +72,7 @@ private:
 
   friend struct InductionTemplate;
   friend class FnDefHandler;
-  friend class IntegerInductionSchemeGenerator;
+  friend struct IntegerInductionSchemeGenerator;
 
   InductionTerms _inductionTerms;
   bool _finalized;

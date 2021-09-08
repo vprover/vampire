@@ -1523,7 +1523,7 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
     if (InductionHelper::isIntInductionOn()) {
       generators.push_back(new IntegerInductionSchemeGenerator());
     }
-    auto induction = new GeneralInduction(generators, InferenceRule::INDUCTION_AXIOM);
+    auto induction = new GeneralInduction(generators);
     gie->addFront(induction);
     // since indhrw relies on induction, we create this
     // inference here and hand the induction object to it

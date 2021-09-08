@@ -176,6 +176,23 @@ protected:
   void handleClause(Clause* c, bool adding);
 };
 
+/**
+ * Term index for multi-clause induction side literals
+ */
+class InductionSideLiteralTermIndex
+: public TermIndex
+{
+public:
+  CLASS_NAME(InductionSideLiteralTermIndex);
+  USE_ALLOCATOR(InductionSideLiteralTermIndex);
+
+  InductionSideLiteralTermIndex(TermIndexingStructure* is)
+  : TermIndex(is) {}
+
+protected:
+  void handleClause(Clause* c, bool adding);
+};
+
 /////////////////////////////////////////////////////
 // Indices for higher-order inferences from here on//
 /////////////////////////////////////////////////////

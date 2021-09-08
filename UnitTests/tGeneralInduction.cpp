@@ -70,7 +70,7 @@ private:
 #define TEST_GENERATION_INDUCTION(name, ...)                                                                  \
   TEST_FUN(name) {                                                                                            \
     GenerationTesterInduction<GeneralInduction> tester(                                                       \
-      new GeneralInduction(generators(), InferenceRule::INDUCTION_AXIOM));                                    \
+      new GeneralInduction(generators()));                                                                    \
     __ALLOW_UNUSED(MY_SYNTAX_SUGAR)                                                                           \
     auto test = __VA_ARGS__;                                                                                  \
     test.run(tester);                                                                                         \
@@ -400,11 +400,7 @@ TEST_GENERATION_INDUCTION(test_11,
       .input( clause({ p(sK1) }))
       .expected({
         // formula 1
-        clause({ p(b), ~p(y), p(f(sK1,y)) }),
-        clause({ p(b), p(r(y)) }),
-        clause({ p(b), ~p(f(sK1,r(y))) }),
-        clause({ ~p(f(sK1,b)), ~p(y), p(f(sK1,y)) }),
-        clause({ ~p(f(sK1,b)), p(r(y)) }),
+        clause({ ~p(f(sK1,b)), p(f(sK1,y)) }),
         clause({ ~p(f(sK1,b)), ~p(f(sK1,r(y))) }),
 
         // formula 2
@@ -459,5 +455,65 @@ TEST_GENERATION_INDUCTION(test_14,
         clause({ ~q(b1), ~q(b2), ~q(r1(x,y,z)), q(x3) }),
         clause({ ~q(b1), ~q(b2), q(y), q(x3) }),
         clause({ ~q(b1), ~q(b2), q(z), q(x3) }),
+      })
+    )
+
+// side premise queries main premise only once
+TEST_GENERATION_INDUCTION(test_17,
+    Generation::TestCase()
+      .context({ clause({ ~p(f(sK1,sK2)) }) })
+      .indices({ index() })
+      .input( clause({ p(f(sK2,sK1)) }))
+      .expected({
+        // formula 1
+        clause({ p(f(b,sK1)), ~p(f(y,sK1)), p(f(sK1,y)) }),
+        clause({ p(f(b,sK1)), p(f(r(y),sK1)) }),
+        clause({ p(f(b,sK1)), ~p(f(sK1,r(y))) }),
+        clause({ ~p(f(sK1,b)), ~p(f(y,sK1)), p(f(sK1,y)) }),
+        clause({ ~p(f(sK1,b)), p(f(r(y),sK1)) }),
+        clause({ ~p(f(sK1,b)), ~p(f(sK1,r(y))) }),
+
+        // formula 2
+        clause({ p(f(sK2,b)), ~p(f(sK2,x)), p(f(x,sK2)) }),
+        clause({ p(f(sK2,b)), p(f(sK2,r(x))) }),
+        clause({ p(f(sK2,b)), ~p(f(r(x),sK2)) }),
+        clause({ ~p(f(b,sK2)), ~p(f(sK2,x)), p(f(x,sK2)) }),
+        clause({ ~p(f(b,sK2)), p(f(sK2,r(x))) }),
+        clause({ ~p(f(b,sK2)), ~p(f(r(x),sK2)) }),
+      })
+    )
+
+// side literal does not trigger induction 1 (inequal induction depth)
+TEST_GENERATION_INDUCTION(test_18,
+    Generation::TestCase()
+      .context({ fromInduction(clause({ ~p(g(sK1)) })) })
+      .indices({ index() })
+      .input( clause({ p(g(sK1)) }))
+      .expected(none())
+    )
+
+// side literal does not trigger induction 2 (no shared complex term)
+TEST_GENERATION_INDUCTION(test_19,
+    Generation::TestCase()
+      .context({ fromInduction(clause({ ~p(sK1) })) })
+      .indices({ index() })
+      .input( fromInduction(clause({ p(sK1) })) )
+      .expected(none())
+    )
+
+// complementary literals should not cause any problems
+TEST_GENERATION_INDUCTION(test_20,
+    Generation::TestCase()
+      .context({ clause({ p(sK1) }) })
+      .indices({ index() })
+      .input( clause({ ~p(sK1) }))
+      .expected({
+        // formula 1
+        clause({ p(b), ~p(x), p(x) }),
+        clause({ p(b), p(r(x)) }),
+        clause({ p(b), ~p(r(x)) }),
+        clause({ ~p(b), ~p(x), p(x) }),
+        clause({ ~p(b), p(r(x)) }),
+        clause({ ~p(b), ~p(r(x)) }),
       })
     )

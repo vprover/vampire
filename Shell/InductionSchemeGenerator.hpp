@@ -22,6 +22,8 @@
 #include "InductionPreprocessor.hpp"
 #include "Lib/STL.hpp"
 
+#include "Inferences/InductionHelper.hpp"
+
 #include <bitset>
 
 namespace Shell {
@@ -184,19 +186,19 @@ struct InductionPremise {
 };
 
 struct InductionPremises {
-  InductionPremises(Literal* mainLit, Clause* mainClause, bool o = false)
-      : main(InductionPremise(mainLit, mainClause, o)), sides(), bounds() {}
+  InductionPremises(const InductionPremise& mainPremise)
+      : _main(mainPremise), _sides(), _bounds() {}
 
   vstring toString() const {
-    vstring res = "main: " + main.toString() + "; sides: [";
+    vstring res = "main: " + _main.toString() + "; sides: [";
     bool first = true;
-    for (const auto& side : sides) {
+    for (const auto& side : _sides) {
       res += (first ? " " : ", ") + side.toString();
       first = false;
     }
     res += " ]; bounds: [";
     first = true;
-    for (const auto& bound : bounds) {
+    for (const auto& bound : _bounds) {
       res += (first ? " " : ", ") + bound.toString();
       first = false;
     }
@@ -204,11 +206,50 @@ struct InductionPremises {
     return res;
   }
 
-  InductionPremise main;
-  vset<InductionPremise> sides;
-  vset<InductionPremise> bounds;
-  bool sidesHaveOriginalPremise = false;
-  bool boundsHaveOriginalPremise = false;
+  void addPremise(Literal* l, Clause* c, bool originalPremise, bool bound) {
+    if (l == _main.literal && c == _main.clause) {
+      return;
+    }
+    ASS(!originalPremise || !_main.originalPremise);
+    if (bound) {
+      if (_bounds.emplace(l, c, originalPremise).second) {
+        ASS(!originalPremise || !_boundsHaveOriginalPremise);
+        _boundsHaveOriginalPremise = _boundsHaveOriginalPremise || originalPremise;
+      }
+    } else {
+      if (_sides.emplace(l, c, originalPremise).second) {
+        ASS(!originalPremise || !_sidesHaveOriginalPremise);
+        _sidesHaveOriginalPremise = _sidesHaveOriginalPremise || originalPremise;
+      }
+    }
+  }
+
+  bool addSidePremise(Literal* l, Clause* c, bool originalPremise = false) {
+    if (Inferences::InductionHelper::isMainSidePair(_main.literal, _main.clause, l, c)) {
+      addPremise(l, c, originalPremise, false);
+      return true;
+    }
+    return false;
+  }
+
+  void addBound(Literal* l, Clause* c, bool originalPremise = false) {
+    if (!_sides.count(InductionPremise(l, c))) {
+      addPremise(l, c, originalPremise, true);
+    }
+  }
+
+  const InductionPremise& main() const { return _main; }
+  const vset<InductionPremise>& sides() const { return _sides; }
+  const vset<InductionPremise>& bounds() const { return _bounds; }
+  bool sidesHaveOriginalPremise() const { return _sidesHaveOriginalPremise; }
+  bool boundsHaveOriginalPremise() const { return _boundsHaveOriginalPremise; }
+
+private:
+  InductionPremise _main;
+  vset<InductionPremise> _sides;
+  vset<InductionPremise> _bounds;
+  bool _sidesHaveOriginalPremise = false;
+  bool _boundsHaveOriginalPremise = false;
 };
 
 /**

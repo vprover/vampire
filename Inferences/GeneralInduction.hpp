@@ -202,10 +202,8 @@ public:
   CLASS_NAME(GeneralInduction);
   USE_ALLOCATOR(GeneralInduction);
 
-  GeneralInduction(const vvector<InductionSchemeGenerator*> gen, InferenceRule rule)
-    : _gen(gen),
-      _splitter(0),
-      _rule(rule) {}
+  GeneralInduction(const vvector<InductionSchemeGenerator*> gen)
+    : _gen(gen), _splitter(0) {}
 
   ~GeneralInduction() {
     for (auto& gen : _gen) {
@@ -245,15 +243,14 @@ private:
     const Shell::InductionScheme& scheme,
     Literal* mainLit, SLQueryResult mainQuery,
     vvector<pair<Literal*,SLQueryResult>> sideLitQrPairs,
-    ClauseStack& clauses);
+    ClauseStack& clauses, InferenceRule rule);
   bool alreadyDone(Literal* mainLit, const vset<pair<Literal*,Clause*>>& sides,
     const InductionScheme& sch, pair<Literal*,vset<Literal*>>& res);
-  vvector<Shell::InductionPremises> selectPremises(Literal* literal, Clause* premise);
+  vmap<Shell::InductionPremise, Shell::InductionPremises> selectPremises(Literal* literal, Clause* premise);
   Clause* applyBinaryResolutionAndCallSplitter(Clause* c, Literal* l, const SLQueryResult& slqr, bool splitterCondition);
 
   vvector<InductionSchemeGenerator*> _gen;
   Splitter* _splitter;
-  InferenceRule _rule;
   DHMap<Literal*, vset<Literal*>> _done;
   TermIndex* _index;
   // The following pointers can be null if int induction is off.

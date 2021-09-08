@@ -159,6 +159,7 @@ void FnDefHandler::requestStructuralInductionScheme(Term* t, vvector<InductionSc
   inductionTerms.insert(make_pair(t, 0));
   InductionScheme scheme(inductionTerms, true);
   scheme._cases = &it->second;
+  scheme._rule = InferenceRule::STRUCTURAL_INDUCTION_AXIOM;
   scheme.finalize();
   schemes.push_back(std::move(scheme));
 }
@@ -372,6 +373,7 @@ void InductionTemplate::requestInductionScheme(Term* t, vset<InductionScheme>& s
     InductionScheme res(inductionTerms);
     res._cases = &it->second;
     res._finalized = true;
+    res._rule = InferenceRule::RECURSION_INDUCTION_AXIOM;
     schemes.insert(std::move(res));
     return;
   }
@@ -440,6 +442,7 @@ void InductionTemplate::requestInductionScheme(Term* t, vset<InductionScheme>& s
   it = _caseMap.insert(make_pair(std::move(usedArgs), std::move(cases))).first;
   InductionScheme res(inductionTerms);
   res._cases = &it->second;
+  res._rule = InferenceRule::RECURSION_INDUCTION_AXIOM;
   if (!res.finalize()) {
     _invalids.insert(usedArgs);
     return;

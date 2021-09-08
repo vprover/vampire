@@ -152,6 +152,128 @@ void filterSides(const InductionScheme& scheme, const vset<InductionPremise>& si
   }
 }
 
+InferenceRule getGeneralizedRule(InferenceRule rule) {
+  switch (rule) {
+    case InferenceRule::INDUCTION_AXIOM:
+    case InferenceRule::GEN_INDUCTION_AXIOM:
+      return InferenceRule::GEN_INDUCTION_AXIOM;
+    case InferenceRule::MC_INDUCTION_AXIOM:
+    case InferenceRule::MC_GEN_INDUCTION_AXIOM:
+      return InferenceRule::MC_GEN_INDUCTION_AXIOM;
+    case InferenceRule::INT_INF_UP_INDUCTION_AXIOM:
+    case InferenceRule::INT_INF_UP_GEN_INDUCTION_AXIOM:
+      return InferenceRule::INT_INF_UP_GEN_INDUCTION_AXIOM;
+    case InferenceRule::MC_INT_INF_UP_INDUCTION_AXIOM:
+    case InferenceRule::MC_INT_INF_UP_GEN_INDUCTION_AXIOM:
+      return InferenceRule::MC_INT_INF_UP_GEN_INDUCTION_AXIOM;
+    case InferenceRule::INT_INF_DOWN_INDUCTION_AXIOM:
+    case InferenceRule::INT_INF_DOWN_GEN_INDUCTION_AXIOM:
+      return InferenceRule::INT_INF_DOWN_GEN_INDUCTION_AXIOM;
+    case InferenceRule::MC_INT_INF_DOWN_INDUCTION_AXIOM:
+    case InferenceRule::MC_INT_INF_DOWN_GEN_INDUCTION_AXIOM:
+      return InferenceRule::MC_INT_INF_DOWN_GEN_INDUCTION_AXIOM;
+    case InferenceRule::INT_FIN_UP_INDUCTION_AXIOM:
+    case InferenceRule::INT_FIN_UP_GEN_INDUCTION_AXIOM:
+      return InferenceRule::INT_FIN_UP_GEN_INDUCTION_AXIOM;
+    case InferenceRule::MC_INT_FIN_UP_INDUCTION_AXIOM:
+    case InferenceRule::MC_INT_FIN_UP_GEN_INDUCTION_AXIOM:
+      return InferenceRule::MC_INT_FIN_UP_GEN_INDUCTION_AXIOM;
+    case InferenceRule::INT_FIN_DOWN_INDUCTION_AXIOM:
+    case InferenceRule::INT_FIN_DOWN_GEN_INDUCTION_AXIOM:
+      return InferenceRule::INT_FIN_DOWN_GEN_INDUCTION_AXIOM;
+    case InferenceRule::MC_INT_FIN_DOWN_INDUCTION_AXIOM:
+    case InferenceRule::MC_INT_FIN_DOWN_GEN_INDUCTION_AXIOM:
+      return InferenceRule::MC_INT_FIN_DOWN_GEN_INDUCTION_AXIOM;
+    case InferenceRule::INT_DB_UP_INDUCTION_AXIOM:
+    case InferenceRule::INT_DB_UP_GEN_INDUCTION_AXIOM:
+      return InferenceRule::INT_DB_UP_GEN_INDUCTION_AXIOM;
+    case InferenceRule::MC_INT_DB_UP_INDUCTION_AXIOM:
+    case InferenceRule::MC_INT_DB_UP_GEN_INDUCTION_AXIOM:
+      return InferenceRule::MC_INT_DB_UP_GEN_INDUCTION_AXIOM;
+    case InferenceRule::INT_DB_DOWN_INDUCTION_AXIOM:
+    case InferenceRule::INT_DB_DOWN_GEN_INDUCTION_AXIOM:
+      return InferenceRule::INT_DB_DOWN_GEN_INDUCTION_AXIOM;
+    case InferenceRule::MC_INT_DB_DOWN_INDUCTION_AXIOM:
+    case InferenceRule::MC_INT_DB_DOWN_GEN_INDUCTION_AXIOM:
+      return InferenceRule::MC_INT_DB_DOWN_GEN_INDUCTION_AXIOM;
+    case InferenceRule::STRUCTURAL_INDUCTION_AXIOM:
+    case InferenceRule::GEN_STRUCTURAL_INDUCTION_AXIOM:
+      return InferenceRule::GEN_STRUCTURAL_INDUCTION_AXIOM;
+    case InferenceRule::MC_STRUCTURAL_INDUCTION_AXIOM:
+    case InferenceRule::MC_GEN_STRUCTURAL_INDUCTION_AXIOM:
+      return InferenceRule::MC_GEN_STRUCTURAL_INDUCTION_AXIOM;
+    case InferenceRule::RECURSION_INDUCTION_AXIOM:
+    case InferenceRule::GEN_RECURSION_INDUCTION_AXIOM:
+      return InferenceRule::GEN_RECURSION_INDUCTION_AXIOM;
+    case InferenceRule::MC_RECURSION_INDUCTION_AXIOM:
+    case InferenceRule::MC_GEN_RECURSION_INDUCTION_AXIOM:
+      return InferenceRule::MC_GEN_RECURSION_INDUCTION_AXIOM;
+    default:
+      ASSERTION_VIOLATION;
+  }
+}
+
+InferenceRule getMultiClauseRule(InferenceRule rule) {
+  switch (rule) {
+    case InferenceRule::INDUCTION_AXIOM:
+    case InferenceRule::MC_INDUCTION_AXIOM:
+      return InferenceRule::MC_INDUCTION_AXIOM;
+    case InferenceRule::GEN_INDUCTION_AXIOM:
+    case InferenceRule::MC_GEN_INDUCTION_AXIOM:
+      return InferenceRule::MC_GEN_INDUCTION_AXIOM;
+    case InferenceRule::INT_INF_UP_INDUCTION_AXIOM:
+    case InferenceRule::MC_INT_INF_UP_INDUCTION_AXIOM:
+      return InferenceRule::MC_INT_INF_UP_INDUCTION_AXIOM;
+    case InferenceRule::INT_INF_UP_GEN_INDUCTION_AXIOM:
+    case InferenceRule::MC_INT_INF_UP_GEN_INDUCTION_AXIOM:
+      return InferenceRule::MC_INT_INF_UP_GEN_INDUCTION_AXIOM;
+    case InferenceRule::INT_INF_DOWN_INDUCTION_AXIOM:
+    case InferenceRule::MC_INT_INF_DOWN_INDUCTION_AXIOM:
+      return InferenceRule::MC_INT_INF_DOWN_INDUCTION_AXIOM;
+    case InferenceRule::INT_INF_DOWN_GEN_INDUCTION_AXIOM:
+    case InferenceRule::MC_INT_INF_DOWN_GEN_INDUCTION_AXIOM:
+      return InferenceRule::MC_INT_INF_DOWN_GEN_INDUCTION_AXIOM;
+    case InferenceRule::INT_FIN_UP_INDUCTION_AXIOM:
+    case InferenceRule::MC_INT_FIN_UP_INDUCTION_AXIOM:
+      return InferenceRule::MC_INT_FIN_UP_INDUCTION_AXIOM;
+    case InferenceRule::INT_FIN_UP_GEN_INDUCTION_AXIOM:
+    case InferenceRule::MC_INT_FIN_UP_GEN_INDUCTION_AXIOM:
+      return InferenceRule::MC_INT_FIN_UP_GEN_INDUCTION_AXIOM;
+    case InferenceRule::INT_FIN_DOWN_INDUCTION_AXIOM:
+    case InferenceRule::MC_INT_FIN_DOWN_INDUCTION_AXIOM:
+      return InferenceRule::MC_INT_FIN_DOWN_INDUCTION_AXIOM;
+    case InferenceRule::INT_FIN_DOWN_GEN_INDUCTION_AXIOM:
+    case InferenceRule::MC_INT_FIN_DOWN_GEN_INDUCTION_AXIOM:
+      return InferenceRule::MC_INT_FIN_DOWN_GEN_INDUCTION_AXIOM;
+    case InferenceRule::INT_DB_UP_INDUCTION_AXIOM:
+    case InferenceRule::MC_INT_DB_UP_INDUCTION_AXIOM:
+      return InferenceRule::MC_INT_DB_UP_INDUCTION_AXIOM;
+    case InferenceRule::INT_DB_UP_GEN_INDUCTION_AXIOM:
+    case InferenceRule::MC_INT_DB_UP_GEN_INDUCTION_AXIOM:
+      return InferenceRule::MC_INT_DB_UP_GEN_INDUCTION_AXIOM;
+    case InferenceRule::INT_DB_DOWN_INDUCTION_AXIOM:
+    case InferenceRule::MC_INT_DB_DOWN_INDUCTION_AXIOM:
+      return InferenceRule::MC_INT_DB_DOWN_INDUCTION_AXIOM;
+    case InferenceRule::INT_DB_DOWN_GEN_INDUCTION_AXIOM:
+    case InferenceRule::MC_INT_DB_DOWN_GEN_INDUCTION_AXIOM:
+      return InferenceRule::MC_INT_DB_DOWN_GEN_INDUCTION_AXIOM;
+    case InferenceRule::STRUCTURAL_INDUCTION_AXIOM:
+    case InferenceRule::MC_STRUCTURAL_INDUCTION_AXIOM:
+      return InferenceRule::MC_STRUCTURAL_INDUCTION_AXIOM;
+    case InferenceRule::GEN_STRUCTURAL_INDUCTION_AXIOM:
+    case InferenceRule::MC_GEN_STRUCTURAL_INDUCTION_AXIOM:
+      return InferenceRule::MC_GEN_STRUCTURAL_INDUCTION_AXIOM;
+    case InferenceRule::RECURSION_INDUCTION_AXIOM:
+    case InferenceRule::MC_RECURSION_INDUCTION_AXIOM:
+      return InferenceRule::MC_RECURSION_INDUCTION_AXIOM;
+    case InferenceRule::GEN_RECURSION_INDUCTION_AXIOM:
+    case InferenceRule::MC_GEN_RECURSION_INDUCTION_AXIOM:
+      return InferenceRule::MC_GEN_RECURSION_INDUCTION_AXIOM;
+    default:
+      ASSERTION_VIOLATION;
+  }
+}
+
 void GeneralInduction::process(InductionClauseIterator& res, Clause* premise, Literal* literal)
 {
   CALL("GeneralInduction::process");
@@ -162,16 +284,17 @@ void GeneralInduction::process(InductionClauseIterator& res, Clause* premise, Li
     env.endOutput();
   }
 
-  vvector<InductionPremises> premisePairs = selectPremises(literal, premise);
+  vmap<InductionPremise, InductionPremises> premisePairs = selectPremises(literal, premise);
 
   for (auto& gen : _gen) {
-    for (const InductionPremises& ips : premisePairs) {
-      const InductionPremise& main = ips.main;
-      ASS(main.originalPremise || ips.sidesHaveOriginalPremise || ips.boundsHaveOriginalPremise);
-      ASS(!(main.originalPremise && ips.sidesHaveOriginalPremise) &&
-          !(main.originalPremise && ips.boundsHaveOriginalPremise) &&
-          !(ips.sidesHaveOriginalPremise && ips.boundsHaveOriginalPremise));
-      if (!gen->usesBounds() && !main.originalPremise && !ips.sidesHaveOriginalPremise) {
+    for (const auto& kv : premisePairs) {
+      auto& ips = kv.second;
+      auto main = ips.main();
+      ASS(main.originalPremise || ips.sidesHaveOriginalPremise() || ips.boundsHaveOriginalPremise());
+      ASS(!(main.originalPremise && ips.sidesHaveOriginalPremise()) &&
+          !(main.originalPremise && ips.boundsHaveOriginalPremise()) &&
+          !(ips.sidesHaveOriginalPremise() && ips.boundsHaveOriginalPremise()));
+      if (!gen->usesBounds() && !main.originalPremise && !ips.sidesHaveOriginalPremise()) {
         // 'premise' is neither the main premise from 'ips' nor one of 'ips.sides'.
         // Since 'gen' does not use bounds, 'ips' is not valid for 'gen'.
         continue;
@@ -183,8 +306,8 @@ void GeneralInduction::process(InductionClauseIterator& res, Clause* premise, Li
       vvector<pair<Literal*, vset<Literal*>>> schLits;
       for (auto& kv : schOccMap) {
         vset<pair<Literal*, Clause*>> sidesFiltered;
-        filterSides(kv.first, ips.sides, /*allowOnlyBounds=*/false, kv.second, sidesFiltered);
-        if (!ips.bounds.empty()) filterSides(kv.first, ips.bounds, /*allowOnlyBounds=*/true, kv.second, sidesFiltered);
+        filterSides(kv.first, ips.sides(), /*allowOnlyBounds=*/false, kv.second, sidesFiltered);
+        if (!ips.bounds().empty()) filterSides(kv.first, ips.bounds(), /*allowOnlyBounds=*/true, kv.second, sidesFiltered);
         // Check whether we done this induction before. Since there can
         // be other induction schemes and literals that produce the same,
         // we add the new ones at the end
@@ -202,6 +325,12 @@ void GeneralInduction::process(InductionClauseIterator& res, Clause* premise, Li
         }
         while (g->hasNext()) {
           auto eg = g->next();
+          auto rule = kv.first.rule();
+          if (g->hasNext()) {
+            // except for the last generalization (always no
+            // generalization), we mark every formula generalized
+            rule = getGeneralizedRule(rule);
+          }
           // create the generalized literals by replacing the current
           // set of occurrences of induction terms by the variables
           TermOccurrenceReplacement tr(kv.first.inductionTerms(), eg, main.literal);
@@ -215,7 +344,10 @@ void GeneralInduction::process(InductionClauseIterator& res, Clause* premise, Li
               sidesGeneralized.push_back(make_pair(sideLitGen, SLQueryResult(kv2.first, kv2.second)));
             }
           }
-          generateClauses(kv.first, mainLitGen, SLQueryResult(main.literal, main.clause), std::move(sidesGeneralized), res._clauses);
+          if (!sidesGeneralized.empty()) {
+            rule = getMultiClauseRule(rule);
+          }
+          generateClauses(kv.first, mainLitGen, SLQueryResult(main.literal, main.clause), std::move(sidesGeneralized), res._clauses, rule);
         }
       }
       for (const auto& schLit : schLits) {
@@ -242,7 +374,7 @@ void GeneralInduction::attach(SaturationAlgorithm* salg)
   GeneratingInferenceEngine::attach(salg);
   _splitter=_salg->getSplitter();
   _index = static_cast<TermIndex *>(
-      _salg->getIndexManager()->request(DEMODULATION_SUBTERM_SUBST_TREE));
+      _salg->getIndexManager()->request(INDUCTION_SIDE_LITERAL_TERM_INDEX));
   // Indices for integer induction
   if (InductionHelper::isIntInductionOn()) {
     _comparisonIndex = static_cast<LiteralIndex*>(_salg->getIndexManager()->request(UNIT_INT_COMPARISON_INDEX));
@@ -260,7 +392,7 @@ void GeneralInduction::detach()
   CALL("GeneralInduction::detach");
 
   _index = 0;
-  _salg->getIndexManager()->release(DEMODULATION_SUBTERM_SUBST_TREE);
+  _salg->getIndexManager()->release(INDUCTION_SIDE_LITERAL_TERM_INDEX);
   if (InductionHelper::isIntInductionOn()) {
     _comparisonIndex = 0;
     _salg->getIndexManager()->release(UNIT_INT_COMPARISON_INDEX);
@@ -292,7 +424,7 @@ void GeneralInduction::generateClauses(
   const Shell::InductionScheme& scheme,
   Literal* mainLit, SLQueryResult mainQuery,
   vvector<pair<Literal*, SLQueryResult>> sideLitQrPairs,
-  ClauseStack& clauses)
+  ClauseStack& clauses, InferenceRule rule)
 {
   CALL("GeneralInduction::generateClauses");
 
@@ -418,7 +550,7 @@ void GeneralInduction::generateClauses(
   NewCNF cnf(0);
   cnf.setForInduction();
   Stack<Clause*> hyp_clauses;
-  Inference inf = NonspecificInference0(UnitInputType::AXIOM,scheme.rule());
+  Inference inf = NonspecificInference0(UnitInputType::AXIOM,rule);
   unsigned maxDepth = mainQuery.clause->inference().inductionDepth();
   for (const auto& kv : sideLitQrPairs) {
     maxDepth = max(maxDepth, kv.second.clause->inference().inductionDepth());
@@ -561,27 +693,16 @@ bool GeneralInduction::alreadyDone(Literal* mainLit, const vset<pair<Literal*,Cl
   return false;
 }
 
-inline bool sideLitCondition(Literal* main, Clause* mainCl, Literal* side, Clause* sideCl) {
-  auto mainSk = InductionHelper::collectInductionSkolems(main, mainCl);
-  auto sideSk = InductionHelper::collectInductionSkolems(side, sideCl);
-  return side->ground() && main != side && mainCl != sideCl &&
-    // either they are both induction depth 0 (not yet inducted on)
-    ((!mainCl->inference().inductionDepth() && !sideCl->inference().inductionDepth()) ||
-    // or they are non-equality hypothesis and conclusion from the same step
-    (!side->isEquality() && !main->isEquality() && !mainSk.empty() && !sideSk.empty() &&
-      includes(mainSk.begin(), mainSk.end(), sideSk.begin(), sideSk.end())));
-}
-
 // Returns a vector of InductionPremises, where each InductionPremises contains the main
 // premise, side premises and bounds.
 // It is guaranteed that the main premise is not contained in either side premises or bounds,
 // and that sides and bounds are disjoint. However, that means that literals useable as bounds
 // might be contained in sides (if indmc is on).
-vvector<InductionPremises> GeneralInduction::selectPremises(Literal* literal, Clause* premise)
+vmap<InductionPremise, InductionPremises> GeneralInduction::selectPremises(Literal* literal, Clause* premise)
 {
   CALL("GeneralInduction::selectPremises");
 
-  vvector<InductionPremises> res;
+  vmap<InductionPremise, InductionPremises> res;
   static const bool indmc = env.options->inductionMultiClause();
   static const bool intInd = InductionHelper::isIntInductionOn();
   static const bool finInterval = InductionHelper::isInductionForFiniteIntervalsOn();
@@ -590,19 +711,16 @@ vvector<InductionPremises> GeneralInduction::selectPremises(Literal* literal, Cl
   // TODO(mhajdu): is there a way to duplicate these iterators?
   TermQueryResultIterator sidesIt = TermQueryResultIterator::getEmpty();
   TermQueryResultIterator boundsIt = TermQueryResultIterator::getEmpty();
-  if ((indmc || intInd) && literal->ground() &&
-      (!premise->inference().inductionDepth() ||
-       (!literal->isEquality() && InductionHelper::isInductionLiteral(literal, premise))))
+  if ((indmc || intInd) && InductionHelper::isSideLiteral(literal, premise))
   {
-    SubtermIterator stit(literal);
+    NonVariableIterator nvi(literal);
     DHSet<TermList> skolems;
     DHSet<TermList> ints;
-    while (stit.hasNext()) {
-      auto st = stit.next();
-      if (st.isTerm()) {
-        if (indmc && skolem(st.term())) skolems.insert(st);
-        if (intInd && env.signature->getFunction(st.term()->functor())->fnType()->result() == Term::intSort()) ints.insert(st);
-      }
+    while (nvi.hasNext()) {
+      auto st = nvi.next();
+      auto fn = st.term()->functor();
+      if (indmc && InductionHelper::isStructInductionFunctor(fn)) skolems.insert(st);
+      if (intInd && env.signature->getFunction(fn)->fnType()->result() == Term::intSort()) ints.insert(st);
     }
     DHSet<TermList>::Iterator skit(skolems);
     while (skit.hasNext()) {
@@ -631,52 +749,52 @@ vvector<InductionPremises> GeneralInduction::selectPremises(Literal* literal, Cl
   // pair current literal as main literal with possible side literals
   // this results in any number of side literals
   const bool indLit = InductionHelper::isInductionLiteral(literal);
+  InductionPremise mainPremise(literal, premise, /*originalPremise=*/true);
   if (indLit) {
     // first InductionPremises in result always uses the current premise as the main literal
-    res.emplace_back(literal, premise, /*originalPremise=*/true);
+    res.insert(make_pair(mainPremise, InductionPremises(mainPremise)));
   }
   while (sidesIt.hasNext()) {
     auto qr = sidesIt.next();
     // query is side literal
-    if (indLit && indmc && InductionHelper::isInductionClause(qr.clause) &&
-        sideLitCondition(literal, premise, qr.literal, qr.clause)) {
-      res[0].sides.emplace(qr.literal, qr.clause);
+    if (indLit && indmc) {
+      res.at(mainPremise).addSidePremise(qr.literal, qr.clause);
+    }
+    if ((qr.literal == literal && qr.clause == premise) || !InductionHelper::isInductionLiteral(qr.literal)) {
+      continue;
     }
     // query is main literal
     TermList& st = qr.term;
     const bool premiseIsLeftBound = isPremiseComparison && (st == *literal->nthArgument(0));
     const bool premiseIsRightBound = isPremiseComparison && (st == *literal->nthArgument(1));
-    const bool intIndPair = intInd && isPremiseComparison && InductionHelper::isIntegerBoundLiteral(st, literal) &&
-        (premiseIsLeftBound || premiseIsRightBound) && qr.literal->ground() && (qr.literal != literal) && (qr.clause != premise) &&
-        InductionHelper::isIntInductionTermListInLiteral(st, qr.literal);
-    const bool indmcPair = indmc && sideLitCondition(qr.literal, qr.clause, literal, premise);
-    if ((intIndPair || indmcPair) &&
-        InductionHelper::isInductionClause(qr.clause) &&
-        InductionHelper::isInductionLiteral(qr.literal)) {
-      res.emplace_back(qr.literal, qr.clause);
+    const bool intIndPair = intInd && InductionHelper::isIntegerBoundLiteral(st, literal) &&
+        (premiseIsLeftBound || premiseIsRightBound) && InductionHelper::isIntInductionTermListInLiteral(st, qr.literal);
+    const bool indmcPair = indmc && InductionHelper::isMainSidePair(qr.literal, qr.clause, literal, premise);
+    if (intIndPair || indmcPair)
+    {
+      InductionPremise qrPremise(qr.literal, qr.clause);
+      auto resIt = res.find(qrPremise);
+      if (resIt == res.end()) {
+        resIt = res.insert(make_pair(qrPremise, InductionPremises(qrPremise))).first;
+      }
+      auto& premises = resIt->second;
       if (indmcPair) {
-        res.back().sides.emplace(literal, premise, true);
-        res.back().sidesHaveOriginalPremise = true;
-        // add side literals other than the input
-        TermQueryResultIterator sideIt2 = _index->getGeneralizations(st);
-        while (sideIt2.hasNext()) {
-          auto qrSide = sideIt2.next();
-          if (qrSide.literal != literal &&
-              InductionHelper::isInductionClause(qrSide.clause) &&
-              sideLitCondition(qr.literal, qr.clause, qrSide.literal, qrSide.clause)) {
-            res.back().sides.emplace(qrSide.literal, qrSide.clause);
+        if (premises.addSidePremise(literal, premise, /* originalPremise= */true)) {
+          // add side literals other than the input
+          TermQueryResultIterator sideIt2 = _index->getGeneralizations(st);
+          while (sideIt2.hasNext()) {
+            auto qrSide = sideIt2.next();
+            premises.addSidePremise(qrSide.literal, qrSide.clause);
           }
         }
       } else { // intIndPair must be true
         ASS(intIndPair);
         // in case that literal/premise wasn't already added as side, add it as bound
-        res.back().bounds.emplace(literal, premise, true);
-        res.back().boundsHaveOriginalPremise = true;
+        premises.addBound(literal, premise, true);
       }
       if (intIndPair && finInterval) {
         // add bound literals other than the input and side literals
         TermQueryResultIterator boundIt2 = TermQueryResultIterator::getEmpty();
-        ASS(premiseIsLeftBound || premiseIsRightBound);
         // We use the premise as a bound for integer induction. Fetch other bounds:
         Term* t = st.term();
         if (literal->isPositive() == premiseIsLeftBound) {
@@ -688,11 +806,7 @@ vvector<InductionPremises> GeneralInduction::selectPremises(Literal* literal, Cl
         }
         while (boundIt2.hasNext()) {
           auto qrSide = boundIt2.next();
-          if ((qrSide.literal != literal) && (qrSide.clause != premise) &&
-              (qrSide.literal != qr.literal) && (qrSide.clause != qr.clause) &&
-              (res.back().sides.count(InductionPremise(qrSide.literal, qrSide.clause)) == 0)) {
-            res.back().bounds.emplace(qrSide.literal, qrSide.clause);
-          }
+          premises.addBound(qrSide.literal, qrSide.clause);
         }
       }
     }
@@ -701,10 +815,7 @@ vvector<InductionPremises> GeneralInduction::selectPremises(Literal* literal, Cl
   if (indLit) {
     while (boundsIt.hasNext()) {
       auto qr = boundsIt.next();
-      InductionPremise ip(qr.literal, qr.clause);
-      if ((literal != qr.literal) && (premise != qr.clause) && (res[0].sides.count(ip) == 0)) {
-        res[0].bounds.insert(std::move(ip));
-      }
+      res.at(mainPremise).addBound(qr.literal, qr.clause);
     }
   }
   return res;
