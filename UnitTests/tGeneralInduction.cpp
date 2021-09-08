@@ -70,7 +70,7 @@ private:
 #define TEST_GENERATION_INDUCTION(name, ...)                                                                  \
   TEST_FUN(name) {                                                                                            \
     GenerationTesterInduction<GeneralInduction> tester(                                                       \
-      new GeneralInduction(generators(), InferenceRule::INDUCTION_AXIOM));                                    \
+      new GeneralInduction(generators()));                                                                    \
     __ALLOW_UNUSED(MY_SYNTAX_SUGAR)                                                                           \
     auto test = __VA_ARGS__;                                                                                  \
     test.run(tester);                                                                                         \

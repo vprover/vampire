@@ -150,6 +150,128 @@ void filterSides(const InductionScheme& scheme, const vset<InductionPremise>& si
   }
 }
 
+InferenceRule getGeneralizedRule(InferenceRule rule) {
+  switch (rule) {
+    case InferenceRule::INDUCTION_AXIOM:
+    case InferenceRule::GEN_INDUCTION_AXIOM:
+      return InferenceRule::GEN_INDUCTION_AXIOM;
+    case InferenceRule::MC_INDUCTION_AXIOM:
+    case InferenceRule::MC_GEN_INDUCTION_AXIOM:
+      return InferenceRule::MC_GEN_INDUCTION_AXIOM;
+    case InferenceRule::INT_INF_UP_INDUCTION_AXIOM:
+    case InferenceRule::INT_INF_UP_GEN_INDUCTION_AXIOM:
+      return InferenceRule::INT_INF_UP_GEN_INDUCTION_AXIOM;
+    case InferenceRule::MC_INT_INF_UP_INDUCTION_AXIOM:
+    case InferenceRule::MC_INT_INF_UP_GEN_INDUCTION_AXIOM:
+      return InferenceRule::MC_INT_INF_UP_GEN_INDUCTION_AXIOM;
+    case InferenceRule::INT_INF_DOWN_INDUCTION_AXIOM:
+    case InferenceRule::INT_INF_DOWN_GEN_INDUCTION_AXIOM:
+      return InferenceRule::INT_INF_DOWN_GEN_INDUCTION_AXIOM;
+    case InferenceRule::MC_INT_INF_DOWN_INDUCTION_AXIOM:
+    case InferenceRule::MC_INT_INF_DOWN_GEN_INDUCTION_AXIOM:
+      return InferenceRule::MC_INT_INF_DOWN_GEN_INDUCTION_AXIOM;
+    case InferenceRule::INT_FIN_UP_INDUCTION_AXIOM:
+    case InferenceRule::INT_FIN_UP_GEN_INDUCTION_AXIOM:
+      return InferenceRule::INT_FIN_UP_GEN_INDUCTION_AXIOM;
+    case InferenceRule::MC_INT_FIN_UP_INDUCTION_AXIOM:
+    case InferenceRule::MC_INT_FIN_UP_GEN_INDUCTION_AXIOM:
+      return InferenceRule::MC_INT_FIN_UP_GEN_INDUCTION_AXIOM;
+    case InferenceRule::INT_FIN_DOWN_INDUCTION_AXIOM:
+    case InferenceRule::INT_FIN_DOWN_GEN_INDUCTION_AXIOM:
+      return InferenceRule::INT_FIN_DOWN_GEN_INDUCTION_AXIOM;
+    case InferenceRule::MC_INT_FIN_DOWN_INDUCTION_AXIOM:
+    case InferenceRule::MC_INT_FIN_DOWN_GEN_INDUCTION_AXIOM:
+      return InferenceRule::MC_INT_FIN_DOWN_GEN_INDUCTION_AXIOM;
+    case InferenceRule::INT_DB_UP_INDUCTION_AXIOM:
+    case InferenceRule::INT_DB_UP_GEN_INDUCTION_AXIOM:
+      return InferenceRule::INT_DB_UP_GEN_INDUCTION_AXIOM;
+    case InferenceRule::MC_INT_DB_UP_INDUCTION_AXIOM:
+    case InferenceRule::MC_INT_DB_UP_GEN_INDUCTION_AXIOM:
+      return InferenceRule::MC_INT_DB_UP_GEN_INDUCTION_AXIOM;
+    case InferenceRule::INT_DB_DOWN_INDUCTION_AXIOM:
+    case InferenceRule::INT_DB_DOWN_GEN_INDUCTION_AXIOM:
+      return InferenceRule::INT_DB_DOWN_GEN_INDUCTION_AXIOM;
+    case InferenceRule::MC_INT_DB_DOWN_INDUCTION_AXIOM:
+    case InferenceRule::MC_INT_DB_DOWN_GEN_INDUCTION_AXIOM:
+      return InferenceRule::MC_INT_DB_DOWN_GEN_INDUCTION_AXIOM;
+    case InferenceRule::STRUCTURAL_INDUCTION_AXIOM:
+    case InferenceRule::GEN_STRUCTURAL_INDUCTION_AXIOM:
+      return InferenceRule::GEN_STRUCTURAL_INDUCTION_AXIOM;
+    case InferenceRule::MC_STRUCTURAL_INDUCTION_AXIOM:
+    case InferenceRule::MC_GEN_STRUCTURAL_INDUCTION_AXIOM:
+      return InferenceRule::MC_GEN_STRUCTURAL_INDUCTION_AXIOM;
+    case InferenceRule::RECURSION_INDUCTION_AXIOM:
+    case InferenceRule::GEN_RECURSION_INDUCTION_AXIOM:
+      return InferenceRule::GEN_RECURSION_INDUCTION_AXIOM;
+    case InferenceRule::MC_RECURSION_INDUCTION_AXIOM:
+    case InferenceRule::MC_GEN_RECURSION_INDUCTION_AXIOM:
+      return InferenceRule::MC_GEN_RECURSION_INDUCTION_AXIOM;
+    default:
+      ASSERTION_VIOLATION;
+  }
+}
+
+InferenceRule getMultiClauseRule(InferenceRule rule) {
+  switch (rule) {
+    case InferenceRule::INDUCTION_AXIOM:
+    case InferenceRule::MC_INDUCTION_AXIOM:
+      return InferenceRule::MC_INDUCTION_AXIOM;
+    case InferenceRule::GEN_INDUCTION_AXIOM:
+    case InferenceRule::MC_GEN_INDUCTION_AXIOM:
+      return InferenceRule::MC_GEN_INDUCTION_AXIOM;
+    case InferenceRule::INT_INF_UP_INDUCTION_AXIOM:
+    case InferenceRule::MC_INT_INF_UP_INDUCTION_AXIOM:
+      return InferenceRule::MC_INT_INF_UP_INDUCTION_AXIOM;
+    case InferenceRule::INT_INF_UP_GEN_INDUCTION_AXIOM:
+    case InferenceRule::MC_INT_INF_UP_GEN_INDUCTION_AXIOM:
+      return InferenceRule::MC_INT_INF_UP_GEN_INDUCTION_AXIOM;
+    case InferenceRule::INT_INF_DOWN_INDUCTION_AXIOM:
+    case InferenceRule::MC_INT_INF_DOWN_INDUCTION_AXIOM:
+      return InferenceRule::MC_INT_INF_DOWN_INDUCTION_AXIOM;
+    case InferenceRule::INT_INF_DOWN_GEN_INDUCTION_AXIOM:
+    case InferenceRule::MC_INT_INF_DOWN_GEN_INDUCTION_AXIOM:
+      return InferenceRule::MC_INT_INF_DOWN_GEN_INDUCTION_AXIOM;
+    case InferenceRule::INT_FIN_UP_INDUCTION_AXIOM:
+    case InferenceRule::MC_INT_FIN_UP_INDUCTION_AXIOM:
+      return InferenceRule::MC_INT_FIN_UP_INDUCTION_AXIOM;
+    case InferenceRule::INT_FIN_UP_GEN_INDUCTION_AXIOM:
+    case InferenceRule::MC_INT_FIN_UP_GEN_INDUCTION_AXIOM:
+      return InferenceRule::MC_INT_FIN_UP_GEN_INDUCTION_AXIOM;
+    case InferenceRule::INT_FIN_DOWN_INDUCTION_AXIOM:
+    case InferenceRule::MC_INT_FIN_DOWN_INDUCTION_AXIOM:
+      return InferenceRule::MC_INT_FIN_DOWN_INDUCTION_AXIOM;
+    case InferenceRule::INT_FIN_DOWN_GEN_INDUCTION_AXIOM:
+    case InferenceRule::MC_INT_FIN_DOWN_GEN_INDUCTION_AXIOM:
+      return InferenceRule::MC_INT_FIN_DOWN_GEN_INDUCTION_AXIOM;
+    case InferenceRule::INT_DB_UP_INDUCTION_AXIOM:
+    case InferenceRule::MC_INT_DB_UP_INDUCTION_AXIOM:
+      return InferenceRule::MC_INT_DB_UP_INDUCTION_AXIOM;
+    case InferenceRule::INT_DB_UP_GEN_INDUCTION_AXIOM:
+    case InferenceRule::MC_INT_DB_UP_GEN_INDUCTION_AXIOM:
+      return InferenceRule::MC_INT_DB_UP_GEN_INDUCTION_AXIOM;
+    case InferenceRule::INT_DB_DOWN_INDUCTION_AXIOM:
+    case InferenceRule::MC_INT_DB_DOWN_INDUCTION_AXIOM:
+      return InferenceRule::MC_INT_DB_DOWN_INDUCTION_AXIOM;
+    case InferenceRule::INT_DB_DOWN_GEN_INDUCTION_AXIOM:
+    case InferenceRule::MC_INT_DB_DOWN_GEN_INDUCTION_AXIOM:
+      return InferenceRule::MC_INT_DB_DOWN_GEN_INDUCTION_AXIOM;
+    case InferenceRule::STRUCTURAL_INDUCTION_AXIOM:
+    case InferenceRule::MC_STRUCTURAL_INDUCTION_AXIOM:
+      return InferenceRule::MC_STRUCTURAL_INDUCTION_AXIOM;
+    case InferenceRule::GEN_STRUCTURAL_INDUCTION_AXIOM:
+    case InferenceRule::MC_GEN_STRUCTURAL_INDUCTION_AXIOM:
+      return InferenceRule::MC_GEN_STRUCTURAL_INDUCTION_AXIOM;
+    case InferenceRule::RECURSION_INDUCTION_AXIOM:
+    case InferenceRule::MC_RECURSION_INDUCTION_AXIOM:
+      return InferenceRule::MC_RECURSION_INDUCTION_AXIOM;
+    case InferenceRule::GEN_RECURSION_INDUCTION_AXIOM:
+    case InferenceRule::MC_GEN_RECURSION_INDUCTION_AXIOM:
+      return InferenceRule::MC_GEN_RECURSION_INDUCTION_AXIOM;
+    default:
+      ASSERTION_VIOLATION;
+  }
+}
+
 void GeneralInduction::process(InductionClauseIterator& res, Clause* premise, Literal* literal)
 {
   CALL("GeneralInduction::process");
@@ -201,6 +323,12 @@ void GeneralInduction::process(InductionClauseIterator& res, Clause* premise, Li
         }
         while (g->hasNext()) {
           auto eg = g->next();
+          auto rule = kv.first.rule();
+          if (g->hasNext()) {
+            // except for the last generalization (always no
+            // generalization), we mark every formula generalized
+            rule = getGeneralizedRule(rule);
+          }
           // create the generalized literals by replacing the current
           // set of occurrences of induction terms by the variables
           TermOccurrenceReplacement tr(kv.first.inductionTerms(), eg, main.literal);
@@ -214,7 +342,10 @@ void GeneralInduction::process(InductionClauseIterator& res, Clause* premise, Li
               sidesGeneralized.push_back(make_pair(sideLitGen, SLQueryResult(kv2.first, kv2.second)));
             }
           }
-          generateClauses(kv.first, mainLitGen, SLQueryResult(main.literal, main.clause), std::move(sidesGeneralized), res._clauses);
+          if (!sidesGeneralized.empty()) {
+            rule = getMultiClauseRule(rule);
+          }
+          generateClauses(kv.first, mainLitGen, SLQueryResult(main.literal, main.clause), std::move(sidesGeneralized), res._clauses, rule);
         }
       }
       for (const auto& schLit : schLits) {
@@ -291,7 +422,7 @@ void GeneralInduction::generateClauses(
   const Shell::InductionScheme& scheme,
   Literal* mainLit, SLQueryResult mainQuery,
   vvector<pair<Literal*, SLQueryResult>> sideLitQrPairs,
-  ClauseStack& clauses)
+  ClauseStack& clauses, InferenceRule rule)
 {
   CALL("GeneralInduction::generateClauses");
 
@@ -404,7 +535,7 @@ void GeneralInduction::generateClauses(
   NewCNF cnf(0);
   cnf.setForInduction();
   Stack<Clause*> hyp_clauses;
-  Inference inf = NonspecificInference0(UnitInputType::AXIOM,scheme.rule());
+  Inference inf = NonspecificInference0(UnitInputType::AXIOM,rule);
   unsigned maxDepth = mainQuery.clause->inference().inductionDepth();
   for (const auto& kv : sideLitQrPairs) {
     maxDepth = max(maxDepth, kv.second.clause->inference().inductionDepth());

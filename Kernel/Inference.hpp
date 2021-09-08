@@ -453,24 +453,62 @@ enum class InferenceRule : unsigned char {
   INDUCTION_AXIOM,
   /* Generalized induction hypothesis*/
   GEN_INDUCTION_AXIOM,
+  /* Multi-clause induction hypothesis*/
+  MC_INDUCTION_AXIOM,
+  /* Multi-clause generalized induction hypothesis*/
+  MC_GEN_INDUCTION_AXIOM,
   /* Integer induction hypothesis for infinite intervals */
   INT_INF_UP_INDUCTION_AXIOM,
   INT_INF_DOWN_INDUCTION_AXIOM,
   /* Generalized induction hypothesis for infinite intervals*/
   INT_INF_UP_GEN_INDUCTION_AXIOM,
   INT_INF_DOWN_GEN_INDUCTION_AXIOM,
+  /* Multi-clause integer induction hypothesis for infinite intervals */
+  MC_INT_INF_UP_INDUCTION_AXIOM,
+  MC_INT_INF_DOWN_INDUCTION_AXIOM,
+  /* Multi-clause generalized induction hypothesis for infinite intervals*/
+  MC_INT_INF_UP_GEN_INDUCTION_AXIOM,
+  MC_INT_INF_DOWN_GEN_INDUCTION_AXIOM,
   /* Integer induction hypothesis for finite intervals */
   INT_FIN_UP_INDUCTION_AXIOM,
   INT_FIN_DOWN_INDUCTION_AXIOM,
   /* Generalized induction hypothesis for finite intervals*/
   INT_FIN_UP_GEN_INDUCTION_AXIOM,
   INT_FIN_DOWN_GEN_INDUCTION_AXIOM,
+  /* Multi-clause integer induction hypothesis for finite intervals */
+  MC_INT_FIN_UP_INDUCTION_AXIOM,
+  MC_INT_FIN_DOWN_INDUCTION_AXIOM,
+  /* Multi-clause generalized induction hypothesis for finite intervals*/
+  MC_INT_FIN_UP_GEN_INDUCTION_AXIOM,
+  MC_INT_FIN_DOWN_GEN_INDUCTION_AXIOM,
   /* Integer induction hypothesis for infinite interval and the default bound */
   INT_DB_UP_INDUCTION_AXIOM,
   INT_DB_DOWN_INDUCTION_AXIOM,
   /* Generalized induction hypothesis for infinite interval and the default bound*/
   INT_DB_UP_GEN_INDUCTION_AXIOM,
   INT_DB_DOWN_GEN_INDUCTION_AXIOM,
+  /* Multi-clause integer induction hypothesis for infinite interval and the default bound */
+  MC_INT_DB_UP_INDUCTION_AXIOM,
+  MC_INT_DB_DOWN_INDUCTION_AXIOM,
+  /* Multi-clause generalized induction hypothesis for infinite interval and the default bound*/
+  MC_INT_DB_UP_GEN_INDUCTION_AXIOM,
+  MC_INT_DB_DOWN_GEN_INDUCTION_AXIOM,
+  /* Structural induction hypothesis */
+  STRUCTURAL_INDUCTION_AXIOM,
+  /* Generalized structural induction hypothesis */
+  GEN_STRUCTURAL_INDUCTION_AXIOM,
+  /* Multi-clause structural induction hypothesis */
+  MC_STRUCTURAL_INDUCTION_AXIOM,
+  /* Multi-clause generalized structural induction hypothesis */
+  MC_GEN_STRUCTURAL_INDUCTION_AXIOM,
+  /* Recursive-function-based induction hypothesis */
+  RECURSION_INDUCTION_AXIOM,
+  /* Generalized recursive-function-based induction hypothesis */
+  GEN_RECURSION_INDUCTION_AXIOM,
+  /* Multi-clause recursive-function-based induction hypothesis */
+  MC_RECURSION_INDUCTION_AXIOM,
+  /* Multi-clause generalized recursive-function-based induction hypothesis */
+  MC_GEN_RECURSION_INDUCTION_AXIOM,
 
   /* the unit clause against which the Answer is extracted in the last step */
   ANSWER_LITERAL_RESOLVER,
