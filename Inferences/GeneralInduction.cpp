@@ -241,7 +241,7 @@ void GeneralInduction::attach(SaturationAlgorithm* salg)
   GeneratingInferenceEngine::attach(salg);
   _splitter=_salg->getSplitter();
   _index = static_cast<TermIndex *>(
-      _salg->getIndexManager()->request(DEMODULATION_SUBTERM_SUBST_TREE));
+      _salg->getIndexManager()->request(INDUCTION_SIDE_LITERAL_TERM_INDEX));
   // Indices for integer induction
   if (InductionHelper::isIntInductionOn()) {
     _comparisonIndex = static_cast<LiteralIndex*>(_salg->getIndexManager()->request(UNIT_INT_COMPARISON_INDEX));
@@ -259,7 +259,7 @@ void GeneralInduction::detach()
   CALL("GeneralInduction::detach");
 
   _index = 0;
-  _salg->getIndexManager()->release(DEMODULATION_SUBTERM_SUBST_TREE);
+  _salg->getIndexManager()->release(INDUCTION_SIDE_LITERAL_TERM_INDEX);
   if (InductionHelper::isIntInductionOn()) {
     _comparisonIndex = 0;
     _salg->getIndexManager()->release(UNIT_INT_COMPARISON_INDEX);
@@ -565,19 +565,16 @@ vmap<InductionPremise, InductionPremises> GeneralInduction::selectPremises(Liter
   // TODO(mhajdu): is there a way to duplicate these iterators?
   TermQueryResultIterator sidesIt = TermQueryResultIterator::getEmpty();
   TermQueryResultIterator boundsIt = TermQueryResultIterator::getEmpty();
-  if ((indmc || intInd) && literal->ground() &&
-      (!premise->inference().inductionDepth() ||
-       (!literal->isEquality() && InductionHelper::isInductionLiteral(literal, premise))))
+  if ((indmc || intInd) && InductionHelper::isSideLiteral(literal, premise))
   {
-    SubtermIterator stit(literal);
+    NonVariableIterator nvi(literal);
     DHSet<TermList> skolems;
     DHSet<TermList> ints;
-    while (stit.hasNext()) {
-      auto st = stit.next();
-      if (st.isTerm()) {
-        if (indmc && skolem(st.term())) skolems.insert(st);
-        if (intInd && env.signature->getFunction(st.term()->functor())->fnType()->result() == Term::intSort()) ints.insert(st);
-      }
+    while (nvi.hasNext()) {
+      auto st = nvi.next();
+      auto fn = st.term()->functor();
+      if (indmc && InductionHelper::isStructInductionFunctor(fn)) skolems.insert(st);
+      if (intInd && env.signature->getFunction(fn)->fnType()->result() == Term::intSort()) ints.insert(st);
     }
     DHSet<TermList>::Iterator skit(skolems);
     while (skit.hasNext()) {
@@ -614,20 +611,21 @@ vmap<InductionPremise, InductionPremises> GeneralInduction::selectPremises(Liter
   while (sidesIt.hasNext()) {
     auto qr = sidesIt.next();
     // query is side literal
-    if (indLit && indmc && InductionHelper::isInductionClause(qr.clause)) {
+    if (indLit && indmc) {
       res.at(mainPremise).addSidePremise(qr.literal, qr.clause);
+    }
+    if ((qr.literal == literal && qr.clause == premise) || !InductionHelper::isInductionLiteral(qr.literal)) {
+      continue;
     }
     // query is main literal
     TermList& st = qr.term;
     const bool premiseIsLeftBound = isPremiseComparison && (st == *literal->nthArgument(0));
     const bool premiseIsRightBound = isPremiseComparison && (st == *literal->nthArgument(1));
-    const bool intIndPair = intInd && isPremiseComparison && InductionHelper::isIntegerBoundLiteral(st, literal) &&
-        (premiseIsLeftBound || premiseIsRightBound) && qr.literal->ground() && (qr.literal != literal) && (qr.clause != premise) &&
-        InductionHelper::isIntInductionTermListInLiteral(st, qr.literal);
+    const bool intIndPair = intInd && InductionHelper::isIntegerBoundLiteral(st, literal) &&
+        (premiseIsLeftBound || premiseIsRightBound) && InductionHelper::isIntInductionTermListInLiteral(st, qr.literal);
     const bool indmcPair = indmc && InductionHelper::isMainSidePair(qr.literal, qr.clause, literal, premise);
-    if ((intIndPair || indmcPair) &&
-        InductionHelper::isInductionClause(qr.clause) &&
-        InductionHelper::isInductionLiteral(qr.literal)) {
+    if (intIndPair || indmcPair)
+    {
       InductionPremise qrPremise(qr.literal, qr.clause);
       auto resIt = res.find(qrPremise);
       if (resIt == res.end()) {
@@ -640,9 +638,7 @@ vmap<InductionPremise, InductionPremises> GeneralInduction::selectPremises(Liter
           TermQueryResultIterator sideIt2 = _index->getGeneralizations(st);
           while (sideIt2.hasNext()) {
             auto qrSide = sideIt2.next();
-            if (InductionHelper::isInductionClause(qrSide.clause)) {
-              premises.addSidePremise(qrSide.literal, qrSide.clause);
-            }
+            premises.addSidePremise(qrSide.literal, qrSide.clause);
           }
         }
       } else { // intIndPair must be true
@@ -652,7 +648,6 @@ vmap<InductionPremise, InductionPremises> GeneralInduction::selectPremises(Liter
       if (intIndPair && finInterval) {
         // add bound literals other than the input and side literals
         TermQueryResultIterator boundIt2 = TermQueryResultIterator::getEmpty();
-        ASS(premiseIsLeftBound || premiseIsRightBound);
         // We use the premise as a bound for integer induction. Fetch other bounds:
         Term* t = st.term();
         if (literal->isPositive() == premiseIsLeftBound) {
