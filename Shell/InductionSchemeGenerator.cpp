@@ -411,6 +411,7 @@ void IntegerInductionSchemeGenerator::getIntegerInductionSchemes(Term* t,
   static const bool infInterval = Inferences::InductionHelper::isInductionForInfiniteIntervalsOn();
   static const bool finInterval = Inferences::InductionHelper::isInductionForFiniteIntervalsOn();
   static const bool defaultBound = env.options->integerInductionDefaultBound();
+  static const bool defaultBound2 = env.options->integerInductionSecondDefaultBound();
   static const TermList zero(theory->representConstant(IntegerConstantType(0)));
   vmap<Term*, unsigned> inductionTerms;
   bool doneZero = false;
@@ -439,13 +440,21 @@ void IntegerInductionSchemeGenerator::getIntegerInductionSchemes(Term* t,
     }
   }
   // Induction scheme with the default bound
-  if (infInterval && defaultBound && !doneZero && mainIsOriginalPremise) {
+  if (defaultBound && mainIsOriginalPremise) {
     TermList tt(t);
     static const unsigned less = env.signature->getInterpretingSymbol(Theory::INT_LESS);
     vvector<InductionScheme::Case>* cases = getCasesForBoundAndDirection(zero, upward);
-    makeAndPushScheme(inductionTerms, cases,
-        Literal::create2(less, /*polarity=*/false, upward ? tt : zero, upward ? zero : tt), /*optionalBound2=*/nullptr,
-        upward, schemes, /*defaultBound=*/true);
+    if (infInterval && !doneZero) {
+      makeAndPushScheme(inductionTerms, cases,
+          Literal::create2(less, /*polarity=*/false, upward ? tt : zero, upward ? zero : tt), /*optionalBound2=*/nullptr,
+          upward, schemes, /*defaultBound=*/true);
+    }
+    if (finInterval && defaultBound2 && (tt != zero)) {
+      makeAndPushScheme(inductionTerms, cases,
+          Literal::create2(less, /*polarity=*/false, upward ? tt : zero, upward ? zero : tt),
+          Literal::create2(less, /*polarity=*/false, tt, tt),
+          upward, schemes, /*defaultBound=*/true);
+    }
   }
 }
 

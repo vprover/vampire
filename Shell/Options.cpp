@@ -1246,6 +1246,13 @@ void Options::init()
             _integerInductionDefaultBound.reliesOn(Or(_induction.is(equal(Induction::INTEGER)),_induction.is(equal(Induction::BOTH))));
             _lookup.insert(&_integerInductionDefaultBound);
 
+            _integerInductionSecondDefaultBound = BoolOptionValue("int_induction_second_default_bound","intindsdb",false);
+            _integerInductionSecondDefaultBound.description = "Apply integer induction up to the induction term ";
+            _integerInductionSecondDefaultBound.tag(OptionTag::INFERENCES);
+            _integerInductionSecondDefaultBound.reliesOn(Or(_induction.is(equal(Induction::INTEGER)),_induction.is(equal(Induction::BOTH))));
+            _integerInductionSecondDefaultBound.reliesOn(And(Or(_induction.is(equal(Induction::INTEGER)),_induction.is(equal(Induction::BOTH))),_integerInductionDefaultBound.is(equal(true))));
+            _lookup.insert(&_integerInductionSecondDefaultBound);
+
             _integerInductionInterval = ChoiceOptionValue<IntegerInductionInterval>("int_induction_interval","intindint",
                                  IntegerInductionInterval::BOTH,{"infinite","finite","both"});
             _integerInductionInterval.description="Whether integer induction is applied over infinite or finite intervals, or both";

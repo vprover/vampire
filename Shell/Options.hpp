@@ -2188,6 +2188,7 @@ public:
   bool inductionExhaustiveGeneration() const { return _inductionExhaustiveGeneration.actualValue; }
   bool functionDefinitionRewriting() const { return _functionDefinitionRewriting.actualValue; }
   bool integerInductionDefaultBound() const { return _integerInductionDefaultBound.actualValue; }
+  bool integerInductionSecondDefaultBound() const { return _integerInductionSecondDefaultBound.actualValue; }
   IntegerInductionInterval integerInductionInterval() const { return _integerInductionInterval.actualValue; }
   unsigned intInductionStrictness() const {return _intInductionStrictness.actualValue; }
 
@@ -2491,6 +2492,7 @@ private:
   BoolOptionValue _inductionExhaustiveGeneration;
   BoolOptionValue _functionDefinitionRewriting;
   BoolOptionValue _integerInductionDefaultBound;
+  BoolOptionValue _integerInductionSecondDefaultBound;
   ChoiceOptionValue<IntegerInductionInterval> _integerInductionInterval;
   UnsignedOptionValue _intInductionStrictness;
 

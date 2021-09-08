@@ -266,7 +266,6 @@ struct IntegerInductionSchemeGenerator
   void generate(
     const InductionPremises& premises,
     vvector<pair<InductionScheme, OccurrenceMap>>& res) override;
-  bool setsFixOccurrences() const override { return true; }
   bool usesBounds() const override { return true; }
 
  private:

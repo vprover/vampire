@@ -129,6 +129,8 @@ void filterSides(const InductionScheme& scheme, const vset<InductionPremise>& si
         ((s.literal == scheme.bound1()) || (s.literal == scheme.optionalBound2()));
     for (const auto& kv : scheme.inductionTerms()) {
       TermList tl(kv.first);
+      // If s is a bound, then tl is the only induction term, and it must be contained in the bound.
+      ASS(!isBound || s.literal->containsSubterm(tl));
       if (s.literal->containsSubterm(tl) &&
           (isBound || ((!skolem(kv.first) || !s.clause->inference().inductionDepth()) &&
                        (!isIntScheme || (!allowOnlyBounds && InductionHelper::isIntInductionTermListInLiteral(tl, s.literal)))))) {
@@ -299,6 +301,7 @@ void GeneralInduction::generateClauses(
   static const unsigned less = env.signature->getInterpretingSymbol(Theory::INT_LESS);
   const bool intind = scheme.isInteger();
 
+
   if (env.options->showInduction()){
     env.beginOutput();
     env.out() << "[Induction] generating from scheme " << scheme
@@ -322,13 +325,19 @@ void GeneralInduction::generateClauses(
   }
   ASS(!intind || (scheme.bound1() != nullptr));
   if (intind && scheme.isDefaultBound() && boundLitQrPairs.empty()) {
-    ASS(scheme.optionalBound2() == nullptr);
+    //ASS(scheme.optionalBound2() == nullptr);
     // Create the bound literal for the default bound (as given in scheme.bound1()).
     const bool upward = scheme.isUpward();
     static TermList v0(0, false);
     TermList zero = *scheme.bound1()->nthArgument(upward ? 1 : 0);
     boundLitQrPairs.emplace_back(Literal::create2(less, /*polarity=*/false, upward ? v0 : zero, upward ? zero : v0),
         SLQueryResult(scheme.bound1(), /*clause=*/nullptr));
+    if (scheme.optionalBound2()) {
+      TermList indTerm = *scheme.optionalBound2()->nthArgument(0);
+      ASS((scheme.inductionTerms().size() == 1) && scheme.inductionTerms().count(indTerm.term()));
+      boundLitQrPairs.emplace_back(Literal::create2(less, /*polarity=*/false, upward ? indTerm : v0, upward ? v0 : indTerm),
+          SLQueryResult(scheme.optionalBound2(), /*clause=*/nullptr));
+    }
   } 
 
   vset<unsigned> hypVars;
@@ -391,8 +400,14 @@ void GeneralInduction::generateClauses(
   if (intind && scheme.isDefaultBound()) {
     // If the scheme uses default bound, we need to add it to the conclusion manually
     // (it is not included in the sideLitQrPairs).
-    ASS(boundLitQrPairs.size() == 1)
-    conclusionBound = new AtomicFormula(boundLitQrPairs[0].first);
+    ASS((boundLitQrPairs.size() == 1) || (boundLitQrPairs.size() == 2));
+    if (boundLitQrPairs.size() == 1) {
+      conclusionBound = new AtomicFormula(boundLitQrPairs[0].first);
+    } else if (boundLitQrPairs.size() == 2) {
+      FormulaList* cbl = FormulaList::cons(new AtomicFormula(boundLitQrPairs[0].first),
+          FormulaList::singleton(new AtomicFormula(boundLitQrPairs[1].first)));
+      conclusionBound = JunctionFormula::generalJunction(Connective::AND, cbl);
+    }
   }
   Formula* conclusion = createImplication(mainLit, sideLitQrPairs);
   Formula* hypothesis = new BinaryFormula(Connective::IMP,
@@ -597,7 +612,7 @@ vvector<InductionPremises> GeneralInduction::selectPremises(Literal* literal, Cl
     DHSet<TermList>::Iterator iit(ints);
     while (iit.hasNext()) {
       auto st = iit.next();
-      if (!indmc && isPremiseComparison && InductionHelper::isIntInductionTwoOn() &&
+      if (!skolems.contains(st) && isPremiseComparison && InductionHelper::isIntInductionTwoOn() &&
           InductionHelper::isIntegerBoundLiteral(st, literal)) {
         // Fetch integer induction literals for 'st' (bounded by 'premise').
         // (If indmc is on, these literals were already fetched above.)
@@ -653,6 +668,7 @@ vvector<InductionPremises> GeneralInduction::selectPremises(Literal* literal, Cl
           }
         }
       } else { // intIndPair must be true
+        ASS(intIndPair);
         // in case that literal/premise wasn't already added as side, add it as bound
         res.back().bounds.emplace(literal, premise, true);
         res.back().boundsHaveOriginalPremise = true;
