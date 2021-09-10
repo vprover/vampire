@@ -415,6 +415,7 @@ void IntegerInductionSchemeGenerator::getIntegerInductionSchemes(Term* t,
   static const TermList zero(theory->representConstant(IntegerConstantType(0)));
   vmap<Term*, unsigned> inductionTerms;
   bool doneZero = false;
+  Literal* zeroLit = nullptr;
   inductionTerms.insert(make_pair(t, 0));
   for (const pair<TermList*, const InductionPremise*>& b1 : bounds1) {
     ASS(b1.first != nullptr);
@@ -422,9 +423,12 @@ void IntegerInductionSchemeGenerator::getIntegerInductionSchemes(Term* t,
     vvector<InductionScheme::Case>* cases = getCasesForBoundAndDirection(*b1.first, upward);
     // Induction scheme with only 1 bound
     if (infInterval && (mainIsOriginalPremise || b1.second->originalPremise)) {
-      makeAndPushScheme(inductionTerms, cases, b1.second->literal, /*optionalBound2=*/nullptr, upward,
-          schemes);
-      if (defaultBound && (*b1.first == zero)) doneZero = true;
+      makeAndPushScheme(inductionTerms, cases, b1.second->literal, /*optionalBound2=*/nullptr,
+          schemes, upward);
+      if (defaultBound && (*b1.first == zero)) {
+        doneZero = true;
+        zeroLit = b1.second->literal;
+      }
     }
     // Induction schemes with 2 bounds
     if (finInterval) {
@@ -433,8 +437,8 @@ void IntegerInductionSchemeGenerator::getIntegerInductionSchemes(Term* t,
         ASS(b2.second != nullptr);
         if ((mainIsOriginalPremise || b1.second->originalPremise || b2.second->originalPremise) &&
             (*b1.first != *b2.first)) {
-          makeAndPushScheme(inductionTerms, cases, b1.second->literal, b2.second->literal, upward,
-              schemes);
+          makeAndPushScheme(inductionTerms, cases, b1.second->literal, b2.second->literal,
+              schemes, upward);
         }
       }
     }
@@ -447,13 +451,14 @@ void IntegerInductionSchemeGenerator::getIntegerInductionSchemes(Term* t,
     if (infInterval && !doneZero) {
       makeAndPushScheme(inductionTerms, cases,
           Literal::create2(less, /*polarity=*/false, upward ? tt : zero, upward ? zero : tt), /*optionalBound2=*/nullptr,
-          upward, schemes, /*defaultBound=*/true);
+          schemes, upward, /*defaultBound=*/true);
     }
     if (finInterval && defaultBound2 && (tt != zero)) {
       makeAndPushScheme(inductionTerms, cases,
-          Literal::create2(less, /*polarity=*/false, upward ? tt : zero, upward ? zero : tt),
+          doneZero ? zeroLit :
+              Literal::create2(less, /*polarity=*/false, upward ? tt : zero, upward ? zero : tt),
           Literal::create2(less, /*polarity=*/false, tt, tt),
-          upward, schemes, /*defaultBound=*/true);
+          schemes, upward, /*defaultBound=*/!doneZero, /*secondDefaultBound=*/true);
     }
   }
 }
@@ -482,16 +487,16 @@ vvector<InductionScheme::Case>* IntegerInductionSchemeGenerator::getCasesForBoun
 
 void IntegerInductionSchemeGenerator::makeAndPushScheme(vmap<Term*, unsigned>& inductionTerms,
     vvector<InductionScheme::Case>* cases,
-    Literal* bound1, Literal* optionalBound2, bool upward,
+    Literal* bound1, Literal* optionalBound2,
     vvector<InductionScheme>& schemes,
-    bool defaultBound) {
+    bool upward, bool defaultBound, bool secondDefaultBound) {
   InferenceRule rule =
-      defaultBound ? (upward ? InferenceRule::INT_DB_UP_INDUCTION_AXIOM
-                             : InferenceRule::INT_DB_DOWN_INDUCTION_AXIOM)
-                   : (optionalBound2 ? (upward ? InferenceRule::INT_FIN_UP_INDUCTION_AXIOM
-                                               : InferenceRule::INT_FIN_DOWN_INDUCTION_AXIOM)
-                                     : (upward ? InferenceRule::INT_INF_UP_INDUCTION_AXIOM
-                                               : InferenceRule::INT_INF_DOWN_INDUCTION_AXIOM));
+      (defaultBound || secondDefaultBound) ? (upward ? InferenceRule::INT_DB_UP_INDUCTION_AXIOM
+                                                     : InferenceRule::INT_DB_DOWN_INDUCTION_AXIOM)
+                                           : (optionalBound2 ? (upward ? InferenceRule::INT_FIN_UP_INDUCTION_AXIOM
+                                                                       : InferenceRule::INT_FIN_DOWN_INDUCTION_AXIOM)
+                                                             : (upward ? InferenceRule::INT_INF_UP_INDUCTION_AXIOM
+                                                                       : InferenceRule::INT_INF_DOWN_INDUCTION_AXIOM));
   InductionScheme scheme(inductionTerms, true, rule);
   scheme._cases = cases;
   scheme._bound1 = bound1;
@@ -499,6 +504,7 @@ void IntegerInductionSchemeGenerator::makeAndPushScheme(vmap<Term*, unsigned>& i
   scheme._integer = true;
   scheme._upward = upward;
   scheme._defaultBound = defaultBound;
+  scheme._secondDefaultBound = secondDefaultBound;
   scheme.finalize();
   schemes.push_back(std::move(scheme));
 }

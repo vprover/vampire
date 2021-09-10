@@ -322,9 +322,9 @@ struct IntegerInductionSchemeGenerator
 
   void makeAndPushScheme(vmap<Term*, unsigned>& inductionTerms,
       vvector<InductionScheme::Case>* cases,
-      Literal* bound1, Literal* optionalBound2, bool upward,
+      Literal* bound1, Literal* optionalBound2,
       vvector<InductionScheme>& schemes,
-      bool defaultBound = false) ;
+      bool upward, bool defaultBound = false, bool secondDefaultBound = false) ;
 
   vmap<pair<const Term*, bool /*upwards*/>, vvector<InductionScheme::Case>> _baseCaseMap;
 };

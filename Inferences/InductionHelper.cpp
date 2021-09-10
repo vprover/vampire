@@ -220,14 +220,14 @@ bool InductionHelper::isSideLiteral(Literal* l, Clause* c) {
 }
 
 bool InductionHelper::isMainSidePair(Literal* main, Clause* mainCl, Literal* side, Clause* sideCl) {
+  if (!side->ground()) return false;
   auto mainSk = Inferences::InductionHelper::collectInductionSkolems(main, mainCl);
   auto sideSk = Inferences::InductionHelper::collectInductionSkolems(side, sideCl);
-  return side->ground() &&
-    // either they are both induction depth 0 (not yet inducted on)
-    ((!mainCl->inference().inductionDepth() && !sideCl->inference().inductionDepth()) ||
-    // or they are non-equality hypothesis and conclusion from the same step
-    (!side->isEquality() && !main->isEquality() && !mainSk.empty() && !sideSk.empty() &&
-      includes(mainSk.begin(), mainSk.end(), sideSk.begin(), sideSk.end())));
+  return // either they are both induction depth 0 (not yet inducted on)
+         ((!mainCl->inference().inductionDepth() && !sideCl->inference().inductionDepth()) ||
+         // or they are non-equality hypothesis and conclusion from the same step
+         (!side->isEquality() && !main->isEquality() && !mainSk.empty() && !sideSk.empty() &&
+          includes(mainSk.begin(), mainSk.end(), sideSk.begin(), sideSk.end())));
 }
 
 bool InductionHelper::isInductionLiteral(Literal* l, Clause* cl) {

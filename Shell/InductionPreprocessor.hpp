@@ -61,6 +61,7 @@ public:
   bool isInteger() const { ASS(_finalized); return _integer; }
   bool isUpward() const { ASS(_finalized); ASS(_integer); return _upward; }
   bool isDefaultBound() const { ASS(_finalized); ASS(_integer); return _defaultBound; }
+  bool isSecondDefaultBound() const { ASS(_finalized); ASS(_integer); return _secondDefaultBound; }
   const InferenceRule rule() const {ASS(_finalized); return _rule; }
   bool operator<(const InductionScheme& other) const {
     return _inductionTerms < other._inductionTerms ||
@@ -83,6 +84,7 @@ private:
   bool _integer;
   bool _upward;
   bool _defaultBound;
+  bool _secondDefaultBound;
   InferenceRule _rule;
 };
 

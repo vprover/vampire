@@ -268,6 +268,8 @@ ostream& operator<<(ostream& out, const InductionScheme& scheme)
     }
   }
 
+  out << " (" << Kernel::ruleName(scheme.rule()) << ")";
+
   return out;
 }
 

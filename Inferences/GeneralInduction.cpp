@@ -344,7 +344,11 @@ void GeneralInduction::process(InductionClauseIterator& res, Clause* premise, Li
               sidesGeneralized.push_back(make_pair(sideLitGen, SLQueryResult(kv2.first, kv2.second)));
             }
           }
-          if (!sidesGeneralized.empty()) {
+          // The rule is multi-clause if there are any sides which are not bounds.
+          unsigned numSides = sidesGeneralized.size();
+          unsigned numBoundSides = kv.first.isInteger() ?
+              ((kv.first.isDefaultBound() ? 0 : 1) + ((kv.first.optionalBound2() && !kv.first.isSecondDefaultBound()) ? 1 : 0)) : 0;
+          if (numSides - numBoundSides > 0) {
             rule = getMultiClauseRule(rule);
           }
           generateClauses(kv.first, mainLitGen, SLQueryResult(main.literal, main.clause), std::move(sidesGeneralized), res._clauses, rule);
@@ -456,15 +460,21 @@ void GeneralInduction::generateClauses(
     }
   }
   ASS(!intind || (scheme.bound1() != nullptr));
-  if (intind && scheme.isDefaultBound() && boundLitQrPairs.empty()) {
-    //ASS(scheme.optionalBound2() == nullptr);
-    // Create the bound literal for the default bound (as given in scheme.bound1()).
+  // If this is a default bound scheme, then there should be no boundLitQrPairs.
+  // If this is a second default bound-only scheme, there should be one boundLitQrPair.
+  ASS(!intind || !scheme.isDefaultBound() || boundLitQrPairs.empty());
+  ASS(!intind || scheme.isDefaultBound() || !scheme.isSecondDefaultBound() || (boundLitQrPairs.size() == 1));
+  if (intind && (scheme.isDefaultBound() || scheme.isSecondDefaultBound())) {
+    // Create the bound literals for the default bounds (as given in scheme.bound1() and/or scheme.optionalBound2()).
     const bool upward = scheme.isUpward();
     static TermList v0(0, false);
     TermList zero = *scheme.bound1()->nthArgument(upward ? 1 : 0);
-    boundLitQrPairs.emplace_back(Literal::create2(less, /*polarity=*/false, upward ? v0 : zero, upward ? zero : v0),
-        SLQueryResult(scheme.bound1(), /*clause=*/nullptr));
-    if (scheme.optionalBound2()) {
+    if (scheme.isDefaultBound()) {
+      boundLitQrPairs.emplace_back(Literal::create2(less, /*polarity=*/false, upward ? v0 : zero, upward ? zero : v0),
+          SLQueryResult(scheme.bound1(), /*clause=*/nullptr));
+    }
+    if (scheme.isSecondDefaultBound()) {
+      ASS(scheme.optionalBound2() != nullptr);
       TermList indTerm = *scheme.optionalBound2()->nthArgument(0);
       ASS((scheme.inductionTerms().size() == 1) && scheme.inductionTerms().count(indTerm.term()));
       boundLitQrPairs.emplace_back(Literal::create2(less, /*polarity=*/false, upward ? indTerm : v0, upward ? v0 : indTerm),
@@ -529,8 +539,8 @@ void GeneralInduction::generateClauses(
     ALWAYS(subst.match(TermList(kv.second, false), 0, TermList(kv.first), 1));
   }
   Formula* conclusionBound = 0;
-  if (intind && scheme.isDefaultBound()) {
-    // If the scheme uses default bound, we need to add it to the conclusion manually
+  if (intind && (scheme.isDefaultBound() || scheme.isSecondDefaultBound())) {
+    // If the scheme uses default bound(s), we need to add it to the conclusion manually
     // (it is not included in the sideLitQrPairs).
     ASS((boundLitQrPairs.size() == 1) || (boundLitQrPairs.size() == 2));
     if (boundLitQrPairs.size() == 1) {
@@ -545,7 +555,6 @@ void GeneralInduction::generateClauses(
   Formula* hypothesis = new BinaryFormula(Connective::IMP,
     JunctionFormula::generalJunction(Connective::AND, cases),
     Formula::quantify(conclusionBound ? new BinaryFormula(Connective::IMP, conclusionBound, conclusion) : conclusion));
-  // cout << *hypothesis << endl;
 
   NewCNF cnf(0);
   cnf.setForInduction();
@@ -557,6 +566,7 @@ void GeneralInduction::generateClauses(
   }
   inf.setInductionDepth(maxDepth+1);
   auto fu = new FormulaUnit(hypothesis,inf);
+  //cout << fu->toString() << endl;
   cnf.clausify(NNF::ennf(fu), hyp_clauses);
   DHMap<unsigned,unsigned> rvs;
   if ((indhrw && mainLit->isEquality()) || (indmc && !mainLit->isEquality())) {
@@ -730,7 +740,8 @@ vmap<InductionPremise, InductionPremises> GeneralInduction::selectPremises(Liter
     DHSet<TermList>::Iterator iit(ints);
     while (iit.hasNext()) {
       auto st = iit.next();
-      if (!skolems.contains(st) && isPremiseComparison && InductionHelper::isIntInductionTwoOn() &&
+      if (indmc && !skolems.contains(st)) sidesIt = pvi(getConcatenatedIterator(sidesIt, _index->getGeneralizations(st)));
+      if (!indmc && !skolems.contains(st) && isPremiseComparison && InductionHelper::isIntInductionTwoOn() &&
           InductionHelper::isIntegerBoundLiteral(st, literal)) {
         // Fetch integer induction literals for 'st' (bounded by 'premise').
         // (If indmc is on, these literals were already fetched above.)
@@ -767,10 +778,13 @@ vmap<InductionPremise, InductionPremises> GeneralInduction::selectPremises(Liter
     TermList& st = qr.term;
     const bool premiseIsLeftBound = isPremiseComparison && (st == *literal->nthArgument(0));
     const bool premiseIsRightBound = isPremiseComparison && (st == *literal->nthArgument(1));
-    const bool intIndPair = intInd && InductionHelper::isIntegerBoundLiteral(st, literal) &&
-        (premiseIsLeftBound || premiseIsRightBound) && InductionHelper::isIntInductionTermListInLiteral(st, qr.literal);
-    const bool indmcPair = indmc && InductionHelper::isMainSidePair(qr.literal, qr.clause, literal, premise);
-    if (intIndPair || indmcPair)
+    const bool isQrIntSide = InductionHelper::isIntInductionTermListInLiteral(st, qr.literal);
+    const bool isMainSidePair = InductionHelper::isMainSidePair(qr.literal, qr.clause, literal, premise);
+    const bool intIndBoundPair = intInd && InductionHelper::isIntInductionTwoOn() && isQrIntSide &&
+        (premiseIsLeftBound || premiseIsRightBound) && InductionHelper::isIntegerBoundLiteral(st, literal);
+    const bool intIndSidePair = indmc && intInd && isQrIntSide && isMainSidePair;
+    const bool indmcPair = indmc && isMainSidePair;
+    if (indmcPair || intIndBoundPair || intIndSidePair)
     {
       InductionPremise qrPremise(qr.literal, qr.clause);
       auto resIt = res.find(qrPremise);
@@ -778,36 +792,43 @@ vmap<InductionPremise, InductionPremises> GeneralInduction::selectPremises(Liter
         resIt = res.insert(make_pair(qrPremise, InductionPremises(qrPremise))).first;
       }
       auto& premises = resIt->second;
-      if (indmcPair) {
-        if (premises.addSidePremise(literal, premise, /* originalPremise= */true)) {
-          // add side literals other than the input
-          TermQueryResultIterator sideIt2 = _index->getGeneralizations(st);
-          while (sideIt2.hasNext()) {
-            auto qrSide = sideIt2.next();
-            premises.addSidePremise(qrSide.literal, qrSide.clause);
-          }
+      TermQueryResultIterator boundsIt2 = TermQueryResultIterator::getEmpty();
+      if (indmcPair || intIndSidePair) {
+        const bool addedPremise = premises.addSidePremise(literal, premise, /* originalPremise= */true);
+        ASS(addedPremise);
+        // add side literals other than the input
+        TermQueryResultIterator sideIt2 = _index->getGeneralizations(st);
+        while (sideIt2.hasNext()) {
+          auto qrSide = sideIt2.next();
+          premises.addSidePremise(qrSide.literal, qrSide.clause);
         }
-      } else { // intIndPair must be true
-        ASS(intIndPair);
+        if (intIndSidePair && InductionHelper::isIntInductionOneOn()) {
+          // Fetch both upper and lower bounds for 'st'
+          Term* t = st.term();
+          boundsIt2 = pvi(getConcatenatedIterator(boundsIt2,
+              getConcatenatedIterator(getConcatenatedIterator(_helper.getLess(t), _helper.getLessEqual(t)),
+                                      getConcatenatedIterator(_helper.getGreater(t), _helper.getGreaterEqual(t)))));
+        }
+      } else { // intIndBoundPair must be true
+        ASS(intIndBoundPair);
         // in case that literal/premise wasn't already added as side, add it as bound
         premises.addBound(literal, premise, true);
       }
-      if (intIndPair && finInterval) {
-        // add bound literals other than the input and side literals
-        TermQueryResultIterator boundIt2 = TermQueryResultIterator::getEmpty();
+      if (!intIndSidePair && intIndBoundPair && finInterval) {
+        // If not done already, add bound literals other than the input and side literals.
         // We use the premise as a bound for integer induction. Fetch other bounds:
         Term* t = st.term();
         if (literal->isPositive() == premiseIsLeftBound) {
           // 'st' is smaller than the bound (the bound is upper). Fetch the lower bound for 'st'.
-          boundIt2 = pvi(getConcatenatedIterator(_helper.getLess(t), _helper.getLessEqual(t)));
+          boundsIt2 = pvi(getConcatenatedIterator(_helper.getLess(t), _helper.getLessEqual(t)));
         } else {
           // 'st' is greater than the bound (the bound is lower). Fetch the upper bound for 'st'.
-          boundIt2 = pvi(getConcatenatedIterator(_helper.getGreater(t), _helper.getGreaterEqual(t)));
+          boundsIt2 = pvi(getConcatenatedIterator(_helper.getGreater(t), _helper.getGreaterEqual(t)));
         }
-        while (boundIt2.hasNext()) {
-          auto qrSide = boundIt2.next();
-          premises.addBound(qrSide.literal, qrSide.clause);
-        }
+      }
+      while (boundsIt2.hasNext()) {
+        auto qrSide = boundsIt2.next();
+        premises.addBound(qrSide.literal, qrSide.clause);
       }
     }
   }
