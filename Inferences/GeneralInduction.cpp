@@ -111,7 +111,8 @@ ClauseIterator GeneralInduction::generateClauses(Clause* premise)
   return pvi(res);
 }
 
-void filterSides(const InductionScheme& scheme, const vset<InductionPremise>& sides, bool allowOnlyBounds,
+// returns true if the scheme should be retained
+bool filterSides(const InductionScheme& scheme, const vset<InductionPremise>& sides, bool allowOnlyBounds,
     OccurrenceMap& occMap, vset<pair<Literal*, Clause*>>& filteredSides) {
   // Retain side and bound literals for further processing if:
   // (1) they contain some induction term from the current scheme
@@ -139,8 +140,11 @@ void filterSides(const InductionScheme& scheme, const vset<InductionPremise>& si
         break;
       }
     }
-    // update occurrence map
     if (filtered) {
+      if (s.originalPremise) {
+        return false;
+      }
+      // update occurrence map
       for (auto it = occMap._m.begin(); it != occMap._m.end();) {
         if (it->first.first == s.literal) {
           it = occMap._m.erase(it);
@@ -150,6 +154,7 @@ void filterSides(const InductionScheme& scheme, const vset<InductionPremise>& si
       }
     }
   }
+  return true;
 }
 
 InferenceRule getGeneralizedRule(InferenceRule rule) {
@@ -306,8 +311,14 @@ void GeneralInduction::process(InductionClauseIterator& res, Clause* premise, Li
       vvector<pair<Literal*, vset<Literal*>>> schLits;
       for (auto& kv : schOccMap) {
         vset<pair<Literal*, Clause*>> sidesFiltered;
-        filterSides(kv.first, ips.sides(), /*allowOnlyBounds=*/false, kv.second, sidesFiltered);
-        if (!ips.bounds().empty()) filterSides(kv.first, ips.bounds(), /*allowOnlyBounds=*/true, kv.second, sidesFiltered);
+        if (!filterSides(kv.first, ips.sides(), /*allowOnlyBounds=*/false, kv.second, sidesFiltered)) {
+          continue;
+        }
+        if (!ips.bounds().empty()) {
+          if (!filterSides(kv.first, ips.bounds(), /*allowOnlyBounds=*/true, kv.second, sidesFiltered)) {
+            continue;
+          }
+        }
         // Check whether we done this induction before. Since there can
         // be other induction schemes and literals that produce the same,
         // we add the new ones at the end

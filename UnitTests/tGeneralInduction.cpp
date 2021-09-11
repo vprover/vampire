@@ -399,11 +399,6 @@ TEST_GENERATION_INDUCTION(test_11,
       .indices({ index() })
       .input( clause({ p(sK1) }))
       .expected({
-        // formula 1
-        clause({ ~p(f(sK1,b)), p(f(sK1,y)) }),
-        clause({ ~p(f(sK1,b)), ~p(f(sK1,r(y))) }),
-
-        // formula 2
         clause({ p(b), ~p(x), p(f(x,sK2)) }),
         clause({ p(b), p(r(x)) }),
         clause({ p(b), ~p(f(r(x),sK2)) }),
@@ -486,7 +481,7 @@ TEST_GENERATION_INDUCTION(test_17,
 // side literal does not trigger induction 1 (inequal induction depth)
 TEST_GENERATION_INDUCTION(test_18,
     Generation::TestCase()
-      .context({ fromInduction(clause({ ~p(g(sK1)) })) })
+      .context({ fromInduction(clause({ ~p(g(g(sK1))) })) })
       .indices({ index() })
       .input( clause({ p(g(sK1)) }))
       .expected(none())
@@ -495,9 +490,9 @@ TEST_GENERATION_INDUCTION(test_18,
 // side literal does not trigger induction 2 (no shared complex term)
 TEST_GENERATION_INDUCTION(test_19,
     Generation::TestCase()
-      .context({ fromInduction(clause({ ~p(sK1) })) })
+      .context({ fromInduction(clause({ ~p(g(sK1)) })) })
       .indices({ index() })
-      .input( fromInduction(clause({ p(sK1) })) )
+      .input( fromInduction(clause({ p(f(sK1,sK1)) })) )
       .expected(none())
     )
 
