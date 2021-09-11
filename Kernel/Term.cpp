@@ -579,8 +579,7 @@ vstring Term::headToString() const
     if (Theory::tuples()->findProjection(functor(), isLiteral(), proj)) {
       return "$proj(" + Int::toString(proj) + ", ";
     }
-    bool print = ((env.signature->getFunction(_functor)->combinator() == Signature::NOT_COMB) && arity())
-      || (isLiteral() && arity());
+    bool print = (isLiteral() || env.signature->getFunction(_functor)->combinator() == Signature::NOT_COMB) && arity();
     return ((isLiteral() ? static_cast<const Literal *>(this)->predicateName() : functionName()) + (print ? "(" : ""));
   }
 }
