@@ -224,12 +224,10 @@ struct InductionPremises {
     }
   }
 
-  bool addSidePremise(Literal* l, Clause* c, bool originalPremise = false) {
+  void addSidePremise(Literal* l, Clause* c, bool originalPremise = false) {
     if (Inferences::InductionHelper::isMainSidePair(_main.literal, _main.clause, l, c)) {
       addPremise(l, c, originalPremise, false);
-      return true;
     }
-    return false;
   }
 
   void addBound(Literal* l, Clause* c, bool originalPremise = false) {

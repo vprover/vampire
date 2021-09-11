@@ -82,8 +82,12 @@ Statistics::Statistics()
     inductionInProof(0),
     generalizedInduction(0),
     generalizedInductionInProof(0),
+    multiClauseInduction(0),
+    multiClauseInductionInProof(0),
     structInduction(0),
     structInductionInProof(0),
+    recursionInduction(0),
+    recursionInductionInProof(0),
     intInfInduction(0),
     intInfInductionInProof(0),
     intFinInduction(0),
@@ -397,11 +401,15 @@ void Statistics::print(ostream& out)
   COND_OUT("TheoryInstSimpEmptySubstitutions",theoryInstSimpEmptySubstitution);
   COND_OUT("Induction",induction);
   COND_OUT("MaxInductionDepth",maxInductionDepth);
-  COND_OUT("InductionStepsInProof",inductionInProof);
+  COND_OUT("InductionInProof",inductionInProof);
   COND_OUT("StructuralInduction",structInduction);
-  COND_OUT("StructuralInductionStepsInProof",structInductionInProof);
+  COND_OUT("StructuralInductionInProof",structInductionInProof);
+  COND_OUT("RecursionInduction",recursionInduction);
+  COND_OUT("RecursionInductionInProof",recursionInductionInProof);
   COND_OUT("GeneralizedInduction",generalizedInduction);
   COND_OUT("GeneralizedInductionInProof",generalizedInductionInProof);
+  COND_OUT("MultiClauseInduction",multiClauseInduction);
+  COND_OUT("MultiClauseInductionInProof",multiClauseInductionInProof);
   COND_OUT("IntegerInfiniteIntervalInduction",intInfInduction);
   COND_OUT("IntegerInfiniteIntervalInductionInProof",intInfInductionInProof);
   COND_OUT("IntegerFiniteIntervalInduction",intFinInduction);

@@ -244,6 +244,7 @@ private:
     Literal* mainLit, SLQueryResult mainQuery,
     vvector<pair<Literal*,SLQueryResult>> sideLitQrPairs,
     ClauseStack& clauses, InferenceRule rule);
+  void updateStatistics(InferenceRule rule, bool generalized, bool multiClause);
   bool alreadyDone(Literal* mainLit, const vset<pair<Literal*,Clause*>>& sides,
     const InductionScheme& sch, pair<Literal*,vset<Literal*>>& res);
   vmap<Shell::InductionPremise, Shell::InductionPremises> selectPremises(Literal* literal, Clause* premise);

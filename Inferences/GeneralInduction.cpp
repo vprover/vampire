@@ -325,12 +325,6 @@ void GeneralInduction::process(InductionClauseIterator& res, Clause* premise, Li
         }
         while (g->hasNext()) {
           auto eg = g->next();
-          auto rule = kv.first.rule();
-          if (g->hasNext()) {
-            // except for the last generalization (always no
-            // generalization), we mark every formula generalized
-            rule = getGeneralizedRule(rule);
-          }
           // create the generalized literals by replacing the current
           // set of occurrences of induction terms by the variables
           TermOccurrenceReplacement tr(kv.first.inductionTerms(), eg, main.literal);
@@ -344,11 +338,21 @@ void GeneralInduction::process(InductionClauseIterator& res, Clause* premise, Li
               sidesGeneralized.push_back(make_pair(sideLitGen, SLQueryResult(kv2.first, kv2.second)));
             }
           }
+          // update statistics and create correct variant of inference rule
+          auto rule = kv.first.rule();
+          // except for the last generalization (always no
+          // generalization), we mark every formula generalized
+          const bool generalized = g->hasNext();
           // The rule is multi-clause if there are any sides which are not bounds.
           unsigned numSides = sidesGeneralized.size();
           unsigned numBoundSides = kv.first.isInteger() ?
               ((kv.first.isDefaultBound() ? 0 : 1) + ((kv.first.optionalBound2() && !kv.first.isSecondDefaultBound()) ? 1 : 0)) : 0;
-          if (numSides - numBoundSides > 0) {
+          const bool multiClause = (numSides - numBoundSides > 0);
+          updateStatistics(rule, generalized, multiClause);
+          if (generalized) {
+            rule = getGeneralizedRule(rule);
+          }
+          if (multiClause) {
             rule = getMultiClauseRule(rule);
           }
           generateClauses(kv.first, mainLitGen, SLQueryResult(main.literal, main.clause), std::move(sidesGeneralized), res._clauses, rule);
@@ -622,7 +626,60 @@ void GeneralInduction::generateClauses(
     }
     clauses.push(c);
   }
+}
+
+void GeneralInduction::updateStatistics(InferenceRule rule, bool generalized, bool multiClause) {
   env.statistics->induction++;
+  if (generalized) {
+    env.statistics->generalizedInduction++;
+  }
+  if (multiClause) {
+    env.statistics->multiClauseInduction++;
+  }
+  switch (rule) {
+    case InferenceRule::STRUCTURAL_INDUCTION_AXIOM:
+      env.statistics->structInduction++;
+      break;
+    case InferenceRule::RECURSION_INDUCTION_AXIOM:
+      env.statistics->recursionInduction++;
+      break;
+    case InferenceRule::INT_INF_UP_INDUCTION_AXIOM:
+    case InferenceRule::INT_INF_DOWN_INDUCTION_AXIOM:
+      env.statistics->intInfInduction++;
+      break;
+    case InferenceRule::INT_FIN_UP_INDUCTION_AXIOM:
+    case InferenceRule::INT_FIN_DOWN_INDUCTION_AXIOM:
+      env.statistics->intFinInduction++;
+      break;
+    case InferenceRule::INT_DB_UP_INDUCTION_AXIOM:
+    case InferenceRule::INT_DB_DOWN_INDUCTION_AXIOM:
+      env.statistics->intDBInduction++;
+      break;
+    default:
+      ;
+  }
+  switch (rule) {
+    case InferenceRule::INT_INF_UP_INDUCTION_AXIOM:
+      env.statistics->intInfUpInduction++;
+      break;
+    case InferenceRule::INT_INF_DOWN_INDUCTION_AXIOM:
+      env.statistics->intInfDownInduction++;
+      break;
+    case InferenceRule::INT_FIN_UP_INDUCTION_AXIOM:
+      env.statistics->intFinUpInduction++;
+      break;
+    case InferenceRule::INT_FIN_DOWN_INDUCTION_AXIOM:
+      env.statistics->intFinDownInduction++;
+      break;
+    case InferenceRule::INT_DB_UP_INDUCTION_AXIOM:
+      env.statistics->intDBUpInduction++;
+      break;
+    case InferenceRule::INT_DB_DOWN_INDUCTION_AXIOM:
+      env.statistics->intDBDownInduction++;
+      break;
+    default:
+      ;
+  }
 }
 
 Clause* GeneralInduction::applyBinaryResolutionAndCallSplitter(Clause* c, Literal* l, const SLQueryResult& slqr, bool splitterCondition) {
@@ -794,8 +851,7 @@ vmap<InductionPremise, InductionPremises> GeneralInduction::selectPremises(Liter
       auto& premises = resIt->second;
       TermQueryResultIterator boundsIt2 = TermQueryResultIterator::getEmpty();
       if (indmcPair || intIndSidePair) {
-        const bool addedPremise = premises.addSidePremise(literal, premise, /* originalPremise= */true);
-        ASS(addedPremise);
+        premises.addSidePremise(literal, premise, /* originalPremise= */true);
         // add side literals other than the input
         TermQueryResultIterator sideIt2 = _index->getGeneralizations(st);
         while (sideIt2.hasNext()) {

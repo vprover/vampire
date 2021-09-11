@@ -128,10 +128,14 @@ public:
   unsigned maxInductionDepth;
   unsigned induction;
   unsigned inductionInProof;
+  unsigned multiClauseInduction;
+  unsigned multiClauseInductionInProof;
   unsigned generalizedInduction;
   unsigned generalizedInductionInProof;
   unsigned structInduction;
   unsigned structInductionInProof;
+  unsigned recursionInduction;
+  unsigned recursionInductionInProof;
   unsigned intInfInduction;
   unsigned intInfInductionInProof;
   unsigned intFinInduction;
