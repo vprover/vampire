@@ -1633,6 +1633,8 @@ void SaturationAlgorithm::doOneAlgorithmStep()
 
   doUnprocessedLoop();
 
+  pop_selected_clause:
+
   if (_passive->isEmpty()) {
     MainLoopResult::TerminationReason termReason =
 	isComplete() ? Statistics::SATISFIABLE : Statistics::REFUTATION_NOT_FOUND;
@@ -1655,8 +1657,6 @@ void SaturationAlgorithm::doOneAlgorithmStep()
   Clause* cl = nullptr;
   {
     TimeCounter tc(TC_PASSIVE_CONTAINER_MAINTENANCE);
-
-    pop_selected_clause:
 
     cl = _passive->popSelected();
 
