@@ -984,6 +984,15 @@ void Options::init()
     _neuralEvalSplitQueueRatios.reliesOn(_useNeuralEvalSplitQueues.is(equal(true)));
     _neuralEvalSplitQueueRatios.tag(OptionTag::SATURATION);
 
+    _negativeNeuralCutoff = FloatOptionValue("negative_neural_cutoff","nnc",-1.0);
+    _negativeNeuralCutoff.description = "Clauses considered worse than this threshold will "
+        "be discarded by the saturation algorithm at selection and never activated. "
+        "We use non-negative values for this, as neuralEval internally negates (i.e. smaller is better) "
+        "and zero is typically the base cutoff value for positively classified. (Incomplete!)";
+    _lookup.insert(&_negativeNeuralCutoff);
+    _negativeNeuralCutoff.reliesOn(_evalForKarel.is(notEqual(vstring(""))));
+    _negativeNeuralCutoff.tag(OptionTag::SATURATION);
+
     _literalMaximalityAftercheck = BoolOptionValue("literal_maximality_aftercheck","lma",false);
     _literalMaximalityAftercheck.description = 
                                    "For efficiency we perform maximality checks before applying substitutions. Sometimes this can " 

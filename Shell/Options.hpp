@@ -2122,6 +2122,8 @@ public:
   Lib::vvector<int> neuralEvalSplitQueueRatios() const;
   Lib::vvector<float> neuralEvalSplitQueueCutoffs() const;
 
+  float negativeNeuralCutoff() const { return _negativeNeuralCutoff.actualValue; }
+
   void setWeightRatio(int v){ _ageWeightRatio.otherValue = v; }
 	AgeWeightRatioShape ageWeightRatioShape() const { return _ageWeightRatioShape.actualValue; }
 	int ageWeightRatioShapeFrequency() const { return _ageWeightRatioShapeFrequency.actualValue; }
@@ -2395,6 +2397,8 @@ private:
   BoolOptionValue _useNeuralEvalSplitQueues;
   StringOptionValue _neuralEvalSplitQueueCutoffs;
   StringOptionValue _neuralEvalSplitQueueRatios;
+  FloatOptionValue _negativeNeuralCutoff;
+  BoolOptionValue _randomAWR;
   BoolOptionValue _literalMaximalityAftercheck;
   BoolOptionValue _arityCheck;
   

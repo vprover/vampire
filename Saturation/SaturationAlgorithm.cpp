@@ -1654,7 +1654,26 @@ void SaturationAlgorithm::doOneAlgorithmStep()
   Clause* cl = nullptr;
   {
     TimeCounter tc(TC_PASSIVE_CONTAINER_MAINTENANCE);
+
+    pop_selected_clause:
+
     cl = _passive->popSelected();
+
+    if(_opt.negativeNeuralCutoff() >= 0.0) {
+
+      talkToKarel(cl,true/*embed*/,true/*eval*/);
+
+      if (cl->modelSaid() > _opt.negativeNeuralCutoff()) {
+
+        env.statistics->discardedNonRedundantClauses++;
+
+        cl->setStore(Clause::NONE);
+        //at this point the c object can be deleted
+
+        goto pop_selected_clause;
+      }
+    }
+
   }
   ASS_EQ(cl->store(),Clause::PASSIVE);
   cl->setStore(Clause::SELECTED);
