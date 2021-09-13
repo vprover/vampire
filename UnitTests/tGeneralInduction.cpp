@@ -14,6 +14,8 @@
 #include "Test/TestUtils.hpp"
 #include "Test/GenerationTester.hpp"
 
+#include "Indexing/LiteralIndex.hpp"
+#include "Indexing/LiteralSubstitutionTree.hpp"
 #include "Indexing/TermIndex.hpp"
 
 #include "Inferences/GeneralInduction.hpp"
@@ -22,11 +24,15 @@ using namespace Test;
 using namespace Test::Generation;
 
 vvector<InductionSchemeGenerator*> generators() {
-  return { new StructuralInductionSchemeGenerator() };
+  return { new StructuralInductionSchemeGenerator(), new IntegerInductionSchemeGenerator() };
 }
 
 TermIndex* index() {
   return new DemodulationSubtermIndexImpl<false>(new TermSubstitutionTree(false, false));
+}
+
+LiteralIndex* comparisonIndex() {
+  return new UnitIntegerComparisonLiteralIndex(new LiteralSubstitutionTree());
 }
 
 template<class Rule>
@@ -109,7 +115,11 @@ private:
   DECL_FUNC(f, {s, s}, s)                                                                  \
   DECL_FUNC(g, {s}, s)                                                                     \
   DECL_PRED(p, {s})                                                                        \
-  DECL_PRED(q, {u})
+  DECL_PRED(q, {u})                                                                        \
+  NUMBER_SUGAR(Int)                                                                        \
+  DECL_PRED(pi, {Int})                                                                     \
+  DECL_SKOLEM_CONST(sK6, Int)                                                              \
+  DECL_CONST(bi, Int)
 
 // induction info is added 1
 TEST_GENERATION_INDUCTION(test_01,
@@ -510,5 +520,114 @@ TEST_GENERATION_INDUCTION(test_20,
         clause({ ~p(b), ~p(x), p(x) }),
         clause({ ~p(b), p(r(x)) }),
         clause({ ~p(b), ~p(r(x)) }),
+      })
+    )
+
+// bounds are used for integer induction even when multi-clause is off 
+// (strictness 0 means that the bound is eligible as a side as well)
+TEST_GENERATION_INDUCTION(test_21,
+    Generation::TestCase()
+      .options({ { "induction_multiclause", "off" }, { "induction", "int" }, { "int_induction_strictness", "0" } })
+      .context({ clause({ ~(sK6 < num(1)) }) })
+      .indices({ index(), comparisonIndex() })
+      .input( clause({ ~pi(sK6) }) )
+      .expected({
+        clause({ ~pi(1), ~(x < num(1)) }),
+        clause({ ~pi(1), pi(x) }),
+        clause({ ~pi(1), ~pi(x+1) }),
+      })
+    )
+
+// use bounds for upward+downward infinite interval integer induction
+TEST_GENERATION_INDUCTION(test_22,
+    Generation::TestCase()
+      .options({ { "induction_multiclause", "off" }, { "induction", "int" }, { "int_induction_interval", "infinite" } })
+      .context({ clause({ ~(sK6 < num(1)) }), clause({ ~(bi < sK6) }) })
+      .indices({ index(), comparisonIndex() })
+      .input( clause({ ~pi(sK6) }) )
+      .expected({
+        // upward induction
+        clause({ ~pi(1), ~(x < num(1)) }),
+        clause({ ~pi(1), pi(x) }),
+        clause({ ~pi(1), ~pi(x+1) }),
+
+        // downard induction
+        clause({ ~pi(bi), ~(bi < y) }),
+        clause({ ~pi(bi), pi(y) }),
+        clause({ ~pi(bi), ~pi(y+num(-1)) }),
+      })
+    )
+
+// use bounds for upward+downward finite interval integer induction
+TEST_GENERATION_INDUCTION(test_23,
+    Generation::TestCase()
+      .options({ { "induction_multiclause", "off" }, { "induction", "int" }, { "int_induction_interval", "finite" } })
+      .context({ clause({ ~(sK6 < num(1)) }), clause({ ~(bi < sK6) }) })
+      .indices({ index(), comparisonIndex() })
+      .input( clause({ ~pi(sK6) }) )
+      .expected({
+        // upward induction
+        clause({ ~pi(1), ~(x < num(1)) }),
+        clause({ ~pi(1), x < bi }),
+        clause({ ~pi(1), pi(x) }),
+        clause({ ~pi(1), ~pi(x+1) }),
+
+        // downard induction
+        clause({ ~pi(bi), num(1) < y }),
+        clause({ ~pi(bi), ~(bi < y) }),
+        clause({ ~pi(bi), pi(y) }),
+        clause({ ~pi(bi), ~pi(y+num(-1)) }),
+      })
+    )
+
+// use default bound for downward integer induction,
+// but for upward use the bound from index
+TEST_GENERATION_INDUCTION(test_24,
+    Generation::TestCase()
+      .options({ { "induction_multiclause", "off" },
+                 { "induction", "int" },
+                 { "int_induction_interval", "infinite" },
+                 { "int_induction_default_bound", "on" } })
+      .context({ clause({ ~(sK6 < num(0)) }) })
+      .indices({ index(), comparisonIndex() })
+      .input( clause({ ~pi(sK6) }) )
+      .expected({
+        // upward induction
+        clause({ ~pi(0), ~(x < num(0)) }),
+        clause({ ~pi(0), pi(x) }),
+        clause({ ~pi(0), ~pi(x+1) }),
+
+        // downard induction: resulting clauses contain "0 < sK6",
+        // since there is no bound to resolve it against
+        clause({ ~pi(0), ~(num(0) < y), 0 < sK6 }),
+        clause({ ~pi(0), pi(y), 0 < sK6 }),
+        clause({ ~pi(0), ~pi(y+num(-1)), 0 < sK6 }),
+      })
+    )
+    
+// as previous test, but use two default bounds for finite integer induction
+TEST_GENERATION_INDUCTION(test_25,
+    Generation::TestCase()
+      .options({ { "induction_multiclause", "off" },
+                 { "induction", "int" },
+                 { "int_induction_interval", "finite" },
+                 { "int_induction_default_bound", "on" },
+                 { "int_induction_second_default_bound", "on" } })
+      .context({ clause({ ~(sK6 < num(0)) }) })
+      .indices({ index(), comparisonIndex() })
+      .input( clause({ ~pi(sK6) }) )
+      .expected({
+        // upward induction
+        clause({ ~pi(0), ~(x < num(0)), sK6 < sK6 }),
+        clause({ ~pi(0), x < sK6, sK6 < sK6 }),
+        clause({ ~pi(0), pi(x), sK6 < sK6 }),
+        clause({ ~pi(0), ~pi(x+1), sK6 < sK6 }),
+
+        // downard induction: resulting clauses contain "0 < sK6",
+        // since there is no bound to resolve it against
+        clause({ ~pi(0), ~(num(0) < y), 0 < sK6, sK6 < sK6 }),
+        clause({ ~pi(0), sK6 < y, 0 < sK6, sK6 < sK6 }),
+        clause({ ~pi(0), pi(y), 0 < sK6, sK6 < sK6 }),
+        clause({ ~pi(0), ~pi(y+num(-1)), 0 < sK6, sK6 < sK6 }),
       })
     )

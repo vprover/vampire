@@ -219,6 +219,10 @@ public:
 #if VDEBUG
   void setTestIndices(Stack<Index*> const& indices) override {
     _index = (TermIndex*)indices[0];
+    if (indices.size() > 1) {
+      _comparisonIndex = (LiteralIndex*)indices[1];
+      _helper = InductionHelper(_comparisonIndex, nullptr, nullptr);
+    }
   }
 #endif
 

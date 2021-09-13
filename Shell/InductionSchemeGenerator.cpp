@@ -421,14 +421,12 @@ void IntegerInductionSchemeGenerator::getIntegerInductionSchemes(Term* t,
     ASS(b1.first != nullptr);
     ASS(b1.second != nullptr);
     vvector<InductionScheme::Case>* cases = getCasesForBoundAndDirection(*b1.first, upward);
+    if (*b1.first == zero) zeroLit = b1.second->literal;
     // Induction scheme with only 1 bound
     if (infInterval && (mainIsOriginalPremise || b1.second->originalPremise)) {
       makeAndPushScheme(inductionTerms, cases, b1.second->literal, /*optionalBound2=*/nullptr,
           schemes, upward);
-      if (defaultBound && (*b1.first == zero)) {
-        doneZero = true;
-        zeroLit = b1.second->literal;
-      }
+      if (defaultBound) doneZero = true;
     }
     // Induction schemes with 2 bounds
     if (finInterval) {
@@ -455,10 +453,9 @@ void IntegerInductionSchemeGenerator::getIntegerInductionSchemes(Term* t,
     }
     if (finInterval && defaultBound2 && (tt != zero)) {
       makeAndPushScheme(inductionTerms, cases,
-          doneZero ? zeroLit :
-              Literal::create2(less, /*polarity=*/false, upward ? tt : zero, upward ? zero : tt),
+          zeroLit ? zeroLit : Literal::create2(less, /*polarity=*/false, upward ? tt : zero, upward ? zero : tt),
           Literal::create2(less, /*polarity=*/false, tt, tt),
-          schemes, upward, /*defaultBound=*/!doneZero, /*secondDefaultBound=*/true);
+          schemes, upward, /*defaultBound=*/zeroLit == nullptr, /*secondDefaultBound=*/true);
     }
   }
 }

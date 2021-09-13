@@ -27,7 +27,10 @@ using namespace Shell;
   DECL_TERM_ALGEBRA(s, {b, r})                                                             \
   DECL_FUNC(f, {s, s}, s)                                                                  \
   DECL_FUNC(g, {s, s}, s)                                                                  \
-  DECL_PRED(p, {s, s})
+  DECL_PRED(p, {s, s})                                                                     \
+  NUMBER_SUGAR(Int)                                                                        \
+  DECL_PRED(pi, {Int})                                                                     \
+  DECL_SKOLEM_CONST(sk4, Int) 
 
 void checkResult(vvector<pair<InductionScheme, OccurrenceMap>> res,
   vvector<vvector<pair<TermSugar, vmap<Literal*, uint64_t>>>> c)
@@ -218,4 +221,35 @@ TEST_FUN(test_04) {
                              { sideLit, 0 } } } },
 
   });
+}
+
+// side literal should be made into bound with active occurrence
+TEST_FUN(test_05) {
+  __ALLOW_UNUSED(MY_SYNTAX_SUGAR)
+  SET_OPTIONS({ { "induction", "int" }, { "int_induction_interval", "infinite" } })
+
+  IntegerInductionSchemeGenerator gen;
+  auto lit1 = ~pi(sk4);
+  auto lit2 = ~(sk4 < num(1));
+  InductionPremise mainPremise1(lit1, clause({ lit1 }), /*originalPremise=*/true);
+  InductionPremises premises1(mainPremise1);
+  premises1.addSidePremise(lit2, clause({ lit2 }));
+
+  vvector<pair<InductionScheme, OccurrenceMap>> res;
+  gen.generate(premises1, res);
+
+  checkResult(res, {
+    { { sk4, { { lit1, 0 }, { lit2, 1 } } } },
+  });
+
+  // swapping the two clauses does not result in a scheme, since lit2
+  // is not a valid induction literal
+  res.clear();
+  InductionPremise mainPremise2(lit2, clause({ lit2 }));
+  InductionPremises premises2(mainPremise2);
+  premises2.addSidePremise(lit1, clause({ lit1 }), /*originalPremise=*/true);
+
+  gen.generate(premises2, res);
+
+  checkResult(res, { });
 }
