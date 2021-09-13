@@ -706,7 +706,11 @@ void Z3Interfacing::createTermAlgebra(TermAlgebra& start)
       }
       for (unsigned iDestr = 0; iDestr < ctor->arity(); iDestr++)  {
         auto dtor = z3::func_decl(_context, destr[iDestr]);
-        auto id = FuncOrPredId::function(ctor->destructorFunctor(iDestr));
+        // careful: datatypes can have boolean fields!
+        auto id = FuncOrPredId(
+          ctor->destructorFunctor(iDestr),
+          dtor.range().is_bool()
+        );
         _toZ3.insert(id, dtor);
         _fromZ3.insert(dtor, id);
       }
