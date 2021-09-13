@@ -49,7 +49,7 @@ vset<Term*> getInductionTerms(Term* t)
       continue;
     }
 
-    if (canInductOn(curr)) {
+    if (Inferences::InductionHelper::isInductionTerm(curr)) {
       res.insert(curr);
     }
     unsigned f = curr->functor();
@@ -118,7 +118,7 @@ void RecursionInductionSchemeGenerator::generate(
     static const bool filterC = env.options->inductionOnComplexTermsHeuristic();
     bool filter = true;
     for (const auto& kv : it->inductionTerms()) {
-      auto c = !skolem(kv.first);
+      const bool c = kv.first->arity(); // term is complex if arity is non-zero
       unsigned occ = 0;
       for (const auto& kv2 : _actOccMaps._m) {
         if (kv.first == kv2.first.second) {
@@ -231,7 +231,7 @@ void RecursionInductionSchemeGenerator::process(Term* t, bool active,
   CALL("RecursionInductionSchemeGenerator::process");
 
   // If induction term, store the occurrence
-  if (canInductOn(t)) {
+  if (Inferences::InductionHelper::isInductionTerm(t)) {
     _actOccMaps.add(lit, t, active);
   }
 

@@ -133,7 +133,7 @@ bool filterSides(const InductionScheme& scheme, const vset<InductionPremise>& si
       // If s is a bound, then tl is the only induction term, and it must be contained in the bound.
       ASS(!isBound || s.literal->containsSubterm(tl));
       if (s.literal->containsSubterm(tl) &&
-          (isBound || ((!skolem(kv.first) || !s.clause->inference().inductionDepth()) &&
+          (isBound || ((kv.first->arity() || !s.clause->inference().inductionDepth()) &&
                        (!isIntScheme || (!allowOnlyBounds && InductionHelper::isIntInductionTermListInLiteral(tl, s.literal)))))) {
         filteredSides.insert(make_pair(s.literal, s.clause));
         filtered = false;

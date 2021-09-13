@@ -18,38 +18,11 @@
 #include "Kernel/Unit.hpp"
 #include "Kernel/Signature.hpp"
 
+#include "Inferences/InductionHelper.hpp"
+
 using namespace Kernel;
 
 namespace Shell {
-
-bool skolem(Term* t)
-{
-  ASS(!t->isLiteral());
-  return env.signature->getFunction(t->functor())->skolem();
-}
-
-bool containsSkolem(Term* t)
-{
-  CALL("containsSkolem");
-
-  ASS(!t->isLiteral());
-  NonVariableIterator nvi(t, true /* includeSelf */);
-  while (nvi.hasNext()) {
-    auto st = nvi.next();
-    if (skolem(st.term())) {
-      return true;
-    }
-  }
-  return false;
-}
-
-bool canInductOn(Term* t)
-{
-  CALL("canInductOn");
-
-  static bool complexTermsAllowed = env.options->inductionOnComplexTerms();
-  return skolem(t) || (complexTermsAllowed && containsSkolem(t));
-}
 
 void FnDefHandler::handleClause(Clause* c, unsigned fi, bool reversed)
 {
@@ -351,7 +324,7 @@ void InductionTemplate::requestInductionScheme(Term* t, vset<InductionScheme>& s
   for (unsigned i = 0; i < t->arity(); i++) {
     auto arg = *t->nthArgument(i);
     if (_indPos[i]) {
-      if (arg.isVar() || !canInductOn(arg.term())) {
+      if (arg.isVar() || !Inferences::InductionHelper::isInductionTerm(arg.term())) {
         return;
       }
       auto it = inductionTerms.find(arg.term());

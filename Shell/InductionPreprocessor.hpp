@@ -28,10 +28,6 @@ using namespace Indexing;
 using namespace Kernel;
 using namespace Lib;
 
-bool skolem(Term* t);
-bool containsSkolem(Term* t);
-bool canInductOn(Term* t);
-
 using InductionTerms = vmap<Term*, unsigned>;
 
 /**
