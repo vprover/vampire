@@ -332,7 +332,7 @@ void GeneralInduction::generateClauses(
   while(cit.hasNext()){
     Clause* c = cit.next();
     for (unsigned i = 0; i < c->length(); i++) {
-      auto sk = InductionHelper::collectInductionSkolems((*c)[i], c, &info);
+      auto sk = InductionHelper::collectInductionSkolems((*c)[i], &info);
       for (const auto& v : sk) {
         c->inference().addToInductionInfo(v);
       }
