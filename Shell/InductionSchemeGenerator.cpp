@@ -29,7 +29,7 @@ inline bool isTermAlgebraCons(Term* t)
 /**
  * Returns all subterms which can be inducted on for a term.
  */
-vset<Term*> getInductionTerms(Term* t)
+vset<Term*> getInductionTerms(Term* t, TermList s)
 {
   CALL("getInductionTerms");
   // no predicates here
@@ -46,11 +46,11 @@ vset<Term*> getInductionTerms(Term* t)
       continue;
     }
 
-    if (canInductOn(curr)) {
-      res.insert(curr);
-    }
     unsigned f = curr->functor();
     auto type = env.signature->getFunction(f)->fnType();
+    if (canInductOn(curr) && type->result() == s) {
+      res.insert(curr);
+    }
 
     // If function with recursive definition,
     // recurse in its active arguments
@@ -62,7 +62,7 @@ vset<Term*> getInductionTerms(Term* t)
       unsigned i = 0;
       while (argIt.hasNext()) {
         auto arg = argIt.next();
-        if (indVars.at(i) && type->arg(i) == type->result() && arg.isTerm()) {
+        if (indVars.at(i) && arg.isTerm()) {
           todo.push(arg.term());
         }
         i++;
@@ -185,6 +185,8 @@ void RecursionInductionSchemeGenerator::handleActiveTerm(Term* t, InductionTempl
   static bool exhaustive = env.options->inductionExhaustiveGeneration();
   if (exhaustive) {
     Term::Iterator argIt(t);
+    auto f = t->functor();
+    auto type = t->isLiteral() ? env.signature->getPredicate(f)->predType() : env.signature->getFunction(f)->fnType();
     unsigned i = 0;
     vvector<TermStack> argTermsList(1); // initially 1 empty vector
     while (argIt.hasNext()) {
@@ -194,7 +196,7 @@ void RecursionInductionSchemeGenerator::handleActiveTerm(Term* t, InductionTempl
           argTerms.push(arg);
         }
       } else {
-        auto its = getInductionTerms(arg.term());
+        auto its = getInductionTerms(arg.term(), type->arg(i));
         vvector<TermStack> newArgTermsList;
         for (const auto& indTerm : its) {
           for (auto argTerms : argTermsList) {
