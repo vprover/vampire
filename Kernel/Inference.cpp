@@ -903,6 +903,8 @@ vstring Kernel::ruleName(InferenceRule rule)
     return "avatar component clause";
   case InferenceRule::AVATAR_REFUTATION:
     return "avatar sat refutation";
+  case InferenceRule::AVATAR_REFUTATION_SMT:
+    return "avatar smt refutation";
   case InferenceRule::AVATAR_SPLIT_CLAUSE:
     return "avatar split clause";
   case InferenceRule::AVATAR_CONTRADICTION_CLAUSE:
