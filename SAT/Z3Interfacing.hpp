@@ -58,8 +58,8 @@ public:
   CLASS_NAME(Z3Interfacing);
   USE_ALLOCATOR(Z3Interfacing);
 
-  Z3Interfacing(const Shell::Options& opts, SAT2FO& s2f, bool unsatCore, vstring const& exportSmtlib);
-  Z3Interfacing(SAT2FO& s2f, bool showZ3, bool unsatCore, vstring const& exportSmtlib);
+  Z3Interfacing(const Shell::Options& opts, SAT2FO& s2f, bool unsatCoresForAssumptions, vstring const& exportSmtlib);
+  Z3Interfacing(SAT2FO& s2f, bool showZ3, bool unsatCoresForAssumptions, vstring const& exportSmtlib);
   ~Z3Interfacing();
 
   static char const* z3_full_version();
@@ -114,6 +114,15 @@ public:
   virtual bool hasAssumptions() const override { return !_assumptions.isEmpty(); }
 
   virtual Status solveUnderAssumptions(const SATLiteralStack& assumps, unsigned conflictCountLimit, bool onlyProperSubusets) override;
+
+  /**
+   * The set of inserted clauses may not be propositionally UNSAT
+   * due to theory reasoning inside Z3.
+   * We cannot later minimize this set with minisat.
+   *
+   * TODO: think of extracting true refutation from Z3 instead.
+   */
+  SATClauseList* getRefutationPremiseList() override{ return 0; }
 
   SATClause* getRefutation() override;
 
@@ -188,6 +197,8 @@ private:
   Representation getRepresentation(SATLiteral lit);
   Representation getRepresentation(SATClause* cl);
 
+  // arrays are a bit fragile in Z3, so we need to do things differently for them
+  bool _hasSeenArrays;
 
   unsigned _varCnt; // just to conform to the interface
   SAT2FO& _sat2fo; // Memory belongs to Splitter

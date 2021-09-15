@@ -32,7 +32,7 @@ using namespace Shell;
   DECL_PRED(pi, {Int})                                                                     \
   DECL_SKOLEM_CONST(sk4, Int) 
 
-void checkResult(vvector<pair<InductionScheme, OccurrenceMap>> res,
+void checkOccurrenceMap(vvector<pair<InductionScheme, OccurrenceMap>> res,
   vvector<vvector<pair<TermSugar, vmap<Literal*, uint64_t>>>> c)
 {
   for (auto v : c) {
@@ -93,7 +93,7 @@ TEST_FUN(test_01) {
   gen.generate(premises, res);
 
   // these occurrence bit vectors are to be read right-to-left
-  checkResult(res, {
+  checkOccurrenceMap(res, {
     { { sk2, { { mainLit, 0b10 },
                { sideLit, 0b11 } } } },
 
@@ -129,7 +129,7 @@ TEST_FUN(test_02) {
   gen.generate(premises, res);
 
   // these occurrence bit vectors are to be read right-to-left
-  checkResult(res, {
+  checkOccurrenceMap(res, {
     { { sk1, { { mainLit, 1 } } }, { sk3, { { mainLit, 0b11 } } } },
 
     { { sk1, { { mainLit, 1 } } }, { r(sk3), { { mainLit, 1 } } } },
@@ -174,7 +174,7 @@ TEST_FUN(test_03) {
   gen.generate(premises1, res);
 
   // empty result
-  checkResult(res, { });
+  checkOccurrenceMap(res, { });
 
   // swapping the two clauses results in scheme
   InductionPremise mainPremise2(lit2, clause({ lit2 }));
@@ -183,11 +183,12 @@ TEST_FUN(test_03) {
 
   gen.generate(premises2, res);
 
-  checkResult(res, {
+  checkOccurrenceMap(res, {
     { { sk2, { { lit2, 1 } } }, { sk3, { { lit2, 1 } } } },
   });
 }
 
+// complex terms are induction upon
 TEST_FUN(test_04) {
   __ALLOW_UNUSED(MY_SYNTAX_SUGAR)
   SET_OPTIONS({ { "induction_on_complex_terms", "on" } })
@@ -202,7 +203,7 @@ TEST_FUN(test_04) {
   vvector<pair<InductionScheme, OccurrenceMap>> res;
   gen.generate(premises, res);
 
-  checkResult(res, {
+  checkOccurrenceMap(res, {
     { { sk1, { { mainLit, 0 },
                { sideLit, 0  } } } },
 
@@ -238,7 +239,7 @@ TEST_FUN(test_05) {
   vvector<pair<InductionScheme, OccurrenceMap>> res;
   gen.generate(premises1, res);
 
-  checkResult(res, {
+  checkOccurrenceMap(res, {
     { { sk4, { { lit1, 0 }, { lit2, 1 } } } },
   });
 
@@ -251,5 +252,5 @@ TEST_FUN(test_05) {
 
   gen.generate(premises2, res);
 
-  checkResult(res, { });
+  checkOccurrenceMap(res, { });
 }

@@ -8,17 +8,12 @@
  * and in the source directory
  */
 /**
- * @file FnDefRewriting.cpp
- * Implements class FnDefRewriting.
+ * @file InductionHypothesisRewriting.cpp
+ * Implements class InductionHypothesisRewriting.
  */
 
-#include "Debug/RuntimeStatistics.hpp"
-
 #include "Lib/Environment.hpp"
-#include "Lib/Int.hpp"
 #include "Lib/Metaiterators.hpp"
-#include "Lib/PairUtils.hpp"
-#include "Lib/VirtualIterator.hpp"
 
 #include "Kernel/Clause.hpp"
 #include "Kernel/EqHelper.hpp"
@@ -27,10 +22,6 @@
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/Term.hpp"
 #include "Kernel/TermIterators.hpp"
-
-#include "Indexing/Index.hpp"
-#include "Indexing/IndexManager.hpp"
-#include "Indexing/TermSharing.hpp"
 
 #include "Saturation/Splitter.hpp"
 

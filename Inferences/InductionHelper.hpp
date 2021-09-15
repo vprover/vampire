@@ -62,7 +62,7 @@ public:
   static bool isMainSidePair(Literal* main, Clause* mainCl, Literal* side, Clause* sideCl);
   static bool isInductionLiteral(Literal* l, Clause* cl);
   static vset<unsigned> collectInductionSkolems(Literal* l, Clause* cl);
-  static vset<unsigned> collectInductionSkolems(Literal* l, Clause* cl, const DHSet<unsigned>* info);
+  static vset<unsigned> collectInductionSkolems(Literal* l, const DHSet<unsigned>* info);
   static bool isInductionTermFunctor(unsigned f);
   static bool isInductionTerm(Term* t);
   static bool isIntInductionTermListInLiteral(const TermList& tl, Literal* l);

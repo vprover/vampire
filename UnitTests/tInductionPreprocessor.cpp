@@ -117,7 +117,7 @@ TEST_FUN(test_01) {
   ASS(!env.signature->getFnDefHandler()->hasInductionTemplate(q.functor(), false));
 }
 
-// not useful functions
+// not useful functions (either no recursive calls or no argument changes in any recursive call)
 TEST_FUN(test_02) {
   __ALLOW_UNUSED(MY_SYNTAX_SUGAR)
   DECL_FUNC_DEFS({ { clause({ g(f(x, r(y))) == f(x, r(y)) }),                0, true  },   \
@@ -255,7 +255,8 @@ TEST_FUN(test_05) {
   ASS(!env.signature->getFnDefHandler()->hasInductionTemplate(p1.functor(), false));
 }
 
-// non-term-algebra header arguments are OK but trivial headers are added for well-definedness are ignored
+// headers with non-term-algebra arguments are not discarded
+// but trivial headers are added to ensure well-definedness
 TEST_FUN(test_06) {
   __ALLOW_UNUSED(MY_SYNTAX_SUGAR)
   DECL_FUNC_DEFS({ { clause({ p(g(x)), p(x) }),                              0, false  },  \
@@ -323,8 +324,7 @@ TEST_FUN(test_08) {
   });
 
   schemes.clear();
-  auto t2 = f(sk1,sk1);
-  ft.requestInductionScheme(t2.toTerm().term(), schemes);
+  ft.requestInductionScheme(f(sk1,sk1).toTerm().term(), schemes);
   ASS_EQ(schemes.size(), 1);
   checkInductionTerms(*schemes.begin(), { { sk1.toTerm().term(), 0 } });
   checkCases(*schemes.begin(), {
@@ -348,7 +348,8 @@ TEST_FUN(test_08) {
     { { { 0, x10.toTerm() }, { 1, b.toTerm() } },           { } },
   });
 
-  // no scheme is generated if no Skolems are present or the term is non-ground
+  // no scheme is generated if no Skolems are present
+  // in one of the inductive arguments or the term is non-ground
   schemes.clear();
   ft.requestInductionScheme(f(sk1,x).toTerm().term(), schemes);
   ft.requestInductionScheme(f(b,sk1).toTerm().term(), schemes);

@@ -123,10 +123,10 @@ public:
       o.set(kv.first, kv.second);
       env.options->set(kv.first, kv.second);
     }
-    MockedSaturationAlgorithm salg(p, o);
+    MockedSaturationAlgorithm alg(p, o);
     SimplifyingGeneratingInference* rule = _rule.unwrapOrElse([&](){ return simpl._rule; });
     rule->setTestIndices(_indices);
-    rule->InferenceEngine::attach(&salg);
+    rule->InferenceEngine::attach(&alg);
     for (auto i : _indices) {
       i->attachContainer(&container);
     }

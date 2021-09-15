@@ -87,14 +87,11 @@ public:
   CLASS_NAME(InductionEqualityLHSIndex);
   USE_ALLOCATOR(InductionEqualityLHSIndex);
 
-  InductionEqualityLHSIndex(TermIndexingStructure* is, const Ordering& ord, const Options& opt)
-    : TermIndex(is), _ord(ord), _opt(opt) {}
+  InductionEqualityLHSIndex(TermIndexingStructure* is)
+    : TermIndex(is) {}
 
 protected:
   void handleClause(Clause* c, bool adding);
-private:
-  const Ordering& _ord;
-  const Options& _opt;
 };
 
 class InductionInequalitySubtermIndex

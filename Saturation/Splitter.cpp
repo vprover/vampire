@@ -47,6 +47,8 @@
 
 #include "DP/ShortConflictMetaDP.hpp"
 
+#include "Inferences/InductionHelper.hpp"
+
 #include "SaturationAlgorithm.hpp"
 
 namespace Saturation
@@ -74,6 +76,7 @@ void SplittingBranchSelector::init()
 #if VZ3
     case Options::SatSolver::Z3:
       { BYPASSING_ALLOCATOR
+        _solverIsSMT = true;
         _solver = new Z3Interfacing(_parent.getOptions(),_parent.satNaming(), /* unsat core */ false, _parent.getOptions().exportAvatarProblem());
         if(_parent.getOptions().satFallbackForSMT()){
           // TODO make fallback minimizing?
@@ -189,7 +192,8 @@ void SplittingBranchSelector::handleSatRefutation()
   if (!env.colorUsed) { // color oblivious, simple approach
     UnitList* prems = SATInference::getFOPremises(satRefutation);
 
-    Clause* foRef = Clause::fromIterator(LiteralIterator::getEmpty(),FromSatRefutation(InferenceRule::AVATAR_REFUTATION, prems, satPremises));
+    Clause* foRef = Clause::fromIterator(LiteralIterator::getEmpty(),
+        FromSatRefutation(_solverIsSMT ? InferenceRule::AVATAR_REFUTATION_SMT : InferenceRule::AVATAR_REFUTATION, prems, satPremises));
     // TODO: in principle, the user might be interested in this final clause's age (currently left 0)
     throw MainLoop::RefutationFoundException(foRef);
   } else { // we must produce a well colored proof
@@ -1274,6 +1278,15 @@ Clause* Splitter::buildAndInsertComponentClause(SplitLevel name, unsigned size, 
     compCl->setAge(orig->age());
     compCl->inference().th_ancestors = orig->inference().th_ancestors;
     compCl->inference().all_ancestors = orig->inference().all_ancestors;
+    auto origii = orig->inference().inductionInfo();
+    if (origii) {
+      for (unsigned i = 0; i < size; i++) {
+        auto inductionInfo = Inferences::InductionHelper::collectInductionSkolems(lits[i], origii);
+        for (const auto& e : inductionInfo) {
+          compCl->inference().addToInductionInfo(e);
+        }
+      }
+    }
   } else {
     compCl->setAge(AGE_NOT_FILLED);
     // We don't know anything about the derivation of the clause, so we set values which are as neutral as possible.

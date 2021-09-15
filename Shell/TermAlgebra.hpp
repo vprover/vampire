@@ -15,7 +15,6 @@
 #include "Lib/Allocator.hpp"
 #include "Lib/List.hpp"
 #include "Lib/Array.hpp"
-#include "Lib/STL.hpp"
 #include "Lib/VString.hpp"
 #include "Lib/Metaiterators.hpp"
 #include "Kernel/Sorts.hpp"

@@ -12,38 +12,23 @@
  * Implements class GeneralInduction.
  */
 
-#include "Debug/RuntimeStatistics.hpp"
-
-#include "Lib/Environment.hpp"
-#include "Lib/Set.hpp"
-#include "Lib/Array.hpp"
-#include "Lib/ScopedPtr.hpp"
-
 #include "Kernel/TermIterators.hpp"
 #include "Kernel/Signature.hpp"
 #include "Kernel/Unit.hpp"
 #include "Kernel/Inference.hpp"
-#include "Kernel/Sorts.hpp"
-#include "Kernel/Theory.hpp"
 #include "Kernel/Formula.hpp"
 #include "Kernel/FormulaUnit.hpp"
 #include "Kernel/FormulaVarIterator.hpp"
-#include "Kernel/Connective.hpp"
 #include "Kernel/RobSubstitution.hpp"
 
 #include "Saturation/SaturationAlgorithm.hpp"
 #include "Saturation/Splitter.hpp"
 
-#include "Shell/InductionSchemeGenerator.hpp"
-#include "Shell/Options.hpp"
 #include "Shell/Statistics.hpp"
 #include "Shell/NewCNF.hpp"
 #include "Shell/NNF.hpp"
 #include "Shell/Rectify.hpp"
-#include "Shell/Skolem.hpp"
 
-#include "Indexing/Index.hpp"
-#include "Indexing/ResultSubstitution.hpp"
 #include "Inferences/BinaryResolution.hpp"
 
 #include "GeneralInduction.hpp"
@@ -615,7 +600,7 @@ void GeneralInduction::generateClauses(
   while(cit.hasNext()){
     Clause* c = cit.next();
     for (unsigned i = 0; i < c->length(); i++) {
-      auto sk = InductionHelper::collectInductionSkolems((*c)[i], c, &info);
+      auto sk = InductionHelper::collectInductionSkolems((*c)[i], &info);
       for (const auto& v : sk) {
         c->inference().addToInductionInfo(v);
       }
@@ -786,7 +771,6 @@ vmap<InductionPremise, InductionPremises> GeneralInduction::selectPremises(Liter
   static const bool finInterval = InductionHelper::isInductionForFiniteIntervalsOn();
   const bool isPremiseComparison = InductionHelper::isIntegerComparison(premise); 
 
-  // TODO(mhajdu): is there a way to duplicate these iterators?
   TermQueryResultIterator sidesIt = TermQueryResultIterator::getEmpty();
   TermQueryResultIterator boundsIt = TermQueryResultIterator::getEmpty();
   if ((indmc || intInd) && InductionHelper::isSideLiteral(literal, premise))

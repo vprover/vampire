@@ -39,11 +39,6 @@
 #include<iostream>
 #endif
 
-namespace Inferences
-{
-  class GeneralInduction;
-}
-
 namespace Saturation
 {
 

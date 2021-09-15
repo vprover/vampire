@@ -405,7 +405,7 @@ TEST_GENERATION_INDUCTION(test_10,
 TEST_GENERATION_INDUCTION(test_11,
     Generation::TestCase()
       .context({ clause({ ~p(f(sK1,sK2)) }),
-                 clause({ p(sK2) }) })
+                 clause({ p(g(sK2)) }) })
       .indices({ index() })
       .input( clause({ p(sK1) }))
       .expected({
@@ -460,6 +460,30 @@ TEST_GENERATION_INDUCTION(test_14,
         clause({ ~q(b1), ~q(b2), ~q(r1(x,y,z)), q(x3) }),
         clause({ ~q(b1), ~q(b2), q(y), q(x3) }),
         clause({ ~q(b1), ~q(b2), q(z), q(x3) }),
+      })
+    )
+
+// positive literals are considered 1
+TEST_GENERATION_INDUCTION(test_15,
+    Generation::TestCase()
+      .options({ { "induction_neg_only", "off" } })
+      .indices({ index() })
+      .input( clause({  p(sK1) }))
+      .expected({
+        clause({ p(b), ~p(x), }),
+        clause({ p(b), p(r(x)), }),
+      })
+    )
+
+// positive literals are considered 2
+TEST_GENERATION_INDUCTION(test_16,
+    Generation::TestCase()
+      .options({ { "induction_neg_only", "off" } })
+      .indices({ index() })
+      .input( clause({  sK1 == g(sK1) }))
+      .expected({
+        clause({ b == g(b), x != g(x), }),
+        clause({ b == g(b), r(x) == g(r(x)), }),
       })
     )
 
@@ -629,5 +653,3 @@ TEST_GENERATION_INDUCTION(test_25,
         clause({ ~pi(0), sK6 < y, 0 < sK6, sK6 < sK6 }),
         clause({ ~pi(0), pi(y), 0 < sK6, sK6 < sK6 }),
         clause({ ~pi(0), ~pi(y+num(-1)), 0 < sK6, sK6 < sK6 }),
-      })
-    )

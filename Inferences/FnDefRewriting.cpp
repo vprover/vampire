@@ -12,13 +12,8 @@
  * Implements class FnDefRewriting.
  */
 
-#include "Debug/RuntimeStatistics.hpp"
-
-#include "Lib/Environment.hpp"
-#include "Lib/Int.hpp"
 #include "Lib/Metaiterators.hpp"
 #include "Lib/PairUtils.hpp"
-#include "Lib/VirtualIterator.hpp"
 
 #include "Kernel/Clause.hpp"
 #include "Kernel/EqHelper.hpp"
@@ -28,9 +23,7 @@
 #include "Kernel/Term.hpp"
 #include "Kernel/TermIterators.hpp"
 
-#include "Indexing/Index.hpp"
 #include "Indexing/IndexManager.hpp"
-#include "Indexing/TermSharing.hpp"
 
 #include "Saturation/SaturationAlgorithm.hpp"
 
@@ -61,8 +54,6 @@ private:
 };
 
 struct FnDefRewriting::RewriteableSubtermsFn {
-  RewriteableSubtermsFn() = default;
-
   VirtualIterator<pair<Literal *, TermList>> operator()(Literal *lit)
   {
     CALL("FnDefRewriting::RewriteableSubtermsFn()");
@@ -85,7 +76,6 @@ struct FnDefRewriting::ForwardResultFn {
                                    qr.literal, qr.term, qr.substitution, false, temp,
                                    Inference(GeneratingInference2(InferenceRule::FNDEF_REWRITING, _cl, qr.clause)));
   }
-
 private:
   Clause *_cl;
 };
@@ -113,7 +103,7 @@ ClauseIterator FnDefRewriting::generateClauses(Clause *premise)
 
 bool FnDefRewriting::perform(Clause* cl, Clause*& replacement, ClauseIterator& premises)
 {
-  CALL("FnDefRewriting::perform");
+  CALL("FnDefRewriting::perform/1");
 
   Ordering& ordering = ForwardSimplificationEngine::_salg->getOrdering();
 
@@ -168,7 +158,7 @@ Clause *FnDefRewriting::perform(
     ResultSubstitutionSP subst, bool toplevelCheck, bool& isEqTautology,
     const Inference& inf, SaturationAlgorithm* salg)
 {
-  CALL("FnDefRewriting::perform");
+  CALL("FnDefRewriting::perform/2");
 
   if (SortHelper::getTermSort(rwTerm, rwLit) != SortHelper::getEqualityArgumentSort(eqLit)) {
     // sorts don't match
