@@ -65,7 +65,7 @@ public:
   static vset<unsigned> collectInductionSkolems(Literal* l, const DHSet<unsigned>* info);
   static bool isInductionTermFunctor(unsigned f);
   static bool isInductionTerm(Term* t);
-  static bool isIntInductionTermListInLiteral(const TermList& tl, Literal* l);
+  static bool isIntInductionTermListInLiteral(TermList& tl, Literal* l);
   static bool isIntegerBoundLiteral(const TermList& tl, Literal* l);
   static bool isStructInductionFunctor(unsigned f);
   static TermList* getLowerBoundForTermListFromLiteral(const TermList& tl, Literal* l);

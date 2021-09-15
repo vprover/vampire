@@ -304,48 +304,62 @@ bool InductionHelper::isInductionTermFunctor(unsigned f) {
          );
 }
 
-bool InductionHelper::isIntInductionTermListInLiteral(const TermList& tl, Literal* l) {
+bool containsSkolem(Term* t) {
+  if (env.signature->getFunction(t->functor())->skolem()) return true; 
+  NonVariableIterator nvi(t);
+  while (nvi.hasNext()) {
+    if (env.signature->getFunction(nvi.next().term()->functor())->skolem()) return true;
+  }
+  return false;
+}
+
+bool termAndLiteralSatisfyStrictness(const TermList& tl, Literal* l, unsigned strictness) {
+  if (((strictness == 1) &&
+       (((tl == *l->nthArgument(0)) && !l->nthArgument(1)->containsSubterm(tl)) ||
+        ((tl == *l->nthArgument(1)) && !l->nthArgument(0)->containsSubterm(tl)))) ||
+      ((strictness == 2) && (l->countSubtermOccurrences(tl) < 2)) || 
+      ((strictness == 3) &&
+       (!l->nthArgument(0)->containsSubterm(tl) || !l->nthArgument(1)->containsSubterm(tl))) || 
+      (strictness == 4)) {
+    return false;
+  }
+  return true;
+}
+
+bool InductionHelper::isIntInductionTermListInLiteral(TermList& tl, Literal* l) {
   CALL("InductionHelper::isIntInductionTermInLiteral");
 
   static const unsigned strictness = env.options->intInductionStrictness();
-  ASS((0 <= strictness) && (strictness < 5));
+  static const unsigned termst = strictness % 10;
+  static const unsigned compst = (strictness / 10) % 10;
+  static const unsigned eqst = (strictness / 100) % 10;
+  ASS(termst < 3);
+  ASS(compst < 5);
+  ASS(eqst < 5);
 
-  ASS(tl.isTerm());
   // Term tl has to be an integer term, and not an interpreted constant.
+  // Further, integer term tl from literal l cannot be used for induction if any
+  // of the following conditions is not satisfied.
+  // Term strictness (applies on any tl):
+  //   1: tl is an interpreted constant
+  //   2: tl does not contain a skolem function
+  // Comparison or equality strictness (applies when l is a comparison or an equality):
+  //   1: tl is a top-level argument of l, but it does not occur in the other argument of l
+  //   2: t has only one occurrence in l
+  //   3: t does not occur in both arguments of l
+  //   4: comparisons or equalities are not allowed
+  ASS(tl.isTerm());
   unsigned f = tl.term()->functor();
-  if (env.signature->getFunction(f)->fnType()->result() != Term::intSort())
-  // TODO: move this check to later (when we know the bounds)?
-  //    theory->isInterpretedConstant(f))
+  if (env.signature->getFunction(f)->fnType()->result() != Term::intSort() ||
+      ((termst >= 1) && theory->isInterpretedConstant(f)) ||
+      ((termst == 2) && !containsSkolem(tl.term())))
   {
     return false;
   }
-  // Integer term tl from literal l cannot be used for induction if either:
-  // 1. strictness 1:
-  //  - l is an integer comparison or equality, tl is one of its top-level arguments,
-  //    and tl is not contained in the other top-level argument.
-  // 2. strictness 2:
-  //  - l is an integer comparison or equality and tl only occurs in one of its
-  //    arguments.
-  // 3. strictness 3:
-  //  - l is an integer comparison, or
-  //  - l is an equality, tl is one of its top-level arguments, and tl is not
-  //    contained in the other top-level argument.
-  // 4. strictness 4:
-  //  - l is an integer comparison, or
-  //  - l is an equality and tl only occurs in one of its arguments.
-  const bool isComparison = isIntegerComparisonLiteral(l);
   const bool isEquality = (theory->isInterpretedPredicate(l) &&
       (l->isEquality() || theory->isInequality(theory->interpretPredicate(l))));
-  if (((strictness == 1) && (isComparison || isEquality) &&
-       (((tl == *l->nthArgument(0)) && !l->nthArgument(1)->containsSubterm(tl)) ||
-        ((tl == *l->nthArgument(1)) && !l->nthArgument(0)->containsSubterm(tl)))) ||
-      ((strictness == 2) && (isComparison || isEquality) &&
-       (!l->nthArgument(0)->containsSubterm(tl) || !l->nthArgument(1)->containsSubterm(tl))) || 
-      ((strictness == 3) && (isComparison || (isEquality &&
-         (((tl == *l->nthArgument(0)) && !l->nthArgument(1)->containsSubterm(tl)) ||
-          ((tl == *l->nthArgument(1)) && !l->nthArgument(0)->containsSubterm(tl)))))) || 
-      ((strictness == 4) && (isComparison || (isEquality &&
-         (!l->nthArgument(0)->containsSubterm(tl) || !l->nthArgument(1)->containsSubterm(tl)))))) {
+  if ((isEquality && !termAndLiteralSatisfyStrictness(tl, l, eqst)) ||
+      (!isEquality && isIntegerComparisonLiteral(l) && !termAndLiteralSatisfyStrictness(tl, l, compst))) {
     return false;
   }
   return true;
