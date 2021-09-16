@@ -706,7 +706,11 @@ void Z3Interfacing::createTermAlgebra(TermAlgebra& start)
       }
       for (unsigned iDestr = 0; iDestr < ctor->arity(); iDestr++)  {
         auto dtor = z3::func_decl(_context, destr[iDestr]);
-        auto id = FuncOrPredId::function(ctor->destructorFunctor(iDestr));
+        // careful: datatypes can have boolean fields!
+        auto id = FuncOrPredId(
+          ctor->destructorFunctor(iDestr),
+          dtor.range().is_bool()
+        );
         _toZ3.insert(id, dtor);
         _fromZ3.insert(dtor, id);
       }
@@ -834,10 +838,12 @@ struct ToZ3Expr
     auto trm = toEval.term();
     bool isLit = trm->isLiteral();
 
-
     Signature::Symbol* symb;
     SortId range_sort;
     bool is_equality = false;
+    // in addition to the actual equality, equalityProxy also gets translated as equality for Z3,
+    // and when it's polymorphic, we need to offset its type argument:
+    unsigned equality_typeArgArity = 0;
     if (isLit) {
       symb = env.signature->getPredicate(trm->functor());
       range_sort = AtomicSort::boolSort();
@@ -845,6 +851,13 @@ struct ToZ3Expr
       if(trm->functor()==0){
          is_equality=true;
          ASS(trm->arity()==2);
+      }
+      if(symb->equalityProxy()) {
+        is_equality=true;
+        OperatorType* ftype = symb->fnType();
+        equality_typeArgArity = ftype->typeArgsArity();
+
+        ASS(trm->arity()==equality_typeArgArity+2);
       }
     } else {
       symb = env.signature->getFunction(trm->functor());
@@ -901,7 +914,7 @@ struct ToZ3Expr
 
    //Check for equality
     if(is_equality){
-      return args[0] == args[1];
+      return args[equality_typeArgArity+0] == args[equality_typeArgArity+1];
     }
 
     // Currently do not deal with all intepreted operations, should extend
