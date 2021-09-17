@@ -420,7 +420,7 @@ protected:
       return new Formula(newConst);
     }
     if(newLit==lit) { return f; }
-    return new AtomicFormula(newLit);
+    return new AtomicFormula(newLit, f->isFunctionDefinition());
   }
 
 private:

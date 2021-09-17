@@ -761,6 +761,7 @@ static const char* EXISTS = "exists";
 static const char* FORALL = "forall";
 
 const char * SMTLIB2::s_formulaSymbolNameStrings[] = {
+    ":=",
     "<",
     "<=",
     "=",
@@ -2044,6 +2045,7 @@ bool SMTLIB2::parseAsBuiltinFormulaSymbol(const vstring& id, LExpr* exp)
     }
     // all the following are "chainable" and need to respect sorts
     case FS_EQ:
+    case FS_FNDEF:
     case FS_LESS:
     case FS_LESS_EQ:
     case FS_GREATER:
@@ -2065,7 +2067,7 @@ bool SMTLIB2::parseAsBuiltinFormulaSymbol(const vstring& id, LExpr* exp)
 
       Formula* lastConjunct;
       unsigned pred = 0;
-      if (fs == FS_EQ) {
+      if (fs == FS_EQ || fs == FS_FNDEF) {
         if (firstParseResult.formula && secondParseResult.formula) {
           Formula* first;
           Formula* second;
@@ -2077,7 +2079,7 @@ bool SMTLIB2::parseAsBuiltinFormulaSymbol(const vstring& id, LExpr* exp)
           TermList second;
           firstParseResult.asTerm(first);
           secondParseResult.asTerm(second);
-          lastConjunct = new AtomicFormula(Literal::createEquality(true, first, second, firstParseResult.sort));
+          lastConjunct = new AtomicFormula(Literal::createEquality(true, first, second, firstParseResult.sort), fs == FS_FNDEF);
         }
       } else {
         Interpretation intp = getFormulaSymbolInterpretation(fs,firstParseResult.sort);
@@ -2102,7 +2104,7 @@ bool SMTLIB2::parseAsBuiltinFormulaSymbol(const vstring& id, LExpr* exp)
         firstParseResult = secondParseResult;
         secondParseResult = nextParseResult;
         // create next conjunct
-        if (fs == FS_EQ) {
+        if (fs == FS_EQ || fs == FS_FNDEF) {
           if (firstParseResult.formula && secondParseResult.formula) {
             Formula* first;
             Formula* second;
@@ -2114,7 +2116,7 @@ bool SMTLIB2::parseAsBuiltinFormulaSymbol(const vstring& id, LExpr* exp)
             TermList second;
             firstParseResult.asTerm(first);
             secondParseResult.asTerm(second);
-            lastConjunct = new AtomicFormula(Literal::createEquality(true, first, second, firstParseResult.sort));
+            lastConjunct = new AtomicFormula(Literal::createEquality(true, first, second, firstParseResult.sort), fs == FS_FNDEF);
           }
         } else {
           Interpretation intp = getFormulaSymbolInterpretation(fs,firstParseResult.sort);

@@ -127,7 +127,7 @@ Formula* Flattening::flatten (Formula* f)
       if (lit == flattenedLit) {
         return f;
       } else {
-        return new AtomicFormula(flattenedLit);
+        return new AtomicFormula(flattenedLit, f->isFunctionDefinition());
       }
     }
 

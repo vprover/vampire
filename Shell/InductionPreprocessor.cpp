@@ -40,6 +40,11 @@ void FnDefHandler::handleClause(Clause* c, unsigned fi, bool reversed)
 
     static const bool fnrw = env.options->functionDefinitionRewriting();
     if (fnrw) {
+      if (env.options->showPreprocessing()) {
+        env.beginOutput();
+        env.out() << "[PP] Function definition " << *header << " = " << body << " from clause " << *c << endl;
+        env.endOutput();
+      }
       _is->insert(TermList(header), lit, c);
     }
 

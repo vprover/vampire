@@ -177,6 +177,7 @@ private:
    */
   enum FormulaSymbol
   {
+    FS_FNDEF,
     FS_LESS,
     FS_LESS_EQ,
     FS_EQ,
