@@ -653,3 +653,5 @@ TEST_GENERATION_INDUCTION(test_25,
         clause({ ~pi(0), sK6 < y, 0 < sK6, sK6 < sK6 }),
         clause({ ~pi(0), pi(y), 0 < sK6, sK6 < sK6 }),
         clause({ ~pi(0), ~pi(y+num(-1)), 0 < sK6, sK6 < sK6 }),
+      })
+    )

@@ -256,14 +256,15 @@ void InductionTermIndex::handleClause(Clause* c, bool adding)
         NonVariableIterator nvi(lit);
         while (nvi.hasNext()) {
           TermList tl = nvi.next();
-          if (!inserted.insert(tl.term())) {
+          auto t = tl.term();
+          if (!inserted.insert(t)) {
             // same as for DemodulationSubtermIndex
             nvi.right();
             continue;
           }
-          if (InductionHelper::isInductionTerm(tl.term()) &&
-              (InductionHelper::isIntInductionTermListInLiteral(tl, lit) ||
-               InductionHelper::isStructInductionFunctor(tl.term()->functor()))) {
+          if ((InductionHelper::isInductionTermFunctor(t->functor()) &&
+               InductionHelper::isIntInductionTermListInLiteral(tl, lit)) ||
+              InductionHelper::isStructInductionTerm(t)) {
             if (adding) {
               _is->insert(tl, lit, c);
             } else {
@@ -293,14 +294,15 @@ void InductionSideLiteralTermIndex::handleClause(Clause* c, bool adding)
         NonVariableIterator nvi(lit);
         while (nvi.hasNext()) {
           TermList tl = nvi.next();
-          if (!inserted.insert(tl.term())) {
+          auto t = tl.term();
+          if (!inserted.insert(t)) {
             // same as for DemodulationSubtermIndex
             nvi.right();
             continue;
           }
-          if (InductionHelper::isInductionTerm(tl.term()) &&
-              (InductionHelper::isIntInductionTermListInLiteral(tl, lit) ||
-               InductionHelper::isStructInductionFunctor(tl.term()->functor()))) {
+          if ((InductionHelper::isInductionTermFunctor(t->functor()) &&
+               InductionHelper::isIntInductionTermListInLiteral(tl, lit)) ||
+              InductionHelper::isStructInductionTerm(t)) {
             if (adding) {
               _is->insert(tl, lit, c);
             } else {

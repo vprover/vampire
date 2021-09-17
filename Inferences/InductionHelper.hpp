@@ -68,6 +68,7 @@ public:
   static bool isIntInductionTermListInLiteral(TermList& tl, Literal* l);
   static bool isIntegerBoundLiteral(const TermList& tl, Literal* l);
   static bool isStructInductionFunctor(unsigned f);
+  static bool isStructInductionTerm(Term* t);
   static TermList* getLowerBoundForTermListFromLiteral(const TermList& tl, Literal* l);
   static TermList* getUpperBoundForTermListFromLiteral(const TermList& tl, Literal* l);
 

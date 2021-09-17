@@ -17,14 +17,9 @@
 #include "Inferences/InductionHelper.hpp"
 
 using namespace Kernel;
+using namespace Inferences;
 
 namespace Shell {
-
-inline bool isTermAlgebraCons(Term* t)
-{
-  ASS(!t->isLiteral());
-  return env.signature->getFunction(t->functor())->termAlgebraCons();
-}
 
 /**
  * Returns all subterms which can be inducted on for a term.
@@ -48,7 +43,7 @@ vset<Term*> getInductionTerms(Term* t, TermList s)
 
     unsigned f = curr->functor();
     auto type = env.signature->getFunction(f)->fnType();
-    if (Inferences::InductionHelper::isInductionTerm(curr) && type->result() == s) {
+    if (InductionHelper::isStructInductionTerm(curr) && type->result() == s) {
       res.insert(curr);
     }
 
@@ -67,7 +62,7 @@ vset<Term*> getInductionTerms(Term* t, TermList s)
         }
         i++;
       }
-    } else if (isTermAlgebraCons(curr)) {
+    } else if (env.signature->getFunction(f)->termAlgebraCons()) {
       for (unsigned i = 0; i < curr->arity(); i++) {
         if (type->arg(i) == type->result()) {
           auto st = *curr->nthArgument(i);
@@ -228,12 +223,12 @@ void RecursionInductionSchemeGenerator::process(Term* t, bool active, Literal* l
 {
   CALL("RecursionInductionSchemeGenerator::process");
 
+  unsigned f = t->functor();
+
   // If induction term, store the occurrence
-  if (Inferences::InductionHelper::isInductionTerm(t)) {
+  if (InductionHelper::isStructInductionTerm(t)) {
     _actOccMaps.add(lit, t, active);
   }
-
-  unsigned f = t->functor();
 
   // If function with recursive definition, create a scheme
   if (active && env.signature->getFnDefHandler()->hasInductionTemplate(f, true)) {
@@ -277,9 +272,7 @@ void StructuralInductionSchemeGenerator::generate(
     TermList ts = it.next();
     ASS(ts.isTerm());
     Term* t = ts.term();
-    unsigned f = t->functor();
-    if (Inferences::InductionHelper::isInductionTerm(t) &&
-        Inferences::InductionHelper::isStructInductionFunctor(f)) {
+    if (InductionHelper::isStructInductionTerm(t)) {
       ta_terms.insert(t);
     }
     occMap.add(main.literal, t, false);
@@ -305,7 +298,7 @@ void StructuralInductionSchemeGenerator::generate(
 }
 
 void addBoundOccurrenceIfEligible(const Set<Term*>& int_terms, vmap<Term*, vset<const InductionPremise*>>& bounds, OccurrenceMap& occMap, const InductionPremise& ip) {
-  ASS(Inferences::InductionHelper::isIntegerComparison(ip.clause));
+  ASS(InductionHelper::isIntegerComparison(ip.clause));
   if (ip.literal->ground()) {
     for (int i = 0; i < 2; ++i) {
       Term* t = ip.literal->nthArgument(i)->term();
@@ -338,8 +331,8 @@ void IntegerInductionSchemeGenerator::generate(
     ASS(ts.isTerm());
     Term* t = ts.term();
     unsigned f = t->functor();
-    if (Inferences::InductionHelper::isInductionTermFunctor(f) &&
-        Inferences::InductionHelper::isIntInductionTermListInLiteral(ts, main.literal)) {
+    if (InductionHelper::isInductionTermFunctor(f) &&
+        InductionHelper::isIntInductionTermListInLiteral(ts, main.literal)) {
       int_terms.insert(t);
       occMap.add(main.literal, t, false);
       if (bounds.count(t) == 0) bounds[t] = vset<const InductionPremise*>();
@@ -352,14 +345,14 @@ void IntegerInductionSchemeGenerator::generate(
   }
   for (const InductionPremise& ip : premises.sides()) {
     // premises.sides might contain literals usable as bounds
-    if (Inferences::InductionHelper::isIntegerComparison(ip.clause)) {
+    if (InductionHelper::isIntegerComparison(ip.clause)) {
       addBoundOccurrenceIfEligible(int_terms, bounds, occMap, ip);
     }
     SubtermIterator it(ip.literal);
     while (it.hasNext()) {
       TermList tl = it.next();
       Term* t = tl.term();
-      if (int_terms.contains(t) && Inferences::InductionHelper::isIntInductionTermListInLiteral(tl, ip.literal)) {
+      if (int_terms.contains(t) && InductionHelper::isIntInductionTermListInLiteral(tl, ip.literal)) {
         bool isBound = false;
         for (const InductionPremise* bound : bounds[t]) {
           if (bound->literal == ip.literal) {
@@ -384,9 +377,9 @@ void IntegerInductionSchemeGenerator::generate(
     vvector<pair<TermList*, const InductionPremise*>> upperBounds;
     for (const InductionPremise* ip : bounds[t]) {
       TermList* b;
-      if ((b = Inferences::InductionHelper::getLowerBoundForTermListFromLiteral(tl, ip->literal))) {
+      if ((b = InductionHelper::getLowerBoundForTermListFromLiteral(tl, ip->literal))) {
         lowerBounds.emplace_back(b, ip);
-      } else if ((b = Inferences::InductionHelper::getUpperBoundForTermListFromLiteral(tl, ip->literal))) {
+      } else if ((b = InductionHelper::getUpperBoundForTermListFromLiteral(tl, ip->literal))) {
         upperBounds.emplace_back(b, ip);
       }
     }
@@ -406,8 +399,8 @@ void IntegerInductionSchemeGenerator::getIntegerInductionSchemes(Term* t,
     bool upward,
     bool mainIsOriginalPremise,
     vvector<InductionScheme>& schemes) {
-  static const bool infInterval = Inferences::InductionHelper::isInductionForInfiniteIntervalsOn();
-  static const bool finInterval = Inferences::InductionHelper::isInductionForFiniteIntervalsOn();
+  static const bool infInterval = InductionHelper::isInductionForInfiniteIntervalsOn();
+  static const bool finInterval = InductionHelper::isInductionForFiniteIntervalsOn();
   static const bool defaultBound = env.options->integerInductionDefaultBound();
   static const bool defaultBound2 = env.options->integerInductionSecondDefaultBound();
   static const TermList zero(theory->representConstant(IntegerConstantType(0)));

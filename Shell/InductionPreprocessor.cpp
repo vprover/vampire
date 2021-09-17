@@ -321,7 +321,7 @@ void InductionTemplate::requestInductionScheme(Term* t, vset<InductionScheme>& s
   for (unsigned i = 0; i < t->arity(); i++) {
     auto arg = *t->nthArgument(i);
     if (_indPos[i]) {
-      if (arg.isVar() || !Inferences::InductionHelper::isInductionTerm(arg.term())) {
+      if (arg.isVar() || !Inferences::InductionHelper::isStructInductionTerm(arg.term())) {
         return;
       }
       auto it = inductionTerms.find(arg.term());
