@@ -330,8 +330,7 @@ bool InductionHelper::isIntInductionTermListInLiteral(TermList& tl, Literal* l) 
   {
     return false;
   }
-  const bool isEquality = (theory->isInterpretedPredicate(l) &&
-      (l->isEquality() || theory->isInequality(theory->interpretPredicate(l))));
+  const bool isEquality = (theory->isInterpretedPredicate(l) && l->isEquality());
   if ((isEquality && !termAndLiteralSatisfyStrictness(tl, l, eqst)) ||
       (!isEquality && isIntegerComparisonLiteral(l) && !termAndLiteralSatisfyStrictness(tl, l, compst))) {
     return false;
