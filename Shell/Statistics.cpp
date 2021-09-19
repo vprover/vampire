@@ -188,6 +188,7 @@ Statistics::Statistics()
     instGenIterations(0),
 
     satPureVarsEliminated(0),
+    inProofStats(),
     terminationReason(UNKNOWN),
     refutation(0),
     saturatedSet(0),
@@ -213,6 +214,20 @@ void Statistics::explainRefutationNotFound(ostream& out)
   else {
     out << "Refutation not found, incomplete strategy";
   }
+}
+
+vstring toCapitalCamelCase(const vstring& str) {
+  vstring res;
+  bool cap = true;
+  for (const char& c : str) {
+    if (isalpha(static_cast<unsigned char>(c))) {
+      res.push_back(cap ? toupper(c) : c);
+      cap = false;
+    } else {
+      cap = true;
+    }
+  }
+  return res;
 }
 
 void Statistics::print(ostream& out)
@@ -447,6 +462,7 @@ void Statistics::print(ostream& out)
   COND_OUT("Injectivity simplifications",taInjectivitySimplifications);
   COND_OUT("Negative injectivity simplifications",taNegativeInjectivitySimplifications);
   COND_OUT("Disequalities generated from acyclicity",taAcyclicityGeneratedDisequalities);
+  SEPARATOR;
 
   HEADING("AVATAR",splitClauses+splitComponents+uniqueComponents+satSplits+
         satSplitRefutations);
@@ -474,6 +490,24 @@ void Statistics::print(ostream& out)
   COND_OUT("SAT solver unit clauses", unitSatClauses);
   COND_OUT("SAT solver binary clauses", binarySatClauses);
   COND_OUT("Pure propositional variables eliminated by SAT solver", satPureVarsEliminated);
+  SEPARATOR;
+
+  auto it = inProofStats.items();
+  unsigned inProofNum = 0;
+  vvector<pair<InferenceRule,unsigned>> inProofV;
+  while (it.hasNext()) {
+    auto kv = it.next();
+    inProofNum += kv.second;
+    inProofV.push_back(kv);
+  }
+  sort(inProofV.begin(), inProofV.end(),
+    [](const pair<InferenceRule,unsigned>& p1, const pair<InferenceRule,unsigned>& p2) {
+      return p1.second > p2.second;
+    });
+  HEADING("In-Proof Statistics",inProofNum);
+  for (const auto& kv : inProofV) {
+    COND_OUT(toCapitalCamelCase(ruleName(kv.first)) + "InProof", kv.second);
+  }
   SEPARATOR;
 
   }

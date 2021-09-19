@@ -473,6 +473,11 @@ protected:
         ;
     }
 
+    unsigned* v;
+    if (!env.statistics->inProofStats.getValuePtr(rule, v, 1)) {
+      (*v)++;
+    }
+
     if (cs->isClause()) {
       Clause* cl=cs->asClause();
       out << cl->toString() << vstring("\n");

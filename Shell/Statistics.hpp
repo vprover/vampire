@@ -21,6 +21,8 @@
 
 #include "Forwards.hpp"
 
+#include "Kernel/Inference.hpp"
+
 #include "Lib/RCPtr.hpp"
 #include "Lib/ScopedPtr.hpp"
 
@@ -296,6 +298,8 @@ public:
 
   /** Number of pure variables eliminated by SAT solver */
   unsigned satPureVarsEliminated;
+
+  DHMap<Kernel::InferenceRule, unsigned> inProofStats;
 
 #if GNUMP
   /**
