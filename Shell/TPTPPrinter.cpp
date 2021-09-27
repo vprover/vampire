@@ -198,18 +198,28 @@ void TPTPPrinter::outputSymbolTypeDefinitions(unsigned symNumber, SymbolType sym
 {
   CALL("TPTPPrinter::outputSymbolTypeDefinitions");
 
-  bool function = symType == SymbolType::FUNC;
 
-  Signature::Symbol* sym = function ?
-      env.signature->getFunction(symNumber) : env.signature->getPredicate(symNumber);
-  OperatorType* type = function ? sym->fnType() : sym->predType();
+  Signature::Symbol* sym;
+  OperatorType* type;
+  if(symType == SymbolType::FUNC){
+    sym = env.signature->getFunction(symNumber);
+    type = sym->fnType();
+  } else if(symType == SymbolType::PRED){
+    sym = env.signature->getPredicate(symNumber);
+    type = sym->predType();    
+  } else {
+    sym = env.signature->getTypeCon(symNumber);
+    type = sym->typeConType();
+  }
 
   if(type->isAllDefault()) {
     return;
   }
-  if(function && theory->isInterpretedConstant(symNumber)) { return; }
 
-  if (function && sym->overflownConstant()) { return; }
+  bool func = symType == SymbolType::FUNC ;
+  if(func && theory->isInterpretedConstant(symNumber)) { return; }
+
+  if (func && sym->overflownConstant()) { return; }
 
   if(sym->interpreted()) {
     Interpretation interp = static_cast<Signature::InterpretedSymbol*>(sym)->getInterpretation();
