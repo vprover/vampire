@@ -99,7 +99,8 @@ int Timer::s_initGuarantedMiliseconds;
   reportSpiderStatus('t');
   if (outputAllowed()) {
     addCommentSignForSZS(env.out());
-    env.out() << REACHED[whichLimit];
+    if(!env.options->symbolElimination())
+      env.out() << REACHED[whichLimit];
 
     if (UIHelper::portfolioParent) { // the boss
       addCommentSignForSZS(env.out());

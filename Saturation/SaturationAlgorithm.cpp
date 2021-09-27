@@ -656,10 +656,6 @@ void SaturationAlgorithm::addInputClause(Clause* cl)
   CALL("SaturationAlgorithm::addInputClause");
   ASS_LE(toNumber(cl->inputType()),toNumber(UnitInputType::CLAIM)); // larger input types should not appear in proof search
 
-  if (_symEl) {
-    _symEl->onInputClause(cl);
-  }
-
   bool sosForAxioms = _opt.sos() == Options::Sos::ON || _opt.sos() == Options::Sos::ALL; 
   sosForAxioms = sosForAxioms && cl->inputType()==UnitInputType::AXIOM;
 
@@ -1719,7 +1715,7 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
   if (opt.mode()==Options::Mode::CONSEQUENCE_ELIMINATION) {
     res->_consFinder=new ConsequenceFinder();
   }
-  if (opt.showSymbolElimination()) {
+  if (opt.symbolElimination()) {
     res->_symEl=new SymElOutput();
   }
   if (opt.questionAnswering()==Options::QuestionAnsweringMode::ANSWER_LITERAL) {

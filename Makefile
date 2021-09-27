@@ -377,6 +377,7 @@ VS_OBJ = Shell/AnswerExtractor.o\
          Shell/SimplifyFalseTrue.o\
          Shell/SineUtils.o\
          Shell/SMTFormula.o\
+         Shell/SMTPrinter.o\
          Shell/FOOLElimination.o\
          Shell/Statistics.o\
          Shell/SubexpressionIterator.o\

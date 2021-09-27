@@ -581,6 +581,11 @@ void Options::init()
     _lookup.insert(&_printClausifierPremises);
     _printClausifierPremises.tag(OptionTag::OUTPUT);
 
+    _symbolElimination = BoolOptionValue("symbol_elimination","",false);
+    _symbolElimination.description="Enable symbol elimination.";
+    _lookup.insert(&_symbolElimination);
+    _symbolElimination.tag(OptionTag::DEVELOPMENT);
+
     _showAll = BoolOptionValue("show_everything","",false);
     _showAll.description="Turn (almost) all of the showX commands on";
     _lookup.insert(&_showAll);
@@ -640,11 +645,6 @@ void Options::init()
     _showSkolemisations.description="Show Skolemisations.";
     _lookup.insert(&_showSkolemisations);
     _showSkolemisations.tag(OptionTag::DEVELOPMENT);
-
-    _showSymbolElimination = BoolOptionValue("show_symbol_elimination","",false);
-    _showSymbolElimination.description="Show symbol elimination.";
-    _lookup.insert(&_showSymbolElimination);
-    _showSymbolElimination.tag(OptionTag::DEVELOPMENT);
 
     _showTheoryAxioms = BoolOptionValue("show_theory_axioms","",false);
     _showTheoryAxioms.description="Show the added theory axioms.";

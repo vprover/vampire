@@ -805,6 +805,8 @@ KboWeight KboWeightMap<SigTraits>::symbolWeight(unsigned functor) const
     weight = functor < _weights.size() ? _weights[functor]
                                        : _introducedSymbolWeight;
   }
+  if(env.signature->functionColored(functor))
+    weight *= COLORED_WEIGHT_BOOST;
   return weight;
 }
 
