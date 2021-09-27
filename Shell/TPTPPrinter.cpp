@@ -198,18 +198,19 @@ void TPTPPrinter::outputSymbolTypeDefinitions(unsigned symNumber, SymbolType sym
 {
   CALL("TPTPPrinter::outputSymbolTypeDefinitions");
 
-  bool function = symType == SymbolType::FUNC;
+  bool func = symType == SymbolType::FUNC;
+  bool typCon = symType == SymbolType::TYPE_CON;
 
-  Signature::Symbol* sym = function ?
+  Signature::Symbol* sym = (func || typCon) ?
       env.signature->getFunction(symNumber) : env.signature->getPredicate(symNumber);
-  OperatorType* type = function ? sym->fnType() : sym->predType();
+  OperatorType* type = (func || typCon)  ? sym->fnType() : sym->predType();
 
   if(type->isAllDefault()) {
     return;
   }
-  if(function && theory->isInterpretedConstant(symNumber)) { return; }
+  if(func && theory->isInterpretedConstant(symNumber)) { return; }
 
-  if (function && sym->overflownConstant()) { return; }
+  if (func && sym->overflownConstant()) { return; }
 
   if(sym->interpreted()) {
     Interpretation interp = static_cast<Signature::InterpretedSymbol*>(sym)->getInterpretation();
@@ -230,9 +231,9 @@ void TPTPPrinter::outputSymbolTypeDefinitions(unsigned symNumber, SymbolType sym
   }
 
   vstring st = "func";
-  if(symType == SymbolType::PRED){
+  if(!func && !typCon){
     st = "pred"; 
-  } else if(symType == SymbolType::TYPE_CON){
+  } else if(typCon){
     st = "sort";
   }
 
