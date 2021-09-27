@@ -45,7 +45,6 @@
 #include "Statistics.hpp"
 #include "TPTPPrinter.hpp"
 #include "UIHelper.hpp"
-// #include "SMTPrinter.hpp"
 
 #include "Lib/RCPtr.hpp"
 #include "Lib/List.hpp"
@@ -180,7 +179,8 @@ void UIHelper::outputSaturatedSet(ostream& out, UnitIterator uit)
   CALL("UIHelper::outputSaturatedSet");
 
   addCommentSignForSZS(out);
-  out << "# SZS output start Saturation." << endl;
+  if(szsOutputMode())
+    out << "# SZS output start Saturation." << endl;
 
   while (uit.hasNext()) {
     Unit* cl = uit.next();
@@ -188,7 +188,8 @@ void UIHelper::outputSaturatedSet(ostream& out, UnitIterator uit)
   }
 
   addCommentSignForSZS(out);
-  out << "# SZS output end Saturation." << endl;
+  if(szsOutputMode())
+    out << "# SZS output end Saturation." << endl;
 } // outputSaturatedSet
 
 UnitList* parsedUnits;
@@ -396,7 +397,8 @@ void UIHelper::outputResult(ostream& out)
       return;
     }
     addCommentSignForSZS(out);
-    out << "Refutation found. Thanks to " << env.options->thanks() << "!\n";
+    if(!env.options->symbolElimination())
+      out << "Refutation found. Thanks to " << env.options->thanks() << "!\n";
     if (szsOutputMode()) {
       out << "% SZS status " << (UIHelper::haveConjecture() ? ( UIHelper::haveConjectureInProof() ? "Theorem" : "ContradictoryAxioms" ) : "Unsatisfiable")
 	  << " for " << env.options->problemName() << endl;
@@ -485,7 +487,8 @@ void UIHelper::outputResult(ostream& out)
       return;
     }
     addCommentSignForSZS(out);
-    out << "Time limit reached!\n";
+    if(!env.options->symbolElimination())
+      out << "Time limit reached!\n";
     break;
   case Statistics::MEMORY_LIMIT:
     if(env.options->outputMode() == Options::Output::SMTCOMP){

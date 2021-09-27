@@ -70,6 +70,8 @@ void timeLimitReached()
   if (outputAllowed()) {
     addCommentSignForSZS(env.out());
     env.out() << "Time limit reached!\n";
+    if(!env.options->symbolElimination())
+      env.out() << REACHED[whichLimit];
 
     if (UIHelper::portfolioParent) { // the boss
       addCommentSignForSZS(env.out());

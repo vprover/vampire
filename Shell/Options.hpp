@@ -1990,6 +1990,10 @@ public:
   int randomStrategySeed() const { return _randomStrategySeed.actualValue; }
   bool printClausifierPremises() const { return _printClausifierPremises.actualValue; }
 
+  // symbol elimination is not really a mode, but it does have some peculiarities
+  // that make it not really a show_XXX flag either
+  bool symbolElimination() const { return _symbolElimination.actualValue; }
+
   // IMPORTANT, if you add a showX command then include showAll
   bool showAll() const { return _showAll.actualValue; }
   bool showActive() const { return showAll() || _showActive.actualValue; }
@@ -2004,7 +2008,6 @@ public:
   bool showReductions() const { return showAll() || _showReductions.actualValue; }
   bool showPreprocessing() const { return showAll() || _showPreprocessing.actualValue; }
   bool showSkolemisations() const { return showAll() || _showSkolemisations.actualValue; }
-  bool showSymbolElimination() const { return showAll() || _showSymbolElimination.actualValue; }
   bool showTheoryAxioms() const { return showAll() || _showTheoryAxioms.actualValue; }
   bool showFOOL() const { return showAll() || _showFOOL.actualValue; }
   bool showFMBsortInfo() const { return showAll() || _showFMBsortInfo.actualValue; }
@@ -2548,6 +2551,8 @@ private:
 
   IntOptionValue _activationLimit;
 
+  BoolOptionValue _symbolElimination;
+
   ChoiceOptionValue<SatSolver> _satSolver;
   ChoiceOptionValue<SaturationAlgorithm> _saturationAlgorithm;
   BoolOptionValue _showAll;
@@ -2571,7 +2576,6 @@ private:
   BoolOptionValue _showReductions;
   BoolOptionValue _showPreprocessing;
   BoolOptionValue _showSkolemisations;
-  BoolOptionValue _showSymbolElimination;
   BoolOptionValue _showTheoryAxioms;
   BoolOptionValue _showFOOL;
   BoolOptionValue _showFMBsortInfo;

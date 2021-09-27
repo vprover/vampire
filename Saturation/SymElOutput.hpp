@@ -18,8 +18,7 @@
 #include "Forwards.hpp"
 
 #include "Lib/DHMap.hpp"
-
-#include "Shell/TPTPPrinter.hpp"
+#include "Shell/SMTPrinter.hpp"
 
 namespace Saturation {
 
@@ -41,45 +40,28 @@ public:
   void init(SaturationAlgorithm* sa);
 
   void onAllProcessed();
-  void onInputClause(Clause* c);
   void onNonRedundantClause(Clause* c);
   void onParenthood(Clause* cl, Clause* parent);
 
-
 private:
-
-  void onSymbolElimination(Color eliminated, Clause* c, bool nonRedundant=false);
-
-  void outputSymbolElimination(Color eliminated, Clause* c);
-
-  void checkForPreprocessorSymbolElimination(Clause* cl);
-
-  /** Number that would be used for the next symbol-eliminating
-   * inference conclusion that is output */
-  unsigned _symElNextClauseNumber;
+  void outputSymbolElimination(Clause* c);
 
   /**
-   * Contains record of rewrites on symbol-eliminating clauses
+   * all transparent clauses with coloured parents generated recently
+   * not output until shown not to be redundant in onNonRedundantClause
    *
-   * Is reset in the call to the @b onAllProcessed method.
-   *
-   * It is used so that we output symbol eliminating clauses
-   * after they are simplified and shown to be non-redundant.
+   * reset in onAllProcessed
    */
-  DHMap<Clause*,Clause*> _symElRewrites;
+  DHSet<Clause *> _eliminated;
 
   /**
-   * Contains record of colors that were aliminated in
-   * symbol-eliminating clauses
-   *
-   * Is reset in the call to the @b onAllProcessed method.
+   * Final cache to prevent duplicate output
+   * Key by string as clauses are not shared
    */
-  DHMap<Clause*,Color> _symElColors;
-
+  DHSet<vstring> _alreadyPrinted;
 
   SaturationAlgorithm* _sa;
-
-  TPTPPrinter _printer;
+  Shell::SMTPrinter _printer;
 };
 
 }
