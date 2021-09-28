@@ -292,6 +292,9 @@ private:
 
     TermList sort;
     bool formula;
+    /** The label assigned to this formula using the ":named" annotation of SMT-LIB2;
+     * empty string means no label. */
+    vstring label;
     union {
       Formula* frm;
       TermList trm;
@@ -309,6 +312,17 @@ private:
      * and return its vampire sort (which may be Sorts::SRT_BOOL).
      */
     TermList asTerm(TermList& resTrm);
+    /**
+     * Records a label for the formula represented by this `ParserResult`,
+     * resulting from a ":named" SMT-LIB2 annotation.
+     */
+    void setLabel(vstring l){ label = l; }
+    /**
+     * Helper that attaches a label to a `Formula`
+     * if a label is recorded for this `ParserResult`.
+     * Returns the formula.
+     */
+    Formula* attachLabelToFormula(Formula* frm);
 
     vstring toString();
   };

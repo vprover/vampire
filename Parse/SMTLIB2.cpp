@@ -1208,7 +1208,7 @@ bool SMTLIB2::ParseResult::asFormula(Formula*& resFrm)
 
   if (formula) {
     ASS_EQ(sort, Term::boolSort());
-    resFrm = frm;
+    resFrm = attachLabelToFormula(frm);
 
     LOG2("asFormula formula ",resFrm->toString());
     return true;
@@ -1219,7 +1219,7 @@ bool SMTLIB2::ParseResult::asFormula(Formula*& resFrm)
     if (trm.isTerm()) {
       Term* t = trm.term();
       if (t->isFormula()) {
-        resFrm = t->getSpecialData()->getFormula();
+        resFrm = attachLabelToFormula(t->getSpecialData()->getFormula());
 
         // t->destroy(); -- we cannot -- it can be accessed more than once
 
@@ -1231,7 +1231,7 @@ bool SMTLIB2::ParseResult::asFormula(Formula*& resFrm)
 
     LOG2("asFormula wrap ",trm.toString());
 
-    resFrm = new BoolTermFormula(trm);
+    resFrm = attachLabelToFormula(new BoolTermFormula(trm));
     return true;
   }
 
@@ -1272,6 +1272,14 @@ vstring SMTLIB2::ParseResult::toString()
     return "formula of sort "+sort.toString()+": "+frm->toString();
   }
   return "term of sort "+sort.toString()+": "+trm.toString();
+}
+
+Formula* SMTLIB2::ParseResult::attachLabelToFormula(Formula* frm)
+{
+  if (!label.empty()) {
+    frm->label(label);
+  }
+  return frm;
 }
 
 Interpretation SMTLIB2::getFormulaSymbolInterpretation(FormulaSymbol fs, TermList firstArgSort)
@@ -2653,12 +2661,9 @@ SMTLIB2::ParseResult SMTLIB2::parseTermOrFormula(LExpr* body)
       case PO_LABEL: {
         ASS_GE(_results.size(),1);
         ParseResult res =  _results.pop();
-        ASS(res.formula);
-        Formula* f;
-        res.asFormula(f);
         vstring label = exp->toString();
-        f->label(label);
-        _results.push(res); 
+        res.setLabel(label);
+        _results.push(res);
         continue;
       }
       case PO_LET_PREPARE_LOOKUP:
