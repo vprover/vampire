@@ -163,6 +163,39 @@ protected:
 };
 
 
+/**
+ * Term index for induction on arrays from the
+ * Rapid framework
+ */
+class RapidDensityClauseIndex
+: public TermIndex
+{
+public:
+  CLASS_NAME(RapidDensityClauseIndex);
+  USE_ALLOCATOR(RapidDensityClauseIndex);
+
+  RapidDensityClauseIndex(TermIndexingStructure* is)
+  : TermIndex(is) {}
+
+protected:
+  void handleClause(Clause* c, bool adding);
+};
+
+class RapidArrayIndex
+: public TermIndex
+{
+public:
+  CLASS_NAME(RapidArrayIndex);
+  USE_ALLOCATOR(RapidArrayIndex);
+
+  RapidArrayIndex(TermIndexingStructure* is)
+  : TermIndex(is) {}
+
+protected:
+  void handleClause(Clause* c, bool adding);
+};
+
+
 /////////////////////////////////////////////////////
 // Indices for higher-order inferences from here on//
 /////////////////////////////////////////////////////

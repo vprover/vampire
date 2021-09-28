@@ -251,6 +251,46 @@ void MultiClauseNatInductionIndex::handleClause(Clause* c, bool adding)
   }
 }
 
+void RapidDensityClauseIndex::handleClause(Clause* c, bool adding)
+{
+  CALL("RapidDensityClauseIndex::handleClause");
+
+  unsigned litPos, termPos;
+  if(RapidHelper::isStrongDensityClause(c, litPos, termPos)){
+    ASS(c->length() == 2);
+    ASS(litPos < 3 && termPos < 3);
+    
+    Literal* l = (*c)[litPos];
+    TermList term = *l->nthArgument(termPos);
+    if (adding) {
+      _is->insert(term, l, c);
+    } else {
+      _is->remove(term, l, c);
+    }    
+
+  }
+}
+
+void RapidArrayIndex::handleClause(Clause* c, bool adding)
+{
+  CALL("RapidArrayIndex::handleClause");
+
+  unsigned litPos, termPos;
+  if(RapidHelper::isArrayAccessClause(c, litPos, termPos)){
+    ASS(c->length() == 2);
+    ASS(litPos < 3 && termPos < 3);
+    
+    Literal* l = (*c)[litPos];
+    TermList term = *l->nthArgument(termPos);
+    if (adding) {
+      _is->insert(term, l, c);
+    } else {
+      _is->remove(term, l, c);
+    }    
+
+  }
+}
+
 /////////////////////////////////////////////////////
 // Indices for higher-order inferences from here on//
 /////////////////////////////////////////////////////

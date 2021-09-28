@@ -307,6 +307,18 @@ Index* IndexManager::create(IndexType t)
     isGenerating = true;
     break;  
 
+  case RAPID_DENSITY_CLAUSE_INDEX:
+    tis = new TermSubstitutionTree();
+    res = new RapidDensityClauseIndex(tis);
+    isGenerating = true;
+    break;  
+
+  case RAPID_ARRAY_INDEX:
+    tis = new TermSubstitutionTree();
+    res = new RapidArrayIndex(tis);
+    isGenerating = true;
+    break;  
+
   default:
     INVALID_OPERATION("Unsupported IndexType.");
   }

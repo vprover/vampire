@@ -104,7 +104,7 @@ void MultiClauseNatInduction::createConclusions(ClauseStack& premises,
       lit = (*c)[j];
       FormulaList::push(new AtomicFormula(lit),formulas);
     }
-    Formula* negatedDisjunct = new NegatedFormula(Formula::quantify(
+    Formula* negatedDisjunct = NegatedFormula::negate(Formula::quantify(
       JunctionFormula::generalJunction(Connective::OR, formulas)));
     disjuncts.push(negatedDisjunct);
   }
@@ -178,7 +178,7 @@ void MultiClauseNatInduction::createConclusions(ClauseStack& premises,
       while(!premises.isEmpty()){
         Clause* prem = premises.pop();
         Formula* f = disjuncts.pop();
-        lit = f->uarg()->literal();
+        lit = f->literal();
         Literal* negatedLit = Literal::complementaryLiteral(lit);
 
         bool resolved = false;
@@ -242,7 +242,7 @@ void MultiClauseNatInduction::getFinalLoopCounts(Clause* c, TermStack& endCounts
 ClauseIterator MultiClauseNatInduction::generateClauses(Clause* premise)
 {
   CALL("MultiClauseNatInduction::generateClauses");
-  
+
   static bool multiLiterals = env.options->multiLiteralClauses();
   static int MAX_DIS = (int)env.options->maxDistanceFromGoal();
 

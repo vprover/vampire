@@ -672,6 +672,26 @@ Formula* JunctionFormula::generalJunction(Connective c, FormulaList* args)
   return new JunctionFormula(c, args);
 }
 
+Formula* NegatedFormula::negate(Formula* f)
+{
+  CALL("NegatedFormula::negate");
+
+  switch (f->connective()) {
+    case NOT:
+      // firmly classical: ~~p <=> p
+      // no constructivism here!
+      return f->uarg();
+    case LITERAL:{
+      Literal* lit = f->literal();
+      Literal* negatedLit = Literal::complementaryLiteral(lit);
+      return new AtomicFormula(negatedLit);
+    }
+    default:
+      return new NegatedFormula(f);
+  }
+
+}
+
 /**
  * Return color of the formula
  *

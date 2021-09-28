@@ -241,6 +241,8 @@ public:
   /** Return the immediate subformula of this formula */
   Formula* subformula() { return _arg; }
 
+  static Formula* negate(Formula* f);
+
   // use allocator to (de)allocate objects of this class
   CLASS_NAME(NegatedFormula);
   USE_ALLOCATOR(NegatedFormula);

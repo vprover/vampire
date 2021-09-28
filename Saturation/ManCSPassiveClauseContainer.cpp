@@ -87,6 +87,7 @@ Clause* ManCSPassiveClauseContainer::popSelected()
   }
 
   auto selectedClause	= *selectedClauseIt;
+  std::cout << "Selected: " << selectedClause->toString() << "!\n";
   clauses.erase(selectedClauseIt);
   selectedEvent.fire(selectedClause);
 

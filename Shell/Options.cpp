@@ -1237,6 +1237,11 @@ void Options::init()
             _multiClauseNatInduction.tag(OptionTag::INFERENCES);
             _lookup.insert(&_multiClauseNatInduction);
 
+            _rapidArrayInduction = BoolOptionValue("rapid_arr_induct","rai",false);
+            _rapidArrayInduction.description = "Attempts to guess an induction formula over Rapid arrays based on program encoding";
+            _rapidArrayInduction.tag(OptionTag::INFERENCES);
+            _lookup.insert(&_rapidArrayInduction);
+
             _multiLiteralClauses = BoolOptionValue("multi_literal_clauses","mlc",false);
             _multiLiteralClauses.description = "Allow final loop count induction on clauses with multiple literals";
             _multiLiteralClauses.tag(OptionTag::INFERENCES);

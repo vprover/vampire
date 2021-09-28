@@ -447,6 +447,7 @@ set(VAMPIRE_INFERENCE_SOURCES
     Inferences/URResolution.cpp
     Inferences/IntermediateValue.cpp    
     Inferences/MultiClauseNatInduction.cpp
+    Inferences/RapidArrayInduction.cpp
     Inferences/BackwardDemodulation.hpp
     Inferences/BackwardSubsumptionResolution.hpp
     Inferences/BinaryResolution.hpp
@@ -492,7 +493,8 @@ set(VAMPIRE_INFERENCE_SOURCES
     Inferences/PolynomialEvaluation.cpp
     Inferences/Cancellation.hpp
     Inferences/Cancellation.cpp
-    Inferences/MultiClauseNatInduction.hpp    
+    Inferences/MultiClauseNatInduction.hpp 
+    Inferences/RapidArrayInduction.hpp       
 #    Inferences/TheoryRuleAttempt.hpp
 #    Inferences/TheoryRuleAttempt.cpp
     )

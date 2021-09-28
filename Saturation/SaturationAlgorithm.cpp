@@ -94,6 +94,7 @@
 #include "Inferences/CasesSimp.hpp"
 #include "Inferences/Cases.hpp"
 #include "Inferences/MultiClauseNatInduction.hpp"
+#include "Inferences/RapidArrayInduction.hpp"
 
 #include "Saturation/ExtensionalityClauseContainer.hpp"
 
@@ -1520,6 +1521,10 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
 
   if(opt.multiClauseNatInduction()){
     gie->addFront(new MultiClauseNatInduction());    
+  }
+
+  if(opt.rapidArrayInduction()){
+    gie->addFront(new RapidArrayInduction());    
   }
 
   if(opt.instantiation()!=Options::Instantiation::OFF){

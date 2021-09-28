@@ -238,10 +238,11 @@ void Inference::updateStatistics()
 
         _distanceFromGoal = max(unit1->inference().distanceFromGoal(),
                                 unit2->inference().distanceFromGoal());
-        if((unit1->inputType() == UnitInputType::CONJECTURE && 
+        if(((unit1->inputType() == UnitInputType::CONJECTURE && 
             unit2->inputType() != UnitInputType::CONJECTURE) || 
            (unit1->inputType() != UnitInputType::CONJECTURE && 
-            unit2->inputType() == UnitInputType::CONJECTURE) ){
+            unit2->inputType() == UnitInputType::CONJECTURE)) && 
+            !isFormulaTransformation(_rule)){
           //Clause is derived from the goal, but it is in sense getting further way
           //since one of its parents is not from the goal
           _distanceFromGoal++;
@@ -276,7 +277,8 @@ void Inference::updateStatistics()
         _reductions = max(_reductions,it->head()->inference().inductionDepth());
         it=it->tail();
       }
-      if(oneParentNotFromGoal && oneParentDerivedFromGoal){
+      if(oneParentNotFromGoal && oneParentDerivedFromGoal &&
+         !isFormulaTransformation(_rule)){
         _distanceFromGoal++;
       }
       break;
