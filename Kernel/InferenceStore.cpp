@@ -1057,24 +1057,27 @@ void InferenceStore::outputUnsatCore(ostream& out, Unit* refutation)
 
   Stack<Unit*> todo;
   todo.push(refutation);
-  Set<vstring> printed;
+  Set<Unit*> visited;
   while(!todo.isEmpty()){
 
     Unit* u = todo.pop();
+    visited.insert(u);
 
     if(u->number() <= Unit::getLastParsingNumber()){
       if(!u->isClause()  && u->getFormula()->hasLabel()){
         vstring label =  u->getFormula()->getLabel();
-        if(!printed.contains(label)){
-          out << label << endl; 
-          printed.insert(label);
-        }
+        out << label << endl;
       }
     }
     else{
       InferenceRule rule;
       UnitIterator parents = InferenceStore::instance()->getParents(u,rule);
-      while(parents.hasNext()){ todo.push(parents.next()); }
+      while(parents.hasNext()){
+        Unit* parent = parents.next();
+        if(!visited.contains(parent)){
+          todo.push(parent);
+        }
+      }
     }
 
   }
