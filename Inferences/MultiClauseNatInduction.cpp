@@ -167,7 +167,7 @@ void MultiClauseNatInduction::createConclusions(ClauseStack& premises,
 
   ClauseStack clausifiedHyps;
   cnf.clausify(NNF::ennf(fu), clausifiedHyps);
- 
+
   if(!multiLiterals && allGround){
     // In the case where some of the original clauses
     // are non-ground, the resolution step is more complicated.
@@ -226,13 +226,18 @@ void MultiClauseNatInduction::getFinalLoopCounts(Clause* c, TermStack& endCounts
 {
   CALL("MultiClauseNatInduction::tryGetFinalLoopCount");
 
+  static DHSet<TermList> loopEndsAdded;
+  loopEndsAdded.reset();
+
   for(unsigned i = 0; i < c->length(); i++){
     Literal* lit = (*c)[i];
     SubtermIterator sit(lit);
     while (sit.hasNext()) {  
       TermList tl = sit.next();
       if (RapidHelper::isFinalLoopCount(tl)){
-        endCounts.push(tl);
+        if(loopEndsAdded.insert(tl)){
+          endCounts.push(tl);
+        }
       }
     }    
   }
@@ -245,6 +250,11 @@ ClauseIterator MultiClauseNatInduction::generateClauses(Clause* premise)
 
   static bool multiLiterals = env.options->multiLiteralClauses();
   static int MAX_DIS = (int)env.options->maxDistanceFromGoal();
+
+  /*if(premise->derivedFromGoal()){
+    cout << premise->toString() << endl;
+    cout << "DISTANCE " << premise->inference().distanceFromGoal() << endl;
+  }*/
 
   if((premise->length() != 1 && !multiLiterals) || 
       !premise->derivedFromGoal() || 
@@ -285,7 +295,6 @@ ClauseIterator MultiClauseNatInduction::generateClauses(Clause* premise)
     
 
     if(premises.size() > 1 || (multiLiterals && premises[0]->length() > 1)){
-      //cout << "CLAUSE " + premise->toString() << endl;
       static ClauseStack conclusions;
       createConclusions(premises, nlTerm, conclusions, multiLiterals, allGround);
       while(!conclusions.isEmpty()){
