@@ -58,7 +58,6 @@ bool __permEq(const List& lhs, const List& rhs, Eq elemEq, DArray<unsigned>& per
     ASS_EQ(rhs.size(), perm.size());
 
     for (unsigned i = 0; i < perm.size(); i++) {
-      // DBG(lhs[i], " ?= ", rhs[perm[i]]);
       if (!elemEq(lhs[i], rhs[perm[i]])) return false;
     }
     return true;
@@ -148,15 +147,15 @@ std::ostream& Pretty<Literal*>::prettyPrint(std::ostream& out) const
 template<>
 std::ostream& Pretty<Clause>::prettyPrint(std::ostream& out) const
 { 
-  // out << "{ ";
   auto iter = _self.iterLits();
   if (iter.hasNext()) {
     out << pretty(*iter.next());
     while(iter.hasNext()) {
       out << " \\/ " << pretty(*iter.next());
     }
+  } else {
+    out << "bot";
   }
-  // out << " }";
   return out;
 }
 
@@ -235,12 +234,6 @@ bool TestUtils::isAC(Theory::Interpretation i)
 #undef NUM_CASE
   }
 }
-
-// bool TestUtils::eqModACVar(const Kernel::Clause* lhs, const Kernel::Clause* rhs)
-// { 
-//   RectMap map;
-//   return permEq(*lhs, *rhs, [&](Literal* l, Literal* r) -> bool { return TestUtils::eqModACVar(l, r, map); }); 
-// }
 
 bool TestUtils::eqModAC(const Kernel::Clause* lhs, const Kernel::Clause* rhs)
 { return permEq(*lhs, *rhs, [](Literal* l, Literal* r) -> bool { return TestUtils::eqModAC(l, r); }); }

@@ -181,8 +181,6 @@ VL_OBJ= Lib/Allocator.o\
         Lib/System.o\
         Lib/TimeCounter.o\
         Lib/Timer.o
-#        Lib/OptionsReader.o\
-#        Lib/Graph.o\
 
 VLS_OBJ= Lib/Sys/Multiprocessing.o\
          Lib/Sys/Semaphore.o\
@@ -238,7 +236,6 @@ VK_OBJ= Kernel/Clause.o\
         Kernel/Rebalancing.o\
         Kernel/Rebalancing/Inverters.o\
         Kernel/NumTraits.o
-#        Kernel/MatchTag.o\
 #        Kernel/Assignment.o\     
 #        Kernel/Constraint.o\
 #         Kernel/Number.o\
@@ -267,7 +264,6 @@ VI_OBJ = Indexing/AcyclicityIndex.o\
          Indexing/TermSharing.o\
          Indexing/TermSubstitutionTree.o\
          Indexing/TypeSubstitutionTree.o
-#         Indexing/FormulaIndex.o\         
 
 VIG_OBJ = InstGen/IGAlgorithm.o\
           InstGen/ModelPrinter.o
@@ -499,8 +495,7 @@ LIB_DEP = Indexing/TermSharing.o\
     Kernel/NumTraits.o
 #     ClausifierDependencyFix.o\
 
-OTHER_CL_DEP = Indexing/FormulaIndex.o\
-	       Indexing/LiteralSubstitutionTree.o\
+OTHER_CL_DEP = Indexing/LiteralSubstitutionTree.o\
 	       Indexing/ResultSubstitution.o\
 	       Indexing/SubstitutionTree_FastGen.o\
 	       Indexing/SubstitutionTree_FastInst.o\

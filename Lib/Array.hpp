@@ -56,7 +56,7 @@ public:
     : Array(contents.size()) 
   {
     auto iter = contents.begin();
-    auto i = 0u;
+    unsigned i = 0;
     while(iter != contents.end()) {
       ASS(i < _capacity)
       _array[i] = std::move(*iter);

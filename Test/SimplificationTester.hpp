@@ -104,15 +104,15 @@ public:
 
 #define REGISTER_SIMPL_TESTER(t) using SimplTester = t;
 
-#define TEST_SIMPLIFY(name, ...)                                                                                        \
+#define TEST_SIMPLIFY(name, ...)                                                                              \
         TEST_SIMPLIFY_WITH_SUGAR(name, MY_SYNTAX_SUGAR, __VA_ARGS__) 
 
-#define TEST_SIMPLIFY_WITH_SUGAR(name, syntax_sugar, ...)                                                               \
-  TEST_FUN(name) {                                                                                                      \
-    SimplTester simpl;                                                                                                  \
-    __ALLOW_UNUSED(syntax_sugar)                                                                                        \
-    __VA_ARGS__.run(simpl);                                                                                             \
-  }                                                                                                                     \
+#define TEST_SIMPLIFY_WITH_SUGAR(name, syntax_sugar, ...)                                                     \
+  TEST_FUN(name) {                                                                                            \
+    SimplTester simpl;                                                                                        \
+    __ALLOW_UNUSED(syntax_sugar)                                                                              \
+    __VA_ARGS__.run(simpl);                                                                                   \
+  }                                                                                                           \
 
 } // namespace Simplification
 

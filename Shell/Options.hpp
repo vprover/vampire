@@ -135,7 +135,6 @@ public:
     // deal with completeness
     bool complete(const Problem&) const;
     bool completeForNNE() const;
-    void forceIncompleteness() { _forceIncompleteness.actualValue=true; }
 
     // deal with constraints
     void setForcedOptionValues(); // not currently used effectively
@@ -194,7 +193,7 @@ public:
         DEVELOPMENT,
         OUTPUT,
         INST_GEN,
-	FMB,
+        FMB,
         SAT,
         AVATAR,
         INFERENCES,
@@ -203,6 +202,7 @@ public:
         PREPROCESSING,
         INPUT,
         HELP,
+        HIGHER_ORDER,
         LAST_TAG // Used for counting the number of tags
     };
     // update _tagNames at the end of Options constructor if you add a tag
@@ -211,9 +211,10 @@ public:
     OFF,
     ALL,    // select all interpreted
     STRONG, // select strong only
-    OVERLAP, // select strong and weak which overlap with strong
-    FULL,    // perform full abstraction
-    NEW
+    NEG_EQ, // select only positive equalities
+    OVERLAP,
+    FULL,   // <-+- deprecated. only exists to not break portfolio modes. behaves exactly like `ALL` now
+    NEW,    // <-+
   };
   enum class UnificationWithAbstraction : unsigned int {
     OFF,
@@ -325,43 +326,6 @@ public:
     WARN
   };
 
-  //enums for the bound propagation purpose
-  enum class BPAlmostHalfBoundingRemoval : unsigned int {
-    BOUNDS_ONLY = 0,
-    OFF = 1,
-    ON = 2
-  };
-
-  enum class BPAssignmentSelector: unsigned int {
-    ALTERNATIVE = 0,
-    BMP = 1,
-    LOWER = 2,
-    MIDDLE = 3,
-    RANDOM = 4,
-    RATIONAL = 5,
-    SMALLEST = 6,
-    TIGHT = 7,
-    TIGHTISH = 8,
-    UPPER = 9
-  };
-  
-  enum class BPConflictSelector: unsigned int {
-    LEAST_RECENT = 0, 
-    MOST_RECENT = 1, 
-    SHORTEST_CONSTRAINT = 2
-  };
-  
-  enum class BPVariableSelector: unsigned int {
-    CONFLICTING = 0, 
-    CONFLICTING_AND_COLLAPSING = 1, 
-    FIRST = 2, 
-    LOOK_AHEAD =3, 
-    RANDOM = 4, 
-    RECENTLY_CONFLICTING = 5,
-    RECENTLY_COLLAPSING = 6,
-    TIGHTEST_BOUND = 7
-
-  };
   /**
    * Possible values for function_definition_elimination.
    * @since 29/05/2004 Manchester
@@ -1979,7 +1943,6 @@ public:
   bool minimizeSatProofs() const { return _minimizeSatProofs.actualValue; }
   ProofExtra proofExtra() const { return _proofExtra.actualValue; }
   vstring printProofToFile() const { return _printProofToFile.actualValue; }
-  bool proofChecking() const { return _proofChecking.actualValue; }
   int naming() const { return _naming.actualValue; }
 
   bool fmbNonGroundDefs() const { return _fmbNonGroundDefs.actualValue; }
@@ -2003,6 +1966,7 @@ public:
   void setSchedule(Schedule newVal) {  _schedule.actualValue = newVal; }
   unsigned multicore() const { return _multicore.actualValue; }
   void setMulticore(unsigned newVal) { _multicore.actualValue = newVal; }
+  float slowness() const {return _slowness.actualValue; }
   InputSyntax inputSyntax() const { return _inputSyntax.actualValue; }
   void setInputSyntax(InputSyntax newVal) { _inputSyntax.actualValue = newVal; }
   bool normalize() const { return _normalize.actualValue; }
@@ -2015,7 +1979,6 @@ public:
   void setNaming(int n){ _naming.actualValue = n;} //TODO: ensure global constraints
   vstring include() const { return _include.actualValue; }
   void setInclude(vstring val) { _include.actualValue = val; }
-  vstring logFile() const { return _logFile.actualValue; }
   vstring inputFile() const { return _inputFile.actualValue; }
   int activationLimit() const { return _activationLimit.actualValue; }
   unsigned randomSeed() const { return _randomSeed.actualValue; }
@@ -2045,6 +2008,8 @@ public:
 
 #if VZ3
   bool showZ3() const { return showAll() || _showZ3.actualValue; }
+  vstring const& exportAvatarProblem() const { return _exportAvatarProblem.actualValue; }
+  vstring const& exportThiProblem() const { return _exportThiProblem.actualValue; }
 #endif
   
   // end of show commands
@@ -2061,10 +2026,10 @@ public:
   bool printAllTheoryAxioms() const { return _printAllTheoryAxioms.actualValue; }
 
 #if VZ3
-  bool z3UnsatCores() const { return _z3UnsatCores.actualValue;}
   bool satFallbackForSMT() const { return _satFallbackForSMT.actualValue; }
   bool smtForGround() const { return _smtForGround.actualValue; }
   TheoryInstSimp theoryInstAndSimp() const { return _theoryInstAndSimp.actualValue; }
+  bool thiGeneralise() const { return _thiGeneralise.actualValue; }
   bool thiTautologyDeletion() const { return _thiTautologyDeletion.actualValue; }
 #endif
   UnificationWithAbstraction unificationWithAbstraction() const { return _unificationWithAbstraction.actualValue; }
@@ -2075,7 +2040,6 @@ public:
   bool unusedPredicateDefinitionRemoval() const { return _unusedPredicateDefinitionRemoval.actualValue; }
   bool blockedClauseElimination() const { return _blockedClauseElimination.actualValue; }
   void setUnusedPredicateDefinitionRemoval(bool newVal) { _unusedPredicateDefinitionRemoval.actualValue = newVal; }
-  bool weightIncrement() const { return _weightIncrement.actualValue; }
   // bool useDM() const { return _use_dm.actualValue; }
   SatSolver satSolver() const { return _satSolver.actualValue; }
   //void setSatSolver(SatSolver newVal) { _satSolver = newVal; }
@@ -2114,7 +2078,6 @@ public:
   int lookaheadDelay() const { return _lookaheadDelay.actualValue; }
   int simulatedTimeLimit() const { return _simulatedTimeLimit.actualValue; }
   void setSimulatedTimeLimit(int newVal) { _simulatedTimeLimit.actualValue = newVal; }
-  int maxInferenceDepth() const { return _maxInferenceDepth.actualValue; }
   TermOrdering termOrdering() const { return _termOrdering.actualValue; }
   SymbolPrecedence symbolPrecedence() const { return _symbolPrecedence.actualValue; }
   SymbolPrecedenceBoost symbolPrecedenceBoost() const { return _symbolPrecedenceBoost.actualValue; }
@@ -2128,10 +2091,6 @@ public:
   int timeLimitInDeciseconds() const { return _timeLimitInDeciseconds.actualValue; }
   size_t memoryLimit() const { return _memoryLimit.actualValue; }
   int inequalitySplitting() const { return _inequalitySplitting.actualValue; }
-  long maxActive() const { return _maxActive.actualValue; }
-  long maxAnswers() const { return _maxAnswers.actualValue; }
-  //void setMaxAnswers(int newVal) { _maxAnswers = newVal; }
-  long maxPassive() const { return _maxPassive.actualValue; }
   int ageRatio() const { return _ageWeightRatio.actualValue; }
   void setAgeRatio(int v){ _ageWeightRatio.actualValue = v; }
   int weightRatio() const { return _ageWeightRatio.otherValue; }
@@ -2195,11 +2154,8 @@ public:
   bool increasedNumeralWeight() const { return _increasedNumeralWeight.actualValue; }
   TheoryAxiomLevel theoryAxioms() const { return _theoryAxioms.actualValue; }
   //void setTheoryAxioms(bool newValue) { _theoryAxioms = newValue; }
-  bool interpretedSimplification() const { return _interpretedSimplification.actualValue; }
-  //void setInterpretedSimplification(bool val) { _interpretedSimplification = val; }
   Condensation condensation() const { return _condensation.actualValue; }
   RuleActivity generalSplitting() const { return _generalSplitting.actualValue; }
-  //vstring namePrefix() const { return _namePrefix.actualValue; }
   bool timeStatistics() const { return _timeStatistics.actualValue; }
   bool splitting() const { return _splitting.actualValue; }
   void setSplitting(bool value){ _splitting.actualValue=value; }
@@ -2211,9 +2167,6 @@ public:
   void setSineSelection(SineSelection val) { _sineSelection.actualValue=val; }
   float sineTolerance() const { return _sineTolerance.actualValue; }
   float sineToAgeTolerance() const { return _sineToAgeTolerance.actualValue; }
-  bool smtlibConsiderIntsReal() const { return _smtlibConsiderIntsReal.actualValue; }
-  //void setSmtlibConsiderIntsReal( bool newVal ) { _smtlibConsiderIntsReal = newVal; }
-  bool smtlibFletAsDefinition() const { return _smtlibFletAsDefinition.actualValue; }
 
   bool colorUnblocking() const { return _colorUnblocking.actualValue; }
 
@@ -2246,8 +2199,6 @@ public:
   void setMemoryLimit(size_t newVal) { _memoryLimit.actualValue = newVal; }
   void setTimeLimitInSeconds(int newVal) { _timeLimitInDeciseconds.actualValue = 10*newVal; }
   void setTimeLimitInDeciseconds(int newVal) { _timeLimitInDeciseconds.actualValue = newVal; }
-  int getWhileNumber(){return _whileNumber.actualValue;}
-  int getFunctionNumber(){return _functionNumber.actualValue;}
 
   bool splitAtActivation() const{ return _splitAtActivation.actualValue; }
   SplittingNonsplittableComponents splittingNonsplittableComponents() const { return _splittingNonsplittableComponents.actualValue; }
@@ -2265,25 +2216,8 @@ public:
   CCUnsatCores ccUnsatCores() const { return _ccUnsatCores.actualValue; }
 
   void setProof(Proof p) { _proof.actualValue = p; }
-  bool bpEquivalentVariableRemoval() const { return _equivalentVariableRemoval.actualValue; }
-  unsigned bpMaximalPropagatedEqualityLength() const { return _maximalPropagatedEqualityLength.actualValue; }
-  BPAlmostHalfBoundingRemoval bpAlmostHalfBoundingRemoval() const {return _bpAlmostHalfBoundingRemoval.actualValue;}
-  bool bpFmElimination () const {return _bpFmElimination.actualValue;}
-  unsigned bpAllowedFMBalance() const { return _bpAllowedFMBalance.actualValue; }
-  BPAssignmentSelector bpAssignmentSelector() const {return _bpAssignmentSelector.actualValue; }
-  bool bpCollapsingPropagation() const {return _bpCollapsingPropagation.actualValue; }
-  unsigned bpUpdatesByOneConstraint() const {return _updatesByOneConstraint.actualValue; }
-  bool bpConservativeAssignmentSelection() const {return _bpConservativeAssignmentSelection.actualValue; }
-  BPConflictSelector bpConflictSelector() const {return _bpConflictSelector.actualValue; }
-  bool backjumpTargetIsDecisionPoint() const { return _backjumpTargetIsDecisionPoint.actualValue; }
-  bool bpPropagateAfterConflict() const {return _bpPropagateAfterConflict.actualValue; }
-  BPVariableSelector bpVariableSelector() const {return _bpVariableSelector.actualValue; }
-  bool bpSelectUnusedVariablesFirst() const {return _selectUnusedVariablesFirst.actualValue; }
-  bool bpStartWithPrecise() const { return _bpStartWithPrecise.actualValue; }
-  bool bpStartWithRational() const { return _bpStartWithRational.actualValue;}
     
   bool newCNF() const { return _newCNF.actualValue; }
-  int getIteInliningThreshold() const { return _iteInliningThreshold.actualValue; }
   bool getIteInlineLet() const { return _inlineLet.actualValue; }
 
   bool useManualClauseSelection() const { return _manualClauseSelection.actualValue; }
@@ -2448,7 +2382,6 @@ private:
   BoolOptionValue _literalMaximalityAftercheck;
   BoolOptionValue _arityCheck;
   
-  BoolOptionValue _backjumpTargetIsDecisionPoint;
   ChoiceOptionValue<BadOption> _badOption;
   ChoiceOptionValue<Demodulation> _backwardDemodulation;
   ChoiceOptionValue<Subsumption> _backwardSubsumption;
@@ -2456,17 +2389,6 @@ private:
   BoolOptionValue _backwardSubsumptionDemodulation;
   UnsignedOptionValue _backwardSubsumptionDemodulationMaxMatches;
   BoolOptionValue _binaryResolution;
-  BoolOptionValue _bpCollapsingPropagation;
-  UnsignedOptionValue _bpAllowedFMBalance;
-  ChoiceOptionValue<BPAlmostHalfBoundingRemoval> _bpAlmostHalfBoundingRemoval;
-  ChoiceOptionValue<BPAssignmentSelector> _bpAssignmentSelector;
-  ChoiceOptionValue<BPConflictSelector> _bpConflictSelector;
-  BoolOptionValue _bpConservativeAssignmentSelection;
-  BoolOptionValue _bpFmElimination;
-  BoolOptionValue _bpPropagateAfterConflict;
-  BoolOptionValue _bpStartWithPrecise;
-  BoolOptionValue _bpStartWithRational;
-  ChoiceOptionValue<BPVariableSelector> _bpVariableSelector;
 
   BoolOptionValue _colorUnblocking;
   ChoiceOptionValue<Condensation> _condensation;
@@ -2508,7 +2430,6 @@ private:
   BoolOptionValue _forwardSubsumptionDemodulation;
   UnsignedOptionValue _forwardSubsumptionDemodulationMaxMatches;
   ChoiceOptionValue<FunctionDefinitionElimination> _functionDefinitionElimination;
-  IntOptionValue _functionNumber;
   
   ChoiceOptionValue<RuleActivity> _generalSplitting;
   BoolOptionValue _globalSubsumption;
@@ -2547,7 +2468,6 @@ private:
   FloatOptionValue _instGenRestartPeriodQuotient;
   BoolOptionValue _instGenWithResolution;
   BoolOptionValue _useHashingVariantIndex;
-  BoolOptionValue _interpretedSimplification;
 
   ChoiceOptionValue<Induction> _induction;
   ChoiceOptionValue<StructuralInductionKind> _structInduction;
@@ -2566,26 +2486,19 @@ private:
   BoolOptionValue _latexUseDefaultSymbols;
 
   ChoiceOptionValue<LiteralComparisonMode> _literalComparisonMode;
-  StringOptionValue _logFile;
   IntOptionValue _lookaheadDelay;
   IntOptionValue _lrsFirstTimeCheck;
   BoolOptionValue _lrsWeightLimitOnly;
   ChoiceOptionValue<LTBLearning> _ltbLearning;
   StringOptionValue _ltbDirectory;
 
-  LongOptionValue _maxActive;
-  IntOptionValue _maxAnswers;
-  IntOptionValue _maxInferenceDepth;
-  LongOptionValue _maxPassive;
-
-  UnsignedOptionValue _maximalPropagatedEqualityLength;
   UnsignedOptionValue _memoryLimit; // should be size_t, making an assumption
   ChoiceOptionValue<Mode> _mode;
   ChoiceOptionValue<Schedule> _schedule;
   IntOptionValue _experimentalScheduleNumber;
   UnsignedOptionValue _multicore;
+  FloatOptionValue _slowness;
 
-  StringOptionValue _namePrefix;
   IntOptionValue _naming;
   BoolOptionValue _nonliteralsInClauseWeight;
   BoolOptionValue _normalize;
@@ -2599,7 +2512,6 @@ private:
   ChoiceOptionValue<Proof> _proof;
   BoolOptionValue _minimizeSatProofs;
   ChoiceOptionValue<ProofExtra> _proofExtra;
-  BoolOptionValue _proofChecking;
   
   StringOptionValue _protectedPrefix;
 
@@ -2612,7 +2524,6 @@ private:
 
   ChoiceOptionValue<SatSolver> _satSolver;
   ChoiceOptionValue<SaturationAlgorithm> _saturationAlgorithm;
-  BoolOptionValue _selectUnusedVariablesFirst;
   BoolOptionValue _showAll;
   BoolOptionValue _showActive;
   BoolOptionValue _showBlocked;
@@ -2642,10 +2553,12 @@ private:
   BoolOptionValue _showSimplOrdering;
 #if VZ3
   BoolOptionValue _showZ3;
-  BoolOptionValue _z3UnsatCores;
+  StringOptionValue _exportAvatarProblem;
+  StringOptionValue _exportThiProblem;
   BoolOptionValue _satFallbackForSMT;
   BoolOptionValue _smtForGround;
   ChoiceOptionValue<TheoryInstSimp> _theoryInstAndSimp;
+  BoolOptionValue _thiGeneralise;
   BoolOptionValue _thiTautologyDeletion;
 #endif
   ChoiceOptionValue<UnificationWithAbstraction> _unificationWithAbstraction; 
@@ -2658,8 +2571,6 @@ private:
   ChoiceOptionValue<SineSelection> _sineSelection;
   FloatOptionValue _sineTolerance;
   FloatOptionValue _sineToAgeTolerance;
-  BoolOptionValue _smtlibConsiderIntsReal;
-  BoolOptionValue _smtlibFletAsDefinition;
   ChoiceOptionValue<Sos> _sos;
   UnsignedOptionValue _sosTheoryLimit;
   BoolOptionValue _splitting;
@@ -2705,10 +2616,7 @@ private:
   ChoiceOptionValue<URResolution> _unitResultingResolution;
   BoolOptionValue _unusedPredicateDefinitionRemoval;
   BoolOptionValue _blockedClauseElimination;
-  UnsignedOptionValue _updatesByOneConstraint;
   // BoolOptionValue _use_dm;
-  BoolOptionValue _weightIncrement;
-  IntOptionValue _whileNumber;
 
   OptionChoiceValues _tagNames;
 
@@ -2721,7 +2629,6 @@ private:
   InputFileOptionValue _inputFile;
 
   BoolOptionValue _newCNF;
-  IntOptionValue _iteInliningThreshold;
   BoolOptionValue _inlineLet;
 
   BoolOptionValue _manualClauseSelection;

@@ -99,10 +99,12 @@ void CommandLine::interpret (Options& options)
   }
   // Don't force options if in Portfolio mode as the
   // forced options should apply to inner strategies only
+  // Don't check global option constraints in Portoflio mode
+  // as these are checked oon each inner strategy
   if(options.mode() != Options::Mode::PORTFOLIO){
     options.setForcedOptionValues();
+    options.checkGlobalOptionConstraints();
   }
-  options.checkGlobalOptionConstraints();
   if(options.encodeStrategy()){
     cout << options.generateEncodedOptions();
   }

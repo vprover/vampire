@@ -87,18 +87,27 @@ FiniteModelBuilder::FiniteModelBuilder(Problem& prb, const Options& opt)
   LOG(prop.hasProp(Property::PR_HAS_CDT_CONSTRUCTORS));
   LOG(prop.knownInfiniteDomain());
 
-  if (prb.hadIncompleteTransformation() ||
-      opt.sineSelection() != Options::SineSelection::OFF ||
-      prop.hasInterpretedOperations()
-            || prop.hasProp(Property::PR_HAS_INTEGERS)
-            || prop.hasProp(Property::PR_HAS_REALS)
-            || prop.hasProp(Property::PR_HAS_RATS)
-            || prop.knownInfiniteDomain() || // recursive data type provably infinite --> don't bother model building
+  if (prop.hasInterpretedOperations()
+      ||  prop.hasProp(Property::PR_HAS_INTEGERS)
+      || prop.hasProp(Property::PR_HAS_REALS)
+      || prop.hasProp(Property::PR_HAS_RATS)
+      || prop.knownInfiniteDomain() || // recursive data type provably infinite --> don't bother model building
       env.property->hasInterpretedOperations()) {
-    _isAppropriate = false;
 
-    // to ensure it is initialised
-    _dsaEnumerator = 0;
+      env.beginOutput();
+      addCommentSignForSZS(env.out());
+      env.out() << "WARNING: trying to run FMB on interpreted or otherwise provably infinite-domain problem!" << endl;
+      env.endOutput();
+
+     _isAppropriate = false;
+     _dsaEnumerator = 0; // to ensure it is initialised
+     return;
+  }
+
+  if (prb.hadIncompleteTransformation() ||
+      opt.sineSelection() != Options::SineSelection::OFF) {
+    _isAppropriate = false;
+    _dsaEnumerator = 0; // to ensure it is initialised
     return;
   }
 
@@ -180,7 +189,11 @@ bool FiniteModelBuilder::reset(){
 
     unsigned add = _sortModelSizes[f_signature[0]]; 
     for(unsigned i=1;i<f_signature.size();i++){
-      add *= _sortModelSizes[f_signature[i]];
+      unsigned n_add = add * _sortModelSizes[f_signature[i]];
+      if (n_add < add) { // additional overflow check - we multiply by positive integers!
+        return false;
+      }
+      add = n_add;
     }
 
     // Check that we do not overflow
@@ -202,7 +215,11 @@ bool FiniteModelBuilder::reset(){
     ASS(p_signature.size()==env.signature->predicateArity(p));
     unsigned add=1;
     for(unsigned i=0;i<p_signature.size();i++){
-      add *= _sortModelSizes[p_signature[i]];
+      unsigned n_add = add * _sortModelSizes[p_signature[i]];
+      if (n_add < add) { // additional overflow check - we multiply by positive integers!
+        return false;
+      }
+      add = n_add;
     }
 
     // Check for overflow
