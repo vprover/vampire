@@ -188,7 +188,11 @@ bool FiniteModelBuilder::reset(){
 
     unsigned add = _sortModelSizes[f_signature[0]]; 
     for(unsigned i=1;i<f_signature.size();i++){
-      add *= _sortModelSizes[f_signature[i]];
+      unsigned n_add = add * _sortModelSizes[f_signature[i]];
+      if (n_add < add) { // additional overflow check - we multiply by positive integers!
+        return false;
+      }
+      add = n_add;
     }
 
     // Check that we do not overflow
@@ -210,7 +214,11 @@ bool FiniteModelBuilder::reset(){
     ASS(p_signature.size()==env.signature->predicateArity(p));
     unsigned add=1;
     for(unsigned i=0;i<p_signature.size();i++){
-      add *= _sortModelSizes[p_signature[i]];
+      unsigned n_add = add * _sortModelSizes[p_signature[i]];
+      if (n_add < add) { // additional overflow check - we multiply by positive integers!
+        return false;
+      }
+      add = n_add;
     }
 
     // Check for overflow

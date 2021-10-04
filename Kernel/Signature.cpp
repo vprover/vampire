@@ -253,13 +253,6 @@ Signature::Signature ():
 {
   CALL("Signature::Signature");
 
-  /*bool added;
-  addPredicate("=", 2, added);
-  ASS(added);
-  ASS_EQ(predicateName(0), "=");
-  getPredicate(0)->markSkip();
-  getPredicate(0)->markProtected();*/
-
   unsigned aux;
   aux = createDistinctGroup();
   ASS_EQ(STRING_DISTINCT_GROUP, aux);

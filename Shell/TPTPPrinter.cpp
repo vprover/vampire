@@ -198,7 +198,6 @@ void TPTPPrinter::outputSymbolTypeDefinitions(unsigned symNumber, SymbolType sym
 {
   CALL("TPTPPrinter::outputSymbolTypeDefinitions");
 
-
   Signature::Symbol* sym;
   OperatorType* type;
   if(symType == SymbolType::FUNC){
