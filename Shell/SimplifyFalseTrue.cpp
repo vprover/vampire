@@ -483,6 +483,6 @@ TermList SimplifyFalseTrue::simplify(TermList ts)
   if (!simplified) {
     return ts;
   }
-
+  
   return TermList(Term::create(term, arguments.begin()));
 } // SimplifyFalseTrue::simplify(TermList)

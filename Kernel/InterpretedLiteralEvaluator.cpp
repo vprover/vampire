@@ -17,7 +17,7 @@
 
 #include "Signature.hpp"
 #include "SortHelper.hpp"
-#include "Sorts.hpp"
+#include "OperatorType.hpp"
 #include "TermIterators.hpp"
 #include "Term.hpp"
 #include "Theory.hpp"
@@ -1147,9 +1147,9 @@ bool InterpretedLiteralEvaluator::balance(Literal* lit,Literal*& resLit,Stack<Li
 
   Signature::Symbol* conSym = env.signature->getFunction(t1.term()->functor());
   TermList srt;
-  if(conSym->integerConstant()) srt = Term::intSort();
-  else if(conSym->rationalConstant()) srt = Term::rationalSort();
-  else if(conSym->realConstant()) srt = Term::realSort();
+  if(conSym->integerConstant()) srt = AtomicSort::intSort();
+  else if(conSym->rationalConstant()) srt = AtomicSort::rationalSort();
+  else if(conSym->realConstant()) srt = AtomicSort::realSort();
   else{
      ASSERTION_VIOLATION_REP(t1);
     return false;// can't work out the sort, that's odd!
@@ -1290,7 +1290,7 @@ bool InterpretedLiteralEvaluator::balanceMultiply(Interpretation divide,Constant
     CALL("InterpretedLiteralEvaluator::balanceMultiply");
 #if VDEBUG
     TermList srt = theory->getOperationSort(divide); 
-    ASS(srt == Term::realSort() || srt == Term::rationalSort()); 
+    ASS(srt == AtomicSort::realSort() || srt == AtomicSort::rationalSort()); 
 #endif
 
     unsigned div = env.signature->getInterpretingSymbol(divide);
@@ -1359,7 +1359,7 @@ bool InterpretedLiteralEvaluator::balanceDivide(Interpretation multiply,
     CALL("InterpretedLiteralEvaluator::balanceDivide");
 #if VDEBUG
     TermList srt = theory->getOperationSort(multiply); 
-    ASS(srt == Term::realSort() || srt == Term::rationalSort());
+    ASS(srt == AtomicSort::realSort() || srt == AtomicSort::rationalSort());
 #endif
 
     unsigned mul = env.signature->getInterpretingSymbol(multiply);
@@ -1560,8 +1560,8 @@ TermList InterpretedLiteralEvaluator::transformSubterm(TermList trm)
 
   // DEBUG( "transformSubterm for ", trm.toString() );
 
-
-  if (!trm.isTerm()) { return trm; }
+  //Nothing to evaluate in a sort
+  if (!trm.isTerm() || trm.term()->isSort()) { return trm; }
   Term* t = trm.term();
   unsigned func = t->functor();
 

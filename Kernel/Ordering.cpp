@@ -468,6 +468,24 @@ Ordering::Result PrecedenceOrdering::compareFunctionPrecedences(unsigned fun1, u
   return fromComparison(cmpRes);
 }
 
+/**
+ * Compare precedences of two type constructor symbols
+ * At the moment, completely non-optimised
+ */ 
+Ordering::Result PrecedenceOrdering::compareTypeConPrecedences(unsigned tyc1, unsigned tyc2) const
+{
+  CALL("PrecedenceOrdering::compareTypeConPrecedences");
+
+  if (tyc1 == tyc2)
+    return EQUAL;
+
+  static bool reverse = env.options->introducedSymbolPrecedence() == Shell::Options::IntroducedSymbolPrecedence::BOTTOM;
+
+  return fromComparison(Int::compare(
+      (int)(reverse ? -tyc1 : tyc1),
+      (int)(reverse ? -tyc2 : tyc2)));
+}
+
 template<typename Comparator>
 struct FnBoostWrapper
 {
