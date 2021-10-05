@@ -1582,7 +1582,7 @@ AtomicSort* AtomicSort::create(unsigned typeCon, unsigned arity, const TermList*
   return s;
 }
 
-/** Create a new complex term, copy from @b t its function symbol and
+/** Create a new complex sort, copy from @b sort its function symbol and
  *  from the array @b args its arguments. Insert it into the sharing
  *  structure if all arguments are shared.
  * @since 07/01/2008 Torrevieja
@@ -1618,8 +1618,8 @@ AtomicSort* AtomicSort::create2(unsigned tc, TermList arg1, TermList arg2)
 }
 
 
-/** Create a new complex sort, and insert it into the sharing
- *  structure if all arguments are shared.
+/** Create a new complex sort, and do not insert it into the sharing
+ *  structure.
  */
 AtomicSort* AtomicSort::createNonShared(unsigned typeCon, unsigned arity, TermList* args)
 {
