@@ -317,7 +317,7 @@ void TPTPPrinter::ensureHeadersPrinted(Unit* u)
   //ensureNecesarySorts();
 
   unsigned typeCons = env.signature->typeCons();
-  for(unsigned i=1; i<typeCons; i++) {
+  for(unsigned i=Signature::FIRST_USER_CON; i<typeCons; i++) {
     outputSymbolTypeDefinitions(i, SymbolType::TYPE_CON);
   }
   unsigned funs = env.signature->functions();
