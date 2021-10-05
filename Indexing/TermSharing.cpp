@@ -219,7 +219,11 @@ AtomicSort* TermSharing::insert(AtomicSort* sort)
   ASS(!sort->isSpecial());
   ASS(sort->isSort());
 
-  TimeCounter tc(TC_TERM_SHARING);
+  // cannot use TC_TERM_SHARING
+  // as inserting a term can result in the insertion of
+  // a sort and TimeCounter design forbids starting a timer 
+  // when it is alreadt running 
+  TimeCounter tc(TC_SORT_SHARING);
 
   _sortInsertions++;
   AtomicSort* s = _sorts.insert(sort);
