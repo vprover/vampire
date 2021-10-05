@@ -275,6 +275,7 @@ Problem* UIHelper::getInputProblem(const Options& opts)
 
        if(smtlib){
          env.beginOutput();
+         addCommentSignForSZS(env.out());
          env.out() << "Running in auto input_syntax mode. Trying SMTLIB2\n";
          env.endOutput();
          try{
@@ -282,8 +283,11 @@ Problem* UIHelper::getInputProblem(const Options& opts)
          }
          catch (UserErrorException& exception) {
            env.beginOutput();
+           addCommentSignForSZS(env.out());
            env.out() << "Failed with\n";
+           addCommentSignForSZS(env.out());
            exception.cry(env.out());
+           addCommentSignForSZS(env.out());
            env.out() << "Trying TPTP\n";
            env.endOutput();
            {
@@ -297,6 +301,7 @@ Problem* UIHelper::getInputProblem(const Options& opts)
        }
        else{
          env.beginOutput();
+         addCommentSignForSZS(env.out());
          env.out() << "Running in auto input_syntax mode. Trying TPTP\n";
          env.endOutput();
          try{
@@ -304,8 +309,11 @@ Problem* UIHelper::getInputProblem(const Options& opts)
          }
          catch (UserErrorException& exception) {
            env.beginOutput();
+           addCommentSignForSZS(env.out());
            env.out() << "Failed with\n";
+           addCommentSignForSZS(env.out());
            exception.cry(env.out());
+           addCommentSignForSZS(env.out());
            env.out() << "Trying SMTLIB2\n";
            env.endOutput();
            {
