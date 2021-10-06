@@ -1175,7 +1175,6 @@ int TPTP::decimal(int pos)
   case '9':
     break;
   default:
-    ASSERTION_VIOLATION_REP(getChar(pos));
     PARSE_ERROR("wrong number format",_gpos);
   }
 
