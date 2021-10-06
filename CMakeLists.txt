@@ -862,6 +862,10 @@ elseif(CMAKE_BUILD_TYPE STREQUAL Release)
   add_compile_definitions(VDEBUG=0)
 endif()
 
+if (CYGWIN)
+ add_compile_definitions(_BSD_SOURCE)
+endif()
+                    
 # configure warning flags
 if(CMAKE_CXX_COMPILER_ID STREQUAL GNU OR CMAKE_CXX_COMPILER_ID MATCHES Clang$)
   add_compile_options(-Wall)
