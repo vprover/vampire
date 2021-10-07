@@ -50,20 +50,19 @@ NameReuse *NameReuse::definitionInstance()
 Formula *ExactNameReuse::normalise(Formula *f)
 {
   CALL("ExactNameReuse::normalise");
-  FormulaUnit *copy =
-      new FormulaUnit(f, Inference(FromInput(UnitInputType::AXIOM)));
-  FormulaUnit *rectified = Rectify::rectify(copy);
-  return rectified->formula();
+  //std::cout << "normalise: " << f->toString() << std::endl;
+  Rectify rectify;
+  return rectify.rectify(f);
 }
 
 bool ExactNameReuse::get(Formula *normalised, unsigned &symbol)
 {
   CALL("ExactNameReuse::get");
+  //std::cout << "get: " << normalised->toString() << std::endl;
   return _map.find(normalised->toString(), symbol);
   /*
-  std::cout << "get: " << normalised->toString() << std::endl;
   if(_map.find(normalised->toString(), symbol)) {
-    std::cout << "XXX: " << normalised->toString() << std::endl;
+    std::cout << "hit: " << normalised->toString() << std::endl;
     return true;
   }
   return false;

@@ -16,6 +16,7 @@
 #define __NameReuse__
 
 #include "Forwards.hpp"
+#include "Shell/Rectify.hpp"
 #include "Lib/DHMap.hpp"
 
 using namespace Kernel;
