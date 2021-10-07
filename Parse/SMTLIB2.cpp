@@ -159,9 +159,10 @@ void SMTLIB2::readBenchmark(LExprList* bench)
     bool lemmaPredicateDeclared = ibRdr.tryAcceptAtom("declare-lemma-predicate");
     bool constVarDeclared = ibRdr.tryAcceptAtom("declare-const-var");
     bool finalLoopCountDeclared = ibRdr.tryAcceptAtom("declare-final-loop-count");
+    bool programVarDeclared = ibRdr.tryAcceptAtom("declare-program-var");
 
     if(timePointDeclared || lemmaPredicateDeclared || constVarDeclared ||
-       finalLoopCountDeclared){
+       finalLoopCountDeclared || programVarDeclared){
       vstring name = ibRdr.readAtom();
       LExprList* iSorts;
       if(!ibRdr.tryReadList(iSorts)){
@@ -178,6 +179,8 @@ void SMTLIB2::readBenchmark(LExprList* bench)
         rsym = RapidSymbol::RAP_CONST_VAR;
       } else if(finalLoopCountDeclared){
         rsym = RapidSymbol::RAP_FN_LOOP_COUNT;
+      } else if(programVarDeclared){
+        rsym = RapidSymbol::RAP_PROGRAM_VAR;
       }
 
       readDeclareFun(name,iSorts,oSort, rsym);
@@ -970,6 +973,10 @@ SMTLIB2::DeclaredFunction SMTLIB2::declareFunctionOrPredicate(const vstring& nam
     {
       sym->markMainEnd();
     } 
+
+    if(rapSym == RapidSymbol::RAP_PROGRAM_VAR){
+      sym->markProgramVar();
+    }
 
     type = OperatorType::getFunctionType(argSorts.size(), argSorts.begin(), rangeSort);
 

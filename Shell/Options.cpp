@@ -1233,9 +1233,15 @@ void Options::init()
             _lookup.insert(&_integerInductionInterval);
 
             _multiClauseNatInduction = BoolOptionValue("multi_clause_nat_ind","mcni",false);
-            _multiClauseNatInduction.description = "Apply multi-clause induction on final loop counter terms produced by Rapid translations";
+            _multiClauseNatInduction.description = "Apply multi-clause induction on loop counter terms produced by Rapid translations";
             _multiClauseNatInduction.tag(OptionTag::INFERENCES);
             _lookup.insert(&_multiClauseNatInduction);
+
+            _inductAllLoopCounts = BoolOptionValue("induct_all_loop_counts","ialc",false);
+            _inductAllLoopCounts.description = "Apply induction on all loop counter terms, not just final ones";
+            _inductAllLoopCounts.tag(OptionTag::INFERENCES);
+            _inductAllLoopCounts.reliesOn(_multiClauseNatInduction.is(equal(true)));
+            _lookup.insert(&_inductAllLoopCounts);
 
             _rapidArrayInduction = BoolOptionValue("rapid_arr_induct","rai",false);
             _rapidArrayInduction.description = "Attempts to guess an induction formula over Rapid arrays based on program encoding";
@@ -1253,7 +1259,7 @@ void Options::init()
                                                " for it to take part in multi-clause induction";
             _maxDistanceFromGoal.tag(OptionTag::INFERENCES);
             _maxDistanceFromGoal.reliesOn(_multiClauseNatInduction.is(equal(true)));
-            _maxDistanceFromGoal.addHardConstraint(lessThan(6u));
+            _maxDistanceFromGoal.addHardConstraint(lessThan(7u));
             _lookup.insert(&_maxDistanceFromGoal);
 
 	    _instantiation = ChoiceOptionValue<Instantiation>("instantiation","inst",Instantiation::OFF,{"off","on"});

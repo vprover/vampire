@@ -2190,6 +2190,7 @@ public:
   bool inductionOnComplexTerms() const {return _inductionOnComplexTerms.actualValue;}
   bool integerInductionDefaultBound() const { return _integerInductionDefaultBound.actualValue; }
   bool multiClauseNatInduction() const { return _multiClauseNatInduction.actualValue; }
+  bool inductAllLoopCounts() const { return _inductAllLoopCounts.actualValue; }
   bool rapidArrayInduction() const { return _rapidArrayInduction.actualValue; }
   bool multiLiteralClauses() const { return _multiLiteralClauses.actualValue; }
   unsigned maxDistanceFromGoal() const { return _maxDistanceFromGoal.actualValue; }
@@ -2496,6 +2497,7 @@ private:
   BoolOptionValue _inductionOnComplexTerms;
   BoolOptionValue _integerInductionDefaultBound;
   BoolOptionValue _multiClauseNatInduction;
+  BoolOptionValue _inductAllLoopCounts;
   BoolOptionValue _rapidArrayInduction;
   BoolOptionValue _multiLiteralClauses;
   UnsignedOptionValue _maxDistanceFromGoal;  

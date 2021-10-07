@@ -73,10 +73,55 @@ bool RapidHelper::isDensityLiteral(Literal* l, unsigned& varFunctor, unsigned& t
   vstring timePoint = name.substr(posOfSecondDash + 1, name.length() - posOfSecondDash - 2);
 
   varFunctor = env.signature->getFunctionNumber(programVarName, 1);
-  //very dangerous! the timepoint cna take multiple loop counters, so may
+  //very dangerous! the timepoint can take multiple loop counters, so may
   //not have arity 1!
   tpFunctor = env.signature->getFunctionNumber(timePoint, 1);
   return true;
+}
+
+bool RapidHelper::isSuitableForInduction(Literal* lit, vstring& tpName)
+{
+  CALL("RapidHelper::isSuitableForInduction");
+
+  auto isProgramVarAtSkolem = [&tpName](TermList t) {
+    if(t.isTerm()){
+      Term* tTerm = t.term();
+      if(env.signature->getFunction(tTerm->functor())->programVar()){
+        TermList timePoint = *tTerm->nthArgument(0);
+        if(timePoint.isTerm() && timePoint.term()->arity()){
+          Term* tp = timePoint.term();
+          tpName = env.signature->getFunction(tp->functor())->name();
+          TermList iter = *tp->nthArgument(tp->arity() - 1);
+          if(iter.isTerm()){
+            Term* iTerm = iter.term();
+            if(env.signature->getFunction(iTerm->functor())->inductionSkolem()){
+              return true;
+            }
+          }
+        }
+      }
+    }
+    return false;
+  };
+  
+  if(isIntegerComparisonLiteral(lit)){
+    TermList arg1 = *lit->nthArgument(0);
+    TermList arg2 = *lit->nthArgument(1);
+
+    IntegerConstantType a;
+    if ( theory->tryInterpretConstant(arg1, a)) {
+      if(isProgramVarAtSkolem(arg2)){
+        return true;
+      }
+    }
+
+    if ( theory->tryInterpretConstant(arg2, a)) {
+      if(isProgramVarAtSkolem(arg1)){
+        return true;
+      }
+    }
+  }
+  return false;
 }
 
 bool RapidHelper::isRightLimitLiteral(Literal* l) {

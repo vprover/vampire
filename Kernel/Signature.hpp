@@ -147,6 +147,8 @@ class Signature
 
     unsigned _timePoint : 1;
 
+    unsigned _programVar : 1;
+
     unsigned _constantProgramVar : 1;
 
     /** if arrow constructor */
@@ -204,7 +206,9 @@ class Signature
     void markMainEnd() { _mainEnd=1; }
 
     void markTimePoint() { _timePoint=1; }
-
+    /** mark symbol as representing a non-constant program variable in Rapid encoding */
+    void markProgramVar() { _programVar=1; }
+    /** mark symbol as representing a constant program variable in Rapid encoding */
     void markConstantProgramVar() { _constantProgramVar=1; }
 
     /** return true iff symbol is marked as skip for the purpose of symbol elimination */
@@ -246,6 +250,8 @@ class Signature
     inline bool mainEnd() const { return _mainEnd; }
 
     inline bool timePoint() const { return _timePoint; }
+
+    inline bool programVar() const { return _programVar; }
 
     inline bool constantProgramVar() const { return _constantProgramVar; }
 

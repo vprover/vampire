@@ -20,6 +20,7 @@
 #include "Indexing/TermIndex.hpp"
 
 #include "Kernel/FormulaTransformer.hpp"
+#include "Lib/DHSet.hpp"
 
 #include "InferenceEngine.hpp"
 
@@ -55,11 +56,15 @@ public:
   ClauseIterator generateClauses(Clause* premise);
   
 private:
-  void createConclusions(ClauseStack& premises, TermList nlTerm, 
+  void createConclusions(ClauseStack& premises, TermList inductionTerm, TermList limit, 
   	ClauseStack& concs,  bool multiLiterals, bool allGround);
-  void getFinalLoopCounts(Clause* c, TermStack& endCounts);
+  void getFinalLoopIters(Clause* c, TermStack& iterations);
+  void getNonFinalLoopIters(Clause* c, TermStack& iterations);
+  bool alreadyAddedAxiom(vset<unsigned>& premises);
 
   bool ground(Clause* c);
+  DHSet<Literal*> _premisesUsed;
+  Stack<vset<unsigned>> _inductionsCarriedOut;
 
   MultiClauseNatInductionIndex* _index;  
 

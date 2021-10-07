@@ -27,8 +27,6 @@
 
 #include "Inferences/BinaryResolution.hpp"
 
-#include "Lib/DHSet.hpp"
-
 #include "Shell/NewCNF.hpp"
 #include "Shell/NNF.hpp"
 #include "Shell/Rectify.hpp"
@@ -77,10 +75,13 @@ Formula* TermReplacingFormulaTransformer::applyLiteral(Formula* f)
 }
 
 void MultiClauseNatInduction::createConclusions(ClauseStack& premises, 
-      TermList nlTerm, ClauseStack& conclusions, bool multiLiterals, bool allGround)
+      TermList inductionTerm, TermList limit, ClauseStack& conclusions, 
+      bool multiLiterals, bool allGround)
 {
   Clause* c;
   Literal* lit;
+  
+  bool inductionIsLimit = inductionTerm == limit;
 
   auto natTA = env.signature->getNat();
   ASS(natTA);
@@ -112,7 +113,7 @@ void MultiClauseNatInduction::createConclusions(ClauseStack& premises,
   FormulaList* bases = FormulaList::empty();
   for(unsigned i = 0; i < disjuncts.size(); i++){
     Formula* f = disjuncts[i]; 
-    TermReplacingFormulaTransformer trft(nlTerm, zeroTerm);
+    TermReplacingFormulaTransformer trft(inductionTerm, zeroTerm);
     f = trft.transform(f);
     FormulaList::push(f,bases);
   }
@@ -125,12 +126,12 @@ void MultiClauseNatInduction::createConclusions(ClauseStack& premises,
   FormulaList* lefts = FormulaList::empty();
   for(unsigned i = 0; i < disjuncts.size(); i++){
     Formula* f = disjuncts[i]; 
-    TermReplacingFormulaTransformer trft(nlTerm, freshVar);
+    TermReplacingFormulaTransformer trft(inductionTerm, freshVar);
     f = trft.transform(f);    
     FormulaList::push(f,lefts);
   }
   Formula* left = JunctionFormula::generalJunction(Connective::OR, lefts);
-  Formula* less = new AtomicFormula(natTA->createLess(true, freshVar, nlTerm));
+  Formula* less = new AtomicFormula(natTA->createLess(true, freshVar, limit));
   Formula* leftOfImp = new JunctionFormula(Connective::AND,
                        new FormulaList(less,new FormulaList(left)));
 
@@ -138,7 +139,7 @@ void MultiClauseNatInduction::createConclusions(ClauseStack& premises,
   FormulaList* rights = FormulaList::empty();
   for(unsigned i = 0; i < disjuncts.size(); i++){
     Formula* f = disjuncts[i]; 
-    TermReplacingFormulaTransformer trft(nlTerm, succVar);
+    TermReplacingFormulaTransformer trft(inductionTerm, succVar);
     f = trft.transform(f); 
     FormulaList::push(f,rights);
   }
@@ -151,24 +152,35 @@ void MultiClauseNatInduction::createConclusions(ClauseStack& premises,
   FormulaList* concs = FormulaList::empty();
   for(unsigned i = 0; i < disjuncts.size(); i++){
     Formula* f = disjuncts[i]; 
+    if(!inductionIsLimit){
+      TermReplacingFormulaTransformer trft(inductionTerm, freshVar);
+      f = trft.transform(f);
+    }   
     FormulaList::push(f,concs);
   }
   Formula* conclusion = JunctionFormula::generalJunction(Connective::OR, concs);
+  if(!inductionIsLimit){
+    conclusion = Formula::quantify(new BinaryFormula(Connective::IMP, less,conclusion));
+  }
+
 
   Formula* inductionFormula = new BinaryFormula(Connective::IMP, hypotheses, conclusion);
 
-  NewCNF cnf(0);  
+  NewCNF cnf(0); 
+  cnf.setForInduction();
   InferenceRule rule = InferenceRule::INDUCTION_AXIOM;
   Inference inf = NonspecificInference0(UnitInputType::AXIOM,rule);
   FormulaUnit* fu = new FormulaUnit(inductionFormula,inf);
   fu = Rectify::rectify(fu);
 
-  //cout << fu->toString() << endl;
+  if(!inductionIsLimit){
+    //cout << fu->toString() << endl;
+  }
 
   ClauseStack clausifiedHyps;
   cnf.clausify(NNF::ennf(fu), clausifiedHyps);
 
-  if(!multiLiterals && allGround){
+  if(!multiLiterals && allGround && inductionIsLimit){
     // In the case where some of the original clauses
     // are non-ground, the resolution step is more complicated.
     // perhaps this can be supported later
@@ -222,7 +234,7 @@ bool MultiClauseNatInduction::ground(Clause* c)
   return true;
 }
 
-void MultiClauseNatInduction::getFinalLoopCounts(Clause* c, TermStack& endCounts)
+void MultiClauseNatInduction::getFinalLoopIters(Clause* c, TermStack& iterations)
 {
   CALL("MultiClauseNatInduction::tryGetFinalLoopCount");
 
@@ -236,11 +248,53 @@ void MultiClauseNatInduction::getFinalLoopCounts(Clause* c, TermStack& endCounts
       TermList tl = sit.next();
       if (RapidHelper::isFinalLoopCount(tl)){
         if(loopEndsAdded.insert(tl)){
-          endCounts.push(tl);
+          iterations.push(tl);
         }
       }
     }    
   }
+
+}
+
+
+void MultiClauseNatInduction::getNonFinalLoopIters(Clause* c, TermStack& iterations)
+{
+  CALL("MultiClauseNatInduction::tryGetFinalLoopCount");
+
+  static DHSet<TermList> iterationsSeen;
+  iterationsSeen.reset();
+
+  for(unsigned i = 0; i < c->length(); i++){
+    Literal* lit = (*c)[i];
+    SubtermIterator sit(lit);
+    while (sit.hasNext()) {  
+      TermList tl = sit.next();
+      if(RapidHelper::isTimePoint(tl)){
+        Term* tlTerm = tl.term();
+        if(tlTerm->arity()){
+          TermList lastArg = *tlTerm->nthArgument(tlTerm->arity() - 1);
+          if(env.signature->getFunction(lastArg.term()->functor())->skolem()){
+            if(iterationsSeen.insert(lastArg)){
+              iterations.push(lastArg);
+            }            
+          }
+        }
+      }
+    }    
+  }
+
+}
+
+bool MultiClauseNatInduction::alreadyAddedAxiom(vset<unsigned>& premises)
+{
+  CALL("MultiClauseNatInduction::alreadyAddedAxiom");
+  
+  for(unsigned i = 0; i < _inductionsCarriedOut.size(); i++){
+    if(_inductionsCarriedOut[i] == premises){
+      return true;
+    }
+  }
+  return false;
 
 }
 
@@ -249,57 +303,90 @@ ClauseIterator MultiClauseNatInduction::generateClauses(Clause* premise)
   CALL("MultiClauseNatInduction::generateClauses");
 
   static bool multiLiterals = env.options->multiLiteralClauses();
+  static bool allLoopCounts = env.options->inductAllLoopCounts();
   static int MAX_DIS = (int)env.options->maxDistanceFromGoal();
 
-  /*if(premise->derivedFromGoal()){
-    cout << premise->toString() << endl;
-    cout << "DISTANCE " << premise->inference().distanceFromGoal() << endl;
+  /*if(premise->length() == 1){
+    if((*premise)[0]->toString() == "$less(i(l14(sK4)),0)"){
+      cout << premise->toString() << endl;
+      cout << "frim goal " << premise->derivedFromGoal() << endl;
+      cout << "distance " << premise->inference().distanceFromGoal() << endl;
+    }
   }*/
 
-  if((premise->length() != 1 && !multiLiterals) || 
-      !premise->derivedFromGoal() || 
-       premise->inference().distanceFromGoal() > MAX_DIS){
+  if((premise->length() != 1 && !multiLiterals)){
     //Is this condition too restrictive?
     return ClauseIterator::getEmpty();
   }
 
-  static TermStack loopEnds;
-  getFinalLoopCounts(premise, loopEnds);
 
   bool allGround = ground(premise);
   ClauseStack results;
 
 
-  while(!loopEnds.isEmpty()){
-    TermList nlTerm = loopEnds.pop();
-    //no need for the unifier
-    auto it = _index->getUnifications(nlTerm,false);
-    
-    static ClauseStack premises;
-    premises.reset();
-    premises.push(premise);
-    
-    static DHSet<Clause*> premisesSeen;
-    premisesSeen.reset();
-    premisesSeen.insert(premise);
+  static TermStack iterations;
+  if(allLoopCounts && premise->length() == 1 && allGround && premise->derivedFromGoal()){
 
-    while(it.hasNext()){
-      TermQueryResult res = it.next();  
-      Clause* c = res.clause;
+    Literal* lit = (*premise)[0];
+    vstring tpName;
+    if(RapidHelper::isSuitableForInduction(lit, tpName)){    
+      unsigned nlFun;
+      ALWAYS(env.signature->tryGetFunctionNumber("n" + tpName, 0, nlFun));
+      TermList limit = TermList(Term::createConstant(nlFun));  
 
-      if(premisesSeen.insert(c)){
-        allGround = allGround && ground(c);
-        premises.push(c);
+      getNonFinalLoopIters(premise, iterations);
+      while(!iterations.isEmpty()){
+        TermList iter = iterations.pop();
+        // an arbitrary variable to ensure that we do not created 
+        // the same induction formula twice.       
+        TermList zeroVar = TermList(0, false);
+        Literal* skReplacedByZero = EqHelper::replace(lit, iter, zeroVar);
+
+        if(_premisesUsed.insert(skReplacedByZero)){
+          static ClauseStack premises;
+          premises.reset();
+          premises.push(premise);
+
+          createConclusions(premises, iter, limit, results, false, true);
+        }
       }
-    }
-    
 
-    if(premises.size() > 1 || (multiLiterals && premises[0]->length() > 1)){
-      static ClauseStack conclusions;
-      createConclusions(premises, nlTerm, conclusions, multiLiterals, allGround);
-      while(!conclusions.isEmpty()){
-        results.push(conclusions.pop());
-      } 
+      iterations.reset();
+    }
+  }
+   
+  if(premise->derivedFromGoal() &&
+     !(premise->inference().distanceFromGoal() > MAX_DIS)){
+    getFinalLoopIters(premise, iterations);
+    while(!iterations.isEmpty()){
+      TermList nlTerm = iterations.pop();
+      //no need for the unifier
+      auto it = _index->getUnifications(nlTerm,false);
+      
+      static ClauseStack premises;
+      premises.reset();
+      premises.push(premise);
+      
+      vset<unsigned> premisesSeen;
+      premisesSeen.insert(premise->number());
+
+      while(it.hasNext()){
+        TermQueryResult res = it.next();  
+        Clause* c = res.clause;
+
+        if(premisesSeen.insert(c->number()).second){
+          allGround = allGround && ground(c);
+          premises.push(c);
+        }
+      }
+      
+
+      if(premises.size() > 1 || (multiLiterals && premises[0]->length() > 1)){
+        if(!alreadyAddedAxiom(premisesSeen)){
+          _inductionsCarriedOut.push(premisesSeen);
+          createConclusions(premises, nlTerm, nlTerm, results, multiLiterals, allGround);
+        }
+      }
     }
   }
 

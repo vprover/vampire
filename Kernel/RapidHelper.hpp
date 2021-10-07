@@ -57,6 +57,11 @@ public:
   static bool isDensityLiteral(Literal* l, unsigned& varFunctor, unsigned& tpFunctor);
   static bool isIntegerComparisonLiteral(Literal* l);
   
+  /** return true if the literal is of the form 
+   *  [~]$less(program-var(l#(sK)), numeral)  
+   */
+  static bool isSuitableForInduction(Literal* lit, vstring& tpName);
+
   static TermList intVarAtNextIt(TermList varTerm);
   static TermList intVarAtFirstIt(TermList varTerm);
   static TermList intVarAtLastIt(TermList varTerm, TermList finalLoopCount);        
