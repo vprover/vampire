@@ -1152,16 +1152,13 @@ Literal* Naming::getDefinitionLiteral(Formula* f, VList* freeVars) {
   }
 
   if(!_appify){
-    unsigned pred;
-    if(reuse) {
-      pred = reused;
-    }
-    else {
+    unsigned pred = reused;
+    if(!reuse) {
       pred = env.signature->addNamePredicate(arity);
       reuse_policy->put(normalised, pred);
       Signature::Symbol* predSym = env.signature->getPredicate(pred);
 
-      if (!reuse && env.colorUsed) {
+      if (env.colorUsed) {
         Color fc = f->getColor();
         if (fc != COLOR_TRANSPARENT) {
           predSym->addColor(fc);
@@ -1175,10 +1172,14 @@ Literal* Naming::getDefinitionLiteral(Formula* f, VList* freeVars) {
     }
     return Literal::create(pred, arity, true, false, allVars.begin());
   } else {
-    unsigned fun = env.signature->addNameFunction(typeVars.size());
-    TermList sort = AtomicSort::arrowSort(termVarSorts, AtomicSort::boolSort());
-    Signature::Symbol* sym = env.signature->getFunction(fun);
-    sym->setType(OperatorType::getConstantsType(sort, typeArgArity)); 
+    unsigned fun = reused;
+    if(!reuse) {
+      fun = env.signature->addNameFunction(typeVars.size());
+      TermList sort = AtomicSort::arrowSort(termVarSorts, AtomicSort::boolSort());
+      Signature::Symbol* sym = env.signature->getFunction(fun);
+      sym->setType(OperatorType::getConstantsType(sort, typeArgArity)); 
+      reuse_policy->put(normalised, fun);
+    }
     TermList head = TermList(Term::create(fun, typeVars.size(), typeVars.begin()));
     TermList t = ApplicativeHelper::createAppTerm(
                  SortHelper::getResultSort(head.term()), head, termVars);

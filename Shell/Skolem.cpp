@@ -501,7 +501,8 @@ Formula* Skolem::skolemise (Formula* f)
             SortHelper::getResultSort(head.term()), head, termVars).term();      
         }
         _introducedSkolemSyms.push(sym);
-        reuse_policy->put(normalised, sym);
+        if(!reuse)
+          reuse_policy->put(normalised, sym);
 
         env.statistics->skolemFunctions++;
 
