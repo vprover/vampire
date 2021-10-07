@@ -1007,11 +1007,8 @@ Term* NewCNF::createSkolemTerm(unsigned var, VarSet* free, Formula *reuse_formul
   Term* res;
   bool isPredicate = (rangeSort == AtomicSort::boolSort());
   if (isPredicate) {
-    unsigned pred;
-    if(reuse) {
-      pred = reused;
-    }
-    else {
+    unsigned pred = reused;
+    if(!reuse) {
       pred = Skolem::addSkolemPredicate(arity, domainSorts.begin(), var);
       reuse_policy->put(normalised, pred);
       env.statistics->skolemFunctions++;
@@ -1021,11 +1018,8 @@ Term* NewCNF::createSkolemTerm(unsigned var, VarSet* free, Formula *reuse_formul
     }
     res = Term::createFormula(new AtomicFormula(Literal::create(pred, arity, true, false, fnArgs.begin())));
   } else {
-    unsigned fun;
-    if(reuse) {
-      fun = reused;
-    }
-    else {
+    unsigned fun = reused;
+    if(!reuse) {
       fun = Skolem::addSkolemFunction(arity, domainSorts.begin(), rangeSort, var);
       reuse_policy->put(normalised, fun);
       env.statistics->skolemFunctions++;
@@ -1279,11 +1273,8 @@ Literal* NewCNF::createNamingLiteral(Formula* f, VList* free)
   bool reuse = reuse_policy->get(normalised, reused);
 
   unsigned length = VList::length(free);
-  unsigned pred;
-  if(reuse) {
-    pred = reused;
-  }
-  else {
+  unsigned pred = reused;
+  if(!reuse) {
     pred = env.signature->addNamePredicate(length);
     reuse_policy->put(normalised, pred);
   }
