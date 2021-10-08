@@ -259,7 +259,8 @@ enum class InferenceRule : unsigned char {
   /* normalising combinators */
   COMBINATOR_NORMALISE,
   /* negative extnsionality */
-  CASES_SIMP,
+  CASES_SIMP_1,
+  CASES_SIMP_2,
 
   BOOL_SIMP,
 
@@ -308,51 +309,30 @@ enum class InferenceRule : unsigned char {
   ARG_CONG,
   /* narrow with combinator axiom */
   SXX_NARROW,
-
   SX_NARROW,
-
   S_NARROW,
-
   CXX_NARROW,
-
   CX_NARROW,
-
   C_NARROW,
-
   BXX_NARROW,
-
   BX_NARROW,
-
   B_NARROW,
-
   KX_NARROW,
-
   K_NARROW,
-
   I_NARROW,
   /* superposition beneath variable */
   SUB_VAR_SUP,
-
   INJECTIVITY,
-
   PRIMITIVE_INSTANTIATION,
-
   LEIBNIZ_ELIMINATION,
-
   NEGATIVE_EXT,
-
   EQ_TO_DISEQ,
   /** The next five rules can be either simplifying or generating */
   HOL_NOT_ELIMINATION,
-
   BINARY_CONN_ELIMINATION,
-
   VSIGMA_ELIMINATION,
-
   VPI_ELIMINATION,
-
   HOL_EQUALITY_ELIMINATION,
-
   INTERNAL_GENERATING_INFERNCE_LAST,
 
   /** equality proxy replacement */
@@ -370,7 +350,6 @@ enum class InferenceRule : unsigned char {
   PREDICATE_DEFINITION_UNFOLDING,
   /** merging predicate definitions */
   PREDICATE_DEFINITION_MERGING,
-
 
   /** unused predicate definition removal */
   UNUSED_PREDICATE_DEFINITION_REMOVAL,
@@ -443,6 +422,7 @@ enum class InferenceRule : unsigned char {
 
   /** a premise to skolemization */
   CHOICE_AXIOM,
+  CHOICE_AXIOM_HILBERT, // HO
 
   /* Induction hypothesis*/
   INDUCTION_AXIOM,
@@ -534,26 +514,40 @@ enum class InferenceRule : unsigned char {
   FOOL_AXIOM_TRUE_NEQ_FALSE,
   FOOL_AXIOM_ALL_IS_TRUE_OR_FALSE,
  
-  COMBINATOR_AXIOM,
+  COMBINATOR_AXIOM_1,
+  COMBINATOR_AXIOM_2,
+  COMBINATOR_AXIOM_3,
+  COMBINATOR_AXIOM_4,
+  COMBINATOR_AXIOM_5,
   
   FUNC_EXT_AXIOM,
 
-  /** beginning of proxy funxtion axioms marker --*/
+  /** beginning of proxy function axioms marker --*/
   PROXY_AXIOM,
   /* Equality proxy axiom */
-  EQUALITY_PROXY_AXIOM,
+  EQUALITY_PROXY_AXIOM_1,
+  EQUALITY_PROXY_AXIOM_2,
   /* Not proxy axiom */    
-  NOT_PROXY_AXIOM,
+  NOT_PROXY_AXIOM_1,
+  NOT_PROXY_AXIOM_2,
   /* And proxy axiom */
-  AND_PROXY_AXIOM,
+  AND_PROXY_AXIOM_1,
+  AND_PROXY_AXIOM_2,
+  AND_PROXY_AXIOM_3,
   /* OR proxy axiom */    
-  OR_PROXY_AXIOM,
+  OR_PROXY_AXIOM_1,
+  OR_PROXY_AXIOM_2,
+  OR_PROXY_AXIOM_3,
   /* Implies proxy axiom */
-  IMPLIES_PROXY_AXIOM,
+  IMPLIES_PROXY_AXIOM_1,
+  IMPLIES_PROXY_AXIOM_2,
+  IMPLIES_PROXY_AXIOM_3,
   /* Forall proxy axiom */    
-  PI_PROXY_AXIOM,
+  PI_PROXY_AXIOM_1,
+  PI_PROXY_AXIOM_2,
   /* Exists proxy axiom */
-  SIGMA_PROXY_AXIOM,
+  SIGMA_PROXY_AXIOM_1,
+  SIGMA_PROXY_AXIOM_2,
 
   /** the last internal theory axiom marker --
     axioms between THEORY_AXIOM and INTERNAL_THEORY_AXIOM_LAST will be automatically making their respective clauses isTheoryAxiom() true */
@@ -598,7 +592,11 @@ inline bool isInternalTheoryAxiomRule(InferenceRule r) {
 }
 
 inline bool isCombinatorAxiomRule(InferenceRule r) {
-  return r == InferenceRule::COMBINATOR_AXIOM;
+  return r == InferenceRule::COMBINATOR_AXIOM_1 ||
+         r == InferenceRule::COMBINATOR_AXIOM_2 ||
+         r == InferenceRule::COMBINATOR_AXIOM_3 ||
+         r == InferenceRule::COMBINATOR_AXIOM_4 ||
+         r == InferenceRule::COMBINATOR_AXIOM_5;
 }
 
 inline bool isProxyAxiomRule(InferenceRule r) {

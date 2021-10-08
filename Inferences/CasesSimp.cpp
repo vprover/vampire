@@ -59,8 +59,8 @@ ClauseIterator CasesSimp::performSimplification(Clause* premise, Literal* lit, T
 
 
   unsigned conclusionLength = premise->length() + 1;
-  Clause* conclusion1 = new(conclusionLength) Clause(conclusionLength, SimplifyingInference1(InferenceRule::CASES_SIMP, premise));
-  Clause* conclusion2 = new(conclusionLength) Clause(conclusionLength, SimplifyingInference1(InferenceRule::CASES_SIMP, premise));
+  Clause* conclusion1 = new(conclusionLength) Clause(conclusionLength, SimplifyingInference1(InferenceRule::CASES_SIMP_1, premise));
+  Clause* conclusion2 = new(conclusionLength) Clause(conclusionLength, SimplifyingInference1(InferenceRule::CASES_SIMP_2, premise));
 
   // Copy the literals from the premise except for the one at `literalPosition`,
   // that has the occurrence of `booleanTerm` replaced with false
