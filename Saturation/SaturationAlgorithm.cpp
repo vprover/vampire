@@ -23,6 +23,7 @@
 #include "Lib/VirtualIterator.hpp"
 #include "Lib/System.hpp"
 #include "Lib/STL.hpp"
+#include "Lib/StringUtils.hpp"
 
 #include "Indexing/LiteralIndexingStructure.hpp"
 
@@ -568,10 +569,11 @@ void lookupAxiomName(Clause* cl, vstring& axname) {
 
   Unit* u = cl;
   while (!Parse::TPTP::findAxiomName(u,axname)) {
-    // cout << u->toString() << endl;
     Inference::Iterator iit=u->inference().iterator();
     if (!u->inference().hasNext(iit)) {
-      break;
+
+      axname = "$$"+StringUtils::replaceChar(ruleName(u->inference().rule()), ' ', '_')+"_"+Int::toString(toNumber(u->inference().rule()));
+      return;
     }
     u = u->inference().next(iit);
   }
@@ -638,6 +640,8 @@ void SaturationAlgorithm::talkToKarel(Clause* cl, bool embed, bool eval)
       } else {
         cout << "\n";
       }
+
+      // cout << cl->toString() << endl;
 
       ALWAYS(_shown.insert(cl));
     }
