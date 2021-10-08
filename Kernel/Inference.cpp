@@ -776,6 +776,7 @@ vstring Kernel::ruleName(InferenceRule rule)
   case InferenceRule::EQUALITY_AXIOM:
     return "equality axiom";
   case InferenceRule::CHOICE_AXIOM:
+  case InferenceRule::CHOICE_AXIOM_HILBERT:
     return "choice axiom";
   case InferenceRule::DISTINCTNESS_AXIOM:
     return "distinctness axiom";
@@ -935,23 +936,37 @@ vstring Kernel::ruleName(InferenceRule rule)
     return "generalized integer induction hypothesis (down, default bound)";
   case InferenceRule::GAUSSIAN_VARIABLE_ELIMINIATION:
     return "gaussian variable elimination";
-  case InferenceRule::COMBINATOR_AXIOM:
+  case InferenceRule::COMBINATOR_AXIOM_1:
+  case InferenceRule::COMBINATOR_AXIOM_2:
+  case InferenceRule::COMBINATOR_AXIOM_3:
+  case InferenceRule::COMBINATOR_AXIOM_4:
+  case InferenceRule::COMBINATOR_AXIOM_5:
     return "combinator axiom";
   case InferenceRule::FUNC_EXT_AXIOM:
     return "functional extensionality axiom";
-  case InferenceRule::EQUALITY_PROXY_AXIOM:
+  case InferenceRule::EQUALITY_PROXY_AXIOM_1:
+  case InferenceRule::EQUALITY_PROXY_AXIOM_2:
     return "equality proxy axiom";
-  case InferenceRule::NOT_PROXY_AXIOM:
+  case InferenceRule::NOT_PROXY_AXIOM_1:
+  case InferenceRule::NOT_PROXY_AXIOM_2:
     return "logical not proxy axiom";
-  case InferenceRule::AND_PROXY_AXIOM:
+  case InferenceRule::AND_PROXY_AXIOM_1:
+  case InferenceRule::AND_PROXY_AXIOM_2:
+  case InferenceRule::AND_PROXY_AXIOM_3:
     return "logical and proxy axiom";
-  case InferenceRule::OR_PROXY_AXIOM:
+  case InferenceRule::OR_PROXY_AXIOM_1:
+  case InferenceRule::OR_PROXY_AXIOM_2:
+  case InferenceRule::OR_PROXY_AXIOM_3:
     return "logical or proxy axiom";
-  case InferenceRule::IMPLIES_PROXY_AXIOM:
+  case InferenceRule::IMPLIES_PROXY_AXIOM_1:
+  case InferenceRule::IMPLIES_PROXY_AXIOM_2:
+  case InferenceRule::IMPLIES_PROXY_AXIOM_3:
     return "implies proxy axiom";
-  case InferenceRule::PI_PROXY_AXIOM:
+  case InferenceRule::PI_PROXY_AXIOM_1:
+  case InferenceRule::PI_PROXY_AXIOM_2:
     return "pi proxy axiom";
-  case InferenceRule::SIGMA_PROXY_AXIOM:
+  case InferenceRule::SIGMA_PROXY_AXIOM_1:
+  case InferenceRule::SIGMA_PROXY_AXIOM_2:
     return "sigma proxy axiom";
   case InferenceRule::ARG_CONG:
     return "argument congruence";
@@ -1007,7 +1022,8 @@ vstring Kernel::ruleName(InferenceRule rule)
     return "primitive instantiation";
   case InferenceRule::LEIBNIZ_ELIMINATION:
     return "leibniz equality elimination";
-  case InferenceRule::CASES_SIMP:
+  case InferenceRule::CASES_SIMP_1:
+  case InferenceRule::CASES_SIMP_2:
     return "cases simplifying";
     /* this cases are no actual inference rules but only markeres to separatea groups of rules */
   case InferenceRule::PROXY_AXIOM:
