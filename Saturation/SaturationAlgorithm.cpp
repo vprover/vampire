@@ -682,11 +682,16 @@ void SaturationAlgorithm::talkToKarel(Unit* u, bool embed, bool eval)
 
     } else { // a zero-ary inference, an input formula or an axiom of sorts!
 
+      int sineLevel = u->getSineLevel();
+      if (u->derivedFromGoal()) {
+        sineLevel = 0;
+      }
+
       if (_opt.showForKarel() && !_shown.find(u)) {
         // [1,cl_id,cl_age,cl_weight,cl_len,isgoal,istheory,sine]
 
         cout << "i: [1," << u->number() << "," << "0" << "," << "0" << "," << "0";
-        cout << "," << u->derivedFromGoal() << "," << (unsigned)toNumber(inf.rule()) << "," << (int)u->getSineLevel() << "]";
+        cout << "," << u->derivedFromGoal() << "," << (unsigned)toNumber(inf.rule()) << "," << sineLevel << "]";
 
         if (_opt.outputAxiomNames()) {
           vstring axname;
@@ -715,7 +720,7 @@ void SaturationAlgorithm::talkToKarel(Unit* u, bool embed, bool eval)
             (int64_t)0,
             (int64_t)u->derivedFromGoal(),
             (int64_t)toNumber(inf.rule()),
-            (int64_t)u->getSineLevel())); // the features
+            (int64_t)sineLevel)); // the features
 
         std::string name;
 
