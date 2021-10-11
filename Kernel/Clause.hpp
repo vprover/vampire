@@ -357,18 +357,6 @@ public:
 
   unsigned numPositiveLiterals(); // number of positive literals in the clause
 
-  void setModelSaid(float value) {
-    _evaluated = 1;
-    _modelSaid = value;
-  }
-
-  bool evalauted() const {
-    return _evaluated;
-  }
-
-  float modelSaid() const {
-    return _modelSaid;
-  }
 
 protected:
   /** number of literals */
@@ -388,10 +376,6 @@ protected:
   Store _store : 3;
   /** number of selected literals */
   unsigned _numSelected : 20;
-
-  // for Deepire
-  unsigned _evaluated : 1;
-  float _modelSaid; // small is good
 
   /** weight */
   mutable unsigned _weight;

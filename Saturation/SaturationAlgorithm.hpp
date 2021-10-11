@@ -176,11 +176,10 @@ public:
   // the Deepire stuff
 
   torch::jit::script::Module _model;
-  DHSet<Clause*> _initial; // that's how talkToKarel recognizes an inital clause
-  DHSet<Clause*> _shown; // set of clauses already printed via showForKarel
-  DHSet<Clause*> _embedded; // set of clauses the _model already knows about
-  void talkToKarel(Clause*,bool embed = true, bool eval = false);
-  void embed_and_evaluate(Clause*, const char* method_name, const char* backup_method_name, std::vector<torch::jit::IValue>& inputs, bool eval);
+  DHSet<Unit*> _shown; // set of clauses already printed via showForKarel
+  DHSet<Unit*> _embedded; // set of clauses the _model already knows about
+  void talkToKarel(Unit*,bool embed = true, bool eval = false);
+  void embed_and_evaluate(Unit*, const char* method_name, const char* backup_method_name, std::vector<torch::jit::IValue>& inputs, bool eval);
 
 protected:
 

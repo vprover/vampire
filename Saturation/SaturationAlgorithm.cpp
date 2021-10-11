@@ -522,7 +522,7 @@ void SaturationAlgorithm::onUnprocessedSelected(Clause* c)
   
 }
 
-void SaturationAlgorithm::embed_and_evaluate(Clause* cl, const char* method_name, const char* backup_method_name, std::vector<torch::jit::IValue>& inputs, bool eval)
+void SaturationAlgorithm::embed_and_evaluate(Unit* u, const char* method_name, const char* backup_method_name, std::vector<torch::jit::IValue>& inputs, bool eval)
 {
   CALL("SaturationAlgorithm::evaluated");
 
@@ -556,7 +556,7 @@ void SaturationAlgorithm::embed_and_evaluate(Clause* cl, const char* method_name
   cout << " and said " << -out.toDouble() << " in " << env.timer->elapsedMilliseconds() - start << endl;
 #endif
 
-    cl->setModelSaid(-out.toDouble()); // already here, we reverse the logit's logic to "small is good"!
+    u->setModelSaid(-out.toDouble()); // already here, we reverse the logit's logic to "small is good"!
   } else {
 #if DEBUG_MODEL
   cout << " only embedded in " << env.timer->elapsedMilliseconds() - start << endl;
@@ -564,37 +564,31 @@ void SaturationAlgorithm::embed_and_evaluate(Clause* cl, const char* method_name
   }
 }
 
-void lookupAxiomName(Clause* cl, vstring& axname) {
-  CALL("SaturationAlgorithm-lookupAxiomName");
+void getAxiomName(Unit* u, vstring& axname) {
+  CALL("SaturationAlgorithm-getAxiomName");
 
-  Unit* u = cl;
-  while (!Parse::TPTP::findAxiomName(u,axname)) {
-    Inference::Iterator iit=u->inference().iterator();
-    if (!u->inference().hasNext(iit)) {
+  if (!Parse::TPTP::findAxiomName(u,axname)) { // either user-specified name from the input
 
-      axname = "$$"+StringUtils::replaceChar(ruleName(u->inference().rule()), ' ', '_')+"_"+Int::toString(toNumber(u->inference().rule()));
-      return;
-    }
-    u = u->inference().next(iit);
+    // or the name of the formula in vampire
+    axname = "$$"+StringUtils::replaceChar(ruleName(u->inference().rule()), ' ', '_')+"_"+Int::toString(toNumber(u->inference().rule()));
   }
-
-  // may never assign anything, if, somehow, there is no name along the parent chain to be found
 }
 
-void SaturationAlgorithm::talkToKarel(Clause* cl, bool embed, bool eval)
+void SaturationAlgorithm::talkToKarel(Unit* u, bool embed, bool eval)
 {
   CALL("SaturationAlgorithm::talkToKarel");
 
   ASS(_opt.showForKarel() || _opt.evalForKarel());
 
-  if ((!_opt.showForKarel() || _shown.find(cl)) && // no reason to show
-      (!embed || !_opt.evalForKarel() || _embedded.find(cl))) { // no reason to evaluate
+  if ((!_opt.showForKarel() || _shown.find(u)) && // no reason to show
+      (!embed || !_opt.evalForKarel() || _embedded.find(u))) { // no reason to evaluate
     return;
   }
 
   static std::vector<torch::jit::IValue> inputs;
 
-  if (cl->isComponent()) { // the AVATAR event
+  if (u->isClause() && u->asClause()->isComponent()) { // the AVATAR event
+    Clause* cl = u->asClause();
     Clause* orig = _splitter->getCausalParent(cl);
     if (orig) { // CAREFUL: causal parent can be none; for the ccModel thingie
       talkToKarel(orig,embed);
@@ -602,7 +596,7 @@ void SaturationAlgorithm::talkToKarel(Clause* cl, bool embed, bool eval)
 
     if (env.options->showForKarel() && !_shown.find(cl)) {
       // a: [3,cl_id,cl_age,cl_weight,cl_len,causal_parent]
-      cout << "a: [3," << cl->number() << "," << cl->age() << "," << cl->weight() << "," << cl->size();
+      cout << "a: [3," << cl->number() << "," << "0" << "," << "0" << "," << "0";
       cout << "," << orig->number() << "]\n";
 
       ALWAYS(_shown.insert(cl));
@@ -615,132 +609,134 @@ void SaturationAlgorithm::talkToKarel(Clause* cl, bool embed, bool eval)
 
       inputs.push_back((int64_t)cl->number()); // the id
       inputs.push_back(std::make_tuple(
-          (int64_t)cl->age(),
-          (int64_t)cl->weight(),
-          (int64_t)cl->size(),
+          (int64_t)0,
+          (int64_t)0,
+          (int64_t)0,
           (int64_t)(orig ? orig->number() : -1)));
 
       embed_and_evaluate(cl,"new_avat","new_avat",inputs,eval);
 
       ALWAYS(_embedded.insert(cl));
     }
-  } else if (_initial.find(cl)) {
-    unsigned theoryAx = cl->inference().isTheoryAxiom() ? static_cast<unsigned>(cl->inference().rule()) : 0;
-
-    if (_opt.showForKarel() && !_shown.find(cl)) {
-      // [1,cl_id,cl_age,cl_weight,cl_len,isgoal,istheory,sine]
-
-      cout << "i: [1," << cl->number() << "," << cl->age() << "," << cl->weight() << "," << cl->size();
-      cout << "," << cl->derivedFromGoal() << "," << theoryAx << "," << (int)cl->getSineLevel() << "]";
-
-      if (_opt.outputAxiomNames()) {
-        vstring axname;
-        lookupAxiomName(cl,axname);
-        cout << " " << axname << "\n";
-      } else {
-        cout << "\n";
-      }
-
-      // cout << cl->toString() << endl;
-
-      ALWAYS(_shown.insert(cl));
-    }
-
-    if (_opt.evalForKarel() && embed && !_embedded.find(cl)) {
-      TimeCounter t(TC_DEEP_STUFF);
-
-      // def new_init(self, id: int, features : Tuple[int, int, int, int, int, int]) -> bool:
-
-      inputs.clear();
-
-      inputs.push_back((int64_t)cl->number()); // the id
-      inputs.push_back(std::make_tuple(
-          (int64_t)cl->age(),
-          (int64_t)cl->weight(),
-          (int64_t)cl->size(),
-          (int64_t)cl->derivedFromGoal(),
-          (int64_t)theoryAx,
-          (int64_t)cl->getSineLevel())); // the features
-
-      std::string name;
-
-      if (cl->derivedFromGoal()) {
-        name = "-1";
-      } else {
-        vstring axname;
-        if (_opt.outputAxiomNames() && (lookupAxiomName(cl,axname), !axname.empty())) {
-          // we have a name
-          name = std::string(axname.c_str());
-        } else {
-          name = std::to_string(theoryAx);
-        }
-      }
-      inputs.push_back(name);
-
-      embed_and_evaluate(cl, "new_init", "new_init", inputs,eval);
-
-      // TODO: store the output value
-      ALWAYS(_embedded.insert(cl));
-    }
   } else {
-    // pre-order traversal on parents:
-    Inference& inf = cl->inference();
+    Inference& inf = u->inference();
     inf.minimizePremises();
     unsigned parent_cnt = 0;
     Inference::Iterator iit = inf.iterator();
     while(inf.hasNext(iit)) {
       Unit* premUnit = inf.next(iit);
-      talkToKarel(premUnit->asClause(),embed);
+      talkToKarel(premUnit,embed);
       parent_cnt++;
     }
 
-    // [2,cl_id,cl_age,cl_weight,cl_len,cl_numsplits,inf_id,parent_cl_id,parent_cl_id,...]
-    if (_opt.showForKarel() && !_shown.find(cl)) {
-      cout << "d: [2," << cl->number() << "," << cl->age() << "," << cl->weight() << "," << cl->size() << "," << (cl->splits() ? cl->splits()->size() : 0);
-      cout << "," << (int)inf.rule();
-      Inference::Iterator iit = inf.iterator();
-      while(inf.hasNext(iit)) {
-        Unit* premUnit = inf.next(iit);
-        cout << "," << premUnit->asClause()->number();
-      }
-      cout << "]\n";
+    if (parent_cnt > 0) {
 
-      ALWAYS(_shown.insert(cl));
-    }
+      // [2,cl_id,cl_age,cl_weight,cl_len,cl_numsplits,inf_id,parent_cl_id,parent_cl_id,...]
+      if (_opt.showForKarel() && !_shown.find(u)) {
+        cout << "d: [2," << u->number() << "," << "0" << "," << "0"  << "," << "0"  << "," << "0";
+        cout << "," << (int)inf.rule();
+        Inference::Iterator iit = inf.iterator();
+        while(inf.hasNext(iit)) {
+          Unit* premUnit = inf.next(iit);
+          cout << "," << premUnit->number();
+        }
+        cout << "]\n";
 
-    if (_opt.evalForKarel() && embed && !_embedded.find(cl)) {
-      TimeCounter t(TC_DEEP_STUFF);
-
-      // new_deriv(self, id: int, features : Tuple[int, int, int, int, int], pars : List[int]) -> bool:
-
-      static std::vector<torch::jit::IValue> inputs;
-      inputs.clear();
-      inputs.push_back((int64_t)cl->number()); // as the id
-      inputs.push_back(std::make_tuple(
-          (int64_t)cl->age(),
-          (int64_t)cl->weight(),
-          (int64_t)cl->size(),
-          (int64_t)(cl->splits() ? cl->splits()->size() : 0),
-          (int64_t)inf.rule())); // as features
-
-      c10::List<int64_t> parents;
-      int arit = 0;
-      Inference::Iterator iit = inf.iterator();
-      while(inf.hasNext(iit)) {
-        Unit* premUnit = inf.next(iit);
-        parents.push_back((int64_t) premUnit->asClause()->number());
-        arit += 1;
+        ALWAYS(_shown.insert(u));
       }
 
-      inputs.push_back(torch::jit::IValue(parents));
+      if (_opt.evalForKarel() && embed && !_embedded.find(u)) {
+        TimeCounter t(TC_DEEP_STUFF);
 
-      char specific_method_name[20];
-      char default_method_name[20];
-      sprintf(specific_method_name, "new_deriv%d", (int)inf.rule());
-      sprintf(default_method_name, "new_deriv%d", (int)arit);
-      embed_and_evaluate(cl, specific_method_name, default_method_name , inputs, eval);
+        // new_deriv(self, id: int, features : Tuple[int, int, int, int, int], pars : List[int]) -> bool:
 
-      ALWAYS(_embedded.insert(cl));
+        static std::vector<torch::jit::IValue> inputs;
+        inputs.clear();
+        inputs.push_back((int64_t)u->number()); // as the id
+        inputs.push_back(std::make_tuple(
+            (int64_t)0,
+            (int64_t)0,
+            (int64_t)0,
+            (int64_t)0,
+            (int64_t)inf.rule())); // as features
+
+        c10::List<int64_t> parents;
+        int arit = 0;
+        Inference::Iterator iit = inf.iterator();
+        while(inf.hasNext(iit)) {
+          Unit* premUnit = inf.next(iit);
+          parents.push_back((int64_t) premUnit->number());
+          arit += 1;
+        }
+
+        inputs.push_back(torch::jit::IValue(parents));
+
+        char specific_method_name[20];
+        char default_method_name[20];
+        sprintf(specific_method_name, "new_deriv%d", (int)inf.rule());
+        sprintf(default_method_name, "new_deriv%d", (int)arit);
+        embed_and_evaluate(u, specific_method_name, default_method_name , inputs, eval);
+
+        ALWAYS(_embedded.insert(u));
+      }
+
+    } else { // a zero-ary inference, an input formula or an axiom of sorts!
+
+      if (_opt.showForKarel() && !_shown.find(u)) {
+        // [1,cl_id,cl_age,cl_weight,cl_len,isgoal,istheory,sine]
+
+        cout << "i: [1," << u->number() << "," << "0" << "," << "0" << "," << "0";
+        cout << "," << u->derivedFromGoal() << "," << (unsigned)toNumber(inf.rule()) << "," << (int)u->getSineLevel() << "]";
+
+        if (_opt.outputAxiomNames()) {
+          vstring axname;
+          getAxiomName(u,axname);
+          cout << " " << axname << "\n";
+        } else {
+          cout << "\n";
+        }
+
+        // cout << cl->toString() << endl;
+
+        ALWAYS(_shown.insert(u));
+      }
+
+      if (_opt.evalForKarel() && embed && !_embedded.find(u)) {
+        TimeCounter t(TC_DEEP_STUFF);
+
+        // def new_init(self, id: int, features : Tuple[int, int, int, int, int, int]) -> bool:
+
+        inputs.clear();
+
+        inputs.push_back((int64_t)u->number()); // the id
+        inputs.push_back(std::make_tuple(
+            (int64_t)0,
+            (int64_t)0,
+            (int64_t)0,
+            (int64_t)u->derivedFromGoal(),
+            (int64_t)toNumber(inf.rule()),
+            (int64_t)u->getSineLevel())); // the features
+
+        std::string name;
+
+        if (u->derivedFromGoal()) {
+          name = "-1";
+        } else {
+          vstring axname;
+          if (_opt.outputAxiomNames() && (getAxiomName(u,axname), !axname.empty())) {
+            // we have a name
+            name = std::string(axname.c_str());
+          } else {
+            name = std::to_string((unsigned)toNumber(u->inference().rule()));
+          }
+        }
+        inputs.push_back(name);
+
+        embed_and_evaluate(u, "new_init", "new_init", inputs,eval);
+
+        // TODO: store the output value
+        ALWAYS(_embedded.insert(u));
+      }
     }
   }
 }
@@ -959,10 +955,6 @@ void SaturationAlgorithm::addInputClause(Clause* cl)
     }
     // cout << endl;
     cl->setAge(level);
-  }
-
-  if (_opt.showForKarel() || _opt.evalForKarel()) {
-    ALWAYS(_initial.insert(cl));
   }
 
   if (sosForAxioms || (cl->isTheoryAxiom() && sosForTheory)){

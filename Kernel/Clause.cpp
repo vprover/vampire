@@ -68,8 +68,6 @@ Clause::Clause(unsigned length,const Inference& inf)
     _component(false),
     _store(NONE),
     _numSelected(0),
-    _evaluated(0),
-    _modelSaid(std::numeric_limits<decltype(_modelSaid)>::lowest()), // be optimistic by default (delayed eval takes care of demoting the bad guys)
     _weight(0),
     _weightForClauseSelection(0),
     _refCnt(0),

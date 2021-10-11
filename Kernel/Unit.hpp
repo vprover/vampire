@@ -148,6 +148,19 @@ public:
   static void onParsingEnd(){ _lastParsingNumber = _lastNumber;}
   static unsigned getLastParsingNumber(){ return _lastParsingNumber;}
 
+  void setModelSaid(float value) {
+    _evaluated = 1;
+    _modelSaid = value;
+  }
+
+  bool evalauted() const {
+    return _evaluated;
+  }
+
+  float modelSaid() const {
+    return _modelSaid;
+  }
+
 protected:
   /** Number of this unit, used for printing and statistics */
   unsigned _number;
@@ -156,6 +169,10 @@ protected:
 
   /** used in interpolation to denote parents of what color have been used */
   unsigned _inheritedColor : 2;
+
+  // for Deepire
+  unsigned _evaluated : 1;
+  float _modelSaid; // small is good
 
   /** inference used to obtain the unit */
   Inference _inference;

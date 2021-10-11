@@ -55,6 +55,8 @@ Unit::Unit(Kind kind,const Inference& inf)
   : _number(++_lastNumber),
     _kind(kind),
     _inheritedColor(COLOR_INVALID),
+    _evaluated(0),
+    _modelSaid(std::numeric_limits<decltype(_modelSaid)>::lowest()), // be optimistic by default (delayed eval takes care of demoting the bad guys)
     _inference(inf)
 {
 } // Unit::Unit
