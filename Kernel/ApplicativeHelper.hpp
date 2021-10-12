@@ -69,10 +69,6 @@ public:
   static Signature::Proxy getProxy(const TermList t);
   static TermList getHead(TermList t);
   static TermList getHead(Term* t);  
-  static bool isApp(const Term* t); 
-  static bool isType(const Term* t);
-  static bool isArrowSort(const TermList t);
-  static bool isApp(const TermList* tl);
   static bool isUnderApplied(TermList head, unsigned argNum);
   static bool isExactApplied(TermList head, unsigned argNum);
   static bool isOverApplied(TermList head, unsigned argNum);

@@ -117,6 +117,7 @@ private:
   enum class SignatureKind {
     PREDICATE,
     FUNCTION,
+    TYPECON,
     VARIABLE
   };
 

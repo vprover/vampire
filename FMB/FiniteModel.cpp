@@ -57,7 +57,6 @@ FiniteModel::FiniteModel(unsigned size) : _size(size), _isPartial(false)
   // the actual index
   unsigned offsets=1;
   for(unsigned f=0; f<env.signature->functions(); f++){
-    if(env.signature->isTypeConOrSup(f)){ continue; }
     unsigned arity=env.signature->functionArity(f);
     f_offsets[f]=offsets;
     unsigned add = pow(size,arity+1);
@@ -187,7 +186,6 @@ vstring FiniteModel::toString()
 
   //Constants
   for(unsigned f=0;f<env.signature->functions();f++){
-    if(env.signature->isTypeConOrSup(f)){ continue; }
     unsigned arity = env.signature->functionArity(f);
     if(arity>0) continue;
     if(!printIntroduced && env.signature->getFunction(f)->introduced()) continue;
@@ -203,7 +201,6 @@ vstring FiniteModel::toString()
 
   //Functions
   for(unsigned f=0;f<env.signature->functions();f++){
-    if(env.signature->isTypeConOrSup(f)){ continue; }
     unsigned arity = env.signature->functionArity(f);
     if(arity==0) continue;
     if(!printIntroduced && env.signature->getFunction(f)->introduced()) continue;

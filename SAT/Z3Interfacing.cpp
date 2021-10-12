@@ -27,7 +27,7 @@
 
 #include "Kernel/NumTraits.hpp"
 #include "Kernel/Signature.hpp"
-#include "Kernel/Sorts.hpp"
+#include "Kernel/OperatorType.hpp"
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/BottomUpEvaluation.hpp"
 #include "Kernel/BottomUpEvaluation/TermList.hpp"
@@ -526,12 +526,12 @@ z3::sort Z3Interfacing::getz3sort(SortId s)
     // TODO what about built-in tuples?
 
     // Deal with known sorts differently
-         if(s == Term::boolSort()) insert(_context.bool_sort());
+         if(s == AtomicSort::boolSort()) insert(_context.bool_sort());
     else if(s ==  IntTraits::sort()) insert( _context.int_sort());
     else if(s == RealTraits::sort()) insert(_context.real_sort());
     else if(s ==  RatTraits::sort()) insert(_context.real_sort()); // Drops notion of rationality
     // TODO: are we really allowed to do this ???                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    else if(SortHelper::isArraySort(s)) {
+    else if(s.isArraySort()) {
       _hasSeenArrays = true;
 
       z3::sort index_sort = getz3sort(SortHelper::getIndexSort(s));
@@ -543,7 +543,7 @@ z3::sort Z3Interfacing::getz3sort(SortId s)
       createTermAlgebra(*env.signature->getTermAlgebraOfSort(s));
 
     } else {
-      auto sort = _context.uninterpreted_sort(_context.str_symbol(env.sorts->sortName(s).c_str()));
+      auto sort = _context.uninterpreted_sort(_context.str_symbol(s.toString().c_str()));
       outputln("(declare-sort ", sort, " 0)");
       insert(sort);
     }
@@ -629,7 +629,7 @@ void Z3Interfacing::createTermAlgebra(TermAlgebra& start)
       cons->createDiscriminator();
       vstring discrName = cons->discriminatorName();
 
-      DEBUG("\t", env.sorts->sortName(ta->sort()), "::", env.signature->getFunction(cons->functor())->name(), ": ", env.signature->getFunction(cons->functor())->fnType()->toString());
+      DEBUG("\t", ta->sort().toString(), "::", env.signature->getFunction(cons->functor())->name(), ": ", env.signature->getFunction(cons->functor())->fnType()->toString());
 
       Z3_symbol ctorName = Z3_mk_string_symbol(_context, env.signature->getFunction(cons->functor())->name().c_str());
 
@@ -656,7 +656,7 @@ void Z3Interfacing::createTermAlgebra(TermAlgebra& start)
     ctorss.push(std::move(ctors));
     ASS_EQ(ctorss.top().size(), ta->nConstructors());
     ctorss_z3.push(Z3_mk_constructor_list(_context, ctorss.top().size(),  ctorss.top().begin()));
-    sortNames.push(Z3_mk_string_symbol(_context, env.sorts->sortName(ta->sort()).c_str()));
+    sortNames.push(Z3_mk_string_symbol(_context, ta->sort().toString().c_str()));
     if (_out.isSome())
       toSerialize.push(SerDtype {
         .name = ta->sort(),
@@ -846,7 +846,7 @@ struct ToZ3Expr
     unsigned equality_typeArgArity = 0;
     if (isLit) {
       symb = env.signature->getPredicate(trm->functor());
-      range_sort = Term::boolSort();
+      range_sort = AtomicSort::boolSort();
       // check for equality
       if(trm->functor()==0){
          is_equality=true;
@@ -895,7 +895,6 @@ struct ToZ3Expr
       // TODO do we really have overflownConstants ?? not in evaluation(s) at least
       if (symb->overflownConstant()) {
         // too large for native representation, but z3 should cope
-
         auto s = symb->fnType()->result();
         if (s == IntTraits::sort()) {
           return self._context.int_val(symb->name().c_str());

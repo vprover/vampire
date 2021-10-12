@@ -113,7 +113,7 @@ Formula* Flattening::innerFlatten (Formula* f)
 
           bool lhsBoolean = lhs.isTerm() && lhs.term()->isBoolean();
           bool rhsBoolean = rhs.isTerm() && rhs.term()->isBoolean();
-          bool varEquality = lit->isTwoVarEquality() && lit->twoVarEqSort() == Term::boolSort();
+          bool varEquality = lit->isTwoVarEquality() && lit->twoVarEqSort() == AtomicSort::boolSort();
 
           if (lhsBoolean || rhsBoolean || varEquality) {
             Formula* lhsFormula = BoolTermFormula::create(lhs);

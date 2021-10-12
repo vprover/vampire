@@ -692,7 +692,11 @@ TermList RobSubstitution::apply(TermList trm, int index) const
       TermList* argLst=&args.top() - (orig->arity()-1);
       args.truncate(args.length() - orig->arity());
       TermList constructed;
-      constructed.setTerm(Term::create(orig,argLst));
+      if(orig->isSort()){
+        constructed.setTerm(AtomicSort::create(static_cast<AtomicSort*>(orig),argLst));                
+      } else {
+        constructed.setTerm(Term::create(orig,argLst));        
+      }
       args.push(constructed);
 
       VarSpec ref=termRefVars.pop();

@@ -23,11 +23,12 @@
 #include "Kernel/Inference.hpp"
 #include "Kernel/Problem.hpp"
 #include "Kernel/Signature.hpp"
-#include "Kernel/Sorts.hpp"
 #include "Kernel/Term.hpp"
 #include "Kernel/TermIterators.hpp"
 #include "Kernel/Theory.hpp"
 #include "Kernel/SortHelper.hpp"
+
+#include "Indexing/TermSharing.hpp"
 
 #include "Property.hpp"
 #include "SymCounter.hpp"
@@ -1082,12 +1083,12 @@ void TheoryAxioms::apply()
     modified = true;
   }
 
-  DHSet<TermList>* arraySorts = env.sorts->getArraySorts();
+  DHSet<TermList>* arraySorts = env.sharing->getArraySorts();
   DHSet<TermList>::Iterator it(*arraySorts);
   while(it.hasNext()){
     TermList arraySort = it.next();
 
-    bool isBool = SortHelper::getInnerSort(arraySort) == Term::boolSort();
+    bool isBool = SortHelper::getInnerSort(arraySort) == AtomicSort::boolSort();
     
     // Check if they are used
     Interpretation arraySelect = isBool ? Theory::ARRAY_BOOL_SELECT : Theory::ARRAY_SELECT;
@@ -1140,7 +1141,7 @@ void TheoryAxioms::applyFOOL() {
   TermList f(Term::foolFalse());
 
   // Add "$$true != $$false"
-  Literal* tneqf = Literal::createEquality(false, t, f, Term::boolSort());
+  Literal* tneqf = Literal::createEquality(false, t, f, AtomicSort::boolSort());
 
   addTheoryClauseFromLits({tneqf},InferenceRule::FOOL_AXIOM_TRUE_NEQ_FALSE,CHEAP);
 
@@ -1151,8 +1152,8 @@ void TheoryAxioms::applyFOOL() {
   }
 
   // Add "![X : $bool]: ((X = $$true) | (X = $$false))"
-  Literal* boolVar1 = Literal::createEquality(true, TermList(0, false), t, Term::boolSort());
-  Literal* boolVar2 = Literal::createEquality(true, TermList(0, false), f, Term::boolSort());
+  Literal* boolVar1 = Literal::createEquality(true, TermList(0, false), t, AtomicSort::boolSort());
+  Literal* boolVar2 = Literal::createEquality(true, TermList(0, false), f, AtomicSort::boolSort());
 
   addTheoryClauseFromLits({boolVar1,boolVar2},InferenceRule::FOOL_AXIOM_ALL_IS_TRUE_OR_FALSE,CHEAP);
 } // TheoryAxioms::addBooleanDomainAxiom
@@ -1184,7 +1185,7 @@ void TheoryAxioms::addExhaustivenessAxiom(TermAlgebra* ta) {
     argTerms.reset();
 
     for (unsigned j = 0; j < c->arity(); j++) {
-      if (c->argSort(j) == Term::boolSort()) {
+      if (c->argSort(j) == AtomicSort::boolSort()) {
         addsFOOL = true;
         Literal* lit = Literal::create1(c->destructorFunctor(j), true, x);
         Term* t = Term::createFormula(new AtomicFormula(lit));
