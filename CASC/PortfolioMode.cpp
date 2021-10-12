@@ -149,66 +149,6 @@ bool PortfolioMode::searchForProof()
   return performStrategy(property);
 }
 
-void addExperimentalScheduleDefaults(Schedule& sched) {
-  // we add these options in any case since they should behave as if they were defaults. This is NOT meant to go into master!!!
-  int confNumber = env.options->experimentalScheduleNumber();
-  if (confNumber >= 0) {
-    ASS(confNumber < 9)
-    for (auto& conf : sched) {
-      vstringstream newConf;
-      newConf << std::move(conf.substr(0, conf.find_last_of('_')));
-
-      switch (confNumber % 3) {
-        case 0: newConf << ":asg=off:ev=simple:pum=off:canc=off"; break;
-        case 1: newConf << ":asg=force:ev=force:pum=on:canc=force"; break;
-        case 2: newConf << ":asg=cautious:ev=cautious:pum=on:canc=cautious"; break;
-        default: ASSERTION_VIOLATION;
-      }
-      switch ((confNumber / 3) % 3) {
-        case 0: newConf << ":gve=off"; break;
-        case 1: newConf << ":gve=force"; break;
-        case 2: newConf << ":gve=cautious"; break;
-        default: ASSERTION_VIOLATION;
-      }
-      newConf << std::move(conf.substr(conf.find_last_of('_'), vstring::npos));
-      conf = newConf.str();
-    }
-  }
-
-  // also extend strats by thsq, if applicable
-  for (vstring& strat : sched) {
-    // don't extend fmb
-    if (strat.rfind("fmb",0) == 0) {
-      continue;
-    }
-    // don't extend, if there are no theory axions added
-    if (strat.find("tha=off") != vstring::npos) {
-      continue;
-    }
-
-    std::size_t under_pos = strat.rfind("_");
-    strat.insert(under_pos,":thsq=on");
-  }
-}
-
-static void extendShedByAtotf(Schedule& sched) {
-  CALL("extendShedByAtotf");
-
-  for (vstring& strat : sched) {
-    // don't extend fmb
-    if (strat.rfind("fmb",0) == 0) {
-      continue;
-    }
-    // don't extend, if there is no avatar present
-    if (strat.find("av=off") != vstring::npos) {
-      continue;
-    }
-
-    std::size_t under_pos = strat.rfind("_");
-    strat.insert(under_pos,":atotf=0.9");
-  }
-}
-
 static void extendShedByShuf(Schedule& sched) {
   CALL("extendShedByShuf");
 
@@ -233,12 +173,6 @@ bool PortfolioMode::performStrategy(Shell::Property* property)
   Schedule fallback_extra;
 
   getSchedules(*property,main,fallback);
-
-  addExperimentalScheduleDefaults(main);
-  addExperimentalScheduleDefaults(fallback);
-
-  // extendShedByShuf(main);
-  // extendShedByShuf(fallback);
 
   getExtraSchedules(*property,main,main_extra,true,3);
   getExtraSchedules(*property,fallback,fallback_extra,true,3);
