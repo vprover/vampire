@@ -2850,6 +2850,8 @@ void Schedules::getRapidInductionSchedule(const Shell::Property& property, Sched
   sched.push("dis-2_2:3_add=large:afp=40000:afq=1.4:amm=off:anc=none:gsp=input_only:mcni=on:mlc=on:mdfg=2:ialc=on:gsh=on:gs=on:gsem=on:inw=on:lcm=reverse:lma=on:nm=2:nwc=1:nicw=on:sas=z3:sos=all:sp=reverse_arity:tha=off:urr=on_5");
   sched.push("dis-1_2:1_afr=on:afp=10000:afq=2.0:anc=none:cond=on:fsr=off:fde=unused:mcni=on:mlc=on:mdfg=2:ialc=on:gsh=on:gs=on:gsaa=full_model:gsem=on:inw=on:irw=on:lcm=predicate:lma=on:nm=32:nwc=1:sas=z3:sos=all:sp=reverse_arity:tha=off:uwa=ground_4");
   sched.push("lrs+1_2:3_afr=on:afp=1000:afq=1.1:amm=sco:anc=none:mcni=on:mlc=on:mdfg=1:ialc=on:gsh=on:fsr=off:fde=none:gs=on:gsaa=full_model:gsem=on:lma=on:nm=64:nwc=1.3:sas=z3:stl=30:sac=on:tha=off:uwa=one_side_interpreted:updr=off_9");
+  sched.push("lrs+1_2:3_afr=on:afp=1000:afq=1.1:amm=sco:anc=none:fsr=off:mcni=on:mlc=on:mdfg=2:ialc=on:fde=none:gs=on:gsaa=full_model:gsem=on:lma=on:nm=64:nwc=1.3:sas=z3:stl=30:sac=on:tha=off:uwa=one_side_interpreted:updr=off_9");
+  sched.push("lrs+10_8:1_aac=none:add=off:afr=on:afp=40000:afq=1.1:amm=off:mcni=on:mlc=on:mdfg=2:ialc=on:anc=none:bd=off:cond=on:fsr=off:fde=none:gs=on:gsem=off:nm=0:nwc=1.2:sas=z3:stl=30:sos=all:sp=reverse_arity:tha=off:updr=off_68");
 }
 
 void Schedules::getRapidSchedule(const Shell::Property& property, Schedule& sched) {
