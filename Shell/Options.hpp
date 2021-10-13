@@ -404,6 +404,7 @@ public:
     SMTCOMP,
     SMTCOMP_2018, 
     RAPID,
+    RAPID_INDUCTION,
     STRUCT_INDUCTION
   };
 
@@ -2189,12 +2190,15 @@ public:
   unsigned maxInductionGenSubsetSize() const { return _maxInductionGenSubsetSize.actualValue; }
   bool inductionOnComplexTerms() const {return _inductionOnComplexTerms.actualValue;}
   bool integerInductionDefaultBound() const { return _integerInductionDefaultBound.actualValue; }
+  IntegerInductionInterval integerInductionInterval() const { return _integerInductionInterval.actualValue; }
+
+  //Induction for Rapid options
   bool multiClauseNatInduction() const { return _multiClauseNatInduction.actualValue; }
   bool inductAllLoopCounts() const { return _inductAllLoopCounts.actualValue; }
   bool rapidArrayInduction() const { return _rapidArrayInduction.actualValue; }
   bool multiLiteralClauses() const { return _multiLiteralClauses.actualValue; }
+  bool goalSkolemsHighWeight() const { return _goalSkolemsHighWeight.actualValue;}
   unsigned maxDistanceFromGoal() const { return _maxDistanceFromGoal.actualValue; }
-  IntegerInductionInterval integerInductionInterval() const { return _integerInductionInterval.actualValue; }
 
   float instGenBigRestartRatio() const { return _instGenBigRestartRatio.actualValue; }
   bool instGenPassiveReactivation() const { return _instGenPassiveReactivation.actualValue; }
@@ -2496,12 +2500,15 @@ private:
   UnsignedOptionValue _maxInductionGenSubsetSize;
   BoolOptionValue _inductionOnComplexTerms;
   BoolOptionValue _integerInductionDefaultBound;
+  ChoiceOptionValue<IntegerInductionInterval> _integerInductionInterval;
+
+  //Induction for Rapid options  
   BoolOptionValue _multiClauseNatInduction;
   BoolOptionValue _inductAllLoopCounts;
   BoolOptionValue _rapidArrayInduction;
   BoolOptionValue _multiLiteralClauses;
+  BoolOptionValue _goalSkolemsHighWeight;
   UnsignedOptionValue _maxDistanceFromGoal;  
-  ChoiceOptionValue<IntegerInductionInterval> _integerInductionInterval;
 
   StringOptionValue _latexOutput;
   BoolOptionValue _latexUseDefaultSymbols;

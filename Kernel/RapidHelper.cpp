@@ -120,6 +120,10 @@ bool RapidHelper::isSuitableForInduction(Literal* lit, vstring& tpName)
         return true;
       }
     }
+
+    if (isProgramVarAtSkolem(arg1) && isProgramVarAtSkolem(arg2)) {
+      return true;
+    }    
   }
   return false;
 }

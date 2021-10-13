@@ -173,9 +173,9 @@ void MultiClauseNatInduction::createConclusions(ClauseStack& premises,
   FormulaUnit* fu = new FormulaUnit(inductionFormula,inf);
   fu = Rectify::rectify(fu);
 
-  if(!inductionIsLimit){
-    //cout << fu->toString() << endl;
-  }
+  //if(!inductionIsLimit){
+  //  cout << fu->toString() << endl;
+  //}
 
   ClauseStack clausifiedHyps;
   cnf.clausify(NNF::ennf(fu), clausifiedHyps);
@@ -306,13 +306,6 @@ ClauseIterator MultiClauseNatInduction::generateClauses(Clause* premise)
   static bool allLoopCounts = env.options->inductAllLoopCounts();
   static int MAX_DIS = (int)env.options->maxDistanceFromGoal();
 
-  /*if(premise->length() == 1){
-    if((*premise)[0]->toString() == "$less(i(l14(sK4)),0)"){
-      cout << premise->toString() << endl;
-      cout << "frim goal " << premise->derivedFromGoal() << endl;
-      cout << "distance " << premise->inference().distanceFromGoal() << endl;
-    }
-  }*/
 
   if((premise->length() != 1 && !multiLiterals)){
     //Is this condition too restrictive?
@@ -325,11 +318,12 @@ ClauseIterator MultiClauseNatInduction::generateClauses(Clause* premise)
 
 
   static TermStack iterations;
-  if(allLoopCounts && premise->length() == 1 && allGround && premise->derivedFromGoal()){
-
+  if(allLoopCounts && premise->length() == 1 && allGround){
+ 
     Literal* lit = (*premise)[0];
     vstring tpName;
     if(RapidHelper::isSuitableForInduction(lit, tpName)){    
+
       unsigned nlFun;
       ALWAYS(env.signature->tryGetFunctionNumber("n" + tpName, 0, nlFun));
       TermList limit = TermList(Term::createConstant(nlFun));  

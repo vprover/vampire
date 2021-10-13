@@ -332,6 +332,9 @@ void PortfolioMode::getSchedules(Property& prop, Schedule& quick, Schedule& fall
   case Options::Schedule::RAPID:
     Schedules::getRapidSchedule(prop,quick);
     break;
+  case Options::Schedule::RAPID_INDUCTION:
+    Schedules::getRapidInductionSchedule(prop,quick);
+    break;    
   case Options::Schedule::INDUCTION:
     Schedules::getInductionSchedule(prop,quick,fallback);
     break;

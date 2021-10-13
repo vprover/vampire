@@ -143,6 +143,7 @@ void Options::init()
          "smtcomp",
          "smtcomp_2018",
          "rapid",
+         "rapid_induction",
          "struct_induction"});
 
     _schedule.description = "Schedule to be run by the portfolio mode. casc and smtcomp usually point to the most recent schedule in that category. Note that some old schedules may contain option values that are no longer supported - see ignore_missing.";
@@ -1253,6 +1254,12 @@ void Options::init()
             _multiLiteralClauses.tag(OptionTag::INFERENCES);
             _multiLiteralClauses.reliesOn(_multiClauseNatInduction.is(equal(true)));
             _lookup.insert(&_multiLiteralClauses);
+
+            _goalSkolemsHighWeight = BoolOptionValue("goal_skolems_heavy","gsh",false);
+            _goalSkolemsHighWeight.description = "Make Skolems coming from negated conjecture heavy";
+            _goalSkolemsHighWeight.tag(OptionTag::OTHER);
+            _goalSkolemsHighWeight.reliesOn(_multiClauseNatInduction.is(equal(true)));
+            _lookup.insert(&_goalSkolemsHighWeight);
 
             _maxDistanceFromGoal = UnsignedOptionValue("max_distance_from_goal","mdfg",1);
             _maxDistanceFromGoal.description = "The maximum distance a clause can be from the goal"

@@ -39,6 +39,7 @@ public:
   static void getLtb2017DefaultSchedule(const Shell::Property& property, Schedule& sched);
 
   static void getRapidSchedule(const Shell::Property& property, Schedule& quick);
+  static void getRapidInductionSchedule(const Shell::Property& property, Schedule& quick);  
   static void getInductionSchedule(const Shell::Property& property, Schedule& quick, Schedule& fallback);
   static void getIntegerInductionSchedule(const Shell::Property& property, Schedule& quick, Schedule& fallback);
   static void getStructInductionSchedule(const Shell::Property& property, Schedule& quick, Schedule& fallback);

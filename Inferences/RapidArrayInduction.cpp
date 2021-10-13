@@ -230,13 +230,6 @@ void RapidArrayInduction::createConclusions(ClauseStack& conclusions, bool incre
   FormulaUnit* fu2 = new FormulaUnit(indHypothesis2,inf2);
   fu2 = Rectify::rectify(fu2);
 
-  static unsigned counter = 0;
-
-  if(counter > 1){
-    return;
-  }
-  counter = counter + 1;
-
   //cout << fu1->toString() << endl;
   //cout << fu2->toString() << endl;
 
@@ -257,7 +250,7 @@ ClauseIterator RapidArrayInduction::generateClauses(Clause* premise)
   
   unsigned litPos, termPos;
   //TODO perhaps we ought to trigger on finding a dnsity clause as well?
-  //in most situations, this si likely to occur afterwards.
+  //in most situations, this is likely to occur afterwards.
   if(RapidHelper::isArrayAccessClause(premise, litPos, termPos)){
     Literal* lit = (*premise)[litPos];
     TermList arr = *lit->nthArgument(termPos);
