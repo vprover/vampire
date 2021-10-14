@@ -961,7 +961,7 @@ endif() # COMPILE_TESTS
 #################################################################
 # automated generation of Vampire revision information from git #
 #################################################################
-set(VAMPIRE_VERSION_NUMBER 4.5.1)
+set(VAMPIRE_VERSION_NUMBER 4.6.1)
 
 execute_process(
     COMMAND git rev-parse --is-inside-work-tree
