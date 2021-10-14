@@ -213,6 +213,51 @@ void Statistics::explainRefutationNotFound(ostream& out)
 
 void Statistics::print(ostream& out)
 {
+  switch(env.options->mode()) {
+    case Options::Mode::CASC:
+    case Options::Mode::CASC_HOL:
+    case Options::Mode::CASC_SAT:
+    case Options::Mode::SMTCOMP:
+    case Options::Mode::PORTFOLIO:
+      break;
+    default:
+      if (szsOutputMode()) {
+        // SZS ontology: http://www.tptp.org/TPTP/TPTPTParty/2007/PositionStatements/GeoffSutcliffe_SZS.html
+        out << "% SZS status ";
+        switch(env.statistics->terminationReason) {
+          case Statistics::REFUTATION:
+          case Statistics::SAT_UNSATISFIABLE:
+            out << (UIHelper::haveConjecture() ? ( UIHelper::haveConjectureInProof() ? "Theorem" : "ContradictoryAxioms" ) : "Unsatisfiable");
+            break;
+          case Statistics::TIME_LIMIT:
+            out << "Timeout";
+            break;
+          case Statistics::MEMORY_LIMIT:
+            out << "MemoryOut";
+            break;
+          case Statistics::ACTIVATION_LIMIT:
+            out << "ResourceOut";
+            break;
+          case Statistics::REFUTATION_NOT_FOUND:
+            out << "Incomplete";
+            break;
+          case Statistics::SATISFIABLE:
+          case Statistics::SAT_SATISFIABLE:
+            out << ( UIHelper::haveConjecture() ? "CounterSatisfiable" : "Satisfiable" );
+            break;
+          case Statistics::UNKNOWN:
+            out << "Unknown";
+            break;
+          case Statistics::INAPPROPRIATE:
+            out << "Inappropriate";
+            break;
+          default:
+           ASSERTION_VIOLATION;
+        }
+        out << " for " << env.options->problemName() << endl;
+      }
+  }
+
   if (env.options->statistics()==Options::Statistics::NONE) {
     return;
   }

@@ -405,10 +405,6 @@ void UIHelper::outputResult(ostream& out)
     }
     addCommentSignForSZS(out);
     out << "Refutation found. Thanks to " << env.options->thanks() << "!\n";
-    if (szsOutputMode()) {
-      out << "% SZS status " << (UIHelper::haveConjecture() ? ( UIHelper::haveConjectureInProof() ? "Theorem" : "ContradictoryAxioms" ) : "Unsatisfiable")
-	  << " for " << env.options->problemName() << endl;
-    }
     if (env.options->questionAnswering()!=Options::QuestionAnsweringMode::OFF) {
       ASS(env.statistics->refutation->isClause());
       AnswerExtractor::tryOutputAnswer(static_cast<Clause*>(env.statistics->refutation));
@@ -565,10 +561,6 @@ void UIHelper::outputSatisfiableResult(ostream& out)
   CALL("UIHelper::outputSatisfiableResult");
 
   //out << "Satisfiable!\n";
-  if (szsOutputMode() && !satisfiableStatusWasAlreadyOutput) {
-    out << "% SZS status " << ( UIHelper::haveConjecture() ? "CounterSatisfiable" : "Satisfiable" )
-	  <<" for " << env.options->problemName() << endl;
-  }
   if (!env.statistics->model.empty()) {
     if (szsOutputMode()) {
 	out << "% SZS output start FiniteModel for " << env.options->problemName() << endl;
