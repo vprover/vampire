@@ -294,10 +294,10 @@ vstring Formula::toString(const Formula* formula)
           if (hasSorts) {
             ASS(ss.hasNext());
             t = ss.next();
-            if (t != Term::defaultSort()) {
+            if (t != AtomicSort::defaultSort()) {
               res += " : " + t.toString();
             }
-          } else if (SortHelper::tryGetVariableSort(var, const_cast<Formula*>(f),t) && t != Term::defaultSort()) {
+          } else if (SortHelper::tryGetVariableSort(var, const_cast<Formula*>(f),t) && t != AtomicSort::defaultSort()) {
             res += " : " + t.toString();
           }
           first = false;
@@ -743,7 +743,7 @@ Formula* Formula::createITE(Formula* condition, Formula* thenArg, Formula* elseA
   CALL("Formula::createITE");
   TermList thenTerm(Term::createFormula(thenArg));
   TermList elseTerm(Term::createFormula(elseArg));
-  TermList iteTerm(Term::createITE(condition, thenTerm, elseTerm, Term::boolSort()));
+  TermList iteTerm(Term::createITE(condition, thenTerm, elseTerm, AtomicSort::boolSort()));
   return new BoolTermFormula(iteTerm);
 }
 
@@ -756,7 +756,7 @@ Formula* Formula::createLet(unsigned functor, VList* variables, TermList body, F
 {
   CALL("Formula::createLet(TermList)");
   TermList contentsTerm(Term::createFormula(contents));
-  TermList letTerm(Term::createLet(functor, variables, body, contentsTerm, Term::boolSort()));
+  TermList letTerm(Term::createLet(functor, variables, body, contentsTerm, AtomicSort::boolSort()));
   return new BoolTermFormula(letTerm);
 }
 
@@ -770,7 +770,7 @@ Formula* Formula::createLet(unsigned predicate, VList* variables, Formula* body,
   CALL("Formula::createLet(Formula*)");
   TermList bodyTerm(Term::createFormula(body));
   TermList contentsTerm(Term::createFormula(contents));
-  TermList letTerm(Term::createLet(predicate, variables, bodyTerm, contentsTerm, Term::boolSort()));
+  TermList letTerm(Term::createLet(predicate, variables, bodyTerm, contentsTerm, AtomicSort::boolSort()));
   return new BoolTermFormula(letTerm);
 }
 

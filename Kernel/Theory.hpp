@@ -24,7 +24,7 @@
 
 #include "Shell/TermAlgebra.hpp"
 
-#include "Sorts.hpp"
+#include "OperatorType.hpp"
 #include "Term.hpp"
 
 namespace Kernel {
@@ -54,7 +54,7 @@ class IntegerConstantType
 {
 public:
   CLASS_NAME(IntegerConstantType)
-  static TermList getSort() { return Term::intSort(); }
+  static TermList getSort() { return AtomicSort::intSort(); }
 
   typedef int InnerType;
 
@@ -133,7 +133,7 @@ struct RationalConstantType {
   typedef IntegerConstantType InnerType;
   CLASS_NAME(RationalConstantType)
 
-  static TermList getSort() { return Term::rationalSort(); }
+  static TermList getSort() { return AtomicSort::rationalSort(); }
 
   RationalConstantType() {}
   RationalConstantType(RationalConstantType&&) = default;
@@ -205,7 +205,7 @@ class RealConstantType : public RationalConstantType
 {
 public:
   CLASS_NAME(RealConstantType)
-  static TermList getSort() { return Term::realSort(); }
+  static TermList getSort() { return AtomicSort::realSort(); }
 
   RealConstantType() {}
   RealConstantType(RealConstantType&&) = default;

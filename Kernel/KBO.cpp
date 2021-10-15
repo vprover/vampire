@@ -109,6 +109,10 @@ Ordering::Result KBO::State::result(Term* t1, Term* t2)
       prec2=_kbo.predicatePrecedence(t2->functor());
       ASS_NEQ(prec1,prec2);//precedence ordering must be total
       res=(prec1>prec2)?GREATER:LESS;
+    } else if(t1->isSort()){
+      ASS(t2->isSort()); //should only compare sorts with sorts
+      res=_kbo.compareTypeConPrecedences(t1->functor(), t2->functor());
+      ASS_REP(res==GREATER || res==LESS, res);//precedence ordering must be total
     } else {
       res=_kbo.compareFunctionPrecedences(t1->functor(), t2->functor());
       ASS_REP(res==GREATER || res==LESS, res); //precedence ordering must be total
@@ -151,6 +155,9 @@ Ordering::Result KBO::State::innerResult(TermList tl1, TermList tl2)
     } else if(tl2.isVar()) {
       ASS_EQ(_posNum,0);
       res=GREATER;
+    } else if(tl1.term()->isSort()){
+      res=_kbo.compareTypeConPrecedences(tl1.term()->functor(), tl2.term()->functor());
+      ASS_REP(res==GREATER || res==LESS, res);//precedence ordering must be total
     } else {
       res=_kbo.compareFunctionPrecedences(tl1.term()->functor(), tl2.term()->functor());
       ASS_REP(res==GREATER || res==LESS, res);//precedence ordering must be total
@@ -540,7 +547,6 @@ void KBO::checkAdmissibility(HandleError handle) const
   auto maximalFunctions = Map<SortType, FunctionSymbol>();
 
   for (FunctionSymbol i = 0; i < nFunctions; i++) {
-    if(env.signature->isTypeConOrSup(i)){ continue; }
     auto sort = env.signature->getFunction(i)->fnType()->result();
     /* register min function */
     auto maxFn = maximalFunctions.getOrInit(std::move(sort), [&](){ return i; } );
@@ -553,7 +559,6 @@ void KBO::checkAdmissibility(HandleError handle) const
   unsigned varWght = _funcWeights._specialWeights._variableWeight;
 
   for (unsigned i = 0; i < nFunctions; i++) {
-    if(env.signature->isTypeConOrSup(i)){ continue; }
     auto sort = env.signature->getFunction(i)->fnType()->result();
     auto arity = env.signature->getFunction(i)->arity();
 
@@ -704,6 +709,10 @@ int KBO::symbolWeight(Term* t) const
     return _predWeights.symbolWeight(t);
   else 
 #endif
+  if (t->isSort()){
+    //For now just give all type constructors minimal weight
+    return _funcWeights._specialWeights._variableWeight;
+  }
     return _funcWeights.symbolWeight(t);
 }
 

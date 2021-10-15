@@ -170,6 +170,7 @@ vstring getQuantifiedStr(const VarContainer& vars, vstring inner, DHMap<unsigned
     unsigned var =vit.next();
     vstring ty="";
     TermList t;
+
     if(t_map.find(var,t) && env.statistics->hasTypes){
       //hasTypes is true if the problem that contains a sort
       //that is not $i and not a variable
@@ -1057,24 +1058,27 @@ void InferenceStore::outputUnsatCore(ostream& out, Unit* refutation)
 
   Stack<Unit*> todo;
   todo.push(refutation);
-  Set<vstring> printed;
+  Set<Unit*> visited;
   while(!todo.isEmpty()){
 
     Unit* u = todo.pop();
+    visited.insert(u);
 
     if(u->number() <= Unit::getLastParsingNumber()){
       if(!u->isClause()  && u->getFormula()->hasLabel()){
         vstring label =  u->getFormula()->getLabel();
-        if(!printed.contains(label)){
-          out << label << endl; 
-          printed.insert(label);
-        }
+        out << label << endl;
       }
     }
     else{
       InferenceRule rule;
       UnitIterator parents = InferenceStore::instance()->getParents(u,rule);
-      while(parents.hasNext()){ todo.push(parents.next()); }
+      while(parents.hasNext()){
+        Unit* parent = parents.next();
+        if(!visited.contains(parent)){
+          todo.push(parent);
+        }
+      }
     }
 
   }
