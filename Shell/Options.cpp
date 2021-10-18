@@ -309,6 +309,12 @@ void Options::init()
     _lookup.insert(&_outputMode);
     _outputMode.tag(OptionTag::OUTPUT);
 
+    _ignoreMissingInputsInUnsatCore = BoolOptionValue("ignore_missing_inputs_in_unsat_core","",false);
+    _ignoreMissingInputsInUnsatCore.description="When running in unsat core output mode we will complain if there is"
+    " an input formula that has no label. Set this on if you don't want this behaviour (which is default in smt-comp)."; 
+    _lookup.insert(&_ignoreMissingInputsInUnsatCore);
+    _ignoreMissingInputsInUnsatCore.tag(OptionTag::OUTPUT);
+
     _thanks = StringOptionValue("thanks","","Tanya");
     _thanks.description="";
     _lookup.insert(&_thanks);
@@ -1083,7 +1089,7 @@ void Options::init()
            _cancellation.tag(OptionTag::INFERENCES);
            _cancellation.setExperimental();
 
-           _highSchool = BoolOptionValue("high_school", "", false);
+           _highSchool = BoolOptionValue("high_school", "hsm", false);
            _highSchool.description="Enables high school education for vampire. (i.e.: sets -gve cautious, -asg cautious, -ev cautious, -canc cautious, -pum on )";
            _lookup.insert(&_highSchool);
            _highSchool.tag(OptionTag::INFERENCES);

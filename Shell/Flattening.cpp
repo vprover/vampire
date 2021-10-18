@@ -90,9 +90,9 @@ FormulaUnit* Flattening::flatten (FormulaUnit* unit)
  * @since 08/06/2007 Manchester changed to new data structures
  * @since 18/12/2015 Gothenburg, changes to support FOOL
  */
-Formula* Flattening::flatten (Formula* f)
+Formula* Flattening::innerFlatten (Formula* f)
 {
-  CALL("Flattening::flatten(Formula*)");
+  CALL("Flattening::innerFlatten(Formula*)");
 
   Connective con = f->connective();
   switch (con) {
