@@ -570,7 +570,6 @@ set(VAMPIRE_SHELL_SOURCES
     Shell/CommandLine.cpp
     Shell/CNF.cpp
     Shell/NewCNF.cpp
-    #Shell/CParser.cpp
     Shell/DistinctProcessor.cpp
     Shell/DistinctGroupExpansion.cpp
     Shell/EqResWithDeletion.cpp
@@ -639,7 +638,6 @@ set(VAMPIRE_SHELL_SOURCES
     Shell/CommandLine.hpp
     Shell/CNF.hpp
     Shell/NewCNF.hpp
-    #Shell/CParser.hpp
     Shell/DistinctProcessor.hpp
     Shell/DistinctGroupExpansion.hpp
     Shell/EqResWithDeletion.hpp
