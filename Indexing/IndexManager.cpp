@@ -296,6 +296,12 @@ Index* IndexManager::create(IndexType t)
     isGenerating = true;
     break;
 
+  case INDUCTION_COUNT_INDEX:
+    is=new LiteralSubstitutionTree();
+    res=new SimplifyingLiteralIndex(is);
+    isGenerating = true;
+    break;
+
   default:
     INVALID_OPERATION("Unsupported IndexType.");
   }

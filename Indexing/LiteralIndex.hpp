@@ -19,6 +19,7 @@
 #include "Lib/DHMap.hpp"
 
 #include "Index.hpp"
+#include "LiteralIndexingStructure.hpp"
 
 
 namespace Indexing {
@@ -46,8 +47,10 @@ public:
   SLQueryResultIterator getInstances(Literal* lit,
 	  bool complementary, bool retrieveSubstitutions = true);
 
-  size_t getUnificationCount(Literal* lit, bool complementary);
+  SLQueryResultIterator getVariants(Literal* lit,
+	  bool complementary, bool retrieveSubstitutions = true);
 
+  size_t getUnificationCount(Literal* lit, bool complementary);
 
 protected:
   LiteralIndex(LiteralIndexingStructure* is) : _is(is) {}

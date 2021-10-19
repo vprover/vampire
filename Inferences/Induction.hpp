@@ -87,7 +87,7 @@ public:
   CLASS_NAME(Induction);
   USE_ALLOCATOR(Induction);
 
-  Induction() {}
+  Induction(bool onlyCount = false) : _onlyCount(onlyCount) {}
 
   void attach(SaturationAlgorithm* salg);
   void detach();
@@ -98,6 +98,8 @@ private:
   // The following pointers can be null if int induction is off.
   LiteralIndex* _comparisonIndex = nullptr;
   TermIndex* _inductionTermIndex = nullptr;
+  LiteralIndex* _allLitsIndex = nullptr;
+  bool _onlyCount;
 };
 
 class InductionClauseIterator

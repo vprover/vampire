@@ -65,6 +65,12 @@ SLQueryResultIterator LiteralIndex::getInstances(Literal* lit,
   return _is->getInstances(lit, complementary, retrieveSubstitutions);
 }
 
+SLQueryResultIterator LiteralIndex::getVariants(Literal* lit,
+	  bool complementary, bool retrieveSubstitutions)
+{
+  return _is->getVariants(lit, complementary, retrieveSubstitutions);
+}
+
 size_t LiteralIndex::getUnificationCount(Literal* lit, bool complementary)
 {
   return _is->getUnificationCount(lit, complementary);

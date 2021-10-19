@@ -150,6 +150,7 @@ public:
   unsigned intFinDownInductionInProof;
   unsigned intDBDownInduction;
   unsigned intDBDownInductionInProof;
+  unsigned potentialNewInduction;
   /** number of argument congruences */
   unsigned argumentCongruence;
   unsigned narrow;
