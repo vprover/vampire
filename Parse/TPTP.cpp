@@ -1175,7 +1175,6 @@ int TPTP::decimal(int pos)
   case '9':
     break;
   default:
-    ASSERTION_VIOLATION_REP(getChar(pos));
     PARSE_ERROR("wrong number format",_gpos);
   }
 
@@ -1432,7 +1431,7 @@ void TPTP::tff()
             ? addUninterpretedConstant(nm, _overflow, added)
             : env.signature->addFunction(nm, arity, added);
         Signature::Symbol* symbol = env.signature->getFunction(fun);
-        OperatorType* ot = OperatorType::getFunctionTypeUniformRange(arity, Term::superSort(), Term::superSort());
+        OperatorType* ot = OperatorType::getTypeConType(arity);
         if (!added) {
           if(symbol->fnType()!=ot){
             PARSE_ERROR("Type constructor declared with two different types",tok);
@@ -1652,10 +1651,10 @@ void TPTP::holTerm()
       resetToks();
       switch (tok.tag) {
         case T_BOOL_TYPE:
-          _termLists.push(Term::boolSort());
+          _termLists.push(AtomicSort::boolSort());
           break;
         case T_DEFAULT_TYPE:
-          _termLists.push(Term::defaultSort());
+          _termLists.push(AtomicSort::defaultSort());
           break;             
         default:
           ASSERTION_VIOLATION;
@@ -2031,7 +2030,7 @@ void TPTP::endTheoryFunction() {
       TermList array = _termLists.pop();
 
       arraySort = sortOf(array);
-      if (!SortHelper::isArraySort(arraySort)) {
+      if (!arraySort.isArraySort()) {
         USER_ERROR("$select is being incorrectly used on a type of array " + arraySort.toString() + " that has not be defined");
       }
 
@@ -2043,7 +2042,7 @@ void TPTP::endTheoryFunction() {
       args[0] = array;
       args[1] = index;
 
-      if (SortHelper::getInnerSort(arraySort) == Term::boolSort()) {
+      if (SortHelper::getInnerSort(arraySort) == AtomicSort::boolSort()) {
         itp = Theory::Interpretation::ARRAY_BOOL_SELECT;
       } else {
         itp = Theory::Interpretation::ARRAY_SELECT;
@@ -2056,7 +2055,7 @@ void TPTP::endTheoryFunction() {
       TermList array = _termLists.pop();
 
       arraySort = sortOf(array);
-      if (!SortHelper::isArraySort(arraySort)) {
+      if (!arraySort.isArraySort()) {
         USER_ERROR("store is being incorrectly used on a type of array that has not be defined");
       }
 
@@ -2637,7 +2636,7 @@ void TPTP::tupleDefinition()
     symbols.push(symbol);
 
     TermList sort = isPredicate
-                  ? Term::boolSort()
+                  ? AtomicSort::boolSort()
                   : env.signature->getFunction(symbol)->fnType()->result();
     sorts.push(sort);
 
@@ -2651,7 +2650,7 @@ void TPTP::tupleDefinition()
     }
   } while (true);
 
-  TermList tupleSort = Term::tupleSort(sorts.size(), sorts.begin());
+  TermList tupleSort = AtomicSort::tupleSort(sorts.size(), sorts.begin());
   unsigned tupleFunctor = Theory::tuples()->getFunctor(tupleSort);
 
   LetDefinitions definitions = _letDefinitions.pop();
@@ -2679,7 +2678,7 @@ void TPTP::endDefinition() {
   TermList definitionSort = sortOf(definition);
 
   TermList refSort = isPredicate
-                     ? Term::boolSort()
+                     ? AtomicSort::boolSort()
                      : env.signature->getFunction(symbol)->fnType()->result();
 
   if (refSort != definitionSort) {
@@ -2757,7 +2756,7 @@ void TPTP::endLet()
     bool isTuple = false;
     if (!isPredicate) {
       TermList resultSort = env.signature->getFunction(symbol)->fnType()->result();
-      isTuple = SortHelper::isTupleSort(resultSort);
+      isTuple = resultSort.isTupleSort();
     }
 
     if (isTuple) {
@@ -2882,7 +2881,7 @@ void TPTP::varList()
 
     case T_COMMA:
       if (!sortDeclared) {
-        bindVariable(var,Term::defaultSort());
+        bindVariable(var,AtomicSort::defaultSort());
       }
       resetToks();
       break;
@@ -2890,7 +2889,7 @@ void TPTP::varList()
     default:
       {
         if (!sortDeclared) {
-          bindVariable(var,Term::defaultSort());
+          bindVariable(var,AtomicSort::defaultSort());
         }
         VList* vs = VList::empty();
         SList* ss = SList::empty();
@@ -2937,19 +2936,19 @@ void TPTP::term()
       resetToks();
       switch (tok.tag) {
         case T_INTEGER_TYPE:
-          _termLists.push(Term::intSort());
+          _termLists.push(AtomicSort::intSort());
           break;
         case T_REAL_TYPE:
-          _termLists.push(Term::realSort());
+          _termLists.push(AtomicSort::realSort());
           break;        
         case T_RATIONAL_TYPE:
-          _termLists.push(Term::rationalSort());
+          _termLists.push(AtomicSort::rationalSort());
           break;
         case T_BOOL_TYPE:
-          _termLists.push(Term::boolSort());
+          _termLists.push(AtomicSort::boolSort());
           break;
         case T_DEFAULT_TYPE:
-          _termLists.push(Term::defaultSort());
+          _termLists.push(AtomicSort::defaultSort());
           break;             
         default:
           ASSERTION_VIOLATION;
@@ -3045,7 +3044,12 @@ void TPTP::endTerm()
     return;
   }
 
-  _termLists.push(createFunctionApplication(name, arity));
+  if(env.signature->typeConExists(name, arity)){
+    _termLists.push(createTypeConApplication(name, arity));    
+    return;
+  }
+
+  _termLists.push(createFunctionApplication(name, arity)); 
 } // endTerm
 
 /**
@@ -3193,7 +3197,7 @@ Literal* TPTP::createEquality(bool polarity,TermList& lhs,TermList& rhs)
       sort = vs->head();
     }
     else { // this may happen when free variables appear in the formula (or clause)
-      sort = Term::defaultSort();
+      sort = AtomicSort::defaultSort();
     }
   }
    
@@ -3263,9 +3267,9 @@ Formula* TPTP::createPredicateApplication(vstring name, unsigned arity)
     TermList ts = _termLists.pop();
     TermList tsSort = sortOf(ts);
     if((unsigned)i < type->typeArgsArity()){
-      if(tsSort != Term::superSort()){      
+      if(tsSort != AtomicSort::superSort()){
         USER_ERROR("The sort " + tsSort.toString() + " of type argument " + ts.toString() + " "
-                   "is not $ttype as madated by TFF1");
+                   "is not $ttype as mandated by TF1");
       }
     } else {
       static RobSubstitution subst;
@@ -3316,9 +3320,9 @@ TermList TPTP::createFunctionApplication(vstring name, unsigned arity)
     TermList ss = _termLists.pop();
     TermList ssSort = sortOf(ss);
     if((unsigned)i < type->typeArgsArity()){
-      if(ssSort != Term::superSort()){
+      if(ssSort != AtomicSort::superSort()){
         USER_ERROR("The sort " + ssSort.toString() + " of type argument " + ss.toString() + " "
-                   "is not $ttype as mandated by TF1");
+                   "is not $tType as mandated by TF1");
       }
     } else {
       static RobSubstitution subst;
@@ -3335,12 +3339,41 @@ TermList TPTP::createFunctionApplication(vstring name, unsigned arity)
   if (safe) {
     t = env.sharing->insert(t);
   }
-  TermList ts(t);
-  TermList resultSort = type->result();
-  if(resultSort == Term::superSort()){
-    env.sorts->addSort(ts);
+  return TermList(t);
+}
+
+/**
+ * Creates a term that is a function application from
+ * provided function symbol name and arity. If arity is greater than zero,
+ * the arguments are assumed to be on the _termLists stack.
+ * @since 13/04/2015 Gothenburg, major changes to support FOOL
+ */
+TermList TPTP::createTypeConApplication(vstring name, unsigned arity)
+{ 
+  CALL("TPTP::createTypeConApplication");
+  ASS_GE(_termLists.size(), arity);
+
+  bool dummy;
+  //TODO not checking for overflown constant. Is that OK?
+  //seems to be done this way for predicates as well.
+  unsigned typeCon = env.signature->addTypeCon(name,arity,dummy);
+  AtomicSort* s = new(arity) AtomicSort(typeCon,arity);
+
+  bool safe = true;
+  for (int i = arity-1;i >= 0;i--) {
+    TermList ss = _termLists.pop();
+    TermList ssSort = sortOf(ss);
+    if(ssSort != AtomicSort::superSort()){
+        USER_ERROR("The sort " + ssSort.toString() + " of type argument " + ss.toString() + " "
+                   "is not $tType as mandated by TF1");
+    }
+    *(s->nthArgument(i)) = ss;
+    safe = safe && ss.isSafe();
   }
-  return ts;
+  if (safe) {
+    s = env.sharing->insert(s);
+  }
+  return TermList(s);
 }
 
 /**
@@ -3543,7 +3576,7 @@ void TPTP::endTermAsFormula()
   CALL("TPTP::endTermAsFormula");
   TermList t = _termLists.pop();
   TermList tSort = sortOf(t);
-  if (tSort != Term::boolSort()) {
+  if (tSort != AtomicSort::boolSort()) {
     USER_ERROR("Non-boolean term " + t.toString() + " of sort " + tSort.toString() + " is used in a formula context");
   }
   if (t.isTerm() && t.term()->isFormula()) {
@@ -3815,6 +3848,7 @@ void TPTP::endTff()
 
   unsigned arity = ot->arity();
   bool isPredicate = ot->isPredicateType() && !_isThf;
+  bool isTypeCon = !isPredicate && (ot->result() == AtomicSort::superSort());
 
   bool added;
   Signature::Symbol* symbol;
@@ -3832,6 +3866,18 @@ void TPTP::endTff()
         symbol->setType(ot);
       }
     }
+  } else if (isTypeCon){
+    unsigned typeCon = env.signature->addTypeCon(name, arity, added);
+    symbol = env.signature->getTypeCon(typeCon);
+    if (!added) {
+      // GR: Multiple identical type declarations for a symbol are allowed
+      if(symbol->typeConType() != ot){
+        USER_ERROR("Type constructor type is declared after its use: " + name);
+      }
+    }
+    else{
+      symbol->setType(ot);
+    }
   } else {
     unsigned fun = arity == 0
                    ? addUninterpretedConstant(name, _overflow, added)
@@ -3844,6 +3890,7 @@ void TPTP::endTff()
     }
     else {   
       symbol->setType(ot);
+      //TODO check whether the below is actually required or not.
       if(_isThf){
         if(!_typeArities.insert(name, ot->typeArgsArity())){
           USER_ERROR("Symbol " + name + " used with different type arities");
@@ -3924,7 +3971,7 @@ OperatorType* TPTP::constructOperatorType(Type* t, VList* vars)
 #endif
   }
 
-  bool isPredicate = resultSort == Term::boolSort();
+  bool isPredicate = resultSort == AtomicSort::boolSort();
   unsigned arity = (unsigned)argumentSorts.size();
 
   if(env.statistics->polymorphic){
@@ -4286,11 +4333,11 @@ void TPTP::foldl(TermStack* terms)
   TermList item1 = terms->pop();
   TermList item2 = terms->pop();
   while(!(terms->isEmpty()) && (!item2.isSpecialVar())){
-    item1 = Term::arrowSort(item2, item1);
+    item1 = AtomicSort::arrowSort(item2, item1);
     item2 = terms->pop();
   }
   if (!item2.isSpecialVar()){
-    item1 = Term::arrowSort(item2, item1);;
+    item1 = AtomicSort::arrowSort(item2, item1);;
   }
   terms->push(item1);
 }   
@@ -4358,7 +4405,7 @@ TermList TPTP::readSort()
           }
         }
       } 
-      return createFunctionApplication(fname, arity);
+      return createTypeConApplication(fname, arity);
     }
   case T_VAR:
     {
@@ -4368,22 +4415,22 @@ TermList TPTP::readSort()
     }
 
   case T_DEFAULT_TYPE:
-    return Term::defaultSort();
+    return AtomicSort::defaultSort();
 
   case T_BOOL_TYPE:
-    return Term::boolSort();
+    return AtomicSort::boolSort();
 
   case T_INTEGER_TYPE:
-    return Term::intSort();
+    return AtomicSort::intSort();
 
   case T_RATIONAL_TYPE:
-    return Term::rationalSort();
+    return AtomicSort::rationalSort();
 
   case T_REAL_TYPE:
-    return Term::realSort();
+    return AtomicSort::realSort();
 
   case T_TTYPE:
-    return Term::superSort();
+    return AtomicSort::superSort();
 
   case T_LBRA:
   {
@@ -4403,7 +4450,7 @@ TermList TPTP::readSort()
       USER_ERROR("Tuple sort with less than two arguments");
     }
 
-    return Term::tupleSort((unsigned) sorts.length(), sorts.begin());
+    return AtomicSort::tupleSort((unsigned) sorts.length(), sorts.begin());
   }
   case T_THEORY_SORT: {
     TermList sort;
@@ -4413,7 +4460,7 @@ TermList TPTP::readSort()
         TermList indexSort = readSort();
         consumeToken(T_COMMA);
         TermList innerSort = readSort();
-        sort = Term::arraySort(indexSort, innerSort);
+        sort = AtomicSort::arraySort(indexSort, innerSort);
         break;
       }
       default:
@@ -4532,7 +4579,7 @@ unsigned TPTP::addFunction(vstring name,int arity,bool& added,TermList& arg)
 				 Theory::REAL_QUOTIENT);
   }
   if (name == "$modulo"){
-    if(sortOf(arg)!=Term::intSort()){
+    if(sortOf(arg)!=AtomicSort::intSort()){
       USER_ERROR("$modulo can only be used with integer type");
     }
     return addOverloadedFunction(name,arity,2,added,arg,
@@ -4541,7 +4588,7 @@ unsigned TPTP::addFunction(vstring name,int arity,bool& added,TermList& arg)
                                  Theory::INT_REMAINDER_E); // will not be used
   }
   if (name == "$abs"){
-    if(sortOf(arg)!=Term::intSort()){
+    if(sortOf(arg)!=AtomicSort::intSort()){
       USER_ERROR("$abs can only be used with integer type");
     }
     return addOverloadedFunction(name,arity,1,added,arg,
@@ -4550,7 +4597,7 @@ unsigned TPTP::addFunction(vstring name,int arity,bool& added,TermList& arg)
                                  Theory::INT_ABS); // will not be used
   }
   if (name == "$quotient") {
-    if(sortOf(arg)==Term::intSort()){
+    if(sortOf(arg)==AtomicSort::intSort()){
       USER_ERROR("$quotient cannot be used with integer type");
     }
     return addOverloadedFunction(name,arity,2,added,arg,
@@ -4601,7 +4648,7 @@ unsigned TPTP::addFunction(vstring name,int arity,bool& added,TermList& arg)
 				 Theory::REAL_UNARY_MINUS);
   }
   if (name == "$successor"){
-    if(sortOf(arg)!=Term::intSort()){
+    if(sortOf(arg)!=AtomicSort::intSort()){
       USER_ERROR("$succ can only be used with integer type");
     }
     return addOverloadedFunction(name,arity,1,added,arg,
@@ -4707,7 +4754,7 @@ int TPTP::addPredicate(vstring name,int arity,bool& added,TermList& arg)
 				  Theory::REAL_IS_INT);
   }
   if (name == "$divides"){
-    if(sortOf(arg)!=Term::intSort()){
+    if(sortOf(arg)!=AtomicSort::intSort()){
       USER_ERROR("$divides can only be used with integer type");
     }
     return addOverloadedPredicate(name,arity,2,added,arg,
@@ -4744,13 +4791,13 @@ unsigned TPTP::addOverloadedFunction(vstring name,int arity,int symbolArity,bool
     if(sortOf(*n)!=srt) USER_ERROR((vstring)"The symbol " + name + " is not used with a single sort");
     n = n->next();
   }
-  if (srt == Term::intSort()) {
+  if (srt == AtomicSort::intSort()) {
     return env.signature->addInterpretedFunction(integer,name);
   }
-  if (srt == Term::rationalSort()) {
+  if (srt == AtomicSort::rationalSort()) {
     return env.signature->addInterpretedFunction(rational,name);
   }
-  if (srt == Term::realSort()) {
+  if (srt == AtomicSort::realSort()) {
     return env.signature->addInterpretedFunction(real,name);
   }
   USER_ERROR((vstring)"The symbol " + name + " is used with a non-numeric type");
@@ -4772,13 +4819,13 @@ unsigned TPTP::addOverloadedPredicate(vstring name,int arity,int symbolArity,boo
     n = n->next(); 
   }
   
-  if (srt == Term::intSort()) {
+  if (srt == AtomicSort::intSort()) {
     return env.signature->addInterpretedPredicate(integer,name);
   }
-  if (srt == Term::rationalSort()) {
+  if (srt == AtomicSort::rationalSort()) {
     return env.signature->addInterpretedPredicate(rational,name);
   }
-  if (srt == Term::realSort()) {
+  if (srt == AtomicSort::realSort()) {
     return env.signature->addInterpretedPredicate(real,name);
   }
   USER_ERROR((vstring)"The symbol " + name + " is used with a non-numeric type");
@@ -4793,7 +4840,7 @@ unsigned TPTP::addOverloadedPredicate(vstring name,int arity,int symbolArity,boo
 TermList TPTP::sortOf(TermList t)
 {
   CALL("TPTP::sortOf");
-
+  
   for (;;) {
     if (t.isVar()) {
       SList* sorts;
@@ -4802,7 +4849,7 @@ TermList TPTP::sortOf(TermList t)
       }
       // there might be variables whose sort is undeclared,
       // in this case they have the default sort
-      TermList def = Term::defaultSort();
+      TermList def = AtomicSort::defaultSort();
       bindVariable(t.var(), def);
       return def;
     }
@@ -4839,7 +4886,7 @@ unsigned TPTP::addIntegerConstant(const vstring& name, Set<vstring>& overflow, b
     if (added) {
       overflow.insert(name);
       Signature::Symbol* symbol = env.signature->getFunction(fun);
-      symbol->setType(OperatorType::getConstantsType(defaultSort ? Term::defaultSort() : Term::intSort()));
+      symbol->setType(OperatorType::getConstantsType(defaultSort ? AtomicSort::defaultSort() : AtomicSort::intSort()));
     }
     else if (!overflow.contains(name)) {
       USER_ERROR((vstring)"Cannot use name '" + name + "' as an atom name since it collides with an integer number");
@@ -4875,7 +4922,7 @@ unsigned TPTP::addRationalConstant(const vstring& name, Set<vstring>& overflow, 
     if (added) {
       overflow.insert(name);
       Signature::Symbol* symbol = env.signature->getFunction(fun);
-      symbol->setType(OperatorType::getConstantsType(defaultSort ? Term::defaultSort() : Term::rationalSort()));
+      symbol->setType(OperatorType::getConstantsType(defaultSort ? AtomicSort::defaultSort() : AtomicSort::rationalSort()));
     }
     else if (!overflow.contains(name)) {
       USER_ERROR((vstring)"Cannot use name '" + name + "' as an atom name since it collides with an rational number");
@@ -4907,7 +4954,7 @@ unsigned TPTP::addRealConstant(const vstring& name, Set<vstring>& overflow, bool
     if (added) {
       overflow.insert(name);
       Signature::Symbol* symbol = env.signature->getFunction(fun);
-      symbol->setType(OperatorType::getConstantsType(defaultSort ? Term::defaultSort() : Term::realSort()));
+      symbol->setType(OperatorType::getConstantsType(defaultSort ? AtomicSort::defaultSort() : AtomicSort::realSort()));
     }
     else if (!overflow.contains(name)) {
       USER_ERROR((vstring)"Cannot use name '" + name + "' as an atom name since it collides with an real number");

@@ -20,7 +20,7 @@
 #include "Lib/Set.hpp"
 
 #include "Kernel/Signature.hpp"
-#include "Kernel/Sorts.hpp"
+#include "Kernel/OperatorType.hpp"
 #include "Kernel/Term.hpp"
 
 #include "Shell/LispParser.hpp"
@@ -287,7 +287,7 @@ private:
     bool isSharedTerm() { return !formula && (!trm.isTerm() || trm.term()->shared()); }
 
     /** Construct ParseResult from a formula */
-    ParseResult(Formula* frm) : sort(Term::boolSort()), formula(true), frm(frm) {}
+    ParseResult(Formula* frm) : sort(AtomicSort::boolSort()), formula(true), frm(frm) {}
     /** Construct ParseResult from a term of a given sort */
     ParseResult(TermList sort, TermList trm) : sort(sort), formula(false), trm(trm) {}
 

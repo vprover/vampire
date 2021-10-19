@@ -165,7 +165,7 @@ Literal* InequalitySplitting::splitLiteral(Literal* lit, UnitInputType inpType, 
     fun=env.signature->addNamePredicate(vars.size() + 1);
     type = OperatorType::getPredicateType({srt}, vars.size());
   } else {
-    srt = Term::arrowSort(srt, Term::boolSort());
+    srt = AtomicSort::arrowSort(srt, AtomicSort::boolSort());
     fun=env.signature->addNameFunction(vars.size());
     type = OperatorType::getConstantsType(srt, vars.size());
   }
@@ -237,7 +237,7 @@ Literal* InequalitySplitting::makeNameLiteral(unsigned predNum, TermList arg, bo
     TermList head = TermList(Term::create(predNum, vars.size(), vars.begin()));
     TermList headS = SortHelper::getResultSort(head.term());
     TermList t = ApplicativeHelper::createAppTerm(headS, head, arg);
-    return Literal::createEquality(true, t, boolT, Term::boolSort());
+    return Literal::createEquality(true, t, boolT, AtomicSort::boolSort());
   }
 
 }

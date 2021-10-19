@@ -247,7 +247,7 @@ set(VAMPIRE_KERNEL_SOURCES
     Kernel/MismatchHandler.cpp
     Kernel/Signature.cpp
     Kernel/SortHelper.cpp
-    Kernel/Sorts.cpp
+    Kernel/OperatorType.cpp
     Kernel/SpassLiteralSelector.cpp
     Kernel/SubformulaIterator.cpp
     Kernel/Substitution.cpp
@@ -298,7 +298,7 @@ set(VAMPIRE_KERNEL_SOURCES
     Kernel/MismatchHandler.hpp
     Kernel/Signature.hpp
     Kernel/SortHelper.hpp
-    Kernel/Sorts.hpp
+    Kernel/OperatorType.hpp
     Kernel/SpassLiteralSelector.hpp
     Kernel/SubformulaIterator.hpp
     Kernel/SubstHelper.hpp
@@ -874,6 +874,10 @@ elseif(CMAKE_BUILD_TYPE STREQUAL Release)
   add_compile_definitions(VDEBUG=0)
 endif()
 
+if (CYGWIN)
+ add_compile_definitions(_BSD_SOURCE)
+endif()
+                    
 # configure warning flags
 if(CMAKE_CXX_COMPILER_ID STREQUAL GNU OR CMAKE_CXX_COMPILER_ID MATCHES Clang$)
   add_compile_options(-Wall)

@@ -10,7 +10,6 @@
   
 #include "Test/UnitTesting.hpp"
 #include "Test/SyntaxSugar.hpp"
-#include "Kernel/Sorts.hpp"
 #include "Test/SyntaxSugar.hpp"
 #include "SAT/Z3Interfacing.hpp"
 #include <fstream>

@@ -20,7 +20,7 @@
 
 #include "Kernel/Clause.hpp"
 #include "Kernel/Signature.hpp"
-#include "Kernel/Sorts.hpp"
+#include "Kernel/OperatorType.hpp"
 #include "Kernel/Term.hpp"
 #include "Kernel/TermIterators.hpp"
 #include "Kernel/Theory.hpp"
@@ -324,7 +324,7 @@ bool InductionHelper::isIntInductionTermListInLiteral(TermList& tl, Literal* l) 
   //   4: comparisons or equalities are not allowed
   ASS(tl.isTerm());
   unsigned f = tl.term()->functor();
-  if (env.signature->getFunction(f)->fnType()->result() != Term::intSort() ||
+  if (env.signature->getFunction(f)->fnType()->result() != AtomicSort::intSort() ||
       ((termst >= 1) && theory->isInterpretedConstant(f)) ||
       ((termst == 2) && !containsSkolem(tl.term())))
   {

@@ -29,6 +29,7 @@
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/NumTraits.hpp"
 
+#include "Kernel/OperatorType.hpp"
 #include "Indexing/TermSharing.hpp"
 #include "Kernel/Signature.hpp"
 #include "Kernel/Sorts.hpp"
@@ -197,7 +198,7 @@ struct SortSugar
   SortSugar(SortId srt) : _srt(srt) {}
 public:
   SortSugar(const char* name) 
-    : SortSugar(env.sorts->addSort(name)) 
+    : SortSugar(TermList(AtomicSort::createConstant(name))) 
   {  }
 
   SortId sortId() const { return _srt; }
