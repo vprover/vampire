@@ -32,8 +32,8 @@
 #include "Kernel/OperatorType.hpp"
 #include "Indexing/TermSharing.hpp"
 #include "Kernel/Signature.hpp"
-#include "Kernel/Sorts.hpp"
 #include "Kernel/TermIterators.hpp"
+#include "Shell/InductionPreprocessor.hpp"
 #include "Shell/TermAlgebra.hpp"
 
 #define __TO_SORT_RAT RationalConstantType::getSort()

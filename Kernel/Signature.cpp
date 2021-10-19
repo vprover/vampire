@@ -12,11 +12,12 @@
  * Implements class Signature for handling signatures
  */
 
+#include "Kernel/SortHelper.hpp"
 #include "Lib/Environment.hpp"
 #include "Lib/Int.hpp"
-#include "Shell/Options.hpp"
 #include "Shell/DistinctGroupExpansion.hpp"
-#include "Kernel/SortHelper.hpp"
+#include "Shell/InductionPreprocessor.hpp"
+#include "Shell/Options.hpp"
 
 #include "Signature.hpp"
 
@@ -246,11 +247,11 @@ Signature::Signature ():
     _integers(0),
     _rationals(0),
     _reals(0),
-    _fnDefHandler(0)
     _arrayCon(0),
     _arrowCon(0),
     _appFun(0),
-    _termAlgebras()
+    _termAlgebras(),
+    _fnDefHandler(0)
 {
   CALL("Signature::Signature");
 
@@ -288,6 +289,7 @@ Signature::~Signature ()
   if (_fnDefHandler) {
     delete _fnDefHandler;
     _fnDefHandler = nullptr;
+  }
   for (int i = _typeCons.length()-1;i >= 0;i--) {
     _typeCons[i]->destroyTypeConSymbol();
   }
@@ -1229,6 +1231,14 @@ TermAlgebraConstructor* Signature::getTermAlgebraConstructor(unsigned functor)
   }
 
   return nullptr;
+}
+
+
+Shell::FnDefHandler* Signature::getFnDefHandler() {
+  if (!_fnDefHandler) {
+    _fnDefHandler = new Shell::FnDefHandler();
+  }
+  return _fnDefHandler;
 }
 
 /**

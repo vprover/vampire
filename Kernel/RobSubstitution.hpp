@@ -99,6 +99,7 @@ public:
 
 #if VDEBUG
   vstring toString(bool deref=false) const;
+#endif
   /**
    * Return number of bindings stored in the substitution.
    *
@@ -106,7 +107,6 @@ public:
    * - Without backtracking, this number doesn't decrease.
    */
   size_t size() const {return _bank.size(); }
-#endif
 
   /** Specifies instance of a variable (i.e. (variable, variable bank) pair) */
   struct VarSpec

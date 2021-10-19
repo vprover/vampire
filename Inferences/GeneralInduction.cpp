@@ -782,7 +782,7 @@ vmap<InductionPremise, InductionPremises> GeneralInduction::selectPremises(Liter
       auto st = nvi.next();
       auto fn = st.term()->functor();
       if (indmc && InductionHelper::isStructInductionFunctor(fn)) skolems.insert(st);
-      if (intInd && env.signature->getFunction(fn)->fnType()->result() == Term::intSort()) ints.insert(st);
+      if (intInd && env.signature->getFunction(fn)->fnType()->result() == AtomicSort::intSort()) ints.insert(st);
     }
     DHSet<TermList>::Iterator skit(skolems);
     while (skit.hasNext()) {

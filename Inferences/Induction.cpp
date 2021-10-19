@@ -295,7 +295,6 @@ bool getInductionStepVarAndSort(Literal* l1, Literal* l2, TermList& sort, TermLi
     RobSubstitution* s = sit.next();
     if (s->size() == 1) {
       VariableIterator vit(l1);
-      bool found = false;
       while (vit.hasNext()) {
         TermList v = vit.next();
         TermList t = s->apply(v, 0);

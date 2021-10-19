@@ -372,6 +372,8 @@ class Statistics;
 class EPRRestoring;
 class EPRInlining;
 
+class FnDefHandler;
+
 namespace LTB
 {
 class Storage;

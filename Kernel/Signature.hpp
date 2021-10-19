@@ -32,7 +32,6 @@
 #include "Lib/Environment.hpp"
 #include "Lib/SmartPtr.hpp"
 
-#include "Shell/InductionPreprocessor.hpp"
 #include "Shell/TermAlgebra.hpp"
 #include "Shell/Options.hpp"
 
@@ -885,12 +884,7 @@ class Signature
   VirtualIterator<Shell::TermAlgebra*> termAlgebrasIterator() const { return _termAlgebras.range(); }
   Shell::TermAlgebraConstructor* getTermAlgebraConstructor(unsigned functor);
 
-  Shell::FnDefHandler* getFnDefHandler() {
-    if (!_fnDefHandler) {
-      _fnDefHandler = new Shell::FnDefHandler();
-    }
-    return _fnDefHandler;
-  }
+  Shell::FnDefHandler* getFnDefHandler();
 
   void recordDividesNvalue(TermList n){
     _dividesNvalues.push(n);
