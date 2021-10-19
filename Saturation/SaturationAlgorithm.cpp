@@ -1509,6 +1509,7 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
   CompositeGIE* gie=new CompositeGIE();
 
   //TODO here induction is last, is that right?
+  gie->addFront(new Induction(/*onlyCount=*/true));
   if(opt.induction()!=Options::Induction::NONE){
     //gie->addFront(new Induction());
     vvector<InductionSchemeGenerator*> generators;

@@ -106,6 +106,7 @@ Statistics::Statistics()
     intFinDownInductionInProof(0),
     intDBDownInduction(0),
     intDBDownInductionInProof(0),
+    potentialNewInduction(0),
     argumentCongruence(0),
     narrow(0),
     forwardSubVarSup(0),
@@ -330,6 +331,7 @@ void Statistics::print(ostream& out)
   COND_OUT("Discarded non-redundant clauses", discardedNonRedundantClauses);
   COND_OUT("Inferences skipped due to colors", inferencesSkippedDueToColors);
   COND_OUT("Inferences blocked due to ordering aftercheck", inferencesBlockedForOrderingAftercheck);
+  COND_OUT("PotentialNewInduction", potentialNewInduction);
   SEPARATOR;
 
 

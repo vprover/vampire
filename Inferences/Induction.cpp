@@ -269,6 +269,7 @@ void Induction::attach(SaturationAlgorithm* salg) {
   if (InductionHelper::isIntInductionTwoOn()) {
     _inductionTermIndex = static_cast<TermIndex*>(_salg->getIndexManager()->request(INDUCTION_TERM_INDEX));
   }
+  _allLitsIndex = static_cast<LiteralIndex*>(_salg->getIndexManager()->request(INDUCTION_COUNT_INDEX));
 }
 
 void Induction::detach() {
@@ -282,14 +283,160 @@ void Induction::detach() {
     _inductionTermIndex = 0;
     _salg->getIndexManager()->release(INDUCTION_TERM_INDEX);
   }
+  _allLitsIndex = 0;
+  _salg->getIndexManager()->release(INDUCTION_COUNT_INDEX);
   GeneratingInferenceEngine::detach();
+}
+
+bool getInductionStepVarAndSort(Literal* l1, Literal* l2, TermList& sort, TermList& var) {
+  RobSubstitution subst;
+  SubstIterator sit = subst.matches(l1, 0, l2, 1, true);
+  while (sit.hasNext()) {
+    RobSubstitution* s = sit.next();
+    if (s->size() == 1) {
+      VariableIterator vit(l1);
+      bool found = false;
+      while (vit.hasNext()) {
+        TermList v = vit.next();
+        TermList t = s->apply(v, 0);
+        if (v != t) {
+          auto fn = t.term()->functor();
+          sort = env.signature->getFunction(fn)->fnType()->result();
+          if (env.signature->isTermAlgebraSort(sort)) {
+            TermAlgebra* ta = env.signature->getTermAlgebraOfSort(sort);
+            if (ta->nConstructors() == 2) {
+              for (unsigned i = 0; i < ta->nConstructors(); i++) {
+                TermAlgebraConstructor* con = ta->constructor(i);
+                if (con->functor() != fn || !con->recursive()) continue;
+                unsigned recCalls = 0;
+                bool otherVars = true;
+                bool recOnlyV = true;
+                for (unsigned i = 0; i < con->arity(); i++) {
+                  if (con->argSort(i) == ta->sort()) {
+                    recCalls++;
+                    if (*t.term()->nthArgument(i) != v) recOnlyV = false;
+                  } else if (!t.term()->nthArgument(i)->isVar()) otherVars = false;
+                }
+                if (recCalls > 1 || !otherVars || !recOnlyV) continue;
+                var = v;
+                return true;
+              }
+            }
+          } else if (sort == AtomicSort::intSort()) {
+            Signature::Symbol* fs = env.signature->getFunction(fn);
+            if (fs->interpreted() &&
+                (fn == env.signature->getInterpretingSymbol(Theory::INT_PLUS) ||
+                 fn == env.signature->getInterpretingSymbol(Theory::INT_MINUS))) {
+              TermList pOne(theory->representConstant(IntegerConstantType(1)));
+              TermList nOne(theory->representConstant(IntegerConstantType(-1)));
+              if ((*t.term()->nthArgument(0) == v && (*t.term()->nthArgument(1) == pOne ||
+                                                      *t.term()->nthArgument(1) == nOne)) ||
+                  (*t.term()->nthArgument(1) == v && (*t.term()->nthArgument(0) == pOne ||
+                                                       *t.term()->nthArgument(0) == nOne))) {
+                var = v;
+                return true;
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+  return false;
+}
+
+bool checkInductionStep(Clause* premise, int& i, TermList& sort, TermList& v) {
+  if (premise->length() != 2) return false;
+  Literal* l1 = (*premise)[0];
+  Literal* l2 = (*premise)[1];
+  if (l1->polarity() == l2->polarity()) return false;
+  if (l1->ground() || l2->ground()) return false;
+  if (getInductionStepVarAndSort(l1, l2, sort, v)) {
+    i = 0;
+    return true;
+  } else if (getInductionStepVarAndSort(l2, l1, sort, v)) {
+    i = 1;
+    return true;
+  }
+  return false;
+}
+
+bool isBaseCaseTerm(Term* t) {
+  if (!t->ground()) return false;
+  auto fn = t->functor();
+  TermList sort = env.signature->getFunction(fn)->fnType()->result();
+  if (sort == AtomicSort::intSort()) return true;
+  if (!env.signature->isTermAlgebraSort(sort)) return false;
+  if (!env.signature->getFunction(fn)->termAlgebraCons() || env.signature->getTermAlgebraConstructor(fn)->recursive()) return false;
+  for (unsigned i = 0; i < t->arity(); ++i) {
+    if (!t->nthArgument(i)->isVar()) return false;
+  }
+  return true;
+}
+
+void countInductionPremises(LiteralIndex* index, Clause* premise) {
+  int found = 0;
+  // TODO: flip this to also check the presence of induction step implication when we have base literal
+  int i = -1;
+  TermList sort, var;
+  if (premise->length() == 1) {
+    Literal* l = (*premise)[0];
+    NonVariableIterator nvit(l);
+    while (nvit.hasNext()) {
+      TermList t = nvit.next();
+      if (!isBaseCaseTerm(t.term())) continue;
+      sort = env.signature->getFunction(t.term()->functor())->fnType()->result();
+      TermList x(0, false);
+      TermReplacement tr(t.term(), x);
+      Literal* transformed = tr.transform(l);
+      SLQueryResultIterator it = index->getVariants(transformed, true, true);
+      if (sort == AtomicSort::intSort()) it = pvi(getConcatenatedIterator(it, index->getVariants(transformed, false, true)));
+      while (it.hasNext()) {
+        SLQueryResult slqr = it.next();
+        if (!checkInductionStep(slqr.clause, i, sort, var)) continue;
+        TermList tl = slqr.substitution->applyToQuery(x);
+        if (!tl.isVar() || var != tl) continue;
+        Substitution subst;
+        subst.bind(0, tl);
+        Literal* subLit = transformed->apply(subst);
+        if (slqr.literal != Literal::complementaryLiteral(subLit) &&
+            (sort != AtomicSort::intSort() || slqr.literal != subLit)) continue;
+        //cout << "eligible combination in search space: " << premise->toString() << " " << slqr.clause->toString() << endl;
+        found++;
+      }
+    }
+  } else if (checkInductionStep(premise, i, sort, var)) {
+    // 2. Fetch unifications
+    SLQueryResultIterator it = index->getGeneralizations((*premise)[i], true, true);
+    if (sort == AtomicSort::intSort()) it = pvi(getConcatenatedIterator(it, index->getGeneralizations((*premise)[i], false, true)));
+    while (it.hasNext()) {
+      SLQueryResult slqr = it.next();
+      if (slqr.clause->length() != 1) continue;
+      TermList tl = slqr.substitution->applyToQuery(var);
+      if (tl.isVar() || !isBaseCaseTerm(tl.term())) continue;
+      Substitution subst;
+      subst.bind(var.var(), tl);
+      Literal* subLit = (*premise)[i]->apply(subst);
+      if (slqr.literal != Literal::complementaryLiteral(subLit) &&
+          (sort != AtomicSort::intSort() || slqr.literal != subLit)) continue;
+      //cout << "eligible combination in search space: " << premise->toString() << " " << slqr.clause->toString() << endl;
+      found++;
+    }
+  }
+  //cout << "Overall found: " << found << endl;
+  // 3. For each eligible base case literal, add 1 to the counter
+  env.statistics->potentialNewInduction += found;
 }
 
 ClauseIterator Induction::generateClauses(Clause* premise)
 {
   CALL("Induction::generateClauses");
 
-  return pvi(InductionClauseIterator(premise, InductionHelper(_comparisonIndex, _inductionTermIndex, _salg->getSplitter())));
+  countInductionPremises(_allLitsIndex, premise);
+
+  if (!_onlyCount)
+    return pvi(InductionClauseIterator(premise, InductionHelper(_comparisonIndex, _inductionTermIndex, _salg->getSplitter())));
+  else return ClauseIterator::getEmpty();
 }
 
 void InductionClauseIterator::processClause(Clause* premise)
