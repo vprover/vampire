@@ -903,6 +903,12 @@ else ()
     link_libraries(${Z3_LIBRARIES})
   endif()
 
+  # Z3 needs threads now
+  set(CMAKE_THREAD_PREFER_PTHREAD TRUE)
+  set(THREADS_PREFER_PTHREAD_FLAG TRUE)
+  find_package(Threads REQUIRED)
+  link_libraries(Threads::Threads)
+
   add_library(Z3 SHARED IMPORTED)
   set_property(TARGET Z3 PROPERTY IMPORTED_LOCATION ${Z3_LIBRARY})
   add_compile_definitions(VZ3=1)
