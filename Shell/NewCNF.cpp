@@ -1000,17 +1000,25 @@ Term* NewCNF::createSkolemTerm(unsigned var, VarSet* free, Formula *reuse_formul
     fnArgs.push(TermList(uvar, false));
   }
 
-  NameReuse *reuse_policy = NameReuse::skolemInstance();
-  Formula *normalised = reuse_policy->normalise(reuse_formula);
-  unsigned reused;
-  bool reuse = reuse_policy->get(normalised, reused);
+  NameReuse *name_reuse = env.options->skolemReuse()
+    ? NameReuse::skolemInstance()
+    : nullptr;
+  Formula *normalised = nullptr;
+  unsigned reused_symbol = 0;
+  bool successfully_reused = false;
+  if(name_reuse) {
+    normalised = name_reuse->normalise(reuse_formula);
+    successfully_reused = name_reuse->get(normalised, reused_symbol);
+  }
+
   Term* res;
   bool isPredicate = (rangeSort == AtomicSort::boolSort());
   if (isPredicate) {
-    unsigned pred = reused;
-    if(!reuse) {
+    unsigned pred = reused_symbol;
+    if(!successfully_reused) {
       pred = Skolem::addSkolemPredicate(arity, domainSorts.begin(), var);
-      reuse_policy->put(normalised, pred);
+      if(name_reuse)
+        name_reuse->put(normalised, pred);
       env.statistics->skolemFunctions++;
     }
     if(_beingClausified->derivedFromGoal()){
@@ -1018,10 +1026,11 @@ Term* NewCNF::createSkolemTerm(unsigned var, VarSet* free, Formula *reuse_formul
     }
     res = Term::createFormula(new AtomicFormula(Literal::create(pred, arity, true, false, fnArgs.begin())));
   } else {
-    unsigned fun = reused;
-    if(!reuse) {
+    unsigned fun = reused_symbol;
+    if(!successfully_reused) {
       fun = Skolem::addSkolemFunction(arity, domainSorts.begin(), rangeSort, var);
-      reuse_policy->put(normalised, fun);
+      if(name_reuse)
+        name_reuse->put(normalised, fun);
       env.statistics->skolemFunctions++;
     }
     if(_beingClausified->derivedFromGoal()){
@@ -1093,12 +1102,11 @@ void NewCNF::skolemise(QuantifiedFormula* g, BindingList*& bindings, BindingList
     if (!_skolemsByFreeVars.find(unboundFreeVars, processedBindings) || !_foolSkolemsByFreeVars.find(unboundFreeVars, processedFoolBindings)) {
       // second level cache miss, let's do the actual skolemisation
 
-      NameReuse *reuse_policy = NameReuse::skolemInstance();
       Substitution subst;
       Formula *reuse_formula = nullptr;
       VList *remainingVars = nullptr;
       SList *remainingSorts = nullptr;
-      if(reuse_policy->requiresFormula()) {
+      if(env.options->skolemReuse()) {
         BindingList::Iterator bit(bindings);
         while (bit.hasNext()) {
           Binding b = bit.next();
@@ -1130,7 +1138,7 @@ void NewCNF::skolemise(QuantifiedFormula* g, BindingList*& bindings, BindingList
         // ?[Y, Z]: F[X->sK0],
         // ?[Z]: F[X->sK0, Y->sK1],
         // but not F[X->sK0, Y->sK1, Z->sK2], since this doesn't need a Skolem term
-        if(reuse_policy->requiresFormula()) {
+        if(env.options->skolemReuse()) {
           remainingVars = remainingVars->tail();
           remainingSorts = remainingSorts ? remainingSorts->tail() : nullptr;
           if(VList::isNonEmpty(remainingVars)) {
@@ -1267,21 +1275,28 @@ Literal* NewCNF::createNamingLiteral(Formula* f, VList* free)
 {
   CALL("NewCNF::createNamingLiteral");
 
-  NameReuse *reuse_policy = NameReuse::definitionInstance();
-  Formula *normalised = reuse_policy->normalise(f);
-  unsigned reused;
-  bool reuse = reuse_policy->get(normalised, reused);
+  NameReuse *name_reuse = env.options->definitionReuse()
+    ? NameReuse::definitionInstance()
+    : nullptr;
+  Formula *normalised = nullptr;
+  unsigned reused_symbol = 0;
+  bool successfully_reused = false;
+  if(name_reuse) {
+    normalised = name_reuse->normalise(f);
+    successfully_reused = name_reuse->get(normalised, reused_symbol);
+  }
 
   unsigned length = VList::length(free);
-  unsigned pred = reused;
-  if(!reuse) {
+  unsigned pred = reused_symbol;
+  if(!successfully_reused) {
     pred = env.signature->addNamePredicate(length);
-    reuse_policy->put(normalised, pred);
+    if(name_reuse)
+      name_reuse->put(normalised, pred);
   }
 
   Signature::Symbol* predSym = env.signature->getPredicate(pred);
 
-  if (!reuse && env.colorUsed) {
+  if (!successfully_reused && env.colorUsed) {
     Color fc = f->getColor();
     if (fc != COLOR_TRANSPARENT) {
       predSym->addColor(fc);
@@ -1305,7 +1320,7 @@ Literal* NewCNF::createNamingLiteral(Formula* f, VList* free)
     predArgs.push(TermList(uvar, false));
   }
 
-  if(!reuse)
+  if(!successfully_reused)
     predSym->setType(OperatorType::getPredicateType(length, domainSorts.begin()));
 
   return Literal::create(pred, length, true, false, predArgs.begin());

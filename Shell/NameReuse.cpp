@@ -22,42 +22,31 @@
 
 namespace Shell {
 
-static NameReuse *make_policy(Options::NameReuse option)
-{
-  CALL("NameReuse::make_policy");
-  switch (option) {
-    case Options::NameReuse::NONE:
-      return new NoNameReuse();
-    case Options::NameReuse::EXACT:
-      return new ExactNameReuse();
-  }
-}
-
 NameReuse *NameReuse::skolemInstance()
 {
   CALL("NameReuse::skolemInstance");
-  static NameReuse *instance = make_policy(env.options->skolemReuse());
+  static NameReuse *instance = new NameReuse();
   return instance;
 }
 
 NameReuse *NameReuse::definitionInstance()
 {
   CALL("NameReuse::definitionInstance");
-  static NameReuse *instance = make_policy(env.options->definitionReuse());
+  static NameReuse *instance = new NameReuse();
   return instance;
 }
 
-Formula *ExactNameReuse::normalise(Formula *f)
+Formula *NameReuse::normalise(Formula *f)
 {
-  CALL("ExactNameReuse::normalise");
+  CALL("NameReuse::normalise");
   //std::cout << "normalise: " << f->toString() << std::endl;
   Rectify rectify;
   return rectify.rectify(f);
 }
 
-bool ExactNameReuse::get(Formula *normalised, unsigned &symbol)
+bool NameReuse::get(Formula *normalised, unsigned &symbol)
 {
-  CALL("ExactNameReuse::get");
+  CALL("NameReuse::get");
   //std::cout << "get: " << normalised->toString() << std::endl;
   return _map.find(normalised->toString(), symbol);
   /*
@@ -69,7 +58,7 @@ bool ExactNameReuse::get(Formula *normalised, unsigned &symbol)
   */
 }
 
-void ExactNameReuse::put(Formula *normalised, unsigned symbol)
+void NameReuse::put(Formula *normalised, unsigned symbol)
 {
   CALL("ExactNameReuse::put");
   //std::cout << "put: " << env.signature->functionName(symbol) << " for " << normalised->toString() << std::endl;

@@ -1112,10 +1112,16 @@ bool Naming::canBeInDefinition(Formula* f, Where where) {
 Literal* Naming::getDefinitionLiteral(Formula* f, VList* freeVars) {
   CALL("Naming::getDefinitionLiteral");
 
-  NameReuse *reuse_policy = NameReuse::definitionInstance();
-  Formula *normalised = reuse_policy->normalise(f);
-  unsigned reused;
-  bool reuse = reuse_policy->get(normalised, reused);
+  NameReuse *name_reuse = env.options->definitionReuse()
+    ? NameReuse::definitionInstance()
+    : nullptr;
+  Formula *normalised = nullptr;
+  unsigned reused_symbol = 0;
+  bool successfully_reused = false;
+  if(name_reuse) {
+    normalised = name_reuse->normalise(f);
+    successfully_reused = name_reuse->get(normalised, reused_symbol);
+  }
 
   unsigned arity = VList::length(freeVars);
 
@@ -1152,10 +1158,11 @@ Literal* Naming::getDefinitionLiteral(Formula* f, VList* freeVars) {
   }
 
   if(!_appify){
-    unsigned pred = reused;
-    if(!reuse) {
+    unsigned pred = reused_symbol;
+    if(!successfully_reused) {
       pred = env.signature->addNamePredicate(arity);
-      reuse_policy->put(normalised, pred);
+      if(name_reuse)
+        name_reuse->put(normalised, pred);
       Signature::Symbol* predSym = env.signature->getPredicate(pred);
 
       if (env.colorUsed) {
@@ -1172,13 +1179,14 @@ Literal* Naming::getDefinitionLiteral(Formula* f, VList* freeVars) {
     }
     return Literal::create(pred, arity, true, false, allVars.begin());
   } else {
-    unsigned fun = reused;
-    if(!reuse) {
+    unsigned fun = reused_symbol;
+    if(!successfully_reused) {
       fun = env.signature->addNameFunction(typeVars.size());
       TermList sort = AtomicSort::arrowSort(termVarSorts, AtomicSort::boolSort());
       Signature::Symbol* sym = env.signature->getFunction(fun);
       sym->setType(OperatorType::getConstantsType(sort, typeArgArity)); 
-      reuse_policy->put(normalised, fun);
+      if(name_reuse)
+        name_reuse->put(normalised, fun);
     }
     TermList head = TermList(Term::create(fun, typeVars.size(), typeVars.begin()));
     TermList t = ApplicativeHelper::createAppTerm(

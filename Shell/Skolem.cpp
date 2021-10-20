@@ -457,7 +457,9 @@ Formula* Skolem::skolemise (Formula* f)
       Formula *reuse_formula = before;
       VList *remainingVars = before->vars();
       SList *remainingSorts = before->sorts();
-      NameReuse *reuse_policy = NameReuse::skolemInstance();
+      NameReuse *name_reuse = env.options->skolemReuse()
+        ? NameReuse::skolemInstance()
+        : nullptr;
       while (vs.hasNext()) {
         unsigned v = vs.next();
         TermList rangeSort=_varSorts.get(v, AtomicSort::defaultSort());
@@ -474,19 +476,24 @@ Formula* Skolem::skolemise (Formula* f)
         SortHelper::normaliseSort(typeVars, rangeSort);
         Term* skolemTerm;
 
-        Formula *normalised = reuse_policy->normalise(reuse_formula);
-        unsigned reused;
-        bool reuse = reuse_policy->get(normalised, reused);
-        unsigned sym = reused;
+        bool successfully_reused = false;
+        unsigned reused_symbol = 0;
+        Formula *normalised = nullptr;
+        if(name_reuse) {
+          normalised = name_reuse->normalise(reuse_formula);
+          successfully_reused = name_reuse->get(normalised, reused_symbol);
+        }
+
+        unsigned sym = reused_symbol;
         if(!_appify || skolemisingTypeVar){
           //Not the higher-order case. Create the term
           //sk(typevars, termvars).
           if(skolemisingTypeVar){
-            if(!reuse)
+            if(!successfully_reused)
               sym = addSkolemTypeCon(arity);
             skolemTerm = AtomicSort::create(sym, arity, allVars.begin());    
           } else {
-            if(!reuse)
+            if(!successfully_reused)
               sym = addSkolemFunction(arity, termVarSorts.begin(), rangeSort, v, typeVars.size());
             skolemTerm = Term::create(sym, arity, allVars.begin());    
           }
@@ -494,15 +501,15 @@ Formula* Skolem::skolemise (Formula* f)
           //The higher-order case. Create the term
           //sk(typevars) @ termvar_1 @ termvar_2 @ ... @ termvar_n
           TermList skSymSort = AtomicSort::arrowSort(termVarSorts, rangeSort);
-          if(!reuse)
+          if(!successfully_reused)
             sym = addSkolemFunction(typeVars.size(), 0, skSymSort, v, typeVars.size());
           TermList head = TermList(Term::create(sym, typeVars.size(), typeVars.begin()));
           skolemTerm = ApplicativeHelper::createAppTerm(
             SortHelper::getResultSort(head.term()), head, termVars).term();      
         }
         _introducedSkolemSyms.push(sym);
-        if(!reuse)
-          reuse_policy->put(normalised, sym);
+        if(name_reuse && !successfully_reused)
+          name_reuse->put(normalised, sym);
 
         env.statistics->skolemFunctions++;
 
@@ -514,7 +521,7 @@ Formula* Skolem::skolemise (Formula* f)
         // ?[Y, Z]: F[X->sK0],
         // ?[Z]: F[X->sK0, Y->sK1],
         // but not F[X->sK0, Y->sK1, Z->sK2], since this doesn't need a Skolem term
-        if(reuse_policy->requiresFormula()) {
+        if(name_reuse) {
           remainingVars = remainingVars->tail();
           remainingSorts = remainingSorts ? remainingSorts->tail() : nullptr;
           if(VList::isNonEmpty(remainingVars)) {
