@@ -573,7 +573,6 @@ set(VAMPIRE_SHELL_SOURCES
     Shell/DistinctProcessor.cpp
     Shell/DistinctGroupExpansion.cpp
     Shell/EqResWithDeletion.cpp
-    #Shell/EqualityAxiomatizer.cpp
     Shell/EqualityProxy.cpp
     Shell/EqualityProxyMono.cpp    
     Shell/Flattening.cpp
@@ -641,7 +640,6 @@ set(VAMPIRE_SHELL_SOURCES
     Shell/DistinctProcessor.hpp
     Shell/DistinctGroupExpansion.hpp
     Shell/EqResWithDeletion.hpp
-    #Shell/EqualityAxiomatizer.hpp
     Shell/EqualityProxy.hpp
     Shell/EqualityProxyMono.hpp
     Shell/Flattening.hpp
