@@ -454,31 +454,18 @@ void Options::init()
     _functionDefinitionElimination.addProblemConstraint(hasEquality());
     _functionDefinitionElimination.setRandomChoices({"all","none"});
 
-    _skolemReuse = ChoiceOptionValue<NameReuse>(
-      "skolem_reuse",
-      "skr",
-      NameReuse::NONE,
-      {"none", "exact"}
-    );
+    _skolemReuse = BoolOptionValue("skolem_reuse", "skr", false);
     _skolemReuse.description =
-      "How to re-use skolem symbols. Possible values are:\n"
-      " none: do not attempt to reuse symbols\n"
-      " exact: reuse symbols referring to identical sub-formulae\n";
+      "Attempt to reuse Skolem symbols.\n"
+      "Symbols are re-used if they represent identical formulae up to renaming.";
     _lookup.insert(&_skolemReuse);
     _skolemReuse.tag(OptionTag::PREPROCESSING);
-    _skolemReuse.setRandomChoices({"none","exact"});
 
-    _definitionReuse = ChoiceOptionValue<NameReuse>(
-      "definition_reuse",
-      "dr",
-      NameReuse::NONE,
-      {"none", "exact"}
-    );
+    _definitionReuse = BoolOptionValue("definition_reuse", "dr", false);
     _definitionReuse.description =
-      "How to re-use definition symbols. Same as for Skolem reuse.";
+      "Reuse definition symbols in a similar fashion to Skolem reuse.";
     _lookup.insert(&_definitionReuse);
     _definitionReuse.tag(OptionTag::PREPROCESSING);
-    _definitionReuse.setRandomChoices({"none","exact"});
 
     _generalSplitting = ChoiceOptionValue<RuleActivity>("general_splitting","gsp",RuleActivity::OFF,{"input_only","off","on"});
     _generalSplitting.description=
