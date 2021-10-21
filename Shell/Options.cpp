@@ -3065,6 +3065,7 @@ vstring Options::generateEncodedOptions() const
     forbidden.insert(&_problemName);
     forbidden.insert(&_inputFile);
     forbidden.insert(&_randomStrategy);
+    forbidden.insert(&_encode);
     forbidden.insert(&_decode);
     forbidden.insert(&_ignoreMissing); // or maybe we do!
   }
@@ -3087,7 +3088,6 @@ vstring Options::generateEncodedOptions() const
   res << Lib::Int::toString(_timeLimitInDeciseconds.actualValue);
  
   return res.str();
- 
 }
 
 
