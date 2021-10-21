@@ -354,6 +354,7 @@ VS_OBJ = Shell/AnswerExtractor.o\
          Shell/CommandLine.o\
          Shell/CNF.o\
          Shell/NewCNF.o\
+         Shell/NameReuse.o\
          Shell/DistinctProcessor.o\
          Shell/DistinctGroupExpansion.o\
          Shell/EqResWithDeletion.o\
