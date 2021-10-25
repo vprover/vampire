@@ -56,8 +56,7 @@ int timer_sigalrm_counter=-1;
 long Timer::s_ticksPerSec;
 int Timer::s_initGuarantedMiliseconds;
 
-
-void timeLimitReached()
+[[noreturn]] void timeLimitReached()
 {
   using namespace Shell;
 
@@ -91,6 +90,20 @@ void timeLimitReached()
   System::terminateImmediately(1);
 }
 
+unsigned protectingTimeout = 0;
+bool callTimeLimitReachedLater = false;
+
+TimeoutProtector::TimeoutProtector() {
+  protectingTimeout++;
+}
+
+TimeoutProtector::~TimeoutProtector() {
+  protectingTimeout--;
+  if (!protectingTimeout && callTimeLimitReachedLater) {
+    timeLimitReached();
+  }
+}
+
 void
 timer_sigalrm_handler (int sig)
 {
@@ -101,11 +114,14 @@ timer_sigalrm_handler (int sig)
   }
 #endif
 
-
   timer_sigalrm_counter++;
 
   if(Timer::s_timeLimitEnforcement && env.timeLimitReached()) {
-    timeLimitReached();
+    if (protectingTimeout) {
+      callTimeLimitReachedLater = true;
+    } else {
+      timeLimitReached();
+    }
   }
 
 #if DEBUG_TIMER_CHANGES
