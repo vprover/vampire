@@ -152,6 +152,21 @@ private:
   }
 }; // class Timer
 
+/**
+ * Delays calling timeLimitReached until the destructor of the last TimeoutProtector in scope(s).
+ * Typical use:
+ *
+ * {
+ *    TimeoutProtector tp{};
+ *    do something potentially incompatible with time-outing, like memory allocation
+ * } // end of scope, tp's destructor will call timeLimitReached only now, if appropriate
+ *      (unless we are in the scope of another TimeoutProtector higher up on stack)
+ */
+struct TimeoutProtector {
+  TimeoutProtector();
+  ~TimeoutProtector();
+}; // struct TimeoutProtector
+
 } // namespace Lib
 
 #endif /* __Timer__ */
