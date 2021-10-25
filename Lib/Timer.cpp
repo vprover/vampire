@@ -14,6 +14,7 @@
 
 #include <ctime>
 #include <unistd.h>
+#include <atomic>
 #include <sys/types.h>
 
 #include "Debug/Assertion.hpp"
