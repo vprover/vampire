@@ -90,8 +90,8 @@ int Timer::s_initGuarantedMiliseconds;
   System::terminateImmediately(1);
 }
 
-unsigned protectingTimeout = 0;
-bool callTimeLimitReachedLater = false;
+std::atomic<unsigned> protectingTimeout{0};
+std::atomic<bool> callTimeLimitReachedLater{false};
 
 TimeoutProtector::TimeoutProtector() {
   protectingTimeout++;
