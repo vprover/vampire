@@ -915,7 +915,7 @@ MainLoopResult IGAlgorithm::onModelFound()
       }
 
       // Prevent timing out whilst the model is being printed
-      Timer::setTimeLimitEnforcement(false);
+      Timer::setLimitEnforcement(false);
 
       vostringstream modelStm;
       bool modelAvailable = ModelPrinter(*this).tryOutput(modelStm);

@@ -115,13 +115,14 @@ public:
   static vstring msToSecondsString(int ms);
   static void printMSString(ostream& str, int ms);
 
-  static void setTimeLimitEnforcement(bool enabled)
-  { s_timeLimitEnforcement = enabled; }
+  static void setLimitEnforcement(bool enabled)
+  { s_limitEnforcement = enabled; }
 
   static void syncClock();
 
-  static bool s_timeLimitEnforcement;
+  static bool s_limitEnforcement;
 private:
+
   /** true if the timer must account for the time spent in
    * children (otherwise it may or may not) */
   bool _mustIncludeChildren;

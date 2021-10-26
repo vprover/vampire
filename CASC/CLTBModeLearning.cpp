@@ -867,7 +867,7 @@ void CLTBProblemLearning::searchForProof(int terminationTime,int timeLimit, Sche
   env.statistics->phase=Statistics::UNKNOWN_PHASE;
 
   // now all the cpu usage will be in children, we'll just be waiting for them
-  Timer::setTimeLimitEnforcement(false);
+  Timer::setLimitEnforcement(false);
 
   //UIHelper::szsOutput=true;
 
@@ -1105,7 +1105,7 @@ void CLTBProblemLearning::runSlice(Options& strategyOpt, bool printProof)
   env.timer->reset();
   env.timer->start();
   TimeCounter::reinitialize();
-  Timer::setTimeLimitEnforcement(true);
+  Timer::setLimitEnforcement(true);
 
   Options opt = strategyOpt;
   //we have already performed the normalization
