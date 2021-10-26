@@ -142,7 +142,7 @@ bool PortfolioMode::searchForProof()
   }
 
   // now all the cpu usage will be in children, we'll just be waiting for them
-  Timer::setTimeLimitEnforcement(false);
+  Timer::setLimitEnforcement(false);
 
   return performStrategy(property);
 }
@@ -536,7 +536,7 @@ void PortfolioMode::runSlice(Options& strategyOpt)
   env.timer->reset();
   env.timer->start();
   TimeCounter::reinitialize();
-  Timer::setTimeLimitEnforcement(true);
+  Timer::setLimitEnforcement(true);
 
   Options opt = strategyOpt;
   //we have already performed the normalization

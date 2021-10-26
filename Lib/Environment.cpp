@@ -80,7 +80,7 @@ Environment::~Environment()
 {
   CALL("Environment::~Environment");
 
-  Timer::setTimeLimitEnforcement(false);
+  Timer::setLimitEnforcement(false);
 
   //in the usual cases the _outputDepth should be zero at this point, but in case of
   //thrown exceptions this might not be true.
@@ -114,12 +114,11 @@ bool Environment::timeLimitReached() const
   if (options->timeLimitInDeciseconds() &&
       timer->elapsedDeciseconds() > options->timeLimitInDeciseconds()) {
     statistics->terminationReason = Shell::Statistics::TIME_LIMIT;
-    Timer::setTimeLimitEnforcement(false);
+    Timer::setLimitEnforcement(false);
     return true;
   }
   return false;
 } // Environment::timeLimitReached
-
 
 /**
  * Return remaining time in miliseconds.

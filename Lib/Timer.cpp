@@ -37,7 +37,7 @@
 using namespace std;
 using namespace Lib;
 
-bool Timer::s_timeLimitEnforcement = true;
+bool Timer::s_limitEnforcement = true;
 
 #if UNIX_USE_SIGALRM
 
@@ -53,13 +53,17 @@ bool Timer::s_timeLimitEnforcement = true;
 #include "Shell/UIHelper.hpp"
 
 int timer_sigalrm_counter=-1;
+long long last_instruction_count_read = -1;
 
 long Timer::s_ticksPerSec;
 int Timer::s_initGuarantedMiliseconds;
 
-[[noreturn]] void timeLimitReached()
+[[noreturn]] void limitReached(unsigned char whichLimit)
 {
   using namespace Shell;
+
+  const char* REACHED[3] = {"","Time limit reached!\n","Instruction limit reached!\n"};
+  const char* STATUS[3] = {"","% SZS status Timeout for ","% SZS status InstrOut for "};
 
   // CAREFUL, we might be in a signal handler and potentially at the same time inside Allocator which is not re-entrant
   // so any code below that allocates might corrupt the allocator state.
@@ -69,17 +73,20 @@ int Timer::s_initGuarantedMiliseconds;
   reportSpiderStatus('t');
   if (outputAllowed()) {
     addCommentSignForSZS(env.out());
-    env.out() << "Time limit reached!\n";
+    env.out() << REACHED[whichLimit];
 
     if (UIHelper::portfolioParent) { // the boss
       addCommentSignForSZS(env.out());
       env.out() << "Proof not found in time ";
       Timer::printMSString(env.out(),env.timer->elapsedMilliseconds());
+
+      if (last_instruction_count_read > -1) {
+        env.out() << " nor after " << last_instruction_count_read << " (user) instruction executed.";
+      }
       env.out() << endl;
 
       if (szsOutputMode()) {
-        env.out() << "% SZS status Timeout for "
-                        << (env.options ? env.options->problemName().c_str() : "unknown") << endl;
+        env.out() << STATUS[whichLimit] << (env.options ? env.options->problemName().c_str() : "unknown") << endl;
       }
     } else // the actual child
       if (env.statistics) {
@@ -92,7 +99,7 @@ int Timer::s_initGuarantedMiliseconds;
 }
 
 std::atomic<unsigned> protectingTimeout{0};
-std::atomic<bool> callTimeLimitReachedLater{false};
+std::atomic<unsigned char> callLimitReachedLater{0}; // 1 for a timelimit, 2 for an instruction limit
 
 TimeoutProtector::TimeoutProtector() {
   protectingTimeout++;
@@ -100,8 +107,8 @@ TimeoutProtector::TimeoutProtector() {
 
 TimeoutProtector::~TimeoutProtector() {
   protectingTimeout--;
-  if (!protectingTimeout && callTimeLimitReachedLater) {
-    timeLimitReached();
+  if (!protectingTimeout && callLimitReachedLater) {
+    limitReached(callLimitReachedLater);
   }
 }
 
@@ -117,13 +124,24 @@ timer_sigalrm_handler (int sig)
 
   timer_sigalrm_counter++;
 
-  if(Timer::s_timeLimitEnforcement && env.timeLimitReached()) {
+  if(Timer::s_limitEnforcement && env.timeLimitReached()) {
     if (protectingTimeout) {
-      callTimeLimitReachedLater = true;
+      callLimitReachedLater = 1; // 1 for a time limit
     } else {
-      timeLimitReached();
+      limitReached(1); // 1 for a time limit
     }
   }
+
+  /*
+  if(Timer::s_limitEnforcement && env.options->???) {
+    Timer::setLimitEnforcement(false);
+    if (protectingTimeout) {
+      callLimitReachedLater = 2; // 2 for an instr limit
+    } else {
+      limitReached(2); // 2 for an instr limit
+    }
+  }
+  */
 
 #if DEBUG_TIMER_CHANGES
   if(timer_sigalrm_counter<0) {
