@@ -2088,6 +2088,9 @@ public:
   // Return time limit in deciseconds, or 0 if there is no time limit
   int timeLimitInDeciseconds() const { return _timeLimitInDeciseconds.actualValue; }
   size_t memoryLimit() const { return _memoryLimit.actualValue; }
+#ifdef __linux__
+  size_t instructionLimit() const { return _instructionLimit.actualValue; }
+#endif
   int inequalitySplitting() const { return _inequalitySplitting.actualValue; }
   int ageRatio() const { return _ageWeightRatio.actualValue; }
   void setAgeRatio(int v){ _ageWeightRatio.actualValue = v; }
@@ -2489,6 +2492,10 @@ private:
   BoolOptionValue _lrsWeightLimitOnly;
   ChoiceOptionValue<LTBLearning> _ltbLearning;
   StringOptionValue _ltbDirectory;
+
+#ifdef __linux__
+  UnsignedOptionValue _instructionLimit; 
+#endif
 
   UnsignedOptionValue _memoryLimit; // should be size_t, making an assumption
   ChoiceOptionValue<Mode> _mode;

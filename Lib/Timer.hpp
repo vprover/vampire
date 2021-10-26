@@ -120,6 +120,10 @@ public:
 
   static void syncClock();
 
+  // only returns non-zero, if actually measuring
+  // (when instruction counting is supported and an instruction limit is set)
+  static unsigned elapsedMegaInstructions();
+
   static bool s_limitEnforcement;
 private:
 

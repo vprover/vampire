@@ -91,6 +91,12 @@ void Options::init()
     _memoryLimit.addHardConstraint(lessThanEq((unsigned)Lib::System::getSystemMemory()));
 #endif
 
+#ifdef __linux__
+  _instructionLimit = UnsignedOptionValue("instruction_limit","i",0);
+  _instructionLimit.description="Limit the number (in millions) of executed instructions (excluding the kernel ones).";
+  _lookup.insert(&_instructionLimit);
+#endif
+
     _mode = ChoiceOptionValue<Mode>("mode","",Mode::VAMPIRE,
                                     {"axiom_selection",
                                         "casc",
