@@ -32,6 +32,22 @@
 
 #include "Timer.hpp"
 
+#ifdef __linux__ // preration for checking instruction count
+#include <sys/ioctl.h>
+#include <linux/perf_event.h>
+#include <asm/unistd.h>
+
+// conveniece wrapper around a syscall (cf. https://linux.die.net/man/2/perf_event_open )
+long perf_event_open(struct perf_event_attr *hw_event, pid_t pid, int cpu, int group_fd, unsigned long flags)
+{
+  int ret = syscall(__NR_perf_event_open, hw_event, pid, cpu,group_fd, flags);
+  return ret;
+}
+
+int perf_fd; // the file discriptor we later read the info from
+
+#endif // #ifdef __linux__
+
 #define DEBUG_TIMER_CHANGES 0
 
 using namespace std;
@@ -54,6 +70,12 @@ bool Timer::s_limitEnforcement = true;
 
 int timer_sigalrm_counter=-1;
 long long last_instruction_count_read = -1;
+
+#define MILLION 1000000
+
+unsigned Timer::elapsedMegaInstructions() {
+  return (last_instruction_count_read >= MILLION) ? last_instruction_count_read/MILLION : 0;
+}
 
 long Timer::s_ticksPerSec;
 int Timer::s_initGuarantedMiliseconds;
@@ -132,16 +154,20 @@ timer_sigalrm_handler (int sig)
     }
   }
 
-  /*
-  if(Timer::s_limitEnforcement && env.options->???) {
-    Timer::setLimitEnforcement(false);
-    if (protectingTimeout) {
-      callLimitReachedLater = 2; // 2 for an instr limit
-    } else {
-      limitReached(2); // 2 for an instr limit
+#ifdef __linux__
+  if(Timer::s_limitEnforcement && env.options->instructionLimit()) {
+    read(perf_fd, &last_instruction_count_read, sizeof(long long));
+    
+    if (last_instruction_count_read >= MILLION*(long long)env.options->instructionLimit()) {
+      Timer::setLimitEnforcement(false);
+      if (protectingTimeout) {
+        callLimitReachedLater = 2; // 2 for an instr limit
+      } else {
+        limitReached(2); // 2 for an instr limit
+      }
     }
   }
-  */
+#endif
 
 #if DEBUG_TIMER_CHANGES
   if(timer_sigalrm_counter<0) {
@@ -210,6 +236,34 @@ void Lib::Timer::restoreTimerAfterFork()
 void Lib::Timer::ensureTimerInitialized()
 {
   CALL("Timer::ensureTimerInitialized");
+  
+#ifdef __linux__ // if avaialble, initialize the perf reading
+  {
+    /*
+     * NOTE: we need to do this before initializing the actual timer
+     * (otherwise timer_sigalrm_handler could start asking the uninitialized perf_fd!)
+     */
+    
+    struct perf_event_attr pe;
+  
+    memset(&pe, 0, sizeof(struct perf_event_attr));
+      pe.type = PERF_TYPE_HARDWARE;
+      pe.size = sizeof(struct perf_event_attr);
+      pe.config = PERF_COUNT_HW_INSTRUCTIONS;
+      pe.disabled = 1;
+      pe.exclude_kernel = 1;
+      pe.exclude_hv = 1;
+
+    perf_fd = perf_event_open(&pe, 0, -1, -1, 0);
+    if (perf_fd == -1) {
+      fprintf(stderr, "Error opening leader %llx\n", pe.config);
+      exit(EXIT_FAILURE);
+    }
+    
+    ioctl(perf_fd, PERF_EVENT_IOC_RESET, 0);
+    ioctl(perf_fd, PERF_EVENT_IOC_ENABLE, 0);
+  }
+#endif
 
   if(timer_sigalrm_counter!=-1) {
     return;

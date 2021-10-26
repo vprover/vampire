@@ -476,6 +476,14 @@ void Statistics::print(ostream& out)
   out << "Time elapsed: ";
   Timer::printMSString(out,env.timer->elapsedMilliseconds());
   out << endl;
+  
+  unsigned instr = Timer::elapsedMegaInstructions();
+  if (instr) {
+    addCommentSignForSZS(out);
+    out << "Instructions burned: " << instr << " (million)";
+    out << endl;
+  }
+  
   addCommentSignForSZS(out);
   out << "------------------------------\n";
 
