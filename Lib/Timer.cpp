@@ -156,7 +156,7 @@ timer_sigalrm_handler (int sig)
   }
 
 #ifdef __linux__
-  if(Timer::s_limitEnforcement && env.options->instructionLimit()) {
+  if(Timer::s_limitEnforcement && env.options->instructionLimit() && perf_fd >= 0) {
     read(perf_fd, &last_instruction_count_read, sizeof(long long));
     
     if (last_instruction_count_read >= MILLION*(long long)env.options->instructionLimit()) {
@@ -238,8 +238,8 @@ void Lib::Timer::ensureTimerInitialized()
 {
   CALL("Timer::ensureTimerInitialized");
   
-#ifdef __linux__ // if avaialble, initialize the perf reading
-  {
+#ifdef __linux__ // if available, initialize the perf reading
+  if (env.options->instructionLimit()) { // only when actually asked to track instructions
     /*
      * NOTE: we need to do this before initializing the actual timer
      * (otherwise timer_sigalrm_handler could start asking the uninitialized perf_fd!)
@@ -258,7 +258,6 @@ void Lib::Timer::ensureTimerInitialized()
     perf_fd = perf_event_open(&pe, 0, -1, -1, 0);
     if (perf_fd == -1) {
       std::perror("perf_event_open failed (instruction limiting will be disabled)");
-      exit(EXIT_FAILURE);
     } else {
       ioctl(perf_fd, PERF_EVENT_IOC_RESET, 0);
       ioctl(perf_fd, PERF_EVENT_IOC_ENABLE, 0);
