@@ -33,6 +33,7 @@
 #include "Timer.hpp"
 
 #ifdef __linux__ // preration for checking instruction count
+#include <cstdio>
 #include <sys/ioctl.h>
 #include <linux/perf_event.h>
 #include <asm/unistd.h>
@@ -44,7 +45,7 @@ long perf_event_open(struct perf_event_attr *hw_event, pid_t pid, int cpu, int g
   return ret;
 }
 
-int perf_fd; // the file discriptor we later read the info from
+int perf_fd = -1; // the file descriptor we later read the info from
 
 #endif // #ifdef __linux__
 
@@ -256,12 +257,12 @@ void Lib::Timer::ensureTimerInitialized()
 
     perf_fd = perf_event_open(&pe, 0, -1, -1, 0);
     if (perf_fd == -1) {
-      fprintf(stderr, "Error opening leader %llx\n", pe.config);
+      std::perror("perf_event_open failed (instruction limiting will be disabled)");
       exit(EXIT_FAILURE);
+    } else {
+      ioctl(perf_fd, PERF_EVENT_IOC_RESET, 0);
+      ioctl(perf_fd, PERF_EVENT_IOC_ENABLE, 0);
     }
-    
-    ioctl(perf_fd, PERF_EVENT_IOC_RESET, 0);
-    ioctl(perf_fd, PERF_EVENT_IOC_ENABLE, 0);
   }
 #endif
 
