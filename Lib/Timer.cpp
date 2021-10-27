@@ -157,6 +157,8 @@ timer_sigalrm_handler (int sig)
 
 #ifdef __linux__
   if(Timer::s_limitEnforcement && env.options->instructionLimit() && perf_fd >= 0) {
+    // we could also decide not to guard this read by env.options->instructionLimit(),
+    // to get info about instructions burned even when not instruction limiting
     read(perf_fd, &last_instruction_count_read, sizeof(long long));
     
     if (last_instruction_count_read >= MILLION*(long long)env.options->instructionLimit()) {
@@ -239,7 +241,9 @@ void Lib::Timer::ensureTimerInitialized()
   CALL("Timer::ensureTimerInitialized");
   
 #ifdef __linux__ // if available, initialize the perf reading
-  if (env.options->instructionLimit()) { // only when actually asked to track instructions
+  { // When ensureTimerInitialized is called, env.options->instructionLimit() will not be set yet,
+    // so we do this init unconditionally
+    
     /*
      * NOTE: we need to do this before initializing the actual timer
      * (otherwise timer_sigalrm_handler could start asking the uninitialized perf_fd!)
