@@ -14,6 +14,7 @@
 
 #include "NameReuse.hpp"
 #include "Kernel/FormulaVarIterator.hpp"
+#include "Lib/ScopedPtr.hpp"
 #include "Lib/Stack.hpp"
 #include "Shell/Rectify.hpp"
 
@@ -22,15 +23,15 @@ namespace Shell {
 NameReuse *NameReuse::skolemInstance()
 {
   CALL("NameReuse::skolemInstance");
-  static NameReuse *instance = new NameReuse();
-  return instance;
+  static ScopedPtr<NameReuse> instance(new NameReuse());
+  return instance.ptr();
 }
 
 NameReuse *NameReuse::definitionInstance()
 {
   CALL("NameReuse::definitionInstance");
-  static NameReuse *instance = new NameReuse();
-  return instance;
+  static ScopedPtr<NameReuse> instance(new NameReuse());
+  return instance.ptr();
 }
 
 vstring NameReuse::key(Formula *f)
