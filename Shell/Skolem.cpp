@@ -491,6 +491,8 @@ Formula* Skolem::skolemise (Formula* f)
           reuse_key = name_reuse->key(reuse_formula);
           successfully_reused = name_reuse->get(reuse_key, reused_symbol);
         }
+        if(successfully_reused)
+          env.statistics->reusedSkolemFunctions++;
 
         unsigned sym = reused_symbol;
         if(!_appify || skolemisingTypeVar){

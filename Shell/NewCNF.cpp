@@ -1003,6 +1003,8 @@ Term* NewCNF::createSkolemTerm(unsigned var, VarSet* free, Formula *reuse_formul
     reuse_key = name_reuse->key(reuse_formula);
     successfully_reused = name_reuse->get(reuse_key, reused_symbol);
   }
+  if(successfully_reused)
+    env.statistics->reusedSkolemFunctions++;
 
   // if we re-use a symbol, we _must_ close over free variables in some fixed order
   Stack<unsigned> varsInKeyOrder;
@@ -1291,6 +1293,8 @@ Literal* NewCNF::createNamingLiteral(Formula* f, VList* free)
     reuse_key = name_reuse->key(f);
     successfully_reused = name_reuse->get(reuse_key, reused_symbol);
   }
+  if(successfully_reused)
+    env.statistics->reusedFormulaNames++;
 
   unsigned length = VList::length(free);
   unsigned pred = reused_symbol;
