@@ -9,16 +9,13 @@
  */
 /**
  * @file NameReuse.cpp
- * Defines definition-reuse policies, configured by an option
+ * Attempt to reuse names introduced to represent formulae, e.g. Skolems or naming
  */
 
 #include "NameReuse.hpp"
-#include "Kernel/Formula.hpp"
-#include "Kernel/FormulaUnit.hpp"
-#include "Lib/Environment.hpp"
-#include "Shell/Options.hpp"
+#include "Kernel/FormulaVarIterator.hpp"
+#include "Lib/Stack.hpp"
 #include "Shell/Rectify.hpp"
-#include <iostream>
 
 namespace Shell {
 
@@ -36,33 +33,42 @@ NameReuse *NameReuse::definitionInstance()
   return instance;
 }
 
-Formula *NameReuse::normalise(Formula *f)
+vstring NameReuse::key(Formula *f)
 {
-  CALL("NameReuse::normalise");
-  //std::cout << "normalise: " << f->toString() << std::endl;
+  CALL("NameReuse::key");
+  //std::cout << "key for: " << f->toString() << std::endl;
   Rectify rectify;
-  return rectify.rectify(f);
+  Formula *rectified = rectify.rectify(f);
+  vstring key = rectified->toString();
+  //std::cout << "is: " << key << std::endl;
+  return key;
 }
 
-bool NameReuse::get(Formula *normalised, unsigned &symbol)
+bool NameReuse::get(const vstring &key, unsigned &symbol)
 {
   CALL("NameReuse::get");
-  //std::cout << "get: " << normalised->toString() << std::endl;
-  return _map.find(normalised->toString(), symbol);
+  //std::cout << "get: " << key << std::endl;
+  return _map.find(key, symbol);
   /*
-  if(_map.find(normalised->toString(), symbol)) {
-    std::cout << "hit: " << normalised->toString() << std::endl;
+  if(_map.find(key, symbol)) {
+    std::cout << "hit: " << key << std::endl;
     return true;
   }
   return false;
   */
 }
 
-void NameReuse::put(Formula *normalised, unsigned symbol)
+void NameReuse::put(vstring key, unsigned symbol)
 {
-  CALL("ExactNameReuse::put");
-  //std::cout << "put: " << env.signature->functionName(symbol) << " for " << normalised->toString() << std::endl;
-  _map.insert(normalised->toString(), symbol);
+  CALL("NameReuse::put");
+  // std::cout << "put: " << env.signature->functionName(symbol) << " for " << key << std::endl;
+  _map.insert(key, symbol);
+}
+
+Lib::Stack<unsigned> NameReuse::freeVariablesInKeyOrder(Formula *f)
+{
+  CALL("NameReuse::freeVariablesInKeyOrder");
+  return Lib::Stack<unsigned>::fromIterator(FormulaVarIterator(f));
 }
 
 }; // namespace Shell
