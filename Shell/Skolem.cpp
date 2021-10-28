@@ -424,9 +424,19 @@ Formula* Skolem::skolemise (Formula* f)
       // store updated, for the existentials below us to lookup as well
       depInfo.univ = dep;
 
+      NameReuse *name_reuse = env.options->skolemReuse()
+        ? NameReuse::skolemInstance()
+        : nullptr;
+
+      // if we re-use a symbol, we _must_ close over free variables in some fixed order
+      Stack<unsigned> varsInKeyOrder;
+      if(name_reuse)
+        varsInKeyOrder = name_reuse->freeVariablesInKeyOrder(before);
+      Stack<unsigned>::BottomFirstIterator keyOrderIt(varsInKeyOrder);
+
       VarSet::Iterator vuIt(*dep);
-      while(vuIt.hasNext()) {
-        unsigned uvar = vuIt.next();
+      while(name_reuse ? keyOrderIt.hasNext() : vuIt.hasNext()) {
+        unsigned uvar = name_reuse ? keyOrderIt.next() : vuIt.next();
         TermList sort = _varSorts.get(uvar, AtomicSort::defaultSort());
         if(sort == AtomicSort::superSort()){
           //This a type variable
@@ -457,9 +467,6 @@ Formula* Skolem::skolemise (Formula* f)
       Formula *reuse_formula = before;
       VList *remainingVars = before->vars();
       SList *remainingSorts = before->sorts();
-      NameReuse *name_reuse = env.options->skolemReuse()
-        ? NameReuse::skolemInstance()
-        : nullptr;
       while (vs.hasNext()) {
         unsigned v = vs.next();
         TermList rangeSort=_varSorts.get(v, AtomicSort::defaultSort());
@@ -478,10 +485,10 @@ Formula* Skolem::skolemise (Formula* f)
 
         bool successfully_reused = false;
         unsigned reused_symbol = 0;
-        Formula *normalised = nullptr;
+        vstring reuse_key;
         if(name_reuse) {
-          normalised = name_reuse->normalise(reuse_formula);
-          successfully_reused = name_reuse->get(normalised, reused_symbol);
+          reuse_key = name_reuse->key(reuse_formula);
+          successfully_reused = name_reuse->get(reuse_key, reused_symbol);
         }
 
         unsigned sym = reused_symbol;
@@ -508,10 +515,12 @@ Formula* Skolem::skolemise (Formula* f)
             SortHelper::getResultSort(head.term()), head, termVars).term();      
         }
         _introducedSkolemSyms.push(sym);
-        if(name_reuse && !successfully_reused)
-          name_reuse->put(normalised, sym);
 
-        env.statistics->skolemFunctions++;
+        if(!successfully_reused) {
+          env.statistics->skolemFunctions++;
+          if(name_reuse)
+            name_reuse->put(reuse_key, sym);
+        }
 
         _subst.bind(v,skolemTerm);
 

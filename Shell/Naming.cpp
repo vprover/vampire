@@ -1115,12 +1115,12 @@ Literal* Naming::getDefinitionLiteral(Formula* f, VList* freeVars) {
   NameReuse *name_reuse = env.options->definitionReuse()
     ? NameReuse::definitionInstance()
     : nullptr;
-  Formula *normalised = nullptr;
   unsigned reused_symbol = 0;
   bool successfully_reused = false;
+  vstring reuse_key = nullptr;
   if(name_reuse) {
-    normalised = name_reuse->normalise(f);
-    successfully_reused = name_reuse->get(normalised, reused_symbol);
+    reuse_key = name_reuse->key(f);
+    successfully_reused = name_reuse->get(reuse_key, reused_symbol);
   }
 
   unsigned arity = VList::length(freeVars);
@@ -1136,9 +1136,15 @@ Literal* Naming::getDefinitionLiteral(Formula* f, VList* freeVars) {
 
   SortHelper::collectVariableSorts(f, varSorts);
 
+  // if we re-use a symbol, we _must_ close over free variables in some fixed order
+  Stack<unsigned> varsInKeyOrder;
+  if(successfully_reused)
+    varsInKeyOrder = name_reuse->freeVariablesInKeyOrder(f);
+  Stack<unsigned>::BottomFirstIterator keyOrderIt(varsInKeyOrder);
+
   VList::Iterator vit(freeVars);
-  while (vit.hasNext()) {
-    unsigned uvar = vit.next();
+  while (successfully_reused ? keyOrderIt.hasNext() : vit.hasNext()) {
+    unsigned uvar = successfully_reused ? keyOrderIt.next() : vit.next();
     TermList sort = varSorts.get(uvar, AtomicSort::defaultSort());
     if(sort == AtomicSort::superSort()){
       typeVars.push(TermList(uvar, false));     
@@ -1161,8 +1167,9 @@ Literal* Naming::getDefinitionLiteral(Formula* f, VList* freeVars) {
     unsigned pred = reused_symbol;
     if(!successfully_reused) {
       pred = env.signature->addNamePredicate(arity);
+      env.statistics->formulaNames++;
       if(name_reuse)
-        name_reuse->put(normalised, pred);
+        name_reuse->put(reuse_key, pred);
       Signature::Symbol* predSym = env.signature->getPredicate(pred);
 
       if (env.colorUsed) {
@@ -1186,7 +1193,7 @@ Literal* Naming::getDefinitionLiteral(Formula* f, VList* freeVars) {
       Signature::Symbol* sym = env.signature->getFunction(fun);
       sym->setType(OperatorType::getConstantsType(sort, typeArgArity)); 
       if(name_reuse)
-        name_reuse->put(normalised, fun);
+        name_reuse->put(reuse_key, fun);
     }
     TermList head = TermList(Term::create(fun, typeVars.size(), typeVars.begin()));
     TermList t = ApplicativeHelper::createAppTerm(
@@ -1238,7 +1245,6 @@ Formula* Naming::introduceDefinition(Formula* f, bool iff) {
   InferenceStore::instance()->recordIntroducedSymbol(definition, false,
       atom->functor());
 
-  env.statistics->formulaNames++;
   UnitList::push(definition, _defs);
 
   if (env.options->showPreprocessing()) {

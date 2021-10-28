@@ -8,15 +8,14 @@
  * and in the source directory
  */
 /**
- * @file NameReuse.cpp
- * Defines definition-reuse policies, configured by an option
+ * @file NameReuse.hpp
+ * Attempt to reuse names introduced to represent formulae, e.g. Skolems or naming
  */
 
 #ifndef __NameReuse__
 #define __NameReuse__
 
 #include "Forwards.hpp"
-#include "Shell/Rectify.hpp"
 #include "Lib/DHMap.hpp"
 
 using namespace Kernel;
@@ -38,16 +37,19 @@ public:
   // definitions
   static NameReuse *definitionInstance();
 
-  // normalise `f` in some way to use as a key: saves recomputing it later
-  Formula *normalise(Formula *f);
+  // convert `f` to a string in some way to use as a key: saves recomputing it later
+  vstring key(Formula *f);
 
   // try and reuse a symbol for `normalised`
   // false if not seen before
   // true (and symbol filled out) if we have
-  bool get(Formula *normalised, unsigned &symbol);
+  bool get(const vstring &key, unsigned &symbol);
 
   // remember that we've used a symbol to stand for `normalised`
-  void put(Formula *normalised, unsigned symbol);
+  void put(vstring key, unsigned symbol);
+
+  // free variables in the order they occur in the key for `f`
+  Lib::Stack<unsigned> freeVariablesInKeyOrder(Formula *f);
 
 private:
   DHMap<vstring, unsigned> _map;
