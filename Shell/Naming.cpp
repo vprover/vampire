@@ -1122,6 +1122,8 @@ Literal* Naming::getDefinitionLiteral(Formula* f, VList* freeVars) {
     reuse_key = name_reuse->key(f);
     successfully_reused = name_reuse->get(reuse_key, reused_symbol);
   }
+  if(successfully_reused)
+    env.statistics->reusedFormulaNames++;
 
   unsigned arity = VList::length(freeVars);
 
