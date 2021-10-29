@@ -34,7 +34,6 @@
 #include "Kernel/MainLoop.hpp"
 
 #include "Shell/Options.hpp"
-#include "Shell/Refutation.hpp"
 #include "Shell/Statistics.hpp"
 
 #include "SAT/Preprocess.hpp"
