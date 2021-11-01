@@ -1117,7 +1117,7 @@ Literal* Naming::getDefinitionLiteral(Formula* f, VList* freeVars) {
     : nullptr;
   unsigned reused_symbol = 0;
   bool successfully_reused = false;
-  vstring reuse_key = nullptr;
+  vstring reuse_key;
   if(name_reuse) {
     reuse_key = name_reuse->key(f);
     successfully_reused = name_reuse->get(reuse_key, reused_symbol);
