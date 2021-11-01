@@ -217,7 +217,6 @@ public:
 
   /** Problem contains an interpreted symbol excluding equality */
   bool hasInterpretedOperations() const { return _hasInterpreted; }
-  bool hasInterpretedEquality() const { return _hasInterpretedEquality; }
   /** Problem contains non-default sorts */
   bool hasNonDefaultSorts() const { return _hasNonDefaultSorts; }
   bool hasFOOL() const { return _hasFOOL; }
@@ -323,7 +322,6 @@ public:
 
   /** Problem contains an interpreted symbol including equality */
   bool _hasInterpreted;
-  bool _hasInterpretedEquality;
   /** Problem contains non-default sorts */
   bool _hasNonDefaultSorts;
   unsigned _sortsUsed;

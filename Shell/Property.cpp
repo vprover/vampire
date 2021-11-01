@@ -70,7 +70,6 @@ Property::Property()
     _maxVariablesInClause(0),
     _props(0),
     _hasInterpreted(false),
-    _hasInterpretedEquality(false),
     _hasNonDefaultSorts(false),
     _sortsUsed(0),
     _hasFOOL(false),
@@ -747,7 +746,6 @@ void Property::scanForInterpreted(Term* t)
     if (!theory->isInterpretedPredicate(lit->functor())) { return; }
     if (lit->isEquality()) {
       //cout << "this is interpreted equality " << t->toString() << endl;
-      _hasInterpretedEquality=true;
       return; 
     }
     itp = theory->interpretPredicate(lit);

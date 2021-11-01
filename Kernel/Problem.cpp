@@ -302,7 +302,6 @@ void Problem::readDetailsFromProperty() const
   _hasCombs = _property->hasCombs();
   _hasApp = _property->hasApp();
   _hasAppliedVar = _property->hasAppliedVar();
-  _hasInterpretedEquality = _property->hasInterpretedEquality();
   _hasLogicalProxy = _property->hasLogicalProxy();
   _hasPolymorphicSym = _property->hasPolymorphicSym();
   _quantifiesOverPolymorphicVar = _property->quantifiesOverPolymorphicVar();
@@ -327,7 +326,6 @@ void Problem::invalidateEverything()
   _hasEquality = MaybeBool::UNKNOWN;
   _hasInterpretedOperations = MaybeBool::UNKNOWN;
   _hasFOOL = MaybeBool::UNKNOWN;
-  _hasInterpretedEquality = MaybeBool::UNKNOWN;
   _hasCombs = MaybeBool::UNKNOWN;
   _hasApp = MaybeBool::UNKNOWN;
   _hasAppliedVar = MaybeBool::UNKNOWN;
@@ -358,7 +356,6 @@ void Problem::invalidateByRemoval()
   _hasPolymorphicSym.mightBecameFalse();
   _quantifiesOverPolymorphicVar.mightBecameFalse();
   _hasBoolVar.mightBecameFalse();
-  _hasInterpretedEquality.mightBecameFalse();
 }
 
 /**
@@ -402,14 +399,6 @@ bool Problem::hasInterpretedOperations() const
 
   if(!_hasInterpretedOperations.known()) { refreshProperty(); }
   return _hasInterpretedOperations.value();
-}
-
-bool Problem::hasInterpretedEquality() const
-{
-  CALL("Problem::hasInterpretedEquality");
-
-  if(!_hasInterpretedEquality.known()) { refreshProperty(); }
-  return _hasInterpretedEquality.value();
 }
 
 bool Problem::hasFOOL() const

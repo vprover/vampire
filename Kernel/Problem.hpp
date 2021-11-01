@@ -109,7 +109,6 @@ public:
   bool hasEquality() const;
   /** Problem contains an interpreted symbol including equality */
   bool hasInterpretedOperations() const;
-  bool hasInterpretedEquality() const;
   /** Problem contains let terms or formulas, or term if-then-else */
   bool hasFOOL() const;
   bool hasCombs() const;
@@ -231,7 +230,6 @@ private:
   mutable MaybeBool _hasPolymorphicSym;
   mutable MaybeBool _quantifiesOverPolymorphicVar;
   mutable MaybeBool _hasBoolVar; 
-  mutable MaybeBool _hasInterpretedEquality;
 
   SMTLIBLogic _smtlibLogic;
 
