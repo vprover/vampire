@@ -109,6 +109,7 @@ public:
   bool hasEquality() const;
   /** Problem contains an interpreted symbol including equality */
   bool hasInterpretedOperations() const;
+  bool hasNumerals() const; // meaning the interpreted constants of arithmetic theories, e.g. 1,2, 3.1415,...
   /** Problem contains let terms or formulas, or term if-then-else */
   bool hasFOOL() const;
   bool hasCombs() const;
@@ -222,6 +223,7 @@ private:
   mutable MaybeBool _hasFormulas;
   mutable MaybeBool _hasEquality;
   mutable MaybeBool _hasInterpretedOperations;
+  mutable MaybeBool _hasNumerals;
   mutable MaybeBool _hasFOOL;
   mutable MaybeBool _hasCombs;
   mutable MaybeBool _hasApp;
