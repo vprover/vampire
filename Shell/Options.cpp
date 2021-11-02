@@ -1642,6 +1642,14 @@ void Options::init()
     _lookup.insert(&_lambdaFreeHol);
     _lambdaFreeHol.tag(OptionTag::HIGHER_ORDER);
 
+    _complexVarCondition = BoolOptionValue("complex_var_cond","cvc",false);
+    _complexVarCondition.description=
+    "Use the more complex variable condition provided in the SKIKBO paper.\n"
+    "More terms are comparable with this ordering, but it has worst case"
+    "exponential complexity";
+    _lookup.insert(&_complexVarCondition);
+    _complexVarCondition.tag(OptionTag::HIGHER_ORDER);
+
 //*********************** InstGen  ***********************
 
     _globalSubsumption = BoolOptionValue("global_subsumption","gs",false);

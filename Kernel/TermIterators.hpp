@@ -315,11 +315,11 @@ protected:
   unsigned _argNum;
 };
 
-class UnstableSubtermIt
+class TopLevelVarLikeTermIterator
   : public IteratorCore<Term*>
 {
 public:
-  UnstableSubtermIt(Term* term)
+  TopLevelVarLikeTermIterator(Term* term)
   {
     _next = 0;
     if(term->isApplication() && !term->ground()){
@@ -342,22 +342,11 @@ private:
   Term* _next;
 };
 
-class StableVarIt
+class TopLevelVarIterator
   : public IteratorCore<TermList>
 {
 public:
-  StableVarIt(TermList t, const DHMultiset<Term*>* unstableTerms) :
-  _unstableTerms(unstableTerms)
-  {
-    if(t.isVar()){
-      _next = t;
-      return;
-    }
-    _next.makeEmpty();
-    if(!t.term()->ground() && !_unstableTerms->find(t.term())){
-      _stack.push(t);
-    }  
-  }
+  TopLevelVarIterator(TermList t);
   
   bool hasNext();
 
@@ -370,7 +359,6 @@ public:
   }
 
 private:
-  const DHMultiset<Term*>* _unstableTerms;
   TermStack _stack;
   TermList _next;
 };
