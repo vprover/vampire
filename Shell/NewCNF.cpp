@@ -1008,13 +1008,13 @@ Term* NewCNF::createSkolemTerm(unsigned var, VarSet* free, Formula *reuse_formul
 
   // if we re-use a symbol, we _must_ close over free variables in some fixed order
   Stack<unsigned> varsInKeyOrder;
-  if(successfully_reused)
+  if(name_reuse)
     varsInKeyOrder = name_reuse->freeVariablesInKeyOrder(reuse_formula);
   Stack<unsigned>::BottomFirstIterator keyOrderIt(varsInKeyOrder);
 
   VarSet::Iterator vit(*free);
-  while(successfully_reused ? keyOrderIt.hasNext() : vit.hasNext()) {
-    unsigned uvar = successfully_reused ? keyOrderIt.next() : vit.next();
+  while(name_reuse ? keyOrderIt.hasNext() : vit.hasNext()) {
+    unsigned uvar = name_reuse ? keyOrderIt.next() : vit.next();
     domainSorts.push(_varSorts.get(uvar, AtomicSort::defaultSort()));
     fnArgs.push(TermList(uvar, false));
   }
@@ -1326,13 +1326,13 @@ Literal* NewCNF::createNamingLiteral(Formula* f, VList* free)
 
   // if we re-use a symbol, we _must_ close over free variables in some fixed order
   Stack<unsigned> varsInKeyOrder;
-  if(successfully_reused)
+  if(name_reuse)
     varsInKeyOrder = name_reuse->freeVariablesInKeyOrder(f);
   Stack<unsigned>::BottomFirstIterator keyOrderIt(varsInKeyOrder);
 
   VList::Iterator vit(free);
-  while (successfully_reused ? keyOrderIt.hasNext() : vit.hasNext()) {
-    unsigned uvar = successfully_reused ? keyOrderIt.next() : vit.next();
+  while (name_reuse ? keyOrderIt.hasNext() : vit.hasNext()) {
+    unsigned uvar = name_reuse ? keyOrderIt.next() : vit.next();
     domainSorts.push(_varSorts.get(uvar, AtomicSort::defaultSort()));
     predArgs.push(TermList(uvar, false));
   }
