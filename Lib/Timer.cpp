@@ -131,7 +131,9 @@ TimeoutProtector::TimeoutProtector() {
 TimeoutProtector::~TimeoutProtector() {
   protectingTimeout--;
   if (!protectingTimeout && callLimitReachedLater) {
-    limitReached(callLimitReachedLater);
+    unsigned howToCall = callLimitReachedLater;
+    callLimitReachedLater = 0; // to prevent recursion (should limitReached itself reach TimeoutProtector)
+    limitReached(howToCall);
   }
 }
 
