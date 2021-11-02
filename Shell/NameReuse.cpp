@@ -62,7 +62,7 @@ bool NameReuse::get(const vstring &key, unsigned &symbol)
 void NameReuse::put(vstring key, unsigned symbol)
 {
   CALL("NameReuse::put");
-  // std::cout << "put: " << env.signature->functionName(symbol) << " for " << key << std::endl;
+  //std::cout << "put: " << symbol << " for " << key << std::endl;
   _map.insert(key, symbol);
 }
 

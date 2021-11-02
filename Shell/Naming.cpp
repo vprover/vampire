@@ -1140,13 +1140,13 @@ Literal* Naming::getDefinitionLiteral(Formula* f, VList* freeVars) {
 
   // if we re-use a symbol, we _must_ close over free variables in some fixed order
   Stack<unsigned> varsInKeyOrder;
-  if(successfully_reused)
+  if(name_reuse)
     varsInKeyOrder = name_reuse->freeVariablesInKeyOrder(f);
   Stack<unsigned>::BottomFirstIterator keyOrderIt(varsInKeyOrder);
 
   VList::Iterator vit(freeVars);
-  while (successfully_reused ? keyOrderIt.hasNext() : vit.hasNext()) {
-    unsigned uvar = successfully_reused ? keyOrderIt.next() : vit.next();
+  while (name_reuse ? keyOrderIt.hasNext() : vit.hasNext()) {
+    unsigned uvar = name_reuse ? keyOrderIt.next() : vit.next();
     TermList sort = varSorts.get(uvar, AtomicSort::defaultSort());
     if(sort == AtomicSort::superSort()){
       typeVars.push(TermList(uvar, false));     
