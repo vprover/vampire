@@ -85,6 +85,9 @@ int Timer::s_initGuarantedMiliseconds;
 {
   using namespace Shell;
 
+  // for debugging crashes of limitReached: it is good to know what was called by vampire proper just before the interrupt
+  // Debug::Tracer::printStack(cout);
+
   const char* REACHED[3] = {"","Time limit reached!\n","Instruction limit reached!\n"};
   const char* STATUS[3] = {"","% SZS status Timeout for ","% SZS status InstrOut for "};
 
