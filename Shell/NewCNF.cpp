@@ -1121,8 +1121,9 @@ void NewCNF::skolemise(QuantifiedFormula* g, BindingList*& bindings, BindingList
           subst.bind(b.first, b.second);
         }
         reuse_formula = SubstHelper::apply(g, subst);
-        remainingVars = reuse_formula->vars();
-        remainingSorts = reuse_formula->sorts();
+        // could be reuse_formula->vars() but SubstHelper might reorder them
+        remainingVars = g->vars();
+        remainingSorts = g->sorts();
       }
 
       processedBindings = nullptr;
