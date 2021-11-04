@@ -1139,10 +1139,9 @@ Literal* Naming::getDefinitionLiteral(Formula* f, VList* freeVars) {
   SortHelper::collectVariableSorts(f, varSorts);
 
   // if we re-use a symbol, we _must_ close over free variables in some fixed order
-  Stack<unsigned> varsInKeyOrder;
+  VirtualIterator<unsigned> keyOrderIt;
   if(name_reuse)
-    varsInKeyOrder = name_reuse->freeVariablesInKeyOrder(f);
-  Stack<unsigned>::BottomFirstIterator keyOrderIt(varsInKeyOrder);
+    keyOrderIt = name_reuse->freeVariablesInKeyOrder(f);
 
   VList::Iterator vit(freeVars);
   while (name_reuse ? keyOrderIt.hasNext() : vit.hasNext()) {

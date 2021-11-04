@@ -1007,10 +1007,9 @@ Term* NewCNF::createSkolemTerm(unsigned var, VarSet* free, Formula *reuse_formul
     env.statistics->reusedSkolemFunctions++;
 
   // if we re-use a symbol, we _must_ close over free variables in some fixed order
-  Stack<unsigned> varsInKeyOrder;
+  VirtualIterator<unsigned> keyOrderIt;
   if(name_reuse)
-    varsInKeyOrder = name_reuse->freeVariablesInKeyOrder(reuse_formula);
-  Stack<unsigned>::BottomFirstIterator keyOrderIt(varsInKeyOrder);
+    keyOrderIt = name_reuse->freeVariablesInKeyOrder(reuse_formula);
 
   VarSet::Iterator vit(*free);
   while(name_reuse ? keyOrderIt.hasNext() : vit.hasNext()) {
@@ -1326,10 +1325,9 @@ Literal* NewCNF::createNamingLiteral(Formula* f, VList* free)
   ensureHavingVarSorts();
 
   // if we re-use a symbol, we _must_ close over free variables in some fixed order
-  Stack<unsigned> varsInKeyOrder;
+  VirtualIterator<unsigned> keyOrderIt;
   if(name_reuse)
-    varsInKeyOrder = name_reuse->freeVariablesInKeyOrder(f);
-  Stack<unsigned>::BottomFirstIterator keyOrderIt(varsInKeyOrder);
+    keyOrderIt = name_reuse->freeVariablesInKeyOrder(f);
 
   VList::Iterator vit(free);
   while (name_reuse ? keyOrderIt.hasNext() : vit.hasNext()) {

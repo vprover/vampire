@@ -430,10 +430,9 @@ Formula* Skolem::skolemise (Formula* f)
         : nullptr;
 
       // if we re-use a symbol, we _must_ close over free variables in some fixed order
-      Stack<unsigned> varsInKeyOrder;
+      VirtualIterator<unsigned> keyOrderIt;
       if(name_reuse)
-        varsInKeyOrder = name_reuse->freeVariablesInKeyOrder(before);
-      Stack<unsigned>::BottomFirstIterator keyOrderIt(varsInKeyOrder);
+        keyOrderIt = name_reuse->freeVariablesInKeyOrder(before);
 
       VarSet::Iterator vuIt(*dep);
       while(name_reuse ? keyOrderIt.hasNext() : vuIt.hasNext()) {

@@ -40,16 +40,16 @@ public:
   // convert `f` to a string in some way to use as a key: saves recomputing it later
   vstring key(Formula *f);
 
-  // try and reuse a symbol for `normalised`
+  // try and reuse a symbol for `key`
   // false if not seen before
   // true (and symbol filled out) if we have
   bool get(const vstring &key, unsigned &symbol);
 
-  // remember that we've used a symbol to stand for `normalised`
+  // remember that we've used a symbol to stand for `key`
   void put(vstring key, unsigned symbol);
 
   // free variables in the order they occur in the key for `f`
-  Lib::Stack<unsigned> freeVariablesInKeyOrder(Formula *f);
+  VirtualIterator<unsigned> freeVariablesInKeyOrder(Formula *f);
 
 private:
   DHMap<vstring, unsigned> _map;
