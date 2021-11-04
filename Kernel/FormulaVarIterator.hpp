@@ -45,6 +45,7 @@ namespace Kernel {
 class FormulaVarIterator
 {
 public:
+  DECL_ELEMENT_TYPE(unsigned);
   explicit FormulaVarIterator(const Formula*);
   explicit FormulaVarIterator(const Term*);
   explicit FormulaVarIterator(const TermList*);

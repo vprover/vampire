@@ -66,10 +66,10 @@ void NameReuse::put(vstring key, unsigned symbol)
   _map.insert(key, symbol);
 }
 
-Lib::Stack<unsigned> NameReuse::freeVariablesInKeyOrder(Formula *f)
+VirtualIterator<unsigned> NameReuse::freeVariablesInKeyOrder(Formula *f)
 {
   CALL("NameReuse::freeVariablesInKeyOrder");
-  return Lib::Stack<unsigned>::fromIterator(FormulaVarIterator(f));
+  return pvi(FormulaVarIterator(f));
 }
 
 }; // namespace Shell
