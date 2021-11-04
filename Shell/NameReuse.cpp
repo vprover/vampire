@@ -41,6 +41,21 @@ vstring NameReuse::key(Formula *f)
   Rectify rectify;
   Formula *rectified = rectify.rectify(f);
   vstring key = rectified->toString();
+  // the function could stop here, but some functions are ad-hoc polymorphic
+  // consider:
+  // ![X: $int] ?[Y]: (p(Y) & $less(X, X))
+  // ![X: $real] ?[Y]: (p(Y) & $less(X, X))
+  // therefore: append sort information to free variables to the key
+  FormulaVarIterator freeVars(rectified);
+  while(freeVars.hasNext()) {
+    unsigned free = freeVars.next();
+    TermList sort;
+    if(SortHelper::tryGetVariableSort(free, rectified, sort)) {
+      key.append("#");
+      key.append(Int::toString(free));
+      key.append(sort.term()->toString());
+    }
+  }
   //std::cout << "is: " << key << std::endl;
   return key;
 }
