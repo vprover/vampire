@@ -503,7 +503,6 @@ set(VAMPIRE_SAT_SOURCES
     SAT/DIMACS.cpp
     SAT/FallbackSolverWrapper.cpp
     SAT/MinimizingSolver.cpp
-    SAT/Preprocess.cpp
     SAT/SAT2FO.cpp
     SAT/SATClause.cpp
     SAT/SATInference.cpp
@@ -514,7 +513,6 @@ set(VAMPIRE_SAT_SOURCES
     SAT/DIMACS.hpp
     SAT/FallbackSolverWrapper.hpp
     SAT/MinimizingSolver.hpp
-    SAT/Preprocess.hpp
     SAT/SAT2FO.hpp
     SAT/SATClause.hpp
     SAT/SATInference.hpp
