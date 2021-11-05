@@ -325,7 +325,6 @@ VINF_OBJ=Inferences/BackwardDemodulation.o\
 
 VSAT_OBJ=SAT/DIMACS.o\
          SAT/MinimizingSolver.o\
-         SAT/Preprocess.o\
          SAT/SAT2FO.o\
          SAT/SATClause.o\
          SAT/SATInference.o\
@@ -509,7 +508,6 @@ OTHER_CL_DEP = Indexing/LiteralSubstitutionTree.o\
 	       Kernel/Problem.o\
 	       Kernel/Renaming.o\
 	       Kernel/RobSubstitution.o\
-	       SAT/Preprocess.o\
 	       SAT/SATClause.o\
 	       SAT/SATInference.o\
 	       SAT/SATLiteral.o\

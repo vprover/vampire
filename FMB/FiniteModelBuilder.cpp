@@ -30,7 +30,6 @@
 #include "Kernel/Substitution.hpp"
 #include "Kernel/FormulaUnit.hpp"
 
-#include "SAT/Preprocess.hpp"
 #include "SAT/MinisatInterfacingNewSimp.hpp"
 #include "SAT/BufferedSolver.hpp"
 
@@ -1533,7 +1532,7 @@ SATLiteral FiniteModelBuilder::getSATLiteral(unsigned f, const DArray<unsigned>&
 void FiniteModelBuilder::addSATClause(SATClause* cl)
 {
   CALL("FiniteModelBuilder::addSATClause");
-  cl = Preprocess::removeDuplicateLiterals(cl);
+  cl = SATClause::removeDuplicateLiterals(cl);
   if(!cl){ return; }
 #if VTRACE_FMB
   cout << "ADDING " << cl->toString() << endl; // " of size " << cl->length() << endl;

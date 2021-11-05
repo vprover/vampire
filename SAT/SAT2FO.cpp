@@ -14,7 +14,6 @@
 
 #include "Kernel/Term.hpp"
 
-#include "Preprocess.hpp"
 #include "SATClause.hpp"
 #include "SATInference.hpp"
 #include "SATLiteral.hpp"
@@ -83,7 +82,7 @@ SATClause* SAT2FO::toSAT(Clause* cl)
 
   SATClause* clause = SATClause::fromStack(satLits);
   clause->setInference(new FOConversionInference(cl));
-  clause = SAT::Preprocess::removeDuplicateLiterals(clause);
+  clause = SATClause::removeDuplicateLiterals(clause);
 
   return clause;
 }
