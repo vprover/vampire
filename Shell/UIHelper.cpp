@@ -275,6 +275,7 @@ Problem* UIHelper::getInputProblem(const Options& opts)
 
        if(smtlib){
          env.beginOutput();
+         addCommentSignForSZS(env.out());
          env.out() << "Running in auto input_syntax mode. Trying SMTLIB2\n";
          env.endOutput();
          try{
@@ -282,8 +283,11 @@ Problem* UIHelper::getInputProblem(const Options& opts)
          }
          catch (UserErrorException& exception) {
            env.beginOutput();
+           addCommentSignForSZS(env.out());
            env.out() << "Failed with\n";
+           addCommentSignForSZS(env.out());
            exception.cry(env.out());
+           addCommentSignForSZS(env.out());
            env.out() << "Trying TPTP\n";
            env.endOutput();
            {
@@ -297,6 +301,7 @@ Problem* UIHelper::getInputProblem(const Options& opts)
        }
        else{
          env.beginOutput();
+         addCommentSignForSZS(env.out());
          env.out() << "Running in auto input_syntax mode. Trying TPTP\n";
          env.endOutput();
          try{
@@ -304,8 +309,11 @@ Problem* UIHelper::getInputProblem(const Options& opts)
          }
          catch (UserErrorException& exception) {
            env.beginOutput();
+           addCommentSignForSZS(env.out());
            env.out() << "Failed with\n";
+           addCommentSignForSZS(env.out());
            exception.cry(env.out());
+           addCommentSignForSZS(env.out());
            env.out() << "Trying SMTLIB2\n";
            env.endOutput();
            {
@@ -591,6 +599,10 @@ void UIHelper::outputSymbolDeclarations(ostream& out)
 
   Signature& sig = *env.signature;
 
+  unsigned typeCons = sig.typeCons();
+  for (unsigned i=0; i<typeCons; ++i) {
+    outputSymbolTypeDeclarationIfNeeded(out, false, true, i);
+  }
   unsigned funcs = sig.functions();
   for (unsigned i=0; i<funcs; ++i) {
     if (!env.options->showFOOL()) {
@@ -598,11 +610,11 @@ void UIHelper::outputSymbolDeclarations(ostream& out)
         continue;
       }
     }
-    outputSymbolTypeDeclarationIfNeeded(out, true, i);
+    outputSymbolTypeDeclarationIfNeeded(out, true, false, i);
   }
   unsigned preds = sig.predicates();
   for (unsigned i=0; i<preds; ++i) {
-    outputSymbolTypeDeclarationIfNeeded(out, false, i);
+    outputSymbolTypeDeclarationIfNeeded(out, false, false, i);
   }
 } // UIHelper::outputSymbolDeclarations
 
@@ -612,18 +624,27 @@ void UIHelper::outputSymbolDeclarations(ostream& out)
  * @author Andrei Voronkov
  * @since 03/07/2013 Manchester
  */
-void UIHelper::outputSymbolTypeDeclarationIfNeeded(ostream& out, bool function, unsigned symNumber)
+void UIHelper::outputSymbolTypeDeclarationIfNeeded(ostream& out, bool function, bool typeCon, unsigned symNumber)
 {
   CALL("UIHelper::outputSymbolTypeDeclarationIfNeeded");
 
-  Signature::Symbol* sym = function ?
-      env.signature->getFunction(symNumber) : env.signature->getPredicate(symNumber);
+  Signature::Symbol* sym;
 
-  if (sym->super()  || sym->arraySort()  || sym->tupleSort()){
+  if(function){
+    sym = env.signature->getFunction(symNumber);
+  } else if(typeCon){
+    sym = env.signature->getTypeCon(symNumber);
+  } else {
+    sym = env.signature->getPredicate(symNumber);    
+  }
+
+  if (typeCon && (env.signature->isArrayCon(symNumber) ||
+                  env.signature->isTupleCon(symNumber))){
     return;
   }
 
-  if(sym->defaultSort() || (sym->boolSort() && !env.options->showFOOL())){
+  if(typeCon && env.signature->isDefaultSortCon(symNumber) && 
+    (!env.signature->isBoolCon(symNumber) || !env.options->showFOOL())){
     return;
   }
 
@@ -638,18 +659,19 @@ void UIHelper::outputSymbolTypeDeclarationIfNeeded(ostream& out, bool function, 
   }
 
   unsigned dummy;
-  if (Theory::tuples()->findProjection(symNumber, !function, dummy)) {
+  if (!typeCon && Theory::tuples()->findProjection(symNumber, !function, dummy)) {
     return;
   }
 
   if (function) {
     TermList sort = env.signature->getFunction(symNumber)->fnType()->result();
-    if (SortHelper::isTupleSort(sort)) {
+    if (sort.isTupleSort()) {
       return;
     }
   }
 
-  OperatorType* type = function ? sym->fnType() : sym->predType();
+  OperatorType* type = function ? sym->fnType() : 
+               (typeCon ? sym->typeConType() : sym->predType());
 
   if (type->isAllDefault()) {//TODO required
     return;
@@ -658,40 +680,15 @@ void UIHelper::outputSymbolTypeDeclarationIfNeeded(ostream& out, bool function, 
   //out << "tff(" << (function ? "func" : "pred") << "_def_" << symNumber << ", type, "
   //    << sym->name() << ": ";
 
-  if(!sym->app()){
+  //don't output type of app. It is an internal Vampire thing
+  if(!(function && env.signature->isAppFun(symNumber))){
     out << (env.statistics->higherOrder ? "thf(" : "tff(")
-        << (function ? (sym->typeCon() ?  "type" : "func") : "pred") 
+        << (function ? "func" : (typeCon ?  "type" : "pred")) 
         << "_def_" << symNumber << ", type, "
         << sym->name() << ": ";
     out << type->toString();
     out << ")." << endl;
   }
-
-  //out << type->toString();
-
-  /*unsigned arity = sym->arity();
-  if (arity>0) {
-    if (arity==1) {
-      out << (type->arg(0)).toString();
-    }
-    else {
-      out << "(";
-      for (unsigned i=0; i<arity; i++) {
-        if (i>0) {
-          out << " * ";
-        }
-        out << (type->arg(i)).toString();
-      }
-      out << ")";
-    }
-    out << " > ";
-  }
-  if (function) {
-    out << (sym->fnType()->result()).toString();
-  }
-  else {
-    out << "$o";
-  }*/
   //out << ")." << endl;
 }
 

@@ -61,6 +61,8 @@ public:
 
   /** Return the number of this unit */
   unsigned number() const { return _number; }
+  /** Forcefully change the unit's number - use with care! - numbers should be unique across the whole board! */
+  void overwriteNumber(unsigned newNumber) { _number = newNumber; }
 
   /** Return the inference of this unit */
   Inference& inference() { return _inference; }

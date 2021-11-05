@@ -221,7 +221,7 @@ VK_OBJ= Kernel/Clause.o\
         Kernel/Signature.o\
         Kernel/SortHelper.o\
         Kernel/ApplicativeHelper.o\
-        Kernel/Sorts.o\
+        Kernel/OperatorType.o\
         Kernel/SubformulaIterator.o\
         Kernel/Substitution.o\
         Kernel/Term.o\
@@ -324,12 +324,10 @@ VINF_OBJ=Inferences/BackwardDemodulation.o\
          Inferences/GaussianVariableElimination.o\
          Inferences/InterpretedEvaluation.o\
          Inferences/TheoryInstAndSimp.o
-#         Inferences/CTFwSubsAndRes.o\
 #         Inferences/RenamingOnTheFly.o\
 
 VSAT_OBJ=SAT/DIMACS.o\
          SAT/MinimizingSolver.o\
-         SAT/Preprocess.o\
          SAT/SAT2FO.o\
          SAT/SATClause.o\
          SAT/SATInference.o\
@@ -358,6 +356,7 @@ VS_OBJ = Shell/AnswerExtractor.o\
          Shell/CommandLine.o\
          Shell/CNF.o\
          Shell/NewCNF.o\
+         Shell/NameReuse.o\
          Shell/DistinctProcessor.o\
          Shell/DistinctGroupExpansion.o\
          Shell/EqResWithDeletion.o\
@@ -415,12 +414,7 @@ VS_OBJ = Shell/AnswerExtractor.o\
 #         Shell/PARSER_TKV.o\
 #         Shell/SMTLEX.o\
 #         Shell/SMTPAR.o\
-#         Shell/CParser.o\
-#         Shell/EqualityAxiomatizer.o\
-#         Shell/GlobalOptions.o\
 #         Shell/Lexer.o\
-#         Shell/PDUtils.o\
-#         Shell/Refutation.o\
 #         Shell/SMTPrinter.o\
 #         Shell/ConstantRemover.o\
 #         Shell/ConstraintReaderBack.o\
@@ -472,8 +466,8 @@ LIB_DEP = Indexing/TermSharing.o\
 	  Kernel/InferenceStore.o\
 	  Kernel/Problem.o\
 	  Kernel/SortHelper.o\
-    Kernel/ApplicativeHelper.o\
-	  Kernel/Sorts.o\
+      Kernel/ApplicativeHelper.o\
+      Kernel/OperatorType.o\
 	  Kernel/Signature.o\
 	  Kernel/SubformulaIterator.o\
 	  Kernel/Substitution.o\
@@ -488,7 +482,6 @@ LIB_DEP = Indexing/TermSharing.o\
 	  Shell/Options.o\
 	  Shell/Property.o\
 	  Shell/Statistics.o\
-	  Shell/GlobalOptions.o\
           Shell/UnificationWithAbstractionConfig.o\
 	  version.o
 	  # ClausifierDependencyFix.o\
@@ -520,7 +513,6 @@ OTHER_CL_DEP = Indexing/LiteralSubstitutionTree.o\
 	       Kernel/Problem.o\
 	       Kernel/Renaming.o\
 	       Kernel/RobSubstitution.o\
-	       SAT/Preprocess.o\
 	       SAT/SATClause.o\
 	       SAT/SATInference.o\
 	       SAT/SATLiteral.o\
@@ -547,7 +539,7 @@ all: #default make disabled
 ################################################################
 # automated generation of Vampire revision information
 
-VERSION_NUMBER = 4.5.1
+VERSION_NUMBER = 4.6.1
 
 # We extract the revision number from svn every time the svn meta-data are modified
 # (that's why there is the dependency on .svn/entries) 

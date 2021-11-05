@@ -28,6 +28,7 @@
 #include "Saturation/SaturationAlgorithm.hpp"
 
 #include "Shell/Options.hpp"
+#include "Shell/InductionPreprocessor.hpp"
 
 #include "FnDefRewriting.hpp"
 

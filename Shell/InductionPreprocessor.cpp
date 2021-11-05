@@ -226,7 +226,7 @@ Term* InductionScheme::createRepresentingTerm(const InductionTerms& inductionTer
   if (!symbols.find(argSorts)) {
     unsigned sym = env.signature->addFreshFunction(argSorts.size(), "indhelper");
     env.signature->getFunction(sym)->setType(
-      OperatorType::getFunctionType(argSorts.size(), argSorts.begin(), Term::defaultSort()));
+      OperatorType::getFunctionType(argSorts.size(), argSorts.begin(), AtomicSort::defaultSort()));
     symbols.insert(argSorts, sym);
   }
   return Term::create(symbols.get(argSorts), args.size(), args.begin());

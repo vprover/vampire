@@ -54,7 +54,6 @@ Property::Property()
     _goalFormulas(0),
     _axiomFormulas(0),
     _subformulas(0),
-    _terms(0),
     _unitGoals(0),
     _unitAxioms(0),
     _hornGoals(0),
@@ -71,7 +70,6 @@ Property::Property()
     _maxVariablesInClause(0),
     _props(0),
     _hasInterpreted(false),
-    _hasInterpretedEquality(false),
     _hasNonDefaultSorts(false),
     _sortsUsed(0),
     _hasFOOL(false),
@@ -149,7 +147,7 @@ void Property::add(UnitList* units)
   }
 
   // information about sorts is read from the environment, not from the problem
-  if (env.sorts->hasSort()) {
+  if (env.signature->hasSorts()) {
     addProp(PR_SORTS);
   }
     
@@ -476,7 +474,7 @@ void Property::scan(Formula* f, int polarity)
         while(vit.hasNext()){
           int v = vit.next();
           if(SortHelper::tryGetVariableSort(v, f->qarg(), s)){
-            if(s.isTerm() && env.signature->getFunction(s.term()->functor())->super()){
+            if(s.isTerm() && s.term()->isSuper()){
               _quantifiesOverPolymorphicVar = true;
               break;
             }
@@ -508,20 +506,20 @@ void Property::scanSort(TermList sort)
   if(!env.statistics->higherOrder && !_hasPolymorphicSym){
     //used sorts is for FMB which is not compatible with 
     //higher-order or polymorphism
-    unsigned sortU = SortHelper::sortNum(sort);
+    unsigned sortU = sort.term()->functor();
     if(!_usesSort.get(sortU)){
       _sortsUsed++;
       _usesSort[sortU]=true;
     } 
   }
 
-  if (sort==Term::defaultSort()) {
+  if (sort==AtomicSort::defaultSort()) {
     return;
   }
   _hasNonDefaultSorts = true;
   env.statistics->hasTypes=true;
 
-  if(SortHelper::isArraySort(sort)){
+  if(sort.isArraySort()){
     // an array sort is infinite, if the index or value sort is infinite
     // we rely on the recursive calls setting appropriate flags
     TermList idx = *sort.term()->nthArgument(0);
@@ -549,20 +547,20 @@ void Property::scanSort(TermList sort)
   }
   
   TermList resultSort = ApplicativeHelper::getResultSort(sort);
-  if(resultSort == Term::boolSort()){
+  if(resultSort == AtomicSort::boolSort()){
     _hasFOOL = true;
   }
 
-  if(sort == Term::intSort()){
+  if(sort == AtomicSort::intSort()){
     addProp(PR_HAS_INTEGERS);
   } else
-  if(sort == Term::rationalSort()){
+  if(sort == AtomicSort::rationalSort()){
     addProp(PR_HAS_RATS);
   } else
-  if (sort == Term::realSort()){
+  if (sort == AtomicSort::realSort()){
     addProp(PR_HAS_REALS);
   } else 
-  if (sort == Term::boolSort()){
+  if (sort == AtomicSort::boolSort()){
     addProp(PR_HAS_BOOLEAN_VARIABLES);    
   }
 }
@@ -586,11 +584,11 @@ void Property::scan(Literal* lit, int polarity, unsigned cLen, bool goal)
     TermList eqSort = SortHelper::getEqualityArgumentSort(lit);
     TermList lhs = *lit->nthArgument(0);
     TermList rhs = *lit->nthArgument(1);
-    if((lhs.isVar() || rhs.isVar()) && eqSort == Term::boolSort()){
+    if((lhs.isVar() || rhs.isVar()) && eqSort == AtomicSort::boolSort()){
       _hasBoolVar = true;
     }
-    if((eqSort.isVar() || eqSort.term()->arity()) && !ApplicativeHelper::isArrowSort(eqSort) &&
-      !SortHelper::isArraySort(eqSort) && !SortHelper::isTupleSort(eqSort)){
+    if((eqSort.isVar() || eqSort.term()->arity()) && 
+       !eqSort.isArrowSort() && !eqSort.isArraySort() && !eqSort.isTupleSort()){
       _hasPolymorphicSym = true;      
     } 
     scanSort(eqSort);
@@ -652,12 +650,15 @@ void Property::scan(Literal* lit, int polarity, unsigned cLen, bool goal)
 void Property::scan(TermList ts,bool unit,bool goal)
 {
   CALL("Property::scan(TermList)");
-  _terms++;
+
   if (ts.isVar()) {
     _variablesInThisClause++;
     return;
   }
 
+  if(ts.term()->isSort()){
+    return;
+  }
 
   ASS(ts.isTerm());
   Term* t = ts.term();
@@ -694,10 +695,10 @@ void Property::scan(TermList ts,bool unit,bool goal)
     if(unit){ func->markInUnit();}
     if(goal){ func->markInGoal();}
 
-    if(func->app()){
+    if(t->isApplication()){
       _hasApp = true;
       TermList sort = SortHelper::getResultSort(t);
-      if(ApplicativeHelper::getResultSort(sort) == Term::boolSort()){
+      if(ApplicativeHelper::getResultSort(sort) == AtomicSort::boolSort()){
         TermList head = ApplicativeHelper::getHead(ts);
         if(head.isVar()){
           _hasBoolVar = true;
@@ -711,7 +712,7 @@ void Property::scan(TermList ts,bool unit,bool goal)
       if(func->proxy() == Signature::PI || func->proxy() == Signature::SIGMA){
         ASS(t->arity() == 1);
         TermList sort = *t->nthArgument(0);
-        if(ApplicativeHelper::getResultSort(sort) == Term::boolSort()){
+        if(ApplicativeHelper::getResultSort(sort) == AtomicSort::boolSort()){
           _hasBoolVar = true;
         }
       }
@@ -719,7 +720,7 @@ void Property::scan(TermList ts,bool unit,bool goal)
     }
 
     OperatorType* type = func->fnType();
-    if(!func->app() && type->typeArgsArity()){
+    if(!t->isApplication() && type->typeArgsArity()){
       _hasPolymorphicSym = true;
     }
 
@@ -745,7 +746,6 @@ void Property::scanForInterpreted(Term* t)
     if (!theory->isInterpretedPredicate(lit->functor())) { return; }
     if (lit->isEquality()) {
       //cout << "this is interpreted equality " << t->toString() << endl;
-      _hasInterpretedEquality=true;
       return; 
     }
     itp = theory->interpretPredicate(lit);
@@ -775,19 +775,19 @@ void Property::scanForInterpreted(Term* t)
 
   TermList sort = Theory::getOperationSort(itp);
   if(Theory::isInequality(itp)){
-    if(sort == Term::intSort()){ addProp(PR_INTEGER_COMPARISON); }
-    else if(sort == Term::rationalSort()){ addProp(PR_RAT_COMPARISON); }
-    else if(sort == Term::realSort()){ addProp(PR_REAL_COMPARISON); }
+    if(sort == AtomicSort::intSort()){ addProp(PR_INTEGER_COMPARISON); }
+    else if(sort == AtomicSort::rationalSort()){ addProp(PR_RAT_COMPARISON); }
+    else if(sort == AtomicSort::realSort()){ addProp(PR_REAL_COMPARISON); }
   }
   else if(Theory::isLinearOperation(itp)){
-    if(sort == Term::intSort()){ addProp(PR_INTEGER_LINEAR); }
-    else if(sort == Term::rationalSort()){ addProp(PR_RAT_LINEAR); }
-    else if(sort == Term::realSort()){ addProp(PR_REAL_LINEAR); }
+    if(sort == AtomicSort::intSort()){ addProp(PR_INTEGER_LINEAR); }
+    else if(sort == AtomicSort::rationalSort()){ addProp(PR_RAT_LINEAR); }
+    else if(sort == AtomicSort::realSort()){ addProp(PR_REAL_LINEAR); }
   }
   else if(Theory::isNonLinearOperation(itp)){
-    if(sort == Term::intSort()){ addProp(PR_INTEGER_NONLINEAR); }
-    else if(sort == Term::rationalSort()){ addProp(PR_RAT_NONLINEAR); }
-    else if(sort == Term::realSort()){ addProp(PR_REAL_NONLINEAR); }
+    if(sort == AtomicSort::intSort()){ addProp(PR_INTEGER_NONLINEAR); }
+    else if(sort == AtomicSort::rationalSort()){ addProp(PR_RAT_NONLINEAR); }
+    else if(sort == AtomicSort::realSort()){ addProp(PR_REAL_NONLINEAR); }
   }
 }
 

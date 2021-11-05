@@ -91,6 +91,12 @@ void Options::init()
     _memoryLimit.addHardConstraint(lessThanEq((unsigned)Lib::System::getSystemMemory()));
 #endif
 
+#ifdef __linux__
+  _instructionLimit = UnsignedOptionValue("instruction_limit","i",0);
+  _instructionLimit.description="Limit the number (in millions) of executed instructions (excluding the kernel ones).";
+  _lookup.insert(&_instructionLimit);
+#endif
+
     _mode = ChoiceOptionValue<Mode>("mode","",Mode::VAMPIRE,
                                     {"axiom_selection",
                                         "casc",
@@ -309,6 +315,12 @@ void Options::init()
     _lookup.insert(&_outputMode);
     _outputMode.tag(OptionTag::OUTPUT);
 
+    _ignoreMissingInputsInUnsatCore = BoolOptionValue("ignore_missing_inputs_in_unsat_core","",false);
+    _ignoreMissingInputsInUnsatCore.description="When running in unsat core output mode we will complain if there is"
+    " an input formula that has no label. Set this on if you don't want this behaviour (which is default in smt-comp)."; 
+    _lookup.insert(&_ignoreMissingInputsInUnsatCore);
+    _ignoreMissingInputsInUnsatCore.tag(OptionTag::OUTPUT);
+
     _thanks = StringOptionValue("thanks","","Tanya");
     _thanks.description="";
     _lookup.insert(&_thanks);
@@ -441,6 +453,19 @@ void Options::init()
     _functionDefinitionElimination.tag(OptionTag::PREPROCESSING);
     _functionDefinitionElimination.addProblemConstraint(hasEquality());
     _functionDefinitionElimination.setRandomChoices({"all","none"});
+
+    _skolemReuse = BoolOptionValue("skolem_reuse", "skr", false);
+    _skolemReuse.description =
+      "Attempt to reuse Skolem symbols.\n"
+      "Symbols are re-used if they represent identical formulae up to renaming.";
+    _lookup.insert(&_skolemReuse);
+    _skolemReuse.tag(OptionTag::PREPROCESSING);
+
+    _definitionReuse = BoolOptionValue("definition_reuse", "dr", false);
+    _definitionReuse.description =
+      "Reuse definition symbols in a similar fashion to Skolem reuse.";
+    _lookup.insert(&_definitionReuse);
+    _definitionReuse.tag(OptionTag::PREPROCESSING);
 
     _generalSplitting = ChoiceOptionValue<RuleActivity>("general_splitting","gsp",RuleActivity::OFF,{"input_only","off","on"});
     _generalSplitting.description=
@@ -1083,7 +1108,7 @@ void Options::init()
            _cancellation.tag(OptionTag::INFERENCES);
            _cancellation.setExperimental();
 
-           _highSchool = BoolOptionValue("high_school", "", false);
+           _highSchool = BoolOptionValue("high_school", "hsm", false);
            _highSchool.description="Enables high school education for vampire. (i.e.: sets -gve cautious, -asg cautious, -ev cautious, -canc cautious, -pum on )";
            _lookup.insert(&_highSchool);
            _highSchool.tag(OptionTag::INFERENCES);
@@ -3092,6 +3117,7 @@ vstring Options::generateEncodedOptions() const
     forbidden.insert(&_problemName);
     forbidden.insert(&_inputFile);
     forbidden.insert(&_randomStrategy);
+    forbidden.insert(&_encode);
     forbidden.insert(&_decode);
     forbidden.insert(&_ignoreMissing); // or maybe we do!
   }
@@ -3114,7 +3140,6 @@ vstring Options::generateEncodedOptions() const
   res << Lib::Int::toString(_timeLimitInDeciseconds.actualValue);
  
   return res.str();
- 
 }
 
 

@@ -204,7 +204,7 @@ private:
 /**
  * Class that performs literal transformations
  */
-class InterpretedNormalizer::NLiteralTransformer : private TermTransformer
+class InterpretedNormalizer::NLiteralTransformer : public TermTransformer
 {
 public:
   CLASS_NAME(InterpretedNormalizer::NLiteralTransformer);
@@ -268,6 +268,9 @@ public:
       litRes = transl->apply(litRes);
     }
   }
+
+  Formula* transform(Formula* f) override;
+
 protected:
   using TermTransformer::transform;
 
@@ -426,6 +429,12 @@ protected:
 private:
   NLiteralTransformer* _litTransf;
 };
+
+Formula* InterpretedNormalizer::NLiteralTransformer::transform(Formula* f)
+{
+  NFormulaTransformer ttft(this);
+  return ttft.transform(f);
+}
 
 //////////////////////////
 // InterpretedNormalizer

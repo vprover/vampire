@@ -59,7 +59,6 @@
 #include "CASC/PortfolioMode.hpp"
 #include "CASC/CLTBMode.hpp"
 #include "CASC/CLTBModeLearning.hpp"
-#include "Shell/CParser.hpp"
 #include "Shell/CommandLine.hpp"
 //#include "Shell/EqualityProxy.hpp"
 #include "Shell/Grounding.hpp"
@@ -68,7 +67,6 @@
 #include "Shell/Property.hpp"
 #include "Saturation/ProvingHelper.hpp"
 #include "Shell/Preprocess.hpp"
-#include "Shell/Refutation.hpp"
 #include "Shell/TheoryFinder.hpp"
 #include "Shell/TPTPPrinter.hpp"
 #include "Parse/TPTP.hpp"
@@ -81,7 +79,6 @@
 
 #include "SAT/MinisatInterfacing.hpp"
 #include "SAT/MinisatInterfacingNewSimp.hpp"
-#include "SAT/Preprocess.hpp"
 
 #include "FMB/ModelCheck.hpp"
 #include <thread>
@@ -650,6 +647,7 @@ void clausifyMode(bool theory)
       }
 
       FormulaUnit* fu = new FormulaUnit(f,cl->inference()); // we are stealing cl's inference, which is not nice!
+      fu->overwriteNumber(cl->number()); // we are also making sure it's number is the same as that of the original (for Kostya from Russia to CASC, with love, and back again)
       env.out() << TPTPPrinter::toString(fu) << "\n";
     } else {
       env.out() << TPTPPrinter::toString(cl) << "\n";

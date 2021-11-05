@@ -25,7 +25,7 @@
 #include "Kernel/Term.hpp"
 #include "Kernel/TermIterators.hpp"
 #include "Kernel/Signature.hpp"
-#include "Kernel/Sorts.hpp"
+#include "Kernel/OperatorType.hpp"
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/ApplicativeHelper.hpp"
 #include "Kernel/TermIterators.hpp"
@@ -54,8 +54,8 @@ ClauseIterator CasesSimp::performSimplification(Clause* premise, Literal* lit, T
   static TermList troo(Term::foolTrue());
   static TermList fols(Term::foolFalse());
 
-  Literal* litFols = Literal::createEquality(true, t, fols, Term::boolSort());
-  Literal* litTroo = Literal::createEquality(true, t, troo, Term::boolSort());
+  Literal* litFols = Literal::createEquality(true, t, fols, AtomicSort::boolSort());
+  Literal* litTroo = Literal::createEquality(true, t, troo, AtomicSort::boolSort());
 
 
   unsigned conclusionLength = premise->length() + 1;

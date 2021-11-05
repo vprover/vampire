@@ -54,7 +54,6 @@
 #include "Inferences/BackwardSubsumptionResolution.hpp"
 #include "Inferences/BackwardSubsumptionDemodulation.hpp"
 #include "Inferences/BinaryResolution.hpp"
-#include "Inferences/CTFwSubsAndRes.hpp"
 #include "Inferences/EqualityFactoring.hpp"
 #include "Inferences/EqualityResolution.hpp"
 #include "Inferences/BoolEqToDiseq.hpp"
@@ -1816,7 +1815,7 @@ ImmediateSimplificationEngine* SaturationAlgorithm::createISE(Problem& prb, cons
       res->addFront(new NegativeInjectivityISE());
     }
   }
-  if(prb.hasInterpretedOperations() || prb.hasInterpretedEquality()) {
+  if(prb.hasInterpretedOperations() || prb.hasNumerals()) {
     if (env.options->arithmeticSubtermGeneralizations() == Options::ArithmeticSimplificationMode::FORCE) {
       for (auto gen : allArithmeticSubtermGeneralizations())  {
         res->addFront(&gen->asISE());

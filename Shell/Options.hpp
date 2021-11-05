@@ -2089,6 +2089,9 @@ public:
   // Return time limit in deciseconds, or 0 if there is no time limit
   int timeLimitInDeciseconds() const { return _timeLimitInDeciseconds.actualValue; }
   size_t memoryLimit() const { return _memoryLimit.actualValue; }
+#ifdef __linux__
+  size_t instructionLimit() const { return _instructionLimit.actualValue; }
+#endif
   int inequalitySplitting() const { return _inequalitySplitting.actualValue; }
   int ageRatio() const { return _ageWeightRatio.actualValue; }
   void setAgeRatio(int v){ _ageWeightRatio.actualValue = v; }
@@ -2134,11 +2137,14 @@ public:
   bool ignoreConjectureInPreprocessing() const {return _ignoreConjectureInPreprocessing.actualValue;}
 
   FunctionDefinitionElimination functionDefinitionElimination() const { return _functionDefinitionElimination.actualValue; }
+  bool skolemReuse() const { return _skolemReuse.actualValue; }
+  bool definitionReuse() const { return _definitionReuse.actualValue; }
   bool outputAxiomNames() const { return _outputAxiomNames.actualValue; }
   void setOutputAxiomNames(bool newVal) { _outputAxiomNames.actualValue = newVal; }
   QuestionAnsweringMode questionAnswering() const { return _questionAnswering.actualValue; }
   Output outputMode() const { return _outputMode.actualValue; }
   void setOutputMode(Output newVal) { _outputMode.actualValue = newVal; }
+  bool ignoreMissingInputsInUnsatCore() {  return _ignoreMissingInputsInUnsatCore.actualValue; }
   vstring thanks() const { return _thanks.actualValue; }
   void setQuestionAnswering(QuestionAnsweringMode newVal) { _questionAnswering.actualValue = newVal; }
   bool globalSubsumption() const { return _globalSubsumption.actualValue; }
@@ -2434,6 +2440,8 @@ private:
   BoolOptionValue _forwardSubsumptionDemodulation;
   UnsignedOptionValue _forwardSubsumptionDemodulationMaxMatches;
   ChoiceOptionValue<FunctionDefinitionElimination> _functionDefinitionElimination;
+  BoolOptionValue _skolemReuse;
+  BoolOptionValue _definitionReuse;
   
   ChoiceOptionValue<RuleActivity> _generalSplitting;
   BoolOptionValue _globalSubsumption;
@@ -2501,6 +2509,10 @@ private:
   BoolOptionValue _lrsWeightLimitOnly;
   ChoiceOptionValue<LTBLearning> _ltbLearning;
   StringOptionValue _ltbDirectory;
+
+#ifdef __linux__
+  UnsignedOptionValue _instructionLimit; 
+#endif
 
   UnsignedOptionValue _memoryLimit; // should be size_t, making an assumption
   ChoiceOptionValue<Mode> _mode;
@@ -2612,6 +2624,7 @@ private:
 
   StringOptionValue _testId;
   ChoiceOptionValue<Output> _outputMode;
+  BoolOptionValue _ignoreMissingInputsInUnsatCore;
   StringOptionValue _thanks;
   ChoiceOptionValue<TheoryAxiomLevel> _theoryAxioms;
   BoolOptionValue _theoryFlattening;

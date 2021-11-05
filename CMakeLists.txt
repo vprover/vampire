@@ -247,7 +247,7 @@ set(VAMPIRE_KERNEL_SOURCES
     Kernel/MismatchHandler.cpp
     Kernel/Signature.cpp
     Kernel/SortHelper.cpp
-    Kernel/Sorts.cpp
+    Kernel/OperatorType.cpp
     Kernel/SpassLiteralSelector.cpp
     Kernel/SubformulaIterator.cpp
     Kernel/Substitution.cpp
@@ -298,7 +298,7 @@ set(VAMPIRE_KERNEL_SOURCES
     Kernel/MismatchHandler.hpp
     Kernel/Signature.hpp
     Kernel/SortHelper.hpp
-    Kernel/Sorts.hpp
+    Kernel/OperatorType.hpp
     Kernel/SpassLiteralSelector.hpp
     Kernel/SubformulaIterator.hpp
     Kernel/SubstHelper.hpp
@@ -410,7 +410,6 @@ set(VAMPIRE_INFERENCE_SOURCES
     Inferences/BackwardSubsumptionResolution.cpp
     Inferences/BinaryResolution.cpp
     Inferences/Condensation.cpp
-#    Inferences/CTFwSubsAndRes.cpp
     Inferences/DistinctEqualitySimplifier.cpp
     Inferences/EqualityFactoring.cpp
     Inferences/EqualityResolution.cpp
@@ -450,7 +449,6 @@ set(VAMPIRE_INFERENCE_SOURCES
     Inferences/BackwardSubsumptionResolution.hpp
     Inferences/BinaryResolution.hpp
     Inferences/Condensation.hpp
-#    Inferences/CTFwSubsAndRes.hpp
     Inferences/DistinctEqualitySimplifier.hpp
     Inferences/EqualityFactoring.hpp
     Inferences/EqualityResolution.hpp
@@ -508,7 +506,6 @@ set(VAMPIRE_SAT_SOURCES
     SAT/DIMACS.cpp
     SAT/FallbackSolverWrapper.cpp
     SAT/MinimizingSolver.cpp
-    SAT/Preprocess.cpp
     SAT/SAT2FO.cpp
     SAT/SATClause.cpp
     SAT/SATInference.cpp
@@ -519,7 +516,6 @@ set(VAMPIRE_SAT_SOURCES
     SAT/DIMACS.hpp
     SAT/FallbackSolverWrapper.hpp
     SAT/MinimizingSolver.hpp
-    SAT/Preprocess.hpp
     SAT/SAT2FO.hpp
     SAT/SATClause.hpp
     SAT/SATInference.hpp
@@ -575,18 +571,16 @@ set(VAMPIRE_SHELL_SOURCES
     Shell/CommandLine.cpp
     Shell/CNF.cpp
     Shell/NewCNF.cpp
-    #Shell/CParser.cpp
+    Shell/NameReuse.cpp
     Shell/DistinctProcessor.cpp
     Shell/DistinctGroupExpansion.cpp
     Shell/EqResWithDeletion.cpp
-    #Shell/EqualityAxiomatizer.cpp
     Shell/EqualityProxy.cpp
     Shell/EqualityProxyMono.cpp    
     Shell/Flattening.cpp
     Shell/FunctionDefinition.cpp
     Shell/GeneralSplitting.cpp
     Shell/GoalGuessing.cpp
-    #Shell/GlobalOptions.cpp
     Shell/Grounding.cpp
     Shell/InductionPreprocessor.cpp
     Shell/InductionSchemeGenerator.cpp
@@ -604,12 +598,10 @@ set(VAMPIRE_SHELL_SOURCES
     Shell/NNF.cpp
     Shell/Normalisation.cpp
     Shell/Options.cpp
-    #Shell/PDUtils.cpp
     Shell/PredicateDefinition.cpp
     Shell/Preprocess.cpp
     Shell/Property.cpp
     Shell/Rectify.cpp
-    #Shell/Refutation.cpp
     Shell/Skolem.cpp
     Shell/SimplifyFalseTrue.cpp
     Shell/SineUtils.cpp
@@ -646,17 +638,15 @@ set(VAMPIRE_SHELL_SOURCES
     Shell/CommandLine.hpp
     Shell/CNF.hpp
     Shell/NewCNF.hpp
-    #Shell/CParser.hpp
+    Shell/NameReuse.hpp
     Shell/DistinctProcessor.hpp
     Shell/DistinctGroupExpansion.hpp
     Shell/EqResWithDeletion.hpp
-    #Shell/EqualityAxiomatizer.hpp
     Shell/EqualityProxy.hpp
     Shell/EqualityProxyMono.hpp
     Shell/Flattening.hpp
     Shell/FunctionDefinition.hpp
     Shell/GeneralSplitting.hpp
-    #Shell/GlobalOptions.hpp
     Shell/Grounding.hpp
     Shell/InequalitySplitting.hpp
     Shell/InterpolantMinimizer.hpp
@@ -672,12 +662,10 @@ set(VAMPIRE_SHELL_SOURCES
     Shell/NNF.hpp
     Shell/Normalisation.hpp
     Shell/Options.hpp
-    #Shell/PDUtils.hpp
     Shell/PredicateDefinition.hpp
     Shell/Preprocess.hpp
     Shell/Property.hpp
     Shell/Rectify.hpp
-    #Shell/Refutation.hpp
     Shell/Skolem.hpp
     Shell/SimplifyFalseTrue.hpp
     Shell/SineUtils.hpp
@@ -874,6 +862,10 @@ elseif(CMAKE_BUILD_TYPE STREQUAL Release)
   add_compile_definitions(VDEBUG=0)
 endif()
 
+if (CYGWIN)
+ add_compile_definitions(_BSD_SOURCE)
+endif()
+                    
 # configure warning flags
 if(CMAKE_CXX_COMPILER_ID STREQUAL GNU OR CMAKE_CXX_COMPILER_ID MATCHES Clang$)
   add_compile_options(-Wall)
@@ -910,6 +902,20 @@ else ()
   else()
     link_libraries(${Z3_LIBRARIES})
   endif()
+
+  # Z3 needs threads now
+  if (APPLE)
+    set(CMAKE_THREAD_LIBS_INIT "-lpthread")
+    set(CMAKE_HAVE_THREADS_LIBRARY 1)
+    set(CMAKE_USE_WIN32_THREADS_INIT 0)
+    set(CMAKE_USE_PTHREADS_INIT 1)
+    set(THREADS_PREFER_PTHREAD_FLAG ON)
+  else ()
+    set(CMAKE_THREAD_PREFER_PTHREAD TRUE)
+    set(THREADS_PREFER_PTHREAD_FLAG TRUE)
+    find_package(Threads REQUIRED)
+    link_libraries(Threads::Threads)
+  endif ()
 
   add_library(Z3 SHARED IMPORTED)
   set_property(TARGET Z3 PROPERTY IMPORTED_LOCATION ${Z3_LIBRARY})
@@ -969,7 +975,7 @@ endif() # COMPILE_TESTS
 #################################################################
 # automated generation of Vampire revision information from git #
 #################################################################
-set(VAMPIRE_VERSION_NUMBER 4.5.1)
+set(VAMPIRE_VERSION_NUMBER 4.6.1)
 
 execute_process(
     COMMAND git rev-parse --is-inside-work-tree

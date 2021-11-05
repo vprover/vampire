@@ -283,7 +283,11 @@ Term* Rectify::rectify (Term* t)
   Term* s = new(t->arity()) Term(*t);
   if (rectify(t->args(),s->args())) {
     if(TermList::allShared(s->args())) {
-      return env.sharing->insert(s);
+      if(t->isSort()){
+        return env.sharing->insert(static_cast<AtomicSort*>(s));
+      } else {
+        return env.sharing->insert(s);
+      }
     }
     else {
       return s;

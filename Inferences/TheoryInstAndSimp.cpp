@@ -31,7 +31,7 @@
 #include "Kernel/Substitution.hpp"
 #include "Kernel/TermIterators.hpp"
 #include "Kernel/SubstHelper.hpp"
-#include "Kernel/Sorts.hpp"
+#include "Kernel/OperatorType.hpp"
 #include "Kernel/Theory.hpp"
 
 #include "Saturation/SaturationAlgorithm.hpp"
@@ -763,7 +763,7 @@ Stack<Literal*> computeGuards(Stack<Literal*> const& lits)
     // TODO get rid of this wasteful search for the right constructor, and use some sort of hashing instead
     for (auto ctor : ta->iterCons()) {
       for (unsigned i = 0; i < ctor->arity(); i++) {
-        auto p = ctor->argSort(i) == Term::boolSort();
+        auto p = ctor->argSort(i) == AtomicSort::boolSort();
         auto d = ctor->destructorFunctor(i);
         if(destructor == d && predicate == p) 
           return ctor;

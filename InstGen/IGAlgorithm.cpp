@@ -33,7 +33,6 @@
 #include "Indexing/LiteralSubstitutionTree.hpp"
 #include "Indexing/LiteralIndex.hpp"
 
-#include "SAT/Preprocess.hpp"
 #include "SAT/SATClause.hpp"
 #include "SAT/MinisatInterfacing.hpp"
 
@@ -287,7 +286,7 @@ void IGAlgorithm::processUnprocessed()
     }
 
     SATClause* sc = _gnd->ground(cl);
-    sc = Preprocess::removeDuplicateLiterals(sc); //this is required by the SAT solver
+    sc = SATClause::removeDuplicateLiterals(sc); //this is required by the SAT solver
 
     // sc could have been a tautology, in which case sc == 0 after the removeDuplicateLiterals call
     if (sc) {
@@ -605,7 +604,7 @@ void IGAlgorithm::onResolutionClauseDerived(Clause* cl)
   }
 
   SATClause* sc = _gnd->ground(cl);
-  sc = Preprocess::removeDuplicateLiterals(sc); //this is required by the SAT solver
+  sc = SATClause::removeDuplicateLiterals(sc); //this is required by the SAT solver
 
   // sc could have been a tautology, in which case sc == 0 after the removeDuplicateLiterals call
   if (sc) {
@@ -915,7 +914,7 @@ MainLoopResult IGAlgorithm::onModelFound()
       }
 
       // Prevent timing out whilst the model is being printed
-      Timer::setTimeLimitEnforcement(false);
+      Timer::setLimitEnforcement(false);
 
       vostringstream modelStm;
       bool modelAvailable = ModelPrinter(*this).tryOutput(modelStm);

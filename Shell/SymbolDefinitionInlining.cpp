@@ -184,7 +184,7 @@ TermList SymbolDefinitionInlining::process(TermList ts) {
 bool SymbolDefinitionInlining::mirroredTuple(Term* tuple, TermList &tupleConstant) {
   bool foundTupleConstant = false;
   TermList tupleSort = env.signature->getFunction(tuple->functor())->fnType()->result();
-  ASS(SortHelper::isTupleSort(tupleSort));
+  ASS(tupleSort.isTupleSort());
   for (unsigned i = 0; i < tuple->arity(); i++) {
     if (!tuple->nthArgument(i)->isTerm()) {
       return false;

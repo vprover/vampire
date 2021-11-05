@@ -286,7 +286,9 @@ void Statistics::print(ostream& out)
     unusedPredicateDefinitions+functionDefinitions+selectedBySine+
     sineIterations+splitInequalities);
   COND_OUT("Introduced names",formulaNames);
+  COND_OUT("Reused names",reusedFormulaNames);
   COND_OUT("Introduced skolems",skolemFunctions);
+  COND_OUT("Reused skolems",reusedSkolemFunctions);
   COND_OUT("Pure predicates", purePredicates);
   COND_OUT("Trivial predicates", trivialPredicates);
   COND_OUT("Unused predicate definitions", unusedPredicateDefinitions);
@@ -476,6 +478,14 @@ void Statistics::print(ostream& out)
   out << "Time elapsed: ";
   Timer::printMSString(out,env.timer->elapsedMilliseconds());
   out << endl;
+  
+  unsigned instr = Timer::elapsedMegaInstructions();
+  if (instr) {
+    addCommentSignForSZS(out);
+    out << "Instructions burned: " << instr << " (million)";
+    out << endl;
+  }
+  
   addCommentSignForSZS(out);
   out << "------------------------------\n";
 

@@ -106,7 +106,7 @@ void CommandLine::interpret (Options& options)
     options.checkGlobalOptionConstraints();
   }
   if(options.encodeStrategy()){
-    cout << options.generateEncodedOptions();
+    cout << options.generateEncodedOptions() << "\n";
   }
 } // CommandLine::interpret
 

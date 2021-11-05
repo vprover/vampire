@@ -33,7 +33,7 @@ TermAlgebraConstructor::TermAlgebraConstructor(unsigned functor, Lib::Array<unsi
   ASS_EQ(_type->arity(), destructors.size());
   unsigned i = 0;
   for (auto d : destructors) {
-    auto sym = _type->arg(i++) == Term::boolSort() ? env.signature->getPredicate(d) 
+    auto sym = _type->arg(i++) == AtomicSort::boolSort() ? env.signature->getPredicate(d)
                                                    : env.signature->getFunction(d);
     ASS_REP(sym->termAlgebraDest(), sym->name())
   }
@@ -298,6 +298,6 @@ std::ostream& operator<<(std::ostream& out, TermAlgebraConstructor const& self)
 { return out << "ctor " << env.signature->getFunction(self.functor())->name(); }
 
 std::ostream& operator<<(std::ostream& out, TermAlgebra const& self) 
-{ return out << "term_algebra " << env.sorts->sortName(self.sort()); }
+{ return out << "term_algebra " << self.sort().toString(); }
 
 }

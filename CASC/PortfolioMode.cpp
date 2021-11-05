@@ -134,12 +134,15 @@ bool PortfolioMode::searchForProof()
     //we normalize now so that we don't have to do it in every child Vampire
     ScopedLet<Statistics::ExecutionPhase> phaseLet(env.statistics->phase,Statistics::NORMALIZATION);
     Normalisation().normalise(*_prb);
-
-    TheoryFinder(_prb->units(),property).search();
+    
+    //TheoryFinder cannot cope with polymorphic input
+    if(!env.statistics->polymorphic){
+      TheoryFinder(_prb->units(),property).search();
+    }
   }
 
   // now all the cpu usage will be in children, we'll just be waiting for them
-  Timer::setTimeLimitEnforcement(false);
+  Timer::setLimitEnforcement(false);
 
   return performStrategy(property);
 }
@@ -228,20 +231,33 @@ void PortfolioMode::getExtraSchedules(Property& prop, Schedule& old, Schedule& e
   if(add_extra){
 
    // Always try these
-   extra_opts.push("sp=frequency");
-   extra_opts.push("avsq=on");
-   extra_opts.push("plsq=on");
+   extra_opts.push("sp=frequency");     // frequency sp; this is in casc19 but not smt18
+   extra_opts.push("avsq=on:plsq=on");  // split queues
+   //extra_opts.push("etr=on");         // equational_tautology_removal
+   extra_opts.push("av=on:atotf=0.5");     // turn AVATAR off
+
    if(!env.statistics->higherOrder){
      //these options are not currently HOL compatible
-     extra_opts.push("bsd=on:fsd=on");
+     extra_opts.push("bsd=on:fsd=on"); // subsumption demodulation
+     extra_opts.push("to=lpo");           // lpo
    }
 
    // If contains integers, rationals and reals
    if(prop.props() & (Property::PR_HAS_INTEGERS | Property::PR_HAS_RATS | Property::PR_HAS_REALS)){
-    extra_opts.push("gve=on");
-    extra_opts.push("sos=theory:sstl=5");
-    extra_opts.push("thsq=on");
-    extra_opts.push("thsq=on:thsqd=16");
+
+    extra_opts.push("hsm=on");             // Sets a sensible set of Joe's arithmetic rules (TACAS-21) 
+    extra_opts.push("gve=force:asg=force:canc=force:ev=force:pum=on"); // More drastic set of rules
+    extra_opts.push("sos=theory:sstl=5");  // theory sos with non-default limit 
+    extra_opts.push("thsq=on");            // theory split queues, default
+    extra_opts.push("thsq=on:thsqd=16");   // theory split queues, other ratio
+   }
+   // If contains datatypes
+   if(prop.props() & Property::PR_HAS_DT_CONSTRUCTORS){
+     extra_opts.push("gtg=exists_all:ind=struct");
+     extra_opts.push("ind=struct:sik=one:indgen=on:indoct=on:drc=off");
+     extra_opts.push("ind=struct:sik=one:indgen=on");
+     extra_opts.push("ind=struct:sik=one:indoct=on");
+     extra_opts.push("ind=struct:sik=all:indmd=1");
    }
 
    // If in SMT-COMP mode try guessing the goal
@@ -249,18 +265,8 @@ void PortfolioMode::getExtraSchedules(Property& prop, Schedule& old, Schedule& e
     extra_opts.push("gtg=exists_all");
    }
    else{
-   // Don't try this in SMT-COMP mode
+   // Don't try this in SMT-COMP mode as it requires a goal
     extra_opts.push("slsq=on");
-   }
-
-   // If using Datatypes try induction
-   if(prop.props() & (Property::PR_HAS_DT_CONSTRUCTORS | Property::PR_HAS_CDT_CONSTRUCTORS)){
-    extra_opts.push("ind=struct");
-    extra_opts.push("gtg=exists_all:ind=struct");
-    extra_opts.push("ind=struct:sik=all");
-    extra_opts.push("ind=struct:sik=all:indmd=1");
-    extra_opts.push("ind=struct:indgen=on");
-    extra_opts.push("ind=struct:indgen=on:indoct=on");
    }
 
   }
@@ -397,6 +403,9 @@ bool PortfolioMode::runSchedule(Schedule& schedule)
 {
   CALL("PortfolioMode::runSchedule");
 
+  if (schedule.size() == 0)
+    return false;
+
   UIHelper::portfolioParent = true; // to report on overall-solving-ended in Timer.cpp
 
   PortfolioProcessPriorityPolicy policy;
@@ -527,7 +536,7 @@ void PortfolioMode::runSlice(Options& strategyOpt)
   env.timer->reset();
   env.timer->start();
   TimeCounter::reinitialize();
-  Timer::setTimeLimitEnforcement(true);
+  Timer::setLimitEnforcement(true);
 
   Options opt = strategyOpt;
   //we have already performed the normalization

@@ -776,6 +776,7 @@ private:
   Literal* createEquality(bool polarity,TermList& lhs,TermList& rhs);
   Formula* createPredicateApplication(vstring name,unsigned arity);
   TermList createFunctionApplication(vstring name,unsigned arity);
+  TermList createTypeConApplication(vstring name,unsigned arity);
   void endEquality();
   void midEquality();
   void formulaInfix();

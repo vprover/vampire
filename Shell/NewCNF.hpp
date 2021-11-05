@@ -577,7 +577,7 @@ private:
 
   void ensureHavingVarSorts();
 
-  Term* createSkolemTerm(unsigned var, VarSet* free);
+  Term* createSkolemTerm(unsigned var, VarSet* free, Formula *reuse);
 
   bool _forInduction;
   DHMap<unsigned,unsigned> _skFnToVar;

@@ -31,7 +31,7 @@
 #include "Kernel/Connective.hpp" 
 #include "Kernel/Inference.hpp"
 #include "Kernel/MainLoop.hpp"                      
-#include "Kernel/Sorts.hpp"
+#include "Kernel/OperatorType.hpp"
 
 #include "Saturation/SaturationAlgorithm.hpp"
 #include "Saturation/LabelFinder.hpp"
@@ -72,7 +72,7 @@ void FunctionRelationshipInference::findFunctionRelationships(ClauseIterator cla
   unsigned useTimeLimit = env.options->fmbDetectSortBoundsTimeLimit();
   env.options->setTimeLimitInSeconds(useTimeLimit);
   opt.setSplitting(false);
-  Timer::setTimeLimitEnforcement(false);
+  Timer::setLimitEnforcement(false);
 
   LabelFinder* labelFinder = new LabelFinder();
 
@@ -85,7 +85,7 @@ void FunctionRelationshipInference::findFunctionRelationships(ClauseIterator cla
     // This is expected behaviour
   }
 
-  Timer::setTimeLimitEnforcement(true);
+  Timer::setLimitEnforcement(true);
   env.options->setTimeLimitInDeciseconds(oldTimeLimit);
   env.property = oldProperty;
 
@@ -207,7 +207,6 @@ ClauseList* FunctionRelationshipInference::getCheckingClauses()
 
   unsigned initial_functions = env.signature->functions();
   for(unsigned f=0; f < initial_functions; f++){
-    if(env.signature->isTypeConOrSup(f)){ continue; }
 
     OperatorType* ftype = env.signature->getFunction(f)->fnType();
     TermList ret_srt = ftype->result();
@@ -349,8 +348,8 @@ Formula* FunctionRelationshipInference::getName(TermList fromSrt, TermList toSrt
     unsigned label= env.signature->addFreshPredicate(0,"label");
     env.signature->getPredicate(label)->markLabel();
 
-    unsigned fsT = SortHelper::sortNum(fromSrt);
-    unsigned tsT = SortHelper::sortNum(toSrt);
+    unsigned fsT = fromSrt.term()->functor();
+    unsigned tsT = toSrt.term()->functor();
 
     if(strict)
       _labelMap_strict.insert(label,make_pair(fsT, tsT));

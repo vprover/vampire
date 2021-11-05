@@ -96,6 +96,8 @@ public:
 
   bool hasUniqueVariables() const;
 
+  static SATClause* removeDuplicateLiterals(SATClause *cl);
+
   /**
    * A numbering of literals for conversion of ground Clause objects into
    * SATClause objects.

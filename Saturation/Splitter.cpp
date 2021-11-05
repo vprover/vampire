@@ -34,10 +34,8 @@
 #include "Kernel/MainLoop.hpp"
 
 #include "Shell/Options.hpp"
-#include "Shell/Refutation.hpp"
 #include "Shell/Statistics.hpp"
 
-#include "SAT/Preprocess.hpp"
 #include "SAT/SATInference.hpp"
 #include "SAT/MinimizingSolver.hpp"
 #include "SAT/BufferedSolver.hpp"
@@ -159,7 +157,7 @@ void SplittingBranchSelector::considerPolarityAdvice(SATLiteral lit)
 static Color colorFromPossiblyDeepFOConversion(SATClause* scl,Unit*& u)
 {
   /* all the clauses added to AVATAR are FO_CONVERSIONs except when there is a duplicate literal
-   and Preprocess::removeDuplicateLiterals creates an extra inference with a single premise ``in between''.*/
+   and SATClause::removeDuplicateLiterals creates an extra inference with a single premise ``in between''.*/
   if (scl->inference()->getType() != SATInference::FO_CONVERSION) {
     ASS_EQ(scl->inference()->getType(),SATInference::PROP_INF);
     PropInference* inf = static_cast<PropInference*>(scl->inference());
@@ -564,7 +562,7 @@ void SplittingBranchSelector::addSatClauseToSolver(SATClause* cl, bool branchRef
 {
   CALL("SplittingBranchSelector::addSatClauseToSolver");
 
-  cl = Preprocess::removeDuplicateLiterals(cl);
+  cl = SATClause::removeDuplicateLiterals(cl);
   if(!cl) {
     RSTAT_CTR_INC("splitter_tautology");
     return;
