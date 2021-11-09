@@ -668,7 +668,6 @@ vstring Term::headToString() const
     }
     bool print = (isLiteral() || isSort() ||
                  (env.signature->getFunction(_functor)->combinator() == Signature::NOT_COMB)) && arity();
-    return ((isLiteral() ? static_cast<const Literal *>(this)->predicateName() : functionName()) + (print ? "(" : ""));
     vstring name = "";
     if(isLiteral()) {
       name = static_cast<const Literal *>(this)->predicateName();
