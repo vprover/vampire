@@ -83,13 +83,6 @@
 #include "FMB/ModelCheck.hpp"
 #include <thread>
 
-#if GNUMP
-#include "Solving/Solver.hpp"
-
-using namespace Shell;
-using namespace Solving;
-#endif
-
 #if CHECK_LEAKS
 #include "Lib/MemoryLeak.hpp"
 #endif
@@ -244,9 +237,6 @@ void outputResult(ostream& out) {
     break;
   case Statistics::SATISFIABLE:
     cout<<"sat"<<endl;
-#if GNUMP
-    UIHelper::outputAssignment(*env.statistics->satisfyingAssigment, cout);
-#endif //GNUMP
     break;
   case Statistics::REFUTATION:
     cout<<"unsat"<<endl;
@@ -258,69 +248,6 @@ void outputResult(ostream& out) {
   if(env.options->mode()!=Options::Mode::SPIDER){
     env.statistics->print(env.out());
   }
-}
-
-
-
-void boundPropagationMode(){
-#if GNUMP
-  CALL("boundPropagationMode::doSolving()");
-
-  //adjust vampire options in order to serve the purpose of bound propagation
-  if ( env.options->proof() == env.options->PROOF_ON ) {
-    env.options->setProof(env.options->PROOF_OFF);
-  }
-
-  //this ensures the fact that int's read in smtlib file are treated as reals
-  env.options->setSmtlibConsiderIntsReal(true);
-
-  if (env.options->bpStartWithPrecise()) {
-	  switchToPreciseNumbers();
-  }
-  if (env.options->bpStartWithRational()){
-	  switchToRationalNumbers();
-  }
-
-  ConstraintRCList* constraints(UIHelper::getPreprocessedConstraints(*env.options));
-
-  start:
-  try
-  {
-    env.statistics->phase = Statistics::SOLVING;
-    TimeCounter tc(TC_SOLVING);
-    Solver solver(env.signature->vars(), *env.options, *env.statistics);
-    solver.load(constraints);
-    solver.solve();
-  }
-  catch (Solver::NumberImprecisionException) {
-    if (usingPreciseNumbers()) {
-      INVALID_OPERATION("Imprecision error when using precise numbers.");
-    }
-    else {
-      env.statistics->switchToPreciseTimeInMs = env.timer->elapsedMilliseconds();
-      switchToPreciseNumbers();
-      //switchToRationalNumbers();
-      ASS(usingPreciseNumbers());
-      goto start;
-    }
-  }
-  catch (TimeLimitExceededException){
-      env.statistics->phase = Statistics::FINALIZATION;
-      env.statistics->terminationReason = Statistics::TIME_LIMIT;
-    }
-  env.statistics->phase = Statistics::FINALIZATION;
-
-
-  env.beginOutput();
-  outputResult(env.out());
-  env.endOutput();
-
-  if (env.statistics->terminationReason==Statistics::REFUTATION
-      || env.statistics->terminationReason==Statistics::SATISFIABLE) {
-    g_returnValue=0;
-  }
-
-#endif
 }
 
 // prints Unit u at an index to latexOut using the LaTeX object
@@ -801,15 +728,6 @@ int main(int argc, char* argv[])
     case Options::Mode::GROUNDING:
       groundingMode();
       break;
-/*
-    case Options::Mode::BOUND_PROP:
-#if GNUMP
-     boundPropagationMode();
-#else
-     NOT_IMPLEMENTED;
-#endif
-      break;
-*/
     case Options::Mode::SPIDER:
       spiderMode();
       break;
