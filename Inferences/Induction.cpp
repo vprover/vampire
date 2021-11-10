@@ -345,6 +345,14 @@ bool getInductionStepVarAndSort(Literal* l1, Literal* l2, TermList& sort, TermLi
 }
 
 bool checkInductionStep(Clause* premise, int& i, TermList& sort, TermList& v) {
+  //cout << "checking IS clause " << premise->toString() << endl;
+  //if ((premise->length() == 1) || ((premise->length() != 2) && (sort == AtomicSort::intSort()))) return false;
+  //for (int ii = 0; ii < premise->length(); ++ii) {
+  //  if (getInductionStepVarAndSort(ii, premise, sort, v)) {
+  //    i = ii;
+  //    return true;
+  //  }
+  //}
   if (premise->length() != 2) return false;
   Literal* l1 = (*premise)[0];
   Literal* l2 = (*premise)[1];
@@ -365,11 +373,14 @@ bool isBaseCaseTerm(Term* t) {
   auto fn = t->functor();
   TermList sort = env.signature->getFunction(fn)->fnType()->result();
   if (sort == AtomicSort::intSort()) return true;
-  if (!env.signature->isTermAlgebraSort(sort)) return false;
+  //if (!env.signature->isTermAlgebraSort(sort)) return false;
   if (!env.signature->getFunction(fn)->termAlgebraCons() || env.signature->getTermAlgebraConstructor(fn)->recursive()) return false;
+  TermAlgebra* ta = env.signature->getTermAlgebraOfSort(sort);
+  if (ta->nConstructors() != 2) return false;
   for (unsigned i = 0; i < t->arity(); ++i) {
     if (!t->nthArgument(i)->isVar()) return false;
   }
+  //cout << t->toString() << " is bc term" << endl;
   return true;
 }
 
