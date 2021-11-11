@@ -80,7 +80,7 @@ public:
   DECL_ELEMENT_TYPE(OccurrenceMap);
 
   GeneralizationIterator(const OccurrenceMap& occ, bool heuristic, bool hasFixOccurrences)
-    : _occ(occ), _hasNext(true), _heuristic(heuristic), _hasFixOccurrences(hasFixOccurrences)
+    : _occ(occ), _hasNext(true), _heuristic(heuristic && hasFixOccurrences), _hasFixOccurrences(hasFixOccurrences)
   {
     if (!_hasFixOccurrences) {
       // eliminate all 0s
