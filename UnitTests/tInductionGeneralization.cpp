@@ -99,7 +99,7 @@ TEST_FUN(OccurrenceMap1) {
   check_next(0b1111, 0b1111, git1);
   ASS(!git1.hasNext());
 
-  GeneralizationIterator git2(occMap, true, false);
+  GeneralizationIterator git2(occMap, true, true);
   check_next(0b0011, 0b1010, git2);
   check_next(0b1111, 0b1010, git2);
   check_next(0b0011, 0b1111, git2);
