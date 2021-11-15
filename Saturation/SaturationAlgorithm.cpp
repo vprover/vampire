@@ -49,7 +49,6 @@
 #include "Inferences/IRC/Normalization.hpp"
 #include "Inferences/IRC/TermFactoring.hpp"
 #include "Inferences/IRC/LiteralFactoring.hpp"
-#include "Inferences/IRC/Totality.hpp"
 #include "Inferences/IRC/Superposition.hpp"
 #include "Inferences/IRC/VariableElimination.hpp"
 #include "Inferences/IRC/FwdDemodulationModLA.hpp"
@@ -1640,7 +1639,6 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
     sgi->push(new IRC::VariableElimination(shared, env.options->ircVariableEliminationSimplifying())); 
     sgi->push(new IRC::LiteralFactoring(shared)); 
     sgi->push(new IRC::Superposition(shared)); 
-    sgi->push(new IRC::Totality(shared)); 
     sgi->push(new IRC::TermFactoring(shared)); 
     sgi->push(new IRC::InequalityResolution(shared)); 
     ise->addFront(new IRC::Normalization(shared)); 

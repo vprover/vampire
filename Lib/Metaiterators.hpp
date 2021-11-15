@@ -687,6 +687,13 @@ CatIterator<It1,It2> getConcatenatedIterator(It1 it1, It2 it2)
   return CatIterator<It1,It2>(it1, it2);
 }
 
+template<class I1, class I2, class I3, class... Is>
+inline
+auto getConcatenatedIterator(I1 i1, I2 i2, I3 i3, Is... is)
+{
+  return getConcatenatedIterator(getConcatenatedIterator(i1, i2), i3, is...);
+}
+
 
 
 /**
@@ -1816,6 +1823,9 @@ public:
     CALL("IterTraits::collect/2")
     return Container<Elem>::fromIterator(*this); 
   }
+
+  IterTraits clone() 
+  { return *this; }
   
   /** This class is to be used in the context of a for (auto x : ...) loop only. */
   class StlIter 

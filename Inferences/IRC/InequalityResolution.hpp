@@ -21,9 +21,8 @@
 #include "Inferences/InferenceEngine.hpp"
 #include "Kernel/Ordering.hpp"
 #include "Shell/UnificationWithAbstractionConfig.hpp"
-#include "Inferences/PolynomialEvaluation.hpp"
 #include "Indexing/InequalityResolutionIndex.hpp"
-#include "Kernel/IRC.hpp"
+#include "Shell/Options.hpp"
 
 namespace Inferences {
 namespace IRC {
@@ -39,9 +38,10 @@ public:
   CLASS_NAME(InequalityResolution);
   USE_ALLOCATOR(InequalityResolution);
 
+  InequalityResolution(InequalityResolution&&) = default;
   InequalityResolution(shared_ptr<IrcState> shared) 
-    : _index(0)
-    , _shared(std::move(shared))
+    : _shared(std::move(shared))
+    , _index(nullptr)
   {  }
 
   void attach(SaturationAlgorithm* salg) final override;
@@ -50,62 +50,26 @@ public:
 
   ClauseIterator generateClauses(Clause* premise) final override;
 
-  /* 
-   * maps (num1, num2) -> (k1, k2) 
-   * s.t.  num1 * k1 = - num2 * k2
-   */
-  // TODO do this in normalisation
-  template<class Numeral>
-  static pair<Numeral,Numeral> computeFactors(Numeral num1, Numeral num2)
-  { 
-    ASS(num1 != Numeral(0))
-    ASS(num2 != Numeral(0))
-    // num1 * k1 = - num2 * k2
-    // let k1 = 1
-    // ==> num1 = - num2 * k2 ==> k2 = - num1 / num2
-    // return std::make_pair(Numeral(1), -(num1 / num2));
-    return std::make_pair(num2.abs(), num1.abs());
-  }
-
-  /* 
-   * maps (num1, num2) -> (k1, k2) 
-   * s.t.  num1 * k1 = - num2 * k2
-   */
-  static pair<IntegerConstantType,IntegerConstantType> computeFactors(IntegerConstantType num1, IntegerConstantType num2)
-  { 
-    ASS(num1 != IntegerConstantType(0))
-    ASS(num2 != IntegerConstantType(0))
-    // num1 * k1 = - num2 * k2
-    // let k1 =   num2 / gcd(num1, num2)
-    //     k2 = - num1 / gcd(num1, num2)
-    // num1 * num2 / gcd(num1, num2) = - num2 * (- num1 / gcd(num1, num2))
-    auto gcd = IntegerConstantType::gcd(num1, num2);
-    ASS(gcd.divides(num1));
-    ASS(gcd.divides(num2));
-    return num1.isNegative() ? std::make_pair( num2.quotientE(gcd), -num1.quotientE(gcd))
-                             : std::make_pair(-num2.quotientE(gcd),  num1.quotientE(gcd));
-  }
-
-
-  
-
 #if VDEBUG
   virtual void setTestIndices(Stack<Indexing::Index*> const&) final override;
 #endif
 
-  // template<class NumTraits> static Stack<Monom<NumTraits>> maxTerms(InequalityLiteral<NumTraits> const& lit, Ordering* ord);
-  // template<class NumTraits> static Stack<Monom<NumTraits>> maxTerms(IrcLiteral<NumTraits> const& lit, Ordering* ord);
 private:
 
-  template<class NumTraits> ClauseIterator generateClauses(Clause* clause, Literal* lit, InequalityLiteral<NumTraits>) const;
+  template<class NumTraits, class Subst, class CnstIter> Option<Clause*> applyRule(
+      Clause* hyp1, Literal* lit1, IrcLiteral<NumTraits> l1, Monom<NumTraits> j_s1,
+      Clause* hyp2, Literal* lit2, IrcLiteral<NumTraits> l2, Monom<NumTraits> k_s2,
+      Subst sigma, CnstIter cnst, unsigned nCnst
+      ) const;
 
-  InequalityNormalizer const& normalizer() const { return _shared->normalizer; }
-  Ordering* ord() const { return _shared->ordering; }
+  template<class NumTraits> ClauseIterator generateClauses(Clause* clause, Literal* lit, IrcLiteral<NumTraits> l1, Monom<NumTraits> j_s1) const;
+
+  shared_ptr<IrcState> _shared;
   InequalityResolutionIndex* _index;
-  shared_ptr<IrcState>  _shared;
 };
 
-} // namespace IRC
-} // namespace Inferences
+} // namespace IRC 
+} // namespace Inferences 
+
 
 #endif /*__IRC_InequalityResolution__*/

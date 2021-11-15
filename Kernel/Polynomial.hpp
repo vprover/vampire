@@ -4,8 +4,7 @@
  * copyright laws.
  *
  * This source code is distributed under the licence found here
- * https://vprover.github.io/license.html
- * and in the source directory
+ * https://vprover.github.io/license.html and in the source directory
  */
 
 #ifndef __POLYNOMIAL__H__
@@ -146,6 +145,8 @@ struct Monom
 
   Monom(Numeral numeral, Perfect<MonomFactors<Number>> factors);
   Monom(Numeral numeral) : Monom(numeral, perfect(MonomFactors<Number>::one())) {}
+  Monom(int num) : Monom(Numeral(num)) {}
+  Monom(int n1, int n2) : Monom(Numeral(n1, n2)) {}
   Monom(MonomFactors<Number> factors) : Monom(Numeral(1), perfect(std::move(factors))) {}
 
   static Monom zero();
@@ -452,7 +453,7 @@ public:
 
   template<class N> friend std::ostream& operator<<(std::ostream& out, const MonomFactors<N>& self);
   template<class N> friend bool operator==(const MonomFactors<N>& l, const MonomFactors<N>& r);
-  template<class N> friend bool operator!=(const MonomFactors<N>& l, const MonomFactors<N>& r) { return !(l == r); }
+  template<class N> friend bool operator!=(const MonomFactors<N>& l, const MonomFactors<N>& r);
 
   /** helper function for PolyNf::denormalize() */
   TermList denormalize(TermList* results) const;
@@ -460,6 +461,8 @@ public:
   TermList denormalize() const;
   Stack<MonomFactor>& raw();
 };
+
+template<class N> bool operator!=(const MonomFactors<N>& l, const MonomFactors<N>& r) { return !(l == r); }
 
 template<class Number>
 class Polynom 
@@ -551,10 +554,11 @@ public:
   template<class F> Polynom mapVars(F f) const;
 
   template<class N> friend bool operator==(const Polynom<N>& l, const Polynom<N>& r);
-  template<class N> friend bool operator!=(const Polynom<N>& l, const Polynom<N>& r) { return !(l == r); }
+  template<class N> friend bool operator!=(const Polynom<N>& l, const Polynom<N>& r);
   template<class N> friend std::ostream& operator<<(std::ostream& out, const Polynom<N>& self);
 };  
 
+template<class N> bool operator!=(const Polynom<N>& l, const Polynom<N>& r) { return !(l == r); }
 
 /** an iterator over a literal's arguments. The arguments are mapped to their corresponding PolNf s */
 class IterArgsPnf

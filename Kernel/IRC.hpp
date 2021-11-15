@@ -258,7 +258,11 @@ namespace Kernel {
     IrcLiteral<NumTraits> ircLit;
     unsigned termIdx;
     Monom<NumTraits> self;
+
+    friend std::ostream& operator<<(std::ostream& out, MaxAtomicTerm const& self)
+    { return out << self.self << " @ " << *self.literal; }
   };
+
 
   struct IrcState 
   {
