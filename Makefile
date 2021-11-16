@@ -397,12 +397,6 @@ VS_OBJ = Shell/AnswerExtractor.o\
          Shell/UnificationWithAbstractionConfig.o\
          version.o
 
-#         Shell/PARSER_TKV.o\
-#         Shell/SMTLEX.o\
-#         Shell/SMTPAR.o\
-#         Shell/Lexer.o\
-#         Shell/SMTPrinter.o\
-
 PARSE_OBJ = Parse/SMTLIB2.o\
             Parse/TPTP.o\
 
@@ -470,7 +464,6 @@ LIB_DEP = Indexing/TermSharing.o\
     Kernel/Rebalancing.o\
     Kernel/Rebalancing/Inverters.o\
     Kernel/NumTraits.o
-#     ClausifierDependencyFix.o\
 
 OTHER_CL_DEP = Indexing/LiteralSubstitutionTree.o\
 	       Indexing/ResultSubstitution.o\
