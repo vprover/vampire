@@ -69,9 +69,8 @@ void timeLimitReached()
   reportSpiderStatus('t');
   if (outputAllowed()) {
     addCommentSignForSZS(env.out());
-    env.out() << "Time limit reached!\n";
     if(!env.options->symbolElimination())
-      env.out() << REACHED[whichLimit];
+      env.out() << "Time limit reached!\n";
 
     if (UIHelper::portfolioParent) { // the boss
       addCommentSignForSZS(env.out());

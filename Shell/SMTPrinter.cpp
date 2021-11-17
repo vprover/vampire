@@ -80,11 +80,9 @@ void SMTPrinter::printTypeDecl(Signature::Symbol *symb, ostream &out)
   }
 
   // TODO: if/when Rapid features get merged, enable this
-  /*
   if(symb->isLemmaPredicate)
     out << "(declare-lemma-predicate ";
   else
-  */
   if(arity == 0)
     out << "(declare-const ";
   else
@@ -224,7 +222,7 @@ void SMTPrinter::print(Term* term, ostream& out, TermFlavour flavour)
     sym = env.signature->getPredicate(functor);
     break;
   case TermFlavour::SORT:
-    sym = env.signature->getTypeCon(functor);
+    sym = env.signature->getFunction(functor);
     break;
   }
 
