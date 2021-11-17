@@ -1726,6 +1726,17 @@ public:
     return find(p).isSome();
   }
 
+
+  template<class P>
+  bool all(P p) 
+  {
+    CALL("IterTraits::all")
+    while (hasNext())
+      if (!p(next()))
+        return false;
+    return true;
+  }
+
   Elem sum() 
   {
     Elem res(0);

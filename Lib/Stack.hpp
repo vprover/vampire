@@ -484,6 +484,19 @@ public:
   }
 
   /**
+   * removes the element at the given index, replacing it by the last element in the stack and shrinking the stack.
+   * constant time operation.
+   * returns the removed element.
+   */
+  C swapRemove(unsigned idx)
+  {
+    ASS(idx < size())
+    ASS(size() > 0)
+    std::swap((*this)[idx], (*this)[size() - 1]);
+    return pop();
+  }
+
+  /**
    * Return the element past the end of the stack, can be used together
    * with begin() for iterating over the elements of the stack.
    * @since 11/03/2006 Bellevue
