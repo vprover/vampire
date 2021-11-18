@@ -178,7 +178,8 @@ bool RapidHelper::isRightLimitLiteral(Literal* l) {
   return true;
 }
  
-bool RapidHelper::isArrayAccessLit(Literal* lit, TermList& itVar, unsigned& side) {
+bool RapidHelper::isArrayAccessLit(Literal* lit, TermList& itVar, 
+  unsigned& side, TermStack& arrayAccessesRHS) {
   CALL("RapidHelper::isArrayAccessLit");
 
   auto isArrayAtNextIt = [&itVar](TermList t) {
@@ -200,20 +201,40 @@ bool RapidHelper::isArrayAccessLit(Literal* lit, TermList& itVar, unsigned& side
     return false;
   }
 
-  TermList lhs, rhs;
+  TermList arr, index, indexAtNextIt, rhs;
   if(isArrayAtNextIt(*lit->nthArgument(0))){
     side = 0;
-    lhs = *lit->nthArgument(0);
+    arr = *lit->nthArgument(0);
     rhs = *lit->nthArgument(1);
   } else if (isArrayAtNextIt(*lit->nthArgument(1))) {
     side = 1;
-    lhs = *lit->nthArgument(1);
+    arr = *lit->nthArgument(1);
     rhs = *lit->nthArgument(0);    
   } else {
     return false;
   }
 
-  return rhs.containsSubterm(arrAtPrevIt(lhs));
+  index = *arr.term()->nthArgument(1);
+  indexAtNextIt = intVarAtNextIt(index);
+
+  ASS(rhs.isTerm());
+  NonVariableIterator sit(rhs.term(), true);
+  while(sit.hasNext()) {
+    TermList terml = sit.next();
+    if(terml.isTerm()){
+      Term* term = terml.term();
+      if(env.signature->getFunction(term->functor())->programVar() &&
+        term->functor() != arr.term()->functor()
+         && terml != index && terml != indexAtNextIt){
+        return false;
+      }
+      if(term->functor() == arr.term()->functor()){
+        arrayAccessesRHS.push(terml);
+      }
+    }
+  }
+
+  return true; //rhs.containsSubterm(arrAtPrevIt(lhs));
 }
 
 bool RapidHelper::isSubLiteral(Literal* l, TermList& itVar) {
@@ -263,7 +284,7 @@ bool RapidHelper::isStrongDensityClause(Clause* c, unsigned& litPos,
 }
 
 bool RapidHelper::isArrayAccessClause(Clause* c, unsigned& litPos, 
-  unsigned& termPos) {
+  unsigned& termPos, TermStack& arrayAccessesRHS) {
   CALL("RapidHelper::isStrongDensityClause");
 
   if(c->length() != 2){
@@ -271,15 +292,16 @@ bool RapidHelper::isArrayAccessClause(Clause* c, unsigned& litPos,
   }
 
   TermList var1, var2;
-  if(isArrayAccessLit((*c)[0], var1, termPos) && 
+  if(isArrayAccessLit((*c)[0], var1, termPos, arrayAccessesRHS) && 
      isSubLiteral((*c)[1], var2) &&
      var1 == var2){
      litPos = 0;
      return true;
   } 
+  arrayAccessesRHS.reset();
   
   if(isSubLiteral((*c)[0], var1) && 
-     isArrayAccessLit((*c)[1], var2, termPos) &&
+     isArrayAccessLit((*c)[1], var2, termPos, arrayAccessesRHS) &&
      var1 == var2){
      litPos = 1;
      return true;

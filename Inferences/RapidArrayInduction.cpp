@@ -80,6 +80,8 @@ void RapidArrayInduction::createConclusions(ClauseStack& conclusions, bool incre
 
   static unsigned less = env.signature->getInterpretingSymbol(Theory::INT_LESS);
 
+  cout << concRHS.toString() << endl;
+
   subLit = Literal::Literal::complementaryLiteral(subLit);
  
   TermList nlTerm = RapidHelper::getFinalCountFromSubLit(subLit);
@@ -95,7 +97,6 @@ void RapidArrayInduction::createConclusions(ClauseStack& conclusions, bool incre
   Formula* indHypothesis1;
   Formula* indHypothesis2;
   {
-    
     Literal* l1 = Literal::create2(less, false, (increasing ? freshVar : bound1), 
                                               (increasing ? bound1 : freshVar));
     Literal* l2 = Literal::create2(less, true, (increasing ? freshVar : bound1), 
@@ -230,8 +231,8 @@ void RapidArrayInduction::createConclusions(ClauseStack& conclusions, bool incre
   FormulaUnit* fu2 = new FormulaUnit(indHypothesis2,inf2);
   fu2 = Rectify::rectify(fu2);
 
-  //cout << fu1->toString() << endl;
-  //cout << fu2->toString() << endl;
+  cout << fu1->toString() << endl;
+  cout << fu2->toString() << endl;
 
 
   cnf.clausify(NNF::ennf(fu1), conclusions); 
@@ -249,12 +250,14 @@ ClauseIterator RapidArrayInduction::generateClauses(Clause* premise)
   CALL("RapidArrayInduction::generateClauses");
   
   unsigned litPos, termPos;
-  //TODO perhaps we ought to trigger on finding a dnsity clause as well?
+  //TODO perhaps we ought to trigger on finding a density clause as well?
   //in most situations, this is likely to occur afterwards.
-  if(RapidHelper::isArrayAccessClause(premise, litPos, termPos)){
+
+  TermStack arrayAccessesRHS;
+  if(RapidHelper::isArrayAccessClause(premise, litPos, termPos, arrayAccessesRHS)){
     Literal* lit = (*premise)[litPos];
     TermList arr = *lit->nthArgument(termPos);
-    TermList arrTransformed = *lit->nthArgument(!termPos);
+    TermList assignedValue = *lit->nthArgument(!termPos);
     
     ASS(arr.isTerm() && arr.term()->arity() == 2);
     TermList index = *arr.term()->nthArgument(1);
@@ -270,13 +273,37 @@ ClauseIterator RapidArrayInduction::generateClauses(Clause* premise)
 
       unsigned maxVar = premise->maxVar();
       TermList freshVar = TermList(maxVar + 1, false);
+      TermList unit(theory->representConstant(IntegerConstantType(increasing ? 1 : -1)));
+      TermList freshVarNextIter = 
+        TermList(Term::create2(env.signature->getInterpretingSymbol(Theory::INT_PLUS),freshVar,unit));
 
-      TermList arrAtPrevIt = RapidHelper::arrAtPrevIt(arr);
-      TermList concRHS = RapidHelper::arrAtFirstIt(arr);
-      concRHS = RapidHelper::changeArrIndex(concRHS, freshVar);
-      concRHS = TermList(EqHelper::replace(arrTransformed.term(), arrAtPrevIt, concRHS));
+      TermList concRHS = assignedValue;
+
+      while(!arrayAccessesRHS.isEmpty()){
+        TermList array = arrayAccessesRHS.pop();
+        TermList arrayAtFirstIt = RapidHelper::arrAtFirstIt(array);
+        if(concRHS == array){
+          concRHS = arrayAtFirstIt;
+        } else {
+          concRHS = TermList(EqHelper::replace(concRHS.term(), array, arrayAtFirstIt));
+        }      
+      }
+
+      if(concRHS == index){
+        concRHS = freshVar;
+      } else{
+        concRHS = TermList(EqHelper::replace(concRHS.term(), index, freshVar));
+      }
+
+      if(concRHS == indexAtNextIter){
+        concRHS = freshVarNextIter;
+      } else {
+        concRHS = TermList(EqHelper::replace(concRHS.term(), indexAtNextIter, freshVarNextIter));
+      }
 
       arr = RapidHelper::changeArrIndex(arr, freshVar);
+
+      cout << "premise " + premise->toString() << endl;
 
       createConclusions(results, increasing, (*premise)[!litPos], freshVar, arr, 
         concRHS, index, indexAtNextIter);

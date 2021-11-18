@@ -181,6 +181,7 @@ protected:
   void handleClause(Clause* c, bool adding);
 };
 
+/* NOTE: at the moment, this index is not used at all */
 class RapidArrayIndex
 : public TermIndex
 {

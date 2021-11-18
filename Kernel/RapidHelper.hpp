@@ -34,11 +34,14 @@ public:
   static bool isLeftLimitLiteral(Literal* l);  
   
   /** returns true if literal is of the form
-   *  a(l#(it1 ... s(itn)), j(l#(it1 ... itn))) = F[ a(l#(it1 ... itn), j(l#(it1 ... itn)))]
-   *  for some context F 
+   *  a(l#(it1 ... s(itn)), j(l#(it1 ... itn))) = term
+   *  where term has certain conditions on its form
    */
-  static bool isArrayAccessLit(Literal* l, TermList& itVar, unsigned& termPos);
-  static bool isArrayAccessClause(Clause* c, unsigned& litPos, unsigned& termPos); 
+  static bool isArrayAccessLit(Literal* l, TermList& itVar, 
+    unsigned& termPos, TermStack& arrayAccessesRHS);
+
+  static bool isArrayAccessClause(Clause* c, unsigned& 
+    litPos, unsigned& termPos, TermStack& arrayAccessesRHS); 
 
   /** returns true if literal is of the form
    *  x(l#(it1 ... s(itn)))  =  $sum(x(l#(it1 ... itn)), 1)

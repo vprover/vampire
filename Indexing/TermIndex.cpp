@@ -276,7 +276,8 @@ void RapidArrayIndex::handleClause(Clause* c, bool adding)
   CALL("RapidArrayIndex::handleClause");
 
   unsigned litPos, termPos;
-  if(RapidHelper::isArrayAccessClause(c, litPos, termPos)){
+  TermStack arrayAccessesRHS;
+  if(RapidHelper::isArrayAccessClause(c, litPos, termPos, arrayAccessesRHS)){
     ASS(c->length() == 2);
     ASS(litPos < 3 && termPos < 3);
     
