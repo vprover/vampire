@@ -255,11 +255,6 @@ set(VAMPIRE_KERNEL_SOURCES
     Kernel/TermIterators.cpp
     Kernel/TermTransformer.cpp
     Kernel/Theory.cpp
-#    Kernel/Assignment.cpp
-#    Kernel/Constraint.cpp
-#    Kernel/Number.cpp
-#    Kernel/Rational.cpp
-#    Kernel/V2CIndex.cpp
     Kernel/Signature.cpp
     Kernel/Unit.cpp
     Kernel/BestLiteralSelector.hpp
@@ -307,11 +302,6 @@ set(VAMPIRE_KERNEL_SOURCES
     Kernel/TermIterators.hpp
     Kernel/TermTransformer.hpp
     Kernel/Theory.hpp
-#    Kernel/Assignment.hpp
-#    Kernel/Constraint.hpp
-#    Kernel/Number.hpp
-#    Kernel/Rational.hpp
-#    Kernel/V2CIndex.hpp
     Kernel/Signature.hpp
     Kernel/Unit.hpp
     Kernel/LPO.cpp
@@ -503,7 +493,6 @@ set(VAMPIRE_SAT_SOURCES
     SAT/DIMACS.cpp
     SAT/FallbackSolverWrapper.cpp
     SAT/MinimizingSolver.cpp
-    SAT/Preprocess.cpp
     SAT/SAT2FO.cpp
     SAT/SATClause.cpp
     SAT/SATInference.cpp
@@ -514,7 +503,6 @@ set(VAMPIRE_SAT_SOURCES
     SAT/DIMACS.hpp
     SAT/FallbackSolverWrapper.hpp
     SAT/MinimizingSolver.hpp
-    SAT/Preprocess.hpp
     SAT/SAT2FO.hpp
     SAT/SATClause.hpp
     SAT/SATInference.hpp
@@ -570,6 +558,7 @@ set(VAMPIRE_SHELL_SOURCES
     Shell/CommandLine.cpp
     Shell/CNF.cpp
     Shell/NewCNF.cpp
+    Shell/NameReuse.cpp
     Shell/DistinctProcessor.cpp
     Shell/DistinctGroupExpansion.cpp
     Shell/EqResWithDeletion.cpp
@@ -579,7 +568,6 @@ set(VAMPIRE_SHELL_SOURCES
     Shell/FunctionDefinition.cpp
     Shell/GeneralSplitting.cpp
     Shell/GoalGuessing.cpp
-    #Shell/GlobalOptions.cpp
     Shell/Grounding.cpp
     Shell/InequalitySplitting.cpp
     Shell/InterpolantMinimizer.cpp
@@ -595,12 +583,10 @@ set(VAMPIRE_SHELL_SOURCES
     Shell/NNF.cpp
     Shell/Normalisation.cpp
     Shell/Options.cpp
-    #Shell/PDUtils.cpp
     Shell/PredicateDefinition.cpp
     Shell/Preprocess.cpp
     Shell/Property.cpp
     Shell/Rectify.cpp
-    #Shell/Refutation.cpp
     Shell/Skolem.cpp
     Shell/SimplifyFalseTrue.cpp
     Shell/SineUtils.cpp
@@ -621,22 +607,18 @@ set(VAMPIRE_SHELL_SOURCES
     #Shell/TrivialPredicateRemover.cpp
     Shell/UIHelper.cpp
     Shell/VarManager.cpp
-    #Shell/ConstantRemover.cpp
-    #Shell/ConstraintReaderBack.cpp
     #Shell/EqualityVariableRemover.cpp
-    #Shell/EquivalentVariableRemover.cpp
-    #Shell/HalfBoundingRemover.cpp
     Shell/Lexer.cpp
     #Shell/PARSER_TKV.cpp
     Shell/Preprocess.cpp
     #Shell/SMTLEX.cpp
     #Shell/SMTPAR.cpp
-    #Shell/SubsumptionRemover.cpp
     Shell/AnswerExtractor.hpp
     #Shell/AxiomGenerator.hpp
     Shell/CommandLine.hpp
     Shell/CNF.hpp
     Shell/NewCNF.hpp
+    Shell/NameReuse.hpp
     Shell/DistinctProcessor.hpp
     Shell/DistinctGroupExpansion.hpp
     Shell/EqResWithDeletion.hpp
@@ -645,7 +627,6 @@ set(VAMPIRE_SHELL_SOURCES
     Shell/Flattening.hpp
     Shell/FunctionDefinition.hpp
     Shell/GeneralSplitting.hpp
-    #Shell/GlobalOptions.hpp
     Shell/Grounding.hpp
     Shell/InequalitySplitting.hpp
     Shell/InterpolantMinimizer.hpp
@@ -661,12 +642,10 @@ set(VAMPIRE_SHELL_SOURCES
     Shell/NNF.hpp
     Shell/Normalisation.hpp
     Shell/Options.hpp
-    #Shell/PDUtils.hpp
     Shell/PredicateDefinition.hpp
     Shell/Preprocess.hpp
     Shell/Property.hpp
     Shell/Rectify.hpp
-    #Shell/Refutation.hpp
     Shell/Skolem.hpp
     Shell/SimplifyFalseTrue.hpp
     Shell/SineUtils.hpp
@@ -690,17 +669,11 @@ set(VAMPIRE_SHELL_SOURCES
     #Shell/TrivialPredicateRemover.hpp
     Shell/UIHelper.hpp
     Shell/VarManager.hpp
-    #Shell/ConstantRemover.hpp
-    #Shell/ConstraintReaderBack.hpp
-    #Shell/EqualityVariableRemover.hpp
-    #Shell/EquivalentVariableRemover.hpp
-    #Shell/HalfBoundingRemover.hpp
     Shell/Lexer.hpp
     #Shell/PARSER_TKV.hpp
     Shell/Preprocess.hpp
     #Shell/SMTLEX.hpp
     #Shell/SMTPAR.hpp
-    #Shell/SubsumptionRemover.hpp
     Shell/SubexpressionIterator.cpp
     Shell/SubexpressionIterator.hpp
     # Shell/version.cpp
@@ -851,7 +824,7 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 # set preprocessor defines
 add_compile_definitions(CHECK_LEAKS=0)
 if(CMAKE_BUILD_TYPE STREQUAL Debug)
-  add_compile_definitions(VDEBUG=1 UNIX_USE_SIGALRM=1 GNUMP=0)
+  add_compile_definitions(VDEBUG=1 UNIX_USE_SIGALRM=1)
 elseif(CMAKE_BUILD_TYPE STREQUAL Release)
   add_compile_definitions(VDEBUG=0)
 endif()

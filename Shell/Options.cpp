@@ -454,6 +454,19 @@ void Options::init()
     _functionDefinitionElimination.addProblemConstraint(hasEquality());
     _functionDefinitionElimination.setRandomChoices({"all","none"});
 
+    _skolemReuse = BoolOptionValue("skolem_reuse", "skr", false);
+    _skolemReuse.description =
+      "Attempt to reuse Skolem symbols.\n"
+      "Symbols are re-used if they represent identical formulae up to renaming.";
+    _lookup.insert(&_skolemReuse);
+    _skolemReuse.tag(OptionTag::PREPROCESSING);
+
+    _definitionReuse = BoolOptionValue("definition_reuse", "dr", false);
+    _definitionReuse.description =
+      "Reuse definition symbols in a similar fashion to Skolem reuse.";
+    _lookup.insert(&_definitionReuse);
+    _definitionReuse.tag(OptionTag::PREPROCESSING);
+
     _generalSplitting = ChoiceOptionValue<RuleActivity>("general_splitting","gsp",RuleActivity::OFF,{"input_only","off","on"});
     _generalSplitting.description=
     "Splits clauses in order to reduce number of different variables in each clause. "
