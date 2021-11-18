@@ -88,32 +88,12 @@ public:
   }
 
   /**
-   * Reverse the bit order in @b v
-   */
-  static unsigned reverseBits(unsigned v) __attribute__((const))
-  {
-    static_assert(sizeof(unsigned) == 4, "size of unsigned must be 4");
-
-    // swap odd and even bits
-    v = ((v >> 1) & 0x55555555) | ((v & 0x55555555) << 1);
-    // swap consecutive pairs
-    v = ((v >> 2) & 0x33333333) | ((v & 0x33333333) << 2);
-    // swap nibbles ...
-    v = ((v >> 4) & 0x0F0F0F0F) | ((v & 0x0F0F0F0F) << 4);
-    // swap bytes
-    v = ((v >> 8) & 0x00FF00FF) | ((v & 0x00FF00FF) << 8);
-    // swap 2-byte long pairs
-    v = ( v >> 16             ) | ( v               << 16);
-    return v;
-  }
-
-  /**
    * Return the integer part of the base two logarithm of @b v
    *
    * The returned value is actually index of the most significant
    * non-zero bit.
    */
-  static unsigned log2(unsigned v) __attribute__((const))
+  static unsigned log2(unsigned v)
   {
     const unsigned int b[] = {0x2, 0xC, 0xF0, 0xFF00, 0xFFFF0000};
     const unsigned int S[] = {1, 2, 4, 8, 16};

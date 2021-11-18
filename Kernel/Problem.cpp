@@ -309,11 +309,11 @@ void Problem::readDetailsFromProperty() const
   _hasFormulas = _property->hasFormulas();
   _hasEquality = _property->equalityAtoms()!=0;
   _hasInterpretedOperations = _property->hasInterpretedOperations();
+  _hasNumerals = _property->hasNumerals();
   _hasFOOL = _property->hasFOOL();
   _hasCombs = _property->hasCombs();
   _hasApp = _property->hasApp();
   _hasAppliedVar = _property->hasAppliedVar();
-  _hasInterpretedEquality = _property->hasInterpretedEquality();
   _hasLogicalProxy = _property->hasLogicalProxy();
   _hasPolymorphicSym = _property->hasPolymorphicSym();
   _quantifiesOverPolymorphicVar = _property->quantifiesOverPolymorphicVar();
@@ -337,8 +337,8 @@ void Problem::invalidateEverything()
   _hasFormulas = MaybeBool::UNKNOWN;
   _hasEquality = MaybeBool::UNKNOWN;
   _hasInterpretedOperations = MaybeBool::UNKNOWN;
+  _hasNumerals = MaybeBool::UNKNOWN;
   _hasFOOL = MaybeBool::UNKNOWN;
-  _hasInterpretedEquality = MaybeBool::UNKNOWN;
   _hasCombs = MaybeBool::UNKNOWN;
   _hasApp = MaybeBool::UNKNOWN;
   _hasAppliedVar = MaybeBool::UNKNOWN;
@@ -362,6 +362,7 @@ void Problem::invalidateByRemoval()
   _hasFormulas.mightBecameFalse();
   _hasEquality.mightBecameFalse();
   _hasInterpretedOperations.mightBecameFalse();
+  _hasNumerals.mightBecameFalse();
   _hasFOOL.mightBecameFalse();
   _hasCombs.mightBecameFalse();
   _hasAppliedVar.mightBecameFalse();
@@ -369,7 +370,6 @@ void Problem::invalidateByRemoval()
   _hasPolymorphicSym.mightBecameFalse();
   _quantifiesOverPolymorphicVar.mightBecameFalse();
   _hasBoolVar.mightBecameFalse();
-  _hasInterpretedEquality.mightBecameFalse();
 }
 
 /**
@@ -415,12 +415,12 @@ bool Problem::hasInterpretedOperations() const
   return _hasInterpretedOperations.value();
 }
 
-bool Problem::hasInterpretedEquality() const
+bool Problem::hasNumerals() const
 {
-  CALL("Problem::hasInterpretedEquality");
+  CALL("Problem::hasNumerals");
 
-  if(!_hasInterpretedEquality.known()) { refreshProperty(); }
-  return _hasInterpretedEquality.value();
+  if(!_hasNumerals.known()) { refreshProperty(); }
+  return _hasNumerals.value();
 }
 
 bool Problem::hasFOOL() const

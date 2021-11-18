@@ -126,7 +126,7 @@ template<class... A> void Tracer::printDbg(const char* file, int line, const A&.
   }
   std::cout <<  "@" << setw(5) << line << ":";
 
-  for (int i = 0; i< _depth; i++) {
+  for (unsigned i = 0; i< _depth; i++) {
     cout << "  ";
   }
   cout <<_current->_fun << ": ";

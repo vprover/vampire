@@ -46,6 +46,7 @@ using namespace Shell;
 const char* FOOLElimination::ITE_PREFIX  = "iG";
 const char* FOOLElimination::LET_PREFIX  = "lG";
 const char* FOOLElimination::BOOL_PREFIX = "bG";
+const char* FOOLElimination::MATCH_PREFIX  = "mG";
 
 FOOLElimination::FOOLElimination() : _defs(0), _higherOrder(0), _polymorphic(0) {}
 
@@ -272,7 +273,7 @@ Formula* FOOLElimination::process(Formula* formula) {
 
         bool polarity = formula->connective() == IFF;
 
-        Literal* equality = Literal::createEquality(polarity, process(lhsTerm), process(rhsTerm), Term::boolSort());
+        Literal* equality = Literal::createEquality(polarity, process(lhsTerm), process(rhsTerm), AtomicSort::boolSort());
         Formula* processedFormula = new AtomicFormula(equality);
 
         if (env->options->showPreprocessing()) {
@@ -375,7 +376,7 @@ void FOOLElimination::process(TermList ts, Context context, TermList& termResult
   // The opposite does not hold - a boolean term can stand in a term context
   TermList sort = SortHelper::getResultSort(ts, _varSorts);
   if (context == FORMULA_CONTEXT) {
-    ASS_REP(sort == Term::boolSort(), ts.toString());
+    ASS_REP(sort == AtomicSort::boolSort(), ts.toString());
   }
 #endif
 
@@ -469,7 +470,12 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
       arguments.push(process(ait.next()));
     }
 
-    TermList processedTerm = TermList(Term::create(term, arguments.begin()));
+    TermList processedTerm;
+    if(term->isSort()){
+      processedTerm = TermList(AtomicSort::create(static_cast<AtomicSort*>(term), arguments.begin()));      
+    } else {
+      processedTerm = TermList(Term::create(term, arguments.begin()));
+    }
 
     if (context == FORMULA_CONTEXT) {
       formulaResult = toEquality(processedTerm);
@@ -523,7 +529,7 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
         process(*term->nthArgument(1), context, elseBranch, elseBranchFormula);
 
         // the sort of the term is the sort of the then branch
-        TermList resultSort = Term::defaultSort();
+        TermList resultSort = AtomicSort::defaultSort();
         if (context == TERM_CONTEXT) {
           resultSort = SortHelper::getResultSort(thenBranch, _varSorts);
           ASS_EQ(resultSort, SortHelper::getResultSort(elseBranch, _varSorts));
@@ -738,7 +744,7 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
           collectSorts(freeVars, typeVars, termVars, allVars, termVarSorts);
 
           // create a fresh symbol g and build g(Y1, ..., Ym, X1, ..., Xn)
-          unsigned freshSymbol = introduceFreshSymbol(context, BOOL_PREFIX, termVarSorts, Term::boolSort(), typeVars.size());
+          unsigned freshSymbol = introduceFreshSymbol(context, BOOL_PREFIX, termVarSorts, AtomicSort::boolSort(), typeVars.size());
           TermList freshSymbolApplication = TermList(Term::create(freshSymbol, allVars.size(), allVars.begin()));
 
           // build f <=> g(X1, ..., Xn) = true
@@ -766,6 +772,74 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
         // the literature. 
         LambdaElimination le = LambdaElimination();
         termResult = le.elimLambda(term);
+        break;
+      }
+
+      case Term::SF_MATCH: {
+        /**
+         * Having a term of the form $match(v, p1, b1, ..., pm, bm) and the list
+         * X1, ..., Xn of its free variables (it is the union of free variables
+         * of f, s and t) we do the following:
+         *  1) Create a fresh function symbol g of arity n that spans over sorts
+         *     of X1, ..., Xn and the returns sort of the term
+         *  2) Add m definitions:
+         *     * ![X1, ..., Xn]: (v = p1 => g(X1, ..., Xn) = b1)
+         *       ...
+         *     * ![X1, ..., Xn]: (v = pm => g(X1, ..., Xn) = bm)
+         *  3) Replace the term with g(X1, ..., Xn)
+         */
+
+        TermList matchedTerm;
+        Formula *matchedFormula;
+        Context matchedContext = term->nthArgument(0)->isTerm() && term->nthArgument(0)->term()->isBoolean() ? FORMULA_CONTEXT : TERM_CONTEXT;
+        process(*term->nthArgument(0), matchedContext, matchedTerm, matchedFormula);
+
+        TermList resultSort = AtomicSort::defaultSort();
+        if (context == TERM_CONTEXT) {
+          resultSort = sd->getSort();
+        }
+
+        collectSorts(freeVars, typeVars, termVars, allVars, termVarSorts);
+        SortHelper::normaliseSort(typeVars, resultSort);
+        // create a fresh symbol g
+        unsigned freshSymbol = introduceFreshSymbol(context, MATCH_PREFIX, termVarSorts, resultSort, typeVars.size());
+
+        // build g(X1, ..., Xn)
+        TermList freshFunctionApplication;
+        Formula *freshPredicateApplication;
+        buildApplication(freshSymbol, context, allVars, freshFunctionApplication, freshPredicateApplication);
+
+        for (unsigned int i = 1; i < term->arity(); i += 2) {
+          TermList patternTerm;
+          Formula *patternFormula;
+          process(*term->nthArgument(i), matchedContext, patternTerm, patternFormula);
+          // build v = pi
+          Formula *head = buildEq(matchedContext, matchedFormula, patternFormula,
+                                  matchedTerm, patternTerm, sd->getMatchedSort());
+
+          TermList bodyTerm;
+          Formula *bodyFormula;
+          process(*term->nthArgument(i + 1), context, bodyTerm, bodyFormula);
+          // build g(X1, ..., Xn) == bi
+          Formula *body = buildEq(context, freshPredicateApplication, bodyFormula,
+                                  freshFunctionApplication, bodyTerm, resultSort);
+          // build (v = pi => g(X1, ..., Xn) == bi)
+          Formula *impl = new BinaryFormula(IMP, head, body);
+
+          // build ![X1, ..., Xn]: (f => g(X1, ..., Xn) == s)
+          if (VList::length(freeVars) > 0) {
+            //TODO do we know the sorts of freeVars?
+            impl = new QuantifiedFormula(FORALL, freeVars, 0, impl);
+          }
+          addDefinition(new FormulaUnit(impl, NonspecificInference1(InferenceRule::FOOL_MATCH_ELIMINATION, _unit)));
+        }
+
+        if (context == FORMULA_CONTEXT) {
+          formulaResult = freshPredicateApplication;
+        }
+        else {
+          termResult = freshFunctionApplication;
+        }
         break;
       }
 
@@ -891,8 +965,8 @@ void FOOLElimination::collectSorts(VList* vars, TermStack& typeVars,
   while (fvi.hasNext()) {
     unsigned var = fvi.next();
     ASS_REP(_varSorts.find(var), var);    
-    TermList sort = _varSorts.get(var, Term::defaultSort());
-    if(sort == Term::superSort()){
+    TermList sort = _varSorts.get(var, AtomicSort::defaultSort());
+    if(sort == AtomicSort::superSort()){
       //variable is a type var
       allVars.push(TermList(var, false));
       typeVars.push(TermList(var, false));
@@ -929,7 +1003,7 @@ void FOOLElimination::addDefinition(FormulaUnit* def) {
 
 Formula* FOOLElimination::toEquality(TermList booleanTerm) {
   TermList truth(Term::foolTrue());
-  Literal* equality = Literal::createEquality(true, booleanTerm, truth, Term::boolSort());
+  Literal* equality = Literal::createEquality(true, booleanTerm, truth, AtomicSort::boolSort());
   return new AtomicFormula(equality);
 }
 

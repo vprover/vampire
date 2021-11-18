@@ -37,7 +37,7 @@
 #include "Kernel/InterpretedLiteralEvaluator.hpp"
 #include "Kernel/RobSubstitution.hpp"
 #include "Kernel/Signature.hpp"
-#include "Kernel/Sorts.hpp"
+#include "Kernel/OperatorType.hpp"
 #include "Kernel/Term.hpp"
 #include "Kernel/TermIterators.hpp"
 #include "Kernel/Unit.hpp"
@@ -323,6 +323,7 @@ void InductionClauseIterator::processLiteral(Clause* premise, Literal* lit)
   if(InductionHelper::isInductionLiteral(lit)){
       Set<Term*> ta_terms;
       Set<Term*> int_terms;
+      //TODO this should be a non-variable non-type iterator it seems
       SubtermIterator it(lit);
       while(it.hasNext()){
         TermList ts = it.next();
@@ -1066,7 +1067,7 @@ bool InductionClauseIterator::notDoneInt(Literal* lit, Term* t, bool increasing,
   VTHREAD_LOCAL static Term* blank;
   VTHREAD_LOCAL static unsigned freshInt = env->signature->addFreshFunction(0, "blank");
   if (!blank) {
-    env->signature->getFunction(freshInt)->setType(OperatorType::getConstantsType(Term::intSort()));
+    env.signature->getFunction(freshInt)->setType(OperatorType::getConstantsType(AtomicSort::intSort()));
     blank = Term::createConstant(freshInt);
   }
   TermReplacement cr(t, TermList(blank));

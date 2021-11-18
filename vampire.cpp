@@ -59,7 +59,6 @@
 #include "CASC/PortfolioMode.hpp"
 #include "CASC/CLTBMode.hpp"
 #include "CASC/CLTBModeLearning.hpp"
-#include "Shell/CParser.hpp"
 #include "Shell/CommandLine.hpp"
 //#include "Shell/EqualityProxy.hpp"
 #include "Shell/Grounding.hpp"
@@ -68,7 +67,6 @@
 #include "Shell/Property.hpp"
 #include "Saturation/ProvingHelper.hpp"
 #include "Shell/Preprocess.hpp"
-#include "Shell/Refutation.hpp"
 #include "Shell/TheoryFinder.hpp"
 #include "Shell/TPTPPrinter.hpp"
 #include "Parse/TPTP.hpp"
@@ -81,17 +79,9 @@
 
 #include "SAT/MinisatInterfacing.hpp"
 #include "SAT/MinisatInterfacingNewSimp.hpp"
-#include "SAT/Preprocess.hpp"
 
 #include "FMB/ModelCheck.hpp"
 #include <thread>
-
-#if GNUMP
-#include "Solving/Solver.hpp"
-
-using namespace Shell;
-using namespace Solving;
-#endif
 
 #if CHECK_LEAKS
 #include "Lib/MemoryLeak.hpp"
@@ -247,9 +237,6 @@ void outputResult(ostream& out) {
     break;
   case Statistics::SATISFIABLE:
     cout<<"sat"<<endl;
-#if GNUMP
-    UIHelper::outputAssignment(*env->statistics->satisfyingAssigment, cout);
-#endif //GNUMP
     break;
   case Statistics::REFUTATION:
     cout<<"unsat"<<endl;
@@ -261,69 +248,6 @@ void outputResult(ostream& out) {
   if(env->options->mode()!=Options::Mode::SPIDER){
     env->statistics->print(env->out());
   }
-}
-
-
-
-void boundPropagationMode(){
-#if GNUMP
-  CALL("boundPropagationMode::doSolving()");
-
-  //adjust vampire options in order to serve the purpose of bound propagation
-  if ( env->options->proof() == env->options->PROOF_ON ) {
-    env->options->setProof(env->options->PROOF_OFF);
-  }
-
-  //this ensures the fact that int's read in smtlib file are treated as reals
-  env->options->setSmtlibConsiderIntsReal(true);
-
-  if (env->options->bpStartWithPrecise()) {
-	  switchToPreciseNumbers();
-  }
-  if (env->options->bpStartWithRational()){
-	  switchToRationalNumbers();
-  }
-
-  ConstraintRCList* constraints(UIHelper::getPreprocessedConstraints(*env->options));
-
-  start:
-  try
-  {
-    env->statistics->phase = Statistics::SOLVING;
-    TimeCounter tc(TC_SOLVING);
-    Solver solver(env->signature->vars(), *env->options, *env->statistics);
-    solver.load(constraints);
-    solver.solve();
-  }
-  catch (Solver::NumberImprecisionException) {
-    if (usingPreciseNumbers()) {
-      INVALID_OPERATION("Imprecision error when using precise numbers.");
-    }
-    else {
-      env->statistics->switchToPreciseTimeInMs = env->timer->elapsedMilliseconds();
-      switchToPreciseNumbers();
-      //switchToRationalNumbers();
-      ASS(usingPreciseNumbers());
-      goto start;
-    }
-  }
-  catch (TimeLimitExceededException){
-      env->statistics->phase = Statistics::FINALIZATION;
-      env->statistics->terminationReason = Statistics::TIME_LIMIT;
-    }
-  env->statistics->phase = Statistics::FINALIZATION;
-
-
-  env->beginOutput();
-  outputResult(env->out());
-  env->endOutput();
-
-  if (env->statistics->terminationReason==Statistics::REFUTATION
-      || env->statistics->terminationReason==Statistics::SATISFIABLE) {
-    g_returnValue=0;
-  }
-
-#endif
 }
 
 // prints Unit u at an index to latexOut using the LaTeX object
@@ -650,7 +574,8 @@ void clausifyMode(bool theory)
       }
 
       FormulaUnit* fu = new FormulaUnit(f,cl->inference()); // we are stealing cl's inference, which is not nice!
-      env->out() << TPTPPrinter::toString(fu) << "\n";
+      fu->overwriteNumber(cl->number()); // we are also making sure it's number is the same as that of the original (for Kostya from Russia to CASC, with love, and back again)
+      env.out() << TPTPPrinter::toString(fu) << "\n";
     } else {
       env->out() << TPTPPrinter::toString(cl) << "\n";
     }
@@ -803,15 +728,6 @@ int main(int argc, char* argv[])
     case Options::Mode::GROUNDING:
       groundingMode();
       break;
-/*
-    case Options::Mode::BOUND_PROP:
-#if GNUMP
-     boundPropagationMode();
-#else
-     NOT_IMPLEMENTED;
-#endif
-      break;
-*/
     case Options::Mode::SPIDER:
       spiderMode();
       break;
@@ -832,7 +748,7 @@ int main(int argc, char* argv[])
       //env->options->setTimeLimitInSeconds(300);
       env->options->setMemoryLimit(128000);
 
-      if (CASC::PortfolioMode::perform(1.30)) {
+      if (CASC::PortfolioMode::perform(env.options->slowness())) {
         vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
       }
       break;
@@ -863,7 +779,7 @@ int main(int argc, char* argv[])
       //env->options->setTimeLimitInSeconds(300);
       env->options->setMemoryLimit(128000);
 
-      if (CASC::PortfolioMode::perform(1.30)) {
+      if (CASC::PortfolioMode::perform(env.options->slowness())) {
         vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
       }
       break;
@@ -885,7 +801,7 @@ int main(int argc, char* argv[])
       // to prevent from terminating by time limit
       env->options->setTimeLimitInSeconds(100000);
 
-      if (CASC::PortfolioMode::perform(1.3)){
+      if (CASC::PortfolioMode::perform(env.options->slowness())){
         vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
       }
       else {
@@ -899,7 +815,7 @@ int main(int argc, char* argv[])
 #endif
       env->options->setIgnoreMissing(Options::IgnoreMissing::WARN);
 
-      if (CASC::PortfolioMode::perform(1.3)) {
+      if (CASC::PortfolioMode::perform(env.options->slowness())) {
         vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
       }
       break;

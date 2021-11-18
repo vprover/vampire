@@ -25,7 +25,7 @@
 #include "Kernel/Term.hpp"
 #include "Kernel/TermIterators.hpp"
 #include "Kernel/Signature.hpp"
-#include "Kernel/Sorts.hpp"
+#include "Kernel/OperatorType.hpp"
 
 #include "FOOLParamodulation.hpp"
 
@@ -95,8 +95,8 @@ ClauseIterator FOOLParamodulation::generateClauses(Clause* premise) {
         continue;
       }
 
-      TermList resultType = env->signature->getFunction(functor)->fnType()->result();
-      if (resultType == Term::boolSort()) {
+      TermList resultType = env.signature->getFunction(functor)->fnType()->result();
+      if (resultType == AtomicSort::boolSort()) {
         booleanTerm = subterm;
         goto substitution;
       }
@@ -122,7 +122,7 @@ ClauseIterator FOOLParamodulation::generateClauses(Clause* premise) {
   }
 
   // Add s = false to the clause
-  (*conclusion)[conclusion->length() - 1] = Literal::createEquality(true, booleanTerm, fols, Term::boolSort());
+  (*conclusion)[conclusion->length() - 1] = Literal::createEquality(true, booleanTerm, fols, AtomicSort::boolSort());
 
   return pvi(getSingletonIterator(conclusion));
 }

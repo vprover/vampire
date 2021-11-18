@@ -20,7 +20,7 @@
 #include "Lib/Set.hpp"
 
 #include "Kernel/Signature.hpp"
-#include "Kernel/Sorts.hpp"
+#include "Kernel/OperatorType.hpp"
 #include "Kernel/Term.hpp"
 
 #include "Shell/LispParser.hpp"
@@ -217,6 +217,7 @@ private:
     TS_DIV,
     TS_ITE,
     TS_LET,
+    TS_MATCH,
     TS_MOD,
     TS_SELECT,
     TS_STORE,
@@ -262,7 +263,9 @@ private:
    *
    * Defining a function extends the signature and adds the new function's definition into _formulas.
    */
-  void readDefineFun(const vstring& name, LExprList* iArgs, LExpr* oSort, LExpr* body);
+  void readDefineFun(const vstring& name, LExprList* iArgs, LExpr* oSort, LExpr* body, bool recursive = false);
+
+  void readDeclareDatatype(LExpr* sort, LExprList* datatype);
 
   void readDeclareDatatypes(LExprList* sorts, LExprList* datatypes, bool codatatype = false);
 
@@ -283,12 +286,15 @@ private:
     bool isSharedTerm() { return !formula && (!trm.isTerm() || trm.term()->shared()); }
 
     /** Construct ParseResult from a formula */
-    ParseResult(Formula* frm) : sort(Term::boolSort()), formula(true), frm(frm) {}
+    ParseResult(Formula* frm) : sort(AtomicSort::boolSort()), formula(true), frm(frm) {}
     /** Construct ParseResult from a term of a given sort */
     ParseResult(TermList sort, TermList trm) : sort(sort), formula(false), trm(trm) {}
 
     TermList sort;
     bool formula;
+    /** The label assigned to this formula using the ":named" annotation of SMT-LIB2;
+     * empty string means no label. */
+    vstring label;
     union {
       Formula* frm;
       TermList trm;
@@ -306,6 +312,17 @@ private:
      * and return its vampire sort (which may be Sorts::SRT_BOOL).
      */
     TermList asTerm(TermList& resTrm);
+    /**
+     * Records a label for the formula represented by this `ParserResult`,
+     * resulting from a ":named" SMT-LIB2 annotation.
+     */
+    void setLabel(vstring l){ label = l; }
+    /**
+     * Helper that attaches a label to a `Formula`
+     * if a label is recorded for this `ParserResult`.
+     * Returns the formula.
+     */
+    Formula* attachLabelToFormula(Formula* frm);
 
     vstring toString();
   };
@@ -354,7 +371,10 @@ private:
     PO_LABEL,              // takes a LExpr* of the label to be applied to the top _result
     // these two are intermediate cases for handling let
     PO_LET_PREPARE_LOOKUP, // takes LExpr* (the whole let expression again, why not)
-    PO_LET_END             // takes LExpr* (the whole let expression again, why not)
+    PO_LET_END,            // takes LExpr* (the whole let expression again, why not)
+    PO_MATCH_CASE_START,   // takes LExpr*, a list containing the matched term, pattern, case
+    PO_MATCH_CASE_END,     // takes LExpr*, a list containing the matched term, pattern, case
+    PO_MATCH_END           // takes LExpr* (the whole match again)
   };
   /**
    * Main smtlib term parsing stack.
@@ -365,11 +385,17 @@ private:
 
   // a few helper functions enabling the body of parseTermOrFormula be of reasonable size
 
-  void complainAboutArgShortageOrWrongSorts(const vstring& symbolClass, LExpr* exp) NO_RETURN;
+  [[noreturn]] void complainAboutArgShortageOrWrongSorts(const vstring& symbolClass, LExpr* exp);
 
   void parseLetBegin(LExpr* exp);
   void parseLetPrepareLookup(LExpr* exp);
   void parseLetEnd(LExpr* exp);
+
+  bool isTermAlgebraConstructor(const vstring& name);
+  void parseMatchBegin(LExpr* exp);
+  void parseMatchCaseStart(LExpr* exp);
+  void parseMatchCaseEnd(LExpr* exp);
+  void parseMatchEnd(LExpr* exp);
 
   void parseQuantBegin(LExpr* exp);
 

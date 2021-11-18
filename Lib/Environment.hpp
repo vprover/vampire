@@ -51,8 +51,6 @@ public:
 
   /** options for the current proof attempt */
   Shell::Options* options;
-  /** currently used sorts */
-  Kernel::Sorts* sorts;
   /** currently used signature */
   Kernel::Signature* signature;
   /** Term sharing structure */

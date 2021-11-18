@@ -175,6 +175,7 @@ protected:
   static DArray<int> predLevelsFromOptsAndPrec(Problem& prb, const Options& opt, const DArray<int>& predicatePrecedences);
 
   Result compareFunctionPrecedences(unsigned fun1, unsigned fun2) const;
+  Result compareTypeConPrecedences(unsigned tyc1, unsigned tyc2) const;
 
   int predicatePrecedence(unsigned pred) const;
   int predicateLevel(unsigned pred) const;
@@ -206,6 +207,7 @@ inline ostream& operator<<(ostream& out, Ordering::Result const& r)
     default:
       return out << "UNKNOWN";
   }
+  ASSERTION_VIOLATION
 }
 
 }

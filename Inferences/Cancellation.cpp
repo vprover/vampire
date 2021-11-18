@@ -105,8 +105,8 @@ CancelAddResult<Number> cancelAdd(Polynom<Number> const& oldl, Polynom<Number> c
   using Numeral = typename Number::ConstantType;
   using Monom        = Monom       <Number>;
   using NumeralVec   = Stack<Monom>;
-  auto itl = 0u;
-  auto itr = 0u;
+  unsigned itl = 0;
+  unsigned itr = 0;
   auto endl = oldl.nSummands();
   auto endr = oldr.nSummands();
 
@@ -146,6 +146,7 @@ CancelAddResult<Number> cancelAdd(Polynom<Number> const& oldl, Polynom<Number> c
           pushDiffLeft();
         }
       };
+
 
 
       if (l.numeral == r.numeral) {

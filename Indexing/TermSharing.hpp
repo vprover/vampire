@@ -43,6 +43,8 @@ public:
   Term* insert(Term*);
   Term* insertRecurrently(Term*);
 
+  AtomicSort* insert(AtomicSort*);
+
   Literal* insert(Literal*);
   Literal* insertVariableEquality(Literal* lit,TermList sort);
 
@@ -62,6 +64,14 @@ public:
   inline static unsigned hash(const Literal* l)
   { return l->hash(); }
 
+  DHSet<TermList>* getArraySorts(){
+    return &_arraySorts;
+  }
+
+  struct OpLitWrapper {
+    OpLitWrapper(Literal* l) : l(l) {}
+    Literal* l;
+  };
   inline static unsigned hash(const OpLitWrapper& w)
   { return w.l->oppositeHash(); }
 
@@ -102,8 +112,16 @@ private:
   Set<Term*,TermSharing> _terms;
   /** The set storing all literals */
   Set<Literal*,TermSharing> _literals;
+  /** The set storing all sorts */
+  Set<AtomicSort*,TermSharing> _sorts;
+  /* Set containing all array sorts. 
+   * Can be deleted once array axioms are made truly poltmorphic
+   */  
+  DHSet<TermList> _arraySorts;
   /** Number of terms stored */
   VATOMIC(unsigned) _totalTerms;
+  /** Number of sorts stored */
+  VATOMIC(unsigned) _totalSorts;
   /** Number of ground terms stored */
   // unsigned _groundTerms; // MS: unused
   /** Number of literals stored */
@@ -112,6 +130,8 @@ private:
   // unsigned _groundLiterals; // MS: unused
   /** Number of literal insertions */
   VATOMIC(unsigned) _literalInsertions;
+  /** number of sort insertions */
+  VATOMIC(unsigned) _sortInsertions;
   /** Number of term insertions */
   VATOMIC(unsigned) _termInsertions;
 

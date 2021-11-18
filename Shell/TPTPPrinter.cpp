@@ -111,7 +111,7 @@ vstring TPTPPrinter::getBodyStr(Unit* u, bool includeSplitLevels)
         vit.next(var, varSort);
 
         res << 'X' << var;
-        if(varSort!= Term::defaultSort()) {
+        if(varSort!= AtomicSort::defaultSort()) {
           res << " : " << varSort.toString();
         }
         if(vit.hasNext()) {
@@ -198,18 +198,27 @@ void TPTPPrinter::outputSymbolTypeDefinitions(unsigned symNumber, SymbolType sym
 {
   CALL("TPTPPrinter::outputSymbolTypeDefinitions");
 
-  bool function = symType == SymbolType::FUNC;
-
-  Signature::Symbol* sym = function ?
-      env->signature->getFunction(symNumber) : env->signature->getPredicate(symNumber);
-  OperatorType* type = function ? sym->fnType() : sym->predType();
+  Signature::Symbol* sym;
+  OperatorType* type;
+  if(symType == SymbolType::FUNC){
+    sym = env.signature->getFunction(symNumber);
+    type = sym->fnType();
+  } else if(symType == SymbolType::PRED){
+    sym = env.signature->getPredicate(symNumber);
+    type = sym->predType();    
+  } else {
+    sym = env.signature->getTypeCon(symNumber);
+    type = sym->typeConType();
+  }
 
   if(type->isAllDefault()) {
     return;
   }
-  if(function && theory->isInterpretedConstant(symNumber)) { return; }
 
-  if (function && sym->overflownConstant()) { return; }
+  bool func = symType == SymbolType::FUNC ;
+  if(func && theory->isInterpretedConstant(symNumber)) { return; }
+
+  if (func && sym->overflownConstant()) { return; }
 
   if(sym->interpreted()) {
     Interpretation interp = static_cast<Signature::InterpretedSymbol*>(sym)->getInterpretation();
@@ -307,11 +316,13 @@ void TPTPPrinter::ensureHeadersPrinted(Unit* u)
   
   //ensureNecesarySorts();
 
-  unsigned funs = env->signature->functions();
+  unsigned typeCons = env.signature->typeCons();
+  for(unsigned i=Signature::FIRST_USER_CON; i<typeCons; i++) {
+    outputSymbolTypeDefinitions(i, SymbolType::TYPE_CON);
+  }
+  unsigned funs = env.signature->functions();
   for(unsigned i=0; i<funs; i++) {
-    SymbolType st = SymbolType::FUNC;
-    if(env->signature->isTypeConOrSup(i)){ st = SymbolType::TYPE_CON; }
-    outputSymbolTypeDefinitions(i, st);
+    outputSymbolTypeDefinitions(i, SymbolType::FUNC);
   }
   unsigned preds = env->signature->predicates();
   for(unsigned i=1; i<preds; i++) {
@@ -461,11 +472,11 @@ vstring TPTPPrinter::toString(const Formula* formula)
           if (hasSorts) {
             ASS(ss.hasNext());
             t = ss.next();
-            if (t != Term::defaultSort()) {
+            if (t != AtomicSort::defaultSort()) {
               result += " : " + t.toString();
             }
           } else if (SortHelper::tryGetVariableSort(var, const_cast<Formula*>(f),
-              t) && t != Term::defaultSort()) {
+              t) && t != AtomicSort::defaultSort()) {
             result += " : " + t.toString();
           }
           needsComma = true;

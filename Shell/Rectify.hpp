@@ -48,6 +48,8 @@ public:
   {}
   static FormulaUnit* rectify(FormulaUnit*, bool removeUnusedVars=true);
   static void rectify(UnitList*& units);
+  // for NameReuse
+  Formula* rectify(Formula*);
 private:
   typedef pair<unsigned,bool> VarWithUsageInfo;
   typedef List<VarWithUsageInfo> VarUsageTrackingList;
@@ -82,7 +84,6 @@ private:
 
   unsigned rectifyVar(unsigned v);
 
-  Formula* rectify(Formula*);
   FormulaList* rectify(FormulaList*);
   void bindVars(VList*);
   void unbindVars(VList*);

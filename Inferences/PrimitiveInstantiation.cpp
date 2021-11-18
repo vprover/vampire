@@ -15,7 +15,7 @@
 #include "Debug/RuntimeStatistics.hpp"
 #include "Saturation/SaturationAlgorithm.hpp"
 
-#include "Kernel/Sorts.hpp"
+#include "Kernel/OperatorType.hpp"
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/Signature.hpp"
 #include "Kernel/Inference.hpp"
@@ -64,7 +64,7 @@ struct PrimitiveInstantiation::IsInstantiable
 {
   bool operator()(Literal* l)
   { 
-    if(SortHelper::getEqualityArgumentSort(l) != Term::boolSort()){
+    if(SortHelper::getEqualityArgumentSort(l) != AtomicSort::boolSort()){
       return false;
     }
     

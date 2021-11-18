@@ -56,7 +56,7 @@ class Splitter;
  */
 class SplittingBranchSelector {
 public:
-  SplittingBranchSelector(Splitter& parent) : _ccModel(false), _parent(parent) {}
+  SplittingBranchSelector(Splitter& parent) : _ccModel(false), _parent(parent), _solverIsSMT(false)  {}
   ~SplittingBranchSelector(){
 #if VTHREADED
 _solver.release();
@@ -95,6 +95,7 @@ private:
 
   Splitter& _parent;
 
+  bool _solverIsSMT;
   SATSolverSCP _solver;
   ScopedPtr<DecisionProcedure> _dp;
   // use a separate copy of the decision procedure for ccModel computations and fill it up only with equalities

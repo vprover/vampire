@@ -32,7 +32,7 @@ Exception::Exception (const char* msg, int line)
 /**
  * Write a description of the exception to a stream.
  */
-void Exception::cry (ostream& str)
+void Exception::cry (ostream& str) const
 {
   str << _message << endl;
 } // Exception::cry
@@ -41,7 +41,7 @@ void Exception::cry (ostream& str)
 /**
  * Write a description of the exception to a stream.
  */
-void UserErrorException::cry (ostream& str)
+void UserErrorException::cry (ostream& str) const
 {
   str << "User error: " << _message << endl;
 } // UserErrorException::cry
@@ -49,7 +49,7 @@ void UserErrorException::cry (ostream& str)
 /**
  * Write a description of the exception to a stream.
  */
-void InvalidOperationException::cry (ostream& str)
+void InvalidOperationException::cry (ostream& str) const
 {
   str << "Invalid operation: " << _message << endl;
 } // InvalidOperationException::cry
@@ -65,7 +65,7 @@ SystemFailException::SystemFailException(const vstring msg, int err)
 /**
  * Write a description of the exception to a stream.
  */
-void SystemFailException::cry (ostream& str)
+void SystemFailException::cry (ostream& str) const
 {
   str << "System fail: " << _message << endl;
 } // SystemFailException::cry
@@ -74,7 +74,7 @@ void SystemFailException::cry (ostream& str)
 /**
  * Write a description of the exception to a stream.
  */
-void NotImplementedException::cry (ostream& str)
+void NotImplementedException::cry (ostream& str) const
 {
   str << "Not implemented at " << file << ":" << line << endl;
 } // NotImplementedException::cry

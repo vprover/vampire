@@ -28,11 +28,6 @@
 
 #include "Saturation/SaturationAlgorithm.hpp"
 
-#if GNUMP
-#include "Kernel/Assignment.hpp"
-#include "Kernel/Constraint.hpp"
-#endif
-
 #include "Options.hpp"
 #include "Statistics.hpp"
 
@@ -76,6 +71,7 @@ Statistics::Statistics()
     theoryInstSimpCandidates(0),
     theoryInstSimpTautologies(0),
     theoryInstSimpLostSolution(0),
+    theoryInstSimpEmptySubstitution(0),
     maxInductionDepth(0),
     induction(0),
     inductionInProof(0),
@@ -285,7 +281,9 @@ void Statistics::print(ostream& out)
     unusedPredicateDefinitions+functionDefinitions+selectedBySine+
     sineIterations+splitInequalities);
   COND_OUT("Introduced names",formulaNames);
+  COND_OUT("Reused names",reusedFormulaNames);
   COND_OUT("Introduced skolems",skolemFunctions);
+  COND_OUT("Reused skolems",reusedSkolemFunctions);
   COND_OUT("Pure predicates", purePredicates);
   COND_OUT("Trivial predicates", trivialPredicates);
   COND_OUT("Unused predicate definitions", unusedPredicateDefinitions);
@@ -393,6 +391,7 @@ void Statistics::print(ostream& out)
   COND_OUT("TheoryInstSimpCandidates",theoryInstSimpCandidates);
   COND_OUT("TheoryInstSimpTautologies",theoryInstSimpTautologies);
   COND_OUT("TheoryInstSimpLostSolution",theoryInstSimpLostSolution);
+  COND_OUT("TheoryInstSimpEmptySubstitutions",theoryInstSimpEmptySubstitution);
   COND_OUT("Induction",induction);
   COND_OUT("MaxInductionDepth",maxInductionDepth);
   COND_OUT("InductionStepsInProof",inductionInProof);
@@ -474,6 +473,14 @@ void Statistics::print(ostream& out)
   out << "Time elapsed: ";
   Timer::printMSString(out,env->timer->elapsedMilliseconds());
   out << endl;
+  
+  unsigned instr = Timer::elapsedMegaInstructions();
+  if (instr) {
+    addCommentSignForSZS(out);
+    out << "Instructions burned: " << instr << " (million)";
+    out << endl;
+  }
+  
   addCommentSignForSZS(out);
   out << "------------------------------\n";
 

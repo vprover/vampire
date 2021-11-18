@@ -1,49 +1,66 @@
 #!/bin/sh
+# run some basic problems with Vampire, check if it behaves as expected or not
+# Problems/, Axioms/ is for files from TPTP because of the include() scheme
+# anything else can be in a convenient folder
+# try and keep it minimal, reasonably clean to help debugging inevitable CI failures :-)
 
+# where is Vampire? passed by CI
 vampire=`pwd`/$1
-szs_status() {
-        time=$1
+
+# check the output is exactly what we expect: quite fragile by nature, be careful
+check_exact_output() {
+        expected=$1
         shift
+        diff=`cd checks && $vampire $@ | diff $expected -`
+	if test -n "$diff"
+	then
+		echo "$vampire $@ output check against $expected failed: diff follows"
+		echo "$diff"
+		exit 1
+	fi
+}
+
+# check SZS status
+check_szs_status() {
         status=$1
         shift
-	out=`cd checks && $vampire -t $time $@`
+	out=`cd checks && $vampire $@`
 	szs=`echo "$out" | egrep "^% SZS status $status for .+$"`
 	if test -z "$szs"
 	then
-		echo "$@ failed: should have been SZS $status"
+		echo "$vampire $@ SZS check failed: should have been SZS $status"
 		echo "$out"
 		exit 1
 	fi
 }
-smtcomp_status() {
-        time=$1
-        shift
+
+# check SMT status
+check_smtcomp_status() {
         status=$1
         shift
-        out=`cd checks && $vampire -t $time $@`
+        out=`cd checks && $vampire $@`
         result=`echo "$out" | egrep "^$status$"`
         if test -z "$result"
         then
-                echo "$@ failed: should have been $status"
+                echo "$vampire $@ SMT check failed: should have been $status"
                 echo "$out"
                 exit 1
         fi
 }
 
-# Some simple problems
-szs_status 1 Theorem Problems/PUZ/PUZ001+1.p
+# Some simple problems: fail early!
+check_szs_status Theorem Problems/PUZ/PUZ001+1.p
 
 # Unsat core problems
-smtcomp_status 1 unsat --mode smtcomp Problems/smt/ucore/test1
-$vampire --input_syntax smtlib2 -t 1 -om ucore checks/Problems/smt/ucore/test2 | diff checks/Problems/smt/ucore/test2_out -
-if [ $? -eq 1 ]
-then
-  echo "Did not print unsat core as expected"
-fi
-
+check_smtcomp_status unsat --mode smtcomp ucore/test1.smt2
+check_exact_output ucore/test2.out --input_syntax smtlib2 -om ucore ucore/test2.smt2
 
 # Integer induction problems
-szs_status 1 Unsatisfiable -ind int Problems/ind/int_invariant_infinite_geq3_val3.smt2
-szs_status 1 Unsatisfiable -ind int Problems/ind/int_invariant_finite_a_to_b.smt2
-szs_status 60 Unsatisfiable --forced_options "drc=off:ind=int:intindint=infinite:sos=theory:sstl=1:to=lpo" Problems/ind/int_power_0_all_0.smt2
-szs_status 60 Unsatisfiable --forced_options "ind=int:sa=discount:sos=theory:sstl=1:to=lpo" Problems/ind/int_sum_y_geq_0.smt2 
+check_szs_status Unsatisfiable -ind int ind/int_invariant_infinite_geq3_val3.smt2
+check_szs_status Unsatisfiable -ind int ind/int_invariant_finite_a_to_b.smt2
+check_szs_status Unsatisfiable --forced_options "drc=off:ind=int:intindint=infinite:sos=theory:sstl=1:to=lpo" ind/int_power_0_all_0.smt2
+check_szs_status Unsatisfiable --forced_options "ind=int:sa=discount:sos=theory:sstl=1:to=lpo" ind/int_sum_y_geq_0.smt2
+
+# Parser
+check_szs_status Unsatisfiable parse/types-funs.smt2
+check_szs_status Unsatisfiable -newcnf on parse/types-funs.smt2

@@ -78,8 +78,8 @@ private:
   void getExtraSchedules(Property& prop, Schedule& old, Schedule& extra, bool add_extra, int time_multiplier); 
   bool runSchedule(Schedule& schedule);
   bool waitForChildAndCheckIfProofFound();
-  void runSlice(vstring slice, unsigned timeLimitInDeciseconds);
-  void runSlice(Options& strategyOpt);
+  [[noreturn]] void runSlice(vstring slice, unsigned timeLimitInDeciseconds);
+  [[noreturn]] void runSlice(Options& strategyOpt);
 
 #if VDEBUG
   DHSet<pid_t> childIds;

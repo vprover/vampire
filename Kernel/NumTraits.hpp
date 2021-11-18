@@ -137,7 +137,7 @@ struct NumTraits;
 #define IMPL_NUM_TRAITS(CamelCase, lowerCase, LONG, SHORT)                                                               \
   template<> struct NumTraits<CamelCase ## ConstantType> {                                                    \
     using ConstantType = CamelCase ## ConstantType;                                                           \
-    static TermList sort() { return Term::lowerCase ## Sort(); };                                              \
+    static TermList sort() { return AtomicSort::lowerCase ## Sort(); };                                              \
                                                                                                               \
     IMPL_NUM_TRAITS__INTERPRETED_PRED(less,    SHORT, _LESS,          2)                                      \
     IMPL_NUM_TRAITS__INTERPRETED_PRED(leq,     SHORT, _LESS_EQUAL,    2)                                      \

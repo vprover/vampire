@@ -90,9 +90,9 @@ FormulaUnit* Flattening::flatten (FormulaUnit* unit)
  * @since 08/06/2007 Manchester changed to new data structures
  * @since 18/12/2015 Gothenburg, changes to support FOOL
  */
-Formula* Flattening::flatten (Formula* f)
+Formula* Flattening::innerFlatten (Formula* f)
 {
-  CALL("Flattening::flatten(Formula*)");
+  CALL("Flattening::innerFlatten(Formula*)");
 
   Connective con = f->connective();
   switch (con) {
@@ -113,7 +113,7 @@ Formula* Flattening::flatten (Formula* f)
 
           bool lhsBoolean = lhs.isTerm() && lhs.term()->isBoolean();
           bool rhsBoolean = rhs.isTerm() && rhs.term()->isBoolean();
-          bool varEquality = lit->isTwoVarEquality() && lit->twoVarEqSort() == Term::boolSort();
+          bool varEquality = lit->isTwoVarEquality() && lit->twoVarEqSort() == AtomicSort::boolSort();
 
           if (lhsBoolean || rhsBoolean || varEquality) {
             Formula* lhsFormula = BoolTermFormula::create(lhs);
@@ -322,6 +322,20 @@ TermList Flattening::flatten (TermList ts)
           ASS_REP(flattenedTupleTerm.isTerm(), flattenedTupleTerm.toString())
           return TermList(Term::createTuple(flattenedTupleTerm.term()));
         }
+      }
+
+      case Term::SF_MATCH: {
+        DArray<TermList> terms(term->arity());
+        bool unchanged = true;
+        for (unsigned i = 0; i < term->arity(); i++) {
+          terms[i] = flatten(*term->nthArgument(i));
+          unchanged = unchanged && (terms[i] == *term->nthArgument(i));
+        }
+
+        if (unchanged) {
+          return ts;
+        }
+        return TermList(Term::createMatch(sd->getSort(), sd->getMatchedSort(), term->arity(), terms.begin()));
       }
 
       default:

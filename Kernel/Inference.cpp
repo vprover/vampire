@@ -659,6 +659,8 @@ vstring Kernel::ruleName(InferenceRule rule)
     return "fool $ite elimination";
   case InferenceRule::FOOL_LET_ELIMINATION:
     return "fool $let elimination";
+  case InferenceRule::FOOL_MATCH_ELIMINATION:
+    return "fool $match elimination";
   case InferenceRule::FOOL_PARAMODULATION:
     return "fool paramodulation";
 //  case CHOICE_AXIOM:
@@ -856,6 +858,8 @@ vstring Kernel::ruleName(InferenceRule rule)
     return "avatar component clause";
   case InferenceRule::AVATAR_REFUTATION:
     return "avatar sat refutation";
+  case InferenceRule::AVATAR_REFUTATION_SMT:
+    return "avatar smt refutation";
   case InferenceRule::AVATAR_SPLIT_CLAUSE:
     return "avatar split clause";
   case InferenceRule::AVATAR_CONTRADICTION_CLAUSE:

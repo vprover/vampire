@@ -88,6 +88,8 @@ void TimeCounter::startMeasuring(TimeCounterUnit tcu)
   CALL("TimeCounter::startMeasuring");
   ASS_NEQ(tcu, TC_OTHER);
 
+  TimeoutProtector tp; // let's not get interrupted while updating our TimeCounter linked-list
+
   if(!s_initialized) {
     initialize();
     if(!s_measuring) {
@@ -110,6 +112,8 @@ void TimeCounter::startMeasuring(TimeCounterUnit tcu)
 void TimeCounter::stopMeasuring()
 {
   CALL("TimeCounter::stopMeasuring");
+  
+  TimeoutProtector tp; // let's not get interrupted while updating our TimeCounter linked-list
 
   if(_tcu==__TC_NONE) {
     //we did not start measuring
@@ -337,14 +341,11 @@ void TimeCounter::outputSingleStat(TimeCounterUnit tcu, ostream& out)
   case TC_TERM_SHARING:
     out<<"term sharing";
     break;
+  case TC_SORT_SHARING:
+    out<<"sort sharing";
+    break;    
   case TC_TRIVIAL_PREDICATE_REMOVAL:
     out<<"trivial predicate removal";
-    break;
-  case TC_SOLVING:
-    out << "Bound propagation solving";
-    break;
-  case TC_BOUND_PROPAGATION:
-    out << "Bound propagation";
     break;
   case TC_DISMATCHING:
     out << "dismatching";

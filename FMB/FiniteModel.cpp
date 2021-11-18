@@ -16,6 +16,7 @@
  */
 
 #include <cmath>
+#include <climits>
 
 #include "Kernel/Term.hpp"
 #include "Kernel/Unit.hpp"
@@ -56,9 +57,8 @@ FiniteModel::FiniteModel(unsigned size) : _size(size), _isPartial(false)
   // see addFunctionDefinition for how the offset is used to compute
   // the actual index
   unsigned offsets=1;
-  for(unsigned f=0; f<env->signature->functions(); f++){
-    if(env->signature->isTypeConOrSup(f)){ continue; }
-    unsigned arity=env->signature->functionArity(f);
+  for(unsigned f=0; f<env.signature->functions(); f++){
+    unsigned arity=env.signature->functionArity(f);
     f_offsets[f]=offsets;
     unsigned add = pow(size,arity+1);
     ASS(UINT_MAX - add > offsets);
@@ -186,9 +186,8 @@ vstring FiniteModel::toString()
   }
 
   //Constants
-  for(unsigned f=0;f<env->signature->functions();f++){
-    if(env->signature->isTypeConOrSup(f)){ continue; }
-    unsigned arity = env->signature->functionArity(f);
+  for(unsigned f=0;f<env.signature->functions();f++){
+    unsigned arity = env.signature->functionArity(f);
     if(arity>0) continue;
     if(!printIntroduced && env->signature->getFunction(f)->introduced()) continue;
     vstring name = env->signature->functionName(f);
@@ -202,9 +201,8 @@ vstring FiniteModel::toString()
   }
 
   //Functions
-  for(unsigned f=0;f<env->signature->functions();f++){
-    if(env->signature->isTypeConOrSup(f)){ continue; }
-    unsigned arity = env->signature->functionArity(f);
+  for(unsigned f=0;f<env.signature->functions();f++){
+    unsigned arity = env.signature->functionArity(f);
     if(arity==0) continue;
     if(!printIntroduced && env->signature->getFunction(f)->introduced()) continue;
     vstring name = env->signature->functionName(f);

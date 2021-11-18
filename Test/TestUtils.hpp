@@ -24,6 +24,7 @@
 #include "Api/Problem.hpp"
 #include "Lib/Coproduct.hpp"
 #include "Lib/Map.hpp"
+#include "Kernel/Clause.hpp"
 
 namespace Test {
 class TestUtils {
@@ -187,7 +188,6 @@ public:
   std::ostream& prettyPrint(std::ostream& out) const
   { return _self.isSome() ? out << pretty(_self.unwrap()) : out << "none"; }
 };
-
 
 template<class A>
 class Pretty<unique_ptr<A>> {

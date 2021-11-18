@@ -30,6 +30,9 @@ namespace Kernel {
  *
  * The literal and subterms returned by the transform(TermList) function have
  * to be shared.
+ *
+ * This class can be used to transform sort arguments as well by suitably
+ * implementing the transform(TermList) function
  */
 class TermTransformer {
 public:
@@ -40,7 +43,7 @@ protected:
   virtual TermList transformSubterm(TermList trm) = 0;
   Term* transformSpecial(Term* specialTerm);
   TermList transform(TermList ts);
-  Formula* transform(Formula* f);
+  virtual Formula* transform(Formula* f);
 };
 
 /**

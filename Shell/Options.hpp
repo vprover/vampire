@@ -218,9 +218,10 @@ public:
     OFF,
     ALL,    // select all interpreted
     STRONG, // select strong only
-    OVERLAP, // select strong and weak which overlap with strong
-    FULL,    // perform full abstraction
-    NEW
+    NEG_EQ, // select only positive equalities
+    OVERLAP,
+    FULL,   // <-+- deprecated. only exists to not break portfolio modes. behaves exactly like `ALL` now
+    NEW,    // <-+
   };
   enum class UnificationWithAbstraction : unsigned int {
     OFF,
@@ -1974,6 +1975,7 @@ public:
   void setSchedule(Schedule newVal) {  _schedule.actualValue = newVal; }
   unsigned multicore() const { return _multicore.actualValue; }
   void setMulticore(unsigned newVal) { _multicore.actualValue = newVal; }
+  float slowness() const {return _slowness.actualValue; }
   InputSyntax inputSyntax() const { return _inputSyntax.actualValue; }
   void setInputSyntax(InputSyntax newVal) { _inputSyntax.actualValue = newVal; }
   bool normalize() const { return _normalize.actualValue; }
@@ -2014,6 +2016,8 @@ public:
 
 #if VZ3
   bool showZ3() const { return showAll() || _showZ3.actualValue; }
+  vstring const& exportAvatarProblem() const { return _exportAvatarProblem.actualValue; }
+  vstring const& exportThiProblem() const { return _exportThiProblem.actualValue; }
 #endif
   
   // end of show commands
@@ -2030,10 +2034,10 @@ public:
   bool printAllTheoryAxioms() const { return _printAllTheoryAxioms.actualValue; }
 
 #if VZ3
-  bool z3UnsatCores() const { return _z3UnsatCores.actualValue;}
   bool satFallbackForSMT() const { return _satFallbackForSMT.actualValue; }
   bool smtForGround() const { return _smtForGround.actualValue; }
   TheoryInstSimp theoryInstAndSimp() const { return _theoryInstAndSimp.actualValue; }
+  bool thiGeneralise() const { return _thiGeneralise.actualValue; }
   bool thiTautologyDeletion() const { return _thiTautologyDeletion.actualValue; }
 #endif
   UnificationWithAbstraction unificationWithAbstraction() const { return _unificationWithAbstraction.actualValue; }
@@ -2094,6 +2098,9 @@ public:
   // Return time limit in deciseconds, or 0 if there is no time limit
   int timeLimitInDeciseconds() const { return _timeLimitInDeciseconds.actualValue; }
   size_t memoryLimit() const { return _memoryLimit.actualValue; }
+#ifdef __linux__
+  size_t instructionLimit() const { return _instructionLimit.actualValue; }
+#endif
   int inequalitySplitting() const { return _inequalitySplitting.actualValue; }
   int ageRatio() const { return _ageWeightRatio.actualValue; }
   void setAgeRatio(int v){ _ageWeightRatio.actualValue = v; }
@@ -2139,11 +2146,14 @@ public:
   bool ignoreConjectureInPreprocessing() const {return _ignoreConjectureInPreprocessing.actualValue;}
 
   FunctionDefinitionElimination functionDefinitionElimination() const { return _functionDefinitionElimination.actualValue; }
+  bool skolemReuse() const { return _skolemReuse.actualValue; }
+  bool definitionReuse() const { return _definitionReuse.actualValue; }
   bool outputAxiomNames() const { return _outputAxiomNames.actualValue; }
   void setOutputAxiomNames(bool newVal) { _outputAxiomNames.actualValue = newVal; }
   QuestionAnsweringMode questionAnswering() const { return _questionAnswering.actualValue; }
   Output outputMode() const { return _outputMode.actualValue; }
   void setOutputMode(Output newVal) { _outputMode.actualValue = newVal; }
+  bool ignoreMissingInputsInUnsatCore() {  return _ignoreMissingInputsInUnsatCore.actualValue; }
   vstring thanks() const { return _thanks.actualValue; }
   void setQuestionAnswering(QuestionAnsweringMode newVal) { _questionAnswering.actualValue = newVal; }
   bool globalSubsumption() const { return _globalSubsumption.actualValue; }
@@ -2438,6 +2448,8 @@ private:
   BoolOptionValue _forwardSubsumptionDemodulation;
   UnsignedOptionValue _forwardSubsumptionDemodulationMaxMatches;
   ChoiceOptionValue<FunctionDefinitionElimination> _functionDefinitionElimination;
+  BoolOptionValue _skolemReuse;
+  BoolOptionValue _definitionReuse;
   
   ChoiceOptionValue<RuleActivity> _generalSplitting;
   BoolOptionValue _globalSubsumption;
@@ -2500,10 +2512,15 @@ private:
   ChoiceOptionValue<LTBLearning> _ltbLearning;
   StringOptionValue _ltbDirectory;
 
+#ifdef __linux__
+  UnsignedOptionValue _instructionLimit; 
+#endif
+
   UnsignedOptionValue _memoryLimit; // should be size_t, making an assumption
   ChoiceOptionValue<Mode> _mode;
   ChoiceOptionValue<Schedule> _schedule;
   UnsignedOptionValue _multicore;
+  FloatOptionValue _slowness;
 
   IntOptionValue _naming;
   BoolOptionValue _nonliteralsInClauseWeight;
@@ -2558,10 +2575,12 @@ private:
   BoolOptionValue _showSimplOrdering;
 #if VZ3
   BoolOptionValue _showZ3;
-  BoolOptionValue _z3UnsatCores;
+  StringOptionValue _exportAvatarProblem;
+  StringOptionValue _exportThiProblem;
   BoolOptionValue _satFallbackForSMT;
   BoolOptionValue _smtForGround;
   ChoiceOptionValue<TheoryInstSimp> _theoryInstAndSimp;
+  BoolOptionValue _thiGeneralise;
   BoolOptionValue _thiTautologyDeletion;
 #endif
   ChoiceOptionValue<UnificationWithAbstraction> _unificationWithAbstraction; 
@@ -2612,6 +2631,7 @@ private:
 
   StringOptionValue _testId;
   ChoiceOptionValue<Output> _outputMode;
+  BoolOptionValue _ignoreMissingInputsInUnsatCore;
   StringOptionValue _thanks;
   ChoiceOptionValue<TheoryAxiomLevel> _theoryAxioms;
   BoolOptionValue _theoryFlattening;

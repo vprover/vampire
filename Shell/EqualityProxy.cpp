@@ -174,7 +174,7 @@ void EqualityProxy::getArgumentEqualityLiterals(unsigned cnt, LiteralStack& lits
     TermList v1(2*i, false);
     TermList v2(2*i+1, false);
     TermList sort = symbolType->arg(i);
-    if(sort != Term::superSort()){
+    if(sort != AtomicSort::superSort()){
       lits.push(makeProxyLiteral(false, v1, v2, SubstHelper::apply(sort, localSubst)));
       vars1.push(v1);
       vars2.push(v2);
@@ -206,13 +206,10 @@ void EqualityProxy::addCongruenceAxioms(UnitList*& units)
 
   unsigned funs = env->signature->functions();
   for (unsigned i=0; i<funs; i++) {
-    Signature::Symbol* fnSym = env->signature->getFunction(i);
-    if(fnSym->super()){
-      continue;
-    }
+    Signature::Symbol* fnSym = env.signature->getFunction(i);
     unsigned arity = fnSym->arity();
     OperatorType* fnType = fnSym->fnType();
-    if (arity == 0 || fnType->result() == Term::superSort()) {
+    if (arity == 0) {
       continue;
     }
     getArgumentEqualityLiterals(arity, lits, vars1, vars2, fnType);

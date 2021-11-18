@@ -23,7 +23,7 @@
 
 #include "Kernel/Clause.hpp"
 #include "Kernel/Inference.hpp"
-#include "Kernel/Sorts.hpp"
+#include "Kernel/OperatorType.hpp"
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/Substitution.hpp"
 #include "Kernel/SubstHelper.hpp"
@@ -112,7 +112,7 @@ void Instantiation::registerClause(Clause* cl)
       if(t.isTerm() && t.term()->ground()){
         TermList sort;
         if(SortHelper::tryGetResultSort(t,sort)){
-          if(sort==Term::defaultSort()) continue;
+          if(sort==AtomicSort::defaultSort()) continue;
           Set<Term*>* cans_check=0;
           Stack<Term*>* cans=0;
           if(sorted_candidates.isEmpty() || !sorted_candidates.find(sort,cans)){
@@ -143,7 +143,7 @@ void Instantiation::tryMakeLiteralFalse(Literal* lit, Stack<Substitution>& subs)
 {
   CALL("Instantiation::tryMakeLiteralFalse");
 
-  if(theory->isInterpretedPredicate(lit)){
+  if(theory->isInterpretedPredicate(lit->functor())){
     Interpretation itp = theory->interpretPredicate(lit);
     //unsigned sort = theory->getOperationSort(interpretation);
 
@@ -190,18 +190,18 @@ Term* Instantiation::tryGetDifferentValue(Term* t)
   TermList sort = SortHelper::getResultSort(t);
 
   try {
-        if(sort == Term::intSort()){
+        if(sort == AtomicSort::intSort()){
               IntegerConstantType constant;
               if(theory->tryInterpretConstant(t,constant)){
                 return theory->representConstant(constant+1);
               }
-        } else if(sort == Term::rationalSort()){
+        } else if(sort == AtomicSort::rationalSort()){
               RationalConstantType constant;
               RationalConstantType one(1,1);
               if(theory->tryInterpretConstant(t,constant)){
                 return theory->representConstant(constant+one);
               }
-        } else if(sort == Term::realSort()){
+        } else if(sort == AtomicSort::realSort()){
               RealConstantType constant;
               RealConstantType one(RationalConstantType(1,1));
               if(theory->tryInterpretConstant(t,constant)){

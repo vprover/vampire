@@ -14,6 +14,7 @@
  */
 
 #include <cmath>
+#include <climits>
 
 #include "Debug/RuntimeStatistics.hpp"
 

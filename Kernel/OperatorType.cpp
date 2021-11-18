@@ -12,7 +12,7 @@
  * Implements class Sorts for handling collections of sorts.
  */
 
-#include "Sorts.hpp"
+#include "OperatorType.hpp"
 
 #include "Lib/Environment.hpp"
 //#include "Kernel/Theory.hpp"
@@ -22,72 +22,6 @@
 #include "Signature.hpp"
 
 using namespace Kernel;
-
-/**
- * Initialise sorts by adding the default sort
- * @since 04/05/2013 Manchester, updated with the new built-in sorts
- * @author Andrei Voronkov
- */
-  
-Sorts::Sorts()
-{
-  CALL("Sorts::Sorts");
-  _arraySorts = new DHSet<TermList>();
- //_hasSort = false;
-} // Sorts::Sorts
-
-/**
- * Destroy the object and delete all sorts in it.
- * @author Andrei Voronkov
- */
-Sorts::~Sorts()
-{
-  CALL("Sorts::~Sorts");
-  delete _arraySorts;
-  /*while(_sorts.isNonEmpty()) {
-    delete _sorts.pop();
-  }*/
-} // Sorts::~Sorts
-
-
-TermList Sorts::addSort(vstring const& name)
-{
-  bool added;
-  auto fun = env->signature->addFunction(name, /*arity*/ 0, added);
-  if (added) {
-    env->signature->getFunction(fun)->setType(OperatorType::getConstantsType(Term::superSort()));
-  }
-  return TermList(Term::createConstant(fun));
-}
-
-bool Sorts::addSort(TermList sort)
-{ 
-  CALL("Sorts::addSort");
- 
-  if(_termListsToUnsigned.find(sort)){
-    return false;
-  }
-  
-  _termListsToUnsigned.insert(sort, _sorts.size());
-  _sorts.push(sort);
-  return true;
-}
-
-unsigned Sorts::getSortNum(TermList sort)
-{ 
-  CALL("Sorts::getSortNum");
-
-  ASS_REP(_termListsToUnsigned.find(sort), sort.toString())
-  return _termListsToUnsigned.get(sort);
-}
-
-TermList Sorts::getSortTerm(unsigned sortNum)
-{
-  CALL("Sorts::getSortTerm");
-  
-  ASS(sortNum < _sorts.size())
-  return _sorts[sortNum];
-}
 
 /**
  * Pre-initialise an OperatorKey.
@@ -105,7 +39,7 @@ OperatorType::OperatorKey* OperatorType::setupKey(unsigned arity, const TermList
   if (!sorts) {
     // initialise all argument types to the default type
     for (unsigned i=0; i < arity; i++) {
-      (*key)[i] = Term::defaultSort();
+      (*key)[i] = AtomicSort::defaultSort();
     }
   } else {
     // initialise all the argument types to those taken from sorts

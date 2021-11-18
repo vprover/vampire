@@ -30,7 +30,6 @@
 #include "Kernel/Substitution.hpp"
 #include "Kernel/FormulaUnit.hpp"
 
-#include "SAT/Preprocess.hpp"
 #include "SAT/MinisatInterfacingNewSimp.hpp"
 #include "SAT/BufferedSolver.hpp"
 
@@ -176,8 +175,7 @@ bool FiniteModelBuilder::reset(){
 
   // Start from 1 as SAT solver variables are 1-based
   unsigned offsets=1;
-  for(unsigned f=0; f<env->signature->functions();f++){
-    if(env->signature->isTypeConOrSup(f)){ continue; }
+  for(unsigned f=0; f<env.signature->functions();f++){
     if(del_f[f]) continue; 
     f_offsets[f]=offsets;
 #if VTRACE_FMB
@@ -189,7 +187,11 @@ bool FiniteModelBuilder::reset(){
 
     unsigned add = _sortModelSizes[f_signature[0]]; 
     for(unsigned i=1;i<f_signature.size();i++){
-      add *= _sortModelSizes[f_signature[i]];
+      unsigned n_add = add * _sortModelSizes[f_signature[i]];
+      if (n_add < add) { // additional overflow check - we multiply by positive integers!
+        return false;
+      }
+      add = n_add;
     }
 
     // Check that we do not overflow
@@ -211,7 +213,11 @@ bool FiniteModelBuilder::reset(){
     ASS(p_signature.size()==env->signature->predicateArity(p));
     unsigned add=1;
     for(unsigned i=0;i<p_signature.size();i++){
-      add *= _sortModelSizes[p_signature[i]];
+      unsigned n_add = add * _sortModelSizes[p_signature[i]];
+      if (n_add < add) { // additional overflow check - we multiply by positive integers!
+        return false;
+      }
+      add = n_add;
     }
 
     // Check for overflow
@@ -444,10 +450,9 @@ void FiniteModelBuilder::init()
   }
 
   ClauseList* clist = 0;
-  if(env->options->fmbAdjustSorts() == Options::FMBAdjustSorts::PREDICATE){
-    DArray<unsigned> deleted_functions(env->signature->functions());
-    for(unsigned f=0;f<env->signature->functions();f++){
-      if(env->signature->isTypeConOrSup(f)){ continue; }
+  if(env.options->fmbAdjustSorts() == Options::FMBAdjustSorts::PREDICATE){
+    DArray<unsigned> deleted_functions(env.signature->functions());
+    for(unsigned f=0;f<env.signature->functions();f++){
       deleted_functions[f] = _deletedFunctions.find(f);
      }
     ClauseList::pushFromIterator(_prb.clauseIterator(),clist);
@@ -467,8 +472,8 @@ void FiniteModelBuilder::init()
 
   // Store distinct constants by type
   DArray<DHMap<unsigned,DHSet<unsigned>*>*> _distinctConstants;
-  _distinctConstants.ensure(env->sorts->count());
-  for(unsigned i=0;i<env->sorts->count();i++){ _distinctConstants[i]=0; }
+  _distinctConstants.ensure(env.signature->typeCons());
+  for(unsigned i=0;i<env.signature->typeCons();i++){ _distinctConstants[i]=0; }
 
   // Apply flattening and split clauses into ground and non-ground
   while(cit.hasNext()){
@@ -490,7 +495,7 @@ void FiniteModelBuilder::init()
            right->isTerm() && right->term()->arity()==0){
 
           TermList srtT = SortHelper::getResultSort(left->term());
-          unsigned srt = SortHelper::sortNum(srtT);
+          unsigned srt = srtT.term()->functor();
           auto map = _distinctConstants[srt];
           if(map==0){
             map = new DHMap<unsigned,DHSet<unsigned>*>();
@@ -584,9 +589,8 @@ void FiniteModelBuilder::init()
   del_f.ensure(env->signature->functions());
   del_p.ensure(env->signature->predicates());
 
-  for(unsigned f=0;f<env->signature->functions();f++){
-    if(env->signature->isTypeConOrSup(f)){ continue; }
-    del_f[f] = _deletedFunctions.find(f) || env->signature->getFunction(f)->usageCnt()==0;
+  for(unsigned f=0;f<env.signature->functions();f++){
+    del_f[f] = _deletedFunctions.find(f) || env.signature->getFunction(f)->usageCnt()==0;
   }
   for(unsigned p=0;p<env->signature->predicates();p++){
     del_p[p] = (_deletedPredicates.find(p) || _trivialPredicates.find(p));
@@ -691,8 +695,8 @@ void FiniteModelBuilder::init()
 
     // if we've done the sort expansion thing then the max for the parent should be
     // the max of all children
-    for(unsigned s=0;s<env->sorts->count();s++){
-      if((env->property->usesSort(s) || SortHelper::isNotDefaultSort(s)) && _sortedSignature->vampireToDistinct.find(s)){
+    for(unsigned s=0;s<env.signature->typeCons();s++){
+      if((env.property->usesSort(s) || env.signature->isNonDefaultCon(s)) && _sortedSignature->vampireToDistinct.find(s)){
         Stack<unsigned>* dmembers = _sortedSignature->vampireToDistinct.get(s);
         ASS(dmembers);
         if(dmembers->size() > 1){ 
@@ -709,7 +713,7 @@ void FiniteModelBuilder::init()
     }
 
     //_distinctConstants
-    for(unsigned s=0;s<env->sorts->count();s++){
+    for(unsigned s=0;s<env.signature->typeCons();s++){
       if(_distinctConstants[s]!=0){
 
         ASS(_sortedSignature->vampireToDistinct.find(s));
@@ -721,7 +725,7 @@ void FiniteModelBuilder::init()
           _distinctSortMins[ds.next()]=max;
         }
 #if VTRACE_FMB
-        cout << "Setting min for " << env->sorts->sortName(s) << " to " << max << endl;
+        cout << "Setting min for " << env.signature->typeConName(s) << " to " << max << endl;
 #endif
       }
     }
@@ -734,9 +738,8 @@ void FiniteModelBuilder::init()
     // Otherwise this was done at clausification
     if(env->options->fmbSymmetryOrderSymbols() != Options::FMBSymbolOrders::PREPROCESSED_USAGE){
      // reset usage counts
-     for(unsigned f=0;f<env->signature->functions();f++){
-       if(env->signature->isTypeConOrSup(f)){ continue; }
-       env->signature->getFunction(f)->resetUsageCnt();
+     for(unsigned f=0;f<env.signature->functions();f++){
+       env.signature->getFunction(f)->resetUsageCnt();
      }
      // do them again!
      {
@@ -788,15 +791,14 @@ void FiniteModelBuilder::init()
   // i.e. the smallest return or parameter sort
   // this loop also counts the number of constants in the problem
   _distinctSortConstantCount.ensure(_sortedSignature->distinctSorts);
-  _fminbound.ensure(env->signature->functions());
-  for(unsigned f=0;f<env->signature->functions();f++){
-    if(env->signature->isTypeConOrSup(f)){ continue; }
+  _fminbound.ensure(env.signature->functions());
+  for(unsigned f=0;f<env.signature->functions();f++){
     if(del_f[f]) continue;
 
-    if(env->signature->functionArity(f)==0){ 
-      TermList vsrtT = env->signature->getFunction(f)->fnType()->result();
-      if(!SortHelper::isBoolSort(vsrtT)){
-        unsigned vsrt = SortHelper::sortNum(vsrtT);
+    if(env.signature->functionArity(f)==0){ 
+      TermList vsrtT = env.signature->getFunction(f)->fnType()->result();
+      if(!vsrtT.isBoolSort()){
+        unsigned vsrt = vsrtT.term()->functor();
         ASS(_sortedSignature->vampireToDistinctParent.find(vsrt));
         unsigned dsrt = _sortedSignature->vampireToDistinctParent.get(vsrt);
         _distinctSortConstantCount[dsrt]++;
@@ -905,7 +907,7 @@ void FiniteModelBuilder::init()
           // tell me what sorts they should have by appearance in a function or predicate symbol
           // So I use the special sort for this
           TermList litSort = lit->twoVarEqSort();
-          unsigned litSortU = SortHelper::sortNum(litSort);
+          unsigned litSortU = litSort.term()->functor();
           unsigned dsort = _sortedSignature->vampireToDistinctParent.get(litSortU);
           unsigned sort = _sortedSignature->varEqSorts[dsort];
           (*csig)[var1] = sort;
@@ -1152,8 +1154,7 @@ unsigned FiniteModelBuilder::estimateFunctionalDefCount()
   CALL("FiniteModelBuilder::estimateFunctionalDefCount");
   unsigned res = 0;
 
-  for(unsigned f=0;f<env->signature->functions();f++){
-    if(env->signature->isTypeConOrSup(f)){ continue; }
+  for(unsigned f=0;f<env.signature->functions();f++){
     unsigned instances = 1;
 
     if(del_f[f]) continue;
@@ -1185,8 +1186,7 @@ void FiniteModelBuilder::addNewFunctionalDefs()
   // f(x1,...,xn) != y | f(x1,...,xn) != z 
   // they should be instantiated with groundings where y!=z
 
-  for(unsigned f=0;f<env->signature->functions();f++){
-    if(env->signature->isTypeConOrSup(f)){ continue; }
+  for(unsigned f=0;f<env.signature->functions();f++){
     if(del_f[f]) continue;
     unsigned arity = env->signature->functionArity(f);
 
@@ -1391,8 +1391,7 @@ void FiniteModelBuilder::addNewTotalityDefs()
     }
   }
 
-  for(unsigned f=0;f<env->signature->functions();f++){
-    if(env->signature->isTypeConOrSup(f)){ continue; }
+  for(unsigned f=0;f<env.signature->functions();f++){
     if(del_f[f]) continue;
     unsigned arity = env->signature->functionArity(f);
 
@@ -1533,7 +1532,7 @@ SATLiteral FiniteModelBuilder::getSATLiteral(unsigned f, const DArray<unsigned>&
 void FiniteModelBuilder::addSATClause(SATClause* cl)
 {
   CALL("FiniteModelBuilder::addSATClause");
-  cl = Preprocess::removeDuplicateLiterals(cl);
+  cl = SATClause::removeDuplicateLiterals(cl);
   if(!cl){ return; }
 #if VTRACE_FMB
   cout << "ADDING " << cl->toString() << endl; // " of size " << cl->length() << endl;
@@ -1869,13 +1868,13 @@ void FiniteModelBuilder::onModelFound()
    UIHelper::satisfiableStatusWasAlreadyOutput = true;
  }
   // Prevent timing out whilst the model is being printed
-  Timer::setTimeLimitEnforcement(false);
+  Timer::setLimitEnforcement(false);
 
 
  DHMap<unsigned,unsigned> vampireSortSizes;
- for(unsigned vSort=0;vSort<env->sorts->count();vSort++){
+ for(unsigned vSort=0;vSort<env.signature->typeCons();vSort++){
    unsigned size = 1;
-   if(SortHelper::isInterpretedNonDefault(vSort) && SortHelper::isInterpretedNonBool(vSort)){ size=0;}
+   if(env.signature->isInterpretedNonDefault(vSort) && !env.signature->isBoolCon(vSort)){ size=0;}
    unsigned dsort;
    if(_sortedSignature->vampireToDistinctParent.find(vSort,dsort)){
      size = _distinctSortSizes[dsort];
@@ -1886,9 +1885,8 @@ void FiniteModelBuilder::onModelFound()
   FiniteModelMultiSorted model(vampireSortSizes);
 
   //Record interpretation of constants
-  for(unsigned f=0;f<env->signature->functions();f++){
-    if(env->signature->isTypeConOrSup(f)){ continue; }
-    if(env->signature->functionArity(f)>0) continue;
+  for(unsigned f=0;f<env.signature->functions();f++){
+    if(env.signature->functionArity(f)>0) continue;
     if(del_f[f]) continue;
 
     bool found=false;
@@ -1907,9 +1905,8 @@ void FiniteModelBuilder::onModelFound()
   }
 
   //Record interpretation of functions 
-  for(unsigned f=0;f<env->signature->functions();f++){
-    if(env->signature->isTypeConOrSup(f)){ continue; }
-    unsigned arity = env->signature->functionArity(f);
+  for(unsigned f=0;f<env.signature->functions();f++){
+    unsigned arity = env.signature->functionArity(f);
     if(arity==0) continue;
     if(del_f[f]) continue;
 
@@ -2045,7 +2042,6 @@ pModelLabel:
   unsigned f=maxf;
   while(f > 0){ 
     f--;
-    if(env->signature->isTypeConOrSup(f)){ continue; }
     //cout << "Consider " << f << endl;
     unsigned arity = env->signature->functionArity(f);
     if(!del_f[f]) continue; 
@@ -2087,8 +2083,8 @@ pModelLabel:
       f_signature_distinct.ensure(arity);
       for(unsigned i=0;i<arity-1;i++){
         grounding[i]=1;
-        TermList vs = env->signature->getFunction(f)->fnType()->arg(i);
-        unsigned vampireSrt = SortHelper::sortNum(vs);
+        TermList vs = env.signature->getFunction(f)->fnType()->arg(i);
+        unsigned vampireSrt = vs.term()->functor();
         ASS(_sortedSignature->vampireToDistinctParent.find(vampireSrt));
         unsigned dsrt = _sortedSignature->vampireToDistinctParent.get(vampireSrt);
         f_signature_distinct[i] = dsrt;
@@ -2108,8 +2104,8 @@ ffModelLabel:
 
           Substitution subst;
           for(unsigned j=0;j<arity;j++){
-            TermList vs = env->signature->getFunction(f)->fnType()->arg(j); 
-            unsigned vampireSrt = SortHelper::sortNum(vs);
+            TermList vs = env.signature->getFunction(f)->fnType()->arg(j); 
+            unsigned vampireSrt = vs.term()->functor();
             //cout << grounding[j] << " is " << model.getDomainConstant(grounding[j],vampireSrt)->toString() << endl;
             subst.bind(vars[j],model.getDomainConstant(grounding[j],vampireSrt));
           }
@@ -2225,8 +2221,8 @@ ffModelLabel:
     p_signature_distinct.ensure(arity);
     for(unsigned i=0;i<arity;i++){
       grounding[i]=1;
-      TermList vs = env->signature->getPredicate(f)->predType()->arg(i);
-      unsigned vampireSrt = SortHelper::sortNum(vs);
+      TermList vs = env.signature->getPredicate(f)->predType()->arg(i);
+      unsigned vampireSrt = vs.term()->functor();
       unsigned dsrt = _sortedSignature->vampireToDistinctParent.get(vampireSrt); 
       p_signature_distinct[i] = dsrt;
     }
@@ -2249,8 +2245,8 @@ ppModelLabel:
             Substitution subst;
             for(unsigned j=0;j<arity;j++){ 
               //cout << grounding[j] << " is " << model.getDomainConstant(grounding[j])->toString() << endl;
-              TermList vs = env->signature->getPredicate(f)->predType()->arg(j); 
-              unsigned vampireSrt = SortHelper::sortNum(vs);
+              TermList vs = env.signature->getPredicate(f)->predType()->arg(j); 
+              unsigned vampireSrt = vs.term()->functor();
               subst.bind(vars[j],model.getDomainConstant(grounding[j],vampireSrt));
             }
             Formula* predDefGround = SubstHelper::apply(predDef,subst);
