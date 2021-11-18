@@ -246,30 +246,6 @@ TEST_FUN(lalpo_test_literals) {
 }
 
 
-// TEST_FUN(lalpo_test02) {
-//   DECL_DEFAULT_VARS
-//   NUMBER_SUGAR(Int)
-//   DECL_FUNC (f, {Int}, Int)
-//   DECL_CONST(a, Int)
-//   DECL_CONST(b, Int)
-//
-//   auto ord = laLpo();
-//
-//   check(ord,     f(x) > 0, Less   , 3 * f(x) > 0);
-//   check(ord, 5 * f(x) > 0, Greater, 3 * f(x) > 0);
-//
-//   check(ord,     f(x) + a > 0, Less   , 3 * f(x) + a > 0);
-//   check(ord, 5 * f(x) + a > 0, Greater, 3 * f(x) + a > 0);
-//
-//   check(ord,                     f(x) > 0, Less,     f(f(x)) > 0);
-//   check(ord,              f(x) + f(x) > 0, Less,     f(f(x)) > 0);
-//   check(ord,              f(a) + f(b) > 0, Less,     f(f(x)) > 0);
-//   check(ord,   3 * f(x) + f(a) + f(b) > 0, Less,     f(f(x)) > 0);
-//   check(ord,   3 * f(x) + x           > 0, Less,     f(f(x)) > 0);
-//   check(ord,   3 * f(x) + x     + y   > 0, Less,     f(f(x)) + y > 0);
-//   check(ord,   3 * f(x) + x     + y   > 0, Incomp,   f(f(x))     > 0);
-// }
-
 TEST_FUN(lalpo_bug01) {
   DECL_DEFAULT_VARS
   DECL_VAR(x0, 0); DECL_VAR(x1, 1); DECL_VAR(x2, 2); DECL_VAR(x3, 3);
@@ -283,8 +259,8 @@ TEST_FUN(lalpo_bug01) {
 
   check(ord, x, Incomp, a); 
 
-  check(ord, f(a + b, c), Equal , f(a + b, c));
-  check(ord, f(b + a, c), Incomp, f(a + b, c));
+  check(ord, f(a + b, c), Equal, f(a + b, c));
+  check(ord, f(b + a, c), Equal, f(a + b, c));
 
   check(ord,  f(x0 * (x1 * x3)          , x0 * (x1 * x2)),
         Less, f(x0 * (x1 * x2 + x1 * x3), x0 * (x1 * x2)) );
