@@ -166,7 +166,7 @@ Literal* InequalitySplitting::splitLiteral(Literal* lit, UnitInputType inpType, 
     type = OperatorType::getPredicateType({srt}, vars.size());
   } else {
     srt = AtomicSort::arrowSort(srt, AtomicSort::boolSort());
-    fun=env.signature->addNameFunction(vars.size());
+    fun=env->signature->addNameFunction(vars.size());
     type = OperatorType::getConstantsType(srt, vars.size());
   }
 

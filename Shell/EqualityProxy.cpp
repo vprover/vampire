@@ -206,7 +206,7 @@ void EqualityProxy::addCongruenceAxioms(UnitList*& units)
 
   unsigned funs = env->signature->functions();
   for (unsigned i=0; i<funs; i++) {
-    Signature::Symbol* fnSym = env.signature->getFunction(i);
+    Signature::Symbol* fnSym = env->signature->getFunction(i);
     unsigned arity = fnSym->arity();
     OperatorType* fnType = fnSym->fnType();
     if (arity == 0) {

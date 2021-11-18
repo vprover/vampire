@@ -318,7 +318,7 @@ Ordering::Result PrecedenceOrdering::compare(Literal* l1, Literal* l2) const
 int PrecedenceOrdering::predicateLevel (unsigned pred) const
 {
   int basic=pred >= _predicates ? 1 : _predicateLevels[pred];
-  if(NONINTERPRETED_LEVEL_BOOST && !env.signature->getPredicate(pred)->interpreted()) {
+  if(NONINTERPRETED_LEVEL_BOOST && !env->signature->getPredicate(pred)->interpreted()) {
     ASS(!Signature::isEqualityPredicate(pred)); //equality is always interpreted
     basic+=NONINTERPRETED_LEVEL_BOOST;
   }
@@ -483,7 +483,7 @@ Ordering::Result PrecedenceOrdering::compareTypeConPrecedences(unsigned tyc1, un
   if (tyc1 == tyc2)
     return EQUAL;
 
-  static bool reverse = env.options->introducedSymbolPrecedence() == Shell::Options::IntroducedSymbolPrecedence::BOTTOM;
+  static bool reverse = env->options->introducedSymbolPrecedence() == Shell::Options::IntroducedSymbolPrecedence::BOTTOM;
 
   return fromComparison(Int::compare(
       (int)(reverse ? -tyc1 : tyc1),

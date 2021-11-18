@@ -1112,7 +1112,7 @@ bool Naming::canBeInDefinition(Formula* f, Where where) {
 Literal* Naming::getDefinitionLiteral(Formula* f, VList* freeVars) {
   CALL("Naming::getDefinitionLiteral");
 
-  NameReuse *name_reuse = env.options->definitionReuse()
+  NameReuse *name_reuse = env->options->definitionReuse()
     ? NameReuse::definitionInstance()
     : nullptr;
   unsigned reused_symbol = 0;
@@ -1123,7 +1123,7 @@ Literal* Naming::getDefinitionLiteral(Formula* f, VList* freeVars) {
     successfully_reused = name_reuse->get(reuse_key, reused_symbol);
   }
   if(successfully_reused)
-    env.statistics->reusedFormulaNames++;
+    env->statistics->reusedFormulaNames++;
 
   unsigned arity = VList::length(freeVars);
 
@@ -1167,13 +1167,13 @@ Literal* Naming::getDefinitionLiteral(Formula* f, VList* freeVars) {
   if(!_appify){
     unsigned pred = reused_symbol;
     if(!successfully_reused) {
-      pred = env.signature->addNamePredicate(arity);
-      env.statistics->formulaNames++;
+      pred = env->signature->addNamePredicate(arity);
+      env->statistics->formulaNames++;
       if(name_reuse)
         name_reuse->put(reuse_key, pred);
-      Signature::Symbol* predSym = env.signature->getPredicate(pred);
+      Signature::Symbol* predSym = env->signature->getPredicate(pred);
 
-      if (env.colorUsed) {
+      if (env->colorUsed) {
         Color fc = f->getColor();
         if (fc != COLOR_TRANSPARENT) {
           predSym->addColor(fc);
@@ -1189,9 +1189,9 @@ Literal* Naming::getDefinitionLiteral(Formula* f, VList* freeVars) {
   } else {
     unsigned fun = reused_symbol;
     if(!successfully_reused) {
-      fun = env.signature->addNameFunction(typeVars.size());
+      fun = env->signature->addNameFunction(typeVars.size());
       TermList sort = AtomicSort::arrowSort(termVarSorts, AtomicSort::boolSort());
-      Signature::Symbol* sym = env.signature->getFunction(fun);
+      Signature::Symbol* sym = env->signature->getFunction(fun);
       sym->setType(OperatorType::getConstantsType(sort, typeArgArity)); 
       if(name_reuse)
         name_reuse->put(reuse_key, fun);

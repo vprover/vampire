@@ -575,7 +575,7 @@ void clausifyMode(bool theory)
 
       FormulaUnit* fu = new FormulaUnit(f,cl->inference()); // we are stealing cl's inference, which is not nice!
       fu->overwriteNumber(cl->number()); // we are also making sure it's number is the same as that of the original (for Kostya from Russia to CASC, with love, and back again)
-      env.out() << TPTPPrinter::toString(fu) << "\n";
+      env->out() << TPTPPrinter::toString(fu) << "\n";
     } else {
       env->out() << TPTPPrinter::toString(cl) << "\n";
     }
@@ -748,7 +748,7 @@ int main(int argc, char* argv[])
       //env->options->setTimeLimitInSeconds(300);
       env->options->setMemoryLimit(128000);
 
-      if (CASC::PortfolioMode::perform(env.options->slowness())) {
+      if (CASC::PortfolioMode::perform(env->options->slowness())) {
         vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
       }
       break;
@@ -779,7 +779,7 @@ int main(int argc, char* argv[])
       //env->options->setTimeLimitInSeconds(300);
       env->options->setMemoryLimit(128000);
 
-      if (CASC::PortfolioMode::perform(env.options->slowness())) {
+      if (CASC::PortfolioMode::perform(env->options->slowness())) {
         vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
       }
       break;
@@ -801,7 +801,7 @@ int main(int argc, char* argv[])
       // to prevent from terminating by time limit
       env->options->setTimeLimitInSeconds(100000);
 
-      if (CASC::PortfolioMode::perform(env.options->slowness())){
+      if (CASC::PortfolioMode::perform(env->options->slowness())){
         vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
       }
       else {
@@ -815,7 +815,7 @@ int main(int argc, char* argv[])
 #endif
       env->options->setIgnoreMissing(Options::IgnoreMissing::WARN);
 
-      if (CASC::PortfolioMode::perform(env.options->slowness())) {
+      if (CASC::PortfolioMode::perform(env->options->slowness())) {
         vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
       }
       break;

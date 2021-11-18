@@ -1083,7 +1083,7 @@ void TheoryAxioms::apply()
     modified = true;
   }
 
-  DHSet<TermList>* arraySorts = env.sharing->getArraySorts();
+  DHSet<TermList>* arraySorts = env->sharing->getArraySorts();
   DHSet<TermList>::Iterator it(*arraySorts);
   while(it.hasNext()){
     TermList arraySort = it.next();

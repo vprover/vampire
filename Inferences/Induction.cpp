@@ -1067,7 +1067,7 @@ bool InductionClauseIterator::notDoneInt(Literal* lit, Term* t, bool increasing,
   VTHREAD_LOCAL static Term* blank;
   VTHREAD_LOCAL static unsigned freshInt = env->signature->addFreshFunction(0, "blank");
   if (!blank) {
-    env.signature->getFunction(freshInt)->setType(OperatorType::getConstantsType(AtomicSort::intSort()));
+    env->signature->getFunction(freshInt)->setType(OperatorType::getConstantsType(AtomicSort::intSort()));
     blank = Term::createConstant(freshInt);
   }
   TermReplacement cr(t, TermList(blank));

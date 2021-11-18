@@ -74,9 +74,9 @@ Options::TheoryInstSimp manageDeprecations(Options::TheoryInstSimp mode)
   switch (mode) {
     case Options::TheoryInstSimp::FULL:
     case Options::TheoryInstSimp::NEW:
-      env.beginOutput();
-      env.out() << "WARNING: the modes full & new are deprecated for theory instantiation. using all instead." << std::endl;
-      env.endOutput();
+      env->beginOutput();
+      env->out() << "WARNING: the modes full & new are deprecated for theory instantiation. using all instead." << std::endl;
+      env->endOutput();
       return Options::TheoryInstSimp::ALL;
     default:
       return mode;
@@ -116,10 +116,10 @@ bool TheoryInstAndSimp::calcIsSupportedSort(SortId sort)
      || sort == RatTraits::sort() 
      || sort == RealTraits::sort() ){
     return true;
-  } else if (env.signature->isTermAlgebraSort(sort)) {
-    return env.signature->getTermAlgebraOfSort(sort)
+  } else if (env->signature->isTermAlgebraSort(sort)) {
+    return env->signature->getTermAlgebraOfSort(sort)
                         ->subSorts().iter()
-                         .all([&](auto s){ return env.signature->isTermAlgebraSort(s) || calcIsSupportedSort(s); });
+                         .all([&](auto s){ return env->signature->isTermAlgebraSort(s) || calcIsSupportedSort(s); });
   } else {
     return false;
   }
@@ -153,7 +153,7 @@ bool TheoryInstAndSimp::isSupportedLiteral(Literal* lit) {
 }
 
 bool TheoryInstAndSimp::isSupportedFunction(Term* trm) {
-  auto sym = env.signature->getFunction(trm->functor());
+  auto sym = env->signature->getFunction(trm->functor());
   return !(theory->isInterpretedConstant(trm) 
       || (theory->isInterpretedFunction(trm) && isSupportedFunction(theory->interpretFunction(trm)) )
       || (sym->termAlgebraCons() && isSupportedSort(sym->fnType()->result()))
@@ -464,8 +464,8 @@ void TheoryInstAndSimp::ConstantCache::SortedConstantCache::reset()
 Term* TheoryInstAndSimp::ConstantCache::SortedConstantCache::freshConstant(const char* prefix, SortId sort) 
 { 
   if (_constants.size() == _used)  {
-    unsigned sym = env.signature->addFreshFunction(0, prefix);
-    env.signature->getFunction(sym)
+    unsigned sym = env->signature->addFreshFunction(0, prefix);
+    env->signature->getFunction(sym)
                  ->setType(OperatorType::getConstantsType(sort));
     DEBUG("new constant for sort ", sort, ": ", *env.signature->getFunction(sym));
     _constants.push(Term::createConstant(sym));
@@ -548,7 +548,7 @@ Option<Substitution> TheoryInstAndSimp::instantiateGeneralised(
       auto val = _solver->evaluateInModel(sk.term());
       if (!val) {
         // Failed to obtain a value; could be an algebraic number or some other currently unhandled beast...
-        env.statistics->theoryInstSimpLostSolution++;
+        env->statistics->theoryInstSimpLostSolution++;
         return Option<Substitution>();
       }
 
@@ -590,7 +590,7 @@ Option<Substitution> TheoryInstAndSimp::instantiateWithModel(SkolemizedLiterals 
       skolem.subst.rebind(var, ev);
     } else {
       // Failed to obtain a value; could be an algebraic number or some other currently unhandled beast...
-      env.statistics->theoryInstSimpLostSolution++;
+      env->statistics->theoryInstSimpLostSolution++;
       return Option<Substitution>();
     }
   }
@@ -736,7 +736,7 @@ struct InstanceFn
       }
 
       if (redundant) {
-        env.statistics->theoryInstSimpTautologies++;
+        env->statistics->theoryInstSimpTautologies++;
       }
 
       DEBUG("tautology")
@@ -745,10 +745,10 @@ struct InstanceFn
 
     // If the solution is empty (for any reason) there is no point performing instantiation
     if(sol.subst.isEmpty()){
-      env.statistics->theoryInstSimpEmptySubstitution++;
+      env->statistics->theoryInstSimpEmptySubstitution++;
     }
     auto res = instantiate(original, sol.subst, theoryLits, splitter);
-    env.statistics->theoryInstSimp++;
+    env->statistics->theoryInstSimp++;
     return res;
   }
 };
@@ -774,7 +774,7 @@ Stack<Literal*> computeGuards(Stack<Literal*> const& lits)
 
   auto destructorGuard = [&findConstructor](Term* destr, SortId sort, bool predicate) -> Literal*
   {
-      auto ctor = findConstructor(env.signature->getTermAlgebraOfSort(sort), destr->functor(), predicate);
+      auto ctor = findConstructor(env->signature->getTermAlgebraOfSort(sort), destr->functor(), predicate);
       auto discr = ctor->createDiscriminator();
       // asserts e.g. isCons(l) for a term that contains the subterm head(l) for lists
       return Literal::create1(discr, /* polarity */ true, *destr->nthArgument(0));
@@ -785,7 +785,7 @@ Stack<Literal*> computeGuards(Stack<Literal*> const& lits)
   for (auto lit : lits) {
 
     /* guards for predicates */
-    auto predSym = env.signature->getPredicate(lit->functor());
+    auto predSym = env->signature->getPredicate(lit->functor());
     if (predSym->termAlgebraDest()) {
       out.push(destructorGuard(lit, predSym->predType()->arg(0), /* predicate */ true));
     }
@@ -796,7 +796,7 @@ Stack<Literal*> computeGuards(Stack<Literal*> const& lits)
       ASS_REP(t.isVar() || !t.term()->isLiteral(), t);
       if (t.isTerm()) {
         auto term = t.term();
-        auto sym = env.signature->getFunction(t.term()->functor());
+        auto sym = env->signature->getFunction(t.term()->functor());
         auto fun = term->functor();
         if (theory->isInterpretedNumber(term)) {
           /* no guard */

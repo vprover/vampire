@@ -171,7 +171,7 @@ afterLoop:
   TermList t2 = AH::createAppTerm(SH::getResultSort(vEquals.term()), vEquals, lerPosLit.arg);
   
   TermList typeArgs[] = {argS, AtomicSort::boolSort(), AtomicSort::boolSort()};
-  unsigned b_comb = env.signature->getCombinator(Signature::B_COMB);
+  unsigned b_comb = env->signature->getCombinator(Signature::B_COMB);
   
   TermList bComb  = TermList(Term::create(b_comb, 3, typeArgs));
   TermList vNot   = TermList(Term::createConstant(env->signature->getNotProxy()));

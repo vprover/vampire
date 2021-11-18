@@ -155,8 +155,8 @@ unsigned Skolem::addSkolemTypeCon(unsigned arity, const char* suffix)
 {
   CALL("Skolem::addSkolemTypeCon");
 
-  unsigned typeCon = env.signature->addSkolemTypeCon(arity, suffix);
-  Signature::Symbol* tcSym = env.signature->getTypeCon(typeCon);
+  unsigned typeCon = env->signature->addSkolemTypeCon(arity, suffix);
+  Signature::Symbol* tcSym = env->signature->getTypeCon(typeCon);
   OperatorType* ot = OperatorType::getTypeConType(arity);
   tcSym->setType(ot);
   return typeCon;
@@ -424,7 +424,7 @@ Formula* Skolem::skolemise (Formula* f)
       // store updated, for the existentials below us to lookup as well
       depInfo.univ = dep;
 
-      NameReuse *name_reuse = env.options->skolemReuse()
+      NameReuse *name_reuse = env->options->skolemReuse()
         ? NameReuse::skolemInstance()
         : nullptr;
 
@@ -490,7 +490,7 @@ Formula* Skolem::skolemise (Formula* f)
           successfully_reused = name_reuse->get(reuse_key, reused_symbol);
         }
         if(successfully_reused)
-          env.statistics->reusedSkolemFunctions++;
+          env->statistics->reusedSkolemFunctions++;
 
         unsigned sym = reused_symbol;
         if(!_appify || skolemisingTypeVar){
@@ -518,7 +518,7 @@ Formula* Skolem::skolemise (Formula* f)
         _introducedSkolemSyms.push(sym);
 
         if(!successfully_reused) {
-          env.statistics->skolemFunctions++;
+          env->statistics->skolemFunctions++;
           if(name_reuse)
             name_reuse->put(reuse_key, sym);
         }
@@ -544,9 +544,9 @@ Formula* Skolem::skolemise (Formula* f)
           }
         }
 
-        if (env.options->showSkolemisations()) {
-          env.beginOutput();
-          env.out() << "Skolemising: "<<skolemTerm->toString()<<" for X"<< v
+        if (env->options->showSkolemisations()) {
+          env->beginOutput();
+          env->out() << "Skolemising: "<<skolemTerm->toString()<<" for X"<< v
             <<" in "<<f->toString()<<" in formula "<<_beingSkolemised->toString() << endl;
           env->endOutput();
         }

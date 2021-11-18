@@ -135,7 +135,7 @@ Term* TermSharing::insert(Term* t)
 	signature->getFunction(t->functor())->interpreted();
     Color color = COLOR_TRANSPARENT;
 
-    if(env.options->combinatorySup()){ 
+    if(env->options->combinatorySup()){ 
       int maxRedLength = -1;
       TermList head;
       TermStack args;
@@ -404,7 +404,7 @@ Literal* TermSharing::insertVariableEquality(Literal* t, TermList sort)
     t->markShared();
     t->setId(_totalLiterals);
     t->setWeight(2 + sort.weight());
-    if (env.colorUsed) {
+    if (env->colorUsed) {
       t->setColor(COLOR_TRANSPARENT);
     }
     t->setInterpretedConstantsPresence(false);

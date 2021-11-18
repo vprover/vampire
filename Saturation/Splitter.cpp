@@ -43,6 +43,7 @@
 #include "SAT/LockedSolver.hpp"
 #include "SAT/MinisatInterfacing.hpp"
 #include "SAT/Z3Interfacing.hpp"
+#include "SAT/SAT2FO.hpp"
 
 #include "DP/ShortConflictMetaDP.hpp"
 
@@ -676,9 +677,6 @@ Splitter::~Splitter()
     }
     _db.pop();
   }
-#if !VTHREADED
-  delete _sat2fo;
-#endif
 }
 
 const Options& Splitter::getOptions() const
@@ -1459,13 +1457,15 @@ SplitLevel Splitter::tryGetComponentNameOrAddNew(unsigned size, Literal* const *
       else {
         sat = SATLiteral(_sat2fo.createSpareSatVar(), true);
       }
+#else
+      SATLiteral sat = SATLiteral(_sat2fo.createSpareSatVar(), true);
 #endif
       res = addNonGroundComponent(size, lits, orig, compCl, sat);
 #if VTHREADED
       if(!import)
         globalNontrivialComponents->insert(compCl);
-    }
 #endif
+    }
   }
   return res;
 }

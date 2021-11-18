@@ -47,7 +47,7 @@ bool ModelPrinter::haveNonDefaultSorts()
 
   unsigned funs = env->signature->functions();
   for(unsigned i=0; i<funs; i++) {
-    OperatorType* type = env.signature->getFunction(i)->fnType();
+    OperatorType* type = env->signature->getFunction(i)->fnType();
     if(!type->isAllDefault()) { return false; }
   }
   unsigned preds = env->signature->predicates();
@@ -64,7 +64,7 @@ bool ModelPrinter::isEprProblem()
 
   unsigned funCnt = env->signature->functions();
   for(unsigned i=0; i<funCnt; i++) {
-    if(env.signature->functionArity(i)>0) {
+    if(env->signature->functionArity(i)>0) {
       return false;
     }
   }

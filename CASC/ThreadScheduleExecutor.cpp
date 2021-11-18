@@ -56,8 +56,7 @@ bool ThreadScheduleExecutor::run(const Schedule &schedule)
     env->options = new Shell::Options(*penv->options);
     env->signature = new Kernel::Signature(*penv->signature);
 
-    // shallow-copy sorts, sharing, property
-    env->sorts = penv->sorts;
+    // shallow-copy sharing, property
     env->sharing = penv->sharing;
     env->property = penv->property;
 
@@ -70,7 +69,6 @@ bool ThreadScheduleExecutor::run(const Schedule &schedule)
     // unbind stuff we shallow-copied to stop it being deallocated
     env->property = nullptr;
     env->sharing = nullptr;
-    env->sorts = nullptr;
 
     // indicate we're done
     std::lock_guard<std::mutex> task_lock(task_mutex);

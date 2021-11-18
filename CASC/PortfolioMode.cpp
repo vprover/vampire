@@ -141,7 +141,7 @@ bool PortfolioMode::searchForProof()
     Normalisation().normalise(*_prb);
     
     //TheoryFinder cannot cope with polymorphic input
-    if(!env.statistics->polymorphic){
+    if(!env->statistics->polymorphic){
       TheoryFinder(_prb->units(),property).search();
     }
   }
@@ -241,7 +241,7 @@ void PortfolioMode::getExtraSchedules(Property& prop, Schedule& old, Schedule& e
    //extra_opts.push("etr=on");         // equational_tautology_removal
    extra_opts.push("av=on:atotf=0.5");     // turn AVATAR off
 
-   if(!env.statistics->higherOrder){
+   if(!env->statistics->higherOrder){
      //these options are not currently HOL compatible
      extra_opts.push("bsd=on:fsd=on"); // subsumption demodulation
      extra_opts.push("to=lpo");           // lpo

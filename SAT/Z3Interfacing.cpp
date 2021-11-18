@@ -189,9 +189,9 @@ void Z3Interfacing::addClause(SATClause* cl)
   auto z3clause = getRepresentation(cl);
 
   if(_showZ3){
-    env.beginOutput();
-    env.out() << "[Z3] add (clause): " << z3clause.expr << std::endl;
-    env.endOutput();
+    env->beginOutput();
+    env->out() << "[Z3] add (clause): " << z3clause.expr << std::endl;
+    env->endOutput();
   }
 
   auto add = [&](auto x) {
@@ -363,8 +363,8 @@ SATSolver::VarAssignment Z3Interfacing::getAssignment(unsigned var)
 OperatorType* operatorType(Z3Interfacing::FuncOrPredId f)
 {
   return f.isPredicate
-    ? env.signature->getPredicate(f.id)->predType()
-    : env.signature->getFunction (f.id)->fnType();
+    ? env->signature->getPredicate(f.id)->predType()
+    : env->signature->getFunction (f.id)->fnType();
 }
 
 
@@ -539,8 +539,8 @@ z3::sort Z3Interfacing::getz3sort(SortId s)
 
       insert(_context.array_sort(index_sort,value_sort));
 
-    } else if (env.signature->isTermAlgebraSort(s)) {
-      createTermAlgebra(*env.signature->getTermAlgebraOfSort(s));
+    } else if (env->signature->isTermAlgebraSort(s)) {
+      createTermAlgebra(*env->signature->getTermAlgebraOfSort(s));
 
     } else {
       auto sort = _context.uninterpreted_sort(_context.str_symbol(s.toString().c_str()));
@@ -569,9 +569,9 @@ void Z3Interfacing::createTermAlgebra(TermAlgebra& start)
 
   auto subsorts = start.subSorts();
   for (auto s : subsorts.iter()) {
-    if (env.signature->isTermAlgebraSort(s)
+    if (env->signature->isTermAlgebraSort(s)
         && !_createdTermAlgebras.contains(s)) {
-      auto ta = env.signature->getTermAlgebraOfSort(s);
+      auto ta = env->signature->getTermAlgebraOfSort(s);
       auto idx = tas.size();
       tas.push(ta);
       recSorts.insert(s, idx);
@@ -606,7 +606,7 @@ void Z3Interfacing::createTermAlgebra(TermAlgebra& start)
 
       auto i = 0;
       for (auto argSort : cons->iterArgSorts()) {
-        auto dtorName = new_string_symobl(env.signature->getFunction(cons->functor())->name() + "_arg" + to_vstring(i++));
+        auto dtorName = new_string_symobl(env->signature->getFunction(cons->functor())->name() + "_arg" + to_vstring(i++));
         if (_out.isSome())
           serDtors.push(SerDtor {
               .name = z3::symbol(_context, dtorName),
@@ -631,7 +631,7 @@ void Z3Interfacing::createTermAlgebra(TermAlgebra& start)
 
       DEBUG("\t", ta->sort().toString(), "::", env.signature->getFunction(cons->functor())->name(), ": ", env.signature->getFunction(cons->functor())->fnType()->toString());
 
-      Z3_symbol ctorName = Z3_mk_string_symbol(_context, env.signature->getFunction(cons->functor())->name().c_str());
+      Z3_symbol ctorName = Z3_mk_string_symbol(_context, env->signature->getFunction(cons->functor())->name().c_str());
 
       ASS_EQ(argSortRefs.size(), cons->arity())
       ASS_EQ(   argSorts.size(), cons->arity())
@@ -769,9 +769,9 @@ z3::func_decl const& Z3Interfacing::findConstructor(FuncId id_)
   if (f.isSome()) {
     return f.unwrap();
   } else {
-    auto sym = env.signature->getFunction(id_);
+    auto sym = env->signature->getFunction(id_);
     auto domain = sym->fnType()->result();
-    createTermAlgebra(*env.signature->getTermAlgebraOfSort(domain));
+    createTermAlgebra(*env->signature->getTermAlgebraOfSort(domain));
     return _toZ3.get(id);
   }
 }
@@ -845,7 +845,7 @@ struct ToZ3Expr
     // and when it's polymorphic, we need to offset its type argument:
     unsigned equality_typeArgArity = 0;
     if (isLit) {
-      symb = env.signature->getPredicate(trm->functor());
+      symb = env->signature->getPredicate(trm->functor());
       range_sort = AtomicSort::boolSort();
       // check for equality
       if(trm->functor()==0){
@@ -860,11 +860,11 @@ struct ToZ3Expr
         ASS(trm->arity()==equality_typeArgArity+2);
       }
     } else {
-      symb = env.signature->getFunction(trm->functor());
+      symb = env->signature->getFunction(trm->functor());
       OperatorType* ftype = symb->fnType();
       range_sort = ftype->result();
-      if (env.signature->isTermAlgebraSort(range_sort) &&  !self._createdTermAlgebras.contains(range_sort) ) {
-        self.createTermAlgebra(*env.signature->getTermAlgebraOfSort(range_sort));
+      if (env->signature->isTermAlgebraSort(range_sort) &&  !self._createdTermAlgebras.contains(range_sort) ) {
+        self.createTermAlgebra(*env->signature->getTermAlgebraOfSort(range_sort));
       }
     }
 
@@ -882,10 +882,10 @@ struct ToZ3Expr
         RationalConstantType value = symb->rationalValue();
         return self._context.real_val(value.numerator().toInner(),value.denominator().toInner());
       }
-      if(!isLit && env.signature->isFoolConstantSymbol(true,trm->functor())) {
+      if(!isLit && env->signature->isFoolConstantSymbol(true,trm->functor())) {
         return self._context.bool_val(true);
       }
-      if(!isLit && env.signature->isFoolConstantSymbol(false,trm->functor())) {
+      if(!isLit && env->signature->isFoolConstantSymbol(false,trm->functor())) {
         return self._context.bool_val(false);
       }
       if(symb->termAlgebraCons()) {
@@ -1087,8 +1087,8 @@ z3::func_decl Z3Interfacing::z3Function(FuncOrPredId functor)
     return found.unwrap();
   } else {
     // function does not yet exits
-    auto symb = functor.isPredicate ? env.signature->getPredicate(functor.id)
-                                    : env.signature->getFunction(functor.id);
+    auto symb = functor.isPredicate ? env->signature->getPredicate(functor.id)
+                                    : env->signature->getFunction(functor.id);
     auto type = functor.isPredicate ? symb->predType() : symb->fnType();
 
     // Does not yet exits. initialize it!
@@ -1142,9 +1142,9 @@ Z3Interfacing::Representation Z3Interfacing::getRepresentation(SATLiteral slit)
       repr.expr = bname;
 
       if(_showZ3){
-        env.beginOutput();
-        env.out() << "[Z3] add (naming): " << naming << std::endl;
-        env.endOutput();
+        env->beginOutput();
+        env->out() << "[Z3] add (naming): " << naming << std::endl;
+        env->endOutput();
       }
 
       if(slit.isNegative()) {

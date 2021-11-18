@@ -7,6 +7,7 @@
  * https://vprover.github.io/license.html
  * and in the source directory
  */
+#include <csignal>
 #include "ProcessScheduleExecutor.hpp"
 
 #include "Lib/Environment.hpp"

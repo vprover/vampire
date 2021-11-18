@@ -58,11 +58,11 @@ FiniteModelMultiSorted::FiniteModelMultiSorted(DHMap<unsigned,unsigned> sizes) :
   // see addFunctionDefinition for how the offset is used to compute
   // the actual index
   unsigned offsets=1;
-  for(unsigned f=0; f<env.signature->functions();f++){
-    unsigned arity=env.signature->functionArity(f);
+  for(unsigned f=0; f<env->signature->functions();f++){
+    unsigned arity=env->signature->functionArity(f);
     f_offsets[f]=offsets;
 
-    OperatorType* sig = env.signature->getFunction(f)->fnType();
+    OperatorType* sig = env->signature->getFunction(f)->fnType();
     unsigned s = sig->result().term()->functor();
     unsigned add = _sizes.get(s);
     for(unsigned i=0;i<arity;i++){ 
@@ -95,8 +95,8 @@ FiniteModelMultiSorted::FiniteModelMultiSorted(DHMap<unsigned,unsigned> sizes) :
   }
   p_interpretation.expand(offsets+1,0);
 
-  sortRepr.ensure(env.signature->typeCons());
-  for(unsigned s=0;s<env.signature->typeCons();s++){
+  sortRepr.ensure(env->signature->typeCons());
+  for(unsigned s=0;s<env->signature->typeCons();s++){
     sortRepr[s].ensure(_sizes.get(s)+1);
     for(unsigned i=0;i<=_sizes.get(s);i++){
       sortRepr[s][i] = -1;
@@ -117,8 +117,8 @@ void FiniteModelMultiSorted::addFunctionDefinition(unsigned f, const DArray<unsi
 
   ASS_EQ(env->signature->functionArity(f),args.size());
 
-  if(env.signature->functionArity(f)==0 && !env.signature->getFunction(f)->introduced()){
-    TermList srt = env.signature->getFunction(f)->fnType()->result();
+  if(env->signature->functionArity(f)==0 && !env->signature->getFunction(f)->introduced()){
+    TermList srt = env->signature->getFunction(f)->fnType()->result();
     unsigned srtU = srt.term()->functor();
     if(sortRepr[srtU][res] == -1){
       //cout << "Rep " << env->signature->functionName(f) << " for ";
@@ -197,16 +197,16 @@ vstring FiniteModelMultiSorted::toString()
   bool printIntroduced = false;
 
   VTHREAD_LOCAL static DArray<DArray<vstring>> cnames;
-  cnames.ensure(env.signature->typeCons());
+  cnames.ensure(env->signature->typeCons());
 
   //Output sorts and their sizes 
-  for(unsigned s=0;s<env.signature->typeCons();s++){
+  for(unsigned s=0;s<env->signature->typeCons();s++){
 
     unsigned size = _sizes.get(s);
     if(size==0) continue;
 
-    vstring sortName = env.signature->typeConName(s);
-    vstring sortNameLabel = (env.signature->isBoolCon(s)) ? "bool" : sortName;
+    vstring sortName = env->signature->typeConName(s);
+    vstring sortNameLabel = (env->signature->isBoolCon(s)) ? "bool" : sortName;
 
     // Sort declaration
     modelStm << "tff(" << prepend("declare_", sortNameLabel) << ",type,"<<sortName<<":$tType)." <<endl;
@@ -259,19 +259,19 @@ vstring FiniteModelMultiSorted::toString()
   }
 
   //Constants
-  for(unsigned f=0;f<env.signature->functions();f++){
-    if(env.signature->getFunction(f)->usageCnt()==0) continue;
-    unsigned arity = env.signature->functionArity(f);
+  for(unsigned f=0;f<env->signature->functions();f++){
+    if(env->signature->getFunction(f)->usageCnt()==0) continue;
+    unsigned arity = env->signature->functionArity(f);
     if(arity>0) continue;
     if(!printIntroduced && env->signature->getFunction(f)->introduced()) continue;
     vstring name = env->signature->functionName(f);
     unsigned res = f_interpretation[f_offsets[f]];
-    TermList srtT = env.signature->getFunction(f)->fnType()->result();
+    TermList srtT = env->signature->getFunction(f)->fnType()->result();
     unsigned srt = srtT.term()->functor();
     vstring cname = cnames[srt][res];
     if(name == cname) continue;
 
-    vstring sortName = env.signature->typeConName(srt);
+    vstring sortName = env->signature->typeConName(srt);
     modelStm << "tff("<<prepend("declare_", name)<<",type,"<<name<<":"<<sortName<<")."<<endl;
     if(res>0){ 
       modelStm << "tff("<<append(name,"_definition")<<",axiom,"<<name<<" = " << cname << ")."<<endl;
@@ -282,9 +282,9 @@ vstring FiniteModelMultiSorted::toString()
   }
 
   //Functions
-  for(unsigned f=0;f<env.signature->functions();f++){
-    if(env.signature->getFunction(f)->usageCnt()==0) continue;
-    unsigned arity = env.signature->functionArity(f);
+  for(unsigned f=0;f<env->signature->functions();f++){
+    if(env->signature->getFunction(f)->usageCnt()==0) continue;
+    unsigned arity = env->signature->functionArity(f);
     if(arity==0) continue;
     if(!printIntroduced && env->signature->getFunction(f)->introduced()) continue;
     vstring name = env->signature->functionName(f);
@@ -388,7 +388,7 @@ fModelLabel:
     for(unsigned i=0;i<arity;i++){
       TermList argST = sig->arg(i);
       unsigned argS = argST.term()->functor();      
-      modelStm << env.signature->typeConName(argS);
+      modelStm << env->signature->typeConName(argS);
       if(i+1 < arity) modelStm << " * ";
     }
     modelStm << " > $o )." << endl;

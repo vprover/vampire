@@ -547,7 +547,7 @@ void KBO::checkAdmissibility(HandleError handle) const
   auto maximalFunctions = Map<SortType, FunctionSymbol>();
 
   for (FunctionSymbol i = 0; i < nFunctions; i++) {
-    auto sort = env.signature->getFunction(i)->fnType()->result();
+    auto sort = env->signature->getFunction(i)->fnType()->result();
     /* register min function */
     auto maxFn = maximalFunctions.getOrInit(std::move(sort), [&](){ return i; } );
     if (compareFunctionPrecedences(maxFn, i) == LESS) {
@@ -559,8 +559,8 @@ void KBO::checkAdmissibility(HandleError handle) const
   unsigned varWght = _funcWeights._specialWeights._variableWeight;
 
   for (unsigned i = 0; i < nFunctions; i++) {
-    auto sort = env.signature->getFunction(i)->fnType()->result();
-    auto arity = env.signature->getFunction(i)->arity();
+    auto sort = env->signature->getFunction(i)->fnType()->result();
+    auto arity = env->signature->getFunction(i)->arity();
 
     if (_funcWeights._weights[i] < varWght && arity == 0) {
       handle(UserErrorException("weight of constants (i.e. ", env->signature->getFunction(i)->name(), ") must be greater or equal to the variable weight (", varWght, ")"));

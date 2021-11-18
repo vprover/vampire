@@ -217,7 +217,7 @@ bool InductionHelper::isIntInductionTermListInLiteral(TermList& tl, Literal* l) 
   // Term tl has to be an integer term, and not an interpreted constant.
   unsigned f = tl.term()->functor();
   // TODO: move this check to later (when we know the bounds)
-  if ((env.signature->getFunction(f)->fnType()->result() != AtomicSort::intSort()) ||
+  if ((env->signature->getFunction(f)->fnType()->result() != AtomicSort::intSort()) ||
       theory->isInterpretedConstant(f))
   {
     return false;

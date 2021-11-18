@@ -1177,7 +1177,7 @@ bool Theory::isPartiallyInterpretedFunction(Term* t) {
         return false;
     }
   } else {
-    auto sym = env.signature->getFunction(t->functor());
+    auto sym = env->signature->getFunction(t->functor());
     if (isInterpretedNumber(t)) {
       return false;
     } else if (sym->termAlgebraCons()) {
@@ -1224,7 +1224,7 @@ bool Theory::partiallyDefinedFunctionUndefinedForArgs(Term* t) {
         return false;
     }
   } else {
-    auto sym = env.signature->getFunction(t->functor());
+    auto sym = env->signature->getFunction(t->functor());
     if (sym->termAlgebraCons()) {
       return false;
     } else {
@@ -1236,7 +1236,7 @@ bool Theory::partiallyDefinedFunctionUndefinedForArgs(Term* t) {
         ASS(arg.isTerm());
         auto fn = arg.term()->functor();
         // auto argSym = env.signature->getFunction(fn);
-        auto ctor = env.signature->getTermAlgebraConstructor(fn);
+        auto ctor = env->signature->getTermAlgebraConstructor(fn);
         if (ctor == nullptr) {
           return false;
         } else {
@@ -1305,7 +1305,7 @@ unsigned Theory::Tuples::getFunctor(TermList tupleSort) {
 
 bool Theory::Tuples::isFunctor(unsigned functor) {
   CALL("Theory::Tuples::isFunctor(unsigned)");
-  TermList tupleSort = env.signature->getFunction(functor)->fnType()->result();
+  TermList tupleSort = env->signature->getFunction(functor)->fnType()->result();
   return tupleSort.isTupleSort();
 }
 
@@ -1332,8 +1332,8 @@ unsigned Theory::Tuples::getProjectionFunctor(unsigned proj, TermList tupleSort)
 bool Theory::Tuples::findProjection(unsigned projFunctor, bool isPredicate, unsigned &proj) {
   CALL("Theory::Tuples::findProjection");
  
-  OperatorType* projType = isPredicate ? env.signature->getPredicate(projFunctor)->predType()
-                                       : env.signature->getFunction(projFunctor)->fnType();
+  OperatorType* projType = isPredicate ? env->signature->getPredicate(projFunctor)->predType()
+                                       : env->signature->getFunction(projFunctor)->fnType();
 
   if (projType->arity() != 1) {
     return false;
@@ -1587,12 +1587,12 @@ void Theory::defineTupleTermAlgebra(unsigned arity, TermList* sorts) {
     unsigned destructor;
     Signature::Symbol* destSym;
     if (projSort == AtomicSort::boolSort()) {
-      destructor = env.signature->addFreshPredicate(1, "proj");
-      destSym = env.signature->getPredicate(destructor);
+      destructor = env->signature->addFreshPredicate(1, "proj");
+      destSym = env->signature->getPredicate(destructor);
       destSym->setType(OperatorType::getPredicateType({ tupleSort }));
     } else {
-      destructor = env.signature->addFreshFunction(1, "proj");
-      destSym = env.signature->getFunction(destructor);
+      destructor = env->signature->addFreshFunction(1, "proj");
+      destSym = env->signature->getFunction(destructor);
       destSym->setType(OperatorType::getFunctionType({ tupleSort }, projSort));
     }
     destSym->markTermAlgebraDest();
@@ -1692,7 +1692,7 @@ bool Theory::isInterpretedPredicate(Literal* lit)
 {
   CALL("Theory::isInterpretedPredicate/1");
 
-  return env.signature->getPredicate(lit->functor())->interpreted();
+  return env->signature->getPredicate(lit->functor())->interpreted();
 }
 
 

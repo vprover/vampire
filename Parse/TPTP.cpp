@@ -1429,8 +1429,8 @@ void TPTP::tff()
         bool added = false;
         unsigned fun = arity == 0
             ? addUninterpretedConstant(nm, _overflow, added)
-            : env.signature->addFunction(nm, arity, added);
-        Signature::Symbol* symbol = env.signature->getFunction(fun);
+            : env->signature->addFunction(nm, arity, added);
+        Signature::Symbol* symbol = env->signature->getFunction(fun);
         OperatorType* ot = OperatorType::getTypeConType(arity);
         if (!added) {
           if(symbol->fnType()!=ot){
@@ -2637,7 +2637,7 @@ void TPTP::tupleDefinition()
 
     TermList sort = isPredicate
                   ? AtomicSort::boolSort()
-                  : env.signature->getFunction(symbol)->fnType()->result();
+                  : env->signature->getFunction(symbol)->fnType()->result();
     sorts.push(sort);
 
     if (getTok(0).tag == T_NAME) {
@@ -2679,7 +2679,7 @@ void TPTP::endDefinition() {
 
   TermList refSort = isPredicate
                      ? AtomicSort::boolSort()
-                     : env.signature->getFunction(symbol)->fnType()->result();
+                     : env->signature->getFunction(symbol)->fnType()->result();
 
   if (refSort != definitionSort) {
     vstring definitionSortName = definitionSort.toString();
@@ -2755,7 +2755,7 @@ void TPTP::endLet()
 
     bool isTuple = false;
     if (!isPredicate) {
-      TermList resultSort = env.signature->getFunction(symbol)->fnType()->result();
+      TermList resultSort = env->signature->getFunction(symbol)->fnType()->result();
       isTuple = resultSort.isTupleSort();
     }
 
@@ -3044,7 +3044,7 @@ void TPTP::endTerm()
     return;
   }
 
-  if(env.signature->typeConExists(name, arity)){
+  if(env->signature->typeConExists(name, arity)){
     _termLists.push(createTypeConApplication(name, arity));    
     return;
   }
@@ -3357,7 +3357,7 @@ TermList TPTP::createTypeConApplication(vstring name, unsigned arity)
   bool dummy;
   //TODO not checking for overflown constant. Is that OK?
   //seems to be done this way for predicates as well.
-  unsigned typeCon = env.signature->addTypeCon(name,arity,dummy);
+  unsigned typeCon = env->signature->addTypeCon(name,arity,dummy);
   AtomicSort* s = new(arity) AtomicSort(typeCon,arity);
 
   bool safe = true;
@@ -3372,7 +3372,7 @@ TermList TPTP::createTypeConApplication(vstring name, unsigned arity)
     safe = safe && ss.isSafe();
   }
   if (safe) {
-    s = env.sharing->insert(s);
+    s = env->sharing->insert(s);
   }
   return TermList(s);
 }
@@ -3868,8 +3868,8 @@ void TPTP::endTff()
       }
     }
   } else if (isTypeCon){
-    unsigned typeCon = env.signature->addTypeCon(name, arity, added);
-    symbol = env.signature->getTypeCon(typeCon);
+    unsigned typeCon = env->signature->addTypeCon(name, arity, added);
+    symbol = env->signature->getTypeCon(typeCon);
     if (!added) {
       // GR: Multiple identical type declarations for a symbol are allowed
       if(symbol->typeConType() != ot){
@@ -4793,13 +4793,13 @@ unsigned TPTP::addOverloadedFunction(vstring name,int arity,int symbolArity,bool
     n = n->next();
   }
   if (srt == AtomicSort::intSort()) {
-    return env.signature->addInterpretedFunction(integer,name);
+    return env->signature->addInterpretedFunction(integer,name);
   }
   if (srt == AtomicSort::rationalSort()) {
-    return env.signature->addInterpretedFunction(rational,name);
+    return env->signature->addInterpretedFunction(rational,name);
   }
   if (srt == AtomicSort::realSort()) {
-    return env.signature->addInterpretedFunction(real,name);
+    return env->signature->addInterpretedFunction(real,name);
   }
   USER_ERROR((vstring)"The symbol " + name + " is used with a non-numeric type");
 } // addOverloadedFunction
@@ -4821,13 +4821,13 @@ unsigned TPTP::addOverloadedPredicate(vstring name,int arity,int symbolArity,boo
   }
   
   if (srt == AtomicSort::intSort()) {
-    return env.signature->addInterpretedPredicate(integer,name);
+    return env->signature->addInterpretedPredicate(integer,name);
   }
   if (srt == AtomicSort::rationalSort()) {
-    return env.signature->addInterpretedPredicate(rational,name);
+    return env->signature->addInterpretedPredicate(rational,name);
   }
   if (srt == AtomicSort::realSort()) {
-    return env.signature->addInterpretedPredicate(real,name);
+    return env->signature->addInterpretedPredicate(real,name);
   }
   USER_ERROR((vstring)"The symbol " + name + " is used with a non-numeric type");
 } // addOverloadedPredicate
@@ -4886,7 +4886,7 @@ unsigned TPTP::addIntegerConstant(const vstring& name, Set<vstring>& overflow, b
     unsigned fun = env->signature->addFunction(name,0,added,true /* overflown constant*/);
     if (added) {
       overflow.insert(name);
-      Signature::Symbol* symbol = env.signature->getFunction(fun);
+      Signature::Symbol* symbol = env->signature->getFunction(fun);
       symbol->setType(OperatorType::getConstantsType(defaultSort ? AtomicSort::defaultSort() : AtomicSort::intSort()));
     }
     else if (!overflow.contains(name)) {
@@ -4922,7 +4922,7 @@ unsigned TPTP::addRationalConstant(const vstring& name, Set<vstring>& overflow, 
     unsigned fun = env->signature->addFunction(name,0,added,true /* overflown constant*/);
     if (added) {
       overflow.insert(name);
-      Signature::Symbol* symbol = env.signature->getFunction(fun);
+      Signature::Symbol* symbol = env->signature->getFunction(fun);
       symbol->setType(OperatorType::getConstantsType(defaultSort ? AtomicSort::defaultSort() : AtomicSort::rationalSort()));
     }
     else if (!overflow.contains(name)) {
@@ -4954,7 +4954,7 @@ unsigned TPTP::addRealConstant(const vstring& name, Set<vstring>& overflow, bool
     unsigned fun = env->signature->addFunction(name,0,added,true /* overflown constant*/);
     if (added) {
       overflow.insert(name);
-      Signature::Symbol* symbol = env.signature->getFunction(fun);
+      Signature::Symbol* symbol = env->signature->getFunction(fun);
       symbol->setType(OperatorType::getConstantsType(defaultSort ? AtomicSort::defaultSort() : AtomicSort::realSort()));
     }
     else if (!overflow.contains(name)) {

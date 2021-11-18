@@ -86,8 +86,8 @@ void FunctionRelationshipInference::findFunctionRelationships(ClauseIterator cla
   }
 
   Timer::setLimitEnforcement(true);
-  env.options->setTimeLimitInDeciseconds(oldTimeLimit);
-  env.property = oldProperty;
+  env->options->setTimeLimitInDeciseconds(oldTimeLimit);
+  env->property = oldProperty;
 
   Stack<unsigned> foundLabels = labelFinder->getFoundLabels();
 

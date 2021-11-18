@@ -263,7 +263,7 @@ public:
           if(SortHelper::tryGetResultSort(t,srt) && !srt.isVar()){
             ASS(srt.isTerm());
             unsigned con = srt.term()->functor(); 
-            if(!srt.term()->isSuper() && env.signature->isInterpretedNonDefault(con)){
+            if(!srt.term()->isSuper() && env->signature->isInterpretedNonDefault(con)){
               unsigned top = t.term()->functor();
               TermStack::Iterator fit(bySortTerms[con]);
               auto withoutThisTop = getFilteredIterator(fit,NotTop(top));
@@ -289,7 +289,7 @@ public:
           if(SortHelper::tryGetResultSort(t,srt) &&  !srt.isVar() && 
              !srt.term()->isSuper()){
             unsigned con = srt.term()->functor();
-            if(env.signature->isInterpretedNonDefault(con)){
+            if(env->signature->isInterpretedNonDefault(con)){
               unsigned f = t.term()->functor();
               if(bySort[con].insert(f)){
                 bySortTerms[con].push(t);
@@ -305,7 +305,7 @@ public:
           if(SortHelper::tryGetResultSort(t,srt) && !srt.isVar() &&  
              !srt.term()->isSuper()){
             unsigned con = srt.term()->functor();
-            if(env.signature->isInterpretedNonDefault(con)){
+            if(env->signature->isInterpretedNonDefault(con)){
               unsigned f = t.term()->functor();
               if(bySort[con].remove(f)){
                 bySortTerms[con].remove(t);

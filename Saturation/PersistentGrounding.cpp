@@ -37,15 +37,15 @@ PersistentGrounding::PersistentGrounding()
 {
   CALL("PersistentGrounding()");
 
-  _sortConstants.ensure(env->sorts->count());
-  _sortConstantsCommon.ensure(env->sorts->count());
+  _sortConstants.ensure(env->signature->typeCons());
+  _sortConstantsCommon.ensure(env->signature->typeCons());
 
-  for(int i=0 ; i< env->sorts->count(); i++){  _sortConstants[i] =  0; }
+  for(int i=0 ; i< env->signature->typeCons(); i++){  _sortConstants[i] =  0; }
 
   ZIArray<unsigned> constants;
   for(int i = 0; i < env->signature->functions(); i++) {
     Signature::Symbol *fun = env->signature->getFunction(i);
-    if(fun->typeCon() || fun->super() || fun->arity() != 0) {
+    if(fun->arity() != 0) {
       continue;
     }
     OperatorType *type = fun->fnType();
@@ -59,7 +59,7 @@ PersistentGrounding::PersistentGrounding()
     Term* c = Term::createConstant(i); 
     List<TermList>::push(TermList(c),_sortConstants[sort]);
   }
-  for(int i = 0; i < env->sorts->count(); i++) {
+  for(int i = 0; i < env->signature->typeCons(); i++) {
     if(constants[i]) {
       _sortConstantsCommon[i].setTerm(Term::create(constants[i], 0, nullptr));
     }
@@ -131,7 +131,7 @@ void PersistentGrounding::enqueueClause(Clause *cl)
 
   static Shell::Options::GroundingChoice choice = env->options->persistentGroundingChoice();
   //TODO - Currently hacked so only FRESH works with sorts 
-  if(env->sorts->count() != 1){
+  if(env->signature->typeCons() != 1){
     choice = Options::GroundingChoice::FRESH;
   }
   List<TermList>* grounders = 0;

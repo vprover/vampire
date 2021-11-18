@@ -119,7 +119,7 @@ MainLoop* MainLoop::createFromOptions(Problem& prb, const Options& opt)
     if(env->statistics->polymorphic || env->statistics->higherOrder){
       USER_ERROR("Finite model buillding is currently not compatible with polymorphism or higher-order constructs");       
     }
-    if(env.options->outputMode() == Shell::Options::Output::UCORE){
+    if(env->options->outputMode() == Shell::Options::Output::UCORE){
       USER_ERROR("Finite model building is not compatible with producing unsat cores");
     }
     //TODO should return inappropriate result instead of error

@@ -46,7 +46,6 @@ Environment _ROOT_ENV;
  */
 Environment::Environment()
   : options(nullptr),
-    sorts(nullptr),
     signature(nullptr),
     sharing(nullptr),
     statistics(nullptr),
@@ -114,7 +113,6 @@ Environment::~Environment()
     delete options;
   }
 #if !VTHREADED
-  delete sorts;
   delete sharing;
 #endif
   if (predicateSineLevels) delete predicateSineLevels;

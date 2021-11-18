@@ -15,8 +15,62 @@
 #include "Int.hpp"
 #include "Timer.hpp"
 #include "ScopedPtr.hpp"
+#include "Environment.hpp"
+#include "System.hpp"
+#include "Shell/UIHelper.hpp"
+#include "Shell/Statistics.hpp"
 
-VTHREAD_LOCAL bool Lib::Timer::s_timeLimitEnforcement = true;
+#define MILLION 1000000
+
+long long last_instruction_count_read = -1;
+VTHREAD_LOCAL bool Timer::s_limitEnforcement = true;
+
+unsigned Timer::elapsedMegaInstructions() {
+  return (last_instruction_count_read >= MILLION) ? last_instruction_count_read/MILLION : 0;
+}
+
+[[noreturn]] void limitReached(unsigned char whichLimit)
+{
+  using namespace Shell;
+
+  // for debugging crashes of limitReached: it is good to know what was called by vampire proper just before the interrupt
+  // Debug::Tracer::printStack(cout);
+
+  const char* REACHED[3] = {"","Time limit reached!\n","Instruction limit reached!\n"};
+  const char* STATUS[3] = {"","% SZS status Timeout for ","% SZS status InstrOut for "};
+
+  // CAREFUL, we might be in a signal handler and potentially at the same time inside Allocator which is not re-entrant
+  // so any code below that allocates might corrupt the allocator state.
+  // Therefore, the printing below should avoid allocations!
+
+  env->beginOutput();
+  reportSpiderStatus('t');
+  if (outputAllowed()) {
+    addCommentSignForSZS(env->out());
+    env->out() << REACHED[whichLimit];
+
+    if (UIHelper::portfolioParent) { // the boss
+      addCommentSignForSZS(env->out());
+      env->out() << "Proof not found in time ";
+      Timer::printMSString(env->out(),env->timer->elapsedMilliseconds());
+
+      if (last_instruction_count_read > -1) {
+        env->out() << " nor after " << last_instruction_count_read << " (user) instruction executed.";
+      }
+      env->out() << endl;
+
+      if (szsOutputMode()) {
+        env->out() << STATUS[whichLimit] << (env->options ? env->options->problemName().c_str() : "unknown") << endl;
+      }
+    } else // the actual child
+      if (env->statistics) {
+        env->statistics->print(env->out());
+    }
+  }
+  env->endOutput();
+
+  System::terminateImmediately(1);
+}
 
 #if VTHREADED
 #define USE_SIMPLE_TIMER 1
@@ -54,16 +108,10 @@ int Lib::Timer::miliseconds() {
 #include "Debug/Assertion.hpp"
 #include "Debug/Tracer.hpp"
 
-#include "Environment.hpp"
 #include "Portability.hpp"
-#include "System.hpp"
 #include "TimeCounter.hpp"
 
-#include "Shell/UIHelper.hpp"
 #include "Shell/Options.hpp"
-#include "Shell/Statistics.hpp"
-
-#include "Timer.hpp"
 
 #ifdef __linux__ // preration for checking instruction count
 #include <cstdio>
@@ -87,8 +135,6 @@ int perf_fd = -1; // the file descriptor we later read the info from
 using namespace std;
 using namespace Lib;
 
-bool Timer::s_limitEnforcement = true;
-
 #if UNIX_USE_SIGALRM
 
 #include <cerrno>
@@ -103,75 +149,9 @@ bool Timer::s_limitEnforcement = true;
 #include "Shell/UIHelper.hpp"
 
 int timer_sigalrm_counter=-1;
-long long last_instruction_count_read = -1;
-
-#define MILLION 1000000
-
-unsigned Timer::elapsedMegaInstructions() {
-  return (last_instruction_count_read >= MILLION) ? last_instruction_count_read/MILLION : 0;
-}
 
 long Timer::s_ticksPerSec;
 int Timer::s_initGuarantedMiliseconds;
-
-[[noreturn]] void limitReached(unsigned char whichLimit)
-{
-  using namespace Shell;
-
-  // for debugging crashes of limitReached: it is good to know what was called by vampire proper just before the interrupt
-  // Debug::Tracer::printStack(cout);
-
-  const char* REACHED[3] = {"","Time limit reached!\n","Instruction limit reached!\n"};
-  const char* STATUS[3] = {"","% SZS status Timeout for ","% SZS status InstrOut for "};
-
-  // CAREFUL, we might be in a signal handler and potentially at the same time inside Allocator which is not re-entrant
-  // so any code below that allocates might corrupt the allocator state.
-  // Therefore, the printing below should avoid allocations!
-
-  env->beginOutput();
-  reportSpiderStatus('t');
-  if (outputAllowed()) {
-    addCommentSignForSZS(env.out());
-    env.out() << REACHED[whichLimit];
-
-    if (UIHelper::portfolioParent) { // the boss
-      addCommentSignForSZS(env.out());
-      env.out() << "Proof not found in time ";
-      Timer::printMSString(env.out(),env.timer->elapsedMilliseconds());
-
-      if (last_instruction_count_read > -1) {
-        env.out() << " nor after " << last_instruction_count_read << " (user) instruction executed.";
-      }
-      env.out() << endl;
-
-      if (szsOutputMode()) {
-        env.out() << STATUS[whichLimit] << (env.options ? env.options->problemName().c_str() : "unknown") << endl;
-      }
-    } else // the actual child
-      if (env->statistics) {
-        env->statistics->print(env->out());
-    }
-  }
-  env->endOutput();
-
-  System::terminateImmediately(1);
-}
-
-std::atomic<unsigned> protectingTimeout{0};
-std::atomic<unsigned char> callLimitReachedLater{0}; // 1 for a timelimit, 2 for an instruction limit
-
-TimeoutProtector::TimeoutProtector() {
-  protectingTimeout++;
-}
-
-TimeoutProtector::~TimeoutProtector() {
-  protectingTimeout--;
-  if (!protectingTimeout && callLimitReachedLater) {
-    unsigned howToCall = callLimitReachedLater;
-    callLimitReachedLater = 0; // to prevent recursion (should limitReached itself reach TimeoutProtector)
-    limitReached(howToCall);
-  }
-}
 
 void
 timer_sigalrm_handler (int sig)
@@ -185,7 +165,7 @@ timer_sigalrm_handler (int sig)
 
   timer_sigalrm_counter++;
 
-  if(Timer::s_limitEnforcement && env.timeLimitReached()) {
+  if(Timer::s_limitEnforcement && env->timeLimitReached()) {
     if (protectingTimeout) {
       callLimitReachedLater = 1; // 1 for a time limit
     } else {
@@ -194,12 +174,12 @@ timer_sigalrm_handler (int sig)
   }
 
 #ifdef __linux__
-  if(Timer::s_limitEnforcement && env.options->instructionLimit() && perf_fd >= 0) {
+  if(Timer::s_limitEnforcement && env->options->instructionLimit() && perf_fd >= 0) {
     // we could also decide not to guard this read by env.options->instructionLimit(),
     // to get info about instructions burned even when not instruction limiting
     read(perf_fd, &last_instruction_count_read, sizeof(long long));
     
-    if (last_instruction_count_read >= MILLION*(long long)env.options->instructionLimit()) {
+    if (last_instruction_count_read >= MILLION*(long long)env->options->instructionLimit()) {
       Timer::setLimitEnforcement(false);
       if (protectingTimeout) {
         callLimitReachedLater = 2; // 2 for an instr limit
@@ -482,6 +462,22 @@ Timer* Timer::instance()
   VTHREAD_LOCAL static ScopedPtr<Timer> inst(new Timer());
   
   return inst.ptr();
+}
+
+std::atomic<unsigned> protectingTimeout{0};
+std::atomic<unsigned char> callLimitReachedLater{0}; // 1 for a timelimit, 2 for an instruction limit
+
+TimeoutProtector::TimeoutProtector() {
+  protectingTimeout++;
+}
+
+TimeoutProtector::~TimeoutProtector() {
+  protectingTimeout--;
+  if (!protectingTimeout && callLimitReachedLater) {
+    unsigned howToCall = callLimitReachedLater;
+    callLimitReachedLater = 0; // to prevent recursion (should limitReached itself reach TimeoutProtector)
+    limitReached(howToCall);
+  }
 }
 
 };

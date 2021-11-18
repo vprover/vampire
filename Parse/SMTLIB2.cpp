@@ -869,7 +869,7 @@ SMTLIB2::DeclaredFunction SMTLIB2::declareFunctionOrPredicate(const vstring& nam
   OperatorType* type;
 
   if (rangeSort == AtomicSort::boolSort()) { // predicate
-    symNum = env.signature->addPredicate(name, argSorts.size(), added);
+    symNum = env->signature->addPredicate(name, argSorts.size(), added);
 
     sym = env->signature->getPredicate(symNum);
 
@@ -999,9 +999,9 @@ void SMTLIB2::readDeclareDatatype(LExpr *sort, LExprList *datatype)
 
   bool added = false;
   auto taName = dtypeName + "()";
-  unsigned srt = env.signature->addTypeCon(taName,0,added);
+  unsigned srt = env->signature->addTypeCon(taName,0,added);
   ASS(added);
-  env.signature->getTypeCon(srt)->setType(OperatorType::getConstantsType(AtomicSort::superSort()));
+  env->signature->getTypeCon(srt)->setType(OperatorType::getConstantsType(AtomicSort::superSort()));
   TermList taSort = TermList(AtomicSort::createConstant(srt));
 
   LispListReader dtypeRdr(datatype);
@@ -1036,14 +1036,14 @@ void SMTLIB2::readDeclareDatatype(LExpr *sort, LExprList *datatype)
     constructors.push(buildTermAlgebraConstructor(constrName, taSort, destructorNames, argSorts));
   }
 
-  ASS(!env.signature->isTermAlgebraSort(taSort));
+  ASS(!env->signature->isTermAlgebraSort(taSort));
   TermAlgebra* ta = new TermAlgebra(taSort, constructors.size(), constructors.begin(), false);
 
   if (ta->emptyDomain()) {
     USER_ERROR("Datatype " + taName + " defines an empty sort");
   }
 
-  env.signature->addTermAlgebra(ta);
+  env->signature->addTermAlgebra(ta);
 }
 
 void SMTLIB2::readDeclareDatatypes(LExprList* sorts, LExprList* datatypes, bool codatatype)
@@ -1072,9 +1072,9 @@ void SMTLIB2::readDeclareDatatypes(LExprList* sorts, LExprList* datatypes, bool 
 
     ALWAYS(_declaredSorts.insert(dtypeName, 0));
     bool added = false;
-    unsigned srt = env.signature->addTypeCon(dtypeName + "()",0,added);
+    unsigned srt = env->signature->addTypeCon(dtypeName + "()",0,added);
     ASS(added);
-    env.signature->getTypeCon(srt)->setType(OperatorType::getConstantsType(AtomicSort::superSort()));
+    env->signature->getTypeCon(srt)->setType(OperatorType::getConstantsType(AtomicSort::superSort()));
     TermList sort = TermList(AtomicSort::createConstant(srt));
     (void)sort; // to get rid of compiler warning when logging is off
     // TODO: is it really OK we normally don't need the sort?
@@ -1093,7 +1093,7 @@ void SMTLIB2::readDeclareDatatypes(LExprList* sorts, LExprList* datatypes, bool 
     constructors.reset();
     const vstring& taName = dtypeNameIter.next(); 
     bool added = false;
-    unsigned sort = env.signature->addTypeCon(taName,0,added);
+    unsigned sort = env->signature->addTypeCon(taName,0,added);
     ASS(!added);
     TermList taSort = TermList(AtomicSort::createConstant(sort));
 
@@ -1178,8 +1178,8 @@ TermAlgebraConstructor* SMTLIB2::buildTermAlgebraConstructor(vstring constrName,
 
     LOG1("build destructor "+destructorName+": "+destructorType->toString());
 
-    auto destSym = isPredicate ? env.signature->getPredicate(destructorFunctor)
-                               : env.signature->getFunction (destructorFunctor);
+    auto destSym = isPredicate ? env->signature->getPredicate(destructorFunctor)
+                               : env->signature->getFunction (destructorFunctor);
     destSym->setType(destructorType);
     destSym->markTermAlgebraDest();
 
@@ -1451,7 +1451,7 @@ void SMTLIB2::parseLetPrepareLookup(LExpr* exp)
 
     TermList trm;
     if (sort == AtomicSort::boolSort()) {
-      unsigned symb = env.signature->addFreshPredicate(0,"sLP");
+      unsigned symb = env->signature->addFreshPredicate(0,"sLP");
       OperatorType* type = OperatorType::getPredicateType(0, nullptr);
       env->signature->getPredicate(symb)->setType(type);
 
@@ -1535,7 +1535,7 @@ bool SMTLIB2::isTermAlgebraConstructor(const vstring &name)
 
   if (_declaredFunctions.find(name)) {
     DeclaredFunction &f = _declaredFunctions.get(name);
-    return (f.second && env.signature->getTermAlgebraConstructor(f.first));
+    return (f.second && env->signature->getTermAlgebraConstructor(f.first));
   }
 
   return false;
@@ -1633,7 +1633,7 @@ void SMTLIB2::parseMatchCaseStart(LExpr *exp)
     LispListReader tRdr(pattern);
     auto ctorName = tRdr.readAtom();
     // whether it is a ctor we check in MATCH_END
-    auto fn = env.signature->getFunction(_declaredFunctions.get(ctorName).first);
+    auto fn = env->signature->getFunction(_declaredFunctions.get(ctorName).first);
     unsigned argcnt = 0;
     while (tRdr.hasNext()) {
       auto arg = tRdr.readNext();
@@ -1693,7 +1693,7 @@ void SMTLIB2::parseMatchEnd(LExpr *exp)
   LOG2("CASE matched ", matchedTerm.toString());
 
   vmap<unsigned, TermAlgebraConstructor *> ctorFunctors;
-  TermAlgebra *ta = env.signature->getTermAlgebraOfSort(matchedTermSort);
+  TermAlgebra *ta = env->signature->getTermAlgebraOfSort(matchedTermSort);
   if (ta == nullptr) {
     USER_ERROR("Match term '" + matched + "' is not of a term algebra type in expression '" + exp->toString() + "'");
   }

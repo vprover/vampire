@@ -369,7 +369,7 @@ void NarrowingIndex::populateIndex()
   TermList rhsS = AH::createAppTerm3(AtomicSort::arrowSort(s1, s2, s3), x, z, AH::createAppTerm(AtomicSort::arrowSort(s1, s2), y, z));
   Literal* sLit = Literal::createEquality(true, lhsS, rhsS, s3);
 
-  unsigned c_comb = env.signature->getCombinator(Signature::C_COMB);
+  unsigned c_comb = env->signature->getCombinator(Signature::C_COMB);
   constant = TermList(Term::create(c_comb, 3, args));  TermList lhsC = AH::createAppTerm(srtOf(constant), constant, x, y, z); 
   TermList rhsC = AH::createAppTerm3(AtomicSort::arrowSort(s1, s2, s3), x, z, y);
   Literal* cLit = Literal::createEquality(true, lhsC, rhsC, s3);

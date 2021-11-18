@@ -284,9 +284,9 @@ Term* Rectify::rectify (Term* t)
   if (rectify(t->args(),s->args())) {
     if(TermList::allShared(s->args())) {
       if(t->isSort()){
-        return env.sharing->insert(static_cast<AtomicSort*>(s));
+        return env->sharing->insert(static_cast<AtomicSort*>(s));
       } else {
-        return env.sharing->insert(s);
+        return env->sharing->insert(s);
       }
     }
     else {

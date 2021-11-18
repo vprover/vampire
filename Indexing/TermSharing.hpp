@@ -68,10 +68,6 @@ public:
     return &_arraySorts;
   }
 
-  struct OpLitWrapper {
-    OpLitWrapper(Literal* l) : l(l) {}
-    Literal* l;
-  };
   inline static unsigned hash(const OpLitWrapper& w)
   { return w.l->oppositeHash(); }
 

@@ -1803,7 +1803,7 @@ ImmediateSimplificationEngine* SaturationAlgorithm::createISE(Problem& prb, cons
     }
   }
   if(prb.hasInterpretedOperations() || prb.hasNumerals()) {
-    if (env.options->arithmeticSubtermGeneralizations() == Options::ArithmeticSimplificationMode::FORCE) {
+    if (env->options->arithmeticSubtermGeneralizations() == Options::ArithmeticSimplificationMode::FORCE) {
       for (auto gen : allArithmeticSubtermGeneralizations())  {
         res->addFront(&gen->asISE());
       }

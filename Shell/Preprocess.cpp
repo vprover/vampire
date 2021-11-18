@@ -132,7 +132,7 @@ void Preprocess::preprocess(Problem& prb)
     }
   }
 
-  if (prb.hasFOOL() || env.statistics->higherOrder) {//or lambda
+  if (prb.hasFOOL() || env->statistics->higherOrder) {//or lambda
     // This is the point to extend the signature with $$true and $$false
     // If we don't have fool then these constants get in the way (a lot)
 

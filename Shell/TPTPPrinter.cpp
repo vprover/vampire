@@ -201,13 +201,13 @@ void TPTPPrinter::outputSymbolTypeDefinitions(unsigned symNumber, SymbolType sym
   Signature::Symbol* sym;
   OperatorType* type;
   if(symType == SymbolType::FUNC){
-    sym = env.signature->getFunction(symNumber);
+    sym = env->signature->getFunction(symNumber);
     type = sym->fnType();
   } else if(symType == SymbolType::PRED){
-    sym = env.signature->getPredicate(symNumber);
+    sym = env->signature->getPredicate(symNumber);
     type = sym->predType();    
   } else {
-    sym = env.signature->getTypeCon(symNumber);
+    sym = env->signature->getTypeCon(symNumber);
     type = sym->typeConType();
   }
 
@@ -316,11 +316,11 @@ void TPTPPrinter::ensureHeadersPrinted(Unit* u)
   
   //ensureNecesarySorts();
 
-  unsigned typeCons = env.signature->typeCons();
+  unsigned typeCons = env->signature->typeCons();
   for(unsigned i=Signature::FIRST_USER_CON; i<typeCons; i++) {
     outputSymbolTypeDefinitions(i, SymbolType::TYPE_CON);
   }
-  unsigned funs = env.signature->functions();
+  unsigned funs = env->signature->functions();
   for(unsigned i=0; i<funs; i++) {
     outputSymbolTypeDefinitions(i, SymbolType::FUNC);
   }

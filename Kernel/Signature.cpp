@@ -248,7 +248,6 @@ Signature::Signature ():
     _funs(32),
     _preds(32),
     _typeCons(32),
-    _nextFreshSymbolNumber(0),
     _skolemFunctionCount(0),
     _distinctGroupsAddedTo(false),
     _strings(0),

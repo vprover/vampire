@@ -171,7 +171,7 @@ vstring getQuantifiedStr(const VarContainer& vars, vstring inner, DHMap<unsigned
     vstring ty="";
     TermList t;
 
-    if(t_map.find(var,t) && env.statistics->hasTypes){
+    if(t_map.find(var,t) && env->statistics->hasTypes){
       //hasTypes is true if the problem that contains a sort
       //that is not $i and not a variable
       ty=" : " + t.toString();
@@ -1071,8 +1071,8 @@ void InferenceStore::outputUnsatCore(ostream& out, Unit* refutation)
           out << label << endl;
         }
         else{
-          ASS(env.options->ignoreMissingInputsInUnsatCore() || u->getFormula()->hasLabel());
-          if(!(env.options->ignoreMissingInputsInUnsatCore() || u->getFormula()->hasLabel())){
+          ASS(env->options->ignoreMissingInputsInUnsatCore() || u->getFormula()->hasLabel());
+          if(!(env->options->ignoreMissingInputsInUnsatCore() || u->getFormula()->hasLabel())){
             cout << "ERROR: There is a problem with the unsat core. There is an input formula in the proof" <<  endl;
             cout << "that does not have a label. We expect all  input formulas to have labels as this  is what" << endl;
             cout << "smtcomp does. If you don't want this then use the ignore_missing_inputs_in_unsat_core option" << endl;

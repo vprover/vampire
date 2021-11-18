@@ -146,7 +146,7 @@ void ProvingHelper::runVampire(Problem& prb, const Options& opt)
   ScopedPtr<MainLoop> salg(MainLoop::createFromOptions(prb, opt));
 
   MainLoopResult sres(salg->run());
-  env.statistics->phase=Statistics::FINALIZATION;
+  env->statistics->phase=Statistics::FINALIZATION;
   Timer::setLimitEnforcement(false);
   sres.updateStatistics();
 }

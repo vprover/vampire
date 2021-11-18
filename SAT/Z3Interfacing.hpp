@@ -153,7 +153,7 @@ public:
     { return l.id == r.id && l.isPredicate == r.isPredicate; }
     friend std::ostream& operator<<(std::ostream& out, FuncOrPredId const& self)
     { return out << (self.isPredicate ? "pred " : "func " )
-      << (self.isPredicate ? env.signature->getPredicate(self.id)->name() : env.signature->getFunction(self.id)->name());
+      << (self.isPredicate ? env->signature->getPredicate(self.id)->name() : env->signature->getFunction(self.id)->name());
     }
   };
 

@@ -38,9 +38,9 @@ OperatorType* SortHelper::getType(Term* t)
   CALL("SortHelper::getType(Term*)");
 
   if (t->isLiteral()) {
-    return env.signature->getPredicate(t->functor())->predType();
+    return env->signature->getPredicate(t->functor())->predType();
   } else if (t->isSort()) {
-    return env.signature->getTypeCon(t->functor())->typeConType();
+    return env->signature->getTypeCon(t->functor())->typeConType();
   }
   return env->signature->getFunction(t->functor())->fnType();
 } // getType

@@ -215,7 +215,7 @@ void EqualityProxyMono::addCongruenceAxioms(UnitList*& units)
 
   unsigned funs = env->signature->functions();
   for (unsigned i=0; i<funs; i++) {
-    Signature::Symbol* fnSym = env.signature->getFunction(i);
+    Signature::Symbol* fnSym = env->signature->getFunction(i);
     unsigned arity = fnSym->arity();
     if (arity == 0) {
       continue;

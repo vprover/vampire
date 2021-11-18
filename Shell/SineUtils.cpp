@@ -55,8 +55,8 @@ using namespace Kernel;
  */
 SineSymbolExtractor::SymId SineSymbolExtractor::getSymIdBound()
 {
-  return max(env.signature->predicates()*3-1, 
-         max(env.signature->functions()*3, env.signature->typeCons()*3));
+  return max(env->signature->predicates()*3-1, 
+         max(env->signature->functions()*3, env->signature->typeCons()*3));
 }
 
 void SineSymbolExtractor::addSymIds(Term* term, Stack<SymId>& ids)

@@ -264,22 +264,22 @@ Problem* UIHelper::getInputProblem(const Options& opts)
        bool smtlib = hasEnding(inputFile,"smt") || hasEnding(inputFile,"smt2");
 
        if(smtlib){
-         env.beginOutput();
-         addCommentSignForSZS(env.out());
-         env.out() << "Running in auto input_syntax mode. Trying SMTLIB2\n";
-         env.endOutput();
+         env->beginOutput();
+         addCommentSignForSZS(env->out());
+         env->out() << "Running in auto input_syntax mode. Trying SMTLIB2\n";
+         env->endOutput();
          try{
            units = tryParseSMTLIB2(opts,input,smtLibLogic);
          }
          catch (UserErrorException& exception) {
-           env.beginOutput();
-           addCommentSignForSZS(env.out());
-           env.out() << "Failed with\n";
-           addCommentSignForSZS(env.out());
-           exception.cry(env.out());
-           addCommentSignForSZS(env.out());
-           env.out() << "Trying TPTP\n";
-           env.endOutput();
+           env->beginOutput();
+           addCommentSignForSZS(env->out());
+           env->out() << "Failed with\n";
+           addCommentSignForSZS(env->out());
+           exception.cry(env->out());
+           addCommentSignForSZS(env->out());
+           env->out() << "Trying TPTP\n";
+           env->endOutput();
            {
              BYPASSING_ALLOCATOR;
              delete static_cast<ifstream*>(input);
@@ -290,22 +290,22 @@ Problem* UIHelper::getInputProblem(const Options& opts)
 
        }
        else{
-         env.beginOutput();
-         addCommentSignForSZS(env.out());
-         env.out() << "Running in auto input_syntax mode. Trying TPTP\n";
-         env.endOutput();
+         env->beginOutput();
+         addCommentSignForSZS(env->out());
+         env->out() << "Running in auto input_syntax mode. Trying TPTP\n";
+         env->endOutput();
          try{
            units = tryParseTPTP(input); 
          }
          catch (UserErrorException& exception) {
-           env.beginOutput();
-           addCommentSignForSZS(env.out());
-           env.out() << "Failed with\n";
-           addCommentSignForSZS(env.out());
-           exception.cry(env.out());
-           addCommentSignForSZS(env.out());
-           env.out() << "Trying SMTLIB2\n";
-           env.endOutput();
+           env->beginOutput();
+           addCommentSignForSZS(env->out());
+           env->out() << "Failed with\n";
+           addCommentSignForSZS(env->out());
+           exception.cry(env->out());
+           addCommentSignForSZS(env->out());
+           env->out() << "Trying SMTLIB2\n";
+           env->endOutput();
            {
              BYPASSING_ALLOCATOR;
              delete static_cast<ifstream*>(input);
@@ -626,20 +626,20 @@ void UIHelper::outputSymbolTypeDeclarationIfNeeded(ostream& out, bool function, 
   Signature::Symbol* sym;
 
   if(function){
-    sym = env.signature->getFunction(symNumber);
+    sym = env->signature->getFunction(symNumber);
   } else if(typeCon){
-    sym = env.signature->getTypeCon(symNumber);
+    sym = env->signature->getTypeCon(symNumber);
   } else {
-    sym = env.signature->getPredicate(symNumber);    
+    sym = env->signature->getPredicate(symNumber);    
   }
 
-  if (typeCon && (env.signature->isArrayCon(symNumber) ||
-                  env.signature->isTupleCon(symNumber))){
+  if (typeCon && (env->signature->isArrayCon(symNumber) ||
+                  env->signature->isTupleCon(symNumber))){
     return;
   }
 
-  if(typeCon && env.signature->isDefaultSortCon(symNumber) && 
-    (!env.signature->isBoolCon(symNumber) || !env.options->showFOOL())){
+  if(typeCon && env->signature->isDefaultSortCon(symNumber) && 
+    (!env->signature->isBoolCon(symNumber) || !env->options->showFOOL())){
     return;
   }
 
@@ -659,7 +659,7 @@ void UIHelper::outputSymbolTypeDeclarationIfNeeded(ostream& out, bool function, 
   }
 
   if (function) {
-    TermList sort = env.signature->getFunction(symNumber)->fnType()->result();
+    TermList sort = env->signature->getFunction(symNumber)->fnType()->result();
     if (sort.isTupleSort()) {
       return;
     }
@@ -676,8 +676,8 @@ void UIHelper::outputSymbolTypeDeclarationIfNeeded(ostream& out, bool function, 
   //    << sym->name() << ": ";
 
   //don't output type of app. It is an internal Vampire thing
-  if(!(function && env.signature->isAppFun(symNumber))){
-    out << (env.statistics->higherOrder ? "thf(" : "tff(")
+  if(!(function && env->signature->isAppFun(symNumber))){
+    out << (env->statistics->higherOrder ? "thf(" : "tff(")
         << (function ? "func" : (typeCon ?  "type" : "pred")) 
         << "_def_" << symNumber << ", type, "
         << sym->name() << ": ";

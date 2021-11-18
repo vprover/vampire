@@ -30,8 +30,8 @@ TermAlgebraConstructor::TermAlgebraConstructor(unsigned functor, Lib::Array<unsi
   ASS_EQ(_type->arity(), destructors.size());
   unsigned i = 0;
   for (auto d : destructors) {
-    auto sym = _type->arg(i++) == AtomicSort::boolSort() ? env.signature->getPredicate(d)
-                                                   : env.signature->getFunction(d);
+    auto sym = _type->arg(i++) == AtomicSort::boolSort() ? env->signature->getPredicate(d)
+                                                   : env->signature->getFunction(d);
     ASS_REP(sym->termAlgebraDest(), sym->name())
   }
 }
@@ -43,7 +43,7 @@ TermAlgebraConstructor::TermAlgebraConstructor(unsigned functor, unsigned discri
   ASS_REP(env->signature->getFunction(_functor)->termAlgebraCons(), env->signature->functionName(_functor));
   ASS_EQ(_type->arity(), destructors.size());
   for (auto d : destructors) {
-    ASS(env.signature->getFunction(d)->termAlgebraDest())
+    ASS(env->signature->getFunction(d)->termAlgebraDest())
   }
 }
 
@@ -55,9 +55,9 @@ unsigned TermAlgebraConstructor::createDiscriminator()
   if (hasDiscriminator()) {
     return discriminator();
   } else {
-    auto sym = env.signature->getFunction(functor());
-    auto discr = env.signature->addFreshPredicate(1, ( "$$is_" + sym->name() ).c_str());
-    env.signature->getPredicate(discr)->setType(OperatorType::getPredicateType({_type->result()}));
+    auto sym = env->signature->getFunction(functor());
+    auto discr = env->signature->addFreshPredicate(1, ( "$$is_" + sym->name() ).c_str());
+    env->signature->getPredicate(discr)->setType(OperatorType::getPredicateType({_type->result()}));
     addDiscriminator(discr);
     return discr;
   }
@@ -77,8 +77,8 @@ Lib::Set<TermList> TermAlgebra::subSorts()
       for (auto s : cons->iterArgSorts()) {
         if (!out.contains(s)) {
           out.insert(s);
-          if (env.signature->isTermAlgebraSort(s)) {
-            work.push(env.signature->getTermAlgebraOfSort(s));
+          if (env->signature->isTermAlgebraSort(s)) {
+            work.push(env->signature->getTermAlgebraOfSort(s));
           }
         }
       }
@@ -219,7 +219,7 @@ unsigned TermAlgebra::getSubtermPredicate() {
 }
 
 std::ostream& operator<<(std::ostream& out, TermAlgebraConstructor const& self) 
-{ return out << "ctor " << env.signature->getFunction(self.functor())->name(); }
+{ return out << "ctor " << env->signature->getFunction(self.functor())->name(); }
 
 std::ostream& operator<<(std::ostream& out, TermAlgebra const& self) 
 { return out << "term_algebra " << self.sort().toString(); }
