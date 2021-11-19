@@ -34,6 +34,8 @@ public:
   CLASS_NAME(Superposition);
   USE_ALLOCATOR(Superposition);
 
+  Superposition(bool ircCalculusEnabled) : _irc(ircCalculusEnabled) {}
+
   void attach(SaturationAlgorithm* salg);
   void detach();
 
@@ -41,6 +43,7 @@ public:
 
 
 private:
+
   Clause* performSuperposition(
     Clause* rwClause, Literal* rwLiteral, TermList rwTerm,
     Clause* eqClause, Literal* eqLiteral, TermList eqLHS,
@@ -64,6 +67,7 @@ private:
 
   SuperpositionSubtermIndex* _subtermIndex;
   SuperpositionLHSIndex* _lhsIndex;
+  bool const _irc;
 };
 
 

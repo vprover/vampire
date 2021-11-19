@@ -546,7 +546,7 @@ public:
   enum class TermOrdering : unsigned int {
     KBO = 0,
     LPO = 1,
-    LAKBO = 2,
+    LALPO = 2,
   };
 
   enum class SymbolPrecedence : unsigned int {

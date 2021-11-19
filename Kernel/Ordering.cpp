@@ -137,7 +137,7 @@ Ordering* Ordering::create(Problem& prb, const Options& opt)
       out = new KBO(prb, opt);
     }
     break;
-  case Options::TermOrdering::LAKBO:
+  case Options::TermOrdering::LALPO:
     out = new LaLpo(prb, opt);
     break;
   case Options::TermOrdering::LPO:
@@ -925,7 +925,7 @@ DArray<int> PrecedenceOrdering::predLevelsFromOptsAndPrec(Problem& prb, const Op
       predicateLevels[i] = nPredicates + PredLevels::MIN_USER_DEF+ 1;
     }
     else if (predSym->interpreted()) {
-      if (theory->isInequality(theory->interpretPredicate(i)) && env.options->termOrdering() == Options::TermOrdering::LAKBO) {
+      if (theory->isInequality(theory->interpretPredicate(i)) && env.options->termOrdering() == Options::TermOrdering::LALPO) {
         predicateLevels[i] = PredLevels::INEQ;
       }
     }
@@ -944,7 +944,7 @@ void PrecedenceOrdering::checkLevelAssumptions(DArray<int> const& levels)
       if (itp == Kernel::Theory::EQUAL) {
         ASS(levels[i] == PredLevels::EQ);
       } else if (theory->isInequality(itp)) {
-        ASS(env.options->termOrdering() != Options::TermOrdering::LAKBO || levels[i] == PredLevels::INEQ);
+        ASS(env.options->termOrdering() != Options::TermOrdering::LALPO || levels[i] == PredLevels::INEQ);
       } else {
         ASS(levels[i] >= PredLevels::MIN_USER_DEF || levels[i] < 0)
       }

@@ -1529,7 +1529,7 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
     gie->addFront(new EqualityFactoring());
     gie->addFront(new EqualityResolution());
     if(env.options->superposition()){
-      gie->addFront(new Superposition());
+      gie->addFront(new Superposition(env.options->inequalityResolution()));
     }
   } else if(opt.unificationWithAbstraction()!=Options::UnificationWithAbstraction::OFF){
     gie->addFront(new EqualityResolution()); 

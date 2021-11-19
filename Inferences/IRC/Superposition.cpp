@@ -18,7 +18,7 @@
 #include "Shell/Statistics.hpp"
 #include "Kernel/EqHelper.hpp"
 
-#define ORDERING_ASSERTIONS 0 // TODO <- implement
+#define ORDERING_ASSERTIONS 1
 #if ORDERING_ASSERTIONS 
 #  define ORD_CHECK(...) ASS(__VA_ARGS__)
 #else 
@@ -51,12 +51,9 @@ void Superposition::detach()
 
 ClauseIterator Superposition::generateClauses(Clause* premise) 
 {
-
-  // auto maxLits = 
   auto maxLits = make_shared(new Stack<Literal*>(_shared->strictlyMaxLiterals(premise)));
   return pvi(numTraitsIter([this, premise, maxLits](auto numTraits) {
-     using NumTraits = decltype(numTraits);
-     return iterTraits(ownedArrayishIterator(_shared->maxAtomicTermsNonVar<NumTraits>(premise)))
+     return iterTraits(ownedArrayishIterator(_shared->maxAtomicTermsNonVar<decltype(numTraits)>(premise)))
        .filter([maxLits](auto maxTerm) 
            { return iterTraits(maxLits->iterFifo())
                       .find([&](auto x) 
@@ -65,15 +62,6 @@ ClauseIterator Superposition::generateClauses(Clause* premise)
        .filterMap([this, premise](auto maxTerm) { return this->generateClauses(premise, maxTerm.literal, maxTerm.ircLit, maxTerm.self); })
        .flatten();
   }));
-  // return pvi(
-  //     iterTraits(ownedArrayishIterator(_shared->strictlyMaxLiterals(premise)))
-  //     .filterMap([this, premise](auto lit) -> Option<ClauseIterator> {
-  //       return _shared->normalize(lit)
-  //       .andThen([this, premise, lit](auto unsortedLit) -> Option<ClauseIterator> {
-  //           return unsortedLit.apply([this, premise, lit](auto sortedLit) { return this->generateClauses(premise, lit, sortedLit); });
-  //         });
-  //       })
-  //     .flatten());
 }
 
   
@@ -131,15 +119,17 @@ template<class NumTraits> Option<ClauseIterator> Superposition::generateClauses(
                   // • ±k. s1 + t1 ≈ 0 is strictly maximal in Hyp1
                   ORD_CHECK(_shared->strictlyMaximal(pivot1, hyp1->getLiteralIterator()))
                   // • (±k. s1 + t1 ≈ 0)σ is strictly maximal in Hyp1σ
-                  ORD_CHECK(_shared->strictlyMaximal(sigma(pivot1, 0), iterTraits(hyp1->getLiteralIterator()).map([&](auto lit) { return sigma(lit, 0); })))
+                  if(!_shared->strictlyMaximal(sigma(pivot1, 0), iterTraits(hyp1->getLiteralIterator()).map([&](auto lit) { return sigma(lit, 0); }))) return nothing;
 
                   // • u[s2] + t2 ≈ 0 is strictly maximal in Hyp2
-                  ORD_CHECK(_shared->strictlyMaximal(pivot2, hyp2->getLiteralIterator()))
+                  ASS(_shared->strictlyMaximal(pivot2, hyp2->getLiteralIterator()))
                   // • ( u[s2] + t2 ≈ 0)σ is strictly maximal in Hyp2σ
-                  ORD_CHECK(_shared->strictlyMaximal(sigma(pivot2, 1), iterTraits(hyp2->getLiteralIterator()).map([&](auto lit) { return sigma(lit, 1); })))
+                  if(!_shared->strictlyMaximal(sigma(pivot2, 1), iterTraits(hyp2->getLiteralIterator()).map([&](auto lit) { return sigma(lit, 1); }))) return nothing;
 
+                  // •        s1   is strictly maximal in terms(s1 + t1)
+                  ORD_CHECK(_shared->strictlyMaximal(s1->denormalize(), eq.term().iterSummands().map([&](auto monom) { return monom.factors->denormalize(); })))
                   // •        s1  σ is strictly maximal in terms(s1 + t1)σ
-                  ORD_CHECK(_shared->strictlyMaximal(sigma(s1->denormalize(), 0), eq.term().iterSummands().map([&](auto monom) { return sigma(monom.factors->denormalize(), 0); })))
+                  if(!_shared->strictlyMaximal(sigma(s1->denormalize(), 0), eq.term().iterSummands().map([&](auto monom) { return sigma(monom.factors->denormalize(), 0); }))) { return nothing; }
 
                   // • term(u[s2])σ is strictly maximal in terms(u[s2] + t2)σ 
                   // TODO check this condition somehow ?!
@@ -165,15 +155,11 @@ template<class NumTraits> Option<ClauseIterator> Superposition::generateClauses(
 
                 // adding u[∓(1/k)t1]+t2 <> 0) σ 
                 {
-                  auto t1 = NumTraits::sum(eq.term().iterSummands()
-                      .filter([&](auto t) { return t != k_s1; })
-                      .map([](auto monom) { return monom.denormalize(); }));
                   auto k = k_s1.numeral;
-                  auto repl = 
+                  auto repl = NumTraits::sum(eq.term().iterSummands()
                   //   ^^^^ -> u[∓(1/k)t1]+t2 <> 0) σ 
-                      k != Numeral(-1) ? NumTraits::mul(NumTraits::constantTl(Numeral(-1) / k), sigma(t1, 0))
-                                       :                                                        sigma(t1, 0) ;
-
+                      .filter([&](auto t) { return t != k_s1; })
+                      .map([&](auto monom) { return ((Numeral(-1) / k) * monom).denormalize(); }));
 
                   auto resolvent = EqHelper::replace(sigma(pivot2, 1), sigma(s2, 1), repl);
                   concl.push(resolvent);

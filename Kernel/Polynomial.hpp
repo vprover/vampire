@@ -556,6 +556,11 @@ public:
   template<class N> friend bool operator==(const Polynom<N>& l, const Polynom<N>& r);
   template<class N> friend bool operator!=(const Polynom<N>& l, const Polynom<N>& r);
   template<class N> friend std::ostream& operator<<(std::ostream& out, const Polynom<N>& self);
+
+  friend Polynom operator*(Numeral n, Polynom const& self) 
+  { return Polynom(self.iterSummands()
+      .map([&](auto m) { return n * m; })
+      .template collect<Stack>()); }
 };  
 
 template<class N> bool operator!=(const Polynom<N>& l, const Polynom<N>& r) { return !(l == r); }
