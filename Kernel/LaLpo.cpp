@@ -445,6 +445,13 @@ Ordering::Result LaLpo::compare(TermList s, TermList t) const
 
 }
 
+std::tuple<IntegerConstantType, IntegerConstantType, TermList> toIntPair(IntegerConstantType i)
+{ return make_tuple(i, 1, IntegerConstantType::getSort()); }
+
+template<class C>
+std::tuple<IntegerConstantType, IntegerConstantType, TermList> toIntPair(C c)
+{ return make_tuple(c.numerator(), c.denominator(), C::getSort()); }
+
 Comparison LaLpo::cmpFun(Term* l, Term* r) const
 {
   auto f = l->functor();
@@ -455,14 +462,24 @@ Comparison LaLpo::cmpFun(Term* l, Term* r) const
   auto lMul = forAnyNumTraits([&](auto numTraits) { return f == numTraits.mulF(); });
   auto rMul = forAnyNumTraits([&](auto numTraits) { return g == numTraits.mulF(); });
 
-  auto lNum = forAnyNumTraits([&](auto numTraits) { return numTraits.isNumeral(l); });
-  auto rNum = forAnyNumTraits([&](auto numTraits) { return numTraits.isNumeral(r); });
+  auto lNum = forAnyNumTraits([&](auto numTraits) { return numTraits.tryNumeral(l).map([](auto n){ return  toIntPair(n); }); });
+  auto rNum = forAnyNumTraits([&](auto numTraits) { return numTraits.tryNumeral(r).map([](auto n){ return  toIntPair(n); }); });
 
-  return  lMul && !rMul ? Comparison::LESS
-       : !lMul &&  rMul ? Comparison::GREATER
-       :  lNum && !rNum ? Comparison::LESS
-       : !lNum &&  rNum ? Comparison::GREATER
-       : _prec.cmpFun(f,g);
+  auto cmpNums = [&](auto l, auto r) {
+    auto ltied = std::tie(get<2>(l),get<1>(l),get<0>(l));
+    auto rtied = std::tie(get<2>(r),get<1>(r),get<0>(r));
+    //                    ^^sort^^  ^^denom^^ ^^^num^^^
+    if (ltied == rtied) return Comparison::EQUAL;
+    if (ltied <  rtied) return Comparison::LESS;
+    else        return Comparison::GREATER;
+  };
+
+  if ( lMul          && !rMul          ) return Comparison::LESS;
+  if (!lMul          &&  rMul          ) return Comparison::GREATER;
+  if ( lNum.isSome() && !rNum.isSome() ) return Comparison::LESS;
+  if (!lNum.isSome() &&  rNum.isSome() ) return Comparison::GREATER;
+  if ( lNum.isSome() &&  rNum.isSome() ) return cmpNums(lNum.unwrap(), rNum.unwrap());
+  else return _prec.cmpFun(f,g);
 }
 
 void LaLpo::show(ostream& out) const 
@@ -535,5 +552,16 @@ Comparison Precedence::cmpPred(unsigned l, unsigned r) const
 { return Int::compare(
     l < _predPrec.size() ? _predPrec[l] : l, 
     r < _predPrec.size() ? _predPrec[r] : r); }
+
+Precedence Precedence::random() 
+{
+  Precedence out(
+      DArray<int>::fromIterator(getRangeIterator<int>(0, env.signature-> functions())),
+      DArray<int>::fromIterator(getRangeIterator<int>(0, env.signature->predicates())));
+  auto rng = [](int i) -> int { return Random::getInteger() % i; };
+  std::random_shuffle(out. _funPrec.begin(), out. _funPrec.end(), rng);
+  std::random_shuffle(out._predPrec.begin(), out._predPrec.end(), rng);
+  return out;
+}
 
 } // Kernel

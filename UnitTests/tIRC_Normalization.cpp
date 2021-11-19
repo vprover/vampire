@@ -17,7 +17,6 @@
 #include "Inferences/PolynomialEvaluation.hpp"
 #include "Inferences/Cancellation.hpp"
 
-#include "Kernel/LaKbo.hpp"
 #include "Test/SyntaxSugar.hpp"
 #include "Test/TestUtils.hpp"
 #include "Lib/Coproduct.hpp"

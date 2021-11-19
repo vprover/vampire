@@ -243,6 +243,22 @@ TEST_FUN(lalpo_test_literals) {
   // checking uninterpreted r maximal
   check(ord, p(x), Greater,  8 * f(x) >  0);
   check(ord, p(y), Greater,  8 * f(x) >  0);
+
+}
+
+TEST_FUN(lalpo_test_literals_numerals) {
+  DECL_DEFAULT_VARS
+  NUMBER_SUGAR(Rat)
+  DECL_CONST(a, Rat)
+  DECL_CONST(b, Rat)
+  DECL_FUNC (f, {Rat}, Rat)
+  DECL_PRED (p, {Rat})
+
+  auto ord = laLpo();
+
+  check(ord,              3 * f(x) > 0, Less   , frac(1,3) * f(x)  > 0);
+  check(ord,      frac(1,5) * f(x) > 0, Greater,         5 * f(x)  > 0);
+
 }
 
 

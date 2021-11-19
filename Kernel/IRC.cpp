@@ -9,7 +9,7 @@
  */
 
 #include "IRC.hpp"
-#include "Kernel/LaKbo.hpp"
+#include "Kernel/LaLpo.hpp"
 
 namespace Kernel {
 using Inferences::PolynomialEvaluation;
@@ -58,7 +58,7 @@ bool InequalityNormalizer::isNormalized(Clause* cl)  const
 
 #if VDEBUG
 shared_ptr<IrcState> testIrcState(Options::UnificationWithAbstraction uwa) {
-  auto& ord = *new LaKbo(Kernel::KBO::testKBO(/* randomized */ false));
+  auto& ord = *new LaLpo(Precedence::random());
   return shared_ptr<IrcState>(new IrcState {
       .normalizer = InequalityNormalizer(),
       .ordering = &ord,

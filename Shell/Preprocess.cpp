@@ -36,7 +36,6 @@
 #include "InequalitySplitting.hpp"
 #include "InterpretedNormalizer.hpp"
 #include "Kernel/IRC.hpp"
-#include "Kernel/LaKbo.hpp"
 #include "Naming.hpp"
 #include "Normalisation.hpp"
 #include "NNF.hpp"
@@ -163,7 +162,6 @@ void Preprocess::preprocess(Problem& prb)
   auto normalizeInterpreted = [&]() {
     if (env.options->inequalityResolution()) {
 
-      LaKbo kbo(KBO(prb, *env.options));
       static InequalityNormalizer norm;
       InterpretedNormalizer(&norm).apply(prb);
 

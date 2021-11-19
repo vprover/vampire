@@ -33,7 +33,7 @@
 #include "Kernel/Inference.hpp"
 #include "Kernel/InferenceStore.hpp"
 #include "Kernel/KBO.hpp"
-#include "Kernel/LaKbo.hpp"
+#include "Kernel/LaLpo.hpp"
 #include "Kernel/LiteralSelector.hpp"
 #include "Kernel/MLVariant.hpp"
 #include "Kernel/Problem.hpp"
@@ -1631,8 +1631,8 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
         .uwa = env.options->unificationWithAbstraction(),
     });
     try {
-      auto& lakbo = dynamic_cast<Kernel::LaKbo&>(ordering);
-      lakbo.setState(shared);
+      auto& ord = dynamic_cast<Kernel::LaLpo&>(ordering);
+      ord.setState(shared);
     } catch (std::bad_cast) { /* do nothing */ }
     res->addForwardSimplifierToFront(new IRC::FwdDemodulationModLA(shared));
     res->addBackwardSimplifierToFront(new IRC::BwdDemodulationModLA(shared));

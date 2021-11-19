@@ -37,7 +37,7 @@
 #include "Problem.hpp"
 #include "Signature.hpp"
 #include "Kernel/NumTraits.hpp" 
-#include "Kernel/LaKbo.hpp"
+#include "Kernel/LaLpo.hpp"
 
 #include "Ordering.hpp"
 
@@ -138,7 +138,7 @@ Ordering* Ordering::create(Problem& prb, const Options& opt)
     }
     break;
   case Options::TermOrdering::LAKBO:
-    out = new LaKbo(KBO(prb, opt));
+    out = new LaLpo(prb, opt);
     break;
   case Options::TermOrdering::LPO:
     out = new LPO(prb, opt);

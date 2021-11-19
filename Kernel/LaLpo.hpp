@@ -42,6 +42,15 @@ public:
     : _funPrec(std::move(funPrec))
     , _predPrec(std::move(predPrec)) {}
 
+  Precedence(Problem& prb, const Options& opts) 
+    : Precedence(
+        PrecedenceOrdering::funcPrecFromOpts(prb, opts),
+        PrecedenceOrdering::predPrecFromOpts(prb, opts)) {}
+
+  static Precedence random();
+
+  
+
   Comparison cmpFun(unsigned l, unsigned r) const;
   Comparison cmpPred(unsigned l, unsigned r) const;
   void show(ostream& out) const;
@@ -57,6 +66,9 @@ public:
   LaLpo(LaLpo&& kbo) = default;
   LaLpo& operator=(LaLpo&& kbo) = default;
   explicit LaLpo(Precedence);
+
+  LaLpo(Problem& prb, const Options& opts) 
+    : LaLpo(Precedence(prb,opts)) {}
 
   virtual ~LaLpo() {}
 
