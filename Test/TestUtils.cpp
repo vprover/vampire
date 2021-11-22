@@ -16,6 +16,7 @@
 
 
 #include "Lib/List.hpp"
+#include "Kernel/TermIterators.hpp"
 
 #include "Kernel/Formula.hpp"
 #include "Kernel/Unit.hpp"
@@ -207,10 +208,9 @@ bool TestUtils::eqModAC(const Kernel::Clause* lhs, const Kernel::Clause* rhs)
 { return permEq(*lhs, *rhs, [](Literal* l, Literal* r) -> bool { return TestUtils::eqModAC(l, r); }); }
 
 bool TestUtils::eqModAC(Kernel::Literal* lhs, Kernel::Literal* rhs)
-{ return TestUtils::eqModAC(TermList(lhs), TermList(rhs)); }
+{ return lhs->isPositive() == rhs->isPositive() 
+      && TestUtils::eqModAC(TermList(lhs), TermList(rhs)); }
 
-// bool TestUtils::eqModACVar(Kernel::Literal* lhs, Kernel::Literal* rhs, RectMap& map)
-// { return TestUtils::eqModACVar(TermList(lhs), TermList(rhs), map); }
 
 void __collect(unsigned functor, Term* t, Stack<TermList>& out) {
   ASS_EQ(t->functor(), functor);
@@ -278,5 +278,74 @@ bool TestUtils::eqModAC(TermList lhs, TermList rhs)
 
   return eqModAC_(lhs, rhs, c);
 }
+
+struct AcRectComp {
+  Stack<TermList> const& vl;
+  Stack<TermList> const& vr;
+  DArray<unsigned>& perm;
+
+  bool var(unsigned lhs, unsigned rhs) const 
+  { 
+    auto l = iterTraits(getRangeIterator<unsigned>(0, vl.size()))
+              .find([&](auto i) { return vl[i].var() == lhs; })
+              .unwrap();
+    auto r = iterTraits(getRangeIterator<unsigned>(0, vr.size()))
+              .find([&](auto i) { return vr[perm[i]].var() == rhs; })
+              .unwrap();
+    return l == r;
+  }
+
+  bool subterm(TermList lhs, TermList rhs) const 
+  { return TestUtils::eqModAC_(lhs, rhs, *this); }
+};
+
+bool TestUtils::eqModACRect(Kernel::TermList lhs, Kernel::TermList rhs)
+{ 
+  auto vl = iterTraits(vi(new VariableIterator(lhs))).collect<Stack>();
+  vl.sort();
+  vl.dedup();
+  auto vr = iterTraits(vi(new VariableIterator(lhs))).collect<Stack>();
+  vr.sort();
+  vr.dedup();
+
+  if (vl.size() != vr.size()) return false;
+
+  return anyPerm(vl.size(), [&](DArray<unsigned> perm) {
+    AcRectComp c {vl, vr, perm};
+    return eqModAC_(lhs, rhs, c);
+  });
+}
+
+
+bool TestUtils::eqModACRect(const Clause* lhs, const Clause* rhs)
+{ 
+  auto vl = iterTraits(lhs->iterLits())
+    .flatMap([](Literal* lit) { return vi(new VariableIterator(lit)); })
+    .collect<Stack>();
+  vl.sort();
+  vl.dedup();
+
+  auto vr = iterTraits(rhs->iterLits())
+    .flatMap([](Literal* lit) { return vi(new VariableIterator(lit)); })
+    .collect<Stack>();
+  vr.sort();
+  vr.dedup();
+
+  if (vl.size() != vr.size()) return false;
+
+  return anyPerm(vl.size(), [&](auto& perm) {
+     AcRectComp c {vl, vr, perm};
+      return permEq(*lhs, *rhs, [&](Literal* l, Literal* r) {
+        return l->isPositive() == r->isPositive() 
+            && eqModAC_(TermList(l), TermList(r), c); 
+      });
+  });
+}
+
+
+bool TestUtils::eqModACRect(Literal* lhs, Literal* rhs)
+{ return lhs->isPositive() == rhs->isPositive() 
+      && TestUtils::eqModACRect(TermList(lhs), TermList(rhs)); }
+
 
 } // namespace Test

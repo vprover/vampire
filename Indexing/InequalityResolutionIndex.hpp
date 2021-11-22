@@ -45,14 +45,14 @@ private:
 };
 
 
-class IRCSuperpositionIndex
+class IRCSuperpositionRhsIndex
 : public TermIndex
 {
 public:
-  CLASS_NAME(IRCSuperpositionIndex);
-  USE_ALLOCATOR(IRCSuperpositionIndex);
+  CLASS_NAME(IRCSuperpositionRhsIndex);
+  USE_ALLOCATOR(IRCSuperpositionRhsIndex);
 
-  IRCSuperpositionIndex(TermIndexingStructure* is)
+  IRCSuperpositionRhsIndex(TermIndexingStructure* is)
     : TermIndex(is) {}
 
   void setShared(shared_ptr<Kernel::IrcState> shared) { _shared = std::move(shared); }
@@ -61,6 +61,28 @@ public:
 private:
   template<class NumTraits> bool handleInequality(Literal* lit, Clause* c, bool adding);
   bool handleUninterpreted(Literal* lit, Clause* c, bool adding);
+
+  void handle(TermList t, Literal* lit, Clause* c, bool adding);
+
+  shared_ptr<Kernel::IrcState> _shared;
+};
+
+
+class IRCSuperpositionLhsIndex
+: public TermIndex
+{
+public:
+  CLASS_NAME(IRCSuperpositionLhsIndex);
+  USE_ALLOCATOR(IRCSuperpositionLhsIndex);
+
+  IRCSuperpositionLhsIndex(TermIndexingStructure* is)
+    : TermIndex(is) {}
+
+  void setShared(shared_ptr<Kernel::IrcState> shared) { _shared = std::move(shared); }
+// protected:
+  void handleClause(Clause* c, bool adding) final override;
+private:
+  template<class NumTraits> bool handleInequality(Literal* lit, Clause* c, bool adding);
 
   void handle(TermList t, Literal* lit, Clause* c, bool adding);
 

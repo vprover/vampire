@@ -33,7 +33,7 @@ using namespace Test;
 using namespace Indexing;
 using namespace Inferences::IRC;
 
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ////// TEST CASES 
 /////////////////////////////////////
 
@@ -58,8 +58,11 @@ using namespace Inferences::IRC;
 
 #define UWA_MODE Options::UnificationWithAbstraction::IRC1
 
-Indexing::Index* ircSuperpositionIndex() 
-{ return new Indexing::IRCSuperpositionIndex(new TermSubstitutionTree(UWA_MODE, true)); }
+Stack<std::function<Indexing::Index*()>> ircSuperpositionIndices()
+{ return {
+    [](){ return new Indexing::IRCSuperpositionLhsIndex(new TermSubstitutionTree(UWA_MODE, true));},
+    [](){ return new Indexing::IRCSuperpositionRhsIndex(new TermSubstitutionTree(UWA_MODE, true));},
+  }; }
 
 Superposition testSuperposition()
 { return Superposition(testIrcState(UWA_MODE)); }
@@ -73,10 +76,10 @@ REGISTER_GEN_TESTER(Test::Generation::GenerationTester<Superposition>(testSuperp
 //////////////////////////////////////
 
 TEST_GENERATION(basic01,
-    Generation::TestCase()
-      .indices({ ircSuperpositionIndex() })
-      .input   (  clause({ selected( 3 * f(x) - 4 == 0 )  }) )
-      .context ({ clause({ selected(     3 * f(x) >  0 )  }) })
+    Generation::SymmetricTest()
+      .indices(ircSuperpositionIndices())
+      .inputs  ({ clause({ selected( 3 * f(x) - 4 == 0 )  }) 
+                , clause({ selected(     3 * f(x) >  0 )  }) })
       .expected(exactly(
             clause({ 3 * frac(4,3) > 0  })
       ))
@@ -84,10 +87,10 @@ TEST_GENERATION(basic01,
     )
 
 TEST_GENERATION(basic02,
-    Generation::TestCase()
-      .indices({ ircSuperpositionIndex() })
-      .input   (  clause({ selected( 3 * f(x) - 4 == 0 )  }) )
-      .context ({ clause({ selected(     f(x) >  0 )  }) })
+    Generation::SymmetricTest()
+      .indices(ircSuperpositionIndices())
+      .inputs  ({ clause({ selected( 3 * f(x) - 4 == 0 )  })
+                , clause({ selected(     f(x) >  0 )  }) })
       .expected(exactly(
             clause({ frac(4, 3) > 0  })
       ))
@@ -95,10 +98,10 @@ TEST_GENERATION(basic02,
     )
 
 TEST_GENERATION(basic03,
-    Generation::TestCase()
-      .indices({ ircSuperpositionIndex() })
-      .input   (  clause({selected( f(a) + a + 3 == 0 ) })  )
-      .context ({ clause({selected( f(x) > 0 ) }) })
+    Generation::SymmetricTest()
+      .indices(ircSuperpositionIndices())
+      .inputs  ({ clause({selected( f(a) + a + 3 == 0 ) })
+                , clause({selected( f(x) > 0 ) }) })
       .expected(exactly(
             clause({ - a + -3 > 0  })
       ))
@@ -106,20 +109,20 @@ TEST_GENERATION(basic03,
     )
 
 TEST_GENERATION(basic04,
-    Generation::TestCase()
-      .indices({ ircSuperpositionIndex() })
-      .input   (  clause({ selected( f(a) + a + 3 == 0 ) })  )
-      .context ({ clause({  f(x) > 0, selected(f(g(x)) > 0) }) })
+    Generation::SymmetricTest()
+      .indices(ircSuperpositionIndices())
+      .inputs  ({ clause({ selected( f(a) + a + 3 == 0 ) })
+                , clause({  f(x) > 0, selected(f(g(x)) > 0) }) })
       .expected(exactly(
       ))
       .premiseRedundant(false)
     )
 
 TEST_GENERATION(basic05,
-    Generation::TestCase()
-      .indices({ ircSuperpositionIndex() })
-      .input   (  clause({selected( f(a) + a + 3 == 0 ) })  )
-      .context ({ clause({selected( p(f(x)) ) }) })
+    Generation::SymmetricTest()
+      .indices(ircSuperpositionIndices())
+      .inputs  ({ clause({selected( f(a) + a + 3 == 0 ) })
+                , clause({selected( p(f(x)) ) }) })
       .expected(exactly(
             clause({ p(- a + -3)  })
       ))
@@ -127,10 +130,10 @@ TEST_GENERATION(basic05,
     )
 
 TEST_GENERATION(basic06,
-    Generation::TestCase()
-      .indices({ ircSuperpositionIndex() })
-      .input   (  clause({selected( f(a) + a + 3 == 0 ) })  )
-      .context ({ clause({selected( g(f(x)) != 0 ) }) })
+    Generation::SymmetricTest()
+      .indices(ircSuperpositionIndices())
+      .inputs  ({ clause({selected( f(a) + a + 3 == 0 ) })
+                , clause({selected( g(f(x)) != 0 ) }) })
       .expected(exactly(
             clause({ g(-a + -3) != 0 })
       ))
@@ -138,10 +141,10 @@ TEST_GENERATION(basic06,
     )
 
 TEST_GENERATION(basic07,
-    Generation::TestCase()
-      .indices({ ircSuperpositionIndex() })
-      .input   (  clause({selected( f(a) + a + 3 == 0 ) })  )
-      .context ({ clause({selected( g(3 * f(x)) != 0 ) }) })
+    Generation::SymmetricTest()
+      .indices(ircSuperpositionIndices())
+      .inputs  ({ clause({selected( f(a) + a + 3 == 0 ) })
+                , clause({selected( g(3 * f(x)) != 0 ) }) })
       .expected(exactly(
             clause({ g(3 * (-a + -3)) != 0 })
       ))
@@ -149,126 +152,126 @@ TEST_GENERATION(basic07,
     )
 
 TEST_GENERATION(uwa1,
-    Generation::TestCase()
-      .indices({ ircSuperpositionIndex() })
-      .input   (  clause({ selected( f(a + x) - 4 == 0 )  }) )
-      .context ({ clause({ selected( f(b) >  0 )  }) })
+    Generation::SymmetricTest()
+      .indices(ircSuperpositionIndices())
+      .inputs  ({ clause({ selected( f(a + b) == 0 )  })
+                , clause({ selected( a - b ==  0 )  }) })
       .expected(exactly(
-            clause({ num(4) > 0, a + x != b  })
+            clause({ f(a + a) == 0  })
       ))
       .premiseRedundant(false)
     )
 
 
 TEST_GENERATION(misc01,
-    Generation::TestCase()
-      .indices({ ircSuperpositionIndex() })
-      .input   (          clause({ 0 == -17 + a }) ) // ==> a == 17
-      .context ({         clause({ -19 + -f(x) + a * y  >= 0 }) })
+    Generation::SymmetricTest()
+      .indices(ircSuperpositionIndices())
+      .inputs  ({         clause({ 0 == -17 + a })
+                ,         clause({ -19 + -f(x) + a * y  >= 0 }) })
       .expected(exactly(  clause({ -19 + -f(x) + 17 * y >= 0 }) ))
       .premiseRedundant(false)
     )
 
 // • ( u[s2] + t2 ≈ 0)σ is strictly maximal in Hyp2σ
 TEST_GENERATION(ordering1_ok,
-    Generation::TestCase()
-      .indices({ ircSuperpositionIndex() })
-      .input   (          clause({ g2(a,a) == 0 }) )
-      .context ({         clause({ f(g2(x,y)) > 0, f(g2(z,z)) > 0 }) }) 
+    Generation::SymmetricTest()
+      .indices(ircSuperpositionIndices())
+      .inputs  ({         clause({ g2(a,a) == 0 })
+                ,         clause({ f(g2(x,y)) > 0, f(g2(z,z)) > 0 }) }) 
       .expected(exactly(  clause({ f(0) > 0, f(g2(x,x)) > 0 }) 
                        ,  clause({ f(0) > 0, f(g2(y,z)) > 0 }) ))
       .premiseRedundant(false)
     )
 TEST_GENERATION(ordering1_fail,
-    Generation::TestCase()
-      .indices({ ircSuperpositionIndex() })
-      .input   (          clause({ g2(a,a) == 0 }) )
-      .context ({         clause({ f(g2(x,y)) > 0, f(g2(y,x)) > 0 }) }) 
+    Generation::SymmetricTest()
+      .indices(ircSuperpositionIndices())
+      .inputs  ({         clause({ g2(a,a) == 0 })
+                ,         clause({ f(g2(x,y)) > 0, f(g2(y,x)) > 0 }) }) 
       .expected(exactly(  /* nothing */          ))
       .premiseRedundant(false)
     )
 
 // • (±k. s1 + t1 ≈ 0)σ is strictly maximal in Hyp1σ
 TEST_GENERATION(ordering2_ok,
-    Generation::TestCase()
-      .indices({ ircSuperpositionIndex() })
-      .input   (          clause({ g2(x,y) == 0, g2(z,z) == 0 }) )
-      .context ({         clause({ f(g2(a,a)) > 0 }) }) 
+    Generation::SymmetricTest()
+      .indices(ircSuperpositionIndices())
+      .inputs  ({         clause({ g2(x,y) == 0, g2(z,z) == 0 })
+                ,         clause({ f(g2(a,a)) > 0 }) }) 
       .expected(exactly(  clause({ f(0) > 0, g2(x,x) == 0 }) 
                        ,  clause({ f(0) > 0, g2(x,y) == 0 }) ))
       .premiseRedundant(false)
     )
 TEST_GENERATION(ordering2_fail,
-    Generation::TestCase()
-      .indices({ ircSuperpositionIndex() })
-      .input   (          clause({ g2(x,y) == 0, g2(y,x) == 0 }) )
-      .context ({         clause({ f(g2(a,a)) > 0 }) }) 
+    Generation::SymmetricTest()
+      .indices(ircSuperpositionIndices())
+      .inputs  ({         clause({ g2(x,y) == 0, g2(y,x) == 0 })
+                ,         clause({ f(g2(a,a)) > 0 }) }) 
       .expected(exactly(  /* nothing */  ))
       .premiseRedundant(false)
     )
 
 // •        s1  σ is strictly maximal in terms(s1 + t1)σ
 TEST_GENERATION(ordering3_ok,
-    Generation::TestCase()
-      .indices({ ircSuperpositionIndex() })
-      .input   (          clause({ g2(x,y) + g2(z,z) + g2(z,z) == 0 }) )
-      .context ({         clause({ f(g2(a,a)) > 0 }) }) 
+    Generation::SymmetricTest()
+      .indices(ircSuperpositionIndices())
+      .inputs  ({         clause({ g2(x,y) + g2(z,z) + g2(z,z) == 0 })
+                ,         clause({ f(g2(a,a)) > 0 }) }) 
       .expected(exactly(  clause({ f(       -2  * g2(z,z)) > 0 }) 
                        ,  clause({ f(frac(-1,2) * g2(x,y)) > 0 }) ))
       .premiseRedundant(false)
     )
 TEST_GENERATION(ordering3_fail,
-    Generation::TestCase()
-      .indices({ ircSuperpositionIndex() })
-      .input   (          clause({  g2(x,y) + g2(y,x) + g2(y,x) == 0 }) )
-      .context ({         clause({ f(g2(a,a)) > 0 }) }) 
+    Generation::SymmetricTest()
+      .indices(ircSuperpositionIndices())
+      .inputs  ({         clause({  g2(x,y) + g2(y,x) + g2(y,x) == 0 })
+                ,         clause({ f(g2(a,a)) > 0 }) }) 
       .expected(exactly(  /* nothing */  ))
       .premiseRedundant(false)
     )
 
 
 TEST_GENERATION(uninterpreted_pred_1,
-    Generation::TestCase()
-      .indices({ ircSuperpositionIndex() })
-      .input   (         clause({ selected(   f(x) - 1 == 0 )  })  )
-      .context ({        clause({ selected( p(f(x)) )          }) })
+    Generation::SymmetricTest()
+      .indices(ircSuperpositionIndices())
+      .inputs  ({        clause({ selected(   f(x) - 1 == 0 )  })
+                ,        clause({ selected( p(f(x)) )          }) })
       .expected(exactly( clause({           p(1)               })
       ))
       .premiseRedundant(false)
     )
 
 TEST_GENERATION(uninterpreted_pred_2,
-    Generation::TestCase()
-      .indices({ ircSuperpositionIndex() })
-      .input   (         clause({ selected(   f(x) - 1 == 0 )      })  )
-      .context ({        clause({ selected( p(f(a)) ), f(f(b)) > 0 }) })
+    Generation::SymmetricTest()
+      .indices(ircSuperpositionIndices())
+      .inputs  ({        clause({ selected(   f(x) - 1 == 0 )      })
+                ,        clause({ selected( p(f(a)) ), f(f(b)) > 0 }) })
       .expected(exactly( clause({           p(1)     , f(f(b)) > 0 }) ))
       .premiseRedundant(false)
     )
 
 TEST_GENERATION(uninterpreted_pred_3, // TODO couldn't we replace all occurences of f(x) instead of the maximal one
-    Generation::TestCase()
-      .indices({ ircSuperpositionIndex() })
-      .input   (         clause({ selected(   f(x) - 1 == 0 )      })  )
-      .context ({        clause({ selected( p(f(x)) ), f(f(x)) > 0 }) })
+    Generation::SymmetricTest()
+      .indices(ircSuperpositionIndices())
+      .inputs  ({        clause({ selected(   f(x) - 1 == 0 )      })
+                ,        clause({ selected( p(f(x)) ), f(f(x)) > 0 }) })
       .expected(exactly( clause({           p(1)     , f(f(x)) > 0 }) ))
       .premiseRedundant(false)
     )
 
 TEST_GENERATION(uninterpreted_sort_1,
-    Generation::TestCase()
-      .indices({ ircSuperpositionIndex() })
-      .input   (         clause({ selected( f(x) - 1 == 0  ) })  )
-      .context ({        clause({ selected( fa(f(x)) == aa ) }) })
+    Generation::SymmetricTest()
+      .indices(ircSuperpositionIndices())
+      .inputs  ({        clause({ selected( f(x) - 1 == 0  ) })
+                ,        clause({ selected( fa(f(x)) == aa ) }) })
       .expected(exactly( clause({           fa(  1 ) == aa   }) ))
       .premiseRedundant(false)
     )
 
 TEST_GENERATION(uninterpreted_sort_2,
-    Generation::TestCase()
-      .indices({ ircSuperpositionIndex() })
-      .input   (         clause({ selected( f(x) - 1 == 0  ) })  )
-      .context ({        clause({ selected( fa(3 *   f(x)) == aa ) }) })
+    Generation::SymmetricTest()
+      .indices(ircSuperpositionIndices())
+      .inputs  ({        clause({ selected( f(x) - 1 == 0  ) })
+                ,        clause({ selected( fa(3 *   f(x)) == aa ) }) })
       .expected(exactly( clause({           fa(3 * num(1)) == aa   }) ))
       .premiseRedundant(false)
     )

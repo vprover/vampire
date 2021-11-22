@@ -66,16 +66,16 @@ REGISTER_GEN_TESTER(Test::Generation::GenerationTester<VariableElimination>(test
 //////////////////////////////////////
 
 TEST_GENERATION(basic01,
-    Generation::TestCase()
-      .input  (  clause({x + a > 0, x + b > 0 }) )
+    Generation::SymmetricTest()
+      .inputs ({  clause({x + a > 0, x + b > 0 }) })
       .expected(exactly(
             clause({})
       ))
       .premiseRedundant(true)
     )
 TEST_GENERATION(basic02,
-    Generation::TestCase()
-      .input  (  clause({x + a > 0, - x + b > 0 }) )
+    Generation::SymmetricTest()
+      .inputs ({  clause({x + a > 0, - x + b > 0 }) })
       .expected(exactly(
             clause({ a + b > 0 })
       ))
@@ -83,8 +83,8 @@ TEST_GENERATION(basic02,
     )
 
 TEST_GENERATION(basic03,
-    Generation::TestCase()
-      .input  (  clause({x + a > 0, - x + b > 0, f(y) + c > 0 }) )
+    Generation::SymmetricTest()
+      .inputs ({  clause({x + a > 0, - x + b > 0, f(y) + c > 0 }) })
       .expected(exactly(
         clause({a + b > 0, f(y) + c > 0 }) 
       ))
@@ -92,8 +92,8 @@ TEST_GENERATION(basic03,
     )
 
 TEST_GENERATION(basic04,
-    Generation::TestCase()
-      .input  (  clause({ x + a > 0, -x + b >= 0, x + c >= 0 }) )
+    Generation::SymmetricTest()
+      .inputs ({  clause({ x + a > 0, -x + b >= 0, x + c >= 0 }) })
       .expected(exactly(
             clause({ a + b >= 0, b + c >= 0 })
       ))
@@ -101,8 +101,8 @@ TEST_GENERATION(basic04,
     )
 
 TEST_GENERATION(basic05,
-    Generation::TestCase()
-      .input  (  clause({ x + a > 0, -x + b >= 0, - x - c >= 0 }) )
+    Generation::SymmetricTest()
+      .inputs ({  clause({ x + a > 0, -x + b >= 0, - x - c >= 0 }) })
       .expected(exactly(
             clause({ a + b >= 0, a - c >= 0 })
       ))
@@ -115,15 +115,15 @@ TEST_GENERATION(basic05,
 //////////////////////////////////////
 
 TEST_GENERATION(shielded01,
-    Generation::TestCase()
-      .input  (  clause({x + a > 0, - x + b > 0, f(x) + c > 0 }) )
+    Generation::SymmetricTest()
+      .inputs ({  clause({x + a > 0, - x + b > 0, f(x) + c > 0 }) })
       .expected(exactly())
       .premiseRedundant(false)
     )
 
 TEST_GENERATION(shielded02,
-    Generation::TestCase()
-      .input  (  clause({ x + a > 0, - x + b > 0, P(x) }) )
+    Generation::SymmetricTest()
+      .inputs ({  clause({ x + a > 0, - x + b > 0, P(x) }) })
       .expected(exactly())
       .premiseRedundant(false)
     )
@@ -133,8 +133,8 @@ TEST_GENERATION(shielded02,
 //////////////////////////////////////
 
 TEST_GENERATION(eq01a,
-    Generation::TestCase()
-      .input  (  clause({ x + a >= 0, x - b == 0, P(y) }) )
+    Generation::SymmetricTest()
+      .inputs ({  clause({ x + a >= 0, x - b == 0, P(y) }) })
       .expected(exactly(
             clause({ a + b >= 0, P(y) }),
             clause({ P(y) }) // TODO can we detect redundancies of that kind?
@@ -143,8 +143,8 @@ TEST_GENERATION(eq01a,
     )
 
 TEST_GENERATION(eq01b,
-    Generation::TestCase()
-      .input  (  clause({ x + a >= 0, - x + b == 0, P(y) }) )
+    Generation::SymmetricTest()
+      .inputs ({  clause({ x + a >= 0, - x + b == 0, P(y) }) })
       .expected(exactly(
             clause({ a + b >= 0, P(y) }),
             clause({ P(y) }) // TODO can we detect redundancies of that kind?
@@ -153,8 +153,8 @@ TEST_GENERATION(eq01b,
     )
 
 TEST_GENERATION(eq02a,
-    Generation::TestCase()
-      .input  (  clause({ x + a > 0, x - b == 0, P(y) }) )
+    Generation::SymmetricTest()
+      .inputs ({  clause({ x + a > 0, x - b == 0, P(y) }) })
       .expected(exactly(
             clause({ a + b >= 0, P(y) }),
             clause({ P(y) }) // TODO can we detect redundancies of that kind?
@@ -163,8 +163,8 @@ TEST_GENERATION(eq02a,
     )
 
 TEST_GENERATION(eq02b,
-    Generation::TestCase()
-      .input  (  clause({ x + a > 0, - x + b == 0, P(y) }) )
+    Generation::SymmetricTest()
+      .inputs ({  clause({ x + a > 0, - x + b == 0, P(y) }) })
       .expected(exactly(
             clause({ a + b >= 0, P(y) }),
             clause({ P(y) }) // TODO can we detect redundancies of that kind?
@@ -174,8 +174,8 @@ TEST_GENERATION(eq02b,
 
 
 TEST_GENERATION(eq03a,
-    Generation::TestCase()
-      .input  (  clause({ -x + a > 0, x - b == 0, P(y) }) )
+    Generation::SymmetricTest()
+      .inputs ({  clause({ -x + a > 0, x - b == 0, P(y) }) })
       .expected(exactly(
             clause({ P(y) }), // TODO can we detect redundancies of that kind?
             clause({ a - b >= 0, P(y) })
@@ -184,8 +184,8 @@ TEST_GENERATION(eq03a,
     )
 
 TEST_GENERATION(eq03b,
-    Generation::TestCase()
-      .input  (  clause({ -x + a > 0, - x + b == 0, P(y) }) )
+    Generation::SymmetricTest()
+      .inputs ({  clause({ -x + a > 0, - x + b == 0, P(y) }) })
       .expected(exactly(
             clause({ P(y) }), // TODO can we detect redundancies of that kind?
             clause({ a - b >= 0, P(y) })
@@ -194,8 +194,8 @@ TEST_GENERATION(eq03b,
     )
 
 TEST_GENERATION(eq04a,
-    Generation::TestCase()
-      .input  (  clause({ x + a > 0, -x + b >= 0, - x - c == 0 }) )
+    Generation::SymmetricTest()
+      .inputs ({  clause({ x + a > 0, -x + b >= 0, - x - c == 0 }) })
       .expected(exactly(
             clause({ a + b >= 0, a - c >= 0 }),
             clause({ a + b >= 0, b + c >= 0 })
@@ -204,8 +204,8 @@ TEST_GENERATION(eq04a,
     )
 
 TEST_GENERATION(eq04b,
-    Generation::TestCase()
-      .input  (  clause({ x + a > 0, -x + b >= 0, x + c == 0 }) )
+    Generation::SymmetricTest()
+      .inputs ({  clause({ x + a > 0, -x + b >= 0, x + c == 0 }) })
       .expected(exactly(
             clause({ a + b >= 0, a - c >= 0 }),
             clause({ a + b >= 0, b + c >= 0 })
@@ -219,8 +219,8 @@ TEST_GENERATION(eq04b,
 
 
 TEST_GENERATION(neq1a,
-    Generation::TestCase()
-      .input  (  clause({ 0 != x + a , 0 != x + b }))
+    Generation::SymmetricTest()
+      .inputs ({  clause({ 0 != x + a , 0 != x + b })})
       .expected(exactly(
             clause({ 0 != a - b })
       ))
@@ -228,8 +228,8 @@ TEST_GENERATION(neq1a,
     )
 
 TEST_GENERATION(neq1b,
-    Generation::TestCase()
-      .input  (  clause({ 0 != -x - a , 0 != x + b }))
+    Generation::SymmetricTest()
+      .inputs ({  clause({ 0 != -x - a , 0 != x + b })})
       .expected(exactly(
             clause({ 0 != a - b })
       ))
@@ -237,8 +237,8 @@ TEST_GENERATION(neq1b,
     )
 
 TEST_GENERATION(neq1c,
-    Generation::TestCase()
-      .input  (  clause({ 0 != -x - a , 0 != -x - b }))
+    Generation::SymmetricTest()
+      .inputs ({  clause({ 0 != -x - a , 0 != -x - b })})
       .expected(exactly(
             clause({ 0 != a - b })
       ))
@@ -247,8 +247,8 @@ TEST_GENERATION(neq1c,
 
 
 TEST_GENERATION(neq1d,
-    Generation::TestCase()
-      .input  (  clause({ 0 != x + a , 0 != -x - b }))
+    Generation::SymmetricTest()
+      .inputs ({  clause({ 0 != x + a , 0 != -x - b })})
       .expected(exactly(
             clause({ 0 != a - b })
       ))
@@ -256,8 +256,8 @@ TEST_GENERATION(neq1d,
     )
 
 TEST_GENERATION(neq2,
-    Generation::TestCase()
-      .input  (  clause({ 0 != 2 * x + a , 0 != -x - b }))
+    Generation::SymmetricTest()
+      .inputs ({  clause({ 0 != 2 * x + a , 0 != -x - b })})
       .expected(exactly(
             clause({ 0 != frac(1,2) * a - b })
       ))
@@ -272,8 +272,8 @@ TEST_GENERATION(neq2,
 //////////////////////////////////////
 
 TEST_GENERATION(misc01,
-    Generation::TestCase()
-      .input  (  clause({ 0 != -3 * x +               g(y,z) , 0 != x + -10 * z }))
+    Generation::SymmetricTest()
+      .inputs ({  clause({ 0 != -3 * x +               g(y,z) , 0 != x + -10 * z })})
                        // 0 !=      x +        -(1/3) g(y,z) , 0 != x + -10 * z
       .expected(exactly(anyOf(
             clause({ 0 !=  10 * z + frac(-1, 3) * g(y,z) }), 
@@ -286,8 +286,8 @@ TEST_GENERATION(misc01,
 // 81656. 0.0 != ((-0.5 * X1) + (0.0333333 * lG159(X1,X2))) <- (49) [inequality variable elimination 81627]
 
 TEST_GENERATION(misc02,
-    Generation::TestCase()
-      .input  (  clause({ 0 != 30 * x +          g(y,z) , 0 != 2 * x +       y }))
+    Generation::SymmetricTest()
+      .inputs ({  clause({ 0 != 30 * x +          g(y,z) , 0 != 2 * x +       y })})
                      // { 0 !=      x + (1/30) * g(y,z) , 0 !=     x + (1/2) y }
       .expected(exactly(anyOf(
                  clause({ 0 != frac(-1,2) * y + frac(1,30) * g(y,z) })
@@ -302,8 +302,8 @@ TEST_GENERATION(misc02,
 
 
 // TEST_GENERATION(bug01a,
-//     Generation::TestCase()
-//       .input  (  clause({ x + a > 0, -x + b >= 0, x + c == 0 }) )
+//     Generation::SymmetricTest()
+//       .inputs ({  clause({ x + a > 0, -x + b >= 0, x + c == 0 }) })
 //       .expected(exactly(
 //                 // 0 = $sum($uminus(X2),$sum(X3,-1)) | 0 != $sum(X3,$uminus(len(cons(X0,X1)))) | 0 != $sum(X2,$uminus(len(X1)))
 //                 // 0 = -X2 + X3 + -1 | 0 != X3 + -len(cons(X0,X1)) | 0 != X2 + -len(X1)
@@ -316,8 +316,8 @@ TEST_GENERATION(misc02,
 //     )
 //
 // TEST_GENERATION(bug01b,
-//     Generation::TestCase()
-//       .input  (  clause({ x + a > 0, -x + b >= 0, x + c == 0 }) )
+//     Generation::SymmetricTest()
+//       .inputs ({  clause({ x + a > 0, -x + b >= 0, x + c == 0 }) })
 //       .expected(exactly(
 //                 // { 0 == -x + y + -1 , 0 != y + -c , 0 != x + -b }
 //                 // { 0 == -x + y + -1 , y + -c > 0 , -y +  c > 0, x + -b > 0, -x + b > 0 }
@@ -328,8 +328,8 @@ TEST_GENERATION(misc02,
 //     )
 //
 // TEST_GENERATION(bug01c,
-//     Generation::TestCase()
-//       .input  (  clause({ x + a > 0, -x + b >= 0, x + c == 0 }) )
+//     Generation::SymmetricTest()
+//       .inputs ({  clause({ x + a > 0, -x + b >= 0, x + c == 0 }) })
 //       .expected(exactly(
 //                     // { 0 == -x + y + -1 , 0 != y + -c , 0 != x + -b }
 //                     // { -x + y + -1 >= 0 , y + -c > 0 , -y +  c > 0, x + -b > 0, -x + b > 0 }
@@ -340,8 +340,8 @@ TEST_GENERATION(misc02,
 //     )
 //
 // TEST_GENERATION(bug01d,
-//     Generation::TestCase()
-//       .input  (  clause({ x + a > 0, -x + b >= 0, x + c == 0 }) )
+//     Generation::SymmetricTest()
+//       .inputs ({  clause({ x + a > 0, -x + b >= 0, x + c == 0 }) })
 //       .expected(exactly(
 //                 // { 0 == -x + y + -1 , 0 != y + -c , 0 != x + -b }
 //                 // { x + -y + 1 >= 0 , y + -c > 0 , -y +  c > 0, x + -b > 0, -x + b > 0 }
@@ -353,8 +353,8 @@ TEST_GENERATION(misc02,
 
 
 TEST_GENERATION(bug02a,
-    Generation::TestCase()
-      .input  (  clause({ 0 == y + -1 , 0 != y + -c }))
+    Generation::SymmetricTest()
+      .inputs ({  clause({ 0 == y + -1 , 0 != y + -c })})
             //     { 0 == y + -1 , y + -c > 0 , -y + c > 0 }
             //     { y + -1 >= 0, y + -c > 0 , -y + c > 0 } /\ { -y + 1 >= 0, y + -c > 0 , -y + c > 0 }
             //     { c + -1 >= 0, c + -c > 0 }              /\ { -y + -c >= 0, c + -c > 0             }
@@ -367,8 +367,8 @@ TEST_GENERATION(bug02a,
     )
 
 TEST_GENERATION(bug03,
-    Generation::TestCase()
-      .input  (  clause({ 0 != -1 + -x + -3 * f(x) + y , 0 != 1 + x + 3 * f(x) - y }))
+    Generation::SymmetricTest()
+      .inputs ({  clause({ 0 != -1 + -x + -3 * f(x) + y , 0 != 1 + x + 3 * f(x) - y })})
       .expected(exactly(
             clause({ 0 != 1 + 3 * f(x) + x + -1 - x + -3 * f(x) })
       ))

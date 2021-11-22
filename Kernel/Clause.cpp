@@ -303,7 +303,7 @@ bool Clause::isHorn()
 /**
  * Return iterator over clause variables
  */
-VirtualIterator<unsigned> Clause::getVariableIterator()
+VirtualIterator<unsigned> Clause::getVariableIterator() const
 {
   CALL("Clause::getVariableIterator");
 

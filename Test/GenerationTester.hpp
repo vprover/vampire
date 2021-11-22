@@ -40,7 +40,8 @@ Stack<ClausePattern> exactly(As... as)
 }
 
 namespace Generation {
-class TestCase;
+class AsymmetricTest;
+class SymmetricTest;
 
 template<class Rule>
 class GenerationTester
@@ -54,12 +55,14 @@ public:
   {  }
 
   virtual bool eq(Kernel::Clause const* lhs, Kernel::Clause const* rhs) const 
-  { return TestUtils::eqModAC(lhs, rhs); }
+  // { return TestUtils::eqModAC(lhs, rhs); }
+  { return TestUtils::eqModACRect(lhs, rhs); }
 
-  friend class TestCase;
+  friend class AsymmetricTest;
+  friend class SymmetricTest;
 };
 
-class TestCase
+class AsymmetricTest
 {
   using Clause = Kernel::Clause;
   Option<SimplifyingGeneratingInference*> _rule;
@@ -67,7 +70,7 @@ class TestCase
   Stack<ClausePattern> _expected;
   Stack<Clause*> _context;
   bool _premiseRedundant;
-  Stack<Indexing::Index*> _indices;
+  Stack<std::function<Indexing::Index*()>> _indices;
 
   template<class Is, class Expected>
   void testFail(Is const& is, Expected const& expected) {
@@ -81,10 +84,10 @@ class TestCase
 
 public:
 
-  TestCase() : _rule(), _input(NULL), _expected(), _premiseRedundant(false) {}
+  AsymmetricTest() : _rule(), _input(NULL), _expected(), _premiseRedundant(false) {}
 
 #define BUILDER_METHOD(type, field)                                                                           \
-  TestCase field(type field)                                                                                  \
+  AsymmetricTest field(type field)                                                                                  \
   {                                                                                                           \
     this->_##field = decltype(_##field)(std::move(field));                                                    \
     return *this;                                                                                             \
@@ -95,16 +98,20 @@ public:
   BUILDER_METHOD(Stack<ClausePattern>, expected)
   BUILDER_METHOD(bool, premiseRedundant)
   BUILDER_METHOD(SimplifyingGeneratingInference*, rule)
-  BUILDER_METHOD(Stack<Indexing::Index*>, indices)
+  BUILDER_METHOD(Stack<std::function<Indexing::Index*()>>, indices)
 
   template<class Rule>
   void run(GenerationTester<Rule>& simpl) {
-
     // set up clause container and indexing strucure
     auto container =  PlainClauseContainer();
     SimplifyingGeneratingInference& rule = *_rule.unwrapOrElse([&](){ return &simpl._rule; });
-    rule.setTestIndices(_indices);
+    Stack<Indexing::Index*> indices;
     for (auto i : _indices) {
+      indices.push(i());
+    }
+
+    rule.setTestIndices(indices);
+    for (auto i : indices) {
       i->attachContainer(&container);
     }
 
@@ -128,6 +135,71 @@ public:
       auto wrapStr = [](bool b) -> vstring { return b ? "premise is redundant" : "premis not redundant"; };
       testFail( wrapStr(res.premiseRedundant), wrapStr(_premiseRedundant));
     }
+  }
+};
+
+class SymmetricTest
+{
+  using Clause = Kernel::Clause;
+  Option<SimplifyingGeneratingInference*> _rule;
+  Stack<Clause*> _inputs;
+  Stack<ClausePattern> _expected;
+  bool _premiseRedundant;
+  Stack<std::function<Indexing::Index*()>> _indices;
+
+  template<class Is, class Expected>
+  void testFail(Is const& is, Expected const& expected) {
+      cout  << endl;
+      cout << "[     case ]: " << pretty(_inputs) << endl;
+      cout << "[       is ]: " << pretty(is) << endl;
+      cout << "[ expected ]: " << pretty(expected) << endl;
+      exit(-1);
+  }
+
+public:
+
+  SymmetricTest() : _rule(), _expected(), _premiseRedundant(false) {}
+
+#define _BUILDER_METHOD(type, field)                                                                           \
+  SymmetricTest field(type field)                                                                                  \
+  {                                                                                                           \
+    this->_##field = decltype(_##field)(std::move(field));                                                    \
+    return *this;                                                                                             \
+  }                                                                                                           \
+
+  _BUILDER_METHOD(Stack<Clause*>, inputs)
+  _BUILDER_METHOD(Stack<ClausePattern>, expected)
+  _BUILDER_METHOD(bool, premiseRedundant)
+  _BUILDER_METHOD(SimplifyingGeneratingInference*, rule)
+  _BUILDER_METHOD(Stack<std::function<Indexing::Index*()>>, indices)
+
+
+  template<class Rule>
+  void run(GenerationTester<Rule>& simpl) {
+    for (unsigned i = 0; i < _inputs.size(); i++) {
+      cout << "\tusing clause " << i << " as input... " << endl;
+      Stack<Clause*> context;
+      auto input = _inputs[i];
+      for (int j = 0; j < _inputs.size(); j++) 
+        if (i != j) 
+          context.push(_inputs[j]);
+      run(simpl, input, context);
+      cout << "\t-> ok (clause " << i << " as input)" << endl;
+    }
+  }
+
+  template<class Rule>
+
+  void run(GenerationTester<Rule>& simpl, Clause* input, Stack<Clause*> context) {
+    SimplifyingGeneratingInference* rule = _rule.unwrapOrElse([&](){ return &simpl._rule; });
+    AsymmetricTest()
+      .input(input)
+      .context(context)
+      .expected(_expected)
+      .premiseRedundant(_premiseRedundant)
+      .rule(rule)
+      .indices(_indices)
+      .run(simpl);
   }
 };
 

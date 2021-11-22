@@ -47,6 +47,17 @@ public:
   static bool eqModAC(const Kernel::Clause* lhs, const Kernel::Clause* rhs);
   static bool eqModAC(Kernel::Literal* lhs, Kernel::Literal* rhs);
 
+
+  /** 
+   * Tests whether two clauses are equal. All permutations of the clauses are tested. Variable renamings are 
+   * taken into account (i.e.: { p(x) } is EQUAL to { p(y) } for this function).
+   *
+   * !!! exponential runtime !!!
+   */
+  static bool eqModACRect(const Kernel::Clause* lhs, const Kernel::Clause* rhs);
+  static bool eqModACRect(Kernel::Literal* lhs, Kernel::Literal* rhs);
+  static bool eqModACRect(Kernel::TermList lhs, Kernel::TermList rhs);
+
   // /** 
   //  * Tests whether two clauses are equal. All permutations of the clauses are tested. Variable renamings are 
   //  * taken into account (i.e.: { p(x) } IS equal to { p(y) } for this function).
@@ -95,10 +106,12 @@ private:
   // static bool eqModACVar(Kernel::TermList lhs, Kernel::TermList rhs, RectMap& r);
   template<class Comparisons>
   static bool eqModAC_(Kernel::TermList lhs, Kernel::TermList rhs, Comparisons c);
+  friend struct AcRectComp;
 
   /** returns whether the function f is associative and commutative */
   static bool isAC(Kernel::Theory::Interpretation f);
   static bool isAC(Kernel::Term* f);
+
 };
 
 /** 
@@ -201,25 +214,16 @@ public:
 };
 
 
-template<class L1, class L2, class Eq>
-bool __permEq(L1& lhs, L2& rhs, Eq elemEq, DArray<unsigned>& perm, unsigned idx) {
-  auto checkPerm = [&] (L1& lhs, L2& rhs, DArray<unsigned>& perm) {
-    ASS_EQ(lhs.size(), perm.size());
-    ASS_EQ(rhs.size(), perm.size());
-
-    for (unsigned i = 0; i < perm.size(); i++) {
-      if (!elemEq(lhs[i], rhs[perm[i]])) return false;
-    }
-    return true;
-  };
-  if (checkPerm(lhs, rhs, perm)) {
+template<class P>
+bool __anyPerm(DArray<unsigned> perm, P pred, unsigned idx) {
+  if (pred(perm)) {
     return true;
   }
   for (unsigned i = idx; i < perm.size(); i++) {
     swap(perm[i], perm[idx]);
 
-
-    if (__permEq(lhs,rhs, elemEq, perm, idx+1)) return true;
+    if (__anyPerm(perm, pred, idx+1)) 
+      return true;
 
     swap(perm[i], perm[idx]);
   }
@@ -227,16 +231,69 @@ bool __permEq(L1& lhs, L2& rhs, Eq elemEq, DArray<unsigned>& perm, unsigned idx)
   return false;
 }
 
+template<class P>
+bool anyPerm(unsigned size, P pred) {
+  DArray<unsigned> perm(size);
+  for (unsigned i = 0; i < size; i++) {
+    perm[i] = i;
+  }
+  return __anyPerm(perm, pred, 0);
+}
+
+
+// template<class L1, class L2, class Eq>
+// bool __permEq(L1& lhs, L2& rhs, Eq elemEq, DArray<unsigned>& perm, unsigned idx) {
+//   auto checkPerm = [&] (L1& lhs, L2& rhs, DArray<unsigned>& perm) {
+//     ASS_EQ(lhs.size(), perm.size());
+//     ASS_EQ(rhs.size(), perm.size());
+//
+//     for (unsigned i = 0; i < perm.size(); i++) {
+//       if (!elemEq(lhs[i], rhs[perm[i]])) return false;
+//     }
+//     return true;
+//   };
+//   if (checkPerm(lhs, rhs, perm)) {
+//     return true;
+//   }
+//   for (unsigned i = idx; i < perm.size(); i++) {
+//     swap(perm[i], perm[idx]);
+//
+//
+//     if (__permEq(lhs,rhs, elemEq, perm, idx+1)) return true;
+//
+//     swap(perm[i], perm[idx]);
+//   }
+//
+//   return false;
+// }
+
+
+// template<class L1, class L2, class Eq>
+// bool TestUtils::permEq(L1& lhs, L2& rhs, Eq elemEq) 
+// {
+//   if (lhs.size() != rhs.size()) return false;
+//   DArray<unsigned> perm(lhs.size());
+//   for (unsigned i = 0; i < lhs.size(); i++) {
+//     perm[i] = i;
+//   }
+//   return __permEq(lhs, rhs, elemEq, perm, 0);
+// }
+
 
 template<class L1, class L2, class Eq>
 bool TestUtils::permEq(L1& lhs, L2& rhs, Eq elemEq) 
 {
-  if (lhs.size() != rhs.size()) return false;
-  DArray<unsigned> perm(lhs.size());
-  for (unsigned i = 0; i < lhs.size(); i++) {
-    perm[i] = i;
-  }
-  return __permEq(lhs, rhs, elemEq, perm, 0);
+  if (lhs.size() != rhs.size()) 
+    return false;
+
+  return anyPerm(lhs.size(), [&](auto& perm){
+
+    for (unsigned i = 0; i < perm.size(); i++) 
+      if (!elemEq(lhs[i], rhs[perm[i]])) 
+        return false;
+
+    return true;
+  });
 }
 
 

@@ -200,9 +200,15 @@ Index* IndexManager::create(IndexType t)
     isGenerating = true;
     break;
 
-  case IRC_SUPERPOSITION_SUBST_TREE:
+  case IRC_SUPERPOSITION_LHS_SUBST_TREE:
     tis=new TermSubstitutionTree(uwaMode, true);
-    res=new IRCSuperpositionIndex(tis);
+    res=new IRCSuperpositionLhsIndex(tis);
+    isGenerating = true;
+    break;
+
+  case IRC_SUPERPOSITION_RHS_SUBST_TREE:
+    tis=new TermSubstitutionTree(uwaMode, true);
+    res=new IRCSuperpositionRhsIndex(tis);
     isGenerating = true;
     break;
 

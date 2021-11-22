@@ -41,7 +41,8 @@ public:
   Superposition(Superposition&&) = default;
   Superposition(shared_ptr<IrcState> shared) 
     : _shared(std::move(shared))
-    , _index(nullptr)
+    , _indexLhs(nullptr)
+    , _indexRhs(nullptr)
   {  }
 
   void attach(SaturationAlgorithm* salg) final override;
@@ -56,15 +57,35 @@ public:
 
 private:
 
-                            Option<ClauseIterator> generateClauses(Clause* clause, Literal* literal, IrcLiteral<IntTraits> lit, Monom<IntTraits>) const;
-  template<class NumTraits> Option<ClauseIterator> generateClauses(Clause* clause, Literal* literal, IrcLiteral<NumTraits> lit, Monom<NumTraits> k_s1) const;
+                            Option<ClauseIterator> genRhs(Clause* clause, Literal* literal, TermList s2) const;
+  template<class NumTraits> Option<ClauseIterator> genRhs(Clause* clause, Literal* literal, TermList s2) const;
+
+  template<class NumTraits> ClauseIterator genRhs(NumTraits, Clause* clause, Lib::shared_ptr<Stack<Literal*>> maxLits);
+                            ClauseIterator genRhs(IntTraits, Clause* clause, Lib::shared_ptr<Stack<Literal*>> maxLits);
+  template<class NumTraits> ClauseIterator genLhs(NumTraits, Clause* clause, Lib::shared_ptr<Stack<Literal*>> maxLits);
+                            ClauseIterator genLhs(IntTraits, Clause* clause, Lib::shared_ptr<Stack<Literal*>> maxLits);
+
+  template<class NumTraits> Option<ClauseIterator> genLhs(Clause* clause, Literal* literal, IrcLiteral<NumTraits> lit, Monom<NumTraits> k_s1) const;
+  template<class NumTraits> Option<Clause*> applyRule(
+    Clause* hyp1,            // <- `C1 \/ ±ks1+t1 ≈ 0` 
+    Literal* pivot1,         // <-       `±ks1+t1 ≈ 0` 
+    IrcLiteral<NumTraits> eq,// <-       `±ks1+t1 ≈ 0` 
+    Monom<NumTraits> k_s1,   // <-       `±ks1` 
+    Clause* hyp2,        // <- `C2 \/ u[s2]+t2 <> 0` 
+    Literal* pivot2,     // <-       `u[s2]+t2 <> 0` 
+    TermList s2,  // <-       `s2` 
+    ResultSubstitutionSP& res_substitution,
+    UnificationConstraintStackSP& res_constraints,
+    int bank1
+    ) const;
+
 
   shared_ptr<IrcState> _shared;
-  IRCSuperpositionIndex* _index;
+  IRCSuperpositionLhsIndex* _indexLhs;
+  IRCSuperpositionRhsIndex* _indexRhs;
 };
 
 } // namespace IRC
 } // namespace Inferences
 
-// lalalalala
 #endif /*__IRC_Superposition__*/

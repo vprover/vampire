@@ -148,7 +148,7 @@ using namespace Test;
 REGISTER_GEN_TESTER(Test::Generation::GenerationTester<PolynomialMultiplication>)
 
 TEST_GENERATION(test_01,
-    Generation::TestCase()
+    Generation::AsymmetricCase()
       .input(            clause({  p(  (y + x) * (a + x)  )  })   )
       .expected(exactly( clause({  p(x*x + x*a + x*y + a*y)  })  ))
       .premiseRedundant(false)

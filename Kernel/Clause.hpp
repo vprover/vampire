@@ -246,7 +246,7 @@ public:
   bool isPropositional();
   bool isHorn();
 
-  VirtualIterator<unsigned> getVariableIterator();
+  VirtualIterator<unsigned> getVariableIterator() const;
 
   bool contains(Literal* lit);
 #if VDEBUG
