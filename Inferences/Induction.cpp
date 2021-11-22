@@ -195,6 +195,11 @@ InferenceRule getDBRule(InferenceRule rule) {
   }
 }
 
+Literal* createNegatedBoundLiteral(const TermList& var, const TermList& bound, bool upward) {
+  static unsigned less = env.signature->getInterpretingSymbol(Theory::INT_LESS);
+  return Literal::create2(less, true, (upward ? var : bound), (upward ? bound : var));
+}
+
 };  // namespace
 
 TermList TermReplacement::transformSubterm(TermList trm)
@@ -269,6 +274,10 @@ void Induction::attach(SaturationAlgorithm* salg) {
   if (InductionHelper::isIntInductionTwoOn()) {
     _inductionTermIndex = static_cast<TermIndex*>(_salg->getIndexManager()->request(INDUCTION_TERM_INDEX));
   }
+  if (InductionHelper::isIntInductionThreeOn()) {
+    _intIndStepIndex = static_cast<LiteralIndex*>(_salg->getIndexManager()->request(INT_INDUCTION_STEP_LITERAL_INDEX));
+    _intIndBaseIndex = static_cast<LiteralIndex*>(_salg->getIndexManager()->request(GENERATING_UNIT_CLAUSE_SUBST_TREE));
+  }
 }
 
 void Induction::detach() {
@@ -282,6 +291,12 @@ void Induction::detach() {
     _inductionTermIndex = 0;
     _salg->getIndexManager()->release(INDUCTION_TERM_INDEX);
   }
+  if (InductionHelper::isIntInductionThreeOn()) {
+    _intIndStepIndex = 0;
+    _salg->getIndexManager()->release(INT_INDUCTION_STEP_LITERAL_INDEX);
+    _intIndBaseIndex = 0;
+    _salg->getIndexManager()->release(GENERATING_UNIT_CLAUSE_SUBST_TREE);
+  }
   GeneratingInferenceEngine::detach();
 }
 
@@ -289,12 +304,15 @@ ClauseIterator Induction::generateClauses(Clause* premise)
 {
   CALL("Induction::generateClauses");
 
-  return pvi(InductionClauseIterator(premise, InductionHelper(_comparisonIndex, _inductionTermIndex, _salg->getSplitter())));
+  return pvi(InductionClauseIterator(premise,
+           InductionHelper(_comparisonIndex, _inductionTermIndex, _intIndStepIndex, _intIndBaseIndex, _salg->getSplitter())));
 }
 
 void InductionClauseIterator::processClause(Clause* premise)
 {
   CALL("InductionClauseIterator::processClause");
+
+  if (InductionHelper::isIntInductionThreeOn()) performIntInductionThree(premise);
 
   // The premise should either contain a literal on which we want to apply induction,
   // or it should be an integer constant comparison we use as a bound.
@@ -717,6 +735,114 @@ void InductionClauseIterator::performIntInduction(Clause* premise, Literal* orig
   produceClauses(premise, lit, hyp, rule, toResolve);
   List<pair<Literal*, SLQueryResult>>::destroy(toResolve);
   subst->reset();
+}
+
+void InductionClauseIterator::addIntegerInductionConclusion(Clause* base, Clause* step, Literal* conclusion, Literal* bound) {
+  Inference inf(GeneratingInference2(InferenceRule::INT_INDUCTION_CONCLUSION, base, step));
+  Clause* c = new(2) Clause(2, inf);
+  (*c)[0] = bound;
+  (*c)[1] = conclusion;
+  //cout << "Adding with bound " << bound->toString() << " premises " << base->toString() << " " << step->toString() << endl;
+  //cout << "Adding clause: " << c->toString() << endl;
+  _clauses.push(c);
+  // TODO(hzzv): add statistics
+}
+
+void InductionClauseIterator::performIntInductionThree(Clause* premise) {
+  unsigned plen = premise->length();
+  if (plen == 1) {
+    vset<Term*> bases;
+    if (!_helper.getIntInductionBaseTerms(premise, bases)) return;
+    Literal* baseLit = (*premise)[0];
+    SLQueryResultIterator rit = _helper.getStepClauses(baseLit);
+    while (rit.hasNext()) {
+      SLQueryResult slqr = rit.next();
+      Literal* matchedLit = slqr.literal;
+      //cout << "base: " << premise->toString() << "; " << "matched lit: " << matchedLit->toString() << " in " << slqr.clause->toString() << endl;
+      VariableIterator vit(matchedLit);
+      if (!vit.hasNext()) {
+        ASS(false);
+        continue;
+      }
+      TermList var = vit.next();
+      while (vit.hasNext()) ASS(var == vit.next()); // TODO(hzzv): this should never fail, right?
+      ASS(slqr.substitution->isIdentityOnQueryWhenResultBound());
+      TermList tl = slqr.substitution->applyToBoundResult(var);
+      if (!tl.isTerm() || (bases.count(tl.term()) < 1)) continue;
+      Clause* step = slqr.clause;
+      bool upwardBound;
+      int boundLitIdx = -1;
+      int otherStepLitIdx = -1;
+      if (step->length() == 3) {
+        for (int i = 0; i < 3; ++i) {
+          if ((*step)[i] == matchedLit) continue;
+          Term* bound = nullptr;
+          if (boundLitIdx == -1) bound = _helper.getBoundTermAndDirection((*step)[i], var, upwardBound);
+          if (bound != nullptr) {
+            if (bound == tl.term()) boundLitIdx = i;
+          } else {
+            otherStepLitIdx = i;
+          }
+        }
+        // If the clause has 3 literals, one of them has to be a bound matching tl.
+        if (boundLitIdx == -1) continue;
+      } else {
+        ASS(step->length() == 2);
+        otherStepLitIdx = (((*step)[0] == matchedLit) ? 1 : 0);
+      }
+      ASS(otherStepLitIdx != -1);
+      bool plusOne;
+      // TODO(hzzv): maybe integrate bound extraction into this:
+      if (!_helper.getIntInductionStepPlusOrMinus(matchedLit, (*step)[otherStepLitIdx], var, plusOne)) ASS(false);
+      bool isMatchedLitComplementary = (matchedLit->polarity() != baseLit->polarity());
+      bool upwardStep = (isMatchedLitComplementary == plusOne);
+      Literal* boundLit;
+      if (boundLitIdx == -1) boundLit = createNegatedBoundLiteral(var, tl, upwardBound);
+      else if (upwardBound == upwardStep) boundLit = (*step)[boundLitIdx];
+      else continue;
+      Literal* conclusion = isMatchedLitComplementary ? Literal::complementaryLiteral(matchedLit) : matchedLit;
+      addIntegerInductionConclusion(premise, step, conclusion, boundLit);
+    }
+  } else if ((plen == 2) || (plen == 3)) {
+    TermList var;
+    bool plusOne;
+    int litIdx;
+    Literal* boundLitFromPremise = nullptr;
+    if (!_helper.getIntInductionStepParams(premise, var, plusOne, litIdx, boundLitFromPremise)) return;
+    Literal* genLit = (*premise)[litIdx];
+    Literal* queryLit = genLit;
+    Term* boundTerm = nullptr;
+    bool upwardBound;
+    if (boundLitFromPremise != nullptr) {
+      boundTerm = _helper.getBoundTermAndDirection(boundLitFromPremise, var, upwardBound);
+      Substitution subst;
+      subst.bind(var.var(), boundTerm);
+      queryLit = queryLit->apply(subst);
+    }
+    //cout << "querying: " << queryLit->toString() << " from " << premise->toString() << endl;
+    SLQueryResultIterator rit = _helper.getBaseClauses(queryLit);
+    while (rit.hasNext()) {
+      SLQueryResult slqr = rit.next();
+      ASS(slqr.substitution.ptr() != nullptr);
+      bool isMatchedLitComplementary = (genLit->polarity() != slqr.literal->polarity());
+      bool upwardStep = (isMatchedLitComplementary == plusOne);
+      Literal* boundLit; 
+      if (boundLitFromPremise != nullptr) {
+        ASS((queryLit == slqr.literal) || (queryLit == Literal::complementaryLiteral(slqr.literal)));
+        if (upwardBound != upwardStep) continue;
+        boundLit = boundLitFromPremise;
+      } else {
+        ASS(slqr.substitution->isIdentityOnResultWhenQueryBound());
+        TermList tl = slqr.substitution->applyToBoundQuery(var);
+        ASS(tl.isTerm());
+        boundTerm = tl.term();
+        boundLit = createNegatedBoundLiteral(var, tl, upwardStep);
+      }
+      ASS(boundTerm->ground());
+      Literal* conclusion = isMatchedLitComplementary ? Literal::complementaryLiteral(genLit) : genLit;
+      addIntegerInductionConclusion(slqr.clause, premise, conclusion, boundLit);
+    }
+  }
 }
 
 /**

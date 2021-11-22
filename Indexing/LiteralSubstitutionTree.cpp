@@ -112,12 +112,12 @@ SLQueryResultIterator LiteralSubstitutionTree::getInstances(Literal* lit,
 
 //  return getResultIterator<InstancesIterator>(lit, complementary, true);
 
-  if(retrieveSubstitutions) {
-    NOT_IMPLEMENTED;
-    /*
-    return getResultIterator<InstancesIterator>(lit, complementary, true, false);
-    */
-  }
+  //if(retrieveSubstitutions) {
+  //  NOT_IMPLEMENTED;
+  //  /*
+  //  return getResultIterator<InstancesIterator>(lit, complementary, true, false);
+  //  */
+  //}
 
   SLQueryResultIterator res=
 //      getResultIterator<InstancesIterator>(lit,

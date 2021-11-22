@@ -240,6 +240,7 @@ public:
   enum class IntInductionKind : unsigned int {
     ONE,
     TWO,
+    THREE,
     ALL
   };
   enum class IntegerInductionInterval : unsigned int {

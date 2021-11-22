@@ -98,6 +98,8 @@ private:
   // The following pointers can be null if int induction is off.
   LiteralIndex* _comparisonIndex = nullptr;
   TermIndex* _inductionTermIndex = nullptr;
+  LiteralIndex* _intIndStepIndex = nullptr;
+  LiteralIndex* _intIndBaseIndex = nullptr;
 };
 
 class InductionClauseIterator
@@ -152,6 +154,9 @@ private:
   void generalizeAndPerformIntInduction(Clause* premise, Literal* origLit, Term* origTerm, List<pair<Literal*, InferenceRule>>*& indLits, Term* indTerm, bool increasing, TermQueryResult& bound1, TermQueryResult* optionalBound2);
 
   void performIntInduction(Clause* premise, Literal* origLit, Literal* lit, Term* t, InferenceRule rule, bool increasing, const TermQueryResult& bound1, TermQueryResult* optionalBound2);
+
+  void addIntegerInductionConclusion(Clause* base, Clause* step, Literal* conclusion, Literal* bound);
+  void performIntInductionThree(Clause* premise);
 
   void performStructInductionOne(Clause* premise, Literal* origLit, Literal* lit, Term* t, InferenceRule rule);
   void performStructInductionTwo(Clause* premise, Literal* origLit, Literal* lit, Term* t, InferenceRule rule);

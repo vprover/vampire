@@ -19,8 +19,9 @@
 #include "Lib/Metaiterators.hpp"
 
 #include "Kernel/Clause.hpp"
-#include "Kernel/Signature.hpp"
 #include "Kernel/OperatorType.hpp"
+#include "Kernel/RobSubstitution.hpp"
+#include "Kernel/Signature.hpp"
 #include "Kernel/Term.hpp"
 #include "Kernel/Theory.hpp"
 
@@ -45,7 +46,7 @@ struct SLQueryResultToTermQueryResultFn
 bool isIntegerComparisonLiteral(Literal* lit) {
   CALL("isIntegerComparisonLiteral");
 
-  if (!lit->ground() || !theory->isInterpretedPredicate(lit)) return false;
+  if (!theory->isInterpretedPredicate(lit)) return false;
   switch (theory->interpretPredicate(lit)) {
     case Theory::INT_LESS:
       // The only supported integer comparison predicate is INT_LESS.
@@ -60,6 +61,12 @@ bool isIntegerComparisonLiteral(Literal* lit) {
       return false;
   }
   return true;
+}
+
+bool isGroundIntegerComparisonLiteral(Literal* lit) {
+  CALL("isGroundIntegerComparisonLiteral");
+
+  if (!lit->ground() || !isIntegerComparisonLiteral(lit)) return false;
 }
 
 };  // namespace
@@ -128,7 +135,7 @@ void InductionHelper::callSplitterOnNewClause(Clause* c) {
 bool InductionHelper::isIntegerComparison(Clause* c) {
   CALL("InductionHelper::isIntegerComparison");
   if (c->length() != 1) return false;
-  return isIntegerComparisonLiteral((*c)[0]);
+  return isGroundIntegerComparisonLiteral((*c)[0]);
 }
 
 bool InductionHelper::isIntInductionOn() {
@@ -240,6 +247,146 @@ bool InductionHelper::isStructInductionFunctor(unsigned f) {
            // otherwise skip all constructors:
            !env.signature->getFunction(f)->termAlgebraCons())
          );
+}
+
+SLQueryResultIterator InductionHelper::getStepClauses(Literal* l) {
+  return pvi(getConcatenatedIterator(_intIndStepIndex->getGeneralizations(l, true, true),
+                                     _intIndStepIndex->getGeneralizations(l, false, true)));
+}
+
+SLQueryResultIterator InductionHelper::getBaseClauses(Literal* l) {
+  return pvi(getConcatenatedIterator(_intIndBaseIndex->getInstances(l, true, true),
+                                     _intIndBaseIndex->getInstances(l, false, true)));
+}
+
+bool InductionHelper::isIntInductionThreeOn() {
+  CALL("InductionHelper::isIntInductionThreeOn");
+  static bool two = env.options->intInduction() == Options::IntInductionKind::THREE ||
+                    env.options->intInduction() == Options::IntInductionKind::ALL;
+  return isIntInductionOn() && two;
+}
+
+bool InductionHelper::isIntInductionThreeGroundOnly() {
+  CALL("InductionHelper::isIntInductionThreeGroundOnly");
+  static bool ground = true; // TODO(hzzv): change to options
+  return ground;
+}
+
+bool InductionHelper::isIntBaseCaseTerm(Term* t) {
+  CALL("InductionHelper::isIntBaseCaseTerm");
+  if (!t->ground()) return false;
+  return (env.signature->getFunction(t->functor())->fnType()->result() == AtomicSort::intSort());
+}
+
+bool InductionHelper::getIntInductionBaseTerms(Clause* c, vset<Term*>& bases) {
+  CALL("InductionHelper::getIntInductionBaseTerms");
+  static bool groundOnly = isIntInductionThreeGroundOnly();
+  if ((c->length() == 1) && (!groundOnly || (*c)[0]->ground())) {
+    NonVariableIterator nvit((*c)[0]);
+    while (nvit.hasNext()) {
+      Term* t = nvit.next().term();
+      if (isIntBaseCaseTerm(t)) bases.insert(t);
+    }
+  }
+  return !bases.empty();
+}
+
+Term* InductionHelper::getBoundTermAndDirection(Literal* l, const TermList& var, bool& upward) {
+  CALL("InductionHelper::getBoundTermAndDirection");
+  if (!isBoundLiteralWithVar(l, var)) return nullptr;
+  upward = (*(l->nthArgument(0)) == var);
+  ASS(l->nthArgument(upward)->isTerm());
+  return l->nthArgument(upward)->term();
+}
+
+bool InductionHelper::isBoundLiteralWithVar(Literal* l, const TermList& var) {
+  CALL("InductionHelper::isBoundLiteralWithVar");
+  // Bound literal is e.g. "x >= b" (or "x <= b"), which is normalized as "~(x < b)" (or "~(b < x)"), but since
+  // it is an antecedent of implication, it is actually "x < b" (or "b < x").
+  if (l->isNegative() || !isIntegerComparisonLiteral(l)) return false;
+  for (int i = 0; i < 2; ++i) {
+    if ((*(l->nthArgument(i)) == var) && l->nthArgument(i^1)->isTerm() && l->nthArgument(i^1)->term()->ground()) return true;
+  }
+  return false;
+}
+
+bool InductionHelper::getIntInductionStepPlusOrMinus(Literal* l1, Literal* l2, const TermList& var, bool& plusOne) {
+  RobSubstitution subst;
+  SubstIterator sit = subst.matches(l1, 0, l2, 1, true);
+  unsigned subCount = 0;
+  while (sit.hasNext()) {
+    subCount++;
+    RobSubstitution* s = sit.next();
+    if (s->size() != 1) continue;
+    TermList tl = s->apply(var, 0);
+    Term* t = tl.term();
+    ASS(var != tl); // TODO(hzzv): verify that they are in fact never equal
+    unsigned fn = t->functor();
+    if (env.signature->getFunction(fn)->fnType()->result() != AtomicSort::intSort()) continue;
+    static const TermList posOne(theory->representConstant(IntegerConstantType(1)));
+    static const TermList negOne(theory->representConstant(IntegerConstantType(-1)));
+    static unsigned plusFn = env.signature->getInterpretingSymbol(Theory::INT_PLUS);
+    static unsigned minusFn = env.signature->getInterpretingSymbol(Theory::INT_MINUS);
+    ASS(fn != minusFn); // TODO(hzzv): remove this after verifying that INT_MINUS is normalized using unary minus
+    Signature::Symbol* fs = env.signature->getFunction(fn);
+    if (!fs->interpreted() || (fn != plusFn)) continue;
+    for (int j = 0; j < 2; ++j) {
+      if ((*t->nthArgument(j^1) == var) && t->nthArgument(j)->isTerm()) {
+        plusOne = (*t->nthArgument(j) == posOne);
+        if (plusOne || (*t->nthArgument(j) == negOne)) return true;
+      }
+    }
+  }
+  ASS(subCount <= 1);
+  return false;
+}
+
+bool InductionHelper::getIntInductionStepParams(Clause* c, TermList& var, bool& plusOne, int& litIdx, Literal*& bound) {
+  CALL("InductionHelper::getIntInductionStepParams");
+  unsigned clen = c->length();
+  if ((clen > 3) || (clen < 2) || (c->varCnt() != 1)) return false;
+  VariableIterator vit((*c)[0]);
+  if (!vit.hasNext()) return false;
+  var = vit.next();
+  while (vit.hasNext()) ASS(var == vit.next()); // TODO(hzzv): remove this after verifying it always holds
+  int stepLits[2] = {0, 1};
+  bound = nullptr;
+  //cout << "considering " << c->toString() << " with var " << var << endl;
+  if (clen == 3) {
+    bool foundComparison = false;
+    for (int i = 0; i < 3; ++i) {
+      bool isComparison = isIntegerComparisonLiteral((*c)[i]);
+      if (isComparison) {
+        if (foundComparison) return false;
+        foundComparison = true;
+        if (isBoundLiteralWithVar((*c)[i], var)) {
+          stepLits[0] = (i+1)%3;
+          stepLits[1] = (i+2)%3;
+          bound = (*c)[i];
+        } else return false;
+      }
+    }
+    if (bound == nullptr) return false;
+  }
+  for (int i = 0; i < 2; ++i) {
+    if (getIntInductionStepPlusOrMinus((*c)[stepLits[i]], (*c)[stepLits[i^1]], var, plusOne)) {
+      litIdx = i;
+      return true;
+    }
+  }
+  return false;
+}
+
+Literal* InductionHelper::getIntInductionStepLiteral(Clause* c) {
+  CALL("InductionHelper::getIntInductionStepLiteral");
+  TermList var;
+  bool plusOne;
+  int litIdx;
+  Literal* bound;
+  if (getIntInductionStepParams(c, var, plusOne, litIdx, bound)) {
+    return (*c)[litIdx];
+  }
+  return nullptr;
 }
 
 }  // namespace Inferences

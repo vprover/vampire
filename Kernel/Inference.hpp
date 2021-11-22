@@ -353,6 +353,9 @@ enum class InferenceRule : unsigned char {
 
   HOL_EQUALITY_ELIMINATION,
 
+  /* Integer induction based on given base case and step */
+  INT_INDUCTION_CONCLUSION,
+
   INTERNAL_GENERATING_INFERNCE_LAST,
 
   /** equality proxy replacement */

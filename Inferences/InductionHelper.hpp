@@ -22,6 +22,8 @@
 #include "Indexing/LiteralIndex.hpp"
 #include "Indexing/TermIndex.hpp"
 
+#include "Kernel/TermIterators.hpp"
+
 #include "Saturation/Splitter.hpp"
 
 namespace Inferences {
@@ -34,8 +36,10 @@ public:
   CLASS_NAME(InductionHelper);
   USE_ALLOCATOR(InductionHelper);
 
-  InductionHelper(LiteralIndex* comparisonIndex, TermIndex* inductionTermIndex, Splitter* splitter)
-      : _splitter(splitter), _comparisonIndex(comparisonIndex), _inductionTermIndex(inductionTermIndex) {}
+  InductionHelper(LiteralIndex* comparisonIndex, TermIndex* inductionTermIndex,
+      LiteralIndex* intIndStepIndex, LiteralIndex* intIndBaseIndex, Splitter* splitter)
+      : _splitter(splitter), _comparisonIndex(comparisonIndex), _inductionTermIndex(inductionTermIndex),
+        _intIndStepIndex(intIndStepIndex), _intIndBaseIndex(intIndBaseIndex) {}
 
   TermQueryResultIterator getLessEqual(Term* t);
   TermQueryResultIterator getLess(Term* t);
@@ -59,6 +63,19 @@ public:
   static bool isIntInductionTermListInLiteral(TermList& tl, Literal* l);
   static bool isStructInductionFunctor(unsigned f);
 
+  // Integer Induction Three methods
+  SLQueryResultIterator getStepClauses(Literal* l);
+  SLQueryResultIterator getBaseClauses(Literal* l);
+  static bool isIntInductionThreeOn();
+  static bool isIntInductionThreeGroundOnly();
+  static bool isIntBaseCaseTerm(Term* t);
+  static bool getIntInductionBaseTerms(Clause* c, vset<Term*>& bases);
+  static Term* getBoundTermAndDirection(Literal* l, const TermList& var, bool& upward);
+  static bool isBoundLiteralWithVar(Literal* l, const TermList& var);
+  static bool getIntInductionStepPlusOrMinus(Literal* l1, Literal* l2, const TermList& var, bool& plusOne);
+  static bool getIntInductionStepParams(Clause* c, TermList& var, bool& plusOne, int& litIdx, Literal*& bound);
+  static Literal* getIntInductionStepLiteral(Clause* c);
+
 private:
   TermQueryResultIterator getComparisonMatch(bool polarity, TermList& left, TermList& right, TermList& var);
 
@@ -66,6 +83,8 @@ private:
   Splitter* _splitter;  // not owned
   LiteralIndex* _comparisonIndex;  // not owned
   TermIndex* _inductionTermIndex;  // not owned
+  LiteralIndex* _intIndStepIndex;  // not owned
+  LiteralIndex* _intIndBaseIndex;  // not owned
 };
 
 };  // namespace Inferences

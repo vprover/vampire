@@ -1173,7 +1173,7 @@ void Options::init()
             _lookup.insert(&_structInduction);
 
             _intInduction = ChoiceOptionValue<IntInductionKind>("int_induction_kind","iik",
-                                 IntInductionKind::ONE,{"one","two","all"});
+                                 IntInductionKind::ONE,{"one","two","three","all"});
             _intInduction.description="The kind of integer induction applied";
             _intInduction.tag(OptionTag::INFERENCES);
 

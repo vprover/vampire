@@ -296,6 +296,9 @@ void TimeCounter::outputSingleStat(TimeCounterUnit tcu, ostream& out)
   case TC_UNIT_INTEGER_COMPARISON_INDEX_MAINTENANCE:
     out<<"unit integer comparison literal index maintenance";
     break;
+  case TC_INT_INDUCTION_STEP_LITERAL_INDEX:
+    out<<"integer induction step literal index maintenance";
+    break;
   case TC_OTHER:
     out<<"other";
     break;

@@ -425,4 +425,19 @@ void UnitIntegerComparisonLiteralIndex::handleClause(Clause* c, bool adding)
   }
 }
 
+void IntegerInductionStepLiteralIndex::handleClause(Clause* c, bool adding)
+{
+  CALL("IntegerInductionStepLiteralIndex::handleClause");
+
+  unsigned clen=c->length();
+  if ((clen < 2) || (clen > 3)) {
+    return;
+  }
+  TimeCounter tc(TC_INT_INDUCTION_STEP_LITERAL_INDEX);
+  Literal* l = Inferences::InductionHelper::getIntInductionStepLiteral(c);
+  if (l != nullptr) {
+    handleLiteral(l, c, adding);
+  }
+}
+
 }

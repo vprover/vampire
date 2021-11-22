@@ -933,6 +933,8 @@ vstring Kernel::ruleName(InferenceRule rule)
     return "generalized integer induction hypothesis (up, default bound)";
   case InferenceRule::INT_DB_DOWN_GEN_INDUCTION_AXIOM:
     return "generalized integer induction hypothesis (down, default bound)";
+  case InferenceRule::INT_INDUCTION_CONCLUSION:
+    return "integer induction conclusion";
   case InferenceRule::GAUSSIAN_VARIABLE_ELIMINIATION:
     return "gaussian variable elimination";
   case InferenceRule::COMBINATOR_AXIOM:
