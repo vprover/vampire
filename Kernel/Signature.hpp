@@ -512,6 +512,10 @@ class Signature
   const unsigned functionId(int number) {
     return _funs[number]->id();
   }
+  /** return the id of a sort with a given number */
+  const unsigned typeConId(int number) {
+    return _typeCons[number]->id();
+  }
   /** return the id of a predicate with a given number */
   const unsigned predicateId(int number) {
     return _preds[number]->id();

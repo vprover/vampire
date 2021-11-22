@@ -98,7 +98,7 @@ private:
   int sumRedLengths(TermStack& args);
 #if VTHREADED
   // instance-level mutexes
-  static std::mutex _term_mutex, _literal_mutex;
+  static std::mutex _term_mutex, _sort_mutex, _literal_mutex;
   friend class Kernel::Signature;
 #endif
 

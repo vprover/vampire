@@ -34,7 +34,8 @@ public:
   static FormulaUnit* flatten (FormulaUnit*);
   static Formula* flatten (Formula* f){
     Formula* res  = innerFlatten(f);
-    res->label(f->getLabel()); 
+    if(res != f)
+      res->label(f->getLabel()); 
     return res;
   }
   static FormulaList* flatten (FormulaList*,Connective con);

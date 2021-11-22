@@ -131,8 +131,7 @@ Term* TermSharing::insert(Term* t)
   if (s == t) {
     unsigned weight = 1;
     unsigned vars = 0;
-    bool hasInterpretedConstants=t->arity()==0 &&
-	signature->getFunction(t->functor())->interpreted();
+    bool hasInterpretedConstants=t->arity()==0 && signature->getFunction(t->functor())->interpreted();
     Color color = COLOR_TRANSPARENT;
 
     if(env->options->combinatorySup()){ 
@@ -239,6 +238,10 @@ AtomicSort* TermSharing::insert(AtomicSort* sort)
   TimeCounter tc(TC_SORT_SHARING);
 
   _sortInsertions++;
+#if VTHREADED
+  std::lock_guard<std::mutex> lock(_term_mutex);
+  sort->functorId = env->signature->typeConId(sort->functor());
+#endif
   AtomicSort* s = _sorts.insert(sort);
   if (s == sort) {
     if(sort->isArraySort()){

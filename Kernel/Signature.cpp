@@ -343,6 +343,7 @@ Signature::Signature(const Signature &other) {
 }
   CLONE_SYMBOL_TABLE(_funs);
   CLONE_SYMBOL_TABLE(_preds);
+  CLONE_SYMBOL_TABLE(_typeCons);
 #undef CLONE_SYMBOL_TABLE
 
 #define CLONE_NAME_LOOKUP(NAME) {\
@@ -354,6 +355,7 @@ Signature::Signature(const Signature &other) {
 }
   CLONE_NAME_LOOKUP(_funNames);
   CLONE_NAME_LOOKUP(_predNames);
+  CLONE_NAME_LOOKUP(_typeConNames);
   CLONE_NAME_LOOKUP(_varNames);
   CLONE_NAME_LOOKUP(_arityCheck);
 #undef CLONE_NAME_LOOKUP
