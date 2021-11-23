@@ -43,11 +43,11 @@ using namespace Inferences::IRC;
 #define SUGAR(Num)                                                                                            \
   NUMBER_SUGAR(Num)                                                                                           \
   DECL_DEFAULT_VARS                                                                                           \
-  DECL_FUNC(f, {Num}, Num)                                                                                    \
-  DECL_FUNC(g, {Num, Num}, Num)                                                                               \
   DECL_CONST(a, Num)                                                                                          \
   DECL_CONST(b, Num)                                                                                          \
   DECL_CONST(c, Num)                                                                                          \
+  DECL_FUNC(f, {Num}, Num)                                                                                    \
+  DECL_FUNC(g, {Num, Num}, Num)                                                                               \
   DECL_PRED(p, {Num})                                                                                         \
   DECL_PRED(r, {Num,Num})                                                                                     \
 
@@ -182,6 +182,20 @@ TEST_SIMPLIFICATION(sum01,
       .simplifyWith({    clause(   { 0 == x + g(x,x) + a }       ) })
       .toSimplify  ({    clause(   { p(g(f(f(a)),f(f(a))))  }   ) })
       .expected(    {    clause(   { p(    - a - f(f(a)) )  }   ) })
+    )
+
+TEST_SIMPLIFICATION(sum02,
+    FwdBwdSimplification::TestCase()
+      .simplifyWith({    clause(   { 0 == x + g(x,x) }       ) })
+      .toSimplify  ({    clause(   { p(g(f(f(a)),f(f(a))))  }   ) })
+      .expected(    {    clause(   { p(    - f(f(a))     )  }   ) })
+    )
+
+TEST_SIMPLIFICATION(sum03,
+    FwdBwdSimplification::TestCase()
+      .simplifyWith({    clause(   { 0 == a + g(x,x) }       ) })
+      .toSimplify  ({    clause(   { p(g(f(f(a)),f(f(a))))  }   ) })
+      .expected(    {    clause(   { p(    - a           )  }   ) })
     )
 
 

@@ -45,13 +45,13 @@ using namespace Inferences::IRC;
   DECL_VAR(x2,2)                                                                                              \
   DECL_VAR(x3,3)                                                                                              \
   DECL_VAR(x4,4)                                                                                              \
+  DECL_CONST(a, Num)                                                                                          \
+  DECL_CONST(b, Num)                                                                                          \
+  DECL_CONST(c, Num)                                                                                          \
   DECL_FUNC(f, {Num}, Num)                                                                                    \
   DECL_FUNC(g, {Num, Num}, Num)                                                                               \
   DECL_FUNC(g0, {Num, Num}, Num)                                                                              \
   DECL_FUNC(g1, {Num, Num}, Num)                                                                              \
-  DECL_CONST(a, Num)                                                                                          \
-  DECL_CONST(b, Num)                                                                                          \
-  DECL_CONST(c, Num)                                                                                          \
   DECL_PRED(r, {Num,Num})                                                                                     \
 
 #define MY_SYNTAX_SUGAR SUGAR(Rat)

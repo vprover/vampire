@@ -22,6 +22,7 @@
 #include "Kernel/EqHelper.hpp"
 #include "Kernel/FormulaVarIterator.hpp"
 #include "Shell/Statistics.hpp"
+#include "Kernel/LaLpo.hpp"
 
 #define UNIMPLEMENTED ASSERTION_VIOLATION
 
@@ -42,7 +43,7 @@ public:
   // ============================
   //         C[sσ -> (∓ (1/k) t)σ]
   // where
-  // • sσ is strictly max. in terms(s + t)σ 
+  // • sσ ≻ tσ 
   // • C[sσ] ≻ (±ks + t ≈ 0)σ
  
   template<class NumTraits, class Sigma> 
@@ -102,7 +103,7 @@ public:
   // ============================
   //         C[sσ -> (∓ (1/k) t)σ]
   // where
-  // • sσ is strictly max. in terms(s + t)σ 
+  // • sσ ≻ tσ 
   // • C[sσ] ≻ (±ks + t ≈ 0)σ
   template<class _NumTraits>
   struct Simplification {
@@ -182,7 +183,7 @@ public:
 // ==============================
 //       C[sσ -> (∓ (1/k) t)σ]
 // where
-// • sσ is strictly max. in terms(s + t)σ 
+// • sσ ≻ tσ 
 // • C[sσ] ≻ (±ks + t ≈ 0)σ
 //
 template<class NumTraits, class Sigma> 
@@ -216,9 +217,18 @@ Option<Clause*> DemodulationModLA::apply(
     FormulaVarIterator vars(&replacement);
     while (vars.hasNext()) {
       if (!s.isFreeVariable(vars.next())) {
-        // this is a hack that works only with KBO like variables and is needed 
-        // because we cannot apply the substitution sigma to replacement if it 
-        // contains variables that are not in `s`
+        // if we have a variable `x` s.t. 
+        // `x subtermeq t`, and `x not subtermeq s`
+        // then `sσ /≻ tσ`, since `σ` is an mgu, hence 
+        // it does not map `x`, and `tσ[x -> sσ] ≻ sσ == sσ[x -> sσ]` 
+        // due to the subterm property.
+        // Hence `sσ /≻ tσ` due to substitutability
+        //
+        // We need this property because of the technical problem, that 
+        // cannot apply the substitution sigma to replacement if it 
+        // contains variables that are not in `s` (this could also be fixed 
+        // changing the implementation of subsitutions, but proving this 
+        // property is easier ;) )
         return nothing;
       }
     }
@@ -234,12 +244,13 @@ Option<Clause*> DemodulationModLA::apply(
   // checking `C[sσ] ≻ (±ks + t ≈ 0)σ`
   {
     auto ks_t_sigma = sigma((*Hyp1)[0]);
-    for (auto lit : iterTraits(C->iterLits())) {
-      auto cmp = shared.ordering->compare(lit, ks_t_sigma);
-      if (cmp != Ordering::Result::GREATER) {
-        return nothing;
-      }
+    auto greater = iterTraits(C->iterLits())
+      .any([&](auto lit) 
+          { return Ordering::Result::GREATER == shared.ordering->compare(lit, ks_t_sigma); });
+    if (!greater)  {
+      return nothing;
     }
+    
   }
 
   auto lits = iterTraits(C->iterLits())

@@ -462,6 +462,9 @@ Comparison LaLpo::cmpFun(Term* l, Term* r) const
   auto lMul = forAnyNumTraits([&](auto numTraits) { return f == numTraits.mulF(); });
   auto rMul = forAnyNumTraits([&](auto numTraits) { return g == numTraits.mulF(); });
 
+  auto lMin = forAnyNumTraits([&](auto numTraits) { return f == numTraits.minusF(); });
+  auto rMin = forAnyNumTraits([&](auto numTraits) { return g == numTraits.minusF(); });
+
   auto lNum = forAnyNumTraits([&](auto numTraits) { return numTraits.tryNumeral(l).map([](auto n){ return  toIntPair(n); }); });
   auto rNum = forAnyNumTraits([&](auto numTraits) { return numTraits.tryNumeral(r).map([](auto n){ return  toIntPair(n); }); });
 
@@ -474,6 +477,8 @@ Comparison LaLpo::cmpFun(Term* l, Term* r) const
     else        return Comparison::GREATER;
   };
 
+  if ( lMin          && !rMin          ) return Comparison::LESS;
+  if (!lMin          &&  rMin          ) return Comparison::GREATER;
   if ( lMul          && !rMul          ) return Comparison::LESS;
   if (!lMul          &&  rMul          ) return Comparison::GREATER;
   if ( lNum.isSome() && !rNum.isSome() ) return Comparison::LESS;
