@@ -19,11 +19,14 @@
 #include "System.hpp"
 #include "Shell/UIHelper.hpp"
 #include "Shell/Statistics.hpp"
+#include <atomic>
 
 #define MILLION 1000000
 
 long long last_instruction_count_read = -1;
 VTHREAD_LOCAL bool Timer::s_limitEnforcement = true;
+std::atomic<unsigned> protectingTimeout{0};
+std::atomic<unsigned char> callLimitReachedLater{0}; // 1 for a timelimit, 2 for an instruction limit
 
 unsigned Timer::elapsedMegaInstructions() {
   return (last_instruction_count_read >= MILLION) ? last_instruction_count_read/MILLION : 0;
@@ -102,7 +105,6 @@ int Lib::Timer::miliseconds() {
 
 #include <ctime>
 #include <unistd.h>
-#include <atomic>
 #include <sys/types.h>
 
 #include "Debug/Assertion.hpp"
@@ -463,9 +465,6 @@ Timer* Timer::instance()
   
   return inst.ptr();
 }
-
-std::atomic<unsigned> protectingTimeout{0};
-std::atomic<unsigned char> callLimitReachedLater{0}; // 1 for a timelimit, 2 for an instruction limit
 
 TimeoutProtector::TimeoutProtector() {
   protectingTimeout++;

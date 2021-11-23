@@ -93,11 +93,12 @@ bool MatchingUtils::isVariant(Literal* l1, Literal* l2, bool complementary)
     TermList s2 = l2->twoVarEqSort();
     if(s1.isVar() && s2.isVar()){}
     else if(s1.isTerm() && s2.isTerm()){
+#if VTHREADED
+      unsigned s1f = s1.term()->functorId;
+      unsigned s2f = s2.term()->functorId;
+#else
       unsigned s1f = s1.term()->functor();
       unsigned s2f = s2.term()->functor();
-#if VTHREADED
-      s1f = env->signature->functionId(s1f);
-      s2f = env->signature->functionId(s2f);
 #endif
       if(s1f != s2f || !haveVariantArgs(s1.term(), s2.term())){
         return false;

@@ -87,7 +87,9 @@ OperatorType::OperatorKey* OperatorType::setupKeyUniformRange(unsigned arity, Te
 OperatorType::OperatorTypes& OperatorType::operatorTypes() {
   struct DeletingOperatorTypes : public OperatorType::OperatorTypes {
     ~DeletingOperatorTypes() {
+#if !VTHREADED
       deleteAll();
+#endif
     }
   };
 

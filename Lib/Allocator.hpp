@@ -25,7 +25,75 @@
 #include "Debug/Tracer.hpp"
 
 #include "Portability.hpp"
-#include "Threading.hpp"
+
+template<typename T>
+T* array_new(void* placement, size_t length)
+{
+  ASS_NEQ(placement,0);
+  ASS_G(length,0);
+
+  T* res=static_cast<T*>(placement);
+  T* p=res;
+  while(length--) {
+    ::new(static_cast<void*>(p++)) T();
+  }
+  return res;
+} // array_new
+
+/**
+ * Apply the destructor of T to each element of the array @b array of objects
+ * of type @b T and that has length @b length.
+ * @see array_new() for more information.
+ * @author Krystof Hoder
+ * @author Andrei Voronkov (documentation)
+ */
+template<typename T>
+void array_delete(T* array, size_t length)
+{
+  ASS_NEQ(array,0);
+  ASS_G(length,0);
+
+  array+=length;
+  while(length--) {
+    (--array)->~T();
+  }
+}
+
+#if VTHREADED
+void *vmalloc(size_t size);
+void *vrealloc(void *mem, size_t size);
+void vfree(void *mem, size_t size);
+#define CLASS_NAME(c)
+#define ALLOC_KNOWN(size,c) (vmalloc(size))
+#define DEALLOC_KNOWN(obj,sz,c) (vfree(obj,sz))
+#define ALLOC_UNKNOWN(size,c) (vmalloc(size))
+#define REALLOC_UNKNOWN(obj,sz,c) (vrealloc(obj,sz))
+#define DEALLOC_UNKNOWN(obj,c) (vfree(obj,0))
+#define USE_ALLOCATOR_UNK\
+  inline void* operator new(size_t sz) { return vmalloc(sz); }\
+  inline void operator delete(void* obj) { if(obj) vfree(obj,0); }
+#define USE_ALLOCATOR(C)\
+  inline void* operator new(size_t sz) { return vmalloc(sz); }\
+  inline void operator delete(void* obj) { if(obj) vfree(obj,0); }
+#define USE_ALLOCATOR_ARRAY\
+  inline void* operator new[](size_t sz) { return vmalloc(sz); }\
+  inline void operator delete[](void* obj) { if(obj) vfree(obj,0); }
+
+#define START_CHECKING_FOR_ALLOCATOR_BYPASSES
+#define STOP_CHECKING_FOR_ALLOCATOR_BYPASSES
+#define BYPASSING_ALLOCATOR
+
+#define DECLARE_PLACEMENT_NEW\
+  void* operator new (size_t, void* buffer) { return buffer; }\
+  void operator delete (void*, void*) {}
+
+namespace Allocator {
+  size_t getMemoryLimit();
+  void setMemoryLimit(size_t size);
+  size_t getUsedMemory();
+  void reportUsageByClasses();
+}
+#else
 
 #if VDEBUG
 #include <string>
@@ -328,51 +396,6 @@ private:
  */
 static Allocator::Initialiser _____;
 
-/**
- * Initialise an array of objects of type @b T that has length @b length
- * starting at @b placement, and return a pointer to its first element
- * (whose value is equal to @b placement). This function is required when
- * we use an allocated piece of memory an array of elements of type @b T -
- * in this case we also have to initialise every array cell by applying
- * the constructor of T.
- * @author Krystof Hoder
- * @author Andrei Voronkov (documentation)
- */
-template<typename T>
-T* array_new(void* placement, size_t length)
-{
-  CALLC("array_new",MAKE_CALLS);
-  ASS_NEQ(placement,0);
-  ASS_G(length,0);
-
-  T* res=static_cast<T*>(placement);
-  T* p=res;
-  while(length--) {
-    ::new(static_cast<void*>(p++)) T();
-  }
-  return res;
-} // array_new
-
-/**
- * Apply the destructor of T to each element of the array @b array of objects
- * of type @b T and that has length @b length.
- * @see array_new() for more information.
- * @author Krystof Hoder
- * @author Andrei Voronkov (documentation)
- */
-template<typename T>
-void array_delete(T* array, size_t length)
-{
-  CALLC("array_delete",MAKE_CALLS);
-  ASS_NEQ(array,0);
-  ASS_G(length,0);
-
-  array+=length;
-  while(length--) {
-    (--array)->~T();
-  }
-}
-
 #define DECLARE_PLACEMENT_NEW                                           \
   void* operator new (size_t, void* buffer) { return buffer; } 		\
   void operator delete (void*, void*) {}
@@ -475,4 +498,5 @@ std::ostream& operator<<(std::ostream& out, const Allocator::Descriptor& d);
 
 #undef ALLOC_SIZE_ATTR
 
+#endif // VTHREADED
 #endif // __Allocator__

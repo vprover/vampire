@@ -18,6 +18,7 @@
 #include "Lib/VString.hpp"
 
 #include "Forwards.hpp"
+#include "Lib/Threading.hpp"
 
 namespace Shell {
 

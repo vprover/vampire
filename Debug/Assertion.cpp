@@ -77,7 +77,7 @@ void Assertion::violatedStrEquality(const char* file, int line, const char* val1
 void Assertion::checkType(const char* file, int line, const void* ptr, const char* assumed,
                           const char* ptrStr)
 {
-#if !TSAN
+#if !VTHREADED
   Allocator::Descriptor* desc = Allocator::Descriptor::find(ptr);
 
   if (!desc) {

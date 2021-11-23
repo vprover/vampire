@@ -1449,7 +1449,6 @@ SplitLevel Splitter::tryGetComponentNameOrAddNew(unsigned size, Literal* const *
       SATLiteral sat;
       if(import) {
         Clause *component = globalComponent.next();
-        std::cout << "XXX imported: " << component->toString() << std::endl;
         ASS(!globalComponent.hasNext());
         sat = this->getLiteralFromName(component->splits()->sval());
         RSTAT_CTR_INC("ssat_imported_components");
@@ -1462,8 +1461,9 @@ SplitLevel Splitter::tryGetComponentNameOrAddNew(unsigned size, Literal* const *
 #endif
       res = addNonGroundComponent(size, lits, orig, compCl, sat);
 #if VTHREADED
+      Clause *copy = Clause::fromClause(compCl, InferenceRule::COPY_FOR_THREAD);
       if(!import)
-        globalNontrivialComponents->insert(compCl);
+        globalNontrivialComponents->insert(copy);
 #endif
     }
   }

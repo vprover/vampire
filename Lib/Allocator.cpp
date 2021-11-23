@@ -14,6 +14,48 @@
  * @since 02/12/2003, Manchester, replaces the file Memory.hpp
  * @since 10/01/2008 Manchester, reimplemented
  */
+#if VTHREADED
+#include <malloc.h>
+#include "Threading.hpp"
+
+VTHREAD_LOCAL static size_t memoryLimit(0);
+VATOMIC(size_t) usedMemory(0);
+
+void *vmalloc(size_t size) {
+  void *mem = malloc(size);
+  usedMemory += malloc_usable_size(mem);
+  return mem;
+}
+
+void *vrealloc(void *mem, size_t size) {
+  usedMemory -= malloc_usable_size(mem);
+  mem = realloc(mem, size);
+  usedMemory += malloc_usable_size(mem);
+  return mem;
+}
+
+void vfree(void *mem, size_t) {
+  usedMemory -= malloc_usable_size(mem);
+  free(mem);
+}
+
+namespace Allocator {
+  size_t getMemoryLimit() {
+    return memoryLimit;
+  }
+
+  void setMemoryLimit(size_t limit) {
+    memoryLimit = limit;
+  }
+
+  size_t getUsedMemory() {
+    return usedMemory;
+  }
+
+  void reportUsageByClasses() {}
+}
+
+#else
 #if VDEBUG
 
 #include <sstream>
@@ -350,7 +392,7 @@ void Allocator::deallocateKnown(void* obj,size_t size)
 
   TimeoutProtector tp;
 
-#if VDEBUG && !TSAN
+#if VDEBUG
   Descriptor* desc = Descriptor::find(obj);
   desc->timestamp = ++Descriptor::globalTimestamp;
 #if TRACE_ALLOCATIONS
@@ -365,7 +407,7 @@ void Allocator::deallocateKnown(void* obj,size_t size)
 #endif
 
 #if USE_SYSTEM_ALLOCATION
-#if VDEBUG && !TSAN
+#if VDEBUG
   desc->allocated = 0;
 #endif
   free(obj);
@@ -382,7 +424,7 @@ void Allocator::deallocateKnown(void* obj,size_t size)
     _freeList[index] = mem;
   }
 
-#if VDEBUG && !TSAN
+#if VDEBUG
   desc->allocated = 0;
 #endif
 
@@ -425,7 +467,7 @@ void Allocator::deallocateUnknown(void* obj)
 
   TimeoutProtector tp;
 
-#if VDEBUG && !TSAN
+#if VDEBUG
   Descriptor* desc = Descriptor::find(obj);
   desc->timestamp = ++Descriptor::globalTimestamp;
 #if TRACE_ALLOCATIONS
@@ -448,9 +490,7 @@ void Allocator::deallocateUnknown(void* obj)
   char* mem = reinterpret_cast<char*>(obj) - sizeof(Known);
   Unknown* unknown = reinterpret_cast<Unknown*>(mem);
   size_t size = unknown->size;
-#if !TSAN
   ASS_EQ(desc->size, size);
-#endif
 
   if (size >= REQUIRES_PAGE) {
     mem = mem-PAGE_PREFIX_SIZE;
@@ -479,10 +519,8 @@ void Allocator::deallocateUnknown(void* obj)
       watchAddressLastValue = currentValue;
       cout << "  Value: " << (void*)watchAddressLastValue << '\n';
     }
-#if !TSAN
     cout << "  " << *desc << '\n'
 	 << "Watch! end\n";
-#endif
   }
 #endif
 } // Allocator::deallocateUnknown
@@ -644,7 +682,7 @@ Allocator::Page* Allocator::allocatePages(size_t size)
   }
   result->size = realSize;
 
-#if VDEBUG && !TSAN
+#if VDEBUG
   Descriptor* desc = Descriptor::find(result);
   ASS(! desc->allocated);
 
@@ -656,7 +694,7 @@ Allocator::Page* Allocator::allocatePages(size_t size)
   desc->known = 0;
   desc->page = 1;
 
-#if TRACE_ALLOCATIONS && !TSAN
+#if TRACE_ALLOCATIONS
   cout << *desc << ": AP\n" << flush;
 #endif // TRACE_ALLOCATIONS
 #endif // VDEBUG
@@ -706,7 +744,7 @@ void Allocator::deallocatePages(Page* page)
 #else
   CALLC("Allocator::deallocatePages",MAKE_CALLS);
 
-#if VDEBUG && !TSAN
+#if VDEBUG
   Descriptor* desc = Descriptor::find(page);
   desc->timestamp = ++Descriptor::globalTimestamp;
 #if TRACE_ALLOCATIONS
@@ -780,7 +818,7 @@ void* Allocator::allocateKnown(size_t size)
 
   char* result = allocatePiece(size);
 
-#if VDEBUG && !TSAN
+#if VDEBUG
   Descriptor* desc = Descriptor::find(result);
   ASS_REP(! desc->allocated, size);
 
@@ -860,7 +898,7 @@ char* Allocator::allocatePiece(size_t size)
       if (_reserveBytesAvailable) {
 	index = (_reserveBytesAvailable-1)/sizeof(Known);
 	Known* save = reinterpret_cast<Known*>(_nextAvailableReserve);
-#if VDEBUG && !TSAN
+#if VDEBUG
 	Descriptor* desc = Descriptor::find(save);
 	ASS(! desc->allocated);
 	desc->size = _reserveBytesAvailable;
@@ -907,7 +945,7 @@ void* Allocator::allocateUnknown(size_t size)
   unknown->size = size;
   result += sizeof(Known);
 
-#if VDEBUG && !TSAN
+#if VDEBUG
   Descriptor* desc = Descriptor::find(result);
   ASS(! desc->allocated);
 
@@ -1076,8 +1114,6 @@ unsigned Allocator::Descriptor::hash (const void* addr)
 
 #endif
 
-// TSan provides its own global new/delete
-#if !TSAN
 /**
  * In debug mode we replace the global new and delete (also the array versions)
  * and terminate in cases when they are used "unwillingly".
@@ -1100,18 +1136,8 @@ unsigned Allocator::Descriptor::hash (const void* addr)
 #if VDEBUG
 
 void* operator new(size_t sz) {    
-  /*
-   * here be dragons!
-   * 
-   * space for thread_local variables are allocated lazily by calling this function
-   * this messes with some assumptions that Allocator has, and doesn't always show up immediately
-   * 
-   * TODO: fix this properly somehow?
-   */
-#if !VTHREADED
   ASS_REP(Allocator::_tolerantZone > 0,"Attempted to use global new operator, thus bypassing Allocator!");
   // Please read: https://github.com/easychair/vampire/wiki/Attempted-to-use-global-new-operator,-thus-bypassing-Allocator!
-#endif
   
   static Allocator::Initialiser i; // to initialize Allocator even for other libraries
   
@@ -1173,7 +1199,6 @@ void operator delete[](void* obj) throw() {
     DEALLOC_UNKNOWN(obj,"global new[]");
   }
 }
-#endif // !TSan
 
 #endif
 
@@ -1253,5 +1278,4 @@ void testAllocator()
 } // testAllocator
 
 #endif // VTEST
-
-
+#endif //VTHREADED

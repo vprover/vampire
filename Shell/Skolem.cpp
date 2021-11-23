@@ -427,6 +427,11 @@ Formula* Skolem::skolemise (Formula* f)
       NameReuse *name_reuse = env->options->skolemReuse()
         ? NameReuse::skolemInstance()
         : nullptr;
+#if VTHREADED
+      auto name_reuse_lock = name_reuse
+        ? std::unique_lock<std::recursive_mutex>(name_reuse->mutex)
+        : std::unique_lock<std::recursive_mutex>();
+#endif
 
       // if we re-use a symbol, we _must_ close over free variables in some fixed order
       VirtualIterator<unsigned> keyOrderIt;
@@ -503,7 +508,7 @@ Formula* Skolem::skolemise (Formula* f)
           } else {
             if(!successfully_reused)
               sym = addSkolemFunction(arity, termVarSorts.begin(), rangeSort, v, typeVars.size());
-            skolemTerm = Term::create(sym, arity, allVars.begin());    
+            skolemTerm = Term::create(sym, arity, allVars.begin());
           }
         } else {
           //The higher-order case. Create the term
@@ -520,7 +525,7 @@ Formula* Skolem::skolemise (Formula* f)
         if(!successfully_reused) {
           env->statistics->skolemFunctions++;
           if(name_reuse)
-            name_reuse->put(reuse_key, sym);
+            name_reuse->put(reuse_key, sym, env->signature->getFunction(sym));
         }
 
         _subst.bind(v,skolemTerm);

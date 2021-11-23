@@ -60,25 +60,49 @@ vstring NameReuse::key(Formula *f)
   return key;
 }
 
-bool NameReuse::get(const vstring &key, unsigned &symbol)
+VTHREAD_LOCAL static DHMap<Signature::Symbol *, unsigned> symbol2index;
+
+bool NameReuse::get(const vstring &key, unsigned &index)
 {
   CALL("NameReuse::get");
   //std::cout << "get: " << key << std::endl;
-  return _map.find(key, symbol);
-  /*
-  if(_map.find(key, symbol)) {
-    std::cout << "hit: " << key << std::endl;
+  Signature::Symbol *cached;
+
+  // no reuse
+  if(!_map.find(key, cached))
+    return false;
+
+  // reuse symbol from this thread
+  if(symbol2index.find(cached, index))
     return true;
+
+#if VTHREADED
+  // reuse symbol from another thread
+  if(cached->skolem()) {
+    index = env->signature->functions();
+    env->signature->importFunction(cached->clone());
+    ALWAYS(symbol2index.insert(cached, index));
   }
+  else {
+    index = env->signature->predicates();
+    env->signature->importPredicate(cached->clone());
+    ALWAYS(symbol2index.insert(cached, index));
+  }
+  return true;
+#else
   return false;
-  */
+#endif
 }
 
-void NameReuse::put(vstring key, unsigned symbol)
+void NameReuse::put(vstring key, unsigned index, Signature::Symbol *symbol)
 {
   CALL("NameReuse::put");
-  //std::cout << "put: " << symbol << " for " << key << std::endl;
-  _map.insert(key, symbol);
+  //std::cout << "put: " << symbol->name() << " for " << key << std::endl;
+#if VTHREADED
+  symbol = symbol->clone();
+#endif
+  ALWAYS(_map.insert(key, symbol));
+  ALWAYS(symbol2index.insert(symbol, index));
 }
 
 VirtualIterator<unsigned> NameReuse::freeVariablesInKeyOrder(Formula *f)

@@ -99,7 +99,6 @@ private:
 #if VTHREADED
   // instance-level mutexes
   static std::mutex _term_mutex, _sort_mutex, _literal_mutex;
-  friend class Kernel::Signature;
 #endif
 
   bool argNormGt(TermList t1, TermList t2);

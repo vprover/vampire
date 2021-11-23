@@ -17,6 +17,11 @@
 
 #include "Forwards.hpp"
 #include "Lib/DHMap.hpp"
+#include "Kernel/Signature.hpp"
+
+#if VTHREADED
+#include <mutex>
+#endif
 
 using namespace Kernel;
 
@@ -43,16 +48,20 @@ public:
   // try and reuse a symbol for `key`
   // false if not seen before
   // true (and symbol filled out) if we have
-  bool get(const vstring &key, unsigned &symbol);
+  bool get(const vstring &key, unsigned &index);
 
   // remember that we've used a symbol to stand for `key`
-  void put(vstring key, unsigned symbol);
+  void put(vstring key, unsigned index, Signature::Symbol *symbol);
 
   // free variables in the order they occur in the key for `f`
   VirtualIterator<unsigned> freeVariablesInKeyOrder(Formula *f);
 
+#if VTHREADED
+  std::recursive_mutex mutex;
+#endif
+
 private:
-  DHMap<vstring, unsigned> _map;
+  DHMap<vstring, Signature::Symbol *> _map;
 };
 
 } // namespace Shell

@@ -94,9 +94,10 @@ private:
   typedef DHMap<unsigned, unsigned char> VarCounts; // overflows allowed
 
   unsigned termFunctorHash(Term* t, unsigned hash_begin) {
-    unsigned func = t->functor();
 #if VTHREADED
-    func = env->signature->functionId(func);
+    unsigned func = t->functorId;
+#else
+    unsigned func = t->functor();
 #endif
     // cout << "will hash funtor " << func << endl;
     return Hash::hash((const unsigned char*)&func,sizeof(func),hash_begin);

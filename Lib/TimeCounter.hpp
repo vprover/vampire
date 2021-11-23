@@ -17,6 +17,7 @@
 #define __TimeCounter__
 
 #include <ostream>
+#include "Threading.hpp"
 
 namespace Lib {
 

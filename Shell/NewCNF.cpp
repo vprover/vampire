@@ -996,6 +996,12 @@ Term* NewCNF::createSkolemTerm(unsigned var, VarSet* free, Formula *reuse_formul
   NameReuse *name_reuse = env->options->skolemReuse()
     ? NameReuse::skolemInstance()
     : nullptr;
+#if VTHREADED
+  auto name_reuse_lock = name_reuse
+    ? std::unique_lock<std::recursive_mutex>(name_reuse->mutex)
+    : std::unique_lock<std::recursive_mutex>();
+#endif
+
   unsigned reused_symbol = 0;
   bool successfully_reused = false;
   vstring reuse_key;
@@ -1025,7 +1031,7 @@ Term* NewCNF::createSkolemTerm(unsigned var, VarSet* free, Formula *reuse_formul
     if(!successfully_reused) {
       pred = Skolem::addSkolemPredicate(arity, domainSorts.begin(), var);
       if(name_reuse)
-        name_reuse->put(reuse_key, pred);
+        name_reuse->put(reuse_key, pred, env->signature->getPredicate(pred));
       env->statistics->skolemFunctions++;
     }
     if(_beingClausified->derivedFromGoal()){
@@ -1037,7 +1043,7 @@ Term* NewCNF::createSkolemTerm(unsigned var, VarSet* free, Formula *reuse_formul
     if(!successfully_reused) {
       fun = Skolem::addSkolemFunction(arity, domainSorts.begin(), rangeSort, var);
       if(name_reuse)
-        name_reuse->put(reuse_key, fun);
+        name_reuse->put(reuse_key, fun, env->signature->getFunction(fun));
       env->statistics->skolemFunctions++;
     }
     if(_beingClausified->derivedFromGoal()){
@@ -1286,6 +1292,12 @@ Literal* NewCNF::createNamingLiteral(Formula* f, VList* free)
   NameReuse *name_reuse = env->options->definitionReuse()
     ? NameReuse::definitionInstance()
     : nullptr;
+#if VTHREADED
+  auto name_reuse_lock = name_reuse
+    ? std::unique_lock<std::recursive_mutex>(name_reuse->mutex)
+    : std::unique_lock<std::recursive_mutex>();
+#endif
+
   unsigned reused_symbol = 0;
   bool successfully_reused = false;
   vstring reuse_key;
@@ -1302,7 +1314,7 @@ Literal* NewCNF::createNamingLiteral(Formula* f, VList* free)
     pred = env->signature->addNamePredicate(length);
     env->statistics->formulaNames++;
     if(name_reuse)
-      name_reuse->put(reuse_key, pred);
+      name_reuse->put(reuse_key, pred, env->signature->getPredicate(pred));
   }
 
   Signature::Symbol* predSym = env->signature->getPredicate(pred);

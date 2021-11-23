@@ -41,7 +41,8 @@ public:
   static FormulaUnit* simplify(FormulaUnit*);
   static Formula* simplify(Formula* f){
     auto res = innerSimplify(f);
-    res->label(f->getLabel());
+    if(f != res)
+      res->label(f->getLabel());
     return res;
   }
   static Formula* innerSimplify(Formula*);

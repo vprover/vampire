@@ -34,7 +34,7 @@ using namespace Indexing;
 typedef ApplicativeHelper AH;
 
 #if VTHREADED
-std::mutex TermSharing::_term_mutex, TermSharing::_literal_mutex;
+std::mutex TermSharing::_term_mutex, TermSharing::_sort_mutex, TermSharing::_literal_mutex;
 #endif
 
 /**
@@ -239,7 +239,7 @@ AtomicSort* TermSharing::insert(AtomicSort* sort)
 
   _sortInsertions++;
 #if VTHREADED
-  std::lock_guard<std::mutex> lock(_term_mutex);
+  std::lock_guard<std::mutex> lock(_sort_mutex);
   sort->functorId = env->signature->typeConId(sort->functor());
 #endif
   AtomicSort* s = _sorts.insert(sort);

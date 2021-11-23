@@ -1115,6 +1115,12 @@ Literal* Naming::getDefinitionLiteral(Formula* f, VList* freeVars) {
   NameReuse *name_reuse = env->options->definitionReuse()
     ? NameReuse::definitionInstance()
     : nullptr;
+#if VTHREADED
+  auto name_reuse_lock = name_reuse
+    ? std::unique_lock<std::recursive_mutex>(name_reuse->mutex)
+    : std::unique_lock<std::recursive_mutex>();
+#endif
+
   unsigned reused_symbol = 0;
   bool successfully_reused = false;
   vstring reuse_key;
@@ -1169,9 +1175,9 @@ Literal* Naming::getDefinitionLiteral(Formula* f, VList* freeVars) {
     if(!successfully_reused) {
       pred = env->signature->addNamePredicate(arity);
       env->statistics->formulaNames++;
-      if(name_reuse)
-        name_reuse->put(reuse_key, pred);
       Signature::Symbol* predSym = env->signature->getPredicate(pred);
+      if(name_reuse)
+        name_reuse->put(reuse_key, pred, predSym);
 
       if (env->colorUsed) {
         Color fc = f->getColor();
@@ -1194,7 +1200,7 @@ Literal* Naming::getDefinitionLiteral(Formula* f, VList* freeVars) {
       Signature::Symbol* sym = env->signature->getFunction(fun);
       sym->setType(OperatorType::getConstantsType(sort, typeArgArity)); 
       if(name_reuse)
-        name_reuse->put(reuse_key, fun);
+        name_reuse->put(reuse_key, fun, sym);
     }
     TermList head = TermList(Term::create(fun, typeVars.size(), typeVars.begin()));
     TermList t = ApplicativeHelper::createAppTerm(

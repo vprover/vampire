@@ -313,11 +313,12 @@ struct HashingClauseVariantIndex::VariableIgnoringComparator {
       pair<TermList, TermList> dis=dsit.next();
       if(dis.first.isTerm()) {
         if(dis.second.isTerm()) {
+#if VTHREADED
+          unsigned f1 = dis.first.term()->functorId;
+          unsigned f2 = dis.second.term()->functorId;
+#else
           unsigned f1 = dis.first.term()->functor();
           unsigned f2 = dis.second.term()->functor();
-#if VTHREADED
-          f1 = env->signature->functionId(f1);
-          f2 = env->signature->functionId(f2);
 #endif
           ASS_NEQ(f1, f2);
           return Int::compare(f1, f2);
@@ -366,11 +367,12 @@ struct HashingClauseVariantIndex::VariableIgnoringComparator {
       return Int::compare(t1->getId(),t2->getId());
     }
 
+#if VTHREADED
+    unsigned f1 = t1->functorId;
+    unsigned f2 = t2->functorId;
+#else
     unsigned f1 = t1->functor();
     unsigned f2 = t2->functor();
-#if VTHREADED
-    f1 = env->signature->functionId(f1);
-    f2 = env->signature->functionId(f2);
 #endif
     if(f1 != f2) {
       return Int::compare(f1,f2);

@@ -22,6 +22,7 @@
 #include "Forwards.hpp"               // to declare checked_delete a fried for ScopedPtr's destruction to work
 #include "Allocator.hpp"
 #include "VString.hpp"
+#include "Threading.hpp"
 
 #ifndef UNIX_USE_SIGALRM
 //SIGALRM causes some problems with debugging

@@ -419,6 +419,13 @@ class Signature
   unsigned addFunction(const vstring& name,unsigned arity,bool& added,bool overflowConstant = false);
 
   /**
+   * Import this symbol 'raw' from another thread.
+   * Naturally very hazardous.
+   */
+  void importFunction(Symbol *symbol) { _funs.push(symbol); _nextFreshSymbolNumber++; }
+  void importPredicate(Symbol *symbol) { _preds.push(symbol); _nextFreshSymbolNumber++; }
+
+  /**
    * If a predicate with this name and arity exists, return its number.
    * Otherwise, add a new one and return its number.
    *

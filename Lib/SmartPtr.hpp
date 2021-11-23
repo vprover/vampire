@@ -18,6 +18,7 @@
 #define __SmartPtr__
 
 #include "Forwards.hpp"
+#include "Threading.hpp"
 
 #include "Debug/Assertion.hpp"
 #include "Debug/Tracer.hpp"
