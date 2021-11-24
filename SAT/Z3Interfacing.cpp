@@ -29,8 +29,9 @@
 #include "Kernel/Signature.hpp"
 #include "Kernel/OperatorType.hpp"
 #include "Kernel/SortHelper.hpp"
+#include "Kernel/SubstHelper.hpp"
 #include "Kernel/BottomUpEvaluation.hpp"
-#include "Kernel/BottomUpEvaluation/TermList.hpp"
+#include "Kernel/BottomUpEvaluation/SortlessTermList.hpp"
 #include "Lib/Coproduct.hpp"
 
 #include "Shell/UIHelper.hpp"
@@ -695,12 +696,12 @@ void Z3Interfacing::createTermAlgebra(TermAlgebra& start)
       auto discr = z3::func_decl(_context, discr_);
       auto constr = z3::func_decl(_context, constr_);
 
-      auto ctorId = FuncOrPredId::function(ctor->functor());
+      auto ctorId = FuncOrPredId::monomorphicFunction(ctor->functor());
       _toZ3.insert(ctorId, constr);
       _fromZ3.insert(constr, ctorId);
 
       if (ctor->hasDiscriminator()) {
-        auto discrId = FuncOrPredId::predicate(ctor->discriminator());
+        auto discrId = FuncOrPredId::monomorphicPredicate(ctor->discriminator());
         _toZ3.insert(discrId, discr);
         // _fromZ3.insert(discr, discrId);
       }
@@ -764,7 +765,7 @@ void Z3Interfacing::createTermAlgebra(TermAlgebra& start)
 z3::func_decl const& Z3Interfacing::findConstructor(FuncId id_)
 {
   CALL("Z3Interfacing::findConstructor(FuncId id)")
-  auto id = FuncOrPredId::function(id_);
+  auto id = FuncOrPredId::monomorphicFunction(id_);
   auto f = _toZ3.tryGet(id);
   if (f.isSome()) {
     return f.unwrap();
@@ -827,12 +828,13 @@ struct ToZ3Expr
   Z3Interfacing& self;
   Stack<z3::expr> _defs;
 
-  using Arg    = TermList;
+  using Arg    = SortlessTermList;
   using Result = z3::expr;
 
-  z3::expr operator()(TermList toEval, z3::expr* args)
+  z3::expr operator()(SortlessTermList sortlessToEval, z3::expr* args)
   {
     CALL("ToZ3Expr::operator()");
+    TermList toEval = sortlessToEval.inner;
     // DEBUG("in: ", toEval)
     ASS(toEval.isTerm())
     auto trm = toEval.term();
@@ -1072,7 +1074,7 @@ struct ToZ3Expr
 
     // uninterpretd function
     auto f = self.z3Function(Z3Interfacing::FuncOrPredId(trm));
-    return f(trm->arity(), args);
+    return f(f.arity(), args);
   }
 };
 
@@ -1080,24 +1082,34 @@ struct ToZ3Expr
 
 z3::func_decl Z3Interfacing::z3Function(FuncOrPredId functor)
 {
+  CALL("Z3Interfacing::z3Function");
   auto& self = *this;
 
   auto found = self._toZ3.tryGet(functor);
   if (found.isSome()) {
     return found.unwrap();
   } else {
-    // function does not yet exits
+    // function does not yet exist, create it
     auto symb = functor.isPredicate ? env.signature->getPredicate(functor.id)
                                     : env.signature->getFunction(functor.id);
     auto type = functor.isPredicate ? symb->predType() : symb->fnType();
 
-    // Does not yet exits. initialize it!
+    // polymorphic symbol application: treat f(<sorts>, ...) as f<sorts>(...) for Z3
+    Substitution typeSubst;
+    if(functor.forSorts)
+      SortHelper::getTypeSub(functor.forSorts, typeSubst);
+
     z3::sort_vector domain_sorts = z3::sort_vector(self._context);
-    for (unsigned i=0; i<type->arity(); i++) {
-      domain_sorts.push_back(self.getz3sort(type->arg(i)));
+    for (unsigned i=type->typeArgsArity(); i<type->arity(); i++) {
+      TermList arg = SubstHelper::apply(type->arg(i), typeSubst);
+      domain_sorts.push_back(self.getz3sort(arg));
     }
+
+    // Z3 seems OK with having overloaded functions
     z3::symbol name = self._context.str_symbol(symb->name().c_str());
-    auto range_sort = functor.isPredicate ? self._context.bool_sort() : self.getz3sort(type->result());
+    auto range_sort = functor.isPredicate
+      ? self._context.bool_sort()
+      : self.getz3sort(SubstHelper::apply(type->result(), typeSubst));
     auto decl = self._context.function(name,domain_sorts,range_sort);
     outputln(decl);
     self._toZ3.insert(functor, decl); // (declare-fun ...)
@@ -1113,15 +1125,15 @@ z3::func_decl Z3Interfacing::z3Function(FuncOrPredId functor)
  */
 Z3Interfacing::Representation Z3Interfacing::getRepresentation(Term* trm)
 {
-  CALL("Z3Interfacing::getRepresentation");
+  CALL("Z3Interfacing::getRepresentation(Term*)");
   Stack<z3::expr> defs;
-  auto expr = evaluateBottomUp(TermList(trm), ToZ3Expr{ *this, defs });
+  auto expr = evaluateBottomUp(SortlessTermList { TermList(trm) }, ToZ3Expr{ *this, defs });
   return Representation(expr, std::move(defs));
 }
 
 Z3Interfacing::Representation Z3Interfacing::getRepresentation(SATLiteral slit)
 {
-  CALL("Z3Interfacing::getRepresentation");
+  CALL("Z3Interfacing::getRepresentation(SATLiteral)");
   BYPASSING_ALLOCATOR;
 
 

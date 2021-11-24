@@ -386,6 +386,12 @@ public:
 
     return _args + (_arity - n);
   }
+
+  /**
+   * Return the number of type arguments for a polymorphic term (or 0 if monomorphic).
+   */
+  unsigned numTypeArguments() const;
+
   /** Return the 1st term argument for a polymorphic term.
     * Call hasTermArgs before calling this or test the result for
     * non-emptiness
