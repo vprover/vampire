@@ -185,9 +185,9 @@ void SKIKBO::State::traverse(ArgsIt_ptr aai,int coef)
   CALL("KBO::State::traverse(TermList...)");
 
   if(!aai->varHead()){
-    _weightDiff+=_kbo.functionSymbolWeight(aai->headNum())*coef;
+    _weightDiff+=_kbo.symbolWeight(aai->head().term())*coef;
   } else {
-    _weightDiff+=_kbo._variableWeight*coef;
+    _weightDiff+=_kbo._weights._specialWeights._variableWeight*coef;
     recordVariable(aai->headNum(), coef);
   }
 
@@ -200,10 +200,10 @@ void SKIKBO::State::traverse(ArgsIt_ptr aai,int coef)
     TermList ts = stack.top()->next();
     ArgsIt_ptr aai1 = ArgsIt_ptr(new ApplicativeArgsIt(ts));
     if(aai1->varHead()){
-      _weightDiff+=_kbo._variableWeight*coef;
+      _weightDiff+=_kbo._weights._specialWeights._variableWeight*coef;
       recordVariable(aai1->headNum(), coef);
     } else {
-      _weightDiff+=_kbo.functionSymbolWeight(aai1->headNum())*coef;
+      _weightDiff+=_kbo.symbolWeight(aai1->head().term())*coef;
     }
     if(aai1->hasNext()) {
       stack.push(aai1);
@@ -293,18 +293,32 @@ void SKIKBO::State::traverse(ArgsIt_ptr aat1, ArgsIt_ptr aat2)
 }
 
 /**
- * Create a KBO object.
+ * Create a SKIKBO object.
  */
 SKIKBO::SKIKBO(Problem& prb, const Options& opt, bool basic_hol)
- : PrecedenceOrdering(prb, opt)
+ : PrecedenceOrdering(prb, opt),
+   _weights(KboWeightMap<FuncSigTraits>::dflt())
 {
   CALL("SKIKBO::SKIKBO");
 
-  _variableWeight = 1;
-  _defaultSymbolWeight = 1;
   _state=new State(this);
   _basic_hol = basic_hol;
 }
+
+SKIKBO::SKIKBO(
+  KboWeightMap<FuncSigTraits> symbolWeights, 
+
+  // precedence ordering params
+  DArray<int> funcPrec, 
+  DArray<int> predPrec, 
+  DArray<int> predLevels, 
+
+  // other
+  bool reverseLCM
+  ) : PrecedenceOrdering(funcPrec, predPrec, predLevels, reverseLCM)
+  , _weights(symbolWeights)
+  , _state(new State(this))
+{ }
 
 SKIKBO::~SKIKBO()
 {
@@ -324,14 +338,20 @@ bool SKIKBO::safe(Term* t1, Term* t2) const
     TermList term1 = toBeChecked.pop();
     TermList term2 = toBeChecked.pop();
 
-    if((term1.isVar() || term2.isVar()) && term1 != term2){
-      return false;
+    if(term1.isVar() || term2.isVar()){
+      if(term1 != term2){
+        return false;
+      } else {
+        continue;
+      }
     }
- 
+    
     if((AH::isComb(term1) && !AH::isComb(term2)) ||
        (AH::isComb(term2) && !AH::isComb(term1)) ||
        (AH::isComb(term1) && AH::isComb(term2) && AH::getComb(term1) != AH::getComb(term2))){
       return false;
+    } else if(AH::isComb(term2) && AH::isComb(term1)){
+      continue;
     }
 
     if(term1.term()->ground() && term2.term()->ground()){
@@ -340,6 +360,8 @@ bool SKIKBO::safe(Term* t1, Term* t2) const
       if(!AH::isComb(head1) && !AH::isComb(head2)){
         if(maximumReductionLength(term2.term()) > maximumReductionLength(term1.term())){
           return false;
+        } else {
+          continue;
         }
       }
     }
@@ -363,13 +385,18 @@ bool SKIKBO::varConditionHolds(DHMultiset<Term*>& tlTerms1, DHMultiset<Term*>& t
   DHMultiset<Term*>::Iterator it(tlTerms2);
   while(it.hasNext()){
     Term* term = it.next();
-    DHMultiset<Term*>::Iterator it2(unmatchedTlTerms1);
-    while(it2.next()){
+    bool matchFound = false;
+    DHMultiset<Term*>::Iterator it2(tlTerms1);
+    while(it2.hasNext()){
       Term* term2 = it2.next();
       if(safe(term, term2)){
         unmatchedTlTerms1.remove(term2);
+        matchFound = true;
         break;
       }
+    }
+    if(!matchFound){
+      return false;
     }
   }
   
@@ -527,6 +554,7 @@ unsigned SKIKBO::getMaxRedLength(TermList t) const
     tRedLen = maximumReductionLength(t.term());
     t.term()->setMaxRedLen(tRedLen);
   }
+  ASS(tRedLen >= 0);
   return (unsigned)tRedLen;
 }
 
@@ -562,6 +590,7 @@ Ordering::Result SKIKBO::compare(TermList tl1, TermList tl2) const
 
     unsigned tl1RedLen = getMaxRedLength(tl1);
     unsigned tl2RedLen = getMaxRedLength(tl2);
+
     if((varCond == LEFT  || varCond == BOTH) && tl1RedLen > tl2RedLen){
       return GREATER;
     } 
@@ -611,11 +640,13 @@ Ordering::Result SKIKBO::compare(TermList tl1, TermList tl2) const
   return res;
 }
 
-int SKIKBO::functionSymbolWeight(unsigned fun) const
+int SKIKBO::symbolWeight(Term* t) const
 {
-  int weight = _defaultSymbolWeight;
-
-  return weight;
+  if (t->isSort()){
+    //For now just give all type constructors minimal weight
+    return _weights._specialWeights._variableWeight;
+  }
+  return _weights.symbolWeight(t);
 }
 
 

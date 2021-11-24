@@ -23,6 +23,7 @@
 #include "Lib/DHMap.hpp"
 #include "Lib/SmartPtr.hpp"
 
+#include "KBO.hpp"
 #include "Ordering.hpp"
 #include "Signature.hpp"
 #include "TermIterators.hpp"
@@ -43,6 +44,20 @@ public:
   USE_ALLOCATOR(SKIKBO);
 
   SKIKBO(Problem& prb, const Options& opt, bool basic_hol = false);
+  SKIKBO(
+        // KBO params
+        KboWeightMap<FuncSigTraits> symbolWeights, 
+
+        // precedence ordering params
+        DArray<int> funcPrec, 
+        // pred prec and pred levels are useless
+        // as in higher-order we treat all symbol as function symbols (or type cons)
+        DArray<int> predPrec, 
+        DArray<int> predLevels,
+
+        // other
+        bool reverseLCM);
+
   virtual ~SKIKBO();
 
   typedef SmartPtr<ApplicativeArgsIt> ArgsIt_ptr;
@@ -86,7 +101,9 @@ protected:
    * signature */
   int _defaultSymbolWeight;
 
-  int functionSymbolWeight(unsigned fun) const;
+  KboWeightMap<FuncSigTraits> _weights;
+
+  int symbolWeight(Term* t) const;
 
   bool allConstantsHeavierThanVariables() const { return false; }
   bool existsZeroWeightUnaryFunction() const { return false; }

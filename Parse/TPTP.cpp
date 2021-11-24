@@ -2318,10 +2318,7 @@ void TPTP::funApp()
       return;
 
     case T_ITE:
-      if(env.statistics->higherOrder){
-        //Does higher-order even use this code? I dont think so.
-        USER_ERROR("Higher-order Vampire is currently not compatible with FOOL reasoning");
-      }
+      ASS(!env.statistics->higherOrder);
       consumeToken(T_LPAR);
       addTagState(T_RPAR);
       _states.push(TERM);
@@ -2332,10 +2329,7 @@ void TPTP::funApp()
       return;
 
     case T_LET: {
-      if(env.statistics->higherOrder){
-        //Does higher-order even use this code? I dont think so.        
-        USER_ERROR("Higher-order  Vampire is currently not compatible with FOOL reasoning");
-      }
+      ASS(!env.statistics->higherOrder);
       consumeToken(T_LPAR);
       addTagState(T_RPAR);
       _states.push(TERM);
