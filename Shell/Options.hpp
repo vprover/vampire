@@ -2255,6 +2255,11 @@ public:
   bool newTautologyDel() const { return _newTautologyDel.actualValue; }
   bool lambdaFreeHol() const { return _lambdaFreeHol.actualValue; }
   bool complexVarCondition() const { return _complexVarCondition.actualValue; }
+  // For unit testing
+  void useCombSup() { 
+    _combinatorySuperposition.actualValue = true;
+    _complexVarCondition.actualValue = true; 
+  }
 
 private:
     
