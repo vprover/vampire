@@ -146,9 +146,7 @@ public:
       FuncOrPredId(
         term->functor(),
         term->isLiteral(),
-        term->numTypeArguments() == 0
-          ? nullptr
-          : term
+        term->numTypeArguments() == 0 ? nullptr : term
       )
     {}
     static FuncOrPredId monomorphicFunction(FuncId id) { return FuncOrPredId (id, false); }

@@ -31,7 +31,7 @@
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/SubstHelper.hpp"
 #include "Kernel/BottomUpEvaluation.hpp"
-#include "Kernel/BottomUpEvaluation/SortlessTermList.hpp"
+#include "Kernel/BottomUpEvaluation/TermList.hpp"
 #include "Lib/Coproduct.hpp"
 
 #include "Shell/UIHelper.hpp"
@@ -828,13 +828,12 @@ struct ToZ3Expr
   Z3Interfacing& self;
   Stack<z3::expr> _defs;
 
-  using Arg    = SortlessTermList;
+  using Arg    = TermList;
   using Result = z3::expr;
 
-  z3::expr operator()(SortlessTermList sortlessToEval, z3::expr* args)
+  z3::expr operator()(TermList toEval, z3::expr* args)
   {
     CALL("ToZ3Expr::operator()");
-    TermList toEval = sortlessToEval.inner;
     // DEBUG("in: ", toEval)
     ASS(toEval.isTerm())
     auto trm = toEval.term();
@@ -1127,7 +1126,7 @@ Z3Interfacing::Representation Z3Interfacing::getRepresentation(Term* trm)
 {
   CALL("Z3Interfacing::getRepresentation(Term*)");
   Stack<z3::expr> defs;
-  auto expr = evaluateBottomUp(SortlessTermList { TermList(trm) }, ToZ3Expr{ *this, defs });
+  auto expr = evaluateBottomUp(TermList(trm), ToZ3Expr{ *this, defs });
   return Representation(expr, std::move(defs));
 }
 
