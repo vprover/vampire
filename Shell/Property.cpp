@@ -685,8 +685,9 @@ void Property::scan(TermList ts,bool unit,bool goal)
     }
   } else {
     if(t->isSort()){
-      if(t->arity() > _maxTypeConArity)
-      _maxTypeConArity = t->arity();
+      if(t->arity() > _maxTypeConArity){
+        _maxTypeConArity = t->arity();
+      }
       return;
     }
 
