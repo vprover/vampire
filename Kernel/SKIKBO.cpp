@@ -363,6 +363,8 @@ bool SKIKBO::safe(Term* t1, Term* t2) const
         } else {
           continue;
         }
+      } else {
+        return false;
       }
     } else if (term1.term()->ground() || term2.term()->ground()){
       // early failure, it is impossible for these terms to be safe
