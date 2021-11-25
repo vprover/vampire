@@ -364,6 +364,10 @@ bool SKIKBO::safe(Term* t1, Term* t2) const
           continue;
         }
       }
+    } else if (term1.term()->ground() || term2.term()->ground()){
+      // early failure, it is impossible for these terms to be safe
+      // e.g. (f X) and g. 
+      return false;
     }
 
     toBeChecked.push(*term1.term()->nthArgument(2));
