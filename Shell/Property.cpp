@@ -656,10 +656,6 @@ void Property::scan(TermList ts,bool unit,bool goal)
     return;
   }
 
-  if(ts.term()->isSort()){
-    return;
-  }
-
   ASS(ts.isTerm());
   Term* t = ts.term();
 
@@ -687,6 +683,16 @@ void Property::scan(TermList ts,bool unit,bool goal)
         break;
     }
   } else {
+    int arity = t->arity();
+
+    if (arity > _maxFunArity) {
+      _maxFunArity = arity;
+    }
+
+    if(t->isSort()){
+      return;
+    }
+
     scanForInterpreted(t);
 
     _symbolsInFormula.insert(t->functor());
@@ -724,15 +730,10 @@ void Property::scan(TermList ts,bool unit,bool goal)
       _hasPolymorphicSym = true;
     }
 
-    int arity = t->arity();
     for (int i = 0; i < arity; i++) {
       scanSort(SortHelper::getArgSort(t, i));
     }
     scanSort(SortHelper::getResultSort(t));
-
-    if (arity > _maxFunArity) {
-      _maxFunArity = arity;
-    }
   }
 }
 
