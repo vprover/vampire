@@ -428,7 +428,7 @@ void FunctionDefinition::checkDefinitions(Def* def0)
       if(!_defs.find(trm->functor(), d) || d->mark==Def::BLOCKED) {
         d=0;
       }
-      if(trm->hasTermArgs() || checkedDef) {
+      if(trm->numTermArguments() > 0 || checkedDef) {
         stack.push(trm->termArgs());
         defCheckingStack.push(checkedDef);
         defArgStack.push(d);

@@ -351,15 +351,15 @@ TermList* Term::termArgs()
   return _args + (_arity - numTypeArguments());
 }
 
-bool Term::hasTermArgs() const
+unsigned Term::numTermArguments() const
 { 
-  CALL("Term::hasTermArgs");
+  CALL("Term::numTermArguments");
 
-  unsigned typeArgsArity = isLiteral() ? 
-                    env.signature->getPredicate(_functor)->typeArgsArity() :
-                    env.signature->getFunction(_functor)->typeArgsArity();
-                    
-  return !isSort() && _arity > typeArgsArity; 
+  if(isSuper() || isSort())
+    return 0;
+  
+  ASS(_arity >= numTypeArguments())                  
+  return _arity - numTypeArguments(); 
 }
 
 bool TermList::containsSubterm(TermList trm)
