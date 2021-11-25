@@ -130,6 +130,7 @@ Ordering* Ordering::create(Problem& prb, const Options& opt)
     // - user specified symbol weights
     // TODO fix this! 
     if(prb.getProperty()->maxFunArity()==0 
+        && prb.getProperty()->maxTypeConArity() == 0
         && !env.colorUsed
         && env.options->predicateWeights() == ""
         && env.options->functionWeights() == ""
@@ -145,6 +146,7 @@ Ordering* Ordering::create(Problem& prb, const Options& opt)
   default:
     ASSERTION_VIOLATION;
   }
+  //TODO currently do not show SKIKBO
   if (opt.showSimplOrdering()) {
     env.beginOutput();
     out->show(env.out());

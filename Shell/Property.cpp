@@ -66,6 +66,7 @@ Property::Property()
     _groundGoals(0),
     _maxFunArity(0),
     _maxPredArity(0),
+    _maxTypeConArity(0),
     _totalNumberOfVariables(0),
     _maxVariablesInClause(0),
     _props(0),
@@ -683,13 +684,9 @@ void Property::scan(TermList ts,bool unit,bool goal)
         break;
     }
   } else {
-    int arity = t->arity();
-
-    if (arity > _maxFunArity) {
-      _maxFunArity = arity;
-    }
-
     if(t->isSort()){
+      if(t->arity() > _maxTypeConArity)
+      _maxTypeConArity = t->arity();
       return;
     }
 
@@ -725,15 +722,23 @@ void Property::scan(TermList ts,bool unit,bool goal)
       _hasLogicalProxy = true;
     }
 
+    // TODO change this to use Term::numOfTypeArgs() once
+    // Micahel's PR is merged
     OperatorType* type = func->fnType();
     if(!t->isApplication() && type->typeArgsArity()){
       _hasPolymorphicSym = true;
     }
 
+    int arity = t->arity();
+
+    if (arity > _maxFunArity) {
+      _maxFunArity = arity;
+    }
+
     for (int i = 0; i < arity; i++) {
       scanSort(SortHelper::getArgSort(t, i));
     }
-    scanSort(SortHelper::getResultSort(t));
+    scanSort(SortHelper::getResultSort(t));  
   }
 }
 
