@@ -334,6 +334,7 @@ bool Term::isApplication() const {
 
 unsigned Term::numTypeArguments() const {
   CALL("Term::numTypeArguments");
+  ASS(!isSort());
 
   return isSpecial()
     ? 0
