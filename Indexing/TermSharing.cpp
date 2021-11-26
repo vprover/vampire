@@ -120,6 +120,7 @@ Term* TermSharing::insert(Term* t)
     unsigned vars = 0;
     bool hasInterpretedConstants=t->arity()==0 &&
 	env.signature->getFunction(t->functor())->interpreted();
+    bool containsTermVar = false;
     Color color = COLOR_TRANSPARENT;
 
     if(env.options->combinatorySup()){ 
@@ -162,9 +163,15 @@ Term* TermSharing::insert(Term* t)
       }
       t->setMaxRedLen(maxRedLength);
     }
-    for (TermList* tt = t->args(); ! tt->isEmpty(); tt = tt->next()) {
+    
+    unsigned typeArity = t->numTypeArguments();
+    for (unsigned i = 0; i < t->arity(); i++) {
+      TermList* tt = t->nthArgument(i);
       if (tt->isVar()) {
         ASS(tt->isOrdinaryVar());
+        if(i >= typeArity){
+          containsTermVar = true;
+        }
         vars++;
         weight += 1;
       }
@@ -176,11 +183,14 @@ Term* TermSharing::insert(Term* t)
   
         vars += r->vars();
         weight += r->weight();
+        if(!containsTermVar && !r->termGround()){
+          containsTermVar = true;
+        }
         if (env.colorUsed) {
-            color = static_cast<Color>(color | r->color());
+          color = static_cast<Color>(color | r->color());
         }
         if(!hasInterpretedConstants && r->hasInterpretedConstants()) {
-            hasInterpretedConstants=true; 
+          hasInterpretedConstants=true; 
         }
       }
     }
@@ -188,6 +198,7 @@ Term* TermSharing::insert(Term* t)
     t->setId(_totalTerms);
     t->setVars(vars);
     t->setWeight(weight);
+    t->setHasTermVar(containsTermVar);
     if (env.colorUsed) {
       Color fcolor = env.signature->getFunction(t->functor())->color();
       color = static_cast<Color>(color | fcolor);
@@ -222,7 +233,7 @@ AtomicSort* TermSharing::insert(AtomicSort* sort)
   // cannot use TC_TERM_SHARING
   // as inserting a term can result in the insertion of
   // a sort and TimeCounter design forbids starting a timer 
-  // when it is alreadt running 
+  // when it is already running 
   TimeCounter tc(TC_SORT_SHARING);
 
   _sortInsertions++;

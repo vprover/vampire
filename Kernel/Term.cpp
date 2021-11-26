@@ -332,17 +332,23 @@ bool Term::isApplication() const {
   return !isSort() && !isLiteral() && env.signature->isAppFun(_functor);    
 }
 
+unsigned Term::numTypeArguments() const {
+  CALL("Term::numTypeArguments");
+  ASS(!isSort());
+
+  return isSpecial()
+    ? 0
+    : isLiteral()
+      ? env.signature->getPredicate(_functor)->typeArgsArity()
+      : env.signature->getFunction(_functor)->typeArgsArity();
+}
+
 TermList* Term::termArgs()
 {
   CALL("Term::termArgs");
   ASS(!isSort());
 
-  unsigned typeArgsArity = isSpecial() ? 0 : 
-                          (isLiteral() ? 
-                    env.signature->getPredicate(_functor)->typeArgsArity() :
-                    env.signature->getFunction(_functor)->typeArgsArity());
-
-  return _args + (_arity - typeArgsArity);
+  return _args + (_arity - numTypeArguments());
 }
 
 bool Term::hasTermArgs() const
@@ -1882,6 +1888,7 @@ Term::Term() throw()
   _args[0]._info.shared = 0;
   _args[0]._info.literal = 0;
   _args[0]._info.sort = 0;
+  _args[0]._info.containsTermVar = 0;
   _args[0]._info.order = 0;
   _args[0]._info.tag = FUN;
   _args[0]._info.distinctVars = TERM_DIST_VAR_UNKNOWN;

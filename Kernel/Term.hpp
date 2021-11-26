@@ -33,7 +33,7 @@
 #include "Lib/Metaiterators.hpp"
 #include "Lib/VString.hpp"
 
-#define TERM_DIST_VAR_UNKNOWN 0x3FFFFF
+#define TERM_DIST_VAR_UNKNOWN 0x1FFFFF
 
 namespace Kernel {
 
@@ -189,6 +189,8 @@ private:
       unsigned literal : 1;
       /** true if atomic sort */
       unsigned sort : 1;
+      /** true if term contains at least one term var */
+      unsigned containsTermVar : 1;
       /** Ordering comparison result for commutative term arguments, one of
        * 0 (unknown) 1 (less), 2 (equal), 3 (greater), 4 (incomparable)
        * @see Term::ArgumentOrder */
@@ -196,7 +198,7 @@ private:
       /** Number of distincs variables in the term, equal
        * to TERM_DIST_VAR_UNKNOWN if the number has not been
        * computed yet. */
-      mutable unsigned distinctVars : 22;
+      mutable unsigned distinctVars : 21;      
       /** reserved for whatever */
 #if ARCH_X64
       unsigned reserved : 32;
@@ -386,6 +388,12 @@ public:
 
     return _args + (_arity - n);
   }
+
+  /**
+   * Return the number of type arguments for a polymorphic term (or 0 if monomorphic).
+   */
+  unsigned numTypeArguments() const;
+
   /** Return the 1st term argument for a polymorphic term.
     * Call hasTermArgs before calling this or test the result for
     * non-emptiness
@@ -431,6 +439,13 @@ public:
   {
     ASS(_args[0]._info.shared);
     return ! vars();
+  } // ground
+
+  /** True if the term is contains no term variables. Only applicable to shared terms */
+  bool termGround() const
+  {
+    ASS(_args[0]._info.shared);
+    return ! _args[0]._info.containsTermVar;
   } // ground
 
   /** True if the term is shared */
@@ -504,6 +519,13 @@ public:
     }
     _vars = v;
   } // setVars
+
+  void setHasTermVar(bool b)
+  {
+    CALL("setHasTermVar");
+    ASS(shared() && !isSort());
+    _args[0]._info.containsTermVar = b;
+  }
 
   /** Return the number of variables */
   unsigned vars() const

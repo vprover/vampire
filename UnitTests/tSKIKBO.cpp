@@ -168,3 +168,29 @@ TEST_FUN(skikbo_test05) {
 
   ASS_EQ(ord.compare(t1, t2), Ordering::Result::GREATER)
 }
+
+TEST_FUN(skikbo_test06) {
+  DECL_DEFAULT_VARS
+  DECL_DEFAULT_SORT_VARS  
+  DECL_SORT(srt1)
+  DECL_TYPE_CON(list, 1)
+  DECL_ARROW_SORT(fSrt, {srt1, srt1}) 
+  DECL_CONST(a, srt1)
+  DECL_POLY_CONST(f, 1, fSrt)
+
+  auto ord = skikbo(
+    weights(
+      make_pair(f, 10u),
+      make_pair(a, 2u)                         
+    )
+  );
+
+  // f<list(srt1)>(a)
+  auto t1 = ap(f(list(srt1)), a);
+  // f<srt1>(a)
+  auto t2 = ap(f(srt1), a);
+
+  env.options->useCombSup();
+
+  ASS_EQ(ord.compare(t1, t2), Ordering::Result::GREATER)
+}

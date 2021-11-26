@@ -116,7 +116,7 @@
 #define DECL_PRED(f, ...)   auto f = PredSugar(#f, __VA_ARGS__);
 #define DECL_POLY_PRED(f, i, ...)   auto f = PredSugar(#f, __VA_ARGS__, i);    
 #define DECL_TYPE_CON(f, arity) auto f = TypeConSugar(#f, arity);    
-#define DECL_SORT(s)        auto s = SortSugar(#s);
+#define DECL_SORT(s)        auto s = TypeConstSugar(#s);
 #define DECL_ARROW_SORT(s, ...)        auto s = SortSugar(#s, __VA_ARGS__);
 #define DECL_VAR(x, i) auto x = TermSugar(TermList::var(i));
 #define DECL_SORT_VAR(x, i) auto x = SortSugar(TermList::var(i));    
@@ -605,6 +605,17 @@ public:
         as.begin() ));
   }
   unsigned functor() const { return _functor; }
+};
+
+class TypeConstSugar : public SortSugar, public TypeConSugar
+{
+public:
+
+  TypeConstSugar(const char* name) 
+    : SortSugar(name) 
+    , TypeConSugar(name, 0)
+  { }
+  unsigned functor() const { return this->sugaredExpr().term()->functor(); }
 };
 
 class PredSugar {
