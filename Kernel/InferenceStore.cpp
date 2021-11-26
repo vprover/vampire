@@ -365,6 +365,8 @@ protected:
       case InferenceRule::INT_DB_DOWN_GEN_INDUCTION_AXIOM:
         env.statistics->intDBInductionInProof++;
         break;
+      case InferenceRule::INT_INDUCTION_CONCLUSION:
+        env.statistics->intInductionThreeInProof++;
       default:
         ;
     }

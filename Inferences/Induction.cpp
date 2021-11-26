@@ -746,6 +746,8 @@ void InductionClauseIterator::addIntegerInductionConclusion(Clause* base, Clause
   //cout << "Adding clause: " << c->toString() << endl;
   _clauses.push(c);
   // TODO(hzzv): add statistics
+  env.statistics->induction++;
+  env.statistics->intInductionThree++;
 }
 
 void InductionClauseIterator::performIntInductionThree(Clause* premise) {

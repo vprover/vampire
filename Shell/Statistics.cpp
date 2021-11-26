@@ -97,6 +97,8 @@ Statistics::Statistics()
     intFinDownInductionInProof(0),
     intDBDownInduction(0),
     intDBDownInductionInProof(0),
+    intInductionThree(0),
+    intInductionThreeInProof(0),
     argumentCongruence(0),
     narrow(0),
     forwardSubVarSup(0),
@@ -417,6 +419,8 @@ void Statistics::print(ostream& out)
   COND_OUT("IntegerFiniteIntervalDownInductionInProof",intFinDownInductionInProof);
   COND_OUT("IntegerDefaultBoundDownInduction",intDBDownInduction);
   COND_OUT("IntegerDefaultBoundDownInductionInProof",intDBDownInductionInProof);
+  COND_OUT("IntegerInductionThree",intInductionThree);
+  COND_OUT("IntegerInductionThreeInProof",intInductionThreeInProof);
   COND_OUT("Argument congruence", argumentCongruence);
   COND_OUT("Negative extensionality", negativeExtensionality);
   COND_OUT("Primitive substitutions", primitiveInstantiations);
