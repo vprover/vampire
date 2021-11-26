@@ -318,6 +318,7 @@ SKIKBO::SKIKBO(
   ) : PrecedenceOrdering(funcPrec, predPrec, predLevels, reverseLCM)
   , _weights(symbolWeights)
   , _state(new State(this))
+  , _basic_hol(0)
 { }
 
 SKIKBO::~SKIKBO()
@@ -354,7 +355,7 @@ bool SKIKBO::safe(Term* t1, Term* t2) const
       continue;
     }
 
-    if(term1.term()->ground() && term2.term()->ground()){
+    if(term1.term()->termGround() && term2.term()->termGround()){
       TermList head1 = AH::getHead(term1);
       TermList head2 = AH::getHead(term2);
       if(!AH::isComb(head1) && !AH::isComb(head2)){
