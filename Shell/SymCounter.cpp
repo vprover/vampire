@@ -277,8 +277,13 @@ void SymCounter::count(Term* term, int polarity, int add)
     }
   } else {
     int fun = term->functor();
-    ASS_REP(_noOfFuns > fun, term->toString());
-    _funs[fun].add(add);
+    if(!term->isSort()){      
+      ASS_REP(_noOfFuns > fun, term->toString());
+      _funs[fun].add(add);
+    } else {
+      ASS_REP(_noOfTypeCons > fun, term->toString());
+      _typeCons[fun].add(add);       
+    }
 
     NonVariableIterator nvi(term);
     while (nvi.hasNext()) {
