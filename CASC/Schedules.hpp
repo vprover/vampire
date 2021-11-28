@@ -32,6 +32,9 @@ public:
 
   static void getSmtcomp2018Schedule(const Shell::Property& property, Schedule& quick, Schedule& fallback);
 
+  static void getShHydraFolSchedule(const Shell::Property& property, Schedule& quick, Schedule& fallback);
+  static void getShHydraTf0Schedule(const Shell::Property& property, Schedule& quick, Schedule& fallback);
+
   static void getLtb2017Hh4Schedule(const Shell::Property& property, Schedule& sched);
   static void getLtb2017IsaSchedule(const Shell::Property& property, Schedule& sched);
   static void getLtb2017HllSchedule(const Shell::Property& property, Schedule& sched);

@@ -320,6 +320,14 @@ void PortfolioMode::getSchedules(Property& prop, Schedule& quick, Schedule& fall
     Schedules::getSmtcomp2018Schedule(prop,quick,fallback);
     break;
 
+  case Options::Schedule::SH_HYDRA_FOL:
+    Schedules::getShHydraFolSchedule(prop,quick,fallback);
+    break;
+
+  case Options::Schedule::SH_HYDRA_TF0:
+    Schedules::getShHydraTf0Schedule(prop,quick,fallback);
+    break;
+
   case Options::Schedule::LTB_HH4_2017:
     Schedules::getLtb2017Hh4Schedule(prop,quick);
     break;

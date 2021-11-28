@@ -146,6 +146,8 @@ void Options::init()
          "ltb_hll_2017",
          "ltb_isa_2017",
          "ltb_mzr_2017",
+         "sh_hydra_fol",
+         "sh_hydra_tf0",
          "smtcomp",
          "smtcomp_2018",
          "struct_induction"});
