@@ -1109,7 +1109,6 @@ z3::func_decl Z3Interfacing::z3Function(FuncOrPredId functor)
       domain_sorts.push_back(self.getz3sort(arg));
     }
 
-    // Z3 seems OK with having overloaded functions
     z3::symbol name = self._context.str_symbol(namebuf.c_str());
     auto range_sort = functor.isPredicate
       ? self._context.bool_sort()
