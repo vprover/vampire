@@ -1094,9 +1094,14 @@ z3::func_decl Z3Interfacing::z3Function(FuncOrPredId functor)
     auto type = functor.isPredicate ? symb->predType() : symb->fnType();
 
     // polymorphic symbol application: treat f(<sorts>, ...) as f<sorts>(...) for Z3
+    vstring namebuf = symb->name();
     Substitution typeSubst;
-    if(functor.forSorts)
+    if(functor.forSorts) {
       SortHelper::getTypeSub(functor.forSorts, typeSubst);
+      namebuf += '$';
+      for(unsigned i = 0; i < functor.forSorts->numTypeArguments(); i++)
+        namebuf += functor.forSorts->nthArgument(i)->toString();
+    }
 
     z3::sort_vector domain_sorts = z3::sort_vector(self._context);
     for (unsigned i=type->typeArgsArity(); i<type->arity(); i++) {
@@ -1105,7 +1110,7 @@ z3::func_decl Z3Interfacing::z3Function(FuncOrPredId functor)
     }
 
     // Z3 seems OK with having overloaded functions
-    z3::symbol name = self._context.str_symbol(symb->name().c_str());
+    z3::symbol name = self._context.str_symbol(namebuf.c_str());
     auto range_sort = functor.isPredicate
       ? self._context.bool_sort()
       : self.getz3sort(SubstHelper::apply(type->result(), typeSubst));
