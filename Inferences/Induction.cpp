@@ -767,7 +767,7 @@ void InductionClauseIterator::performIntInductionThree(Clause* premise) {
         continue;
       }
       TermList var = vit.next();
-      while (vit.hasNext()) ASS(var == vit.next()); // TODO(hzzv): this should never fail, right?
+      //while (vit.hasNext()) ASS(var == vit.next()); // TODO(hzzv): this should never fail, right?
       ASS(slqr.substitution->isIdentityOnQueryWhenResultBound());
       TermList tl = slqr.substitution->applyToBoundResult(var);
       if (!tl.isTerm() || (bases.count(tl.term()) < 1)) continue;
@@ -817,11 +817,12 @@ void InductionClauseIterator::performIntInductionThree(Clause* premise) {
     bool upwardBound;
     if (boundLitFromPremise != nullptr) {
       boundTerm = _helper.getBoundTermAndDirection(boundLitFromPremise, var, upwardBound);
+      if (!_helper.isIntBaseCaseTerm(boundTerm)) return;
       Substitution subst;
       subst.bind(var.var(), boundTerm);
       queryLit = queryLit->apply(subst);
     }
-    //cout << "querying: " << queryLit->toString() << " from " << premise->toString() << endl;
+//    cout << "querying: " << queryLit->toString() << " from " << premise->toString() << endl;
     SLQueryResultIterator rit = _helper.getBaseClauses(queryLit);
     while (rit.hasNext()) {
       SLQueryResult slqr = rit.next();
@@ -832,12 +833,15 @@ void InductionClauseIterator::performIntInductionThree(Clause* premise) {
       if (boundLitFromPremise != nullptr) {
         ASS((queryLit == slqr.literal) || (queryLit == Literal::complementaryLiteral(slqr.literal)));
         if (upwardBound != upwardStep) continue;
+        TermList tl(boundTerm);
+        if (!_helper.isIntInductionTermListInLiteral(tl, slqr.literal)) continue;
         boundLit = boundLitFromPremise;
       } else {
         ASS(slqr.substitution->isIdentityOnResultWhenQueryBound());
         TermList tl = slqr.substitution->applyToBoundQuery(var);
         ASS(tl.isTerm());
         boundTerm = tl.term();
+        if (!_helper.isIntBaseCaseTerm(boundTerm) || !_helper.isIntInductionTermListInLiteral(tl, slqr.literal)) continue;
         boundLit = createNegatedBoundLiteral(var, tl, upwardStep);
       }
       ASS(boundTerm->ground());

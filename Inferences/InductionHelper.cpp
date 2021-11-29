@@ -67,6 +67,7 @@ bool isGroundIntegerComparisonLiteral(Literal* lit) {
   CALL("isGroundIntegerComparisonLiteral");
 
   if (!lit->ground() || !isIntegerComparisonLiteral(lit)) return false;
+  return true;
 }
 
 };  // namespace
@@ -217,22 +218,52 @@ bool InductionHelper::isInductionTermFunctor(unsigned f) {
          );
 }
 
+bool termAndLiteralSatisfyStrictness(const TermList& tl, Literal* l, unsigned strictness) {
+  if (((strictness == 1) &&
+       (((tl == *l->nthArgument(0)) && !l->nthArgument(1)->containsSubterm(tl)) ||
+        ((tl == *l->nthArgument(1)) && !l->nthArgument(0)->containsSubterm(tl)))) ||
+      ((strictness == 2) && (l->countSubtermOccurrences(tl) < 2)) || 
+      ((strictness == 3) &&
+       (!l->nthArgument(0)->containsSubterm(tl) || !l->nthArgument(1)->containsSubterm(tl))) || 
+      (strictness == 4)) {
+    return false;
+  }
+  return true;
+}
+
 bool InductionHelper::isIntInductionTermListInLiteral(TermList& tl, Literal* l) {
   CALL("InductionHelper::isIntInductionTermInLiteral");
 
-  ASS(tl.isTerm());
+  static const unsigned strictness = 220; //env.options->intInductionStrictness();
+  static const unsigned termst = strictness % 10;
+  static const unsigned compst = (strictness / 10) % 10;
+  static const unsigned eqst = (strictness / 100) % 10;
+  ASS(termst < 3);
+  ASS(compst < 5);
+  ASS(eqst < 5);
+
   // Term tl has to be an integer term, and not an interpreted constant.
+  // Further, integer term tl from literal l cannot be used for induction if any
+  // of the following conditions is not satisfied.
+  // Term strictness (applies on any tl):
+  //   1: tl is an interpreted constant
+  //   2: tl does not contain a skolem function
+  // Comparison or equality strictness (applies when l is a comparison or an equality):
+  //   1: tl is a top-level argument of l, but it does not occur in the other argument of l
+  //   2: t has only one occurrence in l
+  //   3: t does not occur in both arguments of l
+  //   4: comparisons or equalities are not allowed
+  ASS(tl.isTerm());
   unsigned f = tl.term()->functor();
-  // TODO: move this check to later (when we know the bounds)
-  if ((env.signature->getFunction(f)->fnType()->result() != AtomicSort::intSort()) ||
-      theory->isInterpretedConstant(f))
+  if (env.signature->getFunction(f)->fnType()->result() != AtomicSort::intSort() ||
+      ((termst >= 1) && theory->isInterpretedConstant(f))) // ||
+//      ((termst == 2) && !containsSkolem(tl.term())))
   {
     return false;
   }
-  // Integer term tl from literal l cannot be used for induction if l is an integer
-  // comparison and tl is one of the comparison's arguments.
-  if (isIntegerComparisonLiteral(l) &&
-      ((tl == *l->nthArgument(0)) || (tl == *l->nthArgument(1)))) {
+  const bool isEquality = (theory->isInterpretedPredicate(l) && l->isEquality());
+  if ((isEquality && !termAndLiteralSatisfyStrictness(tl, l, eqst)) ||
+      (!isEquality && isIntegerComparisonLiteral(l) && !termAndLiteralSatisfyStrictness(tl, l, compst))) {
     return false;
   }
   return true;
@@ -284,8 +315,9 @@ bool InductionHelper::getIntInductionBaseTerms(Clause* c, vset<Term*>& bases) {
   if ((c->length() == 1) && (!groundOnly || (*c)[0]->ground())) {
     NonVariableIterator nvit((*c)[0]);
     while (nvit.hasNext()) {
-      Term* t = nvit.next().term();
-      if (isIntBaseCaseTerm(t)) bases.insert(t);
+      TermList tl = nvit.next();
+      Term* t = tl.term();
+      if (isIntBaseCaseTerm(t) && isIntInductionTermListInLiteral(tl, (*c)[0])) bases.insert(t);
     }
   }
   return !bases.empty();
@@ -348,23 +380,24 @@ bool InductionHelper::getIntInductionStepParams(Clause* c, TermList& var, bool& 
   VariableIterator vit((*c)[0]);
   if (!vit.hasNext()) return false;
   var = vit.next();
-  while (vit.hasNext()) ASS(var == vit.next()); // TODO(hzzv): remove this after verifying it always holds
+//  while (vit.hasNext()) ASS(var == vit.next()); // TODO(hzzv): remove this after verifying it always holds
   int stepLits[2] = {0, 1};
   bound = nullptr;
-  //cout << "considering " << c->toString() << " with var " << var << endl;
   if (clen == 3) {
     bool foundComparison = false;
     for (int i = 0; i < 3; ++i) {
-      bool isComparison = isIntegerComparisonLiteral((*c)[i]);
-      if (isComparison) {
-        if (foundComparison) return false;
-        foundComparison = true;
+//      bool isComparison = isIntegerComparisonLiteral((*c)[i]);
+//      if (isComparison) {
+//        if (foundComparison) return false;
+//        foundComparison = true;
         if (isBoundLiteralWithVar((*c)[i], var)) {
+          if (foundComparison) return false;
+          foundComparison = true;
           stepLits[0] = (i+1)%3;
           stepLits[1] = (i+2)%3;
           bound = (*c)[i];
-        } else return false;
-      }
+        } //else return false;
+//      }
     }
     if (bound == nullptr) return false;
   }
