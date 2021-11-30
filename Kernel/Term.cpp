@@ -332,28 +332,34 @@ bool Term::isApplication() const {
   return !isSort() && !isLiteral() && env.signature->isAppFun(_functor);    
 }
 
+unsigned Term::numTypeArguments() const {
+  CALL("Term::numTypeArguments");
+  ASS(!isSort());
+
+  return isSpecial()
+    ? 0
+    : isLiteral()
+      ? env.signature->getPredicate(_functor)->typeArgsArity()
+      : env.signature->getFunction(_functor)->typeArgsArity();
+}
+
 TermList* Term::termArgs()
 {
   CALL("Term::termArgs");
   ASS(!isSort());
 
-  unsigned typeArgsArity = isSpecial() ? 0 : 
-                          (isLiteral() ? 
-                    env.signature->getPredicate(_functor)->typeArgsArity() :
-                    env.signature->getFunction(_functor)->typeArgsArity());
-
-  return _args + (_arity - typeArgsArity);
+  return _args + (_arity - numTypeArguments());
 }
 
-bool Term::hasTermArgs() const
+unsigned Term::numTermArguments() const
 { 
-  CALL("Term::hasTermArgs");
+  CALL("Term::numTermArguments");
 
-  unsigned typeArgsArity = isLiteral() ? 
-                    env.signature->getPredicate(_functor)->typeArgsArity() :
-                    env.signature->getFunction(_functor)->typeArgsArity();
-                    
-  return !isSort() && _arity > typeArgsArity; 
+  if(isSuper() || isSort())
+    return 0;
+  
+  ASS(_arity >= numTypeArguments())                  
+  return _arity - numTypeArguments(); 
 }
 
 bool TermList::containsSubterm(TermList trm)

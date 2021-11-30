@@ -386,6 +386,16 @@ public:
 
     return _args + (_arity - n);
   }
+
+  /**
+   * Return the number of type arguments for a polymorphic term (or 0 if monomorphic).
+   */
+  unsigned numTypeArguments() const;
+  /**
+   * Return the number of term arguments for a term (equal to _arity if monomorphic).
+   */  
+  unsigned numTermArguments() const;
+
   /** Return the 1st term argument for a polymorphic term.
     * Call hasTermArgs before calling this or test the result for
     * non-emptiness
@@ -436,9 +446,6 @@ public:
   /** True if the term is shared */
   bool shared() const
   { return _args[0]._info.shared; } // shared
-
-  /** True if the term has one or more term arguments */
-  bool hasTermArgs() const;
 
   /**
    * True if the term's function/predicate symbol is commutative/symmetric.
