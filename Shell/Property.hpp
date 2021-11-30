@@ -188,7 +188,7 @@ public:
   /** Maximal arity of a function in the problem */
   int maxFunArity() const { return _maxFunArity; }
   /** Maximal arity of a type con in the problem */
-  int maxTypeConArity() const { return _maxTypeConArity; }
+  unsigned maxTypeConArity() const { return _maxTypeConArity; }
   /** Total number of variables in problem */
   int totalNumberOfVariables() const { return _totalNumberOfVariables;}
 
@@ -305,7 +305,7 @@ public:
   int _groundGoals;
   int _maxFunArity;
   int _maxPredArity;
-  int _maxTypeConArity;
+  unsigned _maxTypeConArity;
 
   /** Number of variables in this clause, used during counting */
   int _variablesInThisClause;
