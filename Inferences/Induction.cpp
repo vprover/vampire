@@ -396,6 +396,7 @@ void countInductionPremises(LiteralIndex* index, Clause* premise) {
       TermList t = nvit.next();
       if (!isBaseCaseTerm(t.term())) continue;
       sort = env.signature->getFunction(t.term()->functor())->fnType()->result();
+      if ((sort == AtomicSort::intSort()) && !InductionHelper::isIntInductionTermListInLiteral(t, l)) continue;
       TermList x(0, false);
       TermReplacement tr(t.term(), x);
       Literal* transformed = tr.transform(l);
@@ -424,6 +425,7 @@ void countInductionPremises(LiteralIndex* index, Clause* premise) {
       if (slqr.clause->length() != 1) continue;
       TermList tl = slqr.substitution->applyToQuery(var);
       if (tl.isVar() || !isBaseCaseTerm(tl.term())) continue;
+      if ((sort == AtomicSort::intSort()) && !InductionHelper::isIntInductionTermListInLiteral(tl, slqr.literal)) continue;
       Substitution subst;
       subst.bind(var.var(), tl);
       Literal* subLit = (*premise)[i]->apply(subst);
