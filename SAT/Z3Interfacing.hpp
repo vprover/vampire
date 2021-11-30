@@ -169,7 +169,7 @@ public:
         return true;
 
       // compare sort arguments
-      for(int i = 0; i < l.forSorts->numTypeArguments(); i++)
+      for(unsigned i = 0; i < l.forSorts->numTypeArguments(); i++)
         // sorts are perfectly shared
         if(!l.forSorts->nthArgument(i)->sameContent(r.forSorts->nthArgument(i)))
           return false;
@@ -185,7 +185,7 @@ public:
           : env.signature->getFunction(self.id)->name()
       );
       if(self.forSorts)
-        for(int i = 0; i < self.forSorts->numTypeArguments(); i++)
+        for(unsigned i = 0; i < self.forSorts->numTypeArguments(); i++)
           out << " " << self.forSorts->nthArgument(i)->toString();
       return out;
     }
@@ -281,7 +281,7 @@ namespace std {
       size_t operator()(SAT::Z3Interfacing::FuncOrPredId const& self) {
         unsigned hash = Lib::HashUtils::combine(self.id, self.isPredicate);
         if(self.forSorts)
-          for(int i = 0; i < self.forSorts->numTypeArguments(); i++)
+          for(unsigned i = 0; i < self.forSorts->numTypeArguments(); i++)
             hash = Lib::HashUtils::combine(hash, self.forSorts->nthArgument(i)->content());
         return hash;
       }
