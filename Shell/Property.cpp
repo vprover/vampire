@@ -723,10 +723,7 @@ void Property::scan(TermList ts,bool unit,bool goal)
       _hasLogicalProxy = true;
     }
 
-    // TODO change this to use Term::numOfTypeArgs() once
-    // Micahel's PR is merged
-    OperatorType* type = func->fnType();
-    if(!t->isApplication() && type->typeArgsArity()){
+    if(!t->isApplication() && t->numTypeArguments() > 0){
       _hasPolymorphicSym = true;
     }
 
