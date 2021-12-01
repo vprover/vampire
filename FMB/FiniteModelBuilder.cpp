@@ -582,6 +582,9 @@ void FiniteModelBuilder::init()
 
   // TODO: consider updating usage count by rescanning property
   // in particular, terms replaced by definitions have disappeared!
+  
+  // TODO: consider updating usage count by rescanning property as we have had to 
+  //       OR ensure that usage count is updated for any introduced symbols e.g. in Monotonicity
 
   // record the deleted functions and predicates
   // we do this here so that there are slots for symbols introduce in previous
@@ -830,8 +833,9 @@ void FiniteModelBuilder::init()
     ClauseList::Iterator cit(_clauses);
     while(cit.hasNext()){
       Clause* c = cit.next();
-      //cout << "CLAUSE " << c->toString() << endl;  
-
+#if VTRACE_FMB
+      cout << "CLAUSE " << c->toString() << endl;  
+#endif
       // will record the sorts for each variable in the clause 
       // note that clauses have been normalized so variables go from 0 to varCnt
       DArray<unsigned>* csig = new DArray<unsigned>(c->varCnt()); 
@@ -849,7 +853,9 @@ void FiniteModelBuilder::init()
           ASS(lit->nthArgument(0)->isTerm());
           ASS(lit->nthArgument(1)->isVar());
           Term* t = lit->nthArgument(0)->term();
+          ASS(!del_f[t->functor()]);
           const DArray<unsigned>& fsg = _sortedSignature->functionSignatures[t->functor()];
+          ASS_REP(fsg.size() == env.signature->functionArity(t->functor())+1,  fsg.size());
           unsigned var = lit->nthArgument(1)->var();
           unsigned ret = fsg[env.signature->functionArity(t->functor())];
           if(csig_set[var]){ ASS_EQ((*csig)[var],ret); }
@@ -861,6 +867,7 @@ void FiniteModelBuilder::init()
             ASS(t->nthArgument(j)->isVar());
             unsigned asrt = fsg[j]; 
             unsigned avar = (t->nthArgument(j))->var();
+            ASS(avar < csig->size());
             if(!csig_set[var]){ ASS((*csig)[avar]==asrt); }
             else{ 
               (*csig)[avar]=asrt;
