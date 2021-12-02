@@ -607,15 +607,15 @@ class Signature
   bool isArrayCon(unsigned con) const{
     //second part of conditions ensures that _arrayCon
     //has been initialised.
-    return (con == _arrayCon && _arrayCon != 0);    
+    return (con == _arrayCon && _arrayConSet);    
   }
 
   bool isArrowCon(unsigned con) const{
-    return (con == _arrowCon && _arrowCon != 0);    
+    return (con == _arrowCon && _arrowConSet);    
   }
   
   bool isAppFun(unsigned fun) const{
-    return (fun == _appFun && _appFun != 0);
+    return (fun == _appFun && _appFunSet);
   }
 
   bool tryGetFunctionNumber(const vstring& name, unsigned arity, unsigned& out) const;
@@ -716,6 +716,7 @@ class Signature
     unsigned arrow = addTypeCon(">",2, added);
     if(added){
       _arrowCon = arrow;
+      _arrayConSet = true;
       TermList ss = AtomicSort::superSort();
       Symbol* arr = getTypeCon(arrow);
       arr->setType(OperatorType::getFunctionType({ss, ss}, ss));
@@ -728,6 +729,7 @@ class Signature
     unsigned array = addTypeCon("Array",2, added);
     if(added){
       _arrayCon = array;
+      _arrayConSet = true;
       TermList ss = AtomicSort::superSort();
       Symbol* arr = getTypeCon(array);
       arr->setType(OperatorType::getFunctionType({ss, ss}, ss));
@@ -960,6 +962,10 @@ private:
   unsigned _arrayCon;
   unsigned _arrowCon;
   unsigned _appFun;
+
+  bool _arrayConSet;
+  bool _arrowConSet;
+  bool _appFunSet;
 
   /**
    * Map from sorts to the associated term algebra, if applicable for the sort
