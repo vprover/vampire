@@ -898,7 +898,17 @@ void FiniteModelBuilder::init()
         //cout << var1 << " and " << var2 << endl;
         if(csig_set[var1]){
           if(csig_set[var2]){
-            ASS_EQ((*csig)[var1],(*csig)[var2]);
+            // This is a special edge case where we process a two-var equality before having
+            // enough information, see below
+            if((*csig)[var1] != (*csig)[var2]){
+              TermList litSort = lit->twoVarEqSort();
+              unsigned litSortU = litSort.term()->functor();
+              unsigned dsort = _sortedSignature->vampireToDistinctParent.get(litSortU);
+              unsigned sort = _sortedSignature->varEqSorts[dsort];
+              ASS((*csig)[var1] == sort || (*csig)[var2] == sort);
+              if((*csig)[var1] == sort){ (*csig)[var1] = (*csig)[var2]; }
+              else{ (*csig)[var2] = (*csig)[var1]; } 
+            }
           }
           else{ 
             (*csig)[var2] = (*csig)[var1]; 
@@ -921,6 +931,9 @@ void FiniteModelBuilder::init()
           (*csig)[var2] = sort;
           csig_set[var1]=true;
           csig_set[var2]=true;
+          // NOTE - we might later  find out that the special sort wasn't necessary  e.g.
+          // if we have X0 = X1 | X1 = X2 | p(X2) we may first give special sort to X0 and X1
+          // but then replace this by the sort of X2 when we  process  X1 = X2
         }
       }
 
