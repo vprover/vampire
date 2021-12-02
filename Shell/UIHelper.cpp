@@ -197,6 +197,7 @@ UnitList* UIHelper::tryParseTPTP(istream* input)
       s_haveConjecture=parser.containsConjecture();
       return parser.units();
 }
+
 UnitList* UIHelper::tryParseSMTLIB2(const Options& opts,istream* input,SMTLIBLogic& smtLibLogic)
 {
           Parse::SMTLIB2 parser(opts);
@@ -288,7 +289,7 @@ Problem* UIHelper::getInputProblem(const Options& opts)
          try{
            units = tryParseTPTP(input); 
          }
-         catch (UserErrorException& exception) {
+         catch (Parse::TPTP::ParseErrorException& exception) {
            env.beginOutput();
            addCommentSignForSZS(env.out());
            env.out() << "Failed with\n";
