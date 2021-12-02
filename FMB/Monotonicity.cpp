@@ -373,7 +373,7 @@ void Monotonicity::addSortFunctions(bool withMon, ClauseList*& clauses)
        Literal* l = lit.next();
        SortFunctionTransformer transformer(l,isMonotonic,sortFunctions);
        Literal* lnew = l;
-       if(l->arity()){ transformer.transform(l); }
+       if(l->arity()){ lnew = transformer.transform(l); }
        if(l!=lnew) {
          changed=true;
          // cout << "before " << l->toString() << endl;

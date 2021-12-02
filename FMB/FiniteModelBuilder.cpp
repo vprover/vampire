@@ -453,7 +453,7 @@ void FiniteModelBuilder::init()
   if(env.options->fmbAdjustSorts() == Options::FMBAdjustSorts::PREDICATE){
     DArray<unsigned> deleted_functions(env.signature->functions());
     for(unsigned f=0;f<env.signature->functions();f++){
-      deleted_functions[f] = _deletedFunctions.find(f);
+      deleted_functions[f] = _deletedFunctions.find(f) || env.signature->getFunction(f)->usageCnt()==0;
      }
     ClauseList::pushFromIterator(_prb.clauseIterator(),clist);
     Monotonicity::addSortPredicates(true, clist,deleted_functions);
@@ -594,6 +594,9 @@ void FiniteModelBuilder::init()
 
   for(unsigned f=0;f<env.signature->functions();f++){
     del_f[f] = _deletedFunctions.find(f) || env.signature->getFunction(f)->usageCnt()==0;
+#if VTRACE_FMB
+    if(del_f[f]) cout << "Mark " << env.signature->functionName(f)  << " as deleted" << endl;
+#endif
   }
   for(unsigned p=0;p<env.signature->predicates();p++){
     del_p[p] = (_deletedPredicates.find(p) || _trivialPredicates.find(p));
