@@ -220,14 +220,14 @@ UnitList* UIHelper::tryParseSMTLIB2(const Options& opts,istream* input,SMTLIBLog
 
 // Call this function to report a parsing attempt has failed and to reset the input
 template<typename T>
-void resetParsing(T exception, vstring inputFile, istream*& input){
+void resetParsing(T exception, vstring inputFile, istream*& input,vstring nowtry){
            env.beginOutput();
            addCommentSignForSZS(env.out());
            env.out() << "Failed with\n";
            addCommentSignForSZS(env.out());
            exception.cry(env.out());
            addCommentSignForSZS(env.out());
-           env.out() << "Trying TPTP\n";
+           env.out() << "Trying " << nowtry  << endl;
            env.endOutput();
            {
              BYPASSING_ALLOCATOR;
@@ -282,15 +282,15 @@ Problem* UIHelper::getInputProblem(const Options& opts)
            units = tryParseSMTLIB2(opts,input,smtLibLogic);
          }
          catch (UserErrorException& exception) {
-           resetParsing(exception,inputFile,input);
+           resetParsing(exception,inputFile,input,"TPTP");
            units = tryParseTPTP(input);
          }
          catch (LexerException& exception) {
-           resetParsing(exception,inputFile,input);
+           resetParsing(exception,inputFile,input,"TPTP");
            units = tryParseTPTP(input);
          }
          catch (LispParser::Exception& exception) {
-           resetParsing(exception,inputFile,input);
+           resetParsing(exception,inputFile,input,"TPTP");
            units = tryParseTPTP(input);
          }
 
@@ -304,7 +304,7 @@ Problem* UIHelper::getInputProblem(const Options& opts)
            units = tryParseTPTP(input); 
          }
          catch (Parse::TPTP::ParseErrorException& exception) {
-           resetParsing(exception,inputFile,input); 
+           resetParsing(exception,inputFile,input,"SMTLIB2"); 
            units = tryParseSMTLIB2(opts,input,smtLibLogic); 
          }
        }
