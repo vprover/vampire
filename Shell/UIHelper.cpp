@@ -218,6 +218,24 @@ UnitList* UIHelper::tryParseSMTLIB2(const Options& opts,istream* input,SMTLIBLog
           return parser.getFormulas();
 }
 
+// Call this function to report a parsing attempt has failed and to reset the input
+template<typename T>
+void resetParsing(T exception, vstring inputFile, istream*& input){
+           env.beginOutput();
+           addCommentSignForSZS(env.out());
+           env.out() << "Failed with\n";
+           addCommentSignForSZS(env.out());
+           exception.cry(env.out());
+           addCommentSignForSZS(env.out());
+           env.out() << "Trying TPTP\n";
+           env.endOutput();
+           {
+             BYPASSING_ALLOCATOR;
+             delete static_cast<ifstream*>(input);
+             input=new ifstream(inputFile.c_str());
+           }
+}
+
 /**
  * Return problem object with units obtained according to the content of
  * @b env.options
@@ -264,19 +282,15 @@ Problem* UIHelper::getInputProblem(const Options& opts)
            units = tryParseSMTLIB2(opts,input,smtLibLogic);
          }
          catch (UserErrorException& exception) {
-           env.beginOutput();
-           addCommentSignForSZS(env.out());
-           env.out() << "Failed with\n";
-           addCommentSignForSZS(env.out());
-           exception.cry(env.out());
-           addCommentSignForSZS(env.out());
-           env.out() << "Trying TPTP\n";
-           env.endOutput();
-           {
-             BYPASSING_ALLOCATOR;
-             delete static_cast<ifstream*>(input);
-             input=new ifstream(inputFile.c_str());
-           }
+           resetParsing(exception,inputFile,input);
+           units = tryParseTPTP(input);
+         }
+         catch (LexerException& exception) {
+           resetParsing(exception,inputFile,input);
+           units = tryParseTPTP(input);
+         }
+         catch (LispParser::Exception& exception) {
+           resetParsing(exception,inputFile,input);
            units = tryParseTPTP(input);
          }
 
@@ -290,19 +304,7 @@ Problem* UIHelper::getInputProblem(const Options& opts)
            units = tryParseTPTP(input); 
          }
          catch (Parse::TPTP::ParseErrorException& exception) {
-           env.beginOutput();
-           addCommentSignForSZS(env.out());
-           env.out() << "Failed with\n";
-           addCommentSignForSZS(env.out());
-           exception.cry(env.out());
-           addCommentSignForSZS(env.out());
-           env.out() << "Trying SMTLIB2\n";
-           env.endOutput();
-           {
-             BYPASSING_ALLOCATOR;
-             delete static_cast<ifstream*>(input);
-             input=new ifstream(inputFile.c_str());
-           }
+           resetParsing(exception,inputFile,input); 
            units = tryParseSMTLIB2(opts,input,smtLibLogic); 
          }
        }
