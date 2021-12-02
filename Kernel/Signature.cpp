@@ -249,6 +249,9 @@ Signature::Signature ():
     _arrayCon(0),
     _arrowCon(0),
     _appFun(0),
+    _arrayConSet(false),
+    _arrowConSet(false),
+    _appFunSet(false),
     _termAlgebras()
 {
   CALL("Signature::Signature");
@@ -733,6 +736,7 @@ unsigned Signature::getApp()
   unsigned app = addFunction("vAPP", 4, added);
   if(added){
     _appFun = app;
+    _appFunSet = true;
     TermList tv1 = TermList(0, false);
     TermList tv2 = TermList(1, false);
     TermList arrowType = AtomicSort::arrowSort(tv1, tv2);

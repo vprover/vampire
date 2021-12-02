@@ -716,7 +716,7 @@ class Signature
     unsigned arrow = addTypeCon(">",2, added);
     if(added){
       _arrowCon = arrow;
-      _arrayConSet = true;
+      _arrowConSet = true;
       TermList ss = AtomicSort::superSort();
       Symbol* arr = getTypeCon(arrow);
       arr->setType(OperatorType::getFunctionType({ss, ss}, ss));
