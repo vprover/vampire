@@ -799,7 +799,7 @@ void InductionClauseIterator::performIntInductionThree(Clause* premise) {
       bool isMatchedLitComplementary = (matchedLit->polarity() != baseLit->polarity());
       bool upwardStep = (isMatchedLitComplementary == plusOne);
       Literal* boundLit;
-      if (boundLitIdx == -1) boundLit = createNegatedBoundLiteral(var, tl, upwardBound);
+      if (boundLitIdx == -1) boundLit = createNegatedBoundLiteral(var, tl, upwardStep);
       else if (upwardBound == upwardStep) boundLit = (*step)[boundLitIdx];
       else continue;
       Literal* conclusion = isMatchedLitComplementary ? Literal::complementaryLiteral(matchedLit) : matchedLit;

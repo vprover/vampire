@@ -234,7 +234,7 @@ bool termAndLiteralSatisfyStrictness(const TermList& tl, Literal* l, unsigned st
 bool InductionHelper::isIntInductionTermListInLiteral(TermList& tl, Literal* l) {
   CALL("InductionHelper::isIntInductionTermInLiteral");
 
-  static const unsigned strictness = 220; //env.options->intInductionStrictness();
+  static const unsigned strictness = 110; //env.options->intInductionStrictness();
   static const unsigned termst = strictness % 10;
   static const unsigned compst = (strictness / 10) % 10;
   static const unsigned eqst = (strictness / 100) % 10;
