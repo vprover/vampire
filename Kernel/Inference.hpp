@@ -42,6 +42,13 @@ enum class UnitInputType : unsigned char {
   /** negated conjecture */
   NEGATED_CONJECTURE = 3,
   /** Vampire-only, for the consequence-finding mode */
+  /** In fact, CLAIMs can be also used as cuts in the following sense:
+   *  A cut C is a formula suspected of being able to shorten a proof of the conjecture if used as a lemma.
+   *  After parsing C is turned into a tautology (p_c <=> C) for a fresh propositional symbol p_c,
+   *  (p_c is protected from being eliminated during preprocessing)
+   *  and when AVATAR (which needs to be enabled) later splits on p_c, proving the conjecture using C as an additional assumption becomes an available option
+   *  which may be followed by proving axioms together with ~C contradictory thus closing the proof the middle of which C plays the part of a lemma.
+   */
   CLAIM = 4,
   /** Used in parsing and preprocessing for extensionality clause tagging, should not appear in proof search */
   EXTENSIONALITY_AXIOM = 5,
