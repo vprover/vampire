@@ -274,7 +274,7 @@ public:
 protected:
   using TermTransformer::transform;
 
-  virtual TermList transformSubterm(TermList trm)
+  TermList transformSubterm(TermList trm) override
   {
     CALL("InterpretedNormalizer::NLiteralTransformer::transformSubterm");
 
