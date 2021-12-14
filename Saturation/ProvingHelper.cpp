@@ -142,12 +142,12 @@ void ProvingHelper::runVampire(Problem& prb, const Options& opt)
   //after options have been read. Equality Proxy can introduce poly in mono.
   env.sharing->setPoly();
 
+  Timer::setTimeLimitEnforcement(false);
   env.statistics->phase=Statistics::SATURATION;
   ScopedPtr<MainLoop> salg(MainLoop::createFromOptions(prb, opt));
 
   MainLoopResult sres(salg->run());
   env.statistics->phase=Statistics::FINALIZATION;
-  Timer::setTimeLimitEnforcement(false);
   sres.updateStatistics();
 }
 

@@ -487,8 +487,10 @@ void UIHelper::outputResult(ostream& out)
       return;
     }
     addCommentSignForSZS(out);
+    /*
     if(!env.options->symbolElimination())
       out << "Time limit reached!\n";
+    */
     break;
   case Statistics::MEMORY_LIMIT:
     if(env.options->outputMode() == Options::Output::SMTCOMP){

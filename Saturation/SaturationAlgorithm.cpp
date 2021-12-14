@@ -290,6 +290,8 @@ SaturationAlgorithm::~SaturationAlgorithm()
   CALL("SaturationAlgorithm::~SaturationAlgorithm");
   ASS_EQ(s_instance,this);
 
+  _active->rapidDump(_splitter);
+
   s_instance=0;
 
   if (_splitter) {
@@ -1737,7 +1739,7 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
     res->_consFinder=new ConsequenceFinder();
   }
   if (opt.symbolElimination()) {
-    res->_symEl=new SymElOutput();
+    //res->_symEl=new SymElOutput();
   }
   if (opt.questionAnswering()==Options::QuestionAnsweringMode::ANSWER_LITERAL) {
     res->_answerLiteralManager = AnswerLiteralManager::getInstance();

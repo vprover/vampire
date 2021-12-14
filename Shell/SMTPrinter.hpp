@@ -17,6 +17,7 @@
 #define __SMTPrinter__
 
 #include "Forwards.hpp"
+#include "Kernel/Signature.hpp"
 #include "Kernel/Renaming.hpp"
 
 namespace Shell {

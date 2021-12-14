@@ -22,6 +22,7 @@
 #include "Lib/VirtualIterator.hpp"
 #include "Lib/Deque.hpp"
 #include "Lib/Stack.hpp"
+#include "Lib/DHSet.hpp"
 
 #include "Lib/Allocator.hpp"
 
@@ -190,11 +191,13 @@ public:
   void remove(Clause* c) override;
 
   unsigned sizeEstimate() const override { return _size; }
+  void rapidDump(Saturation::Splitter *splitter = nullptr) const;
 
 protected:
   void onLimitsUpdated() override;
 private:
   unsigned _size;
+  DHSet<Clause *, PtrIdentityHash> _clauses;
   // const Shell::Options& _opt;
 };
 

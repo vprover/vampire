@@ -19,10 +19,12 @@
 #include "Lib/Stack.hpp"
 #include "Kernel/Clause.hpp"
 #include "Shell/Statistics.hpp"
+#include "Shell/SMTPrinter.hpp"
 
 #include "Indexing/LiteralIndexingStructure.hpp"
 
 #include "SaturationAlgorithm.hpp"
+#include "AWPassiveClauseContainer.hpp"
 
 #if VDEBUG
 #include <iostream>
@@ -164,6 +166,7 @@ void ActiveClauseContainer::add(Clause* c)
 {
   CALL("ActiveClauseContainer::add");
 
+  _clauses.insert(c);
   _size++;
 
   ASS(c->store()==Clause::ACTIVE);
@@ -181,6 +184,7 @@ void ActiveClauseContainer::remove(Clause* c)
   CALL("ActiveClauseContainer::remove");
   ASS(c->store()==Clause::ACTIVE);
 
+  _clauses.remove(c);
   _size--;
   removedEvent.fire(c);
 } // Active::ClauseContainer::remove
@@ -237,6 +241,34 @@ void ActiveClauseContainer::onLimitsUpdated()
     remove(removed);
     // ASS_NEQ(removed->store(), Clause::ACTIVE); -- the remove could have deleted the clause - do not touch!
   }
+}
+
+void ActiveClauseContainer::rapidDump(Saturation::Splitter *splitter) const {
+  CALL("ActiveClauseContainer::rapidDump");
+  env.beginOutput();
+
+  SMTPrinter printer;
+  for(unsigned i = 0; i < env.signature->functions(); i++)
+    printer.printTypeDecl(env.signature->getFunction(i), env.out());
+  for(unsigned i = 1; i < env.signature->predicates(); i++)
+    printer.printTypeDecl(env.signature->getPredicate(i), env.out());
+
+  WeightQueue queue(*env.options);
+  decltype(_clauses)::Iterator clauses(_clauses);
+  while(clauses.hasNext()) {
+    Clause *clause = clauses.next();
+    bool skip = clause->skip()
+      || clause->isFromPreprocessing()
+      || clause->isPureTheoryDescendant()
+      || clause->skip()
+      || clause->color() != COLOR_TRANSPARENT;
+    if(!skip)
+      queue.insert(clause);
+  }
+  while(!queue.isEmpty())
+    printer.printAsAssertion(queue.pop(), env.out(), splitter);
+
+  env.endOutput();
 }
 
 }

@@ -33,7 +33,7 @@ class AgeQueue
 : public ClauseQueue
 {
 public:
-  AgeQueue(const Options& opt) : _opt(opt) {}
+  AgeQueue(const Shell::Options& opt) : _opt(opt) {}
 protected:
 
   virtual bool lessThan(Clause*,Clause*);
@@ -48,7 +48,7 @@ class WeightQueue
   : public ClauseQueue
 {
 public:
-  WeightQueue(const Options& opt) : _opt(opt) {}
+  WeightQueue(const Shell::Options& opt) : _opt(opt) {}
 protected:
   virtual bool lessThan(Clause*,Clause*);
 
