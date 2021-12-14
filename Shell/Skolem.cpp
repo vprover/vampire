@@ -483,6 +483,7 @@ Formula* Skolem::skolemise (Formula* f)
           */
           env.endOutput();
         }
+        env.out() << "; " << skolemTerm->toString() << " represents " << f->toString() << std::endl;
       }
 
       {
