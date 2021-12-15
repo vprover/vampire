@@ -47,7 +47,7 @@ void FwdDemodulationModLA::attach(SaturationAlgorithm* salg)
 {  
   ASS(!_index);
 
-  this->GeneratingInferenceEngine::attach(salg);
+  this->ForwardSimplificationEngine::attach(salg);
   _index=static_cast<FwdDemodulationModLAIndex*> (
 	  _salg->getIndexManager()->request(IRC_FWD_DEMODULATION_SUBST_TREE) );
   _index->setShared(_shared);
@@ -61,7 +61,7 @@ void FwdDemodulationModLA::detach()
 
   _index=0;
   _salg->getIndexManager()->release(IRC_FWD_DEMODULATION_SUBST_TREE);
-  this->GeneratingInferenceEngine::detach();
+  this->ForwardSimplificationEngine::detach();
 }
 
 

@@ -58,7 +58,7 @@ void BwdDemodulationModLA::attach(SaturationAlgorithm* salg)
 {
   ASS(!_index);
 
-  this->GeneratingInferenceEngine::attach(salg);
+  this->BackwardSimplificationEngine::attach(salg);
   _index=static_cast<BwdDemodulationModLAIndex*> (
 	  _salg->getIndexManager()->request(IRC_BWD_DEMODULATION_SUBST_TREE) );
   _index->setShared(_shared);
@@ -72,7 +72,7 @@ void BwdDemodulationModLA::detach()
 
   _index=0;
   _salg->getIndexManager()->release(IRC_BWD_DEMODULATION_SUBST_TREE);
-  this->GeneratingInferenceEngine::detach();
+  this->BackwardSimplificationEngine::detach();
 }
 
 
