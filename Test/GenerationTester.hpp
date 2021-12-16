@@ -180,7 +180,7 @@ public:
       cout << "\tusing clause " << i << " as input... " << endl;
       Stack<Clause*> context;
       auto input = _inputs[i];
-      for (int j = 0; j < _inputs.size(); j++) 
+      for (unsigned j = 0; j < _inputs.size(); j++) 
         if (i != j) 
           context.push(_inputs[j]);
       run(simpl, input, context);

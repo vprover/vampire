@@ -276,5 +276,35 @@ TEST_GENERATION(uninterpreted_sort_2,
       .premiseRedundant(false)
     )
 
+// 0.0 = $sum(X2,$uminus($quotient($product(X1,X2),X1))) | 0.0 = X1 [theory normalization 6]
+// 0.0 = $sum($product(X0,X2),$sum($product(X0,X1),$uminus($product(X0,$sum(X1,X2))))) [theory normalization 3]
+
+
+
+
+TEST_GENERATION(bug01a,
+    Generation::SymmetricTest()
+      .indices(ircSuperpositionIndices())
+      .inputs  ({        clause({ selected( 0 == z + -g2(y * z, y) ), 0 == y  })
+                          // {y -> x, z -> y + z}
+                          // { 0 == (y + z) + -g2(x * (y + z), x) , 0 == x }
+                ,        clause({ selected( 0 == x * z + x * y + -(x * (y + z)) ) })
+                })
+      .expected(exactly( clause({           0 == x, 0 == y + z - g2(x * y + x * z, x)    }) ))
+      .premiseRedundant(false)
+    )
+
+TEST_GENERATION(bug01b,
+    Generation::SymmetricTest()
+      .indices(ircSuperpositionIndices())
+      .inputs  ({        clause({ selected( 0 == x * z + x * y + -(x * (y + z)) ) })
+                ,        clause({ selected( 0 == z + -g2(y * z, y) ), 0 == y  })
+                          // {y -> x, z -> y + z}
+                          // { 0 == (y + z) + -g2(x * (y + z), x) , 0 == x }
+                })
+      .expected(exactly( clause({           0 == x, 0 == y + z - g2(x * y + x * z, x)    }) ))
+      .premiseRedundant(false)
+    )
+
 
   // TODO test if forward and backward r symmetric

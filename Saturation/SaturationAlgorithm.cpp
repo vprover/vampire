@@ -1633,7 +1633,7 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
     try {
       auto& ord = dynamic_cast<Kernel::LaLpo&>(ordering);
       ord.setState(shared);
-    } catch (std::bad_cast) { /* do nothing */ }
+    } catch (std::bad_cast&) { /* do nothing */ }
     res->addForwardSimplifierToFront(new IRC::FwdDemodulationModLA(shared));
     res->addBackwardSimplifierToFront(new IRC::BwdDemodulationModLA(shared));
     sgi->push(new IRC::VariableElimination(shared, env.options->ircVariableEliminationSimplifying())); 

@@ -128,7 +128,7 @@ template<class... A> void Tracer::printDbg(const char* file, int line, const A&.
   for (unsigned i = 0; i< _depth; i++) {
     cout << "  ";
   }
-  cout <<_current->_fun << ": ";
+  // cout <<_current->_fun << ": ";
   // cout << std::setw(30) <<_current->_fun << std::setw(0) << ": ";
   // cout << _lastControlPoint << ": ";
 

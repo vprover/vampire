@@ -440,9 +440,9 @@ Ordering::Result LaLpo::compare(TermList s, TermList t) const
         case Comparison::GREATER: return Ordering::reverse(majoOrCase1(t, 0, s));
         case Comparison::EQUAL: /* partial precedence ordering; that's okay */ return case1BiDir(s, t, 0);
       }
+      ASSERTION_VIOLATION
     }
   }
-
 }
 
 std::tuple<IntegerConstantType, IntegerConstantType, TermList> toIntPair(IntegerConstantType i)

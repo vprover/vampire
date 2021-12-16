@@ -57,38 +57,6 @@ void Superposition::detach()
   _salg->getIndexManager()->release(IRC_SUPERPOSITION_RHS_SUBST_TREE);
   GeneratingInferenceEngine::detach();
 }
-
-// ClauseIterator Superposition::generateClauses(Clause* premise) 
-// {
-//   auto maxLits = make_shared(new Stack<Literal*>(_shared->strictlyMaxLiterals(premise)));
-//   return pvi(numTraitsIter([this, premise, maxLits](auto numTraits) {
-//      return iterTraits(ownedArrayishIterator(_shared->maxAtomicTermsNonVar<decltype(numTraits)>(premise)))
-//        .filter([maxLits](auto maxTerm) 
-//            { return iterTraits(maxLits->iterFifo())
-//                       .find([&](auto x) 
-//                           { return x == maxTerm.literal; })
-//                       .isSome(); })
-//        .filterMap([this, premise](auto maxTerm) { return this->genLhs(premise, maxTerm.literal, maxTerm.ircLit, maxTerm.self); })
-//        .flatten();
-//   }));
-// }
-
-
-// ClauseIterator Superposition::generateClauses(Clause* premise) 
-// {
-//   auto maxLits = make_shared(new Stack<Literal*>(_shared->strictlyMaxLiterals(premise)));
-//   return pvi(numTraitsIter([this, premise, maxLits](auto numTraits) {
-//      return iterTraits(ownedArrayishIterator(_shared->maxAtomicTermsNonVar<decltype(numTraits)>(premise)))
-//        .filter([maxLits](auto maxTerm) 
-//            { return iterTraits(maxLits->iterFifo())
-//                       .find([&](auto x) 
-//                           { return x == maxTerm.literal; })
-//                       .isSome(); })
-//        .filterMap([this, premise](auto maxTerm) { return this->generateClauses(premise, maxTerm.literal, maxTerm.ircLit, maxTerm.self); })
-//        .flatten();
-//   }));
-// }
-
   
 
 #if VDEBUG
@@ -113,18 +81,17 @@ void Superposition::setTestIndices(Stack<Indexing::Index*> const& indices)
 // • ( u[s2] + t2 ≈ 0)σ is strictly maximal in Hyp2σ
 // • Hyp2σ is strictly maximal in {Hyp1, Hyp2}σ.
 template<class NumTraits> Option<Clause*> Superposition::applyRule(
-    Clause* hyp1,            // <- `C1 \/ ±ks1+t1 ≈ 0` 
-    Literal* pivot1,         // <-       `±ks1+t1 ≈ 0` 
-    IrcLiteral<NumTraits> eq,// <-       `±ks1+t1 ≈ 0` 
-    Monom<NumTraits> k_s1,   // <-       `±ks1` 
-    Clause* hyp2,        // <- `C2 \/ u[s2]+t2 <> 0` 
-    Literal* pivot2,     // <-       `u[s2]+t2 <> 0` 
-    TermList s2,         // <-       `s2` 
+      Hyp1<NumTraits> hyp1,
+      Hyp2<NumTraits> hyp2,
     ResultSubstitutionSP& res_substitution,
     UnificationConstraintStackSP& res_constraints,
     int bank1
     ) const 
 {
+
+  ASS (hyp1.eq.symbol() == IrcPredicate::EQ) 
+  auto k_s1 = hyp1.k_s1;
+  auto s2 = hyp2.s2;
   using Numeral = typename NumTraits::ConstantType;
   Option<Clause*> nothing;
   ASS(s2.isTerm())
@@ -138,19 +105,19 @@ template<class NumTraits> Option<Clause*> Superposition::applyRule(
   // maximality checks
   {
     // • ±k. s1 + t1 ≈ 0 is strictly maximal in Hyp1
-    ORD_CHECK(_shared->strictlyMaximal(pivot1, hyp1->getLiteralIterator()))
+    ORD_CHECK(_shared->strictlyMaximal(hyp1.pivot, hyp1.cl->getLiteralIterator()))
     // • (±k. s1 + t1 ≈ 0)σ is strictly maximal in Hyp1σ
-    if(!_shared->strictlyMaximal(sigma(pivot1, 0), iterTraits(hyp1->getLiteralIterator()).map([&](auto lit) { return sigma(lit, 0); }))) return nothing;
+    if(!_shared->strictlyMaximal(sigma(hyp1.pivot, 0), iterTraits(hyp1.cl->getLiteralIterator()).map([&](auto lit) { return sigma(lit, 0); }))) return nothing;
 
     // • u[s2] + t2 ≈ 0 is strictly maximal in Hyp2
-    ASS(_shared->strictlyMaximal(pivot2, hyp2->getLiteralIterator()))
+    ASS(_shared->strictlyMaximal(hyp2.pivot, hyp2.cl->getLiteralIterator()))
     // • ( u[s2] + t2 ≈ 0)σ is strictly maximal in Hyp2σ
-    if(!_shared->strictlyMaximal(sigma(pivot2, 1), iterTraits(hyp2->getLiteralIterator()).map([&](auto lit) { return sigma(lit, 1); }))) return nothing;
+    if(!_shared->strictlyMaximal(sigma(hyp2.pivot, 1), iterTraits(hyp2.cl->getLiteralIterator()).map([&](auto lit) { return sigma(lit, 1); }))) return nothing;
 
     // •        s1   is strictly maximal in terms(s1 + t1)
-    ORD_CHECK(_shared->strictlyMaximal(s1->denormalize(), eq.term().iterSummands().map([&](auto monom) { return monom.factors->denormalize(); })))
+    ORD_CHECK(_shared->strictlyMaximal(s1->denormalize(), hyp1.eq.term().iterSummands().map([&](auto monom) { return monom.factors->denormalize(); })))
     // •        s1  σ is strictly maximal in terms(s1 + t1)σ
-    if(!_shared->strictlyMaximal(sigma(s1->denormalize(), 0), eq.term().iterSummands().map([&](auto monom) { return sigma(monom.factors->denormalize(), 0); }))) { return nothing; }
+    if(!_shared->strictlyMaximal(sigma(s1->denormalize(), 0), hyp1.eq.term().iterSummands().map([&](auto monom) { return sigma(monom.factors->denormalize(), 0); }))) { return nothing; }
 
     // • term(u[s2])σ is strictly maximal in terms(u[s2] + t2)σ 
     // TODO check this condition somehow ?!
@@ -158,33 +125,34 @@ template<class NumTraits> Option<Clause*> Superposition::applyRule(
     // TODO check this condition somehow ?!
   }
 
-  Stack<Literal*> concl(hyp1->size() - 1 // <- C1
-      + hyp2->size() - 1 // <- C2
+  Stack<Literal*> concl(hyp1.cl->size() - 1 // <- C1
+      + hyp2.cl->size() - 1 // <- C2
       + 1                // <- u[∓(1/k)t1]+t2 <> 0
       + cnst.size());    // <- Cnst
 
 
   // adding C1
-  for (auto lit : iterTraits(hyp1->getLiteralIterator())) {
-    if (lit != pivot1)
+  for (auto lit : iterTraits(hyp1.cl->getLiteralIterator())) {
+    if (lit != hyp1.pivot)
       concl.push(sigma(lit, 0));
   }
 
   // adding C2
-  for (auto lit : iterTraits(hyp2->getLiteralIterator())) {
-    if (lit != pivot2)
+  for (auto lit : iterTraits(hyp2.cl->getLiteralIterator())) {
+    if (lit != hyp2.pivot)
       concl.push(sigma(lit, 1));
   }
 
   // adding u[∓(1/k)t1]+t2 <> 0) σ 
   {
     auto k = k_s1.numeral;
-    auto repl = NumTraits::sum(eq.term().iterSummands()
-    //   ^^^^ -> u[∓(1/k)t1]+t2 <> 0) σ 
+    auto repl = NumTraits::sum(hyp1.eq.term().iterSummands()
+    //   ^^^^ -> ∓(1/k)t1 
         .filter([&](auto t) { return t != k_s1; })
         .map([&](auto monom) { return ((Numeral(-1) / k) * monom).denormalize(); }));
 
-    auto resolvent = EqHelper::replace(sigma(pivot2, 1), sigma(s2, 1), repl);
+    auto resolvent = EqHelper::replace(sigma(hyp2.pivot, 1), sigma(s2, 1), sigma(repl, 0));
+    //   ^^^^^^^^^ -> (u[∓(1/k)t1]+t2 <> 0) σ 
     concl.push(resolvent);
   }
 
@@ -192,105 +160,49 @@ template<class NumTraits> Option<Clause*> Superposition::applyRule(
   concl.loadFromIterator(UwaResult::cnstLiterals(*res_substitution, cnst));
 
   env.statistics->ircSupCnt++;
-  Inference inf(GeneratingInference2(Kernel::InferenceRule::IRC_SUPERPOSITION, hyp1, hyp2));
+  Inference inf(GeneratingInference2(Kernel::InferenceRule::IRC_SUPERPOSITION, hyp1.cl, hyp2.cl));
   return Option<Clause*>(Clause::fromStack(concl, inf));
 }
 
-template<class NumTraits> Option<ClauseIterator> Superposition::genRhs(
-    Clause* hyp2,        // <- `C2 \/ u[s2]+t2 <> 0` 
-    Literal* pivot2,     // <-       `u[s2]+t2 <> 0` 
-    TermList s2 // <-       `s2` 
-    ) const 
+template<class NumTraits> auto Superposition::genRhs(Hyp2<NumTraits> hyp2) const 
 {
-  ASS(s2.isTerm())
-  ASS_EQ(SortHelper::getResultSort(s2.term()), NumTraits::sort())
-  return Option<ClauseIterator>(
-          pvi(iterTraits(pvi(this->_indexLhs->getUnificationsWithConstraints(s2, true)))
-              .filterMap([=](TermQueryResult res) -> Option<Clause*> {
-
-                auto hyp1 = res.clause;    // <- `C1 \/ ±ks1+t1 ≈ 0`
-                auto pivot1 = res.literal; // <-       `±ks1+t1 ≈ 0`
-                auto s1 = res.term; 
-                auto eq = _shared->normalizer.normalizeIrc<NumTraits>(pivot1).unwrap().value;
-                ASS_EQ(eq.symbol(), IrcPredicate::EQ)
-                auto k_s1 = eq.term().iterSummands()
-                  .find([&](auto monom) { return monom.factors->denormalize() == s1;  })
-                  .unwrap();
-
+  ASS(hyp2.s2.isTerm())
+  ASS_EQ(SortHelper::getResultSort(hyp2.s2.term()), NumTraits::sort())
+  return iterTraits(pvi(this->_indexLhs->getUnificationsWithConstraints(hyp2.key(), true)))
+              .filterMap([=](TermQueryResult res) {
                 return applyRule<NumTraits>(
-                    hyp1, pivot1, eq, k_s1,
-                    hyp2, pivot2, s2, 
+                    Hyp1<NumTraits>::fromQueryResult(_shared, res), hyp2,
                     res.substitution, res.constraints, 1);
-              })
-          ));
+              });
 }
 
-template<class NumTraits> Option<ClauseIterator> Superposition::genLhs(
-    Clause* hyp1,            // <- `C1 \/ ±ks1+t1 ≈ 0` 
-    Literal* pivot1,         // <-       `±ks1+t1 ≈ 0` 
-    IrcLiteral<NumTraits> eq,// <-       `±ks1+t1 ≈ 0` 
-    Monom<NumTraits> k_s1    // <-       `±ks1` 
-    ) const 
+template<class NumTraits> auto Superposition::genLhs(Hyp1<NumTraits> hyp1) const 
 {
-  if (eq.symbol() != IrcPredicate::EQ) {
-    return Option<ClauseIterator>();
-  }
-  return Option<ClauseIterator>(
-          pvi(iterTraits(pvi(this->_indexRhs->getUnificationsWithConstraints(k_s1.factors->denormalize(), true)))
+  return iterTraits(pvi(this->_indexRhs->getUnificationsWithConstraints(hyp1.key(), true)))
               .filterMap([=](TermQueryResult res) -> Option<Clause*> {
 
-                auto hyp2 = res.clause;    // <- `C2 \/ u[s2]+t2 <> 0`
-                auto pivot2 = res.literal; // <-       `u[s2]+t2 <> 0`
-                auto s2 = res.term; 
-                
                 return applyRule<NumTraits>(
-                    hyp1, pivot1, eq, k_s1,
-                    hyp2, pivot2, s2, 
+                    hyp1, Hyp2<NumTraits>::fromQueryResult(_shared, res),
                     res.substitution, res.constraints, 0);
-              })
-          ));
+              });
 }
 
-ClauseIterator Superposition::genRhs(IntTraits, Clause* premise, Lib::shared_ptr<Stack<Literal*>> maxLits)
+auto Superposition::genRhs(IntTraits, Clause* premise, Lib::shared_ptr<Stack<Literal*>> const& maxLits)
 { return ClauseIterator::getEmpty(); }
 
-ClauseIterator Superposition::genLhs(IntTraits, Clause* premise, Lib::shared_ptr<Stack<Literal*>> maxLits)
+auto Superposition::genLhs(IntTraits, Clause* premise, Lib::shared_ptr<Stack<Literal*>> const& maxLits)
 { return ClauseIterator::getEmpty(); }
 
-template<class NumTraits> ClauseIterator Superposition::genLhs(NumTraits, Clause* premise, Lib::shared_ptr<Stack<Literal*>> maxLits)
+template<class NumTraits> auto Superposition::genLhs(NumTraits numTraits, Clause* premise, Lib::shared_ptr<Stack<Literal*>> const& maxLits)
 {
-  return pvi(iterTraits(ownedArrayishIterator(_shared->maxAtomicTermsNonVar<NumTraits>(premise)))
-       .filter([maxLits](auto maxTerm) 
-           { return iterTraits(maxLits->iterFifo())
-                      .find([&](auto x) 
-                          { return x == maxTerm.literal; })
-                      .isSome(); })
-       .filterMap([this, premise](auto maxTerm) { return this->genLhs(premise, maxTerm.literal, maxTerm.ircLit, maxTerm.self); })
-       .flatten());
+  return iterHyp1Apps(_shared, numTraits, premise, maxLits)
+          .flatMap([&](auto hyp1) { return pvi(this->genLhs(hyp1)); });
 }
 
-
-template<class NumTraits> ClauseIterator Superposition::genRhs(NumTraits, Clause* hyp2, Lib::shared_ptr<Stack<Literal*>> maxLits)
+template<class NumTraits> auto Superposition::genRhs(NumTraits numTraits, Clause* hyp2, Lib::shared_ptr<Stack<Literal*>> const& maxLits)
 {
-  return pvi(
-      iterTraits(maxLits->iterFifo())
-        .flatMap([=](auto pivot2) { 
-          return pvi(iterTraits(vi(new SubtermIterator(pivot2)))
-            .filter([=](auto t) {
-                if (t.isTerm()) {
-                  auto f = t.term()->functor();
-                  return SortHelper::getResultSort(t.term()) == NumTraits::sort()
-                      && f != NumTraits::addF()
-                      && f != NumTraits::mulF()
-                      && !NumTraits::isNumeral(t);
-                } else return false;
-              })
-            .filterMap([=](auto s2) {
-              return genRhs<NumTraits>(hyp2, pivot2, s2);
-            })
-            .flatten());
-        })
-      );
+  return iterHyp2Apps(_shared, numTraits, hyp2, maxLits)
+          .flatMap([&](auto hyp2) { return pvi(genRhs(hyp2)); });
 }
 
 ClauseIterator Superposition::generateClauses(Clause* premise) 
