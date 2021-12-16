@@ -2470,6 +2470,8 @@ bool FiniteModelBuilder::SmtBasedDSAE::init(unsigned _startModelSize, DArray<uns
 {
   CALL("FiniteModelBuilder::SmtBasedDSAE::init");
 
+  _skippedSomeSizes = (_startModelSize > 1);
+
   BYPASSING_ALLOCATOR;
 
   try {

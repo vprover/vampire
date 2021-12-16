@@ -280,6 +280,8 @@ private:
 
     unsigned _maxWeightSoFar;
 
+    bool _skippedSomeSizes;
+
     // Stack<Constraint_Generator*> _old_generators; // keeping old generators degraded performance on average ...
 
   protected:
@@ -291,13 +293,14 @@ private:
 
     HackyDSAE() : _maxWeightSoFar(0) {}
 
-    bool init(unsigned, DArray<unsigned>&, Stack<std::pair<unsigned,unsigned>>& dsc, Stack<std::pair<unsigned,unsigned>>& sdsc) override {
+    bool init(unsigned _startSize, DArray<unsigned>&, Stack<std::pair<unsigned,unsigned>>& dsc, Stack<std::pair<unsigned,unsigned>>& sdsc) override {
+      _skippedSomeSizes = (_startSize > 1);
       _distinct_sort_constraints = &dsc;
       _strict_distinct_sort_constraints = &sdsc;
       return true;
     }
 
-    bool isFmbComplete(unsigned noDomains) override { return noDomains <= 1; }
+    bool isFmbComplete(unsigned noDomains) override { return (noDomains <= 1) && !_skippedSomeSizes; }
     void learnNogood(Constraint_Generator_Vals& nogood, unsigned weight) override;
     bool increaseModelSizes(DArray<unsigned>& newSortSizes, DArray<unsigned>& sortMaxes) override;
   };
@@ -308,6 +311,7 @@ private:
     z3::solver  _smtSolver;
     unsigned _lastWeight;
     DArray<z3::expr*> _sizeConstants;
+    bool _skippedSomeSizes;
   protected:
     unsigned loadSizesFromSmt(DArray<unsigned>& szs);
     void reportZ3OutOfMemory();
@@ -321,7 +325,7 @@ private:
     bool init(unsigned, DArray<unsigned>&, Stack<std::pair<unsigned,unsigned>>&, Stack<std::pair<unsigned,unsigned>>&) override;
     void learnNogood(Constraint_Generator_Vals& nogood, unsigned weight) override;
     bool increaseModelSizes(DArray<unsigned>& newSortSizes, DArray<unsigned>& sortMaxes) override;
-    bool isFmbComplete(unsigned) override { return true; }
+    bool isFmbComplete(unsigned) override { return !_skippedSomeSizes; }
   };
 #endif
 
