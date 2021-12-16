@@ -48,12 +48,12 @@ void SMTPrinter::printTypeDecl(Signature::Symbol *symb, ostream &out)
   unsigned arity = type->arity();
   auto ret = type->result().term();
 
-  // special-case (declare-nat Nat zero s p Sub)
+  // special-case (declare-nat Nat zero s p 'Sub')
   // Rapid-specific, a bit gross
   // TODO: look at this again if/when Rapid support is merged
   const char *nat = "'Nat()'";
   if(name == nat) {
-    out << "(declare-nat Nat zero s p Sub)" << std::endl;
+    out << "(declare-nat Nat zero s p 'Sub')" << std::endl;
     return;
   }
   // avoid re-definitions
