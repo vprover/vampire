@@ -23,6 +23,7 @@
 #include "Lib/VirtualIterator.hpp"
 #include "Lib/System.hpp"
 #include "Lib/STL.hpp"
+#include "Lib/Random.hpp"
 
 #include "Indexing/LiteralIndexingStructure.hpp"
 
@@ -915,7 +916,6 @@ void SaturationAlgorithm::addUnprocessedClause(Clause* cl)
 
   env.checkTimeSometime<64>();
 
-
   cl=doImmediateSimplification(cl);
   if (!cl) {
     return;
@@ -923,6 +923,10 @@ void SaturationAlgorithm::addUnprocessedClause(Clause* cl)
 
   if (cl->isEmpty()) {
     handleEmptyClause(cl);
+    return;
+  }
+
+  if (_retentionProb < 1.0 && _retentionProb < Random::getDouble(0.0,1.0)) {
     return;
   }
 
@@ -1496,6 +1500,8 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
   else {
     res->_imgr = SmartPtr<IndexManager>(new IndexManager(res));
   }
+
+  res->_retentionProb = opt.retentionProb();
 
   if(opt.splitting()){
     res->_splitter = new Splitter();

@@ -806,6 +806,10 @@ void Options::init()
     _lookup.insert(&_fmbEnumerationStrategy);
     _fmbEnumerationStrategy.tag(OptionTag::FMB);
 
+    _retentionProb = FloatOptionValue("retention_probability","rp",1.0);
+    _retentionProb.description = "Randomly drop a clause with this probability when taking it out of unprocessed.";
+    _lookup.insert(&_retentionProb);
+
     _selection = SelectionOptionValue("selection","s",10);
     _selection.description=
     "Selection methods 2,3,4,10,11 are complete by virtue of extending Maximal i.e. they select the best among maximal. Methods 1002,1003,1004,1010,1011 relax this restriction and are therefore not complete.\n"
@@ -1919,7 +1923,7 @@ void Options::init()
     _nonliteralsInClauseWeight.setRandomChoices({"on","off"});
 
 //*********************** SAT solver (used in various places)  ***********************
-    _satSolver = ChoiceOptionValue<SatSolver>("sat_solver","sas",SatSolver::MINISAT, {
+  _satSolver = ChoiceOptionValue<SatSolver>("sat_solver", "sas",SatSolver::MINISAT, {
       "minisat"
 #if VZ3
       ,"z3"
@@ -3161,6 +3165,8 @@ bool Options::complete(const Problem& prb) const
   // run-time rule causing incompleteness
   if (_forwardLiteralRewriting.actualValue) return false;
   
+  if (_retentionProb.actualValue < 1.0) return false;
+
   bool unitEquality = prop.category() == Property::UEQ;
   bool hasEquality = (prop.equalityAtoms() != 0);
 

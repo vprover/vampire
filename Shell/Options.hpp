@@ -2043,6 +2043,7 @@ public:
   //void setSatSolver(SatSolver newVal) { _satSolver = newVal; }
   SaturationAlgorithm saturationAlgorithm() const { return _saturationAlgorithm.actualValue; }
   void setSaturationAlgorithm(SaturationAlgorithm newVal) { _saturationAlgorithm.actualValue = newVal; }
+  float retentionProb() const { return _retentionProb.actualValue; }
   int selection() const { return _selection.actualValue; }
   void setSelection(int v) { _selection.actualValue=v;}
   vstring latexOutput() const { return _latexOutput.actualValue; }
@@ -2531,6 +2532,8 @@ private:
 
   ChoiceOptionValue<SatSolver> _satSolver;
   ChoiceOptionValue<SaturationAlgorithm> _saturationAlgorithm;
+  FloatOptionValue _retentionProb;
+
   BoolOptionValue _showAll;
   BoolOptionValue _showActive;
   BoolOptionValue _showBlocked;

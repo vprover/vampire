@@ -170,6 +170,7 @@ private:
 
   static SaturationAlgorithm* s_instance;
 protected:
+  float _retentionProb;
 
   bool _completeOptionSettings;
   int _startTime;
