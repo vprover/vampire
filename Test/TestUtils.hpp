@@ -167,6 +167,19 @@ public:
   { return _self == nullptr ? out << "null" : out << pretty(*_self); }
 };
 
+
+template<class A>
+class Pretty<std::shared_ptr<A>> {
+  std::shared_ptr<A> const& _self;
+
+public:
+  Pretty(std::shared_ptr<A> const& self) : _self(self) {}
+
+  std::ostream& prettyPrint(std::ostream& out) const
+  { return out << pretty(*_self); }
+};
+
+
 template<class A>
 class Pretty<Stack<A>> {
   Stack<A> const& _self;

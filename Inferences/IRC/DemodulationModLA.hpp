@@ -161,7 +161,6 @@ public:
   { return pvi(VirtualIterator<AnySimplification>::getEmpty()); }
 
   static auto simplifiers(IrcState& shared, Clause* simplifyWith) {
-    ASS(&shared)
     return iterTraits(getSingletonIterator(simplifyWith))
       .filter([](Clause* cl) { return cl->size() == 1 && (*cl)[0]->isEquality() && (*cl)[0]->isPositive(); })
       .filterMap([&](Clause* simplifyWith) 

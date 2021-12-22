@@ -108,17 +108,17 @@ std::ostream& Pretty<Literal*>::prettyPrint(std::ostream& out) const
 template<>
 std::ostream& Pretty<Clause>::prettyPrint(std::ostream& out) const
 { 
-  // out << "{ ";
   auto iter = _self.iterLits();
+    out << "{ ";
   if (iter.hasNext()) {
     out << pretty(*iter.next());
     while(iter.hasNext()) {
       out << " | " << pretty(*iter.next());
     }
   } else {
-    out << "[]";
+    // out << "[]";
   }
-  // out << " }";
+    out << " }";
   return out;
 }
 

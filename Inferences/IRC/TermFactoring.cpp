@@ -75,185 +75,155 @@ void TermFactoring::setTestIndices(Stack<Indexing::Index*> const& indices)
 {  }
 #endif
 
-using Lib::TypeList::List;
-using Lib::TypeList::Indices;
-using Lib::TypeList::UnsignedList;
-
-// template<class F, class... Capt>
-// class Capture
-// {
-//   
-//   template<class... Args> using Result = typename std::result_of<F(Capt..., Args...)>::type;
-//   F _fun;
-//   std::tuple<Capt...> _capt;
-// public:
-//   Capture(F fun, Capt... capt) : _fun(std::move(fun)), _capt(std::forward<Capt>(capt)...) {}
-//
-//   template<class... Args>
-//   Result<Args...> operator()(Args... args)
-//   { return apply(Indices<List<Args...>>{}, std::forward<Args>(args)...); }
-//
-//   template<class... Args, int... idx>
-//   Result<Args...> apply(UnsignedList<idx...>, Args... args)
-//   { return _fun(std::get<idx>(_capt)..., std::forward<Args>(args)...); }
-// };
-//
-// template<class F, class... Capt>
-// Capture<F, Capt...> capture(F f, Capt... capt) 
-// { return Capture<F,Capt...>(std::move(f), capt...); }
-
 #define OVERFLOW_SAFE 1
 
 #define ASSERT_NO_OVERFLOW(...)                                                                               \
   [&]() { try { return __VA_ARGS__; }                                                                         \
           catch (MachineArithmeticException&) { ASSERTION_VIOLATION } }()                                     \
 
-template<class NumTraits>
-ClauseIterator TermFactoring::generateClauses(Clause* cl, Literal* literal, shared_ptr<Stack<MaxAtomicTerm<NumTraits>>> maxTerms) const
+auto rng(unsigned from, unsigned to)
+{ return iterTraits(getRangeIterator(from,to)); }
+
+//   C ∨  k1 s1 + k2 s2  + t <> 0
+// ---------------------------------------
+// ( C ∨    (k1 + k2)s1 + t <> 0 )σ ∨ Cnst
+//
+// where 
+// - (σ, Cnst) = uwa(s1, s2)
+// - <> ∈ {>,≥,≈,/≈}
+// - s,s /∈ Vars
+// - (k1 s1 + k2 s2 + t <> 0)σ /≺ Cσ
+// - s1σ /≺ terms(s2 + t)σ
+// - s2σ /≺ terms(s1 + t)σ
+template<class NumTraits> Option<Clause*> TermFactoring::applyRule(
+    Clause* premise,
+    Literal* lit,
+    IrcLiteral<NumTraits> pivot,
+    Monom<NumTraits> k1_s1,
+    Monom<NumTraits> k2_s2)
 {
+  auto nothing = []() { return Option<Clause*>(); };
+  auto createLiteral = [&](auto term, auto sym) -> Literal* {
+      switch(sym) {
+        case IrcPredicate::EQ:         return NumTraits::eq(true,  term, NumTraits::zero());
+        case IrcPredicate::NEQ:        return NumTraits::eq(false, term, NumTraits::zero());
+        case IrcPredicate::GREATER:    return NumTraits::greater(true, term, NumTraits::zero());
+        case IrcPredicate::GREATER_EQ: return NumTraits::geq    (true, term, NumTraits::zero());
+      }
+      ASSERTION_VIOLATION
+    };
+  auto k1 = k1_s1.numeral;
+  auto k2 = k2_s2.numeral;
+  auto s1 = k1_s1.factors->denormalize();
+  auto s2 = k2_s2.factors->denormalize();
 
-  CALL("TermFactoring::generateClauses(Clause*, Literal*) const")
-  using Monom      = Monom<NumTraits>;
-  using IrcLiteral = IrcLiteral<NumTraits>;
+  auto uwa_ = _shared->unify(s1, s2);
+  if (uwa_.isNone()) 
+    return nothing();
 
-  auto litOpt = this->normalizer().normalizeIrc<NumTraits>(literal);
-  if (litOpt.isNone()) 
-    return ClauseIterator::getEmpty();
+  auto& uwa = uwa_.unwrap();
+  auto sigma = [&](auto t) { return uwa.sigma.apply(t, /* var bank */ 0); };
 
-  // The rule we compute looks as follows for rat & real:
-  //
-  // num1 * term1 + num2 * term2 + rest > 0 \/ C1   
-  // --------------------------------
-  // ((num1 + num2) * term1  + rest > 0 ) \sigma \/ Const
-  //
-  // TODO check for all side conditions
+  auto s1_sigma = sigma(s1);
+  auto resTerm = NumTraits::mul(NumTraits::constantTl(k1 + k2), s1_sigma); //sigma(Monom<NumTraits>(k1 + k2, s1).denormalize();)
+  //   ^^^^^^^---> ((k1 + s1)s2)σ
 
-  auto lit_ = std::move(litOpt).unwrap();
-  if (lit_.overflowOccurred) {
-    return ClauseIterator::getEmpty();
+  auto cntFound = 0;
+  auto t_sigma 
+  //   ^^^^^^^---> tσ
+    = pivot.term().iterSummands()
+                  .filter([&](auto x) { 
+                      auto found = x == k1_s1 || x == k2_s2; 
+                      if (found) cntFound++;
+                      return !found;
+                  })
+                  .map([&](auto x) { return sigma(x.denormalize()); })
+                  .template collect<Stack>();
+  ASS_EQ(cntFound, 2)
+
+  auto resSum = NumTraits::sum(getConcatenatedIterator(getSingletonIterator(resTerm),t_sigma.iterFifo()));
+  //   ^^^^^^---> ((k1 + s1)s2 + t)σ
+    
+  auto resLit = createLiteral(resSum, pivot.symbol());
+  //   ^^^^^^---> ((k1 + s1)s2 + t <> 0)σ
+
+  Stack<Literal*> conclusion(premise->size() + uwa.cnst.size());
+
+  // adding `Cσ`
+  {
+    auto litFound = 0;
+    for (auto l : iterTraits(premise->getLiteralIterator())) {
+      if (l == lit) {
+        litFound++;
+      } else {
+        conclusion.push(sigma(l));
+      }
+    }
+    ASS_EQ(litFound, 1)
   }
-  auto lit = lit_.value;
-  //   ^^^--> num1 * term1 + num2 * term2 + rest > 0
 
-  DEBUG("lit: ", lit)
+  // checking (k1 s1 + k2 s2 + t <> 0) /≺ Cσ
+  {
+    auto pivot_sigma = sigma(lit);
+    if (iterTraits(conclusion.iterFifo())
+         .any([&](auto l) { return _shared->ordering->compare(pivot_sigma, l) == Ordering::LESS; }))
+      return nothing();
+  }
 
-  auto max = iterTraits(_shared->maxAtomicTerms(lit).iterFifo())
-    .filter([&](auto t) { 
-        return iterTraits(maxTerms->iterFifo())
-          .any([&](auto maxT) { return maxT.literal == literal && maxT.self == t; });  })
-    .template collect<Stack>();
+  // adding `((k1 + k2)s1 + t <> 0)σ`
+  conclusion.push(resLit);
 
-  DEBUG("maximal terms: ", max)
-  return pvi(iterTraits(getRangeIterator(0, ((int) max.size()) - 1))
-    .flatMap([this, cl, lit, literal, max = Lib::make_unique<Stack<Monom>>(std::move(max))](unsigned i1) -> VirtualIterator<Clause*> { 
-      auto mon1 = (*max)[i1];
-      //   ^^^^ <--- num1 * term1 
-      CALL("TermFactoring::generateClauses:@clsr1")
-      return pvi(iterTraits(getRangeIterator(i1 + 1, (unsigned) max->size()))
-        .filterMap([this, cl, lit, literal, mon1, i1, max = &*max](unsigned long i2) -> Option<Clause*> {
-            CALL("TermFactoring::generateClauses:@clsr2")
-            ASS_NEQ(i1,i2)
+  // checking s1σ /≺ terms(s2 + t)σ
+  // checking s2σ /≺ terms(s1 + t)σ
+  { 
+    auto s2_sigma = sigma(s2);
+    auto cmp = _shared->ordering->compare(s1_sigma, s2_sigma);
+    if (cmp == Ordering::LESS || cmp == Ordering::GREATER)
+      return nothing();
 
-            auto mon2 = (*max)[i2];
-            //   ^^^^ <--- num2 * term2 
-            DEBUG("applying to ", mon1, " ", mon2)
+    if (iterTraits(t_sigma.iterFifo()).any([&](auto t) 
+          { return _shared->ordering->compare(s1_sigma, t) == Ordering::LESS 
+                || _shared->ordering->compare(s2_sigma, t) == Ordering::LESS; }))
+      return nothing();
+  }
 
-            auto uwa_ = _shared->unify(mon1.factors->denormalize(), mon2.factors->denormalize());
-            if (uwa_.isNone()) {
-              return Option<Clause*>();
-            }
-            auto& uwa = uwa_.unwrap();
-            auto sigma = [&](auto t) { return uwa.sigma.apply(t, /* var bank */ 0); };
+  // adding `Cnst`
+  conclusion.loadFromIterator(uwa.cnstLiterals());
 
-            auto resolventTerm = Monom(mon1.numeral + mon2.numeral, mon1.factors);
-            auto resolventSum = Stack<Monom>(lit.term().nSummands() - 1);
-            resolventSum.push(resolventTerm);
-            for (unsigned i = 0; i < lit.term().nSummands(); i++) {
-              auto t = lit.term().summandAt(i);
-              if (t != mon1 && t != mon2) 
-                resolventSum.push(t);
-            }
+  env.statistics->ircTermFacCnt++;
 
-            auto sum = PolynomialEvaluation::simplifySummation(resolventSum);
-            if (sum.overflowOccurred) {
-              return Option<Clause*>();
-            }
-            auto resolventLit = IrcLiteral(perfect(sum.value), lit.symbol());
-            //   ^^^^^^^^^^^^--> (num1 + num2) * term1 + rest > 0
+  Inference inf(GeneratingInference1(Kernel::InferenceRule::IRC_TERM_FACTORING, premise));
+  return Option<Clause*>(Clause::fromStack(conclusion, inf));
+}
 
-            Inference inf(GeneratingInference1(Kernel::InferenceRule::IRC_TERM_FACTORING, cl));
-            auto size = cl->size() + uwa.cnst.size();
-            auto resolvent = new(size) Clause(size, inf);
-            {
-              unsigned offset = 0;
-              auto push = [&](Literal* lit) { ASS(offset < size); (*resolvent)[offset++] = lit; };
-              
-              // push resolvent literal: k1 * rest1 + k2 * rest2 >= 0 
-              push(sigma(resolventLit.denormalize()));
+template<class NumTraits> ClauseIterator TermFactoring::generateClauses(Clause* premise, Literal* lit, IrcLiteral<NumTraits> L)
+{
+  auto selected = make_shared(new Stack<Monom<NumTraits>>(_shared->maxAtomicTerms(L)));
 
-              // push other literals from clause: C
-              for (unsigned i = 0; i < cl->size(); i++) {
-                if ((*cl)[i] != literal) {
-                  push(sigma((*cl)[i]));
-                }
-              }
-
-              for (auto lit : iterTraits(uwa.cnstLiterals())) {
-                push(lit);
-              }
-
-
-              ASS_EQ(offset, size)
-            }
-            DEBUG("in:  ", *cl)
-            DEBUG("out: ", *resolvent)
-
-
-            env.statistics->ircTermFacCnt++;
-            return Option<Clause*>(resolvent);
-
+  return pvi( rng(0, selected->size())
+      .flatMap([=](auto i) {
+        return pvi( rng(i + 1, selected->size())
+            .filterMap([=](auto j) {
+              auto k1_s1 = (*selected)[i];
+              auto k2_s2 = (*selected)[j];
+              return applyRule(premise, lit, L, k1_s1, k2_s2);
+            }));
         }));
-
-    }));
 }
 
 ClauseIterator TermFactoring::generateClauses(Clause* premise)
 {
   CALL("TermFactoring::generateClauses");
   DEBUG("in: ", *premise)
-  // auto maxLiterals = make_shared(new Stack<Literal*>(_shared->maxAtomicTermsNonVar<NumTraits>(premise))); // TODO use Set instead of Stack
-  // return pvi(numTraitsIter([this, premise,maxLiterals](auto numTraits){
-  //   using NumTraits = decltype(numTraits);
-  //   return iterTraits(ownedArrayishIterator(_shared->maxAtomicTermsNonVar<NumTraits>(premise)))
-  //   // return iterTraits(ownedArrayishIterator(_shared->strictlyMaxLiterals(premise)))
-  //     .filter([maxLiterals](auto& maxTerm)  
-  //         { return iterTraits(maxLiterals->iterFifo())
-  //                    .find([&](auto x) { return x == maxTerm.literal; })
-  //                    .isSome(); })
-  //     .filter([](auto maxTerm) { return maxTerm.ircLit.symbol() == IrcPredicate::GREATER_EQ; })
-  //     .flatMap([this, premise](auto maxTerm) 
-  //         { return this->generateClauses(premise, maxTerm.literal, maxTerm.ircLit, maxTerm.self); });
-  // }));
-  //
-  // template<class NumTraits>
-  // using AllNumTraits
-
-  // auto maxTermsInt  = _shared->maxAtomicTermsNonVar< IntTraits>(premise);
-  // auto maxTermsRat  = _shared->maxAtomicTermsNonVar< RatTraits>(premise);
-  // auto maxTermsReal = _shared->maxAtomicTermsNonVar<RealTraits>(premise);
-  //
-  auto maxTermsInt  = make_shared(new Stack<MaxAtomicTerm< IntTraits>>(_shared->maxAtomicTermsNonVar< IntTraits>(premise)));
-  auto maxTermsRat  = make_shared(new Stack<MaxAtomicTerm< RatTraits>>(_shared->maxAtomicTermsNonVar< RatTraits>(premise)));
-  auto maxTermsReal = make_shared(new Stack<MaxAtomicTerm<RealTraits>>(_shared->maxAtomicTermsNonVar<RealTraits>(premise)));
-
-  return pvi(iterTraits(ownedArrayishIterator(_shared->strictlyMaxLiterals(premise)))
-    .flatMap([=](Literal* lit) {
-      CALL("TermFactoring::generateClauses@clsr1");
-        return getConcatenatedIterator(getConcatenatedIterator(
-              generateClauses< IntTraits>(premise, lit, maxTermsInt) ,
-              generateClauses< RatTraits>(premise, lit, maxTermsRat)),
-              generateClauses<RealTraits>(premise, lit, maxTermsReal));
-    }));
+  auto selected = _shared->maxLiterals(premise, /* strict = */ false);
+  return pvi(iterTraits(ownedArrayishIterator(std::move(selected)))
+          .flatMap([=](auto lit) 
+            { return pvi(iterTraits(_shared->normalize(lit).intoIter())
+                        .flatMap([&](AnyIrcLiteral polymorphic) -> ClauseIterator
+                          { return polymorphic
+                                      .apply([&](auto L)  -> ClauseIterator
+                                         { return generateClauses(premise, lit, L); }); })); 
+            }));
 }
 
 } // namespace IRC

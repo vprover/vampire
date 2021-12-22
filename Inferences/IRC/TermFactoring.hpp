@@ -60,7 +60,8 @@ public:
 
 private:
 
-  template<class NumTraits> ClauseIterator generateClauses(Clause* clause, Literal* lit, shared_ptr<Stack<MaxAtomicTerm<NumTraits>>> maxTerms) const;
+  template<class NumTraits> Option<Clause*> applyRule(Clause* premise, Literal* lit, IrcLiteral<NumTraits> L, Monom<NumTraits> k1_s1, Monom<NumTraits> k2_s2);
+  template<class NumTraits> ClauseIterator generateClauses(Clause* premise, Literal* lit, IrcLiteral<NumTraits> L);
 
   InequalityNormalizer const& normalizer() const { return _shared->normalizer; }
   Ordering* ord() const { return _shared->ordering; }
