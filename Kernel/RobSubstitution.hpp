@@ -94,6 +94,7 @@ public:
   TermList getSpecialVarTop(unsigned specialVar) const;
   TermList apply(TermList t, int index) const;
   Literal* apply(Literal* lit, int index) const;
+  Stack<Literal*> apply(Stack<Literal*> cl, int index) const;
   size_t getApplicationResultWeight(TermList t, int index) const;
   size_t getApplicationResultWeight(Literal* lit, int index) const;
 

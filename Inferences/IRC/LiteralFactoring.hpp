@@ -48,16 +48,23 @@ public:
 
 
   template<class NumTraits>
-  Clause* applyRule(Clause* premise, 
+  Option<Clause*> applyRule(Clause* premise, 
     Literal* lit1, IrcLiteral<NumTraits> l1, Monom<NumTraits> j_s1,
     Literal* lit2, IrcLiteral<NumTraits> l2, Monom<NumTraits> k_s2,
     UwaResult sigma_cnst);
+
   template<class NumTraits>
   ClauseIterator generateClauses(Clause* premise, 
-      Literal* lit1, IrcLiteral<NumTraits> l1, 
-      Literal* lit2, IrcLiteral<NumTraits> l2,
-      shared_ptr<Stack<MaxAtomicTerm<NumTraits>>> maxTerms
-      );
+    Literal* lit1, IrcLiteral<NumTraits> l1, Monom<NumTraits> j_s1,
+    Literal* lit2, IrcLiteral<NumTraits> l2, Monom<NumTraits> k_s2);
+
+  template<class NumTraits>
+  ClauseIterator generateClauses(
+      Clause* premise,
+      Literal* lit1, IrcLiteral<NumTraits> L1,
+      Literal* lit2, IrcLiteral<NumTraits> L2
+    );
+
   ClauseIterator generateClauses(Clause* premise) final override;
 
   
@@ -74,5 +81,4 @@ private:
 } // namespace IRC 
 } // namespace Inferences 
 
-// lalalalala
 #endif /*__LiteralFactoring__*/

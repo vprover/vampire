@@ -641,6 +641,15 @@ bool RobSubstitution::match(TermSpec base, TermSpec instance)
 }
 
 
+Stack<Literal*> RobSubstitution::apply(Stack<Literal*> cl, int index) const
+{
+  CALL("RobSubstitution::apply(Clause*...)");
+  for (unsigned i = 0; i < cl.size(); i++) {
+    cl[i] = apply(cl[i], index);
+  }
+  return cl;
+}
+
 Literal* RobSubstitution::apply(Literal* lit, int index) const
 {
   CALL("RobSubstitution::apply(Literal*...)");

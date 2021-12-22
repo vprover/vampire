@@ -49,6 +49,8 @@ using namespace Inferences::IRC;
   DECL_CONST(b, Num)                                                                                          \
   DECL_CONST(c, Num)                                                                                          \
   DECL_FUNC(f, {Num}, Num)                                                                                    \
+  DECL_FUNC(ff, {Num}, Num)                                                                                   \
+  DECL_FUNC(fff, {Num}, Num)                                                                                  \
   DECL_FUNC(g, {Num, Num}, Num)                                                                               \
   DECL_FUNC(g0, {Num, Num}, Num)                                                                              \
   DECL_FUNC(g1, {Num, Num}, Num)                                                                              \
@@ -68,22 +70,38 @@ REGISTER_GEN_TESTER(Test::Generation::GenerationTester<LiteralFactoring>(testLit
 // Basic tests
 //////////////////////////////////////
 
-// TODO write test for maximality side conditions
+TEST_GENERATION(basic00,
+    Generation::SymmetricTest()
+      .inputs  ({  clause({selected( 3 * f(x) + y > 0 ), selected(4 * f(x) + z > 0)   }) })
+      .expected(exactly(
+            clause({          3 * f(x) + y > 0 , 4 * y  + -3 * z != 0            })
+      ))
+      .premiseRedundant(false)
+    )
 
 TEST_GENERATION(basic01,
     Generation::SymmetricTest()
-      .inputs  ({  clause({selected( 3 * f(x) + x > 0 ), selected(4 * f(y) + x > 0)   }) })
+      .inputs  ({  clause({selected( 3 * f(x) + x > 0 ), selected(3 * f(y) + x > 0)   }) })
       .expected(exactly(
-            clause({          3 * f(x) + x > 0 , 4 * x  + -3 * x != 0            })
+            clause({          3 * f(x) + x > 0 , 3 * x  + -3 * x != 0            })
       ))
       .premiseRedundant(false)
     )
 
 TEST_GENERATION(basic02,
     Generation::SymmetricTest()
-      .inputs  ({  clause({selected(f(a) + b > 0), selected(f(x) + x > 0)   }) })
+      .inputs  ({  clause({selected(f(a) + b > 0), selected(f(x) + b > 0)   }) })
       .expected(exactly(
-            clause({          f(a) + b > 0 , b - a != 0            })
+            clause({          f(a) + b > 0 , b - b != 0            })
+      ))
+      .premiseRedundant(false)
+    )
+
+TEST_GENERATION(basic02b,
+    Generation::SymmetricTest()
+      .inputs  ({  clause({selected(f(a) + y > 0), selected(f(x) + z > 0)   }) })
+      .expected(exactly(
+            clause({          f(a) + y > 0 , y - z != 0            })
       ))
       .premiseRedundant(false)
     )
@@ -110,6 +128,45 @@ TEST_GENERATION(uwa1,
       .inputs  ({  clause({selected(  f(a + b + x) > 0)  , selected(f(y + a) > 0)  }) })
       .expected(exactly(
             clause({  f(a + b + x) > 0, num(0) != 0, a + b + x != y + a  })
+      ))
+      .premiseRedundant(false)
+    )
+
+TEST_GENERATION(misc1,
+    Generation::SymmetricTest()
+      .inputs  ({  clause({ f(x) + f(y) > 0  , f(y) + f(x) > 0  }) })
+      .expected(exactly( 
+            clause({ f(x) + f(x) > 0, -f(x) + f(x) != 0 })
+          , clause({ f(y) + f(y) > 0, -f(y) + f(y) != 0 })
+          , clause({ f(x) + f(y) > 0, -f(y) + f(y) != 0 })
+          , clause({ f(x) + f(y) > 0, -f(x) + f(x) != 0 })
+      ))
+      .premiseRedundant(false)
+    )
+
+TEST_GENERATION(max_s1_after_unif_1,
+    Generation::SymmetricTest()
+      .inputs  ({  clause({ f(x) + ff(y) > 0  , f(y) + ff(x) > 0  }) })
+      .expected(exactly( 
+            clause({ f(x) + ff(x) > 0, -f(x) + f(x) != 0 })
+      ))
+      .premiseRedundant(false)
+    )
+
+TEST_GENERATION(max_s2_after_unif_1,
+    Generation::SymmetricTest()
+      .inputs  ({  clause({  f(y) + ff(x) > 0, f(x) + ff(y) > 0    }) })
+      .expected(exactly( 
+            clause({ f(x) + ff(x) > 0, -f(x) + f(x) != 0 })
+      ))
+      .premiseRedundant(false)
+    )
+
+TEST_GENERATION(max_s1_after_unif_2,
+    Generation::SymmetricTest()
+      .inputs  ({  clause({  ff(y) + fff(x) > 0, f(z) + fff(y) > 0    }) })
+      .expected(exactly( 
+            clause({ ff(x) + fff(x) > 0, -f(y) + ff(x) != 0 })
       ))
       .premiseRedundant(false)
     )

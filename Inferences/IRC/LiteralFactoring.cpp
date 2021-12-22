@@ -35,27 +35,68 @@ void LiteralFactoring::detach()
 // where
 // • uwa(s1,s2)=⟨σ,Cnst⟩
 // • <> ∈ {>,≥,≈, /≈}
-// • term(s1)σ is maximal in ({s1} ∪ terms(t1))σ
-// • term(s2)σ is maximal in ({s2} ∪ terms(t2))σ
-// • (±ks1 + t1 <> 0)σ is maximal in Hypσ <- TODO
-// • (±ks2 + t2 <> 0)σ is maximal in Hypσ <- TODO
-
-
+// • s1σ /⪯ terms(t1)σ
+// • s2σ /⪯ terms(t2)σ
+// • (±ks1 + t1 <> 0)σ /< (±ks2 + t2 <> 0 \/ C)σ
+// • (±ks2 + t2 <> 0)σ /< (±ks1 + t1 <> 0 \/ C)σ
 
 
 template<class NumTraits>
-Clause* LiteralFactoring::applyRule(Clause* premise, 
+Option<Clause*> LiteralFactoring::applyRule(Clause* premise, 
     Literal* lit1, IrcLiteral<NumTraits> l1,  Monom<NumTraits> j_s1,
     //       ^^^^--> `±js1 + t1 <> 0` <--^^            ±js1 <--^^^^
     Literal* lit2, IrcLiteral<NumTraits> l2,  Monom<NumTraits> k_s2,
     //       ^^^^--> `±ks2 + t2 <> 0` <--^^            ±ks2 <--^^^^
     UwaResult uwa)
 {
+
+  auto nothing = []() { return Option<Clause*>(); };
   auto sigma = [&](auto x){ return uwa.sigma.apply(x, /* varbank */ 0); };
   auto& cnst  = uwa.cnst;
   auto j = j_s1.numeral;
   auto k = k_s2.numeral;
-  ASS_EQ(j.isPositive(), k.isPositive())
+  auto s1 = j_s1.factors;
+  auto s2 = k_s2.factors;
+  if(j.isPositive() != k.isPositive()
+     || l1.symbol() != l2.symbol())
+    return nothing();
+
+  auto term_max_after_unif = [&sigma, this](auto lit_sigma, auto s) -> bool
+  {
+      auto lit_sigma_norm = _shared->normalize<NumTraits>(lit_sigma);
+      if (lit_sigma_norm.isNone())  
+        return true; // overflow while normalizing, we assume that we can apply the rule
+      auto strictly_max = _shared->maxAtomicTerms(lit_sigma_norm.unwrap(), /*strict*/true);
+      auto s_sigma = _shared->normalize(TypedTermList(sigma(s->denormalize()).term())).wrapMonom<NumTraits>();
+      if (iterTraits(strictly_max.iterFifo()).all([&](auto monom) { return monom.factors != s_sigma.factors; }))
+        return false;
+      else 
+        return true;
+  };
+
+  // checking s1σ /⪯ terms(t1)σ
+  auto lit1_sigma = sigma(lit1);
+  if (!term_max_after_unif(lit1_sigma, s1))
+    return nothing();
+
+  // checking s2σ /⪯ terms(t2)σ
+  auto lit2_sigma = sigma(lit2);
+  if (!term_max_after_unif(lit2_sigma, s2))
+    return nothing();
+
+  {
+    auto premLits = iterTraits(premise->iterLits()).template collect<Stack>();
+    auto maxLiterals = _shared->maxLiterals(sigma(std::move(premLits)));
+
+    // checking (±ks1 + t1 <> 0)σ /< (±ks2 + t2 <> 0 \/ C)σ
+    if (!iterTraits(maxLiterals.iterFifo()).any([&](auto x) { return x == lit1_sigma; }))
+      return nothing();
+
+    // checking (±ks2 + t2 <> 0)σ /< (±ks1 + t1 <> 0 \/ C)σ
+    if (!iterTraits(maxLiterals.iterFifo()).any([&](auto x) { return x == lit2_sigma; }))
+      return nothing();
+  }
+
 
   Stack<Literal*> conclusion(premise->size() + cnst.size());
 
@@ -65,13 +106,15 @@ Clause* LiteralFactoring::applyRule(Clause* premise,
     for (auto lit : iterTraits(premise->getLiteralIterator())) {
       if (lit == lit2) {
         lit2cnt++;
+      } else if (lit == lit1) {
+        conclusion.push(lit1_sigma);
       } else {
         ASS(lit != lit2)
         conclusion.push(sigma(lit));
       }
     }
     if (lit2cnt > 1) {
-      conclusion.push(sigma(lit2));
+      conclusion.push(lit2_sigma);
     }
   }
 
@@ -97,56 +140,9 @@ Clause* LiteralFactoring::applyRule(Clause* premise,
   Inference inf(GeneratingInference1(Kernel::InferenceRule::IRC_LITERAL_FACTORING, premise));
 
   env.statistics->ircLitFacCnt++;
-  return Clause::fromStack(conclusion, inf);
+  return some(Clause::fromStack(conclusion, inf));
 }
 
-
-template<class NumTraits>
-ClauseIterator LiteralFactoring::generateClauses(Clause* premise, 
-    Literal* lit1, IrcLiteral<NumTraits> l1, 
-    Literal* lit2, IrcLiteral<NumTraits> l2,
-    shared_ptr<Stack<MaxAtomicTerm<NumTraits>>> maxTerms
-    )
-{
-  auto filterNonMax = [maxTerms](Stack<Monom<NumTraits>> terms, Literal* lit) {
-    return iterTraits(terms.iterFifo())
-      .filter([&](auto t) 
-          { return iterTraits(maxTerms->iterFifo())
-                         .any([&](auto maxT) 
-                           { return maxT.literal == lit && t == maxT.self; }); })
-      .template collect<Stack>();
-  };
-  return pvi(iterTraits(ownedArrayishIterator(filterNonMax(_shared->maxAtomicTerms(l1), lit1)))
-    .flatMap([=](auto j_s1) {
-      return pvi(iterTraits(ownedArrayishIterator(filterNonMax(_shared->maxAtomicTerms(l2), lit2)))
-        .filter([=](auto k_s2) { return k_s2.numeral.isPositive() == j_s1.numeral.isPositive(); })
-        .filterMap([=](auto k_s2) { 
-            auto s1 = j_s1.factors->denormalize();
-            auto s2 = k_s2.factors->denormalize();
-            return _shared->unify(s1, s2)
-              .andThen([&](auto&& sigma_cnst) -> Option<UwaResult> { 
-                  auto maxAfterUnif = [&](auto term, auto literal) {
-                    auto term_sigma    = _shared->normalize(TypedTermList(sigma_cnst.sigma.apply(term, 0), NumTraits::sort()))
-                      .template downcast<NumTraits>().unwrap()
-                      ->tryMonom().unwrap().factors;
-                    auto literal_sigma = _shared->normalize(sigma_cnst.sigma.apply(literal.denormalize(), 0))
-                                     .unwrap().template unwrap<IrcLiteral<NumTraits>>();
-                    auto max = _shared->maxAtomicTerms(literal_sigma); // TODO can be done more efficient
-                    return iterTraits(max.iterFifo()).any([&](auto monom) { return monom.factors == term_sigma; });
-                  };
-
-                  if (maxAfterUnif(s1, l1) && maxAfterUnif(s1, l1)) {
-                    return Option<UwaResult>(std::move(sigma_cnst));
-                  } else {
-                    return Option<UwaResult>();
-                  }
-              })
-              .map([&](auto sigma_cnst){ return applyRule(premise, lit1, l1, j_s1, 
-                                                                   lit2, l2, k_s2, 
-                                                                   std::move(sigma_cnst)); });
-            }));
-    }));
-}
 
 template<template<class> class Obj> class AllNumTraits;
 template<class NumTraits, template<class> class Obj2> struct __getAllNumTraits {
@@ -204,59 +200,80 @@ struct __getAllNumTraits<RealTraits, Obj> {
 
   template<class NumTraits> using MaxTermStack = Stack<MaxAtomicTerm<NumTraits>>;
   template<class NumTraits> using SharedMaxTermStack = shared_ptr<MaxTermStack<NumTraits>>;
+
+auto range(unsigned from, unsigned to) { return iterTraits(getRangeIterator(from, to)); }
+
+template<class NumTraits>
+ClauseIterator LiteralFactoring::generateClauses(Clause* premise, 
+    Literal* lit1, IrcLiteral<NumTraits> l1, Monom<NumTraits> j_s1,
+    Literal* lit2, IrcLiteral<NumTraits> l2, Monom<NumTraits> k_s2) 
+{
+
+    auto s1 = j_s1.factors->denormalize();
+    auto s2 = k_s2.factors->denormalize();
+    return pvi(iterTraits(_shared->unify(s1, s2)
+      .andThen([&](auto sigma_cnst){ return applyRule(premise, lit1, l1, j_s1, 
+                                                           lit2, l2, k_s2, 
+                                                           std::move(sigma_cnst)); })
+      .intoIter()));
+
+
+}
+
+template<class NumTraits>
+ClauseIterator LiteralFactoring::generateClauses(
+    Clause* premise,
+    Literal* lit1, IrcLiteral<NumTraits> L1,
+    Literal* lit2, IrcLiteral<NumTraits> L2
+  ) 
+{
+  auto maxAtomic = [this](auto L) { return make_shared(new Stack<Monom<NumTraits>>(_shared->maxAtomicTerms(L, /* strict = */ true))); };
+  auto max1 = maxAtomic(L1);
+  auto max2 = maxAtomic(L2);
+  return pvi(range(0, max1->size())
+    .flatMap([=](auto i) {
+      return pvi(range(0, max2->size())
+        .flatMap([=](auto j) {
+          auto k_s1 = (*max1)[i];
+          auto j_s2 = (*max2)[j];
+          return generateClauses(premise, lit1, L1, k_s1, lit2, L2, j_s2);
+        }));
+    }));
+}
+
 ClauseIterator LiteralFactoring::generateClauses(Clause* premise) 
 {
-  // static_assert(std::is_same<ArrayishObjectIterator<Clause>, decltype(ownedArrayishIterator(_shared->maxLiterals(premise)))>::value, "we assume that the first numSelected() literals are the selected ones");
 
   DEBUG("in: ", *premise)
 
-  auto selected = make_shared(new Stack<Literal*>(_shared->maxLiterals(premise)));
-  auto normalize = [this,selected](unsigned i) {
-    using Opt = Option<Indexed<pair<Literal*, AnyIrcLiteral>>>;
-    auto lit = (*selected)[i];
-    auto norm = _shared->normalizer.normalize(lit);
-    return norm.isSome() && !norm.unwrap().overflowOccurred
-      ? Opt(indexed(i, make_pair(lit, norm.unwrap().value)))
-      : Opt();
-  };
+  auto selected = _shared->maxLiterals(premise);
+  return pvi(
+      range(0, selected.size())
+        .flatMap([this, selected = std::move(selected), premise](unsigned i) {
+          auto lit1 = selected[i];
+          auto L1_opt = _shared->normalize(lit1);
+          return pvi(iterTraits(std::move(L1_opt).intoIter())
+            .flatMap([&](auto polymorphicNormalized) {
+                // we know that the first literal is an inequality of some number sort
+                // we dispatch on the number sort
+                return polymorphicNormalized.apply([&](auto L1) {
+                      using NumTraits = typename decltype(L1)::NumTraits;
+                      return pvi(range(i + 1, selected.size())
+                        .flatMap([&](auto j) {
+                          auto lit2 = selected[j];
+                          // we check whether the second is an inequality literal of the same number sort
+                          auto L2_opt = _shared->normalize<NumTraits>(lit2);
+                          auto ci = pvi(iterTraits(std::move(L2_opt).intoIter())
+                            .flatMap([&](IrcLiteral<NumTraits> L2) 
+                                { return generateClauses(premise, lit1, L1, lit2, L2); }));
+                          return ci;
 
-  auto maxTerms = AllNumTraits<SharedMaxTermStack>(
-      make_shared(new MaxTermStack< IntTraits>(_shared->maxAtomicTermsNonVar< IntTraits>(premise))),
-      make_shared(new MaxTermStack< RatTraits>(_shared->maxAtomicTermsNonVar< RatTraits>(premise))),
-      make_shared(new MaxTermStack<RealTraits>(_shared->maxAtomicTermsNonVar<RealTraits>(premise)))
-  );
+                        }));
 
-  return pvi(iterTraits(getRangeIterator((unsigned)0, (unsigned)selected->size()))
-    .filterMap([=](unsigned i) 
-      { return normalize(i); })
-
-    .flatMap([=](auto lit1_l1) {
-      auto lit1 = lit1_l1->first;
-      auto l1 = lit1_l1->second;
-      return pvi(iterTraits(getRangeIterator(lit1_l1.idx + 1, (unsigned)selected->size()))
-
-        .filterMap([=](unsigned j)
-          { return normalize(j); })
-
-        .filterMap([=](auto lit2_l2) -> Option<ClauseIterator> { 
-          auto lit2 = lit2_l2->first;
-          auto l2 = lit2_l2->second;
-
-          return l1.apply([&](auto l1) { 
-              using NumTraits = typename decltype(l1)::NumTraits;
-              /* check whether l1 and l2 are of the same number sort */
-              return l2.template as<decltype(l1)>()
-
-                /* check whether l1 and l2 are of the same inequality symbol */
-                .filter([=](auto l2) { return l1.symbol() == l2.symbol(); })
-
-                /* actually apply the rule */
-                .map([=](auto l2){ return generateClauses(premise, lit1, l1, lit2, l2, maxTerms.template get<NumTraits>()); });
-          }); 
-        })
-        .flatten());
-
-  }));
+                  });
+            }));
+          })
+    );
 }
 
   

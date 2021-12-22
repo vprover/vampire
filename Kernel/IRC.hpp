@@ -276,6 +276,7 @@ namespace Kernel {
     template<class NumTraits> Stack<Monom<NumTraits>> maxAtomicTerms(IrcLiteral<NumTraits>const& lit, bool strict = false);
     template<class NumTraits> Stack<MaxAtomicTerm<NumTraits>> maxAtomicTermsNonVar(Clause* cl);
     Stack<Literal*> maxLiterals(Clause* cl, bool strictlyMax = false);
+    Stack<Literal*> maxLiterals(Stack<Literal*> cl, bool strictlyMax = false);
     Stack<Literal*> strictlyMaxLiterals(Clause* cl) { return maxLiterals(cl, true); }
 
     Option<UwaResult> unify(TermList lhs, TermList rhs) const;
@@ -303,6 +304,16 @@ namespace Kernel {
       return true;
     }
 
+    template<class NumTraits> 
+    Option<IrcLiteral<NumTraits>> normalize(Literal* l)
+    {
+      auto norm = this->normalizer.normalizeIrc<NumTraits>(l);
+      if (norm.isNone() || norm.unwrap().overflowOccurred) {
+        return Option<IrcLiteral<NumTraits>>();
+      } else {
+        return Option<IrcLiteral<NumTraits>>(norm.unwrap().value);
+      }
+    }
 
   };
 
@@ -523,28 +534,6 @@ Stack<Monom<NumTraits>> IrcState::maxAtomicTerms(IrcLiteral<NumTraits>const& lit
   }
   max.pop(max.size() - offs);
   return max;
-  // Stack<Monom> max(lit.term().nSummands()); // TODO not sure whether this size allocation brings an advantage
-  // auto monoms = lit.term().iterSummands().template collect<Stack>();
-  // for (unsigned i = 0; i < monoms.size(); i++) {
-  //   auto isMax = true;
-  //   for (unsigned j = 0; j < monoms.size(); j++) {
-  //     auto cmp = ordering->compare(
-  //         monoms[i].factors->denormalize(), 
-  //         monoms[j].factors->denormalize());
-  //     if (cmp == Ordering::LESS) {
-  //         isMax = false;
-  //         break;
-  //     } else if(cmp == Ordering::EQUAL || cmp == Ordering::INCOMPARABLE || Ordering::GREATER) {
-  //       /* ok */
-  //     } else {
-  //       ASSERTION_VIOLATION_REP(cmp)
-  //     }
-  //   }
-  //   if (isMax && monoms[i].factors->tryVar().isNone())  // TODO we don't wanna skip varibles in the future
-  //   // if (isMax)  // TODO we don't wanna skip varibles in the future
-  //     max.push(monoms[i]);
-  // }
-  // return max;
 }
 
 template<class NumTraits> Stack<MaxAtomicTerm<NumTraits>> IrcState::maxAtomicTermsNonVar(Clause* cl)
