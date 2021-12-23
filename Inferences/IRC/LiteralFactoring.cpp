@@ -241,26 +241,30 @@ ClauseIterator LiteralFactoring::generateClauses(
     }));
 }
 
+template<class A>
+A* move_to_heap(A&& a) 
+{ return new A(std::move(a)); }
+
 ClauseIterator LiteralFactoring::generateClauses(Clause* premise) 
 {
 
   DEBUG("in: ", *premise)
 
-  auto selected = _shared->maxLiterals(premise);
+  auto selected = make_shared(move_to_heap(_shared->maxLiterals(premise)));
   return pvi(
-      range(0, selected.size())
-        .flatMap([this, selected = std::move(selected), premise](unsigned i) {
-          auto lit1 = selected[i];
+      range(0, selected->size())
+        .flatMap([=](unsigned i) {
+          auto lit1 = (*selected)[i];
           auto L1_opt = _shared->normalize(lit1);
           return pvi(iterTraits(std::move(L1_opt).intoIter())
-            .flatMap([&](auto polymorphicNormalized) {
+            .flatMap([=](auto polymorphicNormalized) {
                 // we know that the first literal is an inequality of some number sort
                 // we dispatch on the number sort
                 return polymorphicNormalized.apply([&](auto L1) {
                       using NumTraits = typename decltype(L1)::NumTraits;
-                      return pvi(range(i + 1, selected.size())
-                        .flatMap([&](auto j) {
-                          auto lit2 = selected[j];
+                      return pvi(range(i + 1, selected->size())
+                        .flatMap([=](auto j) {
+                          auto lit2 = (*selected)[j];
                           // we check whether the second is an inequality literal of the same number sort
                           auto L2_opt = _shared->normalize<NumTraits>(lit2);
                           auto ci = pvi(iterTraits(std::move(L2_opt).intoIter())
