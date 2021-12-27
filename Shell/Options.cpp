@@ -838,7 +838,9 @@ void Options::init()
 
     _lookup.insert(&_selection);
     _selection.tag(OptionTag::SATURATION);
-    _selection.reliesOn(Or(_saturationAlgorithm.is(notEqual(SaturationAlgorithm::INST_GEN)),_instGenWithResolution.is(equal(true))));
+    _selection.reliesOn(Or(_saturationAlgorithm.is(equal(SaturationAlgorithm::LRS)),
+                           _saturationAlgorithm.is(equal(SaturationAlgorithm::OTTER)),
+                           _saturationAlgorithm.is(equal(SaturationAlgorithm::DISCOUNT))));
     _selection.setRandomChoices(And(isRandSat(),saNotInstGen()),{"0","1","2","3","4","10","11","-1","-2","-3","-4","-10","-11"});
     _selection.setRandomChoices({"0","1","2","3","4","10","11","1002","1003","1004","1010","1011","-1","-2","-3","-4","-10","-11","-1002","-1003","-1004","-1010"});
 
@@ -1031,411 +1033,411 @@ void Options::init()
 
 #if VZ3
 
-           _theoryInstAndSimp = ChoiceOptionValue<TheoryInstSimp>("theory_instantiation","thi",
-                                                TheoryInstSimp::OFF, {"off", "all", "strong", "neg_eq", "overlap", "full", "new"});
-           _theoryInstAndSimp.description = ""
-           "\nEnables theory instantiation rule: "
-           "\nT[x_1, ..., x_n] \\/ C[x_1, ..., x_n]"
-           "\n-------------------------------------"
-           "\n           C[t_1, ..., t_n]          "
-           "\nwhere  "
-           "\n -  T[x_1, ..., x_n] is a pure theory clause  "
-           "\n - ~T[t_1, ...., t_n] is valid "
-           "\n"
-           "\nThe rule uses an smt solver (i.e. z3 atm) to find t_1...t_n that satisfy the requirement for the rule."
-           "\n"
-           "\nThe different option values define the behaviour of which theory literals to select."
-           "\n- all    : hmmm.. what could that mean?!"
-           "\n- neg_eq : only negative equalities"
-           "\n- strong : interpreted predicates, but no positive equalites"
-           "\n- overlap: all literals that contain variables that are also contained in a strong literal"
-           "\n- new    : deprecated"
-           "\n- full   : deprecated"
-           ""; 
-           _theoryInstAndSimp.tag(OptionTag::INFERENCES);
-           _lookup.insert(&_theoryInstAndSimp);
+    _theoryInstAndSimp = ChoiceOptionValue<TheoryInstSimp>("theory_instantiation","thi",
+                                        TheoryInstSimp::OFF, {"off", "all", "strong", "neg_eq", "overlap", "full", "new"});
+    _theoryInstAndSimp.description = ""
+    "\nEnables theory instantiation rule: "
+    "\nT[x_1, ..., x_n] \\/ C[x_1, ..., x_n]"
+    "\n-------------------------------------"
+    "\n           C[t_1, ..., t_n]          "
+    "\nwhere  "
+    "\n -  T[x_1, ..., x_n] is a pure theory clause  "
+    "\n - ~T[t_1, ...., t_n] is valid "
+    "\n"
+    "\nThe rule uses an smt solver (i.e. z3 atm) to find t_1...t_n that satisfy the requirement for the rule."
+    "\n"
+    "\nThe different option values define the behaviour of which theory literals to select."
+    "\n- all    : hmmm.. what could that mean?!"
+    "\n- neg_eq : only negative equalities"
+    "\n- strong : interpreted predicates, but no positive equalites"
+    "\n- overlap: all literals that contain variables that are also contained in a strong literal"
+    "\n- new    : deprecated"
+    "\n- full   : deprecated"
+    "";
+    _theoryInstAndSimp.tag(OptionTag::INFERENCES);
+    _lookup.insert(&_theoryInstAndSimp);
 
-           _thiGeneralise = BoolOptionValue("theory_instantiation_generalisation", "thigen", false);
-           _thiGeneralise.description = "Enable retrieval of generalised instances in theory instantiation. This can help with datatypes but requires thi to call the smt solver twice. "
-           "\n"
-           "\n An example of such a generalisation is:"
-           "\n first(x) > 0 \\/ P[x]"
-           "\n ==================== "
-           "\n     P[(-1, y)]"
-           "\n"
-           "\n instead of the more concrete instance"
-           "\n first(x) > 0 \\/ P[x]"
-           "\n ==================== "
-           "\n     P[(-1, 0)]"
-           ; 
-           _thiGeneralise.tag(OptionTag::INFERENCES);
-           _lookup.insert(&_thiGeneralise);
-           _thiGeneralise.setExperimental();
-           _thiGeneralise.reliesOn(_theoryInstAndSimp.is(notEqual(TheoryInstSimp::OFF)));
+    _thiGeneralise = BoolOptionValue("theory_instantiation_generalisation", "thigen", false);
+    _thiGeneralise.description = "Enable retrieval of generalised instances in theory instantiation. This can help with datatypes but requires thi to call the smt solver twice. "
+    "\n"
+    "\n An example of such a generalisation is:"
+    "\n first(x) > 0 \\/ P[x]"
+    "\n ==================== "
+    "\n     P[(-1, y)]"
+    "\n"
+    "\n instead of the more concrete instance"
+    "\n first(x) > 0 \\/ P[x]"
+    "\n ==================== "
+    "\n     P[(-1, 0)]"
+    ;
+    _thiGeneralise.tag(OptionTag::INFERENCES);
+    _lookup.insert(&_thiGeneralise);
+    _thiGeneralise.setExperimental();
+    _thiGeneralise.reliesOn(_theoryInstAndSimp.is(notEqual(TheoryInstSimp::OFF)));
 
-           _thiTautologyDeletion = BoolOptionValue("theory_instantiation_tautology_deletion", "thitd", false);
-           _thiTautologyDeletion.description = "Enable deletion of tautology theory subclauses detected via theory instantiation."; 
-           _thiTautologyDeletion.tag(OptionTag::INFERENCES);
-           _lookup.insert(&_thiTautologyDeletion);
-           _thiTautologyDeletion.setExperimental();
-           _thiTautologyDeletion.reliesOn(_theoryInstAndSimp.is(notEqual(TheoryInstSimp::OFF)));
+    _thiTautologyDeletion = BoolOptionValue("theory_instantiation_tautology_deletion", "thitd", false);
+    _thiTautologyDeletion.description = "Enable deletion of tautology theory subclauses detected via theory instantiation.";
+    _thiTautologyDeletion.tag(OptionTag::INFERENCES);
+    _lookup.insert(&_thiTautologyDeletion);
+    _thiTautologyDeletion.setExperimental();
+    _thiTautologyDeletion.reliesOn(_theoryInstAndSimp.is(notEqual(TheoryInstSimp::OFF)));
 #endif
 
-           _unificationWithAbstraction = ChoiceOptionValue<UnificationWithAbstraction>("unification_with_abstraction","uwa",
-                                             UnificationWithAbstraction::OFF,
-                                             {"off","interpreted_only","one_side_interpreted","one_side_constant","all","ground"});
-           _unificationWithAbstraction.description=
-              "During unification, if two terms s and t fail to unify we will introduce a constraint s!=t and carry on. For example, "
-              "resolving p(1) \\/ C with ~p(a+2) would produce C \\/ 1 !=a+2. This is controlled by a check on the terms. The expected "
-              "use case is in theory reasoning. The possible values are:"
-              "- off: do not introduce a constraint\n"
-              "- interpreted_only: only if s and t have interpreted top symbols\n" 
-              "- one_side_interpreted: only if one of s or t have interpreted top symbols\n"
-              "- one_side_constant: only if one of s or t is an interpreted constant (e.g. a number)\n"
-              "- all: always apply\n"
-              "- ground: only if both s and t are ground\n"
-              "See Unification with Abstraction and Theory Instantiation in Saturation-Based Reasoning for further details.";
-           _unificationWithAbstraction.tag(OptionTag::INFERENCES);
-           _lookup.insert(&_unificationWithAbstraction);
+    _unificationWithAbstraction = ChoiceOptionValue<UnificationWithAbstraction>("unification_with_abstraction","uwa",
+                                     UnificationWithAbstraction::OFF,
+                                     {"off","interpreted_only","one_side_interpreted","one_side_constant","all","ground"});
+    _unificationWithAbstraction.description=
+      "During unification, if two terms s and t fail to unify we will introduce a constraint s!=t and carry on. For example, "
+      "resolving p(1) \\/ C with ~p(a+2) would produce C \\/ 1 !=a+2. This is controlled by a check on the terms. The expected "
+      "use case is in theory reasoning. The possible values are:"
+      "- off: do not introduce a constraint\n"
+      "- interpreted_only: only if s and t have interpreted top symbols\n"
+      "- one_side_interpreted: only if one of s or t have interpreted top symbols\n"
+      "- one_side_constant: only if one of s or t is an interpreted constant (e.g. a number)\n"
+      "- all: always apply\n"
+      "- ground: only if both s and t are ground\n"
+      "See Unification with Abstraction and Theory Instantiation in Saturation-Based Reasoning for further details.";
+    _unificationWithAbstraction.tag(OptionTag::INFERENCES);
+    _lookup.insert(&_unificationWithAbstraction);
 
-           _useACeval = BoolOptionValue("use_ac_eval","uace",true);
-           _useACeval.description="Evaluate associative and commutative operators e.g. + and *.";
-           _useACeval.tag(OptionTag::INFERENCES);
-           _lookup.insert(&_useACeval);
- 
-           _inequalityNormalization = BoolOptionValue("normalize_inequalities","norm_ineq",false);
-           _inequalityNormalization.description="Enable normalizing of inequalities like s < t ==> 0 < t - s.";
-           _lookup.insert(&_inequalityNormalization);
-           _inequalityNormalization.tag(OptionTag::INFERENCES);
+    _useACeval = BoolOptionValue("use_ac_eval","uace",true);
+    _useACeval.description="Evaluate associative and commutative operators e.g. + and *.";
+    _useACeval.tag(OptionTag::INFERENCES);
+    _lookup.insert(&_useACeval);
 
-           auto choiceArithmeticSimplificationMode = [&](vstring l, vstring s, ArithmeticSimplificationMode d) 
-           { return ChoiceOptionValue<ArithmeticSimplificationMode>(l,s,d, {"force", "cautious", "off", }); };
-           _cancellation = choiceArithmeticSimplificationMode(
-               "cancellation", "canc",
-               ArithmeticSimplificationMode::OFF);
-           _cancellation.description = "Enables the rule cancellation around additions as described in the paper Making Theory Reasoning Simpler ( https://easychair.org/publications/preprint/K2hb ). \
-                                        In some rare cases the conclusion may be not strictly simpler than the hypothesis. With `force` we ignore these cases, violating the ordering and just simplifying \
-                                        anyways. With `cautious` we will generate a new clause instead of simplifying in these cases.";
-           _lookup.insert(&_cancellation);
-           _cancellation.tag(OptionTag::INFERENCES);
-           _cancellation.setExperimental();
+    _inequalityNormalization = BoolOptionValue("normalize_inequalities","norm_ineq",false);
+    _inequalityNormalization.description="Enable normalizing of inequalities like s < t ==> 0 < t - s.";
+    _lookup.insert(&_inequalityNormalization);
+    _inequalityNormalization.tag(OptionTag::INFERENCES);
 
-           _highSchool = BoolOptionValue("high_school", "hsm", false);
-           _highSchool.description="Enables high school education for vampire. (i.e.: sets -gve cautious, -asg cautious, -ev cautious, -canc cautious, -pum on )";
-           _lookup.insert(&_highSchool);
-           _highSchool.tag(OptionTag::INFERENCES);
+    auto choiceArithmeticSimplificationMode = [&](vstring l, vstring s, ArithmeticSimplificationMode d)
+    { return ChoiceOptionValue<ArithmeticSimplificationMode>(l,s,d, {"force", "cautious", "off", }); };
+    _cancellation = choiceArithmeticSimplificationMode(
+       "cancellation", "canc",
+       ArithmeticSimplificationMode::OFF);
+    _cancellation.description = "Enables the rule cancellation around additions as described in the paper Making Theory Reasoning Simpler ( https://easychair.org/publications/preprint/K2hb ). \
+                                In some rare cases the conclusion may be not strictly simpler than the hypothesis. With `force` we ignore these cases, violating the ordering and just simplifying \
+                                anyways. With `cautious` we will generate a new clause instead of simplifying in these cases.";
+    _lookup.insert(&_cancellation);
+    _cancellation.tag(OptionTag::INFERENCES);
+    _cancellation.setExperimental();
 
-
-           _pushUnaryMinus = BoolOptionValue(
-               "push_unary_minus", "pum",
-               false);
-           _pushUnaryMinus.description=
-                  "Enable the immideate simplifications:\n"
-                  " -(t + s) ==> -t + -s\n"
-                  " -(-t) ==> t\n"
-                  ;
-           _lookup.insert(&_pushUnaryMinus);
-           _pushUnaryMinus.tag(OptionTag::INFERENCES);
-
-           _gaussianVariableElimination = choiceArithmeticSimplificationMode(
-               "gaussian_variable_elimination", "gve",
-               ArithmeticSimplificationMode::OFF);
-           _gaussianVariableElimination.description=
-                  "Enable the immideate simplification \"Gaussian Variable Elimination\":\n"
-                  "\n"
-                  "s != t \\/ C[X] \n"
-                  "--------------  if s != t can be rewritten to X != r \n"
-                  "    C[r] \n"
-                  "\n"
-                  "Example:\n"
-                  "\n"
-                  "6 * X0 != 2 * X1 | p(X0, X1)\n"
-                  "-------------------------------\n"
-                  "  p(2 * X1 / 6, X1)\n"
-                  "\n"
-                  "\n"
-                  "For a more detailed description see the paper Making Theory Reasoning Simpler ( https://easychair.org/publications/preprint/K2hb ). \
-                  In some rare cases the conclusion may be not strictly simpler than the hypothesis. With `force` we ignore these cases, violating the ordering and just simplifying \
-                  anyways. With `cautious` we will generate a new clause instead of simplifying in these cases.";
-           _lookup.insert(&_gaussianVariableElimination);
-           _gaussianVariableElimination.tag(OptionTag::INFERENCES);
-
-           _arithmeticSubtermGeneralizations = choiceArithmeticSimplificationMode(
-               "arithmetic_subterm_generalizations", "asg",
-               ArithmeticSimplificationMode::OFF);
-           _arithmeticSubtermGeneralizations.description = "\
-                  Enables variaous generalization rules for arithmetic terms as described in the paper Making Theory Reasoning Simpler ( https://easychair.org/publications/preprint/K2hb ). \
-                  In some rare cases the conclusion may be not strictly simpler than the hypothesis. With `force` we ignore these cases, violating the ordering and just simplifying \
-                  anyways. With `cautious` we will generate a new clause instead of simplifying in these cases.";
-           _lookup.insert(&_arithmeticSubtermGeneralizations);
-           _arithmeticSubtermGeneralizations.tag(OptionTag::INFERENCES);
-
-            _induction = ChoiceOptionValue<Induction>("induction","ind",Induction::NONE,
-                                {"none","struct","int","both"});
-            _induction.description = "Apply structural and/or integer induction on datatypes and integers.";
-            _induction.tag(OptionTag::INFERENCES);
-            _lookup.insert(&_induction);
-            //_induction.setRandomChoices
-
-            _structInduction = ChoiceOptionValue<StructuralInductionKind>("structural_induction_kind","sik",
-                                 StructuralInductionKind::ONE,{"one","two","three","all"});
-            _structInduction.description="The kind of structural induction applied";
-            _structInduction.tag(OptionTag::INFERENCES);
-            _structInduction.reliesOn(Or(_induction.is(equal(Induction::STRUCTURAL)),_induction.is(equal(Induction::BOTH))));
-            _lookup.insert(&_structInduction);
-
-            _intInduction = ChoiceOptionValue<IntInductionKind>("int_induction_kind","iik",
-                                 IntInductionKind::ONE,{"one","two","all"});
-            _intInduction.description="The kind of integer induction applied";
-            _intInduction.tag(OptionTag::INFERENCES);
-
-            _intInduction.reliesOn(Or(_induction.is(equal(Induction::INTEGER)),_induction.is(equal(Induction::BOTH))));
-            _lookup.insert(&_intInduction);
-
-            _inductionChoice = ChoiceOptionValue<InductionChoice>("induction_choice","indc",InductionChoice::ALL,
-                                {"all","goal","goal_plus"});
-            _inductionChoice.description="Where to apply induction. Goal only applies to constants in goal, goal_plus"
-                                         " extends this with skolem constants introduced by induction. Consider using" 
-                                         " guess_the_goal for problems in SMTLIB as they do not come with a conjecture";
-            _inductionChoice.tag(OptionTag::INFERENCES);
-            _lookup.insert(&_inductionChoice);
-            _inductionChoice.reliesOn(_induction.is(notEqual(Induction::NONE)));
-            //_inductionChoice.addHardConstraint(If(equal(InductionChoice::GOAL)->Or(equal(InductionChoice::GOAL_PLUS))).then(
-            //  _inputSyntax.is(equal(InputSyntax::TPTP))->Or<InductionChoice>(_guessTheGoal.is(equal(true)))));
+    _highSchool = BoolOptionValue("high_school", "hsm", false);
+    _highSchool.description="Enables high school education for vampire. (i.e.: sets -gve cautious, -asg cautious, -ev cautious, -canc cautious, -pum on )";
+    _lookup.insert(&_highSchool);
+    _highSchool.tag(OptionTag::INFERENCES);
 
 
-            _maxInductionDepth = UnsignedOptionValue("induction_max_depth","indmd",0);
-            _maxInductionDepth.description = "Set maximum depth of induction where 0 means no max.";
-            _maxInductionDepth.tag(OptionTag::INFERENCES);
-            _maxInductionDepth.reliesOn(_induction.is(notEqual(Induction::NONE)));
-            _maxInductionDepth.addHardConstraint(lessThan(33u));
-            _lookup.insert(&_maxInductionDepth);
+    _pushUnaryMinus = BoolOptionValue(
+       "push_unary_minus", "pum",
+       false);
+    _pushUnaryMinus.description=
+          "Enable the immideate simplifications:\n"
+          " -(t + s) ==> -t + -s\n"
+          " -(-t) ==> t\n"
+          ;
+    _lookup.insert(&_pushUnaryMinus);
+    _pushUnaryMinus.tag(OptionTag::INFERENCES);
 
-            _inductionNegOnly = BoolOptionValue("induction_neg_only","indn",true);
-            _inductionNegOnly.description = "Only apply induction to negative literals";
-            _inductionNegOnly.tag(OptionTag::INFERENCES);
-            _inductionNegOnly.reliesOn(_induction.is(notEqual(Induction::NONE)));
-            _lookup.insert(&_inductionNegOnly);
+    _gaussianVariableElimination = choiceArithmeticSimplificationMode(
+       "gaussian_variable_elimination", "gve",
+       ArithmeticSimplificationMode::OFF);
+    _gaussianVariableElimination.description=
+          "Enable the immideate simplification \"Gaussian Variable Elimination\":\n"
+          "\n"
+          "s != t \\/ C[X] \n"
+          "--------------  if s != t can be rewritten to X != r \n"
+          "    C[r] \n"
+          "\n"
+          "Example:\n"
+          "\n"
+          "6 * X0 != 2 * X1 | p(X0, X1)\n"
+          "-------------------------------\n"
+          "  p(2 * X1 / 6, X1)\n"
+          "\n"
+          "\n"
+          "For a more detailed description see the paper Making Theory Reasoning Simpler ( https://easychair.org/publications/preprint/K2hb ). \
+          In some rare cases the conclusion may be not strictly simpler than the hypothesis. With `force` we ignore these cases, violating the ordering and just simplifying \
+          anyways. With `cautious` we will generate a new clause instead of simplifying in these cases.";
+    _lookup.insert(&_gaussianVariableElimination);
+    _gaussianVariableElimination.tag(OptionTag::INFERENCES);
 
-            _inductionUnitOnly = BoolOptionValue("induction_unit_only","indu",true);
-            _inductionUnitOnly.description = "Only apply induction to unit clauses";
-            _inductionUnitOnly.tag(OptionTag::INFERENCES);
-            _inductionUnitOnly.reliesOn(_induction.is(notEqual(Induction::NONE)));
-            _lookup.insert(&_inductionUnitOnly);
+    _arithmeticSubtermGeneralizations = choiceArithmeticSimplificationMode(
+       "arithmetic_subterm_generalizations", "asg",
+       ArithmeticSimplificationMode::OFF);
+    _arithmeticSubtermGeneralizations.description = "\
+          Enables variaous generalization rules for arithmetic terms as described in the paper Making Theory Reasoning Simpler ( https://easychair.org/publications/preprint/K2hb ). \
+          In some rare cases the conclusion may be not strictly simpler than the hypothesis. With `force` we ignore these cases, violating the ordering and just simplifying \
+          anyways. With `cautious` we will generate a new clause instead of simplifying in these cases.";
+    _lookup.insert(&_arithmeticSubtermGeneralizations);
+    _arithmeticSubtermGeneralizations.tag(OptionTag::INFERENCES);
 
-            _inductionGen = BoolOptionValue("induction_gen","indgen",false);
-            _inductionGen.description = "Apply induction with generalization (on both all & selected occurrences)";
-            _inductionGen.tag(OptionTag::INFERENCES);
-            _inductionGen.reliesOn(_induction.is(notEqual(Induction::NONE)));
-            _lookup.insert(&_inductionGen);
+    _induction = ChoiceOptionValue<Induction>("induction","ind",Induction::NONE,
+                      {"none","struct","int","both"});
+    _induction.description = "Apply structural and/or integer induction on datatypes and integers.";
+    _induction.tag(OptionTag::INFERENCES);
+    _lookup.insert(&_induction);
+    //_induction.setRandomChoices
 
-            _maxInductionGenSubsetSize = UnsignedOptionValue("max_induction_gen_subset_size","indgenss",3);
-            _maxInductionGenSubsetSize.description = "Set maximum number of occurrences of the induction term to be"
-                                                      " generalized, where 0 means no max. (Regular induction will"
-                                                      " be applied without this restriction.)";
-            _maxInductionGenSubsetSize.tag(OptionTag::INFERENCES);
-            _maxInductionGenSubsetSize.reliesOn(_inductionGen.is(equal(true)));
-            _maxInductionGenSubsetSize.addHardConstraint(lessThan(10u));
-            _lookup.insert(&_maxInductionGenSubsetSize);
+    _structInduction = ChoiceOptionValue<StructuralInductionKind>("structural_induction_kind","sik",
+                         StructuralInductionKind::ONE,{"one","two","three","all"});
+    _structInduction.description="The kind of structural induction applied";
+    _structInduction.tag(OptionTag::INFERENCES);
+    _structInduction.reliesOn(Or(_induction.is(equal(Induction::STRUCTURAL)),_induction.is(equal(Induction::BOTH))));
+    _lookup.insert(&_structInduction);
 
-            _inductionOnComplexTerms = BoolOptionValue("induction_on_complex_terms","indoct",false);
-            _inductionOnComplexTerms.description = "Apply induction on complex (ground) terms vs. only on constants";
-            _inductionOnComplexTerms.tag(OptionTag::INFERENCES);
-            _inductionOnComplexTerms.reliesOn(_induction.is(notEqual(Induction::NONE)));
-            _lookup.insert(&_inductionOnComplexTerms);
+    _intInduction = ChoiceOptionValue<IntInductionKind>("int_induction_kind","iik",
+                         IntInductionKind::ONE,{"one","two","all"});
+    _intInduction.description="The kind of integer induction applied";
+    _intInduction.tag(OptionTag::INFERENCES);
 
-            _integerInductionDefaultBound = BoolOptionValue("int_induction_default_bound","intinddb",false);
-            _integerInductionDefaultBound.description = "Always apply integer induction with bound 0";
-            _integerInductionDefaultBound.tag(OptionTag::INFERENCES);
-            _integerInductionDefaultBound.reliesOn(Or(_induction.is(equal(Induction::INTEGER)),_induction.is(equal(Induction::BOTH))));
-            _lookup.insert(&_integerInductionDefaultBound);
+    _intInduction.reliesOn(Or(_induction.is(equal(Induction::INTEGER)),_induction.is(equal(Induction::BOTH))));
+    _lookup.insert(&_intInduction);
 
-            _integerInductionInterval = ChoiceOptionValue<IntegerInductionInterval>("int_induction_interval","intindint",
-                                 IntegerInductionInterval::BOTH,{"infinite","finite","both"});
-            _integerInductionInterval.description="Whether integer induction is applied over infinite or finite intervals, or both";
-            _integerInductionInterval.tag(OptionTag::INFERENCES);
-            _integerInductionInterval.reliesOn(Or(_induction.is(equal(Induction::INTEGER)),_induction.is(equal(Induction::BOTH))));
-            _lookup.insert(&_integerInductionInterval);
-
-	    _instantiation = ChoiceOptionValue<Instantiation>("instantiation","inst",Instantiation::OFF,{"off","on"});
-	    _instantiation.description = "Heuristically instantiate variables. Often wastes a lot of effort. Consider using thi instead.";
-	    _instantiation.tag(OptionTag::INFERENCES);
-	    _lookup.insert(&_instantiation);
-	    _instantiation.setRandomChoices({"off","on"}); // Turn this on rarely
-
-	    _backwardDemodulation = ChoiceOptionValue<Demodulation>("backward_demodulation","bd",
-								    Demodulation::ALL,
-								    {"all","off","preordered"});
-	    _backwardDemodulation.description=
-		     "Oriented rewriting of kept clauses by newly derived unit equalities\n"
-		     "s = t     L[sθ] \\/ C\n"
-		     "---------------------   where sθ > tθ (replaces RHS)\n"
-		     " L[tθ] \\/ C\n";
-	    _lookup.insert(&_backwardDemodulation);
-	    _backwardDemodulation.tag(OptionTag::INFERENCES);
-	    _backwardDemodulation.addProblemConstraint(hasEquality());
-	    _backwardDemodulation.reliesOn(Or(_saturationAlgorithm.is(notEqual(SaturationAlgorithm::INST_GEN)),_instGenWithResolution.is(equal(true))));
-	    _backwardDemodulation.setRandomChoices({"all","off"});
-
-	    _backwardSubsumption = ChoiceOptionValue<Subsumption>("backward_subsumption","bs",
-								  Subsumption::OFF,{"off","on","unit_only"});
-	    _backwardSubsumption.description=
-		     "Perform subsumption deletion of kept clauses by newly derived clauses. Unit_only means that the subsumption will be performed only by unit clauses";
-	    _lookup.insert(&_backwardSubsumption);
-	    _backwardSubsumption.tag(OptionTag::INFERENCES);
-	    _backwardSubsumption.reliesOn(Or(_saturationAlgorithm.is(notEqual(SaturationAlgorithm::INST_GEN)),_instGenWithResolution.is(equal(true))));
-	    _backwardSubsumption.setRandomChoices({"on","off"});
-
-	    _backwardSubsumptionResolution = ChoiceOptionValue<Subsumption>("backward_subsumption_resolution","bsr",
-									    Subsumption::OFF,{"off","on","unit_only"});
-	    _backwardSubsumptionResolution.description=
-		     "Perform subsumption resolution on kept clauses using newly derived clauses. Unit_only means that the subsumption resolution will be performed only by unit clauses";
-	    _lookup.insert(&_backwardSubsumptionResolution);
-	    _backwardSubsumptionResolution.tag(OptionTag::INFERENCES);
-	    _backwardSubsumptionResolution.reliesOn(Or(_saturationAlgorithm.is(notEqual(SaturationAlgorithm::INST_GEN)),_instGenWithResolution.is(equal(true))));
-	    _backwardSubsumptionResolution.setRandomChoices({"on","off"});
-
-            _backwardSubsumptionDemodulation = BoolOptionValue("backward_subsumption_demodulation", "bsd", false);
-            _backwardSubsumptionDemodulation.description = "Perform backward subsumption demodulation.";
-            _lookup.insert(&_backwardSubsumptionDemodulation);
-            _backwardSubsumptionDemodulation.tag(OptionTag::INFERENCES);
-            _backwardSubsumptionDemodulation.addProblemConstraint(hasEquality());
-            _backwardSubsumptionDemodulation.reliesOn(_combinatorySuperposition.is(equal(false)));  // higher-order support is not yet implemented
-            _backwardSubsumptionDemodulation.setRandomChoices({"on","off"});
-
-            _backwardSubsumptionDemodulationMaxMatches = UnsignedOptionValue("backward_subsumption_demodulation_max_matches", "bsdmm", 0);
-            _backwardSubsumptionDemodulationMaxMatches.description = "Maximum number of multi-literal matches to consider in backward subsumption demodulation. 0 means to try all matches (until first success).";
-            _lookup.insert(&_backwardSubsumptionDemodulationMaxMatches);
-            _backwardSubsumptionDemodulationMaxMatches.tag(OptionTag::INFERENCES);
-            _backwardSubsumptionDemodulationMaxMatches.setRandomChoices({"0", "1", "3"});
-
-	    _binaryResolution = BoolOptionValue("binary_resolution","br",true);
-	    _binaryResolution.description=
-		  "Standard binary resolution i.e.\n"
-		      "C \\/ t     D \\/ s\n"
-		      "---------------------\n"
-		      "(C \\/ D)θ\n"
-		      "where θ = mgu(t,-s) and t selected";
-	    _lookup.insert(&_binaryResolution);
-	    _binaryResolution.tag(OptionTag::INFERENCES);
-	    // If urr is off then binary resolution should be on
-	    _binaryResolution.addConstraint(
-	      If(equal(false)).then(_unitResultingResolution.is(notEqual(URResolution::OFF))));
-	    _binaryResolution.setRandomChoices(And(isRandSat(),saNotInstGen(),Or(hasEquality(),hasCat(Property::HNE))),{"on"});
-	    _binaryResolution.setRandomChoices({"on","off"});
+    _inductionChoice = ChoiceOptionValue<InductionChoice>("induction_choice","indc",InductionChoice::ALL,
+                        {"all","goal","goal_plus"});
+    _inductionChoice.description="Where to apply induction. Goal only applies to constants in goal, goal_plus"
+                                 " extends this with skolem constants introduced by induction. Consider using"
+                                 " guess_the_goal for problems in SMTLIB as they do not come with a conjecture";
+    _inductionChoice.tag(OptionTag::INFERENCES);
+    _lookup.insert(&_inductionChoice);
+    _inductionChoice.reliesOn(_induction.is(notEqual(Induction::NONE)));
+    //_inductionChoice.addHardConstraint(If(equal(InductionChoice::GOAL)->Or(equal(InductionChoice::GOAL_PLUS))).then(
+    //  _inputSyntax.is(equal(InputSyntax::TPTP))->Or<InductionChoice>(_guessTheGoal.is(equal(true)))));
 
 
-	    _condensation = ChoiceOptionValue<Condensation>("condensation","cond",Condensation::OFF,{"fast","off","on"});
-	    _condensation.description=
-		     "Perform condensation. If 'fast' is specified, we only perform condensations that are easy to check for.";
-	    _lookup.insert(&_condensation);
-	    _condensation.tag(OptionTag::INFERENCES);
-	    _condensation.reliesOn(Or(_saturationAlgorithm.is(notEqual(SaturationAlgorithm::INST_GEN)),_instGenWithResolution.is(equal(true))));
-	    _condensation.setRandomChoices({"on","off","fast"});
+    _maxInductionDepth = UnsignedOptionValue("induction_max_depth","indmd",0);
+    _maxInductionDepth.description = "Set maximum depth of induction where 0 means no max.";
+    _maxInductionDepth.tag(OptionTag::INFERENCES);
+    _maxInductionDepth.reliesOn(_induction.is(notEqual(Induction::NONE)));
+    _maxInductionDepth.addHardConstraint(lessThan(33u));
+    _lookup.insert(&_maxInductionDepth);
 
-	    _demodulationRedundancyCheck = BoolOptionValue("demodulation_redundancy_check","drc",true);
-	    _demodulationRedundancyCheck.description=
-		     "Avoids the following cases of backward and forward demodulation, as they do not preserve completeness:\n"
-		     "s = t     s = t1 \\/ C \t s = t     s != t1 \\/ C\n"
+    _inductionNegOnly = BoolOptionValue("induction_neg_only","indn",true);
+    _inductionNegOnly.description = "Only apply induction to negative literals";
+    _inductionNegOnly.tag(OptionTag::INFERENCES);
+    _inductionNegOnly.reliesOn(_induction.is(notEqual(Induction::NONE)));
+    _lookup.insert(&_inductionNegOnly);
 
-		     "--------------------- \t ---------------------\n"
-		     "t = t1 \\/ C \t\t t != t1 \\/ C\n"
-		     "where t > t1 and s = t > C (RHS replaced)";
-	    _lookup.insert(&_demodulationRedundancyCheck);
-	    _demodulationRedundancyCheck.tag(OptionTag::INFERENCES);
-	    _demodulationRedundancyCheck.reliesOn(Or(_saturationAlgorithm.is(notEqual(SaturationAlgorithm::INST_GEN)),_instGenWithResolution.is(equal(true))));
-	    _demodulationRedundancyCheck.addProblemConstraint(hasEquality());
-	    _demodulationRedundancyCheck.setRandomChoices({"on","off"});
+    _inductionUnitOnly = BoolOptionValue("induction_unit_only","indu",true);
+    _inductionUnitOnly.description = "Only apply induction to unit clauses";
+    _inductionUnitOnly.tag(OptionTag::INFERENCES);
+    _inductionUnitOnly.reliesOn(_induction.is(notEqual(Induction::NONE)));
+    _lookup.insert(&_inductionUnitOnly);
 
-	    
-	    _extensionalityAllowPosEq = BoolOptionValue( "extensionality_allow_pos_eq","",false);
-	    _extensionalityAllowPosEq.description="If extensionality resolution equals filter, this dictates"
-	      " whether we allow other positive equalities when recognising extensionality clauses";
-	    _lookup.insert(&_extensionalityAllowPosEq);
-	    _extensionalityAllowPosEq.tag(OptionTag::INFERENCES);
-	    _extensionalityAllowPosEq.reliesOn(_extensionalityResolution.is(equal(ExtensionalityResolution::FILTER)));
-	    _extensionalityAllowPosEq.setRandomChoices({"on","off","off"}); // Prefer off
-	    
-	    _extensionalityMaxLength = UnsignedOptionValue("extensionality_max_length","",0);
-	    _extensionalityMaxLength.description="Sets the maximum length (number of literals) an extensionality"
-	      " clause can have when doing recognition for extensionality resolution. If zero there is no maximum.";
-	    _lookup.insert(&_extensionalityMaxLength);
-	    _extensionalityMaxLength.tag(OptionTag::INFERENCES);
-	    // 0 means infinity, so it is intentionally not if (unsignedValue < 2).
-	    _extensionalityMaxLength.addConstraint(notEqual(1u));
-	    _extensionalityMaxLength.reliesOn(_extensionalityResolution.is(notEqual(ExtensionalityResolution::OFF)));
-	    //TODO does this depend on anything?
-	    _extensionalityMaxLength.setRandomChoices({"0","0","0","2","3"}); // TODO what are good values?
-	    
-	    _extensionalityResolution = ChoiceOptionValue<ExtensionalityResolution>("extensionality_resolution","er",
-										    ExtensionalityResolution::OFF,{"filter","known","tagged","off"});
-	    _extensionalityResolution.description=
-	      "Turns on the following inference rule:\n"
-	      "  x=y \\/ C    s != t \\/ D\n"
-	      "  -----------------------\n"
-	      "  C{x → s, y → t} \\/ D\n"
-	      "Where s!=t is selected in s!=t \\/D and x=y \\/ C is a recognised as an extensionality clause - how clauses are recognised depends on the value of this option.\n"
-	      "If filter we attempt to recognise all extensionality clauses i.e. those that have exactly one X=Y, no inequality of the same sort as X-Y (and optionally no equality except X=Y, see extensionality_allow_pos_eq).\n" 
-	      "If known we only recognise a known set of extensionality clauses. At the moment this includes the standard and subset-based formulations of the set extensionality axiom, as well as the array extensionality axiom.\n"
-	      "If tagged we only use formulas tagged as extensionality clauses.";
-	    _lookup.insert(&_extensionalityResolution);
-	    _extensionalityResolution.tag(OptionTag::INFERENCES);
-	    // Captures that if ExtensionalityResolution is not off then inequality splitting must be 0
-	    _extensionalityResolution.reliesOn(_inequalitySplitting.is(equal(0)));
-	    _extensionalityResolution.setRandomChoices({"filter","known","off","off"});
+    _inductionGen = BoolOptionValue("induction_gen","indgen",false);
+    _inductionGen.description = "Apply induction with generalization (on both all & selected occurrences)";
+    _inductionGen.tag(OptionTag::INFERENCES);
+    _inductionGen.reliesOn(_induction.is(notEqual(Induction::NONE)));
+    _lookup.insert(&_inductionGen);
 
-	    _FOOLParamodulation = BoolOptionValue("fool_paramodulation","foolp",false);
-	    _FOOLParamodulation.description=
-	      "Turns on the following inference rule:\n"
-	      "        C[s]\n"
-	      "--------------------,\n"
-	      "C[true] \\/ s = false\n"
-	      "where s is a boolean term that is not a variable, true or false, C[true] is "
-	      "the C clause with s substituted by true. This rule is needed for effecient "
-	      "treatment of boolean terms.";
-	    _lookup.insert(&_FOOLParamodulation);
-	    _FOOLParamodulation.tag(OptionTag::INFERENCES);
+    _maxInductionGenSubsetSize = UnsignedOptionValue("max_induction_gen_subset_size","indgenss",3);
+    _maxInductionGenSubsetSize.description = "Set maximum number of occurrences of the induction term to be"
+                                              " generalized, where 0 means no max. (Regular induction will"
+                                              " be applied without this restriction.)";
+    _maxInductionGenSubsetSize.tag(OptionTag::INFERENCES);
+    _maxInductionGenSubsetSize.reliesOn(_inductionGen.is(equal(true)));
+    _maxInductionGenSubsetSize.addHardConstraint(lessThan(10u));
+    _lookup.insert(&_maxInductionGenSubsetSize);
 
-            _termAlgebraInferences = BoolOptionValue("term_algebra_rules","tar",true);
-            _termAlgebraInferences.description=
-              "Activates some rules that improve reasoning with term algebras (such as algebraic datatypes in SMT-LIB):\n"
-              "If the problem does not contain any term algebra symbols, activating this options has no effect\n"
-              "- distinctness rule:\n"
-              "f(...) = g(...) \\/ A\n"
-              "--------------------\n"
-              "          A         \n"
-              "where f and g are distinct term algebra constructors\n"
-              "- distinctness tautology deletion: clauses of the form f(...) ~= g(...) \\/ A are deleted\n"
-              "- injectivity rule:\n"
-              "f(s1 ... sn) = f(t1 ... tn) \\/ A\n"
-              "--------------------------------\n"
-              "         s1 = t1 \\/ A\n"
-              "               ...\n"
-              "         sn = tn \\/ A";
-            _lookup.insert(&_termAlgebraInferences);
-            _termAlgebraInferences.tag(OptionTag::INFERENCES);
+    _inductionOnComplexTerms = BoolOptionValue("induction_on_complex_terms","indoct",false);
+    _inductionOnComplexTerms.description = "Apply induction on complex (ground) terms vs. only on constants";
+    _inductionOnComplexTerms.tag(OptionTag::INFERENCES);
+    _inductionOnComplexTerms.reliesOn(_induction.is(notEqual(Induction::NONE)));
+    _lookup.insert(&_inductionOnComplexTerms);
 
-            _termAlgebraCyclicityCheck = ChoiceOptionValue<TACyclicityCheck>("term_algebra_acyclicity","tac",
-                                                                             TACyclicityCheck::OFF,{"off","axiom","rule","light"});
-            _termAlgebraCyclicityCheck.description=
-              "Activates the cyclicity rule for term algebras (such as algebraic datatypes in SMT-LIB):\n"
-              "- off : the cyclicity rule is not enforced (this is sound but incomplete)\n"
-              "- axiom : the cyclicity rule is axiomatized with a transitive predicate describing the subterm relation over terms\n"
-              "- rule : the cyclicity rule is enforced by a specific hyper-resolution rule\n"
-              "- light : the cyclicity rule is enforced by rule generating disequality between a term and its known subterms";
-            _lookup.insert(&_termAlgebraCyclicityCheck);
-            _termAlgebraCyclicityCheck.tag(OptionTag::INFERENCES);
+    _integerInductionDefaultBound = BoolOptionValue("int_induction_default_bound","intinddb",false);
+    _integerInductionDefaultBound.description = "Always apply integer induction with bound 0";
+    _integerInductionDefaultBound.tag(OptionTag::INFERENCES);
+    _integerInductionDefaultBound.reliesOn(Or(_induction.is(equal(Induction::INTEGER)),_induction.is(equal(Induction::BOTH))));
+    _lookup.insert(&_integerInductionDefaultBound);
 
-	    _forwardDemodulation = ChoiceOptionValue<Demodulation>("forward_demodulation","fd",Demodulation::ALL,{"all","off","preordered"});
-	    _forwardDemodulation.description=
-	    "Oriented rewriting of newly derived clauses by kept unit equalities\n"
-	    "s = t     L[sθ] \\/ C\n"
-	    "---------------------  where sθ > tθ\n"
-	    " L[tθ] \\/ C\n"
-	    "If 'preordered' is set, only equalities s = t where s > t are used for rewriting.";
-	    _lookup.insert(&_forwardDemodulation);
-	    _forwardDemodulation.tag(OptionTag::INFERENCES);
-	    _forwardDemodulation.setRandomChoices({"all","all","all","off","preordered"});
+    _integerInductionInterval = ChoiceOptionValue<IntegerInductionInterval>("int_induction_interval","intindint",
+                         IntegerInductionInterval::BOTH,{"infinite","finite","both"});
+    _integerInductionInterval.description="Whether integer induction is applied over infinite or finite intervals, or both";
+    _integerInductionInterval.tag(OptionTag::INFERENCES);
+    _integerInductionInterval.reliesOn(Or(_induction.is(equal(Induction::INTEGER)),_induction.is(equal(Induction::BOTH))));
+    _lookup.insert(&_integerInductionInterval);
+
+    _instantiation = ChoiceOptionValue<Instantiation>("instantiation","inst",Instantiation::OFF,{"off","on"});
+    _instantiation.description = "Heuristically instantiate variables. Often wastes a lot of effort. Consider using thi instead.";
+    _instantiation.tag(OptionTag::INFERENCES);
+    _lookup.insert(&_instantiation);
+    _instantiation.setRandomChoices({"off","on"}); // Turn this on rarely
+
+    _backwardDemodulation = ChoiceOptionValue<Demodulation>("backward_demodulation","bd",
+                  Demodulation::ALL,
+                  {"all","off","preordered"});
+    _backwardDemodulation.description=
+       "Oriented rewriting of kept clauses by newly derived unit equalities\n"
+       "s = t     L[sθ] \\/ C\n"
+       "---------------------   where sθ > tθ (replaces RHS)\n"
+       " L[tθ] \\/ C\n";
+    _lookup.insert(&_backwardDemodulation);
+    _backwardDemodulation.tag(OptionTag::INFERENCES);
+    _backwardDemodulation.addProblemConstraint(hasEquality());
+    _backwardDemodulation.reliesOn(Or(_saturationAlgorithm.is(notEqual(SaturationAlgorithm::INST_GEN)),_instGenWithResolution.is(equal(true))));
+    _backwardDemodulation.setRandomChoices({"all","off"});
+
+    _backwardSubsumption = ChoiceOptionValue<Subsumption>("backward_subsumption","bs",
+                Subsumption::OFF,{"off","on","unit_only"});
+    _backwardSubsumption.description=
+       "Perform subsumption deletion of kept clauses by newly derived clauses. Unit_only means that the subsumption will be performed only by unit clauses";
+    _lookup.insert(&_backwardSubsumption);
+    _backwardSubsumption.tag(OptionTag::INFERENCES);
+    _backwardSubsumption.reliesOn(Or(_saturationAlgorithm.is(notEqual(SaturationAlgorithm::INST_GEN)),_instGenWithResolution.is(equal(true))));
+    _backwardSubsumption.setRandomChoices({"on","off"});
+
+    _backwardSubsumptionResolution = ChoiceOptionValue<Subsumption>("backward_subsumption_resolution","bsr",
+                    Subsumption::OFF,{"off","on","unit_only"});
+    _backwardSubsumptionResolution.description=
+       "Perform subsumption resolution on kept clauses using newly derived clauses. Unit_only means that the subsumption resolution will be performed only by unit clauses";
+    _lookup.insert(&_backwardSubsumptionResolution);
+    _backwardSubsumptionResolution.tag(OptionTag::INFERENCES);
+    _backwardSubsumptionResolution.reliesOn(Or(_saturationAlgorithm.is(notEqual(SaturationAlgorithm::INST_GEN)),_instGenWithResolution.is(equal(true))));
+    _backwardSubsumptionResolution.setRandomChoices({"on","off"});
+
+    _backwardSubsumptionDemodulation = BoolOptionValue("backward_subsumption_demodulation", "bsd", false);
+    _backwardSubsumptionDemodulation.description = "Perform backward subsumption demodulation.";
+    _lookup.insert(&_backwardSubsumptionDemodulation);
+    _backwardSubsumptionDemodulation.tag(OptionTag::INFERENCES);
+    _backwardSubsumptionDemodulation.addProblemConstraint(hasEquality());
+    _backwardSubsumptionDemodulation.reliesOn(_combinatorySuperposition.is(equal(false)));  // higher-order support is not yet implemented
+    _backwardSubsumptionDemodulation.setRandomChoices({"on","off"});
+
+    _backwardSubsumptionDemodulationMaxMatches = UnsignedOptionValue("backward_subsumption_demodulation_max_matches", "bsdmm", 0);
+    _backwardSubsumptionDemodulationMaxMatches.description = "Maximum number of multi-literal matches to consider in backward subsumption demodulation. 0 means to try all matches (until first success).";
+    _lookup.insert(&_backwardSubsumptionDemodulationMaxMatches);
+    _backwardSubsumptionDemodulationMaxMatches.tag(OptionTag::INFERENCES);
+    _backwardSubsumptionDemodulationMaxMatches.setRandomChoices({"0", "1", "3"});
+
+    _binaryResolution = BoolOptionValue("binary_resolution","br",true);
+    _binaryResolution.description=
+    "Standard binary resolution i.e.\n"
+        "C \\/ t     D \\/ s\n"
+        "---------------------\n"
+        "(C \\/ D)θ\n"
+        "where θ = mgu(t,-s) and t selected";
+    _lookup.insert(&_binaryResolution);
+    _binaryResolution.tag(OptionTag::INFERENCES);
+    // If urr is off then binary resolution should be on
+    _binaryResolution.addConstraint(
+      If(equal(false)).then(_unitResultingResolution.is(notEqual(URResolution::OFF))));
+    _binaryResolution.setRandomChoices(And(isRandSat(),saNotInstGen(),Or(hasEquality(),hasCat(Property::HNE))),{"on"});
+    _binaryResolution.setRandomChoices({"on","off"});
+
+
+    _condensation = ChoiceOptionValue<Condensation>("condensation","cond",Condensation::OFF,{"fast","off","on"});
+    _condensation.description=
+       "Perform condensation. If 'fast' is specified, we only perform condensations that are easy to check for.";
+    _lookup.insert(&_condensation);
+    _condensation.tag(OptionTag::INFERENCES);
+    _condensation.reliesOn(Or(_saturationAlgorithm.is(notEqual(SaturationAlgorithm::INST_GEN)),_instGenWithResolution.is(equal(true))));
+    _condensation.setRandomChoices({"on","off","fast"});
+
+    _demodulationRedundancyCheck = BoolOptionValue("demodulation_redundancy_check","drc",true);
+    _demodulationRedundancyCheck.description=
+       "Avoids the following cases of backward and forward demodulation, as they do not preserve completeness:\n"
+       "s = t     s = t1 \\/ C \t s = t     s != t1 \\/ C\n"
+
+       "--------------------- \t ---------------------\n"
+       "t = t1 \\/ C \t\t t != t1 \\/ C\n"
+       "where t > t1 and s = t > C (RHS replaced)";
+    _lookup.insert(&_demodulationRedundancyCheck);
+    _demodulationRedundancyCheck.tag(OptionTag::INFERENCES);
+    _demodulationRedundancyCheck.reliesOn(Or(_saturationAlgorithm.is(notEqual(SaturationAlgorithm::INST_GEN)),_instGenWithResolution.is(equal(true))));
+    _demodulationRedundancyCheck.addProblemConstraint(hasEquality());
+    _demodulationRedundancyCheck.setRandomChoices({"on","off"});
+
+
+    _extensionalityAllowPosEq = BoolOptionValue( "extensionality_allow_pos_eq","",false);
+    _extensionalityAllowPosEq.description="If extensionality resolution equals filter, this dictates"
+      " whether we allow other positive equalities when recognising extensionality clauses";
+    _lookup.insert(&_extensionalityAllowPosEq);
+    _extensionalityAllowPosEq.tag(OptionTag::INFERENCES);
+    _extensionalityAllowPosEq.reliesOn(_extensionalityResolution.is(equal(ExtensionalityResolution::FILTER)));
+    _extensionalityAllowPosEq.setRandomChoices({"on","off","off"}); // Prefer off
+
+    _extensionalityMaxLength = UnsignedOptionValue("extensionality_max_length","",0);
+    _extensionalityMaxLength.description="Sets the maximum length (number of literals) an extensionality"
+      " clause can have when doing recognition for extensionality resolution. If zero there is no maximum.";
+    _lookup.insert(&_extensionalityMaxLength);
+    _extensionalityMaxLength.tag(OptionTag::INFERENCES);
+    // 0 means infinity, so it is intentionally not if (unsignedValue < 2).
+    _extensionalityMaxLength.addConstraint(notEqual(1u));
+    _extensionalityMaxLength.reliesOn(_extensionalityResolution.is(notEqual(ExtensionalityResolution::OFF)));
+    //TODO does this depend on anything?
+    _extensionalityMaxLength.setRandomChoices({"0","0","0","2","3"}); // TODO what are good values?
+
+    _extensionalityResolution = ChoiceOptionValue<ExtensionalityResolution>("extensionality_resolution","er",
+                      ExtensionalityResolution::OFF,{"filter","known","tagged","off"});
+    _extensionalityResolution.description=
+      "Turns on the following inference rule:\n"
+      "  x=y \\/ C    s != t \\/ D\n"
+      "  -----------------------\n"
+      "  C{x → s, y → t} \\/ D\n"
+      "Where s!=t is selected in s!=t \\/D and x=y \\/ C is a recognised as an extensionality clause - how clauses are recognised depends on the value of this option.\n"
+      "If filter we attempt to recognise all extensionality clauses i.e. those that have exactly one X=Y, no inequality of the same sort as X-Y (and optionally no equality except X=Y, see extensionality_allow_pos_eq).\n"
+      "If known we only recognise a known set of extensionality clauses. At the moment this includes the standard and subset-based formulations of the set extensionality axiom, as well as the array extensionality axiom.\n"
+      "If tagged we only use formulas tagged as extensionality clauses.";
+    _lookup.insert(&_extensionalityResolution);
+    _extensionalityResolution.tag(OptionTag::INFERENCES);
+    // Captures that if ExtensionalityResolution is not off then inequality splitting must be 0
+    _extensionalityResolution.reliesOn(_inequalitySplitting.is(equal(0)));
+    _extensionalityResolution.setRandomChoices({"filter","known","off","off"});
+
+    _FOOLParamodulation = BoolOptionValue("fool_paramodulation","foolp",false);
+    _FOOLParamodulation.description=
+      "Turns on the following inference rule:\n"
+      "        C[s]\n"
+      "--------------------,\n"
+      "C[true] \\/ s = false\n"
+      "where s is a boolean term that is not a variable, true or false, C[true] is "
+      "the C clause with s substituted by true. This rule is needed for effecient "
+      "treatment of boolean terms.";
+    _lookup.insert(&_FOOLParamodulation);
+    _FOOLParamodulation.tag(OptionTag::INFERENCES);
+
+    _termAlgebraInferences = BoolOptionValue("term_algebra_rules","tar",true);
+    _termAlgebraInferences.description=
+      "Activates some rules that improve reasoning with term algebras (such as algebraic datatypes in SMT-LIB):\n"
+      "If the problem does not contain any term algebra symbols, activating this options has no effect\n"
+      "- distinctness rule:\n"
+      "f(...) = g(...) \\/ A\n"
+      "--------------------\n"
+      "          A         \n"
+      "where f and g are distinct term algebra constructors\n"
+      "- distinctness tautology deletion: clauses of the form f(...) ~= g(...) \\/ A are deleted\n"
+      "- injectivity rule:\n"
+      "f(s1 ... sn) = f(t1 ... tn) \\/ A\n"
+      "--------------------------------\n"
+      "         s1 = t1 \\/ A\n"
+      "               ...\n"
+      "         sn = tn \\/ A";
+    _lookup.insert(&_termAlgebraInferences);
+    _termAlgebraInferences.tag(OptionTag::INFERENCES);
+
+    _termAlgebraCyclicityCheck = ChoiceOptionValue<TACyclicityCheck>("term_algebra_acyclicity","tac",
+                                                                     TACyclicityCheck::OFF,{"off","axiom","rule","light"});
+    _termAlgebraCyclicityCheck.description=
+      "Activates the cyclicity rule for term algebras (such as algebraic datatypes in SMT-LIB):\n"
+      "- off : the cyclicity rule is not enforced (this is sound but incomplete)\n"
+      "- axiom : the cyclicity rule is axiomatized with a transitive predicate describing the subterm relation over terms\n"
+      "- rule : the cyclicity rule is enforced by a specific hyper-resolution rule\n"
+      "- light : the cyclicity rule is enforced by rule generating disequality between a term and its known subterms";
+    _lookup.insert(&_termAlgebraCyclicityCheck);
+    _termAlgebraCyclicityCheck.tag(OptionTag::INFERENCES);
+
+    _forwardDemodulation = ChoiceOptionValue<Demodulation>("forward_demodulation","fd",Demodulation::ALL,{"all","off","preordered"});
+    _forwardDemodulation.description=
+    "Oriented rewriting of newly derived clauses by kept unit equalities\n"
+    "s = t     L[sθ] \\/ C\n"
+    "---------------------  where sθ > tθ\n"
+    " L[tθ] \\/ C\n"
+    "If 'preordered' is set, only equalities s = t where s > t are used for rewriting.";
+    _lookup.insert(&_forwardDemodulation);
+    _forwardDemodulation.tag(OptionTag::INFERENCES);
+    _forwardDemodulation.setRandomChoices({"all","all","all","off","preordered"});
     
     _forwardLiteralRewriting = BoolOptionValue("forward_literal_rewriting","flr",false);
     _forwardLiteralRewriting.description="Perform forward literal rewriting.";
