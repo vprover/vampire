@@ -1349,8 +1349,8 @@ virtual vstring getStringOfValue(int value) const{ return Lib::Int::toString(val
 * as in λ value. expression_ignoring_value
 *
 * The tricky part (C++-technology-wise) here is that unwrapping needs to get a type for the value
-* and this type is indepedent form the expression_ignoring_value for obvious reasons.
-* So virous overloads of things are needed until we get to the point, where the type is known and can be supplied.
+* and this type is independent form the expression_ignoring_value for obvious reasons.
+* So various overloads of things are needed until we get to the point, where the type is known and can be supplied.
 * (e.g. there needs to be a separate hierarchy of Wrapped expressions along the one for OptionValueConstraint ones).
 */
 
