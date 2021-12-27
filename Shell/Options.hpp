@@ -1827,6 +1827,25 @@ bool _hard;
       }
     };
 
+    struct HasTheories : OptionProblemConstraint {
+      CLASS_NAME(HasTheories);
+      USE_ALLOCATOR(HasTheories);
+
+      bool check(Property*p);
+      vstring msg(){ return " only useful with theories"; }
+    };
+
+    struct HasGoal : OptionProblemConstraint {
+      CLASS_NAME(HasGoal);
+      USE_ALLOCATOR(HasGoal);
+
+      bool check(Property*p){
+        CALL("Options::HasGoal::check");
+        return p->hasGoal();
+      }
+      vstring msg(){ return " only useful with a goal: (conjecture) formulas or (negated_conjecture) clauses"; }
+    };
+
     // Factory methods
     static OptionProblemConstraintUP notWithCat(Property::Category c){
       return OptionProblemConstraintUP(new CategoryCondition(c,false));
@@ -1843,7 +1862,8 @@ bool _hard;
     static OptionProblemConstraintUP atomsLessThan(int a){
       return OptionProblemConstraintUP(new AtomConstraint(a,false));
     }
-
+    static OptionProblemConstraintUP hasTheories() { return OptionProblemConstraintUP(new HasTheories); }
+    static OptionProblemConstraintUP hasGoal() { return OptionProblemConstraintUP(new HasGoal); }
 
     //Cheating - we refer to env.options to ask about option values
     // There is an assumption that the option values used have been

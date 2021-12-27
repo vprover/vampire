@@ -898,6 +898,7 @@ void Options::init()
     _useTheorySplitQueues = BoolOptionValue("theory_split_queue","thsq",false);
     _useTheorySplitQueues.description = "Turn on clause selection using multiple queues containing different clauses (split by amount of theory reasoning)";
     _useTheorySplitQueues.reliesOn(ProperSaturationAlgorithm());
+    _useTheorySplitQueues.addProblemConstraint(hasTheories());
     _lookup.insert(&_useTheorySplitQueues);
     _useTheorySplitQueues.tag(OptionTag::SATURATION);
 
@@ -929,7 +930,8 @@ void Options::init()
     _useAvatarSplitQueues.description = "Turn on experiments: clause selection with multiple queues containing different clauses (split by amount of avatar-split-set-size)";
     _lookup.insert(&_useAvatarSplitQueues);
     _useAvatarSplitQueues.tag(OptionTag::AVATAR);
-    _avatarSplitQueueCutoffs.reliesOn(_splitting.is(equal(true)));
+    _useAvatarSplitQueues.reliesOn(ProperSaturationAlgorithm());
+    _useAvatarSplitQueues.reliesOn(_splitting.is(equal(true)));
 
     _avatarSplitQueueCutoffs = StringOptionValue("avatar_split_queue_cutoffs", "avsqc", "0");
     _avatarSplitQueueCutoffs.description = "The cutoff-values for the avatar-split-queues (the cutoff value for the last queue is omitted, since it has to be infinity).";
@@ -951,6 +953,8 @@ void Options::init()
 
     _useSineLevelSplitQueues = BoolOptionValue("sine_level_split_queue","slsq",false);
     _useSineLevelSplitQueues.description = "Turn on experiments: clause selection with multiple queues containing different clauses (split by sine-level of clause)";
+    _useSineLevelSplitQueues.reliesOn(ProperSaturationAlgorithm());
+    _useSineLevelSplitQueues.addProblemConstraint(hasGoal());
     _lookup.insert(&_useSineLevelSplitQueues);
     _useSineLevelSplitQueues.tag(OptionTag::SATURATION);
 
@@ -975,6 +979,7 @@ void Options::init()
     _usePositiveLiteralSplitQueues = BoolOptionValue("positive_literal_split_queue","plsq",false);
     _usePositiveLiteralSplitQueues.description = "Turn on experiments: clause selection with multiple queues containing different clauses (split by number of positive literals in clause)";
     _lookup.insert(&_usePositiveLiteralSplitQueues);
+    _usePositiveLiteralSplitQueues.reliesOn(ProperSaturationAlgorithm());
     _usePositiveLiteralSplitQueues.tag(OptionTag::SATURATION);
 
     _positiveLiteralSplitQueueCutoffs = StringOptionValue("positive_literal_split_queue_cutoffs", "plsqc", "0");
@@ -1001,6 +1006,7 @@ void Options::init()
                                    "lead to generating more clauses than needed for completeness. Set this on to add the checks "
                                    "afterwards as well.";
     _lookup.insert(&_literalMaximalityAftercheck);
+    _literalMaximalityAftercheck.reliesOn(InferencingSaturationAlgorithm());
     _literalMaximalityAftercheck.tag(OptionTag::SATURATION);
 
     _sineToAge = BoolOptionValue("sine_to_age","s2a",false);
@@ -2289,6 +2295,12 @@ bool Options::OptionHasValue::check(Property*p){
           return opt->getStringOfActual()==value;
 }
 
+bool Options::HasTheories::check(Property*p) {
+  CALL("Options::HasTheories::check");
+  // this is the condition used in Preprocess::preprocess guarding the addition of theory axioms
+  return (p->hasInterpretedOperations() || env.signature->hasTermAlgebras());
+}
+
 /**
  * Static functions to help specify random choice values
  */
@@ -2302,6 +2314,7 @@ Options::OptionProblemConstraintUP Options::isRandSat(){
 Options::OptionProblemConstraintUP Options::saNotInstGen(){
       return OptionProblemConstraintUP(new OptionHasValue("sa","inst_gen"));
 }
+
 /**
  * Return the include file name using its relative name.
  *
