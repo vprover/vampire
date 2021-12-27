@@ -3251,8 +3251,13 @@ bool Options::checkGlobalOptionConstraints(bool fail_early)
 
 /**
  * Check whether the option values make sense with respect to the given problem
+ *
+ * This check should be done at least twice; before preprocessing and after.
+ * With before_preprocessing on, only options tagged as PREPROCESSING are queried
+ * With before_preprocessing off, it's all the remaining ones.
+ *
  **/
-bool Options::checkProblemOptionConstraints(Property* prop,bool fail_early)
+bool Options::checkProblemOptionConstraints(Property* prop, bool before_preprocessing, bool fail_early)
 {
    CALL("Options::checkProblemOptionConstraints");
 
@@ -3260,7 +3265,14 @@ bool Options::checkProblemOptionConstraints(Property* prop,bool fail_early)
 
   VirtualIterator<AbstractOptionValue*> options = _lookup.values();
   while(options.hasNext()){
-    result = options.next()->checkProblemConstraints(prop) && result; 
+    AbstractOptionValue* opt = options.next();
+
+    if ((before_preprocessing && opt->getTag() != OptionTag::PREPROCESSING) ||
+        (!before_preprocessing && opt->getTag() == OptionTag::PREPROCESSING)) {
+      continue;
+    }
+
+    result = opt->checkProblemConstraints(prop) && result;
     if(fail_early && !result) return result;
   }
 
