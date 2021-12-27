@@ -193,7 +193,9 @@ void doProving()
   env.options->randomizeStrategy(prb->getProperty()); 
 
   // this will provide warning if options don't make sense for problem
-  //env.options->checkProblemOptionConstraints(prb->getProperty()); 
+  if (env.options->mode()!=Options::Mode::SPIDER) {
+    env.options->checkProblemOptionConstraints(prb->getProperty());
+  }
 
   ProvingHelper::runVampireSaturation(*prb, *env.options);
 }
