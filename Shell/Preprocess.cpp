@@ -106,10 +106,6 @@ void Preprocess::preprocess(Problem& prb)
     Normalisation().normalise(prb);
   }
 
-  if (prb.hasInterpretedOperations()) {
-    env.interpretedOperationsUsed = true;
-  }
-
   if(_options.guessTheGoal() != Options::GoalGuess::OFF){
     prb.invalidateProperty();
     prb.getProperty();
