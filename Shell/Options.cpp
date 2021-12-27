@@ -307,14 +307,14 @@ void Options::init()
     _lookup.insert(&_statistics);
     _statistics.tag(OptionTag::OUTPUT);
 
-    _testId = StringOptionValue("test_id","","unspecified_test");
+    _testId = StringOptionValue("test_id","","unspecified_test"); // Used by spider mode
     _testId.description="";
     _lookup.insert(&_testId);
     _testId.setExperimental();
 
     _outputMode = ChoiceOptionValue<Output>("output_mode","om",Output::SZS,{"smtcomp","spider","szs","vampire","ucore"});
     _outputMode.description="Change how Vampire prints the final result. SZS uses TPTP's SZS ontology. smtcomp mode"
-    " supresses all output and just prints sat/unsat. vampire is the same as SZS just without the SZS."
+    " suppresses all output and just prints sat/unsat. vampire is the same as SZS just without the SZS."
     " Spider prints out some profile information and extra error reports. ucore uses the smt-lib ucore output.";
     _lookup.insert(&_outputMode);
     _outputMode.tag(OptionTag::OUTPUT);
@@ -737,6 +737,26 @@ void Options::init()
     // make the next hard - RSTC will make FMB crash (as RSTC correctly does not trigger hadIncompleteTransformation; still it probably does not make sense to use ep with fmb)
     _saturationAlgorithm.addHardConstraint(If(equal(SaturationAlgorithm::FINITE_MODEL_BUILDING)).then(_equalityProxy.is(notEqual(EqualityProxy::RSTC))));
 
+    auto ProperSaturationAlgorithm = [this] {
+      return Or(_saturationAlgorithm.is(equal(SaturationAlgorithm::LRS)),
+                _saturationAlgorithm.is(equal(SaturationAlgorithm::OTTER)),
+                _saturationAlgorithm.is(equal(SaturationAlgorithm::DISCOUNT)));
+    };
+
+    auto ProperSaturationAlgorithmIncludingInstgen = [this] {
+      return Or(_saturationAlgorithm.is(equal(SaturationAlgorithm::LRS)),
+                _saturationAlgorithm.is(equal(SaturationAlgorithm::OTTER)),
+                _saturationAlgorithm.is(equal(SaturationAlgorithm::DISCOUNT)),
+                _saturationAlgorithm.is(equal(SaturationAlgorithm::INST_GEN)));
+    };
+
+    auto InferencingSaturationAlgorithm = [this] {
+      return Or(_saturationAlgorithm.is(equal(SaturationAlgorithm::LRS)),
+                _saturationAlgorithm.is(equal(SaturationAlgorithm::OTTER)),
+                _saturationAlgorithm.is(equal(SaturationAlgorithm::DISCOUNT)),
+                And(_saturationAlgorithm.is(equal(SaturationAlgorithm::INST_GEN)),_instGenWithResolution.is(equal(true))));
+    };
+
     /*
 #if VZ3
     _smtForGround = BoolOptionValue("smt_for_ground","smtfg",false);
@@ -842,9 +862,7 @@ void Options::init()
 
     _lookup.insert(&_selection);
     _selection.tag(OptionTag::SATURATION);
-    _selection.reliesOn(Or(_saturationAlgorithm.is(equal(SaturationAlgorithm::LRS)),
-                           _saturationAlgorithm.is(equal(SaturationAlgorithm::OTTER)),
-                           _saturationAlgorithm.is(equal(SaturationAlgorithm::DISCOUNT))));
+    _selection.reliesOn(ProperSaturationAlgorithm());
     _selection.setRandomChoices(And(isRandSat(),saNotInstGen()),{"0","1","2","3","4","10","11","-1","-2","-3","-4","-10","-11"});
     _selection.setRandomChoices({"0","1","2","3","4","10","11","1002","1003","1004","1010","1011","-1","-2","-3","-4","-10","-11","-1002","-1003","-1004","-1010"});
 
@@ -862,7 +880,7 @@ void Options::init()
     "there will be w selected based on weight.";
     _lookup.insert(&_ageWeightRatio);
     _ageWeightRatio.tag(OptionTag::SATURATION);
-    _ageWeightRatio.reliesOn(Or(_saturationAlgorithm.is(notEqual(SaturationAlgorithm::INST_GEN)),_instGenWithResolution.is(equal(true))));
+    _ageWeightRatio.reliesOn(ProperSaturationAlgorithmIncludingInstgen());
     _ageWeightRatio.setRandomChoices({"8:1","5:1","4:1","3:1","2:1","3:2","5:4","1","2:3","2","3","4","5","6","7","8","10","12","14","16","20","24","28","32","40","50","64","128","1024"});
 
     _ageWeightRatioShape = ChoiceOptionValue<AgeWeightRatioShape>("age_weight_ratio_shape","awrs",AgeWeightRatioShape::CONSTANT,{"constant","decay", "converge"});
