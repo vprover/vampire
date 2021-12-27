@@ -139,7 +139,7 @@ public:
     // deal with constraints
     void setForcedOptionValues(); // not currently used effectively
     bool checkGlobalOptionConstraints(bool fail_early=false);
-    bool checkProblemOptionConstraints(Property*, bool fail_early=false); 
+    bool checkProblemOptionConstraints(Property*, bool before_preprocessing, bool fail_early=false);
 
     // Randomize strategy (will only work if randomStrategy=on)
     // should only be called after all other options are set

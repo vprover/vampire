@@ -145,13 +145,15 @@ Problem* getPreprocessedProblem()
 
   TimeCounter tc2(TC_PREPROCESSING);
 
+  // this will provide warning if options don't make sense for problem
+  if (env.options->mode()!=Options::Mode::SPIDER) {
+    env.options->checkProblemOptionConstraints(prb->getProperty(), /*before_preprocessing = */ true);
+  }
+
   Shell::Preprocess prepro(*env.options);
   //phases for preprocessing are being set inside the preprocess method
   prepro.preprocess(*prb);
   
-  // TODO: could this be the right way to freeing the currently leaking classes like Units, Clauses and Inferences?
-  // globUnitList = prb->units();
-
   return prb;
 } // getPreprocessedProblem
 
@@ -178,7 +180,7 @@ void getRandomStrategy()
 
   // It is possible that the random strategy is still incorrect as we don't
   // have access to the Property when setting preprocessing
-  env.options->checkProblemOptionConstraints(prb->getProperty());
+  env.options->checkProblemOptionConstraints(prb->getProperty(), /*before_preprocessing = */ false);
 }
 
 void doProving()
@@ -194,7 +196,7 @@ void doProving()
 
   // this will provide warning if options don't make sense for problem
   if (env.options->mode()!=Options::Mode::SPIDER) {
-    env.options->checkProblemOptionConstraints(prb->getProperty());
+    env.options->checkProblemOptionConstraints(prb->getProperty(), /*before_preprocessing = */ false);
   }
 
   ProvingHelper::runVampireSaturation(*prb, *env.options);
