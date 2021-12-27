@@ -716,7 +716,7 @@ void Options::init()
     " - instance generation: a simple implementation of instantiation calculus\n"
     "    (global_subsumption, unit_resulting_resolution and age_weight_ratio)\n"
     " - fmb : finite model building for satisfiable problems.\n"
-    " -z3 : pass the preprocessed problem to z3, will terminate if the resulting problem is not ground.\n"
+    " - z3 : pass the preprocessed problem to z3, will terminate if the resulting problem is not ground.\n"
     "inst_gen, z3 and fmb aren't influenced by options for the saturation algorithm, apart from those under the relevant heading";
     _lookup.insert(&_saturationAlgorithm);
     _saturationAlgorithm.tag(OptionTag::SATURATION);
@@ -733,12 +733,14 @@ void Options::init()
     // make the next hard - RSTC will make FMB crash (as RSTC correctly does not trigger hadIncompleteTransformation; still it probably does not make sense to use ep with fmb)
     _saturationAlgorithm.addHardConstraint(If(equal(SaturationAlgorithm::FINITE_MODEL_BUILDING)).then(_equalityProxy.is(notEqual(EqualityProxy::RSTC))));
 
+    /*
 #if VZ3
     _smtForGround = BoolOptionValue("smt_for_ground","smtfg",false);
     _smtForGround.description = "When a (theory) problem is ground after preprocessing pass it to Z3. In this case we can return sat if Z3 does.";
     _smtForGround.setExperimental(); // since smt_for_ground is not running anyway (see MainLoop.cpp)
     _lookup.insert(&_smtForGround);
 #endif
+     */
 
     _fmbNonGroundDefs = BoolOptionValue("fmb_nonground_defs","fmbngd",false);
     _fmbNonGroundDefs.description = "Introduce definitions for non ground terms in preprocessing for fmb";
