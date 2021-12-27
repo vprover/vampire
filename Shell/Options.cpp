@@ -250,7 +250,7 @@ void Options::init()
        " - soft: will only report the error (unless it is unsafe)\n"
        " - forced: <under development> \n" 
        " - off: will ignore safe errors\n"
-       "Note that unsafe errors will aways lead to a user error";
+       "Note that unsafe errors will always lead to a user error";
     _lookup.insert(&_badOption);
     _badOption.tag(OptionTag::HELP);
 
@@ -1475,6 +1475,7 @@ void Options::init()
 
     _innerRewriting = BoolOptionValue("inner_rewriting","irw",false);
     _innerRewriting.description="C[t_1] | t1 != t2 ==> C[t_2] | t1 != t2 when t1>t2";
+    _innerRewriting.addProblemConstraint(hasEquality());
     _lookup.insert(&_innerRewriting);
     _innerRewriting.tag(OptionTag::INFERENCES);
 
