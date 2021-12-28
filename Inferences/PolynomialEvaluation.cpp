@@ -16,7 +16,7 @@
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/BottomUpEvaluation/PolyNf.hpp"
 
-#define DEBUG(...) // DBG(__VA_ARGS__)
+#define DEBUG(...)  // DBG(__VA_ARGS__)
 using namespace Lib;
 
 
@@ -99,9 +99,11 @@ Option<LitSimplResult> PolynomialEvaluation::tryEvalPredicate(Literal* orig, Pol
 
       /* integer predicates */
       HANDLE_CASE(INT_DIVIDES)
+      case Interpretation::ARRAY_BOOL_SELECT:
+        return Option<LitSimplResult>();
 
       default:
-        // WARN("WARNING: unexpected interpreted predicate: ", lit->toString())
+        WARN("unexpected interpreted predicate: ", *orig, " (inter: ", inter, ")")
         ASSERTION_VIOLATION
         return Option<LitSimplResult>();
     }
