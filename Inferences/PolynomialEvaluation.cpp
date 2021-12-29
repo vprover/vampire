@@ -394,6 +394,7 @@ MaybeOverflow<Monom<Number>> simplifyMonom(Monom<Number> const& in, MaybeOverflo
   auto offs = 0;
   auto numeral = in.numeral;
   bool needsSorting = false;
+
   for (unsigned i = 0; i < facs.nFactors(); i++) {
     auto& arg = args[i];
     auto c = arg.term.template tryNumeral<Number>();
@@ -427,6 +428,8 @@ MaybeOverflow<Monom<Number>> simplifyMonom(Monom<Number> const& in, MaybeOverflo
         args[offs++] = MonomFactor(term, power);
     }
   }
+  args.truncate(offs);
+
   if (needsSorting) {
     std::sort(args.begin(), args.end());
   }
@@ -434,7 +437,6 @@ MaybeOverflow<Monom<Number>> simplifyMonom(Monom<Number> const& in, MaybeOverflo
   if (numeral == Numeral(0)) {
     return maybeOverflow(Monom::zero(), false);
   } else {
-    args.truncate(offs);
     return maybeOverflow(Monom(numeral, perfect(MonomFactors(std::move(args)))), overflow); 
   }
 }

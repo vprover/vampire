@@ -317,28 +317,28 @@ TEST_FRAC(bug_06,
     })
 
 
+// TEST_INT(bug_07, 
+//     TestCase {
+//       .in  =   f(quotientE(num(1), 5)) > 0 ,
+//       .out = { f(           1        ) > 0 },
+//     })
+//
+// TEST_INT(bug_07__, 
+//     TestCase {
+//       .in  =   3 + (a + -quotientE(num(1), 5)) > 0 ,
+//       //       3 + (a + -quotientE(num(1), 5)) > 0 ,
+//       //       3 + (a + -1                   ) > 0 ,
+//       //       2 +  a                          > 0 ,
+//       .out = { 2 +  a > 0 },
+//     })
+
+
 TEST_INT(bug_07, 
     TestCase {
-      .in  =   f(quotientE(num(1), 5)) > 0 ,
-      .out = { f(           1        ) > 0 },
-    })
-
-TEST_INT(bug_07__, 
-    TestCase {
-      .in  =   3 + (a + -quotientE(num(1), 5)) > 0 ,
-      //       3 + (a + -quotientE(num(1), 5)) > 0 ,
-      //       3 + (a + -1                   ) > 0 ,
-      //       2 +  a                          > 0 ,
-      .out = { 2 +  a > 0 },
-    })
-
-
-TEST_INT(bug_08, 
-    TestCase {
-      .in  =   125943 + (a + -quotientE((num(-600335) + -600334), 5)) > 0 ,
-      //       125943 + (a + -quotientE(        -1.200.669      , 5)) > 0 ,
-      //       125943 + (a + -1                                     ) > 0 ,
-      //       125942 +  a                                            > 0 ,
-      .out = { 125942 +  a > 0 },
+      .in  =   -600335 * (-a * 251886) + 251886 * (-a * 600335) == 0 ,
+      //       -600335 * ( a * 251886) + 251886 * ( a * 600335) == 0
+      //       -600335 *   a           +            a * 600335  == 0
+      //                  -a           +            a           == 0
+      .out = { num(0) == 0 },
     })
 

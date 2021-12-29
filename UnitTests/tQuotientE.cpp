@@ -135,6 +135,11 @@ TEST_FUN(check_int)
   }
 }
 
+TEST_FUN(bug01)
+{
+  checkQuotientE(IntegerConstantType(1), IntegerConstantType(5));
+}
+
 // REMOVED until there are benchmarks that actually use (quotient|remainder)_(e|t|r) with non-integral number types
 //
 // template<class Const>
