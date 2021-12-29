@@ -46,6 +46,7 @@ using namespace Indexing;
     DECL_CONST(b, Num)                                                                                        \
     DECL_CONST(c, Num)                                                                                        \
     DECL_PRED(r, {Num,Num})                                                                                   \
+    DECL_PRED(p, {Num})                                                                                       \
   )                                                                                                           \
 
 
@@ -313,5 +314,31 @@ TEST_FRAC(bug_06,
     TestCase {
       .in  =   num(-4) + 0 >= 0  ,
       .out = { num(-1)     >= 0 },
+    })
+
+
+TEST_INT(bug_07, 
+    TestCase {
+      .in  =   f(quotientE(num(1), 5)) > 0 ,
+      .out = { f(           1        ) > 0 },
+    })
+
+TEST_INT(bug_07__, 
+    TestCase {
+      .in  =   3 + (a + -quotientE(num(1), 5)) > 0 ,
+      //       3 + (a + -quotientE(num(1), 5)) > 0 ,
+      //       3 + (a + -1                   ) > 0 ,
+      //       2 +  a                          > 0 ,
+      .out = { 2 +  a > 0 },
+    })
+
+
+TEST_INT(bug_08, 
+    TestCase {
+      .in  =   125943 + (a + -quotientE((num(-600335) + -600334), 5)) > 0 ,
+      //       125943 + (a + -quotientE(        -1.200.669      , 5)) > 0 ,
+      //       125943 + (a + -1                                     ) > 0 ,
+      //       125942 +  a                                            > 0 ,
+      .out = { 125942 +  a > 0 },
     })
 
