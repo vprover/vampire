@@ -897,7 +897,7 @@ void Options::init()
 
     _useTheorySplitQueues = BoolOptionValue("theory_split_queue","thsq",false);
     _useTheorySplitQueues.description = "Turn on clause selection using multiple queues containing different clauses (split by amount of theory reasoning)";
-    _useTheorySplitQueues.reliesOn(ProperSaturationAlgorithm());
+    _useTheorySplitQueues.reliesOn(ProperSaturationAlgorithm()); // could be "IncludingInstgen"? (not with theories...)
     _useTheorySplitQueues.addProblemConstraint(hasTheories());
     _lookup.insert(&_useTheorySplitQueues);
     _useTheorySplitQueues.tag(OptionTag::SATURATION);
@@ -930,7 +930,7 @@ void Options::init()
     _useAvatarSplitQueues.description = "Turn on experiments: clause selection with multiple queues containing different clauses (split by amount of avatar-split-set-size)";
     _lookup.insert(&_useAvatarSplitQueues);
     _useAvatarSplitQueues.tag(OptionTag::AVATAR);
-    _useAvatarSplitQueues.reliesOn(ProperSaturationAlgorithm());
+    _useAvatarSplitQueues.reliesOn(ProperSaturationAlgorithm()); // could be "IncludingInstgen"? (not with avatar!)
     _useAvatarSplitQueues.reliesOn(_splitting.is(equal(true)));
 
     _avatarSplitQueueCutoffs = StringOptionValue("avatar_split_queue_cutoffs", "avsqc", "0");
@@ -953,7 +953,7 @@ void Options::init()
 
     _useSineLevelSplitQueues = BoolOptionValue("sine_level_split_queue","slsq",false);
     _useSineLevelSplitQueues.description = "Turn on experiments: clause selection with multiple queues containing different clauses (split by sine-level of clause)";
-    _useSineLevelSplitQueues.reliesOn(ProperSaturationAlgorithm());
+    _useSineLevelSplitQueues.reliesOn(ProperSaturationAlgorithm()); // could be "IncludingInstgen"?
     _useSineLevelSplitQueues.addProblemConstraint(hasGoal());
     _lookup.insert(&_useSineLevelSplitQueues);
     _useSineLevelSplitQueues.tag(OptionTag::SATURATION);
@@ -979,7 +979,7 @@ void Options::init()
     _usePositiveLiteralSplitQueues = BoolOptionValue("positive_literal_split_queue","plsq",false);
     _usePositiveLiteralSplitQueues.description = "Turn on experiments: clause selection with multiple queues containing different clauses (split by number of positive literals in clause)";
     _lookup.insert(&_usePositiveLiteralSplitQueues);
-    _usePositiveLiteralSplitQueues.reliesOn(ProperSaturationAlgorithm());
+    _usePositiveLiteralSplitQueues.reliesOn(ProperSaturationAlgorithm()); // could be "IncludingInstgen"?
     _usePositiveLiteralSplitQueues.tag(OptionTag::SATURATION);
 
     _positiveLiteralSplitQueueCutoffs = StringOptionValue("positive_literal_split_queue_cutoffs", "plsqc", "0");
