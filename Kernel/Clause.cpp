@@ -382,7 +382,7 @@ std::ostream& operator<<(std::ostream& out, Clause const& self)
     return out << "$false";
   } else {
     out << *self[0];
-    for (auto i = 1; i < self.size(); i++){
+    for (unsigned i = 1; i < self.size(); i++){
       out << " | " << *self[i];
     }
     if (self.splits() && !self.splits()->isEmpty()) {

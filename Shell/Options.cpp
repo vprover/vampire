@@ -1164,14 +1164,16 @@ void Options::init()
            _inequalityResolution.reliesOnHard(_highSchool.is(equal(false)));
            _inequalityResolution.reliesOnHard(_unificationWithAbstraction.is(Or(equal(UnificationWithAbstraction::IRC1), equal(UnificationWithAbstraction::IRC2))));
 
-           _ircVariableEliminationSimplifying  = BoolOptionValue("irc_variable_eliminiation_simpliying","irc_ve_simp",true);
-           _ircVariableEliminationSimplifying.description=
-                  "makes the rule `variable eliminiation` of the inequality resolution calculus simplifying (if option is set to `on`) or generating (otherwise)."
+           _ircVariableElimination  = choiceArithmeticSimplificationMode(
+               "irc_variable_eliminiation_simpliying", "irc_ve",
+               ArithmeticSimplificationMode::OFF);
+           _ircVariableElimination.description=
+                  "enables or disables the rule `variable eliminiation` either as a simplifying or a generating inference."
                   // TODO describe all rules
                   "\n";
-           _lookup.insert(&_ircVariableEliminationSimplifying);
-           _ircVariableEliminationSimplifying.tag(OptionTag::INFERENCES);
-           _ircVariableEliminationSimplifying.reliesOnHard(_inequalityResolution.is(equal(true)));
+           _lookup.insert(&_ircVariableElimination);
+           _ircVariableElimination.tag(OptionTag::INFERENCES);
+           _ircVariableElimination.reliesOnHard(_inequalityResolution.is(equal(true)));
 
            _ircStrongNormalization  = BoolOptionValue("irc_strong_normalziation","irc_strnorm",true);
            _ircStrongNormalization.description=

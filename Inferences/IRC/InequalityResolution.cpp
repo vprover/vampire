@@ -116,7 +116,7 @@ template<class NumTraits, class Subst, class CnstIter> Option<Clause*> Inequalit
     Subst sigma, CnstIter cnst, unsigned nCnst
     ) const 
 {
-  env.statistics->ircTotCnt++;
+  env.statistics->ircIrCnt++;
   auto j = j_s1.numeral;
   auto k = k_s2.numeral;
   auto int_irc = std::is_same<NumTraits, IntTraits>::value 
@@ -171,6 +171,7 @@ template<class NumTraits, class Subst, class CnstIter> Option<Clause*> Inequalit
   if (tight_irc) {
     // adding (js1 + t1 ≈ 0)σ
     conclusion.push(NumTraits::eq(true, sigma(l1.term().denormalize(), 0), NumTraits::zero()));
+    env.statistics->ircIrTightCnt++;
   }
 
   conclusion.loadFromIterator(cnst);

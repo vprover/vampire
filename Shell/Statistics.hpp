@@ -198,7 +198,7 @@ public:
   unsigned ircVarElimCnt;
   unsigned ircVarElimKMax;
 
-  unsigned ircTotCnt;
+  unsigned ircIrTightCnt;
   unsigned ircSupCnt;
   unsigned ircIrCnt;
   unsigned ircTermFacCnt;

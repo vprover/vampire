@@ -1636,7 +1636,11 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
     } catch (std::bad_cast&) { /* do nothing */ }
     res->addForwardSimplifierToFront(new IRC::FwdDemodulationModLA(shared));
     res->addBackwardSimplifierToFront(new IRC::BwdDemodulationModLA(shared));
-    sgi->push(new IRC::VariableElimination(shared, env.options->ircVariableEliminationSimplifying())); 
+    switch(env.options->ircVariableElimination()) {
+      case Options::ArithmeticSimplificationMode::OFF: break;
+      case Options::ArithmeticSimplificationMode::FORCE:    sgi->push(new IRC::VariableElimination(shared, /* simpl */ true )); break;
+      case Options::ArithmeticSimplificationMode::CAUTIOUS: sgi->push(new IRC::VariableElimination(shared, /* simpl */ false)); break;
+    }
     sgi->push(new IRC::LiteralFactoring(shared)); 
     sgi->push(new IRC::Superposition(shared)); 
     sgi->push(new IRC::TermFactoring(shared)); 
