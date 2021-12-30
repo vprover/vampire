@@ -218,7 +218,7 @@ ClauseIterator TermFactoring::generateClauses(Clause* premise)
   auto selected = _shared->maxLiterals(premise, /* strict = */ false);
   return pvi(iterTraits(ownedArrayishIterator(std::move(selected)))
           .flatMap([=](auto lit) 
-            { return pvi(iterTraits(_shared->normalize(lit).intoIter())
+            { return pvi(iterTraits(_shared->renormalize(lit).intoIter())
                         .flatMap([&](AnyIrcLiteral polymorphic) -> ClauseIterator
                           { return polymorphic
                                       .apply([&](auto L)  -> ClauseIterator

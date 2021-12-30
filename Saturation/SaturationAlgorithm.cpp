@@ -1626,7 +1626,7 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
 
   if (env.options->inequalityResolution()) {
     auto shared = make_shared(new Kernel::IrcState {
-        .normalizer = InequalityNormalizer(), 
+        .normalizer = InequalityNormalizer(env.options->ircStrongNormalization()), 
         .ordering = &ordering, 
         .uwa = env.options->unificationWithAbstraction(),
     });

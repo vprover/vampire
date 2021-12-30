@@ -205,7 +205,7 @@ ClauseIterator InequalityResolution::generateClauses(Clause* hyp1, Literal* lit1
             .filterMap([=](TermQueryResult unif) {
               auto hyp2 = unif.clause;
               auto lit2 = unif.literal;
-              auto l2 = _shared->normalize(lit2)
+              auto l2 = _shared->renormalize(lit2)
                 .unwrap()
                 .template unwrap<decltype(l1)>();
 

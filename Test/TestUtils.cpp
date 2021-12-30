@@ -317,30 +317,38 @@ bool TestUtils::eqModACRect(Kernel::TermList lhs, Kernel::TermList rhs)
 }
 
 
-bool TestUtils::eqModACRect(const Clause* lhs, const Clause* rhs)
+template<class Lits>
+bool TestUtils::_eqModACRect(Lits const& lhs, Lits const& rhs)
 { 
-  auto vl = iterTraits(lhs->iterLits())
-    .flatMap([](Literal* lit) { return vi(new VariableIterator(lit)); })
-    .collect<Stack>();
-  vl.sort();
-  vl.dedup();
-
-  auto vr = iterTraits(rhs->iterLits())
-    .flatMap([](Literal* lit) { return vi(new VariableIterator(lit)); })
-    .collect<Stack>();
-  vr.sort();
-  vr.dedup();
+  auto vars = [](Lits const& lits) {
+    auto vs = iterTraits(getRangeIterator(0u, (unsigned) lits.size()))
+      .map([&](auto i) { return lits[i]; })
+      .flatMap([](Literal* lit) { return vi(new VariableIterator(lit)); })
+      .template collect<Stack>();
+    vs.sort();
+    vs.dedup();
+    return vs;
+  };
+  auto vl = vars(lhs);
+  auto vr = vars(rhs);
 
   if (vl.size() != vr.size()) return false;
 
   return anyPerm(vl.size(), [&](auto& perm) {
      AcRectComp c {vl, vr, perm};
-      return permEq(*lhs, *rhs, [&](Literal* l, Literal* r) {
+      return permEq(lhs, rhs, [&](Literal* l, Literal* r) {
         return l->isPositive() == r->isPositive() 
             && eqModAC_(TermList(l), TermList(r), c); 
       });
   });
 }
+
+
+bool TestUtils::eqModACRect(const Clause* lhs, const Clause* rhs)
+{ return _eqModACRect(*lhs, *rhs); }
+
+bool TestUtils::eqModACRect(Stack<Literal*> const& lhs, Stack<Literal*> const& rhs)
+{ return _eqModACRect(lhs, rhs); }
 
 
 bool TestUtils::eqModACRect(Literal* lhs, Literal* rhs)

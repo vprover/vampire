@@ -12,11 +12,7 @@ namespace Kernel {
 
 LaLpo::LaLpo(Precedence prec) 
   : _prec(std::move(prec))
-  , _shared(make_shared(new Kernel::IrcState {
-        .normalizer = InequalityNormalizer(), 
-        .ordering = this,
-        .uwa = env.options->unificationWithAbstraction(),
-  }))
+  , _shared(nullptr)
 {
 }
 

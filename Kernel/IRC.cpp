@@ -11,6 +11,7 @@
 #include "IRC.hpp"
 #include "Kernel/LaLpo.hpp"
 
+#define DEBUG(...) // DBG(__VA_ARGS__)
 namespace Kernel {
 using Inferences::PolynomialEvaluation;
 
@@ -37,19 +38,56 @@ std::ostream& operator<<(std::ostream& out, IrcPredicate const& self)
 }
 
 
-Literal* InequalityNormalizer::normalizeLiteral(Literal* lit) const 
+// Literal* InequalityNormalizer::renormalizeLiteral(Literal* lit) const 
+// {
+//   return           renormalizeIrc< IntTraits>(lit).map([](auto l) { return l.value.denormalize(); })
+//   || [&](){ return renormalizeIrc< RatTraits>(lit).map([](auto l) { return l.value.denormalize(); }); }
+//   || [&](){ return renormalizeIrc<RealTraits>(lit).map([](auto l) { return l.value.denormalize(); }); }
+//   || lit;
+// }
+
+
+Literal* InequalityNormalizer::normalizeUninterpreted(Literal* lit) const 
 {
-  return           normalizeIrc< IntTraits>(lit).map([](auto l) { return l.value.denormalize(); })
-  || [&](){ return normalizeIrc< RatTraits>(lit).map([](auto l) { return l.value.denormalize(); }); }
-  || [&](){ return normalizeIrc<RealTraits>(lit).map([](auto l) { return l.value.denormalize(); }); }
-  || lit;
+  CALL("InequalityNormalizer::normalizeUninterpreted(Literal* lit) const")
+  Stack<TermList> args(lit->arity());
+  for (unsigned i = 0; i < lit->arity(); i++) {
+    auto orig = *lit->nthArgument(i);
+    if (orig.isVar()) {
+      args.push(orig);
+    } else {
+      auto eval = evaluator()
+        .evaluate(PolyNf::normalize(TypedTermList(orig.term())))
+        .value.map([](auto t) { return t.denormalize(); }) 
+        || orig;  // <- nothing was done during evaluation
+      args.push(eval);;
+    }
+  }
+  auto out = Literal::create(lit, args.begin());
+  DEBUG(*lit, " ==> ", *out)
+  return out;
+}
+
+Stack<Literal*> InequalityNormalizer::normalizeLiteral(Literal* lit) const 
+{
+  auto out = tryNumTraits([&](auto numTraits)  -> Option<Stack<Literal*>> { 
+      return normalizeIrc<decltype(numTraits)>(lit)
+              .map([](auto lits) { 
+                  return iterTraits(lits.value.iterFifo())
+                        .map([](auto lit) { return lit.denormalize(); })
+                        .template collect<Stack>(); 
+                }); 
+    }) || [&]() { return Stack<Literal*>{normalizeUninterpreted(lit)}; };
+  DEBUG(*lit, " ==> ", out)
+  return out;
 }
 
 bool InequalityNormalizer::isNormalized(Clause* cl)  const
 { 
   for (unsigned i = 0; i < cl->size(); i++) {
     auto lit = (*cl)[i];
-    if(lit != normalizeLiteral(lit)) {
+    auto norm = normalizeLiteral(lit);
+    if(norm.size() != 1 || lit != norm[0]) {
       return false;
     }
   }
@@ -57,25 +95,25 @@ bool InequalityNormalizer::isNormalized(Clause* cl)  const
 }
 
 #if VDEBUG
-shared_ptr<IrcState> testIrcState(Options::UnificationWithAbstraction uwa) {
+shared_ptr<IrcState> testIrcState(Options::UnificationWithAbstraction uwa, bool strongNormalization) {
   auto& ord = *new LaLpo(Precedence::random());
   return shared_ptr<IrcState>(new IrcState {
-      .normalizer = InequalityNormalizer(),
+      .normalizer = InequalityNormalizer(strongNormalization),
       .ordering = &ord,
       .uwa = uwa,
   });
 }
 #endif
 
-Option<MaybeOverflow<AnyIrcLiteral>> InequalityNormalizer::normalize(Literal* lit) const
+Option<MaybeOverflow<AnyIrcLiteral>> InequalityNormalizer::renormalize(Literal* lit) const
 {
   using Out = AnyIrcLiteral;
   auto wrapCoproduct = [](auto&& norm) {
     return std::move(norm).map([](auto overflown) { return overflown.map([](auto x) { return Out(x); }); });
   };
-  return             wrapCoproduct(normalizeIrc< IntTraits>(lit))
-    || [&](){ return wrapCoproduct(normalizeIrc< RatTraits>(lit)); } 
-    || [&](){ return wrapCoproduct(normalizeIrc<RealTraits>(lit)); } 
+  return             wrapCoproduct(renormalizeIrc< IntTraits>(lit))
+    || [&](){ return wrapCoproduct(renormalizeIrc< RatTraits>(lit)); } 
+    || [&](){ return wrapCoproduct(renormalizeIrc<RealTraits>(lit)); } 
     || Option<MaybeOverflow<Out>>();
 }
 
@@ -97,9 +135,9 @@ Stack<Literal*> IrcState::maxLiterals(Stack<Literal*> cl, bool strictlyMax)
 }
 
 
-Option<AnyIrcLiteral> IrcState::normalize(Literal* lit)
+Option<AnyIrcLiteral> IrcState::renormalize(Literal* lit)
 {
-  return this->normalizer.normalize(lit)
+  return this->normalizer.renormalize(lit)
     .andThen([](auto res) {
         // TODO overflow statistic
         return res.overflowOccurred 
@@ -109,9 +147,9 @@ Option<AnyIrcLiteral> IrcState::normalize(Literal* lit)
 }
 
 
-Option<AnyInequalityLiteral> IrcState::normalizeIneq(Literal* lit)
+Option<AnyInequalityLiteral> IrcState::renormalizeIneq(Literal* lit)
 {
-  return normalize(lit)
+  return renormalize(lit)
     .andThen([](auto res) {
       return res.apply([](auto lit) { 
           return inequalityLiteral(lit).map([](auto x) { return AnyInequalityLiteral(x); }); 

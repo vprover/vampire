@@ -503,12 +503,12 @@ Clause* InterpretedNormalizer::apply(Clause* cl)
   bool modified = false;
 
   for(unsigned i=0; i<clen; i++) {
-    Literal* lit = (*cl)[i];
+    Literal* orig = (*cl)[i];
 
     bool isConst;
     Literal* newLit;
     bool newConst;
-    _litTransf->apply(lit, isConst, newLit, newConst);
+    _litTransf->apply(orig, isConst, newLit, newConst);
 
     if(isConst) {
       modified = true;
@@ -517,13 +517,20 @@ Clause* InterpretedNormalizer::apply(Clause* cl)
       }
       continue;
     }
-    if (_inequalityNormalizer)  {
-      newLit = _inequalityNormalizer->normalizeLiteral(newLit);
-    }
-    if(newLit!=lit) {
+    if(newLit != orig) {
       modified = true;
     }
-    lits.push(newLit);
+    if (_inequalityNormalizer)  {
+      for (auto lit : _inequalityNormalizer->normalizeLiteral(newLit)){
+        lits.push(lit);
+      }
+      if (lits.size() != 1 || lits[0] != orig) {
+        modified = true;
+      }
+    } else {
+      lits.push(newLit);
+    }
+
   }
   if(!modified) {
     return cl;
@@ -531,6 +538,7 @@ Clause* InterpretedNormalizer::apply(Clause* cl)
 
   Clause* res = Clause::fromStack(lits,
       FormulaTransformation(InferenceRule::THEORY_NORMALIZATION, cl));
+  // DBG(*cl, " ==> ", *res)
   return res;
 }
 

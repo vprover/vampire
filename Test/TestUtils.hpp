@@ -55,6 +55,7 @@ public:
    * !!! exponential runtime !!!
    */
   static bool eqModACRect(const Kernel::Clause* lhs, const Kernel::Clause* rhs);
+  static bool eqModACRect(Stack<Kernel::Literal*> const& lhs, Stack<Kernel::Literal*> const& rhs);
   static bool eqModACRect(Kernel::Literal* lhs, Kernel::Literal* rhs);
   static bool eqModACRect(Kernel::TermList lhs, Kernel::TermList rhs);
 
@@ -86,6 +87,9 @@ public:
   static bool permEq(L1& lhs, L2& rhs, Eq elemEq);
 
 private:
+
+  template<class Lits>
+  static bool _eqModACRect(Lits const& lhs, Lits const& rhs);
 
   struct RectMap
   {

@@ -51,7 +51,7 @@ Option<VariableElimination::AnyFoundVariable> VariableElimination::findUnshielde
   Set<Variable> shielded;
   for (unsigned i = 0; i < premise->size(); i++) {
     auto lit = (*premise)[i];
-    auto norm = _shared->normalize(lit);
+    auto norm = _shared->renormalize(lit);
     if (norm.isSome()) {
       norm.unwrap().apply([&](auto& lit) -> void {
       //                            ^^^-->  t1 + ... + tn <> 0 

@@ -87,7 +87,7 @@ bool FwdDemodulationModLA::perform(Clause* toSimplify, Clause*& replacement, Cla
     auto gen = _index->getGeneralizations(pos.term, /* retrieveSubstitutions */ true);
     while (gen.hasNext()) {
       auto res = gen.next();
-      auto applied = _shared->normalize(res.literal).unwrap()
+      auto applied = _shared->renormalize(res.literal).unwrap()
         .apply([&](auto lit) {
             using NumTraits = typename decltype(lit)::NumTraits;
             auto s = res.term;

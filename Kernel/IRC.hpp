@@ -189,19 +189,30 @@ namespace Kernel {
   class InequalityNormalizer {
     // Map<Literal*, Option<InequalityLiteral>> _normalized;
     PolynomialEvaluation _eval;
+    const bool _strong;
 
   public:
     PolynomialEvaluation& evaluator() { return _eval; }
-    InequalityNormalizer() : _eval() {  }
+    PolynomialEvaluation const& evaluator() const { return _eval; }
 
-    template<class NumTraits> Option<MaybeOverflow<IrcLiteral<NumTraits>>> normalizeIrc(Literal* lit) const;
+    /** param strong enables rewrites 
+     * t >= 0 ==> t > 0 \/ t == 0
+     * t != 0 ==> t > 0 \/ -t > 0
+     */
+    InequalityNormalizer(bool strong) : _eval(), _strong(strong) {  }
 
-    Option<MaybeOverflow<AnyIrcLiteral>> normalize(Literal* lit) const;
+    template<class NumTraits> Option<MaybeOverflow<Stack<IrcLiteral<NumTraits>>>> normalizeIrc(Literal* lit) const;
+    template<class NumTraits> Option<MaybeOverflow<IrcLiteral<NumTraits>>> renormalizeIrc(Literal* lit) const;
 
-    template<class NumTraits> Option<MaybeOverflow<InequalityLiteral<NumTraits>>> normalizeIneq(Literal* lit) const;
+    Option<MaybeOverflow<AnyIrcLiteral>> renormalize(Literal* lit) const;
 
-    Literal* normalizeLiteral(Literal* lit) const;
+    template<class NumTraits> Option<MaybeOverflow<InequalityLiteral<NumTraits>>> renormalizeIneq(Literal* lit) const;
+
+    // Literal* renormalizeLiteral(Literal* lit) const;
+    Stack<Literal*> normalizeLiteral(Literal* lit) const;
     bool isNormalized(Clause* cl)  const;
+  private: 
+    Literal* normalizeUninterpreted(Literal* lit) const;
   };
 
   struct IrcState;
@@ -280,8 +291,8 @@ namespace Kernel {
     Stack<Literal*> strictlyMaxLiterals(Clause* cl) { return maxLiterals(cl, true); }
 
     Option<UwaResult> unify(TermList lhs, TermList rhs) const;
-    Option<AnyIrcLiteral> normalize(Literal*);
-    Option<AnyInequalityLiteral> normalizeIneq(Literal*);
+    Option<AnyIrcLiteral> renormalize(Literal*);
+    Option<AnyInequalityLiteral> renormalizeIneq(Literal*);
     PolyNf normalize(TypedTermList);
 
     template<class LitOrTerm, class Iter>
@@ -305,9 +316,9 @@ namespace Kernel {
     }
 
     template<class NumTraits> 
-    Option<IrcLiteral<NumTraits>> normalize(Literal* l)
+    Option<IrcLiteral<NumTraits>> renormalize(Literal* l)
     {
-      auto norm = this->normalizer.normalizeIrc<NumTraits>(l);
+      auto norm = this->normalizer.renormalizeIrc<NumTraits>(l);
       if (norm.isNone() || norm.unwrap().overflowOccurred) {
         return Option<IrcLiteral<NumTraits>>();
       } else {
@@ -319,7 +330,8 @@ namespace Kernel {
 
 #if VDEBUG
   shared_ptr<IrcState> testIrcState(
-    Options::UnificationWithAbstraction uwa = Options::UnificationWithAbstraction::IRC1
+    Options::UnificationWithAbstraction uwa = Options::UnificationWithAbstraction::IRC1,
+    bool strongNormalization = false
     );
 #endif
 
@@ -332,12 +344,14 @@ namespace Kernel {
 namespace Kernel {
 
 template<class NumTraits>
-Option<MaybeOverflow<InequalityLiteral<NumTraits>>> InequalityNormalizer::normalizeIneq(Literal* lit) const
+Option<MaybeOverflow<InequalityLiteral<NumTraits>>> InequalityNormalizer::renormalizeIneq(Literal* lit) const
 {
   using Opt = Option<MaybeOverflow<InequalityLiteral<NumTraits>>>;
   return normalizeIrc<NumTraits>(lit)
     .andThen([](auto overflown) {
-      if (overflown.value.isInequality()) {
+      // The literal must have been normalized before, hence normalizing again can't produce more than one literal
+      ASS_EQ(overflown.value.size(), 1) 
+      if (overflown.value[0].isInequality()) {
         return Opt(overflown.map([](auto lit) { return InequalityLiteral<NumTraits>(std::move(lit)); }));
       } else {
         return Opt();
@@ -389,7 +403,19 @@ auto normalizeFactors(Perfect<Polynom<NumTraits>> in) -> MaybeOverflow<Perfect<P
 }
 
 template<class NumTraits>
-Option<MaybeOverflow<IrcLiteral<NumTraits>>> InequalityNormalizer::normalizeIrc(Literal* lit) const
+Option<MaybeOverflow<IrcLiteral<NumTraits>>> InequalityNormalizer::renormalizeIrc(Literal* lit) const
+{
+  return normalizeIrc<NumTraits>(lit)
+    .map([](auto&& lits) -> MaybeOverflow<IrcLiteral<NumTraits>> { 
+        return lits.map([](auto&& lits) -> IrcLiteral<NumTraits> { 
+          ASS_REP(lits.size() == 1, "literal has not been normalized before.");
+          return std::move(lits[0]);
+        });
+    });
+}
+
+template<class NumTraits>
+Option<MaybeOverflow<Stack<IrcLiteral<NumTraits>>>> InequalityNormalizer::normalizeIrc(Literal* lit) const
 {
   CALL("InequalityLiteral<NumTraits>::fromLiteral(Literal*)")
   DEBUG("in: ", *lit, " (", NumTraits::name(), ")")
@@ -398,7 +424,7 @@ Option<MaybeOverflow<IrcLiteral<NumTraits>>> InequalityNormalizer::normalizeIrc(
 
     constexpr bool isInt = std::is_same<NumTraits, IntTraits>::value;
 
-    using Opt = Option<MaybeOverflow<IrcLiteral<NumTraits>>>;
+    using Opt = Option<MaybeOverflow<Stack<IrcLiteral<NumTraits>>>>;
 
     auto f = lit->functor();
     if (!theory->isInterpretedPredicate(f))
@@ -468,7 +494,20 @@ Option<MaybeOverflow<IrcLiteral<NumTraits>>> InequalityNormalizer::normalizeIrc(
     auto simplValue = (simpl.value || norm).wrapPoly<NumTraits>();
     simplValue->integrity();
     auto factorsNormalized = normalizeFactors(simplValue);
-    auto out = IrcLiteral<NumTraits>(factorsNormalized.value, pred);
+
+    Stack<IrcLiteral<NumTraits>> out;
+    if (_strong && pred == IrcPredicate::GREATER_EQ) {
+      // t >= 0 ==> t > 0 \/ t == 0
+      out = { IrcLiteral<NumTraits>(factorsNormalized.value, IrcPredicate::GREATER)
+            , IrcLiteral<NumTraits>(factorsNormalized.value, IrcPredicate::EQ     ) };
+    } else if (_strong && pred == IrcPredicate::NEQ) {
+      // t != 0 ==> t > 0 \/ -t > 0
+      out = { IrcLiteral<NumTraits>( factorsNormalized.value, IrcPredicate::GREATER)
+            , IrcLiteral<NumTraits>(-factorsNormalized.value, IrcPredicate::GREATER) };
+    } else {
+      out = { IrcLiteral<NumTraits>(factorsNormalized.value, pred) };
+    }
+
     return Opt(maybeOverflow(std::move(out), simpl.overflowOccurred || factorsNormalized.overflowOccurred));
   };
   auto out = impl();
@@ -542,7 +581,7 @@ template<class NumTraits> Stack<MaxAtomicTerm<NumTraits>> IrcState::maxAtomicTer
   Stack<MaxAtomicTerm<NumTraits>> elems;
   for (unsigned i = 0; i < cl->size(); i++) {
     auto lit = (*cl)[i];
-    auto norm = normalizer.template normalizeIrc<NumTraits>(lit);
+    auto norm = normalizer.template renormalizeIrc<NumTraits>(lit);
     if (norm.isSome() && !norm.unwrap().overflowOccurred) {
       auto irc = norm.unwrap().value;
       for (unsigned j = 0; j < irc.term().nSummands(); j++) {

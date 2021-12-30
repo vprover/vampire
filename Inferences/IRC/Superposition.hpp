@@ -106,7 +106,7 @@ public:
 
     static Hyp1 fromQueryResult(std::shared_ptr<IrcState> _shared, TermQueryResult res) {
       auto s1 = res.term; 
-      auto eq = _shared->normalizer.normalizeIrc<NumTraits>(res.literal).unwrap().value;
+      auto eq = _shared->normalizer.renormalizeIrc<NumTraits>(res.literal).unwrap().value;
       return Hyp1<NumTraits> {
         .cl     = res.clause, // <- `C1 \/ ±ks1+t1 ≈ 0`
         .pivot  = res.literal, // <-       `±ks1+t1 ≈ 0`

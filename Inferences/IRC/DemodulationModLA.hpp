@@ -119,33 +119,6 @@ public:
   static auto __simplifiers(IrcState& shared, Clause* simplifyWith, IrcLiteral<NumTraits> lit)
   {
 
-    // auto nothing = []() { return pvi(Option<AnySimplification>().intoIter()); };
-    //
-    // auto nSummands = lit.term().nSummands();
-    // if (nSummands == 0) { return nothing(); }
-    // auto factors = lit.term()
-    //   .iterSummands()
-    //   .map([&](auto monom) { return monom.factors->denormalize(); })
-    //   .template collect<Stack>();
-    //
-    // for (auto i = 0; i < nSummands; i++) {
-    //   auto max = true;
-    //   for (auto j = 0; j < nSummands; j++) {
-    //     if (i != j && shared.ordering->compare(factors[i], factors[j]) != Ordering::GREATER) {
-    //       max = false;
-    //       break;
-    //     }
-    //   }
-    //   if (max) {
-    //     return pvi(Option<AnySimplification>(AnySimplification(Simplification<NumTraits>{
-    //           .lit = lit,
-    //           .monom = lit.term().summandAt(i),
-    //     })).intoIter());
-    //   }
-    // }
-    // return nothing();
-
-
     return pvi(iterTraits(ownedArrayishIterator(shared.maxAtomicTerms(lit, /* strictlyMax */ true)))
       .map([lit](auto monom) { 
           return AnySimplification(Simplification<NumTraits> {
@@ -164,7 +137,7 @@ public:
     return iterTraits(getSingletonIterator(simplifyWith))
       .filter([](Clause* cl) { return cl->size() == 1 && (*cl)[0]->isEquality() && (*cl)[0]->isPositive(); })
       .filterMap([&](Clause* simplifyWith) 
-          { return shared.normalize((*simplifyWith)[0]); })
+          { return shared.renormalize((*simplifyWith)[0]); })
       .flatMap([&shared, simplifyWith](AnyIrcLiteral lit) {
           return lit.apply([&shared, simplifyWith](auto lit) 
               { return __simplifiers(shared, simplifyWith, lit); });

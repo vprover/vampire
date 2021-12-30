@@ -1173,6 +1173,16 @@ void Options::init()
            _ircVariableEliminationSimplifying.tag(OptionTag::INFERENCES);
            _ircVariableEliminationSimplifying.reliesOnHard(_inequalityResolution.is(equal(true)));
 
+           _ircStrongNormalization  = BoolOptionValue("irc_strong_normalziation","irc_strnorm",true);
+           _ircStrongNormalization.description=
+                  "enables stronger normalizations for inequalities: \n"
+                  "s >= 0 ==> s > 0 \\/  s == 0\n"
+                  "s != 0 ==> s > 0 \\/ -s  > 0\n"
+                  "\n";
+           _lookup.insert(&_ircStrongNormalization);
+           _ircStrongNormalization.tag(OptionTag::INFERENCES);
+           _ircStrongNormalization.reliesOnHard(_inequalityResolution.is(equal(true)));
+
            _gaussianVariableElimination = choiceArithmeticSimplificationMode(
                "gaussian_variable_elimination", "gve",
                ArithmeticSimplificationMode::OFF);

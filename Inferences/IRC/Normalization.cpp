@@ -41,7 +41,6 @@
 #include "Indexing/TermIndexingStructure.hpp"
 
 #define DEBUG(...) // DBG(__VA_ARGS__)
-#define DEBUG_IDX(...) //DBG(__VA_ARGS__)
 
 using Kernel::InequalityLiteral;
 
@@ -58,12 +57,15 @@ Clause* Normalization::simplify(Clause* cl)
   bool altered = false; 
   auto out = Stack<Literal*>(cl->size());
   for (unsigned i = 0; i < cl->size(); i++) {
-    out.push(_shared->normalizer.normalizeLiteral((*cl)[i]));
-    altered |= out[i] != (*cl)[i];
+    auto lits = _shared->normalizer.normalizeLiteral((*cl)[i]);
+    out.loadFromIterator(lits.iterFifo());
+    altered |= lits.size() != 1 || lits[0] != (*cl)[i];
   }
   if (altered) {
     Inference inf(SimplifyingInference1(Kernel::InferenceRule::IRC_NORMALIZATION, cl));
-    return Clause::fromStack(out, inf);
+    auto outCl = Clause::fromStack(out, inf);
+    DEBUG(*cl, " ==> ", *outCl)
+    return outCl;
   } else {
     return cl;
   }

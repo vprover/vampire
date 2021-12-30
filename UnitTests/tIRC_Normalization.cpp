@@ -58,18 +58,22 @@ using namespace Indexing;
 struct TestCase 
 {
   Literal* in;
-  Stack<Literal*> out;
+  Stack<Stack<Literal*>> out;
+  bool strong;
 
   template<class NumTraits>
   void run() {
-    auto norm = InequalityNormalizer();
-    auto result_ = norm.normalizeIrc<NumTraits>(in).unwrap();
-    auto result = result_.value.denormalize();
-    if (!iterTraits(out.iter()).any([&](auto out){ return TestUtils::eqModAC(out, result); })) {
+    auto norm = InequalityNormalizer(strong);
+    auto results_ = norm.normalizeIrc<NumTraits>(in).unwrap();
+    auto results = Stack<Literal*>();
+    for (auto& r : results_.value) {
+      results.push(r.denormalize());
+    }
+    if (!iterTraits(out.iter()).any([&](auto out){ return TestUtils::eqModACRect(out, results); })) {
       std::cout << "\r" << endl;
-      std::cout << "\r[   input  ]" << pretty(in) << endl;
+      std::cout << "\r[    input ]" << pretty(in) << endl;
       std::cout << "\r[ expected ]" << pretty(out) << endl;
-      std::cout << "\r[  result  ]" << pretty(result) << endl;
+      std::cout << "\r[  results ]" << pretty(results) << endl;
       exit(-1);
     }
   }
@@ -96,26 +100,30 @@ struct TestCase
 
 TEST_ALL(strict_01, 
     TestCase {
-      .in  =    f(a) < 0,
-      .out = { -f(a) > 0 },
+      .in  =      f(a) < 0    ,
+      .out = { { -f(a) > 0 } },
+      .strong = true,
     })
 
 TEST_ALL(strict_02, 
     TestCase {
-      .in  =  0 > x,
-      .out = { -x > 0 },
+      .in  =      0 > x,
+      .out = { { -x > 0 } },
+      .strong = true,
     })
 
 TEST_ALL(strict_03, 
     TestCase {
-      .in  =   a > b,
-      .out = { a + -b > 0 },
+      .in  =          a > b    ,
+      .out = { { a + -b > 0 } },
+      .strong = true,
     })
 
 TEST_ALL(strict_04, 
     TestCase {
-      .in  =   a + b > 0,
-      .out = { a + b > 0 },
+      .in  =     a + b > 0    ,
+      .out = { { a + b > 0 } },
+      .strong = true,
     })
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -124,26 +132,30 @@ TEST_ALL(strict_04,
 
 TEST_ALL(eq_01, 
     TestCase {
-      .in  =   f(a) == 0,
-      .out = { f(a) == 0, -f(a) == 0 },
+      .in  =     f(a) == 0                    , // TODO
+      .out = { { f(a) == 0 }, { -f(a) == 0 } },
+      .strong = true,
     })
 
 TEST_ALL(eq_02, 
     TestCase {
-      .in  =    0 == x,
-      .out =  { 0 == x, -x == 0 },
+      .in  =      0 == x                 ,
+      .out =  { { 0 == x }, { -x == 0 } }, // TODO
+      .strong = true,
     })
 
 TEST_ALL(eq_03, 
     TestCase {
-      .in  =   a == b,
-      .out = { a - b == 0, b - a == 0 },
+      .in  =         a == b                    ,
+      .out = { { a - b == 0 }, { b - a == 0 } }, // TODO ?
+      .strong = true,
     })
 
 TEST_ALL(eq_04, 
     TestCase {
-      .in  =   a + b == 0,
-      .out = { a + b == 0, -a - b == 0 },
+      .in  =     a + b == 0                     ,
+      .out = { { a + b == 0 }, { -a - b == 0 } },
+      .strong = true,
     })
 
 
@@ -152,42 +164,69 @@ TEST_ALL(eq_04,
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
-TEST_ALL(neq_01, 
+TEST_ALL(neq_01a, 
     TestCase {
-      .in  =   f(a) != 0,
-      .out = { f(a) != 0, -f(a) != 0 },
+      .in  =     f(a) != 0,
+      .out = { { f(a) != 0 }, { -f(a) != 0 } }, // TODO
+      .strong = false,
     })
 
-TEST_ALL(neq_02, 
+TEST_ALL(neq_01b, 
     TestCase {
-      .in  =    0 != x,
-      .out =  { 0 != x, -x != 0 },
+      .in  = f(a) != 0,
+      .out = { { f(a) > 0, -f(a) > 0, }, },
+      .strong = true,
     })
 
-TEST_ALL(neq_03, 
+TEST_ALL(neq_02a, 
     TestCase {
-      .in  =   a != b,
-      .out = { a - b != 0, b - a != 0 },
+      .in  =      0 != x,
+      .out =  { { 0 != x }, { -x != 0 } },
+      .strong = false,
+    })
+
+TEST_ALL(neq_02b, 
+    TestCase {
+      .in  =      0 != x,
+      .out =  { {  x > 0, -x > 0 } },
+      .strong = true,
+    })
+
+TEST_ALL(neq_03a, 
+    TestCase {
+      .in  =         a != b,
+      .out = { { a - b != 0 }, { b - a != 0 } },
+      .strong = false,
+    })
+
+TEST_ALL(neq_03b, 
+    TestCase {
+      .in  =         a != b,
+      .out = { { a - b > 0, b - a > 0 } },
+      .strong = true,
     })
 
 TEST_ALL(neq_04, 
     TestCase {
-      .in  =   a + b != 0,
-      .out = { a + b != 0, -a - b != 0 },
+      .in  =     a + b != 0,
+      .out = { { a + b != 0 }, { -a - b != 0 } },
+      .strong = false,
     })
 
 TEST_ALL(neq_05, 
     TestCase {
-      .in  =   7 * a + b != a,
-      .out = {  6 * a + b != 0
-             , -6 * a - b != 0 },
+      .in  =      7 * a + b != a,
+      .out = { {  6 * a + b != 0 }
+             , { -6 * a - b != 0 } },
+      .strong = false,
     })
 
 TEST_ALL(neq_06, 
     TestCase {
-      .in  =   7 * a + b != a - 3,
-      .out = {  6 * a + b + 3 != 0
-             , -6 * a - b + -3 != 0 },
+      .in  =      7 * a + b      != a - 3,
+      .out = { {  6 * a + b + 3  != 0 }
+             , { -6 * a - b + -3 != 0 } },
+      .strong = false,
     })
 
 
@@ -197,53 +236,90 @@ TEST_ALL(neq_06,
 
 TEST_INT(lax_01, 
     TestCase {
-      .in  =   f(a) <= 0,
-      .out = { 1 + -f(a) > 0 },
+      .in  =   f(a) <= 0, // TODO theory: we normalize to something bigger here...
+      .out = { { 1 + -f(a) > 0 } },
+      .strong = false,
     })
 
 TEST_INT(lax_02, 
     TestCase {
-      .in  =    0 >= x,
-      .out = { -x + 1 > 0 },
+      .in  =    0 >= x, // TODO theory: we normalize to something bigger here...
+      .out = { { -x + 1 > 0 } },
+      .strong = false,
     })
 
 TEST_INT(lax_03, 
     TestCase {
-      .in  =   a >= b,
-      .out = { a - b + 1 > 0 },
+      .in  =   a >= b, // TODO theory: we normalize to something bigger here...
+      .out = { { a - b + 1 > 0 } },
+      .strong = false,
     })
 
 TEST_INT(lax_04, 
     TestCase {
-      .in  =   a + b >= 0,
-      .out = { a + b + 1 > 0 },
+      .in  =   a + b >= 0, // TODO theory: we normalize to something bigger here...
+      .out = { { a + b + 1 > 0 } },
+      .strong = false,
     })
 
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
 
-TEST_FRAC(lax_01, 
+TEST_FRAC(lax_01a,
     TestCase {
-      .in  =    f(a) <= 0,
-      .out = { -f(a) >= 0 },
+      .in  =      f(a) <= 0,
+      .out = { { -f(a) >= 0 } },
+      .strong = false,
     })
 
-TEST_FRAC(lax_02, 
+TEST_FRAC(lax_01b, 
     TestCase {
-      .in  =    0 >= x,
-      .out = { -x >= 0 },
+      .in  =      f(a) <= 0,
+      .out = { { -f(a) == 0, -f(a) > 0 } },
+      .strong = true,
     })
 
-TEST_FRAC(lax_03, 
+TEST_FRAC(lax_02a, 
     TestCase {
-      .in  =   a >= b,
-      .out = { a - b >= 0 },
+      .in  =      0 >= x,
+      .out = { { -x >= 0 } },
+      .strong = false,
     })
 
-TEST_FRAC(lax_04, 
+TEST_FRAC(lax_02b, 
     TestCase {
-      .in  =   a + b >= 0,
-      .out = { a + b >= 0 },
+      .in  =      0 >= x,
+      .out = { { -x == 0, -x > 0  } },
+      .strong = true,
+    })
+
+TEST_FRAC(lax_03a, 
+    TestCase {
+      .in  =         a >= b,
+      .out = { { a - b >= 0 } },
+      .strong = false,
+    })
+
+TEST_FRAC(lax_03b, 
+    TestCase {
+      .in  =         a >= b,
+      .out = { { a - b == 0, a - b > 0 } },
+      .strong = true,
+    })
+
+TEST_FRAC(lax_04a,
+    TestCase {
+      .in  =     a + b >= 0    ,
+      .out = { { a + b >= 0 } },
+      .strong = false,
+    })
+
+
+TEST_FRAC(lax_04b,
+    TestCase {
+      .in  =     a + b >= 0               ,
+      .out = { { a + b == 0, a + b > 0 } },
+      .strong = true,
     })
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -253,25 +329,29 @@ TEST_FRAC(lax_04,
 TEST_ALL(gcd_01, 
     TestCase {
       .in  =   2 * a + 2 * b > 0,
-      .out = {     a +     b > 0 },
+      .out = { {     a +     b > 0 } },
+      .strong = true,
     })
 
 TEST_ALL(gcd_02, 
     TestCase {
-      .in  =   2 * a + 4 * b + -6 * c > 0,
-      .out = {     a + 2 * b + -3 * c > 0 },
+      .in  =     2 * a + 4 * b + -6 * c > 0,
+      .out = { {     a + 2 * b + -3 * c > 0 } },
+      .strong = true,
     })
 
 TEST_FRAC(gcd_03, 
     TestCase {
-      .in  =   frac(1, 2) * a + frac(1, 4) * b + -frac(1, 6) * c > 0,
-      .out = {         6  * a +         3  * b + -        2  * c > 0 },
+      .in  =     frac(1, 2) * a + frac(1, 4) * b + -frac(1, 6) * c > 0,
+      .out = { {         6  * a +         3  * b + -        2  * c > 0 } },
+      .strong = true,
     })
 
 TEST_FRAC(gcd_04, 
     TestCase {
-      .in  =   frac(9, 2) * a + frac(6, 4) * b + -frac(3, 6) * c > 0,
-      .out = {         9  * a +         3  * b + -             c > 0 },
+      .in  =     frac(9, 2) * a + frac(6, 4) * b + -frac(3, 6) * c > 0,
+      .out = { {         9  * a +         3  * b + -             c > 0 } },
+      .strong = true,
     })
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -280,58 +360,47 @@ TEST_FRAC(gcd_04,
 
 TEST_ALL(bug_01, 
     TestCase {
-      .in  =   0 * num(-1) + 2 * a * 1073741824 > 0,
-      .out = {                   a * 1073741824 > 0 },
+      .in  =     0 * num(-1) + 2 * a * 1073741824 > 0,
+      .out = { {                   a * 1073741824 > 0 } },
+      .strong = true,
     })
 
 TEST_INT(bug_02, 
     TestCase {
-      .in  =   ~(x <  0),
-      //        (x >= 0),
-      .out = { x + 1 > 0 },
+      .in  =     ~(x <  0),
+      //          (x >= 0),
+      .out = { { x + 1 > 0 } },
+      .strong = true,
     })
 
 TEST_ALL(bug_03, 
     TestCase {
-      .in  =   g(a, x) + -2 * b * y > 0,
-      .out = { g(a, x) + -2 * b * y > 0 },
+      .in  =     g(a, x) + -2 * b * y > 0,
+      .out = { { g(a, x) + -2 * b * y > 0 } },
+      .strong = true,
    })
  
 TEST_FRAC(bug_04, 
     TestCase {
-      .in  =   a + b + c >= 0,
-      .out = { a + b + c >= 0 },
+      .in  =     a + b + c >= 0,
+      .out = { { a + b + c >= 0 } },
+      .strong = false,
     })
 
 TEST_FRAC(bug_05, 
     TestCase {
-      .in  =   a * b * c >= 0,
-      .out = { a * b * c >= 0 },
+      .in  =     a * b * c >= 0,
+      .out = { { a * b * c >= 0 } },
+      .strong = false,
     })
 
 
 TEST_FRAC(bug_06, 
     TestCase {
-      .in  =   num(-4) + 0 >= 0  ,
-      .out = { num(-1)     >= 0 },
+      .in  =     num(-4) + 0 >= 0  ,
+      .out = { { num(-1)     >= 0 } },
+      .strong = false,
     })
-
-
-// TEST_INT(bug_07, 
-//     TestCase {
-//       .in  =   f(quotientE(num(1), 5)) > 0 ,
-//       .out = { f(           1        ) > 0 },
-//     })
-//
-// TEST_INT(bug_07__, 
-//     TestCase {
-//       .in  =   3 + (a + -quotientE(num(1), 5)) > 0 ,
-//       //       3 + (a + -quotientE(num(1), 5)) > 0 ,
-//       //       3 + (a + -1                   ) > 0 ,
-//       //       2 +  a                          > 0 ,
-//       .out = { 2 +  a > 0 },
-//     })
-
 
 TEST_INT(bug_07, 
     TestCase {
@@ -339,6 +408,7 @@ TEST_INT(bug_07,
       //       -600335 * ( a * 251886) + 251886 * ( a * 600335) == 0
       //       -600335 *   a           +            a * 600335  == 0
       //                  -a           +            a           == 0
-      .out = { num(0) == 0 },
+      .out = { { num(0) == 0 } },
+      .strong = false,
     })
 

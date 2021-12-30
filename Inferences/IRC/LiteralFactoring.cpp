@@ -63,7 +63,7 @@ Option<Clause*> LiteralFactoring::applyRule(Clause* premise,
 
   auto term_max_after_unif = [&sigma, this](auto lit_sigma, auto s) -> bool
   {
-      auto lit_sigma_norm = _shared->normalize<NumTraits>(lit_sigma);
+      auto lit_sigma_norm = _shared->renormalize<NumTraits>(lit_sigma);
       if (lit_sigma_norm.isNone())  
         return true; // overflow while normalizing, we assume that we can apply the rule
       auto strictly_max = _shared->maxAtomicTerms(lit_sigma_norm.unwrap(), /*strict*/true);
@@ -255,7 +255,7 @@ ClauseIterator LiteralFactoring::generateClauses(Clause* premise)
       range(0, selected->size())
         .flatMap([=](unsigned i) {
           auto lit1 = (*selected)[i];
-          auto L1_opt = _shared->normalize(lit1);
+          auto L1_opt = _shared->renormalize(lit1);
           return pvi(iterTraits(std::move(L1_opt).intoIter())
             .flatMap([=](auto polymorphicNormalized) {
                 // we know that the first literal is an inequality of some number sort
@@ -266,7 +266,7 @@ ClauseIterator LiteralFactoring::generateClauses(Clause* premise)
                         .flatMap([=](auto j) {
                           auto lit2 = (*selected)[j];
                           // we check whether the second is an inequality literal of the same number sort
-                          auto L2_opt = _shared->normalize<NumTraits>(lit2);
+                          auto L2_opt = _shared->renormalize<NumTraits>(lit2);
                           auto ci = pvi(iterTraits(std::move(L2_opt).intoIter())
                             .flatMap([&](IrcLiteral<NumTraits> L2) 
                                 { return generateClauses(premise, lit1, L1, lit2, L2); }));

@@ -561,6 +561,9 @@ public:
   { return Polynom(self.iterSummands()
       .map([&](auto m) { return n * m; })
       .template collect<Stack>()); }
+
+  friend Polynom operator-(Polynom const& self) 
+  { return Numeral(-1) * self; }
 };  
 
 template<class N> bool operator!=(const Polynom<N>& l, const Polynom<N>& r) { return !(l == r); }

@@ -162,7 +162,7 @@ void Preprocess::preprocess(Problem& prb)
   auto normalizeInterpreted = [&]() {
     if (env.options->inequalityResolution()) {
 
-      static InequalityNormalizer norm;
+      static InequalityNormalizer norm = InequalityNormalizer(env.options->ircStrongNormalization());
       InterpretedNormalizer(&norm).apply(prb);
 
     } else {

@@ -25,6 +25,7 @@ public:
   CLASS_NAME(TypedTermList)
   TypedTermList(TermList t, SortId sort) : TermList(t), _sort(sort) {}
   TypedTermList(Term* t) : TypedTermList(TermList(t), SortHelper::getResultSort(t)) {}
+  TypedTermList(Literal* t) = delete;
   SortId sort() const { return _sort; }
 };
 
