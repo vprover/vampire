@@ -547,6 +547,7 @@ public:
     KBO = 0,
     LPO = 1,
     LALPO = 2,
+    QKBO = 3,
   };
 
   enum class SymbolPrecedence : unsigned int {

@@ -432,6 +432,32 @@ typedef Stack<BoundInfo> BoundStack;
 template<class F, class... As> using ResultOf = typename std::result_of<F(As...)>::type;
 
 namespace std {
+  template<unsigned i, unsigned sz, class Tup> 
+  struct OutputTuple
+  {
+    static void apply(ostream& out, Tup const& self)
+    {
+      out << std::get<i>(self) << ", ";
+      OutputTuple<i + 1, sz, Tup>::apply(out, self);
+    }
+  };
+
+  template<unsigned i, class Tup> 
+  struct OutputTuple<i, i, Tup>  {
+    static void apply(ostream& out, Tup const& self)
+    {
+      out << std::get<i>(self);
+    }
+  };
+
+  template<class... As> ostream& operator<<(ostream& out, tuple<As...> const& self)
+  { 
+    out << "(";
+    OutputTuple<0, std::tuple_size<tuple<As...>>::value - 1, tuple<As...>>::apply(out, self);
+    out << ")";
+    return out;
+  }
+
   template<class A, class B>
   ostream& operator<<(ostream& out, pair<A,B> const& self)
   { return out << "(" << self.first << ", " << self.second << ")"; }

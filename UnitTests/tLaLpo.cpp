@@ -29,20 +29,6 @@ const LaLpo::Result Less    = LaLpo::Result::LESS;
 const LaLpo::Result Equal   = LaLpo::Result::EQUAL;
 const LaLpo::Result Incomp  = LaLpo::Result::INCOMPARABLE;
 
-DArray<int> funcPrec() {
-  unsigned num = env.signature->functions();
-  DArray<int> out(num);
-  out.initFromIterator(getRangeIterator(0u, num));
-  return out;
-}
-
-DArray<int> predPrec() {
-  unsigned num = env.signature->predicates();
-  DArray<int> out(num);
-  out.initFromIterator(getRangeIterator(0u, num));
-  return out;
-}
-
 template<class T>
 void check__(Ordering& ord, T lhs, LaLpo::Result exp, T rhs) {
   // std::cout << std::endl;
@@ -82,6 +68,22 @@ void check(LaLpo& ord, Literal* lhs, LaLpo::Result exp, Literal* rhs)
 
 LaLpo laLpo() {
   CALL("laLpo(...)")
+
+  auto funcPrec = []() -> DArray<int> {
+    unsigned num = env.signature->functions();
+    DArray<int> out(num);
+    out.initFromIterator(getRangeIterator(0u, num));
+    return out;
+  };
+
+  auto predPrec = []() -> DArray<int> {
+    unsigned num = env.signature->predicates();
+    DArray<int> out(num);
+    out.initFromIterator(getRangeIterator(0u, num));
+    return out;
+  };
+
+
   return LaLpo(Precedence(funcPrec(), predPrec()));
 }
 
@@ -249,10 +251,7 @@ TEST_FUN(lalpo_test_literals) {
 TEST_FUN(lalpo_test_literals_numerals) {
   DECL_DEFAULT_VARS
   NUMBER_SUGAR(Rat)
-  DECL_CONST(a, Rat)
-  DECL_CONST(b, Rat)
   DECL_FUNC (f, {Rat}, Rat)
-  DECL_PRED (p, {Rat})
 
   auto ord = laLpo();
 

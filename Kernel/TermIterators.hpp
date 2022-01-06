@@ -859,22 +859,23 @@ private:
 }; // class TermVarIterator
 
 
-class LiteralArgIterator 
+class ArgIterator 
 {
-  Literal* _lit;
+  Term* _term;
   unsigned _idx;
 public:
   DECL_ELEMENT_TYPE(TermList);
 
-  LiteralArgIterator(Literal* lit) : _lit(lit), _idx(0) {}
+  ArgIterator(Term* lit) : _term(lit), _idx(0) {}
 
-  inline bool hasNext() const { return _idx < _lit->arity(); }
-  inline TermList next() { return *_lit->nthArgument(_idx++); }
-  unsigned size() const { return _lit->arity(); }
+  inline bool hasNext() const { return _idx < _term->arity(); }
+  inline TermList next() { return *_term->nthArgument(_idx++); }
+  unsigned size() const { return _term->arity(); }
 };
 
-inline IterTraits<LiteralArgIterator> argIter(Literal* lit) 
-{ return iterTraits(LiteralArgIterator(lit)); }
+
+inline IterTraits<ArgIterator> argIter(Term* lit) 
+{ return iterTraits(ArgIterator(lit)); }
 
 
 }

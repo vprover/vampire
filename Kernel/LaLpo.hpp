@@ -51,6 +51,9 @@ public:
 
   
 
+  DArray<int> const&  funPrec() const { return  _funPrec; }
+  DArray<int> const& predPrec() const { return _predPrec; }
+
   Comparison cmpFun(unsigned l, unsigned r) const;
   Comparison cmpPred(unsigned l, unsigned r) const;
   void show(ostream& out) const;
@@ -81,6 +84,31 @@ public:
 
   void setState(std::shared_ptr<IrcState> s) { _shared = std::move(s); }
 
+  enum class Pred 
+  { Eq, Neq, Greater, Geq, Uninterpreted };
+
+  struct Lit {
+    Literal* orig;
+    Pred pred;
+    auto interpreted() const { return pred != Pred::Uninterpreted; }
+    auto sort() const { 
+      ASS(interpreted())
+      return SortHelper::getArgSort(orig, 0);
+    }
+    Lit(Literal* l) 
+      : orig(l)
+      , pred(
+          l->functor() == 0 
+            ? (l->isPositive() ? Pred::Eq : Pred::Neq)
+            : tryNumTraits([&](auto numTraits) { 
+                  auto f = l->functor();
+                  return f == numTraits.greaterF() ? Option<Pred>(Pred::Greater)
+                       : f == numTraits.    geqF() ? Option<Pred>(Pred::Geq    )
+                       : Option<Pred>();
+                })
+              .unwrapOr(Pred::Uninterpreted)
+          ) {}
+  };
 private:
   Comparison cmpFun(Term* s, Term* t) const;
 

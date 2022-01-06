@@ -4,6 +4,7 @@
 #include "Kernel/PolynomialNormalizer.hpp"
 #include "Lib/Option.hpp"
 #include "Lib/Metaiterators.hpp"
+#include "Kernel/OrderingUtils.hpp"
 
 #define DEBUG(...) // DBG(__VA_ARGS__)
 
@@ -16,13 +17,6 @@ LaLpo::LaLpo(Precedence prec)
 {
 }
 
-// bool isIrcPredicate(unsigned p) {
-//   // return forAnyNumTraits([&](auto numTraits) {
-//   //     return p == numTraits.geqF()
-//   //         || p == numTraits.greaterF()
-//   //         ;
-//   // }) || p ==;
-// }
 bool isPlus(unsigned functor)
 { return forAnyNumTraits([&](auto numTraits) 
     { return numTraits.addF() == functor; }); }
@@ -76,136 +70,6 @@ Stack<TermList> flat(TermList t)
   return out;
 }
 
-using MulExtMemo = DArray<Option<Ordering::Result>>;
-
-
-template<class Cmp> 
-Ordering::Result _mulExt(unsigned lsz, unsigned rsz, Cmp cmp_, Option<MulExtMemo&> memo)
-{
-  CALL("mulExt")
-  memo.andThen([&](auto& memo){
-      if (memo.size() == 0) 
-        memo = MulExtMemo::initialized(lsz * rsz);
-  });
-  auto cmp = [&](unsigned i, unsigned j) {
-    return memo.match(
-        [&](auto& memo) { 
-          auto idx = i + j * lsz;
-          if (memo[idx].isNone()) {
-            memo[idx] = Option<Ordering::Result>(cmp_(i, j));
-          } 
-          return memo[idx].unwrap();
-        },
-        [&]() { return cmp_(i,j); });
-  };
-
-  auto l = Stack<unsigned>::fromIterator(getRangeIterator<unsigned>(0, lsz));
-  auto r = Stack<unsigned>::fromIterator(getRangeIterator<unsigned>(0, rsz));
-
-  // removing duplicates
-  for (unsigned il = 0; il < l.size();) {
-    auto i = l[il];
-    for(unsigned ir = 0; ir < r.size();) {
-      auto j = r[ir];
-      if (cmp(i, j) == Ordering::Result::EQUAL) {
-        l.swapRemove(il);
-        r.swapRemove(ir);
-        goto continue_outer;
-      } else {
-        ir++;
-      }
-    }
-    il++;
-continue_outer:;
-  }
-
-
-  if (l.size() == 0 && r.size() == 0 ) return Ordering::EQUAL;
-  else if (l.size() == 0)              return Ordering::LESS;
-  else if (r.size() == 0)              return Ordering::GREATER;
-  else {
-
-    if (iterTraits(l.iter())
-          .all([&](auto i) { return iterTraits(r.iter())
-            .any([&](auto j) 
-              { return cmp(i,j) == Ordering::LESS; }); })) {
-      return Ordering::LESS;
-    } else if (iterTraits(r.iter())
-          .all([&](auto j) { return iterTraits(l.iter())
-            .any([&](auto i) 
-              { return cmp(i,j) == Ordering::GREATER; }); })) {
-      return Ordering::GREATER;
-    } else {
-      // all are incomparable
-      return Ordering::INCOMPARABLE;
-    }
-
-  }
-}
-
-
-template<class Cmp> 
-Ordering::Result mulExt(unsigned lsz, unsigned rsz, Cmp cmp)
-{
-  MulExtMemo memo;
-  return mulExt(lsz, rsz, cmp, memo);
-}
-
-
-template<class Cmp> 
-Ordering::Result mulExtWithoutMemo(unsigned lsz, unsigned rsz, Cmp cmp)
-{
-  return _mulExt(lsz, rsz, cmp, Option<MulExtMemo&>());
-}
-
-template<class Cmp> 
-Ordering::Result mulExt(unsigned lsz, unsigned rsz, Cmp cmp, MulExtMemo& memo)
-{
-  return _mulExt(lsz, rsz, cmp, Option<MulExtMemo&>(memo));
-}
-
-template<class A, class Cmp> 
-Ordering::Result mulExt(Stack<A> const& l, Stack<A> const& r, Cmp cmp)
-{ return mulExt(l.size(), r.size(), [&](unsigned i, unsigned j) { return cmp(l[i], r[j]); }); }
-
-enum class Pred { Eq, Neq, Greater, Geq, Uninterpreted };
-
-struct Lit {
-  Literal* orig;
-  Pred pred;
-  auto interpreted() const { return pred != Pred::Uninterpreted; }
-  auto sort() const { 
-    ASS(interpreted())
-    return SortHelper::getArgSort(orig, 0);
-  }
-  Lit(Literal* l) 
-    : orig(l)
-    , pred(
-        l->functor() == 0 
-          ? (l->isPositive() ? Pred::Eq : Pred::Neq)
-          : tryNumTraits([&](auto numTraits) { 
-                auto f = l->functor();
-                return f == numTraits.greaterF() ? Option<Pred>(Pred::Greater)
-                     : f == numTraits.    geqF() ? Option<Pred>(Pred::Geq    )
-                     : Option<Pred>();
-              })
-            .unwrapOr(Pred::Uninterpreted)
-        ) {}
-};
-
-template<class Iter1, class Iter2, class Cmp>
-auto lexExt(Iter1 ls, Iter2 rs, Cmp cmp) {
-  while (ls.hasNext()) {
-    ASS(rs.hasNext())
-    auto l = ls.next();
-    auto r = rs.next();
-    auto c = cmp(l,r);
-    if (c != Ordering::Result::EQUAL) 
-      return c;
-  }
-  ASS(!rs.hasNext());
-  return Ordering::Result::EQUAL;
-}
 
 template<class Cmp>
 Ordering::Result chainedCmps(Cmp cmp)
@@ -218,16 +82,6 @@ Ordering::Result chainedCmps(C1 c1, C2 c2, Cs... cs)
   auto c = c1();
   return c != Ordering::Result::EQUAL ? c : chainedCmps(c2, cs...);
 }
-
-// template<class As..., class Cs...>
-// Ordering::Result tupleCmp(C1 c1, C2 c2, Cs cs...)
-// {
-//   auto c = c1();
-//   return c != Ordering::Result::EQUAL ? c : chainedCmps(c2, cs...);
-// }
-
-
-
 
 template<class A, class... Cs>
 Ordering::Result cmpChained(A const& l, A const& r, Cs... cs)
@@ -252,7 +106,7 @@ LaLpo::Result LaLpo::compare(Literal* l1_, Literal* l2_) const
       return Ordering::fromComparison(_prec.cmpPred(l1.orig->functor(), l2.orig->functor()));
 
     } else {
-      auto lex = lexExt(argIter(l1.orig), argIter(l2.orig), [&](auto& l, auto& r) { return compare(l,r); } );
+      auto lex = OrderingUtils::lexExt(argIter(l1.orig), argIter(l2.orig), [&](auto& l, auto& r) { return compare(l,r); } );
       if (lex == Result::EQUAL) {
         return l1.orig->isPositive() == l2.orig->isPositive() 
           ? Result::EQUAL
@@ -261,7 +115,6 @@ LaLpo::Result LaLpo::compare(Literal* l1_, Literal* l2_) const
       } else {
         return lex;
       }
-
     }
 
   } else  {
@@ -307,14 +160,14 @@ LaLpo::Result LaLpo::compare(Literal* l1_, Literal* l2_) const
 
     auto ts1 = terms(l1);
     auto ts2 = terms(l2);
-    MulExtMemo memo;
+    OrderingUtils::MulExtMemo memo;
 
-    auto mul = mulExt(ts1.size(), ts2.size(), [&](auto i, auto j) { return compare(get<0>(ts1[i]), get<0>(ts2[j])); }, memo);
+    auto mul = OrderingUtils::mulExt(ts1.size(), ts2.size(), [&](auto i, auto j) { return compare(get<0>(ts1[i]), get<0>(ts2[j])); }, memo);
     if (mul != Ordering::Result::EQUAL) {
       return mul;
 
     } else {
-      auto mulWithNum = mulExtWithoutMemo(ts1.size(), ts2.size(), 
+      auto mulWithNum = OrderingUtils::mulExtWithoutMemo(ts1.size(), ts2.size(), 
           [&](auto i, auto j) { 
             auto t1 = get<0>(ts1[i]);
             auto t2 = get<0>(ts2[i]);
@@ -406,7 +259,7 @@ Ordering::Result LaLpo::compare(TermList s, TermList t) const
 
     if (isPlus(f) || isPlus(g)) {
       // CASE 2a
-      return mulExt(flat(s), flat(t), cmp);
+      return OrderingUtils::mulExt(flat(s), flat(t), cmp);
 
     } else if (f == g) {
       auto arity = s_.arity();
