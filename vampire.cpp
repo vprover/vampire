@@ -196,6 +196,15 @@ void doProving()
   //env.options->checkProblemOptionConstraints(prb->getProperty()); 
 
   ProvingHelper::runVampireSaturation(*prb, *env.options);
+
+  if(env.options->mode() == Options::Mode::VAMPIRE){
+    // we don't want to print the proof in SPIDER mode
+    // but we do want to print the proof prior to the deletion of
+    // the problem object
+    env.beginOutput();
+    UIHelper::outputResult(env.out());
+    env.endOutput();
+  }
 }
 
 /**
@@ -454,10 +463,6 @@ void vampireMode()
   }
 
   doProving();
-
-  env.beginOutput();
-  UIHelper::outputResult(env.out());
-  env.endOutput();
 
   if (env.statistics->terminationReason == Statistics::REFUTATION
       || env.statistics->terminationReason == Statistics::SATISFIABLE) {
