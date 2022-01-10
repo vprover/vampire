@@ -146,11 +146,11 @@ Stack<Clause*> LiteralFactoring::applyRule(Clause* premise,
     Stack<Literal*> concl2(concl1);
     //              ^^^^^^-> Cσ \/ Cnst
 
-
     // adding `(±js1 + t1 <> 0) σ`
     concl1.push(lit1_sigma);
     // adding `(±ks2 + t2 <> 0) σ`
     concl2.push(lit2_sigma);
+
 
     auto pivotSum = [&](auto factor_) {
     //   ^^^^^^^^--> `((factor) * (k t1 − j t2) > 0) σ`
@@ -158,15 +158,14 @@ Stack<Clause*> LiteralFactoring::applyRule(Clause* premise,
       auto t = NumTraits::sum(iterTraits(getConcatenatedIterator(
           l1.term().iterSummands()
             .filter([&](auto t) { return t != j_s1; })
-            .map([&](auto t) { return  (( factor * k ) * t).denormalize(); }),
+            .map([&](auto t) { return  (( factor * k.abs() ) * t).denormalize(); }),
 
           l2.term().iterSummands()
             .filter([&](auto t) { return t != k_s2; })
-            .map([&](auto t) { return  (( factor * -j ) * t).denormalize(); })
+            .map([&](auto t) { return  (( factor * -j.abs() ) * t).denormalize(); })
             )));
       return sigma(NumTraits::greater(true, t, NumTraits::zero()));
     };
-
 
     // adding (j t2 − k t1 > 0) σ
     concl1.push(pivotSum(-1));
