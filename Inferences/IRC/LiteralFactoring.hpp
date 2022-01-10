@@ -39,8 +39,9 @@ public:
   USE_ALLOCATOR(LiteralFactoring);
 
   LiteralFactoring(LiteralFactoring&&) = default;
-  LiteralFactoring(shared_ptr<IrcState> shared) 
+  LiteralFactoring(shared_ptr<IrcState> shared, bool lascaFactoring)
     : _shared(std::move(shared))
+    , _lascaFactoring(lascaFactoring)
   {  }
 
   void attach(SaturationAlgorithm* salg) final override;
@@ -48,7 +49,7 @@ public:
 
 
   template<class NumTraits>
-  Option<Clause*> applyRule(Clause* premise, 
+  Stack<Clause*> applyRule(Clause* premise, 
     Literal* lit1, IrcLiteral<NumTraits> l1, Monom<NumTraits> j_s1,
     Literal* lit2, IrcLiteral<NumTraits> l2, Monom<NumTraits> k_s2,
     UwaResult sigma_cnst);
@@ -66,7 +67,6 @@ public:
     );
 
   ClauseIterator generateClauses(Clause* premise) final override;
-
   
 
 #if VDEBUG
@@ -76,6 +76,7 @@ public:
 private:
 
   shared_ptr<IrcState> _shared;
+  bool const _lascaFactoring;
 };
 
 } // namespace IRC 

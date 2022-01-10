@@ -1178,6 +1178,15 @@ void Options::init()
            _ircVariableElimination.tag(OptionTag::INFERENCES);
            _ircVariableElimination.reliesOnHard(_inequalityResolution.is(equal(true)));
 
+           _ircLascaFactoring  = BoolOptionValue("irc_lasca_factoring","irc_lf",false);
+           _ircLascaFactoring.description=
+                  "enables the inequality factoring rule from LASCA paper"
+                  "\n";
+           _lookup.insert(&_ircLascaFactoring);
+           _ircLascaFactoring.tag(OptionTag::INFERENCES);
+           _ircLascaFactoring.reliesOnHard(_inequalityResolution.is(equal(true)));
+
+
            _ircStrongNormalization  = BoolOptionValue("irc_strong_normalziation","irc_strnorm",true);
            _ircStrongNormalization.description=
                   "enables stronger normalizations for inequalities: \n"

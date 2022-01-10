@@ -27,6 +27,8 @@ void LiteralFactoring::attach(SaturationAlgorithm* salg)
 void LiteralFactoring::detach() 
 { }
 
+//  IRC VERSION
+//
 //  C \/ ±js1 + t1 <> 0 \/ ±ks2 + t2 <> 0
 // ====================================================
 // (C \/ ±js1 + t1 <> 0 \/ k t1 − j t2  ̸≈ 0) σ \/ Cnst
@@ -40,9 +42,25 @@ void LiteralFactoring::detach()
 // • (±ks1 + t1 <> 0)σ /< (±ks2 + t2 <> 0 \/ C)σ
 // • (±ks2 + t2 <> 0)σ /< (±ks1 + t1 <> 0 \/ C)σ
 
+//  LASCA VERSION
+//
+//  C \/ ±js1 + t1 <> 0 \/ ±ks2 + t2 <> 0
+// ====================================================
+// (C \/ ±js1 + t1 <> 0 \/ k t1 − j t2 > 0) σ \/ Cnst
+// (C \/ ±ks2 + t2 <> 0 \/ j t2 − k t1 > 0) σ \/ Cnst
+//
+//
+// where
+// • uwa(s1,s2)=⟨σ,Cnst⟩
+// • <> ∈ {>,≥}
+// • s1σ /⪯ terms(t1)σ
+// • s2σ /⪯ terms(t2)σ
+// • (±ks1 + t1 <> 0)σ /< (±ks2 + t2 <> 0 \/ C)σ
+// • (±ks2 + t2 <> 0)σ /< (±ks1 + t1 <> 0 \/ C)σ
+
 
 template<class NumTraits>
-Option<Clause*> LiteralFactoring::applyRule(Clause* premise, 
+Stack<Clause*> LiteralFactoring::applyRule(Clause* premise, 
     Literal* lit1, IrcLiteral<NumTraits> l1,  Monom<NumTraits> j_s1,
     //       ^^^^--> `±js1 + t1 <> 0` <--^^            ±js1 <--^^^^
     Literal* lit2, IrcLiteral<NumTraits> l2,  Monom<NumTraits> k_s2,
@@ -50,16 +68,23 @@ Option<Clause*> LiteralFactoring::applyRule(Clause* premise,
     UwaResult uwa)
 {
 
-  auto nothing = []() { return Option<Clause*>(); };
+
+
+  auto nothing = [](auto i) { return Stack<Clause*>{}; };
   auto sigma = [&](auto x){ return uwa.sigma.apply(x, /* varbank */ 0); };
   auto& cnst  = uwa.cnst;
   auto j = j_s1.numeral;
   auto k = k_s2.numeral;
   auto s1 = j_s1.factors;
   auto s2 = k_s2.factors;
+
+  /////////////////////////////////////////////////////////////////////////////////////
+  // applicability checks
+  //////////////////////////////////////////////////////
+
   if(j.isPositive() != k.isPositive()
      || l1.symbol() != l2.symbol())
-    return nothing();
+    return nothing(0);
 
   auto term_max_after_unif = [&sigma, this](auto lit_sigma, auto s) -> bool
   {
@@ -77,12 +102,12 @@ Option<Clause*> LiteralFactoring::applyRule(Clause* premise,
   // checking s1σ /⪯ terms(t1)σ
   auto lit1_sigma = sigma(lit1);
   if (!term_max_after_unif(lit1_sigma, s1))
-    return nothing();
+    return nothing(1);
 
   // checking s2σ /⪯ terms(t2)σ
   auto lit2_sigma = sigma(lit2);
   if (!term_max_after_unif(lit2_sigma, s2))
-    return nothing();
+    return nothing(2);
 
   {
     auto premLits = iterTraits(premise->iterLits()).template collect<Stack>();
@@ -90,57 +115,121 @@ Option<Clause*> LiteralFactoring::applyRule(Clause* premise,
 
     // checking (±ks1 + t1 <> 0)σ /< (±ks2 + t2 <> 0 \/ C)σ
     if (!iterTraits(maxLiterals.iterFifo()).any([&](auto x) { return x == lit1_sigma; }))
-      return nothing();
+      return nothing(3);
 
     // checking (±ks2 + t2 <> 0)σ /< (±ks1 + t1 <> 0 \/ C)σ
     if (!iterTraits(maxLiterals.iterFifo()).any([&](auto x) { return x == lit2_sigma; }))
-      return nothing();
+      return nothing(4);
   }
 
 
-  Stack<Literal*> conclusion(premise->size() + cnst.size());
+  //////////////////////////////////////////////////////
+  // constructing the conclusion
+  //////////////////////////////////////////////////////
 
-  // adding `(C \/ ±js1 + t1 <> 0)σ`
-  { 
-    auto lit2cnt = 0;
-    for (auto lit : iterTraits(premise->getLiteralIterator())) {
-      if (lit == lit2) {
-        lit2cnt++;
-      } else if (lit == lit1) {
-        conclusion.push(lit1_sigma);
-      } else {
-        ASS(lit != lit2)
-        conclusion.push(sigma(lit));
+
+  auto lascaFactoring = [&]() -> Stack<Stack<Literal*>> {
+  
+    Stack<Literal*> concl1(premise->size() + cnst.size());
+
+    // adding `Cσ`
+    { 
+      for (auto lit : iterTraits(premise->getLiteralIterator())) {
+        if (lit != lit1 && lit != lit2) {
+          concl1.push(sigma(lit));
+        }
       }
     }
-    if (lit2cnt > 1) {
-      conclusion.push(lit2_sigma);
+
+    // adding `Cnst`
+    concl1.loadFromIterator(uwa.cnstLiterals());
+
+    Stack<Literal*> concl2(concl1);
+    //              ^^^^^^-> Cσ \/ Cnst
+
+
+    // adding `(±js1 + t1 <> 0) σ`
+    concl1.push(lit1_sigma);
+    // adding `(±ks2 + t2 <> 0) σ`
+    concl2.push(lit2_sigma);
+
+    auto pivotSum = [&](auto factor_) {
+    //   ^^^^^^^^--> `((factor) * (k t1 − j t2) > 0) σ`
+      auto factor = typename NumTraits::ConstantType(factor_);
+      auto t = NumTraits::sum(iterTraits(getConcatenatedIterator(
+          l1.term().iterSummands()
+            .filter([&](auto t) { return t != j_s1; })
+            .map([&](auto t) { return  (( factor * k ) * t).denormalize(); }),
+
+          l2.term().iterSummands()
+            .filter([&](auto t) { return t != k_s2; })
+            .map([&](auto t) { return  (( factor * -j ) * t).denormalize(); })
+            )));
+      return sigma(NumTraits::greater(true, t, NumTraits::zero()));
+    };
+
+
+    // (k t1 − j t2 > 0) σ
+    concl1.push(pivotSum(1));
+    // (j t2 − k t1 > 0) σ
+    concl2.push(pivotSum(-1));
+
+    return { concl1, concl2 };
+  };
+
+
+  auto ircFactoring = [&]() -> Stack<Stack<Literal*>> {
+    Stack<Literal*> conclusion(premise->size() + cnst.size());
+
+    // adding `(C \/ ±js1 + t1 <> 0)σ`
+    { 
+      auto lit2cnt = 0;
+      for (auto lit : iterTraits(premise->getLiteralIterator())) {
+        if (lit == lit2) {
+          lit2cnt++;
+        } else if (lit == lit1) {
+          conclusion.push(lit1_sigma);
+        } else {
+          ASS(lit != lit2)
+          conclusion.push(sigma(lit));
+        }
+      }
+      if (lit2cnt > 1) {
+        conclusion.push(lit2_sigma);
+      }
     }
-  }
 
-  auto pivotSum = 
-  //   ^^^^^^^^--> `k t1 − j t2`
-    NumTraits::sum(iterTraits(getConcatenatedIterator(
-      l1.term().iterSummands()
-        .filter([&](auto t) { return t != j_s1; })
-        .map([&](auto t) { return  (k * t).denormalize(); }),
+    auto pivotSum = 
+    //   ^^^^^^^^--> `k t1 − j t2`
+      NumTraits::sum(iterTraits(getConcatenatedIterator(
+        l1.term().iterSummands()
+          .filter([&](auto t) { return t != j_s1; })
+          .map([&](auto t) { return  (k * t).denormalize(); }),
 
-      l2.term().iterSummands()
-        .filter([&](auto t) { return t != k_s2; })
-        .map([&](auto t) { return  (-j * t).denormalize(); })
-        )));
-  auto pivotLiteral = NumTraits::eq(false, pivotSum, NumTraits::zero());
+        l2.term().iterSummands()
+          .filter([&](auto t) { return t != k_s2; })
+          .map([&](auto t) { return  (-j * t).denormalize(); })
+          )));
+    auto pivotLiteral = NumTraits::eq(false, pivotSum, NumTraits::zero());
 
-  // adding `(k t1 − j t2  ̸≈ 0)σ`
-  conclusion.push(sigma(pivotLiteral));
+    // adding `(k t1 − j t2  ̸≈ 0)σ`
+    conclusion.push(sigma(pivotLiteral));
 
-  // adding `Cnst`
-  conclusion.loadFromIterator(uwa.cnstLiterals());
+    // adding `Cnst`
+    conclusion.loadFromIterator(uwa.cnstLiterals());
+    return {conclusion};
+  };
 
   Inference inf(GeneratingInference1(Kernel::InferenceRule::IRC_LITERAL_FACTORING, premise));
-
   env.statistics->ircLitFacCnt++;
-  return some(Clause::fromStack(conclusion, inf));
+
+  auto concls = (!_lascaFactoring || l1.symbol() == IrcPredicate::EQ || l1.symbol() == IrcPredicate::NEQ) 
+    ? ircFactoring() 
+    : lascaFactoring();
+
+  return iterTraits(getArrayishObjectIterator<mut_ref_t>(concls))
+    .map([&](auto& lits) { return Clause::fromStack(lits, inf); })
+    .template collect<Stack>();
 }
 
 
@@ -211,11 +300,16 @@ ClauseIterator LiteralFactoring::generateClauses(Clause* premise,
 
     auto s1 = j_s1.factors->denormalize();
     auto s2 = k_s2.factors->denormalize();
-    return pvi(iterTraits(_shared->unify(s1, s2)
-      .andThen([&](auto sigma_cnst){ return applyRule(premise, lit1, l1, j_s1, 
-                                                           lit2, l2, k_s2, 
-                                                           std::move(sigma_cnst)); })
-      .intoIter()));
+    return pvi(iterTraits(_shared->unify(s1, s2).intoIter())
+      .map([&](auto sigma_cnst){ 
+        return pvi(iterTraits(ownedArrayishIterator(
+            applyRule(premise, lit1, l1, j_s1, 
+                      lit2, l2, k_s2, 
+                      std::move(sigma_cnst))
+            ))); 
+        })
+      .flatten()
+      );
 
 
 }

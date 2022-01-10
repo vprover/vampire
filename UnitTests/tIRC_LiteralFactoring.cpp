@@ -60,9 +60,12 @@ using namespace Inferences::IRC;
 
 
 LiteralFactoring testLiteralFactoring(
+    bool lascaFactoring = false,
     Options::UnificationWithAbstraction uwa = Options::UnificationWithAbstraction::IRC1
     )
-{ return LiteralFactoring(testIrcState(uwa)); }
+{ return LiteralFactoring(testIrcState(uwa), lascaFactoring); }
+
+template<class A> A* heap(A&& a) { return new A(std::move(a)); }
 
 REGISTER_GEN_TESTER(Test::Generation::GenerationTester<LiteralFactoring>(testLiteralFactoring()))
 
@@ -171,6 +174,34 @@ TEST_GENERATION(max_s1_after_unif_2,
       .premiseRedundant(false)
     )
 
-/////////////////////////////////////////////////////////
-// MISC
-//////////////////////////////////////
+/////////////////////////////////////////////
+// LASCA VERSION
+///////////////////////////////
+
+TEST_GENERATION(lasca01,
+    Generation::SymmetricTest()
+      .rule(heap(testLiteralFactoring(/* lasca factoring */ true)))
+      .inputs  ({  clause({  ff(a) + f(y) > 0, ff(x) + f(z) > 0   }) })
+      .expected(exactly(
+            clause({         ff(a) + f(y) > 0 , f(y) - f(z) > 0        })
+          , clause({         ff(a) + f(z) > 0 , f(z) - f(y) > 0        })
+
+          , clause({         ff(a) + f(y) > 0 , ff(a) - ff(x) > 0        })
+          , clause({         ff(x) + f(y) > 0 , ff(x) - ff(a) > 0        })
+      ))
+      .premiseRedundant(false)
+    )
+
+TEST_GENERATION(lasca02,
+    Generation::SymmetricTest()
+      .rule(heap(testLiteralFactoring(/* lasca factoring */ true)))
+      .inputs  ({  clause({  2 * ff(a) + f(y) > 0, 3 * ff(x) + f(z) > 0   }) })
+      .expected(exactly(
+            clause({         2 * ff(a) + f(y) > 0 , 3 * f(y) + -2 * f(z) > 0        })
+          , clause({         3 * ff(a) + f(z) > 0 , 2 * f(z) + -3 * f(y) > 0        })
+
+          , clause({         2 * ff(a) + f(y) > 0 , 2 * ff(a) + -3 * ff(x) > 0        })
+          , clause({         3 * ff(x) + f(y) > 0 , 3 * ff(x) + -2 * ff(a) > 0        })
+      ))
+      .premiseRedundant(false)
+    )
