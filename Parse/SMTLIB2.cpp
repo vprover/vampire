@@ -86,8 +86,10 @@ void SMTLIB2::readBenchmark(LExprList* bench)
   CALL("SMTLIB2::readBenchmark");
   LispListReader bRdr(bench);
 
+  bool afterCheckSat = false;
+
   // iteration over benchmark top level entries
-  while(bRdr.hasNext()){
+  while(bRdr.hasNext()) {
     LExpr* lexp = bRdr.next();
 
     LOG2("readBenchmark ",lexp->toString(true));
@@ -303,21 +305,8 @@ void SMTLIB2::readBenchmark(LExprList* bench)
     }
 
     if (ibRdr.tryAcceptAtom("check-sat")) {
-      if (bRdr.hasNext()) {
-        LispListReader exitRdr(bRdr.readList());
-        // The only thing we allow after check-sat is get-unsat-core
-        if(exitRdr.tryAcceptAtom("get-unsat-core")){
-           env.options->setOutputMode(Options::Output::UCORE);
-           exitRdr = LispListReader(bRdr.readList());
-        }
-        if (!exitRdr.tryAcceptAtom("exit")) {
-          if(env.options->mode()!=Options::Mode::SPIDER) {
-            env.beginOutput();
-            env.out() << "% Warning: check-sat is not the last entry. Skipping the rest!" << endl;
-            env.endOutput();
-          }
-        }
-      }
+      ibRdr.acceptEOL();
+      afterCheckSat = true;
       break;
     }
 
@@ -347,6 +336,36 @@ void SMTLIB2::readBenchmark(LExprList* bench)
     }
 
     USER_ERROR("unrecognized entry "+ibRdr.readAtom());
+  }
+  
+  // the above while loop is aborted on the first check-sat,
+  // however, we want to learn about an unsat core printing request
+  // (or other things we might support in the future)
+  if (afterCheckSat) {
+    while(bRdr.hasNext()) {
+      LispListReader ibRdr(bRdr.next());
+      
+      if (ibRdr.tryAcceptAtom("exit")) {
+        ibRdr.acceptEOL(); // no arguments of exit
+        bRdr.acceptEOL();  // exit should be the last thing in the file
+        break;
+      }
+      
+      if (ibRdr.tryAcceptAtom("get-unsat-core")) {
+        env.options->setOutputMode(Options::Output::UCORE);
+        ibRdr.acceptEOL(); // no arguments of get-unsat-core
+        continue;
+      }
+      
+      // can't read anything else (and it does not make sense to read get-unsat-core more than once)
+      // so let's just warn and exit
+      if(env.options->mode()!=Options::Mode::SPIDER) {
+        env.beginOutput();
+        env.out() << "% Warning: check-sat is not the last entry. Skipping the rest!" << endl;
+        env.endOutput();
+      }
+      break;
+    }
   }
 }
 

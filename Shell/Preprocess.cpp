@@ -56,94 +56,12 @@
 #include "TrivialPredicateRemover.hpp"
 
 #include "UIHelper.hpp"
-#if GNUMP
 #include "Lib/List.hpp"
 #include "Lib/RCPtr.hpp"
-#include "Kernel/Constraint.hpp"
-#include "Kernel/Number.hpp"
 
-#include "ConstantRemover.hpp"
-#include "EquivalentVariableRemover.hpp"
-#include "EqualityVariableRemover.hpp"
-#include "HalfBoundingRemover.hpp"
-#include "SubsumptionRemover.hpp"
-
-#endif
-
-#include "Lib/List.hpp"
-#include "Lib/RCPtr.hpp"
-#include "Kernel/Constraint.hpp"
-#include "Kernel/Number.hpp"
-
-#include "ConstantRemover.hpp"
-#include "EquivalentVariableRemover.hpp"
-#include "EqualityVariableRemover.hpp"
-#include "HalfBoundingRemover.hpp"
-#include "SubsumptionRemover.hpp"
 #include "Kernel/TermIterators.hpp"
 
-
-
 using namespace Shell;
-#if GNUMP
-/**
- * Bound propagation preprocessing steps. Takes as argumet @c constraints the list of constraints
- *
- */
-void Preprocess::preprocess(ConstraintRCList*& constraints)
-{
-  CALL("Preprocess::preprocess(ConstraintRCList *& )");
-
-  unfoldEqualities(constraints);
-
-  ConstantRemover constantRemover;
-  EquivalentVariableRemover evRemover;
-  HalfBoundingRemover hbRemover;
-  SubsumptionRemover subsRemover;
-  EqualityVariableRemover eqRemover;
-  bool anyChange;
-  do {
-    do {
-      anyChange = false;
-
-      if (_options.bpEquivalentVariableRemoval()) {
-	anyChange |= evRemover.apply(constraints);
-      }
-      anyChange |= hbRemover.apply(constraints);
-      anyChange |= constantRemover.apply(constraints);
-      anyChange |= eqRemover.apply(constraints);
-
-    }
-    while(anyChange);
-    anyChange |= subsRemover.apply(constraints);
-  }
-  while(anyChange);
-}  // Preprocess::preprocess ()
-
-/**
- * Replace equalities by two non-strict inequalities.
- */ 
-void Preprocess::unfoldEqualities(ConstraintRCList*& constraints)
-{
-  CALL("Preprocess::unfoldEqualities");
-
-  ConstraintRCList::DelIterator cit(constraints);
-  while(cit.hasNext()) {
-    Constraint& c = *cit.next();
-    if (c.type()!=CT_EQ) {
-      continue;
-    }
-
-    ConstraintRCPtr gc(Constraint::clone(c));
-    gc->setType(CT_GREQ);
-    ConstraintRCPtr lc(Constraint::clone(*gc));
-    lc->multiplyCoeffs(CoeffNumber::minusOne());
-
-    cit.replace(gc);
-    cit.insert(lc);
-  }
-} 
-#endif //GNUMP
 
 /**
  * Preprocess the problem.

@@ -350,12 +350,6 @@ void TimeCounter::outputSingleStat(TimeCounterUnit tcu, ostream& out)
   case TC_TRIVIAL_PREDICATE_REMOVAL:
     out<<"trivial predicate removal";
     break;
-  case TC_SOLVING:
-    out << "Bound propagation solving";
-    break;
-  case TC_BOUND_PROPAGATION:
-    out << "Bound propagation";
-    break;
   case TC_DISMATCHING:
     out << "dismatching";
     break;

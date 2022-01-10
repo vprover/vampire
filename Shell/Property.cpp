@@ -66,6 +66,7 @@ Property::Property()
     _groundGoals(0),
     _maxFunArity(0),
     _maxPredArity(0),
+    _maxTypeConArity(0),
     _totalNumberOfVariables(0),
     _maxVariablesInClause(0),
     _props(0),
@@ -656,10 +657,6 @@ void Property::scan(TermList ts,bool unit,bool goal)
     return;
   }
 
-  if(ts.term()->isSort()){
-    return;
-  }
-
   ASS(ts.isTerm());
   Term* t = ts.term();
 
@@ -687,6 +684,13 @@ void Property::scan(TermList ts,bool unit,bool goal)
         break;
     }
   } else {
+    if(t->isSort()){
+      if(t->arity() > _maxTypeConArity){
+        _maxTypeConArity = t->arity();
+      }
+      return;
+    }
+
     scanForInterpreted(t);
 
     _symbolsInFormula.insert(t->functor());
@@ -719,20 +723,20 @@ void Property::scan(TermList ts,bool unit,bool goal)
       _hasLogicalProxy = true;
     }
 
-    OperatorType* type = func->fnType();
-    if(!t->isApplication() && type->typeArgsArity()){
+    if(!t->isApplication() && t->numTypeArguments() > 0){
       _hasPolymorphicSym = true;
     }
 
     int arity = t->arity();
-    for (int i = 0; i < arity; i++) {
-      scanSort(SortHelper::getArgSort(t, i));
-    }
-    scanSort(SortHelper::getResultSort(t));
 
     if (arity > _maxFunArity) {
       _maxFunArity = arity;
     }
+
+    for (int i = 0; i < arity; i++) {
+      scanSort(SortHelper::getArgSort(t, i));
+    }
+    scanSort(SortHelper::getResultSort(t));  
   }
 }
 

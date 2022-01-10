@@ -137,7 +137,12 @@ void SortInference::doInference()
     _sig->predicateSignatures.ensure(env.signature->predicates());
 
     for(unsigned f=0;f<env.signature->functions();f++){
-      if(f < _del_f.size() && _del_f[f]) continue;
+      if(f < _del_f.size() && _del_f[f]){
+#if DEBUG_SORT_INFERENCE
+       cout << "Skipping deleted function signature for " << env.signature->functionName(f) << endl;
+#endif
+        continue;
+      }
       unsigned arity = env.signature->functionArity(f);
       OperatorType* ftype = env.signature->getFunction(f)->fnType();
       _sig->functionSignatures[f].ensure(arity+1);
@@ -478,7 +483,12 @@ void SortInference::doInference()
 
   // Now record the _signatures for functions
   for(unsigned f=0;f<env.signature->functions();f++){
-    if(f < _del_f.size() && _del_f[f]) continue;
+    if(f < _del_f.size() && _del_f[f]) {
+#if DEBUG_SORT_INFERENCE
+    cout << "Skipping deleted function signature "  << env.signature->functionName(f) << endl;
+#endif
+      continue;
+    }
 #if DEBUG_SORT_INFERENCE
     cout << env.signature->functionName(f) << " : ";
 #endif

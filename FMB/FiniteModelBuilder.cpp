@@ -453,7 +453,7 @@ void FiniteModelBuilder::init()
   if(env.options->fmbAdjustSorts() == Options::FMBAdjustSorts::PREDICATE){
     DArray<unsigned> deleted_functions(env.signature->functions());
     for(unsigned f=0;f<env.signature->functions();f++){
-      deleted_functions[f] = _deletedFunctions.find(f);
+      deleted_functions[f] = _deletedFunctions.find(f) || env.signature->getFunction(f)->usageCnt()==0;
      }
     ClauseList::pushFromIterator(_prb.clauseIterator(),clist);
     Monotonicity::addSortPredicates(true, clist,deleted_functions);
@@ -582,6 +582,9 @@ void FiniteModelBuilder::init()
 
   // TODO: consider updating usage count by rescanning property
   // in particular, terms replaced by definitions have disappeared!
+  
+  // TODO: consider updating usage count by rescanning property as we have had to 
+  //       OR ensure that usage count is updated for any introduced symbols e.g. in Monotonicity
 
   // record the deleted functions and predicates
   // we do this here so that there are slots for symbols introduce in previous
@@ -591,6 +594,9 @@ void FiniteModelBuilder::init()
 
   for(unsigned f=0;f<env.signature->functions();f++){
     del_f[f] = _deletedFunctions.find(f) || env.signature->getFunction(f)->usageCnt()==0;
+#if VTRACE_FMB
+    if(del_f[f]) cout << "Mark " << env.signature->functionName(f)  << " as deleted" << endl;
+#endif
   }
   for(unsigned p=0;p<env.signature->predicates();p++){
     del_p[p] = (_deletedPredicates.find(p) || _trivialPredicates.find(p));
@@ -830,8 +836,9 @@ void FiniteModelBuilder::init()
     ClauseList::Iterator cit(_clauses);
     while(cit.hasNext()){
       Clause* c = cit.next();
-      //cout << "CLAUSE " << c->toString() << endl;  
-
+#if VTRACE_FMB
+      cout << "CLAUSE " << c->toString() << endl;  
+#endif
       // will record the sorts for each variable in the clause 
       // note that clauses have been normalized so variables go from 0 to varCnt
       DArray<unsigned>* csig = new DArray<unsigned>(c->varCnt()); 
@@ -849,7 +856,9 @@ void FiniteModelBuilder::init()
           ASS(lit->nthArgument(0)->isTerm());
           ASS(lit->nthArgument(1)->isVar());
           Term* t = lit->nthArgument(0)->term();
+          ASS(!del_f[t->functor()]);
           const DArray<unsigned>& fsg = _sortedSignature->functionSignatures[t->functor()];
+          ASS_REP(fsg.size() == env.signature->functionArity(t->functor())+1,  fsg.size());
           unsigned var = lit->nthArgument(1)->var();
           unsigned ret = fsg[env.signature->functionArity(t->functor())];
           if(csig_set[var]){ ASS_EQ((*csig)[var],ret); }
@@ -861,6 +870,7 @@ void FiniteModelBuilder::init()
             ASS(t->nthArgument(j)->isVar());
             unsigned asrt = fsg[j]; 
             unsigned avar = (t->nthArgument(j))->var();
+            ASS(avar < csig->size());
             if(!csig_set[var]){ ASS((*csig)[avar]==asrt); }
             else{ 
               (*csig)[avar]=asrt;
@@ -891,7 +901,17 @@ void FiniteModelBuilder::init()
         //cout << var1 << " and " << var2 << endl;
         if(csig_set[var1]){
           if(csig_set[var2]){
-            ASS_EQ((*csig)[var1],(*csig)[var2]);
+            // This is a special edge case where we process a two-var equality before having
+            // enough information, see below
+            if((*csig)[var1] != (*csig)[var2]){
+              TermList litSort = lit->twoVarEqSort();
+              unsigned litSortU = litSort.term()->functor();
+              unsigned dsort = _sortedSignature->vampireToDistinctParent.get(litSortU);
+              unsigned sort = _sortedSignature->varEqSorts[dsort];
+              ASS((*csig)[var1] == sort || (*csig)[var2] == sort);
+              if((*csig)[var1] == sort){ (*csig)[var1] = (*csig)[var2]; }
+              else{ (*csig)[var2] = (*csig)[var1]; } 
+            }
           }
           else{ 
             (*csig)[var2] = (*csig)[var1]; 
@@ -914,6 +934,9 @@ void FiniteModelBuilder::init()
           (*csig)[var2] = sort;
           csig_set[var1]=true;
           csig_set[var2]=true;
+          // NOTE - we might later  find out that the special sort wasn't necessary  e.g.
+          // if we have X0 = X1 | X1 = X2 | p(X2) we may first give special sort to X0 and X1
+          // but then replace this by the sort of X2 when we  process  X1 = X2
         }
       }
 
@@ -2446,6 +2469,8 @@ bool FiniteModelBuilder::SmtBasedDSAE::init(unsigned _startModelSize, DArray<uns
       Stack<std::pair<unsigned,unsigned>>& _distinct_sort_constraints, Stack<std::pair<unsigned,unsigned>>& _strict_distinct_sort_constraints)
 {
   CALL("FiniteModelBuilder::SmtBasedDSAE::init");
+
+  _skippedSomeSizes = (_startModelSize > 1);
 
   BYPASSING_ALLOCATOR;
 

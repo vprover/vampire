@@ -255,13 +255,12 @@ set(VAMPIRE_KERNEL_SOURCES
     Kernel/TermIterators.cpp
     Kernel/TermTransformer.cpp
     Kernel/Theory.cpp
-#    Kernel/Assignment.cpp
-#    Kernel/Constraint.cpp
-#    Kernel/Number.cpp
-#    Kernel/Rational.cpp
-#    Kernel/V2CIndex.cpp
     Kernel/Signature.cpp
     Kernel/Unit.cpp
+    Kernel/BottomUpEvaluation.hpp
+    Kernel/BottomUpEvaluation/TermList.hpp
+    Kernel/BottomUpEvaluation/TypedTermList.hpp
+    Kernel/BottomUpEvaluation/PolyNf.hpp
     Kernel/BestLiteralSelector.hpp
     Kernel/Clause.hpp
     Kernel/ClauseQueue.hpp
@@ -307,11 +306,6 @@ set(VAMPIRE_KERNEL_SOURCES
     Kernel/TermIterators.hpp
     Kernel/TermTransformer.hpp
     Kernel/Theory.hpp
-#    Kernel/Assignment.hpp
-#    Kernel/Constraint.hpp
-#    Kernel/Number.hpp
-#    Kernel/Rational.hpp
-#    Kernel/V2CIndex.hpp
     Kernel/Signature.hpp
     Kernel/Unit.hpp
     Kernel/LPO.cpp
@@ -622,17 +616,12 @@ set(VAMPIRE_SHELL_SOURCES
     #Shell/TrivialPredicateRemover.cpp
     Shell/UIHelper.cpp
     Shell/VarManager.cpp
-    #Shell/ConstantRemover.cpp
-    #Shell/ConstraintReaderBack.cpp
     #Shell/EqualityVariableRemover.cpp
-    #Shell/EquivalentVariableRemover.cpp
-    #Shell/HalfBoundingRemover.cpp
     Shell/Lexer.cpp
     #Shell/PARSER_TKV.cpp
     Shell/Preprocess.cpp
     #Shell/SMTLEX.cpp
     #Shell/SMTPAR.cpp
-    #Shell/SubsumptionRemover.cpp
     Shell/AnswerExtractor.hpp
     #Shell/AxiomGenerator.hpp
     Shell/CommandLine.hpp
@@ -689,17 +678,11 @@ set(VAMPIRE_SHELL_SOURCES
     #Shell/TrivialPredicateRemover.hpp
     Shell/UIHelper.hpp
     Shell/VarManager.hpp
-    #Shell/ConstantRemover.hpp
-    #Shell/ConstraintReaderBack.hpp
-    #Shell/EqualityVariableRemover.hpp
-    #Shell/EquivalentVariableRemover.hpp
-    #Shell/HalfBoundingRemover.hpp
     Shell/Lexer.hpp
     #Shell/PARSER_TKV.hpp
     Shell/Preprocess.hpp
     #Shell/SMTLEX.hpp
     #Shell/SMTPAR.hpp
-    #Shell/SubsumptionRemover.hpp
     Shell/SubexpressionIterator.cpp
     Shell/SubexpressionIterator.hpp
     # Shell/version.cpp
@@ -857,7 +840,7 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 # set preprocessor defines
 add_compile_definitions(CHECK_LEAKS=0)
 if(CMAKE_BUILD_TYPE STREQUAL Debug)
-  add_compile_definitions(VDEBUG=1 UNIX_USE_SIGALRM=1 GNUMP=0)
+  add_compile_definitions(VDEBUG=1 UNIX_USE_SIGALRM=1)
 elseif(CMAKE_BUILD_TYPE STREQUAL Release)
   add_compile_definitions(VDEBUG=0)
 endif()

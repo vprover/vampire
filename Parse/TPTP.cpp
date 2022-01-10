@@ -3274,8 +3274,9 @@ Formula* TPTP::createPredicateApplication(vstring name, unsigned arity)
     } else {
       static RobSubstitution subst;
       subst.reset();
-      if(!subst.match(sort, 0, tsSort, 1)){     
-        USER_ERROR("The sort " + tsSort.toString() + " of term argument " + ts.toString() + " "
+      if(!subst.match(sort, 0, tsSort, 1)) {
+        USER_ERROR("Failed to create predicate application for " + name + " of type " + type->toString() + "\n" +
+                   "The sort " + tsSort.toString() + " of the intended term argument " + ts.toString() + " (at index " + Int::toString(i) +") "
                    "is not an instance of sort " + sort.toString());
       }
     }
@@ -3327,9 +3328,9 @@ TermList TPTP::createFunctionApplication(vstring name, unsigned arity)
     } else {
       static RobSubstitution subst;
       subst.reset();
-      if(!subst.match(sort, 0, ssSort, 1)){       
-       //cout << "the type of " + name + " is " + type->toString() << endl; 
-        USER_ERROR("The sort " + ssSort.toString() + " of term argument " + ss.toString() + " "
+      if(!subst.match(sort, 0, ssSort, 1)){
+        USER_ERROR("Failed to create function application for " + name + " of type " + type->toString() + "\n" +
+                   "The sort " + ssSort.toString() + " of the intended term argument " + ss.toString() + " (at index " + Int::toString(i) +") "
                    "is not an instance of sort " + sort.toString());
       }
     }

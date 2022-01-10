@@ -141,19 +141,53 @@ public:
 
   struct FuncOrPredId
   {
-    explicit FuncOrPredId(unsigned id, bool isPredicate) : id(id), isPredicate(isPredicate) {}
-    explicit FuncOrPredId(Term* term) : FuncOrPredId(term->functor(), term->isLiteral()) {}
-    static FuncOrPredId function(FuncId id) { return FuncOrPredId ( id, false ); }
-    static FuncOrPredId predicate(PredId id) { return FuncOrPredId ( id, true ); }
+    explicit FuncOrPredId(unsigned id, bool isPredicate, Term *forSorts = nullptr) : id(id), isPredicate(isPredicate), forSorts(forSorts) {}
+    explicit FuncOrPredId(Term* term) :
+      FuncOrPredId(
+        term->functor(),
+        term->isLiteral(),
+        term->numTypeArguments() == 0 ? nullptr : term
+      )
+    {}
+    static FuncOrPredId monomorphicFunction(FuncId id) { return FuncOrPredId (id, false); }
+    static FuncOrPredId monomorphicPredicate(PredId id) { return FuncOrPredId (id, true); }
     unsigned id;
     bool isPredicate;
+    /**
+     * polymorphic symbol application: treat e.g. f(<sorts>, ...) as f<sorts>(...) for Z3
+     * in the monomorphic case, nullptr
+     * in the polymorphic case, some term of the form f(<sorts>, ...) which we use only for sort information
+     */
+    Term *forSorts;
 
     friend struct std::hash<FuncOrPredId> ;
     friend bool operator==(FuncOrPredId const& l, FuncOrPredId const& r)
-    { return l.id == r.id && l.isPredicate == r.isPredicate; }
+    {
+      if(l.id != r.id || l.isPredicate != r.isPredicate)
+        return false;
+      if(!l.forSorts)
+        return true;
+
+      // compare sort arguments
+      for(unsigned i = 0; i < l.forSorts->numTypeArguments(); i++)
+        // sorts are perfectly shared
+        if(!l.forSorts->nthArgument(i)->sameContent(r.forSorts->nthArgument(i)))
+          return false;
+
+      return true;
+    }
     friend std::ostream& operator<<(std::ostream& out, FuncOrPredId const& self)
-    { return out << (self.isPredicate ? "pred " : "func " )
-      << (self.isPredicate ? env.signature->getPredicate(self.id)->name() : env.signature->getFunction(self.id)->name());
+    {
+      out << (self.isPredicate ? "pred " : "func ");
+      out << (
+        self.isPredicate
+          ? env.signature->getPredicate(self.id)->name()
+          : env.signature->getFunction(self.id)->name()
+      );
+      if(self.forSorts)
+        for(unsigned i = 0; i < self.forSorts->numTypeArguments(); i++)
+          out << " " << self.forSorts->nthArgument(i)->toString();
+      return out;
     }
   };
 
@@ -244,8 +278,13 @@ private:
 namespace std {
     template<>
     struct hash<SAT::Z3Interfacing::FuncOrPredId> {
-      size_t operator()(SAT::Z3Interfacing::FuncOrPredId const& self)
-      { return Lib::HashUtils::combine(self.id, self.isPredicate); }
+      size_t operator()(SAT::Z3Interfacing::FuncOrPredId const& self) {
+        unsigned hash = Lib::HashUtils::combine(self.id, self.isPredicate);
+        if(self.forSorts)
+          for(unsigned i = 0; i < self.forSorts->numTypeArguments(); i++)
+            hash = Lib::HashUtils::combine(hash, self.forSorts->nthArgument(i)->content());
+        return hash;
+      }
     };
 }
 

@@ -130,6 +130,7 @@ Ordering* Ordering::create(Problem& prb, const Options& opt)
     // - user specified symbol weights
     // TODO fix this! 
     if(prb.getProperty()->maxFunArity()==0 
+        && prb.getProperty()->maxTypeConArity() == 0
         && !env.colorUsed
         && env.options->predicateWeights() == ""
         && env.options->functionWeights() == ""
@@ -145,6 +146,7 @@ Ordering* Ordering::create(Problem& prb, const Options& opt)
   default:
     ASSERTION_VIOLATION;
   }
+  //TODO currently do not show SKIKBO
   if (opt.showSimplOrdering()) {
     env.beginOutput();
     out->show(env.out());
@@ -948,7 +950,7 @@ void PrecedenceOrdering::show(ostream& out) const
     functors.initFromIterator(getRangeIterator(0u,env.signature->functions()),env.signature->functions());
     functors.sort(closureComparator([&](unsigned l, unsigned r){ return intoComparison(compareFunctionPrecedences(l,r)); }));
     for (unsigned i = 0; i < functors.size(); i++) {
-      auto sym = env.signature->getFunction(i);
+      auto sym = env.signature->getFunction(functors[i]);
       out << "% " << sym->name() << " " << sym->arity() << std::endl;
     }
 
@@ -965,7 +967,7 @@ void PrecedenceOrdering::show(ostream& out) const
     functors.initFromIterator(getRangeIterator(0u,env.signature->predicates()),env.signature->predicates());
     functors.sort(closureComparator([&](unsigned l, unsigned r) { return Int::compare(_predicatePrecedences[l], _predicatePrecedences[r]); }));
     for (unsigned i = 0; i < functors.size(); i++) {
-      auto sym = env.signature->getPredicate(i);
+      auto sym = env.signature->getPredicate(functors[i]);
       out << "% " << sym->name() << " " << sym->arity() << std::endl;
     }
 

@@ -231,6 +231,8 @@ void Monotonicity::addSortPredicates(bool withMon, ClauseList*& clauses, DArray<
     // Next the non-empty constraint
     unsigned skolemConstant = env.signature->addSkolemFunction(0);
     env.signature->getFunction(skolemConstant)->setType(OperatorType::getConstantsType(sTerm));
+    // Increment usage count so it's not treated as a deleted function later
+    env.signature->getFunction(skolemConstant)->incUsageCnt();
     Literal* psk = Literal::create1(p,true,TermList(Term::createConstant(skolemConstant)));
     Clause* nonEmpty = new(1) Clause(1,NonspecificInference0(UnitInputType::AXIOM,InferenceRule::INPUT));
     (*nonEmpty)[0] = psk;
@@ -348,6 +350,8 @@ void Monotonicity::addSortFunctions(bool withMon, ClauseList*& clauses)
       unsigned f = env.signature->addFreshFunction(1,name.c_str());
       TermList sT = TermList(AtomicSort::createConstant(s));
       env.signature->getFunction(f)->setType(OperatorType::getFunctionType({sT},sT));
+      // increment usage count so not treated as deleted
+      env.signature->getFunction(f)->incUsageCnt();
       sortFunctions[s] = f;
     }
     else{ sortFunctions[s]=0; }
@@ -369,7 +373,7 @@ void Monotonicity::addSortFunctions(bool withMon, ClauseList*& clauses)
        Literal* l = lit.next();
        SortFunctionTransformer transformer(l,isMonotonic,sortFunctions);
        Literal* lnew = l;
-       if(l->arity()){ transformer.transform(l); }
+       if(l->arity()){ lnew = transformer.transform(l); }
        if(l!=lnew) {
          changed=true;
          // cout << "before " << l->toString() << endl;
