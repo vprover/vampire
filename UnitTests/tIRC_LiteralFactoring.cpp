@@ -183,11 +183,11 @@ TEST_GENERATION(lasca01,
       .rule(heap(testLiteralFactoring(/* lasca factoring */ true)))
       .inputs  ({  clause({  ff(a) + f(y) > 0, ff(x) + f(z) > 0   }) })
       .expected(exactly(
-            clause({         ff(a) + f(y) > 0 , f(y) - f(z) > 0        })
-          , clause({         ff(a) + f(z) > 0 , f(z) - f(y) > 0        })
+            clause({         ff(a) + f(y) > 0 , f(z) - f(y) > 0        })
+          , clause({         ff(a) + f(z) > 0 , f(y) - f(z) > 0        })
 
-          , clause({         ff(a) + f(y) > 0 , ff(a) - ff(x) > 0        })
-          , clause({         ff(x) + f(y) > 0 , ff(x) - ff(a) > 0        })
+          , clause({         ff(a) + f(y) > 0 , ff(x) - ff(a) > 0        })
+          , clause({         ff(x) + f(y) > 0 , ff(a) - ff(x) > 0        })
       ))
       .premiseRedundant(false)
     )
@@ -197,11 +197,24 @@ TEST_GENERATION(lasca02,
       .rule(heap(testLiteralFactoring(/* lasca factoring */ true)))
       .inputs  ({  clause({  2 * ff(a) + f(y) > 0, 3 * ff(x) + f(z) > 0   }) })
       .expected(exactly(
-            clause({         2 * ff(a) + f(y) > 0 , 3 * f(y) + -2 * f(z) > 0        })
-          , clause({         3 * ff(a) + f(z) > 0 , 2 * f(z) + -3 * f(y) > 0        })
+            clause({         2 * ff(a) + f(y) > 0 , -3 * f(y) + 2 * f(z) > 0        })
+          , clause({         3 * ff(a) + f(z) > 0 , -2 * f(z) + 3 * f(y) > 0        })
 
-          , clause({         2 * ff(a) + f(y) > 0 , 2 * ff(a) + -3 * ff(x) > 0        })
-          , clause({         3 * ff(x) + f(y) > 0 , 3 * ff(x) + -2 * ff(a) > 0        })
+          , clause({         2 * ff(a) + f(y) > 0 , -2 * ff(a) + 3 * ff(x) > 0        })
+          , clause({         3 * ff(x) + f(y) > 0 , -3 * ff(x) + 2 * ff(a) > 0        })
       ))
       .premiseRedundant(false)
     )
+
+TEST_GENERATION(lasca_bug1,
+    Generation::SymmetricTest()
+      .rule(heap(testLiteralFactoring(/* lasca factoring */ true)))
+      .inputs  ({  clause({ f(x) + y > 0, f(x) + z > 0 }) })
+      .expected(exactly(
+            clause({         f(x) + y > 0 , z - y > 0        })
+          , clause({         f(x) + z > 0 , y - z > 0        })
+      ))
+      .premiseRedundant(false)
+    )
+
+  // f(x) + y <= 0 <=> -f(x) - y >= 0

@@ -16,7 +16,7 @@
 #include "LiteralFactoring.hpp"
 #include "Shell/Statistics.hpp"
 
-#define DEBUG(...) // DBG(__VA_ARGS__)
+#define DEBUG(...) //DBG(__VA_ARGS__)
 
 namespace Inferences {
 namespace IRC {
@@ -46,8 +46,8 @@ void LiteralFactoring::detach()
 //
 //  C \/ ±js1 + t1 <> 0 \/ ±ks2 + t2 <> 0
 // ====================================================
-// (C \/ ±js1 + t1 <> 0 \/ k t1 − j t2 > 0) σ \/ Cnst
-// (C \/ ±ks2 + t2 <> 0 \/ j t2 − k t1 > 0) σ \/ Cnst
+// (C \/ ±js1 + t1 <> 0 \/ j t2 − k t1 > 0) σ \/ Cnst
+// (C \/ ±ks2 + t2 <> 0 \/ k t1 − j t2 > 0) σ \/ Cnst
 //
 //
 // where
@@ -67,7 +67,6 @@ Stack<Clause*> LiteralFactoring::applyRule(Clause* premise,
     //       ^^^^--> `±ks2 + t2 <> 0` <--^^            ±ks2 <--^^^^
     UwaResult uwa)
 {
-
 
 
   auto nothing = [](auto i) { return Stack<Clause*>{}; };
@@ -169,10 +168,10 @@ Stack<Clause*> LiteralFactoring::applyRule(Clause* premise,
     };
 
 
-    // (k t1 − j t2 > 0) σ
-    concl1.push(pivotSum(1));
-    // (j t2 − k t1 > 0) σ
-    concl2.push(pivotSum(-1));
+    // adding (j t2 − k t1 > 0) σ
+    concl1.push(pivotSum(-1));
+    // adding (k t1 − j t2 > 0) σ
+    concl2.push(pivotSum(1));
 
     return { concl1, concl2 };
   };
@@ -227,9 +226,10 @@ Stack<Clause*> LiteralFactoring::applyRule(Clause* premise,
     ? ircFactoring() 
     : lascaFactoring();
 
-  return iterTraits(getArrayishObjectIterator<mut_ref_t>(concls))
+  auto out = iterTraits(getArrayishObjectIterator<mut_ref_t>(concls))
     .map([&](auto& lits) { return Clause::fromStack(lits, inf); })
     .template collect<Stack>();
+  return out;
 }
 
 
