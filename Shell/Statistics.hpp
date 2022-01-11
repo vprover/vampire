@@ -248,6 +248,7 @@ public:
   bool polymorphic;
 
   // Saturation
+  unsigned activations;
   /** all clauses ever occurring in the unprocessed queue */
   unsigned generatedClauses;
   /** all passive clauses */

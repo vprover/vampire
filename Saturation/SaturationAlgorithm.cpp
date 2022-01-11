@@ -1403,6 +1403,8 @@ MainLoopResult SaturationAlgorithm::runImpl()
       if (env.timeLimitReached()) {
         throw TimeLimitExceededException();
       }
+
+      env.statistics->activations = l;
     }
   }
   catch(ThrowableBase&)

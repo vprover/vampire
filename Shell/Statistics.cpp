@@ -149,6 +149,7 @@ Statistics::Statistics()
     taAcyclicityGeneratedDisequalities(0),
     higherOrder(0),
     polymorphic(0),
+    activations(0),
     generatedClauses(0),
     passiveClauses(0),
     activeClauses(0),
@@ -298,6 +299,7 @@ void Statistics::print(ostream& out)
       discardedNonRedundantClauses+inferencesSkippedDueToColors+inferencesBlockedForOrderingAftercheck);
   COND_OUT("Initial clauses", initialClauses);
   COND_OUT("Generated clauses", generatedClauses);
+  COND_OUT("Activations started", activations);
   COND_OUT("Active clauses", activeClauses);
   COND_OUT("Passive clauses", passiveClauses);
   COND_OUT("Extensionality clauses", extensionalityClauses);
