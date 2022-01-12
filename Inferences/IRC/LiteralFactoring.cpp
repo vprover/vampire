@@ -116,9 +116,9 @@ Stack<Clause*> LiteralFactoring::applyRule(Clause* premise,
     if (!iterTraits(maxLiterals.iterFifo()).any([&](auto x) { return x == lit1_sigma; }))
       return nothing(3);
 
-    // checking (±ks2 + t2 <> 0)σ /< (±ks1 + t1 <> 0 \/ C)σ
-    if (!iterTraits(maxLiterals.iterFifo()).any([&](auto x) { return x == lit2_sigma; }))
-      return nothing(4);
+    // // checking (±ks2 + t2 <> 0)σ /< (±ks1 + t1 <> 0 \/ C)σ
+    // if (!iterTraits(maxLiterals.iterFifo()).any([&](auto x) { return x == lit2_sigma; }))
+    //   return nothing(4);
   }
 
 
@@ -343,11 +343,13 @@ ClauseIterator LiteralFactoring::generateClauses(Clause* premise)
 
   DEBUG("in: ", *premise)
 
-  auto selected = make_shared(move_to_heap(_shared->maxLiterals(premise)));
+  // auto selected = make_shared(move_to_heap(_shared->maxLiterals(premise)));
+  auto selected = make_shared(move_to_heap(_shared->maxLiteralsWithIdx(premise)));
   return pvi(
       range(0, selected->size())
         .flatMap([=](unsigned i) {
-          auto lit1 = (*selected)[i];
+          auto lit1 = (*selected)[i].first;
+          auto idx = (*selected)[i].second;
           auto L1_opt = _shared->renormalize(lit1);
           return pvi(iterTraits(std::move(L1_opt).intoIter())
             .flatMap([=](auto polymorphicNormalized) {
@@ -355,16 +357,16 @@ ClauseIterator LiteralFactoring::generateClauses(Clause* premise)
                 // we dispatch on the number sort
                 return polymorphicNormalized.apply([&](auto L1) {
                       using NumTraits = typename decltype(L1)::NumTraits;
-                      return pvi(range(i + 1, selected->size())
+                      return pvi(range(0, premise->size())
+                        .filter([=](auto j) { return j != idx; })
                         .flatMap([=](auto j) {
-                          auto lit2 = (*selected)[j];
+                          auto lit2 = (*premise)[j];
                           // we check whether the second is an inequality literal of the same number sort
                           auto L2_opt = _shared->renormalize<NumTraits>(lit2);
                           auto ci = pvi(iterTraits(std::move(L2_opt).intoIter())
                             .flatMap([&](IrcLiteral<NumTraits> L2) 
                                 { return generateClauses(premise, lit1, L1, lit2, L2); }));
                           return ci;
-
                         }));
 
                   });

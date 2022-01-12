@@ -118,6 +118,15 @@ Option<MaybeOverflow<AnyIrcLiteral>> InequalityNormalizer::renormalize(Literal* 
     || Option<MaybeOverflow<Out>>();
 }
 
+Stack<std::pair<Literal*, unsigned>> IrcState::maxLiteralsWithIdx(Clause* cl, bool strictlyMax)
+{
+  return maxElements([&](unsigned i) { return make_pair((*cl)[i], i); }, 
+                     cl->size(),
+                     [&](auto l, auto r) { return ordering->compare(l.first, r.first); },
+                     strictlyMax);
+}
+
+
 Stack<Literal*> IrcState::maxLiterals(Clause* cl, bool strictlyMax)
 {
   return maxElements([&](auto i) { return (*cl)[i]; }, 
