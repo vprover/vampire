@@ -95,9 +95,8 @@ bool InequalityNormalizer::isNormalized(Clause* cl)  const
 }
 
 #if VDEBUG
-shared_ptr<IrcState> testIrcState(Options::UnificationWithAbstraction uwa, bool strongNormalization, Ordering* ordering) {
-
-  auto& ord = ordering == nullptr ? *new LaLpo(Precedence::random()) : *ordering;
+shared_ptr<IrcState> testIrcState(Options::UnificationWithAbstraction uwa, bool strongNormalization) {
+  auto& ord = *new LaLpo(Precedence::random());
   return shared_ptr<IrcState>(new IrcState {
       .normalizer = InequalityNormalizer(strongNormalization),
       .ordering = &ord,
