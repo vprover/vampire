@@ -39,6 +39,14 @@ public:
   LPO(Problem& prb, const Options& opt) :
     PrecedenceOrdering(prb, opt)
   {}
+  LPO(Problem& prb, const Options& opt, DArray<int> funcPrec) :
+    PrecedenceOrdering(
+      funcPrec,
+      predPrecFromOpts(prb, opt),
+      predLevelsFromOptsAndPrec(prb,opt,predPrecFromOpts(prb, opt)),
+      opt.literalComparisonMode()==Shell::Options::LiteralComparisonMode::REVERSE
+    )
+  {}
   virtual ~LPO() {}
 
   using PrecedenceOrdering::compare;
@@ -53,7 +61,6 @@ protected:
   Result alpha(TermList* tl, unsigned arity, Term *t) const;
   Result clpo(Term* t1, TermList tl2) const;
   Result lpo(TermList tl1, TermList tl2) const;
-  Result lpo(Term* t1, TermList tl2) const;
   Result lexMAE(Term* s, Term* t, TermList* sl, TermList* tl, unsigned arity) const;
   Result majo(Term* s, TermList* tl, unsigned arity) const;
 
