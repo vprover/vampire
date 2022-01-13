@@ -176,11 +176,11 @@ Ordering::Result LPO::alpha(TermList* sl, unsigned arity, Term *t) const
   ASS(t->shared());
 
   for (unsigned i = 0; i < arity; i++) {
-    switch (lpo(t, *(sl - i))) {
+    switch (lpo(*(sl - i), TermList(t))) {
     case EQUAL:
-    case LESS:
-      return GREATER;
     case GREATER:
+      return GREATER;
+    case LESS:
     case INCOMPARABLE:
       break;
     default:
@@ -196,30 +196,26 @@ Ordering::Result LPO::lpo(TermList tl1, TermList tl2) const
 {
   CALL("LPO::lpo(TermList, TermList)");
 
+  if(tl1==tl2) {
+    return EQUAL;
+  }
   if(tl1.isOrdinaryVar()) {
     return INCOMPARABLE;
   }
   ASS(tl1.isTerm());
-  return lpo(tl1.term(), tl2);
-}
-
-// used when the first term is not a variable
-Ordering::Result LPO::lpo(Term* t1, TermList tl2) const
-{
-  CALL("LPO::lpo(Term*, TermList)");
-
+  Term* t1 = tl1.term();
   ASS(t1->shared());
 
   if(tl2.isOrdinaryVar()) {
     return t1->containsSubterm(tl2) ? GREATER : INCOMPARABLE;
   }
-  
+
   ASS(tl2.isTerm());
   Term* t2=tl2.term();
 
   switch (compareFunctionPrecedences(t1->functor(), t2->functor())) {
   case EQUAL:
-    lexMAE(t1, t2, t1->args(), t2->args(), t1->arity());
+    return lexMAE(t1, t2, t1->args(), t2->args(), t1->arity());
   case GREATER:
     return majo(t1, t2->args(), t2->arity());
   default:
@@ -257,7 +253,7 @@ Ordering::Result LPO::majo(Term* s, TermList* tl, unsigned arity) const
   ASS(s->shared());
 
   for (unsigned i = 0; i < arity; i++) {
-    switch(lpo(s, *(tl - i))) {
+    switch(lpo(TermList(s), *(tl - i))) {
     case GREATER:
       break;
     case EQUAL:
