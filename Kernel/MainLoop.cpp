@@ -110,13 +110,13 @@ MainLoop* MainLoop::createFromOptions(Problem& prb, const Options& opt)
 
   switch (opt.saturationAlgorithm()) {
   case Options::SaturationAlgorithm::INST_GEN:
-    if(env.statistics->polymorphic || env.statistics->higherOrder){
+    if(env.property->hasPolymorphicSym() || env.property->higherOrder()){
       USER_ERROR("The inst gen calculus is currently not compatible with polymorphism or higher-order constructs");       
     }
     res = new IGAlgorithm(prb, opt);
     break;
   case Options::SaturationAlgorithm::FINITE_MODEL_BUILDING:
-    if(env.statistics->polymorphic || env.statistics->higherOrder){
+    if(env.property->hasPolymorphicSym() || env.property->higherOrder()){
       USER_ERROR("Finite model buillding is currently not compatible with polymorphism or higher-order constructs");       
     }
     if(env.options->outputMode() == Shell::Options::Output::UCORE){
