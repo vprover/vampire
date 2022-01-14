@@ -1537,13 +1537,13 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
   }
 
   if(prb.hasFOOL() &&
-    env.statistics->higherOrder && env.options->booleanEqTrick()){
+    prb.higherOrder() && env.options->booleanEqTrick()){
   //  gie->addFront(new ProxyElimination::NOTRemovalGIE());
     gie->addFront(new BoolEqToDiseq());
   }
 
   if(opt.complexBooleanReasoning() && prb.hasBoolVar() &&
-     env.statistics->higherOrder && !opt.lambdaFreeHol()){
+     prb.higherOrder() && !opt.lambdaFreeHol()){
     gie->addFront(new PrimitiveInstantiation()); //TODO only add in some cases
     gie->addFront(new ElimLeibniz());
   }
@@ -1570,7 +1570,7 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
   }
 
   if((prb.hasLogicalProxy() || prb.hasBoolVar() || prb.hasFOOL()) &&
-      env.statistics->higherOrder && !prb.quantifiesOverPolymorphicVar()){
+      prb.higherOrder() && !prb.quantifiesOverPolymorphicVar()){
     if(env.options->cnfOnTheFly() != Options::CNFOnTheFly::EAGER &&
        env.options->cnfOnTheFly() != Options::CNFOnTheFly::OFF){
       gie->addFront(new LazyClausificationGIE());
@@ -1628,7 +1628,7 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
   //create simplification engine
 
   if((prb.hasLogicalProxy() || prb.hasBoolVar() || prb.hasFOOL()) &&
-      env.statistics->higherOrder && !prb.quantifiesOverPolymorphicVar()){
+      prb.higherOrder() && !prb.quantifiesOverPolymorphicVar()){
     if(env.options->cnfOnTheFly() != Options::CNFOnTheFly::EAGER &&
        env.options->cnfOnTheFly() != Options::CNFOnTheFly::OFF){
       res->addSimplifierToFront(new LazyClausification());
@@ -1763,7 +1763,7 @@ ImmediateSimplificationEngine* SaturationAlgorithm::createISE(Problem& prb, cons
   }
 
   if((prb.hasLogicalProxy() || prb.hasBoolVar() || prb.hasFOOL()) &&
-      env.statistics->higherOrder && !env.options->addProxyAxioms()){
+      prb.higherOrder() && !env.options->addProxyAxioms()){
     if(env.options->cnfOnTheFly() == Options::CNFOnTheFly::EAGER){
       /*res->addFrontMany(new ProxyISE());
       res->addFront(new OrImpAndProxyISE());
