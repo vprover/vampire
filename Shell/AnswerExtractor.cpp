@@ -338,9 +338,10 @@ Literal* AnswerLiteralManager::getAnswerLiteral(VList* vars,Formula* f)
   while(vit.hasNext()) {
     unsigned var = vit.next();
     TermList sort;
-    ALWAYS(SortHelper::tryGetVariableSort(var,f,sort));
-    sorts.push(sort);
-    litArgs.push(TermList(var, false));
+    if(SortHelper::tryGetVariableSort(var,f,sort)){
+      sorts.push(sort);
+      litArgs.push(TermList(var, false));
+    }
   }
 
   unsigned vcnt = litArgs.size();
