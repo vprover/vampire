@@ -671,7 +671,7 @@ protected:
 
     vstring kind = "fof";
     if(env.statistics->hasTypes){ kind="tff"; }
-    if(env.statistics->higherOrder){ kind="thf"; }
+    if(env.property->higherOrder()){ kind="thf"; }
 
     return kind+"("+id+","+getRole(rule,origin)+",("+"\n"
 	+"  "+formula+"),\n"
@@ -965,7 +965,7 @@ protected:
 
     vstring kind = "fof";
     if(env.statistics->hasTypes){ kind="tff"; } 
-    if(env.statistics->higherOrder){ kind="thf"; }
+    if(env.property->higherOrder()){ kind="thf"; }
 
     out << kind
         << "(r"<<_is->getUnitIdStr(cs)
