@@ -38,6 +38,7 @@
 #include "OperatorType.hpp"
 #include "Theory.hpp"
 
+#include <climits>
 
 namespace Kernel {
 
