@@ -274,10 +274,12 @@ Problem* UIHelper::getInputProblem(const Options& opts)
        bool smtlib = hasEnding(inputFile,"smt") || hasEnding(inputFile,"smt2");
 
        if(smtlib){
-         env.beginOutput();
-         addCommentSignForSZS(env.out());
-         env.out() << "Running in auto input_syntax mode. Trying SMTLIB2\n";
-         env.endOutput();
+         if (opts.mode() != Options::Mode::PROFILE) {
+           env.beginOutput();
+           addCommentSignForSZS(env.out());
+           env.out() << "Running in auto input_syntax mode. Trying SMTLIB2\n";
+           env.endOutput();
+         }
          try{
            units = tryParseSMTLIB2(opts,input,smtLibLogic);
          }
@@ -296,10 +298,12 @@ Problem* UIHelper::getInputProblem(const Options& opts)
 
        }
        else{
-         env.beginOutput();
-         addCommentSignForSZS(env.out());
-         env.out() << "Running in auto input_syntax mode. Trying TPTP\n";
-         env.endOutput();
+         if (opts.mode() != Options::Mode::PROFILE) {
+           env.beginOutput();
+           addCommentSignForSZS(env.out());
+           env.out() << "Running in auto input_syntax mode. Trying TPTP\n";
+           env.endOutput();
+         }
          try{
            units = tryParseTPTP(input); 
          }
