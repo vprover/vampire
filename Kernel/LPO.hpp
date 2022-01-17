@@ -39,15 +39,10 @@ public:
   LPO(Problem& prb, const Options& opt) :
     PrecedenceOrdering(prb, opt)
   {}
-  LPO(Problem& prb, const Options& opt, DArray<int> funcPrec) :
-    PrecedenceOrdering(
-      funcPrec,
-      predPrecFromOpts(prb, opt),
-      predLevelsFromOptsAndPrec(prb,opt,predPrecFromOpts(prb, opt)),
-      opt.literalComparisonMode()==Shell::Options::LiteralComparisonMode::REVERSE
-    )
+  LPO(const DArray<int>& funcPrec, const DArray<int>& predPrec, const DArray<int>& predLevels, bool reverseLCM) :
+    PrecedenceOrdering(funcPrec, predPrec, predLevels, reverseLCM)
   {}
-  virtual ~LPO() {}
+  ~LPO() override = default;
 
   using PrecedenceOrdering::compare;
   Result compare(TermList tl1, TermList tl2) const override;
