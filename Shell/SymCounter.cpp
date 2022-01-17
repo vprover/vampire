@@ -166,7 +166,7 @@ void SymCounter::count (Formula* f,int polarity,int add)
 
     case BOOL_TERM: {
       TermList ts = f->getBooleanTerm();
-      if (!ts.isTerm()) return;     
+      if (!ts.isTerm()) return;
       count (ts.term(), polarity, add);
       return;
     }
@@ -231,7 +231,7 @@ void SymCounter::count(Term* term, int polarity, int add)
 {
   CALL("SymCounter::count(Term*)");
 
-  if (!term->shared()) { 
+  if (!term->shared()) {
     if (term->isSpecial()) {
       Term::SpecialTermData *sd = term->getSpecialData();
       switch (sd->getType()) {
@@ -254,7 +254,7 @@ void SymCounter::count(Term* term, int polarity, int add)
           break;
         }
         case Term::SF_LAMBDA: {
-          TermList lambdaExp = sd->getLambdaExp();      
+          TermList lambdaExp = sd->getLambdaExp();
           if(lambdaExp.isTerm()){
             count(lambdaExp.term(), polarity, add);
           }
