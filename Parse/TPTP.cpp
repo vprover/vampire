@@ -3682,7 +3682,9 @@ void TPTP::endFof()
   Unit* unit;
   if (isFof) { // fof() or tff()
     env.statistics->inputFormulas++;
-    unit = new FormulaUnit(f,FromInput(_lastInputType));
+    Inference inf = FromInput(_lastInputType);
+    inf.setProgramTargetVars(f->firstLevelExistentialVariables());
+    unit = new FormulaUnit(f,inf);
     unit->setInheritedColor(_currentColor);
   }
   else { // cnf()

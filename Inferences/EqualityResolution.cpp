@@ -99,27 +99,28 @@ struct EqualityResolution::ResultFn
       use_uwa_handler = false;
     }
 
-    static RobSubstitution subst;
+    // TODO: Originally static RobSubstitution; figure out if it can somehow stay that way. 
+    Kernel::RobSubstitutionSP subst(new RobSubstitution());
     static UnificationConstraintStack constraints;
-    subst.reset();
+    subst->reset();
     constraints.reset();
-    subst.setMap(&funcSubtermMap);
+    subst->setMap(&funcSubtermMap);
 
     if(use_uwa_handler){
       UWAMismatchHandler hndlr(constraints);
-      if(!subst.unify(arg0,0,arg1,0,&hndlr)){ 
+      if(!subst->unify(arg0,0,arg1,0,&hndlr)){ 
         return 0; 
       }
     }
 
     if(use_ho_handler){
       HOMismatchHandler hndlr(constraints);
-      if(!subst.unify(arg0,0,arg1,0,&hndlr)){ 
+      if(!subst->unify(arg0,0,arg1,0,&hndlr)){ 
         return 0; 
       }    
     }
 
-    if(!use_uwa_handler && !use_ho_handler && !subst.unify(arg0,0,arg1,0)){
+    if(!use_uwa_handler && !use_ho_handler && !subst->unify(arg0,0,arg1,0)){
       return 0;    
     }
 
@@ -129,20 +130,22 @@ struct EqualityResolution::ResultFn
 
     unsigned newLen=_cLen-1+ constraints.length();
 
-    Clause* res = new(newLen) Clause(newLen, GeneratingInference1(InferenceRule::EQUALITY_RESOLUTION, _cl));
+    Inference inf(GeneratingInference1(InferenceRule::EQUALITY_RESOLUTION, _cl));
+    inf.setProgramSubstitutionAndCondition(Kernel::RobSubstitutionSP(subst), /*condition=*/ nullptr);
+    Clause* res = new(newLen) Clause(newLen, inf);
 
     Literal* litAfter = 0;
 
     if (_afterCheck && _cl->numSelected() > 1) {
       TimeCounter tc(TC_LITERAL_ORDER_AFTERCHECK);
-      litAfter = subst.apply(lit, 0);
+      litAfter = subst->apply(lit, 0);
     }
 
     unsigned next = 0;
     for(unsigned i=0;i<_cLen;i++) {
       Literal* curr=(*_cl)[i];
       if(curr!=lit) {
-        Literal* currAfter = subst.apply(curr, 0);
+        Literal* currAfter = subst->apply(curr, 0);
 
         if (litAfter) {
           TimeCounter tc(TC_LITERAL_ORDER_AFTERCHECK);
@@ -159,8 +162,8 @@ struct EqualityResolution::ResultFn
     }
     for(unsigned i=0;i<constraints.length();i++){
       UnificationConstraint con = (constraints)[i];
-      TermList qT = subst.apply(con.first.first,0);
-      TermList rT = subst.apply(con.second.first,0);
+      TermList qT = subst->apply(con.first.first,0);
+      TermList rT = subst->apply(con.second.first,0);
 
       TermList sort = SortHelper::getResultSort(rT.term());
       Literal* constraint = Literal::createEquality(false,qT,rT,sort);      

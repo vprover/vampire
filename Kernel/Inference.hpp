@@ -19,7 +19,12 @@
 
 #include <cstdlib>
 
+#include "Kernel/RobSubstitution.hpp"
+#include "Kernel/Term.hpp"
+#include "Kernel/TermTransformer.hpp"
 #include "Lib/Allocator.hpp"
+#include "Lib/SmartPtr.hpp"
+#include "Lib/STL.hpp"
 #include "Lib/VString.hpp"
 #include "Forwards.hpp"
 
@@ -712,6 +717,53 @@ struct NonspecificInferenceMany {
 
 struct FromSatRefutation; // defined in SATInference.hpp
 
+class InputVarReplacement : public TermTransformer {
+public:
+  InputVarReplacement() : _termToVar() {}
+  void addTermToVar(Term* t, unsigned v) {
+    ASS(_termToVar.count(t) == 0);
+    _termToVar[t] = v;
+  }
+  bool isEmpty() { return _termToVar.empty(); }
+  TermList transformProgram(TermList tl) {
+    TermList transformed = transformSubterm(tl);
+    if (transformed != tl) return transformed;
+    else return transform(tl);
+  }
+protected:
+  virtual TermList transformSubterm(TermList trm) {
+    if (trm.isTerm()) {
+      auto it = _termToVar.find(trm.term());
+      if (it != _termToVar.end()) return TermList(it->second, false);
+      else return trm;
+    } else {
+      return trm;
+    }
+  }
+private:
+  vmap<Term*, unsigned> _termToVar;
+};
+
+struct SynthesisedProgram {
+  // leaf data:
+  unsigned targetVar;
+  TermList result;
+  // non-leaf data:
+  Kernel::RobSubstitutionSP substitution;
+  InputVarReplacement ivr;  // to be applied to the condition and all branches once the proof is found
+  Literal* condition;  // literal from the leftmost (first) premise
+  // TODO: this is technically not necessary - the Inference has pointers to its premises
+  // (which should have their own SynthesisedPrograms)
+  //SynthesisedProgram* trueBranch;
+  //SynthesisedProgram* falseBranch;
+
+  // TODO: exactly one of the following should be true:
+  bool isStatement() const { return !substitution.isEmpty() || (result != TermList()); } // && (trueBranch == nullptr) && (falseBranch == nullptr); }
+  bool isIfOrLoop() const { return (condition != nullptr); } // && (trueBranch != nullptr) && (falseBranch != nullptr); }
+  //bool isIf() { return (condition != nullptr) && (trueBranch != nullptr) && (falseBranch != nullptr); }
+  //bool isLoop() { return (condition != nullptr) && (trueBranch != nullptr) && (falseBranch == nullptr); }
+};
+
 /**
  * Class to represent inferences
  */
@@ -983,6 +1035,50 @@ public:
   /** Set the age to @b a */
   void setAge(unsigned a) { _age = a; }
 
+  bool programHasTerm() { return program.result != TermList(); }
+  bool programHasVariable() { return programHasTerm(); }//&& (program.result == TermList(program.targetVar, false)); }
+  bool programHasSubstitution() { return !program.substitution.isEmpty(); }
+  bool programHasCondition() { return program.condition != nullptr; }
+
+  void setProgramTargetVars(VList* vars) {
+    ASS(program.isStatement());
+    if (VList::length(vars) == 1) {
+      program.targetVar = vars->head();
+      setProgramResult(TermList(vars->head(), false));
+    }
+  }
+  unsigned getProgramTargetVar() {ASS(program.isStatement()); return program.targetVar; }
+  void setProgramResult(TermList tl) { ASS(program.isStatement()); program.result = tl; }
+  TermList getProgramResult() const { ASS(program.isStatement()); return program.result; }
+  void setProgramSubstitution(Kernel::RobSubstitutionSP s) { program.substitution = Kernel::RobSubstitutionSP(s); }
+  void setProgramSubstitutionAndCondition(Kernel::RobSubstitutionSP s, Literal* c) {
+    program.substitution = s;
+    program.condition = c;
+  }
+  // TODO: this is only called from Skolem, we don't need to construct the substitution at all
+  void initializeProgramIVR(RobSubstitutionSP substitution, VList* vars, int index) {
+    //ASS(!program.substitution.isEmpty());
+    static vset<unsigned> done;
+    done.clear();
+    VList::Iterator vit(vars);
+    while (vit.hasNext()) {
+      unsigned v = vit.next();
+      if (done.count(v) == 0) {
+        done.insert(v);
+        if (!substitution->isUnbound(v, index)) {
+          TermList vtl(v, false);
+          TermList tl = substitution->apply(vtl, index);
+          ASS(tl.isTerm());
+          program.ivr.addTermToVar(tl.term(), v);
+        }
+      }
+    }
+  }
+  bool hasProgramIVR() { return !program.ivr.isEmpty(); }
+  TermList applyProgramIVR(TermList& tl) { return program.ivr.transformProgram(tl); }
+  const Kernel::RobSubstitutionSP& getProgramSubstitution() const { return program.substitution; }
+  Literal* getProgramCondition() const { ASS(program.isIfOrLoop()); return program.condition; }
+
 private:
   Kind _kind : 2;
 
@@ -1034,6 +1130,9 @@ private:
    **/
   void* _ptr1;
   void* _ptr2;
+
+  // TODO: change to pointer
+  SynthesisedProgram program;
 
 
 public:

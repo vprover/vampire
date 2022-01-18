@@ -15,6 +15,7 @@
 #include "Kernel/Clause.hpp"
 #include "Kernel/Inference.hpp"
 #include "Kernel/Problem.hpp"
+#include "Kernel/RobSubstitution.hpp"
 #include "Kernel/SubstHelper.hpp"
 #include "Kernel/Term.hpp"
 #include "Kernel/Unit.hpp"
@@ -80,10 +81,12 @@ start_applying:
   resLits.reset();
 
   bool foundResolvable=false;
+  Literal* resolved = nullptr;
   for(unsigned i=0;i<clen;i++) {
     Literal* lit=(*cl)[i];
     if(!foundResolvable && scan(lit)) {
       foundResolvable=true;
+      resolved = lit;
     } else {
       resLits.push(lit);
     }
@@ -95,8 +98,11 @@ start_applying:
   unsigned nlen=resLits.size();
   ASS_L(nlen, clen);
 
-  Clause* res = new(nlen) Clause(nlen,
-      SimplifyingInference1(InferenceRule::EQUALITY_RESOLUTION_WITH_DELETION, cl));
+  Inference inf = SimplifyingInference1(InferenceRule::EQUALITY_RESOLUTION_WITH_DELETION, cl);
+  RobSubstitution* rs = new RobSubstitution();
+  bool check = rs->unify(*resolved->nthArgument(0), 0, *resolved->nthArgument(1), 0);
+  inf.setProgramSubstitutionAndCondition(Kernel::RobSubstitutionSP(rs), /*condition=*/ nullptr);
+  Clause* res = new(nlen) Clause(nlen, inf);
 
   for(unsigned i=0;i<nlen;i++) {
     (*res)[i] = SubstHelper::apply(resLits[i], *this);

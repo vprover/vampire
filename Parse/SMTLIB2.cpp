@@ -2718,7 +2718,9 @@ void SMTLIB2::readAssert(LExpr* body)
     USER_ERROR("Asserted expression of non-boolean sort "+body->toString());
   }
 
-  FormulaUnit* fu = new FormulaUnit(fla, FromInput(UnitInputType::ASSUMPTION));
+  Inference inf = FromInput(UnitInputType::ASSUMPTION);
+  inf.setProgramTargetVars(fla->firstLevelExistentialVariables());
+  FormulaUnit* fu = new FormulaUnit(fla, inf);
   UnitList::push(fu, _formulas);
 }
 
@@ -2736,7 +2738,9 @@ void SMTLIB2::readAssertNot(LExpr* body)
     USER_ERROR("Asserted expression of non-boolean sort "+body->toString());
   }
 
-  FormulaUnit* fu = new FormulaUnit(fla, FromInput(UnitInputType::CONJECTURE));
+  Inference inf = FromInput(UnitInputType::ASSUMPTION);
+  inf.setProgramTargetVars(fla->firstLevelExistentialVariables());
+  FormulaUnit* fu = new FormulaUnit(fla, inf);
   fu = new FormulaUnit(new NegatedFormula(fla),
                        FormulaTransformation(InferenceRule::NEGATED_CONJECTURE, fu));
   UnitList::push(fu, _formulas);

@@ -80,6 +80,8 @@ public:
   void collectAtoms(Stack<Literal*>& acc);
   void collectPredicates(Stack<unsigned>& acc);
   void collectPredicatesWithPolarity(Stack<pair<unsigned,int> >& acc, int polarity=1);
+  // TODO: implement this for all the formulae
+  virtual VList* firstLevelExistentialVariables(bool negative = false) const { return VList::empty(); }
 
   // output
   vstring toString() const;
@@ -210,6 +212,8 @@ class QuantifiedFormula
   /** Return the list of sorts */
   SList* sortList() { return _sorts; }
 
+  virtual VList* firstLevelExistentialVariables(bool negative = false) const;
+
   // use allocator to (de)allocate objects of this class
   CLASS_NAME(QuantifiedFormula);
   USE_ALLOCATOR(QuantifiedFormula);
@@ -240,6 +244,8 @@ public:
   const Formula* subformula() const { return _arg; }
   /** Return the immediate subformula of this formula */
   Formula* subformula() { return _arg; }
+
+  virtual VList* firstLevelExistentialVariables(bool negative = false) const { return _arg->firstLevelExistentialVariables(!negative); }
 
   // use allocator to (de)allocate objects of this class
   CLASS_NAME(NegatedFormula);

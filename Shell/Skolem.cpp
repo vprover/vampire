@@ -97,7 +97,22 @@ FormulaUnit* Skolem::skolemiseImpl (FormulaUnit* unit, bool appify)
 
   UnitList* premiseList = new UnitList(unit,_skolimizingDefinitions); // making sure unit is the last inserted, i.e. first in the list
 
-  FormulaUnit* res = new FormulaUnit(g,FormulaTransformationMany(InferenceRule::SKOLEMIZE,premiseList));
+  Inference inf = FormulaTransformationMany(InferenceRule::SKOLEMIZE,premiseList);
+  // TODO: gate based on synthesis options
+  // TODO: change this to "reverse" substitution in SynthesisedProgram
+  DHMap<unsigned,TermList>::Iterator vit(_varSorts);
+  RobSubstitutionSP rs(new RobSubstitution());
+  while (vit.hasNext()) {
+    unsigned v = vit.nextKey();
+    TermList tl = _subst.apply(v);
+    if (!tl.isVar()) {
+      TermList vl(v, false);
+      rs->unify(vl, 0, tl, 0);
+    }
+  }
+  //inf.setProgramSubstitution(rs);
+  inf.initializeProgramIVR(rs, f->vars(), 0);
+  FormulaUnit* res = new FormulaUnit(g, inf);
 
   ASS(_introducedSkolemSyms.isNonEmpty());
   while(_introducedSkolemSyms.isNonEmpty()) {

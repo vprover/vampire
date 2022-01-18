@@ -854,6 +854,21 @@ Formula* Formula::fromClause(Clause* cl)
   }
 */
 
+// TODO(hzzv): change to extract also indirectly existantially quantified vars.
+// Also maybe return the associated universally quantified vars, and to go deeper than level 1.
+VList* QuantifiedFormula::firstLevelExistentialVariables(bool negative) const {
+  const Formula* f = this;
+  while (f->connective() == (negative ? FORALL : EXISTS)) {
+    f = static_cast<const QuantifiedFormula*>(f)->subformula();
+  }
+  VList* res = VList::empty();
+  while (f->connective() == (negative ? EXISTS : FORALL)) {
+    res = VList::append(res, VList::copy(static_cast<const QuantifiedFormula*>(f)->varList()));
+    f = static_cast<const QuantifiedFormula*>(f)->subformula();
+  }
+  return res;
+}
+
 std::ostream& operator<< (ostream& out, const Formula& f)
 {
   CALL("operator <<(ostream&, const Formula&)");

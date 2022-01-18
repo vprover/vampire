@@ -414,6 +414,9 @@ Inference::Inference(const FromInput& fi) {
   CALL("Inference::Inference(FromInput)");
 
   init0(fi.inputType,InferenceRule::INPUT);
+  // TODO: set the term and the target var sto the first existentially quantified var in the input.
+  // ...but do this in TPTP.cpp and SMTLIB2.cpp. In TPTP only for l3685, in SMTLIB2 readAssert and readAssertNot.
+  // TODO: later change to arbitrary number of vars.
 }
 
 Inference::Inference(const TheoryAxiom& ta) {

@@ -82,6 +82,7 @@ public:
 
   UnitIterator getParents(Unit* us, InferenceRule& rule);
   UnitIterator getParents(Unit* us);
+  UnitIterator getParentsAndInference(Unit* us, Inference*& inf);
 
   vstring getUnitIdStr(Unit* cs);
 
@@ -92,6 +93,8 @@ private:
   struct TPTPProofPrinter;
   struct ProofCheckPrinter;
   struct ProofPropertyPrinter;
+
+  struct ProgramPrinter;
 
   ProofPrinter* createProofPrinter(ostream& out);
 
