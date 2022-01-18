@@ -10,8 +10,9 @@
 /**
  * @file LPO.cpp
  * Implements class LPO for instances of the lexicographic path
- * ordering
- *
+ * ordering based on Bernd Loechner's thesis "Advances in
+ * Equational Theorem Proving - Architecture, Algorithms, and
+ * Redundancy Avoidance" Section 4.2
  */
 
 #include "Debug/Tracer.hpp"
@@ -100,7 +101,8 @@ Ordering::Result LPO::clpo(Term* t1, TermList tl2) const
     ASSERTION_VIOLATION;
     // shouldn't happen because symbol precedence is assumed to be
     // total, but if it is not then the following call is correct
-    return cAA(t1, t2, t1->args(), t2->args(), t1->arity(), t2->arity());
+    //
+    // return cAA(t1, t2, t1->args(), t2->args(), t1->arity(), t2->arity());
   }
 }
 
@@ -242,7 +244,9 @@ Ordering::Result LPO::lexMAE(Term* s, Term* t, TermList* sl, TermList* tl, unsig
       ASSERTION_VIOLATION;
     }
   }
-  return GREATER;
+  // reached only when the terms are equal but this is checked already
+  // at the start of LPO::lpo, which is the only caller of this function
+  ASSERTION_VIOLATION;
 }
 
 // greater if s is greater than every term in tl
