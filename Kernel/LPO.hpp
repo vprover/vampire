@@ -39,7 +39,10 @@ public:
   LPO(Problem& prb, const Options& opt) :
     PrecedenceOrdering(prb, opt)
   {}
-  virtual ~LPO() {}
+  LPO(const DArray<int>& funcPrec, const DArray<int>& predPrec, const DArray<int>& predLevels, bool reverseLCM) :
+    PrecedenceOrdering(funcPrec, predPrec, predLevels, reverseLCM)
+  {}
+  ~LPO() override = default;
 
   using PrecedenceOrdering::compare;
   Result compare(TermList tl1, TermList tl2) const override;
@@ -53,7 +56,6 @@ protected:
   Result alpha(TermList* tl, unsigned arity, Term *t) const;
   Result clpo(Term* t1, TermList tl2) const;
   Result lpo(TermList tl1, TermList tl2) const;
-  Result lpo(Term* t1, TermList tl2) const;
   Result lexMAE(Term* s, Term* t, TermList* sl, TermList* tl, unsigned arity) const;
   Result majo(Term* s, TermList* tl, unsigned arity) const;
 
