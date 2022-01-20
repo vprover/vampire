@@ -842,9 +842,6 @@ struct ToZ3Expr
     Signature::Symbol* symb;
     SortId range_sort;
     bool is_equality = false;
-    // in addition to the actual equality, equalityProxy also gets translated as equality for Z3,
-    // and when it's polymorphic, we need to offset its type argument:
-    unsigned equality_typeArgArity = 0;
     if (isLit) {
       symb = env.signature->getPredicate(trm->functor());
       range_sort = AtomicSort::boolSort();
@@ -855,10 +852,7 @@ struct ToZ3Expr
       }
       if(symb->equalityProxy()) {
         is_equality=true;
-        OperatorType* ftype = symb->fnType();
-        equality_typeArgArity = ftype->typeArgsArity();
-
-        ASS(trm->arity()==equality_typeArgArity+2);
+        ASS_EQ(trm->arity(), symb->fnType()->typeArgsArity() + 2);
       }
     } else {
       symb = env.signature->getFunction(trm->functor());
@@ -915,7 +909,8 @@ struct ToZ3Expr
 
    //Check for equality
     if(is_equality){
-      return args[equality_typeArgArity+0] == args[equality_typeArgArity+1];
+      // both equality and equality proxy translated as z3 equality
+      return args[0] == args[1];
     }
 
     // Currently do not deal with all intepreted operations, should extend
