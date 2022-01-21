@@ -171,8 +171,8 @@ vstring getQuantifiedStr(const VarContainer& vars, vstring inner, DHMap<unsigned
     vstring ty="";
     TermList t;
 
-    if(t_map.find(var,t) && env.statistics->hasTypes){
-      //hasTypes is true if the problem that contains a sort
+    if(t_map.find(var,t) && env.property->hasNonDefaultSorts()){
+      //hasNonDefaultSorts is true if the problem contains a sort
       //that is not $i and not a variable
       ty=" : " + t.toString();
     }
@@ -670,7 +670,7 @@ protected:
     CALL("InferenceStore::TPTPProofPrinter::getFofString");
 
     vstring kind = "fof";
-    if(env.statistics->hasTypes){ kind="tff"; }
+    if(env.property->hasNonDefaultSorts()){ kind="tff"; }
     if(env.property->higherOrder()){ kind="thf"; }
 
     return kind+"("+id+","+getRole(rule,origin)+",("+"\n"
@@ -964,7 +964,7 @@ protected:
     UIHelper::outputSymbolDeclarations(out);
 
     vstring kind = "fof";
-    if(env.statistics->hasTypes){ kind="tff"; } 
+    if(env.property->hasNonDefaultSorts()){ kind="tff"; } 
     if(env.property->higherOrder()){ kind="thf"; }
 
     out << kind
