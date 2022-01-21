@@ -43,7 +43,6 @@ using namespace Shell;
 Statistics::Statistics()
   : inputClauses(0),
     inputFormulas(0),
-    hasTypes(false),
     formulaNames(0),
     initialClauses(0),
     splitInequalities(0),
