@@ -732,6 +732,7 @@ set(UNIT_TESTS
     UnitTests/tRebalance.cpp
     UnitTests/tDisagreement.cpp
     UnitTests/tDynamicHeap.cpp
+    UnitTests/tInduction.cpp
     UnitTests/tIntegerConstantType.cpp
     UnitTests/tSATSolver.cpp
     UnitTests/tArithCompare.cpp
