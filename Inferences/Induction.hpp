@@ -89,10 +89,16 @@ public:
 
   Induction() {}
 
-  void attach(SaturationAlgorithm* salg);
-  void detach();
+  void attach(SaturationAlgorithm* salg) override;
+  void detach() override;
 
-  ClauseIterator generateClauses(Clause* premise);
+  ClauseIterator generateClauses(Clause* premise) override;
+
+#if VDEBUG
+  void setTestIndices(const Stack<Index*>& indices) override {
+    _comparisonIndex = static_cast<LiteralIndex*>(indices[0]);
+  }
+#endif // VDEBUG
 
 private:
   // The following pointers can be null if int induction is off.

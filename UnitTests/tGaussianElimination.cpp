@@ -160,7 +160,7 @@ TEST_SIMPLIFY(gve_test_div,
 /////////////////////////////////////
 
 
-REGISTER_GEN_TESTER(Test::Generation::GenerationTester<LfpRule<GaussianVariableElimination>>)
+REGISTER_GEN_TESTER(LfpRule<GaussianVariableElimination>)
 
 TEST_GENERATION(test_redundancy_01,
     Generation::TestCase()

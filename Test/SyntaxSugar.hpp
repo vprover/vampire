@@ -317,7 +317,7 @@ public:
 
   static TermSugar createConstant(const char* name, SortSugar s) {
     unsigned f = env.signature->addFunction(name,0);                                                                
-    env.signature->getFunction(f)->setType(OperatorType::getFunctionType({}, s.sortId())); 
+    env.signature->getFunction(f)->setType(OperatorType::getFunctionType({}, s.sortId()));
     return TermSugar(TermList(Term::createConstant(f)));                                                          
   }                                                                                                                 
 };
@@ -473,8 +473,8 @@ public:
 class ConstSugar : public TermSugar, public FuncSugar
 {
 public:
-  ConstSugar(const char* name, SortSugar s) 
-    : TermSugar(TermSugar::createConstant(name, s).toTerm()) 
+  ConstSugar(const char* name, SortSugar s)
+    : TermSugar(TermSugar::createConstant(name, s).toTerm())
     , FuncSugar(functor())
   { }
   unsigned functor() const { return this->toTerm().term()->functor(); }
