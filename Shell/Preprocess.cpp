@@ -321,8 +321,7 @@ void Preprocess::preprocess(Problem& prb)
 //     }
 //   }
 
-   if (_options.equalityResolutionWithDeletion()!=Options::RuleActivity::OFF &&
-	   prb.mayHaveInequalityResolvableWithDeletion() ) {
+   if (_options.equalityResolutionWithDeletion() && prb.mayHaveInequalityResolvableWithDeletion() ) {
      env.statistics->phase=Statistics::EQUALITY_RESOLUTION_WITH_DELETION;
      if (env.options->showPreprocessing())
       env.out() << "equality resolution with deletion" << std::endl;
