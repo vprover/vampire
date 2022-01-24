@@ -392,23 +392,6 @@ void Options::init()
     _lookup.insert(&_inequalitySplitting);
     _inequalitySplitting.tag(OptionTag::PREPROCESSING);
 
-    _sos = ChoiceOptionValue<Sos>("sos","sos",Sos::OFF,{"all","off","on","theory"});
-    _sos.description=
-    "Set of support strategy. All formulas annotated as axioms are put directly among active clauses, without performing any inferences between them."
-    " If all, select all literals of set-of-support clauses, otherwise use the default literal selector. If theory then only apply to theory" 
-    " axioms introduced by vampire (all literals are selected).";
-    _lookup.insert(&_sos);
-    _sos.tag(OptionTag::PREPROCESSING);
-    _sos.setRandomChoices(And(isRandSat(),saNotInstGen()),{"on","off","off","off","off"});
-    _sos.setRandomChoices(And(isRandOn(),hasNonUnits()),{"on","off","off","off","off"});
-    _sos.setRandomChoices(isRandOn(),{"all","off","on"});
-
-    _sosTheoryLimit = UnsignedOptionValue("sos_theory_limit","sstl",0);
-    _sosTheoryLimit.description="When sos=theory, limit the depth of descendants a theory axiom can have.";
-    _lookup.insert(&_sosTheoryLimit);
-    _sosTheoryLimit.tag(OptionTag::PREPROCESSING);
-    _sosTheoryLimit.reliesOn(_sos.is(equal(Sos::THEORY)));
-
     _equalityProxy = ChoiceOptionValue<EqualityProxy>( "equality_proxy","ep",EqualityProxy::OFF,{"R","RS","RST","RSTC","off"});
     _equalityProxy.description="Applies the equality proxy transformation to the problem. It works as follows:\n"
      " - All literals s=t are replaced by E(s,t)\n"
@@ -462,6 +445,7 @@ void Options::init()
     _skolemReuse.description =
       "Attempt to reuse Skolem symbols.\n"
       "Symbols are re-used if they represent identical formulae up to renaming.";
+    _skolemReuse.addProblemConstraint(hasFormulas());
     _lookup.insert(&_skolemReuse);
     _skolemReuse.tag(OptionTag::PREPROCESSING);
 
@@ -756,6 +740,24 @@ void Options::init()
                 _saturationAlgorithm.is(equal(SaturationAlgorithm::DISCOUNT)),
                 And(_saturationAlgorithm.is(equal(SaturationAlgorithm::INST_GEN)),_instGenWithResolution.is(equal(true))));
     };
+
+    _sos = ChoiceOptionValue<Sos>("sos","sos",Sos::OFF,{"all","off","on","theory"});
+    _sos.description=
+    "Set of support strategy. All formulas annotated as axioms are put directly among active clauses, without performing any inferences between them."
+    " If all, select all literals of set-of-support clauses, otherwise use the default literal selector. If theory then only apply to theory"
+    " axioms introduced by vampire (all literals are selected).";
+    _lookup.insert(&_sos);
+    _sos.tag(OptionTag::PREPROCESSING);
+    _sos.reliesOn(InferencingSaturationAlgorithm());
+    _sos.setRandomChoices(And(isRandSat(),saNotInstGen()),{"on","off","off","off","off"});
+    _sos.setRandomChoices(And(isRandOn(),hasNonUnits()),{"on","off","off","off","off"});
+    _sos.setRandomChoices(isRandOn(),{"all","off","on"});
+
+    _sosTheoryLimit = UnsignedOptionValue("sos_theory_limit","sstl",0);
+    _sosTheoryLimit.description="When sos=theory, limit the depth of descendants a theory axiom can have.";
+    _lookup.insert(&_sosTheoryLimit);
+    _sosTheoryLimit.tag(OptionTag::PREPROCESSING);
+    _sosTheoryLimit.reliesOn(_sos.is(equal(Sos::THEORY)));
 
     /*
 #if VZ3
@@ -1534,10 +1536,7 @@ void Options::init()
     "Uses unit resulting resolution only to derive empty clauses (may be useful for splitting)";
     _lookup.insert(&_unitResultingResolution);
     _unitResultingResolution.tag(OptionTag::INFERENCES);
-    // Wrong, should instead suggest that urr is always used with inst_gen
-    //_unitResultingResolution.reliesOn(
-    //  _saturationAlgorithm.is(notEqual(SaturationAlgorithm::INST_GEN))->And<URResolution,bool>(
-    //    _instGenWithResolution.is(notEqual(true))));
+    _unitResultingResolution.reliesOn(InferencingSaturationAlgorithm());
     _unitResultingResolution.addProblemConstraint(hasPredicates());
     // If br has already been set off then this will be forced on, if br has not yet been set
     // then setting this to off will force br on
@@ -2057,6 +2056,7 @@ void Options::init()
     _termOrdering = ChoiceOptionValue<TermOrdering>("term_ordering","to", TermOrdering::KBO,
                                                     {"kbo","lpo"});
     _termOrdering.description="The term ordering used by Vampire to orient equations and order literals";
+    _termOrdering.reliesOn(InferencingSaturationAlgorithm());
     _termOrdering.tag(OptionTag::SATURATION);
     _lookup.insert(&_termOrdering);
 
@@ -2066,6 +2066,7 @@ void Options::init()
                                                              "weighted_frequency","reverse_weighted_frequency"});
     _symbolPrecedence.description="Vampire uses term orderings which require a precedence relation between symbols. Arity orders symbols by their arity (and reverse_arity takes the reverse of this) and occurence orders symbols by the order they appear in the problem.";
     _lookup.insert(&_symbolPrecedence);
+    _symbolPrecedence.reliesOn(InferencingSaturationAlgorithm());
     _symbolPrecedence.tag(OptionTag::SATURATION);
     _symbolPrecedence.setRandomChoices({"arity","occurence","reverse_arity","frequency"});
 
@@ -2143,7 +2144,8 @@ void Options::init()
 
     _symbolPrecedenceBoost = ChoiceOptionValue<SymbolPrecedenceBoost>("symbol_precedence_boost","spb",SymbolPrecedenceBoost::NONE,
                                      {"none","goal","units","goal_then_units"});
-    _symbolPrecedenceBoost.description = "Boost the symbol precedence of symbols occuring in certain kinds of clauses in the input.";
+    _symbolPrecedenceBoost.description = "Boost the symbol precedence of symbols occurring in certain kinds of clauses in the input.";
+    _symbolPrecedenceBoost.reliesOn(InferencingSaturationAlgorithm());
     _symbolPrecedenceBoost.tag(OptionTag::SATURATION);
     _lookup.insert(&_symbolPrecedenceBoost);
 
