@@ -1835,6 +1835,17 @@ bool _hard;
       vstring msg(){ return " only useful with theories"; }
     };
 
+    struct HasFormulas : OptionProblemConstraint {
+      CLASS_NAME(HasFormulas);
+      USE_ALLOCATOR(HasFormulas);
+
+      bool check(Property*p) {
+        CALL("Options::HasFormulas::check");
+        return p->hasFormulas();
+      }
+      vstring msg(){ return " only useful with (non-cnf) formulas"; }
+    };
+
     struct HasGoal : OptionProblemConstraint {
       CLASS_NAME(HasGoal);
       USE_ALLOCATOR(HasGoal);
@@ -1862,6 +1873,7 @@ bool _hard;
     static OptionProblemConstraintUP atomsLessThan(int a){
       return OptionProblemConstraintUP(new AtomConstraint(a,false));
     }
+    static OptionProblemConstraintUP hasFormulas() { return OptionProblemConstraintUP(new HasFormulas); }
     static OptionProblemConstraintUP hasTheories() { return OptionProblemConstraintUP(new HasTheories); }
     static OptionProblemConstraintUP hasGoal() { return OptionProblemConstraintUP(new HasGoal); }
 
