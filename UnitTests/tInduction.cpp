@@ -29,13 +29,12 @@ LiteralIndex* comparisonIndex() {
   return new UnitIntegerComparisonLiteralIndex(new LiteralSubstitutionTree());
 }
 
-template<class Rule>
 class GenerationTesterInduction
-  : public GenerationTester<Rule>
+  : public GenerationTester<Induction>
 {
 public:
-  GenerationTesterInduction(Rule* rule)
-    : GenerationTester<Rule>(rule), _subst()
+  GenerationTesterInduction()
+    : GenerationTester<Induction>(), _subst()
   {}
 
   /**
@@ -95,7 +94,7 @@ private:
 
 #define TEST_GENERATION_INDUCTION(name, ...)                                                                  \
   TEST_FUN(name) {                                                                                            \
-    GenerationTesterInduction<Induction> tester(new Induction());                                             \
+    GenerationTesterInduction tester;                                                                         \
     __ALLOW_UNUSED(MY_SYNTAX_SUGAR)                                                                           \
     auto test = __VA_ARGS__;                                                                                  \
     test.run(tester);                                                                                         \
@@ -461,7 +460,7 @@ TEST_GENERATION_INDUCTION(test_16,
         clause({ ~pi(0), pi(x) }),
         clause({ ~pi(0), ~pi(x+1) }),
 
-        // downard induction: resulting clauses contain "0 < sK6",
+        // downward induction: resulting clauses contain "0 < sK6",
         // since there is no bound to resolve it against
         clause({ ~pi(0), ~(num(0) < y), 0 < sK6 }),
         clause({ ~pi(0), pi(y), 0 < sK6 }),
