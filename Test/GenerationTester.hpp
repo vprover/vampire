@@ -49,17 +49,12 @@ class TestCase;
 template<class Rule>
 class GenerationTester
 {
-  Rule* _rule;
+  Rule _rule;
 
 public:
-  GenerationTester(Rule* rule)
-    : _rule(rule)
+  GenerationTester()
+    : _rule()
   {}
-
-  ~GenerationTester()
-  {
-    delete _rule;
-  }
 
   virtual bool eq(Kernel::Clause const* lhs, Kernel::Clause const* rhs)
   { return TestUtils::eqModAC(lhs, rhs); }
@@ -121,9 +116,9 @@ public:
       env.options->set(kv.first, kv.second);
     }
     MockedSaturationAlgorithm alg(p, o);
-    SimplifyingGeneratingInference* rule = _rule.unwrapOrElse([&](){ return simpl._rule; });
-    rule->setTestIndices(_indices);
-    rule->InferenceEngine::attach(&alg);
+    SimplifyingGeneratingInference& rule = *_rule.unwrapOrElse([&](){ return &simpl._rule; });
+    rule.setTestIndices(_indices);
+    rule.InferenceEngine::attach(&alg);
     for (auto i : _indices) {
       i->attachContainer(&container);
     }
@@ -136,7 +131,7 @@ public:
 
     // run rule
     _input->setStore(Clause::ACTIVE);
-    auto res = rule->generateSimplify(_input);
+    auto res = rule.generateSimplify(_input);
 
     // run checks
     auto& sExp = this->_expected;
@@ -152,13 +147,13 @@ public:
     }
 
     // tear down saturation algorithm
-    rule->InferenceEngine::detach();
+    rule.InferenceEngine::detach();
   }
 };
 
 #define __CREATE_GEN_TESTER CAT(__createGenTester_, UNIT_ID)
 
-#define REGISTER_GEN_TESTER(t, ...) auto __CREATE_GEN_TESTER() { return Test::Generation::GenerationTester<t>(new t(__VA_ARGS__)); }
+#define REGISTER_GEN_TESTER(t, ...) auto __CREATE_GEN_TESTER() { return Test::Generation::GenerationTester<t>(); }
 
 #define TEST_GENERATION(name, ...)                                                                            \
         TEST_GENERATION_WITH_SUGAR(name, MY_SYNTAX_SUGAR, __VA_ARGS__) 
