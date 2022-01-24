@@ -139,15 +139,13 @@ bool InductionHelper::isIntInductionOn() {
 
 bool InductionHelper::isIntInductionOneOn() {
   CALL("InductionHelper::isIntInductionOneOn");
-  static bool one = env.options->intInduction() == Options::IntInductionKind::ONE ||
-                    env.options->intInduction() == Options::IntInductionKind::ALL;
+  static bool one = env.options->intInduction() == Options::IntInductionKind::ONE;
   return isIntInductionOn() && one;
 }
 
 bool InductionHelper::isIntInductionTwoOn() {
   CALL("InductionHelper::isIntInductionTwoOn");
-  static bool two = env.options->intInduction() == Options::IntInductionKind::TWO ||
-                    env.options->intInduction() == Options::IntInductionKind::ALL;
+  static bool two = env.options->intInduction() == Options::IntInductionKind::TWO;
   return isIntInductionOn() && two;
 }
 

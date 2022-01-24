@@ -263,10 +263,8 @@ void Induction::attach(SaturationAlgorithm* salg) {
   CALL("Induction::attach");
 
   GeneratingInferenceEngine::attach(salg);
-  if (InductionHelper::isIntInductionOn()) {
+  if (InductionHelper::isIntInductionOneOn()) {
     _comparisonIndex = static_cast<LiteralIndex*>(_salg->getIndexManager()->request(UNIT_INT_COMPARISON_INDEX));
-  }
-  if (InductionHelper::isIntInductionTwoOn()) {
     _inductionTermIndex = static_cast<TermIndex*>(_salg->getIndexManager()->request(INDUCTION_TERM_INDEX));
   }
 }
@@ -274,11 +272,9 @@ void Induction::attach(SaturationAlgorithm* salg) {
 void Induction::detach() {
   CALL("Induction::detach");
 
-  if (InductionHelper::isIntInductionOn()) {
+  if (InductionHelper::isIntInductionOneOn()) {
     _comparisonIndex = 0;
     _salg->getIndexManager()->release(UNIT_INT_COMPARISON_INDEX);
-  }
-  if (InductionHelper::isIntInductionTwoOn()) {
     _inductionTermIndex = 0;
     _salg->getIndexManager()->release(INDUCTION_TERM_INDEX);
   }
@@ -303,7 +299,7 @@ void InductionClauseIterator::processClause(Clause* premise)
       processLiteral(premise,(*premise)[i]);
     }
   }
-  if (InductionHelper::isIntInductionTwoOn() && InductionHelper::isIntegerComparison(premise)) {
+  if (InductionHelper::isIntInductionOneOn() && InductionHelper::isIntegerComparison(premise)) {
     processIntegerComparison(premise, (*premise)[0]);
   }
 }

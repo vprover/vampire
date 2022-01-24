@@ -239,8 +239,7 @@ public:
   };
   enum class IntInductionKind : unsigned int {
     ONE,
-    TWO,
-    ALL
+    TWO
   };
   enum class IntegerInductionInterval : unsigned int {
     INFINITE,
