@@ -38,12 +38,20 @@ public:
     : GenerationTester<Rule>(rule), _subst()
   {}
 
+  /**
+   * Generated induction clauses are special in that they contain fresh
+   * Skolem constants. In order to check these, we use variables instead
+   * of the constants we cannot predefine, and require that these variables
+   * are mapped bijectively to the new Skolem constants, hence this override.
+   */
   bool eq(Kernel::Clause const* lhs, Kernel::Clause const* rhs) override
   {
+    // there can be false positive matches which later (in a different literal
+    // or clause) can turn out to be the wrong ones and we have to backtrack
     BacktrackData btd;
     _subst.bdRecord(btd);
     if (!TestUtils::permEq(*lhs, *rhs, [this](Literal* l, Literal* r) -> bool {
-      if (l->polarity() != r->polarity()) {
+      if (l->polarity() != r->polarity() || !l->ground()) {
         return false;
       }
       if (!_subst.match(Kernel::TermList(r), 0, Kernel::TermList(l), 1)) {
@@ -53,13 +61,16 @@ public:
         }
         return false;
       }
-      // since we may have non-ground hypothesis, and checking those might give false
-      // positive matches where multiple variables are mapped to the same term unintentionally,
-      // we check whether all variables within a possible range have different mapped values
+      // we check that so far each variable is mapped to a unique Skolem constant
       DHMap<TermList, unsigned> inverse;
       for (unsigned i = 0; i < VARS; i++) {
         if (!_subst.isUnbound(i, 0)) {
           auto t = _subst.apply(TermList(i,false),0);
+          ASS(t.isTerm()) // l is checked for groundness above
+          auto f = t.term()->functor();
+          if (!env.signature->getFunction(f)->skolem() || t.term()->arity() > 0) {
+            return false;
+          }
           unsigned v;
           if (inverse.find(t,v)) {
             return false;
@@ -200,19 +211,18 @@ TEST_GENERATION_INDUCTION(test_05,
       })
     )
 
-// TODO this case is a bit hard to test since new predicates are introduced
+// TODO this case is a bit hard to test since new predicates are introduced,
+// so we need to customize the test suite for this even more, checking certain
+// properties of these new predicates and matching it with some literals.
+// This induction mode is not that useful compared to other sik modes to make
+// the effort worthwhile.
 // // normal case sik=three
 // TEST_GENERATION_INDUCTION(test_06,
 //     Generation::TestCase()
 //       .options({ { "induction", "struct" }, { "structural_induction_kind", "three" } })
 //       .indices({ comparisonIndex() })
 //       .input( clause({  f(sK1,sK2) != g(sK1) }))
-//       .expected({
-//         clause({ f(b,sK2) != g(b), f(x,sK2) == g(x) }),
-//         clause({ f(b,sK2) != g(b), f(r(x),sK2) != g(r(x)) }),
-//         clause({ f(sK1,b) != g(sK1), f(sK1,y) == g(sK1) }),
-//         clause({ f(sK1,b) != g(sK1), f(sK1,r(y)) != g(sK1) }),
-//       })
+//       .expected({ })
 //     )
 
 // generalizations
