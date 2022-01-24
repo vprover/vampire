@@ -2190,7 +2190,7 @@ public:
   TheoryAxiomLevel theoryAxioms() const { return _theoryAxioms.actualValue; }
   //void setTheoryAxioms(bool newValue) { _theoryAxioms = newValue; }
   Condensation condensation() const { return _condensation.actualValue; }
-  RuleActivity generalSplitting() const { return _generalSplitting.actualValue; }
+  bool generalSplitting() const { return _generalSplitting.actualValue; }
   bool timeStatistics() const { return _timeStatistics.actualValue; }
   bool splitting() const { return _splitting.actualValue; }
   void setSplitting(bool value){ _splitting.actualValue=value; }
@@ -2468,7 +2468,7 @@ private:
   BoolOptionValue _skolemReuse;
   BoolOptionValue _definitionReuse;
   
-  ChoiceOptionValue<RuleActivity> _generalSplitting;
+  BoolOptionValue _generalSplitting;
   BoolOptionValue _globalSubsumption;
   ChoiceOptionValue<GlobalSubsumptionSatSolverPower> _globalSubsumptionSatSolverPower;
   ChoiceOptionValue<GlobalSubsumptionExplicitMinim> _globalSubsumptionExplicitMinim;

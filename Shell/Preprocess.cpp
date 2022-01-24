@@ -331,8 +331,8 @@ void Preprocess::preprocess(Problem& prb)
      resolver.apply(prb);
    }
 
-   if (_options.generalSplitting()!=Options::RuleActivity::OFF) {
-     if (prb.higherOrder() || prb.hasPolymorphicSym()) {  // TODO: extend GeneralSplitting to support polymorphism (would higher-order make sense?)
+   if (_options.generalSplitting()) {
+     if (env.statistics->higherOrder || prb.hasPolymorphicSym()) {  // TODO: extend GeneralSplitting to support polymorphism (would higher-order make sense?)
        if (outputAllowed()) {
          env.beginOutput();
          addCommentSignForSZS(env.out());
