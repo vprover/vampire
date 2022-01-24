@@ -343,7 +343,7 @@ void Preprocess::preprocess(Problem& prb)
    }
 */
 
-   if (_options.generalSplitting()!=Options::RuleActivity::OFF) {
+   if (_options.generalSplitting()) {
      if (env.statistics->higherOrder || prb.hasPolymorphicSym()) {  // TODO: extend GeneralSplitting to support polymorphism (would higher-order make sense?)
        if (outputAllowed()) {
          env.beginOutput();

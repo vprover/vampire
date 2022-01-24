@@ -457,16 +457,14 @@ void Options::init()
     _definitionReuse.addProblemConstraint(hasFormulas());
     _definitionReuse.tag(OptionTag::PREPROCESSING);
 
-    _generalSplitting = ChoiceOptionValue<RuleActivity>("general_splitting","gsp",RuleActivity::OFF,{"input_only","off","on"});
+    _generalSplitting = BoolOptionValue("general_splitting","gsp",false);
     _generalSplitting.description=
     "Splits clauses in order to reduce number of different variables in each clause. "
-    "A clause C[X] \\/ D[Y] with subclauses C and D over non-equal sets of variables X and Y can be split into S(Z) \\/ C[X] and ~S(Z) \\/ D[Y] where Z is the intersection of X and Y. "
-    " Only input_only and off are valid values.";
+    "A clause C[X] \\/ D[Y] with subclauses C and D over non-equal sets of variables X and Y can be split into S(Z) \\/ C[X] and ~S(Z) \\/ D[Y] where Z is the intersection of X and Y.";
     _lookup.insert(&_generalSplitting);
     _generalSplitting.tag(OptionTag::PREPROCESSING);
-    _generalSplitting.addConstraint(notEqual(RuleActivity::ON));
     _generalSplitting.addProblemConstraint(hasNonUnits());
-    _generalSplitting.setRandomChoices({"off","input_only"});
+    _generalSplitting.setRandomChoices({"off","on"});
 
     _unusedPredicateDefinitionRemoval = BoolOptionValue("unused_predicate_definition_removal","updr",true);
     _unusedPredicateDefinitionRemoval.description="Attempt to remove predicate definitions. A predicate definition is a formula of the form ![X1,..,Xn] : (p(X1,..,XN) <=> F) where p is not equality and does not occur in F and X1,..,XN are the free variables of F. If p has only positive (negative) occurences then <=> in the definition can be replaced by => (<=). If p does not occur in the rest of the problem the definition can be removed.";
