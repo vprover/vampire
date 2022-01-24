@@ -708,8 +708,6 @@ void Options::init()
     "inst_gen, z3 and fmb aren't influenced by options for the saturation algorithm, apart from those under the relevant heading";
     _lookup.insert(&_saturationAlgorithm);
     _saturationAlgorithm.tag(OptionTag::SATURATION);
-    // Captures that if the saturation algorithm is InstGen then splitting must be off
-    _saturationAlgorithm.addHardConstraint(If(equal(SaturationAlgorithm::INST_GEN)).then(_splitting.is(notEqual(true))));
     // Note order of adding constraints matters (we assume previous gaurds are false)
     _saturationAlgorithm.setRandomChoices(isRandSat(),{"discount","otter","inst_gen","fmb"});
     _saturationAlgorithm.setRandomChoices(Or(hasCat(Property::UEQ),atomsLessThan(4000)),{"lrs","discount","otter","inst_gen"});
@@ -1386,6 +1384,7 @@ void Options::init()
     _lookup.insert(&_demodulationRedundancyCheck);
     _demodulationRedundancyCheck.tag(OptionTag::INFERENCES);
     _demodulationRedundancyCheck.reliesOn(InferencingSaturationAlgorithm());
+    _demodulationRedundancyCheck.reliesOn(Or(_forwardDemodulation.is(notEqual(Demodulation::OFF)),_backwardDemodulation.is(notEqual(Demodulation::OFF))));
     _demodulationRedundancyCheck.addProblemConstraint(hasEquality());
     _demodulationRedundancyCheck.setRandomChoices({"on","off"});
 
@@ -1718,6 +1717,7 @@ void Options::init()
     _globalSubsumption = BoolOptionValue("global_subsumption","gs",false);
     _globalSubsumption.description="Perform global subsumption. Use a set of groundings of generated clauses G to replace C \\/ L by C if the grounding of C is implied by G. A SAT solver is used for ground reasoning.";
     _lookup.insert(&_globalSubsumption);
+    _globalSubsumption.reliesOn(InferencingSaturationAlgorithm());
     _globalSubsumption.tag(OptionTag::INFERENCES);
     _globalSubsumption.addProblemConstraint(hasNonUnits());
     _globalSubsumption.setRandomChoices({"off","on"});
@@ -1829,6 +1829,7 @@ void Options::init()
     _splitting = BoolOptionValue("avatar","av",true);
     _splitting.description="Use AVATAR splitting.";
     _lookup.insert(&_splitting);
+    _splitting.addConstraint(If(equal(true)).then(ProperSaturationAlgorithm()));
     _splitting.tag(OptionTag::AVATAR);
     //_splitting.addProblemConstraint(hasNonUnits());
     _splitting.setRandomChoices({"on","off"}); //TODO change balance?
@@ -1971,8 +1972,7 @@ void Options::init()
     "Non-literal parts of clauses (such as its split history) will also contribute to the weight";
     _lookup.insert(&_nonliteralsInClauseWeight);
     _nonliteralsInClauseWeight.tag(OptionTag::AVATAR);
-    _nonliteralsInClauseWeight.reliesOn(_saturationAlgorithm.is(notEqual(SaturationAlgorithm::INST_GEN)));
-    _nonliteralsInClauseWeight.reliesOn(_splitting.is(notEqual(false)));
+    _nonliteralsInClauseWeight.reliesOn(_splitting.is(equal(true)));
     _nonliteralsInClauseWeight.addProblemConstraint(hasNonUnits());
     _nonliteralsInClauseWeight.setRandomChoices({"on","off"});
 
@@ -1986,6 +1986,10 @@ void Options::init()
     _satSolver.description=
     "Select the SAT solver to be used throughout the solver. This will be used in AVATAR (for splitting) when the saturation algorithm is discount,lrs or otter and in instance generation for selection and global subsumption.";
     _lookup.insert(&_satSolver);
+    // in principle, global_subsumption and instgen also depend on the SAT solver choice, however,
+    // 1) currently, neither is actually supporting Z3
+    // 2) there is no reason why only one sat solver should be driving all three, so more than on _satSolver-like option should be considered in the future
+    _satSolver.reliesOn(_splitting.is(equal(true)));
     _satSolver.tag(OptionTag::SAT);
     _satSolver.setRandomChoices({
       "minisat"
