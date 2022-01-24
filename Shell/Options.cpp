@@ -1313,7 +1313,7 @@ void Options::init()
     _lookup.insert(&_backwardDemodulation);
     _backwardDemodulation.tag(OptionTag::INFERENCES);
     _backwardDemodulation.addProblemConstraint(hasEquality());
-    _backwardDemodulation.reliesOn(Or(_saturationAlgorithm.is(notEqual(SaturationAlgorithm::INST_GEN)),_instGenWithResolution.is(equal(true))));
+    _backwardDemodulation.reliesOn(InferencingSaturationAlgorithm());
     _backwardDemodulation.setRandomChoices({"all","off"});
 
     _backwardSubsumption = ChoiceOptionValue<Subsumption>("backward_subsumption","bs",
@@ -1322,7 +1322,7 @@ void Options::init()
        "Perform subsumption deletion of kept clauses by newly derived clauses. Unit_only means that the subsumption will be performed only by unit clauses";
     _lookup.insert(&_backwardSubsumption);
     _backwardSubsumption.tag(OptionTag::INFERENCES);
-    _backwardSubsumption.reliesOn(Or(_saturationAlgorithm.is(notEqual(SaturationAlgorithm::INST_GEN)),_instGenWithResolution.is(equal(true))));
+    _backwardSubsumption.reliesOn(InferencingSaturationAlgorithm());
     _backwardSubsumption.setRandomChoices({"on","off"});
 
     _backwardSubsumptionResolution = ChoiceOptionValue<Subsumption>("backward_subsumption_resolution","bsr",
@@ -1331,13 +1331,14 @@ void Options::init()
        "Perform subsumption resolution on kept clauses using newly derived clauses. Unit_only means that the subsumption resolution will be performed only by unit clauses";
     _lookup.insert(&_backwardSubsumptionResolution);
     _backwardSubsumptionResolution.tag(OptionTag::INFERENCES);
-    _backwardSubsumptionResolution.reliesOn(Or(_saturationAlgorithm.is(notEqual(SaturationAlgorithm::INST_GEN)),_instGenWithResolution.is(equal(true))));
+    _backwardSubsumptionResolution.reliesOn(InferencingSaturationAlgorithm());
     _backwardSubsumptionResolution.setRandomChoices({"on","off"});
 
     _backwardSubsumptionDemodulation = BoolOptionValue("backward_subsumption_demodulation", "bsd", false);
     _backwardSubsumptionDemodulation.description = "Perform backward subsumption demodulation.";
     _lookup.insert(&_backwardSubsumptionDemodulation);
     _backwardSubsumptionDemodulation.tag(OptionTag::INFERENCES);
+    _backwardSubsumptionDemodulation.reliesOn(InferencingSaturationAlgorithm());
     _backwardSubsumptionDemodulation.addProblemConstraint(hasEquality());
     _backwardSubsumptionDemodulation.reliesOn(_combinatorySuperposition.is(equal(false)));  // higher-order support is not yet implemented
     _backwardSubsumptionDemodulation.setRandomChoices({"on","off"});
@@ -1345,6 +1346,7 @@ void Options::init()
     _backwardSubsumptionDemodulationMaxMatches = UnsignedOptionValue("backward_subsumption_demodulation_max_matches", "bsdmm", 0);
     _backwardSubsumptionDemodulationMaxMatches.description = "Maximum number of multi-literal matches to consider in backward subsumption demodulation. 0 means to try all matches (until first success).";
     _lookup.insert(&_backwardSubsumptionDemodulationMaxMatches);
+    _backwardSubsumptionDemodulationMaxMatches.reliesOn(_backwardSubsumptionDemodulation.is(equal(true)));
     _backwardSubsumptionDemodulationMaxMatches.tag(OptionTag::INFERENCES);
     _backwardSubsumptionDemodulationMaxMatches.setRandomChoices({"0", "1", "3"});
 
@@ -1356,6 +1358,7 @@ void Options::init()
         "(C \\/ D)θ\n"
         "where θ = mgu(t,-s) and t selected";
     _lookup.insert(&_binaryResolution);
+    _binaryResolution.reliesOn(InferencingSaturationAlgorithm());
     _binaryResolution.tag(OptionTag::INFERENCES);
     // If urr is off then binary resolution should be on
     _binaryResolution.addConstraint(
@@ -1369,7 +1372,7 @@ void Options::init()
        "Perform condensation. If 'fast' is specified, we only perform condensations that are easy to check for.";
     _lookup.insert(&_condensation);
     _condensation.tag(OptionTag::INFERENCES);
-    _condensation.reliesOn(Or(_saturationAlgorithm.is(notEqual(SaturationAlgorithm::INST_GEN)),_instGenWithResolution.is(equal(true))));
+    _condensation.reliesOn(InferencingSaturationAlgorithm());
     _condensation.setRandomChoices({"on","off","fast"});
 
     _demodulationRedundancyCheck = BoolOptionValue("demodulation_redundancy_check","drc",true);
@@ -1382,7 +1385,7 @@ void Options::init()
        "where t > t1 and s = t > C (RHS replaced)";
     _lookup.insert(&_demodulationRedundancyCheck);
     _demodulationRedundancyCheck.tag(OptionTag::INFERENCES);
-    _demodulationRedundancyCheck.reliesOn(Or(_saturationAlgorithm.is(notEqual(SaturationAlgorithm::INST_GEN)),_instGenWithResolution.is(equal(true))));
+    _demodulationRedundancyCheck.reliesOn(InferencingSaturationAlgorithm());
     _demodulationRedundancyCheck.addProblemConstraint(hasEquality());
     _demodulationRedundancyCheck.setRandomChoices({"on","off"});
 
@@ -1482,7 +1485,7 @@ void Options::init()
     _lookup.insert(&_forwardLiteralRewriting);
     _forwardLiteralRewriting.tag(OptionTag::INFERENCES);
     _forwardLiteralRewriting.addProblemConstraint(hasNonUnits());
-    _forwardLiteralRewriting.reliesOn(Or(_saturationAlgorithm.is(notEqual(SaturationAlgorithm::INST_GEN)),_instGenWithResolution.is(equal(true))));
+    _forwardLiteralRewriting.reliesOn(InferencingSaturationAlgorithm());
     _forwardLiteralRewriting.setRandomChoices({"on","off"});
 
     _forwardSubsumption = BoolOptionValue("forward_subsumption","fs",true);
@@ -1497,7 +1500,7 @@ void Options::init()
     _forwardSubsumptionResolution.tag(OptionTag::INFERENCES);
     _forwardSubsumptionResolution.addHardConstraint(If(equal(true)).then(_forwardSubsumption.is(equal(true))));
 
-    _forwardSubsumptionResolution.reliesOn(Or(_saturationAlgorithm.is(notEqual(SaturationAlgorithm::INST_GEN)),_instGenWithResolution.is(equal(true))));
+    _forwardSubsumptionResolution.reliesOn(InferencingSaturationAlgorithm());
     _forwardSubsumptionResolution.setRandomChoices({"on","off"});
 
     _forwardSubsumptionDemodulation = BoolOptionValue("forward_subsumption_demodulation", "fsd", false);
@@ -1560,7 +1563,7 @@ void Options::init()
     _lookup.insert(&_superpositionFromVariables);
     _superpositionFromVariables.tag(OptionTag::INFERENCES);
     _superpositionFromVariables.addProblemConstraint(hasEquality());
-    _superpositionFromVariables.reliesOn(Or(_saturationAlgorithm.is(notEqual(SaturationAlgorithm::INST_GEN)),_instGenWithResolution.is(equal(true))));
+    _superpositionFromVariables.reliesOn(InferencingSaturationAlgorithm());
     _superpositionFromVariables.setRandomChoices({"on","off"});
 
 //*********************** Higher-order  ***********************
