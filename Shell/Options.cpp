@@ -416,15 +416,12 @@ void Options::init()
     _lookup.insert(&_useMonoEqualityProxy);
     _useMonoEqualityProxy.tag(OptionTag::PREPROCESSING);
 
-    _equalityResolutionWithDeletion = ChoiceOptionValue<RuleActivity>( "equality_resolution_with_deletion","erd",
-                                                                      RuleActivity::INPUT_ONLY,{"input_only","off","on"});
-    _equalityResolutionWithDeletion.description="Perform equality resolution with deletion. Only input_only and off are valid options.";
+    _equalityResolutionWithDeletion = BoolOptionValue("equality_resolution_with_deletion","erd",true);
+    _equalityResolutionWithDeletion.description="Perform equality resolution with deletion.";
     _lookup.insert(&_equalityResolutionWithDeletion);
     _equalityResolutionWithDeletion.tag(OptionTag::PREPROCESSING);
-    _equalityResolutionWithDeletion.addConstraint(notEqual(RuleActivity::ON));
-    //TODO does this depend on anything?
-    //TODO is there a problemConstraint?
-    _equalityResolutionWithDeletion.setRandomChoices({"input_only","off"});
+    _equalityResolutionWithDeletion.addProblemConstraint(hasEquality());
+    _equalityResolutionWithDeletion.setRandomChoices({"on","off"});
 
 
     _arityCheck = BoolOptionValue("arity_check","",false);
@@ -436,7 +433,8 @@ void Options::init()
     _functionDefinitionElimination = ChoiceOptionValue<FunctionDefinitionElimination>("function_definition_elimination","fde",
                                                                                       FunctionDefinitionElimination::ALL,{"all","none","unused"});
     _functionDefinitionElimination.description=
-    "Attempts to eliminate function definitions. A function definition is a unit clause of the form f(x1,..,xn) = t where x1,..,xn are the pairwise distinct free variables of t and f does not appear in t. If 'all', definitions are eliminated by replacing every occurence of f(s1,..,sn) by t{x1 -> s1, .., xn -> sn}. If 'unused' only unused definitions are removed.";
+    "Attempts to eliminate function definitions. A function definition is a unit clause of the form f(x1,..,xn) = t where x1,..,xn are the pairwise distinct free variables of t and f does not appear in t."
+        " If 'all', definitions are eliminated by replacing every occurrence of f(s1,..,sn) by t{x1 -> s1, .., xn -> sn}. If 'unused' only unused definitions are removed.";
     _lookup.insert(&_functionDefinitionElimination);
     _functionDefinitionElimination.tag(OptionTag::PREPROCESSING);
     _functionDefinitionElimination.addProblemConstraint(hasEquality());
@@ -1475,6 +1473,7 @@ void Options::init()
     " L[tθ] \\/ C\n"
     "If 'preordered' is set, only equalities s = t where s > t are used for rewriting.";
     _lookup.insert(&_forwardDemodulation);
+    _forwardDemodulation.reliesOn(InferencingSaturationAlgorithm());
     _forwardDemodulation.tag(OptionTag::INFERENCES);
     _forwardDemodulation.setRandomChoices({"all","all","all","off","preordered"});
     
@@ -1504,6 +1503,7 @@ void Options::init()
     _forwardSubsumptionDemodulation = BoolOptionValue("forward_subsumption_demodulation", "fsd", false);
     _forwardSubsumptionDemodulation.description = "Perform forward subsumption demodulation.";
     _lookup.insert(&_forwardSubsumptionDemodulation);
+    _forwardSubsumptionDemodulation.reliesOn(InferencingSaturationAlgorithm());
     _forwardSubsumptionDemodulation.tag(OptionTag::INFERENCES);
     _forwardSubsumptionDemodulation.addProblemConstraint(hasEquality());
     _forwardSubsumptionDemodulation.reliesOn(_combinatorySuperposition.is(equal(false)));  // higher-order support is not yet implemented
@@ -1512,6 +1512,7 @@ void Options::init()
     _forwardSubsumptionDemodulationMaxMatches = UnsignedOptionValue("forward_subsumption_demodulation_max_matches", "fsdmm", 0);
     _forwardSubsumptionDemodulationMaxMatches.description = "Maximum number of multi-literal matches to consider in forward subsumption demodulation. 0 means to try all matches (until first success).";
     _lookup.insert(&_forwardSubsumptionDemodulationMaxMatches);
+    _forwardSubsumptionDemodulationMaxMatches.reliesOn(_forwardSubsumptionDemodulation.is(equal(true)));
     _forwardSubsumptionDemodulationMaxMatches.tag(OptionTag::INFERENCES);
     _forwardSubsumptionDemodulationMaxMatches.setRandomChoices({"0", "1", "3"});
 
@@ -1537,6 +1538,7 @@ void Options::init()
     _equationalTautologyRemoval = BoolOptionValue("equational_tautology_removal","etr",false);
     _equationalTautologyRemoval.description="A reduction which uses congruence closure to remove logically valid clauses.";
     _lookup.insert(&_equationalTautologyRemoval);
+    _equationalTautologyRemoval.reliesOn(InferencingSaturationAlgorithm());
     _equationalTautologyRemoval.tag(OptionTag::INFERENCES);
 
     _unitResultingResolution = ChoiceOptionValue<URResolution>("unit_resulting_resolution","urr",URResolution::OFF,{"ec_only","off","on"});
