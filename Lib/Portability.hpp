@@ -36,4 +36,12 @@
 #define ARCH_X86 1
 #endif
 
+// enable warnings for unused results
+// C++17: replace this with [[nodiscard]]
+#ifdef __GNUC__
+#define VWARN_UNUSED __attribute__((warn_unused_result))
+#else
+#define VWARN_UNUSED
+#endif
+
 #endif /*__Portability__*/

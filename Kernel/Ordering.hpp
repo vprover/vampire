@@ -55,7 +55,7 @@ public:
     LESS_EQ=4,
     EQUAL=5,
     INCOMPARABLE=6
-  };
+  } VWARN_UNUSED;
 
   Ordering();
   virtual ~Ordering();
