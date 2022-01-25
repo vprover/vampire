@@ -48,14 +48,14 @@ public:
    * in the @c ArgumentOrderVals enum, so that one can convert between the
    * enums using static_cast.
    */
-  enum Result {
+  enum VWARN_UNUSED_TYPE Result {
     GREATER=1,
     LESS=2,
     GREATER_EQ=3,
     LESS_EQ=4,
     EQUAL=5,
     INCOMPARABLE=6
-  } VWARN_UNUSED;
+  };
 
   Ordering();
   virtual ~Ordering();
