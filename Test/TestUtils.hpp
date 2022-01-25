@@ -254,14 +254,6 @@ bool TestUtils::permEq(L1& lhs, L2& rhs, Eq elemEq)
   return __permEq(lhs, rhs, elemEq, perm, 0);
 }
 
-inline void setOptions(std::initializer_list<pair<vstring,vstring>> opts) {
-  for (const auto& kv : opts) {
-    env.options->set(kv.first, kv.second);
-  }
-}
-
-#define SET_OPTIONS(...) Test::setOptions(__VA_ARGS__);
-
 } // namespace Test
 
 #endif // __TestUtils__
