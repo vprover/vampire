@@ -1382,8 +1382,9 @@ void NewCNF::nameSubformula(Formula* g, Occurrences &occurrences)
   for (SIGN sign : { NEGATIVE, POSITIVE }) {
     // One could also consider the case where (part of) the bindings goes to the definition
     // which perhaps allows us to the have a skolem predicate with fewer arguments
-    if (occurs[sign]) {
+    if (occurs[sign] && !_already_seen[sign].contains(naming)) {
       introduceGenClause(GenLit(name, OPPOSITE(sign)), GenLit(g, sign));
+      _already_seen[sign].insert(naming);
     }
   }
 }
