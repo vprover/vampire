@@ -582,7 +582,7 @@ void PortfolioMode::runSlice(Options& strategyOpt)
   if(outputResult) { // this get only true for the first child to find a proof
     ASS(!resultValue);
 
-    if (outputAllowed() && (Lib::env.options && Lib::env.options->multicore() != 1)) {
+    if (outputAllowed() && env.options->multicore() != 1) {
       env.beginOutput();
       addCommentSignForSZS(env.out()) << "First to succeed." << endl;
       env.endOutput();

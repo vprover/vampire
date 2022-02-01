@@ -469,7 +469,7 @@ public:
     } 
     _stack.push(term);
     if (!includeSelf) {
-      next();
+      FirstOrderSubtermIt::next();
     }
   }
 
@@ -691,7 +691,7 @@ public:
     CALL("NonVariableNonTypeIterator::NonVariableNonTypeIterator");
     _stack.push(term);
     if (!includeSelf) {
-      next();
+      NonVariableNonTypeIterator::next();
     }
   }
   // NonVariableIterator(TermList ts);
