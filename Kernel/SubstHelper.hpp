@@ -80,12 +80,9 @@ public:
   static Literal* apply(Literal* lit, Applicator& applicator)
   {
     CALL("SubstHelper::apply(Literal*...)");
-    TermList sort;
-    if(lit->isTwoVarEquality()){
-      sort = lit->twoVarEqSort();
-    }
     Literal* subbedLit = static_cast<Literal*>(apply(static_cast<Term*>(lit),applicator));
     if(subbedLit->isTwoVarEquality()){ //either nothing's changed or variant
+      TermList sort = lit->twoVarEqSort();
       TermList newSort = apply(sort, applicator);
       if((sort != newSort)){
         subbedLit = Literal::createEquality(subbedLit->polarity(), *subbedLit->nthArgument(0), *subbedLit->nthArgument(1), newSort);

@@ -1147,6 +1147,7 @@ void NewCNF::skolemise(QuantifiedFormula* g, BindingList*& bindings, BindingList
         // ?[Z]: F[X->sK0, Y->sK1],
         // but not F[X->sK0, Y->sK1, Z->sK2], since this doesn't need a Skolem term
         if(env.options->skolemReuse()) {
+          ASS(remainingVars != nullptr);
           remainingVars = remainingVars->tail();
           remainingSorts = remainingSorts ? remainingSorts->tail() : nullptr;
           if(VList::isNonEmpty(remainingVars)) {
