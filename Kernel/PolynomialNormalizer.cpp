@@ -192,6 +192,7 @@ Option<NormalizationResult> normalizeSpecializedFractional(Interpretation i, Nor
 {
   switch (i) {
     case NumTraits::divI:
+      ASS(ts != nullptr);
       return normalizeDiv<NumTraits>(ts[0], ts[1]);
     default:
       return Option<NormalizationResult>();
@@ -286,10 +287,13 @@ NormalizationResult normalizeNumSort(TermList t, NormalizationResult* ts)
     if (fn.isInterpreted()) {
       switch(fn.interpretation()) {
         case NumTraits::mulI:
+          ASS(ts != nullptr);
           return normalizeMul<NumTraits>(ts[0], ts[1]);
         case NumTraits::addI:
+          ASS(ts != nullptr);
           return normalizeAdd<NumTraits>(ts[0], ts[1]);
         case NumTraits::minusI:
+          ASS(ts != nullptr);
           return normalizeMinus<NumTraits>(ts[0]);
         default:
         {

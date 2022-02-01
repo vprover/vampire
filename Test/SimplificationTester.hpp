@@ -41,7 +41,7 @@ class Success
   Option<ClausePattern> _expected;
 
 public:
-  Success() {}
+  Success() : _input(nullptr) {}
 
   Success input(Kernel::Clause* x) 
   {
