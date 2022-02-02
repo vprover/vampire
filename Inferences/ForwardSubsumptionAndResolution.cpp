@@ -89,7 +89,7 @@ ForwardSubsumptionAndResolution::ForwardSubsumptionAndResolution(bool subsumptio
     BYPASSING_ALLOCATOR;
     fsstats.m_logger = make_unique<SubsumptionLogger>(logfile);
     // We cannot use the signal handler for termination if we want to log stuff properly
-    Timer::setTimeLimitEnforcement(false);
+    Timer::setLimitEnforcement(false);
   }
 }
 

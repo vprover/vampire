@@ -694,7 +694,7 @@ vvector<SMTSubsumption::SubsumptionInstance> getSubsumptionInstances(UnitList co
 void subsumptionBenchmarkMode(bool simulate_full_run)
 {
   CALL("subsumptionBenchmarkMode(bool)");
-  Timer::setTimeLimitEnforcement(false);  // don't terminate in signal handler
+  Timer::setLimitEnforcement(false);  // don't terminate in signal handler
 
   std::cerr << "\% Subsumption Benchmark Mode\n\% Parsing input..." << std::endl;
 
@@ -725,7 +725,7 @@ void subsumptionBenchmarkMode(bool simulate_full_run)
 void subsumptionTestingMode()
 {
   CALL("subsumptionTestingMode()");
-  Timer::setTimeLimitEnforcement(false);  // don't terminate in signal handler
+  Timer::setLimitEnforcement(false);  // don't terminate in signal handler
 
   // env.options->setNormalize(false);
   // env.options->setUnusedPredicateDefinitionRemoval(false);

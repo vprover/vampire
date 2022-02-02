@@ -149,15 +149,7 @@ public:
   static bool matchArgs(Term* base, Term* instance, Binder& binder);
 
   template<class Binder>
-  static bool matchReversedArgs(Literal* base, Literal* instance, Binder& binder)
-  {
-    CALL("MatchingUtils::matchReversedArgs/3");
-    ASS_EQ(base->arity(), 2);
-    ASS_EQ(instance->arity(), 2);
-
-    return matchTerms(*base->nthArgument(0), *instance->nthArgument(1), binder)
-      &&   matchTerms(*base->nthArgument(1), *instance->nthArgument(0), binder);
-  }
+  static bool matchReversedArgs(Literal* base, Literal* instance, Binder& binder);
 
   template<class Map>
   struct MapRefBinder

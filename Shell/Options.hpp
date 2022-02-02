@@ -2206,10 +2206,6 @@ public:
   bool useHashingVariantIndex() const { return _useHashingVariantIndex.actualValue; }
 
   void setMemoryLimit(size_t newVal) { _memoryLimit.actualValue = newVal; }
-<<<<<<< HEAD
-
-=======
->>>>>>> master
   void setTimeLimitInSeconds(int newVal) { _timeLimitInDeciseconds.actualValue = 10*newVal; }
   void setTimeLimitInDeciseconds(int newVal) { _timeLimitInDeciseconds.actualValue = newVal; }
 

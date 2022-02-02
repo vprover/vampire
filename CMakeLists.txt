@@ -937,8 +937,10 @@ endif()
 #################################################################
 
 add_subdirectory(benchmark)
-target_link_libraries(vampire PRIVATE benchmark::benchmark)
-target_compile_definitions(vampire PRIVATE ENABLE_BENCHMARK=1)
+# target_link_libraries(vampire PRIVATE benchmark::benchmark)
+link_libraries(benchmark::benchmark)
+# target_compile_definitions(vampire PRIVATE ENABLE_BENCHMARK=1)
+add_compile_definitions(ENABLE_BENCHMARK=1)
 
 ################################################################
 # build objects

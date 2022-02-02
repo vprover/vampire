@@ -1962,14 +1962,6 @@ void Options::init()
     _lookup.insert(&_satFallbackForSMT);
     _satFallbackForSMT.tag(OptionTag::SAT);
     _satFallbackForSMT.reliesOn(_satSolver.is(equal(SatSolver::Z3)));
-
-<<<<<<< HEAD
-    _z3UnsatCores = BoolOptionValue("z3_unsat_core","z3uc",false);
-    _z3UnsatCores.description="";
-    _lookup.insert(&_z3UnsatCores);
-    _z3UnsatCores.tag(OptionTag::SAT);
-=======
->>>>>>> master
 #endif
 
     //*************************************************************
@@ -3133,10 +3125,6 @@ vstring Options::generateEncodedOptions() const
   res << Lib::Int::toString(_timeLimitInDeciseconds.actualValue);
 
   return res.str();
-<<<<<<< HEAD
-
-=======
->>>>>>> master
 }
 
 
