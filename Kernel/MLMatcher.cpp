@@ -36,6 +36,8 @@
 
 #include "MLMatcher.hpp"
 
+#include "Debug/RuntimeStatistics.hpp"
+
 #if VDEBUG
 #include <iostream>
 #include "Test/Output.hpp"
@@ -783,8 +785,10 @@ MLMatcher::MLMatcher()
 void MLMatcher::init(Literal** baseLits, unsigned baseLen, Clause* instance, LiteralList const* const* alts, Literal* resolvedLit, bool multiset)
 {
   if (!m_impl) {
+    RSTAT_CTR_INC("MLMatcher impl constructions");
     m_impl = make_unique<MLMatcher::Impl>();
   }
+  RSTAT_CTR_INC("MLMatcher init calls");
   m_impl->init(baseLits, baseLen, instance, alts, resolvedLit, multiset);
 }
 
@@ -793,6 +797,7 @@ MLMatcher::~MLMatcher() = default;
 bool MLMatcher::nextMatch()
 {
   ASS(m_impl);
+  RSTAT_CTR_INC("MLMatcher nextMatch calls");
   return m_impl->nextMatch();
 }
 
