@@ -1923,6 +1923,7 @@ bool ProofOfConcept::solve()
  ****************************************************************************/
 
 
+/*
 static void escape(void* p) {
   asm volatile("" : : "g"(p) : "memory");
 }
@@ -1942,6 +1943,7 @@ uint64_t rdtscp()
   std::atomic_signal_fence(std::memory_order_acq_rel);
   return result;
 }
+*/
 
 
 
