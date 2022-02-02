@@ -1,7 +1,4 @@
-
 /*
- * File Property.cpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -9,12 +6,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file Property.cpp (syntactic properties of problems)
@@ -37,6 +28,7 @@
 #include "Kernel/Signature.hpp"
 #include "Kernel/Inference.hpp"
 #include "Kernel/TermIterators.hpp"
+#include "Kernel/ApplicativeHelper.hpp"
 
 #include "Options.hpp"
 #include "Statistics.hpp"
@@ -62,7 +54,6 @@ Property::Property()
     _goalFormulas(0),
     _axiomFormulas(0),
     _subformulas(0),
-    _terms(0),
     _unitGoals(0),
     _unitAxioms(0),
     _hornGoals(0),
@@ -75,14 +66,21 @@ Property::Property()
     _groundGoals(0),
     _maxFunArity(0),
     _maxPredArity(0),
+    _maxTypeConArity(0),
     _totalNumberOfVariables(0),
     _maxVariablesInClause(0),
     _props(0),
     _hasInterpreted(false),
-    _hasInterpretedEquality(false),
     _hasNonDefaultSorts(false),
     _sortsUsed(0),
     _hasFOOL(false),
+    _hasCombs(false),
+    _hasApp(false),
+    _hasAppliedVar(false),
+    _hasBoolVar(false),
+    _hasLogicalProxy(false),
+    _hasPolymorphicSym(false),
+    _quantifiesOverPolymorphicVar(false),
     _onlyFiniteDomainDatatypes(true),
     _knownInfiniteDomain(false),
     _allClausesGround(true),
@@ -92,7 +90,6 @@ Property::Property()
 {
   _interpretationPresence.init(Theory::instance()->numberOfFixedInterpretations(), false);
   env.property = this;
-  _symbolsInFormula = new DHSet<int>();
 } // Property::Property
 
 /**
@@ -126,7 +123,6 @@ Property::~Property()
 {
   CALL("Property::~Property");
 
-  delete _symbolsInFormula;
   if (this == env.property) {
     env.property = 0;
   }
@@ -152,7 +148,7 @@ void Property::add(UnitList* units)
   }
 
   // information about sorts is read from the environment, not from the problem
-  if (env.sorts->hasSort()) {
+  if (env.signature->hasSorts()) {
     addProp(PR_SORTS);
   }
     
@@ -233,8 +229,7 @@ void Property::scan(Unit* unit)
 {
   CALL("Property::scan(const Unit*)");
 
-  ASS(_symbolsInFormula);
-  _symbolsInFormula->reset();
+  _symbolsInFormula.reset();
 
   if (unit->isClause()) {
     scan(static_cast<Clause*>(unit));
@@ -251,7 +246,7 @@ void Property::scan(Unit* unit)
     }
   }
 
-  DHSet<int>::Iterator it(*_symbolsInFormula);
+  DHSet<int>::Iterator it(_symbolsInFormula);
   while(it.hasNext()){
     int symbol = it.next();
     if(symbol >= 0){
@@ -452,11 +447,41 @@ void Property::scan(Formula* f, int polarity)
       break;
     }
     case FORALL:
+      if(!_quantifiesOverPolymorphicVar){
+        VList* vars = f->vars();
+        VList::Iterator vit(vars);
+
+        TermList s;
+        while(vit.hasNext()){
+          int v = vit.next();
+          if(SortHelper::tryGetVariableSort(v, f->qarg(), s)){
+            if(s.isTerm() && s.term()->isSuper()){
+              _quantifiesOverPolymorphicVar = true;
+              break;
+            }
+          }
+        }    
+      }
       if (polarity != -1) {
         _allQuantifiersEssentiallyExistential = false;
       }
       break;
     case EXISTS:
+      if(!_quantifiesOverPolymorphicVar){
+        VList* vars = f->vars();
+        VList::Iterator vit(vars);
+
+        TermList s;
+        while(vit.hasNext()){
+          int v = vit.next();
+          if(SortHelper::tryGetVariableSort(v, f->qarg(), s)){
+            if(s.isTerm() && s.term()->isSuper()){
+              _quantifiesOverPolymorphicVar = true;
+              break;
+            }
+          }
+        }    
+      }
       if (polarity != 1) {
         _allQuantifiersEssentiallyExistential = false;
       }
@@ -471,63 +496,73 @@ void Property::scan(Formula* f, int polarity)
  * @since 04/05/2013 Manchester, array sorts removed
  * @author Andrei Voronkov
  */
-void Property::scanSort(unsigned sort)
+void Property::scanSort(TermList sort)
 {
   CALL("Property::scanSort");
 
-  if(!_usesSort.get(sort)){
-    _sortsUsed++;
-    _usesSort[sort]=true;
+  if(sort.isVar() || sort.term()->isSuper()){
+    return;
   }
 
-  if (sort==Sorts::SRT_DEFAULT) {
+  if(!env.statistics->higherOrder && !_hasPolymorphicSym){
+    //used sorts is for FMB which is not compatible with 
+    //higher-order or polymorphism
+    unsigned sortU = sort.term()->functor();
+    if(!_usesSort.get(sortU)){
+      _sortsUsed++;
+      _usesSort[sortU]=true;
+    } 
+  }
+
+  if (sort==AtomicSort::defaultSort()) {
     return;
   }
   _hasNonDefaultSorts = true;
   env.statistics->hasTypes=true;
 
-  if(sort >= Sorts::FIRST_USER_SORT){
-    if(env.sorts->isOfStructuredSort(sort,Sorts::StructuredSort::ARRAY)){
-      // an array sort is infinite, if the index or value sort is infinite
-      // we rely on the recursive calls setting appropriate flags
-      unsigned idx = env.sorts->getArraySort(sort)->getIndexSort();
-      scanSort(idx);
-      unsigned inner = env.sorts->getArraySort(sort)->getInnerSort();
-      scanSort(inner);
+  if(sort.isArraySort()){
+    // an array sort is infinite, if the index or value sort is infinite
+    // we rely on the recursive calls setting appropriate flags
+    TermList idx = *sort.term()->nthArgument(0);
+    scanSort(idx);
+    TermList inner = *sort.term()->nthArgument(1);
+    scanSort(inner);
 
-      addProp(PR_HAS_ARRAYS);
+    addProp(PR_HAS_ARRAYS);
+    return;
+  }
+  if (env.signature->isTermAlgebraSort(sort)) {
+    TermAlgebra* ta = env.signature->getTermAlgebraOfSort(sort);
+    if (!ta->finiteDomain()) {
+      _onlyFiniteDomainDatatypes = false;
     }
-    if (env.signature->isTermAlgebraSort(sort)) {
-      TermAlgebra* ta = env.signature->getTermAlgebraOfSort(sort);
-      if (!ta->finiteDomain()) {
-        _onlyFiniteDomainDatatypes = false;
-      }
-      if (ta->infiniteDomain()) {
-        _knownInfiniteDomain = true;
-      }
-      if (ta->allowsCyclicTerms()) {
-        addProp(PR_HAS_CDT_CONSTRUCTORS); // co-algebraic data type
-      } else {
-        addProp(PR_HAS_DT_CONSTRUCTORS); // algebraic data type
-      }
+    if (ta->infiniteDomain()) {
+      _knownInfiniteDomain = true;
+    }
+    if (ta->allowsCyclicTerms()) {
+      addProp(PR_HAS_CDT_CONSTRUCTORS); // co-algebraic data type
+    } else {
+      addProp(PR_HAS_DT_CONSTRUCTORS); // algebraic data type
     }
     return;
   }
-
-  switch(sort) {
-  case Sorts::SRT_INTEGER:
-    addProp(PR_HAS_INTEGERS);
-    break;
-  case Sorts::SRT_RATIONAL:
-    addProp(PR_HAS_RATS);
-    break;
-  case Sorts::SRT_REAL:
-    addProp(PR_HAS_REALS);
-    break;
-  case Sorts::SRT_BOOL:
-    addProp(PR_HAS_BOOLEAN_VARIABLES);
+  
+  TermList resultSort = ApplicativeHelper::getResultSort(sort);
+  if(resultSort == AtomicSort::boolSort()){
     _hasFOOL = true;
-    break;
+  }
+
+  if(sort == AtomicSort::intSort()){
+    addProp(PR_HAS_INTEGERS);
+  } else
+  if(sort == AtomicSort::rationalSort()){
+    addProp(PR_HAS_RATS);
+  } else
+  if (sort == AtomicSort::realSort()){
+    addProp(PR_HAS_REALS);
+  } else 
+  if (sort == AtomicSort::boolSort()){
+    addProp(PR_HAS_BOOLEAN_VARIABLES);    
   }
 }
 
@@ -535,6 +570,9 @@ void Property::scanSort(unsigned sort)
  * Scan a literal.
  *
  * @param lit the literal
+ * @param polarity
+ * @param cLen
+ * @param goal
  * @since 29/06/2002 Manchester
  * @since 17/07/2003 Manchester, changed to non-pointer types
  * @since 27/05/2007 flight Manchester-Frankfurt, uses new datastructures
@@ -544,10 +582,20 @@ void Property::scan(Literal* lit, int polarity, unsigned cLen, bool goal)
   CALL("Property::scan(const Literal*...)");
 
   if (lit->isEquality()) {
-    scanSort(SortHelper::getEqualityArgumentSort(lit));
+    TermList eqSort = SortHelper::getEqualityArgumentSort(lit);
+    TermList lhs = *lit->nthArgument(0);
+    TermList rhs = *lit->nthArgument(1);
+    if((lhs.isVar() || rhs.isVar()) && eqSort == AtomicSort::boolSort()){
+      _hasBoolVar = true;
+    }
+    if((eqSort.isVar() || eqSort.term()->arity()) && 
+       !eqSort.isArrowSort() && !eqSort.isArraySort() && !eqSort.isTupleSort()){
+      _hasPolymorphicSym = true;      
+    } 
+    scanSort(eqSort);
   }
   else {
-    _symbolsInFormula->insert(-lit->functor());
+    _symbolsInFormula.insert(-lit->functor());
     int arity = lit->arity();
     if (arity > _maxPredArity) {
       _maxPredArity = arity;
@@ -565,12 +613,16 @@ void Property::scan(Literal* lit, int polarity, unsigned cLen, bool goal)
     }
 
     OperatorType* type = pred->predType();
+    if(type->typeArgsArity()){
+      _hasPolymorphicSym = true;
+    }
+
     for (int i=0; i<arity; i++) {
-      scanSort(type->arg(i));
+      scanSort(SortHelper::getArgSort(lit, i));
     }
   }
 
-  scanForInterpreted(lit);
+ scanForInterpreted(lit);
 
   if (!hasProp(PR_HAS_INEQUALITY_RESOLVABLE_WITH_DELETION) && lit->isEquality() && lit->shared()
      && ((lit->isNegative() && polarity == 1) || (!lit->isNegative() && polarity == -1) || polarity == 0)
@@ -588,6 +640,8 @@ void Property::scan(Literal* lit, int polarity, unsigned cLen, bool goal)
  * Scan a term arguments.
  *
  * @param ts the list of terms
+ * @param unit
+ * @param goal
  * @since 29/06/2002 Manchester
  * @since 17/07/2003 Manchester, changed to non-pointer types,
  *        also NUMERIC case added
@@ -597,7 +651,7 @@ void Property::scan(Literal* lit, int polarity, unsigned cLen, bool goal)
 void Property::scan(TermList ts,bool unit,bool goal)
 {
   CALL("Property::scan(TermList)");
-  _terms++;
+
   if (ts.isVar()) {
     _variablesInThisClause++;
     return;
@@ -607,38 +661,82 @@ void Property::scan(TermList ts,bool unit,bool goal)
   Term* t = ts.term();
 
   if (t->isSpecial()) {
-    _hasFOOL = true;
     switch(t->functor()) {
       case Term::SF_ITE:
+        _hasFOOL = true;
         addProp(PR_HAS_ITE);
         break;
 
       case Term::SF_LET:
       case Term::SF_LET_TUPLE:
+        _hasFOOL = true;
         addProp(PR_HAS_LET_IN);
+        break;
+      case Term::SF_FORMULA:
+        _hasFOOL = true;
+        break;
+
+      case Term::SF_MATCH:
+        _hasFOOL = true;
         break;
 
       default:
         break;
     }
   } else {
+    if(t->isSort()){
+      if(t->arity() > _maxTypeConArity){
+        _maxTypeConArity = t->arity();
+      }
+      return;
+    }
+
     scanForInterpreted(t);
 
-    _symbolsInFormula->insert(t->functor());
+    _symbolsInFormula.insert(t->functor());
     Signature::Symbol* func = env.signature->getFunction(t->functor());
     func->incUsageCnt();
     if(unit){ func->markInUnit();}
     if(goal){ func->markInGoal();}
 
-    int arity = t->arity();
-    OperatorType* type = func->fnType();
-    for (int i = 0; i < arity; i++) {
-      scanSort(type->arg(i));
+    if(t->isApplication()){
+      _hasApp = true;
+      TermList sort = SortHelper::getResultSort(t);
+      if(ApplicativeHelper::getResultSort(sort) == AtomicSort::boolSort()){
+        TermList head = ApplicativeHelper::getHead(ts);
+        if(head.isVar()){
+          _hasBoolVar = true;
+        }
+      }
     }
+
+    if(func->combinator() != Signature::NOT_COMB){
+      _hasCombs = true;
+    } else if(func->proxy() != Signature::NOT_PROXY){
+      if(func->proxy() == Signature::PI || func->proxy() == Signature::SIGMA){
+        ASS(t->arity() == 1);
+        TermList sort = *t->nthArgument(0);
+        if(ApplicativeHelper::getResultSort(sort) == AtomicSort::boolSort()){
+          _hasBoolVar = true;
+        }
+      }
+      _hasLogicalProxy = true;
+    }
+
+    if(!t->isApplication() && t->numTypeArguments() > 0){
+      _hasPolymorphicSym = true;
+    }
+
+    int arity = t->arity();
 
     if (arity > _maxFunArity) {
       _maxFunArity = arity;
     }
+
+    for (int i = 0; i < arity; i++) {
+      scanSort(SortHelper::getArgSort(t, i));
+    }
+    scanSort(SortHelper::getResultSort(t));  
   }
 }
 
@@ -649,10 +747,9 @@ void Property::scanForInterpreted(Term* t)
   Interpretation itp;
   if (t->isLiteral()) {
     Literal* lit = static_cast<Literal*>(t);
-    if (!theory->isInterpretedPredicate(lit)) { return; }
+    if (!theory->isInterpretedPredicate(lit->functor())) { return; }
     if (lit->isEquality()) {
       //cout << "this is interpreted equality " << t->toString() << endl;
-      _hasInterpretedEquality=true;
       return; 
     }
     itp = theory->interpretPredicate(lit);
@@ -680,36 +777,21 @@ void Property::scanForInterpreted(Term* t)
     return;
   }
 
-  unsigned sort = Theory::getOperationSort(itp);
+  TermList sort = Theory::getOperationSort(itp);
   if(Theory::isInequality(itp)){
-    switch(sort){
-      case Sorts::SRT_INTEGER : addProp(PR_INTEGER_COMPARISON);
-        break;
-      case Sorts::SRT_RATIONAL : addProp(PR_RAT_COMPARISON);
-        break;
-      case Sorts::SRT_REAL : addProp(PR_REAL_COMPARISON);
-        break;
-    }
+    if(sort == AtomicSort::intSort()){ addProp(PR_INTEGER_COMPARISON); }
+    else if(sort == AtomicSort::rationalSort()){ addProp(PR_RAT_COMPARISON); }
+    else if(sort == AtomicSort::realSort()){ addProp(PR_REAL_COMPARISON); }
   }
   else if(Theory::isLinearOperation(itp)){
-    switch(sort){
-      case Sorts::SRT_INTEGER : addProp(PR_INTEGER_LINEAR);
-        break;
-      case Sorts::SRT_RATIONAL : addProp(PR_RAT_LINEAR);
-        break;
-      case Sorts::SRT_REAL : addProp(PR_REAL_LINEAR);
-        break;
-    }
+    if(sort == AtomicSort::intSort()){ addProp(PR_INTEGER_LINEAR); }
+    else if(sort == AtomicSort::rationalSort()){ addProp(PR_RAT_LINEAR); }
+    else if(sort == AtomicSort::realSort()){ addProp(PR_REAL_LINEAR); }
   }
   else if(Theory::isNonLinearOperation(itp)){
-    switch(sort){
-      case Sorts::SRT_INTEGER : addProp(PR_INTEGER_NONLINEAR);
-        break;
-      case Sorts::SRT_RATIONAL : addProp(PR_RAT_NONLINEAR);
-        break;
-      case Sorts::SRT_REAL : addProp(PR_REAL_NONLINEAR);
-        break;
-    }
+    if(sort == AtomicSort::intSort()){ addProp(PR_INTEGER_NONLINEAR); }
+    else if(sort == AtomicSort::rationalSort()){ addProp(PR_RAT_NONLINEAR); }
+    else if(sort == AtomicSort::realSort()){ addProp(PR_REAL_NONLINEAR); }
   }
 }
 
@@ -931,10 +1013,10 @@ bool Property::hasXEqualsY(const Formula* f)
     case FORALL:
       // remember universally quantified variables
       if (pol >= 0) {
-	Formula::VarList::Iterator vs(f->vars());
-	while (vs.hasNext()) {
-	  posVars.inc(vs.next());
-	}
+        VList::Iterator vs(f->vars());
+        while (vs.hasNext()) {
+          posVars.inc(vs.next());
+        }
       }
       forms.push(f->qarg());
       pols.push(pol);
@@ -943,10 +1025,10 @@ bool Property::hasXEqualsY(const Formula* f)
   case EXISTS:
       // remember universally quantified variables
       if (pol <= 0) {
-	Formula::VarList::Iterator vs(f->vars());
-	while (vs.hasNext()) {
-	  posVars.inc(vs.next());
-	}
+        VList::Iterator vs(f->vars());
+        while (vs.hasNext()) {
+          posVars.inc(vs.next());
+        }
       }
       forms.push(f->qarg());
       pols.push(pol);
@@ -959,10 +1041,9 @@ bool Property::hasXEqualsY(const Formula* f)
     case BOOL_TERM:
       return true;
 
-#if VDEBUG
-    default:
+    case NAME:
+    case NOCONN:
       ASSERTION_VIOLATION;
-#endif
     }
   }
   return false;

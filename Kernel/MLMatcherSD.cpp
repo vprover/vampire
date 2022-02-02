@@ -1,6 +1,4 @@
 /*
- * File MLMatcherSD.cpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -8,12 +6,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions.
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide.
  */
 
 #include <algorithm>
@@ -34,7 +26,6 @@
 
 #if VDEBUG
 #include <iostream>
-#include "Test/Output.hpp"
 #endif
 
 #define MLMATCHERSD_DEBUG_OUTPUT false
@@ -134,9 +125,7 @@ void createLiteralBindings(Literal* baseLit, LiteralList const* const alts, Clau
       }
       if(MatchingUtils::matchReversedArgs(baseLit, alit)) {
         ArrayStoringBinder binder(altBindingData, variablePositions);
-        MatchingUtils::matchTerms(*baseLit->nthArgument(0),*alit->nthArgument(1),binder);
-        MatchingUtils::matchTerms(*baseLit->nthArgument(1),*alit->nthArgument(0),binder);
-
+        MatchingUtils::matchReversedArgs(baseLit, alit, binder);
         *altBindingPtrs=altBindingData;
         altBindingPtrs++;
         altBindingData+=numVars;
@@ -1149,12 +1138,15 @@ void MLMatcherSD::Impl::getBindings(vunordered_map<unsigned, TermList>& outBindi
         // md->boundVarNums[bi] contains the corresponding variable indices.
         unsigned var = md->boundVarNums[bi][vi];
         TermList trm = md->altBindings[bi][alti][vi];
-        auto res = outBindings.insert({var, trm});
+
+	DEBUG_CODE(auto res =) outBindings.insert({var, trm});
+#if VDEBUG
         auto it = res.first;
         bool inserted = res.second;
         if (!inserted) {
           ASS_EQ(it->second, trm);
         }
+#endif
       }
     }
   }
@@ -1168,7 +1160,7 @@ MLMatcherSD::MLMatcherSD()
 void MLMatcherSD::init(Literal** baseLits, unsigned baseLen, Clause* instance, LiteralList const* const* alts)
 {
   if (!m_impl) {
-    m_impl = make_unique<MLMatcherSD::Impl>();
+    m_impl = std::make_unique<MLMatcherSD::Impl>();
   }
   m_impl->init(baseLits, baseLen, instance, alts);
 }

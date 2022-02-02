@@ -1,7 +1,4 @@
-
 /*
- * File tUnificationWithAbstraction.cpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -9,12 +6,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 #include "Forwards.hpp"
 #include "Lib/Environment.hpp"
@@ -27,7 +18,7 @@
 #include "Kernel/Problem.hpp"
 #include "Kernel/Signature.hpp"
 #include "Kernel/Term.hpp"
-#include "Kernel/Sorts.hpp"
+#include "Kernel/OperatorType.hpp"
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/RobSubstitution.hpp"
 
@@ -38,12 +29,11 @@
 
 #include "Test/UnitTesting.hpp"
 
-
-#define UNIT_ID uwa 
-UT_CREATE;
+// TODO make this test use assertions, instead of printing output
 
 using namespace Kernel;
 using namespace Indexing;
+using SortType = TermList;
 
 TermList number(vstring n)
 {
@@ -53,26 +43,26 @@ TermList var(unsigned i)
 {
   return TermList(i,false);
 }
-unsigned function_symbol(vstring name,unsigned arity,unsigned srt)
+unsigned function_symbol(vstring name,unsigned arity,SortType srt)
 {
   bool added;
   unsigned f = env.signature->addFunction(name,arity,added);
   if(added){
     Signature::Symbol* symbol = env.signature->getFunction(f);
-    OperatorType* ot = OperatorType::getFunctionTypeTypeUniformRange(arity,srt,srt);
+    OperatorType* ot = OperatorType::getFunctionTypeUniformRange(arity,srt,srt);
     symbol->setType(ot); 
   }
   return f; 
 }
-TermList constant(vstring name,unsigned srt)
+TermList constant(vstring name,SortType srt)
 {
-  unsigned c =  function_symbol(name,0,srt);
+  auto c =  function_symbol(name,0,srt);
   Term* t = Term::create(c,0,0);
   return TermList(t);
 }
 TermList int_constant(vstring name)
 {
-  return constant(name,Sorts::SRT_INTEGER);
+  return constant(name,IntegerConstantType::getSort());
 }
 TermList binary(Interpretation fun, TermList n1, TermList n2)
 {
@@ -84,14 +74,14 @@ TermList int_plus(TermList n1, TermList n2)
 }
 Literal* equals(TermList t1, TermList t2)
 {
-   unsigned srt;
+   SortType srt;
    if(!SortHelper::tryGetResultSort(t1,srt)){
      cout << "Don't call equals with two variables" << endl;
      exit(0);
    }
    return Literal::createEquality(true, t1,t2,srt); 
 }
-Literal* pred(vstring p, TermList t, unsigned srt)
+Literal* pred(vstring p, TermList t, SortType srt)
 {
   bool added;
   unsigned ps = env.signature->addPredicate(p,1,added);
@@ -104,7 +94,7 @@ Literal* pred(vstring p, TermList t, unsigned srt)
 }
 Literal* pred(vstring p, TermList t)
 {
-  unsigned srt;
+  SortType srt;
   if(!SortHelper::tryGetResultSort(t,srt)){
     cout << "Don't call this pred with a variable argument" << endl;
     exit(0);
@@ -148,7 +138,7 @@ void reportMatches(LiteralIndexingStructure* index, Literal* qlit)
   while(it.hasNext()){
     SLQueryResult qr = it.next();
     cout << qr.clause->toString() << " matches with substitution: "<< endl;
-    cout << qr.substitution->tryGetRobSubstitution()->toString() << endl;
+    // cout << qr.substitution->tryGetRobSubstitution()->toString() << endl;
     cout << "and constraints: "<< endl;
     auto constraints = qr.constraints;
     for(unsigned i=0;i<constraints->size();i++){
@@ -221,7 +211,7 @@ void reportRobUnify(TermList a, TermList b)
   bool result = sub.unify(a,NORM_QUERY_BANK,b,NORM_RESULT_BANK,hndlr);
   cout << "Result is " << result << endl;
   if(result){
-    cout << "> Substitution is " << endl << sub.toString();
+    // cout << "> Substitution is " << endl << sub.toString();
     cout << "> Constraints are:" << endl;
     auto rs = ResultSubstitution::fromSubstitution(&sub,NORM_QUERY_BANK,NORM_RESULT_BANK);
     for(unsigned i=0;i<constraints.size();i++){
@@ -256,10 +246,10 @@ TEST_FUN(complex_case)
   // The complex case is where we have a variable that needs to be instantiated elsewhere
   // e.g. unifying f(f(g(X),X),f(Y,a)) with f(f(1,2),(3,g(Z)))
  
-  unsigned f = function_symbol("f",2,Sorts::SRT_INTEGER); 
-  unsigned g = function_symbol("g",1,Sorts::SRT_INTEGER); 
+  unsigned f = function_symbol("f",2,IntegerConstantType::getSort()); 
+  unsigned g = function_symbol("g",1,IntegerConstantType::getSort()); 
   TermList query = TermList(Term::create2(f,TermList(Term::create2(f,TermList(Term::create1(g,var(0))),var(0))), 
-  					    TermList(Term::create2(f,var(1),TermList(constant("a",Sorts::SRT_INTEGER))))));
+  					    TermList(Term::create2(f,var(1),TermList(constant("a",IntegerConstantType::getSort()))))));
   TermList node  = TermList(Term::create2(f,TermList(Term::create2(f,number("1"),number("2"))),
   					    TermList(Term::create2(f,number("3"),TermList(Term::create1(g,var(1)))))));
 

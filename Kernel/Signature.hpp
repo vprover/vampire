@@ -1,7 +1,4 @@
-
 /*
- * File Signature.hpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -9,12 +6,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file Signature.hpp
@@ -33,7 +24,9 @@
 
 #include "Lib/Allocator.hpp"
 #include "Lib/Stack.hpp"
+#include "Lib/DHSet.hpp"
 #include "Lib/Map.hpp"
+#include "Lib/List.hpp"
 #include "Lib/DHMap.hpp"
 #include "Lib/VString.hpp"
 #include "Lib/Environment.hpp"
@@ -42,7 +35,7 @@
 #include "Shell/TermAlgebra.hpp"
 #include "Shell/Options.hpp"
 
-#include "Sorts.hpp"
+#include "OperatorType.hpp"
 #include "Theory.hpp"
 
 
@@ -58,12 +51,68 @@ class Signature
 {
  public:
   /** Function or predicate symbol */
+  
+  /** The default sort of all individuals, always in the non-sorted case */  
+  static const unsigned DEFAULT_SORT_CON=0;
+  /** Boolean sort */
+  static const unsigned BOOL_SRT_CON=1;
+  /** sort of integers */
+  static const unsigned INTEGER_SRT_CON=2;
+  /** sort of rationals */
+  static const unsigned RATIONAL_SRT_CON=3;
+  /** sort of reals */  
+  static const unsigned REAL_SRT_CON=4;
+  /** this is not a sort, it is just used to denote the first index of a user-define sort */
+  static const unsigned FIRST_USER_CON=5;
+  
+  //Order is important
+  //Narrow.cpp relies on it
+  enum Combinator {
+    S_COMB,
+    B_COMB,
+    C_COMB,
+    I_COMB,
+    K_COMB,
+    NOT_COMB
+  };
+  
+  enum Proxy {
+    AND,
+    OR,
+    IMP,
+    FORALL,
+    EXISTS,
+    IFF,
+    XOR,
+    NOT,
+    PI,
+    SIGMA,
+    EQUALS,
+    NOT_PROXY
+  };  
+  
   class Symbol {
+  
   protected:
     /** print name */
     vstring _name;
+
+    // both _arity and _typeArgsArity could be recovered from _type. Storing directly here as well for convenience
+
     /** arity */
     unsigned _arity;
+    /** arity of type arguments */
+    unsigned _typeArgsArity;
+
+    /** Either a FunctionType of a PredicateType object */
+    mutable OperatorType* _type;
+    /** List of distinct groups the constant is a member of, all members of a distinct group should be distinct from each other */
+    List<unsigned>* _distinctGroups;
+    /** number of times it is used in the problem */
+    unsigned _usageCount;
+    /** number of units it is used in in the problem */
+    unsigned _unitUsageCount;
+
     /** the object is of type InterpretedSymbol */
     unsigned _interpreted : 1;
     /** symbol that doesn't come from input problem, but was introduced by Vampire */
@@ -89,14 +138,8 @@ class Signature
     unsigned _overflownConstant : 1;
     /** marks term algebra constructors */
     unsigned _termAlgebraCons : 1;
-    /** Either a FunctionType of a PredicateType object */
-    mutable OperatorType* _type;
-    /** List of distinct groups the constant is a member of, all members of a distinct group should be distinct from each other */
-    List<unsigned>* _distinctGroups;
-    /** number of times it is used in the problem */
-    unsigned _usageCount;
-    /** number of units it is used in in the problem */
-    unsigned _unitUsageCount;
+    /** marks term algebra destructors */
+    unsigned _termAlgebraDest : 1;
     /** if used in the goal **/
     unsigned _inGoal : 1;
     /** if used in a unit **/
@@ -105,12 +148,19 @@ class Signature
     unsigned _inductionSkolem : 1;
     /** if skolem function in general **/
     unsigned _skolem : 1;
+    /** if tuple sort */
+    unsigned _tuple : 1;
+    /** proxy type */
+    Proxy _prox;
+    /** combinator type */
+    Combinator _comb;
 
   public:
     /** standard constructor */
     Symbol(const vstring& nm,unsigned arity, bool interpreted=false, bool stringConstant=false,bool numericConstant=false,bool overflownConstant=false);
     void destroyFnSymbol();
     void destroyPredSymbol();
+    void destroyTypeConSymbol();
 
     void addColor(Color color);
     /** mark symbol that doesn't come from input problem, but was introduced by Vampire */
@@ -132,6 +182,8 @@ class Signature
     void markOverflownConstant() { _overflownConstant=1; }
     /** mark symbol as a term algebra constructor */
     void markTermAlgebraCons() { _termAlgebraCons=1; }
+    /** mark symbol as a term algebra destructor */
+    void markTermAlgebraDest() { _termAlgebraDest=1; }
 
     /** return true iff symbol is marked as skip for the purpose of symbol elimination */
     bool skip() const { return _skip; }
@@ -142,6 +194,15 @@ class Signature
     Color color() const { return static_cast<Color>(_color); }
     /** Return the arity of the symbol */
     inline unsigned arity() const { return _arity; }
+    /** Return the type argument arity of the symbol. Only accurate once type has been set. */
+    inline unsigned typeArgsArity() const { 
+      if(name() == "="){ 
+        //for some reason, equality is never assigned a type (probably because it is poly)
+        return 0; 
+      }
+      ASS_REP(_type, name()); 
+      return _typeArgsArity; 
+    }
     /** Return the name of the symbol */
     inline const vstring& name() const { return _name; }
     /** Return true iff the object is of type InterpretedSymbol */
@@ -162,6 +223,8 @@ class Signature
     inline bool overflownConstant() const { return _overflownConstant; }
     /** Return true iff symbol is a term algebra constructor */
     inline bool termAlgebraCons() const { return _termAlgebraCons; }
+    /** Return true iff symbol is a term algebra destructor */
+    inline bool termAlgebraDest() const { return _termAlgebraDest; }
 
     /** Increase the usage count of this symbol **/
     inline void incUsageCnt(){ _usageCount++; }
@@ -182,18 +245,27 @@ class Signature
     inline void markSkolem(){ _skolem = 1;}
     inline bool skolem(){ return _skolem; }
 
+    inline void markTuple(){ _tuple = 1; }
+    inline bool tupleSort(){ return _tuple; }
+
+    inline void setProxy(Proxy prox){ _prox = prox; }
+    inline Proxy proxy(){ return _prox; }
+
+    inline void setComb(Combinator comb){ _comb = comb; }
+    inline Combinator combinator(){ return _comb; }
+
     inline void markInductionSkolem(){ _inductionSkolem=1; _skolem=1;}
     inline bool inductionSkolem(){ return _inductionSkolem;}
       
     /** Return true if symbol is an integer constant */
     inline bool integerConstant() const
-    { return interpreted() && arity()==0 && fnType()->result()==Sorts::SRT_INTEGER; }
+    { return interpreted() && arity()==0 && fnType()->result()==AtomicSort::intSort(); }
     /** Return true if symbol is a rational constant */
     inline bool rationalConstant() const
-    { return interpreted() && arity()==0 && fnType()->result()==Sorts::SRT_RATIONAL; }
+    { return interpreted() && arity()==0 && fnType()->result()==AtomicSort::rationalSort(); }
     /** Return true if symbol is a real constant */
     inline bool realConstant() const
-    { return interpreted() && arity()==0 && fnType()->result()==Sorts::SRT_REAL; }
+    { return interpreted() && arity()==0 && fnType()->result()==AtomicSort::realSort(); }
 
     /** return true if an interpreted number, note subtle but significant difference from numericConstant **/
     inline bool interpretedNumber() const
@@ -219,6 +291,7 @@ class Signature
     void forceType(OperatorType* type);
     OperatorType* fnType() const;
     OperatorType* predType() const;
+    OperatorType* typeConType() const;
 
     CLASS_NAME(Signature::Symbol);
     USE_ALLOCATOR(Symbol);
@@ -261,7 +334,7 @@ class Signature
     {
       CALL("IntegerSymbol");
 
-      setType(OperatorType::getConstantsType(Sorts::SRT_INTEGER));
+      setType(OperatorType::getConstantsType(AtomicSort::intSort()));
     }
     CLASS_NAME(Signature::IntegerSymbol);
     USE_ALLOCATOR(IntegerSymbol);
@@ -281,7 +354,7 @@ class Signature
     {
       CALL("RationalSymbol");
 
-      setType(OperatorType::getConstantsType(Sorts::SRT_RATIONAL));
+      setType(OperatorType::getConstantsType(AtomicSort::rationalSort()));
     }
     CLASS_NAME(Signature::RationalSymbol);
     USE_ALLOCATOR(RationalSymbol);
@@ -301,17 +374,18 @@ class Signature
     {
       CALL("RealSymbol");
 
-      setType(OperatorType::getConstantsType(Sorts::SRT_REAL));
+      setType(OperatorType::getConstantsType(AtomicSort::realSort()));
     }
     CLASS_NAME(Signature::RealSymbol);
     USE_ALLOCATOR(RealSymbol);
-  };
+  }; 
 
   //////////////////////////////////////
   // Uninterpreted symbol declarations
   //
 
   unsigned addPredicate(const vstring& name,unsigned arity,bool& added);
+  unsigned addTypeCon(const vstring& name,unsigned arity,bool& added);
   unsigned addFunction(const vstring& name,unsigned arity,bool& added,bool overflowConstant = false);
 
   /**
@@ -342,14 +416,21 @@ class Signature
    * If a unique string constant with this name and arity exists, return its number.
    * Otherwise, add a new one and return its number.
    *
-   * The added constant is of sort Sorts::SRT_DEFAULT.
+   * The added constant is of default ($i) sort.
    */
   unsigned addStringConstant(const vstring& name);
   unsigned addFreshFunction(unsigned arity, const char* prefix, const char* suffix = 0);
   unsigned addSkolemFunction(unsigned arity,const char* suffix = 0);
+  unsigned addFreshTypeCon(unsigned arity, const char* prefix, const char* suffix = 0);
+  unsigned addSkolemTypeCon(unsigned arity,const char* suffix = 0);
   unsigned addFreshPredicate(unsigned arity, const char* prefix, const char* suffix = 0);
   unsigned addSkolemPredicate(unsigned arity,const char* suffix = 0);
   unsigned addNamePredicate(unsigned arity);
+  unsigned addNameFunction(unsigned arity);
+  void addEquality();
+  unsigned getApp();
+  unsigned getDiff();
+  unsigned getChoice();
 
   // Interpreted symbol declarations
   unsigned addIntegerConstant(const vstring& number,bool defaultSort);
@@ -359,7 +440,7 @@ class Signature
   unsigned addIntegerConstant(const IntegerConstantType& number);
   unsigned addRationalConstant(const RationalConstantType& number);
   unsigned addRealConstant(const RealConstantType& number);
-
+ 
   unsigned addInterpretedFunction(Interpretation itp, OperatorType* type, const vstring& name);
   unsigned addInterpretedFunction(Interpretation itp, const vstring& name)
   {
@@ -403,6 +484,11 @@ class Signature
   {
     return _preds[number]->name();
   }
+  /** return the name of a type constructor with a given number */
+  const vstring& typeConName(int number)
+  {
+    return _typeCons[number]->name();
+  }  
   /** return the arity of a function with a given number */
   const unsigned functionArity(int number)
   {
@@ -414,6 +500,12 @@ class Signature
   {
     CALL("Signature::predicateArity");
     return _preds[number]->arity();
+  }
+
+  const unsigned typeConArity(int number)
+  {
+    CALL("Signature::typeConArity");
+    return _typeCons[number]->arity();
   }
 
   const bool predicateColored(int number)
@@ -434,10 +526,24 @@ class Signature
     return _predNames.find(symbolKey,tmp);
   }
 
+  void addChoiceOperator(unsigned fun){
+    _choiceSymbols.insert(fun);
+  }
+
+  bool isChoiceOperator(unsigned fun){
+    return _choiceSymbols.contains(fun);
+  }
+
+  DHSet<unsigned>* getChoiceOperators(){
+    return &_choiceSymbols;
+  }
+
   /** return the number of functions */
   unsigned functions() const { return _funs.length(); }
   /** return the number of predicates */
   unsigned predicates() const { return _preds.length(); }
+  /** return the number of typecons */
+  unsigned typeCons() const { return _typeCons.length(); }
 
   /** Return the function symbol by its number */
   inline Symbol* getFunction(unsigned n)
@@ -451,6 +557,11 @@ class Signature
     ASS(n < _preds.length());
     return _preds[n];
   } // getPredicate
+  inline Symbol* getTypeCon(unsigned n)
+  {
+    ASS(n < _typeCons.length());
+    return _typeCons[n];
+  }
 
   static inline bool isEqualityPredicate(unsigned p)
   {
@@ -466,14 +577,54 @@ class Signature
 
   bool functionExists(const vstring& name,unsigned arity) const;
   bool predicateExists(const vstring& name,unsigned arity) const;
+  bool typeConExists(const vstring& name,unsigned arity) const;
+
+  /** true if there are user defined sorts */
+  bool hasSorts() const{
+    return typeCons() > FIRST_USER_CON;
+  }
+
+  bool isDefaultSortCon(unsigned con) const{
+    return con < FIRST_USER_CON;
+  }
+
+  bool isInterpretedNonDefault(unsigned con) const{
+    return con < FIRST_USER_CON && con != DEFAULT_SORT_CON;    
+  }
+
+  bool isNonDefaultCon(unsigned con) const{
+    return con >= FIRST_USER_CON;    
+  }
+
+  bool isBoolCon(unsigned con) const{
+    return con == BOOL_SRT_CON;    
+  }
+
+  bool isTupleCon(unsigned con) {
+    return getTypeCon(con)->tupleSort();
+  }
+
+  bool isArrayCon(unsigned con) const{
+    //second part of conditions ensures that _arrayCon
+    //has been initialised.
+    return (con == _arrayCon && _arrayCon != 0);    
+  }
+
+  bool isArrowCon(unsigned con) const{
+    return (con == _arrowCon && _arrowCon != 0);    
+  }
+  
+  bool isAppFun(unsigned fun) const{
+    return (fun == _appFun && _appFun != 0);
+  }
 
   bool tryGetFunctionNumber(const vstring& name, unsigned arity, unsigned& out) const;
   bool tryGetPredicateNumber(const vstring& name, unsigned arity, unsigned& out) const;
   unsigned getFunctionNumber(const vstring& name, unsigned arity) const;
   unsigned getPredicateNumber(const vstring& name, unsigned arity) const;
-  
-  typedef SmartPtr<Stack<unsigned>> DistinctGroupMembers;
 
+  typedef SmartPtr<Stack<unsigned>> DistinctGroupMembers;
+  
   Unit* getDistinctGroupPremise(unsigned group);
   unsigned createDistinctGroup(Unit* premise = 0);
   void addToDistinctGroup(unsigned constantSymbol, unsigned groupId);
@@ -499,9 +650,9 @@ class Signature
   unsigned getFoolConstantSymbol(bool isTrue){ 
     if(!_foolConstantsDefined){
       _foolFalse = addFunction("$$false",0); 
-      getFunction(_foolFalse)->setType(OperatorType::getConstantsType(Sorts::SRT_BOOL));
+      getFunction(_foolFalse)->setType(OperatorType::getConstantsType(AtomicSort::boolSort()));
       _foolTrue = addFunction("$$true",0);
-      getFunction(_foolTrue)->setType(OperatorType::getConstantsType(Sorts::SRT_BOOL));
+      getFunction(_foolTrue)->setType(OperatorType::getConstantsType(AtomicSort::boolSort()));
       _foolConstantsDefined=true;
     }
     return isTrue ? _foolTrue : _foolFalse;
@@ -511,8 +662,224 @@ class Signature
     return isTrue ? number==_foolTrue : number==_foolFalse;
   }
 
-  bool isTermAlgebraSort(unsigned sort) { return _termAlgebras.find(sort); }
-  Shell::TermAlgebra *getTermAlgebraOfSort(unsigned sort) { return _termAlgebras.get(sort); }
+  unsigned getDefaultSort(){
+    CALL("Signature::getDefaultSort");
+
+    bool added = false;
+    unsigned individualSort = addTypeCon("$i",0, added);
+    if(added){
+      getTypeCon(individualSort)->setType(OperatorType::getConstantsType(AtomicSort::superSort()));
+    }
+    return individualSort;
+  }
+
+  unsigned getBoolSort(){
+    CALL("Signature::getBoolSort");
+
+    bool added = false;
+    unsigned boolSort = addTypeCon("$o",0, added);
+    if(added){
+      getTypeCon(boolSort)->setType(OperatorType::getConstantsType(AtomicSort::superSort()));
+    }
+    return boolSort;
+  }
+
+  unsigned getRealSort(){
+    bool added = false;
+    unsigned realSort = addTypeCon("$real",0, added);
+    if(added){
+      getTypeCon(realSort)->setType(OperatorType::getConstantsType(AtomicSort::superSort()));
+    }
+    return realSort;
+  }
+
+  unsigned getIntSort(){
+    bool added = false;
+    unsigned intSort = addTypeCon("$int",0, added);
+    if(added){
+      getTypeCon(intSort)->setType(OperatorType::getConstantsType(AtomicSort::superSort()));
+    }
+    return intSort;
+  }  
+
+  unsigned getRatSort(){
+    bool added = false;
+    unsigned ratSort = addTypeCon("$rat",0, added);
+    if(added){
+      getTypeCon(ratSort)->setType(OperatorType::getConstantsType(AtomicSort::superSort()));
+    }
+    return ratSort;    
+  }
+
+  unsigned getArrowConstructor(){
+    bool added = false;
+    unsigned arrow = addTypeCon(">",2, added);
+    if(added){
+      _arrowCon = arrow;
+      TermList ss = AtomicSort::superSort();
+      Symbol* arr = getTypeCon(arrow);
+      arr->setType(OperatorType::getFunctionType({ss, ss}, ss));
+    }
+    return arrow;    
+  }
+
+  unsigned getArrayConstructor(){
+    bool added = false;
+    unsigned array = addTypeCon("Array",2, added);
+    if(added){
+      _arrayCon = array;
+      TermList ss = AtomicSort::superSort();
+      Symbol* arr = getTypeCon(array);
+      arr->setType(OperatorType::getFunctionType({ss, ss}, ss));
+    }
+    return array;    
+  }
+
+  unsigned getTupleConstructor(unsigned arity){
+    bool added = false;
+    //TODO make the name unique
+    unsigned tuple = addTypeCon("Tuple", arity, added);
+    if(added){
+      Symbol* tup = getTypeCon(tuple);
+      tup->setType(OperatorType::getTypeConType(arity));
+      tup->markTuple();
+    }
+    return tuple;    
+  }  
+
+  unsigned getEqualityProxy(){
+    bool added = false;
+    unsigned eqProxy = addFunction("vEQ",1, added);
+    if(added){
+      TermList tv = TermList(0, false);
+      TermList result = AtomicSort::arrowSort(tv, tv, AtomicSort::boolSort());
+      Symbol * sym = getFunction(eqProxy);
+      sym->setType(OperatorType::getConstantsType(result, 1));
+      sym->setProxy(EQUALS);
+    }
+    return eqProxy;  
+  }
+
+  unsigned getBinaryProxy(vstring name){
+    ASS(name == "vIMP" || name == "vAND" || name == "vOR" || name == "vIFF" || name == "vXOR");
+    bool added = false;
+    
+    auto convert = [] (vstring name) { 
+      if(name == "vIMP"){ return IMP; }
+      else if(name == "vAND"){ return AND; }
+      else if(name == "vOR"){ return OR; }
+      else if(name == "vIFF"){ return IFF; }
+      else{ return XOR; }
+    };
+
+    unsigned proxy = addFunction(name,0, added);
+    if(added){
+      TermList bs = AtomicSort::boolSort();
+      TermList result = AtomicSort::arrowSort(bs, bs, bs);
+      Symbol * sym = getFunction(proxy);
+      sym->setType(OperatorType::getConstantsType(result));
+      sym->setProxy(convert(name));
+    }
+    return proxy;  
+  }
+
+  unsigned getNotProxy(){
+    bool added = false;
+    unsigned notProxy = addFunction("vNOT",0, added);
+    if(added){
+      TermList bs = AtomicSort::boolSort();
+      TermList result = AtomicSort::arrowSort(bs, bs);
+      Symbol * sym = getFunction(notProxy);
+      sym->setType(OperatorType::getConstantsType(result));
+      sym->setProxy(NOT);
+    }
+    return notProxy;  
+  } //TODO merge with above?
+
+
+  unsigned getPiSigmaProxy(vstring name){
+    bool added = false;
+    unsigned proxy = addFunction(name,1, added);
+    if(added){
+      TermList tv = TermList(0, false);
+      TermList result = AtomicSort::arrowSort(tv, AtomicSort::boolSort());
+      result = AtomicSort::arrowSort(result, AtomicSort::boolSort());
+      Symbol * sym = getFunction(proxy);
+      sym->setType(OperatorType::getConstantsType(result, 1));
+      sym->setProxy(name == "vPI" ? PI : SIGMA);
+    }
+    return proxy;  
+  } //TODO merge with above?  
+
+  //TODO make all these names protected
+
+  unsigned getCombinator(Combinator c){
+    bool added = false;
+    unsigned comb;
+    
+    auto convert = [] (Combinator cb) { 
+      switch(cb){
+        case S_COMB:
+          return "sCOMB";
+        case C_COMB:
+          return "cCOMB";
+        case B_COMB:
+          return "bCOMB";
+        case K_COMB:
+          return "kCOMB";
+        default:
+          return "iCOMB";
+      }
+    };
+    
+    vstring name = convert(c);
+    if(c == S_COMB || c == B_COMB || c == C_COMB){
+      comb = addFunction(name,3, added);
+    } else if ( c == K_COMB) {
+      comb = addFunction(name,2, added);      
+    } else {
+      comb = addFunction(name,1, added);
+    }
+
+    if(added){
+      unsigned typeArgsArity = 3;
+      TermList x0 = TermList(0, false);
+      TermList x1 = TermList(1, false);
+      TermList x2 = TermList(2, false);
+      TermList t0 = AtomicSort::arrowSort(x1, x2);
+      TermList t1 = AtomicSort::arrowSort(x0, t0);
+      TermList t2 = AtomicSort::arrowSort(x0, x1);
+      TermList t3 = AtomicSort::arrowSort(x0, x2);
+      TermList sort; 
+      if(c == S_COMB){
+        sort = AtomicSort::arrowSort(t1, t2, t3);
+      }else if(c == C_COMB){
+        sort = AtomicSort::arrowSort(t1, x1, t3);
+      }else if(c == B_COMB){
+        sort = AtomicSort::arrowSort(t0, t2, t3);
+      }else if(c == K_COMB){
+        typeArgsArity = 2;
+        sort = AtomicSort::arrowSort(x0, x1 , x0);
+      }else if(c == I_COMB){
+        typeArgsArity = 1;
+        sort = AtomicSort::arrowSort(x0, x0);
+      }    
+
+      Symbol* sym = getFunction(comb);
+      sym->setType(OperatorType::getConstantsType(sort, typeArgsArity));
+      sym->setComb(c);
+    } 
+    return comb;
+  }
+
+  void incrementFormulaCount(Term* t);
+  void decrementFormulaCount(Term* t);
+  void formulaNamed(Term* t);
+  unsigned formulaCount(Term* t);
+
+
+  bool isTermAlgebraSort(TermList sort) { return _termAlgebras.find(sort); }
+  Shell::TermAlgebra *getTermAlgebraOfSort(TermList sort) { return _termAlgebras.get(sort); }
   void addTermAlgebra(Shell::TermAlgebra *ta) { _termAlgebras.insert(ta->sort(), ta); }
   VirtualIterator<Shell::TermAlgebra*> termAlgebrasIterator() const { return _termAlgebras.range(); }
   Shell::TermAlgebraConstructor* getTermAlgebraConstructor(unsigned functor);
@@ -526,6 +893,7 @@ class Signature
 
 private:
   Stack<TermList> _dividesNvalues;
+  DHMap<Term*, int> _formulaCounts;
 
   bool _foolConstantsDefined;
   unsigned _foolTrue;
@@ -537,6 +905,10 @@ private:
   Stack<Symbol*> _funs;
   /** Stack of predicate symbols */
   Stack<Symbol*> _preds;
+  /** Stack of type constructor symbols */  
+  Stack<Symbol*> _typeCons;
+
+  DHSet<unsigned> _choiceSymbols;
   /**
    * Map from vstring "name_arity" to their numbers
    *
@@ -546,6 +918,8 @@ private:
   SymbolMap _funNames;
   /** Map from vstring "name_arity" to their numbers */
   SymbolMap _predNames;
+  /** Map from vstring "name_arity" to their numbers */
+  SymbolMap _typeConNames;
   /** Map for the arity_check options: maps symbols to their arities */
   SymbolMap _arityCheck;
   /** Last number used for fresh functions and predicates */
@@ -583,13 +957,18 @@ private:
   /** the number of real constants */
   unsigned _reals;
 
+  unsigned _arrayCon;
+  unsigned _arrowCon;
+  unsigned _appFun;
+
   /**
    * Map from sorts to the associated term algebra, if applicable for the sort
    */ 
-  DHMap<unsigned, Shell::TermAlgebra*> _termAlgebras;
+  DHMap<TermList, Shell::TermAlgebra*> _termAlgebras;
 
-  void defineOptionTermAlgebra(unsigned optionSort);
-  void defineEitherTermAlgebra(unsigned eitherSort);
+  //TODO Why are these here? They are not used anywhere. AYB
+  //void defineOptionTermAlgebra(unsigned optionSort);
+  //void defineEitherTermAlgebra(unsigned eitherSort);
 }; // class Signature
 
 }

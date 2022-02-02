@@ -1,7 +1,4 @@
-
 /*
- * File TermTransformer.hpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -9,12 +6,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file TermTransformer.hpp
@@ -39,6 +30,9 @@ namespace Kernel {
  *
  * The literal and subterms returned by the transform(TermList) function have
  * to be shared.
+ *
+ * This class can be used to transform sort arguments as well by suitably
+ * implementing the transform(TermList) function
  */
 class TermTransformer {
 public:
@@ -49,7 +43,7 @@ protected:
   virtual TermList transformSubterm(TermList trm) = 0;
   Term* transformSpecial(Term* specialTerm);
   TermList transform(TermList ts);
-  Formula* transform(Formula* f);
+  virtual Formula* transform(Formula* f);
 };
 
 /**

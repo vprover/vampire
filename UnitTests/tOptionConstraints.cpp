@@ -1,7 +1,4 @@
-
 /*
- * File tOptionConstraints.cpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -9,21 +6,12 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 
 #include "Lib/VString.hpp"
 #include "Shell/Options.hpp"
 
 #include "Test/UnitTesting.hpp"
-
-#define UNIT_ID optionConstraints
-UT_CREATE;
 
 using namespace Shell;
 
@@ -80,16 +68,7 @@ TEST_FUN(urr)
     Options o;
     o.set("unit_resulting_resolution","on");
     o.set("saturation_algorithm","inst_gen");
-    o.set("splitting","off");
     o.set("inst_gen_with_resolution","off");
     ASS(!testGlobal(o));
   } 
-}
-
-TEST_FUN(nonlit)
-{
-  Options o;
-  o.set("splitting","off");
-  o.set("nonliterals_in_clause_weight","on");
-  ASS(!testGlobal(o));
 }

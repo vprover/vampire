@@ -1,3 +1,12 @@
+/*
+ * This file is part of the source code of the software program
+ * Vampire. It is protected by applicable
+ * copyright laws.
+ *
+ * This source code is distributed under the licence found here
+ * https://vprover.github.io/license.html
+ * and in the source directory
+ */
 #ifndef __ScheduleExecutor__
 #define __ScheduleExecutor__
 
@@ -17,7 +26,7 @@ public:
 class SliceExecutor
 {
 public:
-  virtual void runSlice(Lib::vstring sliceCode, int remaminingTime) NO_RETURN = 0;
+  [[noreturn]] virtual void runSlice(Lib::vstring sliceCode, int remaminingTime) = 0;
 };
 
 class ScheduleExecutor

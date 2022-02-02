@@ -1,7 +1,4 @@
-
 /*
- * File FormulaBuilder.cpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -9,12 +6,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file FormulaBuilder.cpp
@@ -583,7 +574,7 @@ Formula FormulaBuilder::formula(Connective q,const Var& v,const Formula& f)
     throw FormulaBuilderException("formula function called on a Formula object not built by the same FormulaBuilder object");
   }
   if(_aux->_checkBindingBoundVariables) {
-    VarList* boundVars=static_cast<Kernel::Formula*>(f)->boundVariables();
+    VList* boundVars=static_cast<Kernel::Formula*>(f)->boundVariables();
     bool alreadyBound=boundVars->member(v);
     boundVars->destroy();
     if(alreadyBound) {
@@ -604,8 +595,8 @@ Formula FormulaBuilder::formula(Connective q,const Var& v,const Formula& f)
     throw FormulaBuilderException("Invalid quantifier connective");
   }
 
-  Kernel::Formula::VarList* varList=0;
-  Kernel::Formula::VarList::push(v, varList);
+  VList* varList = VList::empty();
+  VList::push(v, varList);
 
   Formula res(new QuantifiedFormula(con, varList, f.form));
   res._aux=_aux; //assign the correct helper object
@@ -668,7 +659,7 @@ Formula FormulaBuilder::substitute(Formula f, Var v, Term t)
 {
   CALL("FormulaBuilder::substitute(Formula)");
 
-  Kernel::Formula::VarList* fBound = f.form->boundVariables();
+  VList* fBound = f.form->boundVariables();
   if(fBound->member(v)) {
     throw ApiException("Variable we substitute for cannot be bound in the formula");
   }
@@ -731,7 +722,7 @@ Formula FormulaBuilder::replaceConstant(Formula f, Term replaced, Term target)
     throw ApiException("The replaced term must be a constant (zero-arity function)");
   }
 
-  Kernel::Formula::VarList* fBound = f.form->boundVariables();
+  VList* fBound = f.form->boundVariables();
   VariableIterator vit(tTgt);
   while(vit.hasNext()) {
     Kernel::TermList tVar = vit.next();
@@ -1091,7 +1082,7 @@ StringIterator Formula::freeVars()
   if(!form) {
     return StringIterator(VirtualIterator<vstring>::getEmpty());
   }
-  VarList* vars=form->freeVariables();
+  VList* vars=form->freeVariables();
   return _aux->getVarNames(vars);
 }
 
@@ -1102,7 +1093,7 @@ StringIterator Formula::boundVars()
   if(!form) {
     return StringIterator(VirtualIterator<vstring>::getEmpty());
   }
-  VarList* vars=form->boundVariables();
+  VList* vars=form->boundVariables();
   return _aux->getVarNames(vars);
 }
 
@@ -1131,9 +1122,9 @@ StringIterator AnnotatedFormula::freeVars()
   if(!unit) {
     return StringIterator(VirtualIterator<vstring>::getEmpty());
   }
-  VarList* vl=0;
+  VList* vl=0;
   if(unit->isClause()) {
-    VarList::pushFromIterator(static_cast<Clause*>(unit)->getVariableIterator(), vl);
+    VList::pushFromIterator(static_cast<Clause*>(unit)->getVariableIterator(), vl);
   }
   else {
     vl=static_cast<FormulaUnit*>(unit)->formula()->freeVariables();
@@ -1148,7 +1139,7 @@ StringIterator AnnotatedFormula::boundVars()
   if(!unit || unit->isClause()) {
     return StringIterator(VirtualIterator<vstring>::getEmpty());
   }
-  VarList* vl=static_cast<FormulaUnit*>(unit)->formula()->boundVariables();
+  VList* vl=static_cast<FormulaUnit*>(unit)->formula()->boundVariables();
   return _aux->getVarNames(vl);
 }
 

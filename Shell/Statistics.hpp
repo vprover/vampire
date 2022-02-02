@@ -1,6 +1,4 @@
 /*
- * File Statistics.hpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -8,12 +6,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions.
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide.
  */
 /**
  * @file Statistics.hpp
@@ -72,8 +64,12 @@ public:
   // Preprocessing
   /** number of formula names introduced during preprocessing */
   unsigned formulaNames;
+  /** number of formula names re-used during preprocessing */
+  unsigned reusedFormulaNames;
   /** number of skolem functions (also predicates in FOOL) introduced during skolemization */
   unsigned skolemFunctions;
+  /** number of formula names re-used during preprocessing */
+  unsigned reusedSkolemFunctions;
   /** number of initial clauses */
   unsigned initialClauses;
   /** number of inequality splittings performed */
@@ -130,12 +126,46 @@ public:
   unsigned theoryInstSimpTautologies;
   /** number of theoryInstSimp solutions lost as we could not represent them **/
   unsigned theoryInstSimpLostSolution;
+  /** number of theoryInstSimp application where an empty substitution was applied */
+  unsigned theoryInstSimpEmptySubstitution;
   /** number of induction applications **/
-  unsigned induction;
   unsigned maxInductionDepth;
+  unsigned induction;
   unsigned inductionInProof;
   unsigned generalizedInduction;
   unsigned generalizedInductionInProof;
+  unsigned structInduction;
+  unsigned structInductionInProof;
+  unsigned intInfInduction;
+  unsigned intInfInductionInProof;
+  unsigned intFinInduction;
+  unsigned intFinInductionInProof;
+  unsigned intDBInduction;
+  unsigned intDBInductionInProof;
+  unsigned intInfUpInduction;
+  unsigned intInfUpInductionInProof;
+  unsigned intFinUpInduction;
+  unsigned intFinUpInductionInProof;
+  unsigned intDBUpInduction;
+  unsigned intDBUpInductionInProof;
+  unsigned intInfDownInduction;
+  unsigned intInfDownInductionInProof;
+  unsigned intFinDownInduction;
+  unsigned intFinDownInductionInProof;
+  unsigned intDBDownInduction;
+  unsigned intDBDownInductionInProof;
+  /** number of argument congruences */
+  unsigned argumentCongruence;
+  unsigned narrow;
+  unsigned forwardSubVarSup;
+  unsigned backwardSubVarSup;
+  unsigned selfSubVarSup;
+  unsigned negativeExtensionality;
+  unsigned primitiveInstantiations;
+  unsigned choiceInstances;
+  unsigned proxyEliminations;
+  unsigned leibnizElims;
+  unsigned booleanSimps;
 
   // Simplifying inferences
   /** number of duplicate literals deleted */
@@ -168,10 +198,26 @@ public:
   unsigned condensations;
   /** number of global subsumptions */
   unsigned globalSubsumption;
-  /** number of evaluations */
-  unsigned evaluations;
   /** number of interpreted simplifications */
   unsigned interpretedSimplifications;
+
+  /** how often did asg not simplify correctly. */
+  unsigned asgViolations;
+  /** applications of asg */
+  unsigned asgCnt;
+
+  /** how often did gve not simplify correctly. */
+  unsigned gveViolations;
+  /** applications of gve */
+  unsigned gveCnt;
+
+  /** number of evaluations that resulted in a incomparable literal */
+  unsigned evaluationIncomp;
+  /** number of evaluations that resulted in a greater literal */
+  unsigned evaluationGreater;
+  /** number of simplifications by PolynomialNormalizer */
+  unsigned evaluationCnt;
+
   /** number of (proper) inner rewrites */
   unsigned innerRewrites;
   /** number of inner rewrites into equational tautologies */
@@ -195,6 +241,11 @@ public:
   unsigned taInjectivitySimplifications;
   unsigned taNegativeInjectivitySimplifications;
   unsigned taAcyclicityGeneratedDisequalities;
+
+  //to be moved to the property object once that
+  //is controlled by environment
+  bool higherOrder;
+  bool polymorphic;
 
   // Saturation
   /** all clauses ever occurring in the unprocessed queue */
@@ -232,118 +283,19 @@ public:
   unsigned unitSatClauses;
   /** Number of binary clauses generated for the SAT solver */
   unsigned binarySatClauses;
-  /** Number of clauses learned by the SAT solver */
-  unsigned learntSatClauses;
-  /** Number of literals in clauses learned by the SAT solver */
-  unsigned learntSatLiterals;
 
   unsigned satSplits;
   unsigned satSplitRefutations;
 
   unsigned smtFallbacks;
 
-  /* the next three variables keep statistics for Vampire default sat solver*/
-  unsigned satTWLClauseCount;
-  unsigned satTWLVariablesCount;
-  unsigned satTWLSATCalls;
-
   unsigned instGenGeneratedClauses;
   unsigned instGenRedundantClauses;
   unsigned instGenKeptClauses;
   unsigned instGenIterations;
 
-  unsigned maxBFNTModelSize;
-
   /** Number of pure variables eliminated by SAT solver */
   unsigned satPureVarsEliminated;
-
-#if GNUMP
-  /**
-   * added for the purpose of Bound propagation
-   * @since 25.10.2012 Vienna
-   * @author Ioan Dragan
-   */
-
-  // Input
-  /** number of input constraints */
-  unsigned inputConstraints;
-  /** number of input variables */
-  unsigned inputVariables;
-  /** number of constraints after preprocessing */
-  unsigned preprocessedConstraints;
-  /** number of variables after preprocessing */
-  unsigned preprocessedVariables;
-
-  // Preprocessing
-  /** number of variables that were equivalent to some other
-   * variable and were eliminated */
-  unsigned equivalentVariables;
-  /** number of variables eliminated by equality propagation */
-  unsigned equalityPropagationVariables;
-  /** number of constraints affected by equality propagation */
-  unsigned equalityPropagationConstraints;
-  /** number of eliminated constant variables */
-  unsigned constantVariables;
-  /** number of constraints updated by constant propagation */
-  unsigned updatedByConstantPropagation;
-  /** number of subsumed constraints */
-  unsigned subsumedConstraints;
-  /** number of variables appearing either only positively or only
-   * negatively */
-  unsigned halfBoundingVariables;
-  /** number of constraints deleted due to half-bounding variables */
-  unsigned halfBoundingConstraints;
-  /** number of variables appearing either only positively or only
-   * negatively except for one constraint */
-  unsigned almostHalfBoundingVariables;
-  /** number of constraints removed or replaced due to almost half-bounding variables */
-  unsigned almostHalfBoundingConstraints;
-  /** number of variables that were eliminated by Fourier-Motzkin because the
-   * elimination introduced allowed amount of clauses */
-  unsigned fmRemovedVariables;
-  /** number of constraints introduced by Fourier-Motzkin variable elimination
-   * in preprocessing */
-  unsigned preprocessingFMIntroduced;
-  /** number of constraints removed by Fourier-Motzkin variable elimination
-   * in preprocessing */
-  unsigned preprocessingFMRemoved;
-
-  // Solving
-  /** number of decision points where the variable was picked by heuristics */
-  unsigned freeDecisionPoints;
-  /** number of decision points where the variable was predetermined */
-  unsigned forcedDecisionPoints;
-  /** maximal number of decision points at a moment*/
-  DecisionLevel maxDecisionDepth;
-  /** number of backtracks */
-  unsigned backtracks;
-  /** number of backtracks by more than one decision level */
-  unsigned longBacktracks;
-  /** number of propagated bounds */
-  unsigned propagatedBounds;
-  /** number of generated conflict clauses */
-  unsigned conflictClauses;
-  /** how many times the conservative assigment selector reused previous assignment */
-  unsigned assignmentsReusedByConservative;
-  /** number of selected conflict that were not the most recent conflicts available */
-  unsigned nonRecentConflicts;
-  /** number of collapsing clauses that we retained for bound propagation */
-  unsigned retainedConstraints;
-
-  //Number representation
-  /** True if native numbers were used during computation */
-  bool nativeUsed;
-  /** True if precise numbers were used during computation */
-  bool preciseUsed;
-  /** Time (in ms) when we switched from native to precise numbers */
-  unsigned switchToPreciseTimeInMs;
-
-  /** refutation if @c terminationReason==REFUTATION */
-  ConstraintRCPtr bpRefutation;
-  /** satisfying assignment if @c terminationReason==SATISFIABLE */
-  ScopedPtr<Assignment> satisfyingAssigment;
-
-#endif //GNUMP
 
   /** termination reason */
   enum TerminationReason {
@@ -368,6 +320,22 @@ public:
     /** activation limit reached */
     ACTIVATION_LIMIT
   };
+  friend std::ostream& operator<<(std::ostream& out, TerminationReason const& self)
+  {
+    switch(self) {
+      case REFUTATION: return out << "REFUTATION";
+      case SAT_SATISFIABLE: return out << "SAT_SATISFIABLE";
+      case SATISFIABLE: return out << "SATISFIABLE";
+      case SAT_UNSATISFIABLE: return out << "SAT_UNSATISFIABLE";
+      case REFUTATION_NOT_FOUND: return out << "REFUTATION_NOT_FOUND";
+      case INAPPROPRIATE: return out << "INAPPROPRIATE";
+      case UNKNOWN: return out << "UNKNOWN";
+      case TIME_LIMIT: return out << "TIME_LIMIT";
+      case MEMORY_LIMIT: return out << "MEMORY_LIMIT";
+      case ACTIVATION_LIMIT: return out << "ACTIVATION_LIMIT";
+    }
+    ASSERTION_VIOLATION
+  }
   /** termination reason */
   TerminationReason terminationReason;
   /** refutation, if any */

@@ -1,7 +1,4 @@
-
 /*
- * File TermAlgebra.hpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -9,12 +6,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 #ifndef __TERM_ALGEBRA__
 #define __TERM_ALGEBRA__
@@ -25,7 +16,11 @@
 #include "Lib/List.hpp"
 #include "Lib/Array.hpp"
 #include "Lib/VString.hpp"
-#include "Kernel/Sorts.hpp"
+#include "Kernel/OperatorType.hpp"
+#include "Lib/Metaiterators.hpp"
+#include "Lib/Set.hpp"
+
+using Kernel::TermList;
 
 namespace Shell {
   class TermAlgebraConstructor {
@@ -37,12 +32,13 @@ namespace Shell {
        arity, and for each argument: the name of its destructor and
        its sort*/
     TermAlgebraConstructor(unsigned functor, Lib::Array<unsigned> destructors);
+    TermAlgebraConstructor(unsigned functor, std::initializer_list<unsigned> destructors);
     TermAlgebraConstructor(unsigned functor, unsigned discriminator, Lib::Array<unsigned> destructors);
     ~TermAlgebraConstructor() {}
 
-    unsigned arity();
-    unsigned argSort(unsigned ith);
-    unsigned rangeSort();
+    unsigned arity() const;
+    TermList argSort(unsigned ith) const;
+    TermList rangeSort() const;
 
     /* True iff one of the arguments has the same sort as the range */
     bool recursive();
@@ -50,15 +46,37 @@ namespace Shell {
     /* The numbers of the constructor and destructors functions in the
        environment signature. These functions should be called only
        after createSymbols() has been called once */
-    unsigned functor() {return _functor; }
+    unsigned functor() const { return _functor; }
     unsigned destructorFunctor(unsigned ith) { return _destructors[ith]; }
 
     bool hasDiscriminator() { return _hasDiscriminator; }
     unsigned discriminator() { ASS(_hasDiscriminator); return _discriminator; }
+    unsigned createDiscriminator();
     void addDiscriminator(unsigned d) { ASS(!_hasDiscriminator); _hasDiscriminator = true; _discriminator = d; }
 
     Lib::vstring discriminatorName();
-    
+ 
+    class IterArgSorts 
+    {
+      TermAlgebraConstructor& _self;
+      unsigned _idx;
+    public:
+      DECL_ELEMENT_TYPE(TermList);
+
+      IterArgSorts(TermAlgebraConstructor& ta) : _self(ta), _idx(0) {}
+
+      bool hasNext() const 
+      { return _idx < _self.arity(); }
+
+      auto next() 
+      { return _self.argSort(_idx++); }
+    };
+
+    Lib::IterTraits<IterArgSorts> iterArgSorts()
+    { return Lib::iterTraits(IterArgSorts(*this)); }
+
+   
+    friend std::ostream& operator<<(std::ostream& out, TermAlgebraConstructor const& self);
   private:
     Kernel::OperatorType* _type;
     unsigned _functor;
@@ -80,15 +98,54 @@ namespace Shell {
        sort), and their cyclicity. If allowsCyclicTerms is false, and
        the option -tar is not set to off, then the acyclicity rule
        will be enforced for terms of this algebra*/
-    TermAlgebra(unsigned sort,
+    TermAlgebra(TermList sort,
                 unsigned n,
                 TermAlgebraConstructor** constrs,
                 bool allowsCyclicTerms = false);
+    TermAlgebra(TermList sort,
+                Lib::Array<TermAlgebraConstructor*> constrs,
+                bool allowsCyclicTerms = false);
+    TermAlgebra(TermList sort,
+                std::initializer_list<TermAlgebraConstructor*> constrs,
+                bool allowsCyclicTerms = false);
     ~TermAlgebra() {}
 
-    unsigned sort() { return _sort; }
-    unsigned nConstructors() { return _n; }
+    unsigned nConstructors() const { return _n; }
+    TermList sort() const { return _sort; }
     TermAlgebraConstructor* constructor(unsigned ith) { ASS_L(ith, _n); return _constrs[ith]; }
+
+    class IterCons 
+    {
+      TermAlgebra& _ta;
+      unsigned _idx;
+    public:
+      DECL_ELEMENT_TYPE(TermAlgebraConstructor*);
+
+      IterCons(TermAlgebra& ta) : _ta(ta), _idx(0) {}
+
+      bool hasNext() const 
+      { return _idx < _ta.nConstructors(); }
+
+      TermAlgebraConstructor* next() 
+      { return _ta.constructor(_idx++); }
+    };
+
+    Lib::IterTraits<IterCons> iterCons()
+    { return Lib::iterTraits(IterCons(*this)); }
+
+
+    /** returns all sorts contained in this term algebra, including the term algebra sort itself. 
+     * consider for example: 
+     *  intList ::= Cons(int,      intList) | Nil
+     * listList ::= Cons(intList, listList) | Nil
+     *
+     * then listList.subSorts() == { int, intList, listLit }
+     */
+    Lib::Set<TermList> subSorts();
+  private:
+    void subSorts(Lib::Set<unsigned>);
+  public:
+
     bool allowsCyclicTerms() { return _allowsCyclicTerms; }
 
     /* True iff the algebra defines an empty domain, which could be
@@ -108,8 +165,9 @@ namespace Shell {
     Lib::vstring getSubtermPredicateName();
     unsigned getSubtermPredicate();
 
+    friend std::ostream& operator<<(std::ostream& out, TermAlgebra const& self);
   private:
-    unsigned _sort;
+    TermList _sort;
     unsigned _n; /* number of constructors */
     bool _allowsCyclicTerms;
     ConstructorArray _constrs;

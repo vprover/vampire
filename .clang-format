@@ -7,7 +7,8 @@ SortIncludes: false
 AlignOperands: false
 BreakBeforeBraces: Stroustrup
 ColumnLimit: 0
-DerivePointerAlignment: true
+DerivePointerAlignment: false
+PointerAlignment: Right
 FixNamespaceComments: true
 IndentCaseLabels: true
 ...

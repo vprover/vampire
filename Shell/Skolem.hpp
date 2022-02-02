@@ -1,7 +1,4 @@
-
 /*
- * File Skolem.hpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -9,12 +6,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file Skolem.hpp
@@ -51,17 +42,17 @@ namespace Shell {
 class Skolem
 {
 public:
-  static FormulaUnit* skolemise(FormulaUnit*);
-  static unsigned addSkolemFunction(unsigned arity, unsigned* domainSorts,
-      unsigned rangeSort, unsigned var);
-  static unsigned addSkolemFunction(unsigned arity, unsigned* domainSorts,
-      unsigned rangeSort, const char* suffix=0);
-  static unsigned addSkolemPredicate(unsigned arity, unsigned* domainSorts, unsigned var);
-  static unsigned addSkolemPredicate(unsigned arity, unsigned* domainSorts, const char* suffix=0);
+  static FormulaUnit* skolemise(FormulaUnit*, bool appify = false);
+  static unsigned addSkolemFunction(unsigned arity, TermList* domainSorts, TermList rangeSort, unsigned var, unsigned taArity = 0);
+  static unsigned addSkolemFunction(unsigned arity, unsigned taArity, TermList* domainSorts, TermList rangeSort, const char* suffix=0);
+  static unsigned addSkolemTypeCon(unsigned arity, unsigned var);
+  static unsigned addSkolemTypeCon(unsigned arity, const char* suffix=0);  
+  static unsigned addSkolemPredicate(unsigned arity, TermList* domainSorts, unsigned var, unsigned taArity = 0);
+  static unsigned addSkolemPredicate(unsigned arity, unsigned taArity, TermList* domainSorts, const char* suffix=0);
 private:
   /** Initialise a Skolem object */
   Skolem () :  _beingSkolemised(0) {}
-  FormulaUnit* skolemiseImpl(FormulaUnit*);
+  FormulaUnit* skolemiseImpl(FormulaUnit*, bool appify);
 
   // create substitution, based on occurrences
   void preskolemise(Formula*);
@@ -100,13 +91,15 @@ private:
   DHMap<unsigned, Formula*> _blockLookup;
 
   /** map var --> sort */
-  DHMap<unsigned,unsigned> _varSorts;
+  DHMap<unsigned,TermList> _varSorts;
 
-  Stack<unsigned> _introducedSkolemFuns;
+  Stack<unsigned> _introducedSkolemSyms;
 
   FormulaUnit* _beingSkolemised;
 
   UnitList* _skolimizingDefinitions;
+
+  bool _appify; // a higher-order solution
 
 }; // class Skolem
 

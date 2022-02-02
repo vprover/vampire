@@ -1,7 +1,4 @@
-
 /*
- * File Matcher.hpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -9,12 +6,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file Matcher.hpp
@@ -35,6 +26,7 @@
 
 #include "Term.hpp"
 #include "TermIterators.hpp"
+#include "SortHelper.hpp"
 
 namespace Kernel {
 
@@ -319,6 +311,27 @@ private:
 };
 
 /**
+ * Matches two binary literals like MatchingUtils::matchArgs,
+ * but with the arguments of one literal swapped.
+ */
+template<class Binder>
+bool MatchingUtils::matchReversedArgs(Literal* base, Literal* instance, Binder& binder)
+{
+  CALL("MatchingUtils::matchReversedArgs/3");
+  ASS_EQ(base->functor(), instance->functor());
+  ASS_EQ(base->arity(), 2);
+  ASS_EQ(instance->arity(), 2);
+
+  if (base->isTwoVarEquality()) {
+    if (!matchTerms(base->twoVarEqSort(), SortHelper::getEqualityArgumentSort(instance), binder)) {
+      return false;
+    }
+  }
+  return matchTerms(*base->nthArgument(0), *instance->nthArgument(1), binder)
+    &&   matchTerms(*base->nthArgument(1), *instance->nthArgument(0), binder);
+}
+
+/**
  * Matches two terms, using @b binder to store and check bindings
  * of base variables.
  *
@@ -330,7 +343,16 @@ bool MatchingUtils::matchArgs(Term* base, Term* instance, Binder& binder)
   CALL("MatchingUtils::matchArgs/3");
   ASS_EQ(base->functor(),instance->functor());
   if(base->shared() && instance->shared()) {
-    if(base->weight() > instance->weight() || !instance->couldArgsBeInstanceOf(base)) {
+    if(base->weight() > instance->weight()) {
+      return false;
+    }
+  }
+  // Note: while this function only cares about the term structure,
+  // for two-variable equalities we need to get the sort of the arguments from the Literal object.
+  if(base->isLiteral() && static_cast<Literal*>(base)->isTwoVarEquality()){
+    Literal* l1 = static_cast<Literal*>(base);
+    Literal* l2 = static_cast<Literal*>(instance);
+    if(!matchTerms(l1->twoVarEqSort(), SortHelper::getEqualityArgumentSort(l2), binder)){
       return false;
     }
   }

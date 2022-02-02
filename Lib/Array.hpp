@@ -1,7 +1,4 @@
-
 /*
- * File Array.hpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -9,12 +6,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file Array.hpp
@@ -29,6 +20,9 @@
 #include "Debug/Assertion.hpp"
 
 #include "Lib/Allocator.hpp"
+#include <initializer_list>
+#include <utility>
+#include <iostream>
 
 namespace Lib {
 
@@ -54,6 +48,20 @@ public:
       _array = array_new<C>(mem, initialCapacity);
     } else {
       _array=0;
+    }
+  }
+
+  inline
+  Array (std::initializer_list<C> contents)
+    : Array(contents.size()) 
+  {
+    auto iter = contents.begin();
+    unsigned i = 0;
+    while(iter != contents.end()) {
+      ASS(i < _capacity)
+      _array[i] = std::move(*iter);
+      iter++;
+      i++;
     }
   }
 
@@ -160,9 +168,26 @@ public:
   size_t size() const { return _capacity; }
 
   inline C* begin() { return _array; }
-
   inline C* end() { return _array+_capacity; }
 
+  inline C const* begin() const { return _array; }
+  inline C const* end()   const { return _array+_capacity; }
+
+
+  friend std::ostream& operator<<(std::ostream& out, Array const& self) 
+  {
+    auto iter = self.begin();
+    out << "[ ";
+    if (iter != self.end()) {
+      out << *iter++;
+      while (iter != self.end()) {
+        out << ", ";
+        out << *iter++;
+      }
+    }
+    out << " ]";
+    return out;
+  }
 
 protected:
   /** current array's capacity */
@@ -233,6 +258,7 @@ public:
       Array<T>::_array[i]=static_cast<T>(0);
     }
   }
+
 };
 
 } // namespace Lib

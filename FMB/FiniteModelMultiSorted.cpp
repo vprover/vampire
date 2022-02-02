@@ -1,7 +1,4 @@
-
 /*
- * File FiniteModelMultiSorted.cpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -9,12 +6,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file FiniteModelMultiSorted.cpp
@@ -24,7 +15,8 @@
  * @author Giles
  */
 
-#include <math.h>
+#include <cmath>
+#include <climits>
 
 #include "Kernel/Term.hpp"
 #include "Kernel/Unit.hpp"
@@ -71,8 +63,12 @@ FiniteModelMultiSorted::FiniteModelMultiSorted(DHMap<unsigned,unsigned> sizes) :
     f_offsets[f]=offsets;
 
     OperatorType* sig = env.signature->getFunction(f)->fnType();
-    unsigned add = _sizes.get(sig->result());
-    for(unsigned i=0;i<arity;i++){ add*= _sizes.get(sig->arg(i)); }
+    unsigned s = sig->result().term()->functor();
+    unsigned add = _sizes.get(s);
+    for(unsigned i=0;i<arity;i++){ 
+      s = sig->arg(i).term()->functor();
+      add*= _sizes.get(s); 
+    }
     
     ASS(UINT_MAX - add > offsets);
     offsets += add;
@@ -86,15 +82,21 @@ FiniteModelMultiSorted::FiniteModelMultiSorted(DHMap<unsigned,unsigned> sizes) :
 
     OperatorType* sig = env.signature->getPredicate(p)->predType();
     unsigned add = 1;
-    for(unsigned i=0;i<arity;i++){ add*= _sizes.get(sig->arg(i)); }
+
+    for(unsigned i=0;i<arity;i++){ 
+      unsigned s = sig->arg(i).term()->functor();
+      int mult = _sizes.get(s); 
+      ASS(mult>0);
+      add*= (mult>0 ? mult : 1);
+    }
 
     ASS(UINT_MAX - add > offsets);
     offsets += add;
   }
   p_interpretation.expand(offsets+1,0);
 
-  sortRepr.ensure(env.sorts->count());
-  for(unsigned s=0;s<env.sorts->count();s++){
+  sortRepr.ensure(env.signature->typeCons());
+  for(unsigned s=0;s<env.signature->typeCons();s++){
     sortRepr[s].ensure(_sizes.get(s)+1);
     for(unsigned i=0;i<=_sizes.get(s);i++){
       sortRepr[s][i] = -1;
@@ -116,11 +118,12 @@ void FiniteModelMultiSorted::addFunctionDefinition(unsigned f, const DArray<unsi
   ASS_EQ(env.signature->functionArity(f),args.size());
 
   if(env.signature->functionArity(f)==0 && !env.signature->getFunction(f)->introduced()){
-    unsigned srt = env.signature->getFunction(f)->fnType()->result();
-    if(sortRepr[srt][res] == -1){
+    TermList srt = env.signature->getFunction(f)->fnType()->result();
+    unsigned srtU = srt.term()->functor();
+    if(sortRepr[srtU][res] == -1){
       //cout << "Rep " << env.signature->functionName(f) << " for ";
       //cout << env.sorts->sortName(srt) << " and " << res << endl;
-      sortRepr[srt][res]=f;
+      sortRepr[srtU][res]=f;
     }
   } 
 
@@ -129,7 +132,8 @@ void FiniteModelMultiSorted::addFunctionDefinition(unsigned f, const DArray<unsi
   OperatorType* sig = env.signature->getFunction(f)->fnType();
   for(unsigned i=0;i<args.size();i++){
     var += mult*(args[i]-1);
-    mult *= _sizes.get(sig->arg(i));
+    unsigned s = sig->arg(i).term()->functor();
+    mult *= _sizes.get(s);
   }
 
   //TODO should be a zero array, should check if previously assigned
@@ -158,12 +162,15 @@ void FiniteModelMultiSorted::addPredicateDefinition(unsigned p, const DArray<uns
 
   ASS_EQ(env.signature->predicateArity(p),args.size());
 
+  //cout << "addPredicateDefinition for " << p << "(" << env.signature->predicateName(p) << ")" << endl;
+
   unsigned var = p_offsets[p];
   unsigned mult = 1;
   OperatorType* sig = env.signature->getPredicate(p)->predType();
   for(unsigned i=0;i<args.size();i++){
     var += mult*(args[i]-1);
-    mult *=_sizes.get(sig->arg(i));
+    unsigned s = sig->arg(i).term()->functor();
+    mult *=_sizes.get(s);
   }
 
   ASS_L(var, p_interpretation.size());
@@ -190,16 +197,16 @@ vstring FiniteModelMultiSorted::toString()
   bool printIntroduced = false;
 
   static DArray<DArray<vstring>> cnames;
-  cnames.ensure(env.sorts->count());
+  cnames.ensure(env.signature->typeCons());
 
   //Output sorts and their sizes 
-  for(unsigned s=0;s<env.sorts->count();s++){
+  for(unsigned s=0;s<env.signature->typeCons();s++){
 
     unsigned size = _sizes.get(s);
     if(size==0) continue;
 
-    vstring sortName = env.sorts->sortName(s);
-    vstring sortNameLabel = (s==Sorts::SRT_BOOL) ? "bool" : sortName;
+    vstring sortName = env.signature->typeConName(s);
+    vstring sortNameLabel = (env.signature->isBoolCon(s)) ? "bool" : sortName;
 
     // Sort declaration
     modelStm << "tff(" << prepend("declare_", sortNameLabel) << ",type,"<<sortName<<":$tType)." <<endl;
@@ -250,6 +257,7 @@ vstring FiniteModelMultiSorted::toString()
     modelStm << ")." << endl << endl;
     }
   }
+
   //Constants
   for(unsigned f=0;f<env.signature->functions();f++){
     if(env.signature->getFunction(f)->usageCnt()==0) continue;
@@ -258,11 +266,12 @@ vstring FiniteModelMultiSorted::toString()
     if(!printIntroduced && env.signature->getFunction(f)->introduced()) continue;
     vstring name = env.signature->functionName(f);
     unsigned res = f_interpretation[f_offsets[f]];
-    unsigned srt = env.signature->getFunction(f)->fnType()->result();
+    TermList srtT = env.signature->getFunction(f)->fnType()->result();
+    unsigned srt = srtT.term()->functor();
     vstring cname = cnames[srt][res];
     if(name == cname) continue;
 
-    vstring sortName = env.sorts->sortName(srt);
+    vstring sortName = env.signature->typeConName(srt);
     modelStm << "tff("<<prepend("declare_", name)<<",type,"<<name<<":"<<sortName<<")."<<endl;
     if(res>0){ 
       modelStm << "tff("<<append(name,"_definition")<<",axiom,"<<name<<" = " << cname << ")."<<endl;
@@ -283,10 +292,10 @@ vstring FiniteModelMultiSorted::toString()
     OperatorType* sig = env.signature->getFunction(f)->fnType();
     modelStm << "tff("<<prepend("declare_", name)<<",type,"<<name<<": ";
     for(unsigned i=0;i<arity;i++){
-      modelStm << env.sorts->sortName(sig->arg(i));
+      modelStm << sig->arg(i).toString();
       if(i+1 < arity) modelStm << " * ";
     }
-    modelStm << " > " << env.sorts->sortName(sig->result()) << ")." << endl; 
+    modelStm << " > " << sig->result().toString() << ")." << endl; 
 
     modelStm << "tff("<<prepend("function_", name)<<",axiom,"<<endl;
 
@@ -300,7 +309,9 @@ vstring FiniteModelMultiSorted::toString()
 fModelLabel:
       for(unsigned i=arity-1;i+1!=0;i--){
 
-        if(args[i]==_sizes.get(sig->arg(i))){
+        TermList argST = sig->arg(i);
+        unsigned argS = argST.term()->functor();
+        if(args[i]==_sizes.get(argS)){
           args[i]=1;
         }
         else{
@@ -312,7 +323,8 @@ fModelLabel:
           unsigned mult=1; 
           for(unsigned i=0;i<args.size();i++){
             var += mult*(args[i]-1);
-            mult *= _sizes.get(sig->arg(i));
+            unsigned s = sig->arg(i).term()->functor();
+            mult *= _sizes.get(s);
           } 
           unsigned res = f_interpretation[var];
 
@@ -327,10 +339,14 @@ fModelLabel:
           modelStm << name << "(";
           for(unsigned j=0;j<arity;j++){
             if(j!=0) modelStm << ",";
-            modelStm << cnames[sig->arg(j)][args[j]];
+            TermList argSortT = sig->arg(j);
+            unsigned argSort = argSortT.term()->functor(); 
+            modelStm << cnames[argSort][args[j]];
           }
           if(res>0){
-            modelStm << ") = " << cnames[sig->result()][res] << endl;
+            TermList resultSortT = sig->result();
+            unsigned resultSort = resultSortT.term()->functor();    
+            modelStm << ") = " << cnames[resultSort][res] << endl;
           }
           else{
             modelStm << ") undefined in model" << endl;
@@ -370,11 +386,12 @@ fModelLabel:
     OperatorType* sig = env.signature->getPredicate(f)->predType();
     modelStm << "tff("<<prepend("declare_", name)<<",type,"<<name<<": ";
     for(unsigned i=0;i<arity;i++){
-      modelStm << env.sorts->sortName(sig->arg(i));
+      TermList argST = sig->arg(i);
+      unsigned argS = argST.term()->functor();      
+      modelStm << env.signature->typeConName(argS);
       if(i+1 < arity) modelStm << " * ";
     }
     modelStm << " > $o )." << endl;
-
 
     modelStm << "tff("<<prepend("predicate_", name)<<",axiom,"<<endl;
 
@@ -387,8 +404,9 @@ fModelLabel:
     bool first=true;
 pModelLabel:
       for(unsigned i=arity-1;i+1!=0;i--){
-
-        if(args[i]==_sizes.get(sig->arg(i))){
+        TermList argST = sig->arg(i);
+        unsigned argS = argST.term()->functor();
+        if(args[i]==_sizes.get(argS)){
           args[i]=1;
         }
         else{
@@ -400,7 +418,8 @@ pModelLabel:
           unsigned mult=1;
           for(unsigned i=0;i<args.size();i++){
             var += mult*(args[i]-1);
-            mult *= _sizes.get(sig->arg(i));
+            unsigned s = sig->arg(i).term()->functor();
+            mult *= _sizes.get(s);
           }
           unsigned res = p_interpretation[var];
           if(res>0){
@@ -415,7 +434,9 @@ pModelLabel:
           modelStm << name << "(";
           for(unsigned j=0;j<arity;j++){
             if(j!=0) modelStm << ",";
-            modelStm << cnames[sig->arg(j)][args[j]]; 
+            TermList argSortT = sig->arg(j);
+            unsigned argSort = argSortT.term()->functor();
+            modelStm << cnames[argSort][args[j]]; 
           }
           modelStm << ")";
           if(res==0){
@@ -456,7 +477,8 @@ unsigned FiniteModelMultiSorted::evaluateGroundTerm(Term* term)
   unsigned mult = 1;
   for(unsigned i=0;i<args.size();i++){
     var += mult*(args[i]-1);
-    mult *=_sizes.get(sig->arg(i));
+    unsigned s = sig->arg(i).term()->functor();
+    mult *=_sizes.get(s);
   }
 #if VDEBUG
   if((term->functor()+1)<f_offsets.size()) ASS_L(var,f_offsets[term->functor()+1]);
@@ -500,7 +522,8 @@ bool FiniteModelMultiSorted::evaluateGroundLiteral(Literal* lit)
   unsigned mult = 1;
   for(unsigned i=0;i<args.size();i++){
     var += mult*(args[i]-1);
-    mult *=_sizes.get(sig->arg(i));
+    unsigned s = sig->arg(i).term()->functor();
+    mult *=_sizes.get(s);
   }  
 
 #if VDEBUG
@@ -619,7 +642,7 @@ bool FiniteModelMultiSorted::evaluate(Formula* formula,unsigned depth)
      isForall = true;
     case EXISTS:
     {
-     Formula::VarList* vs = formula->vars();
+     VList* vs = formula->vars();
      int var = vs->head();
 
      //cout << "Quant " << isForall << " with " << var << endl;
@@ -628,14 +651,15 @@ bool FiniteModelMultiSorted::evaluate(Formula* formula,unsigned depth)
      if(vs->tail()) next = new QuantifiedFormula(formula->connective(),vs->tail(),0,formula->qarg());
      else next = formula->qarg();
 
-     unsigned srt;
+     TermList srt;
      if(!SortHelper::tryGetVariableSort(var,formula,srt)){
        USER_ERROR("Failed to get sort of "+Lib::Int::toString(var)+" in "+formula->toString());
      }
 
-     for(unsigned c=1;c<=_sizes.get(srt);c++){
+     unsigned srtU = srt.term()->functor();
+     for(unsigned c=1;c<=_sizes.get(srtU);c++){
        Substitution s;
-       s.bind(var,getDomainConstant(c,srt));
+       s.bind(var,getDomainConstant(c,srtU));
        Formula* next_sub = SubstHelper::apply(next,s);
        next_sub = SimplifyFalseTrue::simplify(next_sub);
        next_sub = Flattening::flatten(next_sub); 
@@ -722,7 +746,7 @@ bool FiniteModelMultiSorted::evaluate(Formula* formula,unsigned depth)
                 case FORALL:
                 case EXISTS:
             {
-                Formula::VarList* vs = formula->vars();
+                VList* vs = formula->vars();
                 Formula* inner  = formula->qarg();
                 Formula* newInner = partialEvaluate(inner);
                 return new QuantifiedFormula(formula->connective(),vs,0,newInner);

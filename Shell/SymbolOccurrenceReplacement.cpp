@@ -1,7 +1,4 @@
-
 /*
- * File SymbolOccurrenceReplacement.cpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -9,14 +6,10 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 #include "Kernel/Formula.hpp"
+#include "Kernel/Substitution.hpp"
+#include "Kernel/SubstHelper.hpp"
 
 #include "SymbolOccurrenceReplacement.hpp"
 
@@ -37,7 +30,7 @@ Term* SymbolOccurrenceReplacement::process(Term* term) {
             // function symbols, defined inside $let are expected to be
             // disjoint and fresh symbols are expected to be fresh
             ASS_NEQ(sd->getFunctor(), _symbol);
-            ASS_NEQ(sd->getFunctor(), _freshSymbol);
+            //ASS_NEQ(sd->getFunctor(), _freshSymbol);
           }
           return Term::createLet(sd->getFunctor(), sd->getVariables(), process(sd->getBinding()), process(*term->nthArgument(0)), sd->getSort());
 
@@ -49,12 +42,20 @@ Term* SymbolOccurrenceReplacement::process(Term* term) {
           // function symbols, defined inside $let are expected to be
           // disjoint and fresh symbols are expected to be fresh
           ASS_NEQ(sd->getFunctor(), _symbol);
-          ASS_NEQ(sd->getFunctor(), _freshSymbol);
+          //ASS_NEQ(sd->getFunctor(), _freshSymbol);
         }
         return Term::createTupleLet(sd->getFunctor(), sd->getTupleSymbols(), process(sd->getBinding()), process(*term->nthArgument(0)), sd->getSort());
 
       case Term::SF_TUPLE:
         return Term::createTuple(process(TermList(sd->getTupleTerm())).term());
+
+      case Term::SF_MATCH: {
+        DArray<TermList> terms(term->arity());
+        for (unsigned i = 0; i < term->arity(); i++) {
+          terms[i] = process(*term->nthArgument(i));
+        }
+        return Term::createMatch(sd->getSort(), sd->getMatchedSort(), term->arity(), terms.begin());
+      }
 
 #if VDEBUG
         default:
@@ -65,24 +66,26 @@ Term* SymbolOccurrenceReplacement::process(Term* term) {
 
   bool renaming = !_isPredicate && (term->functor() == _symbol);
 
-  Stack<TermList> arguments;
+  TermList* arg = term->args();
+  TermStack arguments;
+  Substitution substitution;
 
   if (renaming) {
-    Formula::VarList::Iterator fvit(_freeVars);
+    VList::Iterator fvit(_argVars);
     while (fvit.hasNext()) {
-      unsigned var = (unsigned)fvit.next();
-      arguments.push(TermList(var, false));
+      unsigned var = fvit.next();
+      substitution.bind(var, process(*arg));
+      arg = arg->next();
     }
-  }
-
-  Term::Iterator it(term);
-  while (it.hasNext()) {
-    arguments.push(process(it.next()));
+  } else {
+    while (!arg->isEmpty()) {
+      arguments.push(process(*arg));
+      arg = arg->next();
+    }  
   }
 
   if (renaming) {
-    unsigned arity = term->arity() + Formula::VarList::length(_freeVars);
-    return Term::create(_freshSymbol, arity, arguments.begin());
+    return SubstHelper::apply(_freshApplication, substitution);
   } else {
     return Term::create(term, arguments.begin());
   }
@@ -106,26 +109,30 @@ Formula* SymbolOccurrenceReplacement::process(Formula* formula) {
 
       bool renaming = _isPredicate && (literal->functor() == _symbol);
 
-      Stack<TermList> arguments;
+      TermList* arg = literal->args();
+      TermStack arguments;
+      Substitution substitution;
 
       if (renaming) {
-        Formula::VarList::Iterator fvit(_freeVars);
+        VList::Iterator fvit(_argVars);
         while (fvit.hasNext()) {
-          arguments.push(TermList((unsigned)fvit.next(), false));
+          unsigned var = fvit.next();
+          substitution.bind(var, process(*arg));
+          arg = arg->next();
         }
-      }
-
-      Term::Iterator lit(literal);
-      while (lit.hasNext()) {
-        arguments.push(process(lit.next()));
+      } else {
+        while (!arg->isEmpty()) {
+          arguments.push(process(*arg));
+          arg = arg->next();
+        }    
       }
 
       Literal* processedLiteral;
       if (renaming) {
-        unsigned arity = literal->arity() + Formula::VarList::length(_freeVars);
-        bool polarity = (bool)literal->polarity();
-        bool commutative = (bool)literal->commutative();
-        processedLiteral = Literal::create(_freshSymbol, arity, polarity, commutative, arguments.begin());
+        processedLiteral = SubstHelper::apply(static_cast<Literal*>(_freshApplication), substitution);
+        if(!literal->polarity()){
+          processedLiteral = Literal::complementaryLiteral(processedLiteral);
+        }
       } else {
         processedLiteral = Literal::create(literal, arguments.begin());
       }
@@ -156,11 +163,12 @@ Formula* SymbolOccurrenceReplacement::process(Formula* formula) {
     case FALSE:
       return formula;
 
-#if VDEBUG
-    default:
+    case NAME:
+    case NOCONN:
       ASSERTION_VIOLATION;
-#endif
     }
+
+  ASSERTION_VIOLATION;
 }
 
 FormulaList* SymbolOccurrenceReplacement::process(FormulaList* formulas) {

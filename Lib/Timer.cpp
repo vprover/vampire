@@ -1,7 +1,4 @@
-
 /*
- * File Timer.cpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -9,12 +6,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions.
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide.
  */
 /**
  * @file Timer.cpp
@@ -23,6 +14,7 @@
 
 #include <ctime>
 #include <unistd.h>
+#include <atomic>
 #include <sys/types.h>
 
 #include "Debug/Assertion.hpp"
@@ -40,19 +32,36 @@
 
 #include "Timer.hpp"
 
+#ifdef __linux__ // preration for checking instruction count
+#include <cstdio>
+#include <sys/ioctl.h>
+#include <linux/perf_event.h>
+#include <asm/unistd.h>
+
+// conveniece wrapper around a syscall (cf. https://linux.die.net/man/2/perf_event_open )
+long perf_event_open(struct perf_event_attr *hw_event, pid_t pid, int cpu, int group_fd, unsigned long flags)
+{
+  int ret = syscall(__NR_perf_event_open, hw_event, pid, cpu,group_fd, flags);
+  return ret;
+}
+
+int perf_fd = -1; // the file descriptor we later read the info from
+
+#endif // #ifdef __linux__
+
 #define DEBUG_TIMER_CHANGES 0
 
 using namespace std;
 using namespace Lib;
 
-bool Timer::s_timeLimitEnforcement = true;
+bool Timer::s_limitEnforcement = true;
 
 #if UNIX_USE_SIGALRM
 
 #include <cerrno>
 #include <unistd.h>
-#include <stdlib.h>
-#include <signal.h>
+#include <cstdlib>
+#include <csignal>
 #include <sys/time.h>
 #include <sys/times.h>
 
@@ -61,34 +70,49 @@ bool Timer::s_timeLimitEnforcement = true;
 #include "Shell/UIHelper.hpp"
 
 int timer_sigalrm_counter=-1;
+long long last_instruction_count_read = -1;
+
+#define MILLION 1000000
+
+unsigned Timer::elapsedMegaInstructions() {
+  return (last_instruction_count_read >= MILLION) ? last_instruction_count_read/MILLION : 0;
+}
 
 long Timer::s_ticksPerSec;
 int Timer::s_initGuarantedMiliseconds;
 
-
-void timeLimitReached()
+[[noreturn]] void limitReached(unsigned char whichLimit)
 {
   using namespace Shell;
 
+  // for debugging crashes of limitReached: it is good to know what was called by vampire proper just before the interrupt
+  // Debug::Tracer::printStack(cout);
+
+  const char* REACHED[3] = {"","Time limit reached!\n","Instruction limit reached!\n"};
+  const char* STATUS[3] = {"","% SZS status Timeout for ","% SZS status InstrOut for "};
+
   // CAREFUL, we might be in a signal handler and potentially at the same time inside Allocator which is not re-entrant
   // so any code below that allocates might corrupt the allocator state.
-  // Therefore, the printing below should avoid allocations!   AAAH oh no this is bad
+  // Therefore, the printing below should avoid allocations!
 
   env.beginOutput();
   reportSpiderStatus('t');
   if (outputAllowed()) {
     addCommentSignForSZS(env.out());
-    env.out() << "Time limit reached!\n";
+    env.out() << REACHED[whichLimit];
 
     if (UIHelper::portfolioParent) { // the boss
       addCommentSignForSZS(env.out());
       env.out() << "Proof not found in time ";
       Timer::printMSString(env.out(),env.timer->elapsedMilliseconds());
+
+      if (last_instruction_count_read > -1) {
+        env.out() << " nor after " << last_instruction_count_read << " (user) instruction executed.";
+      }
       env.out() << endl;
 
       if (szsOutputMode()) {
-        env.out() << "% SZS status Timeout for "
-                        << (env.options ? env.options->problemName().c_str() : "unknown") << endl;
+        env.out() << STATUS[whichLimit] << (env.options ? env.options->problemName().c_str() : "unknown") << endl;
       }
     } else // the actual child
       if (env.statistics) {
@@ -98,6 +122,22 @@ void timeLimitReached()
   env.endOutput();
 
   System::terminateImmediately(1);
+}
+
+std::atomic<unsigned> protectingTimeout{0};
+std::atomic<unsigned char> callLimitReachedLater{0}; // 1 for a timelimit, 2 for an instruction limit
+
+TimeoutProtector::TimeoutProtector() {
+  protectingTimeout++;
+}
+
+TimeoutProtector::~TimeoutProtector() {
+  protectingTimeout--;
+  if (!protectingTimeout && callLimitReachedLater) {
+    unsigned howToCall = callLimitReachedLater;
+    callLimitReachedLater = 0; // to prevent recursion (should limitReached itself reach TimeoutProtector)
+    limitReached(howToCall);
+  }
 }
 
 void
@@ -110,15 +150,32 @@ timer_sigalrm_handler (int sig)
   }
 #endif
 
-
   timer_sigalrm_counter++;
 
-  if (Timer::s_timeLimitEnforcement && env.timeLimitReached()) {
-    char const str[] = "% Time limit enforced by signal handler!!!\n";
-    // Unlike cout and printf, write is signal-safe
-    write(STDERR_FILENO, str, sizeof(str) - 1);
-    timeLimitReached();
+  if(Timer::s_limitEnforcement && env.timeLimitReached()) {
+    if (protectingTimeout) {
+      callLimitReachedLater = 1; // 1 for a time limit
+    } else {
+      limitReached(1); // 1 for a time limit
+    }
   }
+
+#ifdef __linux__
+  if(Timer::s_limitEnforcement && env.options->instructionLimit() && perf_fd >= 0) {
+    // we could also decide not to guard this read by env.options->instructionLimit(),
+    // to get info about instructions burned even when not instruction limiting
+    read(perf_fd, &last_instruction_count_read, sizeof(long long));
+
+    if (last_instruction_count_read >= MILLION*(long long)env.options->instructionLimit()) {
+      Timer::setLimitEnforcement(false);
+      if (protectingTimeout) {
+        callLimitReachedLater = 2; // 2 for an instr limit
+      } else {
+        limitReached(2); // 2 for an instr limit
+      }
+    }
+  }
+#endif
 
 #if DEBUG_TIMER_CHANGES
   if(timer_sigalrm_counter<0) {
@@ -188,6 +245,35 @@ void Lib::Timer::ensureTimerInitialized()
 {
   CALL("Timer::ensureTimerInitialized");
 
+#ifdef __linux__ // if available, initialize the perf reading
+  { // When ensureTimerInitialized is called, env.options->instructionLimit() will not be set yet,
+    // so we do this init unconditionally
+
+    /*
+     * NOTE: we need to do this before initializing the actual timer
+     * (otherwise timer_sigalrm_handler could start asking the uninitialized perf_fd!)
+     */
+
+    struct perf_event_attr pe;
+
+    memset(&pe, 0, sizeof(struct perf_event_attr));
+      pe.type = PERF_TYPE_HARDWARE;
+      pe.size = sizeof(struct perf_event_attr);
+      pe.config = PERF_COUNT_HW_INSTRUCTIONS;
+      pe.disabled = 1;
+      pe.exclude_kernel = 1;
+      pe.exclude_hv = 1;
+
+    perf_fd = perf_event_open(&pe, 0, -1, -1, 0);
+    if (perf_fd == -1) {
+      std::perror("perf_event_open failed (instruction limiting will be disabled)");
+    } else {
+      ioctl(perf_fd, PERF_EVENT_IOC_RESET, 0);
+      ioctl(perf_fd, PERF_EVENT_IOC_ENABLE, 0);
+    }
+  }
+#endif
+
   if(timer_sigalrm_counter!=-1) {
     return;
   }
@@ -224,9 +310,9 @@ void Lib::Timer::deinitializeTimer()
 
 void Lib::Timer::syncClock()
 {
+  static bool reportedProblem = false;
   if(s_initGuarantedMiliseconds==-1) {
     //we're unable to sync clock as we weren't able to obtain number of ticks in the beginning
-    bool reportedProblem = false;
     if(!reportedProblem) {
       reportedProblem = true;
       cerr << "cannot syncronize clock as times() initially returned -1" << endl;
@@ -236,7 +322,6 @@ void Lib::Timer::syncClock()
   int newMilliseconds = guaranteedMilliseconds();
   if(newMilliseconds==-1) {
     //we're unable to sync clock as we cannot get the current time
-    bool reportedProblem = false;
     if(!reportedProblem) {
       reportedProblem = true;
       cerr << "could not syncronize clock as times() returned -1" << endl;

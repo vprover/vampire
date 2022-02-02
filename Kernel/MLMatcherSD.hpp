@@ -1,6 +1,4 @@
 /*
- * File MLMatcherSD.hpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -8,12 +6,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions.
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide.
  */
 
 #ifndef __MLMatcherSD__
@@ -62,12 +54,12 @@ class MLMatcherSD final
      * - All literals in 'alts' must appear in 'instance'
      * - 'instance' must not have duplicate literals (during normal operation this is ensured by Inferences::DuplicateLiteralRemovalISE)
      */
-    void init(Literal* baseLits[],
+    void init(Literal** baseLits,
               unsigned baseLen,
               Clause* instance,
-              LiteralList const* const alts[]);
+              LiteralList const* const *alts);
 
-    void init(Clause* base, Clause* instance, LiteralList const* const alts[])
+    void init(Clause* base, Clause* instance, LiteralList const* const *alts)
     {
       init(base->literals(), base->length(), instance, alts);
     }

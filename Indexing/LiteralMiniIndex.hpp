@@ -1,7 +1,4 @@
-
 /*
- * File LiteralMiniIndex.hpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -9,12 +6,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions.
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide.
  */
 /**
  * @file LiteralMiniIndex.hpp
@@ -116,6 +107,7 @@ public:
   /*static int goodPred;
   static int badPred;*/
 
+
   struct InstanceIterator
       : BaseIterator {
     InstanceIterator(LiteralMiniIndex const& index, Literal* base, bool complementary)
@@ -127,12 +119,10 @@ public:
     {
       CALL("LiteralMiniIndex::InstanceIterator::hasNext/0");
 
-      if (_ready) {
-        return true;
-      }
-      while (_curr->_header == _hdr) {
-        if (MatchingUtils::match(_query, _curr->_lit, _compl)) {
-          _ready = true;
+      if(_ready) { return true; }
+      while(_curr->_header==_hdr) {
+        if(MatchingUtils::match(_query, _curr->_lit, _compl)) {
+          _ready=true;
           return true;
         }
         _curr++;

@@ -1,7 +1,4 @@
-
 /*
- * File SubexpressionIterator.hpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -9,12 +6,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * An iterator over all subexpressions (subterms and subformulas) of a given
@@ -60,6 +51,9 @@ namespace Shell {
        * and B must be negative because of the negation. To handle that correctly,
        * we first propagate the negative polarity from the formula to its underlying
        * boolean term, and then from the boolean terms to their underlying formulas.
+       *
+       * NOTE: this iterator returns sort terms as well. As of 25/11/2021, the only 
+       * use of this iterator is in Property.cpp.
        */
       class Expression {
         public:

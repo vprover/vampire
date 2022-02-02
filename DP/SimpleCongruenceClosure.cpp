@@ -1,7 +1,4 @@
-
 /*
- * File SimpleCongruenceClosure.cpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -9,12 +6,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file SimpleCongruenceClosure.cpp
@@ -128,7 +119,7 @@ void SimpleCongruenceClosure::ConstInfo::resetEquivalences(SimpleCongruenceClosu
   }
 }
 
-#ifdef VDEBUG
+#if VDEBUG
 
 void SimpleCongruenceClosure::ConstInfo::assertValid(SimpleCongruenceClosure& parent, unsigned selfIndex) const
 {
@@ -169,21 +160,7 @@ void SimpleCongruenceClosure::reset()
 {
   CALL("SimpleCongruenceClosure::reset");
 
-#if 0
-  _cInfos.expand(1);
-  _sigConsts.reset();
-  _pairNames.reset();
-  _termNames.reset();
-  _litNames.reset();
-
-  _negEqualities.reset();
-  _posLitConst = getFreshConst();
-  _negLitConst = getFreshConst();
-  _negEqualities.push(CEq(_posLitConst, _negLitConst, 0));
-
-#else
   //do reset that keeps the data for converting terms to constants
-
   unsigned maxConst = getMaxConst();
   for(unsigned i=1; i<=maxConst; i++) {
     _cInfos[i].resetEquivalences(*this, i);
@@ -204,7 +181,6 @@ void SimpleCongruenceClosure::reset()
   _negEqualities.truncate(1);
   ASS_EQ(_negEqualities.top().c1,_posLitConst);
   ASS_EQ(_negEqualities.top().c2,_negLitConst);
-#endif
 
   //no unsat non-equality
   _unsatEqs.reset();
@@ -313,7 +289,8 @@ struct SimpleCongruenceClosure::FOConversionWorker
     else {
       ASS(t.isTerm());
       Term* trm = t.term();
-      res = _parent.getSignatureConst(trm->functor(), SignatureKind::FUNCTION);
+      SignatureKind sk = trm->isSort() ? SignatureKind::TYPECON : SignatureKind::FUNCTION;
+      res = _parent.getSignatureConst(trm->functor(), sk);
       for(size_t i=0; i<childCnt; i++) {
         res = _parent.getPairName(CPair(res, childRes[i]));
       }
@@ -867,7 +844,7 @@ struct SimpleCongruenceClosure::ConstOrderingComparator {
   {
     TermList c1NF = _cInfos[c1].normalForm;
     TermList c2NF = _cInfos[c2].normalForm;
-        
+    
     // we don't care about the order of partial applications 
     // as long as they are smaller than the proper terms
     
@@ -880,7 +857,14 @@ struct SimpleCongruenceClosure::ConstOrderingComparator {
     } else {
       if (c2NF.isEmpty()) {
         return GREATER;
-      } else { // two proper terms
+      } else {
+        // We should not be comparing sorts with terms via the ordering
+        if(c1NF.term()->isSort() && !c2NF.term()->isSort()){
+          return LESS;
+        } else if(c2NF.term()->isSort() && !c1NF.term()->isSort()) {
+          return GREATER;
+        }
+        // two proper terms
         switch(_ord.compare(c1NF,c2NF)) {
           case Ordering::Result::GREATER:
             return GREATER;    
@@ -924,7 +908,11 @@ void SimpleCongruenceClosure::computeConstsNormalForm(unsigned c, NFMap& normalF
       d = pair.first;
     }
     ASS_EQ(_cInfos[d].sigSymbol,t->functor());
-    cInfo.normalForm = TermList(Term::create(t,args.array()));
+    if(t->isSort()){
+      cInfo.normalForm = TermList(AtomicSort::create(static_cast<AtomicSort*>(t),args.array()));
+    } else {
+      cInfo.normalForm = TermList(Term::create(t,args.array()));
+    }
   }
 }
 
@@ -1105,7 +1093,7 @@ void SimpleCongruenceClosure::getModel(LiteralStack& model)
   DEBUG_CODE( assertModelInfoClean(); );  
 }
 
-#ifdef VDEBUG
+#if VDEBUG
 void SimpleCongruenceClosure::assertModelInfoClean() const
 {
   CALL("SimpleCongruenceClosure::assertModelInfoClean");

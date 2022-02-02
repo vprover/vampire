@@ -1,7 +1,4 @@
-
 /*
- * File Property.hpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -9,12 +6,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file Property.hpp (syntactic properties of problems)
@@ -196,6 +187,8 @@ public:
   bool hasFormulas() const { return _axiomFormulas || _goalFormulas; }
   /** Maximal arity of a function in the problem */
   int maxFunArity() const { return _maxFunArity; }
+  /** Maximal arity of a type con in the problem */
+  unsigned maxTypeConArity() const { return _maxTypeConArity; }
   /** Total number of variables in problem */
   int totalNumberOfVariables() const { return _totalNumberOfVariables;}
 
@@ -226,15 +219,22 @@ public:
 
   /** Problem contains an interpreted symbol excluding equality */
   bool hasInterpretedOperations() const { return _hasInterpreted; }
-  bool hasInterpretedEquality() const { return _hasInterpretedEquality; }
+  bool hasNumerals() const { return hasProp(PR_HAS_INTEGERS) || hasProp(PR_HAS_REALS) || hasProp(PR_HAS_RATS); }
   /** Problem contains non-default sorts */
   bool hasNonDefaultSorts() const { return _hasNonDefaultSorts; }
   bool hasFOOL() const { return _hasFOOL; }
+  bool hasCombs() const { return _hasCombs;}
+  bool hasApp() const { return _hasApp; }
+  bool hasAppliedVar() const { return _hasAppliedVar; }
+  bool hasBoolVar() const { return _hasBoolVar; }
+  bool hasLogicalProxy() const { return _hasLogicalProxy; }
+  bool hasPolymorphicSym() const { return _hasPolymorphicSym; }
+  bool quantifiesOverPolymorphicVar() const { return _quantifiesOverPolymorphicVar; }
   bool usesSort(unsigned sort) const { 
     CALL("Property::usesSort");
     if(_usesSort.size() <= sort) return false;
     return _usesSort[sort]; 
-  }
+  } //TODO only utilised by FMB which should eventually update to use the new sorts (as TermLists)
   bool usesSingleSort() const { return _sortsUsed==1; }
   unsigned sortsUsed() const { return _sortsUsed; }
   bool onlyFiniteDomainDatatypes() const { return _onlyFiniteDomainDatatypes; }
@@ -268,7 +268,7 @@ public:
   void scan(Formula*, int polarity);
   void scan(TermList ts,bool unit,bool goal);
 
-  void scanSort(unsigned sort);
+  void scanSort(TermList sort);
 
   char axiomTypes() const;
   char goalTypes() const;
@@ -293,7 +293,6 @@ public:
   int _axiomFormulas;
   int _subformulas;
 
-  int _terms;
   int _unitGoals;
   int _unitAxioms;
   int _hornGoals;
@@ -306,6 +305,7 @@ public:
   int _groundGoals;
   int _maxFunArity;
   int _maxPredArity;
+  unsigned _maxTypeConArity;
 
   /** Number of variables in this clause, used during counting */
   int _variablesInThisClause;
@@ -316,7 +316,7 @@ public:
   /** Symbols in this formula, used during counting 
       Functions are positive, predicates stored in the negative part
   **/
-  DHSet<int>* _symbolsInFormula;
+  DHSet<int> _symbolsInFormula;
 
   /** Bitwise OR of all properties of this problem */
   uint64_t _props;
@@ -326,7 +326,6 @@ public:
 
   /** Problem contains an interpreted symbol including equality */
   bool _hasInterpreted;
-  bool _hasInterpretedEquality;
   /** Problem contains non-default sorts */
   bool _hasNonDefaultSorts;
   unsigned _sortsUsed;
@@ -339,6 +338,13 @@ public:
   DHSet<Theory::MonomorphisedInterpretation> _polymorphicInterpretations;
 
   bool _hasFOOL;
+  bool _hasCombs;
+  bool _hasApp;
+  bool _hasAppliedVar;
+  bool _hasBoolVar;
+  bool _hasLogicalProxy;
+  bool _hasPolymorphicSym;
+  bool _quantifiesOverPolymorphicVar;
 
   bool _onlyFiniteDomainDatatypes;
   bool _knownInfiniteDomain;

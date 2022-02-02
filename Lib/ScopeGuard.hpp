@@ -1,6 +1,4 @@
 /*
- * File ScopeGuard.hpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -8,12 +6,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions.
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide.
  */
 
 #ifndef SCOPEGUARD_HPP
@@ -45,7 +37,7 @@ class ScopeGuard final
     ScopeGuard& operator=(ScopeGuard const&) = delete;
 
     ScopeGuard(ScopeGuard&& other)
-      : active{exchange(other.active, false)}
+      : active{std::exchange(other.active, false)}
       , f(std::move(other.f))
     { }
 
@@ -121,7 +113,8 @@ ScopeGuard<Callable> make_scope_guard(Callable&& f)
 #define ON_SCOPE_EXIT(stmt) \
   auto ON_SCOPE_EXIT_CONCAT(on_scope_exit_guard_on_line_,__LINE__) = make_scope_guard([&]() { stmt; });
 
-// We don't need make_scope_guard in C++14 or later:
+// We don't need make_scope_guard in C++17 or later:
+// feature is called "class template argument deduction"
 /*
 #define ON_SCOPE_EXIT(stmt) \
   ScopeGuard ON_SCOPE_EXIT_CONCAT(on_scope_exit_guard_on_line_,__LINE__){[&]() { stmt; }};

@@ -1,7 +1,4 @@
-
 /*
- * File ForwardLiteralRewriting.cpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -9,12 +6,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file ForwardLiteralRewriting.cpp
@@ -41,7 +32,7 @@ void ForwardLiteralRewriting::attach(SaturationAlgorithm* salg)
   CALL("ForwardLiteralRewriting::attach");
   ForwardSimplificationEngine::attach(salg);
   _index=static_cast<RewriteRuleIndex*>(
-	  _salg->getIndexManager()->request(REWRITE_RULE_SUBST_TREE) );
+    _salg->getIndexManager()->request(REWRITE_RULE_SUBST_TREE) );
 }
 
 void ForwardLiteralRewriting::detach()
@@ -76,7 +67,7 @@ bool ForwardLiteralRewriting::perform(Clause* cl, Clause*& replacement, ClauseIt
       }
 
       if(cl==qr.clause || cl==counterpart) {
-	continue;
+  continue;
       }
       
       Literal* rhs0 = (qr.literal==(*qr.clause)[0]) ? (*qr.clause)[1] : (*qr.clause)[0];
@@ -90,7 +81,7 @@ bool ForwardLiteralRewriting::perform(Clause* cl, Clause*& replacement, ClauseIt
       Literal* rhsS=qr.substitution->applyToBoundResult(rhs);
 
       if(ordering.compare(lit, rhsS)!=Ordering::GREATER) {
-	continue;
+  continue;
       }
 
       Clause* premise=lit->isNegative() ? qr.clause : counterpart;
@@ -103,7 +94,7 @@ bool ForwardLiteralRewriting::perform(Clause* cl, Clause*& replacement, ClauseIt
       /*
       Clause* reductionPremise=lit->isNegative() ? counterpart : qr.clause;
       if(reductionPremise==premise) {
-	reductionPremise=0;
+  reductionPremise=0;
       }
       */
 
@@ -113,10 +104,10 @@ bool ForwardLiteralRewriting::perform(Clause* cl, Clause*& replacement, ClauseIt
 
       unsigned next=1;
       for(unsigned i=0;i<clen;i++) {
-	Literal* curr=(*cl)[i];
-	if(curr!=lit) {
-	  (*res)[next++] = curr;
-	}
+  Literal* curr=(*cl)[i];
+  if(curr!=lit) {
+    (*res)[next++] = curr;
+  }
       }
       ASS_EQ(next,clen);
 

@@ -1,6 +1,4 @@
 /*
- * File RequestedIndex.hpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -8,12 +6,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions.
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide.
  */
 
 #ifndef REQUESTEDINDEX_HPP
@@ -43,9 +35,9 @@ class RequestedIndex final
 
     // Moving transfers ownership of the index
     RequestedIndex(RequestedIndex&& other) noexcept
-      : _index{exchange(other._index, nullptr)}
+      : _index{std::exchange(other._index, nullptr)}
       , _type{other._type}
-      , _indexManager{exchange(other._indexManager, nullptr)}
+      , _indexManager{std::exchange(other._indexManager, nullptr)}
     { }
 
     // Moving transfers ownership of the index

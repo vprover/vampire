@@ -1,7 +1,4 @@
-
 /*
- * File Problem.hpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -9,12 +6,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file Kernel/Problem.hpp
@@ -118,9 +109,16 @@ public:
   bool hasEquality() const;
   /** Problem contains an interpreted symbol including equality */
   bool hasInterpretedOperations() const;
-  bool hasInterpretedEquality() const;
+  bool hasNumerals() const; // meaning the interpreted constants of arithmetic theories, e.g. 1,2, 3.1415,...
   /** Problem contains let terms or formulas, or term if-then-else */
   bool hasFOOL() const;
+  bool hasCombs() const;
+  bool hasLogicalProxy() const;
+  bool hasBoolVar() const;
+  bool hasApp() const;
+  bool hasAppliedVar() const;
+  bool hasPolymorphicSym() const;
+  bool quantifiesOverPolymorphicVar() const;
 
   bool mayHaveEquality() const { return _mayHaveEquality; }
   bool mayHaveFormulas() const { return _mayHaveFormulas; }
@@ -194,9 +192,10 @@ public:
   void collectPredicates(Stack<unsigned>& acc) const;
 
 
+#if VDEBUG
   //debugging functions
-
   void assertValid();
+#endif
 
 private:
 
@@ -224,8 +223,15 @@ private:
   mutable MaybeBool _hasFormulas;
   mutable MaybeBool _hasEquality;
   mutable MaybeBool _hasInterpretedOperations;
+  mutable MaybeBool _hasNumerals;
   mutable MaybeBool _hasFOOL;
-  mutable MaybeBool _hasInterpretedEquality;
+  mutable MaybeBool _hasCombs;
+  mutable MaybeBool _hasApp;
+  mutable MaybeBool _hasAppliedVar;
+  mutable MaybeBool _hasLogicalProxy;
+  mutable MaybeBool _hasPolymorphicSym;
+  mutable MaybeBool _quantifiesOverPolymorphicVar;
+  mutable MaybeBool _hasBoolVar; 
 
   SMTLIBLogic _smtlibLogic;
 

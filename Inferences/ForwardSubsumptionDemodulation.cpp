@@ -1,6 +1,4 @@
 /*
- * File ForwardSubsumptionDemodulation.cpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -8,12 +6,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions.
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide.
  */
 
 #include "ForwardSubsumptionDemodulation.hpp"
@@ -31,7 +23,7 @@
 #include "Kernel/Matcher.hpp"
 #include "Kernel/Ordering.hpp"
 #include "Kernel/Signature.hpp"
-#include "Kernel/Sorts.hpp"
+#include "Kernel/OperatorType.hpp"
 #include "Kernel/SubstHelper.hpp"
 #include "Kernel/Term.hpp"
 #include "Lib/ScopeGuard.hpp"
@@ -266,7 +258,7 @@ bool ForwardSubsumptionDemodulation::perform(Clause* cl, Clause*& replacement, C
         ASS(eqLit->isEquality());
         ASS(eqLit->isPositive());
 
-        unsigned const eqSort = SortHelper::getEqualityArgumentSort(eqLit);
+        TermList const eqSort = SortHelper::getEqualityArgumentSort(eqLit);
 
         Ordering::Result const eqArgOrder = ordering.getEqualityArgumentOrder(eqLit);
         bool const preordered = (eqArgOrder == Ordering::LESS) || (eqArgOrder == Ordering::GREATER);
@@ -301,8 +293,8 @@ bool ForwardSubsumptionDemodulation::perform(Clause* cl, Clause*& replacement, C
         // Must be larger than the rhs after substitution.
         //
         // Three possible outcomes:
-        // 1. No LHS (if INCOMPARABLE and different variables)
-        // 2. One LHS
+        // 1. No LHS (if INCOMPARABLE and no side contains all variables of the other side)
+        // 2. One LHS (oriented, or INCOMPARABLE with exactly one variable-free side)
         // 3. Two LHSs (INCOMPARABLE and same variables)
         static vvector<TermList> lhsVector;
         lhsVector.clear();
@@ -412,7 +404,10 @@ bool ForwardSubsumptionDemodulation::perform(Clause* cl, Clause*& replacement, C
             continue;
           }
 
-          NonVariableIterator nvi(dlit);
+          // TODO higher-order support not yet implemented; see forward demodulation
+          //      (maybe it's enough to just use the different iterator)
+          ASS(!env.options->combinatorySup());
+          NonVariableNonTypeIterator nvi(dlit);
           while (nvi.hasNext()) {
             TermList lhsS = nvi.next();  // named 'lhsS' because it will be matched against 'lhs'
 
@@ -425,16 +420,17 @@ bool ForwardSubsumptionDemodulation::perform(Clause* cl, Clause*& replacement, C
               continue;
             }
 
-            if (SortHelper::getTermSort(lhsS, dlit) != eqSort) {
-              // Why do we need this check?
-              // Assume we rewrite using the equality X0 = c,
-              // where X0 is a variable and c is a constant.
-              // Then lhs = X0. Now assume lhsS = f(c).
-              // We can match lhs to lhsS and have f(c) > c, so we would rewrite f(c) -> c.
-              // But matchTerms below doesn't know anything about sorts,
-              // so here we need to check that the return value of f(c) is of the same sort as the equality.
-              continue;
-            }
+            // if (SortHelper::getTermSort(lhsS, dlit) != eqSort) {
+            //   // Why do we need this check?
+            //   // Assume we rewrite using the equality X0 = c,
+            //   // where X0 is a variable and c is a constant.
+            //   // Then lhs = X0. Now assume lhsS = f(c).
+            //   // We can match lhs to lhsS and have f(c) > c, so we would rewrite f(c) -> c.
+            //   // But matchTerms below doesn't know anything about sorts,
+            //   // so here we need to check that the return value of f(c) is of the same sort as the equality.
+            //   continue;
+            // }
+            TermList const lhsSSort = SortHelper::getTermSort(lhsS, dlit);
 
             ASS_LE(lhsVector.size(), 2);
             for (TermList lhs : lhsVector) {
@@ -452,6 +448,10 @@ bool ForwardSubsumptionDemodulation::perform(Clause* cl, Clause*& replacement, C
 
               binder.reset();  // reset binder to state after subsumption check
               if (!MatchingUtils::matchTerms(lhs, lhsS, binder)) {
+                continue;
+              }
+              // If lhs is a variable, we need to match its sort separately.
+              if (lhs.isVar() && !MatchingUtils::matchTerms(eqSort, lhsSSort, binder)) {
                 continue;
               }
 
@@ -572,7 +572,7 @@ bool ForwardSubsumptionDemodulation::perform(Clause* cl, Clause*& replacement, C
                 }
                 // We could not show redundancy with dlit alone,
                 // so now we have to look at the other literals of cl
-                Literal* eqLitS = Literal::createEquality(true, lhsS, rhsS, eqSort);
+                Literal* eqLitS = Literal::createEquality(true, lhsS, rhsS, lhsSSort);
                 ASS_EQ(eqLitS, binder.applyTo(eqLit));
                 for (unsigned li2 = 0; li2 < cl->length(); li2++) {
                   // skip dlit (already checked with r_cmp_t above) and matched literals (i.e., CΘ)

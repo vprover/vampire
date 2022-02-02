@@ -1,7 +1,4 @@
-
 /*
- * File EqualityProxy.hpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -9,12 +6,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file EqualityProxy.hpp
@@ -29,6 +20,7 @@
 #include "Lib/Array.hpp"
 
 #include "Kernel/Term.hpp"
+#include "Kernel/OperatorType.hpp"
 
 #include "Options.hpp"
 
@@ -37,6 +29,11 @@ namespace Shell {
 using namespace Lib;
 using namespace Kernel;
 
+// Polymorphic version of equality proxy transformation.
+// When working with a monomorphic problem, both the poly and the mono
+// versions can be used. Poly is default. 
+// The one exception is when using instGen calculus which has not 
+// been tested with polymrphism. In this case, mono version must be used
 
 /**
  * Applies the equality proxy transformation to the problem.
@@ -70,31 +67,27 @@ public:
   void apply(UnitList*& units);
   Clause* apply(Clause* cl);
 private:
-  void addLocalAxioms(UnitList*& units, unsigned sort);
+  void addLocalAxioms(UnitList*& units);
   void addAxioms(UnitList*& units);
   void addCongruenceAxioms(UnitList*& units);
-  bool getArgumentEqualityLiterals(unsigned cnt, LiteralStack& lits, Stack<TermList>& vars1,
-      Stack<TermList>& vars2, OperatorType* symbolType, bool skipSortsWithoutEquality);
+  void getArgumentEqualityLiterals(unsigned cnt, LiteralStack& lits, Stack<TermList>& vars1,
+      Stack<TermList>& vars2, OperatorType* symbolType);
   Literal* apply(Literal* lit);
-  Literal* makeProxyLiteral(bool polarity, TermList arg0, TermList arg1, unsigned sort);
+  Literal* makeProxyLiteral(bool polarity, TermList arg0, TermList arg1, TermList sort);
 
-  bool haveProxyPredicate(unsigned sort) const;
-  unsigned getProxyPredicate(unsigned sort);
+  unsigned getProxyPredicate();
   Clause* createEqProxyAxiom(const LiteralStack& literalIt);
 
   /** the equality proxy option value, passed in the constructor */
   Options::EqualityProxy _opt;
 
-  /**
-   * Proxy predicate numbers for each sort. If element on at the position
-   * of a predicate is zero, it means the proxy predicate for that sort was not
-   * added yet.
-   */
-  static ZIArray<unsigned> s_proxyPredicates;
-  /** equality proxy predicate sorts */
-  static DHMap<unsigned,unsigned> s_proxyPredicateSorts;
+  bool _addedPred;
+  unsigned _proxyPredicate;
+
   /** array of proxy definitions E(x,y) <=> x = y  */
-  static ZIArray<Unit*> s_proxyPremises;
+  //static ZIArray<Unit*> s_proxyPremises;
+  Unit* _defUnit;
+
 };
 
 };

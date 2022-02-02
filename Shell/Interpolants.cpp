@@ -1,7 +1,4 @@
-
 /*
- * File Interpolants.cpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -9,12 +6,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file Interpolants.cpp
@@ -91,7 +82,7 @@ VirtualIterator<Unit*> Interpolants::getParents(Unit* u)
 
 struct Interpolants::ItemState
 {
-  ItemState() {}
+  ItemState() : parCnt(0), inheritedColor(COLOR_INVALID), interpolant(0), leftInts(0), rightInts(0), processed(false), _us(nullptr), _usColor(COLOR_INVALID) {}
 
   ItemState(Unit* us) : parCnt(0), inheritedColor(COLOR_TRANSPARENT), interpolant(0),
       leftInts(0), rightInts(0), processed(false), _us(us)
@@ -506,8 +497,7 @@ void Interpolants::generateInterpolant(ItemState& st)
 
   TRACE(cout << "GenerateInterpolant for " << u->toString() << endl);
 
-  Color color=st.usColor();
-  ASS_EQ(color, COLOR_TRANSPARENT);
+  ASS_EQ(st.usColor(), COLOR_TRANSPARENT);
 
   Formula* interpolant;
   Formula* unitFormula=u->getFormula();//st.us().prop());

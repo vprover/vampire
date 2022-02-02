@@ -1,0 +1,5 @@
+--links=no
+--exclude=doc
+--exclude=build
+--exclude=regressions
+--exclude=scripts

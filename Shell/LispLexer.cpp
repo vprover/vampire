@@ -1,7 +1,4 @@
-
 /*
- * File LispLexer.cpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -9,12 +6,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file LispLexer.cpp
@@ -189,7 +180,8 @@ void LispLexer::readQuotedString(Token& token, char opening, char closing, char 
   CALL("LispLexer::readQuotedString");
 
   bool escape=false;
-  saveLastChar();
+  // Don't save this char so that the final string doesn't contain the quote symbol
+  //saveLastChar();
 
   while (readNextChar()) {
     if (_lastCharacter == escapeChar && !escape && closing != escapeChar) {
@@ -200,7 +192,8 @@ void LispLexer::readQuotedString(Token& token, char opening, char closing, char 
         readNextChar();
       }
       else{
-        saveLastChar();
+        // Don't save this char so that the final string doesn't contain the quote symbol
+        //saveLastChar();
         saveTokenText(token);
         readNextChar();
         token.tag = TT_NAME;

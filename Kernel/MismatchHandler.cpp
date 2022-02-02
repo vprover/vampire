@@ -1,7 +1,4 @@
-
 /*
- * File MismatchHandler.cpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -9,12 +6,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file MismatchHandler.cpp
@@ -32,6 +23,7 @@
 #include "RobSubstitution.hpp"
 
 #include "MismatchHandler.hpp"
+#include "Shell/UnificationWithAbstractionConfig.hpp"
 
 namespace Kernel
 {
@@ -44,7 +36,7 @@ bool UWAMismatchHandler::handle(RobSubstitution* sub, TermList t1, unsigned inde
     TermList tt2 = sub->apply(t2,index2);
 
   if(checkUWA(tt1,tt2)){
-    return introduceConstraint(sub,t1,index1,t2,index2);
+    return introduceConstraint(t1,index1,t2,index2);
   }
   return false;
 }
@@ -55,8 +47,8 @@ bool UWAMismatchHandler::checkUWA(TermList t1, TermList t2)
 
     if(!(t1.isTerm() && t2.isTerm())) return false;
 
-    bool t1Interp = (theory->isInterpretedFunction(t1) || theory->isInterpretedConstant(t1));
-    bool t2Interp = (theory->isInterpretedFunction(t2) || theory->isInterpretedConstant(t2));
+    bool t1Interp = Shell::UnificationWithAbstractionConfig::isInterpreted(t1.term());
+    bool t2Interp = Shell::UnificationWithAbstractionConfig::isInterpreted(t2.term());
     bool bothNumbers = (theory->isInterpretedConstant(t1) && theory->isInterpretedConstant(t2));
 
     bool okay = true;
@@ -85,11 +77,20 @@ bool UWAMismatchHandler::checkUWA(TermList t1, TermList t2)
    return okay;
 }
 
-bool UWAMismatchHandler::introduceConstraint(RobSubstitution* subst,TermList t1,unsigned index1, TermList t2,unsigned index2)
+bool UWAMismatchHandler::introduceConstraint(TermList t1,unsigned index1, TermList t2,unsigned index2)
 {
   auto constraint = make_pair(make_pair(t1,index1),make_pair(t2,index2));
   constraints.push(constraint);
   return true;
+}
+
+bool HOMismatchHandler::handle(RobSubstitution* sub, TermList t1, unsigned index1, TermList t2, unsigned index2)
+{
+  CALL("HOMismatchHandler::handle");
+
+  auto constraint = make_pair(make_pair(t1,index1),make_pair(t2,index2));
+  constraints.push(constraint);
+  return true; 
 }
 
 }

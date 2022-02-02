@@ -1,7 +1,4 @@
-
 /*
- * File FormulaBuilder.hpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -9,12 +6,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file FormulaBuilder.hpp
@@ -27,7 +18,7 @@
 #include <ostream>
 #include <climits>
 
-#include "Helper.hpp"
+//#include "Helper.hpp"
 
 #include "Lib/VString.hpp"
 
@@ -375,7 +366,7 @@ public:
   Formula replaceConstant(Formula f, Term replaced, Term target);
   AnnotatedFormula replaceConstant(AnnotatedFormula f, Term replaced, Term target);
 private:
-  FBHelper _aux;
+  // FBHelper _aux;
 
   friend class StringIterator;
   friend class Formula;
@@ -533,14 +524,14 @@ public:
 
   operator Kernel::TermList() const;
   explicit Term(Kernel::TermList t);
-  explicit Term(Kernel::TermList t, ApiHelper aux);
+  // explicit Term(Kernel::TermList t, ApiHelper aux);
 
   bool operator==(const Term& o) const {
     return toString()==o.toString();
   }
 private:
   size_t content;
-  ApiHelper _aux;
+  // ApiHelper _aux;
 
   friend class FormulaBuilder;
   friend class FBHelperCore;
@@ -626,14 +617,14 @@ public:
 
   operator Kernel::Formula*() const { return form; }
   explicit Formula(Kernel::Formula* f) : form(f) {}
-  explicit Formula(Kernel::Formula* f, ApiHelper aux) : form(f), _aux(aux) {}
+  // explicit Formula(Kernel::Formula* f, ApiHelper aux) : form(f), _aux(aux) {}
 
   bool operator==(const Formula& o) const {
     return toString()==o.toString();
   }
 private:
   Kernel::Formula* form;
-  ApiHelper _aux;
+  // ApiHelper _aux;
 
   friend class FormulaBuilder;
   friend class FBHelperCore;
@@ -685,7 +676,7 @@ public:
 
   operator Kernel::Unit*() const { return unit; }
   explicit AnnotatedFormula(Kernel::Unit* fu) : unit(fu) {}
-  explicit AnnotatedFormula(Kernel::Unit* fu, ApiHelper aux) : unit(fu), _aux(aux) {}
+  // explicit AnnotatedFormula(Kernel::Unit* fu, ApiHelper aux) : unit(fu), _aux(aux) {}
 
   bool operator==(const AnnotatedFormula& o) const {
     return toString()==o.toString();
@@ -694,7 +685,7 @@ private:
   static void assignName(AnnotatedFormula& form, Lib::vstring name);
 
   Kernel::Unit* unit;
-  ApiHelper _aux;
+  // ApiHelper _aux;
 
   friend class FormulaBuilder;
   friend class Problem;

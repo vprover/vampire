@@ -1,14 +1,20 @@
+/*
+ * This file is part of the source code of the software program
+ * Vampire. It is protected by applicable
+ * copyright laws.
+ *
+ * This source code is distributed under the licence found here
+ * https://vprover.github.io/license.html
+ * and in the source directory
+ */
 #include "Debug/Tracer.hpp"
 #include "Test/SyntaxSugar.hpp"
 #include "Test/UnitTesting.hpp"
 
 #include <climits>
 
-#define UNIT_ID QuotientE
 #define DEBUG(...) //DBG(__VA_ARGS__)
 #define DEBUGE(x) DEBUG(#x, " = ", x)
-
-UT_CREATE;
 
 IntegerConstantType quotientE(int lhs, int rhs) {
   return IntegerConstantType(lhs).quotientE(rhs);
@@ -42,10 +48,10 @@ TEST_FUN(check_spec) {
       try {
         q = quotientE(i, j);
         DEBUG("quotientE (", i, ", ", j, ")\t= ", q);
-      } catch (const MachineArithmeticException &) {
+      } catch (MachineArithmeticException&) {
         DEBUG("quotientE (", i, ", ", j, ")\t= MachineArithmeticException");
         bothOK = false;
-      } catch (DivByZeroException) {
+      } catch (DivByZeroException&) {
         ASS_EQ(j, 0);
         bothOK = false;
       }
@@ -54,10 +60,10 @@ TEST_FUN(check_spec) {
       try {
         r = remainderE(i, j);
         DEBUG("remainderE(", i, ", ", j, ")\t= ", r);
-      } catch (const MachineArithmeticException &) {
+      } catch (MachineArithmeticException&) {
         DEBUG("remainderE(", i, ", ", j, ")\t= MachineArithmeticException");
         bothOK = false;
-      } catch (DivByZeroException) {
+      } catch (DivByZeroException&) {
         ASS_EQ(j, 0);
         bothOK = false;
       }
@@ -114,7 +120,7 @@ void checkQuotientE(Const i, Const j) {
     DEBUG("remainderE(", i, ", ", j, ")\t= ", r);
     ASS_EQ(q * j + r, i)
     ASS(Const(0) <= r && r < j.abs())
-  } catch (DivByZeroException) {
+  } catch (DivByZeroException&) {
     ASS_EQ(j,Const(0))
   }
 }

@@ -1,7 +1,4 @@
-
 /*
- * File InterpretedNormalizer.cpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -9,12 +6,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file InterpretedNormalizer.cpp
@@ -213,7 +204,7 @@ private:
 /**
  * Class that performs literal transformations
  */
-class InterpretedNormalizer::NLiteralTransformer : private TermTransformer
+class InterpretedNormalizer::NLiteralTransformer : public TermTransformer
 {
 public:
   CLASS_NAME(InterpretedNormalizer::NLiteralTransformer);
@@ -259,7 +250,7 @@ public:
   {
     CALL("InterpretedNormalizer::NLiteralTransformer::apply");
 
-    if (!lit->isEquality() && theory->isInterpretedPredicate(lit))
+    if (!lit->isEquality() && theory->isInterpretedPredicate(lit->functor()))
     {
       Interpretation itp = theory->interpretPredicate(lit);
       if(isTrivialInterpretation(itp)) {
@@ -277,10 +268,13 @@ public:
       litRes = transl->apply(litRes);
     }
   }
+
+  Formula* transform(Formula* f) override;
+
 protected:
   using TermTransformer::transform;
 
-  virtual TermList transformSubterm(TermList trm)
+  TermList transformSubterm(TermList trm) override
   {
     CALL("InterpretedNormalizer::NLiteralTransformer::transformSubterm");
 
@@ -435,6 +429,12 @@ protected:
 private:
   NLiteralTransformer* _litTransf;
 };
+
+Formula* InterpretedNormalizer::NLiteralTransformer::transform(Formula* f)
+{
+  NFormulaTransformer ttft(this);
+  return ttft.transform(f);
+}
 
 //////////////////////////
 // InterpretedNormalizer

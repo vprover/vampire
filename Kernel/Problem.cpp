@@ -1,7 +1,4 @@
-
 /*
- * File Problem.cpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -9,12 +6,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file Kernel/Problem.cpp
@@ -307,8 +298,15 @@ void Problem::readDetailsFromProperty() const
   _hasFormulas = _property->hasFormulas();
   _hasEquality = _property->equalityAtoms()!=0;
   _hasInterpretedOperations = _property->hasInterpretedOperations();
+  _hasNumerals = _property->hasNumerals();
   _hasFOOL = _property->hasFOOL();
-  _hasInterpretedEquality = _property->hasInterpretedEquality();
+  _hasCombs = _property->hasCombs();
+  _hasApp = _property->hasApp();
+  _hasAppliedVar = _property->hasAppliedVar();
+  _hasLogicalProxy = _property->hasLogicalProxy();
+  _hasPolymorphicSym = _property->hasPolymorphicSym();
+  _quantifiesOverPolymorphicVar = _property->quantifiesOverPolymorphicVar();
+  _hasBoolVar = _property->hasBoolVar();
 
   _mayHaveFormulas = _hasFormulas.value();
   _mayHaveEquality = _hasEquality.value();
@@ -328,8 +326,11 @@ void Problem::invalidateEverything()
   _hasFormulas = MaybeBool::UNKNOWN;
   _hasEquality = MaybeBool::UNKNOWN;
   _hasInterpretedOperations = MaybeBool::UNKNOWN;
+  _hasNumerals = MaybeBool::UNKNOWN;
   _hasFOOL = MaybeBool::UNKNOWN;
-  _hasInterpretedEquality = MaybeBool::UNKNOWN;
+  _hasCombs = MaybeBool::UNKNOWN;
+  _hasApp = MaybeBool::UNKNOWN;
+  _hasAppliedVar = MaybeBool::UNKNOWN;
 
   _mayHaveFormulas = true;
   _mayHaveEquality = true;
@@ -350,8 +351,14 @@ void Problem::invalidateByRemoval()
   _hasFormulas.mightBecameFalse();
   _hasEquality.mightBecameFalse();
   _hasInterpretedOperations.mightBecameFalse();
+  _hasNumerals.mightBecameFalse();
   _hasFOOL.mightBecameFalse();
-  _hasInterpretedEquality.mightBecameFalse();
+  _hasCombs.mightBecameFalse();
+  _hasAppliedVar.mightBecameFalse();
+  _hasLogicalProxy.mightBecameFalse();
+  _hasPolymorphicSym.mightBecameFalse();
+  _quantifiesOverPolymorphicVar.mightBecameFalse();
+  _hasBoolVar.mightBecameFalse();
 }
 
 /**
@@ -397,12 +404,12 @@ bool Problem::hasInterpretedOperations() const
   return _hasInterpretedOperations.value();
 }
 
-bool Problem::hasInterpretedEquality() const
+bool Problem::hasNumerals() const
 {
-  CALL("Problem::hasInterpretedEquality");
+  CALL("Problem::hasNumerals");
 
-  if(!_hasInterpretedEquality.known()) { refreshProperty(); }
-  return _hasInterpretedEquality.value();
+  if(!_hasNumerals.known()) { refreshProperty(); }
+  return _hasNumerals.value();
 }
 
 bool Problem::hasFOOL() const
@@ -413,6 +420,63 @@ bool Problem::hasFOOL() const
   return _hasFOOL.value();
 }
 
+bool Problem::hasCombs() const
+{
+  CALL("Problem::hasCombs");
+
+  if(!_hasCombs.known()) { refreshProperty(); }
+  return _hasCombs.value();
+}
+
+
+bool Problem::hasApp() const
+{
+  CALL("Problem::hasApp");
+
+  if(!_hasApp.known()) { refreshProperty(); }
+  return _hasApp.value();
+}
+
+bool Problem::hasAppliedVar() const
+{
+  CALL("Problem::hasAppliedVar");
+
+  if(!_hasAppliedVar.known()) { refreshProperty(); }
+  return _hasAppliedVar.value();
+}
+
+bool Problem::hasBoolVar() const
+{
+  CALL("Problem::hasBoolVar");
+
+  if(!_hasBoolVar.known()) { refreshProperty(); }
+  return _hasBoolVar.value();
+}
+
+
+bool Problem::hasLogicalProxy() const
+{
+  CALL("Problem::hasLogicalProxy");
+
+  if(!_hasLogicalProxy.known()) { refreshProperty(); }
+  return _hasLogicalProxy.value();
+}
+
+bool Problem::hasPolymorphicSym() const
+{
+  CALL("Problem::hasPolymorphicSym");
+
+  if(!_hasPolymorphicSym.known()) { refreshProperty(); }
+  return _hasPolymorphicSym.value();
+}
+
+bool Problem::quantifiesOverPolymorphicVar() const
+{
+  CALL(" Problem::quantifiesOverPolymorphicVar");
+
+  if(!_quantifiesOverPolymorphicVar.known()) { refreshProperty(); }
+  return _quantifiesOverPolymorphicVar.value();
+}
 
 ///////////////////////
 // utility functions
@@ -435,10 +499,10 @@ void Problem::collectPredicates(Stack<unsigned>& acc) const
   }
 }
 
+#if VDEBUG
 ///////////////////////
 // debugging
 //
-
 void Problem::assertValid()
 {
   CALL("Problem::assertValid");
@@ -449,3 +513,4 @@ void Problem::assertValid()
     ASSERT_VALID(*u);
   }
 }
+#endif

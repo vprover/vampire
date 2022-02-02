@@ -1,7 +1,4 @@
-
 /*
- * File Allocator.cpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -9,12 +6,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions.
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide.
  */
 /**
  * @file Allocator.cpp
@@ -33,6 +24,7 @@
 #include <cstring>
 #include <cstdlib>
 #include "Lib/System.hpp"
+#include "Lib/Timer.hpp"
 #include "Shell/UIHelper.hpp"
 
 #define SAFE_OUT_OF_MEM_SOLUTION 1
@@ -352,6 +344,8 @@ void Allocator::deallocateKnown(void* obj,size_t size)
   CALLC("Allocator::deallocateKnown",MAKE_CALLS);
   ASS(obj);
 
+  TimeoutProtector tp;
+
 #if VDEBUG
   Descriptor* desc = Descriptor::find(obj);
   desc->timestamp = ++Descriptor::globalTimestamp;
@@ -424,6 +418,8 @@ void Allocator::deallocateUnknown(void* obj)
 #endif
 {
   CALLC("Allocator::deallocateUnknown",MAKE_CALLS);
+
+  TimeoutProtector tp;
 
 #if VDEBUG
   Descriptor* desc = Descriptor::find(obj);
@@ -777,6 +773,8 @@ void* Allocator::allocateKnown(size_t size)
   CALLC("Allocator::allocateKnown",MAKE_CALLS);
   ASS(size > 0);
 
+  TimeoutProtector tp;
+
   char* result = allocatePiece(size);
 
 #if VDEBUG
@@ -897,6 +895,8 @@ void* Allocator::allocateUnknown(size_t size)
 {
   CALLC("Allocator::allocateUnknown",MAKE_CALLS);
   ASS(size>0);
+
+  TimeoutProtector tp;
 
   size += sizeof(Known);
   char* result = allocatePiece(size);
@@ -1083,11 +1083,17 @@ unsigned Allocator::Descriptor::hash (const void* addr)
  *
  * Update: In release, we newly use global new/delete as well,
  * but just silently redirect the allocations to our Allocator.
+ * Another update: Back to not using global new and delete in release
+ * some compiles on some platforms produce weird bugs and segfaults
+ * when connected to z3. (A static initialization order fiasco?
+ * How does the linker know anyway what global new / delete to call if a linked library has its own?)
  *
  * This is a link about some requirements on new/delete:
  * http://stackoverflow.com/questions/7194127/how-should-i-write-iso-c-standard-conformant-custom-new-and-delete-operators/
  * (Note that we ignore the globalHandler issue here.)
  **/
+
+#if VDEBUG
 
 void* operator new(size_t sz) {
   ASS_REP(Allocator::_tolerantZone > 0,"Attempted to use global new operator, thus bypassing Allocator!");
@@ -1144,6 +1150,8 @@ void operator delete[](void* obj) throw() {
     DEALLOC_UNKNOWN(obj,"global new[]");
   }
 }
+
+#endif
 
 #if VTEST
 

@@ -1,7 +1,4 @@
-
 /*
- * File Clause.cpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -9,12 +6,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file Clause.cpp
@@ -46,6 +37,8 @@
 #include "Signature.hpp"
 #include "Term.hpp"
 #include "TermIterators.hpp"
+
+#include <cmath>
 
 #include "Clause.hpp"
 
@@ -426,6 +419,10 @@ vstring Clause::toString() const
     if(derivedFromGoal()){
       result += vstring(",goal:1");
     }
+    if(env.maxSineLevel > 1) { // this is a cryptic way of saying "did we run Sine to compute sine levels?"
+      result += vstring(",sine:")+Int::toString((unsigned)_inference.getSineLevel());
+    }
+
     if(isPureTheoryDescendant()){
       result += vstring(",ptD:1");
     }
@@ -435,6 +432,7 @@ vstring Clause::toString() const
     }
     result += ",thAx:" + Int::toString((int)(_inference.th_ancestors));
     result += ",allAx:" + Int::toString((int)(_inference.all_ancestors));
+
     result += ",thDist:" + Int::toString( _inference.th_ancestors * env.options->theorySplitQueueExpectedRatioDenom() - _inference.all_ancestors);
     result += vstring("}");
   }
@@ -530,6 +528,7 @@ unsigned Clause::splitWeight() const
  * @since 04/05/2013 Manchester, updated to use new NonVariableIterator
  * @author Andrei Voronkov
  */
+
 unsigned Clause::getNumeralWeight() const {
   CALL("Clause::getNumeralWeight");
 
@@ -543,10 +542,11 @@ unsigned Clause::getNumeralWeight() const {
     NonVariableIterator nvi(lit);
     while (nvi.hasNext()) {
       const Term* t = nvi.next().term();
-      if (t->arity() != 0) {
+      if (t->arity() != 0 || t->isSort()) {
         continue;
       }
       IntegerConstantType intVal;
+
       if (theory->tryInterpretConstant(t, intVal)) {
         int w = BitUtils::log2(Int::safeAbs(intVal.toInner())) - 1;
         if (w > 0) {
@@ -557,6 +557,7 @@ unsigned Clause::getNumeralWeight() const {
       RationalConstantType ratVal;
       RealConstantType realVal;
       bool haveRat = false;
+
       if (theory->tryInterpretConstant(t, ratVal)) {
         haveRat = true;
       } else if (theory->tryInterpretConstant(t, realVal)) {
@@ -626,6 +627,8 @@ unsigned Clause::computeWeightForClauseSelection(const Options& opt) const
  */
 unsigned Clause::computeWeightForClauseSelection(unsigned w, unsigned splitWeight, unsigned numeralWeight, bool derivedFromGoal, const Shell::Options& opt)
 {
+  CALL("Clause::computeWeightForClauseSelection(unsigned w, ...)");
+
   static unsigned nongoalWeightCoeffNum = opt.nongoalWeightCoefficientNumerator();
   static unsigned nongoalWeightCoefDenom = opt.nongoalWeightCoefficientDenominator();
 
@@ -637,14 +640,28 @@ unsigned Clause::computeWeightForClauseSelection(unsigned w, unsigned splitWeigh
   return w * ( !derivedFromGoal ? nongoalWeightCoeffNum : nongoalWeightCoefDenom);
 }
 
+
+void Clause::collectUnstableVars(DHSet<unsigned>& acc)
+{
+  CALL("Clause::collectUnstableVars");
+  collectVars2<UnstableVarIt>(acc);
+}
+
 void Clause::collectVars(DHSet<unsigned>& acc)
 {
   CALL("Clause::collectVars");
+  collectVars2<VariableIterator>(acc);
+}
+
+template<class VarIt>
+void Clause::collectVars2(DHSet<unsigned>& acc)
+{
+  CALL("Clause::collectVars2");
 
   Iterator it(*this);
   while (it.hasNext()) {
     Literal* lit = it.next();
-    VariableIterator vit(lit);
+    VarIt vit(lit);
     while (vit.hasNext()) {
       TermList var = vit.next();
       ASS(var.isOrdinaryVar());
@@ -767,6 +784,18 @@ bool Clause::contains(Literal* lit)
     }
   }
   return false;
+}
+
+std::ostream& operator<<(std::ostream& out, Clause::Store const& store) 
+{
+  switch (store) {
+    case Clause::PASSIVE:     return out << "PASSIVE";
+    case Clause::ACTIVE:      return out << "ACTIVE";
+    case Clause::UNPROCESSED: return out << "UNPROCESSED";
+    case Clause::NONE:        return out << "NONE";
+    case Clause::SELECTED:    return out << "SELECTED";
+  }
+  ASSERTION_VIOLATION;
 }
 
 }

@@ -1,7 +1,4 @@
-
 /*
- * File SortHelper.hpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -9,12 +6,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file SortHelper.hpp
@@ -29,6 +20,8 @@
 #include "Lib/DHMap.hpp"
 
 #include "Kernel/Term.hpp"
+#include "Kernel/Substitution.hpp"
+#include "Kernel/OperatorType.hpp"
 
 namespace Kernel {
 
@@ -48,42 +41,55 @@ private:
       Formula* f;
     };
     TermList ts; // outside of union, because it has a non-trivial constructor
-    unsigned contextSort; // only used by TERMLIST and SPECIALTERM
+    TermList contextSort; // only used by TERMLIST and SPECIALTERM
   };
 
-  static void collectVariableSortsIter(CollectTask task, DHMap<unsigned,unsigned>& map);
+  static void collectVariableSortsIter(CollectTask task, DHMap<unsigned,TermList>& map);
 public:
-  static unsigned getResultSort(const Term* t);
-  static unsigned getResultSort(TermList t, DHMap<unsigned,unsigned>& varSorts);
-  static unsigned getArgSort(Term* t, unsigned argIndex);
+  static TermList getResultSort(const Term* t);
+  static TermList getResultSortMono(const Term* t);
+  static TermList getResultSort(TermList t, DHMap<unsigned,TermList>& varSorts);
+  static TermList getArgSort(Term* t, unsigned argIndex);
 
-  static bool tryGetResultSort(const Term* t, unsigned& result);
-  static bool tryGetResultSort(const TermList t, unsigned& result);
-  static bool getResultSortOrMasterVariable(const Term* t, unsigned& resultSort, TermList& resultVar);
-  static bool getResultSortOrMasterVariable(const TermList t, unsigned& resultSort, TermList& resultVar);
+  static bool tryGetResultSort(const Term* t, TermList& result);
+  static bool tryGetResultSort(const TermList t, TermList& result);
+  static bool getResultSortOrMasterVariable(const Term* t, TermList& resultSort, TermList& resultVar);
+  static bool getResultSortOrMasterVariable(const TermList t, TermList& resultSort, TermList& resultVar);
 
-  static unsigned getEqualityArgumentSort(const Literal* lit);
+  static TermList getEqualityArgumentSort(const Literal* lit);
 
-  static bool tryGetVariableSort(unsigned var, Formula* f, unsigned& res);
-  static unsigned getVariableSort(TermList var, Term* t);
-  static unsigned getTermSort(TermList trm, Literal* lit);
+  static bool tryGetVariableSort(unsigned var, Formula* f, TermList& res);
+  static TermList getVariableSort(TermList var, Term* t);
+  static TermList getTermSort(TermList trm, Literal* lit);
 
-  static void collectVariableSorts(Unit* u, DHMap<unsigned,unsigned>& map);
-  static void collectVariableSorts(Term* t, DHMap<unsigned,unsigned>& map);
-  static void collectVariableSorts(TermList ts, unsigned contextSort, DHMap<unsigned,unsigned>& map);
-  static void collectVariableSortsSpecialTerm(Term* t, unsigned contextSort, DHMap<unsigned,unsigned>& map);
-  static void collectVariableSorts(Formula* f, DHMap<unsigned,unsigned>& map);
+  static void collectVariableSorts(Unit* u, DHMap<unsigned,TermList>& map);
+  static void collectVariableSorts(Term* t, DHMap<unsigned,TermList>& map);
+  static void collectVariableSorts(TermList ts, TermList contextSort, DHMap<unsigned,TermList>& map);
+  // static void collectVariableSortsSpecialTerm(Term* t, TermList contextSort, DHMap<unsigned,TermList>& map);
+  static void collectVariableSorts(Formula* f, DHMap<unsigned,TermList>& map);
+
+  static bool areImmediateSortsValidPoly(Term* t); 
+  static bool areImmediateSortsValidMono(Term* t);
+  static bool allTopLevelArgsAreSorts(AtomicSort* sort);
+
+  static TermList getIndexSort(TermList arraySort);
+  static TermList getInnerSort(TermList arraySort);
+
+  static void normaliseArgSorts(VList* qVars, TermStack& argSorts);
+  static void normaliseSort(VList* qVars, TermList& sort);
+  static void normaliseArgSorts(TermStack& qVars, TermStack& argSorts);
+  static void normaliseSort(TermStack qVars, TermList& sort);    
+
+  static OperatorType* getType(Term* t);
+
+  static void getTypeSub(const Term* t, Substitution& subst);
 
   static bool areSortsValid(Clause* cl);
-  static bool areImmediateSortsValid(Term* t);
-
-  static OperatorType& getType(Term* t);
-
-  static bool areSortsValid(Term* t, DHMap<unsigned,unsigned>& varSorts);
+  static bool areSortsValid(Term* t);
+  static bool areSortsValid(Term* t, DHMap<unsigned,TermList>& varSorts);
 private:
   // It is important this function is private, because it only works in cooperation with tryGetVariableSort(unsigned var, Formula* f, unsigned& res);
-  static bool tryGetVariableSort(TermList var, Term* t, unsigned& result);
-
+  static bool tryGetVariableSort(TermList var, Term* t, TermList& result);
 };
 
 }

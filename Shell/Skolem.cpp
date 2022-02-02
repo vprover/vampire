@@ -1,7 +1,4 @@
-
 /*
- * File Skolem.cpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -9,12 +6,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file Skolem.cpp
@@ -32,15 +23,15 @@
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/SubformulaIterator.hpp"
 #include "Kernel/TermIterators.hpp"
+#include "Kernel/ApplicativeHelper.hpp"
 #include "Lib/SharedSet.hpp"
 
+#include "Shell/NameReuse.hpp"
 #include "Shell/Statistics.hpp"
-
 #include "Indexing/TermSharing.hpp"
 
 #include "Options.hpp"
 #include "Rectify.hpp"
-// #include "Refutation.hpp"
 #include "Skolem.hpp"
 #include "VarManager.hpp"
 
@@ -56,13 +47,15 @@ using namespace Shell;
  * @since 31/01/2004 Manchester. Rectify inference has been added
  * (otherwise proof-checking had been very difficult).
  */
-FormulaUnit* Skolem::skolemise (FormulaUnit* unit)
+FormulaUnit* Skolem::skolemise (FormulaUnit* unit, bool appify)
 {
   CALL("Skolem::skolemise(Unit*)");
   ASS(! unit->isClause());
 
   unit = Rectify::rectify(unit);
-  Formula* f = unit->formula();
+  //cout << "skolemising " + unit->toString() << endl; 
+
+ Formula* f = unit->formula();
   switch (f->connective()) {
   case FALSE:
   case TRUE:
@@ -72,19 +65,18 @@ FormulaUnit* Skolem::skolemise (FormulaUnit* unit)
   }
 
   static Skolem skol;
-  return skol.skolemiseImpl(unit);
+  return skol.skolemiseImpl(unit, appify);
 } // Skolem::skolemise
 
-FormulaUnit* Skolem::skolemiseImpl (FormulaUnit* unit)
+FormulaUnit* Skolem::skolemiseImpl (FormulaUnit* unit, bool appify)
 {
   CALL("Skolem::skolemiseImpl(FormulaUnit*)");
 
-  ASS(_introducedSkolemFuns.isEmpty());
-
+  ASS(_introducedSkolemSyms.isEmpty());
+  
+  _appify = appify;
   _beingSkolemised=unit;
-
   _skolimizingDefinitions = UnitList::empty();
-
   _varOccs.reset();
   _varSorts.reset();
   _subst.reset();
@@ -96,7 +88,7 @@ FormulaUnit* Skolem::skolemiseImpl (FormulaUnit* unit)
   ASS_EQ(_varOccs.size(),0);
 
   Formula* g = skolemise(f);
-
+  
   _beingSkolemised = 0;
 
   if (f == g) { // not changed
@@ -107,9 +99,9 @@ FormulaUnit* Skolem::skolemiseImpl (FormulaUnit* unit)
 
   FormulaUnit* res = new FormulaUnit(g,FormulaTransformationMany(InferenceRule::SKOLEMIZE,premiseList));
 
-  ASS(_introducedSkolemFuns.isNonEmpty());
-  while(_introducedSkolemFuns.isNonEmpty()) {
-    unsigned fn = _introducedSkolemFuns.pop();
+  ASS(_introducedSkolemSyms.isNonEmpty());
+  while(_introducedSkolemSyms.isNonEmpty()) {
+    unsigned fn = _introducedSkolemSyms.pop();
     InferenceStore::instance()->recordIntroducedSymbol(res,true,fn);
     if(unit->derivedFromGoal()){
       env.signature->getFunction(fn)->markInGoal();
@@ -119,53 +111,79 @@ FormulaUnit* Skolem::skolemiseImpl (FormulaUnit* unit)
   return res;
 }
 
-unsigned Skolem::addSkolemFunction(unsigned arity, unsigned* domainSorts,
-    unsigned rangeSort, unsigned var)
+unsigned Skolem::addSkolemFunction(unsigned arity, TermList* domainSorts,
+    TermList rangeSort, unsigned var, unsigned taArity)
 {
   CALL("Skolem::addSkolemFunction(unsigned,unsigned*,unsigned,unsigned)");
 
   if(VarManager::varNamePreserving()) {
     vstring varName=VarManager::getVarName(var);
-    return addSkolemFunction(arity, domainSorts, rangeSort, varName.c_str());
+    return addSkolemFunction(arity, taArity, domainSorts, rangeSort, varName.c_str());
   }
   else {
-    return addSkolemFunction(arity, domainSorts, rangeSort);
+    return addSkolemFunction(arity, taArity, domainSorts, rangeSort);
   }
 }
 
-unsigned Skolem::addSkolemFunction(unsigned arity, unsigned* domainSorts,
-    unsigned rangeSort, const char* suffix)
+unsigned Skolem::addSkolemFunction(unsigned arity, unsigned taArity, TermList* domainSorts,
+    TermList rangeSort, const char* suffix)
 {
-  CALL("Skolem::addSkolemFunction(unsigned,unsigned*,unsigned,const char*)");
-  ASS(arity==0 || domainSorts!=0);
+  CALL("Skolem::addSkolemFunction(unsigned,TermList*,TermList,const char*)");
+  //ASS(arity==0 || domainSorts!=0);
 
   unsigned fun = env.signature->addSkolemFunction(arity, suffix);
   Signature::Symbol* fnSym = env.signature->getFunction(fun);
-  fnSym->setType(OperatorType::getFunctionType(arity, domainSorts, rangeSort));
+  OperatorType* ot = OperatorType::getFunctionType(arity - taArity, domainSorts, rangeSort, taArity);
+  fnSym->setType(ot);
   return fun;
 }
 
-unsigned Skolem::addSkolemPredicate(unsigned arity, unsigned* domainSorts, unsigned var)
+unsigned Skolem::addSkolemTypeCon(unsigned arity, unsigned var)
+{
+  CALL("Skolem::addSkolemTypeCon");
+
+  if(VarManager::varNamePreserving()) {
+    vstring varName=VarManager::getVarName(var);
+    return addSkolemTypeCon(arity, varName.c_str());
+  }
+  else {
+    return addSkolemTypeCon(arity);
+  }
+}
+
+unsigned Skolem::addSkolemTypeCon(unsigned arity, const char* suffix)
+{
+  CALL("Skolem::addSkolemTypeCon");
+
+  unsigned typeCon = env.signature->addSkolemTypeCon(arity, suffix);
+  Signature::Symbol* tcSym = env.signature->getTypeCon(typeCon);
+  OperatorType* ot = OperatorType::getTypeConType(arity);
+  tcSym->setType(ot);
+  return typeCon;
+} 
+
+unsigned Skolem::addSkolemPredicate(unsigned arity, TermList* domainSorts, unsigned var, unsigned taArity)
 {
   CALL("Skolem::addSkolemPredicate(unsigned,unsigned*,unsigned,unsigned)");
 
   if(VarManager::varNamePreserving()) {
     vstring varName=VarManager::getVarName(var);
-    return addSkolemPredicate(arity, domainSorts, varName.c_str());
+    return addSkolemPredicate(arity, taArity, domainSorts, varName.c_str());
   }
   else {
-    return addSkolemPredicate(arity, domainSorts);
+    return addSkolemPredicate(arity, taArity, domainSorts);
   }
 }
 
-unsigned Skolem::addSkolemPredicate(unsigned arity, unsigned* domainSorts, const char* suffix)
+unsigned Skolem::addSkolemPredicate(unsigned arity, unsigned taArity, TermList* domainSorts, const char* suffix)
 {
   CALL("Skolem::addSkolemPredicate(unsigned,unsigned*,unsigned,const char*)");
-  ASS(arity==0 || domainSorts!=0);
+  //ASS(arity==0 || domainSorts!=0);
 
   unsigned pred = env.signature->addSkolemPredicate(arity, suffix);
   Signature::Symbol* pSym = env.signature->getPredicate(pred);
-  pSym->setType(OperatorType::getPredicateType(arity, domainSorts));
+  OperatorType* ot = OperatorType::getPredicateType(arity - taArity, domainSorts, taArity);
+  pSym->setType(ot);
   return pred;
 }
 
@@ -220,7 +238,7 @@ void Skolem::preskolemise (Formula* f)
 
   case FORALL:
     {
-      Formula::VarList::Iterator vs(f->vars());
+      VList::Iterator vs(f->vars());
       while (vs.hasNext()) {
         ALWAYS(_varOccs.insert(vs.next(),{false/*univeral*/,nullptr})); // ALWAYS, because we are rectified
       }
@@ -244,7 +262,7 @@ void Skolem::preskolemise (Formula* f)
       }
 
       // add our own variables (for which we are not interested in occurrences)
-      Formula::VarList::Iterator vs(f->vars());
+      VList::Iterator vs(f->vars());
       while (vs.hasNext()) {
         unsigned var = vs.next();
         ALWAYS(_varOccs.insert(var,{true/*existential*/,nullptr})); // ALWAYS, because we are rectified
@@ -304,10 +322,8 @@ void Skolem::preskolemise (Formula* f)
   case FALSE:
     return;
 
-#if VDEBUG
   default:
     ASSERTION_VIOLATION_REP(f->connective());
-#endif
   }
 }
 
@@ -371,15 +387,22 @@ Formula* Skolem::skolemise (Formula* f)
       // and bind them in _subst
       unsigned arity = 0;
       ensureHavingVarSorts();
-      static Stack<unsigned> domainSorts;
-      static Stack<TermList> fnArgs;
-      domainSorts.reset();
-      fnArgs.reset();
+      static TermStack allVars;
+      static TermStack typeVars;
+      static TermStack termVars;
+      static TermStack termVarSorts;
+      termVarSorts.reset();
+      termVars.reset();
+      allVars.reset();
+      typeVars.reset();
 
       // for proof recording purposes, see below
-      Formula::VarList* var_args = Formula::VarList::empty();
+      VList* varArgs = VList::empty();
+      //We use a FIFO structure since in the polymorphic case
+      //a variable list must be of the form [typevars, termvars]
+      VList::FIFO vArgs(varArgs);
       Formula* before = SubstHelper::apply(f, _subst);
-
+      
       ExVarDepInfo& depInfo = _varDeps.get(f);
 
       VarSet* dep = depInfo.univ;
@@ -401,27 +424,125 @@ Formula* Skolem::skolemise (Formula* f)
       // store updated, for the existentials below us to lookup as well
       depInfo.univ = dep;
 
+      NameReuse *name_reuse = env.options->skolemReuse()
+        ? NameReuse::skolemInstance()
+        : nullptr;
+
+      // if we re-use a symbol, we _must_ close over free variables in some fixed order
+      VirtualIterator<unsigned> keyOrderIt;
+      if(name_reuse)
+        keyOrderIt = name_reuse->freeVariablesInKeyOrder(before);
+
       VarSet::Iterator vuIt(*dep);
-      while(vuIt.hasNext()) {
-        unsigned uvar = vuIt.next();
-        domainSorts.push(_varSorts.get(uvar, Sorts::SRT_DEFAULT));
-        fnArgs.push(TermList(uvar, false));
-        Formula::VarList::push(uvar,var_args);
+      while(name_reuse ? keyOrderIt.hasNext() : vuIt.hasNext()) {
+        unsigned uvar = name_reuse ? keyOrderIt.next() : vuIt.next();
+        TermList sort = _varSorts.get(uvar, AtomicSort::defaultSort());
+        if(sort == AtomicSort::superSort()){
+          //This a type variable
+          TermList var = TermList(uvar, false);
+          allVars.push(var);
+          typeVars.push(var);
+          vArgs.pushFront(uvar);
+        } else {
+          //This is a term variable
+          if(sort.isVar() || !sort.term()->shared() || !sort.term()->ground()){
+            //the sort may include existential type variables that have been skolemised 
+            //above
+            sort = SubstHelper::apply(sort, _subst);
+          }
+          termVarSorts.push(sort);
+          termVars.push(TermList(uvar, false));
+          vArgs.pushBack(uvar);
+        }
         arity++;
       }
 
-      Formula::VarList::Iterator vs(f->vars());
+      for(unsigned i = 0; i < termVars.size() && !_appify; i++){
+        allVars.push(termVars[i]);
+      }
+      SortHelper::normaliseArgSorts(typeVars, termVarSorts);
+
+      VList::Iterator vs(f->vars());
+      Formula *reuse_formula = before;
+      VList *remainingVars = before->vars();
+      SList *remainingSorts = before->sorts();
       while (vs.hasNext()) {
-        int v = vs.next();
-        unsigned rangeSort=_varSorts.get(v, Sorts::SRT_DEFAULT);
+        unsigned v = vs.next();
+        TermList rangeSort=_varSorts.get(v, AtomicSort::defaultSort());
 
-        unsigned fun = addSkolemFunction(arity, domainSorts.begin(), rangeSort, v);
-        _introducedSkolemFuns.push(fun);
+        bool skolemisingTypeVar = rangeSort == AtomicSort::superSort();
 
-        env.statistics->skolemFunctions++;
+        if(rangeSort.isVar() || !rangeSort.term()->shared() || 
+           !rangeSort.term()->ground()){
+          //the range sort may include existential type variables that have been skolemised 
+          //above
+          rangeSort = SubstHelper::apply(rangeSort, _subst);
+        }
 
-        Term* skolemTerm = Term::create(fun, arity, fnArgs.begin());
+        SortHelper::normaliseSort(typeVars, rangeSort);
+        Term* skolemTerm;
+
+        bool successfully_reused = false;
+        unsigned reused_symbol = 0;
+        vstring reuse_key;
+        if(name_reuse) {
+          reuse_key = name_reuse->key(reuse_formula);
+          successfully_reused = name_reuse->get(reuse_key, reused_symbol);
+        }
+        if(successfully_reused)
+          env.statistics->reusedSkolemFunctions++;
+
+        unsigned sym = reused_symbol;
+        if(!_appify || skolemisingTypeVar){
+          //Not the higher-order case. Create the term
+          //sk(typevars, termvars).
+          if(skolemisingTypeVar){
+            if(!successfully_reused)
+              sym = addSkolemTypeCon(arity);
+            skolemTerm = AtomicSort::create(sym, arity, allVars.begin());    
+          } else {
+            if(!successfully_reused)
+              sym = addSkolemFunction(arity, termVarSorts.begin(), rangeSort, v, typeVars.size());
+            skolemTerm = Term::create(sym, arity, allVars.begin());    
+          }
+        } else {
+          //The higher-order case. Create the term
+          //sk(typevars) @ termvar_1 @ termvar_2 @ ... @ termvar_n
+          TermList skSymSort = AtomicSort::arrowSort(termVarSorts, rangeSort);
+          if(!successfully_reused)
+            sym = addSkolemFunction(typeVars.size(), 0, skSymSort, v, typeVars.size());
+          TermList head = TermList(Term::create(sym, typeVars.size(), typeVars.begin()));
+          skolemTerm = ApplicativeHelper::createAppTerm(
+            SortHelper::getResultSort(head.term()), head, termVars).term();      
+        }
+        _introducedSkolemSyms.push(sym);
+
+        if(!successfully_reused) {
+          env.statistics->skolemFunctions++;
+          if(name_reuse)
+            name_reuse->put(reuse_key, sym);
+        }
+
         _subst.bind(v,skolemTerm);
+
+        // if we're re-using Skolems based on formulae,
+        // we need to explicitly construct them: e.g. for ?[X, Y, Z]: F:
+        // ?[X, Y, Z]: F,
+        // ?[Y, Z]: F[X->sK0],
+        // ?[Z]: F[X->sK0, Y->sK1],
+        // but not F[X->sK0, Y->sK1, Z->sK2], since this doesn't need a Skolem term
+        if(name_reuse) {
+          remainingVars = remainingVars->tail();
+          remainingSorts = remainingSorts ? remainingSorts->tail() : nullptr;
+          if(VList::isNonEmpty(remainingVars)) {
+            reuse_formula = new QuantifiedFormula(
+              Connective::EXISTS,
+              remainingVars,
+              remainingSorts,
+              SubstHelper::apply(reuse_formula->qarg(), _subst)
+            );
+          }
+        }
 
         if (env.options->showSkolemisations()) {
           env.beginOutput();
@@ -450,7 +571,7 @@ Formula* Skolem::skolemise (Formula* f)
         Formula* def = new BinaryFormula(IMP, before, after);
 
         if (arity > 0) {
-          def = new QuantifiedFormula(FORALL,var_args,nullptr,def);
+          def = new QuantifiedFormula(FORALL,varArgs,nullptr,def);
         }
 
         Unit* defUnit = new FormulaUnit(def,NonspecificInference0(UnitInputType::AXIOM,InferenceRule::CHOICE_AXIOM));
@@ -468,10 +589,8 @@ Formula* Skolem::skolemise (Formula* f)
   case FALSE:
     return f;
 
-#if VDEBUG
   default:
     ASSERTION_VIOLATION;
-#endif
   }
 } // Skolem::skolemise
 

@@ -1,7 +1,4 @@
-
 /*
- * File SymCounter.hpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -9,12 +6,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file SymCounter.hpp
@@ -50,10 +41,10 @@ class SymCounter
 {
  public:
 
-  class Fun {
+  class FunOrTypeCon {
     int _occ;
    public:
-    Fun () : _occ(0) {}
+    FunOrTypeCon () : _occ(0) {}
     int occ () const { return _occ; }
     void add (int add) { _occ += add; }
   };
@@ -92,10 +83,16 @@ class SymCounter
     return _preds[n];
   }
   /** Return information about n-th function symbol */
-  Fun& getFun (int n)
+  FunOrTypeCon& getFun (int n)
   {
     ASS(n < _noOfFuns);
     return _funs[n];
+  }
+  /** Return information about n-th function symbol */
+  FunOrTypeCon& getTypeCon (int n)
+  {
+    ASS(n < _noOfTypeCons);
+    return _typeCons[n];
   }
 
  private:
@@ -104,10 +101,14 @@ class SymCounter
   int _noOfPreds;
   /** Number of function symbols in the signature */
   int _noOfFuns;
+  /** Number of type constructor symbols in the signature */
+  int _noOfTypeCons;
   /** Array to predicate counters */
   Pred* _preds;
   /** Array to function counters */
-  Fun* _funs;
+  FunOrTypeCon* _funs;
+  /** Array to function typeCons */
+  FunOrTypeCon* _typeCons;
 }; // class SymCounter
 
 }

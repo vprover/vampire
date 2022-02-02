@@ -1,7 +1,4 @@
-
 /*
- * File LPO.hpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -9,12 +6,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file LPO.hpp
@@ -48,7 +39,10 @@ public:
   LPO(Problem& prb, const Options& opt) :
     PrecedenceOrdering(prb, opt)
   {}
-  virtual ~LPO() {}
+  LPO(const DArray<int>& funcPrec, const DArray<int>& predPrec, const DArray<int>& predLevels, bool reverseLCM) :
+    PrecedenceOrdering(funcPrec, predPrec, predLevels, reverseLCM)
+  {}
+  ~LPO() override = default;
 
   using PrecedenceOrdering::compare;
   Result compare(TermList tl1, TermList tl2) const override;
@@ -62,7 +56,6 @@ protected:
   Result alpha(TermList* tl, unsigned arity, Term *t) const;
   Result clpo(Term* t1, TermList tl2) const;
   Result lpo(TermList tl1, TermList tl2) const;
-  Result lpo(Term* t1, TermList tl2) const;
   Result lexMAE(Term* s, Term* t, TermList* sl, TermList* tl, unsigned arity) const;
   Result majo(Term* s, TermList* tl, unsigned arity) const;
 

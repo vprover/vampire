@@ -1,7 +1,4 @@
-
 /*
- * File Naming.cpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -9,12 +6,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file Naming.cpp
@@ -37,9 +28,11 @@
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/SubformulaIterator.hpp"
 #include "Kernel/Term.hpp"
+#include "Kernel/ApplicativeHelper.hpp"
 
 #include "Shell/Statistics.hpp"
 #include "Shell/Options.hpp"
+#include "Shell/NameReuse.hpp"
 
 #include "Indexing/TermSharing.hpp"
 
@@ -57,8 +50,9 @@ using namespace Shell;
  * @param preserveEpr If true, names will not be introduced if it would
  *   lead to introduction of non-constant Skolem functions.
  */
-Naming::Naming(int threshold, bool preserveEpr) :
-    _threshold(threshold + 1), _preserveEpr(preserveEpr), _varsInScope(false) {
+Naming::Naming(int threshold, bool preserveEpr, bool appify) :
+    _threshold(threshold + 1), _preserveEpr(preserveEpr), 
+    _appify(appify), _varsInScope(false) {
   ASS(threshold < 32768);
 } // Naming::Naming
 
@@ -247,12 +241,8 @@ Formula* Naming::apply_iter(Formula* top_f) {
           todo_stack.push(t_new);
         }
       } break;
-
-#if VDEBUG
       default:
-        ASSERTION_VIOLATION_REP(*tas.f)
-        ;
-#endif
+        ASSERTION_VIOLATION_REP(*tas.f);
       }
     } break;
 
@@ -1079,11 +1069,8 @@ Formula* Naming::apply_sub(Formula* f, Where where, int& pos, int& neg) {
     return f;
   }
 
-#if VDEBUG
   default:
-    ASSERTION_VIOLATION_REP(*f)
-    ;
-#endif
+    ASSERTION_VIOLATION_REP(*f);
   }
 } // Naming::apply
 
@@ -1110,9 +1097,9 @@ bool Naming::canBeInDefinition(Formula* f, Where where) {
     }
   }
 
-  Formula::VarList* fvars = f->freeVariables();
+  VList* fvars = f->freeVariables();
   bool freeVars = fvars;
-  Formula::VarList::destroy(fvars);
+  VList::destroy(fvars);
 
   if (!_varsInScope && freeVars
       && (exQuant || (unQuant && where == UNDER_IFF))) {
@@ -1122,42 +1109,98 @@ bool Naming::canBeInDefinition(Formula* f, Where where) {
   return true;
 }
 
-Literal* Naming::getDefinitionLiteral(Formula* f, Formula::VarList* freeVars) {
+Literal* Naming::getDefinitionLiteral(Formula* f, VList* freeVars) {
   CALL("Naming::getDefinitionLiteral");
 
-  unsigned length = Formula::VarList::length(freeVars);
-  unsigned pred = env.signature->addNamePredicate(length);
-  Signature::Symbol* predSym = env.signature->getPredicate(pred);
-
-  if (env.colorUsed) {
-    Color fc = f->getColor();
-    if (fc != COLOR_TRANSPARENT) {
-      predSym->addColor(fc);
-    }
-    if (f->getSkip()) {
-      predSym->markSkip();
-    }
+  NameReuse *name_reuse = env.options->definitionReuse()
+    ? NameReuse::definitionInstance()
+    : nullptr;
+  unsigned reused_symbol = 0;
+  bool successfully_reused = false;
+  vstring reuse_key;
+  if(name_reuse) {
+    reuse_key = name_reuse->key(f);
+    successfully_reused = name_reuse->get(reuse_key, reused_symbol);
   }
+  if(successfully_reused)
+    env.statistics->reusedFormulaNames++;
 
-  static Stack<unsigned> domainSorts;
-  static Stack<TermList> predArgs;
-  static DHMap<unsigned, unsigned> varSorts;
-  domainSorts.reset();
-  predArgs.reset();
+  unsigned arity = VList::length(freeVars);
+
+  static TermStack termVarSorts;
+  static TermStack termVars;
+  static TermStack typeVars;
+  static DHMap<unsigned, TermList> varSorts;
+  termVarSorts.reset();
+  termVars.reset();
+  typeVars.reset();
   varSorts.reset();
 
   SortHelper::collectVariableSorts(f, varSorts);
 
-  Formula::VarList::Iterator vit(freeVars);
-  while (vit.hasNext()) {
-    unsigned uvar = vit.next();
-    domainSorts.push(varSorts.get(uvar, Sorts::SRT_DEFAULT));
-    predArgs.push(TermList(uvar, false));
+  // if we re-use a symbol, we _must_ close over free variables in some fixed order
+  VirtualIterator<unsigned> keyOrderIt;
+  if(name_reuse)
+    keyOrderIt = name_reuse->freeVariablesInKeyOrder(f);
+
+  VList::Iterator vit(freeVars);
+  while (name_reuse ? keyOrderIt.hasNext() : vit.hasNext()) {
+    unsigned uvar = name_reuse ? keyOrderIt.next() : vit.next();
+    TermList sort = varSorts.get(uvar, AtomicSort::defaultSort());
+    if(sort == AtomicSort::superSort()){
+      typeVars.push(TermList(uvar, false));     
+    } else {
+      termVars.push(TermList(uvar, false));
+      termVarSorts.push(sort);
+    }
   }
 
-  predSym->setType(OperatorType::getPredicateType(length, domainSorts.begin()));
+  unsigned typeArgArity = typeVars.size();
+  TermStack& allVars = typeVars;
 
-  return Literal::create(pred, length, true, false, predArgs.begin());
+  SortHelper::normaliseArgSorts(typeVars, termVarSorts);
+
+  for(unsigned i = 0; i < termVars.size() && !_appify; i++){
+    allVars.push(termVars[i]);
+  }
+
+  if(!_appify){
+    unsigned pred = reused_symbol;
+    if(!successfully_reused) {
+      pred = env.signature->addNamePredicate(arity);
+      env.statistics->formulaNames++;
+      if(name_reuse)
+        name_reuse->put(reuse_key, pred);
+      Signature::Symbol* predSym = env.signature->getPredicate(pred);
+
+      if (env.colorUsed) {
+        Color fc = f->getColor();
+        if (fc != COLOR_TRANSPARENT) {
+          predSym->addColor(fc);
+        }
+        if (f->getSkip()) {
+          predSym->markSkip();
+        }
+      }
+
+      predSym->setType(OperatorType::getPredicateType(arity - typeArgArity, termVarSorts.begin(), typeArgArity));
+    }
+    return Literal::create(pred, arity, true, false, allVars.begin());
+  } else {
+    unsigned fun = reused_symbol;
+    if(!successfully_reused) {
+      fun = env.signature->addNameFunction(typeVars.size());
+      TermList sort = AtomicSort::arrowSort(termVarSorts, AtomicSort::boolSort());
+      Signature::Symbol* sym = env.signature->getFunction(fun);
+      sym->setType(OperatorType::getConstantsType(sort, typeArgArity)); 
+      if(name_reuse)
+        name_reuse->put(reuse_key, fun);
+    }
+    TermList head = TermList(Term::create(fun, typeVars.size(), typeVars.begin()));
+    TermList t = ApplicativeHelper::createAppTerm(
+                 SortHelper::getResultSort(head.term()), head, termVars);
+    return  Literal::createEquality(true, TermList(t), TermList(Term::foolTrue()), AtomicSort::boolSort());  
+  }
 }
 
 /**
@@ -1179,7 +1222,7 @@ Formula* Naming::introduceDefinition(Formula* f, bool iff) {
 
   RSTAT_CTR_INC("naming_introduced_defs");
 
-  Formula::VarList* vs;
+  VList* vs;
   vs = f->freeVariables();
   Literal* atom = getDefinitionLiteral(f, vs);
   Formula* name = new AtomicFormula(atom);
@@ -1194,7 +1237,7 @@ Formula* Naming::introduceDefinition(Formula* f, bool iff) {
     FormulaList::push(nameFormula, fs);
     def = new JunctionFormula(OR, fs);
   }
-  if (Formula::VarList::isNonEmpty(vs)) {
+  if (VList::isNonEmpty(vs)) {
     //TODO do we know the sorts of the free variabls vs?
     def = new QuantifiedFormula(FORALL, vs, 0, def);
   }
@@ -1203,7 +1246,6 @@ Formula* Naming::introduceDefinition(Formula* f, bool iff) {
   InferenceStore::instance()->recordIntroducedSymbol(definition, false,
       atom->functor());
 
-  env.statistics->formulaNames++;
   UnitList::push(definition, _defs);
 
   if (env.options->showPreprocessing()) {

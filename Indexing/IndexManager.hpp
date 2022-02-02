@@ -1,7 +1,4 @@
-
 /*
- * File IndexManager.hpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -9,12 +6,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file IndexManager.hpp
@@ -46,6 +37,8 @@ enum IndexType {
   GENERATING_NON_UNIT_CLAUSE_SUBST_TREE,
   SUPERPOSITION_SUBTERM_SUBST_TREE,
   SUPERPOSITION_LHS_SUBST_TREE,
+  SUB_VAR_SUP_SUBTERM_SUBST_TREE,
+  SUB_VAR_SUP_LHS_SUBST_TREE,
   DEMODULATION_SUBTERM_SUBST_TREE,
   DEMODULATION_LHS_SUBST_TREE,
 
@@ -60,8 +53,14 @@ enum IndexType {
 
   GLOBAL_SUBSUMPTION_INDEX,
 
-  ACYCLICITY_INDEX
-//  ARITHMETIC_INDEX
+  ACYCLICITY_INDEX,
+  NARROWING_INDEX,
+  PRIMITIVE_INSTANTIATION_INDEX,
+  SKOLEMISING_FORMULA_INDEX,
+  RENAMING_FORMULA_INDEX,
+
+  UNIT_INT_COMPARISON_INDEX,
+  INDUCTION_TERM_INDEX
 };
 
 class IndexManager

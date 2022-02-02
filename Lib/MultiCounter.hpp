@@ -1,7 +1,4 @@
-
 /*
- * File MultiCounter.hpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -9,12 +6,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file MultiCounter.hpp
@@ -28,7 +19,6 @@
 #define __MultiCounter__
 
 #include "Debug/Assertion.hpp"
-#include "XML.hpp"
 
 namespace Lib {
 
@@ -56,6 +46,7 @@ public:
     if (v >= _top) { // not enough capacity
       expandToFit(v);
     }
+    ASS(_counts);
     _counts[v]++;
   } // MultiCount::inc
 
@@ -68,6 +59,7 @@ public:
     if (v >= _top) { // not enough capacity
       expandToFit(v);
     }
+    ASS(_counts);
     _counts[v]--;
   } // MultiCount::dec
 
@@ -80,6 +72,7 @@ public:
     if (v >= _top) { // not enough capacity
       expandToFit(v);
     }
+    ASS(_counts);
     _counts[v] = c;
   } // MultiCounter::set
 
@@ -107,9 +100,6 @@ public:
   int lastCounter() const
   { return _top-1; }
 
-#if VDEBUG
-  XMLElement toXML() const;
-#endif
 private:
   /** _top-1 is the last positive variable that can be accessed */
   int _top;
@@ -121,5 +111,3 @@ private:
 }
 
 #endif // __MultiCounter__
-
-

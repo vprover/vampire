@@ -1,7 +1,4 @@
-
 /*
- * File AcyclicityIndex.cpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -9,12 +6,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file AcyclicityIndex.cpp
@@ -70,7 +61,7 @@ namespace Indexing
     Stack<Term*> toVisit;
     List<TermList>* res = List<TermList>::empty();
     
-    unsigned sort = SortHelper::getResultSort(t);
+    TermList sort = SortHelper::getResultSort(t);
     ASS(env.signature->isTermAlgebraSort(sort));
 
     for (unsigned i = 0; i < t->arity(); i++) {
@@ -101,7 +92,7 @@ namespace Indexing
     return res;
   }
 
-  bool AcyclicityIndex::matchesPattern(Literal *lit, TermList *&fs, TermList *&t, unsigned *sort)
+  bool AcyclicityIndex::matchesPattern(Literal *lit, TermList *&fs, TermList *&t, TermList *sort)
   {
     CALL("AcyclicityIndex::matchesPattern");
 
@@ -208,7 +199,6 @@ namespace Indexing
                         AcyclicityIndex& aindex)
       :
       _queryLit(queryLit),
-      _queryClause(queryClause),
       _nextResult(nullptr),
       _stack(0),
       _subst(new RobSubstitution()),
@@ -219,7 +209,7 @@ namespace Indexing
       CALL("AcyclicityIndex::CycleSearchIterator");
       
       if (queryLit->isEquality()) {
-        unsigned sort = SortHelper::getEqualityArgumentSort(queryLit);
+        TermList sort = SortHelper::getEqualityArgumentSort(queryLit);
 
         if (aindex._sIndexes.find(sort)) {
           _index = aindex._sIndexes.get(sort);
@@ -395,7 +385,6 @@ namespace Indexing
     }
   private:
     Literal *_queryLit;
-    Clause *_queryClause;
     SIndex *_index;
     TermIndexingStructure *_tis;    
     CycleQueryResult *_nextResult;
@@ -426,7 +415,7 @@ namespace Indexing
 
     TermList *fs;
     TermList *t;
-    unsigned sort;
+    TermList sort;
     
     if (matchesPattern(lit, fs, t, &sort)) {
       ASS(fs->isTerm());
@@ -454,7 +443,7 @@ namespace Indexing
 
     TermList *fs;
     TermList *t;
-    unsigned sort;
+    TermList sort;
      
     if (matchesPattern(lit, fs, t, &sort) && _sIndexes.find(sort)) {
       ULit ulit = make_pair(lit, c);

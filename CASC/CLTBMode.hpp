@@ -1,7 +1,4 @@
-
 /*
- * File CLTBMode.hpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -9,12 +6,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file CLTBMode.hpp
@@ -128,7 +119,7 @@ class CLTBProblem
 public:
   CLTBProblem(CLTBMode* parent, vstring problemFile, vstring outFile);
 
-  void searchForProof(int terminationTime,int timeLimit,const Category category) __attribute__((noreturn));
+  [[noreturn]] void searchForProof(int terminationTime,int timeLimit,const Category category);
   typedef Set<vstring> StrategySet;
 private:
   bool runSchedule(Schedule&,StrategySet& remember,int terminationTime);
@@ -138,12 +129,12 @@ private:
   static void fillSchedule(Schedule& sched,const Shell::Property* property,int timeLimit,Category category);
 
   void waitForChildAndExitWhenProofFound();
-  void exitOnNoSuccess() __attribute__((noreturn));
+  [[noreturn]] void exitOnNoSuccess();
 
   static ofstream* writerFileStream;
-  static void terminatingSignalHandler(int sigNum) __attribute__((noreturn));
-  void runSlice(vstring slice, unsigned milliseconds) __attribute__((noreturn));
-  void runSlice(Options& strategyOpt) __attribute__((noreturn));
+  [[noreturn]] static void terminatingSignalHandler(int sigNum);
+  [[noreturn]] void runSlice(vstring slice, unsigned milliseconds);
+  [[noreturn]] void runSlice(Options& strategyOpt);
 
   static vstring problemFinishedString;
 

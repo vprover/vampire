@@ -1,7 +1,4 @@
-
 /*
- * File tSATSolver.cpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -9,12 +6,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 
 #include "Lib/List.hpp"
@@ -25,14 +16,10 @@
 #include "SAT/SATLiteral.hpp"
 #include "SAT/SATInference.hpp"
 #include "SAT/SATSolver.hpp"
-#include "SAT/TWLSolver.hpp"
 #include "SAT/MinisatInterfacing.hpp"
 #include "SAT/Z3Interfacing.hpp"
 
 #include "Test/UnitTesting.hpp"
-
-#define UNIT_ID satSolver
-UT_CREATE;
 
 using namespace std;
 using namespace Lib;
@@ -85,6 +72,10 @@ void ensurePrepared(SATSolver& s)
   s.ensureVarCount(27);
 }
 
+// TODO this test used to work with TWLSolver
+// It doesn't work with Minisat but could
+// see Minisat::getZeroImpliedCertificate
+/*
 void testZICert1(SATSolverWithAssumptions& s)
 {
   CALL("testZICert1");
@@ -114,9 +105,10 @@ void testZICert1(SATSolverWithAssumptions& s)
 
 TEST_FUN(satSolverZeroImpliedCert)
 {
-  TWLSolver s(*env.options,true);
+  MinisatInterfacing s(*env.options,true);
   testZICert1(s);
 }
+*/
 
 void testProofWithAssumptions(SATSolver& s)
 {
@@ -146,7 +138,7 @@ void testProofWithAssumptions(SATSolver& s)
 
 TEST_FUN(testProofWithAssums)
 {
-  TWLSolver s(*env.options,true);
+  MinisatInterfacing s(*env.options,true);
   testProofWithAssumptions(s);    
 }
 
@@ -240,10 +232,6 @@ TEST_FUN(testSATSolverInterface)
   MinisatInterfacing sMini(*env.options,true);
   testInterface(sMini);
     
-  cout << endl << "TWL" << endl;
-  TWLSolver sTWL(*env.options,true);
-  testInterface(sTWL);  
-
   /* Not fully conforming - does not support zeroImplied and resource-limited solving
   cout << endl << "Z3" << endl;
   {
@@ -276,7 +264,7 @@ void testAssumptions(SATSolverWithAssumptions &s) {
   ASS_EQ(s.solveUnderAssumptions(assumps),SATSolver::UNSATISFIABLE);
 
   const SATLiteralStack& failed = s.failedAssumptions();
-  for (int i = 0; i < failed.size(); i++) {
+  for (unsigned i = 0; i < failed.size(); i++) {
     SATLiteral lit = failed[i];
     if (lit.polarity()) {
       cout << (char)('A' + lit.var()-1);
@@ -287,7 +275,7 @@ void testAssumptions(SATSolverWithAssumptions &s) {
   cout << endl;
 
   const SATLiteralStack& minimized = s.explicitlyMinimizedFailedAssumptions();
-  for (int i = 0; i < minimized.size(); i++) {
+  for (unsigned i = 0; i < minimized.size(); i++) {
     SATLiteral lit = minimized[i];
     if (lit.polarity()) {
       cout << (char)('A' + lit.var()-1);
@@ -303,10 +291,6 @@ TEST_FUN(testSolvingUnderAssumptions)
   cout << endl << "Minisat" << endl;
   MinisatInterfacing sMini(*env.options,true);
   testAssumptions(sMini);
-
-  cout << endl << "TWL" << endl;
-  TWLSolver sTWL(*env.options,true);
-  testAssumptions(sTWL);
 
   /*cout << endl << "Z3" << endl;
   {

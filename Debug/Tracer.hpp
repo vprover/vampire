@@ -1,7 +1,4 @@
-
 /*
- * File Tracer.hpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -9,12 +6,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file Tracer.hpp
@@ -32,6 +23,7 @@
 #if VDEBUG
 
 #include <iostream>
+#include <iomanip>
 
 using namespace std;
 
@@ -87,8 +79,11 @@ class Tracer {
 public:
   /* prints a message with indent in the of the same size as the current _depth */
   template<class... A>
-  static void printDbg(A... msg);
+  static void printDbg(const char* file_, int line, const A&... msg);
+  template<class A>
+  static A echoValue(const char* file_, int line, const char* prefix, A value);
 };
+  
 
 template<class... As>
 struct _printDbg {
@@ -106,29 +101,51 @@ template<class A, class... As> struct _printDbg<A, As...>{
   }
 };
 
-template<class... A> void Tracer::printDbg(A... msg)
+template<class A>
+A Tracer::echoValue(const char* file, int line, const char* prefix, A value) 
 {
+  printDbg(file,line, prefix, value);
+  return std::move(value);
+}
+
+template<class... A> void Tracer::printDbg(const char* file, int line, const A&... msg)
+{
+
+  // struct limit_size {
+  //   const char* str;
+  //   unsigned limit;
+  // }
+  int width = 60;
+  std::cout << "[ debug ] ";
+  for (const char* c = file; *c != 0 && width > 0; c++, width--) {
+    std::cout << *c;
+  }
+  for (int i = 0; i < width; i++) {
+    std::cout << ' ';
+  }
+  std::cout <<  "@" << setw(5) << line << ":";
+
   for (unsigned i = 0; i< _depth; i++) {
     cout << "  ";
   }
+  cout <<_current->_fun << ": ";
+  // cout << std::setw(30) <<_current->_fun << std::setw(0) << ": ";
   // cout << _lastControlPoint << ": ";
-  cout << _current->_fun << ": ";
 
   _printDbg<A...>{}(msg...);
+  std::cout << std::endl; 
 }
 
 
 } // namespace Debug
 
+
 #  define AUX_CALL_(SEED,Fun) Debug::Tracer _tmp_##SEED##_(Fun);
 #  define AUX_CALL(SEED,Fun) AUX_CALL_(SEED,Fun)
 #  define CALL(Fun) AUX_CALL(__LINE__,Fun)
+#  define DBG(...) { Debug::Tracer::printDbg(__FILE__, __LINE__, __VA_ARGS__); }
 #  define DBGE(x) DBG(#x, " = ", x)
-#  define DBG(...) {\
-  std::cout << "[ debug ] " << __FILE__ <<  "@" << __LINE__ << ":";\
-  Debug::Tracer::printDbg(__VA_ARGS__); \
-  std::cout << std::endl; \
-  }
+#  define ECHO(x) Debug::Tracer::echoValue(__FILE__, __LINE__, #x " = ", x)
 #  define CALLC(Fun,check) if (check){ AUX_CALL(__LINE__,Fun) }
 #  define CONTROL(description) Debug::Tracer::controlPoint(description)
 #  define AFTER(number,command) \

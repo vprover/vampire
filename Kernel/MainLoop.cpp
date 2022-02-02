@@ -1,7 +1,4 @@
-
 /*
- * File MainLoop.cpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -9,12 +6,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file MainLoop.cpp
@@ -26,10 +17,6 @@
 #include "Lib/SmartPtr.hpp"
 #include "Lib/System.hpp"
 
-#include "Inferences/InferenceEngine.hpp"
-#include "Inferences/TermAlgebraReasoning.hpp"
-#include "Inferences/TautologyDeletionISE.hpp"
-
 #include "InstGen/IGAlgorithm.hpp"
 
 #include "Saturation/SaturationAlgorithm.hpp"
@@ -38,7 +25,6 @@
 
 #include "SAT/Z3MainLoop.hpp"
 
-#include "Shell/BFNTMainLoop.hpp"
 #include "Shell/Options.hpp"
 #include "Shell/UIHelper.hpp"
 
@@ -111,10 +97,6 @@ MainLoop* MainLoop::createFromOptions(Problem& prb, const Options& opt)
 {
   CALL("MainLoop::createFromOptions");
 
-  if(opt.bfnt()) {
-    return new BFNTMainLoop(prb, opt);
-  }
-
 #if VZ3
   bool isComplete = false; // artificially prevent smtForGround from running
 
@@ -128,9 +110,19 @@ MainLoop* MainLoop::createFromOptions(Problem& prb, const Options& opt)
 
   switch (opt.saturationAlgorithm()) {
   case Options::SaturationAlgorithm::INST_GEN:
+    if(env.statistics->polymorphic || env.statistics->higherOrder){
+      USER_ERROR("The inst gen calculus is currently not compatible with polymorphism or higher-order constructs");       
+    }
     res = new IGAlgorithm(prb, opt);
     break;
   case Options::SaturationAlgorithm::FINITE_MODEL_BUILDING:
+    if(env.statistics->polymorphic || env.statistics->higherOrder){
+      USER_ERROR("Finite model buillding is currently not compatible with polymorphism or higher-order constructs");       
+    }
+    if(env.options->outputMode() == Shell::Options::Output::UCORE){
+      USER_ERROR("Finite model building is not compatible with producing unsat cores");
+    }
+    //TODO should return inappropriate result instead of error
     res = new FiniteModelBuilder(prb,opt);
     break;
 #if VZ3

@@ -1,7 +1,4 @@
-
 /*
- * File TheoryFlattening.cpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -9,12 +6,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file TheoryFlattening.cpp
@@ -179,8 +170,6 @@ Clause* TheoryFlattening::apply(Clause*& cl,Stack<Literal*>& target)
 
   Clause* rep = Clause::fromStack(result,SimplifyingInference1(InferenceRule::THEORY_FLATTENING,cl));
 
-  //cout << cl->toString() << " replaced by " << rep->toString() << endl;
-
   return rep;
 }
 
@@ -195,12 +184,18 @@ Clause* TheoryFlattening::apply(Clause*& cl,Stack<Literal*>& target)
   //cout << "replaceTopTerms " << lit->toString() << endl;
 
   // Tells us if we're looking for interpreted are non-interpreted terms to flatten out
-  bool interpreted = theory->isInterpretedPredicate(lit);
+  bool interpreted = theory->isInterpretedPredicate(lit->functor());
   bool equalityWithNumber = false;
   if(lit->isEquality()){
     interpreted=false;
     for(TermList* ts = lit->args(); ts->isNonEmpty(); ts = ts->next()){
-      if(ts->isTerm() && env.signature->getFunction(ts->term()->functor())->interpreted()){
+      if(ts->isTerm() 
+          && (
+            env.signature->getFunction(ts->term()->functor())->interpreted()
+            || env.signature->getFunction(ts->term()->functor())->termAlgebraCons() 
+            || env.signature->getFunction(ts->term()->functor())->termAlgebraDest()
+            )
+          ){
         interpreted=true;
       }
       if(ts->isTerm() && theory->isInterpretedConstant(ts->term())){
@@ -215,7 +210,8 @@ Clause* TheoryFlattening::apply(Clause*& cl,Stack<Literal*>& target)
   Stack<TermList> args;
 
   for(TermList* ts = lit->args(); ts->isNonEmpty(); ts = ts->next()){
-    if(ts->isVar()){
+    //Don't search for interpreted stuff in a sort
+    if(ts->isVar() || ts->term()->isSort()){
       args.push(*ts);
       continue;
     }
@@ -227,7 +223,12 @@ Clause* TheoryFlattening::apply(Clause*& cl,Stack<Literal*>& target)
     // but never factor out interpreted constants e.g. numbers
     if(
         !equalityWithNumber &&
-        (interpreted != env.signature->getFunction(t->functor())->interpreted()) && 
+        (interpreted != 
+          (env.signature->getFunction(t->functor())->interpreted() 
+            || env.signature->getFunction(ts->term()->functor())->termAlgebraCons()
+            || env.signature->getFunction(ts->term()->functor())->termAlgebraDest()
+          )
+                        )&& 
         !theory->isInterpretedConstant(t) 
       ){
       //cout << "Factoring out " << t->toString() << endl;
@@ -240,7 +241,7 @@ Clause* TheoryFlattening::apply(Clause*& cl,Stack<Literal*>& target)
       }
       args.push(TermList(newVar,false));
       if(create){
-        unsigned sort = SortHelper::getResultSort(t);
+        TermList sort = SortHelper::getResultSort(t);
         Literal* lit = Literal::createEquality(false,TermList(t),TermList(newVar,false),sort);
         newLits.push(lit);
         abstracted.insert(t,newVar);
@@ -275,7 +276,8 @@ Clause* TheoryFlattening::apply(Clause*& cl,Stack<Literal*>& target)
   bool updated=false;
 
   for(TermList* ts = term->args(); ts->isNonEmpty(); ts = ts->next()){
-    if(ts->isVar()){
+    //Don't search for interpreted stuff in a sort    
+    if(ts->isVar() || ts->term()->isSort()){
       args.push(*ts);
       continue;
     }
@@ -290,8 +292,8 @@ Clause* TheoryFlattening::apply(Clause*& cl,Stack<Literal*>& target)
   
     //special check
     if(interpretedStatus &&
-       theory->isInterpretedPartialFunction(t->functor()) &&
-       theory->isZero(*(t->nthArgument(1)))){
+            theory->isPartiallyInterpretedFunction(t)
+         && theory->partiallyDefinedFunctionUndefinedForArgs(t)){
 
        // If we have something of the form /0 or %0 then we treat it as uninterpreted
          interpretedStatus=false; 
@@ -309,7 +311,7 @@ Clause* TheoryFlattening::apply(Clause*& cl,Stack<Literal*>& target)
       }
       args.push(TermList(newVar,false));
       if(create){
-        unsigned sort = SortHelper::getResultSort(t);
+        TermList sort = SortHelper::getResultSort(t);
         Literal* lit = Literal::createEquality(false,TermList(t),TermList(newVar,false),sort);
         newLits.push(lit);
         abstracted.insert(t,newVar);

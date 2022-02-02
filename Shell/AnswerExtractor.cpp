@@ -1,7 +1,4 @@
-
 /*
- * File AnswerExtractor.cpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -9,12 +6,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file AnswerExtractor.cpp
@@ -33,7 +24,7 @@
 #include "Kernel/Problem.hpp"
 #include "Kernel/RobSubstitution.hpp"
 #include "Kernel/SortHelper.hpp"
-#include "Kernel/Sorts.hpp"
+#include "Kernel/OperatorType.hpp"
 #include "Kernel/InterpretedLiteralEvaluator.hpp"
 
 // #include "Tabulation/TabulationAlgorithm.hpp" // MS: Tabulation discontinued, AnswerExtractor needs fixing
@@ -70,7 +61,7 @@ void AnswerExtractor::tryOutputAnswer(Clause* refutation)
     if(aLit.isTerm()){
       InterpretedLiteralEvaluator eval;
       unsigned p = env.signature->addFreshPredicate(1,"p"); 
-      unsigned sort = SortHelper::getResultSort(aLit.term());
+      TermList sort = SortHelper::getResultSort(aLit.term());
       OperatorType* type = OperatorType::getPredicateType({sort});
       env.signature->getPredicate(p)->setType(type);
       Literal* l = Literal::create1(p,true,aLit); 
@@ -243,7 +234,7 @@ bool ConjunctionGoalAnswerExractor::tryGetAnswer(Clause* refutation, Stack<TermL
   if(form->connective()!=EXISTS) {
     return false;
   }
-  Formula::VarList* answerVariables = form->vars();
+  VList* answerVariables = form->vars();
   form = form->qarg();
 
   LiteralStack goalLits;
@@ -336,20 +327,21 @@ bool AnswerLiteralManager::tryGetAnswer(Clause* refutation, Stack<TermList>& ans
   return false;
 }
 
-Literal* AnswerLiteralManager::getAnswerLiteral(Formula::VarList* vars,Formula* f)
+Literal* AnswerLiteralManager::getAnswerLiteral(VList* vars,Formula* f)
 {
   CALL("AnswerLiteralManager::getAnswerLiteral");
 
   static Stack<TermList> litArgs;
   litArgs.reset();
-  Formula::VarList::Iterator vit(vars);
-  Stack<unsigned> sorts;
+  VList::Iterator vit(vars);
+  TermStack sorts;
   while(vit.hasNext()) {
     unsigned var = vit.next();
-    unsigned sort;
-    ALWAYS(SortHelper::tryGetVariableSort(var,f,sort));
-    sorts.push(sort);
-    litArgs.push(TermList(var, false));
+    TermList sort;
+    if(SortHelper::tryGetVariableSort(var,f,sort)){
+      sorts.push(sort);
+      litArgs.push(TermList(var, false));
+    }
   }
 
   unsigned vcnt = litArgs.size();
@@ -376,7 +368,7 @@ Unit* AnswerLiteralManager::tryAddingAnswerLiteral(Unit* unit)
   }
 
   Formula* quant =form->uarg();
-  Formula::VarList* vars = quant->vars();
+  VList* vars = quant->vars();
   ASS(vars);
 
   FormulaList* conjArgs = 0;

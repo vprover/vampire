@@ -1,7 +1,4 @@
-
 /*
- * File FormulaUnit.cpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -9,12 +6,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file FormulaUnit.cpp
@@ -62,12 +53,12 @@ unsigned FormulaUnit::varCnt()
   CALL("FormulaUnit::varCnt");
 
   Formula* frm = formula();
-  Formula::VarList* fv = frm->freeVariables();
-  Formula::VarList* bv = frm->boundVariables();
+  VList* fv = frm->freeVariables();
+  VList* bv = frm->boundVariables();
 
-  unsigned res = Formula::VarList::length(fv) + Formula::VarList::length(bv);
-  Formula::VarList::destroy(fv);
-  Formula::VarList::destroy(bv);
+  unsigned res = VList::length(fv) + VList::length(bv);
+  VList::destroy(fv);
+  VList::destroy(bv);
   return res;
 }
 

@@ -1,7 +1,4 @@
-
 /*
- * File SineUtils.cpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -9,12 +6,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file SineUtils.cpp
@@ -22,6 +13,7 @@
  */
 
 #include <cmath>
+#include <climits>
 
 #include "Lib/Deque.hpp"
 #include "Lib/DHSet.hpp"
@@ -63,7 +55,8 @@ using namespace Kernel;
  */
 SineSymbolExtractor::SymId SineSymbolExtractor::getSymIdBound()
 {
-  return max(env.signature->predicates()*2-1, env.signature->functions()*2);
+  return max(env.signature->predicates()*3-1, 
+         max(env.signature->functions()*3, env.signature->typeCons()*3));
 }
 
 void SineSymbolExtractor::addSymIds(Term* term, Stack<SymId>& ids)
@@ -92,23 +85,36 @@ void SineSymbolExtractor::addSymIds(Term* term, Stack<SymId>& ids)
           addSymIds(sd->getTupleTerm(), ids);
           break;
         }
+        case Term::SF_MATCH: {
+          // args are handled below
+          break;
+        }
         default:
           ASSERTION_VIOLATION;
       }
     } else {
-      ids.push(term->functor() * 2 + 1);
+      //all sorts should be shared
+      ids.push(term->functor() * 3 + 1);
     }
     NonVariableIterator nvi(term);
     while (nvi.hasNext()) {
       addSymIds(nvi.next().term(), ids);
     }
   } else {
-    ids.push(term->functor() * 2 + 1);
+    if(term->isSort()){
+      ids.push(term->functor() * 3 + 2);
+    } else {
+      ids.push(term->functor() * 3 + 1);
+    }
 
     NonVariableIterator nvi(term);
     while (nvi.hasNext()) {
       Term* t = nvi.next().term();
-      ids.push(t->functor() * 2 + 1);
+      if(t->isSort()){
+        ids.push(t->functor() * 3 + 2);
+      } else {
+        ids.push(t->functor() * 3 + 1);
+      }
     }
   }
 }
@@ -122,7 +128,7 @@ void SineSymbolExtractor::addSymIds(Literal* lit,Stack<SymId>& ids)
 {
   CALL("SineSymbolExtractor::addSymIds");
 
-  SymId predId=lit->functor()*2;
+  SymId predId=lit->functor()*3;
   ids.push(predId);
 
   if (!lit->shared()) {
@@ -134,8 +140,11 @@ void SineSymbolExtractor::addSymIds(Literal* lit,Stack<SymId>& ids)
     NonVariableIterator nvi(lit);
     while (nvi.hasNext()) {
       Term *t = nvi.next().term();
-      SymId funId = t->functor() * 2 + 1;
-      ids.push(funId);
+      if(t->isSort()){
+        ids.push(t->functor() * 3 + 2);
+      } else {
+        ids.push(t->functor() * 3 + 1);
+      }      
     }
   }
 } // addSymIds
@@ -214,11 +223,9 @@ void SineSymbolExtractor::extractFormulaSymbols(Formula* f,Stack<SymId>& itms)
     case TRUE:
     case FALSE:
       break;
-#if VDEBUG
-    default:
+    case NAME:
+    case NOCONN:
       ASSERTION_VIOLATION;
-      return;
-#endif
     }
   }
 } // SineSymbolExtractor::extractFormulaSymbols

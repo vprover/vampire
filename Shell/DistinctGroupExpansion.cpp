@@ -1,7 +1,4 @@
-
 /*
- * File DistinctGroupExpansion.cpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -9,12 +6,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file DistinctGroupExpansion.cpp
@@ -73,9 +64,7 @@ bool DistinctGroupExpansion::apply(UnitList*& units)
 
   // If this is updated then make sure you update the check in
   // Kernel::Signature::Symol::addToDistinctGroup as well
-  bool expandEverything = 
-    env.options->saturationAlgorithm()==Options::SaturationAlgorithm::FINITE_MODEL_BUILDING ||
-    env.options->bfnt();
+  bool expandEverything = env.options->saturationAlgorithm()==Options::SaturationAlgorithm::FINITE_MODEL_BUILDING;
 
   bool someLeft = false;
 
@@ -117,7 +106,7 @@ Formula* DistinctGroupExpansion::expand(Stack<unsigned>& constants)
   if(constants.size()==2){
     TermList a = TermList(Term::createConstant(constants[0]));
     TermList b = TermList(Term::createConstant(constants[1]));
-    unsigned sort = SortHelper::getResultSort(a.term());
+    TermList sort = SortHelper::getResultSort(a.term()); //TODO where is the type of these constants set?
     return new AtomicFormula(Literal::createEquality(false,a,b,sort));
   }
 
@@ -127,7 +116,7 @@ Formula* DistinctGroupExpansion::expand(Stack<unsigned>& constants)
   for(unsigned i=0;i<constants.size();i++){
     TermList a = TermList(Term::createConstant(constants[i]));
     ASS(a.isSafe());
-    unsigned sort = SortHelper::getResultSort(a.term());
+    TermList sort = SortHelper::getResultSort(a.term());
 
     for(unsigned j=0;j<i;j++){
       TermList b = TermList(Term::createConstant(constants[j]));

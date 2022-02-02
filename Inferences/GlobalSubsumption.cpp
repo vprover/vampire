@@ -1,7 +1,4 @@
-
 /*
- * File GlobalSubsumption.cpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -9,12 +6,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file GlobalSubsumption.cpp
@@ -121,7 +112,7 @@ Clause* GlobalSubsumption::perform(Clause* cl, Stack<Unit*>& prems)
     
   // first abstract cl's FO literals using grounder,
   // start filling assumps and initialize lookup
-  grounder.groundNonProp(cl, plits, false);
+  grounder.groundNonProp(cl, plits);
   
   unsigned clen = plits.size();    
   for (unsigned i = 0; i < clen; i++) {
@@ -257,7 +248,7 @@ Clause* GlobalSubsumption::perform(Clause* cl, Stack<Unit*>& prems)
         // also, let's not propagate inputType from the whole big (non-minimized) set of premises (which probably already contains a piece of the conjecture)
         inf.setInputType(cl->inputType());
         // Splitter will set replacement's splitSet, so we don't have to do it here
-
+        
         Clause* replacement = Clause::fromIterator(LiteralStack::BottomFirstIterator(survivors),inf);
 
         env.statistics->globalSubsumption++;
@@ -276,8 +267,7 @@ Clause* GlobalSubsumption::perform(Clause* cl, Stack<Unit*>& prems)
  */
 struct GlobalSubsumption::Unit2ClFn
 {
-  DECL_RETURN_TYPE(Clause*);
-  OWN_RETURN_TYPE operator() (Unit* us) {
+  Clause* operator() (Unit* us) {
     return us->asClause();
   }
 };

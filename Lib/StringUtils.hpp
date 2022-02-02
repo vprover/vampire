@@ -1,7 +1,4 @@
-
 /*
- * File StringUtils.hpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -9,12 +6,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file StringUtils.hpp
@@ -26,10 +17,13 @@
 
 #include "VString.hpp"
 #include "DHMap.hpp"
+#include <cstdlib>
 
 namespace Lib {
 
 using namespace std;
+
+template<class A> struct StringParser;
 
 class StringUtils {
 public:
@@ -41,7 +35,25 @@ public:
   static void splitStr(const char* str, char delimiter, Stack<vstring>& strings);
   static bool readEquality(const char* str, char eqChar, vstring& lhs, vstring& rhs);
   static bool readEqualities(const char* str, char delimiter, char eqChar, DHMap<vstring,vstring>& pairs);
+  template<class A>
+  static A parse(vstring const& str) 
+  { return StringParser<A>{}(str); }
 };
+
+template<> struct StringParser<int> 
+{
+  int operator()(vstring const& str)
+  { return atoi(str.c_str()); }
+};
+
+
+template<> struct StringParser<float> 
+{
+  float operator()(vstring const& str)
+  { return atof(str.c_str()); }
+};
+
+
 
 }
 

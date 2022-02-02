@@ -1,7 +1,4 @@
-
 /*
- * File CommandLine.cpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -9,12 +6,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file CommandLine.cpp
@@ -23,8 +14,8 @@
  * @since 14/11/2004 Manchester
  */
 
-#include <stdlib.h>
-#include <string.h>
+#include <cstdlib>
+#include <cstring>
 
 #include "Debug/Assertion.hpp"
 #include "Debug/Tracer.hpp"
@@ -108,12 +99,14 @@ void CommandLine::interpret (Options& options)
   }
   // Don't force options if in Portfolio mode as the
   // forced options should apply to inner strategies only
+  // Don't check global option constraints in Portoflio mode
+  // as these are checked oon each inner strategy
   if(options.mode() != Options::Mode::PORTFOLIO){
     options.setForcedOptionValues();
+    options.checkGlobalOptionConstraints();
   }
-  options.checkGlobalOptionConstraints();
   if(options.encodeStrategy()){
-    cout << options.generateEncodedOptions();
+    cout << options.generateEncodedOptions() << "\n";
   }
 } // CommandLine::interpret
 

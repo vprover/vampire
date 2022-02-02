@@ -1,7 +1,4 @@
-
 /*
- * File tArithCompare.cpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -9,20 +6,12 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 
 
 #include "Test/UnitTesting.hpp"
+#include "Test/TestUtils.hpp"
 #include "Kernel/Theory.hpp"
-
-#define UNIT_ID arithCompareTest
-UT_CREATE;
 
 using namespace std;
 using namespace Lib;
@@ -36,8 +25,6 @@ TEST_FUN(testArithCompareSAT)
   IntegerConstantType cMINpp(INT_MIN+2);
 
   IntegerConstantType c2(2);
-  IntegerConstantType c1(1);
-  IntegerConstantType c0(0);
   IntegerConstantType cm1(-1);
   IntegerConstantType cm2(-2);
 

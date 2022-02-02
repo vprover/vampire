@@ -1,7 +1,4 @@
-
 /*
- * File ClauseFlattening.cpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -9,12 +6,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file ClauseFlattening.cpp
@@ -71,8 +62,6 @@ bool ClauseFlattening::isShallow(Literal* lit)
  * Apply equality resolution to all negative equalities between variables
  * in cl and return the result. If cl contains no such inequalities, return cl
  * itself.
- *
- * Copied from BFNT, put here in case we remove BFNT 
  */
 Clause* ClauseFlattening::resolveNegativeVariableEqualities(Clause* cl)
 {
@@ -126,8 +115,6 @@ Clause* ClauseFlattening::resolveNegativeVariableEqualities(Clause* cl)
 /**
  * Flatten clauses
  *
- * Largely based on BFNT::apply
- *
  * @author Giles
  */
 Clause* ClauseFlattening::flatten(Clause* cl)
@@ -179,7 +166,7 @@ Clause* ClauseFlattening::flatten(Clause* cl)
       if(lit->isEquality()){
         // it is a non-flattened equality
 
-        unsigned litArgSort = SortHelper::getEqualityArgumentSort(lit);
+        TermList litArgSort = SortHelper::getEqualityArgumentSort(lit);
 
         TermList* lhs = lit->nthArgument(0);
         TermList* rhs = lit->nthArgument(1);
@@ -220,7 +207,7 @@ Clause* ClauseFlattening::flatten(Clause* cl)
           else{
             TermList v; v.makeVar(++maxVar);
             args.push(v);
-            unsigned rSort = SortHelper::getResultSort(ts->term());
+            TermList rSort = SortHelper::getResultSort(ts->term());
             lits.push(Literal::createEquality(false,*ts,v,rSort));
           }
         }
@@ -241,7 +228,7 @@ Clause* ClauseFlattening::flatten(Clause* cl)
           else{
             TermList v; v.makeVar(++maxVar);
             args.push(v);
-            unsigned rSort = SortHelper::getResultSort(ts->term());
+            TermList rSort = SortHelper::getResultSort(ts->term());
             lits.push(Literal::createEquality(false,*ts,v,rSort));
           }
         }

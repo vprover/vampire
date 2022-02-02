@@ -1,7 +1,4 @@
-
 /*
- * File MinisatInterfacingNewSimp.hpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -9,12 +6,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file MinisatInterfacingNewSimp.hpp
@@ -24,7 +15,7 @@
 #define __MinisatInterfacingNewSimp__
 
 // For limitMemory
-#include <signal.h>
+#include <csignal>
 #include <sys/time.h>
 #include <sys/resource.h>
 
@@ -116,14 +107,6 @@ public:
     return (_assumptions.size() > 0);
   };
 
- /**
-  * Record the association between a SATLiteral var and a Literal
-  * In TWLSolver this is used for computing niceness values
-  */
-  virtual void recordSource(unsigned satlitvar, Literal* lit) override {
-    // unsupported by minisat; intentionally no-op
-  };
-  
   Status solveUnderAssumptions(const SATLiteralStack& assumps, unsigned conflictCountLimit, bool) override;
 
   virtual SATClause* getRefutation() override { ASSERTION_VIOLATION; }

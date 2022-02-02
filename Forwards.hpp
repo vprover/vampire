@@ -1,20 +1,11 @@
-
 /*
- * File Forwards.hpp.
- *
  * This file is part of the source code of the software program
- * Vampire.(unstable). It is protected by applicable
+ * Vampire. It is protected by applicable
  * copyright laws.
  *
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file Forwards.hpp
@@ -68,9 +59,9 @@ template<typename T, class Comparator> class BinaryHeap;
 template<typename T> class SharedSet;
 
 template <typename Key, typename Val,class Hash=Lib::Hash> class Map;
+template<class A, class B, class HashA = Lib::Hash, class HashB = Lib::Hash> class BiMap; 
 
-
-template<typename T> class ArrayishObjectIterator;
+template<typename T, template<class> class ref_t> class ArrayishObjectIterator;
 template<typename T> class ArrayMap;
 template<typename C> class Vector;
 
@@ -82,7 +73,6 @@ typedef List<VoidFunc> VoidFuncList;
 typedef Stack<vstring> StringStack;
 
 typedef Map<vstring,unsigned,Hash> SymbolMap;
-
 
 template<typename T> struct FirstHashTypeInfo;
 /**
@@ -109,7 +99,6 @@ template <typename Val,class Hash=Lib::Hash> class Set;
 
 template <typename Value,class ValueComparator> class SkipList;
 
-template<class Arr> class ArrayishObjectIterator;
 template<typename T> class PointerIterator;
 
 class BacktrackData;
@@ -169,10 +158,15 @@ class TermList;
 typedef VirtualIterator<TermList> TermIterator;
 typedef Stack<TermList> TermStack;
 
+typedef List<unsigned> VList; // a list of variables (which are unsigned)
+typedef List<TermList> SList; // a list of sorts (which are now, with polymorphism, TermLists)
+
 typedef std::pair<std::pair<TermList,unsigned>,std::pair<TermList,unsigned>> UnificationConstraint;
-typedef Lib::SmartPtr<Stack<UnificationConstraint>> UnificationConstraintStackSP;
+typedef Stack<UnificationConstraint> UnificationConstraintStack;
+typedef Lib::SmartPtr<UnificationConstraintStack> UnificationConstraintStackSP;
 
 class Term;
+typedef BiMap<unsigned, Term*> FuncSubtermMap;
 class Literal;
 typedef List<Literal*> LiteralList;
 typedef Stack<Literal*> LiteralStack;
@@ -281,7 +275,6 @@ class LiteralIndexingStructure;
 class TermIndex;
 class TermIndexingStructure;
 class ClauseSubsumptionIndex;
-class FormulaIndex;
 
 class TermSharing;
 
@@ -307,7 +300,6 @@ class CodeTreeTIS;
 class CodeTreeLIS;
 class CodeTreeSubsumptionIndex;
 
-class ArithmeticIndex;
 class ConstraintDatabase;
 };
 
@@ -359,15 +351,6 @@ class SATInference;
 
 class SATSolver;
 typedef ScopedPtr<SATSolver> SATSolverSCP;
-class TWLSolver;
-
-class RestartStrategy;
-typedef ScopedPtr<RestartStrategy> RestartStrategySCP;
-class VariableSelector;
-typedef ScopedPtr<VariableSelector> VariableSelectorSCP;
-class RLCSelector;
-class ClauseDisposer;
-typedef ScopedPtr<ClauseDisposer> ClauseDisposerSCP;
 
 typedef VirtualIterator<SATClause*> SATClauseIterator;
 typedef List<SATClause*> SATClauseList;
@@ -396,6 +379,7 @@ class Builder;
 class Selector;
 }
 }
+
 
 namespace InstGen
 {

@@ -1,7 +1,4 @@
-
 /*
- * File SortInference.hpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -9,12 +6,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file SortInference.hpp
@@ -96,7 +87,7 @@ public:
                 Stack<DHSet<unsigned>*> equiv_v_sorts,
                 Stack<std::pair<unsigned,unsigned>>& cons) :
                 _clauses(clauses), _del_f(del_f), _del_p(del_p),
-                _equiv_v_sorts(equiv_v_sorts), _equiv_vs(env.sorts->count()),
+                _equiv_v_sorts(equiv_v_sorts), _equiv_vs(env.signature->typeCons()),
                 _sort_constraints(cons) {
 
                   _sig = new SortedSignature();

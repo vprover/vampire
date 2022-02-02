@@ -1,7 +1,4 @@
-
 /*
- * File SymbolDefinitionInlining.cpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -9,15 +6,10 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 #include "Kernel/Substitution.hpp"
 #include "Kernel/Formula.hpp"
+#include "Kernel/SortHelper.hpp"
 
 #include "SymbolDefinitionInlining.hpp"
 
@@ -30,9 +22,9 @@ TermList SymbolDefinitionInlining::substitute(Term::Iterator tit) {
 
   Substitution substitution;
 
-  Formula::VarList::Iterator vit(_bindingVariables);
+  VList::Iterator vit(_bindingVariables);
   while (vit.hasNext()) {
-    unsigned var = (unsigned) vit.next();
+    unsigned var = vit.next();
     ASS(tit.hasNext());
     TermList arg = tit.next();
     substitution.bind(var, arg);
@@ -56,9 +48,9 @@ TermList SymbolDefinitionInlining::substitute(Term::Iterator tit) {
       collectBoundVariables(_binding);
     }
 
-    Formula::VarList::Iterator bit(_bound);
+    VList::Iterator bit(_bound);
     while (bit.hasNext()) {
-      unsigned boundVar = (unsigned) bit.next();
+      unsigned boundVar = bit.next();
       unsigned freshVar = ++_freshVarOffset;
       substitution.bind(boundVar, TermList(freshVar, false));
       List<pair<unsigned, unsigned>>::push(make_pair(boundVar, freshVar), _varRenames);
@@ -146,6 +138,20 @@ TermList SymbolDefinitionInlining::process(TermList ts) {
         return TermList(Term::createTuple(t));
       }
 
+      case Term::SF_MATCH: {
+        DArray<TermList> terms(term->arity());
+        bool unchanged = true;
+        for (unsigned i = 0; i < term->arity(); i++) {
+          terms[i] = process(*term->nthArgument(i));
+          unchanged = unchanged && (terms[i] == *term->nthArgument(i));
+        }
+
+        if (unchanged) {
+          return ts;
+        }
+        return TermList(Term::createMatch(sd->getSort(), sd->getMatchedSort(), term->arity(), terms.begin()));
+      }
+
       default:
         ASSERTION_VIOLATION_REP(term->toString());
     }
@@ -177,8 +183,8 @@ TermList SymbolDefinitionInlining::process(TermList ts) {
 
 bool SymbolDefinitionInlining::mirroredTuple(Term* tuple, TermList &tupleConstant) {
   bool foundTupleConstant = false;
-  unsigned tupleSort = env.signature->getFunction(tuple->functor())->fnType()->result();
-  ASS(env.sorts->isOfStructuredSort(tupleSort, Sorts::StructuredSort::TUPLE));
+  TermList tupleSort = env.signature->getFunction(tuple->functor())->fnType()->result();
+  ASS(tupleSort.isTupleSort());
   for (unsigned i = 0; i < tuple->arity(); i++) {
     if (!tuple->nthArgument(i)->isTerm()) {
       return false;
@@ -381,8 +387,8 @@ void SymbolDefinitionInlining::collectBoundVariables(Term* t) {
       }
       case Term::SF_LET: {
         collectBoundVariables(sd->getBinding());
-        Formula::VarList::Iterator vit(sd->getVariables());
-        Formula::VarList::pushFromIterator(vit, _bound);
+        VList::Iterator vit(sd->getVariables());
+        VList::pushFromIterator(vit, _bound);
         break;
       }
       case Term::SF_LET_TUPLE: {
@@ -391,6 +397,10 @@ void SymbolDefinitionInlining::collectBoundVariables(Term* t) {
       }
       case Term::SF_TUPLE: {
         collectBoundVariables(sd->getTupleTerm());
+        break;
+      }
+      case Term::SF_MATCH: {
+        // args are handled below
         break;
       }
       default:
@@ -411,8 +421,8 @@ void SymbolDefinitionInlining::collectBoundVariables(Formula* formula) {
     case FORALL:
     case EXISTS: {
       collectBoundVariables(formula->qarg());
-      Formula::VarList::Iterator vit(formula->vars());
-      Formula::VarList::pushFromIterator(vit, _bound);
+      VList::Iterator vit(formula->vars());
+      VList::pushFromIterator(vit, _bound);
       break;
     }
 

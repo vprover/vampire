@@ -1,7 +1,4 @@
-
 /*
- * File Token.cpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -9,12 +6,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file Token.cpp
@@ -72,6 +63,8 @@ Lib::vstring Token::toString (TokenType tt)
     return "<=>";
   case TT_IMP:
     return "=>";
+  case TT_REVERSE_IMP:
+    return "<=";
   case TT_XOR:
     return "<~>";
   case TT_FORALL:
@@ -86,6 +79,8 @@ Lib::vstring Token::toString (TokenType tt)
     return "=";
   case TT_NAME:
     return "<name>";
+  case TT_VAMPIRE:
+    return "vampire(...)";
   case TT_VAR:
     return "<variable>";
   case TT_INPUT_FORMULA: 
@@ -228,12 +223,8 @@ Lib::vstring Token::toString (TokenType tt)
     return "<arith>";
   case TT_USER:
     return "<user value>";
-    
-#if VDEBUG
-  default:
-    ASSERTION_VIOLATION;
-#endif
   }
+  ASSERTION_VIOLATION;
 } // Token::toString
 
 }

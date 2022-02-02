@@ -1,7 +1,4 @@
-
 /*
- * File ClauseVariantIndex.cpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -9,12 +6,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file ClauseVariantIndex.cpp
@@ -53,9 +44,8 @@ public:
   {
   }
 
-  DECL_RETURN_TYPE(Clause*);
 
-  OWN_RETURN_TYPE operator()(Clause* mcl)
+  Clause* operator()(Clause* mcl)
   {
     bool fail=false;
 
@@ -70,25 +60,25 @@ public:
     for(unsigned i=0;i<_length;i++) {
       LiteralMiniIndex::VariantIterator vit(*_queryIndex, (*mcl)[i], false);
       if(!vit.hasNext()) {
-  fail=true;
-  goto fin;
+        fail=true;
+        goto fin;
       }
       while(vit.hasNext()) {
-  Literal* qVarLit=vit.next();
-  unsigned qVarLitIndex=_length;
-  for(unsigned j=0;j<_length;j++) {
-    if(qVarLit==_lits[j]) {
-      qVarLitIndex=j;
-      break;
-    }
-  }
-  LiteralList::push((*mcl)[i], alts[qVarLitIndex]);
+        Literal* qVarLit=vit.next();
+        unsigned qVarLitIndex=_length;
+        for(unsigned j=0;j<_length;j++) {
+          if(qVarLit==_lits[j]) {
+            qVarLitIndex=j;
+            break;
+          }
+        }
+        LiteralList::push((*mcl)[i], alts[qVarLitIndex]);
       }
     }
     for(unsigned i=0;i<_length;i++) {
       if(!alts[i]) {
-  fail=true;
-  goto fin;
+        fail=true;
+        goto fin;
       }
     }
 
@@ -115,9 +105,8 @@ private:
 class SubstitutionTreeClauseVariantIndex::SLQueryResultToClauseFn
 {
 public:
-  DECL_RETURN_TYPE(Clause*);
 
-  OWN_RETURN_TYPE operator()(SLQueryResult res) {
+  Clause* operator()(SLQueryResult res) {
     return res.clause;
   }
 };

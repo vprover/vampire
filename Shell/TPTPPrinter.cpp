@@ -1,7 +1,4 @@
-
 /*
- * File TPTPPrinter.cpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -9,12 +6,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file TPTPPrinter.cpp
@@ -39,6 +30,8 @@
 #include "Kernel/Formula.hpp"
 #include "Kernel/FormulaUnit.hpp"
 #include "Kernel/Clause.hpp"
+
+#include "Shell/Statistics.hpp"
 
 #include "TPTPPrinter.hpp"
 
@@ -68,7 +61,7 @@ void TPTPPrinter::print(Unit* u)
 }
 
 /**
- * Print on the desired output the Unit @param u with the specified name @param name
+ * Print on the desired output the Unit with the specified name
  * @param name
  * @param u
  */
@@ -93,6 +86,7 @@ void TPTPPrinter::printWithRole(vstring name, vstring role, Unit* u, bool includ
 /**
  * Return as a vstring the body of the Unit u
  * @param u
+ * @param includeSplitLevels
  * @return the body vstring
  */
 vstring TPTPPrinter::getBodyStr(Unit* u, bool includeSplitLevels)
@@ -101,7 +95,7 @@ vstring TPTPPrinter::getBodyStr(Unit* u, bool includeSplitLevels)
 
   vostringstream res;
 
-  typedef DHMap<unsigned,unsigned> SortMap;
+  typedef DHMap<unsigned,TermList> SortMap;
   static SortMap varSorts;
   varSorts.reset();
   SortHelper::collectVariableSorts(u, varSorts);
@@ -112,16 +106,17 @@ vstring TPTPPrinter::getBodyStr(Unit* u, bool includeSplitLevels)
     if(quantified) {
       res << "![";
       while(vit.hasNext()) {
-	unsigned var, varSort;
-	vit.next(var, varSort);
+        unsigned var;
+        TermList varSort;
+        vit.next(var, varSort);
 
-	res << 'X' << var;
-	if(varSort!=Sorts::SRT_DEFAULT) {
-	  res << " : " << env.sorts->sortName(varSort);
-	}
-	if(vit.hasNext()) {
-	  res << ',';
-	}
+        res << 'X' << var;
+        if(varSort!= AtomicSort::defaultSort()) {
+          res << " : " << varSort.toString();
+        }
+        if(vit.hasNext()) {
+          res << ',';
+        }
       }
       res << "]: (";
     }
@@ -135,7 +130,7 @@ vstring TPTPPrinter::getBodyStr(Unit* u, bool includeSplitLevels)
       Literal* lit = cit.next();
       res << lit->toString();
       if(cit.hasNext()) {
-	res << " | ";
+        res << " | ";
       }
     }
 
@@ -195,24 +190,35 @@ void TPTPPrinter::printTffWrapper(Unit* u, vstring bodyStr)
 }
 
 /**
- * Output the symbol @param symNumber definition
+ * Output the symbol definition
  * @param symNumber
  * @param function - true if the symbol is a function symbol
  */
-void TPTPPrinter::outputSymbolTypeDefinitions(unsigned symNumber, bool function)
+void TPTPPrinter::outputSymbolTypeDefinitions(unsigned symNumber, SymbolType symType)
 {
   CALL("TPTPPrinter::outputSymbolTypeDefinitions");
 
-  Signature::Symbol* sym = function ?
-      env.signature->getFunction(symNumber) : env.signature->getPredicate(symNumber);
-  OperatorType* type = function ? sym->fnType() : sym->predType();
+  Signature::Symbol* sym;
+  OperatorType* type;
+  if(symType == SymbolType::FUNC){
+    sym = env.signature->getFunction(symNumber);
+    type = sym->fnType();
+  } else if(symType == SymbolType::PRED){
+    sym = env.signature->getPredicate(symNumber);
+    type = sym->predType();    
+  } else {
+    sym = env.signature->getTypeCon(symNumber);
+    type = sym->typeConType();
+  }
 
   if(type->isAllDefault()) {
     return;
   }
-  if(function && theory->isInterpretedConstant(symNumber)) { return; }
 
-  if (function && sym->overflownConstant()) { return; }
+  bool func = symType == SymbolType::FUNC ;
+  if(func && theory->isInterpretedConstant(symNumber)) { return; }
+
+  if (func && sym->overflownConstant()) { return; }
 
   if(sym->interpreted()) {
     Interpretation interp = static_cast<Signature::InterpretedSymbol*>(sym)->getInterpretation();
@@ -227,30 +233,22 @@ void TPTPPrinter::outputSymbolTypeDefinitions(unsigned symNumber, bool function)
     }
   }
 
-  tgt() << "tff(" << (function ? "func" : "pred") << "_def_" << symNumber << ",type, "
+  vstring cat = "tff(";
+  if(env.statistics->higherOrder){
+    cat = "thf(";
+  }
+
+  vstring st = "func";
+  if(symType == SymbolType::PRED){
+    st = "pred"; 
+  } else if(symType == SymbolType::TYPE_CON){
+    st = "sort";
+  }
+
+  tgt() << cat << st << "_def_" << symNumber << ",type, "
       << sym->name() << ": ";
 
-  unsigned arity = sym->arity();
-  if (arity == 1) {
-    tgt() << env.sorts->sortName(type->arg(0)) << " > ";
-  }
-  else if (arity > 1) {
-    tgt() << "(";
-    for(unsigned i=0; i<arity; i++) {
-      if(i>0) {
-	tgt() << " * ";
-      }
-      tgt() << env.sorts->sortName(type->arg(i));
-    }
-    tgt() << ") > ";
-  }
-
-  if(function) {
-    tgt() << env.sorts->sortName(sym->fnType()->result());
-  }
-  else {
-    tgt() << "$o";
-  }
+  tgt() <<  type->toString();
 
   tgt() << " )." << endl;
 }
@@ -261,19 +259,20 @@ void TPTPPrinter::outputSymbolTypeDefinitions(unsigned symNumber, bool function)
  * @since 08/10/2012, Vienna
  * @author Ioan Dragan
  */
-void TPTPPrinter::ensureNecesarySorts()
+/*void TPTPPrinter::ensureNecesarySorts()
 {
   CALL("TPTPPrinter::ensureNecesarySorts");
   if (_headersPrinted) {
     return;
   }
   unsigned i;
-  List<unsigned> *_usedSorts(0);
+  List<TermList> *_usedSorts(0);
   OperatorType* type;
   Signature::Symbol* sym;
   unsigned sorts = env.sorts->count();
   //check the sorts of the function symbols and collect information about used sorts
   for (i = 0; i < env.signature->functions(); i++) {
+    if(env.signature->isTypeConOrSup(f)){ continue; }
     sym = env.signature->getFunction(i);
     type = sym->fnType();
     unsigned arity = sym->arity();
@@ -290,7 +289,7 @@ void TPTPPrinter::ensureNecesarySorts()
     unsigned arity = sym->arity();
     if (arity > 0) {
       for (unsigned i = 0; i < arity; i++) {
-	if(! List<unsigned>::member(type->arg(i), _usedSorts))
+        if(! List<unsigned>::member(type->arg(i), _usedSorts))
           List<unsigned>::push(type->arg(i), _usedSorts);
       }
     }
@@ -302,7 +301,7 @@ void TPTPPrinter::ensureNecesarySorts()
             	      << ": $tType" << " )." << endl;
 
   }
-}
+} */ //TODO fix this function. At te moment, not sure how important it is
 
 /**
  * Makes sure that only the needed headers in the @param u are printed out on the output
@@ -314,16 +313,20 @@ void TPTPPrinter::ensureHeadersPrinted(Unit* u)
   if(_headersPrinted) {
     return;
   }
+  
+  //ensureNecesarySorts();
 
-  ensureNecesarySorts();
-
+  unsigned typeCons = env.signature->typeCons();
+  for(unsigned i=Signature::FIRST_USER_CON; i<typeCons; i++) {
+    outputSymbolTypeDefinitions(i, SymbolType::TYPE_CON);
+  }
   unsigned funs = env.signature->functions();
   for(unsigned i=0; i<funs; i++) {
-    outputSymbolTypeDefinitions(i, true);
+    outputSymbolTypeDefinitions(i, SymbolType::FUNC);
   }
   unsigned preds = env.signature->predicates();
   for(unsigned i=1; i<preds; i++) {
-    outputSymbolTypeDefinitions(i, false);
+    outputSymbolTypeDefinitions(i, SymbolType::PRED);
   }
 
   _headersPrinted = true;
@@ -453,28 +456,28 @@ vstring TPTPPrinter::toString(const Formula* formula)
       {
         vstring result = vstring("(") + names[c] + "[";
         bool needsComma = false;
-        Formula::VarList::Iterator vs(f->vars());
-        Formula::SortList::Iterator ss(f->sorts());
+        VList::Iterator vs(f->vars());
+        SList::Iterator ss(f->sorts());
         bool hasSorts = f->sorts();
 
         while (vs.hasNext()) {
-          int var = vs.next();
+          unsigned var = vs.next();
 
           if (needsComma) {
             result += ", ";
           }
           result += 'X';
           result += Int::toString(var);
-          unsigned t;
+          TermList t;
           if (hasSorts) {
             ASS(ss.hasNext());
             t = ss.next();
-            if (t != Sorts::SRT_DEFAULT) {
-              result += " : " + env.sorts->sortName(t);
+            if (t != AtomicSort::defaultSort()) {
+              result += " : " + t.toString();
             }
           } else if (SortHelper::tryGetVariableSort(var, const_cast<Formula*>(f),
-              t) && t != Sorts::SRT_DEFAULT) {
-            result += " : " + env.sorts->sortName(t);
+              t) && t != AtomicSort::defaultSort()) {
+            result += " : " + t.toString();
           }
           needsComma = true;
         }
@@ -577,7 +580,7 @@ vstring TPTPPrinter::toString (const Unit* unit)
       }
       if(quant!=f) {
 	ASS_EQ(quant->connective(),FORALL);
-        Formula::VarList::destroy(static_cast<QuantifiedFormula*>(quant)->vars());
+        VList::destroy(static_cast<QuantifiedFormula*>(quant)->vars());
 	quant->destroy();
       }
     }

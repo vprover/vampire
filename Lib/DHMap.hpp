@@ -1,7 +1,4 @@
-
 /*
- * File DHMap.hpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -9,12 +6,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file DHMap.hpp
@@ -285,14 +276,10 @@ public:
     }
   }
 
-  /**
-   * If there is no value stored under @b key in the map,
-   * insert pair (key,value) and return true. Otherwise,
-   * return false.
-   */
-  bool insert(Key key, const Val& val)
+  /** same as @b insert but using move semantics instead of copying */
+  bool emplace(Key key, Val&& val)
   {
-    CALL("DHMap::insert");
+    CALL("DHMap::emplace");
     ensureExpanded();
     Entry* e=findEntryToInsert(key);
     bool exists = e->_info.timestamp==_timestamp && !e->_info.deleted;
@@ -307,10 +294,23 @@ public:
       }
       e->_info.deleted=0;
       e->_key=key;
-      e->_val=val;
+      e->_val=std::move(val);
       _size++;
     }
     return !exists;
+
+  }
+
+  /**
+   * If there is no value stored under @b key in the map,
+   * insert pair (key,value) and return true. Otherwise,
+   * return false.
+   * This function copies copies @b val.
+   */
+  bool insert(Key key, const Val& val)
+  {
+    CALL("DHMap::insert");
+    return emplace(key, Val(val));
   }
 
   /**
@@ -523,6 +523,22 @@ public:
     ALWAYS(it.hasNext());
     return it.nextKey();
   }
+
+  /** move assignment operator */
+  DHMap& operator=(DHMap&& obj) = default;
+
+  /** applies the function f to every value */
+  template<class F> 
+  void mapValues(F f) 
+  { 
+    for (Entry* e = _entries; e != _afterLast; e++) {
+      if (e->_info.timestamp==_timestamp && !e->_info.deleted) {
+        e->_val = f(std::move(e->_val));
+      }
+    }
+  }
+
+
 
 private:
   struct Entry
@@ -877,7 +893,7 @@ public:
   class DelIterator {
   public:
     /** Create a new iterator */
-    inline DelIterator(DHMap& map) : _base(map), _map(map) {}
+    inline DelIterator(DHMap& map) : _base(map), _map(map), _curr(nullptr) {}
 
     /** True if there exists next element */
     bool hasNext() { return _base.hasNext(); }

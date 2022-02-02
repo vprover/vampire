@@ -1,7 +1,4 @@
-
 /*
- * File Factoring.cpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -9,12 +6,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file Factoring.cpp
@@ -61,13 +52,12 @@ using namespace Saturation;
 class Factoring::UnificationsOnPositiveFn
 {
 public:
-  DECL_RETURN_TYPE(VirtualIterator<pair<Literal*,RobSubstitution*> >);
   UnificationsOnPositiveFn(Clause* cl, LiteralSelector& sel)
   : _cl(cl), _sel(sel)
   {
     _subst=RobSubstitutionSP(new RobSubstitution());
   }
-  OWN_RETURN_TYPE operator() (pair<unsigned,unsigned> nums)
+  VirtualIterator<pair<Literal*,RobSubstitution*> > operator() (pair<unsigned,unsigned> nums)
   {
     CALL("Factoring::UnificationsFn::operator()");
 
@@ -80,19 +70,19 @@ public:
 
     if(l1->isEquality()) {
       //We don't perform factoring with equalities
-      return OWN_RETURN_TYPE::getEmpty();
+      return VirtualIterator<pair<Literal*,RobSubstitution*> >::getEmpty();
     }
 
     if(_sel.isNegativeForSelection(l1)) {
       //We don't perform factoring on negative literals
       // (this check only becomes relevant, when there is more than one literal selected
       // and yet the selected ones are not all positive -- see the check in generateClauses)
-      return OWN_RETURN_TYPE::getEmpty();
+      return VirtualIterator<pair<Literal*,RobSubstitution*> >::getEmpty();
     }
 
     SubstIterator unifs=_subst->unifiers(l1,0,l2,0, false);
     if(!unifs.hasNext()) {
-      return OWN_RETURN_TYPE::getEmpty();
+      return VirtualIterator<pair<Literal*,RobSubstitution*> >::getEmpty();
     }
 
     return pvi( pushPairIntoRightIterator(l2, unifs) );
@@ -112,10 +102,9 @@ private:
 class Factoring::ResultsFn
 {
 public:
-  DECL_RETURN_TYPE(Clause*);
   ResultsFn(Clause* cl, bool afterCheck, Ordering& ord)
   : _cl(cl), _cLen(cl->length()), _afterCheck(afterCheck), _ord(ord) {}
-  OWN_RETURN_TYPE operator() (pair<Literal*,RobSubstitution*> arg)
+  Clause* operator() (pair<Literal*,RobSubstitution*> arg)
   {
     CALL("Factoring::ResultsFn::operator()");
 

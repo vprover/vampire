@@ -1,7 +1,4 @@
-
 /*
- * File NewCNF.hpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -9,12 +6,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file NewCNF.hpp
@@ -34,6 +25,7 @@
 #include "Lib/DHMap.hpp"
 #include "Lib/SharedSet.hpp"
 #include "Kernel/Substitution.hpp"
+#include "Kernel/Formula.hpp" //TODO AYB remove, it is not required in master
 
 #undef LOGGING
 #define LOGGING 0
@@ -119,8 +111,7 @@ private:
 
   struct BindingGetVarFunctor
   {
-    DECL_RETURN_TYPE(unsigned);
-    OWN_RETURN_TYPE operator()(const Binding& b) { return b.first; }
+    unsigned operator()(const Binding& b) { return b.first; }
   };
 
   #define SIGN bool
@@ -579,13 +570,13 @@ private:
   DHMap<Formula*, Occurrences> _occurrences;
 
   /** map var --> sort */
-  DHMap<unsigned,unsigned> _varSorts;
+  DHMap<unsigned,TermList> _varSorts;
   bool _collectedVarSorts;
   unsigned _maxVar;
 
   void ensureHavingVarSorts();
 
-  Term* createSkolemTerm(unsigned var, VarSet* free);
+  Term* createSkolemTerm(unsigned var, VarSet* free, Formula *reuse);
 
   bool _forInduction;
 
@@ -607,7 +598,7 @@ private:
 
   void skolemise(QuantifiedFormula* g, BindingList* &bindings, BindingList*& foolBindings);
 
-  Literal* createNamingLiteral(Formula* g, List<unsigned>* free);
+  Literal* createNamingLiteral(Formula* g, VList* free);
   void nameSubformula(Formula* g, Occurrences &occurrences);
 
   void enqueue(Formula* formula, Occurrences occurrences = Occurrences()) {
@@ -650,16 +641,19 @@ private:
   void processConstant(bool constant, Occurrences &occurrences);
   void processBoolVar(SIGN sign, unsigned var, Occurrences &occurrences);
   void processITE(Formula* condition, Formula* thenBranch, Formula* elseBranch, Occurrences &occurrences);
+  void processMatch(Term::SpecialTermData* sd, Term* term, Occurrences &occurrences);
   void processLet(Term::SpecialTermData* sd, TermList contents, Occurrences &occurrences);
   TermList eliminateLet(Term::SpecialTermData *sd, TermList contents);
 
-  TermList nameLetBinding(unsigned symbol, Formula::VarList *bindingVariables, TermList binding, TermList contents);
-  TermList inlineLetBinding(unsigned symbol, Formula::VarList *bindingVariables, TermList binding, TermList contents);
+  TermList nameLetBinding(unsigned symbol, VList *bindingVariables, TermList binding, TermList contents);
+  TermList inlineLetBinding(unsigned symbol, VList *bindingVariables, TermList binding, TermList contents);
 
   TermList findITEs(TermList ts, Stack<unsigned> &variables, Stack<Formula*> &conditions,
-                                 Stack<TermList> &thenBranches, Stack<TermList> &elseBranches);
+                    Stack<TermList> &thenBranches, Stack<TermList> &elseBranches,
+                    Stack<unsigned> &matchVariables, Stack<List<Formula*>*> &matchConditions,
+                    Stack<List<TermList>*> &matchBranches);
 
-  unsigned createFreshVariable(unsigned sort);
+  unsigned createFreshVariable(TermList sort);
   void createFreshVariableRenaming(unsigned oldVar, unsigned freshVar);
 
   bool shouldInlineITE(unsigned iteCounter);

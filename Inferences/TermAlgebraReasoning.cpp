@@ -1,7 +1,4 @@
-
 /*
- * File TermAlgebraReasoning.cpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -9,12 +6,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file TermAlgebraReasoning.cpp
@@ -209,8 +200,7 @@ namespace Inferences {
   {
     SubtermEqualityFn(Clause* premise)
       : _premise(premise) {}
-    DECL_RETURN_TYPE(VirtualIterator<Clause*>);
-    OWN_RETURN_TYPE operator()(Literal* lit)
+    VirtualIterator<Clause*> operator()(Literal* lit)
     {
       CALL("InjectivityGIE::SubtermEqualityFn::operator()");
 
@@ -412,8 +402,7 @@ namespace Inferences {
       _aidx(aidx),
       _premise(premise)
     {}
-    DECL_RETURN_TYPE(VirtualIterator<Clause*>);
-    OWN_RETURN_TYPE operator()(Literal* lit)
+    VirtualIterator<Clause*> operator()(Literal* lit)
     {
       CALL("AcyclicityGIE::AyclicityGenFn::operator()");
 
@@ -445,7 +434,7 @@ namespace Inferences {
     ASS(tl->isTerm());
     Term *t = tl->term();
     
-    unsigned sort = SortHelper::getResultSort(t);
+    TermList sort = SortHelper::getResultSort(t);
     ASS(env.signature->isTermAlgebraSort(sort));
 
     if (env.signature->getTermAlgebraOfSort(sort)->allowsCyclicTerms()) {
@@ -526,15 +515,14 @@ namespace Inferences {
     Literal *_lit;
     Stack<TermList*> _subterms;
     bool _leftSide;
-    unsigned _sort;
+    TermList _sort;
   };
 
   struct AcyclicityGIE1::SubtermDisequalityFn
   {
     SubtermDisequalityFn(Clause* premise)
       : _premise(premise) {}
-    DECL_RETURN_TYPE(VirtualIterator<Clause*>);
-    OWN_RETURN_TYPE operator()(Literal* lit)
+    VirtualIterator<Clause*> operator()(Literal* lit)
     {
       CALL("AcyclicityGIE1::SubtermDisequalityFn::operator()");
 

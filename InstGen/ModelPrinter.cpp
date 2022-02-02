@@ -1,7 +1,4 @@
-
 /*
- * File ModelPrinter.cpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -9,12 +6,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file ModelPrinter.cpp
@@ -35,7 +26,6 @@
 
 #include "Indexing/GroundingIndex.hpp"
 
-#include "Shell/EqualityProxy.hpp"
 #include "Shell/PredicateDefinition.hpp"
 
 #include "IGAlgorithm.hpp"
@@ -106,6 +96,7 @@ bool ModelPrinter::tryOutput(ostream& stm)
   }
 
   collectTrueLits();
+  //TODO fix the below AYB
   if(env.signature->functions()!=0) {
     if(_usedConstants.isEmpty()) {
       unsigned newFunc = env.signature->addFreshFunction(0,"c");
@@ -335,13 +326,14 @@ void ModelPrinter::analyzeEqualityAndPopulateDomain()
 
     ALWAYS(ecElIt.hasNext());
     unsigned firstFunc = ecElIt.next();
+
     if(!_usedConstantSet.contains(firstFunc)) {
       ASS(!ecElIt.hasNext()); //constant that is not used is alone in its equivalence class
       continue;
     }
     TermList firstTerm = TermList(Term::create(firstFunc, 0, 0));
     vstring firstTermStr = firstTerm.toString();
-    unsigned eqClassSort = SortHelper::getResultSort(firstTerm.term());
+    TermList eqClassSort = SortHelper::getResultSort(firstTerm.term());
     unsigned reprFunc = env.signature->addStringConstant(firstTermStr);
     OperatorType* reprType = OperatorType::getConstantsType(eqClassSort);
     env.signature->getFunction(reprFunc)->setType(reprType);

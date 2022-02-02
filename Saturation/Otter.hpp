@@ -1,7 +1,4 @@
-
 /*
- * File Otter.hpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -9,12 +6,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file Otter.hpp
@@ -42,28 +33,24 @@ public:
 
   Otter(Problem& prb, const Options& opt);
 
-  ClauseContainer* getSimplifyingClauseContainer();
+  ClauseContainer* getSimplifyingClauseContainer() override;
 
 protected:
 
-  //overrides SaturationAlgorithm::onSOSClauseAdded
-  void onSOSClauseAdded(Clause* cl);
+  void onSOSClauseAdded(Clause* cl) override;
 
-  //overrides SaturationAlgorithm::onActiveRemoved
-  void onActiveRemoved(Clause* cl);
+  void onActiveRemoved(Clause* cl) override;
 
-  //overrides SaturationAlgorithm::onPassiveAdded
-  void onPassiveAdded(Clause* cl);
-  //overrides SaturationAlgorithm::onPassiveRemoved
-  void onPassiveRemoved(Clause* cl);
+  void onPassiveAdded(Clause* cl) override;
 
-  //overrides SaturationAlgorithm::onClauseRetained
-  void onClauseRetained(Clause* cl);
+  void onPassiveRemoved(Clause* cl) override;
+
+  void onClauseRetained(Clause* cl) override;
 
 
 
-  //overrides SaturationAlgorithm::handleUnsuccessfulActivation
-  void handleUnsuccessfulActivation(Clause* c);
+  /** called before the selected clause is deleted from the searchspace */
+  void beforeSelectedRemoved(Clause* cl) override;
 
   /**
    * Dummy container for simplification indexes to subscribe

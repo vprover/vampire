@@ -1,7 +1,4 @@
-
 /*
- * File CodeTree.cpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -9,12 +6,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file CodeTree.cpp
@@ -836,7 +827,7 @@ void CodeTree::compileTerm(Term* trm, CodeStack& code, CompileContext& cctx, boo
 	  sti.right();
 	}
 	else {
-	  code.push(CodeOp::getTermOp(CHECK_FUN, s.term()->functor()));
+	  code.push(CodeOp::getTermOp(CHECK_FUN, t->functor()));
 	}
       }
     }
@@ -1323,9 +1314,10 @@ bool CodeTree::RemovingMatcher::next()
     }
     if(shouldBacktrack) {
       if(!backtrack()) {
-	return false;
+        return false;
       }
-      shouldBacktrack=false;
+      // dead store, left here in case it should have been a static?
+      // shouldBacktrack = false;
     }
     else {
       //the SEARCH_STRUCT operation does not appear in CodeBlocks

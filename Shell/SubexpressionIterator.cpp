@@ -1,7 +1,4 @@
-
 /*
- * File SubexpressionIterator.cpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -9,12 +6,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 #include "Kernel/Formula.hpp"
 #include "Kernel/Term.hpp"
@@ -135,7 +126,7 @@ namespace Shell {
               _subexpressions.push(Expression(sd->getFormula(), polarity));
               break;
 
-            case Term::SF_ITE:
+            case Term::SF_ITE: 
               /**
                * Regardless of the polarity of the whole if-then-else expression,
                * the polarity of the condition is always 0. This is because you
@@ -147,7 +138,7 @@ namespace Shell {
               break;
 
             case Term::SF_LET:
-            case Term::SF_LET_TUPLE:
+            case Term::SF_LET_TUPLE: 
               /**
                * The polarity of the body of let-bindings is 0.
                * An expression "$let(f := A, ...)", where A is a formula,
@@ -157,9 +148,20 @@ namespace Shell {
               _subexpressions.push(Expression(*term->nthArgument(0), polarity));
               break;
 
-            case Term::SF_TUPLE:
+            case Term::SF_LAMBDA:
+			       _subexpressions.push(Expression(sd->getLambdaExp(), polarity));
+			       break;
+
+            /*case Term::SF_TUPLE:
               _subexpressions.push(Expression(sd->getTupleTerm()));
+              break; */
+
+            case Term::SF_MATCH: {
+              for (unsigned i = 0; i < term->arity(); i++) {
+                _subexpressions.push(Expression(*term->nthArgument(i), polarity));
+              }
               break;
+            }
 
 #if VDEBUG
             default:

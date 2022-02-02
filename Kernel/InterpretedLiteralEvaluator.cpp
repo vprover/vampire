@@ -1,7 +1,4 @@
-
 /*
- * File InterpretedLiteralEvaluator.cpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -9,12 +6,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file InterpretedLiteralEvaluator.cpp
@@ -26,7 +17,7 @@
 
 #include "Signature.hpp"
 #include "SortHelper.hpp"
-#include "Sorts.hpp"
+#include "OperatorType.hpp"
 #include "TermIterators.hpp"
 #include "Term.hpp"
 #include "Theory.hpp"
@@ -459,7 +450,7 @@ public:
 
     if (theory->isPolymorphic(interp)) { return false; } // typed evaulator not for polymorphic stuff
 
-    unsigned opSort = theory->getOperationSort(interp);
+    TermList opSort = theory->getOperationSort(interp);
     return opSort==T::getSort();
   }
 
@@ -555,7 +546,7 @@ public:
       res = TermList(theory->representConstant(resNum));
       return true;
     }
-    catch(ArithmeticException)
+    catch(ArithmeticException&)
     {
        DEBUG( "ArithmeticException" );
       return false;
@@ -565,7 +556,7 @@ public:
   virtual PredEvalResult tryEvaluatePred(Literal* lit) override
   {
     CALL("InterpretedLiteralEvaluator::tryEvaluatePred");
-    ASS(theory->isInterpretedPredicate(lit));
+    ASS(theory->isInterpretedPredicate(lit->functor()));
     bool res;
 
     try {
@@ -851,6 +842,7 @@ protected:
       res = arg1*arg2;
       return true;
     case Theory::RAT_QUOTIENT:
+      if (arg2 == RationalConstantType(0)) return false;
       res = arg1/arg2;
       return true;
     default:
@@ -947,6 +939,7 @@ protected:
       res = arg1*arg2;
       return true;
     case Theory::REAL_QUOTIENT:
+      if (arg2 == RealConstantType(0)) return false;
       res = arg1/arg2;
       return true;
     default:
@@ -1153,10 +1146,10 @@ bool InterpretedLiteralEvaluator::balance(Literal* lit,Literal*& resLit,Stack<Li
   // so we have t1 a constant and t2 something that has an interpreted function at the top
 
   Signature::Symbol* conSym = env.signature->getFunction(t1.term()->functor());
-  unsigned srt = 0;
-  if(conSym->integerConstant()) srt = Sorts::SRT_INTEGER;
-  else if(conSym->rationalConstant()) srt = Sorts::SRT_RATIONAL;
-  else if(conSym->realConstant()) srt = Sorts::SRT_REAL;
+  TermList srt;
+  if(conSym->integerConstant()) srt = AtomicSort::intSort();
+  else if(conSym->rationalConstant()) srt = AtomicSort::rationalSort();
+  else if(conSym->realConstant()) srt = AtomicSort::realSort();
   else{
      ASSERTION_VIOLATION_REP(t1);
     return false;// can't work out the sort, that's odd!
@@ -1296,8 +1289,8 @@ bool InterpretedLiteralEvaluator::balanceMultiply(Interpretation divide,Constant
 {
     CALL("InterpretedLiteralEvaluator::balanceMultiply");
 #if VDEBUG
-    unsigned srt = theory->getOperationSort(divide); 
-    ASS(srt == Sorts::SRT_REAL || srt == Sorts::SRT_RATIONAL); 
+    TermList srt = theory->getOperationSort(divide); 
+    ASS(srt == AtomicSort::realSort() || srt == AtomicSort::rationalSort()); 
 #endif
 
     unsigned div = env.signature->getInterpretingSymbol(divide);
@@ -1365,8 +1358,8 @@ bool InterpretedLiteralEvaluator::balanceDivide(Interpretation multiply,
 {
     CALL("InterpretedLiteralEvaluator::balanceDivide");
 #if VDEBUG
-    unsigned srt = theory->getOperationSort(multiply); 
-    ASS(srt == Sorts::SRT_REAL || srt == Sorts::SRT_RATIONAL);
+    TermList srt = theory->getOperationSort(multiply); 
+    ASS(srt == AtomicSort::realSort() || srt == AtomicSort::rationalSort());
 #endif
 
     unsigned mul = env.signature->getInterpretingSymbol(multiply);
@@ -1567,8 +1560,8 @@ TermList InterpretedLiteralEvaluator::transformSubterm(TermList trm)
 
   // DEBUG( "transformSubterm for ", trm.toString() );
 
-
-  if (!trm.isTerm()) { return trm; }
+  //Nothing to evaluate in a sort
+  if (!trm.isTerm() || trm.term()->isSort()) { return trm; }
   Term* t = trm.term();
   unsigned func = t->functor();
 

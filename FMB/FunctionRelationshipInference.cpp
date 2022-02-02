@@ -1,7 +1,4 @@
-
 /*
- * File FunctionRelationshipInference.cpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -9,12 +6,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file FunctionRelationshipInference.cpp
@@ -40,7 +31,7 @@
 #include "Kernel/Connective.hpp" 
 #include "Kernel/Inference.hpp"
 #include "Kernel/MainLoop.hpp"                      
-#include "Kernel/Sorts.hpp"
+#include "Kernel/OperatorType.hpp"
 
 #include "Saturation/SaturationAlgorithm.hpp"
 #include "Saturation/LabelFinder.hpp"
@@ -81,7 +72,7 @@ void FunctionRelationshipInference::findFunctionRelationships(ClauseIterator cla
   unsigned useTimeLimit = env.options->fmbDetectSortBoundsTimeLimit();
   env.options->setTimeLimitInSeconds(useTimeLimit);
   opt.setSplitting(false);
-  Timer::setTimeLimitEnforcement(false);
+  Timer::setLimitEnforcement(false);
 
   LabelFinder* labelFinder = new LabelFinder();
 
@@ -94,7 +85,7 @@ void FunctionRelationshipInference::findFunctionRelationships(ClauseIterator cla
     // This is expected behaviour
   }
 
-  Timer::setTimeLimitEnforcement(true);
+  Timer::setLimitEnforcement(true);
   env.options->setTimeLimitInDeciseconds(oldTimeLimit);
   env.property = oldProperty;
 
@@ -218,7 +209,7 @@ ClauseList* FunctionRelationshipInference::getCheckingClauses()
   for(unsigned f=0; f < initial_functions; f++){
 
     OperatorType* ftype = env.signature->getFunction(f)->fnType();
-    unsigned ret_srt = ftype->result();
+    TermList ret_srt = ftype->result();
     unsigned arity = env.signature->functionArity(f);
 
     bool different_sorted=false;
@@ -239,7 +230,7 @@ ClauseList* FunctionRelationshipInference::getCheckingClauses()
 
     // For unary functions it's straight forward
     if(arity == 1){
-      unsigned arg_srt = ftype->arg(0);
+      TermList arg_srt = ftype->arg(0);
       TermList fx(Term::create1(f,x));
       TermList fy(Term::create1(f,y));
       addClaimForFunction(x,y,fx,fy,f,arg_srt,ret_srt,0,newClauses);
@@ -249,13 +240,13 @@ ClauseList* FunctionRelationshipInference::getCheckingClauses()
     // First go, let's use each argument as a singleton variable once
     // i.e. f(x,_,_), f(_,x,_), f(_,_,x)
     // and ignore cases like f(x,x,_)
-      Formula::VarList* existential = Formula::VarList::empty();
+      VList* existential = VList::empty();
       for(unsigned i=0;i<arity-1;i++){
-        existential = new Formula::VarList(i+2,existential);
+        VList::push(i+2,existential);
       }
 
       for(unsigned i=0;i<arity;i++){
-        unsigned arg_srt = ftype->arg(i);
+        TermList arg_srt = ftype->arg(i);
 
         if(arg_srt == ret_srt) continue; // not interested
 
@@ -288,12 +279,12 @@ ClauseList* FunctionRelationshipInference::getCheckingClauses()
 
 void FunctionRelationshipInference::addClaimForFunction(TermList x, TermList y, TermList fx, TermList fy,
                                                unsigned fname,
-                                               unsigned arg_srt, unsigned ret_srt, Formula::VarList* existential,
+                                               TermList arg_srt, TermList ret_srt, VList* existential,
                                                ClauseList*& newClauses)
 {
     CALL("FunctionRelationshipInference::addClaimForFunction");
 
-    Formula::VarList* xy = new Formula::VarList(0,new Formula::VarList(1));
+    VList* xy = VList::cons(0,VList::cons(1,VList::empty()));
 
     Formula* eq_fxfy = new AtomicFormula(Literal::createEquality(true,fx,fy,ret_srt));
     Formula* eq_xy = new AtomicFormula(Literal::createEquality(true,x,y,arg_srt));
@@ -302,8 +293,8 @@ void FunctionRelationshipInference::addClaimForFunction(TermList x, TermList y, 
       new QuantifiedFormula(FORALL,xy,0,new BinaryFormula(IMP,eq_fxfy,eq_xy));
 
     Formula* surjective =
-      new QuantifiedFormula(FORALL, new Formula::VarList(1),0,
-      new QuantifiedFormula(EXISTS, new Formula::VarList(0),0,
+      new QuantifiedFormula(FORALL, VList::singleton(1),0,
+      new QuantifiedFormula(EXISTS, VList::singleton(0),0,
       new AtomicFormula(Literal::createEquality(true,fx,y,ret_srt))));
 
     Formula* ing_and_nons = new JunctionFormula(AND, 
@@ -350,17 +341,20 @@ void FunctionRelationshipInference::addClaim(Formula* conjecture, ClauseList*& n
 }
 
 // get a name for a formula that captures the relationship that |fromSrt| >= |toSrt|
-Formula* FunctionRelationshipInference::getName(unsigned fromSrt, unsigned toSrt, bool strict)
+Formula* FunctionRelationshipInference::getName(TermList fromSrt, TermList toSrt, bool strict)
 {
     CALL("FunctionRelationshipInference::getName");
 
     unsigned label= env.signature->addFreshPredicate(0,"label");
     env.signature->getPredicate(label)->markLabel();
 
+    unsigned fsT = fromSrt.term()->functor();
+    unsigned tsT = toSrt.term()->functor();
+
     if(strict)
-      _labelMap_strict.insert(label,make_pair(fromSrt,toSrt));
+      _labelMap_strict.insert(label,make_pair(fsT, tsT));
     else
-      _labelMap_nonstrict.insert(label,make_pair(fromSrt,toSrt));
+      _labelMap_nonstrict.insert(label,make_pair(fsT,tsT));
 
     return new AtomicFormula(Literal::create(label,0,true,false,0)); 
 }

@@ -1,3 +1,12 @@
+/*
+ * This file is part of the source code of the software program
+ * Vampire. It is protected by applicable
+ * copyright laws.
+ *
+ * This source code is distributed under the licence found here
+ * https://vprover.github.io/license.html
+ * and in the source directory
+ */
 /**
  * @file Semaphore.cpp
  * Implements class Semaphore.
@@ -6,7 +15,7 @@
 #include "Lib/Portability.hpp"
 
 #include <cerrno>
-#include <stdlib.h>
+#include <cstdlib>
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/ipc.h>

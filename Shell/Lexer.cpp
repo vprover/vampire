@@ -1,7 +1,4 @@
-
 /*
- * File Lexer.cpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -9,12 +6,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file Shell/Lexer.cpp
@@ -194,7 +185,7 @@ LexerException::LexerException (vstring message,const Lexer& lexer)
  * Write itself to an ostream.
  * @since 15/07/2004 Turku
  */
-void LexerException::cry (ostream& out)
+void LexerException::cry (ostream& out) const
 {
   out << "Lexer exception: " << _message << '\n';
 } // LexerException::LexerException

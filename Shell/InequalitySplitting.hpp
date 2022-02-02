@@ -1,7 +1,4 @@
-
 /*
- * File InequalitySplitting.hpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -9,12 +6,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file InequalitySplitting.hpp
@@ -48,13 +39,14 @@ private:
   Clause* trySplitClause(Clause* cl);
   Literal* splitLiteral(Literal* lit, UnitInputType inpType, Clause*& premise);
 
-  Literal* makeNameLiteral(unsigned predNum, TermList arg, bool polarity);
+  Literal* makeNameLiteral(unsigned predNum, TermList arg, bool polarity, TermStack vars);
 
   bool isSplittable(Literal* lit);
   bool isSplittableEqualitySide(TermList t);
 
   Stack<Clause*> _predDefs;
   unsigned _splittingTreshold;
+  bool _appify; // do it the higher-order way
 };
 
 };

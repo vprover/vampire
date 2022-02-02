@@ -1,7 +1,4 @@
-
 /*
- * File Exception.hpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -9,12 +6,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * Class Exception.hpp. Defines Vampire exceptions.
@@ -84,7 +75,7 @@ public:
    : Exception(toString(msg...))
   { }
 
-  virtual void cry (ostream&);
+  virtual void cry (ostream&) const;
   virtual ~Exception()
   {
     if(_lcw.isLast()) {
@@ -109,6 +100,9 @@ protected:
    * (not counting copies of the same object) */
   static int s_exceptionCounter;
 
+  friend std::ostream& operator<<(std::ostream& out, Exception const& self)
+  { self.cry(out); return out; }
+
 }; // Exception
 
 
@@ -132,7 +126,7 @@ class UserErrorException
   UserErrorException (const vstring msg)
     : Exception(msg)
   {}
-  void cry (ostream&);
+  void cry (ostream&) const;
 }; // UserErrorException
 
 /**
@@ -202,7 +196,7 @@ class InvalidOperationException
    InvalidOperationException (const vstring msg)
     : Exception(msg)
   {}
-  void cry (ostream&);
+  void cry (ostream&) const;
 }; // InvalidOperationException
 
 /**
@@ -213,7 +207,7 @@ class SystemFailException
 {
 public:
   SystemFailException (const vstring msg, int err);
-  void cry (ostream&);
+  void cry (ostream&) const;
 
   int err;
 }; // InvalidOperationException
@@ -228,7 +222,7 @@ class NotImplementedException
    NotImplementedException (const char* file,int line)
     : Exception(""), file(file), line(line)
   {}
-   void cry (ostream&);
+   void cry (ostream&) const;
  private:
    const char* file;
    int line;

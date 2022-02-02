@@ -1,7 +1,4 @@
-
 /*
- * File Splitter.hpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -9,12 +6,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file Splitter.hpp
@@ -65,7 +56,7 @@ class Splitter;
  */
 class SplittingBranchSelector {
 public:
-  SplittingBranchSelector(Splitter& parent) : _ccModel(false), _parent(parent)  {}
+  SplittingBranchSelector(Splitter& parent) : _ccModel(false), _parent(parent), _solverIsSMT(false)  {}
   ~SplittingBranchSelector(){
 #if VZ3
 {
@@ -87,6 +78,8 @@ _solver=0;
   void flush(SplitLevelStack& addedComps, SplitLevelStack& removedComps);
 
 private:
+  friend class Splitter;
+
   SATSolver::Status processDPConflicts();
   SATSolver::VarAssignment getSolverAssimentConsideringCCModel(unsigned var);
 
@@ -105,6 +98,7 @@ private:
 
   Splitter& _parent;
 
+  bool _solverIsSMT;
   SATSolverSCP _solver;
   ScopedPtr<DecisionProcedure> _dp;
   // use a separate copy of the decision procedure for ccModel computations and fill it up only with equalities
@@ -120,7 +114,7 @@ private:
    */
   ArraySet _trueInCCModel;
 
-#ifdef VDEBUG
+#if VDEBUG
   unsigned lastCheckedVar;
 #endif
 };
@@ -219,7 +213,7 @@ public:
 
   SAT2FO& satNaming() { return _sat2fo; }
 
-  UnitList* explicateAssertionsForSaturatedClauseSet(UnitList* clauses);
+  UnitList* preprendCurrentlyAssumedComponentClauses(UnitList* clauses);
   static bool getComponents(Clause* cl, Stack<LiteralStack>& acc);
 private:
   friend class SplittingBranchSelector;
@@ -296,7 +290,9 @@ private:
   bool _clausesAdded;
   /** true if there was a refutation added to the SAT solver */
   bool _haveBranchRefutation;
-    
+
+  unsigned _stopSplittingAt; // time elapsed in milliseconds
+
   bool _fastRestart; // option's value copy
   /**
    * We are postponing to consider these clauses for a split 

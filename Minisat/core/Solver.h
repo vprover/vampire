@@ -39,6 +39,8 @@ namespace Minisat {
 //=================================================================================================
 // Solver -- the main class:
 
+// field layout is pretty bad here, but it doesn't really matter
+// NOLINTNEXTLINE(clang-analyzer-optin.performance.Padding)
 class Solver {
 public:
 

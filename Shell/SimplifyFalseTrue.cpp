@@ -1,7 +1,4 @@
-
 /*
- * File SimplifyFalseTrue.cpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -9,12 +6,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file SimplifyFalseTrue.cpp
@@ -59,6 +50,7 @@ FormulaUnit* SimplifyFalseTrue::simplify (FormulaUnit* unit)
   }
 
   FormulaUnit* res = new FormulaUnit(g,FormulaTransformation(InferenceRule::REDUCE_FALSE_TRUE,unit));
+
   if (env.options->showPreprocessing()) {
     env.beginOutput();
     env.out() << "[PP] simplify in: " << unit->toString() << std::endl;
@@ -78,9 +70,9 @@ FormulaUnit* SimplifyFalseTrue::simplify (FormulaUnit* unit)
  * @since 09/06/2007 Manchester, changed to new datastructures
  * @since 27/03/2008 Torrevieja, AND/OR case changed considerably
  */
-Formula* SimplifyFalseTrue::simplify (Formula* f)
+Formula* SimplifyFalseTrue::innerSimplify (Formula* f)
 {
-  CALL("SimplifyFalseTrue::simplify(Formula*)");
+  CALL("SimplifyFalseTrue::innerSimplify(Formula*)");
 
   Connective con = f->connective();
   switch (con) {
@@ -323,11 +315,11 @@ Formula* SimplifyFalseTrue::simplify (Formula* f)
       }
     }
 
-#if VDEBUG
-  default:
+  case NAME:
+  case NOCONN:
     ASSERTION_VIOLATION;
-#endif
   }
+  ASSERTION_VIOLATION;
 } // SimplifyFalseTrue::simplify ()
 
 
@@ -372,12 +364,12 @@ TermList SimplifyFalseTrue::simplify(TermList ts)
         #define THEN 0u
         #define ELSE 1u
 
-        TermList branches[2];
-        bool isTrue[2];
-        bool isFalse[2];
-        for (BRANCH branch : {THEN, ELSE }) {
-          branches[branch] = simplify(*term->nthArgument(branch));
-        }
+        TermList branches[2] = {
+          simplify(*term->nthArgument(THEN)),
+          simplify(*term->nthArgument(ELSE)),
+        };
+        bool isTrue[2] {};
+        bool isFalse[2] {};
 
         switch (condition->connective()) {
           case TRUE:
@@ -424,29 +416,29 @@ TermList SimplifyFalseTrue::simplify(TermList ts)
             (branches[ELSE] == *term->nthArgument(ELSE))) {
           return ts;
         }
-        unsigned sort = sd->getSort();
+        TermList sort = sd->getSort();
         return TermList(Term::createITE(condition, branches[THEN], branches[ELSE], sort));
       }
       case Term::SF_LET: {
         unsigned functor = sd->getFunctor();
-        IntList* variables = sd->getVariables();
+        VList* variables = sd->getVariables();
         TermList binding = simplify(sd->getBinding());
         TermList body = simplify(*term->nthArgument(0));
         if ((binding == sd->getBinding()) && (body == *term->nthArgument(0))) {
           return ts;
         }
-        unsigned sort = sd->getSort();
+        TermList sort = sd->getSort();
         return TermList(Term::createLet(functor, variables, binding, body, sort));
       }
       case Term::SF_LET_TUPLE: {
         unsigned functor = sd->getFunctor();
-        IntList* symbols = sd->getTupleSymbols();
+        VList* symbols = sd->getTupleSymbols();
         TermList binding = simplify(sd->getBinding());
         TermList body = simplify(*term->nthArgument(0));
         if ((binding == sd->getBinding()) && (body == *term->nthArgument(0))) {
           return ts;
         }
-        unsigned sort = sd->getSort();
+        TermList sort = sd->getSort();
         return TermList(Term::createLet(functor, symbols, binding, body, sort));
       }
       case Term::SF_TUPLE: {
@@ -457,6 +449,19 @@ TermList SimplifyFalseTrue::simplify(TermList ts)
         }
         ASS_REP(simplifiedTupleTerm.isTerm(), simplifiedTupleTerm.toString());
         return TermList(Term::createTuple(simplifiedTupleTerm.term()));
+      }
+      case Term::SF_MATCH: {
+        DArray<TermList> terms(term->arity());
+        bool unchanged = true;
+        for (unsigned i = 0; i < term->arity(); i++) {
+          terms[i] = simplify(*term->nthArgument(i));
+          unchanged = unchanged && (terms[i] == *term->nthArgument(i));
+        }
+
+        if (unchanged) {
+          return ts;
+        }
+        return TermList(Term::createMatch(sd->getSort(), sd->getMatchedSort(), term->arity(), terms.begin()));
       }
       default:
         ASSERTION_VIOLATION_REP(term->toString());
@@ -478,6 +483,6 @@ TermList SimplifyFalseTrue::simplify(TermList ts)
   if (!simplified) {
     return ts;
   }
-
+  
   return TermList(Term::create(term, arguments.begin()));
 } // SimplifyFalseTrue::simplify(TermList)

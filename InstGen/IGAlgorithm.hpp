@@ -1,7 +1,4 @@
-
 /*
- * File IGAlgorithm.hpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -9,12 +6,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file IGAlgorithm.hpp
@@ -54,7 +45,7 @@
 
 #include "Shell/Options.hpp"
 #include "Shell/Statistics.hpp"
-#include "Shell/EqualityProxy.hpp"
+#include "Shell/EqualityProxyMono.hpp"
 
 #include "Kernel/Grounder.hpp"
 
@@ -66,6 +57,10 @@ using namespace Indexing;
 using namespace SAT;
 using namespace Saturation;
 using namespace Shell;
+
+// Note, Instgen calculus has not been tested on polymorphic problems.
+// This is why it uses the monomorphic version of EqualityProxy
+// to transform equations
 
 class IGAlgorithm : public MainLoop {
 public:
@@ -176,7 +171,6 @@ private:
   TautologyDeletionISE _tautologyDeletion;
   DistinctEqualitySimplifier _distinctEqualitySimplifier;
 
-  bool _use_niceness;
   /*
   bool _use_dm;
 
@@ -227,7 +221,7 @@ private:
    * most of indexing is done "modulo orientation of equality",
    * which is undesirable for InstGen.
    */
-  EqualityProxy* _equalityProxy;
+  EqualityProxyMono* _equalityProxy;
 };
 
 }

@@ -1,7 +1,4 @@
-
 /*
- * File FormulaTransformer.cpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -9,12 +6,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file FormulaTransformer.cpp
@@ -89,10 +80,9 @@ Formula* FormulaTransformer::apply(Formula* f)
   case FALSE:
     res = applyTrueFalse(f);
     break;
-#if VDEBUG
-  default:
+  case NAME:
+  case NOCONN:
     ASSERTION_VIOLATION;
-#endif
   }
   postApply(f, res);
   return res;
@@ -135,6 +125,14 @@ TermList FormulaTransformer::apply(TermList ts) {
 
       case Term::SF_TUPLE:
         return TermList(Term::createTuple(apply(TermList(sd->getTupleTerm())).term()));
+
+      case Term::SF_MATCH: {
+        DArray<TermList> terms(term->arity());
+        for (unsigned i = 0; i < term->arity(); i++) {
+          terms[i] = apply(*term->nthArgument(i));
+        }
+        return TermList(Term::createMatch(sd->getSort(), sd->getMatchedSort(), term->arity(), terms.begin()));
+      }
 
       default:
         ASSERTION_VIOLATION_REP(ts.toString());
@@ -270,11 +268,11 @@ PolarityAwareFormulaTransformer::~PolarityAwareFormulaTransformer()
   Recycler::release(_varSorts);
 }
 
-unsigned PolarityAwareFormulaTransformer::getVarSort(unsigned var) const
+TermList PolarityAwareFormulaTransformer::getVarSort(unsigned var) const
 {
   CALL("PolarityAwareFormulaTransformer::getVarSort");
 
-  return _varSorts->get(var, Sorts::SRT_DEFAULT);
+  return _varSorts->get(var, AtomicSort::defaultSort());
 }
 
 Formula* PolarityAwareFormulaTransformer::transformWithPolarity(Formula* f, int polarity)

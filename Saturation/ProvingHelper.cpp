@@ -1,7 +1,4 @@
-
 /*
- * File ProvingHelper.cpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -9,12 +6,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file ProvingHelper.cpp
@@ -31,6 +22,8 @@
 #include "Shell/Preprocess.hpp"
 #include "Shell/Property.hpp"
 #include "Shell/UIHelper.hpp"
+
+#include "Indexing/TermSharing.hpp"
 
 #include "SaturationAlgorithm.hpp"
 
@@ -145,13 +138,16 @@ void ProvingHelper::runVampire(Problem& prb, const Options& opt)
    * This should help improve reproducibility when using vampire mode + "--decode" to reply a behavior of a strat from a schedule
    */
   Lib::Random::setSeed(opt.randomSeed());
+  //decide whether to use poly or mono well-typedness test
+  //after options have been read. Equality Proxy can introduce poly in mono.
+  env.sharing->setPoly();
 
   env.statistics->phase=Statistics::SATURATION;
   ScopedPtr<MainLoop> salg(MainLoop::createFromOptions(prb, opt));
 
   MainLoopResult sres(salg->run());
   env.statistics->phase=Statistics::FINALIZATION;
-  Timer::setTimeLimitEnforcement(false);
+  Timer::setLimitEnforcement(false);
   sres.updateStatistics();
 }
 

@@ -1,7 +1,4 @@
-
 /*
- * File SubstHelper.hpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -9,12 +6,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file SubstHelper.hpp
@@ -89,7 +80,18 @@ public:
   static Literal* apply(Literal* lit, Applicator& applicator)
   {
     CALL("SubstHelper::apply(Literal*...)");
-    return static_cast<Literal*>(apply(static_cast<Term*>(lit),applicator));
+    TermList sort;
+    if(lit->isTwoVarEquality()){
+      sort = lit->twoVarEqSort();
+    }
+    Literal* subbedLit = static_cast<Literal*>(apply(static_cast<Term*>(lit),applicator));
+    if(subbedLit->isTwoVarEquality()){ //either nothing's changed or variant
+      TermList newSort = apply(sort, applicator);
+      if((sort != newSort)){
+        subbedLit = Literal::createEquality(subbedLit->polarity(), *subbedLit->nthArgument(0), *subbedLit->nthArgument(1), newSort);
+      }
+    }
+    return subbedLit;
   }
 
   /**
@@ -197,7 +199,7 @@ private:
 
     for(unsigned i=0;i<len;i++) {
       TermList trm=terms[i];
-      if(trm.isSpecialVar()||(trm.isTerm()&&!trm.term()->shared())) {
+      if(trm.isVSpecialVar()||trm.isSpecialVar()||(trm.isTerm()&&!trm.term()->shared())) {
 	return false;
       }
     }
@@ -275,6 +277,7 @@ TermList SubstHelper::applyImpl(TermList trm, Applicator& applicator, bool noSha
  * bound inside the formula.
  *
  * This function can handle special terms.
+ * This function can handle the substitution of sorts.
  */
 template<bool ProcessSpecVars, class Applicator>
 Term* SubstHelper::applyImpl(Term* trm, Applicator& applicator, bool noSharing)
@@ -288,19 +291,19 @@ Term* SubstHelper::applyImpl(Term* trm, Applicator& applicator, bool noSharing)
     switch(trm->functor()) {
     case Term::SF_ITE:
       return Term::createITE(
-	  applyImpl<ProcessSpecVars>(sd->getCondition(), applicator, noSharing),
-	  applyImpl<ProcessSpecVars>(*trm->nthArgument(0), applicator, noSharing),
-	  applyImpl<ProcessSpecVars>(*trm->nthArgument(1), applicator, noSharing),
+    applyImpl<ProcessSpecVars>(sd->getCondition(), applicator, noSharing),
+    applyImpl<ProcessSpecVars>(*trm->nthArgument(0), applicator, noSharing),
+    applyImpl<ProcessSpecVars>(*trm->nthArgument(1), applicator, noSharing),
           sd->getSort()
-	  );
+    );
     case Term::SF_LET:
       return Term::createLet(
-	  sd->getFunctor(),
-	  sd->getVariables(),
-	  applyImpl<ProcessSpecVars>(sd->getBinding(), applicator, noSharing),
-	  applyImpl<ProcessSpecVars>(*trm->nthArgument(0), applicator, noSharing),
-	  sd->getSort()
-	  );
+    sd->getFunctor(),
+    sd->getVariables(),
+    applyImpl<ProcessSpecVars>(sd->getBinding(), applicator, noSharing),
+    applyImpl<ProcessSpecVars>(*trm->nthArgument(0), applicator, noSharing),
+    sd->getSort()
+    );
     case Term::SF_FORMULA:
       return Term::createFormula(
       applyImpl<ProcessSpecVars>(sd->getFormula(), applicator, noSharing)
@@ -315,6 +318,13 @@ Term* SubstHelper::applyImpl(Term* trm, Applicator& applicator, bool noSharing)
         );
     case Term::SF_TUPLE:
       return Term::createTuple(applyImpl<ProcessSpecVars>(sd->getTupleTerm(), applicator, noSharing));
+    case Term::SF_MATCH: {
+      DArray<TermList> terms(trm->arity());
+      for (unsigned i = 0; i < trm->arity(); i++) {
+        terms[i] = applyImpl<ProcessSpecVars>(*trm->nthArgument(i), applicator, noSharing);
+      }
+      return Term::createMatch(sd->getSort(), sd->getMatchedSort(), trm->arity(), terms.begin());
+    }
     }
     ASSERTION_VIOLATION;
   }
@@ -341,16 +351,16 @@ Term* SubstHelper::applyImpl(Term* trm, Applicator& applicator, bool noSharing)
     TermList* tt=toDo->pop();
     if(tt->isEmpty()) {
       if(terms->isEmpty()) {
-	//we're done, args stack contains modified arguments
-	//of the topleve term/literal.
-	ASS(toDo->isEmpty());
-	break;
+        //we're done, args stack contains modified arguments
+        //of the topleve term/literal.
+        ASS(toDo->isEmpty());
+        break;
       }
       Term* orig=terms->pop();
       if(!modified->pop()) {
-	args->truncate(args->length() - orig->arity());
-	args->push(TermList(orig));
-	continue;
+        args->truncate(args->length() - orig->arity());
+        args->push(TermList(orig));
+        continue;
       }
       //here we assume, that stack is an array with
       //second topmost element as &top()-1, third at
@@ -361,10 +371,14 @@ Term* SubstHelper::applyImpl(Term* trm, Applicator& applicator, bool noSharing)
 
       Term* newTrm;
       if(shouldShare) {
-	newTrm=Term::create(orig,argLst);
+        if(orig->isSort()){
+          newTrm=AtomicSort::create(static_cast<AtomicSort*>(orig), argLst);
+        } else {
+          newTrm=Term::create(orig,argLst);
+        }
       }
       else {
-	newTrm=Term::createNonShared(orig,argLst);
+        newTrm=Term::createNonShared(orig,argLst);
       }
       args->truncate(args->length() - orig->arity());
       args->push(TermList(newTrm));
@@ -379,7 +393,7 @@ Term* SubstHelper::applyImpl(Term* trm, Applicator& applicator, bool noSharing)
       TermList tDest=applicator.apply(tl.var());
       args->push(tDest);
       if(tDest!=tl) {
-	modified->setTop(true);
+        modified->setTop(true);
       }
       continue;
     }
@@ -387,16 +401,16 @@ Term* SubstHelper::applyImpl(Term* trm, Applicator& applicator, bool noSharing)
       TermList tDest=SpecVarHandler<ProcessSpecVars>::apply(applicator,tl.var());
       args->push(tDest);
       if(tDest!=tl) {
-	modified->setTop(true);
+        modified->setTop(true);
       }
       continue;
     }
-    ASS(tl.isTerm());
-    Term* t=tl.term();
-    if(t->shared() && t->ground()) {
+    ASS(tl.isVSpecialVar() || tl.isTerm());
+    if(tl.isVar() || (tl.term()->shared() && tl.term()->ground())) {
       args->push(tl);
       continue;
     }
+    Term* t = tl.term();
     if(t->isSpecial()) {
       //we handle specal terms at the top level of this function
       args->push(TermList(applyImpl<ProcessSpecVars>(t, applicator, noSharing)));
@@ -425,13 +439,16 @@ Term* SubstHelper::applyImpl(Term* trm, Applicator& applicator, bool noSharing)
       ASS(!noSharing);
       Literal* lit = static_cast<Literal*>(trm);
       result=Literal::create(lit,argLst);
-    }
-    else {
+    } else if(trm->isSort()){
+      ASS(!noSharing);
+      result=AtomicSort::create(static_cast<AtomicSort*>(trm),argLst);
+    } else {
       bool shouldShare=!noSharing && canBeShared(argLst, trm->arity());
       if(shouldShare) {
-	result=Term::create(trm,argLst);
+        result=Term::create(trm,argLst);          
       } else {
-	result=Term::createNonShared(trm,argLst);
+        //At the memoent all sorts should be shared.
+        result=Term::createNonShared(trm,argLst);
       }
     }
   }
@@ -458,6 +475,7 @@ Term* SubstHelper::applyImpl(Term* trm, Applicator& applicator, bool noSharing)
  * bound inside the formula.
  *
  * This function can handle special terms.
+ * This function can handle the substitution of sorts. 
  */
 template<bool ProcessSpecVars, class Applicator>
 Formula* SubstHelper::applyImpl(Formula* f, Applicator& applicator, bool noSharing)
@@ -506,22 +524,22 @@ Formula* SubstHelper::applyImpl(Formula* f, Applicator& applicator, bool noShari
   case EXISTS:
   {
     bool varsModified = false;
-    Formula::VarList* newVars = 0;
-    Formula::VarList::Iterator vit(f->vars());
+    VList* newVars = VList::empty();
+    VList::Iterator vit(f->vars());
     while(vit.hasNext()) {
       unsigned v = vit.next();
       TermList binding = applicator.apply(v);
       ASS(binding.isVar());
       unsigned newVar = binding.var();
-      Formula::VarList::push(newVar, newVars);
+      VList::push(newVar, newVars);
       if(newVar!=v) {
-	varsModified = true;
+        varsModified = true;
       }
     }
 
     Formula* arg = applyImpl<ProcessSpecVars>(f->qarg(), applicator, noSharing);
     if (!varsModified && arg == f->qarg()) {
-      Formula::VarList::destroy(newVars);
+      VList::destroy(newVars);
       return f;
     }
     //TODO compute an updated sorts list

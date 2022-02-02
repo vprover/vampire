@@ -1,7 +1,4 @@
-
 /*
- * File SAT2FO.cpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -9,12 +6,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file SAT2FO.cpp
@@ -23,7 +14,6 @@
 
 #include "Kernel/Term.hpp"
 
-#include "Preprocess.hpp"
 #include "SATClause.hpp"
 #include "SATInference.hpp"
 #include "SATLiteral.hpp"
@@ -92,7 +82,7 @@ SATClause* SAT2FO::toSAT(Clause* cl)
 
   SATClause* clause = SATClause::fromStack(satLits);
   clause->setInference(new FOConversionInference(cl));
-  clause = SAT::Preprocess::removeDuplicateLiterals(clause);
+  clause = SATClause::removeDuplicateLiterals(clause);
 
   return clause;
 }
@@ -137,4 +127,7 @@ SATClause* SAT2FO::createConflictClause(LiteralStack& unsatCore, InferenceRule r
   return toSAT(foConfl);
 }
 
-}
+std::ostream& operator<<(std::ostream& out, SAT2FO const& self)
+{ return out << self._posMap; }
+
+} // namespace SAT

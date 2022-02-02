@@ -1,7 +1,4 @@
-
 /*
- * File Monotonicity.cpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -9,12 +6,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file Monotonicity.cpp
@@ -123,8 +114,8 @@ void Monotonicity::safe(Clause* c, Literal* parent, TermList* t,Stack<SATLiteral
   CALL("Monotonicity::safe");
   if(t->isVar()){
     unsigned var = t->var();
-    unsigned s = SortHelper::getVariableSort(*t,parent);
-    if(s==_srt){
+    TermList s = SortHelper::getVariableSort(*t,parent);
+    if(s.term()->functor()==_srt){
       Clause::Iterator lit(*c);
       while(lit.hasNext()){
         Literal* l = lit.next(); 
@@ -175,9 +166,9 @@ void Monotonicity::addSortPredicates(bool withMon, ClauseList*& clauses, DArray<
   CALL("Monotonicity::addSortPredicates");
 
   // First compute the monotonic sorts
-  DArray<bool> isMonotonic(env.sorts->count());
-  for(unsigned s=0;s<env.sorts->count();s++){
-    if(env.property->usesSort(s) || s >= Sorts::FIRST_USER_SORT){
+  DArray<bool> isMonotonic(env.signature->typeCons());
+  for(unsigned s=0;s<env.signature->typeCons();s++){
+    if(env.property->usesSort(s) || env.signature->isNonDefaultCon(s)){
        if(withMon){
          Monotonicity m(clauses,s);
          bool monotonic = m.check();
@@ -191,12 +182,12 @@ void Monotonicity::addSortPredicates(bool withMon, ClauseList*& clauses, DArray<
   }
 
   // Now create a sort predicate per non-monotonic sort
-  DArray<unsigned> sortPredicates(env.sorts->count());
-  for(unsigned s=0;s<env.sorts->count();s++){
+  DArray<unsigned> sortPredicates(env.signature->typeCons());
+  for(unsigned s=0;s<env.signature->typeCons();s++){
     if(!isMonotonic[s]){
-      vstring name = "sortPredicate_"+env.sorts->sortName(s);
+      vstring name = "sortPredicate_"+env.signature->typeConName(s);
       unsigned p = env.signature->addFreshPredicate(1,name.c_str());
-      env.signature->getPredicate(p)->setType(OperatorType::getPredicateType({s}));
+      env.signature->getPredicate(p)->setType(OperatorType::getPredicateType({TermList(AtomicSort::createConstant(s))}));
       sortPredicates[s] = p;
     }
     else{ sortPredicates[s]=0; }
@@ -210,16 +201,19 @@ void Monotonicity::addSortPredicates(bool withMon, ClauseList*& clauses, DArray<
   // 2) for each function f with return sort s 
   //    !args : p(f(args))
   unsigned function_count = env.signature->functions();
-  for(unsigned s=0;s<env.sorts->count();s++){
+  for(unsigned s=0;s<env.signature->typeCons();s++){
     if(isMonotonic[s]) continue;
 
     unsigned p = sortPredicates[s];
     ASS(p>0);
 
+    TermList sTerm = TermList(AtomicSort::createConstant(s));
+
     for(unsigned f=0; f < function_count; f++){
       if(del_f[f]) continue;
 
-      if(env.signature->getFunction(f)->fnType()->result() != s) continue;
+      if(env.signature->getFunction(f)->fnType()->result() != sTerm)
+        continue;
 
       unsigned arity = env.signature->functionArity(f);
       static Stack<TermList> vars;
@@ -236,7 +230,9 @@ void Monotonicity::addSortPredicates(bool withMon, ClauseList*& clauses, DArray<
 
     // Next the non-empty constraint
     unsigned skolemConstant = env.signature->addSkolemFunction(0);
-    env.signature->getFunction(skolemConstant)->setType(OperatorType::getConstantsType(s));
+    env.signature->getFunction(skolemConstant)->setType(OperatorType::getConstantsType(sTerm));
+    // Increment usage count so it's not treated as a deleted function later
+    env.signature->getFunction(skolemConstant)->incUsageCnt();
     Literal* psk = Literal::create1(p,true,TermList(Term::createConstant(skolemConstant)));
     Clause* nonEmpty = new(1) Clause(1,NonspecificInference0(UnitInputType::AXIOM,InferenceRule::INPUT));
     (*nonEmpty)[0] = psk;
@@ -256,12 +252,13 @@ void Monotonicity::addSortPredicates(bool withMon, ClauseList*& clauses, DArray<
      static Stack<std::pair<unsigned,unsigned>> sortedVariables;
      sortedVariables.reset();
 
-     DHMap<unsigned,unsigned> varSorts;
+     DHMap<unsigned,TermList> varSorts;
      SortHelper::collectVariableSorts(cl,varSorts); 
      for(unsigned v=0;v<cl->varCnt();v++){
-       unsigned vsrt;
+       TermList vsrt;
        if(varSorts.find(v,vsrt)){
-         if(!isMonotonic[vsrt]) sortedVariables.push(make_pair(v,vsrt));
+        unsigned vsrtU = vsrt.term()->functor();
+         if(!isMonotonic[vsrtU]) sortedVariables.push(make_pair(v,vsrtU));
        }
        // else the var isn't used in the clause...they're not normalised
      }
@@ -310,10 +307,10 @@ TermList transformSubterm(TermList trm){
 
   // cout << "transformSubterm " << trm.toString() << endl;
 
-  unsigned srt = SortHelper::getTermSort(trm, _lit);
-  if(_isM[srt]) return trm;
+  TermList srt = SortHelper::getTermSort(trm, _lit);
+  if(_isM[srt.term()->functor()]) return trm;
 
-  unsigned f =  _sf[srt];
+  unsigned f =  _sf[srt.term()->functor()];
 
   return TermList(Term::create1(f,trm));
 }
@@ -330,9 +327,9 @@ void Monotonicity::addSortFunctions(bool withMon, ClauseList*& clauses)
   CALL("Monotonicity::addSortFunctions");
 
   // First compute the monotonic sorts
-  DArray<bool> isMonotonic(env.sorts->count());
-  for(unsigned s=0;s<env.sorts->count();s++){
-    if(env.property->usesSort(s) || s >= Sorts::FIRST_USER_SORT){
+  DArray<bool> isMonotonic(env.signature->typeCons());
+  for(unsigned s=0;s<env.signature->typeCons();s++){
+    if(env.property->usesSort(s) || env.signature->isNonDefaultCon(s)){
        if(withMon){
          Monotonicity m(clauses,s);
          bool monotonic = m.check();
@@ -346,12 +343,15 @@ void Monotonicity::addSortFunctions(bool withMon, ClauseList*& clauses)
   }
 
   // Now create a sort function per non-monotonic sort
-  DArray<unsigned> sortFunctions(env.sorts->count());
-  for(unsigned s=0;s<env.sorts->count();s++){
+  DArray<unsigned> sortFunctions(env.signature->typeCons());
+  for(unsigned s=0;s<env.signature->typeCons();s++){
     if(!isMonotonic[s]){
-      vstring name = "sortFunction_"+env.sorts->sortName(s);
+      vstring name = "sortFunction_"+env.signature->typeConName(s);
       unsigned f = env.signature->addFreshFunction(1,name.c_str());
-      env.signature->getFunction(f)->setType(OperatorType::getFunctionType({s},s));
+      TermList sT = TermList(AtomicSort::createConstant(s));
+      env.signature->getFunction(f)->setType(OperatorType::getFunctionType({sT},sT));
+      // increment usage count so not treated as deleted
+      env.signature->getFunction(f)->incUsageCnt();
       sortFunctions[s] = f;
     }
     else{ sortFunctions[s]=0; }
@@ -373,7 +373,7 @@ void Monotonicity::addSortFunctions(bool withMon, ClauseList*& clauses)
        Literal* l = lit.next();
        SortFunctionTransformer transformer(l,isMonotonic,sortFunctions);
        Literal* lnew = l;
-       if(l->arity()){ transformer.transform(l); }
+       if(l->arity()){ lnew = transformer.transform(l); }
        if(l!=lnew) {
          changed=true;
          // cout << "before " << l->toString() << endl;

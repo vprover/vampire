@@ -1,7 +1,4 @@
-
 /*
- * File LPO.cpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -9,18 +6,13 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file LPO.cpp
  * Implements class LPO for instances of the lexicographic path
- * ordering
- *
+ * ordering based on Bernd Loechner's thesis "Advances in
+ * Equational Theorem Proving - Architecture, Algorithms, and
+ * Redundancy Avoidance" Section 4.2
  */
 
 #include "Debug/Tracer.hpp"
@@ -56,7 +48,8 @@ Ordering::Result LPO::comparePredicates(Literal* l1, Literal *l2) const
   unsigned p2 = l2->functor();
 
   if (p1 == p2) {
-    ASS_EQ(l1->isNegative(), l1->isNegative())
+    ASS_EQ(l1->isNegative(), l1->isNegative()) // this assertion is meaningless. 
+    //maybe:  ASS_EQ(l1->isNegative(), l2->isNegative())
 
     // compare arguments in lexicographic order
     for (unsigned i = 0; i < l1->arity(); i++) {
@@ -108,7 +101,8 @@ Ordering::Result LPO::clpo(Term* t1, TermList tl2) const
     ASSERTION_VIOLATION;
     // shouldn't happen because symbol precedence is assumed to be
     // total, but if it is not then the following call is correct
-    return cAA(t1, t2, t1->args(), t2->args(), t1->arity(), t2->arity());
+    //
+    // return cAA(t1, t2, t1->args(), t2->args(), t1->arity(), t2->arity());
   }
 }
 
@@ -184,11 +178,11 @@ Ordering::Result LPO::alpha(TermList* sl, unsigned arity, Term *t) const
   ASS(t->shared());
 
   for (unsigned i = 0; i < arity; i++) {
-    switch (lpo(t, *(sl - i))) {
+    switch (lpo(*(sl - i), TermList(t))) {
     case EQUAL:
-    case LESS:
-      return GREATER;
     case GREATER:
+      return GREATER;
+    case LESS:
     case INCOMPARABLE:
       break;
     default:
@@ -204,30 +198,26 @@ Ordering::Result LPO::lpo(TermList tl1, TermList tl2) const
 {
   CALL("LPO::lpo(TermList, TermList)");
 
+  if(tl1==tl2) {
+    return EQUAL;
+  }
   if(tl1.isOrdinaryVar()) {
     return INCOMPARABLE;
   }
   ASS(tl1.isTerm());
-  return lpo(tl1.term(), tl2);
-}
-
-// used when the first term is not a variable
-Ordering::Result LPO::lpo(Term* t1, TermList tl2) const
-{
-  CALL("LPO::lpo(Term*, TermList)");
-
+  Term* t1 = tl1.term();
   ASS(t1->shared());
 
   if(tl2.isOrdinaryVar()) {
     return t1->containsSubterm(tl2) ? GREATER : INCOMPARABLE;
   }
-  
+
   ASS(tl2.isTerm());
   Term* t2=tl2.term();
 
   switch (compareFunctionPrecedences(t1->functor(), t2->functor())) {
   case EQUAL:
-    lexMAE(t1, t2, t1->args(), t2->args(), t1->arity());
+    return lexMAE(t1, t2, t1->args(), t2->args(), t1->arity());
   case GREATER:
     return majo(t1, t2->args(), t2->arity());
   default:
@@ -254,7 +244,9 @@ Ordering::Result LPO::lexMAE(Term* s, Term* t, TermList* sl, TermList* tl, unsig
       ASSERTION_VIOLATION;
     }
   }
-  return GREATER;
+  // reached only when the terms are equal but this is checked already
+  // at the start of LPO::lpo, which is the only caller of this function
+  ASSERTION_VIOLATION;
 }
 
 // greater if s is greater than every term in tl
@@ -265,7 +257,7 @@ Ordering::Result LPO::majo(Term* s, TermList* tl, unsigned arity) const
   ASS(s->shared());
 
   for (unsigned i = 0; i < arity; i++) {
-    switch(lpo(s, *(tl - i))) {
+    switch(lpo(TermList(s), *(tl - i))) {
     case GREATER:
       break;
     case EQUAL:

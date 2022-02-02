@@ -1,7 +1,4 @@
-
 /*
- * File Naming.hpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -9,12 +6,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file Naming.hpp
@@ -28,6 +19,7 @@
 
 #include "Kernel/Formula.hpp"
 #include "Kernel/Unit.hpp"
+#include "Lib/List.hpp"
 
 using namespace Kernel;
 
@@ -40,7 +32,7 @@ namespace Shell {
 class Naming
 {
 public:
-  Naming (int threshold, bool preserveEpr);
+  Naming (int threshold, bool preserveEpr, bool appify);
   FormulaUnit* apply(FormulaUnit* unit,UnitList*& defs);
 private:
   /** Encodes information about the position of the sub formula */
@@ -134,7 +126,7 @@ private:
    * Corresponds to the value of the epr_preserving_naming option.
    */
   bool _preserveEpr;
-
+  bool _appify; // higher-order stuff
   /**
    * True if there are universally quantified variables at the scope of the current formula
    *
@@ -158,7 +150,7 @@ private:
 		     int* resultsNeg);
   Formula* introduceDefinition(Formula* f,bool iff);
 
-  Literal* getDefinitionLiteral(Formula* f, Formula::VarList* freeVars);
+  Literal* getDefinitionLiteral(Formula* f, VList* freeVars);
 }; // class Naming
 
 }

@@ -1,7 +1,4 @@
-
 /*
- * File Index.hpp.
- *
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
@@ -9,12 +6,6 @@
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
  * and in the source directory
- *
- * In summary, you are allowed to use Vampire for non-commercial
- * purposes but not allowed to distribute, modify, copy, create derivatives,
- * or use in competitions. 
- * For other uses of Vampire please contact developers for a different
- * licence, which we will make an effort to provide. 
  */
 /**
  * @file Indexing/Index.hpp
@@ -63,7 +54,6 @@ struct SLQueryResult
 
   struct ClauseExtractFn
   {
-    DECL_RETURN_TYPE(Clause*);
     Clause* operator()(const SLQueryResult& res)
     {
       return res.clause;
@@ -76,19 +66,24 @@ struct SLQueryResult
  */
 struct TermQueryResult
 {
-  TermQueryResult() {}
+  TermQueryResult() : literal(nullptr), clause(nullptr) {}
   TermQueryResult(TermList t, Literal* l, Clause* c, ResultSubstitutionSP s)
   : term(t), literal(l), clause(c), substitution(s) {}
+  TermQueryResult(TermList t, Literal* l, Clause* c, ResultSubstitutionSP s, bool b)
+  : term(t), literal(l), clause(c), substitution(s), isTypeSub(b) {}
   TermQueryResult(TermList t, Literal* l, Clause* c)
   : term(t), literal(l), clause(c) {}
   TermQueryResult(TermList t, Literal* l, Clause* c, ResultSubstitutionSP s,UnificationConstraintStackSP con)
   : term(t), literal(l), clause(c), substitution(s), constraints(con) {}
+  TermQueryResult(TermList t, Literal* l, Clause* c, ResultSubstitutionSP s,UnificationConstraintStackSP con, bool b)
+  : term(t), literal(l), clause(c), substitution(s), constraints(con), isTypeSub(b) {}
 
   TermList term;
   Literal* literal;
   Clause* clause;
   ResultSubstitutionSP substitution;
   UnificationConstraintStackSP constraints;
+  bool isTypeSub = false; //true if the substitution only unifies the types of the terms
 };
 
 struct ClauseSResQueryResult
