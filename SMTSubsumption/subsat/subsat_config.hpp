@@ -26,7 +26,7 @@ static_assert(VDEBUG == 1, "VDEBUG and NDEBUG are not synchronized");
 // By default, enable logging only in debug mode
 #ifndef SUBSAT_LOGGING_ENABLED
 #   ifndef NDEBUG
-#       define SUBSAT_LOGGING_ENABLED 1
+#       define SUBSAT_LOGGING_ENABLED 0
 #   else
 #       define SUBSAT_LOGGING_ENABLED 0
 #   endif

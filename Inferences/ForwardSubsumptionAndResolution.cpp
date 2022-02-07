@@ -57,7 +57,7 @@ using namespace Saturation;
 #define CHECK_SMT_SUBSUMPTION 0
 #define CHECK_SMT_SUBSUMPTION_RESOLUTION 0
 
-#define USE_SMT_SUBSUMPTION 1
+#define USE_SMT_SUBSUMPTION 0
 
 
 
@@ -485,7 +485,7 @@ bool ForwardSubsumptionAndResolution::perform(Clause* cl, Clause*& replacement, 
 
       fsstats.m_logged_count += 1;
       if (fsstats.m_logger) {
-        ASS_EQ(Timer::s_timeLimitEnforcement, false);
+        ASS_EQ(Timer::s_limitEnforcement, false);
         fsstats.m_logger->logClauses(mcl, cl);
         if (env.timeLimitReached()) {
           fsstats.m_logger->logResult(-4);
