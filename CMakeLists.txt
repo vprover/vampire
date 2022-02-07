@@ -878,12 +878,24 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL GNU OR CMAKE_CXX_COMPILER_ID MATCHES Clang$)
   add_compile_options(-Wall)
 endif()
 
+
+#################################################################
+# google benchmark library
+#################################################################
+
+add_subdirectory(benchmark)
+# target_link_libraries(vampire PRIVATE benchmark::benchmark)
+link_libraries(benchmark::benchmark)
+# target_compile_definitions(vampire PRIVATE ENABLE_BENCHMARK=1)
+add_compile_definitions(ENABLE_BENCHMARK=1)
+
+
 ################################################################
 # z3 stuff
 ################################################################
 
 # find Z3 automatically!
-# normally this is just in /z3/build/, but this can be overridden
+# normally this is just in /z3/build/, but this can be overridden using -DZ3_DIR
 find_package(
   Z3
   CONFIG
@@ -931,16 +943,6 @@ else ()
   set(UNIT_TESTS ${UNIT_TESTS} ${UNIT_TESTS_Z3})
 endif()
 
-
-#################################################################
-# google benchmark library
-#################################################################
-
-add_subdirectory(benchmark)
-# target_link_libraries(vampire PRIVATE benchmark::benchmark)
-link_libraries(benchmark::benchmark)
-# target_compile_definitions(vampire PRIVATE ENABLE_BENCHMARK=1)
-add_compile_definitions(ENABLE_BENCHMARK=1)
 
 ################################################################
 # build objects
