@@ -102,7 +102,9 @@ template<class NumTraits> Option<Clause*> TermFactoring::applyRule(
     Monom<NumTraits> k1_s1,
     Monom<NumTraits> k2_s2)
 {
-  auto nothing = []() { return Option<Clause*>(); };
+  MeasureTime time(env.statistics->ircTermFac);
+  
+  auto nothing = [&]() { time.applicationCancelled(); return Option<Clause*>(); };
   auto createLiteral = [&](auto term, auto sym) -> Literal* {
       switch(sym) {
         case IrcPredicate::EQ:         return NumTraits::eq(true,  term, NumTraits::zero());
@@ -189,8 +191,6 @@ template<class NumTraits> Option<Clause*> TermFactoring::applyRule(
 
   // adding `Cnst`
   conclusion.loadFromIterator(uwa.cnstLiterals());
-
-  env.statistics->ircTermFacCnt++;
 
   Inference inf(GeneratingInference1(Kernel::InferenceRule::IRC_TERM_FACTORING, premise));
   return Option<Clause*>(Clause::fromStack(conclusion, inf));

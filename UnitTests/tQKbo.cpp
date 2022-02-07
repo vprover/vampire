@@ -280,3 +280,13 @@ TEST_FUN(misc01) {
   check(ord, f(b + a, c), Equal, f(a + b, c));
   check(ord, f(g(x) + a, c), Equal, f(a + g(x), c));
 }
+
+TEST_FUN(misc02) {
+  DECL_DEFAULT_VARS
+  NUMBER_SUGAR(Int)
+  DECL_FUNC (f, {Int}, Int)
+
+  auto ord = qkbo();
+
+  check(ord, f(x + y), Incomp, x);
+}

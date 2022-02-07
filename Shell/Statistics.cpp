@@ -121,15 +121,13 @@ Statistics::Statistics()
 
     ircVarElimKNonZeroCnt(0),
     ircVarElimKSum(0),
-    ircVarElimCnt(0),
     ircVarElimKMax(0),
-    ircIrTightCnt(0),
-    ircSupCnt(0),
-    ircIrCnt(0),
-    ircTermFacCnt(0),
-    ircLitFacCnt(0),
-    ircFwdDemod(0),
-    ircBwdDemod(0),
+    ircVarElim(),
+    ircIr(),
+    ircSup(),
+    ircTermFac(),
+    ircLitFac(),
+    ircDemod(),
 
     innerRewrites(0),
     innerRewritesToEqTaut(0),
@@ -212,7 +210,8 @@ void Statistics::print(ostream& out)
 
   bool separable=false;
 #define HEADING(text,num) if (num) { addCommentSignForSZS(out); out << ">>> " << (text) << endl;}
-#define COND_OUT(text, num) if (num) { addCommentSignForSZS(out); out << (text) << ": " << (num) << endl; separable = true; }
+#define COND_OUT(text, num) if (num) { addCommentSignForSZS(out); out << text << ": " << (num) << endl; separable = true; }
+#define RULE_STATS_OUT(rule) if (rule) { rule.output(#rule, out); separable = true; }
 #define SEPARATOR if (separable) { addCommentSignForSZS(out); out << endl; separable = false; }
 
   addCommentSignForSZS(out);
@@ -429,22 +428,20 @@ void Statistics::print(ostream& out)
   COND_OUT("InstGen iterations", instGenIterations);
   SEPARATOR;
 
-  HEADING("Inequality Resolution Calculus", ircVarElimKNonZeroCnt + ircVarElimKSum + ircVarElimCnt + ircVarElimKMax
-                                          + ircIrTightCnt + ircSupCnt + ircIrCnt + ircTermFacCnt + ircLitFacCnt 
-                                          + ircFwdDemod + ircBwdDemod
+  HEADING("Inequality Resolution Calculus", ircVarElimKNonZeroCnt || ircVarElimKSum || ircVarElimKMax
+                                           || ircVarElim || ircSup || ircIr  || ircTermFac || ircLitFac || ircDemod
                                           );
 
   COND_OUT("ircVarElimKNonZeroCnt" , ircVarElimKNonZeroCnt);
   COND_OUT("ircVarElimKSum" , ircVarElimKSum);
-  COND_OUT("ircVarElimCnt", ircVarElimCnt);
   COND_OUT("ircVarElimKMax", ircVarElimKMax);
-  COND_OUT("ircIrTightCnt", ircIrTightCnt);
-  COND_OUT("ircSupCnt", ircSupCnt);
-  COND_OUT("ircIrCnt", ircIrCnt);
-  COND_OUT("ircTermFacCnt", ircTermFacCnt);
-  COND_OUT("ircLitFacCnt", ircLitFacCnt);
-  COND_OUT("ircFwdDemod", ircFwdDemod);
-  COND_OUT("ircBwdDemod", ircBwdDemod);
+
+  RULE_STATS_OUT(ircVarElim);
+  RULE_STATS_OUT(ircSup);
+  RULE_STATS_OUT(ircIr);
+  RULE_STATS_OUT(ircTermFac);
+  RULE_STATS_OUT(ircLitFac);
+  RULE_STATS_OUT(ircDemod);
 
   SEPARATOR;
 
@@ -474,12 +471,31 @@ void Statistics::print(ostream& out)
   out << "------------------------------\n";
 
 #undef SEPARATOR
-#undef COND_OUT
 
   if (env.options && env.options->timeStatistics()) {
     TimeCounter::printReport(out);
   }
 }
+
+#define FIELD_OUT(field) { bool separable; COND_OUT(name << "." #field, field); (void) separable; }
+void RuleStats::output(const char* name, std::ostream& out) const
+{
+  FIELD_OUT(millisSucc);
+  FIELD_OUT(cntSucc);
+  FIELD_OUT(millisFail);
+  FIELD_OUT(cntFail);
+}
+
+void IrcIrStats::output(const char* name, std::ostream& out) const
+{
+  RuleStats::output(name, out);
+  FIELD_OUT(cntTight);
+  FIELD_OUT(cntInt);
+}
+
+#undef FIELD_OUT
+#undef COND_OUT
+
 
 const char* Statistics::phaseToString(ExecutionPhase p)
 {

@@ -116,14 +116,21 @@ template<class NumTraits, class Subst, class CnstIter> Option<Clause*> Inequalit
     Subst sigma, CnstIter cnst, unsigned nCnst
     ) const 
 {
-  env.statistics->ircIrCnt++;
+
+  MeasureTime time(env.statistics->ircIr);
   auto j = j_s1.numeral;
   auto k = k_s2.numeral;
+  auto nothing = [&]() { 
+    time.applicationCancelled();
+    return Option<Clause*>(); 
+  };
   auto int_irc = std::is_same<NumTraits, IntTraits>::value 
                           && l1.symbol() == IrcPredicate::GREATER 
                           && l2.symbol() == IrcPredicate::GREATER;
   auto tight_irc = l1.symbol() == IrcPredicate::GREATER_EQ 
                 && l2.symbol() == IrcPredicate::GREATER_EQ;
+  if (tight_irc) env.statistics->ircIr.cntTight++;
+  if (int_irc) env.statistics->ircIr.cntInt++;
 
   Stack<Literal*> conclusion(hyp1->size() + hyp2->size() + nCnst - (tight_irc ? 0 : 1));
 
@@ -158,7 +165,7 @@ template<class NumTraits, class Subst, class CnstIter> Option<Clause*> Inequalit
 
   if ( !isStrictlyMax(j_s1.factors, t1.map([&](auto t) { return t.factors; }), 0)
     || !isStrictlyMax(k_s2.factors, t2.map([&](auto t) { return t.factors; }), 1)
-      ) return Option<Clause*>();
+      ) return nothing();
 
   auto k_t1__j_t2 = int_irc
     ? NumTraits::sum(getConcatenatedIterator(k_t1, j_t2, getSingletonIterator(NumTraits::constantTl(-1))))
@@ -171,7 +178,6 @@ template<class NumTraits, class Subst, class CnstIter> Option<Clause*> Inequalit
   if (tight_irc) {
     // adding (js1 + t1 ≈ 0)σ
     conclusion.push(NumTraits::eq(true, sigma(l1.term().denormalize(), 0), NumTraits::zero()));
-    env.statistics->ircIrTightCnt++;
   }
 
   conclusion.loadFromIterator(cnst);

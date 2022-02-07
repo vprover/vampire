@@ -191,6 +191,7 @@ ClauseIterator VariableElimination::eliminateVar(Clause* premise, FoundVariable<
 {
 
   using Numeral = typename NumTraits::ConstantType;
+  MeasureTime time(env.statistics->ircVarElim);
   auto x = found.var;
   DEBUG("eliminating var: ", x)
   auto& I = found.posIneq;
@@ -203,7 +204,6 @@ ClauseIterator VariableElimination::eliminateVar(Clause* premise, FoundVariable<
     env.statistics->ircVarElimKNonZeroCnt++;
   }
   env.statistics->ircVarElimKSum += Ksize;
-  env.statistics->ircVarElimCnt++;
   if (Ksize > env.statistics->ircVarElimKMax)
     env.statistics->ircVarElimKMax = Ksize;
 

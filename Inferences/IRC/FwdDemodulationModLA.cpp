@@ -103,7 +103,6 @@ bool FwdDemodulationModLA::perform(Clause* toSimplify, Clause*& replacement, Cla
 
             auto simplified = Demod::apply(*_shared, toSimplify, res.clause, lit, s, s_norm, sigma);
             if (simplified.isSome()) {
-              env.statistics->ircFwdDemod++;
               replacement = simplified.unwrap();
               premises    = pvi(getSingletonIterator(res.clause));
               return true;

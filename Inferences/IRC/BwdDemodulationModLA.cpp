@@ -103,7 +103,7 @@ auto applyResultSubstitution(ResultSubstitution& subs, Literal* lit)
 void BwdDemodulationModLA::perform(Clause* premise, BwSimplificationRecordIterator& simplifications)
 {
   for (auto simpl : Demod::simplifiers(*_shared, premise)) {
-    auto simpls = simpl.apply([&](auto simpl){
+    auto simpls = simpl.apply([&](auto simpl) {
       auto s = simpl.monom.factors->denormalize();
       auto inst = _index->getInstances(s, /* retrieveSubstitutions */ true);
       Stack<BwSimplificationRecord> simpls;
@@ -125,7 +125,6 @@ void BwdDemodulationModLA::perform(Clause* premise, BwSimplificationRecordIterat
             { return res.substitution ? applyResultSubstitution(*res.substitution, t) : t; };
           auto maybeSimpl = Demod::apply(*_shared, toSimpl, premise, simpl.lit, simpl.monom.factors->denormalize(), simpl.monom.factors, sigma);
           if (maybeSimpl.isSome()) {
-            env.statistics->ircBwdDemod++;
             simplified.insert(toSimpl);
             simpls.push(BwSimplificationRecord(toSimpl, maybeSimpl.unwrap()));
           }

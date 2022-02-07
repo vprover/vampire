@@ -168,7 +168,12 @@ Option<Clause*> DemodulationModLA::apply(
                       Perfect<MonomFactors<NumTraits>> s_norm,
                       Sigma sigma)
 {
-  Option<Clause*> nothing;
+            
+  MeasureTime time(env.statistics->ircDemod);
+  auto nothing = [&]() {
+    time.applicationCancelled();
+    return Option<Clause*>();
+  };
   ASS(Hyp1->size() == 1)
   ASS((*Hyp1)[0]->isEquality())
   ASS((*Hyp1)[0]->isPositive())
@@ -201,14 +206,14 @@ Option<Clause*> DemodulationModLA::apply(
         // contains variables that are not in `s` (this could also be fixed 
         // changing the implementation of subsitutions, but proving this 
         // property is easier ;) )
-        return nothing;
+        return nothing();
       }
     }
 
     replacement = sigma(replacement);
 
     if (shared.ordering->compare(s_sigma, replacement) != Ordering::GREATER) {
-      return nothing;
+      return nothing();
     }
   }
      
@@ -220,7 +225,7 @@ Option<Clause*> DemodulationModLA::apply(
       .any([&](auto lit) 
           { return Ordering::Result::GREATER == shared.ordering->compare(lit, ks_t_sigma); });
     if (!greater)  {
-      return nothing;
+      return nothing();
     }
     
   }

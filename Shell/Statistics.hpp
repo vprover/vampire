@@ -20,6 +20,7 @@
 #include <ostream>
 
 #include "Forwards.hpp"
+#include "Lib/Timer.hpp"
 
 #include "Lib/RCPtr.hpp"
 #include "Lib/ScopedPtr.hpp"
@@ -37,6 +38,60 @@ namespace Shell {
 
 using namespace Kernel;
 using namespace Solving;
+
+struct RuleStats {
+  unsigned millisSucc;
+  unsigned cntSucc;
+  unsigned millisFail;
+  unsigned cntFail;
+
+  RuleStats() 
+    : millisSucc(0)
+    , cntSucc(0)
+    , millisFail(0)
+    , cntFail(0)
+    {}
+
+  operator bool() const {  return millisSucc || cntSucc || millisFail || cntFail; }
+  void output(const char* name, std::ostream& out) const;
+};
+
+/** stats for the rule InequalityResolution */
+struct IrcIrStats : RuleStats
+{
+  unsigned cntTight;
+  unsigned cntInt;
+  IrcIrStats() : RuleStats(), cntTight(0) {}
+  operator bool() const {  return RuleStats::operator bool() || cntTight || cntInt; }
+  void output(const char* name, std::ostream& out) const;
+};
+
+class MeasureTime {
+  RuleStats& _stats;
+  int _start;
+  bool _cancelled;
+public:
+  MeasureTime(RuleStats& stats)
+    : _stats(stats)
+    , _start(Timer::instance()->elapsedMilliseconds())
+    , _cancelled(false)
+  { }
+
+  void applicationCancelled() 
+  { _cancelled = true; }
+
+  ~MeasureTime() 
+  {
+    auto time = Timer::instance()->elapsedMilliseconds() - _start;
+    if (_cancelled) {
+      _stats.millisFail += time;
+      _stats.cntFail += 1;
+    } else {
+      _stats.millisSucc += time;
+      _stats.cntSucc += 1;
+    }
+  }
+};
 
 /**
  * Class Statistics
@@ -195,16 +250,14 @@ public:
   /** number of machine arithmetic overflows within the inequality resolution calculus specific rules */
   unsigned ircVarElimKNonZeroCnt;
   unsigned ircVarElimKSum;
-  unsigned ircVarElimCnt;
   unsigned ircVarElimKMax;
 
-  unsigned ircIrTightCnt;
-  unsigned ircSupCnt;
-  unsigned ircIrCnt;
-  unsigned ircTermFacCnt;
-  unsigned ircLitFacCnt;
-  unsigned ircFwdDemod;
-  unsigned ircBwdDemod;
+  RuleStats ircVarElim;
+  IrcIrStats ircIr;
+  RuleStats ircSup;
+  RuleStats ircTermFac;
+  RuleStats ircLitFac;
+  RuleStats ircDemod;
 
   /** number of (proper) inner rewrites */
   unsigned innerRewrites;

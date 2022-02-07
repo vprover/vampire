@@ -68,8 +68,12 @@ Stack<Clause*> LiteralFactoring::applyRule(Clause* premise,
     UwaResult uwa)
 {
 
+  MeasureTime time(env.statistics->ircLitFac);
 
-  auto nothing = [](auto i) { return Stack<Clause*>{}; };
+  auto nothing = [&](auto i) { 
+    time.applicationCancelled();
+    return Stack<Clause*>{}; 
+  };
   auto sigma = [&](auto x){ return uwa.sigma.apply(x, /* varbank */ 0); };
   auto& cnst  = uwa.cnst;
   auto j = j_s1.numeral;
@@ -220,7 +224,6 @@ Stack<Clause*> LiteralFactoring::applyRule(Clause* premise,
   };
 
   Inference inf(GeneratingInference1(Kernel::InferenceRule::IRC_LITERAL_FACTORING, premise));
-  env.statistics->ircLitFacCnt++;
 
   auto concls = (!_lascaFactoring || l1.symbol() == IrcPredicate::EQ || l1.symbol() == IrcPredicate::NEQ) 
     ? ircFactoring() 
