@@ -332,7 +332,8 @@ namespace Kernel {
 #if VDEBUG
   shared_ptr<IrcState> testIrcState(
     Options::UnificationWithAbstraction uwa = Options::UnificationWithAbstraction::IRC1,
-    bool strongNormalization = false
+    bool strongNormalization = false,
+    Ordering* ordering = nullptr
     );
 #endif
 

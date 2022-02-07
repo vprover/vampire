@@ -61,9 +61,11 @@ using namespace Inferences::IRC;
 
 LiteralFactoring testLiteralFactoring(
     bool lascaFactoring = false,
+    Ordering* ordering = nullptr,
+    bool strongNorm = false,
     Options::UnificationWithAbstraction uwa = Options::UnificationWithAbstraction::IRC1
     )
-{ return LiteralFactoring(testIrcState(uwa), lascaFactoring); }
+{ return LiteralFactoring(testIrcState(uwa, strongNorm, ordering), lascaFactoring); }
 
 template<class A> A* heap(A&& a) { return new A(std::move(a)); }
 
@@ -213,6 +215,39 @@ TEST_GENERATION(lasca_bug1,
       .expected(exactly(
             clause({         f(x) + y > 0 , z - y > 0        })
           , clause({         f(x) + z > 0 , y - z > 0        })
+      ))
+      .premiseRedundant(false)
+    )
+
+TEST_GENERATION(lasca_bug2a,
+    Generation::SymmetricTest()
+      .rule(heap(testLiteralFactoring(/* lasca factoring */ true)))
+      .inputs  ({  clause({ f(x) + y + 1 > 0, f(x) + z > 0 }) })
+      .expected(exactly(
+            clause({         f(x) + y + 1 > 0 , z     - y + -1 > 0 })
+          , clause({         f(x) + z     > 0 , y + 1 - z      > 0 })
+      ))
+      .premiseRedundant(false)
+    )
+
+TEST_GENERATION(lasca_bug2,
+    Generation::SymmetricTest()
+      .rule(heap(testLiteralFactoring(/* lasca factoring */ true)))
+      .inputs  ({  clause({ -f(x) + y + 1 > 0, -f(x) + z > 0 }) })
+      .expected(exactly(
+            clause({         -f(x) + y + 1 > 0 , z     - y + -1 > 0 })
+          , clause({         -f(x) + z     > 0 , y + 1 - z      > 0 })
+      ))
+      .premiseRedundant(false)
+    )
+
+TEST_GENERATION(lasca_bug3,
+    Generation::SymmetricTest()
+      .rule(heap(testLiteralFactoring(/* lasca factoring */ true)))
+      .inputs  ({  clause({  -a + x + -1 > 0, -a + -x > 0 }) })
+      .expected(exactly(
+            clause({         -a + x + -1 > 0, (-x) + (-x + 1) > 0 })
+          , clause({         -a + x      > 0, (x + -1) +  (x) > 0 })
       ))
       .premiseRedundant(false)
     )
