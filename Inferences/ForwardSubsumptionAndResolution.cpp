@@ -414,10 +414,6 @@ bool ForwardSubsumptionAndResolution::perform(Clause* cl, Clause*& replacement, 
     SLQueryResultIterator rit=_unitIndex->getGeneralizations( (*cl)[li], false, false);
     while(rit.hasNext()) {
       Clause* premise=rit.next().clause;
-      if(premise->hasAux()) {
-	continue;
-      }
-      premise->setAux(0);
       if(ColorHelper::compatible(cl->color(), premise->color()) ) {
         premises = pvi( getSingletonIterator(premise) );
         env.statistics->forwardSubsumed++;
