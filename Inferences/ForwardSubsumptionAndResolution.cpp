@@ -636,18 +636,21 @@ bool ForwardSubsumptionAndResolution::perform(Clause* cl, Clause*& replacement, 
         SLQueryResult res = rit.next();
         Clause* mcl = res.clause;
 
+        // See https://github.com/vprover/vampire/pull/214
+        ClauseMatches* cms = nullptr;
         if (mcl->hasAux()) {
-          //we have already examined this clause
-          // TODO: is this really correct? we may have more than one possible choice for "resLit"! It may work with one but not with the other.
-          // => YES this condition does seem to be incorrect! (appears in CSR091+5 and NUM155-1, among others)
-          // (also the "aux" may have been set by the subsumption code above.)
-          continue;
+          // We have seen the clause already, try to re-use the literal matches.
+          // (Note that we can't just skip the clause: if our previous check
+          // failed to detect subsumption resolution, it might still work out
+          // with a different resolved literal.)
+          cms = mcl->getAux<ClauseMatches>();
         }
-
-        ClauseMatches* cms = new ClauseMatches(mcl);
-        res.clause->setAux(cms);
-        cmStore.push(cms);
-        cms->fillInMatches(&miniIndex);
+        if (!cms) {
+          cms = new ClauseMatches(mcl);
+          mcl->setAux(cms);
+          cmStore.push(cms);
+          cms->fillInMatches(&miniIndex);
+        }
 
         ASS(!resolutionClause);
         if (checkForSubsumptionResolution(cl, cms, resLit) && ColorHelper::compatible(cl->color(), cms->_cl->color())) {
