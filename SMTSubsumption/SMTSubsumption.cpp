@@ -1923,32 +1923,6 @@ bool ProofOfConcept::solve()
  ****************************************************************************/
 
 
-/*
-static void escape(void* p) {
-  asm volatile("" : : "g"(p) : "memory");
-}
-
-static void clobber() {
-  asm volatile("" : : : "memory");
-}
-
-#include <atomic>
-#include <x86intrin.h>
-
-uint64_t rdtscp()
-{
-  std::atomic_signal_fence(std::memory_order_acq_rel);
-  uint32_t aux = 0;
-  uint64_t result = __rdtscp(&aux);
-  std::atomic_signal_fence(std::memory_order_acq_rel);
-  return result;
-}
-*/
-
-
-
-
-
 #if ENABLE_BENCHMARK
 // Google benchmark library
 // https://github.com/google/benchmark

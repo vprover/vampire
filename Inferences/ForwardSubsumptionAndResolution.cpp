@@ -217,29 +217,6 @@ public:
 
 typedef Stack<ClauseMatches*> CMStack;
 
-/*
-bool isSubsumed(Clause* cl, CMStack& cmStore)
-{
-  CALL("isSubsumed");
-
-  CMStack::Iterator csit(cmStore);
-  while(csit.hasNext()) {
-    ClauseMatches* clmatches;
-    clmatches=csit.next();
-    Clause* mcl=clmatches->_cl;
-
-    if(clmatches->anyNonMatched()) {
-      continue;
-    }
-
-    if(MLMatcher::canBeMatched(mcl,cl,clmatches->_matches,0)) {
-      return true;
-    }
-  }
-  return false;
-}
-*/
-
 Clause* ForwardSubsumptionAndResolution::generateSubsumptionResolutionClause(Clause* cl, Literal* lit, Clause* baseClause)
 {
   CALL("ForwardSubsumptionAndResolution::generateSubsumptionResolutionClause");
@@ -508,6 +485,7 @@ bool ForwardSubsumptionAndResolution::perform(Clause* cl, Clause*& replacement, 
       if (fsstats.m_logger) {
         ASS_EQ(Timer::s_limitEnforcement, false);
         // we log the clauses first to make sure they haven't been deallocated yet (might happen due to weird code paths when exiting)
+        // this is important because we want to catch subsumptions that cause vampire to time out! because these are the cases that the new algorithm should improve.
         fsstats.m_logger->logClauses(mcl, cl);
         if (env.timeLimitReached()) {
           fsstats.m_logger->logSubsumption(-4);
@@ -593,6 +571,7 @@ bool ForwardSubsumptionAndResolution::perform(Clause* cl, Clause*& replacement, 
 #endif
     TimeCounter tc_fsr(TC_FORWARD_SUBSUMPTION_RESOLUTION);
 
+    // This is subsumption resolution with unit clauses. We don't log these because we don't do smt-subsumption for these.
     for (unsigned li = 0; li < clen; li++) {
       Literal* resLit = (*cl)[li];
       SLQueryResultIterator rit = _unitIndex->getGeneralizations(resLit, true, false);
