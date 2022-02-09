@@ -660,9 +660,10 @@ bool ForwardSubsumptionAndResolution::perform(Clause* cl, Clause*& replacement, 
         }
 #if CHECK_SMT_SUBSUMPTION_RESOLUTION
         mcl_tried.push_back(cms->_cl);
-        if (!smtsubs.checkSubsumptionResolution(cms->_cl, cl, resolutionClause)) {
-          fin_print_extra_info = true;
-        }
+        // // NOTE: we can't do the check here because we might encounter the same clause again in the loop with another resLit
+        // if (!smtsubs.checkSubsumptionResolution(cms->_cl, cl, resolutionClause)) {
+        //   fin_print_extra_info = true;
+        // }
 #endif
         if (resolutionClause) {
           goto fin;
