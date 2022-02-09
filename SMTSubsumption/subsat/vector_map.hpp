@@ -79,6 +79,12 @@ public:
     return m_data[idx];
   }
 
+  bool contains(key_type key) const
+  {
+    size_type const idx = index(key);
+    return idx < size();
+  }
+
   void reserve(size_type new_cap) { m_data.reserve(new_cap); }
 
   bool empty() const noexcept { return m_data.empty(); }

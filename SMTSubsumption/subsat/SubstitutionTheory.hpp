@@ -290,6 +290,10 @@ public:
     bool enable(subsat::Var b, PropagateCallback propagate)
     {
       ASS(m_state == State::Solving);
+      if (!m_bindings.contains(b)) {
+        return true;
+      }
+
       // Retrieve the bindings corresponding to the given boolean variable
       BindingsRef const bindings = m_bindings[b];
 
