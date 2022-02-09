@@ -22,6 +22,7 @@
 
 #include "Kernel/Clause.hpp"
 #include "Kernel/ColorHelper.hpp"
+#include "Kernel/Formula.hpp"
 #include "Kernel/Unit.hpp"
 #include "Kernel/Inference.hpp"
 #include "Kernel/LiteralSelector.hpp"
@@ -47,6 +48,21 @@ using namespace Lib;
 using namespace Kernel;
 using namespace Indexing;
 using namespace Saturation;
+
+namespace {
+
+Literal* getAnsLit(Clause* c, unsigned len) {
+  for(unsigned i=0;i<len;i++) {
+    Literal* l=(*c)[i];
+    if (l->isEquality()) continue;
+    unsigned functor = l->functor();
+    Signature::Symbol* predSym = env.signature->getPredicate(functor);
+    if (predSym->answerPredicate()) return l;
+  }
+  return nullptr;
+}
+
+}  // namespace
 
 void BinaryResolution::attach(SaturationAlgorithm* salg)
 {
@@ -179,8 +195,13 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
     }
   }
 
+  // TODO: optimize this
+  Literal* cAnsLit = getAnsLit(queryCl, clength);
+  Literal* dAnsLit = getAnsLit(qr.clause, dlength);
+  bool bothHaveAnsLit = (cAnsLit != nullptr) && (dAnsLit != nullptr);
+
   unsigned conlength = withConstraints ? constraints->size() : 0;
-  unsigned newLength = clength+dlength-2+conlength;
+  unsigned newLength = clength+dlength-2+conlength-(bothHaveAnsLit ? 1 : 0);
 
   inf_destroyer.disable(); // ownership passed to the the clause below
   Clause* res = new(newLength) Clause(newLength, inf); // the inference object owned by res from now on
@@ -237,7 +258,7 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
   }
   for(unsigned i=0;i<clength;i++) {
     Literal* curr=(*queryCl)[i];
-    if(curr!=queryLit) {
+    if(curr!=queryLit && (!bothHaveAnsLit || curr!=cAnsLit)) {
       Literal* newLit=qr.substitution->applyToQuery(curr);
       if(needsToFulfilWeightLimit) {
         wlb+=newLit->weight() - curr->weight();
@@ -275,7 +296,7 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
 
   for(unsigned i=0;i<dlength;i++) {
     Literal* curr=(*qr.clause)[i];
-    if(curr!=qr.literal) {
+    if(curr!=qr.literal && (!bothHaveAnsLit || curr!=dAnsLit)) {
       Literal* newLit = qr.substitution->applyToResult(curr);
       if(needsToFulfilWeightLimit) {
         wlb+=newLit->weight() - curr->weight();
@@ -303,6 +324,28 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
       (*res)[next] = newLit;
       next++;
     }
+  }
+
+  if (bothHaveAnsLit) {
+    // TODO: which of these ASSerts are necessary?
+    ASS(cAnsLit->functor() == dAnsLit->functor());
+    ASS(cAnsLit->arity() == dAnsLit->arity());
+    ASS(next == newLength-1);
+    ASS(cAnsLit->polarity() == dAnsLit->polarity());
+    Literal* newLitC = qr.substitution->applyToQuery(cAnsLit);
+    Literal* newLitD = qr.substitution->applyToResult(dAnsLit);
+    Signature::Symbol* predSym = env.signature->getPredicate(cAnsLit->functor());
+    Stack<TermList> litArgs;
+    for (unsigned i=0; i<newLitC->arity(); ++i) {
+      TermList* ctl = newLitC->nthArgument(i);
+      TermList* dtl = newLitD->nthArgument(i);
+      if (ctl == dtl) litArgs.push(*ctl);
+      else {
+        Literal* cond = qr.substitution->applyToQuery(queryLit);
+        litArgs.push(TermList(Term::createITE(new Kernel::AtomicFormula(cond), *dtl, *ctl, predSym->predType()->arg(i))));
+      }
+    }
+    (*res)[next] = Literal::create(newLitC->functor(), newLitC->arity(), newLitC->polarity(), false, litArgs.begin());
   }
 
   if(withConstraints){

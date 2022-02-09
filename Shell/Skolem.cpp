@@ -26,6 +26,7 @@
 #include "Kernel/ApplicativeHelper.hpp"
 #include "Lib/SharedSet.hpp"
 
+#include "Shell/AnswerExtractor.hpp"
 #include "Shell/NameReuse.hpp"
 #include "Shell/Statistics.hpp"
 #include "Indexing/TermSharing.hpp"
@@ -93,6 +94,16 @@ FormulaUnit* Skolem::skolemiseImpl (FormulaUnit* unit, bool appify)
 
   if (f == g) { // not changed
     return unit;
+  }
+
+  DHMap<unsigned,TermList>::Iterator vit(_varSorts);
+  AnswerLiteralManager* alm = AnswerLiteralManager::getInstance();
+  while (vit.hasNext()) {
+    unsigned v = vit.nextKey();
+    TermList tl = _subst.apply(v);
+    if (tl.isTerm()) {
+      alm->bindSkolemToVar(tl.term(), v);
+    }
   }
 
   UnitList* premiseList = new UnitList(unit,_skolimizingDefinitions); // making sure unit is the last inserted, i.e. first in the list

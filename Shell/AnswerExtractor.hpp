@@ -22,6 +22,7 @@
 #include "Kernel/Formula.hpp"
 #include "Kernel/InferenceStore.hpp"
 #include "Kernel/RCClauseStack.hpp"
+#include "Kernel/TermTransformer.hpp"
 
 
 
@@ -38,8 +39,12 @@ public:
   static void tryOutputAnswer(Clause* refutation);
 
   virtual bool tryGetAnswer(Clause* refutation, Stack<TermList>& answer) = 0;
+
+  virtual void tryOutputInputUnits();
 protected:
   void getNeededUnits(Clause* refutation, ClauseStack& premiseClauses, Stack<Unit*>& conjectures);
+
+  UnitList* _inputs = nullptr;
 };
 
 class ConjunctionGoalAnswerExractor : public AnswerExtractor {
@@ -65,7 +70,21 @@ public:
 
   void onNewClause(Clause* cl);
 
+  void bindSkolemToVar(Term* skolem, unsigned var);
+
 private:
+  class ConjectureSkolemReplacement : public TermTransformer {
+   public:
+    ConjectureSkolemReplacement() : _skolemToVar() {}
+    void bindSkolemToVar(Term* t, unsigned v);
+    TermList transformTermList(TermList tl);
+   protected:
+    virtual TermList transformSubterm(TermList trm);
+    virtual TermList transform(TermList ts);
+   private:
+    vmap<Term*, unsigned> _skolemToVar;
+  };
+
   Literal* getAnswerLiteral(VList* vars,Formula* f);
   Unit* tryAddingAnswerLiteral(Unit* unit);
 
@@ -75,6 +94,8 @@ private:
   RCClauseStack _answers;
 
   DHMap<unsigned, Clause*> _resolverClauses;
+
+  ConjectureSkolemReplacement _skolemReplacement;
 };
 
 }

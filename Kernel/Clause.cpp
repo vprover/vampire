@@ -501,8 +501,11 @@ unsigned Clause::computeWeight() const
 
   unsigned result = 0;
   for (int i = _length-1; i >= 0; i--) {
-    ASS(_literals[i]->shared());
-    result += _literals[i]->weight();
+    // TODO new:
+    if (_literals[i]->shared()) result += _literals[i]->weight();
+    // TODO old:
+    //ASS(_literals[i]->shared());
+    //result += _literals[i]->weight();
   }
 
   return result;

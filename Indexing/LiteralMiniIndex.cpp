@@ -47,11 +47,21 @@ LiteralMiniIndex::LiteralMiniIndex(Literal* const * lits, unsigned length)
 void LiteralMiniIndex::init(Literal* const * lits)
 {
   ASS_G(_cnt, 0);
+  bool hasAnsLit = false;
   for(unsigned i=0;i<_cnt;i++) {
+    // TODO new (if{}):
+    if (env.signature->getPredicate(lits[i]->functor())->answerPredicate()) {
+      hasAnsLit = true;
+      continue;
+    }
     _entries[i].init(lits[i]);
   }
-  _entries[_cnt].initTerminal();
-  std::sort(_entries.begin(), _entries.end()-1,literalHeaderComparator);
+  // TODO new:
+  _entries[hasAnsLit ? _cnt-1 : _cnt].initTerminal();
+  std::sort(_entries.begin(), _entries.end()-(hasAnsLit ? 2 : 1),literalHeaderComparator);
+  // TODO old:
+  //_entries[_cnt].initTerminal();
+  //std::sort(_entries.begin(), _entries.end()-1,literalHeaderComparator);
 }
 
 }

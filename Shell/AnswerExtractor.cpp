@@ -46,19 +46,22 @@ void AnswerExtractor::tryOutputAnswer(Clause* refutation)
 
   Stack<TermList> answer;
 
+  bool alm = true;
   if(!AnswerLiteralManager::getInstance()->tryGetAnswer(refutation, answer)) {
+    alm = false;
     ConjunctionGoalAnswerExractor cge;
     if(!cge.tryGetAnswer(refutation, answer)) {
       return;
     }
   }
   env.beginOutput();
+  if (alm) AnswerLiteralManager::getInstance()->tryOutputInputUnits();
   env.out() << "% SZS answers Tuple [[";
   Stack<TermList>::BottomFirstIterator ait(answer);
   while(ait.hasNext()) {
     TermList aLit = ait.next();
     // try evaluating aLit
-    if(aLit.isTerm()){
+    if(aLit.isTerm() && !aLit.term()->isSpecial()){
       InterpretedLiteralEvaluator eval;
       unsigned p = env.signature->addFreshPredicate(1,"p"); 
       TermList sort = SortHelper::getResultSort(aLit.term());
@@ -83,6 +86,15 @@ void AnswerExtractor::tryOutputAnswer(Clause* refutation)
   env.endOutput();
 }
 
+void AnswerExtractor::tryOutputInputUnits() {
+  if (!UnitList::isEmpty(_inputs)) {
+    env.out() << "% Inputs for question answering:" << endl;
+    UnitList::Iterator it(_inputs);
+    while (it.hasNext()) {
+      env.out() << it.next()->toString() << endl;
+    }
+  }
+}
 
 void AnswerExtractor::getNeededUnits(Clause* refutation, ClauseStack& premiseClauses, Stack<Unit*>& conjectures)
 {
@@ -320,11 +332,16 @@ bool AnswerLiteralManager::tryGetAnswer(Clause* refutation, Stack<TermList>& ans
     Literal* lit = (*ansCl)[0];
     unsigned arity = lit->arity();
     for(unsigned i=0; i<arity; i++) {
-      answer.push(*lit->nthArgument(i));
+      answer.push(_skolemReplacement.transformTermList(*lit->nthArgument(i)));
     }
     return true;
   }
   return false;
+}
+
+void AnswerLiteralManager::bindSkolemToVar(Term* skolem, unsigned var) {
+  ASS(env.signature->getFunction(skolem->functor())->skolem());
+  _skolemReplacement.bindSkolemToVar(skolem, var);
 }
 
 Literal* AnswerLiteralManager::getAnswerLiteral(VList* vars,Formula* f)
@@ -363,11 +380,24 @@ Unit* AnswerLiteralManager::tryAddingAnswerLiteral(Unit* unit)
   FormulaUnit* fu = static_cast<FormulaUnit*>(unit);
   Formula* form = fu->formula();
 
-  if(form->connective()!=NOT || form->uarg()->connective()!=EXISTS) {
+  if(form->connective()!=NOT ||
+      (form->uarg()->connective()!=EXISTS && (form->uarg()->connective()!=FORALL || form->uarg()->qarg()->connective()!=EXISTS))) {
     return unit;
   }
 
-  Formula* quant =form->uarg();
+  Unit* u = unit;
+  while (u->derivedFromInput() && u->inference().rule() != InferenceRule::INPUT) {
+    Inference::Iterator it = unit->inference().iterator();
+    Unit* newu = u;
+    while (newu->inference().hasNext(it) && newu->inference().rule() != InferenceRule::INPUT) {
+      newu = newu->inference().next(it);
+      ASS(!newu->derivedFromInput() || !newu->inference().hasNext(it));
+    }
+    if (newu == u) break;
+    u = newu;
+  }
+  if (u->inference().rule() == InferenceRule::INPUT) UnitList::push(u, _inputs);
+  Formula* quant = (form->uarg()->connective()==EXISTS) ? form->uarg() : form->uarg()->qarg();
   VList* vars = quant->vars();
   ASS(vars);
 
@@ -378,6 +408,7 @@ Unit* AnswerLiteralManager::tryAddingAnswerLiteral(Unit* unit)
 
   Formula* conj = new JunctionFormula(AND, conjArgs);
   Formula* newQuant = new QuantifiedFormula(EXISTS, vars, 0,conj);
+  if (form->uarg()->connective()!=EXISTS) newQuant = new QuantifiedFormula(FORALL, form->uarg()->vars(), 0, newQuant);
   Formula* newForm = new NegatedFormula(newQuant);
 
   newForm = Flattening::flatten(newForm);
@@ -494,6 +525,33 @@ Clause* AnswerLiteralManager::getRefutation(Clause* answer)
   Clause* refutation = Clause::fromIterator(LiteralIterator::getEmpty(),
       GeneratingInferenceMany(InferenceRule::UNIT_RESULTING_RESOLUTION, premises));
   return refutation;
+}
+
+
+void AnswerLiteralManager::ConjectureSkolemReplacement::bindSkolemToVar(Term* t, unsigned v) {
+  ASS(_skolemToVar.count(t) == 0);
+  _skolemToVar[t] = v;
+}
+
+TermList AnswerLiteralManager::ConjectureSkolemReplacement::transformTermList(TermList tl) {
+  return transform(tl);
+  //TermList transformed = transformSubterm(tl);
+  //if (transformed != tl) return transformed;
+  //else return transform(tl);
+}
+
+TermList AnswerLiteralManager::ConjectureSkolemReplacement::transform(TermList tl) {
+  TermList transformed = transformSubterm(tl);
+  if (transformed != tl) return transformed;
+  else return TermTransformer::transform(tl);
+}
+
+TermList AnswerLiteralManager::ConjectureSkolemReplacement::transformSubterm(TermList trm) {
+  if (trm.isTerm()) {
+    auto it = _skolemToVar.find(trm.term());
+    if (it != _skolemToVar.end()) return TermList(it->second, false);
+  }
+  return trm;
 }
 
 }
