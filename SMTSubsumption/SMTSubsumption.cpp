@@ -1259,6 +1259,7 @@ class SMTSubsumption::SMTSubsumptionImpl2
     // TODO: allocate this into one big array...
     vvector<vvector<subsat::Var>> inst_normal_matches;
     vvector<vvector<subsat::Var>> inst_compl_matches;
+    vvector<subsat::Var> inst_is_compl_matched;
 
     /// Set up the subsumption resolution problem from scratch.
     /// Returns false if no solution is possible.
@@ -1278,6 +1279,8 @@ class SMTSubsumption::SMTSubsumptionImpl2
       inst_normal_matches.resize(instance->length());
       inst_compl_matches.clear();
       inst_compl_matches.resize(instance->length());
+      inst_is_compl_matched.clear();
+      inst_is_compl_matched.reserve(instance->length());
 
       m_base = base;
       m_instance = instance;
@@ -1437,15 +1440,40 @@ class SMTSubsumption::SMTSubsumptionImpl2
       auto handle = solver.constraint_end();
       solver.add_clause_unsafe(handle);
 
-      // TODO: this is wrong. what we actually want is that at most one *INSTANCE LITERAL* is complementary-matched. but it may be complementary-matched by multiple base literals (and this case is quite common, actually)
-      // At most one complementary match
+      // inst_is_compl_matched[j] is true if instance[j] is complementary-matched by one or more base literals
+      // (other direction not required, but we could use it instead of the "at least one complementary match" above)
+      for (unsigned j = 0; j < instance->length(); ++j) {
+        subsat::Var const b_is_matched = solver.new_variable();
+        inst_is_compl_matched.push_back(b_is_matched);
+        ASS_EQ(inst_is_compl_matched[j], b_is_matched);
+        for (subsat::Var const b_compl : inst_compl_matches[j]) {
+          solver.constraint_start();
+          solver.constraint_push_literal(~b_compl);
+          solver.constraint_push_literal(b_is_matched);
+          auto handle = solver.constraint_end();
+          solver.add_clause_unsafe(handle);
+        }
+      }
+
+      // At most one instance literal is complementary-matched.
+      // But note that this instance literal may be complementary-matched by multiple base literals!
       solver.constraint_start();
-      for (auto const pair : complementary_matches) {
-        subsat::Var const b = pair.first;
-        solver.constraint_push_literal(b);
+      for (subsat::Var const b_is_matched : inst_is_compl_matched) {
+        solver.constraint_push_literal(b_is_matched);
       }
       auto handle2 = solver.constraint_end();
       solver.add_atmostone_constraint_unsafe(handle2);
+
+      // // TODO: this is wrong. what we actually want is that at most one *INSTANCE LITERAL* is complementary-matched.
+      // //       but it may be complementary-matched by multiple base literals (and this case is quite common, actually)
+      // // At most one complementary match
+      // solver.constraint_start();
+      // for (auto const pair : complementary_matches) {
+      //   subsat::Var const b = pair.first;
+      //   solver.constraint_push_literal(b);
+      // }
+      // auto handle2 = solver.constraint_end();
+      // solver.add_atmostone_constraint_unsafe(handle2);
 
       return !solver.inconsistent();
       // TODO: second version that transforms the subsumption instance into an SR instance?
@@ -1540,7 +1568,7 @@ class SMTSubsumption::SMTSubsumptionImpl2
           std::cerr << "\% ***WRONG RESULT OF SUBSUMPTION RESOLUTION***" << std::endl;
           std::cerr << "\%    base       = " << base->toString() << std::endl;
           std::cerr << "\%    instance   = " << instance->toString() << std::endl;
-          std::cerr << "\% Should NOT be possible but found the following result:" << std::endl;
+          std::cerr << "\% Should NOT be possible but SMT-SR found the following result:" << std::endl;
           std::cerr << "\%    conclusion = " << getSubsumptionResolutionConclusion()->toString() << std::endl;
           return false;
         } else {
@@ -1560,7 +1588,7 @@ class SMTSubsumption::SMTSubsumptionImpl2
         std::cerr << "\% ***WRONG RESULT OF SUBSUMPTION RESOLUTION***" << std::endl;
         std::cerr << "\%    base     = " << base->toString() << std::endl;
         std::cerr << "\%    instance = " << instance->toString() << std::endl;
-        std::cerr << "\% Should have found this conclusion:" << std::endl;
+        std::cerr << "\% No result from SMT-SR, but should have found this conclusion:" << std::endl;
         std::cerr << "\%    expected = " << conclusion->toString() << std::endl;
       }
       return (found > 0);
@@ -1871,6 +1899,19 @@ void ProofOfConcept::test(Clause* side_premise, Clause* main_premise)
     //   std::cout << "UNEXPECTED RESULT: " << subsumed << std::endl;
     // }
     orig.printStats(std::cout);
+  }
+
+  {
+    SMTSubsumptionImpl2 impl;
+    std::cout << "\nTESTING 'subsat' subsumption resolution (v2)" << std::endl;
+    subsat::print_config(std::cout);
+    std::cout << "SETUP" << std::endl;
+    bool res1 = impl.setupSubsumptionResolution(side_premise, main_premise);
+    std::cout << "  => " << res1 << std::endl;
+    std::cout << "SOLVE" << std::endl;
+    bool res = res1 && impl.solve();
+    std::cout << "  => " << res << std::endl;
+    std::cout << "conclusion = " << impl.getSubsumptionResolutionConclusion()->toString() << std::endl;
   }
 }
 
