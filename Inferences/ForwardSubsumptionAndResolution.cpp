@@ -340,8 +340,8 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl, Clause *&replacement, 
             cms = new ClauseMatches(mcl);
             mcl->setAux(cms);
             cmStore.push(cms);
+            cms->fillInMatches(&miniIndex);
           }
-          cms->fillInMatches(&miniIndex);
 
           if (checkForSubsumptionResolution(cl, cms, resLit) && ColorHelper::compatible(cl->color(), cms->_cl->color())) {
             resolutionClause = generateSubsumptionResolutionClause(cl, resLit, cms->_cl);
