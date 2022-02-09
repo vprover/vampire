@@ -1,3 +1,5 @@
+#if 0
+
 #include "SMTSubsumption.hpp"
 #include "SubstitutionTheory.hpp"
 #include "SMTSubsumption/minisat/Solver.h"
@@ -2177,3 +2179,5 @@ void ProofOfConcept::benchmark_micro1(SubsumptionInstance instance)
 // Add a flag (i.e., a boolean variable that's to be used as assumption)
 //  to switch between subsumption and subsumption resolution.
 // But other SR-clauses are only generated after checking S.
+
+#endif

@@ -1,3 +1,4 @@
+#if 0
 #ifndef SMTSUBSUMPTION_HPP
 #define SMTSUBSUMPTION_HPP
 
@@ -31,3 +32,5 @@ class ProofOfConcept {
 }
 
 #endif /* !SMTSUBSUMPTION_HPP */
+
+#endif
