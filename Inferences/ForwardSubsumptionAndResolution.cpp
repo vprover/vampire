@@ -303,15 +303,20 @@ class SubsumptionLogger
     std::ofstream m_file_clauses;
     TPTPPrinter m_tptp;  // this needs to be a member so we get the type definitions only once at the beginning
     unsigned int m_seq;  // sequence number of logged inferences
+    unsigned int m_last_side_premise;
+    unsigned int m_last_main_premise;
     vset<unsigned int> m_seen_clauses;
   public:
     CLASS_NAME(SubsumptionLogger);
     USE_ALLOCATOR(SubsumptionLogger);
     SubsumptionLogger(vstring logfile_path);
-    // Only log the clauses; must call logResult afterwards or the file will not be formatted correctly!
+    // Only log the clauses; must call log...Result afterwards or the file will not be formatted correctly!
     void logClauses(Clause* side_premise, Clause* main_premise);
-    void logResult(int result);
-    void log(Clause* side_premise, Clause* main_premise, int result);
+    void logSubsumption(int result);
+    void logSubsumptionResolution(int result);
+    // convenience function
+    void logSubsumption(Clause* side_premise, Clause* main_premise, int result);
+    void logSubsumptionResolution(Clause* side_premise, Clause* main_premise, int result);
     void flush()
     {
       m_file_slog.flush();
@@ -346,20 +351,36 @@ void SubsumptionLogger::logClauses(Clause* side_premise, Clause* main_premise)
       m_tptp.printWithRole(id_stream.str(), "hypothesis", clause, false);
     }
   }
-  // Print subsumption log
-  m_file_slog << "S " << side_premise->number() << ' ' << main_premise->number();
+  m_last_main_premise = main_premise->number();
+  m_last_side_premise = side_premise->number();
 }
 
-void SubsumptionLogger::logResult(int result)
+void SubsumptionLogger::logSubsumption(int result)
 {
-  m_file_slog << ' ' << result << '\n';
+  m_file_slog << "S " << m_last_side_premise << ' ' << m_last_main_premise << ' ' << result << '\n';
   m_seq += 1;
+  m_last_main_premise = -1;
+  m_last_side_premise = -1;
 }
 
-void SubsumptionLogger::log(Clause* side_premise, Clause* main_premise, int result)
+void SubsumptionLogger::logSubsumptionResolution(int result)
+{
+  m_file_slog << "SR " << m_last_side_premise << ' ' << m_last_main_premise << ' ' << result << '\n';
+  m_seq += 1;
+  m_last_main_premise = -1;
+  m_last_side_premise = -1;
+}
+
+void SubsumptionLogger::logSubsumption(Clause* side_premise, Clause* main_premise, int result)
 {
   logClauses(side_premise, main_premise);
-  logResult(result);
+  logSubsumption(result);
+}
+
+void SubsumptionLogger::logSubsumptionResolution(Clause* side_premise, Clause* main_premise, int result)
+{
+  logClauses(side_premise, main_premise);
+  logSubsumptionResolution(result);
 }
 
 void ForwardSubsumptionAndResolution::printStats(std::ostream& out)
@@ -473,7 +494,7 @@ bool ForwardSubsumptionAndResolution::perform(Clause* cl, Clause*& replacement, 
       if(cms->anyNonMatched()) {
         fsstats.m_logged_count += 1;
         if (fsstats.m_logger) {
-          fsstats.m_logger->log(mcl, cl, false);
+          fsstats.m_logger->logSubsumption(mcl, cl, false);
         }
         continue;
       }
@@ -486,9 +507,10 @@ bool ForwardSubsumptionAndResolution::perform(Clause* cl, Clause*& replacement, 
       fsstats.m_logged_count += 1;
       if (fsstats.m_logger) {
         ASS_EQ(Timer::s_limitEnforcement, false);
+        // we log the clauses first to make sure they haven't been deallocated yet (might happen due to weird code paths when exiting)
         fsstats.m_logger->logClauses(mcl, cl);
         if (env.timeLimitReached()) {
-          fsstats.m_logger->logResult(-4);
+          fsstats.m_logger->logSubsumption(-4);
           fsstats.m_logger->flush();
           throw TimeLimitExceededException();
         }
@@ -503,14 +525,14 @@ bool ForwardSubsumptionAndResolution::perform(Clause* cl, Clause*& replacement, 
       catch(...) {
         std::cout << "BIG SUBSUMPTION INTERRUPTED BY EXCEPTION!!! (time limit?)" << std::endl;
         if (fsstats.m_logger) {
-          fsstats.m_logger->logResult(-2);
+          fsstats.m_logger->logSubsumption(-2);
           fsstats.m_logger->flush();
         }
         throw;
       }
 
       if (fsstats.m_logger) {
-        fsstats.m_logger->logResult(isSubsumed);
+        fsstats.m_logger->logSubsumption(isSubsumed);
         if (env.timeLimitReached()) {
           fsstats.m_logger->flush();
           throw TimeLimitExceededException();
