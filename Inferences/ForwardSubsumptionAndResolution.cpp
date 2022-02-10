@@ -318,6 +318,8 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl, Clause *&replacement, 
               goto fin;
             }
           }
+          ASS_EQ(cms->_cl->getAux<ClauseMatches>(), cms);
+          cms->_cl->setAux(nullptr);
         }
       }
 
@@ -335,6 +337,10 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl, Clause *&replacement, 
             // failed to detect subsumption resolution, it might still work out
             // with a different resolved literal.)
             cms = mcl->getAux<ClauseMatches>();
+            // Already handled in the loop over cmStore above.
+            if (!cms) {
+              continue;
+            }
           }
           if (!cms) {
             cms = new ClauseMatches(mcl);
