@@ -15,8 +15,38 @@ struct SubsumptionInstance
   Kernel::Clause* side_premise;  ///< also called "base clause"
   Kernel::Clause* main_premise;  ///< also called "instance clause"
   unsigned int number;
-  int subsumed;  // expected result
+  int result;
 };
+
+struct SubsumptionResolutionInstance
+{
+  Kernel::Clause* side_premise;  ///< also called "base clause"
+  Kernel::Clause* main_premise;  ///< also called "instance clause"
+  /// Index into main_premise; the literal for which SR is tested
+  /// - only relevant for the original SR... SMT-SR always tests all of them.
+  /// - value UINT_MAX means 'all of them' (denoted as '*' in the logfile).
+  unsigned res_lit;
+  unsigned int number;
+  int result;
+};
+
+// one round of subsumption/subsumption resolution
+// (corresponds to one iteration of the saturation algorithm)
+struct SubsumptionRound {
+  /// index into vector of subsumption instances.
+  /// one past the last instance for this round.
+  unsigned s_end;
+  /// index into vector of subsumption resolution instances.
+  /// one past the last instance for this round.
+  unsigned sr_end;
+};
+
+struct SubsumptionBenchmark {
+  vvector<SubsumptionInstance> subsumptions;
+  vvector<SubsumptionResolutionInstance> subsumptionResolutions;
+  vvector<SubsumptionRound> rounds;
+};
+
 
 class SMTSubsumptionImpl2;
 

@@ -295,6 +295,9 @@ SubsumptionLogger::SubsumptionLogger(vstring logfile_path)
 
 void SubsumptionLogger::logNextRound()
 {
+  // TODO: the main premise is the same throughout one round.
+  //       so we could save some space by only logging the main premise number after 'R'.
+  //       and don't print the 'R' line when no S/SR lines follow.
   m_file_slog << "R\n";
 }
 

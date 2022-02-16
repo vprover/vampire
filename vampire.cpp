@@ -15,6 +15,7 @@
 #include <ostream>
 #include <fstream>
 #include <csignal>
+#include <string>
 
 #if VZ3
 #include "z3++.h"
@@ -492,6 +493,7 @@ bool subsumptionBenchmarkMode_parseAxiomName(vstring const& name, vstring const&
   }
 }
 
+/*
 vvector<SMTSubsumption::SubsumptionInstance> getOldFormatSubsumptionInstances(UnitList const* units)
 {
   // Components of key: sequence number, whether side premise subsumes main premise
@@ -589,6 +591,7 @@ vvector<SMTSubsumption::SubsumptionInstance> getOldFormatSubsumptionInstances(Un
 
   return instances;
 }
+*/
 
 vmap<unsigned int, Clause*> getNumberedClauses(UnitList const* units)
 {
@@ -640,53 +643,102 @@ vmap<unsigned int, Clause*> getNumberedClauses(UnitList const* units)
   return clauses;
 }
 
-vvector<SMTSubsumption::SubsumptionInstance> getSubsumptionInstances(UnitList const* units)
+SMTSubsumption::SubsumptionBenchmark getSubsumptionBenchmark(UnitList const* units)
 {
   BYPASSING_ALLOCATOR;
+  SMTSubsumption::SubsumptionBenchmark b;
 
   vstring slog_path = env.options->subsumptionLogfile();
   if (slog_path.empty()) {
-    std::cerr << "\% Parsing old-style subsumption log..." << std::endl;
-    return getOldFormatSubsumptionInstances(units);
+    USER_ERROR("No subsumption log!");
+    // std::cerr << "\% Parsing old-style subsumption log..." << std::endl;
+    // return getOldFormatSubsumptionInstances(units);
   }
 
-  std::cerr << "\% Parsing new-style subsumption log..." << std::endl;
-  vvector<SMTSubsumption::SubsumptionInstance> instances;
+  std::cerr << "\% Parsing subsumption log..." << std::endl;
   unsigned int number = 0;
   auto clauses = getNumberedClauses(units);
   std::ifstream slog{slog_path.c_str()};
+  bool round_is_empty = true;
   while (true) {
-    // parse slog line, format:
-    // S <side_premise_number> <main_premise_number> <is_subsumed>
-    vstring buf;
+    // parse slog line:
+    // - next round:
+    //   R
+    // - subsumption:
+    //   S <side_premise_number> <main_premise_number> <result>
+    // - subsumption resolution:
+    //   SR <side_premise_number> <main_premise_number> <res_lit_idx> <result>
+    std::string buf;
     if (!(slog >> buf)) {
       break;
     }
-    if (buf != "S") {
-      USER_ERROR("expected 'S'");
+    if (buf == "R") {
+      if (!round_is_empty) {
+        if (b.subsumptions.size() > (size_t)UINT_MAX) { USER_ERROR("too many subsumptions!"); }
+        if (b.subsumptionResolutions.size() > (size_t)UINT_MAX) { USER_ERROR("too many subsumption resolutions!"); }
+        b.rounds.emplace_back();
+        b.rounds.back().s_end = b.subsumptions.size();
+        b.rounds.back().sr_end = b.subsumptionResolutions.size();
+        round_is_empty = true;
+      }
     }
-    unsigned int side_premise_number;
-    if (!(slog >> side_premise_number)) {
-      USER_ERROR("expected <side_premise_number>");
+    else if (buf == "S") {
+      unsigned int side_premise_number;
+      if (!(slog >> side_premise_number)) {
+        USER_ERROR("expected <side_premise_number>");
+      }
+      unsigned int main_premise_number;
+      if (!(slog >> main_premise_number)) {
+        USER_ERROR("expected <main_premise_number>");
+      }
+      int result;
+      if (!(slog >> result)) {
+        std::cerr << "expected <result> (continue with 'unknown' value)" << std::endl;
+        result = -3;
+      }
+      b.subsumptions.push_back({
+          .side_premise = clauses.at(side_premise_number),
+          .main_premise = clauses.at(main_premise_number),
+          .number = ++number,
+          .result = result,
+      });
     }
-    unsigned int main_premise_number;
-    if (!(slog >> main_premise_number)) {
-      USER_ERROR("expected <main_premise_number>");
+    else if (buf == "SR") {
+      unsigned int side_premise_number;
+      if (!(slog >> side_premise_number)) {
+        USER_ERROR("expected <side_premise_number>");
+      }
+      unsigned int main_premise_number;
+      if (!(slog >> main_premise_number)) {
+        USER_ERROR("expected <main_premise_number>");
+      }
+      if (!(slog >> buf)) {
+        USER_ERROR("expected <res_lit_idx>");
+      }
+      unsigned int res_lit_idx;
+      if (buf == "*") {
+        res_lit_idx = UINT_MAX;
+      } else {
+        res_lit_idx = std::stoul(buf);
+      }
+      int result;
+      if (!(slog >> result)) {
+        std::cerr << "expected <result> (continue with 'unknown' value)" << std::endl;
+        result = -3;
+      }
+      b.subsumptionResolutions.push_back({
+          .side_premise = clauses.at(side_premise_number),
+          .main_premise = clauses.at(main_premise_number),
+          .res_lit = res_lit_idx,
+          .number = ++number,
+          .result = result,
+      });
     }
-    int is_subsumed;
-    if (!(slog >> is_subsumed)) {
-      // USER_ERROR("expected <is_subsumed>");
-      std::cerr << "expected <is_subsumed> (continue with 'unknown' value)" << std::endl;
-      is_subsumed = -3;
+    else {
+      USER_ERROR("expected 'R', 'S', or 'SR'");
     }
-    instances.push_back({
-        .side_premise = clauses.at(side_premise_number),
-        .main_premise = clauses.at(main_premise_number),
-        .number = ++number,
-        .subsumed = is_subsumed,
-    });
   }
-  return instances;
+  return b;
 }
 
 
@@ -709,13 +761,13 @@ void subsumptionBenchmarkMode(bool simulate_full_run)
   Shell::Preprocess prepro(*env.options);
   prepro.preprocess_very_lightly(*prb);
 
-  auto instances = getSubsumptionInstances(prb->units());
+  auto b = getSubsumptionBenchmark(prb->units());
 
   SMTSubsumption::ProofOfConcept s;
   if (simulate_full_run) {
-    s.benchmark_run(std::move(instances));
+    s.benchmark_run(std::move(b.subsumptions));
   } else {
-    s.benchmark_micro(std::move(instances));
+    s.benchmark_micro(std::move(b.subsumptions));
   }
 
   vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
@@ -738,7 +790,8 @@ void subsumptionTestingMode()
   Shell::Preprocess prepro(*env.options);
   prepro.preprocess_very_lightly(*prb);
 
-  auto instances = getSubsumptionInstances(prb->units());
+  auto b = getSubsumptionBenchmark(prb->units());
+  auto instances = b.subsumptions;
 
   if (instances.size() != 1) {
     std::cerr << "stest: got " << instances.size() << " instances, will use the first one." << std::endl;

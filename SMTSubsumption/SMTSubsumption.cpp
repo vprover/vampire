@@ -1976,7 +1976,7 @@ void bench_smt_total(benchmark::State& state, SubsumptionInstance instance)
     SMTSubsumptionImpl smt_impl;
     bool smt_result = smt_impl.checkSubsumption(instance.side_premise, instance.main_premise);
     benchmark::DoNotOptimize(smt_result);
-    if (smt_result != instance.subsumed) {
+    if (smt_result != instance.result) {
       state.SkipWithError("Wrong result!");
       return;
     }
@@ -2013,7 +2013,7 @@ void bench_smt_search(benchmark::State& state, SubsumptionInstance instance)
     benchmark::ClobberMemory();
     bool smt_result = smt_setup_result && smt_impl.solve();
     benchmark::DoNotOptimize(smt_result);
-    if (smt_result != instance.subsumed) {
+    if (smt_result != instance.result) {
       state.SkipWithError("Wrong result!");
       return;
     }
@@ -2026,7 +2026,7 @@ void bench_orig_total(benchmark::State& state, SubsumptionInstance instance)
     OriginalSubsumption::Impl orig_impl;
     bool orig_result = orig_impl.checkSubsumption(instance.side_premise, instance.main_premise);
     benchmark::DoNotOptimize(orig_result);
-    if (orig_result != instance.subsumed) {
+    if (orig_result != instance.result) {
       state.SkipWithError("Wrong result!");
       return;
     }
@@ -2040,7 +2040,7 @@ void bench_orig_total_reusing(benchmark::State& state, SubsumptionInstance insta
   for (auto _ : state) {
     bool orig_result = orig_impl.checkSubsumption(instance.side_premise, instance.main_premise);
     benchmark::DoNotOptimize(orig_result);
-    if (orig_result != instance.subsumed) {
+    if (orig_result != instance.result) {
       state.SkipWithError("Wrong result!");
       return;
     }
@@ -2077,7 +2077,7 @@ void bench_orig_search(benchmark::State& state, SubsumptionInstance instance)
     benchmark::ClobberMemory();
     bool orig_result = orig_setup_result && orig_impl.solve();
     benchmark::DoNotOptimize(orig_result);
-    if (orig_result != instance.subsumed) {
+    if (orig_result != instance.result) {
       state.SkipWithError("Wrong result!");
       return;
     }
@@ -2111,7 +2111,7 @@ void bench_smt2_total(benchmark::State& state, SubsumptionInstance instance)
     SMTSubsumptionImpl2 smt_impl;
     bool smt_result = smt_impl.checkSubsumption(instance.side_premise, instance.main_premise);
     benchmark::DoNotOptimize(smt_result);
-    if (smt_result != instance.subsumed) {
+    if (smt_result != instance.result) {
       state.SkipWithError("Wrong result!");
       return;
     }
@@ -2124,7 +2124,7 @@ void bench_smt2_total_reusing(benchmark::State& state, SubsumptionInstance insta
   for (auto _ : state) {
     bool smt_result = smt_impl.checkSubsumption(instance.side_premise, instance.main_premise);
     benchmark::DoNotOptimize(smt_result);
-    if (smt_result != instance.subsumed) {
+    if (smt_result != instance.result) {
       state.SkipWithError("Wrong result!");
       return;
     }
@@ -2157,7 +2157,7 @@ void ProofOfConcept::benchmark_micro(vvector<SubsumptionInstance> instances)
     auto instance = instances[i];
     std::string name;
     std::string suffix =
-        std::to_string(instance.number); // + (instance.subsumed ? "_success" : "_failure");
+        std::to_string(instance.number); // + (instance.result ? "_success" : "_failure");
 
     // name = "smt_setup_" + suffix;
     // benchmark::RegisterBenchmark(name.c_str(), bench_smt_setup, instance);
@@ -2207,7 +2207,7 @@ void bench_smt2_run_setup(benchmark::State& state, vvector<SubsumptionInstance> 
     for (auto instance : instances) {
       if (!impl.setupSubsumption(instance.side_premise, instance.main_premise)) {
         count++;
-        if (instance.subsumed > 0) { state.SkipWithError("Wrong result!"); return; }
+        if (instance.result > 0) { state.SkipWithError("Wrong result!"); return; }
       }
       // no solve since we only measure the setup
     }
@@ -2223,7 +2223,7 @@ void bench_smt2_run(benchmark::State& state, vvector<SubsumptionInstance> const&
     int count = 0;
     for (auto instance : instances) {
       bool res = impl.checkSubsumption(instance.side_premise, instance.main_premise);
-      if (instance.subsumed >= 0 && res != instance.subsumed) {
+      if (instance.result >= 0 && res != instance.result) {
         // std::cout << "Wrong result for instance: " << instance.number << std::endl;
         // std::cout << "             side_premise: " << instance.side_premise->toString() << std::endl;
         // std::cout << "             main_premise: " << instance.main_premise->toString() << std::endl;
@@ -2244,7 +2244,7 @@ void bench_orig_run(benchmark::State& state, vvector<SubsumptionInstance> const&
     int count = 0;
     for (auto instance : instances) {
       bool res = impl.checkSubsumption(instance.side_premise, instance.main_premise);
-      if (instance.subsumed >= 0 && res != instance.subsumed) {
+      if (instance.result >= 0 && res != instance.result) {
         state.SkipWithError("Wrong result!");
         return;
       }
@@ -2260,7 +2260,7 @@ struct FwSubsumptionInstance
   struct SidePremise {
     Kernel::Clause* side_premise; // also called "base clause"
     unsigned int number;
-    int subsumed;                // expected result
+    int result;                // expected result
   };
   Kernel::Clause* main_premise;  // also called "instance clause"
   vvector<SidePremise> side_premises;
@@ -2280,7 +2280,7 @@ void bench_smt3_fwrun_setup(benchmark::State& state, vvector<FwSubsumptionInstan
       for (auto const& instance : fw_instance.side_premises) {
         if (!impl.setupSubsumption(instance.side_premise)) {
           count++;
-          if (instance.subsumed > 0) { state.SkipWithError("Wrong result!"); return; }
+          if (instance.result > 0) { state.SkipWithError("Wrong result!"); return; }
         }
         // not solve since we only measure the setup
       }
@@ -2303,7 +2303,7 @@ void bench_smt3_fwrun(benchmark::State& state, vvector<FwSubsumptionInstance> co
       // Test side premises
       for (auto const& instance : fw_instance.side_premises) {
         bool const subsumed = impl.setupSubsumption(instance.side_premise) && impl.solve();
-        if (instance.subsumed >= 0 && subsumed != instance.subsumed) {
+        if (instance.result >= 0 && subsumed != instance.result) {
           // std::cout << "Wrong result for instance: " << instance.number << std::endl;
           // std::cout << "             side_premise: " << instance.side_premise->toString() << std::endl;
           // std::cout << "             main_premise: " << fw_instance.main_premise->toString() << std::endl;
@@ -2351,7 +2351,7 @@ void bench_orig_fwrun_setup(benchmark::State& state, vvector<FwSubsumptionInstan
         if (cms->anyNonMatched()) {
           // NOT SUBSUMED
           count++;
-          if (instance.subsumed > 0) { state.SkipWithError("Wrong result!"); return; }
+          if (instance.result > 0) { state.SkipWithError("Wrong result!"); return; }
           continue;
         }
 
@@ -2401,13 +2401,13 @@ void bench_orig_fwrun(benchmark::State& state, vvector<FwSubsumptionInstance> co
 
         if (cms->anyNonMatched()) {
           // NOT SUBSUMED
-          if (instance.subsumed > 0) { state.SkipWithError("Wrong result!"); return; }
+          if (instance.result > 0) { state.SkipWithError("Wrong result!"); return; }
           continue;
         }
 
         matcher.init(mcl, cl, cms->_matches, true);
         bool const subsumed = matcher.nextMatch();
-        if (instance.subsumed >= 0 && subsumed != instance.subsumed) {
+        if (instance.result >= 0 && subsumed != instance.result) {
           state.SkipWithError("Wrong result!");
           return;
         }
@@ -2448,7 +2448,7 @@ void ProofOfConcept::benchmark_run(vvector<SubsumptionInstance> instances)
       fw_instances.back().main_premise = instance.main_premise;
     }
     ASS_EQ(fw_instances.back().main_premise, instance.main_premise);
-    fw_instances.back().side_premises.push_back({instance.side_premise, instance.number, instance.subsumed});
+    fw_instances.back().side_premises.push_back({instance.side_premise, instance.number, instance.result});
   }
 
   vvector<vstring> args = {
