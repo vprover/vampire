@@ -702,6 +702,7 @@ SMTSubsumption::SubsumptionBenchmark getSubsumptionBenchmark(UnitList const* uni
           .number = ++number,
           .result = result,
       });
+      round_is_empty = false;
     }
     else if (buf == "SR") {
       unsigned int side_premise_number;
@@ -733,10 +734,19 @@ SMTSubsumption::SubsumptionBenchmark getSubsumptionBenchmark(UnitList const* uni
           .number = ++number,
           .result = result,
       });
+      round_is_empty = false;
     }
     else {
       USER_ERROR("expected 'R', 'S', or 'SR'");
     }
+  }
+  if (!round_is_empty) {
+    if (b.subsumptions.size() > (size_t)UINT_MAX) { USER_ERROR("too many subsumptions!"); }
+    if (b.subsumptionResolutions.size() > (size_t)UINT_MAX) { USER_ERROR("too many subsumption resolutions!"); }
+    b.rounds.emplace_back();
+    b.rounds.back().s_end = b.subsumptions.size();
+    b.rounds.back().sr_end = b.subsumptionResolutions.size();
+    round_is_empty = true;
   }
   return b;
 }
@@ -765,9 +775,9 @@ void subsumptionBenchmarkMode(bool simulate_full_run)
 
   SMTSubsumption::ProofOfConcept s;
   if (simulate_full_run) {
-    s.benchmark_run(std::move(b.subsumptions));
+    s.benchmark_run(std::move(b));
   } else {
-    s.benchmark_micro(std::move(b.subsumptions));
+    s.benchmark_micro(std::move(b));
   }
 
   vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
