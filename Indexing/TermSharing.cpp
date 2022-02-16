@@ -222,7 +222,7 @@ AtomicSort* TermSharing::insert(AtomicSort* sort)
   // cannot use TC_TERM_SHARING
   // as inserting a term can result in the insertion of
   // a sort and TimeCounter design forbids starting a timer 
-  // when it is alreadt running 
+  // when it is already running 
   TimeCounter tc(TC_SORT_SHARING);
 
   _sortInsertions++;
@@ -307,22 +307,28 @@ Literal* TermSharing::insert(Literal* t)
     bool hasInterpretedConstants=false;
     for (TermList* tt = t->args(); ! tt->isEmpty(); tt = tt->next()) {
       if (tt->isVar()) {
-	ASS(tt->isOrdinaryVar());
-	vars++;
-	weight += 1;
+        ASS(tt->isOrdinaryVar());
+        vars++;
+        weight += 1;
       }
       else {
-	ASS_REP(tt->term()->shared(), tt->term()->toString());
-	Term* r = tt->term();
-	vars += r->vars();
-	weight += r->weight();
-	if (env.colorUsed) {
-	  ASS(color == COLOR_TRANSPARENT || r->color() == COLOR_TRANSPARENT || color == r->color());
-	  color = static_cast<Color>(color | r->color());
-	}
-	if(!hasInterpretedConstants && r->hasInterpretedConstants()) {
-	  hasInterpretedConstants=true;
-	}
+        ASS_REP(tt->term()->shared(), tt->term()->toString());
+        Term* r = tt->term();
+        vars += r->vars();
+        weight += r->weight();
+
+        if(_poly && t->isEquality()){
+          TermList sort = SortHelper::getResultSort(r);
+          weight += sort.weight();
+        }
+
+        if (env.colorUsed) {
+          ASS(color == COLOR_TRANSPARENT || r->color() == COLOR_TRANSPARENT || color == r->color());
+          color = static_cast<Color>(color | r->color());
+        }
+        if(!hasInterpretedConstants && r->hasInterpretedConstants()) {
+          hasInterpretedConstants=true;
+        }
       }
     }
     t->markShared();
@@ -381,7 +387,11 @@ Literal* TermSharing::insertVariableEquality(Literal* t, TermList sort)
   if (s == t) {
     t->markShared();
     t->setId(_totalLiterals);
-    t->setWeight(2 + sort.weight());
+    // 3 since we have two variables and the equality symbol itself
+    // in the polymorphic case we add the weight of the sort since
+    // the sort may contain variables and Vampire assumes the invariant
+    // weight(lit) >= distinct_vars(lit)
+    t->setWeight(3 + (_poly ? sort.weight() : 0));
     if (env.colorUsed) {
       t->setColor(COLOR_TRANSPARENT);
     }
