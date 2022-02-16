@@ -771,6 +771,8 @@ void SaturationAlgorithm::init()
   CALL("SaturationAlgorithm::init");
 
   if (env.options->randomTraversals()) {
+    TimeCounter tc(TC_SHUFFLING);
+
     Shuffling::shuffle(_prb);
   }
 
@@ -853,6 +855,8 @@ void SaturationAlgorithm::addNewClause(Clause* cl)
   CALL("SaturationAlgorithm::addNewClause");
 
   if (env.options->randomTraversals()) {
+    TimeCounter tc(TC_SHUFFLING);
+
     Shuffling::shuffle(cl);
   }
 
@@ -873,6 +877,8 @@ void SaturationAlgorithm::newClausesToUnprocessed()
   CALL("SaturationAlgorithm::newClausesToUnprocessed");
 
   if (env.options->randomTraversals()) {
+    TimeCounter tc(TC_SHUFFLING);
+
     Shuffling::shuffleArray(_newClauses.naked().begin(),_newClauses.size());
   }
 
@@ -1202,6 +1208,8 @@ void SaturationAlgorithm::activate(Clause* cl)
     TimeCounter tc(TC_LITERAL_SELECTION);
 
     if (env.options->randomTraversals()) {
+      TimeCounter tc(TC_SHUFFLING);
+
       Shuffling::shuffle(cl);
     }
 
@@ -1238,6 +1246,8 @@ void SaturationAlgorithm::activate(Clause* cl)
 
   //now we remove clauses that could not be removed during the clause activation process
   if (env.options->randomTraversals()) {
+    TimeCounter tc(TC_SHUFFLING);
+
     Shuffling::shuffleArray(_postponedClauseRemovals.begin(),_postponedClauseRemovals.size());
   }
   while (_postponedClauseRemovals.isNonEmpty()) {
