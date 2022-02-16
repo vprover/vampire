@@ -45,41 +45,6 @@ struct SubsumptionBenchmark {
   vvector<SubsumptionInstance> subsumptions;
   vvector<SubsumptionResolutionInstance> subsumptionResolutions;
   vvector<SubsumptionRound> rounds;
-
-  /*
-  class Subsumptions {
-    vvector<SubsumptionInstance>::const_iterator begin_it;
-    vvector<SubsumptionInstance>::const_iterator end_it;
-    public:
-      vvector<SubsumptionInstance>::const_iterator begin() const { return begin_it; }
-      vvector<SubsumptionInstance>::const_iterator end() const { return end_it; }
-  };
-
-  class RoundIterator {
-    SubsumptionBenchmark const* b = nullptr;
-    size_t round = 0;
-    size_t s_begin = 0;
-    size_t sr_begin = 0;
-    private:
-      RoundIterator(SubsumptionBenchmark const& b, size_t round) : b(&b), round(round) {}
-    public:
-      bool operator==(RoundIterator const& other) const { ASS(b == other.b); return round == other.round; }
-      RoundIterator& operator++() {
-        s_begin = b->rounds[round].s_end;
-        sr_begin = b->rounds[round].sr_end;
-        ++round;
-        return *this;
-      }
-      Subsumptions subsumptions() const {
-        auto begin = b->subsumptions.begin() + s_begin;
-        auto end = b->subsumptions.begin() + b->rounds[round].s_end;
-        return {begin, end};
-      }
-  };
-
-  RoundIterator begin() const { return RoundIterator(*this, 0); }
-  RoundIterator end() const { return RoundIterator(*this, rounds.size()); }
-  */
 };
 
 

@@ -740,14 +740,6 @@ SMTSubsumption::SubsumptionBenchmark getSubsumptionBenchmark(UnitList const* uni
       USER_ERROR("expected 'R', 'S', or 'SR'");
     }
   }
-  if (!round_is_empty) {
-    if (b.subsumptions.size() > (size_t)UINT_MAX) { USER_ERROR("too many subsumptions!"); }
-    if (b.subsumptionResolutions.size() > (size_t)UINT_MAX) { USER_ERROR("too many subsumption resolutions!"); }
-    b.rounds.emplace_back();
-    b.rounds.back().s_end = b.subsumptions.size();
-    b.rounds.back().sr_end = b.subsumptionResolutions.size();
-    round_is_empty = true;
-  }
   return b;
 }
 
