@@ -734,15 +734,6 @@ set(VAMPIRE_CASC_SOURCES
 source_group(casc_source_files FILES ${VAMPIRE_CASC_SOURCES})
 
 set(VAMPIRE_SMT_SUBSUMPTION_SOURCES
-    # # SMTSubsumption/minisat/Main.cpp
-    # SMTSubsumption/minisat/Solver.cpp
-    # SMTSubsumption/minisat/Global.h
-    # SMTSubsumption/minisat/Heap.h
-    # SMTSubsumption/minisat/Solver.h
-    # SMTSubsumption/minisat/SolverTypes.h
-    # SMTSubsumption/minisat/Sort.h
-    # SMTSubsumption/minisat/VarOrder.h
-
     SMTSubsumption/SMTSubsumption.cpp
     SMTSubsumption/SMTSubsumption_benchmark.cpp
     SMTSubsumption/SMTSubsumption.hpp
