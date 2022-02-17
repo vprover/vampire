@@ -67,7 +67,7 @@ class ProofOfConcept {
     bool checkSubsumption(Kernel::Clause* base, Kernel::Clause* instance);
     bool checkSubsumptionResolution(Kernel::Clause* base, Kernel::Clause* instance, Kernel::Clause* conclusion);
 
-    void setupMainPremise(Kernel::Clause* instance);
+    // void setupMainPremise(Kernel::Clause* instance);
     bool setupSubsumption(Kernel::Clause* base);
     bool solve();
 

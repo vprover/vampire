@@ -31,13 +31,25 @@ class SMTSubsumptionImpl3
     /// AtMostOne constraints stating that each instance literal may be matched at most once.
     vvector<subsat::AllocatedConstraintHandle> instance_constraints;
 
+    void endMainPremise();
+
   public:
     CLASS_NAME(SMTSubsumptionImpl3);
     USE_ALLOCATOR(SMTSubsumptionImpl3);
 
     SMTSubsumptionImpl3();
 
-    void setupMainPremise(Kernel::Clause* new_instance);
+    class Token {
+      SMTSubsumptionImpl3& impl;
+      Token(SMTSubsumptionImpl3& impl) : impl(impl) {}
+      friend class SMTSubsumptionImpl3;
+    public:
+      ~Token();
+    };
+
+    /// Set up forward subsumption and subsumption resolution for the given main premise.
+    /// Hold on to the returned token until done.
+    NODISCARD Token setupMainPremise(Kernel::Clause* new_instance);
 
     /// Set up the subsumption problem. Must have called setupMainPremise first.
     /// Returns false if no solution is possible.

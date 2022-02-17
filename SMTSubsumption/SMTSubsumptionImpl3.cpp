@@ -20,12 +20,29 @@ SMTSubsumptionImpl3::SMTSubsumptionImpl3()
 
 
 
-void SMTSubsumptionImpl3::setupMainPremise(Kernel::Clause* new_instance)
+SMTSubsumptionImpl3::Token SMTSubsumptionImpl3::setupMainPremise(Kernel::Clause* new_instance)
 {
   instance = new_instance;
+  Kernel::Clause::requestAux();
   // TODO:
   // Copy the literals into a vvector, std::sort them (like LiteralMiniIndex; by header).
   // Then use std::binary_search to find the first one in setupSubsumption?
+  return {*this};
+}
+
+
+
+void SMTSubsumptionImpl3::endMainPremise()
+{
+  Kernel::Clause::releaseAux();
+  instance = nullptr;
+}
+
+
+
+SMTSubsumptionImpl3::Token::~Token()
+{
+  impl.endMainPremise();
 }
 
 

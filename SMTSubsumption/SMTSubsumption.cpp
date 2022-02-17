@@ -246,7 +246,7 @@ void ProofOfConcept::test(Clause* side_premise, Clause* main_premise)
     std::cout << "\nTESTING 'subsat' subsumption (v3)" << std::endl;
     subsat::print_config(std::cout);
     std::cout << "SETUP" << std::endl;
-    impl.setupMainPremise(main_premise);
+    auto token = impl.setupMainPremise(main_premise);
     bool subsumed1 = impl.setupSubsumption(side_premise);
     std::cout << "  => " << subsumed1 << std::endl;
     std::cout << "SOLVE" << std::endl;
@@ -302,11 +302,11 @@ bool ProofOfConcept::checkSubsumptionResolution(Kernel::Clause* base, Kernel::Cl
 }
 
 
-void ProofOfConcept::setupMainPremise(Kernel::Clause* instance)
-{
-  ASS(m_subsat_impl3);
-  m_subsat_impl3->setupMainPremise(instance);
-}
+// void ProofOfConcept::setupMainPremise(Kernel::Clause* instance)
+// {
+//   ASS(m_subsat_impl3);
+//   m_subsat_impl3->setupMainPremise(instance);
+// }
 
 bool ProofOfConcept::setupSubsumption(Kernel::Clause* base)
 {
@@ -463,14 +463,13 @@ void bench_smt3_fwrun_setup(benchmark::State& state, vvector<FwSubsumptionRound>
 
     SMTSubsumptionImpl3 impl;
     for (auto const& round : fw_rounds) {
-      Clause::requestAux();
       // Set up main premise
-      impl.setupMainPremise(round.main_premise());
+      auto token = impl.setupMainPremise(round.main_premise());
       // Test subsumptions
       for (auto const& s : round.subsumptions()) {
         if (!impl.setupSubsumption(s.side_premise)) {
           count++;
-          if (s.result > 0) { state.SkipWithError("Wrong result!"); Kernel::Clause::releaseAux(); return; }
+          if (s.result > 0) { state.SkipWithError("Wrong result!"); return; }
         }
         // not solve since we only measure the setup
       }
@@ -478,7 +477,6 @@ void bench_smt3_fwrun_setup(benchmark::State& state, vvector<FwSubsumptionRound>
       for (auto const& sr : round.subsumptionResolutions()) {
         state.SkipWithError("Subsumption Resolution not yet implemented");
       }
-      Clause::releaseAux();
     }
     benchmark::DoNotOptimize(count);
     benchmark::ClobberMemory();
@@ -493,15 +491,13 @@ void bench_smt3_fwrun(benchmark::State& state, vvector<FwSubsumptionRound> const
     SMTSubsumptionImpl3 impl;
 
     for (auto const& round : fw_rounds) {
-      Clause::requestAux();
       // Set up main premise
-      impl.setupMainPremise(round.main_premise());
+      auto token = impl.setupMainPremise(round.main_premise());
       // Test subsumptions
       for (auto const& s : round.subsumptions()) {
         bool const subsumed = impl.setupSubsumption(s.side_premise) && impl.solve();
         if (s.result >= 0 && subsumed != s.result) {
           state.SkipWithError("Wrong result!");
-          Kernel::Clause::releaseAux();
           return;
         }
         if (subsumed) { count++; }  // NOTE: since we record subsumption log from a real fwsubsumption run, this will only happen at the last iteration.
@@ -511,12 +507,10 @@ void bench_smt3_fwrun(benchmark::State& state, vvector<FwSubsumptionRound> const
         bool const result = impl.setupSubsumptionResolution(sr.side_premise) && impl.solve();
         if (sr.result >= 0 && result != sr.result) {
           state.SkipWithError("Wrong result!");
-          Kernel::Clause::releaseAux();
           return;
         }
         if (result) { count++; }  // NOTE: since we record subsumption log from a real fwsubsumption run, this will only happen at the last iteration.
       }
-      Clause::releaseAux();
     }
     benchmark::DoNotOptimize(count);
     benchmark::ClobberMemory();
