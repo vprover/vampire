@@ -1809,128 +1809,32 @@ void ProofOfConcept::test(Clause* side_premise, Clause* main_premise)
   std::cout << "\% side_premise: " << side_premise->toString() << std::endl;
   std::cout << "\% main_premise: " << main_premise->toString() << std::endl;
   std::cout << std::endl;
-
-  static_assert(alignof(Minisat::Solver) == 8, "");
-  static_assert(alignof(Minisat::Solver *) == 8, "");
-  static_assert(alignof(Minisat::Clause) == 4, "");
-  static_assert(alignof(Minisat::Clause *) == 8, "");
-  // static_assert(sizeof(Minisat::Clause) == 8, "");
-  static_assert(sizeof(Minisat::Clause *) == 8, "");
-
-  // {
-  //   using Minisat::index;
-  //   using Minisat::Lit;
-  //   uint32_t storage[] = {
-  //     27,
-  //     5,
-  //     (uint32_t)index(Lit(1)),
-  //     (uint32_t)index(Lit(2)),
-  //     (uint32_t)index(Lit(7)),
-  //     (uint32_t)index(~Lit(8)),
-  //     (uint32_t)index(Lit(13)),
-  //   };
-  //   Minisat::AtMostOne* c2 = reinterpret_cast<Minisat::AtMostOne*>(&storage[1]);
-  //   ASS_EQ(c2->size(), 5);
-  //   ASS_EQ((*c2)[0], Lit(1));
-  //   ASS_EQ((*c2)[3], ~Lit(8));
-  //   Minisat::Clause* c1 = reinterpret_cast<Minisat::Clause*>(&storage[1]);
-  //   ASS(!c1->learnt());
-  //   ASS_EQ(c1->size(), 5);
-  //   ASS_EQ((*c1)[0], Lit(1));
-  //   ASS_EQ((*c1)[3], ~Lit(8));
-  // }
-
-
   BYPASSING_ALLOCATOR;
 
-/*
   {
-  SMTSubsumptionImpl impl;
-  std::cout << "\nTESTING 'minisat'" << std::endl;
-  std::cout << "SETUP" << std::endl;
-  bool subsumed1 = impl.setup(side_premise, main_premise);
-  // bool subsumed1 = impl.setup2(side_premise, main_premise);
-  std::cout << "  => " << subsumed1 << std::endl;
-  std::cout << "SOLVE" << std::endl;
-  bool subsumed = subsumed1 && impl.solve();
-  std::cout << "  => " << subsumed << std::endl;
-  impl.printStats(std::cout);
-  }
-// */
-
-  {
-  SMTSubsumptionImpl2 impl;
-  std::cout << "\nTESTING 'subsat' subsumption (v2)" << std::endl;
-  subsat::print_config(std::cout);
-  std::cout << "SETUP" << std::endl;
-  bool subsumed1 = impl.setupSubsumption(side_premise, main_premise);
-  std::cout << "  => " << subsumed1 << std::endl;
-  std::cout << "SOLVE" << std::endl;
-  bool subsumed = subsumed1 && impl.solve();
-  std::cout << "  => " << subsumed << std::endl;
+    SMTSubsumptionImpl2 impl;
+    std::cout << "\nTESTING 'subsat' subsumption (v2)" << std::endl;
+    subsat::print_config(std::cout);
+    std::cout << "SETUP" << std::endl;
+    bool subsumed1 = impl.setupSubsumption(side_premise, main_premise);
+    std::cout << "  => " << subsumed1 << std::endl;
+    std::cout << "SOLVE" << std::endl;
+    bool subsumed = subsumed1 && impl.solve();
+    std::cout << "  => " << subsumed << std::endl;
   }
 
   {
-  SMTSubsumptionImpl3 impl;
-  std::cout << "\nTESTING 'subsat' subsumption (v3)" << std::endl;
-  subsat::print_config(std::cout);
-  std::cout << "SETUP" << std::endl;
-  impl.setupMainPremise(main_premise);
-  bool subsumed1 = impl.setupSubsumption(side_premise);
-  std::cout << "  => " << subsumed1 << std::endl;
-  std::cout << "SOLVE" << std::endl;
-  bool subsumed = subsumed1 && impl.solve();
-  std::cout << "  => " << subsumed << std::endl;
+    SMTSubsumptionImpl3 impl;
+    std::cout << "\nTESTING 'subsat' subsumption (v3)" << std::endl;
+    subsat::print_config(std::cout);
+    std::cout << "SETUP" << std::endl;
+    impl.setupMainPremise(main_premise);
+    bool subsumed1 = impl.setupSubsumption(side_premise);
+    std::cout << "  => " << subsumed1 << std::endl;
+    std::cout << "SOLVE" << std::endl;
+    bool subsumed = subsumed1 && impl.solve();
+    std::cout << "  => " << subsumed << std::endl;
   }
-  // return;
-
-/*  TODO: fix this
-  {
-  SMTSubsumptionImpl2 impl;
-  std::cout << "\nTESTING 'subsat' subsumption resolution" << std::endl;
-  std::cout << "SETUP" << std::endl;
-  bool sr1 = impl.setupSubsumptionResolution(side_premise, main_premise);
-  std::cout << "  => " << sr1 << std::endl;
-  std::cout << "SOLVE" << std::endl;
-  bool sr = sr1 && impl.solve();
-  std::cout << "  => " << sr << std::endl;
-  }
-*/
-
-  // bool const expected_subsumed = subsumed;
-
-/*
-  std::cout << "\n\n==================================================\nTESTING VARIABLE ORDERING STRATEGIES:\n\n";
-
-  std::pair<char const*, Minisat::VarOrderStrategy> vo_strategies[] = {
-      { "MinisatDefault", Minisat::VarOrderStrategy::MinisatDefault },
-      { "RemainingChoices", Minisat::VarOrderStrategy::RemainingChoices },
-      { "10% RemainingChoices, rest activity", Minisat::VarOrderStrategy::Alternate_10 },
-      { "50% RemainingChoices, rest activity", Minisat::VarOrderStrategy::Alternate_50 },
-      { "80% RemainingChoices, rest activity", Minisat::VarOrderStrategy::Alternate_80 },
-      { "RemainingChoices / (activity + 1) [per-boolean activity]", Minisat::VarOrderStrategy::CombinedBoolAct_k1 },
-      { "RemainingChoices / (activity + 3) [per-boolean activity]", Minisat::VarOrderStrategy::CombinedBoolAct_k3 },
-      { "RemainingChoices / (activity + 5) [per-boolean activity]", Minisat::VarOrderStrategy::CombinedBoolAct_k5 },
-      { "RemainingChoices / (activity + 1) [per-integer activity]", Minisat::VarOrderStrategy::CombinedMaxAct_k1 },
-      { "RemainingChoices / (activity + 3) [per-integer activity]", Minisat::VarOrderStrategy::CombinedMaxAct_k3 },
-      { "RemainingChoices / (activity + 5) [per-integer activity]", Minisat::VarOrderStrategy::CombinedMaxAct_k5 },
-  };
-  for (auto p : vo_strategies) {
-    auto vo_strategy_name = p.first;
-    auto vo_strategy = p.second;
-
-    SMTSubsumptionImpl impl;
-    std::cout << "SMTSubsumption with vo_strategy = " << vo_strategy_name << std::endl;
-    bool subsumed = impl.setup(side_premise, main_premise, vo_strategy) && impl.solve();
-    // std::cout << "Subsumed: " << subsumed << std::endl;
-    if (subsumed != expected_subsumed) {
-      std::cout << "UNEXPECTED RESULT: " << subsumed << std::endl;
-    }
-    impl.printStats(std::cout);
-
-    std::cout << std::endl;
-  }
-*/
 
   {
     std::cout << "\nTESTING 'MLMatcher'" << std::endl;
