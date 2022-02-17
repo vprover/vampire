@@ -324,6 +324,9 @@ public:
 
   using string = std::basic_string<char, std::char_traits<char>, allocator_type<char>>;
 
+  using SubstitutionTheory = subsat::SubstitutionTheory<allocator_type>;
+  using BindingsManager = typename SubstitutionTheory::BindingsManager;
+
 #ifndef NDEBUG
   // Note: std::set and std::map are slow, so use them only in debug mode!
   template <typename Key, typename Compare = std::less<Key>>
@@ -390,7 +393,7 @@ public:
     m_constraints.reserve(count);
   }
 
-  SubstitutionTheory<allocator_type>& theory()
+  SubstitutionTheory& theory()
   {
     return m_theory;
   }
@@ -2022,7 +2025,7 @@ private:
   /// The next literal to theory-propagate (index into the trail)
   uint32_t m_theory_propagate_head = 0;
 
-  SubstitutionTheory<allocator_type> m_theory;
+  SubstitutionTheory m_theory;
 
   // Temporary variables, defined as class members to reduce allocation overhead.
   // Prefixed by the method where they are used.

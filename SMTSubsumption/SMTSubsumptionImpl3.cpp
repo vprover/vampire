@@ -38,8 +38,10 @@ bool SMTSubsumptionImpl3::setupSubsumption(Kernel::Clause* base)
   CALL("SMTSubsumptionImpl3::setupSubsumption");
   solver.clear();
   ASS(solver.empty());
-  auto& theory = solver.theory();
-  ASS(theory.empty());
+  ASS(solver.theory().empty());
+  bm.clear();
+  ASS(bm.empty());
+  solver.theory().setBindings(&bm);
 
   uint32_t const base_len = base->length();
   uint32_t const inst_len = instance->length();
@@ -72,12 +74,12 @@ bool SMTSubsumptionImpl3::setupSubsumption(Kernel::Clause* base)
       }
 
       {
-        auto binder = theory.start_binder();
+        auto binder = bm.start_binder();
         if (base_lit->arity() == 0 || MatchingUtils::matchArgs(base_lit, inst_lit, binder)) {
           subsat::Var b{nextVarIndex++};
           // LOG_DEBUG("MatchFwd: " << b << " ~ " << base_lit->toString() << " -> " << inst_lit->toString());
           match_count += 1;
-          theory.commit_bindings(binder, b);
+          bm.commit_bindings(binder, b);
           solver.handle_push_literal(instance_constraints[j], b);
         }
       }
@@ -85,12 +87,12 @@ bool SMTSubsumptionImpl3::setupSubsumption(Kernel::Clause* base)
       if (base_lit->commutative()) {
         ASS_EQ(base_lit->arity(), 2);
         ASS_EQ(inst_lit->arity(), 2);
-        auto binder = theory.start_binder();
+        auto binder = bm.start_binder();
         if (MatchingUtils::matchReversedArgs(base_lit, inst_lit, binder)) {
           subsat::Var b{nextVarIndex++};
           // LOG_DEBUG("MatchRev: " << b << " ~ " << base_lit->toString() << " -> " << inst_lit->toString());
           match_count += 1;
-          theory.commit_bindings(binder, b);
+          bm.commit_bindings(binder, b);
           solver.handle_push_literal(instance_constraints[j], b);
         }
       }

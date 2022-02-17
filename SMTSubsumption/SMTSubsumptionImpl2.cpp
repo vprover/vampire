@@ -26,6 +26,7 @@ SMTSubsumptionImpl2::SMTSubsumptionImpl2()
   solver.reserve_variables(64);
   solver.reserve_clause_storage(512);
   solver.theory().reserve(64, 2, 16);
+  bm.reserve(64, 2, 16);
   instance_constraints.reserve(16);
 }
 
@@ -39,8 +40,10 @@ bool SMTSubsumptionImpl2::setupSubsumption(Kernel::Clause* base, Kernel::Clause*
   CALL("SMTSubsumptionImpl2::setupSubsumption");
   solver.clear();
   ASS(solver.empty());
-  auto& theory = solver.theory();
-  ASS(theory.empty());
+  ASS(solver.theory().empty());
+  bm.clear();
+  ASS(bm.empty());
+  solver.theory().setBindings(&bm);
 
   m_base = base;
   m_instance = instance;
@@ -135,7 +138,7 @@ bool SMTSubsumptionImpl2::setupSubsumption(Kernel::Clause* base, Kernel::Clause*
       }
 
       {
-        auto binder = theory.start_binder();
+        auto binder = bm.start_binder();
         if (base_lit->arity() == 0 || MatchingUtils::matchArgs(base_lit, inst_lit, binder)) {
           subsat::Var b = solver.new_variable(i);
           // std::cerr << "Match: " << b << " => " << base_lit->toString() << " -> " << inst_lit->toString() << std::endl;
@@ -152,7 +155,7 @@ bool SMTSubsumptionImpl2::setupSubsumption(Kernel::Clause* base, Kernel::Clause*
             // probably best to have a separate loop first that deals with ground literals? since those are only pointer equality checks.
           }
 
-          theory.commit_bindings(binder, b);
+          bm.commit_bindings(binder, b);
 
           solver.constraint_push_literal(b);
           solver.handle_push_literal(instance_constraints[j], b);
@@ -163,7 +166,7 @@ bool SMTSubsumptionImpl2::setupSubsumption(Kernel::Clause* base, Kernel::Clause*
       if (base_lit->commutative()) {
         ASS_EQ(base_lit->arity(), 2);
         ASS_EQ(inst_lit->arity(), 2);
-        auto binder = theory.start_binder();
+        auto binder = bm.start_binder();
         if (MatchingUtils::matchReversedArgs(base_lit, inst_lit, binder)) {
           subsat::Var b = solver.new_variable(i);
 
@@ -176,7 +179,7 @@ bool SMTSubsumptionImpl2::setupSubsumption(Kernel::Clause* base, Kernel::Clause*
             // probably best to have a separate loop first that deals with ground literals? since those are only pointer equality checks.
           }
 
-          theory.commit_bindings(binder, b);
+          bm.commit_bindings(binder, b);
 
           solver.constraint_push_literal(b);
           solver.handle_push_literal(instance_constraints[j], b);
@@ -216,8 +219,10 @@ bool SMTSubsumptionImpl2::setupSubsumptionResolution(Kernel::Clause* base, Kerne
   CALL("SMTSubsumptionImpl2::setupSubsumptionResolution");
   solver.clear();
   ASS(solver.empty());
-  auto& theory = solver.theory();
-  ASS(theory.empty());
+  ASS(solver.theory().empty());
+  bm.clear();
+  ASS(bm.empty());
+  solver.theory().setBindings(&bm);
   complementary_matches.clear();
   ASS(complementary_matches.empty());
 
@@ -245,20 +250,20 @@ bool SMTSubsumptionImpl2::setupSubsumptionResolution(Kernel::Clause* base, Kerne
       // Same-polarity match (subsumption part)
       if (Literal::headersMatch(base_lit, inst_lit, false)) {
         {
-          auto binder = theory.start_binder();
+          auto binder = bm.start_binder();
           if (base_lit->arity() == 0 || MatchingUtils::matchArgs(base_lit, inst_lit, binder)) {
             subsat::Var b = solver.new_variable(i);
-            theory.commit_bindings(binder, b);
+            bm.commit_bindings(binder, b);
             solver.constraint_push_literal(b);
             inst_normal_matches[j].push_back(b);
             match_count += 1;
           }
         }
         if (base_lit->commutative()) {
-          auto binder = theory.start_binder();
+          auto binder = bm.start_binder();
           if (MatchingUtils::matchReversedArgs(base_lit, inst_lit, binder)) {
             subsat::Var b = solver.new_variable(i);
-            theory.commit_bindings(binder, b);
+            bm.commit_bindings(binder, b);
             solver.constraint_push_literal(b);
             inst_normal_matches[j].push_back(b);
             match_count += 1;
@@ -269,10 +274,10 @@ bool SMTSubsumptionImpl2::setupSubsumptionResolution(Kernel::Clause* base, Kerne
       // Complementary match (subsumption resolution part)
       if (Literal::headersMatch(base_lit, inst_lit, true)) {
         {
-          auto binder = theory.start_binder();
+          auto binder = bm.start_binder();
           if (base_lit->arity() == 0 || MatchingUtils::matchArgs(base_lit, inst_lit, binder)) {
             subsat::Var b = solver.new_variable(i);
-            theory.commit_bindings(binder, b);
+            bm.commit_bindings(binder, b);
             solver.constraint_push_literal(b);
             complementary_matches.push_back({b, j});
             inst_compl_matches[j].push_back(b);
@@ -280,10 +285,10 @@ bool SMTSubsumptionImpl2::setupSubsumptionResolution(Kernel::Clause* base, Kerne
           }
         }
         if (base_lit->commutative()) {
-          auto binder = theory.start_binder();
+          auto binder = bm.start_binder();
           if (MatchingUtils::matchReversedArgs(base_lit, inst_lit, binder)) {
             subsat::Var b = solver.new_variable(i);
-            theory.commit_bindings(binder, b);
+            bm.commit_bindings(binder, b);
             solver.constraint_push_literal(b);
             complementary_matches.push_back({b, j});
             inst_compl_matches[j].push_back(b);

@@ -20,6 +20,7 @@ class SMTSubsumptionImpl2
 #endif
 
     subsat::Solver<allocator_type> solver;
+    subsat::Solver<allocator_type>::BindingsManager bm;
 
 #if GROUND_LITERAL_PREFILTER
     vvector<std::uint8_t> base_used;

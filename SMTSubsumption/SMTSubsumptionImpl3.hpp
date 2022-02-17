@@ -20,6 +20,7 @@ class SMTSubsumptionImpl3
 #endif
 
     subsat::Solver<allocator_type> solver;
+    subsat::Solver<allocator_type>::BindingsManager bm;
 
     Kernel::Clause* instance = nullptr;   // main premise for forward subsumption (resolution)
 

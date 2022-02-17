@@ -1,6 +1,4 @@
 #include "SMTSubsumption.hpp"
-#include "OldSubstitutionTheory.hpp"
-#include "SMTSubsumption/minisat/Solver.h"
 #include "SMTSubsumption/slice.hpp"
 #include "Indexing/LiteralMiniIndex.hpp"
 #include "Lib/STL.hpp"
