@@ -52,18 +52,18 @@ bool SMTSubsumptionImpl3::setupSubsumption(Kernel::Clause* base)
   uint32_t const instance_constraint_maxsize = 2 * base_len;
   instance_constraints.clear();
   ASS(instance_constraints.empty());
-  for (size_t i = 0; i < instance->length(); ++i) {
+  for (size_t i = 0; i < inst_len; ++i) {
     instance_constraints.push_back(solver.alloc_constraint(instance_constraint_maxsize));
   }
 
   // Pre-matching
   // To keep overhead as low as possible, we do not yet create solver variables at this point
   uint32_t nextVarIndex = 0;
-  for (unsigned bi = 0; bi < base->length(); ++bi) {
+  for (unsigned bi = 0; bi < base_len; ++bi) {
     Literal* base_lit = base->literals()[bi];
     uint32_t match_count = 0;
 
-    for (unsigned j = 0; j < instance->length(); ++j) {
+    for (unsigned j = 0; j < inst_len; ++j) {
       Literal* inst_lit = instance->literals()[j];
 
       if (!Literal::headersMatch(base_lit, inst_lit, false)) {
@@ -104,8 +104,8 @@ bool SMTSubsumptionImpl3::setupSubsumption(Kernel::Clause* base)
   }
 
   // Build clauses stating that base_lit must be matched to at least one corresponding instance literal.
-  ASS_EQ(base_clauses.size(), base->length());
-  for (unsigned bi = 0; bi < base->length(); ++bi) {
+  ASS_EQ(base_clauses.size(), base_len);
+  for (unsigned bi = 0; bi < base_len; ++bi) {
     uint32_t match_count = base_clauses[bi];
     solver.constraint_start();
     while (match_count--) {
