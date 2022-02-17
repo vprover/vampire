@@ -2,7 +2,6 @@
 #include "Util.hpp"
 #include "Kernel/Matcher.hpp"
 #include "Debug/RuntimeStatistics.hpp"
-
 #include <iostream>
 
 using namespace Indexing;
@@ -10,7 +9,6 @@ using namespace Kernel;
 using namespace SMTSubsumption;
 
 // TODO: early exit in case time limit hits, like in MLMatcher which checks every 50k iterations if time limit has been exceeded
-#include "./subsat/subsat.hpp"
 
 // The ground literal prefilter seems to slow us down slightly in general.
 // Maybe it's more helpful with induction enabled? since that adds a lot of ground clauses.

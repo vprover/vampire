@@ -3,9 +3,6 @@
 
 #include "Kernel/Clause.hpp"
 #include "Lib/STL.hpp"
-#include "Inferences/InferenceEngine.hpp"
-
-#include <memory>
 #include "./subsat/subsat.hpp"
 
 namespace SMTSubsumption {

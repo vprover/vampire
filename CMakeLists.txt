@@ -748,6 +748,8 @@ set(VAMPIRE_SMT_SUBSUMPTION_SOURCES
     SMTSubsumption/SMTSubsumption.hpp
     SMTSubsumption/SMTSubsumptionImpl2.cpp
     SMTSubsumption/SMTSubsumptionImpl2.hpp
+    SMTSubsumption/SMTSubsumptionImpl3.cpp
+    SMTSubsumption/SMTSubsumptionImpl3.hpp
     SMTSubsumption/OldSubstitutionTheory.cpp
     SMTSubsumption/OldSubstitutionTheory.hpp
     SMTSubsumption/MapBinder.cpp
