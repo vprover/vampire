@@ -701,6 +701,7 @@ bool ForwardSubsumptionAndResolution::perform(Clause* cl, Clause*& replacement, 
           Literal* resLit = (*cl)[li];
           ASS(!resolutionClause);
           // only log the first occurrence with resLit *, because for these we always check all.
+          // TODO: the logged result only fits the first literal in this case!
           if (checkForSubsumptionResolution(cl, cms, resLit, -1, li == 0) && ColorHelper::compatible(cl->color(), mcl->color())) {
             resolutionClause = generateSubsumptionResolutionClause(cl, resLit, mcl);
             ASS(resolutionClause);

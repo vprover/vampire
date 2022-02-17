@@ -136,6 +136,39 @@ public:
 };
 
 
+
+bool checkForSubsumptionResolution(Clause* cl, ClauseMatches* cms, Literal* resLit)
+{
+  Clause* mcl = cms->_cl;
+  unsigned mclen = mcl->length();
+
+  ClauseMatches::ZeroMatchLiteralIterator zmli(cms);
+  if (zmli.hasNext()) {
+    while (zmli.hasNext()) {
+      Literal* bl = zmli.next();
+      if (!MatchingUtils::match(bl, resLit, true)) {
+        return false;
+      }
+    }
+  }
+  else {
+    bool anyResolvable = false;
+    for (unsigned i = 0; i < mclen; i++) {
+      if (MatchingUtils::match((*mcl)[i], resLit, true)) {
+        anyResolvable = true;
+        break;
+      }
+    }
+    if (!anyResolvable) {
+      return false;
+    }
+  }
+
+  return MLMatcher::canBeMatched(mcl, cl, cms->_matches, resLit);
+}
+
+
+
 class OriginalSubsumptionImpl
 {
   private:
@@ -1735,10 +1768,19 @@ class SMTSubsumption::SMTSubsumptionImpl3
       return !solver.inconsistent();
     }  // setupSubsumption
 
+    /// Set up the subsumption resolution problem. Must have called setupMainPremise first.
+    /// Returns false if no solution is possible.
+    /// Otherwise, solve() needs to be called.
+    bool setupSubsumptionResolution(Kernel::Clause* base)
+    {
+      // TODO
+    }  // setupSubsumptionResolution
+
     bool solve()
     {
       return solver.solve() == subsat::Result::Sat;
     }
+
 };  // class SMTSubsumptionImpl3
 
 
@@ -1968,292 +2010,10 @@ bool ProofOfConcept::solve()
 // Google benchmark library
 // https://github.com/google/benchmark
 #include <benchmark/benchmark.h>
-
-
-void bench_smt_total(benchmark::State& state, SubsumptionInstance instance)
-{
-  for (auto _ : state) {
-    SMTSubsumptionImpl smt_impl;
-    bool smt_result = smt_impl.checkSubsumption(instance.side_premise, instance.main_premise);
-    benchmark::DoNotOptimize(smt_result);
-    if (smt_result != instance.result) {
-      state.SkipWithError("Wrong result!");
-      return;
-    }
-  }
-}
-
-void bench_smt_setup(benchmark::State& state, SubsumptionInstance instance)
-{
-  for (auto _ : state) {
-    SMTSubsumptionImpl smt_impl;
-    bool smt_setup_result = smt_impl.setup(instance.side_premise, instance.main_premise);
-    benchmark::DoNotOptimize(smt_setup_result);
-    benchmark::ClobberMemory();
-  }
-}
-
-void bench_smt_setup2(benchmark::State& state, SubsumptionInstance instance)
-{
-  for (auto _ : state) {
-    SMTSubsumptionImpl smt_impl;
-    bool smt_setup_result = smt_impl.setup2(instance.side_premise, instance.main_premise);
-    benchmark::DoNotOptimize(smt_setup_result);
-    benchmark::ClobberMemory();
-  }
-}
-
-void bench_smt_search(benchmark::State& state, SubsumptionInstance instance)
-{
-  for (auto _ : state) {
-    state.PauseTiming();
-    SMTSubsumptionImpl smt_impl;
-    bool smt_setup_result = smt_impl.setup(instance.side_premise, instance.main_premise);
-    state.ResumeTiming();
-    benchmark::ClobberMemory();
-    bool smt_result = smt_setup_result && smt_impl.solve();
-    benchmark::DoNotOptimize(smt_result);
-    if (smt_result != instance.result) {
-      state.SkipWithError("Wrong result!");
-      return;
-    }
-  }
-}
-
-void bench_orig_total(benchmark::State& state, SubsumptionInstance instance)
-{
-  for (auto _ : state) {
-    OriginalSubsumption::Impl orig_impl;
-    bool orig_result = orig_impl.checkSubsumption(instance.side_premise, instance.main_premise);
-    benchmark::DoNotOptimize(orig_result);
-    if (orig_result != instance.result) {
-      state.SkipWithError("Wrong result!");
-      return;
-    }
-  }
-}
-
-void bench_orig_total_reusing(benchmark::State& state, SubsumptionInstance instance)
-{
-  OriginalSubsumption::Impl orig_impl;
-  benchmark::ClobberMemory();
-  for (auto _ : state) {
-    bool orig_result = orig_impl.checkSubsumption(instance.side_premise, instance.main_premise);
-    benchmark::DoNotOptimize(orig_result);
-    if (orig_result != instance.result) {
-      state.SkipWithError("Wrong result!");
-      return;
-    }
-  }
-}
-
-void bench_orig_setup(benchmark::State& state, SubsumptionInstance instance)
-{
-  for (auto _ : state) {
-    OriginalSubsumption::Impl orig_impl;
-    bool orig_setup_result = orig_impl.setup(instance.side_premise, instance.main_premise);
-    benchmark::DoNotOptimize(orig_setup_result);
-    benchmark::ClobberMemory();
-  }
-}
-
-void bench_orig_setup_reusing(benchmark::State& state, SubsumptionInstance instance)
-{
-  OriginalSubsumption::Impl orig_impl;
-  for (auto _ : state) {
-    bool orig_setup_result = orig_impl.setup(instance.side_premise, instance.main_premise);
-    benchmark::DoNotOptimize(orig_setup_result);
-    benchmark::ClobberMemory();
-  }
-}
-
-void bench_orig_search(benchmark::State& state, SubsumptionInstance instance)
-{
-  for (auto _ : state) {
-    state.PauseTiming();
-    OriginalSubsumption::Impl orig_impl;
-    bool orig_setup_result = orig_impl.setup(instance.side_premise, instance.main_premise);
-    state.ResumeTiming();
-    benchmark::ClobberMemory();
-    bool orig_result = orig_setup_result && orig_impl.solve();
-    benchmark::DoNotOptimize(orig_result);
-    if (orig_result != instance.result) {
-      state.SkipWithError("Wrong result!");
-      return;
-    }
-  }
-}
-
-
-void bench_smt2_setup(benchmark::State& state, SubsumptionInstance instance)
-{
-  for (auto _ : state) {
-    SMTSubsumptionImpl2 impl;
-    bool setup_result = impl.setupSubsumption(instance.side_premise, instance.main_premise);
-    benchmark::DoNotOptimize(setup_result);
-    benchmark::ClobberMemory();
-  }
-}
-
-void bench_smt2_setup_reusing(benchmark::State& state, SubsumptionInstance instance)
-{
-  SMTSubsumptionImpl2 impl;
-  for (auto _ : state) {
-    bool setup_result = impl.setupSubsumption(instance.side_premise, instance.main_premise);
-    benchmark::DoNotOptimize(setup_result);
-    benchmark::ClobberMemory();
-  }
-}
-
-void bench_smt2_total(benchmark::State& state, SubsumptionInstance instance)
-{
-  for (auto _ : state) {
-    SMTSubsumptionImpl2 smt_impl;
-    bool smt_result = smt_impl.checkSubsumption(instance.side_premise, instance.main_premise);
-    benchmark::DoNotOptimize(smt_result);
-    if (smt_result != instance.result) {
-      state.SkipWithError("Wrong result!");
-      return;
-    }
-  }
-}
-
-void bench_smt2_total_reusing(benchmark::State& state, SubsumptionInstance instance)
-{
-  SMTSubsumptionImpl2 smt_impl;
-  for (auto _ : state) {
-    bool smt_result = smt_impl.checkSubsumption(instance.side_premise, instance.main_premise);
-    benchmark::DoNotOptimize(smt_result);
-    if (smt_result != instance.result) {
-      state.SkipWithError("Wrong result!");
-      return;
-    }
-  }
-}
 #endif  // ENABLE_BENCHMARK
 
 
-void ProofOfConcept::benchmark_micro(SubsumptionBenchmark b)
-{
-  CALL("ProofOfConcept::benchmark_micro");
-  BYPASSING_ALLOCATOR;  // google-benchmark needs its own memory
-
-  std::cerr << "\% SMTSubsumption: micro-benchmarking " << b.subsumptions.size() << " subsumption instances" << std::endl;
-#if VDEBUG
-  std::cerr << "\n\n\nWARNING: compiled in debug mode!\n\n\n" << std::endl;
-#endif
-
 #if ENABLE_BENCHMARK
-
-  vvector<vstring> args = {
-    "vampire-sbench-micro",
-    // "--help",
-  };
-
-  // for (int i = 0; i < 5; ++i)
-  // for (int i = 0; i < instances.size(); ++i)
-  for (int i = 0; i < 1; ++i)
-  {
-    auto instance = b.subsumptions[i];
-    std::string name;
-    std::string suffix =
-        std::to_string(instance.number); // + (instance.result ? "_success" : "_failure");
-
-    // name = "smt_setup_" + suffix;
-    // benchmark::RegisterBenchmark(name.c_str(), bench_smt_setup, instance);
-    // name = "smt_setup2_" + suffix;
-    // benchmark::RegisterBenchmark(name.c_str(), bench_smt_setup2, instance);
-    // break;
-    // name = "smt_search_" + suffix;
-    // benchmark::RegisterBenchmark(name.c_str(), bench_smt_search, instance);
-    // name = "smt_total_" + suffix;
-    // benchmark::RegisterBenchmark(name.c_str(), bench_smt_total, instance);
-
-    // name = "smt2_setup_" + suffix;
-    // benchmark::RegisterBenchmark(name.c_str(), bench_smt2_setup, instance);
-    // name = "smt2_total_" + suffix;
-    // benchmark::RegisterBenchmark(name.c_str(), bench_smt2_total, instance);
-    name = "smt2_setup_reusing_" + suffix;
-    benchmark::RegisterBenchmark(name.c_str(), bench_smt2_setup_reusing, instance);
-    name = "smt2_total_reusing_" + suffix;
-    benchmark::RegisterBenchmark(name.c_str(), bench_smt2_total_reusing, instance);
-
-    // name = "orig_setup_" + suffix;
-    // benchmark::RegisterBenchmark(name.c_str(), bench_orig_setup, instance);
-    // name = "orig_setup_reusing_" + suffix;
-    // benchmark::RegisterBenchmark(name.c_str(), bench_orig_setup_reusing, instance);
-    // name = "orig_search_" + suffix;
-    // benchmark::RegisterBenchmark(name.c_str(), bench_orig_search, instance);
-    // name = "orig_total_" + suffix;
-    // benchmark::RegisterBenchmark(name.c_str(), bench_orig_total, instance);
-    name = "orig_total_reusing_" + suffix;
-    benchmark::RegisterBenchmark(name.c_str(), bench_orig_total_reusing, instance);
-  }
-
-  init_benchmark(std::move(args));
-  benchmark::RunSpecifiedBenchmarks();
-#endif  // ENABLE_BENCHMARK
-
-  std::cerr << "Benchmarking done, shutting down..." << std::endl;
-}
-
-
-#if ENABLE_BENCHMARK
-void bench_smt2_run_setup(benchmark::State& state, vvector<SubsumptionInstance> const& instances)
-{
-  for (auto _ : state) {
-    SMTSubsumptionImpl2 impl;
-    int count = 0;
-    for (auto instance : instances) {
-      if (!impl.setupSubsumption(instance.side_premise, instance.main_premise)) {
-        count++;
-        if (instance.result > 0) { state.SkipWithError("Wrong result!"); return; }
-      }
-      // no solve since we only measure the setup
-    }
-    benchmark::DoNotOptimize(count);
-    benchmark::ClobberMemory();
-  }
-}
-
-void bench_smt2_run(benchmark::State& state, vvector<SubsumptionInstance> const& instances)
-{
-  for (auto _ : state) {
-    SMTSubsumptionImpl2 impl;
-    int count = 0;
-    for (auto instance : instances) {
-      bool res = impl.checkSubsumption(instance.side_premise, instance.main_premise);
-      if (instance.result >= 0 && res != instance.result) {
-        // std::cout << "Wrong result for instance: " << instance.number << std::endl;
-        // std::cout << "             side_premise: " << instance.side_premise->toString() << std::endl;
-        // std::cout << "             main_premise: " << instance.main_premise->toString() << std::endl;
-        state.SkipWithError("Wrong result!");
-        return;
-      }
-      count += res;
-    }
-    benchmark::DoNotOptimize(count);
-    benchmark::ClobberMemory();
-  }
-}
-
-void bench_orig_run(benchmark::State& state, vvector<SubsumptionInstance> const& instances)
-{
-  for (auto _ : state) {
-    OriginalSubsumption::Impl impl;
-    int count = 0;
-    for (auto instance : instances) {
-      bool res = impl.checkSubsumption(instance.side_premise, instance.main_premise);
-      if (instance.result >= 0 && res != instance.result) {
-        state.SkipWithError("Wrong result!");
-        return;
-      }
-      count += res;
-    }
-    benchmark::DoNotOptimize(count);
-    benchmark::ClobberMemory();
-  }
-}
 
 template<typename It>
 struct Iterable {
@@ -2295,6 +2055,12 @@ public:
     ASS(std::all_of(sr_begin, sr_end, [this](auto const& sr){ return sr.main_premise == m_main_premise; }));
   }
 
+  FwSubsumptionRound withoutSubsumptionResolution() const {
+    FwSubsumptionRound r = *this;
+    r.sr_end = r.sr_begin;
+    return r;
+  }
+
 private:
   Kernel::Clause* m_main_premise;  ///< also called "instance clause"
   s_iter s_begin;
@@ -2304,6 +2070,70 @@ private:
 };
 
 
+void bench_smt2_run_setup(benchmark::State& state, vvector<FwSubsumptionRound> const& fw_rounds)
+{
+  for (auto _ : state) {
+    SMTSubsumptionImpl2 impl;
+    int count = 0;
+    for (auto const& round : fw_rounds) {
+      Kernel::Clause::requestAux();
+      Kernel::Clause* main_premise = round.main_premise();
+      for (auto const& s : round.subsumptions()) {
+        if (!impl.setupSubsumption(s.side_premise, main_premise)) {
+          count++;
+          if (s.result > 0) { state.SkipWithError("Wrong result!"); Kernel::Clause::releaseAux(); return; }
+        }
+        // no solve since we only measure the setup
+      }
+      for (auto const& sr : round.subsumptionResolutions()) {
+        if (sr.side_premise->hasAux())
+          continue;
+        sr.side_premise->setAux(nullptr);  // other than original SR we only need to handle each side premise once
+        if (!impl.setupSubsumptionResolution(sr.side_premise, main_premise)) {
+          count++;
+          // can't check result here because the logged result might cover only one resLit.
+          // if (sr.result > 0) { state.SkipWithError("Wrong result!"); return; }
+        }
+        // no solve since we only measure the setup
+      }
+      Kernel::Clause::releaseAux();
+    }
+    benchmark::DoNotOptimize(count);
+    benchmark::ClobberMemory();
+  }
+}
+
+void bench_smt2_run(benchmark::State& state, vvector<FwSubsumptionRound> const& fw_rounds)
+{
+  for (auto _ : state) {
+    SMTSubsumptionImpl2 impl;
+    int count = 0;
+    for (auto const& round : fw_rounds) {
+      Kernel::Clause::requestAux();
+      Kernel::Clause* main_premise = round.main_premise();
+      for (auto const& s : round.subsumptions()) {
+        bool res = impl.setupSubsumption(s.side_premise, main_premise) && impl.solve();
+        if (s.result >= 0 && res != s.result) {
+          state.SkipWithError("Wrong result!");
+          Kernel::Clause::releaseAux();
+          return;
+        }
+        count += res;
+      }
+      for (auto const& sr : round.subsumptionResolutions()) {
+        if (sr.side_premise->hasAux())
+          continue;
+        sr.side_premise->setAux(nullptr);  // other than original SR we only need to handle each side premise once
+        bool res = impl.setupSubsumptionResolution(sr.side_premise, main_premise) && impl.solve();
+        // can't check result here because the logged result might cover only one resLit.
+        count += res;
+      }
+      Kernel::Clause::releaseAux();
+    }
+    benchmark::DoNotOptimize(count);
+    benchmark::ClobberMemory();
+  }
+}
 void bench_smt3_fwrun_setup(benchmark::State& state, vvector<FwSubsumptionRound> const& fw_rounds)
 {
   for (auto _ : state) {
@@ -2318,12 +2148,13 @@ void bench_smt3_fwrun_setup(benchmark::State& state, vvector<FwSubsumptionRound>
       for (auto const& s : round.subsumptions()) {
         if (!impl.setupSubsumption(s.side_premise)) {
           count++;
-          if (s.result > 0) { state.SkipWithError("Wrong result!"); return; }
+          if (s.result > 0) { state.SkipWithError("Wrong result!"); Kernel::Clause::releaseAux(); return; }
         }
         // not solve since we only measure the setup
       }
+      // TODO: SR... what exactly do we want to measure here?
       for (auto const& sr : round.subsumptionResolutions()) {
-        // TODO
+        state.SkipWithError("Subsumption Resolution not yet implemented");
       }
       Clause::releaseAux();
     }
@@ -2340,6 +2171,7 @@ void bench_smt3_fwrun(benchmark::State& state, vvector<FwSubsumptionRound> const
     SMTSubsumptionImpl3 impl;
 
     for (auto const& round : fw_rounds) {
+      Clause::requestAux();
       // Set up main premise
       impl.setupMainPremise(round.main_premise());
       // Test subsumptions
@@ -2347,11 +2179,22 @@ void bench_smt3_fwrun(benchmark::State& state, vvector<FwSubsumptionRound> const
         bool const subsumed = impl.setupSubsumption(s.side_premise) && impl.solve();
         if (s.result >= 0 && subsumed != s.result) {
           state.SkipWithError("Wrong result!");
+          Kernel::Clause::releaseAux();
           return;
         }
         if (subsumed) { count++; }  // NOTE: since we record subsumption log from a real fwsubsumption run, this will only happen at the last iteration.
       }
-      // TODO: SR
+      // Test subsumption resolutions
+      for (auto const& sr : round.subsumptionResolutions()) {
+        bool const result = impl.setupSubsumptionResolution(sr.side_premise) && impl.solve();
+        if (sr.result >= 0 && result != sr.result) {
+          state.SkipWithError("Wrong result!");
+          Kernel::Clause::releaseAux();
+          return;
+        }
+        if (result) { count++; }  // NOTE: since we record subsumption log from a real fwsubsumption run, this will only happen at the last iteration.
+      }
+      Clause::releaseAux();
     }
     benchmark::DoNotOptimize(count);
     benchmark::ClobberMemory();
@@ -2372,6 +2215,7 @@ void bench_orig_fwrun_setup(benchmark::State& state, vvector<FwSubsumptionRound>
     CMStack cmStore{64};
 
     for (auto const& round : fw_rounds) {
+      Clause::requestAux();
 
       // Set up main premise
       ASS(cmStore.isEmpty());
@@ -2391,16 +2235,20 @@ void bench_orig_fwrun_setup(benchmark::State& state, vvector<FwSubsumptionRound>
         if (cms->anyNonMatched()) {
           // NOT SUBSUMED
           count++;
-          if (s.result > 0) { state.SkipWithError("Wrong result!"); return; }
+          if (s.result > 0) { state.SkipWithError("Wrong result!"); Kernel::Clause::releaseAux(); return; }
           continue;
         }
 
         // nothing to do here, since we only want to measure the setup.
       }
 
-      // TODO: SR
+      // TODO: SR... what exactly do we want to measure here?
+      for (auto const& sr : round.subsumptionResolutions()) {
+        state.SkipWithError("Subsumption Resolution not yet implemented");
+      }
 
       // Cleanup
+      Clause::releaseAux();
       while (cmStore.isNonEmpty()) {
         delete cmStore.pop();
       }
@@ -2425,6 +2273,7 @@ void bench_orig_fwrun(benchmark::State& state, vvector<FwSubsumptionRound> const
     CMStack cmStore{64};
 
     for (auto const& round : fw_rounds) {
+      Clause::requestAux();
 
       // Set up main premise
       ASS(cmStore.isEmpty());
@@ -2440,10 +2289,11 @@ void bench_orig_fwrun(benchmark::State& state, vvector<FwSubsumptionRound> const
         ClauseMatches* cms = new ClauseMatches(mcl);  // NOTE: why "new" here? because the original code does it like this as well.
         cmStore.push(cms);
         cms->fillInMatches(&miniIndex);
+        mcl->setAux(cms);
 
         if (cms->anyNonMatched()) {
           // NOT SUBSUMED
-          if (s.result > 0) { state.SkipWithError("Wrong result!"); return; }
+          if (s.result > 0) { state.SkipWithError("Wrong result!"); Kernel::Clause::releaseAux(); return; }
           continue;
         }
 
@@ -2451,14 +2301,52 @@ void bench_orig_fwrun(benchmark::State& state, vvector<FwSubsumptionRound> const
         bool const subsumed = matcher.nextMatch();
         if (s.result >= 0 && subsumed != s.result) {
           state.SkipWithError("Wrong result!");
+          Kernel::Clause::releaseAux();
           return;
         }
         if (subsumed) { count++; }  // NOTE: since we record subsumption log from a real fwsubsumption run, this will only happen at the last iteration anyway.
       }
 
-      // TODO: SR
+      // Test subsumption resolutions
+      for (auto const& sr : round.subsumptionResolutions()) {
+        Clause* mcl = sr.side_premise;
+        ClauseMatches* cms = nullptr;
+        if (mcl->hasAux()) {
+          cms = mcl->getAux<ClauseMatches>();
+        }
+        if (!cms) {
+          cms = new ClauseMatches(mcl);
+          mcl->setAux(cms);
+          cmStore.push(cms);
+          cms->fillInMatches(&miniIndex);
+        }
+        if (sr.res_lit == UINT_MAX) {
+          ASS(mcl->hasAux());
+          for (unsigned li = 0; li < cl->length(); li++) {
+            Literal* resLit = (*cl)[li];
+            bool result = checkForSubsumptionResolution(cl, cms, resLit);
+            // note: in this case the result is only logged for the first res_lit.
+            if (li == 0 && sr.result >= 0 && result != sr.result) {
+              state.SkipWithError("Wrong SR result (1)!");
+              Kernel::Clause::releaseAux();
+              return;
+            }
+            if (result) { count++; }
+          }
+        } else {
+          Literal* resLit = (*cl)[sr.res_lit];
+          bool result = checkForSubsumptionResolution(cl, cms, resLit);
+          if (sr.result >= 0 && result != sr.result) {
+            state.SkipWithError("Wrong SR result (2)!");
+            Kernel::Clause::releaseAux();
+            return;
+          }
+          if (result) { count++; }
+        }
+      }
 
       // Cleanup
+      Clause::releaseAux();
       while (cmStore.isNonEmpty()) {
         delete cmStore.pop();
       }
@@ -2492,21 +2380,36 @@ void ProofOfConcept::benchmark_run(SubsumptionBenchmark b)
   // all remaining ones should be non-empty
   ASS(std::all_of(fw_rounds.begin(), fw_rounds.end(), [](auto const& r) { return !!r.main_premise(); }));
 
+  vvector<FwSubsumptionRound> fw_rounds_only_subsumption;
+  for (auto const& r : fw_rounds) {
+    fw_rounds_only_subsumption.push_back(r.withoutSubsumptionResolution());
+  }
+
   vvector<vstring> args = {
     "vampire-sbench-run",
     // "--help",
   };
 
-  benchmark::RegisterBenchmark("smt2_run_setup", bench_smt2_run_setup, b.subsumptions);  // TODO: SR
-  benchmark::RegisterBenchmark("smt2_run", bench_smt2_run, b.subsumptions);  // TODO: SR
-  benchmark::RegisterBenchmark("smt3_fwrun_setup", bench_smt3_fwrun_setup, fw_rounds);
-  benchmark::RegisterBenchmark("smt3_fwrun", bench_smt3_fwrun, fw_rounds);
-  benchmark::RegisterBenchmark("orig_fwrun_setup", bench_orig_fwrun_setup, fw_rounds);
-  benchmark::RegisterBenchmark("orig_fwrun", bench_orig_fwrun, fw_rounds);
+  benchmark::RegisterBenchmark("smt2 S    (setup)", bench_smt2_run_setup, fw_rounds_only_subsumption);
+  benchmark::RegisterBenchmark("smt2 S    (full)", bench_smt2_run, fw_rounds_only_subsumption);
+  benchmark::RegisterBenchmark("smt2 S+SR (setup)", bench_smt2_run_setup, fw_rounds);
+  benchmark::RegisterBenchmark("smt2 S+SR (full)", bench_smt2_run, fw_rounds);
+
+  benchmark::RegisterBenchmark("smt3 S    (setup)", bench_smt3_fwrun_setup, fw_rounds_only_subsumption);
+  benchmark::RegisterBenchmark("smt3 S    (full)", bench_smt3_fwrun, fw_rounds_only_subsumption);
+  benchmark::RegisterBenchmark("smt3 S+SR (setup)", bench_smt3_fwrun_setup, fw_rounds);
+  benchmark::RegisterBenchmark("smt3 S+SR (full)", bench_smt3_fwrun, fw_rounds);
+
+  benchmark::RegisterBenchmark("orig S    (setup)", bench_orig_fwrun_setup, fw_rounds_only_subsumption);
+  benchmark::RegisterBenchmark("orig S    (full)", bench_orig_fwrun, fw_rounds_only_subsumption);
+  benchmark::RegisterBenchmark("orig S+SR (setup)", bench_orig_fwrun_setup, fw_rounds);
+  benchmark::RegisterBenchmark("orig S+SR (full)", bench_orig_fwrun, fw_rounds);
 
   init_benchmark(std::move(args));
   benchmark::RunSpecifiedBenchmarks();
   std::cerr << "Benchmarking done, shutting down..." << std::endl;
+  Kernel::Clause::requestAux();
+  Kernel::Clause::releaseAux();
 }
 
 #else
@@ -2537,3 +2440,17 @@ void ProofOfConcept::benchmark_run(vvector<SubsumptionInstance> instances)
 // Add a flag (i.e., a boolean variable that's to be used as assumption)
 //  to switch between subsumption and subsumption resolution.
 // But other SR-clauses are only generated after checking S.
+
+
+
+
+
+
+
+void ProofOfConcept::benchmark_micro(SubsumptionBenchmark b)
+{
+  CALL("ProofOfConcept::benchmark_micro");
+  BYPASSING_ALLOCATOR;  // google-benchmark needs its own memory
+  std::cerr << "obsolete mode\n";
+  std::exit(1);
+}
