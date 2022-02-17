@@ -303,6 +303,22 @@ bool SMTSubsumptionImpl2::setupSubsumptionResolution(Kernel::Clause* base, Kerne
     }
   }
 
+  // At least one complementary match
+  // NOTE: this clause is required. Without it, we may get a false subsumption
+  //       (because subsumption resolution uses set-matching and not multiset-matching)
+  if (complementary_matches.empty()) {
+    return false;
+  }
+  else {
+    solver.constraint_start();
+    for (auto const pair : complementary_matches) {
+      subsat::Var const b = pair.first;
+      solver.constraint_push_literal(b);
+    }
+    auto handle = solver.constraint_end();
+    solver.add_clause_unsafe(handle);
+  }
+
   // NOTE: these constraints are necessary because:
   // 1) when an inst_lit is complementary-matched, then we cannot match anything else to it.
   // 2) but when it is not complementary-matched, then we may match multiple base literals to it.
@@ -311,10 +327,10 @@ bool SMTSubsumptionImpl2::setupSubsumptionResolution(Kernel::Clause* base, Kerne
   //
   // Example of wrong inference without these constraints:
   // % ***WRONG RESULT OF SUBSUMPTION RESOLUTION***
-  // %    base       = 1. ~p(X0,X1,X2,X3,X4) | p(X5,X1,X2,X3,X4) [input]
-  // %    instance   = 366. ~neq(X10,X11) | ~neq(X10,s0) | ~neq(X12,X11) | ~neq(X10,X12) | ~neq(X10,X13) | ~neq(X12,s0) | ~neq(X13,X14) | ~neq(X13,X11) | ~neq(X10,X14) | p(X10,X13,X14,s0,s0) [duplicate literal removal 362]
+  // %    base:       ~p(X0,X1,X2,X3,X4) | p(X5,X1,X2,X3,X4)
+  // %    instance:   ~neq(X10,X11) | ~neq(X10,s0) | ~neq(X12,X11) | ~neq(X10,X12) | ~neq(X10,X13) | ~neq(X12,s0) | ~neq(X13,X14) | ~neq(X13,X11) | ~neq(X10,X14) | p(X10,X13,X14,s0,s0)
   // % Should NOT be possible but found the following result:
-  // %    conclusion = 406. ~neq(X10,X11) | ~neq(X10,s0) | ~neq(X12,X11) | ~neq(X10,X12) | ~neq(X10,X13) | ~neq(X12,s0) | ~neq(X13,X14) | ~neq(X13,X11) | ~neq(X10,X14) [subsumption resolution 366,1]
+  // %    conclusion: ~neq(X10,X11) | ~neq(X10,s0) | ~neq(X12,X11) | ~neq(X10,X12) | ~neq(X10,X13) | ~neq(X12,s0) | ~neq(X13,X14) | ~neq(X13,X11) | ~neq(X10,X14)
   for (unsigned j = 0; j < instance->length(); ++j) {
     uint32_t const nnormal = inst_normal_matches[j].size();
     uint32_t const ncompl = inst_compl_matches[j].size();
@@ -334,17 +350,6 @@ bool SMTSubsumptionImpl2::setupSubsumptionResolution(Kernel::Clause* base, Kerne
       }
     }
   }
-
-  // At least one complementary match
-  // NOTE: this clause is required. Without it, we may get a false subsumption
-  //       (because subsumption resolution uses set-matching and not multiset-matching)
-  solver.constraint_start();
-  for (auto const pair : complementary_matches) {
-    subsat::Var const b = pair.first;
-    solver.constraint_push_literal(b);
-  }
-  auto handle = solver.constraint_end();
-  solver.add_clause_unsafe(handle);
 
   // inst_is_compl_matched[j] is true if instance[j] is complementary-matched by one or more base literals
   // (other direction not required, but we could use it instead of the "at least one complementary match" above)
@@ -369,17 +374,6 @@ bool SMTSubsumptionImpl2::setupSubsumptionResolution(Kernel::Clause* base, Kerne
   }
   auto handle2 = solver.constraint_end();
   solver.add_atmostone_constraint_unsafe(handle2);
-
-  // // TODO: this is wrong. what we actually want is that at most one *INSTANCE LITERAL* is complementary-matched.
-  // //       but it may be complementary-matched by multiple base literals (and this case is quite common, actually)
-  // // At most one complementary match
-  // solver.constraint_start();
-  // for (auto const pair : complementary_matches) {
-  //   subsat::Var const b = pair.first;
-  //   solver.constraint_push_literal(b);
-  // }
-  // auto handle2 = solver.constraint_end();
-  // solver.add_atmostone_constraint_unsafe(handle2);
 
   return !solver.inconsistent();
   // TODO: second version that transforms the subsumption instance into an SR instance?

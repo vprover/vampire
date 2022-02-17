@@ -342,27 +342,12 @@ public:
   NODISCARD Var new_variable(vdom_group group = vdom::InvalidGroup)
   {
     LOG_TRACE("new_variable");
-    // TODO: we should defer as much of this as possible to solve().
-    //       new_variable and add_clause(_unsafe) must be as lightweight as possible.
-    //       => so just add all the simplification steps to a step before solve().
-    //       (goal: get rid of the separate SMTSubsumptionImpl3 and use the simpler code from SMTSubsumptionImpl2)
     assert(m_state == State::Unknown);
+    // NOTE: most initialization is done at the time of solving.
+    //       new_variable and add_clause(_unsafe) should be as lightweight as possible,
+    //       to keep the overhead low for (relatively common) cases where we can bail out early.
+    //       The actual initialization is done in prepare_to_solve().
     Var new_var = Var{m_used_vars++};
-    /*
-    m_unassigned_vars++;
-    m_vars.emplace_back();
-    m_marks.push_back(0);
-    m_values.push_back(Value::Unassigned);  // value of positive literal
-    m_values.push_back(Value::Unassigned);  // value of negative literal
-    while (m_watches.size() < 2 * m_used_vars) {
-      m_watches.emplace_back();             // positive literal watches
-      m_watches.emplace_back();             // negative literal watches
-    }
-    while (m_watches_amo.size() < 2 * m_used_vars) {
-      m_watches_amo.emplace_back();         // positive literal watches
-      m_watches_amo.emplace_back();         // negative literal watches -- generally not needed for our instances
-    }
-    */
 #if SUBSAT_VDOM
     m_vdom.ensure_var(new_var);
     if (group != vdom::InvalidGroup) {

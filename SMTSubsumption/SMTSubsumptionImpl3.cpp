@@ -35,6 +35,7 @@ void SMTSubsumptionImpl3::setupMainPremise(Kernel::Clause* new_instance)
 /// Otherwise, solve() needs to be called.
 bool SMTSubsumptionImpl3::setupSubsumption(Kernel::Clause* base)
 {
+  CALL("SMTSubsumptionImpl3::setupSubsumption");
   solver.clear();
   ASS(solver.empty());
   auto& theory = solver.theory();
@@ -128,7 +129,17 @@ bool SMTSubsumptionImpl3::setupSubsumption(Kernel::Clause* base)
 
 bool SMTSubsumptionImpl3::setupSubsumptionResolution(Kernel::Clause* base)
 {
+  CALL("SMTSubsumptionImpl3::setupSubsumptionResolution");
+  solver.clear();
+  ASS(solver.empty());
+  auto& theory = solver.theory();
+  ASS(theory.empty());
+
+  uint32_t const base_len = base->length();
+  uint32_t const inst_len = instance->length();
+
   // TODO
+  return false;
 }  // setupSubsumptionResolution
 
 

@@ -328,6 +328,7 @@ private:
 
   // Unfortunately vampire variables don't need to be contiguous,
   // so we map them to contiguous integers ("position") first.
+  // TODO: replace bindings_by_pos by a single contiguous vector, and instead of VampireVarPos; use an index/length into that vector.
   Lib::DHMap<VampireVar, VampireVarPos, Kernel::IdentityHash> m_var_pos;
   vector_map<VampireVarPos, vector<std::pair<subsat::Var, VampireTerm>>> m_bindings_by_pos;
 
