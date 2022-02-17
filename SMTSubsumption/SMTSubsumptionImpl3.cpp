@@ -23,6 +23,7 @@ SMTSubsumptionImpl3::SMTSubsumptionImpl3()
 SMTSubsumptionImpl3::Token SMTSubsumptionImpl3::setupMainPremise(Kernel::Clause* new_instance)
 {
   instance = new_instance;
+  next_bm = 0;
   Kernel::Clause::requestAux();
   // TODO:
   // Copy the literals into a vvector, std::sort them (like LiteralMiniIndex; by header).
@@ -53,11 +54,24 @@ SMTSubsumptionImpl3::Token::~Token()
 bool SMTSubsumptionImpl3::setupSubsumption(Kernel::Clause* base)
 {
   CALL("SMTSubsumptionImpl3::setupSubsumption");
+
+  if (base->hasAux()) {
+    // if we encounter a clause twice then the result must be false.
+    return false;
+  }
+
   solver.clear();
   ASS(solver.empty());
   ASS(solver.theory().empty());
+
+  if (next_bm == bms.size()) {
+    bms.emplace_back();
+  }
+  ASS_L(next_bm, bms.size());
+  auto& bm = bms[next_bm++];
   bm.clear();
   ASS(bm.empty());
+  base->setAux(&bm);
   solver.theory().setBindings(&bm);
 
   uint32_t const base_len = base->length();

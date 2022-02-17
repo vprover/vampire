@@ -19,8 +19,12 @@ class SMTSubsumptionImpl3
     using allocator_type = std::allocator<T>;
 #endif
 
-    subsat::Solver<allocator_type> solver;
-    subsat::Solver<allocator_type>::BindingsManager bm;
+    using Solver = subsat::Solver<allocator_type>;
+    using BindingsManager = typename Solver::BindingsManager;
+
+    Solver solver;
+    vvector<BindingsManager> bms;
+    unsigned next_bm;
 
     Kernel::Clause* instance = nullptr;   // main premise for forward subsumption (resolution)
 
