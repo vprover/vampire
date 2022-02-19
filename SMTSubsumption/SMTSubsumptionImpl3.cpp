@@ -18,6 +18,13 @@ SMTSubsumptionImpl3::SMTSubsumptionImpl3()
   instance_constraints.reserve(16);
 }
 
+SMTSubsumptionImpl3::~SMTSubsumptionImpl3()
+{
+  for (auto* p : mcs)
+    delete p;
+  mcs.clear();
+}
+
 
 
 SMTSubsumptionImpl3::Token SMTSubsumptionImpl3::setupMainPremise(Kernel::Clause* new_instance)

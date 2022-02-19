@@ -107,6 +107,7 @@ class SMTSubsumptionImpl3
     USE_ALLOCATOR(SMTSubsumptionImpl3);
 
     SMTSubsumptionImpl3();
+    ~SMTSubsumptionImpl3();
 
     class Token {
       SMTSubsumptionImpl3& impl;
