@@ -5,6 +5,10 @@
 #include "Lib/STL.hpp"
 #include "./subsat/subsat.hpp"
 
+// The ground literal prefilter seems to slow us down slightly in general.
+// Maybe it's more helpful with induction enabled? since that adds a lot of ground clauses.
+#define GROUND_LITERAL_PREFILTER 0
+
 namespace SMTSubsumption {
 
 class SMTSubsumptionImpl2

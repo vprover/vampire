@@ -10,10 +10,6 @@ using namespace SMTSubsumption;
 
 // TODO: early exit in case time limit hits, like in MLMatcher which checks every 50k iterations if time limit has been exceeded
 
-// The ground literal prefilter seems to slow us down slightly in general.
-// Maybe it's more helpful with induction enabled? since that adds a lot of ground clauses.
-#define GROUND_LITERAL_PREFILTER 0
-
 
 
 
@@ -38,6 +34,11 @@ SMTSubsumptionImpl2::SMTSubsumptionImpl2()
 bool SMTSubsumptionImpl2::setupSubsumption(Kernel::Clause* base, Kernel::Clause* instance)
 {
   CALL("SMTSubsumptionImpl2::setupSubsumption");
+
+  if (base->length() > instance->length()) {
+    return false;
+  }
+
   solver.clear();
   ASS(solver.empty());
   ASS(solver.theory().empty());

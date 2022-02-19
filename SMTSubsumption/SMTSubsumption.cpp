@@ -471,11 +471,16 @@ void bench_smt3_fwrun_setup(benchmark::State& state, vvector<FwSubsumptionRound>
           count++;
           if (s.result > 0) { state.SkipWithError("Wrong result!"); return; }
         }
-        // not solve since we only measure the setup
+        // not solving since we only measure the setup
       }
-      // TODO: SR... what exactly do we want to measure here?
+      // Test subsumption resolutions
       for (auto const& sr : round.subsumptionResolutions()) {
-        state.SkipWithError("Subsumption Resolution not yet implemented");
+        if (!impl.setupSubsumptionResolution(sr.side_premise)) {
+          count++;
+          // can't check result here because the logged result might cover only one resLit.
+          // if (sr.result > 0) { state.SkipWithError("Wrong result!"); return; }
+        }
+        // not solving since we only measure the setup
       }
     }
     benchmark::DoNotOptimize(count);
@@ -505,11 +510,8 @@ void bench_smt3_fwrun(benchmark::State& state, vvector<FwSubsumptionRound> const
       // Test subsumption resolutions
       for (auto const& sr : round.subsumptionResolutions()) {
         bool const result = impl.setupSubsumptionResolution(sr.side_premise) && impl.solve();
-        if (sr.result >= 0 && result != sr.result) {
-          state.SkipWithError("Wrong result!");
-          return;
-        }
-        if (result) { count++; }  // NOTE: since we record subsumption log from a real fwsubsumption run, this will only happen at the last iteration.
+        // can't check result here because the logged result might cover only one resLit.
+        count += result;
       }
     }
     benchmark::DoNotOptimize(count);
@@ -706,20 +708,28 @@ void ProofOfConcept::benchmark_run(SubsumptionBenchmark b)
     // "--help",
   };
 
-  benchmark::RegisterBenchmark("smt2 S    (setup)", bench_smt2_run_setup, fw_rounds_only_subsumption);
-  benchmark::RegisterBenchmark("smt2 S    (full)", bench_smt2_run, fw_rounds_only_subsumption);
-  benchmark::RegisterBenchmark("smt2 S+SR (setup)", bench_smt2_run_setup, fw_rounds);
-  benchmark::RegisterBenchmark("smt2 S+SR (full)", bench_smt2_run, fw_rounds);
+  bool also_setup = true;
 
-  benchmark::RegisterBenchmark("smt3 S    (setup)", bench_smt3_fwrun_setup, fw_rounds_only_subsumption);
-  benchmark::RegisterBenchmark("smt3 S    (full)", bench_smt3_fwrun, fw_rounds_only_subsumption);
-  benchmark::RegisterBenchmark("smt3 S+SR (setup)", bench_smt3_fwrun_setup, fw_rounds);
-  benchmark::RegisterBenchmark("smt3 S+SR (full)", bench_smt3_fwrun, fw_rounds);
+  if (also_setup)
+    benchmark::RegisterBenchmark("smt2 S    (setup)", bench_smt2_run_setup, fw_rounds_only_subsumption);
+  benchmark::RegisterBenchmark(  "smt2 S    (full)", bench_smt2_run, fw_rounds_only_subsumption);
+  if (also_setup)
+    benchmark::RegisterBenchmark("smt2 S+SR (setup)", bench_smt2_run_setup, fw_rounds);
+  benchmark::RegisterBenchmark(  "smt2 S+SR (full)", bench_smt2_run, fw_rounds);
 
-  benchmark::RegisterBenchmark("orig S    (setup)", bench_orig_fwrun_setup, fw_rounds_only_subsumption);
-  benchmark::RegisterBenchmark("orig S    (full)", bench_orig_fwrun, fw_rounds_only_subsumption);
-  benchmark::RegisterBenchmark("orig S+SR (setup)", bench_orig_fwrun_setup, fw_rounds);
-  benchmark::RegisterBenchmark("orig S+SR (full)", bench_orig_fwrun, fw_rounds);
+  if (also_setup)
+    benchmark::RegisterBenchmark("smt3 S    (setup)", bench_smt3_fwrun_setup, fw_rounds_only_subsumption);
+  benchmark::RegisterBenchmark(  "smt3 S    (full)", bench_smt3_fwrun, fw_rounds_only_subsumption);
+  if (also_setup)
+    benchmark::RegisterBenchmark("smt3 S+SR (setup)", bench_smt3_fwrun_setup, fw_rounds);
+  benchmark::RegisterBenchmark(  "smt3 S+SR (full)", bench_smt3_fwrun, fw_rounds);
+
+  if (also_setup)
+    benchmark::RegisterBenchmark("orig S    (setup)", bench_orig_fwrun_setup, fw_rounds_only_subsumption);
+  benchmark::RegisterBenchmark(  "orig S    (full)", bench_orig_fwrun, fw_rounds_only_subsumption);
+  if (also_setup)
+    benchmark::RegisterBenchmark("orig S+SR (setup)", bench_orig_fwrun_setup, fw_rounds);
+  benchmark::RegisterBenchmark(  "orig S+SR (full)", bench_orig_fwrun, fw_rounds);
 
   init_benchmark(std::move(args));
   benchmark::RunSpecifiedBenchmarks();

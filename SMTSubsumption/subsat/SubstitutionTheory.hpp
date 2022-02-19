@@ -70,6 +70,9 @@ public:
   using vector_map = subsat::vector_map<K, T, allocator_type<T>>;
 
 public:
+  CLASS_NAME(BindingsManager);
+  USE_ALLOCATOR(BindingsManager);
+
   // empty substitution theory
   BindingsManager()
   {
@@ -177,7 +180,7 @@ public:
   }
 
   /// Commit bindings to storage.
-  void commit_bindings(Binder& binder, subsat::Var b)
+  void commit_bindings(Binder& binder, subsat::Var b, uint32_t extra_i = 0, uint32_t extra_j = 0)
   {
     binder.commit();
     while (b.index() >= m_bindings.size()) {
@@ -187,25 +190,39 @@ public:
     ASS_REP(!bindings.is_valid(), "Bindings for b are already set");
     bindings.index = binder.index();
     bindings.size = binder.size();
+    bindings.extra_i = extra_i;
+    bindings.extra_j = extra_j;
     ASS(bindings.is_valid());
   }
 
-private:
   struct BindingsRef final
   {
     uint32_t index = std::numeric_limits<uint32_t>::max();
-    uint32_t size = 0;
+    uint32_t size;
+    uint32_t extra_i;
+    uint32_t extra_j;
 
     constexpr bool is_valid() const noexcept
     {
       return index < std::numeric_limits<uint32_t>::max();
     }
+
     /// last index + 1
     constexpr uint32_t end() const noexcept
     {
       return index + size;
     }
   };
+
+  BindingsRef const& get_bindings(subsat::Var b) const
+  {
+    return m_bindings[b];
+  }
+
+  size_t size() const
+  {
+    return m_bindings.size();
+  }
 
 public:
   void clear() noexcept
@@ -227,7 +244,7 @@ public:
     m_bindings.reserve(bool_var_count);
   }
 
-  template <template <typename> class Allocatori> friend class SubstitutionTheory;
+  template <template <typename> class Alloc> friend class SubstitutionTheory;
 
 private:
   // TODO: bindings in the array could be stored in a heap structure (i.e., one heap per binder).
@@ -289,6 +306,9 @@ public:
     for (uint32_t b_idx = 0; b_idx < m_bm->m_bindings.size(); ++b_idx) {
       subsat::Var b{b_idx};
       BindingsRef const& bindings = m_bm->m_bindings[b];
+      if (!bindings.is_valid()) {
+        continue;
+      }
       for (uint32_t i = bindings.index; i < bindings.end(); ++i) {
         BindingsEntry const& entry = m_bm->m_bindings_storage[i];
         VampireVar var = entry.first;
