@@ -2189,7 +2189,7 @@ bool Solver<Allocator>::checkInvariants() const
     if (reason.is_valid()) {
       Constraint const& c = get_reason(lit, reason, tmp_binary);
       for (Lit const other : c) {
-        assert(other == lit | m_values[other] == Value::False);
+        assert(other == lit || m_values[other] == Value::False);
       }
     }
   }
