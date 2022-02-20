@@ -505,7 +505,8 @@ bool SMTSubsumptionImpl3::solve()
 
 Kernel::Clause* SMTSubsumptionImpl3::getSubsumptionResolutionConclusion(Kernel::Clause* base)
 {
-  int const conclusion_len = instance->length() - 1;
+  ASS_GE(instance->length(), 1);
+  unsigned int const conclusion_len = instance->length() - 1;
   Clause* conclusion = new (conclusion_len) Clause(conclusion_len,
       SimplifyingInference2(InferenceRule::SUBSUMPTION_RESOLUTION, instance, base));
 
@@ -548,7 +549,7 @@ Kernel::Clause* SMTSubsumptionImpl3::getSubsumptionResolutionConclusion(Kernel::
       (*conclusion)[next++] = lit;
     }
   }
-  ASS(next == conclusion_len);
+  ASS_EQ(next, conclusion_len);
   return conclusion;
 }
 
