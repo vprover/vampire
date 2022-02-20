@@ -69,8 +69,8 @@ void SMTSubsumptionImpl3::fillMatches(MatchCache& mc, Kernel::Clause* base)
   uint32_t const inst_len = instance->length();
 
 #ifndef NDEBUG
-  ASS_EQ(mc.base, nullptr);
-  ASS_EQ(mc.inst, nullptr);
+  ASS_EQ(mc.base, (Kernel::Clause*)nullptr);
+  ASS_EQ(mc.inst, (Kernel::Clause*)nullptr);
   mc.base = base;
   mc.inst = instance;
 #endif
