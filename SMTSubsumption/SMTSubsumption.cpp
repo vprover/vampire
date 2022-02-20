@@ -14,6 +14,8 @@
 #include <iostream>
 #include <iomanip>
 #include <new>
+#include <cstdint>
+#include <climits>
 
 #include "SMTSubsumptionImpl2.hpp"
 #include "SMTSubsumptionImpl3.hpp"
