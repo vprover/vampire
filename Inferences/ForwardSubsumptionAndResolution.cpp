@@ -258,13 +258,14 @@ class SubsumptionLogger
     unsigned int m_last_side_premise = -1;
     unsigned int m_last_main_premise = -1;
     int m_last_reslitidx = -1;
-    vset<unsigned int> m_seen_clauses;
+    bool m_new_round = true;
+    DHMap<unsigned int, vvector<Literal*>> m_logged_clauses;
   public:
     CLASS_NAME(SubsumptionLogger);
     USE_ALLOCATOR(SubsumptionLogger);
     SubsumptionLogger(vstring logfile_path);
     void logNextRound();
-    // Only log the clauses; must call log...Result afterwards or the file will not be formatted correctly!
+    // Only log the clauses; must call logS... afterwards or the file will not be formatted correctly!
     // resLitIdx only matters for SR, value < 0 means "all".
     void logClauses(Clause* side_premise, Clause* main_premise, int resLitIdx);
     void logSubsumption(int result);
@@ -295,18 +296,24 @@ SubsumptionLogger::SubsumptionLogger(vstring logfile_path)
 
 void SubsumptionLogger::logNextRound()
 {
-  // TODO: the main premise is the same throughout one round.
-  //       so we could save some space by only logging the main premise number after 'R'.
-  //       and don't print the 'R' line when no S/SR lines follow.
-  m_file_slog << "R\n";
+  m_new_round = true;
 }
 
 void SubsumptionLogger::logClauses(Clause* side_premise, Clause* main_premise, int resLitIdx)
 {
   // Print clauses if they haven't been printed yet
   for (Clause* clause : {side_premise, main_premise}) {
-    bool inserted = m_seen_clauses.insert(clause->number()).second;
-    if (inserted) {
+    if (!m_logged_clauses.find(clause->number())) {
+      vvector<Literal*> literals;
+      literals.reserve(clause->length());
+      // NOTE: we store the order the literals are printed in.
+      //       Because the clause may later be reordered due to literal selection.
+      //       So we need to keep this data to preserve the correct resLitIdx.
+      for (unsigned k = 0; k < clause->length(); ++k) {
+        literals.push_back((*clause)[k]);
+      }
+      ASS_EQ(literals.size(), clause->length());
+      m_logged_clauses.emplace(clause->number(), std::move(literals));
       // std::cerr << "printing " << clause << " " << clause->toString() << std::endl;
       vstringstream id_stream;
       id_stream << "clause_" << clause->number();
@@ -315,12 +322,27 @@ void SubsumptionLogger::logClauses(Clause* side_premise, Clause* main_premise, i
   }
   m_last_main_premise = main_premise->number();
   m_last_side_premise = side_premise->number();
+  if (resLitIdx >= 0) {
+    // correct resLitIdx (required if clause has been reordered since printing)
+    Literal* resLit = (*main_premise)[resLitIdx];
+    vvector<Literal*>& lits = m_logged_clauses.get(main_premise->number());
+    for (unsigned k = 0; k < lits.size(); ++k) {
+      if (resLit == lits[k]) {
+        resLitIdx = k;
+        break;
+      }
+    }
+  }
   m_last_reslitidx = resLitIdx;
+  if (m_new_round) {
+    m_file_slog << "R " << m_last_main_premise << '\n';
+    m_new_round = false;
+  }
 }
 
 void SubsumptionLogger::logSubsumption(int result)
 {
-  m_file_slog << "S " << m_last_side_premise << ' ' << m_last_main_premise << ' ' << result << '\n';
+  m_file_slog << "S " << m_last_side_premise << ' ' << result << '\n';
   m_seq += 1;
   m_last_main_premise = -1;
   m_last_side_premise = -1;
@@ -329,8 +351,7 @@ void SubsumptionLogger::logSubsumption(int result)
 
 void SubsumptionLogger::logSubsumptionResolution(int result)
 {
-
-  m_file_slog << "SR " << m_last_side_premise << ' ' << m_last_main_premise;
+  m_file_slog << "SR " << m_last_side_premise;
   if (m_last_reslitidx < 0) {
     m_file_slog << " *";
   } else {

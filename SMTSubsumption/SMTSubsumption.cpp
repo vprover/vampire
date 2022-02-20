@@ -671,7 +671,9 @@ void bench_orig_fwrun(benchmark::State& state, vvector<FwSubsumptionRound> const
             Literal* resLit = (*cl)[li];
             bool result = checkForSubsumptionResolution(cl, cms, resLit);
             // note: in this case the result is only logged for the first res_lit.
-            // TODO: can't check errors atm since some resLit indices in the slog are wrong...
+            //       however, we can't check it.
+            //       because the clause may have been reordered due to literal selection,
+            //       and we do not know which literal was the first one at time of logging the inference.
             // if (li == 0 && sr.result >= 0 && result != sr.result) {
             //   std::cerr << "expect " << sr.result << "  got " << result << std::endl;
             //   std::cerr << "     slog line: " << sr.number << "\n";
@@ -687,17 +689,16 @@ void bench_orig_fwrun(benchmark::State& state, vvector<FwSubsumptionRound> const
         } else {
           Literal* resLit = (*cl)[sr.res_lit];
           bool result = checkForSubsumptionResolution(cl, cms, resLit);
-          // TODO: can't check errors atm since some resLit indices in the slog are wrong...
-          // if (sr.result >= 0 && result != sr.result) {
-          //   std::cerr << "expect " << sr.result << "  got " << result << std::endl;
-          //   std::cerr << "     slog line: " << sr.number << "\n";
-          //   std::cerr << "     mcl: " << mcl->toString() << "\n";
-          //   std::cerr << "      cl: " <<  cl->toString() << "\n";
-          //   std::cerr << "      resLit: " <<  resLit->toString() << "     index " << sr.res_lit << "\n";
-          //   state.SkipWithError("Wrong SR result (2)!");
-          //   Kernel::Clause::releaseAux();
-          //   return;
-          // }
+          if (sr.result >= 0 && result != sr.result) {
+            // std::cerr << "expect " << sr.result << "  got " << result << std::endl;
+            // std::cerr << "     slog line: " << sr.number << "\n";
+            // std::cerr << "     mcl: " << mcl->toString() << "\n";
+            // std::cerr << "      cl: " <<  cl->toString() << "\n";
+            // std::cerr << "      resLit: " <<  resLit->toString() << "     index " << sr.res_lit << "\n";
+            state.SkipWithError("Wrong SR result (2)!");
+            Kernel::Clause::releaseAux();
+            return;
+          }
           if (result) { count++; }
         }
       }
