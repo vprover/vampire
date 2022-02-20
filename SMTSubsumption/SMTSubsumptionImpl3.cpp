@@ -548,7 +548,7 @@ Kernel::Clause* SMTSubsumptionImpl3::getSubsumptionResolutionConclusion(Kernel::
       (*conclusion)[next++] = lit;
     }
   }
-  ASS_EQ(next, conclusion_len);
+  ASS(next == conclusion_len);
   return conclusion;
 }
 
