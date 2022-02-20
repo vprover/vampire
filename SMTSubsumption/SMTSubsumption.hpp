@@ -51,6 +51,20 @@ struct SubsumptionBenchmark {
 class SMTSubsumptionImpl2;
 
 class SMTSubsumptionImpl3;
+class SMTSubsumptionImpl3_Token;
+class ProofOfConcept;
+
+class Token {
+  std::unique_ptr<SMTSubsumptionImpl3_Token> tok;
+  Token(std::unique_ptr<SMTSubsumptionImpl3_Token> tok);
+  Token(Token&) = delete;
+  friend class ::SMTSubsumption::ProofOfConcept;
+public:
+  CLASS_NAME(Token);
+  USE_ALLOCATOR(Token);
+  Token(Token&&);
+  ~Token();
+};
 
 class ProofOfConcept {
   public:
@@ -64,6 +78,9 @@ class ProofOfConcept {
     void benchmark_run(SubsumptionBenchmark b);
     void benchmark_micro(SubsumptionBenchmark b);
 
+    /// Set up forward subsumption and subsumption resolution for the given main premise.
+    /// Hold on to the returned token until done.
+    /*NODISCARD*/ Token setupMainPremise(Kernel::Clause* new_instance);
     bool checkSubsumption(Kernel::Clause* base, Kernel::Clause* instance);
     bool checkSubsumptionResolution(Kernel::Clause* base, Kernel::Clause* instance, Kernel::Clause* conclusion);
 
@@ -76,7 +93,7 @@ class ProofOfConcept {
     void init_benchmark(vvector<vstring> the_args);
 
   private:
-    std::unique_ptr<SMTSubsumptionImpl2> m_subsat_impl;
+    std::unique_ptr<SMTSubsumptionImpl2> m_subsat_impl2;
     std::unique_ptr<SMTSubsumptionImpl3> m_subsat_impl3;
 };
 

@@ -435,14 +435,14 @@ bool SMTSubsumptionImpl2::checkSubsumption(Kernel::Clause* base, Kernel::Clause*
 
 bool SMTSubsumptionImpl2::checkSubsumptionResolution(Kernel::Clause* base, Kernel::Clause* instance, Kernel::Clause* conclusion)
 {
-  setupSubsumptionResolution(base, instance);
+  bool const res0 = setupSubsumptionResolution(base, instance);
   if (conclusion == nullptr) {
     RSTAT_CTR_INC("failed subsumption resolutions");
-    if (solve()) {
+    if (res0 && solve()) {
       std::cerr << "\% ***WRONG RESULT OF SUBSUMPTION RESOLUTION***" << std::endl;
       std::cerr << "\%    base       = " << base->toString() << std::endl;
       std::cerr << "\%    instance   = " << instance->toString() << std::endl;
-      std::cerr << "\% Should NOT be possible but SMT-SR found the following result:" << std::endl;
+      std::cerr << "\% Should NOT be possible but SMT2-SR found the following result:" << std::endl;
       std::cerr << "\%    conclusion = " << getSubsumptionResolutionConclusion()->toString() << std::endl;
       return false;
     } else {
@@ -450,7 +450,7 @@ bool SMTSubsumptionImpl2::checkSubsumptionResolution(Kernel::Clause* base, Kerne
     }
   }
   int found = 0;
-  while (solve()) {
+  while (res0 && solve()) {
     // Found another model, build the corresponding result
     Kernel::Clause* cl = getSubsumptionResolutionConclusion();
     if (checkClauseEquality(cl, conclusion)) {
@@ -462,7 +462,7 @@ bool SMTSubsumptionImpl2::checkSubsumptionResolution(Kernel::Clause* base, Kerne
     std::cerr << "\% ***WRONG RESULT OF SUBSUMPTION RESOLUTION***" << std::endl;
     std::cerr << "\%    base     = " << base->toString() << std::endl;
     std::cerr << "\%    instance = " << instance->toString() << std::endl;
-    std::cerr << "\% No result from SMT-SR, but should have found this conclusion:" << std::endl;
+    std::cerr << "\% No result from SMT2-SR, but should have found this conclusion:" << std::endl;
     std::cerr << "\%    expected = " << conclusion->toString() << std::endl;
   }
   return (found > 0);

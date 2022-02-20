@@ -281,24 +281,48 @@ void ProofOfConcept::test(Clause* side_premise, Clause* main_premise)
 
 ProofOfConcept::ProofOfConcept()
 {
-  m_subsat_impl.reset(new SMTSubsumptionImpl2());
+  m_subsat_impl2.reset(new SMTSubsumptionImpl2());
   m_subsat_impl3.reset(new SMTSubsumptionImpl3());
 }
 
 ProofOfConcept::~ProofOfConcept() = default;
 
+Token::~Token() {}
+Token::Token(std::unique_ptr<SMTSubsumptionImpl3_Token> tok) : tok(std::move(tok)) {}
+Token::Token(Token&&) = default;
+
+Token ProofOfConcept::setupMainPremise(Kernel::Clause* new_instance) {
+  return {std::make_unique<SMTSubsumptionImpl3_Token>(m_subsat_impl3->setupMainPremise(new_instance))};
+}
+
 bool ProofOfConcept::checkSubsumption(Kernel::Clause* base, Kernel::Clause* instance)
 {
   CALL("ProofOfConcept::checkSubsumption");
-  ASS(m_subsat_impl);
-  return m_subsat_impl->checkSubsumption(base, instance);
+  ASS(m_subsat_impl2);
+  ASS(m_subsat_impl3);
+  bool res2 = m_subsat_impl2->checkSubsumption(base, instance);
+  bool res3 = m_subsat_impl3->checkSubsumption(base, instance);
+  if (res2 != res3) {
+    std::cerr << "\% ***WRONG RESULT: MISMATCH S2 (" << res2 << ") VS S3 (" << res3 << ")***" << std::endl;
+    std::cerr << "\%    base       = " << base->toString() << std::endl;
+    std::cerr << "\%    instance   = " << instance->toString() << std::endl;
+  }
+  return res2 & res3;
 }
 
 bool ProofOfConcept::checkSubsumptionResolution(Kernel::Clause* base, Kernel::Clause* instance, Kernel::Clause* conclusion)
 {
   CALL("ProofOfConcept::checkSubsumptionResolution");
-  ASS(m_subsat_impl);
-  return m_subsat_impl->checkSubsumptionResolution(base, instance, conclusion);
+  ASS(m_subsat_impl2);
+  ASS(m_subsat_impl3);
+  bool res2 = m_subsat_impl2->checkSubsumptionResolution(base, instance, conclusion);
+  bool res3 = m_subsat_impl3->checkSubsumptionResolution(base, instance, conclusion);
+  if (res2 != res3) {
+    std::cerr << "\% ***WRONG RESULT: MISMATCH SR2 (" << res2 << ") VS SR3 (" << res3 << ")***" << std::endl;
+    std::cerr << "\%    base       = " << base->toString() << std::endl;
+    std::cerr << "\%    instance   = " << instance->toString() << std::endl;
+  }
+  return res2 & res3;
 }
 
 

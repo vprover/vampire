@@ -1,6 +1,7 @@
 #include "SMTSubsumptionImpl3.hpp"
 #include "Kernel/Matcher.hpp"
 #include "Debug/RuntimeStatistics.hpp"
+#include "Util.hpp"
 #include <iostream>
 
 using namespace Indexing;
@@ -50,9 +51,10 @@ void SMTSubsumptionImpl3::endMainPremise()
 
 
 
-SMTSubsumptionImpl3::Token::~Token()
+SMTSubsumptionImpl3_Token::~SMTSubsumptionImpl3_Token()
 {
-  impl.endMainPremise();
+  if (impl)
+    impl->endMainPremise();
 }
 
 
@@ -98,6 +100,7 @@ void SMTSubsumptionImpl3::fillMatches(MatchCache& mc, Kernel::Clause* base)
           match_count += 1;
           mc.inst_match_count[j] += 1;
           mc.bm.commit_bindings(binder, b, bi, j);
+          // std::cerr << b << " := base[" << bi << "] -> inst[" << j << "]            " << base_lit->toString() << " -> " << inst_lit->toString() << std::endl;
         }
       }
 
@@ -110,6 +113,7 @@ void SMTSubsumptionImpl3::fillMatches(MatchCache& mc, Kernel::Clause* base)
           match_count += 1;
           mc.inst_match_count[j] += 1;
           mc.bm.commit_bindings(binder, b, bi, j);
+          // std::cerr << b << " := base[" << bi << "] ~> inst[" << j << "]            " << base_lit->toString() << " ~> " << inst_lit->toString() << std::endl;
         }
       }
     }
@@ -122,7 +126,10 @@ void SMTSubsumptionImpl3::fillMatches(MatchCache& mc, Kernel::Clause* base)
       } else {
         ASS_NEQ(mc.zero_match_header, std::numeric_limits<uint32_t>::max());
         if (base_lit->header() != mc.zero_match_header) {
-          // TODO: exit early, neither S nor SR is possible in this case.
+          // exit early, neither S nor SR is possible in this case.
+          // std::cerr << "impossible due to differing zero_match_headers" << std::endl;
+          mc.done = true;
+          return;
         }
       }
       mc.zero_match_count += 1;
@@ -139,6 +146,7 @@ void SMTSubsumptionImpl3::fillMatches(MatchCache& mc, Kernel::Clause* base)
 bool SMTSubsumptionImpl3::setupSubsumption(Kernel::Clause* base)
 {
   CALL("SMTSubsumptionImpl3::setupSubsumption");
+  // std::cerr << "S " << base->toString() << std::endl;
 
   if (base->hasAux()) {
     // if we encounter a clause twice then the result must be false.
@@ -171,12 +179,15 @@ bool SMTSubsumptionImpl3::setupSubsumption(Kernel::Clause* base)
   solver.theory().setBindings(&bm);
 
   // std::cerr << "S  " << &mc << " " << instance->number() << " " << base->number() << std::endl;
- fillMatches(mc, base);
+  fillMatches(mc, base);
+  if (mc.done) {
+    return false;
+  }
   // std::cerr << "    vec at " << &mc.inst_match_count << std::endl;
   ASS_EQ(mc.inst_match_count.size(), 2*inst_len+1);
- if (mc.zero_match_count) {
-   return false;
- }
+  if (mc.zero_match_count) {
+    return false;
+  }
 
 
   // Build clauses stating that base_lit must be matched to at least one corresponding instance literal.
@@ -235,6 +246,7 @@ bool SMTSubsumptionImpl3::setupSubsumption(Kernel::Clause* base)
 bool SMTSubsumptionImpl3::setupSubsumptionResolution(Kernel::Clause* base)
 {
   CALL("SMTSubsumptionImpl3::setupSubsumptionResolution");
+  // std::cerr << "SR " << base->toString() << std::endl;
   solver.clear();
   ASS(solver.empty());
   ASS(solver.theory().empty());
@@ -242,25 +254,23 @@ bool SMTSubsumptionImpl3::setupSubsumptionResolution(Kernel::Clause* base)
   MatchCache* mcp = nullptr;
   if (base->hasAux()) {
     mcp = base->getAux<MatchCache>();
-    if (!mcp) {
-      // SR already checked for this clause
-      // (so the answer must be false, or we wouldn't have continued)
-      return false;
-    }
   } else {
     shared_mc.clear();
     fillMatches(shared_mc, base);
     mcp = &shared_mc;
   }
-  base->setAux(nullptr);  // mark clause as already-processed
   ASS(mcp);
   MatchCache& mc = *mcp;
+  if (mc.done) {
+    // SR already checked for this clause, or impossible due to matching
+    // (so the answer must be false, or we wouldn't have continued)
+    return false;
+  }
   solver.theory().setBindings(&mc.bm);
+  mc.done = true;  // mark clause as already-processed
 
   // std::cerr << "SR " << &mc << " " << instance->number() << " " << base->number() << std::endl;
   ASS(!mc.empty());
-
-  CALL("SMTSubsumptionImpl3::setupSubsumptionResolution 1");
 
   uint32_t const base_len = base->length();
   uint32_t const inst_len = instance->length();
@@ -288,7 +298,6 @@ bool SMTSubsumptionImpl3::setupSubsumptionResolution(Kernel::Clause* base)
     mc.bli[i].compl_first = subsat::Var{nextVarIndex};
     uint32_t compl_match_count = 0;
 
-  CALL("SMTSubsumptionImpl3::setupSubsumptionResolution X");
     // we have base literals without any non-complementary matches.
     // all of these must be complementary-matched to the same instance literal to obtain SR.
     // of course other base literals may participate in complementary matches as well.
@@ -315,6 +324,7 @@ bool SMTSubsumptionImpl3::setupSubsumptionResolution(Kernel::Clause* base)
           // inst_compl_matches[j].push_back(b);
           mc.inst_match_count[inst_len+j] += 1;
           compl_match_count += 1;
+          // std::cerr << b << " := base[" << i << "] -> ¬inst[" << j << "]            " << base_lit->toString() << " -> ¬" << inst_lit->toString() << std::endl;
         }
       }
       if (base_lit->commutative()) {
@@ -327,6 +337,7 @@ bool SMTSubsumptionImpl3::setupSubsumptionResolution(Kernel::Clause* base)
           // inst_compl_matches[j].push_back(b);
           mc.inst_match_count[inst_len+j] += 1;
           compl_match_count += 1;
+          // std::cerr << b << " := base[" << i << "] ~> ¬inst[" << j << "]            " << base_lit->toString() << " ~> ¬" << inst_lit->toString() << std::endl;
         }
       }
     }
@@ -341,8 +352,6 @@ bool SMTSubsumptionImpl3::setupSubsumptionResolution(Kernel::Clause* base)
   if (!total_compl_matches) {
     return false;
   }
-
-  CALL("SMTSubsumptionImpl3::setupSubsumptionResolution 2");
 
   // create solver variables in the right order
   ASS_EQ(mc.bli.size(), base_len);
@@ -363,8 +372,6 @@ bool SMTSubsumptionImpl3::setupSubsumptionResolution(Kernel::Clause* base)
     }
   }
 
-  CALL("SMTSubsumptionImpl3::setupSubsumptionResolution 3");
-
   // nextVarIndex here is the total number of match variables
   ASS_EQ(nextVarIndex, std::accumulate(mc.inst_match_count.begin(), mc.inst_match_count.end(), 0));
   // convert counts into (end) indices
@@ -375,8 +382,6 @@ bool SMTSubsumptionImpl3::setupSubsumptionResolution(Kernel::Clause* base)
   m_inst_matches.resize(nextVarIndex);
   // now we can write match variable for inst[j] at m_inst_matches[--mc.inst_match_count[j]].
   // afterwards, the match variables for inst[j] will be in m_inst_matches from indices mc.inst_match_count[j] to mc.inst_match_count[j+1] (excl. end).
-
-  CALL("SMTSubsumptionImpl3::setupSubsumptionResolution 4");
 
   // Ensure at least one complementary match
   // NOTE: this clause is required. Without it, we may get a false subsumption
@@ -416,16 +421,11 @@ bool SMTSubsumptionImpl3::setupSubsumptionResolution(Kernel::Clause* base)
     solver.add_clause_unsafe(handle);
   }
 
-
-  // TODO
-
-  CALL("SMTSubsumptionImpl3::setupSubsumptionResolution 5");
-
   // At most one instance literal is complementary-matched.
   // But note that this instance literal may be complementary-matched by multiple base literals!
   auto amo_inst_compl_matched = solver.alloc_constraint(inst_len);
 
-  for (unsigned j = 0; j < instance->length(); ++j) {
+  for (unsigned j = 0; j < inst_len; ++j) {
     uint32_t const compl_match_begin = mc.inst_match_count[inst_len+j];
     uint32_t const compl_match_end = mc.inst_match_count[inst_len+j+1];
     ASS_LE(compl_match_begin, compl_match_end);
@@ -499,4 +499,102 @@ bool SMTSubsumptionImpl3::setupSubsumptionResolution(Kernel::Clause* base)
 bool SMTSubsumptionImpl3::solve()
 {
   return solver.solve() == subsat::Result::Sat;
+}
+
+
+
+Kernel::Clause* SMTSubsumptionImpl3::getSubsumptionResolutionConclusion(Kernel::Clause* base)
+{
+  int const conclusion_len = instance->length() - 1;
+  Clause* conclusion = new (conclusion_len) Clause(conclusion_len,
+      SimplifyingInference2(InferenceRule::SUBSUMPTION_RESOLUTION, instance, base));
+
+  MatchCache* mcp = nullptr;
+  if (base->hasAux()) {
+    mcp = base->getAux<MatchCache>();
+  } else {
+    mcp = &shared_mc;
+  }
+  ASS(mcp);
+  MatchCache& mc = *mcp;
+  #ifndef NDEBUG
+  ASS_EQ(mc.base, base);
+  ASS_EQ(mc.inst, instance);
+  #endif
+
+  // uint32_t const base_len = base->length();
+  uint32_t const inst_len = instance->length();
+
+  std::uint32_t resolved_idx = UINT32_MAX;
+  for (unsigned j = 0; j < inst_len; ++j) {
+    uint32_t const compl_match_begin = mc.inst_match_count[inst_len+j];
+    uint32_t const compl_match_end = mc.inst_match_count[inst_len+j+1];
+    ASS_LE(compl_match_begin, compl_match_end);
+    for (uint32_t k = compl_match_begin; k != compl_match_end; ++k) {
+      subsat::Var const b_compl{m_inst_matches[k]};
+      if (solver.get_value(b_compl) == subsat::Value::True) {
+        resolved_idx = j;
+        break;
+      }
+    }
+  }
+  ASS_NEQ(resolved_idx, UINT32_MAX);
+  Literal* const resolved_lit = instance->literals()[resolved_idx];
+
+  unsigned next = 0;
+  for (unsigned i = 0; i < inst_len; ++i) {
+    Literal* const lit = instance->literals()[i];
+    if (lit != resolved_lit) {
+      (*conclusion)[next++] = lit;
+    }
+  }
+  ASS_EQ(next, conclusion_len);
+  return conclusion;
+}
+
+
+
+bool SMTSubsumptionImpl3::checkSubsumption(Kernel::Clause* base, Kernel::Clause* instance)
+{
+  CALL("SMTSubsumptionImpl2::checkSubsumption");
+  ASS_EQ(this->instance, instance);
+  return setupSubsumption(base) && solve();
+}
+
+
+
+bool SMTSubsumptionImpl3::checkSubsumptionResolution(Kernel::Clause* base, Kernel::Clause* instance, Kernel::Clause* conclusion)
+{
+  ASS_EQ(this->instance, instance);
+  bool const res0 = setupSubsumptionResolution(base);
+  if (conclusion == nullptr) {
+    RSTAT_CTR_INC("failed subsumption resolutions");
+    if (res0 && solve()) {
+      std::cerr << "\% ***WRONG RESULT OF SUBSUMPTION RESOLUTION***" << std::endl;
+      std::cerr << "\%    base       = " << base->toString() << std::endl;
+      std::cerr << "\%    instance   = " << instance->toString() << std::endl;
+      std::cerr << "\% Should NOT be possible but SMT3-SR found the following result:" << std::endl;
+      std::cerr << "\%    conclusion = " << getSubsumptionResolutionConclusion(base)->toString() << std::endl;
+      return false;
+    } else {
+      return true;
+    }
+  }
+  int found = 0;
+  while (res0 && solve()) {
+    // Found another model, build the corresponding result
+    Kernel::Clause* cl = getSubsumptionResolutionConclusion(base);
+    if (checkClauseEquality(cl, conclusion)) {
+      found += 1;
+    }
+  }
+  RSTAT_MCTR_INC("subsumption resolution #possible consequences", found);
+  if (found == 0) {
+    std::cerr << "\% ***WRONG RESULT OF SUBSUMPTION RESOLUTION***" << std::endl;
+    std::cerr << "\%    base     = " << base->toString() << std::endl;
+    std::cerr << "\%    instance = " << instance->toString() << std::endl;
+    std::cerr << "\% No result from SMT3-SR, but should have found this conclusion:" << std::endl;
+    std::cerr << "\%    expected = " << conclusion->toString() << std::endl;
+  }
+  return (found > 0);
 }
