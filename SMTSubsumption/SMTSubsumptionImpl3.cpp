@@ -163,10 +163,6 @@ bool SMTSubsumptionImpl3::setupSubsumption(Kernel::Clause* base)
     return false;
   }
 
-  solver.clear();
-  ASS(solver.empty());
-  ASS(solver.theory().empty());
-
   if (next_mc == mcs.size()) {
     mcs.push_back(new MatchCache());
   }
@@ -176,7 +172,6 @@ bool SMTSubsumptionImpl3::setupSubsumption(Kernel::Clause* base)
   ASS(mc.empty());
   base->setAux(&mc);
   auto& bm = mc.bm;
-  solver.theory().setBindings(&bm);
 
   // std::cerr << "S  " << &mc << " " << instance->number() << " " << base->number() << std::endl;
   fillMatches(mc, base);
@@ -189,6 +184,10 @@ bool SMTSubsumptionImpl3::setupSubsumption(Kernel::Clause* base)
     return false;
   }
 
+  solver.clear();
+  ASS(solver.empty());
+  ASS(solver.theory().empty());
+  solver.theory().setBindings(&bm);
 
   // Build clauses stating that base_lit must be matched to at least one corresponding instance literal.
   ASS_EQ(mc.bli.size(), base_len);
@@ -233,10 +232,6 @@ bool SMTSubsumptionImpl3::setupSubsumptionResolution(Kernel::Clause* base)
 {
   CALL("SMTSubsumptionImpl3::setupSubsumptionResolution");
   // std::cerr << "SR " << base->toString() << std::endl;
-  solver.clear();
-  ASS(solver.empty());
-  ASS(solver.theory().empty());
-
   MatchCache* mcp = nullptr;
   if (base->hasAux()) {
     mcp = base->getAux<MatchCache>();
@@ -252,7 +247,6 @@ bool SMTSubsumptionImpl3::setupSubsumptionResolution(Kernel::Clause* base)
     // (so the answer must be false, or we wouldn't have continued)
     return false;
   }
-  solver.theory().setBindings(&mc.bm);
   mc.done = true;  // mark clause as already-processed
 
   // std::cerr << "SR " << &mc << " " << instance->number() << " " << base->number() << std::endl;
@@ -338,6 +332,11 @@ bool SMTSubsumptionImpl3::setupSubsumptionResolution(Kernel::Clause* base)
   if (!total_compl_matches) {
     return false;
   }
+
+  solver.clear();
+  ASS(solver.empty());
+  ASS(solver.theory().empty());
+  solver.theory().setBindings(&mc.bm);
 
   // create solver variables in the right order
   ASS_EQ(mc.bli.size(), base_len);
