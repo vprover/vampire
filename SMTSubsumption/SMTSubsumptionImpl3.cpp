@@ -373,7 +373,7 @@ bool SMTSubsumptionImpl3::setupSubsumptionResolution(Kernel::Clause* base)
   }
 
   // nextVarIndex here is the total number of match variables
-  ASS_EQ(nextVarIndex, std::accumulate(mc.inst_match_count.begin(), mc.inst_match_count.end(), 0));
+  ASS_EQ(nextVarIndex, std::accumulate(mc.inst_match_count.begin(), mc.inst_match_count.end(), (uint32_t)0));
   // convert counts into (end) indices
   for (unsigned j = 1; j < mc.inst_match_count.size(); ++j) {
     mc.inst_match_count[j] += mc.inst_match_count[j-1];
