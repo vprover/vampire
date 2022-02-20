@@ -49,11 +49,6 @@ TEST_FUN(int_bounds)
   ASS(testOptionBad("extensionality_max_length","1"));
 }
 
-TEST_FUN(choice_con)
-{
-  ASS(testOptionBad("equality_resolution_with_deletion","on"));
-}
-
 TEST_FUN(default_dependence)
 {
   ASS(testOptionBad("saturation_algorithm","inst_gen"));
