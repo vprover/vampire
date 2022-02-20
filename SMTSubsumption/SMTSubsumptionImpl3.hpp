@@ -74,7 +74,10 @@ class SMTSubsumptionImpl3
       Kernel::Clause* inst = nullptr;
       #endif
 
-      MatchCache() = default;
+      MatchCache() {
+        bli.reserve(8);
+        inst_match_count.reserve(64);
+      }
 
       void clear() {
         bm.clear();
@@ -94,6 +97,7 @@ class SMTSubsumptionImpl3
       }
     };
 
+    // TODO: move MatchCache to cpp file; use std::unique_ptr in mcs and shared_mc.
     vvector<MatchCache*> mcs;
     MatchCache shared_mc;  // for when we don't have a cached one
     unsigned next_mc;

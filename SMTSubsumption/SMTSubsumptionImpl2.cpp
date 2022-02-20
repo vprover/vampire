@@ -317,7 +317,7 @@ bool SMTSubsumptionImpl2::setupSubsumptionResolution(Kernel::Clause* base, Kerne
   }
   else {
     solver.constraint_start();
-    for (auto const pair : complementary_matches) {
+    for (auto const& pair : complementary_matches) {
       subsat::Var const b = pair.first;
       solver.constraint_push_literal(b);
     }
@@ -402,7 +402,7 @@ Kernel::Clause* SMTSubsumptionImpl2::getSubsumptionResolutionConclusion()
       SimplifyingInference2(InferenceRule::SUBSUMPTION_RESOLUTION, m_instance, m_base));
 
   std::uint32_t resolved_idx = UINT32_MAX;
-  for (auto const pair : complementary_matches) {
+  for (auto const& pair : complementary_matches) {
     subsat::Var const b = pair.first;
     if (solver.get_value(b) == subsat::Value::True) {
       resolved_idx = pair.second;

@@ -191,20 +191,6 @@ bool SMTSubsumptionImpl3::setupSubsumption(Kernel::Clause* base)
 
 
   // Build clauses stating that base_lit must be matched to at least one corresponding instance literal.
-  /*
-  ASS_EQ(base_clauses.size(), base_len);
-  for (unsigned bi = 0; bi < base_len; ++bi) {
-    uint32_t match_count = base_clauses[bi];
-    solver.constraint_start();
-    while (match_count--) {
-      subsat::Var b = solver.new_variable(bi);
-      solver.constraint_push_literal(b);
-    }
-    auto handle = solver.constraint_end();
-    solver.add_clause_unsafe(handle);
-  }
-  */
-
   ASS_EQ(mc.bli.size(), base_len);
   for (unsigned bi = 0; bi < base_len; ++bi) {
     uint32_t n = mc.bli[bi].match_count;
@@ -212,7 +198,7 @@ bool SMTSubsumptionImpl3::setupSubsumption(Kernel::Clause* base)
     while (n--) {
       subsat::Var b = solver.new_variable(bi);
       ASS_LE(mc.bli[bi].first.index(), b.index());
-      ASS_L(b.index(), mc.bli[bi].first.index() + mc.bli[bi].match_count);
+      ASS_L(b.index(), mc.bli[bi].var_end().index());
       solver.constraint_push_literal(b);
     }
     auto handle = solver.constraint_end();
@@ -361,6 +347,7 @@ bool SMTSubsumptionImpl3::setupSubsumptionResolution(Kernel::Clause* base)
       subsat::Var b = solver.new_variable(i);
       ASS_LE(mc.bli[i].first.index(), b.index());
       ASS_L(b.index(), mc.bli[i].var_end().index());
+      (void)b;  // avoid warning in release mode
     }
   }
   for (unsigned i = 0; i < base_len; ++i) {
@@ -369,6 +356,7 @@ bool SMTSubsumptionImpl3::setupSubsumptionResolution(Kernel::Clause* base)
       subsat::Var b = solver.new_variable(i);
       ASS_LE(mc.bli[i].compl_first.index(), b.index());
       ASS_L(b.index(), mc.bli[i].compl_var_end().index());
+      (void)b;  // avoid warning in release mode
     }
   }
 

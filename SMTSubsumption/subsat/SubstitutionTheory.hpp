@@ -199,7 +199,7 @@ public:
   {
     uint32_t index = std::numeric_limits<uint32_t>::max();
     uint32_t size;
-    uint32_t extra_i;
+    uint32_t extra_i;  // NOTE: we don't actually use the extra_i field. But including it seems to increase performance, at least on ARM64 (Apple M1). Because of alignment 16 vs 12?
     uint32_t extra_j;
 
     constexpr bool is_valid() const noexcept
