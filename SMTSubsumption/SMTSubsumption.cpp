@@ -735,7 +735,7 @@ void ProofOfConcept::benchmark_run(SubsumptionBenchmark b)
     // "--help",
   };
 
-  bool also_setup = true;
+  bool also_setup = false;
 
   if (also_setup)
     benchmark::RegisterBenchmark("smt2 S    (setup)", bench_smt2_run_setup, fw_rounds_only_subsumption);
