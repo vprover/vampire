@@ -222,7 +222,7 @@ bool SMTSubsumptionImpl3::setupSubsumption(Kernel::Clause* base)
   // Here we store the AtMostOne constraints saying that each instance literal may be matched at most once.
   // Each instance literal can be matched by at most 2 boolean vars per base literal (two orientations of equalities).
   // NOTE: instance constraints cannot be packed densely because we only know their shape at the end.
-  uint32_t const instance_constraint_maxsize = 2 * base_len;
+  // uint32_t const instance_constraint_maxsize = 2 * base_len;
   instance_constraints.clear();
   ASS(instance_constraints.empty());
   for (size_t j = 0; j < inst_len; ++j) {

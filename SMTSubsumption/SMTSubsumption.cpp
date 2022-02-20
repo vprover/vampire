@@ -171,7 +171,7 @@ class OriginalSubsumptionImpl
       Clause* cl = main_premise;
       LiteralMiniIndex miniIndex(cl);  // TODO: to benchmark forward subsumption, we might want to move this to the benchmark setup instead? as the work may be shared between differed side premises.
 
-      unsigned mlen = mcl->length();
+      // unsigned mlen = mcl->length();
 
       if (cms) { delete cms; cms = nullptr; }
       ASS(cms == nullptr);
@@ -570,7 +570,7 @@ void bench_orig_fwrun_setup(benchmark::State& state, vvector<FwSubsumptionRound>
       // Test subsumptions
       for (auto const& s : round.subsumptions()) {
         Clause* mcl = s.side_premise;
-        unsigned mlen = mcl->length();
+        // unsigned mlen = mcl->length();
 
         ClauseMatches* cms = new ClauseMatches(mcl);  // NOTE: why "new" here? because the original code does it like this as well.
         cmStore.push(cms);
@@ -588,6 +588,7 @@ void bench_orig_fwrun_setup(benchmark::State& state, vvector<FwSubsumptionRound>
 
       // TODO: SR... what exactly do we want to measure here?
       for (auto const& sr : round.subsumptionResolutions()) {
+        (void)sr;
         state.SkipWithError("Subsumption Resolution not yet implemented");
       }
 
@@ -628,7 +629,7 @@ void bench_orig_fwrun(benchmark::State& state, vvector<FwSubsumptionRound> const
       // Test subsumptions
       for (auto const& s : round.subsumptions()) {
         Clause* mcl = s.side_premise;
-        unsigned mlen = mcl->length();
+        // unsigned mlen = mcl->length();
 
         ClauseMatches* cms = new ClauseMatches(mcl);  // NOTE: why "new" here? because the original code does it like this as well.
         cmStore.push(cms);
