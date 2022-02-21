@@ -660,6 +660,7 @@ SMTSubsumption::SubsumptionBenchmark getSubsumptionBenchmark(UnitList const* uni
   auto clauses = getNumberedClauses(units);
   std::ifstream slog{slog_path.c_str()};
   bool round_is_empty = true;
+  Kernel::Clause* main_premise = nullptr;
   while (true) {
     // parse slog line:
     // - next round:
@@ -681,15 +682,17 @@ SMTSubsumption::SubsumptionBenchmark getSubsumptionBenchmark(UnitList const* uni
         b.rounds.back().sr_end = b.subsumptionResolutions.size();
         round_is_empty = true;
       }
+      unsigned int main_premise_number;
+      if (!(slog >> main_premise_number)) {
+        USER_ERROR("expected <main_premise_number>");
+      }
+      main_premise = clauses.at(main_premise_number);
+      number += 1;
     }
     else if (buf == "S") {
       unsigned int side_premise_number;
       if (!(slog >> side_premise_number)) {
         USER_ERROR("expected <side_premise_number>");
-      }
-      unsigned int main_premise_number;
-      if (!(slog >> main_premise_number)) {
-        USER_ERROR("expected <main_premise_number>");
       }
       int result;
       if (!(slog >> result)) {
@@ -698,7 +701,7 @@ SMTSubsumption::SubsumptionBenchmark getSubsumptionBenchmark(UnitList const* uni
       }
       b.subsumptions.push_back({
           .side_premise = clauses.at(side_premise_number),
-          .main_premise = clauses.at(main_premise_number),
+          .main_premise = main_premise,
           .number = ++number,
           .result = result,
       });
@@ -708,10 +711,6 @@ SMTSubsumption::SubsumptionBenchmark getSubsumptionBenchmark(UnitList const* uni
       unsigned int side_premise_number;
       if (!(slog >> side_premise_number)) {
         USER_ERROR("expected <side_premise_number>");
-      }
-      unsigned int main_premise_number;
-      if (!(slog >> main_premise_number)) {
-        USER_ERROR("expected <main_premise_number>");
       }
       if (!(slog >> buf)) {
         USER_ERROR("expected <res_lit_idx>");
@@ -729,7 +728,7 @@ SMTSubsumption::SubsumptionBenchmark getSubsumptionBenchmark(UnitList const* uni
       }
       b.subsumptionResolutions.push_back({
           .side_premise = clauses.at(side_premise_number),
-          .main_premise = clauses.at(main_premise_number),
+          .main_premise = main_premise,
           .res_lit = res_lit_idx,
           .number = ++number,
           .result = result,
