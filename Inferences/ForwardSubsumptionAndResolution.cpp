@@ -402,8 +402,11 @@ void ForwardSubsumptionAndResolution::printStats(std::ostream& out)
 }
 
 
-bool checkForSubsumptionResolution(Clause* cl, ClauseMatches* cms, Literal* resLit, int resLitIdx, bool should_log = true)
+bool checkForSubsumptionResolution(Clause* cl, ClauseMatches* cms, Literal* resLit, int resLitIdx)
 {
+  bool should_log = true;
+  ASS_GE(resLitIdx, 0);
+
   fsstats.m_logged_count_sr += 1;
   ASS_L(resLitIdx, (int)cl->length());
   if (resLitIdx >= 0) {
@@ -723,8 +726,9 @@ bool ForwardSubsumptionAndResolution::perform(Clause* cl, Clause*& replacement, 
           Literal* resLit = (*cl)[li];
           ASS(!resolutionClause);
           // only log the first occurrence with resLit *, because for these we always check all.
-          // TODO: the logged result only fits the first literal in this case!
-          if (checkForSubsumptionResolution(cl, cms, resLit, -1, li == 0) && ColorHelper::compatible(cl->color(), mcl->color())) {
+          // (actually not completely true if we encounter success... then we skip the remaining ones. and we can't replicate this behaviour during replay because of clause reordering)
+          // if (checkForSubsumptionResolution(cl, cms, resLit, -1, li == 0) && ColorHelper::compatible(cl->color(), mcl->color())) {
+          if (checkForSubsumptionResolution(cl, cms, resLit, li) && ColorHelper::compatible(cl->color(), mcl->color())) {
             resolutionClause = generateSubsumptionResolutionClause(cl, resLit, mcl);
             ASS(resolutionClause);
             env.statistics->forwardSubsumptionResolution++;
