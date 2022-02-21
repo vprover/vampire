@@ -33,6 +33,7 @@ SMTSubsumptionImpl3::Token SMTSubsumptionImpl3::setupMainPremise(Kernel::Clause*
   // std::cerr << "\n\n\nINSTANCE " << new_instance->number() << " " << new_instance->length() << std::endl;
   instance = new_instance;
   next_mc = 0;
+  last_mc = nullptr;
   Kernel::Clause::requestAux();
   // TODO:
   // Copy the literals into a vvector, std::sort them (like LiteralMiniIndex; by header).
@@ -56,6 +57,7 @@ SMTSubsumptionImpl3_Token::~SMTSubsumptionImpl3_Token()
   if (impl)
     impl->endMainPremise();
 }
+
 
 
 void SMTSubsumptionImpl3::fillMatches(MatchCache& mc, Kernel::Clause* base)
@@ -139,6 +141,8 @@ void SMTSubsumptionImpl3::fillMatches(MatchCache& mc, Kernel::Clause* base)
   ASS_EQ(mc.bli.size(), base_len);
   ASS(!mc.empty());
 }
+
+
 
 /// Set up the subsumption problem. Must have called setupMainPremise first.
 /// Returns false if no solution is possible.
@@ -232,22 +236,28 @@ bool SMTSubsumptionImpl3::setupSubsumptionResolution(Kernel::Clause* base)
 {
   CALL("SMTSubsumptionImpl3::setupSubsumptionResolution");
   // std::cerr << "SR " << base->toString() << std::endl;
-  MatchCache* mcp = nullptr;
   if (base->hasAux()) {
-    mcp = base->getAux<MatchCache>();
+    last_mc = base->getAux<MatchCache>();
+    if (!last_mc) {
+      // SR already checked for this clause
+      // (so the answer must be false, or we wouldn't have continued)
+      return false;
+    }
   } else {
     shared_mc.clear();
     fillMatches(shared_mc, base);
-    mcp = &shared_mc;
+    last_mc = &shared_mc;
   }
-  ASS(mcp);
-  MatchCache& mc = *mcp;
+  ASS(last_mc);
+  MatchCache& mc = *last_mc;
   if (mc.done) {
     // SR already checked for this clause, or impossible due to matching
     // (so the answer must be false, or we wouldn't have continued)
     return false;
   }
-  mc.done = true;  // mark clause as already-processed
+  // mark clause as already-processed
+  mc.done = true;
+  base->setAux(nullptr);
 
   // std::cerr << "SR " << &mc << " " << instance->number() << " " << base->number() << std::endl;
   ASS(!mc.empty());
@@ -497,14 +507,8 @@ Kernel::Clause* SMTSubsumptionImpl3::getSubsumptionResolutionConclusion(Kernel::
   Clause* conclusion = new (conclusion_len) Clause(conclusion_len,
       SimplifyingInference2(InferenceRule::SUBSUMPTION_RESOLUTION, instance, base));
 
-  MatchCache* mcp = nullptr;
-  if (base->hasAux()) {
-    mcp = base->getAux<MatchCache>();
-  } else {
-    mcp = &shared_mc;
-  }
-  ASS(mcp);
-  MatchCache& mc = *mcp;
+  ASS(last_mc);
+  MatchCache& mc = *last_mc;
   #ifndef NDEBUG
   ASS_EQ(mc.base, base);
   ASS_EQ(mc.inst, instance);

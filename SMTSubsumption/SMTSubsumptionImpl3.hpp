@@ -101,8 +101,7 @@ class SMTSubsumptionImpl3
     vvector<MatchCache*> mcs;
     MatchCache shared_mc;  // for when we don't have a cached one
     unsigned next_mc;
-
-
+    MatchCache* last_mc;
 
     Solver solver;
 
