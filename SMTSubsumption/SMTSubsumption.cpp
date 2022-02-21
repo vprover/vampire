@@ -121,7 +121,7 @@ public:
 
 
 
-bool checkForSubsumptionResolutionSetup(Clause* cl, ClauseMatches* cms, Literal* resLit)
+bool checkForSubsumptionResolutionSetup(Kernel::MLMatcher& matcher, Clause* cl, ClauseMatches* cms, Literal* resLit)
 {
   Clause* mcl = cms->_cl;
   unsigned mclen = mcl->length();
@@ -148,11 +148,12 @@ bool checkForSubsumptionResolutionSetup(Clause* cl, ClauseMatches* cms, Literal*
     }
   }
 
+  matcher.init(mcl, cl, cms->_matches, resLit);
   // just return true here; we're only measuring the setup.
   return true;
 }
 
-bool checkForSubsumptionResolution(Clause* cl, ClauseMatches* cms, Literal* resLit)
+bool checkForSubsumptionResolution(Kernel::MLMatcher& matcher, Clause* cl, ClauseMatches* cms, Literal* resLit)
 {
   Clause* mcl = cms->_cl;
   unsigned mclen = mcl->length();
@@ -179,7 +180,8 @@ bool checkForSubsumptionResolution(Clause* cl, ClauseMatches* cms, Literal* resL
     }
   }
 
-  return MLMatcher::canBeMatched(mcl, cl, cms->_matches, resLit);
+  matcher.init(mcl, cl, cms->_matches, resLit);
+  return matcher.nextMatch();
 }
 
 
@@ -615,7 +617,8 @@ void bench_orig_fwrun_setup(benchmark::State& state, vvector<FwSubsumptionRound>
           continue;
         }
 
-        // nothing to do here, since we only want to measure the setup.
+        matcher.init(mcl, cl, cms->_matches, true);
+        // nothing else to do here, since we only want to measure the setup.
       }
 
       // Test SR setup
@@ -637,7 +640,7 @@ void bench_orig_fwrun_setup(benchmark::State& state, vvector<FwSubsumptionRound>
           return;
         } else {
           Literal* resLit = (*cl)[sr.res_lit];
-          bool result = checkForSubsumptionResolutionSetup(cl, cms, resLit);
+          bool result = checkForSubsumptionResolutionSetup(matcher, cl, cms, resLit);
           // only false answers (i.e., early exits) from the setup function are correct
           if (!result && sr.result >= 0 && result != sr.result) {
             state.SkipWithError("Wrong SR result (2)!");
@@ -747,7 +750,7 @@ void bench_orig_fwrun(benchmark::State& state, vvector<FwSubsumptionRound> const
           // }
         } else {
           Literal* resLit = (*cl)[sr.res_lit];
-          bool result = checkForSubsumptionResolution(cl, cms, resLit);
+          bool result = checkForSubsumptionResolution(matcher, cl, cms, resLit);
           if (sr.result >= 0 && result != sr.result) {
             // std::cerr << "expect " << sr.result << "  got " << result << std::endl;
             // std::cerr << "     slog line: " << sr.number << "\n";
