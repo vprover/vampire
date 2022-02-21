@@ -76,7 +76,11 @@ void Shuffling::shuffle(Clause* clause)
 {
   CALL("Shuffling::shuffle (Clause*)");
 
-  shuffleArray(*clause,clause->length());
+  unsigned s = clause->numSelected();
+
+  // don't shuffle between selected and non-selected literals
+  shuffleArray(clause->literals(),s);
+  shuffleArray(clause->literals()+s,clause->length()-s);
 
   // literals must be shared in typical clauses (I think), so let's not even try shuffling them
 
