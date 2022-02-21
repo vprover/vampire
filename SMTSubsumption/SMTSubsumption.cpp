@@ -121,6 +121,37 @@ public:
 
 
 
+bool checkForSubsumptionResolutionSetup(Clause* cl, ClauseMatches* cms, Literal* resLit)
+{
+  Clause* mcl = cms->_cl;
+  unsigned mclen = mcl->length();
+
+  ClauseMatches::ZeroMatchLiteralIterator zmli(cms);
+  if (zmli.hasNext()) {
+    while (zmli.hasNext()) {
+      Literal* bl = zmli.next();
+      if (!MatchingUtils::match(bl, resLit, true)) {
+        return false;
+      }
+    }
+  }
+  else {
+    bool anyResolvable = false;
+    for (unsigned i = 0; i < mclen; i++) {
+      if (MatchingUtils::match((*mcl)[i], resLit, true)) {
+        anyResolvable = true;
+        break;
+      }
+    }
+    if (!anyResolvable) {
+      return false;
+    }
+  }
+
+  // just return true here; we're only measuring the setup.
+  return true;
+}
+
 bool checkForSubsumptionResolution(Clause* cl, ClauseMatches* cms, Literal* resLit)
 {
   Clause* mcl = cms->_cl;
@@ -567,7 +598,7 @@ void bench_orig_fwrun_setup(benchmark::State& state, vvector<FwSubsumptionRound>
 
       LiteralMiniIndex miniIndex(cl);
 
-      // Test subsumptions
+      // Test subsumption setup
       for (auto const& s : round.subsumptions()) {
         Clause* mcl = s.side_premise;
         // unsigned mlen = mcl->length();
@@ -575,6 +606,7 @@ void bench_orig_fwrun_setup(benchmark::State& state, vvector<FwSubsumptionRound>
         ClauseMatches* cms = new ClauseMatches(mcl);  // NOTE: why "new" here? because the original code does it like this as well.
         cmStore.push(cms);
         cms->fillInMatches(&miniIndex);
+        mcl->setAux(cms);
 
         if (cms->anyNonMatched()) {
           // NOT SUBSUMED
@@ -586,10 +618,34 @@ void bench_orig_fwrun_setup(benchmark::State& state, vvector<FwSubsumptionRound>
         // nothing to do here, since we only want to measure the setup.
       }
 
-      // TODO: SR... what exactly do we want to measure here?
+      // Test SR setup
       for (auto const& sr : round.subsumptionResolutions()) {
-        (void)sr;
-        state.SkipWithError("Subsumption Resolution not yet implemented");
+        Clause* mcl = sr.side_premise;
+        ClauseMatches* cms = nullptr;
+        if (mcl->hasAux()) {
+          cms = mcl->getAux<ClauseMatches>();
+        }
+        if (!cms) {
+          cms = new ClauseMatches(mcl);
+          mcl->setAux(cms);
+          cmStore.push(cms);
+          cms->fillInMatches(&miniIndex);
+        }
+        if (sr.res_lit == UINT_MAX) {
+          state.SkipWithError("unexpected reslit *");
+          Kernel::Clause::releaseAux();
+          return;
+        } else {
+          Literal* resLit = (*cl)[sr.res_lit];
+          bool result = checkForSubsumptionResolutionSetup(cl, cms, resLit);
+          // only false answers (i.e., early exits) from the setup function are correct
+          if (!result && sr.result >= 0 && result != sr.result) {
+            state.SkipWithError("Wrong SR result (2)!");
+            Kernel::Clause::releaseAux();
+            return;
+          }
+          if (result) { count++; }
+        }
       }
 
       // Cleanup
@@ -666,26 +722,29 @@ void bench_orig_fwrun(benchmark::State& state, vvector<FwSubsumptionRound> const
           cms->fillInMatches(&miniIndex);
         }
         if (sr.res_lit == UINT_MAX) {
-          ASS(mcl->hasAux());
-          for (unsigned li = 0; li < cl->length(); li++) {
-            Literal* resLit = (*cl)[li];
-            bool result = checkForSubsumptionResolution(cl, cms, resLit);
-            // note: in this case the result is only logged for the first res_lit.
-            //       however, we can't check it.
-            //       because the clause may have been reordered due to literal selection,
-            //       and we do not know which literal was the first one at time of logging the inference.
-            // if (li == 0 && sr.result >= 0 && result != sr.result) {
-            //   std::cerr << "expect " << sr.result << "  got " << result << std::endl;
-            //   std::cerr << "     slog line: " << sr.number << "\n";
-            //   std::cerr << "     mcl: " << mcl->toString() << "\n";
-            //   std::cerr << "      cl: " <<  cl->toString() << "\n";
-            //   std::cerr << "      resLit: " <<  resLit->toString() << "     index " << sr.res_lit << "\n";
-            //   state.SkipWithError("Wrong SR result (1)!");
-            //   Kernel::Clause::releaseAux();
-            //   return;
-            // }
-            if (result) { count++; }
-          }
+          state.SkipWithError("unexpected reslit *");
+          Kernel::Clause::releaseAux();
+          return;
+          // ASS(mcl->hasAux());
+          // for (unsigned li = 0; li < cl->length(); li++) {
+          //   Literal* resLit = (*cl)[li];
+          //   bool result = checkForSubsumptionResolution(cl, cms, resLit);
+          //   // note: in this case the result is only logged for the first res_lit.
+          //   //       however, we can't check it.
+          //   //       because the clause may have been reordered due to literal selection,
+          //   //       and we do not know which literal was the first one at time of logging the inference.
+          //   // if (li == 0 && sr.result >= 0 && result != sr.result) {
+          //   //   std::cerr << "expect " << sr.result << "  got " << result << std::endl;
+          //   //   std::cerr << "     slog line: " << sr.number << "\n";
+          //   //   std::cerr << "     mcl: " << mcl->toString() << "\n";
+          //   //   std::cerr << "      cl: " <<  cl->toString() << "\n";
+          //   //   std::cerr << "      resLit: " <<  resLit->toString() << "     index " << sr.res_lit << "\n";
+          //   //   state.SkipWithError("Wrong SR result (1)!");
+          //   //   Kernel::Clause::releaseAux();
+          //   //   return;
+          //   // }
+          //   if (result) { count++; }
+          // }
         } else {
           Literal* resLit = (*cl)[sr.res_lit];
           bool result = checkForSubsumptionResolution(cl, cms, resLit);
@@ -748,7 +807,7 @@ void ProofOfConcept::benchmark_run(SubsumptionBenchmark b)
     // "--help",
   };
 
-  bool also_setup = false;
+  bool also_setup = true;
 
   if (also_setup)
     benchmark::RegisterBenchmark("smt2 S    (setup)", bench_smt2_run_setup, fw_rounds_only_subsumption);
