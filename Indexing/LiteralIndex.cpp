@@ -44,29 +44,34 @@ SLQueryResultIterator LiteralIndex::getAll()
 SLQueryResultIterator LiteralIndex::getUnifications(Literal* lit,
 	  bool complementary, bool retrieveSubstitutions)
 {
+  if (lit->isAnswerLiteral()) return SLQueryResultIterator::getEmpty();
   return _is->getUnifications(lit, complementary, retrieveSubstitutions);
 }
 
 SLQueryResultIterator LiteralIndex::getUnificationsWithConstraints(Literal* lit,
           bool complementary, bool retrieveSubstitutions)
 {
+  if (lit->isAnswerLiteral()) return SLQueryResultIterator::getEmpty();
   return _is->getUnificationsWithConstraints(lit, complementary, retrieveSubstitutions);
 }
 
 SLQueryResultIterator LiteralIndex::getGeneralizations(Literal* lit,
 	  bool complementary, bool retrieveSubstitutions)
 {
+  if (lit->isAnswerLiteral()) return SLQueryResultIterator::getEmpty();
   return _is->getGeneralizations(lit, complementary, retrieveSubstitutions);
 }
 
 SLQueryResultIterator LiteralIndex::getInstances(Literal* lit,
 	  bool complementary, bool retrieveSubstitutions)
 {
+  if (lit->isAnswerLiteral()) return SLQueryResultIterator::getEmpty();
   return _is->getInstances(lit, complementary, retrieveSubstitutions);
 }
 
 size_t LiteralIndex::getUnificationCount(Literal* lit, bool complementary)
 {
+  if (lit->isAnswerLiteral()) return 0;
   return _is->getUnificationCount(lit, complementary);
 }
 
@@ -74,6 +79,7 @@ void LiteralIndex::handleLiteral(Literal* lit, Clause* cl, bool add)
 {
   CALL("LiteralIndex::handleLiteral");
 
+  if (lit->isAnswerLiteral()) return;
   if(add) {
     _is->insert(lit, cl);
   } else {

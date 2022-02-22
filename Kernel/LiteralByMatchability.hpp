@@ -39,10 +39,11 @@ class LiteralByMatchability
   private:
     Literal* m_lit;
     unsigned m_val;
+    bool m_ansLit;
 
   public:
     LiteralByMatchability(Literal* lit)
-      : m_lit(lit), m_val(computeRating(lit))
+      : m_lit(lit), m_val(computeRating(lit)), m_ansLit(lit->isAnswerLiteral())
     { }
 
     static unsigned computeRating(Literal* lit)
@@ -54,7 +55,10 @@ class LiteralByMatchability
 
     bool operator<(LiteralByMatchability const& other) const
     {
-      return m_val < other.m_val || (m_val == other.m_val && m_lit->getId() < other.m_lit->getId());
+      // TODO new 2 lines:
+      if (m_ansLit) return true;
+      else if (other.m_ansLit) return false;
+      else return m_val < other.m_val || (m_val == other.m_val && m_lit->getId() < other.m_lit->getId());
     }
     bool operator>(LiteralByMatchability const& other) const { return other.operator<(*this); }
     bool operator<=(LiteralByMatchability const& other) const { return !operator>(other); }

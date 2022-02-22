@@ -646,7 +646,7 @@ Literal* RobSubstitution::apply(Literal* lit, int index) const
   CALL("RobSubstitution::apply(Literal*...)");
   static DArray<TermList> ts(32);
 
-  if (lit->ground()) {
+  if (lit->shared() && lit->ground()) {
     return lit;
   }
 

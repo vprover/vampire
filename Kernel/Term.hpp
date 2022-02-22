@@ -457,7 +457,7 @@ public:
   } // commutative
 
   /** Return the weight. Applicable only to shared terms */
-  unsigned weight() const
+  virtual unsigned weight() const
   {
     ASS(shared());
     return _weight;
@@ -963,6 +963,12 @@ public:
     ASS(shared());
     ASS(lit->shared());
     return headersMatch(this, lit, complementary);
+  }
+
+  bool isAnswerLiteral() const;
+  virtual unsigned weight() const {
+    if (isAnswerLiteral()) return 0;
+    return Term::weight();
   }
 
   vstring toString() const;

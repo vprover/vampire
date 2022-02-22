@@ -98,11 +98,16 @@ FormulaUnit* Skolem::skolemiseImpl (FormulaUnit* unit, bool appify)
 
   DHMap<unsigned,TermList>::Iterator vit(_varSorts);
   AnswerLiteralManager* alm = AnswerLiteralManager::getInstance();
+  bool addedToALM = false;
   while (vit.hasNext()) {
     unsigned v = vit.nextKey();
     TermList tl = _subst.apply(v);
     if (tl.isTerm()) {
       alm->bindSkolemToVar(tl.term(), v);
+      if (!addedToALM) {
+        alm->addInputUnit(unit);
+        addedToALM = true;
+      }
     }
   }
 

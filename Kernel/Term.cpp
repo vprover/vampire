@@ -902,6 +902,12 @@ const vstring& Literal::predicateName() const
 } // Literal::predicateName
 
 
+bool Literal::isAnswerLiteral() const {
+  if (isEquality()) return false;
+  return env.signature->getPredicate(functor())->answerPredicate();
+}
+
+
 /**
  * Apply @b subst to the term and return the result.
  * @since 28/12/2007 Manchester
@@ -998,7 +1004,13 @@ Literal* Literal::complementaryLiteral(Literal* l)
 Term* Term::create(Term* t,TermList* args)
 {
   CALL("Term::create/2");
-  ASS_EQ(t->getPreDataSize(), 0);
+  // TODO(hzzv): new commented and replaced 
+  //ASS_EQ(t->getPreDataSize(), 0);
+  ASS(!t->isSpecial() || ((t->getSpecialData()->getType() == SF_ITE) && !args[0].isEmpty() && !args[1].isEmpty()));
+  if (t->isSpecial() && (t->getSpecialData()->getType() == SF_ITE))
+    return createITE(t->getSpecialData()->getCondition(), args[0], args[1], t->getSpecialData()->getSort());
+  // TODO(hzzv): THIS DOESN'T WORK FOR SPECIAL TERMS AT ALL, MAKE IT WORK!
+  //cout << "copying " << t->toString() << "; ";
 
   int arity = t->arity();
   Term* s = new(arity) Term(*t);
@@ -1006,11 +1018,13 @@ Term* Term::create(Term* t,TermList* args)
   TermList* ss = s->args();
   for (int i = 0;i < arity;i++) {
     ASS(!args[i].isEmpty());
+    //cout << args[i] << " ";
     *ss-- = args[i];
     if (!args[i].isSafe()) {
       share = false;
     }
   }
+  //cout << "------->" << s->toString() << endl;
   if (share) {
     s = env.sharing->insert(s);
   }
@@ -1848,7 +1862,8 @@ Term::Term(const Term& t) throw()
     _vars(0)
 {
   CALL("Term::Term/1");
-  ASS(!isSpecial()); //we do not copy special terms
+  // TODO new commented out:
+  //ASS(!isSpecial()); //we do not copy special terms
 
   _args[0] = t._args[0];
   _args[0]._info.shared = 0u;

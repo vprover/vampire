@@ -54,10 +54,7 @@ namespace {
 Literal* getAnsLit(Clause* c, unsigned len) {
   for(unsigned i=0;i<len;i++) {
     Literal* l=(*c)[i];
-    if (l->isEquality()) continue;
-    unsigned functor = l->functor();
-    Signature::Symbol* predSym = env.signature->getPredicate(functor);
-    if (predSym->answerPredicate()) return l;
+    if (l->isAnswerLiteral()) return l;
   }
   return nullptr;
 }

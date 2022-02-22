@@ -48,18 +48,19 @@ void LiteralMiniIndex::init(Literal* const * lits)
 {
   ASS_G(_cnt, 0);
   bool hasAnsLit = false;
+  unsigned ei = 0;
   for(unsigned i=0;i<_cnt;i++) {
-    // TODO new (if{}):
-    if (env.signature->getPredicate(lits[i]->functor())->answerPredicate()) {
+    // TODO(hzzv) new (if{}):
+    if (lits[i]->isAnswerLiteral()) {
       hasAnsLit = true;
       continue;
     }
-    _entries[i].init(lits[i]);
+    _entries[ei++].init(lits[i]);
   }
-  // TODO new:
+  // TODO(hzzv) new:
   _entries[hasAnsLit ? _cnt-1 : _cnt].initTerminal();
   std::sort(_entries.begin(), _entries.end()-(hasAnsLit ? 2 : 1),literalHeaderComparator);
-  // TODO old:
+  // TODO(hzzv) old:
   //_entries[_cnt].initTerminal();
   //std::sort(_entries.begin(), _entries.end()-1,literalHeaderComparator);
 }

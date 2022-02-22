@@ -137,6 +137,8 @@ void DemodulationSubtermIndexImpl<combinatorySupSupport>::handleClause(Clause* c
     // the removes could be called on different literals than the inserts!
     inserted.reset();
     Literal* lit=(*c)[i];
+    // TODO(hzzv): new line
+    if (lit->isAnswerLiteral()) continue;
     typename std::conditional<!combinatorySupSupport,
       NonVariableNonTypeIterator,
       FirstOrderSubtermIt>::type it(lit);

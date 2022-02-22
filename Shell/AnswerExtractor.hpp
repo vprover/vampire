@@ -41,6 +41,8 @@ public:
   virtual bool tryGetAnswer(Clause* refutation, Stack<TermList>& answer) = 0;
 
   virtual void tryOutputInputUnits();
+
+  void addInputUnit(Unit* unit) { UnitList::push(unit, _inputs); }
 protected:
   void getNeededUnits(Clause* refutation, ClauseStack& premiseClauses, Stack<Unit*>& conjectures);
 

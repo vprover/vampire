@@ -385,18 +385,18 @@ Unit* AnswerLiteralManager::tryAddingAnswerLiteral(Unit* unit)
     return unit;
   }
 
-  Unit* u = unit;
-  while (u->derivedFromInput() && u->inference().rule() != InferenceRule::INPUT) {
-    Inference::Iterator it = unit->inference().iterator();
-    Unit* newu = u;
-    while (newu->inference().hasNext(it) && newu->inference().rule() != InferenceRule::INPUT) {
-      newu = newu->inference().next(it);
-      ASS(!newu->derivedFromInput() || !newu->inference().hasNext(it));
-    }
-    if (newu == u) break;
-    u = newu;
-  }
-  if (u->inference().rule() == InferenceRule::INPUT) UnitList::push(u, _inputs);
+  //Unit* u = unit;
+  //while (u->derivedFromInput() && u->inference().rule() != InferenceRule::INPUT) {
+  //  Inference::Iterator it = unit->inference().iterator();
+  //  Unit* newu = u;
+  //  while (u->inference().hasNext(it) && newu->inference().rule() != InferenceRule::INPUT) {
+  //    newu = u->inference().next(it);
+  //    ASS(!newu->derivedFromInput() || !newu->inference().hasNext(it));
+  //  }
+  //  if (newu == u) break;
+  //  u = newu;
+  //}
+  //if (u->inference().rule() == InferenceRule::INPUT) UnitList::push(u, _inputs);
   Formula* quant = (form->uarg()->connective()==EXISTS) ? form->uarg() : form->uarg()->qarg();
   VList* vars = quant->vars();
   ASS(vars);

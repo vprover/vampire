@@ -65,8 +65,8 @@ bool InterpretedEvaluation::simplifyLiteral(Literal* lit,
     return false;
   }
 
-  // TODO new:
-  if (!lit->isEquality() && env.signature->getPredicate(lit->functor())->answerPredicate()) return false;
+  // TODO(hzzv): new:
+  if (lit->isAnswerLiteral()) return false;
 
   bool okay = _simpl->evaluate(lit, constant, res, constantTrue,sideConditions);
 
