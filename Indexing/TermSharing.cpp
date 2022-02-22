@@ -82,8 +82,8 @@ void TermSharing::setPoly()
 
   //combinatory superposiiton can introduce polymorphism into a 
   //monomorphic problem
-  _poly = env.statistics->higherOrder ||
-          env.statistics->polymorphic ||
+  _poly = env.property->higherOrder() ||
+          env.property->hasPolymorphicSym() ||
           env.options->equalityProxy() != Options::EqualityProxy::OFF ||
           env.options->saturationAlgorithm() == Options::SaturationAlgorithm::INST_GEN;
 }

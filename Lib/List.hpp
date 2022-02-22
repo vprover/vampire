@@ -649,6 +649,7 @@ public:
 	return;
       }
 
+      ASS_NEQ(_prev,0);
       // not the first element
       _prev->setTail(_cur->tail());
       delete _cur;

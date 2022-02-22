@@ -89,6 +89,7 @@ TPTP::TPTP(istream& in)
     _in(&in),
     _includeDirectory(""),
     _isThf(false),
+    _containsPolymorphism(false),
     _currentColor(COLOR_TRANSPARENT),
     _lastPushed(TM),
     _modelDefinition(false),
@@ -137,7 +138,6 @@ void TPTP::parse()
       break;
     case THF:
       _isThf = true;
-      env.statistics->higherOrder = true;
     case TFF:
       _isFof = false;
       tff();
@@ -2318,10 +2318,6 @@ void TPTP::funApp()
       return;
 
     case T_ITE:
-      if(env.statistics->higherOrder){
-        //Does higher-order even use this code? I dont think so.
-        USER_ERROR("Higher-order Vampire is currently not compatible with FOOL reasoning");
-      }
       consumeToken(T_LPAR);
       addTagState(T_RPAR);
       _states.push(TERM);
@@ -2332,10 +2328,6 @@ void TPTP::funApp()
       return;
 
     case T_LET: {
-      if(env.statistics->higherOrder){
-        //Does higher-order even use this code? I dont think so.        
-        USER_ERROR("Higher-order  Vampire is currently not compatible with FOOL reasoning");
-      }
       consumeToken(T_LPAR);
       addTagState(T_RPAR);
       _states.push(TERM);
@@ -3975,7 +3967,7 @@ OperatorType* TPTP::constructOperatorType(Type* t, VList* vars)
   bool isPredicate = resultSort == AtomicSort::boolSort();
   unsigned arity = (unsigned)argumentSorts.size();
 
-  if(env.statistics->polymorphic){
+  if(_containsPolymorphism){
     SortHelper::normaliseArgSorts(vars, argumentSorts);
     SortHelper::normaliseSort(vars, resultSort);
   }
@@ -4251,7 +4243,7 @@ void TPTP::simpleType()
   Token& tok = getTok(0);
 
   if(tok.tag == T_TYPE_QUANT) {
-    env.statistics->polymorphic = true;
+    _containsPolymorphism = true;
     resetToks();
     _typeTags.push(TT_QUANTIFIED);
     consumeToken(T_LBRA);

@@ -234,7 +234,7 @@ namespace CoproductImpl {
       using Ts = TL::List<As...>;                                                                             \
       auto unwrap = Unwrap<acc, Ts>{};                                                                        \
       if (acc == idx) {                                                                                       \
-        ::new (&self) TL::Get<acc,Ts>(unwrap(MOVE(value)));                                                   \
+        ::new (&self._head) TL::Get<acc,Ts>(unwrap(MOVE(value)));                                             \
         return;                                                                                               \
       }                                                                                                       \
       InitDynamicTag<acc + 1, size, TL::List<As...>>{}(self, idx, MOVE(value));                               \
@@ -275,8 +275,8 @@ class Coproduct<A, As...>
   using Self = Coproduct<A, As...>;
   using Content = decltype(_content);
 
-  /** unsafe default constructor. tag as well as content will be uninit */
-  Coproduct() {}
+  /** unsafe default constructor, content will be uninit */
+  Coproduct() : _tag(std::numeric_limits<unsigned>::max()) {}
 
 public:
   CLASS_NAME(Coproduct)

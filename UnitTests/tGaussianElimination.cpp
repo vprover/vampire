@@ -54,7 +54,7 @@ public:
     static GaussianVariableElimination gve = GaussianVariableElimination();
 
     /* applies gve and evaluation until they're not applicable anymore */
-    Kernel::Clause* last = simpl(in);
+    Kernel::Clause* last = nullptr;
     Kernel::Clause* latest = simpl(in);
     do {
       last = latest;
@@ -160,7 +160,7 @@ TEST_SIMPLIFY(gve_test_div,
 /////////////////////////////////////
 
 
-REGISTER_GEN_TESTER(Test::Generation::GenerationTester<LfpRule<GaussianVariableElimination>>)
+REGISTER_GEN_TESTER(LfpRule<GaussianVariableElimination>)
 
 TEST_GENERATION(test_redundancy_01,
     Generation::TestCase()

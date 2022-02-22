@@ -246,9 +246,9 @@ Signature::Signature ():
     _integers(0),
     _rationals(0),
     _reals(0),
-    _arrayCon(0),
-    _arrowCon(0),
-    _appFun(0),
+    _arrayCon(UINT_MAX),
+    _arrowCon(UINT_MAX),
+    _appFun(UINT_MAX),
     _termAlgebras()
 {
   CALL("Signature::Signature");
