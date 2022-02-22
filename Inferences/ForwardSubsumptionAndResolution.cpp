@@ -54,8 +54,13 @@ using namespace Saturation;
 
 
 
+#if VDEBUG
 #define CHECK_SMT_SUBSUMPTION 1
 #define CHECK_SMT_SUBSUMPTION_RESOLUTION 1
+#else
+#define CHECK_SMT_SUBSUMPTION 0
+#define CHECK_SMT_SUBSUMPTION_RESOLUTION 0
+#endif
 
 #define USE_SMT_SUBSUMPTION 0
 
