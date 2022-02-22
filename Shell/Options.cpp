@@ -1163,7 +1163,6 @@ void Options::init()
     _lookup.insert(&_cancellation);
     _cancellation.addProblemConstraint(hasTheories());
     _cancellation.tag(OptionTag::INFERENCES);
-    _cancellation.setExperimental();
 
     _highSchool = BoolOptionValue("high_school", "hsm", false);
     _highSchool.description="Enables high school education for vampire. (i.e.: sets -gve cautious, -asg cautious, -ev cautious, -canc cautious, -pum on )";
