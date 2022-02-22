@@ -109,7 +109,9 @@ void Preprocess::preprocess(Problem& prb)
   }
 
   if (_options.shuffleInput()) {
-    env.statistics->phase=Statistics::SHUFFLING;
+    TimeCounter tc(TC_SHUFFLING);
+    env.statistics->phase=Statistics::SHUFFLING;    
+
     if (env.options->showPreprocessing())
       env.out() << "shuffling1" << std::endl;
 
@@ -227,6 +229,7 @@ void Preprocess::preprocess(Problem& prb)
   }
 
   if (_options.shuffleInput()) {
+    TimeCounter tc(TC_SHUFFLING);
     env.statistics->phase=Statistics::SHUFFLING;
     if (env.options->showPreprocessing())
       env.out() << "shuffling2" << std::endl;
@@ -263,6 +266,7 @@ void Preprocess::preprocess(Problem& prb)
   }
 
   if (_options.shuffleInput()) {
+    TimeCounter tc(TC_SHUFFLING);
     env.statistics->phase=Statistics::SHUFFLING;
     if (env.options->showPreprocessing())
       env.out() << "shuffling3" << std::endl;
@@ -436,13 +440,14 @@ void Preprocess::preprocess(Problem& prb)
    }
 
    if (_options.shuffleInput()) {
-       env.statistics->phase=Statistics::SHUFFLING;
-       if (env.options->showPreprocessing())
-         env.out() << "shuffling4" << std::endl;
+     TimeCounter tc(TC_SHUFFLING);
+     env.statistics->phase=Statistics::SHUFFLING;
+     if (env.options->showPreprocessing())
+       env.out() << "shuffling4" << std::endl;
 
-       // cnf and many other things happened - shuffle one more time
-       Shuffling::shuffle(prb);
-     }
+     // cnf and many other things happened - shuffle one more time
+     Shuffling::shuffle(prb);
+   }
 
    if (env.options->showPreprocessing()) {
      UnitList::Iterator uit(prb.units());
