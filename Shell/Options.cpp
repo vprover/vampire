@@ -1095,6 +1095,7 @@ void Options::init()
     "\n- full   : deprecated"
     "";
     _theoryInstAndSimp.tag(OptionTag::INFERENCES);
+    _theoryInstAndSimp.addProblemConstraint(hasTheories());
     _lookup.insert(&_theoryInstAndSimp);
 
     _thiGeneralise = BoolOptionValue("theory_instantiation_generalisation", "thigen", false);
@@ -1148,6 +1149,7 @@ void Options::init()
     _inequalityNormalization = BoolOptionValue("normalize_inequalities","norm_ineq",false);
     _inequalityNormalization.description="Enable normalizing of inequalities like s < t ==> 0 < t - s.";
     _lookup.insert(&_inequalityNormalization);
+    _inequalityNormalization.addProblemConstraint(hasTheories());
     _inequalityNormalization.tag(OptionTag::INFERENCES);
 
     auto choiceArithmeticSimplificationMode = [&](vstring l, vstring s, ArithmeticSimplificationMode d)
@@ -1159,12 +1161,14 @@ void Options::init()
                                 In some rare cases the conclusion may be not strictly simpler than the hypothesis. With `force` we ignore these cases, violating the ordering and just simplifying \
                                 anyways. With `cautious` we will generate a new clause instead of simplifying in these cases.";
     _lookup.insert(&_cancellation);
+    _cancellation.addProblemConstraint(hasTheories());
     _cancellation.tag(OptionTag::INFERENCES);
     _cancellation.setExperimental();
 
     _highSchool = BoolOptionValue("high_school", "hsm", false);
     _highSchool.description="Enables high school education for vampire. (i.e.: sets -gve cautious, -asg cautious, -ev cautious, -canc cautious, -pum on )";
     _lookup.insert(&_highSchool);
+    _highSchool.addProblemConstraint(hasTheories());
     _highSchool.tag(OptionTag::INFERENCES);
 
 
@@ -1177,6 +1181,7 @@ void Options::init()
           " -(-t) ==> t\n"
           ;
     _lookup.insert(&_pushUnaryMinus);
+    _pushUnaryMinus.addProblemConstraint(hasTheories());
     _pushUnaryMinus.tag(OptionTag::INFERENCES);
 
     _gaussianVariableElimination = choiceArithmeticSimplificationMode(
@@ -1200,6 +1205,7 @@ void Options::init()
           In some rare cases the conclusion may be not strictly simpler than the hypothesis. With `force` we ignore these cases, violating the ordering and just simplifying \
           anyways. With `cautious` we will generate a new clause instead of simplifying in these cases.";
     _lookup.insert(&_gaussianVariableElimination);
+    _gaussianVariableElimination.addProblemConstraint(hasTheories());
     _gaussianVariableElimination.tag(OptionTag::INFERENCES);
 
     _arithmeticSubtermGeneralizations = choiceArithmeticSimplificationMode(
@@ -1210,6 +1216,7 @@ void Options::init()
           In some rare cases the conclusion may be not strictly simpler than the hypothesis. With `force` we ignore these cases, violating the ordering and just simplifying \
           anyways. With `cautious` we will generate a new clause instead of simplifying in these cases.";
     _lookup.insert(&_arithmeticSubtermGeneralizations);
+    _arithmeticSubtermGeneralizations.addProblemConstraint(hasTheories());
     _arithmeticSubtermGeneralizations.tag(OptionTag::INFERENCES);
 
     _induction = ChoiceOptionValue<Induction>("induction","ind",Induction::NONE,
