@@ -406,7 +406,7 @@ void modelCheckMode()
   env.options->setOutputAxiomNames(true);
   Problem* prb = UIHelper::getInputProblem(*env.options);
 
-  if(env.statistics->polymorphic || env.statistics->higherOrder){
+  if(env.property->hasPolymorphicSym() || env.property->higherOrder()){
     USER_ERROR("Polymorphic Vampire is not yet compatible with theory reasoning");
   }
 

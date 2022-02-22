@@ -3118,7 +3118,7 @@ bool Options::complete(const Problem& prb) const
 {
   CALL("Options::complete");
 
-  if(env.statistics->higherOrder){
+  if(prb.higherOrder()){
     //safer for competition
     return false;
   }

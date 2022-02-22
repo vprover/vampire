@@ -79,6 +79,7 @@ Property::Property()
     _hasAppliedVar(false),
     _hasBoolVar(false),
     _hasLogicalProxy(false),
+    _hasLambda(false),
     _hasPolymorphicSym(false),
     _quantifiesOverPolymorphicVar(false),
     _onlyFiniteDomainDatatypes(true),
@@ -89,7 +90,6 @@ Property::Property()
     _smtlibLogic(SMTLIBLogic::SMT_UNDEFINED)
 {
   _interpretationPresence.init(Theory::instance()->numberOfFixedInterpretations(), false);
-  env.property = this;
 } // Property::Property
 
 /**
@@ -123,9 +123,7 @@ Property::~Property()
 {
   CALL("Property::~Property");
 
-  if (this == env.property) {
-    env.property = 0;
-  }
+  ASS(this == env.property);
 }
 
 /**
@@ -504,7 +502,7 @@ void Property::scanSort(TermList sort)
     return;
   }
 
-  if(!env.statistics->higherOrder && !_hasPolymorphicSym){
+  if(!higherOrder() && !hasPolymorphicSym()){
     //used sorts is for FMB which is not compatible with 
     //higher-order or polymorphism
     unsigned sortU = sort.term()->functor();
@@ -518,8 +516,7 @@ void Property::scanSort(TermList sort)
     return;
   }
   _hasNonDefaultSorts = true;
-  env.statistics->hasTypes=true;
-
+  
   if(sort.isArraySort()){
     // an array sort is infinite, if the index or value sort is infinite
     // we rely on the recursive calls setting appropriate flags
@@ -678,6 +675,10 @@ void Property::scan(TermList ts,bool unit,bool goal)
 
       case Term::SF_MATCH:
         _hasFOOL = true;
+        break;
+
+      case Term::SF_LAMBDA:
+        _hasLambda = true;
         break;
 
       default:

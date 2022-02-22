@@ -46,7 +46,7 @@ public:
   CLASS_NAME(RobSubstitution);
   USE_ALLOCATOR(RobSubstitution);
   
-  RobSubstitution() : _nextUnboundAvailable(0) {} //,_nextAuxAvailable(0) {}
+  RobSubstitution() : _funcSubtermMap(nullptr), _nextUnboundAvailable(0) {}
 
   SubstIterator matches(Literal* base, int baseIndex,
 	  Literal* instance, int instanceIndex, bool complementary);

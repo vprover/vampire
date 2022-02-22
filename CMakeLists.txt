@@ -67,12 +67,6 @@ endif()
 #       displayed by the IDEs (we wouldn't need to add them because
 #       of dependendy tracking, this is figured out automatically
 #       by the compiler)
-# TODO: there are unused files (I guess both headers and source 
-#       files). I included only the source files which are also 
-#       included in the makefile, but then added all headers 
-#       which don't have a corresponding source file (since I don't
-#       know which of them are really used, that information is
-#       of course not contained in the makefile)
 ################################################################
 
 set(VAMPIRE_MINISAT_SOURCES
@@ -479,8 +473,6 @@ set(VAMPIRE_INFERENCE_SOURCES
     Inferences/PolynomialEvaluation.cpp
     Inferences/Cancellation.hpp
     Inferences/Cancellation.cpp
-#    Inferences/TheoryRuleAttempt.hpp
-#    Inferences/TheoryRuleAttempt.cpp
     )
 source_group(inference_source_files FILES ${VAMPIRE_INFERENCE_SOURCES})
 
@@ -558,7 +550,6 @@ source_group(saturation_source_files FILES ${VAMPIRE_SATURATION_SOURCES})
 
 set(VAMPIRE_SHELL_SOURCES
     Shell/AnswerExtractor.cpp
-    #Shell/AxiomGenerator.cpp
     Shell/CommandLine.cpp
     Shell/CNF.cpp
     Shell/NewCNF.cpp
@@ -595,7 +586,6 @@ set(VAMPIRE_SHELL_SOURCES
     Shell/SimplifyFalseTrue.cpp
     Shell/SineUtils.cpp
     Shell/SMTFormula.cpp
-    #Shell/SMTPrinter.cpp
     Shell/FOOLElimination.cpp
     Shell/Statistics.cpp
     Shell/SymbolDefinitionInlining.cpp
@@ -608,17 +598,11 @@ set(VAMPIRE_SHELL_SOURCES
     Shell/BlockedClauseElimination.cpp
     Shell/Token.cpp
     Shell/TPTPPrinter.cpp
-    #Shell/TrivialPredicateRemover.cpp
     Shell/UIHelper.cpp
     Shell/VarManager.cpp
-    #Shell/EqualityVariableRemover.cpp
     Shell/Lexer.cpp
-    #Shell/PARSER_TKV.cpp
     Shell/Preprocess.cpp
-    #Shell/SMTLEX.cpp
-    #Shell/SMTPAR.cpp
     Shell/AnswerExtractor.hpp
-    #Shell/AxiomGenerator.hpp
     Shell/CommandLine.hpp
     Shell/CNF.hpp
     Shell/NewCNF.hpp
@@ -655,7 +639,6 @@ set(VAMPIRE_SHELL_SOURCES
     Shell/SineUtils.hpp
     Shell/SMTFormula.hpp
     Shell/SMTLIBLogic.hpp
-    #Shell/SMTPrinter.hpp
     Shell/FOOLElimination.hpp
     Shell/Statistics.hpp
     Shell/SymbolDefinitionInlining.hpp
@@ -670,17 +653,12 @@ set(VAMPIRE_SHELL_SOURCES
     Shell/TPTPPrinter.hpp
     Shell/UnificationWithAbstractionConfig.hpp
     Shell/UnificationWithAbstractionConfig.cpp
-    #Shell/TrivialPredicateRemover.hpp
     Shell/UIHelper.hpp
     Shell/VarManager.hpp
     Shell/Lexer.hpp
-    #Shell/PARSER_TKV.hpp
     Shell/Preprocess.hpp
-    #Shell/SMTLEX.hpp
-    #Shell/SMTPAR.hpp
     Shell/SubexpressionIterator.cpp
     Shell/SubexpressionIterator.hpp
-    # Shell/version.cpp
     )
 source_group(shell_source_files FILES ${VAMPIRE_SHELL_SOURCES})
 

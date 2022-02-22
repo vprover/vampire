@@ -167,6 +167,7 @@ public:
         return false;
       if(!l.forSorts)
         return true;
+      ASS(r.forSorts != nullptr);
 
       // compare sort arguments
       for(unsigned i = 0; i < l.forSorts->numTypeArguments(); i++)

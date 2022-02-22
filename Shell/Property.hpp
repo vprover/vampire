@@ -156,6 +156,8 @@ public:
   CLASS_NAME(Property);
   USE_ALLOCATOR(Property);
 
+  // constructor, operators new and delete
+  explicit Property();
   static Property* scan(UnitList*);
   void add(UnitList*);
   ~Property();
@@ -229,6 +231,7 @@ public:
   bool hasBoolVar() const { return _hasBoolVar; }
   bool hasLogicalProxy() const { return _hasLogicalProxy; }
   bool hasPolymorphicSym() const { return _hasPolymorphicSym; }
+  bool higherOrder() const { return hasCombs() || hasApp() || hasLogicalProxy() || _hasLambda; }
   bool quantifiesOverPolymorphicVar() const { return _quantifiesOverPolymorphicVar; }
   bool usesSort(unsigned sort) const { 
     CALL("Property::usesSort");
@@ -251,9 +254,6 @@ public:
   bool allNonTheoryClausesGround(){ return _allNonTheoryClausesGround; }
 
  private:
-  // constructor, operators new and delete
-  explicit Property();
-
   static bool hasXEqualsY(const Clause* c);
   static bool hasXEqualsY(const Formula*);
 
@@ -343,6 +343,7 @@ public:
   bool _hasAppliedVar;
   bool _hasBoolVar;
   bool _hasLogicalProxy;
+  bool _hasLambda;
   bool _hasPolymorphicSym;
   bool _quantifiesOverPolymorphicVar;
 

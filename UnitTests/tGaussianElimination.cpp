@@ -54,7 +54,7 @@ public:
     static GaussianVariableElimination gve = GaussianVariableElimination();
 
     /* applies gve and evaluation until they're not applicable anymore */
-    Kernel::Clause* last = simpl(in);
+    Kernel::Clause* last = nullptr;
     Kernel::Clause* latest = simpl(in);
     do {
       last = latest;

@@ -486,7 +486,7 @@ bool RobSubstitution::unify(TermSpec t1, TermSpec t2,MismatchHandler* hndlr)
               // mechanism used by higher-order logic to pruduce constraints.
               // until then the first condition ensures that the handler is never called
               // incorrectly. HOL also uses a handler, but it shouldn't be called here.
-              if(env.statistics->higherOrder || !hndlr || !hndlr->handle(this,tsss.term,tsss.index,tstt.term,tstt.index)){
+              if(env.property->higherOrder() || !hndlr || !hndlr->handle(this,tsss.term,tsss.index,tstt.term,tstt.index)){
                 mismatch=true;
                 break;
               }
