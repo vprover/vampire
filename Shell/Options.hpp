@@ -1786,6 +1786,18 @@ bool _hard;
       vstring msg(){ return " only useful with equality"; }
     };
 
+    struct HasHigherOrder : OptionProblemConstraint{
+      CLASS_NAME(HasHigherOrder);
+      USE_ALLOCATOR(HasHigherOrder);
+
+      bool check(Property*p){
+        CALL("Options::HasHigherOrder::check");
+        ASS(p)
+        return (p->higherOrder());
+      }
+      vstring msg(){ return " only useful with equality"; }
+    };
+
     struct HasNonUnits : OptionProblemConstraint{
       CLASS_NAME(HasNonUnits);
       USE_ALLOCATOR(HasNonUnits);
@@ -1865,6 +1877,7 @@ bool _hard;
       return OptionProblemConstraintUP(new CategoryCondition(c,true));
     }
     static OptionProblemConstraintUP hasEquality(){ return OptionProblemConstraintUP(new UsesEquality); }
+    static OptionProblemConstraintUP hasHigherOrder(){ return OptionProblemConstraintUP(new HasHigherOrder); }
     static OptionProblemConstraintUP hasNonUnits(){ return OptionProblemConstraintUP(new HasNonUnits); }
     static OptionProblemConstraintUP hasPredicates(){ return OptionProblemConstraintUP(new HasPredicates); }
     static OptionProblemConstraintUP atomsMoreThan(int a){

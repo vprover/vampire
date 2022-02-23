@@ -1581,11 +1581,14 @@ void Options::init()
     _addCombAxioms = BoolOptionValue("add_comb_axioms","aca",false);
     _addCombAxioms.description="Add combinator axioms";
     _lookup.insert(&_addCombAxioms);
+    _addCombAxioms.addProblemConstraint(hasHigherOrder());
+    _addCombAxioms.reliesOn(_combinatorySuperposition.is(equal(false))); //no point having two together
     _addCombAxioms.tag(OptionTag::HIGHER_ORDER);
 
     _addProxyAxioms = BoolOptionValue("add_proxy_axioms","apa",false);
     _addProxyAxioms.description="Add logical proxy axioms";
     _lookup.insert(&_addProxyAxioms);
+    _addProxyAxioms.addProblemConstraint(hasHigherOrder());    
     _addProxyAxioms.tag(OptionTag::HIGHER_ORDER);
 
     _combinatorySuperposition = BoolOptionValue("combinatory_sup","csup",false);
@@ -1598,40 +1601,47 @@ void Options::init()
     _choiceAxiom = BoolOptionValue("choice_ax","cha",false);
     _choiceAxiom.description="Adds the cnf form of the Hilbert choice axiom";
     _lookup.insert(&_choiceAxiom);
+    _choiceAxiom.addProblemConstraint(hasHigherOrder());
     _choiceAxiom.tag(OptionTag::HIGHER_ORDER);
 
     _choiceReasoning = BoolOptionValue("choice_reasoning","chr",false);
     _choiceReasoning.description="Reason about choice by adding relevant instances of the axiom";
     _lookup.insert(&_choiceReasoning);
+    _choiceReasoning.addProblemConstraint(hasHigherOrder());    
     _choiceReasoning.reliesOn(_choiceAxiom.is(equal(false))); //no point having two together
     _choiceReasoning.tag(OptionTag::HIGHER_ORDER);
 
     _priortyToLongReducts = BoolOptionValue("priority_to_long_reducts","ptlr",false);
     _priortyToLongReducts.description="give priority to clauses produced by lengthy reductions";
     _lookup.insert(&_priortyToLongReducts);
+    _priortyToLongReducts.addProblemConstraint(hasHigherOrder());        
     _priortyToLongReducts.tag(OptionTag::HIGHER_ORDER);
 
     _injectivity = BoolOptionValue("injectivity","inj",false);
     _injectivity.description="Attempts to identify injective functions and postulates a left-inverse";
     _lookup.insert(&_injectivity);
+    _injectivity.addProblemConstraint(hasHigherOrder());            
     _injectivity.tag(OptionTag::HIGHER_ORDER);
 
     _pragmatic = BoolOptionValue("pragmatic","prag",false);
     _pragmatic.description="Modifes various parameters to help Vampire solve 'hard' higher-order";
     _pragmatic.reliesOn(_combinatorySuperposition.is(equal(true)));
     _lookup.insert(&_pragmatic);
+    _pragmatic.addProblemConstraint(hasHigherOrder());
     _pragmatic.tag(OptionTag::HIGHER_ORDER);
 
     _maximumXXNarrows = IntOptionValue("max_XX_narrows","mXXn", 0);
     _maximumXXNarrows.description="Maximum number of BXX', CXX' and SXX' narrows that"
                                   "can be carried out 0 means that there is no limit. ";
     _lookup.insert(&_maximumXXNarrows);
+    _maximumXXNarrows.addProblemConstraint(hasHigherOrder());    
     _maximumXXNarrows.tag(OptionTag::HIGHER_ORDER);
 
     _functionExtensionality = ChoiceOptionValue<FunctionExtensionality>("func_ext","fe",FunctionExtensionality::ABSTRACTION,
                                                                           {"off", "axiom", "abstraction"});
     _functionExtensionality.description="Deal with extensionality using abstraction, axiom or neither";
     _lookup.insert(&_functionExtensionality);
+    _functionExtensionality.addProblemConstraint(hasHigherOrder());
     _functionExtensionality.tag(OptionTag::HIGHER_ORDER);
 
     _clausificationOnTheFly = ChoiceOptionValue<CNFOnTheFly>("cnf_on_the_fly","cnfonf",CNFOnTheFly::EAGER,
@@ -1644,6 +1654,7 @@ void Options::init()
                                                                           "off"});
     _clausificationOnTheFly.description="Various options linked to clausification on the fly";
     _lookup.insert(&_clausificationOnTheFly);
+    _clausificationOnTheFly.addProblemConstraint(hasHigherOrder());    
     _clausificationOnTheFly.tag(OptionTag::HIGHER_ORDER);
 
 
@@ -1654,6 +1665,7 @@ void Options::init()
                                                                         "small_set"});
     _piSet.description="Controls the set of equations to use in primitive instantiation";
     _lookup.insert(&_piSet);
+    _piSet.addProblemConstraint(hasHigherOrder());     
     _piSet.tag(OptionTag::HIGHER_ORDER);
 
 
@@ -1664,6 +1676,7 @@ void Options::init()
                                                               "off"});
     _narrow.description="Controls the set of combinator equations to use in narrowing";
     _lookup.insert(&_narrow);
+    _narrow.addProblemConstraint(hasHigherOrder());
     _narrow.tag(OptionTag::HIGHER_ORDER);
 
 
@@ -1672,6 +1685,7 @@ void Options::init()
     "Equality between boolean terms changed to equivalence \n"
     "t1 : $o = t2 : $o is changed to t1 <=> t2";
     _lookup.insert(&_equalityToEquivalence);
+    // potentially could be useful for FOOL, so am not adding the HOL constraint
     _equalityToEquivalence.tag(OptionTag::HIGHER_ORDER);
 
     _complexBooleanReasoning = BoolOptionValue("complex_bool_reasoning","cbe",true);
@@ -1679,6 +1693,7 @@ void Options::init()
     "Switches on primitive instantiation and elimination of leibniz equality";
     _complexBooleanReasoning.reliesOn(_addProxyAxioms.is(equal(false)));
     _lookup.insert(&_complexBooleanReasoning);
+    _complexBooleanReasoning.addProblemConstraint(hasHigherOrder());    
     _complexBooleanReasoning.tag(OptionTag::HIGHER_ORDER);
 
     _booleanEqTrick = BoolOptionValue("bool_eq_trick","bet",false);
@@ -1687,19 +1702,22 @@ void Options::init()
     "t = s with a disequality t != vnot(s)"
     " The theory is that this can help with EqRes";
     _lookup.insert(&_booleanEqTrick);
+    // potentially could be useful for FOOL, so am not adding the HOL constraint    
     _booleanEqTrick.tag(OptionTag::HIGHER_ORDER);
 
     _superposition = BoolOptionValue("superposition_hol","suph",true);
     _superposition.description=
     "Control superposition. Only used in higher-order strategies";
     _lookup.insert(&_superposition);
+    _superposition.addProblemConstraint(hasHigherOrder());
     _superposition.tag(OptionTag::HIGHER_ORDER);
 
     _casesSimp = BoolOptionValue("cases_simp","cs",false);
     _casesSimp.description=
     "FOOL Paramodulation with two conclusion as a simplification";
-    _casesSimp.reliesOn(_cases.is(equal(false)));
+    _casesSimp.reliesOn(_cases.is(equal(false)));    
     _lookup.insert(&_casesSimp);
+    // potentially could be useful for FOOL, so am not adding the HOL constraint
     _casesSimp.tag(OptionTag::HIGHER_ORDER);
 
     //TODO, sort out the mess with cases and FOOLP.
@@ -1709,18 +1727,21 @@ void Options::init()
     "Alternative to FOOL Paramodulation that replaces all Boolean subterms in one step";
     _cases.reliesOn(_casesSimp.is(equal(false)));
     _lookup.insert(&_cases);
+    // potentially could be useful for FOOL, so am not adding the HOL constraint    
     _cases.tag(OptionTag::HIGHER_ORDER);
 
     _newTautologyDel = BoolOptionValue("new_taut_del","ntd",false);
     _newTautologyDel.description=
     "Delete clauses with literals of the form false != true or t = true \\/ t = false";
     _lookup.insert(&_newTautologyDel);
+    // potentially could be useful for FOOL, so am not adding the HOL constraint    
     _newTautologyDel.tag(OptionTag::HIGHER_ORDER);
 
     _lambdaFreeHol = BoolOptionValue("lam_free_hol","lfh",false);
     _lambdaFreeHol.description=
     "Reason about lambda-free hol. See paper by Vukmirovic et al.";
     _lookup.insert(&_lambdaFreeHol);
+    _lambdaFreeHol.addProblemConstraint(hasHigherOrder());    
     _lambdaFreeHol.tag(OptionTag::HIGHER_ORDER);
 
 //*********************** InstGen  ***********************
