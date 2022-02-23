@@ -442,6 +442,18 @@ bool SMTSubsumptionImpl3::setupSubsumptionResolution(Kernel::Clause* base)
       auto handle = solver.constraint_end();
       solver.add_clause_unsafe(handle);
     }
+
+    uint32_t const normal_match_begin = mc.inst_match_count[j];
+    uint32_t const normal_match_end = mc.inst_match_count[j+1];
+    ASS_LE(normal_match_begin, normal_match_end);
+    for (uint32_t k = normal_match_begin; k != normal_match_end; ++k) {
+      subsat::Var const b_normal{m_inst_matches[k]};
+      solver.constraint_start();
+      solver.constraint_push_literal(~b_is_matched);
+      solver.constraint_push_literal(~b_normal);
+      auto handle = solver.constraint_end();
+      solver.add_clause_unsafe(handle);
+    }
   }
 
   {
@@ -449,12 +461,14 @@ bool SMTSubsumptionImpl3::setupSubsumptionResolution(Kernel::Clause* base)
     solver.add_atmostone_constraint_unsafe(handle);
   }
 
-
+/*
   // NOTE: these constraints are necessary because:
-  // 1) when an inst_lit is complementary-matched, then we cannot match anything else to it.
+  // 1) when an inst_lit is complementary-matched, then we cannot match anything else to it.  ?????? that's not true... we may do multiple complementary matches but no normal matches. But the implementation seems to do the right thing.
   // 2) but when it is not complementary-matched, then we may match multiple base literals to it.
   // The reason 2) is why we can't simply use instance-AtMostOne constraints like we do for subsumption.
   // Naive solution: use binary clauses "~compl \/ ~normal", more sophisticated: use a helper variable that just means "instance literal is complementary-matched".
+  // Note that we already have this helper variable! It's the `b_is_matched` from the previous block.
+  //    So we can simply add ~b_is_matched \/ ~b_normal? Can already be done in the loop above.
   //
   // Example of wrong inference without these constraints:
   // % ***WRONG RESULT OF SUBSUMPTION RESOLUTION***
@@ -487,6 +501,7 @@ bool SMTSubsumptionImpl3::setupSubsumptionResolution(Kernel::Clause* base)
       }
     }
   }
+*/
 
   return !solver.inconsistent();
 }  // setupSubsumptionResolution
