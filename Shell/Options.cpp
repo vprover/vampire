@@ -3351,8 +3351,8 @@ bool Options::checkProblemOptionConstraints(Property* prop, bool before_preproce
   while(options.hasNext()){
     AbstractOptionValue* opt = options.next();
 
-    if ((before_preprocessing && opt->getTag() != OptionTag::PREPROCESSING) ||
-        (!before_preprocessing && opt->getTag() == OptionTag::PREPROCESSING)) {
+    bool tagIsPreprocessing = (opt->getTag() == OptionTag::PREPROCESSING);
+    if (before_preprocessing != tagIsPreprocessing) {
       continue;
     }
 
