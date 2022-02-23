@@ -4776,12 +4776,17 @@ unsigned TPTP::addOverloadedFunction(vstring name,int arity,int symbolArity,bool
   CALL("TPTP::addOverloadedFunction");
 
   if (arity != symbolArity) {
-    USER_ERROR(name + " is used with " + Int::toString(arity) + " argument(s)");
+    USER_ERROR(name + " is used with " + Int::toString(arity) + " argument(s) when there were "+Int::toString(symbolArity)+" expected");
   }
   TermList srt = sortOf(arg);
   TermList* n = arg.next();
   for(int i=1;i<arity;i++){
-    if(sortOf(*n)!=srt) USER_ERROR((vstring)"The symbol " + name + " is not used with a single sort");
+    if(sortOf(*n)!=srt){
+      vstring msg = "The interpreted function symbol " + name + " is not used with a single sort.";
+      msg += "\nArgument 0 is "+srt.toString()+" and argument "+Lib::Int::toString(i)+" is "+sortOf(*n).toString();
+      if(_isFof){ msg += "\nCheck that you are using tff if you want numbers to be interpreted"; }
+      USER_ERROR(msg);
+    }
     n = n->next();
   }
   if (srt == AtomicSort::intSort()) {
@@ -4803,12 +4808,17 @@ unsigned TPTP::addOverloadedPredicate(vstring name,int arity,int symbolArity,boo
   CALL("TPTP::addOverloadedPredicate");
 
   if (arity != symbolArity) {
-    USER_ERROR(name + " is used with " + Int::toString(arity) + " argument(s)");
+    USER_ERROR(name + " is used with " + Int::toString(arity) + " argument(s) when there were "+Int::toString(symbolArity)+" expected");
   }
   TermList srt = sortOf(arg);
   TermList* n = arg.next();
   for(int i=1;i<arity;i++){
-    if(sortOf(*n)!=srt) USER_ERROR((vstring)"The symbol " + name + " is not used with a single sort");
+    if(sortOf(*n)!=srt){
+      vstring msg = "The interpreted predicate symbol " + name + " is not used with a single sort.";
+      msg += "\nArgument 0 is "+srt.toString()+" and argument "+Lib::Int::toString(i)+" is "+sortOf(*n).toString();
+      if(_isFof){ msg += "Check that you are using tff if you want numbers to be interpreted"; }
+      USER_ERROR(msg);
+    }
     n = n->next(); 
   }
   
