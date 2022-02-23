@@ -45,19 +45,19 @@ public:
   ~LPO() override = default;
 
   using PrecedenceOrdering::compare;
-  Result compare(TermList tl1, TermList tl2) const override;
+  VWARN_UNUSED Result compare(TermList tl1, TermList tl2) const override;
   void showConcrete(ostream&) const override;
 protected:
-  Result comparePredicates(Literal* l1, Literal* l2) const override;
+  VWARN_UNUSED Result comparePredicates(Literal* l1, Literal* l2) const override;
 
-  Result cLMA(Term* s, Term* t, TermList* sl, TermList* tl, unsigned arity) const;
-  Result cMA(Term* t, TermList* tl, unsigned arity) const;
-  Result cAA(Term* s, Term* t, TermList* sl, TermList* tl, unsigned arity1, unsigned arity2) const;
-  Result alpha(TermList* tl, unsigned arity, Term *t) const;
-  Result clpo(Term* t1, TermList tl2) const;
-  Result lpo(TermList tl1, TermList tl2) const;
-  Result lexMAE(Term* s, Term* t, TermList* sl, TermList* tl, unsigned arity) const;
-  Result majo(Term* s, TermList* tl, unsigned arity) const;
+  VWARN_UNUSED Result cLMA(Term* s, Term* t, TermList* sl, TermList* tl, unsigned arity) const;
+  VWARN_UNUSED Result cMA(Term* t, TermList* tl, unsigned arity) const;
+  VWARN_UNUSED Result cAA(Term* s, Term* t, TermList* sl, TermList* tl, unsigned arity1, unsigned arity2) const;
+  VWARN_UNUSED Result alpha(TermList* tl, unsigned arity, Term *t) const;
+  VWARN_UNUSED Result clpo(Term* t1, TermList tl2) const;
+  VWARN_UNUSED Result lpo(TermList tl1, TermList tl2) const;
+  VWARN_UNUSED Result lexMAE(Term* s, Term* t, TermList* sl, TermList* tl, unsigned arity) const;
+  VWARN_UNUSED Result majo(Term* s, TermList* tl, unsigned arity) const;
 
 };
 
