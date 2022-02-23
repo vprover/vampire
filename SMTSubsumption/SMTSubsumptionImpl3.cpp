@@ -461,48 +461,6 @@ bool SMTSubsumptionImpl3::setupSubsumptionResolution(Kernel::Clause* base)
     solver.add_atmostone_constraint_unsafe(handle);
   }
 
-/*
-  // NOTE: these constraints are necessary because:
-  // 1) when an inst_lit is complementary-matched, then we cannot match anything else to it.  ?????? that's not true... we may do multiple complementary matches but no normal matches. But the implementation seems to do the right thing.
-  // 2) but when it is not complementary-matched, then we may match multiple base literals to it.
-  // The reason 2) is why we can't simply use instance-AtMostOne constraints like we do for subsumption.
-  // Naive solution: use binary clauses "~compl \/ ~normal", more sophisticated: use a helper variable that just means "instance literal is complementary-matched".
-  // Note that we already have this helper variable! It's the `b_is_matched` from the previous block.
-  //    So we can simply add ~b_is_matched \/ ~b_normal? Can already be done in the loop above.
-  //
-  // Example of wrong inference without these constraints:
-  // % ***WRONG RESULT OF SUBSUMPTION RESOLUTION***
-  // %    base:       ~p(X0,X1,X2,X3,X4) | p(X5,X1,X2,X3,X4)
-  // %    instance:   ~neq(X10,X11) | ~neq(X10,s0) | ~neq(X12,X11) | ~neq(X10,X12) | ~neq(X10,X13) | ~neq(X12,s0) | ~neq(X13,X14) | ~neq(X13,X11) | ~neq(X10,X14) | p(X10,X13,X14,s0,s0)
-  // % Should NOT be possible but found the following result:
-  // %    conclusion: ~neq(X10,X11) | ~neq(X10,s0) | ~neq(X12,X11) | ~neq(X10,X12) | ~neq(X10,X13) | ~neq(X12,s0) | ~neq(X13,X14) | ~neq(X13,X11) | ~neq(X10,X14)
-  for (unsigned j = 0; j < instance->length(); ++j) {
-    uint32_t const normal_match_begin = mc.inst_match_count[j];
-    uint32_t const normal_match_end = mc.inst_match_count[j+1];
-    uint32_t const compl_match_begin = mc.inst_match_count[inst_len+j];
-    uint32_t const compl_match_end = mc.inst_match_count[inst_len+j+1];
-    // uint32_t const nnormal = normal_match_end - normal_match_begin;
-    // uint32_t const ncompl = compl_match_end - compl_match_begin;
-    // if (nnormal >= 2 && ncompl >= 2 && nnormal + ncompl > 4) {
-    //   // TODO: more sophisticated encoding with helper variable? instead of the 'matrix' encoding below
-    //   RSTAT_CTR_INC("would do SR sophisticated encoding");
-    // }
-    // Idea: instance literal is complementary-matched => cannot be normal-matched
-    // basic implementation using binary clauses.
-    for (uint32_t kc = compl_match_begin; kc != compl_match_end; ++kc) {
-      for (uint32_t kn = normal_match_begin; kn != normal_match_end; ++kn) {
-        subsat::Var const b_compl{m_inst_matches[kc]};
-        subsat::Var const b_normal{m_inst_matches[kn]};
-        solver.constraint_start();
-        solver.constraint_push_literal(~b_compl);
-        solver.constraint_push_literal(~b_normal);
-        auto handle = solver.constraint_end();
-        solver.add_clause_unsafe(handle);
-      }
-    }
-  }
-*/
-
   return !solver.inconsistent();
 }  // setupSubsumptionResolution
 
