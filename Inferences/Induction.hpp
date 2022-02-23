@@ -98,6 +98,7 @@ public:
 #if VDEBUG
   void setTestIndices(const Stack<Index*>& indices) override {
     _comparisonIndex = static_cast<LiteralIndex*>(indices[0]);
+    if (indices.size() > 1) _inductionTermIndex = static_cast<TermIndex*>(indices[1]);
   }
 #endif // VDEBUG
 

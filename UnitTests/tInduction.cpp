@@ -14,8 +14,10 @@
 #include "Test/TestUtils.hpp"
 #include "Test/GenerationTester.hpp"
 
-#include "Indexing/TermIndex.hpp"
+#include "Indexing/LiteralIndex.hpp"
 #include "Indexing/LiteralSubstitutionTree.hpp"
+#include "Indexing/TermIndex.hpp"
+#include "Indexing/TermSubstitutionTree.hpp"
 #include "Kernel/RobSubstitution.hpp"
 
 #include "Inferences/Induction.hpp"
@@ -27,6 +29,10 @@ using namespace Test::Generation;
 
 LiteralIndex* comparisonIndex() {
   return new UnitIntegerComparisonLiteralIndex(new LiteralSubstitutionTree());
+}
+
+TermIndex* inductionTermIndex() {
+  return new InductionTermIndex(new TermSubstitutionTree());
 }
 
 class GenerationTesterInduction
@@ -389,6 +395,7 @@ TEST_GENERATION_INDUCTION(test_12,
       })
     )
 
+// upward infinite interval induction
 TEST_GENERATION_INDUCTION(test_13,
     Generation::TestCase()
       .options({ { "induction", "int" } })
@@ -465,5 +472,40 @@ TEST_GENERATION_INDUCTION(test_16,
         clause({ ~pi(0), ~(num(0) < y), 0 < sK6 }),
         clause({ ~pi(0), pi(y), 0 < sK6 }),
         clause({ ~pi(0), ~pi(y+num(-1)), 0 < sK6 }),
+      })
+    )
+
+// upward infinite interval induction triggered by the comparison literal
+TEST_GENERATION_INDUCTION(test_17,
+    Generation::TestCase()
+      .options({ { "induction", "int" } })
+      .context({ clause({ ~pi(sK6) }) })
+      .indices({ comparisonIndex(), inductionTermIndex() })
+      .input( clause({ ~(sK6 < num(1)) }) )
+      .expected({
+        clause({ ~pi(1), ~(x < num(1)) }),
+        clause({ ~pi(1), pi(x) }),
+        clause({ ~pi(1), ~pi(x+1) }),
+      })
+    )
+
+// infinite+finite downward interval induction triggered by the comparison literal
+TEST_GENERATION_INDUCTION(test_18,
+    Generation::TestCase()
+      .options({ { "induction", "int" } })
+      .context({ clause({ ~pi(sK6) }), clause({ ~(sK6 < num(1)) }) })
+      .indices({ comparisonIndex(), inductionTermIndex() })
+      .input( clause({ sK6 < bi }) )
+      .expected({
+        // infinite induction
+        clause({ ~pi(bi), ~(bi < x) }),
+        clause({ ~pi(bi), pi(x) }),
+        clause({ ~pi(bi), ~pi(x+num(-1)) }),
+
+        // finite induction
+        clause({ ~pi(bi), ~(bi < y) }),
+        clause({ ~pi(bi), num(1) < y }),
+        clause({ ~pi(bi), pi(y) }),
+        clause({ ~pi(bi), ~pi(y+num(-1)) }),
       })
     )
