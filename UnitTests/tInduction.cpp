@@ -156,6 +156,7 @@ private:
   NUMBER_SUGAR(Int)                                                                        \
   DECL_PRED(pi, {Int})                                                                     \
   DECL_FUNC(fi, {Int, s}, Int)                                                             \
+  DECL_FUNC(gi, {Int}, Int)                                                             \
   DECL_CONST(sK6, Int)                                                                     \
   DECL_CONST(sK7, Int)                                                                     \
   DECL_CONST(sK8, Int)                                                                     \
@@ -508,4 +509,101 @@ TEST_GENERATION_INDUCTION(test_18,
         clause({ ~pi(bi), pi(y) }),
         clause({ ~pi(bi), ~pi(y+num(-1)) }),
       })
+    )
+
+// given the default strictness, induction is applied on an interpreted constant
+TEST_GENERATION_INDUCTION(test_19,
+    Generation::TestCase()
+      .options({ { "induction", "int" } })
+      .context({ clause({ ~(sK6 < num(1)) }) })
+      .indices({ comparisonIndex() })
+      .input( clause({ ~pi(1) }) )
+      .expected({
+        clause({ ~pi(sK6), ~(sK6 < x) }),
+        clause({ ~pi(sK6), pi(x) }),
+        clause({ ~pi(sK6), ~pi(x+num(-1)) }),
+      })
+    )
+
+// given a suitable strictness, no induction is applied on an interpreted constant
+TEST_GENERATION_INDUCTION(test_20,
+    Generation::TestCase()
+      .options({ { "induction", "int" }, { "int_induction_strictness", "1" } })
+      .context({ clause({ ~(sK6 < num(1)) }) })
+      .indices({ comparisonIndex() })
+      .input( clause({ ~pi(1) }) )
+      .expected({})
+    )
+
+// given a suitable strictness, induction is applied on a term occuring only
+// as one of the top-level arguments of "<"
+TEST_GENERATION_INDUCTION(test_21,
+    Generation::TestCase()
+      .options({ { "induction", "int" }, { "int_induction_strictness", "0" } })
+      .context({ clause({ ~(sK6 < num(1)) }) })
+      .indices({ comparisonIndex(), inductionTermIndex() })
+      .input( clause({ ~(bi < sK6) }) )
+      .expected({
+        // input used as main literal
+        clause({ ~(bi < num(1)), ~(x < num(1)) }),
+        clause({ ~(bi < num(1)), bi < x }),
+        clause({ ~(bi < num(1)), ~(bi < x+1) }),
+        // context used as main literal
+        clause({ ~(bi < num(1)), ~(bi < y) }),
+        clause({ ~(bi < num(1)), y < num(1) }),
+        clause({ ~(bi < num(1)), ~(y+num(-1) < num(1)) }),
+      })
+    )
+
+// given a suitable strictness, induction is applied on a term occuring in only
+// one of the arguments of "<", but not to a term occuring only as a top-level
+// argument of "<" (the "sK6" in context)
+TEST_GENERATION_INDUCTION(test_22,
+    Generation::TestCase()
+      .options({ { "induction", "int" }, { "int_induction_strictness", "10" } })
+      .context({ clause({ ~(sK6 < num(1)) }) })
+      .indices({ comparisonIndex(), inductionTermIndex() })
+      .input( clause({ ~(bi < gi(sK6)) }) )
+      .expected({
+        clause({ ~(bi < gi(1)), ~(x < num(1)) }),
+        clause({ ~(bi < gi(1)), bi < gi(x) }),
+        clause({ ~(bi < gi(1)), ~(bi < gi(x+1)) }),
+      })
+    )
+
+// given a suitable strictness, no induction is applied on a term occuring only
+// as one of the top-level arguments of "<"
+TEST_GENERATION_INDUCTION(test_23,
+    Generation::TestCase()
+      .options({ { "induction", "int" }, { "int_induction_strictness", "10" } })
+      .context({ clause({ ~(sK6 < num(1)) }) })
+      .indices({ comparisonIndex(), inductionTermIndex() })
+      .input( clause({ ~(bi < sK6) }) )
+      .expected({})
+    )
+
+// given a suitable strictness, induction is applied on a term occuring only
+// as one of the top-level arguments of "="
+TEST_GENERATION_INDUCTION(test_24,
+    Generation::TestCase()
+      .options({ { "induction", "int" }, { "int_induction_strictness", "0" } })
+      .context({ clause({ ~(sK6 < num(1)) }) })
+      .indices({ comparisonIndex() })
+      .input( clause({ bi != sK6 }) )
+      .expected({
+        clause({ bi != num(1), ~(x < num(1)) }),
+        clause({ bi != num(1), bi == x }),
+        clause({ bi != num(1), bi != x+1 }),
+      })
+    )
+
+// given a suitable strictness, no induction is applied on a term occuring only
+// as one of the top-level arguments of "="
+TEST_GENERATION_INDUCTION(test_25,
+    Generation::TestCase()
+      .options({ { "induction", "int" }, { "int_induction_strictness", "100" } })
+      .context({ clause({ ~(sK6 < num(1)) }) })
+      .indices({ comparisonIndex() })
+      .input( clause({ bi != sK6 }) )
+      .expected({})
     )

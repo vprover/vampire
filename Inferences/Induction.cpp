@@ -390,7 +390,8 @@ void InductionClauseIterator::performIntInductionForEligibleBounds(Clause* premi
         DHMap<Term*, TermQueryResult>::Iterator it2(bounds2);
         while (it2.hasNext()) {
           TermQueryResult b2 = it2.next();
-          if (notDoneInt(origLit, origTerm, increasing, b1.term.term(), b2.term.term(), /*bool fromComparison=*/b1.literal != nullptr)) {
+          if ((b2.clause != premise) &&
+              notDoneInt(origLit, origTerm, increasing, b1.term.term(), b2.term.term(), /*bool fromComparison=*/b1.literal != nullptr)) {
             generalizeAndPerformIntInduction(premise, origLit, origTerm, indLits, indTerm, increasing, b1, &b2);
           }
         }
@@ -473,7 +474,8 @@ void InductionClauseIterator::performIntInductionOnEligibleLiterals(Term* origTe
         DHMap<Term*, TermQueryResult>::Iterator it(bounds2);
         while (it.hasNext()) {
           TermQueryResult bound2 = it.next();
-          if (notDoneInt(tqr.literal, origTerm, increasing, bound1.term.term(), bound2.term.term(), /*bool fromComparison=*/bound1.literal != nullptr)) {
+          if ((bound2.clause != tqr.clause) &&
+              notDoneInt(tqr.literal, origTerm, increasing, bound1.term.term(), bound2.term.term(), /*bool fromComparison=*/bound1.literal != nullptr)) {
             generalizeAndPerformIntInduction(tqr.clause, tqr.literal, origTerm, indLits, indTerm, increasing, bound1, &bound2);
           }
         }

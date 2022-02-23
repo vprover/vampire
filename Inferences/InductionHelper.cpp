@@ -22,6 +22,7 @@
 #include "Kernel/Signature.hpp"
 #include "Kernel/OperatorType.hpp"
 #include "Kernel/Term.hpp"
+#include "Kernel/TermIterators.hpp"
 #include "Kernel/Theory.hpp"
 
 #include "Shell/Options.hpp"
@@ -207,22 +208,61 @@ bool InductionHelper::isInductionTermFunctor(unsigned f) {
          );
 }
 
+bool containsSkolem(Term* t) {
+  if (env.signature->getFunction(t->functor())->skolem()) return true; 
+  NonVariableIterator nvi(t);
+  while (nvi.hasNext()) {
+    if (env.signature->getFunction(nvi.next().term()->functor())->skolem()) return true;
+  }
+  return false;
+}
+
+bool termAndLiteralSatisfyStrictness(const TermList& tl, Literal* l, unsigned strictness) {
+  if (((strictness == 1) &&
+       (((tl == *l->nthArgument(0)) && !l->nthArgument(1)->containsSubterm(tl)) ||
+        ((tl == *l->nthArgument(1)) && !l->nthArgument(0)->containsSubterm(tl)))) ||
+      ((strictness == 2) && (l->countSubtermOccurrences(tl) < 2)) || 
+      ((strictness == 3) &&
+       (!l->nthArgument(0)->containsSubterm(tl) || !l->nthArgument(1)->containsSubterm(tl))) || 
+      (strictness == 4)) {
+    return false;
+  }
+  return true;
+}
+
 bool InductionHelper::isIntInductionTermListInLiteral(TermList& tl, Literal* l) {
   CALL("InductionHelper::isIntInductionTermInLiteral");
 
+  static const unsigned strictness = env.options->intInductionStrictness();
+  static const unsigned termst = strictness % 10;
+  static const unsigned compst = (strictness / 10) % 10;
+  static const unsigned eqst = (strictness / 100) % 10;
+  ASS(termst < 3);
+  ASS(compst < 5);
+  ASS(eqst < 5);
+
+  // Term tl has to be an integer term.
+  // Further, integer term tl from literal l cannot be used for induction if any
+  // of the following conditions is satisfied.
+  // Term strictness (applies on any tl):
+  //   1: tl is an interpreted constant
+  //   2: tl does not contain a skolem function
+  // Comparison or equality strictness (applies when l is a comparison or an equality):
+  //   1: tl is a top-level argument of l, but it does not occur in the other argument of l
+  //   2: t has only one occurrence in l
+  //   3: t does not occur in both arguments of l
+  //   4: comparisons or equalities are not allowed
   ASS(tl.isTerm());
-  // Term tl has to be an integer term, and not an interpreted constant.
   unsigned f = tl.term()->functor();
-  // TODO: move this check to later (when we know the bounds)
-  if ((env.signature->getFunction(f)->fnType()->result() != AtomicSort::intSort()) ||
-      theory->isInterpretedConstant(f))
+  if (env.signature->getFunction(f)->fnType()->result() != AtomicSort::intSort() ||
+      ((termst >= 1) && theory->isInterpretedConstant(f)) ||
+      ((termst == 2) && !containsSkolem(tl.term())))
   {
     return false;
   }
-  // Integer term tl from literal l cannot be used for induction if l is an integer
-  // comparison and tl is one of the comparison's arguments.
-  if (isIntegerComparisonLiteral(l) &&
-      ((tl == *l->nthArgument(0)) || (tl == *l->nthArgument(1)))) {
+  const bool isEquality = (theory->isInterpretedPredicate(l) && l->isEquality());
+  if ((isEquality && !termAndLiteralSatisfyStrictness(tl, l, eqst)) ||
+      (!isEquality && isIntegerComparisonLiteral(l) && !termAndLiteralSatisfyStrictness(tl, l, compst))) {
     return false;
   }
   return true;
