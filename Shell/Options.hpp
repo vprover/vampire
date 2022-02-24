@@ -1795,7 +1795,19 @@ bool _hard;
         ASS(p)
         return (p->higherOrder());
       }
-      vstring msg(){ return " only useful with equality"; }
+      vstring msg(){ return " only useful with higher-order problems"; }
+    };
+
+    struct OnlyFirstOrder : OptionProblemConstraint{
+      CLASS_NAME(OnlyFirstOrder);
+      USE_ALLOCATOR(OnlyFirstOrder);
+
+      bool check(Property*p){
+        CALL("Options::OnlyFirstOrder::check");
+        ASS(p)
+        return (!p->higherOrder());
+      }
+      vstring msg(){ return " not compatible with higher-order problems"; }
     };
 
     struct HasNonUnits : OptionProblemConstraint{
@@ -1878,6 +1890,7 @@ bool _hard;
     }
     static OptionProblemConstraintUP hasEquality(){ return OptionProblemConstraintUP(new UsesEquality); }
     static OptionProblemConstraintUP hasHigherOrder(){ return OptionProblemConstraintUP(new HasHigherOrder); }
+    static OptionProblemConstraintUP onlyFirstOrder(){ return OptionProblemConstraintUP(new OnlyFirstOrder); }
     static OptionProblemConstraintUP hasNonUnits(){ return OptionProblemConstraintUP(new HasNonUnits); }
     static OptionProblemConstraintUP hasPredicates(){ return OptionProblemConstraintUP(new HasPredicates); }
     static OptionProblemConstraintUP atomsMoreThan(int a){
