@@ -413,6 +413,7 @@ void Options::init()
     _lookup.insert(&_equalityProxy);
     _equalityProxy.tag(OptionTag::PREPROCESSING);
     _equalityProxy.addProblemConstraint(hasEquality());
+    _equalityProxy.addProblemConstraint(onlyFirstOrder());
     _equalityProxy.addHardConstraint(If(notEqual(EqualityProxy::OFF)).then(_combinatorySuperposition.is(notEqual(true))));
     _equalityProxy.setRandomChoices(isRandOn(),{"R","RS","RST","RSTC","off","off","off","off","off"}); // wasn't tested, make off more likely
     
@@ -543,6 +544,7 @@ void Options::init()
     _newCNF.description="Use NewCNF algorithm to do naming, preprecess3 and clausificiation.";
     _lookup.insert(&_newCNF);
     _newCNF.addProblemConstraint(hasFormulas());
+    _newCNF.addProblemConstraint(onlyFirstOrder());
     _newCNF.tag(OptionTag::PREPROCESSING);
     _newCNF.setRandomChoices({"on","off"});
 
@@ -1595,7 +1597,9 @@ void Options::init()
     _combinatorySuperposition.description="Switches on a specific ordering and that orients combinator axioms left-right."
                                           " Also turns on a number of special inference rules";
     _lookup.insert(&_combinatorySuperposition);
+    _combinatorySuperposition.addProblemConstraint(hasHigherOrder());        
     _combinatorySuperposition.reliesOn(_addCombAxioms.is(equal(false))); //no point having two together
+    _combinatorySuperposition.reliesOn(ProperSaturationAlgorithm());    
     _combinatorySuperposition.tag(OptionTag::HIGHER_ORDER);
 
     _choiceAxiom = BoolOptionValue("choice_ax","cha",false);
