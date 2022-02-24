@@ -380,11 +380,6 @@ bool SMTSubsumptionImpl3::setupSubsumptionResolution(Kernel::Clause* base)
   // now we can write match variable for inst[j] at m_inst_matches[--mc.inst_match_count[j]].
   // afterwards, the match variables for inst[j] will be in m_inst_matches from indices mc.inst_match_count[j] to mc.inst_match_count[j+1] (excl. end).
 
-  // Ensure at least one complementary match
-  // NOTE: this clause is required. Without it, we may get a false subsumption
-  //       (because subsumption resolution uses set-matching and not multiset-matching)
-  auto ensure_compl_match = solver.alloc_constraint(total_compl_matches);
-
   // matching clauses - each base literal needs at least one match
   uint32_t v1 = mc.bli[0].first.index();
   uint32_t v2 = mc.bli[0].compl_first.index();
@@ -405,7 +400,6 @@ bool SMTSubsumptionImpl3::setupSubsumptionResolution(Kernel::Clause* base)
       ASS_LE(mc.bli[i].compl_first.index(), b.index());
       ASS_L(b.index(), mc.bli[i].compl_var_end().index());
       solver.constraint_push_literal(b);
-      solver.handle_push_literal(ensure_compl_match, b);
       uint32_t const j = mc.bm.get_bindings(b).extra_j;
       m_inst_matches[--mc.inst_match_count[inst_len+j]] = b.index();
     }
@@ -413,14 +407,12 @@ bool SMTSubsumptionImpl3::setupSubsumptionResolution(Kernel::Clause* base)
     solver.add_clause_unsafe(handle);
   }
 
-  {
-    auto handle = solver.handle_build(ensure_compl_match);
-    solver.add_clause_unsafe(handle);
-  }
-
-  // At most one instance literal is complementary-matched.
+  // Exactly one instance literal must be complementary-matched.
   // But note that this instance literal may be complementary-matched by multiple base literals!
+  // The at-least-one part is required, because without it, we may get a false subsumption
+  //       (because subsumption resolution uses set-matching and not multiset-matching)
   auto amo_inst_compl_matched = solver.alloc_constraint(inst_len);
+  auto alo_inst_compl_matched = solver.alloc_constraint(inst_len);
 
   for (unsigned j = 0; j < inst_len; ++j) {
     uint32_t const compl_match_begin = mc.inst_match_count[inst_len+j];
@@ -429,16 +421,17 @@ bool SMTSubsumptionImpl3::setupSubsumptionResolution(Kernel::Clause* base)
     if (compl_match_begin == compl_match_end) {
       continue;
     }
-    // b_is_matched is true if instance[j] is complementary-matched by one or more base literals
+    // b_is_compl_matched is true if instance[j] is complementary-matched by one or more base literals
     // (other direction not required, but we could use it instead of the "at least one complementary match" above)
-    subsat::Var const b_is_matched = solver.new_variable();
-    solver.handle_push_literal(amo_inst_compl_matched, b_is_matched);
+    subsat::Var const b_is_compl_matched = solver.new_variable();
+    solver.handle_push_literal(amo_inst_compl_matched, b_is_compl_matched);
+    solver.handle_push_literal(alo_inst_compl_matched, b_is_compl_matched);
 
     for (uint32_t k = compl_match_begin; k != compl_match_end; ++k) {
       subsat::Var const b_compl{m_inst_matches[k]};
       solver.constraint_start();
       solver.constraint_push_literal(~b_compl);
-      solver.constraint_push_literal(b_is_matched);
+      solver.constraint_push_literal(b_is_compl_matched);
       auto handle = solver.constraint_end();
       solver.add_clause_unsafe(handle);
     }
@@ -449,7 +442,7 @@ bool SMTSubsumptionImpl3::setupSubsumptionResolution(Kernel::Clause* base)
     for (uint32_t k = normal_match_begin; k != normal_match_end; ++k) {
       subsat::Var const b_normal{m_inst_matches[k]};
       solver.constraint_start();
-      solver.constraint_push_literal(~b_is_matched);
+      solver.constraint_push_literal(~b_is_compl_matched);
       solver.constraint_push_literal(~b_normal);
       auto handle = solver.constraint_end();
       solver.add_clause_unsafe(handle);
@@ -459,6 +452,10 @@ bool SMTSubsumptionImpl3::setupSubsumptionResolution(Kernel::Clause* base)
   {
     auto handle = solver.handle_build(amo_inst_compl_matched);
     solver.add_atmostone_constraint_unsafe(handle);
+  }
+  {
+    auto handle = solver.handle_build(alo_inst_compl_matched);
+    solver.add_clause_unsafe(handle);
   }
 
   return !solver.inconsistent();
