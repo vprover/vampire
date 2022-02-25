@@ -1815,7 +1815,13 @@ void SMTLIB2::parseQuantBegin(LExpr* exp)
     LispListReader pRdr(pair);
 
     vstring vName = pRdr.readAtom();
+    if(!pRdr.hasNext()) {
+      USER_ERROR("No associated sort for "+vName+" in quantification "+exp->toString());
+    }
     TermList vSort = declareSort(pRdr.readNext());
+    if(pRdr.hasNext()) {
+      USER_ERROR("More than one sort for "+vName+" in quantification "+exp->toString());
+    }
 
     pRdr.acceptEOL();
 
