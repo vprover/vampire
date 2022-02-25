@@ -295,12 +295,14 @@ void Statistics::print(ostream& out)
   COND_OUT("Passive clauses", passiveClauses);
   COND_OUT("Extensionality clauses", extensionalityClauses);
   COND_OUT("Blocked clauses", blockedClauses);
+  COND_OUT("Blocked clauses", blockedClauses);
   COND_OUT("Final active clauses", finalActiveClauses);
   COND_OUT("Final passive clauses", finalPassiveClauses);
   COND_OUT("Final extensionality clauses", finalExtensionalityClauses);
   COND_OUT("Discarded non-redundant clauses", discardedNonRedundantClauses);
   COND_OUT("Inferences skipped due to colors", inferencesSkippedDueToColors);
   COND_OUT("Inferences blocked due to ordering aftercheck", inferencesBlockedForOrderingAftercheck);
+  COND_OUT("Biggest generated clause", biggestGeneratedClause);
   SEPARATOR;
 
 
@@ -477,13 +479,21 @@ void Statistics::print(ostream& out)
   }
 }
 
-#define FIELD_OUT(field) { bool separable; COND_OUT(name << "." #field, field); (void) separable; }
+#define VAL_OUT(valname,val) { bool separable; COND_OUT(name << "." << valname, val); (void) separable; }
+#define FIELD_OUT(field) VAL_OUT(#field, field)
 void RuleStats::output(const char* name, std::ostream& out) const
 {
   FIELD_OUT(millisSucc);
   FIELD_OUT(cntSucc);
+  VAL_OUT("meanMillisSucc", millisSucc / (double) cntSucc);
+
   FIELD_OUT(millisFail);
   FIELD_OUT(cntFail);
+  VAL_OUT("meanMillisFail", millisFail / (double) cntFail);
+
+  VAL_OUT("millisTotal", millisSucc + millisFail);
+  VAL_OUT("cntTotal", cntSucc + cntFail);
+  VAL_OUT("meanTotal",  (millisSucc + millisFail)/(double)( cntSucc + cntFail ));
 }
 
 void IrcIrStats::output(const char* name, std::ostream& out) const
@@ -493,6 +503,7 @@ void IrcIrStats::output(const char* name, std::ostream& out) const
   FIELD_OUT(cntInt);
 }
 
+#undef VAL_OUT
 #undef FIELD_OUT
 #undef COND_OUT
 

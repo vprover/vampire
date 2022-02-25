@@ -1212,6 +1212,7 @@ void SaturationAlgorithm::activate(Clause* cl)
 
     while (toAdd.hasNext()) {
       Clause* genCl=toAdd.next();
+      env.statistics->biggestGeneratedClause = max(env.statistics->biggestGeneratedClause, genCl->size());
       ASS_REP(Kernel::SortHelper::areSortsValid(genCl), genCl->toString())
       addNewClause(genCl);
 
@@ -1258,7 +1259,6 @@ void SaturationAlgorithm::doUnprocessedLoop()
 start:
 
   newClausesToUnprocessed();
-
   while (! _unprocessed->isEmpty()) {
     Clause* c = _unprocessed->pop();
     ASS(!isRefutation(c));

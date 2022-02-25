@@ -1855,3 +1855,4 @@ bool Kernel::positionIn(TermList& subterm,Term* term,vstring& position)
 
   return false;
 }
+

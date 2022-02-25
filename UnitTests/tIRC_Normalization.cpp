@@ -412,3 +412,11 @@ TEST_INT(bug_07,
       .strong = false,
     })
 
+
+TEST_INT(bug_08, 
+    TestCase {
+      .in  =   0 * f(x) > 0,
+      .out = { { num(0) > 0 } },
+      .strong = false,
+    })
+

@@ -209,7 +209,6 @@ QKbo::FlatSum QKbo::flatWithCoeffs(TermList t) const
 Ordering::Result QKbo::compare(TermList s, TermList t) const 
 {
   CALL("QKbo::compare(TermList, TermList) const")
-  if (s == t) return Ordering::EQUAL;
   auto as = abstr(s);
   auto at = abstr(t);
   if (as.isNone() || at.isNone()) {

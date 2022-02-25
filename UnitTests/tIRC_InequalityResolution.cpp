@@ -576,5 +576,16 @@ TEST_GENERATION_WITH_SUGAR(bug05,
       .premiseRedundant(false)
     )
 
+// TEST_GENERATION_WITH_SUGAR(don_t_resolve_with_self,
+//     SUGAR(Real),
+//     Generation::AsymmetricTest()
+//       .indices({ inequalityResolutionIdx() })
+//       .input   (         clause({ f(x) + -f(y) > 0, -x + y >= 0 }))
+//       .context ({ })
+//       .expected(exactly( {}
+//                        ))
+//       .premiseRedundant(false)
+//     )
+
 // [       is ]: [ $greater(0.0, 0.0) | ~((((15.0 * X0) + ((-15.0 * X1) + g((15.0 * X0), X1))) = ((15.0 * X2) + $uminus(g(X3, X2))))) ]
 // [ expected ]: [ $greater(0.0, 0.0) | ~(((((15.0 * X0) + (-15.0 * X1)) + g((15.0 * X0), X1)) = ((15.0 * X0) + $uminus(g(X2, X0))))) ]

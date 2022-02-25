@@ -102,6 +102,39 @@ bool UWAMismatchHandler::checkUWA(TermList t1, TermList t2)
             return sub == NumTraits::zero() || (!sub.isVar() && sub.term()->vars() != 0) ;
         });
       }
+
+      case Shell::Options::UnificationWithAbstraction::IRC3:  {
+        auto sort = SortHelper::getResultSort(t1.term());
+        auto isAdd = [&](Term* t) {
+          auto f = t->functor();
+          return forAnyNumTraits([&](auto numTraits) {
+              return f == numTraits.addF();
+          });
+        };
+
+        auto isNumMul = [&](Term* t) {
+          auto f = t->functor();
+          return forAnyNumTraits([&](auto numTraits) {
+              using NumTraits = decltype(numTraits);
+              return f == NumTraits::mulF() && ( numTraits.isNumeral(*t->nthArgument(0)) ||  numTraits.isNumeral(*t->nthArgument(1)) );
+          });
+        };
+
+        auto isVarMul = [&](Term* t) {
+          auto f = t->functor();
+          return forAnyNumTraits([&](auto numTraits) {
+              using NumTraits = decltype(numTraits);
+              return f == NumTraits::mulF() && ( t->nthArgument(0)->isVar() ||  t->nthArgument(1)->isVar() );
+          });
+        };
+
+        auto s = t1.term();
+        auto t = t2.term();
+        return (isAdd(s) && isAdd(t)) 
+            || isVarMul(s) || isVarMul(t);
+            // || (isNumMul(s) && isNumMul(t));
+
+      }
     }
     ASSERTION_VIOLATION;
 }

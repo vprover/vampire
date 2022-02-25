@@ -375,6 +375,14 @@ TEST_GENERATION(bug03,
       .premiseRedundant(true)
     )
 
+TEST_GENERATION(bug04,
+    Generation::SymmetricTest()
+      // .inputs ({         clause({ y - x >= 0, x - z >= 0, f(z) - f(y) > 0})})
+      .inputs ({         clause({ -x + y >= 0, x + -z >= 0, -f(y) + f(z) > 0 })})
+      .expected(exactly( clause({ y             - z >= 0, f(z) - f(y) > 0}) ))
+      .premiseRedundant(true)
+    )
+
 
 
 

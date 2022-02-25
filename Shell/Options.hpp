@@ -227,6 +227,7 @@ public:
     GROUND,
     IRC1,
     IRC2,
+    IRC3,
   };
 
   enum class Induction : unsigned int {

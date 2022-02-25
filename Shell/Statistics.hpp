@@ -313,6 +313,8 @@ public:
   unsigned finalActiveClauses;
   /** extensionality clauses at the end of the saturation algorithm run */
   unsigned finalExtensionalityClauses;
+  /** max number of literals of a generated clause  */
+  unsigned biggestGeneratedClause;
 
   unsigned splitClauses;
   unsigned splitComponents;
