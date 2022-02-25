@@ -106,10 +106,6 @@ void Preprocess::preprocess(Problem& prb)
     Normalisation().normalise(prb);
   }
 
-  if (prb.hasInterpretedOperations()) {
-    env.interpretedOperationsUsed = true;
-  }
-
   if(_options.guessTheGoal() != Options::GoalGuess::OFF){
     prb.invalidateProperty();
     prb.getProperty();
@@ -325,8 +321,7 @@ void Preprocess::preprocess(Problem& prb)
 //     }
 //   }
 
-   if (_options.equalityResolutionWithDeletion()!=Options::RuleActivity::OFF &&
-	   prb.mayHaveInequalityResolvableWithDeletion() ) {
+   if (_options.equalityResolutionWithDeletion() && prb.mayHaveInequalityResolvableWithDeletion() ) {
      env.statistics->phase=Statistics::EQUALITY_RESOLUTION_WITH_DELETION;
      if (env.options->showPreprocessing())
       env.out() << "equality resolution with deletion" << std::endl;
@@ -335,7 +330,7 @@ void Preprocess::preprocess(Problem& prb)
      resolver.apply(prb);
    }
 
-   if (_options.generalSplitting()!=Options::RuleActivity::OFF) {
+   if (_options.generalSplitting()) {
      if (prb.higherOrder() || prb.hasPolymorphicSym()) {  // TODO: extend GeneralSplitting to support polymorphism (would higher-order make sense?)
        if (outputAllowed()) {
          env.beginOutput();
