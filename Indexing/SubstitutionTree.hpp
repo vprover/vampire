@@ -53,9 +53,6 @@ using namespace std;
 using namespace Lib;
 using namespace Kernel;
 
-#define SUBST_CLASS RobSubstitution
-//#define SUBST_CLASS EGSubstitution
-
 #define UARR_INTERMEDIATE_NODE_MAX_SIZE 4
 
 #define REORDERING 1
@@ -870,7 +867,7 @@ public:
     static const int NORM_QUERY_BANK=2;
     static const int NORM_RESULT_BANK=3;
 
-    SUBST_CLASS subst;
+    RobSubstitution subst;
     VarStack svStack;
 
   private:
