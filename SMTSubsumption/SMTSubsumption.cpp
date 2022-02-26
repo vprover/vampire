@@ -310,8 +310,25 @@ void ProofOfConcept::test(Clause* side_premise, Clause* main_premise)
     std::cout << "SOLVE" << std::endl;
     bool res = res1 && impl.solve();
     std::cout << "  => " << res << std::endl;
-    std::cout << "conclusion = " << impl.getSubsumptionResolutionConclusion()->toString() << std::endl;
+    if (res)
+      std::cout << "conclusion = " << impl.getSubsumptionResolutionConclusion()->toString() << std::endl;
   }
+
+  {
+    SMTSubsumptionImpl3 impl;
+    std::cout << "\nTESTING 'subsat' subsumption resolution (v3)" << std::endl;
+    subsat::print_config(std::cout);
+    std::cout << "SETUP" << std::endl;
+    auto token = impl.setupMainPremise(main_premise);
+    bool res1 = impl.setupSubsumptionResolution(side_premise);
+    std::cout << "  => " << res1 << std::endl;
+    std::cout << "SOLVE" << std::endl;
+    bool res = res1 && impl.solve();
+    std::cout << "  => " << res << std::endl;
+    if (res)
+      std::cout << "conclusion = " << impl.getSubsumptionResolutionConclusion(side_premise)->toString() << std::endl;
+  }
+
 }
 
 ProofOfConcept::ProofOfConcept()

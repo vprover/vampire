@@ -493,7 +493,6 @@ bool subsumptionBenchmarkMode_parseAxiomName(vstring const& name, vstring const&
   }
 }
 
-/*
 vvector<SMTSubsumption::SubsumptionInstance> getOldFormatSubsumptionInstances(UnitList const* units)
 {
   // Components of key: sequence number, whether side premise subsumes main premise
@@ -566,7 +565,7 @@ vvector<SMTSubsumption::SubsumptionInstance> getOldFormatSubsumptionInstances(Un
       .side_premise = side_premise,
       .main_premise = main_premise,
       .number = k.first,
-      .subsumed = k.second,
+      .result = k.second,
     });
   }
 
@@ -591,7 +590,6 @@ vvector<SMTSubsumption::SubsumptionInstance> getOldFormatSubsumptionInstances(Un
 
   return instances;
 }
-*/
 
 vmap<unsigned int, Clause*> getNumberedClauses(UnitList const* units)
 {
@@ -650,9 +648,10 @@ SMTSubsumption::SubsumptionBenchmark getSubsumptionBenchmark(UnitList const* uni
 
   vstring slog_path = env.options->subsumptionLogfile();
   if (slog_path.empty()) {
-    USER_ERROR("No subsumption log!");
-    // std::cerr << "\% Parsing old-style subsumption log..." << std::endl;
-    // return getOldFormatSubsumptionInstances(units);
+    // USER_ERROR("No subsumption log!");
+    std::cerr << "\% Parsing old-style subsumption log..." << std::endl;
+    b.subsumptions = getOldFormatSubsumptionInstances(units);
+    return b;
   }
 
   std::cerr << "\% Parsing subsumption log..." << std::endl;

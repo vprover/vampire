@@ -421,20 +421,26 @@ bool SMTSubsumptionImpl3::setupSubsumptionResolution(Kernel::Clause* base)
     if (compl_match_begin == compl_match_end) {
       continue;
     }
-    // b_is_compl_matched is true if instance[j] is complementary-matched by one or more base literals
-    // (other direction not required, but we could use it instead of the "at least one complementary match" above)
+    // b_is_compl_matched is true iff instance[j] is complementary-matched by one or more base literals
     subsat::Var const b_is_compl_matched = solver.new_variable();
     solver.handle_push_literal(amo_inst_compl_matched, b_is_compl_matched);
     solver.handle_push_literal(alo_inst_compl_matched, b_is_compl_matched);
 
+    auto x = solver.alloc_constraint(compl_match_end - compl_match_begin + 1);
+    solver.handle_push_literal(x, ~b_is_compl_matched);
+
     for (uint32_t k = compl_match_begin; k != compl_match_end; ++k) {
       subsat::Var const b_compl{m_inst_matches[k]};
+      solver.handle_push_literal(x, b_compl);
       solver.constraint_start();
       solver.constraint_push_literal(~b_compl);
       solver.constraint_push_literal(b_is_compl_matched);
       auto handle = solver.constraint_end();
       solver.add_clause_unsafe(handle);
     }
+
+    auto handle = solver.handle_build(x);
+    solver.add_clause_unsafe(handle);
 
     uint32_t const normal_match_begin = mc.inst_match_count[j];
     uint32_t const normal_match_end = mc.inst_match_count[j+1];
