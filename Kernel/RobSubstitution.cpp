@@ -12,46 +12,23 @@
  * Implements polynomial modification of the Robinson unification algorithm.
  */
 
-#include "Lib/Environment.hpp"
-#include "Shell/Options.hpp"
-
-#include "Lib/Hash.hpp"
-#include "Lib/DArray.hpp"
-#include "Lib/List.hpp"
-#include "Lib/Random.hpp"
-#include "Lib/DHSet.hpp"
-#include "Lib/DHMap.hpp"
-#include "Lib/SkipList.hpp"
-#include "Lib/Int.hpp"
-
-#include "Clause.hpp"
-#include "Renaming.hpp"
-#include "SortHelper.hpp"
-#include "Term.hpp"
-#include "TermIterators.hpp"
-#include "Shell/Statistics.hpp"
-
-#include "Indexing/TermSharing.hpp"
 
 #include "RobSubstitution.hpp"
 
-#if VDEBUG
-#include "Kernel/Signature.hpp"
+#include "Lib/DArray.hpp"
+#include "Lib/DHSet.hpp"
+#include "Lib/DHMap.hpp"
 #include "Lib/Int.hpp"
-#include "Debug/Tracer.hpp"
-#include <iostream>
-using namespace Debug;
-#endif
 
-#define DEBUG_RESULT_WEIGHT_COMPUTATION 0
+#include "Renaming.hpp"
+#include "SortHelper.hpp"
+#include "TermIterators.hpp"
 
 namespace Kernel
 {
 
-using namespace std;
 using namespace Lib;
 
-//const int RobSubstitution::AUX_INDEX=-3;
 const int RobSubstitution::SPECIAL_INDEX=-2;
 const int RobSubstitution::UNBOUND_INDEX=-1;
 
@@ -270,57 +247,6 @@ RobSubstitution::VarSpec RobSubstitution::root(VarSpec v) const
     v=getVarSpec(binding);
   }
 }
-
-/* Not currently used
-
-void RobSubstitution::makeEqual(VarSpec v1, VarSpec v2, TermSpec target)
-{
-  CALL("RobSubstitution::makeEqual");
-
-  v1=root(v1);
-  v2=root(v2);
-  if(v1==v2) {
-    bind(v2,target);
-    return;
-  }
-  if(Random::getBit()) {
-    bindVar(v1,v2);
-    bind(v2,target);
-  } else {
-    bindVar(v2,v1);
-    bind(v1,target);
-  }
-}
-*/
-
-/* Not currently used
-void RobSubstitution::unifyUnbound(VarSpec v, TermSpec ts)
-{
-  CALL("RobSubstitution::unifyUnbound");
-
-  v=root(v);
-
-  ASS(isUnbound(v));
-
-  if(ts.isVar()) {
-    VarSpec v2=root(getVarSpec(ts));
-    if(v!=v2) {
-    	makeEqual(v, v2, deref(v2));
-    }
-  } else {
-    bind(v,ts);
-  }
-}
-*/
-
-
-void RobSubstitution::swap(TermSpec& ts1, TermSpec& ts2)
-{
-  TermSpec aux=ts1;
-  ts1=ts2;
-  ts2=aux;
-}
-
 
 bool RobSubstitution::occurs(VarSpec vs, TermSpec ts)
 {
@@ -863,9 +789,6 @@ size_t RobSubstitution::getApplicationResultWeight(Literal* lit, int index) cons
     size_t argWeight = getApplicationResultWeight(*args,index);
     res += argWeight;
   }
-#if VDEBUG && DEBUG_RESULT_WEIGHT_COMPUTATION
-  ASS_REP2(apply(lit, index)->weight()==res, res, lit->toString()+"   "+apply(lit, index)->toString());
-#endif
   return res;
 }
 
