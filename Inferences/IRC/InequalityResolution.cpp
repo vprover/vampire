@@ -192,8 +192,7 @@ ClauseIterator InequalityResolution::generateClauses(Clause* premise)
   auto maxLiterals = make_shared(new Stack<Literal*>(_shared->strictlySelectedLiterals(premise))); // TODO use Set instead of Stack
   return pvi(numTraitsIter([this, premise,maxLiterals](auto numTraits){
     using NumTraits = decltype(numTraits);
-    return iterTraits(ownedArrayishIterator(_shared->maxAtomicTermsNonVar<NumTraits>(premise)))
-    // TODO maxAtomicTermsNonVar -> strictlySelectedTerms
+    return iterTraits(ownedArrayishIterator(_shared->selectedTerms<NumTraits>(premise, /* strict lit */ true, /* strict terms */ true )))
       .filter([maxLiterals](auto& maxTerm) 
           { return iterTraits(maxLiterals->iterFifo())
                      .find([&](auto x) { return x == maxTerm.literal; })

@@ -14,7 +14,7 @@ void InequalityResolutionIndex::handleClause(Clause* c, bool adding)
   auto maxLits =  make_shared(new Stack<Literal*>(_shared->selectedLiterals(c))); // TODO use set instead of stack
   forEachNumTraits([&](auto numTraits){
       using NumTraits = decltype(numTraits);
-      for (auto& maxTerm : _shared->maxAtomicTermsNonVar<NumTraits>(c)) {
+      for (auto& maxTerm : _shared->selectedTerms<NumTraits>(c)) {
         
         if (!maxTerm.self.tryNumeral().isSome() // <- skipping numerals
             && maxTerm.ircLit.isInequality() // <- skipping equalities

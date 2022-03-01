@@ -154,6 +154,7 @@ struct Monom
 
   Option<Variable> tryVar() const;
   Option<Numeral> tryNumeral() const;
+  bool isVar()     const { return tryVar().isSome(); }
   bool isNumeral() const { return tryNumeral().isSome(); }
   TermList denormalize() const;
 

@@ -61,7 +61,7 @@ public:
 public:
   template<class NumTraits> static auto iterHyp1Apps(shared_ptr<IrcState>& _shared, NumTraits numTraits, Clause* premise, Lib::shared_ptr<Stack<Literal*>> maxLits)
   {
-    return iterTraits(ownedArrayishIterator(_shared->maxAtomicTermsNonVar<NumTraits>(premise)))
+    return iterTraits(ownedArrayishIterator(_shared->selectedTerms<NumTraits>(premise)))
          .filter([maxLits](auto& maxTerm) 
             { return maxTerm.ircLit.symbol() == IrcPredicate::EQ; })
          .map([premise](auto maxTerm) 

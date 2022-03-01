@@ -263,14 +263,14 @@ namespace Kernel {
   };
 
   template<class NumTraits>
-  struct MaxAtomicTerm {
+  struct SelectedAtomicTerm {
     unsigned litIdx;
     Literal* literal;
     IrcLiteral<NumTraits> ircLit;
     unsigned termIdx;
     Monom<NumTraits> self;
 
-    friend std::ostream& operator<<(std::ostream& out, MaxAtomicTerm const& self)
+    friend std::ostream& operator<<(std::ostream& out, SelectedAtomicTerm const& self)
     { return out << self.self << " @ " << *self.literal; }
   };
 
@@ -284,8 +284,9 @@ namespace Kernel {
     Ordering* const ordering;
     Shell::Options::UnificationWithAbstraction const uwa;
 
-    template<class NumTraits> Stack<Monom<NumTraits>> maxAtomicTerms(IrcLiteral<NumTraits>const& lit, bool strict = false);
-    template<class NumTraits> Stack<MaxAtomicTerm<NumTraits>> maxAtomicTermsNonVar(Clause* cl, bool strictlyMaxLiterals = false, bool strictlyMaxTerms = false);
+    template<class GetSummand> auto iterSelectedTerms(GetSummand getSummand, unsigned litSize, bool strict = false);
+    template<class NumTraits> Stack<Monom<NumTraits>> selectedTerms(IrcLiteral<NumTraits>const& lit, bool strict = false);
+    template<class NumTraits> Stack<SelectedAtomicTerm<NumTraits>> selectedTerms(Clause* cl, bool strictlyMaxLiterals = false, bool strictlyMaxTerms = false);
 
     Stack<Literal*> selectedLiterals(Clause* cl, bool strictlyMax = false);
     Stack<std::pair<Literal*, unsigned>> selectedLiteralsWithIdx(Clause* cl, bool strictlyMax = false);
@@ -565,30 +566,53 @@ auto maxElements(GetElem getElem, unsigned size, Cmp compare, bool strictlyMax) 
 }
 
 
-// TODO check whether superposition modulo LA uses strictly max
-template<class NumTraits>
-Stack<Monom<NumTraits>> IrcState::maxAtomicTerms(IrcLiteral<NumTraits>const& lit, bool strictlyMax)
+template<class GetSummand> auto IrcState::iterSelectedTerms(GetSummand getSummand, unsigned litSize, bool strictlyMax)
 {
-  auto max = maxElements([&](auto i) { return lit.term().summandAt(i); }, 
-                     lit.term().nSummands(),
-                     [&](auto l, auto r) { return ordering->compare(l.factors->denormalize(), r.factors->denormalize()); },
-                     strictlyMax);
-
-  unsigned offs = 0;
-  for (unsigned i = 0; i < max.size(); i++) {
-    if (max[i].factors->tryVar().isSome()) {
-      /* we skip this one */
-    } else {
-      max[offs++] = max[i];
-    }
-  }
-  max.pop(max.size() - offs);
-  return max;
+  return iterTraits(ownedArrayishIterator(
+      maxElements([=](unsigned i) { return i; }, litSize,
+                     [&](auto l, auto r) { return ordering->compare(getSummand(l).factors->denormalize(), getSummand(r).factors->denormalize()); },
+                     strictlyMax)
+      ))
+    .filter([=](unsigned i) { return !getSummand(i).isVar(); }) ;
 }
 
-template<class NumTraits> Stack<MaxAtomicTerm<NumTraits>> IrcState::maxAtomicTermsNonVar(Clause* cl, bool strictlyMaxLiterals, bool strictlyMaxTerms)
+
+// TODO check whether superposition modulo LA uses strictly max
+// template<class NumTraits>
+//
+// Stack<Monom<NumTraits>> IrcState::iterSelectedTerms(IrcLiteral<NumTraits>const& lit, bool strictlyMax)
+// template<class Sum, class GetSummand> 
+// auto IrcState::iterSelectedTerms(Sum lit, unsigned sumSize, GetSummand getSummand, bool strictlyMax) -> Stack<decltype(lit(sz))>;
+// {
+//   auto max = maxElements([&](auto i) { return getSummand; }, 
+//                      sumSize,
+//                      [&](auto l, auto r) { return ordering->compare(l.factors->denormalize(), r.factors->denormalize()); },
+//                      strictlyMax);
+//
+//   unsigned offs = 0;
+//   for (unsigned i = 0; i < max.size(); i++) {
+//     if (max[i].factors->tryVar().isSome()) {
+//       /* we skip this one */
+//     } else {
+//       max[offs++] = max[i];
+//     }
+//   }
+//   max.pop(max.size() - offs);
+//   return max;
+// }
+
+// TODO check whether superposition modulo LA uses strictly max
+template<class NumTraits>
+Stack<Monom<NumTraits>> IrcState::selectedTerms(IrcLiteral<NumTraits>const& lit, bool strictlyMax)
 {
-  CALL("IrcState::maxAtomicTermsNonVar(Clause* cl)")
+  return iterSelectedTerms([&](auto i) { return lit.term().summandAt(i); }, lit.term().nSummands(), strictlyMax)
+    .map([=](unsigned i) { return lit.term().summandAt(i); })
+    .template collect<Stack>();
+}
+
+template<class NumTraits> Stack<SelectedAtomicTerm<NumTraits>> IrcState::selectedTerms(Clause* cl, bool strictlyMaxLiterals, bool strictlyMaxTerms)
+{
+  CALL("IrcState::selectedTerms(Clause* cl)")
 
   return iterTraits(getRangeIterator((unsigned)0, cl->numSelected()))
     .filterMap([&](auto i) {
@@ -602,22 +626,19 @@ template<class NumTraits> Stack<MaxAtomicTerm<NumTraits>> IrcState::maxAtomicTer
                 : Option<IrcLiteral<NumTraits>>(norm.value);
               })
           .map([&](auto irc) { 
-              Stack<MaxAtomicTerm<NumTraits>> elems(irc.term().nSummands());
-              for (unsigned j = 0; j < irc.term().nSummands(); j++) {
-                auto t = irc.term().summandAt(j);
-                // if (!t.isNumeral())
-                  elems.push(MaxAtomicTerm<NumTraits> {
-                    .litIdx = i,
-                    .literal = lit,
-                    .ircLit = irc,
-                    .termIdx = j,
-                    .self = t,
-                  });
-              }
-              auto max = maxElements([&](auto i) { return elems[i]; }, elems.size(),
-                                 [&](auto l, auto r) { return ordering->compare(l.self.factors->denormalize(), r.self.factors->denormalize()); },
-                                 /* strictlyMax */ false);
-              return ownedArrayishIterator(std::move(max));
+              return pvi(iterSelectedTerms(
+                    [=](unsigned i ) { return irc.term().summandAt(i); }, 
+                    irc.term().nSummands(),
+                    strictlyMaxTerms)
+                .map([=](auto j)  {
+                    return SelectedAtomicTerm<NumTraits> {
+                      .litIdx = i,
+                      .literal = lit,
+                      .ircLit = irc,
+                      .termIdx = j,
+                      .self = irc.term().summandAt(j),
+                    };
+                }));
           });
         })
         .flatten()

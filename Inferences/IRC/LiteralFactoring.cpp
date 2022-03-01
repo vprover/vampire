@@ -91,8 +91,8 @@ Stack<Clause*> LiteralFactoring::applyRule(Clause* premise,
       auto lit_sigma_norm = _shared->renormalize<NumTraits>(lit_sigma);
       if (lit_sigma_norm.isNone())  
         return true; // overflow while normalizing, we assume that we can apply the rule
-      auto strictly_max = _shared->maxAtomicTerms(lit_sigma_norm.unwrap(), /*strict*/true);
-      auto s_sigma = _shared->normalize(TypedTermList(sigma(s->denormalize()).term())).wrapMonom<NumTraits>();
+      auto strictly_max = _shared->selectedTerms(lit_sigma_norm.unwrap(), /*strict*/ true);
+      auto s_sigma = _shared->normalize(TypedTermList(sigma(s->denormalize()), NumTraits::sort())).wrapMonom<NumTraits>();
       if (iterTraits(strictly_max.iterFifo()).all([&](auto monom) { return monom.factors != s_sigma.factors; }))
         return false;
       else 
@@ -287,8 +287,8 @@ struct __getAllNumTraits<RealTraits, Obj> {
 };
 
 
-  template<class NumTraits> using MaxTermStack = Stack<MaxAtomicTerm<NumTraits>>;
-  template<class NumTraits> using SharedMaxTermStack = shared_ptr<MaxTermStack<NumTraits>>;
+  // template<class NumTraits> using SelectedTermStack = Stack<SelectedAtomicTerm<NumTraits>>;
+  // template<class NumTraits> using SharedSelectedTermStack = shared_ptr<SelectedTermStack<NumTraits>>;
 
 auto range(unsigned from, unsigned to) { return iterTraits(getRangeIterator(from, to)); }
 
@@ -321,7 +321,7 @@ ClauseIterator LiteralFactoring::generateClauses(
     Literal* lit2, IrcLiteral<NumTraits> L2
   ) 
 {
-  auto maxAtomic = [this](auto L) { return make_shared(new Stack<Monom<NumTraits>>(_shared->maxAtomicTerms(L, /* strict = */ true))); };
+  auto maxAtomic = [this](auto L) { return make_shared(new Stack<Monom<NumTraits>>(_shared->selectedTerms(L, /* strict = */ true))); };
   auto max1 = maxAtomic(L1);
   auto max2 = maxAtomic(L2);
   return pvi(range(0, max1->size())

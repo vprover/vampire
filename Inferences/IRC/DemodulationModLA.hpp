@@ -119,7 +119,7 @@ public:
   static auto __simplifiers(IrcState& shared, Clause* simplifyWith, IrcLiteral<NumTraits> lit)
   {
 
-    return pvi(iterTraits(ownedArrayishIterator(shared.maxAtomicTerms(lit, /* strictlyMax */ true)))
+    return pvi(iterTraits(ownedArrayishIterator(shared.selectedTerms(lit, /* strictlyMax */ true)))
       .map([lit](auto monom) { 
           return AnySimplification(Simplification<NumTraits> {
             // .clause = simplifyWith,

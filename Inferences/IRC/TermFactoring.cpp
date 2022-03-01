@@ -198,7 +198,7 @@ template<class NumTraits> Option<Clause*> TermFactoring::applyRule(
 
 template<class NumTraits> ClauseIterator TermFactoring::generateClauses(Clause* premise, Literal* lit, IrcLiteral<NumTraits> L)
 {
-  auto selected = make_shared(new Stack<Monom<NumTraits>>(_shared->maxAtomicTerms(L)));
+  auto selected = make_shared(new Stack<Monom<NumTraits>>(_shared->selectedTerms(L)));
 
   return pvi( rng(0, selected->size())
       .flatMap([=](auto i) {

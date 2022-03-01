@@ -127,7 +127,7 @@ ClauseIterator Totality::generateClauses(Clause* premise)
   auto maxLiterals = make_shared(new Stack<Literal*>(_shared->strictlySelectedLiterals(premise))); // TODO use Set instead of Stack
   return pvi(numTraitsIter([this, premise,maxLiterals](auto numTraits){
     using NumTraits = decltype(numTraits);
-    return iterTraits(ownedArrayishIterator(_shared->maxAtomicTermsNonVar<NumTraits>(premise)))
+    return iterTraits(ownedArrayishIterator(_shared->selectedTerms<NumTraits>(premise)))
     // return iterTraits(ownedArrayishIterator(_shared->strictlySelectedLiterals(premise)))
       .filter([maxLiterals](auto& maxTerm) 
           { return iterTraits(maxLiterals->iterFifo())
@@ -149,8 +149,6 @@ ClauseIterator Totality::generateClauses(Clause* premise)
 template<class NumTraits> 
 ClauseIterator Totality::generateClauses(Clause* hyp1, Literal* lit1, IrcLiteral<NumTraits> l1, Monom<NumTraits> j_s1) const
 {
-  // return pvi(iterTraits(ownedArrayishIterator(_shared->maxAtomicTerms(l1)))
-  //     .flatMap([=](Monom<NumTraits> j_s1) {
         return pvi(iterTraits(_index->getUnificationsWithConstraints(j_s1.factors->denormalize(), true))
             .filterMap([=](TermQueryResult unif) {
               auto hyp2 = unif.clause;
