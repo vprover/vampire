@@ -477,7 +477,7 @@ TEST_GENERATION_WITH_SUGAR(bug01a,
     SUGAR(Real),
     Generation::SymmetricTest()
       .indices({ inequalityResolutionIdx() })
-      .inputs  ({ clause({ r(x, y), selected( (f(x) + -f(y) > 0) ) }) 
+      .inputs  ({ clause({ selected(r(x, y)),  (f(x) + -f(y) > 0)  }) 
                ,  clause({ selected(f(a) >  0) }) })
       //                                      (y - 1 > 0) 
       .expected(exactly(
@@ -502,7 +502,7 @@ TEST_GENERATION_WITH_SUGAR(bug03a,
 // *resolvent = $greater($sum(1,$uminus(X1)),0) | ~'MS'(X0,X1,s2)
       .indices({ inequalityResolutionIdx() })
       .inputs  ({        clause({            selected(1 + -f(a)        > 0) })  
-               ,         clause({  ~r(y,z) , selected(1 + -f(x) + f(a) > 0) }) })
+               ,         clause({  selected(~r(y,z)), 1 + -f(x) + f(a) > 0  }) })
       .expected(exactly(                      ))
       .premiseRedundant(false)
     )

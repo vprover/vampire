@@ -189,8 +189,7 @@ template<class NumTraits, class Subst, class CnstIter> Option<Clause*> Inequalit
 
 ClauseIterator InequalityResolution::generateClauses(Clause* premise) 
 {
-  auto maxLiterals = make_shared(new Stack<Literal*>(_shared->strictlyMaxLiterals(premise))); // TODO use Set instead of Stack
-    // TODO strictlyMaxLiterals -> strictlySelected
+  auto maxLiterals = make_shared(new Stack<Literal*>(_shared->strictlySelectedLiterals(premise))); // TODO use Set instead of Stack
   return pvi(numTraitsIter([this, premise,maxLiterals](auto numTraits){
     using NumTraits = decltype(numTraits);
     return iterTraits(ownedArrayishIterator(_shared->maxAtomicTermsNonVar<NumTraits>(premise)))

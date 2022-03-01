@@ -118,6 +118,38 @@ Option<MaybeOverflow<AnyIrcLiteral>> InequalityNormalizer::renormalize(Literal* 
     || Option<MaybeOverflow<Out>>();
 }
 
+Stack<std::pair<Literal*, unsigned>> IrcState::selectedLiteralsWithIdx(Clause* cl, bool strictlyMax)
+{
+  return iterTraits(getRangeIterator((unsigned)0, cl->numSelected()))
+    .map([=](auto i) 
+        { return make_pair((*cl)[i], i); })
+    .collect<Stack>();
+  // return maxElements([&](unsigned i) { return make_pair((*cl)[i], i); }, 
+  //                    cl->size(),
+  //                    [&](auto l, auto r) { return ordering->compare(l.first, r.first); },
+  //                    strictlyMax);
+}
+
+
+Stack<Literal*> IrcState::selectedLiterals(Clause* cl, bool strictlyMax)
+{
+  return iterTraits(cl->getSelectedLiteralIterator()).collect<Stack>();
+  // return maxElements([&](auto i) { return (*cl)[i]; }, 
+  //                    cl->size(),
+  //                    [&](auto l, auto r) { return ordering->compare(l, r); },
+  //                    strictlyMax);
+}
+
+
+// Stack<Literal*> IrcState::selectedLiterals(Stack<Literal*> cl, bool strictlyMax)
+// {
+//   return maxElements([&](auto i) { return cl[i]; }, 
+//                      cl.size(),
+//                      [&](auto l, auto r) { return ordering->compare(l, r); },
+//                      strictlyMax);
+// }
+
+
 Stack<std::pair<Literal*, unsigned>> IrcState::maxLiteralsWithIdx(Clause* cl, bool strictlyMax)
 {
   return maxElements([&](unsigned i) { return make_pair((*cl)[i], i); }, 

@@ -139,7 +139,7 @@ TEST_GENERATION(uwa1,
 
 TEST_GENERATION(misc1,
     Generation::SymmetricTest()
-      .inputs  ({  clause({ f(x) + f(y) > 0  , f(y) + f(x) > 0  }) })
+      .inputs  ({  clause({ selected( f(x) + f(y) > 0 )  , selected( f(y) + f(x) > 0 )  }) })
       .expected(exactly( 
             clause({ f(x) + f(x) > 0, -f(x) + f(x) != 0 })
           , clause({ f(y) + f(y) > 0, -f(y) + f(y) != 0 })
@@ -151,7 +151,7 @@ TEST_GENERATION(misc1,
 
 TEST_GENERATION(max_s1_after_unif_1,
     Generation::SymmetricTest()
-      .inputs  ({  clause({ f(x) + ff(y) > 0  , f(y) + ff(x) > 0  }) })
+      .inputs  ({  clause({ selected( f(x) + ff(y) > 0 )  , selected( f(y) + ff(x) > 0 )  }) })
       .expected(exactly( 
             clause({ f(x) + ff(x) > 0, -f(x) + f(x) != 0 })
       ))
@@ -160,7 +160,7 @@ TEST_GENERATION(max_s1_after_unif_1,
 
 TEST_GENERATION(max_s2_after_unif_1,
     Generation::SymmetricTest()
-      .inputs  ({  clause({  f(y) + ff(x) > 0, f(x) + ff(y) > 0    }) })
+      .inputs  ({  clause({  selected( f(y) + ff(x) > 0 ), selected( f(x) + ff(y) > 0 )    }) })
       .expected(exactly( 
             clause({ f(x) + ff(x) > 0, -f(x) + f(x) != 0 })
       ))
@@ -169,7 +169,7 @@ TEST_GENERATION(max_s2_after_unif_1,
 
 TEST_GENERATION(max_s1_after_unif_2,
     Generation::SymmetricTest()
-      .inputs  ({  clause({  ff(y) + fff(x) > 0, f(z) + fff(y) > 0    }) })
+      .inputs  ({  clause({  selected( ff(y) + fff(x) > 0 ), selected( f(z) + fff(y) > 0 )    }) })
       .expected(exactly( 
             clause({ ff(x) + fff(x) > 0, -f(y) + ff(x) != 0 })
       ))
@@ -183,7 +183,7 @@ TEST_GENERATION(max_s1_after_unif_2,
 TEST_GENERATION(lasca01,
     Generation::SymmetricTest()
       .rule(heap(testLiteralFactoring(/* lasca factoring */ true)))
-      .inputs  ({  clause({  ff(a) + f(y) > 0, ff(x) + f(z) > 0   }) })
+      .inputs  ({  clause({  selected( ff(a) + f(y) > 0 ), selected( ff(x) + f(z) > 0 )   }) })
       .expected(exactly(
             clause({         ff(a) + f(y) > 0 , f(z) - f(y) > 0        })
           , clause({         ff(a) + f(z) > 0 , f(y) - f(z) > 0        })
@@ -197,7 +197,7 @@ TEST_GENERATION(lasca01,
 TEST_GENERATION(lasca02,
     Generation::SymmetricTest()
       .rule(heap(testLiteralFactoring(/* lasca factoring */ true)))
-      .inputs  ({  clause({  2 * ff(a) + f(y) > 0, 3 * ff(x) + f(z) > 0   }) })
+      .inputs  ({  clause({  selected( 2 * ff(a) + f(y) > 0 ), selected( 3 * ff(x) + f(z) > 0 )   }) })
       .expected(exactly(
             clause({         2 * ff(a) + f(y) > 0 , -3 * f(y) + 2 * f(z) > 0        })
           , clause({         3 * ff(a) + f(z) > 0 , -2 * f(z) + 3 * f(y) > 0        })
@@ -211,7 +211,7 @@ TEST_GENERATION(lasca02,
 TEST_GENERATION(lasca_bug1,
     Generation::SymmetricTest()
       .rule(heap(testLiteralFactoring(/* lasca factoring */ true)))
-      .inputs  ({  clause({ f(x) + y > 0, f(x) + z > 0 }) })
+      .inputs  ({  clause({ selected( f(x) + y > 0 ), selected( f(x) + z > 0 ) }) })
       .expected(exactly(
             clause({         f(x) + y > 0 , z - y > 0        })
           , clause({         f(x) + z > 0 , y - z > 0        })
@@ -222,7 +222,7 @@ TEST_GENERATION(lasca_bug1,
 TEST_GENERATION(lasca_bug2a,
     Generation::SymmetricTest()
       .rule(heap(testLiteralFactoring(/* lasca factoring */ true)))
-      .inputs  ({  clause({ f(x) + y + 1 > 0, f(x) + z > 0 }) })
+      .inputs  ({  clause({ selected( f(x) + y + 1 > 0 ), selected( f(x) + z > 0 ) }) })
       .expected(exactly(
             clause({         f(x) + y + 1 > 0 , z     - y + -1 > 0 })
           , clause({         f(x) + z     > 0 , y + 1 - z      > 0 })
@@ -233,7 +233,7 @@ TEST_GENERATION(lasca_bug2a,
 TEST_GENERATION(lasca_bug2,
     Generation::SymmetricTest()
       .rule(heap(testLiteralFactoring(/* lasca factoring */ true)))
-      .inputs  ({  clause({ -f(x) + y + 1 > 0, -f(x) + z > 0 }) })
+      .inputs  ({  clause({ selected( -f(x) + y + 1 > 0 ), selected( -f(x) + z > 0 ) }) })
       .expected(exactly(
             clause({         -f(x) + y + 1 > 0 , z     - y + -1 > 0 })
           , clause({         -f(x) + z     > 0 , y + 1 - z      > 0 })
@@ -244,7 +244,7 @@ TEST_GENERATION(lasca_bug2,
 TEST_GENERATION(lasca_bug3,
     Generation::SymmetricTest()
       .rule(heap(testLiteralFactoring(/* lasca factoring */ true)))
-      .inputs  ({  clause({  -a + x + -1 > 0, -a + -x > 0 }) })
+      .inputs  ({  clause({  selected(-a + x + -1 > 0), selected(-a + -x > 0) }) })
       .expected(exactly(
             clause({         -a +  x + -1 > 0, (-x) + (-x + 1) > 0 })
           , clause({         -a + -x      > 0, (x + -1) +  (x) > 0 })

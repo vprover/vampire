@@ -11,7 +11,7 @@ void InequalityResolutionIndex::handleClause(Clause* c, bool adding)
 {
   CALL("InequalityResolutionIndex::handleClause");
   
-  auto maxLits =  make_shared(new Stack<Literal*>(_shared->maxLiterals(c))); // TODO use set instead of stack
+  auto maxLits =  make_shared(new Stack<Literal*>(_shared->selectedLiterals(c))); // TODO use set instead of stack
   forEachNumTraits([&](auto numTraits){
       using NumTraits = decltype(numTraits);
       for (auto& maxTerm : _shared->maxAtomicTermsNonVar<NumTraits>(c)) {
@@ -52,7 +52,7 @@ void IRCSuperpositionRhsIndex::handle(TermList term, Literal* lit, Clause* c, bo
 void IRCSuperpositionRhsIndex::handleClause(Clause* c, bool adding)
 {
   CALL("IRCSuperpositionRhsIndex::handleClause");
-  auto maxLits =  make_shared(new Stack<Literal*>(_shared->maxLiterals(c))); // TODO use set instead of stack
+  auto maxLits =  make_shared(new Stack<Literal*>(_shared->selectedLiterals(c))); // TODO use set instead of stack
   forEachNumTraits([&](auto numTraits) {
       for (auto hyp2 : Inferences::IRC::Superposition::iterHyp2Apps(_shared, numTraits, c, maxLits)) {
         handle(hyp2.key(), hyp2.pivot, hyp2.cl, adding);
@@ -79,7 +79,7 @@ void IRCSuperpositionLhsIndex::handleClause(Clause* c, bool adding)
 {
 
   CALL("IRCSuperpositionLhsIndex::handleClause");
-  auto maxLits =  make_shared(new Stack<Literal*>(_shared->maxLiterals(c))); // TODO use set instead of stack
+  auto maxLits =  make_shared(new Stack<Literal*>(_shared->selectedLiterals(c))); // TODO use set instead of stack
   forEachNumTraits([&](auto numTraits) {
       for (auto hyp1 : Inferences::IRC::Superposition::iterHyp1Apps(_shared, numTraits, c, maxLits)) {
         handle(hyp1.key(), hyp1.pivot, hyp1.cl, adding);

@@ -286,10 +286,19 @@ namespace Kernel {
 
     template<class NumTraits> Stack<Monom<NumTraits>> maxAtomicTerms(IrcLiteral<NumTraits>const& lit, bool strict = false);
     template<class NumTraits> Stack<MaxAtomicTerm<NumTraits>> maxAtomicTermsNonVar(Clause* cl, bool strictlyMaxLiterals = false, bool strictlyMaxTerms = false);
+
+    Stack<Literal*> selectedLiterals(Clause* cl, bool strictlyMax = false);
+    Stack<std::pair<Literal*, unsigned>> selectedLiteralsWithIdx(Clause* cl, bool strictlyMax = false);
+    // Stack<Literal*> selectedLiterals(Stack<Literal*> cl, bool strictlyMax = false);
+    Stack<Literal*> strictlySelectedLiterals(Clause* cl) { return selectedLiterals(cl, true); }
+
+  private:
     Stack<Literal*> maxLiterals(Clause* cl, bool strictlyMax = false);
     Stack<std::pair<Literal*, unsigned>> maxLiteralsWithIdx(Clause* cl, bool strictlyMax = false);
     Stack<Literal*> maxLiterals(Stack<Literal*> cl, bool strictlyMax = false);
     Stack<Literal*> strictlyMaxLiterals(Clause* cl) { return maxLiterals(cl, true); }
+
+  public:
 
     Option<UwaResult> unify(TermList lhs, TermList rhs) const;
     Option<AnyIrcLiteral> renormalize(Literal*);

@@ -110,15 +110,16 @@ Stack<Clause*> LiteralFactoring::applyRule(Clause* premise,
     return nothing(2);
 
   {
-    auto premLits = iterTraits(premise->iterLits()).template collect<Stack>();
-    auto maxLiterals = _shared->maxLiterals(sigma(std::move(premLits)));
+    // auto premLits = iterTraits(premise->iterLits()).template collect<Stack>();
+    // auto selectedLiterals = _shared->selectedLiterals(sigma(std::move(premLits)));
 
-    // checking (±ks1 + t1 <> 0)σ /< (±ks2 + t2 <> 0 \/ C)σ
-    if (!iterTraits(maxLiterals.iterFifo()).any([&](auto x) { return x == lit1_sigma; }))
-      return nothing(3);
+    // TODO do we wanna include this check again?
+    // // checking (±ks1 + t1 <> 0)σ /< (±ks2 + t2 <> 0 \/ C)σ
+    // if (!iterTraits(selectedLiterals.iterFifo()).any([&](auto x) { return x == lit1_sigma; }))
+    //   return nothing(3);
 
     // // checking (±ks2 + t2 <> 0)σ /< (±ks1 + t1 <> 0 \/ C)σ
-    // if (!iterTraits(maxLiterals.iterFifo()).any([&](auto x) { return x == lit2_sigma; }))
+    // if (!iterTraits(selectedLiterals.iterFifo()).any([&](auto x) { return x == lit2_sigma; }))
     //   return nothing(4);
   }
 
@@ -343,8 +344,8 @@ ClauseIterator LiteralFactoring::generateClauses(Clause* premise)
 
   DEBUG("in: ", *premise)
 
-  // auto selected = make_shared(move_to_heap(_shared->maxLiterals(premise)));
-  auto selected = make_shared(move_to_heap(_shared->maxLiteralsWithIdx(premise)));
+  // auto selected = make_shared(move_to_heap(_shared->selectedLiterals(premise)));
+  auto selected = make_shared(move_to_heap(_shared->selectedLiteralsWithIdx(premise)));
   return pvi(
       range(0, selected->size())
         .flatMap([=](unsigned _i) {

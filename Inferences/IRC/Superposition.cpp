@@ -203,7 +203,7 @@ template<class NumTraits> auto Superposition::genRhs(NumTraits numTraits, Clause
 
 ClauseIterator Superposition::generateClauses(Clause* premise) 
 {
-  auto maxLits = make_shared(new Stack<Literal*>(_shared->strictlyMaxLiterals(premise)));
+  auto maxLits = make_shared(new Stack<Literal*>(_shared->strictlySelectedLiterals(premise)));
   return pvi(numTraitsIter([this, premise, maxLits](auto numTraits) {
      return Lib::getConcatenatedIterator(
          genLhs(numTraits, premise, maxLits),

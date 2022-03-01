@@ -112,7 +112,7 @@ TEST_GENERATION(lit_max_after_unif_1,
 // checking (k1 s1 + k2 s2 + t <> 0)σ /≺ Cσ
 TEST_GENERATION(lit_max_after_unif_2,
     Generation::SymmetricTest()
-      .inputs  ({  clause({ f(x) +  -f(a) > 0, f(f(a)) > 0, f(z) > 0 }) })
+      .inputs  ({  clause({ selected( f(x) +  -f(a) > 0 ), selected( f(f(a)) > 0 ), selected( f(z) > 0 ) }) })
       .expected(exactly(
       ))
       .premiseRedundant(false)
@@ -121,8 +121,8 @@ TEST_GENERATION(lit_max_after_unif_2,
 // checking (k1 s1 + k2 s2 + t <> 0) /≺ Cσ
 TEST_GENERATION(lit_max_after_unif_3,
     Generation::SymmetricTest()
-      .inputs  ({        clause({ f(x) +  -f(a) > 0, f(z) > 0 }) })
-      .expected(exactly( clause({      0 * f(a) > 0, f(z) > 0 }) ))
+      .inputs  ({        clause({ selected( f(x) +  -f(a) > 0 ), f(z) > 0 }) })
+      .expected(exactly( clause({ selected(      0 * f(a) > 0 ), f(z) > 0 }) ))
       .premiseRedundant(false)
     )
 
@@ -194,14 +194,14 @@ TEST_GENERATION(misc01,
     Generation::SymmetricTest()
   // 0 != (-(x) + (-(g(x,z)) + g(-30 * y,y))) | 0 != (y + z) { x -> -30 * y, z -> y }
   // 0 != -((-30 * y)) | 0 != (y + y) 
-      .inputs  ({          clause({ -     x    - g(x,z) + g(-30 * y,y) > 0 , 0 != y + z }) }) // { x -> -30 * x, z -> x, y -> x }
+      .inputs  ({          clause({ selected( -     x    - g(x,z) + g(-30 * y,y) > 0 ) , selected( 0 != y + z ) }) }) // { x -> -30 * x, z -> x, y -> x }
       .expected(exactly(  clause({ -(-30 * x) + 0 * g(-30 * x, x) > 0 , 0 != x + x }) ))
       .premiseRedundant(false)
     )
 
 TEST_GENERATION(misc02,
     Generation::SymmetricTest()
-      .inputs  ({              clause({ 0 != -(    x  ) + 2 * g(-30 * y, z) + -g(x,y) , 0 != z }) }) // { x -> -30 * x, z -> x, y -> x }
+      .inputs  ({              clause({ selected( 0 != -(    x  ) + 2 * g(-30 * y, z) + -g(x,y) ) , selected( 0 != z ) }) }) // { x -> -30 * x, z -> x, y -> x }
       .expected(exactly(anyOf(clause({ 0 !=  (-30 * x) + -1 * g(-30 * x, x)           , 0 != x }),
                               clause({ 0 != -(-30 * x) +      g(-30 * x, x)           , 0 != x })
             ) ))
@@ -210,7 +210,7 @@ TEST_GENERATION(misc02,
 
 TEST_GENERATION(misc03,
     Generation::SymmetricTest()
-      .inputs  ({              clause({ 0 !=  x0 + g(x2,x3) + g(x0,x1) , 0 != x3 + x1 }) }) // { x3 -> x0, x2 -> x1 }
+      .inputs  ({              clause({ selected( 0 !=  x0 + g(x2,x3) + g(x0,x1) ) , selected( 0 != x3 + x1 ) }) }) // { x3 -> x0, x2 -> x1 }
       .expected(exactly(anyOf(clause({ 0 !=  x0 +        2 * g(x0,x1) , 0 != x1 + x1 })  
                             , clause({ 0 != -x0 +       -2 * g(x0,x1) , 0 != x1 + x1 }))))
       .premiseRedundant(false)
@@ -224,7 +224,7 @@ TEST_GENERATION(misc03,
 
 TEST_GENERATION(misc04,
     Generation::SymmetricTest()
-      .inputs  ({              clause({-3 * x0 + g0(x3,x4) - g0(x0,x1) + g1(18 * x1, x2) > 0 , 0 != x0 + -10 * x2}) })
+      .inputs  ({              clause({selected( -3 * x0 + g0(x3,x4) - g0(x0,x1) + g1(18 * x1, x2) > 0 ) , selected( 0 != x0 + -10 * x2 )}) })
       .expected(exactly(       clause({-3 * x0 +       0 * g0(x0, x2)  + g1(18 * x2, x3) > 0 , 0 != x0 + -10 * x3}) ))
       .premiseRedundant(false)
     )
@@ -264,7 +264,7 @@ TEST_GENERATION(bug_01,
 TEST_GENERATION(bug_02b,
     Generation::SymmetricTest()
   // 0.0 != ((-23.0 * X24) + (lG113($product(-23.0,X22),X24) + (-(lG113($product(-23.0,X21),X22)) + lG113(X23,X21)))) | 0.0 = X23
-      .inputs  ({               clause({ -23 * x0 + g(x0, -23 * x1) + -g(x1, -23 * x2) > 0 })    })
+      .inputs  ({   clause({ selected( -23 * x0 + g(x0, -23 * x1) + -g(x1, -23 * x2) > 0 ) })    })
       // ({x1 -> x0}, -23 * x0 != -23 * x2) = uwa( ^^^^^^^^^^^^^^,    ^^^^^^^^^^^^^^ ) (1)
       .expected(exactly(  
      /* (1) */                 clause({ -23 * x0 +       0 * g(x0, -23 * x0)           > 0, -23 * x0 != -23 * x1 })   
@@ -276,7 +276,7 @@ TEST_GENERATION(bug_02b,
 TEST_GENERATION(bug_02,
     Generation::SymmetricTest()
   // 0.0 != ((-23.0 * X24) + (lG113($product(-23.0,X22),X24) + (-(lG113($product(-23.0,X21),X22)) + lG113(X23,X21)))) | 0.0 = X23
-      .inputs  ({               clause({ -23 * x0 + g(-23 * x1,x0) + -g(-23 * x2, x1) > 0 })    })
+      .inputs  ({    clause({ selected( -23 * x0 + g(-23 * x1,x0) + -g(-23 * x2, x1) > 0 ) })    })
       // ({x1 -> x0}, -23 * x0 != -23 * x2) = uwa( ^^^^^^^^^^^^^^ ,  ^^^^^^^^^^^^^^ ) 
       .expected(exactly(  
                                clause({ -23 * x0 +         0 * g(-23 * x0, x0)       > 0, -23 * x0 != -23 * x1 })   

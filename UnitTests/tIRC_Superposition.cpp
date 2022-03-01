@@ -196,7 +196,7 @@ TEST_GENERATION(ordering2_ok,
     Generation::SymmetricTest()
       .indices(ircSuperpositionIndices())
       .inputs  ({         clause({ selected( g2(x,y) == 0 ), selected( g2(z,z) == 0 ) })
-                ,         clause({ f(g2(a,a)) > 0 }) }) 
+                ,         clause({ selected( f(g2(a,a)) > 0 ) }) }) 
       .expected(exactly(  clause({ f(0) > 0, g2(x,x) == 0 }) 
                        ,  clause({ f(0) > 0, g2(x,y) == 0 }) ))
       .premiseRedundant(false)

@@ -215,7 +215,7 @@ ClauseIterator TermFactoring::generateClauses(Clause* premise)
 {
   CALL("TermFactoring::generateClauses");
   DEBUG("in: ", *premise)
-  auto selected = _shared->maxLiterals(premise, /* strict = */ false);
+  auto selected = _shared->selectedLiterals(premise, /* strict = */ false);
   return pvi(iterTraits(ownedArrayishIterator(std::move(selected)))
           .flatMap([=](auto lit) 
             { return pvi(iterTraits(_shared->renormalize(lit).intoIter())
