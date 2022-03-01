@@ -2956,42 +2956,20 @@ void Schedules::getInductionSchedule(const Shell::Property& property, Schedule& 
   } else if (struct_induction && !integer_induction) {
     getStructInductionSchedule(property, quick, fallback);
   } else if (struct_induction && integer_induction) {
-    // Empirically sorted
-    quick.push("lrs+10_1_iik=one:ind=both:sos=theory:sstl=1_89");
     quick.push("dis+1002_1_aac=none:anc=all:ind=both:sos=theory:sac=on:sstl=1:to=lpo_30");
-    quick.push("lrs+10_1_iik=one:ind=both:sos=theory:sstl=1:to=lpo_89");
-    quick.push("lrs+10_1_drc=off:iik=all:ind=both:to=lpo_89");
-    quick.push("lrs+10_1_iik=all:ind=both:to=lpo_89");
-    quick.push("lrs+10_1_drc=off:iik=all:ind=both:sos=theory:sstl=1:to=lpo_89");
-    quick.push("lrs+10_1_iik=two:ind=both:sos=theory:sstl=1:to=lpo_89");
-    quick.push("lrs+10_1_iik=one:ind=both:to=lpo_89");
-    quick.push("lrs+10_1_drc=off:iik=one:ind=both:sos=theory:sstl=1:to=lpo_89");
     quick.push("lrs+10_1_av=off:br=off:ind=both:urr=on_89");
-    quick.push("lrs+10_1_drc=off:iik=one:ind=both:to=lpo_89");
-    quick.push("lrs+10_1_drc=off:iik=all:ind=both_89");
-    quick.push("lrs+10_1_drc=off:iik=one:ind=both:sos=theory:sstl=1_89");
-    quick.push("lrs+10_1_iik=one:ind=both_89");
-    quick.push("lrs+10_1_iik=two:ind=both:to=lpo_89");
-    quick.push("lrs+10_1_drc=off:iik=two:ind=both:sos=theory:sstl=1:to=lpo_89");
-    // The rest
     quick.push("lrs+10_1_drc=off:iik=one:ind=both_89");
-    quick.push("lrs+10_1_iik=all:ind=both:sos=theory:sstl=1:to=lpo_89");
-    quick.push("lrs+10_1_drc=off:iik=all:ind=both:sos=theory:sstl=1_89");
-    quick.push("lrs+10_1_iik=all:ind=both:sos=theory:sstl=1_89");
-    quick.push("lrs+10_1_iik=all:ind=both_89");
-    quick.push("lrs+10_1_drc=off:iik=two:ind=both:to=lpo_89");
-    quick.push("lrs+10_1_drc=off:iik=two:ind=both:sos=theory:sstl=1_89");
-    quick.push("lrs+10_1_drc=off:iik=two:ind=both_89");
-    quick.push("lrs+10_1_iik=two:ind=both:sos=theory:sstl=1_89");
-    quick.push("lrs+10_1_iik=two:ind=both_89");
-    quick.push("lrs+10_1_drc=off:iik=one:ind=both:indoct=on:sos=theory:sstl=1:to=lpo_89");
-    quick.push("lrs+10_1_iik=one:ind=both:indoct=on:sos=theory:sstl=1:to=lpo_89");
     quick.push("lrs+10_1_drc=off:iik=one:ind=both:indoct=on:sos=theory:sstl=1_89");
+    quick.push("lrs+10_1_drc=off:iik=one:ind=both:indoct=on:sos=theory:sstl=1:to=lpo_89");
+    quick.push("lrs+10_1_drc=off:iik=one:ind=both:sos=theory:sstl=1_89");
+    quick.push("lrs+10_1_drc=off:iik=one:ind=both:sos=theory:sstl=1:to=lpo_89");
+    quick.push("lrs+10_1_drc=off:iik=one:ind=both:to=lpo_89");
+    quick.push("lrs+10_1_iik=one:ind=both_89");
     quick.push("lrs+10_1_iik=one:ind=both:indoct=on:sos=theory:sstl=1_89");
-    quick.push("lrs+10_1_drc=off:iik=two:ind=both:indoct=on:sos=theory:sstl=1:to=lpo_89");
-    quick.push("lrs+10_1_iik=two:ind=both:indoct=on:sos=theory:sstl=1:to=lpo_89");
-    quick.push("lrs+10_1_drc=off:iik=two:ind=both:indoct=on:sos=theory:sstl=1_89");
-    quick.push("lrs+10_1_iik=two:ind=both:indoct=on:sos=theory:sstl=1_89");
+    quick.push("lrs+10_1_iik=one:ind=both:indoct=on:sos=theory:sstl=1:to=lpo_89");
+    quick.push("lrs+10_1_iik=one:ind=both:sos=theory:sstl=1_89");
+    quick.push("lrs+10_1_iik=one:ind=both:sos=theory:sstl=1:to=lpo_89");
+    quick.push("lrs+10_1_iik=one:ind=both:to=lpo_89");
   } else {
     // No induction is on.
     quick.push("lrs+10_1__90");
@@ -3007,47 +2985,29 @@ void Schedules::getInductionSchedule(const Shell::Property& property, Schedule& 
 // ---------- ---------- ---------- ---------- ---------- ---------- ---------- ---------- ----------
 
 void Schedules::getIntegerInductionSchedule(const Shell::Property& property, Schedule& quick, Schedule& fallback) {
-  // Empirically sorted
-  quick.push("lrs+10_1_iik=one:ind=int:sos=theory:sstl=1_87");
-  quick.push("dis+1002_1_aac=none:anc=all:ind=int:sos=theory:sac=on:sstl=1:to=lpo_30");
-  quick.push("lrs+10_1_iik=one:ind=int:sos=theory:sstl=1:to=lpo_87");
-  quick.push("lrs+10_1_drc=off:iik=all:ind=int:to=lpo_87");
-  quick.push("lrs+10_1_iik=all:ind=int:to=lpo_87");
-  quick.push("lrs+10_1_drc=off:iik=all:ind=int:sos=theory:sstl=1:to=lpo_87");
-  quick.push("lrs+10_1_iik=two:ind=int:sos=theory:sstl=1:to=lpo_87");
-  quick.push("lrs+10_1_iik=one:ind=int:to=lpo_87");
-  quick.push("lrs+10_1_drc=off:iik=one:ind=int:sos=theory:sstl=1:to=lpo_87");
-  quick.push("lrs+10_1_av=off:br=off:ind=int:urr=on_87");
-  quick.push("lrs+10_1_drc=off:iik=one:ind=int:to=lpo_87");
-  quick.push("lrs+10_1_drc=off:iik=all:ind=int_87");
-  quick.push("lrs+10_1_drc=off:iik=one:ind=int:sos=theory:sstl=1_87");
-  quick.push("lrs+10_1_iik=one:ind=int_87");
-  quick.push("lrs+10_1_iik=two:ind=int:to=lpo_87");
-  quick.push("lrs+10_1_drc=off:iik=two:ind=int:sos=theory:sstl=1:to=lpo_87");
-  quick.push("lrs+10_1_avsq=on:drc=off:iik=all:ind=int:to=lpo_30");
-  quick.push("lrs+10_1_drc=off:iik=all:ind=int:thsq=on:thsqd=16:to=lpo_30");
+  quick.push("lrs+10_1_iik=one:ind=int:indoct=on:intindst=011_100");
+  quick.push("lrs+11_1_drc=off:iik=one:ind=int:indoct=on:intindst=011:sos=theory:sstl=1:to=lpo:uwa=one_side_interpreted_100");
+  quick.push("lrs+10_1_asg=force:canc=force:drc=off:ev=force:gve=force:iik=one:ind=int:indmd=1:intindst=001:pum=on:to=lpo:urr=on_100");
+  quick.push("lrs+10_1_iik=one:ind=int:indmd=1:intindst=001_100");
+  quick.push("lrs+1010_2_drc=off:iik=one:ind=int:indoct=on:intindst=011:sos=theory:sstl=1:to=lpo:uwa=one_side_interpreted_100");
+  quick.push("lrs+10_1_drc=off:iik=one:ind=int:indoct=on:intindst=011:sos=theory:sstl=1:to=lpo_100");
+  quick.push("lrs+10_1_iik=one:ind=int:intinddb=on:intindst=140_100");
+  quick.push("lrs+1010_2_asg=force:canc=force:drc=off:ev=force:gve=force:iik=one:ind=int:indoct=on:intindst=011:pum=on:to=lpo:urr=on:uwa=one_side_interpreted_30");
+  quick.push("lrs+10_1_drc=off:iik=one:ind=int:indoct=on:intindst=322:sos=theory:sstl=1:to=lpo_30");
+  quick.push("lrs+10_1_asg=force:canc=force:drc=off:ev=force:gve=force:iik=one:ind=int:indgen=on:indmd=1:intindst=030:pum=on:to=lpo:urr=on_30");
+  quick.push("lrs+11_1_asg=force:canc=force:drc=off:ev=force:gve=force:iik=one:ind=int:intinddb=on:intindst=140:pum=on:to=lpo:urr=on:uwa=one_side_interpreted_100");
+  quick.push("lrs+10_1_drc=off:iik=one:ind=int:intinddb=on:intindst=140:sos=theory:sstl=1:to=lpo_100");
+  quick.push("lrs+11_1_asg=force:canc=force:drc=off:ev=force:gve=force:iik=one:ind=int:indoct=on:intinddb=on:intindst=121:pum=on:to=lpo:urr=on:uwa=one_side_interpreted_100");
+  quick.push("dis+1002_1_aac=none:anc=all:iik=one:ind=int:sos=theory:sac=on:sstl=1:to=lpo_30");
+  quick.push("lrs+10_1_av=off:br=off:iik=one:ind=int:urr=on_90");
+  quick.push("lrs+10_1_avsq=on:drc=off:iik=one:ind=int:to=lpo_30");
+  quick.push("lrs+10_1_drc=off:iik=one:ind=int_30");
+  quick.push("lrs+10_1_drc=off:iik=one:ind=int:thsq=on:thsqd=16:to=lpo_30");
+  quick.push("lrs+10_1_drc=off:iik=one:ind=int:to=lpo_30");
+  quick.push("lrs+10_1_iik=one:ind=int_30");
   quick.push("lrs+4_5_drc=off:iik=one:ind=int:plsq=on:to=lpo_100");
-  // The rest
-  quick.push("lrs+10_1_drc=off:iik=one:ind=int_81");
-  quick.push("lrs+10_1_iik=all:ind=int:sos=theory:sstl=1:to=lpo_81");
-  quick.push("lrs+10_1_drc=off:iik=all:ind=int:sos=theory:sstl=1_81");
-  quick.push("lrs+10_1_iik=all:ind=int:sos=theory:sstl=1_81");
-  quick.push("lrs+10_1_iik=all:ind=int_81");
-  quick.push("lrs+10_1_drc=off:iik=two:ind=int:to=lpo_81");
-  quick.push("lrs+10_1_drc=off:iik=two:ind=int:sos=theory:sstl=1_81");
-  quick.push("lrs+10_1_drc=off:iik=two:ind=int_81");
-  quick.push("lrs+10_1_iik=two:ind=int:sos=theory:sstl=1_81");
-  quick.push("lrs+10_1_iik=two:ind=int_81");
-  quick.push("lrs+10_1_drc=off:iik=one:ind=int:indoct=on:sos=theory:sstl=1:to=lpo_81");
-  quick.push("lrs+10_1_iik=one:ind=int:indoct=on:sos=theory:sstl=1:to=lpo_81");
-  quick.push("lrs+10_1_iik=one:drc=off:ind=int:indoct=on:sos=theory:sstl=1_81");
-  quick.push("lrs+10_1_iik=one:ind=int:indoct=on:sos=theory:sstl=1_81");
-  quick.push("lrs+10_1_drc=off:iik=two:ind=int:indoct=on:sos=theory:sstl=1:to=lpo_81");
-  quick.push("lrs+10_1_iik=two:ind=int:indoct=on:sos=theory:sstl=1:to=lpo_81");
-  quick.push("lrs+10_1_iik=two:drc=off:ind=int:indoct=on:sos=theory:sstl=1_81");
-  quick.push("lrs+10_1_iik=two:ind=int:indoct=on:sos=theory:sstl=1_81");
 
-  fallback.push("lrs+10_1__50");
+  fallback.push("lrs+10_1_iik=one:ind=int_50");
 }
 
 // ---------- ---------- ---------- ---------- ---------- ---------- ---------- ---------- ----------
