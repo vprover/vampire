@@ -50,7 +50,7 @@ using namespace Inferences::IRC;
   DECL_VAR(x7, 7)                                                                                             \
   DECL_VAR(x8, 8)                                                                                             \
   DECL_VAR(x9, 9)                                                                                             \
-  DECL_VAR(x10, 10)                                                                                             \
+  DECL_VAR(x10, 10)                                                                                           \
   DECL_FUNC(f, {Num}, Num)                                                                                    \
   DECL_FUNC(g, {Num, Num}, Num)                                                                               \
   DECL_CONST(a, Num)                                                                                          \
@@ -184,7 +184,7 @@ TEST_GENERATION(basic09,
     Generation::SymmetricTest()
       .indices({ inequalityResolutionIdx() })
       .inputs  ({ clause({ selected(-a > 0) }) 
-               ,  clause({           a > 0  }) })
+               ,  clause({ selected( a > 0) }) })
       .expected(exactly(
           clause({ num(0) > 0 })
       ))
@@ -339,8 +339,8 @@ TEST_GENERATION(abstraction5,
     Generation::SymmetricTest()
       .rule(    new InequalityResolution(testInequalityResolution(Options::UnificationWithAbstraction::IRC1))  )
       .indices({ inequalityResolutionIdx(Options::UnificationWithAbstraction::IRC1) })
-      .inputs  ({        clause({ -f(a + b) > 0 })  
-               ,         clause({  f(7 * a) > 0 }) })
+      .inputs  ({        clause({ selected(-f(a + b) > 0) })  
+               ,         clause({ selected( f(7 * a) > 0) }) })
       .expected(exactly( clause({ num(0) > 0, a + b != 7 * a }) ))
       .premiseRedundant(false)
     )
@@ -349,8 +349,8 @@ TEST_GENERATION(abstraction6,
     Generation::SymmetricTest()
       .rule(    new InequalityResolution(testInequalityResolution(Options::UnificationWithAbstraction::IRC1))  )
       .indices({ inequalityResolutionIdx(Options::UnificationWithAbstraction::IRC1) })
-      .inputs  ({        clause({ -f(g(a,x)) > 0 })  
-               ,         clause({  f(7 * y)  > 0 }) })
+      .inputs  ({        clause({ selected(-f(g(a,x)) > 0) })  
+               ,         clause({ selected( f(7 * y)  > 0) }) })
       .expected(exactly( clause({ num(0) > 0, g(a,x) != 7 * y }) ))
       .premiseRedundant(false)
     )
@@ -359,8 +359,8 @@ TEST_GENERATION(abstraction7,
     Generation::SymmetricTest()
       .rule(    new InequalityResolution(testInequalityResolution(Options::UnificationWithAbstraction::IRC1))  )
       .indices({ inequalityResolutionIdx(Options::UnificationWithAbstraction::IRC1) })
-      .inputs  ({        clause({ -f(a + b) > 0 })           
-               ,         clause({  f(c) > 0 })              })
+      .inputs  ({        clause({ selected(-f(a + b) > 0) })           
+               ,         clause({ selected(     f(c) > 0) })              })
       .expected(exactly( clause({ num(0) > 0, c != a + b }) ))
       .premiseRedundant(false)
     )
@@ -379,8 +379,8 @@ TEST_GENERATION(abstraction2_irc2,
     Generation::SymmetricTest()
       .rule(    new InequalityResolution(testInequalityResolution(Options::UnificationWithAbstraction::IRC2))  )
       .indices({ inequalityResolutionIdx(Options::UnificationWithAbstraction::IRC2) })
-      .inputs  ({        clause({ -f(a + b) > 0 })           
-               ,         clause({  f(c + x) > 0 })              })
+      .inputs  ({        clause({ selected(-f(a + b) > 0) })           
+               ,         clause({ selected( f(c + x) > 0) })              })
       .expected(exactly( clause({  num(0) > 0, c + x != a + b   }) ))
       .premiseRedundant(false)
     )
@@ -550,9 +550,9 @@ TEST_GENERATION_WITH_SUGAR(misc01,
     SUGAR(Real),
     Generation::SymmetricTest()
       .indices({ inequalityResolutionIdx() })
-      .inputs  ({        clause({ -f(x0 + -x1 + g(x0,x1)) > 0 })
-               ,         clause({  f(x2 + -g(x3,x2)               ) > 0 }) })
-      .expected(exactly( clause({                            num(0) > 0 , x0 + -x1 + g(x0,x1) != x2 + -g(x3,x2) })))
+      .inputs  ({        clause({ selected(-f(x0 + -x1 + g(x0,x1)) > 0) })
+               ,         clause({ selected( f(x2 + -g(x3,x2)     ) > 0) }) })
+      .expected(exactly( clause({                           num(0) > 0 , x0 + -x1 + g(x0,x1) != x2 + -g(x3,x2) })))
       .premiseRedundant(false)
     )
 
@@ -560,12 +560,12 @@ TEST_GENERATION_WITH_SUGAR(bug05,
     SUGAR(Real),
     Generation::AsymmetricTest()
       .indices({ inequalityResolutionIdx() })
-      .input   (         clause({ -f(x0 + 3 * a) > 0 }))
-      .context ({        clause({  f(x1 + a0   ) > 0 })
-                ,        clause({  f(x1 + a1   ) > 0 })
-                ,        clause({  f(x2 + a2   ) > 0 }) 
-                ,        clause({  f(a  + a3   ) > 0 }) 
-                ,        clause({  f(b  + a3   ) > 0 }) 
+      .input   (         clause({ selected(-f(x0 + 3 * a) > 0) }))
+      .context ({        clause({ selected( f(x1 + a0   ) > 0) })
+                ,        clause({ selected( f(x1 + a1   ) > 0) })
+                ,        clause({ selected( f(x2 + a2   ) > 0) }) 
+                ,        clause({ selected( f(a  + a3   ) > 0) }) 
+                ,        clause({ selected( f(b  + a3   ) > 0) }) 
                 })
       .expected(exactly( clause({         num(0) > 0 , x0 + 3 * a != x3 + a0 })
                        , clause({         num(0) > 0 , x0 + 3 * a != x4 + a1 })

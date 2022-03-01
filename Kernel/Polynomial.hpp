@@ -154,6 +154,7 @@ struct Monom
 
   Option<Variable> tryVar() const;
   Option<Numeral> tryNumeral() const;
+  bool isNumeral() const { return tryNumeral().isSome(); }
   TermList denormalize() const;
 
   template<class F> Monom mapVars(F f) const;

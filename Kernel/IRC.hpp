@@ -285,7 +285,7 @@ namespace Kernel {
     Shell::Options::UnificationWithAbstraction const uwa;
 
     template<class NumTraits> Stack<Monom<NumTraits>> maxAtomicTerms(IrcLiteral<NumTraits>const& lit, bool strict = false);
-    template<class NumTraits> Stack<MaxAtomicTerm<NumTraits>> maxAtomicTermsNonVar(Clause* cl);
+    template<class NumTraits> Stack<MaxAtomicTerm<NumTraits>> maxAtomicTermsNonVar(Clause* cl, bool strictlyMaxLiterals = false, bool strictlyMaxTerms = false);
     Stack<Literal*> maxLiterals(Clause* cl, bool strictlyMax = false);
     Stack<std::pair<Literal*, unsigned>> maxLiteralsWithIdx(Clause* cl, bool strictlyMax = false);
     Stack<Literal*> maxLiterals(Stack<Literal*> cl, bool strictlyMax = false);
@@ -577,38 +577,43 @@ Stack<Monom<NumTraits>> IrcState::maxAtomicTerms(IrcLiteral<NumTraits>const& lit
   return max;
 }
 
-template<class NumTraits> Stack<MaxAtomicTerm<NumTraits>> IrcState::maxAtomicTermsNonVar(Clause* cl)
+template<class NumTraits> Stack<MaxAtomicTerm<NumTraits>> IrcState::maxAtomicTermsNonVar(Clause* cl, bool strictlyMaxLiterals, bool strictlyMaxTerms)
 {
   CALL("IrcState::maxAtomicTermsNonVar(Clause* cl)")
-  Stack<MaxAtomicTerm<NumTraits>> elems;
-  for (unsigned i = 0; i < cl->size(); i++) {
-    auto lit = (*cl)[i];
-    auto norm = normalizer.template renormalizeIrc<NumTraits>(lit);
-    if (norm.isSome() && !norm.unwrap().overflowOccurred) {
-      auto irc = norm.unwrap().value;
-      for (unsigned j = 0; j < irc.term().nSummands(); j++) {
-        elems.push(MaxAtomicTerm<NumTraits> {
-          .litIdx = i,
-          .literal = lit,
-          .ircLit = irc,
-          .termIdx = j,
-          .self = irc.term().summandAt(j),
-        });
-      }
-    }
-  }
-  auto max = maxElements([&](auto i) { return elems[i]; }, 
-                     elems.size(),
-                     [&](auto l, auto r) { return ordering->compare(l.self.factors->denormalize(), r.self.factors->denormalize()); },
-                     /* strictlyMax */ false);
-  return iterTraits(max.iterFifo())
-    .filter([](auto& t) { return t.self.factors->tryVar().isNone(); })
-    .template collect<Stack>();
 
-  // return maxElements([&](auto i) { return (*cl)[i]; }, 
-  //                    cl->size(),
-  //                    [&](auto l, auto r) { return ordering->compare(l, r); },
-  //                    strictlyMax);
+  return iterTraits(getRangeIterator((unsigned)0, cl->numSelected()))
+    .filterMap([&](auto i) {
+        // auto i = lit_idx.second;
+        auto lit = (*cl)[i];
+
+        return normalizer.template renormalizeIrc<NumTraits>(lit)
+          .andThen([&](auto norm) -> Option<IrcLiteral<NumTraits>> {
+              return norm.overflowOccurred 
+                ? Option<IrcLiteral<NumTraits>>()
+                : Option<IrcLiteral<NumTraits>>(norm.value);
+              })
+          .map([&](auto irc) { 
+              Stack<MaxAtomicTerm<NumTraits>> elems(irc.term().nSummands());
+              for (unsigned j = 0; j < irc.term().nSummands(); j++) {
+                auto t = irc.term().summandAt(j);
+                // if (!t.isNumeral())
+                  elems.push(MaxAtomicTerm<NumTraits> {
+                    .litIdx = i,
+                    .literal = lit,
+                    .ircLit = irc,
+                    .termIdx = j,
+                    .self = t,
+                  });
+              }
+              auto max = maxElements([&](auto i) { return elems[i]; }, elems.size(),
+                                 [&](auto l, auto r) { return ordering->compare(l.self.factors->denormalize(), r.self.factors->denormalize()); },
+                                 /* strictlyMax */ false);
+              return ownedArrayishIterator(std::move(max));
+          });
+        })
+        .flatten()
+        .template collect<Stack>();
+
 }
 
 Ordering::Result compare(IrcPredicate l, IrcPredicate r);

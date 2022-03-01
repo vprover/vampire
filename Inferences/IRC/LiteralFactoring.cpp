@@ -347,9 +347,9 @@ ClauseIterator LiteralFactoring::generateClauses(Clause* premise)
   auto selected = make_shared(move_to_heap(_shared->maxLiteralsWithIdx(premise)));
   return pvi(
       range(0, selected->size())
-        .flatMap([=](unsigned i) {
-          auto lit1 = (*selected)[i].first;
-          auto idx = (*selected)[i].second;
+        .flatMap([=](unsigned _i) {
+          auto lit1 = (*selected)[_i].first;
+          auto i  = (*selected)[_i].second;
           auto L1_opt = _shared->renormalize(lit1);
           return pvi(iterTraits(std::move(L1_opt).intoIter())
             .flatMap([=](auto polymorphicNormalized) {
@@ -358,7 +358,17 @@ ClauseIterator LiteralFactoring::generateClauses(Clause* premise)
                 return polymorphicNormalized.apply([&](auto L1) {
                       using NumTraits = typename decltype(L1)::NumTraits;
                       return pvi(range(0, premise->size())
-                        .filter([=](auto j) { return j != idx; })
+                        .filter([=](auto j) { return j != i; })
+                        .filter([=](auto j) { 
+                            auto isSelected = [=](auto j) { return iterTraits(selected->iterFifo()).any([=](auto x) { return x.second == j;  }); };
+                            ASS(isSelected(i));
+                            if (isSelected(j))
+                              // otherwise we fould factor Li with Lj, and Lj with Li,
+                              // getting the very same result clause twice
+                              return i < j;
+                            else 
+                              return true;
+                          })
                         .flatMap([=](auto j) {
                           auto lit2 = (*premise)[j];
                           // we check whether the second is an inequality literal of the same number sort

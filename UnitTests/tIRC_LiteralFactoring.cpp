@@ -246,9 +246,10 @@ TEST_GENERATION(lasca_bug3,
       .rule(heap(testLiteralFactoring(/* lasca factoring */ true)))
       .inputs  ({  clause({  -a + x + -1 > 0, -a + -x > 0 }) })
       .expected(exactly(
-            clause({         -a + x + -1 > 0, (-x) + (-x + 1) > 0 })
-          , clause({         -a + x      > 0, (x + -1) +  (x) > 0 })
+            clause({         -a +  x + -1 > 0, (-x) + (-x + 1) > 0 })
+          , clause({         -a + -x      > 0, (x + -1) +  (x) > 0 })
       ))
+                            // if (!_lascaFactoring && isSelected(j))
       .premiseRedundant(false)
     )
 

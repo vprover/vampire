@@ -155,7 +155,7 @@ TEST_GENERATION(uwa1,
     Generation::SymmetricTest()
       .indices(ircSuperpositionIndices())
       .inputs  ({ clause({ selected( f(a + b) == 0 )  })
-                , clause({ selected( a - b ==  0 )  }) })
+                , clause({ selected(   a - b  == 0 )  }) })
       .expected(exactly(
             clause({ f(a + a) == 0  })
       ))
@@ -166,9 +166,9 @@ TEST_GENERATION(uwa1,
 TEST_GENERATION(misc01,
     Generation::SymmetricTest()
       .indices(ircSuperpositionIndices())
-      .inputs  ({         clause({ 0 == -17 + a })
-                ,         clause({ -19 + -f(x) + a * y  >= 0 }) })
-      .expected(exactly(  clause({ -19 + -f(x) + 17 * y >= 0 }) ))
+      .inputs  ({         clause({ selected(0 == -17 + a) })
+                ,         clause({ selected(-19 + -f(x) + a * y  >= 0) }) })
+      .expected(exactly(  clause({          -19 + -f(x) + 17 * y >= 0  }) ))
       .premiseRedundant(false)
     )
 
@@ -176,8 +176,8 @@ TEST_GENERATION(misc01,
 TEST_GENERATION(ordering1_ok,
     Generation::SymmetricTest()
       .indices(ircSuperpositionIndices())
-      .inputs  ({         clause({ g2(a,a) == 0 })
-                ,         clause({ f(g2(x,y)) > 0, f(g2(z,z)) > 0 }) }) 
+      .inputs  ({         clause({ selected( g2(a,a) == 0 ) })
+                ,         clause({ selected( f(g2(x,y)) > 0 ), selected( f(g2(z,z)) > 0 ) }) }) 
       .expected(exactly(  clause({ f(0) > 0, f(g2(x,x)) > 0 }) 
                        ,  clause({ f(0) > 0, f(g2(y,z)) > 0 }) ))
       .premiseRedundant(false)
@@ -195,7 +195,7 @@ TEST_GENERATION(ordering1_fail,
 TEST_GENERATION(ordering2_ok,
     Generation::SymmetricTest()
       .indices(ircSuperpositionIndices())
-      .inputs  ({         clause({ g2(x,y) == 0, g2(z,z) == 0 })
+      .inputs  ({         clause({ selected( g2(x,y) == 0 ), selected( g2(z,z) == 0 ) })
                 ,         clause({ f(g2(a,a)) > 0 }) }) 
       .expected(exactly(  clause({ f(0) > 0, g2(x,x) == 0 }) 
                        ,  clause({ f(0) > 0, g2(x,y) == 0 }) ))
@@ -214,8 +214,8 @@ TEST_GENERATION(ordering2_fail,
 TEST_GENERATION(ordering3_ok,
     Generation::SymmetricTest()
       .indices(ircSuperpositionIndices())
-      .inputs  ({         clause({ g2(x,y) + g2(z,z) + g2(z,z) == 0 })
-                ,         clause({ f(g2(a,a)) > 0 }) }) 
+      .inputs  ({         clause({ selected( g2(x,y) + g2(z,z) + g2(z,z) == 0 ) })
+                ,         clause({ selected( f(g2(a,a)) > 0                   ) }) }) 
       .expected(exactly(  clause({ f(       -2  * g2(z,z)) > 0 }) 
                        ,  clause({ f(frac(-1,2) * g2(x,y)) > 0 }) ))
       .premiseRedundant(false)

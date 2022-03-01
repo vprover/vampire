@@ -209,6 +209,9 @@ QKbo::FlatSum QKbo::flatWithCoeffs(TermList t) const
 Ordering::Result QKbo::compare(TermList s, TermList t) const 
 {
   CALL("QKbo::compare(TermList, TermList) const")
+  if (s.isVar() && t.isVar()) 
+    return s == t ? Ordering::EQUAL : Ordering::INCOMPARABLE;
+
   auto as = abstr(s);
   auto at = abstr(t);
   if (as.isNone() || at.isNone()) {
@@ -269,7 +272,6 @@ Ordering::Result QKbo::cmpNonAbstr(TermList s, TermList t) const
     // 2.a) LEX
     return OrderingUtils::lexExt(argIter(s.term()), argIter(t.term()), 
           [&](auto l, auto r) { return this->compare(l,r); });
-
 
   } else {
     // 2.b) interpreted stuff

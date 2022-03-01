@@ -63,10 +63,7 @@ public:
   {
     return iterTraits(ownedArrayishIterator(_shared->maxAtomicTermsNonVar<NumTraits>(premise)))
          .filter([maxLits](auto& maxTerm) 
-            { return maxTerm.ircLit.symbol() == IrcPredicate::EQ  && iterTraits(maxLits->iterFifo())
-                        .find([&](auto x) 
-                            { return x == maxTerm.literal; })
-                        .isSome(); })
+            { return maxTerm.ircLit.symbol() == IrcPredicate::EQ; })
          .map([premise](auto maxTerm) 
             { return Hyp1<NumTraits> { .cl = premise, .pivot = maxTerm.literal, .eq = maxTerm.ircLit, .k_s1 = maxTerm.self, }; })
          .inspect([&](auto& hyp1) { DEBUG("hyp1 candidate: ", hyp1); });
