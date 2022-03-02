@@ -2970,6 +2970,21 @@ void Schedules::getInductionSchedule(const Shell::Property& property, Schedule& 
     quick.push("lrs+10_1_iik=one:ind=both:sos=theory:sstl=1_89");
     quick.push("lrs+10_1_iik=one:ind=both:sos=theory:sstl=1:to=lpo_89");
     quick.push("lrs+10_1_iik=one:ind=both:to=lpo_89");
+    // Configurations targeted mainly at integer induction
+    quick.push("lrs+10_1_iik=one:ind=both:indoct=on:intindst=011_100");
+    quick.push("lrs+11_1_drc=off:iik=one:ind=both:indoct=on:intindst=011:sos=theory:sstl=1:to=lpo:uwa=one_side_interpreted_100");
+    quick.push("lrs+10_1_asg=force:canc=force:drc=off:ev=force:gve=force:iik=one:ind=both:indmd=1:intindst=001:pum=on:to=lpo:urr=on_100");
+    quick.push("lrs+10_1_iik=one:ind=both:indmd=1:intindst=001_100");
+    quick.push("lrs+1010_2_drc=off:iik=one:ind=both:indoct=on:intindst=011:sos=theory:sstl=1:to=lpo:uwa=one_side_interpreted_100");
+    quick.push("lrs+10_1_drc=off:iik=one:ind=both:indoct=on:intindst=011:sos=theory:sstl=1:to=lpo_100");
+    quick.push("lrs+10_1_iik=one:ind=both:intinddb=on:intindst=140_100");
+    quick.push("lrs+1010_2_asg=force:canc=force:drc=off:ev=force:gve=force:iik=one:ind=both:indoct=on:intindst=011:pum=on:to=lpo:urr=on:uwa=one_side_interpreted_30");
+    quick.push("lrs+10_1_drc=off:iik=one:ind=both:indoct=on:intindst=322:sos=theory:sstl=1:to=lpo_30");
+    quick.push("lrs+10_1_asg=force:canc=force:drc=off:ev=force:gve=force:iik=one:ind=both:indgen=on:indmd=1:intindst=030:pum=on:to=lpo:urr=on_30");
+    quick.push("lrs+11_1_asg=force:canc=force:drc=off:ev=force:gve=force:iik=one:ind=both:intinddb=on:intindst=140:pum=on:to=lpo:urr=on:uwa=one_side_interpreted_100");
+    quick.push("lrs+10_1_drc=off:iik=one:ind=both:intinddb=on:intindst=140:sos=theory:sstl=1:to=lpo_100");
+    quick.push("lrs+11_1_asg=force:canc=force:drc=off:ev=force:gve=force:iik=one:ind=both:indoct=on:intinddb=on:intindst=121:pum=on:to=lpo:urr=on:uwa=one_side_interpreted_100");
+    quick.push("dis+1002_1_aac=none:anc=all:iik=one:ind=both:sos=theory:sac=on:sstl=1:to=lpo_30");
   } else {
     // No induction is on.
     quick.push("lrs+10_1__90");

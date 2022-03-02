@@ -1245,7 +1245,7 @@ void Options::init()
             _integerInductionInterval.reliesOn(Or(_induction.is(equal(Induction::INTEGER)),_induction.is(equal(Induction::BOTH))));
             _lookup.insert(&_integerInductionInterval);
 
-            _intInductionStrictness = UnsignedOptionValue("int_induction_strictness","intindst",30);
+            _intInductionStrictness = UnsignedOptionValue("int_induction_strictness","intindst",11);
             _intInductionStrictness.description = "Encodes term/literal combinations that are excluded from int induction. See InductionHelper.cpp for explanation.";
             _intInductionStrictness.tag(OptionTag::INFERENCES);
             _intInductionStrictness.reliesOn(Or(_induction.is(equal(Induction::INTEGER)),_induction.is(equal(Induction::BOTH))));
