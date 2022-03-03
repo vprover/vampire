@@ -247,13 +247,14 @@ Literal* LiteralSubsetReplacement::transformSubset(InferenceRule& rule) {
   return transform(_lit);
 }
 
-List<pair<Literal*, InferenceRule>>* LiteralSubsetReplacement::getListOfTransformedLiterals(InferenceRule rule) {
+List<pair<Literal*, bool /*isGeneralized*/>>* LiteralSubsetReplacement::getListOfTransformedLiterals() {
   CALL("LiteralSubsetReplacement::getListOfTransformedLiterals");
 
   Literal* l;
-  List<pair<Literal*, InferenceRule>>* res = List<pair<Literal*, InferenceRule>>::empty();
+  List<pair<Literal*, bool>>* res = List<pair<Literal*, bool>>::empty();
+  InferenceRule rule = InferenceRule::INDUCTION_AXIOM;
   while ((l = transformSubset(rule))) {
-    res = List<pair<Literal*, InferenceRule>>::cons(make_pair(l, rule), res);
+    res = List<pair<Literal*, bool>>::cons(make_pair(l, rule == InferenceRule::GEN_INDUCTION_AXIOM), res);
   }
   return res;
 }
@@ -338,7 +339,7 @@ void InductionClauseIterator::processLiteral(Clause* premise, Literal* lit)
       while(citer1.hasNext()){
         Term* t = citer1.next();
         Term* indTerm = generalize ? getPlaceholderForTerm(t) : t;
-        List<pair<Literal*, InferenceRule>>* indLits = List<pair<Literal*, InferenceRule>>::empty();
+        List<pair<Literal*, bool /*isGeneralized*/>>* indLits = List<pair<Literal*, bool>>::empty();
         DHMap<Term*, TermQueryResult> grBound;
         addToMapFromIterator(grBound, _helper.getGreaterEqual(t));
         addToMapFromIterator(grBound, _helper.getGreater(t));
@@ -347,7 +348,7 @@ void InductionClauseIterator::processLiteral(Clause* premise, Literal* lit)
         addToMapFromIterator(leBound, _helper.getLess(t));
         performIntInductionForEligibleBounds(premise, lit, t, indLits, indTerm, /*increasing=*/true, leBound, grBound);
         performIntInductionForEligibleBounds(premise, lit, t, indLits, indTerm, /*increasing=*/false, grBound, leBound);
-        List<pair<Literal*, InferenceRule>>::destroy(indLits);
+        List<pair<Literal*, bool>>::destroy(indLits);
       }
       Set<Term*>::Iterator citer2(ta_terms);
       while(citer2.hasNext()){
@@ -380,7 +381,7 @@ void InductionClauseIterator::processLiteral(Clause* premise, Literal* lit)
    }
 }
 
-void InductionClauseIterator::performIntInductionForEligibleBounds(Clause* premise, Literal* origLit, Term* origTerm, List<pair<Literal*, InferenceRule>>*& indLits, Term* indTerm, bool increasing, DHMap<Term*, TermQueryResult>& bounds1, DHMap<Term*, TermQueryResult>& bounds2) {
+void InductionClauseIterator::performIntInductionForEligibleBounds(Clause* premise, Literal* origLit, Term* origTerm, List<pair<Literal*, bool /*isGeneralized*/>>*& indLits, Term* indTerm, bool increasing, DHMap<Term*, TermQueryResult>& bounds1, DHMap<Term*, TermQueryResult>& bounds2) {
   DHMap<Term*, TermQueryResult>::Iterator it1(bounds1);
   while (it1.hasNext()) {
     TermQueryResult b1 = it1.next();
@@ -411,28 +412,28 @@ void InductionClauseIterator::performIntInductionForEligibleBounds(Clause* premi
   }
 }
 
-void InductionClauseIterator::generalizeAndPerformIntInduction(Clause* premise, Literal* origLit, Term* origTerm, List<pair<Literal*, InferenceRule>>*& indLits, Term* indTerm, bool increasing, TermQueryResult& bound1, TermQueryResult* optionalBound2) {
+void InductionClauseIterator::generalizeAndPerformIntInduction(Clause* premise, Literal* origLit, Term* origTerm, List<pair<Literal*, bool /*isGeneralized*/>>*& indLits, Term* indTerm, bool increasing, TermQueryResult& bound1, TermQueryResult* optionalBound2) {
   static bool generalize = _opt.inductionGen();
   // If induction literals were not computed yet, compute them now.
-  if (List<pair<Literal*, InferenceRule>>::isEmpty(indLits)) {
+  if (List<pair<Literal*, bool>>::isEmpty(indLits)) {
     bool finite = ((optionalBound2 != nullptr) && (optionalBound2->literal != nullptr));
-    InferenceRule rule =
-        (bound1.literal == nullptr)
-            ? (increasing ? InferenceRule::INT_DB_UP_INDUCTION_AXIOM : InferenceRule::INT_DB_DOWN_INDUCTION_AXIOM)
-            : (increasing ? (finite ? InferenceRule::INT_FIN_UP_INDUCTION_AXIOM : InferenceRule::INT_INF_UP_INDUCTION_AXIOM)
-                          : (finite ? InferenceRule::INT_FIN_DOWN_INDUCTION_AXIOM : InferenceRule::INT_INF_DOWN_INDUCTION_AXIOM));
     if (generalize) {
       Kernel::LiteralSubsetReplacement subsetReplacement(origLit, origTerm, TermList(indTerm), _opt.maxInductionGenSubsetSize());
-      indLits = subsetReplacement.getListOfTransformedLiterals(rule);
+      indLits = subsetReplacement.getListOfTransformedLiterals();
     } else {
-      indLits = new List<pair<Literal*, InferenceRule>>(make_pair(origLit, rule));
+      indLits = new List<pair<Literal*, bool /*isGeneralized*/>>(make_pair(origLit, false));
     }
   }
-  List<pair<Literal*, InferenceRule>>::RefIterator it(indLits);
+  InferenceRule rule = 
+      (bound1.literal == nullptr)
+          ? (increasing ? InferenceRule::INT_DB_UP_INDUCTION_AXIOM : InferenceRule::INT_DB_DOWN_INDUCTION_AXIOM)
+          : (increasing ? (finite ? InferenceRule::INT_FIN_UP_INDUCTION_AXIOM : InferenceRule::INT_INF_UP_INDUCTION_AXIOM)
+                        : (finite ? InferenceRule::INT_FIN_DOWN_INDUCTION_AXIOM : InferenceRule::INT_INF_DOWN_INDUCTION_AXIOM));
+  List<pair<Literal*, bool>>::RefIterator it(indLits);
   while (it.hasNext()) {
-    auto& litAndRule = it.next();
-    ASS(litAndRule.first != nullptr);
-    performIntInduction(premise, origLit, litAndRule.first, indTerm, litAndRule.second, increasing, bound1, optionalBound2);
+    auto& litAndIsGen = it.next();
+    ASS(litAndIsGen.first != nullptr);
+    performIntInduction(premise, origLit, litAndIsGen.first, indTerm, litAndIsGen.second ? getGeneralizedRule(rule) : rule, increasing, bound1, optionalBound2);
   }
 }
 
@@ -469,7 +470,7 @@ void InductionClauseIterator::performIntInductionOnEligibleLiterals(Term* origTe
     if (bound1.clause != tqr.clause) {
       // We need to pass an empty list, which will get populated when performing induction.
       // Then we need to destroy it.
-      List<pair<Literal*, InferenceRule>>* indLits = List<pair<Literal*, InferenceRule>>::empty();
+      List<pair<Literal*, bool /*isGeneralized*/>>* indLits = List<pair<Literal*, bool>>::empty();
       if (_helper.isInductionForFiniteIntervalsOn()) {
         DHMap<Term*, TermQueryResult>::Iterator it(bounds2);
         while (it.hasNext()) {
@@ -484,7 +485,7 @@ void InductionClauseIterator::performIntInductionOnEligibleLiterals(Term* origTe
           notDoneInt(tqr.literal, origTerm, increasing, bound1.term.term(), /*optionalBound2=*/nullptr, /*bool fromComparison=*/bound1.literal != nullptr)) {
         generalizeAndPerformIntInduction(tqr.clause, tqr.literal, origTerm, indLits, indTerm, increasing, bound1, nullptr);
       }
-      List<pair<Literal*, InferenceRule>>::destroy(indLits);
+      List<pair<Literal*, bool>>::destroy(indLits);
     }
   }
 }

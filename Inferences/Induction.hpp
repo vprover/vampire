@@ -62,7 +62,7 @@ public:
   // to GEN_INDUCTION_AXIOM.
   Literal* transformSubset(InferenceRule& rule);
 
-  List<pair<Literal*, InferenceRule>>* getListOfTransformedLiterals(InferenceRule rule);
+  List<pair<Literal*, bool /*isGeneralized*/>>* getListOfTransformedLiterals();
 
 protected:
   virtual TermList transformSubterm(TermList trm);
@@ -151,13 +151,13 @@ private:
   // (and the default bound) which are non-redundant with respect to the origLit, origTerm,
   // and increasingness.
   // Note: indLits and indTerm are passed to avoid recomputation.
-  void performIntInductionForEligibleBounds(Clause* premise, Literal* origLit, Term* origTerm, List<pair<Literal*, InferenceRule>>*& indLits, Term* indTerm, bool increasing, DHMap<Term*, TermQueryResult>& bounds1, DHMap<Term*, TermQueryResult>& bounds2);
+  void performIntInductionForEligibleBounds(Clause* premise, Literal* origLit, Term* origTerm, List<pair<Literal*, bool /*isGeneralized*/>>*& indLits, Term* indTerm, bool increasing, DHMap<Term*, TermQueryResult>& bounds1, DHMap<Term*, TermQueryResult>& bounds2);
   // If indLits is empty, first fills it with either generalized origLit, or just by origLit itself
   // (depending on whether -indgen is on).
   // Then, performs int induction for each induction literal from indLits using bound1
   // (and optionalBound2 if provided) as bounds.
   // Note: indLits may be created in this method, but it needs to be destroyed outside of it.
-  void generalizeAndPerformIntInduction(Clause* premise, Literal* origLit, Term* origTerm, List<pair<Literal*, InferenceRule>>*& indLits, Term* indTerm, bool increasing, TermQueryResult& bound1, TermQueryResult* optionalBound2);
+  void generalizeAndPerformIntInduction(Clause* premise, Literal* origLit, Term* origTerm, List<pair<Literal*, bool /*isGeneralized*/>>*& indLits, Term* indTerm, bool increasing, TermQueryResult& bound1, TermQueryResult* optionalBound2);
 
   void performIntInduction(Clause* premise, Literal* origLit, Literal* lit, Term* t, InferenceRule rule, bool increasing, const TermQueryResult& bound1, TermQueryResult* optionalBound2);
 

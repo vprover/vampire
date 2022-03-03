@@ -66,6 +66,7 @@ class TestCase
 {
   using Clause = Kernel::Clause;
   using OptionMap = Stack<pair<vstring,vstring>>;
+  using StatisticsMap = Stack<pair<unsigned*, unsigned>>;
   Option<SimplifyingGeneratingInference*> _rule;
   Clause* _input;
   Stack<ClausePattern> _expected;
@@ -73,6 +74,7 @@ class TestCase
   bool _premiseRedundant;
   Stack<Indexing::Index*> _indices;
   OptionMap _options;
+  StatisticsMap _statistics;
 
   template<class Is, class Expected>
   void testFail(Is const& is, Expected const& expected) {
@@ -103,6 +105,7 @@ public:
   BUILDER_METHOD(SimplifyingGeneratingInference*, rule)
   BUILDER_METHOD(Stack<Indexing::Index*>, indices)
   BUILDER_METHOD(OptionMap, options)
+  BUILDER_METHOD(StatisticsMap, statistics)
 
   template<class Rule>
   void run(GenerationTester<Rule>& simpl) {
@@ -144,6 +147,10 @@ public:
     if (_premiseRedundant != res.premiseRedundant) {
       auto wrapStr = [](bool b) -> vstring { return b ? "premise is redundant" : "premise is not redundant"; };
       testFail( wrapStr(res.premiseRedundant), wrapStr(_premiseRedundant));
+    }
+
+    for (auto s : _statistics) {
+      if (*s.first != s.second) testFail(*s.first, s.second);
     }
 
     // tear down saturation algorithm

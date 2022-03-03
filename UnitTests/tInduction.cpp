@@ -474,6 +474,7 @@ TEST_GENERATION_INDUCTION(test_16,
         clause({ ~pi(0), pi(y), 0 < sK6 }),
         clause({ ~pi(0), ~pi(y+num(-1)), 0 < sK6 }),
       })
+      .statistics({ {&env.statistics->intInfUpInduction, 1}, {&env.statistics->intDBDownInduction, 1} })
     )
 
 // upward infinite interval induction triggered by the comparison literal
