@@ -33,6 +33,7 @@
 #include "Shell/Statistics.hpp"
 #include "Shell/Options.hpp"
 #include "Shell/NameReuse.hpp"
+#include "Shell/NNF.hpp"
 
 #include "Indexing/TermSharing.hpp"
 
@@ -1243,7 +1244,7 @@ Formula* Naming::introduceDefinition(Formula* f, bool iff) {
   if (iff) {
     // if we're upgrading a previously-seen definition, only need one direction
     if(already_seen)
-      // this is not in ENNF, but it seems OK...
+      // this is not in ENNF, so we must transform it later
       def = new BinaryFormula(IMP, f, name);
     // otherwise we need both directions
     else
@@ -1260,7 +1261,12 @@ Formula* Naming::introduceDefinition(Formula* f, bool iff) {
     //TODO do we know the sorts of the free variabls vs?
     def = new QuantifiedFormula(FORALL, vs, 0, def);
   }
-  Unit* definition = new FormulaUnit(def, NonspecificInference0(UnitInputType::AXIOM,InferenceRule::PREDICATE_DEFINITION));
+
+  FormulaUnit* definition = new FormulaUnit(def, NonspecificInference0(UnitInputType::AXIOM,InferenceRule::PREDICATE_DEFINITION));
+
+  // transform "ugpraded" definitions not in ENNF
+  if(iff && already_seen)
+    definition = NNF::ennf(definition);
 
   InferenceStore::instance()->recordIntroducedSymbol(definition, false,
       atom->functor());
