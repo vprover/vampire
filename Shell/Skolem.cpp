@@ -240,7 +240,7 @@ void Skolem::preskolemise (Formula* f)
     {
       VList::Iterator vs(f->vars());
       while (vs.hasNext()) {
-        ALWAYS(_varOccs.insert(vs.next(),{false/*univeral*/,nullptr})); // ALWAYS, because we are rectified
+        ALWAYS(_varOccs.insert(vs.next(),{false /* = univeral*/,BoolList::empty()})); // ALWAYS, because we are rectified
       }
       preskolemise(f->qarg());
       vs.reset(f->vars());
@@ -253,10 +253,11 @@ void Skolem::preskolemise (Formula* f)
   case EXISTS:
     {
       { // reset the "occurs" flag for all the variables we are in scope of
+        // by pushing in one BoolList element with false
         VarOccInfos::Iterator vit(_varOccs);
         while (vit.hasNext()) {
-          unsigned dummy;
-          VarOccInfo& varOccInfo = vit.nextRef(dummy);
+          unsigned some_var;
+          VarOccInfo& varOccInfo = vit.nextRef(some_var);
           BoolList::push(false,varOccInfo.occurs_below);
         }
       }
@@ -265,7 +266,7 @@ void Skolem::preskolemise (Formula* f)
       VList::Iterator vs(f->vars());
       while (vs.hasNext()) {
         unsigned var = vs.next();
-        ALWAYS(_varOccs.insert(var,{true/*existential*/,nullptr})); // ALWAYS, because we are rectified
+        ALWAYS(_varOccs.insert(var,{true /* = existential */,BoolList::empty()})); // ALWAYS, because we are rectified
         ALWAYS(_blockLookup.insert(var,f));
       }
 
@@ -407,6 +408,17 @@ Formula* Skolem::skolemise (Formula* f)
 
       VarSet* dep = depInfo.univ;
 
+      /*
+       * Universals occuring below are not enough, 
+       * because some existential from above could depend on them
+       * and its corresponding skolem will bring them here...
+       * 
+       * Ex: ! [A] : ? [B] : ( p(A,B) | ? [C] : r(B,C) & something ) 
+       * when skolimising the subformula
+       * ? [C] : r(B,C) & something
+       * univ dep of C is empty, but A will sneak into the actual dep
+       * through B's dependency on A.
+       */
       VarSet::Iterator veIt(*depInfo.exist);
       while(veIt.hasNext()) {
         unsigned evar = veIt.next();
@@ -415,13 +427,9 @@ Formula* Skolem::skolemise (Formula* f)
         dep = dep->getUnion(their_dep);
       }
 
-      /*
-      if (depInfo.univ != dep) {
-        // PANIC !!!
-      }
-      */
-
       // store updated, for the existentials below us to lookup as well
+      /* Ex. cont. later we will be skolemising inside "something" from above
+       * although perhaps only C occurs in "something", it's as if A occurred as well */
       depInfo.univ = dep;
 
       NameReuse *name_reuse = env.options->skolemReuse()
