@@ -1243,7 +1243,8 @@ Formula* Naming::introduceDefinition(Formula* f, bool iff) {
   if (iff) {
     // if we're upgrading a previously-seen definition, only need one direction
     if(already_seen)
-      // this is not in ENNF, but it seems OK...
+      // this is not in ENNF, but the emitted definitions need not be
+      // (Naming is followed by a NNF transform that can handle implications)
       def = new BinaryFormula(IMP, f, name);
     // otherwise we need both directions
     else
