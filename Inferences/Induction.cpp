@@ -1117,7 +1117,7 @@ bool InductionClauseIterator::notDoneInt(Literal* lit, Term* t, bool increasing,
   return true;
 }
 
-Term* InductionClauseIterator::getPlaceholderForTerm(Term* t) {
+Term* InductionClauseIterator::getPlaceholderForTerm(const Term* t) {
   CALL("InductionClauseIterator::getPlaceholderForTerm");
 
   OperatorType* ot = env.signature->getFunction(t->functor())->fnType();

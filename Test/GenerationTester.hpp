@@ -32,6 +32,20 @@
 
 namespace Test {
 
+#define TEST_FN_ASS_EQ(VAL1, VAL2)                         \
+  [] (vstring& s1, vstring& s2) {                          \
+    bool res = (VAL1 == VAL2);                             \
+    if (!res) {                                            \
+      s1 = Int::toString(VAL1);                            \
+      s1.append(" != ");                                   \
+      s1.append(Int::toString(VAL2));                      \
+      s2 = vstring(#VAL1);                                 \
+      s2.append(" == ");                                   \
+      s2.append(#VAL2);                                    \
+    }                                                      \
+    return res;                                            \
+  }
+
 template<class... As>
 Stack<ClausePattern> exactly(As... as) 
 {
@@ -66,7 +80,7 @@ class TestCase
 {
   using Clause = Kernel::Clause;
   using OptionMap = Stack<pair<vstring,vstring>>;
-  using StatisticsMap = Stack<pair<unsigned*, unsigned>>;
+  using Condition = std::function<bool(vstring&, vstring&)>;
   Option<SimplifyingGeneratingInference*> _rule;
   Clause* _input;
   Stack<ClausePattern> _expected;
@@ -74,7 +88,8 @@ class TestCase
   bool _premiseRedundant;
   Stack<Indexing::Index*> _indices;
   OptionMap _options;
-  StatisticsMap _statistics;
+  Stack<Condition> _preConditions;
+  Stack<Condition> _postConditions;
 
   template<class Is, class Expected>
   void testFail(Is const& is, Expected const& expected) {
@@ -105,7 +120,8 @@ public:
   BUILDER_METHOD(SimplifyingGeneratingInference*, rule)
   BUILDER_METHOD(Stack<Indexing::Index*>, indices)
   BUILDER_METHOD(OptionMap, options)
-  BUILDER_METHOD(StatisticsMap, statistics)
+  BUILDER_METHOD(Stack<Condition>, preConditions)
+  BUILDER_METHOD(Stack<Condition>, postConditions)
 
   template<class Rule>
   void run(GenerationTester<Rule>& simpl) {
@@ -132,6 +148,15 @@ public:
       container.add(c);
     }
 
+    // check that the preconditions hold
+    vstring s1, s2;
+    for (auto c : _preConditions) {
+      if (!c(s1, s2)) {
+        s2.append(" (precondition)");
+        testFail(s1, s2);
+      }
+    }
+
     // run rule
     _input->setStore(Clause::ACTIVE);
     auto res = rule.generateSimplify(_input);
@@ -149,9 +174,14 @@ public:
       testFail( wrapStr(res.premiseRedundant), wrapStr(_premiseRedundant));
     }
 
-    for (auto s : _statistics) {
-      if (*s.first != s.second) testFail(*s.first, s.second);
+    // check that the postconditions hold
+    for (auto c : _postConditions) {
+      if (!c(s1, s2)) {
+        s2.append(" (postcondition)");
+        testFail(s1, s2);
+      }
     }
+
 
     // tear down saturation algorithm
     rule.InferenceEngine::detach();

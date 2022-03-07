@@ -167,7 +167,7 @@ private:
 
   bool notDone(Literal* lit, Term* t);
   bool notDoneInt(Literal* lit, Term* t, bool increasing, Term* bound1, Term* optionalBound2, bool fromComparison);
-  Term* getPlaceholderForTerm(Term* t);
+  Term* getPlaceholderForTerm(const Term* t);
 
   Stack<Clause*> _clauses;
   InductionHelper _helper;
