@@ -222,6 +222,7 @@ public:
   /** Problem contains an interpreted symbol excluding equality */
   bool hasInterpretedOperations() const { return _hasInterpreted; }
   bool hasNumerals() const { return hasProp(PR_HAS_INTEGERS) || hasProp(PR_HAS_REALS) || hasProp(PR_HAS_RATS); }
+  bool hasGoal() const { return _goalClauses > 0 || _goalFormulas > 0; }
   /** Problem contains non-default sorts */
   bool hasNonDefaultSorts() const { return _hasNonDefaultSorts; }
   bool hasFOOL() const { return _hasFOOL; }
@@ -269,17 +270,6 @@ public:
   void scan(TermList ts,bool unit,bool goal);
 
   void scanSort(TermList sort);
-
-  char axiomTypes() const;
-  char goalTypes() const;
-  char equalityContent() const;
-  char nonGroundUnitContent() const;
-  char groundPositiveContent() const;
-  char goalsAreGround() const;
-  char setClauseSize() const;
-  char setLiteralSize() const;
-  char setTermSize() const;
-  char maxPredArity() const;
 
   // structure
   int _goalClauses;

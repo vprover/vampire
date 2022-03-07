@@ -219,20 +219,22 @@ UnitList* UIHelper::tryParseSMTLIB2(const Options& opts,istream* input,SMTLIBLog
 
 // Call this function to report a parsing attempt has failed and to reset the input
 template<typename T>
-void resetParsing(T exception, vstring inputFile, istream*& input,vstring nowtry){
-           env.beginOutput();
-           addCommentSignForSZS(env.out());
-           env.out() << "Failed with\n";
-           addCommentSignForSZS(env.out());
-           exception.cry(env.out());
-           addCommentSignForSZS(env.out());
-           env.out() << "Trying " << nowtry  << endl;
-           env.endOutput();
-           {
-             BYPASSING_ALLOCATOR;
-             delete static_cast<ifstream*>(input);
-             input=new ifstream(inputFile.c_str());
-           }
+void resetParsing(T exception, vstring inputFile, istream*& input,vstring nowtry)
+{
+  if (env.options->mode()!=Options::Mode::SPIDER) {
+    env.beginOutput();
+    addCommentSignForSZS(env.out());
+    env.out() << "Failed with\n";
+    addCommentSignForSZS(env.out());
+    exception.cry(env.out());
+    addCommentSignForSZS(env.out());
+    env.out() << "Trying " << nowtry  << endl;
+    env.endOutput();
+  }
+
+  BYPASSING_ALLOCATOR;
+  delete static_cast<ifstream*>(input);
+  input=new ifstream(inputFile.c_str());
 }
 
 /**
@@ -273,10 +275,12 @@ Problem* UIHelper::getInputProblem(const Options& opts)
        bool smtlib = hasEnding(inputFile,"smt") || hasEnding(inputFile,"smt2");
 
        if(smtlib){
-         env.beginOutput();
-         addCommentSignForSZS(env.out());
-         env.out() << "Running in auto input_syntax mode. Trying SMTLIB2\n";
-         env.endOutput();
+         if (env.options->mode()!=Options::Mode::SPIDER) {
+           env.beginOutput();
+           addCommentSignForSZS(env.out());
+           env.out() << "Running in auto input_syntax mode. Trying SMTLIB2\n";
+           env.endOutput();
+         }
          try{
            units = tryParseSMTLIB2(opts,input,smtLibLogic);
          }
@@ -295,10 +299,12 @@ Problem* UIHelper::getInputProblem(const Options& opts)
 
        }
        else{
-         env.beginOutput();
-         addCommentSignForSZS(env.out());
-         env.out() << "Running in auto input_syntax mode. Trying TPTP\n";
-         env.endOutput();
+         if (env.options->mode()!=Options::Mode::SPIDER) {
+           env.beginOutput();
+           addCommentSignForSZS(env.out());
+           env.out() << "Running in auto input_syntax mode. Trying TPTP\n";
+           env.endOutput();
+         }
          try{
            units = tryParseTPTP(input); 
          }

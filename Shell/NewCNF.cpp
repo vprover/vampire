@@ -993,7 +993,7 @@ Term* NewCNF::createSkolemTerm(unsigned var, VarSet* free, Formula *reuse_formul
   ASS(domainSorts.isEmpty());
   ASS(fnArgs.isEmpty());
 
-  NameReuse *name_reuse = env.options->skolemReuse()
+  NameReuse *name_reuse = (env.options->skolemReuse() && reuse_formula)
     ? NameReuse::skolemInstance()
     : nullptr;
   unsigned reused_symbol = 0;
@@ -1113,7 +1113,7 @@ void NewCNF::skolemise(QuantifiedFormula* g, BindingList*& bindings, BindingList
       Formula *reuse_formula = nullptr;
       VList *remainingVars = nullptr;
       SList *remainingSorts = nullptr;
-      if(env.options->skolemReuse()) {
+      if(env.options->skolemReuse() && VList::length(g->vars()) <= 5) { // give up on skolemReuse for long quantifier blocks
         BindingList::Iterator bit(bindings);
         while (bit.hasNext()) {
           Binding b = bit.next();
@@ -1146,7 +1146,7 @@ void NewCNF::skolemise(QuantifiedFormula* g, BindingList*& bindings, BindingList
         // ?[Y, Z]: F[X->sK0],
         // ?[Z]: F[X->sK0, Y->sK1],
         // but not F[X->sK0, Y->sK1, Z->sK2], since this doesn't need a Skolem term
-        if(env.options->skolemReuse()) {
+        if(env.options->skolemReuse() && reuse_formula) {
           ASS(remainingVars != nullptr);
           remainingVars = remainingVars->tail();
           remainingSorts = remainingSorts ? remainingSorts->tail() : nullptr;
@@ -1382,8 +1382,9 @@ void NewCNF::nameSubformula(Formula* g, Occurrences &occurrences)
   for (SIGN sign : { NEGATIVE, POSITIVE }) {
     // One could also consider the case where (part of) the bindings goes to the definition
     // which perhaps allows us to the have a skolem predicate with fewer arguments
-    if (occurs[sign]) {
+    if (occurs[sign] && !_already_seen[sign].contains(naming)) {
       introduceGenClause(GenLit(name, OPPOSITE(sign)), GenLit(g, sign));
+      _already_seen[sign].insert(naming);
     }
   }
 }
