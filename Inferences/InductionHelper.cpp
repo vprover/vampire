@@ -207,8 +207,13 @@ bool InductionHelper::isInductionTermFunctor(unsigned f) {
 }
 
 bool containsSkolem(Term* t) {
-  if (env.signature->getFunction(t->functor())->skolem()) return true; 
-  NonVariableIterator nvi(t);
+  unsigned f = t->functor();
+  // Special case: t is a non-complex term (the most common case in induction)
+  if (env.signature->functionArity(f) == 0) {
+    return env.signature->getFunction(f)->skolem();
+  }
+  // If t is complex, we iterate through all its non-variable subterms including itself
+  NonVariableIterator nvi(t, true);
   while (nvi.hasNext()) {
     if (env.signature->getFunction(nvi.next().term()->functor())->skolem()) return true;
   }
