@@ -140,14 +140,12 @@ bool InductionHelper::isIntInductionOn() {
 
 bool InductionHelper::isIntInductionOneOn() {
   CALL("InductionHelper::isIntInductionOneOn");
-  static bool one = env.options->intInduction() == Options::IntInductionKind::ONE;
-  return isIntInductionOn() && one;
+  return isIntInductionOn() && (env.options->intInduction() == Options::IntInductionKind::ONE);
 }
 
 bool InductionHelper::isIntInductionTwoOn() {
   CALL("InductionHelper::isIntInductionTwoOn");
-  static bool two = env.options->intInduction() == Options::IntInductionKind::TWO;
-  return isIntInductionOn() && two;
+  return isIntInductionOn() && (env.options->intInduction() == Options::IntInductionKind::TWO);
 }
 
 bool InductionHelper::isInductionForFiniteIntervalsOn() {
@@ -249,8 +247,8 @@ bool InductionHelper::isIntInductionTermListInLiteral(TermList& tl, Literal* l) 
   //   2: tl does not contain a skolem function
   // Comparison or equality strictness (applies when l is a comparison or an equality):
   //   1: tl is a top-level argument of l, but it does not occur in the other argument of l
-  //   2: t has only one occurrence in l
-  //   3: t does not occur in both arguments of l
+  //   2: tl has only one occurrence in l
+  //   3: tl does not occur in both arguments of l
   //   4: comparisons or equalities are not allowed
   ASS(tl.isTerm());
   unsigned f = tl.term()->functor();
@@ -260,12 +258,9 @@ bool InductionHelper::isIntInductionTermListInLiteral(TermList& tl, Literal* l) 
   {
     return false;
   }
-  const bool isEquality = (theory->isInterpretedPredicate(l) && l->isEquality());
-  if ((isEquality && !termAndLiteralSatisfyStrictness(tl, l, eqst)) ||
-      (!isEquality && isIntegerComparisonLiteral(l) && !termAndLiteralSatisfyStrictness(tl, l, compst))) {
-    return false;
-  }
-  return true;
+  const bool isEquality = l->isEquality();
+  return (!isEquality || termAndLiteralSatisfyStrictness(tl, l, eqst)) &&
+      (isEquality || !isIntegerComparisonLiteral(l) || termAndLiteralSatisfyStrictness(tl, l, compst));
 }
 
 bool InductionHelper::isStructInductionFunctor(unsigned f) {

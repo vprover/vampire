@@ -1308,7 +1308,18 @@ void Options::init()
     _lookup.insert(&_integerInductionInterval);
 
     _intInductionStrictness = UnsignedOptionValue("int_induction_strictness","intindst",11);
-    _intInductionStrictness.description = "Encodes term/literal combinations that are excluded from int induction. See InductionHelper.cpp for explanation.";
+    _intInductionStrictness.description =
+        "A three-digit number encoding induction term t/literal l combinations that are excluded from integer induction.\n"
+        "First two digits (hundreds and tens place) encode exclusion for equality and comparison literals, respectively. Induction is not applied if the following holds:\n"
+        "  0: no exclusion\n"
+        "  1: t is a top-level argument of l, but it does not occur in the other argument of l\n"
+        "  2: t has only one occurrence in l\n"
+        "  3: t does not occur in both arguments of l\n"
+        "  4: induction on equality or comparison literal l, respectively, is not allowed at all\n"
+        "Last digit (ones place) encodes the exclusion condition for the induction term t:\n"
+        "  0: no exclusion\n"
+        "  1: t is an interpreted constant\n"
+        "  2: t does not contain a skolem function";
     _intInductionStrictness.tag(OptionTag::INFERENCES);
     _intInductionStrictness.reliesOn(Or(_induction.is(equal(Induction::INTEGER)),_induction.is(equal(Induction::BOTH))));
     _intInductionStrictness.addHardConstraint(lessThan(443u));
