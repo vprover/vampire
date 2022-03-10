@@ -206,7 +206,7 @@ bool InductionHelper::isInductionTermFunctor(unsigned f) {
          );
 }
 
-bool containsSkolem(Term* t) {
+static bool containsSkolem(Term* t) {
   unsigned f = t->functor();
   // Special case: t is a non-complex term (the most common case in induction)
   if (env.signature->functionArity(f) == 0) {
@@ -220,7 +220,7 @@ bool containsSkolem(Term* t) {
   return false;
 }
 
-bool termAndLiteralSatisfyStrictness(const TermList& tl, Literal* l, unsigned strictness) {
+static bool termAndLiteralSatisfyStrictness(const TermList& tl, Literal* l, unsigned strictness) {
   if (((strictness == 1) &&
        (((tl == *l->nthArgument(0)) && !l->nthArgument(1)->containsSubterm(tl)) ||
         ((tl == *l->nthArgument(1)) && !l->nthArgument(0)->containsSubterm(tl)))) ||
