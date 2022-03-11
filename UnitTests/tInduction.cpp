@@ -50,26 +50,22 @@ public:
     BacktrackData btd;
     _subst.bdRecord(btd);
     if (!TestUtils::permEq(*lhs, *rhs, [this](Literal* l, Literal* r) -> bool {
-      if (l->polarity() != r->polarity() || !l->ground()) {
+      if (l->polarity() != r->polarity()) {
         return false;
       }
       if (!_subst.match(Kernel::TermList(r), 0, Kernel::TermList(l), 1)) {
-        if (l->isEquality() && r->isEquality()) {
-          return _subst.match(*r->nthArgument(0), 0, *l->nthArgument(1), 1) &&
-            _subst.match(*r->nthArgument(1), 0, *l->nthArgument(0), 1);
+        if (!l->isEquality() || !r->isEquality() ||
+          !_subst.match(*r->nthArgument(0), 0, *l->nthArgument(1), 1) ||
+          !_subst.match(*r->nthArgument(1), 0, *l->nthArgument(0), 1))
+        {
+          return false;
         }
-        return false;
       }
       // we check that so far each variable is mapped to a unique Skolem constant
       DHMap<TermList, unsigned> inverse;
       for (unsigned i = 0; i < VARS; i++) {
         if (!_subst.isUnbound(i, 0)) {
           auto t = _subst.apply(TermList(i,false),0);
-          ASS(t.isTerm()) // l is checked for groundness above
-          auto f = t.term()->functor();
-          if (!env.signature->getFunction(f)->skolem() || t.term()->arity() > 0) {
-            return false;
-          }
           unsigned v;
           if (inverse.find(t,v)) {
             return false;
@@ -127,11 +123,11 @@ private:
   DECL_VAR(x21,21)                                                                         \
   DECL_SORT(s)                                                                             \
   DECL_SORT(u)                                                                             \
-  DECL_CONST(sK1, s)                                                                       \
-  DECL_CONST(sK2, s)                                                                       \
-  DECL_CONST(sK3, s)                                                                       \
-  DECL_CONST(sK4, s)                                                                       \
-  DECL_CONST(sK5, u)                                                                       \
+  DECL_SKOLEM_CONST(sK1, s)                                                                \
+  DECL_SKOLEM_CONST(sK2, s)                                                                \
+  DECL_SKOLEM_CONST(sK3, s)                                                                \
+  DECL_SKOLEM_CONST(sK4, s)                                                                \
+  DECL_SKOLEM_CONST(sK5, u)                                                                \
   DECL_CONST(b, s)                                                                         \
   DECL_FUNC(r, {s}, s)                                                                     \
   DECL_TERM_ALGEBRA(s, {b, r})                                                             \
@@ -465,5 +461,49 @@ TEST_GENERATION_INDUCTION(test_16,
         clause({ ~pi(0), ~(num(0) < y), 0 < sK6 }),
         clause({ ~pi(0), pi(y), 0 < sK6 }),
         clause({ ~pi(0), ~pi(y+num(-1)), 0 < sK6 }),
+      })
+    )
+
+// all skolems are replaced when the hypothesis strengthening options is on, sik=one
+TEST_GENERATION_INDUCTION(test_17,
+    Generation::TestCase()
+      .options({ { "induction", "struct" },
+                 { "induction_strengthen_hypothesis", "on" } })
+      .indices({ comparisonIndex() })
+      .input( clause({ f(sK1,sK2) != g(sK3) }) )
+      .expected({
+        // sK1
+        clause({ f(b,x) != g(y), f(x3,x4) == g(x5) }),
+        clause({ f(b,x) != g(y), f(r(x3),x6) != g(x7) }),
+
+        // sK2
+        clause({ f(x8,b) != g(x9), f(x10,x11) == g(x12) }),
+        clause({ f(x8,b) != g(x9), f(x13,r(x11)) != g(x14) }),
+
+        // sK3
+        clause({ f(x15,x16) != g(b), f(x17,x18) == g(x19) }),
+        clause({ f(x15,x16) != g(b), f(x20,x21) != g(r(x19)) }),
+      })
+    )
+
+// all skolems are replaced when the hypothesis strengthening options is on, sik=two
+TEST_GENERATION_INDUCTION(test_18,
+    Generation::TestCase()
+      .options({ { "induction", "struct" }, { "structural_induction_kind", "two" },
+                 { "induction_strengthen_hypothesis", "on" } })
+      .indices({ comparisonIndex() })
+      .input( clause({ f(sK1,sK2) != g(sK3) }) )
+      .expected({
+        // sK1
+        clause({ x != r(r0(x)), f(r0(x),y) == g(z) }),
+        clause({ f(x,x4) != g(x5) }),
+
+        // sK2
+        clause({ x6 != r(r0(x6)), f(x7,r0(x6)) == g(x8) }),
+        clause({ f(x9,x6) != g(x10) }),
+
+        // sK3
+        clause({ x11 != r(r0(x11)), f(x12,x13) == g(r0(x11)) }),
+        clause({ f(x14,x15) != g(x11) }),
       })
     )
