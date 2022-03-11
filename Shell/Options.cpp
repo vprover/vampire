@@ -1285,6 +1285,13 @@ void Options::init()
     _maxInductionGenSubsetSize.addHardConstraint(lessThan(10u));
     _lookup.insert(&_maxInductionGenSubsetSize);
 
+    _inductionStrengthenHypothesis = BoolOptionValue("induction_strengthen_hypothesis","indstrhyp",false);
+    _inductionStrengthenHypothesis.description = "Strengthen induction formulas with the remaining skolem constants"
+                                                  " replaced with universally quantified variables in hypotheses";
+    _inductionStrengthenHypothesis.tag(OptionTag::INFERENCES);
+    _inductionStrengthenHypothesis.reliesOn(_induction.is(notEqual(Induction::NONE)));
+    _lookup.insert(&_inductionStrengthenHypothesis);
+
     _inductionOnComplexTerms = BoolOptionValue("induction_on_complex_terms","indoct",false);
     _inductionOnComplexTerms.description = "Apply induction on complex (ground) terms vs. only on constants";
     _inductionOnComplexTerms.tag(OptionTag::INFERENCES);

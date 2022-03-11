@@ -40,13 +40,22 @@ using namespace Kernel;
 using namespace Saturation;
 
 class TermReplacement : public TermTransformer {
-
 public:
   TermReplacement(Term* o, TermList r) : _o(o), _r(r) {} 
-  virtual TermList transformSubterm(TermList trm);
-private:
+  TermList transformSubterm(TermList trm) override;
+protected:
   Term* _o;
   TermList _r;
+};
+
+class SkolemSquashingTermReplacement : public TermReplacement {
+public:
+  SkolemSquashingTermReplacement(Term* o, TermList r, unsigned& var)
+    : TermReplacement(o, r), _v(var) {}
+  TermList transformSubterm(TermList trm) override;
+private:
+  unsigned& _v;               // fresh variable counter supported by caller
+  DHMap<Term*, unsigned> _tv; // maps terms to their variable replacement
 };
 
 class LiteralSubsetReplacement : TermTransformer {
