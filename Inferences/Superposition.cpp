@@ -545,7 +545,7 @@ Clause* Superposition::performSuperposition(
     if (!env.proofExtra) {
       env.proofExtra = new DHMap<void*,vstring>();
     }
-    env.proofExtra->insert(res,extra);
+    ALWAYS(env.proofExtra->insert(res,extra));
   }
 
   (*res)[0] = tgtLitS;

@@ -399,7 +399,12 @@ protected:
 
     if (cs->isClause()) {
       Clause* cl=cs->asClause();
-      out << cl->toString() << vstring("\n");
+      out << cl->toString();
+       vstring extra;
+       if (env.proofExtra && env.proofExtra->find(cs,extra) && extra != "") {
+         out << " (" << extra << ")";
+       }
+      out << vstring("\n");
     }
     else {
       out << _is->getUnitIdStr(cs) << ". ";

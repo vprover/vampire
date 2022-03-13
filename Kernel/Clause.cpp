@@ -201,6 +201,9 @@ void Clause::destroy()
   static Stack<Clause*> toDestroy(32);
   Clause* cl = this;
   for(;;) {
+    if ((env.options->proofExtra()==Options::ProofExtra::FULL) && env.proofExtra) {
+      env.proofExtra->remove(cl);
+    }
     Inference::Iterator it = cl->_inference.iterator();
     while (cl->_inference.hasNext(it)) {
       Unit* refU = cl->_inference.next(it);

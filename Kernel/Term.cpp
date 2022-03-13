@@ -1018,13 +1018,11 @@ Term* Term::create(Term* t,TermList* args)
   TermList* ss = s->args();
   for (int i = 0;i < arity;i++) {
     ASS(!args[i].isEmpty());
-    //cout << args[i] << " ";
     *ss-- = args[i];
     if (!args[i].isSafe()) {
       share = false;
     }
   }
-  //cout << "------->" << s->toString() << endl;
   if (share) {
     s = env.sharing->insert(s);
   }
