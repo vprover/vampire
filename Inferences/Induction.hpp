@@ -146,10 +146,20 @@ private:
   void processLiteral(Clause* premise, Literal* lit);
   void processIntegerComparison(Clause* premise, Literal* lit);
 
+  struct InductionContext {
+    Formula* getFormula(TermList r, bool opposite, Stack<pair<Literal*,SLQueryResult>>* copy = nullptr) const;
+    Formula* getFormulaWithSquashedSkolems(TermList r, bool opposite, unsigned& var,
+      VList** varList = nullptr, Stack<pair<Literal*,SLQueryResult>>* copy = nullptr) const;
+
+    Stack<pair<Literal*,SLQueryResult>> _lits;
+    Term* _indTerm;
+  private:
+    Formula* getFormula(TermReplacement& tr, bool opposite, Stack<pair<Literal*,SLQueryResult>>* copy = nullptr) const;
+  };
+
   // Clausifies the hypothesis, resolves it against the conclusion/toResolve,
   // and increments relevant statistics.
-  void produceClauses(Clause* premise, Literal* origLit, Formula* hypothesis, InferenceRule rule, const pair<Literal*, SLQueryResult>& conclusion);
-  void produceClauses(Clause* premise, Literal* origLit, Formula* hypothesis, InferenceRule rule, const List<pair<Literal*, SLQueryResult>>* bounds);
+  void produceClauses(Formula* hypothesis, InferenceRule rule, const Stack<pair<Literal*,SLQueryResult>>& toResolve, RobSubstitution* subst = nullptr);
 
   // Calls generalizeAndPerformIntInduction(...) for those induction literals from inductionTQRsIt,
   // which are non-redundant with respect to the indTerm, bounds, and increasingness.
@@ -167,11 +177,11 @@ private:
   // Note: indLits may be created in this method, but it needs to be destroyed outside of it.
   void generalizeAndPerformIntInduction(Clause* premise, Literal* origLit, Term* origTerm, List<pair<Literal*, InferenceRule>>*& indLits, Term* indTerm, bool increasing, TermQueryResult& bound1, TermQueryResult* optionalBound2);
 
-  void performIntInduction(Clause* premise, Literal* origLit, Literal* lit, Term* t, InferenceRule rule, bool increasing, const TermQueryResult& bound1, TermQueryResult* optionalBound2);
+  void performIntInduction(const InductionContext& context, InferenceRule rule, bool increasing, const TermQueryResult& bound1, TermQueryResult* optionalBound2);
 
-  void performStructInductionOne(Clause* premise, Literal* origLit, Literal* lit, Term* t, InferenceRule rule);
-  void performStructInductionTwo(Clause* premise, Literal* origLit, Literal* lit, Term* t, InferenceRule rule);
-  void performStructInductionThree(Clause* premise, Literal* origLit, Literal* lit, Term* t, InferenceRule rule);
+  void performStructInductionOne(const InductionContext& context, InferenceRule rule);
+  void performStructInductionTwo(const InductionContext& context, InferenceRule rule);
+  void performStructInductionThree(const InductionContext& context, InferenceRule rule);
 
   bool notDone(Literal* lit, Term* t);
   bool notDoneInt(Literal* lit, Term* t, bool increasing, Term* bound1, Term* optionalBound2, bool fromComparison);

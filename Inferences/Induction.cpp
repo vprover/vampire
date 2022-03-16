@@ -235,23 +235,56 @@ Literal* replaceTermInLiteral(Literal* lit, Term* o, TermList r) {
   return tr.transform(lit);
 }
 
-Literal* replaceTermAndSquashSkolemsInLiteral(Literal* lit, Term* o, TermList r, unsigned& var, VList** varList = nullptr) {
+Literal* replaceTermAndSquashSkolemsInLiteral(Literal* lit, Term* o, TermList r, unsigned& var) {
   const bool strengthenHyp = env.options->inductionStrengthenHypothesis();
   if (!strengthenHyp) {
     return replaceTermInLiteral(lit, o, r);
   }
   SkolemSquashingTermReplacement tr(o,r,var);
+  return tr.transform(lit);
+}
+
+Formula* InductionClauseIterator::InductionContext::getFormula(TermReplacement& tr, bool opposite,
+  Stack<pair<Literal*,SLQueryResult>>* copy) const
+{
+  ASS(_lits.isNonEmpty());
+  auto args = FormulaList::empty();
+  for (const auto& kv : _lits) {
+    auto lit = tr.transform(kv.first);
+    if (copy) {
+      copy->push(make_pair(lit, kv.second));
+    }
+    FormulaList::push(new AtomicFormula(opposite ? Literal::complementaryLiteral(lit) : lit), args);
+  }
+  return JunctionFormula::generalJunction(opposite ? Connective::OR : Connective::AND, args);
+}
+
+Formula* InductionClauseIterator::InductionContext::getFormula(TermList r, bool opposite,
+  Stack<pair<Literal*,SLQueryResult>>* copy) const
+{
+  TermReplacement tr(_indTerm, r);
+  return getFormula(tr, opposite, copy);
+}
+
+Formula* InductionClauseIterator::InductionContext::getFormulaWithSquashedSkolems(TermList r, bool opposite,
+  unsigned& var, VList** varList, Stack<pair<Literal*,SLQueryResult>>* copy) const
+{
+  const bool strengthenHyp = env.options->inductionStrengthenHypothesis();
+  if (!strengthenHyp) {
+    return getFormula(r, opposite, copy);
+  }
+  SkolemSquashingTermReplacement tr(_indTerm, r, var);
   if (varList) {
     // The variables replacing the Skolems after calling transform
     // are needed for quantification if varList is non-null, collect them
     unsigned temp = var;
-    auto res = tr.transform(lit);
+    auto res = getFormula(tr, opposite, copy);
     for (unsigned i = temp; i < var; i++) {
       VList::push(i,*varList);
     }
     return res;
   }
-  return tr.transform(lit);
+  return getFormula(tr, opposite, copy);
 }
 
 TermList LiteralSubsetReplacement::transformSubterm(TermList trm)
@@ -416,14 +449,17 @@ void InductionClauseIterator::processLiteral(Clause* premise, Literal* lit)
           Literal* ilit = generalize ? subsetReplacement.transformSubset(rule) : lit;
           ASS(ilit != nullptr);
           do {
+            InductionContext ctx;
+            ctx._indTerm = inductionTerm;
+            ctx._lits.push(make_pair(ilit, SLQueryResult(lit, premise)));
             if(one){
-              performStructInductionOne(premise,lit,ilit,inductionTerm,rule);
+              performStructInductionOne(ctx,rule);
             }
             if(two){
-              performStructInductionTwo(premise,lit,ilit,inductionTerm,rule);
+              performStructInductionTwo(ctx,rule);
             }
             if(three){
-              performStructInductionThree(premise,lit,ilit,inductionTerm,rule);
+              performStructInductionThree(ctx,rule);
             }
           } while (generalize && (ilit = subsetReplacement.transformSubset(rule)));
         }
@@ -482,7 +518,10 @@ void InductionClauseIterator::generalizeAndPerformIntInduction(Clause* premise, 
   while (it.hasNext()) {
     auto& litAndRule = it.next();
     ASS(litAndRule.first != nullptr);
-    performIntInduction(premise, origLit, litAndRule.first, indTerm, litAndRule.second, increasing, bound1, optionalBound2);
+    InductionContext context;
+    context._indTerm = indTerm;
+    context._lits.push(make_pair(litAndRule.first, SLQueryResult(origLit, premise)));
+    performIntInduction(context, litAndRule.second, increasing, bound1, optionalBound2);
   }
 }
 
@@ -538,21 +577,67 @@ void InductionClauseIterator::performIntInductionOnEligibleLiterals(Term* origTe
   }
 }
 
-void InductionClauseIterator::produceClauses(Clause* premise, Literal* origLit, Formula* hypothesis, InferenceRule rule, const pair<Literal*, SLQueryResult>& conclusion)
-{
-  CALL("InductionClauseIterator::produceClauses");
-  const List<pair<Literal*, SLQueryResult>> toResolve(conclusion);
-  produceClauses(premise, origLit, hypothesis, rule, &toResolve);
+bool contains(Literal* lit, const Stack<pair<Literal*,SLQueryResult>>& toResolve) {
+  for (const auto& qr : toResolve) {
+    if (qr.first==lit) {
+      return true;
+    }
+  }
+  return false;
 }
 
-void InductionClauseIterator::produceClauses(Clause* premise, Literal* origLit, Formula* hypothesis, InferenceRule rule, const List<pair<Literal*, SLQueryResult>>* toResolve)
+Clause* generateClause(const Stack<pair<Literal*,SLQueryResult>>& toResolve, Clause* cl, RobSubstitution* subst)
+{
+  CALL("generateClause");
+  unsigned newLength = cl->length();
+  auto premises = UnitList::singleton(cl);
+  for (const auto& qr : toResolve) {
+    if (cl->contains(Literal::complementaryLiteral(qr.first))) {
+      newLength += qr.second.clause->length() - 2; // there are 2 resolved literals
+      UnitList::push(qr.second.clause, premises);
+    }
+  }
+
+  Inference inf(GeneratingInferenceMany(InferenceRule::RESOLUTION, premises));
+  Clause* res = new(newLength) Clause(newLength, inf);
+
+  unsigned next = 0;
+  for(unsigned i=0;i<cl->length();i++) {
+    Literal* curr=(*cl)[i];
+    if (!contains(Literal::complementaryLiteral(curr), toResolve)) {
+      ASS(next < newLength);
+      (*res)[next] = subst ? subst->apply(curr, 0) : curr;
+      next++;
+    }
+  }
+
+  for (const auto& qr : toResolve) {
+    for (unsigned i = 0; i < qr.second.clause->length(); i++) {
+      Literal* curr = (*qr.second.clause)[i];
+      if (curr != qr.second.literal) {
+        (*res)[next] = curr;
+        next++;
+      }
+    }
+  }
+  ASS_EQ(next,newLength);
+
+  env.statistics->resolution++;
+  return res;
+}
+
+void InductionClauseIterator::produceClauses(Formula* hypothesis, InferenceRule rule, const Stack<pair<Literal*,SLQueryResult>>& toResolve, RobSubstitution* subst)
 {
   CALL("InductionClauseIterator::produceClauses");
   NewCNF cnf(0);
   cnf.setForInduction();
   Stack<Clause*> hyp_clauses;
   Inference inf = NonspecificInference0(UnitInputType::AXIOM,rule);
-  inf.setInductionDepth(premise->inference().inductionDepth()+1);
+  unsigned maxInductionDepth = 0;
+  for (const auto& p : toResolve) {
+    maxInductionDepth = max(maxInductionDepth,p.second.clause->inference().inductionDepth());
+  }
+  inf.setInductionDepth(maxInductionDepth+1);
   FormulaUnit* fu = new FormulaUnit(hypothesis,inf);
   cnf.clausify(NNF::ennf(fu), hyp_clauses);
 
@@ -565,22 +650,7 @@ void InductionClauseIterator::produceClauses(Clause* premise, Literal* origLit, 
   Stack<Clause*>::Iterator cit(hyp_clauses);
   while(cit.hasNext()){
     Clause* c = cit.next();
-    bool resolved = false;
-    List<pair<Literal*, SLQueryResult>>::RefIterator resIt(toResolve);
-    while (resIt.hasNext()) {
-      auto& litAndSLQR = resIt.next();
-      // If litAndSLQR contains a literal present in the clause, resolve it.
-      if(litAndSLQR.first && c->contains(litAndSLQR.first)){
-        if (resolved) {
-          // 'c' is never added to the saturation set, hence we need to call splitter here, before
-          // we apply binary resolution on it.
-          _helper.callSplitterOnNewClause(c);
-        }
-        c = BinaryResolution::generateClause(c,litAndSLQR.first,litAndSLQR.second,_opt);
-        resolved = true;
-      }
-    }
-    _clauses.push(c);
+    _clauses.push(generateClause(toResolve, c, subst));
   }
   env.statistics->induction++;
   if (rule == InferenceRule::GEN_INDUCTION_AXIOM ||
@@ -661,7 +731,7 @@ void InductionClauseIterator::produceClauses(Clause* premise, Literal* origLit, 
 // either infinity or -infinity. (The intervals are set such that the hypothesis
 // is valid: if interval_y(Y) holds for some Y, then either interval_x(Y) holds,
 // or depending on 'increasing' either interval_x(Y-1) or interval_x(Y+1) holds.)
-void InductionClauseIterator::performIntInduction(Clause* premise, Literal* origLit, Literal* lit, Term* term, InferenceRule rule, bool increasing, const TermQueryResult& bound1, TermQueryResult* optionalBound2)
+void InductionClauseIterator::performIntInduction(const InductionContext& context, InferenceRule rule, bool increasing, const TermQueryResult& bound1, TermQueryResult* optionalBound2)
 {
   CALL("InductionClauseIterator::performIntInduction");
 
@@ -671,20 +741,19 @@ void InductionClauseIterator::performIntInduction(Clause* premise, Literal* orig
   TermList x(0,false);
   TermList y(1,false);
 
-  Literal* clit = Literal::complementaryLiteral(lit);
-
   // create L[b1]
-  Formula* Lb1 = new AtomicFormula(replaceTermInLiteral(clit,term,b1));
+  Formula* Lb1 = context.getFormula(b1,true);
 
   // create L[X]
-  Formula* Lx = new AtomicFormula(replaceTermInLiteral(clit,term,x));
+  Formula* Lx = context.getFormula(x,true);
 
   // create L[Y]
-  Formula* Ly = new AtomicFormula(replaceTermInLiteral(clit,term,y));
+  Stack<pair<Literal*,SLQueryResult>> toResolve;
+  Formula* Ly = context.getFormula(y,true,&toResolve);
 
   // create L[X+1] or L[X-1]
   TermList fpo(Term::create2(env.signature->getInterpretingSymbol(Theory::INT_PLUS),x,one));
-  Formula* Lxpo = new AtomicFormula(replaceTermInLiteral(clit,term,fpo));
+  Formula* Lxpo = context.getFormula(fpo,true);
 
   static unsigned less = env.signature->getInterpretingSymbol(Theory::INT_LESS);
   // create X>=b1 (which is ~X<b1) or X<=b1 (which is ~b1<X)
@@ -701,6 +770,11 @@ void InductionClauseIterator::performIntInduction(Clause* premise, Literal* orig
   Formula* FyInterval;
   const bool isDefaultBound = ((bound1.clause == nullptr) || (bound1.literal == nullptr));
   const bool hasBound2 = ((optionalBound2 != nullptr) && (optionalBound2->literal != nullptr));
+  // Also resolve the hypothesis with comparisons with bound(s) (if the bound(s) are present/not default).
+  if (!isDefaultBound) {
+    toResolve.push(make_pair(Lycompb1->literal(),
+      SLQueryResult(bound1.literal, bound1.clause)));
+  }
   if (hasBound2) {
     // Finite interval induction, use two bounds on both x and y.
     rule = getFinRule(rule);
@@ -714,6 +788,11 @@ void InductionClauseIterator::performIntInduction(Clause* premise, Literal* orig
           less, !isBound2Equal, (isBound2FirstArg ? b2 : y), (isBound2FirstArg ? y : b2)));
     FxInterval = new JunctionFormula(Connective::AND, FormulaList::cons(Lxcompb1, FormulaList::singleton(Lxcompb2)));
     FyInterval = new JunctionFormula(Connective::AND, FormulaList::cons(Lycompb1, FormulaList::singleton(Lycompb2)));
+    if (!isDefaultBound) {
+      // If there is also a second bound, add that to the list as well.
+      toResolve.push(make_pair(Lycompb2->literal(),
+        SLQueryResult(optionalBound2->literal, optionalBound2->clause)));
+    }
   } else {
     // Infinite interval induction (either with default bound or not), use only one bound on both x and y.
     if (isDefaultBound) rule = getDBRule(rule);
@@ -730,38 +809,13 @@ void InductionClauseIterator::performIntInduction(Clause* premise, Literal* orig
                        new JunctionFormula(Connective::AND, FormulaList::cons(FxInterval,FormulaList::singleton(Lx))),
                        Lxpo))))),
                    Formula::quantify(new BinaryFormula(Connective::IMP,FyInterval,Ly)));
-  
-  auto toResolve = List<pair<Literal*, SLQueryResult>>::empty();
-  // Also resolve the hypothesis with comparisons with bound(s) (if the bound(s) are present/not default).
-  if (!isDefaultBound) {
-    // After resolving L[y], 'y' will be already substituted by 'term'.
-    // Therefore, the second (and third) substitution(s) is/are empty.
-    static ResultSubstitutionSP identity = ResultSubstitutionSP(new IdentitySubstitution());
-    List<pair<Literal*, SLQueryResult>>::push(make_pair(
-        Literal::complementaryLiteral(bound1.literal),
-        SLQueryResult(bound1.literal, bound1.clause, identity)),
-      toResolve);
-    // If there is also a second bound, add that to the list as well.
-    if (hasBound2) {
-      List<pair<Literal*, SLQueryResult>>::push(make_pair(
-          Literal::complementaryLiteral(optionalBound2->literal),
-          SLQueryResult(optionalBound2->literal, optionalBound2->clause, identity)),
-        toResolve);
-    }
+
+  RobSubstitution subst;
+  if (isDefaultBound) {
+    ALWAYS(subst.match(y,0,TermList(context._indTerm),1));
   }
 
-  // Create pairs of Literal* and SLQueryResult for resolving L[y] and Y>=b (or Y<=b or Y>b or Y<b)
-  static RobSubstitution subst;
-  // When producing clauses, 'y' should be unified with 'term'
-  ALWAYS(subst.unify(TermList(term), 0, y, 1));
-  ResultSubstitutionSP resultSubst = ResultSubstitution::fromSubstitution(&subst, 1, 0);
-  List<pair<Literal*, SLQueryResult>>::push(make_pair(
-      Ly->literal(),
-      SLQueryResult(origLit, premise, resultSubst)),
-    toResolve);
-  produceClauses(premise, lit, hyp, rule, toResolve);
-  List<pair<Literal*, SLQueryResult>>::destroy(toResolve);
-  subst.reset();
+  produceClauses(hyp, rule, toResolve, isDefaultBound ? &subst : nullptr);
 }
 
 /**
@@ -771,16 +825,15 @@ void InductionClauseIterator::performIntInduction(Clause* premise, Literal* orig
  * and then force binary resolution on L for each resultant clause
  */
 
-void InductionClauseIterator::performStructInductionOne(Clause* premise, Literal* origLit, Literal* lit, Term* term, InferenceRule rule)
+void InductionClauseIterator::performStructInductionOne(const InductionContext& context, InferenceRule rule)
 {
   CALL("InductionClauseIterator::performStructInductionOne"); 
 
-  TermAlgebra* ta = env.signature->getTermAlgebraOfSort(env.signature->getFunction(term->functor())->fnType()->result());
+  TermAlgebra* ta = env.signature->getTermAlgebraOfSort(env.signature->getFunction(context._indTerm->functor())->fnType()->result());
   TermList ta_sort = ta->sort();
 
   FormulaList* formulas = FormulaList::empty();
 
-  Literal* clit = Literal::complementaryLiteral(lit);
   unsigned var = 0;
 
   // first produce the formula
@@ -798,34 +851,32 @@ void InductionClauseIterator::performStructInductionOne(Clause* premise, Literal
         argTerms.push(x);
       }
       // if hypothesis strengthening is on, this replaces the Skolems with fresh variables
-      Formula* right = new AtomicFormula(
-        replaceTermAndSquashSkolemsInLiteral(clit,term,
-        TermList(Term::create(con->functor(),(unsigned)argTerms.size(), argTerms.begin())), var));
+      auto right = context.getFormulaWithSquashedSkolems(
+        TermList(Term::create(con->functor(),(unsigned)argTerms.size(), argTerms.begin())), true, var);
       FormulaList* args = FormulaList::empty();
       Stack<TermList>::Iterator tvit(ta_vars);
       while(tvit.hasNext()){
         auto hypVars = VList::empty();
-        Formula* hyp = new AtomicFormula(
-          replaceTermAndSquashSkolemsInLiteral(clit,term,tvit.next(),var,&hypVars));
+        auto hyp = context.getFormulaWithSquashedSkolems(tvit.next(),true,var,&hypVars);
         // quantify each hypotheses with variables replacing Skolems explicitly
         if (hypVars) {
           hyp = new QuantifiedFormula(Connective::FORALL, hypVars, SList::empty(), hyp);
         }
         FormulaList::push(hyp,args);
       }
+
       FormulaList::push(args ?
         new BinaryFormula(Connective::IMP,JunctionFormula::generalJunction(Connective::AND,args),right) : right, formulas);
   }
   ASS(formulas);
   Formula* indPremise = JunctionFormula::generalJunction(Connective::AND,formulas);
-  Literal* conclusion = replaceTermAndSquashSkolemsInLiteral(clit,term,TermList(var++,false),var);
+  Stack<pair<Literal*,SLQueryResult>> toResolve;
+  auto conclusion = context.getFormulaWithSquashedSkolems(TermList(var++,false), true, var, nullptr, &toResolve);
   Formula* hypothesis = new BinaryFormula(Connective::IMP,
                             Formula::quantify(indPremise),
-                            Formula::quantify(new AtomicFormula(conclusion)));
+                            Formula::quantify(conclusion));
 
-  static ResultSubstitutionSP identity = ResultSubstitutionSP(new IdentitySubstitution());
-  pair<Literal*, SLQueryResult> toResolve(conclusion, SLQueryResult(origLit, premise, identity));
-  produceClauses(premise, origLit, hypothesis, rule, toResolve);
+  produceClauses(hypothesis, rule, toResolve);
 }
 
 /**
@@ -833,21 +884,19 @@ void InductionClauseIterator::performStructInductionOne(Clause* premise, Literal
  * We produce the clause ~L[x] \/ ?y : L[y] & !z (z subterm y -> ~L[z])
  * and perform resolution with lit L[c]
  */
-void InductionClauseIterator::performStructInductionTwo(Clause* premise, Literal* origLit, Literal* lit, Term* term, InferenceRule rule) 
+void InductionClauseIterator::performStructInductionTwo(const InductionContext& context, InferenceRule rule)
 {
   CALL("InductionClauseIterator::performStructInductionTwo"); 
 
-  TermAlgebra* ta = env.signature->getTermAlgebraOfSort(env.signature->getFunction(term->functor())->fnType()->result());
+  TermAlgebra* ta = env.signature->getTermAlgebraOfSort(env.signature->getFunction(context._indTerm->functor())->fnType()->result());
   TermList ta_sort = ta->sort();
-
-  Literal* clit = Literal::complementaryLiteral(lit);
 
   // make L[y]
   TermList y(0,false); 
   unsigned var = 1;
   // if hypothesis strengthening is on, this replaces the Skolems with fresh variables
   auto mainVars = VList::singleton(y.var());
-  Literal* Ly = replaceTermAndSquashSkolemsInLiteral(lit,term,y,var,&mainVars);
+  auto Ly = context.getFormulaWithSquashedSkolems(y,false,var,&mainVars);
 
   // for each constructor and destructor make
   // ![Z] : y = cons(Z,dec(y)) -> ( ~L[dec1(y)] & ~L[dec2(y)]
@@ -879,8 +928,7 @@ void InductionClauseIterator::performStructInductionTwo(Clause* premise, Literal
       while(tit.hasNext()){
         TermList djy = tit.next();
         auto hypVars = VList::empty();
-        Literal* nLdjy = replaceTermAndSquashSkolemsInLiteral(clit,term,djy,var,&hypVars);
-        Formula* f = new AtomicFormula(nLdjy); 
+        auto f = context.getFormulaWithSquashedSkolems(djy,true,var,&hypVars);
         if (hypVars) {
           f = new QuantifiedFormula(Connective::FORALL, hypVars, SList::empty(), f);
         }
@@ -895,16 +943,15 @@ void InductionClauseIterator::performStructInductionTwo(Clause* premise, Literal
   }
   // quantify with mainVars explicitly
   Formula* exists = new QuantifiedFormula(Connective::EXISTS, mainVars,SList::empty(),
-                        formulas ? new JunctionFormula(Connective::AND,FormulaList::cons(new AtomicFormula(Ly),formulas))
-                                 : static_cast<Formula*>(new AtomicFormula(Ly)));
-  
-  Literal* conclusion = replaceTermAndSquashSkolemsInLiteral(clit,term,TermList(var++,false),var);
-  FormulaList* orf = FormulaList::cons(exists,FormulaList::singleton(Formula::quantify(new AtomicFormula(conclusion))));
+                        formulas ? new JunctionFormula(Connective::AND,FormulaList::cons(Ly,formulas))
+                                 : Ly);
+
+  Stack<pair<Literal*,SLQueryResult>> toResolve;
+  auto conclusion = context.getFormulaWithSquashedSkolems(TermList(var++, false), true, var, nullptr, &toResolve);
+  FormulaList* orf = FormulaList::cons(exists,FormulaList::singleton(Formula::quantify(conclusion)));
   Formula* hypothesis = new JunctionFormula(Connective::OR,orf);
 
-  static ResultSubstitutionSP identity = ResultSubstitutionSP(new IdentitySubstitution());
-  pair<Literal*, SLQueryResult> toResolve(conclusion, SLQueryResult(origLit, premise, identity));
-  produceClauses(premise, origLit, hypothesis, rule, toResolve);
+  produceClauses(hypothesis, rule, toResolve);
 }
 
 /*
@@ -917,14 +964,12 @@ void InductionClauseIterator::performStructInductionTwo(Clause* premise, Literal
  * i.e. we add a new special predicat that is true when its argument is smaller than Y
  *
  */
-void InductionClauseIterator::performStructInductionThree(Clause* premise, Literal* origLit, Literal* lit, Term* term, InferenceRule rule) 
+void InductionClauseIterator::performStructInductionThree(const InductionContext& context, InferenceRule rule)
 {
   CALL("InductionClauseIterator::performStructInductionThree");
 
-  TermAlgebra* ta = env.signature->getTermAlgebraOfSort(env.signature->getFunction(term->functor())->fnType()->result());
+  TermAlgebra* ta = env.signature->getTermAlgebraOfSort(env.signature->getFunction(context._indTerm->functor())->fnType()->result());
   TermList ta_sort = ta->sort();
-
-  Literal* clit = Literal::complementaryLiteral(lit);
 
   // make L[y]
   TermList x(0,false); 
@@ -933,14 +978,14 @@ void InductionClauseIterator::performStructInductionThree(Clause* premise, Liter
   unsigned vars = 3;
   // if hypothesis strengthening is on, this replaces the Skolems with fresh variables
   auto mainVars = VList::singleton(y.var());
-  Literal* Ly = replaceTermAndSquashSkolemsInLiteral(lit,term,y,vars,&mainVars);
+  auto Ly = context.getFormulaWithSquashedSkolems(y,false,vars,&mainVars);
 
   // make smallerThanY
   unsigned sty = env.signature->addFreshPredicate(1,"smallerThan");
   env.signature->getPredicate(sty)->setType(OperatorType::getPredicateType({ta_sort}));
 
   // make ( y = con_i(..dec(y)..) -> smaller(dec(y)))  for each constructor 
-  FormulaList* conjunction = FormulaList::singleton(new AtomicFormula(Ly));
+  FormulaList* conjunction = FormulaList::singleton(Ly);
   for(unsigned i=0;i<ta->nConstructors();i++){
     TermAlgebraConstructor* con = ta->constructor(i);
     unsigned arity = con->arity();
@@ -999,20 +1044,19 @@ void InductionClauseIterator::performStructInductionThree(Clause* premise, Liter
   // now !z : smallerThanY(z) => ~L[z]
   Formula* smallerImpNL = Formula::quantify(new BinaryFormula(Connective::IMP, 
                             new AtomicFormula(Literal::create1(sty,true,z)),
-                            new AtomicFormula(replaceTermAndSquashSkolemsInLiteral(clit,term,z,vars))));
+                            context.getFormulaWithSquashedSkolems(z,true,vars)));
 
   FormulaList::push(smallerImpNL,conjunction);
   // quantify with mainVars explicitly
   Formula* exists = new QuantifiedFormula(Connective::EXISTS, mainVars,SList::empty(),
                        new JunctionFormula(Connective::AND,conjunction));
 
-  Literal* conclusion = replaceTermAndSquashSkolemsInLiteral(clit,term,x,vars);
-  FormulaList* orf = FormulaList::cons(exists,FormulaList::singleton(Formula::quantify(new AtomicFormula(conclusion))));
+  Stack<pair<Literal*,SLQueryResult>> toResolve;
+  auto conclusion = context.getFormulaWithSquashedSkolems(x,true,vars,nullptr,&toResolve);
+  FormulaList* orf = FormulaList::cons(exists,FormulaList::singleton(Formula::quantify(conclusion)));
   Formula* hypothesis = new JunctionFormula(Connective::OR,orf);
 
-  static ResultSubstitutionSP identity = ResultSubstitutionSP(new IdentitySubstitution());
-  pair<Literal*, SLQueryResult> toResolve(conclusion, SLQueryResult(origLit, premise, identity));
-  produceClauses(premise, origLit, hypothesis, rule, toResolve);
+  produceClauses(hypothesis, rule, toResolve);
 }
 
 bool InductionClauseIterator::notDone(Literal* lit, Term* term)
