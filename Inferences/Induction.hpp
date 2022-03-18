@@ -114,14 +114,15 @@ private:
   // The following pointers can be null if int induction is off.
   LiteralIndex* _comparisonIndex = nullptr;
   TermIndex* _inductionTermIndex = nullptr;
+  TermIndex* _structInductionTermIndex = nullptr;
 };
 
 class InductionClauseIterator
 {
 public:
   // all the work happens in the constructor!
-  InductionClauseIterator(Clause* premise, InductionHelper helper, const Options& opt)
-      : _helper(helper), _opt(opt)
+  InductionClauseIterator(Clause* premise, InductionHelper helper, const Options& opt, TermIndex* structInductionTermIndex)
+      : _helper(helper), _opt(opt), _structInductionTermIndex(structInductionTermIndex)
   {
     processClause(premise);
   }
@@ -150,12 +151,22 @@ private:
     Formula* getFormula(TermList r, bool opposite, Stack<pair<Literal*,SLQueryResult>>* copy = nullptr) const;
     Formula* getFormulaWithSquashedSkolems(TermList r, bool opposite, unsigned& var,
       VList** varList = nullptr, Stack<pair<Literal*,SLQueryResult>>* copy = nullptr) const;
+    vstring toString() const {
+      vstringstream str;
+      str << *_indTerm << endl;
+      for (const auto& lit : _lits) {
+        str << *lit.first << " " << *lit.second.literal << " " << *lit.second.clause << endl;
+      }
+      return str.str();
+    }
 
     Stack<pair<Literal*,SLQueryResult>> _lits;
     Term* _indTerm;
   private:
     Formula* getFormula(TermReplacement& tr, bool opposite, Stack<pair<Literal*,SLQueryResult>>* copy = nullptr) const;
   };
+  struct InductionContextFn;
+  struct InductionContextFilterFn;
 
   // Clausifies the hypothesis, resolves it against the conclusion/toResolve,
   // and increments relevant statistics.
@@ -190,6 +201,7 @@ private:
   Stack<Clause*> _clauses;
   InductionHelper _helper;
   const Options& _opt;
+  TermIndex* _structInductionTermIndex;
 };
 
 };

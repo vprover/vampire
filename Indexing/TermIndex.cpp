@@ -215,6 +215,35 @@ void InductionTermIndex::handleClause(Clause* c, bool adding)
   }
 }
 
+void StructInductionTermIndex::handleClause(Clause* c, bool adding)
+{
+  CALL("StructInductionTermIndex::handleClause");
+
+  if (!InductionHelper::isInductionClause(c)) {
+    return;
+  }
+  // Iterate through literals & check if the literal is suitable for induction
+  for (unsigned i=0;i<c->length();i++) {
+    Literal* lit = (*c)[i];
+    if (!lit->ground()) {
+      continue;
+    }
+    SubtermIterator it(lit);
+    while (it.hasNext()) {
+      TermList tl = it.next();
+      ASS(tl.isTerm());
+      if (InductionHelper::isInductionTermFunctor(tl.term()->functor()) &&
+          InductionHelper::isStructInductionFunctor(tl.term()->functor())) {
+        if (adding) {
+          _is->insert(tl, lit, c);
+        } else {
+          _is->remove(tl, lit, c);
+        }
+      }
+    }
+  }
+}
+
 
 /////////////////////////////////////////////////////
 // Indices for higher-order inferences from here on//

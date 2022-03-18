@@ -348,11 +348,15 @@ void Induction::attach(SaturationAlgorithm* salg) {
   if (InductionHelper::isIntInductionTwoOn()) {
     _inductionTermIndex = static_cast<TermIndex*>(_salg->getIndexManager()->request(INDUCTION_TERM_INDEX));
   }
+  _structInductionTermIndex = static_cast<TermIndex*>(
+    _salg->getIndexManager()->request(STRUCT_INDUCTION_TERM_INDEX));
 }
 
 void Induction::detach() {
   CALL("Induction::detach");
 
+  _structInductionTermIndex = nullptr;
+  _salg->getIndexManager()->release(STRUCT_INDUCTION_TERM_INDEX);
   if (InductionHelper::isIntInductionOn()) {
     _comparisonIndex = nullptr;
     _salg->getIndexManager()->release(UNIT_INT_COMPARISON_INDEX);
@@ -368,7 +372,7 @@ ClauseIterator Induction::generateClauses(Clause* premise)
 {
   CALL("Induction::generateClauses");
 
-  return pvi(InductionClauseIterator(premise, InductionHelper(_comparisonIndex, _inductionTermIndex, _salg->getSplitter()), getOptions()));
+  return pvi(InductionClauseIterator(premise, InductionHelper(_comparisonIndex, _inductionTermIndex, _salg->getSplitter()), getOptions(), _structInductionTermIndex));
 }
 
 void InductionClauseIterator::processClause(Clause* premise)
@@ -386,6 +390,77 @@ void InductionClauseIterator::processClause(Clause* premise)
     processIntegerComparison(premise, (*premise)[0]);
   }
 }
+
+struct InductionClauseIterator::InductionContextFilterFn
+{
+  bool operator()(const InductionContext& arg) {
+    return arg._lits.size() > 1;
+  }
+};
+
+struct InductionClauseIterator::InductionContextFn
+{
+  InductionContextFn(Clause* premise, Literal* lit) : _premise(premise), _lit(lit) {}
+
+  InductionContext operator()(pair<Term*, VirtualIterator<TermQueryResult>> arg) {
+    InductionContext ctx;
+    ctx._indTerm = arg.first;
+    ctx._lits.push(make_pair(_lit, SLQueryResult(_lit, _premise)));
+    auto indDepth = _premise->inference().inductionDepth();
+    if (indDepth && !env.signature->getFunction(arg.first->functor())->arity()) {
+      return ctx;
+    }
+    while (arg.second.hasNext()) {
+      auto tqr = arg.second.next();
+      if (_premise == tqr.clause || _lit == tqr.literal) {
+        continue;
+      }
+      if (indDepth && indDepth == tqr.clause->inference().inductionDepth()) {
+        if (_lit->functor() != tqr.literal->functor())
+        {
+          continue;
+        }
+        bool match = false;
+        SubtermIterator sti1(_lit);
+        SubtermIterator sti2(tqr.literal);
+        while (sti1.hasNext()) {
+          ASS(sti2.hasNext());
+          auto st1 = sti1.next();
+          auto st2 = sti2.next();
+          if (st1 != st2) {
+            if (match || !st1.containsSubterm(st2) || st2.term() != arg.first) {
+              match = false;
+              break;
+            }
+            sti1.right();
+            sti2.right();
+            match = true;
+          }
+        }
+        if (!match) {
+          continue;
+        }
+      }
+      ctx._lits.push(make_pair(tqr.literal, SLQueryResult(tqr.literal, tqr.clause)));
+    }
+    return ctx;
+  }
+private:
+  Clause* _premise;
+  Literal* _lit;
+};
+
+struct SideLiteralsFn
+{
+  SideLiteralsFn(TermIndex* index, unsigned inductionDepth) : _index(index), _inductionDepth(inductionDepth) {}
+
+  pair<Term*, VirtualIterator<TermQueryResult>> operator()(Term* arg) {
+    return make_pair(arg, _index->getGeneralizations(TermList(arg), true));
+  }
+private:
+  TermIndex* _index;
+  unsigned _inductionDepth;
+};
 
 void InductionClauseIterator::processLiteral(Clause* premise, Literal* lit)
 {
@@ -433,17 +508,34 @@ void InductionClauseIterator::processLiteral(Clause* premise, Literal* lit)
         performIntInductionForEligibleBounds(premise, lit, t, indLits, indTerm, /*increasing=*/false, grBound, leBound);
         List<pair<Literal*, InferenceRule>>::destroy(indLits);
       }
+      static bool one = _opt.structInduction() == Options::StructuralInductionKind::ONE ||
+                        _opt.structInduction() == Options::StructuralInductionKind::ALL;
+      static bool two = _opt.structInduction() == Options::StructuralInductionKind::TWO ||
+                        _opt.structInduction() == Options::StructuralInductionKind::ALL;
+      static bool three = _opt.structInduction() == Options::StructuralInductionKind::THREE ||
+                        _opt.structInduction() == Options::StructuralInductionKind::ALL;
+      InferenceRule rule = InferenceRule::INDUCTION_AXIOM;
       Set<Term*>::Iterator citer2(ta_terms);
+      Set<Term*>::Iterator citer211(ta_terms);
+      auto citer21 = getMappingIterator(citer211, SideLiteralsFn(_structInductionTermIndex,premise->inference().inductionDepth()));
+      auto citer22 = getMappingIterator(citer21, InductionContextFn(premise, lit));
+      auto citer23 = getFilteredIterator(citer22, InductionContextFilterFn());
+      while(citer23.hasNext()) {
+        auto ctx = citer23.next();
+        cout << ctx.toString() << endl;
+        if(one){
+          performStructInductionOne(ctx,rule);
+        }
+        if(two){
+          performStructInductionTwo(ctx,rule);
+        }
+        if(three){
+          performStructInductionThree(ctx,rule);
+        }
+      }
       while(citer2.hasNext()){
         Term* t = citer2.next();
-        static bool one = _opt.structInduction() == Options::StructuralInductionKind::ONE ||
-                          _opt.structInduction() == Options::StructuralInductionKind::ALL;
-        static bool two = _opt.structInduction() == Options::StructuralInductionKind::TWO ||
-                          _opt.structInduction() == Options::StructuralInductionKind::ALL;
-        static bool three = _opt.structInduction() == Options::StructuralInductionKind::THREE ||
-                          _opt.structInduction() == Options::StructuralInductionKind::ALL;
         if(notDone(lit,t)){
-          InferenceRule rule = InferenceRule::INDUCTION_AXIOM;
           Term* inductionTerm = generalize ? getPlaceholderForTerm(t) : t;
           Kernel::LiteralSubsetReplacement subsetReplacement(lit, t, TermList(inductionTerm), _opt.maxInductionGenSubsetSize());
           Literal* ilit = generalize ? subsetReplacement.transformSubset(rule) : lit;

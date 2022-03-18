@@ -296,6 +296,12 @@ Index* IndexManager::create(IndexType t)
     isGenerating = true;
     break;
 
+  case STRUCT_INDUCTION_TERM_INDEX:
+    tis = new TermSubstitutionTree();
+    res = new StructInductionTermIndex(tis);
+    isGenerating = true;
+    break;
+
   default:
     INVALID_OPERATION("Unsupported IndexType.");
   }
