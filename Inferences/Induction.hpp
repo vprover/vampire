@@ -90,6 +90,52 @@ private:
   const unsigned _maxSubsetSize;
 };
 
+struct InductionContext {
+  InductionContext() = default;
+  InductionContext(Term* t, Literal* l, Clause* cl)
+    : _indTerm(t), _lits({ make_pair(l, SLQueryResult(l,cl)) }) {}
+  Formula* getFormula(TermList r, bool opposite, Stack<pair<Literal*,SLQueryResult>>* copy = nullptr) const;
+  Formula* getFormulaWithSquashedSkolems(TermList r, bool opposite, unsigned& var,
+    VList** varList = nullptr, Stack<pair<Literal*,SLQueryResult>>* copy = nullptr) const;
+  vstring toString() const {
+    vstringstream str;
+    str << *_indTerm << endl;
+    for (const auto& lit : _lits) {
+      str << *lit.first << " " << *lit.second.literal << " " << *lit.second.clause << endl;
+    }
+    return str.str();
+  }
+
+  Term* _indTerm;
+  Stack<pair<Literal*,SLQueryResult>> _lits;
+private:
+  Formula* getFormula(TermReplacement& tr, bool opposite, Stack<pair<Literal*,SLQueryResult>>* copy = nullptr) const;
+};
+
+class ContextSubsetReplacement
+  : public TermTransformer, public IteratorCore<InductionContext> {
+public:
+  ContextSubsetReplacement(InductionContext context);
+
+  bool hasNext() override {
+    return _iteration+1 < _maxIterations;
+  }
+  InductionContext next() override;
+
+protected:
+  TermList transformSubterm(TermList trm) override;
+
+private:
+  // _iteration serves as a map of occurrences to replace
+  unsigned _iteration = 0;
+  unsigned _maxIterations;
+  // Counts how many occurrences were already encountered in one transformation
+  unsigned _matchCount = 0;
+  InductionContext _context;
+  TermList _r;
+};
+
+
 class Induction
 : public GeneratingInferenceEngine
 {
@@ -107,6 +153,7 @@ public:
 #if VDEBUG
   void setTestIndices(const Stack<Index*>& indices) override {
     _comparisonIndex = static_cast<LiteralIndex*>(indices[0]);
+    _structInductionTermIndex = static_cast<TermIndex*>(indices[1]);
   }
 #endif // VDEBUG
 
@@ -147,27 +194,6 @@ private:
   void processLiteral(Clause* premise, Literal* lit);
   void processIntegerComparison(Clause* premise, Literal* lit);
 
-  struct InductionContext {
-    Formula* getFormula(TermList r, bool opposite, Stack<pair<Literal*,SLQueryResult>>* copy = nullptr) const;
-    Formula* getFormulaWithSquashedSkolems(TermList r, bool opposite, unsigned& var,
-      VList** varList = nullptr, Stack<pair<Literal*,SLQueryResult>>* copy = nullptr) const;
-    vstring toString() const {
-      vstringstream str;
-      str << *_indTerm << endl;
-      for (const auto& lit : _lits) {
-        str << *lit.first << " " << *lit.second.literal << " " << *lit.second.clause << endl;
-      }
-      return str.str();
-    }
-
-    Stack<pair<Literal*,SLQueryResult>> _lits;
-    Term* _indTerm;
-  private:
-    Formula* getFormula(TermReplacement& tr, bool opposite, Stack<pair<Literal*,SLQueryResult>>* copy = nullptr) const;
-  };
-  struct InductionContextFn;
-  struct InductionContextFilterFn;
-
   // Clausifies the hypothesis, resolves it against the conclusion/toResolve,
   // and increments relevant statistics.
   void produceClauses(Formula* hypothesis, InferenceRule rule, const Stack<pair<Literal*,SLQueryResult>>& toResolve, RobSubstitution* subst = nullptr);
@@ -196,7 +222,6 @@ private:
 
   bool notDone(Literal* lit, Term* t);
   bool notDoneInt(Literal* lit, Term* t, bool increasing, Term* bound1, Term* optionalBound2, bool fromComparison);
-  Term* getPlaceholderForTerm(Term* t);
 
   Stack<Clause*> _clauses;
   InductionHelper _helper;

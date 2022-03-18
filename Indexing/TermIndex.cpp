@@ -222,8 +222,10 @@ void StructInductionTermIndex::handleClause(Clause* c, bool adding)
   if (!InductionHelper::isInductionClause(c)) {
     return;
   }
+  static DHSet<TermList> inserted;
   // Iterate through literals & check if the literal is suitable for induction
   for (unsigned i=0;i<c->length();i++) {
+    inserted.reset();
     Literal* lit = (*c)[i];
     if (!lit->ground()) {
       continue;
@@ -231,6 +233,10 @@ void StructInductionTermIndex::handleClause(Clause* c, bool adding)
     SubtermIterator it(lit);
     while (it.hasNext()) {
       TermList tl = it.next();
+      if (!inserted.insert(tl)) {
+        it.right();
+        continue;
+      }
       ASS(tl.isTerm());
       if (InductionHelper::isInductionTermFunctor(tl.term()->functor()) &&
           InductionHelper::isStructInductionFunctor(tl.term()->functor())) {
