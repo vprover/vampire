@@ -93,23 +93,54 @@ private:
 struct InductionContext {
   InductionContext() = default;
   InductionContext(Term* t, Literal* l, Clause* cl)
-    : _indTerm(t), _lits({ make_pair(l, SLQueryResult(l,cl)) }) {}
-  Formula* getFormula(TermList r, bool opposite, Stack<pair<Literal*,SLQueryResult>>* copy = nullptr) const;
+    : _indTerm(t)
+  {
+    _cls.insert(cl, { make_pair(cl->getLiteralPosition(l), l) });
+  }
+
+  Formula* getFormula(TermList r, bool opposite, DHMap<Clause*, Stack<pair<unsigned,Literal*>>>* copy = nullptr) const;
   Formula* getFormulaWithSquashedSkolems(TermList r, bool opposite, unsigned& var,
-    VList** varList = nullptr, Stack<pair<Literal*,SLQueryResult>>* copy = nullptr) const;
+    VList** varList = nullptr, DHMap<Clause*, Stack<pair<unsigned,Literal*>>>* copy = nullptr) const;
+  bool isSingleLiteral() const {
+    if (_cls.size() > 1) {
+      return false;
+    }
+    auto cl = _cls.getOneKey();
+    return _cls.get(cl).size() == 1;
+  }
+  bool hasInductionLiteral() const {
+    DHMap<Clause*, Stack<pair<unsigned,Literal*>>>::Iterator it(_cls);
+    while (it.hasNext()) {
+      auto cl = it.nextKey();
+      auto& st = _cls.get(cl);
+      for (const auto& kv : st) {
+        if (InductionHelper::isInductionLiteral(kv.second)) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
   vstring toString() const {
     vstringstream str;
     str << *_indTerm << endl;
-    for (const auto& lit : _lits) {
-      str << *lit.first << " " << *lit.second.literal << " " << *lit.second.clause << endl;
+    DHMap<Clause*, Stack<pair<unsigned,Literal*>>>::Iterator it(_cls);
+    while (it.hasNext()) {
+      auto cl = it.nextKey();
+      str << *cl << endl;
+      auto& st = _cls.get(cl);
+      for (const auto& kv : st) {
+        str << kv.first << " " << *kv.second << endl;
+      }
     }
     return str.str();
   }
 
   Term* _indTerm;
-  Stack<pair<Literal*,SLQueryResult>> _lits;
+  DHMap<Clause*, Stack<pair<unsigned,Literal*>>> _cls;
 private:
-  Formula* getFormula(TermReplacement& tr, bool opposite, Stack<pair<Literal*,SLQueryResult>>* copy = nullptr) const;
+  Formula* getFormula(TermReplacement& tr, bool opposite, DHMap<Clause*, Stack<pair<unsigned,Literal*>>>* copy = nullptr) const;
 };
 
 class ContextSubsetReplacement
@@ -196,7 +227,7 @@ private:
 
   // Clausifies the hypothesis, resolves it against the conclusion/toResolve,
   // and increments relevant statistics.
-  void produceClauses(Formula* hypothesis, InferenceRule rule, const Stack<pair<Literal*,SLQueryResult>>& toResolve, RobSubstitution* subst = nullptr);
+  void produceClauses(Formula* hypothesis, InferenceRule rule, const DHMap<Clause*, Stack<pair<unsigned, Literal*>>>& toResolve, RobSubstitution* subst = nullptr);
 
   // Calls generalizeAndPerformIntInduction(...) for those induction literals from inductionTQRsIt,
   // which are non-redundant with respect to the indTerm, bounds, and increasingness.

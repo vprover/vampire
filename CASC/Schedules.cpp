@@ -3064,7 +3064,7 @@ void Schedules::getStructInductionSchedule(const Shell::Property& property, Sche
   quick.push("lrs+10_1_drc=off:ind=struct:to=lpo_89");
   quick.push("lrs+10_1_drc=off:ind=struct:sos=theory:sstl=1:to=lpo_89");
   quick.push("lrs+10_1_ind=struct:to=lpo_89");
-  quick.push("lrs+10_1_av=off:br=off:ind=struct:urr=on_89");
+  quick.push("lrs+10_1_av=off:indu=off:br=off:ind=struct:urr=on_89");
   quick.push("lrs+10_1_drc=off:ind=struct_89");
   quick.push("lrs+10_1_drc=off:ind=struct:sos=theory:sstl=1_89");
   quick.push("lrs+10_1_ind=struct_89");

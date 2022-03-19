@@ -156,6 +156,7 @@ private:
   DECL_FUNC(f, {s, s}, s)                                                                  \
   DECL_FUNC(g, {s}, s)                                                                     \
   DECL_PRED(p, {s})                                                                        \
+  DECL_PRED(p1, {s})                                                                       \
   DECL_PRED(q, {u})                                                                        \
   NUMBER_SUGAR(Int)                                                                        \
   DECL_PRED(pi, {Int})                                                                     \
@@ -369,19 +370,19 @@ TEST_GENERATION_INDUCTION(test_11,
     Generation::TestCase()
       .options({ { "induction_unit_only", "off" }, { "induction", "struct" } })
       .indices(getIndices())
-      .input( clause({  sK1 != g(sK1), p(g(sK2)), ~p(f(sK1,sK2)) }))
+      .input( clause({  sK1 != g(sK1), p(g(sK2)), ~p(f(sK3,sK4)) }))
       .expected({
         // 1. literal sK1
-        clause({ b != g(b), x == g(x), p(g(sK2)), ~p(f(sK1,sK2)) }),
-        clause({ b != g(b), r(x) != g(r(x)), p(g(sK2)), ~p(f(sK1,sK2)) }),
+        clause({ b != g(b), x == g(x), p(g(sK2)), ~p(f(sK3,sK4)) }),
+        clause({ b != g(b), r(x) != g(r(x)), p(g(sK2)), ~p(f(sK3,sK4)) }),
 
-        // 3. literal sK1
-        clause({ ~p(f(b,sK2)), p(f(y,sK2)), p(g(sK2)), sK1 != g(sK1) }),
-        clause({ ~p(f(b,sK2)), ~p(f(r(y),sK2)), p(g(sK2)), sK1 != g(sK1) }),
+        // 3. literal sK3
+        clause({ ~p(f(b,sK4)), p(f(y,sK4)), p(g(sK2)), sK1 != g(sK1) }),
+        clause({ ~p(f(b,sK4)), ~p(f(r(y),sK4)), p(g(sK2)), sK1 != g(sK1) }),
 
-        // 3. literal sK2
-        clause({ ~p(f(sK1,b)), p(f(sK1,x3)), p(g(sK2)), sK1 != g(sK1) }),
-        clause({ ~p(f(sK1,b)), ~p(f(sK1,r(x3))), p(g(sK2)), sK1 != g(sK1) }),
+        // 3. literal sK4
+        clause({ ~p(f(sK3,b)), p(f(sK3,x3)), p(g(sK2)), sK1 != g(sK1) }),
+        clause({ ~p(f(sK3,b)), ~p(f(sK3,r(x3))), p(g(sK2)), sK1 != g(sK1) }),
       })
     )
 
@@ -594,5 +595,32 @@ TEST_GENERATION_INDUCTION(test_20,
         // f(g(sK3),f(sK4,sK3))
         clause({ ~p(b), p(x6) }),
         clause({ ~p(b), ~p(r(x6)) }),
+      })
+    )
+
+// multi-clause use case 1 (induction depth 0), non-unit
+TEST_GENERATION_INDUCTION(test_21,
+    Generation::TestCase()
+      .options({ { "induction_unit_only", "off" }, { "induction", "struct" } })
+      .indices(getIndices())
+      .input( clause({ ~p(sK1), ~p1(sK1) }) )
+      .expected({
+        // sK1, first literal
+        clause({ ~p(b), p(x), ~p1(sK1) }),
+        clause({ ~p(b), ~p(r(x)), ~p1(sK1) }),
+
+        // sK1, second literal
+        clause({ ~p1(b), p1(y), ~p(sK1) }),
+        clause({ ~p1(b), ~p1(r(y)), ~p(sK1) }),
+
+        // sK1, both literals, triggered by ~p(sK1)
+        clause({ ~p(b), ~p1(b), p(z) }),
+        clause({ ~p(b), ~p1(b), p1(z) }),
+        clause({ ~p(b), ~p1(b), ~p(r(z)), ~p1(r(z)) }),
+
+        // sK1, both literals, triggered by ~p1(sK1)
+        clause({ ~p(b), ~p1(b), p(x3) }),
+        clause({ ~p(b), ~p1(b), p1(x3) }),
+        clause({ ~p(b), ~p1(b), ~p(r(x3)), ~p1(r(x3)) }),
       })
     )

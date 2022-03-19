@@ -26,6 +26,7 @@
 #include "Lib/DHSet.hpp"
 #include "Lib/DHMap.hpp"
 #include "Lib/Environment.hpp"
+#include "Lib/IntUnionFind.hpp"
 #include "Lib/Metaiterators.hpp"
 #include "Lib/ScopedPtr.hpp"
 #include "Lib/Set.hpp"
@@ -245,29 +246,46 @@ Literal* replaceTermAndSquashSkolemsInLiteral(Literal* lit, Term* o, TermList r,
 }
 
 Formula* InductionContext::getFormula(TermReplacement& tr, bool opposite,
-  Stack<pair<Literal*,SLQueryResult>>* copy) const
+  DHMap<Clause*, Stack<pair<unsigned,Literal*>>>* copy) const
 {
-  ASS(_lits.isNonEmpty());
-  auto args = FormulaList::empty();
-  for (const auto& kv : _lits) {
-    auto lit = tr.transform(kv.first);
-    if (copy) {
-      copy->push(make_pair(lit, kv.second));
+  ASS(!_cls.isEmpty());
+  DHMap<Clause*, Stack<pair<unsigned,Literal*>>>::Iterator it(_cls);
+  Stack<FormulaList*> argLists(1);
+  argLists.push(FormulaList::empty());
+  while (it.hasNext()) {
+    auto cl = it.nextKey();
+    auto& st = _cls.get(cl);
+    Stack<FormulaList*> temp = argLists;
+    argLists.reset();
+    for (const auto& kv : st) {
+      auto lit = tr.transform(kv.second);
+      if (copy) {
+        copy->insert(cl, Stack<pair<unsigned,Literal*>>());
+        copy->get(cl).push(make_pair(kv.first, lit));
+      }
+      for (const auto& l : temp) {
+        auto lc = FormulaList::copy(l);
+        FormulaList::push(new AtomicFormula(opposite ? Literal::complementaryLiteral(lit) : lit), lc);
+        argLists.push(lc);
+      }
     }
-    FormulaList::push(new AtomicFormula(opposite ? Literal::complementaryLiteral(lit) : lit), args);
   }
-  return JunctionFormula::generalJunction(opposite ? Connective::OR : Connective::AND, args);
+  auto args = FormulaList::empty();
+  for (const auto& l : argLists) {
+    FormulaList::push(JunctionFormula::generalJunction(opposite ? Connective::OR : Connective::AND, l), args);
+  }
+  return JunctionFormula::generalJunction(opposite ? Connective::AND : Connective::OR, args);
 }
 
 Formula* InductionContext::getFormula(TermList r, bool opposite,
-  Stack<pair<Literal*,SLQueryResult>>* copy) const
+  DHMap<Clause*, Stack<pair<unsigned,Literal*>>>* copy) const
 {
   TermReplacement tr(_indTerm, r);
   return getFormula(tr, opposite, copy);
 }
 
 Formula* InductionContext::getFormulaWithSquashedSkolems(TermList r, bool opposite,
-  unsigned& var, VList** varList, Stack<pair<Literal*,SLQueryResult>>* copy) const
+  unsigned& var, VList** varList, DHMap<Clause*, Stack<pair<unsigned,Literal*>>>* copy) const
 {
   const bool strengthenHyp = env.options->inductionStrengthenHypothesis();
   if (!strengthenHyp) {
@@ -355,8 +373,13 @@ ContextSubsetReplacement::ContextSubsetReplacement(InductionContext context)
   : _context(context), _r(getPlaceholderForTerm(context._indTerm))
 {
   unsigned occurrences = 0;
-  for (const auto& lit : _context._lits) {
-    occurrences += lit.first->countSubtermOccurrences(TermList(_context._indTerm));
+  DHMap<Clause*, Stack<pair<unsigned,Literal*>>>::Iterator it(_context._cls);
+  while (it.hasNext()) {
+    auto cl = it.nextKey();
+    auto& st = _context._cls.get(cl);
+    for (const auto& kv : st) {
+      occurrences += kv.second->countSubtermOccurrences(TermList(_context._indTerm));
+    }
   }
   _maxIterations = pow(2, occurrences);
 }
@@ -380,10 +403,16 @@ InductionContext ContextSubsetReplacement::next() {
   context._indTerm = _r.term();
   _iteration++;
   _matchCount = 0;
-  for (const auto& kv : _context._lits) {
-    auto lit = transform(kv.first);
-    if (lit != kv.first) {
-      context._lits.push(make_pair(lit, kv.second));
+  DHMap<Clause*, Stack<pair<unsigned,Literal*>>>::Iterator it(_context._cls);
+  while (it.hasNext()) {
+    auto cl = it.nextKey();
+    auto& st = _context._cls.get(cl);
+    for (const auto& kv : st) {
+      auto lit = transform(kv.second);
+      if (lit != kv.second) {
+        context._cls.insert(cl, Stack<pair<unsigned,Literal*>>());
+        context._cls.get(cl).push(make_pair(kv.first, lit));
+      }
     }
   }
   return context;
@@ -454,7 +483,7 @@ struct InductionContextFn
     }
     while (arg.second.hasNext()) {
       auto tqr = arg.second.next();
-      if (_premise == tqr.clause || _lit == tqr.literal) {
+      if (_premise == tqr.clause && _lit == tqr.literal) {
         continue;
       }
       if (indDepth && indDepth == tqr.clause->inference().inductionDepth()) {
@@ -482,7 +511,8 @@ struct InductionContextFn
           continue;
         }
       }
-      ctx._lits.push(make_pair(tqr.literal, SLQueryResult(tqr.literal, tqr.clause)));
+      ctx._cls.insert(tqr.clause, Stack<pair<unsigned,Literal*>>());
+      ctx._cls.get(tqr.clause).push(make_pair(tqr.clause->getLiteralPosition(tqr.literal), tqr.literal));
     }
     return ctx;
   }
@@ -548,15 +578,7 @@ void InductionClauseIterator::processLiteral(Clause* premise, Literal* lit)
     auto sideLitsIt2 = iterTraits(getMappingIterator(sideLitsIt, InductionContextFn(premise, lit)))
       // filter out that have no "induction literal" or not multi-clause
       .filter([](const InductionContext& arg) {
-        if (arg._lits.size() <= 1) {
-          return false;
-        }
-        for (const auto& kv : arg._lits) {
-          if (InductionHelper::isInductionLiteral(kv.first)) {
-            return true;
-          }
-        }
-        return false;
+        return !arg.isSingleLiteral() && arg.hasInductionLiteral();
       });
     // collect contexts for single-literal induction with given clause
     auto indCtxSingle = iterTraits(Set<Term*>::Iterator(ta_terms))
@@ -564,7 +586,7 @@ void InductionClauseIterator::processLiteral(Clause* premise, Literal* lit)
         return InductionContext(arg, lit, premise);
       })
       .filter([](const InductionContext& arg) {
-        return InductionHelper::isInductionLiteral(arg._lits[0].first);
+        return arg.hasInductionLiteral();
       });
     // generalize all contexts if needed
     auto indCtxIt = iterTraits(getConcatenatedIterator(sideLitsIt2, indCtxSingle))
@@ -583,8 +605,11 @@ void InductionClauseIterator::processLiteral(Clause* premise, Literal* lit)
       static bool three = _opt.structInduction() == Options::StructuralInductionKind::THREE ||
                         _opt.structInduction() == Options::StructuralInductionKind::ALL;
       InferenceRule rule = InferenceRule::INDUCTION_AXIOM;
-      if (ctx._lits.size() == 1 && !notDone(ctx._lits[0].first, ctx._indTerm)) {
-        continue;
+      if (ctx.isSingleLiteral()) {
+        auto cl = ctx._cls.getOneKey();
+        if (!notDone(ctx._cls.get(cl)[0].second, ctx._indTerm)) {
+          continue;
+        }
       }
       if(one){
         performStructInductionOne(ctx,rule);
@@ -652,7 +677,7 @@ void InductionClauseIterator::generalizeAndPerformIntInduction(Clause* premise, 
     ASS(litAndRule.first != nullptr);
     InductionContext context;
     context._indTerm = indTerm;
-    context._lits.push(make_pair(litAndRule.first, SLQueryResult(origLit, premise)));
+    context._cls.insert(premise, { make_pair(premise->getLiteralPosition(origLit), litAndRule.first) });
     performIntInduction(context, litAndRule.second, increasing, bound1, optionalBound2);
   }
 }
@@ -709,25 +734,40 @@ void InductionClauseIterator::performIntInductionOnEligibleLiterals(Term* origTe
   }
 }
 
-bool contains(Literal* lit, const Stack<pair<Literal*,SLQueryResult>>& toResolve) {
-  for (const auto& qr : toResolve) {
-    if (qr.first==lit) {
-      return true;
+bool contains(Literal* lit, const DHMap<Clause*, Stack<pair<unsigned, Literal*>>>& toResolve) {
+  DHMap<Clause*, Stack<pair<unsigned, Literal*>>>::Iterator it(toResolve);
+  while (it.hasNext()) {
+    auto cl = it.nextKey();
+    const auto& st = toResolve.get(cl);
+    for (const auto& kv : st) {
+      if (kv.second==lit) {
+        return true;
+      }
     }
+    // TODO check that no other element contains this
   }
   return false;
 }
 
-Clause* generateClause(const Stack<pair<Literal*,SLQueryResult>>& toResolve, Clause* cl, RobSubstitution* subst)
+Clause* resolveClauses(const DHMap<Clause*, Stack<pair<unsigned, Literal*>>>& toResolve, const Stack<Clause*>& cls, IntUnionFind::ElementIterator eIt, RobSubstitution* subst)
 {
-  CALL("generateClause");
+  CALL("resolveClauses");
+  ASS(eIt.hasNext());
+  auto cl = cls[eIt.next()];
   unsigned newLength = cl->length();
   auto premises = UnitList::singleton(cl);
-  for (const auto& qr : toResolve) {
-    if (cl->contains(Literal::complementaryLiteral(qr.first))) {
-      newLength += qr.second.clause->length() - 2; // there are 2 resolved literals
-      UnitList::push(qr.second.clause, premises);
-    }
+  while (eIt.hasNext()) {
+    auto other = cls[eIt.next()];
+    ASS_EQ(other->length(),newLength);
+    UnitList::push(other,premises);
+  }
+
+  DHMap<Clause*, Stack<pair<unsigned, Literal*>>>::Iterator it(toResolve);
+  while (it.hasNext()) {
+    auto other = it.nextKey();
+    const auto& st = toResolve.get(other);
+    newLength += other->length() - st.size() - 1;
+    UnitList::push(other, premises);
   }
 
   Inference inf(GeneratingInferenceMany(InferenceRule::RESOLUTION, premises));
@@ -743,10 +783,20 @@ Clause* generateClause(const Stack<pair<Literal*,SLQueryResult>>& toResolve, Cla
     }
   }
 
-  for (const auto& qr : toResolve) {
-    for (unsigned i = 0; i < qr.second.clause->length(); i++) {
-      Literal* curr = (*qr.second.clause)[i];
-      if (curr != qr.second.literal) {
+  DHMap<Clause*, Stack<pair<unsigned, Literal*>>>::Iterator it2(toResolve);
+  while (it2.hasNext()) {
+    auto other = it2.nextKey();
+    const auto& st = toResolve.get(other);
+    for (unsigned i = 0; i < other->length(); i++) {
+      Literal* curr = (*other)[i];
+      bool copyCurr = true;
+      for (const auto& kv : st) {
+        if (kv.first == i) {
+          copyCurr = false;
+          break;
+        }
+      }
+      if (copyCurr) {
         (*res)[next] = curr;
         next++;
       }
@@ -758,7 +808,54 @@ Clause* generateClause(const Stack<pair<Literal*,SLQueryResult>>& toResolve, Cla
   return res;
 }
 
-void InductionClauseIterator::produceClauses(Formula* hypothesis, InferenceRule rule, const Stack<pair<Literal*,SLQueryResult>>& toResolve, RobSubstitution* subst)
+IntUnionFind findDistributedVariants(const Stack<Clause*>& clauses, const DHMap<Clause*, Stack<pair<unsigned, Literal*>>>& toResolve)
+{
+  IntUnionFind uf(clauses.size());
+  for (unsigned i = 0; i < clauses.size(); i++) {
+    auto cl1 = clauses[i];
+    for (unsigned k = 0; k < cl1->length(); k++) {
+      auto clit = Literal::complementaryLiteral((*cl1)[k]);
+      bool found = false;
+      unsigned index;
+      DHMap<Clause*, Stack<pair<unsigned, Literal*>>>::Iterator mIt(toResolve);
+      while (mIt.hasNext()) {
+        auto cl = mIt.nextKey();
+        const auto& st = toResolve.get(cl);
+        if (st.size() > 1) {
+          for (const auto& kv : st) {
+            if (kv.second == clit) {
+              found = true;
+              index = k;
+              break;
+            }
+          }
+        }
+      }
+      if (!found) {
+        continue;
+      }
+      for (unsigned j = i+1; j < clauses.size(); j++) {
+        auto cl2 = clauses[j];
+        bool variant = true;
+        for (unsigned l = 0; l < cl1->length(); l++) {
+          if ((l == index && cl1->contains((*cl2)[l])) ||
+              (l != index && !cl1->contains((*cl2)[l])))
+          {
+            variant = false;
+            break;
+          }
+        }
+        if (variant) {
+          uf.doUnion(i,j);
+        }
+      }
+    }
+  }
+  uf.evalComponents();
+  return uf;
+}
+
+void InductionClauseIterator::produceClauses(Formula* hypothesis, InferenceRule rule, const DHMap<Clause*, Stack<pair<unsigned, Literal*>>>& toResolve, RobSubstitution* subst)
 {
   CALL("InductionClauseIterator::produceClauses");
   NewCNF cnf(0);
@@ -766,8 +863,10 @@ void InductionClauseIterator::produceClauses(Formula* hypothesis, InferenceRule 
   Stack<Clause*> hyp_clauses;
   Inference inf = NonspecificInference0(UnitInputType::AXIOM,rule);
   unsigned maxInductionDepth = 0;
-  for (const auto& p : toResolve) {
-    maxInductionDepth = max(maxInductionDepth,p.second.clause->inference().inductionDepth());
+  DHMap<Clause*, Stack<pair<unsigned, Literal*>>>::Iterator it(toResolve);
+  while (it.hasNext()) {
+    auto cl = it.nextKey();
+    maxInductionDepth = max(maxInductionDepth,cl->inference().inductionDepth());
   }
   inf.setInductionDepth(maxInductionDepth+1);
   FormulaUnit* fu = new FormulaUnit(hypothesis,inf);
@@ -779,10 +878,11 @@ void InductionClauseIterator::produceClauses(Formula* hypothesis, InferenceRule 
   // if hyp_clauses contain the literal(s).
   // (If hyp_clauses do not contain the literal(s), the clause is a definition from clausification
   // and just keep it as it is.)
-  Stack<Clause*>::Iterator cit(hyp_clauses);
+  auto uf = findDistributedVariants(hyp_clauses, toResolve);
+  IntUnionFind::ComponentIterator cit(uf);
   while(cit.hasNext()){
-    Clause* c = cit.next();
-    _clauses.push(generateClause(toResolve, c, subst));
+    IntUnionFind::ElementIterator eIt = cit.next();
+    _clauses.push(resolveClauses(toResolve, hyp_clauses, eIt, subst));
   }
   env.statistics->induction++;
   if (rule == InferenceRule::GEN_INDUCTION_AXIOM ||
@@ -880,7 +980,7 @@ void InductionClauseIterator::performIntInduction(const InductionContext& contex
   Formula* Lx = context.getFormula(x,true);
 
   // create L[Y]
-  Stack<pair<Literal*,SLQueryResult>> toResolve;
+  DHMap<Clause*, Stack<pair<unsigned,Literal*>>> toResolve;
   Formula* Ly = context.getFormula(y,true,&toResolve);
 
   // create L[X+1] or L[X-1]
@@ -904,8 +1004,7 @@ void InductionClauseIterator::performIntInduction(const InductionContext& contex
   const bool hasBound2 = ((optionalBound2 != nullptr) && (optionalBound2->literal != nullptr));
   // Also resolve the hypothesis with comparisons with bound(s) (if the bound(s) are present/not default).
   if (!isDefaultBound) {
-    toResolve.push(make_pair(Lycompb1->literal(),
-      SLQueryResult(bound1.literal, bound1.clause)));
+    toResolve.insert(bound1.clause, { make_pair(bound1.clause->getLiteralPosition(bound1.literal), Lycompb1->literal()) });
   }
   if (hasBound2) {
     // Finite interval induction, use two bounds on both x and y.
@@ -922,8 +1021,8 @@ void InductionClauseIterator::performIntInduction(const InductionContext& contex
     FyInterval = new JunctionFormula(Connective::AND, FormulaList::cons(Lycompb1, FormulaList::singleton(Lycompb2)));
     if (!isDefaultBound) {
       // If there is also a second bound, add that to the list as well.
-      toResolve.push(make_pair(Lycompb2->literal(),
-        SLQueryResult(optionalBound2->literal, optionalBound2->clause)));
+      toResolve.insert(optionalBound2->clause,
+        { make_pair(optionalBound2->clause->getLiteralPosition(optionalBound2->literal), Lycompb2->literal()) });
     }
   } else {
     // Infinite interval induction (either with default bound or not), use only one bound on both x and y.
@@ -1002,7 +1101,7 @@ void InductionClauseIterator::performStructInductionOne(const InductionContext& 
   }
   ASS(formulas);
   Formula* indPremise = JunctionFormula::generalJunction(Connective::AND,formulas);
-  Stack<pair<Literal*,SLQueryResult>> toResolve;
+  DHMap<Clause*, Stack<pair<unsigned,Literal*>>> toResolve;
   auto conclusion = context.getFormulaWithSquashedSkolems(TermList(var++,false), true, var, nullptr, &toResolve);
   Formula* hypothesis = new BinaryFormula(Connective::IMP,
                             Formula::quantify(indPremise),
@@ -1078,7 +1177,7 @@ void InductionClauseIterator::performStructInductionTwo(const InductionContext& 
                         formulas ? new JunctionFormula(Connective::AND,FormulaList::cons(Ly,formulas))
                                  : Ly);
 
-  Stack<pair<Literal*,SLQueryResult>> toResolve;
+  DHMap<Clause*, Stack<pair<unsigned,Literal*>>> toResolve;
   auto conclusion = context.getFormulaWithSquashedSkolems(TermList(var++, false), true, var, nullptr, &toResolve);
   FormulaList* orf = FormulaList::cons(exists,FormulaList::singleton(Formula::quantify(conclusion)));
   Formula* hypothesis = new JunctionFormula(Connective::OR,orf);
@@ -1183,7 +1282,7 @@ void InductionClauseIterator::performStructInductionThree(const InductionContext
   Formula* exists = new QuantifiedFormula(Connective::EXISTS, mainVars,SList::empty(),
                        new JunctionFormula(Connective::AND,conjunction));
 
-  Stack<pair<Literal*,SLQueryResult>> toResolve;
+  DHMap<Clause*, Stack<pair<unsigned,Literal*>>> toResolve;
   auto conclusion = context.getFormulaWithSquashedSkolems(x,true,vars,nullptr,&toResolve);
   FormulaList* orf = FormulaList::cons(exists,FormulaList::singleton(Formula::quantify(conclusion)));
   Formula* hypothesis = new JunctionFormula(Connective::OR,orf);
