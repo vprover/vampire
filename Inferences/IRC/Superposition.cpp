@@ -211,5 +211,33 @@ ClauseIterator Superposition::generateClauses(Clause* premise)
   }));
 }
 
+// TODO move to appropriate place
+
+SimplifyingGeneratingInference::ClauseGenerationResult InequalityTautologyDetection::generateSimplify(Clause* premise) {
+  Map<AnyIrcLiteral, bool> lits;
+    
+  for (auto lit : iterTraits(premise->iterLits())) {
+    auto norm_ = _shared->renormalize(lit);
+    if (norm_.isSome()) {
+      auto norm = norm_.unwrap();
+      lits.insert(norm, true);
+      auto opposite = norm.apply([&](auto lit) { return AnyIrcLiteral(lit.negation()); });
+      if (lits.find(opposite)) {
+        // std::cout << "bla" << std::endl;
+        return ClauseGenerationResult {
+          .clauses = ClauseIterator::getEmpty(),
+          .premiseRedundant = true,
+        };
+      }
+    }
+  }
+
+  return ClauseGenerationResult {
+      .clauses = ClauseIterator::getEmpty(),
+      .premiseRedundant = false,
+    };
+}
+
+
 } // namespace IRC 
 } // namespace Inferences 

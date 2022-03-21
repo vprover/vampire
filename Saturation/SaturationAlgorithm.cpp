@@ -1636,6 +1636,8 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
     } catch (std::bad_cast&) { /* do nothing */ }
     res->addForwardSimplifierToFront(new IRC::FwdDemodulationModLA(shared));
     res->addBackwardSimplifierToFront(new IRC::BwdDemodulationModLA(shared));
+    // TODO properly create an option for that, make it a simplifying rule
+    sgi->push(new IRC::InequalityTautologyDetection(shared));
     switch(env.options->ircVariableElimination()) {
       case Options::ArithmeticSimplificationMode::OFF: break;
       case Options::ArithmeticSimplificationMode::FORCE:    sgi->push(new IRC::VariableElimination(shared, /* simpl */ true )); break;

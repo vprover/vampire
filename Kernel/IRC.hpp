@@ -113,6 +113,20 @@ namespace Kernel {
     friend std::ostream& operator<<(std::ostream& out, IrcLiteral const& self) 
     { return out << self._term << " " << self._symbol << " 0"; }
 
+    IrcLiteral negation() const
+    {
+      // TODO  handle that actually -t == 0 and t == 0 are equivalent
+      return IrcLiteral(perfect(-(*_term)), [&](){
+            switch(_symbol) {
+            case IrcPredicate::EQ:  return IrcPredicate::NEQ;
+            case IrcPredicate::NEQ: return IrcPredicate::EQ;
+            case IrcPredicate::GREATER: return IrcPredicate::GREATER_EQ;
+            case IrcPredicate::GREATER_EQ: return IrcPredicate::GREATER;
+            }
+            ASSERTION_VIOLATION
+          }());
+    }
+
     Literal* denormalize() const
     {
       auto l = term().denormalize();
@@ -128,6 +142,9 @@ namespace Kernel {
 
     bool isInequality() const
     { return Kernel::isInequality(symbol()); }
+
+    friend bool operator==(IrcLiteral const& lhs, IrcLiteral const& rhs)
+    { return std::tie(lhs._symbol, lhs._term) ==  std::tie(rhs._symbol, rhs._term); }
   };
 
   using AnyIrcLiteral = Coproduct< IrcLiteral< IntTraits>

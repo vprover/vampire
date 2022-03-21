@@ -168,6 +168,25 @@ private:
   IRCSuperpositionRhsIndex* _indexRhs;
 };
 
+class InequalityTautologyDetection
+: public SimplifyingGeneratingInference
+{
+public:
+  CLASS_NAME(InequalityTautologyDetection);
+  USE_ALLOCATOR(InequalityTautologyDetection);
+
+  InequalityTautologyDetection(shared_ptr<IrcState> shared) 
+    : _shared(std::move(shared)) {}
+  virtual ~InequalityTautologyDetection() {}
+
+  virtual ClauseGenerationResult generateSimplify(Clause* premise) override;
+private:
+  // TODO make this one the same as in IRCState
+  shared_ptr<IrcState> _shared;
+};
+
+
+
 #undef DEBUG
 } // namespace IRC
 } // namespace Inferences
