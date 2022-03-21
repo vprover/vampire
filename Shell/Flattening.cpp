@@ -21,6 +21,7 @@
 #include "Kernel/FormulaUnit.hpp"
 #include "Kernel/Problem.hpp"
 #include "Kernel/Unit.hpp"
+#include "Kernel/FormulaVarIterator.hpp"
 
 #include "Lib/Environment.hpp"
 #include "Shell/Options.hpp"
@@ -185,23 +186,75 @@ Formula* Flattening::innerFlatten (Formula* f)
   case EXISTS: 
     {
       Formula* arg = flatten(f->qarg());
+      Formula* flattened = nullptr;
       if (arg->connective() != con) {
-	if (arg == f->qarg()) {
-	  return f;
-	}
-	return new QuantifiedFormula(con,f->vars(),f->sorts(),arg);
+        if (arg == f->qarg()) {
+          flattened = f;
+        }
+        else {
+          flattened = new QuantifiedFormula(con,f->vars(),f->sorts(),arg);
+        }
+      }
+      else {
+        // arg is a quantified formula with the same quantifier
+        // the sort list is either empty (if one of the parts have empty sorts) or the concatentation
+        SList* sl = SList::empty();
+        if(f->sorts() && arg->sorts()){
+          sl = SList::append(f->sorts(), arg->sorts());
+        }
+        VList* vl = VList::append(f->vars(), arg->vars());
+        flattened = new QuantifiedFormula(con, vl, sl, arg->qarg());
       }
 
-      // arg is a quantified formula with the same quantifier
-      // the sort list is either empty (if one of the parts have empty sorts) or the concatentation
-      SList* sl = SList::empty();
-      if(f->sorts() && arg->sorts()){
-        sl = SList::append(f->sorts(), arg->sorts());
+      // below: flattening done, sort variables by order of occurrence
+      unsigned flattened_vars = VList::length(flattened->vars());
+      // TODO different option?
+      if(!env.options->normalize() || flattened_vars < 2)
+        return flattened;
+
+      // populate a map from variables to their (optional) sorts
+      DHMap<unsigned, TermList> vars2sorts;
+      {
+        VList::Iterator vars(flattened->vars());
+        SList::Iterator sorts(flattened->sorts());
+        while(vars.hasNext()) {
+          unsigned var = vars.next();
+          TermList sort;
+          if(sorts.hasNext())
+            sort = sorts.next();
+          ALWAYS(vars2sorts.insert(var, sort));
+        }
       }
-      return new QuantifiedFormula(con,
-				   VList::append(f->vars(), arg->vars()),
-                                   sl, 
-				   arg->qarg());
+      ASS_EQ(vars2sorts.size(), flattened_vars);
+
+      // iterate over variables in `flattened->qarg()` in order of occurrence
+      VList *occurrence = VList::empty();
+      SList *sorts = SList::empty();
+      FormulaVarIterator variables(flattened->qarg());
+      while(variables.hasNext()) {
+        unsigned var = variables.next();
+        TermList *sort;
+        if((sort = vars2sorts.findPtr(var))) {
+          // var is in the quantifier list, but might be unsorted
+          VList::push(var, occurrence);
+          // if it's sorted, keep it in `sorts`
+          if(flattened->sorts())
+            SList::push(*sort, sorts);
+        }
+      }
+      ASS_EQ(VList::length(occurrence), flattened_vars);
+      ASS(!sorts || (VList::length(occurrence) == SList::length(sorts)));
+
+      // if variable list was in order to begin with, free lists and return early
+      if(iteratorsEqual(VList::Iterator(flattened->vars()), VList::Iterator(occurrence))) {
+        VList::destroy(occurrence);
+        SList::destroy(sorts);
+        return flattened;
+      }
+
+      // TODO: can we just write into `flattened->vars()`?
+      // if not, do we need to delete `flattened` afterward?
+      return new QuantifiedFormula(con, occurrence, sorts, flattened->qarg());
     }
 
   case NAME:
