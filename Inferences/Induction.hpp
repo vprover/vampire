@@ -39,6 +39,9 @@ namespace Inferences
 using namespace Kernel;
 using namespace Saturation;
 
+using IndexToLiteralMap = vunordered_map<unsigned,Literal*>;
+using ClauseIndexToLiteralMap = vunordered_map<Clause*, IndexToLiteralMap>;
+
 class TermReplacement : public TermTransformer {
 public:
   TermReplacement(Term* o, TermList r) : _o(o), _r(r) {} 
@@ -95,26 +98,33 @@ struct InductionContext {
   InductionContext(Term* t, Literal* l, Clause* cl)
     : _indTerm(t)
   {
-    _cls.insert(cl, { make_pair(cl->getLiteralPosition(l), l) });
+    insert(cl, cl->getLiteralPosition(l), l);
   }
 
-  Formula* getFormula(TermList r, bool opposite, DHMap<Clause*, Stack<pair<unsigned,Literal*>>>* copy = nullptr) const;
+  static void insert(ClauseIndexToLiteralMap& cls, Clause* cl, unsigned index, Literal* lit) {
+    // this constructs an empty inner map if cl is not yet mapped
+    auto node = cls.emplace(cl, IndexToLiteralMap()).first;
+    // check insertion into inner map was successful
+    ALWAYS(node->second.emplace(index, lit).second);
+  }
+
+  void insert(Clause* cl, unsigned index, Literal* lit) {
+    insert(_cls, cl, index, lit);
+  }
+
+  Formula* getFormula(TermList r, bool opposite, ClauseIndexToLiteralMap* copy = nullptr) const;
   Formula* getFormulaWithSquashedSkolems(TermList r, bool opposite, unsigned& var,
-    VList** varList = nullptr, DHMap<Clause*, Stack<pair<unsigned,Literal*>>>* copy = nullptr) const;
+    VList** varList = nullptr, ClauseIndexToLiteralMap* copy = nullptr) const;
   bool isSingleLiteral() const {
     if (_cls.size() > 1) {
       return false;
     }
-    auto cl = _cls.getOneKey();
-    return _cls.get(cl).size() == 1;
+    return _cls.begin()->second.size() == 1;
   }
   bool hasInductionLiteral() const {
-    DHMap<Clause*, Stack<pair<unsigned,Literal*>>>::Iterator it(_cls);
-    while (it.hasNext()) {
-      auto cl = it.nextKey();
-      auto& st = _cls.get(cl);
-      for (const auto& kv : st) {
-        if (InductionHelper::isInductionLiteral(kv.second)) {
+    for (const auto& kv : _cls) {
+      for (const auto& kvInner : kv.second) {
+        if (InductionHelper::isInductionLiteral(kvInner.second)) {
           return true;
         }
       }
@@ -125,22 +135,19 @@ struct InductionContext {
   vstring toString() const {
     vstringstream str;
     str << *_indTerm << endl;
-    DHMap<Clause*, Stack<pair<unsigned,Literal*>>>::Iterator it(_cls);
-    while (it.hasNext()) {
-      auto cl = it.nextKey();
-      str << *cl << endl;
-      auto& st = _cls.get(cl);
-      for (const auto& kv : st) {
-        str << kv.first << " " << *kv.second << endl;
+    for (const auto& kv : _cls) {
+      str << *kv.first << endl;
+      for (const auto& kvInner : kv.second) {
+        str << kvInner.first << " " << *kvInner.second << endl;
       }
     }
     return str.str();
   }
 
   Term* _indTerm;
-  DHMap<Clause*, Stack<pair<unsigned,Literal*>>> _cls;
+  ClauseIndexToLiteralMap _cls;
 private:
-  Formula* getFormula(TermReplacement& tr, bool opposite, DHMap<Clause*, Stack<pair<unsigned,Literal*>>>* copy = nullptr) const;
+  Formula* getFormula(TermReplacement& tr, bool opposite, ClauseIndexToLiteralMap* copy = nullptr) const;
 };
 
 class ContextSubsetReplacement
@@ -227,7 +234,7 @@ private:
 
   // Clausifies the hypothesis, resolves it against the conclusion/toResolve,
   // and increments relevant statistics.
-  void produceClauses(Formula* hypothesis, InferenceRule rule, const DHMap<Clause*, Stack<pair<unsigned, Literal*>>>& toResolve, RobSubstitution* subst = nullptr);
+  void produceClauses(Formula* hypothesis, InferenceRule rule, const ClauseIndexToLiteralMap& toResolve, RobSubstitution* subst = nullptr);
 
   // Calls generalizeAndPerformIntInduction(...) for those induction literals from inductionTQRsIt,
   // which are non-redundant with respect to the indTerm, bounds, and increasingness.
