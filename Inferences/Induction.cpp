@@ -249,30 +249,19 @@ Formula* InductionContext::getFormula(TermReplacement& tr, bool opposite,
   ClauseIndexToLiteralMap* copy) const
 {
   ASS(!_cls.empty());
-  Stack<FormulaList*> argLists({ FormulaList::empty() });
+  auto argLists = FormulaList::empty();
   for (const auto& kv : _cls) {
-    Stack<FormulaList*> temp = argLists;
-    argLists.reset();
+    auto argList = FormulaList::empty();
     for (const auto& kvInner : kv.second) {
       auto lit = tr.transform(kvInner.second);
       if (copy) {
         InductionContext::insert(*copy, kv.first, kvInner.first, lit);
       }
-      for (const auto& l : temp) {
-        auto lc = FormulaList::copy(l);
-        FormulaList::push(new AtomicFormula(opposite ? Literal::complementaryLiteral(lit) : lit), lc);
-        argLists.push(lc);
-      }
+      FormulaList::push(new AtomicFormula(opposite ? Literal::complementaryLiteral(lit) : lit), argList);
     }
-    for (const auto& l : temp) {
-      FormulaList::destroy(l);
-    }
+    FormulaList::push(JunctionFormula::generalJunction(opposite ? Connective::AND : Connective::OR, argList), argLists);
   }
-  auto args = FormulaList::empty();
-  for (const auto& l : argLists) {
-    FormulaList::push(JunctionFormula::generalJunction(opposite ? Connective::OR : Connective::AND, l), args);
-  }
-  return JunctionFormula::generalJunction(opposite ? Connective::AND : Connective::OR, args);
+  return JunctionFormula::generalJunction(opposite ? Connective::OR : Connective::AND, argLists);
 }
 
 Formula* InductionContext::getFormula(TermList r, bool opposite,
@@ -812,6 +801,9 @@ IntUnionFind findDistributedVariants(const Stack<Clause*>& clauses, const Clause
       }
       for (unsigned j = i+1; j < clauses.size(); j++) {
         auto cl2 = clauses[j];
+        if (cl2->length() != cl1->length()) {
+          continue;
+        }
         bool variant = true;
         for (unsigned l = 0; l < cl1->length(); l++) {
           if ((l == index && cl1->contains((*cl2)[l])) ||
@@ -844,7 +836,16 @@ void InductionClauseIterator::produceClauses(Formula* hypothesis, InferenceRule 
   }
   inf.setInductionDepth(maxInductionDepth+1);
   FormulaUnit* fu = new FormulaUnit(hypothesis,inf);
+  if(_opt.showInduction()){
+    env.beginOutput();
+    env.out() << "[Induction] formula " << fu->toString() << endl;
+    env.endOutput();
+  }
   cnf.clausify(NNF::ennf(fu), hyp_clauses);
+  // It might happen that NewCNF finds all generated clauses tautological
+  if (hyp_clauses.isEmpty()) {
+    return;
+  }
 
   // Now, when possible, perform resolution against all literals from toResolve, which contain:
   // 1. the original literal,
@@ -857,6 +858,11 @@ void InductionClauseIterator::produceClauses(Formula* hypothesis, InferenceRule 
   while(cit.hasNext()){
     IntUnionFind::ElementIterator eIt = cit.next();
     _clauses.push(resolveClauses(toResolve, hyp_clauses, eIt, subst));
+    if(_opt.showInduction()){
+      env.beginOutput();
+      env.out() << "[Induction] generate " << _clauses.top()->toString() << endl;
+      env.endOutput();
+    }
   }
   env.statistics->induction++;
   if (rule == InferenceRule::GEN_INDUCTION_AXIOM ||

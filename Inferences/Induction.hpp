@@ -218,13 +218,7 @@ public:
 
   inline bool hasNext() { return _clauses.isNonEmpty(); }
   inline OWN_ELEMENT_TYPE next() { 
-    Clause* c = _clauses.pop();
-    if(_opt.showInduction()){
-      env.beginOutput();
-      env.out() << "[Induction] generate " << c->toString() << endl; 
-      env.endOutput();
-    }
-    return c; 
+    return _clauses.pop();
   }
 
 private:

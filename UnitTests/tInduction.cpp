@@ -624,3 +624,18 @@ TEST_GENERATION_INDUCTION(test_21,
         clause({ ~p(b), ~p1(b), ~p(r(x3)), ~p1(r(x3)) }),
       })
     )
+
+// multi-clause does not add tautological clauses
+TEST_GENERATION_INDUCTION(test_22,
+    // TODO enable multi-clause option when there is one
+    Generation::TestCase()
+      .options({ { "induction", "struct" } })
+      .context({ clause({ p(sK1) }) })
+      .indices(getIndices())
+      .input( clause({ ~p(sK1) }) )
+      .expected({
+        // sK1, given clause
+        clause({ ~p(b), p(x) }),
+        clause({ ~p(b), ~p(r(x)) }),
+      })
+    )
