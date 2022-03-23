@@ -705,8 +705,32 @@ vstring Literal::toString() const
   CALL("Literal::toString");
 
   if (isEquality()) {
+    /*int order = getArgumentOrderValue();
+    vstring addToLhs = "";
+    vstring addToRhs = "";
+
+    if(order != 0){
+      if(order == 1){
+        addToLhs = " >>";
+      } else if (order == 2){
+        addToRhs = " >>";
+      } else if (order == 3){
+        addToLhs = " >=";
+      } else if (order == 4){
+        addToRhs = " >=";
+      } else if (order == 5){
+        addToLhs = " ==";        
+        addToRhs = " ==";        
+      } else if (order == 6){
+        addToRhs = " <>";
+        addToLhs = " <>";
+      } else {
+        cout << "ERROR " << order << endl;
+      }
+    }*/
+
     const TermList* lhs = args();
-    vstring s = lhs->toString();
+    vstring s = lhs->toString(); /*+ addToLhs*/
     if (isPositive()) {
       s += " = ";
     }
@@ -714,7 +738,7 @@ vstring Literal::toString() const
       s += " != ";
     }
 
-    vstring res = s + lhs->next()->toString();
+    vstring res = s + lhs->next()->toString(); /*+ addToRhs*/
     if (env.statistics->higherOrder || 
        (SortHelper::getEqualityArgumentSort(this) == Term::boolSort())){
       res = "("+res+")";

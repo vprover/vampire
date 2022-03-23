@@ -674,6 +674,17 @@ void Options::init()
     _lookup.insert(&_manualClauseSelection);
     _manualClauseSelection.tag(OptionTag::DEVELOPMENT);
 
+    _manualLiteralSelection = BoolOptionValue("manual_ls","",false);
+    _manualLiteralSelection.description="Run Vampire interactively by manually picking the literals to be selected";
+    _lookup.insert(&_manualLiteralSelection);
+    _manualLiteralSelection.tag(OptionTag::DEVELOPMENT);
+
+    _manualSupLhsSelection = BoolOptionValue("manual_lhs","",false);
+    _manualSupLhsSelection.description="Run Vampire interactively by manually picking the literals to be selected";
+    _lookup.insert(&_manualSupLhsSelection);
+    _manualSupLhsSelection.tag(OptionTag::DEVELOPMENT);
+
+
 //************************************************************************
 //*********************** VAMPIRE (includes CASC)  ***********************
 //************************************************************************

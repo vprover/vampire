@@ -40,13 +40,15 @@ namespace Saturation
 using namespace Lib;
 using namespace Kernel;
 
-AWPassiveClauseContainer::AWPassiveClauseContainer(bool isOutermost, const Shell::Options& opt, vstring name) :
+AWPassiveClauseContainer::AWPassiveClauseContainer(bool isOutermost, const Shell::Options& opt, 
+  vstring name, bool manual) :
   PassiveClauseContainer(isOutermost, opt, name),
   _ageQueue(opt),
   _weightQueue(opt),
   _ageRatio(opt.ageRatio()),
   _weightRatio(opt.weightRatio()),
   _balance(0),
+  _manual(manual),
   _size(0),
 
   _simulationBalance(0),
@@ -264,6 +266,50 @@ Clause* AWPassiveClauseContainer::popSelected()
 {
   CALL("AWPassiveClauseContainer::popSelected");
   ASS( ! isEmpty());
+
+  if(_manual){
+    Clause* c = 0;
+    while(true)
+    {
+      ClauseQueue::Iterator it(_ageQueue);
+
+      // ask user to pick a clause id
+      std::cout << "Pick a clause:\n";
+      std::string id;
+      std::cin >> id;
+      if(id == "auto"){
+        _manual = false;
+        // stop all manual selection procedures
+        env.options->stopManualSupLhsSelection();
+        env.options->stopManualLiteralSelection();
+        goto after_manual;
+      }
+      unsigned selectedId = std::stoi(id);
+
+      bool found = false;
+      while(it.hasNext()){
+        c = it.next();
+        if(c->number() == selectedId){
+          found = true;
+          break;
+        }
+      }
+
+      if(found){  break; }
+      else
+      {
+        std::cout << "User error: No clause in Passive has id " << id << "!\n";
+      }
+    }
+
+    std::cout << "Selected: " << c->toString() << "!\n";
+    _ageQueue.remove(c);
+    _weightQueue.remove(c); 
+    selectedEvent.fire(c);
+    return c;
+  }
+
+after_manual:
 
   auto shape = _opt.ageWeightRatioShape();
   unsigned frequency = _opt.ageWeightRatioShapeFrequency();
@@ -778,6 +824,7 @@ Clause* AWClauseContainer::popSelected()
 {
   CALL("AWClauseContainer::popSelected");
   ASS( ! isEmpty());
+
 
   _size--;
 

@@ -68,7 +68,7 @@ public:
   CLASS_NAME(AWPassiveClauseContainer);
   USE_ALLOCATOR(AWPassiveClauseContainer);
 
-  AWPassiveClauseContainer(bool isOutermost, const Shell::Options& opt, vstring name);
+  AWPassiveClauseContainer(bool isOutermost, const Shell::Options& opt, vstring name, bool manual = false);
   ~AWPassiveClauseContainer();
   void add(Clause* cl) override;
 
@@ -97,6 +97,8 @@ private:
   /** current balance. If &lt;0 then selection by age, if &gt;0
    * then by weight */
   int _balance;
+
+  bool _manual;
 
   unsigned _size;
 

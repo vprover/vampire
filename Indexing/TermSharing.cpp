@@ -23,6 +23,7 @@
 #include "Kernel/Term.hpp"
 #include "Kernel/TermIterators.hpp"
 #include "Kernel/ApplicativeHelper.hpp"
+#include "Kernel/Ordering.hpp"
 
 #include "Shell/Statistics.hpp"
 
@@ -237,6 +238,12 @@ Literal* TermSharing::insert(Literal* t)
   _literalInsertions++;
   Literal* s = _literals.insert(t);
   if (s == t) {
+
+    //auto ordering = Ordering::tryGetGlobalOrdering();
+    //if(s->isEquality() && ordering){
+    //  ordering->getEqualityArgumentOrder(s);
+    //}
+
     unsigned weight = 1;
     unsigned vars = 0;
     Color color = COLOR_TRANSPARENT;

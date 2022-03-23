@@ -174,7 +174,7 @@ void MultiClauseNatInduction::createConclusions(ClauseStack& premises,
   fu = Rectify::rectify(fu);
 
   //if(!inductionIsLimit){
-  //  cout << fu->toString() << endl;
+    cout << fu->toString() << endl;
   //}
 
   ClauseStack clausifiedHyps;
@@ -312,7 +312,6 @@ ClauseIterator MultiClauseNatInduction::generateClauses(Clause* premise)
     return ClauseIterator::getEmpty();
   }
 
-
   bool allGround = ground(premise);
   ClauseStack results;
 
@@ -351,6 +350,9 @@ ClauseIterator MultiClauseNatInduction::generateClauses(Clause* premise)
    
   if(premise->derivedFromGoal() &&
      !(premise->inference().distanceFromGoal() > MAX_DIS)){
+    
+    cout << premise->toString() << endl;
+
     getFinalLoopIters(premise, iterations);
     while(!iterations.isEmpty()){
       TermList nlTerm = iterations.pop();
@@ -374,13 +376,12 @@ ClauseIterator MultiClauseNatInduction::generateClauses(Clause* premise)
         }
       }
       
-
-      if(premises.size() > 1 || (multiLiterals && premises[0]->length() > 1)){
+      //if(premises.size() > 1 || (multiLiterals && premises[0]->length() > 1)){
         if(!alreadyAddedAxiom(premisesSeen)){
           _inductionsCarriedOut.push(premisesSeen);
           createConclusions(premises, nlTerm, nlTerm, results, multiLiterals, allGround);
         }
-      }
+     // }
     }
   }
 

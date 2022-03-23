@@ -246,7 +246,7 @@ SaturationAlgorithm::SaturationAlgorithm(Problem& prb, const Options& opt)
 
   if (opt.useManualClauseSelection())
   {
-    _passive = std::make_unique<ManCSPassiveClauseContainer>(true, opt);
+    _passive = std::make_unique<AWPassiveClauseContainer>(true, opt, "AWSMAN", true);
   }
   else
   {

@@ -2235,6 +2235,10 @@ public:
   bool getIteInlineLet() const { return _inlineLet.actualValue; }
 
   bool useManualClauseSelection() const { return _manualClauseSelection.actualValue; }
+  bool useManualLiteralSelection() const { return _manualLiteralSelection.actualValue; }
+  void stopManualLiteralSelection() { _manualLiteralSelection.actualValue = false; } 
+  bool useManualSupLhsSelection() const { return _manualSupLhsSelection.actualValue; }
+  void stopManualSupLhsSelection() { _manualSupLhsSelection.actualValue = false; }      
   bool inequalityNormalization() const { return _inequalityNormalization.actualValue; }
   EvaluationMode evaluationMode() const { return _highSchool.actualValue ? EvaluationMode::POLYNOMIAL_CAUTIOUS : _evaluationMode.actualValue; }
   ArithmeticSimplificationMode gaussianVariableElimination() const { return _highSchool.actualValue ? ArithmeticSimplificationMode::CAUTIOUS : _gaussianVariableElimination.actualValue; }
@@ -2657,6 +2661,9 @@ private:
   BoolOptionValue _inlineLet;
 
   BoolOptionValue _manualClauseSelection;
+  BoolOptionValue _manualLiteralSelection;
+  BoolOptionValue _manualSupLhsSelection;
+
   // arithmeitc reasoning options
   BoolOptionValue _inequalityNormalization;
   BoolOptionValue _pushUnaryMinus;

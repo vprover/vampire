@@ -321,6 +321,30 @@ TermIterator EqHelper::getSuperpositionLHSIterator(Literal* lit, const Ordering&
 {
   CALL("EqHelper::getSuperpositionLHSIterator");
 
+  if(opt.useManualSupLhsSelection() && lit->isEquality() && lit->isPositive()){
+    cout << "Selecting lhs for " + lit->toString() << endl;
+    unsigned selectedId;
+    while(true)
+    {
+      // ask user to pick a clause id
+      std::cout << "Pick a side:\n";
+      std::string id;
+      std::cin >> id;
+      selectedId = std::stoi(id);
+
+      if(selectedId >= 0 && selectedId < 2){  break; }
+      else
+      {
+        std::cout << "User error: " << id << " is not 0 or 1!\n";
+      }
+    }
+
+    if(selectedId == 0){
+      return pvi( getSingletonIterator(*lit->nthArgument(0)) );
+    }
+    return pvi( getSingletonIterator(*lit->nthArgument(1)) );
+  }
+
   if (opt.superpositionFromVariables()) {
     return getLHSIterator(lit, ord);
   }
