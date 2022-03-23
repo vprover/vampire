@@ -618,10 +618,10 @@ TEST_GENERATION_INDUCTION(test_21,
         clause({ ~p(b), ~p1(b), p1(z) }),
         clause({ ~p(b), ~p1(b), ~p(r(z)), ~p1(r(z)) }),
 
-        // sK1, both literals, triggered by ~p1(sK1)
-        clause({ ~p(b), ~p1(b), p(x3) }),
-        clause({ ~p(b), ~p1(b), p1(x3) }),
-        clause({ ~p(b), ~p1(b), ~p(r(x3)), ~p1(r(x3)) }),
+        // // sK1, both literals, triggered by ~p1(sK1)
+        // clause({ ~p(b), ~p1(b), p(x3) }),
+        // clause({ ~p(b), ~p1(b), p1(x3) }),
+        // clause({ ~p(b), ~p1(b), ~p(r(x3)), ~p1(r(x3)) }),
       })
     )
 

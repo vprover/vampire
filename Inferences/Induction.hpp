@@ -20,6 +20,7 @@
 
 #include "Forwards.hpp"
 
+#include "Indexing/InductionFormulaVariantIndex.hpp"
 #include "Indexing/LiteralIndex.hpp"
 #include "Indexing/TermIndex.hpp"
 
@@ -181,7 +182,7 @@ public:
   CLASS_NAME(Induction);
   USE_ALLOCATOR(Induction);
 
-  Induction() {}
+  Induction(bool strengthenHyp = false) : _formulaIndex(strengthenHyp) {}
 
   void attach(SaturationAlgorithm* salg) override;
   void detach() override;
@@ -200,14 +201,17 @@ private:
   LiteralIndex* _comparisonIndex = nullptr;
   TermIndex* _inductionTermIndex = nullptr;
   TermIndex* _structInductionTermIndex = nullptr;
+  InductionFormulaVariantIndex _formulaIndex;
 };
 
 class InductionClauseIterator
 {
 public:
   // all the work happens in the constructor!
-  InductionClauseIterator(Clause* premise, InductionHelper helper, const Options& opt, TermIndex* structInductionTermIndex)
-      : _helper(helper), _opt(opt), _structInductionTermIndex(structInductionTermIndex)
+  InductionClauseIterator(Clause* premise, InductionHelper helper, const Options& opt,
+    TermIndex* structInductionTermIndex, InductionFormulaVariantIndex& formulaIndex)
+      : _helper(helper), _opt(opt), _structInductionTermIndex(structInductionTermIndex),
+      _formulaIndex(formulaIndex)
   {
     processClause(premise);
   }
@@ -252,13 +256,13 @@ private:
   void performStructInductionTwo(const InductionContext& context, InferenceRule rule);
   void performStructInductionThree(const InductionContext& context, InferenceRule rule);
 
-  bool notDone(Literal* lit, Term* t);
   bool notDoneInt(Literal* lit, Term* t, bool increasing, Term* bound1, Term* optionalBound2, bool fromComparison);
 
   Stack<Clause*> _clauses;
   InductionHelper _helper;
   const Options& _opt;
   TermIndex* _structInductionTermIndex;
+  InductionFormulaVariantIndex& _formulaIndex;
 };
 
 };

@@ -236,15 +236,6 @@ Literal* replaceTermInLiteral(Literal* lit, Term* o, TermList r) {
   return tr.transform(lit);
 }
 
-Literal* replaceTermAndSquashSkolemsInLiteral(Literal* lit, Term* o, TermList r, unsigned& var) {
-  const bool strengthenHyp = env.options->inductionStrengthenHypothesis();
-  if (!strengthenHyp) {
-    return replaceTermInLiteral(lit, o, r);
-  }
-  SkolemSquashingTermReplacement tr(o,r,var);
-  return tr.transform(lit);
-}
-
 Formula* InductionContext::getFormula(TermReplacement& tr, bool opposite,
   ClauseIndexToLiteralMap* copy) const
 {
@@ -432,7 +423,8 @@ ClauseIterator Induction::generateClauses(Clause* premise)
 {
   CALL("Induction::generateClauses");
 
-  return pvi(InductionClauseIterator(premise, InductionHelper(_comparisonIndex, _inductionTermIndex, _salg->getSplitter()), getOptions(), _structInductionTermIndex));
+  return pvi(InductionClauseIterator(premise, InductionHelper(_comparisonIndex, _inductionTermIndex, _salg->getSplitter()), getOptions(),
+    _structInductionTermIndex, _formulaIndex));
 }
 
 void InductionClauseIterator::processClause(Clause* premise)
@@ -456,6 +448,8 @@ struct InductionContextFn
   InductionContextFn(Clause* premise, Literal* lit) : _premise(premise), _lit(lit) {}
 
   InductionContext operator()(pair<Term*, VirtualIterator<TermQueryResult>> arg) {
+    Set<Literal*> lits;
+    lits.insert(_lit);
     InductionContext ctx(arg.first, _lit, _premise);
     auto indDepth = _premise->inference().inductionDepth();
     if (indDepth && !env.signature->getFunction(arg.first->functor())->arity()) {
@@ -463,10 +457,23 @@ struct InductionContextFn
     }
     while (arg.second.hasNext()) {
       auto tqr = arg.second.next();
+      // TODO: having the same literal multiple times has unwanted effects
+      // in the clausification/resolution part, so avoid it for now
+      if (lits.contains(tqr.literal)) {
+        continue;
+      }
+      lits.insert(tqr.literal);
       if (_premise == tqr.clause && _lit == tqr.literal) {
         continue;
       }
-      if (indDepth && indDepth == tqr.clause->inference().inductionDepth()) {
+      if (indDepth != tqr.clause->inference().inductionDepth()) {
+        continue;
+      }
+      // if induction depth is >0, we need further check
+      if (indDepth) {
+        if (tqr.clause == _premise) {
+          continue;
+        }
         if (_lit->functor() != tqr.literal->functor()) {
           continue;
         }
@@ -474,7 +481,7 @@ struct InductionContextFn
         SubtermIterator sti1(_lit);
         SubtermIterator sti2(tqr.literal);
         while (sti1.hasNext()) {
-          ASS(sti2.hasNext());
+          ALWAYS(sti2.hasNext());
           auto st1 = sti1.next();
           auto st2 = sti2.next();
           if (st1 != st2) {
@@ -584,11 +591,8 @@ void InductionClauseIterator::processLiteral(Clause* premise, Literal* lit)
       static bool three = _opt.structInduction() == Options::StructuralInductionKind::THREE ||
                         _opt.structInduction() == Options::StructuralInductionKind::ALL;
       InferenceRule rule = InferenceRule::INDUCTION_AXIOM;
-      if (ctx.isSingleLiteral()) {
-        auto imap = ctx._cls.begin()->second;
-        if (!notDone(imap.begin()->second, ctx._indTerm)) {
-          continue;
-        }
+      if (!_formulaIndex.findOrInsert(ctx)) {
+        continue;
       }
       if(one){
         performStructInductionOne(ctx,rule);
@@ -780,43 +784,64 @@ IntUnionFind findDistributedVariants(const Stack<Clause*>& clauses, const Clause
 {
   IntUnionFind uf(clauses.size());
   for (unsigned i = 0; i < clauses.size(); i++) {
-    auto cl1 = clauses[i];
-    for (unsigned k = 0; k < cl1->length(); k++) {
-      auto clit = Literal::complementaryLiteral((*cl1)[k]);
-      bool found = false;
-      unsigned index;
+    auto cl = clauses[i];
+    Stack<Literal*> conclusionLits(toResolve.size());
+#if VDEBUG
+    Stack<unsigned> variantCounts(toResolve.size());
+#endif
+    // we first find the conclusion literals in cl, exactly 1 from
+    // each of toResolve and save how many variants it should have
+    for (unsigned k = 0; k < cl->length(); k++) {
+      auto clit = Literal::complementaryLiteral((*cl)[k]);
       for (const auto& kv : toResolve) {
-        if (kv.second.size() > 1) {
-          for (const auto& kvInner : kv.second) {
-            if (kvInner.second == clit) {
-              found = true;
-              index = k;
-              break;
-            }
+#if VDEBUG
+        bool found = false;
+#endif
+        for (const auto& kvInner : kv.second) {
+          if (kvInner.second == clit) {
+            conclusionLits.push((*cl)[k]);
+#if VDEBUG
+            variantCounts.push(kv.second.size()-1);
+            ASS(!found);
+            found = true;
+#else
+            break;
+#endif
           }
         }
       }
-      if (!found) {
-        continue;
-      }
+    }
+    // cl should have the same number of conclusion
+    // literals as the size of toResolve
+    ASS_EQ(conclusionLits.size(), toResolve.size());
+    // now we look for the variants
+    for (unsigned k = 0; k < conclusionLits.size(); k++) {
+#if VDEBUG
+      for (unsigned j = 0; j < clauses.size(); j++) {
+#else
       for (unsigned j = i+1; j < clauses.size(); j++) {
-        auto cl2 = clauses[j];
-        if (cl2->length() != cl1->length()) {
+#endif
+        auto other = clauses[j];
+        if (i == j || cl->length() != other->length()) {
           continue;
         }
-        bool variant = true;
-        for (unsigned l = 0; l < cl1->length(); l++) {
-          if ((l == index && cl1->contains((*cl2)[l])) ||
-              (l != index && !cl1->contains((*cl2)[l])))
-          {
-            variant = false;
-            break;
+        if (other->contains(conclusionLits[k])) {
+          continue;
+        }
+        unsigned mismatchCnt = 0;
+        for (unsigned l = 0; l < cl->length(); l++) {
+          if (!cl->contains((*other)[l])) {
+            mismatchCnt++;
           }
         }
-        if (variant) {
+        if (mismatchCnt == 1) {
+#if VDEBUG
+          variantCounts[k]--;
+#endif
           uf.doUnion(i,j);
         }
       }
+      ASS_EQ(variantCounts[k],0);
     }
   }
   uf.evalComponents();
@@ -1269,47 +1294,6 @@ void InductionClauseIterator::performStructInductionThree(const InductionContext
   Formula* hypothesis = new JunctionFormula(Connective::OR,orf);
 
   produceClauses(hypothesis, rule, toResolve);
-}
-
-bool InductionClauseIterator::notDone(Literal* lit, Term* term)
-{
-  CALL("InductionClauseIterator::notDone");
-
-  static DHSet<Literal*> done;
-  static LiteralSubstitutionTree lis(false);
-  static DHMap<TermList,TermList> blanks;
-  const bool strengthenHyp = _opt.inductionStrengthenHypothesis();
-  TermList srt = env.signature->getFunction(term->functor())->fnType()->result();
-
-  if(!blanks.find(srt)){
-    unsigned fresh = env.signature->addFreshFunction(0,"blank");
-    env.signature->getFunction(fresh)->setType(OperatorType::getConstantsType(srt));
-    TermList blank = TermList(Term::createConstant(fresh));
-    blanks.insert(srt,blank);
-  }
-
-  unsigned var = 0;
-  Literal* rep = replaceTermAndSquashSkolemsInLiteral(lit,term,blanks.get(srt),var);
-  // If we strengthen the literal there might be an arbitrary number of
-  // induction terms apart from the main one, so it is easier to replace
-  // the rest with variables and check for variants in an index.
-  // Otherwise there is only one term to replace and it gives a unique
-  // literal, so a pointer check is sufficient.
-  if (strengthenHyp) {
-    if (lis.getVariants(rep, false, false).hasNext()) {
-      return false;
-    }
-
-    lis.insert(rep, nullptr);
-  } else {
-    if(done.contains(rep)){
-      return false;
-    }
-
-    done.insert(rep);
-  }
-
-  return true;
 }
 
 // Note: only works for unit clauses.
