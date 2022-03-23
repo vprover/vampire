@@ -34,8 +34,8 @@ public:
   CLASS_NAME(InductionHelper);
   USE_ALLOCATOR(InductionHelper);
 
-  InductionHelper(LiteralIndex* comparisonIndex, TermIndex* inductionTermIndex, Splitter* splitter)
-      : _splitter(splitter), _comparisonIndex(comparisonIndex), _inductionTermIndex(inductionTermIndex) {}
+  InductionHelper(LiteralIndex* comparisonIndex, TermIndex* inductionTermIndex)
+      : _comparisonIndex(comparisonIndex), _inductionTermIndex(inductionTermIndex) {}
 
   TermQueryResultIterator getLessEqual(Term* t);
   TermQueryResultIterator getLess(Term* t);
@@ -43,8 +43,6 @@ public:
   TermQueryResultIterator getGreater(Term* t);
   
   TermQueryResultIterator getTQRsForInductionTerm(TermList inductionTerm);
-
-  void callSplitterOnNewClause(Clause* c);
 
   static bool isIntegerComparison(Clause* c);
   static bool isIntInductionOn();
@@ -63,7 +61,6 @@ private:
   TermQueryResultIterator getComparisonMatch(bool polarity, TermList& left, TermList& right, TermList& var);
 
   // The following pointers can be null if splitting or integer induction is off.
-  Splitter* _splitter;  // not owned
   LiteralIndex* _comparisonIndex;  // not owned
   TermIndex* _inductionTermIndex;  // not owned
 };

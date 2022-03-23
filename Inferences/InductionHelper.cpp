@@ -119,11 +119,6 @@ TermQueryResultIterator InductionHelper::getTQRsForInductionTerm(TermList induct
   return _inductionTermIndex->getUnifications(inductionTerm);
 }
 
-void InductionHelper::callSplitterOnNewClause(Clause* c) {
-  CALL("InductionHelper::callSplitterOnNewClause");
-  if (_splitter) _splitter->onNewClause(c);
-}
-
 bool InductionHelper::isIntegerComparison(Clause* c) {
   CALL("InductionHelper::isIntegerComparison");
   if (c->length() != 1) return false;
