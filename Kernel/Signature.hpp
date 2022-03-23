@@ -714,7 +714,7 @@ class Signature
 
   unsigned getArrowConstructor(){
     bool added = false;
-    unsigned arrow = addTypeCon(">",2, added);
+    unsigned arrow = addTypeCon("fun",2, added);
     if(added){
       _arrowCon = arrow;
       TermList ss = AtomicSort::superSort();
