@@ -21,7 +21,7 @@
 
 
 // Set to true to output FSD inferences on stdout
-#define FSD_LOG_INFERENCES false
+#define FSD_LOG_INFERENCES true
 
 // Set to true to check redundancy of FSD main premise in debug mode
 #define FSD_VDEBUG_REDUNDANCY_ASSERTIONS true

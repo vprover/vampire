@@ -211,6 +211,7 @@ void TPTPPrinter::outputSymbolTypeDefinitions(unsigned symNumber, SymbolType sym
     type = sym->typeConType();
   }
 
+  std::cerr << sym->name() << "  " << type->toString() << "  all default? " << type->isAllDefault() << "\n";
   if(type->isAllDefault()) {
     return;
   }
