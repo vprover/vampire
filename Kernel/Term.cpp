@@ -29,6 +29,7 @@
 
 #include "Indexing/TermSharing.hpp"
 
+#include "Shell/AnswerExtractor.hpp"
 #include "Shell/Options.hpp"
 #include "Shell/Statistics.hpp"
 
@@ -1004,13 +1005,7 @@ Literal* Literal::complementaryLiteral(Literal* l)
 Term* Term::create(Term* t,TermList* args)
 {
   CALL("Term::create/2");
-  // TODO(hzzv): new commented and replaced 
-  //ASS_EQ(t->getPreDataSize(), 0);
-  ASS(!t->isSpecial() || ((t->getSpecialData()->getType() == SF_ITE) && !args[0].isEmpty() && !args[1].isEmpty()));
-  if (t->isSpecial() && (t->getSpecialData()->getType() == SF_ITE))
-    return createITE(t->getSpecialData()->getCondition(), args[0], args[1], t->getSpecialData()->getSort());
-  // TODO(hzzv): THIS DOESN'T WORK FOR SPECIAL TERMS AT ALL, MAKE IT WORK!
-  //cout << "copying " << t->toString() << "; ";
+  ASS_EQ(t->getPreDataSize(), 0);
 
   int arity = t->arity();
   Term* s = new(arity) Term(*t);
@@ -1027,6 +1022,38 @@ Term* Term::create(Term* t,TermList* args)
     s = env.sharing->insert(s);
   }
   return s;
+}
+
+/** Create a new complex term, copy from @b l its function symbol and
+ *  from the array @b args its arguments. Insert it into the sharing
+ *  structure if all arguments are shared.
+ */
+// TODO(hzzv): add a new fn symbol instead of abusing the predicate
+Term* Term::createFromLiteral(Literal* l)
+{
+  CALL("Term::createFromLiteral");
+  ASS_EQ(l->getPreDataSize(), 0);
+  ASS(!l->isSpecial());
+
+  unsigned arity = l->arity();
+  vstring fnName = "cond_";
+  if (l->isNegative()) fnName.append("not_");
+  fnName.append(l->predicateName());
+  bool added = false;
+  unsigned fn = env.signature->addFunction(fnName, arity, added);
+  if (added) {
+    Signature::Symbol* sym = env.signature->getFunction(fn);
+    OperatorType* ot = env.signature->getPredicate(l->functor())->predType();
+    Stack<TermList> argSorts;
+    for (unsigned i = 0; i < arity; ++i) {
+      argSorts.push(ot->arg(i));
+    }
+    sym->setType(OperatorType::getFunctionType(arity, argSorts.begin(), AtomicSort::defaultSort()));
+  }
+  
+  Stack<TermList> args;
+  for (unsigned i = 0; i < arity; ++i) args.push(*(l->nthArgument(i)));
+  return Term::create(fn, arity, args.begin());
 }
 
 /** Create a new complex term, and insert it into the sharing
@@ -1281,6 +1308,17 @@ Term *Term::createMatch(TermList sort, TermList matchedSort, unsigned int arity,
   ASS(ss->isEmpty());
 
   return s;
+}
+
+/**
+ * Create a (condition ? thenBranch : elseBranch) expression
+ * having a literal as the condition, and return the resulting term
+ */
+Term* Term::createRegularITE(Term* condition, TermList thenBranch, TermList elseBranch, TermList branchSort)
+{
+  CALL("Term::createRegularITE");
+  static unsigned itefn = AnswerLiteralManager::getITEFunctionSymbol(branchSort);
+  return Term::create(itefn, {TermList(condition), thenBranch, elseBranch});
 }
 
 /** Create a new complex term, copy from @b t its function symbol and arity.

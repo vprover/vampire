@@ -325,10 +325,8 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
 
   if (bothHaveAnsLit) {
     // TODO: which of these ASSerts are necessary?
-    ASS(cAnsLit->functor() == dAnsLit->functor());
-    ASS(cAnsLit->arity() == dAnsLit->arity());
+    ASS(Literal::headersMatch(cAnsLit, dAnsLit, /*complementary=*/false));
     ASS(next == newLength-1);
-    ASS(cAnsLit->polarity() == dAnsLit->polarity());
     Literal* newLitC = qr.substitution->applyToQuery(cAnsLit);
     Literal* newLitD = qr.substitution->applyToResult(dAnsLit);
     Signature::Symbol* predSym = env.signature->getPredicate(cAnsLit->functor());
@@ -338,8 +336,15 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
       TermList* dtl = newLitD->nthArgument(i);
       if (ctl == dtl) litArgs.push(*ctl);
       else {
-        Literal* cond = qr.substitution->applyToQuery(queryLit);
-        litArgs.push(TermList(Term::createITE(new Kernel::AtomicFormula(cond), *dtl, *ctl, predSym->predType()->arg(i))));
+        bool cNeg = queryLit->isNegative();
+        Literal* condLit = cNeg ? qr.substitution->applyToResult(qr.literal) : qr.substitution->applyToQuery(queryLit);
+        //cout << "Making term from lit " << condLit->toString() << ": ";
+        //for (int i = 0; i < condLit->arity(); ++i) cout << condLit->nthArgument(i)->toString() << " ";
+        //cout << "; ";
+        //for (int i = 0; i < condLit->arity(); ++i) cout << condLit->args()[i].toString() << " ";
+        //cout << endl;
+        Term* condTerm = Term::createFromLiteral(condLit);
+        litArgs.push(TermList(Term::createRegularITE(condTerm, cNeg ? *ctl : *dtl, cNeg ? *dtl : *ctl, predSym->predType()->arg(i))));
       }
     }
     (*res)[next] = Literal::create(newLitC->functor(), newLitC->arity(), newLitC->polarity(), false, litArgs.begin());

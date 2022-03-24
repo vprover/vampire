@@ -74,6 +74,17 @@ public:
 
   void bindSkolemToVar(Term* skolem, unsigned var);
 
+  static unsigned getITEFunctionSymbol(TermList sort) {
+    vstring name = "$ite_" + sort.toString();
+    bool added = false;
+    unsigned fn = env.signature->addFunction(name, 3, added);
+    if (added) {
+      Signature::Symbol* sym = env.signature->getFunction(fn);
+      sym->setType(OperatorType::getFunctionType({AtomicSort::defaultSort(), sort, sort}, sort));
+    }
+    return fn;
+  }
+
 private:
   class ConjectureSkolemReplacement : public TermTransformer {
    public:
