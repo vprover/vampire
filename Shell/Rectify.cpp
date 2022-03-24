@@ -244,6 +244,19 @@ Term* Rectify::rectifySpecialTerm(Term* t)
     }
     return Term::createTuple(rectifiedTupleTerm);
   }
+  case Term::SF_MATCH: {
+    DArray<TermList> terms(t->arity());
+    bool unchanged = true;
+    for (unsigned i = 0; i < t->arity(); i++) {
+      terms[i] = rectify(*t->nthArgument(i));
+      unchanged = unchanged && (terms[i] == *t->nthArgument(i));
+    }
+
+    if (unchanged) {
+      return t;
+    }
+    return Term::createMatch(sd->getSort(), sd->getMatchedSort(), t->arity(), terms.begin());
+  }
   default:
     ASSERTION_VIOLATION;
   }
@@ -270,7 +283,11 @@ Term* Rectify::rectify (Term* t)
   Term* s = new(t->arity()) Term(*t);
   if (rectify(t->args(),s->args())) {
     if(TermList::allShared(s->args())) {
-      return env.sharing->insert(s);
+      if(t->isSort()){
+        return env.sharing->insert(static_cast<AtomicSort*>(s));
+      } else {
+        return env.sharing->insert(s);
+      }
     }
     else {
       return s;
@@ -517,7 +534,7 @@ void Rectify::Renaming::undoBinding (unsigned var)
 {
   CALL("Rectify::Renaming::undoBinding");
 
-  ASS(var < (int)_capacity);
+  ASS(var < _capacity);
 
   VarUsageTrackingList::pop(_array[var]);
 } // Rectify::Renaming::undoBinding

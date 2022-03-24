@@ -289,7 +289,8 @@ struct SimpleCongruenceClosure::FOConversionWorker
     else {
       ASS(t.isTerm());
       Term* trm = t.term();
-      res = _parent.getSignatureConst(trm->functor(), SignatureKind::FUNCTION);
+      SignatureKind sk = trm->isSort() ? SignatureKind::TYPECON : SignatureKind::FUNCTION;
+      res = _parent.getSignatureConst(trm->functor(), sk);
       for(size_t i=0; i<childCnt; i++) {
         res = _parent.getPairName(CPair(res, childRes[i]));
       }
@@ -843,7 +844,7 @@ struct SimpleCongruenceClosure::ConstOrderingComparator {
   {
     TermList c1NF = _cInfos[c1].normalForm;
     TermList c2NF = _cInfos[c2].normalForm;
-        
+    
     // we don't care about the order of partial applications 
     // as long as they are smaller than the proper terms
     
@@ -856,7 +857,14 @@ struct SimpleCongruenceClosure::ConstOrderingComparator {
     } else {
       if (c2NF.isEmpty()) {
         return GREATER;
-      } else { // two proper terms
+      } else {
+        // We should not be comparing sorts with terms via the ordering
+        if(c1NF.term()->isSort() && !c2NF.term()->isSort()){
+          return LESS;
+        } else if(c2NF.term()->isSort() && !c1NF.term()->isSort()) {
+          return GREATER;
+        }
+        // two proper terms
         switch(_ord.compare(c1NF,c2NF)) {
           case Ordering::Result::GREATER:
             return GREATER;    
@@ -900,7 +908,11 @@ void SimpleCongruenceClosure::computeConstsNormalForm(unsigned c, NFMap& normalF
       d = pair.first;
     }
     ASS_EQ(_cInfos[d].sigSymbol,t->functor());
-    cInfo.normalForm = TermList(Term::create(t,args.array()));
+    if(t->isSort()){
+      cInfo.normalForm = TermList(AtomicSort::create(static_cast<AtomicSort*>(t),args.array()));
+    } else {
+      cInfo.normalForm = TermList(Term::create(t,args.array()));
+    }
   }
 }
 

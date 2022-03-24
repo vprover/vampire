@@ -1561,6 +1561,7 @@ void Schedules::getSmtcomp2018Schedule(const Property& property, Schedule& quick
     quick.push("dis+1004_1_add=off:afr=on:afp=1000:afq=1.1:amm=off:anc=none:bd=off:fde=none:gs=on:gsaa=from_current:gsem=on:ile=on:irw=on:lwlo=on:nm=64:newcnf=on:nwc=1:sas=z3:sp=occurrence:tac=light:tar=off:tha=off:thi=all:urr=on:uhcvi=on_6");
     quick.push("lrs+1010_5:4_afp=100000:afq=1.2:anc=none:cond=on:fsr=off:ile=on:irw=on:nm=64:nwc=1:stl=30:sac=on:sp=occurrence:urr=on_88");
     quick.push("lrs+10_2:1_add=off:afr=on:afp=40000:afq=1.0:amm=sco:anc=none:bs=unit_only:cond=fast:fsr=off:fde=none:gs=on:gsaa=from_current:gsem=on:ile=on:lma=on:lwlo=on:nm=64:newcnf=on:nwc=1:stl=30:sac=on:tac=axiom:tar=off:tha=off:uwa=ground:uhcvi=on_145");
+    quick.push("lrs+1011_3:1_ind=struct:newcnf=on:ile=on:irw=on:lma=on:lwlo=on:sac=on:updr=off_10");
     break;
 
   case SMT_UFDT:
@@ -1810,6 +1811,7 @@ void Schedules::getSmtcomp2018Schedule(const Property& property, Schedule& quick
     quick.push("lrs+1011_3_add=large:afp=1000:afq=1.1:anc=none:cond=on:fsr=off:ile=on:irw=on:lma=on:nm=64:newcnf=on:nwc=1:nicw=on:sas=z3:stl=30:sos=all:sac=on_182");
     break;
 
+  case SMT_ALL: // Add ALL here as we don't currently have a  schedule for it and  this is better than just using fallback
   case SMT_AUFLIA:
   case SMT_AUFNIA:
     quick.push("lrs+1011_1_add=off:afr=on:afp=1000:afq=1.1:amm=off:anc=none:br=off:bce=on:er=filter:gsp=input_only:gs=on:gsaa=full_model:inw=on:ile=on:nm=32:nwc=1.2:sas=z3:stl=30:uwa=one_side_constant:urr=on_7");
@@ -1966,8 +1968,6 @@ void Schedules::getSmtcomp2018Schedule(const Property& property, Schedule& quick
   case SMT_QF_UFNRA:
     throw UserErrorException("Kein Kinderspiel, Bruder, use Z3 for quantifier-free problems!");
 
-  case SMT_ALL:
-    break;
   case SMT_BV:
   case SMT_UFBV:
     throw UserErrorException("Sorry, we don't deal with bit-vectors!");
@@ -2887,7 +2887,7 @@ void Schedules::getHigherOrderSchedule2020(Schedule& quick, Schedule& fallback)
   quick.push("dis+10_1_add=off:afp=4000:csup=on:inj=on:chr=on:e2e=on:cases=on:cnfonf=eager:afq=1.2:anc=none:br=off:cond=on:gs=on:irw=on:lcm=reverse:nwc=10:sd=10:ss=axioms:sos=theory:sac=on:sp=occurrence:urr=on_12");
   quick.push("lrs+4_3_av=off:bd=preordered:csup=on:inj=on:chr=on:cases=on:cnfonf=eager:bs=unit_only:cond=fast:fde=unused:gsp=input_only:gs=on:gsem=on:lma=on:lwlo=on:nm=6:nwc=1:stl=60:sp=occurrence:uhcvi=on_481");
   quick.push("lrs+1002_1_av=off:fde=unused:csup=on:inj=on:chr=on:cases=on:cnfonf=eager:lwlo=on:nm=16:nwc=4:sp=occurrence_300");
-  quick.push("ott+1002_2_av=off:bd=preordered:csup=on:inj=on:chr=on:cases=on:cnfonf=lazy_not_gen_be_off:bet=on:sup=off:irw=on:lma=on:nm=64:nwc=10:sp=reverse_arity:updr=off_70");
+  quick.push("ott+1002_2_av=off:bd=preordered:csup=on:inj=on:chr=on:cases=on:cnfonf=lazy_not_gen_be_off:bet=on:suph=off:irw=on:lma=on:nm=64:nwc=10:sp=reverse_arity:updr=off_70");
   quick.push("lrs-11_4:1_afp=4000:csup=on:inj=on:bet=on:cases=on:cnfonf=lazy_not_gen_be_off:afq=2.0:anc=none:br=off:gs=on:lwlo=on:nm=64:nwc=3:stl=30:urr=on_45");
   quick.push("lrs+1011_8_add=large:csup=on:e2e=on:prag=on:mXXn=1:cnfonf=lazy_simp:afp=100000:afq=1.1:er=filter:gsp=input_only:gs=on:gsem=on:lma=on:nm=6:nwc=1:stl=30:sd=2:ss=axioms:st=1.5:sos=on_19");
   quick.push("dis+1011_4_av=off:cond=on:piset=false_true_not:csup=on:inj=on:chr=on:cases=on:cnfonf=eager:irw=on:lma=on:nm=2:nwc=1:sos=all:sp=occurrence_5");
@@ -2940,4 +2940,159 @@ void Schedules::getHigherOrderSchedule2020(Schedule& quick, Schedule& fallback)
   quick.push("lrs+1010_3_av=off:fsr=off:csup=on:inj=on:chr=on:cases=on:cnfonf=eager:gs=on:gsem=off:nm=2:newcnf=on:nwc=2:stl=30:sp=reverse_arity:urr=on:updr=off_650");
   quick.push("dis-11_3_add=off:afp=0:fe=axiom:mXXn=2:csup=on:inj=on:chr=on:e2e=on:prag=on:cases=on:cnfonf=eager:afq=1.0:fde=all:amm=sco:anc=none:gs=on:irw=on:lcm=reverse:nm=6:nwc=1:sd=4:ss=axioms:st=3.0:sos=on:sac=on_600");
   quick.push("lrs+4_3_av=off:bd=preordered:fe=axiom:narr=off:csup=on:ntd=on:inj=on:chr=on:cases=on:cnfonf=lazy_simp:bs=unit_only:cond=fast:fde=unused:gsp=input_only:gs=on:gsem=on:lma=on:lwlo=on:nm=6:nwc=1:stl=60:sp=occurrence:uhcvi=on_600");
+}
+
+// ---------- ---------- ---------- ---------- ---------- ---------- ---------- ---------- ----------
+// ---------- ---------- ---------- ---------- ---------- ---------- ---------- ---------- ----------
+// ---------- ---------- ---------- ---------- ---------- ---------- ---------- ---------- ----------
+// ---------- ---------- ---------- ---------- ---------- ---------- ---------- ---------- ----------
+// ---------- ---------- ---------- ---------- ---------- ---------- ---------- ---------- ----------
+
+void Schedules::getInductionSchedule(const Shell::Property& property, Schedule& quick, Schedule& fallback) {
+  bool struct_induction = (property.props() & (Property::PR_HAS_DT_CONSTRUCTORS | Property::PR_HAS_CDT_CONSTRUCTORS));
+  bool integer_induction = (property.props() & Property::PR_HAS_INTEGERS);
+  if (!struct_induction && integer_induction) {
+    getIntegerInductionSchedule(property, quick, fallback);
+  } else if (struct_induction && !integer_induction) {
+    getStructInductionSchedule(property, quick, fallback);
+  } else if (struct_induction && integer_induction) {
+    // Empirically sorted
+    quick.push("lrs+10_1_iik=one:ind=both:sos=theory:sstl=1_89");
+    quick.push("dis+1002_1_aac=none:anc=all:ind=both:sos=theory:sac=on:sstl=1:to=lpo_30");
+    quick.push("lrs+10_1_iik=one:ind=both:sos=theory:sstl=1:to=lpo_89");
+    quick.push("lrs+10_1_drc=off:iik=all:ind=both:to=lpo_89");
+    quick.push("lrs+10_1_iik=all:ind=both:to=lpo_89");
+    quick.push("lrs+10_1_drc=off:iik=all:ind=both:sos=theory:sstl=1:to=lpo_89");
+    quick.push("lrs+10_1_iik=two:ind=both:sos=theory:sstl=1:to=lpo_89");
+    quick.push("lrs+10_1_iik=one:ind=both:to=lpo_89");
+    quick.push("lrs+10_1_drc=off:iik=one:ind=both:sos=theory:sstl=1:to=lpo_89");
+    quick.push("lrs+10_1_av=off:br=off:ind=both:urr=on_89");
+    quick.push("lrs+10_1_drc=off:iik=one:ind=both:to=lpo_89");
+    quick.push("lrs+10_1_drc=off:iik=all:ind=both_89");
+    quick.push("lrs+10_1_drc=off:iik=one:ind=both:sos=theory:sstl=1_89");
+    quick.push("lrs+10_1_iik=one:ind=both_89");
+    quick.push("lrs+10_1_iik=two:ind=both:to=lpo_89");
+    quick.push("lrs+10_1_drc=off:iik=two:ind=both:sos=theory:sstl=1:to=lpo_89");
+    // The rest
+    quick.push("lrs+10_1_drc=off:iik=one:ind=both_89");
+    quick.push("lrs+10_1_iik=all:ind=both:sos=theory:sstl=1:to=lpo_89");
+    quick.push("lrs+10_1_drc=off:iik=all:ind=both:sos=theory:sstl=1_89");
+    quick.push("lrs+10_1_iik=all:ind=both:sos=theory:sstl=1_89");
+    quick.push("lrs+10_1_iik=all:ind=both_89");
+    quick.push("lrs+10_1_drc=off:iik=two:ind=both:to=lpo_89");
+    quick.push("lrs+10_1_drc=off:iik=two:ind=both:sos=theory:sstl=1_89");
+    quick.push("lrs+10_1_drc=off:iik=two:ind=both_89");
+    quick.push("lrs+10_1_iik=two:ind=both:sos=theory:sstl=1_89");
+    quick.push("lrs+10_1_iik=two:ind=both_89");
+    quick.push("lrs+10_1_drc=off:iik=one:ind=both:indoct=on:sos=theory:sstl=1:to=lpo_89");
+    quick.push("lrs+10_1_iik=one:ind=both:indoct=on:sos=theory:sstl=1:to=lpo_89");
+    quick.push("lrs+10_1_drc=off:iik=one:ind=both:indoct=on:sos=theory:sstl=1_89");
+    quick.push("lrs+10_1_iik=one:ind=both:indoct=on:sos=theory:sstl=1_89");
+    quick.push("lrs+10_1_drc=off:iik=two:ind=both:indoct=on:sos=theory:sstl=1:to=lpo_89");
+    quick.push("lrs+10_1_iik=two:ind=both:indoct=on:sos=theory:sstl=1:to=lpo_89");
+    quick.push("lrs+10_1_drc=off:iik=two:ind=both:indoct=on:sos=theory:sstl=1_89");
+    quick.push("lrs+10_1_iik=two:ind=both:indoct=on:sos=theory:sstl=1_89");
+  } else {
+    // No induction is on.
+    quick.push("lrs+10_1__90");
+  }
+
+  fallback.push("lrs+10_1__50");
+}
+
+// ---------- ---------- ---------- ---------- ---------- ---------- ---------- ---------- ----------
+// ---------- ---------- ---------- ---------- ---------- ---------- ---------- ---------- ----------
+// ---------- ---------- ---------- ---------- ---------- ---------- ---------- ---------- ----------
+// ---------- ---------- ---------- ---------- ---------- ---------- ---------- ---------- ----------
+// ---------- ---------- ---------- ---------- ---------- ---------- ---------- ---------- ----------
+
+void Schedules::getIntegerInductionSchedule(const Shell::Property& property, Schedule& quick, Schedule& fallback) {
+  // Empirically sorted
+  quick.push("lrs+10_1_iik=one:ind=int:sos=theory:sstl=1_87");
+  quick.push("dis+1002_1_aac=none:anc=all:ind=int:sos=theory:sac=on:sstl=1:to=lpo_30");
+  quick.push("lrs+10_1_iik=one:ind=int:sos=theory:sstl=1:to=lpo_87");
+  quick.push("lrs+10_1_drc=off:iik=all:ind=int:to=lpo_87");
+  quick.push("lrs+10_1_iik=all:ind=int:to=lpo_87");
+  quick.push("lrs+10_1_drc=off:iik=all:ind=int:sos=theory:sstl=1:to=lpo_87");
+  quick.push("lrs+10_1_iik=two:ind=int:sos=theory:sstl=1:to=lpo_87");
+  quick.push("lrs+10_1_iik=one:ind=int:to=lpo_87");
+  quick.push("lrs+10_1_drc=off:iik=one:ind=int:sos=theory:sstl=1:to=lpo_87");
+  quick.push("lrs+10_1_av=off:br=off:ind=int:urr=on_87");
+  quick.push("lrs+10_1_drc=off:iik=one:ind=int:to=lpo_87");
+  quick.push("lrs+10_1_drc=off:iik=all:ind=int_87");
+  quick.push("lrs+10_1_drc=off:iik=one:ind=int:sos=theory:sstl=1_87");
+  quick.push("lrs+10_1_iik=one:ind=int_87");
+  quick.push("lrs+10_1_iik=two:ind=int:to=lpo_87");
+  quick.push("lrs+10_1_drc=off:iik=two:ind=int:sos=theory:sstl=1:to=lpo_87");
+  quick.push("lrs+10_1_avsq=on:drc=off:iik=all:ind=int:to=lpo_30");
+  quick.push("lrs+10_1_drc=off:iik=all:ind=int:thsq=on:thsqd=16:to=lpo_30");
+  quick.push("lrs+4_5_drc=off:iik=one:ind=int:plsq=on:to=lpo_100");
+  // The rest
+  quick.push("lrs+10_1_drc=off:iik=one:ind=int_81");
+  quick.push("lrs+10_1_iik=all:ind=int:sos=theory:sstl=1:to=lpo_81");
+  quick.push("lrs+10_1_drc=off:iik=all:ind=int:sos=theory:sstl=1_81");
+  quick.push("lrs+10_1_iik=all:ind=int:sos=theory:sstl=1_81");
+  quick.push("lrs+10_1_iik=all:ind=int_81");
+  quick.push("lrs+10_1_drc=off:iik=two:ind=int:to=lpo_81");
+  quick.push("lrs+10_1_drc=off:iik=two:ind=int:sos=theory:sstl=1_81");
+  quick.push("lrs+10_1_drc=off:iik=two:ind=int_81");
+  quick.push("lrs+10_1_iik=two:ind=int:sos=theory:sstl=1_81");
+  quick.push("lrs+10_1_iik=two:ind=int_81");
+  quick.push("lrs+10_1_drc=off:iik=one:ind=int:indoct=on:sos=theory:sstl=1:to=lpo_81");
+  quick.push("lrs+10_1_iik=one:ind=int:indoct=on:sos=theory:sstl=1:to=lpo_81");
+  quick.push("lrs+10_1_iik=one:drc=off:ind=int:indoct=on:sos=theory:sstl=1_81");
+  quick.push("lrs+10_1_iik=one:ind=int:indoct=on:sos=theory:sstl=1_81");
+  quick.push("lrs+10_1_drc=off:iik=two:ind=int:indoct=on:sos=theory:sstl=1:to=lpo_81");
+  quick.push("lrs+10_1_iik=two:ind=int:indoct=on:sos=theory:sstl=1:to=lpo_81");
+  quick.push("lrs+10_1_iik=two:drc=off:ind=int:indoct=on:sos=theory:sstl=1_81");
+  quick.push("lrs+10_1_iik=two:ind=int:indoct=on:sos=theory:sstl=1_81");
+
+  fallback.push("lrs+10_1__50");
+}
+
+// ---------- ---------- ---------- ---------- ---------- ---------- ---------- ---------- ----------
+// ---------- ---------- ---------- ---------- ---------- ---------- ---------- ---------- ----------
+// ---------- ---------- ---------- ---------- ---------- ---------- ---------- ---------- ----------
+// ---------- ---------- ---------- ---------- ---------- ---------- ---------- ---------- ----------
+// ---------- ---------- ---------- ---------- ---------- ---------- ---------- ---------- ----------
+
+void Schedules::getStructInductionSchedule(const Shell::Property& property, Schedule& quick, Schedule& fallback) {
+  // Empirically sorted (order somewhat guessed)
+  quick.push("lrs+10_1_ind=struct:sos=theory:sstl=1_89");
+  quick.push("dis+1002_1_aac=none:anc=all:ind=struct:sos=theory:sac=on:sstl=1:to=lpo_30");
+  quick.push("lrs+10_1_ind=struct:sos=theory:sstl=1:to=lpo_89");
+  quick.push("lrs+10_1_drc=off:ind=struct:to=lpo_89");
+  quick.push("lrs+10_1_drc=off:ind=struct:sos=theory:sstl=1:to=lpo_89");
+  quick.push("lrs+10_1_ind=struct:to=lpo_89");
+  quick.push("lrs+10_1_av=off:br=off:ind=struct:urr=on_89");
+  quick.push("lrs+10_1_drc=off:ind=struct_89");
+  quick.push("lrs+10_1_drc=off:ind=struct:sos=theory:sstl=1_89");
+  quick.push("lrs+10_1_ind=struct_89");
+  // The rest
+  quick.push("lrs+10_1_drc=off:ind=struct:indoct=on:sos=theory:sstl=1:to=lpo_89");
+  quick.push("lrs+10_1_drc=off:ind=struct:indoct=on:to=lpo_89");
+  quick.push("lrs+10_1_ind=struct:indoct=on:sos=theory:sstl=1:to=lpo_89");
+  quick.push("lrs+10_1_ind=struct:indoct=on:to=lpo_89");
+  quick.push("lrs+10_1_drc=off:ind=struct:indoct=on:sos=theory:sstl=1_89");
+  quick.push("lrs+10_1_drc=off:ind=struct:indoct=on_89");
+  quick.push("lrs+10_1_ind=struct:indoct=on:sos=theory:sstl=1_89");
+  quick.push("lrs+10_1_ind=struct:indoct=on_89");
+  quick.push("lrs+10_1_drc=off:ind=struct:indgen=on:sos=theory:sstl=1:to=lpo_89");
+  quick.push("lrs+10_1_drc=off:ind=struct:indgen=on:to=lpo_89");
+  quick.push("lrs+10_1_ind=struct:indgen=on:sos=theory:sstl=1:to=lpo_89");
+  quick.push("lrs+10_1_ind=struct:indgen=on:to=lpo_89");
+  quick.push("lrs+10_1_drc=off:ind=struct:indgen=on:sos=theory:sstl=1_89");
+  quick.push("lrs+10_1_drc=off:ind=struct:indgen=on_89");
+  quick.push("lrs+10_1_ind=struct:indgen=on:sos=theory:sstl=1_89");
+  quick.push("lrs+10_1_ind=struct:indgen=on_89");
+  quick.push("lrs+10_1_drc=off:ind=struct:indgen=on:indoct=on:sos=theory:sstl=1:to=lpo_89");
+  quick.push("lrs+10_1_drc=off:ind=struct:indgen=on:indoct=on:to=lpo_89");
+  quick.push("lrs+10_1_ind=struct:indgen=on:indoct=on:sos=theory:sstl=1:to=lpo_89");
+  quick.push("lrs+10_1_ind=struct:indgen=on:indoct=on:to=lpo_89");
+  quick.push("lrs+10_1_drc=off:ind=struct:indgen=on:indoct=on:sos=theory:sstl=1_89");
+  quick.push("lrs+10_1_drc=off:ind=struct:indgen=on:indoct=on_89");
+  quick.push("lrs+10_1_ind=struct:indgen=on:indoct=on:sos=theory:sstl=1_89");
+  quick.push("lrs+10_1_ind=struct:indgen=on:indoct=on_89");
+
+  fallback.push("lrs+10_1__50");
 }

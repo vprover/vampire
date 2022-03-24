@@ -7,202 +7,93 @@
  * https://vprover.github.io/license.html
  * and in the source directory
  */
-/**
- * @file DHMap.hpp
- * Defines class DHMap<Key,Val,Hash1,Hash2> of maps, implemented as
- * double hashed hashtables.
+
+/** 
+ * Defines a bi-directional HashMap. This data structure is just a convenient abstraction using two `Map`s under the hood.
  */
 
-#ifndef __BiMap__
-#define __BiMap__
+#ifndef __LIB__BI_MAP__HPP__
+#define __LIB__BI_MAP__HPP__
 
-#include <cstdlib>
-#include <utility>
+#include "Lib/Map.hpp"
 
-#if VDEBUG
-#include <typeinfo>
-#endif
+namespace Lib{
 
-#include "Debug/Assertion.hpp"
-#include "Allocator.hpp"
-#include "Exception.hpp"
-#include "DHMap.hpp"
-
-namespace Lib {
-
-
-template <typename Key1, typename Key2>
-class BiMap
-{
+/**
+ * A bidirectional hash map, implemented using two @c Map s under the hood. 
+ * The methods behave the same as their counterparts in @c Map, with the exception that BiMap
+ * asserts that every key, as well as every value is unique in this map (which is necessary to do a bijective mapping.) */
+template<class A, class B, class HashA, class HashB>
+class BiMap : Map<A,B, HashA>, Map<B, A, HashB> {
+  using Into = Map<A,B,HashA>;
+  using From = Map<B,A,HashB>;
 public:
-  CLASS_NAME(BiMap);
-  USE_ALLOCATOR(BiMap);
-  
-  /** Create a new DHMap */
-  BiMap() 
+  BiMap() : Into(), From() {}
+
+  /** @see Map::get */
+  using From::get;
+
+  /** @see Map::get */
+  using Into::get;
+
+  /** @see Map::tryGet */
+  using From::tryGet;
+
+  /** @see Map::tryGet */
+  using Into::tryGet;
+
+  /** @see Map::find */
+  using From::find;
+
+  /** @see Map::find */
+  using Into::find;
+
+ 
+  /** @see Map::getOrInit */
+  template<class InitFn>
+  B& getOrInit(A key, InitFn init) 
   {
-  }
+    CALL("Map::getOrInit");
+    return Into::getOrInit(key, [&]() {
+        auto val = init();
+        From::insert(val, key);
+        return val;
+    });
+  } 
 
-  //copy constructor?
-
-  /** Deallocate the BiMap */
-  ~BiMap()
-  { //Do the destructors of _map1 and _map2 need to be called?
-  }
-
-  /** Empty the BiMap */
-  void reset()
+  /** @see Map::clear */
+  void clear() 
   {
-    CALL("BiMap::reset");
-    _map1.reset();
-    _map2.reset();
+    From::clear();
+    Into::clear();
   }
 
-  /**
-   *  Find value by the @b key. The result is true if a pair
-   *  with this key is in the map. If such a pair is found,
-   *  then its value is returned in @b val. Otherwise, the
-   *  value of @b val remains unchanged.
+  /** 
+   * @see Map::insert 
+   * @pre Asserts that both key and value do not yet exist in this BiMap.
    */
-  inline
-  bool find1(Key1 key, Key2& val) const
+  inline void insert(A key, B val)
   {
-    CALL("BiMap::find1");
-    return _map1.find(key, val);
-  }
-
-  inline
-  bool find2(Key2 key, Key1& val) const
-  {
-    CALL("BiMap::find2");
-    return _map2.find(key, val);
+    ASS(!find(key))
+    ASS(!find(val))
+    From::insert(val, key);
+    Into::insert(key, val);
   }
 
 
-  /**
-   *  Return true iff a pair with @b key as a key is in the map.
+  /** 
+   * @see Map::size 
    */
-  inline
-  bool find1(Key1 key) const
+  inline unsigned size()
   {
-    CALL("BiMap::find1");
-    return _map1.find(key);
+    ASS_EQ(From::size(), Into::size());
+    return From::size();
   }
 
-  inline
-  bool find2(Key2 key) const
-  {
-    CALL("BiMap::find2");
-    return _map2.find(key);
-  }
+  friend std::ostream& operator<<(std::ostream& out, BiMap const& self) 
+  { return out << static_cast<Into const&>(self); }
+};
 
-  /**
-   *  Return value associated with given key. A pair with
-   *  this key has to be present.
-   */
-  inline
-  const Key2& get1(Key1 key) const
-  {
-    return _map1.get(key);
-  }
+} // namespace Lib
 
-  inline
-  const Key1 get2(Key2 key) const
-  {
-    return _map2.get(key);
-  }
-
-  /**
-   *  Return value associated with given key. A pair with
-   *  this key has to be present.
-   */
-  inline
-  Key2& get1(Key1 key)
-  {
-    return _map1.get(key);
-  }
-
-  inline
-  Key1& get2(Key2 key)
-  {
-    return _map2.get(key);
-  }
-
-  /**
-   * If there is no value stored under @b key in the map,
-   * insert pair (key,value) and return true. Otherwise,
-   * return false.
-   */
-  bool insert(Key1 key1, Key2 key2)
-  {
-    CALL("BiMap::insert");
-    bool inserted = _map1.insert(key1, key2);
-#if VDEBUG
-    bool inserted2 = _map2.insert(key2, key1);
-    ASS(inserted == inserted2);
-#else
-    _map2.insert(key2, key1);
-#endif
-    return inserted;
-  }
-
-
-  /**
-   * If there is a value stored under the @b key, remove
-   * it and return true. Otherwise, return false.
-   */
-  bool remove1(Key1 key1)
-  {
-    CALL("BiMap::remove1");
-    Key2 key2;
-    bool found = _map1.find(key1, key2);
-    if(found){
-      _map1.remove(key1);
-      _map2.remove(key2);
-    }
-    return found;
-  }
-
-
-  bool remove2(Key2 key2)
-  {
-    CALL("BiMap::remove2");
-    Key1 key1;
-    bool found = _map2.find(key2, key1);
-    if(found){
-      _map1.remove(key1);
-      _map2.remove(key2);
-    }
-    return found;
-  }
-
-  /** Return mumber of entries stored in this DHMap */
-  inline
-  unsigned size() const
-  {
-    ASS(_map1.size() == _map2.size());
-    return _map1.size();
-  }
-
-  /** Return true iff there are any entries stored in this DHMap */
-  inline
-  bool isEmpty() const
-  {
-    ASS(_map1.isEmpty() == _map2.isEmpty());
-    return _map1.isEmpty();
-  }
-
-private:
-  
-  DHMap<Key1, Key2> _map1;
-  DHMap<Key2, Key1> _map2;
-
-//Itertors?
-
-
-}; // class BiMap
-
-}
-
-#endif // __DHMap__
-
+#endif // __LIB__BI_MAP__HPP__

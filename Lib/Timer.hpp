@@ -115,13 +115,18 @@ public:
   static vstring msToSecondsString(int ms);
   static void printMSString(ostream& str, int ms);
 
-  static void setTimeLimitEnforcement(bool enabled)
-  { s_timeLimitEnforcement = enabled; }
+  static void setLimitEnforcement(bool enabled)
+  { s_limitEnforcement = enabled; }
 
   static void syncClock();
 
-  static bool s_timeLimitEnforcement;
+  // only returns non-zero, if actually measuring
+  // (when instruction counting is supported and an instruction limit is set)
+  static unsigned elapsedMegaInstructions();
+
+  static bool s_limitEnforcement;
 private:
+
   /** true if the timer must account for the time spent in
    * children (otherwise it may or may not) */
   bool _mustIncludeChildren;
@@ -151,6 +156,21 @@ private:
     return _running ? miliseconds() - _start + _elapsed : _elapsed;
   }
 }; // class Timer
+
+/**
+ * Delays calling timeLimitReached until the destructor of the last TimeoutProtector in scope(s).
+ * Typical use:
+ *
+ * {
+ *    TimeoutProtector tp{};
+ *    do something potentially incompatible with time-outing, like memory allocation
+ * } // end of scope, tp's destructor will call timeLimitReached only now, if appropriate
+ *      (unless we are in the scope of another TimeoutProtector higher up on stack)
+ */
+struct TimeoutProtector {
+  TimeoutProtector();
+  ~TimeoutProtector();
+}; // struct TimeoutProtector
 
 } // namespace Lib
 

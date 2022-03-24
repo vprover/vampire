@@ -18,6 +18,8 @@
 #include "SATLiteral.hpp"
 #include "SATInference.hpp"
 
+#include <climits>
+
 namespace SAT {
 
 class SATSolver {
@@ -188,6 +190,16 @@ public:
     return asgn==desired;
   }  
 };
+
+inline std::ostream& operator<<(ostream& out, SATSolver::Status const& s)
+{ 
+  switch (s)  {
+    case SATSolver::SATISFIABLE: return out << "SATISFIABLE";
+    case SATSolver::UNSATISFIABLE: return out << "UNSATISFIABLE";
+    case SATSolver::UNKNOWN: return out << "UNKNOWN";
+    default: ASSERTION_VIOLATION; return  out << "INVALID STATUS";
+  }
+}
 
 class SATSolverWithAssumptions: 
       public SATSolver {

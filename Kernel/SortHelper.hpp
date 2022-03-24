@@ -21,7 +21,7 @@
 
 #include "Kernel/Term.hpp"
 #include "Kernel/Substitution.hpp"
-#include "Kernel/Sorts.hpp"
+#include "Kernel/OperatorType.hpp"
 
 namespace Kernel {
 
@@ -68,21 +68,12 @@ public:
   // static void collectVariableSortsSpecialTerm(Term* t, TermList contextSort, DHMap<unsigned,TermList>& map);
   static void collectVariableSorts(Formula* f, DHMap<unsigned,TermList>& map);
 
-  static bool areSortsValid(Clause* cl);
   static bool areImmediateSortsValidPoly(Term* t); 
   static bool areImmediateSortsValidMono(Term* t);
-  // static bool isStructuredSort(unsigned s);
-  static bool isTupleSort(TermList sort);
-  static bool isArraySort(TermList sort);
-  static bool isBoolSort(TermList sort);
+  static bool allTopLevelArgsAreSorts(AtomicSort* sort);
+
   static TermList getIndexSort(TermList arraySort);
   static TermList getInnerSort(TermList arraySort);
-  static bool isNotDefaultSort(unsigned s);
-  static bool isInterpretedNonDefault(unsigned s);
-  static bool isInterpretedNonBool(unsigned s);
-  //convenience functions
-  static unsigned sortNum(TermList sort);
-  static TermList sortTerm(unsigned sortNum);
 
   static void normaliseArgSorts(VList* qVars, TermStack& argSorts);
   static void normaliseSort(VList* qVars, TermList& sort);
@@ -93,6 +84,8 @@ public:
 
   static void getTypeSub(const Term* t, Substitution& subst);
 
+  static bool areSortsValid(Clause* cl);
+  static bool areSortsValid(Term* t);
   static bool areSortsValid(Term* t, DHMap<unsigned,TermList>& varSorts);
 private:
   // It is important this function is private, because it only works in cooperation with tryGetVariableSort(unsigned var, Formula* f, unsigned& res);

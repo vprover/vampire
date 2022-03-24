@@ -63,7 +63,6 @@
 #include "Inferences/BackwardSubsumptionResolution.hpp"
 #include "Inferences/BackwardSubsumptionDemodulation.hpp"
 #include "Inferences/BinaryResolution.hpp"
-#include "Inferences/CTFwSubsAndRes.hpp"
 #include "Inferences/EqualityFactoring.hpp"
 #include "Inferences/EqualityResolution.hpp"
 #include "Inferences/BoolEqToDiseq.hpp"
@@ -468,6 +467,7 @@ void SaturationAlgorithm::onUnprocessedSelected(Clause* c)
 {
   
 }
+
 
 /**
  * A function that is called whenever a possibly new clause appears.
@@ -1352,7 +1352,7 @@ void SaturationAlgorithm::doOneAlgorithmStep()
       res.saturatedSet = collectSaturatedSet();
 
       if (_splitter) {
-        res.saturatedSet = _splitter->explicateAssertionsForSaturatedClauseSet(res.saturatedSet);
+        res.saturatedSet = _splitter->preprendCurrentlyAssumedComponentClauses(res.saturatedSet);
       }
     }
     throw MainLoopFinishedException(res);
@@ -1828,7 +1828,7 @@ CompositeISE* SaturationAlgorithm::createISE(Problem& prb, const Options& opt, O
       res->addFront(new NegativeInjectivityISE());
     }
   }
-  if(prb.hasInterpretedOperations() || prb.hasInterpretedEquality()) {
+  if(prb.hasInterpretedOperations() || prb.hasNumerals()) {
     if (env.options->arithmeticSubtermGeneralizations() == Options::ArithmeticSimplificationMode::FORCE) {
       for (auto gen : allArithmeticSubtermGeneralizations())  {
         res->addFront(&gen->asISE());

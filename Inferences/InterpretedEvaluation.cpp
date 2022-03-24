@@ -20,8 +20,7 @@
 #include "Lib/Environment.hpp"
 #include "Lib/Metaiterators.hpp"
 #include "Lib/Int.hpp"
-#include "Kernel/Ordering.hpp"
-
+#include "Kernel/Ordering.hpp" 
 #include "Kernel/Clause.hpp"
 #include "Kernel/Inference.hpp"
 #include "Kernel/Signature.hpp"
@@ -43,9 +42,6 @@ using namespace Kernel;
 
 InterpretedEvaluation::InterpretedEvaluation(bool doNormalize, Ordering& ordering) :
   _simpl(new InterpretedLiteralEvaluator(doNormalize))
-#if VDEBUG
-  , _ordering(ordering)
-#endif
 {
   CALL("InterpretedEvaluation::InterpretedEvaluation");
 }
@@ -122,19 +118,6 @@ Clause* InterpretedEvaluation::simplify(Clause* cl)
       }
       
       newLits[next++]=res;
-#if VDEBUG
-      if (env.options->literalComparisonMode() != Options::LiteralComparisonMode::REVERSE 
-          && _ordering.compare(res, lit) != Ordering::Result::LESS) {
-        DBG("res: ", res->toString())
-        DBG("lit: ", lit->toString())
-        DBG("cmp: ", _ordering.compare(res, lit))
-        DBG("     LESS:    ", Ordering::Result::LESS)
-        DBG("     GREATER: ", Ordering::Result::GREATER)
-        DBG("     EQUAL:   ", Ordering::Result::EQUAL)
-        DBG("     INCOMPARABLE: ", Ordering::Result::INCOMPARABLE)
-        ASSERTION_VIOLATION
-      }
-#endif
     }
     if(!modified) {
       return cl;

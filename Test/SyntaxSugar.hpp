@@ -31,7 +31,6 @@
 
 #include "Indexing/TermSharing.hpp"
 #include "Kernel/Signature.hpp"
-#include "Kernel/Sorts.hpp"
 #include "Shell/TermAlgebra.hpp"
 
 #define __TO_SORT_RAT RationalConstantType::getSort()
@@ -176,7 +175,14 @@ struct SortSugar
   SortSugar(SortId srt) : _srt(srt) {}
 public:
   SortSugar(const char* name) 
-    : SortSugar(env.sorts->addSort(name)) 
+    : SortSugar([&]() {
+        bool added = false;
+        unsigned functor = env.signature->addTypeCon(name, 0, added);
+        if(added){
+          env.signature->getTypeCon(functor)->setType(OperatorType::getConstantsType(AtomicSort::superSort()));
+        }
+        return TermList(Term::createConstant(functor));
+      }()) 
   {  }
 
   SortId sortId() const { return _srt; }

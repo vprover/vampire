@@ -311,6 +311,18 @@ Index* IndexManager::create(IndexType t)
     isGenerating = false;
     break;
 
+  case UNIT_INT_COMPARISON_INDEX:
+    is = new LiteralSubstitutionTree(uwaMode);
+    res = new UnitIntegerComparisonLiteralIndex(is);
+    isGenerating = true;
+    break;
+
+  case INDUCTION_TERM_INDEX:
+    tis = new TermSubstitutionTree(uwaMode);
+    res = new InductionTermIndex(tis);
+    isGenerating = true;
+    break;
+
   default:
     INVALID_OPERATION("Unsupported IndexType.");
   }

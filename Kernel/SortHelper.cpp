@@ -17,7 +17,7 @@
 #include "Clause.hpp"
 #include "FormulaUnit.hpp"
 #include "Signature.hpp"
-#include "Sorts.hpp"
+#include "OperatorType.hpp"
 #include "SubformulaIterator.hpp"
 #include "Term.hpp"
 #include "TermIterators.hpp"
@@ -39,6 +39,8 @@ OperatorType* SortHelper::getType(Term* t)
 
   if (t->isLiteral()) {
     return env.signature->getPredicate(t->functor())->predType();
+  } else if (t->isSort()) {
+    return env.signature->getTypeCon(t->functor())->typeConType();
   }
   return env.signature->getFunction(t->functor())->fnType();
 } // getType
@@ -85,11 +87,14 @@ TermList SortHelper::getResultSort(const Term* t)
   ASS(!t->isSpecial());
   ASS(!t->isLiteral());
 
+  if(t->isSort()){
+    return TermList(AtomicSort::superSort());
+  }
+
   Substitution subst;
   getTypeSub(t, subst);
   Signature::Symbol* sym = env.signature->getFunction(t->functor());
   TermList result = sym->fnType()->result();
-  //cout << "the type is " + sym->fnType()->toString() << endl;
   ASS(!subst.isEmpty()  || (result.isTerm() && (result.term()->isSuper() || result.term()->ground())));  
   return SubstHelper::apply(result, subst);
 }
@@ -152,14 +157,20 @@ bool SortHelper::getResultSortOrMasterVariable(const Term* t, TermList& resultSo
 {
   CALL("SortHelper::getResultSortOrMasterVariable");
 
+  if(t->isSort()){
+    resultSort = AtomicSort::superSort();
+    return true;
+  }
+
   switch(t->functor()) {
     case Term::SF_LET:
     case Term::SF_LET_TUPLE:
     case Term::SF_ITE:
+    case Term::SF_MATCH:
       resultSort = t->getSpecialData()->getSort();
       return true;
     case Term::SF_FORMULA:
-      resultSort = Term::boolSort();
+      resultSort = AtomicSort::boolSort();
       return true;
     case Term::SF_LAMBDA: {
       resultSort = t->getSpecialData()->getSort();
@@ -200,6 +211,10 @@ TermList SortHelper::getArgSort(Term* t, unsigned argIndex)
   CALL("SortHelper::getArgSort(Term*,unsigned)");
   ASS_L(argIndex, t->arity());
 
+  if(t->isSort()){
+    return AtomicSort::superSort();
+  }
+
   if (t->isLiteral() && static_cast<Literal*>(t)->isEquality()) {
     return getEqualityArgumentSort(static_cast<Literal*>(t));
   }
@@ -208,7 +223,7 @@ TermList SortHelper::getArgSort(Term* t, unsigned argIndex)
   OperatorType* ot = getType(t);
 
   if(argIndex < ot->typeArgsArity()){
-    return Term::superSort();
+    return AtomicSort::superSort();
   }
   
   getTypeSub(t, subst);
@@ -303,7 +318,7 @@ bool SortHelper::tryGetVariableSort(unsigned var, Formula* f, TermList& res)
     if(sf->connective() == BOOL_TERM){
       TermList stt = sf->getBooleanTerm();
       if(stt.isVar() && stt.var()==var){
-        res = Term::boolSort();
+        res = AtomicSort::boolSort();
         return true;
       }
       if(stt.isTerm()){
@@ -473,6 +488,30 @@ void SortHelper::collectVariableSortsIter(CollectTask task, DHMap<unsigned,TermL
             todo.push(newTask);
           } break;
 
+          case Term::SF_MATCH: {
+            CollectTask newTask;
+
+            newTask.fncTag = COLLECT_TERMLIST;
+            auto matchedSort = term->getSpecialData()->getMatchedSort();
+
+            // there are two sorts here, one is the sort
+            // of matched term and patterns, the other is
+            // the sort of the match block and of each case
+            newTask.ts = *term->nthArgument(0);
+            newTask.contextSort = matchedSort;
+            todo.push(newTask);
+            for (unsigned int i = 1; i < term->arity(); i += 2) {
+              newTask.ts = *term->nthArgument(i);
+              newTask.contextSort = matchedSort;
+              todo.push(newTask);
+
+              newTask.ts = *term->nthArgument(i + 1);
+              newTask.contextSort = task.contextSort;
+              todo.push(newTask);
+            }
+            break;
+          }
+
       #if VDEBUG
           default:
             ASSERTION_VIOLATION;
@@ -493,7 +532,7 @@ void SortHelper::collectVariableSortsIter(CollectTask task, DHMap<unsigned,TermL
                 CollectTask newTask;
                 newTask.fncTag = COLLECT_TERMLIST;
                 newTask.ts = lit->twoVarEqSort();
-                newTask.contextSort = Term::superSort();
+                newTask.contextSort = AtomicSort::superSort();
                 todo.push(newTask);
               }
               CollectTask newTask;
@@ -506,8 +545,8 @@ void SortHelper::collectVariableSortsIter(CollectTask task, DHMap<unsigned,TermL
             case BOOL_TERM: {
               TermList ts = sf->getBooleanTerm();
               if (ts.isVar()) {
-                if (!map.insert(ts.var(), Term::boolSort())) {
-                  ASS_EQ(Term::boolSort(), map.get(ts.var()));
+                if (!map.insert(ts.var(), AtomicSort::boolSort())) {
+                  ASS_EQ(AtomicSort::boolSort(), map.get(ts.var()));
                 }
               } else {
                 ASS(ts.isTerm());
@@ -519,7 +558,7 @@ void SortHelper::collectVariableSortsIter(CollectTask task, DHMap<unsigned,TermL
                   newTask.fncTag = COLLECT_TERM;                  
                 }
                 newTask.t = ts.term();
-                newTask.contextSort = Term::boolSort();
+                newTask.contextSort = AtomicSort::boolSort();
 
                 todo.push(newTask);
               }
@@ -663,6 +702,10 @@ void SortHelper::collectVariableSorts(TermList ts, TermList contextSort, DHMap<u
 
     case Term::SF_TUPLE:
       collectVariableSorts(sd->getTupleTerm(), map);
+      break;
+
+    case Term::SF_MATCH:
+      // args are handled below
       break;
 
 #if VDEBUG
@@ -853,6 +896,15 @@ bool SortHelper::tryGetVariableSort(TermList var, Term* t0, TermList& result)
       }
       continue;
     }
+    if (t->isMatch()) {
+      for (unsigned int i = 0; i < t->arity(); i++) {
+        auto arg = t->nthArgument(i);
+        if (*arg == var && tryGetResultSort(*arg, result)) {
+          return true;
+        }
+      }
+      continue;
+    }
     if (t->shared() && t->ground()) {
       sit.right();
       continue;
@@ -970,69 +1022,42 @@ bool SortHelper::areImmediateSortsValidMono(Term* t)
   return true;
 }
 
-bool SortHelper::isTupleSort(TermList sort)
+/**
+ * Return true iff immediate subterms of sort @c sort are all
+ * sorts
+ *
+ * @pre Arguments of sorts must be shared.
+ */
+bool SortHelper::allTopLevelArgsAreSorts(AtomicSort* sort)
 {
-  CALL("SortHelper::isTupleSort");  
-  if(!sort.isTerm()){ return false; }
-  return env.signature->getFunction(sort.term()->functor())->tupleSort(); 
-}
+  CALL("SortHelper::allTopLevelArgsAreSorts");
 
-/*
-bool SortHelper::isStructuredSort(unsigned s)
-{
-  CALL("SortHelper::isStructuredSort");  
-  TermList sort = sortTerm(s);
-  return isArraySort(sort) || isTupleSort(sort); 
-}
-*/
-
-bool SortHelper::isArraySort(TermList sort)
-{
-  CALL("SortHelper::isArraySort");  
-  if(!sort.isTerm()){ return false; }
-  return env.signature->getFunction(sort.term()->functor())->arraySort(); 
-}
-
-bool SortHelper::isBoolSort(TermList sort)
-{
-  CALL("SortHelper::isBoolSort");  
-  return sort == Term::boolSort();
+  for(unsigned i = 0; i < sort->arity(); i++){
+    TermList arg = *sort->nthArgument(i);
+    if(arg.isVar()){
+      continue;
+    }
+    if(!arg.term()->isSort()){
+      return false;
+    }
+  }
+  return true;
 }
 
 TermList SortHelper::getIndexSort(TermList arraySort)
 {
   CALL("SortHelper::getIndexSort");  
-  ASS(isArraySort(arraySort));
+  ASS(arraySort.isArraySort());
   return *arraySort.term()->nthArgument(0);
 }
 
 TermList SortHelper::getInnerSort(TermList arraySort)
 {
   CALL("SortHelper::getInnerSort");  
-  ASS(isArraySort(arraySort));
+  ASS(arraySort.isArraySort());
   return *arraySort.term()->nthArgument(1);
 }
 
-bool SortHelper::isNotDefaultSort(unsigned s)
-{
-  CALL("SortHelper::isNotDefaultSort");  
-
-  return s >= Sorts::FIRST_USER_SORT;
-}
-
-bool SortHelper::isInterpretedNonDefault(unsigned s)
-{
-  CALL("SortHelper::isInterpretedNonDefault");  
-
-  return (s < Sorts::FIRST_USER_SORT && s > 0);
-}
-
-bool SortHelper::isInterpretedNonBool(unsigned s)
-{
-  CALL("SortHelper::isInterpretedNonBool");  
-
-  return (s < Sorts::FIRST_USER_SORT && s != 1);
-}
 /**
  * Return true iff sorts of all terms (both functions and variables) match
  * in clause @c cl.
@@ -1053,6 +1078,12 @@ bool SortHelper::areSortsValid(Clause* cl)
     }
   }
   return true;
+}
+bool SortHelper::areSortsValid(Term* t0)
+{
+  CALL("SortHelper::areSortsValid");
+  DHMap<unsigned,TermList> varSorts;
+  return areSortsValid(t0, varSorts);
 }
 
 /**
@@ -1094,8 +1125,8 @@ bool SortHelper::areSortsValid(Term* t0, DHMap<unsigned,TermList>& varSorts)
   return true;
 } // areSortsValid 
 
-TermList SortHelper::sortTerm(unsigned sortNum)
-{ return env.sorts->getSortTerm(sortNum); }
-
-unsigned SortHelper::sortNum(TermList sort)
-{ return env.sorts->getSortNum(sort); }
+// TermList SortHelper::sortTerm(unsigned sortNum)
+// { return env.sorts->getSortTerm(sortNum); }
+//
+// unsigned SortHelper::sortNum(TermList sort)
+// { return env.sorts->getSortNum(sort); }

@@ -30,6 +30,9 @@
 #include "Shell/TheoryFinder.hpp"
 
 #include <unistd.h>
+#include <fstream>
+#include <stdio.h>
+#include <cstdio>
 
 #include "Saturation/ProvingHelper.hpp"
 
@@ -47,6 +50,16 @@ PortfolioMode::PortfolioMode() : _slowness(1.0), _syncSemaphore(2) {
   // 1) dec is the only operation which is blocking
   // 2) dec is done in the mode SEM_UNDO, so is undone when a process terminates
 
+  if(env.options->printProofToFile().empty()) {
+    /* if the user does not ask for printing the proof to a file,
+     * we generate a temp file name, in master,
+     * to be filled up in the winning worker with the proof
+     * and printed later by master to stdout
+     * when all the workers have shut up reporting status
+     * (not to get the status talking interrupt the proof printing)
+     */
+    _tmpFileNameForProof = tmpnam(NULL);
+  }
   _syncSemaphore.set(SEM_LOCK,1);    // to synchronize access to the second field
   _syncSemaphore.set(SEM_PRINTED,0); // to indicate that a child has already printed result (it should only happen once)
 }
@@ -121,12 +134,15 @@ bool PortfolioMode::searchForProof()
     //we normalize now so that we don't have to do it in every child Vampire
     ScopedLet<Statistics::ExecutionPhase> phaseLet(env.statistics->phase,Statistics::NORMALIZATION);
     Normalisation().normalise(*_prb);
-
-    TheoryFinder(_prb->units(),property).search();
+    
+    //TheoryFinder cannot cope with polymorphic input
+    if(!env.statistics->polymorphic){
+      TheoryFinder(_prb->units(),property).search();
+    }
   }
 
   // now all the cpu usage will be in children, we'll just be waiting for them
-  Timer::setTimeLimitEnforcement(false);
+  Timer::setLimitEnforcement(false);
 
   return performStrategy(property);
 }
@@ -215,17 +231,33 @@ void PortfolioMode::getExtraSchedules(Property& prop, Schedule& old, Schedule& e
   if(add_extra){
 
    // Always try these
-   extra_opts.push("sp=frequency");
-   extra_opts.push("avsq=on");
-   extra_opts.push("plsq=on");
-   extra_opts.push("bsd=on:fsd=on");
+   extra_opts.push("sp=frequency");     // frequency sp; this is in casc19 but not smt18
+   extra_opts.push("avsq=on:plsq=on");  // split queues
+   //extra_opts.push("etr=on");         // equational_tautology_removal
+   extra_opts.push("av=on:atotf=0.5");     // turn AVATAR off
+
+   if(!env.statistics->higherOrder){
+     //these options are not currently HOL compatible
+     extra_opts.push("bsd=on:fsd=on"); // subsumption demodulation
+     extra_opts.push("to=lpo");           // lpo
+   }
 
    // If contains integers, rationals and reals
    if(prop.props() & (Property::PR_HAS_INTEGERS | Property::PR_HAS_RATS | Property::PR_HAS_REALS)){
-    extra_opts.push("gve=on");
-    extra_opts.push("sos=theory:sstl=5");
-    extra_opts.push("thsq=on");
-    extra_opts.push("thsq=on:thsqd=16");
+
+    extra_opts.push("hsm=on");             // Sets a sensible set of Joe's arithmetic rules (TACAS-21) 
+    extra_opts.push("gve=force:asg=force:canc=force:ev=force:pum=on"); // More drastic set of rules
+    extra_opts.push("sos=theory:sstl=5");  // theory sos with non-default limit 
+    extra_opts.push("thsq=on");            // theory split queues, default
+    extra_opts.push("thsq=on:thsqd=16");   // theory split queues, other ratio
+   }
+   // If contains datatypes
+   if(prop.props() & Property::PR_HAS_DT_CONSTRUCTORS){
+     extra_opts.push("gtg=exists_all:ind=struct");
+     extra_opts.push("ind=struct:sik=one:indgen=on:indoct=on:drc=off");
+     extra_opts.push("ind=struct:sik=one:indgen=on");
+     extra_opts.push("ind=struct:sik=one:indoct=on");
+     extra_opts.push("ind=struct:sik=all:indmd=1");
    }
 
    // If in SMT-COMP mode try guessing the goal
@@ -233,18 +265,8 @@ void PortfolioMode::getExtraSchedules(Property& prop, Schedule& old, Schedule& e
     extra_opts.push("gtg=exists_all");
    }
    else{
-   // Don't try this in SMT-COMP mode
+   // Don't try this in SMT-COMP mode as it requires a goal
     extra_opts.push("slsq=on");
-   }
-
-   // If using Datatypes try induction
-   if(prop.props() & (Property::PR_HAS_DT_CONSTRUCTORS | Property::PR_HAS_CDT_CONSTRUCTORS)){
-    extra_opts.push("ind=struct");
-    extra_opts.push("gtg=exists_all:ind=struct");
-    extra_opts.push("ind=struct:sik=all");
-    extra_opts.push("ind=struct:sik=all:indmd=1");
-    extra_opts.push("ind=struct:indgen=on");
-    extra_opts.push("ind=struct:indgen=on:indoct=on");
    }
 
   }
@@ -313,6 +335,15 @@ void PortfolioMode::getSchedules(Property& prop, Schedule& quick, Schedule& fall
   case Options::Schedule::LTB_DEFAULT_2017:
     Schedules::getLtb2017DefaultSchedule(prop,quick);
     break;
+  case Options::Schedule::INDUCTION:
+    Schedules::getInductionSchedule(prop,quick,fallback);
+    break;
+  case Options::Schedule::INTEGER_INDUCTION:
+    Schedules::getIntegerInductionSchedule(prop,quick,fallback);
+    break;
+  case Options::Schedule::STRUCT_INDUCTION:
+    Schedules::getStructInductionSchedule(prop,quick,fallback);
+    break;
   }
 }
 
@@ -372,13 +403,50 @@ bool PortfolioMode::runSchedule(Schedule& schedule)
 {
   CALL("PortfolioMode::runSchedule");
 
+  if (schedule.size() == 0)
+    return false;
+
   UIHelper::portfolioParent = true; // to report on overall-solving-ended in Timer.cpp
 
   PortfolioProcessPriorityPolicy policy;
   PortfolioSliceExecutor executor(this);
   ScheduleExecutor sched(&policy, &executor);
 
-  return sched.run(schedule);
+  bool result = sched.run(schedule);
+
+  //All children have been killed. Now safe to print proof
+  if(result && env.options->printProofToFile().empty()){
+    /*
+     * the user didn't wish a proof in the file, so we printed it to the secret tmp file
+     * now it's time to restore it.
+     */
+
+    BYPASSING_ALLOCATOR; 
+    
+    ifstream input(_tmpFileNameForProof);
+
+    bool openSucceeded = !input.fail();
+
+    if (openSucceeded) {
+      env.beginOutput();
+      env.out() << input.rdbuf();
+      env.endOutput();
+    } else {
+      if (outputAllowed()) {
+        env.beginOutput();
+        addCommentSignForSZS(env.out()) << "Failed to restore proof from tempfile " << _tmpFileNameForProof << endl;
+        env.endOutput();
+      }
+    }
+
+    //If for some reason, the proof could not be opened
+    //we don't delete the proof file
+    if(openSucceeded){
+      remove(_tmpFileNameForProof); 
+    }
+  }
+
+  return result;
 }
 
 /**
@@ -468,7 +536,7 @@ void PortfolioMode::runSlice(Options& strategyOpt)
   env.timer->reset();
   env.timer->start();
   TimeCounter::reinitialize();
-  Timer::setTimeLimitEnforcement(true);
+  Timer::setLimitEnforcement(true);
 
   Options opt = strategyOpt;
   //we have already performed the normalization
@@ -509,22 +577,49 @@ void PortfolioMode::runSlice(Options& strategyOpt)
       _syncSemaphore.set(SEM_PRINTED,1);
       outputResult = true;
     }
-
   }
 
-  if((outputAllowed() && resultValue) || outputResult) { // we can report on every failure, but only once on success
-    env.beginOutput();
-    UIHelper::outputResult(env.out());
-    env.endOutput();
-  }
-  else{
-    /*
-    if (!resultValue) {
+  if(outputResult) { // this get only true for the first child to find a proof
+    ASS(!resultValue);
+
+    if (outputAllowed() && (Lib::env.options && Lib::env.options->multicore() != 1)) {
       env.beginOutput();
-      addCommentSignForSZS(env.out()) << " found a proof after proof output" << endl;
+      addCommentSignForSZS(env.out()) << "First to succeed." << endl;
       env.endOutput();
     }
-    */
+
+    // At the moment we only save one proof. We could potentially
+    // allow multiple proofs
+    vstring fname(env.options->printProofToFile());
+    if (fname.empty()) {
+      fname = _tmpFileNameForProof;
+    }
+
+    BYPASSING_ALLOCATOR; 
+    
+    ofstream output(fname.c_str());
+    if (output.fail()) {
+      // fallback to old printing method
+      env.beginOutput();
+      addCommentSignForSZS(env.out()) << "Solution printing to a file '" << fname <<  "' failed. Outputting to stdout" << endl;
+      UIHelper::outputResult(env.out());
+      env.endOutput();
+    } else {
+      UIHelper::outputResult(output);
+      if (!env.options->printProofToFile().empty() && outputAllowed()) {
+        env.beginOutput();
+        addCommentSignForSZS(env.out()) << "Solution written to " << fname << endl;
+        env.endOutput();
+      }
+    }
+  } else if (outputAllowed()) {
+    env.beginOutput();
+    if (resultValue) {
+      UIHelper::outputResult(env.out());
+    } else if (Lib::env.options && Lib::env.options->multicore() != 1) {
+      addCommentSignForSZS(env.out()) << "Also succeeded, but the first one will report." << endl;
+    }
+    env.endOutput();
   }
 
   if (outputResult) {

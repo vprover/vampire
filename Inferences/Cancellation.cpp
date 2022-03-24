@@ -147,6 +147,7 @@ CancelAddResult<Number> cancelAdd(Polynom<Number> const& oldl, Polynom<Number> c
       };
 
 
+
       if (l.numeral == r.numeral) {
          // 10 x + ... ~~  10 x + ... ==> ... ~~ ... 
          // we remove the term

@@ -82,7 +82,7 @@ protected:
   void consumeToken(TokenType,vstring errorMessage);
   void expectToken(TokenType,vstring errorMessage);
   void readToken(TokenType,vstring errorMessage);
-  void terminate(vstring errorMessage) __attribute__((noreturn));
+  [[noreturn]] void terminate(vstring errorMessage);
   /**
    * If there are no tokens in the buffer, read one.
    * Then return the current token.

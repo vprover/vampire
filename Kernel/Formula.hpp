@@ -94,6 +94,10 @@ public:
   Color getColor();
   bool getSkip();
 
+  bool hasLabel(){ return _label != DEFAULT_LABEL; }
+  vstring getLabel(){ return _label;}
+  void label(vstring l){ _label=l; }
+
   static Formula* fromClause(Clause* cl);
 
   static Formula* quantify(Formula* f);
@@ -105,6 +109,7 @@ public:
   static Formula* createLet(unsigned functor, VList* variables, TermList body, Formula* contents);
   static Formula* createLet(unsigned predicate, VList* variables, Formula* body, Formula* contents);
 
+
   // use allocator to (de)allocate objects of this class
   CLASS_NAME(Formula);
   USE_ALLOCATOR(Formula);
@@ -113,11 +118,15 @@ protected:
 
   /** Create a dummy formula will null content */
   explicit Formula(Connective con)
-    : _connective(con)
+    : _connective(con), _label(DEFAULT_LABEL)
   {}
 
   /** connective */
   Connective _connective;
+
+  static vstring DEFAULT_LABEL;
+  vstring _label;
+
 }; // class Formula
 
 /**
@@ -328,8 +337,9 @@ class BoolTermFormula
       _ts(ts)
   {
     // only boolean terms in formula context are expected here
-    ASS_REP(ts.isVar() || ts.term()->isITE() || ts.term()->isLet() || ts.term()->isTupleLet() || 
-            SortHelper::getResultSort(ts.term()) == Term::boolSort(), ts.toString());
+    ASS_REP(ts.isVar() || ts.term()->isITE() || ts.term()->isLet() ||
+            ts.term()->isTupleLet() || ts.term()->isMatch() ||
+            SortHelper::getResultSort(ts.term()) == AtomicSort::boolSort(), ts.toString());
   }
 
   static Formula* create(TermList ts) {

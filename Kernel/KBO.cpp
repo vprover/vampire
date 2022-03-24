@@ -64,6 +64,10 @@ Ordering::Result KBO::State::result(KBO const& kbo, Term* t1, Term* t2)
       prec2=kbo.predicatePrecedence(t2->functor());
       ASS_NEQ(prec1,prec2);//precedence ordering must be total
       res=(prec1>prec2)?GREATER:LESS;
+    } else if(t1->isSort()){
+      ASS(t2->isSort()); //should only compare sorts with sorts
+      res=kbo.compareTypeConPrecedences(t1->functor(), t2->functor());
+      ASS_REP(res==GREATER || res==LESS, res);//precedence ordering must be total
     } else {
       res=kbo.compareFunctionPrecedences(t1->functor(), t2->functor());
       ASS_REP(res==GREATER || res==LESS, res); //precedence ordering must be total
@@ -106,6 +110,9 @@ Ordering::Result KBO::State::innerResult(KBO const& kbo, TermList tl1, TermList 
     } else if(tl2.isVar()) {
       ASS_EQ(_posNum,0);
       res=GREATER;
+    } else if(tl1.term()->isSort()){
+      res=kbo.compareTypeConPrecedences(tl1.term()->functor(), tl2.term()->functor());
+      ASS_REP(res==GREATER || res==LESS, res);//precedence ordering must be total
     } else {
       res=kbo.compareFunctionPrecedences(tl1.term()->functor(), tl2.term()->functor());
       ASS_REP(res==GREATER || res==LESS, res);//precedence ordering must be total
@@ -496,7 +503,6 @@ void KBO::checkAdmissibility(HandleError handle) const
   auto maximalFunctions = Map<SortType, FunctionSymbol>();
 
   for (FunctionSymbol i = 0; i < nFunctions; i++) {
-    if(env.signature->isTypeConOrSup(i)){ continue; }
     auto sort = env.signature->getFunction(i)->fnType()->result();
     /* register min function */
     auto maxFn = maximalFunctions.getOrInit(std::move(sort), [&](){ return i; } );
@@ -509,7 +515,6 @@ void KBO::checkAdmissibility(HandleError handle) const
   unsigned varWght = variableWeight();
 
   for (unsigned i = 0; i < nFunctions; i++) {
-    if(env.signature->isTypeConOrSup(i)){ continue; }
     auto sort = env.signature->getFunction(i)->fnType()->result();
     auto arity = env.signature->getFunction(i)->arity();
 

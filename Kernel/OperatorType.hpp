@@ -8,7 +8,7 @@
  * and in the source directory
  */
 /**
- * @file Sorts.hpp
+ * @file OperatorType.hpp
  * Defines class Sorts.
  */
 
@@ -30,49 +30,6 @@
 #include "Term.hpp"
 
 namespace Kernel {
-
-class Sorts { //TODO remove class altogeher and rename file
-public:
-  CLASS_NAME(Sorts);
-  USE_ALLOCATOR(Sorts);
-
-  //Hack. Relies on the fact that there are only
-  //five interpreted sorts. It is only used in FMB
-  //and SubstitutionTree and should be removed once these
-  //are fixed
-  static const unsigned FIRST_USER_SORT = 5;
-
-  Sorts();
-  ~Sorts();
-
-  bool addSort(TermList sort);
-  TermList addSort(vstring const& name);
-  vstring sortName(unsigned sort){ return _sorts[sort].toString(); }
-  vstring sortName(TermList sort){ return sort.toString(); }
-#if __cplusplus >= 201402L // c++14 and newer
-  [[deprecated("consider using sort.term()->getId() instead of getSortNum; if you are in a situation where a variable sort does not make sense")]]
-#endif
-  unsigned getSortNum(TermList sort);
-  TermList getSortTerm(unsigned sort);
-  unsigned count(){return (unsigned)_sorts.size(); }
-  /** true if there is a sort different from built-ins */  
-  bool hasSort() { return count() > FIRST_USER_SORT; }
-
-  //once arrays are fixed and axiomatused by a fixed number of polymorphic axioms
-  //_arraySorts can be deleted
-  //Once finite model building is refactored (Giles Reger knows how)
-  //there is no longer a need to store any sorts at all.
-  void addArraySort(TermList sort){ _arraySorts->insert(sort); }
-  DHSet<TermList>* getArraySorts(){
-    return _arraySorts;
-  }
-
-private:
-  
-  TermStack _sorts;
-  DHMap<TermList, unsigned> _termListsToUnsigned;
-  DHSet<TermList>* _arraySorts;
-};
 
 /**
  * The OperatorType class represents the predicate and function types 
@@ -147,7 +104,7 @@ public:
     CALL("OperatorType::getPredicateType(unsigned,const unsigned*)");
 
     OperatorKey* key = setupKey(arity,sorts);
-    (*key)[arity] = Term::boolSort();
+    (*key)[arity] = AtomicSort::boolSort();
     return getTypeFromKey(key,taArity);
   }
 
@@ -155,7 +112,7 @@ public:
     CALL("OperatorType::getPredicateType(std::initializer_list<unsigned>)");
 
     OperatorKey* key = setupKey(sorts);
-    (*key)[sorts.size()] = Term::boolSort();
+    (*key)[sorts.size()] = AtomicSort::boolSort();
     return getTypeFromKey(key,taArity);
   }
 
@@ -163,7 +120,7 @@ public:
     CALL("OperatorType::getPredicateTypeUniformRange");
 
     OperatorKey* key = setupKeyUniformRange(arity,argsSort);
-    (*key)[arity] = Term::boolSort();
+    (*key)[arity] = AtomicSort::boolSort();
     return getTypeFromKey(key, taArity);
   }
 
@@ -199,6 +156,13 @@ public:
     return getFunctionType(0,nullptr,resultSort, taArity); 
   }
 
+  /**
+   * Convenience function for creating OperatorType for type constructors.
+   */
+  static OperatorType* getTypeConType(unsigned arity) {
+    return getFunctionTypeUniformRange(arity, AtomicSort::superSort(), AtomicSort::superSort()); 
+  }
+
   OperatorKey* key() const { return _key; }
   unsigned typeArgsArity() const { return _typeArgsArity; }
   unsigned arity() const { return _typeArgsArity + _key->length()-1; }
@@ -224,18 +188,19 @@ public:
   {
     CALL("OperatorType::arg");
     if(idx < _typeArgsArity){
-      return Term::superSort();
+      return AtomicSort::superSort();
     } 
     return (*_key)[idx - _typeArgsArity];
   }
 
   //TODO functions below do not hold for higher-order
   //In higher-order we have boolean functions
-  bool isPredicateType() const { return (*_key)[arity() - typeArgsArity()] == Term::boolSort(); };
-  bool isFunctionType() const { return (*_key)[arity() - typeArgsArity()] != Term::boolSort(); };
+
+  bool isPredicateType() const { return (*_key)[arity() - typeArgsArity()] == AtomicSort::boolSort(); };
+  bool isFunctionType() const { return (*_key)[arity() - typeArgsArity()] != AtomicSort::boolSort(); };
 
   /**
-   * The result sort of function types; or Term::boolSort() for predicates.
+   * The result sort of function types; or AtomicSort::boolSort() for predicates.
    */
   TermList result() const {
     CALL("OperatorType::result");
@@ -245,7 +210,7 @@ public:
   vstring toString() const;  
 
   bool isSingleSortType(TermList sort) const;
-  bool isAllDefault() const { return isSingleSortType(Term::defaultSort()); }
+  bool isAllDefault() const { return isSingleSortType(AtomicSort::defaultSort()); }
 
 private:
   vstring argsToString() const;

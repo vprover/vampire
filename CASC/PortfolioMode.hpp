@@ -78,14 +78,16 @@ private:
   void getExtraSchedules(Property& prop, Schedule& old, Schedule& extra, bool add_extra, int time_multiplier); 
   bool runSchedule(Schedule& schedule);
   bool waitForChildAndCheckIfProofFound();
-  void runSlice(vstring slice, unsigned timeLimitInDeciseconds) NO_RETURN;
-  void runSlice(Options& strategyOpt) NO_RETURN;
+  [[noreturn]] void runSlice(vstring slice, unsigned timeLimitInDeciseconds);
+  [[noreturn]] void runSlice(Options& strategyOpt);
 
 #if VDEBUG
   DHSet<pid_t> childIds;
 #endif
 
   float _slowness;
+
+  const char * _tmpFileNameForProof;
 
   /**
    * Problem that is being solved.

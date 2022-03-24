@@ -223,6 +223,7 @@ protected:
   static DArray<int> predLevelsFromOptsAndPrec(Problem& prb, const Options& opt, const DArray<int>& predicatePrecedences);
 
   Result compareFunctionPrecedences(unsigned fun1, unsigned fun2) const;
+  Result compareTypeConPrecedences(unsigned tyc1, unsigned tyc2) const;
 
   int predicatePrecedence(unsigned pred) const;
   int predicateLevel(unsigned pred) const;
@@ -253,6 +254,8 @@ inline ostream& operator<<(ostream& out, Ordering::Result const& r)
     case Ordering::Result::LESS_EQ: return out << "LESS_EQ";
     case Ordering::Result::EQUAL: return out << "EQUAL";
     case Ordering::Result::INCOMPARABLE: return out << "INCOMPARABLE";
+    default:
+      return out << "UNKNOWN";
   }
   ASSERTION_VIOLATION
 }

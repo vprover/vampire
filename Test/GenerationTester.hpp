@@ -205,7 +205,7 @@ public:
 
 #define __CREATE_GEN_TESTER CAT(__createGenTester_, UNIT_ID)
 
-#define REGISTER_GEN_TESTER(t) auto __CREATE_GEN_TESTER() { return t; }
+#define REGISTER_GEN_TESTER(t) const auto __CREATE_GEN_TESTER = []()  { return t; };
 
 #define TEST_GENERATION(name, ...)                                                                            \
         TEST_GENERATION_WITH_SUGAR(name, MY_SYNTAX_SUGAR, __VA_ARGS__) 

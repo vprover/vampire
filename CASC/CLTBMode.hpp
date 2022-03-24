@@ -119,7 +119,7 @@ class CLTBProblem
 public:
   CLTBProblem(CLTBMode* parent, vstring problemFile, vstring outFile);
 
-  void searchForProof(int terminationTime,int timeLimit,const Category category) __attribute__((noreturn));
+  [[noreturn]] void searchForProof(int terminationTime,int timeLimit,const Category category);
   typedef Set<vstring> StrategySet;
 private:
   bool runSchedule(Schedule&,StrategySet& remember,int terminationTime);
@@ -129,12 +129,12 @@ private:
   static void fillSchedule(Schedule& sched,const Shell::Property* property,int timeLimit,Category category);
 
   void waitForChildAndExitWhenProofFound();
-  void exitOnNoSuccess() __attribute__((noreturn));
+  [[noreturn]] void exitOnNoSuccess();
 
   static ofstream* writerFileStream;
-  static void terminatingSignalHandler(int sigNum) __attribute__((noreturn));
-  void runSlice(vstring slice, unsigned milliseconds) __attribute__((noreturn));
-  void runSlice(Options& strategyOpt) __attribute__((noreturn));
+  [[noreturn]] static void terminatingSignalHandler(int sigNum);
+  [[noreturn]] void runSlice(vstring slice, unsigned milliseconds);
+  [[noreturn]] void runSlice(Options& strategyOpt);
 
   static vstring problemFinishedString;
 

@@ -138,6 +138,20 @@ TermList SymbolDefinitionInlining::process(TermList ts) {
         return TermList(Term::createTuple(t));
       }
 
+      case Term::SF_MATCH: {
+        DArray<TermList> terms(term->arity());
+        bool unchanged = true;
+        for (unsigned i = 0; i < term->arity(); i++) {
+          terms[i] = process(*term->nthArgument(i));
+          unchanged = unchanged && (terms[i] == *term->nthArgument(i));
+        }
+
+        if (unchanged) {
+          return ts;
+        }
+        return TermList(Term::createMatch(sd->getSort(), sd->getMatchedSort(), term->arity(), terms.begin()));
+      }
+
       default:
         ASSERTION_VIOLATION_REP(term->toString());
     }
@@ -170,7 +184,7 @@ TermList SymbolDefinitionInlining::process(TermList ts) {
 bool SymbolDefinitionInlining::mirroredTuple(Term* tuple, TermList &tupleConstant) {
   bool foundTupleConstant = false;
   TermList tupleSort = env.signature->getFunction(tuple->functor())->fnType()->result();
-  ASS(SortHelper::isTupleSort(tupleSort));
+  ASS(tupleSort.isTupleSort());
   for (unsigned i = 0; i < tuple->arity(); i++) {
     if (!tuple->nthArgument(i)->isTerm()) {
       return false;
@@ -383,6 +397,10 @@ void SymbolDefinitionInlining::collectBoundVariables(Term* t) {
       }
       case Term::SF_TUPLE: {
         collectBoundVariables(sd->getTupleTerm());
+        break;
+      }
+      case Term::SF_MATCH: {
+        // args are handled below
         break;
       }
       default:

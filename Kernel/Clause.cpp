@@ -558,7 +558,7 @@ unsigned Clause::getNumeralWeight() const {
     NonVariableIterator nvi(lit);
     while (nvi.hasNext()) {
       const Term* t = nvi.next().term();
-      if (t->arity() != 0) {
+      if (t->arity() != 0 || t->isSort()) {
         continue;
       }
       IntegerConstantType intVal;

@@ -1709,7 +1709,6 @@ public:
         : Option<Elem>();
   }
 
-
   template<class F>
   void forEach(F f) 
   {

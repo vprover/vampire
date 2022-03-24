@@ -8,6 +8,8 @@
  * and in the source directory
  */
 
+#include <climits>
+
 #include "Lib/ArrayMap.hpp"
 #include "Lib/DynamicHeap.hpp"
 #include "Lib/Int.hpp"

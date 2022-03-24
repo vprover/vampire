@@ -218,7 +218,6 @@ public:
   { return _self.isSome() ? out << pretty(_self.unwrap()) : out << "none"; }
 };
 
-
 template<class A>
 class Pretty<unique_ptr<A>> {
   unique_ptr<A> const& _self;

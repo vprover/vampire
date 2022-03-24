@@ -412,6 +412,8 @@ enum class InferenceRule : unsigned char {
   FOOL_ITE_ELIMINATION,
   /** Elimination of $let expressions */
   FOOL_LET_ELIMINATION,
+  /** Elimination of $match expressions */
+  FOOL_MATCH_ELIMINATION,
   /** result of general splitting */
   GENERAL_SPLITTING,
   /** component introduced by general splitting */
@@ -426,8 +428,10 @@ enum class InferenceRule : unsigned char {
   AVATAR_DEFINITION,
   /** component introduced by AVATAR */
   AVATAR_COMPONENT,
-  /** refutation of a AVATAR splitting branch */
+  /** inconsistency from AVATAR SAT solver */
   AVATAR_REFUTATION,
+  /** inconsistency from AVATAR SMT solver (not necessarily propositionally unsat) */
+  AVATAR_REFUTATION_SMT,
   /** sat clause representing FO clause for AVATAR */
   AVATAR_SPLIT_CLAUSE,
   /** sat clause representing FO clause for AVATAR */
@@ -459,8 +463,26 @@ enum class InferenceRule : unsigned char {
 
   /* Induction hypothesis*/
   INDUCTION_AXIOM,
-  /* Generalized nduction hypothesis*/
+  /* Generalized induction hypothesis*/
   GEN_INDUCTION_AXIOM,
+  /* Integer induction hypothesis for infinite intervals */
+  INT_INF_UP_INDUCTION_AXIOM,
+  INT_INF_DOWN_INDUCTION_AXIOM,
+  /* Generalized induction hypothesis for infinite intervals*/
+  INT_INF_UP_GEN_INDUCTION_AXIOM,
+  INT_INF_DOWN_GEN_INDUCTION_AXIOM,
+  /* Integer induction hypothesis for finite intervals */
+  INT_FIN_UP_INDUCTION_AXIOM,
+  INT_FIN_DOWN_INDUCTION_AXIOM,
+  /* Generalized induction hypothesis for finite intervals*/
+  INT_FIN_UP_GEN_INDUCTION_AXIOM,
+  INT_FIN_DOWN_GEN_INDUCTION_AXIOM,
+  /* Integer induction hypothesis for infinite interval and the default bound */
+  INT_DB_UP_INDUCTION_AXIOM,
+  INT_DB_DOWN_INDUCTION_AXIOM,
+  /* Generalized induction hypothesis for infinite interval and the default bound*/
+  INT_DB_UP_GEN_INDUCTION_AXIOM,
+  INT_DB_DOWN_GEN_INDUCTION_AXIOM,
 
   /* the unit clause against which the Answer is extracted in the last step */
   ANSWER_LITERAL_RESOLVER,
@@ -607,6 +629,7 @@ inline bool isExternalTheoryAxiomRule(InferenceRule r) {
 
 inline bool isSatRefutationRule(InferenceRule r) {
   return (r == InferenceRule::AVATAR_REFUTATION) ||
+         (r == InferenceRule::AVATAR_REFUTATION_SMT) ||
          (r == InferenceRule::SAT_INSTGEN_REFUTATION) ||
          (r == InferenceRule::GLOBAL_SUBSUMPTION);
 }

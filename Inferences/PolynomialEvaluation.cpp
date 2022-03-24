@@ -102,11 +102,13 @@ Option<LitSimplResult> PolynomialEvaluation::tryEvalPredicate(Literal* orig, Pol
       case Interpretation::ARRAY_BOOL_SELECT:
         return Option<LitSimplResult>();
 
-      default:
-        WARN("unexpected interpreted predicate: ", *orig, " (inter: ", inter, ")")
-        ASSERTION_VIOLATION
-        return Option<LitSimplResult>();
+      case ANY_INTERPRETED_FUNCTION: 
+      case Kernel::Theory::INVALID_INTERPRETATION: 
+        ASSERTION_VIOLATION_REP(inter)
     }
+    WARN("unexpected interpreted predicate: ", *orig, " (inter: ", inter, ")")
+    ASSERTION_VIOLATION
+    return Option<LitSimplResult>();
   } else {
     return Option<LitSimplResult>();
   }

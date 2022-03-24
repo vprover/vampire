@@ -49,18 +49,12 @@ Signature::Symbol::Symbol(const vstring& nm, unsigned arity, bool interpreted, b
     _answerPredicate(0),
     _overflownConstant(overflownConstant ? 1 : 0),
     _termAlgebraCons(0),
+    _termAlgebraDest(0),
     _inGoal(0),
     _inUnit(0),
     _inductionSkolem(0),
     _skolem(0),
-    _arrow(0),
-    _app(0),
     _tuple(0),
-    _array(0),
-    _superSort(super),
-    _boolSort(0),
-    _defaultSort(0),
-    _typeConstructor(0),
     _prox(NOT_PROXY),
     _comb(NOT_COMB)
 {
@@ -113,6 +107,14 @@ void Signature::Symbol::destroyPredSymbol()
   }
 }
 
+void Signature::Symbol::destroyTypeConSymbol()
+{
+  CALL("Signature::Symbol::destroyTypeConSymbol");
+  ASS(!interpreted());
+
+  delete this;
+}
+
 /**
  * Add constant symbol into a distinct group
  *
@@ -147,18 +149,16 @@ void Signature::Symbol::addToDistinctGroup(unsigned group,unsigned this_number)
  *
  * The type can be set only once for each symbol, and if the type
  * should be different from the default type, this function must be
- * called before any call to @c fnType() or @c predType().
+ * called before any call to @c fnType(), @c predType() or @c typeConType().
  */
 void Signature::Symbol::setType(OperatorType* type)
 {
   CALL("Signature::Symbol::setType");
   ASS_REP(!_type, _type->toString());
 
-  _type = type;
-
-  // these are copied out to the Symbol for convenience
-  _typeConstructor = (type->result() == Term::superSort());
+  // this is copied out to the Symbol for convenience
   _typeArgsArity = type->typeArgsArity(); 
+  _type = type;  
 }
 
 /**
@@ -182,11 +182,26 @@ void Signature::Symbol::forceType(OperatorType* type)
 OperatorType* Signature::Symbol::fnType() const
 {
   CALL("Signature::Symbol::fnType");
-  ASS(!super());
 
   if (!_type) {
-    TermList def = Term::defaultSort();
+    TermList def = AtomicSort::defaultSort();
     _type = OperatorType::getFunctionTypeUniformRange(arity(), def, def);
+  }
+  return _type;
+}
+
+/**
+ * Return the type of a typeConType symbol
+ *
+ * If the @c setType() function was not called before, the function
+ * symbol is assigned a default type.
+ */
+OperatorType* Signature::Symbol::typeConType() const
+{
+  CALL("Signature::Symbol::typeConType");
+
+  if (!_type) {
+    _type = OperatorType::getTypeConType(arity());
   }
   return _type;
 }
@@ -202,7 +217,7 @@ OperatorType* Signature::Symbol::predType() const
   CALL("Signature::Symbol::predType");
   
   if (!_type) {
-    TermList def = Term::defaultSort();
+    TermList def = AtomicSort::defaultSort();
     _type = OperatorType::getPredicateTypeUniformRange(arity(), def);
   }
   return _type;
@@ -218,6 +233,7 @@ Signature::Signature ():
     _foolConstantsDefined(false), _foolTrue(0), _foolFalse(0),
     _funs(32),
     _preds(32),
+    _typeCons(32),
     _nextFreshSymbolNumber(0),
     _skolemFunctionCount(0),
     _distinctGroupsAddedTo(false),
@@ -225,25 +241,21 @@ Signature::Signature ():
     _integers(0),
     _rationals(0),
     _reals(0),
+    _arrayCon(0),
+    _arrowCon(0),
+    _appFun(0),
     _termAlgebras()
 {
   CALL("Signature::Signature");
-
-  /*bool added;
-  addPredicate("=", 2, added);
-  ASS(added);
-  ASS_EQ(predicateName(0), "=");
-  getPredicate(0)->markSkip();
-  getPredicate(0)->markProtected();*/
 
   unsigned aux;
   aux = createDistinctGroup();
   ASS_EQ(STRING_DISTINCT_GROUP, aux);
 } // Signature::Signature
 
-/* adding equality predicate used to be carried out in the constructor
- * however now that sorts are TermLists, this involves a call to Signature
- * from Term::defaultSort before the Signature has been consstucted. hence
+/* Adding equality predicate used to be carried out in the constructor.
+ * However now that sorts are TermLists, this involves a call to Signature
+ * from AtomicSort::defaultSort before the Signature has been constructed. hence
  * the function below
  */
 void Signature::addEquality()
@@ -266,6 +278,9 @@ Signature::~Signature ()
   }
   for (int i = _preds.length()-1;i >= 0;i--) {
     _preds[i]->destroyPredSymbol();
+  }
+  for (int i = _typeCons.length()-1;i >= 0;i--) {
+    _typeCons[i]->destroyTypeConSymbol();
   }
 } // Signature::~Signature
 
@@ -600,6 +615,16 @@ bool Signature::predicateExists(const vstring& name,unsigned arity) const
   return _predNames.find(key(name, arity));
 }
 
+/**
+ * Return true if specified type constructor exists
+ */
+bool Signature::typeConExists(const vstring& name,unsigned arity) const
+{
+  CALL("Signature::typeConExists");
+
+  return _typeConNames.find(key(name, arity));
+}
+
 unsigned Signature::getFunctionNumber(const vstring& name, unsigned arity) const
 {
   CALL("Signature::getFunctionNumber");
@@ -677,10 +702,7 @@ unsigned Signature::addFunction (const vstring& name,
     }
     _arityCheck.insert(name,2*arity+1);
   }
-  
-  /*if(name == "$tType"){
-    ASSERTION_VIOLATION;
-  }*/
+
   result = _funs.length();
   bool super = (name == "$tType");
   _funs.push(new Symbol(name, arity, 
@@ -731,13 +753,13 @@ unsigned Signature::getApp()
   bool added = false;
   unsigned app = addFunction("vAPP", 4, added);
   if(added){
+    _appFun = app;
     TermList tv1 = TermList(0, false);
     TermList tv2 = TermList(1, false);
-    TermList arrowType = Term::arrowSort(tv1, tv2);
+    TermList arrowType = AtomicSort::arrowSort(tv1, tv2);
     OperatorType* ot = OperatorType::getFunctionType({arrowType, tv1}, tv2, 2);
     Symbol* sym = getFunction(app);
     sym->setType(ot);
-    sym->markApp();
   }
   return app;
 }
@@ -750,8 +772,8 @@ unsigned Signature::getDiff(){
   if(added){
     TermList alpha = TermList(0, false);
     TermList beta = TermList(1, false);
-    TermList alphaBeta = Term::arrowSort(alpha, beta);
-    TermList result = Term::arrowSort(alphaBeta, alphaBeta, alpha);
+    TermList alphaBeta = AtomicSort::arrowSort(alpha, beta);
+    TermList result = AtomicSort::arrowSort(alphaBeta, alphaBeta, alpha);
     Symbol * sym = getFunction(diff);
     sym->setType(OperatorType::getConstantsType(result, 2));
   }
@@ -766,9 +788,9 @@ unsigned Signature::getChoice(){
   unsigned choice = addFunction("vEPSILON",1, added);      
   if(added){
     TermList alpha = TermList(0, false);
-    TermList bs = Term::boolSort();
-    TermList alphaBs = Term::arrowSort(alpha, bs);
-    TermList result = Term::arrowSort(alphaBs, alpha);
+    TermList bs = AtomicSort::boolSort();
+    TermList alphaBs = AtomicSort::arrowSort(alpha, bs);
+    TermList result = AtomicSort::arrowSort(alphaBs, alpha);
     Symbol * sym = getFunction(choice);
     sym->setType(OperatorType::getConstantsType(result, 1));
   }
@@ -777,7 +799,7 @@ unsigned Signature::getChoice(){
 
 void Signature::incrementFormulaCount(Term* t){
   CALL("Signature::incrementFormulaCount");
-  ASS(SortHelper::getResultSort(t) == Term::boolSort());
+  ASS(SortHelper::getResultSort(t) == AtomicSort::boolSort());
 
   if(_formulaCounts.find(t)){
     int count =  _formulaCounts.get(t);
@@ -791,7 +813,7 @@ void Signature::incrementFormulaCount(Term* t){
 
 void Signature::decrementFormulaCount(Term* t){
   CALL("Signature::incrementFormulaCount");
-  ASS(SortHelper::getResultSort(t) == Term::boolSort());
+  ASS(SortHelper::getResultSort(t) == AtomicSort::boolSort());
 
   ASS(_formulaCounts.find(t))
   int count = _formulaCounts.get(t);
@@ -802,7 +824,7 @@ void Signature::decrementFormulaCount(Term* t){
 
 void Signature::formulaNamed(Term* t){
   CALL("Signature::formulaNamed");
-  ASS(SortHelper::getResultSort(t) == Term::boolSort());
+  ASS(SortHelper::getResultSort(t) == AtomicSort::boolSort());
 
   ASS(_formulaCounts.find(t));
   _formulaCounts.set(t, -1);
@@ -817,6 +839,29 @@ unsigned Signature::formulaCount(Term* t){
   return 0;
 }
 
+
+/**
+ * If a type constructor with this name and arity exists, return its number.
+ * Otherwise, add a new one and return its number.
+ */
+unsigned Signature::addTypeCon (const vstring& name,
+         unsigned arity,
+         bool& added)
+{
+  vstring symbolKey = key(name,arity);
+  unsigned result;
+  if (_typeConNames.find(symbolKey,result)) {
+    added = false;
+    return result;
+  }
+  //TODO no arity check. Is this safe?
+
+  result = _typeCons.length();
+  _typeCons.push(new Symbol(name,arity, /* interpreted */ false, /* preventQuoting */ false, /* overflownConstant */ false, /* super */ false));
+  _typeConNames.insert(symbolKey,result);
+  added = true;
+  return result;
+}
 
 /**
  * If a predicate with this name and arity exists, return its number.
@@ -915,6 +960,34 @@ unsigned Signature::addFreshFunction(unsigned arity, const char* prefix, const c
 } // addFreshFunction
 
 /**
+ * Add fresh typeCon of a given arity and with a given prefix. If suffix is non-zero,
+ * the typeCon name will be prefixI, where I is an integer, otherwise it will be
+ * prefixI_suffix. The new function will be marked as skip for the purpose of equality
+ * elimination.
+ */
+unsigned Signature::addFreshTypeCon(unsigned arity, const char* prefix, const char* suffix)
+{
+  CALL("Signature::addFreshTypeCon");
+
+  vstring pref(prefix);
+  vstring suf(suffix ? vstring("_")+suffix : "");
+  bool added;
+  unsigned result;
+
+  do {
+    result = addTypeCon(pref+Int::toString(_nextFreshSymbolNumber++)+suf,arity,added);
+  }
+  while (!added);
+
+  Symbol* sym = getTypeCon(result);
+  //TODO are these necessary? I doubt that equality elimination works
+  //on sorts anyway. Requires further investigation.
+  sym->markIntroduced();
+  sym->markSkip();
+  return result;
+} // addFreshFunction
+
+/**
  * Add fresh predicate of a given arity and with a given prefix. If suffix is non-zero,
  * the predicate name will be prefixI, where I is an integer, otherwise it will be
  * prefixI_suffix. The new predicate will be marked as skip for the purpose of equality
@@ -966,6 +1039,26 @@ unsigned Signature::addSkolemFunction (unsigned arity, const char* suffix)
 } // addSkolemFunction
 
 /**
+ * Return a new Skolem typeCon. If @b suffix is nonzero, include it
+ * into the name of the Skolem typeCon.
+ * @since 01/07/2005 Manchester
+ */
+unsigned Signature::addSkolemTypeCon (unsigned arity, const char* suffix)
+{
+  CALL("Signature::addSkolemTypeCon");
+
+  unsigned tc = addFreshTypeCon(arity, "sK", suffix);
+  getTypeCon(tc)->markSkolem();
+
+  // Register it as a LaTeX function
+ // theory->registerLaTeXFuncName(f,"\\sigma_{"+Int::toString(_skolemFunctionCount)+"}(a0)");
+  _skolemFunctionCount++;
+
+  return tc;
+} // addSkolemFunction
+
+
+/**
  * Return a new Skolem predicate. If @b suffix is nonzero, include it
  * into the name of the Skolem function.
  * @since 15/02/2016 Gothenburg
@@ -974,14 +1067,14 @@ unsigned Signature::addSkolemPredicate(unsigned arity, const char* suffix)
 {
   CALL("Signature::addSkolemPredicate");
 
-  unsigned f = addFreshPredicate(arity, "sK", suffix);
-  getPredicate(f)->markSkolem();
+  unsigned p = addFreshPredicate(arity, "sK", suffix);
+  getPredicate(p)->markSkolem();
 
   // Register it as a LaTeX function
  // theory->registerLaTeXFuncName(f,"\\sigma_{"+Int::toString(_skolemFunctionCount)+"}(a0)");
   _skolemFunctionCount++;
 
-  return f;
+  return p;
 } // addSkolemPredicate
 
 /**

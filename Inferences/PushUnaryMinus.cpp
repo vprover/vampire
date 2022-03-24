@@ -27,6 +27,8 @@ ostream& operator<<(ostream& out, UMinus const& self) {
     case UMinus::Rat: return out << "UMinus::Rat";
     case UMinus::Real: return out << "UMinus::Real";
     case UMinus::None: return out << "UMinus::None";
+    default:
+      return out << "UNKNOWN";
   }
   ASSERTION_VIOLATION
 }
@@ -42,6 +44,8 @@ TermList pushUMinus(UMinus outerMinus, TermList t)
       case UMinus::Rat : return RatTraits::minus(t);
       case UMinus::Real: return RealTraits::minus(t);
       case UMinus::None: return t;
+      default:
+        ASSERTION_VIOLATION;
     }
     ASSERTION_VIOLATION
   };

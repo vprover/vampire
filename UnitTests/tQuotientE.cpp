@@ -48,7 +48,7 @@ TEST_FUN(check_spec) {
       try {
         q = quotientE(i, j);
         DEBUG("quotientE (", i, ", ", j, ")\t= ", q);
-      } catch (const MachineArithmeticException &) {
+      } catch (MachineArithmeticException&) {
         DEBUG("quotientE (", i, ", ", j, ")\t= MachineArithmeticException");
         bothOK = false;
       } catch (DivByZeroException&) {
@@ -60,7 +60,7 @@ TEST_FUN(check_spec) {
       try {
         r = remainderE(i, j);
         DEBUG("remainderE(", i, ", ", j, ")\t= ", r);
-      } catch (const MachineArithmeticException &) {
+      } catch (MachineArithmeticException&) {
         DEBUG("remainderE(", i, ", ", j, ")\t= MachineArithmeticException");
         bothOK = false;
       } catch (DivByZeroException&) {

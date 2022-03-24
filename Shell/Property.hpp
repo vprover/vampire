@@ -187,6 +187,8 @@ public:
   bool hasFormulas() const { return _axiomFormulas || _goalFormulas; }
   /** Maximal arity of a function in the problem */
   int maxFunArity() const { return _maxFunArity; }
+  /** Maximal arity of a type con in the problem */
+  unsigned maxTypeConArity() const { return _maxTypeConArity; }
   /** Total number of variables in problem */
   int totalNumberOfVariables() const { return _totalNumberOfVariables;}
 
@@ -217,7 +219,7 @@ public:
 
   /** Problem contains an interpreted symbol excluding equality */
   bool hasInterpretedOperations() const { return _hasInterpreted; }
-  bool hasInterpretedEquality() const { return _hasInterpretedEquality; }
+  bool hasNumerals() const { return hasProp(PR_HAS_INTEGERS) || hasProp(PR_HAS_REALS) || hasProp(PR_HAS_RATS); }
   /** Problem contains non-default sorts */
   bool hasNonDefaultSorts() const { return _hasNonDefaultSorts; }
   bool hasFOOL() const { return _hasFOOL; }
@@ -291,7 +293,6 @@ public:
   int _axiomFormulas;
   int _subformulas;
 
-  int _terms;
   int _unitGoals;
   int _unitAxioms;
   int _hornGoals;
@@ -304,6 +305,7 @@ public:
   int _groundGoals;
   int _maxFunArity;
   int _maxPredArity;
+  unsigned _maxTypeConArity;
 
   /** Number of variables in this clause, used during counting */
   int _variablesInThisClause;
@@ -324,7 +326,6 @@ public:
 
   /** Problem contains an interpreted symbol including equality */
   bool _hasInterpreted;
-  bool _hasInterpretedEquality;
   /** Problem contains non-default sorts */
   bool _hasNonDefaultSorts;
   unsigned _sortsUsed;

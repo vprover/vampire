@@ -33,12 +33,7 @@
 #include "Lib/Metaiterators.hpp"
 #include "Lib/VString.hpp"
 
-// #include "MatchTag.hpp" // MS: disconnecting MatchTag, January 2017
-#define USE_MATCH_TAG 0
-
-//#include "Sorts.hpp"
-
-#define TERM_DIST_VAR_UNKNOWN 0x7FFFFF
+#define TERM_DIST_VAR_UNKNOWN 0x3FFFFF
 
 namespace Kernel {
 
@@ -59,6 +54,7 @@ enum TermTag {
   SPEC_VAR = 3u,
 };
 
+bool operator<(const TermList& lhs, const TermList& rhs);
 
 /**
  * Class containing either a pointer to a compound term or
@@ -148,6 +144,12 @@ public:
   static TermList var(unsigned var, bool special = false) { return TermList(var, special); }
   /** if not var, the inner term must be shared */
   unsigned weight() const;
+  /** returns true if this termList is wrapping a higher-order "arrow" sort */
+  bool isArrowSort();
+  bool isBoolSort();
+  bool isArraySort();
+  bool isTupleSort();
+  bool isApplication() const;
   bool containsSubterm(TermList v);
   bool containsAllVariablesOf(TermList t);
   bool containsAllVariableOccurrencesOf(TermList t);
@@ -188,6 +190,8 @@ private:
       unsigned shared : 1;
       /** true if literal */
       unsigned literal : 1;
+      /** true if atomic sort */
+      unsigned sort : 1;
       /** Ordering comparison result for commutative term arguments, one of
        * 0 (unknown) 1 (less), 2 (equal), 3 (greater), 4 (incomparable)
        * @see Term::ArgumentOrder */
@@ -195,22 +199,17 @@ private:
       /** Number of distincs variables in the term, equal
        * to TERM_DIST_VAR_UNKNOWN if the number has not been
        * computed yet. */
-      mutable unsigned distinctVars : 23;
+      mutable unsigned distinctVars : 22;
       /** reserved for whatever */
 #if ARCH_X64
-# if USE_MATCH_TAG
-      MatchTag matchTag; //32 bits
-# else
       unsigned reserved : 32;
-# endif
-#else
-//      unsigned reserved : 0;
 #endif
     } _info;
   };
   friend class Indexing::TermSharing;
   friend class Term;
   friend class Literal;
+  friend class AtomicSort;
 }; // class TermList
 
 static_assert(
@@ -232,7 +231,8 @@ public:
   static const unsigned SF_TUPLE = 0xFFFFFFFC;
   static const unsigned SF_LET_TUPLE = 0xFFFFFFFB;
   static const unsigned SF_LAMBDA = 0xFFFFFFFA;
-  static const unsigned SPECIAL_FUNCTOR_LOWER_BOUND = 0xFFFFFFFA;
+  static const unsigned SF_MATCH = 0xFFFFFFF9;
+  static const unsigned SPECIAL_FUNCTOR_LOWER_BOUND = 0xFFFFFFF9;
 
   class SpecialTermData
   {
@@ -272,6 +272,10 @@ public:
         TermList sort; 
         TermList expSort;//TODO is this needed?
       } _lambdaData;
+      struct {
+        TermList sort;
+        TermList matchedSort;
+      } _matchData;
     };
     /** Return pointer to the term to which this object is attached */
     const Term* getTerm() const { return reinterpret_cast<const Term*>(this+1); }
@@ -306,12 +310,15 @@ public:
           return _letTupleData.sort;
         case SF_LAMBDA:
           return _lambdaData.sort;
+        case SF_MATCH:
+          return _matchData.sort;
         default:
           ASSERTION_VIOLATION_REP(getType());
       }
     }
     Formula* getFormula() const { ASS_EQ(getType(), SF_FORMULA); return _formulaData.formula; }
     Term* getTupleTerm() const { return _tupleData.term; }
+    TermList getMatchedSort() const { return _matchData.matchedSort; }
   };
 
 
@@ -335,24 +342,13 @@ public:
   static Term* createFormula(Formula* formula);
   static Term* createTuple(unsigned arity, TermList* sorts, TermList* elements);
   static Term* createTuple(Term* tupleTerm);
+  static Term* createMatch(TermList sort, TermList matchedSort, unsigned int arity, TermList* elements);
   static Term* create1(unsigned fn, TermList arg);
   static Term* create2(unsigned fn, TermList arg1, TermList arg2);
 
   //** fool constants
   static Term* foolTrue(); 
   static Term* foolFalse(); 
-
-  static TermList arrowSort(TermStack& domSorts, TermList range);
-  static TermList arrowSort(TermList s1, TermList s2);
-  static TermList arrowSort(TermList s1, TermList s2, TermList s3);
-  static TermList arraySort(TermList indexSort, TermList innerSort);
-  static TermList tupleSort(unsigned arity, TermList* sorts);
-  static TermList defaultSort();
-  static TermList superSort();
-  static TermList boolSort();
-  static TermList intSort();
-  static TermList realSort();
-  static TermList rationalSort(); 
 
   VList* freeVariables() const;
   bool isFreeVariable(unsigned var) const;
@@ -366,7 +362,15 @@ public:
   vstring toString(bool topLevel = true) const;
   static vstring variableToString(unsigned var);
   static vstring variableToString(TermList var);
-  /** return the arguments */
+
+  /** return the arguments 
+   *
+   *  WARNING: this function returns a pointer to the first argument
+   *  which could be a sort when dealing with a polymorphic problem!
+   * 
+   *  Use with care! Consider whether the termArgs() function may be more
+   *  suited to your needs before using this.
+   */
   const TermList* args() const
   { return _args + _arity; }
   /** return the nth argument (counting from 0) */
@@ -385,6 +389,23 @@ public:
 
     return _args + (_arity - n);
   }
+
+  /**
+   * Return the number of type arguments for a polymorphic term (or 0 if monomorphic).
+   */
+  unsigned numTypeArguments() const;
+  /**
+   * Return the number of term arguments for a term (equal to _arity if monomorphic).
+   */  
+  unsigned numTermArguments() const;
+
+  /** Return the 1st term argument for a polymorphic term.
+    * Call hasTermArgs before calling this or test the result for
+    * non-emptiness
+    * In the monomorphic case, the same as args()
+    */
+  TermList* termArgs();
+
   /** Indexing operator for accessing arguments */
   const TermList operator[](int i) const {
     return *nthArgument(i);
@@ -392,7 +413,15 @@ public:
   TermList operator[](int i) {
     return *nthArgument(i);
   }
-  /** return the arguments */
+
+  /** return the arguments 
+   *
+   *  WARNING: this function returns a pointer to the first argument
+   *  which could be a sort when dealing with a polymorphic problem!
+   * 
+   *  Use with care! Consider whether the termArgs() function may be more
+   *  suited to your needs before using this.
+   */  
   TermList* args()
   { return _args + _arity; }
   unsigned hash() const;
@@ -512,7 +541,11 @@ public:
 
   /** True if the term is, in fact, a literal */
   bool isLiteral() const { return _args[0]._info.literal; }
-  
+  /** True if the term is, in fact, a sort */
+  bool isSort() const { return _args[0]._info.sort; }
+  /** true if the term is an application */
+  bool isApplication() const;
+
   /** Return an index of the argument to which @b arg points */
   unsigned getArgumentIndex(TermList* arg)
   {
@@ -566,17 +599,7 @@ public:
       return false;
     }
     ASS(!commutative());
-    return couldArgsBeInstanceOf(t);
-  }
-  inline bool couldArgsBeInstanceOf(Term* t)
-  {
-#if USE_MATCH_TAG
-    ensureMatchTag();
-    t->ensureMatchTag();
-    return matchTag().couldBeInstanceOf(t->matchTag());
-#else
     return true;
-#endif
   }
 
   bool containsSubterm(TermList v);
@@ -610,6 +633,7 @@ public:
   bool isTuple() const { return functor() == SF_TUPLE; }
   bool isFormula() const { return functor() == SF_FORMULA; }
   bool isLambda() const { return functor() == SF_LAMBDA; }
+  bool isMatch() const { return functor() == SF_MATCH; }
   bool isBoolean() const;
   bool isSuper() const; 
   
@@ -657,23 +681,6 @@ protected:
     _args[0]._info.order = val;
   }
 
-#if USE_MATCH_TAG
-  inline void ensureMatchTag()
-  {
-    matchTag().ensureInit(this);
-  }
-
-  inline MatchTag& matchTag()
-  {
-#if ARCH_X64
-    return _args[0]._info.matchTag;
-#else
-    return _matchTag;
-#endif
-  }
-
-#endif
-
   /** For shared terms, this is a unique id used for deterministic comparison */
   unsigned _id;
   /** The number of this symbol in a signature */
@@ -699,12 +706,8 @@ protected:
     TermList _sort;
   };
 
-#if USE_MATCH_TAG && !ARCH_X64
-  MatchTag _matchTag;
-#endif
-
-  /** The list of arguments or size arity+1. The first argument stores the
-   *  term weight and the mask (the last two bits are 0).
+  /** The list of arguments of size type arity + term arity + 1. The first
+   *  argument stores the term weight and the mask (the last two bits are 0).
    */
   TermList _args[1];
 
@@ -721,7 +724,6 @@ protected:
 //   Comparison compare(const Term* t) const;
 //   void argsWeight(unsigned& total) const;
   friend class TermList;
-  friend class MatchTag;
   friend class Indexing::TermSharing;
   friend class Ordering;
 
@@ -748,6 +750,60 @@ public:
   }; // Term::Iterator
 }; // class Term
 
+
+/**
+ * Class of AtomicSort.
+ */
+class AtomicSort
+  : public Term
+{
+public:
+  AtomicSort();
+  explicit AtomicSort(const AtomicSort& t) throw();
+
+  AtomicSort(unsigned functor,unsigned arity) throw()
+  {
+    _functor = functor;
+    _arity = arity;
+    _args[0]._info.literal = 0u;
+    _args[0]._info.sort = 1u;
+  }
+
+  static AtomicSort* create(unsigned typeCon, unsigned arity, const TermList* args);
+  static AtomicSort* create2(unsigned tc, TermList arg1, TermList arg2);
+  static AtomicSort* create(AtomicSort* t,TermList* args);
+  static AtomicSort* createConstant(unsigned typeCon) { return create(typeCon,0,0); }
+  static AtomicSort* createConstant(const vstring& name); 
+
+  /** True if the sort is a higher-order arrow sort */
+  bool isArrowSort() const;
+  /** True if the sort $o */
+  bool isBoolSort() const;
+  /** true if sort is the sort of an array */
+  bool isArraySort() const;
+  /** true if sort is the sort of an tuple */
+  bool isTupleSort() const;
+
+  const vstring& typeConName() const;  
+  
+  static TermList arrowSort(TermStack& domSorts, TermList range);
+  static TermList arrowSort(TermList s1, TermList s2);
+  static TermList arrowSort(TermList s1, TermList s2, TermList s3);
+  static TermList arraySort(TermList indexSort, TermList innerSort);
+  static TermList tupleSort(unsigned arity, TermList* sorts);
+  static TermList defaultSort();
+  static TermList superSort();
+  static TermList boolSort();
+  static TermList intSort();
+  static TermList realSort();
+  static TermList rationalSort();
+
+private:
+
+  static AtomicSort* createNonShared(unsigned typeCon, unsigned arity, TermList* arg);
+  static AtomicSort* createNonSharedConstant(unsigned typeCon) { return createNonShared(typeCon,0,0); }
+};
+
 /**
  * Class of literals.
  * @since 06/05/2007 Manchester
@@ -773,6 +829,7 @@ public:
     _arity = arity;
     _args[0]._info.polarity = polarity;
     _args[0]._info.commutative = commutative;
+    _args[0]._info.sort = 0u;
     _args[0]._info.literal = 1u;
   }
 
@@ -824,7 +881,8 @@ public:
   static Literal* create2(unsigned predicate, bool polarity, TermList arg1, TermList arg2);
   static Literal* create(unsigned fn, bool polarity, std::initializer_list<TermList> args);
 
-  static Literal* flattenOnArgument(const Literal*,int argumentNumber);
+  //No longer used AYB
+  //static Literal* flattenOnArgument(const Literal*,int argumentNumber);
 
   unsigned hash() const;
   unsigned oppositeHash() const;
@@ -907,26 +965,7 @@ public:
   {
     ASS(shared());
     ASS(lit->shared());
-    if(!headersMatch(this, lit, complementary)) {
-      return false;
-    }
-    return couldArgsBeInstanceOf(lit);
-  }
-
-  bool couldArgsBeInstanceOf(Literal* lit)
-  {
-#if USE_MATCH_TAG
-    ensureMatchTag();
-    lit->ensureMatchTag();
-    if(commutative()) {
-      return matchTag().couldBeInstanceOf(lit->matchTag()) ||
-	  matchTag().couldBeInstanceOfReversed(lit->matchTag());
-    } else {
-      return matchTag().couldBeInstanceOf(lit->matchTag());
-    }
-#else
-    return true;
-#endif
+    return headersMatch(this, lit, complementary);
   }
 
   vstring toString() const;
