@@ -72,80 +72,16 @@ void addToMapFromIterator(DHMap<Term*, TermQueryResult>& map, TermQueryResultIte
   }
 }
 
-InferenceRule getGeneralizedRule(InferenceRule rule) {
-  switch (rule) {
-    case InferenceRule::INDUCTION_AXIOM:
-    case InferenceRule::GEN_INDUCTION_AXIOM:
-      return InferenceRule::GEN_INDUCTION_AXIOM;
-    case InferenceRule::INT_INF_UP_INDUCTION_AXIOM:
-    case InferenceRule::INT_INF_UP_GEN_INDUCTION_AXIOM:
-      return InferenceRule::INT_INF_UP_GEN_INDUCTION_AXIOM;
-    case InferenceRule::INT_INF_DOWN_INDUCTION_AXIOM:
-    case InferenceRule::INT_INF_DOWN_GEN_INDUCTION_AXIOM:
-      return InferenceRule::INT_INF_DOWN_GEN_INDUCTION_AXIOM;
-    case InferenceRule::INT_FIN_UP_INDUCTION_AXIOM:
-    case InferenceRule::INT_FIN_UP_GEN_INDUCTION_AXIOM:
-      return InferenceRule::INT_FIN_UP_GEN_INDUCTION_AXIOM;
-    case InferenceRule::INT_FIN_DOWN_INDUCTION_AXIOM:
-    case InferenceRule::INT_FIN_DOWN_GEN_INDUCTION_AXIOM:
-      return InferenceRule::INT_FIN_DOWN_GEN_INDUCTION_AXIOM;
-    case InferenceRule::INT_DB_UP_INDUCTION_AXIOM:
-    case InferenceRule::INT_DB_UP_GEN_INDUCTION_AXIOM:
-      return InferenceRule::INT_DB_UP_GEN_INDUCTION_AXIOM;
-    case InferenceRule::INT_DB_DOWN_INDUCTION_AXIOM:
-    case InferenceRule::INT_DB_DOWN_GEN_INDUCTION_AXIOM:
-      return InferenceRule::INT_DB_DOWN_GEN_INDUCTION_AXIOM;
-    default:
-      ASSERTION_VIOLATION;
-  }
-}
-
-InferenceRule getNonGeneralizedRule(InferenceRule rule) {
-  switch (rule) {
-    case InferenceRule::INDUCTION_AXIOM:
-    case InferenceRule::GEN_INDUCTION_AXIOM:
-      return InferenceRule::INDUCTION_AXIOM;
-    case InferenceRule::INT_INF_UP_INDUCTION_AXIOM:
-    case InferenceRule::INT_INF_UP_GEN_INDUCTION_AXIOM:
-      return InferenceRule::INT_INF_UP_INDUCTION_AXIOM;
-    case InferenceRule::INT_INF_DOWN_INDUCTION_AXIOM:
-    case InferenceRule::INT_INF_DOWN_GEN_INDUCTION_AXIOM:
-      return InferenceRule::INT_INF_DOWN_INDUCTION_AXIOM;
-    case InferenceRule::INT_FIN_UP_INDUCTION_AXIOM:
-    case InferenceRule::INT_FIN_UP_GEN_INDUCTION_AXIOM:
-      return InferenceRule::INT_FIN_UP_INDUCTION_AXIOM;
-    case InferenceRule::INT_FIN_DOWN_INDUCTION_AXIOM:
-    case InferenceRule::INT_FIN_DOWN_GEN_INDUCTION_AXIOM:
-      return InferenceRule::INT_FIN_DOWN_INDUCTION_AXIOM;
-    case InferenceRule::INT_DB_UP_INDUCTION_AXIOM:
-    case InferenceRule::INT_DB_UP_GEN_INDUCTION_AXIOM:
-      return InferenceRule::INT_DB_UP_INDUCTION_AXIOM;
-    case InferenceRule::INT_DB_DOWN_INDUCTION_AXIOM:
-    case InferenceRule::INT_DB_DOWN_GEN_INDUCTION_AXIOM:
-      return InferenceRule::INT_DB_DOWN_INDUCTION_AXIOM;
-    default:
-      ASSERTION_VIOLATION;
-  }
-}
-
 InferenceRule getInfRule(InferenceRule rule) {
   switch (rule) {
     case InferenceRule::INT_INF_UP_INDUCTION_AXIOM:
     case InferenceRule::INT_FIN_UP_INDUCTION_AXIOM:
     case InferenceRule::INT_DB_UP_INDUCTION_AXIOM:
       return InferenceRule::INT_INF_UP_INDUCTION_AXIOM;
-    case InferenceRule::INT_INF_UP_GEN_INDUCTION_AXIOM:
-    case InferenceRule::INT_FIN_UP_GEN_INDUCTION_AXIOM:
-    case InferenceRule::INT_DB_UP_GEN_INDUCTION_AXIOM:
-      return InferenceRule::INT_INF_UP_GEN_INDUCTION_AXIOM;
     case InferenceRule::INT_INF_DOWN_INDUCTION_AXIOM:
     case InferenceRule::INT_FIN_DOWN_INDUCTION_AXIOM:
     case InferenceRule::INT_DB_DOWN_INDUCTION_AXIOM:
       return InferenceRule::INT_INF_DOWN_INDUCTION_AXIOM;
-    case InferenceRule::INT_INF_DOWN_GEN_INDUCTION_AXIOM:
-    case InferenceRule::INT_FIN_DOWN_GEN_INDUCTION_AXIOM:
-    case InferenceRule::INT_DB_DOWN_GEN_INDUCTION_AXIOM:
-      return InferenceRule::INT_INF_DOWN_GEN_INDUCTION_AXIOM;
     default:
       ASSERTION_VIOLATION;
   }
@@ -157,18 +93,10 @@ InferenceRule getFinRule(InferenceRule rule) {
     case InferenceRule::INT_FIN_UP_INDUCTION_AXIOM:
     case InferenceRule::INT_DB_UP_INDUCTION_AXIOM:
       return InferenceRule::INT_FIN_UP_INDUCTION_AXIOM;
-    case InferenceRule::INT_INF_UP_GEN_INDUCTION_AXIOM:
-    case InferenceRule::INT_FIN_UP_GEN_INDUCTION_AXIOM:
-    case InferenceRule::INT_DB_UP_GEN_INDUCTION_AXIOM:
-      return InferenceRule::INT_FIN_UP_GEN_INDUCTION_AXIOM;
     case InferenceRule::INT_INF_DOWN_INDUCTION_AXIOM:
     case InferenceRule::INT_FIN_DOWN_INDUCTION_AXIOM:
     case InferenceRule::INT_DB_DOWN_INDUCTION_AXIOM:
       return InferenceRule::INT_FIN_DOWN_INDUCTION_AXIOM;
-    case InferenceRule::INT_INF_DOWN_GEN_INDUCTION_AXIOM:
-    case InferenceRule::INT_FIN_DOWN_GEN_INDUCTION_AXIOM:
-    case InferenceRule::INT_DB_DOWN_GEN_INDUCTION_AXIOM:
-      return InferenceRule::INT_FIN_DOWN_GEN_INDUCTION_AXIOM;
     default:
       ASSERTION_VIOLATION;
   }
@@ -180,18 +108,10 @@ InferenceRule getDBRule(InferenceRule rule) {
     case InferenceRule::INT_FIN_UP_INDUCTION_AXIOM:
     case InferenceRule::INT_DB_UP_INDUCTION_AXIOM:
       return InferenceRule::INT_DB_UP_INDUCTION_AXIOM;
-    case InferenceRule::INT_INF_UP_GEN_INDUCTION_AXIOM:
-    case InferenceRule::INT_FIN_UP_GEN_INDUCTION_AXIOM:
-    case InferenceRule::INT_DB_UP_GEN_INDUCTION_AXIOM:
-      return InferenceRule::INT_DB_UP_GEN_INDUCTION_AXIOM;
     case InferenceRule::INT_INF_DOWN_INDUCTION_AXIOM:
     case InferenceRule::INT_FIN_DOWN_INDUCTION_AXIOM:
     case InferenceRule::INT_DB_DOWN_INDUCTION_AXIOM:
       return InferenceRule::INT_DB_DOWN_INDUCTION_AXIOM;
-    case InferenceRule::INT_INF_DOWN_GEN_INDUCTION_AXIOM:
-    case InferenceRule::INT_FIN_DOWN_GEN_INDUCTION_AXIOM:
-    case InferenceRule::INT_DB_DOWN_GEN_INDUCTION_AXIOM:
-      return InferenceRule::INT_DB_DOWN_GEN_INDUCTION_AXIOM;
     default:
       ASSERTION_VIOLATION;
   }
@@ -205,7 +125,9 @@ Term* getPlaceholderForTerm(Term* t)
   if(!placeholders.find(srt)){
     unsigned fresh = env.signature->addFreshFunction(0,(srt.toString() + "_placeholder").c_str());
     env.signature->getFunction(fresh)->setType(OperatorType::getConstantsType(srt));
-    placeholders.insert(srt,Term::createConstant(fresh));
+    auto res = Term::createConstant(fresh);
+    placeholders.insert(srt,res);
+    return res;
   }
   return placeholders.get(srt);
 }
@@ -325,7 +247,7 @@ TermList LiteralSubsetReplacement::transformSubterm(TermList trm)
   return trm;
 }
 
-Literal* LiteralSubsetReplacement::transformSubset(InferenceRule& rule) {
+Literal* LiteralSubsetReplacement::transformSubset() {
   CALL("LiteralSubsetReplacement::transformSubset");
   // Increment _iteration, since it either is 0, or was already used.
   _iteration++;
@@ -342,22 +264,17 @@ Literal* LiteralSubsetReplacement::transformSubset(InferenceRule& rule) {
     // All combinations were already returned.
     return nullptr;
   }
-  if (setBits == _occurrences) {
-    rule = getNonGeneralizedRule(rule);
-  } else {
-    rule = getGeneralizedRule(rule);
-  }
   _matchCount = 0;
   return transform(_lit);
 }
 
-List<pair<Literal*, InferenceRule>>* LiteralSubsetReplacement::getListOfTransformedLiterals(InferenceRule rule) {
+List<Literal*>* LiteralSubsetReplacement::getListOfTransformedLiterals() {
   CALL("LiteralSubsetReplacement::getListOfTransformedLiterals");
 
   Literal* l;
-  List<pair<Literal*, InferenceRule>>* res = List<pair<Literal*, InferenceRule>>::empty();
-  while ((l = transformSubset(rule))) {
-    res = List<pair<Literal*, InferenceRule>>::cons(make_pair(l, rule), res);
+  List<Literal*>* res = List<Literal*>::empty();
+  while ((l = transformSubset())) {
+    res = List<Literal*>::cons(l, res);
   }
   return res;
 }
@@ -392,8 +309,7 @@ TermList ContextSubsetReplacement::transformSubterm(TermList trm)
 InductionContext ContextSubsetReplacement::next() {
   CALL("ContextSubsetReplacement::transformSubset");
   ASS(hasNext());
-  InductionContext context;
-  context._indTerm = _context._indTerm;
+  InductionContext context(_context._indTerm);
   _iteration++;
   _matchCount = 0;
   for (const auto& kv : _context._cls) {
@@ -577,7 +493,7 @@ void InductionClauseIterator::processLiteral(Clause* premise, Literal* lit)
       Set<Term*>::Iterator citer1(int_terms);
       while(citer1.hasNext()){
         Term* t = citer1.next();
-        List<pair<Literal*, InferenceRule>>* indLits = List<pair<Literal*, InferenceRule>>::empty();
+        List<Literal*>* indLits = List<Literal*>::empty();
         DHMap<Term*, TermQueryResult> grBound;
         addToMapFromIterator(grBound, _helper.getGreaterEqual(t));
         addToMapFromIterator(grBound, _helper.getGreater(t));
@@ -586,7 +502,7 @@ void InductionClauseIterator::processLiteral(Clause* premise, Literal* lit)
         addToMapFromIterator(leBound, _helper.getLess(t));
         performIntInductionForEligibleBounds(premise, lit, t, indLits, /*increasing=*/true, leBound, grBound);
         performIntInductionForEligibleBounds(premise, lit, t, indLits, /*increasing=*/false, grBound, leBound);
-        List<pair<Literal*, InferenceRule>>::destroy(indLits);
+        List<Literal*>::destroy(indLits);
       }
     }
     // collect term queries for each induction term
@@ -596,6 +512,10 @@ void InductionClauseIterator::processLiteral(Clause* premise, Literal* lit)
       });
     // put clauses from queries into contexts alongside with the given clause and induction term
     auto sideLitsIt2 = iterTraits(getMappingIterator(sideLitsIt, InductionContextFn(premise, lit)))
+      // generalize all contexts if needed
+      .flatMap([](const InductionContext& arg) {
+        return vi(new ContextSubsetReplacement(arg, !env.options->inductionGen()));
+      })
       // filter out the ones without the premise, or only one literal
       .filter([&premise](const InductionContext& arg) {
         unsigned cnt = 0;
@@ -612,6 +532,10 @@ void InductionClauseIterator::processLiteral(Clause* premise, Literal* lit)
     auto indCtxSingle = iterTraits(Set<Term*>::Iterator(ta_terms))
       .map([&lit,&premise](Term* arg) {
         return InductionContext(arg, lit, premise);
+      })
+      // generalize all contexts if needed
+      .flatMap([](const InductionContext& arg) {
+        return vi(new ContextSubsetReplacement(arg, !env.options->inductionGen()));
       });
     auto indCtxIt = iterTraits(getConcatenatedIterator(sideLitsIt2, indCtxSingle))
       // filter out the ones without an induction literal
@@ -624,10 +548,6 @@ void InductionClauseIterator::processLiteral(Clause* premise, Literal* lit)
           }
         }
         return false;
-      })
-      // generalize all contexts if needed
-      .flatMap([](const InductionContext& arg) {
-        return vi(new ContextSubsetReplacement(arg, !env.options->inductionGen()));
       });
     while (indCtxIt.hasNext()) {
       auto ctx = indCtxIt.next();
@@ -637,18 +557,17 @@ void InductionClauseIterator::processLiteral(Clause* premise, Literal* lit)
                         _opt.structInduction() == Options::StructuralInductionKind::ALL;
       static bool three = _opt.structInduction() == Options::StructuralInductionKind::THREE ||
                         _opt.structInduction() == Options::StructuralInductionKind::ALL;
-      InferenceRule rule = InferenceRule::INDUCTION_AXIOM;
       InductionFormulaIndex::Entry* e;
       // generate formulas and add them to index if not done already
       if (_formulaIndex.findOrInsert(ctx, e)) {
         if(one){
-          performStructInductionOne(ctx,e,rule);
+          performStructInductionOne(ctx,e);
         }
         if(two){
-          performStructInductionTwo(ctx,e,rule);
+          performStructInductionTwo(ctx,e);
         }
         if(three){
-          performStructInductionThree(ctx,e,rule);
+          performStructInductionThree(ctx,e);
         }
       }
       // resolve the formulas with the premises
@@ -659,7 +578,7 @@ void InductionClauseIterator::processLiteral(Clause* premise, Literal* lit)
   }
 }
 
-void InductionClauseIterator::performIntInductionForEligibleBounds(Clause* premise, Literal* origLit, Term* origTerm, List<pair<Literal*, InferenceRule>>*& indLits, bool increasing, DHMap<Term*, TermQueryResult>& bounds1, DHMap<Term*, TermQueryResult>& bounds2) {
+void InductionClauseIterator::performIntInductionForEligibleBounds(Clause* premise, Literal* origLit, Term* origTerm, List<Literal*>*& indLits, bool increasing, DHMap<Term*, TermQueryResult>& bounds1, DHMap<Term*, TermQueryResult>& bounds2) {
   DHMap<Term*, TermQueryResult>::Iterator it1(bounds1);
   while (it1.hasNext()) {
     TermQueryResult b1 = it1.next();
@@ -689,33 +608,31 @@ void InductionClauseIterator::performIntInductionForEligibleBounds(Clause* premi
   }
 }
 
-void InductionClauseIterator::generalizeAndPerformIntInduction(Clause* premise, Literal* origLit, Term* origTerm, List<pair<Literal*, InferenceRule>>*& indLits, bool increasing, TermQueryResult& bound1, TermQueryResult* optionalBound2) {
+void InductionClauseIterator::generalizeAndPerformIntInduction(Clause* premise, Literal* origLit, Term* origTerm, List<Literal*>*& indLits, bool increasing, TermQueryResult& bound1, TermQueryResult* optionalBound2) {
   static bool generalize = _opt.inductionGen();
   auto indTerm = getPlaceholderForTerm(origTerm);
   // If induction literals were not computed yet, compute them now.
-  if (List<pair<Literal*, InferenceRule>>::isEmpty(indLits)) {
-    bool finite = ((optionalBound2 != nullptr) && (optionalBound2->literal != nullptr));
-    InferenceRule rule =
-        (bound1.literal == nullptr)
-            ? (increasing ? InferenceRule::INT_DB_UP_INDUCTION_AXIOM : InferenceRule::INT_DB_DOWN_INDUCTION_AXIOM)
-            : (increasing ? (finite ? InferenceRule::INT_FIN_UP_INDUCTION_AXIOM : InferenceRule::INT_INF_UP_INDUCTION_AXIOM)
-                          : (finite ? InferenceRule::INT_FIN_DOWN_INDUCTION_AXIOM : InferenceRule::INT_INF_DOWN_INDUCTION_AXIOM));
+  if (List<Literal*>::isEmpty(indLits)) {
     if (generalize) {
       Kernel::LiteralSubsetReplacement subsetReplacement(origLit, origTerm, TermList(indTerm), _opt.maxInductionGenSubsetSize());
-      indLits = subsetReplacement.getListOfTransformedLiterals(rule);
+      indLits = subsetReplacement.getListOfTransformedLiterals();
     } else {
       TermReplacement tr(origTerm, TermList(indTerm));
-      indLits = new List<pair<Literal*, InferenceRule>>(make_pair(tr.transform(origLit), rule));
+      indLits = List<Literal*>::singleton(tr.transform(origLit));
     }
   }
-  List<pair<Literal*, InferenceRule>>::RefIterator it(indLits);
+  bool finite = ((optionalBound2 != nullptr) && (optionalBound2->literal != nullptr));
+  InferenceRule rule =
+      (bound1.literal == nullptr)
+          ? (increasing ? InferenceRule::INT_DB_UP_INDUCTION_AXIOM : InferenceRule::INT_DB_DOWN_INDUCTION_AXIOM)
+          : (increasing ? (finite ? InferenceRule::INT_FIN_UP_INDUCTION_AXIOM : InferenceRule::INT_INF_UP_INDUCTION_AXIOM)
+                        : (finite ? InferenceRule::INT_FIN_DOWN_INDUCTION_AXIOM : InferenceRule::INT_INF_DOWN_INDUCTION_AXIOM));
+  List<Literal*>::RefIterator it(indLits);
   while (it.hasNext()) {
-    auto& litAndRule = it.next();
-    ASS(litAndRule.first != nullptr);
-    InductionContext context;
-    context._indTerm = origTerm;
-    context.insert(premise, litAndRule.first);
-    performIntInduction(context, litAndRule.second, increasing, bound1, optionalBound2);
+    auto& lit = it.next();
+    ASS(lit);
+    InductionContext context(origTerm, lit, premise);
+    performIntInduction(context, rule, increasing, bound1, optionalBound2);
   }
 }
 
@@ -751,7 +668,7 @@ void InductionClauseIterator::performIntInductionOnEligibleLiterals(Term* origTe
     if (bound1.clause != tqr.clause) {
       // We need to pass an empty list, which will get populated when performing induction.
       // Then we need to destroy it.
-      List<pair<Literal*, InferenceRule>>* indLits = List<pair<Literal*, InferenceRule>>::empty();
+      List<Literal*>* indLits = List<Literal*>::empty();
       if (_helper.isInductionForFiniteIntervalsOn()) {
         DHMap<Term*, TermQueryResult>::Iterator it(bounds2);
         while (it.hasNext()) {
@@ -765,7 +682,7 @@ void InductionClauseIterator::performIntInductionOnEligibleLiterals(Term* origTe
           notDoneInt(tqr.literal, origTerm, increasing, bound1.term.term(), /*optionalBound2=*/nullptr, /*bool fromComparison=*/bound1.literal != nullptr)) {
         generalizeAndPerformIntInduction(tqr.clause, tqr.literal, origTerm, indLits, increasing, bound1, nullptr);
       }
-      List<pair<Literal*, InferenceRule>>::destroy(indLits);
+      List<Literal*>::destroy(indLits);
     }
   }
 }
@@ -789,6 +706,49 @@ ClauseStack InductionClauseIterator::produceClauses(Formula* hypothesis, Inferen
     env.endOutput();
   }
   cnf.clausify(NNF::ennf(fu), hyp_clauses);
+
+  switch (rule) {
+    case InferenceRule::STRUCT_INDUCTION_AXIOM:
+      env.statistics->structInduction++;
+      break;
+    case InferenceRule::INT_INF_UP_INDUCTION_AXIOM:
+    case InferenceRule::INT_INF_DOWN_INDUCTION_AXIOM:
+      env.statistics->intInfInduction++;
+      break;
+    case InferenceRule::INT_FIN_UP_INDUCTION_AXIOM:
+    case InferenceRule::INT_FIN_DOWN_INDUCTION_AXIOM:
+      env.statistics->intFinInduction++;
+      break;
+    case InferenceRule::INT_DB_UP_INDUCTION_AXIOM:
+    case InferenceRule::INT_DB_DOWN_INDUCTION_AXIOM:
+      env.statistics->intDBInduction++;
+      break;
+    default:
+      ;
+  }
+  switch (rule) {
+    case InferenceRule::INT_INF_UP_INDUCTION_AXIOM:
+      env.statistics->intInfUpInduction++;
+      break;
+    case InferenceRule::INT_INF_DOWN_INDUCTION_AXIOM:
+      env.statistics->intInfDownInduction++;
+      break;
+    case InferenceRule::INT_FIN_UP_INDUCTION_AXIOM:
+      env.statistics->intFinUpInduction++;
+      break;
+    case InferenceRule::INT_FIN_DOWN_INDUCTION_AXIOM:
+      env.statistics->intFinDownInduction++;
+      break;
+    case InferenceRule::INT_DB_UP_INDUCTION_AXIOM:
+      env.statistics->intDBUpInduction++;
+      break;
+    case InferenceRule::INT_DB_DOWN_INDUCTION_AXIOM:
+      env.statistics->intDBDownInduction++;
+      break;
+    default:
+      ;
+  }
+
   return hyp_clauses;
 }
 
@@ -831,13 +791,13 @@ IntUnionFind findDistributedVariants(const Stack<Clause*>& clauses, Substitution
     // we first find the conclusion literals in cl, exactly 1 from
     // each of toResolve and save how many variants it should have
     for (unsigned k = 0; k < cl->length(); k++) {
-      auto clit = Literal::complementaryLiteral((*cl)[k]);
+      auto clit = SubstHelper::apply<Substitution>(Literal::complementaryLiteral((*cl)[k]), subst);
       for (const auto& kv : toResolve) {
 #if VDEBUG
         bool found = false;
 #endif
         for (const auto& lit : kv.second) {
-          if (lit == SubstHelper::apply<Substitution>(clit, subst)) {
+          if (lit == clit) {
             conclusionLits.push((*cl)[k]);
 #if VDEBUG
             variantCounts.push(kv.second.size()-1);
@@ -895,9 +855,9 @@ IntUnionFind findDistributedVariants(const Stack<Clause*>& clauses, Substitution
  *               it is stored separately so that we don't have to apply
  *               substitutions expensively in all cases.
  */
-Clause* resolveClausesHelper(InductionContext& context, const Stack<Clause*>& cls, IntUnionFind::ElementIterator eIt, Substitution& subst, RobSubstitution* rsubst)
+Clause* resolveClausesHelper(InductionContext& context, const Stack<Clause*>& cls, IntUnionFind::ElementIterator eIt, Substitution& subst, bool generalized, RobSubstitution* rsubst)
 {
-  CALL("resolveClauses");
+  CALL("resolveClausesHelper");
   // first create the clause with the required size
   ASS(eIt.hasNext());
   auto cl = cls[eIt.next()];
@@ -915,7 +875,9 @@ Clause* resolveClausesHelper(InductionContext& context, const Stack<Clause*>& cl
     UnitList::push(kv.first, premises);
   }
 
-  Inference inf(GeneratingInferenceMany(InferenceRule::RESOLUTION, premises));
+  Inference inf(GeneratingInferenceMany(
+    generalized ? InferenceRule::INDUCTION_HYPERRESOLUTION : InferenceRule::GEN_INDUCTION_HYPERRESOLUTION,
+    premises));
   Clause* res = new(newLength) Clause(newLength, inf);
 
   unsigned next = 0;
@@ -953,88 +915,41 @@ Clause* resolveClausesHelper(InductionContext& context, const Stack<Clause*>& cl
   }
   ASS_EQ(next,newLength);
 
-  env.statistics->resolution++;
   return res;
 }
 
 void InductionClauseIterator::resolveClauses(const ClauseStack& cls, InductionContext& context, Substitution& subst, RobSubstitution* rsubst)
 {
+  CALL("InductionClauseIterator::resolveClauses");
   ASS(cls.isNonEmpty());
+  bool generalized = false;
+  for (const auto& kv : context._cls) {
+    for (const auto& lit : kv.second) {
+      if (lit->containsSubterm(TermList(context._indTerm))) {
+        generalized = true;
+        break;
+      }
+    }
+    if (generalized) {
+      break;
+    }
+  }
+  if (generalized) {
+    env.statistics->generalizedInductionApplication++;
+  } else {
+    env.statistics->inductionApplication++;
+  }
+
   auto uf = findDistributedVariants(cls, subst, context);
   IntUnionFind::ComponentIterator cit(uf);
   while(cit.hasNext()){
     IntUnionFind::ElementIterator eIt = cit.next();
-    _clauses.push(resolveClausesHelper(context, cls, eIt, subst, rsubst));
+    _clauses.push(resolveClausesHelper(context, cls, eIt, subst, generalized, rsubst));
     if(_opt.showInduction()){
       env.beginOutput();
       env.out() << "[Induction] generate " << _clauses.top()->toString() << endl;
       env.endOutput();
     }
-  }
-  auto rule = cls[0]->inference().rule();
-  env.statistics->induction++;
-  if (rule == InferenceRule::GEN_INDUCTION_AXIOM ||
-      rule == InferenceRule::INT_INF_UP_GEN_INDUCTION_AXIOM ||
-      rule == InferenceRule::INT_FIN_UP_GEN_INDUCTION_AXIOM ||
-      rule == InferenceRule::INT_DB_UP_GEN_INDUCTION_AXIOM ||
-      rule == InferenceRule::INT_INF_DOWN_GEN_INDUCTION_AXIOM ||
-      rule == InferenceRule::INT_FIN_DOWN_GEN_INDUCTION_AXIOM ||
-      rule == InferenceRule::INT_DB_DOWN_GEN_INDUCTION_AXIOM) {
-    env.statistics->generalizedInduction++;
-  }
-  switch (rule) {
-    case InferenceRule::INDUCTION_AXIOM:
-    case InferenceRule::GEN_INDUCTION_AXIOM:
-      env.statistics->structInduction++;
-      break;
-    case InferenceRule::INT_INF_UP_INDUCTION_AXIOM:
-    case InferenceRule::INT_INF_UP_GEN_INDUCTION_AXIOM:
-    case InferenceRule::INT_INF_DOWN_INDUCTION_AXIOM:
-    case InferenceRule::INT_INF_DOWN_GEN_INDUCTION_AXIOM:
-      env.statistics->intInfInduction++;
-      break;
-    case InferenceRule::INT_FIN_UP_INDUCTION_AXIOM:
-    case InferenceRule::INT_FIN_UP_GEN_INDUCTION_AXIOM:
-    case InferenceRule::INT_FIN_DOWN_INDUCTION_AXIOM:
-    case InferenceRule::INT_FIN_DOWN_GEN_INDUCTION_AXIOM:
-      env.statistics->intFinInduction++;
-      break;
-    case InferenceRule::INT_DB_UP_INDUCTION_AXIOM:
-    case InferenceRule::INT_DB_UP_GEN_INDUCTION_AXIOM:
-    case InferenceRule::INT_DB_DOWN_INDUCTION_AXIOM:
-    case InferenceRule::INT_DB_DOWN_GEN_INDUCTION_AXIOM:
-      env.statistics->intDBInduction++;
-      break;
-    default:
-      ;
-  }
-  switch (rule) {
-    case InferenceRule::INT_INF_UP_INDUCTION_AXIOM:
-    case InferenceRule::INT_INF_UP_GEN_INDUCTION_AXIOM:
-      env.statistics->intInfUpInduction++;
-      break;
-    case InferenceRule::INT_INF_DOWN_INDUCTION_AXIOM:
-    case InferenceRule::INT_INF_DOWN_GEN_INDUCTION_AXIOM:
-      env.statistics->intInfDownInduction++;
-      break;
-    case InferenceRule::INT_FIN_UP_INDUCTION_AXIOM:
-    case InferenceRule::INT_FIN_UP_GEN_INDUCTION_AXIOM:
-      env.statistics->intFinUpInduction++;
-      break;
-    case InferenceRule::INT_FIN_DOWN_INDUCTION_AXIOM:
-    case InferenceRule::INT_FIN_DOWN_GEN_INDUCTION_AXIOM:
-      env.statistics->intFinDownInduction++;
-      break;
-    case InferenceRule::INT_DB_UP_INDUCTION_AXIOM:
-    case InferenceRule::INT_DB_UP_GEN_INDUCTION_AXIOM:
-      env.statistics->intDBUpInduction++;
-      break;
-    case InferenceRule::INT_DB_DOWN_INDUCTION_AXIOM:
-    case InferenceRule::INT_DB_DOWN_GEN_INDUCTION_AXIOM:
-      env.statistics->intDBDownInduction++;
-      break;
-    default:
-      ;
   }
 }
 
@@ -1147,7 +1062,7 @@ void InductionClauseIterator::performIntInduction(InductionContext& context, Inf
  * and then force binary resolution on L for each resultant clause
  */
 
-void InductionClauseIterator::performStructInductionOne(InductionContext& context, InductionFormulaIndex::Entry* e, InferenceRule rule)
+void InductionClauseIterator::performStructInductionOne(InductionContext& context, InductionFormulaIndex::Entry* e)
 {
   CALL("InductionClauseIterator::performStructInductionOne"); 
 
@@ -1198,7 +1113,7 @@ void InductionClauseIterator::performStructInductionOne(InductionContext& contex
                             Formula::quantify(indPremise),
                             Formula::quantify(conclusion));
 
-  auto cls = produceClauses(hypothesis, rule, context);
+  auto cls = produceClauses(hypothesis, InferenceRule::STRUCT_INDUCTION_AXIOM, context);
   e->add(std::move(cls), std::move(subst));
   // resolveClauses(cls, context, subst);
 }
@@ -1208,7 +1123,7 @@ void InductionClauseIterator::performStructInductionOne(InductionContext& contex
  * We produce the clause ~L[x] \/ ?y : L[y] & !z (z subterm y -> ~L[z])
  * and perform resolution with lit L[c]
  */
-void InductionClauseIterator::performStructInductionTwo(InductionContext& context, InductionFormulaIndex::Entry* e, InferenceRule rule)
+void InductionClauseIterator::performStructInductionTwo(InductionContext& context, InductionFormulaIndex::Entry* e)
 {
   CALL("InductionClauseIterator::performStructInductionTwo"); 
 
@@ -1275,7 +1190,7 @@ void InductionClauseIterator::performStructInductionTwo(InductionContext& contex
   FormulaList* orf = FormulaList::cons(exists,FormulaList::singleton(Formula::quantify(conclusion)));
   Formula* hypothesis = new JunctionFormula(Connective::OR,orf);
 
-  auto cls = produceClauses(hypothesis, rule, context);
+  auto cls = produceClauses(hypothesis, InferenceRule::STRUCT_INDUCTION_AXIOM, context);
   e->add(std::move(cls), std::move(subst));
   // resolveClauses(cls, context, subst);
 }
@@ -1290,7 +1205,7 @@ void InductionClauseIterator::performStructInductionTwo(InductionContext& contex
  * i.e. we add a new special predicat that is true when its argument is smaller than Y
  *
  */
-void InductionClauseIterator::performStructInductionThree(InductionContext& context, InductionFormulaIndex::Entry* e, InferenceRule rule)
+void InductionClauseIterator::performStructInductionThree(InductionContext& context, InductionFormulaIndex::Entry* e)
 {
   CALL("InductionClauseIterator::performStructInductionThree");
 
@@ -1382,7 +1297,7 @@ void InductionClauseIterator::performStructInductionThree(InductionContext& cont
   FormulaList* orf = FormulaList::cons(exists,FormulaList::singleton(Formula::quantify(conclusion)));
   Formula* hypothesis = new JunctionFormula(Connective::OR,orf);
 
-  auto cls = produceClauses(hypothesis, rule, context);
+  auto cls = produceClauses(hypothesis, InferenceRule::STRUCT_INDUCTION_AXIOM, context);
   e->add(std::move(cls), std::move(subst));
   // resolveClauses(cls, context, subst);
 }

@@ -602,8 +602,37 @@ TEST_GENERATION_INDUCTION(test_20,
       })
     )
 
-// multi-clause use case 1 (induction depth 0), non-unit
+// multi-clause use case 2 (main literal is from index)
 TEST_GENERATION_INDUCTION(test_21,
+    Generation::TestCase()
+      .options({ { "induction_on_complex_terms", "on" }, { "induction", "struct" } })
+      .context({
+        fromInduction(clause({ ~p(g(g(sK3))) }))
+      })
+      .indices(getIndices())
+      .input( fromInduction(clause({ ~p(g(sK3)) })) )
+      .expected({
+        // g(sK3) given clause
+        clause({ ~p(b), p(x) }),
+        clause({ ~p(b), ~p(r(x)) }),
+
+        // sK3 given clause
+        clause({ ~p(g(b)), p(g(y)) }),
+        clause({ ~p(g(b)), ~p(g(r(y))) }),
+
+        // TODO: this should also be generated but is not currently
+        // // sK3 multi-clause
+        // clause({ ~p(b), p(z), p(g(z)) }),
+        // clause({ ~p(b), ~p(r(z)) }),
+        // clause({ ~p(b), ~p(g(r(z))) }),
+        // clause({ ~p(g(b)), p(z), p(g(z)) }),
+        // clause({ ~p(g(b)), ~p(r(z)) }),
+        // clause({ ~p(g(b)), ~p(g(r(z))) }),
+      })
+    )
+
+// multi-clause use case 1 (induction depth 0), non-unit
+TEST_GENERATION_INDUCTION(test_22,
     Generation::TestCase()
       .options({ { "induction_unit_only", "off" }, { "induction", "struct" } })
       .indices(getIndices())
@@ -630,7 +659,7 @@ TEST_GENERATION_INDUCTION(test_21,
     )
 
 // multi-clause does not add tautological clauses
-TEST_GENERATION_INDUCTION(test_22,
+TEST_GENERATION_INDUCTION(test_23,
     // TODO enable multi-clause option when there is one
     Generation::TestCase()
       .options({ { "induction", "struct" } })
@@ -641,5 +670,51 @@ TEST_GENERATION_INDUCTION(test_22,
         // sK1, given clause
         clause({ ~p(b), p(x) }),
         clause({ ~p(b), ~p(r(x)) }),
+      })
+    )
+
+// multi-clause generalized occurrences
+TEST_GENERATION_INDUCTION(test_24,
+    Generation::TestCase()
+      .options({ { "induction", "struct" }, { "induction_gen", "on" } })
+      .context({ clause({ sK1 == sK2 }) })
+      .indices(getIndices())
+      .input( clause({ ~p(f(sK1,sK1)) }) )
+      .expected({
+        // sK1, given clause 01
+        clause({ ~p(f(sK1,b)), p(f(sK1,x)) }),
+        clause({ ~p(f(sK1,b)), ~p(f(sK1,r(x))) }),
+
+        // sK1, given clause 10
+        clause({ ~p(f(b,sK1)), p(f(y,sK1)) }),
+        clause({ ~p(f(b,sK1)), ~p(f(r(y),sK1)) }),
+
+        // sK1, given clause 11
+        clause({ ~p(f(b,b)), p(f(z,z)) }),
+        clause({ ~p(f(b,b)), ~p(f(r(z),r(z))) }),
+
+        // sK1, multi-clause 101
+        clause({ b == sK2, p(f(sK1,x3)), x3 != sK2 }),
+        clause({ b == sK2, ~p(f(sK1,r(x3))) }),
+        clause({ b == sK2, r(x3) == sK2 }),
+        clause({ ~p(f(sK1,b)), p(f(sK1,x3)), x3 != sK2 }),
+        clause({ ~p(f(sK1,b)), ~p(f(sK1,r(x3))) }),
+        clause({ ~p(f(sK1,b)), r(x3) == sK2 }),
+
+        // sK1, multi-clause 110
+        clause({ b == sK2, p(f(x4,sK1)), x4 != sK2 }),
+        clause({ b == sK2, ~p(f(r(x4),sK1)) }),
+        clause({ b == sK2, r(x4) == sK2 }),
+        clause({ ~p(f(b,sK1)), p(f(x4,sK1)), x4 != sK2 }),
+        clause({ ~p(f(b,sK1)), ~p(f(r(x4),sK1)) }),
+        clause({ ~p(f(b,sK1)), r(x4) == sK2 }),
+
+        // sK1, multi-clause 111
+        clause({ b == sK2, p(f(x5,x5)), x5 != sK2 }),
+        clause({ b == sK2, ~p(f(r(x5),r(x5))) }),
+        clause({ b == sK2, r(x5) == sK2 }),
+        clause({ ~p(f(b,b)), p(f(x5,x5)), x5 != sK2 }),
+        clause({ ~p(f(b,b)), ~p(f(r(x5),r(x5))) }),
+        clause({ ~p(f(b,b)), r(x5) == sK2 }),
       })
     )

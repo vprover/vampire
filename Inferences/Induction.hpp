@@ -70,11 +70,9 @@ public:
   }
 
   // Returns transformed lit for the first 2^(_occurences) - 1 calls, then returns nullptr.
-  // Sets rule to INDUCTION_AXIOM if all occurrences were transformed, otherwise sets rule
-  // to GEN_INDUCTION_AXIOM.
-  Literal* transformSubset(InferenceRule& rule);
+  Literal* transformSubset();
 
-  List<pair<Literal*, InferenceRule>>* getListOfTransformedLiterals(InferenceRule rule);
+  List<Literal*>* getListOfTransformedLiterals();
 
 protected:
   virtual TermList transformSubterm(TermList trm);
@@ -94,9 +92,10 @@ private:
 };
 
 struct InductionContext {
-  InductionContext() = default;
+  InductionContext(Term* t)
+    : _indTerm(t) {}
   InductionContext(Term* t, Literal* l, Clause* cl)
-    : _indTerm(t)
+    : InductionContext(t)
   {
     insert(cl, l);
   }
@@ -111,7 +110,6 @@ struct InductionContext {
   Formula* getFormulaWithSquashedSkolems(TermList r, bool opposite, unsigned& var,
     VList** varList = nullptr, Substitution* subst = nullptr);
 
-#if VDEBUG
   vstring toString() const {
     vstringstream str;
     str << *_indTerm << endl;
@@ -123,7 +121,6 @@ struct InductionContext {
     }
     return str.str();
   }
-#endif
 
   Term* _indTerm = nullptr;
   ClauseToLiteralMap _cls;
@@ -219,19 +216,19 @@ private:
   // (and the default bound) which are non-redundant with respect to the origLit, origTerm,
   // and increasingness.
   // Note: indLits and indTerm are passed to avoid recomputation.
-  void performIntInductionForEligibleBounds(Clause* premise, Literal* origLit, Term* origTerm, List<pair<Literal*, InferenceRule>>*& indLits, bool increasing, DHMap<Term*, TermQueryResult>& bounds1, DHMap<Term*, TermQueryResult>& bounds2);
+  void performIntInductionForEligibleBounds(Clause* premise, Literal* origLit, Term* origTerm, List<Literal*>*& indLits, bool increasing, DHMap<Term*, TermQueryResult>& bounds1, DHMap<Term*, TermQueryResult>& bounds2);
   // If indLits is empty, first fills it with either generalized origLit, or just by origLit itself
   // (depending on whether -indgen is on).
   // Then, performs int induction for each induction literal from indLits using bound1
   // (and optionalBound2 if provided) as bounds.
   // Note: indLits may be created in this method, but it needs to be destroyed outside of it.
-  void generalizeAndPerformIntInduction(Clause* premise, Literal* origLit, Term* origTerm, List<pair<Literal*, InferenceRule>>*& indLits, bool increasing, TermQueryResult& bound1, TermQueryResult* optionalBound2);
+  void generalizeAndPerformIntInduction(Clause* premise, Literal* origLit, Term* origTerm, List<Literal*>*& indLits, bool increasing, TermQueryResult& bound1, TermQueryResult* optionalBound2);
 
   void performIntInduction(InductionContext& context, InferenceRule rule, bool increasing, const TermQueryResult& bound1, TermQueryResult* optionalBound2);
 
-  void performStructInductionOne(InductionContext& context, InductionFormulaIndex::Entry* e, InferenceRule rule);
-  void performStructInductionTwo(InductionContext& context, InductionFormulaIndex::Entry* e, InferenceRule rule);
-  void performStructInductionThree(InductionContext& context, InductionFormulaIndex::Entry* e, InferenceRule rule);
+  void performStructInductionOne(InductionContext& context, InductionFormulaIndex::Entry* e);
+  void performStructInductionTwo(InductionContext& context, InductionFormulaIndex::Entry* e);
+  void performStructInductionThree(InductionContext& context, InductionFormulaIndex::Entry* e);
 
   bool notDoneInt(Literal* lit, Term* t, bool increasing, Term* bound1, Term* optionalBound2, bool fromComparison);
 
