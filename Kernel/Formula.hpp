@@ -100,6 +100,7 @@ public:
 
   static Formula* fromClause(Clause* cl);
 
+  // Warning, not suitable for formulas containing polymorphic terms!
   static Formula* quantify(Formula* f);
 
   static Formula* trueFormula();
