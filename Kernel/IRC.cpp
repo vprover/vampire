@@ -11,6 +11,7 @@
 #include "IRC.hpp"
 #include "Kernel/LaLpo.hpp"
 
+
 #define DEBUG(...) // DBG(__VA_ARGS__)
 namespace Kernel {
 using Inferences::PolynomialEvaluation;
