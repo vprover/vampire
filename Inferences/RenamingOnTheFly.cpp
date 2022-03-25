@@ -21,7 +21,7 @@
 #include "Kernel/Term.hpp"
 #include "Kernel/TermIterators.hpp"
 #include "Kernel/Signature.hpp"
-#include "Kernel/Sorts.hpp"
+#include "Kernel/OperatorType.hpp"
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/ApplicativeHelper.hpp"
 
@@ -63,7 +63,7 @@ ClauseIterator RenamingOnTheFly::produceClauses(Clause* c)
   static int namingBound = env.options->naming();
 
   TermList troo = TermList(Term::foolTrue());
-  TermList boolSort = Term::boolSort();
+  TermList boolSort = AtomicSort::boolSort();
 
   unsigned clen = c->length();
   UnitList* defs = 0;
@@ -177,7 +177,7 @@ ClauseIterator RenamingOnTheFly::produceClauses(Clause* c)
         DHMap<unsigned, TermList>::Iterator mapIt(varSorts);
         while(mapIt.hasNext()) {
           mapIt.next(var, varSort);
-          if(varSort == Term::superSort()){
+          if(varSort == AtomicSort::superSort()){
             args.push(TermList(var, false));
           } else {
             argSorts.push(varSort);
@@ -192,7 +192,7 @@ ClauseIterator RenamingOnTheFly::produceClauses(Clause* c)
         }
 
         unsigned fun = env.signature->addNameFunction(args.size());
-        TermList sort = Term::arrowSort(argSorts, Term::boolSort());
+        TermList sort = AtomicSort::arrowSort(argSorts, AtomicSort::boolSort());
         Signature::Symbol* sym = env.signature->getFunction(fun);
         sym->setType(OperatorType::getConstantsType(sort, vl)); 
         TermList funApplied = TermList(Term::create(fun, args.size(), args.begin()));

@@ -20,7 +20,7 @@
 
 #include "Kernel/Clause.hpp"
 #include "Kernel/Signature.hpp"
-#include "Kernel/Sorts.hpp"
+#include "Kernel/OperatorType.hpp"
 #include "Kernel/Term.hpp"
 #include "Kernel/Theory.hpp"
 
@@ -121,8 +121,7 @@ TermQueryResultIterator InductionHelper::getTQRsForInductionTerm(TermList induct
 
 void InductionHelper::callSplitterOnNewClause(Clause* c) {
   CALL("InductionHelper::callSplitterOnNewClause");
-  static bool splitting = env.options->splitting();
-  if (splitting) _splitter->onNewClause(c);
+  if (_splitter) _splitter->onNewClause(c);
 }
 
 bool InductionHelper::isIntegerComparison(Clause* c) {
@@ -217,7 +216,7 @@ bool InductionHelper::isIntInductionTermListInLiteral(TermList& tl, Literal* l) 
   // Term tl has to be an integer term, and not an interpreted constant.
   unsigned f = tl.term()->functor();
   // TODO: move this check to later (when we know the bounds)
-  if ((env.signature->getFunction(f)->fnType()->result() != Term::intSort()) ||
+  if ((env.signature->getFunction(f)->fnType()->result() != AtomicSort::intSort()) ||
       theory->isInterpretedConstant(f))
   {
     return false;

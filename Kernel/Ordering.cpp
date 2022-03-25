@@ -130,6 +130,7 @@ Ordering* Ordering::create(Problem& prb, const Options& opt)
     // - user specified symbol weights
     // TODO fix this! 
     if(prb.getProperty()->maxFunArity()==0 
+        && prb.getProperty()->maxTypeConArity() == 0
         && !env.colorUsed
         && env.options->predicateWeights() == ""
         && env.options->functionWeights() == ""
@@ -145,6 +146,7 @@ Ordering* Ordering::create(Problem& prb, const Options& opt)
   default:
     ASSERTION_VIOLATION;
   }
+  //TODO currently do not show SKIKBO
   if (opt.showSimplOrdering()) {
     env.beginOutput();
     out->show(env.out());
@@ -314,9 +316,8 @@ Ordering::Result PrecedenceOrdering::compare(Literal* l1, Literal* l2) const
 int PrecedenceOrdering::predicateLevel (unsigned pred) const
 {
   int basic=pred >= _predicates ? 1 : _predicateLevels[pred];
-  if(NONINTERPRETED_LEVEL_BOOST && !env.signature->getPredicate(pred)->interpreted() && pred != 0) {
-    //ASS(!Signature::isEqualityPredicate(pred)); //equality is always interpreted
-    //TODO remove the final condition once interpreted equality is reintroduced
+  if(NONINTERPRETED_LEVEL_BOOST && !env.signature->getPredicate(pred)->interpreted()) {
+    ASS(!Signature::isEqualityPredicate(pred)); //equality is always interpreted
     basic+=NONINTERPRETED_LEVEL_BOOST;
   }
   if(env.signature->predicateColored(pred)) {
@@ -467,6 +468,24 @@ Ordering::Result PrecedenceOrdering::compareFunctionPrecedences(unsigned fun1, u
     cmpRes = Int::compare(fun1, fun2);
   }
   return fromComparison(cmpRes);
+}
+
+/**
+ * Compare precedences of two type constructor symbols
+ * At the moment, completely non-optimised
+ */ 
+Ordering::Result PrecedenceOrdering::compareTypeConPrecedences(unsigned tyc1, unsigned tyc2) const
+{
+  CALL("PrecedenceOrdering::compareTypeConPrecedences");
+
+  if (tyc1 == tyc2)
+    return EQUAL;
+
+  static bool reverse = env.options->introducedSymbolPrecedence() == Shell::Options::IntroducedSymbolPrecedence::BOTTOM;
+
+  return fromComparison(Int::compare(
+      (int)(reverse ? -tyc1 : tyc1),
+      (int)(reverse ? -tyc2 : tyc2)));
 }
 
 template<typename Comparator>
@@ -931,7 +950,7 @@ void PrecedenceOrdering::show(ostream& out) const
     functors.initFromIterator(getRangeIterator(0u,env.signature->functions()),env.signature->functions());
     functors.sort(closureComparator([&](unsigned l, unsigned r){ return intoComparison(compareFunctionPrecedences(l,r)); }));
     for (unsigned i = 0; i < functors.size(); i++) {
-      auto sym = env.signature->getFunction(i);
+      auto sym = env.signature->getFunction(functors[i]);
       out << "% " << sym->name() << " " << sym->arity() << std::endl;
     }
 
@@ -948,7 +967,7 @@ void PrecedenceOrdering::show(ostream& out) const
     functors.initFromIterator(getRangeIterator(0u,env.signature->predicates()),env.signature->predicates());
     functors.sort(closureComparator([&](unsigned l, unsigned r) { return Int::compare(_predicatePrecedences[l], _predicatePrecedences[r]); }));
     for (unsigned i = 0; i < functors.size(); i++) {
-      auto sym = env.signature->getPredicate(i);
+      auto sym = env.signature->getPredicate(functors[i]);
       out << "% " << sym->name() << " " << sym->arity() << std::endl;
     }
 

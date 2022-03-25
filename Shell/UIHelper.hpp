@@ -57,7 +57,7 @@ public:
   static void outputSaturatedSet(ostream& out, UnitIterator uit);
 
   static void outputSymbolDeclarations(ostream& out);
-  static void outputSymbolTypeDeclarationIfNeeded(ostream& out, bool function, unsigned symNumber);
+  static void outputSymbolTypeDeclarationIfNeeded(ostream& out, bool function, bool typecon, unsigned symNumber);
 
   static void outputSortDeclarations(ostream& out);//TODO modify all places that call function
 
@@ -84,21 +84,6 @@ private:
   static bool _inputHasBeenRead;
 #endif
 
-#if GNUMP
-public:
-  static ConstraintRCList* getInputConstraints(const Options& opts);
-  static ConstraintRCList* getPreprocessedConstraints(const ConstraintRCList* inputConstraints);
-  static ConstraintRCList* getPreprocessedConstraints(const Options& opts);
-  
-  static void outputConstraint(const Constraint& constraint, ostream& out, Options::InputSyntax syntax = Options::IS_HUMAN);
-  static void outputConstraints(ConstraintList* constraints, ostream& out, Options::InputSyntax syntax=Options::IS_HUMAN);
-  
-  static void outputAssignment(Assignment& assignemt, ostream& out, Options::InputSyntax syntax=Options::IS_HUMAN);
-  
-private:
-  static void outputConstraintInHumanFormat(const Constraint& constraint, ostream& out);
-  static void outputConstraintInSMTFormat(const Constraint& constraint, ostream& out);
-#endif //GNUMP
 };
 
 }

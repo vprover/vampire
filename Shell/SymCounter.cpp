@@ -37,7 +37,8 @@ using namespace Shell;
 SymCounter::SymCounter (Signature& sig)
   :
   _noOfPreds(sig.predicates()),
-  _noOfFuns (sig.functions())
+  _noOfFuns (sig.functions()),
+  _noOfTypeCons(sig.typeCons())
 {
   CALL("SymCounter::SymCounter");
 
@@ -47,9 +48,14 @@ SymCounter::SymCounter (Signature& sig)
   }
 
   if (_noOfFuns) {
-    void* mem = ALLOC_KNOWN(_noOfFuns*sizeof(Fun),"SymCounter::Fun[]");
-    _funs = array_new<Fun>(mem, _noOfFuns);
+    void* mem = ALLOC_KNOWN(_noOfFuns*sizeof(FunOrTypeCon),"SymCounter::Fun[]");
+    _funs = array_new<FunOrTypeCon>(mem, _noOfFuns);
   }
+
+  if (_noOfTypeCons) {
+    void* mem = ALLOC_KNOWN(_noOfTypeCons*sizeof(FunOrTypeCon),"SymCounter::TypeCon[]");
+    _typeCons = array_new<FunOrTypeCon>(mem, _noOfTypeCons);
+  }  
 } // SymCounter::SymCounter
 
 
@@ -67,7 +73,11 @@ SymCounter::~SymCounter ()
   }
   if (_noOfFuns) {
     array_delete(_funs,_noOfFuns);
-    DEALLOC_KNOWN(_funs,_noOfFuns*sizeof(Fun),"SymCounter::Fun[]");
+    DEALLOC_KNOWN(_funs,_noOfFuns*sizeof(FunOrTypeCon),"SymCounter::Fun[]");
+  }
+  if (_noOfTypeCons) {
+    array_delete(_typeCons,_noOfTypeCons);
+    DEALLOC_KNOWN(_typeCons,_noOfTypeCons*sizeof(FunOrTypeCon),"SymCounter::TypeCon[]");
   }
 } // SymCounter::~SymCounter
 
@@ -186,17 +196,29 @@ void SymCounter::count(Literal* l,int polarity,int add)
   _preds[pred].add(l->isPositive() ? polarity : -polarity,add);
 
   if (!l->shared()) {
-    NonVariableIterator nvi(l);
-    while (nvi.hasNext()) {
-      count(nvi.next().term(), 1, add);
+    for(TermList* arg=l->args(); arg->isNonEmpty(); arg=arg->next()) {
+      if(arg->isTerm()){
+        count(arg->term(), 1, add);
+      }
+    }
+    if(l->isTwoVarEquality()){
+      TermList sort = l->twoVarEqSort();
+      if(sort.isTerm()){
+        count(sort.term(), 1, add);
+      }
     }
   } else {
     NonVariableIterator nvi(l);
     while (nvi.hasNext()) {
       Term *t = nvi.next().term();
       int fun = t->functor();
-      ASS_REP(_noOfFuns > fun, t->toString());
-      _funs[fun].add(add);
+      if(!t->isSort()){
+        ASS_REP(_noOfFuns > fun, t->toString());
+        _funs[fun].add(add);
+      } else {
+        ASS_REP(_noOfTypeCons > fun, t->toString());
+        _typeCons[fun].add(add);        
+      }
     }
   }
 } // SymCounter::count (Literal* l ...)
@@ -236,6 +258,7 @@ void SymCounter::count(Term* term, int polarity, int add)
           if(lambdaExp.isTerm()){
             count(lambdaExp.term(), polarity, add);
           }
+          break;
         }
         case Term::SF_MATCH: {
           for (unsigned i = 0; i < term->arity(); i++) {
@@ -250,26 +273,39 @@ void SymCounter::count(Term* term, int polarity, int add)
           ASSERTION_VIOLATION;
       }
     } else {
+      //There should never be a non-shared sort
       int fun = term->functor();
+      ASS(!term->isSort());
       ASS_REP(_noOfFuns > fun, term->toString());
       _funs[fun].add(add);
 
-      NonVariableIterator nvi(term);
-      while (nvi.hasNext()) {
-        count(nvi.next().term(), 1, add);
+      for(TermList* arg=term->args(); arg->isNonEmpty(); arg=arg->next()) {
+        if(arg->isTerm()){
+          count(arg->term(), 1, add);
+        }
       }
     }
   } else {
     int fun = term->functor();
-    ASS_REP(_noOfFuns > fun, term->toString());
-    _funs[fun].add(add);
+    if(!term->isSort()){
+      ASS_REP(_noOfFuns > fun, term->toString());
+      _funs[fun].add(add);
+    } else {
+      ASS_REP(_noOfTypeCons > fun, term->toString());
+      _typeCons[fun].add(add);       
+    }
 
     NonVariableIterator nvi(term);
     while (nvi.hasNext()) {
       Term *t = nvi.next().term();
       int fun = t->functor();
-      ASS_REP(_noOfFuns > fun, t->toString());
-      _funs[fun].add(add);
+      if(!t->isSort()){      
+        ASS_REP(_noOfFuns > fun, t->toString());
+        _funs[fun].add(add);
+      } else {
+        ASS_REP(_noOfTypeCons > fun, t->toString());
+        _typeCons[fun].add(add);        
+      }
     }
   }
 } // SymCounter::count(const Term* f, ...)

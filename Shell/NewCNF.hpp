@@ -576,7 +576,7 @@ private:
 
   void ensureHavingVarSorts();
 
-  Term* createSkolemTerm(unsigned var, VarSet* free);
+  Term* createSkolemTerm(unsigned var, VarSet* free, Formula *reuse);
 
   bool _forInduction;
 
@@ -595,6 +595,9 @@ private:
   // caching binding substitutions for the final phase of GenClause -> Clause transformation
   // this saves time, because bindings are potentially shared
   DHMap<BindingList*,Substitution*> _substitutionsByBindings;
+
+  // do not provide definitions for names we've already seen (when -dr on)
+  DHSet<Literal *> _already_seen[2];
 
   void skolemise(QuantifiedFormula* g, BindingList* &bindings, BindingList*& foolBindings);
 

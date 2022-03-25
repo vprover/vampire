@@ -18,6 +18,8 @@
 #include "SATLiteral.hpp"
 #include "SATInference.hpp"
 
+#include <climits>
+
 namespace SAT {
 
 class SATSolver {

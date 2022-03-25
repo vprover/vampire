@@ -22,14 +22,11 @@
 #   VTEST            - testing procedures will also be compiled
 #   CHECK_LEAKS      - test for memory leaks (debugging mode only)
 #   UNIX_USE_SIGALRM - the SIGALRM timer will be used even in debug mode
-#   GNUMPF           - this option allows us to compile with bound propagation or without it ( value 1 or 0 ) 
-#                      Importantly, it includes the GNU Multiple Precision Arithmetic Library (GMP)
 #   VZ3              - compile with Z3
 
-GNUMPF = 0
-DBG_FLAGS = -g -DVDEBUG=1 -DCHECK_LEAKS=0 -DUNIX_USE_SIGALRM=1 -DGNUMP=$(GNUMPF)# debugging for spider 
+DBG_FLAGS = -g -DVDEBUG=1 -DCHECK_LEAKS=0 -DUNIX_USE_SIGALRM=1 # debugging for spider 
 # DELETEMEin2017: the bug with gcc-6.2 and problems in ClauseQueue could be also fixed by adding -fno-tree-ch
-REL_FLAGS = -O6 -DVDEBUG=0 -DGNUMP=$(GNUMPF)# no debugging 
+REL_FLAGS = -O6 -DVDEBUG=0 # no debugging
 GCOV_FLAGS = -O0 --coverage #-pedantic
 
 MINISAT_DBG_FLAGS = -D DEBUG
@@ -38,12 +35,12 @@ MINISAT_FLAGS = $(MINISAT_DBG_FLAGS)
 
 #XFLAGS = -g -DVDEBUG=1 -DVTEST=1 -DCHECK_LEAKS=1 # full debugging + testing
 #XFLAGS = $(DBG_FLAGS)
-# XFLAGS = -Wfatal-errors -g -DVDEBUG=1 -DCHECK_LEAKS=0 -DUSE_SYSTEM_ALLOCATION=1 -DGNUMP=$(GNUMPF)# standard debugging only
+# XFLAGS = -Wfatal-errors -g -DVDEBUG=1 -DCHECK_LEAKS=0 -DUSE_SYSTEM_ALLOCATION=1 # standard debugging only
 # careful, AddressSanitizer for clang does not show line numbers by default: https://stackoverflow.com/questions/24566416/how-do-i-get-line-numbers-in-the-debug-output-with-clangs-fsanitize-address
-XFLAGS = -Wfatal-errors -g -DVDEBUG=1 -DCHECK_LEAKS=0 -DUSE_SYSTEM_ALLOCATION=1 -DGNUMP=$(GNUMPF) -fsanitize=address -fno-omit-frame-pointer  # standard debugging only
+XFLAGS = -Wfatal-errors -g -DVDEBUG=1 -DCHECK_LEAKS=0 -DUSE_SYSTEM_ALLOCATION=1 -fsanitize=address -fno-omit-frame-pointer  # standard debugging only
 # TODO: try the sanitizer of undefined behaviour from time to time:
-# XFLAGS = -Wfatal-errors -g -DVDEBUG=1 -DCHECK_LEAKS=0 -DUSE_SYSTEM_ALLOCATION=1 -DGNUMP=$(GNUMPF) -fsanitize=undefined
-#XFLAGS = -g -DVDEBUG=1 -DCHECK_LEAKS=0 -DUSE_SYSTEM_ALLOCATION=1 -DVALGRIND=1 -DGNUMP=$(GNUMPF)# memory leaks
+# XFLAGS = -Wfatal-errors -g -DVDEBUG=1 -DCHECK_LEAKS=0 -DUSE_SYSTEM_ALLOCATION=1 -fsanitize=undefined
+#XFLAGS = -g -DVDEBUG=1 -DCHECK_LEAKS=0 -DUSE_SYSTEM_ALLOCATION=1 -DVALGRIND=1 # memory leaks
 #XFLAGS = $(REL_FLAGS)
 
 # TODO: consider trying -flto (see https://gcc.gnu.org/onlinedocs/gcc/Optimize-Options.html)
@@ -221,7 +218,7 @@ VK_OBJ= Kernel/Clause.o\
         Kernel/Signature.o\
         Kernel/SortHelper.o\
         Kernel/ApplicativeHelper.o\
-        Kernel/Sorts.o\
+        Kernel/OperatorType.o\
         Kernel/SubformulaIterator.o\
         Kernel/Substitution.o\
         Kernel/Term.o\
@@ -236,12 +233,6 @@ VK_OBJ= Kernel/Clause.o\
         Kernel/Rebalancing.o\
         Kernel/Rebalancing/Inverters.o\
         Kernel/NumTraits.o
-#        Kernel/Assignment.o\     
-#        Kernel/Constraint.o\
-#         Kernel/Number.o\
-#         Kernel/Rational.o\
-#         Kernel/V2CIndex.o\
-    
 
 VI_OBJ = Indexing/AcyclicityIndex.o\
          Indexing/ClauseCodeTree.o\
@@ -321,12 +312,10 @@ VINF_OBJ=Inferences/BackwardDemodulation.o\
          Inferences/GaussianVariableElimination.o\
          Inferences/InterpretedEvaluation.o\
          Inferences/TheoryInstAndSimp.o
-#         Inferences/CTFwSubsAndRes.o\
 #         Inferences/RenamingOnTheFly.o\
 
 VSAT_OBJ=SAT/DIMACS.o\
          SAT/MinimizingSolver.o\
-         SAT/Preprocess.o\
          SAT/SAT2FO.o\
          SAT/SATClause.o\
          SAT/SATInference.o\
@@ -355,6 +344,7 @@ VS_OBJ = Shell/AnswerExtractor.o\
          Shell/CommandLine.o\
          Shell/CNF.o\
          Shell/NewCNF.o\
+         Shell/NameReuse.o\
          Shell/DistinctProcessor.o\
          Shell/DistinctGroupExpansion.o\
          Shell/EqResWithDeletion.o\
@@ -407,23 +397,6 @@ VS_OBJ = Shell/AnswerExtractor.o\
          Shell/UnificationWithAbstractionConfig.o\
          version.o
 
-#         Shell/PARSER_TKV.o\
-#         Shell/SMTLEX.o\
-#         Shell/SMTPAR.o\
-#         Shell/CParser.o\
-#         Shell/EqualityAxiomatizer.o\
-#         Shell/GlobalOptions.o\
-#         Shell/Lexer.o\
-#         Shell/PDUtils.o\
-#         Shell/Refutation.o\
-#         Shell/SMTPrinter.o\
-#         Shell/ConstantRemover.o\
-#         Shell/ConstraintReaderBack.o\
-#         Shell/EqualityVariableRemover.o\
-#         Shell/EquivalentVariableRemover.o\
-#         Shell/HalfBoundingRemover.o\
-#         Shell/SubsumptionRemover.o\
-
 PARSE_OBJ = Parse/SMTLIB2.o\
             Parse/TPTP.o\
 
@@ -467,8 +440,8 @@ LIB_DEP = Indexing/TermSharing.o\
 	  Kernel/InferenceStore.o\
 	  Kernel/Problem.o\
 	  Kernel/SortHelper.o\
-    Kernel/ApplicativeHelper.o\
-	  Kernel/Sorts.o\
+      Kernel/ApplicativeHelper.o\
+      Kernel/OperatorType.o\
 	  Kernel/Signature.o\
 	  Kernel/SubformulaIterator.o\
 	  Kernel/Substitution.o\
@@ -483,7 +456,6 @@ LIB_DEP = Indexing/TermSharing.o\
 	  Shell/Options.o\
 	  Shell/Property.o\
 	  Shell/Statistics.o\
-	  Shell/GlobalOptions.o\
           Shell/UnificationWithAbstractionConfig.o\
 	  version.o
 	  # ClausifierDependencyFix.o\
@@ -492,7 +464,6 @@ LIB_DEP = Indexing/TermSharing.o\
     Kernel/Rebalancing.o\
     Kernel/Rebalancing/Inverters.o\
     Kernel/NumTraits.o
-#     ClausifierDependencyFix.o\
 
 OTHER_CL_DEP = Indexing/LiteralSubstitutionTree.o\
 	       Indexing/ResultSubstitution.o\
@@ -515,7 +486,6 @@ OTHER_CL_DEP = Indexing/LiteralSubstitutionTree.o\
 	       Kernel/Problem.o\
 	       Kernel/Renaming.o\
 	       Kernel/RobSubstitution.o\
-	       SAT/Preprocess.o\
 	       SAT/SATClause.o\
 	       SAT/SATInference.o\
 	       SAT/SATLiteral.o\
@@ -542,7 +512,7 @@ all: #default make disabled
 ################################################################
 # automated generation of Vampire revision information
 
-VERSION_NUMBER = 4.5.1
+VERSION_NUMBER = 4.6.1
 
 # We extract the revision number from svn every time the svn meta-data are modified
 # (that's why there is the dependency on .svn/entries) 
@@ -605,25 +575,18 @@ VAPI_OBJ := $(addprefix $(CONF_ID)/, $(VAPI_DEP))
 LIBVAPI_OBJ := $(addprefix $(CONF_ID)/, $(LIBVAPI_DEP))
 TKV_OBJ := $(addprefix $(CONF_ID)/, $(TKV_DEP))
 
-LGMP = 
-ifneq (,$(filter 1,$(GNUMPF)))
--lgmp:
--lgmpxx: 
-LGMP = -lgmp -lgmpxx
-endif 
-
 define COMPILE_CMD
-$(CXX) $(CXXFLAGS) $(filter -l%, $+) $(filter %.o, $^) -o $@_$(BRANCH)_$(COM_CNT) $(LGMP) $(Z3LIB)
+$(CXX) $(CXXFLAGS) $(filter -l%, $+) $(filter %.o, $^) -o $@_$(BRANCH)_$(COM_CNT) $(Z3LIB)
 @#$(CXX) -static $(CXXFLAGS) $(Z3LIB) $(filter %.o, $^) -o $@
 @#strip $@
 endef
 
 define COMPILE_CMD_SIMPLE
-$(CXX) $(CXXFLAGS) $(filter -l%, $+) $(filter %.o, $^) -o $@ $(LGMP)
+$(CXX) $(CXXFLAGS) $(filter -l%, $+) $(filter %.o, $^) -o $@
 endef
 
 define COMPILE_CMD_TKV
-$(CXX) $(CXXFLAGS) $(filter -l%, $+) $(filter %.o, $^) -o $@ -lgmp -lgmpxx
+$(CXX) $(CXXFLAGS) $(filter -l%, $+) $(filter %.o, $^) -o $@
 @#$(CXX) -static $(CXXFLAGS) $(filter %.o, $^) -o $@
 @#strip $@
 endef

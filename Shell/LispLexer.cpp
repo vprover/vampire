@@ -180,7 +180,8 @@ void LispLexer::readQuotedString(Token& token, char opening, char closing, char 
   CALL("LispLexer::readQuotedString");
 
   bool escape=false;
-  saveLastChar();
+  // Don't save this char so that the final string doesn't contain the quote symbol
+  //saveLastChar();
 
   while (readNextChar()) {
     if (_lastCharacter == escapeChar && !escape && closing != escapeChar) {
@@ -191,7 +192,8 @@ void LispLexer::readQuotedString(Token& token, char opening, char closing, char 
         readNextChar();
       }
       else{
-        saveLastChar();
+        // Don't save this char so that the final string doesn't contain the quote symbol
+        //saveLastChar();
         saveTokenText(token);
         readNextChar();
         token.tag = TT_NAME;

@@ -52,97 +52,14 @@
 #include "TheoryAxioms.hpp"
 #include "TheoryFlattening.hpp"
 #include "BlockedClauseElimination.hpp"
-#include "TrivialPredicateRemover.hpp"
 
 #include "UIHelper.hpp"
-#if GNUMP
 #include "Lib/List.hpp"
 #include "Lib/RCPtr.hpp"
-#include "Kernel/Constraint.hpp"
-#include "Kernel/Number.hpp"
 
-#include "ConstantRemover.hpp"
-#include "EquivalentVariableRemover.hpp"
-#include "EqualityVariableRemover.hpp"
-#include "HalfBoundingRemover.hpp"
-#include "SubsumptionRemover.hpp"
-
-#endif
-
-#include "Lib/List.hpp"
-#include "Lib/RCPtr.hpp"
-#include "Kernel/Constraint.hpp"
-#include "Kernel/Number.hpp"
-
-#include "ConstantRemover.hpp"
-#include "EquivalentVariableRemover.hpp"
-#include "EqualityVariableRemover.hpp"
-#include "HalfBoundingRemover.hpp"
-#include "SubsumptionRemover.hpp"
 #include "Kernel/TermIterators.hpp"
 
-
-
 using namespace Shell;
-#if GNUMP
-/**
- * Bound propagation preprocessing steps. Takes as argumet @c constraints the list of constraints
- *
- */
-void Preprocess::preprocess(ConstraintRCList*& constraints)
-{
-  CALL("Preprocess::preprocess(ConstraintRCList *& )");
-
-  unfoldEqualities(constraints);
-
-  ConstantRemover constantRemover;
-  EquivalentVariableRemover evRemover;
-  HalfBoundingRemover hbRemover;
-  SubsumptionRemover subsRemover;
-  EqualityVariableRemover eqRemover;
-  bool anyChange;
-  do {
-    do {
-      anyChange = false;
-
-      if (_options.bpEquivalentVariableRemoval()) {
-	anyChange |= evRemover.apply(constraints);
-      }
-      anyChange |= hbRemover.apply(constraints);
-      anyChange |= constantRemover.apply(constraints);
-      anyChange |= eqRemover.apply(constraints);
-
-    }
-    while(anyChange);
-    anyChange |= subsRemover.apply(constraints);
-  }
-  while(anyChange);
-}  // Preprocess::preprocess ()
-
-/**
- * Replace equalities by two non-strict inequalities.
- */ 
-void Preprocess::unfoldEqualities(ConstraintRCList*& constraints)
-{
-  CALL("Preprocess::unfoldEqualities");
-
-  ConstraintRCList::DelIterator cit(constraints);
-  while(cit.hasNext()) {
-    Constraint& c = *cit.next();
-    if (c.type()!=CT_EQ) {
-      continue;
-    }
-
-    ConstraintRCPtr gc(Constraint::clone(c));
-    gc->setType(CT_GREQ);
-    ConstraintRCPtr lc(Constraint::clone(*gc));
-    lc->multiplyCoeffs(CoeffNumber::minusOne());
-
-    cit.replace(gc);
-    cit.insert(lc);
-  }
-} 
-#endif //GNUMP
 
 /**
  * Preprocess the problem.
@@ -189,10 +106,6 @@ void Preprocess::preprocess(Problem& prb)
     Normalisation().normalise(prb);
   }
 
-  if (prb.hasInterpretedOperations()) {
-    env.interpretedOperationsUsed = true;
-  }
-
   if(_options.guessTheGoal() != Options::GoalGuess::OFF){
     prb.invalidateProperty();
     prb.getProperty();
@@ -214,12 +127,11 @@ void Preprocess::preprocess(Problem& prb)
     }
   }
 
-  if (prb.hasFOOL() || env.statistics->higherOrder) {//or lambda
-
+  if (prb.hasFOOL() || prb.higherOrder()) {
     // This is the point to extend the signature with $$true and $$false
     // If we don't have fool then these constants get in the way (a lot)
 
-    if (!_options.newCNF() || env.statistics->polymorphic || env.statistics->higherOrder) {
+    if (!_options.newCNF() || prb.hasPolymorphicSym() || prb.higherOrder()) {
       if (env.options->showPreprocessing())
         env.out() << "FOOL elimination" << std::endl;
   
@@ -327,14 +239,14 @@ void Preprocess::preprocess(Problem& prb)
   }
 
   if (prb.mayHaveFormulas() && _options.newCNF() && 
-     !prb.hasPolymorphicSym() && !env.statistics->higherOrder) {
+     !prb.hasPolymorphicSym() && !prb.higherOrder()) {
     if (env.options->showPreprocessing())
       env.out() << "newCnf" << std::endl;
 
     newCnf(prb);
   } else {
     if (prb.mayHaveFormulas() && _options.newCNF()) { // TODO: update newCNF to deal with polymorphism / higher-order
-      ASS(prb.hasPolymorphicSym() || env.statistics->higherOrder);
+      ASS(prb.hasPolymorphicSym() || prb.higherOrder());
       if (outputAllowed()) {
         env.beginOutput();
         addCommentSignForSZS(env.out());
@@ -409,8 +321,7 @@ void Preprocess::preprocess(Problem& prb)
 //     }
 //   }
 
-   if (_options.equalityResolutionWithDeletion()!=Options::RuleActivity::OFF &&
-	   prb.mayHaveInequalityResolvableWithDeletion() ) {
+   if (_options.equalityResolutionWithDeletion() && prb.mayHaveInequalityResolvableWithDeletion() ) {
      env.statistics->phase=Statistics::EQUALITY_RESOLUTION_WITH_DELETION;
      if (env.options->showPreprocessing())
       env.out() << "equality resolution with deletion" << std::endl;
@@ -419,19 +330,8 @@ void Preprocess::preprocess(Problem& prb)
      resolver.apply(prb);
    }
 
-/*
-   //TODO consider using this in conjunction with unused predicate removal i.e. when it is off
-   if (_options.trivialPredicateRemoval()) {
-     env.statistics->phase=Statistics::UNKNOWN_PHASE;
-     if (env.options->showPreprocessing())
-      env.out() << "trivial predicate removal" << std::endl;
-
-     TrivialPredicateRemover().apply(prb);
-   }
-*/
-
-   if (_options.generalSplitting()!=Options::RuleActivity::OFF) {
-     if (env.statistics->higherOrder || prb.hasPolymorphicSym()) {  // TODO: extend GeneralSplitting to support polymorphism (would higher-order make sense?)
+   if (_options.generalSplitting()) {
+     if (prb.higherOrder() || prb.hasPolymorphicSym()) {  // TODO: extend GeneralSplitting to support polymorphism (would higher-order make sense?)
        if (outputAllowed()) {
          env.beginOutput();
          addCommentSignForSZS(env.out());
@@ -448,7 +348,7 @@ void Preprocess::preprocess(Problem& prb)
      }
    }
 
-   if (!env.statistics->higherOrder && _options.equalityProxy()!=Options::EqualityProxy::OFF && prb.mayHaveEquality()) {
+   if (!prb.higherOrder() && _options.equalityProxy()!=Options::EqualityProxy::OFF && prb.mayHaveEquality()) {
      env.statistics->phase=Statistics::EQUALITY_PROXY;
      if (env.options->showPreprocessing())
        env.out() << "equality proxy" << std::endl;
@@ -546,7 +446,7 @@ void Preprocess::preprocess1 (Problem& prb)
     fu = Rectify::rectify(fu);
     FormulaUnit* rectFu = fu;
     // Simplify the formula if it contains true or false
-    if (!_options.newCNF() || env.statistics->higherOrder || prb.hasPolymorphicSym()) {
+    if (!_options.newCNF() || prb.higherOrder() || prb.hasPolymorphicSym()) {
       // NewCNF effectively implements this simplification already (but could have been skipped if higherOrder || hasPolymorphicSym)
       fu = SimplifyFalseTrue::simplify(fu);
     }
@@ -613,7 +513,7 @@ void Preprocess::naming(Problem& prb)
   env.statistics->phase=Statistics::NAMING;
   UnitList::DelIterator us(prb.units());
   //TODO fix the below
-  Naming naming(_options.naming(),false, env.statistics->higherOrder); // For now just force eprPreservingNaming to be false, should update Naming
+  Naming naming(_options.naming(),false, prb.higherOrder()); // For now just force eprPreservingNaming to be false, should update Naming
   while (us.hasNext()) {
     Unit* u = us.next();
     if (u->isClause()) {
@@ -623,7 +523,7 @@ void Preprocess::naming(Problem& prb)
     FormulaUnit* fu = static_cast<FormulaUnit*>(u);
     FormulaUnit* v = naming.apply(fu,defs);
     if (v != fu) {
-      ASS(defs);
+      ASS(defs || env.options->definitionReuse());
       us.insert(defs);
       us.replace(v);
     }
@@ -743,7 +643,7 @@ void Preprocess::preprocess3 (Problem& prb)
   UnitList::DelIterator us(prb.units());
   while (us.hasNext()) {
     Unit* u = us.next();
-    Unit* v = preprocess3(u, env.statistics->higherOrder);
+    Unit* v = preprocess3(u, prb.higherOrder());
     if (u!=v) {
       us.replace(v);
       modified = true;

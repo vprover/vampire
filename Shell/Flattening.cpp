@@ -90,9 +90,9 @@ FormulaUnit* Flattening::flatten (FormulaUnit* unit)
  * @since 08/06/2007 Manchester changed to new data structures
  * @since 18/12/2015 Gothenburg, changes to support FOOL
  */
-Formula* Flattening::flatten (Formula* f)
+Formula* Flattening::innerFlatten (Formula* f)
 {
-  CALL("Flattening::flatten(Formula*)");
+  CALL("Flattening::innerFlatten(Formula*)");
 
   Connective con = f->connective();
   switch (con) {
@@ -104,7 +104,7 @@ Formula* Flattening::flatten (Formula* f)
     {
       Literal* lit = f->literal();
 
-      if (env.options->newCNF() && !env.statistics->higherOrder &&
+      if (env.options->newCNF() && !env.property->higherOrder() &&
           !env.property->hasPolymorphicSym()) {
         // Convert equality between boolean FOOL terms to equivalence
         if (lit->isEquality()) {
@@ -113,7 +113,7 @@ Formula* Flattening::flatten (Formula* f)
 
           bool lhsBoolean = lhs.isTerm() && lhs.term()->isBoolean();
           bool rhsBoolean = rhs.isTerm() && rhs.term()->isBoolean();
-          bool varEquality = lit->isTwoVarEquality() && lit->twoVarEqSort() == Term::boolSort();
+          bool varEquality = lit->isTwoVarEquality() && lit->twoVarEqSort() == AtomicSort::boolSort();
 
           if (lhsBoolean || rhsBoolean || varEquality) {
             Formula* lhsFormula = BoolTermFormula::create(lhs);

@@ -31,7 +31,7 @@
 
 #include "Indexing/TermSharing.hpp"
 #include "Kernel/Signature.hpp"
-#include "Kernel/Sorts.hpp"
+#include "Kernel/OperatorType.hpp"
 #include "Shell/TermAlgebra.hpp"
 
 #define __TO_SORT_RAT RationalConstantType::getSort()
@@ -194,7 +194,7 @@ struct SortSugar
   SortSugar(SortId srt) : _srt(srt) {}
 public:
   SortSugar(const char* name) 
-    : SortSugar(env.sorts->addSort(name)) 
+    : SortSugar(TermList(AtomicSort::createConstant(name))) 
   {  }
 
   SortId sortId() const { return _srt; }
@@ -317,7 +317,7 @@ public:
 
   static TermSugar createConstant(const char* name, SortSugar s) {
     unsigned f = env.signature->addFunction(name,0);                                                                
-    env.signature->getFunction(f)->setType(OperatorType::getFunctionType({}, s.sortId())); 
+    env.signature->getFunction(f)->setType(OperatorType::getFunctionType({}, s.sortId()));
     return TermSugar(TermList(Term::createConstant(f)));                                                          
   }                                                                                                                 
 };
@@ -473,8 +473,8 @@ public:
 class ConstSugar : public TermSugar, public FuncSugar
 {
 public:
-  ConstSugar(const char* name, SortSugar s) 
-    : TermSugar(TermSugar::createConstant(name, s).toTerm()) 
+  ConstSugar(const char* name, SortSugar s)
+    : TermSugar(TermSugar::createConstant(name, s).toTerm())
     , FuncSugar(functor())
   { }
   unsigned functor() const { return this->toTerm().term()->functor(); }

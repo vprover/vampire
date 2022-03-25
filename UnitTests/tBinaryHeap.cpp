@@ -8,6 +8,8 @@
  * and in the source directory
  */
 
+#include <climits>
+
 #include "Lib/BinaryHeap.hpp"
 #include "Lib/Int.hpp"
 

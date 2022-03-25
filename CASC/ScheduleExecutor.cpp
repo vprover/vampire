@@ -19,6 +19,8 @@
 #include "Shell/Options.hpp"
 #include "Shell/UIHelper.hpp"
 
+#include <signal.h>
+
 using namespace CASC;
 using namespace Lib;
 using namespace Lib::Sys;

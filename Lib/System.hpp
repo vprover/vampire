@@ -57,7 +57,7 @@ public:
 
   static void addTerminationHandler(VoidFunc proc, unsigned priority=0);
   static void onTermination();
-  static void terminateImmediately(int resultStatus) __attribute__((noreturn));
+  [[noreturn]] static void terminateImmediately(int resultStatus);
 
   static void registerForSIGHUPOnParentDeath();
 

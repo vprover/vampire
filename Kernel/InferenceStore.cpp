@@ -170,8 +170,9 @@ vstring getQuantifiedStr(const VarContainer& vars, vstring inner, DHMap<unsigned
     unsigned var =vit.next();
     vstring ty="";
     TermList t;
-    if(t_map.find(var,t) && env.statistics->hasTypes){
-      //hasTypes is true if the problem that contains a sort
+
+    if(t_map.find(var,t) && env.property->hasNonDefaultSorts()){
+      //hasNonDefaultSorts is true if the problem contains a sort
       //that is not $i and not a variable
       ty=" : " + t.toString();
     }
@@ -669,8 +670,8 @@ protected:
     CALL("InferenceStore::TPTPProofPrinter::getFofString");
 
     vstring kind = "fof";
-    if(env.statistics->hasTypes){ kind="tff"; }
-    if(env.statistics->higherOrder){ kind="thf"; }
+    if(env.property->hasNonDefaultSorts()){ kind="tff"; }
+    if(env.property->higherOrder()){ kind="thf"; }
 
     return kind+"("+id+","+getRole(rule,origin)+",("+"\n"
 	+"  "+formula+"),\n"
@@ -963,8 +964,8 @@ protected:
     UIHelper::outputSymbolDeclarations(out);
 
     vstring kind = "fof";
-    if(env.statistics->hasTypes){ kind="tff"; } 
-    if(env.statistics->higherOrder){ kind="thf"; }
+    if(env.property->hasNonDefaultSorts()){ kind="tff"; } 
+    if(env.property->higherOrder()){ kind="thf"; }
 
     out << kind
         << "(r"<<_is->getUnitIdStr(cs)
@@ -1057,30 +1058,49 @@ void InferenceStore::outputUnsatCore(ostream& out, Unit* refutation)
 
   Stack<Unit*> todo;
   todo.push(refutation);
-  Set<vstring> printed;
+  Set<Unit*> visited;
   while(!todo.isEmpty()){
 
     Unit* u = todo.pop();
+    visited.insert(u);
 
-    if(u->number() <= Unit::getLastParsingNumber()){
-      if(!u->isClause()  && u->getFormula()->hasLabel()){
-        vstring label =  u->getFormula()->getLabel();
-        if(!printed.contains(label)){
-          out << label << endl; 
-          printed.insert(label);
+    if(u->inference().rule() ==  InferenceRule::INPUT){
+      if(!u->isClause()){
+        if(u->getFormula()->hasLabel()){
+          vstring label =  u->getFormula()->getLabel();
+          out << label << endl;
         }
+        else{
+          ASS(env.options->ignoreMissingInputsInUnsatCore() || u->getFormula()->hasLabel());
+          if(!(env.options->ignoreMissingInputsInUnsatCore() || u->getFormula()->hasLabel())){
+            cout << "ERROR: There is a problem with the unsat core. There is an input formula in the proof" <<  endl;
+            cout << "that does not have a label. We expect all  input formulas to have labels as this  is what" << endl;
+            cout << "smtcomp does. If you don't want this then use the ignore_missing_inputs_in_unsat_core option" << endl;
+            cout << "The unlabelled  input formula is " << endl;
+            cout << u->toString() << endl;
+          }
+        }
+      }
+      else{
+        //Currently ignore clauses as they cannot come from SMT-LIB as input formulas
       }
     }
     else{
       InferenceRule rule;
       UnitIterator parents = InferenceStore::instance()->getParents(u,rule);
-      while(parents.hasNext()){ todo.push(parents.next()); }
+      while(parents.hasNext()){
+        Unit* parent = parents.next();
+        if(!visited.contains(parent)){
+          todo.push(parent);
+        }
+      }
     }
-
   }
 
   out << ")" << endl;
 }
+
+
 
 /**
  * Output a proof of refutation to out

@@ -28,11 +28,6 @@
 
 #include "Saturation/SaturationAlgorithm.hpp"
 
-#if GNUMP
-#include "Kernel/Assignment.hpp"
-#include "Kernel/Constraint.hpp"
-#endif
-
 #include "Options.hpp"
 #include "Statistics.hpp"
 
@@ -48,7 +43,6 @@ using namespace Shell;
 Statistics::Statistics()
   : inputClauses(0),
     inputFormulas(0),
-    hasTypes(false),
     formulaNames(0),
     initialClauses(0),
     splitInequalities(0),
@@ -152,8 +146,6 @@ Statistics::Statistics()
     taInjectivitySimplifications(0),
     taNegativeInjectivitySimplifications(0),
     taAcyclicityGeneratedDisequalities(0),
-    higherOrder(0),
-    polymorphic(0),
     generatedClauses(0),
     passiveClauses(0),
     activeClauses(0),
@@ -286,7 +278,9 @@ void Statistics::print(ostream& out)
     unusedPredicateDefinitions+functionDefinitions+selectedBySine+
     sineIterations+splitInequalities);
   COND_OUT("Introduced names",formulaNames);
+  COND_OUT("Reused names",reusedFormulaNames);
   COND_OUT("Introduced skolems",skolemFunctions);
+  COND_OUT("Reused skolems",reusedSkolemFunctions);
   COND_OUT("Pure predicates", purePredicates);
   COND_OUT("Trivial predicates", trivialPredicates);
   COND_OUT("Unused predicate definitions", unusedPredicateDefinitions);
@@ -476,6 +470,14 @@ void Statistics::print(ostream& out)
   out << "Time elapsed: ";
   Timer::printMSString(out,env.timer->elapsedMilliseconds());
   out << endl;
+  
+  unsigned instr = Timer::elapsedMegaInstructions();
+  if (instr) {
+    addCommentSignForSZS(out);
+    out << "Instructions burned: " << instr << " (million)";
+    out << endl;
+  }
+  
   addCommentSignForSZS(out);
   out << "------------------------------\n";
 

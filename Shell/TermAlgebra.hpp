@@ -16,6 +16,7 @@
 #include "Lib/List.hpp"
 #include "Lib/Array.hpp"
 #include "Lib/VString.hpp"
+#include "Kernel/OperatorType.hpp"
 #include "Lib/Metaiterators.hpp"
 #include "Kernel/Sorts.hpp"
 

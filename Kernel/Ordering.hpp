@@ -48,7 +48,7 @@ public:
    * in the @c ArgumentOrderVals enum, so that one can convert between the
    * enums using static_cast.
    */
-  enum Result {
+  enum VWARN_UNUSED_TYPE Result {
     GREATER=1,
     LESS=2,
     GREATER_EQ=3,
@@ -174,6 +174,7 @@ protected:
   static DArray<int> predLevelsFromOptsAndPrec(Problem& prb, const Options& opt, const DArray<int>& predicatePrecedences);
 
   Result compareFunctionPrecedences(unsigned fun1, unsigned fun2) const;
+  Result compareTypeConPrecedences(unsigned tyc1, unsigned tyc2) const;
 
   int predicatePrecedence(unsigned pred) const;
   int predicateLevel(unsigned pred) const;

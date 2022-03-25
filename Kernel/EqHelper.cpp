@@ -77,11 +77,17 @@ Literal* EqHelper::replace(Literal* lit, TermList what, TermList by)
 /**
  * Replace all occurences of the subterm  @b tSrc by @b tDest in the term/literal
  * @b lit, and return the result
+ *
+ * Cannot be used to replace a sort
  */
 Term* EqHelper::replace(Term* trm0, TermList tSrc, TermList tDest)
 {
   CALL("EqHelper::replace(Term*,...)");
   ASS(trm0->shared());
+  ASS(!trm0->isSort());
+  ASS(tSrc.isVar() || !tSrc.term()->isSort());
+  ASS(tDest.isVar() || !tDest.term()->isSort());
+
 
   static Stack<TermList*> toDo(8);
   static Stack<Term*> terms(8);
@@ -128,7 +134,7 @@ Term* EqHelper::replace(Term* trm0, TermList tSrc, TermList tDest)
       modified.setTop(true);
       continue;
     }
-    if (tl.isVar()) {
+    if (tl.isVar() || tl.term()->isSort()) {
       args.push(tl);
       continue;
     }
@@ -362,7 +368,7 @@ TermIterator EqHelper::getSubVarSupLHSIterator(Literal* lit, const Ordering& ord
 
   TermList eqSort = SortHelper::getEqualityArgumentSort(lit);
 
-  if (eqSort.isVar() || ApplicativeHelper::isArrowSort(eqSort)) {
+  if (eqSort.isVar() || eqSort.isArrowSort()) {
     if (lit->isNegative()) {
       return TermIterator::getEmpty();
     }
