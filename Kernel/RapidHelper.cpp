@@ -52,6 +52,118 @@ bool RapidHelper::isIntegerComparisonLiteral(Literal* lit) {
   return true;
 }
 
+bool RapidHelper::maybeDifferentBounds(Literal* l) {
+  CALL("RapidHelper::maybeDifferentBounds");
+
+  if(theory->isInterpretedPredicate(l, Theory::INT_LESS)){
+    TermList t1 = *l->nthArgument(0);
+    TermList t2 = *l->nthArgument(1);
+    if(t1.isTerm() && t1.term()->ground() &&
+       t2.isTerm() && t2.term()->ground()){
+      return true;
+    }
+  }
+  return false;
+}
+
+bool RapidHelper::mallocsInLoopAreDiffClause(Clause* c) {
+  CALL("RapidHelper::mallocsInLoopAreDiffClause");
+
+  auto isMallocOrMallocPlusIntConst = [](TermList t, Term* mallocTerm) {
+    if(t.isVar()){ return false; }
+    Term* tt = t.term();
+    if(env.signature->getFunction(tt->functor())->malloc()){
+      mallocTerm = tt;
+      return true;
+    }
+
+    if(theory->isInterpretedFunction(t, Theory::INT_PLUS)){
+      TermList t1 = *tt->nthArgument(0);
+      TermList t2 = *tt->nthArgument(1);
+      IntegerConstantType a;
+      if ( theory->tryInterpretConstant(t1, a) && t2.isTerm() &&
+           env.signature->getFunction(t2.term()->functor())->malloc()) {
+        mallocTerm = t2.term();
+        return true;
+      }
+
+      if ( theory->tryInterpretConstant(t2, a) && t1.isTerm() &&
+           env.signature->getFunction(t1.term()->functor())->malloc()) {
+        mallocTerm = t1.term();
+        return true;
+      }
+    }
+
+    return false;
+  };
+
+  if(c->length() != 2){ return false; }
+  Literal* l1 = (*c)[0];
+  Literal* l2 = (*c)[1];
+  Literal* equalityLit;
+  Literal* mallocLit;
+
+  if(l1->isTwoVarEquality() && l1->isPositive() &&
+     *l1->nthArgument(0) != *l1->nthArgument(1) ){
+    equalityLit = l1;
+    mallocLit = l2;
+  } else if(l2->isTwoVarEquality() && l2->isPositive() &&
+           *l2->nthArgument(0) != *l2->nthArgument(1)){
+    equalityLit = l2;
+    mallocLit = l1;
+  } else {
+    // neither literal of the form X = Y
+    return false;
+  }
+
+  if(!mallocLit->isEquality() || mallocLit->isPositive()){
+    return false;
+  }
+
+  TermList x = *equalityLit->nthArgument(0);
+  TermList y = *equalityLit->nthArgument(1);
+
+  TermList t1 = *mallocLit->nthArgument(0);
+  TermList t2 = *mallocLit->nthArgument(1);
+  Term* malloct1 =0;
+  Term* malloct2 =0;
+  if(isMallocOrMallocPlusIntConst(t1, malloct1) && isMallocOrMallocPlusIntConst(t2, malloct2)){
+    ASS(malloct1 && malloct2);
+    TermList tp1 = *malloct1->nthArgument(0);
+    TermList tp2 = *malloct2->nthArgument(1);
+    
+    if(tp1.isVar() || tp2.isVar()){ return false; }
+    Term* tp1t = tp1.term();
+    Term* tp2t = tp2.term();
+    if(!env.signature->getFunction(tp1t->functor())->timePoint() || 
+       tp1t->functor() != tp2t->functor() || !tp1t->arity()){
+      // not the same timepoint or not a timepoint within a loop
+      return false;
+    }
+
+    bool pairFound = false;
+    DHSet<TermList>  varArgs;
+    for(unsigned i = 0; i < tp1t->arity(); i++){
+      TermList arg1 = *tp1t->nthArgument(i);
+      TermList arg2 = *tp2t->nthArgument(i);
+      if(!arg1.isVar() || !arg2.isVar() || arg1 == arg2){
+        return false;
+      }
+      if(!varArgs.insert(arg1) || varArgs.insert(arg2)){
+        return false;
+      }
+      if((arg1 ==  x && arg2 == y) || (arg1 ==  y && arg2 == x)){
+        pairFound = true;
+      }
+    }
+    return pairFound;
+  }
+
+  return false;
+
+}
+
+
 bool RapidHelper::isDensityLiteral(Literal* l, unsigned& varFunctor, unsigned& tpFunctor)
 {
   CALL("RapidHelper::isDensityLiteral");

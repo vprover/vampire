@@ -183,7 +183,8 @@ private:
     RAP_MAIN_END,
     RAP_TIME_POINT,
     RAP_CONST_VAR,
-    RAP_PROGRAM_VAR,    
+    RAP_PROGRAM_VAR,
+    RAP_MALLOC,    
     RAP_NONE
   };
 

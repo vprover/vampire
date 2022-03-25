@@ -165,6 +165,8 @@ class Signature
 
     unsigned _constantProgramVar : 1;
 
+    unsigned _malloc : 1;
+
     /** if arrow constructor */
     unsigned _arrow : 1;
     /** if app function symbol */
@@ -216,6 +218,8 @@ class Signature
     void markProgramVar() { _programVar=1; }
     /** mark symbol as representing a constant program variable in Rapid encoding */
     void markConstantProgramVar() { _constantProgramVar=1; }
+    /** mark symbol as malloc function from Rapid encoding */
+    void markMalloc() { _malloc=1; }
 
     /** return true iff symbol is marked as skip for the purpose of symbol elimination */
     bool skip() const { return _skip; }
@@ -267,6 +271,8 @@ class Signature
     inline bool programVar() const { return _programVar; }
 
     inline bool constantProgramVar() const { return _constantProgramVar; }
+
+    inline bool malloc() const { return _malloc; }
 
     /** Increase the usage count of this symbol **/
     inline void incUsageCnt(){ _usageCount++; }

@@ -60,6 +60,17 @@ public:
   static bool isDensityLiteral(Literal* l, unsigned& varFunctor, unsigned& tpFunctor);
   static bool isIntegerComparisonLiteral(Literal* l);
   
+  /** Returns true if the literal is of the form $less(t1, t2) 
+   *  where t1 and t2 are ground. Perhaps update to return true only if
+   *  Skolems? 
+   */
+  static bool maybeDifferentBounds(Literal* l);
+  
+  /** Returns true if clause c is of the form
+   *  malloc(l#(X)) != malloc(l#(Y)) \/ X = Y
+   */
+  static bool mallocsInLoopAreDiffClause(Clause* c);
+
   /** return true if the literal is of the form 
    *  [~]$less(program-var(l#(sK)), numeral)  
    */
