@@ -1248,11 +1248,10 @@ void SMTLIB2::readDeclareNat(const vstring& nat, const vstring& zero, const vstr
   unsigned natSortCon = TPTP::addUninterpretedConstant(nat + "()",_overflow,added);
   ASS(added);
 
-  OperatorType* ot = OperatorType::getConstantsType(Term::superSort());
+  OperatorType* ot = OperatorType::getConstantsType(AtomicSort::superSort());
   env.signature->getFunction(natSortCon)->setType(ot);
   
-  TermList natSort = TermList(Term::createConstant(natSortCon));
-  env.sorts->addSort(natSort);
+  TermList natSort = TermList(AtomicSort::createConstant(natSortCon));
 
   Stack<TermAlgebraConstructor*> constructors;
 
@@ -1274,7 +1273,7 @@ void SMTLIB2::readDeclareNat(const vstring& nat, const vstring& zero, const vstr
   TermStack argSorts;
   argSorts.push(natSort);
   argSorts.push(natSort);
-  auto pair = declareFunctionOrPredicate(less, Term::boolSort(), argSorts);
+  auto pair = declareFunctionOrPredicate(less, AtomicSort::boolSort(), argSorts);
   NatTermAlgebra* nta = new NatTermAlgebra(ta, pair.first);
   env.signature->setNat(nta);
 }

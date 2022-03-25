@@ -18,7 +18,6 @@
 #include "Lib/VString.hpp"
 #include "Kernel/OperatorType.hpp"
 #include "Lib/Metaiterators.hpp"
-#include "Kernel/Sorts.hpp"
 
 #include "Lib/Set.hpp"
 

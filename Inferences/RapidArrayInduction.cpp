@@ -101,7 +101,7 @@ void RapidArrayInduction::createConclusions(ClauseStack& conclusions, bool incre
                                               (increasing ? bound1 : freshVar));
     Literal* l2 = Literal::create2(less, true, (increasing ? freshVar : bound1), 
                                               (increasing ? bound1 : freshVar));
-    Literal* l3 = Literal::createEquality(true, arrAtFirstIt, concRHS, Term::intSort());
+    Literal* l3 = Literal::createEquality(true, arrAtFirstIt, concRHS, AtomicSort::intSort());
 
     Formula* leftOfImp0 = new JunctionFormula(Connective::AND,
                           new FormulaList(new AtomicFormula(l1),
@@ -114,7 +114,7 @@ void RapidArrayInduction::createConclusions(ClauseStack& conclusions, bool incre
 
     l2 = Literal::create2(less, true, (increasing ? freshVar : index), 
                                               (increasing ? index : freshVar));
-    l3 = Literal::createEquality(true, arr, concRHS, Term::intSort());
+    l3 = Literal::createEquality(true, arr, concRHS, AtomicSort::intSort());
 
     Formula* leftOfImp1 = new JunctionFormula(Connective::AND,
                           new FormulaList(new AtomicFormula(l1),
@@ -128,7 +128,7 @@ void RapidArrayInduction::createConclusions(ClauseStack& conclusions, bool incre
 
     l2 = Literal::create2(less, false, (increasing ? index : freshVar ), 
                                         (increasing ? freshVar : index));
-    l3 = Literal::createEquality(true, arrayAtNextIt, concRHS, Term::intSort());
+    l3 = Literal::createEquality(true, arrayAtNextIt, concRHS, AtomicSort::intSort());
 
     Formula* leftOfImp2 = new JunctionFormula(Connective::AND,
                           new FormulaList(new AtomicFormula(l1),
@@ -141,7 +141,7 @@ void RapidArrayInduction::createConclusions(ClauseStack& conclusions, bool incre
 
     l2 = Literal::create2(less, true, (increasing ? freshVar : bound2), 
                                       (increasing ? bound2 : freshVar));
-    l3 = Literal::createEquality(true, arrAtLastIt, concRHS, Term::intSort());
+    l3 = Literal::createEquality(true, arrAtLastIt, concRHS, AtomicSort::intSort());
 
     Formula* leftOfImp3 = new JunctionFormula(Connective::AND,
                           new FormulaList(new AtomicFormula(l1),
@@ -172,7 +172,7 @@ void RapidArrayInduction::createConclusions(ClauseStack& conclusions, bool incre
   {
     Literal* l1 = Literal::create2(less, false, 
       (increasing ?  freshVar : index), (increasing ? index : freshVar));
-    Literal* l2 = Literal::createEquality(true, arr, arrAtFirstIt, Term::intSort());
+    Literal* l2 = Literal::createEquality(true, arr, arrAtFirstIt, AtomicSort::intSort());
 
     Formula* imp1 = new BinaryFormula(Connective::IMP, 
       new AtomicFormula(l1), new AtomicFormula(l2));
@@ -183,7 +183,7 @@ void RapidArrayInduction::createConclusions(ClauseStack& conclusions, bool incre
 
     l1 = Literal::create2(less, false, 
       (increasing ? freshVar : indexAtNextIter), (increasing ? indexAtNextIter : freshVar));
-    l2 = Literal::createEquality(true, arrayAtNextIt, arrAtFirstIt, Term::intSort());
+    l2 = Literal::createEquality(true, arrayAtNextIt, arrAtFirstIt, AtomicSort::intSort());
 
     Formula* imp2 = new BinaryFormula(Connective::IMP, 
       new AtomicFormula(l1), new AtomicFormula(l2));
@@ -193,7 +193,7 @@ void RapidArrayInduction::createConclusions(ClauseStack& conclusions, bool incre
 
     l1 = Literal::create2(less, false, 
       (increasing ? freshVar : index), (increasing ? index : freshVar));
-    l2 = Literal::createEquality(true, arr, arrAtFirstIt, Term::intSort());
+    l2 = Literal::createEquality(true, arr, arrAtFirstIt, AtomicSort::intSort());
 
 
     Formula* leftOfImp = new JunctionFormula(Connective::AND,

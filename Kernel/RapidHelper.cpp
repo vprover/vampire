@@ -20,7 +20,6 @@
 
 #include "Kernel/Clause.hpp"
 #include "Kernel/Signature.hpp"
-#include "Kernel/Sorts.hpp"
 #include "Kernel/Term.hpp"
 #include "Kernel/Theory.hpp"
 #include "Kernel/TermIterators.hpp"

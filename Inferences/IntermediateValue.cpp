@@ -207,7 +207,7 @@ ClauseIterator IntermediateValue::produceConsequences(TermList lhs, TermList rhs
   Literal* cond = 0;
   unsigned l = 1;
   if(env.signature->getFunction(rhs.term()->functor())->integerConstant()){
-    cond = Literal::createEquality(false, rhs, rightLimit, Term::intSort());
+    cond = Literal::createEquality(false, rhs, rightLimit, AtomicSort::intSort());
     l = 2;
   } else if(rhs != rightLimit){
     return ClauseIterator::getEmpty();
@@ -234,7 +234,7 @@ ClauseIterator IntermediateValue::produceConsequences(TermList lhs, TermList rhs
   results.push(conc1);
 
   TermList tl = TermList(Term::create1(f1, TermList(Term::create1(f2, skTm)))); 
-  Literal* lit2 = Literal::createEquality(true, lhs, tl, Term::boolSort());
+  Literal* lit2 = Literal::createEquality(true, lhs, tl, AtomicSort::boolSort());
 
   UnitList* premises2 = UnitList::empty();
   UnitList::push(prem1, premises2);
@@ -252,7 +252,7 @@ ClauseIterator IntermediateValue::produceConsequences(TermList lhs, TermList rhs
   TermList skSucc = natTA->createSucc(skTm);
   tl = TermList(Term::create1(f1, TermList(Term::create1(f2, skSucc))));
 
-  Literal* lit3 = Literal::createEquality(true, lhsPlusOne, tl, Term::boolSort());
+  Literal* lit3 = Literal::createEquality(true, lhsPlusOne, tl, AtomicSort::boolSort());
   UnitList* premises3 = UnitList::empty();
   UnitList::push(prem1, premises3);
   UnitList::push(prem2, premises3);

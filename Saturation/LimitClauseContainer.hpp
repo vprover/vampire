@@ -21,8 +21,6 @@
 
 #include "Forwards.hpp"
 
-#include "Kernel/Sorts.hpp"
-
 #include "Shell/Options.hpp"
 
 #include "Lib/Environment.hpp"
