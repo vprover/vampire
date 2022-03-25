@@ -242,7 +242,7 @@ VI_OBJ = Indexing/AcyclicityIndex.o\
          Indexing/GroundingIndex.o\
          Indexing/Index.o\
          Indexing/IndexManager.o\
-         Indexing/InductionFormulaVariantIndex.o\
+         Indexing/InductionFormulaIndex.o\
          Indexing/LiteralIndex.o\
          Indexing/LiteralMiniIndex.o\
          Indexing/LiteralSubstitutionTree.o\

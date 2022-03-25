@@ -461,6 +461,21 @@ void InductionClauseIterator::processClause(Clause* premise)
   }
 }
 
+/**
+ * This class implements two heuristics for selecting multiple literals for induction.
+ * 1. Induction depth is 0 for all premises, so we should have essentially input
+ *    clauses or their descendants in the induction, directly from the conjecture.
+ *    TODO: AVATAR compoenents also have induction depth 0, this makes the heuristic
+ *          a bit more prolific than intended.
+ * 2. Induction depth is d(>0) for all premises, each premise gives exactly one
+ *    literal to induct on and each literal has the same topmost (non-equality)
+ *    predicate symbol. Additionally, there is one literal p(t1,...t,...,tn) s.t. all
+ *    others are of the form [~]p(t1,...,t',...tn) and t' is a subterm of t.
+ *    The rationale behind this is that many inductions on predicate symbols get stuck
+ *    without the induction hypothesis being applicable, this resolves some of them,
+ *    when we induct on t', getting rid of it in both the conclusion and hypotheses.
+ *    This is mostly useful when t' is not a constant, so we check for that too.
+ */
 struct InductionContextFn
 {
   InductionContextFn(Clause* premise, Literal* lit) : _premise(premise), _lit(lit) {}
@@ -470,8 +485,11 @@ struct InductionContextFn
     lits.insert(_lit);
     InductionContext ctx(arg.first, _lit, _premise);
     auto indDepth = _premise->inference().inductionDepth();
-    if (indDepth && !env.signature->getFunction(arg.first->functor())->arity()) {
-      return ctx;
+    // heuristic 2, check for complex term and non-equality
+    if (indDepth) {
+      if (_lit->isEquality() || !arg.first->arity()) {
+        return ctx;
+      }
     }
     while (arg.second.hasNext()) {
       auto tqr = arg.second.next();
@@ -481,18 +499,13 @@ struct InductionContextFn
         continue;
       }
       lits.insert(tqr.literal);
-      if (_premise == tqr.clause && _lit == tqr.literal) {
-        continue;
-      }
       if (indDepth != tqr.clause->inference().inductionDepth()) {
         continue;
       }
-      // if induction depth is >0, we need further check
+      // The checks inside the if correspond to heuristic 2
       if (indDepth) {
-        if (tqr.clause == _premise) {
-          continue;
-        }
-        if (_lit->functor() != tqr.literal->functor()) {
+        // check for different clauses and same topmost functors
+        if (tqr.clause == _premise || _lit->functor() != tqr.literal->functor()) {
           continue;
         }
         bool match = false;
@@ -503,6 +516,12 @@ struct InductionContextFn
           auto st1 = sti1.next();
           auto st2 = sti2.next();
           if (st1 != st2) {
+            // if the two terms are not equal, we check that
+            // - no other non-equal pair of terms have been processed (match)
+            // - t (st1) contains t' (st2)
+            // TODO: this should be checked the other way around but then we may
+            // have to create multiple induction contexts in this pass
+            // - t' (st2) is not what we would induct on
             if (match || !st1.containsSubterm(st2) || st2.term() != arg.first) {
               match = false;
               break;
@@ -577,20 +596,36 @@ void InductionClauseIterator::processLiteral(Clause* premise, Literal* lit)
       });
     // put clauses from queries into contexts alongside with the given clause and induction term
     auto sideLitsIt2 = iterTraits(getMappingIterator(sideLitsIt, InductionContextFn(premise, lit)))
-      // filter out that have no "induction literal" or not multi-clause
-      .filter([](const InductionContext& arg) {
-        return !arg.isSingleLiteral() && arg.hasInductionLiteral();
+      // filter out the ones without the premise, or only one literal
+      .filter([&premise](const InductionContext& arg) {
+        unsigned cnt = 0;
+        bool hasPremise = false;
+        for (const auto& kv : arg._cls) {
+          if (kv.first == premise) {
+            hasPremise = true;
+          }
+          cnt += kv.second.size();
+        }
+        return hasPremise && cnt > 1;
       });
     // collect contexts for single-literal induction with given clause
     auto indCtxSingle = iterTraits(Set<Term*>::Iterator(ta_terms))
       .map([&lit,&premise](Term* arg) {
         return InductionContext(arg, lit, premise);
-      })
-      .filter([](const InductionContext& arg) {
-        return arg.hasInductionLiteral();
       });
-    // generalize all contexts if needed
     auto indCtxIt = iterTraits(getConcatenatedIterator(sideLitsIt2, indCtxSingle))
+      // filter out the ones without an induction literal
+      .filter([](const InductionContext& arg) {
+        for (const auto& kv : arg._cls) {
+          for (const auto& lit : kv.second) {
+            if (InductionHelper::isInductionLiteral(lit)) {
+              return true;
+            }
+          }
+        }
+        return false;
+      })
+      // generalize all contexts if needed
       .flatMap([](const InductionContext& arg) {
         return vi(new ContextSubsetReplacement(arg, !env.options->inductionGen()));
       });
@@ -603,7 +638,8 @@ void InductionClauseIterator::processLiteral(Clause* premise, Literal* lit)
       static bool three = _opt.structInduction() == Options::StructuralInductionKind::THREE ||
                         _opt.structInduction() == Options::StructuralInductionKind::ALL;
       InferenceRule rule = InferenceRule::INDUCTION_AXIOM;
-      InductionFormulaVariantIndex::Entry* e;
+      InductionFormulaIndex::Entry* e;
+      // generate formulas and add them to index if not done already
       if (_formulaIndex.findOrInsert(ctx, e)) {
         if(one){
           performStructInductionOne(ctx,e,rule);
@@ -615,6 +651,7 @@ void InductionClauseIterator::processLiteral(Clause* premise, Literal* lit)
           performStructInductionThree(ctx,e,rule);
         }
       }
+      // resolve the formulas with the premises
       for (auto& kv : e->get()) {
         resolveClauses(kv.first, ctx, kv.second);
       }
@@ -767,6 +804,19 @@ bool contains(Literal* clit, Term* indTerm, const ClauseToLiteralMap& toResolve)
   return false;
 }
 
+/**
+ * An induction gives back a set of clauses for which it holds that:
+ * - each one contains toResolve many conclusion literals
+ * - for each set of literals in toResolve, there is a corresponding
+ *   set of clauses that differ only in one literal pairwise, and this
+ *   literal is the complement of a literal from the set of toResolve
+ *   after applying subst
+ * These contraints give a partitioning of clauses, where each partition
+ * has a sequence of resolutions with the clauses from context, s.t.
+ * only the literals not in toResolve nor in the conclusion are present
+ * in the resulting clause. We find this partition and return it in form
+ * of a union find structure.
+ */
 IntUnionFind findDistributedVariants(const Stack<Clause*>& clauses, Substitution& subst, InductionContext& context)
 {
   CALL("findDistributedVariants");
@@ -837,9 +887,18 @@ IntUnionFind findDistributedVariants(const Stack<Clause*>& clauses, Substitution
   return uf;
 }
 
+/**
+ * Resolve a set of clauses given by findDistributedVariants with the
+ * clauses from an induction context. The resulting clause can be seen
+ * as the result of a sequence of resolutions and duplicate literal removals.
+ * @param rsubst is for compatibility with default bound integer induction,
+ *               it is stored separately so that we don't have to apply
+ *               substitutions expensively in all cases.
+ */
 Clause* resolveClausesHelper(InductionContext& context, const Stack<Clause*>& cls, IntUnionFind::ElementIterator eIt, Substitution& subst, RobSubstitution* rsubst)
 {
   CALL("resolveClauses");
+  // first create the clause with the required size
   ASS(eIt.hasNext());
   auto cl = cls[eIt.next()];
   unsigned newLength = cl->length();
@@ -860,6 +919,9 @@ Clause* resolveClausesHelper(InductionContext& context, const Stack<Clause*>& cl
   Clause* res = new(newLength) Clause(newLength, inf);
 
   unsigned next = 0;
+#if VDEBUG
+  unsigned cnt = next;
+#endif
   for (unsigned i = 0; i < cl->length(); i++) {
     Literal* curr=(*cl)[i];
     auto clit = SubstHelper::apply<Substitution>(Literal::complementaryLiteral(curr), subst);
@@ -869,8 +931,10 @@ Clause* resolveClausesHelper(InductionContext& context, const Stack<Clause*>& cl
       next++;
     }
   }
+  ASS_EQ(next-cnt,cl->length()-toResolve.size());
 
   for (const auto& kv : toResolve) {
+    ASS(cnt = next);
     for (unsigned i = 0; i < kv.first->length(); i++) {
       bool copyCurr = true;
       for (const auto& lit : kv.second) {
@@ -885,6 +949,7 @@ Clause* resolveClausesHelper(InductionContext& context, const Stack<Clause*>& cl
         next++;
       }
     }
+    ASS_EQ(next-cnt,kv.first->length()-kv.second.size());
   }
   ASS_EQ(next,newLength);
 
@@ -894,11 +959,7 @@ Clause* resolveClausesHelper(InductionContext& context, const Stack<Clause*>& cl
 
 void InductionClauseIterator::resolveClauses(const ClauseStack& cls, InductionContext& context, Substitution& subst, RobSubstitution* rsubst)
 {
-  // It might happen that NewCNF finds all generated clauses tautological
-  if (cls.isEmpty()) {
-    return;
-  }
-
+  ASS(cls.isNonEmpty());
   auto uf = findDistributedVariants(cls, subst, context);
   IntUnionFind::ComponentIterator cit(uf);
   while(cit.hasNext()){
@@ -1073,6 +1134,9 @@ void InductionClauseIterator::performIntInduction(InductionContext& context, Inf
   }
 
   auto cls = produceClauses(hyp, rule, context);
+  if (cls.isEmpty()) {
+    return;
+  }
   resolveClauses(cls, context, subst, isDefaultBound ? &rsubst : nullptr);
 }
 
@@ -1083,7 +1147,7 @@ void InductionClauseIterator::performIntInduction(InductionContext& context, Inf
  * and then force binary resolution on L for each resultant clause
  */
 
-void InductionClauseIterator::performStructInductionOne(InductionContext& context, InductionFormulaVariantIndex::Entry* e, InferenceRule rule)
+void InductionClauseIterator::performStructInductionOne(InductionContext& context, InductionFormulaIndex::Entry* e, InferenceRule rule)
 {
   CALL("InductionClauseIterator::performStructInductionOne"); 
 
@@ -1144,7 +1208,7 @@ void InductionClauseIterator::performStructInductionOne(InductionContext& contex
  * We produce the clause ~L[x] \/ ?y : L[y] & !z (z subterm y -> ~L[z])
  * and perform resolution with lit L[c]
  */
-void InductionClauseIterator::performStructInductionTwo(InductionContext& context, InductionFormulaVariantIndex::Entry* e, InferenceRule rule)
+void InductionClauseIterator::performStructInductionTwo(InductionContext& context, InductionFormulaIndex::Entry* e, InferenceRule rule)
 {
   CALL("InductionClauseIterator::performStructInductionTwo"); 
 
@@ -1226,7 +1290,7 @@ void InductionClauseIterator::performStructInductionTwo(InductionContext& contex
  * i.e. we add a new special predicat that is true when its argument is smaller than Y
  *
  */
-void InductionClauseIterator::performStructInductionThree(InductionContext& context, InductionFormulaVariantIndex::Entry* e, InferenceRule rule)
+void InductionClauseIterator::performStructInductionThree(InductionContext& context, InductionFormulaIndex::Entry* e, InferenceRule rule)
 {
   CALL("InductionClauseIterator::performStructInductionThree");
 

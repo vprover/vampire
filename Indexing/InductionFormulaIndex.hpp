@@ -8,22 +8,21 @@
  * and in the source directory
  */
 /**
- * @file InductionFormulaVariantIndex.hpp
- * Defines class InductionFormulaVariantIndex.
+ * @file InductionFormulaIndex.hpp
+ * Defines class InductionFormulaIndex.
  */
 
 
-#ifndef __InductionFormulaVariantIndex__
-#define __InductionFormulaVariantIndex__
+#ifndef __InductionFormulaIndex__
+#define __InductionFormulaIndex__
 
 #include "Forwards.hpp"
 
 #include "Lib/DHMap.hpp"
-#include "Lib/DHSet.hpp"
+#include "Lib/Stack.hpp"
 
-#include "Shell/Options.hpp"
-
-#include "LiteralSubstitutionTree.hpp"
+#include "Kernel/Clause.hpp"
+#include "Kernel/Substitution.hpp"
 
 namespace Inferences {
   struct InductionContext;
@@ -34,14 +33,24 @@ namespace Indexing {
 using namespace Lib;
 using namespace Kernel;
 
-class InductionFormulaVariantIndex
+class InductionFormulaIndex
 {
 public:
-  InductionFormulaVariantIndex(bool strengthenHyp)
-    : _strengthenHyp(strengthenHyp) {}
-
+  /** Stores clausified induction formulas,
+   * each associated with a substitution that
+   * needs to be applied on conclusion literals
+   * to get the complementary literals stored
+   * in a matching InductionContext.
+   */
   struct Entry {
     void add(ClauseStack&& cls, Substitution&& subst) {
+      if (cls.isEmpty()) {
+        return;
+      }
+      // Each clause is used immediately upon creation but
+      // their memory will be reused by Vampire if their
+      // store is NONE and all their descendants are deleted
+      // due to simplifications, so we change them to active.
       for (const auto& cl : cls) {
         cl->setStore(Clause::ACTIVE);
       }
@@ -56,13 +65,9 @@ public:
 
   bool findOrInsert(const Inferences::InductionContext& context, Entry*& e);
 private:
-  DHMap<Stack<LiteralStack>,Entry> _groundMap;
-  LiteralSubstitutionTree _nonGroundUnits;
-
-  DHMap<TermList,TermList> _blanks;
-  const bool _strengthenHyp;
+  DHMap<Stack<LiteralStack>,Entry> _map;
 };
 
 };
 
-#endif /* __InductionFormulaVariantIndex__ */
+#endif /* __InductionFormulaIndex__ */

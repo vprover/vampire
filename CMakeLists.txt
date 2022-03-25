@@ -358,7 +358,7 @@ set(VAMPIRE_INDEXING_SOURCES
     Indexing/GroundingIndex.cpp
     Indexing/Index.cpp
     Indexing/IndexManager.cpp
-    Indexing/InductionFormulaVariantIndex.cpp
+    Indexing/InductionFormulaIndex.cpp
     Indexing/LiteralIndex.cpp
     Indexing/LiteralMiniIndex.cpp
     Indexing/LiteralSubstitutionTree.cpp
@@ -379,7 +379,7 @@ set(VAMPIRE_INDEXING_SOURCES
     Indexing/GroundingIndex.hpp
     Indexing/Index.hpp
     Indexing/IndexManager.hpp
-    Indexing/InductionFormulaVariantIndex.hpp
+    Indexing/InductionFormulaIndex.hpp
     Indexing/LiteralIndex.hpp
     Indexing/LiteralIndexingStructure.hpp
     Indexing/LiteralMiniIndex.hpp

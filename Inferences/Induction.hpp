@@ -20,7 +20,7 @@
 
 #include "Forwards.hpp"
 
-#include "Indexing/InductionFormulaVariantIndex.hpp"
+#include "Indexing/InductionFormulaIndex.hpp"
 #include "Indexing/LiteralIndex.hpp"
 #include "Indexing/TermIndex.hpp"
 
@@ -101,36 +101,17 @@ struct InductionContext {
     insert(cl, l);
   }
 
-  static void insert(ClauseToLiteralMap& cls, Clause* cl, Literal* lit) {
-    // this constructs an empty inner map if cl is not yet mapped
-    auto node = cls.emplace(cl, LiteralStack()).first;
-    node->second.push(lit);
-  }
-
   void insert(Clause* cl, Literal* lit) {
-    insert(_cls, cl, lit);
+    // this constructs an empty inner map if cl is not yet mapped
+    auto node = _cls.emplace(cl, LiteralStack()).first;
+    node->second.push(lit);
   }
 
   Formula* getFormula(TermList r, bool opposite, Substitution* subst = nullptr);
   Formula* getFormulaWithSquashedSkolems(TermList r, bool opposite, unsigned& var,
     VList** varList = nullptr, Substitution* subst = nullptr);
-  bool isSingleLiteral() const {
-    if (_cls.size() > 1) {
-      return false;
-    }
-    return _cls.begin()->second.size() == 1;
-  }
-  bool hasInductionLiteral() const {
-    for (const auto& kv : _cls) {
-      for (const auto& lit : kv.second) {
-        if (InductionHelper::isInductionLiteral(lit)) {
-          return true;
-        }
-      }
-    }
-    return false;
-  }
 
+#if VDEBUG
   vstring toString() const {
     vstringstream str;
     str << *_indTerm << endl;
@@ -142,6 +123,7 @@ struct InductionContext {
     }
     return str.str();
   }
+#endif
 
   Term* _indTerm = nullptr;
   ClauseToLiteralMap _cls;
@@ -180,8 +162,6 @@ public:
   CLASS_NAME(Induction);
   USE_ALLOCATOR(Induction);
 
-  Induction(bool strengthenHyp = false) : _formulaIndex(strengthenHyp) {}
-
   void attach(SaturationAlgorithm* salg) override;
   void detach() override;
 
@@ -199,7 +179,7 @@ private:
   LiteralIndex* _comparisonIndex = nullptr;
   TermIndex* _inductionTermIndex = nullptr;
   TermIndex* _structInductionTermIndex = nullptr;
-  InductionFormulaVariantIndex _formulaIndex;
+  InductionFormulaIndex _formulaIndex;
 };
 
 class InductionClauseIterator
@@ -207,7 +187,7 @@ class InductionClauseIterator
 public:
   // all the work happens in the constructor!
   InductionClauseIterator(Clause* premise, InductionHelper helper, const Options& opt,
-    TermIndex* structInductionTermIndex, InductionFormulaVariantIndex& formulaIndex)
+    TermIndex* structInductionTermIndex, InductionFormulaIndex& formulaIndex)
       : _helper(helper), _opt(opt), _structInductionTermIndex(structInductionTermIndex),
       _formulaIndex(formulaIndex)
   {
@@ -249,9 +229,9 @@ private:
 
   void performIntInduction(InductionContext& context, InferenceRule rule, bool increasing, const TermQueryResult& bound1, TermQueryResult* optionalBound2);
 
-  void performStructInductionOne(InductionContext& context, InductionFormulaVariantIndex::Entry* e, InferenceRule rule);
-  void performStructInductionTwo(InductionContext& context, InductionFormulaVariantIndex::Entry* e, InferenceRule rule);
-  void performStructInductionThree(InductionContext& context, InductionFormulaVariantIndex::Entry* e, InferenceRule rule);
+  void performStructInductionOne(InductionContext& context, InductionFormulaIndex::Entry* e, InferenceRule rule);
+  void performStructInductionTwo(InductionContext& context, InductionFormulaIndex::Entry* e, InferenceRule rule);
+  void performStructInductionThree(InductionContext& context, InductionFormulaIndex::Entry* e, InferenceRule rule);
 
   bool notDoneInt(Literal* lit, Term* t, bool increasing, Term* bound1, Term* optionalBound2, bool fromComparison);
 
@@ -259,7 +239,7 @@ private:
   InductionHelper _helper;
   const Options& _opt;
   TermIndex* _structInductionTermIndex;
-  InductionFormulaVariantIndex& _formulaIndex;
+  InductionFormulaIndex& _formulaIndex;
 };
 
 };
