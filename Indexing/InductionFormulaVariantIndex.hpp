@@ -40,10 +40,23 @@ public:
   InductionFormulaVariantIndex(bool strengthenHyp)
     : _strengthenHyp(strengthenHyp) {}
 
-  bool findOrInsert(const Inferences::InductionContext& context);
+  struct Entry {
+    void add(ClauseStack&& cls, Substitution&& subst) {
+      for (const auto& cl : cls) {
+        cl->setStore(Clause::ACTIVE);
+      }
+      _st.push(make_pair(cls, subst));
+    }
+    const Stack<pair<ClauseStack,Substitution>> get() const {
+      return _st;
+    }
+  private:
+    Stack<pair<ClauseStack,Substitution>> _st;
+  };
 
+  bool findOrInsert(const Inferences::InductionContext& context, Entry*& e);
 private:
-  DHSet<Stack<LiteralStack>> _groundMap;
+  DHMap<Stack<LiteralStack>,Entry> _groundMap;
   LiteralSubstitutionTree _nonGroundUnits;
 
   DHMap<TermList,TermList> _blanks;

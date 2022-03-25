@@ -387,6 +387,7 @@ TEST_GENERATION_INDUCTION(test_11,
     )
 
 // "same induction" (i.e. generalized literal is same) is not done twice
+// but resulting clauses are resolved with both literals
 //
 // TODO: this should be done with two inputs rather than with a non-unit clause
 TEST_GENERATION_INDUCTION(test_12,
@@ -397,6 +398,9 @@ TEST_GENERATION_INDUCTION(test_12,
       .expected({
         clause({ b != g(b), x == g(x), sK2 != g(sK2) }),
         clause({ b != g(b), r(x) != g(r(x)), sK2 != g(sK2) }),
+
+        clause({ b != g(b), x == g(x), sK1 != g(sK1) }),
+        clause({ b != g(b), r(x) != g(r(x)), sK1 != g(sK1) }),
       })
     )
 
@@ -618,10 +622,10 @@ TEST_GENERATION_INDUCTION(test_21,
         clause({ ~p(b), ~p1(b), p1(z) }),
         clause({ ~p(b), ~p1(b), ~p(r(z)), ~p1(r(z)) }),
 
-        // // sK1, both literals, triggered by ~p1(sK1)
-        // clause({ ~p(b), ~p1(b), p(x3) }),
-        // clause({ ~p(b), ~p1(b), p1(x3) }),
-        // clause({ ~p(b), ~p1(b), ~p(r(x3)), ~p1(r(x3)) }),
+        // sK1, both literals, triggered by ~p1(sK1) (same as above)
+        clause({ ~p(b), ~p1(b), p(z) }),
+        clause({ ~p(b), ~p1(b), p1(z) }),
+        clause({ ~p(b), ~p1(b), ~p(r(z)), ~p1(r(z)) }),
       })
     )
 
