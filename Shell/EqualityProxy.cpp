@@ -334,7 +334,13 @@ unsigned EqualityProxy::getProxyPredicate()
   Literal* proxyLit = Literal::create(newPred, 3, true, false, args.begin());
   Literal* eqLit = Literal::createEquality(true,var1,var2,sort);
   Formula* defForm = new BinaryFormula(IFF, new AtomicFormula(proxyLit), new AtomicFormula(eqLit));
-  Formula* quantDefForm = Formula::quantify(defForm);
+
+  VList* varLst = VList::empty();
+  VList::push(2, varLst);
+  VList::push(1, varLst);
+  VList::push(0, varLst); //order is important, the sort var must be first!
+
+  Formula* quantDefForm = new QuantifiedFormula(FORALL, varLst, 0, defForm); 
 
   _defUnit = new FormulaUnit(quantDefForm,NonspecificInference0(UnitInputType::AXIOM,InferenceRule::EQUALITY_PROXY_AXIOM1));
 

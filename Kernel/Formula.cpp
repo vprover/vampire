@@ -776,6 +776,13 @@ Formula* Formula::createLet(unsigned predicate, VList* variables, Formula* body,
 
 Formula* Formula::quantify(Formula* f)
 {
+  // Ahmed : this function is not safe for polymorphism,
+  // since it quantifies over the variables in any order.
+  // In the presence of polymorphic types, we require that type variables
+  // appear first in the quantifier list since the sort of term variables
+  // could include those types!
+  // TODO make this function poly safe by finding the sorts of variables 
+  // and palcing those of type $tType at the front of the list.
   Set<unsigned> vars;
   FormulaVarIterator fvit( f );
   while(fvit.hasNext()) {
