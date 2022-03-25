@@ -248,13 +248,13 @@ Ordering::Result Ordering::getEqualityArgumentOrder(Literal* eq) const
 
   Result res;
   ArgumentOrderVals precomputed = static_cast<ArgumentOrderVals>(eq->getArgumentOrderValue());
-  if(precomputed!=0) {
+  if(precomputed!=AO_UNKNOWN) {
     res = static_cast<Result>(precomputed);
     ASS_EQ(res, compare(*eq->nthArgument(0), *eq->nthArgument(1)));
   }
   else {
     res = compare(*eq->nthArgument(0), *eq->nthArgument(1));
-    eq->setArgumentOrderValue(res);
+    eq->setArgumentOrderValue(static_cast<ArgumentOrderVals>(res));
   }
   return res;
 }

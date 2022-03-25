@@ -18,10 +18,6 @@
 #ifndef __Term__
 #define __Term__
 
-#include <cstdlib>
-#include <iosfwd>
-#include <utility>
-
 #include "Forwards.hpp"
 #include "Debug/Assertion.hpp"
 #include "Debug/Tracer.hpp"
@@ -31,13 +27,11 @@
 #include "Lib/Comparison.hpp"
 #include "Lib/Stack.hpp"
 #include "Lib/Metaiterators.hpp"
-#include "Lib/VString.hpp"
 
 #define TERM_DIST_VAR_UNKNOWN 0x3FFFFF
 
 namespace Kernel {
 
-using namespace std;
 using namespace Lib;
 
 /** Tag denoting the kind of this term
@@ -52,6 +46,28 @@ enum TermTag {
   FUN = 2u,
   /** special variable */
   SPEC_VAR = 3u,
+};
+
+enum ArgumentOrderVals {
+  /**
+   * Values representing order of arguments in equality,
+   * to be stores in the term sharing structure.
+   *
+   * The important thing is that the UNKNOWN value is
+   * equal to 0, as this will be the default value inside
+   * the term objects
+   *
+   * Values of elements must be equal to values of corresponding elements
+   * in the @c Result enum, so that one can convert between the
+   * enums using static_cast.
+   */
+  AO_UNKNOWN=0,
+  AO_GREATER=1,
+  AO_LESS=2,
+  AO_GREATER_EQ=3,
+  AO_LESS_EQ=4,
+  AO_EQUAL=5,
+  AO_INCOMPARABLE=6,
 };
 
 bool operator<(const TermList& lhs, const TermList& rhs);
@@ -149,7 +165,6 @@ public:
   bool isApplication() const;
   bool containsSubterm(TermList v);
   bool containsAllVariablesOf(TermList t);
-  bool containsAllVariableOccurrencesOf(TermList t);
 
   bool isSafe() const;
 
@@ -176,6 +191,17 @@ private:
     /** raw content, can be anything */
     size_t _content;
     /** Used by Term, storing some information about the term using bits */
+    /*
+     * A note from 2022: the following bitfield is somewhat non-portable.
+     * Also `tag` is assumed to be here, but apparently always set to FUN,
+     * which is weird but hard to remove safely.
+     * I'm leaving it as-is for now because of the bugs changing it might introduce,
+     * but a better solution long-term would be something like a struct wrapping a `uint32_t`,
+     * with bits twiddled manually in getters/setters.
+     * ---
+     * However, if compiling this on a non-x86ish architecture (or even a new compiler)
+     * produces "unexpected results" in the vicinity of terms, then I'd look here first!
+     */
     struct {
       /** tag, always FUN */
       unsigned tag : 2;
@@ -193,12 +219,14 @@ private:
        * 0 (unknown) 1 (less), 2 (equal), 3 (greater), 4 (incomparable)
        * @see Term::ArgumentOrder */
       unsigned order : 3;
-      /** Number of distincs variables in the term, equal
+      static_assert(AO_INCOMPARABLE < 8, "must be able to squash this into 3 bits");
+      /** Number of distinct variables in the term, equal
        * to TERM_DIST_VAR_UNKNOWN if the number has not been
        * computed yet. */
       mutable unsigned distinctVars : 22;
-      /** reserved for whatever */
 #if ARCH_X64
+      /** reserved for whatever */
+      // ^ not exactly: note that this cannot be removed, otherwise the bitfield layout might shift
       unsigned reserved : 32;
 #endif
     } _info;
@@ -243,11 +271,7 @@ public:
       struct {
         unsigned functor;
         VList* variables;
-	//The size_t stands for TermList expression which cannot be here
-	//since C++ does not allow objects with constructor inside a union
-  //Above comment doesn't hold in C++11
-  //https://www.stroustrup.com/C++11FAQ.html#unions
-        size_t binding;
+        TermList binding;
         TermList sort;
       } _letData;
       struct {
@@ -259,7 +283,7 @@ public:
       struct {
         unsigned functor;
         VList* symbols;
-        size_t binding;
+        TermList binding;
         TermList sort;
       } _letTupleData;
       struct {
@@ -561,19 +585,6 @@ public:
 
   static TermIterator getVariableIterator(TermList tl);
 
-//  static Comparison lexicographicCompare(TermList t1, TermList t2);
-//  static Comparison lexicographicCompare(Term* t1, Term* t2);
-
-  /** If number of distinct variables is computed, assign it to res and
-   * return true, otherwise return false. */
-  bool askDistinctVars(unsigned& res) const
-  {
-    if(_args[0]._info.distinctVars==TERM_DIST_VAR_UNKNOWN) {
-      return false;
-    }
-    res=_args[0]._info.distinctVars;
-    return true;
-  }
   unsigned getDistinctVars() const
   {
     if(_args[0]._info.distinctVars==TERM_DIST_VAR_UNKNOWN) {
@@ -657,9 +668,9 @@ protected:
    *
    * Currently, this function is used only by @c Ordering::getEqualityArgumentOrder().
    */
-  int getArgumentOrderValue() const
+  ArgumentOrderVals getArgumentOrderValue() const
   {
-    return _args[0]._info.order;
+    return static_cast<ArgumentOrderVals>(_args[0]._info.order);
   }
 
   /**
@@ -669,11 +680,11 @@ protected:
    *
    * Currently, this function is used only by @c Ordering::getEqualityArgumentOrder().
    */
-  void setArgumentOrderValue(int val)
+  void setArgumentOrderValue(ArgumentOrderVals val)
   {
     CALL("Term::setArgumentOrderValue");
-    ASS_GE(val,0);
-    ASS_L(val,8);
+    ASS_GE(val,AO_UNKNOWN);
+    ASS_LE(val,AO_INCOMPARABLE);
 
     _args[0]._info.order = val;
   }
@@ -708,18 +719,6 @@ protected:
    */
   TermList _args[1];
 
-
-//   /** set all boolean fields to false and weight to 0 */
-//   void initialise()
-//   {
-//     shared = 0;
-//       ground = 0;
-//       weight = 0;
-//     }
-//   };
-
-//   Comparison compare(const Term* t) const;
-//   void argsWeight(unsigned& total) const;
   friend class TermList;
   friend class Indexing::TermSharing;
   friend class Ordering;
