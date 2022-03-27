@@ -59,6 +59,7 @@ private:
   struct ForwardResultFn;
 
   struct NegEqSortFn;
+  struct LessThanLitFn;
   struct BackwardPairingFn;
   struct BackwardUnificationsFn;
   struct BackwardResultFn;

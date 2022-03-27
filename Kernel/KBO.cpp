@@ -877,7 +877,7 @@ bool KboSpecialWeights<FuncSigTraits>::tryGetWeight(unsigned functor, unsigned& 
   if (gsh && sym->skolem() && sym->inGoal())     
      { weight = _bigRapidWeight; return true; }
   if (sym->constantProgramVar()) { weight = _bigRapidWeight; return true; }
-  if (sym->timePoint())        { weight = functor * 2; return true; }  
+//  if (sym->timePoint())        { weight = functor * 2; return true; }  
   if (sym->integerConstant())  { weight = _numInt;  return true; }
   if (sym->rationalConstant()) { weight = _numRat;  return true; }
   if (sym->realConstant())     { weight = _numReal; return true; }

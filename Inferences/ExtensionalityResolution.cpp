@@ -25,6 +25,7 @@
 #include "Kernel/RobSubstitution.hpp"
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/ColorHelper.hpp"
+#include "Kernel/RapidHelper.hpp"
 
 #include "Saturation/SaturationAlgorithm.hpp"
 
@@ -49,17 +50,24 @@ using namespace Saturation;
  */
 struct ExtensionalityResolution::ForwardPairingFn
 {
-  ForwardPairingFn (ExtensionalityClauseContainer* extClauses)
-  : _extClauses(extClauses) {}
+  ForwardPairingFn (Clause* prem, ExtensionalityClauseContainer* extClauses)
+  : _prem(prem), _extClauses(extClauses) {}
   VirtualIterator<pair<Literal*, ExtensionalityClause> > operator()(Literal* lit)
   {
     CALL("ExtensionalityResolution::ForwardPairingFn::operator()");
     
-    if (!lit->isEquality() || lit->isPositive()) {
+    bool mal = env.options->extensionalityResolution() == Options::ExtensionalityResolution::MALLOC;
+
+    if(mal && (_prem->length() > 1 || !RapidHelper::maybeDifferentBounds(lit))){
+      return VirtualIterator<pair<Literal*, ExtensionalityClause> >::getEmpty();      
+    }
+
+    if (!mal && (!lit->isEquality() || lit->isPositive())) {
       return VirtualIterator<pair<Literal*, ExtensionalityClause> >::getEmpty();
     }
 
-    TermList s = SortHelper::getEqualityArgumentSort(lit);
+    TermList s = mal ? AtomicSort::intSort() :
+      SortHelper::getEqualityArgumentSort(lit);
     
     return pvi(
       pushPairIntoRightIterator(
@@ -67,6 +75,7 @@ struct ExtensionalityResolution::ForwardPairingFn
         _extClauses->activeIterator(s)));
   }
 private:
+  Clause* _prem;
   ExtensionalityClauseContainer* _extClauses;
 };
 
@@ -81,7 +90,12 @@ struct ExtensionalityResolution::ForwardUnificationsFn
   {
     CALL("ExtensionalityResolution::ForwardUnificationsFn::operator()");
     
-    Literal* trmEq = arg.first;
+    bool mal = env.options->extensionalityResolution() == Options::ExtensionalityResolution::MALLOC;
+
+    Literal* lit = arg.first;
+
+    Literal* trmEq = !mal ? lit :
+      Literal::createEquality(false, *lit->nthArgument(0), *lit->nthArgument(1), AtomicSort::intSort());
     Literal* varEq = arg.second.literal;
 
     SubstIterator unifs = _subst->unifiers(varEq,0,trmEq,1,true);
@@ -137,6 +151,17 @@ private:
   TermList _sort;
 };
 
+struct ExtensionalityResolution::LessThanLitFn
+{
+  LessThanLitFn () {}
+  bool operator()(Literal* lit)
+  {
+    CALL("ExtensionalityResolution::LessThanLitFn::operator()");
+    
+    return RapidHelper::maybeDifferentBounds(lit);
+  }
+};
+
 /**
  * Functor for filtering selected negative literals of particular sort (the sort
  * of the given extensionality clause) in active clauses.
@@ -148,11 +173,12 @@ struct ExtensionalityResolution::BackwardPairingFn
   {
     CALL("ExtensionalityResolution::BackwardPairingFn::operator()");
     
-    return pvi(pushPairIntoRightIterator(
-        cl,
-        getFilteredIterator(
-          cl->getSelectedLiteralIterator(),
-          NegEqSortFn(_sort))));
+    bool mal = env.options->extensionalityResolution() == Options::ExtensionalityResolution::MALLOC;
+    
+    auto it1 = cl->getSelectedLiteralIterator();
+    auto it2 = mal ? pvi(getFilteredIterator(it1, LessThanLitFn())) :
+                        pvi(getFilteredIterator(it1, NegEqSortFn(_sort)));
+    return pvi(pushPairIntoRightIterator(cl, it2));
   }
 private:
   TermList _sort;
@@ -170,8 +196,14 @@ struct ExtensionalityResolution::BackwardUnificationsFn
   VirtualIterator<pair<pair<Clause*, Literal*>, RobSubstitution*> > operator()(pair<Clause*, Literal*> arg)
   {
     CALL("ExtensionalityResolution::BackwardUnificationsFn::operator()");
+
+    bool mal = env.options->extensionalityResolution() == Options::ExtensionalityResolution::MALLOC;
     
-    Literal* otherLit = arg.second;
+    Literal* lit = arg.second;
+    // In the malloc case, we take a literal of the form $less(t1, t2) and
+    // turn it into t1 != t2
+    Literal* otherLit = !mal ? lit :
+      Literal::createEquality(false, *lit->nthArgument(0), *lit->nthArgument(1), AtomicSort::intSort());
     
     SubstIterator unifs = _subst->unifiers(_extLit,0,otherLit,1,true);
     if (!unifs.hasNext()) {
@@ -309,7 +341,7 @@ ClauseIterator ExtensionalityResolution::generateClauses(Clause* premise)
   // For each selected negative equality in given clause, find all
   // active extensionality clauses of same sort.
   // Elements: <literal,extClause>
-  auto it1 = getMapAndFlattenIterator(premise->getSelectedLiteralIterator(),ForwardPairingFn(extClauses));
+  auto it1 = getMapAndFlattenIterator(premise->getSelectedLiteralIterator(),ForwardPairingFn(premise, extClauses));
 
   // For each <literal,extClause> pair, we get 2 substitutions (by
   // unifying literal and extClause.literal, i.e. the variable equality in

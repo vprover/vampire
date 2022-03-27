@@ -69,7 +69,7 @@ public:
   /** Returns true if clause c is of the form
    *  malloc(l#(X)) != malloc(l#(Y)) \/ X = Y
    */
-  static bool mallocsInLoopAreDiffClause(Clause* c);
+  static bool mallocClause(Clause* c);
 
   /** return true if the literal is of the form 
    *  [~]$less(program-var(l#(sK)), numeral)  

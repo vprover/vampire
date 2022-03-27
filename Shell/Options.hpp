@@ -568,7 +568,8 @@ public:
     FILTER = 0,
     KNOWN = 1,
     TAGGED = 2,
-    OFF = 3
+    MALLOC = 3,
+    OFF = 4
   };
 
   enum class SplittingLiteralPolarityAdvice : unsigned int {

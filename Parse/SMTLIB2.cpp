@@ -165,7 +165,7 @@ void SMTLIB2::readBenchmark(LExprList* bench)
     bool mallocFunDeclared = ibRdr.tryAcceptAtom("declare-malloc-func");
 
     if(timePointDeclared || lemmaPredicateDeclared || constVarDeclared ||
-       finalLoopCountDeclared || programVarDeclared){
+       finalLoopCountDeclared || programVarDeclared || mallocFunDeclared){
       vstring name = ibRdr.readAtom();
       LExprList* iSorts;
       if(!ibRdr.tryReadList(iSorts)){

@@ -1482,7 +1482,7 @@ void Options::init()
     _extensionalityMaxLength.setRandomChoices({"0","0","0","2","3"}); // TODO what are good values?
 
     _extensionalityResolution = ChoiceOptionValue<ExtensionalityResolution>("extensionality_resolution","er",
-                      ExtensionalityResolution::OFF,{"filter","known","tagged","off"});
+                      ExtensionalityResolution::OFF,{"filter","known","tagged","malloc", "off"});
     _extensionalityResolution.description=
       "Turns on the following inference rule:\n"
       "  x=y \\/ C    s != t \\/ D\n"
@@ -1491,7 +1491,8 @@ void Options::init()
       "Where s!=t is selected in s!=t \\/D and x=y \\/ C is a recognised as an extensionality clause - how clauses are recognised depends on the value of this option.\n"
       "If filter we attempt to recognise all extensionality clauses i.e. those that have exactly one X=Y, no inequality of the same sort as X-Y (and optionally no equality except X=Y, see extensionality_allow_pos_eq).\n"
       "If known we only recognise a known set of extensionality clauses. At the moment this includes the standard and subset-based formulations of the set extensionality axiom, as well as the array extensionality axiom.\n"
-      "If tagged we only use formulas tagged as extensionality clauses.";
+      "If tagged we only use formulas tagged as extensionality clauses.\n"
+      "If malloc the only extensionality clauses that we recognise are those of the form malloc(l#(X)) != malloc(l#(Y)) \\/ X = Y";      
     _lookup.insert(&_extensionalityResolution);
     _extensionalityResolution.tag(OptionTag::INFERENCES);
     // Captures that if ExtensionalityResolution is not off then inequality splitting must be 0

@@ -55,21 +55,23 @@ bool RapidHelper::isIntegerComparisonLiteral(Literal* lit) {
 bool RapidHelper::maybeDifferentBounds(Literal* l) {
   CALL("RapidHelper::maybeDifferentBounds");
 
-  if(theory->isInterpretedPredicate(l, Theory::INT_LESS)){
+  if(l->isPositive() && theory->isInterpretedPredicate(l, Theory::INT_LESS)){
     TermList t1 = *l->nthArgument(0);
     TermList t2 = *l->nthArgument(1);
     if(t1.isTerm() && t1.term()->ground() &&
-       t2.isTerm() && t2.term()->ground()){
+       env.signature->getFunction(t1.term()->functor())->skolem() &&
+       t2.isTerm() && t2.term()->ground() &&
+       env.signature->getFunction(t2.term()->functor())->skolem() ){
       return true;
     }
   }
   return false;
 }
 
-bool RapidHelper::mallocsInLoopAreDiffClause(Clause* c) {
-  CALL("RapidHelper::mallocsInLoopAreDiffClause");
+bool RapidHelper::mallocClause(Clause* c) {
+  CALL("RapidHelper::mallocClause");
 
-  auto isMallocOrMallocPlusIntConst = [](TermList t, Term* mallocTerm) {
+  auto isMallocOrMallocPlusIntConst = [](TermList t, Term*& mallocTerm) {
     if(t.isVar()){ return false; }
     Term* tt = t.term();
     if(env.signature->getFunction(tt->functor())->malloc()){
@@ -130,12 +132,14 @@ bool RapidHelper::mallocsInLoopAreDiffClause(Clause* c) {
   if(isMallocOrMallocPlusIntConst(t1, malloct1) && isMallocOrMallocPlusIntConst(t2, malloct2)){
     ASS(malloct1 && malloct2);
     TermList tp1 = *malloct1->nthArgument(0);
-    TermList tp2 = *malloct2->nthArgument(1);
-    
+    TermList tp2 = *malloct2->nthArgument(0);
+
     if(tp1.isVar() || tp2.isVar()){ return false; }
     Term* tp1t = tp1.term();
     Term* tp2t = tp2.term();
-    if(!env.signature->getFunction(tp1t->functor())->timePoint() || 
+
+    auto fun = env.signature->getFunction(tp1t->functor());
+    if(!fun->timePoint() || 
        tp1t->functor() != tp2t->functor() || !tp1t->arity()){
       // not the same timepoint or not a timepoint within a loop
       return false;
@@ -149,7 +153,7 @@ bool RapidHelper::mallocsInLoopAreDiffClause(Clause* c) {
       if(!arg1.isVar() || !arg2.isVar() || arg1 == arg2){
         return false;
       }
-      if(!varArgs.insert(arg1) || varArgs.insert(arg2)){
+      if(!varArgs.insert(arg1) || !varArgs.insert(arg2)){
         return false;
       }
       if((arg1 ==  x && arg2 == y) || (arg1 ==  y && arg2 == x)){

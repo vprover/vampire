@@ -57,6 +57,7 @@ public:
     _maxLen(opt.extensionalityMaxLength()),
     _allowPosEq(opt.extensionalityAllowPosEq())
   {
+    _mallocCls = (opt.extensionalityResolution() == Options::ExtensionalityResolution::MALLOC);
     _onlyKnown = (opt.extensionalityResolution() == Options::ExtensionalityResolution::KNOWN);
     _onlyTagged = (opt.extensionalityResolution() == Options::ExtensionalityResolution::TAGGED);
   }
@@ -72,7 +73,7 @@ private:
   struct ActiveFilterFn;
 
   unsigned _size;
-  
+  bool _mallocCls;
   bool _onlyKnown;
   bool _onlyTagged;
   unsigned _maxLen;

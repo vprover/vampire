@@ -10,6 +10,7 @@
 #include "Kernel/Clause.hpp"
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/Term.hpp"
+#include "Kernel/RapidHelper.hpp"
 
 #include "Shell/Statistics.hpp"
 #include "Shell/TheoryFinder.hpp"
@@ -47,7 +48,14 @@ Literal* ExtensionalityClauseContainer::addIfExtensionality(Clause* c) {
   Literal* varEq = 0;
   TermList sort;
 
-  if (_onlyKnown) {
+  if(_mallocCls) {
+    //TODO use TheoryFinder instead?
+    if(!RapidHelper::mallocClause(c))
+      return 0;
+
+    varEq = getSingleVarEq(c);
+    sort = varEq->twoVarEqSort(); //always going to be Int
+  } else if (_onlyKnown) {
     // We only match agains specific extensionality axiom patterns (e.g. set,
     // array, ...).
     if(!TheoryFinder::matchKnownExtensionality(c))
@@ -121,7 +129,7 @@ Literal* ExtensionalityClauseContainer::getSingleVarEq(Clause* c) {
 
 void ExtensionalityClauseContainer::add(ExtensionalityClause c) {
   CALL("ExtensionalityClauseContainer::add");
-  
+
   ExtensionalityClauseList** l;
   _clausesBySort.getValuePtr(c.sort,l,ExtensionalityClauseList::empty());
   ExtensionalityClauseList::push(c,*l);
