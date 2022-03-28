@@ -776,13 +776,10 @@ Formula* Formula::createLet(unsigned predicate, VList* variables, Formula* body,
 
 Formula* Formula::quantify(Formula* f)
 {
-  // Ahmed : this function is not safe for polymorphism,
-  // since it quantifies over the variables in any order.
-  // In the presence of polymorphic types, we require that type variables
-  // appear first in the quantifier list since the sort of term variables
-  // could include those types!
-  // TODO make this function poly safe by finding the sorts of variables 
-  // and palcing those of type $tType at the front of the list.
+
+  DHMap<unsigned,TermList> tMap;
+  SortHelper::collectVariableSorts(f,tMap);
+
   Set<unsigned> vars;
   FormulaVarIterator fvit( f );
   while(fvit.hasNext()) {
@@ -791,12 +788,23 @@ Formula* Formula::quantify(Formula* f)
 
   //we have to quantify the formula
   VList* varLst = VList::empty();
+  VList::FIFO quantifiedVars(varLst);
+
   Set<unsigned>::Iterator vit(vars);
   while(vit.hasNext()) {
-    VList::push(vit.next(), varLst);
+    unsigned v = vit.next();
+    TermList t;
+    ALWAYS(tMap.find(v,t));
+    if(t.isTerm() && t.term()->isSuper()){
+      // type variable must appear at the start of the list
+      quantifiedVars.pushFront(v);
+    } else {
+      quantifiedVars.pushBack(v);
+    }
   }
   if(varLst) {
     //TODO could compute the sorts list, but don't want to!
+    // Ahmed: now that we actually collect the sorts, should we add?
     f=new QuantifiedFormula(FORALL, varLst, 0, f);
   }
   return f;
@@ -819,25 +827,7 @@ Formula* Formula::fromClause(Clause* cl)
   }
 
   Formula* res=JunctionFormula::generalJunction(OR, resLst);
-  
-  Set<unsigned> vars;
-  FormulaVarIterator fvit( res );
-  while(fvit.hasNext()) {
-    vars.insert(fvit.next());
-  }
-
-  //we have to quantify the formula
-  VList* varLst = VList::empty();
-  Set<unsigned>::Iterator vit(vars);
-  while(vit.hasNext()) {
-    VList::push(vit.next(), varLst);
-  }
-  if(varLst) {
-    //TODO could compute the sorts list, but don't want to!
-    res=new QuantifiedFormula(FORALL, varLst, 0, res);
-  }
-
-  return res;
+  return Formula::quantify(res);
 }
 
 /*
