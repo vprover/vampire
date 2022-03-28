@@ -16,6 +16,7 @@
  */
 
 #include <cmath>
+#include <climits>
 
 #include "Kernel/Term.hpp"
 #include "Kernel/Unit.hpp"
@@ -56,7 +57,7 @@ FiniteModel::FiniteModel(unsigned size) : _size(size), _isPartial(false)
   // see addFunctionDefinition for how the offset is used to compute
   // the actual index
   unsigned offsets=1;
-  for(unsigned f=0; f<env.signature->functions();f++){
+  for(unsigned f=0; f<env.signature->functions(); f++){
     unsigned arity=env.signature->functionArity(f);
     f_offsets[f]=offsets;
     unsigned add = pow(size,arity+1);
@@ -523,7 +524,7 @@ bool FiniteModel::evaluate(Formula* formula,unsigned depth)
      isForall = true;
     case EXISTS:
     {
-     Formula::VarList* vs = formula->vars();
+     VList* vs = formula->vars();
      int var = vs->head();
 
      //cout << "Quant " << isForall << " with " << var << endl;
@@ -621,7 +622,7 @@ bool FiniteModel::evaluate(Formula* formula,unsigned depth)
                 case FORALL:
                 case EXISTS:
             {
-                Formula::VarList* vs = formula->vars();
+                VList* vs = formula->vars();
                 Formula* inner  = formula->qarg();
                 Formula* newInner = partialEvaluate(inner);
                 return new QuantifiedFormula(formula->connective(),vs,0,newInner);

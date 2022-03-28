@@ -8,14 +8,13 @@
  * and in the source directory
  */
 
+#include <climits>
+
 #include "Lib/ArrayMap.hpp"
 #include "Lib/DynamicHeap.hpp"
 #include "Lib/Int.hpp"
 
 #include "Test/UnitTesting.hpp"
-
-#define UNIT_ID dheap
-UT_CREATE;
 
 using namespace std;
 using namespace Lib;

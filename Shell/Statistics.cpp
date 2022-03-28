@@ -28,11 +28,6 @@
 
 #include "Saturation/SaturationAlgorithm.hpp"
 
-#if GNUMP
-#include "Kernel/Assignment.hpp"
-#include "Kernel/Constraint.hpp"
-#endif
-
 #include "Options.hpp"
 #include "Statistics.hpp"
 
@@ -48,7 +43,6 @@ using namespace Shell;
 Statistics::Statistics()
   : inputClauses(0),
     inputFormulas(0),
-    hasTypes(false),
     formulaNames(0),
     initialClauses(0),
     splitInequalities(0),
@@ -76,11 +70,43 @@ Statistics::Statistics()
     theoryInstSimpCandidates(0),
     theoryInstSimpTautologies(0),
     theoryInstSimpLostSolution(0),
-    induction(0),
+    theoryInstSimpEmptySubstitution(0),
     maxInductionDepth(0),
+    induction(0),
     inductionInProof(0),
     generalizedInduction(0),
     generalizedInductionInProof(0),
+    structInduction(0),
+    structInductionInProof(0),
+    intInfInduction(0),
+    intInfInductionInProof(0),
+    intFinInduction(0),
+    intFinInductionInProof(0),
+    intDBInduction(0),
+    intDBInductionInProof(0),
+    intInfUpInduction(0),
+    intInfUpInductionInProof(0),
+    intFinUpInduction(0),
+    intFinUpInductionInProof(0),
+    intDBUpInduction(0),
+    intDBUpInductionInProof(0),
+    intInfDownInduction(0),
+    intInfDownInductionInProof(0),
+    intFinDownInduction(0),
+    intFinDownInductionInProof(0),
+    intDBDownInduction(0),
+    intDBDownInductionInProof(0),
+    argumentCongruence(0),
+    narrow(0),
+    forwardSubVarSup(0),
+    backwardSubVarSup(0),
+    selfSubVarSup(0),
+    negativeExtensionality(0),
+    primitiveInstantiations(0),
+    choiceInstances(0),
+    proxyEliminations(0),
+    leibnizElims(0),
+    booleanSimps(0),
     duplicateLiterals(0),
     trivialInequalities(0),
     forwardSubsumptionResolution(0),
@@ -96,8 +122,18 @@ Statistics::Statistics()
     forwardLiteralRewrites(0),
     condensations(0),
     globalSubsumption(0),
-    evaluations(0),
     interpretedSimplifications(0),
+
+    asgViolations(0),
+    asgCnt(0),
+
+    gveViolations(0),
+    gveCnt(0),
+
+    evaluationIncomp(0),
+    evaluationGreater(0),
+    evaluationCnt(0),
+
     innerRewrites(0),
     innerRewritesToEqTaut(0),
     deepEquationalTautologies(0),
@@ -242,7 +278,9 @@ void Statistics::print(ostream& out)
     unusedPredicateDefinitions+functionDefinitions+selectedBySine+
     sineIterations+splitInequalities);
   COND_OUT("Introduced names",formulaNames);
+  COND_OUT("Reused names",reusedFormulaNames);
   COND_OUT("Introduced skolems",skolemFunctions);
+  COND_OUT("Reused skolems",reusedSkolemFunctions);
   COND_OUT("Pure predicates", purePredicates);
   COND_OUT("Trivial predicates", trivialPredicates);
   COND_OUT("Unused predicate definitions", unusedPredicateDefinitions);
@@ -271,10 +309,16 @@ void Statistics::print(ostream& out)
 
 
   HEADING("Simplifying Inferences",duplicateLiterals+trivialInequalities+
-      forwardSubsumptionResolution+backwardSubsumptionResolution+
+      forwardSubsumptionResolution+backwardSubsumptionResolution+proxyEliminations+
       forwardDemodulations+backwardDemodulations+forwardLiteralRewrites+
       forwardSubsumptionDemodulations+backwardSubsumptionDemodulations+
-      condensations+globalSubsumption+evaluations+innerRewrites);
+      condensations+globalSubsumption+evaluationCnt
+      +( gveCnt - gveViolations)
+      +( asgCnt - asgViolations)
+      +( evaluationCnt - evaluationIncomp - evaluationGreater)
+      +innerRewrites
+      +booleanSimps
+      );
   COND_OUT("Duplicate literals", duplicateLiterals);
   COND_OUT("Trivial inequalities", trivialInequalities);
   COND_OUT("Fw subsumption resolutions", forwardSubsumptionResolution);
@@ -287,7 +331,19 @@ void Statistics::print(ostream& out)
   COND_OUT("Inner rewrites", innerRewrites);
   COND_OUT("Condensations", condensations);
   COND_OUT("Global subsumptions", globalSubsumption);
-  COND_OUT("Evaluations", evaluations);
+  COND_OUT("Interpreted simplifications", interpretedSimplifications);
+
+  COND_OUT("asg count", asgCnt);
+  COND_OUT("asg results not smaller than the premis", asgViolations);
+
+  COND_OUT("gve count", gveCnt);
+  COND_OUT("gve results not smaller than the premis", gveViolations);
+
+  COND_OUT("Evaluation count",         evaluationCnt);
+  COND_OUT("Evaluation results greater than premise", evaluationGreater);
+  COND_OUT("Evaluation results incomparable to premise", evaluationIncomp);
+  COND_OUT("Logicial proxy rewrites", proxyEliminations);
+  COND_OUT("Boolean simplifications", booleanSimps)
   //COND_OUT("Interpreted simplifications", interpretedSimplifications);
   SEPARATOR;
 
@@ -309,9 +365,10 @@ void Statistics::print(ostream& out)
 
   HEADING("Generating Inferences",resolution+urResolution+cResolution+factoring+
       forwardSuperposition+backwardSuperposition+selfSuperposition+
-      cForwardSuperposition+cBackwardSuperposition+cSelfSuperposition+
+      cForwardSuperposition+cBackwardSuperposition+cSelfSuperposition+leibnizElims+
       equalityFactoring+equalityResolution+forwardExtensionalityResolution+
-      backwardExtensionalityResolution+
+      backwardExtensionalityResolution+argumentCongruence+negativeExtensionality+
+      +primitiveInstantiations+choiceInstances+narrow+forwardSubVarSup+backwardSubVarSup+selfSubVarSup+
       theoryInstSimp+theoryInstSimpCandidates+theoryInstSimpTautologies+theoryInstSimpLostSolution+induction);
   COND_OUT("Binary resolution", resolution);
   COND_OUT("Unit resulting resolution", urResolution);
@@ -331,11 +388,41 @@ void Statistics::print(ostream& out)
   COND_OUT("TheoryInstSimpCandidates",theoryInstSimpCandidates);
   COND_OUT("TheoryInstSimpTautologies",theoryInstSimpTautologies);
   COND_OUT("TheoryInstSimpLostSolution",theoryInstSimpLostSolution);
+  COND_OUT("TheoryInstSimpEmptySubstitutions",theoryInstSimpEmptySubstitution);
   COND_OUT("Induction",induction);
   COND_OUT("MaxInductionDepth",maxInductionDepth);
   COND_OUT("InductionStepsInProof",inductionInProof);
+  COND_OUT("StructuralInduction",structInduction);
+  COND_OUT("StructuralInductionStepsInProof",structInductionInProof);
   COND_OUT("GeneralizedInduction",generalizedInduction);
   COND_OUT("GeneralizedInductionInProof",generalizedInductionInProof);
+  COND_OUT("IntegerInfiniteIntervalInduction",intInfInduction);
+  COND_OUT("IntegerInfiniteIntervalInductionInProof",intInfInductionInProof);
+  COND_OUT("IntegerFiniteIntervalInduction",intFinInduction);
+  COND_OUT("IntegerFiniteIntervalInductionInProof",intFinInductionInProof);
+  COND_OUT("IntegerDefaultBoundInduction",intDBInduction);
+  COND_OUT("IntegerDefaultBoundInductionInProof",intDBInductionInProof);
+  COND_OUT("IntegerInfiniteIntervalUpInduction",intInfUpInduction);
+  COND_OUT("IntegerInfiniteIntervalUpInductionInProof",intInfUpInductionInProof);
+  COND_OUT("IntegerFiniteIntervalUpInduction",intFinUpInduction);
+  COND_OUT("IntegerFiniteIntervalUpInductionInProof",intFinUpInductionInProof);
+  COND_OUT("IntegerDefaultBoundUpInduction",intDBUpInduction);
+  COND_OUT("IntegerDefaultBoundUpInductionInProof",intDBUpInductionInProof);
+  COND_OUT("IntegerInfiniteIntervalDownInduction",intInfInduction);
+  COND_OUT("IntegerInfiniteIntervalDownInductionInProof",intInfDownInductionInProof);
+  COND_OUT("IntegerFiniteIntervalDownInduction",intFinDownInduction);
+  COND_OUT("IntegerFiniteIntervalDownInductionInProof",intFinDownInductionInProof);
+  COND_OUT("IntegerDefaultBoundDownInduction",intDBDownInduction);
+  COND_OUT("IntegerDefaultBoundDownInductionInProof",intDBDownInductionInProof);
+  COND_OUT("Argument congruence", argumentCongruence);
+  COND_OUT("Negative extensionality", negativeExtensionality);
+  COND_OUT("Primitive substitutions", primitiveInstantiations);
+  COND_OUT("Elimination of Leibniz equalities", leibnizElims);
+  COND_OUT("Choice axiom instances creatded", choiceInstances);
+  COND_OUT("Narrow", narrow);
+  COND_OUT("Forward sub-variable superposition", forwardSubVarSup);
+  COND_OUT("Backward sub-variable superposition", backwardSubVarSup);
+  COND_OUT("Self sub-variable superposition", selfSubVarSup);
   SEPARATOR;
 
   HEADING("Term algebra simplifications",taDistinctnessSimplifications+
@@ -383,6 +470,14 @@ void Statistics::print(ostream& out)
   out << "Time elapsed: ";
   Timer::printMSString(out,env.timer->elapsedMilliseconds());
   out << endl;
+  
+  unsigned instr = Timer::elapsedMegaInstructions();
+  if (instr) {
+    addCommentSignForSZS(out);
+    out << "Instructions burned: " << instr << " (million)";
+    out << endl;
+  }
+  
   addCommentSignForSZS(out);
   out << "------------------------------\n";
 

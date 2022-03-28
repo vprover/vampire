@@ -33,7 +33,7 @@
 #include "Kernel/Term.hpp"
 #include "Kernel/TermIterators.hpp"
 #include "Kernel/Unit.hpp"
-#include "Kernel/Sorts.hpp"
+//#include "Kernel/Sorts.hpp"
 
 #include "Shell/TPTPPrinter.hpp"
 #include "Shell/VarManager.hpp"
@@ -41,8 +41,6 @@
 namespace Vampire {
 
 using namespace Shell;
-
-typedef Kernel::Formula::VarList VarList;
 
 class DefaultHelperCore
 {
@@ -64,7 +62,6 @@ private:
   struct Var2NameMapper;
 public:
   //StringIterator getVarNames(VarList* l);
-
   static vstring getDummyName(bool pred, unsigned functor);
   static vstring getDummyName(const Kernel::Term* t);
 

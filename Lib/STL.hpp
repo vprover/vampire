@@ -56,37 +56,6 @@ using vunordered_set = std::unordered_set<Key, Hash, KeyEqual, STLAllocator<Key>
 template< typename T >
 using vvector = std::vector<T, STLAllocator<T>>;
 
-
-/** See https://en.cppreference.com/w/cpp/memory/unique_ptr/make_unique
- *
- * Helper function that does not exist in C++11 yet.
- * Replace with std::make_unique once we switch to C++14 or later.
- */
-template< typename T
-        , typename... Args
-        , // make_unique should only be defined for non-array types, according to the C++14 standard
-          typename std::enable_if<!std::is_array<T>::value, int>::type = 0
-        >
-std::unique_ptr<T> make_unique(Args&&... args)
-{
-    return std::unique_ptr<T>(new T(std::forward<Args>(args)...));
-}
-
-
-/** See https://en.cppreference.com/w/cpp/utility/exchange
- *
- * Helper function that does not exist in C++11 yet.
- * Replace with std::exchange once we switch to C++14 or later.
- */
-template<class T, class U = T>
-T exchange(T& obj, U&& new_value)
-{
-    T old_value = std::move(obj);
-    obj = std::forward<U>(new_value);
-    return old_value;
-}
-
-
 }  // namespace Lib
 
 #endif /* !STL_HPP */

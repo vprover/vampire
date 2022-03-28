@@ -16,25 +16,19 @@
 #ifndef __RobSubstitution__
 #define __RobSubstitution__
 
-#include <utility>
-
 #include "Forwards.hpp"
-#include "Lib/DHMap.hpp"
 #include "Lib/Backtrackable.hpp"
 #include "Term.hpp"
 #include "MismatchHandler.hpp"
 
 #if VDEBUG
-
 #include <iostream>
 #include "Lib/VString.hpp"
-
 #endif
 
 namespace Kernel
 {
 
-using namespace std;
 using namespace Lib;
 
 class RobSubstitution
@@ -44,7 +38,7 @@ public:
   CLASS_NAME(RobSubstitution);
   USE_ALLOCATOR(RobSubstitution);
   
-  RobSubstitution() : _nextUnboundAvailable(0) {} //,_nextAuxAvailable(0) {}
+  RobSubstitution() : _funcSubtermMap(nullptr), _nextUnboundAvailable(0) {}
 
   SubstIterator matches(Literal* base, int baseIndex,
 	  Literal* instance, int instanceIndex, bool complementary);
@@ -61,15 +55,15 @@ public:
   {
     return isUnbound(VarSpec(var,index));
   }
-  bool isSpecialUnbound(unsigned var, int index) const
-  {
-    return isUnbound(VarSpec(var,SPECIAL_INDEX));
-  }
   void reset()
   {
+    _funcSubtermMap = 0;
     _bank.reset();
-    //_nextAuxAvailable=0;
     _nextUnboundAvailable=0;
+  }
+
+  void setMap(FuncSubtermMap* fmap){
+    _funcSubtermMap = fmap;
   }
   /**
    * Bind special variable to a specified term
@@ -100,7 +94,6 @@ public:
    */
   size_t size() const {return _bank.size(); }
 #endif
-
 
   /** Specifies instance of a variable (i.e. (variable, variable bank) pair) */
   struct VarSpec
@@ -146,9 +139,9 @@ public:
     explicit TermSpec(const VarSpec& vs) : index(vs.index)
     {
       if(index==SPECIAL_INDEX) {
-	term.makeSpecialVar(vs.var);
+        term.makeSpecialVar(vs.var);
       } else {
-	term.makeVar(vs.var);
+        term.makeVar(vs.var);
       }
     }
     /**
@@ -161,20 +154,25 @@ public:
     {
       bool termSameContent=term.sameContent(&ts.term);
       if(!termSameContent && term.isTerm() && term.term()->isLiteral() &&
-	ts.term.isTerm() && ts.term.term()->isLiteral()) {
-	const Literal* l1=static_cast<const Literal*>(term.term());
-	const Literal* l2=static_cast<const Literal*>(ts.term.term());
-	if(l1->functor()==l2->functor() && l1->arity()==0) {
-	  return true;
-	}
+        ts.term.isTerm() && ts.term.term()->isLiteral()) {
+        const Literal* l1=static_cast<const Literal*>(term.term());
+        const Literal* l2=static_cast<const Literal*>(ts.term.term());
+        if(l1->functor()==l2->functor() && l1->arity()==0) {
+          return true;
+        }
       }
       if(!termSameContent) {
-	return false;
+        return false;
       }
       return index==ts.index || term.isSpecialVar() ||
       	(term.isTerm() && (
 	  (term.term()->shared() && term.term()->ground()) ||
-	  term.term()->arity()==0 ));
+	   term.term()->arity()==0 ));
+    }
+
+    bool isVSpecialVar()
+    {
+      return term.isVSpecialVar();
     }
 
     bool isVar()
@@ -211,7 +209,6 @@ private:
   RobSubstitution& operator=(const RobSubstitution& obj);
 
 
-  //static const int AUX_INDEX;
   static const int SPECIAL_INDEX;
   static const int UNBOUND_INDEX;
 
@@ -219,55 +216,33 @@ private:
   TermSpec deref(VarSpec v) const;
   TermSpec derefBound(TermSpec v) const;
 
+  void addToConstraints(const VarSpec& v1, const VarSpec& v2,MismatchHandler* hndlr);
   void bind(const VarSpec& v, const TermSpec& b);
   void bindVar(const VarSpec& var, const VarSpec& to);
   VarSpec root(VarSpec v) const;
   bool match(TermSpec base, TermSpec instance);
   bool unify(TermSpec t1, TermSpec t2,MismatchHandler* hndlr);
-  //bool handleDifferentTops(TermSpec t1, TermSpec t2, Stack<TTPair>& toDo, TermList* ct);
-  //void makeEqual(VarSpec v1, VarSpec v2, TermSpec target);
-  //void unifyUnbound(VarSpec v, TermSpec ts);
   bool occurs(VarSpec vs, TermSpec ts);
 
-/* Not currently used
-  VarSpec getAuxVar(VarSpec target)
-  {
-    CALL("RobSubstitution::getAuxVar");
-    if(target.index==AUX_INDEX) {
-      return target;
-    }
-    VarSpec res(_nextAuxAvailable++,AUX_INDEX);
-    bindVar(res, target);
-    return res;
-  }
-*/
   inline
   VarSpec getVarSpec(TermSpec ts) const
   {
     return getVarSpec(ts.term, ts.index);
   }
+
   VarSpec getVarSpec(TermList tl, int index) const
   {
     CALL("RobSubstitution::getVarSpec");
     ASS(tl.isVar());
-    if(tl.isSpecialVar()) {
-      return VarSpec(tl.var(), SPECIAL_INDEX);
-    } else {
-      //ASS(index!=AUX_INDEX || tl.var()<_nextAuxAvailable);
-      return VarSpec(tl.var(), index);
-    }
+    index = tl.isSpecialVar() ? SPECIAL_INDEX : index;
+    return VarSpec(tl.var(), index);
   }
-  static void swap(TermSpec& ts1, TermSpec& ts2);
 
   typedef DHMap<VarSpec,TermSpec,VarSpec::Hash1, VarSpec::Hash2> BankType;
 
-  mutable BankType _bank;
-
-  // Unused
-  //DHMap<int, int> _denormIndexes;
-
+  FuncSubtermMap* _funcSubtermMap;
+  BankType _bank;
   mutable unsigned _nextUnboundAvailable;
-  //unsigned _nextAuxAvailable;
 
   class BindingBacktrackObject
   : public BacktrackObject
@@ -304,7 +279,7 @@ private:
 
   template<class Fn>
   SubstIterator getAssocIterator(RobSubstitution* subst,
-	  Literal* l1, int l1Index, Literal* l2, int l2Index, bool complementary);
+    Literal* l1, int l1Index, Literal* l2, int l2Index, bool complementary);
 
   template<class Fn>
   struct AssocContext;

@@ -17,7 +17,6 @@
 
 
 #define DEBUG(...) // DBG(__VA_ARGS__)
-#define DEBUG_ME DEBUG(_balancer._lit.toString(), " @ ", _litIndex , " ", _path, " --> ", derefPath())
 
 #define CALL_DBG(...) CALL(__VA_ARGS__)
 
@@ -128,13 +127,6 @@ namespace Kernel {
 ////////// IMPLEMENTATION
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-// namespace Kernel {
-//
-// namespace Rebalancing {
-//
-#define UNIMPLEMENTED \
-  ASSERTION_VIOLATION
-
 template<class C> 
 Balancer<C>::Balancer(const Literal& l) : _lit(l) { }
 
@@ -198,7 +190,6 @@ template<class C> void BalanceIter<C>::incrementPath()
 { 
   CALL_DBG("BalanceIter::incrementPath")
 
-  // auto canInvert = [this]() -> bool { return derefPath().isTerm() && derefPath().term()->arity() > 0  && true; };//TODO
   auto peak = [&]() -> Node& { return _path.top(); };
   auto incPeak = [&]() {
      ++peak()._index;
@@ -215,7 +206,6 @@ template<class C> void BalanceIter<C>::incrementPath()
       incPeak();
   };
   do {
-    DEBUG_ME
 
     if ( derefPath().isTerm()  
         && derefPath().term()->arity() > 0 
@@ -254,7 +244,6 @@ template<class C> void BalanceIter<C>::findNextVar()
   CALL_DBG("BalanceIter::findNextVar")
 
   while(inBounds() && !derefPath().isVar() ) {
-    DEBUG_ME
     incrementPath();
   }
 }

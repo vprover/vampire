@@ -16,10 +16,6 @@
 
 #include "Test/UnitTesting.hpp"
 
-#define UNIT_ID two_vampires
-UT_CREATE;
-
-
 #include <sstream>
 #include <sys/wait.h>
 
@@ -46,7 +42,7 @@ using namespace Kernel;
 using namespace Saturation;
 using namespace Shell;
 
-//void runChild(UnitList* units, vstring slice) __attribute__((noreturn));
+//[[noreturn]] void runChild(UnitList* units, vstring slice);
 
 void runChild(UnitList* units, vstring slice)
 {

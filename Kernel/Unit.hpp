@@ -61,6 +61,8 @@ public:
 
   /** Return the number of this unit */
   unsigned number() const { return _number; }
+  /** Forcefully change the unit's number - use with care! - numbers should be unique across the whole board! */
+  void overwriteNumber(unsigned newNumber) { _number = newNumber; }
 
   /** Return the inference of this unit */
   Inference& inference() { return _inference; }
@@ -74,6 +76,12 @@ public:
   bool derivedFromGoal() const { return _inference.derivedFromGoal(); }
   /** see isPureTheoryDescendant in Inference.cpp */
   bool isPureTheoryDescendant() const { return _inference.isPureTheoryDescendant(); }
+  /** see isCombAxiomsDescendant in Inference.cpp */
+  bool isCombAxiomsDescendant() const { return _inference.isCombAxiomsDescendant(); }
+  /** see isProxyAxiomsDescendant in Inference.cpp */
+  bool isProxyAxiomsDescendant() const { return _inference.isProxyAxiomsDescendant(); }
+  /** see isHolAxiomsDescendant in Inference.cpp */
+  bool isHolAxiomsDescendant() const { return _inference.isHolAxiomsDescendant(); }
   /** see isTheoryAxiom in Inference.cpp */
   bool isTheoryAxiom() const { return _inference.isTheoryAxiom(); }
 
@@ -87,6 +95,7 @@ public:
   unsigned char getSineLevel() const { return _inference.getSineLevel(); }
   /** true if the unit is read from a TPTP included file  */
   bool included() const { return _inference.included(); }
+
 
   /** Return the inherited color of the unit or COLOR_INVALID
    * if there isn't an inherited color.

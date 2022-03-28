@@ -29,6 +29,8 @@
 #include "Kernel/TermIterators.hpp"
 #include "Kernel/Unit.hpp"
 
+#include "Kernel/ApplicativeHelper.hpp"
+
 namespace Shell
 {
 
@@ -38,7 +40,6 @@ using namespace Kernel;
 void GeneralSplitting::apply(Problem& prb)
 {
   CALL("GeneralSplitting::apply(Problem&)");
-
   if(apply(prb.units())) {
     prb.invalidateProperty();
   }
@@ -147,18 +148,18 @@ bool GeneralSplitting::apply(Clause*& cl, UnitList*& resultStack)
 
       Set<unsigned>::Iterator sit2=sit;
       while(sit2.hasNext()) {
-	unsigned v2=sit2.next();
-	ASS_NEQ(v1,v2);
-	bool inserted;
-	if(v1>v2) {
-	  inserted= connections.insert(make_pair(v2,v1))==1;
-	} else {
-	  inserted= connections.insert(make_pair(v1,v2))==1;
-	}
-	if(inserted) {
-	  degrees.insert(v1);
-	  degrees.insert(v2);
-	}
+  unsigned v2=sit2.next();
+  ASS_NEQ(v1,v2);
+  bool inserted;
+  if(v1>v2) {
+    inserted= connections.insert(make_pair(v2,v1))==1;
+  } else {
+    inserted= connections.insert(make_pair(v1,v2))==1;
+  }
+  if(inserted) {
+    degrees.insert(v1);
+    degrees.insert(v2);
+  }
       }
     }
   }
@@ -205,12 +206,12 @@ bool GeneralSplitting::apply(Clause*& cl, UnitList*& resultStack)
     }
   }
 
-  static Stack<TermList> args;
+  static TermStack args;
   args.reset();
-  static Stack<unsigned> argSorts;
+  static TermStack argSorts;
   argSorts.reset();
 
-  DHMap<unsigned,unsigned> varSorts;
+  DHMap<unsigned,TermList> varSorts;
   SortHelper::collectVariableSorts(cl, varSorts);
 
   DHMultiset<unsigned>::SetIterator nivit(degrees); //iterating just over non-isolated vars

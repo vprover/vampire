@@ -76,12 +76,20 @@ struct FunctionDefinition::Def
   bool linear;
   /** strict means that all lhs variables occur in rhs */
   bool strict;
+
+  bool twoConstDef;
+
   /** first defined function that is used in @b rhs, or -1 if there isn't such */
   int containedFn;
 
   int examinedArg;
 
   IntList* dependentFns;
+
+  bool lhsIsBool(){
+    return (env.signature->isFoolConstantSymbol(true , fun) ||
+            env.signature->isFoolConstantSymbol(false, fun));
+  }
 
   /**
    * If @b mark==SAFE or @b mark==UNFOLDED, contains @b bool array such that
@@ -97,6 +105,7 @@ struct FunctionDefinition::Def
       mark(UNTOUCHED),
       linear(lin),
       strict(str),
+      twoConstDef(0),
       containedFn(-1),
       dependentFns(0),
       argOccurs(0)
@@ -170,18 +179,18 @@ bool FunctionDefinition::removeUnusedDefinitions(UnitList*& units, Problem* prb)
     if(d) {
       d->defCl=cl;
       if(!def[d->fun]) {
-	defStack.push(d);
-	def[d->fun]=d;
-	scanIterator.del();
+        defStack.push(d);
+        def[d->fun]=d;
+        scanIterator.del();
       } else {
-	delete d;
+        delete d;
       }
     }
     for(unsigned i=0;i<clen;i++) {
-      NonVariableIterator nvit((*cl)[i]);
+      NonVariableNonTypeIterator nvit((*cl)[i]);
       while(nvit.hasNext()) {
-	unsigned fn=nvit.next().term()->functor();
-	occCounter[fn]++;
+        unsigned fn=nvit.next().term()->functor();
+        occCounter[fn]++;
       }
     }
   }
@@ -202,7 +211,7 @@ bool FunctionDefinition::removeUnusedDefinitions(UnitList*& units, Problem* prb)
     d->mark=Def::REMOVED;
     ASS_EQ(d->defCl->length(), 1);
     ASS_EQ(occCounter[d->fun], 1);
-    NonVariableIterator nvit((*d->defCl)[0]);
+    NonVariableNonTypeIterator nvit((*d->defCl)[0]);
     while(nvit.hasNext()) {
       unsigned fn=nvit.next().term()->functor();
       occCounter[fn]--;
@@ -242,6 +251,15 @@ void FunctionDefinition::removeAllDefinitions(Problem& prb)
   }
 }
 
+void FunctionDefinition::reverse(Def* def){
+  CALL("FunctionDefinition::reverse");
+  ASS(def->twoConstDef);
+  Term* temp = def->lhs;
+  def->lhs = def->rhs;
+  def->rhs = temp;
+  def->fun = def->lhs->functor();
+}
+
 /**
  * When possible, unfold function definitions in @b units and remove them
  * Return true iff the list of units was modified.
@@ -257,11 +275,32 @@ bool FunctionDefinition::removeAllDefinitions(UnitList*& units)
     Def* d=isFunctionDefinition(cl);
     if(d) {
       d->defCl=cl;
+      bool inserted = false;
       if(_defs.insert(d->fun, d)) {
-//	cout<<"Found: "<<(*(*d->defCl)[0])<<endl;
-	scanIterator.del();
-      } else {
-	delete d;
+        //cout<<"Found: "<<(*(*d->defCl)[0])<<endl;
+        inserted = true;
+        scanIterator.del();
+      } else if(_defs.get(d->fun)->twoConstDef){
+        Def* d2;
+        _defs.pop(d->fun, d2);
+        reverse(d2);
+        if(!d2->lhsIsBool() && _defs.insert(d2->fun, d2)){
+          _defs.insert(d->fun, d);
+          inserted = true;
+          scanIterator.del();
+        } else {
+          reverse(d2); //back to original orientation
+          ALWAYS(_defs.insert(d2->fun, d2));
+        }
+      } else if(d->twoConstDef){
+         reverse(d);
+         if(!d->lhsIsBool() && _defs.insert(d->fun, d)) {
+           inserted = true;
+           scanIterator.del();
+         }    
+      } 
+      if(!inserted){
+        delete d;
       }
     }
   }
@@ -338,6 +377,7 @@ bool FunctionDefinition::removeAllDefinitions(UnitList*& units)
   while(unfoldIterator.hasNext()) {
     Clause* cl=static_cast<Clause*>(unfoldIterator.next());
     ASS(cl->isClause());
+    if(cl->isProxyAxiomsDescendant()){ continue; }
     Clause* newCl=applyDefinitions(cl);
     if(cl!=newCl) {
 //      cout<<"D- "<<(*cl)<<endl;
@@ -375,49 +415,50 @@ void FunctionDefinition::checkDefinitions(Def* def0)
       termArgStack.pop();
       ASS(!d || d->mark==Def::LOOP);
       if(d && d->mark==Def::LOOP) {
-	//the definition is safe (i.e. doesn't contain cycle of non-blocked definitions)
-	assignArgOccursData(d);
-	_safeDefs.push(d);
-	d->mark=Def::SAFE;
+        //the definition is safe (i.e. doesn't contain cycle of non-blocked definitions)
+        assignArgOccursData(d);
+        _safeDefs.push(d);
+        d->mark=Def::SAFE;
       }
-    } else if(t.isTerm()) {
+    } else if(t.isTerm() && !t.term()->isSort()) {
+      //the sort check above is defensive programming
       Term* trm=t.term();
       Def* checkedDef=0;
     toplevel_def:
       if(!_defs.find(trm->functor(), d) || d->mark==Def::BLOCKED) {
-	d=0;
+        d=0;
       }
-      if(trm->arity() || checkedDef) {
-	stack.push(trm->args());
-	defCheckingStack.push(checkedDef);
-	defArgStack.push(d);
-	termArgStack.push(trm);
+      if(trm->numTermArguments() > 0 || checkedDef) {
+        stack.push(trm->termArgs());
+        defCheckingStack.push(checkedDef);
+        defArgStack.push(d);
+        termArgStack.push(trm);
       }
       if(d) {
-	if(d->mark==Def::UNTOUCHED) {
-	  //enter the definition
-	  d->mark=Def::LOOP;
-	  trm=d->rhs;
-	  checkedDef=d;
-	  goto toplevel_def;
-	} else if(d->mark==Def::LOOP) {
-	  //unroll stacks until the point when the current
-	  //definition was entered
-	  do{
-	    stack.pop();
+        if(d->mark==Def::UNTOUCHED) {
+          //enter the definition
+          d->mark=Def::LOOP;
+          trm=d->rhs;
+          checkedDef=d;
+          goto toplevel_def;
+        } else if(d->mark==Def::LOOP) {
+          //unroll stacks until the point when the current
+          //definition was entered
+          do{
+            stack.pop();
 
-	    defArgStack.pop();
-	    termArgStack.pop();
-	    d=defCheckingStack.pop();
-	  } while(!d);
-	  ASS_EQ(d->mark, Def::LOOP);
-	  d->mark=Def::BLOCKED;
-	  defArgStack.setTop(0);
-	  _blockedDefs.push(d);
-	} else {
-	  ASS_EQ(d->mark, Def::SAFE);
-	}
-      }
+            defArgStack.pop();
+            termArgStack.pop();
+            d=defCheckingStack.pop();
+          } while(!d);
+          ASS_EQ(d->mark, Def::LOOP);
+          d->mark=Def::BLOCKED;
+          defArgStack.setTop(0);
+          _blockedDefs.push(d);
+        } else {
+          ASS_EQ(d->mark, Def::SAFE);
+        }
+      }      
     }
     if(stack.isEmpty()) {
       break;
@@ -426,16 +467,16 @@ void FunctionDefinition::checkDefinitions(Def* def0)
     if(ts->isNonEmpty()) {
       Def* argDef=defArgStack.top();
       if(argDef) {
-	ASS_EQ(argDef->mark,Def::SAFE);
-	Term* parentTerm=termArgStack.top();
-	while(ts->isNonEmpty() && !argDef->argOccurs[parentTerm->getArgumentIndex(ts)]) {
-	  ts=ts->next();
-	}
-	if(ts->isNonEmpty()) {
-	  stack.push(ts->next());
-	}
+        ASS_EQ(argDef->mark,Def::SAFE);
+        Term* parentTerm=termArgStack.top();
+        while(ts->isNonEmpty() && !argDef->argOccurs[parentTerm->getArgumentIndex(ts)]) {
+          ts=ts->next();
+        }
+        if(ts->isNonEmpty()) {
+          stack.push(ts->next());
+        }
       } else {
-	stack.push(ts->next());
+        stack.push(ts->next());
       }
     }
     t=*ts;
@@ -483,13 +524,13 @@ void FunctionDefinition::assignArgOccursData(Def* updDef)
     } else if(t.isTerm()) {
       Term* trm=t.term();
       if(trm->arity()) {
-	if(!_defs.find(trm->functor(), d) || d->mark==Def::BLOCKED) {
-	  d=0;
-	}
-	ASS(!d || d->mark==Def::SAFE);
-	stack.push(trm->args());
-	defArgStack.push(d);
-	termArgStack.push(trm);
+        if(trm->isSort() || !_defs.find(trm->functor(), d) || d->mark==Def::BLOCKED) {
+          d=0;
+        }
+        ASS(!d || d->mark==Def::SAFE);
+        stack.push(trm->args());
+        defArgStack.push(d);
+        termArgStack.push(trm);
       }
     } else {
       ASS(t.isOrdinaryVar());
@@ -502,15 +543,15 @@ void FunctionDefinition::assignArgOccursData(Def* updDef)
     if(!ts->isEmpty()) {
       Def* argDef=defArgStack.top();
       if(argDef) {
-	Term* parentTerm=termArgStack.top();
-	while(ts->isNonEmpty() && !argDef->argOccurs[parentTerm->getArgumentIndex(ts)]) {
-	  ts=ts->next();
-	}
-	if(ts->isNonEmpty()) {
-	  stack.push(ts->next());
-	}
+        Term* parentTerm=termArgStack.top();
+        while(ts->isNonEmpty() && !argDef->argOccurs[parentTerm->getArgumentIndex(ts)]) {
+          ts=ts->next();
+        }
+        if(ts->isNonEmpty()) {
+          stack.push(ts->next());
+        }
       } else {
-	stack.push(ts->next());
+        stack.push(ts->next());
       }
     }
     t=*ts;
@@ -526,6 +567,8 @@ typedef DHMap<BindingSpec, bool, IntPairSimpleHash> UnfoldedSet;
 Term* FunctionDefinition::applyDefinitions(Literal* lit, Stack<Def*>* usedDefs)
 {
   CALL("FunctionDefinition::applyDefinitions");
+
+  //cout << "applying definitions to " + lit->toString() << endl;
 
   if (env.options->showPreprocessing()) {
     env.beginOutput();
@@ -567,24 +610,29 @@ Term* FunctionDefinition::applyDefinitions(Literal* lit, Stack<Def*>* usedDefs)
     }
     if(tt->isEmpty()) {
       if(terms.isEmpty()) {
-	//we're done, args stack contains modified arguments
-	//of the argument term.
-	ASS(toDo.isEmpty());
-	break;
+        //we're done, args stack contains modified arguments
+        //of the argument term.
+        ASS(toDo.isEmpty());
+        break;
       }
       defIndexes.pop();
       Term* orig=terms.pop();
       if(!modified.pop()) {
-	args.truncate(args.length() - orig->arity());
-	args.push(TermList(orig));
-	continue;
+        args.truncate(args.length() - orig->arity());
+        args.push(TermList(orig));
+        continue;
       }
       //here we assume, that stack is an array with
       //second topmost element at &top()-1, third at
       //&top()-2, etc...
       TermList* argLst=&args.top() - (orig->arity()-1);
 
-      Term* newTrm=Term::create(orig,argLst);
+      Term* newTrm;
+      if(orig->isSort()){
+        newTrm=AtomicSort::create(static_cast<AtomicSort*>(orig), argLst);
+      } else {
+        newTrm=Term::create(orig,argLst);
+      }
       args.truncate(args.length() - orig->arity());
       args.push(TermList(newTrm));
 
@@ -625,7 +673,8 @@ Term* FunctionDefinition::applyDefinitions(Literal* lit, Stack<Def*>* usedDefs)
     }
 
     Def* d;
-    if( !defIndex && _defs.find(t->functor(), d) && d->mark!=Def::BLOCKED) {
+    //sorts can never contain definitions
+    if(!t->isSort() && !defIndex && _defs.find(t->functor(), d) && d->mark!=Def::BLOCKED) {
       ASS_EQ(d->mark, Def::UNFOLDED);
       usedDefs->push(d);
       if (env.options->showPreprocessing()) {
@@ -635,7 +684,7 @@ Term* FunctionDefinition::applyDefinitions(Literal* lit, Stack<Def*>* usedDefs)
       }
 
       defIndex=nextDefIndex++;
-
+      
       //bind arguments of definition lhs
       TermList* dargs=d->lhs->args();
       TermList* targs=t->args();
@@ -837,14 +886,22 @@ FunctionDefinition::defines (Term* lhs, Term* rhs)
   if (occurs(f,*rhs)) {
     return 0;
   }
-  if (lhs->arity() == 0) {
-    if (rhs->arity() != 0) { // c = f(...)
+  if (!lhs->arity()) {
+    if(env.signature->isFoolConstantSymbol(true , f) ||
+       env.signature->isFoolConstantSymbol(false, f)){
+      return 0;
+    }
+    //Higher-order often contains definitions of the form
+    //f = ^x^y...
+    if (rhs->arity() && !env.property->higherOrder()) { // c = f(...)
       return 0;
     }
     if (rhs->functor() == f) {
       return 0;
     }
-    return new Def(lhs,rhs,true,true);
+    if(!env.property->higherOrder()){
+      return new Def(lhs,rhs,true,true);
+    }
   }
 
   int vars = 0; // counter of variables occurring in the lhs
@@ -890,6 +947,11 @@ FunctionDefinition::defines (Term* lhs, Term* rhs)
   }
 
   Def* res=new Def(lhs,rhs,linear,!vars);
+
+  if(!lhs->arity() && !rhs->arity()){
+    res->twoConstDef = true;
+  }
+  
   return res;
 } // FunctionDefinition::defines
 

@@ -131,11 +131,13 @@ public:
   virtual bool isIdentityOnResultWhenQueryBound() {return false;}
 
   virtual RobSubstitution* tryGetRobSubstitution() { return 0; }
+  //extend of literals with a matching of their sorts if possible
+  virtual bool matchSorts(TermList base, TermList instance) { 
+    NOT_IMPLEMENTED; 
+  }
 
   static ResultSubstitutionSP fromSubstitution(RobSubstitution* s,
 	  int queryBank, int resultBank);
-//  static ResultSubstitutionSP fromSubstitution(EGSubstitution* s,
-//	  int queryBank, int resultBank);
 #if VDEBUG
   virtual vstring toString(){ NOT_IMPLEMENTED; }
 #endif

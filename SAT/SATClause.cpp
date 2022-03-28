@@ -158,6 +158,51 @@ bool SATClause::hasUniqueVariables() const
   return true;
 }
 
+SATClause* SATClause::removeDuplicateLiterals(SATClause* cl)
+{
+  CALL("SATClause::removeDuplicateLiterals(SATClause*)");
+
+  unsigned clen=cl->length();
+
+  cl->sort();
+
+  unsigned duplicate=0;
+  for(unsigned i=1;i<clen;i++) {
+    if((*cl)[i-1].var()==(*cl)[i].var()) {
+      if((*cl)[i-1].polarity()==(*cl)[i].polarity()) {
+        //We must get rid of the first occurrence of the duplicate (at i-1). Removing
+        //the second would make us miss the case when there are three duplicates.
+        std::swap((*cl)[duplicate], (*cl)[i-1]);
+        duplicate++;
+      } else {
+        //delete tautology clauses
+        cl->destroy();
+        return 0;
+      }
+    }
+  }
+  if(duplicate) {
+    unsigned newLen=clen-duplicate;
+    SATClause* cl2=new(newLen) SATClause(newLen, true);
+
+    for(unsigned i=0;i<newLen;i++) {
+      (*cl2)[i]=(*cl)[duplicate+i];
+    }
+    cl2->sort();
+    if(cl->inference()) {
+      SATInference* cl2Inf = new PropInference(cl);
+      cl2->setInference(cl2Inf);
+    }
+    else {
+      cl->destroy();
+    }
+    cl=cl2;
+  }
+  return cl;
+}
+
+
+
 SATClause* SATClause::fromStack(SATLiteralStack& stack)
 {
   CALL("SATClause::fromStack");

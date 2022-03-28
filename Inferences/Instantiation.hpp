@@ -18,7 +18,7 @@
 
 #include "Forwards.hpp"
 #include "Lib/Set.hpp"
-#include "Kernel/Sorts.hpp"
+#include "Kernel/OperatorType.hpp"
 
 #include "Kernel/Theory.hpp"
 #include "InferenceEngine.hpp"
@@ -45,15 +45,15 @@ public:
   void registerClause(Clause* cl);
 
 private:
-  VirtualIterator<Term*> getCandidateTerms(Clause* cl, unsigned var,unsigned sort);
+  VirtualIterator<Term*> getCandidateTerms(Clause* cl, unsigned var,TermList sort);
   class AllSubstitutionsIterator;
   struct ResultFn;
 
   void tryMakeLiteralFalse(Literal*, Stack<Substitution>& subs);
   Term* tryGetDifferentValue(Term* t); 
 
-  DHMap<unsigned,Lib::Set<Term*>*> sorted_candidates_check;
-  DHMap<unsigned,Lib::Stack<Term*>*> sorted_candidates;
+  DHMap<TermList,Lib::Set<Term*>*> sorted_candidates_check;
+  DHMap<TermList,Lib::Stack<Term*>*> sorted_candidates;
 
 };
 

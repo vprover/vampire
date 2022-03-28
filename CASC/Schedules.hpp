@@ -25,6 +25,7 @@ typedef Lib::Stack<Lib::vstring> Schedule;
 class Schedules
 {
 public:
+  static void getHigherOrderSchedule2020(Schedule& quick, Schedule& fallback);
   static void getCasc2019Schedule(const Shell::Property& property, Schedule& quick, Schedule& fallback);
 
   static void getCascSat2019Schedule(const Shell::Property& property, Schedule& quick, Schedule& fallback);
@@ -36,6 +37,10 @@ public:
   static void getLtb2017HllSchedule(const Shell::Property& property, Schedule& sched);
   static void getLtb2017MzrSchedule(const Shell::Property& property, Schedule& sched);
   static void getLtb2017DefaultSchedule(const Shell::Property& property, Schedule& sched);
+
+  static void getInductionSchedule(const Shell::Property& property, Schedule& quick, Schedule& fallback);
+  static void getIntegerInductionSchedule(const Shell::Property& property, Schedule& quick, Schedule& fallback);
+  static void getStructInductionSchedule(const Shell::Property& property, Schedule& quick, Schedule& fallback);
 };
 
 }

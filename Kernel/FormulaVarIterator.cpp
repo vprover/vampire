@@ -64,7 +64,7 @@ FormulaVarIterator::FormulaVarIterator(const TermList* ts)
  * Return the next free variable.
  * @since 06/01/2004 Manchester
  */
-int FormulaVarIterator::next()
+unsigned FormulaVarIterator::next()
 {
   CALL("FormulaVarIterator::next");
 
@@ -90,10 +90,16 @@ bool FormulaVarIterator::hasNext()
       case FVI_FORMULA: {
         const Formula* f = _formulas.pop();
         switch (f->connective()) {
-          case LITERAL:
+          case LITERAL: { 
+            Literal* lit = const_cast<Literal*>(f->literal());
+            if(lit->isTwoVarEquality()){
+              _instructions.push(FVI_TERM_LIST);
+              _termLists.push(lit->twoVarEqSort());              
+            }
             _instructions.push(FVI_TERM);
-            _terms.push(f->literal());
+            _terms.push(lit);
             break;
+          }
 
           case AND:
           case OR: {
@@ -193,6 +199,31 @@ bool FormulaVarIterator::hasNext()
               }
               break;
             }
+      
+            case Term::SF_LAMBDA:{
+              _instructions.push(FVI_UNBIND);
+              SList* sorts = sd->getLambdaVarSorts();
+              while(sorts){
+                _instructions.push(FVI_TERM_LIST);
+                _termLists.push(sorts->head());
+                sorts = sorts->tail();
+              }
+              _instructions.push(FVI_TERM_LIST);
+              _termLists.push(sd->getLambdaExpSort());
+              _instructions.push(FVI_TERM_LIST);
+              _termLists.push(sd->getLambdaExp());
+              _instructions.push(FVI_BIND);
+              _vars.push(sd->getLambdaVars());
+              break;
+            }
+
+            case Term::SF_MATCH: {
+              for (unsigned int i = 0; i < t->arity(); i++) {
+                _instructions.push(FVI_TERM_LIST);
+                _termLists.push(*t->nthArgument(i));
+              }
+              break;
+            }
 
 #if VDEBUG
             default:
@@ -222,7 +253,7 @@ bool FormulaVarIterator::hasNext()
       }
 
       case FVI_BIND: {
-        Formula::VarList::Iterator vs(_vars.top());
+        VList::Iterator vs(_vars.top());
         while (vs.hasNext()) {
           _bound.inc(vs.next());
         }
@@ -230,7 +261,7 @@ bool FormulaVarIterator::hasNext()
       }
 
       case FVI_UNBIND: {
-        Formula::VarList::Iterator vs(_vars.pop());
+        VList::Iterator vs(_vars.pop());
         while (vs.hasNext()) {
           _bound.dec(vs.next());
         }

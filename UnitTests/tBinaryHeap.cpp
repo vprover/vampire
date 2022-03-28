@@ -8,13 +8,12 @@
  * and in the source directory
  */
 
+#include <climits>
+
 #include "Lib/BinaryHeap.hpp"
 #include "Lib/Int.hpp"
 
 #include "Test/UnitTesting.hpp"
-
-#define UNIT_ID bheap
-UT_CREATE;
 
 using namespace std;
 using namespace Lib;

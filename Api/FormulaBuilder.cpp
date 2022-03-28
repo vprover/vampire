@@ -33,7 +33,7 @@
 #include "Kernel/Inference.hpp"
 #include "Kernel/Signature.hpp"
 #include "Kernel/SubstHelper.hpp"
-#include "Kernel/Sorts.hpp"
+//#include "Kernel/Sorts.hpp"
 #include "Kernel/Term.hpp"
 #include "Kernel/Theory.hpp"
 #include "Kernel/Connective.hpp"
@@ -68,10 +68,8 @@ FormulaBuilder::FormulaBuilder(bool checkNames, bool checkBindingBoundVariables,
 Sort FormulaBuilder::sort(const std::string& sortName)
 {
   CALL("FormulaBuilder::sort");
-    
-  bool added = false;
-  //false means that it is not an interpreted sort
-  unsigned res = env.sorts->addSort(StringUtils::copy2vstr(sortName), added, false);
+
+  TermList res = TermList(AtomicSort::createConstant(StringUtils::copy2vstr(sortName)));
   Sort sort(res);
   sort._aux=_aux;
   return sort;
@@ -81,42 +79,42 @@ Sort FormulaBuilder::integerSort()
 {
   CALL("FormulaBuilder::integerSort");
 
-  return Sort(Sorts::SRT_INTEGER);
+  return Sort(AtomicSort::intSort());
 }
 
 Sort FormulaBuilder::rationalSort()
 {
   CALL("FormulaBuilder::integerSort");
 
-  return Sort(Sorts::SRT_RATIONAL);
+  return Sort(AtomicSort::rationalSort());
 }
 
 Sort FormulaBuilder::realSort()
 {
   CALL("FormulaBuilder::integerSort");
 
-  return Sort(Sorts::SRT_REAL);
+  return Sort(AtomicSort::realSort());
 }
 
 Sort FormulaBuilder::boolSort()
 {
   CALL("FormulaBuilder::integerSort");
 
-  return Sort(Sorts::SRT_BOOL);
+  return Sort(AtomicSort::boolSort());
 }
 
 Sort FormulaBuilder::defaultSort()
 {
   CALL("FormulaBuilder::defaultSort");
 
-  return Sort(Sorts::SRT_DEFAULT);
+  return Sort(AtomicSort::defaultSort());
 }
 
 Sort FormulaBuilder::arraySort(const Sort& indexSort, const Sort& innerSort)
 {
   CALL("FormulaBuilder::arraySort");
 
-  unsigned res = env.sorts->addArraySort(indexSort, innerSort);
+  TermList res = AtomicSort::arraySort(indexSort, innerSort);
   Sort sort(res);
   sort._aux=_aux;
   return sort;  
@@ -127,7 +125,7 @@ string FormulaBuilder::getSortName(Sort s)
   CALL("FormulaBuilder::getSortName");
   
   checkForValidity({s});
-  return StringUtils::copy2str(env.sorts->sortName(s));
+  return s.toString();
 }
 
 string FormulaBuilder::getSymbolName(Symbol s)
@@ -182,7 +180,7 @@ Symbol FormulaBuilder::symbol(const string& name, unsigned arity, Sort rangeSort
   Kernel::Signature::Symbol* sym = pred ? env.signature->getPredicate(res):
                                           env.signature->getFunction(res);
 
-  static DArray<unsigned> nativeSorts;
+  static DArray<TermList> nativeSorts;
   nativeSorts.initFromArray(arity, domainSorts.data());
 
   OperatorType* type = pred ?
@@ -291,20 +289,13 @@ Expression FormulaBuilder::equality(const Expression& lhs,const Expression& rhs,
 {
   CALL("FormulaBuilder::equality/3");
 
-  /*cout << "lhs is " + lhs.toString() << endl;
-  cout << "rhs is " + rhs.toString() << endl;
-  cout << "lhs sort is " + getSortName(lhs.sort()) << endl;
-  cout << "rhs sort is " + getSortName(rhs.sort()) << endl;
-  cout << "lhs is term " << lhs.isTerm() << endl;
-  cout << "rhs is term " << rhs.isTerm() << endl;*/
-
   checkForValidity({lhs, rhs});
   if(!lhs.isTerm() || !rhs.isTerm()){
     throw ApiException("Formulas cannot occur on the left or right of an equality!");     
   }
 
   _aux->ensureEqualityArgumentsSortsMatch(lhs, rhs);
-  unsigned srt = lhs.sort();
+  Kernel::TermList srt = lhs.sort();
   if(srt!=rhs.sort()) {
     throw FormulaBuilderException("sort mismatch in equality creation: "+lhs.toString()+" = "+rhs.toString());
   }
@@ -416,16 +407,17 @@ Expression FormulaBuilder::quantifiedFormula(Connective con,const Var& v,const E
   checkForTermError({f});
 
   if(_aux->_checkBindingBoundVariables) {
-    VarList* boundVars=static_cast<Kernel::Formula*>(f)->boundVariables();
-    bool alreadyBound=VarList::member(v, boundVars);
-    VarList::destroy(boundVars);
+    VList* boundVars=static_cast<Kernel::Formula*>(f)->boundVariables();
+    bool alreadyBound=VList::member(v, boundVars);
+    VList::destroy(boundVars);
+
     if(alreadyBound) {
       throw FormulaBuilderException("Attempt to bind a variable that is already bound: "+ StringUtils::copy2str(_aux->getVarName(v)));
     }
   }
 
-  Kernel::Formula::VarList* varList=0;
-  Kernel::Formula::VarList::push(v, varList);
+  VList* varList=0;
+  VList::push(v, varList);
   Kernel::Connective c = con == FORALL ? Kernel::FORALL : Kernel::EXISTS;
 
   return Expression(new QuantifiedFormula(c, varList, 0, f), _aux);
@@ -490,8 +482,8 @@ Expression FormulaBuilder::substitute(Expression original, Var v, Expression t)
     return Expression(resTerm, _aux);
   }
 
-  Kernel::Formula::VarList* fBound = original._form->boundVariables();
-  if(Kernel::Formula::VarList::member(v, fBound)) {
+  VList* fBound = original._form->boundVariables();
+  if(VList::member(v, fBound)) {
     throw ApiException("Variable we substitute for cannot be bound in the formula");
   }
 
@@ -499,7 +491,7 @@ Expression FormulaBuilder::substitute(Expression original, Var v, Expression t)
   while(vit.hasNext()) {
     Kernel::TermList tVar = vit.next();
     ASS(tVar.isOrdinaryVar());
-    if(Kernel::Formula::VarList::member(tVar.var(), fBound)) {
+    if(VList::member(tVar.var(), fBound)) {
       throw ApiException("Variable in the substituted term cannot be bound in the formula");
     }
   }
@@ -556,7 +548,7 @@ Expression FormulaBuilder::replaceConstant(Expression original, Expression repla
     throw ApiException("The replaced term must be a constant (zero-arity function)");
   }
 
-  Kernel::Formula::VarList* fBound = f.form->boundVariables();
+  VList* fBound = f.form->boundVariables();
   VariableIterator vit(tTgt);
   while(vit.hasNext()) {
     Kernel::TermList tVar = vit.next();
@@ -680,7 +672,7 @@ Expression FormulaBuilder::ite(const Expression& cond,const Expression& t1,const
 Expression FormulaBuilder::integerConstantTerm(int i)
 {
   CALL("FormulaBuilder::integerConstantTerm");
-
+  
   return term(integerConstant(i));
 }
 
@@ -995,9 +987,43 @@ Expression FormulaBuilder::select(const Expression& array, const Expression& ind
 //////////////////////////////
 // Wrapper implementation
 
+
+Sort::Sort(Kernel::TermList s)
+{
+  _content=s.content();
+}
+
+Sort::Sort(Kernel::TermList s, ApiHelper aux) : _aux(aux)
+{
+  _content=s.content();
+}
+
+bool Sort::isVar() const
+{
+  CALL("Sort::isVar");
+
+  return static_cast<Kernel::TermList>(*this).isVar();
+} 
+
+Sort Sort::getInvalid()
+{
+  CALL("Sort::getInvalid");
+  
+  static TermList t;
+  t.makeEmpty();
+  return Sort(t);
+}
+
+// not sure about the isVar part...
 bool Sort::isValid() const
-{ return _num!=65535 && 
-        (_num < Sorts::FIRST_USER_SORT || _aux->isValid()); }
+{ 
+  CALL("Sort::isValid");
+
+  Kernel::TermList sort = static_cast<Kernel::TermList>(*this);
+
+  return !sort.isEmpty() && 
+         (sort.isVar() || env.signature->isNonDefaultCon(sort.term()->functor()) || _aux->isValid()); 
+}
 
 bool Sort::isTupleSort() const
 {
@@ -1005,7 +1031,7 @@ bool Sort::isTupleSort() const
   
   if(!isValid()){ return false; }
 
-  return env.sorts->isOfStructuredSort(_num, Kernel::Sorts::StructuredSort::TUPLE);
+  return static_cast<Kernel::TermList>(*this).isTupleSort();
 }
 
 bool Sort::isArraySort() const
@@ -1014,7 +1040,7 @@ bool Sort::isArraySort() const
 
   if(!isValid()){ return false; }
 
-  return env.sorts->isOfStructuredSort(_num, Kernel::Sorts::StructuredSort::ARRAY);
+  return static_cast<Kernel::TermList>(*this).isArraySort();
 }
 
 bool Sort::isBoolSort() const
@@ -1023,8 +1049,19 @@ bool Sort::isBoolSort() const
 
   if(!isValid()){ return false; }
 
-  return _num == Sorts::SRT_BOOL;
+  return static_cast<Kernel::TermList>(*this).isBoolSort();
 }
+
+std::string Sort::toString() const
+{
+  CALL("Sort::toString");
+
+  if(!isValid()){
+    throw ApiException("Sort created prior to hard solver reset and cannot be printed");    
+  }
+  return StringUtils::copy2str(_aux->toString(static_cast<Kernel::TermList>(*this)));
+}
+
 
 Sort Sort::indexSort() const
 {
@@ -1036,7 +1073,7 @@ Sort Sort::indexSort() const
   if(!isArraySort()){
     throw ApiException("Cannot get the index sort of a sort of a non-array sort");        
   }
-  Sort index(env.sorts->getArraySort(_num)->getIndexSort());
+  Sort index(*static_cast<Kernel::TermList>(*this).term()->nthArgument(0));
   index._aux=_aux;
   return index;  
 }
@@ -1051,7 +1088,7 @@ Sort Sort::innerSort() const
   if(!isArraySort()){
     throw ApiException("Cannot get the inner sort of a sort of a non-array sort");        
   }
-  Sort inner(env.sorts->getArraySort(_num)->getInnerSort());
+  Sort inner(*static_cast<Kernel::TermList>(*this).term()->nthArgument(1));
   inner._aux=_aux;
   return inner;  
 }
@@ -1064,11 +1101,27 @@ unsigned Sort::arity() const
     throw ApiException("Cannot get the arity of a sort created prior to a hard solver reset");    
   }
 
-  if(!isTupleSort()){
-    throw ApiException("Cannot get the arity of a sort that is not a tuple sort");    
+  if(isVar()){
+    throw ApiException("Cannot get the arity of a variable sort");        
   }
 
-  return env.sorts->getTupleSort(_num)->arity();
+  return static_cast<Kernel::TermList>(*this).term()->arity();
+}
+
+
+Sort::operator Kernel::TermList() const
+{  
+  return TermList(_content);
+}
+
+bool Sort::operator==(const Sort& s) const
+{
+  return _content == s._content;
+}
+
+bool Sort::operator!=(const Sort& s) const
+{
+  return !(*this == s);
 }
 
 bool Symbol::isValid() const
@@ -1351,7 +1404,8 @@ Expression Expression::formulaArg(unsigned i)
   if(isNull()) {
     return StringIterator(VirtualIterator<vstring>::getEmpty());
   }
-  VarList* vars=  _form->freeVariables();
+
+  VList* vars=  _form->freeVariables();
   return _aux->getVarNames(vars);
 }
 
@@ -1365,7 +1419,9 @@ StringIterator Expression::boundVars()
   if(isNull() || isTerm()) {
     return StringIterator(VirtualIterator<vstring>::getEmpty());
   }
-  VarList* vars=_form->boundVariables();
+
+  VList* vars=_form->boundVariables();
+
   return _aux->getVarNames(vars);
 }*/
 
@@ -1403,9 +1459,9 @@ bool AnnotatedFormula::isValid() const
   if(!unit) {
     return StringIterator(VirtualIterator<vstring>::getEmpty());
   }
-  VarList* vl=0;
+  VList* vl=0;
   if(unit->isClause()) {
-    VarList::pushFromIterator(static_cast<Clause*>(unit)->getVariableIterator(), vl);
+    VList::pushFromIterator(static_cast<Clause*>(unit)->getVariableIterator(), vl);
   }
   else {
     vl=static_cast<FormulaUnit*>(unit)->formula()->freeVariables();
@@ -1423,7 +1479,7 @@ StringIterator AnnotatedFormula::boundVars()
   if(!unit || unit->isClause()) {
     return StringIterator(VirtualIterator<vstring>::getEmpty());
   }
-  VarList* vl=static_cast<FormulaUnit*>(unit)->formula()->boundVariables();
+  VList* vl=static_cast<FormulaUnit*>(unit)->formula()->boundVariables();
   return _aux->getVarNames(vl);
 }*/
 
@@ -1597,7 +1653,7 @@ vstring StringIterator::next()
 std::ostream& operator<< (std::ostream& str,const Vampire::Sort& sort)
 {
   CALL("operator<< (ostream&,const Vampire::Sort&)");
-  return str<<env.sorts->sortName(sort);
+  return str<<sort.toString();
 }
 
 ostream& operator<< (ostream& str,const Vampire::Expression& f)

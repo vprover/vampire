@@ -52,6 +52,8 @@ public:
   friend void std::swap(Stack<U>&,Stack<U>&);
 
   class Iterator;
+  class ConstIterator;
+  class BottomFirstIterator;
 
   DECL_ELEMENT_TYPE(C);
   DECL_ITERATOR_TYPE(Iterator);
@@ -80,6 +82,33 @@ public:
     _cursor = _stack;
     _end = _stack+_capacity;
   }
+
+  inline
+  void reserve(size_t capacity) 
+  {
+    CALL("Stack::reserve(size_t)");
+    if (_capacity >= capacity) {
+      return;
+    }
+    C* mem = static_cast<C*>(ALLOC_KNOWN(capacity*sizeof(C),className()));
+    if (_stack) {
+      for (unsigned i = 0; i < size(); i++) {
+        ::new(&mem[i]) C(std::move((*this)[i]));
+      }
+      DEALLOC_KNOWN(_stack,_capacity*sizeof(C),className());
+
+      _cursor = mem + (_cursor - _stack);
+      _capacity = capacity;
+      _stack = mem;
+      _end = _stack + _capacity;
+    } else {
+      _stack = mem;
+      _cursor = mem;
+      _capacity = capacity;
+      _end = _stack + _capacity;
+    }
+  }
+
 
   Stack(const Stack& s)
    : _capacity(s._capacity)
@@ -159,10 +188,50 @@ public:
   void loadFromIterator(It it) {
     CALL("Stack::loadFromIterator");
 
+    // TODO check iterator.size() or iterator.sizeHint()
     while(it.hasNext()) {
       push(it.next());
     }
   }
+
+  /**
+   * Put all elements of an iterator onto the stack.
+   */
+  template<class It>
+  void moveFromIterator(It it) {
+    CALL("Stack::loadFromIterator");
+
+    // TODO check iterator.size() or iterator.sizeHint()
+    while(it.hasNext()) {
+      push(std::move(it.next()));
+    }
+  }
+
+
+  /**
+   * Create a new stack with the contents of the itererator.
+   */
+  template<class It>
+  static Stack fromIterator(It it) {
+    CALL("Stack::fromIterator");
+    Stack out;
+    out.loadFromIterator(it);
+    return out;
+  }
+
+  Iterator iter() &
+  { return Iterator(*this); }
+
+  ConstIterator iter() const&
+  { return ConstIterator(*this); }
+
+  /* a first-in-first-out iterator  */
+  BottomFirstIterator iterFifo() const 
+  { return BottomFirstIterator(*this); }
+
+  /* a first-in-first-out iterator  */
+  BottomFirstIterator iterFifoMut() const 
+  { return BottomFirstIterator(*this); }
 
   /**
    * Return a reference to the n-th element of the stack.
@@ -219,6 +288,19 @@ public:
   } // Stack::top()
 
   /**
+   * Return the top but one of the stack.
+   */
+  inline
+  C& scnd() const
+  {
+    ASS(_cursor > _stack + 1);
+    ASS(_cursor <= _end);
+
+    return _cursor[-2];
+  } // Stack::top()
+
+
+  /**
    * Set top to a new value.
    * @since 14/03/2006 Bellevue
    */
@@ -265,10 +347,14 @@ public:
       expand();
     }
     ASS(_cursor < _end);
-    new(_cursor) C(elem);
+    ::new(_cursor) C(elem);
     _cursor++;
   } // Stack::push()
 
+  /**
+   * Push new element on the stack (move semantics version).
+   * @since 11/08/2020 
+   */
   inline
   void push(C&& elem)
   {
@@ -278,10 +364,9 @@ public:
       expand();
     }
     ASS(_cursor < _end);
-    new(_cursor) C(std::move(elem));
+    ::new(_cursor) C(std::move(elem));
     _cursor++;
   } // Stack::push()
-
 
   /**
    * Pop the stack and return the popped element.
@@ -295,11 +380,20 @@ public:
     ASS(_cursor > _stack);
     _cursor--;
 
-    C res=*_cursor;
+    C res = std::move(*_cursor);
     _cursor->~C();
 
     return res;
   } // Stack::pop()
+
+
+  inline
+  void pop(unsigned cnt)
+  {
+    CALL("Stack::pop(unsigned)");
+    while (cnt-- != 0) 
+      pop();
+  } // Stack::pop(unsigned)
 
   /**
    * If the element @b el is present in the stack, remove it and return
@@ -541,6 +635,7 @@ public:
     inline
     bool hasNext() const
     {
+      CALL("Stack::BottomFirstIterator::hasNext()")
       ASS_LE(_pointer, _afterLast);
       return _pointer != _afterLast;
     }
@@ -549,8 +644,8 @@ public:
     inline
     const C& next()
     {
+      CALL("Stack::BottomFirstIterator::next()")
       ASS_L(_pointer, _afterLast);
-
       return *(_pointer++);
     }
 
@@ -672,7 +767,6 @@ public:
 #endif
   };
 
-
 protected:
   /** Capacity of the stack */
   size_t _capacity;
@@ -702,7 +796,7 @@ protected:
     C* newStack = static_cast<C*>(mem);
     if(_capacity) {
       for (size_t i = 0; i<_capacity; i++) {
-        new(newStack+i) C(std::move(_stack[i]));
+        ::new(newStack+i) C(std::move(_stack[i]));
         _stack[i].~C();
       }
       // deallocate the old stack
@@ -745,6 +839,17 @@ public:
     out << " ]";
     return out;
   }
+
+  Stack(std::initializer_list<C> cont)
+   : Stack(cont.size())
+  {
+    CALL("Stack::Stack(initializer_list<C>)");
+
+    for (auto const& x : cont) {
+      push(x);
+    }
+  }
+
 };
 
 template<typename C>
@@ -752,20 +857,8 @@ struct Relocator<Stack<C> >
 {
   static void relocate(Stack<C>* oldStack, void* newAddr)
   {
-    size_t sz=oldStack->size();
-    if(sz) {
-      Stack<C>* newStack=new(newAddr) Stack<C>( sz );
-
-      for(size_t i=0;i<sz;i++) {
-        newStack->push(std::move((*oldStack)[i]));
-      }
-
-      oldStack->~Stack<C>();
-    } else {
-      new(newAddr) Stack<C>();
-      oldStack->~Stack<C>();
-
-    }
+    ::new(newAddr) Stack<C>(std::move(*oldStack));
+    oldStack->~Stack<C>();
   }
 };
 

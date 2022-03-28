@@ -382,6 +382,7 @@ private:
    * @warning Constant replacement can change order of arguments of the equality
    * predicate.
    */
+
   // The old method of carrying this out was to create a formula level let statement
   // and then use FOOLElimination to get rid of the let.
   // Formula level lets are no longer supported, so we need to find another
@@ -472,28 +473,33 @@ class Sort
 {
 public:
   Sort() {}
-  explicit Sort(unsigned num) : _num(num) {}
-  explicit Sort(unsigned num, ApiHelper aux) : _aux(aux), _num(num) {}
+  explicit Sort(Kernel::TermList s);
+  explicit Sort(Kernel::TermList s, ApiHelper aux);
 
-  operator unsigned() const { return _num; }
+  operator Kernel::TermList() const;
+  bool operator==(const Sort& o) const;
+  bool operator!=(const Sort& o) const;
 
   bool isTupleSort() const;
   bool isArraySort() const;
   bool isBoolSort() const;
 
-  /** the arity of a tuple sort */
+  std::string toString() const;
+
+  bool isVar() const;
+  /** the arity of a sort */
   unsigned arity() const;
   /** the index sort of an array sort */
   Sort indexSort() const;
   /** the inner sort of an array sort */
   Sort innerSort() const;
 
-  static Sort getInvalid() { return Sort(UINT_MAX); }
+  static Sort getInvalid();
   bool isValid() const;  
 private:
   ApiHelper _aux;
 
-  unsigned _num;
+  size_t _content;
   friend class FormulaBuilder;
 };
 
@@ -570,6 +576,7 @@ public:
    * Return the sort of this expression
    */
   Sort sort() const;
+
   /**
    * For a non-variable expression, return arity of the top function
    * or connective (in the case of a formula)

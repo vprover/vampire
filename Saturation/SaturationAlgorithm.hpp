@@ -65,15 +65,13 @@ public:
 
   UnitList* collectSaturatedSet();
 
-  void setGeneratingInferenceEngine(GeneratingInferenceEngine* generator);
+  void setGeneratingInferenceEngine(SimplifyingGeneratingInference* generator);
   void setImmediateSimplificationEngine(ImmediateSimplificationEngine* immediateSimplifier);
-#if VZ3
-  void setTheoryInstAndSimp(TheoryInstAndSimp* t);
-#endif
 
   void setLabelFinder(LabelFinder* finder){ _labelFinder = finder; }
 
   void addForwardSimplifierToFront(ForwardSimplificationEngine* fwSimplifier);
+  void addSimplifierToFront(SimplificationEngine* simplifier);
   void addBackwardSimplifierToFront(BackwardSimplificationEngine* bwSimplifier);
 
 
@@ -82,8 +80,12 @@ public:
 
   void removeActiveOrPassiveClause(Clause* cl);
 
-  void onClauseReduction(Clause* cl, Clause* replacement, Clause* premise, bool forward=true);
-  void onClauseReduction(Clause* cl, Clause* replacement, ClauseIterator premises,
+  //Run when clause cl has been simplified. Replacement is the array of replacing
+  //clauses which can be empty
+  void onClauseReduction(Clause* cl, Clause** replacements, unsigned numOfReplacements, 
+                         Clause* premise, bool forward=true);
+  void onClauseReduction(Clause* cl, Clause** replacements, unsigned numOfReplacements, 
+                         ClauseIterator premises,
       bool forward=true);
   void onNonRedundantClause(Clause* c);
   void onParenthood(Clause* cl, Clause* parent);
@@ -124,15 +126,16 @@ protected:
   virtual void init();
   virtual MainLoopResult runImpl();
   void doUnprocessedLoop();
-  virtual void handleUnsuccessfulActivation(Clause* c);
   virtual bool handleClauseBeforeActivation(Clause* c);
   void addInputSOSClause(Clause* cl);
+
   void newClausesToUnprocessed();
   void addUnprocessedClause(Clause* cl);
   bool forwardSimplify(Clause* c);
   void backwardSimplify(Clause* c);
   void addToPassive(Clause* c);
-  bool activate(Clause* c);
+  void activate(Clause* c);
+  void removeSelected(Clause*);
   virtual void onSOSClauseAdded(Clause* c) {}
   void onActiveAdded(Clause* c);
   virtual void onActiveRemoved(Clause* c);
@@ -144,6 +147,8 @@ protected:
   virtual void onUnprocessedSelected(Clause* c);
   void onNewUsefulPropositionalClause(Clause* c);
   virtual void onClauseRetained(Clause* cl);
+  /** called before the selected clause is deleted from the searchspace */
+  virtual void beforeSelectedRemoved(Clause* cl) {};
   void onAllProcessed();
   int elapsedTime();
   virtual bool isComplete();
@@ -179,11 +184,18 @@ protected:
   ActiveClauseContainer* _active;
   ExtensionalityClauseContainer* _extensionality;
 
-  ScopedPtr<GeneratingInferenceEngine> _generator;
+  ScopedPtr<SimplifyingGeneratingInference> _generator;
   ScopedPtr<ImmediateSimplificationEngine> _immediateSimplifier;
 
   typedef List<ForwardSimplificationEngine*> FwSimplList;
   FwSimplList* _fwSimplifiers;
+
+  //Simplification occurs at the same point in the loop
+  //as forward and backward simplification, but does not involve
+  //clauses in active. At the moment, the only simplification inference
+  //is the higher-order cnfOnTheFly
+  typedef List<SimplificationEngine*> SimplList;
+  SimplList* _simplifiers;
 
   typedef List<BackwardSimplificationEngine*> BwSimplList;
   BwSimplList* _bwSimplifiers;
@@ -198,9 +210,6 @@ protected:
   SymElOutput* _symEl;
   AnswerLiteralManager* _answerLiteralManager;
   Instantiation* _instantiation;
-#if VZ3
-  TheoryInstAndSimp* _theoryInstSimp;
-#endif
 
 
   SubscriptionData _passiveContRemovalSData;

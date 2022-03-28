@@ -26,7 +26,6 @@
 #include "Lib/StringUtils.hpp"
 
 #include "Lib/StringUtils.hpp"
-
 #include "Kernel/Clause.hpp"
 #include "Kernel/Unit.hpp"
 #include "Kernel/Problem.hpp"
@@ -144,7 +143,7 @@ void outputAttributes(ostream& out, FBHelperCore::AttribStack* attribs)
   }
 }
 
-void outputSymbolTypeDefinitions(ostream& out, unsigned symNumber, bool function, bool outputAllTypeDefs,
+/*void outputSymbolTypeDefinitions(ostream& out, unsigned symNumber, bool function, bool outputAllTypeDefs,
     FBHelperCore::AttribStack* attribs, bool dummyNames)
 {
   CALL("outputSymbolTypeDefinitions");
@@ -176,10 +175,10 @@ void outputSymbolTypeDefinitions(ostream& out, unsigned symNumber, bool function
     else {
       out << "(";
       for(unsigned i=0; i<arity; i++) {
-	if(i>0) {
-	  out << " * ";
-	}
-	out << env.sorts->sortName(type->arg(i));
+        if(i>0) {
+          out << " * ";
+        }
+        out << env.sorts->sortName(type->arg(i));
       }
       out << ")";
     }
@@ -196,7 +195,7 @@ void outputSymbolTypeDefinitions(ostream& out, unsigned symNumber, bool function
 
 }
 
-/*void Problem::outputTypeDefinitions(ostream& out, bool outputAllTypeDefs)
+void Problem::outputTypeDefinitions(ostream& out, bool outputAllTypeDefs)
 {
   CALL("Problem::outputTypeDefinitions");
 

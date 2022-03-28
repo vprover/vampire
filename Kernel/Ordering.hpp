@@ -48,7 +48,7 @@ public:
    * in the @c ArgumentOrderVals enum, so that one can convert between the
    * enums using static_cast.
    */
-  enum Result {
+  enum VWARN_UNUSED_TYPE Result {
     GREATER=1,
     LESS=2,
     GREATER_EQ=3,
@@ -174,6 +174,7 @@ protected:
   static DArray<int> predLevelsFromOptsAndPrec(Problem& prb, const Options& opt, const DArray<int>& predicatePrecedences);
 
   Result compareFunctionPrecedences(unsigned fun1, unsigned fun2) const;
+  Result compareTypeConPrecedences(unsigned tyc1, unsigned tyc2) const;
 
   int predicatePrecedence(unsigned pred) const;
   int predicateLevel(unsigned pred) const;
@@ -191,6 +192,22 @@ protected:
 
   bool _reverseLCM;
 };
+
+
+inline ostream& operator<<(ostream& out, Ordering::Result const& r) 
+{
+  switch (r) {
+    case Ordering::Result::GREATER: return out << "GREATER";
+    case Ordering::Result::LESS: return out << "LESS";
+    case Ordering::Result::GREATER_EQ: return out << "GREATER_EQ";
+    case Ordering::Result::LESS_EQ: return out << "LESS_EQ";
+    case Ordering::Result::EQUAL: return out << "EQUAL";
+    case Ordering::Result::INCOMPARABLE: return out << "INCOMPARABLE";
+    default:
+      return out << "UNKNOWN";
+  }
+  ASSERTION_VIOLATION
+}
 
 }
 

@@ -200,8 +200,7 @@ namespace Inferences {
   {
     SubtermEqualityFn(Clause* premise)
       : _premise(premise) {}
-    DECL_RETURN_TYPE(VirtualIterator<Clause*>);
-    OWN_RETURN_TYPE operator()(Literal* lit)
+    VirtualIterator<Clause*> operator()(Literal* lit)
     {
       CALL("InjectivityGIE::SubtermEqualityFn::operator()");
 
@@ -403,8 +402,7 @@ namespace Inferences {
       _aidx(aidx),
       _premise(premise)
     {}
-    DECL_RETURN_TYPE(VirtualIterator<Clause*>);
-    OWN_RETURN_TYPE operator()(Literal* lit)
+    VirtualIterator<Clause*> operator()(Literal* lit)
     {
       CALL("AcyclicityGIE::AyclicityGenFn::operator()");
 
@@ -436,7 +434,7 @@ namespace Inferences {
     ASS(tl->isTerm());
     Term *t = tl->term();
     
-    unsigned sort = SortHelper::getResultSort(t);
+    TermList sort = SortHelper::getResultSort(t);
     ASS(env.signature->isTermAlgebraSort(sort));
 
     if (env.signature->getTermAlgebraOfSort(sort)->allowsCyclicTerms()) {
@@ -517,15 +515,14 @@ namespace Inferences {
     Literal *_lit;
     Stack<TermList*> _subterms;
     bool _leftSide;
-    unsigned _sort;
+    TermList _sort;
   };
 
   struct AcyclicityGIE1::SubtermDisequalityFn
   {
     SubtermDisequalityFn(Clause* premise)
       : _premise(premise) {}
-    DECL_RETURN_TYPE(VirtualIterator<Clause*>);
-    OWN_RETURN_TYPE operator()(Literal* lit)
+    VirtualIterator<Clause*> operator()(Literal* lit)
     {
       CALL("AcyclicityGIE1::SubtermDisequalityFn::operator()");
 

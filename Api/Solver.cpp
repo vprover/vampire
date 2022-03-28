@@ -109,7 +109,6 @@ namespace Vampire
 
     delete env.sharing;
     delete env.signature;
-    delete env.sorts;
     delete env.statistics;
     if (env.predicateSineLevels) delete env.predicateSineLevels;
     {
@@ -119,7 +118,6 @@ namespace Vampire
 
     env.options = new Options;
     env.statistics = new Statistics;  
-    env.sorts = new Sorts;
     env.signature = new Signature;
     env.sharing = new Indexing::TermSharing;
 

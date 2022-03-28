@@ -13,7 +13,7 @@
  */
 
 #include "Kernel/SortHelper.hpp"
-#include "Kernel/Sorts.hpp"
+//#include "Kernel/Sorts.hpp"
 
 #include "Parse/TPTP.hpp"
 
@@ -105,7 +105,6 @@ vstring DefaultHelperCore::getSymbolName(bool pred, unsigned functor) const
 /*struct DefaultHelperCore::Var2NameMapper
 {
   Var2NameMapper(DefaultHelperCore& a) : aux(a) {}
-  DECL_RETURN_TYPE(vstring);
   vstring operator()(unsigned v)
   {
     return aux.getVarName(v);
@@ -113,13 +112,13 @@ vstring DefaultHelperCore::getSymbolName(bool pred, unsigned functor) const
   DefaultHelperCore& aux;
 };
 
-StringIterator DefaultHelperCore::getVarNames(VarList* l)
+StringIterator DefaultHelperCore::getVarNames(VList* l)
 {
   CALL("DefaultHelperCore::getVarNames");
 
   VirtualIterator<vstring> res=pvi( getPersistentIterator(
       getMappingIterator(
-	  VarList::DestructiveIterator(l),
+	  VList::DestructiveIterator(l),
 	  Var2NameMapper(*this))
   ) );
 
@@ -232,8 +231,8 @@ Sort FBHelperCore::getSort(const Vampire::Expression t)
   } else if(t.isIte()){
     return t.sort(); 
   } else {
-    unsigned fun = t.functor();
-    return Sort(env.signature->getFunction(fun)->fnType()->result());
+    TermList tl = static_cast<TermList>(t);
+    return Sort(SortHelper::getResultSort(tl.term()));
   }
 }
 
@@ -243,7 +242,7 @@ void FBHelperCore::ensureArgumentsSortsMatch(OperatorType* type, const Vampire::
 
   unsigned arity = type->arity();
   for(unsigned i=0; i<arity; i++) {
-    unsigned parentSort = type->arg(i);
+    TermList parentSort = type->arg(i);
     Sort argSort = getSort(args[i]);
     if(argSort.isValid() && parentSort!=argSort) {
       throw SortMismatchException("Unexpected sort of term " + args[i].toString());

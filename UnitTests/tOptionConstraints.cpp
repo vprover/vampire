@@ -13,9 +13,6 @@
 
 #include "Test/UnitTesting.hpp"
 
-#define UNIT_ID optionConstraints
-UT_CREATE;
-
 using namespace Shell;
 
 bool testGlobal(Options& o)
@@ -50,11 +47,6 @@ TEST_FUN(int_bounds)
   ASS(testOptionBad("lrs_first_time_check","-200"));
   ASS(testOptionGood("lrs_first_time_check","50"));
   ASS(testOptionBad("extensionality_max_length","1"));
-}
-
-TEST_FUN(choice_con)
-{
-  ASS(testOptionBad("equality_resolution_with_deletion","on"));
 }
 
 TEST_FUN(default_dependence)

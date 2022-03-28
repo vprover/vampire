@@ -75,12 +75,10 @@ Problem::Problem(ClauseIterator clauses, bool copy)
 Problem::~Problem()
 {
   CALL("Problem::~Problem");
-
-  if(_property) { delete _property; }
-
   //TODO: decrease reference counter of clauses (but make sure there's no segfault...)
 
   UnitList::destroy(_units);
+  // Don't delete the property as it is owned by Environment
 }
 
 /**
@@ -100,7 +98,7 @@ void Problem::initValues()
   _mayHaveInequalityResolvableWithDeletion = true;
   _mayHaveXEqualsY = true;
   _propertyValid = false;
-  _property = 0;
+  _property = env.property;
 }
 
 /**
@@ -202,7 +200,10 @@ void Problem::copyInto(Problem& tgt, bool copyClauses)
     //copied object so we save ourselves scanning for the property
     //in the child
     tgt._propertyValid = true;
-    tgt._property = new Property(*_property);
+    //warning: both objects contain a pointer to the same property.
+    //after copying, the property should be treated as strictly read
+    //only.
+    tgt._property = _property;
     tgt.readDetailsFromProperty();
   }
 
@@ -283,6 +284,7 @@ void Problem::refreshProperty() const
   }
   _propertyValid = true;
   _property = Property::scan(_units);
+  env.property = _property;
   ASS(_property);
   _property->setSMTLIBLogic(getSMTLIBLogic());
   readDetailsFromProperty();
@@ -298,8 +300,16 @@ void Problem::readDetailsFromProperty() const
   _hasFormulas = _property->hasFormulas();
   _hasEquality = _property->equalityAtoms()!=0;
   _hasInterpretedOperations = _property->hasInterpretedOperations();
+  _hasNumerals = _property->hasNumerals();
   _hasFOOL = _property->hasFOOL();
-  _hasInterpretedEquality = _property->hasInterpretedEquality();
+  _hasCombs = _property->hasCombs();
+  _hasApp = _property->hasApp();
+  _hasAppliedVar = _property->hasAppliedVar();
+  _hasLogicalProxy = _property->hasLogicalProxy();
+  _hasPolymorphicSym = _property->hasPolymorphicSym();
+  _quantifiesOverPolymorphicVar = _property->quantifiesOverPolymorphicVar();
+  _hasBoolVar = _property->hasBoolVar();
+  _higherOrder = _property->higherOrder();
 
   _mayHaveFormulas = _hasFormulas.value();
   _mayHaveEquality = _hasEquality.value();
@@ -319,8 +329,11 @@ void Problem::invalidateEverything()
   _hasFormulas = MaybeBool::UNKNOWN;
   _hasEquality = MaybeBool::UNKNOWN;
   _hasInterpretedOperations = MaybeBool::UNKNOWN;
+  _hasNumerals = MaybeBool::UNKNOWN;
   _hasFOOL = MaybeBool::UNKNOWN;
-  _hasInterpretedEquality = MaybeBool::UNKNOWN;
+  _hasCombs = MaybeBool::UNKNOWN;
+  _hasApp = MaybeBool::UNKNOWN;
+  _hasAppliedVar = MaybeBool::UNKNOWN;
 
   _mayHaveFormulas = true;
   _mayHaveEquality = true;
@@ -341,8 +354,14 @@ void Problem::invalidateByRemoval()
   _hasFormulas.mightBecameFalse();
   _hasEquality.mightBecameFalse();
   _hasInterpretedOperations.mightBecameFalse();
+  _hasNumerals.mightBecameFalse();
   _hasFOOL.mightBecameFalse();
-  _hasInterpretedEquality.mightBecameFalse();
+  _hasCombs.mightBecameFalse();
+  _hasAppliedVar.mightBecameFalse();
+  _hasLogicalProxy.mightBecameFalse();
+  _hasPolymorphicSym.mightBecameFalse();
+  _quantifiesOverPolymorphicVar.mightBecameFalse();
+  _hasBoolVar.mightBecameFalse();
 }
 
 /**
@@ -388,12 +407,12 @@ bool Problem::hasInterpretedOperations() const
   return _hasInterpretedOperations.value();
 }
 
-bool Problem::hasInterpretedEquality() const
+bool Problem::hasNumerals() const
 {
-  CALL("Problem::hasInterpretedEquality");
+  CALL("Problem::hasNumerals");
 
-  if(!_hasInterpretedEquality.known()) { refreshProperty(); }
-  return _hasInterpretedEquality.value();
+  if(!_hasNumerals.known()) { refreshProperty(); }
+  return _hasNumerals.value();
 }
 
 bool Problem::hasFOOL() const
@@ -402,6 +421,72 @@ bool Problem::hasFOOL() const
 
   if(!_hasFOOL.known()) { refreshProperty(); }
   return _hasFOOL.value();
+}
+
+bool Problem::hasCombs() const
+{
+  CALL("Problem::hasCombs");
+
+  if(!_hasCombs.known()) { refreshProperty(); }
+  return _hasCombs.value();
+}
+
+
+bool Problem::hasApp() const
+{
+  CALL("Problem::hasApp");
+
+  if(!_hasApp.known()) { refreshProperty(); }
+  return _hasApp.value();
+}
+
+bool Problem::hasAppliedVar() const
+{
+  CALL("Problem::hasAppliedVar");
+
+  if(!_hasAppliedVar.known()) { refreshProperty(); }
+  return _hasAppliedVar.value();
+}
+
+bool Problem::hasBoolVar() const
+{
+  CALL("Problem::hasBoolVar");
+
+  if(!_hasBoolVar.known()) { refreshProperty(); }
+  return _hasBoolVar.value();
+}
+
+
+bool Problem::hasLogicalProxy() const
+{
+  CALL("Problem::hasLogicalProxy");
+
+  if(!_hasLogicalProxy.known()) { refreshProperty(); }
+  return _hasLogicalProxy.value();
+}
+
+bool Problem::hasPolymorphicSym() const
+{
+  CALL("Problem::hasPolymorphicSym");
+
+  if(!_hasPolymorphicSym.known()) { refreshProperty(); }
+  return _hasPolymorphicSym.value();
+}
+
+bool Problem::quantifiesOverPolymorphicVar() const
+{
+  CALL(" Problem::quantifiesOverPolymorphicVar");
+
+  if(!_quantifiesOverPolymorphicVar.known()) { refreshProperty(); }
+  return _quantifiesOverPolymorphicVar.value();
+}
+
+bool Problem::higherOrder() const
+{
+  CALL("Problem::hasPolymorphicSym");
+
+  if(!_higherOrder.known()) { refreshProperty(); }
+  return _higherOrder.value();
 }
 
 

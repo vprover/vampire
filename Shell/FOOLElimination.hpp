@@ -41,17 +41,19 @@ public:
 private:
   FormulaUnit* apply(FormulaUnit* fu);
 
-  /** The currenly processed unit */
+  /** The currently processed unit */
   Unit* _unit;
 
   /** A list of definitions, produced during preprocessing */
   UnitList* _defs;
-
+  bool _higherOrder;
+  bool _polymorphic;
+ 
   /** Add a new definitions to _defs */
   void addDefinition(FormulaUnit* unit);
 
   /** Lexical scope of the current unit */
-  DHMap<unsigned,unsigned> _varSorts;
+  DHMap<unsigned,TermList> _varSorts;
 
   /** Process a given part of the unit */
   FormulaList* process(FormulaList* fs);
@@ -75,21 +77,16 @@ private:
   TermList process(Term* term);
   Formula* processAsFormula(Term* term);
 
-  /** Processing helper functions */
-  static void buildApplication(unsigned function, Formula::VarList* vars, Context context,
-                               TermList& functionApplication, Formula*& predicateApplication);
-  // Shortcuts for buildApplication
-  static TermList buildFunctionApplication(unsigned function, Formula::VarList* vars);
-  static Formula* buildPredicateApplication(unsigned predicate, Formula::VarList* vars);
-
   // Depending on the context, build an equivalence or an equality
   // between pairs of arguments
   static Formula* buildEq(Context context, Formula* lhsFormula, Formula* rhsFormula,
-                                           TermList lhsTerm, TermList rhsTerm, unsigned termSort);
+                                           TermList lhsTerm, TermList rhsTerm, TermList termSort);
+  static void buildApplication(unsigned function, Context context, TermStack& vars,
+                             TermList& functionApplication, Formula*& predicateApplication);
 
   // Creates a stack of sorts for the given variables, using the sorting
   // context of the current formula
-  Stack<unsigned> collectSorts(Formula::VarList* vars);
+  void collectSorts(VList* vars, TermStack& typeVars, TermStack& termVars, TermStack& allVars, TermStack& termVarSorts);
 
   // Converts a boolean term t to a formula 't = true'
   static Formula* toEquality(TermList booleanTerm);
@@ -97,13 +94,14 @@ private:
   // Introduces a fresh predicate or function (depending on the context) symbol
   // with given arguments and result sort
   static unsigned introduceFreshSymbol(Context context, const char* prefix,
-                                       Stack<unsigned> sorts, unsigned resultSort);
+                                       TermStack sorts, TermList resultSort, unsigned typeArgsArity);
 
   // In order to add some meaning to a fresh symbol we prefix it with a given string
   // Three different prefixes for three kinds of fresh symbols
   static const char* ITE_PREFIX;
   static const char* LET_PREFIX;
   static const char* BOOL_PREFIX;
+  static const char* MATCH_PREFIX;
 
   // Report that a given formula or a term has been rewritten during defooling
   // The term or formula is passed as its string representation

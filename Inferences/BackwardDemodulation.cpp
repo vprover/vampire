@@ -29,6 +29,7 @@
 #include "Kernel/Renaming.hpp"
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/Term.hpp"
+#include "Kernel/RobSubstitution.hpp"
 
 #include "Indexing/Index.hpp"
 #include "Indexing/TermIndex.hpp"
@@ -66,8 +67,7 @@ void BackwardDemodulation::detach()
 
 struct BackwardDemodulation::RemovedIsNonzeroFn
 {
-  DECL_RETURN_TYPE(bool);
-  OWN_RETURN_TYPE operator() (BwSimplificationRecord arg)
+  bool operator() (BwSimplificationRecord arg)
   {
     return arg.toRemove!=0;
   }
@@ -76,8 +76,7 @@ struct BackwardDemodulation::RemovedIsNonzeroFn
 struct BackwardDemodulation::RewritableClausesFn
 {
   RewritableClausesFn(DemodulationSubtermIndex* index) : _index(index) {}
-  DECL_RETURN_TYPE(VirtualIterator<pair<TermList,TermQueryResult> >);
-  OWN_RETURN_TYPE operator() (TermList lhs)
+  VirtualIterator<pair<TermList,TermQueryResult> > operator() (TermList lhs)
   {
     return pvi( pushPairIntoRightIterator(lhs, _index->getInstances(lhs, true)) );
   }
@@ -98,13 +97,12 @@ struct BackwardDemodulation::ResultFn
     _eqSort = SortHelper::getEqualityArgumentSort(_eqLit);
     _removed=SmartPtr<ClauseSet>(new ClauseSet());
   }
-  DECL_RETURN_TYPE(BwSimplificationRecord);
   /**
    * Return pair of clauses. First clause is being replaced,
    * and the second is the clause, that replaces it. If no
    * replacement should occur, return pair of zeroes.
    */
-  OWN_RETURN_TYPE operator() (pair<TermList,TermQueryResult> arg)
+  BwSimplificationRecord operator() (pair<TermList,TermQueryResult> arg)
   {
     CALL("BackwardDemodulation::ResultFn::operator()");
 
@@ -121,12 +119,27 @@ struct BackwardDemodulation::ResultFn
       return BwSimplificationRecord(0);
     }
 
-    unsigned qrSort = SortHelper::getTermSort(qr.term, qr.literal);
-    if(qrSort!=_eqSort) {
-      return BwSimplificationRecord(0);
+    TermList lhs=arg.first;
+
+    TermList qrSort = SortHelper::getTermSort(qr.term, qr.literal);
+
+    /* The following check replaces the original:
+      "if(qrSort!=_eqSort) {
+         return BwSimplificationRecord(0);
+      }"
+      from the monomorphic setting */
+    if(lhs.isVar()){
+      //when finding instances of a variable, RobSubstitution is used
+      //view Indexing::TermSubstitutionTree::getInstances
+      RobSubstitution* sub = qr.substitution->tryGetRobSubstitution();
+      ASS(sub)
+      //rather than 0 and 1, we should use the constants delared in
+      //substitution tree
+      if(!sub->match(_eqSort, 0, qrSort, 1)){
+        return BwSimplificationRecord(0);        
+      }
     }
 
-    TermList lhs=arg.first;
     TermList rhs=EqHelper::getOtherEqualitySide(_eqLit, lhs);
 
     TermList lhsS=qr.term;
@@ -159,7 +172,7 @@ struct BackwardDemodulation::ResultFn
       TermList other=EqHelper::getOtherEqualitySide(qr.literal, qr.term);
       Ordering::Result tord=_ordering.compare(rhsS, other);
       if(tord!=Ordering::LESS && tord!=Ordering::LESS_EQ) {
-        unsigned eqSort = SortHelper::getEqualityArgumentSort(qr.literal);
+        TermList eqSort = SortHelper::getEqualityArgumentSort(qr.literal);
         Literal* eqLitS=Literal::createEquality(true, lhsS, rhsS, eqSort);
         bool isMax=true;
         Clause::Iterator cit(*qr.clause);
@@ -207,12 +220,11 @@ struct BackwardDemodulation::ResultFn
     ASS_EQ(next,cLen);
 
     env.statistics->backwardDemodulations++;
-
     _removed->insert(qr.clause);
     return BwSimplificationRecord(qr.clause,res);
   }
 private:
-  unsigned _eqSort;
+  TermList _eqSort;
   Literal* _eqLit;
   Clause* _cl;
   SmartPtr<ClauseSet> _removed;

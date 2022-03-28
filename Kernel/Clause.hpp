@@ -52,6 +52,9 @@ private:
   ~Clause() { ASSERTION_VIOLATION; }
   /** Should never be used, just that compiler requires it */
   void operator delete(void* ptr) { ASSERTION_VIOLATION; }
+  
+  template<class VarIt>
+  void collectVars2(DHSet<unsigned>& acc);
 public:
   typedef ArrayishObjectIterator<const Clause> Iterator;
 
@@ -105,7 +108,7 @@ public:
   Literal*& operator[] (int n)
   { return _literals[n]; }
   /** Return the (reference to) the nth literal */
-  Literal* operator[] (int n) const
+  Literal*const& operator[] (int n) const
   { return _literals[n]; }
 
   /** Return the length (number of literals) */
@@ -132,7 +135,7 @@ public:
   Store store() const { return _store; }
   void setStore(Store s);
 
-   /** Return the age */
+  /** Return the age */
   unsigned age() const { return inference().age(); }
   /** Set the age to @b a */
   void setAge(unsigned a) { inference().setAge(a); }
@@ -194,7 +197,7 @@ public:
 
   bool isComponent() const { return _component; }
   void setComponent(bool c) { _component = c; }
-  
+
   bool skip() const;
 
   unsigned getLiteralPosition(Literal* lit);
@@ -228,6 +231,15 @@ public:
   ArrayishObjectIterator<Clause> getSelectedLiteralIterator()
   { return ArrayishObjectIterator<Clause>(*this,numSelected()); }
 
+  ArrayishObjectIterator<Clause> iterLits() &
+  { return ArrayishObjectIterator<Clause>(*this,size()); }
+
+  ArrayishObjectIterator<Clause, const_ref_t> iterLits() const&
+  { return ArrayishObjectIterator<Clause, const_ref_t>(*this,size()); }
+
+  ArrayishObjectIterator<Clause> getLiteralIterator()
+  { return ArrayishObjectIterator<Clause>(*this,size()); }
+
   bool isGround();
   bool isPropositional();
   bool isHorn();
@@ -251,10 +263,12 @@ public:
    */
   void setSplits(SplitSet* splits) {
     CALL("Clause::setSplits");
+
     ASS(_weight == 0);
     _inference.setSplits(splits);
   }
-  
+   
+
   int getNumActiveSplits() const { return _numActiveSplits; }
   void setNumActiveSplits(int newVal) { _numActiveSplits = newVal; }
   void incNumActiveSplits() { _numActiveSplits++; }
@@ -335,6 +349,9 @@ public:
   unsigned getNumeralWeight() const;
 
   void collectVars(DHSet<unsigned>& acc);
+  void collectUnstableVars(DHSet<unsigned>& acc);
+
+  
   unsigned varCnt();
   unsigned maxVar(); // useful to create fresh variables w.r.t. the clause
 
@@ -356,7 +373,6 @@ protected:
 
   /** storage class */
   Store _store : 3;
-
   /** number of selected literals */
   unsigned _numSelected : 20;
 

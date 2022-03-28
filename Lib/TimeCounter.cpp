@@ -45,6 +45,7 @@ void TimeCounter::reinitialize()
 {
   CALL("TimeCounter::reinitialize");
 
+  s_measuring = true;
   s_initialized=0;
 
   initialize();
@@ -87,6 +88,8 @@ void TimeCounter::startMeasuring(TimeCounterUnit tcu)
   CALL("TimeCounter::startMeasuring");
   ASS_NEQ(tcu, TC_OTHER);
 
+  TimeoutProtector tp; // let's not get interrupted while updating our TimeCounter linked-list
+
   if(!s_initialized) {
     initialize();
     if(!s_measuring) {
@@ -109,6 +112,8 @@ void TimeCounter::startMeasuring(TimeCounterUnit tcu)
 void TimeCounter::stopMeasuring()
 {
   CALL("TimeCounter::stopMeasuring");
+  
+  TimeoutProtector tp; // let's not get interrupted while updating our TimeCounter linked-list
 
   if(_tcu==__TC_NONE) {
     //we did not start measuring
@@ -285,6 +290,12 @@ void TimeCounter::outputSingleStat(TimeCounterUnit tcu, ostream& out)
   case TC_LITERAL_REWRITE_RULE_INDEX_MAINTENANCE:
     out<<"literal rewrite rule index maintenance";
     break;
+  case TC_INDUCTION_TERM_INDEX_MAINTENANCE:
+    out<<"induction term index maintenance";
+    break;
+  case TC_UNIT_INTEGER_COMPARISON_INDEX_MAINTENANCE:
+    out<<"unit integer comparison literal index maintenance";
+    break;
   case TC_OTHER:
     out<<"other";
     break;
@@ -330,15 +341,9 @@ void TimeCounter::outputSingleStat(TimeCounterUnit tcu, ostream& out)
   case TC_TERM_SHARING:
     out<<"term sharing";
     break;
-  case TC_TRIVIAL_PREDICATE_REMOVAL:
-    out<<"trivial predicate removal";
-    break;
-  case TC_SOLVING:
-    out << "Bound propagation solving";
-    break;
-  case TC_BOUND_PROPAGATION:
-    out << "Bound propagation";
-    break;
+  case TC_SORT_SHARING:
+    out<<"sort sharing";
+    break;    
   case TC_DISMATCHING:
     out << "dismatching";
     break;
@@ -380,6 +385,7 @@ void TimeCounter::outputSingleStat(TimeCounterUnit tcu, ostream& out)
     break;
   case TC_NAMING:
     out << "naming";
+    break;
   case TC_LITERAL_SELECTION:
     out << "literal selection";
     break;

@@ -54,6 +54,52 @@ inline std::underlying_type<UnitInputType>::type toNumber(UnitInputType t) { ret
 UnitInputType getInputType(UnitList* units);
 UnitInputType getInputType(UnitInputType t1, UnitInputType t2);
 
+/** Step-by-step guide to adding an inference to Vampire:
+ *  1) Update the enum below with an entry for the new inference.
+ *     The enum is sorted into simplifying, generating etc. inferences.
+ *     The new inference must be placed in the appropriate section.
+ *  2) Update the ruleName(..) function in Inference.cpp to return
+ *     the name of the new inference. This name will be used in proof
+ *     printing.
+ *  3) In the /Inferences directory, create a *.cpp and *.hpp files to 
+ *     contain the code which defines the functionality of the new inference.
+ *  4) Vampire supports five types of inferences. Immediate simplifications,
+ *     simplifications (like immediate simplifications, but occur later in the
+ *     given clause loop), forward simplification, backward simplifications
+ *     and generating inferences. The core functionality of each of these
+ *     is specified via five abstract classes in InferenceEngine.hpp. The new 
+ *     inference should inherit from one of these.
+ *  5) In SaturationAlgorithm.hpp update the createFromOptions() function
+ *     to attach the new inference to the relevant (generating, simplifying, ...)
+ *     front. This ensures that the inference is actaully carried out during
+ *     the saturation loop.
+ *  6) If the new inference involves an index of some sort then the following
+ *     needs to be done:
+ *     6.1) Update TermIndex.* / LiteralIndex.* (whichever is appropriate) to
+ *          create a new index for this inference. Specify how the index will
+ *          handle new clauses (will it index subterms of the clause, literals or
+ *          something else? How will it handle these?).
+ *     6.2) Update IndexManager.cpp create(...) function to return an 
+ *          instance of the new index on request.
+ *     6.3) Update inference code to override the attach(...) and detach(...) 
+ *          methods of the InferenceEngine class. Request the index in the 
+ *          attach(...) function and release in the detach(...) function.
+ *
+ *  Further notes on creating inferences:
+ *  - Immediate simplification inferences cannot be linked to an index
+ *  - For an infernce that works at subterms, please consider carefully
+ *    which iterator to use to return these subterms. In Vampire, terms are
+ *    of the form f(type_args, term_args). In most cases, inferences should NOT
+ *    be working on type arguments. Please view TermIterators.hpp for a list of
+ *    iterators available.
+ *  - TermSubstitutionTrees, do NOT carry out any type checking. Thus, in the case
+ *    where either the search or query term is a variable, a type check needs to
+ *    be carried out by the inference code. This check may be a unification check or 
+ *    a matching check depending on whether the inference is using unification or
+ *    matching. Please view Superposition.cpp for an example of a unification check
+ *    and ForwardDemodulation for an example of a matching check.
+ */
+
 /**
  * Tag to denote various kinds of inference rules.
  */
@@ -187,6 +233,7 @@ enum class InferenceRule : unsigned char {
   CONDENSATION,
   /** evaluation inference */
   EVALUATION,
+  CANCELLATION,
   /** interpreted simplification inference */
   INTERPRETED_SIMPLIFICATION,
   //** Flatten a clause to separate theory literals */
@@ -203,9 +250,19 @@ enum class InferenceRule : unsigned char {
   DISTINCT_EQUALITY_REMOVAL,
   /** simplification eliminating variables by rewriting arithmetic equalities: e.g.: 6 = 3 x \/ L[x] => L[2] */
   GAUSSIAN_VARIABLE_ELIMINIATION,
+  ARITHMETIC_SUBTERM_GENERALIZATION,
   /** the last simplifying inference marker --
     inferences between GENERIC_SIMPLIFYING_INFERNCE and INTERNAL_SIMPLIFYING_INFERNCE_LAST will be automatically understood simplifying
     (see also isSimplifyingInferenceRule) */
+   /* eager demodulation with combinator axioms */
+  COMBINATOR_DEMOD,
+  /* normalising combinators */
+  COMBINATOR_NORMALISE,
+  /* negative extnsionality */
+  CASES_SIMP,
+
+  BOOL_SIMP,
+
   INTERNAL_SIMPLIFYING_INFERNCE_LAST,
 
 
@@ -247,8 +304,56 @@ enum class InferenceRule : unsigned char {
   /** the last generating inference marker --
         inferences between GENERIC_GENERATING_INFERNCE and INTERNAL_GENERATING_INFERNCE_LAST will be automatically understood generating
         (see also isGeneratingInferenceRule) */
-  INTERNAL_GENERATING_INFERNCE_LAST,
+  /* argument congruence: t = t' => tx = t'x*/
+  ARG_CONG,
+  /* narrow with combinator axiom */
+  SXX_NARROW,
 
+  SX_NARROW,
+
+  S_NARROW,
+
+  CXX_NARROW,
+
+  CX_NARROW,
+
+  C_NARROW,
+
+  BXX_NARROW,
+
+  BX_NARROW,
+
+  B_NARROW,
+
+  KX_NARROW,
+
+  K_NARROW,
+
+  I_NARROW,
+  /* superposition beneath variable */
+  SUB_VAR_SUP,
+
+  INJECTIVITY,
+
+  PRIMITIVE_INSTANTIATION,
+
+  LEIBNIZ_ELIMINATION,
+
+  NEGATIVE_EXT,
+
+  EQ_TO_DISEQ,
+  /** The next five rules can be either simplifying or generating */
+  HOL_NOT_ELIMINATION,
+
+  BINARY_CONN_ELIMINATION,
+
+  VSIGMA_ELIMINATION,
+
+  VPI_ELIMINATION,
+
+  HOL_EQUALITY_ELIMINATION,
+
+  INTERNAL_GENERATING_INFERNCE_LAST,
 
   /** equality proxy replacement */
   EQUALITY_PROXY_REPLACEMENT,
@@ -290,6 +395,8 @@ enum class InferenceRule : unsigned char {
   FOOL_ITE_ELIMINATION,
   /** Elimination of $let expressions */
   FOOL_LET_ELIMINATION,
+  /** Elimination of $match expressions */
+  FOOL_MATCH_ELIMINATION,
   /** result of general splitting */
   GENERAL_SPLITTING,
   /** component introduced by general splitting */
@@ -304,8 +411,10 @@ enum class InferenceRule : unsigned char {
   AVATAR_DEFINITION,
   /** component introduced by AVATAR */
   AVATAR_COMPONENT,
-  /** refutation of a AVATAR splitting branch */
+  /** inconsistency from AVATAR SAT solver */
   AVATAR_REFUTATION,
+  /** inconsistency from AVATAR SMT solver (not necessarily propositionally unsat) */
+  AVATAR_REFUTATION_SMT,
   /** sat clause representing FO clause for AVATAR */
   AVATAR_SPLIT_CLAUSE,
   /** sat clause representing FO clause for AVATAR */
@@ -337,8 +446,26 @@ enum class InferenceRule : unsigned char {
 
   /* Induction hypothesis*/
   INDUCTION_AXIOM,
-  /* Generalized nduction hypothesis*/
+  /* Generalized induction hypothesis*/
   GEN_INDUCTION_AXIOM,
+  /* Integer induction hypothesis for infinite intervals */
+  INT_INF_UP_INDUCTION_AXIOM,
+  INT_INF_DOWN_INDUCTION_AXIOM,
+  /* Generalized induction hypothesis for infinite intervals*/
+  INT_INF_UP_GEN_INDUCTION_AXIOM,
+  INT_INF_DOWN_GEN_INDUCTION_AXIOM,
+  /* Integer induction hypothesis for finite intervals */
+  INT_FIN_UP_INDUCTION_AXIOM,
+  INT_FIN_DOWN_INDUCTION_AXIOM,
+  /* Generalized induction hypothesis for finite intervals*/
+  INT_FIN_UP_GEN_INDUCTION_AXIOM,
+  INT_FIN_DOWN_GEN_INDUCTION_AXIOM,
+  /* Integer induction hypothesis for infinite interval and the default bound */
+  INT_DB_UP_INDUCTION_AXIOM,
+  INT_DB_DOWN_INDUCTION_AXIOM,
+  /* Generalized induction hypothesis for infinite interval and the default bound*/
+  INT_DB_UP_GEN_INDUCTION_AXIOM,
+  INT_DB_DOWN_GEN_INDUCTION_AXIOM,
 
   /* the unit clause against which the Answer is extracted in the last step */
   ANSWER_LITERAL_RESOLVER,
@@ -406,6 +533,28 @@ enum class InferenceRule : unsigned char {
   /** one of two axioms of FOOL (distinct constants or finite domain) */
   FOOL_AXIOM_TRUE_NEQ_FALSE,
   FOOL_AXIOM_ALL_IS_TRUE_OR_FALSE,
+ 
+  COMBINATOR_AXIOM,
+  
+  FUNC_EXT_AXIOM,
+
+  /** beginning of proxy funxtion axioms marker --*/
+  PROXY_AXIOM,
+  /* Equality proxy axiom */
+  EQUALITY_PROXY_AXIOM,
+  /* Not proxy axiom */    
+  NOT_PROXY_AXIOM,
+  /* And proxy axiom */
+  AND_PROXY_AXIOM,
+  /* OR proxy axiom */    
+  OR_PROXY_AXIOM,
+  /* Implies proxy axiom */
+  IMPLIES_PROXY_AXIOM,
+  /* Forall proxy axiom */    
+  PI_PROXY_AXIOM,
+  /* Exists proxy axiom */
+  SIGMA_PROXY_AXIOM,
+
   /** the last internal theory axiom marker --
     axioms between THEORY_AXIOM and INTERNAL_THEORY_AXIOM_LAST will be automatically making their respective clauses isTheoryAxiom() true */
   INTERNAL_THEORY_AXIOM_LAST,
@@ -448,12 +597,22 @@ inline bool isInternalTheoryAxiomRule(InferenceRule r) {
       toNumber(r) < toNumber(InferenceRule::INTERNAL_THEORY_AXIOM_LAST));
 }
 
+inline bool isCombinatorAxiomRule(InferenceRule r) {
+  return r == InferenceRule::COMBINATOR_AXIOM;
+}
+
+inline bool isProxyAxiomRule(InferenceRule r) {
+  return (toNumber(r) >= toNumber(InferenceRule::PROXY_AXIOM) &&
+      toNumber(r) < toNumber(InferenceRule::INTERNAL_THEORY_AXIOM_LAST));
+}
+
 inline bool isExternalTheoryAxiomRule(InferenceRule r) {
   return r == InferenceRule::EXTERNAL_THEORY_AXIOM;
 }
 
 inline bool isSatRefutationRule(InferenceRule r) {
   return (r == InferenceRule::AVATAR_REFUTATION) ||
+         (r == InferenceRule::AVATAR_REFUTATION_SMT) ||
          (r == InferenceRule::SAT_INSTGEN_REFUTATION) ||
          (r == InferenceRule::GLOBAL_SUBSUMPTION);
 }
@@ -576,6 +735,8 @@ private:
     _rule = r;
     _included = false;
     _inductionDepth = 0;
+    _XXNarrows = 0;
+    _reductions = 0;
     _sineLevel = std::numeric_limits<decltype(_sineLevel)>::max();
     _splits = nullptr;
     _age = 0;
@@ -741,6 +902,14 @@ public:
     return isInternalTheoryAxiomRule(_rule) || isExternalTheoryAxiomRule(_rule);
   }
 
+  bool isCombinatorAxiom() const {
+    return isCombinatorAxiomRule(_rule);
+  }
+
+  bool isProxyAxiom() const {
+    return isProxyAxiomRule(_rule);
+  }  
+
   /*
    * returns true if clause is an external theory axiom
    *
@@ -779,8 +948,26 @@ public:
   /** This is how AVATAR sets it... */
   void setPureTheoryDescendant(bool val) { _isPureTheoryDescendant = val; }
 
+  bool isCombAxiomsDescendant() const { return _combAxiomsDescendant; }
+  void setCombAxiomsDescendant(bool val) { _combAxiomsDescendant=val; }
+
+  bool isProxyAxiomsDescendant() const { return _proxyAxiomsDescendant; }
+  void setProxyAxiomsDescendant(bool val) { _proxyAxiomsDescendant=val; }
+
+  bool isHolAxiomsDescendant() const { return _holAxiomsDescendant; }
+  void setHolAxiomsDescendant(bool val) { _holAxiomsDescendant=val; }  
+
   unsigned inductionDepth() const { return _inductionDepth; }
   void setInductionDepth(unsigned d) { _inductionDepth = d; }
+
+  unsigned xxNarrows() const { return _XXNarrows; }
+  /** used to propagate in AVATAR **/
+  void setXXNarrows(unsigned n) { _XXNarrows = n; }
+  void incXXNarrows(){ if(_XXNarrows < 8){ _XXNarrows++; } }
+
+  unsigned reductions() const { return _reductions; }
+  void setReductions(unsigned r) { _reductions = r; } 
+  void increaseReductions(unsigned n){ _reductions += n; }
 
   void computeTheoryRunningSums();
 
@@ -809,7 +996,12 @@ private:
 
   /** track whether all leafs were theory axioms only */
   bool _isPureTheoryDescendant : 1;
-
+  /** Clause is a combinator axiom descendant */
+  unsigned _combAxiomsDescendant : 1;
+  /** */
+  unsigned _proxyAxiomsDescendant : 1;
+  /** clause is descended only from proxy or combinator axioms */
+  unsigned _holAxiomsDescendant : 1;
   /** Induction depth **/
   unsigned _inductionDepth : 5;
 
@@ -817,6 +1009,13 @@ private:
    * May stay uninitialized (i.e. always MAX), if not needed
    **/
   unsigned char _sineLevel : 8; // updated as the minimum from parents to children
+
+  /** number of XX' narrows carried out on clause */
+  unsigned _XXNarrows : 3;
+  /** number of weak reductions in the history of this clause */
+  unsigned _reductions : 30;
+
+  // aligned to 64 bits
 
   /** age */
   unsigned _age;
@@ -835,6 +1034,7 @@ private:
    **/
   void* _ptr1;
   void* _ptr2;
+
 
 public:
   // counting the leafs (in the tree rather than dag sense)

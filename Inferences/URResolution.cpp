@@ -24,6 +24,8 @@
 #include "Kernel/Renaming.hpp"
 #include "Kernel/Unit.hpp"
 #include "Kernel/Inference.hpp"
+#include "Kernel/RobSubstitution.hpp"
+#include "Kernel/SortHelper.hpp"
 
 #include "Indexing/Index.hpp"
 #include "Indexing/LiteralIndex.hpp"
@@ -105,7 +107,7 @@ struct URResolution::Item
     for(unsigned i=0; i<clen; i++) {
       _lits[i] = (*cl)[i];
       if(!_lits[i]->ground()) {
-	nonGroundCnt++;
+        nonGroundCnt++;
       }
     }
     _atMostOneNonGround = nonGroundCnt<=1;
@@ -144,7 +146,7 @@ struct URResolution::Item
       }
       lit = unif.substitution->apply(lit, !useQuerySubstitution);
       if(!lit->ground()) {
-	nonGroundCnt++;
+        nonGroundCnt++;
       }
     }
     _atMostOneNonGround = nonGroundCnt<=1;
@@ -170,8 +172,10 @@ struct URResolution::Item
         UnitList::push(premise, premLst);
       }
     }
+
     Inference inf(GeneratingInferenceMany(InferenceRule::UNIT_RESULTING_RESOLUTION, premLst));
     Clause* res;
+
     if(single) {
       single = Renaming::normalize(single);
       res = Clause::fromIterator(getSingletonIterator(single), inf);
@@ -214,8 +218,8 @@ struct URResolution::Item
       ASS(_lits[i]);
       int val = getGoodness(_lits[i]);
       if(val>bestVal) {
-	bestVal = val;
-	bestIdx = i;
+        bestVal = val;
+        bestIdx = i;
       }
     }
     if(idx!=bestIdx) {
@@ -283,9 +287,9 @@ void URResolution::processLiteral(ItemList*& itms, unsigned idx)
       iit.insert(itm2);
 
       if(itm->_atMostOneNonGround) {
-	//if there is only one non-ground literal left, there is no need to retrieve
-	//all unifications
-	break;
+        //if there is only one non-ground literal left, there is no need to retrieve
+        //all unifications
+        break;
       }
     }
 
@@ -335,6 +339,7 @@ void URResolution::doBackwardInferences(Clause* cl, ClauseList*& acc)
   ASS_EQ(cl->size(), 1);
 
   Literal* lit = (*cl)[0];
+
   SLQueryResultIterator unifs = _nonUnitIndex->getUnifications(lit, true, true);
   while(unifs.hasNext()) {
     SLQueryResult unif = unifs.next();

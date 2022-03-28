@@ -31,6 +31,7 @@
 #include "Kernel/Term.hpp"
 #include "Kernel/TermIterators.hpp"
 #include "Kernel/Unit.hpp"
+#include "Kernel/FormulaVarIterator.hpp"
 
 #include "Shell/Options.hpp"
 
@@ -634,19 +635,19 @@ Formula* PredicateDefinition::replacePurePredicates(Formula* f)
       //remain valid, but those from arg and result might share some
       //elements, which would lead to trouble e.g. if we were deleting
       //them both.
-      Formula::VarList* vl=arg->vars();
-      Formula::VarList::Iterator vit(f->vars());
+      VList* vl=arg->vars();
+      VList::Iterator vit(f->vars());
       while(vit.hasNext()) {
-	Formula::VarList::push(vit.next(), vl);
+        VList::push(vit.next(), vl);
       }
       // sl should either be empty or the equivalent concatenation as vl
       // if the sorts of either arg or f are empty then sl should be empty
-      Formula::SortList* sl=Formula::SortList::empty();
+      SList* sl= SList::empty();
       if(arg->sorts() && f->sorts()){
         sl=arg->sorts();
-        Formula::SortList::Iterator sit(f->sorts());
+        SList::Iterator sit(f->sorts());
         while(sit.hasNext()){
-          Formula::SortList::push(sit.next(),sl);
+          SList::push(sit.next(),sl);
         }
       }
 
@@ -898,6 +899,9 @@ void PredicateDefinition::count (TermList ts,int add, Unit* unit)
         count(TermList(sd->getTupleTerm()), add, unit);
         break;
 
+      case Term::SF_MATCH:
+        break; // args are handled later
+
       default:
         ASSERTION_VIOLATION;
     }
@@ -954,12 +958,12 @@ bool PredicateDefinition::tryGetDef(Literal* lhs, Formula* rhs, FormulaUnit* uni
     }
   }
   if(hasExtraVars) {
-    Formula::VarList* freeVars = rhs->freeVariables();
     bool extraFreeVars = false;
-    while(freeVars) {
-      unsigned v = Formula::VarList::pop(freeVars);
+    FormulaVarIterator fvit(rhs);
+    while(fvit.hasNext()) {
+      unsigned v = fvit.next();
       if(!counter.get(v)) {
-	extraFreeVars = true;
+        extraFreeVars = true;
       }
     }
     if(extraFreeVars) {

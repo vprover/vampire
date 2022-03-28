@@ -20,7 +20,7 @@
 #include "Lib/Set.hpp"
 
 #include "Kernel/Signature.hpp"
-#include "Kernel/Sorts.hpp"
+#include "Kernel/OperatorType.hpp"
 #include "Kernel/Term.hpp"
 
 #include "Shell/LispParser.hpp"
@@ -169,7 +169,7 @@ private:
    * register any missing sort in vampire and return vampire's sort id
    * corresponding to the give expression.
    */
-  unsigned declareSort(LExpr* sExpr);
+  TermList declareSort(LExpr* sExpr);
 
   /**
    * Some built-in symbols represent functions with result of sort Bool.
@@ -217,6 +217,7 @@ private:
     TS_DIV,
     TS_ITE,
     TS_LET,
+    TS_MATCH,
     TS_MOD,
     TS_SELECT,
     TS_STORE,
@@ -248,7 +249,7 @@ private:
    * store the ensuing DeclaredFunction in _declaredFunctions
    * and return it.
    */
-  DeclaredFunction declareFunctionOrPredicate(const vstring& name, signed rangeSort, const Stack<unsigned>& argSorts);
+  DeclaredFunction declareFunctionOrPredicate(const vstring& name, TermList rangeSort, const TermStack& argSorts);
 
   /**
    * Handle "declare-fun" entry.
@@ -262,31 +263,38 @@ private:
    *
    * Defining a function extends the signature and adds the new function's definition into _formulas.
    */
-  void readDefineFun(const vstring& name, LExprList* iArgs, LExpr* oSort, LExpr* body);
+  void readDefineFun(const vstring& name, LExprList* iArgs, LExpr* oSort, LExpr* body, bool recursive = false);
+
+  void readDeclareDatatype(LExpr* sort, LExprList* datatype);
 
   void readDeclareDatatypes(LExprList* sorts, LExprList* datatypes, bool codatatype = false);
 
-  TermAlgebraConstructor* buildTermAlgebraConstructor(vstring constrName, unsigned taSort,
-                                                      Stack<vstring> destructorNames, Stack<unsigned> argSorts);
+  TermAlgebraConstructor* buildTermAlgebraConstructor(vstring constrName, TermList taSort,
+                                                      Stack<vstring> destructorNames, TermStack argSorts);
 
   /**
    * Parse result of parsing an smtlib term (which can be of sort Bool and therefore represented in vampire by a formula)
    */
   struct ParseResult {
     /** Construct special separator value */
-    ParseResult() : sort(0), formula(true), frm(nullptr) {}
+    ParseResult() : formula(true), frm(nullptr) {
+      sort = TermList(0, true);
+    }
 
-    bool isSeparator() { return sort == 0 && formula && !frm; }
+    bool isSeparator() { return sort.isSpecialVar() && formula && !frm; }
 
     bool isSharedTerm() { return !formula && (!trm.isTerm() || trm.term()->shared()); }
 
     /** Construct ParseResult from a formula */
-    ParseResult(Formula* frm) : sort(Sorts::SRT_BOOL), formula(true), frm(frm) {}
+    ParseResult(Formula* frm) : sort(AtomicSort::boolSort()), formula(true), frm(frm) {}
     /** Construct ParseResult from a term of a given sort */
-    ParseResult(unsigned sort, TermList trm) : sort(sort), formula(false), trm(trm) {}
+    ParseResult(TermList sort, TermList trm) : sort(sort), formula(false), trm(trm) {}
 
-    unsigned sort;
+    TermList sort;
     bool formula;
+    /** The label assigned to this formula using the ":named" annotation of SMT-LIB2;
+     * empty string means no label. */
+    vstring label;
     union {
       Formula* frm;
       TermList trm;
@@ -303,17 +311,28 @@ private:
      * Interpret ParseResult as term
      * and return its vampire sort (which may be Sorts::SRT_BOOL).
      */
-    unsigned asTerm(TermList& resTrm);
+    TermList asTerm(TermList& resTrm);
+    /**
+     * Records a label for the formula represented by this `ParserResult`,
+     * resulting from a ":named" SMT-LIB2 annotation.
+     */
+    void setLabel(vstring l){ label = l; }
+    /**
+     * Helper that attaches a label to a `Formula`
+     * if a label is recorded for this `ParserResult`.
+     * Returns the formula.
+     */
+    Formula* attachLabelToFormula(Formula* frm);
 
     vstring toString();
   };
 
   /** Return Theory::Interpretation for overloaded arithmetic comparison operators based on their argSort (either Int or Real) */
-  Interpretation getFormulaSymbolInterpretation(FormulaSymbol fs, unsigned firstArgSort);
+  Interpretation getFormulaSymbolInterpretation(FormulaSymbol fs, TermList firstArgSort);
   /** Return Theory::Interpretation for overloaded unary minus operator based on its argSort (either Int or Real) */
-  Interpretation getUnaryMinusInterpretation(unsigned argSort);
+  Interpretation getUnaryMinusInterpretation(TermList argSort);
   /** Return Theory::Interpretation for overloaded arithmetic operators based on its argSort (either Int or Real) */
-  Interpretation getTermSymbolInterpretation(TermSymbol ts, unsigned firstArgSort);
+  Interpretation getTermSymbolInterpretation(TermSymbol ts, TermList firstArgSort);
   
 
   // global parsing data structures -- BEGIN
@@ -322,7 +341,7 @@ private:
   unsigned _nextVar;
 
   /** < termlist, vampire sort id > */
-  typedef pair<TermList,unsigned> SortedTerm;
+  typedef pair<TermList,TermList> SortedTerm;
   /** mast an identifier to SortedTerm */
   typedef DHMap<vstring,SortedTerm> TermLookup;
   typedef Stack<TermLookup*> Scopes;
@@ -348,9 +367,14 @@ private:
     PO_PARSE_APPLICATION,  // takes LExpr* (the whole term again, for better error reporting)
     // after "(something args...)" is parsed the following makes sure that there is exactly one proper result on the result stack above a previously inserted separator
     PO_CHECK_ARITY,        // takes LExpr* (again the whole, just for error reporting)
+    // this is a special operation for handling :named labels
+    PO_LABEL,              // takes a LExpr* of the label to be applied to the top _result
     // these two are intermediate cases for handling let
     PO_LET_PREPARE_LOOKUP, // takes LExpr* (the whole let expression again, why not)
-    PO_LET_END             // takes LExpr* (the whole let expression again, why not)
+    PO_LET_END,            // takes LExpr* (the whole let expression again, why not)
+    PO_MATCH_CASE_START,   // takes LExpr*, a list containing the matched term, pattern, case
+    PO_MATCH_CASE_END,     // takes LExpr*, a list containing the matched term, pattern, case
+    PO_MATCH_END           // takes LExpr* (the whole match again)
   };
   /**
    * Main smtlib term parsing stack.
@@ -361,11 +385,17 @@ private:
 
   // a few helper functions enabling the body of parseTermOrFormula be of reasonable size
 
-  void complainAboutArgShortageOrWrongSorts(const vstring& symbolClass, LExpr* exp) NO_RETURN;
+  [[noreturn]] void complainAboutArgShortageOrWrongSorts(const vstring& symbolClass, LExpr* exp);
 
   void parseLetBegin(LExpr* exp);
   void parseLetPrepareLookup(LExpr* exp);
   void parseLetEnd(LExpr* exp);
+
+  bool isTermAlgebraConstructor(const vstring& name);
+  void parseMatchBegin(LExpr* exp);
+  void parseMatchCaseStart(LExpr* exp);
+  void parseMatchCaseEnd(LExpr* exp);
+  void parseMatchEnd(LExpr* exp);
 
   void parseQuantBegin(LExpr* exp);
 

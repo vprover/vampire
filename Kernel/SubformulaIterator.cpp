@@ -154,7 +154,7 @@ bool SubformulaIterator::hasNext ()
       case Element::Tag::TERM: {
         Term* term = _reserve->_term;
         int polarity = _reserve->_polarity;
-        Element* rest = new Element(term->args(), polarity, _reserve->_rest);
+        Element* rest = new Element(term->termArgs(), polarity, _reserve->_rest);
         if (!term->isSpecial()) {
           delete _reserve;
           _reserve = rest;
@@ -198,11 +198,27 @@ bool SubformulaIterator::hasNext ()
             _reserve = rest;
             return true;
           }
+          case Term::SF_LAMBDA: {
+            delete _reserve;
+            TermList lambdaExp = term->getSpecialData()->getLambdaExp();
+            if (!lambdaExp.isTerm()) {
+              _reserve = rest;
+            } else {
+              // TODO: should be 1 instead of polarity?
+              _reserve = new Element(lambdaExp.term(), polarity, rest);
+            }
+            break;
+          }
           case Term::SF_TUPLE: {
             delete _reserve;
             Term* tupleTerm = term->getSpecialData()->getTupleTerm();
             // TODO: should be 1 instead of polarity?
             _reserve = new Element(tupleTerm, polarity, rest);
+            break;
+          }
+          case Term::SF_MATCH: {
+            delete _reserve;
+            _reserve = rest;
             break;
           }
 #if VDEBUG
@@ -252,7 +268,7 @@ Formula* SubformulaIterator::next (int& resultPolarity)
 
   switch (result->connective()) {
   case LITERAL:
-    _reserve = new Element(result->literal()->args(), resultPolarity, _reserve);
+    _reserve = new Element(result->literal()->termArgs(), resultPolarity, _reserve);
     _current = 0;
     break;
 

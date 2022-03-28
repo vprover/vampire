@@ -109,9 +109,17 @@ public:
   bool hasEquality() const;
   /** Problem contains an interpreted symbol including equality */
   bool hasInterpretedOperations() const;
-  bool hasInterpretedEquality() const;
+  bool hasNumerals() const; // meaning the interpreted constants of arithmetic theories, e.g. 1,2, 3.1415,...
   /** Problem contains let terms or formulas, or term if-then-else */
   bool hasFOOL() const;
+  bool hasCombs() const;
+  bool hasLogicalProxy() const;
+  bool hasBoolVar() const;
+  bool hasApp() const;
+  bool hasAppliedVar() const;
+  bool hasPolymorphicSym() const;
+  bool quantifiesOverPolymorphicVar() const;
+  bool higherOrder() const;
 
   bool mayHaveEquality() const { return _mayHaveEquality; }
   bool mayHaveFormulas() const { return _mayHaveFormulas; }
@@ -216,8 +224,16 @@ private:
   mutable MaybeBool _hasFormulas;
   mutable MaybeBool _hasEquality;
   mutable MaybeBool _hasInterpretedOperations;
+  mutable MaybeBool _hasNumerals;
   mutable MaybeBool _hasFOOL;
-  mutable MaybeBool _hasInterpretedEquality;
+  mutable MaybeBool _hasCombs;
+  mutable MaybeBool _hasApp;
+  mutable MaybeBool _hasAppliedVar;
+  mutable MaybeBool _hasLogicalProxy;
+  mutable MaybeBool _hasPolymorphicSym;
+  mutable MaybeBool _quantifiesOverPolymorphicVar;
+  mutable MaybeBool _hasBoolVar; 
+  mutable MaybeBool _higherOrder; 
 
   SMTLIBLogic _smtlibLogic;
 

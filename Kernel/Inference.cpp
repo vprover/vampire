@@ -228,9 +228,15 @@ void Inference::updateStatistics()
         */
       } else if (_ptr2 == nullptr) {
         _inductionDepth = static_cast<Unit*>(_ptr1)->inference().inductionDepth();
+        _XXNarrows = static_cast<Unit*>(_ptr1)->inference().xxNarrows();
+        _reductions = static_cast<Unit*>(_ptr1)->inference().reductions();
       } else {
         _inductionDepth = max(static_cast<Unit*>(_ptr1)->inference().inductionDepth(),
             static_cast<Unit*>(_ptr2)->inference().inductionDepth());
+        _XXNarrows = max(static_cast<Unit*>(_ptr1)->inference().xxNarrows(),
+            static_cast<Unit*>(_ptr2)->inference().xxNarrows());
+        _reductions = max(static_cast<Unit*>(_ptr1)->inference().reductions(),
+            static_cast<Unit*>(_ptr2)->inference().reductions());
       }
 
       break;
@@ -240,6 +246,8 @@ void Inference::updateStatistics()
       UnitList* it= static_cast<UnitList*>(_ptr1);
       while(it) {
         _inductionDepth = max(_inductionDepth,it->head()->inference().inductionDepth());
+        _XXNarrows = max(_XXNarrows,it->head()->inference().inductionDepth());
+        _reductions = max(_reductions,it->head()->inference().inductionDepth());
         it=it->tail();
       }
       break;
@@ -268,7 +276,22 @@ vstring Inference::toString() const
 
   result += ", incl: " + Int::toString(_included);
   result += ", ptd: " + Int::toString(_isPureTheoryDescendant);
+  if(env.options->addCombAxioms()){
+    result += ", cad: " + Int::toString(_combAxiomsDescendant);
+  }
+  if(env.options->addProxyAxioms()){
+   result += ", pad: " + Int::toString(_proxyAxiomsDescendant);
+  }
+  if(env.options->addCombAxioms() && env.options->addProxyAxioms()){
+    result += ", had: " + Int::toString(_holAxiomsDescendant);
+  }
   result += ", id: " + Int::toString(_inductionDepth);
+  if(env.options->maxXXNarrows() > 0){
+    result += ", xxNarrs " + Int::toString(_XXNarrows);
+  }
+  if(env.options->prioritiseClausesProducedByLongReduction()){
+    result += ", redLen " + Int::toString(_reductions);
+  }
   result += ", sl: " + Int::toString(_sineLevel);
   result += ", age: " + Int::toString(_age);
   result += ", thAx:" + Int::toString((int)(th_ancestors));
@@ -290,6 +313,9 @@ void Inference::init0(UnitInputType inputType, InferenceRule r)
   computeTheoryRunningSums();
 
   _isPureTheoryDescendant = isTheoryAxiom();
+  _combAxiomsDescendant = isCombinatorAxiom();
+  _proxyAxiomsDescendant = isProxyAxiom();
+  _holAxiomsDescendant = _combAxiomsDescendant || _proxyAxiomsDescendant;
 
   //_inductionDepth = 0 from initDefault (or set externally)
   //_sineLevel = MAX from initDefault (or set externally)
@@ -309,6 +335,9 @@ void Inference::init1(InferenceRule r, Unit* premise)
 
   computeTheoryRunningSums();
   _isPureTheoryDescendant = premise->isPureTheoryDescendant();
+  _combAxiomsDescendant = premise->isCombAxiomsDescendant();
+  _proxyAxiomsDescendant = premise->isProxyAxiomsDescendant();
+  _holAxiomsDescendant = premise->isHolAxiomsDescendant();
   _sineLevel = premise->getSineLevel();
 
   updateStatistics();
@@ -329,6 +358,9 @@ void Inference::init2(InferenceRule r, Unit* premise1, Unit* premise2)
 
   computeTheoryRunningSums();
   _isPureTheoryDescendant = premise1->isPureTheoryDescendant() && premise2->isPureTheoryDescendant();
+  _combAxiomsDescendant = premise1->isCombAxiomsDescendant() && premise2->isCombAxiomsDescendant() ;
+  _proxyAxiomsDescendant = premise1->isProxyAxiomsDescendant() && premise2->isProxyAxiomsDescendant();  
+  _holAxiomsDescendant = premise1->isHolAxiomsDescendant() && premise2->isHolAxiomsDescendant();
   _sineLevel = min(premise1->getSineLevel(),premise2->getSineLevel());
 
   updateStatistics();
@@ -354,16 +386,25 @@ void Inference::initMany(InferenceRule r, UnitList* premises)
 
   if (premises) {
     _isPureTheoryDescendant = true;
+    _combAxiomsDescendant = true;
+    _proxyAxiomsDescendant = true;
+    _holAxiomsDescendant = true;
     it=premises;
     while(it) {
       const Inference& inf = it->head()->inference();
       _inputType = getInputType(_inputType,inf.inputType());
       _isPureTheoryDescendant &= inf.isPureTheoryDescendant();
+      _combAxiomsDescendant &= inf.isCombAxiomsDescendant();
+      _proxyAxiomsDescendant &= inf.isProxyAxiomsDescendant();
+      _holAxiomsDescendant &= inf.isHolAxiomsDescendant();
       _sineLevel = min(_sineLevel,inf.getSineLevel());
       it=it->tail();
     }
   } else {
     _isPureTheoryDescendant = isTheoryAxiom();
+    _combAxiomsDescendant = isCombinatorAxiom();
+    _proxyAxiomsDescendant = isProxyAxiom();
+    _holAxiomsDescendant = _combAxiomsDescendant || _proxyAxiomsDescendant;
   }
 
   updateStatistics();
@@ -616,6 +657,8 @@ vstring Kernel::ruleName(InferenceRule rule)
     return "fool $ite elimination";
   case InferenceRule::FOOL_LET_ELIMINATION:
     return "fool $let elimination";
+  case InferenceRule::FOOL_MATCH_ELIMINATION:
+    return "fool $match elimination";
   case InferenceRule::FOOL_PARAMODULATION:
     return "fool paramodulation";
 //  case CHOICE_AXIOM:
@@ -716,6 +759,8 @@ vstring Kernel::ruleName(InferenceRule rule)
     return "theory normalization";
   case InferenceRule::EVALUATION:
     return "evaluation";
+  case InferenceRule::CANCELLATION:
+    return "cancellation";
   case InferenceRule::INTERPRETED_SIMPLIFICATION:
     return "interpreted simplification";
   case InferenceRule::UNUSED_PREDICATE_DEFINITION_REMOVAL:
@@ -811,6 +856,8 @@ vstring Kernel::ruleName(InferenceRule rule)
     return "avatar component clause";
   case InferenceRule::AVATAR_REFUTATION:
     return "avatar sat refutation";
+  case InferenceRule::AVATAR_REFUTATION_SMT:
+    return "avatar smt refutation";
   case InferenceRule::AVATAR_SPLIT_CLAUSE:
     return "avatar split clause";
   case InferenceRule::AVATAR_CONTRADICTION_CLAUSE:
@@ -860,10 +907,110 @@ vstring Kernel::ruleName(InferenceRule rule)
     return "induction hypothesis";
   case InferenceRule::GEN_INDUCTION_AXIOM:
     return "generalized induction hypothesis";
+  case InferenceRule::ARITHMETIC_SUBTERM_GENERALIZATION:
+    return "arithmetic subterm generalization";
+  case InferenceRule::INT_INF_UP_INDUCTION_AXIOM:
+    return "integer induction hypothesis (up, infinite interval)";
+  case InferenceRule::INT_INF_DOWN_INDUCTION_AXIOM:
+    return "integer induction hypothesis (down, infinite interval)";
+  case InferenceRule::INT_INF_UP_GEN_INDUCTION_AXIOM:
+    return "generalized integer induction hypothesis (up, infinite interval)";
+  case InferenceRule::INT_INF_DOWN_GEN_INDUCTION_AXIOM:
+    return "generalized integer induction hypothesis (down, infinite interval)";
+  case InferenceRule::INT_FIN_UP_INDUCTION_AXIOM:
+    return "integer induction hypothesis (up, finite interval)";
+  case InferenceRule::INT_FIN_DOWN_INDUCTION_AXIOM:
+    return "integer induction hypothesis (down, finite interval)";
+  case InferenceRule::INT_FIN_UP_GEN_INDUCTION_AXIOM:
+    return "generalized integer induction hypothesis (up, finite interval)";
+  case InferenceRule::INT_FIN_DOWN_GEN_INDUCTION_AXIOM:
+    return "generalized integer induction hypothesis (down, finite interval)";
+  case InferenceRule::INT_DB_UP_INDUCTION_AXIOM:
+    return "integer induction hypothesis (up, default bound)";
+  case InferenceRule::INT_DB_DOWN_INDUCTION_AXIOM:
+    return "integer induction hypothesis (down, default bound)";
+  case InferenceRule::INT_DB_UP_GEN_INDUCTION_AXIOM:
+    return "generalized integer induction hypothesis (up, default bound)";
+  case InferenceRule::INT_DB_DOWN_GEN_INDUCTION_AXIOM:
+    return "generalized integer induction hypothesis (down, default bound)";
   case InferenceRule::GAUSSIAN_VARIABLE_ELIMINIATION:
     return "gaussian variable elimination";
-
+  case InferenceRule::COMBINATOR_AXIOM:
+    return "combinator axiom";
+  case InferenceRule::FUNC_EXT_AXIOM:
+    return "functional extensionality axiom";
+  case InferenceRule::EQUALITY_PROXY_AXIOM:
+    return "equality proxy axiom";
+  case InferenceRule::NOT_PROXY_AXIOM:
+    return "logical not proxy axiom";
+  case InferenceRule::AND_PROXY_AXIOM:
+    return "logical and proxy axiom";
+  case InferenceRule::OR_PROXY_AXIOM:
+    return "logical or proxy axiom";
+  case InferenceRule::IMPLIES_PROXY_AXIOM:
+    return "implies proxy axiom";
+  case InferenceRule::PI_PROXY_AXIOM:
+    return "pi proxy axiom";
+  case InferenceRule::SIGMA_PROXY_AXIOM:
+    return "sigma proxy axiom";
+  case InferenceRule::ARG_CONG:
+    return "argument congruence";
+  case InferenceRule::SXX_NARROW:
+    return "sxx_narrow";
+  case InferenceRule::SX_NARROW:
+    return "sx_narrow";
+  case InferenceRule::S_NARROW:
+    return "s_narrow";
+  case InferenceRule::CXX_NARROW:
+    return "cxx_narrow";
+  case InferenceRule::CX_NARROW:
+    return "cx_narrow";
+  case InferenceRule::C_NARROW:
+    return "c_narrow";
+  case InferenceRule::BXX_NARROW:
+    return "bxx_narrow";
+  case InferenceRule::BX_NARROW:
+    return "bx_narrow";
+  case InferenceRule::B_NARROW:
+    return "b_narrow";
+  case InferenceRule::KX_NARROW:
+    return "kx_narrow";
+  case InferenceRule::K_NARROW:
+    return "k_narrow";
+  case InferenceRule::I_NARROW:
+    return "i_narrow";
+  case InferenceRule::SUB_VAR_SUP:
+    return "sub-var superposition";
+  case InferenceRule::COMBINATOR_DEMOD:
+    return "combinator demodulation";
+  case InferenceRule::COMBINATOR_NORMALISE:
+    return "combinator normalisation";  
+  case InferenceRule::NEGATIVE_EXT:
+    return "negative extensionality";
+  case InferenceRule::INJECTIVITY:
+    return "injectivity";
+  case InferenceRule::HOL_NOT_ELIMINATION:
+    return "not proxy clausification";
+  case InferenceRule::BINARY_CONN_ELIMINATION:
+    return "binary proxy clausification";
+  case InferenceRule::VSIGMA_ELIMINATION:
+    return "sigma clausification";
+  case InferenceRule::VPI_ELIMINATION:
+    return "pi clausification";
+  case InferenceRule::HOL_EQUALITY_ELIMINATION:
+    return "equality proxy clausification";
+  case InferenceRule::BOOL_SIMP:
+    return "boolean simplification";
+  case InferenceRule::EQ_TO_DISEQ:
+    return "bool equality to disequality";
+  case InferenceRule::PRIMITIVE_INSTANTIATION:
+    return "primitive instantiation";
+  case InferenceRule::LEIBNIZ_ELIMINATION:
+    return "leibniz equality elimination";
+  case InferenceRule::CASES_SIMP:
+    return "cases simplifying";
     /* this cases are no actual inference rules but only markeres to separatea groups of rules */
+  case InferenceRule::PROXY_AXIOM:
   case InferenceRule::GENERIC_FORMULA_TRANSFORMATION: 
   case InferenceRule::INTERNAL_FORMULA_TRANSFORMATION_LAST: 
   case InferenceRule::GENERIC_SIMPLIFYING_INFERNCE:

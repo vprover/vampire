@@ -42,8 +42,6 @@ public:
 
   /** options for the current proof attempt */
   Shell::Options* options;
-  /** currently used sorts */
-  Kernel::Sorts* sorts;
   /** currently used signature */
   Kernel::Signature* signature;
   /** Term sharing structure */
@@ -56,6 +54,7 @@ public:
   Timer* timer;
 
   unsigned char maxSineLevel;
+
   DHMap<unsigned, unsigned>* predicateSineLevels;
 
   DHMap<void*,vstring>* proofExtra; // maps Unit* pointers to the associated proof extra string, if available
@@ -89,8 +88,6 @@ public:
   int remainingTime() const;
   /** set to true when coloring is used for symbol elimination or interpolation */
   bool colorUsed;
-  /** set to true when there are some interpreted operations */
-  bool interpretedOperationsUsed;
 
 private:
   int _outputDepth;
@@ -102,9 +99,4 @@ private:
 extern Environment env;
 
 }
-
 #endif
-
-
-
-

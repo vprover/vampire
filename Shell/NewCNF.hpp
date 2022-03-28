@@ -25,6 +25,7 @@
 #include "Lib/DHMap.hpp"
 #include "Lib/SharedSet.hpp"
 #include "Kernel/Substitution.hpp"
+#include "Kernel/Formula.hpp" //TODO AYB remove, it is not required in master
 
 #undef LOGGING
 #define LOGGING 0
@@ -110,8 +111,7 @@ private:
 
   struct BindingGetVarFunctor
   {
-    DECL_RETURN_TYPE(unsigned);
-    OWN_RETURN_TYPE operator()(const Binding& b) { return b.first; }
+    unsigned operator()(const Binding& b) { return b.first; }
   };
 
   #define SIGN bool
@@ -570,13 +570,13 @@ private:
   DHMap<Formula*, Occurrences> _occurrences;
 
   /** map var --> sort */
-  DHMap<unsigned,unsigned> _varSorts;
+  DHMap<unsigned,TermList> _varSorts;
   bool _collectedVarSorts;
   unsigned _maxVar;
 
   void ensureHavingVarSorts();
 
-  Term* createSkolemTerm(unsigned var, VarSet* free);
+  Term* createSkolemTerm(unsigned var, VarSet* free, Formula *reuse);
 
   bool _forInduction;
 
@@ -596,9 +596,12 @@ private:
   // this saves time, because bindings are potentially shared
   DHMap<BindingList*,Substitution*> _substitutionsByBindings;
 
+  // do not provide definitions for names we've already seen (when -dr on)
+  DHSet<Literal *> _already_seen[2];
+
   void skolemise(QuantifiedFormula* g, BindingList* &bindings, BindingList*& foolBindings);
 
-  Literal* createNamingLiteral(Formula* g, List<unsigned>* free);
+  Literal* createNamingLiteral(Formula* g, VList* free);
   void nameSubformula(Formula* g, Occurrences &occurrences);
 
   void enqueue(Formula* formula, Occurrences occurrences = Occurrences()) {
@@ -641,16 +644,19 @@ private:
   void processConstant(bool constant, Occurrences &occurrences);
   void processBoolVar(SIGN sign, unsigned var, Occurrences &occurrences);
   void processITE(Formula* condition, Formula* thenBranch, Formula* elseBranch, Occurrences &occurrences);
+  void processMatch(Term::SpecialTermData* sd, Term* term, Occurrences &occurrences);
   void processLet(Term::SpecialTermData* sd, TermList contents, Occurrences &occurrences);
   TermList eliminateLet(Term::SpecialTermData *sd, TermList contents);
 
-  TermList nameLetBinding(unsigned symbol, Formula::VarList *bindingVariables, TermList binding, TermList contents);
-  TermList inlineLetBinding(unsigned symbol, Formula::VarList *bindingVariables, TermList binding, TermList contents);
+  TermList nameLetBinding(unsigned symbol, VList *bindingVariables, TermList binding, TermList contents);
+  TermList inlineLetBinding(unsigned symbol, VList *bindingVariables, TermList binding, TermList contents);
 
   TermList findITEs(TermList ts, Stack<unsigned> &variables, Stack<Formula*> &conditions,
-                                 Stack<TermList> &thenBranches, Stack<TermList> &elseBranches);
+                    Stack<TermList> &thenBranches, Stack<TermList> &elseBranches,
+                    Stack<unsigned> &matchVariables, Stack<List<Formula*>*> &matchConditions,
+                    Stack<List<TermList>*> &matchBranches);
 
-  unsigned createFreshVariable(unsigned sort);
+  unsigned createFreshVariable(TermList sort);
   void createFreshVariableRenaming(unsigned oldVar, unsigned freshVar);
 
   bool shouldInlineITE(unsigned iteCounter);

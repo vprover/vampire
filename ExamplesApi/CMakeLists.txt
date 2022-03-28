@@ -1,5 +1,9 @@
 cmake_minimum_required (VERSION 3.12.0)
 
+# require the compiler to use C++14
+set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
 project(vampire-examples)
 
 if(DEFINED Vampire_DIR)

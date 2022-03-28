@@ -34,6 +34,7 @@
 
 using namespace Kernel;
 
+unsigned Unit::_lastNumber = 0;
 unsigned Unit::_firstNonPreprocessingNumber = 0;
 unsigned Unit::_lastParsingNumber = 0;
 
