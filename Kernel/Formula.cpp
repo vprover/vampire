@@ -780,21 +780,15 @@ Formula* Formula::quantify(Formula* f)
   DHMap<unsigned,TermList> tMap;
   SortHelper::collectVariableSorts(f,tMap);
 
-  Set<unsigned> vars;
-  FormulaVarIterator fvit( f );
-  while(fvit.hasNext()) {
-    vars.insert(fvit.next());
-  }
-
   //we have to quantify the formula
   VList* varLst = VList::empty();
   VList::FIFO quantifiedVars(varLst);
 
-  Set<unsigned>::Iterator vit(vars);
-  while(vit.hasNext()) {
-    unsigned v = vit.next();
+  DHMap<unsigned,TermList>::Iterator tmit(tMap);
+  while(tmit.hasNext()) {
+    unsigned v; 
     TermList t;
-    ALWAYS(tMap.find(v,t));
+    tmit.next(v, t);    
     if(t.isTerm() && t.term()->isSuper()){
       // type variable must appear at the start of the list
       quantifiedVars.pushFront(v);
