@@ -74,6 +74,9 @@ void Options::init()
 {
    CALL("Options::init");
 
+   //fake option. View comment in Options.hpp
+   _runningFromApi = false;
+
 //**********************************************************************
 //*********************** GLOBAL, for all modes  ***********************
 //**********************************************************************

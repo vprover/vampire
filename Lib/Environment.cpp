@@ -74,7 +74,12 @@ Environment::Environment()
   AtomicSort::rationalSort();
 
   timer = Timer::instance();
+
+//when running from API, we only want to start timer
+//when actual proof search begins
+#if ! VAPI_LIBRARY
   timer->start();
+#endif
 } // Environment::Environment
 
 Environment::~Environment()

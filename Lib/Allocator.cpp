@@ -1087,7 +1087,7 @@ unsigned Allocator::Descriptor::hash (const void* addr)
  * (Note that we ignore the globalHandler issue here.)
  **/ 
 
-#if VDEBUG
+#if VDEBUG && ! VAPI_LIBRARY
 
 void* operator new(size_t sz) {    
   ASS_REP(Allocator::_tolerantZone > 0,"Attempted to use global new operator, thus bypassing Allocator!");

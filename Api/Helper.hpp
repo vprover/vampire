@@ -32,7 +32,7 @@ class Unit;
 class Literal;
 }
 
-namespace Api {
+namespace Vampire {
 
 
 class Problem;
@@ -69,6 +69,7 @@ class FBHelper
 : public ApiHelper
 {
 public:
+  void resetCore();
   FBHelper();
   FBHelperCore* operator->() const;
 };

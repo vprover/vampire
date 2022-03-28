@@ -22,6 +22,7 @@
 #include "Helper.hpp"
 
 #include "Lib/Environment.hpp"
+#include "Lib/Set.hpp"
 
 #include "Kernel/Clause.hpp"
 #include "Kernel/Connective.hpp"
@@ -32,11 +33,12 @@
 #include "Kernel/Term.hpp"
 #include "Kernel/TermIterators.hpp"
 #include "Kernel/Unit.hpp"
+//#include "Kernel/Sorts.hpp"
 
 #include "Shell/TPTPPrinter.hpp"
 #include "Shell/VarManager.hpp"
 
-namespace Api {
+namespace Vampire {
 
 using namespace Shell;
 
@@ -50,25 +52,20 @@ public:
   static DefaultHelperCore* instance();
   virtual vstring getVarName(Var v) const;
   vstring toString(Kernel::TermList t) const;
-  vstring toString(const Kernel::Term* t0) const;
-  vstring toString(const Kernel::Formula* f) const;
-  vstring toString(const Kernel::Clause* clause) const;
-  vstring toString (const Kernel::Unit* unit) const;
-
+  
   virtual VarManager::VarFactory* getVarFactory() { return 0; };
 
   virtual bool isFBHelper() const { return false; }
+  virtual bool isValid() const { return true; }
   virtual bool outputDummyNames() const { return false; }
 private:
   struct Var2NameMapper;
 public:
-  StringIterator getVarNames(VList* l);
-
+  //StringIterator getVarNames(VarList* l);
   static vstring getDummyName(bool pred, unsigned functor);
   static vstring getDummyName(const Kernel::Term* t);
 
   vstring getSymbolName(bool pred, unsigned functor) const;
-  vstring getSymbolName(const Kernel::Term* t) const;
 };
 
 class FBHelperCore
@@ -78,7 +75,7 @@ public:
   CLASS_NAME(FBHelperCore);
   USE_ALLOCATOR(FBHelperCore);
   
-  FBHelperCore() : nextVar(0), refCtr(0), varFact(*this), _unaryPredicate(0)
+  FBHelperCore() : nextVar(0), refCtr(0), varFact(*this), valid(true), _unaryPredicate(0)
   {
   }
 
@@ -107,10 +104,14 @@ public:
   }
 
   virtual bool isFBHelper() const { return true; }
+  virtual bool isValid() const { return valid; }
 
+  void declareInvalid(){ valid = false; }
 
-  Term term(const Function& f,const Term* args, unsigned arity);
-  Formula atom(const Predicate& p, bool positive, const Term* args, unsigned arity);
+  Set<vstring>& getOverflow(){ return overflow; }
+
+  Expression term(const Symbol& f,const Expression* args, unsigned arity); 
+  Expression iteTerm(const Expression& cond,const Expression& t1,const Expression& t2);
   virtual vstring getVarName(Var v) const;
   Sort getVarSort(Var v) const;
   Var getVar(vstring varName, Sort varSort);
@@ -134,9 +135,9 @@ public:
   /** Return arbitrary uninterpreted unary predicate */
   unsigned getUnaryPredicate();
 
-  Sort getSort(const Api::Term t);
-  void ensureArgumentsSortsMatch(BaseType* type, const Api::Term* args);
-  void ensureEqualityArgumentsSortsMatch(const Api::Term arg1, const Api::Term arg2);
+  Sort getSort(const Vampire::Expression t);
+  void ensureArgumentsSortsMatch(OperatorType* type, const Vampire::Expression* args);
+  void ensureEqualityArgumentsSortsMatch(const Vampire::Expression arg1, const Vampire::Expression arg2);
 
   typedef pair<vstring,vstring> AttribPair;
   typedef Stack<AttribPair> AttribStack;
@@ -181,6 +182,8 @@ private:
     FBHelperCore& _parent;
   };
 
+  /** overflown arithmetical constants for which uninterpreted constants are introduced */
+  Set<vstring> overflow;
   /** Map from variable names to their numbers */
   Map<vstring,Var> vars;
   /** Map from variable names to their numbers */
@@ -193,6 +196,8 @@ private:
   int refCtr;
 
   FBVarFactory varFact;
+
+  bool valid;
 
   /** Can contain an un-interpreted unary predicate, or zero in case
    * it is uninitialized

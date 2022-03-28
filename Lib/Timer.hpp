@@ -33,8 +33,9 @@
 #ifdef VAPI_LIBRARY
 #if VAPI_LIBRARY
 
-#undef UNIX_USE_SIGALRM
-#define UNIX_USE_SIGALRM 0
+// TODO, not using SIGALRM causes linker errors
+//#undef UNIX_USE_SIGALRM
+//#define UNIX_USE_SIGALRM 0
 
 #endif
 #endif

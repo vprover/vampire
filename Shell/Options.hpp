@@ -1994,6 +1994,8 @@ public:
   bool intermediateValue() const{ return _intermediateValue.actualValue; }
   //End of rapid related options
 
+  void setRunningFromApi(){ _runningFromApi = true; }
+  bool runningFromApi() const{ return _runningFromApi; }
   bool encodeStrategy() const{ return _encode.actualValue;}
   RandomStrategy randomStrategy() const {return _randomStrategy.actualValue; }
   void setRandomStrategy(RandomStrategy newVal){ _randomStrategy.actualValue=newVal;}
@@ -2437,6 +2439,11 @@ private:
   *  OptionValue. See DecodeOptionValue and SelectionOptionValue for examples. 
   *
   */
+
+  //Not really an option. When Vampire runs from API
+  //we need to do a few things differently and therefore require a flag
+  //to store this info. For want of a better place, stored here.
+  bool _runningFromApi;
 
   ChoiceOptionValue<RandomStrategy> _randomStrategy;
   DecodeOptionValue _decode;

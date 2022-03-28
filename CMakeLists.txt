@@ -730,6 +730,19 @@ set(VAMPIRE_TESTING_SOURCES
     )
 source_group(testing_files FILES ${VAMPIRE_TESTING_SOURCES})
 
+set(VAMPIRE_API_SOURCES
+    Api/FormulaBuilder.cpp  
+    Api/Helper.cpp
+    Api/Problem.cpp
+    Api/Solver.cpp
+    Api/Helper_Internal.hpp 
+    Api/Problem.hpp         
+    Api/FormulaBuilder.hpp 
+    Api/Helper.hpp
+    Api/Solver.hpp       
+   )
+source_group(api_source_files FILES ${VAMPIRE_API_SOURCES})
+
 set(UNIT_TESTS
     UnitTests/tDHMap.cpp
     UnitTests/tQuotientE.cpp
@@ -767,13 +780,18 @@ set(UNIT_TESTS
     )
 source_group(unit_tests FILES ${UNIT_TESTS})
 
+set(API_EXAMPLES
+    ExamplesApi/SimpleProof.cpp
+    ExamplesApi/ArithmeticReasoning.cpp
+    ExamplesApi/CeilGreaterThanEqualNum.cpp 
+)
+source_group(api_examples FILES ${API_EXAMPLES})
+
 set(UNIT_TESTS_Z3
     UnitTests/tTheoryInstAndSimp.cpp
     UnitTests/tZ3Interfacing.cpp
     )
 source_group(unit_tests_z3 FILES ${UNIT_TESTS_Z3})
-
-
 
 # also include forwards.hpp?
 set(VAMPIRE_SOURCES 
@@ -788,6 +806,7 @@ set(VAMPIRE_SOURCES
     ${VAMPIRE_DECISION_PROCEDURES_SOURCES}
     ${VAMPIRE_SATURATION_SOURCES}
     ${VAMPIRE_SHELL_SOURCES}
+    ${VAMPIRE_API_SOURCES}
     ${VAMPIRE_PARSE_SOURCES}
     ${VAMPIRE_FINITEMODELBUILDING_SOURCES}
     ${VAMPIRE_SMTCOMP_SOURCES}
@@ -887,6 +906,16 @@ endif()
 ################################################################
 # build objects
 ################################################################
+
+if(NOT BUILD_SHARED_LIBS)
+  add_library(vampire_lib STATIC ${VAMPIRE_SOURCES})
+else()
+  add_library(vampire_lib SHARED ${VAMPIRE_SOURCES})
+endif()
+
+set_target_properties(vampire_lib PROPERTIES OUTPUT_NAME "vampire")
+target_compile_definitions(vampire_lib PRIVATE VAPI_LIBRARY=1)
+
 add_library(obj OBJECT ${VAMPIRE_SOURCES})
 if (COMPILE_TESTS) 
   add_library(test_obj OBJECT ${VAMPIRE_TESTING_SOURCES})
@@ -996,6 +1025,7 @@ message(STATUS "Setting binary name to '${VAMPIRE_BINARY}'")
 # epilogue
 ################################################################
 add_executable(vampire vampire.cpp $<TARGET_OBJECTS:obj>)
+target_compile_definitions(vampire PRIVATE VAPI_LIBRARY=0)
 set_target_properties(vampire PROPERTIES
   OUTPUT_NAME ${VAMPIRE_BINARY}
   RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin

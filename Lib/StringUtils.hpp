@@ -18,6 +18,7 @@
 #include "VString.hpp"
 #include "DHMap.hpp"
 #include <cstdlib>
+#include <string>
 
 namespace Lib {
 
@@ -35,6 +36,9 @@ public:
   static void splitStr(const char* str, char delimiter, Stack<vstring>& strings);
   static bool readEquality(const char* str, char eqChar, vstring& lhs, vstring& rhs);
   static bool readEqualities(const char* str, char delimiter, char eqChar, DHMap<vstring,vstring>& pairs);
+
+  static vstring copy2vstr(const std::string &other);
+  static std::string copy2str(const vstring &other);
   template<class A>
   static A parse(vstring const& str) 
   { return StringParser<A>{}(str); }

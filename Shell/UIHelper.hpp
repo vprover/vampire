@@ -74,6 +74,7 @@ public:
 
   static void setExpectingSat(){ s_expecting_sat=true; }
   static void setExpectingUnsat(){ s_expecting_unsat=true; }
+  static void setHavingConjecture(bool b){ s_haveConjecture=b; }
 private:
   static bool s_expecting_sat;
   static bool s_expecting_unsat;
