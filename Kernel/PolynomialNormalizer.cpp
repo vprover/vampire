@@ -370,7 +370,7 @@ TermList PolyNf::denormalize() const
         ); }
   };
 
-  static Memo::Hashed<PolyNf, TermList> memo;
+  static Memo::Hashed<PolyNf, TermList, StlHash> memo;
   return evaluateBottomUp(*this, Eval{}, memo);
 }
 

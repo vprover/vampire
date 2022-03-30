@@ -261,7 +261,7 @@ bool RobSubstitution::occurs(VarSpec vs, TermSpec ts)
       return false;
     }
   }
-  typedef DHSet<VarSpec, VarSpec::Hash1> EncounterStore;
+  typedef DHSet<VarSpec, VarSpec::Hash1, VarSpec::Hash2> EncounterStore;
   static EncounterStore encountered;
   encountered.reset();
 

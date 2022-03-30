@@ -561,8 +561,8 @@ void FunctionDefinition::assignArgOccursData(Def* updDef)
 
 
 typedef pair<unsigned,unsigned> BindingSpec;
-typedef DHMap<BindingSpec, TermList, IntPairSimpleHash> BindingMap;
-typedef DHMap<BindingSpec, bool, IntPairSimpleHash> UnfoldedSet;
+typedef DHMap<BindingSpec, TermList, PairIdentityHash> BindingMap;
+typedef DHMap<BindingSpec, bool, PairIdentityHash> UnfoldedSet;
 
 Term* FunctionDefinition::applyDefinitions(Literal* lit, Stack<Def*>* usedDefs)
 {
