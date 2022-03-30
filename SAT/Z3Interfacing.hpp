@@ -197,10 +197,12 @@ private:
   Map<SortId, z3::sort> _sorts;
   struct Z3Hash {
     static unsigned hash(z3::func_decl const& c) { return c.hash(); }
+    static unsigned hash(z3::expr const& c) { return c.hash(); }
     static bool equals(z3::func_decl const& l, z3::func_decl const& r) { return z3::eq(l,r); }
+    static bool equals(z3::expr const& l, z3::expr const& r) { return z3::eq(l,r); }
   };
   Map<z3::func_decl, FuncOrPredId , Z3Hash > _fromZ3;
-  Map<FuncOrPredId,  z3::func_decl, StlHash<FuncOrPredId>> _toZ3;
+  Map<FuncOrPredId,  z3::func_decl, StlHash> _toZ3;
   Set<SortId> _createdTermAlgebras;
 
   z3::func_decl const& findConstructor(FuncId id);
@@ -244,7 +246,7 @@ private:
   z3::solver _solver;
   z3::model _model;
   Stack<z3::expr> _assumptions;
-  BiMap<SATLiteral, z3::expr> _assumptionLookup;
+  BiMap<SATLiteral, z3::expr, Hash, Z3Hash> _assumptionLookup;
   const bool _showZ3;
   const bool _unsatCore;
   Option<std::ofstream> _out;

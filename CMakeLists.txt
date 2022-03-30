@@ -113,7 +113,6 @@ set(VAMPIRE_LIB_SOURCES
     Lib/Environment.cpp
     Lib/Event.cpp
     Lib/Exception.cpp
-    Lib/Hash.cpp
     Lib/Int.cpp
     Lib/IntNameTable.cpp
     Lib/IntUnionFind.cpp
