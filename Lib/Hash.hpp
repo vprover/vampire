@@ -252,7 +252,13 @@ public:
 // these hash functions should be cheap and not worry too much about distribution
 
 template<typename T>
-struct SecondaryHash<T, typename std::enable_if<std::is_enum<T>::value>::type> {
+struct SecondaryHash<
+  T,
+  typename std::enable_if<
+    std::is_fundamental<T>::value ||
+    std::is_enum<T>::value
+  >::type
+> {
   typedef IdentityHash Type;
 };
 
@@ -263,21 +269,6 @@ struct SecondaryHash<T*> {
       return static_cast<unsigned>(reinterpret_cast<uintptr_t>(ptr));
     }
   };
-};
-
-template<>
-struct SecondaryHash<bool> {
-  typedef IdentityHash Type;
-};
-
-template<>
-struct SecondaryHash<int> {
-  typedef IdentityHash Type;
-};
-
-template<>
-struct SecondaryHash<unsigned> {
-  typedef IdentityHash Type;
 };
 
 template<>
