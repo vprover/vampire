@@ -841,14 +841,13 @@ struct ToZ3Expr
 
     Signature::Symbol* symb;
     SortId range_sort;
-    bool is_equality = false;
     // in addition to the actual equality, equalityProxy also gets translated as equality for Z3,
     // and when it's polymorphic, we need to offset its type argument:
     if (isLit) {
       symb = env.signature->getPredicate(trm->functor());
       range_sort = AtomicSort::boolSort();
       // check for equality
-      if (trm->functor() == 0 || symb->equalityProxy())
+      if (trm->functor() == 0 || symb->equalityProxy()) {
          return args[0] == args[1];
       }
     } else {
