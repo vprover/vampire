@@ -844,21 +844,12 @@ struct ToZ3Expr
     bool is_equality = false;
     // in addition to the actual equality, equalityProxy also gets translated as equality for Z3,
     // and when it's polymorphic, we need to offset its type argument:
-    unsigned equality_typeArgArity = 0;
     if (isLit) {
       symb = env.signature->getPredicate(trm->functor());
       range_sort = AtomicSort::boolSort();
       // check for equality
-      if(trm->functor()==0){
-         is_equality=true;
-         ASS(trm->arity()==2);
-      }
-      if(symb->equalityProxy()) {
-        is_equality=true;
-        OperatorType* ftype = symb->fnType();
-        equality_typeArgArity = ftype->typeArgsArity();
-
-        ASS(trm->arity()==equality_typeArgArity+2);
+      if (trm->functor() == 0 || symb->equalityProxy())
+         return args[0] == args[1];
       }
     } else {
       symb = env.signature->getFunction(trm->functor());
@@ -869,8 +860,10 @@ struct ToZ3Expr
       }
     }
 
+
+
     //if constant treat specially
-    if(trm->arity()==0) {
+    if(trm->arity() == 0) {
       if(symb->integerConstant()){
         IntegerConstantType value = symb->integerValue();
         return self._context.int_val(value.toInner());
@@ -913,15 +906,10 @@ struct ToZ3Expr
     }
     ASS(trm->arity()>0);
 
-   //Check for equality
-    if(is_equality){
-      return args[equality_typeArgArity+0] == args[equality_typeArgArity+1];
-    }
-
     // Currently do not deal with all intepreted operations, should extend
     // - constants dealt with above
     // - unary funs/preds like is_rat interpretation unclear
-    if(symb->interpreted()){
+    if(symb->interpreted()) {
       Interpretation interp = static_cast<Signature::InterpretedSymbol*>(symb)->getInterpretation();
 
       if (Theory::isPolymorphic(interp)) {
