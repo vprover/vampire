@@ -9,6 +9,9 @@
  */
 
 #include "IRC.hpp"
+#include "Kernel/Clause.hpp"
+#include "Lib/Stack.hpp"
+#include "Indexing/ResultSubstitution.hpp"
 #include "Kernel/LaLpo.hpp"
 
 #define DEBUG(...) // DBG(__VA_ARGS__)
@@ -123,13 +126,13 @@ Stack<std::pair<Literal*, unsigned>> IrcState::selectedLiteralsWithIdx(Clause* c
   return iterTraits(getRangeIterator((unsigned)0, cl->numSelected()))
     .map([=](auto i) 
         { return make_pair((*cl)[i], i); })
-    .collect<Stack>();
+    .template collect<Stack>();
 }
 
 
 Stack<Literal*> IrcState::selectedLiterals(Clause* cl, bool strictlyMax)
 {
-  return iterTraits(cl->getSelectedLiteralIterator()).collect<Stack>();
+  return iterTraits(cl->getSelectedLiteralIterator()).template collect<Stack>();
 }
 
 
