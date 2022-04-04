@@ -15,7 +15,7 @@
  * bracketing or permuting of multiplications and additions.
  */
 
-#ifndef __QKbo__
+#ifndef __QKBO__
 #define __QKBO__
 
 #include "Forwards.hpp"
@@ -71,4 +71,4 @@ private:
 
 } // namespace Kernel
 
-#endif // __QKbo__
+#endif // __QKBO__
