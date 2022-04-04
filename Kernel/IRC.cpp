@@ -9,7 +9,6 @@
  */
 
 #include "IRC.hpp"
-#include "Kernel/Clause.hpp"
 #include "Lib/Stack.hpp"
 #include "Indexing/ResultSubstitution.hpp"
 #include "Kernel/LaLpo.hpp"

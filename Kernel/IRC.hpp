@@ -47,6 +47,7 @@
 #include "Inferences/InferenceEngine.hpp"
 #include "Inferences/PolynomialEvaluation.hpp"
 #include "Kernel/PolynomialNormalizer.hpp"
+#include "Kernel/Clause.hpp"
 #define DEBUG(...) // DBG(__VA_ARGS__)
 
 
