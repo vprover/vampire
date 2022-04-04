@@ -1717,14 +1717,17 @@ MainLoopResult FiniteModelBuilder::runImpl()
           _distinctSortSizes[i] = j+1;
         }
 
-        // transfer from _distinctSortSizes to _sortModelSizes ?
-        /*
-        for(unsigned s=0;s<_sortedSignature->sorts;s++) {
-          _sortModelSizes[s] = _distinctSortSizes[_sortedSignature->parents[s]];
-        }
+        /* We might think we want to transfer from _distinctSortSizes to _sortModelSizes e.g.
+          for(unsigned s=0;s<_sortedSignature->sorts;s++) {
+            _sortModelSizes[s] = _distinctSortSizes[_sortedSignature->parents[s]];
+          }
+          as we do elsewhere when we update _distinctSortSizes. However, in onModelFound we need to remember what _distinctSortSizes
+          was when we created the model (as this defines the offsets into the variable encoding). Thankfully, this information is
+          encoded in _sortModelSizes so we don't need to do any work here, just don't update _sortModelSizes.
+
+          So, we retract _distinctSortSizes to ensure the model uses the correct sizes but preserve _sortModelSizes to use to query
+          the model.
         */
-        // NO! _sortModelSizes are used to interpret the sat model
-        // (at the same time, only _distinctSortSizes seem to be used by onModelFound to interpret the final domain sizes)
       }
 
       onModelFound();
