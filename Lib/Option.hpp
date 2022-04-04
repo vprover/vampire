@@ -34,7 +34,7 @@ template<class T>
 struct MaybeUninit {
   union Value { 
     T init; int uninint[0]; 
-     Value() {};
+    Value() : uninint{} {};
     ~Value() {};
   } _elem;
 

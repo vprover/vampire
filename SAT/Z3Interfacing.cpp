@@ -436,8 +436,10 @@ struct EvaluateInModel
     } else if (expr.is_app()) {
       auto f = expr.decl();
       auto vfunc = self._fromZ3.get(f);
-      Stack<TermList> args(f.arity());
-      for (unsigned i = 0; i < f.arity(); i++) {
+      unsigned arity = f.arity();
+      ASS(arity == 0 || evaluatedArgs != nullptr)
+      Stack<TermList> args(arity);
+      for (unsigned i = 0; i < arity; i++) {
         if (evaluatedArgs[i].isNone()) {
           // evaluation failed somewhere in a recursive call
           return Result();
@@ -841,12 +843,10 @@ struct ToZ3Expr
 
     Signature::Symbol* symb;
     SortId range_sort;
-    // in addition to the actual equality, equalityProxy also gets translated as equality for Z3,
-    // and when it's polymorphic, we need to offset its type argument:
     if (isLit) {
       symb = env.signature->getPredicate(trm->functor());
       range_sort = AtomicSort::boolSort();
-      // check for equality
+      // in addition to the actual equality, equalityProxy also gets translated as equality for Z3
       if (trm->functor() == 0 || symb->equalityProxy()) {
          return args[0] == args[1];
       }

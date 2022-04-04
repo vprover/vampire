@@ -96,7 +96,6 @@ TheoryInstAndSimp* theoryInstAndSimp(Options::TheoryInstSimp mode, bool withGene
 
 using Shell::Int;
 REGISTER_GEN_TESTER(Test::Generation::GenerationTester<TheoryInstAndSimp>(*theoryInstAndSimp(Options::TheoryInstSimp::ALL)))
-// REGISTER_GEN_TESTER(Test::Generation::GenerationTester<TheoryInstAndSimp>)
 
 TEST_GENERATION(test_01,
     Generation::SymmetricTest()

@@ -75,12 +75,10 @@ Problem::Problem(ClauseIterator clauses, bool copy)
 Problem::~Problem()
 {
   CALL("Problem::~Problem");
-
-  if(_property) { delete _property; }
-
   //TODO: decrease reference counter of clauses (but make sure there's no segfault...)
 
   UnitList::destroy(_units);
+  // Don't delete the property as it is owned by Environment
 }
 
 /**
@@ -100,7 +98,7 @@ void Problem::initValues()
   _mayHaveInequalityResolvableWithDeletion = true;
   _mayHaveXEqualsY = true;
   _propertyValid = false;
-  _property = 0;
+  _property = env.property;
 }
 
 /**
@@ -202,7 +200,10 @@ void Problem::copyInto(Problem& tgt, bool copyClauses)
     //copied object so we save ourselves scanning for the property
     //in the child
     tgt._propertyValid = true;
-    tgt._property = new Property(*_property);
+    //warning: both objects contain a pointer to the same property.
+    //after copying, the property should be treated as strictly read
+    //only.
+    tgt._property = _property;
     tgt.readDetailsFromProperty();
   }
 
@@ -283,6 +284,7 @@ void Problem::refreshProperty() const
   }
   _propertyValid = true;
   _property = Property::scan(_units);
+  env.property = _property;
   ASS(_property);
   _property->setSMTLIBLogic(getSMTLIBLogic());
   readDetailsFromProperty();
@@ -307,6 +309,7 @@ void Problem::readDetailsFromProperty() const
   _hasPolymorphicSym = _property->hasPolymorphicSym();
   _quantifiesOverPolymorphicVar = _property->quantifiesOverPolymorphicVar();
   _hasBoolVar = _property->hasBoolVar();
+  _higherOrder = _property->higherOrder();
 
   _mayHaveFormulas = _hasFormulas.value();
   _mayHaveEquality = _hasEquality.value();
@@ -477,6 +480,15 @@ bool Problem::quantifiesOverPolymorphicVar() const
   if(!_quantifiesOverPolymorphicVar.known()) { refreshProperty(); }
   return _quantifiesOverPolymorphicVar.value();
 }
+
+bool Problem::higherOrder() const
+{
+  CALL("Problem::hasPolymorphicSym");
+
+  if(!_higherOrder.known()) { refreshProperty(); }
+  return _higherOrder.value();
+}
+
 
 ///////////////////////
 // utility functions

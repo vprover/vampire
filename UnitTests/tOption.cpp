@@ -126,7 +126,7 @@ public:
     _moved = o._moved;
     return *this; 
   }
-  LeaqueChecker()  { instances++; }
+  LeaqueChecker() : _moved(false) { instances++; }
   ~LeaqueChecker() { if (!_moved) deletes++;   }
 };
 

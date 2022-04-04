@@ -206,10 +206,6 @@ class RobSubstitution;
 typedef VirtualIterator<RobSubstitution*> SubstIterator;
 typedef Lib::SmartPtr<RobSubstitution> RobSubstitutionSP;
 
-class EGSubstitution;
-typedef VirtualIterator<EGSubstitution*> RSubstIterator;
-typedef Lib::SmartPtr<EGSubstitution> EGSubstitutionSP;
-
 class Matcher;
 typedef VirtualIterator<Matcher*> MatchIterator;
 
@@ -217,7 +213,6 @@ class TermTransformer;
 class TermTransformerTransformTransformed;
 class FormulaTransformer;
 class FormulaUnitTransformer;
-
 
 class LiteralSelector;
 typedef Lib::SmartPtr<LiteralSelector> LiteralSelectorSP;

@@ -39,6 +39,10 @@ Stack<ClausePattern> exactly(As... as)
   return out;
 }
 
+inline Stack<ClausePattern> none() {
+  return Stack<ClausePattern>();
+}
+
 namespace Generation {
 class AsymmetricTest;
 class SymmetricTest;
@@ -54,8 +58,7 @@ public:
     : _rule(std::move(rule)) 
   {  }
 
-  virtual bool eq(Kernel::Clause const* lhs, Kernel::Clause const* rhs) const 
-  // { return TestUtils::eqModAC(lhs, rhs); }
+  virtual bool eq(Kernel::Clause const* lhs, Kernel::Clause const* rhs)
   { return TestUtils::eqModACRect(lhs, rhs); }
 
   friend class AsymmetricTest;
@@ -65,17 +68,20 @@ public:
 class AsymmetricTest
 {
   using Clause = Kernel::Clause;
+  using OptionMap = Stack<pair<vstring,vstring>>;
   Option<SimplifyingGeneratingInference*> _rule;
   Clause* _input;
   Stack<ClausePattern> _expected;
   Stack<Clause*> _context;
   bool _premiseRedundant;
   Stack<std::function<Indexing::Index*()>> _indices;
+  OptionMap _options;
 
   template<class Is, class Expected>
   void testFail(Is const& is, Expected const& expected) {
       cout  << endl;
       cout << "[  context ]: " << pretty(_context) << endl;
+      cout << "[  options ]: " << pretty(_options) << endl;
       cout << "[     case ]: " << pretty(*_input) << endl;
       cout << "[       is ]: " << pretty(is) << endl;
       cout << "[ expected ]: " << pretty(expected) << endl;
@@ -84,10 +90,10 @@ class AsymmetricTest
 
 public:
 
-  AsymmetricTest() : _rule(), _input(NULL), _expected(), _premiseRedundant(false) {}
+  AsymmetricTest() : _rule(), _input(NULL), _expected(), _premiseRedundant(false), _options() {}
 
 #define BUILDER_METHOD(type, field)                                                                           \
-  AsymmetricTest field(type field)                                                                                  \
+  AsymmetricTest field(type field)                                                                            \
   {                                                                                                           \
     this->_##field = decltype(_##field)(std::move(field));                                                    \
     return *this;                                                                                             \
@@ -99,9 +105,14 @@ public:
   BUILDER_METHOD(bool, premiseRedundant)
   BUILDER_METHOD(SimplifyingGeneratingInference*, rule)
   BUILDER_METHOD(Stack<std::function<Indexing::Index*()>>, indices)
+  BUILDER_METHOD(OptionMap, options)
 
   template<class Rule>
   void run(GenerationTester<Rule>& simpl) {
+
+    for (const auto& kv : _options) {
+      env.options->set(kv.first, kv.second);
+    }
     // set up clause container and indexing strucure
     auto container =  PlainClauseContainer();
     SimplifyingGeneratingInference& rule = *_rule.unwrapOrElse([&](){ return &simpl._rule; });
@@ -117,10 +128,12 @@ public:
 
     // add the clauses to the index
     for (auto c : _context) {
+      c->setStore(Clause::ACTIVE);
       container.add(c);
     }
 
     // run rule
+    _input->setStore(Clause::ACTIVE);
     auto res = rule.generateSimplify(_input);
 
     // run checks
@@ -132,7 +145,7 @@ public:
     }
 
     if (_premiseRedundant != res.premiseRedundant) {
-      auto wrapStr = [](bool b) -> vstring { return b ? "premise is redundant" : "premis not redundant"; };
+      auto wrapStr = [](bool b) -> vstring { return b ? "premise is redundant" : "premise is not redundant"; };
       testFail( wrapStr(res.premiseRedundant), wrapStr(_premiseRedundant));
     }
   }
@@ -160,8 +173,8 @@ public:
 
   SymmetricTest() : _rule(), _expected(), _premiseRedundant(false) {}
 
-#define _BUILDER_METHOD(type, field)                                                                           \
-  SymmetricTest field(type field)                                                                                  \
+#define _BUILDER_METHOD(type, field)                                                                          \
+  SymmetricTest field(type field)                                                                             \
   {                                                                                                           \
     this->_##field = decltype(_##field)(std::move(field));                                                    \
     return *this;                                                                                             \
@@ -189,7 +202,6 @@ public:
   }
 
   template<class Rule>
-
   void run(GenerationTester<Rule>& simpl, Clause* input, Stack<Clause*> context) {
     SimplifyingGeneratingInference* rule = _rule.unwrapOrElse([&](){ return &simpl._rule; });
     AsymmetricTest()
@@ -212,7 +224,7 @@ public:
 
 #define TEST_GENERATION_WITH_SUGAR(name, syntax_sugar, ...)                                                   \
   TEST_FUN(name) {                                                                                            \
-    auto tester = __CREATE_GEN_TESTER();                                                                       \
+    auto tester = __CREATE_GEN_TESTER();                                                                      \
     __ALLOW_UNUSED(syntax_sugar)                                                                              \
     auto test = __VA_ARGS__;                                                                                  \
     test.run(tester);                                                                                         \

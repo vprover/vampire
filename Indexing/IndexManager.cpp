@@ -150,8 +150,7 @@ Index* IndexManager::create(IndexType t)
   static Options::UnificationWithAbstraction const uwaMode = env.options->unificationWithAbstraction();
   static bool const useConstraints = uwaMode != Options::UnificationWithAbstraction::OFF;
   static bool const extByAbs = (env.options->functionExtensionality() == Options::FunctionExtensionality::ABSTRACTION) &&
-                    env.statistics->higherOrder;
-  
+                    env.property->higherOrder();
                     
   switch(t) {
   case GENERATING_SUBST_TREE:

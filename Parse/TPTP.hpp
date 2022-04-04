@@ -589,6 +589,8 @@ private:
   bool _isFof;
   /** */
   bool _isThf;
+  /** */
+  bool _containsPolymorphism;
   /** various strings saved during parsing */
   Stack<vstring> _strings;
   /** various connectives saved during parsing */ // they must be int, since non-existing value -1 can be used

@@ -58,15 +58,12 @@ TEST_FUN(example_02__compute_size) {
   /* syntax sugar imports */
   DECL_DEFAULT_VARS
   DECL_SORT(s)
-  DECL_CONST(a, s)
   DECL_FUNC(f, {s}, s)
   DECL_FUNC(g, {s,s}, s)
 
   /* defines how to evaluate bottom up. 
    * computes the size of the term (number of function & variable symbols) */
   struct Eval {
-    TermList replacement;
-
     using Arg    = TermList;
     using Result = unsigned;
 
@@ -74,8 +71,13 @@ TEST_FUN(example_02__compute_size) {
       if (toEval.isVar()) {
         return 1;
       } else {
+        // clang-tidy thought that evaluatedChildren could be nullptr and toEval.term()->arity > 0
+        // it's wrong, but it's a nice thing to check
+        unsigned arity = toEval.term()->arity();
+        ASS(arity == 0 || evaluatedChildren);
+
         unsigned out = 1;
-        for (unsigned i = 0; i < toEval.term()->arity(); i++) {
+        for (unsigned i = 0; i < arity; i++) {
           out += evaluatedChildren[i];
         }
         return out;
@@ -90,7 +92,7 @@ TEST_FUN(example_02__compute_size) {
 
   /* actual evaluation */
   Memo::Hashed<TermList, unsigned> memo{};
-  auto size =  evaluateBottomUp(input, Eval{a}, memo);
+  auto size =  evaluateBottomUp(input, Eval{}, memo);
 
   ASS_EQ(size, 6)
 }

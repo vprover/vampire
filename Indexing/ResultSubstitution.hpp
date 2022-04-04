@@ -138,8 +138,6 @@ public:
 
   static ResultSubstitutionSP fromSubstitution(RobSubstitution* s,
 	  int queryBank, int resultBank);
-//  static ResultSubstitutionSP fromSubstitution(EGSubstitution* s,
-//	  int queryBank, int resultBank);
 
   friend std::ostream& operator<<(std::ostream& out, ResultSubstitution const& self)
   { return self.output(out); }
