@@ -239,6 +239,7 @@ void SortInference::doInference()
   IntUnionFind unionFind(count);
   ZIArray<unsigned> posEqualitiesOnPos;
   Stack<unsigned> varEqualityVampireSorts;
+  DHMap<unsigned,unsigned> vampireSortMax;
 
   ClauseIterator cit = pvi(ClauseList::Iterator(_clauses));
 
@@ -252,9 +253,30 @@ void SortInference::doInference()
    Array<Stack<unsigned>> varPositions(c->varCnt());
    ZIArray<unsigned> varsWithPosEq(c->varCnt());
    IntUnionFind localUF(c->varCnt()+1); // +1 to avoid it being 0.. last pos will not be used
+
+   // This set will be used to collect the variables that occur as part of an equality in every literal (implicitly becomes empty if there's a non-equality literal).
+   // We will use this information to detect maximum model sizes as any claues which is just {X = t_i} means that the sort of X is at most i
+   // We start by assuming that all variables are always in all equalities and then remove variables that are not
+   Set<unsigned> vars_always_in_equalities;
+   vars_always_in_equalities.insertFromIterator(c->getVariableIterator());
+
    for(unsigned i=0;i<c->length();i++){
      Literal* l = (*c)[i];
      if(l->isEquality()){
+
+       // Positive equality means we might  be in a { X = t_i } scenario
+       if(l->polarity()){
+         // For each variable in vars_always_in_equalities remove it if it isn't
+         Set<unsigned>::Iterator vaie_iter(vars_always_in_equalities);
+         while(vaie_iter.hasNext()){ 
+           unsigned var = vaie_iter.next();
+           if((l->nthArgument(0)->isVar() && l->nthArgument(0)->var() != var) ||
+              (l->nthArgument(1)->isVar() && l->nthArgument(1)->var() != var)){
+                vars_always_in_equalities.remove(var);
+           } 
+         }
+       }else {vars_always_in_equalities.reset();}
+
        if(l->isTwoVarEquality()){
          varEqualityVampireSorts.push(l->twoVarEqSort().term()->functor());
 #if DEBUG_SORT_INFERENCE
@@ -294,6 +316,7 @@ void SortInference::doInference()
        }
      }
      else{
+       vars_always_in_equalities.reset();
        unsigned n = offset_p[l->functor()];
        for(unsigned i=0;i<l->arity();i++){
            ASS(l->nthArgument(i)->isVar());
@@ -304,6 +327,36 @@ void SortInference::doInference()
        }
      }
    } 
+
+#if DEBUG_SORT_INFERENCE
+   cout << "vars_always_in_equalities:" << vars_always_in_equalities << endl;
+#endif
+   ASS(vars_always_in_equalities.size() <= 1); // as X=X should be filtered out in preprocessing
+
+   if(vars_always_in_equalities.size() == 1){
+     // We don't actually need the variable, just need to know this is a X = t_i clause
+     // If so, the first literal can be used to find the sort of X
+     //  - if it is a two var equality we take the sort
+     //  - otherwise, it will be of the form X = t and we get the sort of t
+     unsigned sort;
+     Literal* l = (*c)[0];
+     if(l->isTwoVarEquality()){
+         sort = l->twoVarEqSort().term()->functor();
+     }
+     else{
+         sort = SortHelper::getResultSort(l->nthArgument(0)->term()).term()->functor();
+     }
+     unsigned max = c->length();
+     unsigned old;
+     // set the new max if it is smaller than an existing max
+     if(!vampireSortMax.find(sort,old) || old > max){
+       vampireSortMax.insert(sort,max);
+     }
+#if DEBUG_SORT_INFERENCE
+     cout << "Max size for sort " << sort << " is " << c->length() << endl;
+#endif
+   }
+
    for(unsigned v=0;v<varPositions.size();v++){
      unsigned x = localUF.root(v);
      if(x!=v){
@@ -722,6 +775,27 @@ void SortInference::doInference()
         cout << "Child " << child << " for " << env.signature->typeConName(s) << endl;
 #endif
         _sort_constraints.push(make_pair(parent,child));
+      }
+    }
+  }
+
+  // Let the sorted signature know about the sort bounds found by the { X = t_i } scenario
+  // To do this we need to map from vampire sorts to the sorts of the sorted signature
+  // via the notion of distinct sort
+  DHMap<unsigned,unsigned>::Iterator vmax(vampireSortMax);
+  while(vmax.hasNext()){
+    unsigned vsrt;
+    unsigned max;
+    vmax.next(vsrt,max);
+    Stack<unsigned>* srts = _sig->vampireToDistinct.get(vsrt);
+    Stack<unsigned>::Iterator it(*srts);
+    while(it.hasNext()){
+      unsigned dsrt = it.next();
+      for(unsigned srt=0;srt<_sig->sorts;srt++){
+        if(_sig->parents[srt] == dsrt){
+          //cout << "(" << srt << "," << max << ")" << endl;
+          _sig->sortBounds[srt] = min(_sig->sortBounds[srt],max);
+        }
       }
     }
   }
