@@ -143,7 +143,7 @@ void outputAttributes(ostream& out, FBHelperCore::AttribStack* attribs)
   }
 }
 
-/*void outputSymbolTypeDefinitions(ostream& out, unsigned symNumber, bool function, bool outputAllTypeDefs,
+void outputSymbolTypeDefinitions(ostream& out, unsigned symNumber, bool function, bool outputAllTypeDefs,
     FBHelperCore::AttribStack* attribs, bool dummyNames)
 {
   CALL("outputSymbolTypeDefinitions");
@@ -164,61 +164,36 @@ void outputAttributes(ostream& out, FBHelperCore::AttribStack* attribs)
 
   vstring symName = dummyNames ? (DefaultHelperCore::getDummyName(!function, symNumber)) : sym->name();
 
+  // TODO, see whether we can reuse printing code from either TPTPPrinter or UIHelper
   out << "tff(" << (function ? "func" : "pred") << "_def_" << symNumber << ",type, "
-      << symName << ": ";
-
-  unsigned arity = sym->arity();
-  if(arity>0) {
-    if(arity==1) {
-      out << env.sorts->sortName(type->arg(0));
-    }
-    else {
-      out << "(";
-      for(unsigned i=0; i<arity; i++) {
-        if(i>0) {
-          out << " * ";
-        }
-        out << env.sorts->sortName(type->arg(i));
-      }
-      out << ")";
-    }
-    out << " > ";
-  }
-  if(function) {
-    out << env.sorts->sortName(sym->fnType()->result());
-  }
-  else {
-    out << "$o";
-  }
-  outputAttributes(out, attribs);
-  out << " )." << endl;
-
+      << symName << ": " << type->toString() << " )." << endl;
 }
 
 void Problem::outputTypeDefinitions(ostream& out, bool outputAllTypeDefs)
 {
   CALL("Problem::outputTypeDefinitions");
 
-  DefaultHelperCore* core0 = _data->getCore();
-  bool dummyNames = core0 && core0->outputDummyNames();
-  FBHelperCore* core = (core0 && core0->isFBHelper()) ? static_cast<FBHelperCore*>(core0) : 0;
-  unsigned sorts = env.sorts->count();
-  for(unsigned i=Sorts::FIRST_USER_SORT; i<sorts; i++) {
-    out << "tff(sort_def_" << i << ",type, " << env.sorts->sortName(i) << ": $tType";
-    if(core) { outputAttributes(out, &core->getSortAttributes(i)); }
-    out << " )." << endl;
+  //DefaultHelperCore* core0 = _data->getCore();
+  //bool dummyNames = core0 && core0->outputDummyNames();
+  //FBHelperCore* core = (core0 && core0->isFBHelper()) ? static_cast<FBHelperCore*>(core0) : 0;
+  
+  unsigned sorts = env.signature->typeCons();
+  for(unsigned i=Signature::FIRST_USER_CON; i<sorts; i++) {
+    auto sym = env.signature->getTypeCon(i);
+    out << "tff(type_def_" << i << ",type, " << sym->name() 
+        << ": " + sym->typeConType()->toString() + " )." << endl;
+    //if(core) { outputAttributes(out, &core->getSortAttributes(i)); }
+    //out << " )." << endl;
   }
 
 
   unsigned funs = env.signature->functions();
   for(unsigned i=0; i<funs; i++) {
-    outputSymbolTypeDefinitions(out, i, true, outputAllTypeDefs,
-	core ? &core->getFunctionAttributes(i) : 0, dummyNames);
+    outputSymbolTypeDefinitions(out, i, true, outputAllTypeDefs, 0, false);
   }
   unsigned preds = env.signature->predicates();
   for(unsigned i=1; i<preds; i++) {
-    outputSymbolTypeDefinitions(out, i, false, outputAllTypeDefs,
-	core ? &core->getPredicateAttributes(i) : 0, dummyNames);
+    outputSymbolTypeDefinitions(out, i, false, outputAllTypeDefs, 0, false);
   }
 }
 
@@ -227,13 +202,13 @@ void Problem::output(ostream& out, bool outputTypeDefs, bool outputAllTypeDefs)
   CALL("Problem::output");
 
   if(outputTypeDefs) {
-    outputTypeDefinitions(out, outputAllTypeDefs);
+    UIHelper::outputSymbolDeclarations(out);
+    //outputTypeDefinitions(out, outputAllTypeDefs);
   }
-  AnnotatedFormulaIterator afit = formulas();
-  while(afit.hasNext()) {
-    out<<afit.next()<<endl;
+  for(auto& formula : _formulas) {
+    out<<formula<<endl;
   }
-}*/
+}
 
 void Problem::preprocess()
 {

@@ -306,15 +306,7 @@ Sort FBHelperCore::getVarSort(Var v) const
 }
 
 unsigned FBHelperCore::getVar(vstring varName, Sort varSort)
-{
-  if(_checkNames) {
-    if(!isupper(varName[0])) {
-      throw InvalidTPTPNameException("Variable name must start with an uppercase character", 
-                                      StringUtils::copy2str(varName));
-    }
-    //TODO: add further checks
-  }
-  
+{  
   unsigned res=vars.insert(varName, nextVar);
   if(res==nextVar) {
     nextVar++;

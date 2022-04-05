@@ -83,14 +83,14 @@ public:
    * Output tff type definitions for non-standard types and for all
    * functions and predicates, whose type contains some non-default sort.
    */
-  //void outputTypeDefinitions(ostream& out, bool outputAllTypeDefs=false);
+  void outputTypeDefinitions(ostream& out, bool outputAllTypeDefs=false);
 
   /**
    * Output the problem in TPTP format.
    * If @c outputTypeDefs is true, type definitions will be output
    * using he @c outputTypeDefinitions() function.
    */
-  //void output(ostream& out, bool outputTypeDefs=false, bool outputAllTypeDefs=false);
+  void output(ostream& out, bool outputTypeDefs=true, bool outputAllTypeDefs=false);
 
   /**
    * Output various statistics

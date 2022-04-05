@@ -239,12 +239,28 @@ namespace Vampire
   {
     CALL("Solver::var");
 
+    if(fb.checkNames() && logic == TPTP ) {
+      if(!isupper(varName[0])) {
+        throw InvalidTPTPNameException("Variable name must start with an uppercase character when using TPTP syntax", 
+                                      varName);
+      }
+      //TODO: add further checks
+    }
+
     return fb.var(varName);
   }
 
   Var Solver::var(const string& varName, Sort varSort)
   {
     CALL("Solver::var");
+
+    if(fb.checkNames() && logic == TPTP ) {
+      if(!isupper(varName[0])) {
+        throw InvalidTPTPNameException("Variable name must start with an uppercase character when using TPTP syntax", 
+                                        varName);
+      }
+      //TODO: add further checks
+    }
 
     return fb.var(varName, varSort);
   }
@@ -392,11 +408,25 @@ namespace Vampire
     return fb.andFormula(f1,f2);
   }
 
+  Expression Solver::andFormula(const std::vector<Expression>& conjuncts)
+  {
+    CALL("Solver::andFormula");
+
+    return fb.andFormula(conjuncts);   
+  }
+
   Expression Solver::orFormula(const Expression& f1,const Expression& f2)
   {
     CALL("Solver::orFormula");
 
     return fb.orFormula(f1,f2);
+  }
+
+  Expression Solver::orFormula(const std::vector<Expression>& disjuncts)
+  {
+    CALL("Solver::orFormula");
+
+    return fb.orFormula(disjuncts);
   }
 
   Expression Solver::implies(const Expression& f1,const Expression& f2)
@@ -736,6 +766,23 @@ namespace Vampire
     addConjecture(f);
     return solve();
   }
+
+  bool Solver::empty()
+  {
+    CALL("Solver::empty");
+
+    return prob.empty();
+  }
+
+  // TODO at the moment we ignore the fileName parameter
+  // Also, the problem created is not in TPTP format
+  void Solver::outputProblem(std::string fileName)
+  {
+    CALL("Solver::outputProblem");
+
+    prob.output(std::cout);
+  }
+
 
   ///////////////////////////////////////
   // Iterating through the problem

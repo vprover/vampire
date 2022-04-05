@@ -357,8 +357,16 @@ public:
   /** build f1 /\ f2. @param f1 and f2 must be of Boolean sort */
   Expression andFormula(const Expression& f1,const Expression& f2);
 
+  /** build f1 /\ f2 /\ f3 .... Each @param fi must be of Boolean sort 
+   *  it is required that i >= 2 */
+  Expression andFormula(const std::vector<Expression>& conjuncts);
+
   /** build f1 \/ f2. @param f1 and f2 must be of Boolean sort */
   Expression orFormula(const Expression& f1,const Expression& f2);
+
+  /** build f1 \/ f2 \/ f3 .... Each @param fi must be of Boolean sort 
+   *  it is required that i >= 2 */
+  Expression orFormula(const std::vector<Expression>& disjuncts);
 
   /** build f1 -> f2. @param f1 and f2 must be of Boolean sort */
   Expression implies(const Expression& f1,const Expression& f2);
@@ -565,6 +573,12 @@ public:
    * Return true if no formulas are currently asserted in the solver
    */
   bool empty();
+
+  /**
+   * Output the currently asserted set of formulas as a TPTP problem
+   * if @param filename is not specified, std::cout is used
+   */ 
+  void outputProblem(std::string fileName = "");
 
 private:
   FormulaBuilder fb;

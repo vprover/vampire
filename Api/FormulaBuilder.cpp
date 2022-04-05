@@ -331,26 +331,50 @@ Expression FormulaBuilder::andFormula(const Expression& f1,const Expression& f2)
 {
   CALL("FormulaBuilder::andFormula");
 
-  return andOrOrFormula(AND, f1, f2);
+  return andOrOrFormula(AND, {f1, f2});
+}
+
+Expression FormulaBuilder::andFormula(const std::vector<Expression>& conjuncts)
+{
+  CALL("FormulaBuilder::andFormula/2");
+
+  return andOrOrFormula(AND, conjuncts);
 }
 
 Expression FormulaBuilder::orFormula(const Expression& f1,const Expression& f2)
 {
-  CALL("FormulaBuilder::andFormula");
+  CALL("FormulaBuilder::orFormula");
 
-  return andOrOrFormula(OR, f1, f2);
+  return andOrOrFormula(OR, {f1, f2});
 }
 
-Expression FormulaBuilder::andOrOrFormula(Connective con, const Expression& f1,const Expression& f2)
+Expression FormulaBuilder::orFormula(const std::vector<Expression>& disjuncts)
+{
+  CALL("FormulaBuilder::orFormula/2");
+
+  return andOrOrFormula(OR, disjuncts);
+}
+
+Expression FormulaBuilder::andOrOrFormula(Connective con, const std::vector<Expression>& forms)
 {
   CALL("FormulaBuilder::andOrOrFormula");
 
-  checkForValidity({f1, f2});
-  checkForTermError({f1, f2});
+  for(auto f : forms)
+  {
+    if(!f.isValid()){
+      throw ApiException("Attempting to use an Expression created prior to a hard solver reset");          
+    }  
+  }  
+
+  if(forms.size() < 2){
+    throw ApiException("AND and OR must have at least two operands");    
+  }
 
   Kernel::FormulaList* flst=0;
-  Kernel::FormulaList::push(f1._form, flst);
-  Kernel::FormulaList::push(f2._form, flst);
+  for(auto f : forms)
+  {  
+    Kernel::FormulaList::push(f._form, flst);
+  }
   Kernel::Connective c = con == AND ? Kernel::AND : Kernel::OR;
   return Expression(new Kernel::JunctionFormula(c, flst), _aux);  
 }

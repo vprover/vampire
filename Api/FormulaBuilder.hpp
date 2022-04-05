@@ -238,10 +238,14 @@ private:
   /** build f1 /\ f2 */
   Expression andFormula(const Expression& f1,const Expression& f2);
 
+  Expression andFormula(const std::vector<Expression>& conjuncts);
+
   /** build f1 \/ f2 */
   Expression orFormula(const Expression& f1,const Expression& f2);
 
-  Expression andOrOrFormula(Connective con, const Expression& f1,const Expression& f2);
+  Expression orFormula(const std::vector<Expression>& disjuncts);
+
+  Expression andOrOrFormula(Connective con, const std::vector<Expression>& forms);
 
   /** build f1 -> f2 */
   Expression implies(const Expression& f1,const Expression& f2);
