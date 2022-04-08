@@ -43,7 +43,6 @@ using namespace Shell;
 Statistics::Statistics()
   : inputClauses(0),
     inputFormulas(0),
-    hasTypes(false),
     formulaNames(0),
     initialClauses(0),
     splitInequalities(0),
@@ -134,7 +133,6 @@ Statistics::Statistics()
     evaluationIncomp(0),
     evaluationGreater(0),
     evaluationCnt(0),
-
     innerRewrites(0),
     innerRewritesToEqTaut(0),
     deepEquationalTautologies(0),
@@ -147,9 +145,6 @@ Statistics::Statistics()
     taInjectivitySimplifications(0),
     taNegativeInjectivitySimplifications(0),
     taAcyclicityGeneratedDisequalities(0),
-    higherOrder(0),
-    polymorphic(0),
-    activations(0),
     generatedClauses(0),
     passiveClauses(0),
     activeClauses(0),

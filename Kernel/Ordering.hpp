@@ -48,7 +48,7 @@ public:
    * in the @c ArgumentOrderVals enum, so that one can convert between the
    * enums using static_cast.
    */
-  enum Result {
+  enum VWARN_UNUSED_TYPE Result {
     GREATER=1,
     LESS=2,
     GREATER_EQ=3,

@@ -38,6 +38,7 @@
 #include "OperatorType.hpp"
 #include "Theory.hpp"
 
+#include <climits>
 
 namespace Kernel {
 
@@ -607,15 +608,15 @@ class Signature
   bool isArrayCon(unsigned con) const{
     //second part of conditions ensures that _arrayCon
     //has been initialised.
-    return (con == _arrayCon && _arrayCon != 0);    
+    return (con == _arrayCon && _arrayCon != UINT_MAX);    
   }
 
   bool isArrowCon(unsigned con) const{
-    return (con == _arrowCon && _arrowCon != 0);    
+    return (con == _arrowCon && _arrowCon != UINT_MAX);    
   }
   
   bool isAppFun(unsigned fun) const{
-    return (fun == _appFun && _appFun != 0);
+    return (fun == _appFun && _appFun != UINT_MAX);
   }
 
   bool tryGetFunctionNumber(const vstring& name, unsigned arity, unsigned& out) const;

@@ -142,7 +142,7 @@ bool PortfolioMode::searchForProof()
     }
 
     //TheoryFinder cannot cope with polymorphic input
-    if(!env.statistics->polymorphic){
+    if(!env.property->hasPolymorphicSym()){
       TheoryFinder(_prb->units(),property).search();
     }
   }
@@ -242,7 +242,7 @@ void PortfolioMode::getExtraSchedules(Property& prop, Schedule& old, Schedule& e
    //extra_opts.push("etr=on");         // equational_tautology_removal
    extra_opts.push("av=on:atotf=0.5");     // turn AVATAR off
 
-   if(!env.statistics->higherOrder){
+   if(!prop.higherOrder()){
      //these options are not currently HOL compatible
      extra_opts.push("bsd=on:fsd=on"); // subsumption demodulation
      extra_opts.push("to=lpo");           // lpo
@@ -588,7 +588,7 @@ void PortfolioMode::runSlice(Options& strategyOpt)
   if(outputResult) { // this get only true for the first child to find a proof
     ASS(!resultValue);
 
-    if (outputAllowed() && (Lib::env.options && Lib::env.options->multicore() != 1)) {
+    if (outputAllowed() && env.options->multicore() != 1) {
       env.beginOutput();
       addCommentSignForSZS(env.out()) << "First to succeed." << endl;
       env.endOutput();

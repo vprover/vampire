@@ -138,8 +138,6 @@ public:
 
   static ResultSubstitutionSP fromSubstitution(RobSubstitution* s,
 	  int queryBank, int resultBank);
-//  static ResultSubstitutionSP fromSubstitution(EGSubstitution* s,
-//	  int queryBank, int resultBank);
 #if VDEBUG
   virtual vstring toString(){ NOT_IMPLEMENTED; }
 #endif

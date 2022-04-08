@@ -240,7 +240,7 @@ void Skolem::preskolemise (Formula* f)
     {
       VList::Iterator vs(f->vars());
       while (vs.hasNext()) {
-        ALWAYS(_varOccs.insert(vs.next(),{false/*univeral*/,nullptr})); // ALWAYS, because we are rectified
+        ALWAYS(_varOccs.insert(vs.next(),{false /* = univeral*/,BoolList::empty()})); // ALWAYS, because we are rectified
       }
       preskolemise(f->qarg());
       vs.reset(f->vars());
@@ -253,10 +253,11 @@ void Skolem::preskolemise (Formula* f)
   case EXISTS:
     {
       { // reset the "occurs" flag for all the variables we are in scope of
+        // by pushing in one BoolList element with false
         VarOccInfos::Iterator vit(_varOccs);
         while (vit.hasNext()) {
-          unsigned dummy;
-          VarOccInfo& varOccInfo = vit.nextRef(dummy);
+          unsigned some_var;
+          VarOccInfo& varOccInfo = vit.nextRef(some_var);
           BoolList::push(false,varOccInfo.occurs_below);
         }
       }
@@ -265,7 +266,7 @@ void Skolem::preskolemise (Formula* f)
       VList::Iterator vs(f->vars());
       while (vs.hasNext()) {
         unsigned var = vs.next();
-        ALWAYS(_varOccs.insert(var,{true/*existential*/,nullptr})); // ALWAYS, because we are rectified
+        ALWAYS(_varOccs.insert(var,{true /* = existential */,BoolList::empty()})); // ALWAYS, because we are rectified
         ALWAYS(_blockLookup.insert(var,f));
       }
 
@@ -407,6 +408,17 @@ Formula* Skolem::skolemise (Formula* f)
 
       VarSet* dep = depInfo.univ;
 
+      /*
+       * Universals occuring below are not enough, 
+       * because some existential from above could depend on them
+       * and its corresponding skolem will bring them here...
+       * 
+       * Ex: ! [A] : ? [B] : ( p(A,B) | ? [C] : r(B,C) & something ) 
+       * when skolimising the subformula
+       * ? [C] : r(B,C) & something
+       * univ dep of C is empty, but A will sneak into the actual dep
+       * through B's dependency on A.
+       */
       VarSet::Iterator veIt(*depInfo.exist);
       while(veIt.hasNext()) {
         unsigned evar = veIt.next();
@@ -415,13 +427,9 @@ Formula* Skolem::skolemise (Formula* f)
         dep = dep->getUnion(their_dep);
       }
 
-      /*
-      if (depInfo.univ != dep) {
-        // PANIC !!!
-      }
-      */
-
       // store updated, for the existentials below us to lookup as well
+      /* Ex. cont. later we will be skolemising inside "something" from above
+       * although perhaps only C occurs in "something", it's as if A occurred as well */
       depInfo.univ = dep;
 
       NameReuse *name_reuse = env.options->skolemReuse()
@@ -445,9 +453,8 @@ Formula* Skolem::skolemise (Formula* f)
           vArgs.pushFront(uvar);
         } else {
           //This is a term variable
-          if(sort.isVar() || !sort.term()->shared() || !sort.term()->ground()){
-            //the sort may include existential type variables that have been skolemised 
-            //above
+          if (sort.isVar() || !sort.term()->shared() || !sort.term()->ground()) {
+            //the sort may include existential type variables that have been skolemised above
             sort = SubstHelper::apply(sort, _subst);
           }
           termVarSorts.push(sort);
@@ -462,37 +469,43 @@ Formula* Skolem::skolemise (Formula* f)
       }
       SortHelper::normaliseArgSorts(typeVars, termVarSorts);
 
+      /*
+       * For efficiency reasons, name_reuse is factored out of the f->vars() loop below
+       *
+       * We aim to either reuse the whole vector of symbols or nothing
+       * We rely on the loop in the initial, pre-reuse case allocating symbols in consecutive order
+       */
+      bool first_pass = true;
+      bool successfully_reused = false;
+      unsigned sym = 0;
+      vstring reuse_key;
+      if (name_reuse) {
+        reuse_key = name_reuse->key(before);
+        successfully_reused = name_reuse->get(reuse_key, sym);
+        if (successfully_reused) { // only counts one per the whole quantifier block
+          env.statistics->reusedSkolemFunctions++;
+        }
+      }
+
+#if VDEBUG
+      unsigned last_sym = 0;
+#endif
+
       VList::Iterator vs(f->vars());
-      Formula *reuse_formula = before;
-      VList *remainingVars = before->vars();
-      SList *remainingSorts = before->sorts();
       while (vs.hasNext()) {
         unsigned v = vs.next();
         TermList rangeSort=_varSorts.get(v, AtomicSort::defaultSort());
 
         bool skolemisingTypeVar = rangeSort == AtomicSort::superSort();
 
-        if(rangeSort.isVar() || !rangeSort.term()->shared() || 
-           !rangeSort.term()->ground()){
-          //the range sort may include existential type variables that have been skolemised 
-          //above
+        if(rangeSort.isVar() || !rangeSort.term()->shared() || !rangeSort.term()->ground()) {
+          //the range sort may include existential type variables that have been skolemised above
           rangeSort = SubstHelper::apply(rangeSort, _subst);
         }
 
         SortHelper::normaliseSort(typeVars, rangeSort);
         Term* skolemTerm;
 
-        bool successfully_reused = false;
-        unsigned reused_symbol = 0;
-        vstring reuse_key;
-        if(name_reuse) {
-          reuse_key = name_reuse->key(reuse_formula);
-          successfully_reused = name_reuse->get(reuse_key, reused_symbol);
-        }
-        if(successfully_reused)
-          env.statistics->reusedSkolemFunctions++;
-
-        unsigned sym = reused_symbol;
         if(!_appify || skolemisingTypeVar){
           //Not the higher-order case. Create the term
           //sk(typevars, termvars).
@@ -519,30 +532,12 @@ Formula* Skolem::skolemise (Formula* f)
 
         if(!successfully_reused) {
           env.statistics->skolemFunctions++;
-          if(name_reuse)
+          if (name_reuse && first_pass) {
             name_reuse->put(reuse_key, sym);
+          }
         }
 
         _subst.bind(v,skolemTerm);
-
-        // if we're re-using Skolems based on formulae,
-        // we need to explicitly construct them: e.g. for ?[X, Y, Z]: F:
-        // ?[X, Y, Z]: F,
-        // ?[Y, Z]: F[X->sK0],
-        // ?[Z]: F[X->sK0, Y->sK1],
-        // but not F[X->sK0, Y->sK1, Z->sK2], since this doesn't need a Skolem term
-        if(name_reuse) {
-          remainingVars = remainingVars->tail();
-          remainingSorts = remainingSorts ? remainingSorts->tail() : nullptr;
-          if(VList::isNonEmpty(remainingVars)) {
-            reuse_formula = new QuantifiedFormula(
-              Connective::EXISTS,
-              remainingVars,
-              remainingSorts,
-              SubstHelper::apply(reuse_formula->qarg(), _subst)
-            );
-          }
-        }
 
         if (env.options->showSkolemisations()) {
           env.beginOutput();
@@ -564,6 +559,14 @@ Formula* Skolem::skolemise (Formula* f)
           */
           env.endOutput();
         }
+
+#if VDEBUG
+        ASS(first_pass || sym == last_sym+1);
+        last_sym = sym;
+#endif
+        // in case we are reusing and there is more than one f->vars() in the block
+        sym++;
+        first_pass = false;
       }
 
       {
