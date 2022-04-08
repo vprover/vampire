@@ -2247,6 +2247,7 @@ public:
   bool inductionOnComplexTerms() const {return _inductionOnComplexTerms.actualValue;}
   bool integerInductionDefaultBound() const { return _integerInductionDefaultBound.actualValue; }
   IntegerInductionInterval integerInductionInterval() const { return _integerInductionInterval.actualValue; }
+  bool nonUnitInduction() const { return _nonUnitInduction.actualValue; }
 
   float instGenBigRestartRatio() const { return _instGenBigRestartRatio.actualValue; }
   bool instGenPassiveReactivation() const { return _instGenPassiveReactivation.actualValue; }
@@ -2546,6 +2547,7 @@ private:
   BoolOptionValue _inductionOnComplexTerms;
   BoolOptionValue _integerInductionDefaultBound;
   ChoiceOptionValue<IntegerInductionInterval> _integerInductionInterval;
+  BoolOptionValue _nonUnitInduction;
 
   StringOptionValue _latexOutput;
   BoolOptionValue _latexUseDefaultSymbols;

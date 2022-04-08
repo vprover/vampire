@@ -506,10 +506,13 @@ void InductionClauseIterator::processLiteral(Clause* premise, Literal* lit)
       }
     }
     // collect term queries for each induction term
-    auto sideLitsIt = iterTraits(Set<Term*>::Iterator(ta_terms))
-      .map([this](Term* arg) {
-        return make_pair(arg, _structInductionTermIndex->getGeneralizations(TermList(arg), true));
-      });
+    auto sideLitsIt = VirtualIterator<pair<Term*, TermQueryResultIterator>>::getEmpty();
+    if (_opt.nonUnitInduction()) {
+      sideLitsIt = pvi(iterTraits(Set<Term*>::Iterator(ta_terms))
+        .map([this](Term* arg) {
+          return make_pair(arg, _structInductionTermIndex->getGeneralizations(TermList(arg), true));
+        }));
+    }
     // put clauses from queries into contexts alongside with the given clause and induction term
     auto sideLitsIt2 = iterTraits(getMappingIterator(sideLitsIt, InductionContextFn(premise, lit)))
       // generalize all contexts if needed
@@ -876,7 +879,7 @@ Clause* resolveClausesHelper(InductionContext& context, const Stack<Clause*>& cl
   }
 
   Inference inf(GeneratingInferenceMany(
-    generalized ? InferenceRule::INDUCTION_HYPERRESOLUTION : InferenceRule::GEN_INDUCTION_HYPERRESOLUTION,
+    generalized ? InferenceRule::GEN_INDUCTION_HYPERRESOLUTION : InferenceRule::INDUCTION_HYPERRESOLUTION,
     premises));
   Clause* res = new(newLength) Clause(newLength, inf);
 

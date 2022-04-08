@@ -530,7 +530,7 @@ TEST_GENERATION_INDUCTION(test_18,
 // multi-clause use case 1 (induction depth 0)
 TEST_GENERATION_INDUCTION(test_19,
     Generation::TestCase()
-      .options({ { "induction", "struct" } })
+      .options({ { "induction", "struct" }, { "non_unit_induction", "on" } })
       .context({ clause({ p(sK1) })})
       .indices(getIndices())
       .input( clause({ sK2 != g(f(sK1,sK1)) }))
@@ -556,7 +556,11 @@ TEST_GENERATION_INDUCTION(test_19,
 // multi-clause use case 2 (induction depth non-0)
 TEST_GENERATION_INDUCTION(test_20,
     Generation::TestCase()
-      .options({ { "induction_on_complex_terms", "on" }, { "induction", "struct" } })
+      .options({
+        { "induction_on_complex_terms", "on" },
+        { "induction", "struct" },
+        { "non_unit_induction", "on" }
+      })
       .context({
         fromInduction(clause({ p(g(sK3)) })),
         fromInduction(clause({ ~p(f(sK4,sK3)) }))
@@ -634,7 +638,10 @@ TEST_GENERATION_INDUCTION(test_21,
 // multi-clause use case 1 (induction depth 0), non-unit
 TEST_GENERATION_INDUCTION(test_22,
     Generation::TestCase()
-      .options({ { "induction_unit_only", "off" }, { "induction", "struct" } })
+      .options({
+        { "induction_unit_only", "off" },
+        { "induction", "struct" },
+        { "non_unit_induction", "on" }, })
       .indices(getIndices())
       .input( clause({ ~p(sK1), ~p1(sK1) }) )
       .expected({
@@ -662,7 +669,7 @@ TEST_GENERATION_INDUCTION(test_22,
 TEST_GENERATION_INDUCTION(test_23,
     // TODO enable multi-clause option when there is one
     Generation::TestCase()
-      .options({ { "induction", "struct" } })
+      .options({ { "induction", "struct" }, { "non_unit_induction", "on" } })
       .context({ clause({ p(sK1) }) })
       .indices(getIndices())
       .input( clause({ ~p(sK1) }) )
@@ -676,7 +683,11 @@ TEST_GENERATION_INDUCTION(test_23,
 // multi-clause generalized occurrences
 TEST_GENERATION_INDUCTION(test_24,
     Generation::TestCase()
-      .options({ { "induction", "struct" }, { "induction_gen", "on" } })
+      .options({
+        { "induction", "struct" },
+        { "induction_gen", "on" },
+        { "non_unit_induction", "on" },
+      })
       .context({ clause({ sK1 == sK2 }) })
       .indices(getIndices())
       .input( clause({ ~p(f(sK1,sK1)) }) )
