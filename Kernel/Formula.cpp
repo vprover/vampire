@@ -782,24 +782,26 @@ Formula* Formula::quantify(Formula* f)
 
   //we have to quantify the formula
   VList* varLst = VList::empty();
+  SList* sortLst = SList::empty();
   VList::FIFO quantifiedVars(varLst);
+  SList::FIFO theirSorts(sortLst);
 
   DHMap<unsigned,TermList>::Iterator tmit(tMap);
   while(tmit.hasNext()) {
     unsigned v; 
-    TermList t;
-    tmit.next(v, t);    
-    if(t.isTerm() && t.term()->isSuper()){
+    TermList s;
+    tmit.next(v, s);
+    if(s.isTerm() && s.term()->isSuper()){
       // type variable must appear at the start of the list
       quantifiedVars.pushFront(v);
+      theirSorts.pushFront(s);
     } else {
       quantifiedVars.pushBack(v);
+      theirSorts.pushBack(s);
     }
   }
   if(varLst) {
-    //TODO could compute the sorts list, but don't want to!
-    // Ahmed: now that we actually collect the sorts, should we add?
-    f=new QuantifiedFormula(FORALL, varLst, 0, f);
+    f=new QuantifiedFormula(FORALL, varLst, sortLst, f);
   }
   return f;
 }
