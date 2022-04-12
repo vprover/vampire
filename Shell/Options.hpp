@@ -139,7 +139,7 @@ public:
     // deal with constraints
     void setForcedOptionValues(); // not currently used effectively
     bool checkGlobalOptionConstraints(bool fail_early=false);
-    bool checkProblemOptionConstraints(Property*, bool fail_early=false); 
+    bool checkProblemOptionConstraints(Property*, bool before_preprocessing, bool fail_early=false);
 
     // Randomize strategy (will only work if randomStrategy=on)
     // should only be called after all other options are set
@@ -1350,8 +1350,8 @@ virtual vstring getStringOfValue(int value) const{ return Lib::Int::toString(val
 * as in λ value. expression_ignoring_value
 *
 * The tricky part (C++-technology-wise) here is that unwrapping needs to get a type for the value
-* and this type is indepedent form the expression_ignoring_value for obvious reasons.
-* So virous overloads of things are needed until we get to the point, where the type is known and can be supplied.
+* and this type is independent form the expression_ignoring_value for obvious reasons.
+* So various overloads of things are needed until we get to the point, where the type is known and can be supplied.
 * (e.g. there needs to be a separate hierarchy of Wrapped expressions along the one for OptionValueConstraint ones).
 */
 
@@ -1787,6 +1787,30 @@ bool _hard;
       vstring msg(){ return " only useful with equality"; }
     };
 
+    struct HasHigherOrder : OptionProblemConstraint{
+      CLASS_NAME(HasHigherOrder);
+      USE_ALLOCATOR(HasHigherOrder);
+
+      bool check(Property*p){
+        CALL("Options::HasHigherOrder::check");
+        ASS(p)
+        return (p->higherOrder());
+      }
+      vstring msg(){ return " only useful with higher-order problems"; }
+    };
+
+    struct OnlyFirstOrder : OptionProblemConstraint{
+      CLASS_NAME(OnlyFirstOrder);
+      USE_ALLOCATOR(OnlyFirstOrder);
+
+      bool check(Property*p){
+        CALL("Options::OnlyFirstOrder::check");
+        ASS(p)
+        return (!p->higherOrder());
+      }
+      vstring msg(){ return " not compatible with higher-order problems"; }
+    };
+
     struct HasNonUnits : OptionProblemConstraint{
       CLASS_NAME(HasNonUnits);
       USE_ALLOCATOR(HasNonUnits);
@@ -1828,6 +1852,36 @@ bool _hard;
       }
     };
 
+    struct HasTheories : OptionProblemConstraint {
+      CLASS_NAME(HasTheories);
+      USE_ALLOCATOR(HasTheories);
+
+      bool check(Property*p);
+      vstring msg(){ return " only useful with theories"; }
+    };
+
+    struct HasFormulas : OptionProblemConstraint {
+      CLASS_NAME(HasFormulas);
+      USE_ALLOCATOR(HasFormulas);
+
+      bool check(Property*p) {
+        CALL("Options::HasFormulas::check");
+        return p->hasFormulas();
+      }
+      vstring msg(){ return " only useful with (non-cnf) formulas"; }
+    };
+
+    struct HasGoal : OptionProblemConstraint {
+      CLASS_NAME(HasGoal);
+      USE_ALLOCATOR(HasGoal);
+
+      bool check(Property*p){
+        CALL("Options::HasGoal::check");
+        return p->hasGoal();
+      }
+      vstring msg(){ return " only useful with a goal: (conjecture) formulas or (negated_conjecture) clauses"; }
+    };
+
     // Factory methods
     static OptionProblemConstraintUP notWithCat(Property::Category c){
       return OptionProblemConstraintUP(new CategoryCondition(c,false));
@@ -1836,6 +1890,8 @@ bool _hard;
       return OptionProblemConstraintUP(new CategoryCondition(c,true));
     }
     static OptionProblemConstraintUP hasEquality(){ return OptionProblemConstraintUP(new UsesEquality); }
+    static OptionProblemConstraintUP hasHigherOrder(){ return OptionProblemConstraintUP(new HasHigherOrder); }
+    static OptionProblemConstraintUP onlyFirstOrder(){ return OptionProblemConstraintUP(new OnlyFirstOrder); }
     static OptionProblemConstraintUP hasNonUnits(){ return OptionProblemConstraintUP(new HasNonUnits); }
     static OptionProblemConstraintUP hasPredicates(){ return OptionProblemConstraintUP(new HasPredicates); }
     static OptionProblemConstraintUP atomsMoreThan(int a){
@@ -1844,7 +1900,9 @@ bool _hard;
     static OptionProblemConstraintUP atomsLessThan(int a){
       return OptionProblemConstraintUP(new AtomConstraint(a,false));
     }
-
+    static OptionProblemConstraintUP hasFormulas() { return OptionProblemConstraintUP(new HasFormulas); }
+    static OptionProblemConstraintUP hasTheories() { return OptionProblemConstraintUP(new HasTheories); }
+    static OptionProblemConstraintUP hasGoal() { return OptionProblemConstraintUP(new HasGoal); }
 
     //Cheating - we refer to env.options to ask about option values
     // There is an assumption that the option values used have been
@@ -2089,6 +2147,7 @@ public:
   // Return time limit in deciseconds, or 0 if there is no time limit
   int timeLimitInDeciseconds() const { return _timeLimitInDeciseconds.actualValue; }
   size_t memoryLimit() const { return _memoryLimit.actualValue; }
+  void setMemoryLimitOptionValue(size_t newVal) { _memoryLimit.actualValue = newVal; }
 #ifdef __linux__
   size_t instructionLimit() const { return _instructionLimit.actualValue; }
 #endif
@@ -2120,7 +2179,7 @@ public:
   bool superpositionFromVariables() const { return _superpositionFromVariables.actualValue; }
   EqualityProxy equalityProxy() const { return _equalityProxy.actualValue; }
   bool useMonoEqualityProxy() const { return _useMonoEqualityProxy.actualValue; }
-  RuleActivity equalityResolutionWithDeletion() const { return _equalityResolutionWithDeletion.actualValue; }
+  bool equalityResolutionWithDeletion() const { return _equalityResolutionWithDeletion.actualValue; }
   ExtensionalityResolution extensionalityResolution() const { return _extensionalityResolution.actualValue; }
   bool FOOLParamodulation() const { return _FOOLParamodulation.actualValue; }
   bool termAlgebraInferences() const { return _termAlgebraInferences.actualValue; }
@@ -2159,7 +2218,7 @@ public:
   TheoryAxiomLevel theoryAxioms() const { return _theoryAxioms.actualValue; }
   //void setTheoryAxioms(bool newValue) { _theoryAxioms = newValue; }
   Condensation condensation() const { return _condensation.actualValue; }
-  RuleActivity generalSplitting() const { return _generalSplitting.actualValue; }
+  bool generalSplitting() const { return _generalSplitting.actualValue; }
   bool timeStatistics() const { return _timeStatistics.actualValue; }
   bool splitting() const { return _splitting.actualValue; }
   void setSplitting(bool value){ _splitting.actualValue=value; }
@@ -2206,7 +2265,6 @@ public:
   bool instGenWithResolution() const { return _instGenWithResolution.actualValue; }
   bool useHashingVariantIndex() const { return _useHashingVariantIndex.actualValue; }
 
-  void setMemoryLimit(size_t newVal) { _memoryLimit.actualValue = newVal; }
   void setTimeLimitInSeconds(int newVal) { _timeLimitInDeciseconds.actualValue = 10*newVal; }
   void setTimeLimitInDeciseconds(int newVal) { _timeLimitInDeciseconds.actualValue = newVal; }
 
@@ -2407,7 +2465,7 @@ private:
 
   ChoiceOptionValue<EqualityProxy> _equalityProxy;
   BoolOptionValue _useMonoEqualityProxy;
-  ChoiceOptionValue<RuleActivity> _equalityResolutionWithDeletion;
+  BoolOptionValue _equalityResolutionWithDeletion;
   BoolOptionValue _equivalentVariableRemoval;
   ChoiceOptionValue<ExtensionalityResolution> _extensionalityResolution;
   UnsignedOptionValue _extensionalityMaxLength;
@@ -2443,7 +2501,7 @@ private:
   BoolOptionValue _skolemReuse;
   BoolOptionValue _definitionReuse;
   
-  ChoiceOptionValue<RuleActivity> _generalSplitting;
+  BoolOptionValue _generalSplitting;
   BoolOptionValue _globalSubsumption;
   ChoiceOptionValue<GlobalSubsumptionSatSolverPower> _globalSubsumptionSatSolverPower;
   ChoiceOptionValue<GlobalSubsumptionExplicitMinim> _globalSubsumptionExplicitMinim;

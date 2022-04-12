@@ -193,11 +193,6 @@ public:
   CLASS_NAME(GeneralInduction);
   USE_ALLOCATOR(GeneralInduction);
 
-  GeneralInduction(const vvector<InductionSchemeGenerator*> gen, InferenceRule rule)
-    : _gen(gen),
-      _splitter(0),
-      _rule(rule) {}
-
   ~GeneralInduction() {
     for (auto& gen : _gen) {
       delete gen;
@@ -205,6 +200,9 @@ public:
     _gen.clear();
   }
 
+  void setGenerators(vvector<InductionSchemeGenerator*>&& gen) {
+    _gen = gen;
+  }
   ClauseIterator generateClauses(Clause* premise) override;
   void attach(SaturationAlgorithm* salg) override;
   void detach() override;
@@ -243,7 +241,6 @@ private:
 
   vvector<InductionSchemeGenerator*> _gen;
   Splitter* _splitter;
-  InferenceRule _rule;
   DHMap<Literal*, vset<Literal*>> _done;
   TermIndex* _index;
 };

@@ -67,7 +67,7 @@ void checkOccurrenceMap(vvector<pair<InductionScheme, OccurrenceMap>> res,
 
 TEST_FUN(test_01) {
   __ALLOW_UNUSED(MY_SYNTAX_SUGAR)
-  SET_OPTIONS({ { "induction_on_complex_terms", "on" } })
+  env.options->set("induction_on_complex_terms", "on");
   // we only need to mark the active positions here, the rest will be added by InductionPreprocessor
   DECL_FUNC_DEFS({ { clause({ f(x, r(y)) == g(f(x,y),b) }),                     0, false },   \
                    { clause({ ~p(x,r(y)), p(x,y) }),                            0, false },   \
@@ -110,9 +110,9 @@ TEST_FUN(test_01) {
 // exhaustive generaton option
 TEST_FUN(test_02) {
   __ALLOW_UNUSED(MY_SYNTAX_SUGAR)
-  SET_OPTIONS({ { "induction_on_complex_terms", "on" },
-                { "induction_on_complex_terms_heuristic", "off" },
-                { "induction_exhaustive_generation", "on" } })
+  env.options->set("induction_on_complex_terms", "on");
+  env.options->set("induction_on_complex_terms_heuristic", "off");
+  env.options->set("induction_exhaustive_generation", "on");
   // we only need to mark the active positions here, the rest will be added by InductionPreprocessor
   DECL_FUNC_DEFS({ { clause({ ~p(r(x),r(y)), p(x,y) }), 0, false } })
   ASS(env.signature->getFnDefHandler()->hasInductionTemplate(p.functor(), false));
@@ -188,7 +188,7 @@ TEST_FUN(test_03) {
 // complex terms are induction upon
 TEST_FUN(test_04) {
   __ALLOW_UNUSED(MY_SYNTAX_SUGAR)
-  SET_OPTIONS({ { "induction_on_complex_terms", "on" } })
+  env.options->set("induction_on_complex_terms", "on");
 
   StructuralInductionSchemeGenerator gen;
   auto mainLit = p(f(f(sk1,sk2),sk3),f(sk3,f(sk1,sk2)));

@@ -293,7 +293,7 @@ void GeneralInduction::generateClauses(
   NewCNF cnf(0);
   cnf.setForInduction();
   Stack<Clause*> hyp_clauses;
-  Inference inf = NonspecificInference0(UnitInputType::AXIOM,_rule);
+  Inference inf = NonspecificInference0(UnitInputType::AXIOM,InferenceRule::INDUCTION_AXIOM);
   unsigned maxDepth = mainQuery.clause->inference().inductionDepth();
   for (const auto& kv : sideLitQrPairs) {
     maxDepth = max(maxDepth, kv.second.clause->inference().inductionDepth());

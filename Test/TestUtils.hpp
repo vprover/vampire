@@ -211,6 +211,8 @@ public:
   { return out << pretty(_self.first) << " : " << pretty(_self.second); }
 };
 
+// Helper function for permEq -- checks whether lhs is a permutation of
+// rhs via initial permutation perm with elements [0,idx) fixed.
 template<class L1, class L2, class Eq>
 bool __permEq(L1& lhs, L2& rhs, Eq elemEq, DArray<unsigned>& perm, unsigned idx) {
   auto checkPerm = [] (L1& lhs, L2& rhs, Eq elemEq, DArray<unsigned>& perm, unsigned idx) {
@@ -222,8 +224,8 @@ bool __permEq(L1& lhs, L2& rhs, Eq elemEq, DArray<unsigned>& perm, unsigned idx)
     }
     return true;
   };
-  // these are fixed, so we check them only once
-  // and do not recurse if one of them is false
+  // These are elements fixed in the permutation, so check
+  // them only once and do not recurse if one of them is false.
   for (unsigned i = 0; i < idx; i++) {
     if (!elemEq(lhs[i], rhs[perm[i]])) return false;
   }
@@ -251,14 +253,6 @@ bool TestUtils::permEq(L1& lhs, L2& rhs, Eq elemEq)
   }
   return __permEq(lhs, rhs, elemEq, perm, 0);
 }
-
-inline void setOptions(std::initializer_list<pair<vstring,vstring>> opts) {
-  for (const auto& kv : opts) {
-    env.options->set(kv.first, kv.second);
-  }
-}
-
-#define SET_OPTIONS(...) Test::setOptions(__VA_ARGS__);
 
 } // namespace Test
 

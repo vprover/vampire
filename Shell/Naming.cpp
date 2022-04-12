@@ -101,7 +101,7 @@ FormulaUnit* Naming::apply(FormulaUnit* unit, UnitList*& defs) {
     defs = UnitList::empty();
     return unit;
   }
-  ASS(UnitList::isNonEmpty(_defs));
+  ASS(UnitList::isNonEmpty(_defs) || env.options->definitionReuse());
   UnitList::Iterator defit(_defs);
 
   defs = _defs;
@@ -1226,9 +1226,29 @@ Formula* Naming::introduceDefinition(Formula* f, bool iff) {
   vs = f->freeVariables();
   Literal* atom = getDefinitionLiteral(f, vs);
   Formula* name = new AtomicFormula(atom);
+
+  // have we introduced this definition before?
+  // if no, already_seen is nullptr
+  // if yes, but only =>, *already_seen is false
+  // if yes and <=>, *already_seen is true
+  bool *already_seen = _already_seen.findPtr(atom);
+
+  if(already_seen) {
+    // either we don't need to "upgrade" the definition to <=>, or we already did
+    if(!iff || *already_seen)
+      return name;
+  }
+
   Formula* def;
   if (iff) {
-    def = new BinaryFormula(IFF, name, f);
+    // if we're upgrading a previously-seen definition, only need one direction
+    if(already_seen)
+      // this is not in ENNF, but the emitted definitions need not be
+      // (Naming is followed by a NNF transform that can handle implications)
+      def = new BinaryFormula(IMP, f, name);
+    // otherwise we need both directions
+    else
+      def = new BinaryFormula(IFF, name, f);
   }
   // iff = false
   else {
@@ -1247,6 +1267,12 @@ Formula* Naming::introduceDefinition(Formula* f, bool iff) {
       atom->functor());
 
   UnitList::push(definition, _defs);
+
+  if(already_seen)
+    // must be upgrading if we're here
+    *already_seen = true;
+  else
+    _already_seen.insert(atom, iff);
 
   if (env.options->showPreprocessing()) {
     env.beginOutput();

@@ -119,6 +119,7 @@ public:
   bool hasAppliedVar() const;
   bool hasPolymorphicSym() const;
   bool quantifiesOverPolymorphicVar() const;
+  bool higherOrder() const;
 
   bool mayHaveEquality() const { return _mayHaveEquality; }
   bool mayHaveFormulas() const { return _mayHaveFormulas; }
@@ -232,6 +233,7 @@ private:
   mutable MaybeBool _hasPolymorphicSym;
   mutable MaybeBool _quantifiesOverPolymorphicVar;
   mutable MaybeBool _hasBoolVar; 
+  mutable MaybeBool _higherOrder; 
 
   SMTLIBLogic _smtlibLogic;
 

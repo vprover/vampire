@@ -29,14 +29,15 @@ TermIndex* index() {
   return new DemodulationSubtermIndexImpl<false>(new TermSubstitutionTree(false, false));
 }
 
-template<class Rule>
-class GenerationTesterInduction
-  : public GenerationTester<Rule>
+class GenerationTesterInduction2
+  : public GenerationTester<GeneralInduction>
 {
 public:
-  GenerationTesterInduction(Rule* rule)
-    : GenerationTester<Rule>(rule), _subst()
-  {}
+  GenerationTesterInduction2()
+    : GenerationTester<GeneralInduction>(), _subst()
+  {
+    _rule.setGenerators(generators());
+  }
 
   bool eq(Kernel::Clause const* lhs, Kernel::Clause const* rhs) override
   {
@@ -67,10 +68,9 @@ private:
   Kernel::RobSubstitution _subst;
 };
 
-#define TEST_GENERATION_INDUCTION(name, ...)                                                                  \
+#define TEST_GENERATION_INDUCTION2(name, ...)                                                                 \
   TEST_FUN(name) {                                                                                            \
-    GenerationTesterInduction<GeneralInduction> tester(                                                       \
-      new GeneralInduction(generators(), InferenceRule::INDUCTION_AXIOM));                                    \
+    GenerationTesterInduction2 tester;                                                                        \
     __ALLOW_UNUSED(MY_SYNTAX_SUGAR)                                                                           \
     auto test = __VA_ARGS__;                                                                                  \
     test.run(tester);                                                                                         \
@@ -112,8 +112,9 @@ private:
   DECL_PRED(q, {u})
 
 // induction info is added 1
-TEST_GENERATION_INDUCTION(test_01,
+TEST_GENERATION_INDUCTION2(test_01,
     Generation::TestCase()
+      .options({ { "induction", "struct" } })
       .indices({ index() })
       .input( clause({  ~p(f(sK1,sK2)) }))
       .expected({
@@ -122,14 +123,15 @@ TEST_GENERATION_INDUCTION(test_01,
         clause({ ~p(f(sK1,b)), p(f(sK1,y)) }),
         clause({ ~p(f(sK1,b)), ~p(f(sK1,r(y))) }),
       })
-      .all([](Clause* c) {
-        return c->inference().inductionInfo() && !c->inference().inductionInfo()->isEmpty();
-      })
+      // .all([](Clause* c) {
+      //   return c->inference().inductionInfo() && !c->inference().inductionInfo()->isEmpty();
+      // })
     )
 
 // induction info is added 2
-TEST_GENERATION_INDUCTION(test_02,
+TEST_GENERATION_INDUCTION2(test_02,
     Generation::TestCase()
+      .options({ { "induction", "struct" } })
       .indices({ index() })
       .input( clause({  f(sK1,sK2) != g(sK1) }))
       .expected({
@@ -138,16 +140,16 @@ TEST_GENERATION_INDUCTION(test_02,
         clause({ f(sK1,b) != g(sK1), f(sK1,y) == g(sK1) }),
         clause({ f(sK1,b) != g(sK1), f(sK1,r(y)) != g(sK1) }),
       })
-      .all([](Clause* c) {
-        return c->inference().inductionInfo() && !c->inference().inductionInfo()->isEmpty();
-      })
+      // .all([](Clause* c) {
+      //   return c->inference().inductionInfo() && !c->inference().inductionInfo()->isEmpty();
+      // })
     )
 
 // induction info is not added 1
-TEST_GENERATION_INDUCTION(test_03,
+TEST_GENERATION_INDUCTION2(test_03,
     Generation::TestCase()
       .indices({ index() })
-      .options({ { "induction_multiclause", "off" } })
+      .options({ { "induction_multiclause", "off" }, { "induction", "struct" } })
       .input( clause({  ~p(f(sK1,sK2)) }))
       .expected({
         clause({ ~p(f(b,sK2)), p(f(x,sK2)) }),
@@ -155,16 +157,16 @@ TEST_GENERATION_INDUCTION(test_03,
         clause({ ~p(f(sK1,b)), p(f(sK1,y)) }),
         clause({ ~p(f(sK1,b)), ~p(f(sK1,r(y))) }),
       })
-      .all([](Clause* c) {
-        return !c->inference().inductionInfo();
-      })
+      // .all([](Clause* c) {
+      //   return !c->inference().inductionInfo();
+      // })
     )
 
 // induction info is not added 2
-TEST_GENERATION_INDUCTION(test_04,
+TEST_GENERATION_INDUCTION2(test_04,
     Generation::TestCase()
       .indices({ index() })
-      .options({ { "induction_hypothesis_rewriting", "off" } })
+      .options({ { "induction_hypothesis_rewriting", "off" }, { "induction", "struct" } })
       .input( clause({  f(sK1,sK2) != g(sK1) }))
       .expected({
         clause({ f(b,sK2) != g(b), f(x,sK2) == g(x) }),
@@ -172,30 +174,33 @@ TEST_GENERATION_INDUCTION(test_04,
         clause({ f(sK1,b) != g(sK1), f(sK1,y) == g(sK1) }),
         clause({ f(sK1,b) != g(sK1), f(sK1,r(y)) != g(sK1) }),
       })
-      .all([](Clause* c) {
-        return !c->inference().inductionInfo();
-      })
+      // .all([](Clause* c) {
+      //   return !c->inference().inductionInfo();
+      // })
     )
 
 // positive literals are not considered 1
-TEST_GENERATION_INDUCTION(test_05,
+TEST_GENERATION_INDUCTION2(test_05,
     Generation::TestCase()
+      .options({ { "induction", "struct" } })
       .indices({ index() })
       .input( clause({  p(f(sK1,sK2)) }))
       .expected(none())
     )
 
 // positive literals are not considered 2
-TEST_GENERATION_INDUCTION(test_06,
+TEST_GENERATION_INDUCTION2(test_06,
     Generation::TestCase()
+      .options({ { "induction", "struct" } })
       .indices({ index() })
       .input( clause({  f(sK1,sK2) == g(sK1) }))
       .expected(none())
     )
 
 // multi-clause use case 1 (induction depth 0 for all literals)
-TEST_GENERATION_INDUCTION(test_07,
+TEST_GENERATION_INDUCTION2(test_07,
     Generation::TestCase()
+      .options({ { "induction", "struct" } })
       .context({ clause({ p(sK1) })})
       .indices({ index() })
       .input( clause({ sK2 != g(f(sK1,sK1)) }))
@@ -215,9 +220,9 @@ TEST_GENERATION_INDUCTION(test_07,
     )
 
 // multi-clause use case 2 (induction Skolems and  for all literals)
-TEST_GENERATION_INDUCTION(test_08,
+TEST_GENERATION_INDUCTION2(test_08,
     Generation::TestCase()
-      .options({ { "induction_on_complex_terms", "on" } })
+      .options({ { "induction_on_complex_terms", "on" }, { "induction", "struct" } })
       .context({ fromInduction(clause({ p(g(sK3)) })) })
       .indices({ index() })
       .input( fromInduction(clause({ ~p(f(g(sK3),sK4)) })) )
@@ -245,9 +250,9 @@ TEST_GENERATION_INDUCTION(test_08,
     )
 
 // generalizations (single-clause)
-TEST_GENERATION_INDUCTION(test_09,
+TEST_GENERATION_INDUCTION2(test_09,
     Generation::TestCase()
-      .options({ { "induction_gen", "on" }, { "induction_gen_heur", "off" }, })
+      .options({ { "induction_gen", "on" }, { "induction", "struct" } })
       .indices({ index() })
       .input( clause({ f(f(g(sK1),f(sK2,sK4)),sK1) != g(f(sK1,f(sK2,sK3))) }) )
       .expected({
@@ -302,9 +307,9 @@ TEST_GENERATION_INDUCTION(test_09,
     )
 
 // generalizations (multi-clause)
-TEST_GENERATION_INDUCTION(test_10,
+TEST_GENERATION_INDUCTION2(test_10,
     Generation::TestCase()
-      .options({ { "induction_gen", "on" }, { "induction_gen_heur", "off" }, })
+      .options({ { "induction_gen", "on" }, { "induction", "struct" } })
       .context({ clause({ g(sK3) == f(sK4,sK3) }) })
       .indices({ index() })
       .input( clause({ ~p(f(g(sK3),f(sK3,sK4))) }) )
@@ -392,8 +397,9 @@ TEST_GENERATION_INDUCTION(test_10,
     )
 
 // side premise triggers multi-clause
-TEST_GENERATION_INDUCTION(test_11,
+TEST_GENERATION_INDUCTION2(test_11,
     Generation::TestCase()
+      .options({ { "induction", "struct" } })
       .context({ clause({ ~p(f(sK1,sK2)) }),
                  clause({ p(g(sK2)) }) })
       .indices({ index() })
@@ -419,8 +425,9 @@ TEST_GENERATION_INDUCTION(test_11,
 
 // multi-clause does not work due to clauses
 // being from different induction depths
-TEST_GENERATION_INDUCTION(test_12,
+TEST_GENERATION_INDUCTION2(test_12,
     Generation::TestCase()
+      .options({ { "induction", "struct" } })
       .context({ fromInduction(clause({ p(sK1) })) })
       .indices({ index() })
       .input( clause({ ~p(g(sK1)) }))
@@ -432,9 +439,9 @@ TEST_GENERATION_INDUCTION(test_12,
 
 // multi-clause does not work due to clauses
 // not having complex terms in common
-TEST_GENERATION_INDUCTION(test_13,
+TEST_GENERATION_INDUCTION2(test_13,
     Generation::TestCase()
-      .options({ { "induction_on_complex_terms", "on" } })
+      .options({ { "induction_on_complex_terms", "on" }, { "induction", "struct" } })
       .context({ fromInduction(clause({ p(sK1) })) })
       .indices({ index() })
       .input( fromInduction(clause({ ~p(g(sK1)) })) )
@@ -448,8 +455,9 @@ TEST_GENERATION_INDUCTION(test_13,
     )
 
 // multiple induction hypotheses and cases
-TEST_GENERATION_INDUCTION(test_14,
+TEST_GENERATION_INDUCTION2(test_14,
     Generation::TestCase()
+      .options({ { "induction", "struct" } })
       .indices({ index() })
       .input( fromInduction(clause({ ~q(sK5) })) )
       .expected({
@@ -463,9 +471,9 @@ TEST_GENERATION_INDUCTION(test_14,
     )
 
 // positive literals are considered 1
-TEST_GENERATION_INDUCTION(test_15,
+TEST_GENERATION_INDUCTION2(test_15,
     Generation::TestCase()
-      .options({ { "induction_neg_only", "off" } })
+      .options({ { "induction_neg_only", "off" }, { "induction", "struct" } })
       .indices({ index() })
       .input( clause({  p(sK1) }))
       .expected({
@@ -475,9 +483,9 @@ TEST_GENERATION_INDUCTION(test_15,
     )
 
 // positive literals are considered 2
-TEST_GENERATION_INDUCTION(test_16,
+TEST_GENERATION_INDUCTION2(test_16,
     Generation::TestCase()
-      .options({ { "induction_neg_only", "off" } })
+      .options({ { "induction_neg_only", "off" }, { "induction", "struct" } })
       .indices({ index() })
       .input( clause({  sK1 == g(sK1) }))
       .expected({

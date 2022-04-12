@@ -29,7 +29,9 @@
 #include "Lib/Allocator.hpp"
 #include "Kernel/Inference.hpp"
 #include "Lib/Coproduct.hpp"
+#if VDEBUG
 #include "Indexing/Index.hpp"
+#endif
 
 namespace Inferences
 {

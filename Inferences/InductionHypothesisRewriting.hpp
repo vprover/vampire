@@ -34,9 +34,13 @@ public:
   CLASS_NAME(InductionHypothesisRewriting);
   USE_ALLOCATOR(InductionHypothesisRewriting);
 
-  InductionHypothesisRewriting(GeneratingInferenceEngine* induction)
-    : _lhsIndex(0), _stIndex(0), _induction(induction), _splitter(0),
+  InductionHypothesisRewriting()
+    : _lhsIndex(0), _stIndex(0), _induction(0), _splitter(0),
       _dupLitRemoval(new DuplicateLiteralRemovalISE()) {}
+  
+  void setInduction(GeneratingInferenceEngine* induction) {
+    _induction = induction;
+  }
 
   void attach(SaturationAlgorithm* salg) override {
     GeneratingInferenceEngine::attach(salg);

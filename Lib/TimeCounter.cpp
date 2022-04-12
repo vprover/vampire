@@ -347,9 +347,6 @@ void TimeCounter::outputSingleStat(TimeCounterUnit tcu, ostream& out)
   case TC_SORT_SHARING:
     out<<"sort sharing";
     break;    
-  case TC_TRIVIAL_PREDICATE_REMOVAL:
-    out<<"trivial predicate removal";
-    break;
   case TC_DISMATCHING:
     out << "dismatching";
     break;
@@ -391,6 +388,7 @@ void TimeCounter::outputSingleStat(TimeCounterUnit tcu, ostream& out)
     break;
   case TC_NAMING:
     out << "naming";
+    break;
   case TC_LITERAL_SELECTION:
     out << "literal selection";
     break;

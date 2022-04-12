@@ -19,6 +19,7 @@
 #include "Inferences/InductionHypothesisRewriting.hpp"
 
 using namespace Test;
+using namespace Test::Generation;
 using namespace Indexing;
 
 Index* lhsIndex() {
@@ -37,7 +38,24 @@ class MockInduction
   }
 };
 
-REGISTER_GEN_TESTER(Inferences::InductionHypothesisRewriting, new MockInduction)
+class GenerationTesterInductionHRW
+  : public GenerationTester<InductionHypothesisRewriting>
+{
+public:
+  GenerationTesterInductionHRW()
+    : GenerationTester<InductionHypothesisRewriting>()
+  {
+    _rule.setInduction(new MockInduction);
+  }
+};
+
+#define TEST_GENERATION_INDUCTION_HRW(name, ...)                                                              \
+  TEST_FUN(name) {                                                                                            \
+    GenerationTesterInductionHRW tester;                                                                      \
+    __ALLOW_UNUSED(MY_SYNTAX_SUGAR)                                                                           \
+    auto test = __VA_ARGS__;                                                                                  \
+    test.run(tester);                                                                                         \
+  }                                                                                                           \
 
 /**
  * NECESSARY: We neet to tell the tester which syntax sugar to import for creating terms & clauses. 
@@ -60,7 +78,7 @@ REGISTER_GEN_TESTER(Inferences::InductionHypothesisRewriting, new MockInduction)
   DECL_PRED(p, {s})                                                                        \
 
 // only one side is rewritten
-TEST_GENERATION(test_01,
+TEST_GENERATION_INDUCTION_HRW(test_01,
     Generation::TestCase()
       .context({ fromInduction(clause({ sk1 == sk2 })) })
       .indices({ lhsIndex(), subtermIndex() })
@@ -73,7 +91,7 @@ TEST_GENERATION(test_01,
     )
 
 // induction skolems are used only once
-TEST_GENERATION(test_02,
+TEST_GENERATION_INDUCTION_HRW(test_02,
     Generation::TestCase()
       .context({
         fromInduction(clause({ f(sk1,sk4) == b })),
@@ -97,7 +115,7 @@ TEST_GENERATION(test_02,
     )
 
 // cases where nothing happens
-TEST_GENERATION(test_03,
+TEST_GENERATION_INDUCTION_HRW(test_03,
     Generation::TestCase()
       .context({
         fromInduction(clause({ sk1 != sk2 })), // due to same polarity
@@ -109,7 +127,7 @@ TEST_GENERATION(test_03,
     )
 
 // symmetric case for polarity exclusion above
-TEST_GENERATION(test_04,
+TEST_GENERATION_INDUCTION_HRW(test_04,
     Generation::TestCase()
       .context({
         fromInduction(clause({ sk2 != sk3 })), // due to sk3
@@ -121,7 +139,7 @@ TEST_GENERATION(test_04,
     )
 
 // only same literal is recursed upon
-TEST_GENERATION(test_05,
+TEST_GENERATION_INDUCTION_HRW(test_05,
     Generation::TestCase()
       .context({
         fromInduction(clause({ sk1 == b })),
@@ -145,7 +163,7 @@ TEST_GENERATION(test_05,
     )
 
 // multiple literals
-TEST_GENERATION(test_06,
+TEST_GENERATION_INDUCTION_HRW(test_06,
     Generation::TestCase()
       .context({
         fromInduction(clause({ sk1 == b, p(c) }))

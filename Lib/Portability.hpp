@@ -36,4 +36,19 @@
 #define ARCH_X86 1
 #endif
 
+// enable warnings for unused results
+// C++17: replace this with [[nodiscard]]
+#ifdef __GNUC__
+#define VWARN_UNUSED [[gnu::warn_unused_result]]
+#else
+#define VWARN_UNUSED
+#endif
+
+// clang can attach to class, struct etc, but GCC cannot
+#ifdef __clang__
+#define VWARN_UNUSED_TYPE [[clang::warn_unused_result]]
+#else
+#define VWARN_UNUSED_TYPE
+#endif
+
 #endif /*__Portability__*/

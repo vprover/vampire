@@ -55,7 +55,7 @@ void ResourceLimits::setLimits(size_t memoryInBytes, int timeInDeciseconds)
 {
   CALL("ResourceLimits::setLimits");
 
-  env.options->setMemoryLimit(memoryInBytes);
+  env.options->setMemoryLimitOptionValue(memoryInBytes);
   Allocator::setMemoryLimit(memoryInBytes);
 
   env.options->setTimeLimitInDeciseconds(timeInDeciseconds);

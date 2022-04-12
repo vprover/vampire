@@ -234,7 +234,7 @@ void TPTPPrinter::outputSymbolTypeDefinitions(unsigned symNumber, SymbolType sym
   }
 
   vstring cat = "tff(";
-  if(env.statistics->higherOrder){
+  if(env.property->higherOrder()){
     cat = "thf(";
   }
 

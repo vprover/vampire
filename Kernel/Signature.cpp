@@ -247,9 +247,9 @@ Signature::Signature ():
     _integers(0),
     _rationals(0),
     _reals(0),
-    _arrayCon(0),
-    _arrowCon(0),
-    _appFun(0),
+    _arrayCon(UINT_MAX),
+    _arrowCon(UINT_MAX),
+    _appFun(UINT_MAX),
     _termAlgebras(),
     _fnDefHandler(0)
 {
@@ -1177,7 +1177,7 @@ bool Signature::symbolNeedsQuoting(vstring name, bool interpreted, unsigned arit
   //also don't want them to be treated as interpreted symbols
   //hence the hack below, AYB
   if(name=="$int" || name=="$real" || name=="$rat" || 
-     name=="$i" || name=="$o" || name==">"){
+     name=="$i" || name=="$o"){
     return false;
   }
 
