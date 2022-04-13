@@ -396,30 +396,20 @@ struct InductionContextFn
 {
   InductionContextFn(Clause* premise, Literal* lit) : _premise(premise), _lit(lit) {}
 
-  InductionContext operator()(pair<Term*, VirtualIterator<TermQueryResult>> arg) {
-    Set<Literal*> lits;
-    lits.insert(_lit);
-    InductionContext ctx(arg.first, _lit, _premise);
+  VirtualIterator<InductionContext> operator()(pair<Term*, VirtualIterator<TermQueryResult>> arg) {
     auto indDepth = _premise->inference().inductionDepth();
-    // heuristic 2, check for complex term and non-equality
+    // heuristic 2
     if (indDepth) {
+      auto res = VirtualIterator<InductionContext>::getEmpty();
+      // check for complex term and non-equality
       if (_lit->isEquality() || !arg.first->arity()) {
-        return ctx;
+        return res;
       }
-    }
-    while (arg.second.hasNext()) {
-      auto tqr = arg.second.next();
-      // TODO: having the same literal multiple times has unwanted effects
-      // in the clausification/resolution part, so avoid it for now
-      if (lits.contains(tqr.literal)) {
-        continue;
-      }
-      lits.insert(tqr.literal);
-      if (indDepth != tqr.clause->inference().inductionDepth()) {
-        continue;
-      }
-      // The checks inside the if correspond to heuristic 2
-      if (indDepth) {
+      while (arg.second.hasNext()) {
+        auto tqr = arg.second.next();
+        if (indDepth != tqr.clause->inference().inductionDepth()) {
+          continue;
+        }
         // check for different clauses and same topmost functors
         if (tqr.clause == _premise || _lit->functor() != tqr.literal->functor()) {
           continue;
@@ -434,11 +424,11 @@ struct InductionContextFn
           if (st1 != st2) {
             // if the two terms are not equal, we check that
             // - no other non-equal pair of terms have been processed (match)
-            // - t (st1) contains t' (st2)
-            // TODO: this should be checked the other way around but then we may
-            // have to create multiple induction contexts in this pass
-            // - t' (st2) is not what we would induct on
-            if (match || !st1.containsSubterm(st2) || st2.term() != arg.first) {
+            // - one of them contains the other and the contained one is the induction term
+            if (match ||
+              !((st1.containsSubterm(st2) && st2.term() == arg.first) ||
+                (st2.containsSubterm(st1) && st1.term() == arg.first)))
+            {
               match = false;
               break;
             }
@@ -450,10 +440,31 @@ struct InductionContextFn
         if (!match) {
           continue;
         }
+        InductionContext ctx(arg.first, _lit, _premise);
+        ctx.insert(tqr.clause, tqr.literal);
+        res = pvi(getConcatenatedIterator(res, getSingletonIterator(ctx)));
       }
-      ctx.insert(tqr.clause, tqr.literal);
+      return res;
+    // heuristic 1
+    } else {
+      InductionContext ctx(arg.first, _lit, _premise);
+      Set<Literal*> lits;
+      lits.insert(_lit);
+      while (arg.second.hasNext()) {
+        auto tqr = arg.second.next();
+        // TODO: having the same literal multiple times has unwanted effects
+        // in the clausification/resolution part, so avoid it for now
+        if (lits.contains(tqr.literal)) {
+          continue;
+        }
+        lits.insert(tqr.literal);
+        if (indDepth != tqr.clause->inference().inductionDepth()) {
+          continue;
+        }
+        ctx.insert(tqr.clause, tqr.literal);
+      }
+      return pvi(getSingletonIterator(ctx));
     }
-    return ctx;
   }
 private:
   Clause* _premise;
@@ -514,7 +525,8 @@ void InductionClauseIterator::processLiteral(Clause* premise, Literal* lit)
         }));
     }
     // put clauses from queries into contexts alongside with the given clause and induction term
-    auto sideLitsIt2 = iterTraits(getMappingIterator(sideLitsIt, InductionContextFn(premise, lit)))
+    auto sideLitsIt2 = iterTraits(sideLitsIt)
+      .flatMap(InductionContextFn(premise, lit))
       // generalize all contexts if needed
       .flatMap([](const InductionContext& arg) {
         return vi(new ContextSubsetReplacement(arg, !env.options->inductionGen()));
