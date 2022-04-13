@@ -11,6 +11,17 @@
  * @file Term.hpp
  * Defines class Term (also serving as term arguments)
  *
+ * The way terms are laid out in memory is "cute".
+ * Here are a few salient points to help you navigate:
+ * - a "Term" is a function (unsigned, see Kernel::Signature) applied to some number of arguments
+ * - usually Terms are "perfectly shared" (see Indexing::TermSharing)
+ * - the arguments are "TermList"s, i.e. a variable or a Term*
+ * - TermList is a tagged union that relies on Term* being aligned (!) to achieve pointer tagging
+ * - TermTag::REF == 0 because this does not change the value of an aligned Term*
+ * - the arguments of a Term are laid out in reverse order (!)
+ * - the last argument (i.e. the closest to the Term) is a sentinel with TermTag::FUN
+ *   and some metadata about the enclosing Term
+ *
  * @since 18/04/2006 Bellevue
  * @since 06/05/2007 Manchester, changed into a single class instead of three
  */
@@ -28,7 +39,9 @@
 #include "Lib/Stack.hpp"
 #include "Lib/Metaiterators.hpp"
 
-#define TERM_DIST_VAR_UNKNOWN 0x3FFFFF
+// the number of bits used for "TermList::_info::distinctVars"
+#define TERM_DIST_VAR_BITS 22
+#define TERM_DIST_VAR_UNKNOWN ((2 ^ TERM_DIST_VAR_BITS) - 1)
 
 namespace Kernel {
 
@@ -85,7 +98,7 @@ public:
   /** creates a term list and initialises its content with data */
   explicit TermList(size_t data) : _content(data) {}
   /** creates a term list containing a pointer to a term */
-  explicit TermList(Term* t) : _term(t) {}
+  explicit TermList(Term* t) : _term(t) { ASS_EQ(tag(), REF); }
   /** creates a term list containing a variable. If @b special is true, then the variable
    * will be "special". Special variables are also variables, with a difference that a
    * special variables and ordinary variables have an empty intersection */
@@ -100,7 +113,7 @@ public:
   }
 
   /** the tag */
-  inline TermTag tag() const { return (TermTag)(_content & 0x0003); }
+  inline TermTag tag() const { return static_cast<TermTag>(_info.tag); }
   /** the term list is empty */
   inline bool isEmpty() const
   { return tag() == FUN; }
@@ -114,7 +127,7 @@ public:
   inline const TermList* next() const
   { return this-1; }
   /** the term contains a variable as its head */
-  inline bool isVar() const { return (_content & 0x0001) == 1; }
+  inline bool isVar() const { return tag() == ORD_VAR || tag() == SPEC_VAR; }
   /** the term contains an ordinary variable as its head */
   inline bool isOrdinaryVar() const { return tag() == ORD_VAR; }
   /** the term contains a special variable as its head */
@@ -149,7 +162,7 @@ public:
   { _content = FUN; }
   /** make the term into a reference */
   inline void setTerm(Term* t)
-  { _term = t; }
+  { _term = t; ASS_EQ(tag(), REF); }
   static bool sameTop(TermList ss, TermList tt);
   static bool sameTopFunctor(TermList ss, TermList tt);
   static bool equals(TermList t1, TermList t2);
@@ -193,17 +206,16 @@ private:
     /** Used by Term, storing some information about the term using bits */
     /*
      * A note from 2022: the following bitfield is somewhat non-portable.
-     * Also `tag` is assumed to be here, but apparently always set to FUN,
-     * which is weird but hard to remove safely.
+     * Endianness or exotic pointers or some compiler/padding weirdness would probably break this.
      * I'm leaving it as-is for now because of the bugs changing it might introduce,
-     * but a better solution long-term would be something like a struct wrapping a `uint32_t`,
+     * but a better solution long-term would be something like a struct wrapping a `uintptr_t`,
      * with bits twiddled manually in getters/setters.
      * ---
      * However, if compiling this on a non-x86ish architecture (or even a new compiler)
      * produces "unexpected results" in the vicinity of terms, then I'd look here first!
      */
     struct {
-      /** tag, always FUN */
+      /** a TermTag indicating what is stored here */
       unsigned tag : 2;
       /** polarity, used only for literals */
       unsigned polarity : 1;
@@ -223,7 +235,7 @@ private:
       /** Number of distinct variables in the term, equal
        * to TERM_DIST_VAR_UNKNOWN if the number has not been
        * computed yet. */
-      mutable unsigned distinctVars : 22;
+      mutable unsigned distinctVars : TERM_DIST_VAR_BITS;
 #if ARCH_X64
       /** reserved for whatever */
       // ^ not exactly: note that this cannot be removed, otherwise the bitfield layout might shift
@@ -464,7 +476,7 @@ public:
   bool ground() const
   {
     ASS(_args[0]._info.shared);
-    return ! vars();
+    return getVariableOccurrences() == 0;
   } // ground
 
   /** True if the term is shared */
@@ -524,10 +536,10 @@ public:
     _maxRedLen = rl;
   } // setWeight
 
-  /** Set the number of variables */
-  void setVars(unsigned v)
+  /** Set the number of variable _occurrences_ */
+  void setVariableOccurrences(unsigned v)
   {
-    CALL("Term::setVars");
+    CALL("Term::setVariableOccurrences");
 
     if(_isTwoVarEquality) {
       ASS_EQ(v,2);
@@ -536,12 +548,13 @@ public:
     _vars = v;
   } // setVars
 
-  /** Return the number of variables */
-  unsigned vars() const
+  /** Return the number of variable _occurrences_ */
+  unsigned getVariableOccurrences() const
   {
+    CALL("Term::getVariableOccurrences");
     ASS(shared());
     if(_isTwoVarEquality) {
-      return _sort.isVar() ? 3 : 2 + _sort.term()->vars(); 
+      return _sort.isVar() ? 3 : 2 + _sort.term()->getVariableOccurrences();
     }
     return _vars;
   } // vars()
@@ -585,6 +598,7 @@ public:
 
   static TermIterator getVariableIterator(TermList tl);
 
+  // the number of _distinct_ variables within the term
   unsigned getDistinctVars() const
   {
     if(_args[0]._info.distinctVars==TERM_DIST_VAR_UNKNOWN) {
@@ -694,7 +708,7 @@ protected:
   /** The number of this symbol in a signature */
   unsigned _functor;
   /** Arity of the symbol */
-  unsigned _arity : 27;
+  unsigned _arity : 28;
   /** colour, used in interpolation and symbol elimination */
   unsigned _color : 2;
   /** Equal to 1 if the term/literal contains any interpreted constants */
@@ -842,29 +856,7 @@ public:
   unsigned complementaryHeader() const
   { return 2*_functor + 1 - polarity(); }
 
-  /**
-   * Convert header to the correponding predicate symbol number.
-   * @since 08/08/2008 flight Manchester-Singapore
-   */
-  static unsigned int headerToPredicateNumber(unsigned header)
-  {
-    return header/2;
-  }
-  /**
-   * Convert header to the correponding polarity.
-   * @since 08/08/2008 flight Manchester-Singapore
-   */
-  static unsigned int headerToPolarity(unsigned header)
-  {
-    return header % 2;
-  }
   static bool headersMatch(Literal* l1, Literal* l2, bool complementary);
-  /** Negate, should not be used with shared terms */
-  void negate()
-  {
-    ASS(! shared());
-    _args[0]._info.polarity = 1 - _args[0]._info.polarity;
-  }
   /** set polarity to true or false */
   void setPolarity(bool positive)
   { _args[0]._info.polarity = positive ? 1 : 0; }
@@ -877,19 +869,12 @@ public:
   static Literal* create2(unsigned predicate, bool polarity, TermList arg1, TermList arg2);
   static Literal* create(unsigned fn, bool polarity, std::initializer_list<TermList> args);
 
-  //No longer used AYB
-  //static Literal* flattenOnArgument(const Literal*,int argumentNumber);
-
   unsigned hash() const;
   unsigned oppositeHash() const;
   static Literal* complementaryLiteral(Literal* l);
   /** If l is positive, return l; otherwise return its complementary literal. */
   static Literal* positiveLiteral(Literal* l) {
     return l->isPositive() ? l : complementaryLiteral(l);
-  }
-  /** If l is negative, return l; otherwise return its complementary literal. */
-  static Literal* negativeLiteral(Literal* l) {
-    return l->isNegative() ? l : complementaryLiteral(l);
   }
 
   /** true if positive */
@@ -943,14 +928,6 @@ public:
     ASS(isTwoVarEquality());
 
     _sort = sort;
-  }
-
-
-  /** Return a new equality literal */
-  static inline Literal* equality (bool polarity)
-  {
-     CALL("Literal::equality/1");
-     return new(2) Literal(0,2,polarity,true);
   }
 
 //   /** Applied @b subst to the literal and return the result */

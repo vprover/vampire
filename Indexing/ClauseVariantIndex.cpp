@@ -350,9 +350,9 @@ struct HashingClauseVariantIndex::VariableIgnoringComparator {
       return Int::compare(t1->weight(),t2->weight());
     }
 
-    if(t1->vars()!=t2->vars()) {
+    if(t1->getVariableOccurrences()!=t2->getVariableOccurrences()) {
       // number of variable occurrences
-      return Int::compare(t1->vars(),t2->vars());
+      return Int::compare(t1->getVariableOccurrences(),t2->getVariableOccurrences());
     }
 
     if (t1->ground()) {
@@ -376,9 +376,9 @@ struct HashingClauseVariantIndex::VariableIgnoringComparator {
       return Int::compare(l1->weight(),l2->weight());
     }
 
-    if(l1->vars()!=l2->vars()) {
+    if(l1->getVariableOccurrences()!=l2->getVariableOccurrences()) {
       // number of variable occurrences
-      return Int::compare(l1->vars(),l2->vars());
+      return Int::compare(l1->getVariableOccurrences(),l2->getVariableOccurrences());
     }
 
     if (l1->ground()) {

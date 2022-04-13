@@ -170,7 +170,7 @@ struct LeastVariables : public LiteralComparator
 {
   Comparison compare(Literal* l1, Literal* l2)
   {
-    return Int::compare(l2->vars(), l1->vars());
+    return Int::compare(l2->getVariableOccurrences(), l1->getVariableOccurrences());
   }
 };
 
