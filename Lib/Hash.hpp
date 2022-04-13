@@ -67,7 +67,7 @@ struct HashUtils
 // not a great idea in general: things usually distribute badly in some way
 // for example, pointers are usually aligned to e.g. multiples of 4
 // however, for e.g. variables (evenly distributed close to 0) it's very effective
-// also OK for secondary hashes
+// also OK for secondary hashes in some cases
 struct IdentityHash
 {
   template<typename T>
@@ -77,16 +77,6 @@ struct IdentityHash
   template<typename T>
   static unsigned hash(T val)
   { return static_cast<unsigned>(val); }
-};
-
-// combine two identity hashes together
-// the implementation is historical and not known to work well
-// TODO: is this reasonable?
-struct PairIdentityHash {
-  template<typename T>
-  static unsigned hash(T pp) {
-    return static_cast<unsigned>(pp.first^pp.second^(pp.first<<1));
-  }
 };
 
 // wrapper around std::hash
@@ -169,11 +159,7 @@ public:
   { return hash(str.c_str()); }
 
   template<typename T>
-  static unsigned hash(Stack<T> obj)
-  { return StackHash<Hash>::hash(obj); }
-
-  template<typename T>
-  static unsigned hash(Vector<T>& obj)
+  static unsigned hash(const Vector<T> &obj)
   { return VectorHash<Hash>::hash(obj); }
 
   // pointers are hashed as bytes without dereference
@@ -250,6 +236,7 @@ public:
 // template specializations for SecondaryHash
 // used to fill out default template parameters for DH{Map,Set} in Forwards.hpp
 // these hash functions should be cheap and not worry too much about distribution
+// NB: should not be the same as the first hash!
 
 template<typename T>
 struct SecondaryHash<
@@ -286,16 +273,7 @@ struct SecondaryHash<std::pair<T,U> > {
     static unsigned hash(const std::pair<T,U> &pp) {
       unsigned h1=SecondaryHash<T>::Type::hash(pp.first);
       unsigned h2=SecondaryHash<U>::Type::hash(pp.second);
-      return h1 + h2;
-    }
-  };
-};
-
-template<typename T>
-struct SecondaryHash<Stack<T> > {
-  struct Type {
-    static unsigned hash(const Stack<T> &stack) {
-      return stack.length();
+      return HashUtils::combine(h1, h2);
     }
   };
 };
