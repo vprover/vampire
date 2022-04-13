@@ -48,7 +48,7 @@ private:
     bool newAssignment();
     TermList apply(unsigned var);
   private:
-    DHMap<unsigned, unsigned, IdentityHash> _varNumbering;
+    DHMap<unsigned, unsigned, IdentityHash, Hash> _varNumbering;
     Stack<TermList> _constants;
     DArray<unsigned> _indexes;
     unsigned _maxIndex;
