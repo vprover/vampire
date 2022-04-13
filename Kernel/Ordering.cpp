@@ -277,7 +277,7 @@ Ordering::Result PrecedenceOrdering::compare(Literal* l1, Literal* l2) const
   unsigned p2 = l2->functor();
 
   if( (l1->isNegative() ^ l2->isNegative()) && (p1==p2) &&
-	  l1->weight()==l2->weight() && l1->vars()==l2->vars() &&  //this line is just optimization, so we don't check whether literals are opposite when they cannot be
+	  l1->weight()==l2->weight() && l1->getVariableOccurrences()==l2->getVariableOccurrences() &&  //this line is just optimization, so we don't check whether literals are opposite when they cannot be
 	  l1==env.sharing->tryGetOpposite(l2)) {
     return l1->isNegative() ? LESS : GREATER;
   }

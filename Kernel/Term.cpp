@@ -863,7 +863,6 @@ Literal* Literal::apply(Substitution& subst)
   return SubstHelper::apply(this, subst);
 } // Literal::apply
 
-
 /**
  * Return the hash function of the top-level of a complex term.
  * @pre The term must be non-variable
