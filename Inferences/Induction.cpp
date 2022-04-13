@@ -990,6 +990,7 @@ void InductionClauseIterator::performIntInduction(InductionContext& context, Inf
 
   TermList x(0,false);
   TermList y(1,false);
+  TermList ph(getPlaceholderForTerm(context._indTerm));
 
   // create L[b1]
   Formula* Lb1 = context.getFormula(b1,true);
@@ -1022,7 +1023,8 @@ void InductionClauseIterator::performIntInduction(InductionContext& context, Inf
   const bool hasBound2 = ((optionalBound2 != nullptr) && (optionalBound2->literal != nullptr));
   // Also resolve the hypothesis with comparisons with bound(s) (if the bound(s) are present/not default).
   if (!isDefaultBound) {
-    context.insert(bound1.clause, replaceTermInLiteral(bound1.literal, context._indTerm, TermList(getPlaceholderForTerm(context._indTerm))));
+    context.insert(bound1.clause,
+      Literal::create2(less, !isBound1Equal, (isBound1FirstArg ? b1 : ph), (isBound1FirstArg ? ph : b1)));
   }
   if (hasBound2) {
     // Finite interval induction, use two bounds on both x and y.
@@ -1039,7 +1041,8 @@ void InductionClauseIterator::performIntInduction(InductionContext& context, Inf
     FyInterval = new JunctionFormula(Connective::AND, FormulaList::cons(Lycompb1, FormulaList::singleton(Lycompb2)));
     if (!isDefaultBound) {
       // If there is also a second bound, add that to the list as well.
-      context.insert(optionalBound2->clause, replaceTermInLiteral(optionalBound2->literal, context._indTerm, TermList(getPlaceholderForTerm(context._indTerm))));
+      context.insert(optionalBound2->clause,
+        Literal::create2(less, !isBound2Equal, (isBound2FirstArg ? b2 : ph), (isBound2FirstArg ? ph : b2)));
     }
   } else {
     // Infinite interval induction (either with default bound or not), use only one bound on both x and y.
