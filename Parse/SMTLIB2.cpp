@@ -163,9 +163,11 @@ void SMTLIB2::readBenchmark(LExprList* bench)
     bool finalLoopCountDeclared = ibRdr.tryAcceptAtom("declare-final-loop-count");
     bool programVarDeclared = ibRdr.tryAcceptAtom("declare-program-var");
     bool mallocFunDeclared = ibRdr.tryAcceptAtom("declare-malloc-func");
+    bool chainFunDeclared = ibRdr.tryAcceptAtom("declare-chain-func");
 
     if(timePointDeclared || lemmaPredicateDeclared || constVarDeclared ||
-       finalLoopCountDeclared || programVarDeclared || mallocFunDeclared){
+       finalLoopCountDeclared || programVarDeclared || mallocFunDeclared ||
+       chainFunDeclared){
       vstring name = ibRdr.readAtom();
       LExprList* iSorts;
       if(!ibRdr.tryReadList(iSorts)){
@@ -186,6 +188,8 @@ void SMTLIB2::readBenchmark(LExprList* bench)
         rsym = RapidSymbol::RAP_PROGRAM_VAR;
       } else if(mallocFunDeclared){
         rsym = RapidSymbol::RAP_MALLOC;
+      } else if(chainFunDeclared){
+        rsym = RapidSymbol::RAP_CHAIN;        
       }
 
       readDeclareFun(name,iSorts,oSort, rsym);
@@ -994,6 +998,10 @@ SMTLIB2::DeclaredFunction SMTLIB2::declareFunctionOrPredicate(const vstring& nam
     if(rapSym == RapidSymbol::RAP_MALLOC){
       sym->markMalloc();
     }    
+
+    if(rapSym == RapidSymbol::RAP_CHAIN){
+      sym->markChain();
+    }
 
     type = OperatorType::getFunctionType(argSorts.size(), argSorts.begin(), rangeSort);
 

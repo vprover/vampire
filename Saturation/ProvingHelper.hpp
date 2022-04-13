@@ -24,7 +24,7 @@ using namespace Shell;
 
 class ProvingHelper {
 public:
-  static void runVampireSaturation(Problem& prb, const Options& opt);
+  static void runVampireSaturation(Problem& prb, const Options& opt, int* fd = 0);
   static void runVampire(Problem& prb, const Options& opt);
 private:
   static void runVampireSaturationImpl(Problem& prb, const Options& opt);

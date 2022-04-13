@@ -50,7 +50,7 @@ class PortfolioSliceExecutor : public SliceExecutor
 {
 public:
   PortfolioSliceExecutor(PortfolioMode *mode);
-  void runSlice(vstring sliceCode, int remainingTime) override;
+  void runSlice(vstring sliceCode, int remainingTime, int* fd) override;
 
 private:
   PortfolioMode *_mode;
@@ -62,24 +62,30 @@ class PortfolioMode {
     SEM_PRINTED = 1
   };
 
+  #define WRITE 1
+
   PortfolioMode();
-  friend void PortfolioSliceExecutor::runSlice(vstring sliceCode, int terminationTime);
+  friend void PortfolioSliceExecutor::runSlice(vstring sliceCode, int terminationTime, int* fd);
 public:
-  static bool perform(float slowness);
+  /**
+   *  If no problem set, tries to read one from input file
+   *  @param fd is a pipe used to return termination reason to API
+   * */
+  static bool perform(float slowness, Problem* prob = 0, int* fd = 0);
   unsigned getSliceTime(vstring sliceCode,vstring& chopped);
 
 private:
 
   // some of these names are kind of arbitrary and should be perhaps changed
 
-  bool searchForProof();
+  bool searchForProof(Problem* prob = 0);
   bool performStrategy(Shell::Property* property);
   void getSchedules(Property& prop, Schedule& quick, Schedule& fallback);
   void getExtraSchedules(Property& prop, Schedule& old, Schedule& extra, bool add_extra, int time_multiplier); 
   bool runSchedule(Schedule& schedule);
   bool waitForChildAndCheckIfProofFound();
-  [[noreturn]] void runSlice(vstring slice, unsigned timeLimitInDeciseconds);
-  [[noreturn]] void runSlice(Options& strategyOpt);
+  [[noreturn]] void runSlice(vstring slice, unsigned timeLimitInDeciseconds, int* fd);
+  [[noreturn]] void runSlice(Options& strategyOpt,  int* fd);
 
 #if VDEBUG
   DHSet<pid_t> childIds;

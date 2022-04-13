@@ -15,6 +15,7 @@
 #include "Lib/Environment.hpp"
 #include "Lib/TimeCounter.hpp"
 #include "Lib/Timer.hpp"
+#include "Lib/System.hpp"
 
 #include "Kernel/Problem.hpp"
 
@@ -28,6 +29,9 @@
 #include "SaturationAlgorithm.hpp"
 
 #include "ProvingHelper.hpp"
+#include <unistd.h>
+
+#define WRITE 1
 
 namespace Saturation
 {
@@ -48,7 +52,7 @@ using namespace Shell;
  * The function does not necessarily return (e.g. in the case of timeout,
  * the process is aborted)
  */
-  void ProvingHelper::runVampireSaturation(Problem& prb, const Options& opt)
+  void ProvingHelper::runVampireSaturation(Problem& prb, const Options& opt, int* fd)
 {
   CALL("ProvingHelper::runVampireSaturation");
 
@@ -69,6 +73,16 @@ using namespace Shell;
   catch(ActivationLimitExceededException&) {
     env.statistics->terminationReason=Statistics::ACTIVATION_LIMIT;
     env.statistics->refutation=0;
+  }
+
+  if(fd){
+    auto termReason = env.statistics->terminationReason;
+    write(fd[WRITE],&termReason,sizeof(termReason));    //write to pipe
+    close(fd[WRITE]);
+    // child of the API
+    // we don't want ocntrol to return, but to terminate
+    // and let the parent take ove    
+    System::terminateImmediately(1);    
   }
 }
 

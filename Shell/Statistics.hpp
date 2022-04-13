@@ -164,6 +164,7 @@ public:
   unsigned proxyEliminations;
   unsigned leibnizElims;
   unsigned booleanSimps;
+  unsigned chainUnrolls;
 
   // Simplifying inferences
   /** number of duplicate literals deleted */

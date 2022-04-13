@@ -13,6 +13,9 @@
 #include <unistd.h>
 #include "Schedules.hpp"
 
+#define READ  0
+#define WRITE 1
+
 namespace CASC
 {
 
@@ -26,7 +29,7 @@ public:
 class SliceExecutor
 {
 public:
-  [[noreturn]] virtual void runSlice(Lib::vstring sliceCode, int remaminingTime) = 0;
+  [[noreturn]] virtual void runSlice(Lib::vstring sliceCode, int remaminingTime, int* fd) = 0;
 };
 
 class ScheduleExecutor
@@ -36,7 +39,7 @@ public:
   bool run(const Schedule &schedule);
 
 private:
-  pid_t spawn(Lib::vstring code, int remaminingTime);
+  pid_t spawn(Lib::vstring code, int remaminingTime, int* fd);
   unsigned getNumWorkers();
 
   ProcessPriorityPolicy *_policy;

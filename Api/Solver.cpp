@@ -24,6 +24,7 @@
 #include "Lib/ScopedPtr.hpp"
 #include "Lib/StringUtils.hpp"
 #include "Lib/Timer.hpp"
+#include "Lib/Sys/Multiprocessing.hpp"
 
 #include "Kernel/Formula.hpp"
 #include "Kernel/FormulaUnit.hpp"
@@ -31,6 +32,8 @@
 #include "Kernel/Signature.hpp"
 #include "Kernel/Unit.hpp"
 #include "Kernel/Problem.hpp"
+
+#include "CASC/PortfolioMode.hpp"
 
 #include "Parse/TPTP.hpp"
 
@@ -41,6 +44,8 @@
 #include "Shell/TPTPPrinter.hpp"
 #include "Shell/Statistics.hpp"
 
+#include <unistd.h>
+#include <fcntl.h>
 
 using namespace std;
 using namespace Lib;
@@ -59,9 +64,10 @@ namespace Vampire
 
   Solver::Solver(Logic l){
     //switch off all printing
-    env.options->setOutputMode(Shell::Options::Output::SMTCOMP);
+    env.options->setOutputMode(Shell::Options::Output::API);
     preprocessed = false;
     logicSet = false;
+    verbose = false;
     timeLimit = 0;
     logic = l;
     env.options->setTimeLimitInSeconds(0);
@@ -98,11 +104,18 @@ namespace Vampire
     }
   }
 
+  void Solver::setVerbose(){
+    CALL("Solver::setVerbose");
+
+    verbose = true;
+  }
+
   void Solver::resetHard(){
     CALL("Solver::resetHard");
 
     preprocessed = false;
     logicSet = false;
+    verbose = false;
     fb.reset();
     prob.removeAllFormulas();
     Parse::TPTP::resetAxiomNames();
@@ -123,7 +136,7 @@ namespace Vampire
 
     timeLimit = 0;
 
-    env.options->setOutputMode(Shell::Options::Output::SMTCOMP);
+    env.options->setOutputMode(Shell::Options::Output::API);
     env.options->setTimeLimitInSeconds(0);
   }
 
@@ -172,8 +185,14 @@ namespace Vampire
   Sort Solver::sort(const string& sortName)
   {
     CALL("Solver::sort");
+   
+    std::string name = sortName;
+    if(logic == SMT_LIB){
+      // at the moment we only support arity 0 sorts ...
+      name = sortName + "()";
+    }
 
-    return fb.sort(sortName);
+    return fb.sort(name);
   }
 
   Sort Solver::integerSort()
@@ -283,10 +302,11 @@ namespace Vampire
     CALL("Solver::function/2");
 
     std::vector<Sort> domainSorts(arity, defaultSort());
-    return fb.symbol(funName, arity, defaultSort(), domainSorts, builtIn);
+    return fb.symbol(funName, arity, defaultSort(), domainSorts, false, builtIn);
   }
 
-  Symbol Solver::function(const string& funName, unsigned arity, Sort rangeSort, std::vector<Sort>& domainSorts, bool builtIn)
+  Symbol Solver::function(const string& funName, unsigned arity, Sort rangeSort, 
+    std::vector<Sort>& domainSorts, bool mallocSym, bool builtIn)
   {
     CALL("Solver::function/4");
 
@@ -298,7 +318,7 @@ namespace Vampire
       //TODO: add further checks
     }
 
-    return fb.symbol(funName, arity, rangeSort, domainSorts, builtIn);
+    return fb.symbol(funName, arity, rangeSort, domainSorts, mallocSym, builtIn);
   }
 
   Symbol Solver::predicate(const string& predName,unsigned arity, bool builtIn)
@@ -671,7 +691,8 @@ namespace Vampire
 
     if(!preprocessed){
       logicSet = true;
-      prob.addFormula(fb.annotatedFormula(f, FormulaBuilder::Annotation::AXIOM));
+      // always axiom at the moment, to ensure different to theory axioms
+      prob.addFormula(fb.annotatedFormula(f, FormulaBuilder::Annotation::ASSUMPTION));
     } else {
       throw ApiException("A formula cannot be added to a preprocessed problem");
     }
@@ -714,49 +735,139 @@ namespace Vampire
   {
     CALL("Solver::solve");
     
+    return solveImpl();
+  }
+
+  Result Solver::solveWithCasc()
+  {
+    CALL("Solver::solveWithCasc");
+    
+    if(preprocessed){
+      throw ApiException("Cannot run CASC mode on an already processed problem");      
+    }
+    
+    env.options->setMode(Options::Mode::CASC);
+    return solveImpl(true);
+  }
+
+  Result Solver::solveWithSched(Schedule sched)
+  {
+    CALL("Solver::solveWithSched");
+
+    if(preprocessed){
+      throw ApiException("Cannot run portfolio mode on an already processed problem");      
+    }
+
+    switch(sched){
+      case Schedule::RAPID:
+        env.options->setSchedule(Options::Schedule::RAPID);
+        break;
+      case Schedule::RAPID_INDUCT:
+        env.options->setSchedule(Options::Schedule::RAPID_INDUCTION);
+        break; 
+      case Schedule::NONE:
+        // TODO look into how to output warnings
+        std::cout << "WARNING: Trying to run in portfolio mode without setting a schedule. Defaulting to CASC" << std::endl;  
+        // deliberately no break here
+      case Schedule::CASC:
+        // do nothing, CASC is default schedule
+        break;
+    }
+
+    env.options->setMode(Options::Mode::PORTFOLIO);
+    return solveImpl(true);
+  }
+
+  #define READ 0
+  #define WRITE 1
+
+  Result Solver::solveImpl(bool portfolioMode)
+  {
+    CALL("Solver::solveImpl");
+
     if(!timeLimit){
       env.options->setTimeLimitInSeconds(30);
     } else {
       env.options->setTimeLimitInSeconds(timeLimit);      
     }
 
+    Allocator::setMemoryLimit(env.options->memoryLimit() * 1048576ul);   
+
     env.options->setRunningFromApi();
-    Kernel::UnitList* units = UnitList::empty();
-    AnnotatedFormulaIterator afi = formulas();
+    if(verbose)
+      env.options->setOutputMode(Options::Output::SZS);
 
-    while(afi.hasNext()){
-      Kernel::UnitList::push(afi.next(), units);
+    //env.options->set("show_new", "on");
+    //env.options->set("show_reductions", "on");    
+
+    int fd[2];
+    int ret = pipe(fd);
+    ASS_NEQ(ret, -1);
+
+    // set non-blocking in case child is not able to write to pipe for
+    // some reason (e.g. timeout)
+    ret = fcntl(fd[READ], F_SETFL, fcntl(fd[READ], F_GETFL) | O_NONBLOCK);
+    ASS_NEQ(ret, -1);
+
+    pid_t pid = Multiprocessing::instance()->fork();
+    ASS_NEQ(pid, -1);
+
+    if(pid)
+    { //parent
+      close(fd[WRITE]);
+      int res;
+      // goto sleep and let child do its thing
+      Multiprocessing::instance()->waitForParticularChildTermination(pid, res);
+
+      Shell::Statistics::TerminationReason r = 
+          Shell::Statistics::TerminationReason::UNKNOWN;
+
+      read(fd[READ],&r,sizeof(r));
+      close(fd[READ]);
+
+      Result::TerminationReason tr;
+      if(r == Shell::Statistics::REFUTATION){
+        tr = Result::REFUTATION;
+      } else 
+      if(r == Shell::Statistics::SATISFIABLE){
+        tr = Result::SATISFIABLE;
+      } else {
+        //catch all
+        tr = Result::RESOURCED_OUT;
+      }
+
+      return Result(tr);   
+
+    } else {
+      // child
+      close(fd[READ]);
+      
+      Kernel::UnitList* units = UnitList::empty();
+      AnnotatedFormulaIterator afi = formulas();
+
+      while(afi.hasNext()){
+        Kernel::UnitList::push(afi.next(), units);
+      }
+
+      env.timer->start();
+
+      if(portfolioMode){
+        Kernel::Problem* prob = new Kernel::Problem(units);
+        CASC::PortfolioMode::perform(env.options->slowness(), prob, fd);
+      } else {
+        Kernel::Problem problem(units);
+
+        if(!preprocessed){
+          Shell::Preprocess prepro(*env.options);
+          prepro.preprocess(problem);
+        }      
+        Saturation::ProvingHelper::runVampireSaturation(problem, *env.options, fd);      
+      }
     }
-
-    Kernel::Problem problem(units);
-
-    env.timer->start();
-
-    if(!preprocessed){
-      Shell::Preprocess prepro(*env.options);
-      prepro.preprocess(problem);
-    }
-  
-    Saturation::ProvingHelper::runVampireSaturation(problem, *env.options);
-
-    env.timer->reset();
+    assert(false);
 
     //To allow multiple calls to solve() for the same problem set.
-    Unit::resetFirstNonPreprocessNumber();
-
-    Shell::Statistics::TerminationReason str = env.statistics->terminationReason;
-    Result::TerminationReason tr;
-    if(str == Shell::Statistics::REFUTATION){
-      tr = Result::REFUTATION;
-    } else 
-    if(str == Shell::Statistics::SATISFIABLE){
-      tr = Result::SATISFIABLE;
-    } else {
-      //catch all
-      tr = Result::RESOURCED_OUT;
-    }
-
-    return Result(tr);
+    //Unit::resetFirstNonPreprocessNumber();
   }
 
   Result Solver::checkEntailed(Expression f)

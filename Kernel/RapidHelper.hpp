@@ -90,6 +90,7 @@ public:
   static TermList timePointAtFirstIt(TermList tp);
   static TermList timePointAtLastIt(TermList tp, TermList finalLoopCount);
 
+  static int isConcreteLengthChain(TermList term);
 
   static bool increasing(Literal* lit, TermList term);
 private:

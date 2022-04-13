@@ -184,7 +184,8 @@ private:
     RAP_TIME_POINT,
     RAP_CONST_VAR,
     RAP_PROGRAM_VAR,
-    RAP_MALLOC,    
+    RAP_MALLOC,  
+    RAP_CHAIN,  
     RAP_NONE
   };
 

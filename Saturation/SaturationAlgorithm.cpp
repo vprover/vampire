@@ -94,6 +94,7 @@
 #include "Inferences/Cases.hpp"
 #include "Inferences/MultiClauseNatInduction.hpp"
 #include "Inferences/RapidArrayInduction.hpp"
+#include "Inferences/ChainUnrolling.hpp"
 
 #include "Saturation/ExtensionalityClauseContainer.hpp"
 
@@ -1796,6 +1797,10 @@ ImmediateSimplificationEngine* SaturationAlgorithm::createISE(Problem& prb, cons
     }
     res->addFront(new BoolSimp());
   }
+
+  // TODO guard this so taht we only add it
+  // if the problem contains chains
+  res->addFront(new ChainUnrolling());  
 
   if (prb.hasFOOL() && opt.casesSimp() && !opt.cases()) {
     res->addFrontMany(new CasesSimp());

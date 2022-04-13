@@ -67,6 +67,7 @@ bool outputAllowed(bool debug)
   return !Lib::env.options || (Lib::env.options->outputMode()!=Shell::Options::Output::SPIDER
                                && Lib::env.options->outputMode()!=Shell::Options::Output::SMTCOMP 
                                && Lib::env.options->outputMode()!=Shell::Options::Output::UCORE
+                               && Lib::env.options->outputMode()!=Shell::Options::Output::API
                               );
 }
 
@@ -383,6 +384,10 @@ void UIHelper::outputResult(ostream& out)
 
   switch (env.statistics->terminationReason) {
   case Statistics::REFUTATION:
+    if(env.options->outputMode() == Options::Output::API){
+      // run silently 
+      return;
+    }
     if(env.options->outputMode() == Options::Output::SMTCOMP){ 
       out << "unsat" << endl;
       return;

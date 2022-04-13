@@ -345,6 +345,8 @@ set(VAMPIRE_KERNEL_SOURCES
     Inferences/CasesSimp.hpp
     Inferences/Cases.cpp
     Inferences/Cases.hpp
+    Inferences/ChainUnrolling.cpp
+    Inferences/ChainUnrolling.hpp    
     Shell/LambdaElimination.cpp
     Shell/LambdaElimination.hpp
     )

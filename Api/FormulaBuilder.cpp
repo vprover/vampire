@@ -166,11 +166,14 @@ Var FormulaBuilder::var(const string& varName, Sort varSort)
   return _aux->getVar(vVarName, varSort);
 }
 
-Symbol FormulaBuilder::symbol(const string& name, unsigned arity, Sort rangeSort, std::vector<Sort>& domainSorts, bool builtIn)
+Symbol FormulaBuilder::symbol(const string& name, unsigned arity, Sort rangeSort, 
+  std::vector<Sort>& domainSorts, bool mallocSym, bool builtIn)
 {
   CALL("FormulaBuilder::symbol");
-
+   
   bool pred = (rangeSort == FormulaBuilder::boolSort());
+
+  ASS(!(mallocSym && pred));
 
   vstring vname = StringUtils::copy2vstr(name);
 
@@ -196,6 +199,9 @@ Symbol FormulaBuilder::symbol(const string& name, unsigned arity, Sort rangeSort
 	  "of the same name and arity. (This must not happen even across different instances of the FormulaBuilder class.)");
     }
   }
+  if(mallocSym){
+    sym->markMalloc();
+  }  
   if(builtIn) {
     sym->markProtected();
   }

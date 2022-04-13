@@ -107,6 +107,7 @@ Statistics::Statistics()
     proxyEliminations(0),
     leibnizElims(0),
     booleanSimps(0),
+    chainUnrolls(0),
     duplicateLiterals(0),
     trivialInequalities(0),
     forwardSubsumptionResolution(0),
@@ -318,6 +319,7 @@ void Statistics::print(ostream& out)
       +( evaluationCnt - evaluationIncomp - evaluationGreater)
       +innerRewrites
       +booleanSimps
+      +chainUnrolls
       );
   COND_OUT("Duplicate literals", duplicateLiterals);
   COND_OUT("Trivial inequalities", trivialInequalities);
@@ -344,6 +346,7 @@ void Statistics::print(ostream& out)
   COND_OUT("Evaluation results incomparable to premise", evaluationIncomp);
   COND_OUT("Logicial proxy rewrites", proxyEliminations);
   COND_OUT("Boolean simplifications", booleanSimps)
+  COND_OUT("Chain unrollings", chainUnrolls)  
   //COND_OUT("Interpreted simplifications", interpretedSimplifications);
   SEPARATOR;
 

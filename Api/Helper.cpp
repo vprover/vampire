@@ -322,6 +322,7 @@ unsigned FBHelperCore::getVar(vstring varName, Sort varSort)
     }
     else {
       if(varSort.isValid() && oldSort!=varSort) {
+        cout << "INCONSISTEN SORTS " << varName << endl;
 	throw FormulaBuilderException("Existing variable with different sort requested");
       }
     }

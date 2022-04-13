@@ -10,6 +10,7 @@
 #include "ScheduleExecutor.hpp"
 
 #include "Lib/Array.hpp"
+#include "Lib/DHMap.hpp"
 #include "Lib/Environment.hpp"
 #include "Lib/List.hpp"
 #include "Lib/PriorityQueue.hpp"
@@ -18,6 +19,8 @@
 #include "Lib/Timer.hpp"
 #include "Shell/Options.hpp"
 #include "Shell/UIHelper.hpp"
+#include "Shell/Statistics.hpp"
+#include <sys/mman.h>
 
 #include <signal.h>
 
@@ -77,7 +80,9 @@ bool ScheduleExecutor::run(const Schedule &schedule)
   }
 
   typedef List<pid_t> Pool;
+  typedef DHMap<pid_t, int*> PidToPipeMap;
   Pool *pool = Pool::empty();
+  PidToPipeMap ptpm;
 
   bool success = false;
   int remainingTime;
@@ -93,7 +98,9 @@ bool ScheduleExecutor::run(const Schedule &schedule)
       if(!item.started())
       {
         // DBG("spawning schedule ", item.code())
-        process = spawn(item.code(), remainingTime);
+        int* fd = (int*)(malloc(2 * sizeof(int)));
+        process = spawn(item.code(), remainingTime, fd);
+        ALWAYS(ptpm.insert(process, fd));
       }
       else
       {
@@ -122,7 +129,18 @@ bool ScheduleExecutor::run(const Schedule &schedule)
     {
       pool = Pool::remove(process, pool);
       if(!code)
-      {
+      { 
+        int* fd = ptpm.get(process);
+
+        Shell::Statistics::TerminationReason r = 
+          Shell::Statistics::TerminationReason::UNKNOWN;
+        
+        // safe to read in a blocking fashion, as successful child 
+        // will have written to pipe
+        read(fd[READ],&r,sizeof(r));
+        close(fd[READ]);
+        // store in boss env for use via API
+        env.statistics->terminationReason = r;
         success = true;
         goto exit;
       }
@@ -150,6 +168,14 @@ bool ScheduleExecutor::run(const Schedule &schedule)
   }
 
 exit:
+  // delete all pipes
+  PidToPipeMap::DelIterator pit(ptpm);
+  while(pit.hasNext()){
+    pid_t pid;
+    int* fd;
+    pit.next(pid, fd);
+    free(fd);
+  }
   // kill all running processes first
   Pool::DestructiveIterator killIt(pool);
   while(killIt.hasNext())
@@ -174,9 +200,12 @@ unsigned ScheduleExecutor::getNumWorkers()
   return workers;
 }
 
-pid_t ScheduleExecutor::spawn(vstring code, int remainingTime)
+pid_t ScheduleExecutor::spawn(vstring code, int remainingTime, int* fd)
 {
   CALL("ScheduleExecutor::spawn");
+
+  auto res = pipe(fd);
+  ASS_NEQ(res, -1);
 
   pid_t pid = Multiprocessing::instance()->fork();
   ASS_NEQ(pid, -1);
@@ -184,12 +213,14 @@ pid_t ScheduleExecutor::spawn(vstring code, int remainingTime)
   // parent
   if(pid)
   {
+    close(fd[WRITE]);
     return pid;
   }
   // child
   else
   {
-    _executor->runSlice(code, remainingTime);
+    close(fd[READ]);
+    _executor->runSlice(code, remainingTime, fd);
     ASSERTION_VIOLATION; // should not return
   }
 }

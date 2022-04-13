@@ -173,7 +173,8 @@ private:
    * @warning Functions of the same name and arity must have always
    * also the same type, even across different instances of the
    * FormulaBuilder class. */
-  Symbol symbol(const std::string& funName, unsigned arity, Sort rangeSort, std::vector<Sort>& domainSorts, bool builtIn=false);
+  Symbol symbol(const std::string& funName, unsigned arity, Sort rangeSort, 
+    std::vector<Sort>& domainSorts, bool mallocSym = false, bool builtIn=false);
 
   /** Return constant symbol representing @c i */
   Symbol integerConstant(int i);
@@ -456,22 +457,22 @@ public:
   StringIterator(const StringIterator& it);
   StringIterator& operator=(const StringIterator& it);
 
-  /**
-   * Return true if there is a Lib::vstring to be returned by a call
-   * to the @b next() function
-   */
+  
+  // Return true if there is a Lib::vstring to be returned by a call
+  // to the @b next() function
+   
   //bool hasNext();
-  /**
+  
    * Return the next available Lib::vstring
    *
    * The @b hasNext() function must return true before a call
    * to this function.
-   */
+   
   //Lib::vstring next();
 
 //private:
 //  VirtualIterator<Lib::vstring>* _impl;
-//};
+//}; */
 
 class Sort
 {

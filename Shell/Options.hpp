@@ -442,7 +442,8 @@ public:
     SPIDER,
     SZS,
     VAMPIRE,
-    UCORE
+    UCORE,
+    API // absolute silence!
   };
 
   /** Possible values for sat_solver */
@@ -2028,6 +2029,8 @@ public:
   LTBLearning ltbLearning() const { return _ltbLearning.actualValue; }
   vstring ltbDirectory() const { return _ltbDirectory.actualValue; }
   Mode mode() const { return _mode.actualValue; }
+  void setMode(Mode newMode) { _mode.actualValue = newMode; }
+
   Schedule schedule() const { return _schedule.actualValue; }
   vstring scheduleName() const { return _schedule.getStringOfValue(_schedule.actualValue); }
   void setSchedule(Schedule newVal) {  _schedule.actualValue = newVal; }

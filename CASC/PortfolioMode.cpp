@@ -68,7 +68,7 @@ PortfolioMode::PortfolioMode() : _slowness(1.0), _syncSemaphore(2) {
  * The function that does all the job: reads the input files and runs
  * Vampires to solve problems.
  */
-bool PortfolioMode::perform(float slowness)
+bool PortfolioMode::perform(float slowness, Problem* prob, int* fd)
 {
   CALL("PortfolioMode::perform");
 
@@ -77,11 +77,21 @@ bool PortfolioMode::perform(float slowness)
 
   bool resValue;
   try {
-      resValue = pm.searchForProof();
+      resValue = pm.searchForProof(prob);
   } catch (Exception& exc) {
       cerr << "% Exception at proof search level" << endl;
       exc.cry(cerr);
       System::terminateImmediately(1); //we didn't find the proof, so we return nonzero status code
+  }
+
+  if(fd){
+    auto termReason = env.statistics->terminationReason;
+    write(fd[WRITE],&termReason,sizeof(termReason));    //write to pipe
+    close(fd[WRITE]);
+    // child of the API
+    // we don't want ocntrol to return, but to terminate
+    // and let the parent take over
+    System::terminateImmediately(1);
   }
 
   if (outputAllowed()) {
@@ -114,14 +124,13 @@ bool PortfolioMode::perform(float slowness)
   return resValue;
 }
 
-bool PortfolioMode::searchForProof()
+bool PortfolioMode::searchForProof(Problem* prob)
 {
   CALL("PortfolioMode::searchForProof");
 
   env.timer->makeChildrenIncluded();
   TimeCounter::reinitialize();
-
-  _prb = UIHelper::getInputProblem(*env.options);
+  _prb = prob ? prob : UIHelper::getInputProblem(*env.options);
 
   /* CAREFUL: Make sure that the order
    * 1) getProperty, 2) normalise, 3) TheoryFinder::search
@@ -373,7 +382,7 @@ PortfolioSliceExecutor::PortfolioSliceExecutor(PortfolioMode *mode)
   : _mode(mode)
 {}
 
-void PortfolioSliceExecutor::runSlice(vstring sliceCode,int remainingTime)
+void PortfolioSliceExecutor::runSlice(vstring sliceCode,int remainingTime, int* fd)
 {
   CALL("PortfolioSliceExecutor::runSlice");
 
@@ -388,7 +397,7 @@ void PortfolioSliceExecutor::runSlice(vstring sliceCode,int remainingTime)
   ASS_GE(sliceTime,0);
   try
   {
-    _mode->runSlice(sliceCode, sliceTime);
+    _mode->runSlice(sliceCode, sliceTime, fd);
   }
   catch(Exception &e)
   {
@@ -514,7 +523,7 @@ bool PortfolioMode::waitForChildAndCheckIfProofFound()
 /**
  * Run a slice given by its code using the specified time limit.
  */
-void PortfolioMode::runSlice(vstring sliceCode, unsigned timeLimitInDeciseconds)
+void PortfolioMode::runSlice(vstring sliceCode, unsigned timeLimitInDeciseconds, int* fd)
 {
   CALL("PortfolioMode::runSlice");
 
@@ -525,13 +534,13 @@ void PortfolioMode::runSlice(vstring sliceCode, unsigned timeLimitInDeciseconds)
   if (stl) {
     opt.setSimulatedTimeLimit(int(stl * _slowness));
   }
-  runSlice(opt);
+  runSlice(opt, fd);
 } // runSlice
 
 /**
  * Run a slice given by its options
  */
-void PortfolioMode::runSlice(Options& strategyOpt)
+void PortfolioMode::runSlice(Options& strategyOpt, int* fd)
 {
   CALL("PortfolioMode::runSlice(Option&)");
 
@@ -564,11 +573,9 @@ void PortfolioMode::runSlice(Options& strategyOpt)
       env.statistics->terminationReason == Statistics::SATISFIABLE) {
     resultValue=0;
 
-    /*
-     env.beginOutput();
-     lineOutput() << " found solution " << endl;
-     env.endOutput();
-    */
+    auto termReason = env.statistics->terminationReason;
+    write(fd[WRITE],&termReason,sizeof(termReason));    //write to pipe
+    close(fd[WRITE]);
   }
 
   System::ignoreSIGHUP(); // don't interrupt now, we need to finish printing the proof !

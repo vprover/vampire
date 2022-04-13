@@ -121,10 +121,7 @@ int Timer::s_initGuarantedMiliseconds;
   }
   env.endOutput();
 
-  //If running from API we don't want to terminate immediately.
-  if(!env.options->runningFromApi()){
-    System::terminateImmediately(1);
-  }
+  System::terminateImmediately(1);
 }
 
 std::atomic<unsigned> protectingTimeout{0};

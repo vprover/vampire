@@ -323,10 +323,11 @@ void Options::init()
     _lookup.insert(&_testId);
     _testId.setExperimental();
 
-    _outputMode = ChoiceOptionValue<Output>("output_mode","om",Output::SZS,{"smtcomp","spider","szs","vampire","ucore"});
+    _outputMode = ChoiceOptionValue<Output>("output_mode","om",Output::SZS,{"smtcomp","spider","szs","vampire","ucore","api"});
     _outputMode.description="Change how Vampire prints the final result. SZS uses TPTP's SZS ontology. smtcomp mode"
     " suppresses all output and just prints sat/unsat. vampire is the same as SZS just without the SZS."
-    " Spider prints out some profile information and extra error reports. ucore uses the smt-lib ucore output.";
+    " Spider prints out some profile information and extra error reports. ucore uses the smt-lib ucore output."
+    " API completely suppresses all output. Intended for use via the API.";
     _lookup.insert(&_outputMode);
     _outputMode.tag(OptionTag::OUTPUT);
 
@@ -2703,7 +2704,12 @@ bool Options::OptionValue<T>::checkConstraints(){
            case BadOption::HARD :
                USER_ERROR("\nBroken Constraint: "+con->msg(*this));
            case BadOption::SOFT :
-               cout << "WARNING Broken Constraint: "+con->msg(*this) << endl;
+                if (outputAllowed()) {
+                  env.beginOutput();
+                  addCommentSignForSZS(env.out());
+                  env.out() << "WARNING Broken Constraint: "+ con->msg(*this) << endl;
+                  env.endOutput();
+                }           
                return false;
            case BadOption::FORCED :
                if(con->force(this)){

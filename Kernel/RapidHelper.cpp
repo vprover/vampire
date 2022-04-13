@@ -690,6 +690,31 @@ bool RapidHelper::increasing(Literal* lit, TermList term) {
   return true;
 }
 
+int RapidHelper::isConcreteLengthChain(TermList term)
+{
+  CALL("RapidHelper::isConcreteLengthChain");
+
+  if(term.isVar() || 
+    !env.signature->getFunction(term.term()->functor())->chain()){
+    return -1;
+  }
+  Term* t = term.term();
+  TermList trm = *t->nthArgument(0);
+  TermList tp = *t->nthArgument(1);
+
+  if(trm.isVar() || tp.isVar()){
+    return -1;
+  }  
+
+  TermList length = *t->nthArgument(2);
+
+  IntegerConstantType it;
+  if(theory->tryInterpretConstant(length,it) && it.toInner() >= 0){ 
+    return it.toInner(); 
+  }
+  return -1;
+}
+
 TermList RapidHelper::getFinalCountFromSubLit(Literal* lit) {
   CALL("RapidHelper::getFinalCountFromSubLit");
   ASS(lit->arity() == 2);

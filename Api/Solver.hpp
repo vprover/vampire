@@ -53,6 +53,8 @@ class Result
 {
 public:
 
+  Result(): _termReason(UNKNOWN) {}
+
   bool satisfiable(){
     return _termReason == SATISFIABLE;
   }
@@ -72,7 +74,8 @@ private:
   enum TerminationReason {
     SATISFIABLE,
     REFUTATION,
-    RESOURCED_OUT
+    RESOURCED_OUT,
+    UNKNOWN
   };
 
   Result(TerminationReason tr): _termReason(tr) {}
@@ -125,6 +128,13 @@ public:
     TPTP = 1
   };
 
+  enum Schedule {
+    NONE = 0,
+    CASC = 1,
+    RAPID = 2,
+    RAPID_INDUCT = 3
+  };
+
 private:
   Solver(Logic l);
 
@@ -160,6 +170,15 @@ public:
    */
   void setLogic(Logic l);
 
+  /**
+   * By default, when running from the API, Vampire produces no 
+   * output. When set to verbose Vampire emits strategy and proof information
+   */
+  void setVerbose();
+
+  // TODO implement
+  void saveProofToFile(std::string fileName);
+ 
   /*
    * Resets the solver. All formulas are discarded
    * The signature is erased, all options are reset to their defaults
@@ -228,8 +247,23 @@ public:
    *  - If problem has not been preprocessed, preprocessing takes place
    *  - The set of formulas is NOT updated by this function a subsequent
    *    call to formulas() will return the originally asserted set.
+   *  - solve() will use default setting unless these have been changed via
+   *    the API
    */
   Result solve();
+
+  /** Attempt to derive a contradiction from the currently asserted set of
+   *  formulas using CASC portfolio.
+   *  Notes on usage:
+   *  - If problem has been preprocessed an error is raised
+   *  - The set of formulas is NOT updated by this function a subsequent
+   *    call to formulas() will return the originally asserted set.
+   *  - Setting set via teh API are ridden by those of CASC strategies
+   *  - Convenience function for solveWithSched(CASC)
+   */
+  Result solveWithCasc();
+
+  Result solveWithSched(Schedule sched);
 
   /** Check whether the currently asserted formulas entail f
    */
@@ -282,12 +316,14 @@ public:
   Symbol constantSym(const std::string& name, Sort s);
   /**
    * Create a function symbol with specified range and domain sorts. If @b builtIn is
-   * true, the symbol will not be eliminated during preprocessing.
+   * true, the symbol will not be eliminated during preprocessing. If @b mallocFun is true, 
+   * the symbol will be marked as a malloc symbol coming froma. rapid encoding
    *
    * @warning Symbols of the same name and arity must have
    * the same type.
    */
-  Symbol function(const std::string& funName, unsigned arity, Sort rangeSort, std::vector<Sort>& domainSorts, bool builtIn=false);
+  Symbol function(const std::string& funName, unsigned arity, Sort rangeSort, 
+    std::vector<Sort>& domainSorts, bool mallocSym=false, bool builtIn=false);
 
   /**
    * Create a predicate symbol using default sorts. If @b builtIn if true, the symbol will not be
@@ -581,10 +617,13 @@ public:
   void outputProblem(std::string fileName = "");
 
 private:
+  Result solveImpl(bool portfolioMode = false);
+
   FormulaBuilder fb;
   Problem prob;
   Logic logic;
   bool logicSet;
+  bool verbose;
   int timeLimit;
   bool preprocessed;
 };

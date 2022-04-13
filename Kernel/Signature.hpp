@@ -167,6 +167,8 @@ class Signature
 
     unsigned _malloc : 1;
 
+    unsigned _chain : 1;
+
     /** if arrow constructor */
     unsigned _arrow : 1;
     /** if app function symbol */
@@ -221,6 +223,8 @@ class Signature
     /** mark symbol as malloc function from Rapid encoding */
     void markMalloc() { _malloc=1; }
 
+    void markChain() { _chain=1; }
+
     /** return true iff symbol is marked as skip for the purpose of symbol elimination */
     bool skip() const { return _skip; }
     /** return true iff the symbol is marked as name predicate
@@ -273,6 +277,8 @@ class Signature
     inline bool constantProgramVar() const { return _constantProgramVar; }
 
     inline bool malloc() const { return _malloc; }
+
+    inline bool chain() const { return _chain; }
 
     /** Increase the usage count of this symbol **/
     inline void incUsageCnt(){ _usageCount++; }
