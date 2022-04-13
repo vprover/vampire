@@ -260,7 +260,6 @@ set(VAMPIRE_KERNEL_SOURCES
     Kernel/ClauseQueue.hpp
     Kernel/ColorHelper.hpp
     Kernel/Connective.hpp
-    Kernel/Curryfier.hpp
     Kernel/ELiteralSelector.hpp
     Kernel/EqHelper.hpp
     Kernel/FlatTerm.hpp

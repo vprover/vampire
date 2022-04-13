@@ -1119,7 +1119,6 @@ void InductionClauseIterator::performStructInductionOne(InductionContext& contex
         }
         FormulaList::push(hyp,args);
       }
-
       FormulaList::push(args ?
         new BinaryFormula(Connective::IMP,JunctionFormula::generalJunction(Connective::AND,args),right) : right, formulas);
   }
@@ -1319,6 +1318,7 @@ void InductionClauseIterator::performStructInductionThree(InductionContext& cont
   e->add(std::move(cls), std::move(subst));
   // resolveClauses(cls, context, subst);
 }
+
 // Note: only works for unit clauses.
 // TODO: encapsulate the 'done' map in a helper class to have it deallocate correctly.
 bool InductionClauseIterator::notDoneInt(Literal* lit, Term* t, bool increasing, Term* bound1, Term* optionalBound2, bool fromComparison)

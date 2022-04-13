@@ -750,7 +750,6 @@ int main(int argc, char* argv[])
       env.options->setProof(Options::Proof::TPTP);
       env.options->setOutputAxiomNames(true);
       //env.options->setTimeLimitInSeconds(300);
-      env.options->setMemoryLimit(128000);
 
       if (CASC::PortfolioMode::perform(env.options->slowness())) {
         vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
@@ -764,7 +763,6 @@ int main(int argc, char* argv[])
       env.options->setProof(Options::Proof::TPTP);
       env.options->setMulticore(0); // use all available cores
       env.options->setOutputAxiomNames(true);
-      env.options->setMemoryLimit(128000);
 
       unsigned int nthreads = std::thread::hardware_concurrency();
       float slowness = 1.00 + (0.04 * nthreads);
@@ -781,7 +779,6 @@ int main(int argc, char* argv[])
       env.options->setProof(Options::Proof::TPTP);
       env.options->setOutputAxiomNames(true);
       //env.options->setTimeLimitInSeconds(300);
-      env.options->setMemoryLimit(128000);
 
       if (CASC::PortfolioMode::perform(env.options->slowness())) {
         vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
@@ -798,7 +795,6 @@ int main(int argc, char* argv[])
       env.options->setProof(Options::Proof::OFF);
       env.options->setMulticore(0); // use all available cores
       env.options->setTimeLimitInSeconds(1800);
-      env.options->setMemoryLimit(128000);
       env.options->setStatistics(Options::Statistics::NONE);
 
       //TODO needed?

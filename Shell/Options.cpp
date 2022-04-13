@@ -82,14 +82,11 @@ void Options::init()
 #if VDEBUG
                                        1000
 #else
-                                       3000
+                                       128000
 #endif
                                        );
     _memoryLimit.description="Memory limit in MB";
     _lookup.insert(&_memoryLimit);
-#if !__APPLE__ && !__CYGWIN__
-    _memoryLimit.addHardConstraint(lessThanEq((unsigned)Lib::System::getSystemMemory()));
-#endif
 
 #ifdef __linux__
   _instructionLimit = UnsignedOptionValue("instruction_limit","i",0);
