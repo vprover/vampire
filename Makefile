@@ -166,7 +166,6 @@ VL_OBJ= Lib/Allocator.o\
         Lib/Environment.o\
         Lib/Event.o\
         Lib/Exception.o\
-        Lib/Hash.o\
         Lib/Int.o\
         Lib/IntNameTable.o\
         Lib/IntUnionFind.o\
