@@ -48,7 +48,7 @@ namespace Lib {
  *	  will be used when collision occurs. Otherwise it will not be
  *	  enumerated.
  */
-template <typename Val, class Hash1=Hash, class Hash2=Hash>
+template <typename Val, class Hash1, class Hash2>
 class DHMultiset
 {
 public:
