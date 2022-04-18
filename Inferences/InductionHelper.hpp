@@ -37,11 +37,9 @@ public:
   InductionHelper(LiteralIndex* comparisonIndex, TermIndex* inductionTermIndex)
       : _comparisonIndex(comparisonIndex), _inductionTermIndex(inductionTermIndex) {}
 
-  TermQueryResultIterator getLessEqual(Term* t);
   TermQueryResultIterator getLess(Term* t);
-  TermQueryResultIterator getGreaterEqual(Term* t);
   TermQueryResultIterator getGreater(Term* t);
-  
+
   TermQueryResultIterator getTQRsForInductionTerm(TermList inductionTerm);
 
   static bool isIntegerComparison(Clause* c);
@@ -58,7 +56,7 @@ public:
   static bool isStructInductionFunctor(unsigned f);
 
 private:
-  TermQueryResultIterator getComparisonMatch(bool polarity, TermList& left, TermList& right, TermList& var);
+  TermQueryResultIterator getComparisonMatch(bool polarity, bool termIsLeft, Term* t);
 
   // The following pointers can be null if splitting or integer induction is off.
   LiteralIndex* _comparisonIndex;  // not owned

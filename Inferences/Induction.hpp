@@ -92,7 +92,7 @@ private:
 };
 
 struct InductionContext {
-  InductionContext(Term* t)
+  explicit InductionContext(Term* t)
     : _indTerm(t) {}
   InductionContext(Term* t, Literal* l, Clause* cl)
     : InductionContext(t)
@@ -106,9 +106,9 @@ struct InductionContext {
     node->second.push(lit);
   }
 
-  Formula* getFormula(TermList r, bool opposite, Substitution* subst = nullptr);
+  Formula* getFormula(TermList r, bool opposite, Substitution* subst = nullptr) const;
   Formula* getFormulaWithSquashedSkolems(TermList r, bool opposite, unsigned& var,
-    VList** varList = nullptr, Substitution* subst = nullptr);
+    VList** varList = nullptr, Substitution* subst = nullptr) const;
 
   vstring toString() const {
     vstringstream str;
@@ -125,7 +125,7 @@ struct InductionContext {
   Term* _indTerm = nullptr;
   ClauseToLiteralMap _cls;
 private:
-  Formula* getFormula(TermReplacement& tr, bool opposite);
+  Formula* getFormula(TermReplacement& tr, bool opposite) const;
 };
 
 class ContextSubsetReplacement
@@ -167,7 +167,8 @@ public:
 #if VDEBUG
   void setTestIndices(const Stack<Index*>& indices) override {
     _comparisonIndex = static_cast<LiteralIndex*>(indices[0]);
-    _structInductionTermIndex = static_cast<TermIndex*>(indices[1]);
+    _inductionTermIndex = static_cast<TermIndex*>(indices[1]);
+    _structInductionTermIndex = static_cast<TermIndex*>(indices[2]);
   }
 #endif // VDEBUG
 
@@ -205,32 +206,17 @@ private:
   void processLiteral(Clause* premise, Literal* lit);
   void processIntegerComparison(Clause* premise, Literal* lit);
 
-  ClauseStack produceClauses(Formula* hypothesis, InferenceRule rule, InductionContext& context);
-  void resolveClauses(const ClauseStack& cls, InductionContext& context, Substitution& subst, RobSubstitution* rsubst = nullptr);
+  ClauseStack produceClauses(Formula* hypothesis, InferenceRule rule, const InductionContext& context);
+  void resolveClauses(InductionContext context, InductionFormulaIndex::Entry* e, const TermQueryResult* bound1, const TermQueryResult* bound2);
+  void resolveClauses(const ClauseStack& cls, const InductionContext& context, Substitution& subst, RobSubstitution* rsubst = nullptr);
 
-  // Calls generalizeAndPerformIntInduction(...) for those induction literals from inductionTQRsIt,
-  // which are non-redundant with respect to the indTerm, bounds, and increasingness.
-  // Note: indTerm is passed to avoid recomputation.
-  void performIntInductionOnEligibleLiterals(Term* origTerm, TermQueryResultIterator inductionTQRsIt, bool increasing, TermQueryResult bound1, DHMap<Term*, TermQueryResult>& bounds2);
-  // Calls generalizeAndPerformIntInduction(...) for those bounds from lowerBound, upperBound
-  // (and the default bound) which are non-redundant with respect to the origLit, origTerm,
-  // and increasingness.
-  // Note: indLits and indTerm are passed to avoid recomputation.
-  void performIntInductionForEligibleBounds(Clause* premise, Literal* origLit, Term* origTerm, List<Literal*>*& indLits, bool increasing, DHMap<Term*, TermQueryResult>& bounds1, DHMap<Term*, TermQueryResult>& bounds2);
-  // If indLits is empty, first fills it with either generalized origLit, or just by origLit itself
-  // (depending on whether -indgen is on).
-  // Then, performs int induction for each induction literal from indLits using bound1
-  // (and optionalBound2 if provided) as bounds.
-  // Note: indLits may be created in this method, but it needs to be destroyed outside of it.
-  void generalizeAndPerformIntInduction(Clause* premise, Literal* origLit, Term* origTerm, List<Literal*>*& indLits, bool increasing, TermQueryResult& bound1, TermQueryResult* optionalBound2);
+  void performIntInduction(const InductionContext& context, InductionFormulaIndex::Entry* e, bool increasing, const TermQueryResult& bound1, const TermQueryResult* optionalBound2);
 
-  void performIntInduction(InductionContext& context, InferenceRule rule, bool increasing, const TermQueryResult& bound1, TermQueryResult* optionalBound2);
+  void performStructInductionOne(const InductionContext& context, InductionFormulaIndex::Entry* e);
+  void performStructInductionTwo(const InductionContext& context, InductionFormulaIndex::Entry* e);
+  void performStructInductionThree(const InductionContext& context, InductionFormulaIndex::Entry* e);
 
-  void performStructInductionOne(InductionContext& context, InductionFormulaIndex::Entry* e);
-  void performStructInductionTwo(InductionContext& context, InductionFormulaIndex::Entry* e);
-  void performStructInductionThree(InductionContext& context, InductionFormulaIndex::Entry* e);
-
-  bool notDoneInt(Literal* lit, Term* t, bool increasing, Term* bound1, Term* optionalBound2, bool fromComparison);
+  bool notDoneInt(InductionContext context, Literal* bound1, Literal* bound2, InductionFormulaIndex::Entry*& e);
 
   Stack<Clause*> _clauses;
   InductionHelper _helper;

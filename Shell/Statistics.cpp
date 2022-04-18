@@ -404,7 +404,7 @@ void Statistics::print(ostream& out)
   COND_OUT("IntegerFiniteIntervalUpInductionInProof",intFinUpInductionInProof);
   COND_OUT("IntegerDefaultBoundUpInduction",intDBUpInduction);
   COND_OUT("IntegerDefaultBoundUpInductionInProof",intDBUpInductionInProof);
-  COND_OUT("IntegerInfiniteIntervalDownInduction",intInfInduction);
+  COND_OUT("IntegerInfiniteIntervalDownInduction",intInfDownInduction);
   COND_OUT("IntegerInfiniteIntervalDownInductionInProof",intInfDownInductionInProof);
   COND_OUT("IntegerFiniteIntervalDownInduction",intFinDownInduction);
   COND_OUT("IntegerFiniteIntervalDownInductionInProof",intFinDownInductionInProof);

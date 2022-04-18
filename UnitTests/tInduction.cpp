@@ -30,12 +30,16 @@ LiteralIndex* comparisonIndex() {
   return new UnitIntegerComparisonLiteralIndex(new LiteralSubstitutionTree());
 }
 
+TermIndex* intInductionIndex() {
+  return new InductionTermIndex(new TermSubstitutionTree());
+}
+
 TermIndex* structInductionIndex() {
   return new StructInductionTermIndex(new TermSubstitutionTree());
 }
 
 Stack<Index*> getIndices() {
-  return { comparisonIndex(), structInductionIndex() };
+  return { comparisonIndex(), intInductionIndex(), structInductionIndex() };
 }
 
 inline Clause* fromInduction(Clause* cl) {
@@ -609,7 +613,11 @@ TEST_GENERATION_INDUCTION(test_20,
 // multi-clause use case 2 (main literal is from index)
 TEST_GENERATION_INDUCTION(test_21,
     Generation::TestCase()
-      .options({ { "induction_on_complex_terms", "on" }, { "induction", "struct" } })
+      .options({
+        { "induction_on_complex_terms", "on" },
+        { "induction", "struct" },
+        { "non_unit_induction", "on" },
+      })
       .context({
         fromInduction(clause({ ~p(g(g(sK3))) }))
       })
@@ -624,14 +632,13 @@ TEST_GENERATION_INDUCTION(test_21,
         clause({ ~p(g(b)), p(g(y)) }),
         clause({ ~p(g(b)), ~p(g(r(y))) }),
 
-        // TODO: this should also be generated but is not currently
-        // // sK3 multi-clause
-        // clause({ ~p(b), p(z), p(g(z)) }),
-        // clause({ ~p(b), ~p(r(z)) }),
-        // clause({ ~p(b), ~p(g(r(z))) }),
-        // clause({ ~p(g(b)), p(z), p(g(z)) }),
-        // clause({ ~p(g(b)), ~p(r(z)) }),
-        // clause({ ~p(g(b)), ~p(g(r(z))) }),
+        // sK3 multi-clause
+        clause({ ~p(b), ~p(g(r(z))) }),
+        clause({ ~p(b), ~p(r(z)) }),
+        clause({ ~p(g(b)), ~p(g(r(z))) }),
+        clause({ ~p(g(b)), ~p(r(z)) }),
+        clause({ ~p(b), p(z), p(g(z)) }),
+        clause({ ~p(g(b)), p(z), p(g(z)) }),
       })
     )
 
@@ -727,5 +734,98 @@ TEST_GENERATION_INDUCTION(test_24,
         clause({ ~p(f(b,b)), p(f(x5,x5)), x5 != sK2 }),
         clause({ ~p(f(b,b)), ~p(f(r(x5),r(x5))) }),
         clause({ ~p(f(b,b)), r(x5) == sK2 }),
+      })
+    )
+
+TEST_GENERATION_INDUCTION(test_25,
+    Generation::TestCase()
+      .options({ { "induction", "int" } })
+      .context({
+        clause({ ~(sK6 < num(1)) }),
+        clause({ ~(sK6 < num(2)) })
+      })
+      .indices(getIndices())
+      .input( clause({ ~pi(sK6) }) )
+      .expected({
+        clause({ ~pi(1), ~(x < num(1)) }),
+        clause({ ~pi(1), pi(x) }),
+        clause({ ~pi(1), ~pi(x+1) }),
+
+        clause({ ~pi(2), ~(y < num(2)) }),
+        clause({ ~pi(2), pi(y) }),
+        clause({ ~pi(2), ~pi(y+1) }),
+      })
+    )
+
+TEST_GENERATION_INDUCTION(test_26,
+    Generation::TestCase()
+      .options({
+        { "induction", "int" },
+        { "int_induction_kind", "all" }
+      })
+      .context({
+        clause({ ~(num(1) < sK6) }),
+        clause({ ~pi(sK6) }),
+        clause({ ~pi(sK7) })
+      })
+      .indices(getIndices())
+      .input( clause({ ~(sK6 < sK7) }) )
+      .expected({
+        // upward on sK6 with bound sK7
+        clause({ ~pi(sK7), ~(y < sK7) }),
+        clause({ ~pi(sK7), pi(y) }),
+        clause({ ~pi(sK7), ~pi(y+1) }),
+
+        // TODO: this should be also generated
+        // // downward on sK6 with bound 1 and sK7
+        // clause({ ~pi(1), ~(1 < x3) }),
+        // clause({ ~pi(1), sK7 < x3 }),
+        // clause({ ~pi(1), pi(x3) }),
+        // clause({ ~pi(1), ~pi(x3+num(-1)) }),
+
+        // upward on sK6 with bound sK7 and 1
+        clause({ ~pi(sK7), z < 1 }),
+        clause({ ~pi(sK7), ~(z < sK7) }),
+        clause({ ~pi(sK7), pi(z) }),
+        clause({ ~pi(sK7), ~pi(z+1) }),
+
+        // downward on sK7 with bound sK6
+        clause({ ~pi(sK6), ~(sK6 < x) }),
+        clause({ ~pi(sK6), pi(x) }),
+        clause({ ~pi(sK6), ~pi(x+num(-1)) }),
+      })
+    )
+
+// symmetric case for test_26 with the other bound as given clause
+TEST_GENERATION_INDUCTION(test_27,
+    Generation::TestCase()
+      .options({
+        { "induction", "int" },
+        { "int_induction_kind", "all" }
+      })
+      .context({
+        clause({ ~(sK6 < sK7) }),
+        clause({ ~pi(sK6) }),
+      })
+      .indices(getIndices())
+      .input( clause({ ~(num(1) < sK6) }) )
+      .expected({
+        // downward on sK6 with bound 1
+        clause({ ~pi(1), ~(1 < x) }),
+        clause({ ~pi(1), pi(x) }),
+        clause({ ~pi(1), ~pi(x+num(-1)) }),
+
+        // downward on sK6 with bound 1 and sK7
+        clause({ ~pi(1), ~(1 < y) }),
+        clause({ ~pi(1), sK7 < y }),
+        clause({ ~pi(1), pi(y) }),
+        clause({ ~pi(1), ~pi(y+num(-1)) }),
+
+        // TODO: this should be also generated
+        // // upward on sK6 with bound sK7 and 1
+        // clause({ ~pi(sK7), z < 1 }),
+        // clause({ ~pi(sK7), ~(z < sK7) }),
+        // clause({ ~pi(sK7), pi(z) }),
+        // clause({ ~pi(sK7), ~pi(z+1) }),
       })
     )
