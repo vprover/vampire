@@ -61,36 +61,6 @@ private:
   unsigned& _v;               // fresh variable counter supported by caller
 };
 
-class LiteralSubsetReplacement : TermTransformer {
-public:
-  LiteralSubsetReplacement(Literal* lit, Term* o, TermList r, const unsigned maxSubsetSize)
-      : _lit(lit), _o(o), _r(r), _maxSubsetSize(maxSubsetSize) {
-    _occurrences = _lit->countSubtermOccurrences(TermList(_o));
-    _maxIterations = pow(2, _occurrences);
-  }
-
-  // Returns transformed lit for the first 2^(_occurences) - 1 calls, then returns nullptr.
-  Literal* transformSubset();
-
-  List<Literal*>* getListOfTransformedLiterals();
-
-protected:
-  virtual TermList transformSubterm(TermList trm);
-
-private:
-  // _iteration serves as a map of occurrences to replace
-  unsigned _iteration = 0;
-  unsigned _maxIterations;
-  // Counts how many occurrences were already encountered in one transformation
-  unsigned _matchCount = 0;
-  unsigned _occurrences;
-  const unsigned _maxOccurrences = 20;
-  Literal* _lit;
-  Term* _o;
-  TermList _r;
-  const unsigned _maxSubsetSize;
-};
-
 struct InductionContext {
   explicit InductionContext(Term* t)
     : _indTerm(t) {}
@@ -131,7 +101,7 @@ private:
 class ContextSubsetReplacement
   : public TermTransformer, public IteratorCore<InductionContext> {
 public:
-  ContextSubsetReplacement(InductionContext context, bool noGen);
+  ContextSubsetReplacement(InductionContext context, bool noGen, const unsigned maxSubsetSize);
 
   bool hasNext() override {
     return _iteration+1 < _maxIterations;
@@ -147,8 +117,11 @@ private:
   unsigned _maxIterations;
   // Counts how many occurrences were already encountered in one transformation
   unsigned _matchCount = 0;
+  unsigned _occurrences;
+  const unsigned _maxOccurrences = 20;
   InductionContext _context;
   TermList _r;
+  const unsigned _maxSubsetSize;
 };
 
 

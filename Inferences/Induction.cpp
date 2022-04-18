@@ -14,41 +14,20 @@
 
 #include <utility>
 
-#include "Debug/RuntimeStatistics.hpp"
-
-#include "Indexing/Index.hpp"
 #include "Indexing/IndexManager.hpp"
-#include "Indexing/LiteralSubstitutionTree.hpp"
-#include "Indexing/ResultSubstitution.hpp"
 
-#include "Inferences/BinaryResolution.hpp"
-
-#include "Lib/DHSet.hpp"
 #include "Lib/DHMap.hpp"
-#include "Lib/Environment.hpp"
 #include "Lib/IntUnionFind.hpp"
 #include "Lib/Metaiterators.hpp"
 #include "Lib/PairUtils.hpp"
-#include "Lib/ScopedPtr.hpp"
 #include "Lib/Set.hpp"
 
-#include "Kernel/Clause.hpp"
-#include "Kernel/Connective.hpp"
-#include "Kernel/Formula.hpp"
 #include "Kernel/FormulaUnit.hpp"
-#include "Kernel/Inference.hpp"
-#include "Kernel/InterpretedLiteralEvaluator.hpp"
 #include "Kernel/RobSubstitution.hpp"
-#include "Kernel/Signature.hpp"
-#include "Kernel/OperatorType.hpp"
-#include "Kernel/Term.hpp"
 #include "Kernel/TermIterators.hpp"
-#include "Kernel/Unit.hpp"
 
 #include "Saturation/SaturationAlgorithm.hpp"
 
-#include "Shell/Options.hpp"
-#include "Shell/Statistics.hpp"
 #include "Shell/NewCNF.hpp"
 #include "Shell/NNF.hpp"
 #include "Shell/Rectify.hpp"
@@ -114,11 +93,6 @@ TermList SkolemSquashingTermReplacement::transformSubterm(TermList trm)
   return trm;
 }
 
-Literal* replaceTermInLiteral(Literal* lit, Term* o, TermList r) {
-  TermReplacement tr(o,r);
-  return tr.transform(lit);
-}
-
 Formula* InductionContext::getFormula(TermReplacement& tr, bool opposite) const
 {
   CALL("InductionContext::getFormula/1");
@@ -181,54 +155,8 @@ Formula* InductionContext::getFormulaWithSquashedSkolems(TermList r, bool opposi
   return res;
 }
 
-TermList LiteralSubsetReplacement::transformSubterm(TermList trm)
-{
-  CALL("LiteralSubsetReplacement::transformSubterm");
-
-  if(trm.isTerm() && trm.term() == _o){
-    // Replace either if there are too many occurrences to try all possibilities,
-    // or if the bit in _iteration corresponding to this match is set to 1.
-    if ((_occurrences > _maxOccurrences) || (1 & (_iteration >> _matchCount++))) {
-      return _r;
-    }
-  }
-  return trm;
-}
-
-Literal* LiteralSubsetReplacement::transformSubset() {
-  CALL("LiteralSubsetReplacement::transformSubset");
-  // Increment _iteration, since it either is 0, or was already used.
-  _iteration++;
-  // Note: __builtin_popcount() is a GCC built-in function.
-  unsigned setBits = __builtin_popcount(_iteration);
-  // Skip this iteration if not all bits are set, but more than maxSubset are set.
-  while ((_iteration <= _maxIterations) &&
-         ((_maxSubsetSize > 0) && (setBits < _occurrences) && (setBits > _maxSubsetSize))) {
-    _iteration++;
-    setBits = __builtin_popcount(_iteration);
-  }
-  if ((_iteration >= _maxIterations) ||
-      ((_occurrences > _maxOccurrences) && (_iteration > 1))) {
-    // All combinations were already returned.
-    return nullptr;
-  }
-  _matchCount = 0;
-  return transform(_lit);
-}
-
-List<Literal*>* LiteralSubsetReplacement::getListOfTransformedLiterals() {
-  CALL("LiteralSubsetReplacement::getListOfTransformedLiterals");
-
-  Literal* l;
-  List<Literal*>* res = List<Literal*>::empty();
-  while ((l = transformSubset())) {
-    res = List<Literal*>::cons(l, res);
-  }
-  return res;
-}
-
-ContextSubsetReplacement::ContextSubsetReplacement(InductionContext context, bool noGen)
-  : _context(context), _r(getPlaceholderForTerm(context._indTerm))
+ContextSubsetReplacement::ContextSubsetReplacement(InductionContext context, bool noGen, const unsigned maxSubsetSize)
+  : _context(context), _r(getPlaceholderForTerm(context._indTerm)), _maxSubsetSize(maxSubsetSize)
 {
   unsigned occurrences = 0;
   for (const auto& kv : _context._cls) {
@@ -246,8 +174,9 @@ TermList ContextSubsetReplacement::transformSubterm(TermList trm)
 {
   CALL("ContextSubsetReplacement::transformSubterm");
   if (trm.isTerm() && trm.term() == _context._indTerm){
-    // Replace if the bit in _iteration corresponding to this match is set to 1.
-    if (1 & (_iteration >> _matchCount++)) {
+    // Replace either if there are too many occurrences to try all possibilities,
+    // or if the bit in _iteration corresponding to this match is set to 1.
+    if ((_occurrences > _maxOccurrences) || (1 & (_iteration >> _matchCount++))) {
       return _r;
     }
   }
@@ -255,10 +184,25 @@ TermList ContextSubsetReplacement::transformSubterm(TermList trm)
 }
 
 InductionContext ContextSubsetReplacement::next() {
-  CALL("ContextSubsetReplacement::transformSubset");
+  CALL("ContextSubsetReplacement::next");
   ASS(hasNext());
   InductionContext context(_context._indTerm);
+  // Increment _iteration, since it either is 0, or was already used.
   _iteration++;
+  // TODO: decide what to do with this part (originally from LiteralSubsetReplacement)
+  // // Note: __builtin_popcount() is a GCC built-in function.
+  // unsigned setBits = __builtin_popcount(_iteration);
+  // // Skip this iteration if not all bits are set, but more than maxSubset are set.
+  // while ((_iteration <= _maxIterations) &&
+  //        ((_maxSubsetSize > 0) && (setBits < _occurrences) && (setBits > _maxSubsetSize))) {
+  //   _iteration++;
+  //   setBits = __builtin_popcount(_iteration);
+  // }
+  // if ((_iteration >= _maxIterations) ||
+  //     ((_occurrences > _maxOccurrences) && (_iteration > 1))) {
+  //   // All combinations were already returned.
+  //   return nullptr;
+  // }
   _matchCount = 0;
   for (const auto& kv : _context._cls) {
     for (const auto& lit : kv.second) {
@@ -479,7 +423,8 @@ void InductionClauseIterator::processLiteral(Clause* premise, Literal* lit)
         Term* t = citer1.next();
         auto leBound = iterTraits(_helper.getLess(t)).collect<Stack>();
         auto grBound = iterTraits(_helper.getGreater(t)).collect<Stack>();
-        auto indLitsIt = vi(new ContextSubsetReplacement(InductionContext(t, lit, premise), !env.options->inductionGen()));
+        auto indLitsIt = vi(new ContextSubsetReplacement(InductionContext(t, lit, premise),
+          !env.options->inductionGen(), env.options->maxInductionGenSubsetSize()));
         // TODO use this value
         InductionFormulaIndex::Entry* e = nullptr;
         while (indLitsIt.hasNext()) {
@@ -548,7 +493,8 @@ void InductionClauseIterator::processLiteral(Clause* premise, Literal* lit)
       .flatMap(InductionContextFn(premise, lit))
       // generalize all contexts if needed
       .flatMap([](const InductionContext& arg) {
-        return vi(new ContextSubsetReplacement(arg, !env.options->inductionGen()));
+        return vi(new ContextSubsetReplacement(arg, !env.options->inductionGen(),
+          env.options->maxInductionGenSubsetSize()));
       })
       // filter out the ones without the premise, or only one literal
       .filter([&premise](const InductionContext& arg) {
@@ -569,7 +515,8 @@ void InductionClauseIterator::processLiteral(Clause* premise, Literal* lit)
       })
       // generalize all contexts if needed
       .flatMap([](const InductionContext& arg) {
-        return vi(new ContextSubsetReplacement(arg, !env.options->inductionGen()));
+        return vi(new ContextSubsetReplacement(arg, !env.options->inductionGen(),
+          env.options->maxInductionGenSubsetSize()));
       });
     auto indCtxIt = iterTraits(getConcatenatedIterator(sideLitsIt2, indCtxSingle))
       // filter out the ones without an induction literal
@@ -637,7 +584,8 @@ void InductionClauseIterator::processIntegerComparison(Clause* premise, Literal*
         return InductionContext(indt, tqr.literal, tqr.clause);
       })
       .flatMap([](const InductionContext& arg) {
-        return vi(new ContextSubsetReplacement(arg, !env.options->inductionGen()));
+        return vi(new ContextSubsetReplacement(arg, !env.options->inductionGen(),
+          env.options->maxInductionGenSubsetSize()));
       });
     TermQueryResult b(bound, lit, premise);
     // loop over literals containing the current induction term
@@ -886,7 +834,8 @@ Clause* resolveClausesHelper(const InductionContext& context, const Stack<Clause
     for (unsigned i = 0; i < kv.first->length(); i++) {
       bool copyCurr = true;
       for (const auto& lit : kv.second) {
-        auto rlit = replaceTermInLiteral(lit, getPlaceholderForTerm(context._indTerm), TermList(context._indTerm));
+        TermReplacement tr(getPlaceholderForTerm(context._indTerm),TermList(context._indTerm));
+        auto rlit = tr.transform(lit);
         if (rlit == (*kv.first)[i]) {
           copyCurr = false;
           break;
