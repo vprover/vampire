@@ -19,6 +19,7 @@
 #include "Forwards.hpp"
 
 #include "Lib/DHMap.hpp"
+#include "Lib/Hash.hpp"
 #include "Lib/Stack.hpp"
 
 #include "Kernel/Clause.hpp"
@@ -32,6 +33,17 @@ namespace Indexing {
 
 using namespace Lib;
 using namespace Kernel;
+
+struct SecondaryStackHash {
+  static unsigned hash(const Stack<LiteralStack>& s) {
+    unsigned res = FNV32_OFFSET_BASIS;
+    typename Stack<LiteralStack>::ConstIterator it(s);
+    while (it.hasNext()) {
+      res += it.next().length();
+    }
+    return res;
+  }
+};
 
 class InductionFormulaIndex
 {
@@ -65,9 +77,9 @@ public:
 
   bool findOrInsert(const Inferences::InductionContext& context, Entry*& e);
 private:
-  DHMap<Stack<LiteralStack>,Entry> _map;
+  DHMap<Stack<LiteralStack>,Entry,Lib::StackHash<Lib::StlHash>,SecondaryStackHash> _map;
 };
 
-};
+}
 
 #endif /* __InductionFormulaIndex__ */

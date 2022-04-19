@@ -996,7 +996,7 @@ namespace Lib
 
 
 template<>
-struct FirstHashTypeInfo<Kernel::TermList> {
+struct SecondaryHash<Kernel::TermList> {
   typedef Kernel::TermListHash Type;
 };
 

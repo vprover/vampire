@@ -1572,7 +1572,7 @@ void Options::init()
     _lookup.insert(&_unitResultingResolution);
     _unitResultingResolution.tag(OptionTag::INFERENCES);
     _unitResultingResolution.reliesOn(InferencingSaturationAlgorithm());
-    _unitResultingResolution.addProblemConstraint(hasPredicates());
+    _unitResultingResolution.addProblemConstraint(notJustEquality());
     // If br has already been set off then this will be forced on, if br has not yet been set
     // then setting this to off will force br on
     _unitResultingResolution.setRandomChoices(And(isRandSat(),saNotInstGen(),Or(hasEquality(),hasCat(Property::HNE))),{"on","off"});
@@ -2073,7 +2073,7 @@ void Options::init()
     _literalComparisonMode.reliesOn(InferencingSaturationAlgorithm());
     _literalComparisonMode.tag(OptionTag::SATURATION);
     _literalComparisonMode.addProblemConstraint(hasNonUnits());
-    _literalComparisonMode.addProblemConstraint(hasPredicates());
+    _literalComparisonMode.addProblemConstraint(notJustEquality());
     // TODO: if sat then should not use reverse
     _literalComparisonMode.setRandomChoices({"predicate","reverse","standard"});
 

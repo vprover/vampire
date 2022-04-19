@@ -1821,15 +1821,15 @@ bool _hard;
       vstring msg(){ return " only useful with non-unit clauses"; }
     };
 
-    struct HasPredicates : OptionProblemConstraint{
-      CLASS_NAME(HasPredicates);
-      USE_ALLOCATOR(HasPredicates);
+    struct NotJustEquality : OptionProblemConstraint{
+      CLASS_NAME(NotJustEquality);
+      USE_ALLOCATOR(NotJustEquality);
 
       bool check(Property*p){
-        CALL("Options::HasPredicates::check");
-        return (p->category()==Property::PEQ || p->category()==Property::UEQ);
+        CALL("Options::NotJustEquality::check");
+        return (p->category()!=Property::PEQ || p->category()!=Property::UEQ);
       }
-      vstring msg(){ return " only useful with predicates"; }
+      vstring msg(){ return " not useful with just equality"; }
     };
 
     struct AtomConstraint : OptionProblemConstraint{
@@ -1892,7 +1892,7 @@ bool _hard;
     static OptionProblemConstraintUP hasHigherOrder(){ return OptionProblemConstraintUP(new HasHigherOrder); }
     static OptionProblemConstraintUP onlyFirstOrder(){ return OptionProblemConstraintUP(new OnlyFirstOrder); }
     static OptionProblemConstraintUP hasNonUnits(){ return OptionProblemConstraintUP(new HasNonUnits); }
-    static OptionProblemConstraintUP hasPredicates(){ return OptionProblemConstraintUP(new HasPredicates); }
+    static OptionProblemConstraintUP notJustEquality(){ return OptionProblemConstraintUP(new NotJustEquality); }
     static OptionProblemConstraintUP atomsMoreThan(int a){
       return OptionProblemConstraintUP(new AtomConstraint(a,true));
     }
