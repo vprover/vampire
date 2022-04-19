@@ -50,7 +50,7 @@ bool InductionFormulaIndex::findOrInsert(const InductionContext& context, Entry*
     return lexicographical_compare(lhs.begin(), lhs.end(), rhs.begin(), rhs.end());
   });
 
-  return _map.getValuePtr(st, e);
+  return _map.getValuePtr(std::move(st), e);
 }
 
 }

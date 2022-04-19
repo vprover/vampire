@@ -155,19 +155,46 @@ Formula* InductionContext::getFormulaWithSquashedSkolems(TermList r, bool opposi
   return res;
 }
 
-ContextSubsetReplacement::ContextSubsetReplacement(InductionContext context, bool noGen, const unsigned maxSubsetSize)
-  : _context(context), _r(getPlaceholderForTerm(context._indTerm)), _maxSubsetSize(maxSubsetSize)
+ContextReplacement::ContextReplacement(const InductionContext& context)
+    : TermReplacement(context._indTerm, TermList(getPlaceholderForTerm(context._indTerm))),
+      _context(context), _used(false) {}
+
+InductionContext ContextReplacement::next()
 {
-  unsigned occurrences = 0;
+  CALL("ContextReplacement::next");
+  ASS(hasNext());
+  InductionContext context(_context._indTerm);
   for (const auto& kv : _context._cls) {
     for (const auto& lit : kv.second) {
-      occurrences += lit->countSubtermOccurrences(TermList(_context._indTerm));
+      auto tlit = transform(lit);
+      if (tlit != lit) {
+        context.insert(kv.first, tlit);
+      }
     }
   }
-  _maxIterations = pow(2, occurrences);
-  if (noGen) {
-    _iteration = _maxIterations - 2;
+  _used = true;
+  return context;
+}
+
+ContextReplacement* ContextSubsetReplacement::instance(const InductionContext& context, const Options& opt)
+{
+  CALL("ContextSubsetReplacement::instance");
+  if (opt.inductionGen()) {
+    return new ContextSubsetReplacement(context, opt.maxInductionGenSubsetSize());
   }
+  return new ContextReplacement(context);
+}
+
+ContextSubsetReplacement::ContextSubsetReplacement(const InductionContext& context, const unsigned maxSubsetSize)
+  : ContextReplacement(context), _maxSubsetSize(maxSubsetSize), _ready(false)
+{
+  _occurrences = 0;
+  for (const auto& kv : _context._cls) {
+    for (const auto& lit : kv.second) {
+      _occurrences += lit->countSubtermOccurrences(TermList(_context._indTerm));
+    }
+  }
+  _maxIterations = pow(2, _occurrences);
 }
 
 TermList ContextSubsetReplacement::transformSubterm(TermList trm)
@@ -183,26 +210,35 @@ TermList ContextSubsetReplacement::transformSubterm(TermList trm)
   return trm;
 }
 
-InductionContext ContextSubsetReplacement::next() {
-  CALL("ContextSubsetReplacement::next");
-  ASS(hasNext());
-  InductionContext context(_context._indTerm);
+bool ContextSubsetReplacement::hasNext()
+{
+  CALL("ContextSubsetReplacement::hasNext");
+  if (_ready) {
+    return hasNextInner();
+  }
+  _ready = true;
   // Increment _iteration, since it either is 0, or was already used.
   _iteration++;
-  // TODO: decide what to do with this part (originally from LiteralSubsetReplacement)
-  // // Note: __builtin_popcount() is a GCC built-in function.
-  // unsigned setBits = __builtin_popcount(_iteration);
-  // // Skip this iteration if not all bits are set, but more than maxSubset are set.
-  // while ((_iteration <= _maxIterations) &&
-  //        ((_maxSubsetSize > 0) && (setBits < _occurrences) && (setBits > _maxSubsetSize))) {
-  //   _iteration++;
-  //   setBits = __builtin_popcount(_iteration);
-  // }
-  // if ((_iteration >= _maxIterations) ||
-  //     ((_occurrences > _maxOccurrences) && (_iteration > 1))) {
-  //   // All combinations were already returned.
-  //   return nullptr;
-  // }
+  // Note: __builtin_popcount() is a GCC built-in function.
+  unsigned setBits = __builtin_popcount(_iteration);
+  // Skip this iteration if not all bits are set, but more than maxSubset are set.
+  while (hasNextInner() &&
+         ((_maxSubsetSize > 0) && (setBits < _occurrences) && (setBits > _maxSubsetSize))) {
+    _iteration++;
+    setBits = __builtin_popcount(_iteration);
+  }
+  if (!hasNextInner() ||
+      ((_occurrences > _maxOccurrences) && (_iteration > 1))) {
+    // All combinations were already returned.
+    return false;
+  }
+  return true;
+}
+
+InductionContext ContextSubsetReplacement::next() {
+  CALL("ContextSubsetReplacement::next");
+  ASS(_ready);
+  InductionContext context(_context._indTerm);
   _matchCount = 0;
   for (const auto& kv : _context._cls) {
     for (const auto& lit : kv.second) {
@@ -212,6 +248,7 @@ InductionContext ContextSubsetReplacement::next() {
       }
     }
   }
+  _ready = false;
   return context;
 }
 
@@ -423,8 +460,7 @@ void InductionClauseIterator::processLiteral(Clause* premise, Literal* lit)
         Term* t = citer1.next();
         auto leBound = iterTraits(_helper.getLess(t)).collect<Stack>();
         auto grBound = iterTraits(_helper.getGreater(t)).collect<Stack>();
-        auto indLitsIt = vi(new ContextSubsetReplacement(InductionContext(t, lit, premise),
-          !env.options->inductionGen(), env.options->maxInductionGenSubsetSize()));
+        auto indLitsIt = vi(ContextSubsetReplacement::instance(InductionContext(t, lit, premise), _opt));
         // TODO use this value
         InductionFormulaIndex::Entry* e = nullptr;
         while (indLitsIt.hasNext()) {
@@ -492,9 +528,8 @@ void InductionClauseIterator::processLiteral(Clause* premise, Literal* lit)
     auto sideLitsIt2 = iterTraits(sideLitsIt)
       .flatMap(InductionContextFn(premise, lit))
       // generalize all contexts if needed
-      .flatMap([](const InductionContext& arg) {
-        return vi(new ContextSubsetReplacement(arg, !env.options->inductionGen(),
-          env.options->maxInductionGenSubsetSize()));
+      .flatMap([this](const InductionContext& arg) {
+        return vi(ContextSubsetReplacement::instance(arg, _opt));
       })
       // filter out the ones without the premise, or only one literal
       .filter([&premise](const InductionContext& arg) {
@@ -514,9 +549,8 @@ void InductionClauseIterator::processLiteral(Clause* premise, Literal* lit)
         return InductionContext(arg, lit, premise);
       })
       // generalize all contexts if needed
-      .flatMap([](const InductionContext& arg) {
-        return vi(new ContextSubsetReplacement(arg, !env.options->inductionGen(),
-          env.options->maxInductionGenSubsetSize()));
+      .flatMap([this](const InductionContext& arg) {
+        return vi(ContextSubsetReplacement::instance(arg, _opt));
       });
     auto indCtxIt = iterTraits(getConcatenatedIterator(sideLitsIt2, indCtxSingle))
       // filter out the ones without an induction literal
@@ -583,9 +617,8 @@ void InductionClauseIterator::processIntegerComparison(Clause* premise, Literal*
       .map([&indt](const TermQueryResult& tqr) {
         return InductionContext(indt, tqr.literal, tqr.clause);
       })
-      .flatMap([](const InductionContext& arg) {
-        return vi(new ContextSubsetReplacement(arg, !env.options->inductionGen(),
-          env.options->maxInductionGenSubsetSize()));
+      .flatMap([this](const InductionContext& arg) {
+        return vi(ContextSubsetReplacement::instance(arg, _opt));
       });
     TermQueryResult b(bound, lit, premise);
     // loop over literals containing the current induction term

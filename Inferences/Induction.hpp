@@ -98,20 +98,38 @@ private:
   Formula* getFormula(TermReplacement& tr, bool opposite) const;
 };
 
-class ContextSubsetReplacement
-  : public TermTransformer, public IteratorCore<InductionContext> {
+class ContextReplacement
+  : public TermReplacement, public IteratorCore<InductionContext> {
 public:
-  ContextSubsetReplacement(InductionContext context, bool noGen, const unsigned maxSubsetSize);
+  ContextReplacement(const InductionContext& context);
 
   bool hasNext() override {
-    return _iteration+1 < _maxIterations;
+    return !_used;
   }
+  InductionContext next() override;
+
+protected:
+  InductionContext _context;
+private:
+  bool _used;
+};
+
+class ContextSubsetReplacement
+  : public ContextReplacement {
+public:
+  static ContextReplacement* instance(const InductionContext& context, const Options& opt);
+  ContextSubsetReplacement(const InductionContext& context, const unsigned maxSubsetSize);
+
+  bool hasNext() override;
   InductionContext next() override;
 
 protected:
   TermList transformSubterm(TermList trm) override;
 
 private:
+  bool hasNextInner() const {
+    return _iteration <= _maxIterations;
+  }
   // _iteration serves as a map of occurrences to replace
   unsigned _iteration = 0;
   unsigned _maxIterations;
@@ -119,9 +137,8 @@ private:
   unsigned _matchCount = 0;
   unsigned _occurrences;
   const unsigned _maxOccurrences = 20;
-  InductionContext _context;
-  TermList _r;
   const unsigned _maxSubsetSize;
+  bool _ready;
 };
 
 
