@@ -75,6 +75,8 @@ public:
     Stack<pair<ClauseStack,Substitution>> _st;
   };
 
+  static Stack<LiteralStack> represent(const Inferences::InductionContext& context);
+
   bool findOrInsert(const Inferences::InductionContext& context, Entry*& e);
 private:
   DHMap<Stack<LiteralStack>,Entry,Lib::StackHash<Lib::StlHash>,SecondaryStackHash> _map;

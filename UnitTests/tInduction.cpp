@@ -47,6 +47,34 @@ inline Clause* fromInduction(Clause* cl) {
   return cl;
 }
 
+InductionContext inductionContext(TermSugar t, std::initializer_list<Clause*> cls) {
+  InductionContext res(t.toTerm().term());
+  for (const auto& cl : cls) {
+    for (unsigned i = 0; i < cl->length(); i++) {
+      res.insert(cl, (*cl)[i]);
+    }
+  }
+  return res;
+}
+
+namespace Inferences {
+std::ostream& operator<<(std::ostream& out, const InductionContext& context) {
+  out << context.toString();
+  return out;
+}
+}
+
+void assertContextReplacement(ContextReplacement& cr, Stack<InductionContext> contexts) {
+  Stack<InductionContext> res;
+  while (cr.hasNext()) {
+    res.push(cr.next());
+  }
+  ASS_EQ(res.size(), contexts.size());
+  ASS(TestUtils::permEq(res, contexts, [](const InductionContext& lhs, const InductionContext& rhs) {
+    return InductionFormulaIndex::represent(lhs) == InductionFormulaIndex::represent(rhs);
+  }));
+}
+
 class GenerationTesterInduction
   : public GenerationTester<Induction>
 {
@@ -151,6 +179,7 @@ private:
   DECL_TERM_ALGEBRA(s, {b, r})                                                             \
   __ALLOW_UNUSED(                                                                          \
     auto r0 = r.dtor(0);                                                                   \
+    TermSugar ph_s(TermList(getPlaceholderForTerm(sK1.toTerm().term())));                  \
   )                                                                                        \
   DECL_CONST(b1, u)                                                                        \
   DECL_CONST(b2, u)                                                                        \
@@ -829,3 +858,96 @@ TEST_GENERATION_INDUCTION(test_27,
         // clause({ ~pi(sK7), ~pi(z+1) }),
       })
     )
+
+// no generalization
+TEST_FUN(generalizations_01) {
+  __ALLOW_UNUSED(MY_SYNTAX_SUGAR);
+  ContextReplacement it(inductionContext(sK1, {
+    clause({ p(sK1) }),
+    clause({ sK1 == sK2 }),
+  }));
+
+  assertContextReplacement(it, {
+    inductionContext(sK1, {
+      clause({ p(ph_s) }),
+      clause({ ph_s == sK2 }),
+    }),
+  });
+}
+
+// test maximum subset size and generalizations
+TEST_FUN(generalizations_02) {
+  __ALLOW_UNUSED(MY_SYNTAX_SUGAR);
+  ContextSubsetReplacement it(inductionContext(sK1, {
+    clause({ p(f(sK1, sK1)) }),
+    clause({ sK1 == f(sK2,sK1) }),
+  }), 2);
+
+  assertContextReplacement(it, {
+    // 1 occurrence
+    inductionContext(sK1, {
+      clause({ p(f(ph_s,sK1)) }),
+    }),
+    inductionContext(sK1, {
+      clause({ p(f(sK1,ph_s)) }),
+    }),
+    inductionContext(sK1, {
+      clause({ ph_s == f(sK2,sK1) }),
+    }),
+    inductionContext(sK1, {
+      clause({ sK1 == f(sK2,ph_s) }),
+    }),
+    // 2 occurrences
+    inductionContext(sK1, {
+      clause({ p(f(ph_s,ph_s)) }),
+    }),
+    inductionContext(sK1, {
+      clause({ p(f(ph_s, sK1)) }),
+      clause({ ph_s == f(sK2,sK1) }),
+    }),
+    inductionContext(sK1, {
+      clause({ p(f(ph_s, sK1)) }),
+      clause({ sK1 == f(sK2,ph_s) }),
+    }),
+    inductionContext(sK1, {
+      clause({ p(f(sK1, ph_s)) }),
+      clause({ ph_s == f(sK2,sK1) }),
+    }),
+    inductionContext(sK1, {
+      clause({ p(f(sK1, ph_s)) }),
+      clause({ sK1 == f(sK2,ph_s) }),
+    }),
+    inductionContext(sK1, {
+      clause({ ph_s == f(sK2,ph_s) }),
+    }),
+    // 3 occurrences are missing, since it's more than
+    // the maximum subset size and not all occurrences
+
+    // all occurrences
+    inductionContext(sK1, {
+      clause({ p(f(ph_s, ph_s)) }),
+      clause({ ph_s == f(sK2,ph_s) }),
+    }),
+  });
+}
+
+// no generalization if there are too many occurrences (20 currently)
+TEST_FUN(generalizations_03) {
+  __ALLOW_UNUSED(MY_SYNTAX_SUGAR);
+  ContextSubsetReplacement it(inductionContext(sK1, {
+    clause({ p(f(f(sK1,sK2), f(sK1,f(f(sK1,sK1),g(sK2))))) }),
+    clause({ p1(f(f(f(sK1,sK1),sK2), f(sK1,sK1))) }),
+    clause({ sK2 == f(f(f(f(g(sK1),sK1),f(sK1,sK2)),f(f(f(sK1,sK1),sK2),f(sK1,sK1))),
+                      f(f(f(sK1,sK2),f(sK1,sK1)),f(f(sK1,g(sK2)),f(f(sK1,sK2),sK1)))) }),
+  }), 0);
+
+  // structure is preserved and all sK1 occurrences are replaced
+  assertContextReplacement(it, {
+    inductionContext(sK1, {
+      clause({ p(f(f(ph_s,sK2), f(ph_s,f(f(ph_s,ph_s),g(sK2))))) }),
+      clause({ p1(f(f(f(ph_s,ph_s),sK2), f(ph_s,ph_s))) }),
+      clause({ sK2 == f(f(f(f(g(ph_s),ph_s),f(ph_s,sK2)),f(f(f(ph_s,ph_s),sK2),f(ph_s,ph_s))),
+                        f(f(f(ph_s,sK2),f(ph_s,ph_s)),f(f(ph_s,g(sK2)),f(f(ph_s,sK2),ph_s)))) }),
+    }),
+  });
+}

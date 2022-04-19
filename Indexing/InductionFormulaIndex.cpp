@@ -22,17 +22,8 @@ namespace Indexing
 using namespace Lib;
 using namespace Inferences;
 
-/**
- * Index an induction context or give back the entry for it.
- * @param context contains the relevant parts uniquely defining an induction formula conclusion
- * @param e is assigned the entry containing all induction formulas with matching the context
- *          and can be extended with new clausified induction formulas.
- */
-bool InductionFormulaIndex::findOrInsert(const InductionContext& context, Entry*& e)
+Stack<LiteralStack> InductionFormulaIndex::represent(const InductionContext& context)
 {
-  CALL("InductionFormulaIndex::insert");
-  ASS(!context._cls.empty());
-
   // all literals are ground and they are unique for
   // a specific induction context, so we order them
   // and index the set of sets of literals
@@ -49,8 +40,21 @@ bool InductionFormulaIndex::findOrInsert(const InductionContext& context, Entry*
     }
     return lexicographical_compare(lhs.begin(), lhs.end(), rhs.begin(), rhs.end());
   });
+  return st;
+}
 
-  return _map.getValuePtr(std::move(st), e);
+/**
+ * Index an induction context or give back the entry for it.
+ * @param context contains the relevant parts uniquely defining an induction formula conclusion
+ * @param e is assigned the entry containing all induction formulas with matching the context
+ *          and can be extended with new clausified induction formulas.
+ */
+bool InductionFormulaIndex::findOrInsert(const InductionContext& context, Entry*& e)
+{
+  CALL("InductionFormulaIndex::insert");
+  ASS(!context._cls.empty());
+  auto r = represent(context);
+  return _map.getValuePtr(std::move(r), e);
 }
 
 }

@@ -42,8 +42,6 @@ namespace Inferences
 using namespace Kernel;
 using namespace Lib; 
 
-namespace {
-
 Term* getPlaceholderForTerm(Term* t)
 {
   CALL("getPlaceholderForTerm");
@@ -58,8 +56,6 @@ Term* getPlaceholderForTerm(Term* t)
   }
   return placeholders.get(srt);
 }
-
-};  // namespace
 
 TermList TermReplacement::transformSubterm(TermList trm)
 {
@@ -476,19 +472,12 @@ void InductionClauseIterator::processLiteral(Clause* premise, Literal* lit)
                 if (b2.clause == premise) {
                   continue;
                 }
-                if (notDoneInt(ctx, b1.literal, b2.literal, e)) {
-                  performIntInduction(ctx, e, true, b1, &b2);
-                  performIntInduction(ctx, e, false, b2, &b1);
-                }
-                resolveClauses(ctx, e, &b1, &b2);
+                performFinIntInduction(ctx, b1, b2);
               }
             }
             // process current lower bound by itself
             if (_helper.isInductionForInfiniteIntervalsOn()) {
-              if (notDoneInt(ctx, b1.literal, nullptr, e)) {
-                performIntInduction(ctx, e, true, b1, nullptr);
-              }
-              resolveClauses(ctx, e, &b1, nullptr);
+              performInfIntInduction(ctx, true, b1);
             }
           }
           // process upper bounds
@@ -497,10 +486,7 @@ void InductionClauseIterator::processLiteral(Clause* premise, Literal* lit)
               if (b2.clause == premise) {
                 continue;
               }
-              if (notDoneInt(ctx, nullptr, b2.literal, e)) {
-                performIntInduction(ctx, e, false, b2, nullptr);
-              }
-              resolveClauses(ctx, e, nullptr, &b2);
+              performInfIntInduction(ctx, false, b2);
             }
           }
           // add formula with default bound
@@ -631,6 +617,7 @@ void InductionClauseIterator::processIntegerComparison(Clause* premise, Literal*
           if (/* false &&  */b2.clause == premise) {
             continue;
           }
+          // TODO use performFinIntInduction
           if (notDoneInt(ctx, i ? lit : b2.literal, i ? b2.literal : lit, e)) {
             // TODO: this branching should be deleted, since both upward and downward can
             // be generated based on the given clause but the original code had it like this
@@ -645,10 +632,7 @@ void InductionClauseIterator::processIntegerComparison(Clause* premise, Literal*
       }
       // use given clause comparison as bound appropriately
       if (_helper.isInductionForInfiniteIntervalsOn()) {
-        if (notDoneInt(ctx, i ? lit : nullptr, i ? nullptr : lit, e)) {
-          performIntInduction(ctx, e, i, b, nullptr);
-        }
-        resolveClauses(ctx, e, i ? &b : nullptr, i ? nullptr : &b);
+        performInfIntInduction(ctx, i, b);
       }
     }
   }
@@ -919,6 +903,27 @@ void InductionClauseIterator::resolveClauses(const ClauseStack& cls, const Induc
       env.endOutput();
     }
   }
+}
+
+void InductionClauseIterator::performFinIntInduction(const InductionContext& context, const TermQueryResult& lb, const TermQueryResult& ub)
+{
+  CALL("InductionClauseIterator::performInfIntInduction");
+  InductionFormulaIndex::Entry* e = nullptr;
+  if (notDoneInt(context, lb.literal, ub.literal, e)) {
+    performIntInduction(context, e, true, lb, &ub);
+    performIntInduction(context, e, false, ub, &lb);
+  }
+  resolveClauses(context, e, &lb, &ub);
+}
+
+void InductionClauseIterator::performInfIntInduction(const InductionContext& context, bool increasing, const TermQueryResult& bound)
+{
+  CALL("InductionClauseIterator::performInfIntInduction");
+  InductionFormulaIndex::Entry* e = nullptr;
+  if (notDoneInt(context, increasing ? bound.literal : nullptr, increasing ? nullptr : bound.literal, e)) {
+    performIntInduction(context, e, increasing, bound, nullptr);
+  }
+  resolveClauses(context, e, increasing ? &bound : nullptr, increasing ? nullptr : &bound);
 }
 
 // Given a literal ~L[term], where 'term' is of the integer sort,

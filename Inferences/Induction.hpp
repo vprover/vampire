@@ -42,6 +42,8 @@ using namespace Saturation;
 
 using ClauseToLiteralMap = vunordered_map<Clause*, LiteralStack>;
 
+Term* getPlaceholderForTerm(Term* t);
+
 class TermReplacement : public TermTransformer {
 public:
   TermReplacement(Term* o, TermList r) : _o(o), _r(r) {} 
@@ -128,7 +130,7 @@ protected:
 
 private:
   bool hasNextInner() const {
-    return _iteration <= _maxIterations;
+    return _iteration < _maxIterations;
   }
   // _iteration serves as a map of occurrences to replace
   unsigned _iteration = 0;
@@ -200,6 +202,8 @@ private:
   void resolveClauses(InductionContext context, InductionFormulaIndex::Entry* e, const TermQueryResult* bound1, const TermQueryResult* bound2);
   void resolveClauses(const ClauseStack& cls, const InductionContext& context, Substitution& subst, RobSubstitution* rsubst = nullptr);
 
+  void performFinIntInduction(const InductionContext& context, const TermQueryResult& lb, const TermQueryResult& ub);
+  void performInfIntInduction(const InductionContext& context, bool increasing, const TermQueryResult& bound);
   void performIntInduction(const InductionContext& context, InductionFormulaIndex::Entry* e, bool increasing, const TermQueryResult& bound1, const TermQueryResult* optionalBound2);
 
   void performStructInductionOne(const InductionContext& context, InductionFormulaIndex::Entry* e);
