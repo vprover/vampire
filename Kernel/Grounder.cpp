@@ -169,10 +169,10 @@ struct GlobalSubsumptionGrounder::OrderNormalizingComparator
     Literal* la = _lits[a];
     Literal* lb = _lits[b];
     if(la==lb) { return false; }
-    if(la->getVariableOccurrences()!=lb->getVariableOccurrences()) {
+    if(la->numVarOccs()!=lb->numVarOccs()) {
       //first, we want literals with less variables to appear in the
       //beginning as there is better chance to get some sharing across clauses
-      return la->getVariableOccurrences()<lb->getVariableOccurrences();
+      return la->numVarOccs()<lb->numVarOccs();
     }
     if(la->weight()!=lb->weight()) {
       return la->weight()<lb->weight();

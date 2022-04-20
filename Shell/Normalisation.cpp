@@ -342,7 +342,7 @@ Comparison Normalisation::compare (Literal* l1, Literal* l2)
       return comp;
     }
     if (l1->shared() && l2->shared()) {
-      comp = compare((int)l1->getVariableOccurrences(),(int)l2->getVariableOccurrences());
+      comp = compare((int)l1->numVarOccs(),(int)l2->numVarOccs());
       if (comp != EQUAL) {
         return comp;
       }
@@ -541,7 +541,7 @@ Comparison Normalisation::compare(Term* t1, Term* t2)
       return comp;
     }
 
-    comp = compare((int)t1->getVariableOccurrences(),(int)t2->getVariableOccurrences());
+    comp = compare((int)t1->numVarOccs(),(int)t2->numVarOccs());
     if (comp != EQUAL) {
       return comp;
     }
