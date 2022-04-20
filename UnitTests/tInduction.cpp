@@ -98,11 +98,11 @@ private:
   Kernel::RobSubstitution _subst;
 };
 
-#define TEST_GENERATION_INDUCTION(name, ...)                                                                  \
+#define TEST_GENERATION_INDUCTION(name, expr)                                                                  \
   TEST_FUN(name) {                                                                                            \
     GenerationTesterInduction tester;                                                                         \
     __ALLOW_UNUSED(MY_SYNTAX_SUGAR)                                                                           \
-    auto test = __VA_ARGS__;                                                                                  \
+    auto test = expr;                                                                                  \
     test.run(tester);                                                                                         \
   }                                                                                                           \
 
@@ -628,7 +628,7 @@ TEST_GENERATION_INDUCTION(test_21,
       .options({
         { "induction", "int" },
         { "int_induction_strictness_eq",   "always" },
-        { "int_induction_strictness_comp", "none" },
+        { "int_induction_strictness_comp", "none" }
       })
       .context({ clause({ ~(sK6 < num(1)) }) })
       .indices({ comparisonIndex(), inductionTermIndex() })
@@ -715,7 +715,7 @@ TEST_GENERATION_INDUCTION(test_25,
         { "induction", "int" },
         { "int_induction_strictness_eq",   "toplevel_not_in_other" },
         { "int_induction_strictness_comp", "none" },
-        { "int_induction_strictness_term", "none" },
+        { "int_induction_strictness_term", "none" }
       })
       .context({ clause({ ~(sK6 < num(1)) }) })
       .indices({ comparisonIndex() })
