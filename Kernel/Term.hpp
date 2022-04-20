@@ -11,9 +11,9 @@
  * @file Term.hpp
  * Defines class Term (also serving as term arguments)
  *
- * The way terms are laid out in memory is "cute".
+ * The way terms are laid out in memory is partly historical and certainly non-trivial.
  * Here are a few salient points to help you navigate:
- * - a "Term" is a function (unsigned, see Kernel::Signature) applied to some number of arguments
+ * - a "Term" represents a function (unsigned, see Kernel::Signature) applied to some number of arguments
  * - usually Terms are "perfectly shared" (see Indexing::TermSharing)
  * - the arguments are "TermList"s, i.e. a variable or a Term*
  * - TermList is a tagged union that relies on Term* being aligned (!) to achieve pointer tagging
@@ -238,7 +238,8 @@ private:
       mutable unsigned distinctVars : TERM_DIST_VAR_BITS;
 #if ARCH_X64
       /** reserved for whatever */
-      // ^ not exactly: note that this cannot be removed, otherwise the bitfield layout might shift
+      // ^ not exactly: this should not be removed without care,
+      // otherwise the bitfield layout might shift, resulting in broken pointer tagging
       unsigned reserved : 32;
 #endif
     } _info;
