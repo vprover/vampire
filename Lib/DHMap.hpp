@@ -517,7 +517,7 @@ public:
   }
 
   /** Return one arbitrary key, that is present in the map */
-  Key getOneKey() const
+  Key getOneKey()
   {
     Iterator it(*this);
     ALWAYS(it.hasNext());

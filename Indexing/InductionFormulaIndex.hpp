@@ -68,7 +68,7 @@ public:
       }
       _st.push(make_pair(cls, subst));
     }
-    const Stack<pair<ClauseStack,Substitution>> get() const {
+    const Stack<pair<ClauseStack,Substitution>>& get() const {
       return _st;
     }
   private:

@@ -143,7 +143,6 @@ private:
   bool _ready;
 };
 
-
 class Induction
 : public GeneratingInferenceEngine
 {

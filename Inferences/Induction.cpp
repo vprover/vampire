@@ -182,9 +182,8 @@ ContextReplacement* ContextSubsetReplacement::instance(const InductionContext& c
 }
 
 ContextSubsetReplacement::ContextSubsetReplacement(const InductionContext& context, const unsigned maxSubsetSize)
-  : ContextReplacement(context), _maxSubsetSize(maxSubsetSize), _ready(false)
+  : ContextReplacement(context), _occurrences(0), _maxSubsetSize(maxSubsetSize), _ready(false)
 {
-  _occurrences = 0;
   for (const auto& kv : _context._cls) {
     for (const auto& lit : kv.second) {
       _occurrences += lit->countSubtermOccurrences(TermList(_context._indTerm));
@@ -258,15 +257,19 @@ void Induction::attach(SaturationAlgorithm* salg) {
   if (InductionHelper::isIntInductionTwoOn()) {
     _inductionTermIndex = static_cast<TermIndex*>(_salg->getIndexManager()->request(INDUCTION_TERM_INDEX));
   }
-  _structInductionTermIndex = static_cast<TermIndex*>(
-    _salg->getIndexManager()->request(STRUCT_INDUCTION_TERM_INDEX));
+  if (InductionHelper::isNonUnitStructInductionOn()) {
+    _structInductionTermIndex = static_cast<TermIndex*>(
+      _salg->getIndexManager()->request(STRUCT_INDUCTION_TERM_INDEX));
+  }
 }
 
 void Induction::detach() {
   CALL("Induction::detach");
 
-  _structInductionTermIndex = nullptr;
-  _salg->getIndexManager()->release(STRUCT_INDUCTION_TERM_INDEX);
+  if (InductionHelper::isNonUnitStructInductionOn()) {
+    _structInductionTermIndex = nullptr;
+    _salg->getIndexManager()->release(STRUCT_INDUCTION_TERM_INDEX);
+  }
   if (InductionHelper::isIntInductionOn()) {
     _comparisonIndex = nullptr;
     _salg->getIndexManager()->release(UNIT_INT_COMPARISON_INDEX);
@@ -395,31 +398,6 @@ private:
   Clause* _premise;
   Literal* _lit;
 };
-
-// helper function to properly add bounds to integer induction contexts,
-// where the bounds are not part of the inner formula for the induction
-void InductionClauseIterator::resolveClauses(InductionContext context, InductionFormulaIndex::Entry* e, const TermQueryResult* bound1, const TermQueryResult* bound2)
-{
-  static unsigned less = env.signature->getInterpretingSymbol(Theory::INT_LESS);
-  static TermList ph(getPlaceholderForTerm(context._indTerm));
-  // lower bound
-  if (bound1) {
-    auto lhs = bound1->literal->polarity() ? bound1->term : ph;
-    auto rhs = bound1->literal->polarity() ? ph : bound1->term;
-    context.insert(bound1->clause,
-      Literal::create2(less, bound1->literal->polarity(), lhs, rhs));
-  }
-  // upper bound
-  if (bound2) {
-    auto lhs = bound2->literal->polarity() ? ph : bound2->term;
-    auto rhs = bound2->literal->polarity() ? bound2->term : ph;
-    context.insert(bound2->clause,
-      Literal::create2(less, bound2->literal->polarity(), lhs, rhs));
-  }
-  for (auto& kv : e->get()) {
-    resolveClauses(kv.first, context, kv.second);
-  }
-}
 
 void InductionClauseIterator::processLiteral(Clause* premise, Literal* lit)
 {
@@ -703,16 +681,29 @@ ClauseStack InductionClauseIterator::produceClauses(Formula* hypothesis, Inferen
   return hyp_clauses;
 }
 
-bool contains(Literal* clit, Term* indTerm, const ClauseToLiteralMap& toResolve) {
-  CALL("contains");
-  for (const auto& kv : toResolve) {
-    for (const auto& lit : kv.second) {
-      if (lit == clit) {
-        return true;
-      }
-    }
+// helper function to properly add bounds to integer induction contexts,
+// where the bounds are not part of the inner formula for the induction
+void InductionClauseIterator::resolveClauses(InductionContext context, InductionFormulaIndex::Entry* e, const TermQueryResult* bound1, const TermQueryResult* bound2)
+{
+  static unsigned less = env.signature->getInterpretingSymbol(Theory::INT_LESS);
+  static TermList ph(getPlaceholderForTerm(context._indTerm));
+  // lower bound
+  if (bound1) {
+    auto lhs = bound1->literal->polarity() ? bound1->term : ph;
+    auto rhs = bound1->literal->polarity() ? ph : bound1->term;
+    context.insert(bound1->clause,
+      Literal::create2(less, bound1->literal->polarity(), lhs, rhs));
   }
-  return false;
+  // upper bound
+  if (bound2) {
+    auto lhs = bound2->literal->polarity() ? ph : bound2->term;
+    auto rhs = bound2->literal->polarity() ? bound2->term : ph;
+    context.insert(bound2->clause,
+      Literal::create2(less, bound2->literal->polarity(), lhs, rhs));
+  }
+  for (auto& kv : e->get()) {
+    resolveClauses(kv.first, context, kv.second);
+  }
 }
 
 /**
@@ -731,7 +722,7 @@ bool contains(Literal* clit, Term* indTerm, const ClauseToLiteralMap& toResolve)
 IntUnionFind findDistributedVariants(const Stack<Clause*>& clauses, Substitution& subst, const InductionContext& context)
 {
   CALL("findDistributedVariants");
-  auto toResolve = context._cls;
+  const auto& toResolve = context._cls;
   IntUnionFind uf(clauses.size());
   for (unsigned i = 0; i < clauses.size(); i++) {
     auto cl = clauses[i];
@@ -814,7 +805,7 @@ Clause* resolveClausesHelper(const InductionContext& context, const Stack<Clause
   auto cl = cls[eIt.next()];
   unsigned newLength = cl->length();
   auto premises = UnitList::singleton(cl);
-  auto toResolve = context._cls;
+  const auto& toResolve = context._cls;
   while (eIt.hasNext()) {
     auto other = cls[eIt.next()];
     ASS_EQ(other->length(),newLength);
@@ -838,7 +829,19 @@ Clause* resolveClausesHelper(const InductionContext& context, const Stack<Clause
   for (unsigned i = 0; i < cl->length(); i++) {
     Literal* curr=(*cl)[i];
     auto clit = SubstHelper::apply<Substitution>(Literal::complementaryLiteral(curr), subst);
-    if (!contains(clit, context._indTerm, toResolve)) {
+    bool contains = false;
+    for (const auto& kv : toResolve) {
+      for (const auto& lit : kv.second) {
+        if (lit == clit) {
+          contains = true;
+          break;
+        }
+      }
+      if (contains) {
+        break;
+      }
+    }
+    if (!contains) {
       ASS(next < newLength);
       (*res)[next] = rsubst ? rsubst->apply(curr, 0) : curr;
       next++;
@@ -1018,10 +1021,6 @@ void InductionClauseIterator::performIntInduction(const InductionContext& contex
 
   auto cls = produceClauses(hyp, rule, context);
   e->add(std::move(cls), std::move(subst));
-  // if (cls.isEmpty()) {
-  //   return;
-  // }
-  // resolveClauses(cls, context, subst, isDefaultBound ? &rsubst : nullptr);
 }
 
 /**
@@ -1083,7 +1082,6 @@ void InductionClauseIterator::performStructInductionOne(const InductionContext& 
 
   auto cls = produceClauses(hypothesis, InferenceRule::STRUCT_INDUCTION_AXIOM, context);
   e->add(std::move(cls), std::move(subst));
-  // resolveClauses(cls, context, subst);
 }
 
 /**
@@ -1160,7 +1158,6 @@ void InductionClauseIterator::performStructInductionTwo(const InductionContext& 
 
   auto cls = produceClauses(hypothesis, InferenceRule::STRUCT_INDUCTION_AXIOM, context);
   e->add(std::move(cls), std::move(subst));
-  // resolveClauses(cls, context, subst);
 }
 
 /*
@@ -1267,7 +1264,6 @@ void InductionClauseIterator::performStructInductionThree(const InductionContext
 
   auto cls = produceClauses(hypothesis, InferenceRule::STRUCT_INDUCTION_AXIOM, context);
   e->add(std::move(cls), std::move(subst));
-  // resolveClauses(cls, context, subst);
 }
 
 // Whether an induction formula is applicable (or has already been generated)

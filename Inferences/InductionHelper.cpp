@@ -150,6 +150,11 @@ bool InductionHelper::isStructInductionOn() {
   return structInd;
 }
 
+bool InductionHelper::isNonUnitStructInductionOn() {
+  CALL("InductionHelper::isNonUnitStructInductionOn");
+  return isStructInductionOn() && env.options->nonUnitInduction();
+}
+
 bool InductionHelper::isInductionClause(Clause* c) {
   CALL("InductionHelper::isInductionClause");
   static Options::InductionChoice kind = env.options->inductionChoice();
