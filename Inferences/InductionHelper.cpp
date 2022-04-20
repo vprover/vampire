@@ -271,10 +271,10 @@ bool InductionHelper::isIntInductionTermListInLiteral(TermList& tl, Literal* l) 
     break;
   }
 
-  return l->isEquality()
+  return (l->isEquality()
     ? termAndLiteralSatisfyStrictness(tl, l, env.options->integerInductionStrictnessEq())
-    : isIntegerComparisonLiteral(l)
-      && termAndLiteralSatisfyStrictness(tl, l, env.options->integerInductionStrictnessComp());
+    : !isIntegerComparisonLiteral(l) ||
+      termAndLiteralSatisfyStrictness(tl, l, env.options->integerInductionStrictnessComp()));
 }
 
 bool InductionHelper::isStructInductionFunctor(unsigned f) {
