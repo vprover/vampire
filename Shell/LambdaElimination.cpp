@@ -72,8 +72,8 @@ bool LambdaElimination::TermListComparator::lessThan(TermList t1, TermList t2)
   if(trm1->weight()!=trm2->weight()) {
     return trm1->weight()<trm2->weight();
   }
-  if(trm1->getVariableOccurrences()!=trm2->getVariableOccurrences()) {
-    return trm1->getVariableOccurrences()<trm2->getVariableOccurrences();
+  if(trm1->numVarOccs()!=trm2->numVarOccs()) {
+    return trm1->numVarOccs()<trm2->numVarOccs();
   }
 
   //To avoid non-determinism, now we'll compare the terms lexicographicaly.

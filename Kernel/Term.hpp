@@ -477,7 +477,7 @@ public:
   bool ground() const
   {
     ASS(_args[0]._info.shared);
-    return getVariableOccurrences() == 0;
+    return numVarOccs() == 0;
   } // ground
 
   /** True if the term is shared */
@@ -538,9 +538,9 @@ public:
   } // setWeight
 
   /** Set the number of variable _occurrences_ */
-  void setVariableOccurrences(unsigned v)
+  void setNumVarOccs(unsigned v)
   {
-    CALL("Term::setVariableOccurrences");
+    CALL("Term::setNumVarOccs");
 
     if(_isTwoVarEquality) {
       ASS_EQ(v,2);
@@ -550,12 +550,12 @@ public:
   } // setVars
 
   /** Return the number of variable _occurrences_ */
-  unsigned getVariableOccurrences() const
+  unsigned numVarOccs() const
   {
-    CALL("Term::getVariableOccurrences");
+    CALL("Term::numVarOccs");
     ASS(shared());
     if(_isTwoVarEquality) {
-      return _sort.isVar() ? 3 : 2 + _sort.term()->getVariableOccurrences();
+      return _sort.isVar() ? 3 : 2 + _sort.term()->numVarOccs();
     }
     return _vars;
   } // vars()

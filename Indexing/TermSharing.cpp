@@ -174,7 +174,7 @@ Term* TermSharing::insert(Term* t)
         
         Term* r = tt->term();
   
-        vars += r->getVariableOccurrences();
+        vars += r->numVarOccs();
         weight += r->weight();
         if (env.colorUsed) {
             color = static_cast<Color>(color | r->color());
@@ -186,7 +186,7 @@ Term* TermSharing::insert(Term* t)
     }
     t->markShared();
     t->setId(_totalTerms);
-    t->setVariableOccurrences(vars);
+    t->setNumVarOccs(vars);
     t->setWeight(weight);
     if (env.colorUsed) {
       Color fcolor = env.signature->getFunction(t->functor())->color();
@@ -246,13 +246,13 @@ AtomicSort* TermSharing::insert(AtomicSort* sort)
         
         Term* r = tt->term();
   
-        vars += r->getVariableOccurrences();
+        vars += r->numVarOccs();
         weight += r->weight();
       }
     }
     sort->markShared();
     sort->setId(_totalSorts);
-    sort->setVariableOccurrences(vars);
+    sort->setNumVarOccs(vars);
     sort->setWeight(weight);
       
     _totalSorts++;
@@ -314,7 +314,7 @@ Literal* TermSharing::insert(Literal* t)
       else {
         ASS_REP(tt->term()->shared(), tt->term()->toString());
         Term* r = tt->term();
-        vars += r->getVariableOccurrences();
+        vars += r->numVarOccs();
         weight += r->weight();
 
         if(_poly && t->isEquality()){
@@ -333,7 +333,7 @@ Literal* TermSharing::insert(Literal* t)
     }
     t->markShared();
     t->setId(_totalLiterals);
-    t->setVariableOccurrences(vars);
+    t->setNumVarOccs(vars);
     t->setWeight(weight);
     if (env.colorUsed) {
       Color fcolor = env.signature->getPredicate(t->functor())->color();
