@@ -584,7 +584,7 @@ TEST_GENERATION_INDUCTION(test_18,
     )
 
 // given the default strictness, induction is not applied on an interpreted constant
-// (any strictness with at least 1 in ones place works the same)
+// (any strictness with term strictness != none works the same)
 TEST_GENERATION_INDUCTION(test_19,
     Generation::TestCase()
       .options({ { "induction", "int" } })
@@ -597,10 +597,15 @@ TEST_GENERATION_INDUCTION(test_19,
     )
 
 // given a suitable strictness, induction is applied on an interpreted constant
-// (any strictness with 0 in ones place works)
+// (any strictness with term strictness = none works the same)
 TEST_GENERATION_INDUCTION(test_20,
     Generation::TestCase()
-      .options({ { "induction", "int" }, { "int_induction_strictness", "440" } })
+      .options({
+        { "induction", "int" },
+        { "int_induction_strictness_eq",   "always" },
+        { "int_induction_strictness_comp", "always" },
+        { "int_induction_strictness_term", "none" }
+      })
       .context({ clause({ ~(sK6 < num(1)) }) })
       .indices({ comparisonIndex() })
       .input( clause({ ~pi(1) }) )
@@ -617,10 +622,14 @@ TEST_GENERATION_INDUCTION(test_20,
 
 // given a suitable strictness, induction is applied on a term occuring only
 // as one of the top-level arguments of "<"
-// (any strictness ending with 0 in tens place and at most 1 in ones place works)
+// (any strictness with comparison strictness = none, term strictness in {none, interpreted_constant} works the same)
 TEST_GENERATION_INDUCTION(test_21,
     Generation::TestCase()
-      .options({ { "induction", "int" }, { "int_induction_strictness", "401" } })
+      .options({
+        { "induction", "int" },
+        { "int_induction_strictness_eq",   "always" },
+        { "int_induction_strictness_comp", "none" },
+      })
       .context({ clause({ ~(sK6 < num(1)) }) })
       .indices({ comparisonIndex(), inductionTermIndex() })
       .input( clause({ ~(bi < sK6) }) )
@@ -645,8 +654,7 @@ TEST_GENERATION_INDUCTION(test_21,
 // given the default strictness, induction is applied on a term occuring in only
 // one of the arguments of "<", but not to a term occuring only as a top-level
 // argument of "<" (the "sK6" in context)
-// (any strictness with 1 in the tens place and at most 1 in the in the ones place
-// works the same)
+// (any strictness with comparison strictness != none, term strictness in {none, interpreted_constant} works the same)
 TEST_GENERATION_INDUCTION(test_22,
     Generation::TestCase()
       .options({ { "induction", "int" } })
@@ -666,8 +674,7 @@ TEST_GENERATION_INDUCTION(test_22,
 
 // given the default suitable strictness, no induction is applied on a term occuring only
 // as one of the top-level arguments of "<"
-// (any strictness with at least 1 in the tens place and at most 1 in the ones place
-// works the same)
+// (any strictness with comparison strictness != none, term strictness in {none, interpreted_constant} works the same)
 TEST_GENERATION_INDUCTION(test_23,
     Generation::TestCase()
       .options({ { "induction", "int" } })
@@ -681,8 +688,7 @@ TEST_GENERATION_INDUCTION(test_23,
 
 // given the default strictness, induction is applied on a term occuring only
 // as one of the top-level arguments of "="
-// (any strictness with 0 in the hundreds place and at most 1 in the ones place
-// works the same)
+// (any strictness with equality strictness != none, term strictness in {none, interpreted_constant} works the same)
 TEST_GENERATION_INDUCTION(test_24,
     Generation::TestCase()
       .options({ { "induction", "int" } })
@@ -702,10 +708,15 @@ TEST_GENERATION_INDUCTION(test_24,
 
 // given a suitable strictness, no induction is applied on a term occuring only
 // as one of the top-level arguments of "="
-// (any strictness with at least 1 in the hundreds place works the same)
+// (any strictness with equality strictness != none works the same)
 TEST_GENERATION_INDUCTION(test_25,
     Generation::TestCase()
-      .options({ { "induction", "int" }, { "int_induction_strictness", "100" } })
+      .options({
+        { "induction", "int" },
+        { "int_induction_strictness_eq",   "toplevel_not_in_other" },
+        { "int_induction_strictness_comp", "none" },
+        { "int_induction_strictness_term", "none" },
+      })
       .context({ clause({ ~(sK6 < num(1)) }) })
       .indices({ comparisonIndex() })
       .input( clause({ bi != sK6 }) )
