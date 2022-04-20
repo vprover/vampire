@@ -416,7 +416,6 @@ void InductionClauseIterator::generalizeAndPerformIntInduction(Clause* premise, 
   static bool generalize = _opt.inductionGen();
   // If induction literals were not computed yet, compute them now.
   if (List<pair<Literal*, bool>>::isEmpty(indLits)) {
-    bool finite = ((optionalBound2 != nullptr) && (optionalBound2->literal != nullptr));
     if (generalize) {
       Kernel::LiteralSubsetReplacement subsetReplacement(origLit, origTerm, TermList(indTerm), _opt.maxInductionGenSubsetSize());
       indLits = subsetReplacement.getListOfTransformedLiterals();
@@ -424,6 +423,7 @@ void InductionClauseIterator::generalizeAndPerformIntInduction(Clause* premise, 
       indLits = new List<pair<Literal*, bool /*isGeneralized*/>>(make_pair(origLit, false));
     }
   }
+  bool finite = ((optionalBound2 != nullptr) && (optionalBound2->literal != nullptr));
   InferenceRule rule = 
       (bound1.literal == nullptr)
           ? (increasing ? InferenceRule::INT_DB_UP_INDUCTION_AXIOM : InferenceRule::INT_DB_DOWN_INDUCTION_AXIOM)
