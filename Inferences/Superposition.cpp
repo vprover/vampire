@@ -39,6 +39,7 @@
 
 #include "Saturation/SaturationAlgorithm.hpp"
 
+#include "Shell/AnswerExtractor.hpp"
 #include "Shell/Options.hpp"
 #include "Shell/Statistics.hpp"
 
@@ -502,7 +503,10 @@ Clause* Superposition::performSuperposition(
     return 0;
   }
 
-  unsigned newLength = rwLength+eqLength-1+conLength + isTypeSub;
+  Literal* rwAnsLit = rwClause->getAnswerLiteral();
+  Literal* eqAnsLit = eqClause->getAnswerLiteral();
+  bool bothHaveAnsLit = (rwAnsLit != nullptr) && (eqAnsLit != nullptr);
+  unsigned newLength = rwLength+eqLength-1+conLength + isTypeSub - (bothHaveAnsLit ? 1 : 0);
 
   static bool afterCheck = getOptions().literalMaximalityAftercheck() && _salg->getLiteralSelector().isBGComplete();
 
@@ -553,7 +557,7 @@ Clause* Superposition::performSuperposition(
   unsigned weight=tgtLitS->weight();
   for(unsigned i=0;i<rwLength;i++) {
     Literal* curr=(*rwClause)[i];
-    if(curr!=rwLit) {
+    if(curr!=rwLit && (!bothHaveAnsLit || curr!=rwAnsLit)) {
       Literal* currAfter = subst->apply(curr, !eqIsResult);
 
       if (doSimS) {
@@ -594,7 +598,7 @@ Clause* Superposition::performSuperposition(
 
     for(unsigned i=0;i<eqLength;i++) {
       Literal* curr=(*eqClause)[i];
-      if(curr!=eqLit) {
+      if(curr!=eqLit && (!bothHaveAnsLit || curr!=eqAnsLit)) {
         Literal* currAfter = subst->apply(curr, eqIsResult);
 
         if(EqHelper::isEqTautology(currAfter)) {
@@ -654,6 +658,14 @@ Clause* Superposition::performSuperposition(
     TermList eqLHSsortS = subst->apply(eqLHSsort, eqIsResult);
     Literal* constraint = Literal::createEquality(false,eqLHSS,rwTermS,eqLHSsortS);
     (*res)[next] = constraint;
+  }
+
+  if (bothHaveAnsLit) {
+    ASS_REP2(next == newLength-1, rwClause->toString(), eqClause->toString());
+    Literal* newLitC = subst->apply(rwAnsLit, !eqIsResult);
+    Literal* newLitD = subst->apply(eqAnsLit, eqIsResult);
+    Literal* condLit = subst->apply(eqLit, eqIsResult);
+    (*res)[next] = AnswerLiteralManager::makeITEAnswerLiteral(condLit, newLitC, newLitD);
   }
 
   if(needsToFulfilWeightLimit && !passiveClauseContainer->fulfilsWeightLimit(weight, numPositiveLiteralsLowerBound, res->inference())) {

@@ -50,19 +50,19 @@ void LiteralMiniIndex::init(Literal* const * lits)
   bool hasAnsLit = false;
   unsigned ei = 0;
   for(unsigned i=0;i<_cnt;i++) {
-    // TODO(hzzv) new (if{}):
-    if (lits[i]->isAnswerLiteral()) {
-      hasAnsLit = true;
-      continue;
-    }
+    //// TODO(hzzv) new (if{}) for special terms:
+    //if (lits[i]->isAnswerLiteral()) {
+    //  hasAnsLit = true;
+    //  continue;
+    //}
     _entries[ei++].init(lits[i]);
   }
-  // TODO(hzzv) new:
-  _entries[hasAnsLit ? _cnt-1 : _cnt].initTerminal();
-  std::sort(_entries.begin(), _entries.end()-(hasAnsLit ? 2 : 1),literalHeaderComparator);
+  //// TODO(hzzv) new for special terms:
+  //_entries[hasAnsLit ? _cnt-1 : _cnt].initTerminal();
+  //std::sort(_entries.begin(), _entries.end()-(hasAnsLit ? 2 : 1),literalHeaderComparator);
   // TODO(hzzv) old:
-  //_entries[_cnt].initTerminal();
-  //std::sort(_entries.begin(), _entries.end()-1,literalHeaderComparator);
+  _entries[_cnt].initTerminal();
+  std::sort(_entries.begin(), _entries.end()-1,literalHeaderComparator);
 }
 
 }

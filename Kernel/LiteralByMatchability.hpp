@@ -55,7 +55,7 @@ class LiteralByMatchability
 
     bool operator<(LiteralByMatchability const& other) const
     {
-      // TODO new 2 lines:
+      // TODO(hzzv): new 2 lines, maybe not necessary anymore:
       if (m_ansLit) return true;
       else if (other.m_ansLit) return false;
       else return m_val < other.m_val || (m_val == other.m_val && m_lit->getId() < other.m_lit->getId());

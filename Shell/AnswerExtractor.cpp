@@ -61,7 +61,7 @@ void AnswerExtractor::tryOutputAnswer(Clause* refutation)
   while(ait.hasNext()) {
     TermList aLit = ait.next();
     // try evaluating aLit
-    if(aLit.isTerm() && !aLit.term()->isSpecial()){
+    if(aLit.isTerm()){ //TODO(hzzv) special terms ITE: && !aLit.term()->isSpecial()){
       InterpretedLiteralEvaluator eval;
       unsigned p = env.signature->addFreshPredicate(1,"p"); 
       TermList sort = SortHelper::getResultSort(aLit.term());
@@ -381,7 +381,9 @@ Unit* AnswerLiteralManager::tryAddingAnswerLiteral(Unit* unit)
   Formula* form = fu->formula();
 
   if(form->connective()!=NOT ||
-      (form->uarg()->connective()!=EXISTS && (form->uarg()->connective()!=FORALL || form->uarg()->qarg()->connective()!=EXISTS))) {
+      (form->uarg()->connective()!=EXISTS &&
+        (env.options->questionAnswering() == Options::QuestionAnsweringMode::ANSWER_LITERAL ||
+         form->uarg()->connective()!=FORALL || form->uarg()->qarg()->connective()!=EXISTS))) {
     return unit;
   }
 
@@ -448,15 +450,6 @@ bool AnswerLiteralManager::addAnswerLiterals(UnitList*& units)
   return someAdded;
 }
 
-bool AnswerLiteralManager::isAnswerLiteral(Literal* lit)
-{
-  CALL("AnswerLiteralManager::isAnswerLiteral");
-
-  unsigned pred = lit->functor();
-  Signature::Symbol* sym = env.signature->getPredicate(pred);
-  return sym->answerPredicate();
-}
-
 void AnswerLiteralManager::onNewClause(Clause* cl)
 {
   CALL("AnswerLiteralManager::onNewClause");
@@ -467,7 +460,7 @@ void AnswerLiteralManager::onNewClause(Clause* cl)
 
   unsigned clen = cl->length();
   for(unsigned i=0; i<clen; i++) {
-    if(!isAnswerLiteral((*cl)[i])) {
+    if(!(*cl)[i]->isAnswerLiteral()) {
       return;
     }
   }
@@ -527,6 +520,34 @@ Clause* AnswerLiteralManager::getRefutation(Clause* answer)
   return refutation;
 }
 
+Literal* AnswerLiteralManager::makeITEAnswerLiteral(Literal* condition, Literal* thenLit, Literal* elseLit) {
+  CALL("AnswerLiteralManager::makeITEAnswerLiteral");
+
+  ASS(Literal::headersMatch(thenLit, elseLit, /*complementary=*/false));
+
+  Signature::Symbol* predSym = env.signature->getPredicate(thenLit->functor());
+  Stack<TermList> litArgs;
+  Term* condTerm = Term::createFromLiteral(condition);
+  // TODO(hzzv): using special-term-ITEs:
+  //Literal* cond = qr.substitution->applyToQuery(queryLit);
+  for (unsigned i = 0; i < thenLit->arity(); ++i) {
+    TermList* ttl = thenLit->nthArgument(i);
+    TermList* etl = elseLit->nthArgument(i);
+    if (ttl == etl) litArgs.push(*ttl);
+    else {
+      // TODO(hzzv): using special-term-ITEs:
+      //litArgs.push(TermList(Term::createITE(new Kernel::AtomicFormula(cond), *dtl, *ctl, predSym->predType()->arg(i))));
+      //
+      //cout << "Making term from lit " << condLit->toString() << ": ";
+      //for (int i = 0; i < condLit->arity(); ++i) cout << condLit->nthArgument(i)->toString() << " ";
+      //cout << "; ";
+      //for (int i = 0; i < condLit->arity(); ++i) cout << condLit->args()[i].toString() << " ";
+      //cout << endl;
+      litArgs.push(TermList(Term::createRegularITE(condTerm, *ttl, *etl, predSym->predType()->arg(i))));
+    }
+  }
+  return Literal::create(thenLit->functor(), thenLit->arity(), thenLit->polarity(), /*commutative=*/false, litArgs.begin());
+}
 
 void AnswerLiteralManager::ConjectureSkolemReplacement::bindSkolemToVar(Term* t, unsigned v) {
   ASS(_skolemToVar.count(t) == 0);
@@ -534,6 +555,25 @@ void AnswerLiteralManager::ConjectureSkolemReplacement::bindSkolemToVar(Term* t,
 }
 
 TermList AnswerLiteralManager::ConjectureSkolemReplacement::transformTermList(TermList tl) {
+  // First replace free variables by 0
+  if (tl.isVar() || (tl.isTerm() && !tl.term()->ground())) {
+    TermList zero(theory->representConstant(IntegerConstantType(0)));
+    if (tl.isVar()) return zero;
+    else {
+      Substitution s;
+      vset<unsigned> done;
+      TermIterator vit = Term::getVariableIterator(tl);
+      while (vit.hasNext()) {
+        unsigned v = vit.next().var();
+        if (done.count(v) == 0) {
+          done.insert(v);
+          s.bind(v, zero);
+        }
+      }
+      tl = TermList(tl.term()->apply(s));
+    }
+  }
+  // Then replace skolems by variables
   return transform(tl);
   //TermList transformed = transformSubterm(tl);
   //if (transformed != tl) return transformed;

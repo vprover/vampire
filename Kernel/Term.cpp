@@ -1039,14 +1039,21 @@ Term* Term::createFromLiteral(Literal* l)
   vstring fnName = "cond_";
   if (l->isNegative()) fnName.append("not_");
   fnName.append(l->predicateName());
+  if (l->isEquality()) fnName.append(SortHelper::getEqualityArgumentSort(l).toString());
   bool added = false;
   unsigned fn = env.signature->addFunction(fnName, arity, added);
   if (added) {
     Signature::Symbol* sym = env.signature->getFunction(fn);
-    OperatorType* ot = env.signature->getPredicate(l->functor())->predType();
     Stack<TermList> argSorts;
-    for (unsigned i = 0; i < arity; ++i) {
-      argSorts.push(ot->arg(i));
+    if (l->isEquality()) {
+      TermList as = SortHelper::getEqualityArgumentSort(l);
+      argSorts.push(as);
+      argSorts.push(as);
+    } else {
+      OperatorType* ot = env.signature->getPredicate(l->functor())->predType();
+      for (unsigned i = 0; i < arity; ++i) {
+        argSorts.push(ot->arg(i));
+      }
     }
     sym->setType(OperatorType::getFunctionType(arity, argSorts.begin(), AtomicSort::defaultSort()));
   }

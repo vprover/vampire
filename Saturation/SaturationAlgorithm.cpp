@@ -550,7 +550,21 @@ void SaturationAlgorithm::onClauseReduction(Clause* cl, Clause** replacements, u
 
   Clause* replacement = numOfReplacements ? *replacements : 0;
 
-  if (env.options->showReductions()) {
+  // TODO(hzzv): remove this once I'm sure that answer literals are not disappearing
+  //bool ansLitRemoved = false;
+  //if (cl->hasAnswerLiteral()) {
+  //  ansLitRemoved = true;
+  //  Literal* al = cl->getAnswerLiteral();
+  //  for (unsigned i = 0; i < numOfReplacements; ++i) {
+  //    if (replacements[i] && replacements[i]->contains(al)) {
+  //      ansLitRemoved = false;
+  //      break;
+  //    }
+  //  }
+  //}
+
+  if (//ansLitRemoved ||
+      env.options->showReductions()) {
     env.beginOutput();
     env.out() << "[SA] " << (forward ? "forward" : "backward") << " reduce: " << cl->toString() << endl;
     for(unsigned i = 0; i < numOfReplacements; i++){
@@ -1722,7 +1736,8 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
   if (opt.showSymbolElimination()) {
     res->_symEl=new SymElOutput();
   }
-  if (opt.questionAnswering()==Options::QuestionAnsweringMode::ANSWER_LITERAL) {
+  if (opt.questionAnswering()==Options::QuestionAnsweringMode::ANSWER_LITERAL ||
+      opt.questionAnswering()==Options::QuestionAnsweringMode::SYNTHESIS) {
     res->_answerLiteralManager = AnswerLiteralManager::getInstance();
   }
   return res;

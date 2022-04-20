@@ -126,6 +126,19 @@ protected:
   void handleClause(Clause* c, bool adding);
 };
 
+class UnitClauseWithALLiteralIndex
+: public LiteralIndex
+{
+public:
+  CLASS_NAME(UnitClauseWithALLiteralIndex);
+  USE_ALLOCATOR(UnitClauseWithALLiteralIndex);
+
+  UnitClauseWithALLiteralIndex(LiteralIndexingStructure* is)
+  : LiteralIndex(is) {};
+protected:
+  void handleClause(Clause* c, bool adding);
+};
+
 class NonUnitClauseLiteralIndex
 : public LiteralIndex
 {
@@ -134,6 +147,21 @@ public:
   USE_ALLOCATOR(NonUnitClauseLiteralIndex);
 
   NonUnitClauseLiteralIndex(LiteralIndexingStructure* is, bool selectedOnly=false)
+  : LiteralIndex(is), _selectedOnly(selectedOnly) {};
+protected:
+  void handleClause(Clause* c, bool adding);
+private:
+  bool _selectedOnly;
+};
+
+class NonUnitClauseWithALLiteralIndex
+: public LiteralIndex
+{
+public:
+  CLASS_NAME(NonUnitClauseWithALLiteralIndex);
+  USE_ALLOCATOR(NonUnitClauseWithALLiteralIndex);
+
+  NonUnitClauseWithALLiteralIndex(LiteralIndexingStructure* is, bool selectedOnly=false)
   : LiteralIndex(is), _selectedOnly(selectedOnly) {};
 protected:
   void handleClause(Clause* c, bool adding);

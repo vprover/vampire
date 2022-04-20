@@ -111,8 +111,8 @@ public:
     unsigned blen=_cl->length();
 
     for(unsigned bi=0;bi<blen;bi++) {
-      // TODO(hzzv): new
-      if ((*_cl)[bi]->isAnswerLiteral()) continue;
+      // TODO(hzzv): new for special terms
+      //if ((*_cl)[bi]->isAnswerLiteral()) continue;
       LiteralMiniIndex::InstanceIterator instIt(*miniIndex, (*_cl)[bi], false);
       while(instIt.hasNext()) {
 	Literal* matched=instIt.next();

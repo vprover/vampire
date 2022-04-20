@@ -88,7 +88,8 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
   unsigned cLen=cl->length();
   for(unsigned li=0;li<cLen;li++) {
     Literal* lit=(*cl)[li];
-    if (lit->isAnswerLiteral()) continue;
+    // TODO(hzzv): new for special terms
+    //if (lit->isAnswerLiteral()) continue;
     typename std::conditional<!combinatorySupSupport,
       NonVariableNonTypeIterator,
       FirstOrderSubtermIt>::type it(lit);

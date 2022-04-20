@@ -976,7 +976,8 @@ public:
 
   bool isAnswerLiteral() const;
   virtual unsigned weight() const {
-    if (isAnswerLiteral()) return 0;
+    // TODO(hzzv): for answer literals with special terms:
+    // if (isAnswerLiteral()) return 0;
     return Term::weight();
   }
 

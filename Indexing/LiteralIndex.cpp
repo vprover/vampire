@@ -174,6 +174,18 @@ void UnitClauseLiteralIndex::handleClause(Clause* c, bool adding)
   }
 }
 
+void UnitClauseWithALLiteralIndex::handleClause(Clause* c, bool adding)
+{
+  CALL("UnitClauseWithALLiteralIndex::handleClause");
+
+  if(c->length()==1 || (c->hasAnswerLiteral() && c->length() == 2)) {
+    TimeCounter tc(TC_SIMPLIFYING_UNIT_LITERAL_INDEX_MAINTENANCE);
+
+    Literal* al = c->getAnswerLiteral();
+    handleLiteral((*c)[(al == (*c)[0]) ? 1 : 0], c, adding);
+  }
+}
+
 void NonUnitClauseLiteralIndex::handleClause(Clause* c, bool adding)
 {
   CALL("NonUnitClauseLiteralIndex::handleClause");
@@ -186,6 +198,21 @@ void NonUnitClauseLiteralIndex::handleClause(Clause* c, bool adding)
   unsigned activeLen = _selectedOnly ? c->numSelected() : clen;
   for(unsigned i=0; i<activeLen; i++) {
     handleLiteral((*c)[i], c, adding);
+  }
+}
+
+void NonUnitClauseWithALLiteralIndex::handleClause(Clause* c, bool adding)
+{
+  CALL("NonUnitClauseWithALLiteralIndex::handleClause");
+
+  unsigned clen=c->length();
+  if(clen<2 || (c->hasAnswerLiteral() && clen<3)) {
+    return;
+  }
+  TimeCounter tc(TC_NON_UNIT_LITERAL_INDEX_MAINTENANCE);
+  unsigned activeLen = _selectedOnly ? c->numSelected() : clen;
+  for(unsigned i=0; i<activeLen; i++) {
+    if (!(*c)[i]->isAnswerLiteral()) handleLiteral((*c)[i], c, adding);
   }
 }
 

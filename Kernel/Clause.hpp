@@ -357,6 +357,12 @@ public:
 
   unsigned numPositiveLiterals(); // number of positive literals in the clause
 
+  Literal* getAnswerLiteral();
+
+  bool hasAnswerLiteral() {
+    return getAnswerLiteral() != nullptr;
+  }
+
 protected:
   /** number of literals */
   unsigned _length : 20;
@@ -398,7 +404,9 @@ protected:
   static bool _auxInUse;
 #endif
 
-//#endif
+  Literal* _answerLiteral;
+  bool _answerLiteralChecked;
+
 
   /** Array of literals of this unit */
   Literal* _literals[1];

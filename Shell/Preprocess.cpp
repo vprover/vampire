@@ -196,7 +196,8 @@ void Preprocess::preprocess(Problem& prb)
     SineSelector(_options).perform(prb);
   }
 
-  if (_options.questionAnswering()==Options::QuestionAnsweringMode::ANSWER_LITERAL) {
+  if (_options.questionAnswering()==Options::QuestionAnsweringMode::ANSWER_LITERAL ||
+      _options.questionAnswering()==Options::QuestionAnsweringMode::SYNTHESIS) {
     env.statistics->phase=Statistics::UNKNOWN_PHASE;
     if (env.options->showPreprocessing())
       env.out() << "answer literal addition" << std::endl;

@@ -35,11 +35,12 @@
 
 #include "Saturation/SaturationAlgorithm.hpp"
 
+#include "Shell/AnswerExtractor.hpp"
 #include "Shell/Options.hpp"
 #include "Shell/Statistics.hpp"
+#include "Shell/UnificationWithAbstractionConfig.hpp"
 
 #include "BinaryResolution.hpp"
-#include "Shell/UnificationWithAbstractionConfig.hpp"
 
 namespace Inferences
 {
@@ -48,18 +49,6 @@ using namespace Lib;
 using namespace Kernel;
 using namespace Indexing;
 using namespace Saturation;
-
-namespace {
-
-Literal* getAnsLit(Clause* c, unsigned len) {
-  for(unsigned i=0;i<len;i++) {
-    Literal* l=(*c)[i];
-    if (l->isAnswerLiteral()) return l;
-  }
-  return nullptr;
-}
-
-}  // namespace
 
 void BinaryResolution::attach(SaturationAlgorithm* salg)
 {
@@ -192,9 +181,8 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
     }
   }
 
-  // TODO: optimize this
-  Literal* cAnsLit = getAnsLit(queryCl, clength);
-  Literal* dAnsLit = getAnsLit(qr.clause, dlength);
+  Literal* cAnsLit = queryCl->getAnswerLiteral();
+  Literal* dAnsLit = qr.clause->getAnswerLiteral();
   bool bothHaveAnsLit = (cAnsLit != nullptr) && (dAnsLit != nullptr);
 
   unsigned conlength = withConstraints ? constraints->size() : 0;
@@ -324,30 +312,12 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
   }
 
   if (bothHaveAnsLit) {
-    // TODO: which of these ASSerts are necessary?
-    ASS(Literal::headersMatch(cAnsLit, dAnsLit, /*complementary=*/false));
     ASS(next == newLength-1);
     Literal* newLitC = qr.substitution->applyToQuery(cAnsLit);
     Literal* newLitD = qr.substitution->applyToResult(dAnsLit);
-    Signature::Symbol* predSym = env.signature->getPredicate(cAnsLit->functor());
-    Stack<TermList> litArgs;
-    for (unsigned i=0; i<newLitC->arity(); ++i) {
-      TermList* ctl = newLitC->nthArgument(i);
-      TermList* dtl = newLitD->nthArgument(i);
-      if (ctl == dtl) litArgs.push(*ctl);
-      else {
-        bool cNeg = queryLit->isNegative();
-        Literal* condLit = cNeg ? qr.substitution->applyToResult(qr.literal) : qr.substitution->applyToQuery(queryLit);
-        //cout << "Making term from lit " << condLit->toString() << ": ";
-        //for (int i = 0; i < condLit->arity(); ++i) cout << condLit->nthArgument(i)->toString() << " ";
-        //cout << "; ";
-        //for (int i = 0; i < condLit->arity(); ++i) cout << condLit->args()[i].toString() << " ";
-        //cout << endl;
-        Term* condTerm = Term::createFromLiteral(condLit);
-        litArgs.push(TermList(Term::createRegularITE(condTerm, cNeg ? *ctl : *dtl, cNeg ? *dtl : *ctl, predSym->predType()->arg(i))));
-      }
-    }
-    (*res)[next] = Literal::create(newLitC->functor(), newLitC->arity(), newLitC->polarity(), false, litArgs.begin());
+    bool cNeg = queryLit->isNegative();
+    Literal* condLit = cNeg ? qr.substitution->applyToResult(qr.literal) : qr.substitution->applyToQuery(queryLit);
+    (*res)[next] = AnswerLiteralManager::makeITEAnswerLiteral(condLit, cNeg ? newLitC : newLitD, cNeg ? newLitD : newLitC);
   }
 
   if(withConstraints){

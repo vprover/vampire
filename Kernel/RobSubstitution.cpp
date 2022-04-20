@@ -646,6 +646,7 @@ Literal* RobSubstitution::apply(Literal* lit, int index) const
   CALL("RobSubstitution::apply(Literal*...)");
   static DArray<TermList> ts(32);
 
+  // TODO(hzzv): comment out the "shared" for special ITEs:
   if (lit->shared() && lit->ground()) {
     return lit;
   }

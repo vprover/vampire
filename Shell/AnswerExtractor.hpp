@@ -68,8 +68,6 @@ public:
   void addAnswerLiterals(Problem& prb);
   bool addAnswerLiterals(UnitList*& units);
 
-  bool isAnswerLiteral(Literal* lit);
-
   void onNewClause(Clause* cl);
 
   void bindSkolemToVar(Term* skolem, unsigned var);
@@ -84,6 +82,8 @@ public:
     }
     return fn;
   }
+
+  static Literal* makeITEAnswerLiteral(Literal* condition, Literal* thenLit, Literal* elseLit);
 
 private:
   class ConjectureSkolemReplacement : public TermTransformer {

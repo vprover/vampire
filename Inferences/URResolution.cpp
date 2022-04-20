@@ -33,6 +33,7 @@
 
 #include "Saturation/SaturationAlgorithm.hpp"
 
+#include "Shell/AnswerExtractor.hpp"
 #include "Shell/Options.hpp"
 #include "Shell/Statistics.hpp"
 
@@ -69,9 +70,9 @@ void URResolution::attach(SaturationAlgorithm* salg)
   GeneratingInferenceEngine::attach(salg);
 
   _unitIndex = static_cast<UnitClauseLiteralIndex*> (
-	  _salg->getIndexManager()->request(GENERATING_UNIT_CLAUSE_SUBST_TREE) );
+	  _salg->getIndexManager()->request(GENERATING_UNIT_CLAUSE_WITH_AL_SUBST_TREE) );
   _nonUnitIndex = static_cast<NonUnitClauseLiteralIndex*> (
-	  _salg->getIndexManager()->request(GENERATING_NON_UNIT_CLAUSE_SUBST_TREE) );
+	  _salg->getIndexManager()->request(GENERATING_NON_UNIT_CLAUSE_WITH_AL_SUBST_TREE) );
 
   Options::URResolution optSetting = _salg->getOptions().unitResultingResolution();
   ASS_NEQ(optSetting,  Options::URResolution::OFF);
@@ -83,9 +84,9 @@ void URResolution::detach()
   CALL("URResolution::detach");
 
   _unitIndex = 0;
-  _salg->getIndexManager()->release(GENERATING_UNIT_CLAUSE_SUBST_TREE);
+  _salg->getIndexManager()->release(GENERATING_UNIT_CLAUSE_WITH_AL_SUBST_TREE);
   _nonUnitIndex = 0;
-  _salg->getIndexManager()->release(GENERATING_NON_UNIT_CLAUSE_SUBST_TREE);
+  _salg->getIndexManager()->release(GENERATING_NON_UNIT_CLAUSE_WITH_AL_SUBST_TREE);
   GeneratingInferenceEngine::detach();
 }
 
@@ -95,26 +96,27 @@ struct URResolution::Item
   USE_ALLOCATOR(URResolution::Item); 
   
   Item(Clause* cl, bool selectedOnly, URResolution& parent, bool mustResolveAll)
-  : _mustResolveAll(mustResolveAll || (selectedOnly ? true : (cl->length() < 2)) ), _orig(cl), _color(cl->color()),
-    _parent(parent)
+  : _orig(cl), _color(cl->color()), _parent(parent)
   {
     CALL("URResolution::Item::Item");
 
     unsigned clen = cl->length();
-    _premises.init(clen, 0);
-    _lits.ensure(clen);
+    _ansLit = cl->getAnswerLiteral();
+    _mustResolveAll = mustResolveAll || (selectedOnly ? true : (clen < 2 + (_ansLit ? 1 : 0)));
+    unsigned litslen = clen - (_ansLit ? 1 : 0);
+    _premises.init(litslen, 0);
+    _lits.ensure(litslen);
     unsigned nonGroundCnt = 0;
     for(unsigned i=0; i<clen; i++) {
-      _lits[i] = (*cl)[i];
-      if(!_lits[i]->ground()) {
-        nonGroundCnt++;
+      if ((*cl)[i] != _ansLit) {
+        _lits[i] = (*cl)[i];
+        if(!_lits[i]->ground()) nonGroundCnt++;
       }
     }
     _atMostOneNonGround = nonGroundCnt<=1;
 
-    _activeLength = selectedOnly ? cl->numSelected() : clen;
-//    ASS_GE(_activeLength, clen-1);
-    ASS_REP2(_activeLength>=clen-1, cl->toString(), cl->numSelected());
+    _activeLength = selectedOnly ? cl->numSelected() : litslen;
+    ASS_REP2(_activeLength>=litslen-1, cl->toString(), cl->numSelected());
   }
 
   /**
@@ -128,10 +130,24 @@ struct URResolution::Item
   {
     CALL("URResolution::Item::resolveLiteral");
 
+    Literal* rlit = _lits[idx];
     _lits[idx] = 0;
     _premises[idx] = premise;
     _color = static_cast<Color>(_color | premise->color());
     ASS_NEQ(_color, COLOR_INVALID)
+
+    if (_ansLit && !_ansLit->ground()) _ansLit = unif.substitution->apply(_ansLit, !useQuerySubstitution);
+    if (premise->hasAnswerLiteral()) {
+      Literal* premAnsLit = premise->getAnswerLiteral();
+      if (!premAnsLit->ground()) premAnsLit = unif.substitution->apply(premAnsLit, useQuerySubstitution);
+      if (!_ansLit) _ansLit = premAnsLit;
+      else if (_ansLit != premAnsLit) {
+        bool neg = rlit->isNegative(); 
+        Literal* resolved = unif.substitution->apply(rlit, !useQuerySubstitution);
+        if (neg) resolved = Literal::complementaryLiteral(resolved);
+        _ansLit = AnswerLiteralManager::makeITEAnswerLiteral(resolved, neg ? _ansLit : premAnsLit, neg ? premAnsLit : _ansLit);
+      }
+    }
 
     if(_atMostOneNonGround) {
       return;
@@ -176,12 +192,13 @@ struct URResolution::Item
     Inference inf(GeneratingInferenceMany(InferenceRule::UNIT_RESULTING_RESOLUTION, premLst));
     Clause* res;
 
+    LiteralIterator it = _ansLit ? pvi(getSingletonIterator(_ansLit)) : LiteralIterator::getEmpty();
     if(single) {
       single = Renaming::normalize(single);
-      res = Clause::fromIterator(getSingletonIterator(single), inf);
+      res = Clause::fromIterator(pvi(getConcatenatedIterator(getSingletonIterator(single), it)), inf);
     }
     else {
-      res = Clause::fromIterator(LiteralIterator::getEmpty(), inf);
+      res = Clause::fromIterator(it, inf);
     }
     return res;
   }
@@ -247,6 +264,8 @@ struct URResolution::Item
    * applied to themselves */
   DArray<Literal*> _lits;
 
+  Literal* _ansLit;
+
   unsigned _activeLength;
   URResolution& _parent;
 };
@@ -286,7 +305,7 @@ void URResolution::processLiteral(ItemList*& itms, unsigned idx)
       itm2->resolveLiteral(idx, unif, unif.clause, true);
       iit.insert(itm2);
 
-      if(itm->_atMostOneNonGround) {
+      if(itm->_atMostOneNonGround && !unif.clause->hasAnswerLiteral()) {
         //if there is only one non-ground literal left, there is no need to retrieve
         //all unifications
         break;
@@ -336,9 +355,12 @@ void URResolution::processAndGetClauses(Item* itm, unsigned startIdx, ClauseList
 void URResolution::doBackwardInferences(Clause* cl, ClauseList*& acc)
 {
   CALL("URResolution::doBackwardInferences");
-  ASS_EQ(cl->size(), 1);
+  ASS((cl->size() == 1) || (cl->hasAnswerLiteral() && cl->size() == 2));
 
   Literal* lit = (*cl)[0];
+  if (lit->isAnswerLiteral()) {
+    lit = (*cl)[1];
+  }
 
   SLQueryResultIterator unifs = _nonUnitIndex->getUnifications(lit, true, true);
   while(unifs.hasNext()) {
@@ -373,7 +395,7 @@ ClauseIterator URResolution::generateClauses(Clause* cl)
   ClauseList* res = 0;
   processAndGetClauses(new Item(cl, _selectedOnly, *this, _emptyClauseOnly), 0, res);
 
-  if(clen==1) {
+  if(clen==1 || (clen==2 && cl->hasAnswerLiteral())) {
     doBackwardInferences(cl, res);
   }
 
