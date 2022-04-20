@@ -220,29 +220,26 @@ static bool containsSkolem(Term* t) {
   return false;
 }
 
-static bool termAndLiteralSatisfyStrictness(const TermList& tl, Literal* l, unsigned strictness) {
-  if (((strictness == 1) &&
-       (((tl == *l->nthArgument(0)) && !l->nthArgument(1)->containsSubterm(tl)) ||
-        ((tl == *l->nthArgument(1)) && !l->nthArgument(0)->containsSubterm(tl)))) ||
-      ((strictness == 2) && (l->countSubtermOccurrences(tl) < 2)) || 
-      ((strictness == 3) &&
-       (!l->nthArgument(0)->containsSubterm(tl) || !l->nthArgument(1)->containsSubterm(tl))) || 
-      (strictness == 4)) {
+static bool termAndLiteralSatisfyStrictness(const TermList& tl, Literal* l, Options::IntegerInductionLiteralStrictness strictness) {
+  using LS = Options::IntegerInductionLiteralStrictness;
+  switch(strictness) {
+  case LS::NONE:
+    return true;
+  case LS::TOPLEVEL_NOT_IN_OTHER:
+    return
+      !(((tl == *l->nthArgument(0)) && !l->nthArgument(1)->containsSubterm(tl)) ||
+        ((tl == *l->nthArgument(1)) && !l->nthArgument(0)->containsSubterm(tl)));
+  case LS::ONLY_ONE_OCCURRENCE:
+    return !(l->countSubtermOccurrences(tl) < 2);
+  case LS::NOT_IN_BOTH:
+    return !(!l->nthArgument(0)->containsSubterm(tl) || !l->nthArgument(1)->containsSubterm(tl));
+  case LS::ALWAYS:
     return false;
   }
-  return true;
 }
 
 bool InductionHelper::isIntInductionTermListInLiteral(TermList& tl, Literal* l) {
   CALL("InductionHelper::isIntInductionTermInLiteral");
-
-  static const unsigned strictness = env.options->intInductionStrictness();
-  static const unsigned termst = strictness % 10;
-  static const unsigned compst = (strictness / 10) % 10;
-  static const unsigned eqst = (strictness / 100) % 10;
-  ASS(termst < 3);
-  ASS(compst < 5);
-  ASS(eqst < 5);
 
   // Term tl has to be an integer term.
   // Further, integer term tl from literal l cannot be used for induction if any
@@ -257,15 +254,27 @@ bool InductionHelper::isIntInductionTermListInLiteral(TermList& tl, Literal* l) 
   //   4: comparisons or equalities are not allowed
   ASS(tl.isTerm());
   unsigned f = tl.term()->functor();
-  if (env.signature->getFunction(f)->fnType()->result() != AtomicSort::intSort() ||
-      ((termst >= 1) && theory->isInterpretedConstant(f)) ||
-      ((termst == 2) && !containsSkolem(tl.term())))
-  {
+  if (env.signature->getFunction(f)->fnType()->result() != AtomicSort::intSort())
     return false;
+
+  using TS = Options::IntegerInductionTermStrictness;
+  switch(env.options->integerInductionStrictnessTerm()) {
+  case TS::NONE:
+    break;
+  case TS::INTERPRETED_CONSTANT:
+    if(theory->isInterpretedConstant(f))
+      return false;
+    break;
+  case TS::NO_SKOLEMS:
+    if(!containsSkolem(tl.term()))
+      return false;
+    break;
   }
-  const bool isEquality = l->isEquality();
-  return (!isEquality || termAndLiteralSatisfyStrictness(tl, l, eqst)) &&
-      (isEquality || !isIntegerComparisonLiteral(l) || termAndLiteralSatisfyStrictness(tl, l, compst));
+
+  return l->isEquality()
+    ? termAndLiteralSatisfyStrictness(tl, l, env.options->integerInductionStrictnessEq())
+    : isIntegerComparisonLiteral(l)
+      && termAndLiteralSatisfyStrictness(tl, l, env.options->integerInductionStrictnessComp());
 }
 
 bool InductionHelper::isStructInductionFunctor(unsigned f) {

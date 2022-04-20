@@ -246,7 +246,18 @@ public:
     FINITE,
     BOTH
   };
-
+  enum class IntegerInductionLiteralStrictness: unsigned int {
+    NONE,
+    TOPLEVEL_NOT_IN_OTHER,
+    ONLY_ONE_OCCURRENCE,
+    NOT_IN_BOTH,
+    ALWAYS
+  };
+  enum class IntegerInductionTermStrictness: unsigned int {
+    NONE,
+    INTERPRETED_CONSTANT,
+    NO_SKOLEMS
+  };
 
   enum class PredicateSineLevels : unsigned int {
     NO,   // no means 1) the reverse of "on", 2) use with caution, it is predicted to be the worse value
@@ -2245,7 +2256,9 @@ public:
   bool inductionOnComplexTerms() const {return _inductionOnComplexTerms.actualValue;}
   bool integerInductionDefaultBound() const { return _integerInductionDefaultBound.actualValue; }
   IntegerInductionInterval integerInductionInterval() const { return _integerInductionInterval.actualValue; }
-  unsigned intInductionStrictness() const {return _intInductionStrictness.actualValue; }
+  IntegerInductionLiteralStrictness integerInductionStrictnessEq() const {return _integerInductionStrictnessEq.actualValue; }
+  IntegerInductionLiteralStrictness integerInductionStrictnessComp() const {return _integerInductionStrictnessComp.actualValue; }
+  IntegerInductionTermStrictness integerInductionStrictnessTerm() const {return _integerInductionStrictnessTerm.actualValue; }
 
   float instGenBigRestartRatio() const { return _instGenBigRestartRatio.actualValue; }
   bool instGenPassiveReactivation() const { return _instGenPassiveReactivation.actualValue; }
@@ -2544,7 +2557,9 @@ private:
   BoolOptionValue _inductionOnComplexTerms;
   BoolOptionValue _integerInductionDefaultBound;
   ChoiceOptionValue<IntegerInductionInterval> _integerInductionInterval;
-  UnsignedOptionValue _intInductionStrictness;
+  ChoiceOptionValue<IntegerInductionLiteralStrictness> _integerInductionStrictnessEq;
+  ChoiceOptionValue<IntegerInductionLiteralStrictness> _integerInductionStrictnessComp;
+  ChoiceOptionValue<IntegerInductionTermStrictness> _integerInductionStrictnessTerm;
 
   StringOptionValue _latexOutput;
   BoolOptionValue _latexUseDefaultSymbols;

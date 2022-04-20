@@ -2971,19 +2971,19 @@ void Schedules::getInductionSchedule(const Shell::Property& property, Schedule& 
     quick.push("lrs+10_1_iik=one:ind=both:sos=theory:sstl=1:to=lpo_89");
     quick.push("lrs+10_1_iik=one:ind=both:to=lpo_89");
     // Configurations targeted mainly at integer induction
-    quick.push("lrs+10_1_iik=one:ind=both:indoct=on:intindst=011_100");
-    quick.push("lrs+11_1_drc=off:iik=one:ind=both:indoct=on:intindst=011:sos=theory:sstl=1:to=lpo:uwa=one_side_interpreted_100");
-    quick.push("lrs+10_1_asg=force:canc=force:drc=off:ev=force:gve=force:iik=one:ind=both:indmd=1:intindst=001:pum=on:to=lpo:urr=on_100");
-    quick.push("lrs+10_1_iik=one:ind=both:indmd=1:intindst=001_100");
-    quick.push("lrs+1010_2_drc=off:iik=one:ind=both:indoct=on:intindst=011:sos=theory:sstl=1:to=lpo:uwa=one_side_interpreted_100");
-    quick.push("lrs+10_1_drc=off:iik=one:ind=both:indoct=on:intindst=011:sos=theory:sstl=1:to=lpo_100");
-    quick.push("lrs+10_1_iik=one:ind=both:intinddb=on:intindst=140_100");
-    quick.push("lrs+1010_2_asg=force:canc=force:drc=off:ev=force:gve=force:iik=one:ind=both:indoct=on:intindst=011:pum=on:to=lpo:urr=on:uwa=one_side_interpreted_30");
-    quick.push("lrs+10_1_drc=off:iik=one:ind=both:indoct=on:intindst=322:sos=theory:sstl=1:to=lpo_30");
-    quick.push("lrs+10_1_asg=force:canc=force:drc=off:ev=force:gve=force:iik=one:ind=both:indgen=on:indmd=1:intindst=030:pum=on:to=lpo:urr=on_30");
-    quick.push("lrs+11_1_asg=force:canc=force:drc=off:ev=force:gve=force:iik=one:ind=both:intinddb=on:intindst=140:pum=on:to=lpo:urr=on:uwa=one_side_interpreted_100");
-    quick.push("lrs+10_1_drc=off:iik=one:ind=both:intinddb=on:intindst=140:sos=theory:sstl=1:to=lpo_100");
-    quick.push("lrs+11_1_asg=force:canc=force:drc=off:ev=force:gve=force:iik=one:ind=both:indoct=on:intinddb=on:intindst=121:pum=on:to=lpo:urr=on:uwa=one_side_interpreted_100");
+    quick.push("lrs+10_1_iik=one:ind=both:indoct=on_100");
+    quick.push("lrs+11_1_drc=off:iik=one:ind=both:indoct=on:sos=theory:sstl=1:to=lpo:uwa=one_side_interpreted_100");
+    quick.push("lrs+10_1_asg=force:canc=force:drc=off:ev=force:gve=force:iik=one:ind=both:indmd=1:intindstcomp=none:pum=on:to=lpo:urr=on_100");
+    quick.push("lrs+10_1_iik=one:ind=both:indmd=1:intindstcomp=none_100");
+    quick.push("lrs+1010_2_drc=off:iik=one:ind=both:indoct=on:sos=theory:sstl=1:to=lpo:uwa=one_side_interpreted_100");
+    quick.push("lrs+10_1_drc=off:iik=one:ind=both:indoct=on:sos=theory:sstl=1:to=lpo_100");
+    quick.push("lrs+10_1_iik=one:ind=both:intinddb=on:intindsteq=toplevel_not_in_other:intindstcomp=always:intindstterm=none_100");
+    quick.push("lrs+1010_2_asg=force:canc=force:drc=off:ev=force:gve=force:iik=one:ind=both:indoct=on:pum=on:to=lpo:urr=on:uwa=one_side_interpreted_30");
+    quick.push("lrs+10_1_drc=off:iik=one:ind=both:indoct=on:intindsteq=not_in_both:intindstcomp=only_one_occurrence:intindstterm=no_skolems:sos=theory:sstl=1:to=lpo_30");
+    quick.push("lrs+10_1_asg=force:canc=force:drc=off:ev=force:gve=force:iik=one:ind=both:indgen=on:indmd=1:intindstcomp=not_in_both:intindstterm=none:pum=on:to=lpo:urr=on_30");
+    quick.push("lrs+11_1_asg=force:canc=force:drc=off:ev=force:gve=force:iik=one:ind=both:intinddb=on:intindsteq=toplevel_not_in_other:intindstcomp=always:intindstterm=none:pum=on:to=lpo:urr=on:uwa=one_side_interpreted_100");
+    quick.push("lrs+10_1_drc=off:iik=one:ind=both:intinddb=on:intindsteq=toplevel_not_in_other:intindstcomp=always:intindstterm=none:sos=theory:sstl=1:to=lpo_100");
+    quick.push("lrs+11_1_asg=force:canc=force:drc=off:ev=force:gve=force:iik=one:ind=both:indoct=on:intinddb=on:intindsteq=toplevel_not_in_other:intindstcomp=only_one_occurrence:pum=on:to=lpo:urr=on:uwa=one_side_interpreted_100");
     quick.push("dis+1002_1_aac=none:anc=all:iik=one:ind=both:sos=theory:sac=on:sstl=1:to=lpo_30");
   } else {
     // No induction is on.
@@ -3000,19 +3000,19 @@ void Schedules::getInductionSchedule(const Shell::Property& property, Schedule& 
 // ---------- ---------- ---------- ---------- ---------- ---------- ---------- ---------- ----------
 
 void Schedules::getIntegerInductionSchedule(const Shell::Property& property, Schedule& quick, Schedule& fallback) {
-  quick.push("lrs+10_1_iik=one:ind=int:indoct=on:intindst=011_100");
-  quick.push("lrs+11_1_drc=off:iik=one:ind=int:indoct=on:intindst=011:sos=theory:sstl=1:to=lpo:uwa=one_side_interpreted_100");
-  quick.push("lrs+10_1_asg=force:canc=force:drc=off:ev=force:gve=force:iik=one:ind=int:indmd=1:intindst=001:pum=on:to=lpo:urr=on_100");
-  quick.push("lrs+10_1_iik=one:ind=int:indmd=1:intindst=001_100");
-  quick.push("lrs+1010_2_drc=off:iik=one:ind=int:indoct=on:intindst=011:sos=theory:sstl=1:to=lpo:uwa=one_side_interpreted_100");
-  quick.push("lrs+10_1_drc=off:iik=one:ind=int:indoct=on:intindst=011:sos=theory:sstl=1:to=lpo_100");
-  quick.push("lrs+10_1_iik=one:ind=int:intinddb=on:intindst=140_100");
-  quick.push("lrs+1010_2_asg=force:canc=force:drc=off:ev=force:gve=force:iik=one:ind=int:indoct=on:intindst=011:pum=on:to=lpo:urr=on:uwa=one_side_interpreted_30");
-  quick.push("lrs+10_1_drc=off:iik=one:ind=int:indoct=on:intindst=322:sos=theory:sstl=1:to=lpo_30");
-  quick.push("lrs+10_1_asg=force:canc=force:drc=off:ev=force:gve=force:iik=one:ind=int:indgen=on:indmd=1:intindst=030:pum=on:to=lpo:urr=on_30");
-  quick.push("lrs+11_1_asg=force:canc=force:drc=off:ev=force:gve=force:iik=one:ind=int:intinddb=on:intindst=140:pum=on:to=lpo:urr=on:uwa=one_side_interpreted_100");
-  quick.push("lrs+10_1_drc=off:iik=one:ind=int:intinddb=on:intindst=140:sos=theory:sstl=1:to=lpo_100");
-  quick.push("lrs+11_1_asg=force:canc=force:drc=off:ev=force:gve=force:iik=one:ind=int:indoct=on:intinddb=on:intindst=121:pum=on:to=lpo:urr=on:uwa=one_side_interpreted_100");
+  quick.push("lrs+10_1_iik=one:ind=int:indoct=on_100");
+  quick.push("lrs+11_1_drc=off:iik=one:ind=int:indoct=on:sos=theory:sstl=1:to=lpo:uwa=one_side_interpreted_100");
+  quick.push("lrs+10_1_asg=force:canc=force:drc=off:ev=force:gve=force:iik=one:ind=int:indmd=1:intindstcomp=none:pum=on:to=lpo:urr=on_100");
+  quick.push("lrs+10_1_iik=one:ind=int:indmd=1:intindstcomp=none_100");
+  quick.push("lrs+1010_2_drc=off:iik=one:ind=int:indoct=on:sos=theory:sstl=1:to=lpo:uwa=one_side_interpreted_100");
+  quick.push("lrs+10_1_drc=off:iik=one:ind=int:indoct=on:sos=theory:sstl=1:to=lpo_100");
+  quick.push("lrs+10_1_iik=one:ind=int:intinddb=on:intindsteq=toplevel_not_in_other:intindstcomp=always:intindstterm=none_100");
+  quick.push("lrs+1010_2_asg=force:canc=force:drc=off:ev=force:gve=force:iik=one:ind=int:indoct=on:pum=on:to=lpo:urr=on:uwa=one_side_interpreted_30");
+  quick.push("lrs+10_1_drc=off:iik=one:ind=int:indoct=on:intindsteq=not_in_both:intindstcomp=only_one_occurrence:intindstterm=no_skolems:sos=theory:sstl=1:to=lpo_30");
+  quick.push("lrs+10_1_asg=force:canc=force:drc=off:ev=force:gve=force:iik=one:ind=int:indgen=on:indmd=1:intindstcomp=not_in_both:intindstterm=none:pum=on:to=lpo:urr=on_30");
+  quick.push("lrs+11_1_asg=force:canc=force:drc=off:ev=force:gve=force:iik=one:ind=int:intinddb=on:intindsteq=toplevel_not_in_other:intindstcomp=always:intindstterm=none:pum=on:to=lpo:urr=on:uwa=one_side_interpreted_100");
+  quick.push("lrs+10_1_drc=off:iik=one:ind=int:intinddb=on:intindsteq=toplevel_not_in_other:intindstcomp=always:intindstterm=none:sos=theory:sstl=1:to=lpo_100");
+  quick.push("lrs+11_1_asg=force:canc=force:drc=off:ev=force:gve=force:iik=one:ind=int:indoct=on:intinddb=on:intindsteq=toplevel_not_in_other:intindstcomp=only_one_occurrence:pum=on:to=lpo:urr=on:uwa=one_side_interpreted_100");
   quick.push("dis+1002_1_aac=none:anc=all:iik=one:ind=int:sos=theory:sac=on:sstl=1:to=lpo_30");
   quick.push("lrs+10_1_av=off:br=off:iik=one:ind=int:urr=on_90");
   quick.push("lrs+10_1_avsq=on:drc=off:iik=one:ind=int:to=lpo_30");
