@@ -236,12 +236,11 @@ private:
        * to TERM_DIST_VAR_UNKNOWN if the number has not been
        * computed yet. */
       mutable unsigned distinctVars : TERM_DIST_VAR_BITS;
-#if ARCH_X64
-      /** reserved for whatever */
-      // ^ not exactly: this should not be removed without care,
+      static_assert(ARCH_X64,"this version of vampire is X64 only");
+      /** term id hiding in this _info */
+      // this should not be removed without care,
       // otherwise the bitfield layout might shift, resulting in broken pointer tagging
-      unsigned reserved : 32;
-#endif
+      unsigned id : 32;
     } _info;
   };
   friend class Indexing::TermSharing;
@@ -522,14 +521,14 @@ public:
   /** Set term id */
   void setId(unsigned id)
   {
-    _id = id;
+    _args[0]._info.id = id;
   } // setWeight
 
   /** Set (shared) term's id */
   unsigned getId() const
   {
     ASS(shared());
-    return _id;
+    return _args[0]._info.id;
   }
   
   void setMaxRedLen(int rl)
