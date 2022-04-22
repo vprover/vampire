@@ -508,11 +508,15 @@ TEST_GENERATION_INDUCTION(test_16,
         clause({ ~pi(0), pi(x) }),
         clause({ ~pi(0), ~pi(x+1) }),
 
-        // downward induction: resulting clauses contain "0 < sK6",
-        // since there is no bound to resolve it against
-        clause({ ~pi(0), ~(num(0) < y), 0 < sK6 }),
-        clause({ ~pi(0), pi(y), 0 < sK6 }),
-        clause({ ~pi(0), ~pi(y+num(-1)), 0 < sK6 }),
+        // upward induction with default bound
+        clause({ ~pi(0), ~(y < num(0)), sK6 < 0 }),
+        clause({ ~pi(0), pi(y), sK6 < 0 }),
+        clause({ ~pi(0), ~pi(y+1), sK6 < 0 }),
+
+        // downward induction with default bound
+        clause({ ~pi(0), ~(num(0) < z), 0 < sK6 }),
+        clause({ ~pi(0), pi(z), 0 < sK6 }),
+        clause({ ~pi(0), ~pi(z+num(-1)), 0 < sK6 }),
       })
     )
 

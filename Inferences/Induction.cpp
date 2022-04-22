@@ -436,7 +436,6 @@ void InductionClauseIterator::processLiteral(Clause* premise, Literal* lit)
         auto grBound = iterTraits(_helper.getGreater(t)).collect<Stack>();
         auto indLitsIt = vi(ContextSubsetReplacement::instance(InductionContext(t, lit, premise), _opt));
         // TODO use this value
-        InductionFormulaIndex::Entry* e = nullptr;
         while (indLitsIt.hasNext()) {
           auto ctx = indLitsIt.next();
           // process lower bounds
@@ -469,6 +468,7 @@ void InductionClauseIterator::processLiteral(Clause* premise, Literal* lit)
           }
           // add formula with default bound
           if (_opt.integerInductionDefaultBound()) {
+            InductionFormulaIndex::Entry* e = nullptr;
             static TermQueryResult defaultBound(TermList(theory->representConstant(IntegerConstantType(0))), nullptr, nullptr);
             // for now, represent default bounds with no bound in the index, this is unique
             // since the placeholder is still int
@@ -476,6 +476,7 @@ void InductionClauseIterator::processLiteral(Clause* premise, Literal* lit)
               performIntInduction(ctx, e, true, defaultBound, nullptr);
               performIntInduction(ctx, e, false, defaultBound, nullptr);
             }
+            resolveClauses(ctx, e, nullptr, nullptr);
           }
         }
       }
@@ -701,8 +702,10 @@ void InductionClauseIterator::resolveClauses(InductionContext context, Induction
     context.insert(bound2->clause,
       Literal::create2(less, bound2->literal->polarity(), lhs, rhs));
   }
+  // true if we have a default bound
+  bool applySubst = !bound1 && !bound2;
   for (auto& kv : e->get()) {
-    resolveClauses(kv.first, context, kv.second);
+    resolveClauses(kv.first, context, kv.second, applySubst);
   }
 }
 
@@ -797,7 +800,7 @@ IntUnionFind findDistributedVariants(const Stack<Clause*>& clauses, Substitution
  *               it is stored separately so that we don't have to apply
  *               substitutions expensively in all cases.
  */
-Clause* resolveClausesHelper(const InductionContext& context, const Stack<Clause*>& cls, IntUnionFind::ElementIterator eIt, Substitution& subst, bool generalized, RobSubstitution* rsubst)
+Clause* resolveClausesHelper(const InductionContext& context, const Stack<Clause*>& cls, IntUnionFind::ElementIterator eIt, Substitution& subst, bool generalized, bool applySubst)
 {
   CALL("resolveClausesHelper");
   // first create the clause with the required size
@@ -843,7 +846,12 @@ Clause* resolveClausesHelper(const InductionContext& context, const Stack<Clause
     }
     if (!contains) {
       ASS(next < newLength);
-      (*res)[next] = rsubst ? rsubst->apply(curr, 0) : curr;
+      if (applySubst) {
+        TermReplacement tr(getPlaceholderForTerm(context._indTerm),TermList(context._indTerm));
+        (*res)[next] = tr.transform(SubstHelper::apply<Substitution>(curr,subst));
+      } else {
+        (*res)[next] = curr;
+      }
       next++;
     }
   }
@@ -873,7 +881,7 @@ Clause* resolveClausesHelper(const InductionContext& context, const Stack<Clause
   return res;
 }
 
-void InductionClauseIterator::resolveClauses(const ClauseStack& cls, const InductionContext& context, Substitution& subst, RobSubstitution* rsubst)
+void InductionClauseIterator::resolveClauses(const ClauseStack& cls, const InductionContext& context, Substitution& subst, bool applySubst)
 {
   CALL("InductionClauseIterator::resolveClauses");
   ASS(cls.isNonEmpty());
@@ -899,7 +907,7 @@ void InductionClauseIterator::resolveClauses(const ClauseStack& cls, const Induc
   IntUnionFind::ComponentIterator cit(uf);
   while(cit.hasNext()){
     IntUnionFind::ElementIterator eIt = cit.next();
-    _clauses.push(resolveClausesHelper(context, cls, eIt, subst, generalized, rsubst));
+    _clauses.push(resolveClausesHelper(context, cls, eIt, subst, generalized, applySubst));
     if(_opt.showInduction()){
       env.beginOutput();
       env.out() << "[Induction] generate " << _clauses.top()->toString() << endl;
@@ -1014,10 +1022,6 @@ void InductionClauseIterator::performIntInduction(const InductionContext& contex
           ? (increasing ? InferenceRule::INT_DB_UP_INDUCTION_AXIOM : InferenceRule::INT_DB_DOWN_INDUCTION_AXIOM)
           : (increasing ? (hasBound2 ? InferenceRule::INT_FIN_UP_INDUCTION_AXIOM : InferenceRule::INT_INF_UP_INDUCTION_AXIOM)
                         : (hasBound2 ? InferenceRule::INT_FIN_DOWN_INDUCTION_AXIOM : InferenceRule::INT_INF_DOWN_INDUCTION_AXIOM));
-  RobSubstitution rsubst;
-  if (isDefaultBound) {
-    ALWAYS(rsubst.match(y,0,TermList(context._indTerm),1));
-  }
 
   auto cls = produceClauses(hyp, rule, context);
   e->add(std::move(cls), std::move(subst));

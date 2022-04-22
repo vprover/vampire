@@ -199,7 +199,7 @@ private:
 
   ClauseStack produceClauses(Formula* hypothesis, InferenceRule rule, const InductionContext& context);
   void resolveClauses(InductionContext context, InductionFormulaIndex::Entry* e, const TermQueryResult* bound1, const TermQueryResult* bound2);
-  void resolveClauses(const ClauseStack& cls, const InductionContext& context, Substitution& subst, RobSubstitution* rsubst = nullptr);
+  void resolveClauses(const ClauseStack& cls, const InductionContext& context, Substitution& subst, bool applySubst = false);
 
   void performFinIntInduction(const InductionContext& context, const TermQueryResult& lb, const TermQueryResult& ub);
   void performInfIntInduction(const InductionContext& context, bool increasing, const TermQueryResult& bound);
