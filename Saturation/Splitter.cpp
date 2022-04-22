@@ -702,7 +702,7 @@ void Splitter::init(SaturationAlgorithm* sa)
   hasSMTSolver = (opts.satSolver() == Options::SatSolver::Z3);
 #endif
 
-  if (opts.splittingAvatimer() > 0.0) {
+  if (opts.splittingAvatimer() < 1.0) {
     _stopSplittingAt = opts.splittingAvatimer() * opts.timeLimitInDeciseconds() * 100;
   } else {
     _stopSplittingAt = 0;
