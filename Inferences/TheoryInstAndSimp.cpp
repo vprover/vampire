@@ -15,7 +15,7 @@
 #if VZ3
 #define DEBUG(...)  //DBG(__VA_ARGS__)
 
-#define DPRINT 1
+#define DPRINT 0
 
 #include "Debug/RuntimeStatistics.hpp"
 
