@@ -2192,6 +2192,7 @@ public:
   //void setSos(Sos newVal) { _sos = newVal; }
 
   bool shuffleInput() const { return _shuffleInput.actualValue; }
+  bool randomPolarities() const { return _randomPolarities.actualValue; }
   bool randomAWR() const { return _randomAWR.actualValue; }
   bool randomAWTiebreak() const { return _randomAWTiebreak.actualValue; }
   bool randomTraversals() const { return _randomTraversals.actualValue; }
@@ -2579,6 +2580,7 @@ private:
   BoolOptionValue _nonliteralsInClauseWeight;
   BoolOptionValue _normalize;
   BoolOptionValue _shuffleInput;
+  BoolOptionValue _randomPolarities;
 
   BoolOptionValue _outputAxiomNames;
 

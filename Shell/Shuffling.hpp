@@ -41,6 +41,8 @@ private:
   static void shuffleIter(Shufflable sh);
 
 public:
+  static void polarityFlip(Problem&);
+
   static void shuffle(Problem&);
   static void shuffle(UnitList*&);
 

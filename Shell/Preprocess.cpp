@@ -432,6 +432,15 @@ void Preprocess::preprocess(Problem& prb)
      Shuffling::shuffle(prb);
    }
 
+   if (_options.randomPolarities()) {
+     TimeCounter tc(TC_SHUFFLING);
+     env.statistics->phase=Statistics::SHUFFLING;
+     if (env.options->showPreprocessing())
+       env.out() << "flipping polarities" << std::endl;
+
+     Shuffling::polarityFlip(prb);
+   }
+
    if (env.options->showPreprocessing()) {
      UnitList::Iterator uit(prb.units());
      while(uit.hasNext()) {

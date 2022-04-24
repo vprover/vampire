@@ -15,6 +15,7 @@
 
 #include "Lib/Sort.hpp"
 #include "Lib/Environment.hpp"
+#include "Lib/DArray.hpp"
 
 #include "Kernel/Clause.hpp"
 #include "Kernel/FormulaUnit.hpp"
@@ -29,6 +30,39 @@
 
 using namespace Kernel;
 using namespace Shell;
+
+/**
+ * Consistently flip predicate polarities in the given CNF Problem.
+ */
+void Shuffling::polarityFlip(Problem& prb)
+{
+  CALL("Shuffling::polarityFlip (Problem&)");
+
+  DArray<bool> flippage(env.signature->predicates());
+
+  flippage[0] = false;
+  for (unsigned p = 1; /* skipping = */ p < flippage.size(); p++) {
+    flippage[p] = Random::getBit();
+  }
+
+  UnitList::Iterator us(prb.units());
+  while (us.hasNext()) {
+    Unit* u = us.next(); ASS(u->isClause()); Clause* cl = u->asClause();
+
+    // cout << "Before: " << cl->toString() << endl;
+
+    for (unsigned i = 0; i < cl->length(); i++) {
+      Literal*& l = (*cl)[i];
+      // cout << "  bef: " << l->toString() << endl;
+      if (flippage[l->functor()]) {
+        l = Literal::complementaryLiteral(l);
+      }
+      // cout << "  aft: " << l->toString() << endl;
+    }
+
+    // cout << "After: " << cl->toString() << endl;
+  }
+}
 
 /**
  * Shuffle a problem

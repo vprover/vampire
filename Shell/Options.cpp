@@ -2108,6 +2108,11 @@ void Options::init()
     _lookup.insert(&_shuffleInput);
     _shuffleInput.tag(OptionTag::PREPROCESSING);
 
+    _randomPolarities = BoolOptionValue("random_polarities","rp",false);
+    _randomPolarities.description="As part of preprocesssing, randomly (though consisitently) flip polarities of non-equality predicates in the whole CNF.";
+    _lookup.insert(&_randomPolarities);
+    _randomPolarities.tag(OptionTag::PREPROCESSING);
+
     _questionAnswering = ChoiceOptionValue<QuestionAnsweringMode>("question_answering","qa",QuestionAnsweringMode::OFF,
                                                                   {"answer_literal","from_proof","off"});
     _questionAnswering.description="Determines whether (and how) we attempt to answer questions";
