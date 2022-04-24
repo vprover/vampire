@@ -85,9 +85,11 @@ unsigned Timer::elapsedMegaInstructions() {
       env.out() << "Proof not found in time ";
       Timer::printMSString(env.out(),env.timer->elapsedMilliseconds());
 
+#ifdef __linux__
       if (last_instruction_count_read > -1) {
         env.out() << " nor after " << last_instruction_count_read << " (user) instruction executed.";
       }
+#endif
       env.out() << endl;
 
       if (szsOutputMode()) {
