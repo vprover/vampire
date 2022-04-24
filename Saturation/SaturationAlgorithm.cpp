@@ -787,6 +787,7 @@ void SaturationAlgorithm::init()
   }
 
   _startTime=env.timer->elapsedMilliseconds();
+  _startInstrs=env.timer->elapsedMegaInstructions();
 }
 
 Clause* SaturationAlgorithm::doImmediateSimplification(Clause* cl0)

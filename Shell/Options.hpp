@@ -2148,7 +2148,7 @@ public:
   size_t memoryLimit() const { return _memoryLimit.actualValue; }
   void setMemoryLimitOptionValue(size_t newVal) { _memoryLimit.actualValue = newVal; }
 #ifdef __linux__
-  size_t instructionLimit() const { return _instructionLimit.actualValue; }
+  unsigned instructionLimit() const { return _instructionLimit.actualValue; }
 #endif
   int inequalitySplitting() const { return _inequalitySplitting.actualValue; }
   int ageRatio() const { return _ageWeightRatio.actualValue; }

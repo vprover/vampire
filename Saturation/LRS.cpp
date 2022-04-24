@@ -103,33 +103,59 @@ long long LRS::estimatedReachableCount()
   }
 #endif
 
-  long long processed=env.statistics->activeClauses;
   int currTime=env.timer->elapsedMilliseconds();
-  long long timeSpent=currTime-_startTime;
-  //the result is in miliseconds, as _opt.lrsFirstTimeCheck() is in percents.
-  int firstCheck=_opt.lrsFirstTimeCheck()*_opt.timeLimitInDeciseconds();
-//  int timeSpent=currTime;
+  // time spent in saturation (preprocessing is excluded)
+  long long timeSpent=currTime-_startTime; // (in milliseconds) 
+  int opt_timeLimitDeci = _opt.timeLimitInDeciseconds();
+  int firstCheck=_opt.lrsFirstTimeCheck(); // (in percent)!
 
-  long long result;
+  unsigned opt_instruction_limit = 0; // (in mega-instructions)
+#ifdef __linux__
+  opt_instruction_limit = _opt.instructionLimit();
+#endif
 
-  if(timeSpent<firstCheck ) {
-    result = -1;
+  unsigned instrsBurned = env.timer->elapsedMegaInstructions();
+
+  long long result = -1;
+
+  if (timeSpent < firstCheck*opt_timeLimitDeci 
+      // the above, unit-wise: cf milliseconds on the left, and deci * percent on the right
+      && instrsBurned*100 < firstCheck*opt_instruction_limit
+  ) {
     goto finish;
   }
 
-  long long timeLeft;
-  if(_opt.simulatedTimeLimit()) {
-    timeLeft=_opt.simulatedTimeLimit()*100 - currTime;
-  } else {
-    timeLeft=_opt.timeLimitInDeciseconds()*100 - currTime;
-  }
-  if(timeLeft<=0 || processed<=10) {
-    //we end-up here even if there is no time limit (i.e. time limit is set to 0)
-    result = -1;
-    goto finish;
-  }
+  {
+    long long processed=env.statistics->activeClauses;
 
-  result = (processed*timeLeft)/timeSpent;
+    if (processed<=10) {
+      goto finish;
+    }
+
+    long long timeLeft; // (in milliseconds) 
+    if(_opt.simulatedTimeLimit()) {
+      timeLeft=_opt.simulatedTimeLimit()*100 - currTime;
+    } else {
+      timeLeft=opt_timeLimitDeci*100 - currTime;
+    }
+
+    long long instrsLeft = opt_instruction_limit - instrsBurned;
+
+    // note that result is -1 here already
+
+    if(timeLeft > 0) {      
+      result = (processed*timeLeft)/timeSpent;
+    } // otherwise, it's somehow past the deadline, or no timilimit set
+    
+    if (instrsLeft > 0) {
+      long long res_by_instr = (processed*instrsLeft)/instrsBurned;
+      if (result > 0) {
+        result = std::min(result,res_by_instr);
+      } else {
+        result = res_by_instr;
+      }
+    } // otherwise, it's somehow past the deadline, or on instruction limit set
+  }
 
   finish:
 

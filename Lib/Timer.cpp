@@ -33,7 +33,7 @@
 #include "Timer.hpp"
 
 #define DEBUG_TIMER_CHANGES 0
-#define MILLION 1000000
+#define MILLION (1 << 20)
 
 // things that need to be signal-safe because they are used in timer_sigalrm_handler
 // in principle we also need is_lock_free() to avoid deadlock as well
@@ -54,7 +54,7 @@ int Timer::s_initGuarantedMiliseconds;
 
 unsigned Timer::elapsedMegaInstructions() {
 #ifdef __linux__
-  return (last_instruction_count_read >= MILLION) ? last_instruction_count_read/MILLION : 0;
+  return (last_instruction_count_read >= 0) ? last_instruction_count_read/MILLION : 0;
 #else
   return 0;
 #endif
