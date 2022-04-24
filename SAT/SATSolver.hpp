@@ -134,6 +134,8 @@ public:
   
   virtual void suggestPolarity(unsigned var, unsigned pol) = 0;
 
+  virtual void requestRandomization(unsigned seed) {}
+
   /**
    * Suggest random polarity for variables up to maxVar (inclusive),
    * so that the next call to solver will tend to produce

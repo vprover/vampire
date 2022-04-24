@@ -2196,6 +2196,7 @@ public:
   bool randomAWR() const { return _randomAWR.actualValue; }
   bool randomAWTiebreak() const { return _randomAWTiebreak.actualValue; }
   bool randomTraversals() const { return _randomTraversals.actualValue; }
+  bool randomAVATAR() const { return _randomAVATAR.actualValue; }
 
   bool ignoreConjectureInPreprocessing() const {return _ignoreConjectureInPreprocessing.actualValue;}
 
@@ -2453,6 +2454,7 @@ private:
   BoolOptionValue _arityCheck;
   
   BoolOptionValue _randomTraversals;
+  BoolOptionValue _randomAVATAR;
 
   ChoiceOptionValue<BadOption> _badOption;
   ChoiceOptionValue<Demodulation> _backwardDemodulation;

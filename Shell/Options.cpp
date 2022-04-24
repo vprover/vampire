@@ -1088,6 +1088,12 @@ void Options::init()
     _randomTraversals.tag(OptionTag::SATURATION);
     _randomTraversals.setExperimental();
 
+    _randomAVATAR = BoolOptionValue("random_avatar","rav",false);
+    _lookup.insert(&_randomAVATAR);
+    _randomAVATAR.reliesOn(_splitting.is(equal(true)));
+    _randomAVATAR.tag(OptionTag::SATURATION);
+    _randomAVATAR.setExperimental();
+
   //*********************** Inferences  ***********************
 
 #if VZ3

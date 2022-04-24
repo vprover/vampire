@@ -85,6 +85,11 @@ public:
     bool mpol = pol ? false : true; 
     _solver.suggestPolarity(vampireVar2Minisat(var),mpol);
   }
+
+  virtual void requestRandomization(unsigned seed) override {
+    _solver.random_seed = 1+(double)seed;
+    _solver.rnd_pol = true;
+  }
   
   /**
    * Add an assumption into the solver.
