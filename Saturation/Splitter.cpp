@@ -141,10 +141,10 @@ void SplittingBranchSelector::considerPolarityAdvice(SATLiteral lit)
 
   switch (_literalPolarityAdvice) {
     case Options::SplittingLiteralPolarityAdvice::FALSE:
-      _solver->suggestPolarity(lit.var(),lit.oppositePolarity());
+      _solver->setPolarity(lit.var(),lit.oppositePolarity());
     break;
     case Options::SplittingLiteralPolarityAdvice::TRUE:
-      _solver->suggestPolarity(lit.var(),lit.polarity());
+      _solver->setPolarity(lit.var(),lit.polarity());
     break;
     case Options::SplittingLiteralPolarityAdvice::NONE:
       // do nothing
