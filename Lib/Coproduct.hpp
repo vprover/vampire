@@ -234,7 +234,7 @@ namespace CoproductImpl {
       using Ts = TL::List<As...>;                                                                             \
       auto unwrap = Unwrap<acc, Ts>{};                                                                        \
       if (acc == idx) {                                                                                       \
-        ::new (&self._head) TL::Get<acc,Ts>(unwrap(MOVE(value)));                                             \
+        ::new (&unwrap(self)) TL::Get<acc,Ts>(unwrap(MOVE(value)));                                             \
         return;                                                                                               \
       }                                                                                                       \
       InitDynamicTag<acc + 1, size, TL::List<As...>>{}(self, idx, MOVE(value));                               \
