@@ -236,7 +236,6 @@ private:
        * to TERM_DIST_VAR_UNKNOWN if the number has not been
        * computed yet. */
       mutable unsigned distinctVars : TERM_DIST_VAR_BITS;
-      static_assert(ARCH_X64,"this version of vampire is X64 only");
       /** term id hiding in this _info */
       // this should not be removed without care,
       // otherwise the bitfield layout might shift, resulting in broken pointer tagging
