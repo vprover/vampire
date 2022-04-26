@@ -157,7 +157,8 @@ bool TheoryInstAndSimp::isSupportedLiteral(Literal* lit) {
     case Theory::RAT_IS_REAL:
     case Theory::REAL_IS_RAT:
     case Theory::REAL_IS_REAL:
-	return false;
+      return false;
+    default:;
   }
 
   return true;
