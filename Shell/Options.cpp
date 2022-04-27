@@ -412,11 +412,14 @@ void Options::init()
     _equalityProxy.addProblemConstraint(hasEquality());
     _equalityProxy.addProblemConstraint(onlyFirstOrder());
     _equalityProxy.addHardConstraint(If(notEqual(EqualityProxy::OFF)).then(_combinatorySuperposition.is(notEqual(true))));
+    _equalityProxy.addHardConstraint(If(notEqual(EqualityProxy::OFF)).then(Or(_useMonoEqualityProxy.is(equal(true)),
+                                                        _saturationAlgorithm.is(notEqual(SaturationAlgorithm::INST_GEN)))));      
     _equalityProxy.setRandomChoices(isRandOn(),{"R","RS","RST","RSTC","off","off","off","off","off"}); // wasn't tested, make off more likely
     
     _useMonoEqualityProxy = BoolOptionValue("mono_ep","mep",false);
     _useMonoEqualityProxy.description="Use the monomorphic version of equality proxy transformation.";
     _lookup.insert(&_useMonoEqualityProxy);
+    _useMonoEqualityProxy.reliesOn(_equalityProxy.is(notEqual(EqualityProxy::OFF)));
     _useMonoEqualityProxy.tag(OptionTag::PREPROCESSING);
 
     _equalityResolutionWithDeletion = BoolOptionValue("equality_resolution_with_deletion","erd",true);
