@@ -108,6 +108,9 @@ MainLoop* MainLoop::createFromOptions(Problem& prb, const Options& opt)
   */
 #endif
 
+  if (!opt.complete(prb)) {
+    env.statistics->incompleteSetup = 1;
+  }
 
   MainLoop* res;
 

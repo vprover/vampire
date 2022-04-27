@@ -43,6 +43,7 @@ using namespace Shell;
 Statistics::Statistics()
   : inputClauses(0),
     inputFormulas(0),
+    incompleteSetup(0),
     formulaNames(0),
     initialClauses(0),
     splitInequalities(0),
@@ -273,6 +274,7 @@ void Statistics::print(ostream& out)
   HEADING("Input",inputClauses+inputFormulas);
   COND_OUT("Input clauses", inputClauses);
   COND_OUT("Input formulas", inputFormulas);
+  COND_OUT("Incomplete setup", incompleteSetup);
 
   HEADING("Preprocessing",formulaNames+purePredicates+trivialPredicates+
     unusedPredicateDefinitions+functionDefinitions+selectedBySine+

@@ -58,6 +58,8 @@ public:
   unsigned inputClauses;
   /** number of input formulas */
   unsigned inputFormulas;
+  /** tell people we were incomplete */
+  unsigned incompleteSetup;
 
   // Preprocessing
   /** number of formula names introduced during preprocessing */
