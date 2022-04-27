@@ -33,7 +33,7 @@
 #include "Timer.hpp"
 
 #define DEBUG_TIMER_CHANGES 0
-#define MILLION (1 << 20)
+#define MEGA (1 << 20)
 
 // things that need to be signal-safe because they are used in timer_sigalrm_handler
 // in principle we also need is_lock_free() to avoid deadlock as well
@@ -54,7 +54,7 @@ int Timer::s_initGuarantedMiliseconds;
 
 unsigned Timer::elapsedMegaInstructions() {
 #ifdef __linux__
-  return (last_instruction_count_read >= 0) ? last_instruction_count_read/MILLION : 0;
+  return (last_instruction_count_read >= 0) ? last_instruction_count_read/MEGA : 0;
 #else
   return 0;
 #endif
@@ -131,7 +131,7 @@ timer_sigalrm_handler (int sig)
     // to get info about instructions burned even when not instruction limiting
     read(perf_fd, &last_instruction_count_read, sizeof(long long));
     
-    if (last_instruction_count_read >= MILLION*(long long)env.options->instructionLimit()) {
+    if (last_instruction_count_read >= MEGA*(long long)env.options->instructionLimit()) {
       Timer::setLimitEnforcement(false);
       if (protectingTimeout) {
         callLimitReachedLater = 2; // 2 for an instr limit
