@@ -708,7 +708,7 @@ void Splitter::init(SaturationAlgorithm* sa)
   hasSMTSolver = (opts.satSolver() == Options::SatSolver::Z3);
 #endif
 
-  if (opts.splittingAvatimer() > 0.0) {
+  if (opts.splittingAvatimer() < 1.0) {
     _stopSplittingAt = opts.splittingAvatimer() * opts.timeLimitInDeciseconds() * 100;
   } else {
     _stopSplittingAt = 0;
@@ -1044,7 +1044,7 @@ bool Splitter::getComponents(Clause* cl, Stack<LiteralStack>& acc)
 
   //Master literal of an variable is the literal
   //with lowest index, in which it appears.
-  static DHMap<unsigned, unsigned, IdentityHash> varMasters;
+  static DHMap<unsigned, unsigned, IdentityHash, Hash> varMasters;
   varMasters.reset();
   IntUnionFind components(clen);
 

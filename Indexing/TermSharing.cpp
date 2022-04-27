@@ -174,7 +174,7 @@ Term* TermSharing::insert(Term* t)
         
         Term* r = tt->term();
   
-        vars += r->vars();
+        vars += r->numVarOccs();
         weight += r->weight();
         if (env.colorUsed) {
             color = static_cast<Color>(color | r->color());
@@ -186,7 +186,7 @@ Term* TermSharing::insert(Term* t)
     }
     t->markShared();
     t->setId(_totalTerms);
-    t->setVars(vars);
+    t->setNumVarOccs(vars);
     t->setWeight(weight);
     if (env.colorUsed) {
       Color fcolor = env.signature->getFunction(t->functor())->color();
@@ -222,7 +222,7 @@ AtomicSort* TermSharing::insert(AtomicSort* sort)
   // cannot use TC_TERM_SHARING
   // as inserting a term can result in the insertion of
   // a sort and TimeCounter design forbids starting a timer 
-  // when it is alreadt running 
+  // when it is already running 
   TimeCounter tc(TC_SORT_SHARING);
 
   _sortInsertions++;
@@ -246,13 +246,13 @@ AtomicSort* TermSharing::insert(AtomicSort* sort)
         
         Term* r = tt->term();
   
-        vars += r->vars();
+        vars += r->numVarOccs();
         weight += r->weight();
       }
     }
     sort->markShared();
     sort->setId(_totalSorts);
-    sort->setVars(vars);
+    sort->setNumVarOccs(vars);
     sort->setWeight(weight);
       
     _totalSorts++;
@@ -307,27 +307,33 @@ Literal* TermSharing::insert(Literal* t)
     bool hasInterpretedConstants=false;
     for (TermList* tt = t->args(); ! tt->isEmpty(); tt = tt->next()) {
       if (tt->isVar()) {
-	ASS(tt->isOrdinaryVar());
-	vars++;
-	weight += 1;
+        ASS(tt->isOrdinaryVar());
+        vars++;
+        weight += 1;
       }
       else {
-	ASS_REP(tt->term()->shared(), tt->term()->toString());
-	Term* r = tt->term();
-	vars += r->vars();
-	weight += r->weight();
-	if (env.colorUsed) {
-	  ASS(color == COLOR_TRANSPARENT || r->color() == COLOR_TRANSPARENT || color == r->color());
-	  color = static_cast<Color>(color | r->color());
-	}
-	if(!hasInterpretedConstants && r->hasInterpretedConstants()) {
-	  hasInterpretedConstants=true;
-	}
+        ASS_REP(tt->term()->shared(), tt->term()->toString());
+        Term* r = tt->term();
+        vars += r->numVarOccs();
+        weight += r->weight();
+
+        if(_poly && t->isEquality()){
+          TermList sort = SortHelper::getResultSort(r);
+          weight += sort.weight() - 1;
+        }
+
+        if (env.colorUsed) {
+          ASS(color == COLOR_TRANSPARENT || r->color() == COLOR_TRANSPARENT || color == r->color());
+          color = static_cast<Color>(color | r->color());
+        }
+        if(!hasInterpretedConstants && r->hasInterpretedConstants()) {
+          hasInterpretedConstants=true;
+        }
       }
     }
     t->markShared();
     t->setId(_totalLiterals);
-    t->setVars(vars);
+    t->setNumVarOccs(vars);
     t->setWeight(weight);
     if (env.colorUsed) {
       Color fcolor = env.signature->getPredicate(t->functor())->color();
@@ -381,7 +387,18 @@ Literal* TermSharing::insertVariableEquality(Literal* t, TermList sort)
   if (s == t) {
     t->markShared();
     t->setId(_totalLiterals);
-    t->setWeight(2 + sort.weight());
+    // 3 since we have two variables and the equality symbol itself
+    // in the polymorphic case we add the weight of the sort since
+    // the sort may contain variables and Vampire assumes the invariant
+    // weight(lit) >= distinct_vars(lit)
+    // The -1 factor is a horrible hack. Vampire starts prasing
+    // with the assumption that the problem is polymorphic and only sets it
+    // mono once proof search begins. In order to avoid having 
+    // literals have their weight calculated using two different algorithms
+    // we need the weight of a monomorphic literal when treated as a 
+    // polymorphic literal to equal its weight when treated as a monomorphic lit.
+    // Hence the -1
+    t->setWeight(3 + (_poly ? sort.weight() - 1: 0));
     if (env.colorUsed) {
       t->setColor(COLOR_TRANSPARENT);
     }

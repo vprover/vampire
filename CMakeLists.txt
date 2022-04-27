@@ -113,7 +113,6 @@ set(VAMPIRE_LIB_SOURCES
     Lib/Environment.cpp
     Lib/Event.cpp
     Lib/Exception.cpp
-    Lib/Hash.cpp
     Lib/Int.cpp
     Lib/IntNameTable.cpp
     Lib/IntUnionFind.cpp
@@ -810,7 +809,7 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 # set preprocessor defines
 add_compile_definitions(CHECK_LEAKS=0)
 if(CMAKE_BUILD_TYPE STREQUAL Debug)
-  add_compile_definitions(VDEBUG=1 UNIX_USE_SIGALRM=1)
+  add_compile_definitions(VDEBUG=1)
 elseif(CMAKE_BUILD_TYPE STREQUAL Release)
   add_compile_definitions(VDEBUG=0)
 endif()

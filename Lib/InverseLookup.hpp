@@ -57,7 +57,7 @@ public:
   }
 
 private:
-  DHMap<T*,size_t,PtrIdentityHash> _data;
+  DHMap<T*,size_t> _data;
 };
 
 };

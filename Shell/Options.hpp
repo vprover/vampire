@@ -1821,15 +1821,15 @@ bool _hard;
       vstring msg(){ return " only useful with non-unit clauses"; }
     };
 
-    struct HasPredicates : OptionProblemConstraint{
-      CLASS_NAME(HasPredicates);
-      USE_ALLOCATOR(HasPredicates);
+    struct NotJustEquality : OptionProblemConstraint{
+      CLASS_NAME(NotJustEquality);
+      USE_ALLOCATOR(NotJustEquality);
 
       bool check(Property*p){
-        CALL("Options::HasPredicates::check");
-        return (p->category()==Property::PEQ || p->category()==Property::UEQ);
+        CALL("Options::NotJustEquality::check");
+        return (p->category()!=Property::PEQ || p->category()!=Property::UEQ);
       }
-      vstring msg(){ return " only useful with predicates"; }
+      vstring msg(){ return " not useful with just equality"; }
     };
 
     struct AtomConstraint : OptionProblemConstraint{
@@ -1892,7 +1892,7 @@ bool _hard;
     static OptionProblemConstraintUP hasHigherOrder(){ return OptionProblemConstraintUP(new HasHigherOrder); }
     static OptionProblemConstraintUP onlyFirstOrder(){ return OptionProblemConstraintUP(new OnlyFirstOrder); }
     static OptionProblemConstraintUP hasNonUnits(){ return OptionProblemConstraintUP(new HasNonUnits); }
-    static OptionProblemConstraintUP hasPredicates(){ return OptionProblemConstraintUP(new HasPredicates); }
+    static OptionProblemConstraintUP notJustEquality(){ return OptionProblemConstraintUP(new NotJustEquality); }
     static OptionProblemConstraintUP atomsMoreThan(int a){
       return OptionProblemConstraintUP(new AtomConstraint(a,true));
     }
@@ -2146,6 +2146,7 @@ public:
   // Return time limit in deciseconds, or 0 if there is no time limit
   int timeLimitInDeciseconds() const { return _timeLimitInDeciseconds.actualValue; }
   size_t memoryLimit() const { return _memoryLimit.actualValue; }
+  void setMemoryLimitOptionValue(size_t newVal) { _memoryLimit.actualValue = newVal; }
 #ifdef __linux__
   size_t instructionLimit() const { return _instructionLimit.actualValue; }
 #endif
@@ -2249,6 +2250,7 @@ public:
   bool inductionNegOnly() const { return _inductionNegOnly.actualValue; }
   bool inductionUnitOnly() const { return _inductionUnitOnly.actualValue; }
   bool inductionGen() const { return _inductionGen.actualValue; }
+  bool inductionStrengthenHypothesis() const { return _inductionStrengthenHypothesis.actualValue; }
   unsigned maxInductionGenSubsetSize() const { return _maxInductionGenSubsetSize.actualValue; }
   bool inductionOnComplexTerms() const {return _inductionOnComplexTerms.actualValue;}
   bool integerInductionDefaultBound() const { return _integerInductionDefaultBound.actualValue; }
@@ -2264,7 +2266,6 @@ public:
   bool instGenWithResolution() const { return _instGenWithResolution.actualValue; }
   bool useHashingVariantIndex() const { return _useHashingVariantIndex.actualValue; }
 
-  void setMemoryLimit(size_t newVal) { _memoryLimit.actualValue = newVal; }
   void setTimeLimitInSeconds(int newVal) { _timeLimitInDeciseconds.actualValue = 10*newVal; }
   void setTimeLimitInDeciseconds(int newVal) { _timeLimitInDeciseconds.actualValue = newVal; }
 
@@ -2553,6 +2554,7 @@ private:
   BoolOptionValue _inductionNegOnly;
   BoolOptionValue _inductionUnitOnly;
   BoolOptionValue _inductionGen;
+  BoolOptionValue _inductionStrengthenHypothesis;
   UnsignedOptionValue _maxInductionGenSubsetSize;
   BoolOptionValue _inductionOnComplexTerms;
   BoolOptionValue _integerInductionDefaultBound;

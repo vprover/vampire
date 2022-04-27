@@ -95,7 +95,7 @@ private:
 
   ProofPrinter* createProofPrinter(ostream& out);
 
-  DHMultiset<Clause*, PtrIdentityHash> _nextClIds;
+  DHMultiset<Clause*> _nextClIds;
 
   DHMap<Unit*, Literal*> _splittingNameLiterals;
 

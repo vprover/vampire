@@ -1171,7 +1171,7 @@ bool Signature::symbolNeedsQuoting(vstring name, bool interpreted, unsigned arit
   //also don't want them to be treated as interpreted symbols
   //hence the hack below, AYB
   if(name=="$int" || name=="$real" || name=="$rat" || 
-     name=="$i" || name=="$o" || name==">"){
+     name=="$i" || name=="$o"){
     return false;
   }
 

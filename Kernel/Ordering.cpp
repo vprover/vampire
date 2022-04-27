@@ -249,13 +249,13 @@ Ordering::Result Ordering::getEqualityArgumentOrder(Literal* eq) const
 
   Result res;
   ArgumentOrderVals precomputed = static_cast<ArgumentOrderVals>(eq->getArgumentOrderValue());
-  if(precomputed!=0) {
+  if(precomputed!=AO_UNKNOWN) {
     res = static_cast<Result>(precomputed);
     ASS_EQ(res, compare(*eq->nthArgument(0), *eq->nthArgument(1)));
   }
   else {
     res = compare(*eq->nthArgument(0), *eq->nthArgument(1));
-    eq->setArgumentOrderValue(res);
+    eq->setArgumentOrderValue(static_cast<ArgumentOrderVals>(res));
   }
   return res;
 }
@@ -278,7 +278,7 @@ Ordering::Result PrecedenceOrdering::compare(Literal* l1, Literal* l2) const
   unsigned p2 = l2->functor();
 
   if( (l1->isNegative() ^ l2->isNegative()) && (p1==p2) &&
-	  l1->weight()==l2->weight() && l1->vars()==l2->vars() &&  //this line is just optimization, so we don't check whether literals are opposite when they cannot be
+	  l1->weight()==l2->weight() && l1->numVarOccs()==l2->numVarOccs() &&  //this line is just optimization, so we don't check whether literals are opposite when they cannot be
 	  l1==env.sharing->tryGetOpposite(l2)) {
     return l1->isNegative() ? LESS : GREATER;
   }

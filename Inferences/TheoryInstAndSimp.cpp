@@ -149,6 +149,18 @@ bool TheoryInstAndSimp::isSupportedLiteral(Literal* lit) {
       return false;
   }
 
+  //check if this is an interpreted predicate that is not supported by Z3Interfacing
+  switch(theory->interpretPredicate(lit->functor())){
+    case Theory::INT_IS_RAT:
+    case Theory::INT_IS_REAL:
+    case Theory::RAT_IS_RAT:
+    case Theory::RAT_IS_REAL:
+    case Theory::REAL_IS_RAT:
+    case Theory::REAL_IS_REAL:
+      return false;
+    default:;
+  }
+
   return true;
 }
 
@@ -167,6 +179,11 @@ bool TheoryInstAndSimp::isSupportedFunction(Theory::Interpretation itp) {
     case Theory::ARRAY_BOOL_SELECT:
     case Theory::ARRAY_SELECT:
     case Theory::ARRAY_STORE:
+    case Theory::INT_SUCCESSOR:
+    case Theory::INT_TO_INT:
+    case Theory::RAT_TO_RAT:
+    case Theory::REAL_TO_RAT:
+    case Theory::REAL_TO_REAL:
       return false;
     default: return true;
   }

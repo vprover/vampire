@@ -43,7 +43,7 @@ void DIMACS::outputGroundedProblem(MapToLIFO<Clause*, SATClause*>& insts,
   out<<"p cnf "<<maxVar<<"  "<<cnt<<endl;
 
   BinaryHeap<int, Int> vnums;
-  DHMap<int, Literal*, IdentityHash> vasgn;
+  DHMap<int, Literal*, IdentityHash, Hash> vasgn;
   vasgn.loadFromInverted(nctx.map);
 
   MapToLIFO<Clause*, SATClause*>::KeyIterator cls(insts);

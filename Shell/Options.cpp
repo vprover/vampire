@@ -82,14 +82,11 @@ void Options::init()
 #if VDEBUG
                                        1000
 #else
-                                       3000
+                                       128000
 #endif
                                        );
     _memoryLimit.description="Memory limit in MB";
     _lookup.insert(&_memoryLimit);
-#if !__APPLE__ && !__CYGWIN__
-    _memoryLimit.addHardConstraint(lessThanEq((unsigned)Lib::System::getSystemMemory()));
-#endif
 
 #ifdef __linux__
   _instructionLimit = UnsignedOptionValue("instruction_limit","i",0);
@@ -1311,6 +1308,13 @@ void Options::init()
     _maxInductionGenSubsetSize.addHardConstraint(lessThan(10u));
     _lookup.insert(&_maxInductionGenSubsetSize);
 
+    _inductionStrengthenHypothesis = BoolOptionValue("induction_strengthen_hypothesis","indstrhyp",false);
+    _inductionStrengthenHypothesis.description = "Strengthen induction formulas with the remaining skolem constants"
+                                                  " replaced with universally quantified variables in hypotheses";
+    _inductionStrengthenHypothesis.tag(OptionTag::INFERENCES);
+    _inductionStrengthenHypothesis.reliesOn(_induction.is(notEqual(Induction::NONE)));
+    _lookup.insert(&_inductionStrengthenHypothesis);
+
     _inductionOnComplexTerms = BoolOptionValue("induction_on_complex_terms","indoct",false);
     _inductionOnComplexTerms.description = "Apply induction on complex (ground) terms vs. only on constants";
     _inductionOnComplexTerms.tag(OptionTag::INFERENCES);
@@ -1585,7 +1589,7 @@ void Options::init()
     _lookup.insert(&_unitResultingResolution);
     _unitResultingResolution.tag(OptionTag::INFERENCES);
     _unitResultingResolution.reliesOn(InferencingSaturationAlgorithm());
-    _unitResultingResolution.addProblemConstraint(hasPredicates());
+    _unitResultingResolution.addProblemConstraint(notJustEquality());
     // If br has already been set off then this will be forced on, if br has not yet been set
     // then setting this to off will force br on
     _unitResultingResolution.setRandomChoices(And(isRandSat(),saNotInstGen(),Or(hasEquality(),hasCat(Property::HNE))),{"on","off"});
@@ -2002,13 +2006,14 @@ void Options::init()
     _splittingFlushQuotient.reliesOn(_splitting.is(equal(true)));
     _splittingFlushQuotient.setRandomChoices({"1.0","1.1","1.2","1.4","2.0"});
 
-    _splittingAvatimer = FloatOptionValue("avatar_turn_off_time_frac","atotf",0.0);
-    _splittingAvatimer.description= "Stop splitting after the specified fraction of the overall time has passed (the default 0.0 means this is disabled).\n"
+    _splittingAvatimer = FloatOptionValue("avatar_turn_off_time_frac","atotf",1.0);
+    _splittingAvatimer.description= "Stop splitting after the specified fraction of the overall time has passed (the default 1.0 means AVATAR runs until the end).\n"
         "(the remaining time AVATAR is still switching branches and communicating with the SAT solver,\n"
         "but not introducing new splits anymore. This fights the theoretical possibility of AVATAR's dynamic incompletness.)";
     _lookup.insert(&_splittingAvatimer);
     _splittingAvatimer.tag(OptionTag::AVATAR);
-    _splittingAvatimer.addConstraint(smallerThan(1.0f));
+    _splittingAvatimer.addConstraint(greaterThan(0.0f)); //if you want to stop splitting right-away, just turn AVATAR off
+    _splittingAvatimer.addConstraint(smallerThanEq(1.0f));
     _splittingAvatimer.reliesOn(_splitting.is(equal(true)));
     _splittingAvatimer.setRandomChoices({"0.0","0.5","0.7","0.9"});
 
@@ -2086,7 +2091,7 @@ void Options::init()
     _literalComparisonMode.reliesOn(InferencingSaturationAlgorithm());
     _literalComparisonMode.tag(OptionTag::SATURATION);
     _literalComparisonMode.addProblemConstraint(hasNonUnits());
-    _literalComparisonMode.addProblemConstraint(hasPredicates());
+    _literalComparisonMode.addProblemConstraint(notJustEquality());
     // TODO: if sat then should not use reverse
     _literalComparisonMode.setRandomChoices({"predicate","reverse","standard"});
 
