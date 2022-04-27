@@ -704,7 +704,6 @@ void Splitter::init(SaturationAlgorithm* sa)
 
   if (opts.splittingAvatimer() < 1.0) {
     _stopSplittingAtTime = opts.splittingAvatimer() * opts.timeLimitInDeciseconds() * 100;
-    _stopSplittingAtInst = 0;
 #ifdef __linux__
     _stopSplittingAtInst = opts.splittingAvatimer() * opts.instructionLimit();
 #endif
