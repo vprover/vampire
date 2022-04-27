@@ -1869,7 +1869,7 @@ void Options::init()
     _splitting = BoolOptionValue("avatar","av",true);
     _splitting.description="Use AVATAR splitting.";
     _lookup.insert(&_splitting);
-    _splitting.addConstraint(If(equal(true)).then(ProperSaturationAlgorithm()));
+    _splitting.reliesOn(ProperSaturationAlgorithm());
     _splitting.tag(OptionTag::AVATAR);
     //_splitting.addProblemConstraint(hasNonUnits());
     _splitting.setRandomChoices({"on","off"}); //TODO change balance?
