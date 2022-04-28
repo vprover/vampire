@@ -51,7 +51,9 @@ TEST_FUN(int_bounds)
 
 TEST_FUN(default_dependence)
 {
-  ASS(testOptionBad("saturation_algorithm","inst_gen"));
+  // we shouldn't just be able to set thigen to true, 
+  // since it does no make sense, unless theory_instantiation is something else than the (default) off
+  ASS(testOptionBad("theory_instantiation_generalisation","true"));
 }
 
 TEST_FUN(urr)
