@@ -15,21 +15,22 @@
 
 #include "Portability.hpp"
 
-#include <cstdlib>
-#  include <unistd.h>
-#  if !__APPLE__ && !__CYGWIN__
-#    include <sys/prctl.h>
-#  endif
-
-#include <dirent.h>
-
-#include <cerrno>
 #include <csignal>
-#include <cstdio>
 #include <cstdlib>
 #include <iostream>
 #include <fstream>
 #include <thread>
+
+// TODO these should probably be guarded
+// for getpid(), _exit()
+#include <unistd.h>
+// for listing directory items
+// C++17: use std::filesystem
+#include <dirent.h>
+
+#ifdef __linux__
+#include <sys/prctl.h>
+#endif
 
 #include "Debug/Tracer.hpp"
 
@@ -46,19 +47,6 @@
 
 #include "System.hpp"
 
-#include <unistd.h>
-
-long long Lib::System::getSystemMemory()
-{
-#if __APPLE__ || __CYGWIN__
-  NOT_IMPLEMENTED;
-#else
-  long pages = sysconf(_SC_PHYS_PAGES);
-  long page_size = sysconf(_SC_PAGE_SIZE);
-  return static_cast<long long>(pages) * page_size;
-#endif
-}
-
 unsigned Lib::System::getNumberOfCores()
 {
   return std::thread::hardware_concurrency();
@@ -72,15 +60,6 @@ using namespace Shell;
 bool System::s_shouldIgnoreSIGINT = false;
 bool System::s_shouldIgnoreSIGHUP = false;
 const char* System::s_argv0 = 0;
-
-///**
-// * Reimplements the system gethostname function.
-// * @since 31/03/2005 Torrevieja
-// */
-//void System::gethostname(char* hostname,int maxlength)
-//{
-//  ::gethostname(hostname,maxlength);
-//}
 
 const char* signalToString (int sigNum)
 {
@@ -316,28 +295,9 @@ void System::terminateImmediately(int resultStatus)
  */
 void System::registerForSIGHUPOnParentDeath()
 {
-#if __APPLE__ || __CYGWIN__
-  // cerr<<"Death of parent process not being handled on Mac and Windows"<<endl;
-  // NOT_IMPLEMENTED;
-#else
+#ifdef __linux__
   prctl(PR_SET_PDEATHSIG, SIGHUP);
 #endif
-}
-
-/**
- * Read command line arguments into @c res and register the executable name
- * (0-th element of @c argv) using the @c registerArgv0() function.
- */
-void System::readCmdArgs(int argc, char* argv[], StringStack& res)
-{
-  CALL("System::readCmdArgs");
-  ASS_GE(argc,1);
-  ASS(res.isEmpty()); //just to avoid any confusion, if it causes problems, the assumption can be removed
-
-  registerArgv0(argv[0]);
-  for(int i=1; i<argc; i++) {
-    res.push(argv[i]);
-  }
 }
 
 vstring System::extractFileNameFromPath(vstring str)
@@ -396,24 +356,6 @@ vstring System::guessExecutableDirectory()
   return ".";
 }
 
-/**
- * Guess the current executable file.
- *
- * Guessing means that the returned file path might not be correct.
- */
-vstring System::guessExecutableName()
-{
-  CALL("System::guessExecutableName");
-
-  vstring res;
-
-  if(s_argv0) {
-    return s_argv0;
-  }
-
-  return "./vampire";
-}
-
 pid_t System::getPID()
 {
   CALL("System::getPID");
@@ -421,6 +363,7 @@ pid_t System::getPID()
   return getpid();
 }
 
+// C++17: use std::filesystem
 void System::readDir(vstring dirName, Stack<vstring>& filenames)
 {
   CALL("System::readDir");

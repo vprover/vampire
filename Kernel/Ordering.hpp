@@ -110,30 +110,6 @@ protected:
   Result compareEqualities(Literal* eq1, Literal* eq2) const;
 
 private:
-
-  enum ArgumentOrderVals {
-    /**
-     * Values representing order of arguments in equality,
-     * to be stores in the term sharing structure.
-     *
-     * The important thing is that the UNKNOWN value is
-     * equal to 0, as this will be the default value inside
-     * the term objects
-     *
-     * Values of elements must be equal to values of corresponding elements
-     * in the @c Result enum, so that one can convert between the
-     * enums using static_cast.
-     */
-    AO_UNKNOWN=0,
-    AO_GREATER=1,
-    AO_LESS=2,
-    AO_GREATER_EQ=3,
-    AO_LESS_EQ=4,
-    AO_EQUAL=5,
-    AO_INCOMPARABLE=6
-  };
-
-
   void createEqualityComparator();
   void destroyEqualityComparator();
 

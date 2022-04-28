@@ -673,7 +673,6 @@ void CLTBProblem::searchForProof(int terminationTime,int timeLimit,const Categor
   // special reporting in Timer.cpp
   UIHelper::portfolioParent = true;
 
-  env.timer->makeChildrenIncluded();
   TimeCounter::reinitialize();
 
   env.options->setInputFile(problemFile);

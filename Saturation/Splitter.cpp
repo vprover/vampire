@@ -702,10 +702,16 @@ void Splitter::init(SaturationAlgorithm* sa)
   hasSMTSolver = (opts.satSolver() == Options::SatSolver::Z3);
 #endif
 
-  if (opts.splittingAvatimer() > 0.0) {
-    _stopSplittingAt = opts.splittingAvatimer() * opts.timeLimitInDeciseconds() * 100;
+  if (opts.splittingAvatimer() < 1.0) {
+    _stopSplittingAtTime = opts.splittingAvatimer() * opts.timeLimitInDeciseconds() * 100;
+#ifdef __linux__
+    _stopSplittingAtInst = opts.splittingAvatimer() * opts.instructionLimit();
+#endif
   } else {
-    _stopSplittingAt = 0;
+    _stopSplittingAtTime = 0;
+#ifdef __linux__
+    _stopSplittingAtInst = 0;
+#endif
   }
 
   _fastRestart = opts.splittingFastRestart();
@@ -1093,7 +1099,11 @@ bool Splitter::doSplitting(Clause* cl)
   if (hasStopped) {
     return false;
   }
-  if (_stopSplittingAt && (unsigned)env.timer->elapsedMilliseconds() >= _stopSplittingAt) {
+  if (_stopSplittingAtTime && (unsigned)env.timer->elapsedMilliseconds() >= _stopSplittingAtTime
+#ifdef __linux__
+    || _stopSplittingAtInst && env.timer->elapsedMegaInstructions() >= _stopSplittingAtInst
+#endif
+    ) {
     if (_showSplitting) {
       env.beginOutput();
       env.out() << "[AVATAR] Stopping the splitting process."<< std::endl;

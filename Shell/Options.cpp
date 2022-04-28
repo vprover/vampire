@@ -412,11 +412,14 @@ void Options::init()
     _equalityProxy.addProblemConstraint(hasEquality());
     _equalityProxy.addProblemConstraint(onlyFirstOrder());
     _equalityProxy.addHardConstraint(If(notEqual(EqualityProxy::OFF)).then(_combinatorySuperposition.is(notEqual(true))));
+    _equalityProxy.addHardConstraint(If(notEqual(EqualityProxy::OFF)).then(Or(_useMonoEqualityProxy.is(equal(true)),
+                                                        _saturationAlgorithm.is(notEqual(SaturationAlgorithm::INST_GEN)))));      
     _equalityProxy.setRandomChoices(isRandOn(),{"R","RS","RST","RSTC","off","off","off","off","off"}); // wasn't tested, make off more likely
     
     _useMonoEqualityProxy = BoolOptionValue("mono_ep","mep",false);
     _useMonoEqualityProxy.description="Use the monomorphic version of equality proxy transformation.";
     _lookup.insert(&_useMonoEqualityProxy);
+    _useMonoEqualityProxy.reliesOn(_equalityProxy.is(notEqual(EqualityProxy::OFF)));
     _useMonoEqualityProxy.tag(OptionTag::PREPROCESSING);
 
     _equalityResolutionWithDeletion = BoolOptionValue("equality_resolution_with_deletion","erd",true);
@@ -1875,7 +1878,7 @@ void Options::init()
     _splitting = BoolOptionValue("avatar","av",true);
     _splitting.description="Use AVATAR splitting.";
     _lookup.insert(&_splitting);
-    _splitting.addConstraint(If(equal(true)).then(ProperSaturationAlgorithm()));
+    _splitting.reliesOn(ProperSaturationAlgorithm());
     _splitting.tag(OptionTag::AVATAR);
     //_splitting.addProblemConstraint(hasNonUnits());
     _splitting.setRandomChoices({"on","off"}); //TODO change balance?
@@ -1989,13 +1992,14 @@ void Options::init()
     _splittingFlushQuotient.reliesOn(_splitting.is(equal(true)));
     _splittingFlushQuotient.setRandomChoices({"1.0","1.1","1.2","1.4","2.0"});
 
-    _splittingAvatimer = FloatOptionValue("avatar_turn_off_time_frac","atotf",0.0);
-    _splittingAvatimer.description= "Stop splitting after the specified fraction of the overall time has passed (the default 0.0 means this is disabled).\n"
+    _splittingAvatimer = FloatOptionValue("avatar_turn_off_time_frac","atotf",1.0);
+    _splittingAvatimer.description= "Stop splitting after the specified fraction of the overall time has passed (the default 1.0 means AVATAR runs until the end).\n"
         "(the remaining time AVATAR is still switching branches and communicating with the SAT solver,\n"
         "but not introducing new splits anymore. This fights the theoretical possibility of AVATAR's dynamic incompletness.)";
     _lookup.insert(&_splittingAvatimer);
     _splittingAvatimer.tag(OptionTag::AVATAR);
-    _splittingAvatimer.addConstraint(smallerThan(1.0f));
+    _splittingAvatimer.addConstraint(greaterThan(0.0f)); //if you want to stop splitting right-away, just turn AVATAR off
+    _splittingAvatimer.addConstraint(smallerThanEq(1.0f));
     _splittingAvatimer.reliesOn(_splitting.is(equal(true)));
     _splittingAvatimer.setRandomChoices({"0.0","0.5","0.7","0.9"});
 

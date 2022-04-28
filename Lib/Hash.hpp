@@ -226,7 +226,7 @@ public:
     CALL("Hash::hash(const unsigned char *, size_t, unsigned)");
     ASS(size > 0);
 
-    for (int i = 0; i < size; i++) {
+    for (size_t i = 0; i < size; i++) {
       hash = (hash ^ val[i]) * FNV32_PRIME;
     }
     return hash;
