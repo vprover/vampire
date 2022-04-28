@@ -121,14 +121,14 @@ public:
     struct Hash1
     {
      static unsigned hash(VarSpec& o) {
-       return HashUtils::combine(Hash::hash(o.var), Hash::hash(o.index));
+       return HashUtils::combine(o.var, o.index);
      }
     };
     /** struct containing second hash function for DHMap object storing variable banks */
     struct Hash2
     {
       static unsigned hash(VarSpec& o) {
-        return o.var;
+        return HashUtils::combine(o.index, o.var);
       }
     };
   };
