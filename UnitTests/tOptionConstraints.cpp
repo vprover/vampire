@@ -51,9 +51,9 @@ TEST_FUN(int_bounds)
 
 TEST_FUN(default_dependence)
 {
-  // we shouldn't just be able to set thigen to true, 
-  // since it does no make sense, unless theory_instantiation is something else than the (default) off
-  ASS(testOptionBad("theory_instantiation_generalisation","true"));
+  // we shouldn't just be able to set extensionality_allow_pos_eq to true,
+  // since it does no make sense, unless extensionality_resolution is something else than the (default) off
+  ASS(testOptionBad("extensionality_allow_pos_eq","true"));
 }
 
 TEST_FUN(urr)

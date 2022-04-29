@@ -125,12 +125,16 @@ bool EqResWithDeletion::scan(Literal* lit)
     TermList t1=*lit->nthArgument(1);
     if( t0.isVar() && !t1.containsSubterm(t0) ) {
       if(_subst.insert(t0.var(), t1)) {
-	return true;
+
+        cout << "i: " << t0.toString() << "->" << t1.toString() << endl;
+        return true;
       }
     }
     if( t1.isVar() && !t0.containsSubterm(t1) ) {
       if(_subst.insert(t1.var(), t0)) {
-	return true;
+
+        cout << "i: " << t1.toString() << "->" << t0.toString() << endl;
+        return true;
       }
     }
   }

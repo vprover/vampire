@@ -120,12 +120,16 @@ public:
     /** struct containing first hash function for DHMap object storing variable banks */
     struct Hash1
     {
-     static unsigned hash(VarSpec& o, int capacity);
+     static unsigned hash(VarSpec& o) {
+       return HashUtils::combine(o.var, o.index);
+     }
     };
     /** struct containing second hash function for DHMap object storing variable banks */
     struct Hash2
     {
-      static unsigned hash(VarSpec& o);
+      static unsigned hash(VarSpec& o) {
+        return HashUtils::combine(o.index, o.var);
+      }
     };
   };
   /** Specifies an instance of a term (i.e. (term, variable bank) pair */
@@ -299,19 +303,6 @@ ostream& operator<< (ostream& out, RobSubstitution::TermSpec vs );
 #endif
 
 
-};
-
-
-namespace Lib
-{
-/**
- * Traits structure specialisation. (See DHMap.hpp)
- */
-template<>
-struct HashTraits<Kernel::RobSubstitution::VarSpec::Hash1>
-{
-  enum {SINGLE_PARAM_HASH=0};
-};
 };
 
 #endif /*__RobSubstitution__*/

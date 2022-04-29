@@ -60,9 +60,9 @@
 #include "Monotonicity.hpp"
 #include "FiniteModelBuilder.hpp"
 
-#define VTRACE_FMB 0
+#define VTRACE_FMB 1
 
-#define VTRACE_DOMAINS 0
+#define VTRACE_DOMAINS 1
 
 #define LOG(X) // cout << #X <<  X << endl;
 
@@ -568,7 +568,7 @@ void FiniteModelBuilder::init()
     Renaming n;
     Clause* c = it.next();
 
-    //cout << "Normalize " << c->toString() <<endl;
+    cout << "Normalize " << c->toString() <<endl;
     for(unsigned i=0;i<c->length();i++){
       Literal* l = (*c)[i];
       n.normalizeVariables(l);
