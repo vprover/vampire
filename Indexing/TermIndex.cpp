@@ -201,6 +201,8 @@ void InductionTermIndex::handleClause(Clause* c, bool adding)
         while (it.hasNext()) {
           TermList tl = it.next();
           if (!tl.term()) continue;
+          // TODO: each term (and its subterms) should be processed
+          // only once per literal, see DemodulationSubtermIndex
           if (InductionHelper::isInductionTermFunctor(tl.term()->functor()) &&
               InductionHelper::isIntInductionTermListInLiteral(tl, lit)) {
             if (adding) {

@@ -40,8 +40,6 @@ namespace Inferences
 using namespace Kernel;
 using namespace Saturation;
 
-using ClauseToLiteralMap = vunordered_map<Clause*, LiteralStack>;
-
 Term* getPlaceholderForTerm(Term* t);
 
 class TermReplacement : public TermTransformer {
@@ -95,7 +93,14 @@ struct InductionContext {
   }
 
   Term* _indTerm = nullptr;
-  ClauseToLiteralMap _cls;
+  // One could induct on all literals of a clause, but if a literal
+  // doesn't contain the induction term, it just introduces a couple
+  // of tautologies and duplicate literals (a hypothesis clause will
+  // be of the form ~L v L v C, other clauses L v L v C). So instead,
+  // we only store the literals we actually induct on. An alternative
+  // would be storing indices but then we need to pass around the
+  // clause as well.
+  vunordered_map<Clause*, LiteralStack> _cls;
 private:
   Formula* getFormula(TermReplacement& tr, bool opposite) const;
 };
