@@ -26,11 +26,6 @@
 
 
 
-// TODO:
-// Once this works, make a separate version 'matchsat',
-// which keeps an array of matches as well.
-// (see my notes on SAT+CSP)
-
 namespace subsat {
 
 void print_config(std::ostream& os);

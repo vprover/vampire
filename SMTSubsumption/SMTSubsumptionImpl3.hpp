@@ -69,10 +69,10 @@ class SMTSubsumptionImpl3
       // (later converted to indices via computing the running sum)
       vvector<uint32_t> inst_match_count;
       bool done = false;
-      #ifndef NDEBUG
+#ifndef NDEBUG
       Kernel::Clause* base = nullptr;
       Kernel::Clause* inst = nullptr;
-      #endif
+#endif
 
       MatchCache() {
         bli.reserve(8);
@@ -86,10 +86,10 @@ class SMTSubsumptionImpl3
         zero_match_header = std::numeric_limits<uint32_t>::max();
         inst_match_count.clear();
         done = false;
-      #ifndef NDEBUG
+#ifndef NDEBUG
         base = nullptr;
         inst = nullptr;
-      #endif
+#endif
       }
 
       bool empty() {

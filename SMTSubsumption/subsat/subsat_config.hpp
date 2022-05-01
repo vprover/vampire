@@ -93,7 +93,7 @@ static_assert(VDEBUG == 1, "VDEBUG and NDEBUG are not synchronized");
 #endif
 
 // Variable bumping (to update the decision heuristic)
-// Disable this gives us a static variable order
+// Disabling this gives us a static variable order
 // TODO: implement and test this option (together with restarts)
 #ifndef SUBSAT_VMTF_BUMP
 #define SUBSAT_VMTF_BUMP 1
