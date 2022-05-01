@@ -210,14 +210,52 @@ struct Watch final {
     : clause_ref{cr}
   { }
 
-  // TODO: if blocking literal is invalid, then we have a binary clause, and clause_ref actually stores the other literal? does that work?
-  Lit blocking = Lit::invalid();
-
-  // TODO: optimizations: binary clause, blocking literal
+  // TODO: optimizations: blocking literal, virtual binary clauses
   //       (although kitten doesn't seem to do either of those)
+  //       (note that neither of those will change setup costs since we already defer watchlist construction until solving starts)
   ConstraintRef clause_ref;
 };
 static_assert(std::is_trivially_destructible<Watch>::value, "");
+
+/*
+/// A watch stores a blocking literal and a reference to the constraint.
+///
+/// For virtual binary clauses (where binary clauses are only stored in the watchlists),
+/// the binary clause's other literal is the blocking literal while the
+/// cosntraint reference will be an invalid reference.
+class Watch final {
+#if SUBSAT_BLOCKING
+  Lit blocking_lit = Lit::invalid();
+#endif
+  ConstraintRef constraint;
+
+  constexpr Watch(Lit blocking, ConstraintRef c) noexcept
+    : blocking_lit{blocking}, constraint{c}
+  { }
+
+public:
+#if SUBSAT_VIRTUAL
+  bool is_binary() noexcept {
+    return constraint.is_valid();
+  }
+
+  static Watch mk_binary(Lit other) noexcept {
+    return Watch(other, ConstraintRef::invalid());
+  }
+#endif
+
+  static Watch mk_long(Lit blocking, ConstraintRef c) noexcept {
+    return Watch(blocking, c);
+  }
+
+#if SUBSAT_BLOCKING
+  Lit get_blocking_lit() noexcept {
+    return blocking_lit;
+  }
+#endif
+};
+static_assert(std::is_trivially_destructible<Watch>::value, "");
+*/
 
 
 using Mark = signed char;

@@ -75,9 +75,26 @@ static_assert(VDEBUG == 1, "VDEBUG and NDEBUG are not synchronized");
 #define SUBSAT_MINIMIZE 0
 #endif
 
+// Blocking literal optimization
+// Stores the other watched literal in the watch lists, saves some dereferencing during solving at the cost of increased watch size.
+#ifndef SUBSAT_BLOCKING
+#define SUBSAT_BLOCKING 0
+#endif
+#if SUBSAT_BLOCKING
+#error "SUBSAT_BLOCKING not yet implemented"
+#endif
+
 // Binary clauses are 'virtual', meaning they're embedded in the watchlists and not stored at all outside.
+// Requires SUBSAT_BLOCKING.
 #ifndef SUBSAT_VIRTUAL
-#define SUBSAT_VIRTUAL 1
+#define SUBSAT_VIRTUAL 0
+#endif
+#if SUBSAT_VIRTUAL
+#error "SUBSAT_VIRTUAL not yet implemented"
+#endif
+
+#if SUBSAT_VIRTUAL && !SUBSAT_BLOCKING
+#error "SUBSAT_VIRTUAL requires SUBSAT_BLOCKING"
 #endif
 
 // VDOM (variable domain size) decision heuristic
