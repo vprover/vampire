@@ -1468,12 +1468,6 @@ void SaturationAlgorithm::addBackwardSimplifierToFront(BackwardSimplificationEng
   bwSimplifier->attach(this);
 }
 
-static void bailOutIfPolyOrHO() {
-  if(env.property->hasPolymorphicSym() || env.property->higherOrder()){
-    USER_ERROR("Theory reasoning is currently not compatible with polymorphism or higher-order constructs");       
-  }
-}
-
 /**
  * @since 05/05/2013 Manchester, splitting changed to new values
  * @author Andrei Voronkov
@@ -1604,30 +1598,26 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
   auto& ordering = res->getOrdering();
 
   if (opt.evaluationMode() == Options::EvaluationMode::POLYNOMIAL_CAUTIOUS) {
-    bailOutIfPolyOrHO();
     sgi->push(new PolynomialEvaluation(ordering));
   }
 
   if (env.options->cancellation() == Options::ArithmeticSimplificationMode::CAUTIOUS) {
-    bailOutIfPolyOrHO();
     sgi->push(new Cancellation(ordering)); 
   }
 
   if (env.options->gaussianVariableElimination() == Options::ArithmeticSimplificationMode::CAUTIOUS) {
-    bailOutIfPolyOrHO();
     sgi->push(new LfpRule<GaussianVariableElimination>(GaussianVariableElimination())); 
   }
 
   if (env.options->arithmeticSubtermGeneralizations() == Options::ArithmeticSimplificationMode::CAUTIOUS) {
-    bailOutIfPolyOrHO();
     for (auto gen : allArithmeticSubtermGeneralizations())  {
       sgi->push(gen);
     }
   }
 
+
 #if VZ3
   if (opt.theoryInstAndSimp() != Shell::Options::TheoryInstSimp::OFF){
-    bailOutIfPolyOrHO();
     sgi->push(new TheoryInstAndSimp());
   }
 #endif
@@ -1805,29 +1795,24 @@ ImmediateSimplificationEngine* SaturationAlgorithm::createISE(Problem& prb, cons
   }
   if(prb.hasInterpretedOperations() || prb.hasNumerals()) {
     if (env.options->arithmeticSubtermGeneralizations() == Options::ArithmeticSimplificationMode::FORCE) {
-      bailOutIfPolyOrHO();
       for (auto gen : allArithmeticSubtermGeneralizations())  {
         res->addFront(&gen->asISE());
       }
     }
 
     if (env.options->gaussianVariableElimination() == Options::ArithmeticSimplificationMode::FORCE) {
-      bailOutIfPolyOrHO();
       res->addFront(&(new GaussianVariableElimination())->asISE()); 
     }
 
     if (env.options->cancellation() == Options::ArithmeticSimplificationMode::FORCE) {
-      bailOutIfPolyOrHO();
       res->addFront(&(new Cancellation(ordering))->asISE()); 
     }
 
     switch (env.options->evaluationMode()) {
       case Options::EvaluationMode::SIMPLE: 
-        bailOutIfPolyOrHO();  
         res->addFront(new InterpretedEvaluation(env.options->inequalityNormalization(), ordering));
         break;
       case Options::EvaluationMode::POLYNOMIAL_FORCE:
-        bailOutIfPolyOrHO();
         res->addFront(&(new PolynomialEvaluation(ordering))->asISE());
         break;
       case Options::EvaluationMode::POLYNOMIAL_CAUTIOUS:
@@ -1835,7 +1820,6 @@ ImmediateSimplificationEngine* SaturationAlgorithm::createISE(Problem& prb, cons
     }
 
     if (env.options->pushUnaryMinus()) {
-      bailOutIfPolyOrHO();
       res->addFront(new PushUnaryMinus()); 
     }
 

@@ -421,7 +421,6 @@ void Options::init()
     _lookup.insert(&_useMonoEqualityProxy);
     _useMonoEqualityProxy.reliesOn(_equalityProxy.is(notEqual(EqualityProxy::OFF)));
     _useMonoEqualityProxy.tag(OptionTag::PREPROCESSING);
-    _useMonoEqualityProxy.setExperimental(); // setting mep to off may trigger a host user errors on theory problems
 
     _equalityResolutionWithDeletion = BoolOptionValue("equality_resolution_with_deletion","erd",true);
     _equalityResolutionWithDeletion.description="Perform equality resolution with deletion.";
