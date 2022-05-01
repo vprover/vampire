@@ -210,6 +210,9 @@ struct Watch final {
     : clause_ref{cr}
   { }
 
+  // TODO: if blocking literal is invalid, then we have a binary clause, and clause_ref actually stores the other literal? does that work?
+  Lit blocking = Lit::invalid();
+
   // TODO: optimizations: binary clause, blocking literal
   //       (although kitten doesn't seem to do either of those)
   ConstraintRef clause_ref;

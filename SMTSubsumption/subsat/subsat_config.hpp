@@ -75,6 +75,11 @@ static_assert(VDEBUG == 1, "VDEBUG and NDEBUG are not synchronized");
 #define SUBSAT_MINIMIZE 0
 #endif
 
+// Binary clauses are 'virtual', meaning they're embedded in the watchlists and not stored at all outside.
+#ifndef SUBSAT_VIRTUAL
+#define SUBSAT_VIRTUAL 1
+#endif
+
 // VDOM (variable domain size) decision heuristic
 // ASSESSMENT: extremely valuable for hard subsumption instances!
 #ifndef SUBSAT_VDOM
