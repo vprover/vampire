@@ -2369,7 +2369,7 @@ bool Options::OptionHasValue::check(Property*p){
 bool Options::HasTheories::check(Property*p) {
   CALL("Options::HasTheories::check");
   // this is the condition used in Preprocess::preprocess guarding the addition of theory axioms
-  return (p->hasInterpretedOperations() || env.signature->hasTermAlgebras());
+  return (p->hasNumerals() || p->hasInterpretedOperations() || env.signature->hasTermAlgebras());
 }
 
 /**

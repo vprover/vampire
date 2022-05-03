@@ -50,8 +50,8 @@ PolynomialEvaluation::Result PolynomialEvaluation::simplifyLiteral(Literal* lit)
 {
   Stack<PolyNf> terms(lit->arity());
   auto anyChange = false;
-  for (unsigned i = 0; i < lit->arity(); i++) {
-    auto term = *lit->nthArgument(i);
+  for (unsigned i = 0; i < lit->numTermArguments(); i++) {
+    auto term = *lit->nthArgument(i + lit->numTypeArguments());
     auto norm = PolyNf::normalize(TypedTermList(term, SortHelper::getArgSort(lit, i)));
     auto ev = evaluate(norm);
     anyChange = anyChange || ev.isSome();
