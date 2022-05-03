@@ -412,11 +412,14 @@ void Options::init()
     _equalityProxy.addProblemConstraint(hasEquality());
     _equalityProxy.addProblemConstraint(onlyFirstOrder());
     _equalityProxy.addHardConstraint(If(notEqual(EqualityProxy::OFF)).then(_combinatorySuperposition.is(notEqual(true))));
+    _equalityProxy.addHardConstraint(If(notEqual(EqualityProxy::OFF)).then(Or(_useMonoEqualityProxy.is(equal(true)),
+                                                        _saturationAlgorithm.is(notEqual(SaturationAlgorithm::INST_GEN)))));      
     _equalityProxy.setRandomChoices(isRandOn(),{"R","RS","RST","RSTC","off","off","off","off","off"}); // wasn't tested, make off more likely
     
-    _useMonoEqualityProxy = BoolOptionValue("mono_ep","mep",false);
+    _useMonoEqualityProxy = BoolOptionValue("mono_ep","mep",true);
     _useMonoEqualityProxy.description="Use the monomorphic version of equality proxy transformation.";
     _lookup.insert(&_useMonoEqualityProxy);
+    _useMonoEqualityProxy.reliesOn(_equalityProxy.is(notEqual(EqualityProxy::OFF)));
     _useMonoEqualityProxy.tag(OptionTag::PREPROCESSING);
 
     _equalityResolutionWithDeletion = BoolOptionValue("equality_resolution_with_deletion","erd",true);
@@ -1892,7 +1895,7 @@ void Options::init()
     _splitting = BoolOptionValue("avatar","av",true);
     _splitting.description="Use AVATAR splitting.";
     _lookup.insert(&_splitting);
-    _splitting.addConstraint(If(equal(true)).then(ProperSaturationAlgorithm()));
+    _splitting.reliesOn(ProperSaturationAlgorithm());
     _splitting.tag(OptionTag::AVATAR);
     //_splitting.addProblemConstraint(hasNonUnits());
     _splitting.setRandomChoices({"on","off"}); //TODO change balance?
@@ -2393,7 +2396,7 @@ bool Options::OptionHasValue::check(Property*p){
 bool Options::HasTheories::check(Property*p) {
   CALL("Options::HasTheories::check");
   // this is the condition used in Preprocess::preprocess guarding the addition of theory axioms
-  return (p->hasInterpretedOperations() || env.signature->hasTermAlgebras());
+  return (p->hasNumerals() || p->hasInterpretedOperations() || env.signature->hasTermAlgebras());
 }
 
 /**

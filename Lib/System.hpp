@@ -18,12 +18,7 @@
 #define __System__
 
 #include "Forwards.hpp"
-
 #include "Array.hpp"
-#include "List.hpp"
-#include "Stack.hpp"
-#include "Portability.hpp"
-#include "VString.hpp"
 
 #define VAMP_RESULT_STATUS_SUCCESS 0
 #define VAMP_RESULT_STATUS_UNKNOWN 1
@@ -33,19 +28,13 @@
 
 namespace Lib {
 
-using namespace std;
-
-typedef void (*SignalHandler)(int);
-
 class System {
 public:
-//  static void gethostname(char* hostname,int maxlength);
   static void setSignalHandlers();
   static vstring extractFileNameFromPath(vstring str);
   static bool extractDirNameFromPath(vstring path, vstring& dir);
 
   static vstring guessExecutableDirectory();
-  static vstring guessExecutableName();
 
   static void ignoreSIGINT() { s_shouldIgnoreSIGINT=true; }
   static void heedSIGINT() { s_shouldIgnoreSIGINT=false; }
@@ -61,8 +50,6 @@ public:
 
   static void registerForSIGHUPOnParentDeath();
 
-  static void readCmdArgs(int argc, char* argv[], StringStack& res);
-
   /**
    * Collect filenames of all the files occurring in the given directory.
    * Recursive traverse subdirs.
@@ -74,11 +61,6 @@ public:
    * it can be later used to determine the executable directory
    */
   static void registerArgv0(const char* argv0) { s_argv0 = argv0; }
-
-  /**
-   * Return the size of system physical memory in bytes
-   */
-  static long long getSystemMemory();
 
   /**
    * Return number of CPU cores

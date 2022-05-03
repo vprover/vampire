@@ -1115,33 +1115,4 @@ ostream& operator<< (ostream& out, RobSubstitution::TermSpec ts )
 }
 
 #endif
-
-/**
- * First hash function for DHMap.
- */
-unsigned RobSubstitution::VarSpec::Hash1::hash(VarSpec& o, int capacity)
-{
-//  return o.var + o.index*(capacity>>1) + (o.index>>1)*(capacity>>3);
-//  return o.var^(o.var/capacity) + o.index*(capacity>>1) + (o.index>bv>2)*(capacity>>3);
-//This might work better
-
-  int res=(o.var%(capacity<<1) - capacity);
-  if(res<0)
-    //this turns x into -x-1
-    res = ~res;
-  if(o.index&1)
-    return static_cast<unsigned>(-res+capacity-o.index);
-  else
-    return static_cast<unsigned>(res);
-}
-
-/**
- * Second hash function for DHMap. It just uses the hash function from Lib::Hash
- */
-unsigned RobSubstitution::VarSpec::Hash2::hash(VarSpec& o)
-{
-  return Lib::Hash::hash(reinterpret_cast<const unsigned char*>(&o), sizeof(VarSpec));
-//  return o.var+o.index;
-}
-
 }

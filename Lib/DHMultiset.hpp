@@ -298,7 +298,7 @@ private:
     CALL("DHMultiset::findEntry");
     ASS(_capacity>_size+_deleted);
 
-    unsigned h1=computeHash<Hash1>(val, _capacity);
+    unsigned h1=Hash1::hash(val);
     int pos=h1%_capacity;
     Entry* res=&_entries[pos];
     if(res->isEmpty()) {
@@ -340,7 +340,7 @@ private:
     CALL("DHMultiset::findEntryToInsert");
     ASS(_capacity>_size+_deleted);
 
-    unsigned h1=computeHash<Hash1>(val, _capacity);
+    unsigned h1=Hash1::hash(val);
     int pos=h1%_capacity;
     Entry* res=&_entries[pos];
     if( (res->_info.multiplicity==0 && res->_info.collision==0) || res->_val==val) {
