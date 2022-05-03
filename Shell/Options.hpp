@@ -977,19 +977,28 @@ private:
         // For example, split_at_activation relies on splitting being on
         // These are defined for OptionValueConstraints and WrappedConstraints - see below for explanation
         void reliesOn(AbstractWrappedConstraintUP c){
-            _constraints.push(If(getNotDefault()).then(unwrap<T>(c)));
+            _constraints.push(If(hasBeenSet<T>()).then(unwrap<T>(c)));
         }
         void reliesOn(OptionValueConstraintUP<T> c){
+            _constraints.push(If(hasBeenSet<T>()).then(std::move(c)));
+        }
+
+        void reliesOnWhenNondef(AbstractWrappedConstraintUP c){
+            _constraints.push(If(getNotDefault()).then(unwrap<T>(c)));
+        }
+        void reliesOnWhenNondef(OptionValueConstraintUP<T> c){
             _constraints.push(If(getNotDefault()).then(std::move(c)));
         }
+
         virtual OptionValueConstraintUP<T> getNotDefault(){ return isNotDefault<T>(); }
+
         void reliesOnHard(AbstractWrappedConstraintUP c){
-            OptionValueConstraintUP<T> tc = If(getNotDefault()).then(unwrap<T>(c));
+            OptionValueConstraintUP<T> tc = If(hasBeenSet<T>()).then(unwrap<T>(c));
             tc->setHard();
             _constraints.push(std::move(tc));
         }
         void reliesOnHard(OptionValueConstraintUP<T> c){
-            OptionValueConstraintUP<T> tc = If(getNotDefault()).then(c);
+            OptionValueConstraintUP<T> tc = If(hasBeenSet<T>()).then(c);
             tc->setHard();
             _constraints.push(std::move(tc));
         }
@@ -1689,9 +1698,26 @@ bool _hard;
     }
 
     /**
+     * Option-(explicitly)-set constraint
+     */
+    template<typename T>
+    struct HasBeenSet : public OptionValueConstraint<T> {
+      HasBeenSet() {}
+
+        bool check(const OptionValue<T>& value) override {
+            return value.is_set;
+        }
+        vstring msg(const OptionValue<T>& value) override { return value.longName+"("+value.getStringOfActual()+") has been set";}
+    };
+    
+    template<typename T>
+    static OptionValueConstraintUP<T> hasBeenSet(){
+        return OptionValueConstraintUP<T>(new HasBeenSet<T>());
+    }
+
+    /**
      * Default Value constraints
      */
-    
     template<typename T>
     struct NotDefaultConstraint : public OptionValueConstraint<T> {
         NotDefaultConstraint() {}
