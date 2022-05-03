@@ -1649,7 +1649,12 @@ Clause* NewCNF::toClause(SPGenClause gc)
     properLiterals.push(l);
   }
 
-  Clause* clause = new(gc->size()) Clause(gc->size(),FormulaTransformation(InferenceRule::CLAUSIFY,_beingClausified));
+  Clause* clause;
+  if (_addParent) {
+    clause = new(gc->size()) Clause(gc->size(),FormulaTransformation(InferenceRule::CLAUSIFY,_beingClausified));
+  } else {
+    clause = new(gc->size()) Clause(gc->size(),NonspecificInference0(UnitInputType::AXIOM, InferenceRule::STRUCT_INDUCTION_AXIOM));
+  }
   for (int i = gc->size() - 1; i >= 0; i--) {
     (*clause)[i] = properLiterals[i];
   }

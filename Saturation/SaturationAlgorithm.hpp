@@ -122,6 +122,10 @@ public:
 
   Splitter* getSplitter() { return _splitter; }
 
+  List<ForwardSimplificationEngine*>* getForwardSimplifiers() const { return _fwSimplifiers; }
+  List<SimplificationEngine*>* getSimplifiers() const { return _simplifiers; }
+  ImmediateSimplificationEngine* getImmediateSimplifier() const { return _immediateSimplifier.ptr(); }
+
 protected:
   virtual void init();
   virtual MainLoopResult runImpl();

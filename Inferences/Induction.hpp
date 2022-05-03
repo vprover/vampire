@@ -181,9 +181,9 @@ class InductionClauseIterator
 public:
   // all the work happens in the constructor!
   InductionClauseIterator(Clause* premise, InductionHelper helper, const Options& opt,
-    TermIndex* structInductionTermIndex, InductionFormulaIndex& formulaIndex)
+    TermIndex* structInductionTermIndex, InductionFormulaIndex& formulaIndex, SaturationAlgorithm* salg)
       : _helper(helper), _opt(opt), _structInductionTermIndex(structInductionTermIndex),
-      _formulaIndex(formulaIndex)
+      _formulaIndex(formulaIndex), _salg(salg)
   {
     processClause(premise);
   }
@@ -221,6 +221,7 @@ private:
   const Options& _opt;
   TermIndex* _structInductionTermIndex;
   InductionFormulaIndex& _formulaIndex;
+  SaturationAlgorithm* _salg;
 };
 
 };

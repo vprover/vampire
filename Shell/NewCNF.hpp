@@ -61,15 +61,16 @@ namespace Shell {
 class NewCNF
 {
 public:
-  NewCNF(unsigned namingThreshold)
+  NewCNF(unsigned namingThreshold, bool addParent = true)
     : _namingThreshold(namingThreshold), _iteInliningThreshold((unsigned)ceil(log2(namingThreshold))),
-      _collectedVarSorts(false), _maxVar(0),_forInduction(false) {}
+      _addParent(addParent), _collectedVarSorts(false), _maxVar(0),_forInduction(false) {}
 
   void clausify(FormulaUnit* unit, Stack<Clause*>& output);
   void setForInduction(){ _forInduction=true; }
 private:
   unsigned _namingThreshold;
   unsigned _iteInliningThreshold;
+  bool _addParent;
 
   FormulaUnit* _beingClausified;
 

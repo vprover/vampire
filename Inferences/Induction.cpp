@@ -286,7 +286,7 @@ ClauseIterator Induction::generateClauses(Clause* premise)
   CALL("Induction::generateClauses");
 
   return pvi(InductionClauseIterator(premise, InductionHelper(_comparisonIndex, _inductionTermIndex), getOptions(),
-    _structInductionTermIndex, _formulaIndex));
+    _structInductionTermIndex, _formulaIndex, _salg));
 }
 
 void InductionClauseIterator::processClause(Clause* premise)
@@ -617,6 +617,88 @@ void InductionClauseIterator::processIntegerComparison(Clause* premise, Literal*
   }
 }
 
+// returns true iff the clause can be retained
+Clause* forwardSimplify(SaturationAlgorithm* salg, Clause* cl) {
+  auto ise = salg->getImmediateSimplifier();
+
+  Clause* simplCl = ise->simplify(cl);
+  if (simplCl != cl) {
+    return simplCl;
+  }
+
+  // ClauseIterator cIt=ise->simplifyMany(cl);
+  // if(cIt.hasNext()){
+  //   while(cIt.hasNext()){
+  //     Clause* simpedCl = cIt.next();
+  //     if(!splitSet){
+  //       splitSet = simpedCl->splits();
+  //     } else {
+  //       ASS(splitSet->isSubsetOf(simpedCl->splits()));
+  //       ASS(simpedCl->splits()->isSubsetOf(splitSet));
+  //     }
+  //     ASS(simpedCl != cl);
+  //     repStack.push(simpedCl);
+  //     addNewClause(simpedCl);
+  //   }
+  //   onClauseReduction(cl, repStack.begin(), repStack.size(), 0);
+  //   return 0;
+  // }
+
+
+  List<ForwardSimplificationEngine*>::Iterator fsit(salg->getForwardSimplifiers());
+  while (fsit.hasNext()) {
+    auto fse = fsit.next();
+    Clause* replacement = nullptr;
+    auto premises = ClauseIterator::getEmpty();
+
+    if (fse->perform(cl,replacement,premises)) {
+      // cout << *cl << " forward simplified";
+      if (replacement) {
+        bool hasSplits = false;
+        while (premises.hasNext()) {
+          if (!premises.next()->noSplits()) {
+            hasSplits = true;
+            break;
+          }
+        }
+        if (hasSplits) {
+          cout << "replacement has splits" << endl;
+          continue;
+        }
+        // cout << " with replacement " << *replacement << endl;
+        return replacement;
+      }
+      // cout << endl;
+      return nullptr;
+    }
+  }
+  return cl;
+
+  // static ClauseStack repStack;
+
+  // repStack.reset();
+  // List<SimplificationEngine*>::Iterator sit(salg->getForwardSimplifiers());
+
+  // while (sit.hasNext()) {
+  //   SimplificationEngine* se=sit.next();
+
+  //   {
+  //     ClauseIterator results = se->perform(cl);
+
+  //     if (results.hasNext()) {
+  //       while(results.hasNext()){
+  //         Clause* simpedCl = results.next();
+  //         ASS(simpedCl != cl);
+  //         repStack.push(simpedCl);
+  //         addNewClause(simpedCl);
+  //       }
+  //       onClauseReduction(cl, repStack.begin(), repStack.size(), 0);
+  //       return false;
+  //     }
+  //   }
+  // }
+}
+
 ClauseStack InductionClauseIterator::produceClauses(Formula* hypothesis, InferenceRule rule, const InductionContext& context)
 {
   CALL("InductionClauseIterator::produceClauses");
@@ -636,6 +718,19 @@ ClauseStack InductionClauseIterator::produceClauses(Formula* hypothesis, Inferen
     env.endOutput();
   }
   cnf.clausify(NNF::ennf(fu), hyp_clauses);
+  for (unsigned i = 0; i < hyp_clauses.size();) {
+    auto newCl = forwardSimplify(_salg, hyp_clauses[i]); 
+    if (!newCl) {
+      swap(hyp_clauses[i], hyp_clauses.top());
+      hyp_clauses.pop();
+      continue;
+    }
+    if (newCl == hyp_clauses[i]) {
+      i++;
+    } else {
+      hyp_clauses[i] = newCl;
+    }
+  }
 
   switch (rule) {
     case InferenceRule::STRUCT_INDUCTION_AXIOM:
