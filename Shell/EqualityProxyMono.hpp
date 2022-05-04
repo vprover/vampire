@@ -74,7 +74,7 @@ private:
   Literal* apply(Literal* lit);
   Literal* makeProxyLiteral(bool polarity, TermList arg0, TermList arg1, TermList sort);
 
-  bool haveProxyPredicate(unsigned sort) const;
+  bool haveProxyPredicate(TermList sort) const;
   unsigned getProxyPredicate(TermList sort);
   Clause* createEqProxyAxiom(const LiteralStack& literalIt);
 
@@ -82,11 +82,10 @@ private:
   Options::EqualityProxy _opt;
 
   /**
-   * Proxy predicate numbers for each sort. If element on at the position
-   * of a predicate is zero, it means the proxy predicate for that sort was not
-   * added yet.
+   * Proxy predicate numbers for each sort (which can be a complex term, even in mono - think arrays)
+   * but must be ground (and shared).
    */
-  static ZIArray<unsigned> s_proxyPredicates;
+  static DHMap<TermList,unsigned> s_proxyPredicates;
   /** equality proxy predicate sorts */
   static DHMap<unsigned,TermList> s_proxyPredicateSorts;
   /** array of proxy definitions E(x,y) <=> x = y  */
