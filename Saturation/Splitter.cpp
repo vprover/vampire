@@ -74,11 +74,13 @@ void SplittingBranchSelector::init()
       { BYPASSING_ALLOCATOR
         _solverIsSMT = true;
         _solver = new Z3Interfacing(_parent.getOptions(),_parent.satNaming(), /* unsat core */ false, _parent.getOptions().exportAvatarProblem());
+        /*
         if(_parent.getOptions().satFallbackForSMT()){
           // TODO make fallback minimizing?
           SATSolver* fallback = new MinisatInterfacing(_parent.getOptions(),true);
           _solver = new FallbackSolverWrapper(_solver.release(),fallback);
         } 
+        */
       }
       break;
 #endif
@@ -86,6 +88,7 @@ void SplittingBranchSelector::init()
       ASSERTION_VIOLATION_REP(_parent.getOptions().satSolver());
   }
 
+/*
   if (_parent.getOptions().splittingBufferedSolver()) {
     _solver = new BufferedSolver(_solver.release());
   }
@@ -101,6 +104,7 @@ void SplittingBranchSelector::init()
     default:
       ASSERTION_VIOLATION_REP(_parent.getOptions().splittingMinimizeModel());
   }
+*/
   _minSCO = _parent.getOptions().splittingMinimizeModel() == Options::SplittingMinimizeModel::SCO;
 
   if(_parent.getOptions().splittingCongruenceClosure() != Options::SplittingCongruenceClosure::OFF) {
@@ -151,6 +155,16 @@ void SplittingBranchSelector::considerPolarityAdvice(SATLiteral lit)
     break;
   }
 }
+
+/**
+ * The solver should try reasonably hard to satisfy @param lit
+ */
+void SplittingBranchSelector::followPolarityAdvice(SATLiteral lit)
+{
+  CALL("SplittingBranchSelector::followPolarityAdvice");
+  _assumptions.push(lit);
+}
+
 
 static Color colorFromPossiblyDeepFOConversion(SATClause* scl,Unit*& u)
 {
@@ -589,14 +603,31 @@ void SplittingBranchSelector::recomputeModel(SplitLevelStack& addedComps, SplitL
     if (randomize) {
       _solver->randomizeForNextAssignment(maxSatVar);
     }
-    stat = _solver->solve();
+    stat = _solver->solveUnderAssumptions(_assumptions);
   }
   if (stat == SATSolver::SATISFIABLE) {
     stat = processDPConflicts();
   }
-  if(stat == SATSolver::UNSATISFIABLE) {
+
+  while (stat == SATSolver::UNSATISFIABLE && _assumptions.isNonEmpty()) {
+    // TODO use unsat core to select an assumption to pop?
+    std::cout << "pop: " << _assumptions.pop() << std::endl;
+    TimeCounter tc1(TC_SAT_SOLVER);
+    if (randomize) {
+      _solver->randomizeForNextAssignment(maxSatVar);
+    }
+    stat = _solver->solveUnderAssumptions(_assumptions);
+    if (stat == SATSolver::SATISFIABLE)
+      std::cout << "recovered!" << std::endl;
+  }
+  if (stat == SATSolver::UNSATISFIABLE) {
+    ASS(_assumptions.isEmpty());
     handleSatRefutation(); // noreturn!
   }
+  if (stat == SATSolver::SATISFIABLE) {
+    stat = processDPConflicts();
+  }
+
   if(stat == SATSolver::UNKNOWN){
     env.statistics->smtReturnedUnknown=true;
     throw MainLoop::MainLoopFinishedException(Statistics::REFUTATION_NOT_FOUND);
@@ -1174,6 +1205,7 @@ bool Splitter::doSplitting(Clause* cl)
 
   splitClause->setInference(new FOConversionInference(scl));
 
+  _branchSelector.followPolarityAdvice(splitClause->literals()[0]);
   addSatClauseToSolver(splitClause, false);
 
   env.statistics->satSplits++;

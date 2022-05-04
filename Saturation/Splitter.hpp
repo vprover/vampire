@@ -71,6 +71,9 @@ _solver=0;
 
   void updateVarCnt();
   void considerPolarityAdvice(SATLiteral lit);
+  void followPolarityAdvice(SATLiteral lit);
+
+  void addSoftAssumption(SATLiteral lit);
 
   void addSatClauseToSolver(SATClause* cl, bool refutation);
   void recomputeModel(SplitLevelStack& addedComps, SplitLevelStack& removedComps, bool randomize = false);
@@ -99,7 +102,7 @@ private:
   Splitter& _parent;
 
   bool _solverIsSMT;
-  SATSolverSCP _solver;
+  ScopedPtr<SATSolverWithAssumptions> _solver;
   ScopedPtr<DecisionProcedure> _dp;
   // use a separate copy of the decision procedure for ccModel computations and fill it up only with equalities
   ScopedPtr<SimpleCongruenceClosure> _dpModel;
@@ -114,6 +117,8 @@ private:
    */
   ArraySet _trueInCCModel;
 
+  // list of assumptions used to implement, removed if found in an unsat core
+  SATLiteralStack _assumptions;
 #if VDEBUG
   unsigned lastCheckedVar;
 #endif
