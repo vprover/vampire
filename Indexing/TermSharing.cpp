@@ -84,7 +84,7 @@ void TermSharing::setPoly()
   //monomorphic problem
   _poly = env.property->higherOrder() ||
           env.property->hasPolymorphicSym() ||
-          env.options->equalityProxy() != Options::EqualityProxy::OFF ||
+          (env.options->equalityProxy() != Options::EqualityProxy::OFF && !env.options->useMonoEqualityProxy()) ||
           env.options->saturationAlgorithm() == Options::SaturationAlgorithm::INST_GEN;
 }
 
