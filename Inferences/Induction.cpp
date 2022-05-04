@@ -620,12 +620,21 @@ void InductionClauseIterator::processIntegerComparison(Clause* premise, Literal*
   }
 }
 
+bool containsConclusionLiterals(Clause* cl, const LiteralStack& concLits) {
+  for (const auto& lit : concLits) {
+    if (!cl->contains(lit)) {
+      return false;
+    }
+  }
+  return true;
+}
+
 // returns true iff the clause can be retained
-Clause* forwardSimplify(SaturationAlgorithm* salg, Clause* cl) {
+Clause* forwardSimplify(SaturationAlgorithm* salg, Clause* cl, const LiteralStack& concLits) {
   auto ise = salg->getImmediateSimplifier();
 
   Clause* simplCl = ise->simplify(cl);
-  if (simplCl != cl) {
+  if (simplCl != cl && (!simplCl || containsConclusionLiterals(simplCl, concLits))) {
     return simplCl;
   }
 
@@ -647,7 +656,6 @@ Clause* forwardSimplify(SaturationAlgorithm* salg, Clause* cl) {
   //   return 0;
   // }
 
-
   List<ForwardSimplificationEngine*>::Iterator fsit(salg->getForwardSimplifiers());
   while (fsit.hasNext()) {
     auto fse = fsit.next();
@@ -655,8 +663,7 @@ Clause* forwardSimplify(SaturationAlgorithm* salg, Clause* cl) {
     auto premises = ClauseIterator::getEmpty();
 
     if (fse->perform(cl,replacement,premises)) {
-      // cout << *cl << " forward simplified";
-      if (replacement) {
+      if (replacement && containsConclusionLiterals(replacement, concLits)) {
         bool hasSplits = false;
         while (premises.hasNext()) {
           if (!premises.next()->noSplits()) {
@@ -665,13 +672,10 @@ Clause* forwardSimplify(SaturationAlgorithm* salg, Clause* cl) {
           }
         }
         if (hasSplits) {
-          cout << "replacement has splits" << endl;
           continue;
         }
-        // cout << " with replacement " << *replacement << endl;
         return replacement;
       }
-      // cout << endl;
       return nullptr;
     }
   }
@@ -680,23 +684,21 @@ Clause* forwardSimplify(SaturationAlgorithm* salg, Clause* cl) {
   // static ClauseStack repStack;
 
   // repStack.reset();
-  // List<SimplificationEngine*>::Iterator sit(salg->getForwardSimplifiers());
+  // List<SimplificationEngine*>::Iterator sit(salg->getSimplifiers());
 
   // while (sit.hasNext()) {
   //   SimplificationEngine* se=sit.next();
+  //   ClauseIterator results = se->perform(cl);
 
-  //   {
-  //     ClauseIterator results = se->perform(cl);
-
-  //     if (results.hasNext()) {
-  //       while(results.hasNext()){
-  //         Clause* simpedCl = results.next();
-  //         ASS(simpedCl != cl);
-  //         repStack.push(simpedCl);
-  //         addNewClause(simpedCl);
+  //   if (results.hasNext()) {
+  //     bool good = true;
+  //     while(results.hasNext()){
+  //       Clause* simpedCl = results.next();
+  //       if (!containsConclusionLiterals(simpedCl, concLits)) {
+  //         good = false;
+  //         break;
   //       }
-  //       onClauseReduction(cl, repStack.begin(), repStack.size(), 0);
-  //       return false;
+  //       repStack.push(simpedCl);
   //     }
   //   }
   // }
@@ -723,16 +725,29 @@ void InductionClauseIterator::produceClauses(Formula* hypothesis, InferenceRule 
   cnf.clausify(NNF::ennf(fu), hyp_clauses);
   if (_opt.simplifyInductionClauses()) {
     for (unsigned i = 0; i < hyp_clauses.size();) {
-      auto newCl = forwardSimplify(_salg, hyp_clauses[i]); 
+      auto& cl = hyp_clauses[i];
+      LiteralStack concLits;
+      for (unsigned k = 0; k < cl->length(); k++) {
+        auto clit = SubstHelper::apply<Substitution>(Literal::complementaryLiteral((*cl)[k]), subst);
+        for (const auto& kv : context._cls) {
+          for (const auto& lit : kv.second) {
+            if (lit == clit) {
+              concLits.push((*cl)[k]);
+              break;
+            }
+          }
+        }
+      }
+      auto newCl = forwardSimplify(_salg, cl, concLits);
       if (!newCl) {
-        swap(hyp_clauses[i], hyp_clauses.top());
+        swap(cl, hyp_clauses.top());
         hyp_clauses.pop();
         continue;
       }
-      if (newCl == hyp_clauses[i]) {
+      if (newCl == cl) {
         i++;
       } else {
-        hyp_clauses[i] = newCl;
+        cl = newCl;
       }
     }
   }
