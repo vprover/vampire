@@ -539,7 +539,8 @@ void InductionClauseIterator::processLiteral(Clause* premise, Literal* lit)
                         _opt.structInduction() == Options::StructuralInductionKind::ALL;
       InductionFormulaIndex::Entry* e;
       // generate formulas and add them to index if not done already
-      if (_formulaIndex.findOrInsert(ctx, e)) {
+      auto mode = _opt.inductionFormulaGeneration();
+      if (mode == Options::InductionFormulaGeneration::NEW_RESOLVE || _formulaIndex.findOrInsert(ctx, e)) {
         if(one){
           performStructInductionOne(ctx,e);
         }
@@ -550,9 +551,11 @@ void InductionClauseIterator::processLiteral(Clause* premise, Literal* lit)
           performStructInductionThree(ctx,e);
         }
       }
-      // resolve the formulas with the premises
-      for (auto& kv : e->get()) {
-        resolveClauses(kv.first, ctx, kv.second);
+      if (mode == Options::InductionFormulaGeneration::RESOLVE) {
+        // resolve the formulas with the premises
+        for (auto& kv : e->get()) {
+          resolveClauses(kv.first, ctx, kv.second);
+        }
       }
     }
   }
@@ -699,7 +702,7 @@ Clause* forwardSimplify(SaturationAlgorithm* salg, Clause* cl) {
   // }
 }
 
-ClauseStack InductionClauseIterator::produceClauses(Formula* hypothesis, InferenceRule rule, const InductionContext& context)
+void InductionClauseIterator::produceClauses(Formula* hypothesis, InferenceRule rule, const InductionContext& context, InductionFormulaIndex::Entry* e, Substitution&& subst)
 {
   CALL("InductionClauseIterator::produceClauses");
   NewCNF cnf(0);
@@ -718,17 +721,19 @@ ClauseStack InductionClauseIterator::produceClauses(Formula* hypothesis, Inferen
     env.endOutput();
   }
   cnf.clausify(NNF::ennf(fu), hyp_clauses);
-  for (unsigned i = 0; i < hyp_clauses.size();) {
-    auto newCl = forwardSimplify(_salg, hyp_clauses[i]); 
-    if (!newCl) {
-      swap(hyp_clauses[i], hyp_clauses.top());
-      hyp_clauses.pop();
-      continue;
-    }
-    if (newCl == hyp_clauses[i]) {
-      i++;
-    } else {
-      hyp_clauses[i] = newCl;
+  if (_opt.simplifyInductionClauses()) {
+    for (unsigned i = 0; i < hyp_clauses.size();) {
+      auto newCl = forwardSimplify(_salg, hyp_clauses[i]); 
+      if (!newCl) {
+        swap(hyp_clauses[i], hyp_clauses.top());
+        hyp_clauses.pop();
+        continue;
+      }
+      if (newCl == hyp_clauses[i]) {
+        i++;
+      } else {
+        hyp_clauses[i] = newCl;
+      }
     }
   }
 
@@ -774,7 +779,23 @@ ClauseStack InductionClauseIterator::produceClauses(Formula* hypothesis, Inferen
       ;
   }
 
-  return hyp_clauses;
+  auto mode = _opt.inductionFormulaGeneration();
+  switch (mode) {
+    case Options::InductionFormulaGeneration::ONLY_GENERATE: {
+      while (hyp_clauses.isNonEmpty()) {
+        _clauses.push(hyp_clauses.pop());
+      }
+      break;
+    }
+    case Options::InductionFormulaGeneration::RESOLVE: {
+      e->add(std::move(hyp_clauses), std::move(subst));
+      break;
+    }
+    case Options::InductionFormulaGeneration::NEW_RESOLVE: {
+      resolveClauses(hyp_clauses, context, subst);
+      break;
+    }
+  }
 }
 
 // helper function to properly add bounds to integer induction contexts,
@@ -1118,8 +1139,7 @@ void InductionClauseIterator::performIntInduction(const InductionContext& contex
           : (increasing ? (hasBound2 ? InferenceRule::INT_FIN_UP_INDUCTION_AXIOM : InferenceRule::INT_INF_UP_INDUCTION_AXIOM)
                         : (hasBound2 ? InferenceRule::INT_FIN_DOWN_INDUCTION_AXIOM : InferenceRule::INT_INF_DOWN_INDUCTION_AXIOM));
 
-  auto cls = produceClauses(hyp, rule, context);
-  e->add(std::move(cls), std::move(subst));
+  produceClauses(hyp, rule, context, e, std::move(subst));
 }
 
 /**
@@ -1179,8 +1199,7 @@ void InductionClauseIterator::performStructInductionOne(const InductionContext& 
                             Formula::quantify(indPremise),
                             Formula::quantify(conclusion));
 
-  auto cls = produceClauses(hypothesis, InferenceRule::STRUCT_INDUCTION_AXIOM, context);
-  e->add(std::move(cls), std::move(subst));
+  produceClauses(hypothesis, InferenceRule::STRUCT_INDUCTION_AXIOM, context, e, std::move(subst));
 }
 
 /**
@@ -1255,8 +1274,7 @@ void InductionClauseIterator::performStructInductionTwo(const InductionContext& 
   FormulaList* orf = FormulaList::cons(exists,FormulaList::singleton(Formula::quantify(conclusion)));
   Formula* hypothesis = new JunctionFormula(Connective::OR,orf);
 
-  auto cls = produceClauses(hypothesis, InferenceRule::STRUCT_INDUCTION_AXIOM, context);
-  e->add(std::move(cls), std::move(subst));
+  produceClauses(hypothesis, InferenceRule::STRUCT_INDUCTION_AXIOM, context, e, std::move(subst));
 }
 
 /*
@@ -1361,8 +1379,7 @@ void InductionClauseIterator::performStructInductionThree(const InductionContext
   FormulaList* orf = FormulaList::cons(exists,FormulaList::singleton(Formula::quantify(conclusion)));
   Formula* hypothesis = new JunctionFormula(Connective::OR,orf);
 
-  auto cls = produceClauses(hypothesis, InferenceRule::STRUCT_INDUCTION_AXIOM, context);
-  e->add(std::move(cls), std::move(subst));
+  produceClauses(hypothesis, InferenceRule::STRUCT_INDUCTION_AXIOM, context, e, std::move(subst));
 }
 
 // Whether an induction formula is applicable (or has already been generated)

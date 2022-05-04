@@ -247,7 +247,11 @@ public:
     FINITE,
     BOTH
   };
-
+  enum class InductionFormulaGeneration : unsigned int {
+    ONLY_GENERATE,
+    RESOLVE,
+    NEW_RESOLVE,
+  };
 
   enum class PredicateSineLevels : unsigned int {
     NO,   // no means 1) the reverse of "on", 2) use with caution, it is predicted to be the worse value
@@ -2248,6 +2252,8 @@ public:
   bool inductionOnComplexTerms() const {return _inductionOnComplexTerms.actualValue;}
   bool integerInductionDefaultBound() const { return _integerInductionDefaultBound.actualValue; }
   IntegerInductionInterval integerInductionInterval() const { return _integerInductionInterval.actualValue; }
+  InductionFormulaGeneration inductionFormulaGeneration() const { return _inductionFormulaGeneration.actualValue; }
+  bool simplifyInductionClauses() const { return _simplifyInductionClauses.actualValue; }
   bool nonUnitInduction() const { return _nonUnitInduction.actualValue; }
 
   float instGenBigRestartRatio() const { return _instGenBigRestartRatio.actualValue; }
@@ -2547,6 +2553,8 @@ private:
   BoolOptionValue _inductionOnComplexTerms;
   BoolOptionValue _integerInductionDefaultBound;
   ChoiceOptionValue<IntegerInductionInterval> _integerInductionInterval;
+  ChoiceOptionValue<InductionFormulaGeneration> _inductionFormulaGeneration;
+  BoolOptionValue _simplifyInductionClauses;
   BoolOptionValue _nonUnitInduction;
 
   StringOptionValue _latexOutput;

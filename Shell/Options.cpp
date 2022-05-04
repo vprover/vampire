@@ -1314,6 +1314,21 @@ void Options::init()
     _integerInductionInterval.reliesOn(Or(_induction.is(equal(Induction::INTEGER)),_induction.is(equal(Induction::BOTH))));
     _lookup.insert(&_integerInductionInterval);
 
+    _inductionFormulaGeneration = ChoiceOptionValue<InductionFormulaGeneration>("inductio_formula_generation","indfg",
+                         InductionFormulaGeneration::RESOLVE,{"only_generate","resolve","new_resolve"});
+    _inductionFormulaGeneration.description="Set mode of induction formula generation\n - only_generate: generates a formula once and puts it into the search space\n"
+                                            "- resolve: generates a formula once and resolves it against the premises\n - new_resolve: generates formulas anew every time"
+                                            " and resolves it against the premises";
+    _inductionFormulaGeneration.tag(OptionTag::INFERENCES);
+    _inductionFormulaGeneration.reliesOn(Or(_induction.is(notEqual(Induction::NONE))));
+    _lookup.insert(&_inductionFormulaGeneration);
+
+    _simplifyInductionClauses = BoolOptionValue("simplify_induction_clauses","sic",false);
+    _simplifyInductionClauses.description = "Induction on certain clauses or clause sets instead of just unit clauses";
+    _simplifyInductionClauses.tag(OptionTag::INFERENCES);
+    _simplifyInductionClauses.reliesOn(_inductionFormulaGeneration.is(equal(InductionFormulaGeneration::RESOLVE)));
+    _lookup.insert(&_simplifyInductionClauses);
+
     _nonUnitInduction = BoolOptionValue("non_unit_induction","nui",false);
     _nonUnitInduction.description = "Induction on certain clauses or clause sets instead of just unit clauses";
     _nonUnitInduction.tag(OptionTag::INFERENCES);
