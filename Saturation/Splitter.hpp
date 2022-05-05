@@ -71,6 +71,9 @@ _solver=0;
 
   void updateVarCnt();
   void considerPolarityAdvice(SATLiteral lit);
+  void followPolarityAdvice(SATLiteral lit);
+
+  void addSoftAssumption(SATLiteral lit);
 
   void addSatClauseToSolver(SATClause* cl, bool refutation);
   void recomputeModel(SplitLevelStack& addedComps, SplitLevelStack& removedComps, bool randomize = false);
@@ -99,7 +102,7 @@ private:
   Splitter& _parent;
 
   bool _solverIsSMT;
-  SATSolverSCP _solver;
+  ScopedPtr<SATSolverWithAssumptions> _solver;
   ScopedPtr<DecisionProcedure> _dp;
   // use a separate copy of the decision procedure for ccModel computations and fill it up only with equalities
   ScopedPtr<SimpleCongruenceClosure> _dpModel;
@@ -114,6 +117,8 @@ private:
    */
   ArraySet _trueInCCModel;
 
+  // list of assumptions used to implement, removed if found in an unsat core
+  SATLiteralStack _assumptions;
 #if VDEBUG
   unsigned lastCheckedVar;
 #endif
@@ -187,7 +192,9 @@ public:
   
   void init(SaturationAlgorithm* sa);
 
-  bool doSplitting(Clause* cl);
+  bool doSplitting(Clause* cl, Stack<LiteralStack>* customComps = nullptr, vset<Clause*>* compCls = nullptr);
+  void followPolarityAdvice(SATLiteral lit);
+  bool adviceFollowed(SATLiteral lit);
 
   void onClauseReduction(Clause* cl, ClauseIterator premises, Clause* replacement);
   void onNewClause(Clause* cl);
@@ -288,6 +295,7 @@ private:
   unsigned _flushThreshold;
   /** true if there was a clause added to the SAT solver since last call to onAllProcessed */
   bool _clausesAdded;
+  bool _assumptionsAdded;
   /** true if there was a refutation added to the SAT solver */
   bool _haveBranchRefutation;
 

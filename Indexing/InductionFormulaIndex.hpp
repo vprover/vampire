@@ -25,6 +25,8 @@
 #include "Kernel/Clause.hpp"
 #include "Kernel/Substitution.hpp"
 
+#include "Shell/Options.hpp"
+
 namespace Inferences {
   struct InductionContext;
 }
@@ -64,7 +66,9 @@ public:
       // store is NONE and all their descendants are deleted
       // due to simplifications, so we change them to active.
       for (const auto& cl : cls) {
-        cl->setStore(Clause::ACTIVE);
+        if (!env.options->splitInductionClauses()) {
+          cl->setStore(Clause::ACTIVE);
+        }
       }
       _st.push(make_pair(cls, subst));
     }

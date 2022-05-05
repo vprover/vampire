@@ -723,33 +723,55 @@ void InductionClauseIterator::produceClauses(Formula* hypothesis, InferenceRule 
     env.endOutput();
   }
   cnf.clausify(NNF::ennf(fu), hyp_clauses);
-  if (_opt.simplifyInductionClauses()) {
-    for (unsigned i = 0; i < hyp_clauses.size();) {
-      auto& cl = hyp_clauses[i];
-      LiteralStack concLits;
-      for (unsigned k = 0; k < cl->length(); k++) {
-        auto clit = SubstHelper::apply<Substitution>(Literal::complementaryLiteral((*cl)[k]), subst);
-        for (const auto& kv : context._cls) {
-          for (const auto& lit : kv.second) {
-            if (lit == clit) {
-              concLits.push((*cl)[k]);
-              break;
-            }
+  auto splitter = _salg->getSplitter();
+  vset<Clause*> compCls;
+  for (unsigned i = 0; i < hyp_clauses.size();) {
+    auto& cl = hyp_clauses[i];
+    Stack<LiteralStack> compStack(2);
+    compStack.push(LiteralStack()); // conclusion lits
+    compStack.push(LiteralStack()); // rest
+    for (unsigned k = 0; k < cl->length(); k++) {
+      auto clit = SubstHelper::apply<Substitution>(Literal::complementaryLiteral((*cl)[k]), subst);
+      auto conclusion = false;
+      for (const auto& kv : context._cls) {
+        for (const auto& lit : kv.second) {
+          if (lit == clit) {
+            conclusion = true;
+            break;
           }
         }
       }
-      auto newCl = forwardSimplify(_salg, cl, concLits);
+      compStack[!conclusion].push((*cl)[k]);
+    }
+    bool changed = false;
+    if (_opt.simplifyInductionClauses()) {
+      auto newCl = forwardSimplify(_salg, cl, compStack[0]);
       if (!newCl) {
         swap(cl, hyp_clauses.top());
         hyp_clauses.pop();
         continue;
       }
-      if (newCl == cl) {
-        i++;
-      } else {
+      if (newCl != cl) {
+        changed = true;
         cl = newCl;
       }
     }
+    if (!changed) {
+      if (_opt.splitInductionClauses()) {
+        splitter->onNewClause(cl);
+        // splitter->doSplitting(cl, &compStack, &compCls);
+        splitter->doSplitting(cl, nullptr, &compCls);
+      }
+      i++;
+    }
+  }
+  if (_opt.splitInductionClauses()) {
+    // splitter->onAllProcessed();
+    ClauseStack compClStack;
+    for (const auto& cl : compCls) {
+      compClStack.push(cl);
+    }
+    swap(compClStack,hyp_clauses);
   }
 
   switch (rule) {
@@ -989,7 +1011,9 @@ Clause* resolveClausesHelper(const InductionContext& context, const Stack<Clause
   ASS_EQ(next-cnt,cl->length()-toResolve.size());
 
   for (const auto& kv : toResolve) {
-    ASS(cnt = next);
+#if VDEBUG
+    cnt = next;
+#endif
     for (unsigned i = 0; i < kv.first->length(); i++) {
       bool copyCurr = true;
       for (const auto& lit : kv.second) {
@@ -1032,6 +1056,28 @@ void InductionClauseIterator::resolveClauses(const ClauseStack& cls, const Induc
     env.statistics->generalizedInductionApplication++;
   } else {
     env.statistics->inductionApplication++;
+  }
+
+  if (_opt.splitInductionClauses()) {
+    auto splitter = _salg->getSplitter();
+    for (const auto& cl : cls) {
+      // since it comes from an axiom and we split it,
+      // exactly one element must be in the split set
+      ASS(cl->splits());
+      ASS_EQ(cl->splits()->size(), 1);
+      auto satLit = Splitter::getLiteralFromName((*cl->splits())[0]);
+      splitter->followPolarityAdvice(satLit);
+    }
+    splitter->onAllProcessed();
+    for (const auto& cl : cls) {
+      ASS(cl->splits());
+      ASS_EQ(cl->splits()->size(), 1);
+      auto satLit = Splitter::getLiteralFromName((*cl->splits())[0]);
+      if (!splitter->adviceFollowed(satLit)) {
+        // cout << "advice " << satLit << " was not followed" << endl;
+        return;
+      }
+    }
   }
 
   auto uf = findDistributedVariants(cls, subst, context);

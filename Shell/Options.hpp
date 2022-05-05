@@ -2254,6 +2254,7 @@ public:
   IntegerInductionInterval integerInductionInterval() const { return _integerInductionInterval.actualValue; }
   InductionFormulaGeneration inductionFormulaGeneration() const { return _inductionFormulaGeneration.actualValue; }
   bool simplifyInductionClauses() const { return _simplifyInductionClauses.actualValue; }
+  bool splitInductionClauses() const { return _splitInductionClauses.actualValue; }
   bool nonUnitInduction() const { return _nonUnitInduction.actualValue; }
 
   float instGenBigRestartRatio() const { return _instGenBigRestartRatio.actualValue; }
@@ -2555,6 +2556,7 @@ private:
   ChoiceOptionValue<IntegerInductionInterval> _integerInductionInterval;
   ChoiceOptionValue<InductionFormulaGeneration> _inductionFormulaGeneration;
   BoolOptionValue _simplifyInductionClauses;
+  BoolOptionValue _splitInductionClauses;
   BoolOptionValue _nonUnitInduction;
 
   StringOptionValue _latexOutput;

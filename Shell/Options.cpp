@@ -1314,7 +1314,7 @@ void Options::init()
     _integerInductionInterval.reliesOn(Or(_induction.is(equal(Induction::INTEGER)),_induction.is(equal(Induction::BOTH))));
     _lookup.insert(&_integerInductionInterval);
 
-    _inductionFormulaGeneration = ChoiceOptionValue<InductionFormulaGeneration>("inductio_formula_generation","indfg",
+    _inductionFormulaGeneration = ChoiceOptionValue<InductionFormulaGeneration>("induction_formula_generation","indfg",
                          InductionFormulaGeneration::RESOLVE,{"only_generate","resolve","new_resolve"});
     _inductionFormulaGeneration.description="Set mode of induction formula generation\n - only_generate: generates a formula once and puts it into the search space\n"
                                             "- resolve: generates a formula once and resolves it against the premises\n - new_resolve: generates formulas anew every time"
@@ -1324,10 +1324,17 @@ void Options::init()
     _lookup.insert(&_inductionFormulaGeneration);
 
     _simplifyInductionClauses = BoolOptionValue("simplify_induction_clauses","sic",false);
-    _simplifyInductionClauses.description = "Induction on certain clauses or clause sets instead of just unit clauses";
+    _simplifyInductionClauses.description = "Simplify induction clauses before resolving them";
     _simplifyInductionClauses.tag(OptionTag::INFERENCES);
     _simplifyInductionClauses.reliesOn(_inductionFormulaGeneration.is(equal(InductionFormulaGeneration::RESOLVE)));
     _lookup.insert(&_simplifyInductionClauses);
+
+    _splitInductionClauses = BoolOptionValue("split_induction_clauses","spic",false);
+    _splitInductionClauses.description = "Split induction clauses before using them";
+    _splitInductionClauses.tag(OptionTag::INFERENCES);
+    _splitInductionClauses.reliesOn(_inductionFormulaGeneration.is(notEqual(InductionFormulaGeneration::ONLY_GENERATE)));
+    _splitInductionClauses.addHardConstraint(If(equal(true)).then(_splitting.is(equal(true))));
+    _lookup.insert(&_splitInductionClauses);
 
     _nonUnitInduction = BoolOptionValue("non_unit_induction","nui",false);
     _nonUnitInduction.description = "Induction on certain clauses or clause sets instead of just unit clauses";
