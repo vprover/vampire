@@ -973,32 +973,38 @@ private:
         void addConstraint(OptionValueConstraintUP<T> c){ _constraints.push(std::move(c)); }
         void addHardConstraint(OptionValueConstraintUP<T> c){ c->setHard();addConstraint(std::move(c)); }
 
-        // A reliesOn constraint gives a constraint that must be true if a non-default value is used
-        // For example, split_at_activation relies on splitting being on
+        // A onlyUsefulWith constraint gives a constraint that must be true if this option's value is set
+        // For example, split_at_activation is only useful with splitting being on
         // These are defined for OptionValueConstraints and WrappedConstraints - see below for explanation
-        void reliesOn(AbstractWrappedConstraintUP c){
+        void onlyUsefulWith(AbstractWrappedConstraintUP c){
             _constraints.push(If(hasBeenSet<T>()).then(unwrap<T>(c)));
         }
-        void reliesOn(OptionValueConstraintUP<T> c){
+        void onlyUsefulWith(OptionValueConstraintUP<T> c){
             _constraints.push(If(hasBeenSet<T>()).then(std::move(c)));
         }
 
-        void reliesOnWhenNondef(AbstractWrappedConstraintUP c){
+        // similar to onlyUsefulWith, except the trigger is a non-default value 
+        // (as opposed to the explicitly-set flag)
+        // we use it for selection and awr which cannot be not set via the decode string
+        void onlyUsefulWith2(AbstractWrappedConstraintUP c){
             _constraints.push(If(getNotDefault()).then(unwrap<T>(c)));
         }
-        void reliesOnWhenNondef(OptionValueConstraintUP<T> c){
+        void onlyUsefulWith2(OptionValueConstraintUP<T> c){
             _constraints.push(If(getNotDefault()).then(std::move(c)));
         }
 
         virtual OptionValueConstraintUP<T> getNotDefault(){ return isNotDefault<T>(); }
 
-        void reliesOnHard(AbstractWrappedConstraintUP c){
-            OptionValueConstraintUP<T> tc = If(hasBeenSet<T>()).then(unwrap<T>(c));
+        // similar to onlyUsefulWith2, except its a hard constraint,
+        // so that the user is strongly aware of situations when changing the 
+        // respective option has no effect
+        void reliesOn(AbstractWrappedConstraintUP c){
+            OptionValueConstraintUP<T> tc = If(getNotDefault()).then(unwrap<T>(c));
             tc->setHard();
             _constraints.push(std::move(tc));
         }
-        void reliesOnHard(OptionValueConstraintUP<T> c){
-            OptionValueConstraintUP<T> tc = If(hasBeenSet<T>()).then(c);
+        void reliesOn(OptionValueConstraintUP<T> c){
+            OptionValueConstraintUP<T> tc = If(getNotDefault()).then(c);
             tc->setHard();
             _constraints.push(std::move(tc));
         }
@@ -1006,7 +1012,7 @@ private:
         bool checkConstraints();
         
         // Produces a separate constraint object based on this option
-        /// Useful for IfThen constraints and reliesOn i.e. _splitting.is(equal(true))
+        /// Useful for IfThen constraints and onlyUsefulWith i.e. _splitting.is(equal(true))
         AbstractWrappedConstraintUP is(OptionValueConstraintUP<T> c);
         
         // Problem constraints place a restriction on problem properties and option values
