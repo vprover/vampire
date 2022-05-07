@@ -540,7 +540,7 @@ void InductionClauseIterator::processLiteral(Clause* premise, Literal* lit)
       InductionFormulaIndex::Entry* e;
       // generate formulas and add them to index if not done already
       auto mode = _opt.inductionFormulaGeneration();
-      if (mode == Options::InductionFormulaGeneration::NEW_RESOLVE || _formulaIndex.findOrInsert(ctx, e)) {
+      if (mode == Options::InductionFormulaGeneration::REGENERATE || _formulaIndex.findOrInsert(ctx, e)) {
         if(one){
           performStructInductionOne(ctx,e);
         }
@@ -818,9 +818,26 @@ void InductionClauseIterator::produceClauses(Formula* hypothesis, InferenceRule 
 
   auto mode = _opt.inductionFormulaGeneration();
   switch (mode) {
-    case Options::InductionFormulaGeneration::ONLY_GENERATE: {
+    case Options::InductionFormulaGeneration::ADD: {
       while (hyp_clauses.isNonEmpty()) {
         _clauses.push(hyp_clauses.pop());
+        if(_opt.showInduction()){
+          env.beginOutput();
+          env.out() << "[Induction] generate " << _clauses.top()->toString() << endl;
+          env.endOutput();
+        }
+      }
+      break;
+    }
+    case Options::InductionFormulaGeneration::ADD_RESOLVE: {
+      resolveClauses(hyp_clauses, context, subst);
+      while (hyp_clauses.isNonEmpty()) {
+        _clauses.push(hyp_clauses.pop());
+        if(_opt.showInduction()){
+          env.beginOutput();
+          env.out() << "[Induction] generate " << _clauses.top()->toString() << endl;
+          env.endOutput();
+        }
       }
       break;
     }
@@ -828,7 +845,7 @@ void InductionClauseIterator::produceClauses(Formula* hypothesis, InferenceRule 
       e->add(std::move(hyp_clauses), std::move(subst));
       break;
     }
-    case Options::InductionFormulaGeneration::NEW_RESOLVE: {
+    case Options::InductionFormulaGeneration::REGENERATE: {
       resolveClauses(hyp_clauses, context, subst);
       break;
     }

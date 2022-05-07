@@ -248,9 +248,10 @@ public:
     BOTH
   };
   enum class InductionFormulaGeneration : unsigned int {
-    ONLY_GENERATE,
+    ADD,
+    ADD_RESOLVE,
     RESOLVE,
-    NEW_RESOLVE,
+    REGENERATE,
   };
 
   enum class PredicateSineLevels : unsigned int {
