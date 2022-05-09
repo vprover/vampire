@@ -83,7 +83,7 @@ class FuncId
   
 public: 
   explicit FuncId(unsigned num);
-  unsigned arity();
+  unsigned numTermArguments();
 
   friend struct std::hash<FuncId>;
   friend bool operator==(FuncId const& lhs, FuncId const& rhs);
@@ -167,7 +167,7 @@ public:
   FuncTerm(FuncId f, Stack<PolyNf>&& args);
   FuncTerm(FuncId f, PolyNf* args);
 
-  unsigned arity() const;
+  unsigned numTermArguments() const;
   FuncId function() const;
   PolyNf const& arg(unsigned i) const;
 

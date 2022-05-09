@@ -90,7 +90,7 @@ IMPL_EVALUATE_PRED(Interpretation::EQUAL,
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 template<class ConstantType, class EvalIneq> Option<LitSimplResult> evaluateInequality(Literal* orig, PolyNf* evaluatedArgs, bool strict, EvalIneq evalIneq) {
-  ASS(orig->arity() == 2);
+  ASS(orig->numTermArguments() == 2);
 
 
   auto lhs = evaluatedArgs[0].template wrapPoly<NumTraits<ConstantType>>();

@@ -308,7 +308,7 @@ NormalizationResult normalizeNumSort(TermList t, NormalizationResult* ts)
     return singletonProduct(PolyNf(perfect(FuncTerm(
         fn, 
         Stack<PolyNf>::fromIterator(
-            iterTraits(getArrayishObjectIterator<mut_ref_t>(ts, fn.arity()))
+            iterTraits(getArrayishObjectIterator<mut_ref_t>(ts, fn.numTermArguments()))
             .map( [](NormalizationResult& r) -> PolyNf { return std::move(r).apply(RenderPolyNf{}); }))
       )
     )));
@@ -341,7 +341,7 @@ PolyNf normalizeTerm(TypedTermList t)
           return NormalizationResult(PolyNf(perfect(FuncTerm(
               fn, 
               Stack<PolyNf>::fromIterator(
-                  iterTraits(getArrayishObjectIterator<mut_ref_t>(ts, fn.arity()))
+                  iterTraits(getArrayishObjectIterator<mut_ref_t>(ts, fn.numTermArguments()))
                   .map( [](NormalizationResult& r) -> PolyNf { return std::move(r).apply(RenderPolyNf{}); }))
             )
           )));
@@ -364,7 +364,7 @@ TermList PolyNf::denormalize() const
 
     TermList operator()(PolyNf orig, TermList* results)
     { return orig.match(
-        [&](Perfect<FuncTerm> t) { return TermList(Term::create(t->function().id(), t->arity(), results)); },
+        [&](Perfect<FuncTerm> t) { return TermList(Term::create(t->function().id(), t->numTermArguments(), results)); },
         [&](Variable          v) { return TermList::var(v.id()); },
         [&](AnyPoly           p) { return p.denormalize(results); }
         ); }

@@ -314,8 +314,8 @@ unsigned Term::numTypeArguments() const {
   return isSpecial()
     ? 0
     : isLiteral()
-      ? env.signature->getPredicate(_functor)->typeArgsArity()
-      : env.signature->getFunction(_functor)->typeArgsArity();
+      ? env.signature->getPredicate(_functor)->numTypeArguments()
+      : env.signature->getFunction(_functor)->numTypeArguments();
 }
 
 TermList* Term::termArgs()
@@ -1950,4 +1950,18 @@ bool Kernel::positionIn(TermList& subterm,Term* term,vstring& position)
   }
 
   return false;
+}
+
+TermList Term::termArg(unsigned n) const
+{
+  ASS_LE(0, n)
+  ASS_L(n, numTermArguments())
+  return *nthArgument(n + numTypeArguments());
+}
+
+TermList Term::typeArg(unsigned n) const 
+{
+  ASS_LE(0, n)
+  ASS_L(n, numTypeArguments())
+  return *nthArgument(n);
 }

@@ -117,7 +117,7 @@ TermList NumberTheoryInverter::invertTop(const InversionContext &ctxt) {
       //   auto select = env.signature->getInterpretingSymbol(
       //       Theory::Interpretation::ARRAY_SELECT, 
       //       OperatorType::getFunctionType({ store.arg(0), store.arg(1) }, store.arg(2)));
-      //   return TermList(Term::create2(select, toWrap, *t.nthArgument(1)));
+      //   return TermList(Term::create2(select, toWrap, *t.termArg(1)));
       // }
     default:
       ASSERTION_VIOLATION;

@@ -37,7 +37,7 @@ Literal* createLiteral(Literal* orig, PolyNf* evaluatedArgs) {
           evaluatedArgs[1].denormalize(), 
           SortHelper::getArgSort(orig, 0));
   } else {
-    auto arity = orig->arity();
+    auto arity = orig->numTermArguments();
     Stack<TermList> args(arity);
     for (unsigned i = 0; i < arity; i++) {
       args.push(evaluatedArgs[i].denormalize());
@@ -48,10 +48,10 @@ Literal* createLiteral(Literal* orig, PolyNf* evaluatedArgs) {
 
 PolynomialEvaluation::Result PolynomialEvaluation::simplifyLiteral(Literal* lit) 
 {
-  Stack<PolyNf> terms(lit->arity());
+  Stack<PolyNf> terms(lit->numTermArguments());
   auto anyChange = false;
   for (unsigned i = 0; i < lit->numTermArguments(); i++) {
-    auto term = *lit->nthArgument(i + lit->numTypeArguments());
+    auto term = lit->termArg(i + lit->numTypeArguments());
     auto norm = PolyNf::normalize(TypedTermList(term, SortHelper::getArgSort(lit, i)));
     auto ev = evaluate(norm);
     anyChange = anyChange || ev.isSome();

@@ -61,18 +61,18 @@ TermList pushUMinus(UMinus outerMinus, TermList t)
         case Num##Traits::minusI:                                                                             \
         {                                                                                                     \
           if(outerMinus == UMinus::None) {                                                                    \
-            return pushUMinus(UMinus::Num, *term->nthArgument(0));                                            \
+            return pushUMinus(UMinus::Num, term->termArg(0));                                                 \
           } else {                                                                                            \
             ASS_EQ(outerMinus, UMinus::Num)                                                                   \
-            return *term->nthArgument(0);                                                                     \
+            return term->termArg(0);                                                                          \
           }                                                                                                   \
         }                                                                                                     \
         case Num##Traits::addI:                                                                               \
         if (outerMinus != UMinus::None) {                                                                     \
           ASS_EQ(outerMinus, UMinus::Num);                                                                    \
           return Num##Traits::add(                                                                            \
-              pushUMinus(UMinus::Num, *term->nthArgument(0)),                                                 \
-              pushUMinus(UMinus::Num, *term->nthArgument(1)));                                                \
+              pushUMinus(UMinus::Num, term->termArg(0)),                                                      \
+              pushUMinus(UMinus::Num, term->termArg(1)));                                                     \
         } else { break; }
         CASE(Int)
         CASE(Rat)
@@ -80,9 +80,9 @@ TermList pushUMinus(UMinus outerMinus, TermList t)
         default: {}
       }
     }
-    Stack<TermList> args(term->arity());
-    for (unsigned i =0; i < term->arity(); i++) {
-      args.push(pushUMinus(UMinus::None, *term->nthArgument(i)));
+    Stack<TermList> args(term->numTermArguments());
+    for (unsigned i =0; i < term->numTermArguments(); i++) {
+      args.push(pushUMinus(UMinus::None, term->termArg(i)));
     }
     return wrapMinus(TermList(Term::create(term, args.begin())));
   }
@@ -104,8 +104,8 @@ Clause* PushUnaryMinus::simplify(Clause* cl_)
   for (unsigned i = 0; i < cl.size(); i++) {
     auto litIn = cl[i];
     Stack<TermList> litStack;
-    for (unsigned j = 0; j < litIn->arity(); j++) {
-      auto tIn = *litIn->nthArgument(j);
+    for (unsigned j = 0; j < litIn->numTermArguments(); j++) {
+      auto tIn = litIn->termArg(j);
       auto tOut = pushUMinus(UMinus::None, tIn);
       changed = changed || tIn != tOut;
       litStack.push(tOut);

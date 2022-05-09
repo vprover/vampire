@@ -45,17 +45,17 @@ struct BottomUpChildIter<Kernel::TypedTermList>
   {
     ASS(hasNext());
     auto cur = self().term();
-    auto next = *cur->nthArgument(_idx);
+    auto next = cur->termArg(_idx);
     auto sort = Kernel::SortHelper::getArgSort(cur, _idx);
     _idx++;
     return Kernel::TypedTermList(next, sort);
   }
 
   bool hasNext() const 
-  { return _self.isTerm() && _idx < _self.term()->arity(); }
+  { return _self.isTerm() && _idx < _self.term()->numTermArguments(); }
 
   unsigned nChildren() const 
-  { return _self.isVar() ? 0 : _self.term()->arity(); }
+  { return _self.isVar() ? 0 : _self.term()->numTermArguments(); }
 
   Kernel::TypedTermList self() const 
   { return _self; }
