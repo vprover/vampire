@@ -2290,7 +2290,7 @@ void Options::init()
     
     
     _showInterpolant = ChoiceOptionValue<InterpolantMode>("show_interpolant","",InterpolantMode::OFF,
-                                                          {"new_heur","new_opt","off", "old", "old_opt"});
+                                                          {"new_heur","new_opt","off"});
     _lookup.insert(&_showInterpolant);
     _showInterpolant.tag(OptionTag::OTHER);
     _showInterpolant.setExperimental();

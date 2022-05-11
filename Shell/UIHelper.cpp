@@ -34,7 +34,6 @@
 #include "Parse/TPTP.hpp"
 
 #include "AnswerExtractor.hpp"
-#include "InterpolantMinimizer.hpp"
 #include "InterpolantMinimizerNew.hpp"
 #include "Interpolants.hpp"
 #include "InterpolantsNew.hpp"
@@ -437,24 +436,6 @@ void UIHelper::outputResult(ostream& out)
 #else
         NOT_IMPLEMENTED;
 #endif
-        break;
-
-      case Options::InterpolantMode::OLD:
-        interpolant = Interpolants().getInterpolant(formulifiedRefutation);
-        break;
-        
-      case Options::InterpolantMode::OLD_OPT:
-        Interpolants::fakeNodesFromRightButGrayInputsRefutation(formulifiedRefutation); // grey right input formulas are artificially made children of proper blue parents
-        interpolant = InterpolantMinimizer(InterpolantMinimizer::OT_WEIGHT, false, true, "Minimized interpolant weight").getInterpolant(formulifiedRefutation);
-        
-        /*
-        Formula* oldInterpolant = InterpolantMinimizer(InterpolantMinimizer::OT_WEIGHT, true, true, "Original interpolant weight").getInterpolant(static_cast<Clause*>(env.statistics->refutation));
-        Formula* interpolant = InterpolantMinimizer(InterpolantMinimizer::OT_WEIGHT, false, true, "Minimized interpolant weight").getInterpolant(static_cast<Clause*>(env.statistics->refutation));
-        InterpolantMinimizer(InterpolantMinimizer::OT_COUNT, true, true, "Original interpolant count").getInterpolant(static_cast<Clause*>(env.statistics->refutation));
-        Formula* cntInterpolant = InterpolantMinimizer(InterpolantMinimizer::OT_COUNT, false, true, "Minimized interpolant count").getInterpolant(static_cast<Clause*>(env.statistics->refutation));
-        Formula* quantInterpolant =  InterpolantMinimizer(InterpolantMinimizer::OT_QUANTIFIERS, false, true, "Minimized interpolant quantifiers").getInterpolant(static_cast<Clause*>(env.statistics->refutation));
-        */
-
         break;
       case Options::InterpolantMode::OFF:
         ASSERTION_VIOLATION;
