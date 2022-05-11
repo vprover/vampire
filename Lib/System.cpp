@@ -16,13 +16,11 @@
 #include "Portability.hpp"
 
 #include <csignal>
-#include <cstdlib>
-#include <iostream>
 #include <fstream>
 #include <thread>
 
 // TODO these should probably be guarded
-// for getpid(), _exit()
+// for getpid
 #include <unistd.h>
 // for listing directory items
 // C++17: use std::filesystem
@@ -39,11 +37,6 @@
 #include "Shell/UIHelper.hpp"
 
 #include "Environment.hpp"
-#include "Exception.hpp"
-#include "Int.hpp"
-#include "Stack.hpp"
-#include "Timer.hpp"
-#include "VString.hpp"
 
 #include "System.hpp"
 
@@ -53,9 +46,6 @@ unsigned Lib::System::getNumberOfCores()
 }
 
 namespace Lib {
-
-using namespace std;
-using namespace Shell;
 
 bool System::s_shouldIgnoreSIGINT = false;
 bool System::s_shouldIgnoreSIGHUP = false;
@@ -120,7 +110,7 @@ void handleSignal (int sigNum)
 	System::terminateImmediately(haveSigInt ? VAMP_RESULT_STATUS_SIGINT : VAMP_RESULT_STATUS_OTHER_SIGNAL);
       }
       handled = true;
-      if(outputAllowed(true)) {
+      if(Shell::outputAllowed(true)) {
 	if(env.options) {
 	  env.beginOutput();
 	  env.out() << "Aborted by signal " << signalDescription << " on " << env.options->inputFile() << "\n";
@@ -131,7 +121,7 @@ void handleSignal (int sigNum)
       }
       return;
     case SIGXCPU:
-      if(outputAllowed(true)) {
+      if(Shell::outputAllowed(true)) {
 	if(env.options) {
 	  env.beginOutput();
 	  env.out() << "External time out (SIGXCPU) on " << env.options->inputFile() << "\n";
@@ -169,9 +159,9 @@ void handleSignal (int sigNum)
 	if (handled) {
 	  System::terminateImmediately(haveSigInt ? VAMP_RESULT_STATUS_SIGINT : VAMP_RESULT_STATUS_OTHER_SIGNAL);
 	}
-	reportSpiderFail();
+	Shell::reportSpiderFail();
 	handled = true;
-	if(outputAllowed()) {
+	if(Shell::outputAllowed()) {
 	  if(env.options && env.statistics) {
 	    env.beginOutput();
 	    env.out() << getpid() << " Aborted by signal " << signalDescription << " on " << env.options->inputFile() << "\n";
@@ -284,7 +274,7 @@ void System::terminateImmediately(int resultStatus)
   CALL("System::terminateImmediately");
 
   onTermination();
-  _exit(resultStatus);
+  std::quick_exit(resultStatus);
 }
 
 /**
@@ -338,31 +328,6 @@ bool System::fileExists(vstring fname)
   return ifile.good();
 }
 
-/**
- * Guess path to the current executable.
- *
- * Guessing means that the returned path might not be correct.
- */
-vstring System::guessExecutableDirectory()
-{
-  CALL("System::guessExecutableDirectory");
-
-  vstring res;
-
-  if(s_argv0 && extractDirNameFromPath(s_argv0, res)) {
-    return res;
-  }
-
-  return ".";
-}
-
-pid_t System::getPID()
-{
-  CALL("System::getPID");
-
-  return getpid();
-}
-
 // C++17: use std::filesystem
 void System::readDir(vstring dirName, Stack<vstring>& filenames)
 {
@@ -410,63 +375,6 @@ void System::readDir(vstring dirName, Stack<vstring>& filenames)
   }
 
   todo.reset();
-}
-
-/**
- * Execute command @c command, pass content of @c input as standard input
- * and return the output of the command in @c output.
- */
-int System::executeCommand(vstring command, vstring input, Stack<vstring>& outputLines)
-{
-  CALL("System::executeCommand");
-
-  vstring pidStr = Int::toString(getPID());
-  vstring inFile  = "/tmp/vampire_executeCommand_"+pidStr+"_in";
-  vstring outFile = "/tmp/vampire_executeCommand_"+pidStr+"_out";
-
-  vstring cmdLine = command + " <" + inFile + " >" + outFile;
-
-  {
-    BYPASSING_ALLOCATOR;
-
-    ofstream inpFile(inFile.c_str());
-    inpFile << input;
-    inpFile.close();
-  }
-
-  int resStatus=system(cmdLine.c_str());
-
-  {
-    BYPASSING_ALLOCATOR;
-
-    outputLines.reset();
-    vstring line;
-    ifstream outpFile(outFile.c_str());
-    while (getline(outpFile, line)) {
-      outputLines.push(line);
-    }
-    outpFile.close();
-  }
-
-//  if(WIFSIGNALED(resStatus) && WTERMSIG(resStatus)==SIGINT) {
-//    //if child Vampire was terminated by SIGINT (Ctrl+C), we also terminate
-//    //(3 is the return value for this case; see documentation for the
-//    //@b vampireReturnValue global variable)
-//    handleSIGINT();
-//  }
-
-  remove(inFile.c_str());
-  remove(outFile.c_str());
-
-  if(WIFEXITED(resStatus)) {
-    return WEXITSTATUS(resStatus);
-  }
-  else if(WIFSIGNALED(resStatus)) {
-    return -WTERMSIG(resStatus);
-  }
-  else {
-    return -0xffff;
-  }
 }
 
 };
