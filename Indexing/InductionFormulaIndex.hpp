@@ -36,7 +36,7 @@ using namespace Kernel;
 
 struct SecondaryStackHash {
   static unsigned hash(const Stack<LiteralStack>& s) {
-    unsigned res = FNV32_OFFSET_BASIS;
+    unsigned res = 0;
     typename Stack<LiteralStack>::ConstIterator it(s);
     while (it.hasNext()) {
       res += it.next().length();
