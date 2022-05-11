@@ -26,68 +26,6 @@ class BitUtils
 {
 public:
   /**
-   * Return true iff @b sz bytes starting at @b ptr1 are equal to those
-   * starting at @b ptr2
-   */
-  static bool memEqual(const void* ptr1, const void* ptr2, size_t sz)
-  {
-    return !memcmp(ptr1,ptr2,sz);
-  }
-
-  /**
-   * Set @b bytes of bytes starting at @ ptr to zero
-   */
-  static void zeroMemory(void* ptr, size_t bytes)
-  {
-    size_t* sptr=static_cast<size_t*>(ptr);
-    while(bytes>=sizeof(sptr)) {
-      *(sptr++)=0;
-      bytes-=sizeof(sptr);
-    }
-    char* cptr=reinterpret_cast<char*>(sptr);
-    while(bytes) {
-      *(cptr++)=0;
-      bytes--;
-    }
-  }
-
-  /**
-   * Return the value of @b index -th bit, starting at the least significant
-   * bit of the byte at @b ptr
-   */
-  inline
-  static bool getBitValue(void* ptr, size_t index)
-  {
-    unsigned char* cptr=static_cast<unsigned char*>(ptr)+index/8;
-    return ((*cptr)>>(index&7))&1;
-  }
-
-  /**
-   * Set the @b index -th bit, starting at the least significant bit of the
-   * byte at @b ptr, to @b value
-   */
-  inline
-  static void setBitValue(void* ptr, size_t index, bool value)
-  {
-    unsigned char* cptr=static_cast<unsigned char*>(ptr)+index/8;
-    if(value) {
-      *cptr|=1<<(index&7);
-    } else {
-      *cptr&=~(1<<(index&7));
-    }
-  }
-
-  /**
-   * Return true iff the enabled bits of @b subset are subset of those
-   * enabled in @b set
-   */
-  template<typename T>
-  inline static bool isSubset(T set, T subset)
-  {
-    return (set&subset)==subset;
-  }
-
-  /**
    * Return the integer part of the base two logarithm of @b v
    *
    * The returned value is actually index of the most significant
@@ -95,23 +33,43 @@ public:
    */
   static unsigned log2(unsigned v)
   {
-    const unsigned int b[] = {0x2, 0xC, 0xF0, 0xFF00, 0xFFFF0000};
-    const unsigned int S[] = {1, 2, 4, 8, 16};
-    int i;
-
-    /*register*/ // MS: register keyword is deprecated
-    unsigned int r = 0; // result of log2(v) will go here
-    for (i = 4; i >= 0; i--) // unroll for speed...
-    {
-      if (v & b[i])
-      {
-        v >>= S[i];
-        r |= S[i];
-      }
-    }
-    return r;
+    // if intrinsics are available, use them
+    // compiles to e.g. lzcnt on Intel
+#ifdef __GNUC__
+    // compatibility with the original: 0 if v == 0 (!)
+    // wastes a few cycles, but remove with great care
+    if(v == 0)
+        return 0;
+    // compute number of leading zeros
+    // then subtract number of bits plus an off-by-one
+    return (sizeof(v) * CHAR_BIT - 1) - __builtin_clz(v);
+#else
+    // otherwise, this is simple and reasonably efficient
+    unsigned bit = 0;
+    while(v >>= 1) bit++;
+    return bit;
+#endif
   }
 
+  /**
+   * Return the number of 1-bits in @v
+   */
+  static unsigned oneBits(unsigned v)
+  {
+    // if intrinsics are available, use them
+    // compiles to e.g. popcnt on Intel
+#if __GNUC__
+    return __builtin_popcount(v);
+#else
+    // otherwise, this is simple and reasonably efficient
+    unsigned bits = 0;
+    while(v) {
+        bits += v & 1;
+        v >>= 1;
+    }
+    return bits;
+#endif
+  }
 };
 
 };

@@ -161,7 +161,6 @@ set(VAMPIRE_LIB_SOURCES
     Lib/MemoryLeak.hpp
     Lib/Metaarrays.hpp
     Lib/Metaiterators.hpp
-    Lib/MultiColumnMap.hpp
     Lib/MultiCounter.hpp
     Lib/NameArray.hpp
     Lib/Numbering.hpp
