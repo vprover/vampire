@@ -39,7 +39,7 @@ public:
     // compatibility with the original: 0 if v == 0 (!)
     // wastes a few cycles, but remove with great care
     if(v == 0)
-        return 0;
+      return 0;
     // compute number of leading zeros
     // then subtract number of bits plus an off-by-one
     return (sizeof(v) * CHAR_BIT - 1) - __builtin_clz(v);
@@ -58,14 +58,14 @@ public:
   {
     // if intrinsics are available, use them
     // compiles to e.g. popcnt on Intel
-#if __GNUC__
+#ifdef __GNUC__
     return __builtin_popcount(v);
 #else
     // otherwise, this is simple and reasonably efficient
     unsigned bits = 0;
     while(v) {
-        bits += v & 1;
-        v >>= 1;
+      bits += v & 1;
+      v >>= 1;
     }
     return bits;
 #endif
