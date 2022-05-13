@@ -1059,9 +1059,9 @@ unsigned Allocator::Descriptor::hash (const void* addr)
   CALLC("Allocator::Descriptor::hash",MAKE_CALLS);
 
   char* val = reinterpret_cast<char*>(&addr);
-  unsigned hash = 2166136261u;
+  unsigned hash = FNV32_OFFSET_BASIS;
   for (int i = sizeof(void*)-1;i >= 0;i--) {
-    hash = (hash ^ val[i]) * 16777619u;
+    hash = (hash ^ val[i]) * FNV32_PRIME;
   }
   return hash;
 } // Allocator::Descriptor::hash(const char* str)

@@ -498,7 +498,12 @@ void Property::scanSort(TermList sort)
 {
   CALL("Property::scanSort");
 
-  if(sort.isVar() || sort.term()->isSuper()){
+  if(sort.isVar()){
+    _hasNonDefaultSorts = true;
+    return;
+  }
+
+  if(sort.term()->isSuper()){
     return;
   }
 

@@ -128,7 +128,6 @@ bool PortfolioMode::searchForProof(Problem* prob)
 {
   CALL("PortfolioMode::searchForProof");
 
-  env.timer->makeChildrenIncluded();
   TimeCounter::reinitialize();
   _prb = prob ? prob : UIHelper::getInputProblem(*env.options);
 

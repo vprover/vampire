@@ -978,22 +978,37 @@ private:
         void addConstraint(OptionValueConstraintUP<T> c){ _constraints.push(std::move(c)); }
         void addHardConstraint(OptionValueConstraintUP<T> c){ c->setHard();addConstraint(std::move(c)); }
 
-        // A reliesOn constraint gives a constraint that must be true if a non-default value is used
-        // For example, split_at_activation relies on splitting being on
+        // A onlyUsefulWith constraint gives a constraint that must be true if this option's value is set
+        // For example, split_at_activation is only useful with splitting being on
         // These are defined for OptionValueConstraints and WrappedConstraints - see below for explanation
-        void reliesOn(AbstractWrappedConstraintUP c){
+        void onlyUsefulWith(AbstractWrappedConstraintUP c){
+            _constraints.push(If(hasBeenSet<T>()).then(unwrap<T>(c)));
+        }
+        void onlyUsefulWith(OptionValueConstraintUP<T> c){
+            _constraints.push(If(hasBeenSet<T>()).then(std::move(c)));
+        }
+
+        // similar to onlyUsefulWith, except the trigger is a non-default value 
+        // (as opposed to the explicitly-set flag)
+        // we use it for selection and awr which cannot be not set via the decode string
+        void onlyUsefulWith2(AbstractWrappedConstraintUP c){
             _constraints.push(If(getNotDefault()).then(unwrap<T>(c)));
         }
-        void reliesOn(OptionValueConstraintUP<T> c){
+        void onlyUsefulWith2(OptionValueConstraintUP<T> c){
             _constraints.push(If(getNotDefault()).then(std::move(c)));
         }
+
         virtual OptionValueConstraintUP<T> getNotDefault(){ return isNotDefault<T>(); }
-        void reliesOnHard(AbstractWrappedConstraintUP c){
+
+        // similar to onlyUsefulWith2, except its a hard constraint,
+        // so that the user is strongly aware of situations when changing the 
+        // respective option has no effect
+        void reliesOn(AbstractWrappedConstraintUP c){
             OptionValueConstraintUP<T> tc = If(getNotDefault()).then(unwrap<T>(c));
             tc->setHard();
             _constraints.push(std::move(tc));
         }
-        void reliesOnHard(OptionValueConstraintUP<T> c){
+        void reliesOn(OptionValueConstraintUP<T> c){
             OptionValueConstraintUP<T> tc = If(getNotDefault()).then(c);
             tc->setHard();
             _constraints.push(std::move(tc));
@@ -1002,7 +1017,7 @@ private:
         bool checkConstraints();
         
         // Produces a separate constraint object based on this option
-        /// Useful for IfThen constraints and reliesOn i.e. _splitting.is(equal(true))
+        /// Useful for IfThen constraints and onlyUsefulWith i.e. _splitting.is(equal(true))
         AbstractWrappedConstraintUP is(OptionValueConstraintUP<T> c);
         
         // Problem constraints place a restriction on problem properties and option values
@@ -1694,9 +1709,26 @@ bool _hard;
     }
 
     /**
+     * Option-(explicitly)-set constraint
+     */
+    template<typename T>
+    struct HasBeenSet : public OptionValueConstraint<T> {
+      HasBeenSet() {}
+
+        bool check(const OptionValue<T>& value) override {
+            return value.is_set;
+        }
+        vstring msg(const OptionValue<T>& value) override { return value.longName+"("+value.getStringOfActual()+") has been set";}
+    };
+    
+    template<typename T>
+    static OptionValueConstraintUP<T> hasBeenSet(){
+        return OptionValueConstraintUP<T>(new HasBeenSet<T>());
+    }
+
+    /**
      * Default Value constraints
      */
-    
     template<typename T>
     struct NotDefaultConstraint : public OptionValueConstraint<T> {
         NotDefaultConstraint() {}
@@ -1826,15 +1858,15 @@ bool _hard;
       vstring msg(){ return " only useful with non-unit clauses"; }
     };
 
-    struct HasPredicates : OptionProblemConstraint{
-      CLASS_NAME(HasPredicates);
-      USE_ALLOCATOR(HasPredicates);
+    struct NotJustEquality : OptionProblemConstraint{
+      CLASS_NAME(NotJustEquality);
+      USE_ALLOCATOR(NotJustEquality);
 
       bool check(Property*p){
-        CALL("Options::HasPredicates::check");
-        return (p->category()==Property::PEQ || p->category()==Property::UEQ);
+        CALL("Options::NotJustEquality::check");
+        return (p->category()!=Property::PEQ || p->category()!=Property::UEQ);
       }
-      vstring msg(){ return " only useful with predicates"; }
+      vstring msg(){ return " not useful with just equality"; }
     };
 
     struct AtomConstraint : OptionProblemConstraint{
@@ -1897,7 +1929,7 @@ bool _hard;
     static OptionProblemConstraintUP hasHigherOrder(){ return OptionProblemConstraintUP(new HasHigherOrder); }
     static OptionProblemConstraintUP onlyFirstOrder(){ return OptionProblemConstraintUP(new OnlyFirstOrder); }
     static OptionProblemConstraintUP hasNonUnits(){ return OptionProblemConstraintUP(new HasNonUnits); }
-    static OptionProblemConstraintUP hasPredicates(){ return OptionProblemConstraintUP(new HasPredicates); }
+    static OptionProblemConstraintUP notJustEquality(){ return OptionProblemConstraintUP(new NotJustEquality); }
     static OptionProblemConstraintUP atomsMoreThan(int a){
       return OptionProblemConstraintUP(new AtomConstraint(a,true));
     }
@@ -2160,8 +2192,9 @@ public:
   // Return time limit in deciseconds, or 0 if there is no time limit
   int timeLimitInDeciseconds() const { return _timeLimitInDeciseconds.actualValue; }
   size_t memoryLimit() const { return _memoryLimit.actualValue; }
+  void setMemoryLimitOptionValue(size_t newVal) { _memoryLimit.actualValue = newVal; }
 #ifdef __linux__
-  size_t instructionLimit() const { return _instructionLimit.actualValue; }
+  unsigned instructionLimit() const { return _instructionLimit.actualValue; }
 #endif
   int inequalitySplitting() const { return _inequalitySplitting.actualValue; }
   int ageRatio() const { return _ageWeightRatio.actualValue; }
@@ -2258,6 +2291,7 @@ public:
   bool inductionNegOnly() const { return _inductionNegOnly.actualValue; }
   bool inductionUnitOnly() const { return _inductionUnitOnly.actualValue; }
   bool inductionGen() const { return _inductionGen.actualValue; }
+  bool inductionStrengthenHypothesis() const { return _inductionStrengthenHypothesis.actualValue; }
   unsigned maxInductionGenSubsetSize() const { return _maxInductionGenSubsetSize.actualValue; }
   bool inductionOnComplexTerms() const {return _inductionOnComplexTerms.actualValue;}
   bool integerInductionDefaultBound() const { return _integerInductionDefaultBound.actualValue; }
@@ -2281,7 +2315,6 @@ public:
   bool instGenWithResolution() const { return _instGenWithResolution.actualValue; }
   bool useHashingVariantIndex() const { return _useHashingVariantIndex.actualValue; }
 
-  void setMemoryLimit(size_t newVal) { _memoryLimit.actualValue = newVal; }
   void setTimeLimitInSeconds(int newVal) { _timeLimitInDeciseconds.actualValue = 10*newVal; }
   void setTimeLimitInDeciseconds(int newVal) { _timeLimitInDeciseconds.actualValue = newVal; }
 
@@ -2579,6 +2612,7 @@ private:
   BoolOptionValue _inductionNegOnly;
   BoolOptionValue _inductionUnitOnly;
   BoolOptionValue _inductionGen;
+  BoolOptionValue _inductionStrengthenHypothesis;
   UnsignedOptionValue _maxInductionGenSubsetSize;
   BoolOptionValue _inductionOnComplexTerms;
   BoolOptionValue _integerInductionDefaultBound;
