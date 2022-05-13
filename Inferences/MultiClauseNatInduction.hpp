@@ -58,7 +58,7 @@ public:
 private:
   void createConclusions(ClauseStack& premises, TermList inductionTerm, TermList limit, 
   	ClauseStack& concs,  bool multiLiterals, bool allGround);
-  void getFinalLoopIters(Clause* c, TermStack& iterations);
+  void getFinalLoopIters(Clause* c, TermStack& iterations, unsigned& numberOfIters);
   void getNonFinalLoopIters(Clause* c, TermStack& iterations);
   bool alreadyAddedAxiom(vset<unsigned>& premises);
 

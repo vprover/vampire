@@ -128,7 +128,7 @@ class Signature
   public:
     //Why is this public?
     /** marks predicate symbols which are annotated by the user as lemma predicates*/
-    unsigned isLemmaPredicate : 1;
+    unsigned _lemmaPredicate : 1;
   protected:
     /** marks predicates that are equality proxy */
     unsigned _equalityProxy : 1;
@@ -155,6 +155,7 @@ class Signature
     /** if skolem function in general **/
     unsigned _skolem : 1;
     /** rapid related */
+    // TODO replace these with an enum
     unsigned _finalLoopCount : 1;
 
     unsigned _mainEnd : 1;
@@ -168,6 +169,8 @@ class Signature
     unsigned _malloc : 1;
 
     unsigned _chain : 1;
+
+    unsigned _objArray : 1;
 
     /** if arrow constructor */
     unsigned _arrow : 1;
@@ -213,6 +216,8 @@ class Signature
     /** mark symbol as a final loop count */
     void markFinalLoopCount() { _finalLoopCount=1; }
 
+    void markLemmaPred() { _lemmaPredicate=1; }
+
     void markMainEnd() { _mainEnd=1; }
 
     void markTimePoint() { _timePoint=1; }
@@ -224,6 +229,8 @@ class Signature
     void markMalloc() { _malloc=1; }
 
     void markChain() { _chain=1; }
+
+    void markObjectArray() { _objArray=1; }
 
     /** return true iff symbol is marked as skip for the purpose of symbol elimination */
     bool skip() const { return _skip; }
@@ -266,6 +273,8 @@ class Signature
     /** Return true iff symbol is a term algebra destructor */
     inline bool termAlgebraDest() const { return _termAlgebraDest; }
 
+    inline bool lemmaPred() const { return _lemmaPredicate; }
+
     inline bool finalLoopCount() const { return _finalLoopCount; }
 
     inline bool mainEnd() const { return _mainEnd; }
@@ -279,6 +288,8 @@ class Signature
     inline bool malloc() const { return _malloc; }
 
     inline bool chain() const { return _chain; }
+
+    inline bool objArray() const { return _objArray; }
 
     /** Increase the usage count of this symbol **/
     inline void incUsageCnt(){ _usageCount++; }

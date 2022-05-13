@@ -24,6 +24,7 @@
 #include "Kernel/TermIterators.hpp"
 #include "Kernel/ApplicativeHelper.hpp"
 #include "Kernel/Ordering.hpp"
+#include "Kernel/RapidHelper.hpp"
 
 #include "Shell/Statistics.hpp"
 
@@ -269,6 +270,16 @@ AtomicSort* TermSharing::insert(AtomicSort* sort)
   return s;
 } // TermSharing::insert
 
+void TermSharing::tryForceArgumentOrder(Literal* l)
+{
+
+  int order = RapidHelper::forceOrder(l);
+  if(order){
+    l->setArgumentOrderValue(order);
+  }
+}
+
+
 /**
  * Insert a new literal in the index and return the result.
  *
@@ -302,7 +313,9 @@ Literal* TermSharing::insert(Literal* t)
   _literalInsertions++;
   Literal* s = _literals.insert(t);
   if (s == t) {
-
+    
+    // WARNING hack
+    tryForceArgumentOrder(s);
     //auto ordering = Ordering::tryGetGlobalOrdering();
     //if(s->isEquality() && ordering){
     //  ordering->getEqualityArgumentOrder(s);

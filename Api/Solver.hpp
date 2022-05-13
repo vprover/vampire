@@ -317,7 +317,7 @@ public:
   /**
    * Create a function symbol with specified range and domain sorts. If @b builtIn is
    * true, the symbol will not be eliminated during preprocessing. If @b mallocFun is true, 
-   * the symbol will be marked as a malloc symbol coming froma. rapid encoding
+   * the symbol will be marked as a malloc symbol coming from a rapid encoding
    *
    * @warning Symbols of the same name and arity must have
    * the same type.
@@ -327,7 +327,8 @@ public:
 
   /**
    * Create a predicate symbol using default sorts. If @b builtIn if true, the symbol will not be
-   * eliminated during preprocessing.
+   * eliminated during preprocessing. If @b lemmaPred is true, the symbol will be marked as a 
+   * lemma predicate coming from a rapid encoding which impacts literal selection
    *
    * @warning Symbols of the same name and arity must have
    * the same type.
@@ -336,12 +337,14 @@ public:
 
   /**
    * Create a predicate symbol with specified domain sorts. If @b builtIn if true, the symbol will not be
-   * eliminated during preprocessing.
+   * eliminated during preprocessing. If @b lemmaPred is true, the symbol will be marked as a 
+   * lemma predicate coming from a rapid encoding which impacts literal selection
    *
    * @warning Symbols of the same name and arity must have
    * the same type.
    */
-  Symbol predicate(const std::string& predName, unsigned arity, std::vector<Sort>& domainSorts, bool builtIn=false);
+  Symbol predicate(const std::string& predName, unsigned arity, std::vector<Sort>& domainSorts, 
+                   bool lemmaPred = false, bool builtIn=false);
 
   /**
    * Return name of the sort @c s.

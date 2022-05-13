@@ -110,7 +110,7 @@ void SuperpositionLHSIndex::handleClause(Clause* c, bool adding)
     Literal* lit=(*c)[i];
     TermIterator lhsi=EqHelper::getSuperpositionLHSIterator(lit, _ord, _opt);
     while (lhsi.hasNext()) {
-      TermList lhs=lhsi.next();
+      TermList lhs=lhsi.next();      
       if (adding) {
 	_is->insert(lhs, lit, c);
       }
@@ -169,7 +169,7 @@ void DemodulationLHSIndex::handleClause(Clause* c, bool adding)
 {
   CALL("DemodulationLHSIndex::handleClause");
 
-  if (c->length()!=1) {
+  if (c->length()!=1 || RapidHelper::forceOrder((*c)[0])) {
     return;
   }
               

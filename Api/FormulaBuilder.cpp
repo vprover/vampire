@@ -167,7 +167,7 @@ Var FormulaBuilder::var(const string& varName, Sort varSort)
 }
 
 Symbol FormulaBuilder::symbol(const string& name, unsigned arity, Sort rangeSort, 
-  std::vector<Sort>& domainSorts, bool mallocSym, bool builtIn)
+  std::vector<Sort>& domainSorts, bool lemmaPred, bool mallocSym, bool builtIn)
 {
   CALL("FormulaBuilder::symbol");
    
@@ -198,6 +198,9 @@ Symbol FormulaBuilder::symbol(const string& name, unsigned arity, Sort rangeSort
       throw FormulaBuilderException("Creating symbol " + StringUtils::copy2str(sym->name()) + " with different type than a previously created function "
 	  "of the same name and arity. (This must not happen even across different instances of the FormulaBuilder class.)");
     }
+  }
+  if(lemmaPred){
+    sym->markLemmaPred();
   }
   if(mallocSym){
     sym->markMalloc();

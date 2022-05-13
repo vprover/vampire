@@ -302,7 +302,7 @@ namespace Vampire
     CALL("Solver::function/2");
 
     std::vector<Sort> domainSorts(arity, defaultSort());
-    return fb.symbol(funName, arity, defaultSort(), domainSorts, false, builtIn);
+    return fb.symbol(funName, arity, defaultSort(), domainSorts, false, false, builtIn);
   }
 
   Symbol Solver::function(const string& funName, unsigned arity, Sort rangeSort, 
@@ -318,7 +318,7 @@ namespace Vampire
       //TODO: add further checks
     }
 
-    return fb.symbol(funName, arity, rangeSort, domainSorts, mallocSym, builtIn);
+    return fb.symbol(funName, arity, rangeSort, domainSorts, false, mallocSym, builtIn);
   }
 
   Symbol Solver::predicate(const string& predName,unsigned arity, bool builtIn)
@@ -326,10 +326,11 @@ namespace Vampire
     CALL("Solver::predicate/2");
 
     std::vector<Sort> domainSorts(arity, defaultSort());
-    return fb.symbol(predName, arity, boolSort(), domainSorts, builtIn);
+    return fb.symbol(predName, arity, boolSort(), domainSorts, false, false, builtIn);
   }
 
-  Symbol Solver::predicate(const string& predName, unsigned arity, std::vector<Sort>& domainSorts, bool builtIn)
+  Symbol Solver::predicate(const string& predName, unsigned arity, std::vector<Sort>& domainSorts, 
+                           bool lemmaPred, bool builtIn)
   {
     CALL("Solver::predicate/3");
 
@@ -341,7 +342,7 @@ namespace Vampire
       //TODO: add further checks
     }
     
-    return fb.symbol(predName, arity, boolSort(), domainSorts, builtIn);
+    return fb.symbol(predName, arity, boolSort(), domainSorts, lemmaPred, false, builtIn);
   }
 
   string Solver::getSortName(Sort s)

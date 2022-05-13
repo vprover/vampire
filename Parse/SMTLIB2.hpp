@@ -186,6 +186,7 @@ private:
     RAP_PROGRAM_VAR,
     RAP_MALLOC,  
     RAP_CHAIN,  
+    RAP_OBJ_ARRAY,
     RAP_NONE
   };
 
@@ -485,7 +486,8 @@ private:
    * Assumes that body is already fully simplified (as this is usual the case for theory axioms).
    */
   void readAssertTheory(LExpr* body);
-
+  void readAssertAxiom(LExpr* body);
+  
   /**
    * Unofficial command
    *

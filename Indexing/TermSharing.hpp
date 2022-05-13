@@ -48,6 +48,8 @@ public:
 
   void setPoly();
 
+  void tryForceArgumentOrder(Literal* l);
+
   /** The hash function of this literal */
   inline static unsigned hash(const Literal* l)
   { return l->hash(); }

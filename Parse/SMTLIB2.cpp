@@ -164,10 +164,11 @@ void SMTLIB2::readBenchmark(LExprList* bench)
     bool programVarDeclared = ibRdr.tryAcceptAtom("declare-program-var");
     bool mallocFunDeclared = ibRdr.tryAcceptAtom("declare-malloc-func");
     bool chainFunDeclared = ibRdr.tryAcceptAtom("declare-chain-func");
+    bool objArrayDeclared = ibRdr.tryAcceptAtom("declare-object-array");
 
     if(timePointDeclared || lemmaPredicateDeclared || constVarDeclared ||
        finalLoopCountDeclared || programVarDeclared || mallocFunDeclared ||
-       chainFunDeclared){
+       chainFunDeclared || objArrayDeclared){
       vstring name = ibRdr.readAtom();
       LExprList* iSorts;
       if(!ibRdr.tryReadList(iSorts)){
@@ -190,6 +191,8 @@ void SMTLIB2::readBenchmark(LExprList* bench)
         rsym = RapidSymbol::RAP_MALLOC;
       } else if(chainFunDeclared){
         rsym = RapidSymbol::RAP_CHAIN;        
+      } else if(objArrayDeclared){
+        rsym = RapidSymbol::RAP_OBJ_ARRAY;        
       }
 
       readDeclareFun(name,iSorts,oSort, rsym);
@@ -328,6 +331,18 @@ void SMTLIB2::readBenchmark(LExprList* bench)
       }
       LExpr* body = ibRdr.readNext();
       readAssertNot(body);
+
+      ibRdr.acceptEOL();
+
+      continue;
+    }
+
+    if (ibRdr.tryAcceptAtom("assert-axiom")) {
+      if (!ibRdr.hasNext()) {
+        USER_ERROR("assert-axiom expects a body");
+      }
+      LExpr* body = ibRdr.readNext();
+      readAssertAxiom(body);
 
       ibRdr.acceptEOL();
 
@@ -956,7 +971,7 @@ SMTLIB2::DeclaredFunction SMTLIB2::declareFunctionOrPredicate(const vstring& nam
     ASS(added);
     if (rapSym == RapidSymbol::RAP_LEMMA_PRED)
     {
-      sym->isLemmaPredicate = 1;
+      sym->markLemmaPred();
     }
 
     type = OperatorType::getPredicateType(argSorts.size(),argSorts.begin());
@@ -1001,6 +1016,10 @@ SMTLIB2::DeclaredFunction SMTLIB2::declareFunctionOrPredicate(const vstring& nam
 
     if(rapSym == RapidSymbol::RAP_CHAIN){
       sym->markChain();
+    }
+
+    if(rapSym == RapidSymbol::RAP_OBJ_ARRAY){
+      sym->markObjectArray();
     }
 
     type = OperatorType::getFunctionType(argSorts.size(), argSorts.begin(), rangeSort);
@@ -2901,6 +2920,24 @@ void SMTLIB2::readAssertTheory(LExpr* body)
   }
 
   FormulaUnit* fu = new FormulaUnit(theoryAxiom, Inference(TheoryAxiom(InferenceRule::EXTERNAL_THEORY_AXIOM)));
+  UnitList::push(fu, _formulas);
+}
+
+void SMTLIB2::readAssertAxiom(LExpr* body)
+{
+  CALL("SMTLIB2::readAssertAxiom");
+
+  _nextVar = 0;
+  ASS(_scopes.isEmpty());
+
+  ParseResult res = parseTermOrFormula(body);
+
+  Formula* axiom;
+  if (!res.asFormula(axiom)) {
+    USER_ERROR("Asserted expression of non-boolean sort "+body->toString());
+  }
+
+  FormulaUnit* fu = new FormulaUnit(axiom, FromInput(UnitInputType::AXIOM));
   UnitList::push(fu, _formulas);
 }
 

@@ -2128,8 +2128,8 @@ void Options::init()
 
     _literalComparisonMode = ChoiceOptionValue<LiteralComparisonMode>("literal_comparison_mode","lcm",
                                                                       LiteralComparisonMode::STANDARD,
-                                                                      {"predicate","reverse","standard"});
-    _literalComparisonMode.description="Vampire uses term orderings which use an ordering of predicates. Standard places equality (and certain other special predicates) first and all others second. Predicate depends on symbol precedence (see symbol_precedence). Reverse reverses the order.";
+                                                                      {"predicate","reverse","standard", "same"});
+    _literalComparisonMode.description="Vampire uses term orderings which use an ordering of predicates. Standard places equality (and certain other special predicates) first and all others second. Predicate depends on symbol precedence (see symbol_precedence). Reverse reverses the order. Same has all predicates including equality at same level";
     _lookup.insert(&_literalComparisonMode);
     _literalComparisonMode.reliesOn(InferencingSaturationAlgorithm());
     _literalComparisonMode.tag(OptionTag::SATURATION);

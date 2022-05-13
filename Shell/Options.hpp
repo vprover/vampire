@@ -488,7 +488,8 @@ public:
   enum class LiteralComparisonMode : unsigned int {
     PREDICATE = 0,
     REVERSE = 1,
-    STANDARD = 2
+    STANDARD = 2,
+    ALL_SAME = 3
   };
 
   enum class Condensation : unsigned int {

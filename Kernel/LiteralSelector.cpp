@@ -212,7 +212,7 @@ void LiteralSelector::ensureNonLemmaPredicateSelected(Clause* c, unsigned eligib
 
   for(unsigned i=0;i<selCnt;i++) {
     Signature::Symbol* psym=env.signature->getPredicate(((*c)[i]->functor()));
-    if(!psym->isLemmaPredicate)
+    if(!psym->lemmaPred())
     {
       // the literal selection already contains a non-lemma-literal
       return;
@@ -222,7 +222,7 @@ void LiteralSelector::ensureNonLemmaPredicateSelected(Clause* c, unsigned eligib
   // we know that no non-lemma-literal is selected, so select some non-lemma-literal if there is one
   for(unsigned i=selCnt;i<eligible;i++) {
     Signature::Symbol* psym=env.signature->getPredicate(((*c)[i]->functor()));
-    if(!psym->isLemmaPredicate)
+    if(!psym->lemmaPred())
     {
       swap((*c)[selCnt], (*c)[i]);
       c->setSelected(selCnt+1);
@@ -317,7 +317,7 @@ void LiteralSelector::select(Clause* c, unsigned eligibleInp)
   {
     for(unsigned i=0;i<eligible;i++) {
       Signature::Symbol* psym=env.signature->getPredicate(((*c)[i]->functor()));
-      if(psym->isLemmaPredicate && isNegativeForSelection((*c)[i]))
+      if(psym->lemmaPred() && isNegativeForSelection((*c)[i]))
       {
         swap((*c)[i], (*c)[0]);
         c->setSelected(1);

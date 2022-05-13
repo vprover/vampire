@@ -30,6 +30,7 @@
 #include "Kernel/Signature.hpp"
 #include "Kernel/OperatorType.hpp"
 #include "Kernel/Term.hpp"
+#include "Kernel/RapidHelper.hpp"
 
 #include "Indexing/Index.hpp"
 #include "Indexing/LiteralIndex.hpp"
@@ -133,7 +134,7 @@ void BackwardSubsumptionDemodulation::perform(Clause* sideCl, BwSimplificationRe
   bool hasPositiveEquality = false;
   for (unsigned i = 0; i < sideCl->length(); ++i) {
     Literal* lit = (*sideCl)[i];
-    if (lit->isEquality() && lit->isPositive()) {
+    if (lit->isEquality() && lit->isPositive() && !RapidHelper::forceOrder(lit)) {
       hasPositiveEquality = true;
       break;
     }

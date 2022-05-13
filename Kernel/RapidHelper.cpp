@@ -702,18 +702,54 @@ int RapidHelper::isConcreteLengthChain(TermList term)
   TermList trm = *t->nthArgument(0);
   TermList tp = *t->nthArgument(1);
 
-  if(trm.isVar() || tp.isVar()){
+  if(trm.isVar() || !trm.term()->ground() || tp.isVar() || !tp.term()->ground()){
     return -1;
   }  
 
   TermList length = *t->nthArgument(2);
 
   IntegerConstantType it;
-  if(theory->tryInterpretConstant(length,it) && it.toInner() >= 0){ 
+  if(theory->tryInterpretConstant(length,it) && it.toInner() > 0){ 
     return it.toInner(); 
   }
   return -1;
 }
+
+bool RapidHelper::forceOrder(TermList t1, TermList t2)
+{
+  CALL("RapidHelper::forceOrder");
+
+  if(t1.isVar() || t2.isVar()){ return false; }
+  auto t1Sym = env.signature->getFunction(t1.term()->functor());
+  auto t2Sym = env.signature->getFunction(t2.term()->functor());
+  if((t1Sym->objArray() && t2Sym->chain()) ||  (t2Sym->objArray() && t1Sym->chain())){
+    return true;
+  }
+  return false;
+}
+
+int RapidHelper::forceOrder(Literal* l)
+{
+  CALL("RapidHelper::forceOrder");
+
+  if(l->isEquality()){
+    TermList t1 = *l->nthArgument(0);
+    TermList t2 = *l->nthArgument(1);
+
+    if(t1.isTerm() && t2.isTerm()){
+      auto t1Sym = env.signature->getFunction(t1.term()->functor());
+      auto t2Sym = env.signature->getFunction(t2.term()->functor());
+      if(t1Sym->objArray() && t2Sym->chain()){
+        return 1;
+      }
+      if(t2Sym->objArray() && t1Sym->chain()){
+        return 2;
+      }      
+    }
+  }
+  return 0;
+}
+
 
 TermList RapidHelper::getFinalCountFromSubLit(Literal* lit) {
   CALL("RapidHelper::getFinalCountFromSubLit");

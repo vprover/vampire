@@ -91,6 +91,8 @@ public:
   static TermList timePointAtLastIt(TermList tp, TermList finalLoopCount);
 
   static int isConcreteLengthChain(TermList term);
+  static bool forceOrder(TermList t1, TermList t2);
+  static int forceOrder(Literal* lit);
 
   static bool increasing(Literal* lit, TermList term);
 private:

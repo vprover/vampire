@@ -896,6 +896,9 @@ DArray<int> PrecedenceOrdering::predLevelsFromOptsAndPrec(Problem& prb, const Op
   DArray<int> predicateLevels(nPredicates);
 
   switch(opt.literalComparisonMode()) {
+  case Shell::Options::LiteralComparisonMode::ALL_SAME:
+    predicateLevels.init(nPredicates, 1);
+    return predicateLevels;    
   case Shell::Options::LiteralComparisonMode::STANDARD:
     predicateLevels.init(nPredicates, 1);
     break;

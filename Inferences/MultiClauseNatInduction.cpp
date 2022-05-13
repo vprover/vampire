@@ -24,6 +24,7 @@
 #include "Kernel/Formula.hpp"
 #include "Kernel/FormulaUnit.hpp"
 #include "Kernel/EqHelper.hpp"
+#include "Kernel/Theory.hpp"
 
 #include "Inferences/BinaryResolution.hpp"
 
@@ -83,9 +84,13 @@ void MultiClauseNatInduction::createConclusions(ClauseStack& premises,
   
   bool inductionIsLimit = inductionTerm == limit;
 
+  TermList zeroTerm;
   auto natTA = env.signature->getNat();
-  ASS(natTA);
-  TermList zeroTerm = natTA->createZero();
+  if(natTA){
+    zeroTerm = natTA->createZero();
+  } else {
+    zeroTerm = TermList(theory->representConstant(IntegerConstantType(0)));
+  }
 
   unsigned maxVar = 0;
 
@@ -121,7 +126,15 @@ void MultiClauseNatInduction::createConclusions(ClauseStack& premises,
   Formula* baseCase = JunctionFormula::generalJunction(Connective::OR, bases);
 
   TermList freshVar = TermList(maxVar + 1, false);
-  TermList succVar = natTA->createSucc(freshVar);
+  TermList succVar;
+  if(natTA){
+    succVar = natTA->createSucc(freshVar);
+  } else {
+    // TODO Theory code can be made more concise with helper functions! 
+    TermList one(theory->representConstant(IntegerConstantType(1)));
+    unsigned plusFun = env.signature->getInterpretingSymbol(Theory::INT_PLUS);
+    succVar = TermList(Term::create2(plusFun,freshVar,one));
+  }
 
   FormulaList* lefts = FormulaList::empty();
   for(unsigned i = 0; i < disjuncts.size(); i++){
@@ -131,9 +144,17 @@ void MultiClauseNatInduction::createConclusions(ClauseStack& premises,
     FormulaList::push(f,lefts);
   }
   Formula* left = JunctionFormula::generalJunction(Connective::OR, lefts);
-  Formula* less = new AtomicFormula(natTA->createLess(true, freshVar, limit));
+  Formula* bounds; 
+  if(natTA){
+    bounds = new AtomicFormula(natTA->createLess(true, freshVar, limit));
+  } else {
+    unsigned lessPred = env.signature->getInterpretingSymbol(Theory::INT_LESS);
+    Formula* b1 = new AtomicFormula(Literal::create2(lessPred,true,freshVar,limit));
+    Formula* b2 = new AtomicFormula(Literal::create2(lessPred,false,freshVar, zeroTerm));
+    bounds = new JunctionFormula(Connective::AND, new FormulaList(b1, new FormulaList(b2)));
+  }
   Formula* leftOfImp = new JunctionFormula(Connective::AND,
-                       new FormulaList(less,new FormulaList(left)));
+                       new FormulaList(bounds,new FormulaList(left)));
 
 
   FormulaList* rights = FormulaList::empty();
@@ -160,7 +181,7 @@ void MultiClauseNatInduction::createConclusions(ClauseStack& premises,
   }
   Formula* conclusion = JunctionFormula::generalJunction(Connective::OR, concs);
   if(!inductionIsLimit){
-    conclusion = Formula::quantify(new BinaryFormula(Connective::IMP, less,conclusion));
+    conclusion = Formula::quantify(new BinaryFormula(Connective::IMP, bounds,conclusion));
   }
 
 
@@ -174,7 +195,7 @@ void MultiClauseNatInduction::createConclusions(ClauseStack& premises,
   fu = Rectify::rectify(fu);
 
   //if(!inductionIsLimit){
-    cout << fu->toString() << endl;
+  //  cout << "FU: " << fu->toString() << endl;
   //}
 
   ClauseStack clausifiedHyps;
@@ -187,13 +208,13 @@ void MultiClauseNatInduction::createConclusions(ClauseStack& premises,
     while(!clausifiedHyps.isEmpty()){
       Clause* cls = clausifiedHyps.pop();
 
+      bool resolved = false;
+
       while(!premises.isEmpty()){
         Clause* prem = premises.pop();
         Formula* f = disjuncts.pop();
         lit = f->literal();
         Literal* negatedLit = Literal::complementaryLiteral(lit);
-
-        bool resolved = false;
 
         if(cls->contains(negatedLit)){
           static ResultSubstitutionSP identity = ResultSubstitutionSP(new IdentitySubstitution());
@@ -234,12 +255,14 @@ bool MultiClauseNatInduction::ground(Clause* c)
   return true;
 }
 
-void MultiClauseNatInduction::getFinalLoopIters(Clause* c, TermStack& iterations)
+void MultiClauseNatInduction::getFinalLoopIters(Clause* c, 
+  TermStack& iterations, unsigned& numberOfIters)
 {
   CALL("MultiClauseNatInduction::tryGetFinalLoopCount");
 
   static DHSet<TermList> loopEndsAdded;
   loopEndsAdded.reset();
+  numberOfIters = 0;
 
   for(unsigned i = 0; i < c->length(); i++){
     Literal* lit = (*c)[i];
@@ -247,6 +270,7 @@ void MultiClauseNatInduction::getFinalLoopIters(Clause* c, TermStack& iterations
     while (sit.hasNext()) {  
       TermList tl = sit.next();
       if (RapidHelper::isFinalLoopCount(tl)){
+        numberOfIters++;
         if(loopEndsAdded.insert(tl)){
           iterations.push(tl);
         }
@@ -306,7 +330,6 @@ ClauseIterator MultiClauseNatInduction::generateClauses(Clause* premise)
   static bool allLoopCounts = env.options->inductAllLoopCounts();
   static int MAX_DIS = (int)env.options->maxDistanceFromGoal();
 
-
   if((premise->length() != 1 && !multiLiterals)){
     //Is this condition too restrictive?
     return ClauseIterator::getEmpty();
@@ -317,6 +340,7 @@ ClauseIterator MultiClauseNatInduction::generateClauses(Clause* premise)
 
 
   static TermStack iterations;
+  iterations.reset();
   if(allLoopCounts && premise->length() == 1 && allGround){
  
     Literal* lit = (*premise)[0];
@@ -330,7 +354,7 @@ ClauseIterator MultiClauseNatInduction::generateClauses(Clause* premise)
       getNonFinalLoopIters(premise, iterations);
       while(!iterations.isEmpty()){
         TermList iter = iterations.pop();
-        // an arbitrary variable to ensure that we do not created 
+        // an arbitrary variable to ensure that we do not create 
         // the same induction formula twice.       
         TermList zeroVar = TermList(0, false);
         Literal* skReplacedByZero = EqHelper::replace(lit, iter, zeroVar);
@@ -348,12 +372,26 @@ ClauseIterator MultiClauseNatInduction::generateClauses(Clause* premise)
     }
   }
    
+  unsigned numberOfIters = 0;
+  getFinalLoopIters(premise, iterations, numberOfIters);
+
+  if(iterations.size() == 1 && numberOfIters >= 3 && premise->derivedFromGoal() && 
+     premise->length() == 1 && allGround){
+
+    static ClauseStack premises;
+    premises.reset();
+    premises.push(premise);
+
+    TermList nlTerm = iterations.top();
+
+    createConclusions(premises, nlTerm, nlTerm, results, false, true);
+  }
+
   if(premise->derivedFromGoal() &&
      !(premise->inference().distanceFromGoal() > MAX_DIS)){
     
-    cout << premise->toString() << endl;
+    //cout << premise->toString() << endl;
 
-    getFinalLoopIters(premise, iterations);
     while(!iterations.isEmpty()){
       TermList nlTerm = iterations.pop();
       //no need for the unifier

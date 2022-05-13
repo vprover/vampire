@@ -174,7 +174,7 @@ private:
    * also the same type, even across different instances of the
    * FormulaBuilder class. */
   Symbol symbol(const std::string& funName, unsigned arity, Sort rangeSort, 
-    std::vector<Sort>& domainSorts, bool mallocSym = false, bool builtIn=false);
+    std::vector<Sort>& domainSorts, bool lemmaPred = false, bool mallocSym = false, bool builtIn=false);
 
   /** Return constant symbol representing @c i */
   Symbol integerConstant(int i);

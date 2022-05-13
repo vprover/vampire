@@ -1798,9 +1798,9 @@ ImmediateSimplificationEngine* SaturationAlgorithm::createISE(Problem& prb, cons
     res->addFront(new BoolSimp());
   }
 
-  // TODO guard this so taht we only add it
+  // TODO guard this so that we only add it
   // if the problem contains chains
-  res->addFront(new ChainUnrolling());  
+  //res->addFront(new ChainUnrolling());  
 
   if (prb.hasFOOL() && opt.casesSimp() && !opt.cases()) {
     res->addFrontMany(new CasesSimp());

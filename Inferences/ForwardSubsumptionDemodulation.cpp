@@ -26,6 +26,7 @@
 #include "Kernel/OperatorType.hpp"
 #include "Kernel/SubstHelper.hpp"
 #include "Kernel/Term.hpp"
+#include "Kernel/RapidHelper.hpp"
 #include "Lib/ScopeGuard.hpp"
 #include "Lib/STL.hpp"
 #include "Lib/STLAllocator.hpp"
@@ -187,7 +188,7 @@ bool ForwardSubsumptionDemodulation::perform(Clause* cl, Clause*& replacement, C
           //    In this case we do not want to exclude an mcl without positive equality anyways.
           baseLitsWithoutAlternatives += 1;
           if (baseLitsWithoutAlternatives == 1) {
-            if (!baseLit->isEquality() || !baseLit->isPositive()) {
+            if (!baseLit->isEquality() || !baseLit->isPositive() || RapidHelper::forceOrder(baseLit)) {
               // We are in case 2 => skip
               baseLitsWithoutAlternatives += 1;  // a hack so we don't need another variable to check whether to skip below (in other words, merge case 2 into case 3 for purpose of the "if" below)
               break;

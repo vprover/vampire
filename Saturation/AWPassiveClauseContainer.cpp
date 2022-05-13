@@ -340,19 +340,34 @@ after_manual:
   //std::cerr << _ageRatio << "\t" << _weightRatio << std::endl;
   _size--;
 
+  static bool one_iteration_at_a_time = false;
+
   Clause* cl;
   if (byWeight(_balance)) {
     _balance -= _ageRatio;
     cl = _weightQueue.pop();
+    //if(one_iteration_at_a_time)
+      //cout << "[SG] given clause weight: " << cl->toString() << endl;         
     _ageQueue.remove(cl);
   } else {
     _balance += _weightRatio;
     cl = _ageQueue.pop();
+    //if(one_iteration_at_a_time)
+      //cout << "[SG] given clause age: "  << cl->toString() << endl;     
     _weightQueue.remove(cl);
   }
 
   if (_isOutermost) {
     selectedEvent.fire(cl);
+  }
+
+  if(one_iteration_at_a_time){
+    std::cout << "'c' to continue or 'a' to abort iteration mode:\n";
+    std::string id;
+    std::cin >> id;
+    if(id == "a"){
+      one_iteration_at_a_time = false;
+    }    
   }
 
   return cl;

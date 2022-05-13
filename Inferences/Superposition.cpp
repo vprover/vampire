@@ -32,6 +32,7 @@
 #include "Kernel/Unit.hpp"
 #include "Kernel/LiteralSelector.hpp"
 #include "Kernel/RobSubstitution.hpp"
+#include "Kernel/RapidHelper.hpp"
 
 #include "Indexing/Index.hpp"
 #include "Indexing/IndexManager.hpp"
@@ -196,6 +197,18 @@ ClauseIterator Superposition::generateClauses(Clause* premise)
   static bool withConstraints = env.options->unificationWithAbstraction()!=Options::UnificationWithAbstraction::OFF;
   static bool extByAbstraction = (env.options->functionExtensionality() == Options::FunctionExtensionality::ABSTRACTION)
                                && env.property->higherOrder();
+
+  /*if(premise->number() == 212){
+    auto it1 = premise->getSelectedLiteralIterator();
+    while(it1.hasNext()){
+      auto lit = it1.next();
+      cout << "LIT " << lit->toString() << endl;
+      auto it2 = EqHelper::getSubtermIterator(lit, _salg->getOrdering());
+      while(it2.hasNext()){
+        cout << "SUBTERM " << it2.next().toString() << endl;
+      }
+    }
+   }*/
 
   auto itf1 = premise->getSelectedLiteralIterator();
 
@@ -390,10 +403,10 @@ Clause* Superposition::performSuperposition(
   ASS(rwClause->store()==Clause::ACTIVE);
   ASS(eqClause->store()==Clause::ACTIVE);
 
-  /* cout << "performSuperposition with " << rwClause->toString() << " and " << eqClause->toString() << endl;
-    cout << "rwTerm " << rwTerm.toString() << " eqLHS " << eqLHS.toString() << endl;
-    cout << "subst " << endl << subst->tryGetRobSubstitution()->toString() << endl;
-    cout << "eqIsResult " << eqIsResult << endl;*/
+  //cout << "performSuperposition with " << rwClause->toString() << " and " << eqClause->toString() << endl;
+  //cout << "rwTerm " << rwTerm.toString() << " eqLHS " << eqLHS.toString() << endl;
+  //cout << "subst " << endl << subst->tryGetRobSubstitution()->toString() << endl;
+  //cout << "eqIsResult " << eqIsResult << endl;
 
 
   // the first checks the reference and the second checks the stack
@@ -472,7 +485,7 @@ Clause* Superposition::performSuperposition(
 
   //cout << "Check ordering on " << tgtTermS.toString() << " and " << rwTermS.toString() << endl;
 
-  if(!env.options->useManualSupLhsSelection()){
+  if(!env.options->useManualSupLhsSelection() && !RapidHelper::forceOrder(tgtTermS,rwTermS)){
     //check that we're not rewriting smaller subterm with larger
     if(Ordering::isGorGEorE(ordering.compare(tgtTermS,rwTermS))) {
       return 0;
@@ -515,14 +528,14 @@ Clause* Superposition::performSuperposition(
   // If proof extra is on let's compute the positions we have performed
   // superposition on 
   if(env.options->proofExtra()==Options::ProofExtra::FULL){
-    /*
+    
     cout << "rwClause " << rwClause->toString() << endl;
     cout << "eqClause " << eqClause->toString() << endl;
     cout << "rwLit " << rwLit->toString() << endl;
     cout << "eqLit " << eqLit->toString() << endl;
     cout << "rwTerm " << rwTerm.toString() << endl;
     cout << "eqLHS " << eqLHS.toString() << endl;
-     */
+     
     //cout << subst->toString() << endl;
 
     // First find which literal it is in the clause, as selection has occured already
@@ -692,6 +705,5 @@ Clause* Superposition::performSuperposition(
     //NOT_IMPLEMENTED;
   }
 */
-//  cout << "result " + res->toString() << endl;
   return res;
 }

@@ -30,6 +30,7 @@
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/Term.hpp"
 #include "Kernel/RobSubstitution.hpp"
+#include "Kernel/RapidHelper.hpp"
 
 #include "Indexing/Index.hpp"
 #include "Indexing/TermIndex.hpp"
@@ -239,7 +240,8 @@ void BackwardDemodulation::perform(Clause* cl,
 {
   CALL("BackwardDemodulation::perform");
 
-  if(cl->length()!=1 || !(*cl)[0]->isEquality() || !(*cl)[0]->isPositive() ) {
+  if(cl->length()!=1 || !(*cl)[0]->isEquality() || !(*cl)[0]->isPositive() ||
+     RapidHelper::forceOrder((*cl)[0])) {
     simplifications=BwSimplificationRecordIterator::getEmpty();
     return;
   }
