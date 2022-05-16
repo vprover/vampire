@@ -5,6 +5,10 @@
 #include "Lib/STL.hpp"
 #include "./subsat/subsat.hpp"
 
+
+#define SUBSAT_SOLVER_REUSE 1
+
+
 namespace SMTSubsumption {
 
 class SMTSubsumptionImpl3;
@@ -97,13 +101,22 @@ class SMTSubsumptionImpl3
       }
     };
 
+    // just to satisfy Vampire's custom allocator
+    struct SolverWrapper {
+      CLASS_NAME(SMTSubsumptionImpl3::SolverWrapper);
+      USE_ALLOCATOR(SMTSubsumptionImpl3::SolverWrapper);
+      Solver s;
+    };
+
     // TODO: move MatchCache to cpp file; use std::unique_ptr in mcs and shared_mc.
     vvector<MatchCache*> mcs;
     MatchCache shared_mc;  // for when we don't have a cached one
     unsigned next_mc;
     MatchCache* last_mc;
 
-    Solver solver;
+    std::unique_ptr<SolverWrapper> shared_solver;
+
+    void recreate_solver();
 
     Kernel::Clause* instance = nullptr;   // main premise for forward subsumption (resolution)
 

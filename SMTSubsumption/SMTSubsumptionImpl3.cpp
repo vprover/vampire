@@ -12,11 +12,21 @@ using namespace SMTSubsumption;
 
 SMTSubsumptionImpl3::SMTSubsumptionImpl3()
 {
+#if SUBSAT_SOLVER_REUSE
+  recreate_solver();
+#endif
+  mcs.reserve(16);
+  instance_constraints.reserve(16);
+}
+
+void SMTSubsumptionImpl3::recreate_solver()
+{
+  shared_solver = nullptr;
+  shared_solver = std::make_unique<SolverWrapper>();
+  Solver& solver = shared_solver->s;
   solver.reserve_variables(64);
   solver.reserve_clause_storage(512);
   solver.theory().reserve(64, 2, 16);
-  mcs.reserve(16);
-  instance_constraints.reserve(16);
 }
 
 SMTSubsumptionImpl3::~SMTSubsumptionImpl3()
@@ -188,7 +198,12 @@ bool SMTSubsumptionImpl3::setupSubsumption(Kernel::Clause* base)
     return false;
   }
 
-  solver.clear();
+#if SUBSAT_SOLVER_REUSE
+  shared_solver->s.clear();
+#else
+  recreate_solver();
+#endif
+  Solver& solver = shared_solver->s;
   ASS(solver.empty());
   ASS(solver.theory().empty());
   solver.theory().setBindings(&bm);
@@ -343,7 +358,12 @@ bool SMTSubsumptionImpl3::setupSubsumptionResolution(Kernel::Clause* base)
     return false;
   }
 
-  solver.clear();
+#if SUBSAT_SOLVER_REUSE
+  shared_solver->s.clear();
+#else
+  recreate_solver();
+#endif
+  Solver& solver = shared_solver->s;
   ASS(solver.empty());
   ASS(solver.theory().empty());
   solver.theory().setBindings(&mc.bm);
@@ -471,6 +491,7 @@ bool SMTSubsumptionImpl3::setupSubsumptionResolution(Kernel::Clause* base)
 
 bool SMTSubsumptionImpl3::solve()
 {
+  Solver& solver = shared_solver->s;
   return solver.solve() == subsat::Result::Sat;
 }
 
@@ -492,6 +513,7 @@ Kernel::Clause* SMTSubsumptionImpl3::getSubsumptionResolutionConclusion(Kernel::
 
   // uint32_t const base_len = base->length();
   uint32_t const inst_len = instance->length();
+  Solver const& solver = shared_solver->s;
 
   std::uint32_t resolved_idx = UINT32_MAX;
   for (unsigned j = 0; j < inst_len; ++j) {
