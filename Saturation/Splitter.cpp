@@ -86,12 +86,6 @@ void SplittingBranchSelector::init()
       ASSERTION_VIOLATION_REP(_parent.getOptions().satSolver());
   }
 
-  // careful to call this before we start wrapping solvers around the core ones
-  // TODO: Z3 is not randomizing at the moment
-  if(_parent.getOptions().randomAVATAR()) {
-    _solver->requestRandomization(Random::getInteger(91648253)); // meaningless large number from minisat's code, actually
-  }
-
   if (_parent.getOptions().splittingBufferedSolver()) {
     _solver = new BufferedSolver(_solver.release());
   }
@@ -437,6 +431,9 @@ SATSolver::Status SplittingBranchSelector::processDPConflicts()
     {
       TimeCounter tca(TC_SAT_SOLVER);
       
+      if (_parent.getOptions().randomAVATAR()) {
+        _solver->randomizeForNextAssignment(_parent.maxSatVar());
+      }
       if (_solver->solve() == SATSolver::UNSATISFIABLE) {
         return SATSolver::UNSATISFIABLE;
       }
@@ -592,7 +589,7 @@ void SplittingBranchSelector::recomputeModel(SplitLevelStack& addedComps, SplitL
   SATSolver::Status stat;
   {
     TimeCounter tc1(TC_SAT_SOLVER);
-    if (randomize) {
+    if (randomize || _parent.getOptions().randomAVATAR()) {
       _solver->randomizeForNextAssignment(maxSatVar);
     }
     stat = _solver->solve();
