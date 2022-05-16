@@ -796,7 +796,7 @@ TEST_GENERATION_INDUCTION(test_25,
     )
 
 // all skolems are replaced when the hypothesis strengthening options is on, sik=one
-TEST_GENERATION_INDUCTION(test_17,
+TEST_GENERATION_INDUCTION(test_26,
     Generation::TestCase()
       .options({ { "induction", "struct" },
                  { "induction_strengthen_hypothesis", "on" } })
@@ -818,7 +818,7 @@ TEST_GENERATION_INDUCTION(test_17,
     )
 
 // all skolems are replaced when the hypothesis strengthening options is on, sik=two
-TEST_GENERATION_INDUCTION(test_18,
+TEST_GENERATION_INDUCTION(test_27,
     Generation::TestCase()
       .options({ { "induction", "struct" }, { "structural_induction_kind", "two" },
                  { "induction_strengthen_hypothesis", "on" } })
