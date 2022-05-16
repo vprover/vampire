@@ -246,6 +246,8 @@ enum class InferenceRule : unsigned char {
   HYPER_SUPERPOSITION_SIMPLIFYING, // not used at the moment
   /** global subsumption */
   GLOBAL_SUBSUMPTION, // CEREFUL: the main premise is not necessarily the first one!
+  /** disequation flattening */
+  DISEQUATION_FLATTENING,
   /** distinct equality removal */
   DISTINCT_EQUALITY_REMOVAL,
   /** simplification eliminating variables by rewriting arithmetic equalities: e.g.: 6 = 3 x \/ L[x] => L[2] */

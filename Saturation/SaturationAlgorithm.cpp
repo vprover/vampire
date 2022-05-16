@@ -48,6 +48,7 @@
 #include "Inferences/Condensation.hpp"
 #include "Inferences/FastCondensation.hpp"
 #include "Inferences/DistinctEqualitySimplifier.hpp"
+#include "Inferences/DisequationFlattening.hpp"
 
 #include "Inferences/InferenceEngine.hpp"
 #include "Inferences/BackwardDemodulation.hpp"
@@ -1522,6 +1523,7 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
     if(env.options->superposition()){
       gie->addFront(new Superposition());
     }
+    gie->addFront(new DisequationFlattening);
   } else if(opt.unificationWithAbstraction()!=Options::UnificationWithAbstraction::OFF){
     gie->addFront(new EqualityResolution()); 
   }
@@ -1786,6 +1788,7 @@ ImmediateSimplificationEngine* SaturationAlgorithm::createISE(Problem& prb, cons
   if(prb.hasEquality() && env.signature->hasDistinctGroups()) {
     res->addFront(new DistinctEqualitySimplifier());
   }
+
   if(prb.hasEquality() && env.signature->hasTermAlgebras()) {
     if (opt.termAlgebraInferences()) {
       res->addFront(new DistinctnessISE());
@@ -1822,7 +1825,6 @@ ImmediateSimplificationEngine* SaturationAlgorithm::createISE(Problem& prb, cons
     if (env.options->pushUnaryMinus()) {
       res->addFront(new PushUnaryMinus()); 
     }
-
   }
   if(prb.hasEquality()) {
     res->addFront(new TrivialInequalitiesRemovalISE());

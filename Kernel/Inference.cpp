@@ -887,6 +887,8 @@ vstring Kernel::ruleName(InferenceRule rule)
     return "global subsumption";
   case InferenceRule::SAT_INSTGEN_REFUTATION:
     return "sat instgen refutation";
+  case InferenceRule::DISEQUATION_FLATTENING:
+    return "disequation flattening";
   case InferenceRule::DISTINCT_EQUALITY_REMOVAL:
     return "distinct equality removal";
   case InferenceRule::EXTERNAL:
