@@ -297,6 +297,7 @@ VINF_OBJ=Inferences/BackwardDemodulation.o\
          Inferences/Superposition.o\
          Inferences/TautologyDeletionISE.o\
          Inferences/TermAlgebraReasoning.o\
+         Inferences/DisequationFlattening.o\
          Inferences/Induction.o\
          Inferences/InductionHelper.o\
          Inferences/URResolution.o\

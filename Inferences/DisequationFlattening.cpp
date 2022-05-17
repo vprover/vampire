@@ -8,6 +8,8 @@
  * and in the source directory
  */
 
+#include "Forwards.hpp"
+
 #include "Kernel/Clause.hpp"
 #include "Kernel/SortHelper.hpp"
 
@@ -17,7 +19,7 @@ using Kernel::Clause;
 
 Inferences::DisequationFlattening::~DisequationFlattening() {}
 
-Indexing::ClauseIterator Inferences::DisequationFlattening::generateClauses(Clause *cl)
+Kernel::ClauseIterator Inferences::DisequationFlattening::generateClauses(Clause *cl)
 {
   static Stack<Clause *> results;
   static Stack<Literal *> out;
