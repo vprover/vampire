@@ -41,6 +41,7 @@
 #include "Shell/Property.hpp"
 #include "Shell/Statistics.hpp"
 #include "Shell/UIHelper.hpp"
+#include "Shell/Shuffling.hpp"
 
 #include "IGAlgorithm.hpp"
 #include "ModelPrinter.hpp"
@@ -162,6 +163,7 @@ void IGAlgorithm::init()
     _saturationOptions.setAgeRatio(7);
     _saturationOptions.setWeightRatio(1);
     _saturationOptions.setSelection(11);
+
     _saturationAlgorithm = SaturationAlgorithm::createFromOptions(*_saturationProblem, _saturationOptions, _saturationIndexManager.ptr());
 
 
@@ -181,6 +183,12 @@ void IGAlgorithm::init()
   if(_prb.hasEquality()) {
     _equalityProxy = new EqualityProxyMono(Options::EqualityProxy::RSTC);
     _equalityProxy->apply(_prb);
+  }
+
+  if (env.options->randomTraversals()) {
+    TimeCounter tc(TC_SHUFFLING);
+
+    Shuffling::shuffle(_prb);
   }
 
   ClauseIterator cit = _prb.clauseIterator();
@@ -243,6 +251,12 @@ redundancy_check:
     }
   }
 
+  if (env.options->randomTraversals()) {
+    TimeCounter tc(TC_SHUFFLING);
+
+    Shuffling::shuffle(cl);
+  }
+
   cl->incRefCnt();
   _variantIdx->insert(cl);
 
@@ -271,6 +285,12 @@ void IGAlgorithm::processUnprocessed()
   CALL("IGAlgorithm::processUnprocessed");
 
   TimeCounter tc(TC_INST_GEN_SAT_SOLVING);
+
+  if (env.options->randomTraversals()) {
+    TimeCounter tc(TC_SHUFFLING);
+
+    Shuffling::shuffleArray(_unprocessed.naked().begin(),_unprocessed.size());
+  }
 
   while(_unprocessed.isNonEmpty()) {
     Clause* cl = _unprocessed.popWithoutDec();
