@@ -1331,6 +1331,68 @@ void Options::init()
     _integerInductionInterval.onlyUsefulWith(Or(_induction.is(equal(Induction::INTEGER)),_induction.is(equal(Induction::BOTH))));
     _lookup.insert(&_integerInductionInterval);
 
+    OptionChoiceValues integerInductionLiteralStrictnessValues {
+      "none",
+      "toplevel_not_in_other",
+      "only_one_occurrence",
+      "not_in_both",
+      "always"
+    };
+
+    _integerInductionStrictnessEq = ChoiceOptionValue<IntegerInductionLiteralStrictness>(
+        "int_induction_strictness_eq",
+        "intindsteq",
+        IntegerInductionLiteralStrictness::NONE,
+        integerInductionLiteralStrictnessValues
+    );
+    _integerInductionStrictnessEq.description =
+      "Exclude induction term t/literal l combinations from integer induction.\n"
+      "Induction is not applied to _equality_ literals l:\n"
+      "  - none: no exclusion\n"
+      "  - toplevel_not_in_other: t is a top-level argument of l,\n"
+      "    but it does not occur in the other argument of l\n"
+      "  - only_one_occurrence: t has only one occurrence in l\n"
+      "  - not_in_both: t does not occur in both arguments of l\n"
+      "  - always: induction on l is not allowed at all\n";
+    _integerInductionStrictnessEq.tag(OptionTag::INFERENCES);
+    _integerInductionStrictnessEq.reliesOn(Or(_induction.is(equal(Induction::INTEGER)),_induction.is(equal(Induction::BOTH))));
+    _lookup.insert(&_integerInductionStrictnessEq);
+
+    _integerInductionStrictnessComp = ChoiceOptionValue<IntegerInductionLiteralStrictness>(
+        "int_induction_strictness_comp",
+        "intindstcomp",
+        IntegerInductionLiteralStrictness::TOPLEVEL_NOT_IN_OTHER,
+        integerInductionLiteralStrictnessValues
+    );
+    _integerInductionStrictnessComp.description =
+      "Exclude induction term t/literal l combinations from integer induction.\n"
+      "Induction is not applied to _comparison_ literals l:\n"
+      "  - none: no exclusion\n"
+      "  - toplevel_not_in_other: t is a top-level argument of l,\n"
+      "    but it does not occur in the other argument of l\n"
+      "  - only_one_occurrence: t has only one occurrence in l\n"
+      "  - not_in_both: t does not occur in both arguments of l\n"
+      "  - always: induction on l is not allowed at all\n";
+    _integerInductionStrictnessComp.tag(OptionTag::INFERENCES);
+    _integerInductionStrictnessComp.reliesOn(Or(_induction.is(equal(Induction::INTEGER)),_induction.is(equal(Induction::BOTH))));
+    _lookup.insert(&_integerInductionStrictnessComp);
+
+    _integerInductionStrictnessTerm = ChoiceOptionValue<IntegerInductionTermStrictness>(
+      "int_induction_strictness_term",
+      "intindstterm",
+      IntegerInductionTermStrictness::INTERPRETED_CONSTANT,
+      {"none", "interpreted_constant", "no_skolems"}
+    );
+    _integerInductionStrictnessTerm.description =
+      "Exclude induction term t/literal l combinations from integer induction.\n"
+      "Induction is not applied to the induction term t:\n"
+      "  - none: no exclusion\n"
+      "  - interpreted_constant: t is an interpreted constant\n"
+      "  - no_skolems: t does not contain a skolem function";
+    _integerInductionStrictnessTerm.tag(OptionTag::INFERENCES);
+    _integerInductionStrictnessTerm.reliesOn(Or(_induction.is(equal(Induction::INTEGER)),_induction.is(equal(Induction::BOTH))));
+    _lookup.insert(&_integerInductionStrictnessTerm);
+
     _instantiation = ChoiceOptionValue<Instantiation>("instantiation","inst",Instantiation::OFF,{"off","on"});
     _instantiation.description = "Heuristically instantiate variables. Often wastes a lot of effort. Consider using thi instead.";
     _instantiation.tag(OptionTag::INFERENCES);

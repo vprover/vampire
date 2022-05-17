@@ -163,9 +163,9 @@ void IGAlgorithm::init()
     _saturationOptions.setAgeRatio(7);
     _saturationOptions.setWeightRatio(1);
     _saturationOptions.setSelection(11);
+    _saturationOptions.setSplitting(false);
 
     _saturationAlgorithm = SaturationAlgorithm::createFromOptions(*_saturationProblem, _saturationOptions, _saturationIndexManager.ptr());
-
 
     //we will watch what clauses are derived in the
     //saturation part, so we can take advantage of them
