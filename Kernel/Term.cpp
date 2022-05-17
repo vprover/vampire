@@ -326,6 +326,9 @@ TermList* Term::termArgs()
   return _args + (_arity - numTypeArguments());
 }
 
+const TermList* Term::typeArgs() const
+{ return numTypeArguments() == 0 ? nullptr : args(); }
+
 unsigned Term::numTermArguments() const
 { 
   CALL("Term::numTermArguments");

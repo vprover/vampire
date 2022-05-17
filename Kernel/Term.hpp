@@ -455,12 +455,11 @@ public:
   TermList* termArgs();
 
   /** Return the 1st type argument for a polymorphic term.
-    * Assumes that there are type arguments (numTypeArguments() > 0).
-    * This is technically the same as calling args(), but can be used to 
-    * increase readability of code.
+    * returns a nullpointer if the term not polymorphic
+    * This is technically almost the same thing as calling args(), 
+    * but can be used to increase readability of code.
     */
-  const TermList* typeArgs()
-  { ASS(numTypeArguments() > 0); return args(); }
+  const TermList* typeArgs() const;
 
   /** Indexing operator for accessing arguments */
   const TermList operator[](int i) const {
