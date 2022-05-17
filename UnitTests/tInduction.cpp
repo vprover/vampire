@@ -143,11 +143,11 @@ private:
   };
 };
 
-#define TEST_GENERATION_INDUCTION(name, expr)                                                                  \
+#define TEST_GENERATION_INDUCTION(name, expr)                                                                 \
   TEST_FUN(name) {                                                                                            \
     GenerationTesterInduction tester;                                                                         \
     __ALLOW_UNUSED(MY_SYNTAX_SUGAR)                                                                           \
-    auto test = expr;                                                                                  \
+    auto test = expr;                                                                                         \
     test.run(tester);                                                                                         \
   }                                                                                                           \
 
@@ -200,7 +200,7 @@ private:
   NUMBER_SUGAR(Int)                                                                        \
   DECL_PRED(pi, {Int})                                                                     \
   DECL_FUNC(fi, {Int, s}, Int)                                                             \
-  DECL_FUNC(gi, {Int}, Int)                                                             \
+  DECL_FUNC(gi, {Int}, Int)                                                                \
   DECL_CONST(sK6, Int)                                                                     \
   DECL_CONST(sK7, Int)                                                                     \
   DECL_CONST(sK8, Int)                                                                     \
@@ -616,9 +616,9 @@ TEST_GENERATION_INDUCTION(test_17,
       .indices({ comparisonIndex(), inductionTermIndex() })
       .input( clause({ ~(sK6 < num(1)) }) )
       .expected({
-        clause({ ~pi(1), ~(x < num(1)) }),
-        clause({ ~pi(1), pi(x) }),
-        clause({ ~pi(1), ~pi(x+1) }),
+        clause({ ~pi(1), ~(skx0 < num(1)) }),
+        clause({ ~pi(1), pi(skx0) }),
+        clause({ ~pi(1), ~pi(skx0+1) }),
       })
       .preConditions({ TEST_FN_ASS_EQ(env.statistics->induction, 0),
                        TEST_FN_ASS_EQ(env.statistics->intInfUpInduction, 0) })
@@ -635,15 +635,15 @@ TEST_GENERATION_INDUCTION(test_18,
       .input( clause({ sK6 < bi }) )
       .expected({
         // infinite induction
-        clause({ ~pi(bi), ~(bi < x) }),
-        clause({ ~pi(bi), pi(x) }),
-        clause({ ~pi(bi), ~pi(x+num(-1)) }),
+        clause({ ~pi(bi), ~(bi < skx0) }),
+        clause({ ~pi(bi), pi(skx0) }),
+        clause({ ~pi(bi), ~pi(skx0+num(-1)) }),
 
         // finite induction
-        clause({ ~pi(bi), ~(bi < y) }),
-        clause({ ~pi(bi), num(1) < y }),
-        clause({ ~pi(bi), pi(y) }),
-        clause({ ~pi(bi), ~pi(y+num(-1)) }),
+        clause({ ~pi(bi), ~(bi < skx1) }),
+        clause({ ~pi(bi), num(1) < skx1 }),
+        clause({ ~pi(bi), pi(skx1) }),
+        clause({ ~pi(bi), ~pi(skx1+num(-1)) }),
       })
       .preConditions({ TEST_FN_ASS_EQ(env.statistics->induction, 0),
                        TEST_FN_ASS_EQ(env.statistics->intInfDownInduction, 0),
@@ -680,9 +680,9 @@ TEST_GENERATION_INDUCTION(test_20,
       .indices({ comparisonIndex() })
       .input( clause({ ~pi(1) }) )
       .expected({
-        clause({ ~pi(sK6), ~(sK6 < x) }),
-        clause({ ~pi(sK6), pi(x) }),
-        clause({ ~pi(sK6), ~pi(x+num(-1)) }),
+        clause({ ~pi(sK6), ~(sK6 < skx0) }),
+        clause({ ~pi(sK6), pi(skx0) }),
+        clause({ ~pi(sK6), ~pi(skx0+num(-1)) }),
       })
       .preConditions({ TEST_FN_ASS_EQ(env.statistics->induction, 0),
                        TEST_FN_ASS_EQ(env.statistics->intInfDownInduction, 0) })
@@ -705,13 +705,13 @@ TEST_GENERATION_INDUCTION(test_21,
       .input( clause({ ~(bi < sK6) }) )
       .expected({
         // input used as main literal
-        clause({ ~(bi < num(1)), ~(x < num(1)) }),
-        clause({ ~(bi < num(1)), bi < x }),
-        clause({ ~(bi < num(1)), ~(bi < x+1) }),
+        clause({ ~(bi < num(1)), ~(skx0 < num(1)) }),
+        clause({ ~(bi < num(1)), bi < skx0 }),
+        clause({ ~(bi < num(1)), ~(bi < skx0+1) }),
         // context used as main literal
-        clause({ ~(bi < num(1)), ~(bi < y) }),
-        clause({ ~(bi < num(1)), y < num(1) }),
-        clause({ ~(bi < num(1)), ~(y+num(-1) < num(1)) }),
+        clause({ ~(bi < num(1)), ~(bi < skx1) }),
+        clause({ ~(bi < num(1)), skx1 < num(1) }),
+        clause({ ~(bi < num(1)), ~(skx1+num(-1) < num(1)) }),
       })
       .preConditions({ TEST_FN_ASS_EQ(env.statistics->induction, 0),
                        TEST_FN_ASS_EQ(env.statistics->intInfUpInduction, 0),
@@ -732,9 +732,9 @@ TEST_GENERATION_INDUCTION(test_22,
       .indices({ comparisonIndex(), inductionTermIndex() })
       .input( clause({ ~(bi < gi(sK6)) }) )
       .expected({
-        clause({ ~(bi < gi(1)), ~(x < num(1)) }),
-        clause({ ~(bi < gi(1)), bi < gi(x) }),
-        clause({ ~(bi < gi(1)), ~(bi < gi(x+1)) }),
+        clause({ ~(bi < gi(1)), ~(skx0 < num(1)) }),
+        clause({ ~(bi < gi(1)), bi < gi(skx0) }),
+        clause({ ~(bi < gi(1)), ~(bi < gi(skx0+1)) }),
       })
       .preConditions({ TEST_FN_ASS_EQ(env.statistics->induction, 0),
                        TEST_FN_ASS_EQ(env.statistics->intInfUpInduction, 0) })
@@ -766,9 +766,9 @@ TEST_GENERATION_INDUCTION(test_24,
       .indices({ comparisonIndex() })
       .input( clause({ bi != sK6 }) )
       .expected({
-        clause({ bi != num(1), ~(x < num(1)) }),
-        clause({ bi != num(1), bi == x }),
-        clause({ bi != num(1), bi != x+1 }),
+        clause({ bi != num(1), ~(skx0 < num(1)) }),
+        clause({ bi != num(1), bi == skx0 }),
+        clause({ bi != num(1), bi != skx0+1 }),
       })
       .preConditions({ TEST_FN_ASS_EQ(env.statistics->induction, 0),
                        TEST_FN_ASS_EQ(env.statistics->intInfUpInduction, 0) })
