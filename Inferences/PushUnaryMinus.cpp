@@ -52,6 +52,8 @@ TermList pushUMinus(UMinus outerMinus, TermList t)
 
   if (t.isVar()) {
     return wrapMinus(t);
+  } else if(t.term()->isSort()){
+    return t;
   } else {
     auto term = t.term();
     auto fun = term->functor();
@@ -80,9 +82,9 @@ TermList pushUMinus(UMinus outerMinus, TermList t)
         default: {}
       }
     }
-    Stack<TermList> args(term->numTermArguments());
-    for (unsigned i =0; i < term->numTermArguments(); i++) {
-      args.push(pushUMinus(UMinus::None, term->termArg(i)));
+    Stack<TermList> args(term->arity());
+    for (unsigned i =0; i < term->arity(); i++) {
+      args.push(pushUMinus(UMinus::None, *term->nthArgument(i)));
     }
     return wrapMinus(TermList(Term::create(term, args.begin())));
   }
@@ -103,15 +105,17 @@ Clause* PushUnaryMinus::simplify(Clause* cl_)
 
   for (unsigned i = 0; i < cl.size(); i++) {
     auto litIn = cl[i];
-    Stack<TermList> litStack;
-    for (unsigned j = 0; j < litIn->numTermArguments(); j++) {
-      auto tIn = litIn->termArg(j);
+    TermStack litStack;
+    for (unsigned j = 0; j < litIn->arity(); j++) {
+      auto tIn = *litIn->nthArgument(j);
       auto tOut = pushUMinus(UMinus::None, tIn);
       changed = changed || tIn != tOut;
       litStack.push(tOut);
     }
-    auto litOut = Literal::create(litIn, litStack.begin());
-    out.push(litOut);
+    if(changed){
+      auto litOut = Literal::create(litIn, litStack.begin());
+      out.push(litOut);
+    }
   }
 
   if (!changed) {
