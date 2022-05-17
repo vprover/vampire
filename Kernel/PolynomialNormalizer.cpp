@@ -243,7 +243,7 @@ template<class ConstantType>
 NormalizationResult wrapNumeral(ConstantType c) 
 { 
   using NumTraits = NumTraits<ConstantType>;
-  PolyNf numPolyNf(PolyNf(perfect(FuncTerm(FuncId(NumTraits::constantT(c)->functor()), nullptr))));
+  PolyNf numPolyNf(PolyNf(perfect(FuncTerm(FuncId::symbolOf(NumTraits::constantT(c)), nullptr))));
   return NormalizationResult(MonomFactors<NumTraits>(numPolyNf));
 }
 
@@ -282,7 +282,7 @@ NormalizationResult normalizeNumSort(TermList t, NormalizationResult* ts)
 
   } else {
     auto term = t.term();
-    auto fn = FuncId(term->functor());
+    auto fn = FuncId::symbolOf(term);
 
     if (fn.isInterpreted()) {
       switch(fn.interpretation()) {
@@ -337,7 +337,7 @@ PolyNf normalizeTerm(TypedTermList t)
         if (t.isVar()) {
           return NormalizationResult(PolyNf(Variable(t.var())));
         } else {
-          auto fn = FuncId(t.term()->functor());
+          auto fn = FuncId::symbolOf(t.term());
           return NormalizationResult(PolyNf(perfect(FuncTerm(
               fn, 
               Stack<PolyNf>::fromIterator(

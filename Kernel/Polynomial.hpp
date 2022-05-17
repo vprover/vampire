@@ -80,9 +80,11 @@ namespace Kernel {
 class FuncId 
 {
   unsigned _num;
+  const TermList* _typeArgs;
   
 public: 
-  explicit FuncId(unsigned num);
+  explicit FuncId(unsigned num, const TermList* typeArgs);
+  static FuncId symbolOf(Term* term);
   unsigned numTermArguments();
 
   friend struct std::hash<FuncId>;

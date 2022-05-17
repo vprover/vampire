@@ -37,9 +37,13 @@ Literal* createLiteral(Literal* orig, PolyNf* evaluatedArgs) {
           evaluatedArgs[1].denormalize(), 
           SortHelper::getArgSort(orig, 0));
   } else {
-    auto arity = orig->numTermArguments();
-    Stack<TermList> args(arity);
-    for (unsigned i = 0; i < arity; i++) {
+    auto termArgs = orig->numTermArguments();
+    auto typeArgs = orig->numTypeArguments();
+    Stack<TermList> args(typeArgs + termArgs);
+    for (unsigned i = 0; i < typeArgs; i++) {
+      args.push(orig->typeArg(i));
+    }
+    for (unsigned i = 0; i < termArgs; i++) {
       args.push(evaluatedArgs[i].denormalize());
     }
     return Literal::create(orig, args.begin());
@@ -238,9 +242,9 @@ Option<PolyNf> PolynomialEvaluation::evaluate(PolyNf normalized) const
   }
 }
 
-template<class Config>
-PolyNf createTerm(unsigned fun, PolyNf* evaluatedArgs) 
-{ return perfect(FuncTerm(FuncId(fun), evaluatedArgs)); }
+// template<class Config>
+// PolyNf createTerm(unsigned fun, PolyNf* evaluatedArgs) 
+// { return perfect(FuncTerm(FuncId(fun), evaluatedArgs)); }
 
 template<class Number>
 Polynom<Number> simplifyPoly(Polynom<Number> const& in, PolyNf* simplifiedArgs)

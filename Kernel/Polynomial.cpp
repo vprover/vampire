@@ -47,7 +47,10 @@ std::ostream& operator<<(std::ostream& out, const Variable& self)
 // impl FuncId
 /////////////////////////////////////////////////////////
 
-FuncId::FuncId(unsigned num) : _num(num) {}
+FuncId::FuncId(unsigned num, const TermList* typeArgs) : _num(num), _typeArgs(typeArgs) {}
+
+FuncId FuncId::symbolOf(Term* term) 
+{ return FuncId(term->functor(), term->typeArgs()); }
 
 unsigned FuncId::numTermArguments() 
 { return symbol()->numTermArguments(); }
