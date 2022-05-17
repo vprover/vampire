@@ -1552,6 +1552,17 @@ void Options::init()
     _extensionalityResolution.onlyUsefulWith(_inequalitySplitting.is(equal(0)));
     _extensionalityResolution.setRandomChoices({"filter","known","off","off"});
 
+    _disequationFlattening = BoolOptionValue("disequation_flattening", "df", false);
+    _disequationFlattening.description =
+      "Turns on the following inference rule:\n"
+      " f(t1, t2, ..., tn) != f(s1, s2, ..., sn) \\/ C\n"
+      "--------------------------------------------------\n"
+      " t1 != s1 \\/ t2 != s2 \\/ ... tn != sn \\/ C\n"
+      "This is not necessary, but may be helpful in some cases.\n"
+      "Unit-equality problems may have non-unit proofs with this option.";
+    _disequationFlattening.tag(OptionTag::INFERENCES);
+    _lookup.insert(&_disequationFlattening);
+
     _FOOLParamodulation = BoolOptionValue("fool_paramodulation","foolp",false);
     _FOOLParamodulation.description=
       "Turns on the following inference rule:\n"

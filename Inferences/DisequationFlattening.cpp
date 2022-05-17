@@ -17,39 +17,43 @@ using Kernel::Clause;
 
 Inferences::DisequationFlattening::~DisequationFlattening() {}
 
-Indexing::ClauseIterator Inferences::DisequationFlattening::generateClauses(Clause *cl) {
-  for(unsigned i = 0; i < cl->size(); i++) {
+Indexing::ClauseIterator Inferences::DisequationFlattening::generateClauses(Clause *cl)
+{
+  static Stack<Clause *> results;
+  static Stack<Literal *> out;
+
+  results.reset();
+  for (unsigned i = 0; i < cl->size(); i++) {
     Literal *l = cl->literals()[i];
-    if(l->isPositive() || !l->isEquality() || l->isTwoVarEquality())
+    if (l->isPositive() || !l->isEquality() || l->isTwoVarEquality())
       continue;
 
     TermList ltl = *l->nthArgument(0);
     TermList rtl = *l->nthArgument(1);
-    if(ltl == rtl || ltl.isVar() || rtl.isVar() || !TermList::sameTopFunctor(ltl, rtl))
+    if (!TermList::sameTopFunctor(ltl, rtl))
       continue;
 
-    Stack<Literal *> out;
-    for(unsigned j = 0; j < i; j++)
+    out.reset();
+    for (unsigned j = 0; j < i; j++)
       out.push(cl->literals()[j]);
 
     Term *lt = ltl.term();
     Term *rt = rtl.term();
-    for(unsigned j = 0; j < lt->arity(); j++)
+    for (unsigned j = 0; j < lt->arity(); j++)
       out.push(Literal::createEquality(
-        false,
-        *lt->nthArgument(j),
-        *rt->nthArgument(j),
-        SortHelper::getArgSort(lt, j)
-      ));
+          false,
+          *lt->nthArgument(j),
+          *rt->nthArgument(j),
+          SortHelper::getArgSort(lt, j)));
 
-    for(unsigned j = i + 1; j < cl->size(); j++)
+    for (unsigned j = i + 1; j < cl->size(); j++)
       out.push(cl->literals()[j]);
 
     Clause *result = Clause::fromStack(
-      out,
-      SimplifyingInference1(InferenceRule::DISEQUATION_FLATTENING, cl)
-    );
-    return pvi(getSingletonIterator(result));
+        out,
+        SimplifyingInference1(InferenceRule::DISEQUATION_FLATTENING, cl));
+    results.push(result);
   }
-  return ClauseIterator::getEmpty();
+
+  return pvi(results.iter());
 }

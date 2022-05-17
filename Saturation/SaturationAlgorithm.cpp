@@ -1523,7 +1523,8 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
     if(env.options->superposition()){
       gie->addFront(new Superposition());
     }
-    gie->addFront(new DisequationFlattening);
+    if(env.options->disequationFlattening())
+      gie->addFront(new DisequationFlattening);
   } else if(opt.unificationWithAbstraction()!=Options::UnificationWithAbstraction::OFF){
     gie->addFront(new EqualityResolution()); 
   }

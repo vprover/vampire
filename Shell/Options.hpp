@@ -2258,6 +2258,7 @@ public:
   TACyclicityCheck termAlgebraCyclicityCheck() const { return _termAlgebraCyclicityCheck.actualValue; }
   unsigned extensionalityMaxLength() const { return _extensionalityMaxLength.actualValue; }
   bool extensionalityAllowPosEq() const { return _extensionalityAllowPosEq.actualValue; }
+  bool disequationFlattening() const { return _disequationFlattening.actualValue; }
   unsigned nongoalWeightCoefficientNumerator() const { return _nonGoalWeightCoefficient.numerator; }
   unsigned nongoalWeightCoefficientDenominator() const { return _nonGoalWeightCoefficient.denominator; }
   bool restrictNWCtoGC() const { return _restrictNWCtoGC.actualValue; }
@@ -2542,6 +2543,7 @@ private:
   ChoiceOptionValue<ExtensionalityResolution> _extensionalityResolution;
   UnsignedOptionValue _extensionalityMaxLength;
   BoolOptionValue _extensionalityAllowPosEq;
+  BoolOptionValue _disequationFlattening;
 
   BoolOptionValue _FOOLParamodulation;
 
