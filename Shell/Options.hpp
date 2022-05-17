@@ -2239,6 +2239,7 @@ public:
   FunctionDefinitionElimination functionDefinitionElimination() const { return _functionDefinitionElimination.actualValue; }
   bool skolemReuse() const { return _skolemReuse.actualValue; }
   bool definitionReuse() const { return _definitionReuse.actualValue; }
+  bool twee() const { return _twee.actualValue; }
   bool outputAxiomNames() const { return _outputAxiomNames.actualValue; }
   void setOutputAxiomNames(bool newVal) { _outputAxiomNames.actualValue = newVal; }
   QuestionAnsweringMode questionAnswering() const { return _questionAnswering.actualValue; }
@@ -2539,6 +2540,7 @@ private:
   ChoiceOptionValue<FunctionDefinitionElimination> _functionDefinitionElimination;
   BoolOptionValue _skolemReuse;
   BoolOptionValue _definitionReuse;
+  BoolOptionValue _twee;
   
   BoolOptionValue _generalSplitting;
   BoolOptionValue _globalSubsumption;

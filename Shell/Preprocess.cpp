@@ -51,6 +51,7 @@
 #include "LambdaElimination.hpp"
 #include "TheoryAxioms.hpp"
 #include "TheoryFlattening.hpp"
+#include "Twee.hpp"
 #include "BlockedClauseElimination.hpp"
 
 #include "UIHelper.hpp"
@@ -347,6 +348,17 @@ void Preprocess::preprocess(Problem& prb)
        gs.apply(prb);
      }
    }
+
+   if(env.options->twee()) {
+     env.statistics->phase = Statistics::TWEE;
+     if(env.options->showPreprocessing())
+       env.out() << "twee" << std::endl;
+
+     Twee twee;
+     twee.apply(prb);
+   }
+   // TODO should recompute properties here?
+   // might have introduced equality and/or symbols
 
    if (!prb.higherOrder() && _options.equalityProxy()!=Options::EqualityProxy::OFF && prb.mayHaveEquality()) {
      env.statistics->phase=Statistics::EQUALITY_PROXY;
