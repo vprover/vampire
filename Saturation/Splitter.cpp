@@ -149,6 +149,11 @@ void SplittingBranchSelector::considerPolarityAdvice(SATLiteral lit)
     case Options::SplittingLiteralPolarityAdvice::NONE:
       // do nothing
     break;
+    case Options::SplittingLiteralPolarityAdvice::RANDOM:
+      _solver->suggestPolarity(lit.var(),Random::getBit());
+    break;
+    default:
+      ASSERTION_VIOLATION;
   }
 }
 
@@ -431,9 +436,6 @@ SATSolver::Status SplittingBranchSelector::processDPConflicts()
     {
       TimeCounter tca(TC_SAT_SOLVER);
       
-      if (_parent.getOptions().randomAVATAR()) {
-        _solver->randomizeForNextAssignment(_parent.maxSatVar());
-      }
       if (_solver->solve() == SATSolver::UNSATISFIABLE) {
         return SATSolver::UNSATISFIABLE;
       }
@@ -589,7 +591,7 @@ void SplittingBranchSelector::recomputeModel(SplitLevelStack& addedComps, SplitL
   SATSolver::Status stat;
   {
     TimeCounter tc1(TC_SAT_SOLVER);
-    if (randomize || _parent.getOptions().randomAVATAR()) {
+    if (randomize) {
       _solver->randomizeForNextAssignment(maxSatVar);
     }
     stat = _solver->solve();

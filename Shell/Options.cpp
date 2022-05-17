@@ -1088,12 +1088,6 @@ void Options::init()
     _randomTraversals.tag(OptionTag::SATURATION);
     _randomTraversals.setExperimental();
 
-    _randomAVATAR = BoolOptionValue("random_avatar","rav",false);
-    _lookup.insert(&_randomAVATAR);
-    _randomAVATAR.reliesOn(_splitting.is(equal(true)));
-    _randomAVATAR.tag(OptionTag::SATURATION);
-    _randomAVATAR.setExperimental();
-
   //*********************** Inferences  ***********************
 
 #if VZ3
@@ -1941,7 +1935,7 @@ void Options::init()
     _splittingLiteralPolarityAdvice = ChoiceOptionValue<SplittingLiteralPolarityAdvice>(
                                                 "avatar_literal_polarity_advice","alpa",
                                                 SplittingLiteralPolarityAdvice::NONE,
-                                                {"false","true","none"});
+                                                {"false","true","none","random"});
     _splittingLiteralPolarityAdvice.description="Override SAT-solver's default polarity/phase setting for variables abstracting clause components.";
     _lookup.insert(&_splittingLiteralPolarityAdvice);
     _splittingLiteralPolarityAdvice.tag(OptionTag::AVATAR);
