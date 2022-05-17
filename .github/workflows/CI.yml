@@ -18,7 +18,7 @@ jobs:
       run: mkdir z3/build
     - name: Configure Z3 Build
       working-directory: ${{runner.workspace}}/vampire/z3/build
-      run: cmake .. -DCMAKE_BUILD_TYPE=Debug
+      run: cmake .. -DCMAKE_BUILD_TYPE=Debug -DZ3_BUILD_EXECUTABLE=OFF -DZ3_BUILD_TEST_EXECUTABLES=OFF
       env:
         CXX: clang++
     - name: Z3 Build
