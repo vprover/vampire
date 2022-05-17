@@ -736,7 +736,7 @@ bool AWPassiveClauseContainer::fulfilsWeightLimit(unsigned w, unsigned numPositi
 }
 
 AWClauseContainer::AWClauseContainer(const Options& opt)
-: _ageQueue(opt), _weightQueue(opt), _ageRatio(1), _weightRatio(1), _balance(0), _size(0)
+: _ageQueue(opt), _weightQueue(opt), _ageRatio(1), _weightRatio(1), _balance(0), _size(0), _randomized(opt.randomAWR())
 {
 }
 
@@ -810,7 +810,9 @@ Clause* AWClauseContainer::popSelected()
   else if (! _weightRatio) {
     byWeight = false;
   }
-  else if (_balance > 0) {
+  else if (_randomized) {
+    byWeight = (Random::getInteger(_ageRatio+_weightRatio) < _weightRatio);
+  } else if (_balance > 0) {
     byWeight = true;
   }
   else if (_balance < 0) {

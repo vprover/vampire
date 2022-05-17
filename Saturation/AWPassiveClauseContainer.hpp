@@ -201,6 +201,8 @@ private:
   int _balance;
 
   unsigned _size;
+
+  bool _randomized;
 };
 
 
