@@ -283,7 +283,6 @@ NormalizationResult normalizeNumSort(TermList t, NormalizationResult* ts)
   } else {
     auto term = t.term();
     auto fn = FuncId::symbolOf(term);
-
     if (fn.isInterpreted()) {
       switch(fn.interpretation()) {
         case NumTraits::mulI:
@@ -315,6 +314,11 @@ NormalizationResult normalizeNumSort(TermList t, NormalizationResult* ts)
   }
 }
 
+#define PRINT_AND_RETURN(...)                                                                                 \
+  auto f = [&](){ __VA_ARGS__ };                                                                              \
+  auto out = f();                                                                                             \
+  DBG("out : ", out);                                                                                         \
+  return out;                                                                                                 \
 
 PolyNf normalizeTerm(TypedTermList t) 
 {
@@ -347,6 +351,7 @@ PolyNf normalizeTerm(TypedTermList t)
           )));
         }
       }
+
     }
   };
   NormalizationResult r = evaluateBottomUp(t, Eval{}, memo);

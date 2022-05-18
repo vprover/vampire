@@ -18,7 +18,7 @@
 #include "Kernel/Ordering.hpp"
 #include "Shell/Statistics.hpp"
 
-#define DEBUG(...) //DBG(__VA_ARGS__)
+#define DEBUG(...) // DBG(__VA_ARGS__)
 
 namespace Inferences {
 
@@ -92,7 +92,7 @@ SimplifyingGeneratingInference1::Result generalizeBottomUp(Clause* cl, EvalFn ev
         auto termArgs = termArgIter(lit)
           .map([&](TermList term) -> TermList { 
               CALL("generalizeBottomUp(Clause* cl, EvalFn)@closure 2")
-              auto norm = PolyNf::normalize(TypedTermList(term, SortHelper::getArgSort(lit, j++)));
+              auto norm = PolyNf::normalize(TypedTermList(term, SortHelper::getTermArgSort(lit, j++)));
               auto res = evaluateBottomUp(norm, eval);
               if (res != norm) {
                 anyChange = true;

@@ -224,7 +224,7 @@ bool IterArgsPnf::hasNext() const
 
 PolyNf IterArgsPnf::next()
 { 
-  auto out = PolyNf::normalize(TypedTermList(_lit->termArg(_idx), SortHelper::getArgSort(_lit, _idx)));
+  auto out = PolyNf::normalize(TypedTermList(_lit->termArg(_idx), SortHelper::getTermArgSort(_lit, _idx)));
   _idx++;
   return out;
 }

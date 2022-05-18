@@ -37,7 +37,7 @@ Literal* createLiteral(Literal* orig, PolyNf* evaluatedArgs) {
           orig->polarity(), 
           evaluatedArgs[0].denormalize(), 
           evaluatedArgs[1].denormalize(), 
-          SortHelper::getArgSort(orig, 0));
+          SortHelper::getTermArgSort(orig, 0));
   } else {
     auto termArgs = orig->numTermArguments();
     auto typeArgs = orig->numTypeArguments();
@@ -60,7 +60,7 @@ PolynomialEvaluation::Result PolynomialEvaluation::simplifyLiteral(Literal* lit)
   auto anyChange = false;
   for (unsigned i = 0; i < lit->numTermArguments(); i++) {
     auto term = lit->termArg(i);
-    auto norm = PolyNf::normalize(TypedTermList(term, SortHelper::getArgSort(lit, i)));
+    auto norm = PolyNf::normalize(TypedTermList(term, SortHelper::getTermArgSort(lit, i)));
     auto ev = evaluate(norm);
     anyChange = anyChange || ev.isSome();
     terms.push(std::move(ev).unwrapOrElse([&](){ return norm; }));

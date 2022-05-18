@@ -230,6 +230,10 @@ TermList SortHelper::getArgSort(Term* t, unsigned argIndex)
   return SubstHelper::apply(ot->arg(argIndex), subst);
 } // getArgSort
 
+/* returns the sort of the nth term argument */
+TermList SortHelper::getTermArgSort(Term* t, unsigned n)
+{ return getArgSort(t, n + t->numTypeArguments()); }
+
 TermList SortHelper::getEqualityArgumentSort(const Literal* lit)
 {
   CALL("SortHelper::getEqualityArgumentSort");

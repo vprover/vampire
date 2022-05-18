@@ -13,6 +13,7 @@
 
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/BottomUpEvaluation.hpp"
+#include "Kernel/Term.hpp"
 
 using SortId = TermList;
 
@@ -23,7 +24,7 @@ class TypedTermList : public TermList
   SortId _sort;
 public:
   CLASS_NAME(TypedTermList)
-  TypedTermList(TermList t, SortId sort) : TermList(t), _sort(sort) {}
+  TypedTermList(TermList t, SortId sort) : TermList(t), _sort(sort) { ASS_NEQ(sort, AtomicSort::superSort()) }
   TypedTermList(Term* t) : TypedTermList(TermList(t), SortHelper::getResultSort(t)) {}
   SortId sort() const { return _sort; }
 };
@@ -46,7 +47,8 @@ struct BottomUpChildIter<Kernel::TypedTermList>
     ASS(hasNext());
     auto cur = self().term();
     auto next = cur->termArg(_idx);
-    auto sort = Kernel::SortHelper::getArgSort(cur, _idx);
+    auto sort = Kernel::SortHelper::getTermArgSort(cur, _idx);
+    ASS_NEQ(sort, Kernel::AtomicSort::superSort())
     _idx++;
     return Kernel::TypedTermList(next, sort);
   }
