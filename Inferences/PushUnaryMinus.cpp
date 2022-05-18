@@ -56,7 +56,7 @@ TermList pushUMinus(UMinus outerMinus, TermList t)
     return t;
   } else {
     auto term = t.term();
-    auto fun = term->functor();
+auto fun = term->functor();
     if (theory->isInterpretedFunction(fun)) {
       switch (theory->interpretFunction(fun)) {
 #define CASE(Num)                                                                                             \
@@ -82,10 +82,12 @@ TermList pushUMinus(UMinus outerMinus, TermList t)
         default: {}
       }
     }
-    Stack<TermList> args(term->arity());
-    for (unsigned i =0; i < term->arity(); i++) {
-      args.push(pushUMinus(UMinus::None, *term->nthArgument(i)));
-    }
+    auto args = concatIters(
+        typeArgIter(term),
+        termArgIter(term)
+          .map([&](auto t) { return pushUMinus(UMinus::None, t); }))
+      .template collect<Stack>();
+
     return wrapMinus(TermList(Term::create(term, args.begin())));
   }
 }
@@ -105,16 +107,20 @@ Clause* PushUnaryMinus::simplify(Clause* cl_)
 
   for (unsigned i = 0; i < cl.size(); i++) {
     auto litIn = cl[i];
-    TermStack litStack;
-    for (unsigned j = 0; j < litIn->arity(); j++) {
-      auto tIn = *litIn->nthArgument(j);
-      auto tOut = pushUMinus(UMinus::None, tIn);
-      changed = changed || tIn != tOut;
-      litStack.push(tOut);
-    }
+    auto litStack = concatIters(
+        typeArgIter(litIn),
+        termArgIter(litIn)
+          .map([&](auto tIn) {
+            auto tOut = pushUMinus(UMinus::None, tIn);
+            changed = changed || tIn != tOut;
+            return tOut;
+          })
+        ).template collect<Stack>();
     if(changed){
       auto litOut = Literal::create(litIn, litStack.begin());
       out.push(litOut);
+    } else {
+      out.push(litIn);
     }
   }
 

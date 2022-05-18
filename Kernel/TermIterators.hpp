@@ -873,15 +873,15 @@ public:
   unsigned size() const { return _lit->arity(); }
 };
 
-static const auto termArgIter = [](Literal* lit) 
-  { return iterTraits(getRangeIterator<unsigned>(0, lit->numTermArguments()))
+static const auto termArgIter = [](Term* term) 
+  { return iterTraits(getRangeIterator<unsigned>(0, term->numTermArguments()))
       .map([=](auto i)
-           { return lit->termArg(i); }); };
+           { return term->termArg(i); }); };
 
-static const auto typeArgIter = [](Literal* lit) 
-  { return iterTraits(getRangeIterator<unsigned>(0, lit->numTypeArguments()))
+static const auto typeArgIter = [](Term* term) 
+  { return iterTraits(getRangeIterator<unsigned>(0, term->numTypeArguments()))
       .map([=](auto i)
-           { return lit->typeArg(i); }); };
+           { return term->typeArg(i); }); };
 
 
 }
