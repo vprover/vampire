@@ -369,6 +369,7 @@ OperatorType* operatorType(Z3Interfacing::FuncOrPredId f)
 }
 
 
+// TODO does this correctly work with polymorphism?
 Term* createTermOrPred(Z3Interfacing::FuncOrPredId f, unsigned arity, TermList* ts)
 {
   return f.isPredicate

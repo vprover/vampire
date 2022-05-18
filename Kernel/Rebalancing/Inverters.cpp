@@ -107,32 +107,11 @@ TermList NumberTheoryInverter::invertTop(const InversionContext &ctxt) {
 
       CASE_DO_INVERT_INT(mul, doInvertMulInt(ctxt))
 
-      // case Theory::Interpretation::ARRAY_STORE: 
-      // {
-      //   ASS(ctxt.topIdx() == 2)
-      //   /*              store(t, i, x) = s ==> x = select(s, i) */
-      //   /* auto toWrap:                  ^                      */
-      //   /* auto& t:     ^^^^^^^^^^^^^^                          */
-      //   auto& store = *env.signature->getFunction(t.functor())->fnType();
-      //   auto select = env.signature->getInterpretingSymbol(
-      //       Theory::Interpretation::ARRAY_SELECT, 
-      //       OperatorType::getFunctionType({ store.arg(0), store.arg(1) }, store.arg(2)));
-      //   return TermList(Term::create2(select, toWrap, *t.termArg(1)));
-      // }
     default:
       ASSERTION_VIOLATION;
     }
   } else {
     ASSERTION_VIOLATION
-    // // must be a term algebra sort
-    // auto sym = env.signature->getFunction(fun);
-    // ASS_REP(sym->termAlgebraCons(), sym);
-    // auto ctor = env.signature->getTermAlgebraConstructor(fun);
-    // ASS(!dtorIsPredicate(*sym, index))
-    // auto dtor = ctor->destructorFunctor(index);
-    // // DBGE(*(isPred ? env.signature->getPredicate(dtor)
-    // //               : env.signature->getFunction(dtor)))
-    // return TermList(Term::create1(dtor, toWrap));
   }
 };
 
