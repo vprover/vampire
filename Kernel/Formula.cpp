@@ -778,7 +778,7 @@ Formula* Formula::quantify(Formula* f)
 {
 
   DHMap<unsigned,TermList> tMap;
-  SortHelper::collectVariableSorts(f,tMap);
+  SortHelper::collectVariableSorts(f,tMap,/*ignoreBound=*/true);
 
   //we have to quantify the formula
   VList* varLst = VList::empty();

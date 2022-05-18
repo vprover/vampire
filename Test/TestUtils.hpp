@@ -215,21 +215,29 @@ public:
 // rhs via initial permutation perm with elements [0,idx) fixed.
 template<class L1, class L2, class Eq>
 bool __permEq(L1& lhs, L2& rhs, Eq elemEq, DArray<unsigned>& perm, unsigned idx) {
-  auto checkPerm = [] (L1& lhs, L2& rhs, Eq elemEq, DArray<unsigned>& perm, unsigned idx) {
+  auto checkPerm = [] (L1& lhs, L2& rhs, Eq elemEq, DArray<unsigned>& perm, unsigned idx, BacktrackData& btd) {
     ASS_EQ(lhs.size(), perm.size());
     ASS_EQ(rhs.size(), perm.size());
 
     for (unsigned i = idx; i < perm.size(); i++) {
-      if (!elemEq(lhs[i], rhs[perm[i]])) return false;
+      if (!elemEq(lhs[i], rhs[perm[i]], btd)) {
+        btd.backtrack();
+        return false;
+      }
     }
     return true;
   };
+  BacktrackData btd;
   // These are elements fixed in the permutation, so check
   // them only once and do not recurse if one of them is false.
   for (unsigned i = 0; i < idx; i++) {
-    if (!elemEq(lhs[i], rhs[perm[i]])) return false;
+    if (!elemEq(lhs[i], rhs[perm[i]], btd)) {
+      btd.backtrack();
+      return false;
+    }
   }
-  if (checkPerm(lhs, rhs, elemEq, perm, idx)) {
+  if (checkPerm(lhs, rhs, elemEq, perm, idx, btd)) {
+    btd.drop();
     return true;
   }
   for (unsigned i = idx; i < perm.size(); i++) {

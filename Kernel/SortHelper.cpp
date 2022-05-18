@@ -13,6 +13,7 @@
  */
 
 #include "Lib/Environment.hpp"
+#include "Lib/MultiCounter.hpp"
 
 #include "Clause.hpp"
 #include "FormulaUnit.hpp"
@@ -343,11 +344,12 @@ bool SortHelper::tryGetVariableSort(unsigned var, Formula* f, TermList& res)
  * @since 13/02/2017 Vienna
  * @author Martin Suda
  */
-void SortHelper::collectVariableSortsIter(CollectTask task, DHMap<unsigned,TermList>& map)
+void SortHelper::collectVariableSortsIter(CollectTask task, DHMap<unsigned,TermList>& map, bool ignoreBound)
 {
   CALL("SortHelper::collectVariableSortsIter");
 
   Stack<CollectTask> todo;
+  MultiCounter bound;
 
   todo.push(task);
   while (todo.isNonEmpty()) {
@@ -387,8 +389,10 @@ void SortHelper::collectVariableSortsIter(CollectTask task, DHMap<unsigned,TermL
           }
         } else if (ts.isOrdinaryVar()) {
           unsigned var = ts.var();
-          if (!map.insert(var, task.contextSort)) {
-            ASS_EQ(task.contextSort, map.get(var));
+          if (!ignoreBound || !bound.get(var)) {
+            if (!map.insert(var, task.contextSort)) {
+              ASS_EQ(task.contextSort, map.get(var));
+            }
           }
         }
 
@@ -431,8 +435,10 @@ void SortHelper::collectVariableSortsIter(CollectTask task, DHMap<unsigned,TermL
             while (vit.hasNext()) {
               unsigned var = vit.next();
               TermList sort = isPredicate ? symbol->predType()->arg(position) : symbol->fnType()->arg(position);
-              if (!map.insert(var, sort)) {
-                ASS_EQ(sort, map.get(var));
+              if (!ignoreBound || !bound.get(var)) {
+                if (!map.insert(var, sort)) {
+                  ASS_EQ(sort, map.get(var));
+                }
               }
               position++;
             }
@@ -526,54 +532,124 @@ void SortHelper::collectVariableSortsIter(CollectTask task, DHMap<unsigned,TermL
       case COLLECT_FORMULA: {
         Formula* f = task.f;
 
-        SubformulaIterator sfit(f);
-        while (sfit.hasNext()) {
-          Formula* sf = sfit.next();
-          switch (sf->connective()) {
-            case LITERAL: {
-              Literal* lit = sf->literal();
-              if(lit->isTwoVarEquality()){
-                CollectTask newTask;
-                newTask.fncTag = COLLECT_TERMLIST;
-                newTask.ts = lit->twoVarEqSort();
-                newTask.contextSort = AtomicSort::superSort();
-                todo.push(newTask);
-              }
+        switch (f->connective()) {
+          case LITERAL: {
+            Literal* lit = f->literal();
+            if(lit->isTwoVarEquality()){
               CollectTask newTask;
-              newTask.fncTag = COLLECT_TERM;
-              newTask.t = lit;
-
+              newTask.fncTag = COLLECT_TERMLIST;
+              newTask.ts = lit->twoVarEqSort();
+              newTask.contextSort = AtomicSort::superSort();
               todo.push(newTask);
-            } break;
+            }
+            CollectTask newTask;
+            newTask.fncTag = COLLECT_TERM;
+            newTask.t = lit;
 
-            case BOOL_TERM: {
-              TermList ts = sf->getBooleanTerm();
-              if (ts.isVar()) {
+            todo.push(newTask);
+            break;
+          }
+
+          case BOOL_TERM: {
+            TermList ts = f->getBooleanTerm();
+            if (ts.isVar()) {
+              if (!ignoreBound || !bound.get(ts.var())) {
                 if (!map.insert(ts.var(), AtomicSort::boolSort())) {
                   ASS_EQ(AtomicSort::boolSort(), map.get(ts.var()));
                 }
-              } else {
-                ASS(ts.isTerm());
-
-                CollectTask newTask;
-                if(ts.term()->isSpecial()){
-                  newTask.fncTag = COLLECT_SPECIALTERM;
-                } else {
-                  newTask.fncTag = COLLECT_TERM;                  
-                }
-                newTask.t = ts.term();
-                newTask.contextSort = AtomicSort::boolSort();
-
-                todo.push(newTask);
               }
-              break;
+            } else {
+              ASS(ts.isTerm());
+
+              CollectTask newTask;
+              if(ts.term()->isSpecial()){
+                newTask.fncTag = COLLECT_SPECIALTERM;
+              } else {
+                newTask.fncTag = COLLECT_TERM;
+              }
+              newTask.t = ts.term();
+              newTask.contextSort = AtomicSort::boolSort();
+
+              todo.push(newTask);
+            }
+            break;
+          }
+
+          case EXISTS:
+          case FORALL: {
+            if (ignoreBound) {
+              CollectTask unbindTask;
+              unbindTask.fncTag = UNBIND;
+              unbindTask.vars = f->vars();
+              todo.push(unbindTask);
             }
 
-            default:
-              continue;
-          }
-        }
+            CollectTask newTask;
+            newTask.fncTag = COLLECT_FORMULA;
+            newTask.f = f->qarg();
+            todo.push(newTask);
 
+            if (ignoreBound) {
+              CollectTask bindTask;
+              bindTask.fncTag = BIND;
+              bindTask.vars = f->vars();
+              todo.push(bindTask);
+            }
+            break;
+          }
+
+          case AND:
+          case OR: {
+            FormulaList::Iterator argIt(f->args());
+            while (argIt.hasNext()) {
+              CollectTask newTask;
+              newTask.fncTag = COLLECT_FORMULA;
+              newTask.f = argIt.next();
+              todo.push(newTask);
+            }
+            break;
+          }
+
+          case IMP:
+          case IFF:
+          case XOR: {
+            CollectTask leftTask;
+            leftTask.fncTag = COLLECT_FORMULA;
+            leftTask.f = f->left();
+            todo.push(leftTask);
+
+            CollectTask rightTask;
+            rightTask.fncTag = COLLECT_FORMULA;
+            rightTask.f = f->right();
+            todo.push(rightTask);
+            break;
+          }
+
+          case NOT: {
+            CollectTask newTask;
+            newTask.fncTag = COLLECT_FORMULA;
+            newTask.f = f->uarg();
+            todo.push(newTask);
+            break;
+          }
+
+          default:
+            continue;
+        }
+      } break;
+
+      case BIND: {
+        VList::Iterator vit(task.vars);
+        while (vit.hasNext()) {
+          bound.inc(vit.next());
+        }
+      } break;
+
+      case UNBIND: {
+        VList::Iterator vit(task.vars);
+        while (vit.hasNext()) {
+          bound.dec(vit.next());
+        }
       } break;
     }
   }
@@ -603,7 +679,7 @@ void SortHelper::collectVariableSorts(Term* term, DHMap<unsigned,TermList>& map)
  * is in map already (or appears multiple times), assert that
  * the sorts are equal.
  */
-void SortHelper::collectVariableSorts(Formula* f, DHMap<unsigned,TermList>& map)
+void SortHelper::collectVariableSorts(Formula* f, DHMap<unsigned,TermList>& map, bool ignoreBound)
 {
   CALL("SortHelper::collectVariableSorts(Formula*,...)");
 
@@ -611,7 +687,7 @@ void SortHelper::collectVariableSorts(Formula* f, DHMap<unsigned,TermList>& map)
   task.fncTag = COLLECT_FORMULA;
   task.f = f;
 
-  collectVariableSortsIter(task,map);
+  collectVariableSortsIter(task,map,ignoreBound);
 }
 
 /**

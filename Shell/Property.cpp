@@ -75,6 +75,7 @@ Property::Property()
     _sortsUsed(0),
     _hasFOOL(false),
     _hasCombs(false),
+    _hasArrowSort(false),
     _hasApp(false),
     _hasAppliedVar(false),
     _hasBoolVar(false),
@@ -505,6 +506,10 @@ void Property::scanSort(TermList sort)
 
   if(sort.term()->isSuper()){
     return;
+  }
+
+  if(sort.isArrowSort()){
+    _hasArrowSort = true;
   }
 
   if(!higherOrder() && !hasPolymorphicSym()){

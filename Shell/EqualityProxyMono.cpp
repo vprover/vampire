@@ -37,7 +37,7 @@ using namespace Lib;
 using namespace Kernel;
 
 DHMap<TermList, unsigned> EqualityProxyMono::s_proxyPredicates;
-DHMap<unsigned,TermList> EqualityProxyMono::s_proxyPredicateSorts;
+DHMap<unsigned, TermList> EqualityProxyMono::s_proxyPredicateSorts;
 DHMap<TermList, Unit*> EqualityProxyMono::s_proxyPremises;
 
 /**
@@ -156,8 +156,13 @@ void EqualityProxyMono::addAxioms(UnitList*& units)
     addCongruenceAxioms(units);
   }
 
+<<<<<<< HEAD
   DHMap<TermList, unsigned>::Iterator it(s_proxyPredicates);
   while (it.hasNext()) {
+=======
+  DHMap<TermList,unsigned>::Iterator it(s_proxyPredicates);
+  while(it.hasNext()) {
+>>>>>>> master
     addLocalAxioms(units, it.nextKey());
   }
 } // addAxioms
@@ -342,18 +347,33 @@ bool EqualityProxyMono::haveProxyPredicate(TermList sort) const
 unsigned EqualityProxyMono::getProxyPredicate(TermList sort)
 {
   CALL("EqualityProxyMono::getProxyPredicate");
+<<<<<<< HEAD
   
   unsigned pred;
   if (s_proxyPredicates.find(sort, pred)) {
+=======
+
+  unsigned pred;
+  if (s_proxyPredicates.find(sort,pred)) {
+>>>>>>> master
     return pred;
   }
+
   unsigned newPred = env.signature->addFreshPredicate(2,"sQ","eqProxy");
   Signature::Symbol* predSym = env.signature->getPredicate(newPred);
   OperatorType* predType = OperatorType::getPredicateType({sort, sort});
   predSym->setType(predType);
   predSym->markEqualityProxy();
 
+<<<<<<< HEAD
   s_proxyPredicates.insert(sort, newPred);
+=======
+  ASS(sort.isTerm());
+  ASS(sort.term()->shared());
+  ASS(sort.term()->ground());
+
+  ALWAYS(s_proxyPredicates.insert(sort,newPred));
+>>>>>>> master
   s_proxyPredicateSorts.insert(newPred,sort);
 
   Literal* proxyLit = Literal::create2(newPred,true,TermList(0,false),TermList(1,false));
