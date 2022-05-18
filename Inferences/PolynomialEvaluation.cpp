@@ -30,6 +30,8 @@ PolynomialEvaluation::PolynomialEvaluation(Ordering& ordering) : SimplifyingGene
 
 
 Literal* createLiteral(Literal* orig, PolyNf* evaluatedArgs) {
+  CALL("createLiteral");
+
   if (orig->isEquality()) {
     return Literal::createEquality(
           orig->polarity(), 
@@ -52,10 +54,12 @@ Literal* createLiteral(Literal* orig, PolyNf* evaluatedArgs) {
 
 PolynomialEvaluation::Result PolynomialEvaluation::simplifyLiteral(Literal* lit) 
 {
+  CALL("PolynomialEvaluation::simplifyLiteral");
+
   Stack<PolyNf> terms(lit->numTermArguments());
   auto anyChange = false;
   for (unsigned i = 0; i < lit->numTermArguments(); i++) {
-    auto term = lit->termArg(i + lit->numTypeArguments());
+    auto term = lit->termArg(i);
     auto norm = PolyNf::normalize(TypedTermList(term, SortHelper::getArgSort(lit, i)));
     auto ev = evaluate(norm);
     anyChange = anyChange || ev.isSome();
