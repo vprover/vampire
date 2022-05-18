@@ -135,6 +135,7 @@ Ordering* Ordering::create(Problem& prb, const Options& opt)
         && !env.colorUsed
         && env.options->predicateWeights() == ""
         && env.options->functionWeights() == ""
+        && !prb.hasInterpretedOperations()
         ) {
       out = new KBOForEPR(prb, opt);
     } else {
