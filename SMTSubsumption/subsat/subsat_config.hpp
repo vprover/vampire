@@ -100,7 +100,7 @@ static_assert(VDEBUG == 1, "VDEBUG and NDEBUG are not synchronized");
 // VDOM (variable domain size) decision heuristic
 // ASSESSMENT: extremely valuable for hard subsumption instances!
 #ifndef SUBSAT_VDOM
-#define SUBSAT_VDOM 1
+#define SUBSAT_VDOM 0
 #endif
 
 // VMTF (variable move to front) decision heuristic
@@ -110,7 +110,7 @@ static_assert(VDEBUG == 1, "VDEBUG and NDEBUG are not synchronized");
 #if SUBSAT_STANDALONE
 #define SUBSAT_VMTF 1
 #else
-#define SUBSAT_VMTF 0
+#define SUBSAT_VMTF 1
 #endif
 #endif
 

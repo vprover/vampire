@@ -114,6 +114,7 @@ class Reason final {
 #endif
   };
 
+  // TODO: could take away a bit from Lit/ConstraintRef to discriminate the union and get rid of the type field
   Type type = Type::Invalid;
 
   union {
