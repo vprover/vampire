@@ -45,11 +45,7 @@ public:
     return pum.simplify(in);
   }
 
-  /** 
-   * OPTIONAL: override how equality between clauses is checked. 
-   * Defaults to TestUtils::eqModAC(Clause const*, Clause const*).
-   */
-  virtual bool eq(Kernel::Clause const* lhs, Kernel::Clause const* rhs) const override
+  virtual bool eq(Kernel::Clause const* lhs, Kernel::Clause const* rhs, BacktrackData& btd) const  override
   {
     return TestUtils::eqModAC(lhs, rhs);
   }
