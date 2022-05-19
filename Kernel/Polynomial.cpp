@@ -216,7 +216,7 @@ bool PolyNf::SubtermIter::hasNext() const
 
 IterArgsPnf::IterArgsPnf(Literal* lit) 
   : _lit(lit)
-  , _idx(lit->numTypeArguments()) 
+  , _idx(0) 
 { }
 
 bool IterArgsPnf::hasNext() const  
