@@ -1403,6 +1403,9 @@ void Options::init()
     _lookup.insert(&_backwardSubsumption);
     _backwardSubsumption.tag(OptionTag::INFERENCES);
     _backwardSubsumption.onlyUsefulWith(InferencingSaturationAlgorithm());
+    // bs without fs may lead to rapid looping (when a newly derived clause subsumes its own ancestor already in active) and makes little sense
+    _backwardSubsumption.addHardConstraint(
+        If(notEqual(Subsumption::OFF)).then(_forwardSubsumption.is(notEqual(false))));
     _backwardSubsumption.setRandomChoices({"on","off"});
 
     _backwardSubsumptionResolution = ChoiceOptionValue<Subsumption>("backward_subsumption_resolution","bsr",
