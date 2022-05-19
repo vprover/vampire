@@ -239,15 +239,25 @@ public:
   };
   enum class IntInductionKind : unsigned int {
     ONE,
-    TWO,
-    ALL
+    TWO
   };
   enum class IntegerInductionInterval : unsigned int {
     INFINITE,
     FINITE,
     BOTH
   };
-
+  enum class IntegerInductionLiteralStrictness: unsigned int {
+    NONE,
+    TOPLEVEL_NOT_IN_OTHER,
+    ONLY_ONE_OCCURRENCE,
+    NOT_IN_BOTH,
+    ALWAYS
+  };
+  enum class IntegerInductionTermStrictness: unsigned int {
+    NONE,
+    INTERPRETED_CONSTANT,
+    NO_SKOLEMS
+  };
 
   enum class PredicateSineLevels : unsigned int {
     NO,   // no means 1) the reverse of "on", 2) use with caution, it is predicted to be the worse value
@@ -973,22 +983,37 @@ private:
         void addConstraint(OptionValueConstraintUP<T> c){ _constraints.push(std::move(c)); }
         void addHardConstraint(OptionValueConstraintUP<T> c){ c->setHard();addConstraint(std::move(c)); }
 
-        // A reliesOn constraint gives a constraint that must be true if a non-default value is used
-        // For example, split_at_activation relies on splitting being on
+        // A onlyUsefulWith constraint gives a constraint that must be true if this option's value is set
+        // For example, split_at_activation is only useful with splitting being on
         // These are defined for OptionValueConstraints and WrappedConstraints - see below for explanation
-        void reliesOn(AbstractWrappedConstraintUP c){
+        void onlyUsefulWith(AbstractWrappedConstraintUP c){
+            _constraints.push(If(hasBeenSet<T>()).then(unwrap<T>(c)));
+        }
+        void onlyUsefulWith(OptionValueConstraintUP<T> c){
+            _constraints.push(If(hasBeenSet<T>()).then(std::move(c)));
+        }
+
+        // similar to onlyUsefulWith, except the trigger is a non-default value 
+        // (as opposed to the explicitly-set flag)
+        // we use it for selection and awr which cannot be not set via the decode string
+        void onlyUsefulWith2(AbstractWrappedConstraintUP c){
             _constraints.push(If(getNotDefault()).then(unwrap<T>(c)));
         }
-        void reliesOn(OptionValueConstraintUP<T> c){
+        void onlyUsefulWith2(OptionValueConstraintUP<T> c){
             _constraints.push(If(getNotDefault()).then(std::move(c)));
         }
+
         virtual OptionValueConstraintUP<T> getNotDefault(){ return isNotDefault<T>(); }
-        void reliesOnHard(AbstractWrappedConstraintUP c){
+
+        // similar to onlyUsefulWith2, except its a hard constraint,
+        // so that the user is strongly aware of situations when changing the 
+        // respective option has no effect
+        void reliesOn(AbstractWrappedConstraintUP c){
             OptionValueConstraintUP<T> tc = If(getNotDefault()).then(unwrap<T>(c));
             tc->setHard();
             _constraints.push(std::move(tc));
         }
-        void reliesOnHard(OptionValueConstraintUP<T> c){
+        void reliesOn(OptionValueConstraintUP<T> c){
             OptionValueConstraintUP<T> tc = If(getNotDefault()).then(c);
             tc->setHard();
             _constraints.push(std::move(tc));
@@ -997,7 +1022,7 @@ private:
         bool checkConstraints();
         
         // Produces a separate constraint object based on this option
-        /// Useful for IfThen constraints and reliesOn i.e. _splitting.is(equal(true))
+        /// Useful for IfThen constraints and onlyUsefulWith i.e. _splitting.is(equal(true))
         AbstractWrappedConstraintUP is(OptionValueConstraintUP<T> c);
         
         // Problem constraints place a restriction on problem properties and option values
@@ -1689,9 +1714,26 @@ bool _hard;
     }
 
     /**
+     * Option-(explicitly)-set constraint
+     */
+    template<typename T>
+    struct HasBeenSet : public OptionValueConstraint<T> {
+      HasBeenSet() {}
+
+        bool check(const OptionValue<T>& value) override {
+            return value.is_set;
+        }
+        vstring msg(const OptionValue<T>& value) override { return value.longName+"("+value.getStringOfActual()+") has been set";}
+    };
+    
+    template<typename T>
+    static OptionValueConstraintUP<T> hasBeenSet(){
+        return OptionValueConstraintUP<T>(new HasBeenSet<T>());
+    }
+
+    /**
      * Default Value constraints
      */
-    
     template<typename T>
     struct NotDefaultConstraint : public OptionValueConstraint<T> {
         NotDefaultConstraint() {}
@@ -2248,6 +2290,9 @@ public:
   bool inductionOnComplexTerms() const {return _inductionOnComplexTerms.actualValue;}
   bool integerInductionDefaultBound() const { return _integerInductionDefaultBound.actualValue; }
   IntegerInductionInterval integerInductionInterval() const { return _integerInductionInterval.actualValue; }
+  IntegerInductionLiteralStrictness integerInductionStrictnessEq() const {return _integerInductionStrictnessEq.actualValue; }
+  IntegerInductionLiteralStrictness integerInductionStrictnessComp() const {return _integerInductionStrictnessComp.actualValue; }
+  IntegerInductionTermStrictness integerInductionStrictnessTerm() const {return _integerInductionStrictnessTerm.actualValue; }
   bool nonUnitInduction() const { return _nonUnitInduction.actualValue; }
 
   float instGenBigRestartRatio() const { return _instGenBigRestartRatio.actualValue; }
@@ -2547,6 +2592,9 @@ private:
   BoolOptionValue _inductionOnComplexTerms;
   BoolOptionValue _integerInductionDefaultBound;
   ChoiceOptionValue<IntegerInductionInterval> _integerInductionInterval;
+  ChoiceOptionValue<IntegerInductionLiteralStrictness> _integerInductionStrictnessEq;
+  ChoiceOptionValue<IntegerInductionLiteralStrictness> _integerInductionStrictnessComp;
+  ChoiceOptionValue<IntegerInductionTermStrictness> _integerInductionStrictnessTerm;
   BoolOptionValue _nonUnitInduction;
 
   StringOptionValue _latexOutput;
