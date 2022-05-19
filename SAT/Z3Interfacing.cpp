@@ -418,6 +418,12 @@ struct EvaluateInModel
         .map([](int i) { return Copro(IntTraits::constantT(i)); });
 
     } else if(expr.is_real()) {
+      if (!expr.is_numeral()) {
+        // non-numeral reals are, e.g., the algebraic numbers such as (root-obj (+ (^ x 2) (- 2)) 2)),
+        // which we currently cannot handle
+        return Result();
+      }      
+
       auto toFrac = [&](int l, int r)  { return Copro(RatTraits::constant(l,r)); };
 
       auto nonFractional = intVal(expr).map([&](int i) { return toFrac(i,1); });
@@ -450,9 +456,7 @@ struct EvaluateInModel
         }
       }
       return Result(Copro(createTermOrPred(vfunc, args.size(), args.begin())));
-
     } else {
-
       return Result();
     }
   }
