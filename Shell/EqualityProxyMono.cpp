@@ -157,7 +157,8 @@ void EqualityProxyMono::addAxioms(UnitList*& units)
   }
 
   DHMap<TermList, unsigned>::Iterator it(s_proxyPredicates);
-:   addLocalAxioms(units, it.nextKey());
+  while(it.hasNext()) {
+    addLocalAxioms(units, it.nextKey());
   }
 } // addAxioms
 
