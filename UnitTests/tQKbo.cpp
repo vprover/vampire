@@ -292,3 +292,59 @@ TEST_FUN(misc02) {
 
   check(ord, f(x + y), Incomp, x);
 }
+
+
+TEST_FUN(normal_form01) {
+  DECL_DEFAULT_VARS
+  NUMBER_SUGAR(Real)
+  DECL_CONST(a, Real)
+  DECL_CONST(b, Real)
+  DECL_CONST(c, Real)
+  DECL_FUNC (f, {Real}, Real)
+
+  ASS_EQ(QKbo::sigmaNf(2 * a + b), SigmaNf(1, {
+        SignedTerm::pos(a),
+        SignedTerm::pos(a),
+        SignedTerm::pos(b),
+      }));
+
+  ASS_EQ(QKbo::sigmaNf(2 * a + 0 * b), SigmaNf(1, {
+        SignedTerm::pos(a),
+        SignedTerm::pos(a),
+        SignedTerm::zero(b),
+      }));
+
+  ASS_EQ(QKbo::sigmaNf(2 * a + 0 * a), SigmaNf(1, {
+        SignedTerm::pos(a),
+        SignedTerm::pos(a),
+      }));
+
+  ASS_EQ(QKbo::sigmaNf(2 * a + 1 * a), SigmaNf(1, {
+        SignedTerm::pos(a),
+        SignedTerm::pos(a),
+        SignedTerm::pos(a),
+      }));
+
+  ASS_EQ(QKbo::sigmaNf(2 * a + -3 * a), SigmaNf(1, {
+        SignedTerm::neg(a),
+      }));
+
+  ASS_EQ(QKbo::sigmaNf(2 * a + -4 * a), SigmaNf(1, {
+        SignedTerm::neg(a),
+        SignedTerm::neg(a),
+      }));
+
+  ASS_EQ(QKbo::sigmaNf(frac(1, 2) * a +  b), SigmaNf(2, {
+        SignedTerm::pos(a),
+        SignedTerm::pos(b),
+        SignedTerm::pos(b),
+      }));
+
+  // Problem:
+  //
+  // -f(x) + f(y) > f(x)
+  // but
+  // -f(a) + f(a) < f(a)
+  // since { 0 f(a) } < { +f(a) }
+
+}

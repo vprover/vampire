@@ -136,14 +136,17 @@ QKbo::Result QKbo::compare(Literal* l1_, Literal* l2_) const
   }
 }
 
-bool uninterpretedFun(Term* t) {
+bool interpretedFun(Term* t) {
   auto f = t->functor();
-  return !forAnyNumTraits([&](auto numTraits) -> bool {
+  return forAnyNumTraits([&](auto numTraits) -> bool {
       return f == numTraits.addF()
-      || (f == numTraits.mulF() && numTraits.isNumeral(*t->nthArgument(0)))
-      || numTraits.isNumeral(t);
+         || (f == numTraits.mulF() && numTraits.isNumeral(*t->nthArgument(0)))
+         || numTraits.isNumeral(t);
   });
 }
+
+bool uninterpretedFun(Term* t) 
+{ return !interpretedFun(t); }
 
 
 auto toNumeralMul(TermList t) -> std::tuple<Option<TermList>, RationalConstantType> {
@@ -214,6 +217,7 @@ Ordering::Result QKbo::compare(TermList s, TermList t) const
 
   auto as = abstr(s);
   auto at = abstr(t);
+  // TODO subterm modulo Tsigma
   if (as.isNone() || at.isNone()) {
     return Ordering::Result::INCOMPARABLE;
 
@@ -261,6 +265,12 @@ Ordering::Result QKbo::cmpSum(FlatSum const& l, FlatSum const& r) const {
   }
 }
 
+// bool operator<(Sign l, Sign r) {
+//   return 
+// }
+
+// SigmaNf QKbo::sigmaNf(TermList t) 
+// { TODO }
 
 /// case 2. precondition: we know that abstr(s) == abstr(t)
 Ordering::Result QKbo::cmpNonAbstr(TermList s, TermList t) const 
@@ -275,9 +285,11 @@ Ordering::Result QKbo::cmpNonAbstr(TermList s, TermList t) const
 
   } else {
     // 2.b) interpreted stuff
-    return cmpSum(flatWithCoeffs(s), flatWithCoeffs(t));
+    return compare(sigmaNf(s), sigmaNf(t));
   }
 }
+
+
 Option<TermList> QKbo::abstr(TermList t) const 
 {
   CALL("QKbo::abstr(TermList t) const ")
@@ -325,5 +337,12 @@ Option<TermList> QKbo::abstr(TermList t) const
 
 void QKbo::show(ostream& out) const 
 { _prec.show(out); }
+
+
+SigmaNf QKbo::sigmaNf(TermList t)
+{ ASSERTION_VIOLATION }
+
+QKbo::Result QKbo::compare(SigmaNf const& l, SigmaNf const& r) const
+{ ASSERTION_VIOLATION }
 
 } // Kernel

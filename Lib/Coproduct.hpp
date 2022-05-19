@@ -11,7 +11,7 @@
 /**
  * This file defines the class Coproduct, which is a generic tagged union. 
  *
- * \see UnitTests/tCoproduct.cpp  for usage
+ * \see UnitTests/tCoproduct.cpp for a tutorial
  */
 #ifndef __LIB_COPRODUCT__H__
 #define __LIB_COPRODUCT__H__
@@ -26,49 +26,56 @@
 #include <memory>
 #include <functional>
 
-#define SAME(...) std::is_same<__VA_ARGS__>::value // TODO
-
 namespace Lib {
-
-  template<class A> struct rm_ref            { using type = A; };
-  template<class A> struct rm_ref<A      &>  { using type = A; };
-  template<class A> struct rm_ref<A const&>  { using type = A; };
-  template<class A> struct rm_ref<A     &&>  { using type = A; };
-  template<class A> using rm_ref_t = typename rm_ref<A>::type;
 
 namespace TL = TypeList;
 
 template <class... As> 
 class Coproduct;
 
+/** This namespace constains helper classes and functions to implement the coproduct */
 namespace CoproductImpl {
 
+  /** This class is an untagged union of all type arguments. It is defined inductively by template specialization. 
+   * In a pseudo haskellish syntax the definition of the union can be thought of like this:
+   * data VariadicUnion []      = bottom type
+   * data VariadicUnion (a::as) = union {a, Coproduct as}
+   */
   template <class... As> union VariadicUnion;
-  template <unsigned idx, class As> struct Unwrap;
 
-  template <> union VariadicUnion<> {
+  /** Base case of the inductive definition of VariadicUnion. Note that an empty union is an uninhabited type. 
+   * This means none of its methods will ever be called.  
+   *
+   * data VariadicUnion []      = bottom type
+   */
+  template<> union VariadicUnion<> {
     CLASS_NAME(VariadicUnion)
 
-    void unwrap(unsigned idx) { ASSERTION_VIOLATION_REP(idx) }
+    inline void unwrap(unsigned idx) { ASSERTION_VIOLATION_REP(idx) }
     ~VariadicUnion() {}
-#define ref_polymorphic(REF, MOVE)                                                                            \
+// This macro will b expanded for (REF,MV) in { (`&&`, `std::move`), (`&`, ``), (`const &`, ``) }
+#define for_ref_qualifier(REF, MOVE)                                                                          \
                                                                                                               \
-    template <class R, class F> R apply(unsigned idx, F f) REF                                         \
+    template <class R, class F> inline R apply(unsigned idx, F f) REF                                         \
     { ASSERTION_VIOLATION_REP(idx) }                                                                          \
                                                                                                               \
     template <class R, class... F>                                                                            \
-    static R match2(unsigned idx, VariadicUnion REF lhs, VariadicUnion REF rhs, F... f)                \
+    inline static R match2(unsigned idx, VariadicUnion REF lhs, VariadicUnion REF rhs, F... f)                \
     { ASSERTION_VIOLATION_REP(idx) }                                                                          \
                                                                                                               \
-    template <class R> R match(unsigned idx) REF{ASSERTION_VIOLATION_REP(idx)}                         \
+    template <class R> inline R match(unsigned idx) REF{ASSERTION_VIOLATION_REP(idx)}                         \
 
-    FOR_REF_QUALIFIER(ref_polymorphic)
-#undef ref_polymorphic
+    FOR_REF_QUALIFIER(for_ref_qualifier)
+#undef for_ref_qualifier
 
-    void destroy(unsigned idx) {ASSERTION_VIOLATION_REP(idx)}
-    static bool equal(unsigned idx, VariadicUnion const& lhs, VariadicUnion const& rhs) {ASSERTION_VIOLATION_REP(idx)}
+    inline void destroy(unsigned idx) {ASSERTION_VIOLATION_REP(idx)}
+    inline static bool equal(unsigned idx, VariadicUnion const& lhs, VariadicUnion const& rhs) {ASSERTION_VIOLATION_REP(idx)}
   };
 
+  /** Inductive case of the inductive definition of VariadicUnion.  
+   *
+   * data VariadicUnion (a::as) = union {a, Coproduct as}
+   */
   template <class A, class... As> union VariadicUnion<A, As...> {
     CLASS_NAME(VariadicUnion)
     // USE_ALLOCATOR(VariadicUnion)
@@ -76,28 +83,17 @@ namespace CoproductImpl {
 
     A _head;
     VariadicUnion<As...> _tail;
-    ~VariadicUnion() {}
-    VariadicUnion<A, As...> clone(unsigned idx) {
-      VariadicUnion out;
-      if (idx == 0) {
-        out._head = this->_head;
-      } else {
-        out._tail = _tail.clone(idx);
-      }
-      return out;
-    }
 
-#define ref_polymorphic(REF, MOVE)                                                                            \
-    template <class R, class F> R apply(unsigned idx, F f) REF {                                       \
-      if (idx == 0) {                                                                                         \
-        return f(MOVE(_head));                                                                                \
-      } else {                                                                                                \
-        return MOVE(_tail).template apply<R>(idx - 1, f);                                                     \
-      }                                                                                                       \
-    }                                                                                                         \
+    ~VariadicUnion() {}
+
+// This macro will b expanded for (REF,MV) in { (`&&`, `std::move`), (`&`, ``), (`const &`, ``) }
+#define for_ref_qualifier(REF, MOVE)                                                                          \
                                                                                                               \
+    /** applies the `idx`th function of `F,Fs...` to the contents of this union, interpreting them as the     \
+     * `idx`th type of `A,As...`. This is only memory safe if that very type  has indeed been stored in this  \
+     * union. */                                                                                              \
     template <class R, class F, class... Fs>                                                                  \
-    R match(unsigned idx, F f, Fs... fs) REF {                                                         \
+    inline R match(unsigned idx, F f, Fs... fs) REF {                                                         \
       if (idx == 0) {                                                                                         \
         return f(MOVE(_head));                                                                                \
       } else {                                                                                                \
@@ -105,8 +101,19 @@ namespace CoproductImpl {
       }                                                                                                       \
     }                                                                                                         \
                                                                                                               \
+    /** same as `match`, but using the same function for every type.*/                                        \
+    template <class R, class F> inline R apply(unsigned idx, F f) REF {                                       \
+      if (idx == 0) {                                                                                         \
+        return f(MOVE(_head));                                                                                \
+      } else {                                                                                                \
+        return MOVE(_tail).template apply<R>(idx - 1, f);                                                     \
+      }                                                                                                       \
+    }                                                                                                         \
+                                                                                                              \
+    /** same as `match`, but using applying th function to the contents of two unions at once. both must have \
+     * the `idx`th type of `A,As...` stored in them. */                                                       \
     template <class R, class F, class... Fs>                                                                  \
-    static R match2(unsigned idx, VariadicUnion REF lhs, VariadicUnion REF rhs, F f, Fs... fs)         \
+    inline static R match2(unsigned idx, VariadicUnion REF lhs, VariadicUnion REF rhs, F f, Fs... fs)         \
     {                                                                                                         \
       if (idx == 0) {                                                                                         \
         return f(MOVE(lhs._head), MOVE(rhs._head));                                                           \
@@ -115,11 +122,11 @@ namespace CoproductImpl {
       }                                                                                                       \
     }
 
-    FOR_REF_QUALIFIER(ref_polymorphic)
+    FOR_REF_QUALIFIER(for_ref_qualifier)
 
-#undef ref_polymorphic
+#undef for_ref_qualifier
 
-    void destroy(unsigned idx) 
+    inline void destroy(unsigned idx) 
     { 
       if (idx == 0) {
         _head.~A(); 
@@ -128,7 +135,7 @@ namespace CoproductImpl {
       }
     }
 
-    static bool equal(unsigned idx, VariadicUnion const& lhs, VariadicUnion const& rhs) {
+    inline static bool equal(unsigned idx, VariadicUnion const& lhs, VariadicUnion const& rhs) {
       if (idx == 0) {
         return lhs._head == rhs._head;
       } else {
@@ -139,95 +146,118 @@ namespace CoproductImpl {
     template <unsigned idx, class Bs> friend struct InitStaticTag;
     VariadicUnion() {}
 
-  };
+  }; // VariadicUnion
+
+  /** A function object to reinterpret a VariadicUnion as its `idx`th type argument. 
+   * `As` is a list of types, as defined in `TypeList::List`. */
+  template <unsigned idx, class As> struct Unwrap;
 
   template <class A, class... As> struct Unwrap<0, TL::List<A, As...>> {
-#define ref_polymorphic(REF, MOVE)                                                                            \
+// This macro will b expanded for (REF,MV) in { (`&&`, `std::move`), (`&`, ``), (`const &`, ``) }
+#define for_ref_qualifier(REF, MOVE)                                                                          \
     A REF operator()(VariadicUnion<A, As...> REF self) const {                                                \
       return MOVE(self._head);                                                                                \
     }
 
-    FOR_REF_QUALIFIER(ref_polymorphic)
+    FOR_REF_QUALIFIER(for_ref_qualifier)
 
-#undef ref_polymorphic
+#undef for_ref_qualifier
   };
 
   template <unsigned idx, class A, class... As> struct Unwrap<idx, TL::List<A, As...>> {
-#define ref_polymorphic(REF, MOVE)                                                                            \
+// This macro will b expanded for (REF,MV) in { (`&&`, `std::move`), (`&`, ``), (`const &`, ``) }
+#define for_ref_qualifier(REF, MOVE)                                                                          \
     TL::Get<idx - 1, TL::List<As...>> REF operator()(                                                         \
         VariadicUnion<A, As...> REF self) const {                                                             \
       return Unwrap<idx - 1, TL::List<As...>>{}(MOVE(self._tail));                                            \
     }
 
-    FOR_REF_QUALIFIER(ref_polymorphic)
-#undef ref_polymorphic
+    FOR_REF_QUALIFIER(for_ref_qualifier)
+#undef for_ref_qualifier
   };
 
 
+  /** A function object to initialize a VariadicUnion with its `idx`th type argument, 
+   * where `idx` is known at compile time.
+   * `As` is a list of types, as defined in `TypeList::List`. */
   template <unsigned idx, class As> struct InitStaticTag {};
 
   template <class A, class... As> struct InitStaticTag<0, TL::List<A, As...>> 
   {
-#define ref_polymorphic(REF, MOVE)                                                                            \
+// This macro will b expanded for (REF,MV) in { (`&&`, `std::move`), (`&`, ``), (`const &`, ``) }
+#define for_ref_qualifier(REF, MOVE)                                                                          \
     void operator()(VariadicUnion<A, As...> &self, TL::Get<0, TL::List<A, As...>> REF value) const            \
     { ::new (&self._head) A(MOVE(value)); }                                                                   \
 
-    FOR_REF_QUALIFIER(ref_polymorphic)
+    FOR_REF_QUALIFIER(for_ref_qualifier)
 
-#undef ref_polymorphic
+#undef for_ref_qualifier
   };
 
   template <unsigned idx, class A, class... As> struct InitStaticTag<idx, TL::List<A, As...>> {
-#define ref_polymorphic(REF, MOVE)                                                                            \
+// This macro will b expanded for (REF,MV) in { (`&&`, `std::move`), (`&`, ``), (`const &`, ``) }
+#define for_ref_qualifier(REF, MOVE)                                                                          \
     void operator()(VariadicUnion<A, As...> &self, TL::Get<idx, TL::List<A, As...>> REF value) const          \
     { InitStaticTag<idx - 1, TL::List<As...>>{}(self._tail, MOVE(value)); }                                   \
 
-    FOR_REF_QUALIFIER(ref_polymorphic)
+    FOR_REF_QUALIFIER(for_ref_qualifier)
 
-#undef ref_polymorphic
+#undef for_ref_qualifier
   };
 
 
+  /** A function object to initialize a VariadicUnion with its `idx`th type argument, 
+   * where `idx` is known only at runtime. `acc` and `size` are being used for bounds checks and to 
+   * compare `idx` against them.
+   * `As` is a list of types, as defined in `TypeList::List`. */
   template <unsigned acc, unsigned size, class As> struct InitDynamicTag;
 
   template <unsigned size, class... As> struct InitDynamicTag<size, size, TL::List<As...>> 
   {
-#define ref_polymorphic(REF, MOVE)                                                                            \
+// This macro will b expanded for (REF,MV) in { (`&&`, `std::move`), (`&`, ``), (`const &`, ``) }
+#define for_ref_qualifier(REF, MOVE)                                                                          \
     void operator()(VariadicUnion<As...> &self, unsigned idx, VariadicUnion<As...> REF value) const           \
     {  ASSERTION_VIOLATION }                                                                                  \
 
-    FOR_REF_QUALIFIER(ref_polymorphic)
+    FOR_REF_QUALIFIER(for_ref_qualifier)
 
-#undef ref_polymorphic
+#undef for_ref_qualifier
   };
 
 
   template <unsigned acc, unsigned size, class... As> struct InitDynamicTag<acc, size, TL::List<As...>> 
   {
-#define ref_polymorphic(REF, MOVE)                                                                            \
+// This macro will b expanded for (REF,MV) in { (`&&`, `std::move`), (`&`, ``), (`const &`, ``) }
+#define for_ref_qualifier(REF, MOVE)                                                                          \
     void operator()(VariadicUnion<As...> &self, unsigned idx, VariadicUnion<As...> REF value) const           \
     {                                                                                                         \
       using Ts = TL::List<As...>;                                                                             \
       auto unwrap = Unwrap<acc, Ts>{};                                                                        \
       if (acc == idx) {                                                                                       \
-        ::new (&self._head) TL::Get<acc,Ts>(unwrap(MOVE(value)));                                             \
+        ::new (&unwrap(self)) TL::Get<acc,Ts>(unwrap(MOVE(value)));                                             \
         return;                                                                                               \
       }                                                                                                       \
       InitDynamicTag<acc + 1, size, TL::List<As...>>{}(self, idx, MOVE(value));                               \
     }                                                                                                         \
 
-    FOR_REF_QUALIFIER(ref_polymorphic)
+    FOR_REF_QUALIFIER(for_ref_qualifier)
 
-#undef ref_polymorphic
+#undef for_ref_qualifier
   };
-}
+} // namespace CoproductImpl
 
+/** a class used to combine orderings `O1...On` for types `A1...An` to a ordering on 
+ * Coproduct<A1...An>. This is done by first comparing the tags, and then using the 
+ * orderings `O1...On` if the tags are the same. */
 template<class... Ords> struct CoproductOrdering;
+
+/** Same as CoproductOrdering, but one polymorphic ordering class `Ord` instead of 
+ * multiple orderings `O1...On`. */
 template<template<class> class Ord> struct PolymorphicCoproductOrdering;
 
 /** 
- * the actual Coproduct class.  
- * A coproduct, also called Sum type, is a set of types, tagged with indices. It can be constructed with 
+ * The actual Coproduct class.  
+ * A coproduct, also called Sum type, is a union of types, tagged with indices. It can be constructed with 
  * either of the type/index pairs, and in this implementation the index can be left away if all types in this 
  * coproduct are distinct. 
  *
@@ -238,9 +268,10 @@ template<template<class> class Ord> struct PolymorphicCoproductOrdering;
 template <class A, class... As> 
 class Coproduct<A, As...> 
 {
+  /* _tag specifies which of the types in `A, As...` is actually stored in the field _content */
   unsigned _tag;
-
   CoproductImpl::VariadicUnion<A, As...> _content;
+
   using Self = Coproduct<A, As...>;
   using Content = decltype(_content);
 
@@ -314,7 +345,7 @@ public:
    * the return type of this function.                                                                        \
    */                                                                                                         \
   template <class... F>                                                                                       \
-  ResultOf<FstTy<F...>, A REF> match(F... fs) REF {                                                    \
+  inline ResultOf<FstTy<F...>, A REF> match(F... fs) REF {                                                    \
     using Ret = ResultOf<FstTy<F...>, A REF>;                                                                 \
     ASS_REP(_tag <= size, _tag);                                                                              \
     return MOVE(_content).template match<Ret>(_tag, fs...);                                                   \
@@ -327,9 +358,9 @@ public:
    * can transform any variant instead of multiple functions per variant.                                     \
    */                                                                                                         \
   template <class F>                                                                                          \
-  ResultOf<F, A REF> apply(F f) REF {                                                                  \
+  inline ResultOf<F, A REF> apply(F f) REF {                                                                  \
     ASS_REP(_tag <= size, _tag);                                                                              \
-    return MOVE(_content).template apply<ResultOf<F, A REF>, F>(_tag,f);                          \
+    return MOVE(_content).template apply<ResultOf<F, A REF>>(_tag,f);                                         \
   }                                                                                                           \
                                                                                                               \
   Coproduct &operator=(Coproduct REF other) {                                                                 \
@@ -347,7 +378,7 @@ public:
    *                                                                                                          \
    * \pre B must occur exactly once in A,As...                                                                \
    */                                                                                                         \
-  template <class B> B REF unwrap() REF                                                                \
+  template <class B> inline B REF unwrap() REF                                                                \
   { return MOVE(unwrap<TL::IdxOf<B, Ts>::val>()); }                                                           \
                                                                                                               \
   /**                                                                                                         \
@@ -356,7 +387,7 @@ public:
    * \pre idx must be less than the number of variants of this Coproduct                                      \
    */                                                                                                         \
   template <unsigned idx>                                                                                     \
-  TL::Get<idx, Ts> REF unwrap() REF {                                                                  \
+  inline TL::Get<idx, Ts> REF unwrap() REF {                                                                  \
     CALL("Coproduct::unwrap() " #REF );                                                                       \
     static_assert(idx < size, "out of bounds");                                                               \
     ASS_EQ(idx, _tag);                                                                                        \
@@ -369,52 +400,20 @@ public:
    *                                                                                                          \
    * \pre B must occur exactly once in A,As...                                                                \
    */                                                                                                         \
-  template <class B> Option<B REF> as() REF                                                            \
-  { return is<B>() ? MOVE(*this).template unwrap<B>() : Option<B REF>();  }                                   \
+  template <class B> inline Option<B REF> as() REF                                                            \
+  { return is<B>() ? unwrap<B>() : Option<B REF>();  }                                                        \
                                                                                                               \
-                                                                                                             \
   /**                                                                                                         \
    * returns the value of this Coproduct if its variant's index is idx. otherwise an empty Option is returned.\
    *                                                                                                          \
    * \pre idx must be less than the number of variants of this Coproduct                                      \
    */                                                                                                         \
   template <unsigned idx>                                                                                     \
-  Option<TL::Get<idx, Ts> REF> as() REF                                                                \
+  inline Option<TL::Get<idx, Ts> REF> as() REF                                                                \
   { return is<idx>() ? unwrap<idx>() : Option<TL::Get<idx, Ts> REF>();  }                                     \
 
   FOR_REF_QUALIFIER(REF_POLYMORPIHIC)
 #undef REF_POLYMORPIHIC
-
-  // Option<Coproduct<std::tuple<A&, A&>, std::tuple<As&, As&>...>> zipVariant(Coproduct& other)
-  // {
-  //   using Co = Coproduct<std::tuple<A&, A&>, std::tuple<As&, As&>...>;
-  //   return _content.template apply<Option<Co>>(_tag, [&](auto& inner) {
-  //     using T = rm_ref_t<decltype(inner)>;
-  //     return other.template as<T>().map([&](T& other) {
-  //            return Co(std::tie(inner, other));
-  //     });
-  //   });
-  // }
-  //
-  // // bool sameVariant(Coproduct const& other) const
-  // // { return zipVariant(other).isSome(); }
-  //
-  // Option<Coproduct<std::tuple<A const&, A const&>, std::tuple<As const&, As const&>...>> zipVariant(Coproduct const& other)
-  // const
-  // {
-  //   using Co = Coproduct<std::tuple<A const&, A const&>, std::tuple<As const&, As const&>...>;
-  //   return _content.template apply<Option<Co>>(_tag, [&](auto && inner) {
-  //     using T = rm_ref_t<decltype(inner)>;
-  //     Option<T const&> o = other.template as<T>();
-  //     return std::move(o).map([&](T const& other) {
-  //            std::tuple<T const&, T const&> tup = std::make_tuple<T const&, T const&>(inner, other);
-  //            return Co(std::move(tup));
-  //     });
-  //   });
-  // }
- 
-  // bool sameVariant(Coproduct const& other) const
-  // { return zipVariant(other).isSome(); }
 
   friend bool operator==(const Coproduct &lhs, const Coproduct &rhs)
   {
@@ -439,6 +438,7 @@ public:
   friend struct std::hash<Coproduct>;
 
   template<class... Ords> friend struct CoproductOrdering;
+
   friend bool operator<(Coproduct const& lhs, Coproduct const& rhs) 
   { return std::less<Coproduct>{}(lhs,rhs); }
 
@@ -486,7 +486,7 @@ template<class... Ts> struct std::hash<Lib::Coproduct<Ts...>>
   {
     return Lib::HashUtils::combine(
         std::hash<unsigned>{}(self._tag),
-        self.apply([](auto const& x){ return std::hash<Lib::rm_ref_t<decltype(x)>>{}(x); }));
+        self.apply([](auto const& x){ return std::hash<std::remove_const_t<std::remove_reference_t<decltype(x)>>>{}(x); }));
   }
 };
 
