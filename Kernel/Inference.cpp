@@ -902,7 +902,7 @@ vstring Kernel::ruleName(InferenceRule rule)
   case InferenceRule::INSTANTIATION:
     return "instantiation";
   case InferenceRule::MODEL_NOT_FOUND:
-    return "finite model not found";
+    return "finite model not found : exhaustively excluded all possible domain size assignments";
   case InferenceRule::ARITHMETIC_SUBTERM_GENERALIZATION:
     return "arithmetic subterm generalization";
   case InferenceRule::STRUCT_INDUCTION_AXIOM:
