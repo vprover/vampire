@@ -167,7 +167,7 @@ Var FormulaBuilder::var(const string& varName, Sort varSort)
 }
 
 Symbol FormulaBuilder::symbol(const string& name, unsigned arity, Sort rangeSort, 
-  std::vector<Sort>& domainSorts, bool lemmaPred, bool mallocSym, bool builtIn)
+  std::vector<Sort>& domainSorts, RapidSym rs, bool builtIn)
 {
   CALL("FormulaBuilder::symbol");
    
@@ -199,12 +199,33 @@ Symbol FormulaBuilder::symbol(const string& name, unsigned arity, Sort rangeSort
 	  "of the same name and arity. (This must not happen even across different instances of the FormulaBuilder class.)");
     }
   }
-  if(lemmaPred){
+  if(rs == RapidSym::LEMMA_PRED){
     sym->markLemmaPred();
   }
-  if(mallocSym){
+  if(rs == RapidSym::MALLOC){
     sym->markMalloc();
-  }  
+  }
+  if(rs == RapidSym::FN_LOOP_COUNT){
+    sym->markFinalLoopCount();
+  }
+  if(rs == RapidSym::MAIN_END){
+    sym->markMainEnd();
+  }
+  if(rs == RapidSym::TIME_POINT){
+    sym->markTimePoint();
+  }
+  if(rs == RapidSym::CONST_VAR){
+    sym->markConstantProgramVar();
+  } 
+  if(rs == RapidSym::PROGRAM_VAR){
+    sym->markProgramVar();
+  }   
+  if(rs == RapidSym::CHAIN){
+    sym->markChain();
+  }
+  if(rs == RapidSym::OBJ_ARRAY){
+    sym->markObjectArray();
+  }                
   if(builtIn) {
     sym->markProtected();
   }

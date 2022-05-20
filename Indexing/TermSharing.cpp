@@ -270,7 +270,7 @@ AtomicSort* TermSharing::insert(AtomicSort* sort)
 void TermSharing::tryForceArgumentOrder(Literal* l)
 {
 
-  int order = RapidHelper::forceOrder(l);
+  ArgumentOrderVals order = RapidHelper::forceOrder(l);
   if(order){
     l->setArgumentOrderValue(order);
   }

@@ -182,6 +182,40 @@ namespace Vampire
     env.options->readFromEncodedOptions(StringUtils::copy2vstr(optionString));
   }
 
+  void Solver::setOption(const std::string& optName, const std::string& optValue)
+  {
+    CALL("Solver::useMultiClauseInduction");
+    
+    try{
+      auto optNameStr = StringUtils::copy2vstr(optName);
+      auto optValueStr = StringUtils::copy2vstr(optValue);
+      env.options->set(optNameStr, optValueStr);
+    }catch(Lib::UserErrorException& e){
+      // should make this more robust
+      // what about if the error messages change?
+      if(e.msg().find("is an invalid value") != std::string::npos){
+        cout << "WARNING: " + optValue + " is not a valid value for option " + optName + ". Ignoring request to set option.\n" << endl;
+      } else if(e.msg().find("not a valid option") != std::string::npos){
+        cout << "WARNING: " + optName + "is not a valid option. Ignoring request to set.\n" << endl;         
+      } else {
+        throw ApiException("Unexpected user error when attempting to set option with message: " + 
+          StringUtils::copy2str(e.msg()));
+      }
+    }
+  }
+
+  void Solver::forceOptions(const std::string& optString)
+  {
+    CALL("Solver::forceOptions");
+
+    try{
+      env.options->set("forced_options", StringUtils::copy2vstr(optString));
+    }catch(Lib::UserErrorException& e){
+      // TODO improve error handling here
+      cout << "WARNING: failed to force options " + e.msg() << endl;
+    }    
+  }
+
   Sort Solver::sort(const string& sortName)
   {
     CALL("Solver::sort");
@@ -302,11 +336,11 @@ namespace Vampire
     CALL("Solver::function/2");
 
     std::vector<Sort> domainSorts(arity, defaultSort());
-    return fb.symbol(funName, arity, defaultSort(), domainSorts, false, false, builtIn);
+    return fb.symbol(funName, arity, defaultSort(), domainSorts, RapidSym::NONE, builtIn);
   }
 
   Symbol Solver::function(const string& funName, unsigned arity, Sort rangeSort, 
-    std::vector<Sort>& domainSorts, bool mallocSym, bool builtIn)
+    std::vector<Sort>& domainSorts, RapidSym rs, bool builtIn)
   {
     CALL("Solver::function/4");
 
@@ -318,7 +352,7 @@ namespace Vampire
       //TODO: add further checks
     }
 
-    return fb.symbol(funName, arity, rangeSort, domainSorts, false, mallocSym, builtIn);
+    return fb.symbol(funName, arity, rangeSort, domainSorts, rs, builtIn);
   }
 
   Symbol Solver::predicate(const string& predName,unsigned arity, bool builtIn)
@@ -326,11 +360,11 @@ namespace Vampire
     CALL("Solver::predicate/2");
 
     std::vector<Sort> domainSorts(arity, defaultSort());
-    return fb.symbol(predName, arity, boolSort(), domainSorts, false, false, builtIn);
+    return fb.symbol(predName, arity, boolSort(), domainSorts, RapidSym::NONE, builtIn);
   }
 
   Symbol Solver::predicate(const string& predName, unsigned arity, std::vector<Sort>& domainSorts, 
-                           bool lemmaPred, bool builtIn)
+                           RapidSym rs, bool builtIn)
   {
     CALL("Solver::predicate/3");
 
@@ -342,7 +376,7 @@ namespace Vampire
       //TODO: add further checks
     }
     
-    return fb.symbol(predName, arity, boolSort(), domainSorts, lemmaPred, false, builtIn);
+    return fb.symbol(predName, arity, boolSort(), domainSorts, rs, builtIn);
   }
 
   string Solver::getSortName(Sort s)
@@ -799,7 +833,7 @@ namespace Vampire
       env.options->setOutputMode(Options::Output::SZS);
 
     //env.options->set("show_new", "on");
-    //env.options->set("show_reductions", "on");    
+    //env.options->set("show_preprocessing", "on");    
 
     int fd[2];
     int ret = pipe(fd);
@@ -866,9 +900,6 @@ namespace Vampire
       }
     }
     assert(false);
-
-    //To allow multiple calls to solve() for the same problem set.
-    //Unit::resetFirstNonPreprocessNumber();
   }
 
   Result Solver::checkEntailed(Expression f)

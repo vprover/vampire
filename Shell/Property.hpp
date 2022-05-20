@@ -244,6 +244,9 @@ public:
   bool onlyFiniteDomainDatatypes() const { return _onlyFiniteDomainDatatypes; }
   bool knownInfiniteDomain() const { return _knownInfiniteDomain; }
   
+  // Rapid related
+  bool hasNlTerm() const { return _hasNlTerm; }
+
   void setSMTLIBLogic(SMTLIBLogic smtLibLogic) { 
     CALL("Property::setSMTLIBLogic");
     _smtlibLogic = smtLibLogic; 
@@ -336,6 +339,9 @@ public:
   bool _hasLambda;
   bool _hasPolymorphicSym;
   bool _quantifiesOverPolymorphicVar;
+
+  // Rapid related
+  bool _hasNlTerm;
 
   bool _onlyFiniteDomainDatatypes;
   bool _knownInfiniteDomain;

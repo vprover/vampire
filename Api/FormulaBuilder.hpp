@@ -91,11 +91,28 @@ class Symbol;
 class Expression;
 class AnnotatedFormula;
 
+/* Enum used to provide special semantics to symbols 
+ * coming from Rapid program translations
+ */
+enum RapidSym {
+  LEMMA_PRED,
+  FN_LOOP_COUNT,
+  MAIN_END,
+  TIME_POINT,
+  CONST_VAR,
+  PROGRAM_VAR,
+  MALLOC,  
+  CHAIN,  
+  OBJ_ARRAY,
+  NONE
+};
+
 /**
  * A factory class for terms, formulas and annotated formulas
  */
 class FormulaBuilder
 {
+
 private:
   /**
    * Create the API for building formulas
@@ -174,7 +191,7 @@ private:
    * also the same type, even across different instances of the
    * FormulaBuilder class. */
   Symbol symbol(const std::string& funName, unsigned arity, Sort rangeSort, 
-    std::vector<Sort>& domainSorts, bool lemmaPred = false, bool mallocSym = false, bool builtIn=false);
+    std::vector<Sort>& domainSorts, RapidSym rs = RapidSym::NONE, bool builtIn=false);
 
   /** Return constant symbol representing @c i */
   Symbol integerConstant(int i);

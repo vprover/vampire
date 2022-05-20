@@ -120,6 +120,9 @@ public:
   bool hasPolymorphicSym() const;
   bool quantifiesOverPolymorphicVar() const;
   bool higherOrder() const;
+  
+  // Rapid related
+  bool hasNlTerm() const;
 
   bool mayHaveEquality() const { return _mayHaveEquality; }
   bool mayHaveFormulas() const { return _mayHaveFormulas; }
@@ -234,6 +237,9 @@ private:
   mutable MaybeBool _quantifiesOverPolymorphicVar;
   mutable MaybeBool _hasBoolVar; 
   mutable MaybeBool _higherOrder; 
+ 
+  // Rapid related
+  mutable MaybeBool _hasNlTerm;
 
   SMTLIBLogic _smtlibLogic;
 

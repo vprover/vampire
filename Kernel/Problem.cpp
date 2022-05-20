@@ -310,6 +310,7 @@ void Problem::readDetailsFromProperty() const
   _quantifiesOverPolymorphicVar = _property->quantifiesOverPolymorphicVar();
   _hasBoolVar = _property->hasBoolVar();
   _higherOrder = _property->higherOrder();
+  _hasNlTerm = _property->hasNlTerm();
 
   _mayHaveFormulas = _hasFormulas.value();
   _mayHaveEquality = _hasEquality.value();
@@ -483,12 +484,24 @@ bool Problem::quantifiesOverPolymorphicVar() const
 
 bool Problem::higherOrder() const
 {
-  CALL("Problem::hasPolymorphicSym");
+  CALL("Problem::higherOrder");
 
   if(!_higherOrder.known()) { refreshProperty(); }
   return _higherOrder.value();
 }
 
+
+///////////////////////////
+// rapid related
+//
+
+bool Problem::hasNlTerm() const
+{
+  CALL("Problem::hasNlTerm");
+
+  if(!_hasNlTerm.known()) { refreshProperty(); }
+  return _hasNlTerm.value();
+}
 
 ///////////////////////
 // utility functions

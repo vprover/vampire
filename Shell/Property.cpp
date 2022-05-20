@@ -82,6 +82,7 @@ Property::Property()
     _hasLambda(false),
     _hasPolymorphicSym(false),
     _quantifiesOverPolymorphicVar(false),
+    _hasNlTerm(false),
     _onlyFiniteDomainDatatypes(true),
     _knownInfiniteDomain(false),
     _allClausesGround(true),
@@ -704,6 +705,10 @@ void Property::scan(TermList ts,bool unit,bool goal)
     func->incUsageCnt();
     if(unit){ func->markInUnit();}
     if(goal){ func->markInGoal();}
+
+    if(func->finalLoopCount()){
+      _hasNlTerm = true;
+    }
 
     if(t->isApplication()){
       _hasApp = true;

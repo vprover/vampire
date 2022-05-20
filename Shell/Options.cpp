@@ -1652,9 +1652,16 @@ void Options::init()
 
     _intermediateValue = BoolOptionValue("intermediate_value","iv",false);
     _intermediateValue.description=
-    "can be used to replace the intermediate value axiom for problems coming from Rapid encoding";
+    "Can be used to replace the intermediate value axiom for problems coming from Rapid encoding";
     _lookup.insert(&_intermediateValue);
     _intermediateValue.tag(OptionTag::INFERENCES);
+
+    _rebalancingForFinalLoopCounts = BoolOptionValue("rebal_nl","rbnl",false);
+    _rebalancingForFinalLoopCounts.description=
+    "Attempts to rebalance equations containing final loop count terms coming from Rapid encodings."
+    "For example, it will rebalance 0 = 20 - nl to nl = 20";
+    _lookup.insert(&_rebalancingForFinalLoopCounts);
+    _rebalancingForFinalLoopCounts.tag(OptionTag::INFERENCES);
 
 //*********************** Higher-order  ***********************
 

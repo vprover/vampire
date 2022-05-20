@@ -906,6 +906,8 @@ vstring Kernel::ruleName(InferenceRule rule)
     return "general splitting";
   case InferenceRule::INTERMEDIATE_VALUE:
     return "intermediate value induction";
+  case InferenceRule::REBALANCE_FOR_FINAL_LOOP_COUNTS:
+    return "equation rebalancing";
   case InferenceRule::COLOR_UNBLOCKING:
     return "color unblocking";
   case InferenceRule::INSTANCE_GENERATION:
@@ -1037,8 +1039,6 @@ vstring Kernel::ruleName(InferenceRule rule)
     return "equality proxy clausification";
   case InferenceRule::BOOL_SIMP:
     return "boolean simplification";
-  case InferenceRule::CHAIN_UNROLLING:
-    return "chain unrolling";
   case InferenceRule::EQ_TO_DISEQ:
     return "bool equality to disequality";
   case InferenceRule::PRIMITIVE_INSTANTIATION:

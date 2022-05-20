@@ -225,6 +225,27 @@ public:
    */
   void setOptions(const std::string& optionString);
 
+  /*
+   * Set a single option with name @param optName to value
+   * @param optValue. The option name, must be the long version
+   *
+   * WARNING this does NOT force the option. If a schedule is 
+   * run after setting an option, the option may be overriden
+   *
+   * WARNING if @optValue is not a valid value for the option an
+   * error is raised
+   */
+  void setOption(const std::string& optName, const std::string& optValue);
+
+  /*
+   * Force a set of option such that they are not overriden even when running
+   * a schedule
+   *
+   * @param optString must be in the format of a Vampire encoded 
+   * option strings. The format is described ????
+   */
+  void forceOptions(const std::string& optString);
+
   /** Prevent the creation of cariables with implicit types.
    *
    *  by default, variables can be created without a type in which 
@@ -323,7 +344,7 @@ public:
    * the same type.
    */
   Symbol function(const std::string& funName, unsigned arity, Sort rangeSort, 
-    std::vector<Sort>& domainSorts, bool mallocSym=false, bool builtIn=false);
+    std::vector<Sort>& domainSorts, RapidSym rs = RapidSym::NONE, bool builtIn=false);
 
   /**
    * Create a predicate symbol using default sorts. If @b builtIn if true, the symbol will not be
@@ -344,7 +365,7 @@ public:
    * the same type.
    */
   Symbol predicate(const std::string& predName, unsigned arity, std::vector<Sort>& domainSorts, 
-                   bool lemmaPred = false, bool builtIn=false);
+                    RapidSym rs = RapidSym::NONE, bool builtIn=false);
 
   /**
    * Return name of the sort @c s.

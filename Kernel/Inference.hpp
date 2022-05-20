@@ -265,8 +265,6 @@ enum class InferenceRule : unsigned char {
 
   INTERNAL_SIMPLIFYING_INFERNCE_LAST,
 
-  CHAIN_UNROLLING, 
-
   /** THIS DEFINES AN INTERVAL IN THIS ENUM WHERE ALL SIMPLIFYING INFERENCES SHOULD BELONG
     * (see also INTERNAL_GENERATING_INFERNCE_LAST and isGeneratingInferenceRule below). */
   GENERIC_GENERATING_INFERNCE,
@@ -304,9 +302,9 @@ enum class InferenceRule : unsigned char {
   INSTANTIATION, // used for theory reasoning
   
   INTERMEDIATE_VALUE,
-  /** the last generating inference marker --
-        inferences between GENERIC_GENERATING_INFERNCE and INTERNAL_GENERATING_INFERNCE_LAST will be automatically understood generating
-        (see also isGeneratingInferenceRule) */
+
+  REBALANCE_FOR_FINAL_LOOP_COUNTS,
+
   /* argument congruence: t = t' => tx = t'x*/
   ARG_CONG,
   /* narrow with combinator axiom */
@@ -356,6 +354,9 @@ enum class InferenceRule : unsigned char {
 
   HOL_EQUALITY_ELIMINATION,
 
+  /** the last generating inference marker --
+        inferences between GENERIC_GENERATING_INFERNCE and INTERNAL_GENERATING_INFERNCE_LAST will be automatically understood generating
+        (see also isGeneratingInferenceRule) */
   INTERNAL_GENERATING_INFERNCE_LAST,
 
   /** equality proxy replacement */
