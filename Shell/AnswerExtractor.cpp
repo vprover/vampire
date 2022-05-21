@@ -506,6 +506,7 @@ void AnswerLiteralManager::onNewClause(Clause* cl)
   DHSet<Literal*> lits;
   for(unsigned i=0; i<cl->length(); i++){
     Literal* lit = (*cl)[i];
+    if(io){
     SubtermIterator it(lit);
     while(it.hasNext()){
       TermList ts = it.next();
@@ -514,6 +515,7 @@ void AnswerLiteralManager::onNewClause(Clause* cl)
           return;
         }
       }
+    }
     }
     lits.insert(lit);
   }
