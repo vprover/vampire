@@ -27,6 +27,7 @@
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/OperatorType.hpp"
 #include "Kernel/InterpretedLiteralEvaluator.hpp"
+#include "Kernel/TermIterators.hpp"
 
 // #include "Tabulation/TabulationAlgorithm.hpp" // MS: Tabulation discontinued, AnswerExtractor needs fixing
 #include "Indexing/Index.hpp"
@@ -499,6 +500,37 @@ void AnswerLiteralManager::onNewClause(Clause* cl)
   CALL("AnswerLiteralManager::onNewClause");
 
   if(!isAnswerClause(cl)){ return; }
+
+  static bool io = env.options->questionInputOnly();
+
+  DHSet<Literal*> lits;
+  for(unsigned i=0; i<cl->length(); i++){
+    Literal* lit = (*cl)[i];
+    SubtermIterator it(lit);
+    while(it.hasNext()){
+      TermList ts = it.next();
+      if(ts.isTerm()){
+        if(env.signature->getFunction(ts.term()->functor())->introduced()){
+          return;
+        }
+      }
+    }
+    lits.insert(lit);
+  }
+  RCClauseStack::Iterator cit(_answers);
+  while(cit.hasNext()) {
+    Clause* ansCl = cit.next();
+    if(ansCl->length() == ansCl->length()){ 
+      bool matches = true;
+      for(unsigned i = 0; i < ansCl->length(); i++){
+        if(!lits.contains((*ansCl)[0])){
+           matches = false; break;
+        }
+      }
+      if(matches){ return; }
+    } 
+  }
+  
 
   _answers.push(cl);
 

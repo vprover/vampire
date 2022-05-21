@@ -2166,6 +2166,12 @@ void Options::init()
     _lookup.insert(&_questionAnswering);
     _questionAnswering.tag(OptionTag::OTHER);
 
+    _questionAnsweringInputOnly = BoolOptionValue("question_answering_input-only","qa_io",false);
+    _questionAnsweringInputOnly.description="When running question answering only include answers using input symbols.";
+    _questionAnsweringInputOnly.reliesOn(_questionAnswering.is(equal(QuestionAnsweringMode::ANSWER_LITERAL))); // for now at least
+    _lookup.insert(&_questionAnsweringInputOnly);
+    _questionAnsweringInputOnly.tag(OptionTag::OTHER);
+
     _questionCount = UnsignedOptionValue("question_count","qc",0);
     _questionCount.description = "The max number of answers you want, 0 means as many as possible, which could lead to non-termination.";
     _lookup.insert(&_questionCount);
