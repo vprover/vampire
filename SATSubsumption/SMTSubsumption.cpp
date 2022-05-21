@@ -842,12 +842,12 @@ void ProofOfConcept::benchmark_run(SubsumptionBenchmark b)
     benchmark::RegisterBenchmark("smt3 S+SR (setup)", bench_smt3_fwrun_setup, fw_rounds);
   benchmark::RegisterBenchmark(  "smt3 S+SR (full)", bench_smt3_fwrun, fw_rounds);
 
-  // if (also_setup)
-  //   benchmark::RegisterBenchmark("orig S    (setup)", bench_orig_fwrun_setup, fw_rounds_only_subsumption);
-  // benchmark::RegisterBenchmark(  "orig S    (full)", bench_orig_fwrun, fw_rounds_only_subsumption);
-  // if (also_setup)
-  //   benchmark::RegisterBenchmark("orig S+SR (setup)", bench_orig_fwrun_setup, fw_rounds);
-  // benchmark::RegisterBenchmark(  "orig S+SR (full)", bench_orig_fwrun, fw_rounds);
+  if (also_setup)
+    benchmark::RegisterBenchmark("orig S    (setup)", bench_orig_fwrun_setup, fw_rounds_only_subsumption);
+  benchmark::RegisterBenchmark(  "orig S    (full)", bench_orig_fwrun, fw_rounds_only_subsumption);
+  if (also_setup)
+    benchmark::RegisterBenchmark("orig S+SR (setup)", bench_orig_fwrun_setup, fw_rounds);
+  benchmark::RegisterBenchmark(  "orig S+SR (full)", bench_orig_fwrun, fw_rounds);
 
   init_benchmark(std::move(args));
   benchmark::RunSpecifiedBenchmarks();
@@ -877,18 +877,6 @@ void ProofOfConcept::benchmark_run(vvector<SubsumptionInstance> instances)
 // Example by Bernhard re. problematic subsumption demodulation:
 // side: x1=x2 or x3=x4 or x5=x6 or x7=x8
 // main: x9=x10 or x11=x12 or x13=14 or P(t)
-
-
-// TODO: subsumption resolution
-// maybe we can extend the subsumption instance easily?
-// Add a flag (i.e., a boolean variable that's to be used as assumption)
-//  to switch between subsumption and subsumption resolution.
-// But other SR-clauses are only generated after checking S.
-
-
-
-
-
 
 
 void ProofOfConcept::benchmark_micro(SubsumptionBenchmark b)
