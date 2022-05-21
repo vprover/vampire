@@ -1,10 +1,3 @@
-/*
- * matchsat.hpp
- * Copyright (C) 2021 Jakob Rath <git@jakobrath.eu>
- *
- * Distributed under terms of the MIT license.
- */
-
 #ifndef MATCHSAT_HPP
 #define MATCHSAT_HPP
 

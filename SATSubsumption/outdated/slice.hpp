@@ -1,10 +1,3 @@
-/*
- * slice.hpp
- * Copyright (C) 2020 Jakob Rath <git@jakobrath.eu>
- *
- * Distributed under terms of the MIT license.
- */
-
 #ifndef SLICE_HPP
 #define SLICE_HPP
 

@@ -1,10 +1,3 @@
-/*
- * Util.cpp
- * Copyright (C) 2022 Jakob Rath <git@jakobrath.eu>
- *
- * Distributed under terms of the MIT license.
- */
-
 #include "Util.hpp"
 #include "Lib/STL.hpp"
 #include "Debug/Assertion.hpp"
