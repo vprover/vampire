@@ -1,5 +1,4 @@
 #include "SMTSubsumption.hpp"
-#include "SMTSubsumption/slice.hpp"
 #include "Indexing/LiteralMiniIndex.hpp"
 #include "Lib/STL.hpp"
 #include "Lib/BinaryHeap.hpp"
@@ -19,7 +18,7 @@
 
 #include "SMTSubsumptionImpl2.hpp"
 #include "SMTSubsumptionImpl3.hpp"
-#include "SMTSubsumption/cdebug.hpp"
+#include "SATSubsumption/cdebug.hpp"
 
 using namespace Indexing;
 using namespace Kernel;

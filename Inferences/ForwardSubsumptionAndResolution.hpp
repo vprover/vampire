@@ -19,7 +19,7 @@
 
 #include "Forwards.hpp"
 #include "InferenceEngine.hpp"
-#include "SMTSubsumption/SMTSubsumption.hpp"
+#include "SATSubsumption/SMTSubsumption.hpp"
 #include "Lib/STL.hpp"
 
 namespace Inferences {

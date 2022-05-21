@@ -53,8 +53,8 @@
 
 #include "Inferences/InferenceEngine.hpp"
 #include "Inferences/TautologyDeletionISE.hpp"
-#include "SMTSubsumption/SMTSubsumption.hpp"
-#include "SMTSubsumption/cdebug.hpp"
+#include "SATSubsumption/SMTSubsumption.hpp"
+#include "SATSubsumption/cdebug.hpp"
 
 //#include "InstGen/IGAlgorithm.hpp"
 

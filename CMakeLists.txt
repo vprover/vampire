@@ -733,35 +733,35 @@ set(VAMPIRE_CASC_SOURCES
     )
 source_group(casc_source_files FILES ${VAMPIRE_CASC_SOURCES})
 
-set(VAMPIRE_SMT_SUBSUMPTION_SOURCES
-    SMTSubsumption/SMTSubsumption.cpp
-    SMTSubsumption/SMTSubsumption_benchmark.cpp
-    SMTSubsumption/SMTSubsumption.hpp
-    SMTSubsumption/SMTSubsumptionImpl2.cpp
-    SMTSubsumption/SMTSubsumptionImpl2.hpp
-    SMTSubsumption/SMTSubsumptionImpl3.cpp
-    SMTSubsumption/SMTSubsumptionImpl3.hpp
-    SMTSubsumption/MapBinder.cpp
-    SMTSubsumption/MapBinder.hpp
-    SMTSubsumption/Util.cpp
-    SMTSubsumption/Util.hpp
+set(VAMPIRE_SAT_SUBSUMPTION_SOURCES
+    SATSubsumption/SMTSubsumption.cpp
+    SATSubsumption/SMTSubsumption_benchmark.cpp
+    SATSubsumption/SMTSubsumption.hpp
+    SATSubsumption/SMTSubsumptionImpl2.cpp
+    SATSubsumption/SMTSubsumptionImpl2.hpp
+    SATSubsumption/SMTSubsumptionImpl3.cpp
+    SATSubsumption/SMTSubsumptionImpl3.hpp
+    SATSubsumption/MapBinder.cpp
+    SATSubsumption/MapBinder.hpp
+    SATSubsumption/Util.cpp
+    SATSubsumption/Util.hpp
 
-    SMTSubsumption/subsat/constraint.cpp
-    SMTSubsumption/subsat/constraint.hpp
-    SMTSubsumption/subsat/decision_queue.hpp
-    SMTSubsumption/subsat/default_init_allocator.hpp
-    SMTSubsumption/subsat/log.cpp
-    SMTSubsumption/subsat/log.hpp
-    SMTSubsumption/subsat/subsat.cpp
-    SMTSubsumption/subsat/subsat.hpp
-    SMTSubsumption/subsat/subsat_config.hpp
-    SMTSubsumption/subsat/SubstitutionTheory.hpp
-    SMTSubsumption/subsat/types.cpp
-    SMTSubsumption/subsat/types.hpp
-    SMTSubsumption/subsat/variable_domain_size.hpp
-    SMTSubsumption/subsat/vector_map.hpp
+    SATSubsumption/subsat/constraint.cpp
+    SATSubsumption/subsat/constraint.hpp
+    SATSubsumption/subsat/decision_queue.hpp
+    SATSubsumption/subsat/default_init_allocator.hpp
+    SATSubsumption/subsat/log.cpp
+    SATSubsumption/subsat/log.hpp
+    SATSubsumption/subsat/subsat.cpp
+    SATSubsumption/subsat/subsat.hpp
+    SATSubsumption/subsat/subsat_config.hpp
+    SATSubsumption/subsat/SubstitutionTheory.hpp
+    SATSubsumption/subsat/types.cpp
+    SATSubsumption/subsat/types.hpp
+    SATSubsumption/subsat/variable_domain_size.hpp
+    SATSubsumption/subsat/vector_map.hpp
     )
-source_group(smt_subsumption_source_files FILES ${VAMPIRE_SMT_SUBSUMPTION_SOURCES})
+source_group(smt_subsumption_source_files FILES ${VAMPIRE_SAT_SUBSUMPTION_SOURCES})
 
 set(VAMPIRE_TESTING_SOURCES
     Test/UnitTesting.cpp
@@ -834,7 +834,7 @@ set(VAMPIRE_SOURCES
     ${VAMPIRE_SMTCOMP_SOURCES}
     ${VAMPIRE_MINISAT_SOURCES}
     ${VAMPIRE_CASC_SOURCES}
-    ${VAMPIRE_SMT_SUBSUMPTION_SOURCES}
+    ${VAMPIRE_SAT_SUBSUMPTION_SOURCES}
     Forwards.hpp
     "${CMAKE_CURRENT_BINARY_DIR}/version.cpp"
     )
