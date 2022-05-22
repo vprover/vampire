@@ -489,20 +489,24 @@ Ordering::Result PrecedenceOrdering::compareTypeConPrecedences(unsigned tyc1, un
       (int)(reverse ? -tyc2 : tyc2)));
 }
 
-template<typename Comparator>
-struct FnBoostWrapper
+template<typename Comparator, typename SymbGetter>
+struct BoostWrapper
 {
-  FnBoostWrapper(Comparator comp) : _comp(comp) {}
+  BoostWrapper(Comparator comp) : _comp(comp) {}
   Comparator _comp;
 
-  Comparison compare(unsigned f1, unsigned f2)
+  Comparison compare(unsigned s1, unsigned s2)
   {
     static Options::SymbolPrecedenceBoost boost = env.options->symbolPrecedenceBoost();
     Comparison res = EQUAL;
-    bool u1 = env.signature->getFunction(f1)->inUnit(); 
-    bool u2 = env.signature->getFunction(f2)->inUnit(); 
-    bool g1 = env.signature->getFunction(f1)->inGoal();
-    bool g2 = env.signature->getFunction(f2)->inGoal();
+    auto sym1 = SymbGetter::getSymbol(s1);
+    auto sym2 = SymbGetter::getSymbol(s2);
+    bool u1 = sym1->inUnit(); 
+    bool u2 = sym2->inUnit(); 
+    bool g1 = sym1->inGoal();
+    bool g2 = sym2->inGoal();
+    bool i1 = sym1->introduced();
+    bool i2 = sym2->introduced();
     switch(boost){
       case Options::SymbolPrecedenceBoost::NONE:
         break;
@@ -520,52 +524,36 @@ struct FnBoostWrapper
         else if(u1 && !u2){ res = GREATER; }
         else if(!u1 && u2){ res = LESS; }
         break;
-    }
-    if(res==EQUAL){
-      res = _comp.compare(f1,f2);
-    }
-    return res;
-  }
-
-};
-template<typename Comparator>
-struct PredBoostWrapper
-{
-  PredBoostWrapper(Comparator comp) : _comp(comp) {}
-  Comparator _comp;
-
-  Comparison compare(unsigned p1, unsigned p2)
-  {
-    static Options::SymbolPrecedenceBoost boost = env.options->symbolPrecedenceBoost();
-    Comparison res = EQUAL;
-    bool u1 = env.signature->getPredicate(p1)->inUnit();
-    bool u2 = env.signature->getPredicate(p2)->inUnit();
-    bool g1 = env.signature->getPredicate(p1)->inGoal();
-    bool g2 = env.signature->getPredicate(p2)->inGoal();
-    switch(boost){
-      case Options::SymbolPrecedenceBoost::NONE:
+      case Options::SymbolPrecedenceBoost::NON_INTRO:
+        if (i1 && !i2) { res = LESS; }
+        else if (!i1 && i2) { res = GREATER; }
         break;
-      case Options::SymbolPrecedenceBoost::GOAL:
-        if(g1 && !g2){ res = GREATER; }
-        else if(!g1 && g2){ res = LESS; }
-        break;
-      case Options::SymbolPrecedenceBoost::UNIT:
-        if(u1 && !u2){ res = GREATER; }
-        else if(!u1 && u2){ res = LESS; }
-        break;
-      case Options::SymbolPrecedenceBoost::GOAL_UNIT:
-        if(g1 && !g2){ res = GREATER; }
-        else if(!g1 && g2){ res = LESS; }
-        else if(u1 && !u2){ res = GREATER; }
-        else if(!u1 && u2){ res = LESS; }
+      case Options::SymbolPrecedenceBoost::INTRO:
+        if (!i1 && i2) { res = LESS; }
+        else if (i1 && !i2) { res = GREATER; }
         break;
     }
     if(res==EQUAL){
-      res = _comp.compare(p1,p2);
+      res = _comp.compare(s1,s2);
     }
     return res;
   }
 };
+
+struct FnSymGetter {
+  static Signature::Symbol* getSymbol(unsigned s) {
+    return env.signature->getFunction(s);
+  }
+};
+
+struct PredSymGetter {
+  static Signature::Symbol* getSymbol(unsigned s) {
+    return env.signature->getPredicate(s);
+  }
+};
+
+template<typename Comparator> using FnBoostWrapper = BoostWrapper<Comparator,FnSymGetter>;
+template<typename Comparator> using PredBoostWrapper = BoostWrapper<Comparator,PredSymGetter>;
 
 struct FnFreqComparator
 {
