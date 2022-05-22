@@ -555,108 +555,51 @@ struct PredSymGetter {
 template<typename Comparator> using FnBoostWrapper = BoostWrapper<Comparator,FnSymGetter>;
 template<typename Comparator> using PredBoostWrapper = BoostWrapper<Comparator,PredSymGetter>;
 
-struct FnFreqComparator
+template<typename SymbGetter,bool revert = false>
+struct FreqComparator
 {
-  Comparison compare(unsigned f1, unsigned f2)
+  Comparison compare(unsigned s1, unsigned s2)
   {
-    unsigned c1 = env.signature->getFunction(f1)->usageCnt();
-    unsigned c2 = env.signature->getFunction(f2)->usageCnt();
-    Comparison res = Int::compare(c2,c1);
+    unsigned c1 = SymbGetter::getSymbol(s1)->usageCnt();
+    unsigned c2 = SymbGetter::getSymbol(s2)->usageCnt();
+    // note that we have: "rare is large" (unless reverted)
+    Comparison res = revert ? Int::compare(c1,c2) : Int::compare(c2,c1);
     if(res==EQUAL){
-      res = Int::compare(f1,f2);
-    }
-    return res;
-  }
-};
-struct PredFreqComparator
-{
-  Comparison compare(unsigned p1, unsigned p2)
-  {
-    unsigned c1 = env.signature->getPredicate(p1)->usageCnt();
-    unsigned c2 = env.signature->getPredicate(p2)->usageCnt();
-    Comparison res = Int::compare(c2,c1);
-    if(res==EQUAL){
-      res = Int::compare(p1,p2);
-    }
-    return res;
-  }
-};
-struct FnRevFreqComparator
-{
-  Comparison compare(unsigned f1, unsigned f2)
-  {
-    unsigned c1 = env.signature->getFunction(f1)->usageCnt();
-    unsigned c2 = env.signature->getFunction(f2)->usageCnt();
-    Comparison res = Int::compare(c1,c2);
-    if(res==EQUAL){
-      res = Int::compare(f1,f2);
-    }
-    return res;
-  }
-};
-struct PredRevFreqComparator
-{
-  Comparison compare(unsigned p1, unsigned p2)
-  {
-    unsigned c1 = env.signature->getPredicate(p1)->usageCnt();
-    unsigned c2 = env.signature->getPredicate(p2)->usageCnt();
-    Comparison res = Int::compare(c1,c2);
-    if(res==EQUAL){
-      res = Int::compare(p1,p2);
+      // fallback to "OCCURRENCE"
+      res = Int::compare(s1,s2);
     }
     return res;
   }
 };
 
-struct FnArityComparator
+using FnFreqComparator = FreqComparator<FnSymGetter>;
+using PredFreqComparator = FreqComparator<PredSymGetter>;
+
+using FnRevFreqComparator = FreqComparator<FnSymGetter,true>;
+using PredRevFreqComparator = FreqComparator<PredSymGetter,true>;
+
+template<typename SymbGetter,bool revert = false>
+struct ArityComparator
 {
   Comparison compare(unsigned u1, unsigned u2)
   {
-    Comparison res=Int::compare(env.signature->functionArity(u1),
-	    env.signature->functionArity(u2));
-    if(res==EQUAL) {
-      res=Int::compare(u1,u2);
+    Comparison res= Int::compare(SymbGetter::getSymbol(u1)->arity(),SymbGetter::getSymbol(u2)->arity());
+    if (revert) {
+      res = Lib::revert(res);
     }
-    return res;
-  }
-};
-struct PredArityComparator
-{
-  Comparison compare(unsigned u1, unsigned u2)
-  {
-    Comparison res=Int::compare(env.signature->predicateArity(u1),
-	    env.signature->predicateArity(u2));
     if(res==EQUAL) {
+      // fallback to "OCCURRENCE"
       res=Int::compare(u1,u2);
     }
     return res;
   }
 };
 
-struct FnRevArityComparator
-{
-  Comparison compare(unsigned u1, unsigned u2)
-  {
-    Comparison res=Int::compare(env.signature->functionArity(u2),
-	    env.signature->functionArity(u1));
-    if(res==EQUAL) {
-      res=Int::compare(u1,u2);
-    }
-    return res;
-  }
-};
-struct PredRevArityComparator
-{
-  Comparison compare(unsigned u1, unsigned u2)
-  {
-    Comparison res=Int::compare(env.signature->predicateArity(u2),
-	    env.signature->predicateArity(u1));
-    if(res==EQUAL) {
-      res=Int::compare(u1,u2);
-    }
-    return res;
-  }
-};
+using FnArityComparator = ArityComparator<FnSymGetter>;
+using PredArityComparator = ArityComparator<PredSymGetter>;
+
+using FnRevArityComparator = ArityComparator<FnSymGetter,true>;
+using PredRevArityComparator = ArityComparator<PredSymGetter,true>;
 
 static void loadPermutationFromString(DArray<unsigned>& p, const vstring& str) {
   CALL("loadPermutationFromString");
