@@ -2271,8 +2271,10 @@ void Options::init()
     _lookup.insert(&_predicatePrecedence);
 
     _symbolPrecedenceBoost = ChoiceOptionValue<SymbolPrecedenceBoost>("symbol_precedence_boost","spb",SymbolPrecedenceBoost::NONE,
-                                     {"none","goal","units","goal_then_units"});
-    _symbolPrecedenceBoost.description = "Boost the symbol precedence of symbols occurring in certain kinds of clauses in the input.";
+                                     {"none","goal","units","goal_then_units",
+                                      "non_intro","intro"});
+    _symbolPrecedenceBoost.description = "Boost the symbol precedence of symbols occurring in certain kinds of clauses in the input.\n"
+                                         "Additionally, non_intro/intro suppress/boost the precedence of symbols introduced during preprocessing (i.e., mainly, the naming predicates and the skolems).";
     _symbolPrecedenceBoost.onlyUsefulWith(InferencingSaturationAlgorithm());
     _symbolPrecedenceBoost.tag(OptionTag::SATURATION);
     _lookup.insert(&_symbolPrecedenceBoost);

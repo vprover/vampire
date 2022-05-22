@@ -538,10 +538,12 @@ public:
     REVERSE_WEIGHTED_FREQUENCY = 7
   };
   enum class SymbolPrecedenceBoost : unsigned int {
-    NONE = 0,
+    NONE = 0,    
     GOAL = 1,
     UNIT = 2,
-    GOAL_UNIT = 3
+    GOAL_UNIT = 3,
+    NON_INTRO = 4,
+    INTRO = 5,
   };
   enum class IntroducedSymbolPrecedence : unsigned int {
     TOP = 0,
