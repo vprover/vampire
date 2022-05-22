@@ -492,7 +492,7 @@ Ordering::Result PrecedenceOrdering::compareTypeConPrecedences(unsigned tyc1, un
 template<typename Comparator, typename SymbGetter>
 struct BoostWrapper
 {
-  BoostWrapper(Comparator comp) : _comp(comp) {}
+  BoostWrapper() : _comp() {}
   Comparator _comp;
 
   Comparison compare(unsigned s1, unsigned s2)
@@ -707,18 +707,18 @@ DArray<int> PrecedenceOrdering::funcPrecFromOpts(Problem& prb, const Options& op
     } else {
       switch(opt.symbolPrecedence()) {
       case Shell::Options::SymbolPrecedence::ARITY:
-        aux.sort(FnBoostWrapper<FnArityComparator>(FnArityComparator()));
+        aux.sort(FnBoostWrapper<FnArityComparator>());
         break;
       case Shell::Options::SymbolPrecedence::REVERSE_ARITY:
-        aux.sort(FnBoostWrapper<FnRevArityComparator>(FnRevArityComparator()));
+        aux.sort(FnBoostWrapper<FnRevArityComparator>());
         break;
       case Shell::Options::SymbolPrecedence::FREQUENCY:
       case Shell::Options::SymbolPrecedence::WEIGHTED_FREQUENCY:
-        aux.sort(FnBoostWrapper<FnFreqComparator>(FnFreqComparator()));
+        aux.sort(FnBoostWrapper<FnFreqComparator>());
         break;
       case Shell::Options::SymbolPrecedence::REVERSE_FREQUENCY:
       case Shell::Options::SymbolPrecedence::REVERSE_WEIGHTED_FREQUENCY:
-        aux.sort(FnBoostWrapper<FnRevFreqComparator>(FnRevFreqComparator()));
+        aux.sort(FnBoostWrapper<FnRevFreqComparator>());
         break;
       case Shell::Options::SymbolPrecedence::OCCURRENCE:
         break;
@@ -775,18 +775,18 @@ DArray<int> PrecedenceOrdering::predPrecFromOpts(Problem& prb, const Options& op
   } else {
     switch(opt.symbolPrecedence()) {
     case Shell::Options::SymbolPrecedence::ARITY:
-      aux.sort(PredBoostWrapper<PredArityComparator>(PredArityComparator()));
+      aux.sort(PredBoostWrapper<PredArityComparator>());
       break;
     case Shell::Options::SymbolPrecedence::REVERSE_ARITY:
-      aux.sort(PredBoostWrapper<PredRevArityComparator>(PredRevArityComparator()));
+      aux.sort(PredBoostWrapper<PredRevArityComparator>());
       break;
     case Shell::Options::SymbolPrecedence::FREQUENCY:
     case Shell::Options::SymbolPrecedence::WEIGHTED_FREQUENCY:
-      aux.sort(PredBoostWrapper<PredFreqComparator>(PredFreqComparator()));
+      aux.sort(PredBoostWrapper<PredFreqComparator>());
       break;
     case Shell::Options::SymbolPrecedence::REVERSE_FREQUENCY:
     case Shell::Options::SymbolPrecedence::REVERSE_WEIGHTED_FREQUENCY:
-     aux.sort(PredBoostWrapper<PredRevFreqComparator>(PredRevFreqComparator()));
+     aux.sort(PredBoostWrapper<PredRevFreqComparator>());
      break;
     case Shell::Options::SymbolPrecedence::OCCURRENCE:
       break;
