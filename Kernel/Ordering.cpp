@@ -489,18 +489,26 @@ Ordering::Result PrecedenceOrdering::compareTypeConPrecedences(unsigned tyc1, un
       (int)(reverse ? -tyc2 : tyc2)));
 }
 
-template<typename Comparator, typename SymbGetter>
-struct BoostWrapper
+struct SymbolComparator {
+  bool _forFunct;
+  SymbolComparator(bool forFunct) : _forFunct(forFunct) {}
+
+  Signature::Symbol* getSymbol(unsigned s) {
+    return _forFunct ? env.signature->getFunction(s) : env.signature->getPredicate(s);
+  }  
+};
+
+template<typename InnerComparator>
+struct BoostWrapper : public SymbolComparator
 {
-  BoostWrapper() : _comp() {}
-  Comparator _comp;
+  BoostWrapper(bool forFunct) : SymbolComparator(forFunct) {}
 
   Comparison compare(unsigned s1, unsigned s2)
   {
     static Options::SymbolPrecedenceBoost boost = env.options->symbolPrecedenceBoost();
     Comparison res = EQUAL;
-    auto sym1 = SymbGetter::getSymbol(s1);
-    auto sym2 = SymbGetter::getSymbol(s2);
+    auto sym1 = getSymbol(s1);
+    auto sym2 = getSymbol(s2);
     bool u1 = sym1->inUnit(); 
     bool u2 = sym2->inUnit(); 
     bool g1 = sym1->inGoal();
@@ -534,96 +542,75 @@ struct BoostWrapper
         break;
     }
     if(res==EQUAL){
-      res = _comp.compare(s1,s2);
+      // fallback to Inner
+      res = InnerComparator(_forFunct).compare(s1,s2);
     }
     return res;
   }
 };
 
-struct FnSymGetter {
-  static Signature::Symbol* getSymbol(unsigned s) {
-    return env.signature->getFunction(s);
-  }
+struct OccurenceTiebreak {
+  OccurenceTiebreak(bool) {} // the bool is a dummy argument, required by the template recursion convention
+
+  Comparison compare(unsigned s1, unsigned s2) {  return Int::compare(s1,s2); }
 };
 
-struct PredSymGetter {
-  static Signature::Symbol* getSymbol(unsigned s) {
-    return env.signature->getPredicate(s);
-  }
-};
-
-template<typename Comparator> using FnBoostWrapper = BoostWrapper<Comparator,FnSymGetter>;
-template<typename Comparator> using PredBoostWrapper = BoostWrapper<Comparator,PredSymGetter>;
-
-template<typename SymbGetter,bool revert = false>
-struct FreqComparator
+template<typename InnerComparator,bool revert = false>
+struct FreqComparator : public SymbolComparator
 {
+  FreqComparator(bool forFunct) : SymbolComparator(forFunct) {}
+
   Comparison compare(unsigned s1, unsigned s2)
   {
-    unsigned c1 = SymbGetter::getSymbol(s1)->usageCnt();
-    unsigned c2 = SymbGetter::getSymbol(s2)->usageCnt();
+    unsigned c1 = getSymbol(s1)->usageCnt();
+    unsigned c2 = getSymbol(s2)->usageCnt();
     // note that we have: "rare is large" (unless reverted)
     Comparison res = revert ? Int::compare(c1,c2) : Int::compare(c2,c1);
     if(res==EQUAL){
-      // fallback to "OCCURRENCE"
-      res = Int::compare(s1,s2);
+      // fallback to Inner
+      res = InnerComparator(_forFunct).compare(s1,s2);
     }
     return res;
   }
 };
 
-using FnFreqComparator = FreqComparator<FnSymGetter>;
-using PredFreqComparator = FreqComparator<PredSymGetter>;
-
-using FnRevFreqComparator = FreqComparator<FnSymGetter,true>;
-using PredRevFreqComparator = FreqComparator<PredSymGetter,true>;
-
-template<typename SymbGetter,bool revert = false>
-struct ArityComparator
+template<typename InnerComparator,bool revert = false>
+struct ArityComparator : public SymbolComparator
 {
+  ArityComparator(bool forFunct) : SymbolComparator(forFunct) {}
+
   Comparison compare(unsigned u1, unsigned u2)
   {
-    Comparison res= Int::compare(SymbGetter::getSymbol(u1)->arity(),SymbGetter::getSymbol(u2)->arity());
+    Comparison res= Int::compare(getSymbol(u1)->arity(),getSymbol(u2)->arity());
     if (revert) {
       res = Lib::revert(res);
     }
     if(res==EQUAL) {
-      // fallback to "OCCURRENCE"
-      res=Int::compare(u1,u2);
+      // fallback to Inner 
+      res = InnerComparator(_forFunct).compare(u1,u2);
     }
     return res;
   }
 };
 
-using FnArityComparator = ArityComparator<FnSymGetter>;
-using PredArityComparator = ArityComparator<PredSymGetter>;
-
-using FnRevArityComparator = ArityComparator<FnSymGetter,true>;
-using PredRevArityComparator = ArityComparator<PredSymGetter,true>;
-
-template<typename SymbGetter>
-struct UnaryFirstComparator
+template<typename InnerComparator,bool revert = false>
+struct UnaryFirstComparator : public SymbolComparator
 {
+  UnaryFirstComparator(bool forFunct) : SymbolComparator(forFunct) {}
+
   Comparison compare(unsigned s1, unsigned s2)
   {
-    unsigned a1 = SymbGetter::getSymbol(s1)->arity();
-    unsigned a2 = SymbGetter::getSymbol(s2)->arity();
+    unsigned a1 = getSymbol(s1)->arity();
+    unsigned a2 = getSymbol(s2)->arity();
     if (a1 == 1 && a2 != 1) {
-      return GREATER;
+      return revert ? LESS : GREATER;
     } else if (a1 != 1 && a2 == 1) {
-      return LESS;
-    }    
-    Comparison res = Int::compare(a1,a2);
-    if(res==EQUAL) {
-      // fallback to FREQUENCY
-      res=FreqComparator<SymbGetter>().compare(s1,s2);
+      return revert ? GREATER : LESS;
     }
-    return res;
+    // fallback to Inner
+    return InnerComparator(_forFunct).compare(s1,s2);
   }
 };
-
-using FnUnaryFirstComparator = UnaryFirstComparator<FnSymGetter>;
-using PredUnaryFirstComparator = UnaryFirstComparator<PredSymGetter>;
 
 static void loadPermutationFromString(DArray<unsigned>& p, const vstring& str) {
   CALL("loadPermutationFromString");
@@ -731,23 +718,27 @@ DArray<int> PrecedenceOrdering::funcPrecFromOpts(Problem& prb, const Options& op
     } else {
       switch(opt.symbolPrecedence()) {
       case Shell::Options::SymbolPrecedence::ARITY:
-        aux.sort(FnBoostWrapper<FnArityComparator>());
+        aux.sort(BoostWrapper<ArityComparator<OccurenceTiebreak>>(true /* forFunct */));
         break;
       case Shell::Options::SymbolPrecedence::REVERSE_ARITY:
-        aux.sort(FnBoostWrapper<FnRevArityComparator>());
+        aux.sort(BoostWrapper<ArityComparator<OccurenceTiebreak,true /*reverse*/>>(true /* forFunct */));
         break;
       case Shell::Options::SymbolPrecedence::UNARY_FIRST:
-        aux.sort(FnBoostWrapper<FnUnaryFirstComparator>());
+        aux.sort(BoostWrapper<UnaryFirstComparator<ArityComparator<FreqComparator<OccurenceTiebreak>>>>(true /* forFunct */));
         break;
       case Shell::Options::SymbolPrecedence::FREQUENCY:
       case Shell::Options::SymbolPrecedence::WEIGHTED_FREQUENCY:
-        aux.sort(FnBoostWrapper<FnFreqComparator>());
+        aux.sort(BoostWrapper<FreqComparator<OccurenceTiebreak>>(true /* forFunct */));
         break;
       case Shell::Options::SymbolPrecedence::REVERSE_FREQUENCY:
       case Shell::Options::SymbolPrecedence::REVERSE_WEIGHTED_FREQUENCY:
-        aux.sort(FnBoostWrapper<FnRevFreqComparator>());
+        aux.sort(BoostWrapper<FreqComparator<OccurenceTiebreak,true /*reverse*/>>(true /* forFunct */));
+        break;
+      case Shell::Options::SymbolPrecedence::UNARY_FREQ:
+        aux.sort(BoostWrapper<UnaryFirstComparator<FreqComparator<OccurenceTiebreak>>>(true /* forFunct */));
         break;
       case Shell::Options::SymbolPrecedence::OCCURRENCE:
+        // already sorted by occurrence
         break;
       case Shell::Options::SymbolPrecedence::SCRAMBLE:
         for(unsigned i=0;i<nFunctions;i++){
@@ -759,7 +750,6 @@ DArray<int> PrecedenceOrdering::funcPrecFromOpts(Problem& prb, const Options& op
         break;
       }
     }
-
     
     /*cout << "Function precedences:" << endl;
     for(unsigned i=0;i<nFunctions;i++){
@@ -802,22 +792,25 @@ DArray<int> PrecedenceOrdering::predPrecFromOpts(Problem& prb, const Options& op
   } else {
     switch(opt.symbolPrecedence()) {
     case Shell::Options::SymbolPrecedence::ARITY:
-      aux.sort(PredBoostWrapper<PredArityComparator>());
+      aux.sort(BoostWrapper<ArityComparator<OccurenceTiebreak>>(false /* forFunct */));
       break;
     case Shell::Options::SymbolPrecedence::REVERSE_ARITY:
-      aux.sort(PredBoostWrapper<PredRevArityComparator>());
+      aux.sort(BoostWrapper<ArityComparator<OccurenceTiebreak,true /*reverse*/>>(false /* forFunct */));
       break;
     case Shell::Options::SymbolPrecedence::UNARY_FIRST:
-      aux.sort(FnBoostWrapper<PredUnaryFirstComparator>());
+      aux.sort(BoostWrapper<UnaryFirstComparator<ArityComparator<FreqComparator<OccurenceTiebreak>>>>(false /* forFunct */));
       break;  
     case Shell::Options::SymbolPrecedence::FREQUENCY:
     case Shell::Options::SymbolPrecedence::WEIGHTED_FREQUENCY:
-      aux.sort(PredBoostWrapper<PredFreqComparator>());
+      aux.sort(BoostWrapper<FreqComparator<OccurenceTiebreak>>(false /* forFunct */));
       break;
     case Shell::Options::SymbolPrecedence::REVERSE_FREQUENCY:
     case Shell::Options::SymbolPrecedence::REVERSE_WEIGHTED_FREQUENCY:
-     aux.sort(PredBoostWrapper<PredRevFreqComparator>());
-     break;
+      aux.sort(BoostWrapper<FreqComparator<OccurenceTiebreak,true /*reverse*/>>(false /* forFunct */));
+      break;
+    case Shell::Options::SymbolPrecedence::UNARY_FREQ:
+      aux.sort(BoostWrapper<UnaryFirstComparator<FreqComparator<OccurenceTiebreak>>>(false /* forFunct */));
+      break;
     case Shell::Options::SymbolPrecedence::OCCURRENCE:
       break;
       case Shell::Options::SymbolPrecedence::SCRAMBLE:
