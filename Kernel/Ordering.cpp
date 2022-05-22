@@ -601,6 +601,30 @@ using PredArityComparator = ArityComparator<PredSymGetter>;
 using FnRevArityComparator = ArityComparator<FnSymGetter,true>;
 using PredRevArityComparator = ArityComparator<PredSymGetter,true>;
 
+template<typename SymbGetter>
+struct UnaryFirstComparator
+{
+  Comparison compare(unsigned s1, unsigned s2)
+  {
+    unsigned a1 = SymbGetter::getSymbol(s1)->arity();
+    unsigned a2 = SymbGetter::getSymbol(s2)->arity();
+    if (a1 == 1 && a2 != 1) {
+      return GREATER;
+    } else if (a1 != 1 && a2 == 1) {
+      return LESS;
+    }    
+    Comparison res = Int::compare(a1,a2);
+    if(res==EQUAL) {
+      // fallback to FREQUENCY
+      res=FreqComparator<SymbGetter>().compare(s1,s2);
+    }
+    return res;
+  }
+};
+
+using FnUnaryFirstComparator = UnaryFirstComparator<FnSymGetter>;
+using PredUnaryFirstComparator = UnaryFirstComparator<PredSymGetter>;
+
 static void loadPermutationFromString(DArray<unsigned>& p, const vstring& str) {
   CALL("loadPermutationFromString");
 
@@ -712,6 +736,9 @@ DArray<int> PrecedenceOrdering::funcPrecFromOpts(Problem& prb, const Options& op
       case Shell::Options::SymbolPrecedence::REVERSE_ARITY:
         aux.sort(FnBoostWrapper<FnRevArityComparator>());
         break;
+      case Shell::Options::SymbolPrecedence::UNARY_FIRST:
+        aux.sort(FnBoostWrapper<FnUnaryFirstComparator>());
+        break;
       case Shell::Options::SymbolPrecedence::FREQUENCY:
       case Shell::Options::SymbolPrecedence::WEIGHTED_FREQUENCY:
         aux.sort(FnBoostWrapper<FnFreqComparator>());
@@ -780,6 +807,9 @@ DArray<int> PrecedenceOrdering::predPrecFromOpts(Problem& prb, const Options& op
     case Shell::Options::SymbolPrecedence::REVERSE_ARITY:
       aux.sort(PredBoostWrapper<PredRevArityComparator>());
       break;
+    case Shell::Options::SymbolPrecedence::UNARY_FIRST:
+      aux.sort(FnBoostWrapper<PredUnaryFirstComparator>());
+      break;  
     case Shell::Options::SymbolPrecedence::FREQUENCY:
     case Shell::Options::SymbolPrecedence::WEIGHTED_FREQUENCY:
       aux.sort(PredBoostWrapper<PredFreqComparator>());
