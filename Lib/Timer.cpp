@@ -45,6 +45,7 @@ std::atomic<bool> Timer::s_limitEnforcement{true};
 
 // TODO probably these should also be atomics, but not sure
 #ifdef __linux__
+char* error_to_report = nullptr;
 int perf_fd = -1; // the file descriptor we later read the info from
 long long last_instruction_count_read = -1;
 #endif
@@ -126,18 +127,25 @@ timer_sigalrm_handler (int sig)
   }
 
 #ifdef __linux__
-  if(Timer::s_limitEnforcement && env.options->instructionLimit() && perf_fd >= 0) {
-    // we could also decide not to guard this read by env.options->instructionLimit(),
-    // to get info about instructions burned even when not instruction limiting
-    read(perf_fd, &last_instruction_count_read, sizeof(long long));
-    
-    if (last_instruction_count_read >= MEGA*(long long)env.options->instructionLimit()) {
-      Timer::setLimitEnforcement(false);
-      if (protectingTimeout) {
-        callLimitReachedLater = 2; // 2 for an instr limit
-      } else {
-        limitReached(2); // 2 for an instr limit
+  if(Timer::s_limitEnforcement && env.options->instructionLimit())) {
+    if (perf_fd >= 0) {
+      // we could also decide not to guard this read by env.options->instructionLimit(),
+      // to get info about instructions burned even when not instruction limiting
+      read(perf_fd, &last_instruction_count_read, sizeof(long long));
+      
+      if (last_instruction_count_read >= MEGA*(long long)env.options->instructionLimit()) {
+        Timer::setLimitEnforcement(false);
+        if (protectingTimeout) {
+          callLimitReachedLater = 2; // 2 for an instr limit
+        } else {
+          limitReached(2); // 2 for an instr limit
+        }
       }
+    } else if (perf_fd == -1 && error_to_report) {
+      // however, we definitely want this to be guarded by env.options->instructionLimit()
+      // not to bother with the error people who don't even know about instruction limiting
+      cerr << "perf_event_open failed (instruction limiting will be disabled): " << error_to_report << endl;
+      error_to_report = nullptr;
     }
   }
 #endif
@@ -240,7 +248,8 @@ void Timer::ensureTimerInitialized()
 
     perf_fd = perf_event_open(&pe, 0, -1, -1, 0);
     if (perf_fd == -1) {
-      std::perror("perf_event_open failed (instruction limiting will be disabled)");
+      // delay reporting the error until we can check instruction limiting has been actually requested
+      error_to_report = std::strerror(errno);      
     } else {
       ioctl(perf_fd, PERF_EVENT_IOC_RESET, 0);
       ioctl(perf_fd, PERF_EVENT_IOC_ENABLE, 0);
