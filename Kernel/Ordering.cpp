@@ -735,6 +735,9 @@ static void sortAuxBySymbolPrecedence(DArray<unsigned>& aux, const Options& opt,
     case Shell::Options::SymbolPrecedence::UNARY_FREQ:
       aux.sort(BoostWrapper<UnaryFirstComparator<false,FreqComparator<>>>(forFunc));
       break;
+    case Shell::Options::SymbolPrecedence::CONST_FREQ:
+      aux.sort(BoostWrapper<ConstFirstComparator<true /*reverse*/,FreqComparator<>>>(forFunc));
+      break;
     case Shell::Options::SymbolPrecedence::OCCURRENCE:
       // already sorted by occurrence
       break;

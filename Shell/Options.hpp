@@ -537,9 +537,10 @@ public:
     SCRAMBLE = 6,
     FREQUENCY = 7,
     UNARY_FREQ = 8,
-    REVERSE_FREQUENCY = 9,
-    WEIGHTED_FREQUENCY = 10,
-    REVERSE_WEIGHTED_FREQUENCY = 11
+    CONST_FREQ = 9,
+    REVERSE_FREQUENCY = 10,
+    WEIGHTED_FREQUENCY = 11,
+    REVERSE_WEIGHTED_FREQUENCY = 12
   };
   enum class SymbolPrecedenceBoost : unsigned int {
     NONE = 0,    

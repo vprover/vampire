@@ -2191,7 +2191,7 @@ void Options::init()
     _symbolPrecedence = ChoiceOptionValue<SymbolPrecedence>("symbol_precedence","sp",SymbolPrecedence::ARITY,
                                                             {"arity","occurrence","reverse_arity","unary_first",
                                                             "const_max", "const_min",
-                                                            "scramble","frequency","unary_frequency",
+                                                            "scramble","frequency","unary_frequency","const_frequency",
                                                             "reverse_frequency", "weighted_frequency","reverse_weighted_frequency"});
     _symbolPrecedence.description="Vampire uses term orderings which require a precedence relation between symbols.\n"
                                   "Arity orders symbols by their arity (and reverse_arity takes the reverse of this) and occurence orders symbols by the order they appear in the problem. "
@@ -2200,7 +2200,8 @@ void Options::init()
                                   "unary_first is like arity, except that unary symbols are maximal (and ties are broken by frequency), "
                                   "unary_frequency is like frequency, except that unary symbols are maximal, "
                                   "const_max makes constants the largest, then falls back to arity, "
-                                  "const_min makes constants the smallest, then falls back to reverse_arity.";
+                                  "const_min makes constants the smallest, then falls back to reverse_arity, "
+                                  "const_frequency makes constants the smallest, then falls back to frequency.";
     _lookup.insert(&_symbolPrecedence);
     _symbolPrecedence.onlyUsefulWith(InferencingSaturationAlgorithm());
     _symbolPrecedence.tag(OptionTag::SATURATION);
