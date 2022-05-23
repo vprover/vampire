@@ -532,12 +532,14 @@ public:
     OCCURRENCE = 1,
     REVERSE_ARITY = 2,
     UNARY_FIRST = 3,
-    SCRAMBLE = 4,
-    FREQUENCY = 5,
-    UNARY_FREQ = 6,
-    REVERSE_FREQUENCY = 7,
-    WEIGHTED_FREQUENCY = 8,
-    REVERSE_WEIGHTED_FREQUENCY = 9
+    CONST_MAX = 4,
+    CONST_MIN = 5,
+    SCRAMBLE = 6,
+    FREQUENCY = 7,
+    UNARY_FREQ = 8,
+    REVERSE_FREQUENCY = 9,
+    WEIGHTED_FREQUENCY = 10,
+    REVERSE_WEIGHTED_FREQUENCY = 11
   };
   enum class SymbolPrecedenceBoost : unsigned int {
     NONE = 0,    
