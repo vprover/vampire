@@ -1656,13 +1656,6 @@ void Options::init()
     _lookup.insert(&_intermediateValue);
     _intermediateValue.tag(OptionTag::INFERENCES);
 
-    _rebalancingForFinalLoopCounts = BoolOptionValue("rebal_nl","rbnl",false);
-    _rebalancingForFinalLoopCounts.description=
-    "Attempts to rebalance equations containing final loop count terms coming from Rapid encodings."
-    "For example, it will rebalance 0 = 20 - nl to nl = 20";
-    _lookup.insert(&_rebalancingForFinalLoopCounts);
-    _rebalancingForFinalLoopCounts.tag(OptionTag::INFERENCES);
-
 //*********************** Higher-order  ***********************
 
     _addCombAxioms = BoolOptionValue("add_comb_axioms","aca",false);

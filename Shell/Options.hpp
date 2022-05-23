@@ -2026,7 +2026,6 @@ public:
 
   //Rapid related options
   bool intermediateValue() const{ return _intermediateValue.actualValue; }
-  bool rebalanceForFinalLoopCounts() const { return _rebalancingForFinalLoopCounts.actualValue; }
   //End of rapid related options
 
   void setRunningFromApi(){ _runningFromApi = true; }
@@ -2489,7 +2488,6 @@ private:
 
   //Rapid related options
   BoolOptionValue _intermediateValue;
-  BoolOptionValue _rebalancingForFinalLoopCounts;
   //end of rapid related options
 
   RatioOptionValue _ageWeightRatio;

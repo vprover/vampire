@@ -14,7 +14,6 @@
 #include "Lib/Environment.hpp"
 #include "Forwards.hpp"
 #include "SortHelper.hpp"
-#include "Signature.hpp"
 
 
 #define DEBUG(...) // DBG(__VA_ARGS__)
@@ -55,10 +54,9 @@ namespace Kernel {
     template<class C> 
     class Balancer {
       const Literal& _lit;
-      const bool _balanceForVars;
       friend class BalanceIter<C>;
     public:
-      Balancer(const Literal& l, bool balanceForVars = true);
+      Balancer(const Literal& l);
       BalanceIter<C> begin() const;
       BalanceIter<C> end() const;
     };
@@ -92,7 +90,7 @@ namespace Kernel {
       BalanceIter(const Balancer<C>&, bool end);
 
       bool inBounds() const;
-      void findNextLhs();
+      void findNextVar();
       TermList derefPath() const;
       void incrementPath();
       bool canInvert() const;
@@ -130,8 +128,7 @@ namespace Kernel {
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 template<class C> 
-Balancer<C>::Balancer(const Literal& l, bool balanceForVars) : 
-   _lit(l), _balanceForVars(balanceForVars) { }
+Balancer<C>::Balancer(const Literal& l) : _lit(l) { }
 
 template<class C> BalanceIter<C>::BalanceIter(const Balancer<C>& balancer, bool end) 
   : _path(Stack<Node>())
@@ -144,7 +141,7 @@ template<class C> BalanceIter<C>::BalanceIter(const Balancer<C>& balancer, bool 
   } else {
     DEBUG("begin(", balancer._lit.toString(), ")");
     ASS(balancer._lit.isEquality())
-    findNextLhs();
+    findNextVar();
   }
 }
 
@@ -242,21 +239,11 @@ template<class C> void BalanceIter<C>::incrementPath()
   } while (!canInvert() && inBounds());
 }
 
-template<class C> void BalanceIter<C>::findNextLhs() 
+template<class C> void BalanceIter<C>::findNextVar() 
 { 
-  CALL_DBG("BalanceIter::findNextLhs")
-  
-  auto isVar = [](TermList t){ return t.isVar(); };
+  CALL_DBG("BalanceIter::findNextVar")
 
-  auto isNlTerm = [](TermList t){
-    return !t.isVar() && !t.term()->isSort() && 
-      env.signature->getFunction(t.term()->functor())->finalLoopCount();
-  };
-
-  bool var = _balancer._balanceForVars;
-
-  while(inBounds() &&  
-    ((var && !isVar(derefPath())) || (!var && !isNlTerm(derefPath())))) {
+  while(inBounds() && !derefPath().isVar() ) {
     incrementPath();
   }
 }
@@ -265,7 +252,7 @@ template<class C> void BalanceIter<C>::operator++() {
   CALL_DBG("BalanceIter::operator++")
   incrementPath();
   if (inBounds())
-    findNextLhs();
+    findNextVar();
 }
 
 
@@ -290,7 +277,7 @@ TermList BalanceIter<C>::lhs() const
 {
   // CALL_DBG("BalanceIter::lhs")
   auto out = derefPath();
-  //ASS_REP(out.isVar(), out);
+  ASS_REP(out.isVar(), out);
   // DEBUG(out)
   return out;
 }

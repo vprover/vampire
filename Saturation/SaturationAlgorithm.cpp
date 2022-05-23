@@ -79,7 +79,6 @@
 #include "Inferences/ElimLeibniz.hpp"
 #include "Inferences/SubVarSup.hpp"
 #include "Inferences/CNFOnTheFly.hpp"
-#include "Inferences/EquationBalancingForLoopCounters.hpp"
 //#include "Inferences/RenamingOnTheFly.hpp"
 #include "Inferences/URResolution.hpp"
 #include "Inferences/Instantiation.hpp"
@@ -1589,10 +1588,6 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
   }
   if (opt.cases() && prb.hasFOOL() && !opt.casesSimp()) {
     gie->addFront(new Cases());
-  }
-
-  if(opt.rebalanceForFinalLoopCounts() && prb.hasNlTerm()){
-    gie->addFront(new EquationBalancingForLoopCounters());
   }
 
   if((prb.hasLogicalProxy() || prb.hasBoolVar() || prb.hasFOOL()) &&
