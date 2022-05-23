@@ -127,7 +127,7 @@ timer_sigalrm_handler (int sig)
   }
 
 #ifdef __linux__
-  if(Timer::s_limitEnforcement && env.options->instructionLimit())) {
+  if(Timer::s_limitEnforcement && env.options->instructionLimit()) {
     if (perf_fd >= 0) {
       // we could also decide not to guard this read by env.options->instructionLimit(),
       // to get info about instructions burned even when not instruction limiting
