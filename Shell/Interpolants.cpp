@@ -8,12 +8,12 @@
  * and in the source directory
  */
 /**
- * @file InterpolantsNew.cpp
- * Implements class InterpolantsNew.
+ * @file Interpolants.cpp
+ * Implements class Interpolants.
  * @author Bernhard Gleiss
  */
 
-#include "InterpolantsNew.hpp"
+#include "Interpolants.hpp"
 
 #include <unordered_set>
 
@@ -68,10 +68,10 @@ namespace Shell
     
 //preprocessing proof
     
-    void InterpolantsNew::removeTheoryInferences(Unit* refutation)
+    void Interpolants::removeTheoryInferences(Unit* refutation)
     {
         BYPASSING_ALLOCATOR;
-        CALL("InterpolantsNew::removeTheoryInferences");
+        CALL("Interpolants::removeTheoryInferences");
 
         ProofIteratorPostOrder it(refutation);
         while (it.hasNext()) // traverse the proof in depth-first post order
@@ -140,10 +140,10 @@ namespace Shell
      * main method
      * cf. Definition 3.1.2 of the thesis
      */
-    Formula* InterpolantsNew::getInterpolant(Unit *refutation, UnitWeight weightFunction)
+    Formula* Interpolants::getInterpolant(Unit *refutation, UnitWeight weightFunction)
     {
         BYPASSING_ALLOCATOR;
-        CALL("InterpolantsNew::getInterpolant");
+        CALL("Interpolants::getInterpolant");
                 
         /*
          * compute coloring for the inferences, i.e. compute splitting function in the words of the thesis
@@ -176,9 +176,9 @@ namespace Shell
      * Note: can't just use depth-first-search, since edge information is only saved in one direction in the nodes
      * Note: We represent each subproof by the conclusion of one of its inferences (the so called representative unit)
      */
-    InterpolantsNew::SubproofsUnionFind InterpolantsNew::computeSubproofs(Unit* refutation, const SplittingFunction& splittingFunction)
+    Interpolants::SubproofsUnionFind Interpolants::computeSubproofs(Unit* refutation, const SplittingFunction& splittingFunction)
     {
-        CALL("InterpolantsNew::computeSubproofs");
+        CALL("Interpolants::computeSubproofs");
 
         std::unordered_map<Unit*, Unit*> unitsToRepresentative; // maps each unit u1 (belonging to a red subproof) to the representative unit u2 of that subproof
         std::unordered_map<Unit*, int> unitsToSize; // needed for weighted quick-union: for each unit, counts number of elements rooted in that unit
@@ -215,9 +215,9 @@ namespace Shell
      * computes the boundaries of the A-subproofs using Breadth-first search (BFS)
      * Using idea from the thesis: a unit occurs as boundary of a subproof, if it has a different color than of its parents/ one of its children.
      */
-    InterpolantsNew::Boundary InterpolantsNew::computeBoundary(Unit* refutation,const SplittingFunction& splittingFunction)
+    Interpolants::Boundary Interpolants::computeBoundary(Unit* refutation,const SplittingFunction& splittingFunction)
     {
-        CALL("InterpolantsNew::computeBoundary");
+        CALL("Interpolants::computeBoundary");
 
         std::unordered_set<Kernel::Unit*> inputNodes;   // input is a blue premise of a red inference
         std::unordered_set<Kernel::Unit*> outputNodes;  // output is a red premise of a blue inference or a red refutation
@@ -279,10 +279,10 @@ namespace Shell
      * Note: we already have collected all relevant information before calling this function, 
      * we now just need to build (and simplify) a formula out of the information.
      */
-    Formula* InterpolantsNew::generateInterpolant(Kernel::Unit* refutation, const Boundary& boundary,
+    Formula* Interpolants::generateInterpolant(Kernel::Unit* refutation, const Boundary& boundary,
                 const SplittingFunction& splittingFunction, const SubproofsUnionFind& unitsToRepresentative)
     {
-        CALL("InterpolantsNew::generateInterpolant");
+        CALL("Interpolants::generateInterpolant");
 
         const std::unordered_set<Unit*>& inputNodes = boundary.first;
         const std::unordered_set<Unit*>& outputNodes = boundary.second;
@@ -296,12 +296,12 @@ namespace Shell
           InterpolantBuilder() : implCnt(0), lastCol(COLOR_LEFT), conjuncts(FormulaList::empty()), aside(nullptr) {}
 
           Formula* finiliseLeft() {
-            CALL("InterpolantsNew::InterpolantBuilder::finiliseLeft");
+            CALL("Interpolants::InterpolantBuilder::finiliseLeft");
             return JunctionFormula::generalJunction(Connective::AND, conjuncts);
           }
 
           Formula* finiliseRight() {
-            CALL("InterpolantsNew::InterpolantBuilder::finiliseRight");
+            CALL("Interpolants::InterpolantBuilder::finiliseRight");
             Formula* antecedent = JunctionFormula::generalJunction(Connective::AND, conjuncts);
 
             implCnt++;
@@ -310,7 +310,7 @@ namespace Shell
           }
 
           Formula* finalise() {
-            CALL("InterpolantsNew::InterpolantBuilder::finalise");
+            CALL("Interpolants::InterpolantBuilder::finalise");
             if (lastCol == COLOR_LEFT) {
               return finiliseLeft();
             } else {
@@ -319,7 +319,7 @@ namespace Shell
           }
 
           void addLeft(Unit* u) {
-            CALL("InterpolantsNew::InterpolantBuilder::addLeft");
+            CALL("Interpolants::InterpolantBuilder::addLeft");
             // cout << "addLeft " << u->toString() << endl;
 
             if (lastCol != COLOR_LEFT) {
@@ -333,7 +333,7 @@ namespace Shell
           }
 
           void addRight(Unit* u) {
-            CALL("InterpolantsNew::InterpolantBuilder::addRight");
+            CALL("Interpolants::InterpolantBuilder::addRight");
             // cout << "addRight " << u->toString() << endl;
 
             if (lastCol != COLOR_RIGHT) {
@@ -412,9 +412,9 @@ namespace Shell
         return Flattening::flatten(NNF::ennf(Flattening::flatten(SimplifyFalseTrue::simplify(interpolant)),true));
     }
 
-    void InterpolantsNew::removeConjectureNodesFromRefutation(Unit* refutation)
+    void Interpolants::removeConjectureNodesFromRefutation(Unit* refutation)
     {
-        CALL("InterpolantsNew::removeConjectureNodesFromRefutation");
+        CALL("Interpolants::removeConjectureNodesFromRefutation");
 
         Stack<Unit*> todo;
         DHSet<Unit*> seen;
@@ -450,9 +450,9 @@ namespace Shell
         }
     }
 
-    Unit* InterpolantsNew::formulifyRefutation(Unit* refutation)
+    Unit* Interpolants::formulifyRefutation(Unit* refutation)
     {
-    CALL("InterpolantsNew::formulifyRefutation");
+    CALL("Interpolants::formulifyRefutation");
 
     Stack<Unit*> todo;
     DHMap<Unit*,Unit*> translate; // for caching results (we deal with a DAG in general), but also to distinguish the first call from the next
@@ -528,9 +528,9 @@ namespace Shell
     /*
      * implements local splitting function from the thesis (improved version of approach #2, cf. section 3.3)
      */
-    std::unordered_map<Kernel::Unit*, Kernel::Color> InterpolantsNew::computeSplittingFunction(Kernel::Unit* refutation, UnitWeight weightFunction)
+    std::unordered_map<Kernel::Unit*, Kernel::Color> Interpolants::computeSplittingFunction(Kernel::Unit* refutation, UnitWeight weightFunction)
     {
-        CALL("InterpolantsNew::computeSplittingFunction");
+        CALL("Interpolants::computeSplittingFunction");
 
         std::unordered_map<Kernel::Unit*, Kernel::Color> splittingFunction;
         
@@ -606,9 +606,9 @@ namespace Shell
 
 // helper method for unit weight
 
-    double InterpolantsNew::weightForUnit(Kernel::Unit* unit, UnitWeight weightFunction)
+    double Interpolants::weightForUnit(Kernel::Unit* unit, UnitWeight weightFunction)
     {
-        CALL("InterpolantsNew::weightForUnit");
+        CALL("Interpolants::weightForUnit");
 
         if (weightFunction == UnitWeight::VAMPIRE)
         {
@@ -633,9 +633,9 @@ namespace Shell
    * of the root-function const.
    */
     
-    Kernel::Unit* InterpolantsNew::root(const UnionFindMap& unitsToRepresentative, Unit* unit)
+    Kernel::Unit* Interpolants::root(const UnionFindMap& unitsToRepresentative, Unit* unit)
     {
-        CALL("InterpolantsNew::root");
+        CALL("Interpolants::root");
 
         Unit* root = unit;
         while (unitsToRepresentative.find(root) != unitsToRepresentative.end())
@@ -647,19 +647,19 @@ namespace Shell
         return root;
     }
     
-    bool InterpolantsNew::find(UnionFindMap& unitsToRepresentative, Unit* unit1, Unit* unit2)
+    bool Interpolants::find(UnionFindMap& unitsToRepresentative, Unit* unit1, Unit* unit2)
     {
-        CALL("InterpolantsNew::find");
+        CALL("Interpolants::find");
 
         return root(unitsToRepresentative, unit1) == root(unitsToRepresentative, unit2);
     }
     
-    void InterpolantsNew::merge(UnionFindMap& unitsToRepresentative,
+    void Interpolants::merge(UnionFindMap& unitsToRepresentative,
                                 std::unordered_map<Unit*, int> unitsToSize,
                                 Unit* unit1,
                                 Unit* unit2)
     {
-        CALL("InterpolantsNew::merge");
+        CALL("Interpolants::merge");
 
         ASS_NEQ(unit1, unit2);
         Unit* root1 = root(unitsToRepresentative, unit1);

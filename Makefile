@@ -354,8 +354,8 @@ VS_OBJ = Shell/AnswerExtractor.o\
          Shell/GoalGuessing.o\
          Shell/Grounding.o\
          Shell/InequalitySplitting.o\
-         Shell/InterpolantMinimizerNew.o\
-         Shell/InterpolantsNew.o\
+         Shell/InterpolantMinimizer.o\
+         Shell/Interpolants.o\
          Shell/InterpretedNormalizer.o\
          Shell/LambdaElimination.o\
          Shell/LaTeX.o\

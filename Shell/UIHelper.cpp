@@ -34,8 +34,8 @@
 #include "Parse/TPTP.hpp"
 
 #include "AnswerExtractor.hpp"
-#include "InterpolantMinimizerNew.hpp"
-#include "InterpolantsNew.hpp"
+#include "InterpolantMinimizer.hpp"
+#include "Interpolants.hpp"
 #include "LaTeX.hpp"
 #include "LispLexer.hpp"
 #include "LispParser.hpp"
@@ -379,21 +379,21 @@ void UIHelper::outputResult(ostream& out)
     if (env.options->showInterpolant()!=Options::InterpolantMode::OFF) {
       ASS(env.statistics->refutation->isClause());
 
-      InterpolantsNew::removeConjectureNodesFromRefutation(env.statistics->refutation);
-      Unit* formulifiedRefutation = InterpolantsNew::formulifyRefutation(env.statistics->refutation);
+      Interpolants::removeConjectureNodesFromRefutation(env.statistics->refutation);
+      Unit* formulifiedRefutation = Interpolants::formulifyRefutation(env.statistics->refutation);
 
       Formula* interpolant = nullptr;
 
       switch(env.options->showInterpolant()) {
       // new interpolation methods described in master thesis of Bernhard Gleiss
       case Options::InterpolantMode::NEW_HEUR:
-        InterpolantsNew().removeTheoryInferences(formulifiedRefutation); // do this only once for each proof!
-        interpolant = InterpolantsNew().getInterpolant(formulifiedRefutation, InterpolantsNew::UnitWeight::VAMPIRE);
+        Interpolants().removeTheoryInferences(formulifiedRefutation); // do this only once for each proof!
+        interpolant = Interpolants().getInterpolant(formulifiedRefutation, Interpolants::UnitWeight::VAMPIRE);
         break;
       case Options::InterpolantMode::NEW_OPT:
 #if VZ3
-        InterpolantsNew().removeTheoryInferences(formulifiedRefutation); // do this only once for each proof!
-        interpolant = InterpolantMinimizerNew().getInterpolant(formulifiedRefutation, InterpolantsNew::UnitWeight::VAMPIRE);
+        Interpolants().removeTheoryInferences(formulifiedRefutation); // do this only once for each proof!
+        interpolant = InterpolantMinimizer().getInterpolant(formulifiedRefutation, Interpolants::UnitWeight::VAMPIRE);
 #else
         NOT_IMPLEMENTED;
 #endif

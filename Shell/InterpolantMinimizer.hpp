@@ -8,28 +8,28 @@
  * and in the source directory
  */
 /**
- * @file InterpolantMinimizerNew.hpp
- * Implements class InterpolantMinimizerNew.
+ * @file InterpolantMinimizer.hpp
+ * Implements class InterpolantMinimizer.
  * @author Bernhard Gleiss
  */
 
-#ifndef __InterpolantMinimizerNew__
-#define __InterpolantMinimizerNew__
+#ifndef __InterpolantMinimizer__
+#define __InterpolantMinimizer__
 
-#include "InterpolantsNew.hpp"
+#include "Interpolants.hpp"
 
 #if VZ3
 namespace Shell
 {
     /*
-     * subclass of InterpolantsNew, which overrides
+     * subclass of Interpolants, which overrides
      * splitting function to use optimized approach
      * described in the thesis
      */
-    class InterpolantMinimizerNew : public InterpolantsNew
+    class InterpolantMinimizer : public Interpolants
     {
     public:
-        InterpolantMinimizerNew(){}
+        InterpolantMinimizer(){}
         /*
          * implements so called "splitting function" from the thesis.
          * uses approach #3 (cf. section 3.3 and algorithm 3): 
@@ -53,4 +53,4 @@ namespace Shell
 };
 #endif // VZ3
 
-#endif // __InterpolantMinimizerNew__
+#endif // __InterpolantMinimizer__
