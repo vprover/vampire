@@ -271,6 +271,20 @@ IntegerConstantType IntegerConstantType::floor(RationalConstantType rat)
 IntegerConstantType IntegerConstantType::ceiling(IntegerConstantType x)
 { return x; }
 
+Sign IntegerConstantType::sign() const 
+{ return _val > 0 ? Sign::Pos 
+       : _val < 0 ? Sign::Neg 
+       :            Sign::Zero; }
+
+Sign RealConstantType::sign() const 
+{ return RationalConstantType::sign(); }
+
+Sign RationalConstantType::sign() const 
+{ 
+  ASS_EQ(denominator().sign(), Sign::Pos)
+  return numerator().sign(); 
+}
+
 /** 
  * TPTP spec:
  * The smallest integral number not less than the argument. 
@@ -437,6 +451,14 @@ vstring RationalConstantType::toString() const
 
 //  return "("+numStr+"/"+denStr+")";
   return numStr+"/"+denStr;
+}
+
+IntegerConstantType IntegerConstantType::lcm(IntegerConstantType const& l, IntegerConstantType const& r)
+{ 
+  ASS(l > IntegerConstantType(0))
+  ASS(r > IntegerConstantType(0))
+  // both are positive, hence it doesn't matter which quotient we use.
+  return l * (r.quotientE(gcd(l,r))); 
 }
 
 IntegerConstantType IntegerConstantType::gcd(IntegerConstantType const& l, IntegerConstantType const& r)
@@ -2214,6 +2236,17 @@ size_t RationalConstantType::hash() const {
 size_t RealConstantType::hash() const {
   return (denominator().hash() << 1) ^ numerator().hash();
 }
+
+std::ostream& operator<<(std::ostream& out, Sign const& self)
+{ 
+  switch(self) {
+    case Sign::Zero: return out << "0";
+    case Sign::Pos: return out << "+";
+    case Sign::Neg: return out << "-";
+  }
+  ASSERTION_VIOLATION
+}
+
 
 }
 

@@ -50,6 +50,15 @@ public:
   DivByZeroException() : ArithmeticException("divided by zero"){} 
 };
 
+enum class Sign : uint8_t {
+  Zero = 0,
+  Pos = 1,
+  Neg = 2,
+};
+
+std::ostream& operator<<(std::ostream& out, Sign const& self);
+
+
 class IntegerConstantType
 {
 public:
@@ -82,6 +91,7 @@ public:
   IntegerConstantType quotientT(const IntegerConstantType& num) const;
   IntegerConstantType quotientF(const IntegerConstantType& num) const; 
   static IntegerConstantType gcd(IntegerConstantType const& lhs, IntegerConstantType const& rhs);
+  static IntegerConstantType lcm(IntegerConstantType const& lhs, IntegerConstantType const& rhs);
 
   IntegerConstantType remainderT(const IntegerConstantType& num) const
   { return (*this) - num * quotientT(num); }
@@ -101,6 +111,8 @@ public:
   bool isZero()     const { return _val == 0; }
   bool isNegative() const { return _val  < 0; }
   bool isPositive() const { return _val  > 0; }
+
+  Sign sign() const;
 
   static IntegerConstantType floor(RationalConstantType rat);
   static IntegerConstantType floor(IntegerConstantType rat);
@@ -184,6 +196,7 @@ struct RationalConstantType {
   const InnerType& numerator() const { return _num; }
   const InnerType& denominator() const { return _den; }
   size_t hash() const;
+  Sign sign() const;
 
   static Comparison comparePrecedence(RationalConstantType n1, RationalConstantType n2);
 
@@ -239,6 +252,7 @@ public:
   bool isZero()     const { return RationalConstantType::isZero(); }
   bool isNegative() const { return RationalConstantType::isNegative(); }
   bool isPositive() const { return RationalConstantType::isPositive(); }
+  Sign sign() const;
 
   RealConstantType abs() const;
 

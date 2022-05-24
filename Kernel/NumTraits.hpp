@@ -268,5 +268,42 @@ auto tryNumTraits(Clsr clsr) {
       || [&] { return clsr(RealTraits{}); };
 }
 
+template<class IfInt, class Else>
+auto ifIntTraits(IntTraits, IfInt ifIntF, Else) 
+{ return ifIntF(); }
+
+template<class IfInt, class Else, class NumTraits>
+auto ifIntTraits(NumTraits, IfInt, Else elseF) 
+{ return elseF(); }
+
+
+// template<class T, class IfT, class IfNotT, class Val>
+// auto ifOfType(Val val, IfT ifT, IfNotT ifNotT)
+// { return ifNotT(std::move(val)); }
+//
+// template<class T, class IfT, class IfNotT>
+// auto ifOfType<T, IfT, IfNotT, T>(T val, IfT ifT, IfNotT ifNotT)
+// { return ifT(std::move(val)); }
+
+
+template<class T, class Val, class IfT, class IfNotT>
+struct IfOfType 
+{
+  auto operator()(Val val, IfT ifT, IfNotT ifNotT)
+  { return ifNotT(std::move(val)); }
+};
+
+template<class T, class IfT, class IfNotT>
+struct IfOfType<T, T, IfT, IfNotT>
+{
+  auto operator()(T val, IfT ifT, IfNotT ifNotT)
+  { return ifT(std::move(val)); }
+};
+
+template<class T, class Val, class IfT, class IfNotT>
+auto ifOfType(Val val, IfT ifT, IfNotT ifNotT)
+{ return IfOfType<T, Val, IfT, IfNotT>{}(std::move(val), ifT, ifNotT); }
+
+
 }
 #endif // __NUM_TRAITS_H__

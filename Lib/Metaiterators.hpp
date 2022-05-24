@@ -1116,8 +1116,6 @@ void makeUnique(Container& cont)
 
   VirtualIterator<ELEMENT_TYPE(Container)> uniqueIt = pvi(
       getUniquePersistentIterator(ITERATOR_TYPE(Container)(cont)) );
-  cont.reset();
-  cont.loadFromIterator(uniqueIt);
 }
 
 /**
@@ -1830,6 +1828,27 @@ public:
     return Container::fromIterator(*this); 
   }
   
+
+  template<class Result, class F>
+  auto fold(Result init, F f) -> Result
+  { 
+    CALL("IterTraits::fold")
+    auto accum = std::move(init);
+    while (hasNext()) {
+      accum = f(std::move(accum), next());
+    }
+    return accum;
+  }
+
+
+  template<class F>
+  auto fold(F f) -> Elem
+  { 
+    CALL("IterTraits::fold/2")
+    ASS(hasNext())
+    return fold(next(), f);
+  }
+
 
   template<template<class> class Container>
   Container<Elem> collect()

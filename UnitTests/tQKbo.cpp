@@ -294,47 +294,107 @@ TEST_FUN(misc02) {
 }
 
 
-TEST_FUN(normal_form01) {
+TEST_FUN(normal_form_lcm) {
   DECL_DEFAULT_VARS
   NUMBER_SUGAR(Real)
   DECL_CONST(a, Real)
   DECL_CONST(b, Real)
-  DECL_CONST(c, Real)
-  DECL_FUNC (f, {Real}, Real)
+  // DECL_CONST(c, Real)
+  // DECL_FUNC (f, {Real}, Real)
 
-  ASS_EQ(QKbo::sigmaNf(2 * a + b), SigmaNf(1, {
+  auto ord = qkbo();
+  auto sigmaNf = [&](auto t) 
+    { return ord.template sigmaNf<RealTraits>(t); };
+
+  ASS_EQ(sigmaNf(frac(1,2) * a + b), SigmaNf(2, {
+        SignedTerm::pos(a),
+        SignedTerm::pos(b),
+        SignedTerm::pos(b),
+      }));
+
+  ASS_EQ(sigmaNf(frac(1,2) * a + -b), SigmaNf(2, {
+        SignedTerm::pos(a),
+        SignedTerm::neg(b),
+        SignedTerm::neg(b),
+      }));
+
+  ASS_EQ(sigmaNf(frac(-1,2) * a + -b), SigmaNf(2, {
+        SignedTerm::neg(a),
+        SignedTerm::neg(b),
+        SignedTerm::neg(b),
+      }));
+
+  ASS_EQ(sigmaNf(frac(1,-2) * a + -b), SigmaNf(2, {
+        SignedTerm::neg(a),
+        SignedTerm::neg(b),
+        SignedTerm::neg(b),
+      }));
+
+  ASS_EQ(sigmaNf(frac(-1,2) * a + b), SigmaNf(2, {
+        SignedTerm::neg(a),
+        SignedTerm::pos(b),
+        SignedTerm::pos(b),
+      }));
+
+  ASS_EQ(sigmaNf(frac(1,2) * a + frac(1,4) * b), SigmaNf(4, {
         SignedTerm::pos(a),
         SignedTerm::pos(a),
         SignedTerm::pos(b),
       }));
 
-  ASS_EQ(QKbo::sigmaNf(2 * a + 0 * b), SigmaNf(1, {
+  // ASS_EQ(sigmaNf(frac(1,2) * a + frac(0,4) * b), SigmaNf(2, {
+  //       SignedTerm::pos(a),
+  //       SignedTerm::zero(b),
+  //     }));
+
+}
+
+
+TEST_FUN(normal_form01) {
+  DECL_DEFAULT_VARS
+  NUMBER_SUGAR(Real)
+  DECL_CONST(a, Real)
+  DECL_CONST(b, Real)
+  // DECL_CONST(c, Real)
+  // DECL_FUNC (f, {Real}, Real)
+
+  auto ord = qkbo();
+  auto sigmaNf = [&](auto t) 
+    { return ord.template sigmaNf<RealTraits>(t); };
+
+  ASS_EQ(sigmaNf(2 * a + b), SigmaNf(1, {
         SignedTerm::pos(a),
         SignedTerm::pos(a),
-        SignedTerm::zero(b),
+        SignedTerm::pos(b),
       }));
 
-  ASS_EQ(QKbo::sigmaNf(2 * a + 0 * a), SigmaNf(1, {
+  // ASS_EQ(sigmaNf(2 * a + 0 * b), SigmaNf(1, {
+  //       SignedTerm::pos(a),
+  //       SignedTerm::pos(a),
+  //       SignedTerm::zero(b),
+  //     }));
+
+  ASS_EQ(sigmaNf(2 * a + 0 * a), SigmaNf(1, {
         SignedTerm::pos(a),
         SignedTerm::pos(a),
       }));
 
-  ASS_EQ(QKbo::sigmaNf(2 * a + 1 * a), SigmaNf(1, {
+  ASS_EQ(sigmaNf(2 * a + 1 * a), SigmaNf(1, {
         SignedTerm::pos(a),
         SignedTerm::pos(a),
         SignedTerm::pos(a),
       }));
 
-  ASS_EQ(QKbo::sigmaNf(2 * a + -3 * a), SigmaNf(1, {
+  ASS_EQ(sigmaNf(2 * a + -3 * a), SigmaNf(1, {
         SignedTerm::neg(a),
       }));
 
-  ASS_EQ(QKbo::sigmaNf(2 * a + -4 * a), SigmaNf(1, {
+  ASS_EQ(sigmaNf(2 * a + -4 * a), SigmaNf(1, {
         SignedTerm::neg(a),
         SignedTerm::neg(a),
       }));
 
-  ASS_EQ(QKbo::sigmaNf(frac(1, 2) * a +  b), SigmaNf(2, {
+  ASS_EQ(sigmaNf(frac(1, 2) * a +  b), SigmaNf(2, {
         SignedTerm::pos(a),
         SignedTerm::pos(b),
         SignedTerm::pos(b),
@@ -347,4 +407,60 @@ TEST_FUN(normal_form01) {
   // -f(a) + f(a) < f(a)
   // since { 0 f(a) } < { +f(a) }
 
+}
+
+TEST_FUN(tricky_01) {
+
+  DECL_DEFAULT_VARS
+  NUMBER_SUGAR(Real)
+  DECL_FUNC (f, {Real}, Real)
+  DECL_FUNC (g, {Real, Real}, Real)
+  DECL_CONST(a, Real)
+  DECL_CONST(b, Real)
+
+  auto ord = qkbo();
+
+  check(ord, f(g(a,a)) + 2 * f(a) - f(a), Less   , f(g(a,a)) + 2 * f(a) );
+  check(ord, f(g(a,b)) + 2 * f(a) - f(b), Greater, f(g(a,b)) + 2 * f(a) );
+  check(ord, f(g(x,y)) + 2 * f(x) - f(y), Incomp , f(g(x,y)) + 2 * f(x) );
+}
+
+TEST_FUN(uninterpreted_predicates) {
+
+  DECL_DEFAULT_VARS
+  NUMBER_SUGAR(Real)
+  DECL_CONST(a, Real)
+  DECL_CONST(b, Real)
+  DECL_FUNC (f, {Real}, Real)
+  DECL_FUNC (g, {Real, Real}, Real)
+  DECL_PRED (p, {Real, Real})
+  DECL_PRED (q, {Real})
+
+  auto ord = qkbo();
+
+  check(ord, f(a), Greater, a );
+
+  // lex comparison
+  check(ord, p(b, f(a)), Greater, p(b, a) );
+  check(ord, p(f(a), b), Greater, p(a, f(a)) );
+  check(ord, p(f(a), b), Greater, p(a, f(b)) );
+
+  // sign comparison
+  check(ord, ~p(b, f(a)), Greater, p(b, f(a)) );
+
+  // precedence comparison
+  check(ord,  p(b, f(a)), Less,  q(b) );
+  check(ord,  p(b, f(a)), Less, ~q(b) );
+  check(ord, ~p(b, f(a)), Less,  q(b) );
+  check(ord, ~p(b, f(a)), Less, ~q(b) );
+
+  // compare interpretd vs uninterpreted
+  check(ord, 3 * f(a) + b + f(b) >  0, Less,  p(a,b) );
+  check(ord, 3 * f(a) + b + f(b) >  0, Less, ~p(a,b) );
+  check(ord, 3 * f(a) + b + f(b) >= 0, Less,  p(a,b) );
+  check(ord, 3 * f(a) + b + f(b) >= 0, Less, ~p(a,b) );
+  check(ord, 3 * f(a) + b + f(b) != 0, Less,  p(a,b) );
+  check(ord, 3 * f(a) + b + f(b) != 0, Less, ~p(a,b) );
+  check(ord, 3 * f(a) + b + f(b) == 0, Less,  p(a,b) );
+  check(ord, 3 * f(a) + b + f(b) == 0, Less, ~p(a,b) );
 }

@@ -27,63 +27,17 @@
 #include "Lib/DArray.hpp"
 #include "Kernel/LaLpo.hpp"
 #include "Kernel/KBO.hpp"
+#include "Kernel/OrderingUtils.hpp"
 
 namespace Kernel {
 
 using namespace Lib;
 
-template<class T>
-class MultiSet {
-  Stack<std::tuple<T, unsigned>> _elems;
-  void integrity() const {
-    ASS(std::is_sorted(_elems.begin(), _elems.end(), [](auto l, auto r) { return std::get<0>(l) < std::get<0>(r); }))
-    for (auto e : _elems) {
-      ASS(get<1>(e) != 0)
-    }
-  }
-public:
-  MultiSet() : _elems() {}
-  MultiSet(std::initializer_list<T> elems0) : _elems() {
-    Stack<T> elems(elems0);
-    std::sort(elems.begin(), elems.end());
-    auto iter = elems.begin();
-    while (iter != elems.end()) {
-      auto elem = *iter++;
-      unsigned n = 1;
-      while (iter != elems.end() && *iter == elem) {
-        n++;
-        iter++;
-      }
-      _elems.push(std::make_tuple(elem, n));
-    }
-  }
 
-
-  friend std::ostream& operator<<(std::ostream& out, MultiSet const& self)
-  { 
-    out << "{";
-    for (auto& e : self._elems) {
-      out << std::get<1>(e) << " x " << std::get<0>(e);
-    }
-    out << "}";
-    return out; 
-  }
-  friend bool operator==(MultiSet const& lhs, MultiSet const& rhs)
-  { 
-    lhs.integrity();
-    rhs.integrity();
-    return lhs._elems == rhs._elems;
-  }
-
-  friend bool operator!=(MultiSet const& lhs, MultiSet const& rhs)
-  { return !(lhs == rhs); }
-};
-
-enum class Sign : uint8_t {
-  Zero = 0,
-  Pos = 1,
-  Neg = 2,
-};
+// template<class Ord, class T>
+// Ordering::Result compareMultiSet(Ord ord, T const& lhs, T const& rhs){
+//
+// }
 
 // bool operator<(Sign const& l, Sign const& r)
 // { return (uint8_t) l < (uint8_t) r; }
@@ -91,19 +45,6 @@ enum class Sign : uint8_t {
 // bool operator> (Sign const& l, Sign const& r) { return r < l; }
 // bool operator<=(Sign const& l, Sign const& r) { return l == r || l < r; }
 // bool operator>=(Sign const& l, Sign const& r) { return l == r || l > r; }
-
-
-inline std::ostream& operator<<(std::ostream& out, Sign const& self)
-{ 
-  switch(self) {
-    case Sign::Zero: return out << "0";
-    case Sign::Pos: return out << "+";
-    case Sign::Neg: return out << "-";
-  }
-  ASSERTION_VIOLATION
-}
-
-
 
 // TODO move to right place (IRC.hpp ?)
 struct SignedTerm 
@@ -180,10 +121,67 @@ public:
 
   void setState(std::shared_ptr<IrcState> s) { _shared = std::move(s); }
 
-  static SigmaNf sigmaNf(TermList t);
-  Result compare(SigmaNf const& l, SigmaNf const& r) const;
+private:
+  template<class NumTraits>
+  SigmaNf rmNum(std::tuple<unsigned, Perfect<Polynom<NumTraits>>> t) const
+  {
+    auto multiSet = MultiSet<SignedTerm>::fromSortedStack(
+        std::get<1>(t)->iterSummands()
+          .map([](auto s) {
+            auto count  = Int::safeAbs(ifOfType<IntegerConstantType>(s.numeral, 
+                           [&](IntegerConstantType num) { return num; },
+                            /* decltype(num) in { RatTraits, RealTraits } */
+                           [&](auto num) { 
+                             ASS_EQ(num.denominator(), IntegerConstantType(1))
+                             return num.numerator();
+                           }).toInner());
+            SignedTerm term = { 
+              .sign = s.numeral.sign(),
+              .term = s.factors->denormalize(),
+            };
+            return std::make_tuple(term, count);
+          })
+          .template collect<Stack>()
+      );
+    return SigmaNf(std::get<0>(t), std::move(multiSet));
+    ASSERTION_VIOLATION
+  }
+
+  std::tuple<unsigned, Perfect<Polynom<IntTraits>>> divNf(Perfect<Polynom<IntTraits>> t) const
+  { return std::make_tuple(1, t); }
+
+  template<class NumTraits>
+  std::tuple<unsigned, Perfect<Polynom<NumTraits>>> divNf(Perfect<Polynom<NumTraits>> t) const
+  {
+    auto l = t->iterSummands()
+      .map([](auto s) { return s.numeral.denominator(); })
+      .fold(IntegerConstantType(1), [&](auto acc, auto next) 
+               { return IntegerConstantType::lcm(acc, next); });
+    return std::make_tuple(Int::safeAbs(l.toInner()), typename NumTraits::ConstantType(l, IntegerConstantType(1)) * t);
+  }
+
+  auto asClosure() const 
+  { return [this](auto const& l, auto const& r) { return this->compare(l, r); }; }
+
+#ifdef VDEBUG
+public:
+#endif
+  template<class NumTraits>
+  SigmaNf sigmaNf(TermList t) const
+  {
+    auto nf0 = _shared->normalize(TypedTermList(t, NumTraits::sort())).template wrapPoly<NumTraits>();
+    return rmNum(divNf(nf0));
+  }
+  template<class NumTraits>
+  MultiSet<SignedTerm> atomsStar(Literal* t) const
+  {
+    ASS_Eq(l->numTermArguments(), 2)
+    auto nf = sigmaNf<NumTraits>(t);
+  }
 
 private:
+  Result compare(SigmaNf l, SigmaNf r) const;
+
   using FlatSum = Stack<std::tuple<Option<TermList>, RationalConstantType>>;
   Ordering::Result cmpSum(FlatSum const& l, FlatSum const& r) const;
   FlatSum flatWithCoeffs(TermList t) const;
