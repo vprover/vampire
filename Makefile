@@ -354,7 +354,6 @@ VS_OBJ = Shell/AnswerExtractor.o\
          Shell/GoalGuessing.o\
          Shell/Grounding.o\
          Shell/InequalitySplitting.o\
-         Shell/InterpolantMinimizer.o\
          Shell/InterpolantMinimizerNew.o\
          Shell/Interpolants.o\
          Shell/InterpolantsNew.o\
@@ -374,7 +373,6 @@ VS_OBJ = Shell/AnswerExtractor.o\
          Shell/Skolem.o\
          Shell/SimplifyFalseTrue.o\
          Shell/SineUtils.o\
-         Shell/SMTFormula.o\
          Shell/FOOLElimination.o\
          Shell/Statistics.o\
          Shell/SubexpressionIterator.o\
