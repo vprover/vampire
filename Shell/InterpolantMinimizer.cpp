@@ -8,14 +8,14 @@
  * and in the source directory
  */
 /**
- * @file InterpolantMinimizerNew.cpp
- * Implements class InterpolantMinimizerNew.
+ * @file InterpolantMinimizer.cpp
+ * Implements class InterpolantMinimizer.
  * @author Bernhard Gleiss
  */
 
 #if VZ3
 
-#include "InterpolantMinimizerNew.hpp"
+#include "InterpolantMinimizer.hpp"
 
 #include "Kernel/Unit.hpp"
 #include "Kernel/InferenceStore.hpp"
@@ -28,9 +28,9 @@ namespace Shell
 {
     using namespace Kernel;
 
-    std::unordered_map<Kernel::Unit*, Kernel::Color> InterpolantMinimizerNew::computeSplittingFunction(Kernel::Unit* refutation,  UnitWeight weightFunction)
+    std::unordered_map<Kernel::Unit*, Kernel::Color> InterpolantMinimizer::computeSplittingFunction(Kernel::Unit* refutation,  UnitWeight weightFunction)
     {
-        CALL("InterpolantMinimizerNew::computeSplittingFunction");
+        CALL("InterpolantMinimizer::computeSplittingFunction");
         BYPASSING_ALLOCATOR;
         
         using namespace z3;
@@ -188,14 +188,14 @@ namespace Shell
         // otherwise use heuristic approach as fallback
         else
         {
-            return InterpolantsNew::computeSplittingFunction(refutation, weightFunction);
+            return Interpolants::computeSplittingFunction(refutation, weightFunction);
         }
     }
     
-    void InterpolantMinimizerNew::analyzeLocalProof(Kernel::Unit *refutation)
+    void InterpolantMinimizer::analyzeLocalProof(Kernel::Unit *refutation)
     {
         BYPASSING_ALLOCATOR;
-        CALL("InterpolantMinimizerNew::analyzeLocalProof");
+        CALL("InterpolantMinimizer::analyzeLocalProof");
 
         // print statistics on grey area
         analyzeGreyAreas(refutation);
@@ -262,9 +262,9 @@ namespace Shell
      * compute both number of inferences which are necessarily assigned to red and to blue, and number of inferences which can be assigned arbitrarily
      * computes percentage grey / (red + blue + grey)
      */
-    void InterpolantMinimizerNew::analyzeGreyAreas(Kernel::Unit* refutation)
+    void InterpolantMinimizer::analyzeGreyAreas(Kernel::Unit* refutation)
     {
-        CALL("InterpolantMinimizerNew::analyzeGreyArea");
+        CALL("InterpolantMinimizer::analyzeGreyArea");
         
         int number_red = 0;
         int number_blue = 0;

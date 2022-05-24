@@ -563,8 +563,8 @@ set(VAMPIRE_SHELL_SOURCES
     Shell/GoalGuessing.cpp
     Shell/Grounding.cpp
     Shell/InequalitySplitting.cpp
-    Shell/InterpolantMinimizerNew.cpp
-    Shell/InterpolantsNew.cpp    
+    Shell/InterpolantMinimizer.cpp
+    Shell/Interpolants.cpp
     Shell/InterpretedNormalizer.cpp
     Shell/LaTeX.cpp
     Shell/Lexer.cpp
@@ -612,8 +612,8 @@ set(VAMPIRE_SHELL_SOURCES
     Shell/GeneralSplitting.hpp
     Shell/Grounding.hpp
     Shell/InequalitySplitting.hpp
-    Shell/InterpolantMinimizerNew.hpp    
-    Shell/InterpolantsNew.hpp
+    Shell/InterpolantMinimizer.hpp
+    Shell/Interpolants.hpp
     Shell/InterpretedNormalizer.hpp
     Shell/LaTeX.hpp
     Shell/Lexer.hpp

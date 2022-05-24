@@ -8,13 +8,13 @@
  * and in the source directory
  */
 /**
- * @file InterpolantsNew.cpp
- * Implements class InterpolantsNew.
+ * @file Interpolants.cpp
+ * Implements class Interpolants.
  * @author Bernhard Gleiss
  */
 
-#ifndef __InterpolantsNew__
-#define __InterpolantsNew__
+#ifndef __Interpolants__
+#define __Interpolants__
 
 #include <unordered_set>
 #include <unordered_map>
@@ -61,10 +61,10 @@ namespace Shell
      * computes interpolants from local refutations
      * algorithms are based on master thesis of Bernhard Gleiss
      */
-    class InterpolantsNew
+    class Interpolants
     {
     public:
-        InterpolantsNew(){}
+        Interpolants(){}
         
         /*
          * controls which quality measurement is used for creating the interpolant
@@ -157,4 +157,4 @@ namespace Shell
         void merge(UnionFindMap& unitsToRepresentative, std::unordered_map<Kernel::Unit*, int> unitsToSize, Kernel::Unit* unit1, Kernel::Unit* unit2);
     };
 };
-#endif // __InterpolantsNew__
+#endif // __Interpolants__
