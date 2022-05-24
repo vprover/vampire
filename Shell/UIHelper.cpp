@@ -390,14 +390,13 @@ void UIHelper::outputResult(ostream& out)
         Interpolants().removeTheoryInferences(formulifiedRefutation); // do this only once for each proof!
         interpolant = Interpolants().getInterpolant(formulifiedRefutation, Interpolants::UnitWeight::VAMPIRE);
         break;
-      case Options::InterpolantMode::NEW_OPT:
 #if VZ3
+      case Options::InterpolantMode::NEW_OPT:
+
         Interpolants().removeTheoryInferences(formulifiedRefutation); // do this only once for each proof!
         interpolant = InterpolantMinimizer().getInterpolant(formulifiedRefutation, Interpolants::UnitWeight::VAMPIRE);
-#else
-        NOT_IMPLEMENTED;
-#endif
         break;
+#endif
       case Options::InterpolantMode::OFF:
         ASSERTION_VIOLATION;
       }

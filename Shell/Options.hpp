@@ -485,9 +485,11 @@ public:
   };
 
   enum class InterpolantMode : unsigned int {
-    NEW_HEUR = 0,
-    NEW_OPT = 1,
-    OFF = 2,
+    NEW_HEUR,
+#if VZ3
+    NEW_OPT,
+#endif
+    OFF,
   };
 
   enum class LiteralComparisonMode : unsigned int {
