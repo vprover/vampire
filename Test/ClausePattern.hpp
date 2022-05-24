@@ -46,7 +46,7 @@ public:
       }) {}
 
   template<class EqualityOperator>
-  bool matches(EqualityOperator& equality, Kernel::Clause const* result, BacktrackData& btd);
+  bool matches(EqualityOperator& equality, Kernel::Clause const* result);
   friend ostream& operator<<(ostream& out, ClausePattern const& self);
 };
 
@@ -61,14 +61,14 @@ inline ostream& operator<<(ostream& out, ClausePattern const& self)
 }
 
 template<class EqualityOperator>
-bool ClausePattern::matches(EqualityOperator& equality, Kernel::Clause const* result, BacktrackData& btd)
+bool ClausePattern::matches(EqualityOperator& equality, Kernel::Clause const* result)
 {
   return match(
       [&](Kernel::Clause const*& self) 
-      { return equality.eq(result, self, btd); },
+      { return equality.eq(result, self); },
 
       [&](AnyOf& self) 
-      { return self.lhs->matches(equality, result, btd) || self.rhs->matches(equality, result, btd); });
+      { return self.lhs->matches(equality, result) || self.rhs->matches(equality, result); });
 }
 
 inline ClausePattern anyOf(Kernel::Clause const* lhs) 

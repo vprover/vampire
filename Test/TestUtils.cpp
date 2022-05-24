@@ -196,7 +196,7 @@ bool TestUtils::isAC(Theory::Interpretation i)
 }
 
 bool TestUtils::eqModAC(const Kernel::Clause* lhs, const Kernel::Clause* rhs)
-{ return permEq(*lhs, *rhs, [](Literal* l, Literal* r, BacktrackData& btd) -> bool { return TestUtils::eqModAC(l, r); }); }
+{ return permEq(*lhs, *rhs, [](Literal* l, Literal* r) -> bool { return TestUtils::eqModAC(l, r); }); }
 
 bool TestUtils::eqModAC(Kernel::Literal* lhs, Kernel::Literal* rhs)
 { return TestUtils::eqModAC(TermList(lhs), TermList(rhs)); }
@@ -241,7 +241,7 @@ bool TestUtils::eqModAC_(TermList lhs, TermList rhs, Comparisons comp)
     if (isAC(&l)) {
       Stack<TermList> lstack = collect(fun, &l);
       Stack<TermList> rstack = collect(fun, &r);
-      return permEq(lstack, rstack, [&](TermList l, TermList r, BacktrackData& btd) -> bool {
+      return permEq(lstack, rstack, [&](TermList l, TermList r) -> bool {
             return comp.subterm(l, r);
       });
     } else {
