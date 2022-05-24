@@ -43,7 +43,7 @@ public:
   static TermIterator getLHSIterator(Literal* lit, const Ordering& ord);
   static TermIterator getSuperpositionLHSIterator(Literal* lit, const Ordering& ord, const Options& opt);
   static TermIterator getSubVarSupLHSIterator(Literal* lit, const Ordering& ord);
-  static TermIterator getDemodulationLHSIterator(Literal* lit, bool forward, const Ordering& ord, const Options& opt);
+  static TermIterator getDemodulationLHSIterator(Literal* lit, bool forward, const Ordering& ord, const Options& opt, bool includeStrongInstances = false);
   static TermIterator getEqualityArgumentIterator(Literal* lit);
 
   //WARNING, this function cannot be used when @param t is a sort.

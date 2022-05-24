@@ -1510,6 +1510,18 @@ void Options::init()
     _demodulationRedundancyCheck.addProblemConstraint(hasEquality());
     _demodulationRedundancyCheck.setRandomChoices({"on","off"});
 
+    _strongInstances = BoolOptionValue("strong_instances", "si", false);
+    _strongInstances.description =
+      "When demodulating with s = t, it may happen that variables X* occur in t but not s.\n"
+      "This immediately fails the ordering check. However, it may be possible to use an instance\n"
+      "\ts = t[X* -> c]\n"
+      "where s > t[X* -> c], and c is the smallest constant in the current ordering.";
+    _strongInstances.tag(OptionTag::INFERENCES);
+    _strongInstances.onlyUsefulWith(InferencingSaturationAlgorithm());
+    _strongInstances.onlyUsefulWith(Or(_forwardDemodulation.is(notEqual(Demodulation::OFF)),_backwardDemodulation.is(notEqual(Demodulation::OFF))));
+    _strongInstances.addProblemConstraint(hasEquality());
+    _strongInstances.setRandomChoices({"on","off"});
+    _lookup.insert(&_strongInstances);
 
     _extensionalityAllowPosEq = BoolOptionValue( "extensionality_allow_pos_eq","",false);
     _extensionalityAllowPosEq.description="If extensionality resolution equals filter, this dictates"

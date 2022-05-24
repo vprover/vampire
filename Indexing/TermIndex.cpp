@@ -175,7 +175,7 @@ void DemodulationLHSIndex::handleClause(Clause* c, bool adding)
   TimeCounter tc(TC_FORWARD_DEMODULATION_INDEX_MAINTENANCE);
 
   Literal* lit=(*c)[0];
-  TermIterator lhsi=EqHelper::getDemodulationLHSIterator(lit, true, _ord, _opt);
+  TermIterator lhsi=EqHelper::getDemodulationLHSIterator(lit, true, _ord, _opt, env.options->strongInstances());
   while (lhsi.hasNext()) {
     if (adding) {
       _is->insert(lhsi.next(), lit, c);

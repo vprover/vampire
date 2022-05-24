@@ -32,6 +32,8 @@
 #include "Kernel/TermIterators.hpp"
 #include "Kernel/ColorHelper.hpp"
 #include "Kernel/RobSubstitution.hpp"
+#include "Kernel/SubstHelper.hpp"
+#include "Kernel/Signature.hpp"
 
 #include "Indexing/Index.hpp"
 #include "Indexing/IndexManager.hpp"
@@ -68,6 +70,47 @@ void ForwardDemodulation::detach()
   _salg->getIndexManager()->release(DEMODULATION_LHS_SUBST_TREE);
   ForwardSimplificationEngine::detach();
 }
+
+struct MapToSmallestConstantExceptThese {
+  MapToSmallestConstantExceptThese(const Ordering &ordering, const DHMap<unsigned, TermList> &sorts, const DHSet<unsigned> &avoid) :
+    ordering(ordering),
+    sorts(sorts),
+    avoid(avoid)
+  {}
+
+  TermList apply(unsigned var) {
+    TermList identity(var, false);
+    if(avoid.contains(var))
+      return identity;
+
+    TermList sort = sorts.get(var);
+    // TODO polymorphism?
+    if(sort.isVar() || (sort.isTerm() && !sort.term()->ground()))
+      return identity;
+
+    bool found = false;
+    unsigned minimal_constant;
+    for(unsigned i = 0; i < env.signature->functions(); i++) {
+      Signature::Symbol *f = env.signature->getFunction(i);
+      if(f->arity() != 0 || f->fnType()->result() != sort)
+        continue;
+
+      if(!found || ordering.compareFunctors(i, minimal_constant) == LESS) {
+        found = true;
+        minimal_constant = i;
+      }
+    }
+
+    if(!found)
+      return identity;
+
+    return TermList(Term::createConstant(minimal_constant));
+  }
+
+  const Ordering &ordering;
+  const DHMap<unsigned, TermList> &sorts;
+  const DHSet<unsigned> &avoid;
+};
 
 template <bool combinatorySupSupport>
 bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*& replacement, ClauseIterator& premises)
@@ -128,11 +171,29 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
           TermList eqSort = SortHelper::getEqualityArgumentSort(qr.literal);
           subst.reset(); 
           if(!subst.match(eqSort, 0, querySort, 1)){
-            continue;        
+            continue;
           }
         }
 
         TermList rhs=EqHelper::getOtherEqualitySide(qr.literal,qr.term);
+        if(env.options->strongInstances()) {
+          DHMap<unsigned, TermList> variableSorts;
+          SortHelper::collectVariableSorts(qr.literal, variableSorts);
+          DHSet<unsigned> lhsVars;
+          TermIterator lhsVarIt = Term::getVariableIterator(qr.term);
+          while (lhsVarIt.hasNext())
+            lhsVars.insert(lhsVarIt.next().var());
+
+          MapToSmallestConstantExceptThese applicator(ordering, variableSorts, lhsVars);
+          TermList instance = SubstHelper::apply(rhs, applicator);
+          if(instance != rhs)
+            std::cout << rhs << " " << instance << std::endl;
+          rhs = instance;
+          // now this can happen
+          if(rhs == trm)
+            continue;
+        }
+
         TermList rhsS;
         if(!qr.substitution->isIdentityOnQueryWhenResultBound()) {
           //When we apply substitution to the rhs, we get a term, that is
@@ -156,7 +217,7 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
         Ordering::Result argOrder = ordering.getEqualityArgumentOrder(qr.literal);
         bool preordered = argOrder==Ordering::LESS || argOrder==Ordering::GREATER;
   #if VDEBUG
-        if(preordered) {
+        if(preordered && !env.options->strongInstances()) {
           if(argOrder==Ordering::LESS) {
             ASS_EQ(rhs, *qr.literal->nthArgument(0));
           }
@@ -166,8 +227,6 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
         }
   #endif
         if(!preordered && (_preorderedOnly || ordering.compare(trm,rhsS)!=Ordering::GREATER) ) {
-          if(!trm.containsAllVariablesOf(rhsS))
-            std::cout << "ordering check failed: " << qr.clause->toString() << " on " << cl->toString() << std::endl;
           continue;
         }
 
@@ -175,7 +234,11 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
           TermList other=EqHelper::getOtherEqualitySide(lit, trm);
           Ordering::Result tord=ordering.compare(rhsS, other);
           if(tord!=Ordering::LESS && tord!=Ordering::LESS_EQ) {
-            Literal* eqLitS=qr.substitution->applyToBoundResult(qr.literal);
+            Literal *eqLitS = Literal::createEquality(
+              true,
+              trm, rhsS,
+              SortHelper::getEqualityArgumentSort(qr.literal)
+            );
             bool isMax=true;
             for(unsigned li2=0;li2<cLen;li2++) {
               if(li==li2) {

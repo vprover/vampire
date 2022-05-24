@@ -2189,8 +2189,9 @@ public:
   bool arityCheck() const { return _arityCheck.actualValue; }
   //void setArityCheck(bool newVal) { _arityCheck=newVal; }
   Demodulation backwardDemodulation() const { return _backwardDemodulation.actualValue; }
-  bool demodulationRedundancyCheck() const { return _demodulationRedundancyCheck.actualValue; }
   //void setBackwardDemodulation(Demodulation newVal) { _backwardDemodulation = newVal; }
+  bool demodulationRedundancyCheck() const { return _demodulationRedundancyCheck.actualValue; }
+  bool strongInstances() const { return _strongInstances.actualValue; }
   Subsumption backwardSubsumption() const { return _backwardSubsumption.actualValue; }
   //void setBackwardSubsumption(Subsumption newVal) { _backwardSubsumption = newVal; }
   Subsumption backwardSubsumptionResolution() const { return _backwardSubsumptionResolution.actualValue; }
@@ -2532,6 +2533,7 @@ private:
   ChoiceOptionValue<Condensation> _condensation;
 
   BoolOptionValue _demodulationRedundancyCheck;
+  BoolOptionValue _strongInstances;
 
   ChoiceOptionValue<EqualityProxy> _equalityProxy;
   BoolOptionValue _useMonoEqualityProxy;

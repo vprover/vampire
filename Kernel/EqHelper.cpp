@@ -398,8 +398,10 @@ TermIterator EqHelper::getSubVarSupLHSIterator(Literal* lit, const Ordering& ord
  * for demodulation
  *
  * If the literal @b lit is not a positive equality, empty iterator is returned.
+ * If @b includeStrongInstances, also include equalities where the rhs contains
+ * variables not in the lhs, for use by instantiating with the smallest constant.
  */
-TermIterator EqHelper::getDemodulationLHSIterator(Literal* lit, bool forward, const Ordering& ord, const Options& opt)
+TermIterator EqHelper::getDemodulationLHSIterator(Literal* lit, bool forward, const Ordering& ord, const Options& opt, bool includeStrongInstances)
 {
   CALL("EqHelper::getDemodulationLHSIterator");
 
@@ -416,6 +418,12 @@ TermIterator EqHelper::getDemodulationLHSIterator(Literal* lit, bool forward, co
 		  : (opt.backwardDemodulation() == Options::Demodulation::PREORDERED) ) {
         return TermIterator::getEmpty();
       }
+      if(includeStrongInstances)
+        return pvi(getConcatenatedIterator(
+          getSingletonIterator(t0),
+          getSingletonIterator(t1)
+        ));
+
       if (t0.containsAllVariablesOf(t1)) {
         if (t1.containsAllVariablesOf(t0)) {
           return pvi( getConcatenatedIterator(getSingletonIterator(t0),
