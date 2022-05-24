@@ -20,7 +20,7 @@
 #include <thread>
 
 // TODO these should probably be guarded
-// for getpid
+// for getpid, _exit
 #include <unistd.h>
 // for listing directory items
 // C++17: use std::filesystem
@@ -274,7 +274,7 @@ void System::terminateImmediately(int resultStatus)
   CALL("System::terminateImmediately");
 
   onTermination();
-  std::quick_exit(resultStatus);
+  _exit(resultStatus);
 }
 
 /**

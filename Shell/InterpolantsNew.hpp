@@ -100,8 +100,27 @@ namespace Shell
          * @pre: refutation must be a local refutation
          */
         Kernel::Formula* getInterpolant(Kernel::Unit* refutation, UnitWeight weightFunction);
-        
-        
+
+        // method moved from "old" Interpolants implementation
+        /**
+         * Any pre-processing of the refutation before interpolation is considered.
+         *
+         * We remove the leafs corresponding to the conjecture
+         * and leave the negated_conjecture child of this unit as the leaf instead.
+         * (Inference::NEGATED_CONJECTURE is not sound).
+         */
+        static void removeConjectureNodesFromRefutation(Kernel::Unit* refutation);
+
+        // method moved from "old" Interpolants implementation
+        /**
+         * Turn all Units in a refutation into FormulaUnits (casting Clauses to Formulas and wrapping these as Units).
+         *
+         * Keep the old refutation (= non-destructive). Possible sharing of the formula part of the original refutation.
+         *
+         * Assume that once we have formula on a parent path we can't go back to a clause.
+         *
+         */
+        static Kernel::Unit* formulifyRefutation(Kernel::Unit* refutation);
     protected:
         
         /*

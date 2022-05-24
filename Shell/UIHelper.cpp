@@ -35,7 +35,6 @@
 
 #include "AnswerExtractor.hpp"
 #include "InterpolantMinimizerNew.hpp"
-#include "Interpolants.hpp"
 #include "InterpolantsNew.hpp"
 #include "LaTeX.hpp"
 #include "LispLexer.hpp"
@@ -169,9 +168,6 @@ void UIHelper::outputSaturatedSet(ostream& out, UnitIterator uit)
   addCommentSignForSZS(out);
   out << "# SZS output end Saturation." << endl;
 } // outputSaturatedSet
-
-UnitList* parsedUnits;
-
 
 // String utility function that probably belongs elsewhere
 static bool hasEnding (vstring const &fullString, vstring const &ending) {
@@ -329,44 +325,12 @@ Problem* UIHelper::getInputProblem(const Options& opts)
     input=0;
   }
 
-  // parsedUnits = units->copy();
-
   Problem* res = new Problem(units);
   res->setSMTLIBLogic(smtLibLogic);
 
   env.statistics->phase=Statistics::UNKNOWN_PHASE;
   return res;
 }
-
-/*
-static void printInterpolationProofTask(ostream& out, Formula* intp, Color avoid_color, bool negate)
-{
-  CALL("printInterpolationProofTask");
-
-  UIHelper::outputSortDeclarations(out);
-  UIHelper::outputSymbolDeclarations(out);
-
-  UnitList::Iterator uit(parsedUnits);
-  while (uit.hasNext()) {
-    Unit* u = uit.next();
-
-    if (u->inheritedColor() != avoid_color) { // TODO: this does not work, since some inherited colors are modified destructively by the interpolation extraction code
-      Unit* toPrint = u;
-      if (toPrint->isClause()) { // need formulas, for the many sorted case
-        Formula* f = Formula::fromClause(toPrint->asClause());
-        toPrint = new FormulaUnit(f,u->inference(),Unit::AXIOM);
-      } else {
-        u->setInputType(Unit::AXIOM); // need it to be axiom in any case; the interpolant will be the conjecture
-      }
-
-      out << TPTPPrinter::toString(toPrint) << endl;
-    }
-  }
-
-  FormulaUnit* intpUnit = new FormulaUnit(negate ? new NegatedFormula(intp) : intp,new Inference0(Inference::INPUT),Unit::CONJECTURE);
-  out << TPTPPrinter::toString(intpUnit) << "\n";
-}
-*/
 
 /**
  * Output result based on the content of
@@ -415,8 +379,8 @@ void UIHelper::outputResult(ostream& out)
     if (env.options->showInterpolant()!=Options::InterpolantMode::OFF) {
       ASS(env.statistics->refutation->isClause());
 
-      Interpolants::removeConjectureNodesFromRefutation(env.statistics->refutation);
-      Unit* formulifiedRefutation = Interpolants::formulifyRefutation(env.statistics->refutation);
+      InterpolantsNew::removeConjectureNodesFromRefutation(env.statistics->refutation);
+      Unit* formulifiedRefutation = InterpolantsNew::formulifyRefutation(env.statistics->refutation);
 
       Formula* interpolant = nullptr;
 
@@ -424,9 +388,6 @@ void UIHelper::outputResult(ostream& out)
       // new interpolation methods described in master thesis of Bernhard Gleiss
       case Options::InterpolantMode::NEW_HEUR:
         InterpolantsNew().removeTheoryInferences(formulifiedRefutation); // do this only once for each proof!
-
-        // InterpolantMinimizerNew().analyzeLocalProof(formulifiedRefutation);
-
         interpolant = InterpolantsNew().getInterpolant(formulifiedRefutation, InterpolantsNew::UnitWeight::VAMPIRE);
         break;
       case Options::InterpolantMode::NEW_OPT:

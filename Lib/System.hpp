@@ -67,9 +67,6 @@ public:
 
   static bool fileExists(vstring fname);
 
-  // XXX
-  static pid_t getPID();
-
 private:
   /**
    * Lists of functions that will be called before Vampire terminates
