@@ -160,6 +160,14 @@ public:
     auto nf0 = _shared->normalize(TypedTermList(t, NumTraits::sort())).template wrapPoly<NumTraits>();
     return rmNum(divNf(nf0));
   }
+
+  template<class NumTraits>
+  MultiSet<TermList> absEq(Literal* l) const
+  {
+    ASS(l->isEquality())
+    ASSERTION_VIOLATION
+  }
+
   template<class NumTraits>
   MultiSet<SignedTerm> atomsStar(Literal* t) const
   {

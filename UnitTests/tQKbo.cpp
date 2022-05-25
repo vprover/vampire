@@ -432,7 +432,7 @@ TEST_FUN(uninterpreted_predicates) {
   DECL_CONST(a, Real)
   DECL_CONST(b, Real)
   DECL_FUNC (f, {Real}, Real)
-  DECL_FUNC (g, {Real, Real}, Real)
+  // DECL_FUNC (g, {Real, Real}, Real)
   DECL_PRED (p, {Real, Real})
   DECL_PRED (q, {Real})
 

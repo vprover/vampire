@@ -673,10 +673,9 @@ template<class NumTraits> struct std::hash<Kernel::IrcLiteral<NumTraits>>
 {
   size_t operator()(Kernel::IrcLiteral<NumTraits> const& self) const
   {
-    // auto rep = std::tie(, self._symbol);
     return Lib::HashUtils::combine(
-      Lib::StlHash::hash(self._term),
-      Lib::StlHash::hash(self._symbol)
+      Lib::StlHash::hash(self._symbol),
+      Lib::StlHash::hash(self._term)
     );
   }
 };

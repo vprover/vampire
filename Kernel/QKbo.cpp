@@ -102,9 +102,10 @@ QKbo::Result QKbo::compare(Literal* l1, Literal* l2) const
     auto sort = SortHelper::getTermArgSort(l1,0);
     ASS_EQ(sort, SortHelper::getTermArgSort(l2,0));
     return forAnyNumTraits([&](auto numTraits) {
+      using NumTraits = decltype(numTraits);
       if (numTraits.sort() == sort) {
-        auto a1 = atomsStar<decltype(numTraits)>(l1);
-        auto a2 = atomsStar<decltype(numTraits)>(l2);
+        auto a1 = atomsStar<NumTraits>(l1);
+        auto a2 = atomsStar<NumTraits>(l2);
         return Option<Ordering::Result>(OrderingUtils2::lexProductCapture(
             [&]() -> Ordering::Result { return OrderingUtils2::mulExt(a1, a2, 
                               [&](auto const& l, auto const& r)
@@ -113,9 +114,34 @@ QKbo::Result QKbo::compare(Literal* l1, Literal* l2) const
                                 , [&]() { return OrderingUtils2::stdCompare(l.sign,r.sign); }
                               );}); }
           , [&]() -> Ordering::Result { 
-              // TODO compare <'
-              ASSERTION_VIOLATION
-              // return compareSameAtomsStar(l1, l2); 
+              ASS_EQ(l1->isEquality() && l1->isPositive(), l2->isEquality() && l2->isPositive())
+              if (l1->isEquality() && l2->isEquality()) {
+                ASS_EQ(l1->isPositive(), l2->isPositive())
+                return OrderingUtils2::lexProductCapture(
+                    // TODO make use of the constant size of the multiset
+                    [&]() { return OrderingUtils2::mulExt(absEq<NumTraits>(l1), absEq<NumTraits>(l2), this->asClosure()); }
+                  , [&]() { return OrderingUtils2::mulExt(
+                    // TODO make use of the constant size of the multiset
+                                      MultiSet<TermList>{l1->termArg(0), l1->termArg(1)}, 
+                                      MultiSet<TermList>{l2->termArg(0), l2->termArg(1)}, 
+                                      this->asClosure()); }
+                );
+              } else if ( l1->isEquality() && !l2->isEquality()) {
+                ASS(l1->isNegative())
+                return Result::LESS;
+              } else if (!l1->isEquality() &&  l2->isEquality()) {
+                ASS(l2->isNegative())
+                return Result::GREATER;
+              } else {
+                ASS(l1->functor() == numTraits.greaterF() || l1->functor() == numTraits.geqF())
+                ASS(l2->functor() == numTraits.greaterF() || l2->functor() == numTraits.geqF())
+                ASS(l1->isPositive())
+                ASS(l2->isPositive())
+                return OrderingUtils2::lexProductCapture(
+                    [&]() { return this->compare(l1->termArg(0), l2->termArg(0)); }
+                  , [&]() { return Ordering::fromComparison(_prec.cmpPred(l1->functor(), l2->functor())); }
+                );
+              }
             }
         ));
       } else {
