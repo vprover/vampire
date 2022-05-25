@@ -134,6 +134,9 @@ bool TermList::isSafe() const
   return isVar() || term()->shared();
 }
 
+bool TermList::ground() const 
+{ return !isVar() && term()->ground(); }
+
 /**
  * Return the list of all free variables of the term.
  * The result is only non-empty when there are quantified

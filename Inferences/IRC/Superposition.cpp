@@ -214,7 +214,7 @@ ClauseIterator Superposition::generateClauses(Clause* premise)
 // TODO move to appropriate place
 
 SimplifyingGeneratingInference::ClauseGenerationResult InequalityTautologyDetection::generateSimplify(Clause* premise) {
-  Map<AnyIrcLiteral, bool> lits;
+  Map<AnyIrcLiteral, bool, StlHash> lits;
     
   for (auto lit : iterTraits(premise->iterLits())) {
     auto norm_ = _shared->renormalize(lit);

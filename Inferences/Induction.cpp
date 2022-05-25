@@ -1019,7 +1019,7 @@ bool InductionClauseIterator::notDone(Literal* lit, Term* term)
   CALL("InductionClauseIterator::notDone");
 
   static DHSet<Literal*> done;
-  static LiteralSubstitutionTree lis(false);
+  static LiteralSubstitutionTree lis(env.options->unificationWithAbstraction(), false);
   static DHMap<TermList,TermList> blanks;
   const bool strengthenHyp = _opt.inductionStrengthenHypothesis();
   TermList srt = env.signature->getFunction(term->functor())->fnType()->result();

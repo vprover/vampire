@@ -920,7 +920,7 @@ vstring Kernel::ruleName(InferenceRule rule)
   case InferenceRule::IRC_BWD_DEMODULATION:
     return "backward demodulation modulo LA";
   case InferenceRule::MODEL_NOT_FOUND:
-    return "finite model not found";
+    return "finite model not found : exhaustively excluded all possible domain size assignments";
   case InferenceRule::INDUCTION_AXIOM:
     return "induction hypothesis";
   case InferenceRule::GEN_INDUCTION_AXIOM:

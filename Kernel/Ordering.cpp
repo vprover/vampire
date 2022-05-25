@@ -60,8 +60,6 @@ Ordering::Ordering() : _eqCmp(unique_ptr<EqCmp>(new  EqCmp()))
 Ordering::~Ordering()
 {
   CALL("Ordering::~Ordering");
-
-  // destroyEqualityComparator();
 }
 
 
@@ -133,6 +131,7 @@ Ordering* Ordering::create(Problem& prb, const Options& opt)
         && !env.colorUsed
         && env.options->predicateWeights() == ""
         && env.options->functionWeights() == ""
+        && !prb.hasInterpretedOperations()
         ) {
       out = new KBOForEPR(prb, opt);
     } else {

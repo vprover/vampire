@@ -186,7 +186,7 @@ MaybeOverflow<Option<PolyNf>> trySimplify(FuncTerm const& orig, Theory::Interpre
 #undef CONSTANT_CASE
 
     default:
-      return maybeOverflow( none<PolyNf>(), anyOverflow(evalArgs, orig.arity()));
+      return maybeOverflow( none<PolyNf>(), anyOverflow(evalArgs, orig.numTermArguments()));
   }
 }
 
@@ -230,12 +230,12 @@ MaybeOverflow<Option<PolyNf>> PolynomialEvaluation::evaluate(PolyNf normalized) 
           { 
             auto itp = f->function().tryInterpret();
             auto simpl = itp.isSome() ?  trySimplify(*f, itp.unwrap(), ts)
-                                      : maybeOverflow(none<PolyNf>(), anyOverflow(ts, f->arity()));
+                                      : maybeOverflow(none<PolyNf>(), anyOverflow(ts, f->numTermArguments()));
 
             return simpl.map([&](Option<PolyNf> x) -> PolyNf { 
                 return x || [&]() {
-                  Stack<PolyNf> args(f->arity());
-                  for (unsigned i = 0; i < f->arity(); i++)
+                  Stack<PolyNf> args(f->numTermArguments());
+                  for (unsigned i = 0; i < f->numTermArguments(); i++)
                     args.push(std::move(ts[i].value));
                   return PolyNf(perfect(FuncTerm(f->function(), std::move(args))));
                 };

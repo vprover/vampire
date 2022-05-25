@@ -108,11 +108,11 @@ namespace Kernel {
 
 
     template<class Ord>
-    static auto lexProductCapture(Ord ord) 
+    static Ordering::Result lexProductCapture(Ord ord)
     { return ord(); }
 
     template<class Ord1, class Ord2, class... Ords>
-    static auto lexProductCapture(Ord1 ord1, Ord2 ord2, Ords... ords) 
+    static Ordering::Result lexProductCapture(Ord1 ord1, Ord2 ord2, Ords... ords)
     { 
       auto c = ord1();
       switch(c) {

@@ -1251,9 +1251,9 @@ void Options::init()
            _termOrdering.is(equal(TermOrdering::LALPO)),
            _termOrdering.is(equal(TermOrdering::QKBO))
            ));
-    _inequalityResolution.reliesOnHard(_cancellation.is(equal(ArithmeticSimplificationMode::OFF)));
-    _inequalityResolution.reliesOnHard(_evaluationMode.is(equal(EvaluationMode::POLYNOMIAL_FORCE)));
-    _inequalityResolution.reliesOnHard(_highSchool.is(equal(false)));
+    _inequalityResolution.reliesOn(_cancellation.is(equal(ArithmeticSimplificationMode::OFF)));
+    _inequalityResolution.reliesOn(_evaluationMode.is(equal(EvaluationMode::POLYNOMIAL_FORCE)));
+    _inequalityResolution.reliesOn(_highSchool.is(equal(false)));
     _inequalityResolution.reliesOn(_unificationWithAbstraction.is(Or(equal(UnificationWithAbstraction::IRC1), equal(UnificationWithAbstraction::IRC2), equal(UnificationWithAbstraction::IRC3))));
 
     _ircVariableElimination  = choiceArithmeticSimplificationMode(
@@ -1265,7 +1265,7 @@ void Options::init()
             "\n";
     _lookup.insert(&_ircVariableElimination);
     _ircVariableElimination.tag(OptionTag::INFERENCES);
-    _ircVariableElimination.reliesOnHard(_inequalityResolution.is(equal(true)));
+    _ircVariableElimination.reliesOn(_inequalityResolution.is(equal(true)));
 
     _ircLascaFactoring  = BoolOptionValue("irc_lasca_factoring","irc_lf",false);
     _ircLascaFactoring.description=
@@ -1273,7 +1273,7 @@ void Options::init()
             "\n";
     _lookup.insert(&_ircLascaFactoring);
     _ircLascaFactoring.tag(OptionTag::INFERENCES);
-    _ircLascaFactoring.reliesOnHard(_inequalityResolution.is(equal(true)));
+    _ircLascaFactoring.reliesOn(_inequalityResolution.is(equal(true)));
 
 
     _ircStrongNormalization  = BoolOptionValue("irc_strong_normalziation","irc_strnorm",true);
@@ -1284,7 +1284,7 @@ void Options::init()
             "\n";
     _lookup.insert(&_ircStrongNormalization);
     _ircStrongNormalization.tag(OptionTag::INFERENCES);
-    _ircStrongNormalization.reliesOnHard(_inequalityResolution.is(equal(true)));
+    _ircStrongNormalization.reliesOn(_inequalityResolution.is(equal(true)));
 
     _gaussianVariableElimination = choiceArithmeticSimplificationMode(
        "gaussian_variable_elimination", "gve",
@@ -1504,6 +1504,9 @@ void Options::init()
     _lookup.insert(&_backwardSubsumption);
     _backwardSubsumption.tag(OptionTag::INFERENCES);
     _backwardSubsumption.onlyUsefulWith(InferencingSaturationAlgorithm());
+    // bs without fs may lead to rapid looping (when a newly derived clause subsumes its own ancestor already in active) and makes little sense
+    _backwardSubsumption.addHardConstraint(
+        If(notEqual(Subsumption::OFF)).then(_forwardSubsumption.is(notEqual(false))));
     _backwardSubsumption.setRandomChoices({"on","off"});
 
     _backwardSubsumptionResolution = ChoiceOptionValue<Subsumption>("backward_subsumption_resolution","bsr",

@@ -34,18 +34,6 @@ namespace Kernel {
 using namespace Lib;
 
 
-// template<class Ord, class T>
-// Ordering::Result compareMultiSet(Ord ord, T const& lhs, T const& rhs){
-//
-// }
-
-// bool operator<(Sign const& l, Sign const& r)
-// { return (uint8_t) l < (uint8_t) r; }
-//
-// bool operator> (Sign const& l, Sign const& r) { return r < l; }
-// bool operator<=(Sign const& l, Sign const& r) { return l == r || l < r; }
-// bool operator>=(Sign const& l, Sign const& r) { return l == r || l > r; }
-
 // TODO move to right place (IRC.hpp ?)
 struct SignedTerm 
 {
@@ -175,8 +163,9 @@ public:
   template<class NumTraits>
   MultiSet<SignedTerm> atomsStar(Literal* t) const
   {
-    ASS_Eq(l->numTermArguments(), 2)
-    auto nf = sigmaNf<NumTraits>(t);
+    ASSERTION_VIOLATION
+    // ASS_Eq(l->numTermArguments(), 2)
+    // auto nf = sigmaNf<NumTraits>(t);
   }
 
 private:

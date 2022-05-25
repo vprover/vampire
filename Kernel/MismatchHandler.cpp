@@ -99,7 +99,7 @@ bool UWAMismatchHandler::checkUWA(TermList t1, TermList t2)
             static Inferences::PolynomialEvaluation ev;
             auto sub = ev.evaluateToTerm(NumTraits::add( NumTraits::minus(t1), t2).term());
             //   ^^^--> `t2 - t1`
-            return sub == NumTraits::zero() || (!sub.isVar() && sub.term()->vars() != 0) ;
+            return !sub.ground() || sub == NumTraits::zero();
         });
       }
 

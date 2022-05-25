@@ -106,7 +106,7 @@ LaLpo::Result LaLpo::compare(Literal* l1_, Literal* l2_) const
       return Ordering::fromComparison(_prec.cmpPred(l1.orig->functor(), l2.orig->functor()));
 
     } else {
-      auto lex = OrderingUtils::lexExt(argIter(l1.orig), argIter(l2.orig), [&](auto& l, auto& r) { return compare(l,r); } );
+      auto lex = OrderingUtils::lexExt(termArgIter(l1.orig), termArgIter(l2.orig), [&](auto& l, auto& r) { return compare(l,r); } );
       if (lex == Result::EQUAL) {
         return l1.orig->isPositive() == l2.orig->isPositive() 
           ? Result::EQUAL

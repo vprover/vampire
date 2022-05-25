@@ -47,6 +47,18 @@ public:
   static bool eqModAC(const Kernel::Clause* lhs, const Kernel::Clause* rhs);
   static bool eqModAC(Kernel::Literal* lhs, Kernel::Literal* rhs);
 
+
+  /** 
+   * Tests whether two clauses are equal. All permutations of the clauses are tested. Variable renamings are 
+   * taken into account (i.e.: { p(x) } is EQUAL to { p(y) } for this function).
+   *
+   * !!! exponential runtime !!!
+   */
+  static bool eqModACRect(const Kernel::Clause* lhs, const Kernel::Clause* rhs);
+  static bool eqModACRect(Stack<Kernel::Literal*> const& lhs, Stack<Kernel::Literal*> const& rhs);
+  static bool eqModACRect(Kernel::Literal* lhs, Kernel::Literal* rhs);
+  static bool eqModACRect(Kernel::TermList lhs, Kernel::TermList rhs);
+
   // /** 
   //  * Tests whether two clauses are equal. All permutations of the clauses are tested. Variable renamings are 
   //  * taken into account (i.e.: { p(x) } IS equal to { p(y) } for this function).
@@ -65,16 +77,19 @@ public:
   /**
    * Tests whether there is a permutation pi s.t. pi(lhs) == rhs, where elements are compared by
    * elemEq(l,r)
-   * `List` must provide methods
-   *    - `elem_type operator[](unsigned)`
+   * `List` must provide methods 
+   *    - `elem_type operator[](unsigned)` 
    *    - `unsigned size()`
    * `Eq`   must provide methods
    *    - `bool operator(const elem_type&, const elem_type&)`
    */
-  template<class L1, class L2, class Eq>
+  template<class L1, class L2, class Eq> 
   static bool permEq(L1& lhs, L2& rhs, Eq elemEq);
 
 private:
+
+  template<class Lits>
+  static bool _eqModACRect(Lits const& lhs, Lits const& rhs);
 
   struct RectMap
   {
@@ -95,10 +110,12 @@ private:
   // static bool eqModACVar(Kernel::TermList lhs, Kernel::TermList rhs, RectMap& r);
   template<class Comparisons>
   static bool eqModAC_(Kernel::TermList lhs, Kernel::TermList rhs, Comparisons c);
+  friend struct AcRectComp;
 
   /** returns whether the function f is associative and commutative */
   static bool isAC(Kernel::Theory::Interpretation f);
   static bool isAC(Kernel::Term* f);
+
 };
 
 /** 
@@ -156,6 +173,18 @@ public:
 
 
 template<class A>
+class Pretty<std::shared_ptr<A>> {
+  std::shared_ptr<A> const& _self;
+
+public:
+  Pretty(std::shared_ptr<A> const& self) : _self(self) {}
+
+  std::ostream& prettyPrint(std::ostream& out) const
+  { return out << pretty(*_self); }
+};
+
+
+template<class A>
 class Pretty<Stack<A>> {
   Stack<A> const& _self;
 
@@ -200,50 +229,17 @@ public:
   { return out << pretty(*_self); }
 };
 
-template<class A, class B>
-class Pretty<pair<A,B>> {
-  pair<A,B> const& _self;
 
-public:
-  Pretty(pair<A,B> const& self) : _self(self) {}
-
-  std::ostream& prettyPrint(std::ostream& out) const
-  { return out << pretty(_self.first) << " : " << pretty(_self.second); }
-};
-
-// Helper function for permEq -- checks whether lhs is a permutation of
-// rhs via initial permutation perm with elements [0,idx) fixed.
-template<class L1, class L2, class Eq>
-bool __permEq(L1& lhs, L2& rhs, Eq elemEq, DArray<unsigned>& perm, unsigned idx) {
-  auto checkPerm = [] (L1& lhs, L2& rhs, Eq elemEq, DArray<unsigned>& perm, unsigned idx, BacktrackData& btd) {
-    ASS_EQ(lhs.size(), perm.size());
-    ASS_EQ(rhs.size(), perm.size());
-
-    for (unsigned i = idx; i < perm.size(); i++) {
-      if (!elemEq(lhs[i], rhs[perm[i]], btd)) {
-        btd.backtrack();
-        return false;
-      }
-    }
-    return true;
-  };
-  BacktrackData btd;
-  // These are elements fixed in the permutation, so check
-  // them only once and do not recurse if one of them is false.
-  for (unsigned i = 0; i < idx; i++) {
-    if (!elemEq(lhs[i], rhs[perm[i]], btd)) {
-      btd.backtrack();
-      return false;
-    }
-  }
-  if (checkPerm(lhs, rhs, elemEq, perm, idx, btd)) {
-    btd.drop();
+template<class P>
+bool __anyPerm(DArray<unsigned> perm, P pred, unsigned idx) {
+  if (pred(perm)) {
     return true;
   }
   for (unsigned i = idx; i < perm.size(); i++) {
     swap(perm[i], perm[idx]);
 
-    if (__permEq(lhs,rhs, elemEq, perm, idx+1)) return true;
+    if (__anyPerm(perm, pred, idx+1)) 
+      return true;
 
     swap(perm[i], perm[idx]);
   }
@@ -251,16 +247,32 @@ bool __permEq(L1& lhs, L2& rhs, Eq elemEq, DArray<unsigned>& perm, unsigned idx)
   return false;
 }
 
-template<class L1, class L2, class Eq>
-bool TestUtils::permEq(L1& lhs, L2& rhs, Eq elemEq)
-{
-  if (lhs.size() != rhs.size()) return false;
-  DArray<unsigned> perm(lhs.size());
-  for (unsigned i = 0; i < lhs.size(); i++) {
+template<class P>
+bool anyPerm(unsigned size, P pred) {
+  DArray<unsigned> perm(size);
+  for (unsigned i = 0; i < size; i++) {
     perm[i] = i;
   }
-  return __permEq(lhs, rhs, elemEq, perm, 0);
+  return __anyPerm(perm, pred, 0);
 }
+
+
+template<class L1, class L2, class Eq>
+bool TestUtils::permEq(L1& lhs, L2& rhs, Eq elemEq) 
+{
+  if (lhs.size() != rhs.size()) 
+    return false;
+
+  return anyPerm(lhs.size(), [&](auto& perm){
+
+    for (unsigned i = 0; i < perm.size(); i++) 
+      if (!elemEq(lhs[i], rhs[perm[i]])) 
+        return false;
+
+    return true;
+  });
+}
+
 
 } // namespace Test
 

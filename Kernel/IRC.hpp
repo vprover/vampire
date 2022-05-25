@@ -94,6 +94,7 @@ namespace Kernel {
   private:
     Perfect<Polynom<NumTraits>> _term;
     IrcPredicate _symbol;
+    friend struct std::hash<IrcLiteral>;
 
   public:
 
@@ -146,6 +147,7 @@ namespace Kernel {
     friend bool operator==(IrcLiteral const& lhs, IrcLiteral const& rhs)
     { return std::tie(lhs._symbol, lhs._term) ==  std::tie(rhs._symbol, rhs._term); }
   };
+
 
   using AnyIrcLiteral = Coproduct< IrcLiteral< IntTraits>
                                  , IrcLiteral< RatTraits>
@@ -666,6 +668,19 @@ template<class NumTraits> Stack<SelectedAtomicTerm<NumTraits>> IrcState::selecte
 Ordering::Result compare(IrcPredicate l, IrcPredicate r);
 
 } // namespace Kernel
+
+template<class NumTraits> struct std::hash<Kernel::IrcLiteral<NumTraits>>
+{
+  size_t operator()(Kernel::IrcLiteral<NumTraits> const& self) const
+  {
+    // auto rep = std::tie(, self._symbol);
+    return Lib::HashUtils::combine(
+      Lib::StlHash::hash(self._term),
+      Lib::StlHash::hash(self._symbol)
+    );
+  }
+};
+
 
 #undef DEBUG
 #endif // __IRC__

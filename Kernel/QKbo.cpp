@@ -85,14 +85,43 @@ QKbo::Result QKbo::compare(Literal* l1, Literal* l2) const
   else if (!i1 &&  i2) return Result::GREATER;
   else if (!i1 && !i2) return OrderingUtils2::lexProductCapture(
         [&]() { return Ordering::fromComparison(_prec.cmpPred(l1->functor(), l2->functor())); }
-      , [&]() { return OrderingUtils2::lexExt(argIter(l1), argIter(l2), this->asClosure()); }
+      , [&]() { return OrderingUtils2::lexExt(termArgIter(l1), termArgIter(l2), this->asClosure()); }
       , [&]() { return OrderingUtils2::stdCompare(l1->isNegative(), l2->isNegative()); }
     );
   else {
     ASS(i1 && i2)
-    auto a1 = atomsStar(l1);
-    auto a2 = atomsStar(l2);
-    ASSERTION_VIOLATION
+
+/* TODO comment goes somewhere else
+    // top level symbols are different, but abstractions are the same
+    // this means that the abstraction must be of a numeral sort, 
+    // and of shape `k1 * t1 + ... + kn * tn`
+    // also it means that one of them must not be a variable
+    */
+
+   
+    auto sort = SortHelper::getTermArgSort(l1,0);
+    ASS_EQ(sort, SortHelper::getTermArgSort(l2,0));
+    return forAnyNumTraits([&](auto numTraits) {
+      if (numTraits.sort() == sort) {
+        auto a1 = atomsStar<decltype(numTraits)>(l1);
+        auto a2 = atomsStar<decltype(numTraits)>(l2);
+        return Option<Ordering::Result>(OrderingUtils2::lexProductCapture(
+            [&]() -> Ordering::Result { return OrderingUtils2::mulExt(a1, a2, 
+                              [&](auto const& l, auto const& r)
+                              { return OrderingUtils2::lexProductCapture(
+                                  [&]() { return this->compare(l.term, r.term); }
+                                , [&]() { return OrderingUtils2::stdCompare(l.sign,r.sign); }
+                              );}); }
+          , [&]() -> Ordering::Result { 
+              // TODO compare <'
+              ASSERTION_VIOLATION
+              // return compareSameAtomsStar(l1, l2); 
+            }
+        ));
+      } else {
+        return Option<Ordering::Result>();
+      }
+    }) || []() -> Ordering::Result { ASSERTION_VIOLATION };
   }
 }
 // {
@@ -111,7 +140,7 @@ QKbo::Result QKbo::compare(Literal* l1, Literal* l2) const
 //       return Ordering::fromComparison(_prec.cmpPred(l1.orig->functor(), l2.orig->functor()));
 
 //     } else {
-//       auto lex = OrderingUtils::lexExt(argIter(l1.orig), argIter(l2.orig), [&](auto& l, auto& r) { return compare(l,r); } );
+//       auto lex = OrderingUtils::lexExt(termArgIter(l1.orig), termArgIter(l2.orig), [&](auto& l, auto& r) { return compare(l,r); } );
 //       if (lex == Result::EQUAL) {
 //         return l1.orig->isPositive() == l2.orig->isPositive() 
 //           ? Result::EQUAL
@@ -305,7 +334,7 @@ Ordering::Result QKbo::cmpNonAbstr(TermList s, TermList t) const
       && s.term()->functor() == t.term()->functor() 
       && uninterpretedFun(s.term())) {
     // 2.a) LEX
-    return OrderingUtils::lexExt(argIter(s.term()), argIter(t.term()), 
+    return OrderingUtils::lexExt(termArgIter(s.term()), termArgIter(t.term()), 
           [&](auto l, auto r) { return this->compare(l,r); });
 
   } else {
@@ -361,8 +390,9 @@ Option<TermList> QKbo::abstr(TermList t) const
     if (res.isSome()) {
       return res.unwrap();
     } else {
+      // TODO polymorphism
       Stack<TermList> args(term->arity());
-      for (auto a : argIter(term)) {
+      for (auto a : termArgIter(term)) {
         auto abs = abstr(a);
         if (abs.isNone()) {
           return abs;
