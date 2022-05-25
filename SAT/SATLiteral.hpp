@@ -91,4 +91,13 @@ std::ostream& operator<< (std::ostream& out, const SAT::SATLiteral& lit );
 
 };
 
+namespace Lib {
+template<>
+struct SecondaryHash<SAT::SATLiteral> {
+  struct Type {
+    static unsigned hash(SAT::SATLiteral lit) { return lit.content(); }
+  };
+};
+}
+
 #endif /* __SATLiteral__ */

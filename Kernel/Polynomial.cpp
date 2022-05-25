@@ -46,10 +46,13 @@ std::ostream& operator<<(std::ostream& out, const Variable& self)
 // impl FuncId
 /////////////////////////////////////////////////////////
 
-FuncId::FuncId(unsigned num) : _num(num) {}
+FuncId::FuncId(unsigned num, const TermList* typeArgs) : _num(num), _typeArgs(typeArgs) {}
 
-unsigned FuncId::arity() 
-{ return symbol()->arity(); }
+FuncId FuncId::symbolOf(Term* term) 
+{ return FuncId(term->functor(), term->typeArgs()); }
+
+unsigned FuncId::numTermArguments() 
+{ return symbol()->numTermArguments(); }
 
 bool operator==(FuncId const& lhs, FuncId const& rhs) 
 { return lhs._num == rhs._num; }
@@ -92,7 +95,7 @@ FuncTerm::FuncTerm(FuncId f, Stack<PolyNf>&& args)
 
 FuncTerm::FuncTerm(FuncId f, PolyNf* args) 
   : _fun(f)
-  , _args(Stack<PolyNf>::fromIterator(getArrayishObjectIterator(args, f.arity()))) 
+  , _args(Stack<PolyNf>::fromIterator(getArrayishObjectIterator(args, f.numTermArguments()))) 
 { }
 
 bool operator==(FuncTerm const& lhs, FuncTerm const& rhs) 
@@ -101,7 +104,7 @@ bool operator==(FuncTerm const& lhs, FuncTerm const& rhs)
 bool operator!=(FuncTerm const& lhs, FuncTerm const& rhs) 
 { return !(lhs == rhs); }
 
-unsigned FuncTerm::arity() const 
+unsigned FuncTerm::numTermArguments() const 
 { return _args.size(); }
 
 FuncId FuncTerm::function() const 
@@ -215,15 +218,15 @@ bool PolyNf::SubtermIter::hasNext() const
 
 IterArgsPnf::IterArgsPnf(Literal* lit) 
   : _lit(lit)
-  , _idx(lit->numTypeArguments()) 
+  , _idx(0) 
 { }
 
 bool IterArgsPnf::hasNext() const  
-{ return _idx < _lit->arity();  }
+{ return _idx < _lit->numTermArguments();  }
 
 PolyNf IterArgsPnf::next()
 { 
-  auto out = PolyNf::normalize(TypedTermList(*_lit->nthArgument(_idx), SortHelper::getArgSort(_lit, _idx)));
+  auto out = PolyNf::normalize(TypedTermList(_lit->termArg(_idx), SortHelper::getTermArgSort(_lit, _idx)));
   _idx++;
   return out;
 }

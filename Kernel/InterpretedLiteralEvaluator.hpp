@@ -63,18 +63,18 @@ protected:
   bool balance(Literal* lit,Literal*& res,Stack<Literal*>& sideConditions);
   
   // take AplusB, A and C and let result=C-B, AplusB might actually be BplusA
-  bool balancePlus(Interpretation plus, Interpretation unaryMinus, Term* AplusB, TermList* A, TermList C, TermList& result);
+  bool balancePlus(Interpretation plus, Interpretation unaryMinus, Term* AplusB, TermList A, TermList C, TermList& result);
 
   // take AmultiplyB, A and C and let result=C/B if B!=0, AmultiplyB might actually be BmultiplyA
   // rat and real versions only
   // note when using this we might need to add a side condition that B is positive if this is under lesseq, or B is negative if we switch the polarity
   template<typename ConstantType>
   bool balanceMultiply(Interpretation divide,ConstantType zero,             
-                       Term* AmultiplyB, TermList* A, TermList C, TermList& result,
+                       Term* AmultiplyB, TermList A, TermList C, TermList& result,
                        bool& swap, Stack<Literal*>& sideConditions);
 
   bool balanceIntegerMultiply(
-                                                  Term* AmultiplyB, TermList* A, TermList C, TermList& result,
+                                                  Term* AmultiplyB, TermList A, TermList C, TermList& result,
                                                   bool& swap, Stack<Literal*>& sideConditions);
 
   // take AoverB, A and C and let result=C*B, AoverB must be that way round
@@ -82,7 +82,7 @@ protected:
   // rat and real versions only
   // like above, need to consider polairty of B
   bool balanceDivide(Interpretation multiply, 
-                       Term* AmultiplyB, TermList* A, TermList C, TermList& result, bool& swap, Stack<Literal*>& sideConditions);
+                       Term* AmultiplyB, TermList A, TermList C, TermList& result, bool& swap, Stack<Literal*>& sideConditions);
   
 private:
   template<class Fn>

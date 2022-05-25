@@ -66,8 +66,8 @@ public:
     CALL("InterpretedNormalizer::RoundingFunctionTranslator::translate");
     ASS_EQ(trm->functor(), _origFun);
 
-    TermList arg1 = *trm->nthArgument(0);
-    TermList arg2 = *trm->nthArgument(1);
+    TermList arg1 = trm->termArg(0);
+    TermList arg2 = trm->termArg(1);
     TermList newF(Term::create2(_newFun, arg1, arg2));
     TermList res(Term::create1(_roundingFun,newF));
     return res;
@@ -106,7 +106,7 @@ public:
     CALL("InterpretedNormalizer::SuccessorTranslator::translate");
     ASS_EQ(trm->functor(), _succFun);
 
-    TermList arg = *trm->nthArgument(0);
+    TermList arg = trm->termArg(0);
     TermList res(Term::create2(_plusFun, arg, _one));
     return res;
   }
@@ -143,8 +143,8 @@ public:
     CALL("InterpretedNormalizer::BinaryMinusTranslator::translate");
     ASS_EQ(trm->functor(), _bMinusFun);
 
-    TermList arg1 = *trm->nthArgument(0);
-    TermList arg2 = *trm->nthArgument(1);
+    TermList arg1 = trm->termArg(0);
+    TermList arg2 = trm->termArg(1);
     TermList negArg2(Term::create1(_uMinusFun, arg2));
     TermList res(Term::create2(_plusFun, arg1, negArg2));
     return res;
@@ -187,7 +187,7 @@ public:
     CALL("InterpretedNormalizer::IneqTranslator::apply");
     ASS_EQ(lit->functor(), _srcPred);
 
-    TermList args[2] = { *lit->nthArgument(0), *lit->nthArgument(1) };
+    TermList args[2] = { lit->termArg(0), lit->termArg(1) };
     if(_swapArguments) { swap(args[0], args[1]); }
     bool polarity = lit->isPositive() ^ _reversePolarity;
 
@@ -284,7 +284,7 @@ protected:
       if(isTrivialInterpretation(itp)) {
 	Term* t = trm.term();
 	ASS_EQ(t->arity(),1);
-	return *t->nthArgument(0);
+	return t->termArg(0);
       }
     }
     if(trm.isTerm()) {

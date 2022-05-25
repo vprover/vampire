@@ -859,23 +859,15 @@ private:
 }; // class TermVarIterator
 
 
-class ArgIterator 
-{
-  Term* _term;
-  unsigned _idx;
-public:
-  DECL_ELEMENT_TYPE(TermList);
+static const auto termArgIter = [](Term* term) 
+  { return iterTraits(getRangeIterator<unsigned>(0, term->numTermArguments()))
+      .map([=](auto i)
+           { return term->termArg(i); }); };
 
-  ArgIterator(Term* lit) : _term(lit), _idx(0) {}
-
-  inline bool hasNext() const { return _idx < _term->arity(); }
-  inline TermList next() { return *_term->nthArgument(_idx++); }
-  unsigned size() const { return _term->arity(); }
-};
-
-
-inline IterTraits<ArgIterator> argIter(Term* lit) 
-{ return iterTraits(ArgIterator(lit)); }
+static const auto typeArgIter = [](Term* term) 
+  { return iterTraits(getRangeIterator<unsigned>(0, term->numTypeArguments()))
+      .map([=](auto i)
+           { return term->typeArg(i); }); };
 
 
 }

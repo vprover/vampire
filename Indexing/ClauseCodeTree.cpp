@@ -819,7 +819,7 @@ bool ClauseCodeTree::ClauseMatcher::checkCandidate(Clause* cl, int& resolvedQuer
     }
     newMatches|=lm->doEagerMatching();
   }
-
+  (void)newMatches; // to prevent a warning
   return matchGlobalVars(resolvedQueryLit);
 //  return newMatches && matchGlobalVars(resolvedQueryLit);
 }

@@ -40,13 +40,22 @@ using namespace Kernel;
 using namespace Saturation;
 
 class TermReplacement : public TermTransformer {
-
 public:
   TermReplacement(Term* o, TermList r) : _o(o), _r(r) {} 
-  virtual TermList transformSubterm(TermList trm);
-private:
+  TermList transformSubterm(TermList trm) override;
+protected:
   Term* _o;
   TermList _r;
+};
+
+class SkolemSquashingTermReplacement : public TermReplacement {
+public:
+  SkolemSquashingTermReplacement(Term* o, TermList r, unsigned& var)
+    : TermReplacement(o, r), _v(var) {}
+  TermList transformSubterm(TermList trm) override;
+private:
+  unsigned& _v;               // fresh variable counter supported by caller
+  DHMap<Term*, unsigned> _tv; // maps terms to their variable replacement
 };
 
 class LiteralSubsetReplacement : TermTransformer {
@@ -62,7 +71,7 @@ public:
   // to GEN_INDUCTION_AXIOM.
   Literal* transformSubset(InferenceRule& rule);
 
-  List<pair<Literal*, InferenceRule>>* getListOfTransformedLiterals(InferenceRule rule);
+  List<pair<Literal*, bool /*isGeneralized*/>>* getListOfTransformedLiterals();
 
 protected:
   virtual TermList transformSubterm(TermList trm);
@@ -98,6 +107,7 @@ public:
 #if VDEBUG
   void setTestIndices(const Stack<Index*>& indices) override {
     _comparisonIndex = static_cast<LiteralIndex*>(indices[0]);
+    if (indices.size() > 1) _inductionTermIndex = static_cast<TermIndex*>(indices[1]);
   }
 #endif // VDEBUG
 
@@ -150,13 +160,13 @@ private:
   // (and the default bound) which are non-redundant with respect to the origLit, origTerm,
   // and increasingness.
   // Note: indLits and indTerm are passed to avoid recomputation.
-  void performIntInductionForEligibleBounds(Clause* premise, Literal* origLit, Term* origTerm, List<pair<Literal*, InferenceRule>>*& indLits, Term* indTerm, bool increasing, DHMap<Term*, TermQueryResult>& bounds1, DHMap<Term*, TermQueryResult>& bounds2);
+  void performIntInductionForEligibleBounds(Clause* premise, Literal* origLit, Term* origTerm, List<pair<Literal*, bool /*isGeneralized*/>>*& indLits, Term* indTerm, bool increasing, DHMap<Term*, TermQueryResult>& bounds1, DHMap<Term*, TermQueryResult>& bounds2);
   // If indLits is empty, first fills it with either generalized origLit, or just by origLit itself
   // (depending on whether -indgen is on).
   // Then, performs int induction for each induction literal from indLits using bound1
   // (and optionalBound2 if provided) as bounds.
   // Note: indLits may be created in this method, but it needs to be destroyed outside of it.
-  void generalizeAndPerformIntInduction(Clause* premise, Literal* origLit, Term* origTerm, List<pair<Literal*, InferenceRule>>*& indLits, Term* indTerm, bool increasing, TermQueryResult& bound1, TermQueryResult* optionalBound2);
+  void generalizeAndPerformIntInduction(Clause* premise, Literal* origLit, Term* origTerm, List<pair<Literal*, bool /*isGeneralized*/>>*& indLits, Term* indTerm, bool increasing, TermQueryResult& bound1, TermQueryResult* optionalBound2);
 
   void performIntInduction(Clause* premise, Literal* origLit, Literal* lit, Term* t, InferenceRule rule, bool increasing, const TermQueryResult& bound1, TermQueryResult* optionalBound2);
 
@@ -166,7 +176,7 @@ private:
 
   bool notDone(Literal* lit, Term* t);
   bool notDoneInt(Literal* lit, Term* t, bool increasing, Term* bound1, Term* optionalBound2, bool fromComparison);
-  Term* getPlaceholderForTerm(Term* t);
+  Term* getPlaceholderForTerm(const Term* t);
 
   Stack<Clause*> _clauses;
   InductionHelper _helper;

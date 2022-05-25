@@ -115,7 +115,6 @@ set(VAMPIRE_LIB_SOURCES
     Lib/Environment.cpp
     Lib/Event.cpp
     Lib/Exception.cpp
-    Lib/Hash.cpp
     Lib/Int.cpp
     Lib/IntNameTable.cpp
     Lib/IntUnionFind.cpp
@@ -758,7 +757,6 @@ set(UNIT_TESTS
     UnitTests/tImplicationSetClosure.cpp
     UnitTests/tUnificationWithAbstraction.cpp
     UnitTests/tGaussianElimination.cpp
-
     UnitTests/tIRC_InequalityResolution.cpp
     UnitTests/tIRC_LiteralFactoring.cpp
     UnitTests/tIRC_Normalization.cpp
@@ -767,7 +765,7 @@ set(UNIT_TESTS
     UnitTests/tIRC_TermFactoring.cpp
     UnitTests/tIRC_DemodulationModLA.cpp
     UnitTests/tInequalityResolutionIndex.cpp
-
+    UnitTests/tPushUnaryMinus.cpp
     UnitTests/tArithmeticSubtermGeneralization.cpp
     UnitTests/tInterpretedFunctions.cpp
     UnitTests/tRebalance.cpp
@@ -850,7 +848,7 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 # set preprocessor defines
 add_compile_definitions(CHECK_LEAKS=0)
 if(CMAKE_BUILD_TYPE STREQUAL Debug)
-  add_compile_definitions(VDEBUG=1 UNIX_USE_SIGALRM=1)
+  add_compile_definitions(VDEBUG=1)
 elseif(CMAKE_BUILD_TYPE STREQUAL Release)
   add_compile_definitions(VDEBUG=0)
 endif()

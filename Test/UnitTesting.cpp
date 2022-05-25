@@ -166,10 +166,15 @@ bool TestUnit::spawnTest(TestProc proc)
   if(fres == 0) {
     try {
       proc();
-    } catch (Exception& e) {
-      e.cry(std::cout);
-      std::cout.flush();
-      exit(-1);
+    } catch (Lib::Exception& e) {
+      // e.cry(std::cout);
+      e.cry(std::cerr);
+      _exit(-1);
+
+    } catch (std::exception& e) {
+      std::cerr << e.what() << std::endl;
+      _exit(-1);
+
     }
     _exit(0); // don't call parent's atexit! 
   } else {

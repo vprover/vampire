@@ -157,7 +157,7 @@ void Signature::Symbol::setType(OperatorType* type)
   ASS_REP(!_type, _type->toString());
 
   // this is copied out to the Symbol for convenience
-  _typeArgsArity = type->typeArgsArity(); 
+  _typeArgsArity = type->numTypeArguments(); 
   _type = type;  
 }
 
@@ -1196,7 +1196,7 @@ bool Signature::symbolNeedsQuoting(vstring name, bool interpreted, unsigned arit
   //also don't want them to be treated as interpreted symbols
   //hence the hack below, AYB
   if(name=="$int" || name=="$real" || name=="$rat" || 
-     name=="$i" || name=="$o" || name==">"){
+     name=="$i" || name=="$o"){
     return false;
   }
 

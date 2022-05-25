@@ -32,6 +32,20 @@
 
 namespace Test {
 
+#define TEST_FN_ASS_EQ(VAL1, VAL2)                         \
+  [] (vstring& s1, vstring& s2) {                          \
+    bool res = (VAL1 == VAL2);                             \
+    if (!res) {                                            \
+      s1 = Int::toString(VAL1);                            \
+      s1.append(" != ");                                   \
+      s1.append(Int::toString(VAL2));                      \
+      s2 = vstring(#VAL1);                                 \
+      s2.append(" == ");                                   \
+      s2.append(#VAL2);                                    \
+    }                                                      \
+    return res;                                            \
+  }
+
 template<class... As>
 Stack<ClausePattern> exactly(As... as) 
 {
@@ -58,7 +72,7 @@ public:
     : _rule(std::move(rule)) 
   {  }
 
-  virtual bool eq(Kernel::Clause const* lhs, Kernel::Clause const* rhs)
+  virtual bool eq(Kernel::Clause const* lhs, Kernel::Clause const* rhs, BacktrackData& btd)
   { return TestUtils::eqModACRect(lhs, rhs); }
 
   friend class AsymmetricTest;
@@ -69,6 +83,7 @@ class AsymmetricTest
 {
   using Clause = Kernel::Clause;
   using OptionMap = Stack<pair<vstring,vstring>>;
+  using Condition = std::function<bool(vstring&, vstring&)>;
   Option<SimplifyingGeneratingInference*> _rule;
   Clause* _input;
   Stack<ClausePattern> _expected;
@@ -76,6 +91,8 @@ class AsymmetricTest
   bool _premiseRedundant;
   Stack<std::function<Indexing::Index*()>> _indices;
   OptionMap _options;
+  Stack<Condition> _preConditions;
+  Stack<Condition> _postConditions;
 
   template<class Is, class Expected>
   void testFail(Is const& is, Expected const& expected) {
@@ -106,6 +123,8 @@ public:
   BUILDER_METHOD(SimplifyingGeneratingInference*, rule)
   BUILDER_METHOD(Stack<std::function<Indexing::Index*()>>, indices)
   BUILDER_METHOD(OptionMap, options)
+  BUILDER_METHOD(Stack<Condition>, preConditions)
+  BUILDER_METHOD(Stack<Condition>, postConditions)
 
   template<class Rule>
   void run(GenerationTester<Rule>& simpl) {
@@ -132,6 +151,15 @@ public:
       container.add(c);
     }
 
+    // check that the preconditions hold
+    vstring s1, s2;
+    for (auto c : _preConditions) {
+      if (!c(s1, s2)) {
+        s2.append(" (precondition)");
+        testFail(s1, s2);
+      }
+    }
+
     // run rule
     _input->setStore(Clause::ACTIVE);
     auto res = rule.generateSimplify(_input);
@@ -140,7 +168,7 @@ public:
     auto& sExp = this->_expected;
     auto  sRes = Stack<Kernel::Clause*>::fromIterator(res.clauses);
 
-    if (!TestUtils::permEq(sExp, sRes, [&](auto exp, auto res) { return exp.matches(simpl, res); })) {
+    if (!TestUtils::permEq(sExp, sRes, [&](auto exp, auto res, BacktrackData& btd) { return exp.matches(simpl, res, btd); })) {
       testFail(sRes, sExp);
     }
 
@@ -148,6 +176,20 @@ public:
       auto wrapStr = [](bool b) -> vstring { return b ? "premise is redundant" : "premise is not redundant"; };
       testFail( wrapStr(res.premiseRedundant), wrapStr(_premiseRedundant));
     }
+
+
+    // check that the postconditions hold
+    for (auto c : _postConditions) {
+      if (!c(s1, s2)) {
+        s2.append(" (postcondition)");
+        testFail(s1, s2);
+      }
+    }
+
+
+    // tear down saturation algorithm
+    rule.InferenceEngine::detach();
+
   }
 };
 

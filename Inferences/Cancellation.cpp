@@ -33,8 +33,10 @@ CancelAddResult<Number> cancelAdd(Polynom<Number> const& oldl, Polynom<Number> c
 template<class NumTraits>
 Literal* cancelAdd(Literal* lit) {
   CALL("cancelAdd(Literal* lit)")
-  auto normL = PolyNf::normalize(TypedTermList((*lit)[0], SortHelper::getArgSort(lit, 0)));
-  auto normR = PolyNf::normalize(TypedTermList((*lit)[1], SortHelper::getArgSort(lit, 1)));
+  ASS_EQ(lit->numTypeArguments(), 0) // <- we only have equality, or inequality literals, which are not polymorphic
+  ASS_EQ(lit->numTermArguments(), 2)
+  auto normL = PolyNf::normalize(TypedTermList((*lit)[0], SortHelper::getTermArgSort(lit, 0)));
+  auto normR = PolyNf::normalize(TypedTermList((*lit)[1], SortHelper::getTermArgSort(lit, 1)));
 
   auto oldL = normL.template wrapPoly<NumTraits>();
   auto oldR = normR.template wrapPoly<NumTraits>();

@@ -181,6 +181,8 @@ private:
     mutable TermList s1,s2,t1,t2;
    
   };
+  void createEqualityComparator();
+  void destroyEqualityComparator();
 
   /** Object used to compare equalities */
   unique_ptr<EqCmp> _eqCmp;

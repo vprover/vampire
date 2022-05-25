@@ -44,6 +44,7 @@ KBO::Result KBO::State::applyVariableCondition(Result res)
   }
   return res;
 }
+
 /**
  * Return result of comparison between @b l1 and @b l2 under
  * an assumption, that @b traverse method have been called

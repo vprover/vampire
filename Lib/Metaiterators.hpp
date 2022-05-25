@@ -1677,6 +1677,14 @@ struct GetSecondOfPair {
   Class& operator=(Class const&) = default;                                                                   \
   Class& operator=(Class     &&) = default;                                                                   \
 
+template<class I1>
+static auto concatIters(I1 i1) 
+{ return iterTraits(std::move(i1)); }
+
+template<class I1, class I2, class... Is>
+static auto concatIters(I1 i1, I2 i2, Is... is) 
+{ return iterTraits(getConcatenatedIterator(std::move(i1), concatIters(std::move(i2), std::move(is)...))); }
+
 template<class Iter>
 class IterTraits
 {
@@ -1770,6 +1778,10 @@ public:
     }
     return none<unsigned>();
   }
+
+  template<class... Is>
+  auto concat(Is... is) 
+  { return concatIters(std::move(_iter), std::move(is)...); }
 
   template<class F>
   IterTraits<MappingIterator<Iter, F>> map(F f)

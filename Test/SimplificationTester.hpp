@@ -31,7 +31,7 @@ class SimplificationTester
 public:
   virtual Kernel::Clause* simplify(Kernel::Clause*) const = 0;
 
-  virtual bool eq(Kernel::Clause const* lhs, Kernel::Clause const* rhs) const 
+  virtual bool eq(Kernel::Clause const* lhs, Kernel::Clause const* rhs, BacktrackData& btd) const 
   { return TestUtils::eqModAC(lhs, rhs); }
 };
 
@@ -58,6 +58,7 @@ public:
   void run(const SimplificationTester& simpl) {
     auto res = simpl.simplify(_input);
 
+    BacktrackData btd;
     if (!res) {
       cout  << endl;
       cout << "[     case ]: " << pretty(*_input) << endl;
@@ -65,7 +66,7 @@ public:
       cout << "[ expected ]: " << pretty(_expected) << endl;
       exit(-1);
 
-    } else if (!_expected.unwrap().matches(simpl, res)) {
+    } else if (!_expected.unwrap().matches(simpl, res, btd)) {
       cout  << endl;
       cout << "[     case ]: " << pretty(*_input) << endl;
       cout << "[       is ]: " << pretty(*res) << endl;

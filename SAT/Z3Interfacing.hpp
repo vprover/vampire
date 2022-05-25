@@ -172,7 +172,7 @@ public:
       // compare sort arguments
       for(unsigned i = 0; i < l.forSorts->numTypeArguments(); i++)
         // sorts are perfectly shared
-        if(!l.forSorts->nthArgument(i)->sameContent(r.forSorts->nthArgument(i)))
+        if(!l.forSorts->typeArg(i).sameContent(r.forSorts->typeArg(i)))
           return false;
 
       return true;
@@ -187,7 +187,7 @@ public:
       );
       if(self.forSorts)
         for(unsigned i = 0; i < self.forSorts->numTypeArguments(); i++)
-          out << " " << self.forSorts->nthArgument(i)->toString();
+          out << " " << self.forSorts->typeArg(i).toString();
       return out;
     }
   };
@@ -197,10 +197,12 @@ private:
   Map<SortId, z3::sort> _sorts;
   struct Z3Hash {
     static unsigned hash(z3::func_decl const& c) { return c.hash(); }
+    static unsigned hash(z3::expr const& c) { return c.hash(); }
     static bool equals(z3::func_decl const& l, z3::func_decl const& r) { return z3::eq(l,r); }
+    static bool equals(z3::expr const& l, z3::expr const& r) { return z3::eq(l,r); }
   };
   Map<z3::func_decl, FuncOrPredId , Z3Hash > _fromZ3;
-  Map<FuncOrPredId,  z3::func_decl, StlHash<FuncOrPredId>> _toZ3;
+  Map<FuncOrPredId,  z3::func_decl, StlHash> _toZ3;
   Set<SortId> _createdTermAlgebras;
 
   z3::func_decl const& findConstructor(FuncId id);
@@ -244,7 +246,7 @@ private:
   z3::solver _solver;
   z3::model _model;
   Stack<z3::expr> _assumptions;
-  BiMap<SATLiteral, z3::expr> _assumptionLookup;
+  BiMap<SATLiteral, z3::expr, Hash, Z3Hash> _assumptionLookup;
   const bool _showZ3;
   const bool _unsatCore;
   Option<std::ofstream> _out;
@@ -283,7 +285,7 @@ namespace std {
         unsigned hash = Lib::HashUtils::combine(self.id, self.isPredicate);
         if(self.forSorts)
           for(unsigned i = 0; i < self.forSorts->numTypeArguments(); i++)
-            hash = Lib::HashUtils::combine(hash, self.forSorts->nthArgument(i)->content());
+            hash = Lib::HashUtils::combine(hash, self.forSorts->typeArg(i).content());
         return hash;
       }
     };

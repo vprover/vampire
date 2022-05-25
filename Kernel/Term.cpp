@@ -30,13 +30,6 @@
 
 #include "Indexing/TermSharing.hpp"
 
-#include "Shell/Options.hpp"
-#include "Shell/Statistics.hpp"
-
-#include "Formula.hpp"
-#include "Signature.hpp"
-#include "SortHelper.hpp"
-#include "Substitution.hpp"
 #include "SubstHelper.hpp"
 #include "TermIterators.hpp"
 #include "RobSubstitution.hpp"
@@ -49,7 +42,7 @@
 #define ALWAYS_OUTPUT_TERM_ITE 0
 
 // changes whether theory terms are nicely formatted ($plus($uminus(s),t) vs (-(s) + t) )
-#define NICE_THEORY_OUTPUT 0
+#define NICE_THEORY_OUTPUT 1
 
 using namespace std;
 using namespace Lib;
@@ -68,7 +61,7 @@ const unsigned Term::SPECIAL_FUNCTOR_LOWER_BOUND;
 void* Term::operator new(size_t,unsigned arity, size_t preData)
 {
   CALL("Term::new");
-  //preData must be a multiply of pointer size to maintain alignment
+  //preData must be a multiple of pointer size to maintain alignment
   ASS_EQ(preData%sizeof(size_t), 0);
 
   size_t sz = sizeof(Term)+arity*sizeof(TermList)+preData;
@@ -342,8 +335,8 @@ unsigned Term::numTypeArguments() const {
   return isSpecial()
     ? 0
     : isLiteral()
-      ? env.signature->getPredicate(_functor)->typeArgsArity()
-      : env.signature->getFunction(_functor)->typeArgsArity();
+      ? env.signature->getPredicate(_functor)->numTypeArguments()
+      : env.signature->getFunction(_functor)->numTypeArguments();
 }
 
 TermList* Term::termArgs()
@@ -353,6 +346,9 @@ TermList* Term::termArgs()
 
   return _args + (_arity - numTypeArguments());
 }
+
+const TermList* Term::typeArgs() const
+{ return numTypeArguments() == 0 ? nullptr : args(); }
 
 unsigned Term::numTermArguments() const
 { 
@@ -472,35 +468,6 @@ bool Term::containsAllVariablesOf(Term* t)
       return false;
     }
   }
-  return true;
-}
-
-bool TermList::containsAllVariableOccurrencesOf(TermList t)
-{
-  CALL("TermList:containsAllVariableOccurrencesOf");
-  // varBalance[x] = (#occurrences of x in this) - (#occurrences of x in t)
-  static vunordered_map<unsigned int, int> varBalance(16);
-  varBalance.clear();
-
-  static VariableIterator vit;
-
-  // collect own vars
-  vit.reset(*this);
-  while (vit.hasNext()) {
-    int& bal = varBalance[vit.next().content()];
-    bal += 1;
-  }
-
-  // check that collected vars do not occur more often in t
-  vit.reset(t);
-  while (vit.hasNext()) {
-    int& bal = varBalance[vit.next().content()];
-    bal -= 1;
-    if (bal < 0) {
-      return false;
-    }
-  }
-
   return true;
 }
 
@@ -784,16 +751,8 @@ vstring Term::toString(bool topLevel) const
       res += arg1.toString(false) + " > " + arg2.toString();
       res += topLevel ? "" : ")";
       return res;
-    }/*else if(isApplication()){
-      ASS(arity() == 4);
-      vstring res;
-      TermList arg1 = *(nthArgument(2));
-      TermList arg2 = *(nthArgument(3));
-    //  res += topLevel ? "" : "("; 
-      res += "(" + arg1.toString() + " @ " + arg2.toString(false) + ")";
-    //  res += topLevel ? "" : ")";
-      return res;
-    }*/
+    }
+
     printArgs = isSort() || env.signature->getFunction(_functor)->combinator() == Signature::NOT_COMB;
   }
 
@@ -980,7 +939,6 @@ Literal* Literal::apply(Substitution& subst)
 
   return SubstHelper::apply(this, subst);
 } // Literal::apply
-
 
 /**
  * Return the hash function of the top-level of a complex term.
@@ -1207,7 +1165,7 @@ Term* Term::createLet(unsigned functor, VList* variables, TermList binding, Term
   s->getSpecialData()->_letData.functor = functor;
   s->getSpecialData()->_letData.variables = variables;
   s->getSpecialData()->_letData.sort = bodySort;
-  s->getSpecialData()->_letData.binding = binding.content();
+  s->getSpecialData()->_letData.binding = binding;
   return s;
 }
 
@@ -1247,7 +1205,7 @@ Term* Term::createTupleLet(unsigned tupleFunctor, VList* symbols, TermList bindi
   s->getSpecialData()->_letTupleData.functor = tupleFunctor;
   s->getSpecialData()->_letTupleData.symbols = symbols;
   s->getSpecialData()->_letTupleData.sort = bodySort;
-  s->getSpecialData()->_letTupleData.binding = binding.content();
+  s->getSpecialData()->_letTupleData.binding = binding;
   return s;
 } 
 
@@ -1959,8 +1917,6 @@ AtomicSort::AtomicSort()
   CALL("AtomicSort::AtomicSort/0");
 }
 
-#include <iostream>
-
 #if VDEBUG
 vstring Term::headerToString() const
 {
@@ -2027,50 +1983,6 @@ bool Kernel::operator<(const TermList& lhs, const TermList& rhs)
   }
 }
 
-/**
- * If the literal has the form p(R,f(S),T), where f(S) is the
- * n-th argument, then return the literal, then return the
- * literal p%f(R,S,T).
- *//* 
-Literal* Literal::flattenOnArgument(const Literal* lit,int n)
-{
-  ASS(lit->shared());
-
-  const TermList* ts = lit->nthArgument(n);
-  ASS(! ts->isVar());
-  const Term* t = ts->term();
-  unsigned newArity = lit->arity() + t->arity() - 1;
-  vstring newName = lit->predicateName() + '%' + Int::toString(n) +
-                   '%' + t->functionName();
-  unsigned newPredicate = env.signature->addPredicate(newName,newArity);
-
-  Literal* newLiteral = new(newArity) Literal(newPredicate,newArity,
-					      lit->polarity(),false);
-  // copy all arguments
-  TermList* newArgs = newLiteral->args();
-  const TermList* args = lit->args();
-  for (int i = 0;i < n;i++) {
-    *newArgs = *args;
-    newArgs = newArgs->next();
-    args = args->next();
-  }
-  // now copy the arguments of t
-  for (const TermList* ss=t->args();! ss->isEmpty();ss = ss->next()) {
-    *newArgs = *ss;
-    newArgs = newArgs->next();
-  }
-  args = args->next();
-  while (! args->isEmpty()) {
-    *newArgs = *args;
-    newArgs = newArgs->next();
-    args = args->next();
-  }
-  ASS(newArgs->isEmpty());
-
-  return env.sharing->insert(newLiteral);
-} // Literal::flattenOnArgument
-*/
-
 bool Kernel::positionIn(TermList& subterm,TermList* term,vstring& position)
 {
   CALL("positionIn(TermList)");
@@ -2117,3 +2029,16 @@ bool Kernel::positionIn(TermList& subterm,Term* term,vstring& position)
   return false;
 }
 
+TermList Term::termArg(unsigned n) const
+{
+  ASS_LE(0, n)
+  ASS_L(n, numTermArguments())
+  return *nthArgument(n + numTypeArguments());
+}
+
+TermList Term::typeArg(unsigned n) const 
+{
+  ASS_LE(0, n)
+  ASS_L(n, numTypeArguments())
+  return *nthArgument(n);
+}

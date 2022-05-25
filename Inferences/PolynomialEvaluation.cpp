@@ -30,16 +30,22 @@ PolynomialEvaluationRule::PolynomialEvaluationRule(Ordering& ordering) : Simplif
 
 
 Literal* createLiteral(Literal* orig, PolyNf* evaluatedArgs) {
+  CALL("createLiteral");
+
   if (orig->isEquality()) {
     return Literal::createEquality(
           orig->polarity(), 
           evaluatedArgs[0].denormalize(), 
           evaluatedArgs[1].denormalize(), 
-          SortHelper::getArgSort(orig, 0));
+          SortHelper::getTermArgSort(orig, 0));
   } else {
-    auto arity = orig->arity();
-    Stack<TermList> args(arity);
-    for (unsigned i = 0; i < arity; i++) {
+    auto termArgs = orig->numTermArguments();
+    auto typeArgs = orig->numTypeArguments();
+    Stack<TermList> args(typeArgs + termArgs);
+    for (unsigned i = 0; i < typeArgs; i++) {
+      args.push(orig->typeArg(i));
+    }
+    for (unsigned i = 0; i < termArgs; i++) {
       args.push(evaluatedArgs[i].denormalize());
     }
     return Literal::create(orig, args.begin());
@@ -48,11 +54,13 @@ Literal* createLiteral(Literal* orig, PolyNf* evaluatedArgs) {
 
 PolynomialEvaluationRule::Result PolynomialEvaluationRule::simplifyLiteral(Literal* lit) 
 {
-  Stack<PolyNf> terms(lit->arity());
+  CALL("PolynomialEvaluation::simplifyLiteral");
+
+  Stack<PolyNf> terms(lit->numTermArguments());
   auto anyChange = false;
-  for (unsigned i = 0; i < lit->arity(); i++) {
-    auto term = *lit->nthArgument(i);
-    auto norm = PolyNf::normalize(TypedTermList(term, SortHelper::getArgSort(lit, i)));
+  for (unsigned i = 0; i < lit->numTermArguments(); i++) {
+    auto term = lit->termArg(i);
+    auto norm = PolyNf::normalize(TypedTermList(term, SortHelper::getTermArgSort(lit, i)));
     auto ev = _inner.evaluate(norm);
     anyChange = anyChange || ev.value.isSome();
     terms.push(std::move(ev).value || norm);
@@ -242,7 +250,7 @@ MaybeOverflow<Option<PolyNf>> PolynomialEvaluation::evaluate(PolyNf normalized) 
       );
     }
   };
-  static Memo::Hashed<PolyNf, MaybeOverflow<PolyNf>> memo;
+  static Memo::Hashed<PolyNf, MaybeOverflow<PolyNf>, StlHash> memo;
   auto out = evaluateBottomUp(normalized, Eval{ *this }, memo);
   return out.map([&normalized](PolyNf out) {
       return out == normalized ? Option<PolyNf>()
@@ -250,9 +258,9 @@ MaybeOverflow<Option<PolyNf>> PolynomialEvaluation::evaluate(PolyNf normalized) 
       });
 }
 
-template<class Config>
-PolyNf createTerm(unsigned fun, PolyNf* evaluatedArgs) 
-{ return perfect(FuncTerm(FuncId(fun), evaluatedArgs)); }
+// template<class Config>
+// PolyNf createTerm(unsigned fun, PolyNf* evaluatedArgs) 
+// { return perfect(FuncTerm(FuncId(fun), evaluatedArgs)); }
 
 template<class Number>
 MaybeOverflow<Polynom<Number>> PolynomialEvaluation::simplifySummation(Stack<Monom<Number>> summands)

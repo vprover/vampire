@@ -44,10 +44,10 @@ namespace Memo {
   };
 
   /** a memoization realized as a hashmap */
-  template<class Arg, class Result>
+  template<class Arg, class Result, class Hash = Hash>
   class Hashed 
   {
-    Map<Arg, Result> _memo;
+    Map<Arg, Result, Hash> _memo;
 
   public:
     Hashed() : _memo(decltype(_memo)()) {}

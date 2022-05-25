@@ -36,11 +36,11 @@ namespace Kernel {
 
       TermList operator*() const { 
         ASS(inBounds());
-        return *_term->nthArgument(_index);
+        return _term->termArg(_index);
       }      
 
       bool inBounds() const { 
-        return _index < _term->arity();
+        return _index < _term->numTermArguments();
       }
 
     private:
@@ -207,7 +207,7 @@ template<class C> void BalanceIter<C>::incrementPath()
   do {
 
     if ( derefPath().isTerm()  
-        && derefPath().term()->arity() > 0 
+        && derefPath().term()->numTermArguments() > 0 
         && canInvert()) {
 
       DEBUG("push")
@@ -282,7 +282,7 @@ TermList BalanceIter<C>::lhs() const
    
 template<class C> 
 TermList BalanceIter<C>::buildRhs() const { 
-  ASS(_balancer._lit.arity() == 2 && _litIndex < 2)
+  ASS(_balancer._lit.numTermArguments() == 2 && _litIndex < 2)
   TermList rhs = _balancer._lit[1 - _litIndex];
   for (auto n : _path) {
     auto ctxt = InversionContext(n.term(), n.index(), rhs);
