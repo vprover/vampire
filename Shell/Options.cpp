@@ -461,11 +461,12 @@ void Options::init()
     _definitionReuse.addProblemConstraint(hasFormulas());
     _definitionReuse.tag(OptionTag::PREPROCESSING);
 
-    _twee = BoolOptionValue("twee", "twee", false);
+    _twee = BoolOptionValue("twee_goal_transformation", "tgt", false);
     _twee.description =
       "Add definitions for all subterms in the conjecture, inspired by Twee.\n"
       "This reportedly adds a goal-directed flavour to equational reasoning.";
     _twee.tag(OptionTag::PREPROCESSING);
+    _twee.setExperimental();
     _lookup.insert(&_twee);
 
     _generalSplitting = BoolOptionValue("general_splitting","gsp",false);
