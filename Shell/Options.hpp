@@ -1852,13 +1852,14 @@ bool _hard;
       vstring msg(){ return " not compatible with higher-order problems"; }
     };
 
-    struct HasNonUnits : OptionProblemConstraint{
-      CLASS_NAME(HasNonUnits);
-      USE_ALLOCATOR(HasNonUnits);
+    struct MayHaveNonUnits : OptionProblemConstraint{
+      CLASS_NAME(MayHaveNonUnits);
+      USE_ALLOCATOR(MayHaveNonUnits);
 
       bool check(Property*p){
-        CALL("Options::HasNonUnits::check");
-        return (p->clauses()-p->unitClauses())!=0;
+        CALL("Options::MayHaveNonUnits::check");
+        return (p->formulas() > 0) // let's not try to guess what kind of clauses these will give rise to
+          || (p->clauses() > p->unitClauses());
       }
       vstring msg(){ return " only useful with non-unit clauses"; }
     };
@@ -1933,7 +1934,7 @@ bool _hard;
     static OptionProblemConstraintUP hasEquality(){ return OptionProblemConstraintUP(new UsesEquality); }
     static OptionProblemConstraintUP hasHigherOrder(){ return OptionProblemConstraintUP(new HasHigherOrder); }
     static OptionProblemConstraintUP onlyFirstOrder(){ return OptionProblemConstraintUP(new OnlyFirstOrder); }
-    static OptionProblemConstraintUP hasNonUnits(){ return OptionProblemConstraintUP(new HasNonUnits); }
+    static OptionProblemConstraintUP mayHaveNonUnits(){ return OptionProblemConstraintUP(new MayHaveNonUnits); }
     static OptionProblemConstraintUP notJustEquality(){ return OptionProblemConstraintUP(new NotJustEquality); }
     static OptionProblemConstraintUP atomsMoreThan(int a){
       return OptionProblemConstraintUP(new AtomConstraint(a,true));
