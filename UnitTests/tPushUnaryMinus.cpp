@@ -45,10 +45,8 @@ public:
     return pum.simplify(in);
   }
 
-  virtual bool eq(Kernel::Clause const* lhs, Kernel::Clause const* rhs, BacktrackData& btd) const  override
-  {
-    return TestUtils::eqModAC(lhs, rhs);
-  }
+  virtual bool eq(Kernel::Clause const* lhs, Kernel::Clause const* rhs) const  override
+  { return TestUtils::eqModAC(lhs, rhs); }
 };
 
 REGISTER_SIMPL_TESTER(PumSimplTester)
