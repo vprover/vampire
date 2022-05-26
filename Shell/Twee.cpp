@@ -81,7 +81,7 @@ bool Shell::Twee::handleTerm(Problem &prb, TermList tl)
   TermList constant = TermList(Term::createConstant(symbol));
   Literal *equation = Literal::createEquality(true, tl, constant, sort);
   Inference inference(NonspecificInference0(
-      UnitInputType::NEGATED_CONJECTURE,
+      UnitInputType::AXIOM,
       InferenceRule::DEFINITION_FOLDING));
   Clause *clause = new (1) Clause(1, inference);
   clause->literals()[0] = equation;
