@@ -20,7 +20,7 @@ public:
   void apply(Kernel::Problem &);
 
 private:
-  void handleTerm(Kernel::Problem &, Kernel::TermList t);
+  bool handleTerm(Kernel::Problem &, Kernel::TermList t);
   DHSet<Kernel::Term *> _seen;
 };
 

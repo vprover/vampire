@@ -41,6 +41,8 @@ void Shell::Twee::apply(Problem &prb)
 {
   CALL("Twee::apply");
 
+  bool modified = false;
+
   UnitList::Iterator uit(prb.units());
   while (uit.hasNext()) {
     Unit *u = uit.next();
@@ -52,20 +54,25 @@ void Shell::Twee::apply(Problem &prb)
     for (unsigned i = 0; i < c->size(); i++) {
       Literal *l = c->literals()[i];
       NonVariableNonTypeIterator subterms(l);
-      while (subterms.hasNext())
-        handleTerm(prb, subterms.next());
+      while (subterms.hasNext()) {
+        modified |= handleTerm(prb, subterms.next());
+      }
     }
+  }
+  if (modified) {
+    prb.reportFormulasAdded();
+    prb.reportEqualityAdded(false);
   }
 }
 
-void Shell::Twee::handleTerm(Problem &prb, TermList tl)
+bool Shell::Twee::handleTerm(Problem &prb, TermList tl)
 {
   CALL("Twee:::handleTerm");
   ASS(tl.isTerm());
 
   Term *t = tl.term();
   if (!t->ground() || t->arity() == 0 || !_seen.insert(t))
-    return;
+    return false;
 
   TermList sort = SortHelper::getResultSort(t);
   OperatorType *type = OperatorType::getConstantsType(sort);
@@ -79,8 +86,10 @@ void Shell::Twee::handleTerm(Problem &prb, TermList tl)
   Clause *clause = new (1) Clause(1, inference);
   clause->literals()[0] = equation;
 
-  if(env.options->showPreprocessing())
+  if(env.options->showPreprocessing()) {
     env.out() << "[PP] twee: " << clause->toString() << std::endl;
+  }
 
   prb.addUnits(new UnitList(clause));
+  return true;
 }

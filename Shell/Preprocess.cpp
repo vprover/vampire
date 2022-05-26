@@ -357,8 +357,6 @@ void Preprocess::preprocess(Problem& prb)
      Twee twee;
      twee.apply(prb);
    }
-   // TODO should recompute properties here?
-   // might have introduced equality and/or symbols
 
    if (!prb.higherOrder() && _options.equalityProxy()!=Options::EqualityProxy::OFF && prb.mayHaveEquality()) {
      env.statistics->phase=Statistics::EQUALITY_PROXY;
