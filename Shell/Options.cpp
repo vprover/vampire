@@ -467,7 +467,7 @@ void Options::init()
     "A clause C[X] \\/ D[Y] with subclauses C and D over non-equal sets of variables X and Y can be split into S(Z) \\/ C[X] and ~S(Z) \\/ D[Y] where Z is the intersection of X and Y.";
     _lookup.insert(&_generalSplitting);
     _generalSplitting.tag(OptionTag::PREPROCESSING);
-    _generalSplitting.addProblemConstraint(hasNonUnits());
+    _generalSplitting.addProblemConstraint(mayHaveNonUnits());
     _generalSplitting.setRandomChoices({"off","on"});
 
     _unusedPredicateDefinitionRemoval = BoolOptionValue("unused_predicate_definition_removal","updr",true);
@@ -755,7 +755,7 @@ void Options::init()
     _sos.tag(OptionTag::PREPROCESSING);
     _sos.onlyUsefulWith(InferencingSaturationAlgorithm());
     _sos.setRandomChoices(And(isRandSat(),saNotInstGen()),{"on","off","off","off","off"});
-    _sos.setRandomChoices(And(isRandOn(),hasNonUnits()),{"on","off","off","off","off"});
+    _sos.setRandomChoices(And(isRandOn(),mayHaveNonUnits()),{"on","off","off","off","off"});
     _sos.setRandomChoices(isRandOn(),{"all","off","on"});
 
     _sosTheoryLimit = UnsignedOptionValue("sos_theory_limit","sstl",0);
@@ -1585,7 +1585,7 @@ void Options::init()
     _forwardLiteralRewriting.description="Perform forward literal rewriting.";
     _lookup.insert(&_forwardLiteralRewriting);
     _forwardLiteralRewriting.tag(OptionTag::INFERENCES);
-    _forwardLiteralRewriting.addProblemConstraint(hasNonUnits());
+    _forwardLiteralRewriting.addProblemConstraint(mayHaveNonUnits());
     _forwardLiteralRewriting.onlyUsefulWith(InferencingSaturationAlgorithm());
     _forwardLiteralRewriting.setRandomChoices({"on","off"});
 
@@ -1844,7 +1844,7 @@ void Options::init()
     _lookup.insert(&_globalSubsumption);
     _globalSubsumption.onlyUsefulWith(InferencingSaturationAlgorithm());
     _globalSubsumption.tag(OptionTag::INFERENCES);
-    _globalSubsumption.addProblemConstraint(hasNonUnits());
+    _globalSubsumption.addProblemConstraint(mayHaveNonUnits());
     _globalSubsumption.setRandomChoices({"off","on"});
 
     _globalSubsumptionSatSolverPower = ChoiceOptionValue<GlobalSubsumptionSatSolverPower>("global_subsumption_sat_solver_power","gsssp",
@@ -1956,7 +1956,7 @@ void Options::init()
     _lookup.insert(&_splitting);
     _splitting.onlyUsefulWith(ProperSaturationAlgorithm());
     _splitting.tag(OptionTag::AVATAR);
-    //_splitting.addProblemConstraint(hasNonUnits());
+    //_splitting.addProblemConstraint(mayHaveNonUnits());
     _splitting.setRandomChoices({"on","off"}); //TODO change balance?
 
     _splitAtActivation = BoolOptionValue("split_at_activation","sac",false);
@@ -2099,7 +2099,7 @@ void Options::init()
     _lookup.insert(&_nonliteralsInClauseWeight);
     _nonliteralsInClauseWeight.tag(OptionTag::AVATAR);
     _nonliteralsInClauseWeight.onlyUsefulWith(_splitting.is(equal(true)));
-    _nonliteralsInClauseWeight.addProblemConstraint(hasNonUnits());
+    // _nonliteralsInClauseWeight.addProblemConstraint(mayHaveNonUnits()); (for the same reason this is disabled in splitting)
     _nonliteralsInClauseWeight.setRandomChoices({"on","off"});
 
 //*********************** SAT solver (used in various places)  ***********************
@@ -2152,7 +2152,7 @@ void Options::init()
     _lookup.insert(&_literalComparisonMode);
     _literalComparisonMode.onlyUsefulWith(InferencingSaturationAlgorithm());
     _literalComparisonMode.tag(OptionTag::SATURATION);
-    _literalComparisonMode.addProblemConstraint(hasNonUnits());
+    _literalComparisonMode.addProblemConstraint(mayHaveNonUnits());
     _literalComparisonMode.addProblemConstraint(notJustEquality());
     // TODO: if sat then should not use reverse
     _literalComparisonMode.setRandomChoices({"predicate","reverse","standard"});
