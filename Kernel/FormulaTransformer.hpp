@@ -91,15 +91,15 @@ protected:
   TermTransformer& _termTransformer;
 };
 
-class TermTransformerTransformTransformedFormulaTransformer : public FormulaTransformer
+class BottomUpTermTransformerFormulaTransformer : public FormulaTransformer
 {
   public:
-    TermTransformerTransformTransformedFormulaTransformer(TermTransformerTransformTransformed& termTransformer)
+    BottomUpTermTransformerFormulaTransformer(BottomUpTermTransformer& termTransformer)
       : _termTransformer(termTransformer) {}
   protected:
     virtual Formula* applyLiteral(Formula* f);
 
-    TermTransformerTransformTransformed& _termTransformer;
+    BottomUpTermTransformer& _termTransformer;
 };
 
 class PolarityAwareFormulaTransformer : protected FormulaTransformer {

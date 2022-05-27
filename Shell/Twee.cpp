@@ -44,7 +44,7 @@ using Kernel::UnitList;
  # - and eagerly introduces new definitions for its subterms
  # - already encountered subterms reuse older definitions
  */
-class Definizator : public TermTransformerTransformTransformed {
+class Definizator : public BottomUpTermTransformer {
   public: // so that Twee::apply can directly access
     // all the new definitions (as clauses) introduced along the way
     UnitList* newUnits;
@@ -60,7 +60,7 @@ class Definizator : public TermTransformerTransformTransformed {
 
   protected:
     TermList transformSubterm(TermList trm) override {
-        // cout << "tf: " << trm.toString() << endl;
+        cout << "tf: " << trm.toString() << endl;
         if (trm.isVar()) return trm;
         Term* t = trm.term();
         if (t->isSort() || !t->ground() || t->arity() == 0) return trm;
@@ -92,7 +92,7 @@ class Definizator : public TermTransformerTransformTransformed {
         }
         // record as a new premise
         UnitList::push(symAndDef.second,premises);
-        // cout << "r: " << res.toString() << endl;
+        cout << "r: " << res.toString() << endl;
         return res;
     }
 };
@@ -118,9 +118,9 @@ void Shell::Twee::apply(Problem &prb)
     newLits.reset();
     for (unsigned i = 0; i < c->size(); i++) {
       Literal* l = c->literals()[i];
-      // cout << "L: " << l->toString() << endl;
+      cout << "L: " << l->toString() << endl;
       Literal* nl = df.transform(l);
-      // cout << "NL: " << nl->toString() << endl;
+      cout << "NL: " << nl->toString() << endl;
       newLits.push(nl);
     }
     if (df.premises) {

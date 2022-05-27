@@ -1247,14 +1247,14 @@ endOfUnwrapping:
 
   // don't swap equality
   if(lit->functor()==0){
-   resLit = TermTransformerTransformTransformed::transform(Literal::createEquality(lit->polarity(),t2,t1,srt));
+   resLit = BottomUpTermTransformer::transform(Literal::createEquality(lit->polarity(),t2,t1,srt));
   }
   else{
     // important, need to preserve the ordering of t1 and t2 in the original!
     if(swap){
-      resLit = TermTransformerTransformTransformed::transform(Literal::create2(lit->functor(),lit->polarity(),t2,t1));
+      resLit = BottomUpTermTransformer::transform(Literal::create2(lit->functor(),lit->polarity(),t2,t1));
     }else{
-      resLit = TermTransformerTransformTransformed::transform(Literal::create2(lit->functor(),lit->polarity(),t1,t2));
+      resLit = BottomUpTermTransformer::transform(Literal::create2(lit->functor(),lit->polarity(),t1,t2));
     }
   }
   return true;
@@ -1453,7 +1453,7 @@ public:
 TermList InterpretedLiteralEvaluator::evaluate(TermList t) {
   CALL("InterpretedLiteralEvaluator::evaluate")
   if (t.isTerm())
-    t = TermList(TermTransformerTransformTransformed::transform(t.term()));
+    t = TermList(BottomUpTermTransformer::transform(t.term()));
   return InterpretedLiteralEvaluator::transformSubterm(t);
 }
 
@@ -1476,7 +1476,7 @@ bool InterpretedLiteralEvaluator::evaluate(Literal* lit, bool& isConstant, Liter
                       : lit;
   DEBUG( "\t0 ==> ", resLit->toString() );
 
-  resLit = TermTransformerTransformTransformed::transform( resLit);
+  resLit = BottomUpTermTransformer::transform( resLit);
   DEBUG( "\t1 ==> ", resLit->toString() );
 
 //   // If it can be balanced we balance it
@@ -1528,7 +1528,7 @@ bool InterpretedLiteralEvaluator::evaluate(Literal* lit, bool& isConstant, Liter
 
       case PredEvalResult::Simplified: 
         // resLit = r.simplified_val;
-        resLit = TermTransformerTransformTransformed::transform(r.simplified_val);
+        resLit = BottomUpTermTransformer::transform(r.simplified_val);
         break;
 
       case PredEvalResult::Trivial: 
@@ -1550,7 +1550,7 @@ bool InterpretedLiteralEvaluator::evaluate(Literal* lit, bool& isConstant, Liter
 
 /**
  * This attempts to evaluate each subterm.
- * See Kernel/TermTransformerTransformTransformed for how it is used.
+ * See Kernel/BottomUpTermTransformer for how it is used.
  * Terms are evaluated bottom-up
  */
 TermList InterpretedLiteralEvaluator::transformSubterm(TermList trm)
