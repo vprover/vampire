@@ -28,6 +28,7 @@
 #include "Kernel/Clause.hpp"
 #include "Kernel/Problem.hpp"
 #include "Kernel/TermIterators.hpp"
+#include "Kernel/TermTransformer.hpp"
 
 #include "Twee.hpp"
 
@@ -37,59 +38,100 @@ using Kernel::Problem;
 using Kernel::Unit;
 using Kernel::UnitList;
 
+/*
+ * The actual worker for the twee trick.
+ # - evaluates conjucture literals bottom up (as orchestrated by Twee::apply)
+ # - and eagerly introduces new definitions for its subterms
+ # - already encountered subterms reuse older definitions
+ */
+class Definizator : public TermTransformerTransformTransformed {
+  public: // so that Twee::apply can directly access
+    // all the new definitions (as clauses) introduced along the way
+    UnitList* newUnits;
+
+    // accumlating the defining units as premises for the current "rewrite"
+    // (reset responsibility is with Twee::apply)
+    UnitList* premises;
+
+    // for each relevant term, cache the introduced symbol and the corresponding definition
+    DHMap<Term*,std::pair<unsigned,Unit*>> _cache;  
+
+    Definizator() : newUnits(UnitList::empty()) {}
+
+  protected:
+    TermList transformSubterm(TermList trm) override {
+        // cout << "tf: " << trm.toString() << endl;
+        if (trm.isVar()) return trm;
+        Term* t = trm.term();
+        if (t->isSort() || !t->ground() || t->arity() == 0) return trm;
+        
+        std::pair<unsigned,Unit*> symAndDef; 
+        TermList res;
+        if (!_cache.find(t,symAndDef)) {
+          TermList sort = SortHelper::getResultSort(t);
+          OperatorType *type = OperatorType::getConstantsType(sort);
+          symAndDef.first = env.signature->addFreshFunction(0, "sF");
+          env.signature->getFunction(symAndDef.first)->setType(type);
+          TermList constant = TermList(Term::createConstant(symAndDef.first));
+          Literal* equation = Literal::createEquality(true, TermList(t), constant, sort);
+          Inference inference(NonspecificInference0(UnitInputType::AXIOM,InferenceRule::FUNCTION_DEFINITION));      
+          Clause *clause = new (1) Clause(1, inference);
+          clause->literals()[0] = equation;
+
+          // record globally
+          UnitList::push(clause,newUnits);          
+          if(env.options->showPreprocessing()) {
+              env.out() << "[PP] twee: " << clause->toString() << std::endl;
+          }
+
+          symAndDef.second = clause;
+          _cache.insert(t,symAndDef);
+          res = constant;
+        } else {
+          res = TermList(Term::createConstant(symAndDef.first));          
+        }
+        // record as a new premise
+        UnitList::push(symAndDef.second,premises);
+        // cout << "r: " << res.toString() << endl;
+        return res;
+    }
+};
+
 void Shell::Twee::apply(Problem &prb)
 {
   CALL("Twee::apply");
 
-  bool modified = false;
+  Stack<Literal*> newLits;
+  Definizator df;
 
-  UnitList::Iterator uit(prb.units());
+  UnitList::RefIterator uit(prb.units());
   while (uit.hasNext()) {
-    Unit *u = uit.next();
+    Unit* &u = uit.next();
     if (!u->derivedFromGoal())
       continue;
 
     ASS(u->isClause());
-    Clause *c = u->asClause();
+    Clause* c = u->asClause();
+
+    df.premises = UnitList::empty(); // will get filled as we traverse and rewrite
+
+    newLits.reset();
     for (unsigned i = 0; i < c->size(); i++) {
-      Literal *l = c->literals()[i];
-      NonVariableNonTypeIterator subterms(l);
-      while (subterms.hasNext()) {
-        modified |= handleTerm(prb, subterms.next());
-      }
+      Literal* l = c->literals()[i];
+      // cout << "L: " << l->toString() << endl;
+      Literal* nl = df.transform(l);
+      // cout << "NL: " << nl->toString() << endl;
+      newLits.push(nl);
+    }
+    if (df.premises) {
+      UnitList::push(c,df.premises);
+      Clause* nc = Clause::fromStack(newLits,
+        NonspecificInferenceMany(InferenceRule::DEFINITION_FOLDING,df.premises));
+      u = nc; // replace the original in the Problem's list
     }
   }
-  if (modified) {
-    prb.reportFormulasAdded();
+  if (df.newUnits) {
+    prb.addUnits(df.newUnits);
     prb.reportEqualityAdded(false);
   }
-}
-
-bool Shell::Twee::handleTerm(Problem &prb, TermList tl)
-{
-  CALL("Twee:::handleTerm");
-  ASS(tl.isTerm());
-
-  Term *t = tl.term();
-  if (!t->ground() || t->arity() == 0 || !_seen.insert(t))
-    return false;
-
-  TermList sort = SortHelper::getResultSort(t);
-  OperatorType *type = OperatorType::getConstantsType(sort);
-  unsigned symbol = env.signature->addFreshFunction(0, "sF");
-  env.signature->getFunction(symbol)->setType(type);
-  TermList constant = TermList(Term::createConstant(symbol));
-  Literal *equation = Literal::createEquality(true, tl, constant, sort);
-  Inference inference(NonspecificInference0(
-      UnitInputType::AXIOM,
-      InferenceRule::DEFINITION_FOLDING));
-  Clause *clause = new (1) Clause(1, inference);
-  clause->literals()[0] = equation;
-
-  if(env.options->showPreprocessing()) {
-    env.out() << "[PP] twee: " << clause->toString() << std::endl;
-  }
-
-  prb.addUnits(new UnitList(clause));
-  return true;
 }
