@@ -295,7 +295,7 @@ void Monotonicity::addSortPredicates(bool withMon, ClauseList*& clauses, DArray<
    clauses = ClauseList::concat(clauses,newAxioms);
 }
 
-class SortFunctionTransformer : public TermTransformerTransformTransformed
+class SortFunctionTransformer : public BottomUpTermTransformer
 {
 public:
 SortFunctionTransformer(Literal* lit, 

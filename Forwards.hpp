@@ -207,7 +207,7 @@ class Matcher;
 typedef VirtualIterator<Matcher*> MatchIterator;
 
 class TermTransformer;
-class TermTransformerTransformTransformed;
+class BottomUpTermTransformer;
 class FormulaTransformer;
 class FormulaUnitTransformer;
 
