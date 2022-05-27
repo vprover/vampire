@@ -18,10 +18,6 @@ namespace Shell {
 class Twee {
 public:
   void apply(Kernel::Problem &);
-
-private:
-  bool handleTerm(Kernel::Problem &, Kernel::TermList t);
-  DHSet<Kernel::Term *> _seen;
 };
 
 };
