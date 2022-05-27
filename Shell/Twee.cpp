@@ -29,6 +29,7 @@
 #include "Kernel/Problem.hpp"
 #include "Kernel/TermIterators.hpp"
 #include "Kernel/TermTransformer.hpp"
+#include "Kernel/Renaming.hpp"
 
 #include "Twee.hpp"
 
@@ -45,6 +46,10 @@ using Kernel::UnitList;
  # - already encountered subterms reuse older definitions
  */
 class Definizator : public BottomUpTermTransformer {
+
+  bool _groundOnly;
+  Renaming _renaming;
+
   public: // so that Twee::apply can directly access
     // all the new definitions (as clauses) introduced along the way
     UnitList* newUnits;
@@ -56,14 +61,23 @@ class Definizator : public BottomUpTermTransformer {
     // for each relevant term, cache the introduced symbol and the corresponding definition
     DHMap<Term*,std::pair<unsigned,Unit*>> _cache;  
 
-    Definizator() : newUnits(UnitList::empty()) {}
+    Definizator(bool groundOnly) : _groundOnly(groundOnly), newUnits(UnitList::empty()) {}
 
   protected:
     TermList transformSubterm(TermList trm) override {
         cout << "tf: " << trm.toString() << endl;
         if (trm.isVar()) return trm;
         Term* t = trm.term();
-        if (t->isSort() || !t->ground() || t->arity() == 0) return trm;
+        if (t->isSort() || t->arity() == 0 || (!t->ground() && _groundOnly)) return trm;
+
+        if (!t->ground()) {
+          // as we go bottom up, t is never too big (well, it could be wide, but at least not deep)          
+          _renaming.reset();
+          _renaming.normalizeVariables(t);
+          Term* key = _renaming.apply(t);
+
+          // TODO: care about sorts?
+        }
         
         std::pair<unsigned,Unit*> symAndDef; 
         TermList res;
@@ -97,12 +111,12 @@ class Definizator : public BottomUpTermTransformer {
     }
 };
 
-void Shell::Twee::apply(Problem &prb)
+void Shell::Twee::apply(Problem &prb, bool groundOnly)
 {
   CALL("Twee::apply");
 
   Stack<Literal*> newLits;
-  Definizator df;
+  Definizator df(groundOnly);
 
   UnitList::RefIterator uit(prb.units());
   while (uit.hasNext()) {

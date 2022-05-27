@@ -349,13 +349,13 @@ void Preprocess::preprocess(Problem& prb)
      }
    }
 
-   if(env.options->twee()) {
+   if(env.options->twee() != Options::TweeGoalTransformation::OFF) {
      env.statistics->phase = Statistics::TWEE;
      if(env.options->showPreprocessing())
        env.out() << "twee" << std::endl;
 
      Twee twee;
-     twee.apply(prb);
+     twee.apply(prb,(env.options->twee() == Options::TweeGoalTransformation::GROUND));
    }
 
    if (!prb.higherOrder() && _options.equalityProxy()!=Options::EqualityProxy::OFF && prb.mayHaveEquality()) {

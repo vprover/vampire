@@ -461,7 +461,7 @@ void Options::init()
     _definitionReuse.addProblemConstraint(hasFormulas());
     _definitionReuse.tag(OptionTag::PREPROCESSING);
 
-    _twee = BoolOptionValue("twee_goal_transformation", "tgt", false);
+    _twee = ChoiceOptionValue<TweeGoalTransformation>("twee_goal_transformation", "tgt", TweeGoalTransformation::OFF, {"off","ground","full"});
     _twee.description =
       "Add definitions for all subterms in the conjecture, inspired by Twee.\n"
       "This reportedly adds a goal-directed flavour to equational reasoning.";

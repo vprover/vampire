@@ -17,7 +17,7 @@ namespace Shell {
 
 class Twee {
 public:
-  void apply(Kernel::Problem &);
+  void apply(Kernel::Problem &, bool grounOnly);
 };
 
 };
