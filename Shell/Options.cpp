@@ -1833,7 +1833,7 @@ void Options::init()
     _lookup.insert(&_globalSubsumption);
     _globalSubsumption.onlyUsefulWith(InferencingSaturationAlgorithm());
     _globalSubsumption.tag(OptionTag::INFERENCES);
-    _globalSubsumption.addProblemConstraint(mayHaveNonUnits());
+    // _globalSubsumption.addProblemConstraint(mayHaveNonUnits()); - this is too strict, think of a better one
     _globalSubsumption.setRandomChoices({"off","on"});
 
     _globalSubsumptionSatSolverPower = ChoiceOptionValue<GlobalSubsumptionSatSolverPower>("global_subsumption_sat_solver_power","gsssp",
