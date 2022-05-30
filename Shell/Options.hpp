@@ -611,8 +611,9 @@ public:
   enum class SplittingNonsplittableComponents : unsigned int {
     ALL = 0,
     ALL_DEPENDENT = 1,
-    KNOWN = 2,
-    NONE = 3
+    GROUND_UNITS = 2,
+    KNOWN = 3,
+    NONE = 4
   };
 
   enum class CCUnsatCores : unsigned int {
