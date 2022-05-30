@@ -51,7 +51,7 @@
 #include "LambdaElimination.hpp"
 #include "TheoryAxioms.hpp"
 #include "TheoryFlattening.hpp"
-#include "Twee.hpp"
+#include "TweeGoalTransformation.hpp"
 #include "BlockedClauseElimination.hpp"
 
 #include "UIHelper.hpp"

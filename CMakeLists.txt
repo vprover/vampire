@@ -593,7 +593,7 @@ set(VAMPIRE_SHELL_SOURCES
     Shell/BlockedClauseElimination.cpp
     Shell/Token.cpp
     Shell/TPTPPrinter.cpp
-    Shell/Twee.cpp
+    Shell/TweeGoalTransformation.cpp
     Shell/UIHelper.cpp
     Shell/VarManager.cpp
     Shell/Lexer.cpp
@@ -644,7 +644,7 @@ set(VAMPIRE_SHELL_SOURCES
     Shell/BlockedClauseElimination.hpp
     Shell/Token.hpp
     Shell/TPTPPrinter.hpp
-    Shell/Twee.hpp
+    Shell/TweeGoalTransformation.hpp
     Shell/UnificationWithAbstractionConfig.hpp
     Shell/UnificationWithAbstractionConfig.cpp
     Shell/UIHelper.hpp
