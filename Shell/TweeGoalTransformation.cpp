@@ -35,7 +35,7 @@
 #include "Kernel/TermTransformer.hpp"
 #include "Kernel/Renaming.hpp"
 
-#include "Twee.hpp"
+#include "TweeGoalTransformation.hpp"
 
 using Kernel::Clause;
 using Kernel::Literal;
