@@ -2119,6 +2119,7 @@ void Options::init()
        " solver returns unknown at any point";
     _lookup.insert(&_satFallbackForSMT);
     _satFallbackForSMT.tag(OptionTag::SAT);
+    _satFallbackForSMT.addProblemConstraint(hasTheories()); // Z3 won't be incomplete for pure FOL
     _satFallbackForSMT.onlyUsefulWith(_satSolver.is(equal(SatSolver::Z3)));
 
 #endif
