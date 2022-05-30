@@ -20,9 +20,13 @@
  * Simplification will rewrite the first axiom to f(sF1, b) = sF0 and the goal to sF0 = sF2.
  * -----
  * 
- * We take an intepretation of this for our purposes, NB:
- *  - any ground term, in a clause derived from the conjecture, is transformed in this way
- *  - introduced definitions are considered derived from the conjecture
+ * There are a few minor differences in our take on the idea:
+ * - the defitions are introduced bottum up and cached (so each subterm is only defined once)
+ * - the bottom-up approach also means the rules and the conjecture "are born" already inter-reduced
+ * - optionally, also non-ground subterms are considered, but never in the case this would not lead 
+ *  to a demodulator under the standard (constant weight) KBO: 
+ *  in particular linear terms such as f(X,Y,Z) are not defined
+ * - the implementation should work for polymorphic inputs
  */
 
 #include "Kernel/Clause.hpp"
@@ -41,17 +45,17 @@ using Kernel::UnitList;
 
 /*
  * The actual worker for the twee trick.
- # - evaluates conjucture literals bottom up (as orchestrated by Twee::apply)
+ # - evaluates conjucture literals bottom up (as orchestrated by TweeGoalTransformation::apply)
  # - and eagerly introduces new definitions for its subterms
  # - already encountered subterms reuse older definitions
  */
 class Definizator : public BottomUpTermTransformer {
-  public: // so that Twee::apply can directly access
+  public: // so that TweeGoalTransformation::apply can directly access
     // all the new definitions (as clauses) introduced along the way
     UnitList* newUnits;
 
     // accumlating the defining units as premises for the current "rewrite"
-    // (reset responsibility is with Twee::apply)
+    // (reset responsibility is with TweeGoalTransformation::apply)
     UnitList* premises;
 
     // for each relevant term, cache the introduced symbol and the corresponding definition
@@ -179,9 +183,9 @@ class Definizator : public BottomUpTermTransformer {
     }
 };
 
-void Shell::Twee::apply(Problem &prb, bool groundOnly)
+void Shell::TweeGoalTransformation::apply(Problem &prb, bool groundOnly)
 {
-  CALL("Twee::apply");
+  CALL("TweeGoalTransformation::apply");
 
   Stack<Literal*> newLits;
   Definizator df(groundOnly);

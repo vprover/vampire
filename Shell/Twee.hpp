@@ -8,18 +8,18 @@
  * and in the source directory
  */
 
-#ifndef __Twee__
-#define __Twee__
+#ifndef __TweeGoalTransformation__
+#define __TweeGoalTransformation__
 
 #include "Forwards.hpp"
 
 namespace Shell {
 
-class Twee {
+class TweeGoalTransformation {
 public:
   void apply(Kernel::Problem &, bool grounOnly);
 };
 
 };
 
-#endif /* __Twee__ */
+#endif /* __TweeGoalTransformation__ */
