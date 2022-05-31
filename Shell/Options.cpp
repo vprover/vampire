@@ -2229,8 +2229,12 @@ void Options::init()
     _lookup.insert(&_introducedSymbolPrecedence);
     _introducedSymbolPrecedence.tag(OptionTag::SATURATION);
 
-
-
+    _kboWeightGenerationScheme = ChoiceOptionValue<KboWeightGenerationScheme>("kbo_weight_scheme","kws",KboWeightGenerationScheme::CONST,
+                                          {"const"});
+    _kboWeightGenerationScheme.description = "Weight generation schemes from KBO inspired by E. This gets overriden by the function_weights option if used.";
+    _kboWeightGenerationScheme.setExperimental();
+    _kboWeightGenerationScheme.onlyUsefulWith(_termOrdering.is(equal(TermOrdering::KBO)));
+    _lookup.insert(&_kboWeightGenerationScheme);
 
     _kboAdmissabilityCheck = ChoiceOptionValue<KboAdmissibilityCheck>(
         "kbo_admissibility_check", "", KboAdmissibilityCheck::ERROR,
