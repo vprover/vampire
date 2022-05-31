@@ -1049,7 +1049,10 @@ void Options::init()
     _sineToAgeGeneralityThreshold.description = "Like sine_generality_threshold but influences sine_to_age, sine_to_pred_levels, and sine_level_split_queue rather than sine_selection.";
     _lookup.insert(&_sineToAgeGeneralityThreshold);
     _sineToAgeGeneralityThreshold.tag(OptionTag::SATURATION);
-    _sineToAgeGeneralityThreshold.onlyUsefulWith(Or(_sineToAge.is(equal(true)),_sineToPredLevels.is(notEqual(PredicateSineLevels::OFF))));
+    _sineToAgeGeneralityThreshold.onlyUsefulWith(Or(
+      _sineToAge.is(equal(true)),
+      _sineToPredLevels.is(notEqual(PredicateSineLevels::OFF)),
+      _useSineLevelSplitQueues.is(equal(true))));
 
     // Like generality threshold for SiNE, except used by the sine2age trick
     _sineToAgeTolerance = FloatOptionValue("sine_to_age_tolerance","s2at",1.0);
@@ -1058,7 +1061,10 @@ void Options::init()
     _sineToAgeTolerance.tag(OptionTag::SATURATION);
     _sineToAgeTolerance.addConstraint(Or(equal(0.0f),greaterThanEq(1.0f)));
     // Captures that if the value is not 1.0 then sineSelection must be on
-    _sineToAgeTolerance.onlyUsefulWith(Or(_sineToAge.is(equal(true)),_sineToPredLevels.is(notEqual(PredicateSineLevels::OFF))));
+    _sineToAgeTolerance.onlyUsefulWith(Or(
+      _sineToAge.is(equal(true)),
+      _sineToPredLevels.is(notEqual(PredicateSineLevels::OFF)),
+      _useSineLevelSplitQueues.is(equal(true))));
     _sineToAgeTolerance.setRandomChoices({"1.0","1.2","1.5","2.0","3.0","5.0"});
 
     _lrsFirstTimeCheck = IntOptionValue("lrs_first_time_check","",5);
@@ -1844,7 +1850,7 @@ void Options::init()
     _lookup.insert(&_globalSubsumption);
     _globalSubsumption.onlyUsefulWith(InferencingSaturationAlgorithm());
     _globalSubsumption.tag(OptionTag::INFERENCES);
-    _globalSubsumption.addProblemConstraint(mayHaveNonUnits());
+    // _globalSubsumption.addProblemConstraint(mayHaveNonUnits()); - this is too strict, think of a better one
     _globalSubsumption.setRandomChoices({"off","on"});
 
     _globalSubsumptionSatSolverPower = ChoiceOptionValue<GlobalSubsumptionSatSolverPower>("global_subsumption_sat_solver_power","gsssp",
@@ -2130,6 +2136,7 @@ void Options::init()
        " solver returns unknown at any point";
     _lookup.insert(&_satFallbackForSMT);
     _satFallbackForSMT.tag(OptionTag::SAT);
+    _satFallbackForSMT.addProblemConstraint(hasTheories()); // Z3 won't be incomplete for pure FOL
     _satFallbackForSMT.onlyUsefulWith(_satSolver.is(equal(SatSolver::Z3)));
 
 #endif
