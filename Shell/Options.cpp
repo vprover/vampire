@@ -2070,7 +2070,7 @@ void Options::init()
 
     _splittingNonsplittableComponents = ChoiceOptionValue<SplittingNonsplittableComponents>("avatar_nonsplittable_components","anc",
                                                                                               SplittingNonsplittableComponents::KNOWN,
-                                                                                              {"all","all_dependent","ground_units","known","none"});
+                                                                                              {"all","all_dependent","known","none"});
     _splittingNonsplittableComponents.description=
     "Decide what to do with a nonsplittable component:\n"
     "  -known: SAT clauses will be learnt from non-splittable clauses that have corresponding components (if there is a component C with name SAT l, clause C | {l1,..ln} will give SAT clause ~l1 \\/ … \\/ ~ln \\/ l). When we add the sat clause, we discard the original FO clause C | {l1,..ln} and let the component selection update model, possibly adding the component clause C | {l}.\n"

@@ -872,11 +872,10 @@ bool Splitter::shouldAddClauseForNonSplittable(Clause* cl, unsigned& compName, C
 {
   CALL("Splitter::shouldAddClauseForNonSplittable");
   
-  if(((_congruenceClosure != Options::SplittingCongruenceClosure::OFF)
+  if((_congruenceClosure != Options::SplittingCongruenceClosure::OFF
 #if VZ3
       || hasSMTSolver
 #endif
-      || (_nonsplComps == Options::SplittingNonsplittableComponents::GROUND_UNITS)
       )
       && cl->length()==1 && (*cl)[0]->ground() ) {
     //we add ground unit clauses if we use congruence closure...
