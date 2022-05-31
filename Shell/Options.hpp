@@ -700,6 +700,10 @@ public:
     CONVERGE
   };
 
+  enum class KboWeightGenerationScheme : unsigned int {
+    CONST = 0,
+  };
+
   enum class KboAdmissibilityCheck : unsigned int {
     ERROR = 0,
     WARNING = 1,
@@ -2194,6 +2198,7 @@ public:
   SymbolPrecedence symbolPrecedence() const { return _symbolPrecedence.actualValue; }
   SymbolPrecedenceBoost symbolPrecedenceBoost() const { return _symbolPrecedenceBoost.actualValue; }
   IntroducedSymbolPrecedence introducedSymbolPrecedence() const { return _introducedSymbolPrecedence.actualValue; }
+  KboWeightGenerationScheme kboWeightGenerationScheme() const { return _kboWeightGenerationScheme.actualValue; }
   const KboAdmissibilityCheck kboAdmissabilityCheck() const { return _kboAdmissabilityCheck.actualValue; }
   const vstring& functionWeights() const { return _functionWeights.actualValue; }
   const vstring& predicateWeights() const { return _predicateWeights.actualValue; }
@@ -2727,6 +2732,7 @@ private:
   ChoiceOptionValue<SymbolPrecedenceBoost> _symbolPrecedenceBoost;
   ChoiceOptionValue<IntroducedSymbolPrecedence> _introducedSymbolPrecedence;
   ChoiceOptionValue<EvaluationMode> _evaluationMode;
+  ChoiceOptionValue<KboWeightGenerationScheme> _kboWeightGenerationScheme;
   ChoiceOptionValue<KboAdmissibilityCheck> _kboAdmissabilityCheck;
   StringOptionValue _functionWeights;
   StringOptionValue _predicateWeights;
