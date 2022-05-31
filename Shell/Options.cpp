@@ -1220,6 +1220,21 @@ void Options::init()
     _arithmeticSubtermGeneralizations.addProblemConstraint(hasTheories());
     _arithmeticSubtermGeneralizations.tag(OptionTag::INFERENCES);
 
+    _evaluationMode = ChoiceOptionValue<EvaluationMode>("evaluation","ev",
+                                                        EvaluationMode::SIMPLE,
+                                                        {"simple","force","cautious"});
+    _evaluationMode.description=
+    "Chooses the algorithm used to simplify interpreted integer, rational, and real terms. \
+                                 \
+    - simple: will only evaluate expressions built from interpreted constants only.\
+    - cautious: will evaluate abstract expressions to a weak polynomial normal form. This is more powerful but may fail in some rare cases where the resulting polynomial is not strictly smaller than the initial one wrt. the simplification ordering. In these cases a new clause with the normal form term will be added to the search space instead of replacing the orignal clause.  \
+    - force: same as `cautious`, but ignoring the simplification ordering and replacing the hypothesis with the normal form clause in any case. \
+    ";
+    _lookup.insert(&_evaluationMode);
+    _evaluationMode.addProblemConstraint(hasTheories());
+    _evaluationMode.tag(OptionTag::SATURATION);
+    _evaluationMode.setExperimental();
+
     _induction = ChoiceOptionValue<Induction>("induction","ind",Induction::NONE,
                       {"none","struct","int","both"});
     _induction.description = "Apply structural and/or integer induction on datatypes and integers.";
@@ -2214,25 +2229,13 @@ void Options::init()
     _lookup.insert(&_introducedSymbolPrecedence);
     _introducedSymbolPrecedence.tag(OptionTag::SATURATION);
 
-    _evaluationMode = ChoiceOptionValue<EvaluationMode>("evaluation","ev",
-                                                        EvaluationMode::SIMPLE,
-                                                        {"simple","force","cautious"});
-    _evaluationMode.description=
-    "Choses the algorithm used to simplify interpreted integer, rational, and real terms. \
-                                 \
-    - simple: will only evaluate expressions built from interpreted constants only.\
-    - cautious: will evaluate abstract expressions to a weak polynomial normal form. This is more powerful but may fail in some rare cases where the resulting polynomial is not strictly smaller than the initial one wrt. the simplification ordering. In these cases a new clause with the normal form term will be added to the search space instead of replacing the orignal clause.  \
-    - force: same as `cautious`, but ignoring the simplificaiton ordering and replacing the hypothesis with the normal form clause in any case. \
-    ";
-    _lookup.insert(&_evaluationMode);
-    _evaluationMode.tag(OptionTag::SATURATION);
-    _evaluationMode.setExperimental();
+
 
 
     _kboAdmissabilityCheck = ChoiceOptionValue<KboAdmissibilityCheck>(
         "kbo_admissibility_check", "", KboAdmissibilityCheck::ERROR,
                                      {"error","warning" });
-    _kboAdmissabilityCheck.description = "Choose to emmit a warning instead of throwing an exception if the weight function and precedence ordering for kbo are not compatible.";
+    _kboAdmissabilityCheck.description = "Choose to emit a warning instead of throwing an exception if the weight function and precedence ordering for kbo are not compatible.";
     _kboAdmissabilityCheck.setExperimental();
     _kboAdmissabilityCheck.onlyUsefulWith(_termOrdering.is(equal(TermOrdering::KBO)));
     _lookup.insert(&_kboAdmissabilityCheck);
