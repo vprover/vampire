@@ -17,6 +17,8 @@
 
 #include "TermTransformer.hpp"
 #include "FormulaTransformer.hpp"
+#include "BottomUpEvaluation.hpp"
+#include "BottomUpEvaluation/TermList.hpp"
 
 namespace Kernel
 {
@@ -251,85 +253,103 @@ Formula* TermTransformer::transform(Formula* f)
 Term* BottomUpTermTransformer::transform(Term* term)
 {
   CALL("BottomUpTermTransformer::transform(Term* term)");
-  ASS(term->shared());
+  struct Eval {
+    BottomUpTermTransformer& self;
 
-  static Stack<TermList*> toDo(8);
-  static Stack<Term*> terms(8);
-  static Stack<TermList> args(8);
-  /* all stacks must be reset since the function might have been aborted by an exception */
-  args.reset();
-  terms.reset();
-  toDo.reset(); 
+    using Arg   = TermList;
+    using Result = TermList;
 
-  toDo.push(term->args());
-
-  // cout << "transform " << lit->toString() << endl;
-
-  for(;;) {
-    TermList* tt=toDo.pop();
-    if(tt->isEmpty()) {
-      // cout << "empty "  << endl;
-
-      if(terms.isEmpty()) {
-        //we're done, args stack contains modified arguments
-        //of the literal.
-        ASS(toDo.isEmpty());
-        break;
-      }
-      Term* orig=terms.pop();
-
-      // cout << "term popped " << orig->toString() << endl;
-
-      TermList* argLst = 0;
-      if (orig->arity()) {
-        //here we assume, that stack is an array with
-        //second topmost element as &top()-1, third at
-        //&top()-2, etc...
-        argLst=&args.top() - (orig->arity()-1);
-        args.truncate(args.length() - orig->arity());
-      }
-
-      // cout << "args.length() - orig->arity() = " << args.length() - orig->arity() << endl;
-      if(orig->isSort()){
-        //For most applications we probably dont want to transform sorts
-        //however, we don't enforce that here, inheriting classes can decide
-        //for themselves
-        args.push(transformSubterm(TermList(AtomicSort::create(static_cast<AtomicSort*>(orig),argLst))));
+    TermList operator()(TermList toEval, TermList* evaluatedArgs) 
+    { 
+      if (toEval.isTerm()) {
+        ASS_REP(toEval.term()->numTypeArguments() == 0, toEval) // TODO
+        return self.transformSubterm(TermList(Term::create(toEval.term(), evaluatedArgs))); 
       } else {
-        args.push(transformSubterm(TermList(Term::create(orig,argLst))));
+        return self.transformSubterm(toEval);
       }
-      continue;
-    } else {
-      toDo.push(tt->next());
     }
+  };
 
-    // cout << "Non-empty: " <<  tt->toString() << endl;
-
-    TermList tl=*tt;
-    if(tl.isVar()) {
-      TermList dest=transformSubterm(tl);
-      args.push(dest);
-      continue;
-    }
-    ASS(tl.isTerm());
-    Term* t=tl.term();
-    terms.push(t);
-    toDo.push(t->args());
-  }
-  ASS(toDo.isEmpty());
-  ASS(terms.isEmpty());
-  ASS_EQ(args.length(), term->arity());
-
-  ASS_EQ(args.size(), term->arity());
-  //here we assume, that stack is an array with
-  //second topmost element as &top()-1, third at
-  //&top()-2, etc...
-  TermList* argLst=&args.top() - (term->arity() - 1);
-  if (term->isLiteral()) {
-    return Literal::create(static_cast<Literal*>(term), argLst);
-  } else {
-    return Term::create(term, argLst);
-  }
+  return evaluateBottomUp(TermList(term), Eval { *this }).term();
+  // ASS(term->shared());
+  //
+  // static Stack<TermList*> toDo(8);
+  // static Stack<Term*> terms(8);
+  // static Stack<TermList> args(8);
+  // /* all stacks must be reset since the function might have been aborted by an exception */
+  // args.reset();
+  // terms.reset();
+  // toDo.reset(); 
+  //
+  // toDo.push(term->args());
+  //
+  // // cout << "transform " << lit->toString() << endl;
+  //
+  // for(;;) {
+  //   TermList* tt=toDo.pop();
+  //   if(tt->isEmpty()) {
+  //     // cout << "empty "  << endl;
+  //
+  //     if(terms.isEmpty()) {
+  //       //we're done, args stack contains modified arguments
+  //       //of the literal.
+  //       ASS(toDo.isEmpty());
+  //       break;
+  //     }
+  //     Term* orig=terms.pop();
+  //
+  //     // cout << "term popped " << orig->toString() << endl;
+  //
+  //     TermList* argLst = 0;
+  //     if (orig->arity()) {
+  //       //here we assume, that stack is an array with
+  //       //second topmost element as &top()-1, third at
+  //       //&top()-2, etc...
+  //       argLst=&args.top() - (orig->arity()-1);
+  //       args.truncate(args.length() - orig->arity());
+  //     }
+  //
+  //     // cout << "args.length() - orig->arity() = " << args.length() - orig->arity() << endl;
+  //     if(orig->isSort()){
+  //       //For most applications we probably dont want to transform sorts
+  //       //however, we don't enforce that here, inheriting classes can decide
+  //       //for themselves
+  //       args.push(transformSubterm(TermList(AtomicSort::create(static_cast<AtomicSort*>(orig),argLst))));
+  //     } else {
+  //       args.push(transformSubterm(TermList(Term::create(orig,argLst))));
+  //     }
+  //     continue;
+  //   } else {
+  //     toDo.push(tt->next());
+  //   }
+  //
+  //   // cout << "Non-empty: " <<  tt->toString() << endl;
+  //
+  //   TermList tl=*tt;
+  //   if(tl.isVar()) {
+  //     TermList dest=transformSubterm(tl);
+  //     args.push(dest);
+  //     continue;
+  //   }
+  //   ASS(tl.isTerm());
+  //   Term* t=tl.term();
+  //   terms.push(t);
+  //   toDo.push(t->args());
+  // }
+  // ASS(toDo.isEmpty());
+  // ASS(terms.isEmpty());
+  // ASS_EQ(args.length(), term->arity());
+  //
+  // ASS_EQ(args.size(), term->arity());
+  // //here we assume, that stack is an array with
+  // //second topmost element as &top()-1, third at
+  // //&top()-2, etc...
+  // TermList* argLst=&args.top() - (term->arity() - 1);
+  // if (term->isLiteral()) {
+  //   return Literal::create(static_cast<Literal*>(term), argLst);
+  // } else {
+  //   return Term::create(term, argLst);
+  // }
 }
 
 Literal* BottomUpTermTransformer::transform(Literal* lit)
