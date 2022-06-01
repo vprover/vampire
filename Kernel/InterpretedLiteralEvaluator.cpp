@@ -1561,8 +1561,9 @@ TermList InterpretedLiteralEvaluator::transformSubterm(TermList trm)
   // DEBUG( "transformSubterm for ", trm.toString() );
 
   //Nothing to evaluate in a sort
-  if (!trm.isTerm() || trm.term()->isSort()) { return trm; }
+  if (!trm.isTerm()) { return trm; }
   Term* t = trm.term();
+  ASS(!t->isSort())
   unsigned func = t->functor();
 
   Evaluator* funcEv = getFuncEvaluator(func);

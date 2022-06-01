@@ -17,6 +17,7 @@
 using namespace Kernel;
 using namespace Inferences;
 using namespace Test;
+using Lib::TermListEvalWithoutSorts;
 
 TEST_FUN(example_01__replace_all_vars_by_term) {
   /* syntax sugar imports */
@@ -31,7 +32,7 @@ TEST_FUN(example_01__replace_all_vars_by_term) {
   struct Eval {
     TermList replacement;
 
-    using Arg    = TermList;
+    using Arg    = TermListEvalWithoutSorts;
     using Result = TermList;
 
     TermList operator()(TermList toEval, TermList* evaluatedChildren) {
@@ -49,7 +50,7 @@ TEST_FUN(example_01__replace_all_vars_by_term) {
   TermList expected = g(f(a), a);
 
   /* actual evaluation */
-  TermList result =  evaluateBottomUp(input, Eval{a});
+  TermList result =  evaluateBottomUp(TermListEvalWithoutSorts(input), Eval{a});
 
   ASS_EQ(result, expected)
 }
@@ -64,7 +65,7 @@ TEST_FUN(example_02__compute_size) {
   /* defines how to evaluate bottom up. 
    * computes the size of the term (number of function & variable symbols) */
   struct Eval {
-    using Arg    = TermList;
+    using Arg    = TermListEvalWithoutSorts;
     using Result = unsigned;
 
     unsigned operator()(TermList toEval, unsigned* evaluatedChildren) {
@@ -92,7 +93,7 @@ TEST_FUN(example_02__compute_size) {
 
   /* actual evaluation */
   Memo::Hashed<TermList, unsigned> memo{};
-  auto size =  evaluateBottomUp(input, Eval{}, memo);
+  auto size =  evaluateBottomUp(TermListEvalWithoutSorts(input), Eval{}, memo);
 
   ASS_EQ(size, 6)
 }

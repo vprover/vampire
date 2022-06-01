@@ -15,20 +15,23 @@
 
 namespace Lib {
 
+class TermListEvalWithoutSorts : public Kernel::TermList 
+{ public: explicit TermListEvalWithoutSorts(Kernel::TermList t) : Kernel::TermList(t) {} };
+
 // iterate up through TermLists, ignoring sort arguments
 template<>
-struct BottomUpChildIter<Kernel::TermList>
+struct BottomUpChildIter<TermListEvalWithoutSorts>
 {
-  Kernel::TermList _self;
+  TermListEvalWithoutSorts _self;
   unsigned _idx;
 
-  BottomUpChildIter(Kernel::TermList self) : _self(self), _idx(0)
+  BottomUpChildIter(TermListEvalWithoutSorts self) : _self(self), _idx(0)
   { }
 
-  Kernel::TermList next() 
+  TermListEvalWithoutSorts next() 
   {
     ASS(hasNext());
-    return _self.term()->termArg(_idx++);
+    return TermListEvalWithoutSorts(_self.term()->termArg(_idx++));
   }
 
   bool hasNext() const 
@@ -37,7 +40,36 @@ struct BottomUpChildIter<Kernel::TermList>
   unsigned nChildren() const 
   { return _self.isVar() ? 0 : _self.term()->numTermArguments(); }
 
-  Kernel::TermList self() const 
+  TermListEvalWithoutSorts self() const 
+  { return _self; }
+};
+
+class TermListEvalWithSorts    : public Kernel::TermList 
+{ public: explicit TermListEvalWithSorts   (Kernel::TermList t) : Kernel::TermList(t) {} };
+
+// iterate up through TermLists, including sort arguments
+template<>
+struct BottomUpChildIter<TermListEvalWithSorts>
+{
+  TermListEvalWithSorts _self;
+  unsigned _idx;
+
+  BottomUpChildIter(TermListEvalWithSorts self) : _self(self), _idx(0)
+  { }
+
+  TermListEvalWithSorts next() 
+  {
+    ASS(hasNext());
+    return TermListEvalWithSorts(_self.term()->termArg(_idx++));
+  }
+
+  bool hasNext() const 
+  { return _self.isTerm() && _idx < _self.term()->numTermArguments(); }
+
+  unsigned nChildren() const 
+  { return _self.isVar() ? 0 : _self.term()->arity(); }
+
+  TermListEvalWithSorts self() const 
   { return _self; }
 };
 

@@ -256,13 +256,13 @@ Term* BottomUpTermTransformer::transform(Term* term)
   struct Eval {
     BottomUpTermTransformer& self;
 
-    using Arg   = TermList;
+    using Arg    = TermListEvalWithSorts;
     using Result = TermList;
 
     TermList operator()(TermList toEval, TermList* evaluatedArgs) 
     { 
       if (toEval.isTerm()) {
-        ASS_REP(toEval.term()->numTypeArguments() == 0, toEval) // TODO
+        // ASS_REP(toEval.term()->numTypeArguments() == 0, toEval) // TODO
         return self.transformSubterm(TermList(Term::create(toEval.term(), evaluatedArgs))); 
       } else {
         return self.transformSubterm(toEval);
@@ -270,7 +270,7 @@ Term* BottomUpTermTransformer::transform(Term* term)
     }
   };
 
-  return evaluateBottomUp(TermList(term), Eval { *this }).term();
+  return evaluateBottomUp(TermListEvalWithSorts(TermList(term)), Eval { *this }).term();
   // ASS(term->shared());
   //
   // static Stack<TermList*> toDo(8);

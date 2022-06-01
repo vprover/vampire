@@ -835,7 +835,7 @@ struct ToZ3Expr
   Z3Interfacing& self;
   Stack<z3::expr> _defs;
 
-  using Arg    = TermList;
+  using Arg    = TermListEvalWithoutSorts;
   using Result = z3::expr;
 
   z3::expr operator()(TermList toEval, z3::expr* args)
@@ -1122,7 +1122,7 @@ Z3Interfacing::Representation Z3Interfacing::getRepresentation(Term* trm)
 {
   CALL("Z3Interfacing::getRepresentation(Term*)");
   Stack<z3::expr> defs;
-  auto expr = evaluateBottomUp(TermList(trm), ToZ3Expr{ *this, defs });
+  auto expr = evaluateBottomUp(TermListEvalWithoutSorts(TermList(trm)), ToZ3Expr{ *this, defs });
   return Representation(expr, std::move(defs));
 }
 
