@@ -54,6 +54,7 @@ public:
   static TermList getResultSortMono(const Term* t);
   static TermList getResultSort(TermList t, DHMap<unsigned,TermList>& varSorts);
   static TermList getArgSort(Term* t, unsigned argIndex);
+  static TermList getTermArgSort(Term* t, unsigned argIndex);
 
   static bool tryGetResultSort(const Term* t, TermList& result);
   static bool tryGetResultSort(const TermList t, TermList& result);

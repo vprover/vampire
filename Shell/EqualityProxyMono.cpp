@@ -36,9 +36,9 @@ using namespace std;
 using namespace Lib;
 using namespace Kernel;
 
-DHMap<TermList,unsigned> EqualityProxyMono::s_proxyPredicates;
-DHMap<unsigned,TermList> EqualityProxyMono::s_proxyPredicateSorts;
-ZIArray<Unit*> EqualityProxyMono::s_proxyPremises;
+DHMap<TermList, unsigned> EqualityProxyMono::s_proxyPredicates;
+DHMap<unsigned, TermList> EqualityProxyMono::s_proxyPredicateSorts;
+DHMap<TermList, Unit*> EqualityProxyMono::s_proxyPremises;
 
 /**
  * Constructor, simply memorizes the value of the equality proxy option.
@@ -156,7 +156,7 @@ void EqualityProxyMono::addAxioms(UnitList*& units)
     addCongruenceAxioms(units);
   }
 
-  DHMap<TermList,unsigned>::Iterator it(s_proxyPredicates);
+  DHMap<TermList, unsigned>::Iterator it(s_proxyPredicates);
   while(it.hasNext()) {
     addLocalAxioms(units, it.nextKey());
   }
@@ -270,7 +270,7 @@ Clause* EqualityProxyMono::apply(Clause* cl)
       ASS(lit->isEquality());
       modified = true;
       TermList srt = s_proxyPredicateSorts.get(rlit->functor());
-      Unit* prem = s_proxyPremises[srt.term()->functor()];
+      Unit* prem = s_proxyPremises.get(srt);
       proxyPremises.push(prem);
     }
   }
@@ -342,9 +342,9 @@ bool EqualityProxyMono::haveProxyPredicate(TermList sort) const
 unsigned EqualityProxyMono::getProxyPredicate(TermList sort)
 {
   CALL("EqualityProxyMono::getProxyPredicate");
-
+  
   unsigned pred;
-  if (s_proxyPredicates.find(sort,pred)) {
+  if (s_proxyPredicates.find(sort, pred)) {
     return pred;
   }
 
@@ -368,7 +368,7 @@ unsigned EqualityProxyMono::getProxyPredicate(TermList sort)
 
   FormulaUnit* defUnit = new FormulaUnit(quantDefForm,NonspecificInference0(UnitInputType::AXIOM,InferenceRule::EQUALITY_PROXY_AXIOM1));
 
-  s_proxyPremises[sort.term()->functor()] = defUnit;
+  s_proxyPremises.insert(sort, defUnit);
   InferenceStore::instance()->recordIntroducedSymbol(defUnit, false, newPred);
   return newPred;
 }
@@ -396,7 +396,7 @@ Clause* EqualityProxyMono::createEqProxyAxiom(const LiteralStack& literalStack)
     if (!sorts.insert(srt)) {
       continue;
     }
-    Unit* prem = s_proxyPremises[srt.term()->functor()];
+    Unit* prem = s_proxyPremises.get(srt);
     ASS(prem);
     UnitList::push(prem, prems);
   }

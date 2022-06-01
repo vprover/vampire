@@ -243,7 +243,7 @@ template<class ConstantType>
 NormalizationResult wrapNumeral(ConstantType c) 
 { 
   using NumTraits = NumTraits<ConstantType>;
-  PolyNf numPolyNf(PolyNf(perfect(FuncTerm(FuncId(NumTraits::constantT(c)->functor()), nullptr))));
+  PolyNf numPolyNf(PolyNf(perfect(FuncTerm(FuncId::symbolOf(NumTraits::constantT(c)), nullptr))));
   return NormalizationResult(MonomFactors<NumTraits>(numPolyNf));
 }
 
@@ -282,8 +282,7 @@ NormalizationResult normalizeNumSort(TermList t, NormalizationResult* ts)
 
   } else {
     auto term = t.term();
-    auto fn = FuncId(term->functor());
-
+    auto fn = FuncId::symbolOf(term);
     if (fn.isInterpreted()) {
       switch(fn.interpretation()) {
         case NumTraits::mulI:
@@ -308,13 +307,18 @@ NormalizationResult normalizeNumSort(TermList t, NormalizationResult* ts)
     return singletonProduct(PolyNf(perfect(FuncTerm(
         fn, 
         Stack<PolyNf>::fromIterator(
-            iterTraits(getArrayishObjectIterator<mut_ref_t>(ts, fn.arity()))
+            iterTraits(getArrayishObjectIterator<mut_ref_t>(ts, fn.numTermArguments()))
             .map( [](NormalizationResult& r) -> PolyNf { return std::move(r).apply(RenderPolyNf{}); }))
       )
     )));
   }
 }
 
+#define PRINT_AND_RETURN(...)                                                                                 \
+  auto f = [&](){ __VA_ARGS__ };                                                                              \
+  auto out = f();                                                                                             \
+  DBG("out : ", out);                                                                                         \
+  return out;                                                                                                 \
 
 PolyNf normalizeTerm(TypedTermList t) 
 {
@@ -337,16 +341,17 @@ PolyNf normalizeTerm(TypedTermList t)
         if (t.isVar()) {
           return NormalizationResult(PolyNf(Variable(t.var())));
         } else {
-          auto fn = FuncId(t.term()->functor());
+          auto fn = FuncId::symbolOf(t.term());
           return NormalizationResult(PolyNf(perfect(FuncTerm(
               fn, 
               Stack<PolyNf>::fromIterator(
-                  iterTraits(getArrayishObjectIterator<mut_ref_t>(ts, fn.arity()))
+                  iterTraits(getArrayishObjectIterator<mut_ref_t>(ts, fn.numTermArguments()))
                   .map( [](NormalizationResult& r) -> PolyNf { return std::move(r).apply(RenderPolyNf{}); }))
             )
           )));
         }
       }
+
     }
   };
   NormalizationResult r = evaluateBottomUp(t, Eval{}, memo);
@@ -364,7 +369,7 @@ TermList PolyNf::denormalize() const
 
     TermList operator()(PolyNf orig, TermList* results)
     { return orig.match(
-        [&](Perfect<FuncTerm> t) { return TermList(Term::create(t->function().id(), t->arity(), results)); },
+        [&](Perfect<FuncTerm> t) { return TermList(Term::create(t->function().id(), t->numTermArguments(), results)); },
         [&](Variable          v) { return TermList::var(v.id()); },
         [&](AnyPoly           p) { return p.denormalize(results); }
         ); }

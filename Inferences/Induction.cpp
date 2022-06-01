@@ -366,11 +366,10 @@ void InductionClauseIterator::processLiteral(Clause* premise, Literal* lit)
   if(InductionHelper::isInductionLiteral(lit)){
       Set<Term*> ta_terms;
       Set<Term*> int_terms;
-      //TODO this should be a non-variable non-type iterator it seems
-      SubtermIterator it(lit);
+
+      NonVariableNonTypeIterator it(lit);
       while(it.hasNext()){
         TermList ts = it.next();
-        if(!ts.isTerm()){ continue; }
         unsigned f = ts.term()->functor(); 
         if(InductionHelper::isInductionTermFunctor(f)){
           if(InductionHelper::isStructInductionOn() && InductionHelper::isStructInductionFunctor(f)){
