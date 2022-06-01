@@ -2230,7 +2230,7 @@ void Options::init()
     _introducedSymbolPrecedence.tag(OptionTag::SATURATION);
 
     _kboWeightGenerationScheme = ChoiceOptionValue<KboWeightGenerationScheme>("kbo_weight_scheme","kws",KboWeightGenerationScheme::CONST,
-                                          {"const"});
+                                          {"const","random"});
     _kboWeightGenerationScheme.description = "Weight generation schemes from KBO inspired by E. This gets overriden by the function_weights option if used.";
     _kboWeightGenerationScheme.setExperimental();
     _kboWeightGenerationScheme.onlyUsefulWith(_termOrdering.is(equal(TermOrdering::KBO)));
@@ -2247,11 +2247,9 @@ void Options::init()
 
     _functionWeights = StringOptionValue("function_weights","fw","");
     _functionWeights.description = 
-      "Path to a file that defines weights for KBO for function symbols, or 'random'.\n"
+      "Path to a file that defines weights for KBO for function symbols.\n"
       "\n"
-      "If 'random' is used the weights will be assigned randomly.\n"
-      "\n"
-      "If the option is a file path, each line in the file is expected to contain a function name, followed by the functions arity, and a positive integer, that specifies symbols weight.\n"
+      "Each line in the file is expected to contain a function name, followed by the functions arity, and a positive integer, that specifies symbols weight.\n"
       "\n"
       "Additionally there are special values that can be specified:\n"
       "- `$default    <number>` specifies the default symbol weight, that is used for all symbols not present in the file (if not specified 0 is used)\n"

@@ -354,12 +354,18 @@ template<class SigTraits>
 KboWeightMap<SigTraits> KBO::weightsFromOpts(const Options& opts) const 
 {
   auto& str = SigTraits::weightFileName(opts);
-  if (str.empty()) {
-    return KboWeightMap<SigTraits>::dflt();
-  } else if (str == SPECIAL_WEIGHT_FILENAME_RANDOM) {
-    return KboWeightMap<SigTraits>::randomized();
-  } else {
+
+  if (!str.empty()) {
     return weightsFromFile<SigTraits>(opts);
+  } else {
+    switch (opts.kboWeightGenerationScheme()) {
+    case Options::KboWeightGenerationScheme::CONST:
+      return KboWeightMap<SigTraits>::dflt();
+    case Options::KboWeightGenerationScheme::RANDOM:
+      return KboWeightMap<SigTraits>::randomized();
+    default:
+      NOT_IMPLEMENTED;
+    }
   }
 }
 
@@ -733,7 +739,7 @@ KboWeightMap<FuncSigTraits> KboWeightMap<FuncSigTraits>::randomized(unsigned max
   using SigTraits = FuncSigTraits;
   auto nSym = SigTraits::nSymbols();
 
-  unsigned variableWeight   = random(1,              maxWeight);
+  unsigned variableWeight   = 1;
   unsigned introducedWeight = random(variableWeight, maxWeight);
   unsigned numInt           = random(variableWeight, maxWeight);
   unsigned numRat           = random(variableWeight, maxWeight);
