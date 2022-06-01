@@ -748,34 +748,33 @@ TEST_GENERATION_INDUCTION(test_20,
 // given a suitable strictness, induction is applied on a term occuring only
 // as one of the top-level arguments of "<"
 // (any strictness with comparison strictness = none, term strictness in {none, interpreted_constant} works the same)
-// TEST_GENERATION_INDUCTION(test_21,
-//     Generation::TestCase()
-//       .options({
-//         { "induction", "int" },
-//         { "int_induction_strictness_eq",   "always" },
-//         { "int_induction_strictness_comp", "none" },
-//         { "show_induction", "on" },
-//       })
-//       .context({ clause({ ~(sK6 < num(1)) }) })
-//       .indices(getIndices())
-//       .input( clause({ ~(bi < sK6) }) )
-//       .expected({
-//         // input used as main literal
-//         clause({ ~(bi < num(1)), ~(skx0 < num(1)) }),
-//         clause({ ~(bi < num(1)), bi < skx0 }),
-//         clause({ ~(bi < num(1)), ~(bi < skx0+1) }),
-//         // context used as main literal
-//         clause({ ~(bi < num(1)), ~(bi < skx1) }),
-//         clause({ ~(bi < num(1)), skx1 < num(1) }),
-//         clause({ ~(bi < num(1)), ~(skx1+num(-1) < num(1)) }),
-//       })
-//       .preConditions({ TEST_FN_ASS_EQ(env.statistics->inductionApplication, 0),
-//                        TEST_FN_ASS_EQ(env.statistics->intInfUpInduction, 0),
-//                        TEST_FN_ASS_EQ(env.statistics->intInfDownInduction, 0) })
-//       .postConditions({ TEST_FN_ASS_EQ(env.statistics->inductionApplication, 2),
-//                         TEST_FN_ASS_EQ(env.statistics->intInfUpInduction, 1),
-//                         TEST_FN_ASS_EQ(env.statistics->intInfDownInduction, 1) })
-//     )
+TEST_GENERATION_INDUCTION(test_21,
+    Generation::TestCase()
+      .options({
+        { "induction", "int" },
+        { "int_induction_strictness_eq",   "always" },
+        { "int_induction_strictness_comp", "none" },
+      })
+      .context({ clause({ ~(sK6 < num(1)) }) })
+      .indices(getIndices())
+      .input( clause({ ~(bi < sK6) }) )
+      .expected({
+        // input used as main literal
+        clause({ ~(bi < num(1)), ~(skx0 < num(1)) }),
+        clause({ ~(bi < num(1)), bi < skx0 }),
+        clause({ ~(bi < num(1)), ~(bi < skx0+1) }),
+        // context used as main literal
+        clause({ ~(bi < num(1)), ~(bi < skx1) }),
+        clause({ ~(bi < num(1)), skx1 < num(1) }),
+        clause({ ~(bi < num(1)), ~(skx1+num(-1) < num(1)) }),
+      })
+      .preConditions({ TEST_FN_ASS_EQ(env.statistics->inductionApplication, 0),
+                       TEST_FN_ASS_EQ(env.statistics->intInfUpInduction, 0),
+                       TEST_FN_ASS_EQ(env.statistics->intInfDownInduction, 0) })
+      .postConditions({ TEST_FN_ASS_EQ(env.statistics->inductionApplication, 2),
+                        TEST_FN_ASS_EQ(env.statistics->intInfUpInduction, 1),
+                        TEST_FN_ASS_EQ(env.statistics->intInfDownInduction, 1) })
+    )
 
 // given the default strictness, induction is applied on a term occuring in only
 // one of the arguments of "<", but not to a term occuring only as a top-level

@@ -59,12 +59,10 @@ public:
       if (cls.isEmpty()) {
         return;
       }
-      // Each clause is used immediately upon creation but
-      // their memory will be reused by Vampire if their
-      // store is NONE and all their descendants are deleted
-      // due to simplifications, so we change them to active.
+      // Increase refcount of each clause so that no deallocation
+      // occurs due to all children being redundant.
       for (const auto& cl : cls) {
-        cl->setStore(Clause::ACTIVE);
+        cl->incRefCnt();
       }
       _st.push(make_pair(cls, subst));
     }

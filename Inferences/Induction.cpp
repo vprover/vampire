@@ -1278,15 +1278,20 @@ bool InductionClauseIterator::notDoneInt(InductionContext context, Literal* boun
 {
   CALL("InductionClauseIterator::notDoneInt");
   TermList ph(getPlaceholderForTerm(context._indTerm));
+  // with this ugly bit hack incrementing the comparison
+  // literal pointers, we are able to differentiate between
+  // them and normal literals
   if (bound1) {
-    context.insert(nullptr, Literal::create2(bound1->functor(), bound1->polarity(),
+    size_t ptr = reinterpret_cast<size_t>(Literal::create2(bound1->functor(), bound1->polarity(),
       bound1->polarity() ? *bound1->nthArgument(0) : ph,
       bound1->polarity() ? ph : *bound1->nthArgument(1)));
+    context.insert(nullptr, reinterpret_cast<Literal*>(ptr+1));
   }
   if (bound2) {
-    context.insert(nullptr, Literal::create2(bound2->functor(), bound2->polarity(),
+    size_t ptr = reinterpret_cast<size_t>(Literal::create2(bound2->functor(), bound2->polarity(),
       bound2->polarity() ? ph : *bound2->nthArgument(0),
       bound2->polarity() ? *bound2->nthArgument(1) : ph));
+    context.insert(nullptr, reinterpret_cast<Literal*>(ptr+1));
   }
   return _formulaIndex.findOrInsert(context, e);
 }

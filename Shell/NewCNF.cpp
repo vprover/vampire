@@ -404,7 +404,7 @@ TermList NewCNF::findITEs(TermList ts, Stack<unsigned> &variables, Stack<Formula
 }
 
 bool NewCNF::shouldInlineITE(unsigned iteCounter) {
-  return _iteInliningThreshold == 0 || iteCounter < _iteInliningThreshold;
+  return _forInduction || iteCounter < _iteInliningThreshold;
 }
 
 unsigned NewCNF::createFreshVariable(TermList sort)
