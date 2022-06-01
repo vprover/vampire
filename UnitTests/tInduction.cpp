@@ -74,7 +74,7 @@ void assertContextReplacement(ContextReplacement& cr, Stack<InductionContext> co
     res.push(cr.next());
   }
   ASS_EQ(res.size(), contexts.size());
-  ASS(TestUtils::permEq(res, contexts, [](const InductionContext& lhs, const InductionContext& rhs, BacktrackData&) {
+  ASS(TestUtils::permEq(res, contexts, [](const InductionContext& lhs, const InductionContext& rhs) {
     return InductionFormulaIndex::represent(lhs) == InductionFormulaIndex::represent(rhs);
   }));
 }
@@ -87,31 +87,36 @@ public:
     : GenerationTester<Induction>(), _subst()
   {}
 
+  ~GenerationTesterInduction() {
+    _btd.drop();
+  }
+
   /**
    * Generated induction clauses are special in that they contain fresh
    * Skolem constants. In order to check these, we use variables instead
    * of the constants we cannot predefine, and require that these variables
    * are mapped bijectively to the new Skolem constants, hence this override.
    */
-  bool eq(Kernel::Clause const* lhs, Kernel::Clause const* rhs, BacktrackData& btd) override
+  bool eq(Kernel::Clause const* lhs, Kernel::Clause const* rhs) override
   {
     // there can be false positive matches which later (in a different literal
     // or clause) can turn out to be the wrong ones and we have to backtrack
     // TODO: are all of these backtracking calls necessary?
-    _subst.bdRecord(btd);
-    if (!TestUtils::permEq(*lhs, *rhs, [this](Literal* l, Literal* r, BacktrackData& btd) -> bool {
+    _subst.bdRecord(_btd);
+    if (!TestUtils::permEq(*lhs, *rhs, [this](Literal* l, Literal* r) -> bool {
       if (l->polarity() != r->polarity()) {
+        _btd.backtrack();
         return false;
       }
       VList::Iterator vit(r->freeVariables());
       while (vit.hasNext()) {
         auto v = vit.next();
         if (!_varsMatched.count(v)) {
-          btd.addBacktrackObject(new MatchedVarBacktrackObject(_varsMatched, v));
+          _btd.addBacktrackObject(new MatchedVarBacktrackObject(_varsMatched, v));
           _varsMatched.insert(v);
         }
       }
-      _subst.bdRecord(btd);
+      _subst.bdRecord(_btd);
       if (_subst.match(Kernel::TermList(r), 0, Kernel::TermList(l), 1)) {
         if (matchAftercheck()) {
           _subst.bdDone();
@@ -120,8 +125,8 @@ public:
       }
 
       _subst.bdDone();
-      btd.backtrack();
-      _subst.bdRecord(btd);
+      _btd.backtrack();
+      _subst.bdRecord(_btd);
       if (l->isEquality() && r->isEquality() &&
         _subst.match(*r->nthArgument(0), 0, *l->nthArgument(1), 1) &&
         _subst.match(*r->nthArgument(1), 0, *l->nthArgument(0), 1))
@@ -132,11 +137,11 @@ public:
         }
       }
       _subst.bdDone();
-      btd.backtrack();
+      _btd.backtrack();
       return false;
     })) {
       _subst.bdDone();
-      btd.backtrack();
+      _btd.backtrack();
       return false;
     }
     _subst.bdDone();
@@ -173,6 +178,7 @@ private:
 
   Kernel::RobSubstitution _subst;
   unordered_set<unsigned> _varsMatched;
+  BacktrackData _btd;
 
   class MatchedVarBacktrackObject : public BacktrackObject {
   public:
@@ -251,30 +257,40 @@ private:
   DECL_CONST(sK8, Int)                                                                     \
   DECL_CONST(bi, Int)
 
-TEST_FUN(test_tester) {
+TEST_FUN(test_tester1) {
   __ALLOW_UNUSED(MY_SYNTAX_SUGAR);
   GenerationTesterInduction tester;
-  BacktrackData btd;
   // first literal is matched both ways but none of them works
   ASS(!tester.eq(
     clause({ r(sK1) == r(x), f(r(sK1),y) != z }),
-    clause({ r(skx1) == r(x3), f(r(x3),x4) != x5 }),
-    btd));
+    clause({ r(skx1) == r(x3), f(r(x3),x4) != x5 })));
+}
+
+TEST_FUN(test_tester2) {
+  __ALLOW_UNUSED(MY_SYNTAX_SUGAR);
+  GenerationTesterInduction tester;
   // second clause cannot be matched because of x4
   ASS(!tester.eq(
     clause({ r(sK1) == r(x), f(r(sK1),y) != z }),
-    clause({ r(skx1) == r(x3), f(r(skx1),x4) != x4 }),
-    btd));
+    clause({ r(skx1) == r(x3), f(r(skx1),x4) != x4 })));
+}
+
+TEST_FUN(test_tester3) {
+  __ALLOW_UNUSED(MY_SYNTAX_SUGAR);
+  GenerationTesterInduction tester;
   // y is matched to both y4 and y5
   ASS(!tester.eq(
     clause({ r(sK1) == r(x), f(r(sK1),y) != y }),
-    clause({ r(skx1) == r(x3), f(r(skx1),x4) != x5 }),
-    btd));
+    clause({ r(skx1) == r(x3), f(r(skx1),x4) != x5 })));
+}
+
+TEST_FUN(test_tester4) {
+  __ALLOW_UNUSED(MY_SYNTAX_SUGAR);
+  GenerationTesterInduction tester;
   // normal match
   ASS(tester.eq(
     clause({ r(sK1) == r(x), f(r(sK1),y) != z }),
-    clause({ r(skx1) == r(x3), f(r(skx1),x4) != x5 }),
-    btd));
+    clause({ r(skx1) == r(x3), f(r(skx1),x4) != x5 })));
 }
 
 // positive literals are not considered 1

@@ -240,7 +240,7 @@ Formula* TermTransformingFormulaTransformer::applyLiteral(Formula* f)
 // TermTransformingFormulaTransformer
 //
 
-Formula* TermTransformerTransformTransformedFormulaTransformer::applyLiteral(Formula* f)
+Formula* BottomUpTermTransformerFormulaTransformer::applyLiteral(Formula* f)
 {
   CALL("TermTransformingFormulaTransformer::applyLiteral");
 

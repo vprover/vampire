@@ -70,7 +70,7 @@ public:
     : _rule()
   {}
 
-  virtual bool eq(Kernel::Clause const* lhs, Kernel::Clause const* rhs, BacktrackData& btd)
+  virtual bool eq(Kernel::Clause const* lhs, Kernel::Clause const* rhs)
   { return TestUtils::eqModAC(lhs, rhs); }
 
   friend class TestCase;
@@ -166,7 +166,7 @@ public:
     auto& sExp = this->_expected;
     auto  sRes = Stack<Kernel::Clause*>::fromIterator(res.clauses);
 
-    if (!TestUtils::permEq(sExp, sRes, [&](auto exp, auto res, BacktrackData& btd) { return exp.matches(simpl, res, btd); })) {
+    if (!TestUtils::permEq(sExp, sRes, [&](auto exp, auto res) { return exp.matches(simpl, res); })) {
       testFail(sRes, sExp);
     }
 

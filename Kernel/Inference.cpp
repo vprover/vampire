@@ -715,6 +715,8 @@ vstring Kernel::ruleName(InferenceRule rule)
     return "definition unfolding";
   case InferenceRule::DEFINITION_FOLDING:
     return "definition folding";
+  case InferenceRule::FUNCTION_DEFINITION: 
+    return "function definition";
   case InferenceRule::PREDICATE_DEFINITION:
     return "predicate definition introduction";
   case InferenceRule::PREDICATE_DEFINITION_UNFOLDING:

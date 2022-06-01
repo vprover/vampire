@@ -485,11 +485,11 @@ public:
   };
 
   enum class InterpolantMode : unsigned int {
-    NEW_HEUR = 0,
-    NEW_OPT = 1,
-    OFF = 2,
-    OLD = 3,
-    OLD_OPT = 4
+    NEW_HEUR,
+#if VZ3
+    NEW_OPT,
+#endif
+    OFF,
   };
 
   enum class LiteralComparisonMode : unsigned int {
@@ -613,6 +613,12 @@ public:
     ALL_DEPENDENT = 1,
     KNOWN = 2,
     NONE = 3
+  };
+
+  enum class TweeGoalTransformation : unsigned int {
+    OFF = 0,
+    GROUND = 1,
+    FULL = 2
   };
 
   enum class CCUnsatCores : unsigned int {
@@ -1852,13 +1858,14 @@ bool _hard;
       vstring msg(){ return " not compatible with higher-order problems"; }
     };
 
-    struct HasNonUnits : OptionProblemConstraint{
-      CLASS_NAME(HasNonUnits);
-      USE_ALLOCATOR(HasNonUnits);
+    struct MayHaveNonUnits : OptionProblemConstraint{
+      CLASS_NAME(MayHaveNonUnits);
+      USE_ALLOCATOR(MayHaveNonUnits);
 
       bool check(Property*p){
-        CALL("Options::HasNonUnits::check");
-        return (p->clauses()-p->unitClauses())!=0;
+        CALL("Options::MayHaveNonUnits::check");
+        return (p->formulas() > 0) // let's not try to guess what kind of clauses these will give rise to
+          || (p->clauses() > p->unitClauses());
       }
       vstring msg(){ return " only useful with non-unit clauses"; }
     };
@@ -1933,7 +1940,7 @@ bool _hard;
     static OptionProblemConstraintUP hasEquality(){ return OptionProblemConstraintUP(new UsesEquality); }
     static OptionProblemConstraintUP hasHigherOrder(){ return OptionProblemConstraintUP(new HasHigherOrder); }
     static OptionProblemConstraintUP onlyFirstOrder(){ return OptionProblemConstraintUP(new OnlyFirstOrder); }
-    static OptionProblemConstraintUP hasNonUnits(){ return OptionProblemConstraintUP(new HasNonUnits); }
+    static OptionProblemConstraintUP mayHaveNonUnits(){ return OptionProblemConstraintUP(new MayHaveNonUnits); }
     static OptionProblemConstraintUP notJustEquality(){ return OptionProblemConstraintUP(new NotJustEquality); }
     static OptionProblemConstraintUP atomsMoreThan(int a){
       return OptionProblemConstraintUP(new AtomConstraint(a,true));
@@ -2239,6 +2246,7 @@ public:
   FunctionDefinitionElimination functionDefinitionElimination() const { return _functionDefinitionElimination.actualValue; }
   bool skolemReuse() const { return _skolemReuse.actualValue; }
   bool definitionReuse() const { return _definitionReuse.actualValue; }
+  TweeGoalTransformation tweeGoalTransformation() const { return _tweeGoalTransformation.actualValue; }
   bool outputAxiomNames() const { return _outputAxiomNames.actualValue; }
   void setOutputAxiomNames(bool newVal) { _outputAxiomNames.actualValue = newVal; }
   QuestionAnsweringMode questionAnswering() const { return _questionAnswering.actualValue; }
@@ -2540,6 +2548,7 @@ private:
   ChoiceOptionValue<FunctionDefinitionElimination> _functionDefinitionElimination;
   BoolOptionValue _skolemReuse;
   BoolOptionValue _definitionReuse;
+  ChoiceOptionValue<TweeGoalTransformation> _tweeGoalTransformation;
   
   BoolOptionValue _generalSplitting;
   BoolOptionValue _globalSubsumption;

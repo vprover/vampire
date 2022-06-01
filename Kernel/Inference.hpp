@@ -368,6 +368,9 @@ enum class InferenceRule : unsigned char {
   /** unfolding by definitions f(x1,...,xn)=t */
   DEFINITION_UNFOLDING,
 
+  /** introduction of a new symbol f, f = term */
+  FUNCTION_DEFINITION,
+
   /** introduction of new name p, p <=> C */
   PREDICATE_DEFINITION,
   /** unfolding predicate definitions */
