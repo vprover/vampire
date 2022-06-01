@@ -23,7 +23,6 @@
 
 #include "Ordering.hpp"
 
-#define SPECIAL_WEIGHT_FILENAME_RANDOM      "random"
 #define SPECIAL_WEIGHT_IDENT_VAR            "$var"
 #define SPECIAL_WEIGHT_IDENT_INTRODUCED     "$introduced"
 #define SPECIAL_WEIGHT_IDENT_DEFAULT_WEIGHT "$default"

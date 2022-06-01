@@ -702,6 +702,7 @@ public:
 
   enum class KboWeightGenerationScheme : unsigned int {
     CONST = 0,
+    RANDOM = 1,
   };
 
   enum class KboAdmissibilityCheck : unsigned int {
