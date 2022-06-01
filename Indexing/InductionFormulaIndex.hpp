@@ -29,21 +29,27 @@ namespace Inferences {
   struct InductionContext;
 }
 
+namespace Lib {
+  template<typename T>
+  struct SecondaryHash<Stack<T>> {
+    struct Type {
+      static unsigned hash(const Stack<T>& st) {
+        unsigned res = 0;
+        for (const auto& e : st) {
+          res += SecondaryHash<T>::Type::hash(e);
+        }
+        return res;
+      }
+    };
+  };
+}
+
 namespace Indexing {
 
 using namespace Lib;
 using namespace Kernel;
-
-struct SecondaryStackHash {
-  static unsigned hash(const Stack<LiteralStack>& s) {
-    unsigned res = 0;
-    typename Stack<LiteralStack>::ConstIterator it(s);
-    while (it.hasNext()) {
-      res += it.next().length();
-    }
-    return res;
-  }
-};
+using namespace std;
+using Key = pair<Stack<LiteralStack>,pair<Literal*,Literal*>>;
 
 class InductionFormulaIndex
 {
@@ -73,11 +79,11 @@ public:
     Stack<pair<ClauseStack,Substitution>> _st;
   };
 
-  static Stack<LiteralStack> represent(const Inferences::InductionContext& context);
+  static Key represent(const Inferences::InductionContext& context);
 
-  bool findOrInsert(const Inferences::InductionContext& context, Entry*& e);
+  bool findOrInsert(const Inferences::InductionContext& context, Entry*& e, Literal* bound1 = nullptr, Literal* bound2 = nullptr);
 private:
-  DHMap<Stack<LiteralStack>,Entry,Lib::StackHash<Lib::StlHash>,SecondaryStackHash> _map;
+  DHMap<Key,Entry> _map;
 };
 
 }
