@@ -111,13 +111,12 @@ struct KboWeightMap {
   KboWeight symbolWeight(Term*    t      ) const;
   KboWeight symbolWeight(unsigned functor) const;
 
-                         static KboWeightMap dflt();
+  static KboWeightMap dflt();
+  static KboWeightMap arity();
 private:
   static KboWeightMap randomized();
   template<class Random> static KboWeightMap randomized(unsigned maxWeight, Random random);
 };
-
-
 
 /**
  * Class for instances of the Knuth-Bendix orderings
@@ -158,7 +157,6 @@ public:
   Result compare(TermList tl1, TermList tl2) const override;
 protected:
   Result comparePredicates(Literal* l1, Literal* l2) const override;
-
 
   class State;
 

@@ -363,6 +363,8 @@ KboWeightMap<SigTraits> KBO::weightsFromOpts(const Options& opts) const
       return KboWeightMap<SigTraits>::dflt();
     case Options::KboWeightGenerationScheme::RANDOM:
       return KboWeightMap<SigTraits>::randomized();
+    case Options::KboWeightGenerationScheme::ARITY:
+      return KboWeightMap<SigTraits>::arity();
     default:
       NOT_IMPLEMENTED;
     }
@@ -727,6 +729,23 @@ KboWeightMap<SigTraits> KboWeightMap<SigTraits>::dflt()
 {
   return KboWeightMap {
     ._weights                = DArray<KboWeight>::initialized(SigTraits::nSymbols(), 1),
+    ._introducedSymbolWeight = 1,
+    ._specialWeights         = KboSpecialWeights<SigTraits>::dflt(),
+  };
+}
+
+template<class SigTraits>
+KboWeightMap<SigTraits> KboWeightMap<SigTraits>::arity()
+{
+  auto nSym = SigTraits::nSymbols();
+  DArray<KboWeight> weights(nSym);
+
+  for (unsigned i = 0; i < nSym; i++) {
+    weights[i] = SigTraits::getSymbol(i)->arity()+1;
+  }
+
+  return KboWeightMap {
+    ._weights                = weights,
     ._introducedSymbolWeight = 1,
     ._specialWeights         = KboSpecialWeights<SigTraits>::dflt(),
   };
