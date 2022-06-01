@@ -1,0 +1,108 @@
+/*
+ * This file is part of the source code of the software program
+ * Vampire. It is protected by applicable
+ * copyright laws.
+ *
+ * This source code is distributed under the licence found here
+ * https://vprover.github.io/license.html
+ * and in the source directory
+ */
+
+#include "Test/UnitTesting.hpp"
+#include "Test/SyntaxSugar.hpp"
+#include "Indexing/TermSharing.hpp"
+#include "Inferences/IRC/EqFactoring.hpp"
+#include "Inferences/InterpretedEvaluation.hpp"
+#include "Kernel/Ordering.hpp"
+#include "Inferences/PolynomialEvaluation.hpp"
+#include "Inferences/Cancellation.hpp"
+
+#include "Test/SyntaxSugar.hpp"
+#include "Test/TestUtils.hpp"
+#include "Lib/Coproduct.hpp"
+#include "Test/SimplificationTester.hpp"
+#include "Test/GenerationTester.hpp"
+#include "Kernel/KBO.hpp"
+#include "Indexing/TermSubstitutionTree.hpp" 
+#include "Inferences/PolynomialEvaluation.hpp"
+
+using namespace std;
+using namespace Kernel;
+using namespace Inferences;
+using namespace Test;
+using namespace Indexing;
+using namespace Inferences::IRC;
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////// TEST CASES 
+/////////////////////////////////////
+
+#define SUGAR(Num)                                                                                            \
+  NUMBER_SUGAR(Num)                                                                                          \
+  DECL_DEFAULT_VARS                                                                                           \
+  DECL_FUNC(f, {Num}, Num)                                                                                    \
+  DECL_FUNC(g, {Num}, Num)                                                                                    \
+  DECL_FUNC(g2, {Num, Num}, Num)                                                                              \
+  DECL_CONST(a, Num)                                                                                          \
+  DECL_CONST(b, Num)                                                                                          \
+  DECL_CONST(c, Num)                                                                                          \
+  DECL_PRED(p, {Num})                                                                                         \
+  DECL_PRED(r, {Num,Num})                                                                                     \
+  \
+  DECL_SORT(alpha) \
+  DECL_FUNC(fa, {Num}, alpha) \
+  DECL_CONST(aa, alpha) \
+  DECL_CONST(ba, alpha) \
+  DECL_FUNC(fn, {alpha}, Num) \
+
+#define MY_SYNTAX_SUGAR SUGAR(Rat)
+
+#define UWA_MODE Options::UnificationWithAbstraction::IRC1
+
+EqFactoring testEqFactoring()
+{ return EqFactoring(testIrcState(UWA_MODE)); }
+
+
+
+REGISTER_GEN_TESTER(Test::Generation::GenerationTester<EqFactoring>(testEqFactoring()))
+
+/////////////////////////////////////////////////////////
+// Basic tests
+//////////////////////////////////////
+
+
+TEST_GENERATION(basic01,
+    Generation::SymmetricTest()
+      .inputs  ({        clause({      selected(f(a) - c == 0), selected(f(a) - b == 0 ),  })  })
+      .expected(exactly( clause({           b != c,                      f(a) - b == 0     })  ))
+    )
+
+TEST_GENERATION(basic02a,
+    Generation::SymmetricTest()
+      .inputs  ({        clause({      selected(4 * f(a) - c == 0), selected( 3 * f(a) - b == 0 ),  }) })
+      .expected(exactly( clause({           frac(1, 3) * b != frac(1,4) * c,  3 * f(a) - b == 0     }) ))
+    )
+
+TEST_GENERATION(basic02b,
+    Generation::SymmetricTest()
+      .inputs  ({        clause({      selected(-4 * f(a) + c == 0), selected( 3 * f(a) - b == 0 ),  }) })
+      .expected(exactly( clause({           frac(1, 3) * b != frac(1,4) * c,  3 * f(a) - b == 0     }) ))
+    )
+
+TEST_GENERATION(basic02c,
+    Generation::SymmetricTest()
+      .inputs  ({        clause({      selected(-4 * f(a) + c == 0), selected( -3 * f(a) + b == 0 ),  }) })
+      .expected(exactly( clause({           frac(1, 3) * b != frac(1,4) * c,  3 * f(a) - b == 0     }) ))
+    )
+
+TEST_GENERATION(basic02d,
+    Generation::SymmetricTest()
+      .inputs  ({        clause({      selected(-4 * f(a) - c == 0), selected( -3 * f(a) + b == 0 ),  }) })
+      .expected(exactly( clause({           frac(1, 3) * b != frac(-1,4) * c,  3 * f(a) - b == 0     }) ))
+    )
+
+TEST_GENERATION(basic02e,
+    Generation::SymmetricTest()
+      .inputs  ({        clause({      selected(-4 * f(a) - c == 0), selected( 3 * f(a) + b == 0 ),  }) })
+      .expected(exactly( clause({           frac(-1, 3) * b != frac(-1,4) * c,  3 * f(a) - b == 0     }) ))
+    )
