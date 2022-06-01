@@ -48,6 +48,7 @@
 #include "Inferences/PolynomialEvaluation.hpp"
 #include "Kernel/PolynomialNormalizer.hpp"
 #include "Kernel/Clause.hpp"
+#include "Kernel/OrderingUtils.hpp"
 #define DEBUG(...) // DBG(__VA_ARGS__)
 
 
@@ -148,6 +149,11 @@ namespace Kernel {
     { return std::tie(lhs._symbol, lhs._term) ==  std::tie(rhs._symbol, rhs._term); }
   };
 
+
+  using AnyConstantType = Coproduct< IntegerConstantType
+                                   , RationalConstantType
+                                   , RealConstantType
+                                   >;
 
   using AnyIrcLiteral = Coproduct< IrcLiteral< IntTraits>
                                  , IrcLiteral< RatTraits>
@@ -294,6 +300,58 @@ namespace Kernel {
   };
 
 
+  class SelectedSummand 
+  {
+    Clause* _cl;
+    unsigned _lit;
+    AnyIrcLiteral _ircLiteral;
+    unsigned _term;
+  public:
+    SelectedSummand(
+      Clause* cl,
+      unsigned lit,
+      AnyIrcLiteral ircLiteral,
+      unsigned term
+    ) : _cl(std::move(cl))
+      , _lit(std::move(lit))
+      , _ircLiteral(std::move(ircLiteral)) 
+      , _term(term) {}
+
+    SelectedSummand(SelectedSummand&&) = default;
+    SelectedSummand& operator=(SelectedSummand&&) = default;
+    auto numeral() const 
+    { return _ircLiteral
+          .apply([this](auto& lit) 
+              { return AnyConstantType(lit.term().summandAt(_term).numeral); }); }
+    auto const& clause() const { return _cl; }
+    auto const& literal() const { return (*_cl)[_lit]; }
+    auto contextLiterals() const 
+    { 
+      return range(0, _cl->size())
+        .filter([&](auto i) { return i != _lit; })
+        .map([&](auto i) { return (*_cl)[i]; }); 
+    }
+    auto contextTerms() const 
+    { return _ircLiteral.apply([this](auto& lit) { 
+        return iterTraits(pvi(range(0, lit.term().nSummands()) 
+                .filter([&](unsigned i) { return i != _term; })
+                .map([&](unsigned i) { return lit.term().summandAt(i).denormalize(); })));
+      }); }
+
+    auto monom() const 
+    { return _ircLiteral
+          .apply([this](auto& lit) 
+              { return lit.term().summandAt(_term).factors->denormalize(); }); }
+
+    auto sign() const 
+    { return numeral().apply([](auto const& self) { return self.sign(); }); }
+
+    auto numTraits() const 
+    { return numeral().apply([](auto n) 
+        { return Coproduct<IntTraits, RatTraits, RealTraits>(NumTraits<decltype(n)>{}); });
+    }
+  };
+
   struct IrcState 
   {
     CLASS_NAME(IrcState);
@@ -302,6 +360,57 @@ namespace Kernel {
     InequalityNormalizer normalizer;
     Ordering* const ordering;
     Shell::Options::UnificationWithAbstraction const uwa;
+
+
+
+    auto selectedSummands(Clause* cl, bool strictlyMaxLiteral, bool strictlyMaxSummand) //-> IterTraits<VirtualIterator<SelectedSummand>>
+    {
+      return OrderingUtils2::maxElems(
+          cl->size(), 
+          [&](unsigned l, unsigned r) 
+          { return ordering->compare((*cl)[l], (*cl)[r]); },
+          strictlyMaxLiteral)
+    
+        // filter out interpreted number literals
+        .filterMap([=](unsigned i) {
+
+            auto lit = (*cl)[i];
+            return renormalize(lit)
+              .map([=](auto ircLit) {
+                auto monomAt = [=](auto i) 
+                  { return ircLit.apply([i](auto& lit) 
+                        { return lit.term().summandAt(i).factors->denormalize(); }); };
+
+                return pvi(OrderingUtils2::maxElems(
+                    ircLit.apply([](auto& l) { return l.term().nSummands(); }),
+                    [=](unsigned l, unsigned r) 
+                    { return ordering->compare(monomAt(l), monomAt(r)); },
+                    strictlyMaxSummand)
+                  .map([=](auto j) -> SelectedSummand 
+                    { return SelectedSummand(cl, i, ircLit, j); }));
+
+                  // return ircLitAnyNum
+                  //   .apply([=](auto ircLit) {
+                  //
+                  //     return pvi(OrderingUtils2::maxElems(
+                  //         ircLit.term().nSummands(),
+                  //         [&](unsigned l, unsigned r) 
+                  //         { return ordering->compare(
+                  //             ircLit.term().summandAt(l).factors->denormalize(), 
+                  //             ircLit.term().summandAt(r).factors->denormalize()); },
+                  //         strictlyMaxSummand)
+                  //       .map([](auto j) -> SelectedSummand {
+                  //         auto summand = ircLit.summandAt(j);
+                  //         return SelectedSummand(cl, i, AnyIrcLiteral(ircLit), j)
+                  //         };
+                  //           ASSERTION_VIOLATION
+                  //       }));
+                  // });
+              });
+
+        })
+        .flatten();
+    }
 
     template<class GetSummand> auto iterSelectedTerms(GetSummand getSummand, unsigned litSize, bool strict = false);
     template<class NumTraits> Stack<Monom<NumTraits>> selectedTerms(IrcLiteral<NumTraits>const& lit, bool strict = false);
@@ -603,6 +712,7 @@ template<class GetSummand> auto IrcState::iterSelectedTerms(GetSummand getSumman
 // template<class Sum, class GetSummand> 
 // auto IrcState::iterSelectedTerms(Sum lit, unsigned sumSize, GetSummand getSummand, bool strictlyMax) -> Stack<decltype(lit(sz))>;
 // {
+
 //   auto max = maxElements([&](auto i) { return getSummand; }, 
 //                      sumSize,
 //                      [&](auto l, auto r) { return ordering->compare(l.factors->denormalize(), r.factors->denormalize()); },

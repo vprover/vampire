@@ -51,8 +51,14 @@ FuncId::FuncId(unsigned num, const TermList* typeArgs) : _num(num), _typeArgs(ty
 FuncId FuncId::symbolOf(Term* term) 
 { return FuncId(term->functor(), term->typeArgs()); }
 
-unsigned FuncId::numTermArguments() 
+unsigned FuncId::numTermArguments() const
 { return symbol()->numTermArguments(); }
+
+unsigned FuncId::numTypeArguments() const
+{ return symbol()->numTypeArguments(); }
+
+TermList FuncId::typeArg(unsigned i) const
+{ return _typeArgs[i]; }
 
 bool operator==(FuncId const& lhs, FuncId const& rhs) 
 { return lhs._num == rhs._num; }
@@ -180,8 +186,8 @@ std::ostream& operator<<(std::ostream& out, const PolyNf& self)
 Option<Variable> PolyNf::tryVar() const 
 { return as<Variable>().toOwned(); }
 
-IterTraits<PolyNf::SubtermIter> PolyNf::iterSubterms() const 
-{ return iterTraits(SubtermIter(*this)); }
+PolyNf::SubtermIter PolyNf::iterSubterms() const 
+{ return SubtermIter(*this); }
 
 bool operator<(const PolyNf& lhs, const PolyNf& rhs) 
 { return std::less<PolyNfSuper>{}(lhs,rhs); }

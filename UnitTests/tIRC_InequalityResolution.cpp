@@ -37,30 +37,30 @@ using namespace Inferences::IRC;
 ////// TEST CASES 
 /////////////////////////////////////
 
-#define SUGAR(Num)                                                                                            \
-  NUMBER_SUGAR(Num)                                                                                           \
-  DECL_DEFAULT_VARS                                                                                           \
-  DECL_VAR(x0, 0)                                                                                             \
-  DECL_VAR(x1, 1)                                                                                             \
-  DECL_VAR(x2, 2)                                                                                             \
-  DECL_VAR(x3, 3)                                                                                             \
-  DECL_VAR(x4, 4)                                                                                             \
-  DECL_VAR(x5, 5)                                                                                             \
-  DECL_VAR(x6, 6)                                                                                             \
-  DECL_VAR(x7, 7)                                                                                             \
-  DECL_VAR(x8, 8)                                                                                             \
-  DECL_VAR(x9, 9)                                                                                             \
-  DECL_VAR(x10, 10)                                                                                           \
-  DECL_FUNC(f, {Num}, Num)                                                                                    \
-  DECL_FUNC(g, {Num, Num}, Num)                                                                               \
-  DECL_CONST(a, Num)                                                                                          \
-  DECL_CONST(a0, Num)                                                                                         \
-  DECL_CONST(a1, Num)                                                                                         \
-  DECL_CONST(a2, Num)                                                                                         \
-  DECL_CONST(a3, Num)                                                                                         \
-  DECL_CONST(b, Num)                                                                                          \
-  DECL_CONST(c, Num)                                                                                          \
-  DECL_PRED(r, {Num,Num})                                                                                     \
+#define SUGAR(Num)                                                                                     \
+  NUMBER_SUGAR(Num)                                                                                    \
+  DECL_DEFAULT_VARS                                                                                    \
+  DECL_VAR(x0, 0)                                                                                      \
+  DECL_VAR(x1, 1)                                                                                      \
+  DECL_VAR(x2, 2)                                                                                      \
+  DECL_VAR(x3, 3)                                                                                      \
+  DECL_VAR(x4, 4)                                                                                      \
+  DECL_VAR(x5, 5)                                                                                      \
+  DECL_VAR(x6, 6)                                                                                      \
+  DECL_VAR(x7, 7)                                                                                      \
+  DECL_VAR(x8, 8)                                                                                      \
+  DECL_VAR(x9, 9)                                                                                      \
+  DECL_VAR(x10, 10)                                                                                    \
+  DECL_FUNC(f, {Num}, Num)                                                                             \
+  DECL_FUNC(g, {Num, Num}, Num)                                                                        \
+  DECL_CONST(a, Num)                                                                                   \
+  DECL_CONST(a0, Num)                                                                                  \
+  DECL_CONST(a1, Num)                                                                                  \
+  DECL_CONST(a2, Num)                                                                                  \
+  DECL_CONST(a3, Num)                                                                                  \
+  DECL_CONST(b, Num)                                                                                   \
+  DECL_CONST(c, Num)                                                                                   \
+  DECL_PRED(r, {Num,Num})                                                                              \
 
 #define MY_SYNTAX_SUGAR SUGAR(Rat)
 
@@ -81,6 +81,73 @@ REGISTER_GEN_TESTER(Test::Generation::GenerationTester<InequalityResolution>(tes
 /////////////////////////////////////////////////////////
 // Basic tests
 //////////////////////////////////////
+
+// check whether we apply the rule for every weakly maximal negative term
+TEST_GENERATION(new01,
+    Generation::SymmetricTest()
+      .indices({ inequalityResolutionIdx() })
+      .inputs  ({ clause({selected( 5 * f(x) +       a  > 0 )   }) 
+               ,  clause({selected(-2 * f(x) - 3 * f(y) > 0 ) }) })
+      .expected(exactly(
+            clause({  2 * a + -15 * f(y) > 0  })
+          , clause({  3 * a + -10 * f(x) > 0  })
+      ))
+      .premiseRedundant(false)
+    )
+
+// check whether we apply the rule only for strictly maximal positive
+TEST_GENERATION(new02,
+    Generation::SymmetricTest()
+      .indices({ inequalityResolutionIdx() })
+      .inputs  ({ clause({selected( 5 * f(x) + 2 * f(y) + a > 0 )   }) 
+               ,  clause({selected(-2 * f(x) - 3 * f(y) > 0 ) }) })
+      .expected(exactly(
+      ))
+      .premiseRedundant(false)
+    )
+
+// inequaity symbols right
+TEST_GENERATION(new0301,
+    Generation::SymmetricTest()
+      .indices({ inequalityResolutionIdx() })
+      .inputs  ({ clause({selected(  f(a) + a > 0 )   }) 
+               ,  clause({selected( -f(x) + c > 0 ) }) })
+      .expected(exactly(
+        clause({ a + c > 0 })
+      ))
+      .premiseRedundant(false)
+    )
+TEST_GENERATION(new0302,
+    Generation::SymmetricTest()
+      .indices({ inequalityResolutionIdx() })
+      .inputs  ({ clause({selected(  f(a) + a >= 0 )   }) 
+               ,  clause({selected( -f(x) + c > 0 ) }) })
+      .expected(exactly(
+        clause({ a + c > 0 })
+      ))
+      .premiseRedundant(false)
+    )
+TEST_GENERATION(new0303,
+    Generation::SymmetricTest()
+      .indices({ inequalityResolutionIdx() })
+      .inputs  ({ clause({selected(  f(a) + a > 0 )   }) 
+               ,  clause({selected( -f(x) + c >= 0 ) }) })
+      .expected(exactly(
+        clause({ a + c > 0 })
+      ))
+      .premiseRedundant(false)
+    )
+TEST_GENERATION(new0304,
+    Generation::SymmetricTest()
+      .indices({ inequalityResolutionIdx() })
+      .inputs  ({ clause({selected(  f(a) + a >= 0 )   }) 
+               ,  clause({selected( -f(x) + c >= 0 ) }) })
+      .expected(exactly(
+        clause({ a + c > 0, -f(a) + c == 0 })
+      ))
+      .premiseRedundant(false)
+    )
+
 
 TEST_GENERATION(basic01,
     Generation::SymmetricTest()

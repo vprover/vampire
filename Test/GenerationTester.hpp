@@ -187,8 +187,8 @@ public:
     }
 
 
-    // tear down saturation algorithm
-    rule.InferenceEngine::detach();
+    // // tear down saturation algorithm
+    // rule.InferenceEngine::detach();
 
   }
 };

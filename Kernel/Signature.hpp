@@ -198,6 +198,7 @@ class Signature
     /** Return the type argument arity of the symbol. Only accurate once type has been set. */
     inline unsigned numTypeArguments() const 
     { 
+      // DBGE(name())
       if(name() == "="){ 
         //for some reason, equality is never assigned a type (probably because it is poly)
         return 0; 
@@ -512,17 +513,11 @@ class Signature
     return _typeCons[number]->name();
   }  
   /** return the arity of a function with a given number */
-  const unsigned functionArity(int number)
-  {
-    CALL("Signature::functionArity");
-    return _funs[number]->arity();
-  }
+  const unsigned functionArity(int number);
+  
   /** return the arity of a predicate with a given number */
-  const unsigned predicateArity(int number)
-  {
-    CALL("Signature::predicateArity");
-    return _preds[number]->arity();
-  }
+  const unsigned predicateArity(int number);
+  
 
   const unsigned typeConArity(int number)
   {

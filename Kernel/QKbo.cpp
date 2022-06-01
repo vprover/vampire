@@ -11,6 +11,13 @@
 
 namespace Kernel {
 
+template<class T>
+vstring output_to_string(T const& t) 
+{
+  vstringstream out;
+  out << t;
+  return out.str();
+}
 
 bool interpretedPred(Literal* t) {
   auto f = t->functor();
@@ -90,64 +97,66 @@ QKbo::Result QKbo::compare(Literal* l1, Literal* l2) const
     );
   else {
     ASS(i1 && i2)
-
-/* TODO comment goes somewhere else
-    // top level symbols are different, but abstractions are the same
-    // this means that the abstraction must be of a numeral sort, 
-    // and of shape `k1 * t1 + ... + kn * tn`
-    // also it means that one of them must not be a variable
-    */
-
    
-    auto sort = SortHelper::getTermArgSort(l1,0);
-    ASS_EQ(sort, SortHelper::getTermArgSort(l2,0));
-    return forAnyNumTraits([&](auto numTraits) {
-      using NumTraits = decltype(numTraits);
-      if (numTraits.sort() == sort) {
-        auto a1 = atomsStar<NumTraits>(l1);
-        auto a2 = atomsStar<NumTraits>(l2);
-        return Option<Ordering::Result>(OrderingUtils2::lexProductCapture(
-            [&]() -> Ordering::Result { return OrderingUtils2::mulExt(a1, a2, 
-                              [&](auto const& l, auto const& r)
-                              { return OrderingUtils2::lexProductCapture(
-                                  [&]() { return this->compare(l.term, r.term); }
-                                , [&]() { return OrderingUtils2::stdCompare(l.sign,r.sign); }
-                              );}); }
-          , [&]() -> Ordering::Result { 
-              ASS_EQ(l1->isEquality() && l1->isPositive(), l2->isEquality() && l2->isPositive())
-              if (l1->isEquality() && l2->isEquality()) {
-                ASS_EQ(l1->isPositive(), l2->isPositive())
-                return OrderingUtils2::lexProductCapture(
-                    // TODO make use of the constant size of the multiset
-                    [&]() { return OrderingUtils2::mulExt(absEq<NumTraits>(l1), absEq<NumTraits>(l2), this->asClosure()); }
-                  , [&]() { return OrderingUtils2::mulExt(
-                    // TODO make use of the constant size of the multiset
-                                      MultiSet<TermList>{l1->termArg(0), l1->termArg(1)}, 
-                                      MultiSet<TermList>{l2->termArg(0), l2->termArg(1)}, 
-                                      this->asClosure()); }
-                );
-              } else if ( l1->isEquality() && !l2->isEquality()) {
-                ASS(l1->isNegative())
-                return Result::LESS;
-              } else if (!l1->isEquality() &&  l2->isEquality()) {
-                ASS(l2->isNegative())
-                return Result::GREATER;
-              } else {
-                ASS(l1->functor() == numTraits.greaterF() || l1->functor() == numTraits.geqF())
-                ASS(l2->functor() == numTraits.greaterF() || l2->functor() == numTraits.geqF())
-                ASS(l1->isPositive())
-                ASS(l2->isPositive())
-                return OrderingUtils2::lexProductCapture(
-                    [&]() { return this->compare(l1->termArg(0), l2->termArg(0)); }
-                  , [&]() { return Ordering::fromComparison(_prec.cmpPred(l1->functor(), l2->functor())); }
-                );
-              }
-            }
-        ));
-      } else {
-        return Option<Ordering::Result>();
+    auto a1_ = atomsStar(l1);
+    auto a2_ = atomsStar(l2);
+    if (!a1_.isSome() || !a2_.isSome())
+      return Result::INCOMPARABLE;
+    auto& a1 = a1_.unwrap();
+    auto& a2 = a2_.unwrap();
+    return OrderingUtils2::lexProductCapture(
+        [&]() -> Ordering::Result { return OrderingUtils2::mulExt(std::get<0>(a1), std::get<0>(a2), 
+                          [&](auto const& l, auto const& r)
+                          { return OrderingUtils2::lexProductCapture(
+                              [&]() { return this->compare(l.term, r.term); }
+                            , [&]() { return OrderingUtils2::stdCompare(std::get<1>(a1),std::get<1>(a2)); }
+                          );}); }
+      , [&]() {
+        // the atoms of the two literals are the same. 
+        // This means they must be of the same sort
+        auto sort =  SortHelper::getTermArgSort(l1,0);
+        ASS_EQ(sort, SortHelper::getTermArgSort(l2,0));
+        ASS_EQ(l1->isEquality() && l1->isPositive(), l2->isEquality() && l2->isPositive())
+        return tryNumTraits([&](auto numTraits) {
+          using NumTraits = decltype(numTraits);
+          if (NumTraits::sort() != sort) {
+            return Option<Ordering::Result>();
+          } else {
+            if (l1->isEquality() && l2->isEquality()) {
+              ASS_EQ(l1->isPositive(), l2->isPositive())
+              return Option<Ordering::Result>(OrderingUtils2::lexProductCapture(
+                  // TODO make use of the constant size of the multiset
+                  [&]() { return OrderingUtils2::mulExt(absEq<NumTraits>(l1), absEq<NumTraits>(l2), this->asClosure()); }
+                , [&]() { return OrderingUtils2::mulExt(
+                  // TODO make use of the constant size of the multiset
+                                    MultiSet<TermList>{l1->termArg(0), l1->termArg(1)}, 
+                                    MultiSet<TermList>{l2->termArg(0), l2->termArg(1)}, 
+                                    this->asClosure()); }
+              ));
+            } else if ( l1->isEquality() && !l2->isEquality()) {
+              ASS(l1->isNegative())
+              return Option<Ordering::Result>(Result::LESS);
+            } else if (!l1->isEquality() &&  l2->isEquality()) {
+              ASS(l2->isNegative())
+              return Option<Ordering::Result>(Result::GREATER);
+            } else {
+              ASS(l1->functor() == numTraits.greaterF() || l1->functor() == numTraits.geqF())
+              ASS(l2->functor() == numTraits.greaterF() || l2->functor() == numTraits.geqF())
+              ASS(l1->isPositive())
+              ASS(l2->isPositive())
+              return Option<Ordering::Result>(OrderingUtils2::lexProductCapture(
+                  [&]() { return this->compare(l1->termArg(0), l2->termArg(0)); }
+                , [&]() { return Ordering::fromComparison(_prec.cmpPred(l1->functor(), l2->functor())); }
+              ));
+            } 
+          } 
+        }) || [&]() {
+          ASS_EQ(l1->isPositive(), l2->isPositive())
+          // uninterpreted sort
+          return Result::EQUAL;
+        };
       }
-    }) || []() -> Ordering::Result { ASSERTION_VIOLATION };
+    );
   }
 }
 // {
@@ -365,7 +374,6 @@ Ordering::Result QKbo::cmpNonAbstr(TermList s, TermList t) const
 
   } else {
     // 2.b) interpreted stuff
-    // return compare(sigmaNf<NumTraits>(s), sigmaNf(t));
     if (s.isVar() && t.isVar()) {
       ASS_NEQ(s, t);
       return INCOMPARABLE;
@@ -388,29 +396,57 @@ Ordering::Result QKbo::cmpNonAbstr(TermList s, TermList t) const
 Option<TermList> QKbo::abstr(TermList t) const 
 {
   CALL("QKbo::abstr(TermList t) const ")
+  auto noAbstraction = []() { return Option<TermList>(); };
   using Out = Option<TermList>;
   if (t.isVar()) {
     return Option<TermList>(t);
   } else {
     auto term = t.term();
     auto f = term->functor();
-    auto res = tryNumTraits([&](auto numTraits) -> Option<Out> {
-        if (numTraits.addF() == f) {
+    auto res = tryNumTraits([&](auto numTraits) -> Option<Option<TermList>> {
+      using NumTraits = decltype(numTraits);
+        auto noAbstraction = []() { return Option<Option<TermList>>(Option<TermList>()); };
+        if (numTraits.isNumeral(t)) {
+          return some(some(NumTraits::one()));
+
+        } else if (   
           /* t = t1 + ... + tn */
-          auto flat = flatWithoutCoeffs(t);
-          auto strictMax = OrderingUtils::strictlyMax(flat, [&](auto l, auto r) { return _kbo.compare(l,r); });
-          return Option<Out>(strictMax);
-
-        } else if (numTraits.mulF() == f && numTraits.isNumeral(*term->nthArgument(0))) {
+               numTraits.addF() == f
           /* t = k * t' */
-          return some(abstr(*term->nthArgument(1)));
+          || ( numTraits.mulF() == f && numTraits.isNumeral(*term->nthArgument(0)) )
+          ) {
+          auto norm = _shared->normalize(TypedTermList(term)).wrapPoly<NumTraits>();
+          auto abstracted = norm->iterSummands()
+            .map([&](Monom<NumTraits> monom) { return abstr(monom.factors->denormalize()); });
+          ASS(abstracted.hasNext())
+          auto _max = abstracted.next();
+          if (_max.isNone()) {
+            return noAbstraction();
+          }
+          auto max = _max.unwrap();
+          for (auto a : abstracted) {
+            if (a.isNone()) {
+              return noAbstraction();
+            } else {
+              switch(_kbo.compare(max, a.unwrap())) {
+                case Result::INCOMPARABLE: return noAbstraction();
+                case Result::GREATER: 
+                case Result::EQUAL: 
+                  break;
+                case Result::LESS:
+                  max = a.unwrap();
+                  break;
+                default:
+                  ASSERTION_VIOLATION
+              }
+            }
+          }
 
-        } else if (numTraits.isNumeral(t)) {
-          /* t is a numeral */
-          return some(some(numTraits.zero()));
+          return Option<Option<TermList>>(Option<TermList>(max));
 
         } else {
-          return Option<Out>();
+          // wrong number type or uninterpreted function
+          return Option<Option<TermList>>();
         }
     });
     if (res.isSome()) {
@@ -434,18 +470,68 @@ Option<TermList> QKbo::abstr(TermList t) const
 void QKbo::show(ostream& out) const 
 { _prec.show(out); }
 
+bool QKbo::hasSubstitutionProperty(SigmaNf const& l) const
+{
+
+  auto maybeEquiv = [this](TermList l, TermList r) -> bool 
+  {
+    ASS_NEQ(l, r)
+
+    if (_shared->unify(l, r).isSome()) {
+      return true;
+
+    } else {
+      return false;
+    }
+  };
+
+  Stack<TermList> pos;
+  Stack<TermList> neg;
+  for (auto const& t_ : l.sum.iter()) {
+    auto const& sign = std::get<0>(t_).sign;
+    auto const& term = std::get<0>(t_).term;
+
+    if (term.isVar() && sign != Sign::Zero) {
+      if (concatIters(pos.iterFifo(), neg.iterFifo()).any([&](auto s) { return maybeEquiv(s, term); })) {
+        return false;
+      }
+      pos.push(term);
+      neg.push(term);
+    } else if (sign != Sign::Zero) {
+
+      auto& same  = sign == Sign::Pos ? pos : neg;
+      auto& other = sign == Sign::Pos ? neg : pos;
+
+
+
+      if (iterTraits(other.iterFifo())
+        .any([&](auto& s) { return maybeEquiv(s, term); })) 
+      {
+          return false;
+      }
+      same.push(term);
+    }
+  }
+  return true;
+}
+
 QKbo::Result QKbo::compare(SigmaNf l, SigmaNf r) const
 { 
   l.sum.repeat(r.k);
   r.sum.repeat(l.k);
-  return OrderingUtils2::mulExt(l.sum, r.sum, 
-    OrderingUtils2::lexProduct(
-      [this](SignedTerm const& l, SignedTerm const& r) -> Ordering::Result
-      { return compare(l.term, r.term);  },
-      [](SignedTerm const& l, SignedTerm const& r) -> Ordering::Result
-      { return OrderingUtils2::stdCompare(l.sign, r.sign); }
-    )
-  );
+
+  if (!hasSubstitutionProperty(l) || !hasSubstitutionProperty(r))  {
+    return Ordering::Result::INCOMPARABLE;
+  } else {
+    return OrderingUtils2::mulExt(l.sum, r.sum, 
+      OrderingUtils2::lexProduct(
+        [this](SignedTerm const& l, SignedTerm const& r) -> Ordering::Result
+        { return compare(l.term, r.term);  },
+        [](SignedTerm const& l, SignedTerm const& r) -> Ordering::Result
+        { return OrderingUtils2::stdCompare(l.sign, r.sign); }
+      )
+    );
+  }
 }
 
 } // Kernel

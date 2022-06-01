@@ -28,11 +28,18 @@
 #include "VirtualIterator.hpp"
 #include "TimeCounter.hpp"
 #include "Lib/Option.hpp"
+#include "Lib/Coproduct.hpp"
 
 namespace Lib {
 
 ///@addtogroup Iterators
 ///@{
+
+#define DEFAULT_CONSTRUCTORS(Class)                                                                 \
+  Class(Class const&) = default;                                                                    \
+  Class(Class     &&) = default;                                                                    \
+  Class& operator=(Class const&) = default;                                                         \
+  Class& operator=(Class     &&) = default;                                                         \
 
 
 /**
@@ -240,7 +247,7 @@ template<typename T>
 class ConstPointerPtrIterator
 {
 public:
-  DECL_ELEMENT_TYPE(T*);
+  DECL_ELEMENT_TYPE(const T*);
   inline ConstPointerPtrIterator(T const* first, T const* afterLast) :
     _curr(first), _afterLast(afterLast) {}
   inline bool hasNext() { ASS(_curr<=_afterLast); return _curr!=_afterLast; }
@@ -430,23 +437,25 @@ public:
       return true;
     }
     while(_inn.hasNext()) {
-      auto next = _inn.next();
+      OWN_ELEMENT_TYPE next = move_if_value<OWN_ELEMENT_TYPE>(_inn.next());
       if(_func(next)) {
-        _next = Option<OWN_ELEMENT_TYPE>(std::move(next));
-	return true;
+        _next = Option<OWN_ELEMENT_TYPE>(move_if_value<OWN_ELEMENT_TYPE>(next));
+        return true;
       }
     }
     return false;
-  };
+  }
+
   OWN_ELEMENT_TYPE next()
   {
     CALL("FilteredIterator::next")
     ALWAYS(hasNext());
     ASS(_next.isSome());
-    auto out = std::move(_next).unwrap();
+    OWN_ELEMENT_TYPE out = move_if_value<OWN_ELEMENT_TYPE>(_next.unwrap());
     _next = Option<OWN_ELEMENT_TYPE>();
     return out;
-  };
+  }
+
 private:
   
   Functor _func;
@@ -464,6 +473,7 @@ class FilterMapIter
 {
 public:
   DECL_ELEMENT_TYPE(typename std::result_of<Functor(ELEMENT_TYPE(Inner))>::type::Content);
+  DEFAULT_CONSTRUCTORS(FilterMapIter)
 
   FilterMapIter(Inner inn, Functor func)
   : _func(func), _inn(std::move(inn)), _next() {}
@@ -475,7 +485,7 @@ public:
       return true;
     }
     while(_inn.hasNext()) {
-      _next = _func(_inn.next());
+      _next = _func(move_if_value<ELEMENT_TYPE(Inner)>(_inn.next()));
       if(_next.isSome()) {
 	return true;
       }
@@ -488,7 +498,7 @@ public:
     CALL("FilterMapIter::next")
     ALWAYS(hasNext());
     ASS(_next.isSome());
-    OWN_ELEMENT_TYPE out = _next.unwrap();
+    OWN_ELEMENT_TYPE out = move_if_value<OWN_ELEMENT_TYPE>(_next.unwrap());
     _next = Option<OWN_ELEMENT_TYPE>();
     return out;
   };
@@ -707,20 +717,12 @@ template<typename Inner, typename Functor, typename ResultType=std::result_of_t<
 class MappingIterator
 {
 public:
-  MappingIterator(MappingIterator const&) = default;
-  MappingIterator(MappingIterator     &&) = default;
-  MappingIterator& operator=(MappingIterator const&) = default;
-  MappingIterator& operator=(MappingIterator     && o)
-  {
-    _func  = std::move(o._func );
-    _inner = std::move(o._inner);
-    return *this;
-  }
+  DEFAULT_CONSTRUCTORS(MappingIterator)
   DECL_ELEMENT_TYPE(ResultType);
   explicit MappingIterator(Inner inner, Functor func)
   : _func(std::move(func)), _inner(std::move(inner)) {}
   inline bool hasNext() { CALL("MappingIterator::hasNext"); return _inner.hasNext(); };
-  inline ResultType next() { return _func(_inner.next()); };
+  inline ResultType next() { return _func(move_if_value<ELEMENT_TYPE(Inner)>(_inner.next())); };
 
   /**
    * Return true the size of the iterator can be obtained
@@ -867,10 +869,11 @@ public:
 
   explicit FlatteningIterator(Master master)
   : _master(std::move(master))
-  , _current(std::move(_master.hasNext() 
+  , _current(_master.hasNext() 
         ? Option<Inner>(std::move(_master.next()))
-        : Option<Inner>()))
+        : Option<Inner>())
   { }
+  DEFAULT_CONSTRUCTORS(FlatteningIterator)
 
   bool hasNext()
   {
@@ -879,9 +882,9 @@ public:
       if (_current.unwrap().hasNext()) {
         return true;
       } else {
-        _current = std::move(_master.hasNext() 
+        _current = _master.hasNext() 
             ? Option<Inner>(std::move(_master.next()))
-            : Option<Inner>());
+            : Option<Inner>();
       }
     }
     return false;
@@ -1671,11 +1674,36 @@ struct GetSecondOfPair {
   }
 };
 
-#define DEFAULT_CONSTRUCTORS(Class)                                                                           \
-  Class(Class const&) = default;                                                                              \
-  Class(Class     &&) = default;                                                                              \
-  Class& operator=(Class const&) = default;                                                                   \
-  Class& operator=(Class     &&) = default;                                                                   \
+
+template<class... Is>
+class CoproductIter 
+{
+  Coproduct<Is...> _inner;
+public:
+  DECL_ELEMENT_TYPE(ELEMENT_TYPE(TypeList::Get<0, TypeList::List<Is...>>));
+
+  template<class I>
+  CoproductIter(I i) : _inner(Coproduct<Is...>(std::move(i))) {}
+
+  bool hasNext()
+  { Coproduct<Is...>& inner = _inner;
+    return inner.apply([](auto& x) { return x.hasNext();}); }
+
+  OWN_ELEMENT_TYPE next()
+  { return _inner.apply([](auto&& x) { return x.next();}); }
+
+  bool knowsSize() const 
+  { return _inner.apply([](auto& x) { return x.knowsSize();}); }
+
+  size_t size() const
+  { return _inner.apply([](auto& x) { return x.size();}); }
+};
+
+template<class IfIter, class ElseIter>
+static auto ifElseIter(bool cond, IfIter ifIter, ElseIter elseIter) 
+{ return iterTraits(
+         cond ? CoproductIter<ResultOf<IfIter>, ResultOf<ElseIter>>(ifIter())
+              : CoproductIter<ResultOf<IfIter>, ResultOf<ElseIter>>(elseIter())); }
 
 template<class I1>
 static auto concatIters(I1 i1) 
@@ -1694,12 +1722,12 @@ public:
   using Elem = ELEMENT_TYPE(Iter);
 
   explicit IterTraits(Iter iter) : _iter(std::move(iter)) {}
-  // DEFAULT_CONSTRUCTORS(IterTraits)
+  DEFAULT_CONSTRUCTORS(IterTraits)
 
   Elem next() 
   { 
     CALL("IterTraits::next")
-    return _iter.next(); 
+    return move_if_value<Elem>(_iter.next()); 
   }
 
   bool hasNext() 
@@ -1710,9 +1738,11 @@ public:
 
   Option<Elem> tryNext() 
   { 
-    return _iter.hasNext() 
-        ? Option<Elem>(_iter.next())
-        : Option<Elem>();
+    if (_iter.hasNext()) {
+      return Option<Elem>(move_if_value<Elem>(_iter.next()));
+    } else {
+      return Option<Elem>();
+    }
   }
 
   template<class F>
@@ -1879,14 +1909,14 @@ public:
     Option<Elem>  _cur;
 
   public:
-    StlIter(IterTraits& iter)  : _iter(Option<IterTraits&>(iter)), _cur(std::move(iter.tryNext())) {}
+    StlIter(IterTraits& iter)  : _iter(Option<IterTraits&>(iter)), _cur(iter.tryNext()) {}
     StlIter()  : _iter(), _cur() {}
 
     void operator++() 
     { _cur = _iter.unwrap().tryNext(); }
 
     Elem operator*() 
-    { return _cur.unwrap(); } 
+    { return move_if_value<Elem>(_cur.unwrap()); } 
 
     friend bool operator!=(StlIter const& lhs, StlIter const& rhs) 
     { return !(lhs == rhs); }
@@ -1909,6 +1939,9 @@ public:
 template<class Iter>
 IterTraits<Iter> iterTraits(Iter i) 
 { return IterTraits<Iter>(std::move(i)); }
+
+static const auto range = [](auto from, auto to) 
+  { return iterTraits(getRangeIterator<decltype(to)>(from, to)); };
 
 ///@}
 

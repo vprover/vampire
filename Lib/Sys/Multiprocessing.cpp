@@ -185,6 +185,7 @@ void Multiprocessing::waitForParticularChildTermination(pid_t child, int& resVal
     errno=0;
     int res=waitpid(child, &status, 0);
     if(res==-1) {
+      std::cerr << "Call to waitpid() function failed: " << std::strerror(errno) << std::endl;
       SYSTEM_FAIL("Call to waitpid() function failed.", errno);
     }
     ASS_EQ(res,child);

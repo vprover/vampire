@@ -763,23 +763,34 @@ vstring Term::toString(bool topLevel) const
   auto theoryTerm = Kernel::tryNumTraits([&](auto numTraits) {
     auto unary = [&](auto sym)  {
       vstringstream out;
-      out << sym << "(" << *nthArgument(0) << ")";
+      out << sym << "(" << termArg(0) << ")";
       return Option<vstring>(out.str());
     };
     auto binary = [&](auto sym)  {
       vstringstream out;
-      out << "(" << *nthArgument(0) 
-          << " " << sym << " " << *nthArgument(1)
+      out << "(" << termArg(0) 
+          << " " << sym << " " << termArg(1)
           << ")";
       return Option<vstring>(out.str());
     };
     using NumTraits = decltype(numTraits);
-    if (_functor == NumTraits::addF()) {
-      return binary("+");
-    } else if (_functor == NumTraits::mulF()) {
-      return binary("*");
-    } else if (_functor == NumTraits::minusF()) {
-      return unary("-");
+    if (isLiteral()) {
+      if (_functor == NumTraits::greaterF()) {
+        return binary(">");
+      } else if (_functor == NumTraits::geqF()) {
+        return binary(">=");
+      }
+      /* nothing */
+    } else if (isSort()) {
+      /* nothing */
+    } else if (isApplication()) {
+      if (_functor == NumTraits::addF()) {
+        return binary("+");
+      } else if (_functor == NumTraits::mulF()) {
+        return binary("*");
+      } else if (_functor == NumTraits::minusF()) {
+        return unary("-");
+      }
     }
     return Option<vstring>();
   });

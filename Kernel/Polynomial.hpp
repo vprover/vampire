@@ -86,7 +86,9 @@ class FuncId
 public: 
   explicit FuncId(unsigned num, const TermList* typeArgs);
   static FuncId symbolOf(Term* term);
-  unsigned numTermArguments();
+  unsigned numTermArguments() const;
+  unsigned numTypeArguments() const;
+  TermList typeArg(unsigned i) const;
 
   friend struct std::hash<FuncId>;
   friend bool operator==(FuncId const& lhs, FuncId const& rhs);
@@ -323,7 +325,7 @@ public:
   class SubtermIter;
 
   /** returns an iterator over all PolyNf s that are subterms of this one */
-  IterTraits<SubtermIter> iterSubterms() const;
+  SubtermIter iterSubterms() const;
 
   template<class F> PolyNf mapVars(F f) const;
 
@@ -365,7 +367,7 @@ struct MonomFactor
   Option<Perfect<Polynom<Number>>> tryPolynom() const;
   bool isPolynom() const { return tryPolynom().isSome(); }
 
-  auto iterSubterms() const { return term.iterSubterms(); }
+  PolyNf::SubtermIter iterSubterms() const;
 };
 
 
@@ -928,6 +930,11 @@ MonomFactor<Number>::MonomFactor(PolyNf term, int power)
   , power(power)
 {}
 
+
+template<class Number>
+PolyNf::SubtermIter MonomFactor<Number>::iterSubterms() const
+{ return term.iterSubterms(); }
+
 template<class Number>
 bool operator<(MonomFactor<Number> const& l, MonomFactor<Number> const& r)
 { return std::tie(l.term, l.power) < std::tie(r.term, r.power); }
@@ -1103,6 +1110,7 @@ template<class Number>
 bool operator==(const MonomFactors<Number>& l, const MonomFactors<Number>& r) {
   return l._factors == r._factors;
 }
+
 template<class Number>
 TermList MonomFactors<Number>::denormalize()  const
 {

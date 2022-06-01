@@ -860,12 +860,12 @@ private:
 
 
 static const auto termArgIter = [](Term* term) 
-  { return iterTraits(getRangeIterator<unsigned>(0, term->numTermArguments()))
+  { return range((unsigned)0, term->numTermArguments())
       .map([=](auto i)
            { return term->termArg(i); }); };
 
 static const auto typeArgIter = [](Term* term) 
-  { return iterTraits(getRangeIterator<unsigned>(0, term->numTypeArguments()))
+  { return range((unsigned)0, term->numTypeArguments())
       .map([=](auto i)
            { return term->typeArg(i); }); };
 

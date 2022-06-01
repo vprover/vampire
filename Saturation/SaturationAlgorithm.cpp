@@ -1644,7 +1644,7 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
       case Options::ArithmeticSimplificationMode::FORCE:    sgi->push(new IRC::VariableElimination(shared, /* simpl */ true )); break;
       case Options::ArithmeticSimplificationMode::CAUTIOUS: sgi->push(new IRC::VariableElimination(shared, /* simpl */ false)); break;
     }
-    sgi->push(new IRC::LiteralFactoring(shared, env.options->ircLascaFactoring())); 
+    sgi->push(new IRC::LiteralFactoring(shared));
     sgi->push(new IRC::Superposition(shared)); 
     sgi->push(new IRC::TermFactoring(shared)); 
     sgi->push(new IRC::InequalityResolution(shared)); 

@@ -169,6 +169,13 @@
 // implementation
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+
+class SyntaxSugar {
+public:
+  static void reset() {
+    env.signature = new Signature();
+  }
+};
 struct SortSugar 
 {
   SortId _srt;
@@ -179,10 +186,10 @@ public:
     : SortSugar([&]() {
         bool added = false;
         unsigned functor = env.signature->addTypeCon(name, 0, added);
-        if(added){
+        if(added) {
           env.signature->getTypeCon(functor)->setType(OperatorType::getConstantsType(AtomicSort::superSort()));
         }
-        return TermList(Term::createConstant(functor));
+        return TermList(AtomicSort::createConstant(functor));
       }()) 
   {  }
 

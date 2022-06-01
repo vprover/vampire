@@ -175,6 +175,14 @@ bool TestUnit::spawnTest(TestProc proc)
       std::cerr << e.what() << std::endl;
       _exit(-1);
 
+    } catch (Lib::ThrowableBase& e) {
+      std::cerr << "some ThrowBase" << std::endl;
+      _exit(-1);
+
+    } catch (...) {
+      std::cerr << "some unknown type was" << std::endl;
+      _exit(-1);
+
     }
     _exit(0); // don't call parent's atexit! 
   } else {

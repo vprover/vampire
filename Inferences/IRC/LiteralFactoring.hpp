@@ -39,9 +39,8 @@ public:
   USE_ALLOCATOR(LiteralFactoring);
 
   LiteralFactoring(LiteralFactoring&&) = default;
-  LiteralFactoring(shared_ptr<IrcState> shared, bool lascaFactoring)
+  LiteralFactoring(shared_ptr<IrcState> shared)
     : _shared(std::move(shared))
-    , _lascaFactoring(lascaFactoring)
   {  }
 
   void attach(SaturationAlgorithm* salg) final override;
@@ -76,8 +75,8 @@ public:
 private:
 
   shared_ptr<IrcState> _shared;
-  bool const _lascaFactoring;
 };
+#define _lascaFactoring true
 
 } // namespace IRC 
 } // namespace Inferences 

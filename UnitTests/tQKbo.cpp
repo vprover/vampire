@@ -80,9 +80,26 @@ void check(QKbo& ord, TermList lhs, QKbo::Result exp, TermList rhs)
 void check(QKbo& ord, Literal* lhs, QKbo::Result exp, Literal* rhs) 
 { check___(ord, lhs,exp,rhs); }
 
-QKbo qkbo() {
+void check_in_different_contexts(QKbo& ord, TermList l, QKbo::Result exp, TermList r, PredSugar ctxt, FuncSugar func) 
+{ 
+
+  check(ord, l, exp, r);
+  check(ord, func(l), exp, func(r));
+  check(ord, ctxt(l), exp, ctxt(r));
+  check(ord, l >= 0, exp, r >= 0);
+  check(ord, l >  0, exp, r >  0);
+  check(ord, l == 0, exp, r == 0);
+  check(ord, l != 0, exp, r != 0);
+}
+
+QKbo& qkbo() {
   CALL("qkbo(...)")
-  return QKbo(Precedence(funcPrec(), predPrec()));
+  auto out = new QKbo(Precedence(funcPrec(), predPrec()));
+  auto shared = testIrcState(Options::UnificationWithAbstraction::IRC2, 
+    /* strongNormalization */ false, 
+    /* ordering */ out);
+  out->setState(shared);
+  return *out;
 }
 
 
@@ -91,7 +108,7 @@ QKbo qkbo() {
 //
 // How to read the test cases in this file:
 //
-TEST_FUN(test01) {
+TEST_FUN(uninterpreted_terms_01) {
   DECL_DEFAULT_VARS         // <- macro to initialize some syntax sugar for creating terms over a single uninterpreted sort
   DECL_SORT(srt)            // <- declares an uniterpreted sort
   DECL_FUNC (f, {srt}, srt) // <- declares a function symbol with arity 1
@@ -100,7 +117,7 @@ TEST_FUN(test01) {
  
   // !!! The declaration order of function and constant symbols will define their precedence relation !!!
 
-  auto ord = qkbo(); 
+  auto& ord = qkbo(); 
 
   check(ord, f(c), Less, g(c));
 }
@@ -109,19 +126,19 @@ TEST_FUN(test01) {
 //
 ////////////////////////////////////////////////////////////////////////////////
 
-TEST_FUN(test02) {
+TEST_FUN(uninterpreted_terms_02) {
   DECL_DEFAULT_VARS
   DECL_SORT(srt)
   DECL_FUNC (f, {srt}, srt)
   DECL_FUNC (g, {srt}, srt)
   DECL_CONST(c, srt)
 
-  auto ord = qkbo();
+  auto& ord = qkbo();
 
   check(ord, f(c), Less, g(g(g(g(g(c))))));
 }
 
-TEST_FUN(test03) {
+TEST_FUN(uninterpreted_terms_03) {
   DECL_DEFAULT_VARS
   DECL_SORT(srt)
   DECL_FUNC (f , {srt}     , srt)
@@ -132,7 +149,7 @@ TEST_FUN(test03) {
   DECL_CONST(b, srt)
   DECL_CONST(c, srt)
 
-  auto ord = qkbo();
+  auto& ord = qkbo();
 
   check(ord, f(x), Incomp , g(g(g(g(g(c))))));
   check(ord, f(x), Less   , g(g(g(g(g(x))))));
@@ -149,33 +166,32 @@ TEST_FUN(test03) {
   check(ord, f(u(x)), Greater, f(x));
 }
 
-TEST_FUN(test04) {
+TEST_FUN(uninterpreted_terms_04) {
   DECL_DEFAULT_VARS
   DECL_SORT(srt)
   DECL_FUNC(f, {srt}, srt)
   DECL_FUNC(g, {srt}, srt)
   DECL_PRED(p, {srt})
 
-  auto ord = qkbo();
+  auto& ord = qkbo();
 
   check(ord, p(f(g(x))), Less, p(g(f(x))));
 }
 
 
-TEST_FUN(test05) {
+TEST_FUN(uninterpreted_terms_05) {
   DECL_DEFAULT_VARS
   DECL_SORT(srt)
   DECL_PRED(r, {srt, srt})
-  DECL_FUNC(g, {srt, srt}, srt)
-
-  auto ord = qkbo();
+  DECL_PRED(g, {srt, srt})
+  auto& ord = qkbo();
 
   check(ord, r(x,y), Incomp, r(y,x));
   check(ord, g(x,y), Incomp, g(y,x));
 }
 
 
-TEST_FUN(latest01) {
+TEST_FUN(interpreted_terms_01) {
   DECL_DEFAULT_VARS
   NUMBER_SUGAR(Int)
   DECL_FUNC (f, {Int}, Int)
@@ -184,7 +200,7 @@ TEST_FUN(latest01) {
   DECL_CONST(c, Int)
   DECL_CONST(d, Int)
 
-  auto ord = qkbo();
+  auto& ord = qkbo();
 
   check(ord, x, Incomp, a); 
   check(ord, x + y, Incomp, y + x); 
@@ -202,8 +218,8 @@ TEST_FUN(latest01) {
 
   check(ord, f(x) * f(x), Greater, f(x));
 
-  check(ord, f(a) + f(a), Incomp, a + f(f(a)));
-  check(ord, f(a) + f(a), Incomp, f(f(a)) + a);
+  check(ord, f(a) + f(a), Less, a + f(f(a)));
+  check(ord, f(a) + f(a), Less, f(f(a)) + a);
   check(ord, f(a) + x   , Incomp, a + f(x));
   check(ord, f(a) + x   , Incomp, f(x) + a);
   check(ord, a + b + c + d + x, Incomp, f(x));
@@ -211,7 +227,7 @@ TEST_FUN(latest01) {
 }
 
 
-TEST_FUN(latest_literals) {
+TEST_FUN(interpreted_literals_01) {
   DECL_DEFAULT_VARS
   NUMBER_SUGAR(Int)
   DECL_CONST(a, Int)
@@ -219,7 +235,7 @@ TEST_FUN(latest_literals) {
   DECL_FUNC (f, {Int}, Int)
   DECL_PRED (p, {Int})
 
-  auto ord = qkbo();
+  auto& ord = qkbo();
 
   check(ord,     f(x) > 0, Less   , 3 * f(x) > 0);
   check(ord, 5 * f(x) > 0, Greater, 3 * f(x) > 0);
@@ -229,40 +245,31 @@ TEST_FUN(latest_literals) {
 
   check(ord,                     f(x) > 0, Less,     f(f(x)) > 0);
   check(ord,              f(x) + f(x) > 0, Less,     f(f(x)) > 0);
+  check(ord,              100  * f(x) > 0, Less,     f(f(x)) > 0);
   check(ord,              f(a) + f(b) > 0, Less,     f(f(x)) > 0);
   check(ord,   3 * f(x)               > 0, Less,     f(f(x)) > 0);
   check(ord,   3 * f(x) + f(a) + f(b) > 0, Less,     f(f(x)) > 0);
   check(ord,   3 * f(x) + x           > 0, Less,     f(f(x)) > 0);
-  check(ord,   3 * f(x) + x     + y   > 0, Less,     f(f(x)) + y > 0);
   check(ord,   3 * f(x) + x     + y   > 0, Incomp,   f(f(x))     > 0);
 
-  // checking precedence
-  check(ord, f(x) >= 0, Greater,  f(x) >  0);
-  check(ord, f(x) >  0, Greater,  f(x) != 0);
+  check(ord,             f(x) + f(x) > 0, Equal,  2 * f(x) > 0);
+  check(ord,    13 * f(x) + 2 * f(x) > 0, Equal, 15 * f(x) > 0);
+
+  check(ord, f(x) >= 0, Greater,  f(x) == 0);
+  check(ord, f(x) >  0, Greater,  f(x) == 0);
   check(ord, f(x) != 0, Greater,  f(x) == 0);
 
-  // checking multiset property for literals
-  check(ord, 3 * f(x) + 5 * f(x) == 0, Greater,  8 * f(x) > 0);
-  check(ord, 3 * f(x) + 5 * f(x) >= 0, Greater,  8 * f(x) > 0);
-  check(ord, 3 * f(x) + 5 * f(x) >  0, Greater,  8 * f(x) > 0);
-  check(ord, 3 * f(x) + 5 * f(x) != 0, Greater,  8 * f(x) > 0);
+  check(ord, 3 * f(x) + 5 * f(x) == 0, Less   ,  8 * f(x) > 0);
+  check(ord, 3 * f(x) + 5 * f(x) >= 0, Greater,  8 * f(x) == 0);
   
   // checking uninterpreted r maximal
   check(ord, p(x), Greater,  8 * f(x) >  0);
   check(ord, p(y), Greater,  8 * f(x) >  0);
 
-}
-
-TEST_FUN(latest_literals_numerals) {
-  DECL_DEFAULT_VARS
-  NUMBER_SUGAR(Rat)
-  DECL_FUNC (f, {Rat}, Rat)
-
-  auto ord = qkbo();
-
-  check(ord,              3 * f(x) > 0, Less   , frac(1,3) * f(x)  > 0);
-  check(ord,      frac(1,5) * f(x) > 0, Greater,         5 * f(x)  > 0);
-
+  // tricky 
+  check(ord,   3 * f(a) + a +      b   > 0, Less,    f(f(a)) +      b   > 0);
+  check(ord,   3 * f(a) + a + -f(f(a)) > 0, Greater, f(f(a)) + -f(f(a)) > 0);
+  check(ord,   3 * f(x) + x +      y   > 0, Incomp,  f(f(x)) +      y   > 0);
 }
 
 TEST_FUN(misc01) {
@@ -274,7 +281,7 @@ TEST_FUN(misc01) {
   DECL_CONST(b, Int)
   DECL_CONST(c, Int)
 
-  auto ord = qkbo();
+  auto& ord = qkbo();
 
   check(ord, x, Incomp, a); 
 
@@ -288,7 +295,7 @@ TEST_FUN(misc02) {
   NUMBER_SUGAR(Int)
   DECL_FUNC (f, {Int}, Int)
 
-  auto ord = qkbo();
+  auto& ord = qkbo();
 
   check(ord, f(x + y), Incomp, x);
 }
@@ -302,7 +309,7 @@ TEST_FUN(normal_form_lcm) {
   // DECL_CONST(c, Real)
   // DECL_FUNC (f, {Real}, Real)
 
-  auto ord = qkbo();
+  auto& ord = qkbo();
   auto sigmaNf = [&](auto t) 
     { return ord.template sigmaNf<RealTraits>(t); };
 
@@ -350,6 +357,147 @@ TEST_FUN(normal_form_lcm) {
 }
 
 
+
+TEST_FUN(tricky_01) {
+
+  DECL_DEFAULT_VARS
+  NUMBER_SUGAR(Real)
+  DECL_FUNC (f, {Real}, Real)
+  DECL_FUNC (g, {Real, Real}, Real)
+  DECL_PRED (p, {Real})
+  DECL_CONST(a, Real)
+  DECL_CONST(b, Real)
+
+  auto& ord = qkbo();
+
+  check_in_different_contexts(ord, f(g(a,a)) + 2 * f(a) - f(a), Less   , f(g(a,a)) + 2 * f(a), p , f );
+  check_in_different_contexts(ord, f(g(a,b)) + 2 * f(a) - f(b), Greater, f(g(a,b)) + 2 * f(a), p , f );
+  check_in_different_contexts(ord, f(g(x,y)) + 2 * f(x) - f(y), Incomp , f(g(x,y)) + 2 * f(x), p , f );
+}
+
+TEST_FUN(tricky_not_yet_implemented) {
+
+  DECL_DEFAULT_VARS
+  NUMBER_SUGAR(Real)
+  DECL_FUNC (f, {Real}, Real)
+  DECL_FUNC (g, {Real, Real}, Real)
+  DECL_PRED (p, {Real})
+  DECL_CONST(a, Real)
+  DECL_CONST(b, Real)
+  DECL_CONST(c, Real)
+
+  auto& ord = qkbo();
+
+
+  check(ord, f(g(a,  a )) - 2 * f(a) + f(  a ) , Greater , f(g(a,  a )) + 100 * f(a));
+  check(ord, f(g(a,f(a))) - 2 * f(a) + f(f(a)) , Greater , f(g(a,f(a))) + 100 * f(a));
+  #ifdef TRICKY_IMPLEMENTED
+  check(ord, f(g(x,  y )) - 2 * f(x) + f(  y ) , Greater , f(g(x,  y )) + 100 * f(x));
+  #endif
+
+  check_in_different_contexts(ord, f(g(a,  a )) + 2 * f(a) - f(  a ), Less   , f(g(a,  a )) + 100 * f(a), p,f);
+  check_in_different_contexts(ord, f(g(a,f(a))) + 2 * f(a) - f(f(a)), Greater, f(g(a,f(a))) + 100 * f(a), p,f);
+  #ifdef TRICKY_IMPLEMENTED
+  check_in_different_contexts(ord, f(g(x,  y )) + 2 * f(x) - f(  y ), Incomp , f(g(x,  y )) + 100 * f(x), p,f);
+  #endif
+
+  check_in_different_contexts(ord, f(g(a,a)) + 2 * f(a) - f(a) + c, Greater, f(g(a,a)) + 2 * f(a) - f(a), p,f);
+  check_in_different_contexts(ord, f(g(a,b)) + 2 * f(a) - f(b) + c, Greater, f(g(a,b)) + 2 * f(a) - f(b), p,f);
+  #ifdef TRICKY_IMPLEMENTED
+  check_in_different_contexts(ord, f(g(x,y)) + 2 * f(x) - f(y) + c, Greater, f(g(x,y)) + 2 * f(x) - f(y), p,f);
+  #endif
+
+}
+
+TEST_FUN(uninterpreted_predicates) {
+
+  DECL_DEFAULT_VARS
+  NUMBER_SUGAR(Real)
+  DECL_CONST(a, Real)
+  DECL_CONST(b, Real)
+  DECL_FUNC (f, {Real}, Real)
+  // DECL_FUNC (g, {Real, Real}, Real)
+  DECL_PRED (p, {Real, Real})
+  DECL_PRED (q, {Real})
+
+  auto& ord = qkbo();
+
+  check(ord, f(a), Greater, a );
+
+  // lex comparison
+  check(ord, p(b, f(a)), Greater, p(b, a) );
+  check(ord, p(f(a), b), Greater, p(a, f(a)) );
+  check(ord, p(f(a), b), Greater, p(a, f(b)) );
+
+  // sign comparison
+  check(ord, ~p(b, f(a)), Greater, p(b, f(a)) );
+
+  // precedence comparison
+  check(ord,  p(b, f(a)), Less,  q(b) );
+  check(ord,  p(b, f(a)), Less, ~q(b) );
+  check(ord, ~p(b, f(a)), Less,  q(b) );
+  check(ord, ~p(b, f(a)), Less, ~q(b) );
+
+  // compare interpretd vs uninterpreted
+  check(ord, 3 * f(a) + b + f(b) >  0, Less,  p(a,b) );
+  check(ord, 3 * f(a) + b + f(b) >  0, Less, ~p(a,b) );
+  check(ord, 3 * f(a) + b + f(b) >= 0, Less,  p(a,b) );
+  check(ord, 3 * f(a) + b + f(b) >= 0, Less, ~p(a,b) );
+  check(ord, 3 * f(a) + b + f(b) != 0, Less,  p(a,b) );
+  check(ord, 3 * f(a) + b + f(b) != 0, Less, ~p(a,b) );
+  check(ord, 3 * f(a) + b + f(b) == 0, Less,  p(a,b) );
+  check(ord, 3 * f(a) + b + f(b) == 0, Less, ~p(a,b) );
+}
+
+TEST_FUN(atoms_comparison_two_sorts) {
+
+  DECL_DEFAULT_VARS
+  NUMBER_SUGAR(Real)
+  DECL_SORT(alpha)
+  DECL_CONST(a0, Real)
+  DECL_FUNC (f0, {Real}, Real)
+  DECL_FUNC (g0, {alpha}, Real)
+
+  DECL_CONST(a1, alpha)
+  DECL_FUNC (f1, {alpha}, alpha)
+  DECL_FUNC (g1, {Real}, alpha)
+
+
+  auto& ord = qkbo();
+
+  check(ord, g0(a1), Greater, a1);
+  check(ord, g0(f1(x)), Greater, x );
+
+  check(ord, g1(f0(a0)) == a1, Greater, f0(a0) - a0 == 0 );
+  check(ord, g1(f0(a0)) == a1, Greater, f0(a0) - a0 != 0 );
+  check(ord, g1(f0(a0)) == a1, Greater, f0(a0) == 0 );
+  check(ord, g1(f0(a0)) == a1, Greater, f0(a0) == 0 );
+  check(ord, g1(f0(a0)) == a1, Greater, 2 * f0(a0) >= 0 );
+  check(ord, g1(f0(a0)) == a1, Greater, 2 * f0(a0) >  0 );
+
+  check(ord, g1(f0(a0)) != a1, Greater, f0(a0) - a0 == 0 );
+  check(ord, g1(f0(a0)) != a1, Greater, f0(a0) - a0 != 0 );
+  check(ord, g1(f0(a0)) != a1, Greater, f0(a0) == 0 );
+  check(ord, g1(f0(a0)) != a1, Greater, f0(a0) == 0 );
+  check(ord, g1(f0(a0)) != a1, Greater, 2 * f0(a0) >= 0 );
+  check(ord, g1(f0(a0)) != a1, Greater, 2 * f0(a0) >  0 );
+
+  check(ord, f1(a1) == a1, Less, g0(f1(f1(a1))) + f0(a0) == 0 );
+  check(ord, f1(a1) == a1, Less, g0(f1(f1(a1))) + f0(a0) != 0 );
+  check(ord, f1(a1) == a1, Less, g0(f1(f1(a1))) + f0(a0) == 0 );
+  check(ord, f1(a1) == a1, Less, g0(f1(f1(a1))) + f0(a0) != 0 );
+  check(ord, f1(a1) == a1, Less, g0(f1(f1(a1))) + f0(a0) >  0 );
+  check(ord, f1(a1) == a1, Less, g0(f1(f1(a1))) + f0(a0) >= 0 );
+
+  check(ord, f1(a1) != a1, Less, g0(f1(f1(a1))) + f0(a0) == 0 );
+  check(ord, f1(a1) != a1, Less, g0(f1(f1(a1))) + f0(a0) != 0 );
+  check(ord, f1(a1) != a1, Less, g0(f1(f1(a1))) + f0(a0) == 0 );
+  check(ord, f1(a1) != a1, Less, g0(f1(f1(a1))) + f0(a0) != 0 );
+  check(ord, f1(a1) != a1, Less, g0(f1(f1(a1))) + f0(a0) >  0 );
+  check(ord, f1(a1) != a1, Less, g0(f1(f1(a1))) + f0(a0) >= 0 );
+
+}
+
 TEST_FUN(normal_form01) {
   DECL_DEFAULT_VARS
   NUMBER_SUGAR(Real)
@@ -358,7 +506,7 @@ TEST_FUN(normal_form01) {
   // DECL_CONST(c, Real)
   // DECL_FUNC (f, {Real}, Real)
 
-  auto ord = qkbo();
+  auto& ord = qkbo();
   auto sigmaNf = [&](auto t) 
     { return ord.template sigmaNf<RealTraits>(t); };
 
@@ -407,60 +555,4 @@ TEST_FUN(normal_form01) {
   // -f(a) + f(a) < f(a)
   // since { 0 f(a) } < { +f(a) }
 
-}
-
-TEST_FUN(tricky_01) {
-
-  DECL_DEFAULT_VARS
-  NUMBER_SUGAR(Real)
-  DECL_FUNC (f, {Real}, Real)
-  DECL_FUNC (g, {Real, Real}, Real)
-  DECL_CONST(a, Real)
-  DECL_CONST(b, Real)
-
-  auto ord = qkbo();
-
-  check(ord, f(g(a,a)) + 2 * f(a) - f(a), Less   , f(g(a,a)) + 2 * f(a) );
-  check(ord, f(g(a,b)) + 2 * f(a) - f(b), Greater, f(g(a,b)) + 2 * f(a) );
-  check(ord, f(g(x,y)) + 2 * f(x) - f(y), Incomp , f(g(x,y)) + 2 * f(x) );
-}
-
-TEST_FUN(uninterpreted_predicates) {
-
-  DECL_DEFAULT_VARS
-  NUMBER_SUGAR(Real)
-  DECL_CONST(a, Real)
-  DECL_CONST(b, Real)
-  DECL_FUNC (f, {Real}, Real)
-  // DECL_FUNC (g, {Real, Real}, Real)
-  DECL_PRED (p, {Real, Real})
-  DECL_PRED (q, {Real})
-
-  auto ord = qkbo();
-
-  check(ord, f(a), Greater, a );
-
-  // lex comparison
-  check(ord, p(b, f(a)), Greater, p(b, a) );
-  check(ord, p(f(a), b), Greater, p(a, f(a)) );
-  check(ord, p(f(a), b), Greater, p(a, f(b)) );
-
-  // sign comparison
-  check(ord, ~p(b, f(a)), Greater, p(b, f(a)) );
-
-  // precedence comparison
-  check(ord,  p(b, f(a)), Less,  q(b) );
-  check(ord,  p(b, f(a)), Less, ~q(b) );
-  check(ord, ~p(b, f(a)), Less,  q(b) );
-  check(ord, ~p(b, f(a)), Less, ~q(b) );
-
-  // compare interpretd vs uninterpreted
-  check(ord, 3 * f(a) + b + f(b) >  0, Less,  p(a,b) );
-  check(ord, 3 * f(a) + b + f(b) >  0, Less, ~p(a,b) );
-  check(ord, 3 * f(a) + b + f(b) >= 0, Less,  p(a,b) );
-  check(ord, 3 * f(a) + b + f(b) >= 0, Less, ~p(a,b) );
-  check(ord, 3 * f(a) + b + f(b) != 0, Less,  p(a,b) );
-  check(ord, 3 * f(a) + b + f(b) != 0, Less, ~p(a,b) );
-  check(ord, 3 * f(a) + b + f(b) == 0, Less,  p(a,b) );
-  check(ord, 3 * f(a) + b + f(b) == 0, Less, ~p(a,b) );
 }

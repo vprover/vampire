@@ -73,6 +73,65 @@ REGISTER_GEN_TESTER(Test::Generation::GenerationTester<TermFactoring>(testTermFa
 // Basic tests
 //////////////////////////////////////
 
+TEST_GENERATION(new0101,
+    Generation::SymmetricTest()
+      .inputs  ({  clause({selected( -g(a, x) + -g(y, b) > 0 ) }) })
+      .expected(exactly(
+          /* nothing because both negative */
+      ))
+      .premiseRedundant(false)
+    )
+TEST_GENERATION(new0102,
+    Generation::SymmetricTest()
+      .inputs  ({  clause({selected( g(a, x) + -g(y, b) > 0 ) }) })
+      .expected(exactly(
+          clause({ num(0) > 0 })
+      ))
+      .premiseRedundant(false)
+    )
+TEST_GENERATION(new0103,
+    Generation::SymmetricTest()
+      .inputs  ({  clause({selected( g(a, x) + g(y, b) > 0 ) }) })
+      .expected(exactly(
+          clause({ 2 * g(a, b) > 0 })
+      ))
+      .premiseRedundant(false)
+    )
+
+// checking different symbols
+TEST_GENERATION(new02001,
+    Generation::SymmetricTest()
+      .inputs  ({  clause({selected( g(a, x) + g(y, b) > 0 ) }) })
+      .expected(exactly(
+          clause({ 2 * g(a, b) > 0 })
+      ))
+      .premiseRedundant(false)
+    )
+TEST_GENERATION(new02002,
+    Generation::SymmetricTest()
+      .inputs  ({  clause({selected( g(a, x) + g(y, b) >= 0 ) }) })
+      .expected(exactly(
+          clause({ 2 * g(a, b) > 0 })
+      ))
+      .premiseRedundant(false)
+    )
+TEST_GENERATION(new02003,
+    Generation::SymmetricTest()
+      .inputs  ({  clause({selected( g(a, x) + g(y, b) == 0 ) }) })
+      .expected(exactly(
+          clause({ 2 * g(a, b) > 0 })
+      ))
+      .premiseRedundant(false)
+    )
+TEST_GENERATION(new02004,
+    Generation::SymmetricTest()
+      .inputs  ({  clause({selected( g(a, x) + g(y, b) != 0 ) }) })
+      .expected(exactly(
+          /* we do not factor for negative equalities. TODO: do we really not need to? */
+      ))
+      .premiseRedundant(false)
+    )
+
 TEST_GENERATION(basic01a,
     Generation::SymmetricTest()
       .inputs  ({  clause({selected( 3 * g(a, x) + 2 * g(y, b) > 0 ), p(x) }) })
@@ -84,9 +143,9 @@ TEST_GENERATION(basic01a,
 
 TEST_GENERATION(basic01b,
     Generation::SymmetricTest()
-      .inputs  ({  clause({selected( 3 * g(a, x) + 2 * g(y, b) > 0 ), f(x)  == 1 }) })
+      .inputs  ({  clause({selected( 3 * g(a, x) + 2 * g(y, b) > 0 ), f(x) - 1 == 0 }) })
       .expected(exactly(
-            clause({ 5 * g(a,b) > 0, f(b) == 1  })
+            clause({ 5 * g(a,b) > 0, f(b) - 1 == 0  })
       ))
       .premiseRedundant(false)
     )

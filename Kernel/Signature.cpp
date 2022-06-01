@@ -17,6 +17,7 @@
 #include "Shell/Options.hpp"
 #include "Shell/DistinctGroupExpansion.hpp"
 #include "Kernel/SortHelper.hpp"
+#include "Debug/Tracer.hpp"
 
 #include "Signature.hpp"
 
@@ -92,6 +93,16 @@ void Signature::Symbol::destroyFnSymbol()
   }
 }
 
+const unsigned Signature::functionArity(int number)
+{
+  CALL("Signature::functionArity");
+  return _funs[number]->arity();
+}
+const unsigned Signature::predicateArity(int number)
+{
+  CALL("Signature::predicateArity");
+  return _preds[number]->arity();
+}
 /**
  * Deallocate predicate Symbol object
  */

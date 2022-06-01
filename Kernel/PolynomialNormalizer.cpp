@@ -282,6 +282,7 @@ NormalizationResult normalizeNumSort(TermList t, NormalizationResult* ts)
 
   } else {
     auto term = t.term();
+    // DBGE(*term)
     auto fn = FuncId::symbolOf(term);
     if (fn.isInterpreted()) {
       switch(fn.interpretation()) {
@@ -369,7 +370,15 @@ TermList PolyNf::denormalize() const
 
     TermList operator()(PolyNf orig, TermList* results)
     { return orig.match(
-        [&](Perfect<FuncTerm> t) { return TermList(Term::create(t->function().id(), t->numTermArguments(), results)); },
+        [&](Perfect<FuncTerm> t) { 
+          auto f = t->function();
+          Stack<TermList> args(f.numTermArguments() + f.numTypeArguments());
+          for (unsigned i = 0; i < f.numTypeArguments(); i++) 
+            args.push(f.typeArg(i));
+          for (unsigned i = 0; i < t->numTermArguments(); i++)
+            args.push(results[i]);
+          return TermList(Term::create(t->function().id(), args.size(), args.begin())); 
+        },
         [&](Variable          v) { return TermList::var(v.id()); },
         [&](AnyPoly           p) { return p.denormalize(results); }
         ); }

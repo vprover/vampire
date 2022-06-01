@@ -186,21 +186,50 @@ template<class NumTraits, class Subst, class CnstIter> Option<Clause*> Inequalit
   return Option<Clause*>(Clause::fromStack(conclusion, inf));
 }
 
+using Lhs = InequalityResolution::Lhs;
+using Rhs = InequalityResolution::Rhs;
+auto insert(Lhs) { ASSERTION_VIOLATION }
+auto insert(Rhs) { ASSERTION_VIOLATION }
+
+auto getUnifications(Rhs const&) -> IterTraits<VirtualIterator<std::tuple<Lhs, UwaResult>>> 
+{
+  ASSERTION_VIOLATION
+}
+
+
+auto getUnifications(Lhs const&) -> IterTraits<VirtualIterator<std::tuple<Rhs, UwaResult>>> 
+{
+  ASSERTION_VIOLATION
+}
 
 ClauseIterator InequalityResolution::generateClauses(Clause* premise) 
 {
-  auto maxLiterals = make_shared(new Stack<Literal*>(_shared->strictlySelectedLiterals(premise))); // TODO use Set instead of Stack
-  return pvi(numTraitsIter([this, premise,maxLiterals](auto numTraits){
-    using NumTraits = decltype(numTraits);
-    return iterTraits(ownedArrayishIterator(_shared->selectedTerms<NumTraits>(premise, /* strict lit */ true, /* strict terms */ true )))
-      .filter([maxLiterals](auto& maxTerm) 
-          { return iterTraits(maxLiterals->iterFifo())
-                     .find([&](auto x) { return x == maxTerm.literal; })
-                     .isSome(); })
-      .filter([](auto maxTerm) { return maxTerm.ircLit.isInequality(); })
-      .flatMap([this, premise](auto maxTerm) 
-          { return this->generateClauses(premise, maxTerm.literal, maxTerm.ircLit, maxTerm.self); });
-  }));
+  Stack<Clause*> out;
+
+  for (auto lhs : iterLhs(premise)) {
+    for (auto rhs_sigma : getUnifications(lhs)) {
+      auto& rhs = std::get<0>(rhs_sigma);
+      auto& sigma = std::get<1>(rhs_sigma);
+      auto res = applyRule(lhs, 0, rhs, 1, sigma);
+      if (res.isSome()) {
+        out.push(res.unwrap());
+      }
+    }
+    insert(std::move(lhs));
+  }
+
+  for (auto rhs : iterRhs(premise)) {
+    for (auto lhs_sigma : getUnifications(rhs)) {
+      auto& lhs = std::get<0>(lhs_sigma);
+      auto& sigma = std::get<1>(lhs_sigma);
+      auto res = applyRule(lhs, 1, rhs, 0, sigma);
+      if (res.isSome()) {
+        out.push(res.unwrap());
+      }
+    }
+    insert(std::move(rhs));
+  }
+  return pvi(ownedArrayishIterator(std::move(out)));
 }
 
 template<class NumTraits> 
@@ -249,6 +278,109 @@ ClauseIterator InequalityResolution::generateClauses(Clause* hyp1, Literal* lit1
         );
       // })
       // );
+}
+
+// Fourier Motzkin normal:
+//
+// C₁ \/ +j s + t₁ >₁ 0         C₂ \/ -k s' + t₂ >₂ 0 
+// --------------------------------------------------
+//           (C₁ \/ C₂ \/ k t₁ + j t₂ > 0)σ \/ Cnst
+//
+// where 
+// - (σ, Cnst) = uwa(s, s')
+// - C₁σ ≺ (+j s  + t₁ >₁ 0)σ
+// - C₂σ ≺ (-k s' + t₂ >₂ 0)σ
+// - s, s' are not variables
+// - {>} ⊆ {>₁,>₂} ⊆ {>,≥}
+//
+// Fourier Motzkin tight:
+//
+// C₁ \/ +j s + t₁ ≥ 0                 C₂ \/ -k s' + t₂ ≥ 0 
+// --------------------------------------------------------
+// (C₁ \/ C₂ \/ k t₁ + j t₂ > 0 \/ -k s' + t₂ ≈ 0)σ \/ Cnst
+//
+// where 
+// - (σ, Cnst) = uwa(s, s')
+// - (+j s  + t₁ >₁ 0)σ /≺ C₁σ
+// - (-k s' + t₂ >₂ 0)σ /≺ C₂σ
+// - s, s' are not variables
+//
+Option<Clause*> InequalityResolution::applyRule(
+    Lhs const& lhs, unsigned lhsVarBank,
+    Rhs const& rhs, unsigned rhsVarBank,
+    UwaResult& uwa
+    ) const 
+{
+
+  return lhs.numTraits().apply([&](auto numTraits) {
+    using NumTraits = decltype(numTraits);
+
+
+    ASS(lhs.sign() == Sign::Pos)
+    ASS(rhs.sign() == Sign::Neg)
+    ASS(lhs.literal()->functor() == NumTraits::geqF()
+     || lhs.literal()->functor() == NumTraits::greaterF())
+    ASS(rhs.literal()->functor() == NumTraits::geqF()
+     || rhs.literal()->functor() == NumTraits::greaterF())
+
+    bool tight = lhs.literal()->functor() == NumTraits::geqF()
+              && rhs.literal()->functor() == NumTraits::geqF();
+
+    Stack<Literal*> out(lhs.clause()->size() + rhs.clause()->size() - 1 + (tight ? 1 : 0) + uwa.cnst.size());
+
+    auto mainLiteralMaximal = [this](auto& selected, UwaResult& uwa, unsigned varBank, auto applyMax) {
+      auto main = uwa.sigma.apply(selected.literal(), varBank);
+      for (auto lit_ : selected.contextLiterals()) {
+        auto lit = uwa.sigma.apply(lit_, varBank);
+        switch (_shared->ordering->compare(main, lit)) {
+          case Ordering::LESS: 
+          case Ordering::EQUAL: 
+            return false;
+          default:
+            applyMax(lit);
+        }
+      }
+      return true;
+    };
+ 
+    // (+j s  + t₁ >₁ 0)σ /≺ C₁σ
+    if (!mainLiteralMaximal(lhs, uwa, lhsVarBank, [&](auto lit) { out.push(lit); })) 
+      return Option<Clause*>();
+    // (-k s' + t₂ >₂ 0)σ /≺ C₂σ
+    if (!mainLiteralMaximal(rhs, uwa, lhsVarBank, [&](auto lit) { out.push(lit); })) 
+      return Option<Clause*>();
+
+    // s, s' are not variables
+    if (lhs.monom().isVar() || rhs.monom().isVar()) 
+      return Option<Clause*>();
+
+
+    auto j = NumTraits::constantTl(lhs.numeral().unwrap<typename NumTraits::ConstantType>());
+    auto k = NumTraits::constantTl(rhs.numeral().unwrap<typename NumTraits::ConstantType>());
+    auto t1σ = NumTraits::sum(rhs.contextTerms()
+                 .map([&](auto t) { return uwa.sigma.apply(t, lhsVarBank); }));
+    auto t2σ = NumTraits::sum(rhs.contextTerms()
+                 .map([&](auto t) { return uwa.sigma.apply(t, lhsVarBank); }));
+
+    auto resolventTerm // -> (k t₁ + j t₂)σ
+        = NumTraits::add(
+            NumTraits::mul(k, t1σ),
+            NumTraits::mul(j, t2σ)
+        );
+
+    out.push(NumTraits::greater(true, resolventTerm, NumTraits::zero()));
+
+    if (tight) {
+      auto rhsSum = // -> (-k s' + t₂)σ
+        uwa.sigma.apply(rhs.literal(), rhsVarBank)->termArg(0);
+      out.push(NumTraits::eq(true, rhsSum, NumTraits::zero()));
+    }
+
+    out.loadFromIterator(uwa.cnstLiterals());
+
+    Inference inf(GeneratingInference2(Kernel::InferenceRule::IRC_INEQUALITY_RESOLUTION, lhs.clause(), rhs.clause()));
+    return Option<Clause*>(Clause::fromStack(out, inf));
+  });
 }
 
 } // namespace IRC 

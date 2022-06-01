@@ -290,7 +290,6 @@ struct __getAllNumTraits<RealTraits, Obj> {
   // template<class NumTraits> using SelectedTermStack = Stack<SelectedAtomicTerm<NumTraits>>;
   // template<class NumTraits> using SharedSelectedTermStack = shared_ptr<SelectedTermStack<NumTraits>>;
 
-auto range(unsigned from, unsigned to) { return iterTraits(getRangeIterator(from, to)); }
 
 template<class NumTraits>
 ClauseIterator LiteralFactoring::generateClauses(Clause* premise, 

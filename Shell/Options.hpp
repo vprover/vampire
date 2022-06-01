@@ -2339,7 +2339,6 @@ public:
   ArithmeticSimplificationMode gaussianVariableElimination() const { return _highSchool.actualValue ? ArithmeticSimplificationMode::CAUTIOUS : _gaussianVariableElimination.actualValue; }
   bool inequalityResolution() const { return _inequalityResolution.actualValue; }
   ArithmeticSimplificationMode ircVariableElimination() const { return _ircVariableElimination.actualValue; }
-  bool ircLascaFactoring() const { return _ircLascaFactoring.actualValue; }
   bool ircStrongNormalization() const { return _ircStrongNormalization.actualValue; }
   bool pushUnaryMinus() const { return _pushUnaryMinus.actualValue || _highSchool.actualValue; }
   ArithmeticSimplificationMode cancellation() const { return _highSchool.actualValue ? ArithmeticSimplificationMode::CAUTIOUS : _cancellation.actualValue; }
@@ -2764,7 +2763,6 @@ private:
   ChoiceOptionValue<ArithmeticSimplificationMode> _gaussianVariableElimination;
   BoolOptionValue _inequalityResolution;
   ChoiceOptionValue<ArithmeticSimplificationMode> _ircVariableElimination;
-  BoolOptionValue _ircLascaFactoring;
   BoolOptionValue _ircStrongNormalization;
   ChoiceOptionValue<ArithmeticSimplificationMode> _cancellation;
   ChoiceOptionValue<ArithmeticSimplificationMode> _arithmeticSubtermGeneralizations;

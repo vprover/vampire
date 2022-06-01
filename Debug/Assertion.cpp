@@ -37,6 +37,7 @@ void reportSpiderFail();
 #if CHECK_LEAKS
   MemoryLeak::cancelReport();
 #endif
+
   System::terminateImmediately(VAMP_RESULT_STATUS_UNHANDLED_EXCEPTION);
 }
 

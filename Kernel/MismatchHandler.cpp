@@ -104,7 +104,7 @@ bool UWAMismatchHandler::checkUWA(TermList t1, TermList t2)
       }
 
       case Shell::Options::UnificationWithAbstraction::IRC3:  {
-        auto sort = SortHelper::getResultSort(t1.term());
+        // auto sort = SortHelper::getResultSort(t1.term());
         auto isAdd = [&](Term* t) {
           auto f = t->functor();
           return forAnyNumTraits([&](auto numTraits) {

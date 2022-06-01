@@ -439,6 +439,8 @@ set(VAMPIRE_INFERENCE_SOURCES
     Inferences/IRC/Normalization.hpp
     Inferences/IRC/LiteralFactoring.cpp
     Inferences/IRC/LiteralFactoring.hpp
+    Inferences/IRC/EqFactoring.cpp
+    Inferences/IRC/EqFactoring.hpp
     Inferences/IRC/VariableElimination.cpp
     Inferences/IRC/VariableElimination.hpp
     Inferences/IRC/Superposition.cpp
@@ -761,6 +763,7 @@ set(UNIT_TESTS
     UnitTests/tIRC_LiteralFactoring.cpp
     UnitTests/tIRC_Normalization.cpp
     UnitTests/tIRC_Superposition.cpp
+    UnitTests/tIRC_EqualityFactoring.cpp
     UnitTests/tIRC_VariableElimination.cpp
     UnitTests/tIRC_TermFactoring.cpp
     UnitTests/tIRC_DemodulationModLA.cpp

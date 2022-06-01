@@ -5,6 +5,7 @@
 #include "Lib/Option.hpp"
 #include "Lib/Metaiterators.hpp"
 #include "Kernel/OrderingUtils.hpp"
+#include <random>
 
 #define DEBUG(...) // DBG(__VA_ARGS__)
 
@@ -412,9 +413,9 @@ Precedence Precedence::random()
   Precedence out(
       DArray<int>::fromIterator(getRangeIterator<int>(0, env.signature-> functions())),
       DArray<int>::fromIterator(getRangeIterator<int>(0, env.signature->predicates())));
-  auto rng = [](int i) -> int { return Random::getInteger() % i; };
-  std::random_shuffle(out. _funPrec.begin(), out. _funPrec.end(), rng);
-  std::random_shuffle(out._predPrec.begin(), out._predPrec.end(), rng);
+  auto rng = std::minstd_rand(Random::getInteger());
+  std::shuffle(out. _funPrec.begin(), out. _funPrec.end(), rng);
+  std::shuffle(out._predPrec.begin(), out._predPrec.end(), rng);
   return out;
 }
 

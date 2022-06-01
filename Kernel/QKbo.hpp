@@ -28,10 +28,64 @@
 #include "Kernel/LaLpo.hpp"
 #include "Kernel/KBO.hpp"
 #include "Kernel/OrderingUtils.hpp"
+#include "Lib/Coproduct_.hpp"
 
 namespace Kernel {
 
 using namespace Lib;
+
+// template<class... Is>
+// class CoproductIter 
+// {
+//   Coproduct<Is...> _inner;
+// public:
+//   DECL_ELEMENT_TYPE(ELEMENT_TYPE(TypeList::Get<0, TypeList::List<Is...>>));
+// 
+//   template<class I>
+//   CoproductIter(I i) : _inner(Coproduct<Is...>(std::move(i))) {}
+// 
+//   bool hasNext()
+//   { 
+//     using Co = Coproduct_<unsigned, unsigned>;
+//     Co bla_(Co::variant<0>(0));
+//     Co& bla = bla_;
+//     unsigned lala_ = 0;
+//     unsigned& lala = lala_;
+//     auto clsr = [](auto & x) {
+//       // static_assert(!std::is_const<std::remove_reference_t<decltype(x)>>::value, "fail");
+//       static_assert(std::is_same<decltype(x), unsigned&>::value, "fail");
+//     };
+//     #define BLA(REF) \
+//     static_assert(std::is_same< \
+//       std::result_of_t<decltype(clsr)(unsigned REF)>, \
+//       void \
+//     >::value,"la" );
+// 
+//     BLA(&)
+//     bla.apply(clsr);
+//   ASSERTION_VIOLATION
+//   }
+//     // Coproduct<Is...>& inner = _inner;
+//     // return inner.apply([](auto& x) { 
+//     //   static_assert(!std::is_const<std::remove_reference_t<decltype(x)>>::value);
+//     //   return x.hasNext();}); }
+// 
+//   OWN_ELEMENT_TYPE next()
+//   { ASSERTION_VIOLATION }
+//   // { return _inner.apply([](auto&& x) { return x.next();}); }
+// 
+//   bool knowsSize() const 
+//   { return _inner.apply([](auto& x) { return x.knowsSize();}); }
+// 
+//   size_t size() const
+//   { return _inner.apply([](auto& x) { return x.size();}); }
+// };
+
+template<class IfIter, class ElseIter>
+static auto ifElseIter(bool cond, IfIter ifIter, ElseIter elseIter) 
+{ return iterTraits(
+         cond ? CoproductIter<Lib::ResultOf<IfIter>, Lib::ResultOf<ElseIter>>(ifIter())
+              : CoproductIter<Lib::ResultOf<IfIter>, Lib::ResultOf<ElseIter>>(elseIter())); }
 
 
 // TODO move to right place (IRC.hpp ?)
@@ -113,8 +167,7 @@ private:
   template<class NumTraits>
   SigmaNf rmNum(std::tuple<unsigned, Perfect<Polynom<NumTraits>>> t) const
   {
-    auto multiSet = MultiSet<SignedTerm>::fromSortedStack(
-        std::get<1>(t)->iterSummands()
+    auto counts =  std::get<1>(t)->iterSummands()
           .map([](auto s) {
             auto count  = Int::safeAbs(ifOfType<IntegerConstantType>(s.numeral, 
                            [&](IntegerConstantType num) { return num; },
@@ -123,16 +176,19 @@ private:
                              ASS_EQ(num.denominator(), IntegerConstantType(1))
                              return num.numerator();
                            }).toInner());
+            if (count == 0) {
+              ASS(s.numeral.sign() == Sign::Zero)
+              count = 1;
+            }
             SignedTerm term = { 
               .sign = s.numeral.sign(),
               .term = s.factors->denormalize(),
             };
             return std::make_tuple(term, count);
           })
-          .template collect<Stack>()
-      );
-    return SigmaNf(std::get<0>(t), std::move(multiSet));
-    ASSERTION_VIOLATION
+          .template collect<Stack>();
+    std::sort(counts.begin(), counts.end(), [](auto& l, auto& r) { return std::get<0>(l) < std::get<0>(r); });
+    return SigmaNf(std::get<0>(t), MultiSet<SignedTerm>::fromSortedStack(std::move(counts)));
   }
 
   std::tuple<unsigned, Perfect<Polynom<IntTraits>>> divNf(Perfect<Polynom<IntTraits>> t) const
@@ -157,24 +213,86 @@ public:
   template<class NumTraits>
   SigmaNf sigmaNf(TermList t) const
   {
-    auto nf0 = _shared->normalize(TypedTermList(t, NumTraits::sort())).template wrapPoly<NumTraits>();
-    return rmNum(divNf(nf0));
+    // TODO: without normalizing?
+    auto norm = _shared->normalize(TypedTermList(t, NumTraits::sort())).template wrapPoly<NumTraits>();
+    return rmNum(divNf(norm));
   }
 
   template<class NumTraits>
   MultiSet<TermList> absEq(Literal* l) const
   {
     ASS(l->isEquality())
+    // TODO this code was never executed yet!!
     ASSERTION_VIOLATION
   }
 
+ 
+  // template<class NumTraits> 
+  // auto iterAtomsT(TermList t) const
+  // {
+  //   // TODO: without normalizing?
+  //   auto nf = sigmaNf(t);
+  //   return nf.sum.iter()
+  //     .map([](auto ))
+  //   // auto norm = _shared->normalize(TypedTermList(t, NumTraits::sort())) .template wrapPoly<NumTraits>();
+  //   // return norm->iterSummands()
+  //   //   .map([&](auto const& monom) -> TermList 
+  //   //       { return monom.factors->denormalize(); });
+  // }
+ 
+  // template<class NumTraits> 
+  // auto iterAtomsL(Literal* t) const
+  // {
+  //   return ifElseIter(t->isEquality(), 
+  //       [&]() { return concatIters(iterAtomsT<NumTraits>(t->termArg(0)), iterAtomsT<NumTraits>(t->termArg(1))); }
+  //     , [&]() { return iterAtomsT<NumTraits>(t->termArg(0)); }
+  //   );
+  // }
+
+
+  static constexpr unsigned POS_EQ_LEVEL = 0;
+  static constexpr unsigned NEG_EQ_LEVEL = 1;
+  bool hasSubstitutionProperty(SigmaNf const& l) const;
+
+  using AtomsStar = std::tuple<MultiSet<SignedTerm>, uint8_t>;
+
   template<class NumTraits>
-  MultiSet<SignedTerm> atomsStar(Literal* t) const
+  // the signs are not used here, but only there since we reuse code from sigmaNf and don't want to copy the datastructure.
+  Option<AtomsStar> atomsStar(Literal* literal) const
   {
-    ASSERTION_VIOLATION
-    // ASS_Eq(l->numTermArguments(), 2)
-    // auto nf = sigmaNf<NumTraits>(t);
+    auto mainIdx = literal->isEquality() && literal->termArg(0) == NumTraits::zero() ? 1 : 0;
+    ASS_REP(NumTraits::zero() == literal->termArg(1 - mainIdx), literal);
+    auto level = literal->isEquality() && literal->isPositive() ? POS_EQ_LEVEL : NEG_EQ_LEVEL;
+    auto nf = sigmaNf<NumTraits>(literal->termArg(mainIdx));
+    if (hasSubstitutionProperty(nf)) {
+      return Option<AtomsStar>(std::make_tuple(std::move(nf.sum), level));
+    } else {
+      return Option<AtomsStar>();
+    }
   }
+
+ 
+  Option<AtomsStar> atomsStar(Literal* literal) const
+  {
+    using Out = Option<AtomsStar>;
+    return tryNumTraits([&](auto numTraits) {
+      using NumTraits = decltype(numTraits);
+      if (NumTraits::sort() != SortHelper::getTermArgSort(literal, 0)) {
+        return Option<Out>();
+      } else {
+        return Option<Out>(atomsStar<NumTraits>(literal));
+      }
+    }) || [&]() -> Out {
+      ASS(literal->isEquality())
+      auto level = literal->isPositive() ? POS_EQ_LEVEL : NEG_EQ_LEVEL;
+      auto multiset = MultiSet<SignedTerm>({ 
+        // the sign is only a dummy here to match the type of atomsStar<NumTraits>
+          SignedTerm::zero(literal->termArg(0)), 
+          SignedTerm::zero(literal->termArg(1)), 
+        });
+      return Option<AtomsStar>(std::make_tuple(std::move(multiset), level));
+    };
+  } 
 
 private:
   Result compare(SigmaNf l, SigmaNf r) const;

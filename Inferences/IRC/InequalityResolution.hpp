@@ -44,9 +44,32 @@ public:
     , _index(nullptr)
   {  }
 
+  class Lhs : public SelectedSummand { 
+  public: 
+    Lhs(SelectedSummand s) : SelectedSummand(std::move(s)) {} 
+    Lhs(Lhs&&) = default;
+    Lhs& operator=(Lhs&&) = default;
+  };
+
+  class Rhs : public SelectedSummand { 
+  public: 
+    Rhs(SelectedSummand s) : SelectedSummand(std::move(s)) {} 
+    Rhs(Rhs&&) = default;
+    Rhs& operator=(Rhs&&) = default;
+  };
+
+  auto iterLhs(Clause* cl) const 
+  { return _shared->selectedSummands(cl, /* strictly max literal*/ true, /* strictly max term */ true)
+            .filter([&](auto const& selected) { return selected.sign() == Sign::Pos; })
+            .map([&]   (auto selected)        { return Lhs(std::move(selected)); }); }
+
+  auto iterRhs(Clause* cl) const 
+  { return _shared->selectedSummands(cl, /* strictly max literal*/ true, /* strictly max term */ false)
+            .filter([&](auto const& selected) { return selected.sign() == Sign::Neg; })
+            .map([&]   (auto selected)        { return Rhs(std::move(selected)); }); }
+
   void attach(SaturationAlgorithm* salg) final override;
   void detach() final override;
-
 
   ClauseIterator generateClauses(Clause* premise) final override;
 
@@ -55,6 +78,12 @@ public:
 #endif
 
 private:
+
+  Option<Clause*> applyRule(
+      Lhs const& lhs, unsigned lhsVarBank,
+      Rhs const& rhs, unsigned rhsVarBank,
+      UwaResult& uwa
+      ) const;
 
   template<class NumTraits, class Subst, class CnstIter> Option<Clause*> applyRule(
       Clause* hyp1, Literal* lit1, IrcLiteral<NumTraits> l1, Monom<NumTraits> j_s1,
@@ -66,6 +95,8 @@ private:
 
   shared_ptr<IrcState> _shared;
   InequalityResolutionIndex* _index;
+  InequalityResolutionIndex* _lhsIndex;
+  InequalityResolutionIndex* _rhsIndex;
 };
 
 } // namespace IRC 

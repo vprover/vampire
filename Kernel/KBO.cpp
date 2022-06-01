@@ -27,6 +27,7 @@
 #include "Term.hpp"
 #include "KBO.hpp"
 #include "Signature.hpp"
+#include <random>
 
 #define COLORED_WEIGHT_BOOST 0x10000
 
@@ -461,14 +462,16 @@ KBO::KBO(
 
 KBO KBO::testKBO(bool randomized)
 {
-  auto rng = [](int i) -> int { return Random::getInteger() % i; };
+  // auto rng = [](int i) -> int { return Random::getInteger() % i; };
+
+  auto rng = std::minstd_rand(Random::getInteger());
 
   auto funcPrec = [&]() -> DArray<int>{
     unsigned num = env.signature->functions();
     DArray<int> out(num);
     out.initFromIterator(getRangeIterator(0u, num));
     if (randomized) 
-      std::random_shuffle(out.begin(), out.end(), rng);
+      std::shuffle(out.begin(), out.end(), rng);
     return out;
   };
 
@@ -477,7 +480,7 @@ KBO KBO::testKBO(bool randomized)
     DArray<int> out(num);
     out.initFromIterator(getRangeIterator(0u, num));
     if (randomized) 
-      std::random_shuffle(out.begin(), out.end(), rng);
+      std::shuffle(out.begin(), out.end(), rng);
     return out;
   };
 

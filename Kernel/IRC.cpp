@@ -11,7 +11,8 @@
 #include "IRC.hpp"
 #include "Lib/Stack.hpp"
 #include "Indexing/ResultSubstitution.hpp"
-#include "Kernel/LaLpo.hpp"
+#include "Kernel/QKbo.hpp"
+// #include "Kernel/LaLpo.hpp"
 
 #define DEBUG(...) // DBG(__VA_ARGS__)
 namespace Kernel {
@@ -99,7 +100,8 @@ bool InequalityNormalizer::isNormalized(Clause* cl)  const
 #if VDEBUG
 shared_ptr<IrcState> testIrcState(Options::UnificationWithAbstraction uwa, bool strongNormalization, Ordering* ordering) {
 
-  auto& ord = ordering == nullptr ? *new LaLpo(Precedence::random()) : *ordering;
+  auto& ord = ordering == nullptr ? *new QKbo(Precedence::random()) : *ordering;
+  // auto& ord = ordering == nullptr ? *new LaLpo(Precedence::random()) : *ordering;
   return shared_ptr<IrcState>(new IrcState {
       .normalizer = InequalityNormalizer(strongNormalization),
       .ordering = &ord,
@@ -131,6 +133,7 @@ Stack<std::pair<Literal*, unsigned>> IrcState::selectedLiteralsWithIdx(Clause* c
 
 Stack<Literal*> IrcState::selectedLiterals(Clause* cl, bool strictlyMax)
 {
+  // TODO use strictly max
   return iterTraits(cl->getSelectedLiteralIterator()).template collect<Stack>();
 }
 
