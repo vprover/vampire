@@ -2236,6 +2236,11 @@ void Options::init()
     _kboWeightGenerationScheme.onlyUsefulWith(_termOrdering.is(equal(TermOrdering::KBO)));
     _lookup.insert(&_kboWeightGenerationScheme);
 
+    _kboMaxZero = BoolOptionValue("kbo_max_zero","kmz",false);
+    _kboMaxZero.setExperimental();
+    _kboMaxZero.description="Modifies any kbo_weight_scheme by setting (for each sort) a maximal (by the precedence) function symbol to have weight 0.";
+    _lookup.insert(&_kboMaxZero);
+
     _kboAdmissabilityCheck = ChoiceOptionValue<KboAdmissibilityCheck>(
         "kbo_admissibility_check", "", KboAdmissibilityCheck::ERROR,
                                      {"error","warning" });
