@@ -620,7 +620,7 @@ void Property::scan(Literal* lit, int polarity, unsigned cLen, bool goal)
     }
 
     OperatorType* type = pred->predType();
-    if(type->typeArgsArity()){
+    if(type->numTypeArguments()){
       _hasPolymorphicSym = true;
     }
 
