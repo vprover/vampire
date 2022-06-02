@@ -574,15 +574,7 @@ void KBO::zeroOutWeightForMaximalFuncs() {
 
   Map<SortType, FunctionSymbol>::Iterator it(maximalFunctions);
   while (it.hasNext()) {
-    auto& entry = it.next();
-    SortType sort = entry.key();
-    FunctionSymbol fn =  entry.value();
-
-    /*
-    cout << "sort: " << sort.toString() << " " << hasArityOneWeightZero.contains(sort) << endl;
-    cout << "  fn: " << fn << endl;
-    */
-    _funcWeights._weights[fn] = 0;
+    _funcWeights._weights[it.next().value()] = 0;
   }
 }
 
