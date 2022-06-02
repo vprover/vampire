@@ -549,22 +549,22 @@ KBO KBO::testKBO()
 }
 
 void KBO::zeroOutWeightForMaximalFuncs() {
+  // actually, it's non-constant maximal func, as constants cannot be weight 0
+
   using SortType = TermList;
   using FunctionSymbol = unsigned;
   auto nFunctions = _funcWeights._weights.size();
   auto maximalFunctions = Map<SortType, FunctionSymbol>();
-  auto hasArityOneWeightZero = Set<SortType>();
 
   for (FunctionSymbol i = 0; i < nFunctions; i++) {
     auto symb = env.signature->getFunction(i);
     auto sort = symb->fnType()->result();
     auto arity = symb->arity();
 
-    //cout << "symb " << symb->name() << " sort " << sort.toString() << " arity " << arity << endl;
+    // skip constants here
+    if (arity == 0) continue;
 
-    if (arity == 1 && _funcWeights.symbolWeight(i) == 0) {
-      hasArityOneWeightZero.insert(sort);
-    }
+    //cout << "symb " << symb->name() << " sort " << sort.toString() << " arity " << arity << endl;
 
     auto maxFn = maximalFunctions.getOrInit(sort, [&](){ return i; } );
     if (compareFunctionPrecedences(maxFn, i) == LESS) {
@@ -582,12 +582,7 @@ void KBO::zeroOutWeightForMaximalFuncs() {
     cout << "sort: " << sort.toString() << " " << hasArityOneWeightZero.contains(sort) << endl;
     cout << "  fn: " << fn << endl;
     */
-
-    auto arity = env.signature->getFunction(fn)->arity();
-    
-    if (arity != 1 || !hasArityOneWeightZero.contains(sort)) {
-      _funcWeights._weights[fn] = 0;
-    }
+    _funcWeights._weights[fn] = 0;
   }
 }
 
