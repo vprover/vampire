@@ -113,6 +113,7 @@ struct KboWeightMap {
 
   static KboWeightMap dflt();
   static KboWeightMap arity();
+  static KboWeightMap inv_arity();
 private:
   static KboWeightMap randomized();
   template<class Random> static KboWeightMap randomized(unsigned maxWeight, Random random);
