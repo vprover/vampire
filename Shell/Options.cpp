@@ -2256,6 +2256,7 @@ void Options::init()
 
     _kboMaxZero = BoolOptionValue("kbo_max_zero","kmz",false);
     _kboMaxZero.setExperimental();
+    _kboMaxZero.onlyUsefulWith(_termOrdering.is(equal(TermOrdering::KBO)));
     _kboMaxZero.description="Modifies any kbo_weight_scheme by setting (for each sort) a maximal (by the precedence) function symbol to have weight 0.";
     _lookup.insert(&_kboMaxZero);
 
