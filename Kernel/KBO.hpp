@@ -153,6 +153,7 @@ public:
   void showConcrete(ostream&) const override;
   template<class HandleError>
   void checkAdmissibility(HandleError handle) const;
+  void zeroOutWeightForMaximalFuncs();
 
   using PrecedenceOrdering::compare;
   Result compare(TermList tl1, TermList tl2) const override;

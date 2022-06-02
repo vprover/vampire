@@ -700,6 +700,8 @@ PrecedenceOrdering::PrecedenceOrdering(Problem& prb, const Options& opt)
        // Make sure we (re-)compute usageCnt's for all the symbols;
        // in particular, the sP's (the Tseitin predicates) and sK's (the Skolem functions), which only exists since preprocessing.
        prb.getProperty(),
+       // also, fetch the unary minuses, we intruduce later anyway
+       (void)IntTraits::minusF(),(void)RatTraits::minusF(),(void)RealTraits::minusF(), 
        predPrecFromOpts(prb, opt)))
 {
   CALL("PrecedenceOrdering::PrecedenceOrdering(Problem&,const Options&)");

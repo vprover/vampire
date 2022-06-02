@@ -17,9 +17,9 @@
 #include "Debug/Tracer.hpp"
 #include "Kernel/NumTraits.hpp"
 
-
 #include "Lib/Environment.hpp"
 #include "Lib/Comparison.hpp"
+#include "Lib/Set.hpp"
 
 #include "Shell/Options.hpp"
 #include <fstream>
@@ -548,6 +548,49 @@ KBO KBO::testKBO()
       false);
 }
 
+void KBO::zeroOutWeightForMaximalFuncs() {
+  using SortType = TermList;
+  using FunctionSymbol = unsigned;
+  auto nFunctions = _funcWeights._weights.size();
+  auto maximalFunctions = Map<SortType, FunctionSymbol>();
+  auto hasArityOneWeightZero = Set<SortType>();
+
+  for (FunctionSymbol i = 0; i < nFunctions; i++) {
+    auto symb = env.signature->getFunction(i);
+    auto sort = symb->fnType()->result();
+    auto arity = symb->arity();
+
+    //cout << "symb " << symb->name() << " sort " << sort.toString() << " arity " << arity << endl;
+
+    if (arity == 1 && _funcWeights.symbolWeight(i) == 0) {
+      hasArityOneWeightZero.insert(sort);
+    }
+
+    auto maxFn = maximalFunctions.getOrInit(sort, [&](){ return i; } );
+    if (compareFunctionPrecedences(maxFn, i) == LESS) {
+      maximalFunctions.replace(sort, i);
+    }
+  }
+
+  Map<SortType, FunctionSymbol>::Iterator it(maximalFunctions);
+  while (it.hasNext()) {
+    auto& entry = it.next();
+    SortType sort = entry.key();
+    FunctionSymbol fn =  entry.value();
+
+    /*
+    cout << "sort: " << sort.toString() << " " << hasArityOneWeightZero.contains(sort) << endl;
+    cout << "  fn: " << fn << endl;
+    */
+
+    auto arity = env.signature->getFunction(fn)->arity();
+    
+    if (arity != 1 || !hasArityOneWeightZero.contains(sort)) {
+      _funcWeights._weights[fn] = 0;
+    }
+  }
+}
+
 template<class HandleError>
 void KBO::checkAdmissibility(HandleError handle) const 
 {
@@ -611,6 +654,11 @@ KBO::KBO(Problem& prb, const Options& opts)
  , _state(new State(this))
 {
   CALL("KBO::KBO(Prb&, Opts&)");
+
+  if (opts.kboMaxZero()) {
+    zeroOutWeightForMaximalFuncs();
+  }
+
   if (opts.kboAdmissabilityCheck() == Options::KboAdmissibilityCheck::ERROR)
     checkAdmissibility(throwError);
   else
