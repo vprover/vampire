@@ -698,6 +698,7 @@ public:
     CONST = 0,
     RANDOM = 1,
     ARITY = 2,
+    INV_ARITY = 3,
   };
 
   enum class KboAdmissibilityCheck : unsigned int {
