@@ -615,6 +615,12 @@ public:
     NONE = 3
   };
 
+  enum class TweeGoalTransformation : unsigned int {
+    OFF = 0,
+    GROUND = 1,
+    FULL = 2
+  };
+
   enum class CCUnsatCores : unsigned int {
     FIRST = 0,
     SMALL_ONES = 1,
@@ -2240,6 +2246,7 @@ public:
   FunctionDefinitionElimination functionDefinitionElimination() const { return _functionDefinitionElimination.actualValue; }
   bool skolemReuse() const { return _skolemReuse.actualValue; }
   bool definitionReuse() const { return _definitionReuse.actualValue; }
+  TweeGoalTransformation tweeGoalTransformation() const { return _tweeGoalTransformation.actualValue; }
   bool outputAxiomNames() const { return _outputAxiomNames.actualValue; }
   void setOutputAxiomNames(bool newVal) { _outputAxiomNames.actualValue = newVal; }
   QuestionAnsweringMode questionAnswering() const { return _questionAnswering.actualValue; }
@@ -2540,6 +2547,7 @@ private:
   ChoiceOptionValue<FunctionDefinitionElimination> _functionDefinitionElimination;
   BoolOptionValue _skolemReuse;
   BoolOptionValue _definitionReuse;
+  ChoiceOptionValue<TweeGoalTransformation> _tweeGoalTransformation;
   
   BoolOptionValue _generalSplitting;
   BoolOptionValue _globalSubsumption;

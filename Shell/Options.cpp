@@ -461,6 +461,16 @@ void Options::init()
     _definitionReuse.addProblemConstraint(hasFormulas());
     _definitionReuse.tag(OptionTag::PREPROCESSING);
 
+    _tweeGoalTransformation = ChoiceOptionValue<TweeGoalTransformation>("twee_goal_transformation",
+       "tgt", TweeGoalTransformation::OFF, {"off","ground","full"});
+    _tweeGoalTransformation.description =
+      "Add definitions for `ground` subterms in the conjecture, inspired by Twee. "
+      "This adds a goal-directed flavour to equational reasoning. "
+      "`full` is a generalization, where also non-ground subterms are considered.";
+    _tweeGoalTransformation.tag(OptionTag::PREPROCESSING);
+    _tweeGoalTransformation.setExperimental();
+    _lookup.insert(&_tweeGoalTransformation);
+
     _generalSplitting = BoolOptionValue("general_splitting","gsp",false);
     _generalSplitting.description=
     "Splits clauses in order to reduce number of different variables in each clause. "
@@ -1036,7 +1046,10 @@ void Options::init()
     _sineToAgeGeneralityThreshold.description = "Like sine_generality_threshold but influences sine_to_age, sine_to_pred_levels, and sine_level_split_queue rather than sine_selection.";
     _lookup.insert(&_sineToAgeGeneralityThreshold);
     _sineToAgeGeneralityThreshold.tag(OptionTag::SATURATION);
-    _sineToAgeGeneralityThreshold.onlyUsefulWith(Or(_sineToAge.is(equal(true)),_sineToPredLevels.is(notEqual(PredicateSineLevels::OFF))));
+    _sineToAgeGeneralityThreshold.onlyUsefulWith(Or(
+      _sineToAge.is(equal(true)),
+      _sineToPredLevels.is(notEqual(PredicateSineLevels::OFF)),
+      _useSineLevelSplitQueues.is(equal(true))));
 
     // Like generality threshold for SiNE, except used by the sine2age trick
     _sineToAgeTolerance = FloatOptionValue("sine_to_age_tolerance","s2at",1.0);
@@ -1045,7 +1058,10 @@ void Options::init()
     _sineToAgeTolerance.tag(OptionTag::SATURATION);
     _sineToAgeTolerance.addConstraint(Or(equal(0.0f),greaterThanEq(1.0f)));
     // Captures that if the value is not 1.0 then sineSelection must be on
-    _sineToAgeTolerance.onlyUsefulWith(Or(_sineToAge.is(equal(true)),_sineToPredLevels.is(notEqual(PredicateSineLevels::OFF))));
+    _sineToAgeTolerance.onlyUsefulWith(Or(
+      _sineToAge.is(equal(true)),
+      _sineToPredLevels.is(notEqual(PredicateSineLevels::OFF)),
+      _useSineLevelSplitQueues.is(equal(true))));
     _sineToAgeTolerance.setRandomChoices({"1.0","1.2","1.5","2.0","3.0","5.0"});
 
     _lrsFirstTimeCheck = IntOptionValue("lrs_first_time_check","",5);
@@ -1827,7 +1843,7 @@ void Options::init()
     _lookup.insert(&_globalSubsumption);
     _globalSubsumption.onlyUsefulWith(InferencingSaturationAlgorithm());
     _globalSubsumption.tag(OptionTag::INFERENCES);
-    _globalSubsumption.addProblemConstraint(mayHaveNonUnits());
+    // _globalSubsumption.addProblemConstraint(mayHaveNonUnits()); - this is too strict, think of a better one
     _globalSubsumption.setRandomChoices({"off","on"});
 
     _globalSubsumptionSatSolverPower = ChoiceOptionValue<GlobalSubsumptionSatSolverPower>("global_subsumption_sat_solver_power","gsssp",
@@ -2113,6 +2129,7 @@ void Options::init()
        " solver returns unknown at any point";
     _lookup.insert(&_satFallbackForSMT);
     _satFallbackForSMT.tag(OptionTag::SAT);
+    _satFallbackForSMT.addProblemConstraint(hasTheories()); // Z3 won't be incomplete for pure FOL
     _satFallbackForSMT.onlyUsefulWith(_satSolver.is(equal(SatSolver::Z3)));
 
 #endif
