@@ -134,7 +134,8 @@ Ordering* Ordering::create(Problem& prb, const Options& opt)
         && !env.colorUsed
         && env.options->predicateWeights() == ""
         && env.options->functionWeights() == ""
-        && env.options->kboWeightGenerationScheme() != Options::KboWeightGenerationScheme::CONST
+        && env.options->kboWeightGenerationScheme() == Options::KboWeightGenerationScheme::CONST
+        && !env.options->kboMaxZero()
         && !prb.hasInterpretedOperations()
         ) {
       out = new KBOForEPR(prb, opt);
