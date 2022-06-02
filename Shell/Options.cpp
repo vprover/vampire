@@ -2247,8 +2247,9 @@ void Options::init()
     _introducedSymbolPrecedence.tag(OptionTag::SATURATION);
 
     _kboWeightGenerationScheme = ChoiceOptionValue<KboWeightGenerationScheme>("kbo_weight_scheme","kws",KboWeightGenerationScheme::CONST,
-                                          {"const","random","arity","inv_arity","arity_squared","inv_arity_squared"});
-    _kboWeightGenerationScheme.description = "Weight generation schemes from KBO inspired by E. This gets overriden by the function_weights option if used.";
+                                          {"const","random","arity","inv_arity","arity_squared","inv_arity_squared",
+                                          "precedence","inv_precedence","frequency","inv_frequency"});
+    _kboWeightGenerationScheme.description = "Weight generation schemes from KBO inspired by E. This gets overridden by the function_weights option if used.";
     _kboWeightGenerationScheme.setExperimental();
     _kboWeightGenerationScheme.onlyUsefulWith(_termOrdering.is(equal(TermOrdering::KBO)));
     _lookup.insert(&_kboWeightGenerationScheme);

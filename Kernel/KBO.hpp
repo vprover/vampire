@@ -112,8 +112,8 @@ struct KboWeightMap {
   KboWeight symbolWeight(unsigned functor) const;
 
   static KboWeightMap dflt();
-  template<class Fml>
-  static KboWeightMap arity_like(Fml fml);
+  template<class Extractor, class Fml>
+  static KboWeightMap fromSomeUnsigned(Extractor ex, Fml fml);
 private:
   static KboWeightMap randomized();
   template<class Random> static KboWeightMap randomized(unsigned maxWeight, Random random);
@@ -173,7 +173,7 @@ private:
 #endif
 
   template<class SigTraits> const KboWeightMap<SigTraits>& getWeightMap() const;
-  template<class SigTraits> KboWeightMap<SigTraits> weightsFromOpts(const Options& opts) const;
+  template<class SigTraits> KboWeightMap<SigTraits> weightsFromOpts(const Options& opts, const DArray<int>& rawPrecedence) const;
   template<class SigTraits> KboWeightMap<SigTraits> weightsFromFile(const Options& opts) const;
 
   template<class SigTraits> 
