@@ -701,6 +701,10 @@ public:
     INV_ARITY = 3,
     ARITY_SQUARED = 4,
     INV_ARITY_SQUARED = 5,
+    PRECEDENCE = 6,
+    INV_PRECEDENCE = 7,
+    FREQUENCY = 8,
+    INV_FREQUENCY = 9,
   };
 
   enum class KboAdmissibilityCheck : unsigned int {

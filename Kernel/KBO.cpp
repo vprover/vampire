@@ -346,14 +346,18 @@ struct FuncSigTraits {
   { return env.signature->getFunction(functor)->arity() == 0; } 
 
   static Signature::Symbol* getSymbol(unsigned functor) 
-  { return env.signature->getFunction(functor); } 
+  { return env.signature->getFunction(functor); }
 };
 
 
 template<class SigTraits> 
-KboWeightMap<SigTraits> KBO::weightsFromOpts(const Options& opts) const 
+KboWeightMap<SigTraits> KBO::weightsFromOpts(const Options& opts, const DArray<int>& rawPrecedence) const
 {
   auto& str = SigTraits::weightFileName(opts);
+
+  auto arityExtractor = [](unsigned i) { return SigTraits::getSymbol(i)->arity(); };
+  auto precedenceExtractor = [&](unsigned i) { return rawPrecedence[i]; };
+  auto frequencyExtractor = [](unsigned i) { return SigTraits::getSymbol(i)->usageCnt(); };
 
   if (!str.empty()) {
     return weightsFromFile<SigTraits>(opts);
@@ -364,17 +368,30 @@ KboWeightMap<SigTraits> KBO::weightsFromOpts(const Options& opts) const
     case Options::KboWeightGenerationScheme::RANDOM:
       return KboWeightMap<SigTraits>::randomized();
     case Options::KboWeightGenerationScheme::ARITY:
-      return KboWeightMap<SigTraits>::arity_like(
+      return KboWeightMap<SigTraits>::fromSomeUnsigned(arityExtractor,
         [](auto _, auto arity) { return arity+1; });
     case Options::KboWeightGenerationScheme::INV_ARITY:
-      return KboWeightMap<SigTraits>::arity_like(
+      return KboWeightMap<SigTraits>::fromSomeUnsigned(arityExtractor,
         [](auto max, auto arity) { return max-arity+1; });
     case Options::KboWeightGenerationScheme::ARITY_SQUARED:
-      return KboWeightMap<SigTraits>::arity_like(
+      return KboWeightMap<SigTraits>::fromSomeUnsigned(arityExtractor,
         [](auto _, auto arity) { return arity*arity+1; });
     case Options::KboWeightGenerationScheme::INV_ARITY_SQUARED:
-      return KboWeightMap<SigTraits>::arity_like(
+      return KboWeightMap<SigTraits>::fromSomeUnsigned(arityExtractor,
         [](auto max, auto arity) { return max*max-arity*arity+1; });
+    case Options::KboWeightGenerationScheme::PRECEDENCE:
+      return KboWeightMap<SigTraits>::fromSomeUnsigned(precedenceExtractor,
+        [](auto _, auto prec) { return prec + 1; });
+    case Options::KboWeightGenerationScheme::INV_PRECEDENCE:
+      return KboWeightMap<SigTraits>::fromSomeUnsigned(precedenceExtractor,
+        [](auto max, auto prec) { return max-prec+1; });
+    case Options::KboWeightGenerationScheme::FREQUENCY:
+      return KboWeightMap<SigTraits>::fromSomeUnsigned(frequencyExtractor,
+        [](auto _, auto freq) { return freq > 0 ? freq : 1; });
+    case Options::KboWeightGenerationScheme::INV_FREQUENCY:
+      return KboWeightMap<SigTraits>::fromSomeUnsigned(frequencyExtractor,
+        [](auto max, auto freq) { return max > 0 ? max - freq + 1 : 1; });
+
     default:
       NOT_IMPLEMENTED;
     }
@@ -642,9 +659,9 @@ void KBO::checkAdmissibility(HandleError handle) const
  */
 KBO::KBO(Problem& prb, const Options& opts)
  : PrecedenceOrdering(prb, opts)
- , _funcWeights(weightsFromOpts<FuncSigTraits>(opts))
+ , _funcWeights(weightsFromOpts<FuncSigTraits>(opts,_functionPrecedences))
 #if __KBO__CUSTOM_PREDICATE_WEIGHTS__
- , _predWeights(weightsFromOpts<PredSigTraits>(opts))
+ , _predWeights(weightsFromOpts<PredSigTraits>(opts,_predicatePrecedences))
 #endif
  , _state(new State(this))
 {
@@ -780,22 +797,22 @@ KboWeightMap<SigTraits> KboWeightMap<SigTraits>::dflt()
 }
 
 template<class SigTraits>
-template<class Fml>
-KboWeightMap<SigTraits> KboWeightMap<SigTraits>::arity_like(Fml fml)
+template<class Extractor, class Fml>
+KboWeightMap<SigTraits> KboWeightMap<SigTraits>::fromSomeUnsigned(Extractor ex, Fml fml)
 {
   auto nSym = SigTraits::nSymbols();
   DArray<KboWeight> weights(nSym);
 
   unsigned max = 0;
   for (unsigned i = 0; i < nSym; i++) {
-    auto a = SigTraits::getSymbol(i)->arity();
+    auto a = ex(i);
     if (a > max) {
       max = a;
     }
   }
 
   for (unsigned i = 0; i < nSym; i++) {
-    weights[i] = fml(max,SigTraits::getSymbol(i)->arity());
+    weights[i] = fml(max,ex(i));
   }
 
   return KboWeightMap {
