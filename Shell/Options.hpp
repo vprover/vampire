@@ -705,6 +705,8 @@ public:
     RANDOM = 1,
     ARITY = 2,
     INV_ARITY = 3,
+    ARITY_SQUARED = 4,
+    INV_ARITY_SQUARED = 5,
   };
 
   enum class KboAdmissibilityCheck : unsigned int {
