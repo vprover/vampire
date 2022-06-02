@@ -364,9 +364,17 @@ KboWeightMap<SigTraits> KBO::weightsFromOpts(const Options& opts) const
     case Options::KboWeightGenerationScheme::RANDOM:
       return KboWeightMap<SigTraits>::randomized();
     case Options::KboWeightGenerationScheme::ARITY:
-      return KboWeightMap<SigTraits>::arity();
+      return KboWeightMap<SigTraits>::arity_like(
+        [](auto _, auto arity) { return arity+1; });
     case Options::KboWeightGenerationScheme::INV_ARITY:
-      return KboWeightMap<SigTraits>::inv_arity();
+      return KboWeightMap<SigTraits>::arity_like(
+        [](auto max, auto arity) { return max-arity+1; });
+    case Options::KboWeightGenerationScheme::ARITY_SQUARED:
+      return KboWeightMap<SigTraits>::arity_like(
+        [](auto _, auto arity) { return arity*arity+1; });
+    case Options::KboWeightGenerationScheme::INV_ARITY_SQUARED:
+      return KboWeightMap<SigTraits>::arity_like(
+        [](auto max, auto arity) { return max*max-arity*arity+1; });
     default:
       NOT_IMPLEMENTED;
     }
@@ -772,24 +780,8 @@ KboWeightMap<SigTraits> KboWeightMap<SigTraits>::dflt()
 }
 
 template<class SigTraits>
-KboWeightMap<SigTraits> KboWeightMap<SigTraits>::arity()
-{
-  auto nSym = SigTraits::nSymbols();
-  DArray<KboWeight> weights(nSym);
-
-  for (unsigned i = 0; i < nSym; i++) {
-    weights[i] = SigTraits::getSymbol(i)->arity()+1;
-  }
-
-  return KboWeightMap {
-    ._weights                = weights,
-    ._introducedSymbolWeight = 1,
-    ._specialWeights         = KboSpecialWeights<SigTraits>::dflt(),
-  };
-}
-
-template<class SigTraits>
-KboWeightMap<SigTraits> KboWeightMap<SigTraits>::inv_arity()
+template<class Fml>
+KboWeightMap<SigTraits> KboWeightMap<SigTraits>::arity_like(Fml fml)
 {
   auto nSym = SigTraits::nSymbols();
   DArray<KboWeight> weights(nSym);
@@ -803,7 +795,7 @@ KboWeightMap<SigTraits> KboWeightMap<SigTraits>::inv_arity()
   }
 
   for (unsigned i = 0; i < nSym; i++) {
-    weights[i] = max - SigTraits::getSymbol(i)->arity()+1;
+    weights[i] = fml(max,SigTraits::getSymbol(i)->arity());
   }
 
   return KboWeightMap {
