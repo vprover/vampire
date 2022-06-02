@@ -73,14 +73,12 @@ template<> struct std::hash<Kernel::Variable>
 
 namespace Kernel {
 
-
-
 // TODO use this newtype in Term.hpp
 /** newtype for wrapping function ids (also often called functors in vampire) */
 class FuncId 
 {
   unsigned _num;
-  const TermList* _typeArgs;
+  // const TermList* _typeArgs; // private field not used
   
 public: 
   explicit FuncId(unsigned num, const TermList* typeArgs);
