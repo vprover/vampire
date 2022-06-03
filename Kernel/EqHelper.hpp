@@ -50,6 +50,9 @@ public:
   static Term* replace(Term* t, TermList what, TermList by);
   static Literal* replace(Literal* lit, TermList what, TermList by);
 
+  static void strongInstances(const Ordering& ord, Literal* lit, TermList lhs, TermList rhs, 
+                TermList& sLhs, TermList& sRhs, bool rhsOnly);
+
   struct LHSIteratorFn
   {
     LHSIteratorFn(const Ordering& ord) : _ord(ord) {}

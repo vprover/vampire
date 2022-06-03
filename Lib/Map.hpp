@@ -45,6 +45,9 @@ template <typename Key, typename Val,class Hash>
 class Map
 {
 public:
+  CLASS_NAME(Map);
+  USE_ALLOCATOR(Map);
+
   using HashFn = Hash;
   class Entry
   {

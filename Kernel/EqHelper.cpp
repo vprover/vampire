@@ -13,11 +13,11 @@
  */
 
 #include "Lib/Environment.hpp"
-
 #include "Shell/Options.hpp"
 
 #include "Ordering.hpp"
 #include "SortHelper.hpp"
+#include "SubstHelper.hpp"
 #include "TermIterators.hpp"
 #include "ApplicativeHelper.hpp"
 
@@ -393,6 +393,62 @@ TermIterator EqHelper::getSubVarSupLHSIterator(Literal* lit, const Ordering& ord
   }  
 }
 
+struct MapVarsToSmallestTermExceptAvoids {
+  const Ordering &_ordering;
+  const DHMap<unsigned, TermList>& _varSorts;
+  const DHSet<unsigned>& _avoid;
+
+  MapVarsToSmallestTermExceptAvoids(const Ordering &ordering, 
+    const DHMap<unsigned, TermList> &varSorts, const DHSet<unsigned> &avoid) : 
+    _ordering(ordering), _varSorts(varSorts), _avoid(avoid) {}
+
+  TermList apply(unsigned var) {
+    TermList identity(var, false);
+
+    TermList smallest;
+    // even if _mapThese contains poly-vars, they won't be found in getSmallestTermForASort
+    if (_avoid.find(var) || !_ordering.getSmallestTermForASort(_varSorts.get(var),smallest)) {
+      return identity;
+    } else {
+      // ! _avoid.find(var) && _ordering.getSmallestTermForASort(_varSorts.get(var),smallest) -- so smallest got assigned
+      return smallest;
+    }
+  }
+};
+
+void EqHelper::strongInstances(const Ordering& ord, Literal* lit, TermList lhs, TermList rhs,
+                               TermList& sLhs, TermList& sRhs, bool rhsOnly) 
+{
+  CALL("EqHelper::strongInstances");
+
+  DHMap<unsigned, TermList> varSorts;
+  
+  ASS(lit->isEquality());
+  ASS(lit->isPositive());
+  ASS((*lit->nthArgument(0) == lhs) || (*lit->nthArgument(0) == rhs));
+  ASS((*lit->nthArgument(1) == lhs) || (*lit->nthArgument(1) == rhs));
+
+  SortHelper::collectVariableSorts(lit, varSorts);
+
+  if (!rhsOnly) {
+    DHSet<unsigned> rhsVars;
+    TermIterator rhsVarIt = Term::getVariableIterator(rhs);
+    while (rhsVarIt.hasNext()) {
+      rhsVars.insert(rhsVarIt.next().var());
+    }
+    MapVarsToSmallestTermExceptAvoids app(ord,varSorts,rhsVars);
+    sLhs = SubstHelper::apply(lhs, app);
+  }
+
+  DHSet<unsigned> lhsVars;
+  TermIterator lhsVarIt = Term::getVariableIterator(lhs);
+  while (lhsVarIt.hasNext()) {
+    lhsVars.insert(lhsVarIt.next().var());
+  }
+  MapVarsToSmallestTermExceptAvoids app(ord,varSorts,lhsVars);
+  sRhs = SubstHelper::apply(rhs, app);
+}
+
 /**
  * Return iterator on sides of the equality @b lit that can be used as an LHS
  * for demodulation
@@ -411,19 +467,42 @@ TermIterator EqHelper::getDemodulationLHSIterator(Literal* lit, bool forward, co
     }
     TermList t0=*lit->nthArgument(0);
     TermList t1=*lit->nthArgument(1);
+
     switch(ord.getEqualityArgumentOrder(lit))
     {
     case Ordering::INCOMPARABLE:
       if ( forward ? (opt.forwardDemodulation() == Options::Demodulation::PREORDERED)
-		  : (opt.backwardDemodulation() == Options::Demodulation::PREORDERED) ) {
-        return TermIterator::getEmpty();
+		               : (opt.backwardDemodulation() == Options::Demodulation::PREORDERED) ) {       
+        if (includeStrongInstances) {
+          TermList st0;
+          TermList st1;
+          strongInstances(ord,lit,t0,t1,st0,st1,false /* actually, separately instantiate both sides*/ );
+
+          Ordering::Result r0 = ord.compare(t0,st1);
+          Ordering::Result r1 = ord.compare(t1,st0);
+          if (r0 == Ordering::GREATER || r0 == Ordering::GREATER_EQ) {
+            if (r1 == Ordering::GREATER || r1 == Ordering::GREATER_EQ) {
+              return pvi(getConcatenatedIterator(
+                getSingletonIterator(t0),
+                getSingletonIterator(t1)));
+            }
+            return pvi( getSingletonIterator(t0) );
+          }
+          if (r1 == Ordering::GREATER || r1 == Ordering::GREATER_EQ) {
+            return pvi( getSingletonIterator(t1) );
+          }          
+        } else {
+          return TermIterator::getEmpty();
+        }        
       }
-      if(includeStrongInstances)
+
+      if (includeStrongInstances) {
         return pvi(getConcatenatedIterator(
           getSingletonIterator(t0),
           getSingletonIterator(t1)
         ));
-
+      }
+      
       if (t0.containsAllVariablesOf(t1)) {
         if (t1.containsAllVariablesOf(t0)) {
           return pvi( getConcatenatedIterator(getSingletonIterator(t0),

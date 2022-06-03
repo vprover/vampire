@@ -74,6 +74,8 @@ public:
 
   void removeNonMaximal(LiteralList*& lits) const;
 
+  bool getSmallestTermForASort(TermList sort, TermList& theTerm) const;
+
   static Result fromComparison(Comparison c);
   static Comparison intoComparison(Result c);
 
@@ -116,6 +118,8 @@ private:
   class EqCmp;
   /** Object used to compare equalities */
   EqCmp* _eqCmp;
+
+  mutable Lib::SmartPtr<Map<TermList,TermList>> _smallestTerms;
 
   /**
    * We store orientation of equalities in this ordering inside
