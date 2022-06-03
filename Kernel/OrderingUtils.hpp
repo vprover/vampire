@@ -166,6 +166,13 @@ namespace Kernel {
   public:
     using MulExtMemo = DArray<Option<Ordering::Result>>;
 
+    static bool notLeq(Ordering::Result r) 
+    { return r != Ordering::Result::LESS 
+          && r != Ordering::Result::EQUAL; }
+
+    static bool notLess(Ordering::Result r) 
+    { return r != Ordering::Result::LESS; }
+
     template<class T>
     static Ordering::Result stdCompare(T const& l, T const& r) 
     { 

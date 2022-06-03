@@ -36,18 +36,18 @@ using namespace Indexing;
 ////// TEST CASES 
 /////////////////////////////////////
 
-#define SUGAR(Num)                                                                                            \
-  __ALLOW_UNUSED(                                                                                             \
-    NUMBER_SUGAR(Num)                                                                                         \
-    DECL_DEFAULT_VARS                                                                                         \
-    DECL_FUNC(f, {Num}, Num)                                                                                  \
-    DECL_FUNC(g, {Num, Num}, Num)                                                                             \
-    DECL_CONST(a, Num)                                                                                        \
-    DECL_CONST(b, Num)                                                                                        \
-    DECL_CONST(c, Num)                                                                                        \
-    DECL_PRED(r, {Num,Num})                                                                                   \
-    DECL_PRED(p, {Num})                                                                                       \
-  )                                                                                                           \
+#define SUGAR(Num)                                                                                  \
+  __ALLOW_UNUSED(                                                                                   \
+    NUMBER_SUGAR(Num)                                                                               \
+    DECL_DEFAULT_VARS                                                                               \
+    DECL_FUNC(f, {Num}, Num)                                                                        \
+    DECL_FUNC(g, {Num, Num}, Num)                                                                   \
+    DECL_CONST(a, Num)                                                                              \
+    DECL_CONST(b, Num)                                                                              \
+    DECL_CONST(c, Num)                                                                              \
+    DECL_PRED(r, {Num,Num})                                                                         \
+    DECL_PRED(p, {Num})                                                                             \
+  )                                                                                                 \
 
 
 
@@ -79,23 +79,23 @@ struct TestCase
   }
 };
 
-#define TEST_CASE(Num, name, ...)                                                                             \
-  TEST_FUN(name ## _ ## Num) {                                                                                \
-    SUGAR(Num)                                                                                                \
-    __VA_ARGS__.run<Num ## Traits>();                                                                         \
-  }                                                                                                           \
+#define TEST_CASE(Num, name, ...)                                                                   \
+  TEST_FUN(name ## _ ## Num) {                                                                      \
+    SUGAR(Num)                                                                                      \
+    __VA_ARGS__.run<Num ## Traits>();                                                               \
+  }                                                                                                 \
 
-#define TEST_FRAC(...)                                                                                        \
-    TEST_CASE(Rat , __VA_ARGS__)                                                                              \
-    TEST_CASE(Real, __VA_ARGS__)                                                                              \
+#define TEST_FRAC(...)                                                                              \
+    TEST_CASE(Rat , __VA_ARGS__)                                                                    \
+    TEST_CASE(Real, __VA_ARGS__)                                                                    \
 
-#define TEST_INT(...)                                                                                         \
-    TEST_CASE(Int, __VA_ARGS__)                                                                               \
+#define TEST_INT(...)                                                                               \
+    TEST_CASE(Int, __VA_ARGS__)                                                                     \
 
-#define TEST_ALL(...)                                                                                         \
-    TEST_CASE(Int , __VA_ARGS__)                                                                              \
-    TEST_CASE(Rat , __VA_ARGS__)                                                                              \
-    TEST_CASE(Real, __VA_ARGS__)                                                                              \
+#define TEST_ALL(...)                                                                               \
+    TEST_CASE(Int , __VA_ARGS__)                                                                    \
+    TEST_CASE(Rat , __VA_ARGS__)                                                                    \
+    TEST_CASE(Real, __VA_ARGS__)                                                                    \
 
 
 TEST_ALL(strict_01, 
@@ -412,7 +412,6 @@ TEST_INT(bug_07,
       .strong = false,
     })
 
-
 TEST_INT(bug_08, 
     TestCase {
       .in  =   0 * f(x) > 0,
@@ -420,3 +419,25 @@ TEST_INT(bug_08,
       .strong = false,
     })
 
+
+
+TEST_ALL(misc_01, 
+    TestCase {
+      .in  =     0 > f(a)     ,
+      .out = { { -f(a) > 0 } },
+      .strong = false,
+    })
+
+TEST_FRAC(misc_02, 
+    TestCase {
+      .in  =     ~(0 > -f(a))   ,
+      .out = { { -f(a) >= 0  } },
+      .strong = false,
+    })
+
+TEST_INT(misc_02, 
+    TestCase {
+      .in  =     ~(0 > -f(a))      ,
+      .out = { { -f(a) + 1 > 0  } },
+      .strong = false,
+    })

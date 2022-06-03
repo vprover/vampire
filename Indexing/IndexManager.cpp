@@ -27,6 +27,7 @@
 #include "TermSubstitutionTree.hpp"
 #include "Inferences/IRC/FwdDemodulationModLA.hpp"
 #include "Inferences/IRC/BwdDemodulationModLA.hpp"
+#include "Inferences/IRC/InequalityResolution.hpp"
 
 #include "Shell/Statistics.hpp"
 
@@ -193,13 +194,17 @@ Index* IndexManager::create(IndexType t)
     isGenerating = true;
     break;
 
-  case IRC_INEQUALITY_RESOLUTION_SUBST_TREE:
-    tis=new TermSubstitutionTree(uwaMode, true);
-    res=new InequalityResolutionIndex(tis);
+  case IRC_INEQUALITY_RESOLUTION_LHS_SUBST_TREE:
+    res=new IrcIndex<Inferences::IRC::InequalityResolution::Lhs>(uwaMode);
     isGenerating = true;
     break;
 
-  case IRC_SUPERPOSITION_LHS_SUBST_TREE:
+  case IRC_INEQUALITY_RESOLUTION_RHS_SUBST_TREE:
+    res=new IrcIndex<Inferences::IRC::InequalityResolution::Rhs>(uwaMode);
+    isGenerating = true;
+    break;
+
+  case IRC_SUPERPOSITION_LHS_SUBST_TREE: 
     tis=new TermSubstitutionTree(uwaMode, true);
     res=new IRCSuperpositionLhsIndex(tis);
     isGenerating = true;

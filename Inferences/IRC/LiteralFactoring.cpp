@@ -71,8 +71,8 @@ Stack<Clause*> LiteralFactoring::applyRule(Clause* premise,
   MeasureTime time(env.statistics->ircLitFac);
 
   auto nothing = [&](auto i) { time.applicationCancelled(); return Stack<Clause*>{}; };
-  auto sigma = [&](auto x){ return uwa.sigma.apply(x, /* varbank */ 0); };
-  auto& cnst  = uwa.cnst;
+  auto sigma = [&](auto x){ return uwa.sigma(x, /* varbank */ 0); };
+  auto& cnst  = uwa.cnst();
   auto j = j_s1.numeral;
   auto k = k_s2.numeral;
   auto s1 = j_s1.factors;

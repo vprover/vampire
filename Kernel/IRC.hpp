@@ -241,17 +241,36 @@ namespace Kernel {
   };
 
   struct IrcState;
+  using UwaSubstitution = Coproduct<RobSubstitution, Indexing::ResultSubstitutionSP>; 
+
+  template<class TermOrLit> 
+  auto applySubst(Indexing::ResultSubstitution& subst, TermOrLit t, int varBank) { return subst.applyTo(t, varBank);  }
+
+  template<class TermOrLit> 
+  auto applySubst(Indexing::ResultSubstitutionSP const& subst, TermOrLit t, int varBank) { return subst->applyTo(t, varBank);  }
 
   template<class TermOrLit> 
   auto applySubst(RobSubstitution const& subst, TermOrLit t, int varBank) { return subst.apply(t, varBank);  }
 
   template<class TermOrLit> 
-  auto applySubst(Indexing::ResultSubstitution& subst, TermOrLit t, int varBank) { return subst.applyTo(t, varBank);  }
+  auto applySubst(UwaSubstitution const& subst, TermOrLit t, int varBank)
+  { return subst.apply([&](auto& s) { return applySubst(s, t, varBank); });  }
 
 
   struct UwaResult {
-    RobSubstitution sigma;
-    Stack<UnificationConstraint> cnst;
+    UwaSubstitution _sigma;
+    Stack<UnificationConstraint> _cnst;
+
+    UwaResult(RobSubstitution sigma, Stack<UnificationConstraint> cnst) 
+      : _sigma(decltype(_sigma)(std::move(sigma)))
+      , _cnst(std::move(cnst)) 
+    {  }
+
+    UwaResult(Indexing::TermQueryResult const& qr)
+      : _sigma(decltype(_sigma)(qr.substitution))
+      , _cnst( qr.constraints ? *qr.constraints : decltype(_cnst)() )
+    { }
+
     UwaResult(UwaResult&&) = default;
     UwaResult& operator=(UwaResult&&) = default;
 
@@ -260,20 +279,26 @@ namespace Kernel {
     {
       return iterTraits(cnst.iterFifo())
         .map([&](auto c){
-          auto toTerm = [&](pair<TermList, unsigned> const& weirdConstraintPair) -> TermList
-                        { return applySubst(sigma, weirdConstraintPair.first, weirdConstraintPair.second); };
+          auto toTerm = [&](pair<TermList, unsigned> & constraintPair) -> TermList
+                        { return applySubst(sigma, constraintPair.first, constraintPair.second); };
           auto sort = SortHelper::getResultSort(c.first.first.term());
           // lσ != rσ
           return Literal::createEquality(false, toTerm(c.first), toTerm(c.second), sort);
         });
     }
 
+    auto const& cnst() const { return _cnst; }
+
+    template<class TermOrLit>
+    auto sigma(TermOrLit x, unsigned varBank) const 
+    { return applySubst(_sigma, x, varBank); }
+
     auto cnstLiterals() const
-    { return cnstLiterals(sigma, cnst); }
+    { return cnstLiterals(_sigma, _cnst); }
 
     friend std::ostream& operator<<(std::ostream& out, UwaResult const& self)
     { 
-      out << "⟨" << self.sigma << ", [";
+      out << "⟨" << self._sigma << ", [";
       auto iter = self.cnstLiterals();
       if (iter.hasNext()) {
         out << *iter.next();
@@ -283,12 +308,13 @@ namespace Kernel {
       return out << "]⟩"; 
     }
   private:
-    UwaResult() : sigma(), cnst() {  }
+    // UwaResult() : _sigma(), _cnst() {  }
     friend struct IrcState;
   };
 
   template<class NumTraits>
-  struct SelectedAtomicTerm {
+  struct SelectedAtomicTerm 
+  {
     unsigned litIdx;
     Literal* literal;
     IrcLiteral<NumTraits> ircLit;
@@ -307,6 +333,7 @@ namespace Kernel {
     AnyIrcLiteral _ircLiteral;
     unsigned _term;
   public:
+
     SelectedSummand(
       Clause* cl,
       unsigned lit,
@@ -317,6 +344,7 @@ namespace Kernel {
       , _ircLiteral(std::move(ircLiteral)) 
       , _term(term) {}
 
+    explicit SelectedSummand(SelectedSummand const&) = default;
     SelectedSummand(SelectedSummand&&) = default;
     SelectedSummand& operator=(SelectedSummand&&) = default;
     auto numeral() const 
@@ -325,18 +353,29 @@ namespace Kernel {
               { return AnyConstantType(lit.term().summandAt(_term).numeral); }); }
     auto const& clause() const { return _cl; }
     auto const& literal() const { return (*_cl)[_lit]; }
+
     auto contextLiterals() const 
     { 
       return range(0, _cl->size())
         .filter([&](auto i) { return i != _lit; })
         .map([&](auto i) { return (*_cl)[i]; }); 
     }
+
+    auto nContextTerms() const 
+    { return _ircLiteral.apply([](auto& lit) { return lit.term().nSummands() - 1; }); }
+
+    template<class NumTraits>
     auto contextTerms() const 
-    { return _ircLiteral.apply([this](auto& lit) { 
-        return iterTraits(pvi(range(0, lit.term().nSummands()) 
+    { 
+      auto& lit = _ircLiteral.template unwrap<IrcLiteral<NumTraits>>();
+      return range(0, lit.term().nSummands()) 
                 .filter([&](unsigned i) { return i != _term; })
-                .map([&](unsigned i) { return lit.term().summandAt(i).denormalize(); })));
-      }); }
+                .map([&](unsigned i) { return lit.term().summandAt(i); });
+    }
+
+    bool isInequality() const
+    { return _ircLiteral.apply([](auto& lit)
+                               { return lit.isInequality(); }); }
 
     auto monom() const 
     { return _ircLiteral
@@ -350,6 +389,13 @@ namespace Kernel {
     { return numeral().apply([](auto n) 
         { return Coproduct<IntTraits, RatTraits, RealTraits>(NumTraits<decltype(n)>{}); });
     }
+
+    auto symbol() const
+    { return _ircLiteral.apply([](auto& l) { return l.symbol(); }); }
+
+    using Key = TermList;
+    auto key() -> Key { return monom(); }
+    friend std::ostream& operator<<(std::ostream& out, SelectedSummand const& self);
   };
 
   struct IrcState 
@@ -361,13 +407,15 @@ namespace Kernel {
     Ordering* const ordering;
     Shell::Options::UnificationWithAbstraction const uwa;
 
-
+    bool equivalent(TypedTermList lhs, TypedTermList rhs) 
+     { return normalize(lhs) == normalize(rhs); }
 
     auto selectedSummands(Clause* cl, bool strictlyMaxLiteral, bool strictlyMaxSummand) //-> IterTraits<VirtualIterator<SelectedSummand>>
     {
+      ASS(this)
       return OrderingUtils2::maxElems(
           cl->size(), 
-          [&](unsigned l, unsigned r) 
+          [=](unsigned l, unsigned r) 
           { return ordering->compare((*cl)[l], (*cl)[r]); },
           strictlyMaxLiteral)
     
@@ -746,6 +794,7 @@ template<class NumTraits> Stack<SelectedAtomicTerm<NumTraits>> IrcState::selecte
   return iterTraits(getRangeIterator((unsigned)0, cl->numSelected()))
     .filterMap([&](auto i) {
         // auto i = lit_idx.second;
+        DBGE(*cl)
         auto lit = (*cl)[i];
 
         return normalizer.template renormalizeIrc<NumTraits>(lit)

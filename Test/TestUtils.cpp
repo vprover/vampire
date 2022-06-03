@@ -52,10 +52,13 @@ SAT::SATClause* TestUtils::buildSATClause(unsigned len,...)
   return SATClause::fromStack(lits);
 }
 
-std::ostream& printOp(std::ostream& out, const Term* t, const char* op) {
+std::ostream& printOp(std::ostream& out, const Term* t, const char* op, bool par = true) {
   auto l = *t->nthArgument(0);
   auto r = *t->nthArgument(1);
-  return out << "(" << pretty(l) << " " << op << " " << pretty(r) << ")";
+  if (par) out << "(";
+  out << pretty(l) << " " << op << " " << pretty(r);
+  if (par) out << ")";
+  return out;
 }
 
 template<>
@@ -136,10 +139,14 @@ std::ostream& Pretty<Literal>::prettyPrint(std::ostream& out) const
         case Kernel::Theory::REAL_ ## oper: \
         case Kernel::Theory::RAT_  ## oper
 
+        NUM_CASE(GREATER):
+          return printOp(out, &lit, ">", /* par = */ false);
+        NUM_CASE(GREATER_EQUAL):
+          return printOp(out, &lit, ">=", /* par = */ false);
         NUM_CASE(LESS_EQUAL):
-          return printOp(out, &lit, "<=");
+          return printOp(out, &lit, "<=", /* par = */ false);
         case Kernel::Theory::EQUAL:
-          return printOp(out, &lit, "=");
+          return printOp(out, &lit, "=", /* par = */ false);
         default: 
         {
         }

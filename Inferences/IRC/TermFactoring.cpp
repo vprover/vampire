@@ -124,7 +124,7 @@ template<class NumTraits> Option<Clause*> TermFactoring::applyRule(
     return nothing();
 
   auto& uwa = uwa_.unwrap();
-  auto sigma = [&](auto t) { return uwa.sigma.apply(t, /* var bank */ 0); };
+  auto sigma = [&](auto t) { return uwa.sigma(t, /* var bank */ 0); };
 
   auto s1_sigma = sigma(s1);
   auto resTerm = NumTraits::mul(NumTraits::constantTl(k1 + k2), s1_sigma); //sigma(Monom<NumTraits>(k1 + k2, s1).denormalize();)
@@ -149,7 +149,7 @@ template<class NumTraits> Option<Clause*> TermFactoring::applyRule(
   auto resLit = createLiteral(resSum, pivot.symbol());
   //   ^^^^^^---> ((k1 + s1)s2 + t <> 0)σ
 
-  Stack<Literal*> conclusion(premise->size() + uwa.cnst.size());
+  Stack<Literal*> conclusion(premise->size() + uwa.cnst().size());
 
   // adding `Cσ`
   {

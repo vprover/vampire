@@ -72,7 +72,7 @@ public:
     : _rule(std::move(rule)) 
   {  }
 
-  virtual bool eq(Kernel::Clause const* lhs, Kernel::Clause const* rhs)
+  virtual bool eq(Kernel::Clause* lhs, Kernel::Clause* rhs)
   { return TestUtils::eqModACRect(lhs, rhs); }
 
   friend class AsymmetricTest;
@@ -232,14 +232,14 @@ public:
   template<class Rule>
   void run(GenerationTester<Rule>& simpl) {
     for (unsigned i = 0; i < _inputs.size(); i++) {
-      cout << "\tusing clause " << i << " as input... " << endl;
+      // cout << "\tusing clause " << i << " as input... " << endl;
       Stack<Clause*> context;
       auto input = _inputs[i];
       for (unsigned j = 0; j < _inputs.size(); j++) 
         if (i != j) 
           context.push(_inputs[j]);
       run(simpl, input, context);
-      cout << "\t-> ok (clause " << i << " as input)" << endl;
+      // cout << "\t-> ok (clause " << i << " as input)" << endl;
     }
   }
 

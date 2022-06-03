@@ -41,32 +41,38 @@ public:
   InequalityResolution(InequalityResolution&&) = default;
   InequalityResolution(shared_ptr<IrcState> shared) 
     : _shared(std::move(shared))
-    , _index(nullptr)
+    , _lhsIndex()
+    , _rhsIndex()
   {  }
 
   class Lhs : public SelectedSummand { 
   public: 
+    explicit Lhs(Lhs const&) = default;
     Lhs(SelectedSummand s) : SelectedSummand(std::move(s)) {} 
     Lhs(Lhs&&) = default;
     Lhs& operator=(Lhs&&) = default;
+
+    static auto iter(IrcState& shared, Clause* cl)
+    { return shared.selectedSummands(cl, /* strictly max literal*/ true, /* strictly max term */ true)
+              .filter([&](auto const& selected) { return selected.isInequality(); })
+              .filter([&](auto const& selected) { return selected.sign()   == Sign::Pos; })
+              .map([&]   (auto selected)        { return Lhs(std::move(selected));     }); }
   };
 
   class Rhs : public SelectedSummand { 
   public: 
+
+    explicit Rhs(Rhs const&) = default;
     Rhs(SelectedSummand s) : SelectedSummand(std::move(s)) {} 
     Rhs(Rhs&&) = default;
     Rhs& operator=(Rhs&&) = default;
+
+    static auto iter(IrcState& shared, Clause* cl) 
+    { return shared.selectedSummands(cl, /* strictly max literal*/ true, /* strictly max term */ false)
+              .filter([&](auto const& selected) { return selected.isInequality(); })
+              .filter([&](auto const& selected) { return selected.sign() == Sign::Neg; })
+              .map([&]   (auto selected)        { return Rhs(std::move(selected));     }); }
   };
-
-  auto iterLhs(Clause* cl) const 
-  { return _shared->selectedSummands(cl, /* strictly max literal*/ true, /* strictly max term */ true)
-            .filter([&](auto const& selected) { return selected.sign() == Sign::Pos; })
-            .map([&]   (auto selected)        { return Lhs(std::move(selected)); }); }
-
-  auto iterRhs(Clause* cl) const 
-  { return _shared->selectedSummands(cl, /* strictly max literal*/ true, /* strictly max term */ false)
-            .filter([&](auto const& selected) { return selected.sign() == Sign::Neg; })
-            .map([&]   (auto selected)        { return Rhs(std::move(selected)); }); }
 
   void attach(SaturationAlgorithm* salg) final override;
   void detach() final override;
@@ -76,9 +82,8 @@ public:
 #if VDEBUG
   virtual void setTestIndices(Stack<Indexing::Index*> const&) final override;
 #endif
-
+    
 private:
-
   Option<Clause*> applyRule(
       Lhs const& lhs, unsigned lhsVarBank,
       Rhs const& rhs, unsigned rhsVarBank,
@@ -94,9 +99,8 @@ private:
   template<class NumTraits> ClauseIterator generateClauses(Clause* clause, Literal* lit, IrcLiteral<NumTraits> l1, Monom<NumTraits> j_s1) const;
 
   shared_ptr<IrcState> _shared;
-  InequalityResolutionIndex* _index;
-  InequalityResolutionIndex* _lhsIndex;
-  InequalityResolutionIndex* _rhsIndex;
+  IrcIndex<Lhs>* _lhsIndex;
+  IrcIndex<Rhs>* _rhsIndex;
 };
 
 } // namespace IRC 

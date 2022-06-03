@@ -100,15 +100,36 @@ bool InequalityNormalizer::isNormalized(Clause* cl)  const
 #if VDEBUG
 shared_ptr<IrcState> testIrcState(Options::UnificationWithAbstraction uwa, bool strongNormalization, Ordering* ordering) {
 
-  auto& ord = ordering == nullptr ? *new QKbo(Precedence::random()) : *ordering;
+  auto qkbo = ordering == nullptr ? new QKbo(Precedence::random()) : nullptr;
+  auto& ord = ordering == nullptr ? *qkbo : *ordering;
   // auto& ord = ordering == nullptr ? *new LaLpo(Precedence::random()) : *ordering;
-  return shared_ptr<IrcState>(new IrcState {
+  auto state = shared_ptr<IrcState>(new IrcState {
       .normalizer = InequalityNormalizer(strongNormalization),
       .ordering = &ord,
       .uwa = uwa,
   });
+  if (qkbo)
+        qkbo->setState(state);
+  return state;
 }
 #endif
+
+std::ostream& operator<<(std::ostream& out, SelectedSummand const& self)
+{ 
+  self.numeral().apply([&](auto n) -> void { out << n; });
+  out << " " << self.monom();
+  self.numTraits()
+    .apply([&](auto numTraits) {
+      for (auto s : self.contextTerms<decltype(numTraits)>()) {
+        out << " + " << s;
+      }
+    });
+  out << " " << self.symbol() << " 0";
+  for (auto l : self.contextLiterals()) {
+    out << " \\/ " << *l;
+  }
+  return out; 
+}
 
 Option<MaybeOverflow<AnyIrcLiteral>> InequalityNormalizer::renormalize(Literal* lit) const
 {
@@ -197,11 +218,13 @@ PolyNf IrcState::normalize(TypedTermList term)
 
 Option<UwaResult> IrcState::unify(TermList lhs, TermList rhs) const 
 {
-  UwaResult out;
-  Kernel::UWAMismatchHandler hndlr(uwa, out.cnst);
-  if (out.sigma.unify(lhs, /* var bank: */ 0, 
+  ASS(this)
+  RobSubstitution sigma;
+  Stack<UnificationConstraint> cnst;
+  Kernel::UWAMismatchHandler hndlr(uwa, cnst);
+  if (sigma.unify(lhs, /* var bank: */ 0, 
                       rhs, /* var bank: */ 0, &hndlr)) {
-    return Option<UwaResult>(std::move(out));
+    return Option<UwaResult>(UwaResult(std::move(sigma), std::move(cnst)));
   } else {
     return Option<UwaResult>();
   }

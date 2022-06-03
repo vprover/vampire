@@ -261,7 +261,7 @@ public:
   Option<AtomsStar> atomsStar(Literal* literal) const
   {
     auto mainIdx = literal->isEquality() && literal->termArg(0) == NumTraits::zero() ? 1 : 0;
-    ASS_REP(NumTraits::zero() == literal->termArg(1 - mainIdx), literal);
+    ASS_REP(NumTraits::zero() == literal->termArg(1 - mainIdx), *literal);
     auto level = literal->isEquality() && literal->isPositive() ? POS_EQ_LEVEL : NEG_EQ_LEVEL;
     auto nf = sigmaNf<NumTraits>(literal->termArg(mainIdx));
     if (hasSubstitutionProperty(nf)) {
