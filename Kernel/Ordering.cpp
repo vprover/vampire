@@ -260,6 +260,17 @@ bool Ordering::getSmallestTermForASort(TermList sort, TermList& theTerm) const {
         _smallestTerms->replace(sort, curMin);
       }
     }
+    // go throught for a second time and for inhabited sorts which didn't have a constant, add one:
+    for(unsigned i = 0; i < env.signature->functions(); i++) {
+      auto symb = env.signature->getFunction(i);
+      auto sort = symb->fnType()->result();
+      if (!_smallestTerms->find(sort)) {
+        unsigned newSym = env.signature->addFreshFunction(0, "bot");
+        OperatorType* type = OperatorType::getConstantsType(sort);
+        env.signature->getFunction(newSym)->setType(type);
+        _smallestTerms->insert(sort,TermList(Term::createConstant(newSym)));
+      }
+    }
   }
 
   return _smallestTerms->find(sort,theTerm);

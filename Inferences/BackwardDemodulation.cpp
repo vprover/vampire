@@ -142,6 +142,23 @@ struct BackwardDemodulation::ResultFn
 
     TermList rhs=EqHelper::getOtherEqualitySide(_eqLit, lhs);
 
+    // cout << "lhs " << lhs.toString() << " rhs " << rhs.toString() << endl;
+
+    if (_parent.getOptions().strongInstances()) {
+      TermList rhsInstance;
+
+      if (!_strongRhs.find(lhs,rhsInstance)) {
+        TermList dummy;
+        EqHelper::strongInstances(_ordering, _eqLit, lhs, rhs, dummy, rhsInstance, true);
+        _strongRhs.insert(lhs,rhsInstance);
+      }
+      
+      // pretend, this is our actual rhs (applying qr.subst on top is part of the game)
+      rhs = rhsInstance;
+    }
+
+    // cout << "lhs " << lhs.toString() << " rhsI " << rhs.toString() << endl;
+
     TermList lhsS=qr.term;
     TermList rhsS;
 
@@ -228,6 +245,9 @@ private:
   Literal* _eqLit;
   Clause* _cl;
   SmartPtr<ClauseSet> _removed;
+
+  // this is a bit wasteful; it will ever store at most two pairs
+  DHMap<TermList,TermList> _strongRhs;
 
   BackwardDemodulation& _parent;
   Ordering& _ordering;

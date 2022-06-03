@@ -457,9 +457,11 @@ void EqHelper::strongInstances(const Ordering& ord, Literal* lit, TermList lhs, 
  * If @b includeStrongInstances, also include equalities where the rhs contains
  * variables not in the lhs, for use by instantiating with the smallest constant.
  */
-TermIterator EqHelper::getDemodulationLHSIterator(Literal* lit, bool forward, const Ordering& ord, const Options& opt, bool includeStrongInstances)
+TermIterator EqHelper::getDemodulationLHSIterator(Literal* lit, bool forward, const Ordering& ord, const Options& opt)
 {
   CALL("EqHelper::getDemodulationLHSIterator");
+
+  bool includeStrongInstances = opt.strongInstances();
 
   if (lit->isEquality()) {
     if (lit->isNegative()) {
