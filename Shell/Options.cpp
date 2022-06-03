@@ -1510,7 +1510,7 @@ void Options::init()
     _demodulationRedundancyCheck.addProblemConstraint(hasEquality());
     _demodulationRedundancyCheck.setRandomChoices({"on","off"});
 
-    _strongInstances = BoolOptionValue("strong_instances", "si", false);
+    _strongInstances = BoolOptionValue("strong_instances", "sti", false);
     _strongInstances.description =
       "When demodulating with s = t, it may happen that variables X* occur in t but not s.\n"
       "This immediately fails the ordering check. However, it may be possible to use an instance\n"
