@@ -2323,6 +2323,7 @@ public:
   IntegerInductionLiteralStrictness integerInductionStrictnessEq() const {return _integerInductionStrictnessEq.actualValue; }
   IntegerInductionLiteralStrictness integerInductionStrictnessComp() const {return _integerInductionStrictnessComp.actualValue; }
   IntegerInductionTermStrictness integerInductionStrictnessTerm() const {return _integerInductionStrictnessTerm.actualValue; }
+  bool nonUnitInduction() const { return _nonUnitInduction.actualValue; }
 
   float instGenBigRestartRatio() const { return _instGenBigRestartRatio.actualValue; }
   bool instGenPassiveReactivation() const { return _instGenPassiveReactivation.actualValue; }
@@ -2625,6 +2626,7 @@ private:
   ChoiceOptionValue<IntegerInductionLiteralStrictness> _integerInductionStrictnessEq;
   ChoiceOptionValue<IntegerInductionLiteralStrictness> _integerInductionStrictnessComp;
   ChoiceOptionValue<IntegerInductionTermStrictness> _integerInductionStrictnessTerm;
+  BoolOptionValue _nonUnitInduction;
 
   StringOptionValue _latexOutput;
   BoolOptionValue _latexUseDefaultSymbols;

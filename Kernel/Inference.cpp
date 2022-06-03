@@ -905,36 +905,26 @@ vstring Kernel::ruleName(InferenceRule rule)
     return "instantiation";
   case InferenceRule::MODEL_NOT_FOUND:
     return "finite model not found : exhaustively excluded all possible domain size assignments";
-  case InferenceRule::INDUCTION_AXIOM:
-    return "induction hypothesis";
-  case InferenceRule::GEN_INDUCTION_AXIOM:
-    return "generalized induction hypothesis";
   case InferenceRule::ARITHMETIC_SUBTERM_GENERALIZATION:
     return "arithmetic subterm generalization";
+  case InferenceRule::STRUCT_INDUCTION_AXIOM:
+    return "structural induction hypothesis";
   case InferenceRule::INT_INF_UP_INDUCTION_AXIOM:
     return "integer induction hypothesis (up, infinite interval)";
   case InferenceRule::INT_INF_DOWN_INDUCTION_AXIOM:
     return "integer induction hypothesis (down, infinite interval)";
-  case InferenceRule::INT_INF_UP_GEN_INDUCTION_AXIOM:
-    return "generalized integer induction hypothesis (up, infinite interval)";
-  case InferenceRule::INT_INF_DOWN_GEN_INDUCTION_AXIOM:
-    return "generalized integer induction hypothesis (down, infinite interval)";
   case InferenceRule::INT_FIN_UP_INDUCTION_AXIOM:
     return "integer induction hypothesis (up, finite interval)";
   case InferenceRule::INT_FIN_DOWN_INDUCTION_AXIOM:
     return "integer induction hypothesis (down, finite interval)";
-  case InferenceRule::INT_FIN_UP_GEN_INDUCTION_AXIOM:
-    return "generalized integer induction hypothesis (up, finite interval)";
-  case InferenceRule::INT_FIN_DOWN_GEN_INDUCTION_AXIOM:
-    return "generalized integer induction hypothesis (down, finite interval)";
   case InferenceRule::INT_DB_UP_INDUCTION_AXIOM:
     return "integer induction hypothesis (up, default bound)";
   case InferenceRule::INT_DB_DOWN_INDUCTION_AXIOM:
     return "integer induction hypothesis (down, default bound)";
-  case InferenceRule::INT_DB_UP_GEN_INDUCTION_AXIOM:
-    return "generalized integer induction hypothesis (up, default bound)";
-  case InferenceRule::INT_DB_DOWN_GEN_INDUCTION_AXIOM:
-    return "generalized integer induction hypothesis (down, default bound)";
+  case InferenceRule::INDUCTION_HYPERRESOLUTION:
+    return "induction hyperresolution";
+  case InferenceRule::GEN_INDUCTION_HYPERRESOLUTION:
+    return "generalized induction hyperresolution";
   case InferenceRule::GAUSSIAN_VARIABLE_ELIMINIATION:
     return "gaussian variable elimination";
   case InferenceRule::COMBINATOR_AXIOM:

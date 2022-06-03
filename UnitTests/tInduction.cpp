@@ -14,6 +14,8 @@
 #include "Test/TestUtils.hpp"
 #include "Test/GenerationTester.hpp"
 
+#include "Indexing/TermIndex.hpp"
+#include "Indexing/TermSubstitutionTree.hpp"
 #include "Indexing/LiteralIndex.hpp"
 #include "Indexing/LiteralSubstitutionTree.hpp"
 #include "Indexing/TermIndex.hpp"
@@ -32,8 +34,49 @@ LiteralIndex* comparisonIndex() {
   return new UnitIntegerComparisonLiteralIndex(new LiteralSubstitutionTree());
 }
 
-TermIndex* inductionTermIndex() {
+TermIndex* intInductionIndex() {
   return new InductionTermIndex(new TermSubstitutionTree());
+}
+
+TermIndex* structInductionIndex() {
+  return new StructInductionTermIndex(new TermSubstitutionTree());
+}
+
+Stack<Index*> getIndices() {
+  return { comparisonIndex(), intInductionIndex(), structInductionIndex() };
+}
+
+inline Clause* fromInduction(Clause* cl) {
+  cl->inference().setInductionDepth(1);
+  return cl;
+}
+
+InductionContext inductionContext(TermSugar t, std::initializer_list<Clause*> cls) {
+  InductionContext res(t.toTerm().term());
+  for (const auto& cl : cls) {
+    for (unsigned i = 0; i < cl->length(); i++) {
+      res.insert(cl, (*cl)[i]);
+    }
+  }
+  return res;
+}
+
+namespace Inferences {
+std::ostream& operator<<(std::ostream& out, const InductionContext& context) {
+  out << context.toString();
+  return out;
+}
+}
+
+void assertContextReplacement(ContextReplacement& cr, Stack<InductionContext> contexts) {
+  Stack<InductionContext> res;
+  while (cr.hasNext()) {
+    res.push(cr.next());
+  }
+  ASS_EQ(res.size(), contexts.size());
+  ASS(TestUtils::permEq(res, contexts, [](const InductionContext& lhs, const InductionContext& rhs) {
+    return InductionFormulaIndex::represent(lhs) == InductionFormulaIndex::represent(rhs);
+  }));
 }
 
 class GenerationTesterInduction
@@ -193,6 +236,7 @@ private:
   DECL_TERM_ALGEBRA(s, {b, r})                                                             \
   __ALLOW_UNUSED(                                                                          \
     auto r0 = r.dtor(0);                                                                   \
+    TermSugar ph_s(TermList(getPlaceholderForTerm(sK1.toTerm().term())));                  \
   )                                                                                        \
   DECL_CONST(b1, u)                                                                        \
   DECL_CONST(b2, u)                                                                        \
@@ -202,6 +246,7 @@ private:
   DECL_FUNC(f, {s, s}, s)                                                                  \
   DECL_FUNC(g, {s}, s)                                                                     \
   DECL_PRED(p, {s})                                                                        \
+  DECL_PRED(p1, {s})                                                                       \
   DECL_PRED(q, {u})                                                                        \
   NUMBER_SUGAR(Int)                                                                        \
   DECL_PRED(pi, {Int})                                                                     \
@@ -252,40 +297,40 @@ TEST_FUN(test_tester4) {
 TEST_GENERATION_INDUCTION(test_01,
     Generation::TestCase()
       .options({ { "induction", "struct" } })
-      .indices({ comparisonIndex() })
+      .indices(getIndices())
       .input( clause({  p(f(sK1,sK2)) }))
       .expected(none())
-      .preConditions({ TEST_FN_ASS_EQ(env.statistics->induction, 0) })
-      .postConditions({ TEST_FN_ASS_EQ(env.statistics->induction, 0) })
+      .preConditions({ TEST_FN_ASS_EQ(env.statistics->inductionApplication, 0) })
+      .postConditions({ TEST_FN_ASS_EQ(env.statistics->inductionApplication, 0) })
     )
 
 // positive literals are not considered 2
 TEST_GENERATION_INDUCTION(test_02,
     Generation::TestCase()
       .options({ { "induction", "struct" } })
-      .indices({ comparisonIndex() })
+      .indices(getIndices())
       .input( clause({  f(sK1,sK2) == g(sK1) }))
       .expected(none())
-      .preConditions({ TEST_FN_ASS_EQ(env.statistics->induction, 0) })
-      .postConditions({ TEST_FN_ASS_EQ(env.statistics->induction, 0) })
+      .preConditions({ TEST_FN_ASS_EQ(env.statistics->inductionApplication, 0) })
+      .postConditions({ TEST_FN_ASS_EQ(env.statistics->inductionApplication, 0) })
     )
 
 // non-ground literals are not considered
 TEST_GENERATION_INDUCTION(test_03,
     Generation::TestCase()
       .options({ { "induction", "struct" } })
-      .indices({ comparisonIndex() })
+      .indices(getIndices())
       .input( clause({  f(sK1,skx0) != g(sK1) }))
       .expected(none())
-      .preConditions({ TEST_FN_ASS_EQ(env.statistics->induction, 0) })
-      .postConditions({ TEST_FN_ASS_EQ(env.statistics->induction, 0) })
+      .preConditions({ TEST_FN_ASS_EQ(env.statistics->inductionApplication, 0) })
+      .postConditions({ TEST_FN_ASS_EQ(env.statistics->inductionApplication, 0) })
     )
 
 // normal case sik=one
 TEST_GENERATION_INDUCTION(test_04,
     Generation::TestCase()
       .options({ { "induction", "struct" } })
-      .indices({ comparisonIndex() })
+      .indices(getIndices())
       .input( clause({  ~p(f(sK1,sK2)) }))
       .expected({
         clause({ ~p(f(b,sK2)), p(f(skx0,sK2)) }),
@@ -293,9 +338,9 @@ TEST_GENERATION_INDUCTION(test_04,
         clause({ ~p(f(sK1,b)), p(f(sK1,skx1)) }),
         clause({ ~p(f(sK1,b)), ~p(f(sK1,r(skx1))) }),
       })
-      .preConditions({ TEST_FN_ASS_EQ(env.statistics->induction, 0),
+      .preConditions({ TEST_FN_ASS_EQ(env.statistics->inductionApplication, 0),
                        TEST_FN_ASS_EQ(env.statistics->structInduction, 0) })
-      .postConditions({ TEST_FN_ASS_EQ(env.statistics->induction, 2),
+      .postConditions({ TEST_FN_ASS_EQ(env.statistics->inductionApplication, 2),
                         TEST_FN_ASS_EQ(env.statistics->structInduction, 2) })
     )
 
@@ -303,7 +348,7 @@ TEST_GENERATION_INDUCTION(test_04,
 TEST_GENERATION_INDUCTION(test_05,
     Generation::TestCase()
       .options({ { "induction", "struct" }, { "structural_induction_kind", "two" } })
-      .indices({ comparisonIndex() })
+      .indices(getIndices())
       .input( clause({  ~p(f(sK1,sK2)) }))
       .expected({
         clause({ skx0 != r(r0(skx0)), p(f(r0(skx0),sK2)) }),
@@ -311,9 +356,9 @@ TEST_GENERATION_INDUCTION(test_05,
         clause({ skx1 != r(r0(skx1)), p(f(sK1,r0(skx1))) }),
         clause({ ~p(f(sK1,skx1)) }),
       })
-      .preConditions({ TEST_FN_ASS_EQ(env.statistics->induction, 0),
+      .preConditions({ TEST_FN_ASS_EQ(env.statistics->inductionApplication, 0),
                        TEST_FN_ASS_EQ(env.statistics->structInduction, 0) })
-      .postConditions({ TEST_FN_ASS_EQ(env.statistics->induction, 2),
+      .postConditions({ TEST_FN_ASS_EQ(env.statistics->inductionApplication, 2),
                         TEST_FN_ASS_EQ(env.statistics->structInduction, 2) })
     )
 
@@ -326,7 +371,7 @@ TEST_GENERATION_INDUCTION(test_05,
 // TEST_GENERATION_INDUCTION(test_06,
 //     Generation::TestCase()
 //       .options({ { "induction", "struct" }, { "structural_induction_kind", "three" } })
-//       .indices({ comparisonIndex() })
+//       .indices(getIndices())
 //       .input( clause({  f(sK1,sK2) != g(sK1) }))
 //       .expected({ })
 //     )
@@ -335,7 +380,7 @@ TEST_GENERATION_INDUCTION(test_05,
 TEST_GENERATION_INDUCTION(test_07,
     Generation::TestCase()
       .options({ { "induction_gen", "on" }, { "induction", "struct" } })
-      .indices({ comparisonIndex() })
+      .indices(getIndices())
       .input( clause({ f(f(g(sK1),f(sK2,sK4)),sK1) != g(f(sK1,f(sK2,sK3))) }) )
       .expected({
         // sK1 100
@@ -386,19 +431,19 @@ TEST_GENERATION_INDUCTION(test_07,
         clause({ f(f(g(sK1),f(sK2,b)),sK1) != g(f(sK1,f(sK2,sK3))), f(f(g(sK1),f(sK2,skx11)),sK1) == g(f(sK1,f(sK2,sK3))) }),
         clause({ f(f(g(sK1),f(sK2,b)),sK1) != g(f(sK1,f(sK2,sK3))), f(f(g(sK1),f(sK2,r(skx11))),sK1) != g(f(sK1,f(sK2,sK3))) }),
       })
-      .preConditions({ TEST_FN_ASS_EQ(env.statistics->induction, 0),
+      .preConditions({ TEST_FN_ASS_EQ(env.statistics->inductionApplication, 0),
                        TEST_FN_ASS_EQ(env.statistics->structInduction, 0),
-                       TEST_FN_ASS_EQ(env.statistics->generalizedInduction, 0) })
-      .postConditions({ TEST_FN_ASS_EQ(env.statistics->induction, 12),
+                       TEST_FN_ASS_EQ(env.statistics->generalizedInductionApplication, 0) })
+      .postConditions({ TEST_FN_ASS_EQ(env.statistics->inductionApplication, 4),
                         TEST_FN_ASS_EQ(env.statistics->structInduction, 12),
-                        TEST_FN_ASS_EQ(env.statistics->generalizedInduction, 8) })
+                        TEST_FN_ASS_EQ(env.statistics->generalizedInductionApplication, 8) })
     )
 
 // complex terms
 TEST_GENERATION_INDUCTION(test_08,
     Generation::TestCase()
       .options({ { "induction_on_complex_terms", "on" }, { "induction", "struct" } })
-      .indices({ comparisonIndex() })
+      .indices(getIndices())
       .input( clause({ f(f(g(sK1),f(sK2,sK3)),sK1) != g(f(sK1,f(sK2,g(sK1)))) }) )
       .expected({
         // sK1
@@ -441,9 +486,9 @@ TEST_GENERATION_INDUCTION(test_08,
         clause({ f(f(g(sK1),f(sK2,sK3)),sK1) != b, f(f(g(sK1),f(sK2,sK3)),sK1) == skx10 }),
         clause({ f(f(g(sK1),f(sK2,sK3)),sK1) != b, f(f(g(sK1),f(sK2,sK3)),sK1) != r(skx10) }),
       })
-      .preConditions({ TEST_FN_ASS_EQ(env.statistics->induction, 0),
+      .preConditions({ TEST_FN_ASS_EQ(env.statistics->inductionApplication, 0),
                        TEST_FN_ASS_EQ(env.statistics->structInduction, 0) })
-      .postConditions({ TEST_FN_ASS_EQ(env.statistics->induction, 10),
+      .postConditions({ TEST_FN_ASS_EQ(env.statistics->inductionApplication, 10),
                         TEST_FN_ASS_EQ(env.statistics->structInduction, 10) })
     )
 
@@ -451,15 +496,15 @@ TEST_GENERATION_INDUCTION(test_08,
 TEST_GENERATION_INDUCTION(test_09,
     Generation::TestCase()
       .options({ { "induction_neg_only", "off" }, { "induction", "struct" } })
-      .indices({ comparisonIndex() })
+      .indices(getIndices())
       .input( clause({  p(sK1) }))
       .expected({
         clause({ p(b), ~p(skx0), }),
         clause({ p(b), p(r(skx0)), }),
       })
-      .preConditions({ TEST_FN_ASS_EQ(env.statistics->induction, 0),
+      .preConditions({ TEST_FN_ASS_EQ(env.statistics->inductionApplication, 0),
                        TEST_FN_ASS_EQ(env.statistics->structInduction, 0) })
-      .postConditions({ TEST_FN_ASS_EQ(env.statistics->induction, 1),
+      .postConditions({ TEST_FN_ASS_EQ(env.statistics->inductionApplication, 1),
                         TEST_FN_ASS_EQ(env.statistics->structInduction, 1) })
     )
 
@@ -467,15 +512,15 @@ TEST_GENERATION_INDUCTION(test_09,
 TEST_GENERATION_INDUCTION(test_10,
     Generation::TestCase()
       .options({ { "induction_neg_only", "off" }, { "induction", "struct" } })
-      .indices({ comparisonIndex() })
+      .indices(getIndices())
       .input( clause({  sK1 == g(sK1) }))
       .expected({
         clause({ b == g(b), skx0 != g(skx0), }),
         clause({ b == g(b), r(skx0) == g(r(skx0)), }),
       })
-      .preConditions({ TEST_FN_ASS_EQ(env.statistics->induction, 0),
+      .preConditions({ TEST_FN_ASS_EQ(env.statistics->inductionApplication, 0),
                        TEST_FN_ASS_EQ(env.statistics->structInduction, 0) })
-      .postConditions({ TEST_FN_ASS_EQ(env.statistics->induction, 1),
+      .postConditions({ TEST_FN_ASS_EQ(env.statistics->inductionApplication, 1),
                         TEST_FN_ASS_EQ(env.statistics->structInduction, 1) })
     )
 
@@ -483,42 +528,46 @@ TEST_GENERATION_INDUCTION(test_10,
 TEST_GENERATION_INDUCTION(test_11,
     Generation::TestCase()
       .options({ { "induction_unit_only", "off" }, { "induction", "struct" } })
-      .indices({ comparisonIndex() })
-      .input( clause({  sK1 != g(sK1), p(g(sK2)), ~p(f(sK1,sK2)) }))
+      .indices(getIndices())
+      .input( clause({  sK1 != g(sK1), p(g(sK2)), ~p(f(sK3,sK4)) }))
       .expected({
         // 1. literal sK1
-        clause({ b != g(b), skx0 == g(skx0), p(g(sK2)), ~p(f(sK1,sK2)) }),
-        clause({ b != g(b), r(skx0) != g(r(skx0)), p(g(sK2)), ~p(f(sK1,sK2)) }),
+        clause({ b != g(b), skx0 == g(skx0), p(g(sK2)), ~p(f(sK3,sK4)) }),
+        clause({ b != g(b), r(skx0) != g(r(skx0)), p(g(sK2)), ~p(f(sK3,sK4)) }),
 
-        // 3. literal sK1
-        clause({ ~p(f(b,sK2)), p(f(skx1,sK2)), p(g(sK2)), sK1 != g(sK1) }),
-        clause({ ~p(f(b,sK2)), ~p(f(r(skx1),sK2)), p(g(sK2)), sK1 != g(sK1) }),
+        // 3. literal sK3
+        clause({ ~p(f(b,sK4)), p(f(skx1,sK4)), p(g(sK2)), sK1 != g(sK1) }),
+        clause({ ~p(f(b,sK4)), ~p(f(r(skx1),sK4)), p(g(sK2)), sK1 != g(sK1) }),
 
-        // 3. literal sK2
-        clause({ ~p(f(sK1,b)), p(f(sK1,skx2)), p(g(sK2)), sK1 != g(sK1) }),
-        clause({ ~p(f(sK1,b)), ~p(f(sK1,r(skx2))), p(g(sK2)), sK1 != g(sK1) }),
+        // 3. literal sK4
+        clause({ ~p(f(sK3,b)), p(f(sK3,skx2)), p(g(sK2)), sK1 != g(sK1) }),
+        clause({ ~p(f(sK3,b)), ~p(f(sK3,r(skx2))), p(g(sK2)), sK1 != g(sK1) }),
       })
-      .preConditions({ TEST_FN_ASS_EQ(env.statistics->induction, 0),
+      .preConditions({ TEST_FN_ASS_EQ(env.statistics->inductionApplication, 0),
                        TEST_FN_ASS_EQ(env.statistics->structInduction, 0) })
-      .postConditions({ TEST_FN_ASS_EQ(env.statistics->induction, 3),
+      .postConditions({ TEST_FN_ASS_EQ(env.statistics->inductionApplication, 3),
                         TEST_FN_ASS_EQ(env.statistics->structInduction, 3) })
     )
 
 // "same induction" (i.e. generalized literal is same) is not done twice
+// but resulting clauses are resolved with both literals
 //
 // TODO: this should be done with two inputs rather than with a non-unit clause
 TEST_GENERATION_INDUCTION(test_12,
     Generation::TestCase()
       .options({ { "induction_unit_only", "off" }, { "induction", "struct" } })
-      .indices({ comparisonIndex() })
+      .indices(getIndices())
       .input( clause({  sK1 != g(sK1), sK2 != g(sK2) }))
       .expected({
         clause({ b != g(b), skx0 == g(skx0), sK2 != g(sK2) }),
         clause({ b != g(b), r(skx0) != g(r(skx0)), sK2 != g(sK2) }),
+
+        clause({ b != g(b), skx0 == g(skx0), sK1 != g(sK1) }),
+        clause({ b != g(b), r(skx0) != g(r(skx0)), sK1 != g(sK1) }),
       })
-      .preConditions({ TEST_FN_ASS_EQ(env.statistics->induction, 0),
+      .preConditions({ TEST_FN_ASS_EQ(env.statistics->inductionApplication, 0),
                        TEST_FN_ASS_EQ(env.statistics->structInduction, 0) })
-      .postConditions({ TEST_FN_ASS_EQ(env.statistics->induction, 1),
+      .postConditions({ TEST_FN_ASS_EQ(env.statistics->inductionApplication, 2),
                         TEST_FN_ASS_EQ(env.statistics->structInduction, 1) })
     )
 
@@ -527,16 +576,16 @@ TEST_GENERATION_INDUCTION(test_13,
     Generation::TestCase()
       .options({ { "induction", "int" } })
       .context({ clause({ ~(sK6 < num(1)) }) })
-      .indices({ comparisonIndex() })
+      .indices(getIndices())
       .input( clause({ ~pi(sK6) }) )
       .expected({
         clause({ ~pi(1), ~(skx0 < num(1)) }),
         clause({ ~pi(1), pi(skx0) }),
         clause({ ~pi(1), ~pi(skx0+1) }),
       })
-      .preConditions({ TEST_FN_ASS_EQ(env.statistics->induction, 0),
+      .preConditions({ TEST_FN_ASS_EQ(env.statistics->inductionApplication, 0),
                        TEST_FN_ASS_EQ(env.statistics->intInfUpInduction, 0) })
-      .postConditions({ TEST_FN_ASS_EQ(env.statistics->induction, 1),
+      .postConditions({ TEST_FN_ASS_EQ(env.statistics->inductionApplication, 1),
                         TEST_FN_ASS_EQ(env.statistics->intInfUpInduction, 1) })
     )
 
@@ -545,7 +594,7 @@ TEST_GENERATION_INDUCTION(test_14,
     Generation::TestCase()
       .options({ { "induction", "int" }, { "int_induction_interval", "infinite" } })
       .context({ clause({ ~(sK6 < num(1)) }), clause({ ~(bi < sK6) }) })
-      .indices({ comparisonIndex() })
+      .indices(getIndices())
       .input( clause({ ~pi(sK6) }) )
       .expected({
         // upward induction
@@ -558,10 +607,10 @@ TEST_GENERATION_INDUCTION(test_14,
         clause({ ~pi(bi), pi(skx1) }),
         clause({ ~pi(bi), ~pi(skx1+num(-1)) }),
       })
-      .preConditions({ TEST_FN_ASS_EQ(env.statistics->induction, 0),
+      .preConditions({ TEST_FN_ASS_EQ(env.statistics->inductionApplication, 0),
                        TEST_FN_ASS_EQ(env.statistics->intInfUpInduction, 0),
                        TEST_FN_ASS_EQ(env.statistics->intInfDownInduction, 0) })
-      .postConditions({ TEST_FN_ASS_EQ(env.statistics->induction, 2),
+      .postConditions({ TEST_FN_ASS_EQ(env.statistics->inductionApplication, 2),
                         TEST_FN_ASS_EQ(env.statistics->intInfUpInduction, 1),
                         TEST_FN_ASS_EQ(env.statistics->intInfDownInduction, 1) })
     )
@@ -571,7 +620,7 @@ TEST_GENERATION_INDUCTION(test_15,
     Generation::TestCase()
       .options({ { "induction", "int" }, { "int_induction_interval", "finite" } })
       .context({ clause({ ~(sK6 < num(1)) }), clause({ ~(bi < sK6) }) })
-      .indices({ comparisonIndex() })
+      .indices(getIndices())
       .input( clause({ ~pi(sK6) }) )
       .expected({
         // upward induction
@@ -586,10 +635,10 @@ TEST_GENERATION_INDUCTION(test_15,
         clause({ ~pi(bi), pi(skx1) }),
         clause({ ~pi(bi), ~pi(skx1+num(-1)) }),
       })
-      .preConditions({ TEST_FN_ASS_EQ(env.statistics->induction, 0),
+      .preConditions({ TEST_FN_ASS_EQ(env.statistics->inductionApplication, 0),
                        TEST_FN_ASS_EQ(env.statistics->intFinUpInduction, 0),
                        TEST_FN_ASS_EQ(env.statistics->intFinDownInduction, 0) })
-      .postConditions({ TEST_FN_ASS_EQ(env.statistics->induction, 2),
+      .postConditions({ TEST_FN_ASS_EQ(env.statistics->inductionApplication, 2),
                         TEST_FN_ASS_EQ(env.statistics->intFinUpInduction, 1),
                         TEST_FN_ASS_EQ(env.statistics->intFinDownInduction, 1) })
     )
@@ -602,7 +651,7 @@ TEST_GENERATION_INDUCTION(test_16,
                  { "int_induction_interval", "infinite" },
                  { "int_induction_default_bound", "on" } })
       .context({ clause({ ~(sK6 < num(0)) }) })
-      .indices({ comparisonIndex() })
+      .indices(getIndices())
       .input( clause({ ~pi(sK6) }) )
       .expected({
         // upward induction
@@ -610,17 +659,23 @@ TEST_GENERATION_INDUCTION(test_16,
         clause({ ~pi(0), pi(skx0) }),
         clause({ ~pi(0), ~pi(skx0+1) }),
 
-        // downward induction: resulting clauses contain "0 < sK6",
-        // since there is no bound to resolve it against
-        clause({ ~pi(0), ~(num(0) < skx1), 0 < sK6 }),
-        clause({ ~pi(0), pi(skx1), 0 < sK6 }),
-        clause({ ~pi(0), ~pi(skx1+num(-1)), 0 < sK6 }),
+        // upward induction with default bound
+        clause({ ~pi(0), ~(skx1 < num(0)), sK6 < 0 }),
+        clause({ ~pi(0), pi(skx1), sK6 < 0 }),
+        clause({ ~pi(0), ~pi(skx1+1), sK6 < 0 }),
+
+        // downward induction with default bound
+        clause({ ~pi(0), ~(num(0) < skx2), 0 < sK6 }),
+        clause({ ~pi(0), pi(skx2), 0 < sK6 }),
+        clause({ ~pi(0), ~pi(skx2+num(-1)), 0 < sK6 }),
       })
-      .preConditions({ TEST_FN_ASS_EQ(env.statistics->induction, 0),
+      .preConditions({ TEST_FN_ASS_EQ(env.statistics->inductionApplication, 0),
                        TEST_FN_ASS_EQ(env.statistics->intInfUpInduction, 0),
-                       TEST_FN_ASS_EQ(env.statistics->intDBDownInduction, 0) })
-      .postConditions({ TEST_FN_ASS_EQ(env.statistics->induction, 2),
+                       TEST_FN_ASS_EQ(env.statistics->intDBUpInduction, 0),
+                       TEST_FN_ASS_EQ(env.statistics->intDBDownInduction, 0), })
+      .postConditions({ TEST_FN_ASS_EQ(env.statistics->inductionApplication, 3),
                         TEST_FN_ASS_EQ(env.statistics->intInfUpInduction, 1),
+                        TEST_FN_ASS_EQ(env.statistics->intDBUpInduction, 1),
                         TEST_FN_ASS_EQ(env.statistics->intDBDownInduction, 1) })
     )
 
@@ -629,16 +684,16 @@ TEST_GENERATION_INDUCTION(test_17,
     Generation::TestCase()
       .options({ { "induction", "int" } })
       .context({ clause({ ~pi(sK6) }) })
-      .indices({ comparisonIndex(), inductionTermIndex() })
+      .indices(getIndices())
       .input( clause({ ~(sK6 < num(1)) }) )
       .expected({
         clause({ ~pi(1), ~(skx0 < num(1)) }),
         clause({ ~pi(1), pi(skx0) }),
         clause({ ~pi(1), ~pi(skx0+1) }),
       })
-      .preConditions({ TEST_FN_ASS_EQ(env.statistics->induction, 0),
+      .preConditions({ TEST_FN_ASS_EQ(env.statistics->inductionApplication, 0),
                        TEST_FN_ASS_EQ(env.statistics->intInfUpInduction, 0) })
-      .postConditions({ TEST_FN_ASS_EQ(env.statistics->induction, 1),
+      .postConditions({ TEST_FN_ASS_EQ(env.statistics->inductionApplication, 1),
                         TEST_FN_ASS_EQ(env.statistics->intInfUpInduction, 1) })
     )
 
@@ -647,7 +702,7 @@ TEST_GENERATION_INDUCTION(test_18,
     Generation::TestCase()
       .options({ { "induction", "int" } })
       .context({ clause({ ~pi(sK6) }), clause({ ~(sK6 < num(1)) }) })
-      .indices({ comparisonIndex(), inductionTermIndex() })
+      .indices(getIndices())
       .input( clause({ sK6 < bi }) )
       .expected({
         // infinite induction
@@ -661,10 +716,10 @@ TEST_GENERATION_INDUCTION(test_18,
         clause({ ~pi(bi), pi(skx1) }),
         clause({ ~pi(bi), ~pi(skx1+num(-1)) }),
       })
-      .preConditions({ TEST_FN_ASS_EQ(env.statistics->induction, 0),
+      .preConditions({ TEST_FN_ASS_EQ(env.statistics->inductionApplication, 0),
                        TEST_FN_ASS_EQ(env.statistics->intInfDownInduction, 0),
                        TEST_FN_ASS_EQ(env.statistics->intFinDownInduction, 0) })
-      .postConditions({ TEST_FN_ASS_EQ(env.statistics->induction, 2),
+      .postConditions({ TEST_FN_ASS_EQ(env.statistics->inductionApplication, 2),
                         TEST_FN_ASS_EQ(env.statistics->intInfDownInduction, 1),
                         TEST_FN_ASS_EQ(env.statistics->intFinDownInduction, 1) })
     )
@@ -675,11 +730,11 @@ TEST_GENERATION_INDUCTION(test_19,
     Generation::TestCase()
       .options({ { "induction", "int" } })
       .context({ clause({ ~(sK6 < num(1)) }) })
-      .indices({ comparisonIndex() })
+      .indices(getIndices())
       .input( clause({ ~pi(1) }) )
       .expected(none())
-      .preConditions({ TEST_FN_ASS_EQ(env.statistics->induction, 0) })
-      .postConditions({ TEST_FN_ASS_EQ(env.statistics->induction, 0) })
+      .preConditions({ TEST_FN_ASS_EQ(env.statistics->inductionApplication, 0) })
+      .postConditions({ TEST_FN_ASS_EQ(env.statistics->inductionApplication, 0) })
     )
 
 // given a suitable strictness, induction is applied on an interpreted constant
@@ -693,16 +748,16 @@ TEST_GENERATION_INDUCTION(test_20,
         { "int_induction_strictness_term", "none" }
       })
       .context({ clause({ ~(sK6 < num(1)) }) })
-      .indices({ comparisonIndex() })
+      .indices(getIndices())
       .input( clause({ ~pi(1) }) )
       .expected({
         clause({ ~pi(sK6), ~(sK6 < skx0) }),
         clause({ ~pi(sK6), pi(skx0) }),
         clause({ ~pi(sK6), ~pi(skx0+num(-1)) }),
       })
-      .preConditions({ TEST_FN_ASS_EQ(env.statistics->induction, 0),
+      .preConditions({ TEST_FN_ASS_EQ(env.statistics->inductionApplication, 0),
                        TEST_FN_ASS_EQ(env.statistics->intInfDownInduction, 0) })
-      .postConditions({ TEST_FN_ASS_EQ(env.statistics->induction, 1),
+      .postConditions({ TEST_FN_ASS_EQ(env.statistics->inductionApplication, 1),
                         TEST_FN_ASS_EQ(env.statistics->intInfDownInduction, 1) })
     )
 
@@ -714,10 +769,10 @@ TEST_GENERATION_INDUCTION(test_21,
       .options({
         { "induction", "int" },
         { "int_induction_strictness_eq",   "always" },
-        { "int_induction_strictness_comp", "none" }
+        { "int_induction_strictness_comp", "none" },
       })
       .context({ clause({ ~(sK6 < num(1)) }) })
-      .indices({ comparisonIndex(), inductionTermIndex() })
+      .indices(getIndices())
       .input( clause({ ~(bi < sK6) }) )
       .expected({
         // input used as main literal
@@ -729,10 +784,10 @@ TEST_GENERATION_INDUCTION(test_21,
         clause({ ~(bi < num(1)), skx1 < num(1) }),
         clause({ ~(bi < num(1)), ~(skx1+num(-1) < num(1)) }),
       })
-      .preConditions({ TEST_FN_ASS_EQ(env.statistics->induction, 0),
+      .preConditions({ TEST_FN_ASS_EQ(env.statistics->inductionApplication, 0),
                        TEST_FN_ASS_EQ(env.statistics->intInfUpInduction, 0),
                        TEST_FN_ASS_EQ(env.statistics->intInfDownInduction, 0) })
-      .postConditions({ TEST_FN_ASS_EQ(env.statistics->induction, 2),
+      .postConditions({ TEST_FN_ASS_EQ(env.statistics->inductionApplication, 2),
                         TEST_FN_ASS_EQ(env.statistics->intInfUpInduction, 1),
                         TEST_FN_ASS_EQ(env.statistics->intInfDownInduction, 1) })
     )
@@ -745,16 +800,16 @@ TEST_GENERATION_INDUCTION(test_22,
     Generation::TestCase()
       .options({ { "induction", "int" } })
       .context({ clause({ ~(sK6 < num(1)) }) })
-      .indices({ comparisonIndex(), inductionTermIndex() })
+      .indices(getIndices())
       .input( clause({ ~(bi < gi(sK6)) }) )
       .expected({
         clause({ ~(bi < gi(1)), ~(skx0 < num(1)) }),
         clause({ ~(bi < gi(1)), bi < gi(skx0) }),
         clause({ ~(bi < gi(1)), ~(bi < gi(skx0+1)) }),
       })
-      .preConditions({ TEST_FN_ASS_EQ(env.statistics->induction, 0),
+      .preConditions({ TEST_FN_ASS_EQ(env.statistics->inductionApplication, 0),
                        TEST_FN_ASS_EQ(env.statistics->intInfUpInduction, 0) })
-      .postConditions({ TEST_FN_ASS_EQ(env.statistics->induction, 1),
+      .postConditions({ TEST_FN_ASS_EQ(env.statistics->inductionApplication, 1),
                         TEST_FN_ASS_EQ(env.statistics->intInfUpInduction, 1) })
     )
 
@@ -765,11 +820,11 @@ TEST_GENERATION_INDUCTION(test_23,
     Generation::TestCase()
       .options({ { "induction", "int" } })
       .context({ clause({ ~(sK6 < num(1)) }) })
-      .indices({ comparisonIndex(), inductionTermIndex() })
+      .indices(getIndices())
       .input( clause({ ~(bi < sK6) }) )
       .expected(none())
-      .preConditions({ TEST_FN_ASS_EQ(env.statistics->induction, 0) })
-      .postConditions({ TEST_FN_ASS_EQ(env.statistics->induction, 0) })
+      .preConditions({ TEST_FN_ASS_EQ(env.statistics->inductionApplication, 0) })
+      .postConditions({ TEST_FN_ASS_EQ(env.statistics->inductionApplication, 0) })
     )
 
 // given the default strictness, induction is applied on a term occuring only
@@ -779,16 +834,16 @@ TEST_GENERATION_INDUCTION(test_24,
     Generation::TestCase()
       .options({ { "induction", "int" } })
       .context({ clause({ ~(sK6 < num(1)) }) })
-      .indices({ comparisonIndex() })
+      .indices(getIndices())
       .input( clause({ bi != sK6 }) )
       .expected({
         clause({ bi != num(1), ~(skx0 < num(1)) }),
         clause({ bi != num(1), bi == skx0 }),
         clause({ bi != num(1), bi != skx0+1 }),
       })
-      .preConditions({ TEST_FN_ASS_EQ(env.statistics->induction, 0),
+      .preConditions({ TEST_FN_ASS_EQ(env.statistics->inductionApplication, 0),
                        TEST_FN_ASS_EQ(env.statistics->intInfUpInduction, 0) })
-      .postConditions({ TEST_FN_ASS_EQ(env.statistics->induction, 1),
+      .postConditions({ TEST_FN_ASS_EQ(env.statistics->inductionApplication, 1),
                         TEST_FN_ASS_EQ(env.statistics->intInfUpInduction, 1) })
     )
 
@@ -804,11 +859,11 @@ TEST_GENERATION_INDUCTION(test_25,
         { "int_induction_strictness_term", "none" }
       })
       .context({ clause({ ~(sK6 < num(1)) }) })
-      .indices({ comparisonIndex() })
+      .indices(getIndices())
       .input( clause({ bi != sK6 }) )
       .expected(none())
-      .preConditions({ TEST_FN_ASS_EQ(env.statistics->induction, 0) })
-      .postConditions({ TEST_FN_ASS_EQ(env.statistics->induction, 0) })
+      .preConditions({ TEST_FN_ASS_EQ(env.statistics->inductionApplication, 0) })
+      .postConditions({ TEST_FN_ASS_EQ(env.statistics->inductionApplication, 0) })
     )
 
 // all skolems are replaced when the hypothesis strengthening options is on, sik=one
@@ -816,7 +871,7 @@ TEST_GENERATION_INDUCTION(test_26,
     Generation::TestCase()
       .options({ { "induction", "struct" },
                  { "induction_strengthen_hypothesis", "on" } })
-      .indices({ comparisonIndex() })
+      .indices(getIndices())
       .input( clause({ f(sK1,sK2) != g(sK3) }) )
       .expected({
         // sK1
@@ -838,7 +893,7 @@ TEST_GENERATION_INDUCTION(test_27,
     Generation::TestCase()
       .options({ { "induction", "struct" }, { "structural_induction_kind", "two" },
                  { "induction_strengthen_hypothesis", "on" } })
-      .indices({ comparisonIndex() })
+      .indices(getIndices())
       .input( clause({ f(sK1,sK2) != g(sK3) }) )
       .expected({
         // sK1
@@ -854,3 +909,302 @@ TEST_GENERATION_INDUCTION(test_27,
         clause({ f(skx7,skx8) != g(skx6) }),
       })
     )
+
+// multi-clause use case 1 (induction depth 0)
+TEST_GENERATION_INDUCTION(test_28,
+    Generation::TestCase()
+      .options({ { "induction", "struct" }, { "non_unit_induction", "on" } })
+      .context({ clause({ p(sK1) })})
+      .indices(getIndices())
+      .input( clause({ sK2 != g(f(sK1,sK1)) }))
+      .expected({
+        // sK2
+        clause({ b != g(f(sK1,sK1)), skx0 == g(f(sK1,sK1)) }),
+        clause({ b != g(f(sK1,sK1)), r(skx0) != g(f(sK1,sK1)) }),
+
+        // sK1 multiple literals
+        clause({ sK2 != g(f(b,b)), sK2 == g(f(skx1,skx1)), ~p(skx1) }),
+        clause({ sK2 != g(f(b,b)), p(r(skx1)) }),
+        clause({ sK2 != g(f(b,b)), sK2 != g(f(r(skx1),r(skx1))) }),
+        clause({ p(b), sK2 == g(f(skx1,skx1)), ~p(skx1) }),
+        clause({ p(b), p(r(skx1)) }),
+        clause({ p(b), sK2 != g(f(r(skx1),r(skx1))) }),
+
+        // sK1 single literal
+        clause({ sK2 != g(f(b,b)), sK2 == g(f(skx2,skx2)) }),
+        clause({ sK2 != g(f(b,b)), sK2 != g(f(r(skx2),r(skx2))) }),
+      })
+    )
+
+// multi-clause use case 2 (induction depth non-0)
+TEST_GENERATION_INDUCTION(test_29,
+    Generation::TestCase()
+      .options({
+        { "induction_on_complex_terms", "on" },
+        { "induction", "struct" },
+        { "non_unit_induction", "on" }
+      })
+      .context({
+        fromInduction(clause({ p(g(sK3)) })),
+        fromInduction(clause({ ~p(f(sK4,sK3)) }))
+      })
+      .indices(getIndices())
+      .input( fromInduction(clause({ ~p(f(g(sK3),f(sK4,sK3))) })) )
+      .expected({
+        // g(sK3) multiple literals
+        clause({ ~p(f(b,f(sK4,sK3))), p(f(skx0,f(sK4,sK3))), ~p(skx0) }),
+        clause({ ~p(f(b,f(sK4,sK3))), ~p(f(r(skx0),f(sK4,sK3))) }),
+        clause({ ~p(f(b,f(sK4,sK3))), p(r(skx0)) }),
+        clause({ p(b), p(f(skx0,f(sK4,sK3))), ~p(skx0) }),
+        clause({ p(b), ~p(f(r(skx0),f(sK4,sK3))) }),
+        clause({ p(b), p(r(skx0)) }),
+
+        // g(sK3) single literal
+        clause({ ~p(f(b,f(sK4,sK3))), p(f(skx1,f(sK4,sK3))) }),
+        clause({ ~p(f(b,f(sK4,sK3))), ~p(f(r(skx1),f(sK4,sK3))) }),
+
+        // sK3
+        clause({ ~p(f(g(b),f(sK4,b))), p(f(g(skx2),f(sK4,skx2))) }),
+        clause({ ~p(f(g(b),f(sK4,b))), ~p(f(g(r(skx2)),f(sK4,r(skx2)))) }),
+
+        // sK4
+        clause({ ~p(f(g(sK3),f(b,sK3))), p(f(g(sK3),f(skx3,sK3))) }),
+        clause({ ~p(f(g(sK3),f(b,sK3))), ~p(f(g(sK3),f(r(skx3),sK3))) }),
+
+        // f(sK4,sK3) multiple literals
+        clause({ ~p(f(g(sK3),b)), p(f(g(sK3),skx4)), p(skx4) }),
+        clause({ ~p(f(g(sK3),b)), ~p(f(g(sK3),r(skx4))) }),
+        clause({ ~p(f(g(sK3),b)), ~p(r(skx4)) }),
+        clause({ ~p(b), p(f(g(sK3),skx4)), p(skx4) }),
+        clause({ ~p(b), ~p(f(g(sK3),r(skx4))) }),
+        clause({ ~p(b), ~p(r(skx4)) }),
+
+        // f(sK4,sK3) single literal
+        clause({ ~p(f(g(sK3),b)), p(f(g(sK3),skx5)) }),
+        clause({ ~p(f(g(sK3),b)), ~p(f(g(sK3),r(skx5))) }),
+
+        // f(g(sK3),f(sK4,sK3))
+        clause({ ~p(b), p(skx6) }),
+        clause({ ~p(b), ~p(r(skx6)) }),
+      })
+    )
+
+// multi-clause use case 2 (main literal is from index)
+TEST_GENERATION_INDUCTION(test_30,
+    Generation::TestCase()
+      .options({
+        { "induction_on_complex_terms", "on" },
+        { "induction", "struct" },
+        { "non_unit_induction", "on" },
+      })
+      .context({
+        fromInduction(clause({ ~p(g(g(sK3))) }))
+      })
+      .indices(getIndices())
+      .input( fromInduction(clause({ ~p(g(sK3)) })) )
+      .expected({
+        // g(sK3) given clause
+        clause({ ~p(b), p(skx0) }),
+        clause({ ~p(b), ~p(r(skx0)) }),
+
+        // sK3 given clause
+        clause({ ~p(g(b)), p(g(skx1)) }),
+        clause({ ~p(g(b)), ~p(g(r(skx1))) }),
+
+        // sK3 multi-clause
+        clause({ ~p(b), ~p(g(r(skx2))) }),
+        clause({ ~p(b), ~p(r(skx2)) }),
+        clause({ ~p(g(b)), ~p(g(r(skx2))) }),
+        clause({ ~p(g(b)), ~p(r(skx2)) }),
+        clause({ ~p(b), p(skx2), p(g(skx2)) }),
+        clause({ ~p(g(b)), p(skx2), p(g(skx2)) }),
+      })
+    )
+
+// multi-clause use case 1 (induction depth 0), non-unit
+TEST_GENERATION_INDUCTION(test_31,
+    Generation::TestCase()
+      .options({
+        { "induction_unit_only", "off" },
+        { "induction", "struct" },
+        { "non_unit_induction", "on" }, })
+      .indices(getIndices())
+      .input( clause({ ~p(sK1), ~p1(sK1) }) )
+      .expected({
+        // sK1, first literal
+        clause({ ~p(b), p(skx0), ~p1(sK1) }),
+        clause({ ~p(b), ~p(r(skx0)), ~p1(sK1) }),
+
+        // sK1, second literal
+        clause({ ~p1(b), p1(skx1), ~p(sK1) }),
+        clause({ ~p1(b), ~p1(r(skx1)), ~p(sK1) }),
+
+        // sK1, both literals, triggered by ~p(sK1)
+        clause({ ~p(b), ~p1(b), p(skx2) }),
+        clause({ ~p(b), ~p1(b), p1(skx2) }),
+        clause({ ~p(b), ~p1(b), ~p(r(skx2)), ~p1(r(skx2)) }),
+
+        // sK1, both literals, triggered by ~p1(sK1) (same as above)
+        clause({ ~p(b), ~p1(b), p(skx2) }),
+        clause({ ~p(b), ~p1(b), p1(skx2) }),
+        clause({ ~p(b), ~p1(b), ~p(r(skx2)), ~p1(r(skx2)) }),
+      })
+    )
+
+// multi-clause does not add tautological clauses
+TEST_GENERATION_INDUCTION(test_32,
+    // TODO enable multi-clause option when there is one
+    Generation::TestCase()
+      .options({ { "induction", "struct" }, { "non_unit_induction", "on" } })
+      .context({ clause({ p(sK1) }) })
+      .indices(getIndices())
+      .input( clause({ ~p(sK1) }) )
+      .expected({
+        // sK1, given clause
+        clause({ ~p(b), p(skx0) }),
+        clause({ ~p(b), ~p(r(skx0)) }),
+      })
+    )
+
+// multi-clause generalized occurrences
+TEST_GENERATION_INDUCTION(test_33,
+    Generation::TestCase()
+      .options({
+        { "induction", "struct" },
+        { "induction_gen", "on" },
+        { "non_unit_induction", "on" },
+      })
+      .context({ clause({ sK1 == sK2 }) })
+      .indices(getIndices())
+      .input( clause({ ~p(f(sK1,sK1)) }) )
+      .expected({
+        // sK1, given clause 01
+        clause({ ~p(f(sK1,b)), p(f(sK1,skx0)) }),
+        clause({ ~p(f(sK1,b)), ~p(f(sK1,r(skx0))) }),
+
+        // sK1, given clause 10
+        clause({ ~p(f(b,sK1)), p(f(skx1,sK1)) }),
+        clause({ ~p(f(b,sK1)), ~p(f(r(skx1),sK1)) }),
+
+        // sK1, given clause 11
+        clause({ ~p(f(b,b)), p(f(skx2,skx2)) }),
+        clause({ ~p(f(b,b)), ~p(f(r(skx2),r(skx2))) }),
+
+        // sK1, multi-clause 101
+        clause({ b == sK2, p(f(sK1,skx3)), skx3 != sK2 }),
+        clause({ b == sK2, ~p(f(sK1,r(skx3))) }),
+        clause({ b == sK2, r(skx3) == sK2 }),
+        clause({ ~p(f(sK1,b)), p(f(sK1,skx3)), skx3 != sK2 }),
+        clause({ ~p(f(sK1,b)), ~p(f(sK1,r(skx3))) }),
+        clause({ ~p(f(sK1,b)), r(skx3) == sK2 }),
+
+        // sK1, multi-clause 110
+        clause({ b == sK2, p(f(skx4,sK1)), skx4 != sK2 }),
+        clause({ b == sK2, ~p(f(r(skx4),sK1)) }),
+        clause({ b == sK2, r(skx4) == sK2 }),
+        clause({ ~p(f(b,sK1)), p(f(skx4,sK1)), skx4 != sK2 }),
+        clause({ ~p(f(b,sK1)), ~p(f(r(skx4),sK1)) }),
+        clause({ ~p(f(b,sK1)), r(skx4) == sK2 }),
+
+        // sK1, multi-clause 111
+        clause({ b == sK2, p(f(skx5,skx5)), skx5 != sK2 }),
+        clause({ b == sK2, ~p(f(r(skx5),r(skx5))) }),
+        clause({ b == sK2, r(skx5) == sK2 }),
+        clause({ ~p(f(b,b)), p(f(skx5,skx5)), skx5 != sK2 }),
+        clause({ ~p(f(b,b)), ~p(f(r(skx5),r(skx5))) }),
+        clause({ ~p(f(b,b)), r(skx5) == sK2 }),
+      })
+    )
+
+// no generalization
+TEST_FUN(generalizations_01) {
+  __ALLOW_UNUSED(MY_SYNTAX_SUGAR);
+  ContextReplacement it(inductionContext(sK1, {
+    clause({ p(sK1) }),
+    clause({ sK1 == sK2 }),
+  }));
+
+  assertContextReplacement(it, {
+    inductionContext(sK1, {
+      clause({ p(ph_s) }),
+      clause({ ph_s == sK2 }),
+    }),
+  });
+}
+
+// test maximum subset size and generalizations
+TEST_FUN(generalizations_02) {
+  __ALLOW_UNUSED(MY_SYNTAX_SUGAR);
+  ContextSubsetReplacement it(inductionContext(sK1, {
+    clause({ p(f(sK1, sK1)) }),
+    clause({ sK1 == f(sK2,sK1) }),
+  }), 2);
+
+  assertContextReplacement(it, {
+    // 1 occurrence
+    inductionContext(sK1, {
+      clause({ p(f(ph_s,sK1)) }),
+    }),
+    inductionContext(sK1, {
+      clause({ p(f(sK1,ph_s)) }),
+    }),
+    inductionContext(sK1, {
+      clause({ ph_s == f(sK2,sK1) }),
+    }),
+    inductionContext(sK1, {
+      clause({ sK1 == f(sK2,ph_s) }),
+    }),
+    // 2 occurrences
+    inductionContext(sK1, {
+      clause({ p(f(ph_s,ph_s)) }),
+    }),
+    inductionContext(sK1, {
+      clause({ p(f(ph_s, sK1)) }),
+      clause({ ph_s == f(sK2,sK1) }),
+    }),
+    inductionContext(sK1, {
+      clause({ p(f(ph_s, sK1)) }),
+      clause({ sK1 == f(sK2,ph_s) }),
+    }),
+    inductionContext(sK1, {
+      clause({ p(f(sK1, ph_s)) }),
+      clause({ ph_s == f(sK2,sK1) }),
+    }),
+    inductionContext(sK1, {
+      clause({ p(f(sK1, ph_s)) }),
+      clause({ sK1 == f(sK2,ph_s) }),
+    }),
+    inductionContext(sK1, {
+      clause({ ph_s == f(sK2,ph_s) }),
+    }),
+    // 3 occurrences are missing, since it's more than
+    // the maximum subset size and not all occurrences
+
+    // all occurrences
+    inductionContext(sK1, {
+      clause({ p(f(ph_s, ph_s)) }),
+      clause({ ph_s == f(sK2,ph_s) }),
+    }),
+  });
+}
+
+// no generalization if there are too many occurrences (20 currently)
+TEST_FUN(generalizations_03) {
+  __ALLOW_UNUSED(MY_SYNTAX_SUGAR);
+  ContextSubsetReplacement it(inductionContext(sK1, {
+    clause({ p(f(f(sK1,sK2), f(sK1,f(f(sK1,sK1),g(sK2))))) }),
+    clause({ p1(f(f(f(sK1,sK1),sK2), f(sK1,sK1))) }),
+    clause({ sK2 == f(f(f(f(g(sK1),sK1),f(sK1,sK2)),f(f(f(sK1,sK1),sK2),f(sK1,sK1))),
+                      f(f(f(sK1,sK2),f(sK1,sK1)),f(f(sK1,g(sK2)),f(f(sK1,sK2),sK1)))) }),
+  }), 0);
+
+  // structure is preserved and all sK1 occurrences are replaced
+  assertContextReplacement(it, {
+    inductionContext(sK1, {
+      clause({ p(f(f(ph_s,sK2), f(ph_s,f(f(ph_s,ph_s),g(sK2))))) }),
+      clause({ p1(f(f(f(ph_s,ph_s),sK2), f(ph_s,ph_s))) }),
+      clause({ sK2 == f(f(f(f(g(ph_s),ph_s),f(ph_s,sK2)),f(f(f(ph_s,ph_s),sK2),f(ph_s,ph_s))),
+                        f(f(f(ph_s,sK2),f(ph_s,ph_s)),f(f(ph_s,g(sK2)),f(f(ph_s,sK2),ph_s)))) }),
+    }),
+  });
+}
