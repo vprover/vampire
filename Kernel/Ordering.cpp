@@ -257,7 +257,7 @@ bool Ordering::getSmallestTermForASort(TermList sort, TermList& theTerm) const {
     
       auto curMin = _smallestTerms->getOrInit(sort,[&]() { return candidate; });
       if (compare(candidate, curMin) == LESS) {
-        _smallestTerms->replace(sort, curMin);
+        _smallestTerms->replace(sort, candidate);
       }
     }
     // go throught for a second time and for inhabited sorts which didn't have a constant, add one:
