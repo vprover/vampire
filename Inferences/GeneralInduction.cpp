@@ -293,7 +293,7 @@ void GeneralInduction::generateClauses(
   NewCNF cnf(0);
   cnf.setForInduction();
   Stack<Clause*> hyp_clauses;
-  Inference inf = NonspecificInference0(UnitInputType::AXIOM,InferenceRule::INDUCTION_AXIOM);
+  Inference inf = NonspecificInference0(UnitInputType::AXIOM,InferenceRule::STRUCT_INDUCTION_AXIOM);
   unsigned maxDepth = mainQuery.clause->inference().inductionDepth();
   for (const auto& kv : sideLitQrPairs) {
     maxDepth = max(maxDepth, kv.second.clause->inference().inductionDepth());
@@ -360,7 +360,7 @@ void GeneralInduction::generateClauses(
     }
     clauses.push(c);
   }
-  env.statistics->induction++;
+  // env.statistics->induction++;
 }
 
 void reserveBlanksForScheme(const InductionScheme& sch, DHMap<TermList, vvector<Term*>>& blanks)

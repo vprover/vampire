@@ -15,7 +15,10 @@
 #include "Kernel/Unit.hpp"
 #include "Kernel/Signature.hpp"
 
+#include "Lib/Hash.hpp"
+
 using namespace Kernel;
+using namespace Lib;
 
 namespace Shell {
 

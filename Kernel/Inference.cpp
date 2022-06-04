@@ -297,7 +297,7 @@ vstring Inference::toString() const
   result += ", thAx:" + Int::toString((int)(th_ancestors));
   result += ", allAx:" + Int::toString((int)(all_ancestors));
   if (_inductionInfo) {
-    auto it = _inductionInfo->iterator();
+    auto it = static_cast<DHSet<unsigned>*>(_inductionInfo)->iterator();
     result += ",ind:";
     while (it.hasNext()) {
       result += Term::create(it.next(), 0, nullptr)->toString() + ",";
@@ -342,7 +342,8 @@ void Inference::init1(InferenceRule r, Unit* premise)
 
   if (premise->inference()._inductionInfo) {
     _inductionInfo = new DHSet<unsigned>();
-    _inductionInfo->loadFromIterator(premise->inference()._inductionInfo->iterator());
+    static_cast<DHSet<unsigned>*>(_inductionInfo)->loadFromIterator(
+      static_cast<DHSet<unsigned>*>(premise->inference()._inductionInfo)->iterator());
   }
 
   computeTheoryRunningSums();
@@ -371,10 +372,12 @@ void Inference::init2(InferenceRule r, Unit* premise1, Unit* premise2)
   if (premise1->inference()._inductionInfo || premise2->inference()._inductionInfo) {
     _inductionInfo = new DHSet<unsigned>();
     if (premise1->inference()._inductionInfo) {
-      _inductionInfo->loadFromIterator(premise1->inference()._inductionInfo->iterator());
+      static_cast<DHSet<unsigned>*>(_inductionInfo)->loadFromIterator(
+        static_cast<DHSet<unsigned>*>(premise1->inference()._inductionInfo)->iterator());
     }
     if (premise2->inference()._inductionInfo) {
-      _inductionInfo->loadFromIterator(premise2->inference()._inductionInfo->iterator());
+      static_cast<DHSet<unsigned>*>(_inductionInfo)->loadFromIterator(
+        static_cast<DHSet<unsigned>*>(premise2->inference()._inductionInfo)->iterator());
     }
   }
 
@@ -405,7 +408,8 @@ void Inference::initMany(InferenceRule r, UnitList* premises)
       if (!_inductionInfo) {
         _inductionInfo = new DHSet<unsigned>();
       }
-      _inductionInfo->loadFromIterator(it->head()->inference()._inductionInfo->iterator());
+      static_cast<DHSet<unsigned>*>(_inductionInfo)->loadFromIterator(
+        static_cast<DHSet<unsigned>*>(it->head()->inference()._inductionInfo)->iterator());
     }
     it=it->tail();
   }
@@ -609,7 +613,7 @@ void Inference::minimizePremises()
     _ptr1 = newFOPrems;
     UnitList* it= newFOPrems;
     if (_inductionInfo) {
-      _inductionInfo->reset();
+      static_cast<DHSet<unsigned>*>(_inductionInfo)->reset();
     }
     while(it) {
       it->head()->incRefCnt();
@@ -617,7 +621,8 @@ void Inference::minimizePremises()
         if (!_inductionInfo) {
           _inductionInfo = new DHSet<unsigned>();
         }
-        _inductionInfo->loadFromIterator(it->head()->inference()._inductionInfo->iterator());
+        static_cast<DHSet<unsigned>*>(_inductionInfo)->loadFromIterator(
+          static_cast<DHSet<unsigned>*>(it->head()->inference()._inductionInfo)->iterator());
       }
       it=it->tail();
     }
@@ -752,6 +757,8 @@ vstring Kernel::ruleName(InferenceRule rule)
     return "definition unfolding";
   case InferenceRule::DEFINITION_FOLDING:
     return "definition folding";
+  case InferenceRule::FUNCTION_DEFINITION: 
+    return "function definition";
   case InferenceRule::PREDICATE_DEFINITION:
     return "predicate definition introduction";
   case InferenceRule::PREDICATE_DEFINITION_UNFOLDING:
@@ -949,37 +956,27 @@ vstring Kernel::ruleName(InferenceRule rule)
   case InferenceRule::INSTANTIATION:
     return "instantiation";
   case InferenceRule::MODEL_NOT_FOUND:
-    return "finite model not found";
-  case InferenceRule::INDUCTION_AXIOM:
-    return "induction hypothesis";
-  case InferenceRule::GEN_INDUCTION_AXIOM:
-    return "generalized induction hypothesis";
+    return "finite model not found : exhaustively excluded all possible domain size assignments";
   case InferenceRule::ARITHMETIC_SUBTERM_GENERALIZATION:
     return "arithmetic subterm generalization";
+  case InferenceRule::STRUCT_INDUCTION_AXIOM:
+    return "structural induction hypothesis";
   case InferenceRule::INT_INF_UP_INDUCTION_AXIOM:
     return "integer induction hypothesis (up, infinite interval)";
   case InferenceRule::INT_INF_DOWN_INDUCTION_AXIOM:
     return "integer induction hypothesis (down, infinite interval)";
-  case InferenceRule::INT_INF_UP_GEN_INDUCTION_AXIOM:
-    return "generalized integer induction hypothesis (up, infinite interval)";
-  case InferenceRule::INT_INF_DOWN_GEN_INDUCTION_AXIOM:
-    return "generalized integer induction hypothesis (down, infinite interval)";
   case InferenceRule::INT_FIN_UP_INDUCTION_AXIOM:
     return "integer induction hypothesis (up, finite interval)";
   case InferenceRule::INT_FIN_DOWN_INDUCTION_AXIOM:
     return "integer induction hypothesis (down, finite interval)";
-  case InferenceRule::INT_FIN_UP_GEN_INDUCTION_AXIOM:
-    return "generalized integer induction hypothesis (up, finite interval)";
-  case InferenceRule::INT_FIN_DOWN_GEN_INDUCTION_AXIOM:
-    return "generalized integer induction hypothesis (down, finite interval)";
   case InferenceRule::INT_DB_UP_INDUCTION_AXIOM:
     return "integer induction hypothesis (up, default bound)";
   case InferenceRule::INT_DB_DOWN_INDUCTION_AXIOM:
     return "integer induction hypothesis (down, default bound)";
-  case InferenceRule::INT_DB_UP_GEN_INDUCTION_AXIOM:
-    return "generalized integer induction hypothesis (up, default bound)";
-  case InferenceRule::INT_DB_DOWN_GEN_INDUCTION_AXIOM:
-    return "generalized integer induction hypothesis (down, default bound)";
+  case InferenceRule::INDUCTION_HYPERRESOLUTION:
+    return "induction hyperresolution";
+  case InferenceRule::GEN_INDUCTION_HYPERRESOLUTION:
+    return "generalized induction hyperresolution";
   case InferenceRule::GAUSSIAN_VARIABLE_ELIMINIATION:
     return "gaussian variable elimination";
   case InferenceRule::COMBINATOR_AXIOM:
@@ -1073,3 +1070,18 @@ vstring Kernel::ruleName(InferenceRule rule)
   return "!UNKNOWN INFERENCE RULE!";
 } // Inference::name()
 
+void Inference::addToInductionInfo(unsigned e) {
+  if (!_inductionInfo) {
+    _inductionInfo = new DHSet<unsigned>();
+  }
+  static_cast<DHSet<unsigned>*>(_inductionInfo)->insert(e);
+}
+
+void Inference::removeFromInductionInfo(unsigned e) {
+  ASS(_inductionInfo);
+  static_cast<DHSet<unsigned>*>(_inductionInfo)->remove(e);
+  if (static_cast<DHSet<unsigned>*>(_inductionInfo)->size() == 0) {
+    delete static_cast<DHSet<unsigned>*>(_inductionInfo);
+    _inductionInfo = nullptr;
+  }
+}

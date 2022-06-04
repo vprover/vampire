@@ -34,17 +34,13 @@ public:
   CLASS_NAME(InductionHelper);
   USE_ALLOCATOR(InductionHelper);
 
-  InductionHelper(LiteralIndex* comparisonIndex, TermIndex* inductionTermIndex, Splitter* splitter)
-      : _splitter(splitter), _comparisonIndex(comparisonIndex), _inductionTermIndex(inductionTermIndex) {}
+  InductionHelper(LiteralIndex* comparisonIndex, TermIndex* inductionTermIndex)
+      : _comparisonIndex(comparisonIndex), _inductionTermIndex(inductionTermIndex) {}
 
-  TermQueryResultIterator getLessEqual(Term* t);
   TermQueryResultIterator getLess(Term* t);
-  TermQueryResultIterator getGreaterEqual(Term* t);
   TermQueryResultIterator getGreater(Term* t);
-  
-  TermQueryResultIterator getTQRsForInductionTerm(TermList inductionTerm);
 
-  void callSplitterOnNewClause(Clause* c);
+  TermQueryResultIterator getTQRsForInductionTerm(TermList inductionTerm);
 
   static bool isIntegerComparison(Clause* c);
   static bool isIntInductionOn();
@@ -55,6 +51,7 @@ public:
   static bool isStructInductionOn();
   static bool isStructInductionOneOn();
   static bool isStructInductionRecDefOn();
+  static bool isNonUnitStructInductionOn();
   static bool isInductionClause(Clause* c);
   static bool isInductionLiteral(Literal* l);
   static bool isInductionLiteral(Literal* l, Clause* cl);
@@ -65,10 +62,9 @@ public:
   static bool isStructInductionFunctor(unsigned f);
 
 private:
-  TermQueryResultIterator getComparisonMatch(bool polarity, TermList& left, TermList& right, TermList& var);
+  TermQueryResultIterator getComparisonMatch(bool polarity, bool termIsLeft, Term* t);
 
   // The following pointers can be null if splitting or integer induction is off.
-  Splitter* _splitter;  // not owned
   LiteralIndex* _comparisonIndex;  // not owned
   TermIndex* _inductionTermIndex;  // not owned
 };

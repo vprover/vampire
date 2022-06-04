@@ -172,7 +172,7 @@ vstring OperatorType::toString() const
     bracket = true;
   }
 
-  return res + (bracket ? "(" : "") +  (arity() - typeArgsArity() ? argsToString() + " > " : "") +
+  return res + (bracket ? "(" : "") +  (arity() - numTypeArguments() ? argsToString() + " > " : "") +
       (isPredicateType() ? "$o" : result().toString()) + (bracket ? ")" : "");
 }
 

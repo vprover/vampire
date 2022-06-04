@@ -828,7 +828,6 @@ void CLTBProblemLearning::searchForProof(int terminationTime,int timeLimit, Sche
 
   System::registerForSIGHUPOnParentDeath();
 
-  env.timer->makeChildrenIncluded();
   TimeCounter::reinitialize();
 
   env.options->setInputFile(problemFile);

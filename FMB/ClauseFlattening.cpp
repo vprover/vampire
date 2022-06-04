@@ -67,49 +67,58 @@ Clause* ClauseFlattening::resolveNegativeVariableEqualities(Clause* cl)
 {
   CALL("ClauseFlattening::resolveNegativeVariableEqualities");
 
-  Array<Literal*> lits;
-  Stack<Literal*> inequalities;
-  int n = 0;
-  for (unsigned i = 0;i < cl->length();i++) {
-    Literal* lit = (*cl)[i];
-    if (lit->isEquality() &&
-        lit->isNegative() &&
-        lit->nthArgument(0)->isVar() &&
-        lit->nthArgument(1)->isVar()) {
-      inequalities.push(lit);
+  // a helper class to be passed to SubstHelper
+  class SingleVar2VarSubst {
+    unsigned _from;
+    unsigned _to;
+  public:
+    void bind(unsigned from,unsigned to) {
+      _from = from;
+      _to = to;
     }
-    else {
-      lits[n++] = lit;
+    bool isId() {
+      return (_from == _to);
+    }
+    TermList apply(unsigned var) {
+      if (var == _from) {
+        return TermList(_to, false);
+      } else {
+        return TermList(var, false);
+      }
+    }
+  } subst;
+
+  // cout << "Begin: " << cl->toString() << endl;
+
+  unsigned n = cl->length();
+  unsigned idx = 0;
+  while (true) {
+    // scan cl from where we ended last time and look for a new negative two variable equality
+    while(idx < n) {
+      Literal* lit = (*cl)[idx];
+      if (lit->isEquality() && lit->isNegative() && lit->nthArgument(0)->isVar() && lit->nthArgument(1)->isVar()) {
+        subst.bind(lit->nthArgument(0)->var(),lit->nthArgument(1)->var());
+        break;
+      }
+      idx++;
+    }
+    if (idx < n) { // we found one
+      // new clause one lit shorter
+      Clause* newcl = new(n-1) Clause(n-1,NonspecificInference1(InferenceRule::EQUALITY_RESOLUTION,cl));
+      unsigned j = 0; // for writing into newcl
+      for (unsigned i = 0; i < n; i++) {
+        if (i != idx) { // skipping literal found at idx
+          (*newcl)[j++] = subst.isId() ? (*cl)[i] : SubstHelper::apply((*cl)[i],subst);
+        }
+      }
+      cl = newcl;
+      n--;
+      // cout << "Update: " << cl->toString() << endl;
+    } else {
+      // cout << "Done: " << cl->toString() << endl;
+      return cl;
     }
   }
-  if (inequalities.isEmpty()) {
-    return cl;
-  }
-  bool diffVar = false;
-  while (!inequalities.isEmpty()) {
-    Literal* ineq = inequalities.pop();
-    unsigned v1 = ineq->nthArgument(0)->var();
-    TermList* v2 = ineq->nthArgument(1);
-    if (v1 == v2->var()) { // x != x
-      continue;
-    }
-    diffVar = true;
-    Substitution subst;
-    subst.bind(v1,*v2);
-    cl = new(n) Clause(n,NonspecificInference1(InferenceRule::EQUALITY_RESOLUTION,cl));
-    for (int i = n-1;i >= 0;i--) {
-      Literal* lit = SubstHelper::apply<Substitution>(lits[i],subst);
-      (*cl)[i] = lit;
-      lits[i] = lit;
-    }
-  }
-  if (!diffVar) { // only X != X found, we should still perform the inference
-    cl = new(n) Clause(n,NonspecificInference1(InferenceRule::EQUALITY_RESOLUTION,cl));
-    for (int i = n-1;i >= 0;i--) {
-      (*cl)[i] = lits[i];
-    }
-  }
-  return cl;
 } // ClauseFlattening::resolveNegativeVariableEqualities
 
 /**

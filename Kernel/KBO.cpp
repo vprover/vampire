@@ -17,9 +17,9 @@
 #include "Debug/Tracer.hpp"
 #include "Kernel/NumTraits.hpp"
 
-
 #include "Lib/Environment.hpp"
 #include "Lib/Comparison.hpp"
+#include "Lib/Set.hpp"
 
 #include "Shell/Options.hpp"
 #include <fstream>
@@ -77,7 +77,7 @@ private:
   }
 
   int _weightDiff;
-  DHMap<unsigned, int, IdentityHash> _varDiffs;
+  DHMap<unsigned, int, IdentityHash, Hash> _varDiffs;
   /** Number of variables, that occur more times in the first literal */
   int _posNum;
   /** Number of variables, that occur more times in the second literal */
@@ -346,20 +346,55 @@ struct FuncSigTraits {
   { return env.signature->getFunction(functor)->arity() == 0; } 
 
   static Signature::Symbol* getSymbol(unsigned functor) 
-  { return env.signature->getFunction(functor); } 
+  { return env.signature->getFunction(functor); }
 };
 
 
 template<class SigTraits> 
-KboWeightMap<SigTraits> KBO::weightsFromOpts(const Options& opts) const 
+KboWeightMap<SigTraits> KBO::weightsFromOpts(const Options& opts, const DArray<int>& rawPrecedence) const
 {
   auto& str = SigTraits::weightFileName(opts);
-  if (str.empty()) {
-    return KboWeightMap<SigTraits>::dflt();
-  } else if (str == SPECIAL_WEIGHT_FILENAME_RANDOM) {
-    return KboWeightMap<SigTraits>::randomized();
-  } else {
+
+  auto arityExtractor = [](unsigned i) { return SigTraits::getSymbol(i)->arity(); };
+  auto precedenceExtractor = [&](unsigned i) { return rawPrecedence[i]; };
+  auto frequencyExtractor = [](unsigned i) { return SigTraits::getSymbol(i)->usageCnt(); };
+
+  if (!str.empty()) {
     return weightsFromFile<SigTraits>(opts);
+  } else {
+    switch (opts.kboWeightGenerationScheme()) {
+    case Options::KboWeightGenerationScheme::CONST:
+      return KboWeightMap<SigTraits>::dflt();
+    case Options::KboWeightGenerationScheme::RANDOM:
+      return KboWeightMap<SigTraits>::randomized();
+    case Options::KboWeightGenerationScheme::ARITY:
+      return KboWeightMap<SigTraits>::fromSomeUnsigned(arityExtractor,
+        [](auto _, auto arity) { return arity+1; });
+    case Options::KboWeightGenerationScheme::INV_ARITY:
+      return KboWeightMap<SigTraits>::fromSomeUnsigned(arityExtractor,
+        [](auto max, auto arity) { return max-arity+1; });
+    case Options::KboWeightGenerationScheme::ARITY_SQUARED:
+      return KboWeightMap<SigTraits>::fromSomeUnsigned(arityExtractor,
+        [](auto _, auto arity) { return arity*arity+1; });
+    case Options::KboWeightGenerationScheme::INV_ARITY_SQUARED:
+      return KboWeightMap<SigTraits>::fromSomeUnsigned(arityExtractor,
+        [](auto max, auto arity) { return max*max-arity*arity+1; });
+    case Options::KboWeightGenerationScheme::PRECEDENCE:
+      return KboWeightMap<SigTraits>::fromSomeUnsigned(precedenceExtractor,
+        [](auto _, auto prec) { return prec + 1; });
+    case Options::KboWeightGenerationScheme::INV_PRECEDENCE:
+      return KboWeightMap<SigTraits>::fromSomeUnsigned(precedenceExtractor,
+        [](auto max, auto prec) { return max-prec+1; });
+    case Options::KboWeightGenerationScheme::FREQUENCY:
+      return KboWeightMap<SigTraits>::fromSomeUnsigned(frequencyExtractor,
+        [](auto _, auto freq) { return freq > 0 ? freq : 1; });
+    case Options::KboWeightGenerationScheme::INV_FREQUENCY:
+      return KboWeightMap<SigTraits>::fromSomeUnsigned(frequencyExtractor,
+        [](auto max, auto freq) { return max > 0 ? max - freq + 1 : 1; });
+
+    default:
+      NOT_IMPLEMENTED;
+    }
   }
 }
 
@@ -538,6 +573,36 @@ KBO KBO::testKBO()
       false);
 }
 
+void KBO::zeroOutWeightForMaximalFuncs() {
+  // actually, it's non-constant maximal func, as constants cannot be weight 0
+
+  using SortType = TermList;
+  using FunctionSymbol = unsigned;
+  auto nFunctions = _funcWeights._weights.size();
+  auto maximalFunctions = Map<SortType, FunctionSymbol>();
+
+  for (FunctionSymbol i = 0; i < nFunctions; i++) {
+    auto symb = env.signature->getFunction(i);
+    auto sort = symb->fnType()->result();
+    auto arity = symb->arity();
+
+    // skip constants here
+    if (arity == 0) continue;
+
+    //cout << "symb " << symb->name() << " sort " << sort.toString() << " arity " << arity << endl;
+
+    auto maxFn = maximalFunctions.getOrInit(sort, [&](){ return i; } );
+    if (compareFunctionPrecedences(maxFn, i) == LESS) {
+      maximalFunctions.replace(sort, i);
+    }
+  }
+
+  Map<SortType, FunctionSymbol>::Iterator it(maximalFunctions);
+  while (it.hasNext()) {
+    _funcWeights._weights[it.next().value()] = 0;
+  }
+}
+
 template<class HandleError>
 void KBO::checkAdmissibility(HandleError handle) const 
 {
@@ -594,13 +659,18 @@ void KBO::checkAdmissibility(HandleError handle) const
  */
 KBO::KBO(Problem& prb, const Options& opts)
  : PrecedenceOrdering(prb, opts)
- , _funcWeights(weightsFromOpts<FuncSigTraits>(opts))
+ , _funcWeights(weightsFromOpts<FuncSigTraits>(opts,_functionPrecedences))
 #if __KBO__CUSTOM_PREDICATE_WEIGHTS__
- , _predWeights(weightsFromOpts<PredSigTraits>(opts))
+ , _predWeights(weightsFromOpts<PredSigTraits>(opts,_predicatePrecedences))
 #endif
  , _state(new State(this))
 {
   CALL("KBO::KBO(Prb&, Opts&)");
+
+  if (opts.kboMaxZero()) {
+    zeroOutWeightForMaximalFuncs();
+  }
+
   if (opts.kboAdmissabilityCheck() == Options::KboAdmissibilityCheck::ERROR)
     checkAdmissibility(throwError);
   else
@@ -726,6 +796,33 @@ KboWeightMap<SigTraits> KboWeightMap<SigTraits>::dflt()
   };
 }
 
+template<class SigTraits>
+template<class Extractor, class Fml>
+KboWeightMap<SigTraits> KboWeightMap<SigTraits>::fromSomeUnsigned(Extractor ex, Fml fml)
+{
+  auto nSym = SigTraits::nSymbols();
+  DArray<KboWeight> weights(nSym);
+
+  unsigned max = 0;
+  for (unsigned i = 0; i < nSym; i++) {
+    auto a = ex(i);
+    if (a > max) {
+      max = a;
+    }
+  }
+
+  for (unsigned i = 0; i < nSym; i++) {
+    weights[i] = fml(max,ex(i));
+  }
+
+  return KboWeightMap {
+    ._weights                = weights,
+    ._introducedSymbolWeight = 1,
+    ._specialWeights         = KboSpecialWeights<SigTraits>::dflt(),
+  };
+}
+
+
 template<>
 template<class Random>
 KboWeightMap<FuncSigTraits> KboWeightMap<FuncSigTraits>::randomized(unsigned maxWeight, Random random)
@@ -733,7 +830,7 @@ KboWeightMap<FuncSigTraits> KboWeightMap<FuncSigTraits>::randomized(unsigned max
   using SigTraits = FuncSigTraits;
   auto nSym = SigTraits::nSymbols();
 
-  unsigned variableWeight   = random(1,              maxWeight);
+  unsigned variableWeight   = 1;
   unsigned introducedWeight = random(variableWeight, maxWeight);
   unsigned numInt           = random(variableWeight, maxWeight);
   unsigned numRat           = random(variableWeight, maxWeight);

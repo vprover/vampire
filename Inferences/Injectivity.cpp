@@ -141,7 +141,7 @@ TermList Injectivity::createNewLhs(TermList oldhead, TermStack& termArgs, unsign
 
   TermList inverseType = AtomicSort::arrowSort(sorts, newResult);
 
-  OperatorType* invFuncType = OperatorType::getConstantsType(inverseType, funcType->typeArgsArity());
+  OperatorType* invFuncType = OperatorType::getConstantsType(inverseType, funcType->numTypeArguments());
   Signature::Symbol* invFunc = env.signature->getFunction(iFunc);
   invFunc->setType(invFuncType);
   TermList invFuncHead = TermList(Term::create(iFunc, func->arity(), typeArgs.begin()));

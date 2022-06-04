@@ -15,21 +15,20 @@
 
 #include "Portability.hpp"
 
-#include <cstdlib>
-#  include <unistd.h>
-#  if !__APPLE__ && !__CYGWIN__
-#    include <sys/prctl.h>
-#  endif
-
-#include <dirent.h>
-
-#include <cerrno>
 #include <csignal>
-#include <cstdio>
-#include <cstdlib>
-#include <iostream>
 #include <fstream>
 #include <thread>
+
+// TODO these should probably be guarded
+// for getpid, _exit
+#include <unistd.h>
+// for listing directory items
+// C++17: use std::filesystem
+#include <dirent.h>
+
+#ifdef __linux__
+#include <sys/prctl.h>
+#endif
 
 #include "Debug/Tracer.hpp"
 
@@ -38,26 +37,8 @@
 #include "Shell/UIHelper.hpp"
 
 #include "Environment.hpp"
-#include "Exception.hpp"
-#include "Int.hpp"
-#include "Stack.hpp"
-#include "Timer.hpp"
-#include "VString.hpp"
 
 #include "System.hpp"
-
-#include <unistd.h>
-
-long long Lib::System::getSystemMemory()
-{
-#if __APPLE__ || __CYGWIN__
-  NOT_IMPLEMENTED;
-#else
-  long pages = sysconf(_SC_PHYS_PAGES);
-  long page_size = sysconf(_SC_PAGE_SIZE);
-  return static_cast<long long>(pages) * page_size;
-#endif
-}
 
 unsigned Lib::System::getNumberOfCores()
 {
@@ -66,21 +47,9 @@ unsigned Lib::System::getNumberOfCores()
 
 namespace Lib {
 
-using namespace std;
-using namespace Shell;
-
 bool System::s_shouldIgnoreSIGINT = false;
 bool System::s_shouldIgnoreSIGHUP = false;
 const char* System::s_argv0 = 0;
-
-///**
-// * Reimplements the system gethostname function.
-// * @since 31/03/2005 Torrevieja
-// */
-//void System::gethostname(char* hostname,int maxlength)
-//{
-//  ::gethostname(hostname,maxlength);
-//}
 
 const char* signalToString (int sigNum)
 {
@@ -141,7 +110,7 @@ void handleSignal (int sigNum)
 	System::terminateImmediately(haveSigInt ? VAMP_RESULT_STATUS_SIGINT : VAMP_RESULT_STATUS_OTHER_SIGNAL);
       }
       handled = true;
-      if(outputAllowed(true)) {
+      if(Shell::outputAllowed(true)) {
 	if(env.options) {
 	  env.beginOutput();
 	  env.out() << "Aborted by signal " << signalDescription << " on " << env.options->inputFile() << "\n";
@@ -152,7 +121,7 @@ void handleSignal (int sigNum)
       }
       return;
     case SIGXCPU:
-      if(outputAllowed(true)) {
+      if(Shell::outputAllowed(true)) {
 	if(env.options) {
 	  env.beginOutput();
 	  env.out() << "External time out (SIGXCPU) on " << env.options->inputFile() << "\n";
@@ -190,9 +159,9 @@ void handleSignal (int sigNum)
 	if (handled) {
 	  System::terminateImmediately(haveSigInt ? VAMP_RESULT_STATUS_SIGINT : VAMP_RESULT_STATUS_OTHER_SIGNAL);
 	}
-	reportSpiderFail();
+	Shell::reportSpiderFail();
 	handled = true;
-	if(outputAllowed()) {
+	if(Shell::outputAllowed()) {
 	  if(env.options && env.statistics) {
 	    env.beginOutput();
 	    env.out() << getpid() << " Aborted by signal " << signalDescription << " on " << env.options->inputFile() << "\n";
@@ -316,28 +285,9 @@ void System::terminateImmediately(int resultStatus)
  */
 void System::registerForSIGHUPOnParentDeath()
 {
-#if __APPLE__ || __CYGWIN__
-  // cerr<<"Death of parent process not being handled on Mac and Windows"<<endl;
-  // NOT_IMPLEMENTED;
-#else
+#ifdef __linux__
   prctl(PR_SET_PDEATHSIG, SIGHUP);
 #endif
-}
-
-/**
- * Read command line arguments into @c res and register the executable name
- * (0-th element of @c argv) using the @c registerArgv0() function.
- */
-void System::readCmdArgs(int argc, char* argv[], StringStack& res)
-{
-  CALL("System::readCmdArgs");
-  ASS_GE(argc,1);
-  ASS(res.isEmpty()); //just to avoid any confusion, if it causes problems, the assumption can be removed
-
-  registerArgv0(argv[0]);
-  for(int i=1; i<argc; i++) {
-    res.push(argv[i]);
-  }
 }
 
 vstring System::extractFileNameFromPath(vstring str)
@@ -378,49 +328,7 @@ bool System::fileExists(vstring fname)
   return ifile.good();
 }
 
-/**
- * Guess path to the current executable.
- *
- * Guessing means that the returned path might not be correct.
- */
-vstring System::guessExecutableDirectory()
-{
-  CALL("System::guessExecutableDirectory");
-
-  vstring res;
-
-  if(s_argv0 && extractDirNameFromPath(s_argv0, res)) {
-    return res;
-  }
-
-  return ".";
-}
-
-/**
- * Guess the current executable file.
- *
- * Guessing means that the returned file path might not be correct.
- */
-vstring System::guessExecutableName()
-{
-  CALL("System::guessExecutableName");
-
-  vstring res;
-
-  if(s_argv0) {
-    return s_argv0;
-  }
-
-  return "./vampire";
-}
-
-pid_t System::getPID()
-{
-  CALL("System::getPID");
-
-  return getpid();
-}
-
+// C++17: use std::filesystem
 void System::readDir(vstring dirName, Stack<vstring>& filenames)
 {
   CALL("System::readDir");
@@ -467,63 +375,6 @@ void System::readDir(vstring dirName, Stack<vstring>& filenames)
   }
 
   todo.reset();
-}
-
-/**
- * Execute command @c command, pass content of @c input as standard input
- * and return the output of the command in @c output.
- */
-int System::executeCommand(vstring command, vstring input, Stack<vstring>& outputLines)
-{
-  CALL("System::executeCommand");
-
-  vstring pidStr = Int::toString(getPID());
-  vstring inFile  = "/tmp/vampire_executeCommand_"+pidStr+"_in";
-  vstring outFile = "/tmp/vampire_executeCommand_"+pidStr+"_out";
-
-  vstring cmdLine = command + " <" + inFile + " >" + outFile;
-
-  {
-    BYPASSING_ALLOCATOR;
-
-    ofstream inpFile(inFile.c_str());
-    inpFile << input;
-    inpFile.close();
-  }
-
-  int resStatus=system(cmdLine.c_str());
-
-  {
-    BYPASSING_ALLOCATOR;
-
-    outputLines.reset();
-    vstring line;
-    ifstream outpFile(outFile.c_str());
-    while (getline(outpFile, line)) {
-      outputLines.push(line);
-    }
-    outpFile.close();
-  }
-
-//  if(WIFSIGNALED(resStatus) && WTERMSIG(resStatus)==SIGINT) {
-//    //if child Vampire was terminated by SIGINT (Ctrl+C), we also terminate
-//    //(3 is the return value for this case; see documentation for the
-//    //@b vampireReturnValue global variable)
-//    handleSIGINT();
-//  }
-
-  remove(inFile.c_str());
-  remove(outFile.c_str());
-
-  if(WIFEXITED(resStatus)) {
-    return WEXITSTATUS(resStatus);
-  }
-  else if(WIFSIGNALED(resStatus)) {
-    return -WTERMSIG(resStatus);
-  }
-  else {
-    return -0xffff;
-  }
 }
 
 };

@@ -12,74 +12,54 @@
  * Implements class Timer.
  */
 
-#include <ctime>
-#include <unistd.h>
-#include <atomic>
-#include <sys/types.h>
-
-#include "Debug/Assertion.hpp"
-#include "Debug/Tracer.hpp"
-
-#include "Environment.hpp"
-#include "Int.hpp"
-#include "Portability.hpp"
-#include "System.hpp"
-#include "TimeCounter.hpp"
-
-#include "Shell/UIHelper.hpp"
-#include "Shell/Options.hpp"
-#include "Shell/Statistics.hpp"
-
-#include "Timer.hpp"
-
-#ifdef __linux__ // preration for checking instruction count
-#include <cstdio>
-#include <sys/ioctl.h>
-#include <linux/perf_event.h>
-#include <asm/unistd.h>
-
-// conveniece wrapper around a syscall (cf. https://linux.die.net/man/2/perf_event_open )
-long perf_event_open(struct perf_event_attr *hw_event, pid_t pid, int cpu, int group_fd, unsigned long flags)
-{
-  int ret = syscall(__NR_perf_event_open, hw_event, pid, cpu,group_fd, flags);
-  return ret;
-}
-
-int perf_fd = -1; // the file descriptor we later read the info from
-
-#endif // #ifdef __linux__
-
-#define DEBUG_TIMER_CHANGES 0
-
-using namespace std;
-using namespace Lib;
-
-bool Timer::s_limitEnforcement = true;
-
-#if UNIX_USE_SIGALRM
-
-#include <cerrno>
-#include <unistd.h>
-#include <cstdlib>
 #include <csignal>
+#include <unistd.h>
 #include <sys/time.h>
 #include <sys/times.h>
 
-#include "Lib/Sys/Multiprocessing.hpp"
+// for checking instruction count
+#ifdef __linux__
+#include <sys/ioctl.h>
+#include <linux/perf_event.h>
+#include <asm/unistd.h>
+#endif
 
+#include "Environment.hpp"
+#include "System.hpp"
+#include "Sys/Multiprocessing.hpp"
+#include "Shell/Statistics.hpp"
 #include "Shell/UIHelper.hpp"
 
-int timer_sigalrm_counter=-1;
+#include "Timer.hpp"
+
+#define DEBUG_TIMER_CHANGES 0
+#define MEGA (1 << 20)
+
+// things that need to be signal-safe because they are used in timer_sigalrm_handler
+// in principle we also need is_lock_free() to avoid deadlock as well
+// not sure it's worth assertion-failing over
+std::atomic<int> timer_sigalrm_counter{-1};
+std::atomic<unsigned> protectingTimeout{0};
+std::atomic<unsigned char> callLimitReachedLater{0}; // 1 for a timelimit, 2 for an instruction limit
+std::atomic<bool> Timer::s_limitEnforcement{true};
+
+// TODO probably these should also be atomics, but not sure
+#ifdef __linux__
+char* error_to_report = nullptr;
+int perf_fd = -1; // the file descriptor we later read the info from
 long long last_instruction_count_read = -1;
-
-#define MILLION 1000000
-
-unsigned Timer::elapsedMegaInstructions() {
-  return (last_instruction_count_read >= MILLION) ? last_instruction_count_read/MILLION : 0;
-}
+#endif
 
 long Timer::s_ticksPerSec;
 int Timer::s_initGuarantedMiliseconds;
+
+unsigned Timer::elapsedMegaInstructions() {
+#ifdef __linux__
+  return (last_instruction_count_read >= 0) ? last_instruction_count_read/MEGA : 0;
+#else
+  return 0;
+#endif
+}
 
 [[noreturn]] void limitReached(unsigned char whichLimit)
 {
@@ -106,9 +86,11 @@ int Timer::s_initGuarantedMiliseconds;
       env.out() << "Proof not found in time ";
       Timer::printMSString(env.out(),env.timer->elapsedMilliseconds());
 
+#ifdef __linux__
       if (last_instruction_count_read > -1) {
         env.out() << " nor after " << last_instruction_count_read << " (user) instruction executed.";
       }
+#endif
       env.out() << endl;
 
       if (szsOutputMode()) {
@@ -122,22 +104,6 @@ int Timer::s_initGuarantedMiliseconds;
   env.endOutput();
 
   System::terminateImmediately(1);
-}
-
-std::atomic<unsigned> protectingTimeout{0};
-std::atomic<unsigned char> callLimitReachedLater{0}; // 1 for a timelimit, 2 for an instruction limit
-
-TimeoutProtector::TimeoutProtector() {
-  protectingTimeout++;
-}
-
-TimeoutProtector::~TimeoutProtector() {
-  protectingTimeout--;
-  if (!protectingTimeout && callLimitReachedLater) {
-    unsigned howToCall = callLimitReachedLater;
-    callLimitReachedLater = 0; // to prevent recursion (should limitReached itself reach TimeoutProtector)
-    limitReached(howToCall);
-  }
 }
 
 void
@@ -161,18 +127,25 @@ timer_sigalrm_handler (int sig)
   }
 
 #ifdef __linux__
-  if(Timer::s_limitEnforcement && env.options->instructionLimit() && perf_fd >= 0) {
-    // we could also decide not to guard this read by env.options->instructionLimit(),
-    // to get info about instructions burned even when not instruction limiting
-    read(perf_fd, &last_instruction_count_read, sizeof(long long));
-    
-    if (last_instruction_count_read >= MILLION*(long long)env.options->instructionLimit()) {
-      Timer::setLimitEnforcement(false);
-      if (protectingTimeout) {
-        callLimitReachedLater = 2; // 2 for an instr limit
-      } else {
-        limitReached(2); // 2 for an instr limit
+  if(Timer::s_limitEnforcement && env.options->instructionLimit()) {
+    if (perf_fd >= 0) {
+      // we could also decide not to guard this read by env.options->instructionLimit(),
+      // to get info about instructions burned even when not instruction limiting
+      read(perf_fd, &last_instruction_count_read, sizeof(long long));
+      
+      if (last_instruction_count_read >= MEGA*(long long)env.options->instructionLimit()) {
+        Timer::setLimitEnforcement(false);
+        if (protectingTimeout) {
+          callLimitReachedLater = 2; // 2 for an instr limit
+        } else {
+          limitReached(2); // 2 for an instr limit
+        }
       }
+    } else if (perf_fd == -1 && error_to_report) {
+      // however, we definitely want this to be guarded by env.options->instructionLimit()
+      // not to bother with the error people who don't even know about instruction limiting
+      cerr << "perf_event_open failed (instruction limiting will be disabled): " << error_to_report << endl;
+      error_to_report = nullptr;
     }
   }
 #endif
@@ -187,7 +160,7 @@ timer_sigalrm_handler (int sig)
 }
 
 /** number of miliseconds (of CPU time) passed since some moment */
-int Lib::Timer::miliseconds()
+int Timer::miliseconds()
 {
   CALL("Timer::miliseconds");
   ASS_GE(timer_sigalrm_counter, 0);
@@ -195,7 +168,7 @@ int Lib::Timer::miliseconds()
   return timer_sigalrm_counter;
 }
 
-int Lib::Timer::guaranteedMilliseconds()
+int Timer::guaranteedMilliseconds()
 {
   tms aux;
   clock_t ticks=times(&aux);
@@ -211,7 +184,7 @@ int Lib::Timer::guaranteedMilliseconds()
   return static_cast<long long>(ticks)*1000/s_ticksPerSec;
 }
 
-void Lib::Timer::suspendTimerBeforeFork()
+void Timer::suspendTimerBeforeFork()
 {
   //if we use SIGALRM, we must disable it before forking and the restore it
   //afterwards (in both processes)
@@ -227,7 +200,7 @@ void Lib::Timer::suspendTimerBeforeFork()
   }
 }
 
-void Lib::Timer::restoreTimerAfterFork()
+void Timer::restoreTimerAfterFork()
 {
   itimerval tv1, tv2;
   tv2.it_interval.tv_usec = 1000;
@@ -241,7 +214,16 @@ void Lib::Timer::restoreTimerAfterFork()
   }
 }
 
-void Lib::Timer::ensureTimerInitialized()
+#ifdef __linux__
+// conveniece wrapper around a syscall (cf. https://linux.die.net/man/2/perf_event_open )
+long perf_event_open(struct perf_event_attr *hw_event, pid_t pid, int cpu, int group_fd, unsigned long flags)
+{
+  int ret = syscall(__NR_perf_event_open, hw_event, pid, cpu,group_fd, flags);
+  return ret;
+}
+#endif
+
+void Timer::ensureTimerInitialized()
 {
   CALL("Timer::ensureTimerInitialized");
   
@@ -266,7 +248,8 @@ void Lib::Timer::ensureTimerInitialized()
 
     perf_fd = perf_event_open(&pe, 0, -1, -1, 0);
     if (perf_fd == -1) {
-      std::perror("perf_event_open failed (instruction limiting will be disabled)");
+      // delay reporting the error until we can check instruction limiting has been actually requested
+      error_to_report = std::strerror(errno);      
     } else {
       ioctl(perf_fd, PERF_EVENT_IOC_RESET, 0);
       ioctl(perf_fd, PERF_EVENT_IOC_ENABLE, 0);
@@ -294,7 +277,7 @@ void Lib::Timer::ensureTimerInitialized()
   Sys::Multiprocessing::instance()->registerForkHandlers(suspendTimerBeforeFork, restoreTimerAfterFork, restoreTimerAfterFork);
 }
 
-void Lib::Timer::deinitializeTimer()
+void Timer::deinitializeTimer()
 {
   CALL("Timer::deinitializeTimer");
 
@@ -308,7 +291,7 @@ void Lib::Timer::deinitializeTimer()
   signal (SIGALRM, SIG_IGN); // unregister the handler (and ignore the rest of SIGALRMs, should they still come) 
 }
 
-void Lib::Timer::syncClock()
+void Timer::syncClock()
 {
   static bool reportedProblem = false;
   if(s_initGuarantedMiliseconds==-1) {
@@ -334,76 +317,6 @@ void Lib::Timer::syncClock()
     timer_sigalrm_counter=newVal;
   }
 }
-
-void Lib::Timer::makeChildrenIncluded()
-{
-  //here are children always included as we measure the wall clock time
-}
-
-#else
-
-#include <sys/time.h>
-#include <sys/resource.h>
-
-/** number of miliseconds (of CPU time) passed since some moment */
-int Lib::Timer::miliseconds()
-{
-  struct timeval tim;
-  struct rusage ru;
-  getrusage(RUSAGE_SELF, &ru);
-  tim=ru.ru_utime;
-  int t=tim.tv_sec*1000 + tim.tv_usec / 1000;
-  tim=ru.ru_stime;
-  t+=tim.tv_sec*1000 + tim.tv_usec / 1000;
-
-  if(_mustIncludeChildren) {
-    getrusage(RUSAGE_CHILDREN, &ru);
-    tim=ru.ru_utime;
-    t+=tim.tv_sec*1000 + tim.tv_usec / 1000;
-    tim=ru.ru_stime;
-    t+=tim.tv_sec*1000 + tim.tv_usec / 1000;
-  }
-  return t;
-//  return (int)( ((long long)clock())*1000/CLOCKS_PER_SEC );
-}
-
-void Lib::Timer::syncClock()
-{
-}
-
-void Lib::Timer::ensureTimerInitialized()
-{
-}
-
-void Lib::Timer::deinitializeTimer()
-{
-}
-
-void Lib::Timer::makeChildrenIncluded()
-{
-  CALL("Lib::Timer::makeChildrenIncluded");
-
-  if(_mustIncludeChildren) {
-    return;
-  }
-
-  if(_running) {
-    struct timeval tim;
-    struct rusage ru;
-    getrusage(RUSAGE_CHILDREN, &ru);
-    tim=ru.ru_utime;
-    _start+=tim.tv_sec*1000 + tim.tv_usec / 1000;
-    tim=ru.ru_stime;
-    _start+=tim.tv_sec*1000 + tim.tv_usec / 1000;
-  }
-  _mustIncludeChildren=true;
-}
-
-
-#endif
-
-namespace Lib
-{
 
 vstring Timer::msToSecondsString(int ms)
 {
@@ -446,38 +359,20 @@ void Timer::printMSString(ostream& str, int ms)
 
 Timer* Timer::instance()
 {
-  static ScopedPtr<Timer> inst(new Timer());
-  
-  return inst.ptr();
+  static Timer inst;
+  return &inst;
+
 }
 
-};
+TimeoutProtector::TimeoutProtector() {
+  protectingTimeout++;
+}
 
-//#include <iostream>
-//
-//int main (int argc, char* argv [])
-//{
-//  int counter = 0;
-//  Lib::Timer timer;
-//  int last = -1;
-//  timer.start();
-//
-//  for (;;) {
-//    counter++;
-//    int current = timer.elapsedDeciseconds();
-//    if (current <= last) {
-//      continue;
-//    }
-//    last = current;
-////      cout << current << "\n";
-//    if (current == 100) {
-//      cout << "Total calls to clock() during "
-//	   << current
-//	   << " deciseconds is "
-//	   << counter
-//	   << '\n';
-//      return 0;
-//    }
-//  }
-//}
-//
+TimeoutProtector::~TimeoutProtector() {
+  protectingTimeout--;
+  if (!protectingTimeout && callLimitReachedLater) {
+    unsigned howToCall = callLimitReachedLater;
+    callLimitReachedLater = 0; // to prevent recursion (should limitReached itself reach TimeoutProtector)
+    limitReached(howToCall);
+  }
+}

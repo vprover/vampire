@@ -128,10 +128,6 @@ public:
   unsigned theoryInstSimpEmptySubstitution;
   /** number of induction applications **/
   unsigned maxInductionDepth;
-  unsigned induction;
-  unsigned inductionInProof;
-  unsigned generalizedInduction;
-  unsigned generalizedInductionInProof;
   unsigned structInduction;
   unsigned structInductionInProof;
   unsigned intInfInduction;
@@ -152,6 +148,10 @@ public:
   unsigned intFinDownInductionInProof;
   unsigned intDBDownInduction;
   unsigned intDBDownInductionInProof;
+  unsigned inductionApplication;
+  unsigned inductionApplicationInProof;
+  unsigned generalizedInductionApplication;
+  unsigned generalizedInductionApplicationInProof;
   /** number of argument congruences */
   unsigned argumentCongruence;
   unsigned narrow;
@@ -353,6 +353,7 @@ public:
     PREDICATE_DEFINITION_INLINING,
     UNUSED_PREDICATE_DEFINITION_REMOVAL,
     BLOCKED_CLAUSE_ELIMINATION,
+    TWEE,
     PREPROCESS_2,
     NEW_CNF,
     NAMING,

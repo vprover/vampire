@@ -57,6 +57,7 @@ struct DefaultComparatorTKV
   }
 };
 
+inline Comparison revert(Comparison c) { return static_cast<Comparison>(-c); }
 
 template<class Comp>
 struct ReversedComparator
@@ -64,7 +65,7 @@ struct ReversedComparator
   template<typename T>
   inline static Comparison compare(T o1, T o2)
   {
-    return static_cast<Comparison>(-Comp::compare(o1, o2));
+    return revert(Comp::compare(o1, o2));
   }
 };
 

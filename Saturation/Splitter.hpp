@@ -291,7 +291,12 @@ private:
   /** true if there was a refutation added to the SAT solver */
   bool _haveBranchRefutation;
 
-  unsigned _stopSplittingAt; // time elapsed in milliseconds
+  /* as there can be both limits, it's hard to covert between them,
+   * and we terminate at the earlier one, let's just keep checking both. */
+  unsigned _stopSplittingAtTime; // time elapsed in milliseconds
+#ifdef __linux__
+  unsigned _stopSplittingAtInst; // mega-instructions elapsed
+#endif
 
   bool _fastRestart; // option's value copy
   /**

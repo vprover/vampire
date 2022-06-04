@@ -220,14 +220,18 @@ bool __permEq(L1& lhs, L2& rhs, Eq elemEq, DArray<unsigned>& perm, unsigned idx)
     ASS_EQ(rhs.size(), perm.size());
 
     for (unsigned i = idx; i < perm.size(); i++) {
-      if (!elemEq(lhs[i], rhs[perm[i]])) return false;
+      if (!elemEq(lhs[i], rhs[perm[i]])) {
+        return false;
+      }
     }
     return true;
   };
   // These are elements fixed in the permutation, so check
   // them only once and do not recurse if one of them is false.
   for (unsigned i = 0; i < idx; i++) {
-    if (!elemEq(lhs[i], rhs[perm[i]])) return false;
+    if (!elemEq(lhs[i], rhs[perm[i]])) {
+      return false;
+    }
   }
   if (checkPerm(lhs, rhs, elemEq, perm, idx)) {
     return true;

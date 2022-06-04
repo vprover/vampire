@@ -30,16 +30,22 @@ PolynomialEvaluation::PolynomialEvaluation(Ordering& ordering) : SimplifyingGene
 
 
 Literal* createLiteral(Literal* orig, PolyNf* evaluatedArgs) {
+  CALL("createLiteral");
+
   if (orig->isEquality()) {
     return Literal::createEquality(
           orig->polarity(), 
           evaluatedArgs[0].denormalize(), 
           evaluatedArgs[1].denormalize(), 
-          SortHelper::getArgSort(orig, 0));
+          SortHelper::getTermArgSort(orig, 0));
   } else {
-    auto arity = orig->arity();
-    Stack<TermList> args(arity);
-    for (unsigned i = 0; i < arity; i++) {
+    auto termArgs = orig->numTermArguments();
+    auto typeArgs = orig->numTypeArguments();
+    Stack<TermList> args(typeArgs + termArgs);
+    for (unsigned i = 0; i < typeArgs; i++) {
+      args.push(orig->typeArg(i));
+    }
+    for (unsigned i = 0; i < termArgs; i++) {
       args.push(evaluatedArgs[i].denormalize());
     }
     return Literal::create(orig, args.begin());
@@ -48,11 +54,13 @@ Literal* createLiteral(Literal* orig, PolyNf* evaluatedArgs) {
 
 PolynomialEvaluation::Result PolynomialEvaluation::simplifyLiteral(Literal* lit) 
 {
-  Stack<PolyNf> terms(lit->arity());
+  CALL("PolynomialEvaluation::simplifyLiteral");
+
+  Stack<PolyNf> terms(lit->numTermArguments());
   auto anyChange = false;
-  for (unsigned i = 0; i < lit->arity(); i++) {
-    auto term = *lit->nthArgument(i);
-    auto norm = PolyNf::normalize(TypedTermList(term, SortHelper::getArgSort(lit, i)));
+  for (unsigned i = 0; i < lit->numTermArguments(); i++) {
+    auto term = lit->termArg(i);
+    auto norm = PolyNf::normalize(TypedTermList(term, SortHelper::getTermArgSort(lit, i)));
     auto ev = evaluate(norm);
     anyChange = anyChange || ev.isSome();
     terms.push(std::move(ev).unwrapOrElse([&](){ return norm; }));
@@ -229,7 +237,7 @@ Option<PolyNf> PolynomialEvaluation::evaluate(PolyNf normalized) const
       );
     }
   };
-  static Memo::Hashed<PolyNf, PolyNf> memo;
+  static Memo::Hashed<PolyNf, PolyNf, StlHash> memo;
   auto out = evaluateBottomUp(normalized, Eval{ *this }, memo);
   if (out == normalized) {
     return Option<PolyNf>();
@@ -238,9 +246,9 @@ Option<PolyNf> PolynomialEvaluation::evaluate(PolyNf normalized) const
   }
 }
 
-template<class Config>
-PolyNf createTerm(unsigned fun, PolyNf* evaluatedArgs) 
-{ return perfect(FuncTerm(FuncId(fun), evaluatedArgs)); }
+// template<class Config>
+// PolyNf createTerm(unsigned fun, PolyNf* evaluatedArgs) 
+// { return perfect(FuncTerm(FuncId(fun), evaluatedArgs)); }
 
 template<class Number>
 Polynom<Number> simplifyPoly(Polynom<Number> const& in, PolyNf* simplifiedArgs)

@@ -163,7 +163,7 @@ void Signature::Symbol::setType(OperatorType* type)
   ASS_REP(!_type, _type->toString());
 
   // this is copied out to the Symbol for convenience
-  _typeArgsArity = type->typeArgsArity(); 
+  _typeArgsArity = type->numTypeArguments(); 
   _type = type;  
 }
 

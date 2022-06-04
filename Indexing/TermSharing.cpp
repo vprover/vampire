@@ -80,12 +80,9 @@ void TermSharing::setPoly()
 {
   CALL("TermSharing::setPoly()");
 
-  //combinatory superposiiton can introduce polymorphism into a 
-  //monomorphic problem
-  _poly = env.property->higherOrder() ||
-          env.property->hasPolymorphicSym() ||
-          env.options->equalityProxy() != Options::EqualityProxy::OFF ||
-          env.options->saturationAlgorithm() == Options::SaturationAlgorithm::INST_GEN;
+  //combinatory superposiiton can introduce polymorphism into a monomorphic problem
+  _poly = env.property->higherOrder() || env.property->hasPolymorphicSym() ||
+    (env.options->equalityProxy() != Options::EqualityProxy::OFF && !env.options->useMonoEqualityProxy());
 }
 
 /**
@@ -174,7 +171,7 @@ Term* TermSharing::insert(Term* t)
         
         Term* r = tt->term();
   
-        vars += r->vars();
+        vars += r->numVarOccs();
         weight += r->weight();
         if (env.colorUsed) {
             color = static_cast<Color>(color | r->color());
@@ -186,7 +183,7 @@ Term* TermSharing::insert(Term* t)
     }
     t->markShared();
     t->setId(_totalTerms);
-    t->setVars(vars);
+    t->setNumVarOccs(vars);
     t->setWeight(weight);
     if (env.colorUsed) {
       Color fcolor = env.signature->getFunction(t->functor())->color();
@@ -246,13 +243,13 @@ AtomicSort* TermSharing::insert(AtomicSort* sort)
         
         Term* r = tt->term();
   
-        vars += r->vars();
+        vars += r->numVarOccs();
         weight += r->weight();
       }
     }
     sort->markShared();
     sort->setId(_totalSorts);
-    sort->setVars(vars);
+    sort->setNumVarOccs(vars);
     sort->setWeight(weight);
       
     _totalSorts++;
@@ -316,10 +313,10 @@ Literal* TermSharing::insert(Literal* t)
       else {
         ASS_REP(tt->term()->shared(), tt->term()->toString());
         Term* r = tt->term();
-        vars += r->vars();
+        vars += r->numVarOccs();
         weight += r->weight();
 
-        if(_poly && t->isEquality()){
+        if(t->isEquality()){
           TermList sort = SortHelper::getResultSort(r);
           weight += sort.weight() - 1;
         }
@@ -335,7 +332,7 @@ Literal* TermSharing::insert(Literal* t)
     }
     t->markShared();
     t->setId(_totalLiterals);
-    t->setVars(vars);
+    t->setNumVarOccs(vars);
     t->setWeight(weight);
     if (env.colorUsed) {
       Color fcolor = env.signature->getPredicate(t->functor())->color();
@@ -345,7 +342,7 @@ Literal* TermSharing::insert(Literal* t)
     t->setInterpretedConstantsPresence(hasInterpretedConstants);
     _totalLiterals++;
 
-     ASS_REP(_wellSortednessCheckingDisabled || SortHelper::areImmediateSortsValidPoly(t), t->toString());
+    ASS_REP(_wellSortednessCheckingDisabled || SortHelper::areImmediateSortsValidPoly(t), t->toString());
     if (!_poly && !SortHelper::areImmediateSortsValidMono(t) && !_wellSortednessCheckingDisabled){
       USER_ERROR("Immediate (shared) subterms of  term/literal "+t->toString()+" have different types/not well-typed!");
     } else if (_poly && !SortHelper::areImmediateSortsValidPoly(t) && !_wellSortednessCheckingDisabled){
@@ -395,18 +392,17 @@ Literal* TermSharing::insertVariableEquality(Literal* t, TermList sort)
   if (s == t) {
     t->markShared();
     t->setId(_totalLiterals);
-    // 3 since we have two variables and the equality symbol itself
-    // in the polymorphic case we add the weight of the sort since
+    // 3 since we have two variables and the equality symbol itself.
+    // Additionally, we need sort.weight() in the polymorphic case since
     // the sort may contain variables and Vampire assumes the invariant
     // weight(lit) >= distinct_vars(lit)
-    // The -1 factor is a horrible hack. Vampire starts prasing
-    // with the assumption that the problem is polymorphic and only sets it
-    // mono once proof search begins. In order to avoid having 
-    // literals have their weight calculated using two different algorithms
-    // we need the weight of a monomorphic literal when treated as a 
-    // polymorphic literal to equal its weight when treated as a monomorphic lit.
-    // Hence the -1
-    t->setWeight(3 + (_poly ? sort.weight() - 1: 0));
+    // The -1 factor is there not to make the overall weight different,
+    // for the monomorpic case, than it was in the olden days
+    // (which was 3 and sort.weight() is in such cases 1)
+    // Note that this is not perfect with arrays, who's complex (ground) sort weighs more than 1
+    // However, we don't want the calculation to depend on _poly
+    // which switches from 1 to possibly 0 only after preprocessing.
+    t->setWeight(3 + (sort.weight() - 1));
     if (env.colorUsed) {
       t->setColor(COLOR_TRANSPARENT);
     }

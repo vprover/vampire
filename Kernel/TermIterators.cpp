@@ -459,7 +459,7 @@ TermList NonVariableNonTypeIterator::next()
     taArity = 0;
     arity = 2;
   } else {
-    taArity = sym->typeArgsArity();
+    taArity = sym->numTypeArguments();
     arity = sym->arity();
   }
 
