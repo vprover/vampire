@@ -240,6 +240,42 @@ topLevelContinue: ;
 
 }
 
+void Ordering::initSmallestTermForASort() const {
+  // create the map only once and cache from then on 
+  // (this could have downsides if we expect the signature to keep growing!)
+  if (_smallestTerms.isEmpty()) {
+    _smallestTerms=SmartPtr<Map<TermList,TermList>>(new Map<TermList,TermList>());
+
+    for(unsigned i = 0; i < env.signature->functions(); i++) {
+      auto symb = env.signature->getFunction(i);
+      if (symb->arity() > 0) {
+        continue;
+      }
+      auto sort = symb->fnType()->result();
+      TermList candidate = TermList(Term::createConstant(i));
+
+      auto curMin = _smallestTerms->getOrInit(sort,[&]() { return candidate; });
+      if (compare(candidate, curMin) == LESS) {
+        _smallestTerms->replace(sort, candidate);
+      }
+    }
+
+    Map<TermList,TermList>::Iterator it(*_smallestTerms);
+    while (it.hasNext()) {      
+      auto symb = env.signature->getFunction(it.next().value().term()->functor());
+      symb->markSmallestConst();
+    }
+  }
+}
+
+bool Ordering::getSmallestTermForASort(TermList sort, TermList& theTerm) const {
+  CALL("Ordering::getSmallestTermForASort");
+
+  initSmallestTermForASort();
+
+  return _smallestTerms->find(sort,theTerm);
+}
+
 Ordering::Result Ordering::getEqualityArgumentOrder(Literal* eq) const
 {
   CALL("Ordering::getEqualityArgumentOrder");
