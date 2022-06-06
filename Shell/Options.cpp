@@ -145,6 +145,7 @@ void Options::init()
          "casc_sat",
          "casc_sat_2019",
          "casc_hol_2020",
+         "file",
          "induction",
          "integer_induction",
          "ltb_default_2017",
@@ -155,9 +156,14 @@ void Options::init()
          "smtcomp",
          "smtcomp_2018",
          "struct_induction"});
-    _schedule.description = "Schedule to be run by the portfolio mode. casc and smtcomp usually point to the most recent schedule in that category. Note that some old schedules may contain option values that are no longer supported - see ignore_missing.";
+    _schedule.description = "Schedule to be run by the portfolio mode. casc and smtcomp usually point to the most recent schedule in that category. file loads the schedule from a file specified in --schedule_file. Note that some old schedules may contain option values that are no longer supported - see ignore_missing.";
     _lookup.insert(&_schedule);
     _schedule.reliesOn(UsingPortfolioTechnology());
+
+    _scheduleFile = StringOptionValue("schedule_file", "", "");
+    _scheduleFile.description = "Path to the input schedule file. Each line contains an encoded strategy. Disabled unless `--schedule file` is set.";
+    _lookup.insert(&_scheduleFile);
+    _scheduleFile.onlyUsefulWith(_schedule.is(equal(Schedule::FILE)));
 
     _multicore = UnsignedOptionValue("cores","",1);
     _multicore.description = "When running in portfolio modes (including casc or smtcomp modes) specify the number of cores, set to 0 to use maximum";

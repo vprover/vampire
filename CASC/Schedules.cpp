@@ -16,9 +16,28 @@
 
 #include "Schedules.hpp"
 
+#include <fstream>
+
 using namespace Lib;
 using namespace Shell;
 using namespace CASC;
+
+void Schedules::getScheduleFromFile(const vstring& filename, Schedule& quick)
+{
+  if (filename == "") {
+    USER_ERROR("Schedule file was not set.");
+  }
+  BYPASSING_ALLOCATOR;
+  ifstream schedule_file (filename.c_str());
+  if (schedule_file.fail()) {
+    USER_ERROR("Cannot open schedule file: " + filename);
+  }
+  ASS(schedule_file.is_open());
+  vstring line;
+  while (getline(schedule_file, line)) {
+    quick.push(line);
+  }
+}
 
 /**
  * Get schedules for a problem of given property.
