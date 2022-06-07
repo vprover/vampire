@@ -23,6 +23,12 @@
 ///@{
 
 
+#define DEFAULT_CONSTRUCTORS(Class)                                                                 \
+  Class(Class const&) = default;                                                                    \
+  Class(Class     &&) = default;                                                                    \
+  Class& operator=(Class const&) = default;                                                         \
+  Class& operator=(Class     &&) = default;                                                         \
+
 //The obvious way to define this macro would be
 //#define DECL_ELEMENT_TYPE(T) typedef T _ElementType
 //but the preprocessor understands for example

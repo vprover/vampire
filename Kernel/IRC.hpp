@@ -52,6 +52,7 @@
 #define DEBUG(...) // DBG(__VA_ARGS__)
 
 
+
 namespace Kernel {
   using Inferences::PolynomialEvaluation;
 
@@ -224,7 +225,9 @@ namespace Kernel {
      * t >= 0 ==> t > 0 \/ t == 0
      * t != 0 ==> t > 0 \/ -t > 0
      */
-    InequalityNormalizer(bool strong) : _eval(), _strong(strong) {  }
+    InequalityNormalizer(bool strong) 
+      : _eval(/* removeZero */ false)
+      , _strong(strong) {  }
 
     template<class NumTraits> Option<MaybeOverflow<Stack<IrcLiteral<NumTraits>>>> normalizeIrc(Literal* lit) const;
     template<class NumTraits> Option<MaybeOverflow<IrcLiteral<NumTraits>>> renormalizeIrc(Literal* lit) const;
@@ -344,6 +347,7 @@ namespace Kernel {
       , _ircLiteral(std::move(ircLiteral)) 
       , _term(term) {}
 
+    auto termIdx() const { return _term; }
     explicit SelectedSummand(SelectedSummand const&) = default;
     SelectedSummand(SelectedSummand&&) = default;
     SelectedSummand& operator=(SelectedSummand&&) = default;
@@ -364,10 +368,15 @@ namespace Kernel {
     auto nContextTerms() const 
     { return _ircLiteral.apply([](auto& lit) { return lit.term().nSummands() - 1; }); }
 
+
+    template<class NumTraits>
+    auto const& ircLiteral() const
+    { return _ircLiteral.template unwrap<IrcLiteral<NumTraits>>(); }
+
     template<class NumTraits>
     auto contextTerms() const 
     { 
-      auto& lit = _ircLiteral.template unwrap<IrcLiteral<NumTraits>>();
+      auto& lit = ircLiteral<NumTraits>();
       return range(0, lit.term().nSummands()) 
                 .filter([&](unsigned i) { return i != _term; })
                 .map([&](unsigned i) { return lit.term().summandAt(i); });
@@ -627,8 +636,13 @@ Option<MaybeOverflow<Stack<IrcLiteral<NumTraits>>>> InequalityNormalizer::normal
       case Interpretation::EQUAL:/* l == r or l != r */
         if (SortHelper::getEqualityArgumentSort(lit) != NumTraits::sort()) 
           return Opt();
-        l = *lit->nthArgument(0);
-        r = *lit->nthArgument(1);
+        if (*lit->nthArgument(0) == NumTraits::zero()) {
+          l = *lit->nthArgument(0);
+          r = *lit->nthArgument(1);
+        } else {
+          l = *lit->nthArgument(1);
+          r = *lit->nthArgument(0);
+        }
         pred = lit->isPositive() ? IrcPredicate::EQ : IrcPredicate::NEQ;
         break;
 
@@ -673,7 +687,7 @@ Option<MaybeOverflow<Stack<IrcLiteral<NumTraits>>>> InequalityNormalizer::normal
     }
 
     /* l < r ==> r > l ==> r - l > 0 */
-    auto t = NumTraits::add(r, NumTraits::minus(l));
+    auto t = l == NumTraits::zero() ? r : NumTraits::add(r, NumTraits::minus(l));
 
     ASS(!isInt || pred != IrcPredicate::GREATER_EQ)
     auto tt = TypedTermList(t, NumTraits::sort());

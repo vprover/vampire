@@ -26,15 +26,6 @@
 
 namespace Lib {
 
-template<class T> struct MoveIfValue           { T        operator()(T      & t) { return std::move(t); } }; 
-template<class T> struct MoveIfValue<T     &&> { T     && operator()(T      & t) { return std::move(t); } }; 
-template<class T> struct MoveIfValue<T      &> { T      & operator()(T      & t) { return           t ; } }; 
-template<class T> struct MoveIfValue<T const&> { T const& operator()(T const& t) { return           t ; } }; 
-// template<class T> T move_if_value(T  const& t) { return t; }
-// template<class T> T move_if_value(T const&& t) { return t; }
-// template<class T> T move_if_value(T      && t) { return MoveIfValue<T>{}(t); }
-// template<class T> T move_if_value(T       & t) { return MoveIfValue<T>{}(t); }
-
 template<
   class T,
   typename std::enable_if<std::is_reference<T>::value, bool>::type = true
@@ -146,23 +137,27 @@ public:
 
 #undef for_ref_qualifier
 
-  OptionBase& operator=(OptionBase other)
+  OptionBase& operator=(OptionBase&& other)
   {
-    CALL("OptionBase& operator=(OptionBase)");
-
+    CALL("OptionBase& operator=(OptionBase&&)");
     if (_isSome) {
-      if (other._isSome) {
-        unwrap() = move_if_value<A>(other.unwrap());
-      } else {
-        unwrap().~A();
-      }
-    } else {
-      ASS(isNone())
-      if (other._isSome) {
-         _elem.init(move_if_value(other.unwrap()));
-      } else {
-         /* nothing to do */
-      }
+      unwrap().~A();
+    }
+    if (other._isSome) {
+      _elem.init(move_if_value<A>(other.unwrap()));
+    }
+    _isSome = other._isSome;
+    return *this;
+  }
+
+  OptionBase& operator=(OptionBase const& other)
+  {
+    CALL("OptionBase& operator=(OptionBase const&)");
+    if (_isSome) {
+      unwrap().~A();
+    }
+    if (other._isSome) {
+      _elem.init(other.unwrap());
     }
     _isSome = other._isSome;
     return *this;

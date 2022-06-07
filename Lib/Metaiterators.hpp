@@ -35,12 +35,6 @@ namespace Lib {
 ///@addtogroup Iterators
 ///@{
 
-#define DEFAULT_CONSTRUCTORS(Class)                                                                 \
-  Class(Class const&) = default;                                                                    \
-  Class(Class     &&) = default;                                                                    \
-  Class& operator=(Class const&) = default;                                                         \
-  Class& operator=(Class     &&) = default;                                                         \
-
 
 /**
  * Return iterator on the container C
@@ -68,6 +62,7 @@ class InfiniteArrayIterator
 {
 public:
   DECL_ELEMENT_TYPE(El);
+  DEFAULT_CONSTRUCTORS(InfiniteArrayIterator)
   InfiniteArrayIterator(const El* ptr) : _nextPtr(ptr) {}
   inline bool hasNext() { return true; }
   inline OWN_ELEMENT_TYPE next() { return *(_nextPtr++); }
@@ -110,6 +105,7 @@ class ArrayishObjectIterator
 public:
   using Cont = ArrayishContentType<Arr, ref_t>;
   DECL_ELEMENT_TYPE(ref_t<ELEMENT_TYPE(Arr)>);
+  DEFAULT_CONSTRUCTORS(ArrayishObjectIterator)
   ArrayishObjectIterator(Cont arr) : _arr(arr),
   _index(0), _size(_arr.size()) {}
   ArrayishObjectIterator(Cont arr, size_t size) : _arr(arr),
@@ -149,6 +145,7 @@ class OwnedArrayishIterator
 {
 public:
   DECL_ELEMENT_TYPE(ELEMENT_TYPE(Arr));
+  DEFAULT_CONSTRUCTORS(OwnedArrayishIterator)
   OwnedArrayishIterator(Arr&& arr) : _arr(std::move(arr)),
   _index(0), _size(_arr.size()) {}
   OwnedArrayishIterator(Arr&& arr, size_t size) : _arr(std::move(arr)),
@@ -182,6 +179,7 @@ class InputIterator
 {
 public:
   DECL_ELEMENT_TYPE(T);
+  DEFAULT_CONSTRUCTORS(InputIterator)
   InputIterator(istream& inp, size_t cnt) : _inp(inp), _remaining(cnt) {}
 
   bool hasNext() const { return _remaining>0; }
@@ -212,6 +210,7 @@ class PointerIterator
 {
 public:
   DECL_ELEMENT_TYPE(T);
+  DEFAULT_CONSTRUCTORS(PointerIterator)
   inline PointerIterator(const T* first, const T* afterLast) :
     _curr(first), _afterLast(afterLast) {}
   inline bool hasNext() { ASS(_curr<=_afterLast); return _curr!=_afterLast; }
@@ -234,6 +233,7 @@ class PointerPtrIterator
 {
 public:
   DECL_ELEMENT_TYPE(T*);
+  DEFAULT_CONSTRUCTORS(PointerPtrIterator)
   inline PointerPtrIterator(T* first, T* afterLast) :
     _curr(first), _afterLast(afterLast) {}
   inline bool hasNext() { ASS(_curr<=_afterLast); return _curr!=_afterLast; }
@@ -248,6 +248,7 @@ class ConstPointerPtrIterator
 {
 public:
   DECL_ELEMENT_TYPE(const T*);
+  DEFAULT_CONSTRUCTORS(ConstPointerPtrIterator)
   inline ConstPointerPtrIterator(T const* first, T const* afterLast) :
     _curr(first), _afterLast(afterLast) {}
   inline bool hasNext() { ASS(_curr<=_afterLast); return _curr!=_afterLast; }
@@ -270,6 +271,7 @@ class SingletonIterator
 {
 public:
   DECL_ELEMENT_TYPE(T);
+  DEFAULT_CONSTRUCTORS(SingletonIterator)
   explicit SingletonIterator(T el) : _finished(false), _el(el) {}
   inline bool hasNext() { return !_finished; };
   inline T next() { ASS(!_finished); _finished=true; return _el; };
@@ -326,7 +328,8 @@ class StaticCastIterator
 {
 public:
   DECL_ELEMENT_TYPE(To);
-  explicit StaticCastIterator(Inner inn) :_inn(inn) {}
+  DEFAULT_CONSTRUCTORS(StaticCastIterator)
+  explicit StaticCastIterator(Inner inn) :_inn(std::move(inn)) {}
   inline bool hasNext() { return _inn.hasNext(); };
   inline To next() { return static_cast<To>(_inn.next()); };
 private:
@@ -426,6 +429,7 @@ class FilteredIterator
 {
 public:
   DECL_ELEMENT_TYPE(ELEMENT_TYPE(Inner));
+  DEFAULT_CONSTRUCTORS(FilteredIterator)
 
   FilteredIterator(Inner inn, Functor func)
   : _func(std::move(func)), _inn(std::move(inn)), _next() {}
@@ -476,7 +480,7 @@ public:
   DEFAULT_CONSTRUCTORS(FilterMapIter)
 
   FilterMapIter(Inner inn, Functor func)
-  : _func(func), _inn(std::move(inn)), _next() {}
+  : _func(std::move(func)), _inn(std::move(inn)), _next() {}
 
   bool hasNext()
   {
@@ -514,6 +518,7 @@ class FilteredDelIterator
 {
 public:
   DECL_ELEMENT_TYPE(ELEMENT_TYPE(Inner));
+  DEFAULT_CONSTRUCTORS(FilteredDelIterator)
 
   FilteredDelIterator(Inner inn, Functor func)
   : _func(func), _inn(inn), _nextStored(false) {}
@@ -580,8 +585,9 @@ class WhileLimitedIterator
 {
 public:
   DECL_ELEMENT_TYPE(ELEMENT_TYPE(Inner));
+  DEFAULT_CONSTRUCTORS(WhileLimitedIterator)
   WhileLimitedIterator(Inner inn, Functor func)
-  : _func(func), _inn(inn), _nextStored(false) {}
+  : _func(std::move(func)), _inn(std::move(inn)), _nextStored(false) {}
   bool hasNext()
   {
     if(!_nextStored) {
@@ -635,9 +641,10 @@ class CatIterator
 {
 public:
   DECL_ELEMENT_TYPE(ELEMENT_TYPE(It1));
+  DEFAULT_CONSTRUCTORS(CatIterator)
 
   CatIterator(It1 it1, It2 it2)
-  	:_first(true), _it1(it1), _it2(it2) {}
+  	:_first(true), _it1(std::move(it1)), _it2(std::move(it2)) {}
   bool hasNext()
   {
     if(_first) {
@@ -717,8 +724,8 @@ template<typename Inner, typename Functor, typename ResultType=std::result_of_t<
 class MappingIterator
 {
 public:
-  DEFAULT_CONSTRUCTORS(MappingIterator)
   DECL_ELEMENT_TYPE(ResultType);
+  DEFAULT_CONSTRUCTORS(MappingIterator)
   explicit MappingIterator(Inner inner, Functor func)
   : _func(std::move(func)), _inner(std::move(inner)) {}
   inline bool hasNext() { CALL("MappingIterator::hasNext"); return _inner.hasNext(); };
@@ -828,6 +835,7 @@ class ConstructingIterator
 {
 public:
   DECL_ELEMENT_TYPE(Constructor*);
+  DEFAULT_CONSTRUCTORS(ConstructingIterator)
   explicit ConstructingIterator(Inner inner)
   : _inner(inner) {}
   inline bool hasNext() { return _inner.hasNext(); };
@@ -866,14 +874,14 @@ class FlatteningIterator
 public:
   using Inner = ELEMENT_TYPE(Master);
   DECL_ELEMENT_TYPE(ELEMENT_TYPE(Inner));
+  DEFAULT_CONSTRUCTORS(FlatteningIterator)
 
   explicit FlatteningIterator(Master master)
   : _master(std::move(master))
   , _current(_master.hasNext() 
-        ? Option<Inner>(std::move(_master.next()))
+        ? Option<Inner>(move_if_value<Inner>(_master.next()))
         : Option<Inner>())
   { }
-  DEFAULT_CONSTRUCTORS(FlatteningIterator)
 
   bool hasNext()
   {
@@ -883,8 +891,8 @@ public:
         return true;
       } else {
         _current = _master.hasNext() 
-            ? Option<Inner>(std::move(_master.next()))
-            : Option<Inner>();
+          ? Option<Inner>(move_if_value<Inner>(_master.next())) 
+          : Option<Inner>();
       }
     }
     return false;
@@ -896,7 +904,7 @@ public:
     CALL("FlatteningIterator::next");
     ASS(_current.isSome());
     ASS(_current.unwrap().hasNext());
-    return _current.unwrap().next();
+    return move_if_value<OWN_ELEMENT_TYPE>(_current.unwrap().next());
   }
 private:
   Master _master;
@@ -1148,6 +1156,7 @@ class RangeIterator
 {
 public:
   DECL_ELEMENT_TYPE(T);
+  DEFAULT_CONSTRUCTORS(RangeIterator)
   inline
   RangeIterator(T from, T to)
   : _next(from), _from(from), _to(to) {}
@@ -1178,6 +1187,7 @@ class CombinationIterator
 {
 public:
   DECL_ELEMENT_TYPE(pair<T,T>);
+  DEFAULT_CONSTRUCTORS(CombinationIterator)
   CombinationIterator(T from, T to)
   : _first(from), _second(from), _afterLast(to)
   {
@@ -1233,6 +1243,7 @@ class Combination2Iterator
 {
 public:
   DECL_ELEMENT_TYPE(pair<T,T>);
+  DEFAULT_CONSTRUCTORS(Combination2Iterator)
   Combination2Iterator(T from, T to1, T to2)
   : _first(from), _second(from), _afterLast1(to1), _afterLast2(to2)
   {
@@ -1307,9 +1318,10 @@ class ContextualIterator
 {
 public:
   DECL_ELEMENT_TYPE(ELEMENT_TYPE(Inner));
+  DEFAULT_CONSTRUCTORS(ContextualIterator)
 
   ContextualIterator(Inner iit, Ctx context)
-  : _inContext(false), _used(true), _context(context), _iit(iit) {}
+  : _inContext(false), _used(true), _context(std::move(context)), _iit(std::move(iit)) {}
 
   ~ContextualIterator()
   {
@@ -1681,6 +1693,7 @@ class CoproductIter
   Coproduct<Is...> _inner;
 public:
   DECL_ELEMENT_TYPE(ELEMENT_TYPE(TypeList::Get<0, TypeList::List<Is...>>));
+  DEFAULT_CONSTRUCTORS(CoproductIter)
 
   template<class I>
   CoproductIter(I i) : _inner(Coproduct<Is...>(std::move(i))) {}
@@ -1719,10 +1732,10 @@ class IterTraits
   Iter _iter;
 public:
   DECL_ELEMENT_TYPE(ELEMENT_TYPE(Iter));
+  DEFAULT_CONSTRUCTORS(IterTraits)
   using Elem = ELEMENT_TYPE(Iter);
 
   explicit IterTraits(Iter iter) : _iter(std::move(iter)) {}
-  DEFAULT_CONSTRUCTORS(IterTraits)
 
   Elem next() 
   { 

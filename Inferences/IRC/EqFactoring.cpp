@@ -333,16 +333,11 @@ ClauseIterator EqFactoring::generateClauses(
     }));
 }
 
-template<class A>
-A* move_to_heap(A&& a) 
-{ return new A(std::move(a)); }
-
 ClauseIterator EqFactoring::generateClauses(Clause* premise) 
 {
 
   DEBUG("in: ", *premise)
 
-  // auto selected = make_shared(move_to_heap(_shared->selectedLiterals(premise)));
   auto selected = make_shared(move_to_heap(_shared->selectedLiteralsWithIdx(premise)));
   return pvi(
       range(0, selected->size())

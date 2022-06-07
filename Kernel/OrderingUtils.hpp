@@ -29,6 +29,7 @@ namespace Kernel {
   public:
     MultiSet() : _elems() {}
     MultiSet(MultiSet&&) = default;
+    MultiSet& operator=(MultiSet&&) = default;
 
     template<class Iter>
     static MultiSet fromIterator(Iter i) 

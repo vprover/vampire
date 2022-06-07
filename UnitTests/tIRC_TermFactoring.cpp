@@ -37,25 +37,25 @@ using namespace Inferences::IRC;
 ////// TEST CASES 
 /////////////////////////////////////
 
-#define SUGAR(Num)                                                                                            \
-  NUMBER_SUGAR(Num)                                                                                           \
-  DECL_DEFAULT_VARS                                                                                           \
-  DECL_VAR(x0, 0)                                                                                             \
-  DECL_VAR(x1, 1)                                                                                             \
-  DECL_VAR(x2, 2)                                                                                             \
-  DECL_VAR(x3, 3)                                                                                             \
-  DECL_VAR(x4, 4)                                                                                             \
-  DECL_FUNC(f, {Num}, Num)                                                                                    \
-  DECL_FUNC(ff, {Num}, Num)                                                                                   \
-  DECL_FUNC(g, {Num, Num}, Num)                                                                               \
-  DECL_FUNC(g0, {Num, Num}, Num)                                                                              \
-  DECL_FUNC(g1, {Num, Num}, Num)                                                                              \
-  DECL_FUNC(h, {Num, Num, Num}, Num)                                                                          \
-  DECL_CONST(a, Num)                                                                                          \
-  DECL_CONST(b, Num)                                                                                          \
-  DECL_CONST(c, Num)                                                                                          \
-  DECL_PRED(p, {Num})                                                                                         \
-  DECL_PRED(r, {Num,Num})                                                                                     \
+#define SUGAR(Num)                                                                                  \
+  NUMBER_SUGAR(Num)                                                                                 \
+  DECL_DEFAULT_VARS                                                                                 \
+  DECL_VAR(x0, 0)                                                                                   \
+  DECL_VAR(x1, 1)                                                                                   \
+  DECL_VAR(x2, 2)                                                                                   \
+  DECL_VAR(x3, 3)                                                                                   \
+  DECL_VAR(x4, 4)                                                                                   \
+  DECL_FUNC(f, {Num}, Num)                                                                          \
+  DECL_FUNC(ff, {Num}, Num)                                                                         \
+  DECL_FUNC(g, {Num, Num}, Num)                                                                     \
+  DECL_FUNC(g0, {Num, Num}, Num)                                                                    \
+  DECL_FUNC(g1, {Num, Num}, Num)                                                                    \
+  DECL_FUNC(h, {Num, Num, Num}, Num)                                                                \
+  DECL_CONST(a, Num)                                                                                \
+  DECL_CONST(b, Num)                                                                                \
+  DECL_CONST(c, Num)                                                                                \
+  DECL_PRED(p, {Num})                                                                               \
+  DECL_PRED(r, {Num,Num})                                                                           \
 
 #define MY_SYNTAX_SUGAR SUGAR(Rat)
 
@@ -78,146 +78,108 @@ TEST_GENERATION(new0101,
       .inputs  ({  clause({selected( -g(a, x) + -g(y, b) > 0 ) }) })
       .expected(exactly(
           /* nothing because both negative */
-      ))
-      .premiseRedundant(false)
-    )
+      )))
 TEST_GENERATION(new0102,
     Generation::SymmetricTest()
       .inputs  ({  clause({selected( g(a, x) + -g(y, b) > 0 ) }) })
       .expected(exactly(
-          clause({ num(0) > 0 })
-      ))
-      .premiseRedundant(false)
-    )
+          clause({ 0 * g(a, b) > 0 })
+      )))
 TEST_GENERATION(new0103,
     Generation::SymmetricTest()
       .inputs  ({  clause({selected( g(a, x) + g(y, b) > 0 ) }) })
       .expected(exactly(
           clause({ 2 * g(a, b) > 0 })
-      ))
-      .premiseRedundant(false)
-    )
+      )))
+
 
 // checking different symbols
-TEST_GENERATION(new02001,
-    Generation::SymmetricTest()
-      .inputs  ({  clause({selected( g(a, x) + g(y, b) > 0 ) }) })
-      .expected(exactly(
-          clause({ 2 * g(a, b) > 0 })
-      ))
-      .premiseRedundant(false)
-    )
-TEST_GENERATION(new02002,
-    Generation::SymmetricTest()
-      .inputs  ({  clause({selected( g(a, x) + g(y, b) >= 0 ) }) })
-      .expected(exactly(
-          clause({ 2 * g(a, b) > 0 })
-      ))
-      .premiseRedundant(false)
-    )
-TEST_GENERATION(new02003,
-    Generation::SymmetricTest()
-      .inputs  ({  clause({selected( g(a, x) + g(y, b) == 0 ) }) })
-      .expected(exactly(
-          clause({ 2 * g(a, b) > 0 })
-      ))
-      .premiseRedundant(false)
-    )
-TEST_GENERATION(new02004,
+
+#define test_new02(sym, name)                                                                       \
+TEST_GENERATION(new02_ ## name,                                                                     \
+    Generation::SymmetricTest()                                                                     \
+      .inputs  ({  clause({selected( g(a, x) + g(y, b) sym 0 ) }) })                                \
+      .expected(exactly(                                                                            \
+          clause({ 2 * g(a, b) sym 0 })                                                             \
+      )))                                                                                           \
+
+test_new02(>=, geq)
+test_new02(> , greater)
+test_new02(==, eq)
+
+TEST_GENERATION(new02_neq,
     Generation::SymmetricTest()
       .inputs  ({  clause({selected( g(a, x) + g(y, b) != 0 ) }) })
       .expected(exactly(
           /* we do not factor for negative equalities. TODO: do we really not need to? */
-      ))
-      .premiseRedundant(false)
-    )
+      )))
 
 TEST_GENERATION(basic01a,
     Generation::SymmetricTest()
       .inputs  ({  clause({selected( 3 * g(a, x) + 2 * g(y, b) > 0 ), p(x) }) })
       .expected(exactly(
           /* nothing because uninterpreted stuff is bigger */
-      ))
-      .premiseRedundant(false)
-    )
+      )))
 
 TEST_GENERATION(basic01b,
     Generation::SymmetricTest()
       .inputs  ({  clause({selected( 3 * g(a, x) + 2 * g(y, b) > 0 ), f(x) - 1 == 0 }) })
       .expected(exactly(
             clause({ 5 * g(a,b) > 0, f(b) - 1 == 0  })
-      ))
-      .premiseRedundant(false)
-    )
+      )))
 
 TEST_GENERATION(basic02,
     Generation::SymmetricTest()
       .inputs  ({  clause({ selected( 1 * f(x) +  -1 * f(a) > 0 )  }) })
       .expected(exactly(
             clause({      0 * f(a) > 0 }) 
-      ))
-      .premiseRedundant(false)
-    )
+      )))
 
 // checking (k1 s1 + k2 s2 + t <> 0)σ /≺ Cσ
 TEST_GENERATION(lit_max_after_unif_1,
     Generation::SymmetricTest()
       .inputs  ({  clause({ f(x) +  -f(a) > 0, f(f(a)) > 0 }) })
       .expected(exactly(
-      ))
-      .premiseRedundant(false)
-    )
+      )))
 
 // checking (k1 s1 + k2 s2 + t <> 0)σ /≺ Cσ
 TEST_GENERATION(lit_max_after_unif_2,
     Generation::SymmetricTest()
       .inputs  ({  clause({ selected( f(x) +  -f(a) > 0 ), selected( f(f(a)) > 0 ), selected( f(z) > 0 ) }) })
       .expected(exactly(
-      ))
-      .premiseRedundant(false)
-    )
+      )))
 
 // checking (k1 s1 + k2 s2 + t <> 0) /≺ Cσ
 TEST_GENERATION(lit_max_after_unif_3,
     Generation::SymmetricTest()
       .inputs  ({        clause({ selected( f(x) +  -f(a) > 0 ), f(z) > 0 }) })
-      .expected(exactly( clause({ selected(      0 * f(a) > 0 ), f(z) > 0 }) ))
-      .premiseRedundant(false)
-    )
+      .expected(exactly( clause({ selected(      0 * f(a) > 0 ), f(z) > 0 }) )))
 
 TEST_GENERATION(term_max_after_unif_0,
     Generation::SymmetricTest()
       .inputs  ({        clause({ f(a + b) + -f(a + b + c) > 0 }) })
-      .expected(exactly(                               ))
-      .premiseRedundant(false)
-    )
+      .expected(exactly(                               )))
 
 // checking s1σ /≺ terms(s2 + t)σ
 // checking s2σ /≺ terms(s1 + t)σ
 TEST_GENERATION(term_max_after_unif_1,
     Generation::SymmetricTest()
       .inputs  ({        clause({ g(a + x, c) + -g(a + b + x, x) > 0 }) })
-      .expected(exactly(                               ))
-      .premiseRedundant(false)
-    )
+      .expected(exactly(                               )))
 
 // checking s1σ /≺ terms(s2 + t)σ
 // checking s2σ /≺ terms(s1 + t)σ
 TEST_GENERATION(term_max_after_unif_2,
     Generation::SymmetricTest()
       .inputs  ({        clause({ g(a, c) + -g(a, x) + g(x, x) > 0 }) })
-      .expected(exactly(                               ))
-      .premiseRedundant(false)
-    )
+      .expected(exactly(                               )))
 
 TEST_GENERATION(basic03,
     Generation::SymmetricTest()
       .inputs  ({  clause({ selected( 1 * f(x) +  -1 * f(y) > 0 )  }) })
       .expected(exactly(
             clause({      num(0) * f(x) > 0 }) 
-      ))
-      .premiseRedundant(false)
-    )
+      )))
 
 TEST_GENERATION(basic04,
     Generation::SymmetricTest()
@@ -226,8 +188,32 @@ TEST_GENERATION(basic04,
       .expected(exactly(
                   clause({ 2 * h(a, a, x) + h(b, a, y) > 0  }) 
                 , clause({ 2 * h(b, b, y) + h(a, b, x) > 0  }) 
-      ))
-      .premiseRedundant(false)
+      )))
+
+
+TEST_GENERATION(unshielded_vars_0,
+    Generation::SymmetricTest()
+      .inputs  ({  clause({ selected(x + a > 0)  }) })
+      .expected(exactly( /* nothing */  ))
+    )
+
+TEST_GENERATION(unshielded_vars_1,
+    Generation::SymmetricTest()
+      .inputs  ({  clause({ selected(-x + a > 0)  }) })
+      .expected(exactly( /* nothing */  ))
+    )
+
+
+TEST_GENERATION(unshielded_vars_2,
+    Generation::SymmetricTest()
+      .inputs  ({  clause({ selected(x + -a > 0)  }) })
+      .expected(exactly( /* nothing */  ))
+    )
+
+TEST_GENERATION(unshielded_vars_3,
+    Generation::SymmetricTest()
+      .inputs  ({  clause({ selected(-x + -a > 0)  }) })
+      .expected(exactly( /* nothing */  ))
     )
 
 /////////////////////////////////////////////////////////
@@ -239,9 +225,7 @@ TEST_GENERATION(abstraction1,
       .inputs  ({  clause({ selected(-f(f(x) + g(a, c)) + f(f(y) + g(b, c)) > 0)   })})
       .expected(exactly(
             clause({ 0 * f(f(x) + g(a, c)) > 0, f(y) + g(b, c) != f(x) + g(a, c) })
-      ))
-      .premiseRedundant(false)
-    )
+      )))
 
 
 
@@ -251,29 +235,21 @@ TEST_GENERATION(abstraction1,
 
 TEST_GENERATION(misc01,
     Generation::SymmetricTest()
-  // 0 != (-(x) + (-(g(x,z)) + g(-30 * y,y))) | 0 != (y + z) { x -> -30 * y, z -> y }
-  // 0 != -((-30 * y)) | 0 != (y + y) 
       .inputs  ({          clause({ selected( -     x    - g(x,z) + g(-30 * y,y) > 0 ) , selected( 0 != y + z ) }) }) // { x -> -30 * x, z -> x, y -> x }
-      .expected(exactly(  clause({ -(-30 * x) + 0 * g(-30 * x, x) > 0 , 0 != x + x }) ))
-      .premiseRedundant(false)
-    )
+      .expected(exactly(  clause({ -(-30 * x) + 0 * g(-30 * x, x) > 0 , 0 != x + x }) )))
 
 TEST_GENERATION(misc02,
     Generation::SymmetricTest()
-      .inputs  ({              clause({ selected( 0 != -(    x  ) + 2 * g(-30 * y, z) + -g(x,y) ) , selected( 0 != z ) }) }) // { x -> -30 * x, z -> x, y -> x }
-      .expected(exactly(anyOf(clause({ 0 !=  (-30 * x) + -1 * g(-30 * x, x)           , 0 != x }),
-                              clause({ 0 != -(-30 * x) +      g(-30 * x, x)           , 0 != x })
-            ) ))
-      .premiseRedundant(false)
-    )
+      .inputs  ({              clause({ selected( -(    x  ) + 2 * g(-30 * y, z) + -g(x,y) > 0 ) , selected( 0 != z ) }) }) // { x -> -30 * x, z -> x, y -> x }
+      .expected(exactly(anyOf(clause({   (-30 * x) + -1 * g(-30 * x, x) > 0          , 0 != x }),
+                              clause({  -(-30 * x) +  1 * g(-30 * x, x) > 0       , 0 != x })
+            ) )))
 
 TEST_GENERATION(misc03,
     Generation::SymmetricTest()
-      .inputs  ({              clause({ selected( 0 !=  x0 + g(x2,x3) + g(x0,x1) ) , selected( 0 != x3 + x1 ) }) }) // { x3 -> x0, x2 -> x1 }
-      .expected(exactly(anyOf(clause({ 0 !=  x0 +        2 * g(x0,x1) , 0 != x1 + x1 })  
-                            , clause({ 0 != -x0 +       -2 * g(x0,x1) , 0 != x1 + x1 }))))
-      .premiseRedundant(false)
-    )
+      .inputs  ({              clause({ selected(   x0 + g(x2,x3) + g(x0,x1) > 0 ) , selected( 0 != x3 + x1 ) }) }) // { x3 -> x0, x2 -> x1 }
+      .expected(exactly(anyOf(clause({   x0 +        2 * g(x0,x1) > 0 , 0 != x1 + x1 })  
+                            , clause({  -x0 +       -2 * g(x0,x1) > 0 , 0 != x1 + x1 })))))
 
   // 51017. 0.0 != ((-3.0 * X31) + (lG132(X21,X22) + (lG145($product(18.0,X24),X25) + -(lG132(X31,X24))))) | 0.0 != (X21 + (-10.0 * X25)) <- (48) [trivial inequality removal 51016]
   // 99594. 0.0 != ((-3.0 * X0) + lG145($product(18.0,X1),X2)) | 0.0 != (X0 + (-10.0 * X2)) <- (48) [inequality term factoring 51017]
@@ -284,9 +260,7 @@ TEST_GENERATION(misc03,
 TEST_GENERATION(misc04,
     Generation::SymmetricTest()
       .inputs  ({              clause({selected( -3 * x0 + g0(x3,x4) - g0(x0,x1) + g1(18 * x1, x2) > 0 ) , selected( 0 != x0 + -10 * x2 )}) })
-      .expected(exactly(       clause({-3 * x0 +       0 * g0(x0, x2)  + g1(18 * x2, x3) > 0 , 0 != x0 + -10 * x3}) ))
-      .premiseRedundant(false)
-    )
+      .expected(exactly(       clause({-3 * x0 +       0 * g0(x0, x2)  + g1(18 * x2, x3) > 0 , 0 != x0 + -10 * x3}) )))
 
 /////////////////////////////////////////////////////////
 // Bug fixes
@@ -297,9 +271,7 @@ TEST_GENERATION(bug_01,
 // 1 + f26(f34(f59,X0),X0) + f26(f34(f59,X1),X1) > 0 [theory normalization 1587]
 // 2 * f26(f34(f59,X0),X0) + f26(f34(f59,X0),X0) > 0 [inequality factoring 2373]
       .inputs  ({          clause({ selected(1 + f(x) + f(y) > 0)  })    })
-      .expected(exactly(  clause({          1 +    2 * f(x) > 0   })   ))
-      .premiseRedundant(false)
-    )
+      .expected(exactly(  clause({          1 +    2 * f(x) > 0   })   )))
 
 
 
@@ -315,9 +287,7 @@ TEST_GENERATION(bug_01,
 //      /* (1) */            clause({ -23 * x0                                     + g(x3, x2) > 0, -23 * x0 != -23 * x2 })   
 //      /* (2) */          , clause({ -23 * x0 + g(-23 * x1,x0)                                > 0 })    
 //      /* (3) */          , clause({ -23 * x0 + 2* g(-23 * x1,x0) + -g(-23 * x0, x1)          > 0 })
-//           ))
-//       .premiseRedundant(false)
-//     )
+//           )) //     )
 
 
 TEST_GENERATION(bug_02b,
@@ -327,9 +297,7 @@ TEST_GENERATION(bug_02b,
       // ({x1 -> x0}, -23 * x0 != -23 * x2) = uwa( ^^^^^^^^^^^^^^,    ^^^^^^^^^^^^^^ ) (1)
       .expected(exactly(  
      /* (1) */                 clause({ -23 * x0 +       0 * g(x0, -23 * x0)           > 0, -23 * x0 != -23 * x1 })   
-          ))
-      .premiseRedundant(false)
-    )
+          )))
 
 
 TEST_GENERATION(bug_02,
@@ -339,9 +307,7 @@ TEST_GENERATION(bug_02,
       // ({x1 -> x0}, -23 * x0 != -23 * x2) = uwa( ^^^^^^^^^^^^^^ ,  ^^^^^^^^^^^^^^ ) 
       .expected(exactly(  
                                clause({ -23 * x0 +         0 * g(-23 * x0, x0)       > 0, -23 * x0 != -23 * x1 })   
-          ))
-      .premiseRedundant(false)
-    )
+          )))
 
   //  clause({ -23 * x0 + g(-23 * x1,x0) + -g(-23 * x2, x1) > 0 })
   // uwa = ⟨{X2/0 -> X1, X1/0 -> X0, }, [(-23/1 * X0) != (-23/1 * X1)]⟩

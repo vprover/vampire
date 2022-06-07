@@ -334,10 +334,6 @@ ClauseIterator LiteralFactoring::generateClauses(
     }));
 }
 
-template<class A>
-A* move_to_heap(A&& a) 
-{ return new A(std::move(a)); }
-
 ClauseIterator LiteralFactoring::generateClauses(Clause* premise) 
 {
 

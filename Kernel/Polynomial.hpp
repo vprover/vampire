@@ -154,7 +154,8 @@ struct Monom
   Monom(MonomFactors<Number> factors) : Monom(Numeral(1), perfect(std::move(factors))) {}
 
   static Monom zero();
-  bool isZero() const;
+  bool isZeroMul() const;
+  bool isZeroConst() const;
 
   Option<Variable> tryVar() const;
   Option<Numeral> tryNumeral() const;
@@ -641,17 +642,18 @@ template<class Number>
 Monom<Number> Monom<Number>::zero() 
 { 
   static Monom p = Monom(Numeral(0), perfect(MonomFactors<Number>()));
-  ASS(p.isZero()) 
+  ASS(p.isZeroConst()) 
   return p; 
 }
 
 template<class Number>
-bool Monom<Number>::isZero() const
-{ 
-  auto out = Numeral(0) == this->numeral;
-  ASS(!out || this->factors->nFactors() == 0)
-  return out; 
-}
+bool Monom<Number>::isZeroConst() const
+{ return isZeroMul() && this->factors->nFactors() == 0; }
+
+
+template<class Number>
+bool Monom<Number>::isZeroMul() const
+{ return Numeral(0) == this->numeral; }
 
 template<class Number>
 Option<typename Monom<Number>::Numeral> Monom<Number>::tryNumeral() const 

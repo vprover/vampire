@@ -96,7 +96,7 @@ bool UWAMismatchHandler::checkUWA(TermList t1, TermList t2)
             using NumTraits = decltype(numTraits);
             if (NumTraits::sort() != sort) return false;
             // TODO get the polynomial evaluation instance less dirty
-            static Inferences::PolynomialEvaluation ev;
+            static Inferences::PolynomialEvaluation ev(false);
             auto sub = ev.evaluateToTerm(NumTraits::add( NumTraits::minus(t1), t2).term());
             //   ^^^--> `t2 - t1`
             return !sub.ground() || sub == NumTraits::zero();
@@ -112,13 +112,13 @@ bool UWAMismatchHandler::checkUWA(TermList t1, TermList t2)
           });
         };
 
-        auto isNumMul = [&](Term* t) {
-          auto f = t->functor();
-          return forAnyNumTraits([&](auto numTraits) {
-              using NumTraits = decltype(numTraits);
-              return f == NumTraits::mulF() && ( numTraits.isNumeral(*t->nthArgument(0)) ||  numTraits.isNumeral(*t->nthArgument(1)) );
-          });
-        };
+        // auto isNumMul = [&](Term* t) {
+        //   auto f = t->functor();
+        //   return forAnyNumTraits([&](auto numTraits) {
+        //       using NumTraits = decltype(numTraits);
+        //       return f == NumTraits::mulF() && ( numTraits.isNumeral(*t->nthArgument(0)) ||  numTraits.isNumeral(*t->nthArgument(1)) );
+        //   });
+        // };
 
         auto isVarMul = [&](Term* t) {
           auto f = t->functor();

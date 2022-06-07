@@ -60,6 +60,9 @@ template< typename T >
 std::shared_ptr<T> make_shared(T* ptr)
 { return std::shared_ptr<T>(ptr, [](auto ptr) { STLAllocator<std::remove_pointer_t<decltype(ptr)>>{}.destroy(ptr); }, STLAllocator<T>{}); }
 
+                
+template< class T >
+inline T* move_to_heap(T&& t) { return new T(std::move(t)); }
 }  // namespace Lib
 
 #endif /* !STL_HPP */

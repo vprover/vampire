@@ -73,6 +73,9 @@ public:
   using Result = SimplifyingGeneratingLiteralSimplification::Result;
   CLASS_NAME(PolynomialEvaluation);
   USE_ALLOCATOR(PolynomialEvaluation);
+  explicit PolynomialEvaluation(bool removeZeros) 
+    : _removeZeros(removeZeros) 
+  {  }
 
   MaybeOverflow<Option<PolyNf>> evaluate(PolyNf in) const;
   template<class NumTraits>
@@ -84,7 +87,7 @@ public:
   }
 
   template<class NumTraits>
-  static MaybeOverflow<Polynom<NumTraits>> simplifySummation(Stack<Monom<NumTraits>>);
+  static MaybeOverflow<Polynom<NumTraits>> simplifySummation(Stack<Monom<NumTraits>>, bool removeZeros);
   TermList evaluateToTerm(Term* in) const;
   Option<Result> tryEvalPredicate(Literal* orig, PolyNf* evaluatedArgs) const;
 private:
@@ -95,6 +98,9 @@ private:
 
 
   MaybeOverflow<PolyNf> evaluateStep(Term* orig, PolyNf* evaluatedArgs) const;
+
+  mutable Memo::Hashed<PolyNf, MaybeOverflow<PolyNf>, StlHash> _memo;
+  bool _removeZeros;
 };
 
 

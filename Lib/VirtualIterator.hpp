@@ -50,11 +50,12 @@ template<typename T>
  */
 template<typename T>
 class IteratorCore {
-private:
-  //private and undefined operator= and copy constructor to avoid implicitly generated ones
-  IteratorCore(const IteratorCore&);
-  IteratorCore& operator=(const IteratorCore&);
 public:
+  IteratorCore(const IteratorCore&) = delete;
+  IteratorCore& operator=(const IteratorCore&) = delete;
+  IteratorCore(IteratorCore&&) = default;
+  IteratorCore& operator=(IteratorCore&&) = default;
+
   DECL_ELEMENT_TYPE(T);
   /** Create new IteratorCore object */
   IteratorCore() : _refCnt(0) {}
@@ -313,6 +314,7 @@ class ProxyIterator
 public:
   CLASS_NAME(ProxyIterator);
   USE_ALLOCATOR(ProxyIterator);
+  DEFAULT_CONSTRUCTORS(ProxyIterator)
   
   explicit ProxyIterator(Inner inn) : _inn(std::move(inn)) {}
   bool hasNext() { return _inn.hasNext(); };

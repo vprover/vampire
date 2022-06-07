@@ -345,12 +345,12 @@ Option<Clause*> InequalityResolution::applyRule(
       return true;
     };
 
-#   define check_side_condition(cond, cond_code)                                                    \
-      if (!cond_code) {                                                                             \
-        DEBUG("side condition not fulfiled: " cond)                                                 \
-        return Option<Clause*>();                                                                   \
-      }                                                                                             \
 
+#define check_side_condition(cond, cond_code)                                                       \
+    if (!cond_code) {                                                                               \
+      DEBUG("side condition not fulfiled: " cond)                                                   \
+      return Option<Clause*>();                                                                     \
+    }                                                                                               \
 
     check_side_condition(
         "s₁, s₂ are not variables",

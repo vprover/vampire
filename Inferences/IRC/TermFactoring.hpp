@@ -49,10 +49,7 @@ public:
   void attach(SaturationAlgorithm* salg) final override;
   void detach() final override;
 
-
   ClauseIterator generateClauses(Clause* premise) final override;
-
-  
 
 #if VDEBUG
   virtual void setTestIndices(Stack<Indexing::Index*> const&) final override;
@@ -60,7 +57,8 @@ public:
 
 private:
 
-  template<class NumTraits> Option<Clause*> applyRule(Clause* premise, Literal* lit, IrcLiteral<NumTraits> L, Monom<NumTraits> k1_s1, Monom<NumTraits> k2_s2);
+                            Option<Clause*> applyRule(SelectedSummand const& l, SelectedSummand const& r);
+  template<class NumTraits> Option<Clause*> applyRule(SelectedSummand const& l, SelectedSummand const& r);
   template<class NumTraits> ClauseIterator generateClauses(Clause* premise, Literal* lit, IrcLiteral<NumTraits> L);
 
   InequalityNormalizer const& normalizer() const { return _shared->normalizer; }

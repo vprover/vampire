@@ -504,49 +504,84 @@ TEST_FUN(normal_form01) {
   DECL_CONST(a, Real)
   DECL_CONST(b, Real)
   // DECL_CONST(c, Real)
-  // DECL_FUNC (f, {Real}, Real)
+  DECL_FUNC (f, {Real}, Real)
 
   auto& ord = qkbo();
   auto sigmaNf = [&](auto t) 
     { return ord.template sigmaNf<RealTraits>(t); };
+#define CHECK_EQ(is, exp) {                                                                         \
+    if (is != exp) {                                                                                \
+      std::cout << "[ FAIL ] ";                                                                     \
+      std::cout << "[     case ] " << #is << std::endl;                                             \
+      std::cout << "[       is ] " << is << std::endl;                                              \
+      std::cout << "[ expected ] " << exp << std::endl;                                             \
+      ASSERTION_VIOLATION                                                                           \
+    } else {                                                                                        \
+      std::cout << "[  OK  ] " << #is << std::endl;                                                 \
+    }                                                                                               \
+  };                                                                                                \
 
-  ASS_EQ(sigmaNf(2 * a + b), SigmaNf(1, {
+  CHECK_EQ(sigmaNf(2 * a + b), SigmaNf(1, {
         SignedTerm::pos(a),
         SignedTerm::pos(a),
         SignedTerm::pos(b),
       }));
 
-  // ASS_EQ(sigmaNf(2 * a + 0 * b), SigmaNf(1, {
-  //       SignedTerm::pos(a),
-  //       SignedTerm::pos(a),
-  //       SignedTerm::zero(b),
-  //     }));
+  CHECK_EQ(sigmaNf(2 * a + 0 * b), SigmaNf(1, {
+        SignedTerm::pos(a),
+        SignedTerm::pos(a),
+        SignedTerm::zero(b),
+      }));
 
-  ASS_EQ(sigmaNf(2 * a + 0 * a), SigmaNf(1, {
+  CHECK_EQ(sigmaNf(2 * a + 0 * a), SigmaNf(1, {
         SignedTerm::pos(a),
         SignedTerm::pos(a),
       }));
 
-  ASS_EQ(sigmaNf(2 * a + 1 * a), SigmaNf(1, {
+  CHECK_EQ(sigmaNf(2 * a + 1 * a), SigmaNf(1, {
         SignedTerm::pos(a),
         SignedTerm::pos(a),
         SignedTerm::pos(a),
       }));
 
-  ASS_EQ(sigmaNf(2 * a + -3 * a), SigmaNf(1, {
+  CHECK_EQ(sigmaNf(2 * a + -3 * a), SigmaNf(1, {
         SignedTerm::neg(a),
       }));
 
-  ASS_EQ(sigmaNf(2 * a + -4 * a), SigmaNf(1, {
+  CHECK_EQ(sigmaNf(2 * a + -4 * a), SigmaNf(1, {
         SignedTerm::neg(a),
         SignedTerm::neg(a),
       }));
 
-  ASS_EQ(sigmaNf(frac(1, 2) * a +  b), SigmaNf(2, {
+  CHECK_EQ(sigmaNf(frac(1, 2) * a +  b), SigmaNf(2, {
         SignedTerm::pos(a),
         SignedTerm::pos(b),
         SignedTerm::pos(b),
       }));
+
+  CHECK_EQ(sigmaNf(2 * a - a + -3 * a), SigmaNf(1, {
+        SignedTerm::neg(a),
+        SignedTerm::neg(a),
+      }));
+
+  CHECK_EQ(sigmaNf(2 * a + a + -3 * a), SigmaNf(1, {
+        SignedTerm::zero(a),
+      }));
+
+  CHECK_EQ(sigmaNf(-2 * a - a + 3 * a), SigmaNf(1, {
+        SignedTerm::zero(a),
+      }));
+
+  CHECK_EQ(sigmaNf(2 * f(a + 3 * b) - f(a - b + 4 * b)), SigmaNf(1, {
+        SignedTerm::pos(f(a + 3 * b)),
+      }));
+
+  CHECK_EQ(sigmaNf(f(3 * b) + f(0 * a - b + 4 * b)), SigmaNf(1, {
+        SignedTerm::pos(f(3 * b)),
+        SignedTerm::pos(f(0 * a + 3 * b)),
+      }));
+
+#undef CHECK_EQ
 
   // Problem:
   //
@@ -555,4 +590,18 @@ TEST_FUN(normal_form01) {
   // -f(a) + f(a) < f(a)
   // since { 0 f(a) } < { +f(a) }
 
+}
+TEST_FUN(bug01) {
+
+  DECL_DEFAULT_VARS
+  NUMBER_SUGAR(Real)
+  DECL_CONST(a, Real)
+  // DECL_CONST(b, Real)
+  // DECL_CONST(c, Real)
+  DECL_FUNC (f, {Real}, Real)
+  auto& ord = qkbo();
+
+  check(ord, f(f(a)) - f(f(a)) > 0, Less   , f(f(a)) > 0);
+  check(ord, f(f(a)) - f(f(a)) > 0, Greater, f(  a ) > 0);
+  check(ord, f(f(a)) - f(f(a)) > 0, Incomp , f(  x ) > 0);
 }

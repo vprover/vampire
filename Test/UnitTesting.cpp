@@ -127,7 +127,7 @@ bool TestUnit::run(ostream& out)
   unsigned cnt_ok  = 0;
   while(uit.hasNext()) {
     TestUnit::Test t=uit.next();
-    out << "Running " << t.name << "... ";
+    out << "Running " << t.name << "... \r";
     out.flush();
     bool ok;
     {

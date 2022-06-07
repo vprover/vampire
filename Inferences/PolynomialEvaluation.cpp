@@ -26,7 +26,11 @@ using LitSimplResult = SimplifyingGeneratingLiteralSimplification::Result;
 
 PolynomialEvaluationRule::~PolynomialEvaluationRule() {}
 
-PolynomialEvaluationRule::PolynomialEvaluationRule(Ordering& ordering) : SimplifyingGeneratingLiteralSimplification(InferenceRule::EVALUATION, ordering) {}
+
+PolynomialEvaluationRule::PolynomialEvaluationRule(Ordering& ordering) 
+  : SimplifyingGeneratingLiteralSimplification(InferenceRule::EVALUATION, ordering)
+  // TODO we have an additional step of normalization here. simplify!
+  , _inner(/* removeZeros */ true) {}
 
 
 Literal* createLiteral(Literal* orig, PolyNf* evaluatedArgs) {
@@ -201,14 +205,14 @@ MaybeOverflow<Option<PolyNf>> PolynomialEvaluation::evaluate(TypedTermList term)
 { return evaluate(PolyNf::normalize(term)); }
 
 template<class Number>
-MaybeOverflow<Polynom<Number>> simplifyPoly(Polynom<Number> const& in, MaybeOverflow<PolyNf>* simplifiedArgs);
+MaybeOverflow<Polynom<Number>> simplifyPoly(Polynom<Number> const& in, MaybeOverflow<PolyNf>* simplifiedArgs, bool removeZeros);
 
 template<class Number>
-MaybeOverflow<Monom<Number>> simplifyMonom(Monom<Number> const& in, MaybeOverflow<PolyNf>* simplifiedArgs);
+MaybeOverflow<Monom<Number>> simplifyMonom(Monom<Number> const& in, MaybeOverflow<PolyNf>* simplifiedArgs, bool removeZeros);
 
-MaybeOverflow<AnyPoly> simplifyPoly(AnyPoly const& p, MaybeOverflow<PolyNf>* ts)
+MaybeOverflow<AnyPoly> simplifyPoly(AnyPoly const& p, MaybeOverflow<PolyNf>* ts, bool removeZeros)
 { return p.apply([&](auto& p) {
-    return simplifyPoly(*p, ts)
+    return simplifyPoly(*p, ts, removeZeros)
       .map([](auto p) -> AnyPoly { return AnyPoly(perfect(std::move(p))); }); }); }
 
 MaybeOverflow<Option<PolyNf>> PolynomialEvaluation::evaluate(PolyNf normalized) const 
@@ -219,6 +223,7 @@ MaybeOverflow<Option<PolyNf>> PolynomialEvaluation::evaluate(PolyNf normalized) 
   struct Eval 
   {
     const PolynomialEvaluation& norm;
+    bool _removeZeros;
 
     using Result = MaybeOverflow<PolyNf>;
     using Arg    = PolyNf;
@@ -246,12 +251,11 @@ MaybeOverflow<Option<PolyNf>> PolynomialEvaluation::evaluate(PolyNf normalized) 
           { return maybeOverflow(PolyNf(v), false); },
 
           [&](AnyPoly p) 
-          { return simplifyPoly(p, ts).map([](AnyPoly p) { return PolyNf(p); }); }
+          { return simplifyPoly(p, ts, _removeZeros).map([](AnyPoly p) { return PolyNf(p); }); }
       );
     }
   };
-  static Memo::Hashed<PolyNf, MaybeOverflow<PolyNf>, StlHash> memo;
-  auto out = evaluateBottomUp(normalized, Eval{ *this }, memo);
+  auto out = evaluateBottomUp(normalized, Eval{ *this, _removeZeros, }, _memo);
   return out.map([&normalized](PolyNf out) {
       return out == normalized ? Option<PolyNf>()
                                : Option<PolyNf>(std::move(out));
@@ -263,9 +267,9 @@ MaybeOverflow<Option<PolyNf>> PolynomialEvaluation::evaluate(PolyNf normalized) 
 // { return perfect(FuncTerm(FuncId(fun), evaluatedArgs)); }
 
 template<class Number>
-MaybeOverflow<Polynom<Number>> PolynomialEvaluation::simplifySummation(Stack<Monom<Number>> summands)
+MaybeOverflow<Polynom<Number>> PolynomialEvaluation::simplifySummation(Stack<Monom<Number>> summands, bool removeZeros)
 { 
-  CALL("simplifySummation(Stack<Monom<Number>>)") 
+  CALL("simplifySummation(Stack<Monom<Number>>, bool removeZeros)") 
   using Monom   = Monom<Number>;
   using Polynom = Polynom<Number>;
 
@@ -299,7 +303,7 @@ MaybeOverflow<Polynom<Number>> PolynomialEvaluation::simplifySummation(Stack<Mon
         }
         i++;
       }
-      if (numeral != Number::zeroC) 
+      if (!removeZeros || numeral != Number::zeroC) 
         summands[offs++] = Monom(numeral, factors);
     }
     summands.truncate(offs);
@@ -310,14 +314,14 @@ MaybeOverflow<Polynom<Number>> PolynomialEvaluation::simplifySummation(Stack<Mon
   return maybeOverflow(std::move(poly), overflow);
 }
 
-template MaybeOverflow<Polynom< IntTraits>> PolynomialEvaluation::simplifySummation< IntTraits>(Stack<Monom< IntTraits>> summands);
-template MaybeOverflow<Polynom< RatTraits>> PolynomialEvaluation::simplifySummation< RatTraits>(Stack<Monom< RatTraits>> summands);
-template MaybeOverflow<Polynom<RealTraits>> PolynomialEvaluation::simplifySummation<RealTraits>(Stack<Monom<RealTraits>> summands);
+template MaybeOverflow<Polynom< IntTraits>> PolynomialEvaluation::simplifySummation< IntTraits>(Stack<Monom< IntTraits>> summands, bool removeZeros);
+template MaybeOverflow<Polynom< RatTraits>> PolynomialEvaluation::simplifySummation< RatTraits>(Stack<Monom< RatTraits>> summands, bool removeZeros);
+template MaybeOverflow<Polynom<RealTraits>> PolynomialEvaluation::simplifySummation<RealTraits>(Stack<Monom<RealTraits>> summands, bool removeZeros);
 
 
 
 template<class Number>
-MaybeOverflow<Polynom<Number>> simplifyPoly(Polynom<Number> const& in, MaybeOverflow<PolyNf>* simplifiedArgs)
+MaybeOverflow<Polynom<Number>> simplifyPoly(Polynom<Number> const& in, MaybeOverflow<PolyNf>* simplifiedArgs, bool removeZeros)
 { 
   CALL("simplify(Polynom<Number>const&, PolyNf* simplifiedArgs)") 
   using Monom   = Monom<Number>;
@@ -329,13 +333,13 @@ MaybeOverflow<Polynom<Number>> simplifyPoly(Polynom<Number> const& in, MaybeOver
     auto offs = 0;
     for (unsigned i = 0; i < in.nSummands(); i++) {
       auto monom  = in.summandAt(i);
-      auto simpl_ = simplifyMonom(monom, &simplifiedArgs[offs]);
+      auto simpl_ = simplifyMonom(monom, &simplifiedArgs[offs], removeZeros);
       auto simpl = simpl_.value;
-      ASS(!simpl_.overflowOccurred || !simpl.isZero())
+      // ASS(!simpl_.overflowOccurred || !simpl.isZero())
       if (simpl_.overflowOccurred)
         overflow = true;
 
-      if (simpl.isZero()) {
+      if (simpl.isZeroMul() && removeZeros) {
         /* we don't add it */
       } else if (simpl.factors->nFactors() == 1 && simpl.factors->factorAt(0).tryPolynom().isSome()) {
         /* k * (t1 + ... tn) ==> k * t1 + ... k * tn */
@@ -359,7 +363,7 @@ MaybeOverflow<Polynom<Number>> simplifyPoly(Polynom<Number> const& in, MaybeOver
     }
   }
 
-  auto res = PolynomialEvaluation::simplifySummation(std::move(sum));
+  auto res = PolynomialEvaluation::simplifySummation(std::move(sum), removeZeros);
   if (overflow) {
     res.overflowOccurred = true;
   }
@@ -371,7 +375,7 @@ MaybeOverflow<Polynom<Number>> simplifyPoly(Polynom<Number> const& in, MaybeOver
  * In exact this means, that all the numeral factors are collapsed into one numeral (e.g. 3*4*3*x ==> 36*x)
  */
 template<class Number>
-MaybeOverflow<Monom<Number>> simplifyMonom(Monom<Number> const& in, MaybeOverflow<PolyNf>* simplifiedArgs)
+MaybeOverflow<Monom<Number>> simplifyMonom(Monom<Number> const& in, MaybeOverflow<PolyNf>* simplifiedArgs, bool removeZeros)
 { 
 
   using Numeral      = typename Number::ConstantType;
@@ -444,7 +448,7 @@ MaybeOverflow<Monom<Number>> simplifyMonom(Monom<Number> const& in, MaybeOverflo
     std::sort(args.begin(), args.end());
   }
 
-  if (numeral == Numeral(0)) {
+  if (numeral == Numeral(0) && removeZeros) {
     return maybeOverflow(Monom::zero(), false);
   } else {
     return maybeOverflow(Monom(numeral, perfect(MonomFactors(std::move(args)))), overflow); 
