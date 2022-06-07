@@ -151,8 +151,6 @@ class Signature
     unsigned _skolem : 1;
     /** if tuple sort */
     unsigned _tuple : 1;
-    /** if smallest constant */
-    unsigned _smallestConst : 1;
     /** proxy type */
     Proxy _prox;
     /** combinator type */
@@ -187,8 +185,6 @@ class Signature
     void markTermAlgebraCons() { _termAlgebraCons=1; }
     /** mark symbol as a term algebra destructor */
     void markTermAlgebraDest() { _termAlgebraDest=1; }
-    /** mark symbol as the smallest constant (of its sort) */
-    void markSmallestConst() { _smallestConst=1; }
 
     /** return true iff symbol is marked as skip for the purpose of symbol elimination */
     bool skip() const { return _skip; }
@@ -257,8 +253,6 @@ class Signature
 
     inline void markTuple(){ _tuple = 1; }
     inline bool tupleSort(){ return _tuple; }
-
-    inline bool smallestConst() { return _smallestConst; } 
 
     inline void setProxy(Proxy prox){ _prox = prox; }
     inline Proxy proxy(){ return _prox; }

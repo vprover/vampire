@@ -240,40 +240,37 @@ topLevelContinue: ;
 
 }
 
-void Ordering::initSmallestTermForASort() const {
-  // create the map only once and cache from then on 
+void Ordering::initSmallestTerms() {
+  // create the set only once and cache from then on 
   // (this could have downsides if we expect the signature to keep growing!)
-  if (_smallestTerms.isEmpty()) {
-    _smallestTerms=SmartPtr<Map<TermList,TermList>>(new Map<TermList,TermList>());
 
-    for(unsigned i = 0; i < env.signature->functions(); i++) {
-      auto symb = env.signature->getFunction(i);
-      if (symb->arity() > 0) {
-        continue;
-      }
-      auto sort = symb->fnType()->result();
-      TermList candidate = TermList(Term::createConstant(i));
+  Map<TermList,TermList> sortToSmallest;
 
-      auto curMin = _smallestTerms->getOrInit(sort,[&]() { return candidate; });
-      if (compare(candidate, curMin) == LESS) {
-        _smallestTerms->replace(sort, candidate);
-      }
+  for(unsigned i = 0; i < env.signature->functions(); i++) {
+    auto symb = env.signature->getFunction(i);
+    if (symb->arity() > 0) {
+      continue;
     }
+    auto sort = symb->fnType()->result();
+    TermList candidate = TermList(Term::createConstant(i));
 
-    Map<TermList,TermList>::Iterator it(*_smallestTerms);
-    while (it.hasNext()) {      
-      auto symb = env.signature->getFunction(it.next().value().term()->functor());
-      symb->markSmallestConst();
+    auto curMin = sortToSmallest.getOrInit(sort,[&]() { return candidate; });
+    if (compare(candidate, curMin) == LESS) {
+      sortToSmallest.replace(sort, candidate);
     }
+  }
+
+  _smallestTerms = SmartPtr<Set<TermList>>(new Set<TermList>());
+  Map<TermList,TermList>::Iterator it(sortToSmallest);
+  while (it.hasNext()) {
+    _smallestTerms->insert(it.next().value());
   }
 }
 
-bool Ordering::getSmallestTermForASort(TermList sort, TermList& theTerm) const {
-  CALL("Ordering::getSmallestTermForASort");
+bool Ordering::isSmallestTermOfItsSort(TermList t) const {
+  CALL("Ordering::isSmallestTermOfItsSort");
 
-  initSmallestTermForASort();
-
-  return _smallestTerms->find(sort,theTerm);
+  return _smallestTerms && _smallestTerms->contains(t);
 }
 
 Ordering::Result Ordering::getEqualityArgumentOrder(Literal* eq) const

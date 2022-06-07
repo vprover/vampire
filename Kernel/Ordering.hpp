@@ -24,6 +24,7 @@
 #include "Lib/Comparison.hpp"
 #include "Lib/SmartPtr.hpp"
 #include "Lib/DArray.hpp"
+#include "Lib/Set.hpp"
 
 #include "Lib/Allocator.hpp"
 
@@ -74,9 +75,6 @@ public:
 
   void removeNonMaximal(LiteralList*& lits) const;
 
-  void initSmallestTermForASort() const;
-  bool getSmallestTermForASort(TermList sort, TermList& theTerm) const;
-
   static Result fromComparison(Comparison c);
   static Comparison intoComparison(Result c);
 
@@ -112,6 +110,9 @@ protected:
 
   Result compareEqualities(Literal* eq1, Literal* eq2) const;
 
+  void initSmallestTerms();
+  bool isSmallestTermOfItsSort(TermList t) const;
+
 private:
   void createEqualityComparator();
   void destroyEqualityComparator();
@@ -120,7 +121,7 @@ private:
   /** Object used to compare equalities */
   EqCmp* _eqCmp;
 
-  mutable Lib::SmartPtr<Map<TermList,TermList>> _smallestTerms;
+  Lib::SmartPtr<Set<TermList>> _smallestTerms;
 
   /**
    * We store orientation of equalities in this ordering inside

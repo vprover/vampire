@@ -671,7 +671,7 @@ KBO::KBO(Problem& prb, const Options& opts)
     zeroOutWeightForMaximalFuncs();
   }
 
-  initSmallestTermForASort();
+  initSmallestTerms();
 
   if (opts.kboAdmissabilityCheck() == Options::KboAdmissibilityCheck::ERROR)
     checkAdmissibility(throwError);
@@ -744,9 +744,10 @@ Ordering::Result KBO::compare(TermList tl1, TermList tl2) const
     if (tl2.containsSubterm(tl1)) {
       return LESS;
     }
-    if (tl2.isTerm() && env.signature->getFunction(tl2.term()->functor())->smallestConst()) {
+    if (isSmallestTermOfItsSort(tl2)) {
       return GREATER_EQ;
     }
+
     return INCOMPARABLE;
   }
   if(tl2.isOrdinaryVar()) {
@@ -754,7 +755,7 @@ Ordering::Result KBO::compare(TermList tl1, TermList tl2) const
       return GREATER;
     }
 
-    if (tl1.isTerm() && env.signature->getFunction(tl1.term()->functor())->smallestConst()) {
+    if (isSmallestTermOfItsSort(tl1)) {
       return LESS_EQ;
     }
     return INCOMPARABLE;
