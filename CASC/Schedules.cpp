@@ -37,6 +37,12 @@ void Schedules::getScheduleFromFile(const vstring& filename, Schedule& quick)
   ASS(schedule_file.is_open());
   vstring line;
   while (getline(schedule_file, line)) {
+    // Allow structuring the schedule file with empty lines.
+    // Allow documenting the schedule file with line comments.
+    // Interpret lines that start with '#' as comments.
+    if (line == "" or line[0] == '#') {
+      continue;
+    }
     Options opts;
     try {
       opts.readFromEncodedOptions(line);
