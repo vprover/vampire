@@ -2834,7 +2834,7 @@ bool Options::RatioOptionValue::readRatio(const char* val, char separator)
       return false;
     }
     char copy[COPY_SIZE];
-    strncpy(copy,val,COPY_SIZE);
+    strncpy(copy,val,COPY_SIZE - 1); // leave space for trailing NUL
     copy[colonIndex] = 0;
     int age;
     if (! Int::stringToInt(copy,age)) {
@@ -2985,7 +2985,7 @@ bool Options::TimeLimitOptionValue::setValue(const vstring& value)
   }
 
   char copy[COPY_SIZE];
-  strncpy(copy,value.c_str(),COPY_SIZE);
+  strncpy(copy,value.c_str(),COPY_SIZE - 1); // leave space for trailing NUL
   char* end = copy;
   // search for the end of the string for
   while (*end) {

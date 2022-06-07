@@ -377,10 +377,8 @@ bool CodeTree::CodeOp::equalsForOpMatching(const CodeOp& o) const
     //during insertion into the code tree
     ASS_NEQ(instrSuffix(), SEARCH_STRUCT);
     return instrSuffix()==o.instrSuffix() && arg()==o.arg();
-#if VDEBUG
   default:
     ASSERTION_VIOLATION;
-#endif
   }
 }
 

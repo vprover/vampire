@@ -836,11 +836,8 @@ vstring Property::categoryToString(Category cat)
       return "EPR";
     case UEQ:
       return "UEQ";
-#if VDEBUG
     default:
       ASSERTION_VIOLATION;
-      return "";
-#endif
     }
 } // categoryString
 
