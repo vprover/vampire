@@ -219,6 +219,7 @@ static bool termAndLiteralSatisfyStrictness(const TermList& tl, Literal* l, Opti
   case LS::ALWAYS:
     return false;
   }
+  ASSERTION_VIOLATION
 }
 
 bool InductionHelper::isIntInductionTermListInLiteral(TermList& tl, Literal* l) {

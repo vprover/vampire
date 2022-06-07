@@ -417,10 +417,8 @@ vstring TPTP::toString(Tag tag)
   case T_DOLLARS:
   case T_STRING:
     return "";
-#if VDEBUG
   default:
-    ASS(false);
-#endif
+    ASSERTION_VIOLATION
   }
 } // toString(Tag)
 
@@ -1760,7 +1758,7 @@ void TPTP::endHolFormula()
 
   Formula* f;
   TermList fun;
-  bool conReverse;
+  bool conReverse = false;
   switch (con) {
   case IMP:
   case AND:
@@ -1898,10 +1896,8 @@ switch (tag) {
 
     case -1:
       return;
-#if VDEBUG
     default:
       ASSERTION_VIOLATION;
-#endif
     }
   }
 
@@ -3379,7 +3375,7 @@ void TPTP::endFormula()
 
   int con = _connectives.pop();
   Formula* f;
-  bool conReverse;
+  bool conReverse = false;
   switch (con) {
   case IMP:
   case AND:
@@ -3491,10 +3487,8 @@ void TPTP::endFormula()
 
     case -1:
       return;
-#if VDEBUG
     default:
       ASSERTION_VIOLATION;
-#endif
     }
   }
 
@@ -3941,11 +3935,8 @@ OperatorType* TPTP::constructOperatorType(Type* t, VList* vars)
             types.push(pt->lhs());
             break;
           }
-
-#if VDEBUG
           default:
             ASSERTION_VIOLATION;
-#endif
         }
       }
       break;
@@ -3958,10 +3949,8 @@ OperatorType* TPTP::constructOperatorType(Type* t, VList* vars)
       //TODO check that all free variables in ot are from quantifiedVars
     }
 
-#if VDEBUG
     default:
       ASSERTION_VIOLATION;
-#endif
   }
 
   bool isPredicate = resultSort == AtomicSort::boolSort();

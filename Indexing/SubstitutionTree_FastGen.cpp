@@ -477,7 +477,7 @@ bool SubstitutionTree::FastGeneralizationsIterator::findNextLeaf()
   CALL("SubstitutionTree::FastGeneralizationsIterator::findNextLeaf");
 
   Node* curr;
-  bool sibilingsRemain;
+  bool sibilingsRemain = false;
   if(_inLeaf) {
     if(_alternatives.isEmpty()) {
       return false;
@@ -497,7 +497,7 @@ bool SubstitutionTree::FastGeneralizationsIterator::findNextLeaf()
   }
   for(;;) {
 main_loop_start:
-    unsigned currSpecVar;
+    unsigned currSpecVar = 0;
 
     if(curr) {
       if(sibilingsRemain) {

@@ -216,7 +216,7 @@ private:
   friend struct EvaluateInModel;
 public:
   Term* evaluateInModel(Term* trm);
-#ifdef VDEBUG
+#if VDEBUG
   z3::model& getModel() { return _model; }
 #endif
 

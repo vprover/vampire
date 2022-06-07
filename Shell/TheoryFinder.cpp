@@ -205,12 +205,9 @@ bool TheoryFinder::matchCode(const void* obj,
   unsigned cp = 0; // code pointer
 
   // the clause, if any
-  const Clause* clause;
+  const Clause* clause = nullptr;
   // the length of this clause
-  int clength;
-#ifdef VDEBUG
-  bool clength_assigned = false;
-#endif
+  int clength = 0;
   // literal numbers to be matched by LIT i commands
   int literals[4];
 
@@ -401,9 +398,6 @@ bool TheoryFinder::matchCode(const void* obj,
     cout << "M: CLS: " << clause->toString() << endl;
 #endif
     clength = clause->length();
-#ifdef VDEBUG
-    clength_assigned = true;
-#endif
     cp++;
     goto match;
   }
@@ -415,7 +409,6 @@ bool TheoryFinder::matchCode(const void* obj,
 #endif
     unsigned l = code[cp+1];
     // bit field of choices for this literal
-    ASS(clength_assigned);
     unsigned choice = (1u << clength) - 1;
     for (int i = l-1;i >= 0;i--) {
       // remove from the choice literals already used
