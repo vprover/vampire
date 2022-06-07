@@ -461,6 +461,16 @@ void Options::init()
     _definitionReuse.addProblemConstraint(hasFormulas());
     _definitionReuse.tag(OptionTag::PREPROCESSING);
 
+    _tweeGoalTransformation = ChoiceOptionValue<TweeGoalTransformation>("twee_goal_transformation",
+       "tgt", TweeGoalTransformation::OFF, {"off","ground","full"});
+    _tweeGoalTransformation.description =
+      "Add definitions for `ground` subterms in the conjecture, inspired by Twee. "
+      "This adds a goal-directed flavour to equational reasoning. "
+      "`full` is a generalization, where also non-ground subterms are considered.";
+    _tweeGoalTransformation.tag(OptionTag::PREPROCESSING);
+    _tweeGoalTransformation.setExperimental();
+    _lookup.insert(&_tweeGoalTransformation);
+
     _generalSplitting = BoolOptionValue("general_splitting","gsp",false);
     _generalSplitting.description=
     "Splits clauses in order to reduce number of different variables in each clause. "
@@ -1243,6 +1253,21 @@ void Options::init()
     _arithmeticSubtermGeneralizations.addProblemConstraint(hasTheories());
     _arithmeticSubtermGeneralizations.tag(OptionTag::INFERENCES);
 
+    _evaluationMode = ChoiceOptionValue<EvaluationMode>("evaluation","ev",
+                                                        EvaluationMode::SIMPLE,
+                                                        {"simple","force","cautious"});
+    _evaluationMode.description=
+    "Chooses the algorithm used to simplify interpreted integer, rational, and real terms. \
+                                 \
+    - simple: will only evaluate expressions built from interpreted constants only.\
+    - cautious: will evaluate abstract expressions to a weak polynomial normal form. This is more powerful but may fail in some rare cases where the resulting polynomial is not strictly smaller than the initial one wrt. the simplification ordering. In these cases a new clause with the normal form term will be added to the search space instead of replacing the orignal clause.  \
+    - force: same as `cautious`, but ignoring the simplification ordering and replacing the hypothesis with the normal form clause in any case. \
+    ";
+    _lookup.insert(&_evaluationMode);
+    _evaluationMode.addProblemConstraint(hasTheories());
+    _evaluationMode.tag(OptionTag::SATURATION);
+    _evaluationMode.setExperimental();
+
     _induction = ChoiceOptionValue<Induction>("induction","ind",Induction::NONE,
                       {"none","struct","int","both"});
     _induction.description = "Apply structural and/or integer induction on datatypes and integers.";
@@ -1398,6 +1423,12 @@ void Options::init()
     _integerInductionStrictnessTerm.tag(OptionTag::INFERENCES);
     _integerInductionStrictnessTerm.reliesOn(Or(_induction.is(equal(Induction::INTEGER)),_induction.is(equal(Induction::BOTH))));
     _lookup.insert(&_integerInductionStrictnessTerm);
+
+    _nonUnitInduction = BoolOptionValue("non_unit_induction","nui",false);
+    _nonUnitInduction.description = "Induction on certain clauses or clause sets instead of just unit clauses";
+    _nonUnitInduction.tag(OptionTag::INFERENCES);
+    _nonUnitInduction.reliesOn(_induction.is(notEqual(Induction::NONE)));
+    _lookup.insert(&_nonUnitInduction);
 
     _instantiation = ChoiceOptionValue<Instantiation>("instantiation","inst",Instantiation::OFF,{"off","on"});
     _instantiation.description = "Heuristically instantiate variables. Often wastes a lot of effort. Consider using thi instead.";
@@ -2223,10 +2254,19 @@ void Options::init()
     _lookup.insert(&_termOrdering);
 
     _symbolPrecedence = ChoiceOptionValue<SymbolPrecedence>("symbol_precedence","sp",SymbolPrecedence::ARITY,
-                                                            {"arity","occurrence","reverse_arity","scramble",
-                                                             "frequency","reverse_frequency",
-                                                             "weighted_frequency","reverse_weighted_frequency"});
-    _symbolPrecedence.description="Vampire uses term orderings which require a precedence relation between symbols. Arity orders symbols by their arity (and reverse_arity takes the reverse of this) and occurence orders symbols by the order they appear in the problem.";
+                                                            {"arity","occurrence","reverse_arity","unary_first",
+                                                            "const_max", "const_min",
+                                                            "scramble","frequency","unary_frequency","const_frequency",
+                                                            "reverse_frequency", "weighted_frequency","reverse_weighted_frequency"});
+    _symbolPrecedence.description="Vampire uses term orderings which require a precedence relation between symbols.\n"
+                                  "Arity orders symbols by their arity (and reverse_arity takes the reverse of this) and occurence orders symbols by the order they appear in the problem. "
+                                  "Then we have a few precedence generating schemes adopted from E: frequency - sort by frequency making rare symbols large, reverse does the opposite, "
+                                  "(For the weighted versions, each symbol occurence counts as many times as is the lenght of the clause in which it occurs.) "
+                                  "unary_first is like arity, except that unary symbols are maximal (and ties are broken by frequency), "
+                                  "unary_frequency is like frequency, except that unary symbols are maximal, "
+                                  "const_max makes constants the largest, then falls back to arity, "
+                                  "const_min makes constants the smallest, then falls back to reverse_arity, "
+                                  "const_frequency makes constants the smallest, then falls back to frequency.";
     _lookup.insert(&_symbolPrecedence);
     _symbolPrecedence.onlyUsefulWith(InferencingSaturationAlgorithm());
     _symbolPrecedence.tag(OptionTag::SATURATION);
@@ -2239,25 +2279,24 @@ void Options::init()
     _lookup.insert(&_introducedSymbolPrecedence);
     _introducedSymbolPrecedence.tag(OptionTag::SATURATION);
 
-    _evaluationMode = ChoiceOptionValue<EvaluationMode>("evaluation","ev",
-                                                        EvaluationMode::SIMPLE,
-                                                        {"simple","force","cautious"});
-    _evaluationMode.description=
-    "Choses the algorithm used to simplify interpreted integer, rational, and real terms. \
-                                 \
-    - simple: will only evaluate expressions built from interpreted constants only.\
-    - cautious: will evaluate abstract expressions to a weak polynomial normal form. This is more powerful but may fail in some rare cases where the resulting polynomial is not strictly smaller than the initial one wrt. the simplification ordering. In these cases a new clause with the normal form term will be added to the search space instead of replacing the orignal clause.  \
-    - force: same as `cautious`, but ignoring the simplification ordering and replacing the hypothesis with the normal form clause in any case. \
-    ";
-    _lookup.insert(&_evaluationMode);
-    _evaluationMode.tag(OptionTag::SATURATION);
-    _evaluationMode.setExperimental();
+    _kboWeightGenerationScheme = ChoiceOptionValue<KboWeightGenerationScheme>("kbo_weight_scheme","kws",KboWeightGenerationScheme::CONST,
+                                          {"const","random","arity","inv_arity","arity_squared","inv_arity_squared",
+                                          "precedence","inv_precedence","frequency","inv_frequency"});
+    _kboWeightGenerationScheme.description = "Weight generation schemes from KBO inspired by E. This gets overridden by the function_weights option if used.";
+    _kboWeightGenerationScheme.setExperimental();
+    _kboWeightGenerationScheme.onlyUsefulWith(_termOrdering.is(equal(TermOrdering::KBO)));
+    _lookup.insert(&_kboWeightGenerationScheme);
 
+    _kboMaxZero = BoolOptionValue("kbo_max_zero","kmz",false);
+    _kboMaxZero.setExperimental();
+    _kboMaxZero.onlyUsefulWith(_termOrdering.is(equal(TermOrdering::KBO)));
+    _kboMaxZero.description="Modifies any kbo_weight_scheme by setting (for each sort) a maximal (by the precedence) function symbol to have weight 0.";
+    _lookup.insert(&_kboMaxZero);
 
     _kboAdmissabilityCheck = ChoiceOptionValue<KboAdmissibilityCheck>(
         "kbo_admissibility_check", "", KboAdmissibilityCheck::ERROR,
                                      {"error","warning" });
-    _kboAdmissabilityCheck.description = "Choose to emmit a warning instead of throwing an exception if the weight function and precedence ordering for kbo are not compatible.";
+    _kboAdmissabilityCheck.description = "Choose to emit a warning instead of throwing an exception if the weight function and precedence ordering for kbo are not compatible.";
     _kboAdmissabilityCheck.setExperimental();
     _kboAdmissabilityCheck.onlyUsefulWith(_termOrdering.is(equal(TermOrdering::KBO)));
     _lookup.insert(&_kboAdmissabilityCheck);
@@ -2265,11 +2304,9 @@ void Options::init()
 
     _functionWeights = StringOptionValue("function_weights","fw","");
     _functionWeights.description = 
-      "Path to a file that defines weights for KBO for function symbols, or 'random'.\n"
+      "Path to a file that defines weights for KBO for function symbols.\n"
       "\n"
-      "If 'random' is used the weights will be assigned randomly.\n"
-      "\n"
-      "If the option is a file path, each line in the file is expected to contain a function name, followed by the functions arity, and a positive integer, that specifies symbols weight.\n"
+      "Each line in the file is expected to contain a function name, followed by the functions arity, and a positive integer, that specifies symbols weight.\n"
       "\n"
       "Additionally there are special values that can be specified:\n"
       "- `$default    <number>` specifies the default symbol weight, that is used for all symbols not present in the file (if not specified 0 is used)\n"
@@ -2305,8 +2342,10 @@ void Options::init()
     _lookup.insert(&_predicatePrecedence);
 
     _symbolPrecedenceBoost = ChoiceOptionValue<SymbolPrecedenceBoost>("symbol_precedence_boost","spb",SymbolPrecedenceBoost::NONE,
-                                     {"none","goal","units","goal_then_units"});
-    _symbolPrecedenceBoost.description = "Boost the symbol precedence of symbols occurring in certain kinds of clauses in the input.";
+                                     {"none","goal","units","goal_then_units",
+                                      "non_intro","intro"});
+    _symbolPrecedenceBoost.description = "Boost the symbol precedence of symbols occurring in certain kinds of clauses in the input.\n"
+                                         "Additionally, non_intro/intro suppress/boost the precedence of symbols introduced during preprocessing (i.e., mainly, the naming predicates and the skolems).";
     _symbolPrecedenceBoost.onlyUsefulWith(InferencingSaturationAlgorithm());
     _symbolPrecedenceBoost.tag(OptionTag::SATURATION);
     _lookup.insert(&_symbolPrecedenceBoost);

@@ -531,17 +531,24 @@ public:
     ARITY = 0,
     OCCURRENCE = 1,
     REVERSE_ARITY = 2,
-    SCRAMBLE = 3,
-    FREQUENCY = 4,
-    REVERSE_FREQUENCY = 5,
-    WEIGHTED_FREQUENCY = 6,
-    REVERSE_WEIGHTED_FREQUENCY = 7
+    UNARY_FIRST = 3,
+    CONST_MAX = 4,
+    CONST_MIN = 5,
+    SCRAMBLE = 6,
+    FREQUENCY = 7,
+    UNARY_FREQ = 8,
+    CONST_FREQ = 9,
+    REVERSE_FREQUENCY = 10,
+    WEIGHTED_FREQUENCY = 11,
+    REVERSE_WEIGHTED_FREQUENCY = 12
   };
   enum class SymbolPrecedenceBoost : unsigned int {
-    NONE = 0,
+    NONE = 0,    
     GOAL = 1,
     UNIT = 2,
-    GOAL_UNIT = 3
+    GOAL_UNIT = 3,
+    NON_INTRO = 4,
+    INTRO = 5,
   };
   enum class IntroducedSymbolPrecedence : unsigned int {
     TOP = 0,
@@ -616,6 +623,12 @@ public:
     NONE = 3
   };
 
+  enum class TweeGoalTransformation : unsigned int {
+    OFF = 0,
+    GROUND = 1,
+    FULL = 2
+  };
+
   enum class CCUnsatCores : unsigned int {
     FIRST = 0,
     SMALL_ONES = 1,
@@ -686,6 +699,19 @@ public:
     CONSTANT,
     DECAY,
     CONVERGE
+  };
+
+  enum class KboWeightGenerationScheme : unsigned int {
+    CONST = 0,
+    RANDOM = 1,
+    ARITY = 2,
+    INV_ARITY = 3,
+    ARITY_SQUARED = 4,
+    INV_ARITY_SQUARED = 5,
+    PRECEDENCE = 6,
+    INV_PRECEDENCE = 7,
+    FREQUENCY = 8,
+    INV_FREQUENCY = 9,
   };
 
   enum class KboAdmissibilityCheck : unsigned int {
@@ -2182,6 +2208,8 @@ public:
   SymbolPrecedence symbolPrecedence() const { return _symbolPrecedence.actualValue; }
   SymbolPrecedenceBoost symbolPrecedenceBoost() const { return _symbolPrecedenceBoost.actualValue; }
   IntroducedSymbolPrecedence introducedSymbolPrecedence() const { return _introducedSymbolPrecedence.actualValue; }
+  KboWeightGenerationScheme kboWeightGenerationScheme() const { return _kboWeightGenerationScheme.actualValue; }
+  bool kboMaxZero() const { return _kboMaxZero.actualValue; }
   const KboAdmissibilityCheck kboAdmissabilityCheck() const { return _kboAdmissabilityCheck.actualValue; }
   const vstring& functionWeights() const { return _functionWeights.actualValue; }
   const vstring& predicateWeights() const { return _predicateWeights.actualValue; }
@@ -2247,6 +2275,7 @@ public:
   FunctionDefinitionElimination functionDefinitionElimination() const { return _functionDefinitionElimination.actualValue; }
   bool skolemReuse() const { return _skolemReuse.actualValue; }
   bool definitionReuse() const { return _definitionReuse.actualValue; }
+  TweeGoalTransformation tweeGoalTransformation() const { return _tweeGoalTransformation.actualValue; }
   bool outputAxiomNames() const { return _outputAxiomNames.actualValue; }
   void setOutputAxiomNames(bool newVal) { _outputAxiomNames.actualValue = newVal; }
   QuestionAnsweringMode questionAnswering() const { return _questionAnswering.actualValue; }
@@ -2301,6 +2330,7 @@ public:
   IntegerInductionLiteralStrictness integerInductionStrictnessEq() const {return _integerInductionStrictnessEq.actualValue; }
   IntegerInductionLiteralStrictness integerInductionStrictnessComp() const {return _integerInductionStrictnessComp.actualValue; }
   IntegerInductionTermStrictness integerInductionStrictnessTerm() const {return _integerInductionStrictnessTerm.actualValue; }
+  bool nonUnitInduction() const { return _nonUnitInduction.actualValue; }
 
   float instGenBigRestartRatio() const { return _instGenBigRestartRatio.actualValue; }
   bool instGenPassiveReactivation() const { return _instGenPassiveReactivation.actualValue; }
@@ -2552,6 +2582,7 @@ private:
   ChoiceOptionValue<FunctionDefinitionElimination> _functionDefinitionElimination;
   BoolOptionValue _skolemReuse;
   BoolOptionValue _definitionReuse;
+  ChoiceOptionValue<TweeGoalTransformation> _tweeGoalTransformation;
   
   BoolOptionValue _generalSplitting;
   BoolOptionValue _globalSubsumption;
@@ -2607,6 +2638,7 @@ private:
   ChoiceOptionValue<IntegerInductionLiteralStrictness> _integerInductionStrictnessEq;
   ChoiceOptionValue<IntegerInductionLiteralStrictness> _integerInductionStrictnessComp;
   ChoiceOptionValue<IntegerInductionTermStrictness> _integerInductionStrictnessTerm;
+  BoolOptionValue _nonUnitInduction;
 
   StringOptionValue _latexOutput;
   BoolOptionValue _latexUseDefaultSymbols;
@@ -2726,6 +2758,8 @@ private:
   ChoiceOptionValue<SymbolPrecedenceBoost> _symbolPrecedenceBoost;
   ChoiceOptionValue<IntroducedSymbolPrecedence> _introducedSymbolPrecedence;
   ChoiceOptionValue<EvaluationMode> _evaluationMode;
+  ChoiceOptionValue<KboWeightGenerationScheme> _kboWeightGenerationScheme;
+  BoolOptionValue _kboMaxZero;
   ChoiceOptionValue<KboAdmissibilityCheck> _kboAdmissabilityCheck;
   StringOptionValue _functionWeights;
   StringOptionValue _predicateWeights;

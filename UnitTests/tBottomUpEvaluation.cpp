@@ -73,7 +73,7 @@ TEST_FUN(example_02__compute_size) {
       } else {
         // clang-tidy thought that evaluatedChildren could be nullptr and toEval.term()->arity > 0
         // it's wrong, but it's a nice thing to check
-        unsigned arity = toEval.term()->arity();
+        unsigned arity = toEval.term()->numTermArguments();
         ASS(arity == 0 || evaluatedChildren);
 
         unsigned out = 1;

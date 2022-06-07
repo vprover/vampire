@@ -358,6 +358,7 @@ set(VAMPIRE_INDEXING_SOURCES
     Indexing/GroundingIndex.cpp
     Indexing/Index.cpp
     Indexing/IndexManager.cpp
+    Indexing/InductionFormulaIndex.cpp
     Indexing/LiteralIndex.cpp
     Indexing/LiteralMiniIndex.cpp
     Indexing/LiteralSubstitutionTree.cpp
@@ -378,6 +379,7 @@ set(VAMPIRE_INDEXING_SOURCES
     Indexing/GroundingIndex.hpp
     Indexing/Index.hpp
     Indexing/IndexManager.hpp
+    Indexing/InductionFormulaIndex.hpp
     Indexing/LiteralIndex.hpp
     Indexing/LiteralIndexingStructure.hpp
     Indexing/LiteralMiniIndex.hpp
@@ -596,6 +598,7 @@ set(VAMPIRE_SHELL_SOURCES
     Shell/BlockedClauseElimination.cpp
     Shell/Token.cpp
     Shell/TPTPPrinter.cpp
+    Shell/TweeGoalTransformation.cpp
     Shell/UIHelper.cpp
     Shell/VarManager.cpp
     Shell/Lexer.cpp
@@ -646,6 +649,7 @@ set(VAMPIRE_SHELL_SOURCES
     Shell/BlockedClauseElimination.hpp
     Shell/Token.hpp
     Shell/TPTPPrinter.hpp
+    Shell/TweeGoalTransformation.hpp
     Shell/UnificationWithAbstractionConfig.hpp
     Shell/UnificationWithAbstractionConfig.cpp
     Shell/UIHelper.hpp
@@ -722,6 +726,7 @@ set(UNIT_TESTS
     UnitTests/tImplicationSetClosure.cpp
     UnitTests/tUnificationWithAbstraction.cpp
     UnitTests/tGaussianElimination.cpp
+    UnitTests/tPushUnaryMinus.cpp
     UnitTests/tArithmeticSubtermGeneralization.cpp
     UnitTests/tInterpretedFunctions.cpp
     UnitTests/tRebalance.cpp

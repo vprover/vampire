@@ -73,17 +73,17 @@ template<> struct std::hash<Kernel::Variable>
 
 namespace Kernel {
 
-
-
 // TODO use this newtype in Term.hpp
 /** newtype for wrapping function ids (also often called functors in vampire) */
 class FuncId 
 {
   unsigned _num;
+  // const TermList* _typeArgs; // private field not used
   
 public: 
-  explicit FuncId(unsigned num);
-  unsigned arity();
+  explicit FuncId(unsigned num, const TermList* typeArgs);
+  static FuncId symbolOf(Term* term);
+  unsigned numTermArguments();
 
   friend struct std::hash<FuncId>;
   friend bool operator==(FuncId const& lhs, FuncId const& rhs);
@@ -167,7 +167,7 @@ public:
   FuncTerm(FuncId f, Stack<PolyNf>&& args);
   FuncTerm(FuncId f, PolyNf* args);
 
-  unsigned arity() const;
+  unsigned numTermArguments() const;
   FuncId function() const;
   PolyNf const& arg(unsigned i) const;
 

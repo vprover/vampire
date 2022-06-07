@@ -241,6 +241,7 @@ VI_OBJ = Indexing/AcyclicityIndex.o\
          Indexing/GroundingIndex.o\
          Indexing/Index.o\
          Indexing/IndexManager.o\
+         Indexing/InductionFormulaIndex.o\
          Indexing/LiteralIndex.o\
          Indexing/LiteralMiniIndex.o\
          Indexing/LiteralSubstitutionTree.o\
@@ -384,6 +385,7 @@ VS_OBJ = Shell/AnswerExtractor.o\
          Shell/TheoryAxioms.o\
          Shell/TheoryFinder.o\
          Shell/TheoryFlattening.o\
+         Shell/TweeGoalTransformation.o\
          Shell/BlockedClauseElimination.o\
          Shell/Token.o\
          Shell/TPTPPrinter.o\

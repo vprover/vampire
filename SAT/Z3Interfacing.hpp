@@ -172,7 +172,7 @@ public:
       // compare sort arguments
       for(unsigned i = 0; i < l.forSorts->numTypeArguments(); i++)
         // sorts are perfectly shared
-        if(!l.forSorts->nthArgument(i)->sameContent(r.forSorts->nthArgument(i)))
+        if(!l.forSorts->typeArg(i).sameContent(r.forSorts->typeArg(i)))
           return false;
 
       return true;
@@ -187,7 +187,7 @@ public:
       );
       if(self.forSorts)
         for(unsigned i = 0; i < self.forSorts->numTypeArguments(); i++)
-          out << " " << self.forSorts->nthArgument(i)->toString();
+          out << " " << self.forSorts->typeArg(i).toString();
       return out;
     }
   };
@@ -285,7 +285,7 @@ namespace std {
         unsigned hash = Lib::HashUtils::combine(self.id, self.isPredicate);
         if(self.forSorts)
           for(unsigned i = 0; i < self.forSorts->numTypeArguments(); i++)
-            hash = Lib::HashUtils::combine(hash, self.forSorts->nthArgument(i)->content());
+            hash = Lib::HashUtils::combine(hash, self.forSorts->typeArg(i).content());
         return hash;
       }
     };

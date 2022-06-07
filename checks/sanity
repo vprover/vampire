@@ -61,6 +61,9 @@ check_szs_status Unsatisfiable --mode portfolio --schedule integer_induction --s
 check_szs_status Unsatisfiable --mode portfolio --schedule integer_induction --slowness 0.5 ind/int_power_0_all_0.smt2
 check_szs_status Unsatisfiable --mode portfolio --schedule integer_induction --slowness 0.5 ind/int_sum_y_geq_0.smt2
 
+# Structural induction problems
+check_szs_status Unsatisfiable -ind struct -nui on ind/mem_append.smt2
+
 # Parser
 check_szs_status Unsatisfiable parse/types-funs.smt2
 check_szs_status Unsatisfiable -newcnf on parse/types-funs.smt2
