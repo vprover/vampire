@@ -16,6 +16,8 @@
 
 #include "Schedules.hpp"
 
+#include "Shell/Options.hpp"
+
 #include <fstream>
 
 using namespace Lib;
@@ -35,6 +37,14 @@ void Schedules::getScheduleFromFile(const vstring& filename, Schedule& quick)
   ASS(schedule_file.is_open());
   vstring line;
   while (getline(schedule_file, line)) {
+    Options opts;
+    try {
+      opts.readFromEncodedOptions(line);
+      opts.checkGlobalOptionConstraints();
+    }
+    catch (...) {
+      USER_ERROR("Bad strategy: " + line);
+    }
     quick.push(line);
   }
 }
