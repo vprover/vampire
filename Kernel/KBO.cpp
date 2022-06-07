@@ -141,6 +141,12 @@ Ordering::Result KBO::State::innerResult(TermList tl1, TermList tl2)
   ASS_NEQ(tl1, tl2);
   ASS(!TermList::sameTopFunctor(tl1,tl2));
 
+  if (tl1.isVar() && _kbo.isSmallestTermOfItsSort(tl2)) {
+    return LESS_EQ;
+  } else if (tl2.isVar() && _kbo.isSmallestTermOfItsSort(tl1)) {
+    return GREATER_EQ;
+  }
+
   if(_posNum>0 && _negNum>0) {
     return INCOMPARABLE;
   }
@@ -256,12 +262,12 @@ void KBO::State::traverse(Term* t1, Term* t2)
       ASS(tt->isEmpty());
       depth--;
       ASS_NEQ(_lexResult,EQUAL);
-      if(_lexResult!=EQUAL && depth<lexValidDepth) {
-	lexValidDepth=depth;
-	if(_weightDiff!=0) {
-	  _lexResult=_weightDiff>0 ? GREATER : LESS;
-	}
-	_lexResult=applyVariableCondition(_lexResult);
+      if(depth<lexValidDepth) {
+        lexValidDepth=depth;
+        if(_weightDiff!=0) {
+          _lexResult=_weightDiff>0 ? GREATER : LESS;
+        }
+        _lexResult=applyVariableCondition(_lexResult);
       }
       continue;
     }
@@ -282,12 +288,17 @@ void KBO::State::traverse(Term* t1, Term* t2)
     } else {
       traverse(*ss,1);
       traverse(*tt,-1);
-      if(_lexResult==EQUAL) {
-	_lexResult=innerResult(*ss, *tt);
-	lexValidDepth=depth;
-	ASS(_lexResult!=EQUAL);
-	ASS(_lexResult!=GREATER_EQ);
-	ASS(_lexResult!=LESS_EQ);
+      auto inner = innerResult(*ss, *tt);
+      if(_lexResult == EQUAL) {
+        _lexResult = inner;
+        lexValidDepth=depth;
+        ASS(_lexResult!=EQUAL);
+        // ASS(_lexResult!=GREATER_EQ); <- Why was this assertion there?
+        // ASS(_lexResult!=LESS_EQ);
+      } else if (_lexResult == LESS_EQ && (inner == GREATER_EQ || inner == INCOMPARABLE || inner == GREATER))  {
+        _lexResult = INCOMPARABLE;
+      } else if (_lexResult == GREATER_EQ && (inner == LESS_EQ || inner == INCOMPARABLE || inner == LESS)) {
+        _lexResult = INCOMPARABLE;
       }
     }
   }
