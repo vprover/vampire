@@ -182,8 +182,8 @@ Option<Clause*> TermFactoring::applyRule(
           .filter([&](auto i) { return i != sel1.termIdx() && i != sel2.termIdx(); })
           .all([&](auto i) {
             auto ki_ti = sel1.ircLiteral<NumTraits>().term().summandAt(i);
-            auto tiσ = sigma(ki_ti.denormalize());
-            t_sigma.push(tiσ);
+            auto tiσ = sigma(ki_ti.factors->denormalize());
+            t_sigma.push(NumTraits::mulSimpl(ki_ti.numeral, tiσ));
             return OrderingUtils2::notLess(_shared->ordering->compare(s1_sigma, tiσ))
                 && OrderingUtils2::notLess(_shared->ordering->compare(s2_sigma, tiσ));
           }))
@@ -223,6 +223,7 @@ ClauseIterator TermFactoring::generateClauses(Clause* premise)
   auto selected = make_shared(move_to_heap(
         _shared->selectedSummands(premise, /* stricltyMaxLiteral */ false, /*stricltyMaxSummand*/ false)
         .filter([](auto& s) { return !(s.literal()->isEquality() && s.literal()->isNegative()); })
+        .filter([](auto& s) { return !s.monom().isVar(); })
         .template collect<Stack>()));
 
   std::sort(selected->begin(), selected->end(), [](auto& l, auto& r) { return l.literal() < r.literal(); });
@@ -244,7 +245,7 @@ ClauseIterator TermFactoring::generateClauses(Clause* premise)
     litRanges.push(make_pair(last, selected->size()));
 
   return pvi(iterTraits(ownedArrayishIterator(std::move(litRanges)))
-                .flatMap([this, selected = std::move(selected)](auto r) {
+                .flatMap([this, selected = std::move(selected)] (auto r) {
                        ASS_REP(r.first < r.second, r)
                        return range(r.first, r.second - 1)
                                 .flatMap([=](auto i) {

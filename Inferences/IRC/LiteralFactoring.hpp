@@ -59,6 +59,10 @@ public:
     Literal* lit2, IrcLiteral<NumTraits> l2, Monom<NumTraits> k_s2);
 
   template<class NumTraits>
+  Option<Clause*> applyRule(SelectedSummand const& l1, SelectedSummand const& l2);
+  Option<Clause*> applyRule(SelectedSummand const& l1, SelectedSummand const& l2);
+
+  template<class NumTraits>
   ClauseIterator generateClauses(
       Clause* premise,
       Literal* lit1, IrcLiteral<NumTraits> L1,

@@ -1712,11 +1712,21 @@ public:
   { return _inner.apply([](auto& x) { return x.size();}); }
 };
 
+
 template<class IfIter, class ElseIter>
-static auto ifElseIter(bool cond, IfIter ifIter, ElseIter elseIter) 
+static auto _ifElseIter(bool cond, IfIter ifIter, ElseIter elseIter) 
 { return iterTraits(
          cond ? CoproductIter<ResultOf<IfIter>, ResultOf<ElseIter>>(ifIter())
               : CoproductIter<ResultOf<IfIter>, ResultOf<ElseIter>>(elseIter())); }
+
+template<class ElseIter>
+static auto ifElseIter(ElseIter elseIter) 
+{ return elseIter(); }
+
+template<class IfIter, class... ElseIters>
+static auto ifElseIter(bool cond, IfIter ifIter, ElseIters... elseIters) 
+{ return _ifElseIter(cond, ifIter, [&]() { return ifElseIter(elseIters...); }); }
+
 
 template<class I1>
 static auto concatIters(I1 i1) 

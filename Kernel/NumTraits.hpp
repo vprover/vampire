@@ -136,12 +136,22 @@ struct NumTraits;
 
 #define IMPL_NUM_TRAITS(CamelCase, lowerCase, LONG, SHORT)                                          \
   template<> struct NumTraits<CamelCase ## ConstantType> {                                          \
+    /* dummy operator== to be able to compare Coproduct<IntTraits, RatTraits, ...> */               \
+    friend bool operator==(NumTraits const& l, NumTraits const& r)                                  \
+    { return true; }                                                                                \
+                                                                                                    \
+    friend bool operator!=(NumTraits const& l, NumTraits const& r)                                  \
+    { return !(l == r); }                                                                           \
+                                                                                                    \
     using ConstantType = CamelCase ## ConstantType;                                                 \
     static TermList sort() { return AtomicSort::lowerCase ## Sort(); };                             \
                                                                                                     \
     template<class I1, class I2, class... Is>                                                       \
     static TermList sum(I1 i1, I2 i2, Is... is)                                                     \
     { return sum(getConcatenatedIterator(i1, i2), is...); };                                        \
+                                                                                                    \
+    static TermList mulSimpl(ConstantType c, TermList t)                                            \
+    { return c == ConstantType(1) ? t : NumTraits::mul(constantTl(c), t); }                         \
                                                                                                     \
     template<class Iter>                                                                            \
     static TermList sum(Iter iter) {                                                                \

@@ -37,24 +37,24 @@ using namespace Inferences::IRC;
 ////// TEST CASES 
 /////////////////////////////////////
 
-#define SUGAR(Num)                                                                                            \
-  NUMBER_SUGAR(Num)                                                                                           \
-  DECL_DEFAULT_VARS                                                                                           \
-  DECL_VAR(x0,0)                                                                                              \
-  DECL_VAR(x1,1)                                                                                              \
-  DECL_VAR(x2,2)                                                                                              \
-  DECL_VAR(x3,3)                                                                                              \
-  DECL_VAR(x4,4)                                                                                              \
-  DECL_CONST(a, Num)                                                                                          \
-  DECL_CONST(b, Num)                                                                                          \
-  DECL_CONST(c, Num)                                                                                          \
-  DECL_FUNC(f, {Num}, Num)                                                                                    \
-  DECL_FUNC(ff, {Num}, Num)                                                                                   \
-  DECL_FUNC(fff, {Num}, Num)                                                                                  \
-  DECL_FUNC(g, {Num, Num}, Num)                                                                               \
-  DECL_FUNC(g0, {Num, Num}, Num)                                                                              \
-  DECL_FUNC(g1, {Num, Num}, Num)                                                                              \
-  DECL_PRED(r, {Num,Num})                                                                                     \
+#define SUGAR(Num)                                                                                  \
+  NUMBER_SUGAR(Num)                                                                                 \
+  DECL_DEFAULT_VARS                                                                                 \
+  DECL_VAR(x0,0)                                                                                    \
+  DECL_VAR(x1,1)                                                                                    \
+  DECL_VAR(x2,2)                                                                                    \
+  DECL_VAR(x3,3)                                                                                    \
+  DECL_VAR(x4,4)                                                                                    \
+  DECL_CONST(a, Num)                                                                                \
+  DECL_CONST(b, Num)                                                                                \
+  DECL_CONST(c, Num)                                                                                \
+  DECL_FUNC(f, {Num}, Num)                                                                          \
+  DECL_FUNC(ff, {Num}, Num)                                                                         \
+  DECL_FUNC(fff, {Num}, Num)                                                                        \
+  DECL_FUNC(g, {Num, Num}, Num)                                                                     \
+  DECL_FUNC(g0, {Num, Num}, Num)                                                                    \
+  DECL_FUNC(g1, {Num, Num}, Num)                                                                    \
+  DECL_PRED(r, {Num,Num})                                                                           \
 
 #define MY_SYNTAX_SUGAR SUGAR(Rat)
 
@@ -77,8 +77,8 @@ TEST_GENERATION(basic00a,
     Generation::SymmetricTest()
       .inputs  ({  clause({selected( 3 * f(x) + y > 0 ), selected(4 * f(x) + z > 0)   }) })
       .expected(exactly(
-            clause({ 3 * z - 4 * y > 0,  4 * f(x) + z > 0   })
-          , clause({ 4 * y - 3 * z > 0,  3 * f(x) + y > 0   })
+            clause({ 4 * y + -3 * z > 0,  4 * f(x) + z > 0   })
+          , clause({ 3 * z + -4 * y > 0,  3 * f(x) + y > 0   })
       ))
     )
 
@@ -125,12 +125,12 @@ TEST_GENERATION(basic02b,
       ))
     )
 
-TEST_GENERATION(basic03,
+TEST_GENERATION(basic03_symmetry_breaking,
     Generation::SymmetricTest()
       .inputs  ({  clause({selected(  f(a) > 0)  , selected(  f(a) > 0)  }) })
       .expected(exactly(
             clause({  f(a) > 0, num(0) > 0  })
-          , clause({  f(a) > 0, num(0) > 0  })
+          // , clause({  f(a) > 0, num(0) > 0  })
       ))
     )
 
@@ -154,9 +154,7 @@ TEST_GENERATION(misc1,
     Generation::SymmetricTest()
       .inputs  ({  clause({ selected( f(x) + f(y) > 0 )  , selected( f(y) + f(x) > 0 )  }) })
       .expected(exactly( 
-            clause({ f(x) + f(x) > 0, -f(x) + f(x) > 0 }), clause({ f(x) + f(x) > 0, -f(x) + f(x) > 0 })
-          , clause({ f(y) + f(y) > 0, -f(y) + f(y) > 0 }), clause({ f(y) + f(y) > 0, -f(y) + f(y) > 0 })
-          , clause({ f(x) + f(y) > 0, -f(y) + f(y) > 0 }), clause({ f(x) + f(y) > 0, -f(y) + f(y) > 0 })
+            clause({ f(x) + f(y) > 0, -f(y) + f(y) > 0 }), clause({ f(x) + f(y) > 0, -f(y) + f(y) > 0 })
           , clause({ f(x) + f(y) > 0, -f(x) + f(x) > 0 }), clause({ f(x) + f(y) > 0, -f(x) + f(x) > 0 })
       ))
     )
@@ -182,7 +180,7 @@ TEST_GENERATION(max_s1_after_unif_2,
       .inputs  ({  clause({  selected( ff(y) + fff(x) > 0 ), selected( f(z) + fff(y) > 0 )    }) })
       .expected(exactly( 
             clause({ ff(x) + fff(x) > 0, f(z) - ff(x) > 0 })
-          , clause({ ff(z) + fff(x) > 0, ff(x) - f(z) > 0 })
+          , clause({ f(z)  + fff(x) > 0, ff(x) - f(z) > 0 })
       ))
     )
 
@@ -223,7 +221,7 @@ TEST_GENERATION(lasca_bug1,
       ))
     )
 
-TEST_GENERATION(lasca_bug2a,
+TEST_GENERATION(lasca_bug2,
     Generation::SymmetricTest()
       .inputs  ({  clause({ selected( f(x) + y + 1 > 0 ), selected( f(x) + z > 0 ) }) })
       .expected(exactly(
@@ -232,21 +230,12 @@ TEST_GENERATION(lasca_bug2a,
       ))
     )
 
-TEST_GENERATION(lasca_bug2,
-    Generation::SymmetricTest()
-      .inputs  ({  clause({ selected( -f(x) + y + 1 > 0 ), selected( -f(x) + z > 0 ) }) })
-      .expected(exactly(
-            clause({         -f(x) + y + 1 > 0 , z     - y + -1 > 0 })
-          , clause({         -f(x) + z     > 0 , y + 1 - z      > 0 })
-      ))
-    )
-
 TEST_GENERATION(lasca_bug3,
     Generation::SymmetricTest()
-      .inputs  ({  clause({  selected(-a + x + -1 > 0), selected(-a + -x > 0) }) })
+      .inputs  ({  clause({  selected(a + x + -1 > 0), selected(a + -x > 0) }) })
       .expected(exactly(
-            clause({         -a +  x + -1 > 0, (-x) + (-x + 1) > 0 })
-          , clause({         -a + -x      > 0, (x + -1) +  (x) > 0 })
+            clause({         a +  x + -1 > 0, (-x) + (-x + 1) > 0 })
+          , clause({         a + -x      > 0, (x + -1) +  (x) > 0 })
       ))
                             // if (!_lascaFactoring && isSelected(j))
     )

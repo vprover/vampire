@@ -16,322 +16,159 @@
 #include "LiteralFactoring.hpp"
 #include "Shell/Statistics.hpp"
 
-#define DEBUG(...) //DBG(__VA_ARGS__)
+#define DEBUG(...) // DBG(__VA_ARGS__)
 
 namespace Inferences {
 namespace IRC {
 
-void LiteralFactoring::attach(SaturationAlgorithm* salg) 
-{ }
+void LiteralFactoring::attach(SaturationAlgorithm* salg) { }
 
-void LiteralFactoring::detach() 
-{ }
+void LiteralFactoring::detach() { }
 
-//  IRC VERSION
-//
-//  C \/ ±js1 + t1 <> 0 \/ ±ks2 + t2 <> 0
+
+#define CHECK_CONDITION(name, condition)                                                            \
+  if (!(condition)) {                                                                               \
+    DEBUG("side condition not satisfied: " name)                                                    \
+    return nothing();                                                                               \
+  }                                                                                                 \
+
+//  C \/ +j s1 + t1 >1 0 \/ +k s2 + t2 >2 0
 // ====================================================
-// (C \/ ±js1 + t1 <> 0 \/ k t1 − j t2  ̸≈ 0) σ \/ Cnst
+// (C \/ k t1 − j t2 >3 0 \/ +k s2 + t2 >2 0) σ \/ Cnst
 //
 //
 // where
-// • uwa(s1,s2)=⟨σ,Cnst⟩
-// • <> ∈ {>,≥,≈, /≈}
+// • ⟨σ,Cnst⟩ = uwa(s1,s2)
+// • >i ∈ {>,≥}
 // • s1σ /⪯ terms(t1)σ
 // • s2σ /⪯ terms(t2)σ
-// • (±ks1 + t1 <> 0)σ /< (±ks2 + t2 <> 0 \/ C)σ
-// • (±ks2 + t2 <> 0)σ /< (±ks1 + t1 <> 0 \/ C)σ
-
-//  LASCA VERSION
-//
-//  C \/ ±js1 + t1 <> 0 \/ ±ks2 + t2 <> 0
-// ====================================================
-// (C \/ ±js1 + t1 <> 0 \/ j t2 − k t1 > 0) σ \/ Cnst
-// (C \/ ±ks2 + t2 <> 0 \/ k t1 − j t2 > 0) σ \/ Cnst
-//
-//
-// where
-// • uwa(s1,s2)=⟨σ,Cnst⟩
-// • <> ∈ {>,≥}
-// • s1σ /⪯ terms(t1)σ
-// • s2σ /⪯ terms(t2)σ
-// • (±ks1 + t1 <> 0)σ /< (±ks2 + t2 <> 0 \/ C)σ
-// • (±ks2 + t2 <> 0)σ /< (±ks1 + t1 <> 0 \/ C)σ
-
+// •    (j s1 + t1 >1 0)σ /≺ (k s2 + t2 >2 0 \/ C)σ
+//   or (k s2 + t2 >2 0)σ /≺ (j s1 + t1 >1 0 \/ C)σ
+// • (>3) = if (>1, >2) = (>=, >) then (>=) 
+//                                else (>)
 
 template<class NumTraits>
-Stack<Clause*> LiteralFactoring::applyRule(Clause* premise, 
-    Literal* lit1, IrcLiteral<NumTraits> l1,  Monom<NumTraits> j_s1,
-    //       ^^^^--> `±js1 + t1 <> 0` <--^^            ±js1 <--^^^^
-    Literal* lit2, IrcLiteral<NumTraits> l2,  Monom<NumTraits> k_s2,
-    //       ^^^^--> `±ks2 + t2 <> 0` <--^^            ±ks2 <--^^^^
-    UwaResult uwa)
+Option<Clause*> LiteralFactoring::applyRule(
+    SelectedSummand const& l1,  // +j s1 + t1 >1 0
+    SelectedSummand const& l2   // +k s2 + t2 >2 0
+    )
 {
+  using Numeral = typename NumTraits::ConstantType;
+  CALL("LiteralFactoring::applyRule(SelectedSummand const& l1, SelectedSummand const& l2)")
+  DEBUG("l1: ", l1)
+  DEBUG("l2: ", l2)
 
   MeasureTime time(env.statistics->ircLitFac);
+  auto nothing = [&]() { time.applicationCancelled(); return Option<Clause*>{}; };
 
-  auto nothing = [&](auto i) { time.applicationCancelled(); return Stack<Clause*>{}; };
+  auto uwa_ = _shared->unify(l1.monom(), l2.monom());
+
+  CHECK_CONDITION("⟨σ,Cnst⟩ = uwa(s1,s2)",
+                  uwa_.isSome())
+  auto& uwa = uwa_.unwrap();
+
   auto sigma = [&](auto x){ return uwa.sigma(x, /* varbank */ 0); };
   auto& cnst  = uwa.cnst();
-  auto j = j_s1.numeral;
-  auto k = k_s2.numeral;
-  auto s1 = j_s1.factors;
-  auto s2 = k_s2.factors;
+  auto j = l1.numeral().unwrap<Numeral>();
+  auto k = l2.numeral().unwrap<Numeral>();
+  auto s1 = l1.monom();
+  auto s2 = l2.monom();
+  ASS_EQ(l1.clause(), l2.clause())
+  auto premise = l1.clause();
 
   /////////////////////////////////////////////////////////////////////////////////////
   // applicability checks
   //////////////////////////////////////////////////////
 
-  if(j.isPositive() != k.isPositive()
-     || l1.symbol() != l2.symbol())
-    return nothing(0);
+  ASS(j.isPositive())
+  ASS(k.isPositive())
 
-  auto term_max_after_unif = [&sigma, this](auto lit_sigma, auto s) -> bool
-  {
-      auto lit_sigma_norm = _shared->renormalize<NumTraits>(lit_sigma);
-      if (lit_sigma_norm.isNone())  
-        return true; // overflow while normalizing, we assume that we can apply the rule
-      auto strictly_max = _shared->selectedTerms(lit_sigma_norm.unwrap(), /*strict*/ true);
-      auto s_sigma = _shared->normalize(TypedTermList(sigma(s->denormalize()), NumTraits::sort())).wrapMonom<NumTraits>();
-      if (iterTraits(strictly_max.iterFifo()).all([&](auto monom) { return monom.factors != s_sigma.factors; }))
-        return false;
-      else 
-        return true;
-  };
+  auto s1_sigma = sigma(s1);
+  Stack<TermList> t1_sigma;
+  CHECK_CONDITION("s1σ /⪯ terms(t1)σ",
+      l1.contextTerms<NumTraits>() 
+        .all([&](auto ki_ti) {
+          auto tiσ = sigma(ki_ti.factors->denormalize());
+          t1_sigma.push(NumTraits::mulSimpl(ki_ti.numeral, tiσ));
+          return OrderingUtils2::notLeq(_shared->ordering->compare(s1_sigma, tiσ));
+        }));
 
-  // checking s1σ /⪯ terms(t1)σ
-  auto lit1_sigma = sigma(lit1);
-  if (!term_max_after_unif(lit1_sigma, s1))
-    return nothing(1);
+  auto s2_sigma = sigma(s2);
+  Stack<TermList> t2_sigma;
+  CHECK_CONDITION("s2σ /⪯ terms(t2)σ",
+      l2.contextTerms<NumTraits>() 
+        .all([&](auto ki_ti) {
+          auto tiσ = sigma(ki_ti.factors->denormalize());
+          t2_sigma.push(NumTraits::mulSimpl(ki_ti.numeral, tiσ));
+          return OrderingUtils2::notLeq(_shared->ordering->compare(s2_sigma, tiσ));
+        }));
 
-  // checking s2σ /⪯ terms(t2)σ
-  auto lit2_sigma = sigma(lit2);
-  if (!term_max_after_unif(lit2_sigma, s2))
-    return nothing(2);
+                                  //
+  Stack<Literal*> concl(premise->size() + cnst.size());
 
-  {
-    // auto premLits = iterTraits(premise->iterLits()).template collect<Stack>();
-    // auto selectedLiterals = _shared->selectedLiterals(sigma(std::move(premLits)));
-
-    // TODO do we wanna include this check again?
-    // // checking (±ks1 + t1 <> 0)σ /< (±ks2 + t2 <> 0 \/ C)σ
-    // if (!iterTraits(selectedLiterals.iterFifo()).any([&](auto x) { return x == lit1_sigma; }))
-    //   return nothing(3);
-
-    // // checking (±ks2 + t2 <> 0)σ /< (±ks1 + t1 <> 0 \/ C)σ
-    // if (!iterTraits(selectedLiterals.iterFifo()).any([&](auto x) { return x == lit2_sigma; }))
-    //   return nothing(4);
+  // adding `Cσ`
+  { 
+    for (auto i : range(0, premise->size()) ) {
+      if (i != l1.litIdx() && i != l2.litIdx()) {
+        concl.push(sigma((*premise)[i]));
+      }
+    }
   }
 
 
-  //////////////////////////////////////////////////////
-  // constructing the conclusion
-  //////////////////////////////////////////////////////
+  // •    (j s1 + t1 >1 0)σ /≺ (k s2 + t2 >2 0 \/ C)σ <- cond1
+  //   or (k s2 + t2 >2 0)σ /≺ (j s1 + t1 >1 0 \/ C)σ <- cond2
 
+  auto L1σ = sigma(l1.literal()); // <- (j s1 + t1 >1 0)σ
+  auto L2σ = sigma(l2.literal()); // <- (j s1 + t1 >1 0)σ
+  auto cond1 = concatIters(concl.iter(), getSingletonIterator(L2σ))
+    .all([&](auto Lσ) 
+        { return  OrderingUtils2::notLess(_shared->ordering->compare(L1σ, Lσ)); });
 
-  auto lascaFactoring = [&]() -> Stack<Stack<Literal*>> {
-  
-    Stack<Literal*> concl1(premise->size() + cnst.size());
+  auto cond2 = concatIters(concl.iter(), getSingletonIterator(L1σ))
+    .all([&](auto Lσ) 
+        { return  OrderingUtils2::notLess(_shared->ordering->compare(L2σ, Lσ)); });
 
-    // adding `Cσ`
-    { 
-      for (auto lit : iterTraits(premise->getLiteralIterator())) {
-        if (lit != lit1 && lit != lit2) {
-          concl1.push(sigma(lit));
-        }
-      }
-    }
+  CHECK_CONDITION(
+      "(j s1 + t1 >1 0)σ /≺ (k s2 + t2 >2 0 \\/ C)σ or (k s2 + t2 >2 0)σ /≺ (j s1 + t1 >1 0 \\/ C)σ",
+      cond1 || cond2);
 
-    // adding `Cnst`
-    concl1.loadFromIterator(uwa.cnstLiterals());
+  // adding `Cnst`
+  concl.loadFromIterator(uwa.cnstLiterals());
 
-    Stack<Literal*> concl2(concl1);
-    //              ^^^^^^-> Cσ \/ Cnst
+  // adding `(±ks2 + t2 <> 0) σ`
+  concl.push(L2σ);
 
-    // adding `(±js1 + t1 <> 0) σ`
-    concl1.push(lit1_sigma);
-    // adding `(±ks2 + t2 <> 0) σ`
-    concl2.push(lit2_sigma);
+  auto pivotSum = 
+  //   ^^^^^^^^--> `(k t1 − j t2)σ`
+    NumTraits::sum(iterTraits(getConcatenatedIterator(
+        l1.contextTerms<NumTraits>().map([&](auto t) { return  sigma(( k * t).denormalize()); }),
+        l2.contextTerms<NumTraits>().map([&](auto t) { return  sigma((-j * t).denormalize()); }))));
+    
 
+  // • (>3) = if (>1, >2) = (>=, >) then (>=) 
+  //                                else (>)
+  auto less3 = l1.symbol() == IrcPredicate::GREATER_EQ 
+            && l2.symbol() == IrcPredicate::GREATER ? IrcPredicate::GREATER_EQ
+                                                    : IrcPredicate::GREATER;
 
-    auto pivotSum = [&](auto factor_) {
-    //   ^^^^^^^^--> `((factor) * (k t1 − j t2) > 0) σ`
-      auto factor = typename NumTraits::ConstantType(factor_);
-      auto t = NumTraits::sum(iterTraits(getConcatenatedIterator(
-          l1.term().iterSummands()
-            .filter([&](auto t) { return t != j_s1; })
-            .map([&](auto t) { return  (( factor * k.abs() ) * t).denormalize(); }),
+  auto pivotLit = IrcPredicateCreateLiteral<NumTraits>(less3, pivotSum);
 
-          l2.term().iterSummands()
-            .filter([&](auto t) { return t != k_s2; })
-            .map([&](auto t) { return  (( factor * -j.abs() ) * t).denormalize(); })
-            )));
-      return sigma(NumTraits::greater(true, t, NumTraits::zero()));
-    };
-
-    // adding (j t2 − k t1 > 0) σ
-    concl1.push(pivotSum(-1));
-    // adding (k t1 − j t2 > 0) σ
-    concl2.push(pivotSum(1));
-
-    return { concl1, concl2 };
-  };
-
-
-  auto ircFactoring = [&]() -> Stack<Stack<Literal*>> {
-    Stack<Literal*> conclusion(premise->size() + cnst.size());
-
-    // adding `(C \/ ±js1 + t1 <> 0)σ`
-    { 
-      auto lit2cnt = 0;
-      for (auto lit : iterTraits(premise->getLiteralIterator())) {
-        if (lit == lit2) {
-          lit2cnt++;
-        } else if (lit == lit1) {
-          conclusion.push(lit1_sigma);
-        } else {
-          ASS(lit != lit2)
-          conclusion.push(sigma(lit));
-        }
-      }
-      if (lit2cnt > 1) {
-        conclusion.push(lit2_sigma);
-      }
-    }
-
-    auto pivotSum = 
-    //   ^^^^^^^^--> `k t1 − j t2`
-      NumTraits::sum(iterTraits(getConcatenatedIterator(
-        l1.term().iterSummands()
-          .filter([&](auto t) { return t != j_s1; })
-          .map([&](auto t) { return  (k * t).denormalize(); }),
-
-        l2.term().iterSummands()
-          .filter([&](auto t) { return t != k_s2; })
-          .map([&](auto t) { return  (-j * t).denormalize(); })
-          )));
-    auto pivotLiteral = NumTraits::eq(false, pivotSum, NumTraits::zero());
-
-    // adding `(k t1 − j t2  ̸≈ 0)σ`
-    conclusion.push(sigma(pivotLiteral));
-
-    // adding `Cnst`
-    conclusion.loadFromIterator(uwa.cnstLiterals());
-    return {conclusion};
-  };
+  // adding (k t1 − j t2 >3 0)σ
+  concl.push(pivotLit);
 
   Inference inf(GeneratingInference1(Kernel::InferenceRule::IRC_LITERAL_FACTORING, premise));
-
-  auto concls = (!_lascaFactoring || l1.symbol() == IrcPredicate::EQ || l1.symbol() == IrcPredicate::NEQ) 
-    ? ircFactoring() 
-    : lascaFactoring();
-
-  auto out = iterTraits(getArrayishObjectIterator<mut_ref_t>(concls))
-    .map([&](auto& lits) { return Clause::fromStack(lits, inf); })
-    .template collect<Stack>();
-  return out;
+  auto out = Clause::fromStack(concl, inf);
+  DEBUG("conclusion: ", *out)
+  return Option<Clause*>(out);
 }
 
-
-template<template<class> class Obj> class AllNumTraits;
-template<class NumTraits, template<class> class Obj2> struct __getAllNumTraits {
-  Obj2<NumTraits>     & operator()(AllNumTraits<Obj2>      &);
-  Obj2<NumTraits>const& operator()(AllNumTraits<Obj2> const&);
-};
-
-template<template<class> class Obj>
-class AllNumTraits {
-  Obj< IntTraits> _int;
-  Obj< RatTraits> _rat;
-  Obj<RealTraits> _real;
-public:
-  AllNumTraits( Obj< IntTraits> intObj, Obj< RatTraits> ratObj, Obj<RealTraits> realObj)
-   : _int(std::move(intObj))
-   , _rat(std::move(ratObj))
-   , _real(std::move(realObj)) 
-  {}
-
-
-  template<class NumTraits, template<class> class Obj2> friend struct __getAllNumTraits;
-
-  template<class NumTraits> Obj<NumTraits>      & get()       { return __getAllNumTraits<NumTraits, Obj>{}(*this); }
-  template<class NumTraits> Obj<NumTraits> const& get() const { return __getAllNumTraits<NumTraits, Obj>{}(*this); }
-private:
-  Obj< IntTraits> const&  getInt() const { return _int;  }
-  Obj< RatTraits> const&  getRat() const { return _rat;  }
-  Obj<RealTraits> const& getReal() const { return _real; }
-
-  Obj< IntTraits>&  getInt() { return _int;  }
-  Obj< RatTraits>&  getRat() { return _rat;  }
-  Obj<RealTraits>& getReal() { return _real; }
-};
-
-
-template<template<class> class Obj> 
-struct __getAllNumTraits< IntTraits, Obj> {
-  Obj< IntTraits>     & operator()(AllNumTraits<Obj>      & self) { return self. getInt(); }
-  Obj< IntTraits>const& operator()(AllNumTraits<Obj> const& self) { return self. getInt(); }
-};
-
-template<template<class> class Obj> 
-struct __getAllNumTraits< RatTraits, Obj> {
-  Obj< RatTraits>     & operator()(AllNumTraits<Obj>      & self) { return self. getRat(); }
-  Obj< RatTraits>const& operator()(AllNumTraits<Obj> const& self) { return self. getRat(); }
-};
-
-
-template<template<class> class Obj> 
-struct __getAllNumTraits<RealTraits, Obj> {
-  Obj<RealTraits>     & operator()(AllNumTraits<Obj>      & self) { return self.getReal(); }
-  Obj<RealTraits>const& operator()(AllNumTraits<Obj> const& self) { return self.getReal(); }
-};
-
-
-  // template<class NumTraits> using SelectedTermStack = Stack<SelectedAtomicTerm<NumTraits>>;
-  // template<class NumTraits> using SharedSelectedTermStack = shared_ptr<SelectedTermStack<NumTraits>>;
-
-
-template<class NumTraits>
-ClauseIterator LiteralFactoring::generateClauses(Clause* premise, 
-    Literal* lit1, IrcLiteral<NumTraits> l1, Monom<NumTraits> j_s1,
-    Literal* lit2, IrcLiteral<NumTraits> l2, Monom<NumTraits> k_s2) 
+Option<Clause*> LiteralFactoring::applyRule(SelectedSummand const& l1, SelectedSummand const& l2)
 {
-
-    auto s1 = j_s1.factors->denormalize();
-    auto s2 = k_s2.factors->denormalize();
-    return pvi(iterTraits(_shared->unify(s1, s2).intoIter())
-      .map([&](auto sigma_cnst){ 
-        return pvi(iterTraits(ownedArrayishIterator(
-            applyRule(premise, lit1, l1, j_s1, 
-                      lit2, l2, k_s2, 
-                      std::move(sigma_cnst))
-            ))); 
-        })
-      .flatten()
-      );
-
-
-}
-
-template<class NumTraits>
-ClauseIterator LiteralFactoring::generateClauses(
-    Clause* premise,
-    Literal* lit1, IrcLiteral<NumTraits> L1,
-    Literal* lit2, IrcLiteral<NumTraits> L2
-  ) 
-{
-  auto maxAtomic = [this](auto L) { return make_shared(new Stack<Monom<NumTraits>>(_shared->selectedTerms(L, /* strict = */ true))); };
-  auto max1 = maxAtomic(L1);
-  auto max2 = maxAtomic(L2);
-  return pvi(range(0, max1->size())
-    .flatMap([=](auto i) {
-      return pvi(range(0, max2->size())
-        .flatMap([=](auto j) {
-          auto k_s1 = (*max1)[i];
-          auto j_s2 = (*max2)[j];
-          return generateClauses(premise, lit1, L1, k_s1, lit2, L2, j_s2);
-        }));
-    }));
+  ASS_EQ(l1.clause(), l2.clause())
+  return l1.numTraits().apply([&](auto numTraits) {
+      return applyRule<decltype(numTraits)>(l1, l2);
+  });
 }
 
 ClauseIterator LiteralFactoring::generateClauses(Clause* premise) 
@@ -339,55 +176,61 @@ ClauseIterator LiteralFactoring::generateClauses(Clause* premise)
 
   DEBUG("in: ", *premise)
 
-  // auto selected = make_shared(move_to_heap(_shared->selectedLiterals(premise)));
-  auto selected = make_shared(move_to_heap(_shared->selectedLiteralsWithIdx(premise)));
-  return pvi(
-      range(0, selected->size())
-        .flatMap([=](unsigned _i) {
-          auto lit1 = (*selected)[_i].first;
-          auto i  = (*selected)[_i].second;
-          auto L1_opt = _shared->renormalize(lit1);
-          return pvi(iterTraits(std::move(L1_opt).intoIter())
-            .flatMap([=](auto polymorphicNormalized) {
-                // we know that the first literal is an inequality of some number sort
-                // we dispatch on the number sort
-                return polymorphicNormalized.apply([&](auto L1) {
-                      using NumTraits = typename decltype(L1)::NumTraits;
-                      return pvi(range(0, premise->size())
-                        .filter([=](auto j) { return j != i; })
-                        .filter([=](auto j) { 
-                            auto isSelected = [=](auto j) { return iterTraits(selected->iterFifo()).any([=](auto x) { return x.second == j;  }); };
-                            ASS(isSelected(i));
-                            if (isSelected(j))
-                              // otherwise we fould factor Li with Lj, and Lj with Li,
-                              // getting the very same result clause twice
-                              return i < j;
-                            else 
-                              return true;
-                          })
-                        .flatMap([=](auto j) {
-                          auto lit2 = (*premise)[j];
-                          // we check whether the second is an inequality literal of the same number sort
-                          auto L2_opt = _shared->renormalize<NumTraits>(lit2);
-                          auto ci = pvi(iterTraits(std::move(L2_opt).intoIter())
-                            .flatMap([&](IrcLiteral<NumTraits> L2) 
-                                { return generateClauses(premise, lit1, L1, lit2, L2); }));
-                          return ci;
-                        }));
+    auto selected = make_shared(
+        _shared->selectedSummands(premise, /* stricltyMaxLiteral */ false, /* stricltyMaxSummand */ true)
+          .filter([](auto& s) { return s.isInequality(); })
+          .filter([](auto& s) { return s.sign() == Sign::Pos; })
+          .filter([](auto& s) { return !s.monom().isVar(); })
+          .template collect<Stack>());
 
-                  });
-            }));
-          })
-    );
+  auto rest = make_shared(
+      _shared->selectAllSummands(premise)
+        .filter([](auto& s) { return s.isInequality(); })
+        .filter([](auto& s) { return s.sign() == Sign::Pos; })
+        .filter([](auto& s) { return !s.monom().isVar(); })
+        .template collect<Stack>());
+
+  auto selIdx = make_shared(Set<pair<unsigned, unsigned>>());
+  auto key = [&](auto& s) { return make_pair(s.litIdx(), s.termIdx()); };
+
+  DEBUG("selected summands:")
+  for (auto& s : *selected) {
+    selIdx->insert(key(s));
+    DEBUG("  ", s)
+  }
+
+  return pvi(range(0, selected->size())
+      .flatMap([=](auto i) {
+        return range(0, rest->size())
+          .filter([=](auto j) { return (*selected)[i].litIdx() != (*rest)[j].litIdx(); })
+          .filter([=](auto j) { return (*selected)[i].numTraits() == (*rest)[j].numTraits(); })
+          .flatMap([=](auto j) {
+              auto& max = (*selected)[i];
+              auto& other = (*rest)[j];
+              return ifElseIter(
+
+                  // both literals are the same. 
+                  // we use a symmetry breaking index comparison
+                  // TODO we could replace this == by _shared.equivalent
+                  max.literal() == other.literal() && other.litIdx() < max.litIdx(), 
+                  [&]() { return ownedArrayishIterator(Stack<Clause*>{}); },
+
+                  // both are selected (= maximal)
+                  // we skip one of the applicaiton to avoid duplicate results
+                  selIdx->contains(key(other)), 
+                  [&]() { return applyRule(other, max).intoIter(); },
+
+                  // only one is selected (= maximal)
+                  [&]() { return concatIters(applyRule(max,other).intoIter(), 
+                                             applyRule(other, max).intoIter()); });
+          });
+      }));
 }
 
   
 
 #if VDEBUG
-void LiteralFactoring::setTestIndices(Stack<Indexing::Index*> const&) 
-{
-
-}
+void LiteralFactoring::setTestIndices(Stack<Indexing::Index*> const&) { }
 #endif
 
 } // namespace IRC 

@@ -77,6 +77,18 @@ namespace Kernel {
     GREATER_EQ,
   };
 
+  template<class NumTraits>
+  Literal* IrcPredicateCreateLiteral(IrcPredicate p, TermList t)
+  { 
+    switch(p) {
+      case IrcPredicate::EQ: return Literal::createEquality(true, t, NumTraits::zero(), NumTraits::sort());
+      case IrcPredicate::NEQ: return Literal::createEquality(false, t, NumTraits::zero(), NumTraits::sort());
+      case IrcPredicate::GREATER_EQ: return NumTraits::geq(true, t, NumTraits::zero());
+      case IrcPredicate::GREATER: return NumTraits::greater(true, t, NumTraits::zero());
+    }
+    ASSERTION_VIOLATION
+  }
+
   /** returns true iff the predicate is > or >= */
   bool isInequality(IrcPredicate const& self);
 
@@ -348,6 +360,7 @@ namespace Kernel {
       , _term(term) {}
 
     auto termIdx() const { return _term; }
+    auto litIdx() const { return _lit; }
     explicit SelectedSummand(SelectedSummand const&) = default;
     SelectedSummand(SelectedSummand&&) = default;
     SelectedSummand& operator=(SelectedSummand&&) = default;
@@ -418,6 +431,20 @@ namespace Kernel {
 
     bool equivalent(TypedTermList lhs, TypedTermList rhs) 
      { return normalize(lhs) == normalize(rhs); }
+
+    auto selectAllSummands(Clause* cl)
+    { 
+      return range(0, cl->size())
+        .flatMap([=](auto i) {
+            auto lit = (*cl)[i];
+            return iterTraits(renormalize(lit).intoIter())
+              .flatMap([=](auto anyIrcLit) {
+                  return range(0, anyIrcLit.apply([](auto& l) { return l.term().nSummands(); }))
+                        .map([=](auto j) 
+                            { return SelectedSummand(cl, i, anyIrcLit, j); });
+                  });
+            });
+    }
 
     auto selectedSummands(Clause* cl, bool strictlyMaxLiteral, bool strictlyMaxSummand) //-> IterTraits<VirtualIterator<SelectedSummand>>
     {
