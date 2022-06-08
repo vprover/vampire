@@ -106,13 +106,14 @@ TEST_GENERATION(new02_ ## name,                                                 
 test_new02(>=, geq)
 test_new02(> , greater)
 test_new02(==, eq)
+test_new02(!=, neq)
 
-TEST_GENERATION(new02_neq,
-    Generation::SymmetricTest()
-      .inputs  ({  clause({selected( g(a, x) + g(y, b) != 0 ) }) })
-      .expected(exactly(
-          /* we do not factor for negative equalities. TODO: do we really not need to? */
-      )))
+// TEST_GENERATION(new02_neq,
+//     Generation::SymmetricTest()
+//       .inputs  ({  clause({selected( g(a, x) + g(y, b) != 0 ) }) })
+//       .expected(exactly(
+//           /* we do not factor for negative equalities  */
+//       )))
 
 TEST_GENERATION(basic01a,
     Generation::SymmetricTest()

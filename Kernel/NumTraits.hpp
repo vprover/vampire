@@ -151,7 +151,9 @@ struct NumTraits;
     { return sum(getConcatenatedIterator(i1, i2), is...); };                                        \
                                                                                                     \
     static TermList mulSimpl(ConstantType c, TermList t)                                            \
-    { return c == ConstantType(1) ? t : NumTraits::mul(constantTl(c), t); }                         \
+    { return c == ConstantType(1) ? t                                                               \
+           : c == ConstantType(-1) ? minus(t)                                                       \
+           : NumTraits::mul(constantTl(c), t); }                                                    \
                                                                                                     \
     template<class Iter>                                                                            \
     static TermList sum(Iter iter) {                                                                \

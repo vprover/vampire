@@ -124,7 +124,7 @@ Option<Clause*> TermFactoring::applyRule(
       ASSERTION_VIOLATION
     };
 
-  ASS(!(sel1.literal()->isEquality() && sel1.literal()->isNegative()))
+  // ASS(!(sel1.literal()->isEquality() && sel1.literal()->isNegative()))
 
   auto k1 = sel1.numeral().template unwrap<Numeral>();
   auto k2 = sel2.numeral().template unwrap<Numeral>();
@@ -222,7 +222,6 @@ ClauseIterator TermFactoring::generateClauses(Clause* premise)
 
   auto selected = make_shared(move_to_heap(
         _shared->selectedSummands(premise, /* stricltyMaxLiteral */ false, /*stricltyMaxSummand*/ false)
-        .filter([](auto& s) { return !(s.literal()->isEquality() && s.literal()->isNegative()); })
         .filter([](auto& s) { return !s.monom().isVar(); })
         .template collect<Stack>()));
 
