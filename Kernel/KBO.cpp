@@ -547,7 +547,7 @@ KBO::KBO(
 #endif
   , _state(new State(this))
 { 
-  checkAdmissibility(throwError);
+  init(/* options: */ nullptr);
 }
 
 KBO KBO::testKBO() 
@@ -677,14 +677,20 @@ KBO::KBO(Problem& prb, const Options& opts)
  , _state(new State(this))
 {
   CALL("KBO::KBO(Prb&, Opts&)");
+  init(&opts);
+}
 
-  if (opts.kboMaxZero()) {
+void KBO::init(Options const* opts)
+{
+
+  CALL("KBO::init()");
+  if (opts && opts->kboMaxZero()) {
     zeroOutWeightForMaximalFuncs();
   }
 
   initSmallestTerms();
 
-  if (opts.kboAdmissabilityCheck() == Options::KboAdmissibilityCheck::ERROR)
+  if (opts && opts->kboAdmissabilityCheck() == Options::KboAdmissibilityCheck::ERROR)
     checkAdmissibility(throwError);
   else
     checkAdmissibility(warnError);

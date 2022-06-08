@@ -147,6 +147,7 @@ public:
       // other
       bool reverseLCM);
 
+
   static KBO testKBO();
 
   virtual ~KBO();
@@ -166,6 +167,9 @@ protected:
   int symbolWeight(Term* t) const;
 
 private:
+
+  // helper for constructors. opts might be nullptr
+  void init(Options const* opts);
 
   KboWeightMap<FuncSigTraits> _funcWeights;
 #if __KBO__CUSTOM_PREDICATE_WEIGHTS__

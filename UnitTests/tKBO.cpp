@@ -15,8 +15,11 @@
 
 #include "Test/UnitTesting.hpp"
 #include "Test/SyntaxSugar.hpp"
+#include "Test/TestUtils.hpp"
 #include "Kernel/KBO.hpp"
 #include "Kernel/Ordering.hpp"
+
+using namespace Test;
 
 //////////////////////////////////////////////////////////////////////////////// 
 /////////////////////////////// HELPER FUNCTIONS /////////////////////////////// 
@@ -105,7 +108,24 @@ Map<unsigned, KboWeight> weights(pair<As, KboWeight>... as) {
   return out;
 }
 
+auto prty(TermList const& t) { return pretty(t); }
+auto prty(Literal* const& t) { return pretty(t); }
 
+#define _CHECK(ord, l, r, res)                                                                      \
+  {                                                                                                 \
+    auto cmp = ord.compare(l,r) ;                                                                   \
+    if (cmp == res) {                                                                               \
+      std::cout << "[  ok ] " << prty(l) << " " << cmp << " " << prty(r) << std::endl;              \
+    } else {                                                                                        \
+      std::cout << "[ fail ] " << prty(l) << " " << cmp << " " << prty(r) << std::endl;             \
+      std::cout << "[  exp ] " << prty(l) << " " << res << " " << prty(r) << std::endl;             \
+      exit(-1);                                                                                     \
+    }                                                                                               \
+  }                                                                                                 \
+
+#define CHECK(ord, l, r, res)                                                                       \
+  _CHECK(ord, l, r, res)                                                                            \
+  _CHECK(ord, r, l, Ordering::reverse(res))                                                         \
 
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////// TEST CASES //////////////////////////////////
@@ -130,7 +150,7 @@ TEST_FUN(kbo_test01) {
       weights() // <- predicate symbol weights
       ); 
 
-  ASS_EQ(ord.compare(f(c), g(c)), Ordering::Result::GREATER)
+  CHECK(ord, f(c), g(c), Ordering::Result::GREATER)
 }
 //
 //
@@ -146,7 +166,7 @@ TEST_FUN(kbo_test02) {
 
   auto ord = kbo(weights(make_pair(f, 10u)), weights());
 
-  ASS_EQ(ord.compare(f(c), g(g(g(g(g(c)))))), Ordering::Result::GREATER)
+  CHECK(ord, f(c), g(g(g(g(g(c))))), Ordering::Result::GREATER)
 }
 
 TEST_FUN(kbo_test03) {
@@ -159,7 +179,7 @@ TEST_FUN(kbo_test03) {
   auto ord = kbo(weights(make_pair(f, 10u)), weights());
 
 
-  ASS_EQ(ord.compare(f(x), g(g(g(g(g(c)))))), Ordering::Result::GREATER)
+  CHECK(ord, f(x), g(g(g(g(g(c))))), Ordering::Result::GREATER)
 }
 
 TEST_FUN(kbo_test04) {
@@ -170,7 +190,7 @@ TEST_FUN(kbo_test04) {
 
   auto ord = kbo(weights(make_pair(f, 10u)), weights());
 
-  ASS_EQ(ord.compare(f(x), g(g(g(g(g(y)))))), Ordering::Result::INCOMPARABLE)
+  CHECK(ord, f(x), g(g(g(g(g(y))))), Ordering::Result::INCOMPARABLE)
 }
 
 TEST_FUN(kbo_test05) {
@@ -181,7 +201,7 @@ TEST_FUN(kbo_test05) {
 
   auto ord = kbo(weights(make_pair(f, 0u)), weights());
 
-  ASS_EQ(ord.compare(f(x), g(x)), Ordering::Result::LESS)
+  CHECK(ord, f(x), g(x), Ordering::Result::LESS)
 }
 
 TEST_FUN(kbo_test06) {
@@ -191,7 +211,7 @@ TEST_FUN(kbo_test06) {
 
   auto ord = kbo(weights(make_pair(f, 0u)), weights());
 
-  ASS_EQ(ord.compare(f(x), x), Ordering::Result::GREATER)
+  CHECK(ord, f(x), x, Ordering::Result::GREATER)
 }
 
 TEST_FUN(kbo_test07) {
@@ -201,7 +221,7 @@ TEST_FUN(kbo_test07) {
 
   auto ord = kbo(weights(make_pair(f, 0u)), weights());
 
-  ASS_EQ(ord.compare(f(x), x), Ordering::Result::GREATER)
+  CHECK(ord, f(x), x, Ordering::Result::GREATER)
 }
 
 TEST_FUN(kbo_test08) {
@@ -212,7 +232,7 @@ TEST_FUN(kbo_test08) {
 
   auto ord = kbo(weights(make_pair(f, 0u), make_pair(g, 1u)), weights());
 
-  ASS_EQ(ord.compare(g(f(x)), f(g(x))), Ordering::Result::LESS)
+  CHECK(ord, g(f(x)), f(g(x)), Ordering::Result::LESS)
 }
 
 TEST_FUN(kbo_test09) {
@@ -251,7 +271,7 @@ TEST_FUN(kbo_test11) {
 
   auto ord = kbo(weights(make_pair(f, 0u), make_pair(g, 1u)), weights());
 
-  ASS_EQ(ord.compare(g(f(x)), f(g(x))), Ordering::Result::LESS)
+  CHECK(ord, g(f(x)), f(g(x)), Ordering::Result::LESS)
 }
 
 TEST_FUN(kbo_test12) {
@@ -262,7 +282,7 @@ TEST_FUN(kbo_test12) {
 
   auto ord = kbo(weights(), weights());
 
-  ASS_EQ(ord.compare(a,b), Ordering::Result::LESS)
+  CHECK(ord, a,b, Ordering::Result::LESS)
 }
 
 TEST_FUN(kbo_test13) {
@@ -273,7 +293,7 @@ TEST_FUN(kbo_test13) {
 
   auto ord = kbo(weights(make_pair(a,3u), make_pair(b,2u)), weights());
 
-  ASS_EQ(ord.compare(a,b), Ordering::Result::GREATER)
+  CHECK(ord, a,b, Ordering::Result::GREATER)
 }
 
 TEST_FUN(kbo_test14) {
@@ -286,7 +306,7 @@ TEST_FUN(kbo_test14) {
 
   auto ord = kbo(weights(make_pair(a,1u), make_pair(u,0u)), weights());
 
-  ASS_EQ(ord.compare(u(f(g(x),g(a))), u(f(x,g(a)))), Ordering::Result::GREATER)
+  CHECK(ord, u(f(g(x),g(a))), u(f(x,g(a))), Ordering::Result::GREATER)
 }
 
 TEST_FUN(kbo_test15) {
@@ -299,7 +319,7 @@ TEST_FUN(kbo_test15) {
 
   auto ord = kbo(weights(make_pair(a,1u), make_pair(u,0u)), weights());
 
-  ASS_EQ(ord.compare(u(f(g(u(x)),g(a))), u(f(x,g(a)))), Ordering::Result::GREATER)
+  CHECK(ord, u(f(g(u(x)),g(a))), u(f(x,g(a))), Ordering::Result::GREATER)
 }
 
 TEST_FUN(kbo_test16) {
@@ -310,7 +330,7 @@ TEST_FUN(kbo_test16) {
 
   auto ord = kbo(weights(make_pair(a,1u), make_pair(u,0u)), weights());
 
-  ASS_EQ(ord.compare(u(x), x), Ordering::Result::GREATER)
+  CHECK(ord, u(x), x, Ordering::Result::GREATER)
 }
 
 TEST_FUN(kbo_test17) {
@@ -322,7 +342,7 @@ TEST_FUN(kbo_test17) {
 
   auto ord = kbo(weights(make_pair(a,1u), make_pair(u,0u)), weights());
 
-  ASS_EQ(ord.compare(u(f(x)), f(x)), Ordering::Result::GREATER)
+  CHECK(ord, u(f(x)), f(x), Ordering::Result::GREATER)
 }
 
 TEST_FUN(kbo_test18) {
@@ -334,7 +354,7 @@ TEST_FUN(kbo_test18) {
 
   auto ord = kbo(weights(make_pair(a,1u), make_pair(u,0u)), weights());
 
-  ASS_EQ(ord.compare(f(u(x)), f(x)), Ordering::Result::GREATER)
+  CHECK(ord, f(u(x)), f(x), Ordering::Result::GREATER)
 }
 
 TEST_FUN(kbo_test19) {
@@ -353,7 +373,7 @@ TEST_FUN(kbo_test19) {
         make_pair(p,2u)
       ));
 
-  ASS_EQ(ord.compare(p(f(g(x))), p(g(f(x)))), Ordering::Result::LESS)
+  CHECK(ord, p(f(g(x))), p(g(f(x))), Ordering::Result::LESS)
 }
 
 TEST_FUN(kbo_test20) {
@@ -390,7 +410,7 @@ TEST_FUN(kbo_test21) {
       ), 
       weights());
 
-  ASS_EQ(ord.compare(a, b), Ordering::Result::LESS)
+  CHECK(ord, a, b, Ordering::Result::LESS)
 }
 
 TEST_FUN(kbo_test22) {
@@ -410,6 +430,37 @@ TEST_FUN(kbo_test22) {
   } catch (UserErrorException&) {
     /* introduced symbol weight must be greater or equal to the variable weight */
   }
+}
+
+
+TEST_FUN(kbo_test23) {
+  DECL_DEFAULT_VARS
+  DECL_SORT(srt)
+  DECL_CONST(a, srt)
+  DECL_CONST(b, srt)
+  DECL_FUNC(f, {srt}, srt)
+  DECL_FUNC(f2, {srt, srt}, srt)
+  DECL_FUNC(f3, {srt, srt, srt}, srt)
+  // DECL_FUNC(f4, {srt, srt, srt, srt}, srt)
+  // DECL_FUNC(f5, {srt, srt, srt, srt, srt}, srt)
+  // DECL_FUNC(f6, {srt, srt, srt, srt, srt, srt}, srt)
+
+  auto ord = kbo(weights(), weights());
+
+  CHECK(ord, x,a, Ordering::Result::GREATER_EQ)
+  CHECK(ord, x,b, Ordering::Result::INCOMPARABLE)
+  CHECK(ord, f(x),f(a), Ordering::Result::GREATER_EQ)
+  CHECK(ord, f(x),f(b), Ordering::Result::INCOMPARABLE)
+  CHECK(ord, f2(a, x),f(a, a), Ordering::Result::GREATER_EQ)
+  CHECK(ord, f2(b, x),f(b, b), Ordering::Result::INCOMPARABLE)
+
+  CHECK(ord, f2(a, x),f2(y, a), Ordering::Result::INCOMPARABLE)
+  CHECK(ord, f2(a, x),f2(a, y), Ordering::Result::INCOMPARABLE)
+
+  CHECK(ord, f3(a, x, a),f3(a, a, b), Ordering::Result::INCOMPARABLE)
+  CHECK(ord, f3(a, a, a),f3(a, x, b), Ordering::Result::GREATER)
+  CHECK(ord, f3(a, f(a), a),f3(a, f(x), b), Ordering::Result::GREATER)
+
 }
 
 

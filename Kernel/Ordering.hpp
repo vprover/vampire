@@ -121,7 +121,9 @@ private:
   /** Object used to compare equalities */
   EqCmp* _eqCmp;
 
+protected:
   Lib::SmartPtr<Set<TermList>> _smallestTerms;
+private:
 
   /**
    * We store orientation of equalities in this ordering inside
