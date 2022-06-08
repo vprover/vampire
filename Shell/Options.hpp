@@ -404,6 +404,7 @@ public:
     CASC_SAT,
     CASC_SAT_2019,
     CASC_HOL_2020,
+    FILE,
     INDUCTION,
     INTEGER_INDUCTION,
     LTB_DEFAULT_2017,
@@ -2091,6 +2092,7 @@ public:
   Schedule schedule() const { return _schedule.actualValue; }
   vstring scheduleName() const { return _schedule.getStringOfValue(_schedule.actualValue); }
   void setSchedule(Schedule newVal) {  _schedule.actualValue = newVal; }
+  vstring scheduleFile() const { return _scheduleFile.actualValue; }
   unsigned multicore() const { return _multicore.actualValue; }
   void setMulticore(unsigned newVal) { _multicore.actualValue = newVal; }
   float slowness() const {return _slowness.actualValue; }
@@ -2657,6 +2659,7 @@ private:
   UnsignedOptionValue _memoryLimit; // should be size_t, making an assumption
   ChoiceOptionValue<Mode> _mode;
   ChoiceOptionValue<Schedule> _schedule;
+  StringOptionValue _scheduleFile;
   UnsignedOptionValue _multicore;
   FloatOptionValue _slowness;
 

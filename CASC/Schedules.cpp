@@ -16,9 +16,44 @@
 
 #include "Schedules.hpp"
 
+#include "Shell/Options.hpp"
+
+#include <fstream>
+
 using namespace Lib;
 using namespace Shell;
 using namespace CASC;
+
+void Schedules::getScheduleFromFile(const vstring& filename, Schedule& quick)
+{
+  if (filename == "") {
+    USER_ERROR("Schedule file was not set.");
+  }
+  BYPASSING_ALLOCATOR;
+  ifstream schedule_file (filename.c_str());
+  if (schedule_file.fail()) {
+    USER_ERROR("Cannot open schedule file: " + filename);
+  }
+  ASS(schedule_file.is_open());
+  vstring line;
+  while (getline(schedule_file, line)) {
+    // Allow structuring the schedule file with empty lines.
+    // Allow documenting the schedule file with line comments.
+    // Interpret lines that start with '%' as comments, following the TPTP convention.
+    if (line == "" or line[0] == '%') {
+      continue;
+    }
+    Options opts;
+    try {
+      opts.readFromEncodedOptions(line);
+      opts.checkGlobalOptionConstraints();
+    }
+    catch (...) {
+      USER_ERROR("Bad strategy: " + line);
+    }
+    quick.push(line);
+  }
+}
 
 /**
  * Get schedules for a problem of given property.

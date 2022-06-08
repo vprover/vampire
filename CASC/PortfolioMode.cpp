@@ -184,6 +184,10 @@ bool PortfolioMode::performStrategy(Shell::Property* property)
     schedules.push(main);
   }
 
+  if (all_of(schedules.begin(), schedules.end(), [](const Schedule& schedule){ return schedule.isEmpty(); })) {
+    USER_ERROR("The schedule is empty.");
+  }
+
   int remainingTime = env.remainingTime()/100;
 
   while(remainingTime > 0) {
@@ -306,6 +310,9 @@ void PortfolioMode::getSchedules(Property& prop, Schedule& quick, Schedule& fall
   CALL("PortfolioMode::getSchedules");
 
   switch(env.options->schedule()) {
+  case Options::Schedule::FILE:
+    Schedules::getScheduleFromFile(env.options->scheduleFile(), quick);
+    break;
   case Options::Schedule::CASC_2019:
   case Options::Schedule::CASC:
     Schedules::getCasc2019Schedule(prop,quick,fallback);
