@@ -61,6 +61,10 @@ using namespace Inferences::IRC;
   DECL_CONST(b, Num)                                                                                \
   DECL_CONST(c, Num)                                                                                \
   DECL_PRED(r, {Num,Num})                                                                           \
+DECL_SORT(srt)                                                                                      \
+  DECL_CONST(au, srt)                                                                               \
+  DECL_FUNC(fu, {Num}, srt)                                                                         \
+  DECL_FUNC(fn, {srt}, Num)                                                                         \
 
 #define MY_SYNTAX_SUGAR SUGAR(Rat)
 
@@ -360,6 +364,43 @@ TEST_GENERATION(strictly_max_after_unification_02b,
       .inputs  ({        clause({ selected( f(b)        > 0) })  
                ,         clause({ selected(-f(x) + f(a) > 0 )}) })
       .expected(exactly( clause({           f(a)        > 0 }) ))
+      .premiseRedundant(false)
+    )
+
+
+TEST_GENERATION(max_compared_to_uniterpreted_equalites_01,
+    Generation::SymmetricTest()
+      .indices(inequalityResolutionIdx())
+      .inputs  ({        clause({ selected( a > 0), selected( fu(a) == au  ) })  
+               ,         clause({ selected(-a > 0 )}) })
+      .expected(exactly( /* nothing */ ))
+      .premiseRedundant(false)
+    )
+
+TEST_GENERATION(max_compared_to_uniterpreted_equalites_02,
+    Generation::SymmetricTest()
+      .indices(inequalityResolutionIdx())
+      .inputs  ({        clause({ selected( a > 0), selected( fu(a) != au  ) })  
+               ,         clause({ selected(-a > 0 )}) })
+      .expected(exactly( /* nothing */ ))
+      .premiseRedundant(false)
+    )
+
+TEST_GENERATION(max_compared_to_uniterpreted_equalites_03,
+    Generation::SymmetricTest()
+      .indices(inequalityResolutionIdx())
+      .inputs  ({        clause({ selected( fn(fu(a)) > 0), selected( fu(a) == au  ) })  
+               ,         clause({ selected(-fn(fu(a)) > 0 )}) })
+      .expected(exactly( clause({              num(0) > 0,            fu(a) == au    })  ))
+      .premiseRedundant(false)
+    )
+
+TEST_GENERATION(max_compared_to_uniterpreted_equalites_04,
+    Generation::SymmetricTest()
+      .indices(inequalityResolutionIdx())
+      .inputs  ({        clause({ selected( fn(fu(a)) > 0), selected( fu(a) != au  ) })  
+               ,         clause({ selected(-fn(fu(a)) > 0 )}) })
+      .expected(exactly( clause({              num(0) > 0,            fu(a) != au    })  ))
       .premiseRedundant(false)
     )
 
