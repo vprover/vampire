@@ -222,8 +222,17 @@ public:
   MultiSet<TermList> absEq(Literal* l) const
   {
     ASS(l->isEquality())
-    // TODO this code was never executed yet!!
-    ASSERTION_VIOLATION
+    using Num = typename NumTraits::ConstantType;
+    auto norm = _shared->renormalize<NumTraits>(l).unwrap();
+    return MultiSet<TermList> {
+      NumTraits::sum(
+          iterTraits(norm.term().iterSummands())
+            .filter([](auto x) { return x.numeral >= Num(0);  })
+            .map([](auto x) { return x.denormalize(); })),
+      NumTraits::sum(iterTraits(norm.term().iterSummands())
+          .filter([](auto x) { return x.numeral <= Num(0);  })
+          .map([](auto x) { return (-x).denormalize(); }))
+    };
   }
 
  

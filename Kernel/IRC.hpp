@@ -340,6 +340,15 @@ namespace Kernel {
     { return out << self.self << " @ " << *self.literal; }
   };
 
+  // class SelectedUninterpretedEquality 
+  // {
+  //
+  // };
+  //
+  // class SelectedTerm 
+  // {
+  //   Coproduct<SelectedSummand, SelectedUninterpretedEquality>  _inner;
+  // };
 
   class SelectedSummand 
   {

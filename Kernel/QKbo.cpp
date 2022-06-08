@@ -86,6 +86,9 @@ template<class T> RationalConstantType rat(T n) { return RationalConstantType(n)
 
 QKbo::Result QKbo::compare(Literal* l1, Literal* l2) const 
 {
+  if (l1 == l2) 
+    return Result::EQUAL;
+
   auto i1 = interpretedPred(l1);
   auto i2 = interpretedPred(l2);
        if ( i1 && !i2) return Result::LESS;
@@ -365,6 +368,7 @@ Ordering::Result QKbo::cmpSum(FlatSum const& l, FlatSum const& r) const {
 Ordering::Result QKbo::cmpNonAbstr(TermList s, TermList t) const 
 {
   CALL("QKbo::cmpNonAbstr(TermList, TermList) const")
+  if (s == t) return Result::EQUAL;
   if (s.isTerm() && t.isTerm() 
       && s.term()->functor() == t.term()->functor() 
       && uninterpretedFun(s.term())) {
@@ -378,11 +382,12 @@ Ordering::Result QKbo::cmpNonAbstr(TermList s, TermList t) const
       ASS_NEQ(s, t);
       return INCOMPARABLE;
     }
+
     return forAnyNumTraits([&](auto numTraits){
         using NumTraits = decltype(numTraits);
         if (
-               ( s.isTerm() && TypedTermList(s.term()).sort() == numTraits.sort() )
-            || ( t.isTerm() && TypedTermList(t.term()).sort() == numTraits.sort() )
+               ( s.isTerm() && SortHelper::getResultSort(s.term()) == numTraits.sort() )
+            || ( t.isTerm() && SortHelper::getResultSort(t.term()) == numTraits.sort() )
             ) {
           return Option<Result>(compare(sigmaNf<NumTraits>(s), sigmaNf<NumTraits>(t)));
         } else {

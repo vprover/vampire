@@ -591,6 +591,7 @@ TEST_FUN(normal_form01) {
   // since { 0 f(a) } < { +f(a) }
 
 }
+
 TEST_FUN(bug01) {
 
   DECL_DEFAULT_VARS
@@ -604,4 +605,45 @@ TEST_FUN(bug01) {
   check(ord, f(f(a)) - f(f(a)) > 0, Less   , f(f(a)) > 0);
   check(ord, f(f(a)) - f(f(a)) > 0, Greater, f(  a ) > 0);
   check(ord, f(f(a)) - f(f(a)) > 0, Incomp , f(  x ) > 0);
+}
+
+TEST_FUN(numerals) {
+
+  DECL_DEFAULT_VARS
+  NUMBER_SUGAR(Real)
+  DECL_CONST(a, Real)
+  auto& ord = qkbo();
+
+  check(ord,  num(1), Equal, num(1));
+  check(ord,  num(0), Equal, num(0));
+  check(ord,  num(0) * 10, Equal, num(0));
+
+  check(ord,  num(3), Greater, num(1));
+  check(ord,  num(-3), Greater, num(1));
+  check(ord,  num(-3), Greater, num(3));
+  check(ord,  num(-3) + 2, Greater, num(3));
+  check(ord,  num(3) + -2, Less, num(3));
+  check(ord,  num(3) + -2 + 0 * a, Greater, num(3));
+
+}
+
+
+TEST_FUN(absEq) {
+
+  DECL_DEFAULT_VARS
+  NUMBER_SUGAR(Real)
+  DECL_CONST(a, Real)
+  DECL_CONST(b, Real)
+  // DECL_CONST(c, Real)
+  DECL_FUNC (f, {Real}, Real)
+  auto& ord = qkbo();
+
+  check(ord,  f(a) - f(b) == 0, Greater, f(b) - f(a) == 0);
+  check(ord, -f(a) - f(b) == 0, Greater, f(a) + f(b) == 0);
+
+  check(ord,  f(a) + f(b) == 0, Greater   , f(a) - f(b) == 0);
+  check(ord, -f(a) - f(b) == 0, Greater   , f(a) - f(b) == 0);
+  check(ord,  f(a) + f(b) == 0, Greater   , f(b) - f(a) == 0);
+  check(ord, -f(a) - f(b) == 0, Greater   , f(b) - f(a) == 0);
+
 }
