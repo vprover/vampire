@@ -584,13 +584,6 @@ void KBO::zeroOutWeightForMaximalFuncs() {
   for (FunctionSymbol i = 0; i < nFunctions; i++) {
     auto symb = env.signature->getFunction(i);
     auto sort = symb->fnType()->result();
-    auto arity = symb->arity();
-
-    // skip constants here
-    if (arity == 0) continue;
-
-    //cout << "symb " << symb->name() << " sort " << sort.toString() << " arity " << arity << endl;
-
     auto maxFn = maximalFunctions.getOrInit(sort, [&](){ return i; } );
     if (compareFunctionPrecedences(maxFn, i) == LESS) {
       maximalFunctions.replace(sort, i);
@@ -599,7 +592,16 @@ void KBO::zeroOutWeightForMaximalFuncs() {
 
   Map<SortType, FunctionSymbol>::Iterator it(maximalFunctions);
   while (it.hasNext()) {
-    _funcWeights._weights[it.next().value()] = 0;
+    FunctionSymbol i = it.next().value();
+    auto symb = env.signature->getFunction(i);
+    auto arity = symb->arity();
+
+    // skip constants here (they can't be smaller than $var)
+    if (arity == 0) continue;
+    // TODO: we could also have remembered the "second largest" symbol, if a constant was the largest
+    // (but we could not use them if they were of arity 1)
+
+    _funcWeights._weights[i] = 0;
   }
 }
 
