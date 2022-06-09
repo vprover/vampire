@@ -281,12 +281,12 @@ auto tryNumTraits(Clsr clsr) {
 }
 
 template<class IfInt, class Else>
-auto ifIntTraits(IntTraits, IfInt ifIntF, Else) 
-{ return ifIntF(); }
+auto ifIntTraits(IntTraits n, IfInt ifIntF, Else) 
+{ return ifIntF(std::move(n)); }
 
 template<class IfInt, class Else, class NumTraits>
-auto ifIntTraits(NumTraits, IfInt, Else elseF) 
-{ return elseF(); }
+auto ifIntTraits(NumTraits n, IfInt, Else elseF) 
+{ return elseF(std::move(n)); }
 
 
 // template<class T, class IfT, class IfNotT, class Val>

@@ -1695,8 +1695,7 @@ public:
   DECL_ELEMENT_TYPE(ELEMENT_TYPE(TypeList::Get<0, TypeList::List<Is...>>));
   DEFAULT_CONSTRUCTORS(CoproductIter)
 
-  template<class I>
-  CoproductIter(I i) : _inner(Coproduct<Is...>(std::move(i))) {}
+  CoproductIter(Coproduct<Is...> i) : _inner(Coproduct<Is...>(std::move(i))) {}
 
   bool hasNext()
   { Coproduct<Is...>& inner = _inner;
@@ -1712,12 +1711,16 @@ public:
   { return _inner.apply([](auto& x) { return x.size();}); }
 };
 
+template<class... Is>
+auto coproductIter(Coproduct<Is...> is)
+{ return iterTraits(CoproductIter<Is...>(std::move(is))); }
+
 
 template<class IfIter, class ElseIter>
 static auto _ifElseIter(bool cond, IfIter ifIter, ElseIter elseIter) 
 { return iterTraits(
-         cond ? CoproductIter<ResultOf<IfIter>, ResultOf<ElseIter>>(ifIter())
-              : CoproductIter<ResultOf<IfIter>, ResultOf<ElseIter>>(elseIter())); }
+         cond ? coproductIter(Coproduct<ResultOf<IfIter>, ResultOf<ElseIter>>(ifIter()))
+              : coproductIter(Coproduct<ResultOf<IfIter>, ResultOf<ElseIter>>(elseIter()))); }
 
 template<class ElseIter>
 static auto ifElseIter(ElseIter elseIter) 

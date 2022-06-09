@@ -28,6 +28,7 @@
 #include "Inferences/IRC/FwdDemodulationModLA.hpp"
 #include "Inferences/IRC/BwdDemodulationModLA.hpp"
 #include "Inferences/IRC/InequalityResolution.hpp"
+#include "Inferences/IRC/Superposition.hpp"
 
 #include "Shell/Statistics.hpp"
 
@@ -205,14 +206,12 @@ Index* IndexManager::create(IndexType t)
     break;
 
   case IRC_SUPERPOSITION_LHS_SUBST_TREE: 
-    tis=new TermSubstitutionTree(uwaMode, true);
-    res=new IRCSuperpositionLhsIndex(tis);
+    res = new IrcIndex<Inferences::IRC::Superposition::Lhs>(uwaMode);
     isGenerating = true;
     break;
 
   case IRC_SUPERPOSITION_RHS_SUBST_TREE:
-    tis=new TermSubstitutionTree(uwaMode, true);
-    res=new IRCSuperpositionRhsIndex(tis);
+    res = new IrcIndex<Inferences::IRC::Superposition::Rhs>(uwaMode);
     isGenerating = true;
     break;
 

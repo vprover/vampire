@@ -89,6 +89,7 @@ public:
   template<class NumTraits>
   static MaybeOverflow<Polynom<NumTraits>> simplifySummation(Stack<Monom<NumTraits>>, bool removeZeros);
   TermList evaluateToTerm(Term* in) const;
+  TermList evaluateToTerm(TermList in) const { return in.isVar() ? in : evaluateToTerm(in.term()); }
   Option<Result> tryEvalPredicate(Literal* orig, PolyNf* evaluatedArgs) const;
 private:
 

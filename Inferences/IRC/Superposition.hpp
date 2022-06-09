@@ -43,8 +43,8 @@ public:
   Superposition(Superposition&&) = default;
   Superposition(shared_ptr<IrcState> shared) 
     : _shared(std::move(shared))
-    , _indexLhs(nullptr)
-    , _indexRhs(nullptr)
+    , _lhs(nullptr)
+    , _rhs(nullptr)
   {  }
 
   void attach(SaturationAlgorithm* salg) final override;
@@ -140,16 +140,116 @@ public:
     { return out << *self.cl << " :: " << *self.pivot << " :: " << self.s2; }
   };
 
+  struct Lhs : public SelectedEquality
+  {
+
+    Lhs(SelectedEquality inner) : SelectedEquality(std::move(inner)) {}
+
+
+    static auto iter(IrcState& shared, Clause* cl)
+    {
+      return shared.selectedEqualities(cl, /* strictlyMaxLiteral */ true, 
+                                           /* strictlyMaxTerms   */ true)
+             .map([](auto x) { return Lhs(std::move(x)); });
+    }
+  };
+
+  struct Rhs : public SelectedLiteral
+  {
+    Rhs(SelectedLiteral lit, TermList toRewrite, bool inLitPlus) 
+      : SelectedLiteral(std::move(lit))
+      , _toRewrite(toRewrite)
+      , _inLitPlus(inLitPlus)
+    {  }
+
+    TermList _toRewrite;
+    bool _inLitPlus;
+
+    TermList toRewrite() const { return _toRewrite; }
+
+    TermList key() const { return toRewrite(); }
+
+    bool inLitPlus() const
+    { return _inLitPlus; }
+
+    static auto iter(IrcState& shared, Clause* cl)
+    { 
+      using Out = Rhs;
+      return shared.selectedActivePositions(cl, 
+          /* strictlyMaxLiterals */ false, 
+          /* strictlyMaxTerms    */ true)
+        .flatMap([&](auto sel_lit) -> VirtualIterator<Out> {
+           auto tup = sel_lit.match(
+             [=](SelectedSummand& x) -> tuple<SelectedLiteral, TermList, bool> 
+             {
+                auto inLitPlus = 
+                      x.isInequality() 
+                        // x =  `+k s + t > 0`
+                        ? x.numeral().apply([](auto n) { return n.isPositive(); })
+                        // x =  `t ~ 0`
+                        : x.literal()->isPositive();
+                auto term = x.monom();
+                return make_tuple(std::move(x), term, inLitPlus);
+             },
+
+             [](SelectedUninterpretedEquality& x) 
+             {  
+                auto inLitPlus = x.literal()->isPositive();
+                auto term = x.biggerSide();
+                return make_tuple(std::move(x), term, inLitPlus); 
+             },
+
+             [](SelectedUninterpretedPredicate& x)
+             { 
+                auto inLitPlus = x.literal()->isPositive();
+                auto term = TermList(x.literal());
+                return make_tuple(std::move(x), term, inLitPlus); 
+             });
+
+           auto sel = std::get<0>(tup);
+           auto term = std::get<1>(tup);
+           auto inLitPlus = std::get<2>(tup);
+
+           if (term.isVar()) {
+             return VirtualIterator<Out>::getEmpty();
+           } else {
+             return pvi(iterTraits(vi(new NonVariableNonTypeIterator(term.term(), /* includeSelf */ true)))
+                 .map([=](TermList t) 
+                   { return Rhs(sel, t, inLitPlus); }));
+           }
+        });
+    }
+      
+
+    friend std::ostream& operator<<(std::ostream& out, Rhs const& self)
+    { 
+      out << *self.literal();
+      for (auto l : self.contextLiterals()) {
+        out << " \\/ " << *l;
+      }
+      out << "[ " << self.toRewrite() << " ] ( inLitPlus: " << self.inLitPlus() << " )";
+      return out; 
+    }
+  };
+
+
 private:
 
 
-  template<class NumTraits> auto genRhs(NumTraits, Clause* clause, Lib::shared_ptr<Stack<Literal*>> const& maxLits);
-                            auto genRhs(IntTraits, Clause* clause, Lib::shared_ptr<Stack<Literal*>> const& maxLits);
-  template<class NumTraits> auto genRhs(Hyp2<NumTraits>) const;
+  // template<class NumTraits> auto genRhs(NumTraits, Clause* clause, Lib::shared_ptr<Stack<Literal*>> const& maxLits);
+  //                           auto genRhs(IntTraits, Clause* clause, Lib::shared_ptr<Stack<Literal*>> const& maxLits);
+  // template<class NumTraits> auto genRhs(Hyp2<NumTraits>) const;
+  //
+  // template<class NumTraits> auto genLhs(NumTraits, Clause* clause, Lib::shared_ptr<Stack<Literal*>> const& maxLits);
+  //                           auto genLhs(IntTraits, Clause* clause, Lib::shared_ptr<Stack<Literal*>> const& maxLits);
+  // template<class NumTraits> auto genLhs(Hyp1<NumTraits>) const;
 
-  template<class NumTraits> auto genLhs(NumTraits, Clause* clause, Lib::shared_ptr<Stack<Literal*>> const& maxLits);
-                            auto genLhs(IntTraits, Clause* clause, Lib::shared_ptr<Stack<Literal*>> const& maxLits);
-  template<class NumTraits> auto genLhs(Hyp1<NumTraits>) const;
+  Option<Clause*> applyRule(
+      Lhs const& lhs, unsigned lhsVarBank,
+      Rhs const& rhs, unsigned rhsVarBank,
+      UwaResult& uwa
+      ) const;
+
 
 
   template<class NumTraits> Option<Clause*> applyRule(
@@ -164,8 +264,10 @@ private:
   friend class IRCSuperpositionRhsIndex;
 
   shared_ptr<IrcState> _shared;
-  IRCSuperpositionLhsIndex* _indexLhs;
-  IRCSuperpositionRhsIndex* _indexRhs;
+  IrcIndex<Lhs>* _lhs;
+  IrcIndex<Rhs>* _rhs;
+  // IRCSuperpositionLhsIndex* _indexLhs;
+  // IRCSuperpositionRhsIndex* _indexRhs;
 };
 
 class InequalityTautologyDetection

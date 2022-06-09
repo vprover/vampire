@@ -109,7 +109,7 @@ Option<Clause*> LiteralFactoring::applyRule(
   // adding `Cσ`
   { 
     for (auto i : range(0, premise->size()) ) {
-      if (i != l1.litIdx() && i != l2.litIdx()) {
+      if (i != l1.litIdx && i != l2.litIdx) {
         concl.push(sigma((*premise)[i]));
       }
     }
@@ -191,7 +191,7 @@ ClauseIterator LiteralFactoring::generateClauses(Clause* premise)
         .template collect<Stack>());
 
   auto selIdx = make_shared(Set<pair<unsigned, unsigned>>());
-  auto key = [&](auto& s) { return make_pair(s.litIdx(), s.termIdx()); };
+  auto key = [&](auto& s) { return make_pair(s.litIdx, s.termIdx()); };
 
   DEBUG("selected summands:")
   for (auto& s : *selected) {
@@ -202,7 +202,7 @@ ClauseIterator LiteralFactoring::generateClauses(Clause* premise)
   return pvi(range(0, selected->size())
       .flatMap([=](auto i) {
         return range(0, rest->size())
-          .filter([=](auto j) { return (*selected)[i].litIdx() != (*rest)[j].litIdx(); })
+          .filter([=](auto j) { return (*selected)[i].litIdx != (*rest)[j].litIdx; })
           .filter([=](auto j) { return (*selected)[i].numTraits() == (*rest)[j].numTraits(); })
           .flatMap([=](auto j) {
               auto& max = (*selected)[i];
@@ -212,7 +212,7 @@ ClauseIterator LiteralFactoring::generateClauses(Clause* premise)
                   // both literals are the same. 
                   // we use a symmetry breaking index comparison
                   // TODO we could replace this == by _shared.equivalent
-                  max.literal() == other.literal() && other.litIdx() < max.litIdx(), 
+                  max.literal() == other.literal() && other.litIdx < max.litIdx, 
                   [&]() { return ownedArrayishIterator(Stack<Clause*>{}); },
 
                   // both are selected (= maximal)

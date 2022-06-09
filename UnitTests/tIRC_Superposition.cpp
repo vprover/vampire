@@ -37,24 +37,25 @@ using namespace Inferences::IRC;
 ////// TEST CASES 
 /////////////////////////////////////
 
-#define SUGAR(Num)                                                                                            \
-  NUMBER_SUGAR(Num)                                                                                           \
-  DECL_DEFAULT_VARS                                                                                           \
-  DECL_FUNC(f, {Num}, Num)                                                                                    \
-  DECL_FUNC(g, {Num}, Num)                                                                                    \
-  DECL_FUNC(g2, {Num, Num}, Num)                                                                              \
-  DECL_CONST(a, Num)                                                                                          \
-  DECL_CONST(b, Num)                                                                                          \
-  DECL_CONST(c, Num)                                                                                          \
-  DECL_PRED(p, {Num})                                                                                         \
-  DECL_PRED(r, {Num,Num})                                                                                     \
-  \
-  DECL_SORT(alpha) \
-  DECL_FUNC(fa, {Num}, alpha) \
-  DECL_FUNC(ga, {Num, Num}, alpha) \
-  DECL_CONST(aa, alpha) \
-  DECL_CONST(ba, alpha) \
-  DECL_FUNC(fn, {alpha}, Num) \
+#define SUGAR(Num)                                                                                  \
+  NUMBER_SUGAR(Num)                                                                                 \
+  DECL_DEFAULT_VARS                                                                                 \
+  DECL_FUNC(f, {Num}, Num)                                                                          \
+  DECL_FUNC(g, {Num}, Num)                                                                          \
+  DECL_FUNC(f2, {Num, Num}, Num)                                                                    \
+  DECL_FUNC(g2, {Num, Num}, Num)                                                                    \
+  DECL_CONST(a, Num)                                                                                \
+  DECL_CONST(b, Num)                                                                                \
+  DECL_CONST(c, Num)                                                                                \
+  DECL_PRED(p, {Num})                                                                               \
+  DECL_PRED(r, {Num,Num})                                                                           \
+                                                                                                    \
+  DECL_SORT(alpha)                                                                                  \
+  DECL_FUNC(fa, {Num}, alpha)                                                                       \
+  DECL_FUNC(ga, {Num, Num}, alpha)                                                                  \
+  DECL_CONST(aa, alpha)                                                                             \
+  DECL_CONST(ba, alpha)                                                                             \
+  DECL_FUNC(fn, {alpha}, Num)                                                                       \
 
 #define MY_SYNTAX_SUGAR SUGAR(Rat)
 
@@ -62,8 +63,10 @@ using namespace Inferences::IRC;
 
 Stack<std::function<Indexing::Index*()>> ircSuperpositionIndices()
 { return {
-    [](){ return new Indexing::IRCSuperpositionLhsIndex(new TermSubstitutionTree(UWA_MODE, true));},
-    [](){ return new Indexing::IRCSuperpositionRhsIndex(new TermSubstitutionTree(UWA_MODE, true));},
+    [](){ return new IrcIndex<Superposition::Lhs>(UWA_MODE);},
+    [](){ return new IrcIndex<Superposition::Rhs>(UWA_MODE);},
+    // [](){ return new Indexing::IRCSuperpositionLhsIndex(new TermSubstitutionTree(UWA_MODE, true));},
+    // [](){ return new Indexing::IRCSuperpositionRhsIndex(new TermSubstitutionTree(UWA_MODE, true));},
   }; }
 
 Superposition testSuperposition()
@@ -146,6 +149,18 @@ TEST_GENERATION(basic07,
       ))
     )
 
+// • s2σ ⊴ t ∈ active(L[s2]σ)
+TEST_GENERATION(basic10,
+    Generation::SymmetricTest()
+      .indices(ircSuperpositionIndices())
+      .inputs  ({ clause({selected( g2(x, y) + g2(y, y) > 0 ) })
+                , clause({selected( g2(a, f(a)) - a == 0 ) }) })
+      .expected(exactly(
+            // clause({ g(3 * (-a + -3)) != 0 })
+          /* nothing */
+      ))
+    )
+
 TEST_GENERATION(uwa1,
     Generation::SymmetricTest()
       .indices(ircSuperpositionIndices())
@@ -165,22 +180,38 @@ TEST_GENERATION(misc01,
       .expected(exactly(  clause({          -19 + -f(x) + 17 * y >= 0  }) ))
     )
 
-// • ( u[s2] + t2 ≈ 0)σ is strictly maximal in Hyp2σ
-TEST_GENERATION(ordering1_ok,
+// •    L[s2]σ  ∈ Lit+ and L[s2]σ /⪯ C2σ
+//   or L[s2]σ /∈ Lit+ and L[s2]σ /≺ C2σ
+TEST_GENERATION(ordering1_ok_1,
     Generation::SymmetricTest()
       .indices(ircSuperpositionIndices())
       .inputs  ({         clause({ selected( g2(a,a) == 0 ) })
-                ,         clause({ selected( f(g2(x,y)) > 0 ), selected( f(g2(z,z)) > 0 ) }) }) 
-      .expected(exactly(  clause({ f(0) > 0, f(g2(x,x)) > 0 }) 
-                       ,  clause({ f(0) > 0, f(g2(y,z)) > 0 }) ))
+                ,         clause({ selected( f(g2(x,y)) != 0 ), selected( f(g2(y,x)) != 0 ) }) }) 
+      .expected(exactly(  clause({ f(0) != 0, f(g2(a,a)) != 0 }) 
+                       ,  clause({ f(0) != 0, f(g2(a,a)) != 0 }) ))
     )
-TEST_GENERATION(ordering1_fail,
+TEST_GENERATION(ordering1_ok_2,
     Generation::SymmetricTest()
       .indices(ircSuperpositionIndices())
-      .inputs  ({         clause({ g2(a,a) == 0 })
-                ,         clause({ f(g2(x,y)) > 0, f(g2(y,x)) > 0 }) }) 
-      .expected(exactly(  /* nothing */          ))
+      .inputs  ({         clause({ selected( g2(a,a) == 0 ) })
+                ,         clause({ selected( -f(g2(x,y)) > 0 ), selected( -f(g2(y,x)) > 0 ) }) }) 
+      .expected(exactly(  clause({ -f(0) > 0, -f(g2(a,a)) > 0 }) 
+                       ,  clause({ -f(0) > 0, -f(g2(a,a)) > 0 }) ))
     )
+TEST_GENERATION(ordering1_fail_1,
+    Generation::SymmetricTest()
+      .indices(ircSuperpositionIndices())
+      .inputs  ({         clause({ selected( g2(a,a) == 0 ) })
+                ,         clause({ selected( f(g2(x,y)) > 0 ), selected( f(g2(y,x)) > 0 ) }) }) 
+      .expected(exactly(  /* */ ))
+    )
+// TEST_GENERATION(ordering1_fail_2,
+//     Generation::SymmetricTest()
+//       .indices(ircSuperpositionIndices())
+//       .inputs  ({         clause({ g2(a,a) == 0 })
+//                 ,         clause({ -f(g2(x,y)) > 0, -f(g2(y,x)) > 0 }) }) 
+//       .expected(exactly(  /* nothing */          ))
+//     )
 
 // • (±k. s1 + t1 ≈ 0)σ is strictly maximal in Hyp1σ
 TEST_GENERATION(ordering2_ok,
@@ -263,45 +294,72 @@ TEST_GENERATION(uninterpreted_sort_2,
 
 
 
-
 TEST_GENERATION(bug01a,
     Generation::SymmetricTest()
       .indices(ircSuperpositionIndices())
-      .inputs  ({        clause({ selected( 0 == z + -g2(y * z, y) ), 0 == y  })
-                          // {y -> x, z -> y + z}
-                          // { 0 == (y + z) + -g2(x * (y + z), x) , 0 == x }
-                ,        clause({ selected( 0 == x * z + x * y + -(x * (y + z)) ) })
+      .inputs  ({        clause({ selected(  z + -g2(f2(y, z), y) > 0 ), 0 == y  })
+                          // (1) {y -> x, z -> y + z}
+                          // ==> { (y + z) + -g2(f2(x, (y + z)), x) > 0 , 0 == x }
+                          // (2) {y -> x, z -> z}
+                          // ==> { z + -g2(f2(x, z), x) > 0 , 0 == x }
+                          // (3) {y -> x, z -> y}
+                          // ==> { y + -g2(f2(x, y), x) > 0, 0 == x  }
+                          
+                ,        clause({ selected( 0 == f2(x, z) + f2(x, y) + -f2(x, (y + z)) ) })
                 })
-      .expected(exactly( clause({           0 == x, 0 == y + z - g2(x * y + x * z, x)    }) ))
+      .expected(exactly( 
+            clause({           0 == x, (y + z) - g2(   f2(x, y) + f2(x, z)   , x) > 0    })  // (1)
+          , clause({           0 == x,    z    - g2(f2(x, (y + z)) - f2(x, y), x) > 0  })  // (2)
+          , clause({           0 == x,    y    - g2(f2(x, (y + z)) - f2(x, z), x) > 0  })  // (3)
+          ))
     )
+
 
 TEST_GENERATION(bug01b,
     Generation::SymmetricTest()
       .indices(ircSuperpositionIndices())
-      .inputs  ({        clause({ selected( 0 == x * z + x * y + -(x * (y + z)) ) })
-                ,        clause({ selected( 0 == z + -g2(y * z, y) ), 0 == y  })
-                          // {y -> x, z -> y + z}
-                          // { 0 == (y + z) + -g2(x * (y + z), x) , 0 == x }
+      .inputs  ({        clause({ selected(  z + -g2((y * z), y) > 0 ), 0 == y  })
+                          // (1) {y -> x, z -> y + z}
+                          // ==> { (y + z) + -g2((x * (y + z)), x) > 0 , 0 == x }
+                          // (2) {y -> x, z -> z}
+                          // ==> { z + -g2((x * z), x) > 0 , 0 == x }
+                          // (3) {y -> x, z -> y}
+                          // ==> { y + -g2((x * y), x) > 0, 0 == x  }
+                          
+                ,        clause({ selected( 0 == (x * z) + (x * y) + -(x * (y + z)) ) })
                 })
-      .expected(exactly( clause({           0 == x, 0 == y + z - g2(x * y + x * z, x)    }) ))
+      .expected(exactly( 
+            clause({           0 == x, (y + z) - g2(   (x * y) + (x * z)   , x) > 0    })  // (1)
+          , clause({           0 == x,    z    - g2((x * (y + z)) - (x * y), x) > 0  })  // (2)
+          , clause({           0 == x,    y    - g2((x * (y + z)) - (x * z), x) > 0  })  // (3)
+          ))
     )
 
-
-  // TODO test if forward and backward r symmetric
-
-TEST_GENERATION(__NEW__only_replace_max_rat,
+TEST_GENERATION(only_replace_max_rat,
     Generation::SymmetricTest()
       .indices(ircSuperpositionIndices())
       .inputs  ({        clause({ selected( 0 == f(x) + f(y) + x ) })
-                ,        clause({ selected( p(f(f(a)))           ) })
+                ,        clause({ selected( p(f(g(a)))           ) })
                 })
       .expected(exactly( 
-          clause({  p(-f(y) - f(a)) }) 
+          clause({  p(-f(y) - g(a)) }) 
         , clause({  p(-f(x) - x) }) 
       ))
     )
 
-TEST_GENERATION(__NEW__only_replace_max_uninter_01,
+TEST_GENERATION(only_replace_max_uninter_01,
+    Generation::SymmetricTest()
+      .indices(ircSuperpositionIndices())
+      .inputs  ({        clause({ selected( fa(x) == aa   ) })
+                ,        clause({ selected( p(fn(fa(f(b))))  ) })
+                })
+      .expected(exactly( 
+          clause({  p(fn(aa)) }) 
+      ))
+    )
+
+
+TEST_GENERATION(only_replace_max_uninter_02,
     Generation::SymmetricTest()
       .indices(ircSuperpositionIndices())
       .inputs  ({        clause({ selected( fa(x) == fa(y)   ) })
@@ -309,10 +367,11 @@ TEST_GENERATION(__NEW__only_replace_max_uninter_01,
                 })
       .expected(exactly( 
           clause({  p(fn(fa(x))) }) 
+        , clause({  p(fn(fa(y))) }) 
       ))
     )
 
-TEST_GENERATION(__NEW__only_replace_by_smaller_uninterp_01,
+TEST_GENERATION(only_replace_by_smaller_uninterp_01,
     Generation::SymmetricTest()
       .indices(ircSuperpositionIndices())
       .inputs  ({        clause({ selected( ga(x, a) == ga(f(a), x) ) })
@@ -321,7 +380,7 @@ TEST_GENERATION(__NEW__only_replace_by_smaller_uninterp_01,
       .expected(exactly(  /* nothing */ ))
     )
 
-TEST_GENERATION(__NEW__only_replace_by_smaller_uninterp_02,
+TEST_GENERATION(only_replace_by_smaller_uninterp_02,
     Generation::SymmetricTest()
       .indices(ircSuperpositionIndices())
       .inputs  ({        clause({ selected( ga(x, a) == ga(f(a), x) ) })
@@ -330,71 +389,71 @@ TEST_GENERATION(__NEW__only_replace_by_smaller_uninterp_02,
       .expected(exactly( clause({           p(fn(ga(a, a)))           }) ))
     )
 
-#define for_diamond(macro) \
-  macro(> , gt ) \
-  macro(>=, geq) \
-  macro(==, eq ) \
-  macro(!=, neq) \
+#define for_diamond(macro)                                                                          \
+  macro(> , gt )                                                                                    \
+  macro(>=, geq)                                                                                    \
+  macro(==, eq )                                                                                    \
+  macro(!=, neq)                                                                                    \
 
 
-#define TEST_only_replace_in_active(diamond, name) \
-  \
-  TEST_GENERATION(__NEW__only_replace_uninter_in_active__ ## name ## __fail, \
-      Generation::SymmetricTest() \
-        .indices(ircSuperpositionIndices()) \
-        .inputs  ({ clause({ selected( fa(b) == ba )  }) \
-                  , clause({ selected( f(f(f(a))) + fn(fa(b)) diamond  0 )  }) }) \
-        .expected(exactly( /* nothing */))) \
-        \
-  TEST_GENERATION(__NEW__only_replace_uninter_in_active__ ## name ## __success, \
-      Generation::SymmetricTest() \
-        .indices(ircSuperpositionIndices()) \
-        .inputs  ({ clause({ selected( fa(b) == ba )  }) \
-                  , clause({ selected( fn(fa(b)) + b diamond  0 )  }) }) \
-        .expected(exactly(  \
-              clause({ fn(ba) + b diamond 0 }) \
-        ))) \
-    \
-  TEST_GENERATION(__NEW__only_replace_rat_in_active__ ## name ## __fail, \
-      Generation::SymmetricTest() \
-        .indices(ircSuperpositionIndices()) \
-        .inputs  ({ clause({ selected( f(b) - a == 0 )  }) \
-                  , clause({ selected( f(f(a)) + f(b) diamond  0 )  }) }) \
-        .expected(exactly( /* nothing */))) \
-    \
-  TEST_GENERATION(__NEW__only_replace_rat_in_active__ ## name ## __success, \
-      Generation::SymmetricTest() \
-        .indices(ircSuperpositionIndices()) \
-        .inputs  ({ clause({ selected( f(b) - a == 0 )  }) \
-                  , clause({ selected( f(f(b)) + a diamond  0 )  }) }) \
-        .expected(exactly( \
-          clause({ f(a) + a diamond 0 })  \
-          ))) \
+#define TEST_only_replace_in_active(diamond, name)                                                  \
+                                                                                                    \
+  TEST_GENERATION(only_replace_uninter_in_active__ ## name ## __fail,                        \
+      Generation::SymmetricTest()                                                                   \
+        .indices(ircSuperpositionIndices())                                                         \
+        .inputs  ({ clause({ selected( fa(b) == ba )  })                                            \
+                  , clause({ selected( f(f(f(a))) + fn(fa(b)) diamond  0 )  }) })                   \
+        .expected(exactly( /* nothing */)))                                                         \
+                                                                                                    \
+  TEST_GENERATION(only_replace_uninter_in_active__ ## name ## __success,                     \
+      Generation::SymmetricTest()                                                                   \
+        .indices(ircSuperpositionIndices())                                                         \
+        .inputs  ({ clause({ selected( fa(b) == ba )  })                                            \
+                  , clause({ selected( fn(fa(b)) + b diamond  0 )  }) })                            \
+        .expected(exactly(                                                                          \
+              clause({ fn(ba) + b diamond 0 })                                                      \
+        )))                                                                                         \
+                                                                                                    \
+  TEST_GENERATION(only_replace_rat_in_active__ ## name ## __fail,                            \
+      Generation::SymmetricTest()                                                                   \
+        .indices(ircSuperpositionIndices())                                                         \
+        .inputs  ({ clause({ selected( f(b) - a == 0 )  })                                          \
+                  , clause({ selected( f(f(a)) + f(b) diamond  0 )  }) })                           \
+        .expected(exactly( /* nothing */)))                                                         \
+                                                                                                    \
+  TEST_GENERATION(only_replace_rat_in_active__ ## name ## __success,                         \
+      Generation::SymmetricTest()                                                                   \
+        .indices(ircSuperpositionIndices())                                                         \
+        .inputs  ({ clause({ selected( f(b) - a == 0 )  })                                          \
+                  , clause({ selected( f(f(b)) + a diamond  0 )  }) })                              \
+        .expected(exactly(                                                                          \
+          clause({ f(a) + a diamond 0 })                                                            \
+          )))                                                                                       \
 
 for_diamond(TEST_only_replace_in_active)
 
-#define for_polarity(macro) \
-  macro( , pos) \
-  macro(~, neg) \
+#define for_polarity(macro)                                                                         \
+  macro( , pos)                                                                                     \
+  macro(~, neg)                                                                                     \
 
 
-#define TEST_only_replace_in_active_uninterpretd(pol, name) \
-  TEST_GENERATION(__NEW__replace_unintepreted_in_active_uninterpreted_ ## name, \
-      Generation::SymmetricTest() \
-        .indices(ircSuperpositionIndices()) \
-        .inputs  ({ clause({ selected( fa(b) == ba ) }) \
-                  , clause({ selected( pol p(fn(fa(b)))    ) }) }) \
-        .expected(exactly(  \
-                    clause({ selected( pol p(fn(ba))    ) }) \
-        ))) \
-  \
-  TEST_GENERATION(__NEW__replace_rat_in_active_uninterpreted_ ## name, \
-      Generation::SymmetricTest() \
-        .indices(ircSuperpositionIndices()) \
-        .inputs  ({ clause({ selected( f(b) - a == 0 ) }) \
-                  , clause({ selected( pol p(f(f(b)))    ) }) }) \
-        .expected(exactly(  \
-                    clause({ selected( pol p(f(a))    ) })  \
-        ))) \
+#define TEST_only_replace_in_active_uninterpretd(pol, name)                                         \
+  TEST_GENERATION(replace_unintepreted_in_active_uninterpreted_ ## name,                     \
+      Generation::SymmetricTest()                                                                   \
+        .indices(ircSuperpositionIndices())                                                         \
+        .inputs  ({ clause({ selected( fa(b) == ba ) })                                             \
+                  , clause({ selected( pol p(fn(fa(b)))    ) }) })                                  \
+        .expected(exactly(                                                                          \
+                    clause({ selected( pol p(fn(ba))    ) })                                        \
+        )))                                                                                         \
+                                                                                                    \
+  TEST_GENERATION(replace_rat_in_active_uninterpreted_ ## name,                              \
+      Generation::SymmetricTest()                                                                   \
+        .indices(ircSuperpositionIndices())                                                         \
+        .inputs  ({ clause({ selected( f(b) - a == 0 ) })                                           \
+                  , clause({ selected( pol p(f(f(b)))    ) }) })                                    \
+        .expected(exactly(                                                                          \
+                    clause({ selected( pol p(f(a))    ) })                                          \
+        )))                                                                                         \
 
 for_polarity(TEST_only_replace_in_active_uninterpretd)

@@ -223,7 +223,7 @@ Option<UwaResult> IrcState::unify(TermList lhs, TermList rhs) const
   Stack<UnificationConstraint> cnst;
   Kernel::UWAMismatchHandler hndlr(uwa, cnst);
   if (sigma.unify(lhs, /* var bank: */ 0, 
-                      rhs, /* var bank: */ 0, &hndlr)) {
+                  rhs, /* var bank: */ 0, &hndlr)) {
     return Option<UwaResult>(UwaResult(std::move(sigma), std::move(cnst)));
   } else {
     return Option<UwaResult>();
@@ -244,6 +244,12 @@ Ordering::Result compare(IrcPredicate l, IrcPredicate r)
   else if (l == r) return Ordering::Result::EQUAL;
   else ASSERTION_VIOLATION
 }
+
+SelectedLiteral::SelectedLiteral(Clause* clause, unsigned litIdx, IrcState& shared)
+  : cl(clause)
+  , litIdx(litIdx)
+  , interpreted(shared.renormalize(literal()))
+{}
 
 } // namespace Kernel
 

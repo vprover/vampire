@@ -340,60 +340,83 @@ namespace Kernel {
     { return out << self.self << " @ " << *self.literal; }
   };
 
-  // class SelectedUninterpretedEquality 
-  // {
-  //
-  // };
-  //
-  // class SelectedTerm 
-  // {
-  //   Coproduct<SelectedSummand, SelectedUninterpretedEquality>  _inner;
-  // };
+  struct SelectedLiteral {
+    Clause* cl;
+    unsigned litIdx;
+    Option<AnyIrcLiteral> interpreted;
+    SelectedLiteral(Clause* cl, unsigned litIdx, IrcState& shared);
 
-  class SelectedSummand 
+    Literal* literal() const { return (*cl)[litIdx]; }
+    Clause* clause() const { return cl; }
+
+
+    auto contextLiterals() const
+    { return range(0, clause()->size())
+              .filter([&](auto i) { return i != litIdx; }) 
+              .map([&](auto i) { return (*clause())[i]; }); }
+              
+  };
+
+
+  class SelectedUninterpretedEquality : public SelectedLiteral
   {
-    Clause* _cl;
-    unsigned _lit;
-    AnyIrcLiteral _ircLiteral;
+    unsigned _term;
+   public:
+    SelectedUninterpretedEquality(SelectedLiteral lit, unsigned term) 
+      : SelectedLiteral(std::move(lit))
+      , _term(term)
+    { 
+      ASS(interpreted.isNone())
+      ASS(literal()->isEquality())
+      ASS(_term <= 1)
+    }
+
+    TermList biggerSide() const
+    { return literal()->termArg(_term); }
+
+    TermList smallerSide() const
+    { return literal()->termArg(1 - _term); }
+
+  };
+
+  class SelectedSummand : public SelectedLiteral
+  {
     unsigned _term;
   public:
 
     SelectedSummand(
-      Clause* cl,
-      unsigned lit,
-      AnyIrcLiteral ircLiteral,
+      SelectedLiteral lit,
       unsigned term
-    ) : _cl(std::move(cl))
-      , _lit(std::move(lit))
-      , _ircLiteral(std::move(ircLiteral)) 
-      , _term(term) {}
+    ) : SelectedLiteral(std::move(lit))
+      , _term(term) 
+    {
+      ASS(interpreted.isSome())
+    }
 
     auto termIdx() const { return _term; }
-    auto litIdx() const { return _lit; }
+
     explicit SelectedSummand(SelectedSummand const&) = default;
     SelectedSummand(SelectedSummand&&) = default;
     SelectedSummand& operator=(SelectedSummand&&) = default;
+
     auto numeral() const 
-    { return _ircLiteral
+    { return ircLiteral()
           .apply([this](auto& lit) 
               { return AnyConstantType(lit.term().summandAt(_term).numeral); }); }
-    auto const& clause() const { return _cl; }
-    auto const& literal() const { return (*_cl)[_lit]; }
 
-    auto contextLiterals() const 
-    { 
-      return range(0, _cl->size())
-        .filter([&](auto i) { return i != _lit; })
-        .map([&](auto i) { return (*_cl)[i]; }); 
-    }
+    template<class NumTraits>
+    auto numeral() const 
+    { return numeral().unwrap<typename NumTraits::ConstantType>(); }
 
     auto nContextTerms() const 
-    { return _ircLiteral.apply([](auto& lit) { return lit.term().nSummands() - 1; }); }
+    { return ircLiteral().apply([](auto& lit) { return lit.term().nSummands() - 1; }); }
 
+    AnyIrcLiteral const& ircLiteral() const
+    { return interpreted.unwrap(); }
 
     template<class NumTraits>
     auto const& ircLiteral() const
-    { return _ircLiteral.template unwrap<IrcLiteral<NumTraits>>(); }
+    { return ircLiteral().template unwrap<IrcLiteral<NumTraits>>(); }
 
     template<class NumTraits>
     auto contextTerms() const 
@@ -405,11 +428,11 @@ namespace Kernel {
     }
 
     bool isInequality() const
-    { return _ircLiteral.apply([](auto& lit)
+    { return ircLiteral().apply([](auto& lit)
                                { return lit.isInequality(); }); }
 
     auto monom() const 
-    { return _ircLiteral
+    { return ircLiteral()
           .apply([this](auto& lit) 
               { return lit.term().summandAt(_term).factors->denormalize(); }); }
 
@@ -422,11 +445,85 @@ namespace Kernel {
     }
 
     auto symbol() const
-    { return _ircLiteral.apply([](auto& l) { return l.symbol(); }); }
+    { return ircLiteral().apply([](auto& l) { return l.symbol(); }); }
 
     using Key = TermList;
     auto key() -> Key { return monom(); }
     friend std::ostream& operator<<(std::ostream& out, SelectedSummand const& self);
+  };
+
+  class SelectedEquality 
+  {
+    Coproduct<SelectedSummand, SelectedUninterpretedEquality>  _inner;
+
+  public:
+
+    SelectedEquality(SelectedSummand s) 
+      : _inner(decltype(_inner)::variant<0>(std::move(s))) 
+    { ASS(!_inner.unwrap<0>().isInequality()) }
+
+    SelectedEquality(SelectedUninterpretedEquality s) 
+      : _inner(decltype(_inner)::variant<1>(std::move(s))) {}
+
+    Clause* clause() const 
+    { return _inner.apply([](auto& x) { return x.clause(); }); }
+
+    bool positive()  const 
+    { return literal()->isPositive(); }
+
+    TermList biggerSide() const 
+    { return _inner.match(
+        [](SelectedSummand               const& x) { return x.monom(); },
+        [](SelectedUninterpretedEquality const& x) { return x.biggerSide(); }); }
+
+    TermList smallerSide() const 
+    { return _inner.match(
+        [&](SelectedSummand               const& sel) 
+        { return sel.numTraits().apply([&](auto numTraits) {
+            return ifIntTraits(numTraits,
+                [](IntTraits) -> TermList { ASSERTION_VIOLATION },
+                [&](auto numTraits) {
+                   using NumTraits = decltype(numTraits);
+                   auto k = sel.numeral<NumTraits>();
+                   return NumTraits::sum(sel.contextTerms<NumTraits>()
+                        .map([&](auto monom) { return (monom / (-k)).denormalize();  }));
+                });
+            });
+        },
+        [](SelectedUninterpretedEquality const& x) { return x.smallerSide(); }); }
+
+    auto contextLiterals() const
+    { return _inner.apply([](auto& x) { return x.contextLiterals(); }); }
+    // { return ifElseIter(
+    //     _inner.is<0>(), 
+    //     [&]() { return _inner.unwrap<0>().contextLiterals(); },
+    //     // else
+    //     [&]() { return _inner.unwrap<1>().contextLiterals(); }); }
+
+    TermList key() const 
+    { return biggerSide(); }
+
+    Literal* literal() const
+    { return _inner.apply([](auto& x) { return x.literal(); }); }
+
+    friend std::ostream& operator<<(std::ostream& out, SelectedEquality const& self)
+    { 
+      out << self.biggerSide() << (self.positive() ? " = " : " != ") << self.smallerSide();
+      for (auto l : self.contextLiterals()) {
+        out << " \\/ " << *l;
+      }
+      return out; 
+    }
+
+  };
+  class SelectedUninterpretedPredicate : public SelectedLiteral {
+  public:
+    SelectedUninterpretedPredicate(SelectedLiteral lit)
+      : SelectedLiteral(std::move(lit))
+    { 
+      ASS(interpreted.isNone())
+      ASS(!literal()->isEquality())
+    }
   };
 
   struct IrcState 
@@ -445,65 +542,231 @@ namespace Kernel {
     { 
       return range(0, cl->size())
         .flatMap([=](auto i) {
-            auto lit = (*cl)[i];
-            return iterTraits(renormalize(lit).intoIter())
-              .flatMap([=](auto anyIrcLit) {
-                  return range(0, anyIrcLit.apply([](auto& l) { return l.term().nSummands(); }))
-                        .map([=](auto j) 
-                            { return SelectedSummand(cl, i, anyIrcLit, j); });
-                  });
+            auto sel_lit = SelectedLiteral(cl, i, *this);
+            auto n = sel_lit.interpreted.isSome() 
+                ? sel_lit.interpreted.unwrap().apply([](auto& l) { return l.term().nSummands(); })
+                : 0;
+            return range(0, n)
+                  .map([=](auto j) 
+                      { return SelectedSummand(sel_lit, j); });
             });
     }
 
-    auto selectedSummands(Clause* cl, bool strictlyMaxLiteral, bool strictlyMaxSummand) //-> IterTraits<VirtualIterator<SelectedSummand>>
-    {
-      ASS(this)
+    auto maxLits(Clause* cl, bool strictlyMax) {
       return OrderingUtils2::maxElems(
           cl->size(), 
           [=](unsigned l, unsigned r) 
           { return ordering->compare((*cl)[l], (*cl)[r]); },
-          strictlyMaxLiteral)
-    
-        // filter out interpreted number literals
-        .filterMap([=](unsigned i) {
-
-            auto lit = (*cl)[i];
-            return renormalize(lit)
-              .map([=](auto ircLit) {
-                auto monomAt = [=](auto i) 
-                  { return ircLit.apply([i](auto& lit) 
-                        { return lit.term().summandAt(i).factors->denormalize(); }); };
-
-                return pvi(OrderingUtils2::maxElems(
-                    ircLit.apply([](auto& l) { return l.term().nSummands(); }),
-                    [=](unsigned l, unsigned r) 
-                    { return ordering->compare(monomAt(l), monomAt(r)); },
-                    strictlyMaxSummand)
-                  .map([=](auto j) -> SelectedSummand 
-                    { return SelectedSummand(cl, i, ircLit, j); }));
-
-                  // return ircLitAnyNum
-                  //   .apply([=](auto ircLit) {
-                  //
-                  //     return pvi(OrderingUtils2::maxElems(
-                  //         ircLit.term().nSummands(),
-                  //         [&](unsigned l, unsigned r) 
-                  //         { return ordering->compare(
-                  //             ircLit.term().summandAt(l).factors->denormalize(), 
-                  //             ircLit.term().summandAt(r).factors->denormalize()); },
-                  //         strictlyMaxSummand)
-                  //       .map([](auto j) -> SelectedSummand {
-                  //         auto summand = ircLit.summandAt(j);
-                  //         return SelectedSummand(cl, i, AnyIrcLiteral(ircLit), j)
-                  //         };
-                  //           ASSERTION_VIOLATION
-                  //       }));
-                  // });
-              });
-
-        })
-        .flatten();
+          strictlyMax)
+        .map([=](auto i) 
+            { return SelectedLiteral(cl, i, *this); });
     }
+
+    template<class NumTraits>
+    auto maxSummandIndices(IrcLiteral<NumTraits> const& lit, bool strictlyMax)
+    {
+        auto monomAt = [=](auto i) 
+             { return lit.term().summandAt(i).factors->denormalize(); }; 
+
+        return OrderingUtils2::maxElems(
+                  lit.term().nSummands(),
+                  [=](unsigned l, unsigned r) 
+                  { return ordering->compare(monomAt(l), monomAt(r)); },
+                  strictlyMax);
+    }
+
+    auto maxEqIndices(Literal* lit, bool strictlyMax)
+    {
+      Stack<unsigned> is(2);
+      switch (ordering->compare(lit->termArg(0), lit->termArg(1))) {
+        case Ordering::Result::GREATER:
+          is.push(0);
+          break;
+        case Ordering::Result::LESS:
+          is.push(1);
+          break;
+
+        case Ordering::Result::LESS_EQ:
+          if (!strictlyMax) {
+            is.push(1);
+          } else {
+            is.push(0);
+            is.push(1);
+          }
+          break;
+
+        case Ordering::Result::GREATER_EQ:
+          if (!strictlyMax) {
+            is.push(0);
+          } else {
+            is.push(0);
+            is.push(1);
+          }
+          break;
+
+        case Ordering::Result::EQUAL:
+          if (!strictlyMax) {
+            is.push(0);
+            is.push(1);
+          }
+          break;
+
+        case Ordering::Result::INCOMPARABLE:
+          is.push(0);
+          is.push(1);
+          break;
+      }
+      return iterTraits(ownedArrayishIterator(std::move(is)));
+    }
+    auto activePositions(Literal* l) -> IterTraits<VirtualIterator<TermList>>
+    {
+      return iterTraits(renormalize(l)
+        .match(
+          [=](AnyIrcLiteral l) -> VirtualIterator<TermList> {
+            return std::move(l).apply([=](auto l) -> VirtualIterator<TermList> {
+                return pvi(maxSummandIndices(l, /* strictlyMax */ true)
+                         .map([=](auto i) {
+                             return l.term().summandAt(i).factors->denormalize();
+                         }));
+            });
+          },
+          [=]() {
+            if (l->isEquality()) {
+              return pvi(maxEqIndices(l, /* strictlyMax */ true)
+                .map([=](auto i) { return l->termArg(i); }));
+            } else {
+                return pvi(termArgIter(l));
+            }
+          }));
+    }
+
+    bool subtermEq(TermList sub, TermList sup) {
+      // TODO add assertion that sub is an atomic term
+      return normalizer.evaluator().evaluateToTerm(sup)
+        .containsSubterm(normalizer.evaluator().evaluateToTerm(sub));
+    }
+
+
+    auto maxSummands(SelectedLiteral sel_lit , bool strictlyMax) 
+    { return sel_lit.interpreted.unwrap()
+                .apply([&](auto& lit) 
+                       { return maxSummandIndices(lit, strictlyMax); })
+                .map([=](auto i) 
+                     { return SelectedSummand(sel_lit, i); }); }
+
+
+    auto selectedActivePositions(Clause* cl, bool strictlyMaxLiteral, bool strictlyMaxSummand)
+    {
+      using Out = Coproduct<SelectedSummand, SelectedUninterpretedEquality, SelectedUninterpretedPredicate>;
+      return maxLits(cl, strictlyMaxLiteral)
+        // filter out interpreted number literals
+        .flatMap([=](auto sel_lit) -> VirtualIterator<Out> {
+            auto lit = sel_lit.literal();
+            if (sel_lit.interpreted.isSome()) {
+              return pvi(maxSummands(sel_lit, strictlyMaxSummand)
+                  .map([](auto x) { return Out(std::move(x)); }));
+
+            } else if (lit->isEquality()) {
+              // Stack<unsigned> is(2);
+              // switch (ordering->compare(lit->termArg(0), lit->termArg(1))) {
+              //   case Ordering::Result::GREATER:
+              //     is.push(0);
+              //     break;
+              //   case Ordering::Result::LESS:
+              //     is.push(1);
+              //     break;
+              //   case Ordering::Result::GREATER_EQ:
+              //   case Ordering::Result::LESS_EQ:
+              //   case Ordering::Result::EQUAL:
+              //   case Ordering::Result::INCOMPARABLE:
+              //     is.push(0);
+              //     is.push(1);
+              //     break;
+              // }
+              return pvi(maxEqIndices(lit, strictlyMaxSummand)
+                        .map([=](auto j) 
+                            { return Out(SelectedUninterpretedEquality(sel_lit, j)); }));
+            } else {
+              return pvi(getSingletonIterator(Out(SelectedUninterpretedPredicate(sel_lit))));
+            }
+        });
+    }
+
+    auto selectedEqualities(Clause* cl, bool strictlyMaxLiteral, bool strictlyMaxTerms) {
+      using Out = SelectedEquality;
+      return selectedActivePositions(cl, strictlyMaxLiteral, strictlyMaxTerms)
+        .filterMap([](auto x) -> Option<Out>
+                   { return x.match(
+                       [](SelectedSummand& x) {
+                          return x.isInequality() 
+                              ? Option<Out>()
+                              : Option<Out>(Out(std::move(x)));
+                       },
+
+                       [](SelectedUninterpretedEquality& x) 
+                       { return Option<Out>(Out(std::move(x))); },
+
+                       [](SelectedUninterpretedPredicate&) 
+                       { return Option<Out>(); });
+        });
+    }
+
+
+    auto selectedSummands(Clause* cl, bool strictlyMaxLiteral, bool strictlyMaxTerms) {
+      using Out = SelectedSummand;
+      return selectedActivePositions(cl, strictlyMaxLiteral, strictlyMaxTerms)
+        .filterMap([](auto x) -> Option<Out> {
+            return x.match(
+                 [](SelectedSummand& x) 
+                 { return Option<Out>(std::move(x)); },
+
+                 [](SelectedUninterpretedEquality&) 
+                 { return Option<Out>(); },
+
+                 [](SelectedUninterpretedPredicate&) 
+                 { return Option<Out>(); });
+        });
+    }
+
+
+    // auto selectedSummands(Clause* cl, bool strictlyMaxLiteral, bool strictlyMaxSummand) {
+    //   using Out = SelectedSummand;
+    //
+    //   return selectedActivePositions(cl, strictlyMaxLiteral, strictlyMaxSummand)
+    //     .filterMap([](auto x) -> Option<SelectedSummand>
+    //                { return x.template is<SelectedSummand>() 
+    //                  ? Option<SelectedSummand>(std::move(x.template unwrap<SelectedSummand>()))
+    //                  : Option<SelectedSummand>(); });
+    //
+    //   // ASS(this)
+    //   // return OrderingUtils2::maxElems(
+    //   //     cl->size(), 
+    //   //     [=](unsigned l, unsigned r) 
+    //   //     { return ordering->compare((*cl)[l], (*cl)[r]); },
+    //   //     strictlyMaxLiteral)
+    //   //
+    //   //   // filter out interpreted number literals
+    //   //   .filterMap([=](unsigned i) {
+    //   //
+    //   //       auto lit = (*cl)[i];
+    //   //       return renormalize(lit)
+    //   //         .map([=](auto ircLit) {
+    //   //           auto monomAt = [=](auto i) 
+    //   //             { return ircLit.apply([i](auto& lit) 
+    //   //                   { return lit.term().summandAt(i).factors->denormalize(); }); };
+    //   //
+    //   //           return pvi(OrderingUtils2::maxElems(
+    //   //               ircLit.apply([](auto& l) { return l.term().nSummands(); }),
+    //   //               [=](unsigned l, unsigned r) 
+    //   //               { return ordering->compare(monomAt(l), monomAt(r)); },
+    //   //               strictlyMaxSummand)
+    //   //             .map([=](auto j) -> SelectedSummand 
+    //   //               { return SelectedSummand(cl, i, ircLit, j); }));
+    //   //         });
+    //   //
+    //   //   })
+    //   //   .flatten();
+    // }
 
     template<class GetSummand> auto iterSelectedTerms(GetSummand getSummand, unsigned litSize, bool strict = false);
     template<class NumTraits> Stack<Monom<NumTraits>> selectedTerms(IrcLiteral<NumTraits>const& lit, bool strict = false);
@@ -844,7 +1107,6 @@ template<class NumTraits> Stack<SelectedAtomicTerm<NumTraits>> IrcState::selecte
   return iterTraits(getRangeIterator((unsigned)0, cl->numSelected()))
     .filterMap([&](auto i) {
         // auto i = lit_idx.second;
-        DBGE(*cl)
         auto lit = (*cl)[i];
 
         return normalizer.template renormalizeIrc<NumTraits>(lit)
