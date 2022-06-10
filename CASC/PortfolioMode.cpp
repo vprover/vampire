@@ -474,12 +474,9 @@ unsigned PortfolioMode::getSliceTime(vstring sliceCode,vstring& chopped)
   chopped.assign(sliceCode.substr(0,pos));
   unsigned sliceTime;
   ALWAYS(Int::stringToUnsignedInt(sliceTimeStr,sliceTime));
-  ASS_G(sliceTime,0); //strategies with zero time don't make sense
 
-  unsigned time = _slowness * sliceTime + 1;
-  if (time < 10) {
-    time++;
-  }
+  unsigned time = _slowness * sliceTime;
+    
   return time;
 } // getSliceTime
 
