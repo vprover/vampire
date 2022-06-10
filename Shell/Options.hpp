@@ -1851,7 +1851,9 @@ bool _hard;
       bool check(Property*p){
         CALL("Options::UsesEquality::check");
         ASS(p)
-        return (p->equalityAtoms() != 0);
+        return (p->equalityAtoms() != 0) ||
+          // theories may introduce equality at various places of the pipeline!
+          HasTheories::actualCheck(p);
       }
       vstring msg(){ return " only useful with equality"; }
     };
@@ -1925,6 +1927,8 @@ bool _hard;
     struct HasTheories : OptionProblemConstraint {
       CLASS_NAME(HasTheories);
       USE_ALLOCATOR(HasTheories);
+
+      static bool actualCheck(Property*p);
 
       bool check(Property*p);
       vstring msg(){ return " only useful with theories"; }

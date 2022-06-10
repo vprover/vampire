@@ -2509,10 +2509,16 @@ bool Options::OptionHasValue::check(Property*p){
           return opt->getStringOfActual()==value;
 }
 
+bool Options::HasTheories::actualCheck(Property*p)
+{
+  CALL("Options::HasTheories::actualCheck");
+  return (p->hasNumerals() || p->hasInterpretedOperations() || env.signature->hasTermAlgebras());
+}
+
 bool Options::HasTheories::check(Property*p) {
   CALL("Options::HasTheories::check");
-  // this is the condition used in Preprocess::preprocess guarding the addition of theory axioms
-  return (p->hasNumerals() || p->hasInterpretedOperations() || env.signature->hasTermAlgebras());
+  // this was the condition used in Preprocess::preprocess guarding the addition of theory axioms
+  return actualCheck(p);
 }
 
 /**
