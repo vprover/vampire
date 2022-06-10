@@ -545,6 +545,7 @@ void PortfolioMode::runSlice(Options& strategyOpt)
   env.timer->reset();
   env.timer->start();
   TimeCounter::reinitialize();
+  Timer::resetInstructionMeasuring();
   Timer::setLimitEnforcement(true);
 
   Options opt = strategyOpt;
