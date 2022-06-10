@@ -251,10 +251,8 @@ void Induction::attach(SaturationAlgorithm* salg) {
   CALL("Induction::attach");
 
   GeneratingInferenceEngine::attach(salg);
-  if (InductionHelper::isIntInductionOn()) {
+  if (InductionHelper::isIntInductionOneOn()) {
     _comparisonIndex = static_cast<LiteralIndex*>(_salg->getIndexManager()->request(UNIT_INT_COMPARISON_INDEX));
-  }
-  if (InductionHelper::isIntInductionTwoOn()) {
     _inductionTermIndex = static_cast<TermIndex*>(_salg->getIndexManager()->request(INDUCTION_TERM_INDEX));
   }
   if (InductionHelper::isNonUnitStructInductionOn()) {
@@ -270,11 +268,9 @@ void Induction::detach() {
     _structInductionTermIndex = nullptr;
     _salg->getIndexManager()->release(STRUCT_INDUCTION_TERM_INDEX);
   }
-  if (InductionHelper::isIntInductionOn()) {
+  if (InductionHelper::isIntInductionOneOn()) {
     _comparisonIndex = nullptr;
     _salg->getIndexManager()->release(UNIT_INT_COMPARISON_INDEX);
-  }
-  if (InductionHelper::isIntInductionTwoOn()) {
     _inductionTermIndex = nullptr;
     _salg->getIndexManager()->release(INDUCTION_TERM_INDEX);
   }
@@ -300,7 +296,7 @@ void InductionClauseIterator::processClause(Clause* premise)
       processLiteral(premise,(*premise)[i]);
     }
   }
-  if (InductionHelper::isIntInductionTwoOn() && InductionHelper::isIntegerComparison(premise)) {
+  if (InductionHelper::isIntInductionOneOn() && InductionHelper::isIntegerComparison(premise)) {
     processIntegerComparison(premise, (*premise)[0]);
   }
 }
@@ -412,11 +408,10 @@ void InductionClauseIterator::processLiteral(Clause* premise, Literal* lit)
   if (lit->ground()) {
       Set<Term*> ta_terms;
       Set<Term*> int_terms;
-      //TODO this should be a non-variable non-type iterator it seems
-      SubtermIterator it(lit);
+
+      NonVariableNonTypeIterator it(lit);
       while(it.hasNext()){
         TermList ts = it.next();
-        if(!ts.isTerm()){ continue; }
         unsigned f = ts.term()->functor(); 
         if(InductionHelper::isInductionTermFunctor(f)){
           if(InductionHelper::isStructInductionOn() && InductionHelper::isStructInductionFunctor(f)){
@@ -435,7 +430,6 @@ void InductionClauseIterator::processLiteral(Clause* premise, Literal* lit)
         auto leBound = iterTraits(_helper.getLess(t)).collect<Stack>();
         auto grBound = iterTraits(_helper.getGreater(t)).collect<Stack>();
         auto indLitsIt = vi(ContextSubsetReplacement::instance(InductionContext(t, lit, premise), _opt));
-        // TODO use this value
         while (indLitsIt.hasNext()) {
           auto ctx = indLitsIt.next();
           // process lower bounds
@@ -595,8 +589,8 @@ void InductionClauseIterator::processIntegerComparison(Clause* premise, Literal*
       if (_helper.isInductionForFiniteIntervalsOn()) {
         // go over the lower/upper bounds that contain the same induction term as the current bound
         for (const auto& b2 : bound2) {
-          // TODO: this false should be also commented out for compatibility with the original code
-          if (/* false &&  */b2.clause == premise) {
+          if (b2.clause == ctx._cls.begin()->first) {
+            ASS_EQ(ctx._cls.size(), 1);
             continue;
           }
           // TODO use performFinIntInduction
@@ -1473,17 +1467,19 @@ bool InductionClauseIterator::notDoneInt(InductionContext context, Literal* boun
 {
   CALL("InductionClauseIterator::notDoneInt");
   TermList ph(getPlaceholderForTerm(context._indTerm));
+  Literal* b1 = nullptr;
+  Literal* b2 = nullptr;
   if (bound1) {
-    context.insert(nullptr, Literal::create2(bound1->functor(), bound1->polarity(),
+    b1 = Literal::create2(bound1->functor(), bound1->polarity(),
       bound1->polarity() ? *bound1->nthArgument(0) : ph,
-      bound1->polarity() ? ph : *bound1->nthArgument(1)));
+      bound1->polarity() ? ph : *bound1->nthArgument(1));
   }
   if (bound2) {
-    context.insert(nullptr, Literal::create2(bound2->functor(), bound2->polarity(),
+    b2 = Literal::create2(bound2->functor(), bound2->polarity(),
       bound2->polarity() ? ph : *bound2->nthArgument(0),
-      bound2->polarity() ? *bound2->nthArgument(1) : ph));
+      bound2->polarity() ? *bound2->nthArgument(1) : ph);
   }
-  return _formulaIndex.findOrInsert(context, e);
+  return _formulaIndex.findOrInsert(context, e, b1, b2);
 }
 
 }

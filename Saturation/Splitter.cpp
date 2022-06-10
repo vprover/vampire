@@ -1134,9 +1134,9 @@ bool Splitter::doSplitting(Clause* cl, Stack<LiteralStack>* customComps, vset<Cl
   if (hasStopped) {
     return false;
   }
-  if (_stopSplittingAtTime && (unsigned)env.timer->elapsedMilliseconds() >= _stopSplittingAtTime
+  if ((_stopSplittingAtTime && (unsigned)env.timer->elapsedMilliseconds() >= _stopSplittingAtTime)
 #ifdef __linux__
-    || _stopSplittingAtInst && env.timer->elapsedMegaInstructions() >= _stopSplittingAtInst
+    || (_stopSplittingAtInst && env.timer->elapsedMegaInstructions() >= _stopSplittingAtInst)
 #endif
     ) {
     if (_showSplitting) {

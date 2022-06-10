@@ -3258,7 +3258,7 @@ Formula* TPTP::createPredicateApplication(vstring name, unsigned arity)
     TermList sort = type->arg(i);
     TermList ts = _termLists.pop();
     TermList tsSort = sortOf(ts);
-    if((unsigned)i < type->typeArgsArity()){
+    if((unsigned)i < type->numTypeArguments()){
       if(tsSort != AtomicSort::superSort()){
         USER_ERROR("The sort " + tsSort.toString() + " of type argument " + ts.toString() + " "
                    "is not $ttype as mandated by TF1");
@@ -3312,7 +3312,7 @@ TermList TPTP::createFunctionApplication(vstring name, unsigned arity)
     TermList sort = type->arg(i);
     TermList ss = _termLists.pop();
     TermList ssSort = sortOf(ss);
-    if((unsigned)i < type->typeArgsArity()){
+    if((unsigned)i < type->numTypeArguments()){
       if(ssSort != AtomicSort::superSort()){
         USER_ERROR("The sort " + ssSort.toString() + " of type argument " + ss.toString() + " "
                    "is not $tType as mandated by TF1");
@@ -3885,7 +3885,7 @@ void TPTP::endTff()
       symbol->setType(ot);
       //TODO check whether the below is actually required or not.
       if(_isThf){
-        if(!_typeArities.insert(name, ot->typeArgsArity())){
+        if(!_typeArities.insert(name, ot->numTypeArguments())){
           USER_ERROR("Symbol " + name + " used with different type arities");
         }
       }

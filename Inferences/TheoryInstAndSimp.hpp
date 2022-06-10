@@ -86,7 +86,7 @@ private:
   /**
    Checks if left = right is of the form X = t where X does not occur in t.
    */
-  static inline bool isXeqTerm(const TermList* left,const TermList* right);
+  static inline bool isXeqTerm(TermList left, TermList right);
 
   unsigned varOfXeqTerm(const Literal* lit,bool flip=false);
 

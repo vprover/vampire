@@ -92,7 +92,8 @@ bool operator<(const TermList& lhs, const TermList& rhs);
 class TermList {
 public:
   CLASS_NAME(TermList)
-  static const unsigned SPEC_UPPER_BOUND = 10000000;
+  // divide by 4 because of the tag, by 2 to split the space evenly
+  static const unsigned SPEC_UPPER_BOUND = (UINT_MAX / 4) / 2;
   /** dummy constructor, does nothing */
   TermList() {}
   /** creates a term list and initialises its content with data */
@@ -148,6 +149,8 @@ public:
    * arguments of shared terms. */
   inline bool sameContent(const TermList* t) const
   { return _content == t->_content ; }
+  inline bool sameContent(const TermList& t) const
+  { return sameContent(&t); }
   /** return the content, useful for e.g., term argument comparison */
   inline size_t content() const { return _content; }
   vstring toString(bool topLevel = true) const;
@@ -405,7 +408,7 @@ public:
    */
   const TermList* args() const
   { return _args + _arity; }
-  /** return the nth argument (counting from 0) */
+  /** @see nthArguement(int) */ 
   const TermList* nthArgument(int n) const
   {
     ASS(n >= 0);
@@ -413,7 +416,15 @@ public:
 
     return _args + (_arity - n);
   }
-  /** return the nth argument (counting from 0) */
+  /** return the nth argument (counting from 0) 
+   *
+   *  Note that the arguments may be sort arguments as well as term arguments.
+   *  i.e. nthArgument(n) will return 
+   *    - a sort, for 0 <= n < numTypeArguemnts()
+   *    - a term, for numTypeArguments() <= n < arity()
+   *
+   *  If you want to access a specific term or type argument use typeArg(int) or termArg(int) instead.
+   */ 
   TermList* nthArgument(int n)
   {
     ASS(n >= 0);
@@ -421,6 +432,12 @@ public:
 
     return _args + (_arity - n);
   }
+
+  /** returns the nth term argument. for 0 <= n <= numTermArguments  */
+  TermList termArg(unsigned n) const;
+
+  /** returns the nth type argument. for 0 <= n <= numTypeArguments  */
+  TermList typeArg(unsigned n) const;
 
   /**
    * Return the number of type arguments for a polymorphic term (or 0 if monomorphic).
@@ -437,6 +454,13 @@ public:
     * In the monomorphic case, the same as args()
     */
   TermList* termArgs();
+
+  /** Return the 1st type argument for a polymorphic term.
+    * returns a nullpointer if the term not polymorphic
+    * This is technically almost the same thing as calling args(), 
+    * but can be used to increase readability of code.
+    */
+  const TermList* typeArgs() const;
 
   /** Indexing operator for accessing arguments */
   const TermList operator[](int i) const {

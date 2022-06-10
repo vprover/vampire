@@ -75,6 +75,7 @@ Property::Property()
     _sortsUsed(0),
     _hasFOOL(false),
     _hasCombs(false),
+    _hasArrowSort(false),
     _hasApp(false),
     _hasAppliedVar(false),
     _hasBoolVar(false),
@@ -507,6 +508,10 @@ void Property::scanSort(TermList sort)
     return;
   }
 
+  if(sort.isArrowSort()){
+    _hasArrowSort = true;
+  }
+
   if(!higherOrder() && !hasPolymorphicSym()){
     //used sorts is for FMB which is not compatible with 
     //higher-order or polymorphism
@@ -606,7 +611,7 @@ void Property::scan(Literal* lit, int polarity, unsigned cLen, bool goal)
     static bool weighted = env.options->symbolPrecedence() == Options::SymbolPrecedence::WEIGHTED_FREQUENCY ||
                            env.options->symbolPrecedence() == Options::SymbolPrecedence::REVERSE_WEIGHTED_FREQUENCY;
     unsigned w = weighted ? cLen : 1; 
-    for(unsigned i=0;i<w;i++){pred->incUsageCnt();}
+    for(unsigned i=0;i<w;i++){pred->incUsageCnt();} //MS: Giles, was this a joke?
     if(cLen==1){
       pred->markInUnit();
     }
@@ -615,7 +620,7 @@ void Property::scan(Literal* lit, int polarity, unsigned cLen, bool goal)
     }
 
     OperatorType* type = pred->predType();
-    if(type->typeArgsArity()){
+    if(type->numTypeArguments()){
       _hasPolymorphicSym = true;
     }
 

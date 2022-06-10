@@ -22,6 +22,7 @@
 #include "Kernel/Signature.hpp"
 #include "Kernel/OperatorType.hpp"
 #include "Kernel/Term.hpp"
+#include "Kernel/TermIterators.hpp"
 #include "Kernel/Theory.hpp"
 
 #include "Shell/Options.hpp"
@@ -117,16 +118,12 @@ bool InductionHelper::isIntInductionOn() {
 
 bool InductionHelper::isIntInductionOneOn() {
   CALL("InductionHelper::isIntInductionOneOn");
-  static bool one = env.options->intInduction() == Options::IntInductionKind::ONE ||
-                    env.options->intInduction() == Options::IntInductionKind::ALL;
-  return isIntInductionOn() && one;
+  return isIntInductionOn() && (env.options->intInduction() == Options::IntInductionKind::ONE);
 }
 
 bool InductionHelper::isIntInductionTwoOn() {
   CALL("InductionHelper::isIntInductionTwoOn");
-  static bool two = env.options->intInduction() == Options::IntInductionKind::TWO ||
-                    env.options->intInduction() == Options::IntInductionKind::ALL;
-  return isIntInductionOn() && two;
+  return isIntInductionOn() && (env.options->intInduction() == Options::IntInductionKind::TWO);
 }
 
 bool InductionHelper::isInductionForFiniteIntervalsOn() {
@@ -192,25 +189,75 @@ bool InductionHelper::isInductionTermFunctor(unsigned f) {
          );
 }
 
+static bool containsSkolem(Term* t) {
+  unsigned f = t->functor();
+  // Special case: t is a non-complex term (the most common case in induction)
+  if (env.signature->functionArity(f) == 0) {
+    return env.signature->getFunction(f)->skolem();
+  }
+  // If t is complex, we iterate through all its non-variable subterms including itself
+  NonVariableIterator nvi(t, true);
+  while (nvi.hasNext()) {
+    if (env.signature->getFunction(nvi.next().term()->functor())->skolem()) return true;
+  }
+  return false;
+}
+
+static bool termAndLiteralSatisfyStrictness(const TermList& tl, Literal* l, Options::IntegerInductionLiteralStrictness strictness) {
+  using LS = Options::IntegerInductionLiteralStrictness;
+  switch(strictness) {
+  case LS::NONE:
+    return true;
+  case LS::TOPLEVEL_NOT_IN_OTHER:
+    return
+      !(((tl == *l->nthArgument(0)) && !l->nthArgument(1)->containsSubterm(tl)) ||
+        ((tl == *l->nthArgument(1)) && !l->nthArgument(0)->containsSubterm(tl)));
+  case LS::ONLY_ONE_OCCURRENCE:
+    return !(l->countSubtermOccurrences(tl) < 2);
+  case LS::NOT_IN_BOTH:
+    return !(!l->nthArgument(0)->containsSubterm(tl) || !l->nthArgument(1)->containsSubterm(tl));
+  case LS::ALWAYS:
+    return false;
+  }
+}
+
 bool InductionHelper::isIntInductionTermListInLiteral(TermList& tl, Literal* l) {
   CALL("InductionHelper::isIntInductionTermInLiteral");
 
+  // Term tl has to be an integer term.
+  // Further, integer term tl from literal l cannot be used for induction if any
+  // of the following conditions is satisfied.
+  // Term strictness (applies on any tl):
+  //   1: tl is an interpreted constant
+  //   2: tl does not contain a skolem function
+  // Comparison or equality strictness (applies when l is a comparison or an equality):
+  //   1: tl is a top-level argument of l, but it does not occur in the other argument of l
+  //   2: tl has only one occurrence in l
+  //   3: tl does not occur in both arguments of l
+  //   4: comparisons or equalities are not allowed
   ASS(tl.isTerm());
-  // Term tl has to be an integer term, and not an interpreted constant.
   unsigned f = tl.term()->functor();
-  // TODO: move this check to later (when we know the bounds)
-  if ((env.signature->getFunction(f)->fnType()->result() != AtomicSort::intSort()) ||
-      theory->isInterpretedConstant(f))
-  {
+  if (env.signature->getFunction(f)->fnType()->result() != AtomicSort::intSort())
     return false;
+
+  using TS = Options::IntegerInductionTermStrictness;
+  switch(env.options->integerInductionStrictnessTerm()) {
+  case TS::NONE:
+    break;
+  case TS::INTERPRETED_CONSTANT:
+    if(theory->isInterpretedConstant(f))
+      return false;
+    break;
+  case TS::NO_SKOLEMS:
+    if(!containsSkolem(tl.term()))
+      return false;
+    break;
   }
-  // Integer term tl from literal l cannot be used for induction if l is an integer
-  // comparison and tl is one of the comparison's arguments.
-  if (isIntegerComparisonLiteral(l) &&
-      ((tl == *l->nthArgument(0)) || (tl == *l->nthArgument(1)))) {
-    return false;
-  }
-  return true;
+
+  return (l->isEquality()
+    ? termAndLiteralSatisfyStrictness(tl, l, env.options->integerInductionStrictnessEq())
+    : !isIntegerComparisonLiteral(l) ||
+      termAndLiteralSatisfyStrictness(tl, l, env.options->integerInductionStrictnessComp()));
 }
 
 bool InductionHelper::isStructInductionFunctor(unsigned f) {
