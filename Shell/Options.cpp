@@ -1487,8 +1487,7 @@ void Options::init()
     _binaryResolution.onlyUsefulWith(InferencingSaturationAlgorithm());
     _binaryResolution.tag(OptionTag::INFERENCES);
     // If urr is off then binary resolution should be on
-    _binaryResolution.addConstraint(
-      If(equal(false)).then(_unitResultingResolution.is(notEqual(URResolution::OFF))));
+    // _binaryResolution.addConstraint(If(equal(false)).then(_unitResultingResolution.is(notEqual(URResolution::OFF))));
     _binaryResolution.setRandomChoices(And(isRandSat(),saNotInstGen(),Or(hasEquality(),hasCat(Property::HNE))),{"on"});
     _binaryResolution.setRandomChoices({"on","off"});
 
