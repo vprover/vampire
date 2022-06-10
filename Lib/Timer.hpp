@@ -94,6 +94,7 @@ public:
   // only returns non-zero, if actually measuring
   // (when instruction counting is supported and an instruction limit is set)
   static unsigned elapsedMegaInstructions();
+  static void resetInstructionMeasuring();
 
   static std::atomic<bool> s_limitEnforcement;
 private:
