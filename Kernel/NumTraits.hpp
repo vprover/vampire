@@ -192,10 +192,16 @@ struct NumTraits;
         static ConstantType constant(int num, int den) { return ConstantType(num, den); }           \
         static Term* constantT(int num, int den) { return theory->representConstant(constant(num, den)); }    \
         static TermList constantTl(int num, int den) { return TermList(constantT(num, den)); }      \
+        static bool isFractional() { return true; }                                                 \
+    )                                                                                               \
+                                                                                                    \
+    __NUM_TRAITS_IF_NOT_FRAC(SHORT,                                                                 \
+        static bool isFractional() { return false; }                                                \
     )                                                                                               \
                                                                                                     \
     IMPL_NUM_TRAITS__SPECIAL_CONSTANT(one , 1, isOne )                                              \
     IMPL_NUM_TRAITS__SPECIAL_CONSTANT(zero, 0, isZero)                                              \
+                                                                                                    \
                                                                                                     \
     static ConstantType constant(int i) { return ConstantType(i); }                                 \
     static Term* constantT(int i) { return constantT(constant(i)); }                                \
@@ -230,6 +236,11 @@ struct NumTraits;
 #define __NUM_TRAITS_IF_FRAC_INT(...) 
 #define __NUM_TRAITS_IF_FRAC_REAL(...) __VA_ARGS__
 #define __NUM_TRAITS_IF_FRAC_RAT(...) __VA_ARGS__
+
+#define __NUM_TRAITS_IF_NOT_FRAC(sort, ...) __NUM_TRAITS_IF_NOT_FRAC_ ## sort (__VA_ARGS__)
+#define __NUM_TRAITS_IF_NOT_FRAC_INT(...)  __VA_ARGS__
+#define __NUM_TRAITS_IF_NOT_FRAC_REAL(...)
+#define __NUM_TRAITS_IF_NOT_FRAC_RAT(...)
 
 IMPL_NUM_TRAITS(Rational, rational, RATIONAL, RAT )
 IMPL_NUM_TRAITS(Real    , real    , REAL    , REAL)
@@ -277,6 +288,13 @@ template<class Clsr>
 auto tryNumTraits(Clsr clsr) {
                return clsr( IntTraits{}) 
       || [&] { return clsr( RatTraits{}); }
+      || [&] { return clsr(RealTraits{}); };
+}
+
+
+template<class Clsr>
+auto tryFracNumTraits(Clsr clsr) {
+                      clsr( RatTraits{})
       || [&] { return clsr(RealTraits{}); };
 }
 

@@ -279,6 +279,7 @@ public:
   RuleStats ircVarElim;
   IrcIrStats ircIr;
   RuleStats ircSup;
+  RuleStats ircEqFact;
   RuleStats ircTermFac;
   RuleStats ircLitFac;
   RuleStats ircDemod;

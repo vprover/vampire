@@ -48,6 +48,7 @@
 #include "Inferences/IRC/InequalityResolution.hpp"
 #include "Inferences/IRC/Normalization.hpp"
 #include "Inferences/IRC/TermFactoring.hpp"
+#include "Inferences/IRC/EqFactoring.hpp"
 #include "Inferences/IRC/LiteralFactoring.hpp"
 #include "Inferences/IRC/Superposition.hpp"
 #include "Inferences/IRC/VariableElimination.hpp"
@@ -1646,6 +1647,7 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
     }
     sgi->push(new IRC::LiteralFactoring(shared));
     sgi->push(new IRC::Superposition(shared)); 
+    sgi->push(new IRC::EqFactoring(shared)); 
     sgi->push(new IRC::TermFactoring(shared)); 
     sgi->push(new IRC::InequalityResolution(shared)); 
     ise->addFront(new IRC::Normalization(shared)); 

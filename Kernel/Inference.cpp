@@ -909,6 +909,8 @@ vstring Kernel::ruleName(InferenceRule rule)
     return "totality";
   case InferenceRule::IRC_LITERAL_FACTORING:
     return "inequality literal factoring";
+  case InferenceRule::IRC_EQ_FACTORING:
+    return "arithmetic equality factoring";
   case InferenceRule::IRC_TERM_FACTORING:
     return "inequality term factoring";
   case InferenceRule::IRC_INEQUALITY_RESOLUTION:

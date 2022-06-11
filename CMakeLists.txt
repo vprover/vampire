@@ -766,11 +766,10 @@ set(UNIT_TESTS
     UnitTests/tIRC_LiteralFactoring.cpp
     UnitTests/tIRC_Normalization.cpp
     UnitTests/tIRC_Superposition.cpp
-    UnitTests/tIRC_EqualityFactoring.cpp
+    UnitTests/tIRC_EqFactoring.cpp
     UnitTests/tIRC_VariableElimination.cpp
     UnitTests/tIRC_TermFactoring.cpp
     UnitTests/tIRC_DemodulationModLA.cpp
-    UnitTests/tInequalityResolutionIndex.cpp
     UnitTests/tPushUnaryMinus.cpp
     UnitTests/tArithmeticSubtermGeneralization.cpp
     UnitTests/tInterpretedFunctions.cpp

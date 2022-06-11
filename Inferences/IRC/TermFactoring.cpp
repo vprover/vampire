@@ -221,7 +221,7 @@ ClauseIterator TermFactoring::generateClauses(Clause* premise)
   DEBUG("in: ", *premise)
 
   auto selected = make_shared(move_to_heap(
-        _shared->selectedSummands(premise, /* stricltyMaxLiteral */ false, /*stricltyMaxSummand*/ false)
+        _shared->selectedSummands(premise, /* literal */ SelectionCriterion::WEAKLY_MAX, /* summand */ SelectionCriterion::WEAKLY_MAX)
         .filter([](auto& s) { return !s.monom().isVar(); })
         .template collect<Stack>()));
 

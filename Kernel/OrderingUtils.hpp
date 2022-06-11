@@ -167,6 +167,12 @@ namespace Kernel {
   public:
     using MulExtMemo = DArray<Option<Ordering::Result>>;
 
+    enum class SelectionCriterion {
+      STRICTLY_MAX,
+      WEAKLY_MAX,
+      ANY,
+    };
+
     static bool notLeq(Ordering::Result r) 
     { return r != Ordering::Result::LESS 
           && r != Ordering::Result::EQUAL; }
@@ -184,45 +190,54 @@ namespace Kernel {
     }
 
     template<class Cmp>
-    static auto maxElems(unsigned nElems, Cmp cmp_, bool strict) 
+    static auto maxElems(unsigned nElems, Cmp cmp_, SelectionCriterion sel) 
     {
       auto cmpCache = make_shared(new Map<std::pair<unsigned, unsigned>, Ordering::Result>());
       return iterTraits(pvi(range(0, nElems)
         .filterMap([=](auto i) {
 
-            auto cmp = [&](unsigned l, unsigned r) {
-              ASS_NEQ(l, r)
-              unsigned col = l < r ? l : r;
-              unsigned row = l < r ? r : l;
+          switch (sel) {
+            case SelectionCriterion::ANY:
+              return Option<unsigned>(i);
+            case SelectionCriterion::WEAKLY_MAX:
+            case SelectionCriterion::STRICTLY_MAX: {
+              bool strict = sel == SelectionCriterion::STRICTLY_MAX;
+              
+              auto cmp = [&](unsigned l, unsigned r) {
+                ASS_NEQ(l, r)
+                unsigned col = l < r ? l : r;
+                unsigned row = l < r ? r : l;
 
 
-              auto idx = std::make_tuple(col, row);
-              auto res = cmpCache->getOrInit(idx,
-                  [&]() { return cmp_(col, row); });
+                auto idx = std::make_tuple(col, row);
+                auto res = cmpCache->getOrInit(idx,
+                    [&]() { return cmp_(col, row); });
 
-              res = l < r ? res : Ordering::reverse(res);
+                res = l < r ? res : Ordering::reverse(res);
 
-              ASS_EQ(res, cmp_(l, r))
-              return res;
-            };
+                ASS_EQ(res, cmp_(l, r))
+                return res;
+              };
 
-            bool isMax = range(0, nElems)
-              .filter([&](auto j) { return i != j; })
-              .all([&](auto j) {
-                switch (cmp(i, j)) {
-                  case Ordering::Result::INCOMPARABLE: 
-                  case Ordering::Result::GREATER: 
-                    return true;
-                  case Ordering::Result::LESS:
-                    return false;
-                  case Ordering::Result::EQUAL: 
-                    return strict ? false : true;
-                  default:
-                    ASSERTION_VIOLATION
-                }
-              });
+              bool isMax = range(0, nElems)
+                .filter([&](auto j) { return i != j; })
+                .all([&](auto j) {
+                  switch (cmp(i, j)) {
+                    case Ordering::Result::INCOMPARABLE: 
+                    case Ordering::Result::GREATER: 
+                      return true;
+                    case Ordering::Result::LESS:
+                      return false;
+                    case Ordering::Result::EQUAL: 
+                      return strict ? false : true;
+                    default:
+                      ASSERTION_VIOLATION
+                  }
+                });
 
-            return isMax ? Option<unsigned>(i) : Option<unsigned>();
+              return isMax ? Option<unsigned>(i) : Option<unsigned>();
+            }
+          }
         })));
     }
 

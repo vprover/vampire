@@ -53,7 +53,7 @@ public:
     Lhs& operator=(Lhs&&) = default;
 
     static auto iter(IrcState& shared, Clause* cl)
-    { return shared.selectedSummands(cl, /* strictly max literal*/ true, /* strictly max term */ true)
+    { return shared.selectedSummands(cl, /* literal*/ SelectionCriterion::STRICTLY_MAX, /* term */ SelectionCriterion::STRICTLY_MAX)
               .filter([&](auto const& selected) { return selected.isInequality(); })
               .filter([&](auto const& selected) { return selected.sign()   == Sign::Pos; })
               .map([&]   (auto selected)        { return Lhs(std::move(selected));     }); }
@@ -68,7 +68,7 @@ public:
     Rhs& operator=(Rhs&&) = default;
 
     static auto iter(IrcState& shared, Clause* cl) 
-    { return shared.selectedSummands(cl, /* strictly max literal*/ true, /* strictly max term */ false)
+    { return shared.selectedSummands(cl, /* literal*/ SelectionCriterion::STRICTLY_MAX, /* term */ SelectionCriterion::WEAKLY_MAX)
               .filter([&](auto const& selected) { return selected.isInequality(); })
               .filter([&](auto const& selected) { return selected.sign() == Sign::Neg; })
               .map([&]   (auto selected)        { return Rhs(std::move(selected));     }); }

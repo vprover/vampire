@@ -177,14 +177,14 @@ ClauseIterator LiteralFactoring::generateClauses(Clause* premise)
   DEBUG("in: ", *premise)
 
     auto selected = make_shared(
-        _shared->selectedSummands(premise, /* stricltyMaxLiteral */ false, /* stricltyMaxSummand */ true)
+        _shared->selectedSummands(premise, /* literal */ SelectionCriterion::WEAKLY_MAX, /* summand */ SelectionCriterion::STRICTLY_MAX)
           .filter([](auto& s) { return s.isInequality(); })
           .filter([](auto& s) { return s.sign() == Sign::Pos; })
           .filter([](auto& s) { return !s.monom().isVar(); })
           .template collect<Stack>());
 
   auto rest = make_shared(
-      _shared->selectAllSummands(premise)
+      _shared->selectedSummands(premise,  /* literal */ SelectionCriterion::ANY, /* summand */ SelectionCriterion::STRICTLY_MAX)
         .filter([](auto& s) { return s.isInequality(); })
         .filter([](auto& s) { return s.sign() == Sign::Pos; })
         .filter([](auto& s) { return !s.monom().isVar(); })

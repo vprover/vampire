@@ -46,25 +46,7 @@ public:
   void attach(SaturationAlgorithm* salg) final override;
   void detach() final override;
 
-
-  template<class NumTraits>
-  Stack<Clause*> applyRule(Clause* premise, 
-    Literal* lit1, IrcLiteral<NumTraits> l1, Monom<NumTraits> j_s1,
-    Literal* lit2, IrcLiteral<NumTraits> l2, Monom<NumTraits> k_s2,
-    UwaResult sigma_cnst);
-
-  template<class NumTraits>
-  ClauseIterator generateClauses(Clause* premise, 
-    Literal* lit1, IrcLiteral<NumTraits> l1, Monom<NumTraits> j_s1,
-    Literal* lit2, IrcLiteral<NumTraits> l2, Monom<NumTraits> k_s2);
-
-  template<class NumTraits>
-  ClauseIterator generateClauses(
-      Clause* premise,
-      Literal* lit1, IrcLiteral<NumTraits> L1,
-      Literal* lit2, IrcLiteral<NumTraits> L2
-    );
-
+  Option<Clause*> applyRule(SelectedEquality const& e1, SelectedEquality const& e2);
   ClauseIterator generateClauses(Clause* premise) final override;
   
 

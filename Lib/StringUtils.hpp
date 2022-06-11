@@ -55,6 +55,13 @@ template<> struct StringParser<float>
 
 
 
+template<class A>
+vstring toString(A const& a) {
+  vstringstream out;
+  out << a;
+  return out.str();
+}
+
 }
 
 #endif // __StringUtils__

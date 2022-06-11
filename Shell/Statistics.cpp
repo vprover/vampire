@@ -140,6 +140,7 @@ Statistics::Statistics()
     ircVarElim(),
     ircIr(),
     ircSup(),
+    ircEqFact(),
     ircTermFac(),
     ircLitFac(),
     ircDemod(),
@@ -467,7 +468,7 @@ void Statistics::print(ostream& out)
   SEPARATOR;
 
   HEADING("Inequality Resolution Calculus", ircVarElimKNonZeroCnt || ircVarElimKSum || ircVarElimKMax
-                                           || ircVarElim || ircSup || ircIr  || ircTermFac || ircLitFac || ircDemod
+                                           || ircVarElim || ircSup|| ircEqFact || ircIr  || ircTermFac || ircLitFac || ircDemod
                                           );
 
   COND_OUT("ircVarElimKNonZeroCnt" , ircVarElimKNonZeroCnt);
@@ -476,6 +477,7 @@ void Statistics::print(ostream& out)
 
   RULE_STATS_OUT(ircVarElim);
   RULE_STATS_OUT(ircSup);
+  RULE_STATS_OUT(ircEqFact);
   RULE_STATS_OUT(ircIr);
   RULE_STATS_OUT(ircTermFac);
   RULE_STATS_OUT(ircLitFac);

@@ -311,6 +311,7 @@ enum class InferenceRule : unsigned char {
   IRC_INEQUALITY_RESOLUTION,
   /* factoring rules of the Inequality Resolution Calculs */
   IRC_TERM_FACTORING,
+  IRC_EQ_FACTORING,
   IRC_LITERAL_FACTORING,
   /** superposition rule of the Inequality Resolution Calculus */
   IRC_SUPERPOSITION,

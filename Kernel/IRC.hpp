@@ -460,7 +460,10 @@ namespace Kernel {
 
     SelectedEquality(SelectedSummand s) 
       : _inner(decltype(_inner)::variant<0>(std::move(s))) 
-    { ASS(!_inner.unwrap<0>().isInequality()) }
+    { 
+      ASS(!_inner.unwrap<0>().isInequality()) 
+      ASS(_inner.unwrap<0>().numTraits().apply([](auto x) { return x.isFractional(); }))
+    }
 
     SelectedEquality(SelectedUninterpretedEquality s) 
       : _inner(decltype(_inner)::variant<1>(std::move(s))) {}
@@ -468,8 +471,18 @@ namespace Kernel {
     Clause* clause() const 
     { return _inner.apply([](auto& x) { return x.clause(); }); }
 
-    bool positive()  const 
+    unsigned litIdx() const 
+    { return _inner.apply([](auto& x) { return x.litIdx; }); }
+
+    bool positive() const 
     { return literal()->isPositive(); }
+
+    bool isFracNum() const
+    { 
+      ASS(!_inner.template is<SelectedSummand>() 
+        || _inner.template unwrap<SelectedSummand>().numTraits().apply([](auto x) { return x.isFractional(); }))
+      return _inner.template is<SelectedSummand>(); 
+    }
 
     TermList biggerSide() const 
     { return _inner.match(
@@ -525,6 +538,7 @@ namespace Kernel {
       ASS(!literal()->isEquality())
     }
   };
+  using SelectionCriterion = OrderingUtils2::SelectionCriterion;
 
   struct IrcState 
   {
@@ -538,32 +552,18 @@ namespace Kernel {
     bool equivalent(TypedTermList lhs, TypedTermList rhs) 
      { return normalize(lhs) == normalize(rhs); }
 
-    auto selectAllSummands(Clause* cl)
-    { 
-      return range(0, cl->size())
-        .flatMap([=](auto i) {
-            auto sel_lit = SelectedLiteral(cl, i, *this);
-            auto n = sel_lit.interpreted.isSome() 
-                ? sel_lit.interpreted.unwrap().apply([](auto& l) { return l.term().nSummands(); })
-                : 0;
-            return range(0, n)
-                  .map([=](auto j) 
-                      { return SelectedSummand(sel_lit, j); });
-            });
-    }
-
-    auto maxLits(Clause* cl, bool strictlyMax) {
+    auto maxLits(Clause* cl, SelectionCriterion sel) {
       return OrderingUtils2::maxElems(
           cl->size(), 
           [=](unsigned l, unsigned r) 
           { return ordering->compare((*cl)[l], (*cl)[r]); },
-          strictlyMax)
+          sel)
         .map([=](auto i) 
             { return SelectedLiteral(cl, i, *this); });
     }
 
     template<class NumTraits>
-    auto maxSummandIndices(IrcLiteral<NumTraits> const& lit, bool strictlyMax)
+    auto maxSummandIndices(IrcLiteral<NumTraits> const& lit, SelectionCriterion selection)
     {
         auto monomAt = [=](auto i) 
              { return lit.term().summandAt(i).factors->denormalize(); }; 
@@ -572,59 +572,50 @@ namespace Kernel {
                   lit.term().nSummands(),
                   [=](unsigned l, unsigned r) 
                   { return ordering->compare(monomAt(l), monomAt(r)); },
-                  strictlyMax);
+                  selection);
     }
 
-    auto maxEqIndices(Literal* lit, bool strictlyMax)
+    auto maxEqIndices(Literal* lit, SelectionCriterion sel)
     {
       Stack<unsigned> is(2);
-      switch (ordering->compare(lit->termArg(0), lit->termArg(1))) {
-        case Ordering::Result::GREATER:
-          is.push(0);
-          break;
-        case Ordering::Result::LESS:
-          is.push(1);
-          break;
+      auto iter = [](Stack<unsigned> out)  
+                  { return iterTraits(ownedArrayishIterator(std::move(out))); };
+      switch (sel) {
+        case SelectionCriterion::ANY:
+          return iter({0,1});
 
-        case Ordering::Result::LESS_EQ:
-          if (!strictlyMax) {
-            is.push(1);
-          } else {
-            is.push(0);
-            is.push(1);
+        case SelectionCriterion::WEAKLY_MAX:
+          switch (ordering->compare(lit->termArg(0), lit->termArg(1))) {
+            case Ordering::Result::GREATER: return iter({0});
+            case Ordering::Result::LESS:    return iter({1});
+
+            case Ordering::Result::LESS_EQ:
+            case Ordering::Result::GREATER_EQ:
+            case Ordering::Result::EQUAL:
+            case Ordering::Result::INCOMPARABLE: return iter({0, 1});
           }
-          break;
 
-        case Ordering::Result::GREATER_EQ:
-          if (!strictlyMax) {
-            is.push(0);
-          } else {
-            is.push(0);
-            is.push(1);
+        case SelectionCriterion::STRICTLY_MAX:
+          switch (ordering->compare(lit->termArg(0), lit->termArg(1))) {
+            case Ordering::Result::GREATER_EQ:
+            case Ordering::Result::GREATER: return iter({0});
+            case Ordering::Result::LESS_EQ:
+            case Ordering::Result::LESS:    return iter({1});
+            case Ordering::Result::EQUAL:        return iter(Stack<unsigned>());
+            case Ordering::Result::INCOMPARABLE: return iter({0, 1});
           }
-          break;
-
-        case Ordering::Result::EQUAL:
-          if (!strictlyMax) {
-            is.push(0);
-            is.push(1);
-          }
-          break;
-
-        case Ordering::Result::INCOMPARABLE:
-          is.push(0);
-          is.push(1);
-          break;
       }
+
       return iterTraits(ownedArrayishIterator(std::move(is)));
     }
+
     auto activePositions(Literal* l) -> IterTraits<VirtualIterator<TermList>>
     {
       return iterTraits(renormalize(l)
         .match(
           [=](AnyIrcLiteral l) -> VirtualIterator<TermList> {
             return std::move(l).apply([=](auto l) -> VirtualIterator<TermList> {
-                return pvi(maxSummandIndices(l, /* strictlyMax */ true)
+                return pvi(maxSummandIndices(l, SelectionCriterion::STRICTLY_MAX)
                          .map([=](auto i) {
                              return l.term().summandAt(i).factors->denormalize();
                          }));
@@ -632,7 +623,7 @@ namespace Kernel {
           },
           [=]() {
             if (l->isEquality()) {
-              return pvi(maxEqIndices(l, /* strictlyMax */ true)
+              return pvi(maxEqIndices(l, SelectionCriterion::STRICTLY_MAX)
                 .map([=](auto i) { return l->termArg(i); }));
             } else {
                 return pvi(termArgIter(l));
@@ -647,43 +638,27 @@ namespace Kernel {
     }
 
 
-    auto maxSummands(SelectedLiteral sel_lit , bool strictlyMax) 
+    auto maxSummands(SelectedLiteral sel_lit , SelectionCriterion sel) 
     { return sel_lit.interpreted.unwrap()
                 .apply([&](auto& lit) 
-                       { return maxSummandIndices(lit, strictlyMax); })
+                       { return maxSummandIndices(lit, sel); })
                 .map([=](auto i) 
                      { return SelectedSummand(sel_lit, i); }); }
 
 
-    auto selectedActivePositions(Clause* cl, bool strictlyMaxLiteral, bool strictlyMaxSummand)
+    auto selectedActivePositions(Clause* cl, SelectionCriterion selLit, SelectionCriterion selSum)
     {
       using Out = Coproduct<SelectedSummand, SelectedUninterpretedEquality, SelectedUninterpretedPredicate>;
-      return maxLits(cl, strictlyMaxLiteral)
+      return maxLits(cl, selLit)
         // filter out interpreted number literals
         .flatMap([=](auto sel_lit) -> VirtualIterator<Out> {
             auto lit = sel_lit.literal();
             if (sel_lit.interpreted.isSome()) {
-              return pvi(maxSummands(sel_lit, strictlyMaxSummand)
+              return pvi(maxSummands(sel_lit, selSum)
                   .map([](auto x) { return Out(std::move(x)); }));
 
             } else if (lit->isEquality()) {
-              // Stack<unsigned> is(2);
-              // switch (ordering->compare(lit->termArg(0), lit->termArg(1))) {
-              //   case Ordering::Result::GREATER:
-              //     is.push(0);
-              //     break;
-              //   case Ordering::Result::LESS:
-              //     is.push(1);
-              //     break;
-              //   case Ordering::Result::GREATER_EQ:
-              //   case Ordering::Result::LESS_EQ:
-              //   case Ordering::Result::EQUAL:
-              //   case Ordering::Result::INCOMPARABLE:
-              //     is.push(0);
-              //     is.push(1);
-              //     break;
-              // }
-              return pvi(maxEqIndices(lit, strictlyMaxSummand)
+              return pvi(maxEqIndices(lit, selSum)
                         .map([=](auto j) 
                             { return Out(SelectedUninterpretedEquality(sel_lit, j)); }));
             } else {
@@ -692,9 +667,9 @@ namespace Kernel {
         });
     }
 
-    auto selectedEqualities(Clause* cl, bool strictlyMaxLiteral, bool strictlyMaxTerms) {
+    auto selectedEqualities(Clause* cl, SelectionCriterion selLit, SelectionCriterion selTerm) {
       using Out = SelectedEquality;
-      return selectedActivePositions(cl, strictlyMaxLiteral, strictlyMaxTerms)
+      return selectedActivePositions(cl, selLit, selTerm)
         .filterMap([](auto x) -> Option<Out>
                    { return x.match(
                        [](SelectedSummand& x) {
@@ -712,9 +687,9 @@ namespace Kernel {
     }
 
 
-    auto selectedSummands(Clause* cl, bool strictlyMaxLiteral, bool strictlyMaxTerms) {
+    auto selectedSummands(Clause* cl, SelectionCriterion selLit, SelectionCriterion selTerm) {
       using Out = SelectedSummand;
-      return selectedActivePositions(cl, strictlyMaxLiteral, strictlyMaxTerms)
+      return selectedActivePositions(cl, selLit, selTerm)
         .filterMap([](auto x) -> Option<Out> {
             return x.match(
                  [](SelectedSummand& x) 
