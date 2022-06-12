@@ -559,7 +559,7 @@ void Options::init()
     _newCNF = BoolOptionValue("newcnf","newcnf",false);
     _newCNF.description="Use NewCNF algorithm to do naming, preprecess3 and clausificiation.";
     _lookup.insert(&_newCNF);
-    _newCNF.addProblemConstraint(hasFormulas());
+    // _newCNF.addProblemConstraint(hasFormulas()); // works like a heisen-feature on some problems
     _newCNF.addProblemConstraint(onlyFirstOrder());
     _newCNF.tag(OptionTag::PREPROCESSING);
     _newCNF.setRandomChoices({"on","off"});
@@ -1136,7 +1136,7 @@ void Options::init()
     "\n- full   : deprecated"
     "";
     _theoryInstAndSimp.tag(OptionTag::INFERENCES);
-    _theoryInstAndSimp.addProblemConstraint(hasTheories());
+    // _theoryInstAndSimp.addProblemConstraint(hasTheories()); // works like a heisen-feature on some problems
     _lookup.insert(&_theoryInstAndSimp);
 
     _thiGeneralise = BoolOptionValue("theory_instantiation_generalisation", "thigen", false);
