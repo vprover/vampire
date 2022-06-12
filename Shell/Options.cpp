@@ -1245,7 +1245,7 @@ void Options::init()
           In some rare cases the conclusion may be not strictly simpler than the hypothesis. With `force` we ignore these cases, violating the ordering and just simplifying \
           anyways. With `cautious` we will generate a new clause instead of simplifying in these cases.";
     _lookup.insert(&_gaussianVariableElimination);
-    _gaussianVariableElimination.addProblemConstraint(hasTheories());
+    // _gaussianVariableElimination.addProblemConstraint(hasTheories()); // works like a heisen-feature on some problems
     _gaussianVariableElimination.tag(OptionTag::INFERENCES);
 
     _arithmeticSubtermGeneralizations = choiceArithmeticSimplificationMode(
@@ -1256,7 +1256,7 @@ void Options::init()
           In some rare cases the conclusion may be not strictly simpler than the hypothesis. With `force` we ignore these cases, violating the ordering and just simplifying \
           anyways. With `cautious` we will generate a new clause instead of simplifying in these cases.";
     _lookup.insert(&_arithmeticSubtermGeneralizations);
-    _arithmeticSubtermGeneralizations.addProblemConstraint(hasTheories());
+    // _arithmeticSubtermGeneralizations.addProblemConstraint(hasTheories()); // works like a heisen-feature on some problems
     _arithmeticSubtermGeneralizations.tag(OptionTag::INFERENCES);
 
     _evaluationMode = ChoiceOptionValue<EvaluationMode>("evaluation","ev",
