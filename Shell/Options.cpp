@@ -1190,7 +1190,7 @@ void Options::init()
     _inequalityNormalization = BoolOptionValue("normalize_inequalities","norm_ineq",false);
     _inequalityNormalization.description="Enable normalizing of inequalities like s < t ==> 0 < t - s.";
     _lookup.insert(&_inequalityNormalization);
-    _inequalityNormalization.addProblemConstraint(hasTheories());
+    // _inequalityNormalization.addProblemConstraint(hasTheories());  // works like a heisen-feature on some problems
     _inequalityNormalization.tag(OptionTag::INFERENCES);
 
     auto choiceArithmeticSimplificationMode = [&](vstring l, vstring s, ArithmeticSimplificationMode d)
