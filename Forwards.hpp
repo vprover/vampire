@@ -208,7 +208,7 @@ class Matcher;
 typedef VirtualIterator<Matcher*> MatchIterator;
 
 class TermTransformer;
-class TermTransformerTransformTransformed;
+class BottomUpTermTransformer;
 class FormulaTransformer;
 class FormulaUnitTransformer;
 
@@ -283,7 +283,10 @@ class SimplifyingLiteralIndex;
 class UnitClauseLiteralIndex;
 class FwSubsSimplifyingLiteralIndex;
 
+struct DefaultLeafData;
+template<class LeafData = DefaultLeafData>
 class SubstitutionTree;
+template<class LeafData = DefaultLeafData>
 class LiteralSubstitutionTree;
 
 class CodeTree;

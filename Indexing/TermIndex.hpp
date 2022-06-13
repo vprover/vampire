@@ -151,6 +151,23 @@ protected:
   void handleClause(Clause* c, bool adding);
 };
 
+/**
+ * Term index for structural induction
+ */
+class StructInductionTermIndex
+: public TermIndex
+{
+public:
+  CLASS_NAME(StructInductionTermIndex);
+  USE_ALLOCATOR(StructInductionTermIndex);
+
+  StructInductionTermIndex(TermIndexingStructure* is)
+  : TermIndex(is) {}
+
+protected:
+  void handleClause(Clause* c, bool adding);
+};
+
 /////////////////////////////////////////////////////
 // Indices for higher-order inferences from here on//
 /////////////////////////////////////////////////////

@@ -14,45 +14,14 @@
  * @since 16/08/2008 flight Sydney-San Francisco
  */
 
-#include <utility>
-
-#include "Shell/Options.hpp"
-
-#include "Kernel/Matcher.hpp"
-#include "Kernel/Renaming.hpp"
-#include "Kernel/SubstHelper.hpp"
-#include "Kernel/Term.hpp"
-#include "Kernel/ApplicativeHelper.hpp"
-
-#include "Lib/BinaryHeap.hpp"
-#include "Lib/Metaiterators.hpp"
-#include "Lib/Environment.hpp"
-#include "Lib/Recycler.hpp"
-#include "Lib/DHMultiset.hpp"
-
-#include "TermSharing.hpp"
-
-#include <iostream>
-#if VDEBUG
-#include "Kernel/Signature.hpp"
-#include "Lib/Environment.hpp"
-#include "Lib/Int.hpp"
-
-vstring SingleTermListToString(const TermList* ts);
-
-#endif
-
-#include "SubstitutionTree.hpp"
-
-using namespace std;
-using namespace Indexing;
-
+namespace Indexing {
 
 /**
  * Initialise the substitution tree.
  * @since 16/08/2008 flight Sydney-San Francisco
  */
-SubstitutionTree::SubstitutionTree(int nodes,Shell::Options::UnificationWithAbstraction uwa, bool useC, bool rfSubs)
+template<class LeafData_>
+SubstitutionTree<LeafData_>::SubstitutionTree(int nodes, Shell::Options::UnificationWithAbstraction uwa, bool useC, bool rfSubs)
   : tag(false), _nextVar(0), _nodes(nodes), _useC(useC), _uwa(uwa), _rfSubs(rfSubs)
 {
   CALL("SubstitutionTree::SubstitutionTree");
@@ -67,7 +36,8 @@ SubstitutionTree::SubstitutionTree(int nodes,Shell::Options::UnificationWithAbst
  * @warning does not destroy nodes yet
  * @since 16/08/2008 flight Sydney-San Francisco
  */
-SubstitutionTree::~SubstitutionTree()
+template<class LeafData_>
+SubstitutionTree<LeafData_>::~SubstitutionTree()
 {
   CALL("SubstitutionTree::~SubstitutionTree");
   ASS_EQ(_iteratorCnt,0);
@@ -84,7 +54,8 @@ SubstitutionTree::~SubstitutionTree()
  *
  * This method is used for insertions and deletions.
  */
-void SubstitutionTree::getBindings(Term* t, BindingMap& svBindings)
+template<class LeafData_>
+void SubstitutionTree<LeafData_>::getBindings(Term* t, BindingMap& svBindings)
 {
   TermList* args=t->args();
 
@@ -109,6 +80,7 @@ struct UnresolvedSplitRecord
   TermList original;
 };
 
+template<class LeafData_>
 struct BindingComparator
 {
   static Comparison compare(const UnresolvedSplitRecord& r1, const UnresolvedSplitRecord& r2)
@@ -123,7 +95,7 @@ struct BindingComparator
     }
     return Int::compare(r2.var,r1.var);
   }
-  static Comparison compare(const SubstitutionTree::Binding& b1, const SubstitutionTree::Binding& b2)
+  static Comparison compare(const typename SubstitutionTree<LeafData_>::Binding& b1, const typename SubstitutionTree<LeafData_>::Binding& b2)
   {
 #if REORDERING
     return Int::compare(b2.var,b1.var);
@@ -141,7 +113,8 @@ struct BindingComparator
  * top symbol of the term/literal being inserted, and
  * @b bh contains its arguments.
  */
-void SubstitutionTree::insert(Node** pnode,BindingMap& svBindings,LeafData ld)
+template<class LeafData_>
+void SubstitutionTree<LeafData_>::insert(Node** pnode,BindingMap& svBindings,LeafData ld)
 {
   CALL("SubstitutionTree::insert/3");
   ASS_EQ(_iteratorCnt,0);
@@ -164,7 +137,7 @@ void SubstitutionTree::insert(Node** pnode,BindingMap& svBindings,LeafData ld)
     return;
   }
 
-  typedef BinaryHeap<UnresolvedSplitRecord, BindingComparator> SplitRecordHeap;
+  typedef BinaryHeap<UnresolvedSplitRecord, BindingComparator<LeafData_>> SplitRecordHeap;
   static SplitRecordHeap unresolvedSplits;
   unresolvedSplits.reset();
 
@@ -249,7 +222,7 @@ start:
 
   if (*pnode == 0) {
     BindingMap::Iterator svit(svBindings);
-    BinaryHeap<Binding, BindingComparator> remainingBindings;
+    BinaryHeap<Binding, BindingComparator<LeafData_>> remainingBindings;
     while (svit.hasNext()) {
       unsigned var;
       TermList term;
@@ -358,7 +331,8 @@ start:
  * If the removal results in a chain of nodes containing
  * no terms/literals, all those nodes are removed as well.
  */
-void SubstitutionTree::remove(Node** pnode,BindingMap& svBindings,LeafData ld)
+template<class LeafData_>
+void SubstitutionTree<LeafData_>::remove(Node** pnode,BindingMap& svBindings,LeafData ld)
 {
   CALL("SubstitutionTree::remove-2");
   ASS_EQ(_iteratorCnt,0);
@@ -453,7 +427,8 @@ void SubstitutionTree::remove(Node** pnode,BindingMap& svBindings,LeafData ld)
  * Return a pointer to the leaf that contains term specified by @b svBindings.
  * If no such leaf exists, return 0.
  */
-SubstitutionTree::Leaf* SubstitutionTree::findLeaf(Node* root, BindingMap& svBindings)
+template<class LeafData_>
+typename SubstitutionTree<LeafData_>::Leaf* SubstitutionTree<LeafData_>::findLeaf(Node* root, BindingMap& svBindings)
 {
   CALL("SubstitutionTree::findLeaf");
   ASS(root);
@@ -524,7 +499,7 @@ SubstitutionTree::Leaf* SubstitutionTree::findLeaf(Node* root, BindingMap& svBin
 
 #if VDEBUG
 
-vstring getIndentStr(int n)
+inline vstring getIndentStr(int n)
 {
   vstring res;
   for(int indCnt=0;indCnt<n;indCnt++) {
@@ -533,7 +508,8 @@ vstring getIndentStr(int n)
   return res;
 }
 
-vstring SubstitutionTree::nodeToString(Node* topNode)
+template<class LeafData_>
+vstring SubstitutionTree<LeafData_>::nodeToString(Node* topNode)
 {
   CALL("SubstitutionTree::nodeToString");
 
@@ -580,7 +556,8 @@ vstring SubstitutionTree::nodeToString(Node* topNode)
   return res;
 }
 
-vstring SubstitutionTree::toString() const
+template<class LeafData_>
+vstring SubstitutionTree<LeafData_>::toString() const
 {
   CALL("SubstitutionTree::toString");
 
@@ -600,7 +577,8 @@ vstring SubstitutionTree::toString() const
 
 #endif
 
-SubstitutionTree::Node::~Node()
+template<class LeafData_>
+SubstitutionTree<LeafData_>::Node::~Node()
 {
   CALL("SubstitutionTree::Node::~Node");
 
@@ -610,7 +588,8 @@ SubstitutionTree::Node::~Node()
 }
 
 
-void SubstitutionTree::Node::split(Node** pnode, TermList* where, int var)
+template<class LeafData_>
+void SubstitutionTree<LeafData_>::Node::split(Node** pnode, TermList* where, int var)
 {
   CALL("SubstitutionTree::Node::split");
 
@@ -627,7 +606,8 @@ void SubstitutionTree::Node::split(Node** pnode, TermList* where, int var)
   *nodePosition=node;
 }
 
-void SubstitutionTree::IntermediateNode::loadChildren(NodeIterator children)
+template<class LeafData_>
+void SubstitutionTree<LeafData_>::IntermediateNode::loadChildren(NodeIterator children)
 {
   CALL("SubstitutionTree::IntermediateNode::loadChildren");
 
@@ -639,7 +619,8 @@ void SubstitutionTree::IntermediateNode::loadChildren(NodeIterator children)
   }
 }
 
-void SubstitutionTree::Leaf::loadChildren(LDIterator children)
+template<class LeafData_>
+void SubstitutionTree<LeafData_>::Leaf::loadChildren(LDIterator children)
 {
   CALL("SubstitutionTree::Leaf::loadClauses");
 
@@ -649,7 +630,8 @@ void SubstitutionTree::Leaf::loadChildren(LDIterator children)
   }
 }
 
-bool SubstitutionTree::LeafIterator::hasNext()
+template<class LeafData_>
+bool SubstitutionTree<LeafData_>::LeafIterator::hasNext()
 {
   CALL("SubstitutionTree::Leaf::hasNext");
   //if(tag){cout << "leafIterator::hasNext" << endl;}
@@ -675,7 +657,8 @@ bool SubstitutionTree::LeafIterator::hasNext()
   }
 }
 
-SubstitutionTree::UnificationsIterator::UnificationsIterator(SubstitutionTree* parent,
+template<class LeafData_>
+SubstitutionTree<LeafData_>::UnificationsIterator::UnificationsIterator(SubstitutionTree* parent,
 	Node* root, Term* query, bool retrieveSubstitution, bool reversed, 
   bool withoutTop, bool useC, FuncSubtermMap* funcSubtermMap)
 : tag(parent->tag), 
@@ -733,7 +716,8 @@ clientBDRecording(false), tree(parent), useUWAConstraints(useC),
   bd.drop();
 }
 
-SubstitutionTree::UnificationsIterator::~UnificationsIterator()
+template<class LeafData_>
+SubstitutionTree<LeafData_>::UnificationsIterator::~UnificationsIterator()
 {
   if(clientBDRecording) {
     subst.bdDone();
@@ -749,7 +733,8 @@ SubstitutionTree::UnificationsIterator::~UnificationsIterator()
 #endif
 }
 
-void SubstitutionTree::UnificationsIterator::createInitialBindings(Term* t)
+template<class LeafData_>
+void SubstitutionTree<LeafData_>::UnificationsIterator::createInitialBindings(Term* t)
 {
   CALL("SubstitutionTree::UnificationsIterator::createInitialBindings");
 
@@ -762,7 +747,8 @@ void SubstitutionTree::UnificationsIterator::createInitialBindings(Term* t)
   }
 }
 
-void SubstitutionTree::UnificationsIterator::createReversedInitialBindings(Term* t)
+template<class LeafData_>
+void SubstitutionTree<LeafData_>::UnificationsIterator::createReversedInitialBindings(Term* t)
 {
   CALL("SubstitutionTree::UnificationsIterator::createReversedInitialBindings");
   ASS(t->isLiteral());
@@ -773,7 +759,8 @@ void SubstitutionTree::UnificationsIterator::createReversedInitialBindings(Term*
   subst.bindSpecialVar(0,*t->nthArgument(1),NORM_QUERY_BANK);
 }
 
-bool SubstitutionTree::UnificationsIterator::hasNext()
+template<class LeafData_>
+bool SubstitutionTree<LeafData_>::UnificationsIterator::hasNext()
 {
   CALL("SubstitutionTree::UnificationsIterator::hasNext");
 
@@ -789,7 +776,8 @@ bool SubstitutionTree::UnificationsIterator::hasNext()
   return ldIterator.hasNext();
 }
 
-SubstitutionTree::QueryResult SubstitutionTree::UnificationsIterator::next()
+template<class LeafData_>
+typename SubstitutionTree<LeafData_>::QueryResult SubstitutionTree<LeafData_>::UnificationsIterator::next()
 {
   CALL("SubstitutionTree::UnificationsIterator::next");
 
@@ -825,7 +813,8 @@ SubstitutionTree::QueryResult SubstitutionTree::UnificationsIterator::next()
 }
 
 
-bool SubstitutionTree::UnificationsIterator::findNextLeaf()
+template<class LeafData_>
+bool SubstitutionTree<LeafData_>::UnificationsIterator::findNextLeaf()
 {
   CALL("SubstitutionTree::UnificationsIterator::findNextLeaf");
 
@@ -875,7 +864,8 @@ bool SubstitutionTree::UnificationsIterator::findNextLeaf()
   return true;
 }
 
-bool SubstitutionTree::UnificationsIterator::enter(Node* n, BacktrackData& bd)
+template<class LeafData_>
+bool SubstitutionTree<LeafData_>::UnificationsIterator::enter(Node* n, BacktrackData& bd)
 {
   CALL("SubstitutionTree::UnificationsIterator::enter");
 
@@ -924,7 +914,8 @@ bool SubstitutionTree::UnificationsIterator::enter(Node* n, BacktrackData& bd)
   return success;
 }
 
-bool SubstitutionTree::SubstitutionTreeMismatchHandler::introduceConstraint(TermList query,unsigned index1, TermList node,unsigned index2)
+template<class LeafData_>
+bool SubstitutionTree<LeafData_>::SubstitutionTreeMismatchHandler::introduceConstraint(TermList query,unsigned index1, TermList node,unsigned index2)
 {
   CALL("SubstitutionTree::MismatchHandler::introduceConstraint");
   
@@ -933,7 +924,8 @@ bool SubstitutionTree::SubstitutionTreeMismatchHandler::introduceConstraint(Term
   return true;
 }
 
-bool SubstitutionTree::STHOMismatchHandler::handle
+template<class LeafData_>
+bool SubstitutionTree<LeafData_>::STHOMismatchHandler::handle
      (RobSubstitution* subst,TermList query,unsigned index1, TermList node,unsigned index2)
 {
   CALL("SubstitutionTree::STHOMismatchHandler::handle");
@@ -947,7 +939,8 @@ bool SubstitutionTree::STHOMismatchHandler::handle
  * TODO: explain properly what associate does
  * called from enter(...)
  */
-bool SubstitutionTree::UnificationsIterator::associate(TermList query, TermList node, BacktrackData& bd)
+template<class LeafData_>
+bool SubstitutionTree<LeafData_>::UnificationsIterator::associate(TermList query, TermList node, BacktrackData& bd)
 {
   CALL("SubstitutionTree::UnificationsIterator::associate");
 
@@ -968,8 +961,9 @@ bool SubstitutionTree::UnificationsIterator::associate(TermList query, TermList 
 
 //TODO I think this works for VSpcialVars as well. Since .isVar() will return true 
 //for them
-SubstitutionTree::NodeIterator
-  SubstitutionTree::UnificationsIterator::getNodeIterator(IntermediateNode* n)
+template<class LeafData_>
+typename SubstitutionTree<LeafData_>::NodeIterator
+  SubstitutionTree<LeafData_>::UnificationsIterator::getNodeIterator(IntermediateNode* n)
 {
   CALL("SubstitutionTree::UnificationsIterator::getNodeIterator");
 
@@ -991,5 +985,5 @@ SubstitutionTree::NodeIterator
   }
 }
 
-
+} // namespace Indexing
 

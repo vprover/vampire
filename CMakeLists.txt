@@ -367,18 +367,13 @@ set(VAMPIRE_INDEXING_SOURCES
     Indexing/GroundingIndex.cpp
     Indexing/Index.cpp
     Indexing/IndexManager.cpp
+    Indexing/InductionFormulaIndex.cpp
     Indexing/LiteralIndex.cpp
     Indexing/LiteralMiniIndex.cpp
-    Indexing/LiteralSubstitutionTree.cpp
     Indexing/ResultSubstitution.cpp
-    Indexing/SubstitutionTree.cpp
-    Indexing/SubstitutionTree_FastGen.cpp
-    Indexing/SubstitutionTree_FastInst.cpp
-    Indexing/SubstitutionTree_Nodes.cpp
     Indexing/TermCodeTree.cpp
     Indexing/TermIndex.cpp
     Indexing/TermSharing.cpp
-    Indexing/TermSubstitutionTree.cpp
     Indexing/AcyclicityIndex.hpp
     Indexing/ClauseCodeTree.hpp
     Indexing/ClauseVariantIndex.hpp
@@ -387,6 +382,7 @@ set(VAMPIRE_INDEXING_SOURCES
     Indexing/GroundingIndex.hpp
     Indexing/Index.hpp
     Indexing/IndexManager.hpp
+    Indexing/InductionFormulaIndex.hpp
     Indexing/LiteralIndex.hpp
     Indexing/LiteralIndexingStructure.hpp
     Indexing/LiteralMiniIndex.hpp
@@ -597,9 +593,7 @@ set(VAMPIRE_SHELL_SOURCES
     Shell/Grounding.cpp
     Shell/InequalitySplitting.cpp
     Shell/InterpolantMinimizer.cpp
-    Shell/InterpolantMinimizerNew.cpp
     Shell/Interpolants.cpp
-    Shell/InterpolantsNew.cpp    
     Shell/InterpretedNormalizer.cpp
     Shell/LaTeX.cpp
     Shell/Lexer.cpp
@@ -616,7 +610,6 @@ set(VAMPIRE_SHELL_SOURCES
     Shell/Skolem.cpp
     Shell/SimplifyFalseTrue.cpp
     Shell/SineUtils.cpp
-    Shell/SMTFormula.cpp
     Shell/FOOLElimination.cpp
     Shell/Statistics.cpp
     Shell/SymbolDefinitionInlining.cpp
@@ -629,6 +622,7 @@ set(VAMPIRE_SHELL_SOURCES
     Shell/BlockedClauseElimination.cpp
     Shell/Token.cpp
     Shell/TPTPPrinter.cpp
+    Shell/TweeGoalTransformation.cpp
     Shell/UIHelper.cpp
     Shell/VarManager.cpp
     Shell/Lexer.cpp
@@ -649,9 +643,7 @@ set(VAMPIRE_SHELL_SOURCES
     Shell/Grounding.hpp
     Shell/InequalitySplitting.hpp
     Shell/InterpolantMinimizer.hpp
-    Shell/InterpolantMinimizerNew.hpp    
     Shell/Interpolants.hpp
-    Shell/InterpolantsNew.hpp
     Shell/InterpretedNormalizer.hpp
     Shell/LaTeX.hpp
     Shell/Lexer.hpp
@@ -668,7 +660,6 @@ set(VAMPIRE_SHELL_SOURCES
     Shell/Skolem.hpp
     Shell/SimplifyFalseTrue.hpp
     Shell/SineUtils.hpp
-    Shell/SMTFormula.hpp
     Shell/SMTLIBLogic.hpp
     Shell/FOOLElimination.hpp
     Shell/Statistics.hpp
@@ -682,6 +673,7 @@ set(VAMPIRE_SHELL_SOURCES
     Shell/BlockedClauseElimination.hpp
     Shell/Token.hpp
     Shell/TPTPPrinter.hpp
+    Shell/TweeGoalTransformation.hpp
     Shell/UnificationWithAbstractionConfig.hpp
     Shell/UnificationWithAbstractionConfig.cpp
     Shell/UIHelper.hpp

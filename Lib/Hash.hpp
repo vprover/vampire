@@ -162,6 +162,10 @@ public:
   static unsigned hash(const Vector<T> &obj)
   { return VectorHash<Hash>::hash(obj); }
 
+  template<typename T>
+  static unsigned hash(const Stack<T> &obj)
+  { return StackHash<Hash>::hash(obj); }
+
   // pointers are hashed as bytes without dereference
   // if this isn't what you want, consider using DerefPtrHash
   template<typename T>

@@ -12,23 +12,11 @@
  * Implements class LiteralSubstitutionTree.
  */
 
-#include "Lib/Environment.hpp"
-#include "Lib/Metaiterators.hpp"
-#include "Lib/TimeCounter.hpp"
-
-#include "Kernel/Matcher.hpp"
-#include "Kernel/Signature.hpp"
-#include "Kernel/SortHelper.hpp"
-#include "Kernel/Term.hpp"
-
-#include "Shell/Statistics.hpp"
-
-#include "LiteralSubstitutionTree.hpp"
-
 namespace Indexing
 {
 
-LiteralSubstitutionTree::LiteralSubstitutionTree(Shell::Options::UnificationWithAbstraction uwa, bool useC)
+template<class LeafData_>
+LiteralSubstitutionTree<LeafData_>::LiteralSubstitutionTree(Shell::Options::UnificationWithAbstraction uwa, bool useC)
 : SubstitutionTree(2*env.signature->predicates(), uwa, useC)
 {
   //EqualityProxy transformation can introduce polymorphism in a monomorphic problem
@@ -38,35 +26,39 @@ LiteralSubstitutionTree::LiteralSubstitutionTree(Shell::Options::UnificationWith
   _polymorphic = env.property->hasPolymorphicSym() || env.property->higherOrder();
 }
 
-void LiteralSubstitutionTree::insert(Literal* lit, Clause* cls)
+template<class LeafData_>
+void LiteralSubstitutionTree<LeafData_>::insert(Literal* lit, Clause* cls)
 {
   CALL("LiteralSubstitutionTree::insert");
   handleLiteral(lit,cls,true);
 }
 
-void LiteralSubstitutionTree::remove(Literal* lit, Clause* cls)
+template<class LeafData_>
+void LiteralSubstitutionTree<LeafData_>::remove(Literal* lit, Clause* cls)
 {
   CALL("LiteralSubstitutionTree::remove");
   handleLiteral(lit,cls,false);
 }
 
-void LiteralSubstitutionTree::handleLiteral(Literal* lit, Clause* cls, bool insert)
+template<class LeafData_>
+void LiteralSubstitutionTree<LeafData_>::handleLiteral(Literal* lit, Clause* cls, bool insert)
 {
   CALL("LiteralSubstitutionTree::handleLiteral");
 
   Literal* normLit=Renaming::normalize(lit);
 
   BindingMap svBindings;
-  getBindings(normLit, svBindings);
+  this->getBindings(normLit, svBindings);
   if(insert) {
     //cout << "Into " << this << " insert " << lit->toString() << endl;
-    SubstitutionTree::insert(&_nodes[getRootNodeIndex(normLit)], svBindings, LeafData(cls, lit));
+    SubstitutionTree::insert(&this->_nodes[getRootNodeIndex(normLit)], svBindings, LeafData(cls, lit));
   } else {
-    SubstitutionTree::remove(&_nodes[getRootNodeIndex(normLit)], svBindings, LeafData(cls, lit));
+    SubstitutionTree::remove(&this->_nodes[getRootNodeIndex(normLit)], svBindings, LeafData(cls, lit));
   }
 }
 
-SLQueryResultIterator LiteralSubstitutionTree::getUnifications(Literal* lit,
+template<class LeafData_>
+SLQueryResultIterator LiteralSubstitutionTree<LeafData_>::getUnifications(Literal* lit,
 	  bool complementary, bool retrieveSubstitutions)
 {
   CALL("LiteralSubstitutionTree::getUnifications");
@@ -78,7 +70,8 @@ SLQueryResultIterator LiteralSubstitutionTree::getUnifications(Literal* lit,
       complementary, retrieveSubstitutions,false);  
   }
 }
-SLQueryResultIterator LiteralSubstitutionTree::getUnificationsWithConstraints(Literal* lit,
+template<class LeafData_>
+SLQueryResultIterator LiteralSubstitutionTree<LeafData_>::getUnificationsWithConstraints(Literal* lit,
           bool complementary, bool retrieveSubstitutions)
 {
   CALL("LiteralSubstitutionTree::getUnificationsWithConstraints");
@@ -91,7 +84,8 @@ SLQueryResultIterator LiteralSubstitutionTree::getUnificationsWithConstraints(Li
   }
 }
 
-SLQueryResultIterator LiteralSubstitutionTree::getGeneralizations(Literal* lit,
+template<class LeafData_>
+SLQueryResultIterator LiteralSubstitutionTree<LeafData_>::getGeneralizations(Literal* lit,
 	  bool complementary, bool retrieveSubstitutions)
 {
   CALL("LiteralSubstitutionTree::getGeneralizations");
@@ -105,7 +99,8 @@ SLQueryResultIterator LiteralSubstitutionTree::getGeneralizations(Literal* lit,
   return res;
 }
 
-SLQueryResultIterator LiteralSubstitutionTree::getInstances(Literal* lit,
+template<class LeafData_>
+SLQueryResultIterator LiteralSubstitutionTree<LeafData_>::getInstances(Literal* lit,
 	  bool complementary, bool retrieveSubstitutions)
 {
   CALL("LiteralSubstitutionTree::getInstances");
@@ -128,14 +123,16 @@ SLQueryResultIterator LiteralSubstitutionTree::getInstances(Literal* lit,
   return res;
 }
 
-struct LiteralSubstitutionTree::SLQueryResultFunctor
+template<class LeafData_>
+struct LiteralSubstitutionTree<LeafData_>::SLQueryResultFunctor
 {
   SLQueryResult operator() (const QueryResult& qr) {
     return SLQueryResult(qr.first.first->literal, qr.first.first->clause, qr.first.second,qr.second);
   }
 };
 
-struct LiteralSubstitutionTree::LDToSLQueryResultFn
+template<class LeafData_>
+struct LiteralSubstitutionTree<LeafData_>::LDToSLQueryResultFn
 {
   SLQueryResult operator() (const LeafData& ld) {
     return SLQueryResult(ld.literal, ld.clause);
@@ -145,7 +142,8 @@ struct LiteralSubstitutionTree::LDToSLQueryResultFn
 #define QRS_QUERY_BANK 0
 #define QRS_RESULT_BANK 1
 
-struct LiteralSubstitutionTree::LDToSLQueryResultWithSubstFn
+template<class LeafData_>
+struct LiteralSubstitutionTree<LeafData_>::LDToSLQueryResultWithSubstFn
 {
   LDToSLQueryResultWithSubstFn()
   {
@@ -160,7 +158,8 @@ private:
   RobSubstitutionSP _subst;
 };
 
-struct LiteralSubstitutionTree::UnifyingContext
+template<class LeafData_>
+struct LiteralSubstitutionTree<LeafData_>::UnifyingContext
 {
   UnifyingContext(Literal* queryLit)
   : _queryLit(queryLit) {}
@@ -189,14 +188,16 @@ private:
 };
 
 
-struct LiteralSubstitutionTree::LeafToLDIteratorFn
+template<class LeafData_>
+struct LiteralSubstitutionTree<LeafData_>::LeafToLDIteratorFn
 {
   LDIterator operator() (Leaf* l) {
     return l->allChildren();
   }
 };
 
-struct LiteralSubstitutionTree::PropositionalLDToSLQueryResultWithSubstFn
+template<class LeafData_>
+struct LiteralSubstitutionTree<LeafData_>::PropositionalLDToSLQueryResultWithSubstFn
 {
   PropositionalLDToSLQueryResultWithSubstFn()
   {
@@ -211,12 +212,13 @@ private:
 };
 
 
-SLQueryResultIterator LiteralSubstitutionTree::getVariants(Literal* lit,
+template<class LeafData_>
+SLQueryResultIterator LiteralSubstitutionTree<LeafData_>::getVariants(Literal* lit,
 	  bool complementary, bool retrieveSubstitutions)
 {
   CALL("LiteralSubstitutionTree::getVariants");
 
-  Node* root=_nodes[getRootNodeIndex(lit, complementary)];
+  Node* root = this->_nodes[getRootNodeIndex(lit, complementary)];
 
   if(root==0) {
     return SLQueryResultIterator::getEmpty();
@@ -234,8 +236,8 @@ SLQueryResultIterator LiteralSubstitutionTree::getVariants(Literal* lit,
   Literal* normLit=Renaming::normalize(lit);
 
   BindingMap svBindings;
-  getBindings(normLit, svBindings);
-  Leaf* leaf=findLeaf(root,svBindings);
+  this->getBindings(normLit, svBindings);
+  Leaf* leaf = this->findLeaf(root,svBindings);
   if(leaf==0) {
     return SLQueryResultIterator::getEmpty();
   }
@@ -252,7 +254,8 @@ SLQueryResultIterator LiteralSubstitutionTree::getVariants(Literal* lit,
   }
 }
 
-SLQueryResultIterator LiteralSubstitutionTree::getAll()
+template<class LeafData_>
+SLQueryResultIterator LiteralSubstitutionTree<LeafData_>::getAll()
 {
   CALL("LiteralSubstitutionTree::getAll");
 
@@ -281,13 +284,14 @@ SLQueryResultIterator LiteralSubstitutionTree::getAll()
 //   unsigned _queryEqSort;
 // };
 
+template<class LeafData_>
 template<class Iterator, class Filter>
-SLQueryResultIterator LiteralSubstitutionTree::getResultIterator(Literal* lit,
+SLQueryResultIterator LiteralSubstitutionTree<LeafData_>::getResultIterator(Literal* lit,
 	  bool complementary, bool retrieveSubstitutions, bool useConstraints)
 {
   CALL("LiteralSubstitutionTree::getResultIterator");
 
-  Node* root=_nodes[getRootNodeIndex(lit, complementary)];
+  Node* root = this->_nodes[getRootNodeIndex(lit, complementary)];
 
   //if(root!=0){
   //cout << "Printing root" << endl;
@@ -327,7 +331,8 @@ SLQueryResultIterator LiteralSubstitutionTree::getResultIterator(Literal* lit,
   }
 }
 
-unsigned LiteralSubstitutionTree::getRootNodeIndex(Literal* t, bool complementary)
+template<class LeafData_>
+unsigned LiteralSubstitutionTree<LeafData_>::getRootNodeIndex(Literal* t, bool complementary)
 {
   if(complementary) {
     return t->complementaryHeader();

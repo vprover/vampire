@@ -92,7 +92,8 @@ bool operator<(const TermList& lhs, const TermList& rhs);
 class TermList {
 public:
   CLASS_NAME(TermList)
-  static const unsigned SPEC_UPPER_BOUND = 10000000;
+  // divide by 4 because of the tag, by 2 to split the space evenly
+  static const unsigned SPEC_UPPER_BOUND = (UINT_MAX / 4) / 2;
   /** dummy constructor, does nothing */
   TermList() {}
   /** creates a term list and initialises its content with data */

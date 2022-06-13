@@ -147,6 +147,8 @@ Index* IndexManager::create(IndexType t)
   Index* res;
   LiteralIndexingStructure* is;
   TermIndexingStructure* tis;
+  using TermSubstitutionTree    = Indexing::TermSubstitutionTree<>;
+  using LiteralSubstitutionTree = Indexing::LiteralSubstitutionTree<>;
 
   bool isGenerating;
   static Options::UnificationWithAbstraction const uwaMode = env.options->unificationWithAbstraction();
@@ -323,6 +325,12 @@ Index* IndexManager::create(IndexType t)
   case INDUCTION_TERM_INDEX:
     tis = new TermSubstitutionTree(uwaMode);
     res = new InductionTermIndex(tis);
+    isGenerating = true;
+    break;
+
+  case STRUCT_INDUCTION_TERM_INDEX:
+    tis = new TermSubstitutionTree();
+    res = new StructInductionTermIndex(tis);
     isGenerating = true;
     break;
 

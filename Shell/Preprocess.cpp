@@ -52,6 +52,7 @@
 #include "LambdaElimination.hpp"
 #include "TheoryAxioms.hpp"
 #include "TheoryFlattening.hpp"
+#include "TweeGoalTransformation.hpp"
 #include "BlockedClauseElimination.hpp"
 
 #include "UIHelper.hpp"
@@ -358,6 +359,15 @@ void Preprocess::preprocess(Problem& prb)
        GeneralSplitting gs;
        gs.apply(prb);
      }
+   }
+
+   if(env.options->tweeGoalTransformation() != Options::TweeGoalTransformation::OFF) {
+     env.statistics->phase = Statistics::TWEE;
+     if(env.options->showPreprocessing())
+       env.out() << "twee goal transformation" << std::endl;
+
+     TweeGoalTransformation twee;
+     twee.apply(prb,(env.options->tweeGoalTransformation() == Options::TweeGoalTransformation::GROUND));
    }
 
    if (!prb.higherOrder() && _options.equalityProxy()!=Options::EqualityProxy::OFF && prb.mayHaveEquality()) {

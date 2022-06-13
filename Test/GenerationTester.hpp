@@ -162,6 +162,7 @@ public:
 
     // run rule
     _input->setStore(Clause::ACTIVE);
+    container.add(_input);
     auto res = rule.generateSimplify(_input);
 
     // run checks

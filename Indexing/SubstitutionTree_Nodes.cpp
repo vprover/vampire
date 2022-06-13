@@ -26,10 +26,12 @@
 #include "Index.hpp"
 #include "SubstitutionTree.hpp"
 
+
 namespace Indexing
 {
 
-class SubstitutionTree::UListLeaf
+template<class LeafData_>
+class SubstitutionTree<LeafData_>::UListLeaf
 : public Leaf
 {
 public:
@@ -51,7 +53,7 @@ public:
   inline
   LDIterator allChildren() const final override
   {
-    return pvi( LDList::RefIterator(_children) );
+    return pvi( typename LDList::RefIterator(_children) );
   }
   inline
   void insert(LeafData ld) final override
@@ -80,7 +82,8 @@ private:
 };
 
 
-class SubstitutionTree::SListLeaf
+template<class LeafData_>
+class SubstitutionTree<LeafData_>::SListLeaf
 : public Leaf
 {
 public:
@@ -98,7 +101,7 @@ public:
   inline
   LDIterator allChildren() const final override
   {
-    return pvi( LDSkipList::RefIterator(_children) );
+    return pvi( typename LDSkipList::RefIterator(_children) );
   }
   void insert(LeafData ld) final override
   {
@@ -124,31 +127,36 @@ private:
 };
 
 
-SubstitutionTree::Leaf* SubstitutionTree::createLeaf()
+template<class LeafData_>
+typename SubstitutionTree<LeafData_>::Leaf* SubstitutionTree<LeafData_>::createLeaf()
 {
   return new UListLeaf();
 }
 
-SubstitutionTree::Leaf* SubstitutionTree::createLeaf(TermList ts)
+template<class LeafData_>
+typename SubstitutionTree<LeafData_>::Leaf* SubstitutionTree<LeafData_>::createLeaf(TermList ts)
 {
   return new UListLeaf(ts);
 }
 
-SubstitutionTree::IntermediateNode* SubstitutionTree::createIntermediateNode(unsigned childVar,bool useC)
+template<class LeafData_>
+typename SubstitutionTree<LeafData_>::IntermediateNode* SubstitutionTree<LeafData_>::createIntermediateNode(unsigned childVar,bool useC)
 {
   CALL("SubstitutionTree::createIntermediateNode/2");
   if(useC){ return new UArrIntermediateNodeWithSorts(childVar); }
   return new UArrIntermediateNode(childVar);
 }
 
-SubstitutionTree::IntermediateNode* SubstitutionTree::createIntermediateNode(TermList ts, unsigned childVar,bool useC)
+template<class LeafData_>
+typename SubstitutionTree<LeafData_>::IntermediateNode* SubstitutionTree<LeafData_>::createIntermediateNode(TermList ts, unsigned childVar,bool useC)
 {
   CALL("SubstitutionTree::createIntermediateNode/3");
   if(useC){ return new UArrIntermediateNodeWithSorts(ts, childVar); }
   return new UArrIntermediateNode(ts, childVar);
 }
 
-void SubstitutionTree::IntermediateNode::destroyChildren()
+template<class LeafData_>
+void SubstitutionTree<LeafData_>::IntermediateNode::destroyChildren()
 {
   static Stack<Node*> toDelete;
   toDelete.reset();
@@ -169,7 +177,8 @@ void SubstitutionTree::IntermediateNode::destroyChildren()
   }
 }
 
-SubstitutionTree::Node** SubstitutionTree::UArrIntermediateNode::
+template<class LeafData_>
+typename SubstitutionTree<LeafData_>::Node** SubstitutionTree<LeafData_>::UArrIntermediateNode::
 	childByTop(TermList t, bool canCreate)
 {
   CALL("SubstitutionTree::UArrIntermediateNode::childByTop");
@@ -180,7 +189,7 @@ SubstitutionTree::Node** SubstitutionTree::UArrIntermediateNode::
     }
   }
   if(canCreate) {
-    mightExistAsTop(t);
+    IntermediateNode::mightExistAsTop(t);
     ASS_L(_size,UARR_INTERMEDIATE_NODE_MAX_SIZE);
     ASS_EQ(_nodes[_size],0);
     _nodes[++_size]=0;
@@ -189,7 +198,8 @@ SubstitutionTree::Node** SubstitutionTree::UArrIntermediateNode::
   return 0;
 }
 
-void SubstitutionTree::UArrIntermediateNode::remove(TermList t)
+template<class LeafData_>
+void SubstitutionTree<LeafData_>::UArrIntermediateNode::remove(TermList t)
 {
   CALL("SubstitutionTree::UArrIntermediateNode::remove");
 
@@ -208,7 +218,8 @@ void SubstitutionTree::UArrIntermediateNode::remove(TermList t)
  * Take an IntermediateNode, destroy it, and return
  * SListIntermediateNode with the same content.
  */
-SubstitutionTree::IntermediateNode* SubstitutionTree::SListIntermediateNode
+template<class LeafData_>
+typename SubstitutionTree<LeafData_>::IntermediateNode* SubstitutionTree<LeafData_>::SListIntermediateNode
 	::assimilate(IntermediateNode* orig)
 {
   CALL("SubstitutionTree::SListIntermediateNode::assimilate");
@@ -230,7 +241,8 @@ SubstitutionTree::IntermediateNode* SubstitutionTree::SListIntermediateNode
  * Take a Leaf, destroy it, and return SListLeaf
  * with the same content.
  */
-SubstitutionTree::SListLeaf* SubstitutionTree::SListLeaf::assimilate(Leaf* orig)
+template<class LeafData_>
+typename SubstitutionTree<LeafData_>::SListLeaf* SubstitutionTree<LeafData_>::SListLeaf::assimilate(Leaf* orig)
 {
   CALL("SubstitutionTree::SListLeaf::assimilate");
 
@@ -241,7 +253,8 @@ SubstitutionTree::SListLeaf* SubstitutionTree::SListLeaf::assimilate(Leaf* orig)
   return res;
 }
 
-void SubstitutionTree::ensureLeafEfficiency(Leaf** leaf)
+template<class LeafData_>
+void SubstitutionTree<LeafData_>::ensureLeafEfficiency(Leaf** leaf)
 {
   CALL("SubstitutionTree::ensureLeafEfficiency");
 
@@ -250,7 +263,8 @@ void SubstitutionTree::ensureLeafEfficiency(Leaf** leaf)
   }
 }
 
-void SubstitutionTree::ensureIntermediateNodeEfficiency(IntermediateNode** inode)
+template<class LeafData_>
+void SubstitutionTree<LeafData_>::ensureIntermediateNodeEfficiency(IntermediateNode** inode)
 {
   CALL("SubstitutionTree::ensureIntermediateNodeEfficiency");
 
@@ -259,4 +273,5 @@ void SubstitutionTree::ensureIntermediateNodeEfficiency(IntermediateNode** inode
   }
 }
 
-}
+} // namespace Indexing
+
