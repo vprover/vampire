@@ -139,6 +139,8 @@ private:
 
 };
 
-};
+} // namespace Indexing
+
+#include "Indexing/TermSubstitutionTree.cpp"
 
 #endif /* __TermSubstitutionTree__ */

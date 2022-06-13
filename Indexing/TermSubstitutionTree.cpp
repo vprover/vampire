@@ -12,22 +12,22 @@
  * Implements class TermSubstitutionTree.
  */
 
-#include "Lib/Environment.hpp"
-#include "Lib/Metaiterators.hpp"
-#include "Lib/Random.hpp"
-#include "Lib/SmartPtr.hpp"
-#include "Lib/TimeCounter.hpp"
-
-#include "Kernel/TermIterators.hpp"
-#include "Kernel/Matcher.hpp"
-#include "Kernel/Signature.hpp"
-#include "Kernel/Term.hpp"
-#include "Kernel/SortHelper.hpp"
-#include "Kernel/ApplicativeHelper.hpp"
-
-#include "Shell/Options.hpp"
-
-#include "TermSubstitutionTree.hpp"
+// #include "Lib/Environment.hpp"
+// #include "Lib/Metaiterators.hpp"
+// #include "Lib/Random.hpp"
+// #include "Lib/SmartPtr.hpp"
+// #include "Lib/TimeCounter.hpp"
+//
+// #include "Kernel/TermIterators.hpp"
+// #include "Kernel/Matcher.hpp"
+// #include "Kernel/Signature.hpp"
+// #include "Kernel/Term.hpp"
+// #include "Kernel/SortHelper.hpp"
+// #include "Kernel/ApplicativeHelper.hpp"
+//
+// #include "Shell/Options.hpp"
+//
+// #include "TermSubstitutionTree.hpp"
 
 namespace Indexing
 {
@@ -75,11 +75,11 @@ void TermSubstitutionTree<LeafData_>::insert(TermList t, LeafData ld)
   Term* normTerm=Renaming::normalize(term);
 
   BindingMap svBindings;
-  getBindings(normTerm, svBindings);
+  this->getBindings(normTerm, svBindings);
 
   unsigned rootNodeIndex=getRootNodeIndex(normTerm);
 
-  SubstitutionTree::insert(&SubstitutionTree::_nodes[rootNodeIndex], svBindings, ld);  
+  SubstitutionTree::insert(&this->_nodes[rootNodeIndex], svBindings, ld);  
 }
 
 
@@ -134,14 +134,14 @@ void TermSubstitutionTree<LeafData_>::handleTerm(TermList t, Literal* lit, Claus
     }
 
     BindingMap svBindings;
-    getBindings(normTerm, svBindings);
+    this->getBindings(normTerm, svBindings);
 
     unsigned rootNodeIndex=getRootNodeIndex(normTerm);
 
     if(insert) {
-      SubstitutionTree::insert(&SubstitutionTree::_nodes[rootNodeIndex], svBindings, ld);
+      SubstitutionTree::insert(&this->_nodes[rootNodeIndex], svBindings, ld);
     } else {
-      SubstitutionTree::remove(&SubstitutionTree::_nodes[rootNodeIndex], svBindings, ld);
+      SubstitutionTree::remove(&this->_nodes[rootNodeIndex], svBindings, ld);
     }
   }
 }
@@ -161,7 +161,7 @@ TermQueryResultIterator TermSubstitutionTree<LeafData_>::getUnifications(TermLis
     } else {
       return pvi( getConcatenatedIterator(
           // false here means without constraints
-	  ldIteratorToTQRIterator(LDSkipList::RefIterator(_vars), t, retrieveSubstitutions,false),
+	  ldIteratorToTQRIterator(typename LDSkipList::RefIterator(_vars), t, retrieveSubstitutions,false),
           // false here means without constraints
 	  getResultIterator<UnificationsIterator>(t.term(), retrieveSubstitutions,false)) );
     }
@@ -192,7 +192,7 @@ TermQueryResultIterator TermSubstitutionTree<LeafData_>::getUnificationsUsingSor
     ASS(t.isTerm());
     //TODO Is it OK to use t below?
     auto it1 = _vars.isEmpty() ? TermQueryResultIterator::getEmpty() :
-               ldIteratorToTQRIterator(LDSkipList::RefIterator(_vars), t, retrieveSubstitutions,false);
+               ldIteratorToTQRIterator(typename LDSkipList::RefIterator(_vars), t, retrieveSubstitutions,false);
 
     auto it2 = sortVar || sortArrow ? _funcSubtermsByType->getUnifications(sort, t, retrieveSubstitutions) :
                TermQueryResultIterator::getEmpty();
@@ -222,7 +222,7 @@ TermQueryResultIterator TermSubstitutionTree<LeafData_>::getUnificationsWithCons
     } else {
       return pvi( getConcatenatedIterator(
           //we use false here as we are giving variables so no constraints will be needed
-          ldIteratorToTQRIterator(LDSkipList::RefIterator(_vars), t, retrieveSubstitutions,false),
+          ldIteratorToTQRIterator(typename LDSkipList::RefIterator(_vars), t, retrieveSubstitutions,false),
           //true here means with constraints
           getResultIterator<UnificationsIterator>(t.term(), retrieveSubstitutions,true)) );
     }
@@ -241,7 +241,7 @@ bool TermSubstitutionTree<LeafData_>::generalizationExists(TermList t)
   }
   Term* trm=t.term();
   unsigned rootIndex=getRootNodeIndex(trm);
-  Node* root=SubstitutionTree::_nodes[rootIndex];
+  Node* root = this->_nodes[rootIndex];
   if(!root) {
     return false;
   }
@@ -264,14 +264,14 @@ TermQueryResultIterator TermSubstitutionTree<LeafData_>::getGeneralizations(Term
   CALL("TermSubstitutionTree::getGeneralizations");
   if(t.isOrdinaryVar()) {
     //only variables generalize other variables
-    return ldIteratorToTQRIterator(LDSkipList::RefIterator(_vars), t, retrieveSubstitutions,false);
+    return ldIteratorToTQRIterator(typename LDSkipList::RefIterator(_vars), t, retrieveSubstitutions,false);
   } else {
     ASS(t.isTerm());
     if(_vars.isEmpty()) {
       return getResultIterator<FastGeneralizationsIterator>(t.term(), retrieveSubstitutions,false);
     } else {
       return pvi( getConcatenatedIterator(
-	      ldIteratorToTQRIterator(LDSkipList::RefIterator(_vars), t, retrieveSubstitutions,false),
+	      ldIteratorToTQRIterator(typename LDSkipList::RefIterator(_vars), t, retrieveSubstitutions,false),
 	      getResultIterator<FastGeneralizationsIterator>(t.term(), retrieveSubstitutions,false)) );
     }
   }
@@ -322,7 +322,7 @@ TermQueryResultIterator TermSubstitutionTree<LeafData_>::getResultIterator(Term*
 
   TermQueryResultIterator result = TermQueryResultIterator::getEmpty();
   
-  Node* root = SubstitutionTree::_nodes[getRootNodeIndex(trm)];
+  Node* root = this->_nodes[getRootNodeIndex(trm)];
 
   if(root){
     if(root->isLeaf()) {
@@ -475,7 +475,7 @@ TermQueryResultIterator TermSubstitutionTree<LeafData_>::getAllUnifyingIterator(
   }
   else{
     return ldIteratorToTQRIterator(
-	    getConcatenatedIterator(it1,LDSkipList::RefIterator(_vars)),
+	    getConcatenatedIterator(it1,typename LDSkipList::RefIterator(_vars)),
 	    trm, retrieveSubstitutions,withConstraints);
   }
 }
