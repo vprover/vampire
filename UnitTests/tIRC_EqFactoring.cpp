@@ -153,3 +153,11 @@ TEST_GENERATION_WITH_SUGAR(int_02a, SUGAR(Int),
     )
 
 
+TEST_GENERATION(two_var_01,
+    Generation::SymmetricTest()
+      .inputs  ({        clause({      x - a == 0, y == aa,  })  })
+      .expected(exactly( /* nothing */ ))
+    )
+
+
+  // xa == ya \/ xn == yn

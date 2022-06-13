@@ -92,7 +92,7 @@ Option<Clause*> Superposition::applyRule(
     time.applicationCancelled();
     return Option<Clause*>();
   };
-  ASS(!s1.isVar())
+  ASS(!(s1.isVar() && lhs.isFracNum()))
   ASS(!s2.isVar())
 
 #define check_side_condition(cond, cond_code)                                                       \
@@ -109,7 +109,23 @@ Option<Clause*> Superposition::applyRule(
                       + uwa.cnst().size());      // <- Cnstσ
 
 
+  auto unifySorts = [](auto s1, auto s2) -> Option<TermList> {
+    static RobSubstitution subst;
+    if (!subst.unify(s1, 0, s2, 0)) {
+      return Option<TermList>();
+    } else {
+      ASS_EQ(subst.apply(s1,0), subst.apply(s2,0))
+      return Option<TermList>(subst.apply(s1, 0));
+    }
+  };
 
+  check_side_condition(
+      "s1 and s2 are of unifyable sorts", 
+      unifySorts(
+        SortHelper::getEqualityArgumentSort(lhs.literal()), 
+        SortHelper::getResultSort(s2.term())
+        ).isSome()
+      )
 
   auto L1σ = uwa.sigma(lhs.literal(), lhsVarBank);
   check_side_condition(

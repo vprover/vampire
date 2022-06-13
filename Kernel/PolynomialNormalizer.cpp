@@ -282,7 +282,6 @@ NormalizationResult normalizeNumSort(TermList t, NormalizationResult* ts)
 
   } else {
     auto term = t.term();
-    // DBGE(*term)
     auto fn = FuncId::symbolOf(term);
     if (fn.isInterpreted()) {
       switch(fn.interpretation()) {

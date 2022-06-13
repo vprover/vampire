@@ -1173,8 +1173,7 @@ void MonomFactors<Number>::integrity() const
       if (poly->nSummands() == 1) {
         auto sum = poly->summandAt(0);
         if (sum.numeral == Number::oneC) {
-          DBG(*this)
-          ASSERTION_VIOLATION
+          ASSERTION_VIOLATION_REP(*this)
         }
       }
     }

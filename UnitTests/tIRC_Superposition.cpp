@@ -483,3 +483,13 @@ TEST_GENERATION_WITH_SUGAR(int_03, SUGAR(Int),
     )
 
 
+
+TEST_GENERATION(two_var_01,
+    Generation::SymmetricTest()
+      .indices(ircSuperpositionIndices())
+      .inputs  ({ clause({ x == aa   }) 
+                , clause({ p(f(a))  }) })
+      .expected(exactly(
+          /* nothing */
+      ))
+    )

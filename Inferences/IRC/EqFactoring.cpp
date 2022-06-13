@@ -48,6 +48,16 @@ Option<Clause*> EqFactoring::applyRule(SelectedEquality const& l1, SelectedEqual
 
   MeasureTime time(env.statistics->ircEqFact);
 
+  auto unifySorts = [](auto s1, auto s2) -> Option<TermList> {
+    static RobSubstitution subst;
+    if (!subst.unify(s1, 0, s2, 0)) {
+      return Option<TermList>();
+    } else {
+      ASS_EQ(subst.apply(s1,0), subst.apply(s2,0))
+      return Option<TermList>(subst.apply(s1, 0));
+    }
+  };
+
   auto nothing = [&]() {
     time.applicationCancelled();
     return Option<Clause*>();
@@ -70,6 +80,15 @@ Option<Clause*> EqFactoring::applyRule(SelectedEquality const& l1, SelectedEqual
       return nothing();                                                                             \
     }                                                                                               \
 
+  auto srt_ = unifySorts(
+      SortHelper::getEqualityArgumentSort(l1.literal()),
+      SortHelper::getEqualityArgumentSort(l2.literal())
+      );
+  check_side_condition(
+      "s1 and s2 are of unifyable sorts",
+      srt_.isSome())
+  auto& srt = srt_.unwrap();
+
   auto uwa_ = _shared->unify(s1, s2);
   check_side_condition(
       "uwa(s1,s2) = ⟨σ,Cnst⟩",
@@ -77,8 +96,6 @@ Option<Clause*> EqFactoring::applyRule(SelectedEquality const& l1, SelectedEqual
   
   auto& uwa = uwa_.unwrap();
   auto sigma = [&](auto t) { return uwa.sigma(t, /* varbank */ 0); };
-
-  // TODO unify sorts of arguments in case of higher order ?!
 
   Stack<Literal*> concl(l1.clause()->size() // <- (C \/ s1 ≈ t1 \/ t1  ̸≈ t2)σ
                       + uwa.cnst().size()); // <- Cnstσ
@@ -102,7 +119,7 @@ Option<Clause*> EqFactoring::applyRule(SelectedEquality const& l1, SelectedEqual
   check_side_condition( "s2σ /⪯ t2σ", OrderingUtils2::notLeq(_shared->ordering->compare(s2σ, t1σ)))
 
 
-  auto res = Literal::createEquality(false, t1σ, t2σ, SortHelper::getEqualityArgumentSort(l1.literal()));
+  auto res = Literal::createEquality(false, t1σ, t2σ, srt);
   concl.push(res);
 
   // adding Cnst
@@ -114,7 +131,6 @@ Option<Clause*> EqFactoring::applyRule(SelectedEquality const& l1, SelectedEqual
   return Option<Clause*>(out);
 }
 
-// TODO turn off normal EQ factoring when this one is on
 // TODO EQ factoring for integers
 
 ClauseIterator EqFactoring::generateClauses(Clause* premise) 

@@ -35,7 +35,6 @@ namespace Kernel {
     static MultiSet fromIterator(Iter i) 
     { 
       auto stack = i.template collect<Stack>();
-      DBGE(stack)
       return MultiSet (std::move(stack)); 
     }
 
@@ -55,7 +54,6 @@ namespace Kernel {
       auto iter = elems.begin();
       while (iter != elems.end()) {
         auto elem = *iter++;
-        // DBGE(elem)
         unsigned n = 1;
         while (iter != elems.end() && *iter == elem) {
           n++;

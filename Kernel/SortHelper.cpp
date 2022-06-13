@@ -118,7 +118,7 @@ TermList SortHelper::getResultSortMono(const Term* t)
 bool SortHelper::tryGetResultSort(const Term* t, TermList& result)
 {
   CALL("tryGetResultSort(Term*,unsigned&)");
-  ASS(!t->isLiteral());
+  ASS_REP(!t->isLiteral(), *t);
 
   TermList masterVar;
   return getResultSortOrMasterVariable(t, result, masterVar);

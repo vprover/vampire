@@ -128,7 +128,6 @@ struct Superposition::ApplicableRewritesFn
   VirtualIterator<pair<pair<Literal*, TermList>, TermQueryResult> > operator()(pair<Literal*, TermList> arg)
   {
     CALL("Superposition::ApplicableRewritesFn()");
-    auto t = arg.second;
     if(_withC){
       return pvi( pushPairIntoRightIterator(arg, _index->getUnificationsWithConstraints(arg.second, true)) );
     }  
