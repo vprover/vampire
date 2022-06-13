@@ -59,37 +59,16 @@ using namespace Kernel;
 
 namespace Indexing {
 
-
-/**
- * Class of substitution trees. In fact, contains an array of substitution
- * trees.
- * @since 16/08/2008 flight Sydney-San Francisco
- */
-class SubstitutionTree
-{
-public:
-  CLASS_NAME(SubstitutionTree);
-  USE_ALLOCATOR(SubstitutionTree);
-
-  SubstitutionTree(int nodes,bool useC=false, bool rfSubs=false);
-  ~SubstitutionTree();
-
-  // Tags are used as a debug tool to turn debugging on for a particular instance
-  bool tag;
-  virtual void markTagged(){ tag=true;}
-
-//protected:
-
-  struct LeafData {
-    LeafData() {}
-    LeafData(Clause* cls, Literal* literal, TermList term, TermList extraTerm)
+struct DefaultLeafData {
+    DefaultLeafData() {}
+    DefaultLeafData(Clause* cls, Literal* literal, TermList term, TermList extraTerm)
     : clause(cls), literal(literal), term(term), extraTerm(extraTerm) {}
-    LeafData(Clause* cls, Literal* literal, TermList term)
+    DefaultLeafData(Clause* cls, Literal* literal, TermList term)
     : clause(cls), literal(literal), term(term) { extraTerm.makeEmpty();}
-    LeafData(Clause* cls, Literal* literal)
+    DefaultLeafData(Clause* cls, Literal* literal)
     : clause(cls), literal(literal) { term.makeEmpty(); extraTerm.makeEmpty(); }
     inline
-    bool operator==(const LeafData& o)
+    bool operator==(const DefaultLeafData& o)
     { return clause==o.clause && literal==o.literal && term==o.term; }
 
     Clause* clause;
@@ -107,6 +86,29 @@ public:
     }
 
   };
+/**
+ * Class of substitution trees. In fact, contains an array of substitution
+ * trees.
+ * @since 16/08/2008 flight Sydney-San Francisco
+ */
+template<class LeafData_>
+class SubstitutionTree
+{
+public:
+  using LeafData = LeafData_;
+  CLASS_NAME(SubstitutionTree);
+  USE_ALLOCATOR(SubstitutionTree);
+
+  SubstitutionTree(int nodes,bool useC=false, bool rfSubs=false);
+  ~SubstitutionTree();
+
+  // Tags are used as a debug tool to turn debugging on for a particular instance
+  bool tag;
+  virtual void markTagged(){ tag=true;}
+
+//protected:
+
+  
   typedef VirtualIterator<LeafData&> LDIterator;
 
   class LDComparator
@@ -208,12 +210,12 @@ public:
     /** term at this node */
     TermList term;
 
+    void printDepth(unsigned depth){
+      while(depth-->0){ cout <<" "; }
+    }
     virtual void print(unsigned depth=0){
        printDepth(depth);
        cout <<  "[" + term.toString() + "]" << endl;
-    }
-    void printDepth(unsigned depth){
-      while(depth-->0){ cout <<" "; }
     }
   };
 
@@ -385,8 +387,8 @@ public:
 
     virtual void print(unsigned depth=0){
        auto children = allChildren();
-       printDepth(depth);
-       cout << "I [" << childVar << "] with " << term.toString() << endl;
+       Node::printDepth(depth);
+       cout << "I [" << childVar << "] with " << Node::term.toString() << endl;
        while(children.hasNext()){
          (*children.next())->print(depth+1);
        }
@@ -436,7 +438,7 @@ public:
     virtual void print(unsigned depth=0){
        auto children = allChildren();
        while(children.hasNext()){
-         printDepth(depth);
+         Node::printDepth(depth);
          cout << children.next().toString() << endl;
        } 
     }
@@ -480,7 +482,7 @@ public:
     ~UArrIntermediateNode()
     {
       if(!isEmpty()) {
-	destroyChildren();
+        IntermediateNode::destroyChildren();
       }
     }
 
@@ -523,10 +525,10 @@ public:
   {
   public:
    UArrIntermediateNodeWithSorts(unsigned childVar) : UArrIntermediateNode(childVar) {
-     _childBySortHelper = new ChildBySortHelper(this);
+     IntermediateNode::_childBySortHelper = new ChildBySortHelper(this);
    }
    UArrIntermediateNodeWithSorts(TermList ts, unsigned childVar) : UArrIntermediateNode(ts, childVar) {
-     _childBySortHelper = new ChildBySortHelper(this);
+     IntermediateNode::_childBySortHelper = new ChildBySortHelper(this);
    }
   }; 
 
@@ -540,7 +542,7 @@ public:
     ~SListIntermediateNode()
     {
       if(!isEmpty()) {
-	destroyChildren();
+        IntermediateNode::destroyChildren();
       }
     }
 
@@ -567,13 +569,13 @@ public:
     inline
     NodeIterator allChildren()
     {
-      return pvi( NodeSkipList::PtrIterator(_nodes) );
+      return pvi( typename NodeSkipList::PtrIterator(_nodes) );
     }
     inline
     NodeIterator variableChildren()
     {
       return pvi( getWhileLimitedIterator(
-  		    NodeSkipList::PtrIterator(_nodes),
+  		    typename NodeSkipList::PtrIterator(_nodes),
   		    IsPtrToVarNodeFn()) );
     }
     virtual Node** childByTop(TermList t, bool canCreate)
@@ -584,7 +586,7 @@ public:
       bool found=_nodes.getPosition(t,res,canCreate);
       if(!found) {
         if(canCreate) {
-          mightExistAsTop(t);
+          IntermediateNode::mightExistAsTop(t);
           *res=0;
         } else {
           res=0;
@@ -596,8 +598,8 @@ public:
     void remove(TermList t)
     {
       _nodes.remove(t);
-      if(_childBySortHelper){
-        _childBySortHelper->remove(t);
+      if(IntermediateNode::_childBySortHelper){
+        IntermediateNode::_childBySortHelper->remove(t);
       }
     }
 
@@ -639,10 +641,10 @@ public:
   {
    public:
    SListIntermediateNodeWithSorts(unsigned childVar) : SListIntermediateNode(childVar) {
-       _childBySortHelper = new ChildBySortHelper(this);
+     IntermediateNode::_childBySortHelper = new ChildBySortHelper(this);
    }
    SListIntermediateNodeWithSorts(TermList ts, unsigned childVar) : SListIntermediateNode(ts, childVar) {
-       _childBySortHelper = new ChildBySortHelper(this);
+     IntermediateNode::_childBySortHelper = new ChildBySortHelper(this);
    }
   };
 
@@ -678,7 +680,7 @@ public:
   typedef DHMap<unsigned,TermList,IdentityHash,Hash> BindingMap;
   //Using BinaryHeap as a BindingQueue leads to about 30% faster insertion,
   //that when SkipList is used.
-  typedef BinaryHeap<Binding,Binding::Comparator> BindingQueue;
+  typedef BinaryHeap<Binding,typename Binding::Comparator> BindingQueue;
   //typedef SkipList<Binding,Binding::Comparator> BindingQueue;
 //  typedef SkipList<unsigned,SpecVarComparator> SpecVarQueue;
   typedef BinaryHeap<unsigned,SpecVarComparator> SpecVarQueue;
@@ -922,6 +924,7 @@ public:
 #endif
 
 }; // class SubstiutionTree
+
 
 } // namespace Indexing
 

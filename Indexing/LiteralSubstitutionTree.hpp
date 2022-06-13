@@ -22,7 +22,7 @@
 namespace Indexing {
 
 class LiteralSubstitutionTree
-: public LiteralIndexingStructure, SubstitutionTree
+: public LiteralIndexingStructure, SubstitutionTree<>
 {
 public:
   CLASS_NAME(LiteralSubstitutionTree);

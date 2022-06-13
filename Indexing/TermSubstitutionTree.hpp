@@ -36,7 +36,7 @@ namespace Indexing {
  */
 
 class TermSubstitutionTree
-: public TermIndexingStructure, SubstitutionTree
+: public TermIndexingStructure, SubstitutionTree<>
 {
 public:
   CLASS_NAME(TermSubstitutionTree);

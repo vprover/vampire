@@ -282,6 +282,8 @@ class SimplifyingLiteralIndex;
 class UnitClauseLiteralIndex;
 class FwSubsSimplifyingLiteralIndex;
 
+struct DefaultLeafData;
+template<class LeafData = DefaultLeafData>
 class SubstitutionTree;
 class LiteralSubstitutionTree;
 

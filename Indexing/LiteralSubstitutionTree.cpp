@@ -29,7 +29,7 @@ namespace Indexing
 {
 
 LiteralSubstitutionTree::LiteralSubstitutionTree(bool useC)
-: SubstitutionTree(2*env.signature->predicates(),useC)
+: SubstitutionTree<>(2*env.signature->predicates(),useC)
 {
   //EqualityProxy transformation can introduce polymorphism in a monomorphic problem
   //However, there is no need to guard aginst it, as equalityProxy removes all
@@ -60,9 +60,9 @@ void LiteralSubstitutionTree::handleLiteral(Literal* lit, Clause* cls, bool inse
   getBindings(normLit, svBindings);
   if(insert) {
     //cout << "Into " << this << " insert " << lit->toString() << endl;
-    SubstitutionTree::insert(&_nodes[getRootNodeIndex(normLit)], svBindings, LeafData(cls, lit));
+    SubstitutionTree<>::insert(&_nodes[getRootNodeIndex(normLit)], svBindings, LeafData(cls, lit));
   } else {
-    SubstitutionTree::remove(&_nodes[getRootNodeIndex(normLit)], svBindings, LeafData(cls, lit));
+    SubstitutionTree<>::remove(&_nodes[getRootNodeIndex(normLit)], svBindings, LeafData(cls, lit));
   }
 }
 

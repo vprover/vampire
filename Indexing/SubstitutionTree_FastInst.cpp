@@ -29,7 +29,8 @@ namespace Indexing
  * Class that supports matching operations required by
  * retrieval of generalizations in substitution trees.
  */
-class SubstitutionTree::InstMatcher
+template<class LeafData_>
+class SubstitutionTree<LeafData_>::InstMatcher
 {
 public:
   void reset()
@@ -212,7 +213,8 @@ private:
   };
 };
 
-std::ostream& operator<< (ostream& out, SubstitutionTree::InstMatcher::TermSpec ts )
+template<class LeafData_>
+std::ostream& operator<< (ostream& out, typename SubstitutionTree<LeafData_>::InstMatcher::TermSpec ts )
 {
   CALL("operator<<(ostream&,SubstitutionTree::InstMatcher::TermSpec)");
 
@@ -221,7 +223,8 @@ std::ostream& operator<< (ostream& out, SubstitutionTree::InstMatcher::TermSpec 
 }
 
 
-class SubstitutionTree::InstMatcher::Substitution
+template<class LeafData_>
+class SubstitutionTree<LeafData_>::InstMatcher::Substitution
 : public ResultSubstitution
 {
 public:
@@ -266,7 +269,8 @@ private:
 };
 
 
-ResultSubstitutionSP SubstitutionTree::InstMatcher::getSubstitution(Renaming* resultDenormalizer)
+template<class LeafData_>
+ResultSubstitutionSP SubstitutionTree<LeafData_>::InstMatcher::getSubstitution(Renaming* resultDenormalizer)
 {
   CALL("SubstitutionTree::InstMatcher::getSubstitution");
 
@@ -274,7 +278,8 @@ ResultSubstitutionSP SubstitutionTree::InstMatcher::getSubstitution(Renaming* re
 	  new Substitution(this, resultDenormalizer));
 }
 
-TermList SubstitutionTree::InstMatcher::derefQueryBinding(unsigned var)
+template<class LeafData_>
+TermList SubstitutionTree<LeafData_>::InstMatcher::derefQueryBinding(unsigned var)
 {
   CALL("SubstitutionTree::InstMatcher::derefQueryBinding");
 
@@ -349,7 +354,8 @@ TermList SubstitutionTree::InstMatcher::derefQueryBinding(unsigned var)
   return _derefBindings.get(tvar0);
 }
 
-SubstitutionTree::InstMatcher::TermSpec SubstitutionTree::InstMatcher::deref(TermList var)
+template<class LeafData_>
+typename SubstitutionTree<LeafData_>::InstMatcher::TermSpec SubstitutionTree<LeafData_>::InstMatcher::deref(TermList var)
 {
   CALL("SubstitutionTree::InstMatcher::deref");
   ASS_REP(var.isVar(), var.tag());
@@ -378,7 +384,8 @@ SubstitutionTree::InstMatcher::TermSpec SubstitutionTree::InstMatcher::deref(Ter
  * Undo one call to the @b matchNext method with separate param
  * set to @b true and all other @b matchNext calls that were joined to it.
  */
-void SubstitutionTree::InstMatcher::backtrack()
+template<class LeafData_>
+void SubstitutionTree<LeafData_>::InstMatcher::backtrack()
 {
   CALL("SubstitutionTree::InstMatcher::backtrack");
 
@@ -398,7 +405,8 @@ void SubstitutionTree::InstMatcher::backtrack()
  * is no separated @b matchNext call to be undone. In this case every binding
  * on the @b _boundVars stack would be undone.)
  */
-bool SubstitutionTree::InstMatcher::tryBacktrack()
+template<class LeafData_>
+bool SubstitutionTree<LeafData_>::InstMatcher::tryBacktrack()
 {
   CALL("SubstitutionTree::InstMatcher::tryBacktrack");
 
@@ -413,7 +421,8 @@ bool SubstitutionTree::InstMatcher::tryBacktrack()
 }
 
 
-bool SubstitutionTree::InstMatcher::matchNext(unsigned specVar, TermList nodeTerm, bool separate)
+template<class LeafData_>
+bool SubstitutionTree<LeafData_>::InstMatcher::matchNext(unsigned specVar, TermList nodeTerm, bool separate)
 {
   CALL("SubstitutionTree::InstMatcher::matchNext");
 
@@ -444,7 +453,8 @@ bool SubstitutionTree::InstMatcher::matchNext(unsigned specVar, TermList nodeTer
  * on backtracking stack, so they will be undone both by one
  * call to the backtrack() method.
  */
-bool SubstitutionTree::InstMatcher::matchNextAux(TermList queryTerm, TermList nodeTerm, bool separate)
+template<class LeafData_>
+bool SubstitutionTree<LeafData_>::InstMatcher::matchNextAux(TermList queryTerm, TermList nodeTerm, bool separate)
 {
   CALL("SubstitutionTree::InstMatcher::matchNextAux");
 
@@ -564,7 +574,8 @@ finish:
  * If @b reversed If true, parameters of supplied binary literal are
  * 	reversed. (useful for retrieval commutative terms)
  */
-SubstitutionTree::FastInstancesIterator::FastInstancesIterator(SubstitutionTree* parent, Node* root,
+template<class LeafData_>
+SubstitutionTree<LeafData_>::FastInstancesIterator::FastInstancesIterator(SubstitutionTree* parent, Node* root,
 	Term* query, bool retrieveSubstitution, bool reversed, bool withoutTop, bool useC, 
   FuncSubtermMap* fstm) //final two for compatibility purposes
 : _literalRetrieval(query->isLiteral()), _retrieveSubstitution(retrieveSubstitution),
@@ -597,7 +608,8 @@ SubstitutionTree::FastInstancesIterator::FastInstancesIterator(SubstitutionTree*
   }
 }
 
-SubstitutionTree::FastInstancesIterator::~FastInstancesIterator()
+template<class LeafData_>
+SubstitutionTree<LeafData_>::FastInstancesIterator::~FastInstancesIterator()
 {
 #if VDEBUG
   _tree->_iteratorCnt--;
@@ -607,7 +619,8 @@ SubstitutionTree::FastInstancesIterator::~FastInstancesIterator()
 }
 
 
-void SubstitutionTree::FastInstancesIterator::createInitialBindings(Term* t)
+template<class LeafData_>
+void SubstitutionTree<LeafData_>::FastInstancesIterator::createInitialBindings(Term* t)
 {
   CALL("SubstitutionTree::FastInstancesIterator::createInitialBindings");
 
@@ -624,7 +637,8 @@ void SubstitutionTree::FastInstancesIterator::createInitialBindings(Term* t)
  * For a binary comutative query literal, create the initial binding
  * where the order of special variables is reversed.
  */
-void SubstitutionTree::FastInstancesIterator::createReversedInitialBindings(Term* t)
+template<class LeafData_>
+void SubstitutionTree<LeafData_>::FastInstancesIterator::createReversedInitialBindings(Term* t)
 {
   CALL("SubstitutionTree::FastInstancesIterator::createReversedInitialBindings");
   ASS(t->isLiteral());
@@ -635,7 +649,8 @@ void SubstitutionTree::FastInstancesIterator::createReversedInitialBindings(Term
   _subst->bindSpecialVar(0,*t->nthArgument(1));
 }
 
-bool SubstitutionTree::FastInstancesIterator::hasNext()
+template<class LeafData_>
+bool SubstitutionTree<LeafData_>::FastInstancesIterator::hasNext()
 {
   CALL("SubstitutionTree::FastInstancesIterator::hasNext");
 
@@ -646,7 +661,8 @@ bool SubstitutionTree::FastInstancesIterator::hasNext()
 #undef LOGGING
 #define LOGGING 0
 
-SubstitutionTree::QueryResult SubstitutionTree::FastInstancesIterator::next()
+template<class LeafData_>
+typename SubstitutionTree<LeafData_>::QueryResult SubstitutionTree<LeafData_>::FastInstancesIterator::next()
 {
   CALL("SubstitutionTree::FastInstancesIterator::next");
 
@@ -682,7 +698,8 @@ SubstitutionTree::QueryResult SubstitutionTree::FastInstancesIterator::next()
  * Find next leaf that contains instances of the query
  * term. If there is no such, return false.
  */
-bool SubstitutionTree::FastInstancesIterator::findNextLeaf()
+template<class LeafData_>
+bool SubstitutionTree<LeafData_>::FastInstancesIterator::findNextLeaf()
 {
   CALL("SubstitutionTree::FastInstancesIterator::findNextLeaf");
 
@@ -827,7 +844,8 @@ main_loop_start:
  * pointer correctly). Also return true in this case. If there is none or only
  * one admissible child, return false.
  */
-bool SubstitutionTree::FastInstancesIterator::enterNode(Node*& curr)
+template<class LeafData_>
+bool SubstitutionTree<LeafData_>::FastInstancesIterator::enterNode(Node*& curr)
 {
   CALL("SubstitutionTree::FastInstancesIterator::enterNode");
   ASSERT_VALID(*curr);
@@ -837,7 +855,7 @@ bool SubstitutionTree::FastInstancesIterator::enterNode(Node*& curr)
   NodeAlgorithm currType=inode->algorithm();
 
   TermList query;
-  InstMatcher::TermSpec querySpec;
+  typename InstMatcher::TermSpec querySpec;
   //here we are interested only in the top functor or the fact that the query is a variable
   //so we can discard the information about term origin
   if(_subst->findSpecVarBinding(inode->childVar, querySpec)) {

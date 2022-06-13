@@ -28,7 +28,8 @@ namespace Indexing
  * Class that supports matching operations required by
  * retrieval of generalizations in substitution trees.
  */
-class SubstitutionTree::GenMatcher
+template<class LeafData_>
+class SubstitutionTree<LeafData_>::GenMatcher
 {
 public:
   GenMatcher(Term* query, unsigned nextSpecVar);
@@ -96,13 +97,15 @@ protected:
   ArrayMap<TermList>* _bindings;
 };
 
-const unsigned SubstitutionTree::GenMatcher::BACKTRACK_SEPARATOR;
+template<class LeafData_>
+const unsigned SubstitutionTree<LeafData_>::GenMatcher::BACKTRACK_SEPARATOR;
 
 /**
  * Binding structure to be passed to the @b MatchingUtils::matchArgs
  * method.
  */
-struct SubstitutionTree::GenMatcher::Binder
+template<class LeafData_>
+struct SubstitutionTree<LeafData_>::GenMatcher::Binder
 {
   /**
    * Create Binder structure for @b _parent. Use @b newSpecVars
@@ -148,7 +151,8 @@ private:
   unsigned _maxVar;
 };
 
-struct SubstitutionTree::GenMatcher::Applicator
+template<class LeafData_>
+struct SubstitutionTree<LeafData_>::GenMatcher::Applicator
 {
   CLASS_NAME(SubstitutionTree::GenMatcher::Applicator);
   USE_ALLOCATOR(SubstitutionTree::GenMatcher::Applicator); 
@@ -173,7 +177,8 @@ private:
   BindingMap _cache;
 };
 
-class SubstitutionTree::GenMatcher::Substitution
+template<class LeafData_>
+class SubstitutionTree<LeafData_>::GenMatcher::Substitution
 : public ResultSubstitution
 {
 public:
@@ -227,7 +232,8 @@ private:
  * 	It's used to determine size of the array that stores bindings of
  * 	special variables.
  */
-SubstitutionTree::GenMatcher::GenMatcher(Term* query, unsigned nextSpecVar)
+template<class LeafData_>
+SubstitutionTree<LeafData_>::GenMatcher::GenMatcher(Term* query, unsigned nextSpecVar)
 : _boundVars(256)
 {
   Recycler::get(_specVars);
@@ -242,13 +248,15 @@ SubstitutionTree::GenMatcher::GenMatcher(Term* query, unsigned nextSpecVar)
 
   _maxVar=query->weight()-1;
 }
-SubstitutionTree::GenMatcher::~GenMatcher()
+template<class LeafData_>
+SubstitutionTree<LeafData_>::GenMatcher::~GenMatcher()
 {
   Recycler::release(_bindings);
   Recycler::release(_specVars);
 }
 
-bool SubstitutionTree::GenMatcher::matchNext(unsigned specVar, TermList nodeTerm, bool separate)
+template<class LeafData_>
+bool SubstitutionTree<LeafData_>::GenMatcher::matchNext(unsigned specVar, TermList nodeTerm, bool separate)
 {
   CALL("SubstitutionTree::GenMatcher::matchNext");
 
@@ -270,7 +278,8 @@ bool SubstitutionTree::GenMatcher::matchNext(unsigned specVar, TermList nodeTerm
  * on backtracking stack, so they will be undone both by one
  * call to the backtrack() method.
  */
-bool SubstitutionTree::GenMatcher::matchNextAux(TermList queryTerm, TermList nodeTerm, bool separate)
+template<class LeafData_>
+bool SubstitutionTree<LeafData_>::GenMatcher::matchNextAux(TermList queryTerm, TermList nodeTerm, bool separate)
 {
   CALL("SubstitutionTree::GenMatcher::matchNextAux");
 
@@ -317,7 +326,8 @@ bool SubstitutionTree::GenMatcher::matchNextAux(TermList queryTerm, TermList nod
  * Undo one call to the @b matchNext method with separate param
  * set to @b true and all other @b matchNext calls that were joined to it.
  */
-void SubstitutionTree::GenMatcher::backtrack()
+template<class LeafData_>
+void SubstitutionTree<LeafData_>::GenMatcher::backtrack()
 {
   CALL("SubstitutionTree::GenMatcher::backtrack");
 
@@ -337,7 +347,8 @@ void SubstitutionTree::GenMatcher::backtrack()
  * is no separated @b matchNext call to be undone. In this case every binding
  * on the @b _boundVars stack would be undone.)
  */
-bool SubstitutionTree::GenMatcher::tryBacktrack()
+template<class LeafData_>
+bool SubstitutionTree<LeafData_>::GenMatcher::tryBacktrack()
 {
   CALL("SubstitutionTree::GenMatcher::tryBacktrack");
 
@@ -352,7 +363,8 @@ bool SubstitutionTree::GenMatcher::tryBacktrack()
 }
 
 
-ResultSubstitutionSP SubstitutionTree::GenMatcher::getSubstitution(
+template<class LeafData_>
+ResultSubstitutionSP SubstitutionTree<LeafData_>::GenMatcher::getSubstitution(
 	Renaming* resultNormalizer)
 {
   return ResultSubstitutionSP(
@@ -369,7 +381,8 @@ ResultSubstitutionSP SubstitutionTree::GenMatcher::getSubstitution(
  * If @b reversed If true, parameters of supplied binary literal are
  * 	reversed. (useful for retrieval commutative terms)
  */
-SubstitutionTree::FastGeneralizationsIterator::FastGeneralizationsIterator(SubstitutionTree* parent, Node* root, Term* query, 
+template<class LeafData_>
+SubstitutionTree<LeafData_>::FastGeneralizationsIterator::FastGeneralizationsIterator(SubstitutionTree* parent, Node* root, Term* query, 
   bool retrieveSubstitution, bool reversed, bool withoutTop, bool useC, FuncSubtermMap* fstm)
 : _literalRetrieval(query->isLiteral()), _retrieveSubstitution(retrieveSubstitution),
   _inLeaf(false), _ldIterator(LDIterator::getEmpty()), _root(root), _tree(parent),
@@ -398,7 +411,8 @@ SubstitutionTree::FastGeneralizationsIterator::FastGeneralizationsIterator(Subst
 
 
 
-SubstitutionTree::FastGeneralizationsIterator::~FastGeneralizationsIterator()
+template<class LeafData_>
+SubstitutionTree<LeafData_>::FastGeneralizationsIterator::~FastGeneralizationsIterator()
 {
   CALL("SubstitutionTree::FastGeneralizationsIterator::~FastGeneralizationIterator");
 
@@ -409,7 +423,8 @@ SubstitutionTree::FastGeneralizationsIterator::~FastGeneralizationsIterator()
 }
 
 
-void SubstitutionTree::FastGeneralizationsIterator::createInitialBindings(Term* t)
+template<class LeafData_>
+void SubstitutionTree<LeafData_>::FastGeneralizationsIterator::createInitialBindings(Term* t)
 {
   CALL("SubstitutionTree::FastGeneralizationsIterator::createInitialBindings");
 
@@ -426,7 +441,8 @@ void SubstitutionTree::FastGeneralizationsIterator::createInitialBindings(Term* 
  * For a binary comutative query literal, create initial bindings,
  * where the order of special variables is reversed.
  */
-void SubstitutionTree::FastGeneralizationsIterator::createReversedInitialBindings(Term* t)
+template<class LeafData_>
+void SubstitutionTree<LeafData_>::FastGeneralizationsIterator::createReversedInitialBindings(Term* t)
 {
   CALL("SubstitutionTree::FastGeneralizationsIterator::createReversedInitialBindings");
   ASS(t->isLiteral());
@@ -437,7 +453,8 @@ void SubstitutionTree::FastGeneralizationsIterator::createReversedInitialBinding
   _subst->bindSpecialVar(0,*t->nthArgument(1));
 }
 
-bool SubstitutionTree::FastGeneralizationsIterator::hasNext()
+template<class LeafData_>
+bool SubstitutionTree<LeafData_>::FastGeneralizationsIterator::hasNext()
 {
   CALL("SubstitutionTree::FastGeneralizationsIterator::hasNext");
 
@@ -445,7 +462,8 @@ bool SubstitutionTree::FastGeneralizationsIterator::hasNext()
   return _ldIterator.hasNext();
 }
 
-SubstitutionTree::QueryResult SubstitutionTree::FastGeneralizationsIterator::next()
+template<class LeafData_>
+typename SubstitutionTree<LeafData_>::QueryResult SubstitutionTree<LeafData_>::FastGeneralizationsIterator::next()
 {
   CALL("SubstitutionTree::FastGeneralizationsIterator::next");
 
@@ -472,7 +490,8 @@ SubstitutionTree::QueryResult SubstitutionTree::FastGeneralizationsIterator::nex
  * Find next leaf, that contains generalizations of the query
  * term. If there is no such, return false.
  */
-bool SubstitutionTree::FastGeneralizationsIterator::findNextLeaf()
+template<class LeafData_>
+bool SubstitutionTree<LeafData_>::FastGeneralizationsIterator::findNextLeaf()
 {
   CALL("SubstitutionTree::FastGeneralizationsIterator::findNextLeaf");
 
@@ -622,7 +641,8 @@ main_loop_start:
  * pointer correctly). Also return true in this case. If there is none or only
  * one admissible child, return false.
  */
-bool SubstitutionTree::FastGeneralizationsIterator::enterNode(Node*& curr)
+template<class LeafData_>
+bool SubstitutionTree<LeafData_>::FastGeneralizationsIterator::enterNode(Node*& curr)
 {
   IntermediateNode* inode=static_cast<IntermediateNode*>(curr);
   NodeAlgorithm currType=inode->algorithm();
