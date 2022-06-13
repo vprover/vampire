@@ -130,7 +130,6 @@ TEST_GENERATION(basic03_different_sorts_d,
       .expected(exactly( /* nothing */ ))
     )
 
-
 TEST_GENERATION(unshielded_variables_01,
     Generation::SymmetricTest()
       .inputs  ({        clause({  x == aa, fa(b) == ba  }) })
@@ -140,4 +139,17 @@ TEST_GENERATION(unshielded_variables_02,
     Generation::SymmetricTest()
       .inputs  ({        clause({ x - a == 0, f(b) - b == 0  }) })
       .expected(exactly( /* nothing */ )))
+
+TEST_GENERATION_WITH_SUGAR(int_01, SUGAR(Int),
+    Generation::SymmetricTest()
+      .inputs  ({        clause({      selected(f(a) - c == 0), selected(f(a) - b == 0 ),  })  })
+      .expected(exactly( clause({           b != c,                      f(a) - b == 0     })  ))
+    )
+
+TEST_GENERATION_WITH_SUGAR(int_02a, SUGAR(Int),
+    Generation::SymmetricTest()
+      .inputs  ({        clause({      selected(4 * f(a) - c == 0), selected( 3 * f(a) - b == 0 ),  }) })
+      .expected(exactly( clause({           4 * b != 3 * c,  3 * f(a) - b == 0     }) ))
+    )
+
 

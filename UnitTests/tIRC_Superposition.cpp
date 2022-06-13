@@ -398,14 +398,14 @@ TEST_GENERATION(only_replace_by_smaller_uninterp_02,
 
 #define TEST_only_replace_in_active(diamond, name)                                                  \
                                                                                                     \
-  TEST_GENERATION(only_replace_uninter_in_active__ ## name ## __fail,                        \
+  TEST_GENERATION(only_replace_uninter_in_active__ ## name ## __fail,                               \
       Generation::SymmetricTest()                                                                   \
         .indices(ircSuperpositionIndices())                                                         \
         .inputs  ({ clause({ selected( fa(b) == ba )  })                                            \
                   , clause({ selected( f(f(f(a))) + fn(fa(b)) diamond  0 )  }) })                   \
         .expected(exactly( /* nothing */)))                                                         \
                                                                                                     \
-  TEST_GENERATION(only_replace_uninter_in_active__ ## name ## __success,                     \
+  TEST_GENERATION(only_replace_uninter_in_active__ ## name ## __success,                            \
       Generation::SymmetricTest()                                                                   \
         .indices(ircSuperpositionIndices())                                                         \
         .inputs  ({ clause({ selected( fa(b) == ba )  })                                            \
@@ -414,14 +414,14 @@ TEST_GENERATION(only_replace_by_smaller_uninterp_02,
               clause({ fn(ba) + b diamond 0 })                                                      \
         )))                                                                                         \
                                                                                                     \
-  TEST_GENERATION(only_replace_rat_in_active__ ## name ## __fail,                            \
+  TEST_GENERATION(only_replace_rat_in_active__ ## name ## __fail,                                   \
       Generation::SymmetricTest()                                                                   \
         .indices(ircSuperpositionIndices())                                                         \
         .inputs  ({ clause({ selected( f(b) - a == 0 )  })                                          \
                   , clause({ selected( f(f(a)) + f(b) diamond  0 )  }) })                           \
         .expected(exactly( /* nothing */)))                                                         \
                                                                                                     \
-  TEST_GENERATION(only_replace_rat_in_active__ ## name ## __success,                         \
+  TEST_GENERATION(only_replace_rat_in_active__ ## name ## __success,                                \
       Generation::SymmetricTest()                                                                   \
         .indices(ircSuperpositionIndices())                                                         \
         .inputs  ({ clause({ selected( f(b) - a == 0 )  })                                          \
@@ -438,7 +438,7 @@ for_diamond(TEST_only_replace_in_active)
 
 
 #define TEST_only_replace_in_active_uninterpretd(pol, name)                                         \
-  TEST_GENERATION(replace_unintepreted_in_active_uninterpreted_ ## name,                     \
+  TEST_GENERATION(replace_unintepreted_in_active_uninterpreted_ ## name,                            \
       Generation::SymmetricTest()                                                                   \
         .indices(ircSuperpositionIndices())                                                         \
         .inputs  ({ clause({ selected( fa(b) == ba ) })                                             \
@@ -447,7 +447,7 @@ for_diamond(TEST_only_replace_in_active)
                     clause({ selected( pol p(fn(ba))    ) })                                        \
         )))                                                                                         \
                                                                                                     \
-  TEST_GENERATION(replace_rat_in_active_uninterpreted_ ## name,                              \
+  TEST_GENERATION(replace_rat_in_active_uninterpreted_ ## name,                                     \
       Generation::SymmetricTest()                                                                   \
         .indices(ircSuperpositionIndices())                                                         \
         .inputs  ({ clause({ selected( f(b) - a == 0 ) })                                           \
@@ -457,3 +457,29 @@ for_diamond(TEST_only_replace_in_active)
         )))                                                                                         \
 
 for_polarity(TEST_only_replace_in_active_uninterpretd)
+
+TEST_GENERATION_WITH_SUGAR(int_01, SUGAR(Int),
+    Generation::SymmetricTest()
+      .indices(ircSuperpositionIndices())
+      .inputs  ({ clause({ selected( 3 * f(x) - a == 0 )  }) 
+                , clause({ selected( p(3 * f(a)))  }) })
+      .expected(exactly( clause({ p(a)  }) ))
+    )
+
+TEST_GENERATION_WITH_SUGAR(int_02, SUGAR(Int),
+    Generation::SymmetricTest()
+      .indices(ircSuperpositionIndices())
+      .inputs  ({ clause({ selected( 3 * f(x) - a == 0 )  })
+                , clause({ selected(     p(f(x)) )  }) })
+      .expected(exactly( /* nothing */ ))
+    )
+
+TEST_GENERATION_WITH_SUGAR(int_03, SUGAR(Int),
+    Generation::SymmetricTest()
+      .indices(ircSuperpositionIndices())
+      .inputs  ({ clause({ selected( 3 * f(x) - a == 0 )  })
+                , clause({ selected(     p(21 * f(x)) )  }) })
+      .expected(exactly( clause({ p(7 * a)  }) ))
+    )
+
+

@@ -123,19 +123,12 @@ private:
 
 struct Superposition::ApplicableRewritesFn
 {
-  ApplicableRewritesFn(SuperpositionLHSIndex* index, bool wc, bool ea, bool irc) : _index(index), 
-                      _withC(wc), _extByAbs(ea), _irc(irc) {}
+  ApplicableRewritesFn(SuperpositionLHSIndex* index, bool wc, bool ea) : _index(index), 
+                      _withC(wc), _extByAbs(ea) {}
   VirtualIterator<pair<pair<Literal*, TermList>, TermQueryResult> > operator()(pair<Literal*, TermList> arg)
   {
     CALL("Superposition::ApplicableRewritesFn()");
-    // we don't perform superposition for number sorts when irc is enabled. we have a specialized inference rule
-    // IRC::Superposition for this case.
     auto t = arg.second;
-    if (_irc 
-        && t.isTerm() 
-        && forAnyNumTraits([&](auto numTraits){ return SortHelper::getResultSort(t.term()) == numTraits.sort(); })) 
-      return VirtualIterator<pair<pair<Literal*, TermList>, TermQueryResult>>::getEmpty();
-
     if(_withC){
       return pvi( pushPairIntoRightIterator(arg, _index->getUnificationsWithConstraints(arg.second, true)) );
     }  
@@ -151,7 +144,6 @@ private:
   SuperpositionLHSIndex* _index;
   bool _withC;
   bool _extByAbs;
-  bool _irc;
 };
 
 
@@ -216,7 +208,7 @@ ClauseIterator Superposition::generateClauses(Clause* premise)
 
   // Get clauses with a literal whose complement unifies with the rewritable subterm,
   // returns a pair with the original pair and the unification result (includes substitution)
-  auto itf3 = getMapAndFlattenIterator(itf2,ApplicableRewritesFn(_lhsIndex,withConstraints, extByAbstraction, _irc));
+  auto itf3 = getMapAndFlattenIterator(itf2,ApplicableRewritesFn(_lhsIndex,withConstraints, extByAbstraction));
 
   //Perform forward superposition
   auto itf4 = getMappingIterator(itf3,ForwardResultFn(premise, passiveClauseContainer, *this));

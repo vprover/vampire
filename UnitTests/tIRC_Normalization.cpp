@@ -69,7 +69,7 @@ struct TestCase
     for (auto& r : results_.value) {
       results.push(r.denormalize());
     }
-    if (!iterTraits(out.iter()).any([&](auto out){ return TestUtils::eqModACRect(out, results); })) {
+    if (!iterTraits(out.iterFifo()).any([&](auto const& out){ return TestUtils::eqModACRect(out, results); })) {
       std::cout << "\r" << endl;
       std::cout << "\r[    input ]" << pretty(in) << endl;
       std::cout << "\r[ expected ]" << pretty(out) << endl;
@@ -78,7 +78,6 @@ struct TestCase
     }
   }
 };
-
 #define TEST_CASE(Num, name, ...)                                                                   \
   TEST_FUN(name ## _ ## Num) {                                                                      \
     SUGAR(Num)                                                                                      \
@@ -361,7 +360,7 @@ TEST_FRAC(gcd_04,
 TEST_ALL(bug_01, 
     TestCase {
       .in  =     0 * num(-1) + 2 * a * 1073741824 > 0,
-      .out = { {                   a * 1073741824 > 0 } },
+      .out = { {     num(0)  +     a * 1073741824 > 0 } },
       .strong = true,
     })
 
@@ -408,14 +407,14 @@ TEST_INT(bug_07,
       //       -600335 * ( a * 251886) + 251886 * ( a * 600335) == 0
       //       -600335 *   a           +            a * 600335  == 0
       //                  -a           +            a           == 0
-      .out = { { num(0) == 0 } },
+      .out = { { 0 * (600335 * a) == 0 } },
       .strong = false,
     })
 
 TEST_INT(bug_08, 
     TestCase {
       .in  =   0 * f(x) > 0,
-      .out = { { num(0) > 0 } },
+      .out = { { 0 * f(x) > 0 } },
       .strong = false,
     })
 

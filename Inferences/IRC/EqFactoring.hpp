@@ -49,7 +49,6 @@ public:
   Option<Clause*> applyRule(SelectedEquality const& e1, SelectedEquality const& e2);
   ClauseIterator generateClauses(Clause* premise) final override;
   
-
 #if VDEBUG
   virtual void setTestIndices(Stack<Indexing::Index*> const&) final override;
 #endif

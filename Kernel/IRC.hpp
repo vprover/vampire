@@ -49,7 +49,7 @@
 #include "Kernel/PolynomialNormalizer.hpp"
 #include "Kernel/Clause.hpp"
 #include "Kernel/OrderingUtils.hpp"
-#define DEBUG(...) // DBG(__VA_ARGS__)
+#define DEBUG(...) //DBG(__VA_ARGS__)
 
 
 
@@ -452,21 +452,45 @@ namespace Kernel {
     friend std::ostream& operator<<(std::ostream& out, SelectedSummand const& self);
   };
 
+  class SelectedIntegerEquality : public SelectedSummand 
+  {
+  public:
+    SelectedIntegerEquality(SelectedSummand s) 
+      : SelectedSummand(std::move(s)) 
+    { ASS(numTraits() == decltype(numTraits())(IntTraits{})) }
+
+    TermList biggerSide() const 
+    { return IntTraits::mulSimpl(numeral<IntTraits>(), monom()); }
+
+    TermList smallerSide() const 
+    { return IntTraits::sum(contextTerms<IntTraits>().map([](auto t) { return (-t).denormalize(); })); }
+
+    // friend std::ostream& operator<<(std::ostream& out, SelectedIntegerEquality const& self)
+    // { return out << (SelectedSummand const&)self; }
+
+  };
+
   class SelectedEquality 
   {
-    Coproduct<SelectedSummand, SelectedUninterpretedEquality>  _inner;
+    Coproduct<SelectedSummand, SelectedIntegerEquality, SelectedUninterpretedEquality>  _inner;
 
   public:
 
-    SelectedEquality(SelectedSummand s) 
+    explicit SelectedEquality(SelectedSummand s) 
       : _inner(decltype(_inner)::variant<0>(std::move(s))) 
     { 
       ASS(!_inner.unwrap<0>().isInequality()) 
       ASS(_inner.unwrap<0>().numTraits().apply([](auto x) { return x.isFractional(); }))
     }
 
-    SelectedEquality(SelectedUninterpretedEquality s) 
-      : _inner(decltype(_inner)::variant<1>(std::move(s))) {}
+
+    explicit SelectedEquality(SelectedIntegerEquality s) 
+      : _inner(decltype(_inner)::variant<1>(std::move(s))) 
+    { 
+    }
+
+    explicit SelectedEquality(SelectedUninterpretedEquality s) 
+      : _inner(decltype(_inner)(std::move(s))) {}
 
     Clause* clause() const 
     { return _inner.apply([](auto& x) { return x.clause(); }); }
@@ -487,6 +511,7 @@ namespace Kernel {
     TermList biggerSide() const 
     { return _inner.match(
         [](SelectedSummand               const& x) { return x.monom(); },
+        [](SelectedIntegerEquality       const& x) { return x.biggerSide(); },
         [](SelectedUninterpretedEquality const& x) { return x.biggerSide(); }); }
 
     TermList smallerSide() const 
@@ -503,6 +528,7 @@ namespace Kernel {
                 });
             });
         },
+        [](SelectedIntegerEquality       const& x) { return x.smallerSide(); },
         [](SelectedUninterpretedEquality const& x) { return x.smallerSide(); }); }
 
     auto contextLiterals() const
@@ -673,8 +699,8 @@ namespace Kernel {
         .filterMap([](auto x) -> Option<Out>
                    { return x.match(
                        [](SelectedSummand& x) {
-                          return x.isInequality() 
-                              ? Option<Out>()
+                          return x.isInequality() ? Option<Out>()
+                              : x.numTraits().template is<IntTraits>() ? Option<Out>(Out(SelectedIntegerEquality(std::move(x))))
                               : Option<Out>(Out(std::move(x)));
                        },
 
@@ -860,7 +886,6 @@ auto normalizeFactors(Perfect<Polynom<NumTraits>> in) -> MaybeOverflow<Perfect<P
       .map([](auto s) { return s.numeral.abs(); }),
       [](auto l, auto r) { return normalizeFactors_gcd(l,r); }
     );
-    // DBG(in, "\tgcd: ", gcd)
     ASS_REP(gcd >= NumTraits::constant(0), gcd)
     if (gcd == NumTraits::constant(1) || gcd == NumTraits::constant(0)) {
       return in;
@@ -961,7 +986,9 @@ Option<MaybeOverflow<Stack<IrcLiteral<NumTraits>>>> InequalityNormalizer::normal
     }
 
     /* l < r ==> r > l ==> r - l > 0 */
-    auto t = l == NumTraits::zero() ? r : NumTraits::add(r, NumTraits::minus(l));
+    auto t = l == NumTraits::zero() ? r 
+           : r == NumTraits::zero() ? NumTraits::minus(l)
+           : NumTraits::add(r, NumTraits::minus(l));
 
     ASS(!isInt || pred != IrcPredicate::GREATER_EQ)
     auto tt = TypedTermList(t, NumTraits::sort());
