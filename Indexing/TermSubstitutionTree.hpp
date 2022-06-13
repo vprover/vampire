@@ -35,10 +35,22 @@ namespace Indexing {
  * responsibility to ensure that the sorts are unifiable/matchable
  */
 
+template<class LeafData_ = DefaultLeafData>
 class TermSubstitutionTree
-: public TermIndexingStructure, SubstitutionTree<>
+: public TermIndexingStructure, Indexing::SubstitutionTree<LeafData_>
 {
+  using SubstitutionTree = Indexing::SubstitutionTree<LeafData_>;
+  using BindingMap                  = typename SubstitutionTree::BindingMap;
+  using Node                        = typename SubstitutionTree::Node;
+  using FastInstancesIterator       = typename SubstitutionTree::FastInstancesIterator;
+  using FastGeneralizationsIterator = typename SubstitutionTree::FastGeneralizationsIterator;
+  using UnificationsIterator        = typename SubstitutionTree::UnificationsIterator;
+  using QueryResult                 = typename SubstitutionTree::QueryResult;
+  using LDIterator                  = typename SubstitutionTree::LDIterator;
+  using Leaf                        = typename SubstitutionTree::Leaf;
+  using LeafIterator                = typename SubstitutionTree::LeafIterator;
 public:
+  using LeafData = LeafData_;
   CLASS_NAME(TermSubstitutionTree);
   USE_ALLOCATOR(TermSubstitutionTree);
   
@@ -114,7 +126,7 @@ private:
     return t->functor();
   }
 
-  typedef SkipList<LeafData,LDComparator> LDSkipList;
+  typedef SkipList<LeafData,typename SubstitutionTree::LDComparator> LDSkipList;
   LDSkipList _vars;
 
   //higher-order concerns
