@@ -133,7 +133,7 @@ public:
       env.options->set(kv.first, kv.second);
     }
     // set up clause container and indexing strucure
-    auto container =  PlainClauseContainer();
+    auto container =  ActiveClauseContainer(*env.options);
     SimplifyingGeneratingInference& rule = *_rule.unwrapOrElse([&](){ return &simpl._rule; });
     Stack<Indexing::Index*> indices;
     for (auto i : _indices) {
@@ -186,6 +186,12 @@ public:
       }
     }
 
+
+    // add the clauses to the index
+    for (auto c : _context) {
+      // c->setStore(Clause::ACTIVE);
+      container.remove(c);
+    }
 
     // // tear down saturation algorithm
     // rule.InferenceEngine::detach();
