@@ -114,7 +114,7 @@ LiteralIndexingStructure* getBasicIndex()
 {
   // Let's create an index with some data in it
   // We pass true to say that we want to use constraints
-  LiteralIndexingStructure * is = new LiteralSubstitutionTree(true); 
+  LiteralIndexingStructure * is = new LiteralSubstitutionTree<>(true); 
 
 
   TermList one_plus_one = int_plus(number("1"),number("1"));
@@ -255,7 +255,7 @@ TEST_FUN(complex_case)
 
   reportRobUnify(query,node);
 
-  LiteralIndexingStructure* index = new LiteralSubstitutionTree(true); 
+  LiteralIndexingStructure* index = new LiteralSubstitutionTree<>(true); 
   Literal* nlit = pred("p",node);
   index->insert(nlit,unit(nlit));
   Literal* qlit = pred("p",query);

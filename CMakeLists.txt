@@ -359,7 +359,6 @@ set(VAMPIRE_INDEXING_SOURCES
     Indexing/InductionFormulaIndex.cpp
     Indexing/LiteralIndex.cpp
     Indexing/LiteralMiniIndex.cpp
-    Indexing/LiteralSubstitutionTree.cpp
     Indexing/ResultSubstitution.cpp
     Indexing/TermCodeTree.cpp
     Indexing/TermIndex.cpp

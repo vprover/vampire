@@ -31,7 +31,7 @@ using namespace Test::Generation;
 #define DECL_SKOLEM_VAR(x, i) DECL_VAR(x, i+SKOLEM_VAR_MIN)
 
 LiteralIndex* comparisonIndex() {
-  return new UnitIntegerComparisonLiteralIndex(new LiteralSubstitutionTree());
+  return new UnitIntegerComparisonLiteralIndex(new LiteralSubstitutionTree<>());
 }
 
 TermIndex* intInductionIndex() {

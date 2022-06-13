@@ -141,7 +141,8 @@ Index* IndexManager::create(IndexType t)
   Index* res;
   LiteralIndexingStructure* is;
   TermIndexingStructure* tis;
-  using TermSubstitutionTree = Indexing::TermSubstitutionTree<>;
+  using TermSubstitutionTree    = Indexing::TermSubstitutionTree<>;
+  using LiteralSubstitutionTree = Indexing::LiteralSubstitutionTree<>;
 
   bool isGenerating;
   static bool const useConstraints = env.options->unificationWithAbstraction()!=Options::UnificationWithAbstraction::OFF;

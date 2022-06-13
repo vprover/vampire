@@ -285,6 +285,7 @@ class FwSubsSimplifyingLiteralIndex;
 struct DefaultLeafData;
 template<class LeafData = DefaultLeafData>
 class SubstitutionTree;
+template<class LeafData = DefaultLeafData>
 class LiteralSubstitutionTree;
 
 class CodeTree;

@@ -52,6 +52,7 @@ protected:
 
 class SubstitutionTreeClauseVariantIndex : public ClauseVariantIndex
 {
+  using LiteralSubstitutionTree = Indexing::LiteralSubstitutionTree<>;
 public:
   CLASS_NAME(SubstitutionTreeClauseVariantIndex);
   USE_ALLOCATOR(SubstitutionTreeClauseVariantIndex);

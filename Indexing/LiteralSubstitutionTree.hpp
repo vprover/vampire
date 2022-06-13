@@ -21,9 +21,22 @@
 
 namespace Indexing {
 
+template<class LeafData_>
 class LiteralSubstitutionTree
-: public LiteralIndexingStructure, SubstitutionTree<>
-{
+: public LiteralIndexingStructure, Indexing::SubstitutionTree<LeafData_>
+{  
+  using SubstitutionTree = Indexing::SubstitutionTree<LeafData_>;
+  using LeafData         = LeafData_;
+  using BindingMap                  = typename SubstitutionTree::BindingMap;
+  using Node                        = typename SubstitutionTree::Node;
+  using FastInstancesIterator       = typename SubstitutionTree::FastInstancesIterator;
+  using FastGeneralizationsIterator = typename SubstitutionTree::FastGeneralizationsIterator;
+  using UnificationsIterator        = typename SubstitutionTree::UnificationsIterator;
+  using QueryResult                 = typename SubstitutionTree::QueryResult;
+  using LDIterator                  = typename SubstitutionTree::LDIterator;
+  using Leaf                        = typename SubstitutionTree::Leaf;
+  using LeafIterator                = typename SubstitutionTree::LeafIterator;
+
 public:
   CLASS_NAME(LiteralSubstitutionTree);
   USE_ALLOCATOR(LiteralSubstitutionTree);
@@ -168,4 +181,5 @@ private:
 
 };
 
+#include "Indexing/LiteralSubstitutionTree.cpp"
 #endif /* __LiteralSubstitutionTree__ */
