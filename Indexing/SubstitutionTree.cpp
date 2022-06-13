@@ -47,22 +47,6 @@ vstring SingleTermListToString(const TermList* ts);
 using namespace std;
 using namespace Indexing;
 
-
-/**
- * Initialise the substitution tree.
- * @since 16/08/2008 flight Sydney-San Francisco
- */
-template<class LeafData_>
-SubstitutionTree<LeafData_>::SubstitutionTree(int nodes,bool useC, bool rfSubs)
-  : tag(false), _nextVar(0), _nodes(nodes), _useC(useC), _rfSubs(rfSubs)
-{
-  CALL("SubstitutionTree::SubstitutionTree");
-
-#if VDEBUG
-  _iteratorCnt=0;
-#endif
-} // SubstitutionTree::SubstitutionTree
-
 /**
  * Destroy the substitution tree.
  * @warning does not destroy nodes yet
