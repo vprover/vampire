@@ -14,38 +14,22 @@
  * @since 16/08/2008 flight Sydney-San Francisco
  */
 
-#include <utility>
+namespace Indexing {
 
-#include "Shell/Options.hpp"
+/**
+ * Initialise the substitution tree.
+ * @since 16/08/2008 flight Sydney-San Francisco
+ */
+template<class LeafData_>
+SubstitutionTree<LeafData_>::SubstitutionTree(int nodes,bool useC, bool rfSubs)
+  : tag(false), _nextVar(0), _nodes(nodes), _useC(useC), _rfSubs(rfSubs)
+{
+  CALL("SubstitutionTree::SubstitutionTree");
 
-#include "Kernel/Matcher.hpp"
-#include "Kernel/Renaming.hpp"
-#include "Kernel/SubstHelper.hpp"
-#include "Kernel/Term.hpp"
-#include "Kernel/ApplicativeHelper.hpp"
-
-#include "Lib/BinaryHeap.hpp"
-#include "Lib/Metaiterators.hpp"
-#include "Lib/Environment.hpp"
-#include "Lib/Recycler.hpp"
-#include "Lib/DHMultiset.hpp"
-
-#include "TermSharing.hpp"
-
-#include <iostream>
 #if VDEBUG
-#include "Kernel/Signature.hpp"
-#include "Lib/Environment.hpp"
-#include "Lib/Int.hpp"
-
-vstring SingleTermListToString(const TermList* ts);
-
+  _iteratorCnt=0;
 #endif
-
-#include "SubstitutionTree.hpp"
-
-using namespace std;
-using namespace Indexing;
+} // SubstitutionTree::SubstitutionTree
 
 /**
  * Destroy the substitution tree.
@@ -515,7 +499,7 @@ typename SubstitutionTree<LeafData_>::Leaf* SubstitutionTree<LeafData_>::findLea
 
 #if VDEBUG
 
-vstring getIndentStr(int n)
+inline vstring getIndentStr(int n)
 {
   vstring res;
   for(int indCnt=0;indCnt<n;indCnt++) {
@@ -999,10 +983,5 @@ typename SubstitutionTree<LeafData_>::NodeIterator
   }
 }
 
-#include "SubstitutionTree_Nodes.cpp"
-#include "SubstitutionTree_FastGen.cpp"
-#include "SubstitutionTree_FastInst.cpp"
-
-template class Indexing::SubstitutionTree<DefaultLeafData>;
-
+} // namespace Indexing
 

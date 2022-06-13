@@ -33,6 +33,7 @@
 #include "Lib/ArrayMap.hpp"
 #include "Lib/Array.hpp"
 #include "Lib/BiMap.hpp"
+#include "Kernel/ApplicativeHelper.hpp"
 
 #include "Kernel/RobSubstitution.hpp"
 #include "Kernel/Renaming.hpp"
@@ -926,22 +927,12 @@ public:
 }; // class SubstiutionTree
 
 
-/**
- * Initialise the substitution tree.
- * @since 16/08/2008 flight Sydney-San Francisco
- */
-template<class LeafData_>
-SubstitutionTree<LeafData_>::SubstitutionTree(int nodes,bool useC, bool rfSubs)
-  : tag(false), _nextVar(0), _nodes(nodes), _useC(useC), _rfSubs(rfSubs)
-{
-  CALL("SubstitutionTree::SubstitutionTree");
-
-#if VDEBUG
-  _iteratorCnt=0;
-#endif
-} // SubstitutionTree::SubstitutionTree
-
-
 } // namespace Indexing
+
+
+#include "Indexing/SubstitutionTree.cpp"
+#include "Indexing/SubstitutionTree_Nodes.cpp"
+#include "Indexing/SubstitutionTree_FastGen.cpp"
+#include "Indexing/SubstitutionTree_FastInst.cpp"
 
 #endif

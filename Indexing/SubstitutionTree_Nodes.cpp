@@ -13,19 +13,6 @@
  */
 
 
-#include "Lib/DHMultiset.hpp"
-#include "Lib/Exception.hpp"
-#include "Lib/List.hpp"
-#include "Lib/Metaiterators.hpp"
-#include "Lib/SkipList.hpp"
-#include "Lib/VirtualIterator.hpp"
-#include "Lib/Environment.hpp"
-
-#include "Shell/Options.hpp"
-
-#include "Index.hpp"
-#include "SubstitutionTree.hpp"
-
 namespace Indexing
 {
 
@@ -266,5 +253,5 @@ void SubstitutionTree<LeafData_>::ensureIntermediateNodeEfficiency(IntermediateN
   }
 }
 
-}
+} // namespace Indexing
 
