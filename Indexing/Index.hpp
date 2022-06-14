@@ -18,6 +18,7 @@
 #include "Forwards.hpp"
 
 #include "Lib/Event.hpp"
+#include "Kernel/Clause.hpp"
 #include "Lib/Exception.hpp"
 #include "Lib/VirtualIterator.hpp"
 #include "Saturation/ClauseContainer.hpp"
@@ -31,6 +32,73 @@ namespace Indexing
 using namespace Kernel;
 using namespace Lib;
 using namespace Saturation;
+
+
+struct DefaultLeafData {
+  DefaultLeafData() {}
+
+  DefaultLeafData(Clause* cls, Literal* literal, TermList term, TermList extraTerm)
+    : clause(cls), literal(literal), term(term), extraTerm(extraTerm) {}
+
+  DefaultLeafData(TermList t, Literal* l, Clause* c)
+    : DefaultLeafData(c,l,t) {}
+
+  DefaultLeafData(Clause* cls, Literal* literal, TermList term)
+    : clause(cls), literal(literal), term(term) { extraTerm.makeEmpty();}
+
+  DefaultLeafData(Clause* cls, Literal* literal)
+    : clause(cls), literal(literal) { term.makeEmpty(); extraTerm.makeEmpty(); }
+
+  DefaultLeafData(TermList term)
+    : DefaultLeafData(nullptr, nullptr, term) {}
+
+private:
+  auto toTuple() const
+  { return std::tie(clause, literal, term, extraTerm); }
+public:
+
+  // TODO shouldn't extraTerm be compared as well?
+  friend bool operator==(DefaultLeafData const& l, DefaultLeafData const& r)
+  { return l.toTuple() == r.toTuple(); }
+
+  friend bool operator!=(DefaultLeafData const& l, DefaultLeafData const& r)
+  { return !(l == r); }
+
+  friend bool operator<(DefaultLeafData const& l, DefaultLeafData const& r)
+  { return l.toTuple() < r.toTuple(); }
+
+  friend bool operator> (DefaultLeafData const& l, DefaultLeafData const& r) { return r < l; }
+  friend bool operator<=(DefaultLeafData const& l, DefaultLeafData const& r) { return l == r || l < r; }
+  friend bool operator>=(DefaultLeafData const& l, DefaultLeafData const& r) { return l == r || l > r; }
+
+  Clause* clause;
+  Literal* literal;
+  TermList term;
+  // In some higher-order use cases, we want to store a different term 
+  // in the leaf to the indexed term. extraTerm is used for this purpose.
+  // In all other situations it is empty
+  TermList extraTerm;
+
+  vstring toString() {
+    vstring ret = "LD " + literal->toString();// + " in " + clause->literalsOnlyToString();
+    if(!term.isEmpty()){ ret += " with " +term.toString(); }
+    return ret;
+  }
+
+  friend std::ostream& operator<<(std::ostream& out, DefaultLeafData const& self)
+  { 
+    out << "DefaultLeafData("
+        << self.term << ", ";
+    if (self.literal) out << *self.literal;
+    else              out << "null";
+    out << ", ";
+    if (self.clause) out << *self.clause;
+    else             out << "null";
+    out << ")";
+    return out;
+  }
+
+};
 
 
 /**
@@ -84,6 +152,10 @@ struct TermQueryResult
   ResultSubstitutionSP substitution;
   UnificationConstraintStackSP constraints;
   bool isTypeSub = false; //true if the substitution only unifies the types of the terms
+                          //
+
+  DefaultLeafData data() const
+  { return DefaultLeafData(clause, literal, term); }
 };
 
 struct ClauseSResQueryResult

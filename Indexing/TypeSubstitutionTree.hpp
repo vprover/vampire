@@ -28,8 +28,9 @@
 namespace Indexing {
 
 class TypeSubstitutionTree
-: public TermIndexingStructure, SubstitutionTree<>
+: public TermIndexingStructure<DefaultLeafData>, SubstitutionTree<DefaultLeafData>
 {
+  using LeafData = DefaultLeafData;
 public:
   CLASS_NAME(TypeSubstitutionTree);
   USE_ALLOCATOR(TypeSubstitutionTree);

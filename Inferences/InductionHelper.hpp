@@ -30,6 +30,7 @@ using namespace Indexing;
 using namespace Kernel;
 
 class InductionHelper {
+  using TermIndex = Indexing::TermIndex<DefaultLeafData>;
 public:
   CLASS_NAME(InductionHelper);
   USE_ALLOCATOR(InductionHelper);

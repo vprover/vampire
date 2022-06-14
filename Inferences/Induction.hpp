@@ -151,6 +151,7 @@ private:
 class Induction
 : public GeneratingInferenceEngine
 {
+  using TermIndex = Indexing::TermIndex<DefaultLeafData>;
 public:
   CLASS_NAME(Induction);
   USE_ALLOCATOR(Induction);
@@ -178,6 +179,7 @@ private:
 
 class InductionClauseIterator
 {
+  using TermIndex = Indexing::TermIndex<DefaultLeafData>;
 public:
   // all the work happens in the constructor!
   InductionClauseIterator(Clause* premise, InductionHelper helper, const Options& opt,

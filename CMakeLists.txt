@@ -728,6 +728,7 @@ set(UNIT_TESTS
     UnitTests/tSATSolver.cpp
     UnitTests/tArithCompare.cpp
     UnitTests/tSyntaxSugar.cpp
+    UnitTests/tTermIndex.cpp
     UnitTests/tSkipList.cpp
     UnitTests/tfork.cpp
     UnitTests/tBinaryHeap.cpp

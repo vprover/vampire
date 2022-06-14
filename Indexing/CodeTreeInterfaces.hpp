@@ -37,11 +37,16 @@ using namespace Lib;
  * Term indexing structure using code trees to retrieve generalizations
  */
 
-class CodeTreeTIS : public TermIndexingStructure
+class CodeTreeTIS : public TermIndexingStructure<>
 {
 public:
   CLASS_NAME(CodeTreeTIS);
   USE_ALLOCATOR(CodeTreeTIS);
+
+  virtual void insert(TermList t, DefaultLeafData data) final override 
+  { ASS_EQ(t, data.term); insert(data.term, data.literal, data.clause); }
+  virtual void remove(TermList t, DefaultLeafData data) final override
+  { ASS_EQ(t, data.term); remove(data.term, data.literal, data.clause); }
 
   void insert(TermList t, Literal* lit, Clause* cls);
   void remove(TermList t, Literal* lit, Clause* cls);

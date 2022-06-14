@@ -45,6 +45,7 @@ using namespace Saturation;
  */
 struct LookaheadLiteralSelector::GenIteratorIterator
 {
+  using TermIndex = Indexing::TermIndex<DefaultLeafData>;
   DECL_ELEMENT_TYPE(VirtualIterator<void>);
 
   GenIteratorIterator(Literal* lit, LookaheadLiteralSelector& parent) : stage(0), lit(lit), prepared(false), _parent(parent) {}

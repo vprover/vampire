@@ -64,48 +64,46 @@ void TermSubstitutionTree<LeafData_>::insert(TermList t, TermList trm, Literal* 
   insert(t, ld);
 }
 
-template<class LeafData_>
-void TermSubstitutionTree<LeafData_>::insert(TermList t, LeafData ld)
-{
-  CALL("TermSubstitutionTree::insert");
-
-  ASS(t.isTerm());
-  Term* term=t.term();
-
-  Term* normTerm=Renaming::normalize(term);
-
-  BindingMap svBindings;
-  this->getBindings(normTerm, svBindings);
-
-  unsigned rootNodeIndex=getRootNodeIndex(normTerm);
-
-  SubstitutionTree::insert(&this->_nodes[rootNodeIndex], svBindings, ld);  
-}
+// template<class LeafData_>
+// void TermSubstitutionTree<LeafData_>::insert(TermList t, LeafData ld)
+// {
+//   CALL("TermSubstitutionTree::insert");
+//
+//   ASS(t.isTerm());
+//   Term* term=t.term();
+//
+//   Term* normTerm=Renaming::normalize(term);
+//
+//   BindingMap svBindings;
+//   this->getBindings(normTerm, svBindings);
+//
+//   unsigned rootNodeIndex=getRootNodeIndex(normTerm);
+//
+//   SubstitutionTree::insert(&this->_nodes[rootNodeIndex], svBindings, ld);  
+// }
 
 
 template<class LeafData_>
 void TermSubstitutionTree<LeafData_>::insert(TermList t, Literal* lit, Clause* cls)
 {
   CALL("TermSubstitutionTree::insert");
-  handleTerm(t,lit,cls, true);
+  handleTerm(t, LeafData(cls, lit, t), true);
 }
 
 template<class LeafData_>
 void TermSubstitutionTree<LeafData_>::remove(TermList t, Literal* lit, Clause* cls)
 {
   CALL("TermSubstitutionTree::remove");
-  handleTerm(t,lit,cls, false);
+  handleTerm(t, LeafData(cls, lit, t), false);
 }
 
 /**
  * According to value of @b insert, insert or remove term.
  */
 template<class LeafData_>
-void TermSubstitutionTree<LeafData_>::handleTerm(TermList t, Literal* lit, Clause* cls, bool insert)
+void TermSubstitutionTree<LeafData_>::handleTerm(TermList t, LeafData ld, bool insert)
 {
   CALL("TermSubstitutionTree::handleTerm");
-
-  LeafData ld(cls, lit, t);
 
   if(_extByAbs && t.isTerm()){ 
     TermList sort = SortHelper::getResultSort(t.term());

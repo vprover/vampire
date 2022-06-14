@@ -41,6 +41,7 @@
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/OperatorType.hpp"
 #include "Kernel/Signature.hpp"
+#include "Indexing/TermIndex.hpp"
 
 #include "Lib/Allocator.hpp"
 
@@ -60,33 +61,7 @@ using namespace Kernel;
 
 namespace Indexing {
 
-struct DefaultLeafData {
-    DefaultLeafData() {}
-    DefaultLeafData(Clause* cls, Literal* literal, TermList term, TermList extraTerm)
-    : clause(cls), literal(literal), term(term), extraTerm(extraTerm) {}
-    DefaultLeafData(Clause* cls, Literal* literal, TermList term)
-    : clause(cls), literal(literal), term(term) { extraTerm.makeEmpty();}
-    DefaultLeafData(Clause* cls, Literal* literal)
-    : clause(cls), literal(literal) { term.makeEmpty(); extraTerm.makeEmpty(); }
-    inline
-    bool operator==(const DefaultLeafData& o)
-    { return clause==o.clause && literal==o.literal && term==o.term; }
 
-    Clause* clause;
-    Literal* literal;
-    TermList term;
-    // In some higher-order use cases, we want to store a different term 
-    // in the leaf to the indexed term. extraTerm is used for this purpose.
-    // In all other situations it is empty
-    TermList extraTerm;
-
-    vstring toString(){
-      vstring ret = "LD " + literal->toString();// + " in " + clause->literalsOnlyToString();
-      if(!term.isEmpty()){ ret += " with " +term.toString(); }
-      return ret;
-    }
-
-  };
 /**
  * Class of substitution trees. In fact, contains an array of substitution
  * trees.

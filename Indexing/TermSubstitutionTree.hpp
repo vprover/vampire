@@ -37,9 +37,10 @@ namespace Indexing {
 
 template<class LeafData_ = DefaultLeafData>
 class TermSubstitutionTree
-: public TermIndexingStructure, Indexing::SubstitutionTree<LeafData_>
+: public TermIndexingStructure<LeafData_>, Indexing::SubstitutionTree<LeafData_>
 {
-  using SubstitutionTree = Indexing::SubstitutionTree<LeafData_>;
+  using SubstitutionTree      = Indexing::SubstitutionTree<LeafData_>;
+  using TermIndexingStructure = Indexing::TermIndexingStructure<LeafData_>;
   using BindingMap                  = typename SubstitutionTree::BindingMap;
   using Node                        = typename SubstitutionTree::Node;
   using FastInstancesIterator       = typename SubstitutionTree::FastInstancesIterator;
@@ -65,6 +66,9 @@ public:
    * the skolem terms used to witness them (to facilitate the reuse of Skolems)
    */
   TermSubstitutionTree(bool useC=false, bool replaceFunctionalSubterms = false, bool extra = false);
+
+  void insert(TermList t, LeafData d) final override { handleTerm(t, d, /* insert */ true); }
+  void remove(TermList t, LeafData d) final override { handleTerm(t, d, /* insert */ false); }
 
   void insert(TermList t, Literal* lit, Clause* cls);
   void remove(TermList t, Literal* lit, Clause* cls);
@@ -98,8 +102,9 @@ public:
 
 private:
 
-  void insert(TermList t, LeafData ld);
-  void handleTerm(TermList t, Literal* lit, Clause* cls, bool insert);
+  // void insert(TermList t, LeafData ld);
+  void handleTerm(TermList t, LeafData, bool insert);
+  // void handleTerm(TermList t, Literal* lit, Clause* cls, bool insert);
 
   struct TermQueryResultFn;
 

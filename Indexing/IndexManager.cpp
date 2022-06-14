@@ -140,7 +140,7 @@ Index* IndexManager::create(IndexType t)
 
   Index* res;
   LiteralIndexingStructure* is;
-  TermIndexingStructure* tis;
+  TermIndexingStructure<>* tis;
   using TermSubstitutionTree    = Indexing::TermSubstitutionTree<>;
   using LiteralSubstitutionTree = Indexing::LiteralSubstitutionTree<>;
 

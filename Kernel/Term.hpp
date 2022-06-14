@@ -83,8 +83,6 @@ enum ArgumentOrderVals {
   AO_INCOMPARABLE=6,
 };
 
-bool operator<(const TermList& lhs, const TermList& rhs);
-
 /**
  * Class containing either a pointer to a compound term or
  * a variable number or a functor.
