@@ -48,12 +48,12 @@ public:
 
     //TODO add final override
   virtual void insert(TermList t, DefaultLeafData data)
-  { ASS_EQ(t, data.term); insert(data.term, data.literal, data.clause); }
+  { ASS_EQ(t, data.term); _insert(data.term, data.literal, data.clause); }
     //TODO add final override
   virtual void remove(TermList t, DefaultLeafData data)
   { ASS_EQ(t, data.term); remove(data.term, data.literal, data.clause); }
 
-  void insert(TermList t, Literal* lit, Clause* cls);
+  void _insert(TermList t, Literal* lit, Clause* cls);
   void remove(TermList t, Literal* lit, Clause* cls);
 
   TermQueryResultIterator getGeneralizations(TermList t, bool retrieveSubstitutions = true);

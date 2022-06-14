@@ -181,7 +181,7 @@ private:
   TermCodeTree::TermMatcher* _matcher;
 };
 
-void CodeTreeTIS::insert(TermList t, Literal* lit, Clause* cls)
+void CodeTreeTIS::_insert(TermList t, Literal* lit, Clause* cls)
 {
   CALL("CodeTreeTIS::insert");
 

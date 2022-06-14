@@ -92,7 +92,7 @@ public:
   class LDComparator
   {
   public:
-    static Comparison compare(const LeafData& ld1, const LeafData& ld2)
+    static Comparison compare(const DefaultLeafData& ld1, const DefaultLeafData& ld2)
     {
       CALL("SubstitutionTree::LDComparator::compare");
 

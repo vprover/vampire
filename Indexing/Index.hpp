@@ -153,7 +153,7 @@ struct TermQueryResult : public Data
     : DefaultLeafData(c,l,t), substitution(s), constraints(con), isTypeSub(b) {}
 
 
-  DefaultLeafData const& data() const
+  Data const& data() const
   { return *this; }
 
   ResultSubstitutionSP substitution;
