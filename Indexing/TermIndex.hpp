@@ -27,7 +27,8 @@ template<class Data>
 class TermIndex
 : public Index
 {
-  using TermIndexingStructure = Indexing::TermIndexingStructure<Data>;
+  using TermIndexingStructure   = Indexing::TermIndexingStructure<Data>;
+  using TermQueryResultIterator = Indexing::TermQueryResultIterator<Data>;
 public:
   CLASS_NAME(TermIndex);
   USE_ALLOCATOR(TermIndex);

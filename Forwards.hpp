@@ -278,6 +278,7 @@ class ResultSubstitution;
 typedef Lib::SmartPtr<ResultSubstitution> ResultSubstitutionSP;
 
 struct SLQueryResult;
+template<class Data>
 struct TermQueryResult;
 
 class GeneratingLiteralIndex;

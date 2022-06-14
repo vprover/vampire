@@ -276,10 +276,10 @@ namespace Indexing
       CALL("Acyclicity::pushUnificationOnStack");
 
       ASS(_tis);
-      TermQueryResultIterator tqrIt = _tis->getUnifications(t);
+      auto tqrIt = _tis->getUnifications(t);
       int index;
       while (tqrIt.hasNext()) {
-        TermQueryResult tqr = tqrIt.next();
+        auto tqr = tqrIt.next();
         if (tqr.literal == _queryLit || notInAncestors(parent, tqr.literal)) {
           if (tqr.literal == _queryLit) {
             index = 0;

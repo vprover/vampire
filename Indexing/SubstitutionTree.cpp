@@ -120,7 +120,7 @@ void SubstitutionTree<LeafData_>::insert(Node** pnode,BindingMap& svBindings,Lea
   ASS_EQ(_iteratorCnt,0);
 
 #if VDEBUG
-  if(tag){cout << "Insert " << ld.toString() << endl;}
+  if(tag){cout << "Insert " << ld << endl;}
 #endif
 
   if(*pnode == 0) {

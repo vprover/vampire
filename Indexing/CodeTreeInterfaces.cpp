@@ -196,7 +196,7 @@ void CodeTreeTIS::remove(TermList t, Literal* lit, Clause* cls)
   _ct.remove(TermCodeTree::TermInfo(t,lit,cls));
 }
 
-TermQueryResultIterator CodeTreeTIS::getGeneralizations(TermList t, bool retrieveSubstitutions)
+TermQueryResultIterator<DefaultLeafData> CodeTreeTIS::getGeneralizations(TermList t, bool retrieveSubstitutions)
 {
   CALL("CodeTreeTIS::getGeneralizations");
 

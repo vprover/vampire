@@ -132,30 +132,34 @@ struct SLQueryResult
 /**
  * Class of objects which contain results of term queries.
  */
-struct TermQueryResult
+template<class Data>
+struct TermQueryResult : public Data
 {
-  TermQueryResult() : literal(nullptr), clause(nullptr) {}
-  TermQueryResult(TermList t, Literal* l, Clause* c, ResultSubstitutionSP s)
-  : term(t), literal(l), clause(c), substitution(s) {}
-  TermQueryResult(TermList t, Literal* l, Clause* c, ResultSubstitutionSP s, bool b)
-  : term(t), literal(l), clause(c), substitution(s), isTypeSub(b) {}
-  TermQueryResult(TermList t, Literal* l, Clause* c)
-  : term(t), literal(l), clause(c) {}
-  TermQueryResult(TermList t, Literal* l, Clause* c, ResultSubstitutionSP s,UnificationConstraintStackSP con)
-  : term(t), literal(l), clause(c), substitution(s), constraints(con) {}
-  TermQueryResult(TermList t, Literal* l, Clause* c, ResultSubstitutionSP s,UnificationConstraintStackSP con, bool b)
-  : term(t), literal(l), clause(c), substitution(s), constraints(con), isTypeSub(b) {}
+  TermQueryResult() {}
 
-  TermList term;
-  Literal* literal;
-  Clause* clause;
+  TermQueryResult(TermList t, Literal* l, Clause* c, ResultSubstitutionSP s)
+    : DefaultLeafData(c,l,t), substitution(s) {}
+
+  TermQueryResult(TermList t, Literal* l, Clause* c, ResultSubstitutionSP s, bool b)
+    : DefaultLeafData(c,l,t), substitution(s), isTypeSub(b) {}
+
+  TermQueryResult(TermList t, Literal* l, Clause* c)
+    : DefaultLeafData(c,l,t) {}
+
+  TermQueryResult(TermList t, Literal* l, Clause* c, ResultSubstitutionSP s,UnificationConstraintStackSP con) 
+    : DefaultLeafData(c,l,t), substitution(s), constraints(con) {}
+
+  TermQueryResult(TermList t, Literal* l, Clause* c, ResultSubstitutionSP s,UnificationConstraintStackSP con, bool b)
+    : DefaultLeafData(c,l,t), substitution(s), constraints(con), isTypeSub(b) {}
+
+
+  DefaultLeafData const& data() const
+  { return *this; }
+
   ResultSubstitutionSP substitution;
   UnificationConstraintStackSP constraints;
   bool isTypeSub = false; //true if the substitution only unifies the types of the terms
                           //
-
-  DefaultLeafData data() const
-  { return DefaultLeafData(clause, literal, term); }
 };
 
 struct ClauseSResQueryResult
@@ -183,7 +187,8 @@ struct FormulaQueryResult
 };
 
 typedef VirtualIterator<SLQueryResult> SLQueryResultIterator;
-typedef VirtualIterator<TermQueryResult> TermQueryResultIterator;
+template<class Data>
+using TermQueryResultIterator = VirtualIterator<TermQueryResult<Data>> ;
 typedef VirtualIterator<ClauseSResQueryResult> ClauseSResResultIterator;
 typedef VirtualIterator<FormulaQueryResult> FormulaQueryResultIterator;
 

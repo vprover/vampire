@@ -132,7 +132,8 @@ void TypeSubstitutionTree<LeafData_>::handleTerm(TermList sort, LeafData ld, boo
     Term* term=sort.term();
 
     Renaming normalizer;
-    normalizer.normalizeVariables(ld.term);
+    normalize(normalizer, ld);
+    // normalizer.normalizeVariables(ld.term);
 
     Term* normSort=normalizer.apply(term);
 
@@ -151,7 +152,7 @@ void TypeSubstitutionTree<LeafData_>::handleTerm(TermList sort, LeafData ld, boo
 
 //TODO use sorts and delete non-shared
 template<class LeafData_>
-TermQueryResultIterator TypeSubstitutionTree<LeafData_>::getUnifications(TermList sort, TermList trm,
+TermQueryResultIterator<LeafData_> TypeSubstitutionTree<LeafData_>::getUnifications(TermList sort, TermList trm,
 	  bool retrieveSubstitutions)
 {
   CALL("TypeSubstitutionTree::getUnifications");
@@ -189,7 +190,7 @@ struct TypeSubstitutionTree<LeafData_>::TermQueryResultFn
 
 template<class LeafData_>
 template<class Iterator>
-TermQueryResultIterator TypeSubstitutionTree<LeafData_>::getResultIterator(Term* trm,
+TermQueryResultIterator<LeafData_> TypeSubstitutionTree<LeafData_>::getResultIterator(Term* trm,
 	  bool retrieveSubstitutions)
 {
   CALL("TypeSubstitutionTree::getResultIterator");
@@ -274,7 +275,7 @@ private:
 
 template<class LeafData_>
 template<class LDIt>
-TermQueryResultIterator TypeSubstitutionTree<LeafData_>::ldIteratorToTQRIterator(LDIt ldIt,
+TermQueryResultIterator<LeafData_> TypeSubstitutionTree<LeafData_>::ldIteratorToTQRIterator(LDIt ldIt,
 	TermList queryTerm, bool retrieveSubstitutions)
 {
   CALL("TypeSubstitutionTree::ldIteratorToTQRIterator");
@@ -295,7 +296,7 @@ TermQueryResultIterator TypeSubstitutionTree<LeafData_>::ldIteratorToTQRIterator
 }
 
 template<class LeafData_>
-TermQueryResultIterator TypeSubstitutionTree<LeafData_>::getAllUnifyingIterator(TermList trm,
+TermQueryResultIterator<LeafData_> TypeSubstitutionTree<LeafData_>::getAllUnifyingIterator(TermList trm,
 	  bool retrieveSubstitutions)
 {
   CALL("TypeSubstitutionTree::getAllUnifyingIterator");

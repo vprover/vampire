@@ -82,6 +82,7 @@ void Superposition::detach()
 
 struct Superposition::RewritableResultsFn
 {
+
   RewritableResultsFn(SuperpositionSubtermIndex* index,bool wc,bool ea) : _index(index),
                      _withC(wc), _extByAbs(ea) {}
   VirtualIterator<pair<pair<Literal*, TermList>, TermQueryResult> > operator()(pair<Literal*, TermList> arg)

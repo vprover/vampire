@@ -318,6 +318,7 @@ void InductionClauseIterator::processClause(Clause* premise)
  */
 struct InductionContextFn
 {
+  using TermQueryResult = Indexing::TermQueryResult<DefaultLeafData>;
   InductionContextFn(Clause* premise, Literal* lit) : _premise(premise), _lit(lit) {}
 
   VirtualIterator<InductionContext> operator()(pair<Term*, VirtualIterator<TermQueryResult>> arg) {

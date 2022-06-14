@@ -22,6 +22,7 @@ namespace Indexing {
 
 template<class Data>
 class TermIndexingStructure {
+  using TermQueryResultIterator = Indexing::TermQueryResultIterator<Data>;
 public:
   virtual ~TermIndexingStructure() {}
 

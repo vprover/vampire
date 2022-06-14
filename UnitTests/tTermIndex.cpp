@@ -64,7 +64,7 @@ TEST_FUN(basic01) {
 //   DECL_CONST(a, srt)
 //   DECL_CONST(b, srt)
 //   DECL_FUNC(f, {srt}, srt)
-//   
+//
 //   TermSubstitutionTree<vstring> tree;
 //   tree.insert(f(a), "a");
 //   tree.insert(f(a), "b");

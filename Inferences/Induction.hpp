@@ -179,7 +179,9 @@ private:
 
 class InductionClauseIterator
 {
-  using TermIndex = Indexing::TermIndex<DefaultLeafData>;
+  using TermIndex               = Indexing::TermIndex<DefaultLeafData>;
+  using TermQueryResult         = Indexing::TermQueryResult<DefaultLeafData>;
+  using TermQueryResultIterator = Indexing::TermQueryResultIterator<DefaultLeafData>;
 public:
   // all the work happens in the constructor!
   InductionClauseIterator(Clause* premise, InductionHelper helper, const Options& opt,

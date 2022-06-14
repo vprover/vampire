@@ -107,9 +107,9 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
       bool toplevelCheck=getOptions().demodulationRedundancyCheck() && lit->isEquality() &&
 	  (trm==*lit->nthArgument(0) || trm==*lit->nthArgument(1));
 
-      TermQueryResultIterator git=_index->getGeneralizations(trm, true);
+      auto git=_index->getGeneralizations(trm, true);
       while(git.hasNext()) {
-        TermQueryResult qr=git.next();
+        auto qr=git.next();
         ASS_EQ(qr.clause->length(),1);
 
         if(!ColorHelper::compatible(cl->color(), qr.clause->color())) {

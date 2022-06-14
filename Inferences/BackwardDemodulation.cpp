@@ -75,6 +75,8 @@ struct BackwardDemodulation::RemovedIsNonzeroFn
 
 struct BackwardDemodulation::RewritableClausesFn
 {
+  using TermQueryResult = Indexing::TermQueryResult<DefaultLeafData>;
+
   RewritableClausesFn(DemodulationSubtermIndex* index) : _index(index) {}
   VirtualIterator<pair<TermList,TermQueryResult> > operator() (TermList lhs)
   {
@@ -88,6 +90,7 @@ private:
 struct BackwardDemodulation::ResultFn
 {
   typedef DHMultiset<Clause*> ClauseSet;
+  using TermQueryResult = Indexing::TermQueryResult<DefaultLeafData>;
 
   ResultFn(Clause* cl, BackwardDemodulation& parent)
   : _cl(cl), _parent(parent), _ordering(parent._salg->getOrdering())

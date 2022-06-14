@@ -32,14 +32,16 @@ class TypeSubstitutionTree
 : public TermIndexingStructure<LeafData_>, Indexing::SubstitutionTree<LeafData_>
 {
   using LeafData = LeafData_;
-  using SubstitutionTree = Indexing::SubstitutionTree<LeafData>;
-  using TermIndexingStructure = Indexing::TermIndexingStructure<LeafData>;
+  using SubstitutionTree        = Indexing::SubstitutionTree<LeafData>;
+  using TermIndexingStructure   = Indexing::TermIndexingStructure<LeafData>;
+  using TermQueryResult         = TermQueryResult<LeafData>;
+  using TermQueryResultIterator = TermQueryResultIterator<LeafData>;
+  using QueryResult                 = typename SubstitutionTree::QueryResult;
   using BindingMap                  = typename SubstitutionTree::BindingMap;
   using Node                        = typename SubstitutionTree::Node;
   using FastInstancesIterator       = typename SubstitutionTree::FastInstancesIterator;
   using FastGeneralizationsIterator = typename SubstitutionTree::FastGeneralizationsIterator;
   using UnificationsIterator        = typename SubstitutionTree::UnificationsIterator;
-  using QueryResult                 = typename SubstitutionTree::QueryResult;
   using LDIterator                  = typename SubstitutionTree::LDIterator;
   using LDComparator                = typename SubstitutionTree::LDComparator;
   using Leaf                        = typename SubstitutionTree::Leaf;
@@ -95,6 +97,14 @@ private:
   {
     return t->functor();
   }
+
+  void normalize(Renaming& normalizer, DefaultLeafData& ld)
+  { normalizer.normalizeVariables(ld.term); }
+
+  template<class LD>
+  void normalize(Renaming& normalizer, LD& ld)
+  { }
+
 
   typedef SkipList<LeafData,LDComparator> LDSkipList;
   LDSkipList _vars;

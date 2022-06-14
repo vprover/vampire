@@ -145,7 +145,7 @@ void TermSubstitutionTree<LeafData_>::handleTerm(TermList t, LeafData ld, bool i
 }
 
 template<class LeafData_>
-TermQueryResultIterator TermSubstitutionTree<LeafData_>::getUnifications(TermList t,
+TermQueryResultIterator<LeafData_> TermSubstitutionTree<LeafData_>::getUnifications(TermList t,
 	  bool retrieveSubstitutions)
 {
   CALL("TermSubstitutionTree::getUnifications");
@@ -168,7 +168,7 @@ TermQueryResultIterator TermSubstitutionTree<LeafData_>::getUnifications(TermLis
 
 //higher-order concern
 template<class LeafData_>
-TermQueryResultIterator TermSubstitutionTree<LeafData_>::getUnificationsUsingSorts(TermList t, TermList sort,
+TermQueryResultIterator<LeafData_> TermSubstitutionTree<LeafData_>::getUnificationsUsingSorts(TermList t, TermList sort,
     bool retrieveSubstitutions)
 {
   CALL("TermSubstitutionTree::getUnificationsUsingSorts");
@@ -202,7 +202,7 @@ TermQueryResultIterator TermSubstitutionTree<LeafData_>::getUnificationsUsingSor
 
 //TODO code sharing with getUnifications
 template<class LeafData_>
-TermQueryResultIterator TermSubstitutionTree<LeafData_>::getUnificationsWithConstraints(TermList t,
+TermQueryResultIterator<LeafData_> TermSubstitutionTree<LeafData_>::getUnificationsWithConstraints(TermList t,
           bool retrieveSubstitutions)
 {
   CALL("TermSubstitutionTree::getUnificationsWithConstraints");
@@ -256,7 +256,7 @@ bool TermSubstitutionTree<LeafData_>::generalizationExists(TermList t)
  * Return iterator, that yields generalizations of the given term.
  */
 template<class LeafData_>
-TermQueryResultIterator TermSubstitutionTree<LeafData_>::getGeneralizations(TermList t,
+TermQueryResultIterator<LeafData_> TermSubstitutionTree<LeafData_>::getGeneralizations(TermList t,
 	  bool retrieveSubstitutions)
 {
   CALL("TermSubstitutionTree::getGeneralizations");
@@ -276,7 +276,7 @@ TermQueryResultIterator TermSubstitutionTree<LeafData_>::getGeneralizations(Term
 }
 
 template<class LeafData_>
-TermQueryResultIterator TermSubstitutionTree<LeafData_>::getInstances(TermList t,
+TermQueryResultIterator<LeafData_> TermSubstitutionTree<LeafData_>::getInstances(TermList t,
 	  bool retrieveSubstitutions)
 {
   CALL("TermSubstitutionTree::getInstances");
@@ -311,7 +311,7 @@ private:
 
 template<class LeafData_>
 template<class Iterator>
-TermQueryResultIterator TermSubstitutionTree<LeafData_>::getResultIterator(Term* trm,
+TermQueryResultIterator<LeafData_> TermSubstitutionTree<LeafData_>::getResultIterator(Term* trm,
 	  bool retrieveSubstitutions,bool withConstraints)
 {
   CALL("TermSubstitutionTree::getResultIterator");
@@ -432,7 +432,7 @@ private:
 
 template<class LeafData_>
 template<class LDIt>
-TermQueryResultIterator TermSubstitutionTree<LeafData_>::ldIteratorToTQRIterator(LDIt ldIt,
+TermQueryResultIterator<LeafData_> TermSubstitutionTree<LeafData_>::ldIteratorToTQRIterator(LDIt ldIt,
 	TermList queryTerm, bool retrieveSubstitutions,bool withConstraints)
 {
   CALL("TermSubstitutionTree::ldIteratorToTQRIterator");
@@ -453,7 +453,7 @@ TermQueryResultIterator TermSubstitutionTree<LeafData_>::ldIteratorToTQRIterator
 }
 
 template<class LeafData_>
-TermQueryResultIterator TermSubstitutionTree<LeafData_>::getAllUnifyingIterator(TermList trm,
+TermQueryResultIterator<LeafData_> TermSubstitutionTree<LeafData_>::getAllUnifyingIterator(TermList trm,
 	  bool retrieveSubstitutions,bool withConstraints)
 {
   CALL("TermSubstitutionTree::getAllUnifyingIterator");

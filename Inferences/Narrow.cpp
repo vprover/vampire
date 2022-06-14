@@ -76,6 +76,7 @@ void Narrow::detach()
 
 struct Narrow::ApplicableNarrowsFn
 {
+  using TermQueryResult = Indexing::TermQueryResult<DefaultLeafData>;
   ApplicableNarrowsFn(NarrowingIndex* index) : _index(index) {}
   VirtualIterator<pair<pair<Literal*, TermList>, TermQueryResult> > operator()(pair<Literal*, TermList> arg)
   {
@@ -106,6 +107,7 @@ private:
 
 struct Narrow::ResultFn
 {
+  using TermQueryResult = Indexing::TermQueryResult<DefaultLeafData>;
   ResultFn(Clause* cl, Narrow& parent) : _cl(cl), _parent(parent) {}
   Clause* operator()(pair<pair<Literal*, TermList>, TermQueryResult> arg)
   {

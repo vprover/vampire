@@ -37,9 +37,12 @@ using namespace Lib;
  * Term indexing structure using code trees to retrieve generalizations
  */
 
-class CodeTreeTIS : public TermIndexingStructure<>
+class CodeTreeTIS : public TermIndexingStructure<DefaultLeafData>
 {
+  using TermQueryResultIterator = Indexing::TermQueryResultIterator<DefaultLeafData>;
+  using TermQueryResult         = Indexing::TermQueryResult<DefaultLeafData>;
 public:
+
   CLASS_NAME(CodeTreeTIS);
   USE_ALLOCATOR(CodeTreeTIS);
 

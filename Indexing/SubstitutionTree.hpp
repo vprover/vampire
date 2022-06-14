@@ -72,6 +72,8 @@ class SubstitutionTree
 {
 public:
   using LeafData = LeafData_;
+  using TermQueryResultIterator = TermQueryResultIterator<LeafData>;
+
   CLASS_NAME(SubstitutionTree);
   USE_ALLOCATOR(SubstitutionTree);
 
@@ -90,7 +92,6 @@ public:
   class LDComparator
   {
   public:
-    inline
     static Comparison compare(const LeafData& ld1, const LeafData& ld2)
     {
       CALL("SubstitutionTree::LDComparator::compare");
@@ -141,7 +142,17 @@ public:
       }
       return res;
     }
+
+    template<class LD>
+    static Comparison compare(const LD& ld1, const LD& ld2)
+    {
+      return ld1 < ld2 ? Comparison::LESS 
+           : ld1 > ld2 ? Comparison::GREATER
+           : Comparison::EQUAL;
+    }
+
   };
+  
 
   enum NodeAlgorithm
   {
@@ -415,7 +426,7 @@ public:
        auto children = allChildren();
        while(children.hasNext()){
          Node::printDepth(depth);
-         cout << children.next().toString() << endl;
+         cout << children.next() << endl;
        } 
     }
   };

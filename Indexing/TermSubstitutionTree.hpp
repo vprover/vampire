@@ -39,9 +39,11 @@ template<class LeafData_ = DefaultLeafData>
 class TermSubstitutionTree
 : public TermIndexingStructure<LeafData_>, Indexing::SubstitutionTree<LeafData_>
 {
-  using SubstitutionTree      = Indexing::SubstitutionTree<LeafData_>;
-  using TermIndexingStructure = Indexing::TermIndexingStructure<LeafData_>;
-  using TypeSubstitutionTree  = Indexing::TypeSubstitutionTree<LeafData_>;
+  using SubstitutionTree        = Indexing::SubstitutionTree<LeafData_>;
+  using TermIndexingStructure   = Indexing::TermIndexingStructure<LeafData_>;
+  using TypeSubstitutionTree    = Indexing::TypeSubstitutionTree<LeafData_>;
+  using TermQueryResultIterator = Indexing::TermQueryResultIterator<LeafData_>;
+  using TermQueryResult         = Indexing::TermQueryResult<LeafData_>;
   using BindingMap                  = typename SubstitutionTree::BindingMap;
   using Node                        = typename SubstitutionTree::Node;
   using FastInstancesIterator       = typename SubstitutionTree::FastInstancesIterator;
