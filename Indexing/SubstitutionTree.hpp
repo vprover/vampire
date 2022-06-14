@@ -72,7 +72,7 @@ class SubstitutionTree
 {
 public:
   using LeafData = LeafData_;
-  using TermQueryResultIterator = TermQueryResultIterator<LeafData>;
+  using TermQueryResultIterator = VirtualIterator<TermQueryResult<LeafData>>;
 
   CLASS_NAME(SubstitutionTree);
   USE_ALLOCATOR(SubstitutionTree);
@@ -124,6 +124,7 @@ public:
     static Comparison compare(const DefaultLeafData& ld1, const DefaultLeafData& ld2)
     {
       CALL("SubstitutionTree::LDComparator::compare");
+      // TODO get rid of this
 
       /*
       cout << "ld1: " << ld1.toString() << endl;
@@ -781,8 +782,6 @@ public:
     bool findNextLeaf();
     bool enterNode(Node*& node);
 
-    /** We are retrieving generalizations of a literal */
-    bool _literalRetrieval;
     /** We should include substitutions in the results */
     bool _retrieveSubstitution;
     /** The iterator is currently in a leaf
@@ -828,7 +827,6 @@ public:
     bool enterNode(Node*& node);
 
   private:
-    bool _literalRetrieval;
     bool _retrieveSubstitution;
     bool _inLeaf;
     LDIterator _ldIterator;
@@ -904,7 +902,6 @@ public:
     VarStack svStack;
 
   private:
-    bool literalRetrieval;
     bool retrieveSubstitution;
     bool inLeaf;
     LDIterator ldIterator;

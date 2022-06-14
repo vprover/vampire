@@ -42,8 +42,7 @@ class TermSubstitutionTree
   using SubstitutionTree        = Indexing::SubstitutionTree<LeafData_>;
   using TermIndexingStructure   = Indexing::TermIndexingStructure<LeafData_>;
   using TypeSubstitutionTree    = Indexing::TypeSubstitutionTree<LeafData_>;
-  using TermQueryResultIterator = Indexing::TermQueryResultIterator<LeafData_>;
-  using TermQueryResult         = Indexing::TermQueryResult<LeafData_>;
+  using TermQueryResultIterator = VirtualIterator<TermQueryResult<LeafData_>>;
   using BindingMap                  = typename SubstitutionTree::BindingMap;
   using Node                        = typename SubstitutionTree::Node;
   using FastInstancesIterator       = typename SubstitutionTree::FastInstancesIterator;

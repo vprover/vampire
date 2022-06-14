@@ -578,7 +578,7 @@ template<class LeafData_>
 SubstitutionTree<LeafData_>::FastInstancesIterator::FastInstancesIterator(SubstitutionTree* parent, Node* root,
 	Term* query, bool retrieveSubstitution, bool reversed, bool withoutTop, bool useC, 
   FuncSubtermMap* fstm) //final two for compatibility purposes
-: _literalRetrieval(query->isLiteral()), _retrieveSubstitution(retrieveSubstitution),
+: _retrieveSubstitution(retrieveSubstitution),
   _inLeaf(false), _ldIterator(LDIterator::getEmpty()),  _root(root),
   _alternatives(64), _specVarNumbers(64), _nodeTypes(64)
 #if VDEBUG
@@ -673,9 +673,6 @@ typename SubstitutionTree<LeafData_>::QueryResult SubstitutionTree<LeafData_>::F
   if(_retrieveSubstitution) {
     _resultDenormalizer.reset();
     bool ground = SubstitutionTree::isGround(ld.key());
-      // _literalRetrieval
-      // ? SubstitutionTree::literalIsGround(ld)
-      // : (ld.term.isTerm() && ld.term.term()->ground());
     if(!ground) {
       Renaming normalizer;
       normalizer.normalizeVariables(ld.key());

@@ -257,17 +257,17 @@ struct TermSubstitutionTree<LeafData_>::TermQueryResultFn
   }
 
   template<class LD>
-  TermQueryResult specializedOperator(LD*, const QueryResult& qr)  {
-    return TermQueryResult(*qr.first.first, qr.first.second,qr.second);
+  TermQueryResult<LeafData> specializedOperator(LD*, const QueryResult& qr)  {
+    return TermQueryResult<LeafData>(*qr.first.first, qr.first.second,qr.second);
   }
 
-  TermQueryResult specializedOperator(DefaultLeafData*, const QueryResult& qr)  {
+  TermQueryResult<LeafData> specializedOperator(DefaultLeafData*, const QueryResult& qr)  {
     TermList trm = _extra ? qr.first.first->extraTerm : qr.first.first->term;
-    return TermQueryResult(DefaultLeafData(trm, qr.first.first->literal,
+    return TermQueryResult<LeafData>(DefaultLeafData(trm, qr.first.first->literal,
 	    qr.first.first->clause), qr.first.second,qr.second);
   }
 
-  TermQueryResult operator() (const QueryResult& qr) {
+  TermQueryResult<LeafData> operator() (const QueryResult& qr) {
     return specializedOperator((LeafData*) nullptr, qr);
   }
 
@@ -314,8 +314,8 @@ TermQueryResultIterator<LeafData_> TermSubstitutionTree<LeafData_>::getResultIte
 template<class LeafData_>
 struct TermSubstitutionTree<LeafData_>::LDToTermQueryResultFn
 {
-  TermQueryResult operator() (const LeafData& ld) {
-    return TermQueryResult(ld);
+  TermQueryResult<LeafData> operator() (const LeafData& ld) {
+    return TermQueryResult<LeafData>(ld);
   }
 };
 
@@ -330,15 +330,15 @@ struct TermSubstitutionTree<LeafData_>::LDToTermQueryResultWithSubstFn
     _subst=RobSubstitutionSP(new RobSubstitution());
     _constraints=UnificationConstraintStackSP(new Stack<UnificationConstraint>());
   }
-  TermQueryResult operator() (const LeafData& ld) {
+  TermQueryResult<LeafData> operator() (const LeafData& ld) {
     if(_withConstraints){
-      return TermQueryResult(ld,
+      return TermQueryResult<LeafData>(ld,
             ResultSubstitution::fromSubstitution(_subst.ptr(),
                     QRS_QUERY_BANK,QRS_RESULT_BANK),
             _constraints);
     }
     else{
-      return TermQueryResult(ld,
+      return TermQueryResult<LeafData>(ld,
 	    ResultSubstitution::fromSubstitution(_subst.ptr(),
 		    QRS_QUERY_BANK,QRS_RESULT_BANK));
     }
@@ -367,7 +367,7 @@ struct TermSubstitutionTree<LeafData_>::UnifyingContext
     , _withConstraints(withConstraints)
 #endif
   {}
-  bool enter(TermQueryResult qr)
+  bool enter(TermQueryResult<LeafData> qr)
   {
     //if(_withConstraints){ cout << "enter " << qr.term << endl; }
 
@@ -379,7 +379,7 @@ struct TermSubstitutionTree<LeafData_>::UnifyingContext
     ASS(unified || _withConstraints);
     return unified;
   }
-  void leave(TermQueryResult qr)
+  void leave(TermQueryResult<LeafData> qr)
   {
     RobSubstitution* subst=qr.substitution->tryGetRobSubstitution();
     ASS(subst);
