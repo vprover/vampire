@@ -255,10 +255,19 @@ struct TermSubstitutionTree<LeafData_>::TermQueryResultFn
     _extra = extra;
   }
 
-  TermQueryResult operator() (const QueryResult& qr) {
+  template<class LD>
+  TermQueryResult specializedOperator(LD*, const QueryResult& qr)  {
+    return TermQueryResult(*qr.first.first, qr.first.second,qr.second);
+  }
+
+  TermQueryResult specializedOperator(DefaultLeafData*, const QueryResult& qr)  {
     TermList trm = _extra ? qr.first.first->extraTerm : qr.first.first->term;
-    return TermQueryResult(trm, qr.first.first->literal,
-	    qr.first.first->clause, qr.first.second,qr.second);
+    return TermQueryResult(DefaultLeafData(trm, qr.first.first->literal,
+	    qr.first.first->clause), qr.first.second,qr.second);
+  }
+
+  TermQueryResult operator() (const QueryResult& qr) {
+    return specializedOperator((LeafData*) nullptr, qr);
   }
 
 private:
@@ -305,7 +314,7 @@ template<class LeafData_>
 struct TermSubstitutionTree<LeafData_>::LDToTermQueryResultFn
 {
   TermQueryResult operator() (const LeafData& ld) {
-    return TermQueryResult(ld.term, ld.literal, ld.clause);
+    return TermQueryResult(ld);
   }
 };
 
@@ -322,13 +331,13 @@ struct TermSubstitutionTree<LeafData_>::LDToTermQueryResultWithSubstFn
   }
   TermQueryResult operator() (const LeafData& ld) {
     if(_withConstraints){
-      return TermQueryResult(ld.term, ld.literal, ld.clause,
+      return TermQueryResult(ld,
             ResultSubstitution::fromSubstitution(_subst.ptr(),
                     QRS_QUERY_BANK,QRS_RESULT_BANK),
             _constraints);
     }
     else{
-      return TermQueryResult(ld.term, ld.literal, ld.clause,
+      return TermQueryResult(ld,
 	    ResultSubstitution::fromSubstitution(_subst.ptr(),
 		    QRS_QUERY_BANK,QRS_RESULT_BANK));
     }

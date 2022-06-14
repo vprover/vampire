@@ -137,20 +137,20 @@ struct TermQueryResult : public Data
 {
   TermQueryResult() {}
 
-  TermQueryResult(TermList t, Literal* l, Clause* c, ResultSubstitutionSP s)
-    : DefaultLeafData(c,l,t), substitution(s) {}
+  TermQueryResult(Data d, ResultSubstitutionSP s)
+    : Data(std::move(d)), substitution(s) {}
 
-  TermQueryResult(TermList t, Literal* l, Clause* c, ResultSubstitutionSP s, bool b)
-    : DefaultLeafData(c,l,t), substitution(s), isTypeSub(b) {}
+  TermQueryResult(Data d, ResultSubstitutionSP s, bool b)
+    : Data(std::move(d)), substitution(s), isTypeSub(b) {}
 
-  TermQueryResult(TermList t, Literal* l, Clause* c)
-    : DefaultLeafData(c,l,t) {}
+  TermQueryResult(Data d)
+    : Data(std::move(d)) {}
 
-  TermQueryResult(TermList t, Literal* l, Clause* c, ResultSubstitutionSP s,UnificationConstraintStackSP con) 
-    : DefaultLeafData(c,l,t), substitution(s), constraints(con) {}
+  TermQueryResult(Data d, ResultSubstitutionSP s,UnificationConstraintStackSP con) 
+    : Data(std::move(d)), substitution(s), constraints(con) {}
 
-  TermQueryResult(TermList t, Literal* l, Clause* c, ResultSubstitutionSP s,UnificationConstraintStackSP con, bool b)
-    : DefaultLeafData(c,l,t), substitution(s), constraints(con), isTypeSub(b) {}
+  TermQueryResult(Data d, ResultSubstitutionSP s,UnificationConstraintStackSP con, bool b)
+    : Data(std::move(d)), substitution(s), constraints(con), isTypeSub(b) {}
 
 
   Data const& data() const

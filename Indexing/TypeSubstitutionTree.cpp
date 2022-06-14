@@ -80,7 +80,7 @@ struct TypeSubstitutionTree<LeafData_>::VarUnifFn
       isTypeSub = true;
     }
 
-    return TermQueryResult(tqr.term, tqr.literal, tqr.clause,
+    return TermQueryResult(tqr,
     ResultSubstitution::fromSubstitution(_subst.ptr(),
       QRS_QUERY_BANK,QRS_RESULT_BANK), isTypeSub);
   }
@@ -183,8 +183,7 @@ template<class LeafData_>
 struct TypeSubstitutionTree<LeafData_>::TermQueryResultFn
 {
   TermQueryResult operator() (const QueryResult& qr) {
-    return TermQueryResult(qr.first.first->term, qr.first.first->literal,
-	    qr.first.first->clause, qr.first.second,qr.second);
+    return TermQueryResult(*qr.first.first, qr.first.second,qr.second);
   }
 };
 
@@ -219,7 +218,7 @@ template<class LeafData_>
 struct TypeSubstitutionTree<LeafData_>::LDToTermQueryResultFn
 {
   TermQueryResult operator() (const LeafData& ld) {
-    return TermQueryResult(ld.term, ld.literal, ld.clause);
+    return TermQueryResult(ld);
   }
 };
 
@@ -231,7 +230,7 @@ struct TypeSubstitutionTree<LeafData_>::LDToTermQueryResultWithSubstFn
     _subst=RobSubstitutionSP(new RobSubstitution());
   }
   TermQueryResult operator() (const LeafData& ld) {
-    return TermQueryResult(ld.term, ld.literal, ld.clause,
+    return TermQueryResult(ld,
     ResultSubstitution::fromSubstitution(_subst.ptr(),
 	    QRS_QUERY_BANK,QRS_RESULT_BANK));
   }

@@ -464,7 +464,7 @@ void InductionClauseIterator::processLiteral(Clause* premise, Literal* lit)
           // add formula with default bound
           if (_opt.integerInductionDefaultBound()) {
             InductionFormulaIndex::Entry* e = nullptr;
-            static TermQueryResult defaultBound(TermList(theory->representConstant(IntegerConstantType(0))), nullptr, nullptr);
+            static TermQueryResult defaultBound = TermQueryResult(DefaultLeafData(TermList(theory->representConstant(IntegerConstantType(0))), nullptr, nullptr));
             // for now, represent default bounds with no bound in the index, this is unique
             // since the placeholder is still int
             if (notDoneInt(ctx, nullptr, nullptr, e)) {
@@ -580,7 +580,7 @@ void InductionClauseIterator::processIntegerComparison(Clause* premise, Literal*
       .flatMap([this](const InductionContext& arg) {
         return vi(ContextSubsetReplacement::instance(arg, _opt));
       });
-    TermQueryResult b(bound, lit, premise);
+    auto b = TermQueryResult(DefaultLeafData(bound, lit, premise));
     // loop over literals containing the current induction term
     while (it.hasNext()) {
       auto ctx = it.next();

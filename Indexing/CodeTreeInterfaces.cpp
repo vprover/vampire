@@ -161,11 +161,10 @@ public:
     if(_retrieveSubstitutions) {
       _resultNormalizer->reset();
       _resultNormalizer->normalizeVariables(_found->t);
-      res=TermQueryResult(_found->t, _found->lit, _found->cls,
+      res = TermQueryResult(DefaultLeafData(_found->t, _found->lit, _found->cls),
 	  ResultSubstitutionSP(_subst,true));
-    }
-    else {
-      res=TermQueryResult(_found->t, _found->lit, _found->cls);
+    } else {
+      res = TermQueryResult(DefaultLeafData(_found->t, _found->lit, _found->cls));
     }
     _found=0;
     return res;

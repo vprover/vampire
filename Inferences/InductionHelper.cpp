@@ -39,7 +39,7 @@ struct SLQueryResultToTermQueryResultFn
 
   SLQueryResultToTermQueryResultFn(TermList v) : variable(v) {}
   TermQueryResult operator() (const SLQueryResult slqr) {
-    return TermQueryResult(slqr.substitution->applyToQuery(variable), slqr.literal, slqr.clause);
+    return TermQueryResult(DefaultLeafData(slqr.substitution->applyToQuery(variable), slqr.literal, slqr.clause));
   }
 
   TermList variable;
