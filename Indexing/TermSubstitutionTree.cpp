@@ -36,10 +36,9 @@ using namespace Lib;
 using namespace Kernel;
 
 template<class LeafData_>
-TermSubstitutionTree<LeafData_>::TermSubstitutionTree(bool useC, bool rfSubs, bool extra)
+TermSubstitutionTree<LeafData_>::TermSubstitutionTree(bool useC, bool rfSubs)
 : SubstitutionTree(env.signature->functions(),useC, rfSubs), _extByAbs(rfSubs)
 {
-  _extra = extra;
   if(rfSubs){
     _funcSubtermsByType = new TypeSubstitutionTree();
   }
@@ -252,27 +251,15 @@ TermQueryResultIterator<LeafData_> TermSubstitutionTree<LeafData_>::getInstances
 template<class LeafData_>
 struct TermSubstitutionTree<LeafData_>::TermQueryResultFn
 {
-  TermQueryResultFn(bool extra = false){
-    _extra = extra;
-  }
-
   template<class LD>
   TermQueryResult<LeafData> specializedOperator(LD*, const QueryResult& qr)  {
     return TermQueryResult<LeafData>(*qr.first.first, qr.first.second,qr.second);
-  }
-
-  TermQueryResult<LeafData> specializedOperator(DefaultTermLeafData*, const QueryResult& qr)  {
-    TermList trm = _extra ? qr.first.first->extraTerm : qr.first.first->term;
-    return TermQueryResult<LeafData>(DefaultTermLeafData(trm, qr.first.first->literal,
-	    qr.first.first->clause), qr.first.second,qr.second);
   }
 
   TermQueryResult<LeafData> operator() (const QueryResult& qr) {
     return specializedOperator((LeafData*) nullptr, qr);
   }
 
-private:
-  bool _extra;
 };
 
 template<class LeafData_>
@@ -297,7 +284,7 @@ TermQueryResultIterator<LeafData_> TermSubstitutionTree<LeafData_>::getResultIte
       VirtualIterator<QueryResult> qrit=vi( new Iterator(this, root, trm, retrieveSubstitutions,false,false, 
                                                          withConstraints, 
                                                          (_extByAbs ? &_functionalSubtermMap : 0) ));
-      result = pvi( getMappingIterator(qrit, TermQueryResultFn(_extra)) );
+      result = pvi( getMappingIterator(qrit, TermQueryResultFn()) );
     }
   }
 

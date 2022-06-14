@@ -129,27 +129,33 @@ public:
   { return out << "TermIndexData" << self.toTuple(); }
 };
 
+struct ClauseLiteralExtraTerm {
+  Clause* clause;
+  Literal* literal;
+  TermList extraTerm;
+};
+
+struct ClauseLiteral {
+  Clause* clause;
+  Literal* literal;
+};
+
 
 struct DefaultTermLeafData {
   using Key = TermList;
 
   DefaultTermLeafData() {}
 
-  DefaultTermLeafData(TermList t, Literal* l, Clause* c, TermList extraTerm)
-    : clause(c), literal(l), term(t), extraTerm(extraTerm) {}
-
   DefaultTermLeafData(TermList t, Literal* l, Clause* c)
-    : clause(c), literal(l), term(t) { extraTerm.makeEmpty(); }
+    : clause(c), literal(l), term(t) {}
 
   explicit DefaultTermLeafData(Term* term)
     : clause(nullptr), literal(nullptr),  term(TermList(term))
-  { extraTerm.makeEmpty(); }
+  {}
 
   // TODO maybe make sort an argument and not recompute it here
   TermList sort() const
-  {
-    return SortHelper::getTermSort(term, literal);
-  }
+  { return SortHelper::getTermSort(term, literal); }
 
   Key const& key() const 
   { return term; }
@@ -161,8 +167,7 @@ private:
       clause == nullptr ? 0 : clause->number(), 
       literal == nullptr,
       literal == nullptr ? 0 : literal->getId(), 
-      term, 
-      extraTerm); }
+      term); }
 public:
 
   // TODO shouldn't extraTerm be compared as well?
@@ -182,16 +187,6 @@ public:
   Clause* clause;
   Literal* literal;
   TermList term;
-  // In some higher-order use cases, we want to store a different term 
-  // in the leaf to the indexed term. extraTerm is used for this purpose.
-  // In all other situations it is empty
-  TermList extraTerm;
-
-  // vstring toString() {
-  //   vstring ret = "LD " + literal->toString();// + " in " + clause->literalsOnlyToString();
-  //   if(!term.isEmpty()){ ret += " with " +term.toString(); }
-  //   return ret;
-  // }
 
   friend std::ostream& operator<<(std::ostream& out, DefaultTermLeafData const& self)
   { 
@@ -202,7 +197,6 @@ public:
     out << ", ";
     if (self.clause) out << *self.clause;
     else             out << "null";
-    out << ", " << self.extraTerm;
     out << ")";
     return out;
   }

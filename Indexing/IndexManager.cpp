@@ -213,10 +213,11 @@ Index* IndexManager::create(IndexType t)
     break;
   
   case SKOLEMISING_FORMULA_INDEX:
-    res=new SkolemisingFormulaIndex(new Indexing::TermSubstitutionTree<TermIndexData<TermList>>(false, false, true));
+    res=new SkolemisingFormulaIndex(new Indexing::TermSubstitutionTree<TermIndexData<TermList>>(false, false));
     isGenerating = false;
     break;
 
+    // TODO why is this commented out? 
   /*case RENAMING_FORMULA_INDEX:
     tis=new TermSubstitutionTree(false, false, true);
     res=new RenamingFormulaIndex(tis);

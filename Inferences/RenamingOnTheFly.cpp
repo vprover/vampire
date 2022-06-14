@@ -100,17 +100,17 @@ ClauseIterator RenamingOnTheFly::produceClauses(Clause* c)
       
       bool nameExists = false;
       bool needToAddDefClause = true;
-      TermQueryResult tqr;
       TermList nameS;
       TermList name;
+      TermQueryResult<TermIndexData<RenamingFormulaIndexData>> tqr;
       while(results.hasNext()){
         nameExists = true;
         tqr = results.next();
         
-        name = tqr.term;
+        name = tqr.value().name;
         nameS = tqr.substitution->applyToBoundResult(name);
 
-        Literal* defLit = tqr.literal;
+        Literal* defLit = tqr.value().literal;
         if(positive == defLit->polarity()){
           needToAddDefClause = false;
           break;
@@ -126,7 +126,7 @@ ClauseIterator RenamingOnTheFly::produceClauses(Clause* c)
         //cout << "the sub is " + tqr.substitution->toString() << endl;
         Literal* newLit = Literal::createEquality(positive, nameS, troo, boolSort);
         if(needToAddDefClause){
-          Clause* defClause = tqr.clause;
+          Clause* defClause = tqr.value().clause;
           ASS(defClause->size() == 2);
           Literal* l1 = (*defClause)[0];
           Literal* l2 = (*defClause)[1];

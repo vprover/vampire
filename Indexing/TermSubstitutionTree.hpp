@@ -57,17 +57,7 @@ public:
   CLASS_NAME(TermSubstitutionTree);
   USE_ALLOCATOR(TermSubstitutionTree);
   
-  /* 
-   * The extra flag is a higher-order concern. it is set to true when 
-   * we require the term query result to include two terms, the result term
-   * and another. 
-   *
-   * The main use case is to store a different term in the leaf to the one indexed 
-   * in the tree. This is used for example in Skolemisation on the fly where we 
-   * store Terms of type $o (formulas) in the tree, but in the leaf we store
-   * the skolem terms used to witness them (to facilitate the reuse of Skolems)
-   */
-  TermSubstitutionTree(bool useC=false, bool replaceFunctionalSubterms = false, bool extra = false);
+  TermSubstitutionTree(bool useC=false, bool replaceFunctionalSubterms = false);
 
   // TODO add final override
   void insert(LeafData d) final override { handleTerm(d, /* insert */ true); }
@@ -134,7 +124,6 @@ private:
   LDSkipList _vars;
 
   //higher-order concerns
-  bool _extra;
   bool _extByAbs;
 
   FuncSubtermMap _functionalSubtermMap;

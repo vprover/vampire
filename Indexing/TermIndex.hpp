@@ -275,11 +275,18 @@ public:
   void insertFormula(TermList formula, TermList skolem);
 };
 
+struct RenamingFormulaIndexData {
+  Clause* clause;
+  Literal* literal;
+  TermList name;
+};
+
 class RenamingFormulaIndex
-: public TermIndex<DefaultTermLeafData>
+: public TermIndex<TermIndexData<RenamingFormulaIndexData>>
 {
-  using TermIndex             = Indexing::TermIndex<DefaultTermLeafData>;
-  using TermIndexingStructure = Indexing::TermIndexingStructure<DefaultTermLeafData>;
+  using LeafData = TermIndexData<RenamingFormulaIndexData>;
+  using TermIndex             = Indexing::TermIndex<LeafData>;
+  using TermIndexingStructure = Indexing::TermIndexingStructure<LeafData>;
 public:
   CLASS_NAME(RenamingFormulaIndex);
   USE_ALLOCATOR(RenamingFormulaIndex);
