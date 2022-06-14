@@ -60,7 +60,7 @@ template<class LeafData_>
 void TermSubstitutionTree<LeafData_>::handleTerm(LeafData ld, bool insert)
 {
   CALL("TermSubstitutionTree::handleTerm");
-  auto t = ld.term;
+  auto t = ld.key();
 
   if(_extByAbs && t.isTerm()){ 
     TermList sort = SortHelper::getResultSort(t.term());
@@ -261,9 +261,9 @@ struct TermSubstitutionTree<LeafData_>::TermQueryResultFn
     return TermQueryResult<LeafData>(*qr.first.first, qr.first.second,qr.second);
   }
 
-  TermQueryResult<LeafData> specializedOperator(DefaultLeafData*, const QueryResult& qr)  {
+  TermQueryResult<LeafData> specializedOperator(DefaultTermLeafData*, const QueryResult& qr)  {
     TermList trm = _extra ? qr.first.first->extraTerm : qr.first.first->term;
-    return TermQueryResult<LeafData>(DefaultLeafData(trm, qr.first.first->literal,
+    return TermQueryResult<LeafData>(DefaultTermLeafData(trm, qr.first.first->literal,
 	    qr.first.first->clause), qr.first.second,qr.second);
   }
 
@@ -369,12 +369,12 @@ struct TermSubstitutionTree<LeafData_>::UnifyingContext
   {}
   bool enter(TermQueryResult<LeafData> qr)
   {
-    //if(_withConstraints){ cout << "enter " << qr.term << endl; }
+    //if(_withConstraints){ cout << "enter " << qr.key() << endl; }
 
     ASS(qr.substitution);
     RobSubstitution* subst=qr.substitution->tryGetRobSubstitution();
     ASS(subst);
-    bool unified = subst->unify(_queryTerm, QRS_QUERY_BANK, qr.term, QRS_RESULT_BANK);
+    bool unified = subst->unify(_queryTerm, QRS_QUERY_BANK, qr.key(), QRS_RESULT_BANK);
     //unsigned srt;
     ASS(unified || _withConstraints);
     return unified;

@@ -35,7 +35,7 @@ namespace Indexing {
  * responsibility to ensure that the sorts are unifiable/matchable
  */
 
-template<class LeafData_ = DefaultLeafData>
+template<class LeafData_ = DefaultTermLeafData>
 class TermSubstitutionTree
 : public TermIndexingStructure<LeafData_>, Indexing::SubstitutionTree<LeafData_>
 {

@@ -121,7 +121,7 @@ public:
       return res;
     }
 
-    static Comparison compare(const DefaultLeafData& ld1, const DefaultLeafData& ld2)
+    static Comparison compare(const DefaultTermLeafData& ld1, const DefaultTermLeafData& ld2)
     {
       CALL("SubstitutionTree::LDComparator::compare");
       // TODO get rid of this
@@ -186,7 +186,7 @@ public:
   // static void normalizeVariables(Renaming& normalizer, DefaultLiteralLeafData& ld)
   // { normalizer.normalizeVariables(ld.literal); }
   //
-  // static void normalizeVariables(Renaming& normalizer, DefaultLeafData& ld)
+  // static void normalizeVariables(Renaming& normalizer, DefaultTermLeafData& ld)
   // { normalizer.normalizeVariables(ld.term); }
   //
   // template<class LD>

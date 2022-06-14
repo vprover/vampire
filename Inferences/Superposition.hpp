@@ -30,7 +30,7 @@ using namespace Saturation;
 class Superposition
 : public GeneratingInferenceEngine
 {
-  using TermQueryResult = Indexing::TermQueryResult<DefaultLeafData>;
+  using TermQueryResult = Indexing::TermQueryResult<DefaultTermLeafData>;
 public:
   CLASS_NAME(Superposition);
   USE_ALLOCATOR(Superposition);

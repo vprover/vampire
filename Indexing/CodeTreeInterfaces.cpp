@@ -161,10 +161,10 @@ public:
     if(_retrieveSubstitutions) {
       _resultNormalizer->reset();
       _resultNormalizer->normalizeVariables(_found->t);
-      res = TermQueryResult(DefaultLeafData(_found->t, _found->lit, _found->cls),
+      res = TermQueryResult(DefaultTermLeafData(_found->t, _found->lit, _found->cls),
 	  ResultSubstitutionSP(_subst,true));
     } else {
-      res = TermQueryResult(DefaultLeafData(_found->t, _found->lit, _found->cls));
+      res = TermQueryResult(DefaultTermLeafData(_found->t, _found->lit, _found->cls));
     }
     _found=0;
     return res;
@@ -195,7 +195,7 @@ void CodeTreeTIS::_remove(TermList t, Literal* lit, Clause* cls)
   _ct.remove(TermCodeTree::TermInfo(t,lit,cls));
 }
 
-TermQueryResultIterator<DefaultLeafData> CodeTreeTIS::getGeneralizations(TermList t, bool retrieveSubstitutions)
+TermQueryResultIterator<DefaultTermLeafData> CodeTreeTIS::getGeneralizations(TermList t, bool retrieveSubstitutions)
 {
   CALL("CodeTreeTIS::getGeneralizations");
 

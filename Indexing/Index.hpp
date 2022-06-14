@@ -51,7 +51,6 @@ private:
   { return std::tie(clause, literal); }
 public:
 
-  // TODO shouldn't extraTerm be compared as well?
   friend bool operator==(DefaultLiteralLeafData const& l, DefaultLiteralLeafData const& r)
   { return l.toTuple() == r.toTuple(); }
 
@@ -82,25 +81,63 @@ public:
 
 };
 
+template<class Value>
+class TermIndexData {
+  TermList _key;
+  TermList _sort;
+  Value _value;
+public:
+  TermIndexData() {}
 
-struct DefaultLeafData {
+  TermIndexData(Term* key, Value v)
+    : _key(TermList(key))
+    , _sort(SortHelper::getResultSort(key))
+    , _value(std::move(v)) {}
+
+  TermList const& sort() const
+  { return _sort; }
+
+  TermList const& key() const 
+  { return _key; }
+
+  Value const& value() const 
+  { return _value; }
+
+private:
+  auto toTuple() const
+  { return std::tie(key(), sort(), value()); }
+public:
+
+  friend bool operator==(TermIndexData const& l, TermIndexData const& r)
+  { return l.toTuple() == r.toTuple(); }
+
+  friend bool operator!=(TermIndexData const& l, TermIndexData const& r)
+  { return !(l == r); }
+
+  friend bool operator<(TermIndexData const& l, TermIndexData const& r)
+  { return l.toTuple() < r.toTuple(); }
+
+  friend bool operator> (TermIndexData const& l, TermIndexData const& r) { return r < l; }
+  friend bool operator<=(TermIndexData const& l, TermIndexData const& r) { return l == r || l < r; }
+  friend bool operator>=(TermIndexData const& l, TermIndexData const& r) { return l == r || l > r; }
+
+  friend std::ostream& operator<<(std::ostream& out, TermIndexData const& self)
+  { return out << "TermIndexData" << self.toTuple(); }
+};
+
+
+struct DefaultTermLeafData {
   using Key = TermList;
 
-  DefaultLeafData() {}
+  DefaultTermLeafData() {}
 
-  // DefaultLeafData(Clause* cls, Literal* literal, TermList term, TermList extraTerm)
-  //   : clause(cls), literal(literal), term(term), extraTerm(extraTerm) {}
-
-  DefaultLeafData(TermList t, Literal* l, Clause* c, TermList extraTerm)
+  DefaultTermLeafData(TermList t, Literal* l, Clause* c, TermList extraTerm)
     : clause(c), literal(l), term(t), extraTerm(extraTerm) {}
 
-  DefaultLeafData(TermList t, Literal* l, Clause* c)
+  DefaultTermLeafData(TermList t, Literal* l, Clause* c)
     : clause(c), literal(l), term(t) { extraTerm.makeEmpty(); }
 
-  // DefaultLeafData(Clause* cls, Literal* literal)
-  //   : clause(cls), literal(literal) { term.makeEmpty(); extraTerm.makeEmpty(); }
-
-  explicit DefaultLeafData(Term* term)
+  explicit DefaultTermLeafData(Term* term)
     : clause(nullptr), literal(nullptr),  term(TermList(term))
   { extraTerm.makeEmpty(); }
 
@@ -119,18 +156,18 @@ private:
 public:
 
   // TODO shouldn't extraTerm be compared as well?
-  friend bool operator==(DefaultLeafData const& l, DefaultLeafData const& r)
+  friend bool operator==(DefaultTermLeafData const& l, DefaultTermLeafData const& r)
   { return l.toTuple() == r.toTuple(); }
 
-  friend bool operator!=(DefaultLeafData const& l, DefaultLeafData const& r)
+  friend bool operator!=(DefaultTermLeafData const& l, DefaultTermLeafData const& r)
   { return !(l == r); }
 
-  friend bool operator<(DefaultLeafData const& l, DefaultLeafData const& r)
+  friend bool operator<(DefaultTermLeafData const& l, DefaultTermLeafData const& r)
   { return l.toTuple() < r.toTuple(); }
 
-  friend bool operator> (DefaultLeafData const& l, DefaultLeafData const& r) { return r < l; }
-  friend bool operator<=(DefaultLeafData const& l, DefaultLeafData const& r) { return l == r || l < r; }
-  friend bool operator>=(DefaultLeafData const& l, DefaultLeafData const& r) { return l == r || l > r; }
+  friend bool operator> (DefaultTermLeafData const& l, DefaultTermLeafData const& r) { return r < l; }
+  friend bool operator<=(DefaultTermLeafData const& l, DefaultTermLeafData const& r) { return l == r || l < r; }
+  friend bool operator>=(DefaultTermLeafData const& l, DefaultTermLeafData const& r) { return l == r || l > r; }
 
   Clause* clause;
   Literal* literal;
@@ -146,9 +183,9 @@ public:
   //   return ret;
   // }
 
-  friend std::ostream& operator<<(std::ostream& out, DefaultLeafData const& self)
+  friend std::ostream& operator<<(std::ostream& out, DefaultTermLeafData const& self)
   { 
-    out << "DefaultLeafData("
+    out << "DefaultTermLeafData("
         << self.term << ", ";
     if (self.literal) out << *self.literal;
     else              out << "null";

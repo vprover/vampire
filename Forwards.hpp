@@ -266,10 +266,10 @@ class IndexManager;
 class LiteralIndex;
 class LiteralIndexingStructure;
 struct DefaultLiteralLeafData;
-struct DefaultLeafData;
-template<class Data = DefaultLeafData>
+struct DefaultTermLeafData;
+template<class Data = DefaultTermLeafData>
 class TermIndex;
-template<class Data = DefaultLeafData>
+template<class Data = DefaultTermLeafData>
 class TermIndexingStructure;
 class ClauseSubsumptionIndex;
 
@@ -287,7 +287,7 @@ class SimplifyingLiteralIndex;
 class UnitClauseLiteralIndex;
 class FwSubsSimplifyingLiteralIndex;
 
-template<class LeafData = DefaultLeafData>
+template<class LeafData = DefaultTermLeafData>
 class SubstitutionTree;
 template<class LeafData = DefaultLiteralLeafData>
 class LiteralSubstitutionTree;

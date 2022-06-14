@@ -82,7 +82,7 @@ void SubVarSup::detach()
 
 struct SubVarSup::RewritableResultsFn
 {
-  using TermQueryResult = Indexing::TermQueryResult<DefaultLeafData>;
+  using TermQueryResult = Indexing::TermQueryResult<DefaultTermLeafData>;
   RewritableResultsFn(SubVarSupSubtermIndex* index) : _index(index) {}
   VirtualIterator<pair<pair<Literal*, TermList>, TermQueryResult> > operator()(pair<Literal*, TermList> arg)
   {
@@ -114,7 +114,7 @@ private:
 
 struct SubVarSup::ApplicableRewritesFn
 {
-  using TermQueryResult = Indexing::TermQueryResult<DefaultLeafData>;
+  using TermQueryResult = Indexing::TermQueryResult<DefaultTermLeafData>;
   ApplicableRewritesFn(SubVarSupLHSIndex* index) : _index(index) {}
   VirtualIterator<pair<pair<Literal*, TermList>, TermQueryResult> > operator()(pair<Literal*, TermList> arg)
   {
@@ -131,7 +131,7 @@ private:
 
 struct SubVarSup::ForwardResultFn
 {
-  using TermQueryResult = Indexing::TermQueryResult<DefaultLeafData>;
+  using TermQueryResult = Indexing::TermQueryResult<DefaultTermLeafData>;
   ForwardResultFn(Clause* cl, SubVarSup& parent) : _cl(cl), _parent(parent) {}
   Clause* operator()(pair<pair<Literal*, TermList>, TermQueryResult> arg)
   {
@@ -149,7 +149,7 @@ private:
 
 struct SubVarSup::BackwardResultFn
 {
-  using TermQueryResult = Indexing::TermQueryResult<DefaultLeafData>;
+  using TermQueryResult = Indexing::TermQueryResult<DefaultTermLeafData>;
   BackwardResultFn(Clause* cl, SubVarSup& parent) : _cl(cl), _parent(parent) {}
   Clause* operator()(pair<pair<Literal*, TermList>, TermQueryResult> arg)
   {

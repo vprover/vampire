@@ -95,7 +95,7 @@ private:
     return t->functor();
   }
 
-  void normalize(Renaming& normalizer, DefaultLeafData& ld)
+  void normalize(Renaming& normalizer, DefaultTermLeafData& ld)
   { normalizer.normalizeVariables(ld.term); }
 
   template<class LD>

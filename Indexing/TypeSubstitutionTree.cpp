@@ -59,8 +59,8 @@ struct TypeSubstitutionTree<LeafData_>::VarUnifFn
     ALWAYS(_subst->unify(_sort, QRS_QUERY_BANK, tqrSort, QRS_RESULT_BANK));
     
     bool isTypeSub = false;
-    if(_queryTerm.isVar() || tqr.term.isVar()){
-      ALWAYS(_subst->unify(_queryTerm, QRS_QUERY_BANK, tqr.term, QRS_RESULT_BANK));
+    if(_queryTerm.isVar() || tqr.key().isVar()){
+      ALWAYS(_subst->unify(_queryTerm, QRS_QUERY_BANK, tqr.key(), QRS_RESULT_BANK));
     } else {
       isTypeSub = true;
     }
@@ -84,11 +84,11 @@ struct TypeSubstitutionTree<LeafData_>::ToTypeSubFn
   : _queryTerm(queryTerm) {}
 
   TermQueryResult<LeafData> operator() (TermQueryResult<LeafData> tqr) {
-    if(!_queryTerm.isVar() && !tqr.term.isVar()){
+    if(!_queryTerm.isVar() && !tqr.key().isVar()){
       tqr.isTypeSub = true;
     } else {
       RobSubstitution* subst = tqr.substitution->tryGetRobSubstitution();
-      ALWAYS(subst->unify(_queryTerm, QRS_QUERY_BANK, tqr.term, QRS_RESULT_BANK));      
+      ALWAYS(subst->unify(_queryTerm, QRS_QUERY_BANK, tqr.key(), QRS_RESULT_BANK));      
     }
     return tqr;
   }
@@ -104,7 +104,7 @@ template<class LeafData_>
 void TypeSubstitutionTree<LeafData_>::handleTerm(LeafData ld, bool insert)
 {
   CALL("TypeSubstitutionTree::handleTerm");
-  auto sort = ld.term;
+  auto sort = ld.key();
 
   if(sort.isOrdinaryVar()) {
     if(insert) {
@@ -119,7 +119,7 @@ void TypeSubstitutionTree<LeafData_>::handleTerm(LeafData ld, bool insert)
 
     Renaming normalizer;
     normalize(normalizer, ld);
-    // normalizer.normalizeVariables(ld.term);
+    // normalizer.normalizeVariables(ld.key());
 
     Term* normSort=normalizer.apply(term);
 
@@ -240,12 +240,12 @@ struct TypeSubstitutionTree<LeafData_>::UnifyingContext
   : _queryTerm(queryTerm) {}
   bool enter(TermQueryResult<LeafData> qr)
   {
-    //if(_withConstraints){ cout << "enter " << qr.term << endl; }
+    //if(_withConstraints){ cout << "enter " << qr.key() << endl; }
 
     ASS(qr.substitution);
     RobSubstitution* subst=qr.substitution->tryGetRobSubstitution();
     ASS(subst);
-    bool unified = subst->unify(_queryTerm, QRS_QUERY_BANK, qr.term, QRS_RESULT_BANK);
+    bool unified = subst->unify(_queryTerm, QRS_QUERY_BANK, qr.key(), QRS_RESULT_BANK);
     return unified;
   }
   void leave(TermQueryResult<LeafData> qr)
