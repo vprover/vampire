@@ -92,87 +92,6 @@ public:
   class LDComparator
   {
   public:
-    static Comparison compare(const DefaultLiteralLeafData& ld1, const DefaultLiteralLeafData& ld2)
-    {
-      CALL("SubstitutionTree::LDComparator::compare");
-
-      /*
-      cout << "ld1: " << ld1.toString() << endl;
-      cout << "ld2: " << ld2.toString() << endl;
-      */
-
-      if(ld1.clause && ld2.clause && ld1.clause!=ld2.clause) {
-        //if(ld1.clause->number()==ld2.clause->number()){
-          //cout << "XXX " << ld1.clause << " and " << ld2.clause << endl;
-          //cout << ld2.clause->toString() << endl;
-        //}
-        ASS_NEQ(ld1.clause->number(), ld2.clause->number());
-        return (ld1.clause->number()<ld2.clause->number()) ? LESS : GREATER;
-      }
-      Comparison res;
-      if(ld1.literal && ld2.literal && ld1.literal!=ld2.literal) {
-        res = (ld1.literal->getId()<ld2.literal->getId())? LESS : GREATER;
-      } else {
-        ASS_EQ(ld1.clause,ld2.clause);
-        ASS_EQ(ld1.literal,ld2.literal);
-
-        res = EQUAL;
-      }
-      return res;
-    }
-
-    static Comparison compare(const DefaultTermLeafData& ld1, const DefaultTermLeafData& ld2)
-    {
-      CALL("SubstitutionTree::LDComparator::compare");
-      // TODO get rid of this
-
-      /*
-      cout << "ld1: " << ld1.toString() << endl;
-      cout << "ld2: " << ld2.toString() << endl;
-      */
-
-      if(ld1.clause && ld2.clause && ld1.clause!=ld2.clause) {
-        //if(ld1.clause->number()==ld2.clause->number()){
-          //cout << "XXX " << ld1.clause << " and " << ld2.clause << endl;
-          //cout << ld2.clause->toString() << endl;
-        //}
-        ASS_NEQ(ld1.clause->number(), ld2.clause->number());
-        return (ld1.clause->number()<ld2.clause->number()) ? LESS : GREATER;
-      }
-      Comparison res;
-      if(ld1.literal && ld2.literal && ld1.literal!=ld2.literal) {
-        res = (ld1.literal->getId()<ld2.literal->getId())? LESS : GREATER;
-      } else {
-        ASS_EQ(ld1.clause,ld2.clause);
-        ASS_EQ(ld1.literal,ld2.literal);
-
-        if (ld1.term.isEmpty()) {
-          ASS(ld2.term.isEmpty());
-          res = EQUAL;
-        } else {
-          if (ld1.term.isVar()) {
-            if (ld2.term.isVar()) {
-              unsigned var1 = ld1.term.var();
-              unsigned var2 = ld2.term.var();
-              res=(var1<var2)? LESS : (var1>var2)? GREATER : EQUAL;
-            }
-            else{
-              res = LESS;
-            }
-          } else {
-            if (ld2.term.isVar()) {
-              res = GREATER;
-            } else {
-              unsigned id1 = ld1.term.term()->getId();
-              unsigned id2 = ld2.term.term()->getId();
-              res=(id1<id2)? LESS : (id1>id2)? GREATER : EQUAL;
-            }
-          }
-        }
-      }
-      return res;
-    }
-
     template<class LD>
     static Comparison compare(const LD& ld1, const LD& ld2)
     {
@@ -183,21 +102,8 @@ public:
 
   };
 
-  // static void normalizeVariables(Renaming& normalizer, DefaultLiteralLeafData& ld)
-  // { normalizer.normalizeVariables(ld.literal); }
-  //
-  // static void normalizeVariables(Renaming& normalizer, DefaultTermLeafData& ld)
-  // { normalizer.normalizeVariables(ld.term); }
-  //
-  // template<class LD>
-  // static void normalizeVariables(Renaming& normalizer, LD& ld)
-  // {  normalizer.normalizeVariables(ld.term); }
-
-  static bool isGround(Literal* literal)
-  { return literal->ground(); }
-
-  static bool isGround(TermList term)
-  { return term.isTerm() && term.term()->ground(); }
+  static bool isGround(Literal* literal) { return literal->ground(); }
+  static bool isGround(TermList term) { return term.ground(); }
 
   enum NodeAlgorithm
   {

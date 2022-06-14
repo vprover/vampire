@@ -1875,6 +1875,9 @@ void TermList::assertValid() const
 
 #endif
 
+bool TermList::ground() const
+{ return isTerm() && term()->ground(); }
+
 std::ostream& Kernel::operator<< (ostream& out, TermList tl )
 {
   if (tl.isEmpty()) {

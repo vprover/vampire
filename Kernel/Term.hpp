@@ -179,6 +179,7 @@ public:
   bool isApplication() const;
   bool containsSubterm(TermList v);
   bool containsAllVariablesOf(TermList t);
+  bool ground() const;
 
   bool isSafe() const;
 

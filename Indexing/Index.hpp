@@ -48,7 +48,11 @@ struct DefaultLiteralLeafData {
 
 private:
   auto toTuple() const
-  { return std::tie(clause, literal); }
+  { return make_tuple(
+      clause == nullptr, 
+      clause == nullptr ? 0 : clause->number(), 
+      literal == nullptr,
+      literal == nullptr ? 0 : literal->getId()); }
 public:
 
   friend bool operator==(DefaultLiteralLeafData const& l, DefaultLiteralLeafData const& r)
@@ -151,8 +155,14 @@ struct DefaultTermLeafData {
   { return term; }
 
 private:
-  auto toTuple() const
-  { return std::tie(clause, literal, term, extraTerm); }
+  auto  toTuple() const
+  { return make_tuple(
+      clause == nullptr, 
+      clause == nullptr ? 0 : clause->number(), 
+      literal == nullptr,
+      literal == nullptr ? 0 : literal->getId(), 
+      term, 
+      extraTerm); }
 public:
 
   // TODO shouldn't extraTerm be compared as well?
