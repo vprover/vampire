@@ -495,7 +495,7 @@ void RenamingFormulaIndex::insertFormula(TermList formula, TermList name,
                                          Literal* lit, Clause* cls)
 {
   CALL("RenamingFormulaIndex::insertFormula");
-  _is->insert(formula, name, lit, cls);
+  _is->insert(formula, DefaultLeafData(cls, lit, formula, name));
 }
 
 void RenamingFormulaIndex::handleClause(Clause* c, bool adding)

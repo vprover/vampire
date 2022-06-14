@@ -77,7 +77,7 @@ public:
 
   void remove(TermList t, Literal* lit, Clause* cls);
   // void insert(TermList t, TermList trm);
-  void insert(TermList t, TermList trm, Literal* lit, Clause* cls);
+  // void insert(TermList t, TermList trm, Literal* lit, Clause* cls);
 
   bool generalizationExists(TermList t);
 

@@ -46,23 +46,13 @@ TermSubstitutionTree<LeafData_>::TermSubstitutionTree(bool useC, bool rfSubs, bo
 }
 
 // template<class LeafData_>
-// void TermSubstitutionTree<LeafData_>::insert(TermList t, TermList trm)
+// void TermSubstitutionTree<LeafData_>::insert(TermList t, TermList trm, Literal* lit, Clause* cls)
 // {
 //   CALL("TermSubstitutionTree::insert(TermList)");
 //
-//   ASS(t.isTerm());
-//   LeafData ld(0, 0, t, trm);
+//   LeafData ld(cls, lit, t, trm);
 //   insert(t, ld);
 // }
-
-template<class LeafData_>
-void TermSubstitutionTree<LeafData_>::insert(TermList t, TermList trm, Literal* lit, Clause* cls)
-{
-  CALL("TermSubstitutionTree::insert(TermList)");
-
-  LeafData ld(cls, lit, t, trm);
-  insert(t, ld);
-}
 
 // template<class LeafData_>
 // void TermSubstitutionTree<LeafData_>::insert(TermList t, LeafData ld)
