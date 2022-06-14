@@ -129,17 +129,49 @@ public:
   { return out << "TermIndexData" << self.toTuple(); }
 };
 
-struct ClauseLiteralExtraTerm {
+struct ClauseLiteralPair {
+  ClauseLiteralPair() {}
+
+  ClauseLiteralPair(Clause* c, Literal* l)
+    : clause(c), literal(l) {}
+
+protected:
+  auto  toTuple() const
+  { return make_tuple(
+      clause == nullptr, 
+      clause == nullptr ? 0 : clause->number(), 
+      literal == nullptr,
+      literal == nullptr ? 0 : literal->getId()); }
+public:
+
+  friend bool operator==(ClauseLiteralPair const& l, ClauseLiteralPair const& r)
+  { return l.toTuple() == r.toTuple(); }
+
+  friend bool operator!=(ClauseLiteralPair const& l, ClauseLiteralPair const& r)
+  { return !(l == r); }
+
+  friend bool operator<(ClauseLiteralPair const& l, ClauseLiteralPair const& r)
+  { return l.toTuple() < r.toTuple(); }
+
+  friend bool operator> (ClauseLiteralPair const& l, ClauseLiteralPair const& r) { return r < l; }
+  friend bool operator<=(ClauseLiteralPair const& l, ClauseLiteralPair const& r) { return l == r || l < r; }
+  friend bool operator>=(ClauseLiteralPair const& l, ClauseLiteralPair const& r) { return l == r || l > r; }
+
   Clause* clause;
   Literal* literal;
-  TermList extraTerm;
-};
 
-struct ClauseLiteral {
-  Clause* clause;
-  Literal* literal;
+  friend std::ostream& operator<<(std::ostream& out, ClauseLiteralPair const& self)
+  { 
+    out << "(";
+    if (self.literal) out << *self.literal;
+    else              out << "null";
+    out << ", ";
+    if (self.clause) out << *self.clause;
+    else             out << "null";
+    out << ")";
+    return out;
+  }
 };
-
 
 struct DefaultTermLeafData {
   using Key = TermList;
