@@ -451,7 +451,7 @@ namespace Indexing
         return;
 
       _sIndexes.get(sort)->remove(ulit);
-     _tis->remove(*t, lit, c);
+     _tis->remove(*t, DefaultLeafData(*t, lit, c));
     }
   }
 

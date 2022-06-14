@@ -52,12 +52,11 @@ void SuperpositionSubtermIndex::handleClause(Clause* c, bool adding)
       rsti = EqHelper::getFoSubtermIterator(lit,_ord);
     }
     while (rsti.hasNext()) {
+      auto t = rsti.next();
       if (adding) {
-        auto t = rsti.next();
         _is->insert(t, DefaultLeafData(t, lit, c));
-      }
-      else {
-        _is->remove(rsti.next(), lit, c);
+      } else {
+        _is->remove(t, DefaultLeafData(t, lit, c));
       }
     }
   }
@@ -77,9 +76,8 @@ void SuperpositionLHSIndex::handleClause(Clause* c, bool adding)
       TermList lhs=lhsi.next();
       if (adding) {
 	      _is->insert(lhs, DefaultLeafData(lhs, lit, c));
-      }
-      else {
-	_is->remove(lhs, lit, c);
+      } else {
+	      _is->remove(lhs, DefaultLeafData(lhs, lit, c));
       }
     }
   }
@@ -116,9 +114,8 @@ void DemodulationSubtermIndexImpl<combinatorySupSupport>::handleClause(Clause* c
       }
       if (adding) {
         _is->insert(t, DefaultLeafData(t, lit, c));
-      }
-      else {
-        _is->remove(t, lit, c);
+      } else {
+        _is->remove(t, DefaultLeafData(t, lit, c));
       }
     }
   }
@@ -142,12 +139,11 @@ void DemodulationLHSIndex::handleClause(Clause* c, bool adding)
   Literal* lit=(*c)[0];
   TermIterator lhsi=EqHelper::getDemodulationLHSIterator(lit, true, _ord, _opt);
   while (lhsi.hasNext()) {
+    auto t = lhsi.next();
     if (adding) {
-      auto t = lhsi.next();
       _is->insert(t, DefaultLeafData(t, lit, c));
-    }
-    else {
-      _is->remove(lhsi.next(), lit, c);
+    } else {
+      _is->remove(t, DefaultLeafData(t, lit, c));
     }
   }
 }
@@ -174,7 +170,7 @@ void InductionTermIndex::handleClause(Clause* c, bool adding)
             if (adding) {
               _is->insert(tl, DefaultLeafData(tl, lit, c));
             } else {
-              _is->remove(tl, lit, c);
+              _is->remove(tl, DefaultLeafData(tl, lit, c));
             }
           }
         }
@@ -211,7 +207,7 @@ void StructInductionTermIndex::handleClause(Clause* c, bool adding)
         if (adding) {
           _is->insert(tl, DefaultLeafData(tl, lit, c));
         } else {
-          _is->remove(tl, lit, c);
+          _is->remove(tl, DefaultLeafData(tl, lit, c));
         }
       }
     }
@@ -240,7 +236,7 @@ void SubVarSupSubtermIndex::handleClause(Clause* c, bool adding)
       if (adding) {
         _is->insert(var, DefaultLeafData(var, lit, c));
       } else {
-        _is->remove(var, lit, c);
+        _is->remove(var, DefaultLeafData(var, lit, c));
       }
     }
   }
@@ -258,9 +254,8 @@ void SubVarSupLHSIndex::handleClause(Clause* c, bool adding)
       TermList lhs=lhsi.next();
       if (adding) {
         _is->insert(lhs, DefaultLeafData(lhs, lit, c));
-      }
-      else {
-        _is->remove(lhs, lit, c);
+      } else {
+        _is->remove(lhs, DefaultLeafData(lhs, lit, c));
       }
     }
   }

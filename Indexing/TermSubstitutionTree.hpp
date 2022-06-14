@@ -75,9 +75,7 @@ public:
   // TODO add final override
   void remove(TermList t, LeafData d) { handleTerm(t, d, /* insert */ false); }
 
-  void remove(TermList t, Literal* lit, Clause* cls);
-  // void insert(TermList t, TermList trm);
-  // void insert(TermList t, TermList trm, Literal* lit, Clause* cls);
+  // void remove(TermList t, Literal* lit, Clause* cls);
 
   bool generalizationExists(TermList t);
 
