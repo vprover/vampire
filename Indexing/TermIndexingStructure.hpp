@@ -26,8 +26,8 @@ class TermIndexingStructure {
 public:
   virtual ~TermIndexingStructure() {}
 
-  virtual void insert(TermList t, Data data) = 0;
-  virtual void remove(TermList t, Data data) = 0;
+  virtual void insert(Data data) = 0;
+  virtual void remove(Data data) = 0;
 
   // virtual void remove(TermList t, Literal* lit, Clause* cls) = 0;
 

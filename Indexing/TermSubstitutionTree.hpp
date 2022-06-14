@@ -71,42 +71,40 @@ public:
   TermSubstitutionTree(bool useC=false, bool replaceFunctionalSubterms = false, bool extra = false);
 
   // TODO add final override
-  void insert(TermList t, LeafData d) { handleTerm(t, d, /* insert */ true); }
+  void insert(LeafData d) final override { handleTerm(d, /* insert */ true); }
   // TODO add final override
-  void remove(TermList t, LeafData d) { handleTerm(t, d, /* insert */ false); }
+  void remove(LeafData d) final override { handleTerm(d, /* insert */ false); }
 
   // void remove(TermList t, Literal* lit, Clause* cls);
 
-  bool generalizationExists(TermList t);
+  bool generalizationExists(TermList t) final override;
 
 
   TermQueryResultIterator getUnifications(TermList t,
-	  bool retrieveSubstitutions);
+	  bool retrieveSubstitutions) final override;
 
   TermQueryResultIterator getUnificationsWithConstraints(TermList t,
-    bool retrieveSubstitutions);
+    bool retrieveSubstitutions) final override;
 
   /*
    * A higher order concern (though it may be useful in other situations)
    */
   TermQueryResultIterator getUnificationsUsingSorts(TermList t, TermList sort,
-    bool retrieveSubstitutions);
+    bool retrieveSubstitutions) final override;
 
   TermQueryResultIterator getGeneralizations(TermList t,
-	  bool retrieveSubstitutions);
+	  bool retrieveSubstitutions) final override;
 
   TermQueryResultIterator getInstances(TermList t,
-	  bool retrieveSubstitutions);
+	  bool retrieveSubstitutions) final override;
 
 #if VDEBUG
-  virtual void markTagged(){ SubstitutionTree::markTagged();}
+  virtual void markTagged() final override { SubstitutionTree::markTagged();}
 #endif
 
 private:
 
-  // void insert(TermList t, LeafData ld);
-  void handleTerm(TermList t, LeafData, bool insert);
-  // void handleTerm(TermList t, Literal* lit, Clause* cls, bool insert);
+  void handleTerm(LeafData, bool insert);
 
   struct TermQueryResultFn;
 

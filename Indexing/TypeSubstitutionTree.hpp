@@ -52,21 +52,19 @@ public:
 
   TypeSubstitutionTree();
 
-  void insert(TermList sort, LeafData ld);
-  void remove(TermList sort, LeafData ld);
-  void handleTerm(TermList t, LeafData ld, bool insert);
-  void insert(TermList t, Literal* lit, Clause* cls){ NOT_IMPLEMENTED; }
-  void remove(TermList t, Literal* lit, Clause* cls){ NOT_IMPLEMENTED; }
+  void insert(LeafData ld) final override { handleTerm(std::move(ld), true); }
+  void remove(LeafData ld) final override { handleTerm(std::move(ld), false); }
+  void handleTerm(LeafData ld, bool insert);
 
 
-  TermQueryResultIterator getUnifications(TermList sort,
-	  bool retrieveSubstitutions){ NOT_IMPLEMENTED; }
+  // TermQueryResultIterator getUnifications(TermList sort, bool retrieveSubstitutions) final override;
+  TermQueryResultIterator getUnifications(TermList sort, bool retrieveSubstitutions) final override { NOT_IMPLEMENTED; }
 
   TermQueryResultIterator getUnifications(TermList sort, TermList trm, 
     bool retrieveSubstitutions);
 
 #if VDEBUG
-  virtual void markTagged(){ SubstitutionTree::markTagged();}
+  virtual void markTagged() final override { SubstitutionTree::markTagged();}
 #endif
   
 private:

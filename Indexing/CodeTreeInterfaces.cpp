@@ -188,7 +188,7 @@ void CodeTreeTIS::_insert(TermList t, Literal* lit, Clause* cls)
   _ct.insert(ti);
 }
 
-void CodeTreeTIS::remove(TermList t, Literal* lit, Clause* cls)
+void CodeTreeTIS::_remove(TermList t, Literal* lit, Clause* cls)
 {
   CALL("CodeTreeTIS::remove");
   

@@ -57,14 +57,15 @@ TermSubstitutionTree<LeafData_>::TermSubstitutionTree(bool useC, bool rfSubs, bo
  * According to value of @b insert, insert or remove term.
  */
 template<class LeafData_>
-void TermSubstitutionTree<LeafData_>::handleTerm(TermList t, LeafData ld, bool insert)
+void TermSubstitutionTree<LeafData_>::handleTerm(LeafData ld, bool insert)
 {
   CALL("TermSubstitutionTree::handleTerm");
+  auto t = ld.term;
 
   if(_extByAbs && t.isTerm()){ 
     TermList sort = SortHelper::getResultSort(t.term());
     if(sort.isVar() || sort.isArrowSort()){
-      _funcSubtermsByType->handleTerm(sort, ld, insert);
+      _funcSubtermsByType->handleTerm(ld, insert);
       if(sort.isArrowSort()){ return; }
     } 
   }

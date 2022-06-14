@@ -47,14 +47,14 @@ public:
   USE_ALLOCATOR(CodeTreeTIS);
 
     //TODO add final override
-  virtual void insert(TermList t, DefaultLeafData data)
-  { ASS_EQ(t, data.term); _insert(data.term, data.literal, data.clause); }
+  virtual void insert(DefaultLeafData data)
+  { _insert(data.term, data.literal, data.clause); }
     //TODO add final override
-  virtual void remove(TermList t, DefaultLeafData data)
-  { ASS_EQ(t, data.term); remove(data.term, data.literal, data.clause); }
+  virtual void remove(DefaultLeafData data)
+  { _remove(data.term, data.literal, data.clause); }
 
   void _insert(TermList t, Literal* lit, Clause* cls);
-  void remove(TermList t, Literal* lit, Clause* cls);
+  void _remove(TermList t, Literal* lit, Clause* cls);
 
   TermQueryResultIterator getGeneralizations(TermList t, bool retrieveSubstitutions = true);
   bool generalizationExists(TermList t);

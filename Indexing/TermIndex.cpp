@@ -54,9 +54,9 @@ void SuperpositionSubtermIndex::handleClause(Clause* c, bool adding)
     while (rsti.hasNext()) {
       auto t = rsti.next();
       if (adding) {
-        _is->insert(t, DefaultLeafData(t, lit, c));
+        _is->insert(DefaultLeafData(t, lit, c));
       } else {
-        _is->remove(t, DefaultLeafData(t, lit, c));
+        _is->remove(DefaultLeafData(t, lit, c));
       }
     }
   }
@@ -75,9 +75,9 @@ void SuperpositionLHSIndex::handleClause(Clause* c, bool adding)
     while (lhsi.hasNext()) {
       TermList lhs=lhsi.next();
       if (adding) {
-	      _is->insert(lhs, DefaultLeafData(lhs, lit, c));
+	      _is->insert(DefaultLeafData(lhs, lit, c));
       } else {
-	      _is->remove(lhs, DefaultLeafData(lhs, lit, c));
+	      _is->remove(DefaultLeafData(lhs, lit, c));
       }
     }
   }
@@ -113,9 +113,9 @@ void DemodulationSubtermIndexImpl<combinatorySupSupport>::handleClause(Clause* c
         continue;
       }
       if (adding) {
-        _is->insert(t, DefaultLeafData(t, lit, c));
+        _is->insert(DefaultLeafData(t, lit, c));
       } else {
-        _is->remove(t, DefaultLeafData(t, lit, c));
+        _is->remove(DefaultLeafData(t, lit, c));
       }
     }
   }
@@ -141,9 +141,9 @@ void DemodulationLHSIndex::handleClause(Clause* c, bool adding)
   while (lhsi.hasNext()) {
     auto t = lhsi.next();
     if (adding) {
-      _is->insert(t, DefaultLeafData(t, lit, c));
+      _is->insert(DefaultLeafData(t, lit, c));
     } else {
-      _is->remove(t, DefaultLeafData(t, lit, c));
+      _is->remove(DefaultLeafData(t, lit, c));
     }
   }
 }
@@ -168,9 +168,9 @@ void InductionTermIndex::handleClause(Clause* c, bool adding)
           if (InductionHelper::isInductionTermFunctor(tl.term()->functor()) &&
               InductionHelper::isIntInductionTermListInLiteral(tl, lit)) {
             if (adding) {
-              _is->insert(tl, DefaultLeafData(tl, lit, c));
+              _is->insert(DefaultLeafData(tl, lit, c));
             } else {
-              _is->remove(tl, DefaultLeafData(tl, lit, c));
+              _is->remove(DefaultLeafData(tl, lit, c));
             }
           }
         }
@@ -205,9 +205,9 @@ void StructInductionTermIndex::handleClause(Clause* c, bool adding)
       if (InductionHelper::isInductionTermFunctor(tl.term()->functor()) &&
           InductionHelper::isStructInductionFunctor(tl.term()->functor())) {
         if (adding) {
-          _is->insert(tl, DefaultLeafData(tl, lit, c));
+          _is->insert(DefaultLeafData(tl, lit, c));
         } else {
-          _is->remove(tl, DefaultLeafData(tl, lit, c));
+          _is->remove(DefaultLeafData(tl, lit, c));
         }
       }
     }
@@ -234,9 +234,9 @@ void SubVarSupSubtermIndex::handleClause(Clause* c, bool adding)
     while(rvi.hasNext()){
       TermList var = rvi.next();
       if (adding) {
-        _is->insert(var, DefaultLeafData(var, lit, c));
+        _is->insert(DefaultLeafData(var, lit, c));
       } else {
-        _is->remove(var, DefaultLeafData(var, lit, c));
+        _is->remove(DefaultLeafData(var, lit, c));
       }
     }
   }
@@ -253,9 +253,9 @@ void SubVarSupLHSIndex::handleClause(Clause* c, bool adding)
     while (lhsi.hasNext()) {
       TermList lhs=lhsi.next();
       if (adding) {
-        _is->insert(lhs, DefaultLeafData(lhs, lit, c));
+        _is->insert(DefaultLeafData(lhs, lit, c));
       } else {
-        _is->remove(lhs, DefaultLeafData(lhs, lit, c));
+        _is->remove(DefaultLeafData(lhs, lit, c));
       }
     }
   }
@@ -311,32 +311,32 @@ void PrimitiveInstantiationIndex::populateIndex()
   notEqualsTerm = AH::createAppTerm3(srtOf(notEqualsTerm), notEqualsTerm, x, y);
 
   if(set == Options::PISet::ALL){
-    _is->insert(kTerm1, DefaultLeafData(kTerm1, 0, 0));
-    _is->insert(kTerm2, DefaultLeafData(kTerm2, 0, 0));
-    _is->insert(andTerm, DefaultLeafData(andTerm, 0, 0));
-    _is->insert(orTerm, DefaultLeafData(orTerm, 0, 0));
-    _is->insert(impTerm, DefaultLeafData(impTerm, 0, 0));
-    _is->insert(notTerm, DefaultLeafData(notTerm, 0, 0));
-    _is->insert(equalsTerm, DefaultLeafData(equalsTerm, 0, 0));
-    _is->insert(notEqualsTerm, DefaultLeafData(notEqualsTerm, 0, 0));
+    _is->insert(DefaultLeafData(kTerm1, 0, 0));
+    _is->insert(DefaultLeafData(kTerm2, 0, 0));
+    _is->insert(DefaultLeafData(andTerm, 0, 0));
+    _is->insert(DefaultLeafData(orTerm, 0, 0));
+    _is->insert(DefaultLeafData(impTerm, 0, 0));
+    _is->insert(DefaultLeafData(notTerm, 0, 0));
+    _is->insert(DefaultLeafData(equalsTerm, 0, 0));
+    _is->insert(DefaultLeafData(notEqualsTerm, 0, 0));
   } else if (set == Options::PISet::ALL_EXCEPT_NOT_EQ){
-    _is->insert(kTerm1, DefaultLeafData(kTerm1, 0, 0));
-    _is->insert(kTerm2, DefaultLeafData(kTerm2, 0, 0));
-    _is->insert(andTerm, DefaultLeafData(andTerm, 0, 0));
-    _is->insert(orTerm, DefaultLeafData(orTerm, 0, 0));
-    _is->insert(impTerm, DefaultLeafData(impTerm, 0, 0));
-    _is->insert(notTerm, DefaultLeafData(notTerm, 0, 0));
-    _is->insert(equalsTerm, DefaultLeafData(equalsTerm, 0, 0));
+    _is->insert(DefaultLeafData(kTerm1, 0, 0));
+    _is->insert(DefaultLeafData(kTerm2, 0, 0));
+    _is->insert(DefaultLeafData(andTerm, 0, 0));
+    _is->insert(DefaultLeafData(orTerm, 0, 0));
+    _is->insert(DefaultLeafData(impTerm, 0, 0));
+    _is->insert(DefaultLeafData(notTerm, 0, 0));
+    _is->insert(DefaultLeafData(equalsTerm, 0, 0));
   } else if (set == Options::PISet::FALSE_TRUE_NOT){
-    _is->insert(kTerm1, DefaultLeafData(kTerm1, 0, 0));
-    _is->insert(kTerm2, DefaultLeafData(kTerm2, 0, 0));
-    _is->insert(notTerm, DefaultLeafData(notTerm, 0, 0));
+    _is->insert(DefaultLeafData(kTerm1, 0, 0));
+    _is->insert(DefaultLeafData(kTerm2, 0, 0));
+    _is->insert(DefaultLeafData(notTerm, 0, 0));
   } else if (set == Options::PISet::FALSE_TRUE_NOT_EQ_NOT_EQ){
-    _is->insert(kTerm1, DefaultLeafData(kTerm1, 0, 0));
-    _is->insert(kTerm2, DefaultLeafData(kTerm2, 0, 0));
-    _is->insert(notTerm, DefaultLeafData(notTerm, 0, 0));
-    _is->insert(equalsTerm, DefaultLeafData(equalsTerm, 0, 0));
-    _is->insert(notEqualsTerm, DefaultLeafData(notEqualsTerm, 0, 0));
+    _is->insert(DefaultLeafData(kTerm1, 0, 0));
+    _is->insert(DefaultLeafData(kTerm2, 0, 0));
+    _is->insert(DefaultLeafData(notTerm, 0, 0));
+    _is->insert(DefaultLeafData(equalsTerm, 0, 0));
+    _is->insert(DefaultLeafData(notEqualsTerm, 0, 0));
   }
 }
 
@@ -389,33 +389,33 @@ void NarrowingIndex::populateIndex()
   Literal* iLit = Literal::createEquality(true, lhsI, x, s1);
 
   if(set == Options::Narrow::ALL){
-    _is->insert(lhsS, DefaultLeafData(lhsS, sLit, 0));
-    _is->insert(lhsC, DefaultLeafData(lhsC, cLit, 0));
-    _is->insert(lhsB, DefaultLeafData(lhsB, bLit, 0));
-    _is->insert(lhsK, DefaultLeafData(lhsK, kLit, 0));
-    _is->insert(lhsI, DefaultLeafData(lhsI, iLit, 0));
+    _is->insert(DefaultLeafData(lhsS, sLit, 0));
+    _is->insert(DefaultLeafData(lhsC, cLit, 0));
+    _is->insert(DefaultLeafData(lhsB, bLit, 0));
+    _is->insert(DefaultLeafData(lhsK, kLit, 0));
+    _is->insert(DefaultLeafData(lhsI, iLit, 0));
   } else if (set == Options::Narrow::SKI) {
-    _is->insert(lhsS, DefaultLeafData(lhsS, sLit, 0));
-    _is->insert(lhsK, DefaultLeafData(lhsK, kLit, 0));
-    _is->insert(lhsI, DefaultLeafData(lhsI, iLit, 0));
+    _is->insert(DefaultLeafData(lhsS, sLit, 0));
+    _is->insert(DefaultLeafData(lhsK, kLit, 0));
+    _is->insert(DefaultLeafData(lhsI, iLit, 0));
   } else if (set == Options::Narrow::SK){
-    _is->insert(lhsS, DefaultLeafData(lhsS, sLit, 0));
-    _is->insert(lhsK, DefaultLeafData(lhsK, kLit, 0));
+    _is->insert(DefaultLeafData(lhsS, sLit, 0));
+    _is->insert(DefaultLeafData(lhsK, kLit, 0));
   }
 }
 
 void SkolemisingFormulaIndex::insertFormula(TermList formula, TermList skolem)
 {
   CALL("SkolemisingFormulaIndex::insertFormula");
-  ASS(skolem.isTerm())
-  _is->insert(formula, DefaultLeafData(skolem.term()));
+  // TODO double check whether we do the correct thing here
+  _is->insert(DefaultLeafData(formula, nullptr, nullptr, skolem));
 }
 
 void HeuristicInstantiationIndex::insertInstantiation(TermList sort, TermList instantiation)
 {
   CALL("HeuristicInstantiationIndex::insertInstantiation");
-  ASS(instantiation.isTerm())
-  _is->insert(sort, DefaultLeafData(instantiation.term()));
+  // TODO double check whether we do the correct thing here
+  _is->insert(DefaultLeafData(sort, nullptr, nullptr, instantiation));
 }
 
 void HeuristicInstantiationIndex::handleClause(Clause* c, bool adding)
@@ -492,7 +492,7 @@ void RenamingFormulaIndex::insertFormula(TermList formula, TermList name,
                                          Literal* lit, Clause* cls)
 {
   CALL("RenamingFormulaIndex::insertFormula");
-  _is->insert(formula, DefaultLeafData(formula, lit, cls, name));
+  _is->insert(DefaultLeafData(formula, lit, cls, name));
 }
 
 void RenamingFormulaIndex::handleClause(Clause* c, bool adding)

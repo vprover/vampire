@@ -40,20 +40,6 @@ TypeSubstitutionTree<LeafData_>::TypeSubstitutionTree()
 {
 }
 
-template<class LeafData_>
-void TypeSubstitutionTree<LeafData_>::insert(TermList sort, LeafData ld)
-{
-  CALL("TypeSubstitutionTree::insert");
-  this->handleTerm(sort,ld,true);
-}
-
-template<class LeafData_>
-void TypeSubstitutionTree<LeafData_>::remove(TermList sort, LeafData ld)
-{
-  CALL("TypeSubstitutionTree::remove");
-  this->handleTerm(sort,ld,false);
-}
-
 #define QRS_QUERY_BANK 0
 #define QRS_RESULT_BANK 1
 
@@ -115,9 +101,10 @@ private:
  * According to value of @b insert, insert or remove term.
  */
 template<class LeafData_>
-void TypeSubstitutionTree<LeafData_>::handleTerm(TermList sort, LeafData ld, bool insert)
+void TypeSubstitutionTree<LeafData_>::handleTerm(LeafData ld, bool insert)
 {
   CALL("TypeSubstitutionTree::handleTerm");
+  auto sort = ld.term;
 
   if(sort.isOrdinaryVar()) {
     if(insert) {

@@ -49,9 +49,9 @@ TEST_FUN(basic01) {
   
   TermSubstitutionTree<> tree;
   auto dat = [](TermList k, Literal* v)  { return DefaultLeafData(k, v, nullptr); };
-  tree.insert(f(a), dat(f(a), g(a)));
-  tree.insert(f(a), dat(f(a), g(b)));
-  tree.insert(f(a), dat(f(a), g(c)));
+  tree.insert(dat(f(a), g(a)));
+  tree.insert(dat(f(a), g(b)));
+  tree.insert(dat(f(a), g(c)));
 
   check_leafdata(tree, f(a), { dat(f(a), g(a)), dat(f(a), g(b)), dat(f(a), g(c)), });
   check_leafdata(tree, f(b), Stack<DefaultLeafData>{});
@@ -83,6 +83,7 @@ struct MyData {
   TermList sort()
   { return SortHelper::getResultSort(term.term()); }
   using Key = TermList;
+
   Key const& key() const
   { return term; }
 };
@@ -97,9 +98,9 @@ TEST_FUN(custom_data) {
   DECL_FUNC(f, {srt}, srt)
 
   TermSubstitutionTree<MyData> tree;
-  tree.insert(f(a), {f(a), "a"});
-  tree.insert(f(a), {f(a), "b"});
-  tree.insert(f(a), {f(a), "c"});
+  tree.insert({f(a), "a"});
+  tree.insert({f(a), "b"});
+  tree.insert({f(a), "c"});
 
   check_leafdata(tree, f(a), { {f(a), "a"}, {f(a), "b"}, {f(a), "c"} });
   check_leafdata(tree, f(b), Stack<MyData>{});
