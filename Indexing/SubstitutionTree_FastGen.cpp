@@ -474,7 +474,7 @@ typename SubstitutionTree<LeafData_>::QueryResult SubstitutionTree<LeafData_>::F
   if(_retrieveSubstitution) {
     _resultNormalizer.reset();
     if(_literalRetrieval) {
-      _resultNormalizer.normalizeVariables(ld.literal);
+      SubstitutionTree::normalizeLiteralVars(_resultNormalizer, ld);
     } else {
       _resultNormalizer.normalizeVariables(ld.term);
     }

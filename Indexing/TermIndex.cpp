@@ -407,13 +407,15 @@ void NarrowingIndex::populateIndex()
 void SkolemisingFormulaIndex::insertFormula(TermList formula, TermList skolem)
 {
   CALL("SkolemisingFormulaIndex::insertFormula");
-  _is->insert(formula, skolem);
+  ASS(skolem.isTerm())
+  _is->insert(formula, DefaultLeafData(skolem.term()));
 }
 
 void HeuristicInstantiationIndex::insertInstantiation(TermList sort, TermList instantiation)
 {
   CALL("HeuristicInstantiationIndex::insertInstantiation");
-  _is->insert(sort, instantiation);
+  ASS(instantiation.isTerm())
+  _is->insert(sort, DefaultLeafData(instantiation.term()));
 }
 
 void HeuristicInstantiationIndex::handleClause(Clause* c, bool adding)
@@ -490,7 +492,7 @@ void RenamingFormulaIndex::insertFormula(TermList formula, TermList name,
                                          Literal* lit, Clause* cls)
 {
   CALL("RenamingFormulaIndex::insertFormula");
-  _is->insert(formula, DefaultLeafData(cls, lit, formula, name));
+  _is->insert(formula, DefaultLeafData(formula, lit, cls, name));
 }
 
 void RenamingFormulaIndex::handleClause(Clause* c, bool adding)

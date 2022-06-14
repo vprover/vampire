@@ -23,6 +23,7 @@
 #include "Lib/VirtualIterator.hpp"
 #include "Saturation/ClauseContainer.hpp"
 #include "ResultSubstitution.hpp"
+#include "Kernel/SortHelper.hpp"
 
 #include "Lib/Allocator.hpp"
 
@@ -37,20 +38,31 @@ using namespace Saturation;
 struct DefaultLeafData {
   DefaultLeafData() {}
 
-  DefaultLeafData(Clause* cls, Literal* literal, TermList term, TermList extraTerm)
-    : clause(cls), literal(literal), term(term), extraTerm(extraTerm) {}
+  // DefaultLeafData(Clause* cls, Literal* literal, TermList term, TermList extraTerm)
+  //   : clause(cls), literal(literal), term(term), extraTerm(extraTerm) {}
+
+  DefaultLeafData(TermList t, Literal* l, Clause* c, TermList extraTerm)
+    : clause(c), literal(l), term(t), extraTerm(extraTerm) {}
 
   DefaultLeafData(TermList t, Literal* l, Clause* c)
-    : DefaultLeafData(c,l,t) {}
-
-  DefaultLeafData(Clause* cls, Literal* literal, TermList term)
-    : clause(cls), literal(literal), term(term) { extraTerm.makeEmpty();}
+    : clause(c), literal(l), term(t) { extraTerm.makeEmpty(); }
 
   DefaultLeafData(Clause* cls, Literal* literal)
     : clause(cls), literal(literal) { term.makeEmpty(); extraTerm.makeEmpty(); }
 
-  DefaultLeafData(TermList term)
-    : DefaultLeafData(nullptr, nullptr, term) {}
+  // DefaultLeafData(TermList term, TermList sort)
+  //   : clause(nullptr), literal(nullptr),  term(term), _sort(sort)
+  // { extraTerm.makeEmpty(); }
+
+  explicit DefaultLeafData(Term* term)
+    : clause(nullptr), literal(nullptr),  term(TermList(term))
+  { extraTerm.makeEmpty(); }
+
+  // TODO maybe make sort an argument and not recompute it here
+  TermList sort() const
+  {
+    return SortHelper::getTermSort(term, literal);
+  }
 
 private:
   auto toTuple() const
@@ -94,6 +106,7 @@ public:
     out << ", ";
     if (self.clause) out << *self.clause;
     else             out << "null";
+    out << ", " << self.extraTerm;
     out << ")";
     return out;
   }

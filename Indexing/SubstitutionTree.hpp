@@ -152,6 +152,20 @@ public:
     }
 
   };
+
+  static void normalizeLiteralVars(Renaming& normalizer, DefaultLeafData& ld)
+  { normalizer.normalizeVariables(ld.literal); }
+
+  template<class LD>
+  static void normalizeLiteralVars(Renaming& normalizer, LD& ld)
+  {  }
+
+  static bool literalIsGround(DefaultLeafData& ld)
+  { return ld.literal->ground(); }
+
+  template<class LD>
+  static bool literalIsGround(LD& ld)
+  { ASSERTION_VIOLATION }
   
 
   enum NodeAlgorithm

@@ -432,7 +432,7 @@ namespace Indexing
       ULit ulit = make_pair(lit, c);
       if (!index->find(ulit)) {
         index->insert(ulit, new IndexEntry(lit, c, *t, getSubterms(fs->term())));
-        _tis->insert(*t, DefaultLeafData(c, lit, *t));
+        _tis->insert(*t, DefaultLeafData(*t, lit, c));
       }
     }
   }

@@ -45,32 +45,60 @@ TEST_FUN(basic01) {
   DECL_CONST(b, srt)
   DECL_CONST(c, srt)
   DECL_FUNC(f, {srt}, srt)
-  DECL_PRED(p, {srt})
+  DECL_PRED(g, {srt})
   
   TermSubstitutionTree<> tree;
-  tree.insert(f(a), DefaultLeafData(nullptr, p(a)));
-  tree.insert(f(a), DefaultLeafData(nullptr, p(b)));
-  tree.insert(f(a), DefaultLeafData(nullptr, p(c)));
+  auto dat = [](TermList k, Literal* v)  { return DefaultLeafData(k, v, nullptr); };
+  tree.insert(f(a), dat(f(a), g(a)));
+  tree.insert(f(a), dat(f(a), g(b)));
+  tree.insert(f(a), dat(f(a), g(c)));
 
-  check_leafdata(tree, f(a), { DefaultLeafData(nullptr, p(a)), DefaultLeafData(nullptr, p(b)), DefaultLeafData(nullptr, p(c)), });
+  check_leafdata(tree, f(a), { dat(f(a), g(a)), dat(f(a), g(b)), dat(f(a), g(c)), });
   check_leafdata(tree, f(b), Stack<DefaultLeafData>{});
-  check_leafdata(tree, f(x), { DefaultLeafData(nullptr, p(a)), DefaultLeafData(nullptr, p(b)), DefaultLeafData(nullptr, p(c)), });
+  check_leafdata(tree, f(x), { dat(f(a), g(a)), dat(f(a), g(b)), dat(f(a), g(c)), });
 }
 
-// TEST_FUN(custom_data) {
-//
-//   DECL_DEFAULT_VARS
-//   DECL_SORT(srt)
-//   DECL_CONST(a, srt)
-//   DECL_CONST(b, srt)
-//   DECL_FUNC(f, {srt}, srt)
-//
-//   TermSubstitutionTree<vstring> tree;
-//   tree.insert(f(a), "a");
-//   tree.insert(f(a), "b");
-//   tree.insert(f(a), "c");
-//
-//   check_leafdata(tree, f(a), { "a", "b", "c" });
-//   check_leafdata(tree, f(b), Stack<vstring>{});
-//   check_leafdata(tree, f(x), { "a", "b", "c" });
-// }
+struct MyData {
+  TermList term;
+  vstring str;
+  auto toTuple() const 
+  { return std::tie(term, str); }
+
+  friend bool operator==(MyData const& l, MyData const& r)
+  { return l.toTuple() == r.toTuple(); }
+
+  friend bool operator!=(MyData const& l, MyData const& r)
+  { return !(l == r); }
+
+  friend bool operator<(MyData const& l, MyData const& r)
+  { return l.toTuple() < r.toTuple(); }
+
+  friend bool operator> (MyData const& l, MyData const& r) { return r < l; }
+  friend bool operator<=(MyData const& l, MyData const& r) { return l == r || l < r; }
+  friend bool operator>=(MyData const& l, MyData const& r) { return l == r || l > r; }
+
+  friend std::ostream& operator<<(std::ostream& out, MyData const& self)
+  { return out << "MyData" << self.toTuple(); }
+
+  TermList sort()
+  { return SortHelper::getResultSort(term.term()); }
+};
+
+
+TEST_FUN(custom_data) {
+
+  DECL_DEFAULT_VARS
+  DECL_SORT(srt)
+  DECL_CONST(a, srt)
+  DECL_CONST(b, srt)
+  DECL_FUNC(f, {srt}, srt)
+
+  TermSubstitutionTree<MyData> tree;
+  tree.insert(f(a), {f(a), "a"});
+  tree.insert(f(a), {f(a), "b"});
+  tree.insert(f(a), {f(a), "c"});
+
+  check_leafdata(tree, f(a), { {f(a), "a"}, {f(a), "b"}, {f(a), "c"} });
+  check_leafdata(tree, f(b), Stack<MyData>{});
+  check_leafdata(tree, f(x), { {f(a), "a"}, {f(a), "b"}, {f(a), "c"} });
+}

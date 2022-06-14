@@ -66,8 +66,7 @@ struct TypeSubstitutionTree<LeafData_>::VarUnifFn
   }
 
   TermQueryResult operator() (TermQueryResult tqr) {
-    //TODO unnecessary work here. We had the sort and then lost it
-    TermList tqrSort = SortHelper::getTermSort(tqr.term, tqr.literal);
+    TermList tqrSort = tqr.sort();
     _subst->reset();
 
     ASS(_sort.isVar() || tqrSort.isVar());

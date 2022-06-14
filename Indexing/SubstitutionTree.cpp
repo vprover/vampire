@@ -790,7 +790,7 @@ typename SubstitutionTree<LeafData_>::QueryResult SubstitutionTree<LeafData_>::U
   if(retrieveSubstitution) {
     Renaming normalizer;
     if(literalRetrieval) {
-      normalizer.normalizeVariables(ld.literal);
+      SubstitutionTree::normalizeLiteralVars(normalizer, ld);
     } else {
       normalizer.normalizeVariables(ld.term);
     }
