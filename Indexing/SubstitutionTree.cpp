@@ -662,8 +662,7 @@ SubstitutionTree<LeafData_>::UnificationsIterator::UnificationsIterator(Substitu
 	Node* root, Term* query, bool retrieveSubstitution, bool reversed, 
   bool withoutTop, bool useC, FuncSubtermMap* funcSubtermMap)
 : tag(parent->tag), 
-svStack(32), literalRetrieval(query->isLiteral()),
-  retrieveSubstitution(retrieveSubstitution), inLeaf(false),
+svStack(32), retrieveSubstitution(retrieveSubstitution), inLeaf(false),
 ldIterator(LDIterator::getEmpty()), nodeIterators(8), bdStack(8),
 clientBDRecording(false), tree(parent), useUWAConstraints(useC)
 {
