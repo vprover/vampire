@@ -672,16 +672,13 @@ typename SubstitutionTree<LeafData_>::QueryResult SubstitutionTree<LeafData_>::F
 
   if(_retrieveSubstitution) {
     _resultDenormalizer.reset();
-    bool ground=_literalRetrieval
-      ? SubstitutionTree::literalIsGround(ld)
-      : (ld.term.isTerm() && ld.term.term()->ground());
+    bool ground = SubstitutionTree::isGround(ld.key());
+      // _literalRetrieval
+      // ? SubstitutionTree::literalIsGround(ld)
+      // : (ld.term.isTerm() && ld.term.term()->ground());
     if(!ground) {
       Renaming normalizer;
-      if(_literalRetrieval) {
-        SubstitutionTree::normalizeLiteralVars(normalizer, ld);
-      } else {
-	normalizer.normalizeVariables(ld.term);
-      }
+      normalizer.normalizeVariables(ld.key());
       _resultDenormalizer.makeInverse(normalizer);
     }
 

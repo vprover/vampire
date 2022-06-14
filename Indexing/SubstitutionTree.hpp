@@ -92,6 +92,35 @@ public:
   class LDComparator
   {
   public:
+    static Comparison compare(const DefaultLiteralLeafData& ld1, const DefaultLiteralLeafData& ld2)
+    {
+      CALL("SubstitutionTree::LDComparator::compare");
+
+      /*
+      cout << "ld1: " << ld1.toString() << endl;
+      cout << "ld2: " << ld2.toString() << endl;
+      */
+
+      if(ld1.clause && ld2.clause && ld1.clause!=ld2.clause) {
+        //if(ld1.clause->number()==ld2.clause->number()){
+          //cout << "XXX " << ld1.clause << " and " << ld2.clause << endl;
+          //cout << ld2.clause->toString() << endl;
+        //}
+        ASS_NEQ(ld1.clause->number(), ld2.clause->number());
+        return (ld1.clause->number()<ld2.clause->number()) ? LESS : GREATER;
+      }
+      Comparison res;
+      if(ld1.literal && ld2.literal && ld1.literal!=ld2.literal) {
+        res = (ld1.literal->getId()<ld2.literal->getId())? LESS : GREATER;
+      } else {
+        ASS_EQ(ld1.clause,ld2.clause);
+        ASS_EQ(ld1.literal,ld2.literal);
+
+        res = EQUAL;
+      }
+      return res;
+    }
+
     static Comparison compare(const DefaultLeafData& ld1, const DefaultLeafData& ld2)
     {
       CALL("SubstitutionTree::LDComparator::compare");
@@ -153,20 +182,21 @@ public:
 
   };
 
-  static void normalizeLiteralVars(Renaming& normalizer, DefaultLeafData& ld)
-  { normalizer.normalizeVariables(ld.literal); }
+  // static void normalizeVariables(Renaming& normalizer, DefaultLiteralLeafData& ld)
+  // { normalizer.normalizeVariables(ld.literal); }
+  //
+  // static void normalizeVariables(Renaming& normalizer, DefaultLeafData& ld)
+  // { normalizer.normalizeVariables(ld.term); }
+  //
+  // template<class LD>
+  // static void normalizeVariables(Renaming& normalizer, LD& ld)
+  // {  normalizer.normalizeVariables(ld.term); }
 
-  template<class LD>
-  static void normalizeLiteralVars(Renaming& normalizer, LD& ld)
-  {  }
+  static bool isGround(Literal* literal)
+  { return literal->ground(); }
 
-  static bool literalIsGround(DefaultLeafData& ld)
-  { return ld.literal->ground(); }
-
-  template<class LD>
-  static bool literalIsGround(LD& ld)
-  { ASSERTION_VIOLATION }
-  
+  static bool isGround(TermList term)
+  { return term.isTerm() && term.term()->ground(); }
 
   enum NodeAlgorithm
   {

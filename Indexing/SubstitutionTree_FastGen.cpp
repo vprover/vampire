@@ -473,11 +473,7 @@ typename SubstitutionTree<LeafData_>::QueryResult SubstitutionTree<LeafData_>::F
 
   if(_retrieveSubstitution) {
     _resultNormalizer.reset();
-    if(_literalRetrieval) {
-      SubstitutionTree::normalizeLiteralVars(_resultNormalizer, ld);
-    } else {
-      _resultNormalizer.normalizeVariables(ld.term);
-    }
+    _resultNormalizer.normalizeVariables(ld.key());
 
     return QueryResult(
           make_pair(&ld,_subst->getSubstitution(&_resultNormalizer)),UnificationConstraintStackSP());

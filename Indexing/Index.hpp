@@ -35,7 +35,57 @@ using namespace Lib;
 using namespace Saturation;
 
 
+struct DefaultLiteralLeafData {
+  DefaultLiteralLeafData() {}
+  using Key = Literal*;
+
+  Key const& key() const
+  { return literal; }
+
+
+  DefaultLiteralLeafData(Clause* cls, Literal* literal)
+    : clause(cls), literal(literal) {  }
+
+private:
+  auto toTuple() const
+  { return std::tie(clause, literal); }
+public:
+
+  // TODO shouldn't extraTerm be compared as well?
+  friend bool operator==(DefaultLiteralLeafData const& l, DefaultLiteralLeafData const& r)
+  { return l.toTuple() == r.toTuple(); }
+
+  friend bool operator!=(DefaultLiteralLeafData const& l, DefaultLiteralLeafData const& r)
+  { return !(l == r); }
+
+  friend bool operator<(DefaultLiteralLeafData const& l, DefaultLiteralLeafData const& r)
+  { return l.toTuple() < r.toTuple(); }
+
+  friend bool operator> (DefaultLiteralLeafData const& l, DefaultLiteralLeafData const& r) { return r < l; }
+  friend bool operator<=(DefaultLiteralLeafData const& l, DefaultLiteralLeafData const& r) { return l == r || l < r; }
+  friend bool operator>=(DefaultLiteralLeafData const& l, DefaultLiteralLeafData const& r) { return l == r || l > r; }
+
+  Clause* clause;
+  Literal* literal;
+
+  friend std::ostream& operator<<(std::ostream& out, DefaultLiteralLeafData const& self)
+  { 
+    out << "DefaultLiteralLeafData(";
+    if (self.literal) out << *self.literal;
+    else              out << "null";
+    out << ", ";
+    if (self.clause) out << *self.clause;
+    else             out << "null";
+    out << ")";
+    return out;
+  }
+
+};
+
+
 struct DefaultLeafData {
+  using Key = TermList;
+
   DefaultLeafData() {}
 
   // DefaultLeafData(Clause* cls, Literal* literal, TermList term, TermList extraTerm)
@@ -47,12 +97,8 @@ struct DefaultLeafData {
   DefaultLeafData(TermList t, Literal* l, Clause* c)
     : clause(c), literal(l), term(t) { extraTerm.makeEmpty(); }
 
-  DefaultLeafData(Clause* cls, Literal* literal)
-    : clause(cls), literal(literal) { term.makeEmpty(); extraTerm.makeEmpty(); }
-
-  // DefaultLeafData(TermList term, TermList sort)
-  //   : clause(nullptr), literal(nullptr),  term(term), _sort(sort)
-  // { extraTerm.makeEmpty(); }
+  // DefaultLeafData(Clause* cls, Literal* literal)
+  //   : clause(cls), literal(literal) { term.makeEmpty(); extraTerm.makeEmpty(); }
 
   explicit DefaultLeafData(Term* term)
     : clause(nullptr), literal(nullptr),  term(TermList(term))
@@ -63,6 +109,9 @@ struct DefaultLeafData {
   {
     return SortHelper::getTermSort(term, literal);
   }
+
+  Key const& key() const 
+  { return term; }
 
 private:
   auto toTuple() const
@@ -91,11 +140,11 @@ public:
   // In all other situations it is empty
   TermList extraTerm;
 
-  vstring toString() {
-    vstring ret = "LD " + literal->toString();// + " in " + clause->literalsOnlyToString();
-    if(!term.isEmpty()){ ret += " with " +term.toString(); }
-    return ret;
-  }
+  // vstring toString() {
+  //   vstring ret = "LD " + literal->toString();// + " in " + clause->literalsOnlyToString();
+  //   if(!term.isEmpty()){ ret += " with " +term.toString(); }
+  //   return ret;
+  // }
 
   friend std::ostream& operator<<(std::ostream& out, DefaultLeafData const& self)
   { 

@@ -82,6 +82,9 @@ struct MyData {
 
   TermList sort()
   { return SortHelper::getResultSort(term.term()); }
+  using Key = TermList;
+  Key const& key() const
+  { return term; }
 };
 
 

@@ -789,11 +789,7 @@ typename SubstitutionTree<LeafData_>::QueryResult SubstitutionTree<LeafData_>::U
 
   if(retrieveSubstitution) {
     Renaming normalizer;
-    if(literalRetrieval) {
-      SubstitutionTree::normalizeLiteralVars(normalizer, ld);
-    } else {
-      normalizer.normalizeVariables(ld.term);
-    }
+    normalizer.normalizeVariables(ld.key());
 
     ASS(clientBacktrackData.isEmpty());
     subst.bdRecord(clientBacktrackData);
