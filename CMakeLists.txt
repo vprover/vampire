@@ -310,7 +310,6 @@ set(VAMPIRE_KERNEL_SOURCES
     Kernel/ApplicativeHelper.cpp
     Kernel/SKIKBO.hpp
     Kernel/SKIKBO.cpp
-    Indexing/TypeSubstitutionTree.cpp
     Indexing/TypeSubstitutionTree.hpp
     Inferences/CNFOnTheFly.cpp
     Inferences/CNFOnTheFly.hpp
@@ -716,6 +715,7 @@ set(UNIT_TESTS
     UnitTests/tQuotientE.cpp
     UnitTests/tImplicationSetClosure.cpp
     UnitTests/tUnificationWithAbstraction.cpp
+    UnitTests/tTermIndex.cpp
     UnitTests/tGaussianElimination.cpp
     UnitTests/tPushUnaryMinus.cpp
     UnitTests/tArithmeticSubtermGeneralization.cpp
@@ -728,7 +728,6 @@ set(UNIT_TESTS
     UnitTests/tSATSolver.cpp
     UnitTests/tArithCompare.cpp
     UnitTests/tSyntaxSugar.cpp
-    UnitTests/tTermIndex.cpp
     UnitTests/tSkipList.cpp
     UnitTests/tfork.cpp
     UnitTests/tBinaryHeap.cpp

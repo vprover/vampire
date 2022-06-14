@@ -41,6 +41,7 @@ class TermSubstitutionTree
 {
   using SubstitutionTree      = Indexing::SubstitutionTree<LeafData_>;
   using TermIndexingStructure = Indexing::TermIndexingStructure<LeafData_>;
+  using TypeSubstitutionTree  = Indexing::TypeSubstitutionTree<LeafData_>;
   using BindingMap                  = typename SubstitutionTree::BindingMap;
   using Node                        = typename SubstitutionTree::Node;
   using FastInstancesIterator       = typename SubstitutionTree::FastInstancesIterator;
@@ -67,8 +68,10 @@ public:
    */
   TermSubstitutionTree(bool useC=false, bool replaceFunctionalSubterms = false, bool extra = false);
 
-  void insert(TermList t, LeafData d) final override { handleTerm(t, d, /* insert */ true); }
-  void remove(TermList t, LeafData d) final override { handleTerm(t, d, /* insert */ false); }
+  // TODO add final override
+  void insert(TermList t, LeafData d) { handleTerm(t, d, /* insert */ true); }
+  // TODO add final override
+  void remove(TermList t, LeafData d) { handleTerm(t, d, /* insert */ false); }
 
   void insert(TermList t, Literal* lit, Clause* cls);
   void remove(TermList t, Literal* lit, Clause* cls);

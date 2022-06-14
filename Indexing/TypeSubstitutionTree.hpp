@@ -27,10 +27,23 @@
 
 namespace Indexing {
 
+template<class LeafData_>
 class TypeSubstitutionTree
-: public TermIndexingStructure<DefaultLeafData>, SubstitutionTree<DefaultLeafData>
+: public TermIndexingStructure<LeafData_>, Indexing::SubstitutionTree<LeafData_>
 {
-  using LeafData = DefaultLeafData;
+  using LeafData = LeafData_;
+  using SubstitutionTree = Indexing::SubstitutionTree<LeafData>;
+  using TermIndexingStructure = Indexing::TermIndexingStructure<LeafData>;
+  using BindingMap                  = typename SubstitutionTree::BindingMap;
+  using Node                        = typename SubstitutionTree::Node;
+  using FastInstancesIterator       = typename SubstitutionTree::FastInstancesIterator;
+  using FastGeneralizationsIterator = typename SubstitutionTree::FastGeneralizationsIterator;
+  using UnificationsIterator        = typename SubstitutionTree::UnificationsIterator;
+  using QueryResult                 = typename SubstitutionTree::QueryResult;
+  using LDIterator                  = typename SubstitutionTree::LDIterator;
+  using LDComparator                = typename SubstitutionTree::LDComparator;
+  using Leaf                        = typename SubstitutionTree::Leaf;
+  using LeafIterator                = typename SubstitutionTree::LeafIterator;
 public:
   CLASS_NAME(TypeSubstitutionTree);
   USE_ALLOCATOR(TypeSubstitutionTree);
@@ -88,5 +101,7 @@ private:
 };
 
 };
+
+#include "Indexing/TypeSubstitutionTree.cpp"
 
 #endif /* __TypeSubstitutionTree__ */
