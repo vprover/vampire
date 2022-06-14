@@ -32,7 +32,7 @@ public:
   // template<std::enable_if_t<std::is_same<Data, DefaultLeafData>::value, bool> = true>
   // virtual void insert(TermList t, Literal* lit, Clause* cls) = 0;
   virtual void remove(TermList t, Literal* lit, Clause* cls) = 0;
-  virtual void insert(TermList t, TermList trm){ NOT_IMPLEMENTED; }
+  // virtual void insert(TermList t, TermList trm){ NOT_IMPLEMENTED; }
   virtual void insert(TermList t, TermList trm, Literal* lit, Clause* cls){ NOT_IMPLEMENTED; }
 
   virtual TermQueryResultIterator getUnifications(TermList t,

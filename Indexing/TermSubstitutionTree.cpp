@@ -45,15 +45,15 @@ TermSubstitutionTree<LeafData_>::TermSubstitutionTree(bool useC, bool rfSubs, bo
   }
 }
 
-template<class LeafData_>
-void TermSubstitutionTree<LeafData_>::insert(TermList t, TermList trm)
-{
-  CALL("TermSubstitutionTree::insert(TermList)");
-
-  ASS(t.isTerm());
-  LeafData ld(0, 0, t, trm);
-  insert(t, ld);
-}
+// template<class LeafData_>
+// void TermSubstitutionTree<LeafData_>::insert(TermList t, TermList trm)
+// {
+//   CALL("TermSubstitutionTree::insert(TermList)");
+//
+//   ASS(t.isTerm());
+//   LeafData ld(0, 0, t, trm);
+//   insert(t, ld);
+// }
 
 template<class LeafData_>
 void TermSubstitutionTree<LeafData_>::insert(TermList t, TermList trm, Literal* lit, Clause* cls)
@@ -82,14 +82,6 @@ void TermSubstitutionTree<LeafData_>::insert(TermList t, TermList trm, Literal* 
 //   SubstitutionTree::insert(&this->_nodes[rootNodeIndex], svBindings, ld);  
 // }
 
-
-// template<class LeafData_>
-// template<std::enable_if_t<std::is_same<LeafData, DefaultLeafData>::value, bool> = true>
-// void TermSubstitutionTree<LeafData_>::insert(TermList t, Literal* lit, Clause* cls)
-// {
-//   CALL("TermSubstitutionTree::insert");
-//   handleTerm(t, LeafData(cls, lit, t), true);
-// }
 
 template<class LeafData_>
 void TermSubstitutionTree<LeafData_>::remove(TermList t, Literal* lit, Clause* cls)
