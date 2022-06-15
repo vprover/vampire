@@ -425,14 +425,16 @@ std::ostream& operator<<(std::ostream& out, const Allocator::Descriptor& d);
     (Lib::Allocator::current->reallocateUnknown(obj,newsize,className))
 #define DEALLOC_UNKNOWN(obj,className)		                \
   (Lib::Allocator::current->deallocateUnknown(obj,className))
-         
-#define BYPASSING_ALLOCATOR_(SEED) Allocator::AllowBypassing _tmpBypass_##SEED;
+
+#define __CAT(x,y) x ## y
+
+#define BYPASSING_ALLOCATOR_(SEED) Allocator::AllowBypassing __CAT(_tmpBypass_, SEED);
 #define BYPASSING_ALLOCATOR BYPASSING_ALLOCATOR_(__LINE__)
 
-#define START_CHECKING_FOR_BYPASSES(SEED) Allocator::EnableBypassChecking _tmpBypass_##SEED;
+#define START_CHECKING_FOR_BYPASSES(SEED) Allocator::EnableBypassChecking __CAT(_tmpBypass_, SEED);
 #define START_CHECKING_FOR_ALLOCATOR_BYPASSES START_CHECKING_FOR_BYPASSES(__LINE__)
 
-#define STOP_CHECKING_FOR_BYPASSES(SEED) Allocator::DisableBypassChecking _tmpBypass_##SEED;
+#define STOP_CHECKING_FOR_BYPASSES(SEED) Allocator::DisableBypassChecking __CAT(_tmpBypass_, SEED);
 #define STOP_CHECKING_FOR_ALLOCATOR_BYPASSES STOP_CHECKING_FOR_BYPASSES(__LINE__)
 
 #else

@@ -35,9 +35,9 @@ using namespace Lib;
 using namespace Saturation;
 
 
-struct DefaultLiteralLeafData {
-  CLASS_NAME(DefaultLiteralLeafData)
-  USE_ALLOCATOR(DefaultLiteralLeafData)
+struct DefaultLiteralLeafData 
+{
+  CLASS_NAME(DefaultLiteralLeafData);
 
   DefaultLiteralLeafData() {}
   using Key = Literal*;
@@ -94,8 +94,8 @@ class TermIndexData {
   TermList _sort;
   Value _value;
 public:
-  CLASS_NAME(TermIndexData)
-  USE_ALLOCATOR(TermIndexData)
+  CLASS_NAME(TermIndexData);
+
   TermIndexData() {}
 
   TermIndexData(Term* key, Value v)
@@ -134,9 +134,9 @@ public:
   { return out << "TermIndexData" << self.toTuple(); }
 };
 
-struct ClauseLiteralPair {
-  CLASS_NAME(ClauseLiteralPair)
-  USE_ALLOCATOR(ClauseLiteralPair)
+struct ClauseLiteralPair 
+{
+  CLASS_NAME(ClauseLiteralPair);
 
   ClauseLiteralPair() {}
 
@@ -181,9 +181,9 @@ public:
   }
 };
 
-struct DefaultTermLeafData {
-  CLASS_NAME(DefaultTermLeafData)
-  USE_ALLOCATOR(DefaultTermLeafData)
+struct DefaultTermLeafData 
+{
+  CLASS_NAME(DefaultTermLeafData);
 
   using Key = TermList;
 
@@ -282,7 +282,6 @@ template<class Data>
 struct TermQueryResult : public Data
 {
   CLASS_NAME(TermQueryResult)
-  USE_ALLOCATOR(TermQueryResult)
 
   TermQueryResult() {}
 
@@ -345,7 +344,6 @@ class Index
 {
 public:
   CLASS_NAME(Index);
-  USE_ALLOCATOR(Index);
 
   virtual ~Index();
 
@@ -374,7 +372,6 @@ class ClauseSubsumptionIndex
 {
 public:
   CLASS_NAME(ClauseSubsumptionIndex);
-  USE_ALLOCATOR(ClauseSubsumptionIndex);
 
   virtual ClauseSResResultIterator getSubsumingOrSResolvingClauses(Clause* c, 
     bool subsumptionResolution)

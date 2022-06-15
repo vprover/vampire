@@ -17,6 +17,7 @@
 #include <cstdlib>
 #include <cstring>
 
+#include "Lib/Allocator.hpp"
 #include "Debug/Assertion.hpp"
 #include "Debug/Tracer.hpp"
 
@@ -60,6 +61,7 @@ void CommandLine::interpret (Options& options)
 #if VZ3
       cout << "Linked with Z3 " << Z3Interfacing::z3_full_version() << endl;
 #endif
+      STOP_CHECKING_FOR_BYPASSES(0);
       exit(0);
     }
     // If --help or -h are used without arguments we still print help

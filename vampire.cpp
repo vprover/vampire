@@ -715,6 +715,7 @@ int main(int argc, char* argv[])
       env.beginOutput();
       env.options->output(env.out());
       env.endOutput();
+      STOP_CHECKING_FOR_ALLOCATOR_BYPASSES;
       exit(0);
     }
 
@@ -918,6 +919,7 @@ catch (Parse::TPTP::ParseErrorException& exception) {
   }
 //   delete env.allocator;
 
+  STOP_CHECKING_FOR_ALLOCATOR_BYPASSES;
   return vampireReturnValue;
 } // main
 
