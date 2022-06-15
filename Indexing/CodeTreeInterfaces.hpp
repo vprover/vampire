@@ -54,11 +54,11 @@ public:
   void _insert(TermList t, Literal* lit, Clause* cls);
   void _remove(TermList t, Literal* lit, Clause* cls);
 
-  TermQueryResultIterator getGeneralizations(TermList t, bool retrieveSubstitutions = true);
-  bool generalizationExists(TermList t);
+  TermQueryResultIterator getGeneralizations(TermList t, bool retrieveSubstitutions = true) final override;
+  bool generalizationExists(TermList t) final override;
 
 #if VDEBUG
-  virtual void markTagged(){ NOT_IMPLEMENTED; } 
+  virtual void markTagged() final override { NOT_IMPLEMENTED; } 
 #endif
 
 private:

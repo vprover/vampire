@@ -60,6 +60,7 @@ public:
   TermSubstitutionTree(bool useC=false, bool replaceFunctionalSubterms = false);
 
   void insert(LeafData d) final override { handleTerm(d, /* insert */ true); }
+  // TODO use (LeafData const& d) here
   void remove(LeafData d) final override { handleTerm(d, /* insert */ false); }
 
   bool generalizationExists(TermList t) final override;

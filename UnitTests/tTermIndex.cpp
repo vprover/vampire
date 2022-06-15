@@ -139,3 +139,35 @@ TEST_FUN(custom_data_03_no_default_constructor) {
   check_leafdata(tree, f(b), Stack<MyData3>{});
   check_leafdata(tree, f(x), { dat(f(a), "a"), dat(f(a), "b"), dat(f(a), "c") });
 }
+
+struct MyData4 : public MyData {
+  MyData4(MyData const&) = delete;
+  MyData4 operator=(MyData const&) = delete;
+  MyData4(TermList t, vstring s) : MyData{t,s} {}
+};
+
+TEST_FUN(custom_data_04_no_copy_constructor) {
+
+  DECL_DEFAULT_VARS
+  DECL_SORT(srt)
+  DECL_CONST(a, srt)
+  DECL_CONST(b, srt)
+  DECL_FUNC(f, {srt}, srt)
+
+  TermSubstitutionTree<MyData4> tree;
+  auto dat = [](TermList t,vstring s) { return MyData4(t, std::move(s)); };
+  tree.insert(dat(f(a), "a"));
+  tree.insert(dat(f(a), "b"));
+  tree.insert(dat(f(a), "c"));
+
+  check_leafdata(tree, f(a), { dat(f(a), "a"), dat(f(a), "b"), dat(f(a), "c") });
+  check_leafdata(tree, f(b), Stack<MyData4>{});
+  check_leafdata(tree, f(x), { dat(f(a), "a"), dat(f(a), "b"), dat(f(a), "c") });
+
+  tree.remove(dat(f(a), "a"));
+  tree.remove(dat(f(a), "b"));
+
+  check_leafdata(tree, f(a), { dat(f(a), "c") });
+  check_leafdata(tree, f(b), Stack<MyData4>{});
+  check_leafdata(tree, f(x), { dat(f(a), "c") });
+}
