@@ -60,9 +60,9 @@ public:
   TermSubstitutionTree(bool useC=false, bool replaceFunctionalSubterms = false);
 
   // TODO add final override
-  void insert(LeafData d) final override { handleTerm(d, /* insert */ true); }
+  void insert(LeafData d) final override { DBG("insert: ", d); handleTerm(d, /* insert */ true);  DBG("finished insert"); }
   // TODO add final override
-  void remove(LeafData d) final override { handleTerm(d, /* insert */ false); }
+  void remove(LeafData d) final override { DBG("remove: ", d); handleTerm(d, /* insert */ false); DBG("finished remove"); }
 
   // void remove(TermList t, Literal* lit, Clause* cls);
 
