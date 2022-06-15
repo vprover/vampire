@@ -1292,8 +1292,8 @@ public:
       if(!_iit.hasNext()) {
 	return false;
       }
-      _current=_iit.next();
-    } while (!_context.enter(_current));
+      _current = Option<ELEMENT_TYPE(Inner)>(_iit.next());
+    } while (!_context.enter(_current.unwrap()));
     _inContext=true;
 
     _used=false;
@@ -1304,13 +1304,13 @@ public:
   {
     ASS(!_used);
     _used=true;
-    return _current;
+    return move_if_value<ELEMENT_TYPE(Inner)>(_current.unwrap());
   }
 private:
   void assureContextLeft()
   {
     if(_inContext) {
-      _context.leave(_current);
+      _context.leave(_current.unwrap());
       _inContext=false;
     }
   }
@@ -1319,7 +1319,7 @@ private:
   bool _used;
   Ctx _context;
   Inner _iit;
-  ELEMENT_TYPE(Inner) _current;
+  Option<ELEMENT_TYPE(Inner)> _current;
 };
 
 template<class Inner, class Ctx>

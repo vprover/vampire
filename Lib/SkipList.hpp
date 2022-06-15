@@ -26,6 +26,7 @@
 #include "Comparison.hpp"
 #include "List.hpp"
 #include "Random.hpp"
+#include "Lib/Option.hpp"
 
 #define SKIP_LIST_MAX_HEIGHT 32
 
@@ -59,7 +60,8 @@ public:
   {
     CALL("SkipList::insert");
     Value* pval = insertPosition(val);
-    *pval = val;
+    new(pval) Value(std::move(val));
+    // *pval = val;
   } // SkipList::insert
 
   template<class Iterator>
@@ -82,8 +84,8 @@ public:
   {
     CALL("SkipList::ensurePresent");
     Value* pval;
-    if(!getPosition(val, pval, true)) {
-      *pval = val;
+    if(!getPosition(val, pval, /* canCreate */ true)) {
+      new(pval) Value(std::move(val));
       return false;
     }
     return true;
@@ -187,7 +189,7 @@ public:
       }
     }
     Node* newNode = allocate(nodeHeight);
-    new(&newNode->value) Value();
+    // new(&newNode->value) Value();
 
 
     unsigned h = _top - 1;
@@ -478,7 +480,7 @@ public:
   bool find(Key key)
   {
     Value* pval;
-    return getPosition(key,pval,false);
+    return getPosition(key, pval, /* canCreate */ false);
   }
 
   template<typename Key>
@@ -486,8 +488,9 @@ public:
   bool find(Key key, Value& val)
   {
     Value* pval;
-    bool res=getPosition(key,pval,false);
-    val=*pval;
+    bool res = getPosition(key, pval, /* canCreate */ false);
+    if (res)
+      val = *pval;
     return res;
   }
 

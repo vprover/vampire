@@ -61,6 +61,7 @@ TEST_FUN(basic01) {
 struct MyData {
   TermList term;
   vstring str;
+
   auto asTuple() const 
   { return std::tie(term, str); }
 
@@ -112,5 +113,29 @@ TEST_FUN(custom_data_02) {
 
   check_leafdata(tree, f(a), { dat(f(a), "a"), dat(f(a), "b"), dat(f(a), "c") });
   check_leafdata(tree, f(b), Stack<TermIndexData<vstring>>{});
+  check_leafdata(tree, f(x), { dat(f(a), "a"), dat(f(a), "b"), dat(f(a), "c") });
+}
+
+struct MyData3 : public MyData {
+  MyData3()  = delete;
+  MyData3(TermList t, vstring s) : MyData{t,s} {}
+};
+
+TEST_FUN(custom_data_03_no_default_constructor) {
+
+  DECL_DEFAULT_VARS
+  DECL_SORT(srt)
+  DECL_CONST(a, srt)
+  DECL_CONST(b, srt)
+  DECL_FUNC(f, {srt}, srt)
+
+  TermSubstitutionTree<MyData3> tree;
+  auto dat = [](TermList t,vstring s) { return MyData3(t, std::move(s)); };
+  tree.insert(dat(f(a), "a"));
+  tree.insert(dat(f(a), "b"));
+  tree.insert(dat(f(a), "c"));
+
+  check_leafdata(tree, f(a), { dat(f(a), "a"), dat(f(a), "b"), dat(f(a), "c") });
+  check_leafdata(tree, f(b), Stack<MyData3>{});
   check_leafdata(tree, f(x), { dat(f(a), "a"), dat(f(a), "b"), dat(f(a), "c") });
 }
