@@ -490,6 +490,7 @@ template<class LeafData_>
 bool SubstitutionTree<LeafData_>::FastGeneralizationsIterator::findNextLeaf()
 {
   CALL("SubstitutionTree::FastGeneralizationsIterator::findNextLeaf");
+  WRAP("FastInstancesIterator next",
 
   Node* curr;
   bool sibilingsRemain = false;
@@ -622,6 +623,7 @@ main_loop_start:
       _subst->backtrack();
     }
   }
+  )
 }
 
 /**

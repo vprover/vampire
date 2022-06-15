@@ -665,6 +665,7 @@ template<class LeafData_>
 typename SubstitutionTree<LeafData_>::QueryResult SubstitutionTree<LeafData_>::FastInstancesIterator::next()
 {
   CALL("SubstitutionTree::FastInstancesIterator::next");
+  WRAP("FastInstancesIterator next",
 
   while(!_ldIterator.hasNext() && findNextLeaf()) {}
   ASS(_ldIterator.hasNext());
@@ -684,6 +685,7 @@ typename SubstitutionTree<LeafData_>::QueryResult SubstitutionTree<LeafData_>::F
   } else {
     return QueryResult(make_pair(&ld, ResultSubstitutionSP()),UnificationConstraintStackSP());
   }
+  )
 }
 #undef LOGGING
 #define LOGGING 0

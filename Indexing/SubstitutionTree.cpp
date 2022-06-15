@@ -776,11 +776,20 @@ bool SubstitutionTree<LeafData_>::UnificationsIterator::hasNext()
   while(!ldIterator.hasNext() && findNextLeaf()) {}
   return ldIterator.hasNext();
 }
+#define WRAP(msg, ...) \
+  auto f = []() { \
+    __VA_ARGS__ \
+  }; \
+  DBG("start ", msg); \
+  auto out = f(); \
+  DBG("end ", msg); \
+  return out; \
 
 template<class LeafData_>
 typename SubstitutionTree<LeafData_>::QueryResult SubstitutionTree<LeafData_>::UnificationsIterator::next()
 {
   CALL("SubstitutionTree::UnificationsIterator::next");
+  WRAP("UnificationsIterator next",
 
   while(!ldIterator.hasNext() && findNextLeaf()) {}
   ASS(ldIterator.hasNext());
@@ -806,6 +815,7 @@ typename SubstitutionTree<LeafData_>::QueryResult SubstitutionTree<LeafData_>::U
   } else {
     return QueryResult(make_pair(&ld, ResultSubstitutionSP()),UnificationConstraintStackSP());
   }
+  )
 }
 
 
