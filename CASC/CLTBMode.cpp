@@ -1001,7 +1001,7 @@ void CLTBProblem::runSlice(Options& strategyOpt)
     env.endOutput();
   }
 
-  STOP_CHECKING_FOR_BYPASSES(0);
+  STOP_CHECKING_FOR_ALLOCATOR_BYPASSES;
   exit(resultValue);
 } // CLTBProblem::runSlice
 

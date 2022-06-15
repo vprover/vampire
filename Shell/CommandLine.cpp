@@ -61,7 +61,7 @@ void CommandLine::interpret (Options& options)
 #if VZ3
       cout << "Linked with Z3 " << Z3Interfacing::z3_full_version() << endl;
 #endif
-      STOP_CHECKING_FOR_BYPASSES(0);
+      STOP_CHECKING_FOR_ALLOCATOR_BYPASSES;
       exit(0);
     }
     // If --help or -h are used without arguments we still print help
