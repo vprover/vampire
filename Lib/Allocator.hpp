@@ -248,8 +248,6 @@ public:
     static Descriptor* afterLast;
     /** capacity of the map */
     static size_t capacity;
-    static int _cnt;
-    int _i;
   };
 #endif
 

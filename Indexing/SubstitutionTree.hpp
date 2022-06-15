@@ -420,7 +420,7 @@ public:
     ~UArrIntermediateNode()
     {
       if(!isEmpty()) {
-        IntermediateNode::destroyChildren();
+        this->destroyChildren();
       }
     }
 
@@ -463,10 +463,10 @@ public:
   {
   public:
    UArrIntermediateNodeWithSorts(unsigned childVar) : UArrIntermediateNode(childVar) {
-     IntermediateNode::_childBySortHelper = new ChildBySortHelper(this);
+     this->_childBySortHelper = new ChildBySortHelper(this);
    }
    UArrIntermediateNodeWithSorts(TermList ts, unsigned childVar) : UArrIntermediateNode(ts, childVar) {
-     IntermediateNode::_childBySortHelper = new ChildBySortHelper(this);
+     this->_childBySortHelper = new ChildBySortHelper(this);
    }
   }; 
 
@@ -480,7 +480,7 @@ public:
     ~SListIntermediateNode()
     {
       if(!isEmpty()) {
-        IntermediateNode::destroyChildren();
+        this->destroyChildren();
       }
     }
 
@@ -524,7 +524,7 @@ public:
       bool found=_nodes.getPosition(t,res,canCreate);
       if(!found) {
         if(canCreate) {
-          IntermediateNode::mightExistAsTop(t);
+          this->mightExistAsTop(t);
           *res=0;
         } else {
           res=0;
@@ -537,7 +537,7 @@ public:
     {
       _nodes.remove(t);
       if(IntermediateNode::_childBySortHelper){
-        IntermediateNode::_childBySortHelper->remove(t);
+        this->_childBySortHelper->remove(t);
       }
     }
 
@@ -579,10 +579,10 @@ public:
   {
    public:
    SListIntermediateNodeWithSorts(unsigned childVar) : SListIntermediateNode(childVar) {
-     IntermediateNode::_childBySortHelper = new ChildBySortHelper(this);
+     this->_childBySortHelper = new ChildBySortHelper(this);
    }
    SListIntermediateNodeWithSorts(TermList ts, unsigned childVar) : SListIntermediateNode(ts, childVar) {
-     IntermediateNode::_childBySortHelper = new ChildBySortHelper(this);
+     this->_childBySortHelper = new ChildBySortHelper(this);
    }
   };
 
