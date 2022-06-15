@@ -59,7 +59,7 @@ public:
   void insert(Value val)
   {
     CALL("SkipList::insert");
-    Value* pval = insertPosition(val);
+    void* pval = insertPositionRaw(val);
     new(pval) Value(std::move(val));
     // *pval = val;
   } // SkipList::insert
@@ -105,6 +105,7 @@ public:
   bool getPosition(Key key, Value*& pvalue, bool canCreate)
   {
     CALL("SkipList::getPosition");
+    pvalue = nullptr;
 
     if(_top==0) {
       if(canCreate) {
@@ -161,6 +162,7 @@ public:
     }
   } // SkipList::getPosition
 
+
   /**
    * Create Node where a value with given key could be
    * stored, and assign pointer to value in that Node into @b pvalue.
@@ -170,6 +172,14 @@ public:
    */
   template<typename Key>
   Value* insertPosition(Key key)
+  {
+    void* p = insertPositionRaw(key);
+    new(p) Value();
+    return (Value*) p;
+  }
+
+  template<typename Key>
+  void* insertPositionRaw(Key key)
   {
     CALL("SkipList::insertPosition");
 
