@@ -46,11 +46,9 @@ public:
   CLASS_NAME(CodeTreeTIS);
   USE_ALLOCATOR(CodeTreeTIS);
 
-    //TODO add final override
-  virtual void insert(DefaultTermLeafData data)
+  virtual void insert(DefaultTermLeafData data) final override
   { _insert(data.term, data.literal, data.clause); }
-    //TODO add final override
-  virtual void remove(DefaultTermLeafData data)
+  virtual void remove(DefaultTermLeafData data) final override
   { _remove(data.term, data.literal, data.clause); }
 
   void _insert(TermList t, Literal* lit, Clause* cls);

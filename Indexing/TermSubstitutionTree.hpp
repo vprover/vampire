@@ -59,12 +59,8 @@ public:
   
   TermSubstitutionTree(Shell::Options::UnificationWithAbstraction uwa, bool useC=false, bool replaceFunctionalSubterms = false);
 
-  // TODO add final override
   void insert(LeafData d) final override { handleTerm(d, /* insert */ true); }
-  // TODO add final override
   void remove(LeafData d) final override { handleTerm(d, /* insert */ false); }
-
-  // void remove(TermList t, Literal* lit, Clause* cls);
 
   bool generalizationExists(TermList t) final override;
 

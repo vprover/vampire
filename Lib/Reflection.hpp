@@ -29,6 +29,20 @@
   Class& operator=(Class const&) = default;                                                         \
   Class& operator=(Class     &&) = default;                                                         \
 
+#define IMPL_COMPARISONS_FROM_TUPLE(Class)                                                          \
+  friend bool operator==(Class const& l, Class const& r)                                            \
+  { return l.asTuple() == r.asTuple(); }                                                            \
+                                                                                                    \
+  friend bool operator!=(Class const& l, Class const& r)                                            \
+  { return !(l == r); }                                                                             \
+                                                                                                    \
+  friend bool operator<(Class const& l, Class const& r)                                             \
+  { return l.asTuple() < r.asTuple(); }                                                             \
+                                                                                                    \
+  friend bool operator> (Class const& l, Class const& r) { return r < l; }                          \
+  friend bool operator<=(Class const& l, Class const& r) { return l == r || l < r; }                \
+  friend bool operator>=(Class const& l, Class const& r) { return l == r || l > r; }                \
+
 //The obvious way to define this macro would be
 //#define DECL_ELEMENT_TYPE(T) typedef T _ElementType
 //but the preprocessor understands for example

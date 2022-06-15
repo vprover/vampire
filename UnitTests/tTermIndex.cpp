@@ -61,24 +61,13 @@ TEST_FUN(basic01) {
 struct MyData {
   TermList term;
   vstring str;
-  auto toTuple() const 
+  auto asTuple() const 
   { return std::tie(term, str); }
 
-  friend bool operator==(MyData const& l, MyData const& r)
-  { return l.toTuple() == r.toTuple(); }
-
-  friend bool operator!=(MyData const& l, MyData const& r)
-  { return !(l == r); }
-
-  friend bool operator<(MyData const& l, MyData const& r)
-  { return l.toTuple() < r.toTuple(); }
-
-  friend bool operator> (MyData const& l, MyData const& r) { return r < l; }
-  friend bool operator<=(MyData const& l, MyData const& r) { return l == r || l < r; }
-  friend bool operator>=(MyData const& l, MyData const& r) { return l == r || l > r; }
+  IMPL_COMPARISONS_FROM_TUPLE(MyData)
 
   friend std::ostream& operator<<(std::ostream& out, MyData const& self)
-  { return out << "MyData" << self.toTuple(); }
+  { return out << "MyData" << self.asTuple(); }
 
   TermList sort()
   { return SortHelper::getResultSort(term.term()); }
