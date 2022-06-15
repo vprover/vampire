@@ -275,53 +275,6 @@ public:
   void insertFormula(TermList formula, TermList skolem);
 };
 
-struct RenamingFormulaIndexData : public ClauseLiteralPair {
-  CLASS_NAME(RenamingFormulaIndexData)
-  USE_ALLOCATOR(RenamingFormulaIndexData)
-
-  TermList name;
-
-  RenamingFormulaIndexData()  {}
-  RenamingFormulaIndexData(Clause* cls, Literal* lit, TermList name) 
-    : ClauseLiteralPair(cls, lit), name(name) {}
-
-  auto toTuple() const 
-  { return make_tuple(this->ClauseLiteralPair::toTuple(), name); }
-
-  friend bool operator==(RenamingFormulaIndexData const& l, RenamingFormulaIndexData const& r)
-  { return l.toTuple() == r.toTuple(); }
-
-  friend bool operator!=(RenamingFormulaIndexData const& l, RenamingFormulaIndexData const& r)
-  { return !(l == r); }
-
-  friend bool operator<(RenamingFormulaIndexData const& l, RenamingFormulaIndexData const& r)
-  { return l.toTuple() < r.toTuple(); }
-
-  friend bool operator> (RenamingFormulaIndexData const& l, RenamingFormulaIndexData const& r) { return r < l; }
-  friend bool operator<=(RenamingFormulaIndexData const& l, RenamingFormulaIndexData const& r) { return l == r || l < r; }
-  friend bool operator>=(RenamingFormulaIndexData const& l, RenamingFormulaIndexData const& r) { return l == r || l > r; }
-
-  friend std::ostream& operator<<(std::ostream& out, RenamingFormulaIndexData const& self)
-  { return out << "(" << (ClauseLiteralPair const&) self << ", " << self.name << ")"; }
-};
-
-class RenamingFormulaIndex
-: public TermIndex<TermIndexData<RenamingFormulaIndexData>>
-{
-  using LeafData = TermIndexData<RenamingFormulaIndexData>;
-  using TermIndex             = Indexing::TermIndex<LeafData>;
-  using TermIndexingStructure = Indexing::TermIndexingStructure<LeafData>;
-public:
-  CLASS_NAME(RenamingFormulaIndex);
-  USE_ALLOCATOR(RenamingFormulaIndex);
-
-  RenamingFormulaIndex(TermIndexingStructure* is) : TermIndex(is)
-  {}
-  void insertFormula(TermList formula, TermList name, Literal* lit, Clause* cls);
-protected:
-  void handleClause(Clause* c, bool adding);
-};
-
 };
 
 
