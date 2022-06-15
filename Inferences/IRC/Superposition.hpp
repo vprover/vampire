@@ -69,6 +69,7 @@ public:
     {
       return shared.selectedEqualities(cl, /* literal */ SelectionCriterion::STRICTLY_MAX, 
                                            /* terms   */ SelectionCriterion::STRICTLY_MAX)
+             .filter([](auto x) { return x.literal()->isPositive(); })
              .map([](auto x) { return Lhs(std::move(x)); });
     }
   };

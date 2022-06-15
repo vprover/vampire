@@ -59,13 +59,13 @@ FwdDemodulationModLA* testFwdDemodulationModLA     ()
 { return new FwdDemodulationModLA(testIrcState(UWA_MODE)); }
 
 Indexing::Index* testFwdDemodulationModLAIndex() 
-{ return new FwdDemodulationModLAIndex(new TermSubstitutionTree(UWA_MODE, /* useC = */ true)); }
+{ return new FwdDemodulationModLAIndex(new TermSubstitutionTree<>(UWA_MODE, /* useC = */ true)); }
 
 BwdDemodulationModLA* testBwdDemodulationModLA     () 
 { return new BwdDemodulationModLA(testIrcState(UWA_MODE)); }
 
 Indexing::Index* testBwdDemodulationModLAIndex() 
-{ return new BwdDemodulationModLAIndex(new TermSubstitutionTree(UWA_MODE, /* useC = */ true)); }
+{ return new BwdDemodulationModLAIndex(new TermSubstitutionTree<>(UWA_MODE, /* useC = */ true)); }
 
 BUILDER_SET_DEFAULT(FwdBwdSimplification::TestCase, fwd   ,   testFwdDemodulationModLA     ()  );
 BUILDER_SET_DEFAULT(FwdBwdSimplification::TestCase, fwdIdx, { testFwdDemodulationModLAIndex() });

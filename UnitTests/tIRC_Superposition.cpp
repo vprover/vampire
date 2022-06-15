@@ -493,3 +493,12 @@ TEST_GENERATION(two_var_01,
           /* nothing */
       ))
     )
+
+TEST_GENERATION(bug_01,
+    Generation::SymmetricTest()
+      .indices(ircSuperpositionIndices())
+      .inputs  ({ clause({ x == aa   }) })
+      .expected(exactly(
+          /* nothing */
+      ))
+    )

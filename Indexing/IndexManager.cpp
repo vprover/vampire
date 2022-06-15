@@ -329,7 +329,7 @@ Index* IndexManager::create(IndexType t)
     break;
 
   case STRUCT_INDUCTION_TERM_INDEX:
-    tis = new TermSubstitutionTree();
+    tis = new TermSubstitutionTree(uwaMode);
     res = new StructInductionTermIndex(tis);
     isGenerating = true;
     break;

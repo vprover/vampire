@@ -63,7 +63,7 @@ public:
   }
 
 private:
-  TermSubstitutionTree _index;
+  TermSubstitutionTree<> _index;
   shared_ptr<Kernel::IrcState> _shared;
 };
 

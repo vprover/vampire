@@ -79,7 +79,7 @@ namespace Kernel {
 class FuncId 
 {
   unsigned _num;
-  // const TermList* _typeArgs; // private field not used
+  const TermList* _typeArgs; // private field not used
   
 public: 
   explicit FuncId(unsigned num, const TermList* typeArgs);

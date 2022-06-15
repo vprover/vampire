@@ -18,7 +18,7 @@
 #include "Shell/Statistics.hpp"
 #include "Kernel/EqHelper.hpp"
 
-#define DEBUG(...) // DBG(__VA_ARGS__)
+#define DEBUG(...) DBG(__VA_ARGS__)
 
 namespace Inferences {
 namespace IRC {
@@ -159,6 +159,10 @@ Option<Clause*> Superposition::applyRule(
       _shared->activePositions(L2σ)
         .any([&](auto ti) 
              { return _shared->subtermEq(s2σ, ti); }))
+
+  check_side_condition(
+      "L[s2]σ /⪯ L1σ", // TODO is this the correct thing? if so make sure we do that for fourrier motzkin and friends as well
+      OrderingUtils2::notLeq(_shared->ordering->compare(L2σ, L1σ)))
 
 
   auto s1σ = uwa.sigma(lhs.biggerSide(), lhsVarBank);
