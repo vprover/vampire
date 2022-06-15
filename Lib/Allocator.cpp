@@ -144,7 +144,6 @@ void Allocator::operator delete(void* obj) {
 Allocator::Allocator()
 {
   CALLC("Allocator::Allocator",MAKE_CALLS);
-  std::cout << "init allocator" << std::endl;
 
 #if ! USE_SYSTEM_ALLOCATION
   for (int i = REQUIRES_PAGE/4-1;i >= 0;i--) {
@@ -168,7 +167,6 @@ Lib::Allocator::~Allocator ()
   while (_myPages) {
     deallocatePages(_myPages);
   }
-  std::cout << "destroying allocator" << std::endl;
 } // Allocator::~allocator
 
 /**
@@ -178,7 +176,6 @@ Lib::Allocator::~Allocator ()
 void Allocator::initialise()
 {
   CALLC("Allocator::initialise",MAKE_CALLS)
-  std::cout << "Allocator::initialise" << std::endl;
 
 #if VDEBUG
   Descriptor::map = 0;
@@ -280,7 +277,6 @@ void Allocator::reportUsageByClasses()
 void Allocator::cleanup()
 {
   CALLC("Allocator::cleanup",MAKE_CALLS);
-  std::cout << "Allocator::cleanup" << std::endl;
   BYPASSING_ALLOCATOR;
 
 #if !LEAK_ALLOCATOR
