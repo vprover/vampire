@@ -777,7 +777,7 @@ bool SubstitutionTree<LeafData_>::UnificationsIterator::hasNext()
   return ldIterator.hasNext();
 }
 #define WRAP(msg, ...) \
-  auto f = []() { \
+  auto f = [&]() { \
     __VA_ARGS__ \
   }; \
   DBG("start ", msg); \
