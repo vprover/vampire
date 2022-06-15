@@ -176,6 +176,7 @@ Lib::Allocator::~Allocator ()
 void Allocator::initialise()
 {
   CALLC("Allocator::initialise",MAKE_CALLS)
+  std::cout << "Allocator::initialise" << std::endl;
 
 #if VDEBUG
   Descriptor::map = 0;
@@ -277,6 +278,7 @@ void Allocator::reportUsageByClasses()
 void Allocator::cleanup()
 {
   CALLC("Allocator::cleanup",MAKE_CALLS);
+  std::cout << "Allocator::cleanup" << std::endl;
   BYPASSING_ALLOCATOR;
 
   // delete all allocators
