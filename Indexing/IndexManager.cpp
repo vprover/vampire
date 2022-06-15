@@ -146,7 +146,7 @@ Index* IndexManager::create(IndexType t)
 
   Index* res;
   LiteralIndexingStructure* is;
-  TermIndexingStructure* tis;
+  TermIndexingStructure<>* tis;
   using TermSubstitutionTree    = Indexing::TermSubstitutionTree<>;
   using LiteralSubstitutionTree = Indexing::LiteralSubstitutionTree<>;
 
@@ -243,16 +243,9 @@ Index* IndexManager::create(IndexType t)
     break;
   
   case SKOLEMISING_FORMULA_INDEX:
-    tis=new TermSubstitutionTree(uwaMode, false, false, true);
-    res=new SkolemisingFormulaIndex(tis);
+    res=new SkolemisingFormulaIndex(new Indexing::TermSubstitutionTree<TermIndexData<TermList>>(false, false));
     isGenerating = false;
     break;
-
-  /*case RENAMING_FORMULA_INDEX:
-    tis=new TermSubstitutionTree(false, false, true);
-    res=new RenamingFormulaIndex(tis);
-    attachPassive = true;
-    break;*/
 
   case NARROWING_INDEX:
     tis=new TermSubstitutionTree(uwaMode);

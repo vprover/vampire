@@ -36,81 +36,35 @@ using namespace Lib;
 using namespace Kernel;
 
 template<class LeafData_>
-TermSubstitutionTree<LeafData_>::TermSubstitutionTree(Shell::Options::UnificationWithAbstraction uwa, bool useC, bool rfSubs, bool extra)
+TermSubstitutionTree<LeafData_>::TermSubstitutionTree(Shell::Options::UnificationWithAbstraction uwa, bool useC, bool rfSubs)
 : SubstitutionTree(env.signature->functions(), uwa, useC, rfSubs), _extByAbs(rfSubs)
 {
-  _extra = extra;
   if(rfSubs){
     _funcSubtermsByType = new TypeSubstitutionTree();
   }
 }
 
-template<class LeafData_>
-void TermSubstitutionTree<LeafData_>::insert(TermList t, TermList trm)
-{
-  CALL("TermSubstitutionTree::insert(TermList)");
 
-  ASS(t.isTerm());
-  LeafData ld(0, 0, t, trm);
-  insert(t, ld);
-}
-
-template<class LeafData_>
-void TermSubstitutionTree<LeafData_>::insert(TermList t, TermList trm, Literal* lit, Clause* cls)
-{
-  CALL("TermSubstitutionTree::insert(TermList)");
-
-  LeafData ld(cls, lit, t, trm);
-  insert(t, ld);
-}
-
-template<class LeafData_>
-void TermSubstitutionTree<LeafData_>::insert(TermList t, LeafData ld)
-{
-  CALL("TermSubstitutionTree::insert");
-
-  ASS(t.isTerm());
-  Term* term=t.term();
-
-  Term* normTerm=Renaming::normalize(term);
-
-  BindingMap svBindings;
-  this->getBindings(normTerm, svBindings);
-
-  unsigned rootNodeIndex=getRootNodeIndex(normTerm);
-
-  SubstitutionTree::insert(&this->_nodes[rootNodeIndex], svBindings, ld);  
-}
-
-
-template<class LeafData_>
-void TermSubstitutionTree<LeafData_>::insert(TermList t, Literal* lit, Clause* cls)
-{
-  CALL("TermSubstitutionTree::insert");
-  handleTerm(t,lit,cls, true);
-}
-
-template<class LeafData_>
-void TermSubstitutionTree<LeafData_>::remove(TermList t, Literal* lit, Clause* cls)
-{
-  CALL("TermSubstitutionTree::remove");
-  handleTerm(t,lit,cls, false);
-}
+// template<class LeafData_>
+// void TermSubstitutionTree<LeafData_>::remove(TermList t, Literal* lit, Clause* cls)
+// {
+//   CALL("TermSubstitutionTree::remove");
+//   handleTerm(t, LeafData(cls, lit, t), false);
+// }
 
 /**
  * According to value of @b insert, insert or remove term.
  */
 template<class LeafData_>
-void TermSubstitutionTree<LeafData_>::handleTerm(TermList t, Literal* lit, Clause* cls, bool insert)
+void TermSubstitutionTree<LeafData_>::handleTerm(LeafData ld, bool insert)
 {
   CALL("TermSubstitutionTree::handleTerm");
-
-  LeafData ld(cls, lit, t);
+  auto t = ld.key();
 
   if(_extByAbs && t.isTerm()){ 
     TermList sort = SortHelper::getResultSort(t.term());
     if(sort.isVar() || sort.isArrowSort()){
-      _funcSubtermsByType->handleTerm(sort, ld, insert);
+      _funcSubtermsByType->handleTerm(ld, insert);
       if(sort.isArrowSort()){ return; }
     } 
   }
@@ -147,7 +101,7 @@ void TermSubstitutionTree<LeafData_>::handleTerm(TermList t, Literal* lit, Claus
 }
 
 template<class LeafData_>
-TermQueryResultIterator TermSubstitutionTree<LeafData_>::getUnifications(TermList t,
+TermQueryResultIterator<LeafData_> TermSubstitutionTree<LeafData_>::getUnifications(TermList t,
 	  bool retrieveSubstitutions)
 {
   CALL("TermSubstitutionTree::getUnifications");
@@ -170,7 +124,7 @@ TermQueryResultIterator TermSubstitutionTree<LeafData_>::getUnifications(TermLis
 
 //higher-order concern
 template<class LeafData_>
-TermQueryResultIterator TermSubstitutionTree<LeafData_>::getUnificationsUsingSorts(TermList t, TermList sort,
+TermQueryResultIterator<LeafData_> TermSubstitutionTree<LeafData_>::getUnificationsUsingSorts(TermList t, TermList sort,
     bool retrieveSubstitutions)
 {
   CALL("TermSubstitutionTree::getUnificationsUsingSorts");
@@ -204,7 +158,7 @@ TermQueryResultIterator TermSubstitutionTree<LeafData_>::getUnificationsUsingSor
 
 //TODO code sharing with getUnifications
 template<class LeafData_>
-TermQueryResultIterator TermSubstitutionTree<LeafData_>::getUnificationsWithConstraints(TermList t,
+TermQueryResultIterator<LeafData_> TermSubstitutionTree<LeafData_>::getUnificationsWithConstraints(TermList t,
           bool retrieveSubstitutions)
 {
   CALL("TermSubstitutionTree::getUnificationsWithConstraints");
@@ -258,7 +212,7 @@ bool TermSubstitutionTree<LeafData_>::generalizationExists(TermList t)
  * Return iterator, that yields generalizations of the given term.
  */
 template<class LeafData_>
-TermQueryResultIterator TermSubstitutionTree<LeafData_>::getGeneralizations(TermList t,
+TermQueryResultIterator<LeafData_> TermSubstitutionTree<LeafData_>::getGeneralizations(TermList t,
 	  bool retrieveSubstitutions)
 {
   CALL("TermSubstitutionTree::getGeneralizations");
@@ -278,7 +232,7 @@ TermQueryResultIterator TermSubstitutionTree<LeafData_>::getGeneralizations(Term
 }
 
 template<class LeafData_>
-TermQueryResultIterator TermSubstitutionTree<LeafData_>::getInstances(TermList t,
+TermQueryResultIterator<LeafData_> TermSubstitutionTree<LeafData_>::getInstances(TermList t,
 	  bool retrieveSubstitutions)
 {
   CALL("TermSubstitutionTree::getInstances");
@@ -297,23 +251,20 @@ TermQueryResultIterator TermSubstitutionTree<LeafData_>::getInstances(TermList t
 template<class LeafData_>
 struct TermSubstitutionTree<LeafData_>::TermQueryResultFn
 {
-  TermQueryResultFn(bool extra = false){
-    _extra = extra;
+  template<class LD>
+  TermQueryResult<LeafData> specializedOperator(LD*, const QueryResult& qr)  {
+    return TermQueryResult<LeafData>(*qr.first.first, qr.first.second,qr.second);
   }
 
-  TermQueryResult operator() (const QueryResult& qr) {
-    TermList trm = _extra ? qr.first.first->extraTerm : qr.first.first->term;
-    return TermQueryResult(trm, qr.first.first->literal,
-	    qr.first.first->clause, qr.first.second,qr.second);
+  TermQueryResult<LeafData> operator() (const QueryResult& qr) {
+    return specializedOperator((LeafData*) nullptr, qr);
   }
 
-private:
-  bool _extra;
 };
 
 template<class LeafData_>
 template<class Iterator>
-TermQueryResultIterator TermSubstitutionTree<LeafData_>::getResultIterator(Term* trm,
+TermQueryResultIterator<LeafData_> TermSubstitutionTree<LeafData_>::getResultIterator(Term* trm,
 	  bool retrieveSubstitutions,bool withConstraints)
 {
   CALL("TermSubstitutionTree::getResultIterator");
@@ -333,7 +284,7 @@ TermQueryResultIterator TermSubstitutionTree<LeafData_>::getResultIterator(Term*
       VirtualIterator<QueryResult> qrit=vi( new Iterator(this, root, trm, retrieveSubstitutions,false,false, 
                                                          withConstraints, 
                                                          (_extByAbs ? &_functionalSubtermMap : 0) ));
-      result = pvi( getMappingIterator(qrit, TermQueryResultFn(_extra)) );
+      result = pvi( getMappingIterator(qrit, TermQueryResultFn()) );
     }
   }
 
@@ -350,8 +301,8 @@ TermQueryResultIterator TermSubstitutionTree<LeafData_>::getResultIterator(Term*
 template<class LeafData_>
 struct TermSubstitutionTree<LeafData_>::LDToTermQueryResultFn
 {
-  TermQueryResult operator() (const LeafData& ld) {
-    return TermQueryResult(ld.term, ld.literal, ld.clause);
+  TermQueryResult<LeafData> operator() (const LeafData& ld) {
+    return TermQueryResult<LeafData>(ld);
   }
 };
 
@@ -366,15 +317,15 @@ struct TermSubstitutionTree<LeafData_>::LDToTermQueryResultWithSubstFn
     _subst=RobSubstitutionSP(new RobSubstitution());
     _constraints=UnificationConstraintStackSP(new Stack<UnificationConstraint>());
   }
-  TermQueryResult operator() (const LeafData& ld) {
+  TermQueryResult<LeafData> operator() (const LeafData& ld) {
     if(_withConstraints){
-      return TermQueryResult(ld.term, ld.literal, ld.clause,
+      return TermQueryResult<LeafData>(ld,
             ResultSubstitution::fromSubstitution(_subst.ptr(),
                     QRS_QUERY_BANK,QRS_RESULT_BANK),
             _constraints);
     }
     else{
-      return TermQueryResult(ld.term, ld.literal, ld.clause,
+      return TermQueryResult<LeafData>(ld,
 	    ResultSubstitution::fromSubstitution(_subst.ptr(),
 		    QRS_QUERY_BANK,QRS_RESULT_BANK));
     }
@@ -403,19 +354,19 @@ struct TermSubstitutionTree<LeafData_>::UnifyingContext
     , _withConstraints(withConstraints)
 #endif
   {}
-  bool enter(TermQueryResult qr)
+  bool enter(TermQueryResult<LeafData> qr)
   {
-    //if(_withConstraints){ cout << "enter " << qr.term << endl; }
+    //if(_withConstraints){ cout << "enter " << qr.key() << endl; }
 
     ASS(qr.substitution);
     RobSubstitution* subst=qr.substitution->tryGetRobSubstitution();
     ASS(subst);
-    bool unified = subst->unify(_queryTerm, QRS_QUERY_BANK, qr.term, QRS_RESULT_BANK);
+    bool unified = subst->unify(_queryTerm, QRS_QUERY_BANK, qr.key(), QRS_RESULT_BANK);
     //unsigned srt;
     ASS(unified || _withConstraints);
     return unified;
   }
-  void leave(TermQueryResult qr)
+  void leave(TermQueryResult<LeafData> qr)
   {
     RobSubstitution* subst=qr.substitution->tryGetRobSubstitution();
     ASS(subst);
@@ -434,7 +385,7 @@ private:
 
 template<class LeafData_>
 template<class LDIt>
-TermQueryResultIterator TermSubstitutionTree<LeafData_>::ldIteratorToTQRIterator(LDIt ldIt,
+TermQueryResultIterator<LeafData_> TermSubstitutionTree<LeafData_>::ldIteratorToTQRIterator(LDIt ldIt,
 	TermList queryTerm, bool retrieveSubstitutions,bool withConstraints)
 {
   CALL("TermSubstitutionTree::ldIteratorToTQRIterator");
@@ -455,7 +406,7 @@ TermQueryResultIterator TermSubstitutionTree<LeafData_>::ldIteratorToTQRIterator
 }
 
 template<class LeafData_>
-TermQueryResultIterator TermSubstitutionTree<LeafData_>::getAllUnifyingIterator(TermList trm,
+TermQueryResultIterator<LeafData_> TermSubstitutionTree<LeafData_>::getAllUnifyingIterator(TermList trm,
 	  bool retrieveSubstitutions,bool withConstraints)
 {
   CALL("TermSubstitutionTree::getAllUnifyingIterator");

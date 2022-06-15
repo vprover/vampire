@@ -384,7 +384,7 @@ ResultSubstitutionSP SubstitutionTree<LeafData_>::GenMatcher::getSubstitution(
 template<class LeafData_>
 SubstitutionTree<LeafData_>::FastGeneralizationsIterator::FastGeneralizationsIterator(SubstitutionTree* parent, Node* root, Term* query, 
   bool retrieveSubstitution, bool reversed, bool withoutTop, bool useC, FuncSubtermMap* fstm)
-: _literalRetrieval(query->isLiteral()), _retrieveSubstitution(retrieveSubstitution),
+: _retrieveSubstitution(retrieveSubstitution),
   _inLeaf(false), _ldIterator(LDIterator::getEmpty()), _root(root), _tree(parent),
   _alternatives(64), _specVarNumbers(64), _nodeTypes(64)
 {
@@ -473,11 +473,7 @@ typename SubstitutionTree<LeafData_>::QueryResult SubstitutionTree<LeafData_>::F
 
   if(_retrieveSubstitution) {
     _resultNormalizer.reset();
-    if(_literalRetrieval) {
-      _resultNormalizer.normalizeVariables(ld.literal);
-    } else {
-      _resultNormalizer.normalizeVariables(ld.term);
-    }
+    _resultNormalizer.normalizeVariables(ld.key());
 
     return QueryResult(
           make_pair(&ld,_subst->getSubstitution(&_resultNormalizer)),UnificationConstraintStackSP());
@@ -496,7 +492,7 @@ bool SubstitutionTree<LeafData_>::FastGeneralizationsIterator::findNextLeaf()
   CALL("SubstitutionTree::FastGeneralizationsIterator::findNextLeaf");
 
   Node* curr;
-  bool sibilingsRemain;
+  bool sibilingsRemain = false;
   if(_inLeaf) {
     if(_alternatives.isEmpty()) {
       return false;
@@ -516,7 +512,7 @@ bool SubstitutionTree<LeafData_>::FastGeneralizationsIterator::findNextLeaf()
   }
   for(;;) {
 main_loop_start:
-    unsigned currSpecVar;
+    unsigned currSpecVar = 0;
 
     if(curr) {
       if(sibilingsRemain) {

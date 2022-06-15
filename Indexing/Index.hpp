@@ -18,11 +18,13 @@
 #include "Forwards.hpp"
 
 #include "Lib/Event.hpp"
+#include "Kernel/Clause.hpp"
 #include "Lib/Exception.hpp"
 #include "Lib/VirtualIterator.hpp"
 #include "Saturation/ClauseContainer.hpp"
 #include "Kernel/Clause.hpp"
 #include "ResultSubstitution.hpp"
+#include "Kernel/SortHelper.hpp"
 
 #include "Lib/Allocator.hpp"
 
@@ -32,6 +34,218 @@ namespace Indexing
 using namespace Kernel;
 using namespace Lib;
 using namespace Saturation;
+
+
+struct DefaultLiteralLeafData 
+{
+  CLASS_NAME(DefaultLiteralLeafData);
+
+  DefaultLiteralLeafData() {}
+  using Key = Literal*;
+
+  Key const& key() const
+  { return literal; }
+
+
+  DefaultLiteralLeafData(Clause* cls, Literal* literal)
+    : clause(cls), literal(literal) {  }
+
+private:
+  auto toTuple() const
+  { return make_tuple(
+      clause == nullptr, 
+      clause == nullptr ? 0 : clause->number(), 
+      literal == nullptr,
+      literal == nullptr ? 0 : literal->getId()); }
+public:
+
+  friend bool operator==(DefaultLiteralLeafData const& l, DefaultLiteralLeafData const& r)
+  { return l.toTuple() == r.toTuple(); }
+
+  friend bool operator!=(DefaultLiteralLeafData const& l, DefaultLiteralLeafData const& r)
+  { return !(l == r); }
+
+  friend bool operator<(DefaultLiteralLeafData const& l, DefaultLiteralLeafData const& r)
+  { return l.toTuple() < r.toTuple(); }
+
+  friend bool operator> (DefaultLiteralLeafData const& l, DefaultLiteralLeafData const& r) { return r < l; }
+  friend bool operator<=(DefaultLiteralLeafData const& l, DefaultLiteralLeafData const& r) { return l == r || l < r; }
+  friend bool operator>=(DefaultLiteralLeafData const& l, DefaultLiteralLeafData const& r) { return l == r || l > r; }
+
+  Clause* clause;
+  Literal* literal;
+
+  friend std::ostream& operator<<(std::ostream& out, DefaultLiteralLeafData const& self)
+  { 
+    out << "DefaultLiteralLeafData(";
+    if (self.literal) out << *self.literal;
+    else              out << "null";
+    out << ", ";
+    if (self.clause) out << *self.clause;
+    else             out << "null";
+    out << ")";
+    return out;
+  }
+
+};
+
+template<class Value>
+class TermIndexData {
+  TermList _key;
+  TermList _sort;
+  Value _value;
+public:
+  CLASS_NAME(TermIndexData);
+
+  TermIndexData() {}
+
+  TermIndexData(Term* key, Value v)
+    : _key(TermList(key))
+    , _sort(SortHelper::getResultSort(key))
+    , _value(std::move(v)) {}
+
+  TermList const& sort() const
+  { return _sort; }
+
+  TermList const& key() const 
+  { return _key; }
+
+  Value const& value() const 
+  { return _value; }
+
+private:
+  auto toTuple() const
+  { return std::tie(key(), sort(), value()); }
+public:
+
+  friend bool operator==(TermIndexData const& l, TermIndexData const& r)
+  { return l.toTuple() == r.toTuple(); }
+
+  friend bool operator!=(TermIndexData const& l, TermIndexData const& r)
+  { return !(l == r); }
+
+  friend bool operator<(TermIndexData const& l, TermIndexData const& r)
+  { return l.toTuple() < r.toTuple(); }
+
+  friend bool operator> (TermIndexData const& l, TermIndexData const& r) { return r < l; }
+  friend bool operator<=(TermIndexData const& l, TermIndexData const& r) { return l == r || l < r; }
+  friend bool operator>=(TermIndexData const& l, TermIndexData const& r) { return l == r || l > r; }
+
+  friend std::ostream& operator<<(std::ostream& out, TermIndexData const& self)
+  { return out << "TermIndexData" << self.toTuple(); }
+};
+
+struct ClauseLiteralPair 
+{
+  CLASS_NAME(ClauseLiteralPair);
+
+  ClauseLiteralPair() {}
+
+  ClauseLiteralPair(Clause* c, Literal* l)
+    : clause(c), literal(l) {}
+
+protected:
+  auto  toTuple() const
+  { return make_tuple(
+      clause == nullptr, 
+      clause == nullptr ? 0 : clause->number(), 
+      literal == nullptr,
+      literal == nullptr ? 0 : literal->getId()); }
+public:
+
+  friend bool operator==(ClauseLiteralPair const& l, ClauseLiteralPair const& r)
+  { return l.toTuple() == r.toTuple(); }
+
+  friend bool operator!=(ClauseLiteralPair const& l, ClauseLiteralPair const& r)
+  { return !(l == r); }
+
+  friend bool operator<(ClauseLiteralPair const& l, ClauseLiteralPair const& r)
+  { return l.toTuple() < r.toTuple(); }
+
+  friend bool operator> (ClauseLiteralPair const& l, ClauseLiteralPair const& r) { return r < l; }
+  friend bool operator<=(ClauseLiteralPair const& l, ClauseLiteralPair const& r) { return l == r || l < r; }
+  friend bool operator>=(ClauseLiteralPair const& l, ClauseLiteralPair const& r) { return l == r || l > r; }
+
+  Clause* clause;
+  Literal* literal;
+
+  friend std::ostream& operator<<(std::ostream& out, ClauseLiteralPair const& self)
+  { 
+    out << "(";
+    if (self.literal) out << *self.literal;
+    else              out << "null";
+    out << ", ";
+    if (self.clause) out << *self.clause;
+    else             out << "null";
+    out << ")";
+    return out;
+  }
+};
+
+struct DefaultTermLeafData 
+{
+  CLASS_NAME(DefaultTermLeafData);
+
+  using Key = TermList;
+
+  DefaultTermLeafData() {}
+
+  DefaultTermLeafData(TermList t, Literal* l, Clause* c)
+    : clause(c), literal(l), term(t) {}
+
+  explicit DefaultTermLeafData(Term* term)
+    : clause(nullptr), literal(nullptr),  term(TermList(term))
+  {}
+
+  // TODO maybe make sort an argument and not recompute it here
+  TermList sort() const
+  { return SortHelper::getTermSort(term, literal); }
+
+  Key const& key() const 
+  { return term; }
+
+private:
+  auto  toTuple() const
+  { return make_tuple(
+      clause == nullptr, 
+      clause == nullptr ? 0 : clause->number(), 
+      literal == nullptr,
+      literal == nullptr ? 0 : literal->getId(), 
+      term); }
+public:
+
+  // TODO shouldn't extraTerm be compared as well?
+  friend bool operator==(DefaultTermLeafData const& l, DefaultTermLeafData const& r)
+  { return l.toTuple() == r.toTuple(); }
+
+  friend bool operator!=(DefaultTermLeafData const& l, DefaultTermLeafData const& r)
+  { return !(l == r); }
+
+  friend bool operator<(DefaultTermLeafData const& l, DefaultTermLeafData const& r)
+  { return l.toTuple() < r.toTuple(); }
+
+  friend bool operator> (DefaultTermLeafData const& l, DefaultTermLeafData const& r) { return r < l; }
+  friend bool operator<=(DefaultTermLeafData const& l, DefaultTermLeafData const& r) { return l == r || l < r; }
+  friend bool operator>=(DefaultTermLeafData const& l, DefaultTermLeafData const& r) { return l == r || l > r; }
+
+  Clause* clause;
+  Literal* literal;
+  TermList term;
+
+  friend std::ostream& operator<<(std::ostream& out, DefaultTermLeafData const& self)
+  { 
+    out << "DefaultTermLeafData("
+        << self.term << ", ";
+    if (self.literal) out << *self.literal;
+    else              out << "null";
+    out << ", ";
+    if (self.clause) out << *self.clause;
+    else             out << "null";
+    out << ")";
+    return out;
+  }
+
+};
 
 
 /**
@@ -65,28 +279,35 @@ struct SLQueryResult
 /**
  * Class of objects which contain results of term queries.
  */
-struct TermQueryResult
+template<class Data>
+struct TermQueryResult : public Data
 {
-  TermQueryResult() : literal(nullptr), clause(nullptr) {}
-  TermQueryResult(TermList t, Literal* l, Clause* c, ResultSubstitutionSP s)
-  : term(t), literal(l), clause(c), substitution(s) {}
-  TermQueryResult(TermList t, Literal* l, Clause* c, ResultSubstitutionSP s, bool b)
-  : term(t), literal(l), clause(c), substitution(s), isTypeSub(b) {}
-  TermQueryResult(TermList t, Literal* l, Clause* c)
-  : term(t), literal(l), clause(c) {}
-  TermQueryResult(TermList t, Literal* l, Clause* c, ResultSubstitutionSP s,UnificationConstraintStackSP con)
-  : term(t), literal(l), clause(c), substitution(s), constraints(con) {}
-  TermQueryResult(TermList t, Literal* l, Clause* c, ResultSubstitutionSP s,UnificationConstraintStackSP con, bool b)
-  : term(t), literal(l), clause(c), substitution(s), constraints(con), isTypeSub(b) {}
+  CLASS_NAME(TermQueryResult)
 
-  TermList term;
-  Literal* literal;
-  Clause* clause;
+  TermQueryResult() {}
+
+  TermQueryResult(Data d, ResultSubstitutionSP s)
+    : Data(std::move(d)), substitution(s) {}
+
+  TermQueryResult(Data d, ResultSubstitutionSP s, bool b)
+    : Data(std::move(d)), substitution(s), isTypeSub(b) {}
+
+  TermQueryResult(Data d)
+    : Data(std::move(d)) {}
+
+  TermQueryResult(Data d, ResultSubstitutionSP s,UnificationConstraintStackSP con) 
+    : Data(std::move(d)), substitution(s), constraints(con) {}
+
+  TermQueryResult(Data d, ResultSubstitutionSP s,UnificationConstraintStackSP con, bool b)
+    : Data(std::move(d)), substitution(s), constraints(con), isTypeSub(b) {}
+
+
+  Data const& data() const
+  { return *this; }
+
   ResultSubstitutionSP substitution;
   UnificationConstraintStackSP constraints;
   bool isTypeSub = false; //true if the substitution only unifies the types of the terms
-
-  friend std::ostream& operator<<(std::ostream& out, TermQueryResult const& self);
 };
 
 struct ClauseSResQueryResult
@@ -114,7 +335,8 @@ struct FormulaQueryResult
 };
 
 typedef VirtualIterator<SLQueryResult> SLQueryResultIterator;
-typedef VirtualIterator<TermQueryResult> TermQueryResultIterator;
+template<class Data>
+using TermQueryResultIterator = VirtualIterator<TermQueryResult<Data>> ;
 typedef VirtualIterator<ClauseSResQueryResult> ClauseSResResultIterator;
 typedef VirtualIterator<FormulaQueryResult> FormulaQueryResultIterator;
 
@@ -122,7 +344,6 @@ class Index
 {
 public:
   CLASS_NAME(Index);
-  USE_ALLOCATOR(Index);
 
   virtual ~Index();
 
@@ -151,7 +372,6 @@ class ClauseSubsumptionIndex
 {
 public:
   CLASS_NAME(ClauseSubsumptionIndex);
-  USE_ALLOCATOR(ClauseSubsumptionIndex);
 
   virtual ClauseSResResultIterator getSubsumingOrSResolvingClauses(Clause* c, 
     bool subsumptionResolution)

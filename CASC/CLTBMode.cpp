@@ -18,6 +18,7 @@
 #include <cstdlib>
 #include <csignal>
 #include <sstream>
+#include "Lib/Allocator.hpp"
 
 #include "Lib/Portability.hpp"
 
@@ -1000,6 +1001,7 @@ void CLTBProblem::runSlice(Options& strategyOpt)
     env.endOutput();
   }
 
+  STOP_CHECKING_FOR_ALLOCATOR_BYPASSES;
   exit(resultValue);
 } // CLTBProblem::runSlice
 

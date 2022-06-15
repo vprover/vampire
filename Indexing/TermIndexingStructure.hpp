@@ -20,14 +20,16 @@
 
 namespace Indexing {
 
+template<class Data>
 class TermIndexingStructure {
+  using TermQueryResultIterator = Indexing::TermQueryResultIterator<Data>;
 public:
   virtual ~TermIndexingStructure() {}
 
-  virtual void insert(TermList t, Literal* lit, Clause* cls) = 0;
-  virtual void remove(TermList t, Literal* lit, Clause* cls) = 0;
-  virtual void insert(TermList t, TermList trm){ NOT_IMPLEMENTED; }
-  virtual void insert(TermList t, TermList trm, Literal* lit, Clause* cls){ NOT_IMPLEMENTED; }
+  virtual void insert(Data data) = 0;
+  virtual void remove(Data data) = 0;
+
+  // virtual void remove(TermList t, Literal* lit, Clause* cls) = 0;
 
   virtual TermQueryResultIterator getUnifications(TermList t,
 	  bool retrieveSubstitutions = true) { NOT_IMPLEMENTED; }

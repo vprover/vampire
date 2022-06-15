@@ -34,11 +34,11 @@ LiteralIndex* comparisonIndex() {
   return new UnitIntegerComparisonLiteralIndex(new LiteralSubstitutionTree<>(Options::UnificationWithAbstraction::OFF));
 }
 
-TermIndex* intInductionIndex() {
+TermIndex<>* intInductionIndex() {
   return new InductionTermIndex(new TermSubstitutionTree<>(Options::UnificationWithAbstraction::OFF));
 }
 
-TermIndex* structInductionIndex() {
+TermIndex<>* structInductionIndex() {
   return new StructInductionTermIndex(new TermSubstitutionTree<>(Options::UnificationWithAbstraction::OFF));
 }
 

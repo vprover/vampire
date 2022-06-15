@@ -1990,6 +1990,11 @@ bool Kernel::operator<(const TermList& lhs, const TermList& rhs)
   if (lhs.isTerm()) {
     ASS(rhs.isTerm())
     return lhs.term()->getId() < rhs.term()->getId();
+  } else if (lhs.isEmpty() || rhs.isEmpty()) {
+    auto cmp = lhs.isEmpty() - rhs.isEmpty();
+    if (cmp != 0) return cmp < 0;
+    else return false;
+    
   } else {
     ASS(lhs.isVar())
     ASS(rhs.isVar())

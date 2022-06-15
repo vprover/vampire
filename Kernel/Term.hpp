@@ -83,8 +83,6 @@ enum ArgumentOrderVals {
   AO_INCOMPARABLE=6,
 };
 
-bool operator<(const TermList& lhs, const TermList& rhs);
-
 /**
  * Class containing either a pointer to a compound term or
  * a variable number or a functor.
@@ -137,8 +135,6 @@ public:
   /** the term contains a special variable as its head */
   inline bool isSpecialVar() const { return tag() == SPEC_VAR && var() < SPEC_UPPER_BOUND; }
   
-  bool ground() const;
-
   inline bool isVSpecialVar() const { return tag() == SPEC_VAR && var() > SPEC_UPPER_BOUND; }
   /** return the variable number */
   inline unsigned var() const
@@ -186,6 +182,7 @@ public:
   bool isApplication() const;
   bool containsSubterm(TermList v);
   bool containsAllVariablesOf(TermList t);
+  bool ground() const;
 
   bool isSafe() const;
 

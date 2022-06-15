@@ -282,7 +282,7 @@ bool FunctionDefinition::removeAllDefinitions(UnitList*& units)
         scanIterator.del();
       } else if(_defs.get(d->fun)->twoConstDef){
         Def* d2;
-        _defs.pop(d->fun, d2);
+        ALWAYS(_defs.pop(d->fun, d2));
         reverse(d2);
         if(!d2->lhsIsBool() && _defs.insert(d2->fun, d2)){
           _defs.insert(d->fun, d);

@@ -37,14 +37,24 @@ using namespace Lib;
  * Term indexing structure using code trees to retrieve generalizations
  */
 
-class CodeTreeTIS : public TermIndexingStructure
+class CodeTreeTIS : public TermIndexingStructure<DefaultTermLeafData>
 {
+  using TermQueryResultIterator = Indexing::TermQueryResultIterator<DefaultTermLeafData>;
+  using TermQueryResult         = Indexing::TermQueryResult<DefaultTermLeafData>;
 public:
+
   CLASS_NAME(CodeTreeTIS);
   USE_ALLOCATOR(CodeTreeTIS);
 
-  void insert(TermList t, Literal* lit, Clause* cls) final override;
-  void remove(TermList t, Literal* lit, Clause* cls) final override;
+    //TODO add final override
+  virtual void insert(DefaultTermLeafData data)
+  { _insert(data.term, data.literal, data.clause); }
+    //TODO add final override
+  virtual void remove(DefaultTermLeafData data)
+  { _remove(data.term, data.literal, data.clause); }
+
+  void _insert(TermList t, Literal* lit, Clause* cls);
+  void _remove(TermList t, Literal* lit, Clause* cls);
 
   TermQueryResultIterator getGeneralizations(TermList t, bool retrieveSubstitutions = true) final override;
   bool generalizationExists(TermList t) final override;

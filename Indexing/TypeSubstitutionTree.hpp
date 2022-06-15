@@ -27,28 +27,45 @@
 
 namespace Indexing {
 
+template<class LeafData_>
 class TypeSubstitutionTree
-: public TermIndexingStructure, SubstitutionTree<>
+: public TermIndexingStructure<LeafData_>, Indexing::SubstitutionTree<LeafData_>
 {
+  using LeafData = LeafData_;
+  using SubstitutionTree        = Indexing::SubstitutionTree<LeafData>;
+  using TermIndexingStructure   = Indexing::TermIndexingStructure<LeafData>;
+  using TermQueryResultIterator = VirtualIterator<TermQueryResult<LeafData>>;
+  using QueryResult                 = typename SubstitutionTree::QueryResult;
+  using BindingMap                  = typename SubstitutionTree::BindingMap;
+  using Node                        = typename SubstitutionTree::Node;
+  using FastInstancesIterator       = typename SubstitutionTree::FastInstancesIterator;
+  using FastGeneralizationsIterator = typename SubstitutionTree::FastGeneralizationsIterator;
+  using UnificationsIterator        = typename SubstitutionTree::UnificationsIterator;
+  using LDIterator                  = typename SubstitutionTree::LDIterator;
+  using LDComparator                = typename SubstitutionTree::LDComparator;
+  using Leaf                        = typename SubstitutionTree::Leaf;
+  using LeafIterator                = typename SubstitutionTree::LeafIterator;
 public:
   CLASS_NAME(TypeSubstitutionTree);
   USE_ALLOCATOR(TypeSubstitutionTree);
 
   TypeSubstitutionTree();
 
-  void insert(TermList sort, LeafData ld);
-  void remove(TermList sort, LeafData ld);
-  void handleTerm(TermList t, LeafData ld, bool insert);
-  void insert(TermList t, Literal* lit, Clause* cls) override { NOT_IMPLEMENTED; }
-  void remove(TermList t, Literal* lit, Clause* cls) override { NOT_IMPLEMENTED; }
+  void insert(LeafData ld) final override { handleTerm(std::move(ld), true); }
+  void remove(LeafData ld) final override { handleTerm(std::move(ld), false); }
+  void handleTerm(LeafData ld, bool insert);
 
 
-  TermQueryResultIterator getUnifications(TermList sort,
-	  bool retrieveSubstitutions) override { NOT_IMPLEMENTED; }
+  // TermQueryResultIterator getUnifications(TermList sort, bool retrieveSubstitutions) final override;
+  TermQueryResultIterator getUnifications(TermList sort, bool retrieveSubstitutions) final override { NOT_IMPLEMENTED; }
 
   TermQueryResultIterator getUnifications(TermList sort, TermList trm, 
     bool retrieveSubstitutions);
 
+#if VDEBUG
+  virtual void markTagged() final override { SubstitutionTree::markTagged();}
+#endif
+  
 private:
   using TermIndexingStructure::insert; // state explicitly that "insert(TermList sort, LeafData ld);" is not meant to be an overload of any of the parent's inserts
 
@@ -78,11 +95,21 @@ private:
     return t->functor();
   }
 
+  void normalize(Renaming& normalizer, DefaultTermLeafData& ld)
+  { normalizer.normalizeVariables(ld.term); }
+
+  template<class LD>
+  void normalize(Renaming& normalizer, LD& ld)
+  { }
+
+
   typedef SkipList<LeafData,LDComparator> LDSkipList;
   LDSkipList _vars;
   virtual std::ostream& output(std::ostream& out) const final override;
 };
 
 };
+
+#include "Indexing/TypeSubstitutionTree.cpp"
 
 #endif /* __TypeSubstitutionTree__ */

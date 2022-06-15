@@ -581,7 +581,7 @@ template<class LeafData_>
 SubstitutionTree<LeafData_>::FastInstancesIterator::FastInstancesIterator(SubstitutionTree* parent, Node* root,
 	Term* query, bool retrieveSubstitution, bool reversed, bool withoutTop, bool useC, 
   FuncSubtermMap* fstm) //final two for compatibility purposes
-: _literalRetrieval(query->isLiteral()), _retrieveSubstitution(retrieveSubstitution),
+: _retrieveSubstitution(retrieveSubstitution),
   _inLeaf(false), _ldIterator(LDIterator::getEmpty()),  _root(root),
   _alternatives(64), _specVarNumbers(64), _nodeTypes(64)
 #if VDEBUG
@@ -675,16 +675,10 @@ typename SubstitutionTree<LeafData_>::QueryResult SubstitutionTree<LeafData_>::F
 
   if(_retrieveSubstitution) {
     _resultDenormalizer.reset();
-    bool ground=_literalRetrieval
-	? ld.literal->ground()
-	: (ld.term.isTerm() && ld.term.term()->ground());
+    bool ground = SubstitutionTree::isGround(ld.key());
     if(!ground) {
       Renaming normalizer;
-      if(_literalRetrieval) {
-	normalizer.normalizeVariables(ld.literal);
-      } else {
-	normalizer.normalizeVariables(ld.term);
-      }
+      normalizer.normalizeVariables(ld.key());
       _resultDenormalizer.makeInverse(normalizer);
     }
 
@@ -707,7 +701,7 @@ bool SubstitutionTree<LeafData_>::FastInstancesIterator::findNextLeaf()
   CALL("SubstitutionTree::FastInstancesIterator::findNextLeaf");
 
   Node* curr;
-  bool sibilingsRemain;
+  bool sibilingsRemain = false;
   if(_inLeaf) {
     if(_alternatives.isEmpty()) {
       return false;
@@ -727,7 +721,7 @@ bool SubstitutionTree<LeafData_>::FastInstancesIterator::findNextLeaf()
   }
   for(;;) {
 main_loop_start:
-    unsigned currSpecVar;
+    unsigned currSpecVar = 0;
 
     if(curr) {
       if(sibilingsRemain) {

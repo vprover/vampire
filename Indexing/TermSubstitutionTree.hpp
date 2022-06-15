@@ -35,11 +35,14 @@ namespace Indexing {
  * responsibility to ensure that the sorts are unifiable/matchable
  */
 
-template<class LeafData_ = DefaultLeafData>
+template<class LeafData_ = DefaultTermLeafData>
 class TermSubstitutionTree
-: public TermIndexingStructure, Indexing::SubstitutionTree<LeafData_>
+: public TermIndexingStructure<LeafData_>, Indexing::SubstitutionTree<LeafData_>
 {
-  using SubstitutionTree = Indexing::SubstitutionTree<LeafData_>;
+  using SubstitutionTree        = Indexing::SubstitutionTree<LeafData_>;
+  using TermIndexingStructure   = Indexing::TermIndexingStructure<LeafData_>;
+  using TypeSubstitutionTree    = Indexing::TypeSubstitutionTree<LeafData_>;
+  using TermQueryResultIterator = VirtualIterator<TermQueryResult<LeafData_>>;
   using BindingMap                  = typename SubstitutionTree::BindingMap;
   using Node                        = typename SubstitutionTree::Node;
   using FastInstancesIterator       = typename SubstitutionTree::FastInstancesIterator;
@@ -54,22 +57,14 @@ public:
   CLASS_NAME(TermSubstitutionTree);
   USE_ALLOCATOR(TermSubstitutionTree);
   
-  /* 
-   * The extra flag is a higher-order concern. it is set to true when 
-   * we require the term query result to include two terms, the result term
-   * and another. 
-   *
-   * The main use case is to store a different term in the leaf to the one indexed 
-   * in the tree. This is used for example in Skolemisation on the fly where we 
-   * store Terms of type $o (formulas) in the tree, but in the leaf we store
-   * the skolem terms used to witness them (to facilitate the reuse of Skolems)
-   */
-  TermSubstitutionTree(Shell::Options::UnificationWithAbstraction uwa, bool useC=false, bool replaceFunctionalSubterms = false, bool extra = false);
+  TermSubstitutionTree(Shell::Options::UnificationWithAbstraction uwa, bool useC=false, bool replaceFunctionalSubterms = false);
 
-  void insert(TermList t, Literal* lit, Clause* cls) final override;
-  void remove(TermList t, Literal* lit, Clause* cls) final override;
-  void insert(TermList t, TermList trm) final override;
-  void insert(TermList t, TermList trm, Literal* lit, Clause* cls) final override;
+  // TODO add final override
+  void insert(LeafData d) final override { handleTerm(d, /* insert */ true); }
+  // TODO add final override
+  void remove(LeafData d) final override { handleTerm(d, /* insert */ false); }
+
+  // void remove(TermList t, Literal* lit, Clause* cls);
 
   bool generalizationExists(TermList t) final override;
 
@@ -92,10 +87,13 @@ public:
   TermQueryResultIterator getInstances(TermList t,
 	  bool retrieveSubstitutions) final override;
 
+#if VDEBUG
+  virtual void markTagged() final override { SubstitutionTree::markTagged();}
+#endif
+
 private:
 
-  void insert(TermList t, LeafData ld);
-  void handleTerm(TermList t, Literal* lit, Clause* cls, bool insert);
+  void handleTerm(LeafData, bool insert);
 
   struct TermQueryResultFn;
 
@@ -128,7 +126,6 @@ private:
   LDSkipList _vars;
 
   //higher-order concerns
-  bool _extra;
   bool _extByAbs;
 
   FuncSubtermMap _functionalSubtermMap;

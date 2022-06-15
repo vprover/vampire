@@ -281,7 +281,8 @@ namespace Kernel {
       , _cnst(std::move(cnst)) 
     {  }
 
-    UwaResult(Indexing::TermQueryResult const& qr)
+    template<class T>
+    UwaResult(Indexing::TermQueryResult<T> const& qr)
       : _sigma(decltype(_sigma)(qr.substitution))
       , _cnst( qr.constraints ? *qr.constraints : decltype(_cnst)() )
     { }
@@ -395,9 +396,9 @@ namespace Kernel {
 
     auto termIdx() const { return _term; }
 
-    explicit SelectedSummand(SelectedSummand const&) = default;
-    SelectedSummand(SelectedSummand&&) = default;
-    SelectedSummand& operator=(SelectedSummand&&) = default;
+    // explicit SelectedSummand(SelectedSummand const&) = default;
+    // SelectedSummand(SelectedSummand&&) = default;
+    // SelectedSummand& operator=(SelectedSummand&&) = default;
 
     auto numeral() const 
     { return ircLiteral()
@@ -444,12 +445,17 @@ namespace Kernel {
         { return Coproduct<IntTraits, RatTraits, RealTraits>(NumTraits<decltype(n)>{}); });
     }
 
+    TermList sort() const { return numTraits().apply([](auto num) { return num.sort(); });  }
+
     auto symbol() const
     { return ircLiteral().apply([](auto& l) { return l.symbol(); }); }
 
     using Key = TermList;
     auto key() -> Key { return monom(); }
     friend std::ostream& operator<<(std::ostream& out, SelectedSummand const& self);
+
+    auto asTuple() const
+    { return std::tie(_term, (SelectedLiteral const&)*this); }
   };
 
   class SelectedIntegerEquality : public SelectedSummand 
@@ -544,6 +550,8 @@ namespace Kernel {
 
     Literal* literal() const
     { return _inner.apply([](auto& x) { return x.literal(); }); }
+
+    TermList sort() const { ASSERTION_VIOLATION  }
 
     friend std::ostream& operator<<(std::ostream& out, SelectedEquality const& self)
     { 

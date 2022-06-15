@@ -266,7 +266,11 @@ class Index;
 class IndexManager;
 class LiteralIndex;
 class LiteralIndexingStructure;
+struct DefaultLiteralLeafData;
+struct DefaultTermLeafData;
+template<class Data = DefaultTermLeafData>
 class TermIndex;
+template<class Data = DefaultTermLeafData>
 class TermIndexingStructure;
 class ClauseSubsumptionIndex;
 
@@ -276,6 +280,7 @@ class ResultSubstitution;
 typedef Lib::SmartPtr<ResultSubstitution> ResultSubstitutionSP;
 
 struct SLQueryResult;
+template<class Data>
 struct TermQueryResult;
 
 class GeneratingLiteralIndex;
@@ -283,10 +288,9 @@ class SimplifyingLiteralIndex;
 class UnitClauseLiteralIndex;
 class FwSubsSimplifyingLiteralIndex;
 
-struct DefaultLeafData;
-template<class LeafData = DefaultLeafData>
+template<class LeafData = DefaultTermLeafData>
 class SubstitutionTree;
-template<class LeafData = DefaultLeafData>
+template<class LeafData = DefaultLiteralLeafData>
 class LiteralSubstitutionTree;
 
 class CodeTree;

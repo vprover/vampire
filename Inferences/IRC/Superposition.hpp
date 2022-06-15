@@ -72,6 +72,8 @@ public:
              .filter([](auto x) { return x.literal()->isPositive(); })
              .map([](auto x) { return Lhs(std::move(x)); });
     }
+
+    TermList sort() const { ASSERTION_VIOLATION }
   };
 
   struct Rhs : public SelectedLiteral
@@ -88,6 +90,7 @@ public:
     TermList toRewrite() const { return _toRewrite; }
 
     TermList key() const { return toRewrite(); }
+    TermList sort() const { ASSERTION_VIOLATION }
 
     bool inLitPlus() const
     { return _inLitPlus; }

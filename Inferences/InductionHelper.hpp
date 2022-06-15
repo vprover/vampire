@@ -30,6 +30,9 @@ using namespace Indexing;
 using namespace Kernel;
 
 class InductionHelper {
+  using TermIndex               = Indexing::TermIndex<DefaultTermLeafData>;
+  using TermQueryResult         = Indexing::TermQueryResult<DefaultTermLeafData>;
+  using TermQueryResultIterator = Indexing::TermQueryResultIterator<DefaultTermLeafData>;
 public:
   CLASS_NAME(InductionHelper);
   USE_ALLOCATOR(InductionHelper);

@@ -25,13 +25,16 @@ struct RenderMonom {
     using Monom        = Monom       <NumTraits>;
     auto& raw = x.raw();
     std::sort(raw.begin(), raw.end());
-    auto fstNum = Option<Numeral>();
+
+    Numeral num(1);
+    bool found = false;
     unsigned len = 0;
     for (auto x : raw) {
       ASS_EQ(x.power, 1)
-      if (x.term.template tryNumeral<NumTraits>().isSome() && fstNum.isNone()) {
-        fstNum = x.term.template tryNumeral<NumTraits>();
-
+      Option<Numeral> attempt(x.term.template tryNumeral<NumTraits>());
+      if (!found && attempt.isSome()) {
+        found = true;
+        num = attempt.unwrap();
       } else if (len == 0) {
         len++;
         raw[len - 1].term = x.term;
@@ -50,7 +53,6 @@ struct RenderMonom {
     raw.truncate(len);
     ASS_EQ(raw.size(), len)
     x.integrity();
-    auto num = fstNum.map([](Numeral& n) -> Numeral { return n; }).unwrapOrElse([](){return Numeral(1);});
     return Monom(num, perfect(std::move(x)));
   }
 };

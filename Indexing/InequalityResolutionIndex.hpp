@@ -44,8 +44,8 @@ public:
   // TODO remove?!
   auto find(TermList key)
   { return iterTraits(_index.getUnificationsWithConstraints(key, /* retrieveSubstitutions */ true))
-      .map([](TermQueryResult r) 
-           { return std::tuple<T*, UwaResult>( ((T*) r.literal), UwaResult(r));  }); }
+      .map([](TermQueryResult<T> r) 
+           { return std::tuple<T, UwaResult>( std::move(r.data()), UwaResult(r));  }); }
 
 
   virtual void handleClause(Clause* c, bool adding) final override 
@@ -53,17 +53,15 @@ public:
     for (auto appl : T::iter(*_shared, c)) {
       if (adding) {
         // TODO this is very hacky. implement nicer ?!
-        _index.insert(appl.key(), (Literal*) new T(std::move(appl)), nullptr);
+        _index.insert(std::move(appl));
       } else {
-        // TODO removal!!
-        ASSERTION_VIOLATION
-        // _index.remove(toInsert.key(), appl)
+        _index.remove(std::move(appl));
       }
     }
   }
 
 private:
-  TermSubstitutionTree<> _index;
+  TermSubstitutionTree<T> _index;
   shared_ptr<Kernel::IrcState> _shared;
 };
 

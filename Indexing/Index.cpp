@@ -47,40 +47,4 @@ void Index::attachContainer(ClauseContainer* cc)
 }
 
 
-std::ostream& operator<<(std::ostream& out, TermQueryResult const& self)
-{ 
-  out << "TermQueryResult("
-      <<   "term: "         << self.term
-      << ", literal: ";
-  if (self.literal) out << *self.literal;
-  else              out << "<null>";
-  out << ", clause: ";
-  if (self.clause) out << *self.clause;
-  else              out << "<null>";
-  out << ", substitution: " << self.substitution
-      << ", constraints: " ;
-
-  auto toTerm = [&](pair<TermList, int> const& x) 
-                { return self.substitution->applyTo(x.first, x.second); };
-  auto writeConst = [&](UnificationConstraint const&c)
-                    { out << toTerm(c.first) << " = " << toTerm(c.second); };
-
-  if (self.constraints) {
-    out << "[";
-    auto iter = self.constraints->iterFifo();
-    if (iter.hasNext()) {
-      writeConst(iter.next());
-      while (iter.hasNext()) {
-        out << ", ";
-        writeConst(iter.next());
-      }
-    }
-    out << "]";
-  } else {
-    out << "<null>";
-  }
-  out << ")"; 
-  return out;
-}
-
 }

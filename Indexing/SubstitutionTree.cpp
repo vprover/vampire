@@ -120,7 +120,7 @@ void SubstitutionTree<LeafData_>::insert(Node** pnode,BindingMap& svBindings,Lea
   ASS_EQ(_iteratorCnt,0);
 
 #if VDEBUG
-  if(tag){cout << "Insert " << ld.toString() << endl;}
+  if(tag){cout << "Insert " << ld << endl;}
 #endif
 
   if(*pnode == 0) {
@@ -662,11 +662,13 @@ SubstitutionTree<LeafData_>::UnificationsIterator::UnificationsIterator(Substitu
 	Node* root, Term* query, bool retrieveSubstitution, bool reversed, 
   bool withoutTop, bool useC, FuncSubtermMap* funcSubtermMap)
 : tag(parent->tag), 
-svStack(32), literalRetrieval(query->isLiteral()),
-  retrieveSubstitution(retrieveSubstitution), inLeaf(false),
+svStack(32), retrieveSubstitution(retrieveSubstitution), inLeaf(false),
 ldIterator(LDIterator::getEmpty()), nodeIterators(8), bdStack(8),
-clientBDRecording(false), tree(parent), useUWAConstraints(useC),
-  uwa(parent->_uwa)
+clientBDRecording(false), useUWAConstraints(useC)
+  , uwa(parent->_uwa)
+#if VDEBUG
+  , tree(parent)
+#endif
 {
   CALL("SubstitutionTree::UnificationsIterator::UnificationsIterator");
 
@@ -790,12 +792,7 @@ typename SubstitutionTree<LeafData_>::QueryResult SubstitutionTree<LeafData_>::U
 
   if(retrieveSubstitution) {
     Renaming normalizer;
-    // TODO: should normalization of variables really happen here, and not in the construction of the nodes?
-    if(literalRetrieval) {
-      normalizer.normalizeVariables(ld.literal);
-    } else {
-      normalizer.normalizeVariables(ld.term);
-    }
+    normalizer.normalizeVariables(ld.key());
 
     ASS(clientBacktrackData.isEmpty());
     subst.bdRecord(clientBacktrackData);
@@ -984,6 +981,7 @@ typename SubstitutionTree<LeafData_>::NodeIterator
     }
   }
 }
+
 
 } // namespace Indexing
 

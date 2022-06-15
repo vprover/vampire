@@ -164,11 +164,10 @@ public:
     if(_retrieveSubstitutions) {
       _resultNormalizer->reset();
       _resultNormalizer->normalizeVariables(_found->t);
-      res=TermQueryResult(_found->t, _found->lit, _found->cls,
+      res = TermQueryResult(DefaultTermLeafData(_found->t, _found->lit, _found->cls),
 	  ResultSubstitutionSP(_subst,true));
-    }
-    else {
-      res=TermQueryResult(_found->t, _found->lit, _found->cls);
+    } else {
+      res = TermQueryResult(DefaultTermLeafData(_found->t, _found->lit, _found->cls));
     }
     _found=0;
     return res;
@@ -184,7 +183,7 @@ private:
   TermCodeTree::TermMatcher* _matcher;
 };
 
-void CodeTreeTIS::insert(TermList t, Literal* lit, Clause* cls)
+void CodeTreeTIS::_insert(TermList t, Literal* lit, Clause* cls)
 {
   CALL("CodeTreeTIS::insert");
 
@@ -192,14 +191,14 @@ void CodeTreeTIS::insert(TermList t, Literal* lit, Clause* cls)
   _ct.insert(ti);
 }
 
-void CodeTreeTIS::remove(TermList t, Literal* lit, Clause* cls)
+void CodeTreeTIS::_remove(TermList t, Literal* lit, Clause* cls)
 {
   CALL("CodeTreeTIS::remove");
   
   _ct.remove(TermCodeTree::TermInfo(t,lit,cls));
 }
 
-TermQueryResultIterator CodeTreeTIS::getGeneralizations(TermList t, bool retrieveSubstitutions)
+TermQueryResultIterator<DefaultTermLeafData> CodeTreeTIS::getGeneralizations(TermList t, bool retrieveSubstitutions)
 {
   CALL("CodeTreeTIS::getGeneralizations");
 

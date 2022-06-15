@@ -42,6 +42,7 @@
 #include "Shell/Options.hpp"
 #include "Kernel/OperatorType.hpp"
 #include "Kernel/Signature.hpp"
+#include "Indexing/TermIndex.hpp"
 
 #include "Lib/Allocator.hpp"
 
@@ -61,44 +62,6 @@ using namespace Kernel;
 
 namespace Indexing {
 
-struct DefaultLeafData {
-    DefaultLeafData() {}
-    DefaultLeafData(Clause* cls, Literal* literal, TermList term, TermList extraTerm)
-    : clause(cls), literal(literal), term(term), extraTerm(extraTerm) {}
-    DefaultLeafData(Clause* cls, Literal* literal, TermList term)
-    : clause(cls), literal(literal), term(term) { extraTerm.makeEmpty();}
-    DefaultLeafData(Clause* cls, Literal* literal)
-    : clause(cls), literal(literal) { term.makeEmpty(); extraTerm.makeEmpty(); }
-    inline
-    bool operator==(const DefaultLeafData& o)
-    { return clause==o.clause && literal==o.literal && term==o.term; }
-
-    Clause* clause;
-    Literal* literal;
-    TermList term;
-    // In some higher-order use cases, we want to store a different term 
-    // in the leaf to the indexed term. extraTerm is used for this purpose.
-    // In all other situations it is empty
-    TermList extraTerm;
-
-    vstring toString(){
-      vstring ret = "LD " + literal->toString();// + " in " + clause->literalsOnlyToString();
-      if(!term.isEmpty()){ ret += " with " +term.toString(); }
-      return ret;
-    }
-    friend std::ostream& operator<<(std::ostream& out, DefaultLeafData const& self)
-    {
-      out << "DefaultLeafData(";
-      if (self.clause) out << *self.clause;
-      else             out << "<no clause>";
-      out << ", ";
-      if (self.literal) out << *self.literal;
-      else              out << "<no literal>";
-
-      out << "," <<  self.term;
-      return out << ")";
-    }
-  };
 /**
  * Class of substitution trees. In fact, contains an array of substitution
  * trees.
@@ -109,6 +72,8 @@ class SubstitutionTree
 {
 public:
   using LeafData = LeafData_;
+  using TermQueryResultIterator = VirtualIterator<TermQueryResult<LeafData>>;
+
   CLASS_NAME(SubstitutionTree);
   USE_ALLOCATOR(SubstitutionTree);
 
@@ -119,7 +84,8 @@ public:
   bool tag;
   virtual void markTagged(){ tag=true;}
 
-//protected:
+  friend std::ostream& operator<<(std::ostream& out, SubstitutionTree const& self)
+  { return out << "SubstitutionTree(...)"; }
 
   
   typedef VirtualIterator<LeafData&> LDIterator;
@@ -127,58 +93,18 @@ public:
   class LDComparator
   {
   public:
-    inline
-    static Comparison compare(const LeafData& ld1, const LeafData& ld2)
+    template<class LD>
+    static Comparison compare(const LD& ld1, const LD& ld2)
     {
-      CALL("SubstitutionTree::LDComparator::compare");
-
-      /*
-      cout << "ld1: " << ld1.toString() << endl;
-      cout << "ld2: " << ld2.toString() << endl;
-      */
-
-      if(ld1.clause && ld2.clause && ld1.clause!=ld2.clause) {
-        //if(ld1.clause->number()==ld2.clause->number()){
-          //cout << "XXX " << ld1.clause << " and " << ld2.clause << endl;
-          //cout << ld2.clause->toString() << endl;
-        //}
-        ASS_NEQ(ld1.clause->number(), ld2.clause->number());
-        return (ld1.clause->number()<ld2.clause->number()) ? LESS : GREATER;
-      }
-      Comparison res;
-      if(ld1.literal && ld2.literal && ld1.literal!=ld2.literal) {
-        res = (ld1.literal->getId()<ld2.literal->getId())? LESS : GREATER;
-      } else {
-        ASS_EQ(ld1.clause,ld2.clause);
-        ASS_EQ(ld1.literal,ld2.literal);
-
-        if (ld1.term.isEmpty()) {
-          ASS(ld2.term.isEmpty());
-          res = EQUAL;
-        } else {
-          if (ld1.term.isVar()) {
-            if (ld2.term.isVar()) {
-              unsigned var1 = ld1.term.var();
-              unsigned var2 = ld2.term.var();
-              res=(var1<var2)? LESS : (var1>var2)? GREATER : EQUAL;
-            }
-            else{
-              res = LESS;
-            }
-          } else {
-            if (ld2.term.isVar()) {
-              res = GREATER;
-            } else {
-              unsigned id1 = ld1.term.term()->getId();
-              unsigned id2 = ld2.term.term()->getId();
-              res=(id1<id2)? LESS : (id1>id2)? GREATER : EQUAL;
-            }
-          }
-        }
-      }
-      return res;
+      return ld1 < ld2 ? Comparison::LESS 
+           : ld1 > ld2 ? Comparison::GREATER
+           : Comparison::EQUAL;
     }
+
   };
+
+  static bool isGround(Literal* literal) { return literal->ground(); }
+  static bool isGround(TermList term) { return term.ground(); }
 
   enum NodeAlgorithm
   {
@@ -497,7 +423,7 @@ public:
     ~UArrIntermediateNode()
     {
       if(!isEmpty()) {
-        IntermediateNode::destroyChildren();
+        this->destroyChildren();
       }
     }
 
@@ -542,10 +468,10 @@ public:
   {
   public:
    UArrIntermediateNodeWithSorts(unsigned childVar) : UArrIntermediateNode(childVar) {
-     IntermediateNode::_childBySortHelper = new ChildBySortHelper(this);
+     this->_childBySortHelper = new ChildBySortHelper(this);
    }
    UArrIntermediateNodeWithSorts(TermList ts, unsigned childVar) : UArrIntermediateNode(ts, childVar) {
-     IntermediateNode::_childBySortHelper = new ChildBySortHelper(this);
+     this->_childBySortHelper = new ChildBySortHelper(this);
    }
   }; 
 
@@ -559,7 +485,7 @@ public:
     ~SListIntermediateNode()
     {
       if(!isEmpty()) {
-        IntermediateNode::destroyChildren();
+        this->destroyChildren();
       }
     }
 
@@ -605,7 +531,7 @@ public:
       bool found=_nodes.getPosition(t,res,canCreate);
       if(!found) {
         if(canCreate) {
-          IntermediateNode::mightExistAsTop(t);
+          this->mightExistAsTop(t);
           *res=0;
         } else {
           res=0;
@@ -618,7 +544,7 @@ public:
     {
       _nodes.remove(t);
       if(IntermediateNode::_childBySortHelper){
-        IntermediateNode::_childBySortHelper->remove(t);
+        this->_childBySortHelper->remove(t);
       }
     }
 
@@ -660,10 +586,10 @@ public:
   {
    public:
    SListIntermediateNodeWithSorts(unsigned childVar) : SListIntermediateNode(childVar) {
-     IntermediateNode::_childBySortHelper = new ChildBySortHelper(this);
+     this->_childBySortHelper = new ChildBySortHelper(this);
    }
    SListIntermediateNodeWithSorts(TermList ts, unsigned childVar) : SListIntermediateNode(ts, childVar) {
-     IntermediateNode::_childBySortHelper = new ChildBySortHelper(this);
+     this->_childBySortHelper = new ChildBySortHelper(this);
    }
   };
 
@@ -772,8 +698,6 @@ public:
     bool findNextLeaf();
     bool enterNode(Node*& node);
 
-    /** We are retrieving generalizations of a literal */
-    bool _literalRetrieval;
     /** We should include substitutions in the results */
     bool _retrieveSubstitution;
     /** The iterator is currently in a leaf
@@ -819,7 +743,6 @@ public:
     bool enterNode(Node*& node);
 
   private:
-    bool _literalRetrieval;
     bool _retrieveSubstitution;
     bool _inLeaf;
     LDIterator _ldIterator;
@@ -895,7 +818,6 @@ public:
     VarStack svStack;
 
   private:
-    bool literalRetrieval;
     bool retrieveSubstitution;
     bool inLeaf;
     LDIterator ldIterator;
@@ -904,11 +826,13 @@ public:
     bool clientBDRecording;
     BacktrackData clientBacktrackData;
     Renaming queryNormalizer;
-    SubstitutionTree* tree;
     bool useUWAConstraints;
     bool useHOConstraints;
     UnificationConstraintStack constraints;
     Options::UnificationWithAbstraction const uwa;
+#if VDEBUG
+    SubstitutionTree* tree;
+#endif
   };
   friend class UnificationsIterator;
 
@@ -946,22 +870,6 @@ public:
 
   int _iteratorCnt;
 #endif
-
-public:
-  friend std::ostream& operator<<(std::ostream& out, SubstitutionTree const& self)
-  {
-    out << "SubstitutionTree{" << std::endl;
-    for (auto& node : self._nodes) {
-      out << "\t";
-      if (node) {
-        out << *node;
-      } else {
-        out << "<null>";
-      }
-      out << std::endl;
-    }
-    return out << "}";
-  }
 }; // class SubstitutionTree
 
 

@@ -772,7 +772,7 @@ KboWeightMap<SigTraits> KboWeightMap<SigTraits>::fromSomeUnsigned(Extractor ex, 
   auto nSym = SigTraits::nSymbols();
   DArray<KboWeight> weights(nSym);
 
-  unsigned max = 0;
+  decltype(ex(0)) max = 0;
   for (unsigned i = 0; i < nSym; i++) {
     auto a = ex(i);
     if (a > max) {

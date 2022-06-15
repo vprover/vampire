@@ -321,7 +321,6 @@ set(VAMPIRE_KERNEL_SOURCES
     Kernel/SKIKBO.cpp
     Kernel/IRC.hpp
     Kernel/IRC.cpp
-    Indexing/TypeSubstitutionTree.cpp
     Indexing/TypeSubstitutionTree.hpp
     Inferences/CNFOnTheFly.cpp
     Inferences/CNFOnTheFly.hpp
@@ -753,6 +752,7 @@ set(UNIT_TESTS
     UnitTests/tQuotientE.cpp
     UnitTests/tImplicationSetClosure.cpp
     UnitTests/tUnificationWithAbstraction.cpp
+    UnitTests/tTermIndex.cpp
     UnitTests/tGaussianElimination.cpp
     UnitTests/tIRC_InequalityResolution.cpp
     UnitTests/tIRC_LiteralFactoring.cpp

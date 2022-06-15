@@ -276,10 +276,10 @@ namespace Indexing
       CALL("Acyclicity::pushUnificationOnStack");
 
       ASS(_tis);
-      TermQueryResultIterator tqrIt = _tis->getUnifications(t);
+      auto tqrIt = _tis->getUnifications(t);
       int index;
       while (tqrIt.hasNext()) {
-        TermQueryResult tqr = tqrIt.next();
+        auto tqr = tqrIt.next();
         if (tqr.literal == _queryLit || notInAncestors(parent, tqr.literal)) {
           if (tqr.literal == _queryLit) {
             index = 0;
@@ -432,7 +432,7 @@ namespace Indexing
       ULit ulit = make_pair(lit, c);
       if (!index->find(ulit)) {
         index->insert(ulit, new IndexEntry(lit, c, *t, getSubterms(fs->term())));
-        _tis->insert(*t, lit, c);
+        _tis->insert(DefaultTermLeafData(*t, lit, c));
       }
     }
   }
@@ -451,7 +451,7 @@ namespace Indexing
         return;
 
       _sIndexes.get(sort)->remove(ulit);
-     _tis->remove(*t, lit, c);
+      _tis->remove(DefaultTermLeafData(*t, lit, c));
     }
   }
 
