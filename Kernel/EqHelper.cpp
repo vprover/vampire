@@ -380,12 +380,10 @@ TermIterator EqHelper::getSubVarSupLHSIterator(Literal* lit, const Ordering& ord
         return pvi( getSingletonIterator(t1) );
       }
       break;
-#if VDEBUG
     case Ordering::EQUAL:
       //there should be no equality literals of equal terms
     default:
       ASSERTION_VIOLATION;
-#endif
     }
     return TermIterator::getEmpty();
   } else {

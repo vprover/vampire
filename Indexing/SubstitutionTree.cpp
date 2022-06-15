@@ -664,7 +664,10 @@ SubstitutionTree<LeafData_>::UnificationsIterator::UnificationsIterator(Substitu
 : tag(parent->tag), 
 svStack(32), retrieveSubstitution(retrieveSubstitution), inLeaf(false),
 ldIterator(LDIterator::getEmpty()), nodeIterators(8), bdStack(8),
-clientBDRecording(false), tree(parent), useUWAConstraints(useC)
+clientBDRecording(false), useUWAConstraints(useC)
+#if VDEBUG
+  , tree(parent)
+#endif
 {
   CALL("SubstitutionTree::UnificationsIterator::UnificationsIterator");
 

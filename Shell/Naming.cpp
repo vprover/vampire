@@ -276,7 +276,7 @@ Formula* Naming::apply_iter(Formula* top_f) {
           int c = sand.cls[i];
           sum = Int::min(_threshold, sum + c);
           bool canBeDefEvaluated = false;
-          bool canBeDef;
+          bool canBeDef = false;
           if (c > maxPos) {
             canBeDefEvaluated = true;
             canBeDef = canBeInDefinition(currArg->head(), tas.where);
@@ -398,7 +398,7 @@ Formula* Naming::apply_iter(Formula* top_f) {
           int c = sor.cls[i];
           product = Int::min(_threshold, product * c);
           bool canBeDefEvaluated = false;
-          bool canBeDef;
+          bool canBeDef = false;
           if (c > maxPos) {
             canBeDefEvaluated = true;
             canBeDef = canBeInDefinition(currArg->head(), tas.where);

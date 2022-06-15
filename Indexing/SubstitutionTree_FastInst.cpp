@@ -698,7 +698,7 @@ bool SubstitutionTree<LeafData_>::FastInstancesIterator::findNextLeaf()
   CALL("SubstitutionTree::FastInstancesIterator::findNextLeaf");
 
   Node* curr;
-  bool sibilingsRemain;
+  bool sibilingsRemain = false;
   if(_inLeaf) {
     if(_alternatives.isEmpty()) {
       return false;
@@ -718,7 +718,7 @@ bool SubstitutionTree<LeafData_>::FastInstancesIterator::findNextLeaf()
   }
   for(;;) {
 main_loop_start:
-    unsigned currSpecVar;
+    unsigned currSpecVar = 0;
 
     if(curr) {
       if(sibilingsRemain) {
