@@ -230,6 +230,7 @@ public:
     /** true if it is a page allocated to store other objects */
     unsigned page : 1;
     Descriptor();
+    ~Descriptor();
 
     friend std::ostream& operator<<(std::ostream& out, const Descriptor& d);
 
@@ -247,6 +248,8 @@ public:
     static Descriptor* afterLast;
     /** capacity of the map */
     static size_t capacity;
+    static int _cnt;
+    int _i;
   };
 #endif
 

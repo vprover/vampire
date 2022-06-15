@@ -102,6 +102,7 @@ size_t Allocator::Descriptor::maxEntries;
 size_t Allocator::Descriptor::capacity;
 Allocator::Descriptor* Allocator::Descriptor::map;
 Allocator::Descriptor* Allocator::Descriptor::afterLast;
+int Allocator::Descriptor::_cnt = 0;
 unsigned Allocator::_tolerantZone = 1; // starts > 0; we are not checking by default, until we say so with START_CHECKING_FOR_BYPASSES
 #endif
 
@@ -126,6 +127,7 @@ string Lib::___prettyFunToClassName(std::string str)
 
 #endif
 
+
 void* Allocator::operator new(size_t s) {
   return malloc(s);
 }
@@ -141,6 +143,7 @@ void Allocator::operator delete(void* obj) {
 Allocator::Allocator()
 {
   CALLC("Allocator::Allocator",MAKE_CALLS);
+  std::cout << "init allocator" << std::endl;
 
 #if ! USE_SYSTEM_ALLOCATION
   for (int i = REQUIRES_PAGE/4-1;i >= 0;i--) {
@@ -164,6 +167,7 @@ Lib::Allocator::~Allocator ()
   while (_myPages) {
     deallocatePages(_myPages);
   }
+  std::cout << "destroying allocator" << std::endl;
 } // Allocator::~allocator
 
 /**
@@ -1046,9 +1050,14 @@ Allocator::Descriptor::Descriptor ()
     allocated(0),
     known(0),
     page(0)
+    , _i(_cnt++)
 {
+  std::cout << "alloc descr " << _i << std::endl;
 //   CALL("Allocator::Descriptor::Descriptor");
 } // Allocator::Descriptor::Descriptor
+
+Allocator::Descriptor::~Descriptor()  
+ { std::cout << "dealloc descr" << _i << std::endl; };
 
 /**
  * The FNV-hashing.
