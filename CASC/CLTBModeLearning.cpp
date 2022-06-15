@@ -1071,7 +1071,7 @@ void CLTBProblemLearning::runSlice(vstring sliceCode, unsigned timeLimitInMillis
     if(parent->probRecords.find(env.options->problemName(),rec)){
       if(rec->suc.contains(sliceCode) || rec->fail.contains(sliceCode)){
         CLTBModeLearning::coutLineOutput() << " GaveUp as tried before (in learning)" << endl;
-        STOP_CHECKING_FOR_ALLOCATOR_BYPASSES(0);
+        STOP_CHECKING_FOR_ALLOCATOR_BYPASSES;
         exit(1); // GaveUp
       }
       rec->fail.insert(sliceCode); // insert this here in child in case the same slice is in the schedule multiple times
