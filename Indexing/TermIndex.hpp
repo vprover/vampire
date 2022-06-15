@@ -276,6 +276,9 @@ public:
 };
 
 struct RenamingFormulaIndexData : public ClauseLiteralPair {
+  CLASS_NAME(RenamingFormulaIndexData)
+  USE_ALLOCATOR(RenamingFormulaIndexData)
+
   TermList name;
 
   RenamingFormulaIndexData()  {}

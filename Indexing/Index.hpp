@@ -36,6 +36,9 @@ using namespace Saturation;
 
 
 struct DefaultLiteralLeafData {
+  CLASS_NAME(DefaultLiteralLeafData)
+  USE_ALLOCATOR(DefaultLiteralLeafData)
+
   DefaultLiteralLeafData() {}
   using Key = Literal*;
 
@@ -91,6 +94,8 @@ class TermIndexData {
   TermList _sort;
   Value _value;
 public:
+  CLASS_NAME(TermIndexData)
+  USE_ALLOCATOR(TermIndexData)
   TermIndexData() {}
 
   TermIndexData(Term* key, Value v)
@@ -130,6 +135,9 @@ public:
 };
 
 struct ClauseLiteralPair {
+  CLASS_NAME(ClauseLiteralPair)
+  USE_ALLOCATOR(ClauseLiteralPair)
+
   ClauseLiteralPair() {}
 
   ClauseLiteralPair(Clause* c, Literal* l)
@@ -174,6 +182,9 @@ public:
 };
 
 struct DefaultTermLeafData {
+  CLASS_NAME(DefaultTermLeafData)
+  USE_ALLOCATOR(DefaultTermLeafData)
+
   using Key = TermList;
 
   DefaultTermLeafData() {}
@@ -270,6 +281,9 @@ struct SLQueryResult
 template<class Data>
 struct TermQueryResult : public Data
 {
+  CLASS_NAME(TermQueryResult)
+  USE_ALLOCATOR(TermQueryResult)
+
   TermQueryResult() {}
 
   TermQueryResult(Data d, ResultSubstitutionSP s)
