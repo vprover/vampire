@@ -404,7 +404,6 @@ DP_OBJ = DP/ShortConflictMetaDP.o\
 
 CASC_OBJ = CASC/PortfolioMode.o\
            CASC/Schedules.o\
-	   CASC/ScheduleExecutor.o\
            CASC/CLTBMode.o\
            CASC/CLTBModeLearning.o
 

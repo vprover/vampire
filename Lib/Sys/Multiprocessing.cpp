@@ -127,101 +127,6 @@ pid_t Multiprocessing::waitForChildTermination(int& resValue)
   return childPid;
 }
 
-/**
- * Wait for termination of a child or until timeMs elapses. If the later happens,
- * return 0 instead of process pid.
- */
-pid_t Multiprocessing::waitForChildTerminationOrTime(unsigned timeMs,int& resValue)
-{
-  CALL("Multiprocessing::waitForChildTerminationOrTime");
-
-  int status;
-  pid_t childPid;
-
-  int dueTime = env.timer->elapsedMilliseconds()+timeMs;
-
-  for(;;) {
-    errno=0;
-    childPid = waitpid(WAIT_ANY,&status,WNOHANG);
-    if(childPid==-1) {
-      SYSTEM_FAIL("Call to waitpid() function failed.", errno);
-    }
-    if(childPid==0) {
-      if(dueTime<=env.timer->elapsedMilliseconds()) {
-	return 0;
-      }
-      sleep(50);
-      continue;
-    }
-    else {
-      if(!WIFSTOPPED(status)) {
-	break;
-      }
-    }
-  }
-
-  if(WIFEXITED(status)) {
-    resValue = WEXITSTATUS(status);
-  }
-  else {
-    ASS(WIFSIGNALED(status));
-    resValue = WTERMSIG(status)+256;
-  }
-  return childPid;
-}
-
-/**
- * Wait for a first child process to terminate, return its pid and assign
- * its exit status into @b resValue. If the child was terminated by a signal,
- * assign into @b resValue the signal number increased by 256.
- */
-void Multiprocessing::waitForParticularChildTermination(pid_t child, int& resValue)
-{
-  CALL("Multiprocessing::waitForChildTermination");
-
-  int status;
-
-  do {
-    errno=0;
-    int res=waitpid(child, &status, 0);
-    if(res==-1) {
-      SYSTEM_FAIL("Call to waitpid() function failed.", errno);
-    }
-    ASS_EQ(res,child);
-  } while(WIFSTOPPED(status));
-
-  if(WIFEXITED(status)) {
-    resValue = WEXITSTATUS(status);
-  }
-  else {
-    ASS(WIFSIGNALED(status));
-    resValue = WTERMSIG(status)+256;
-  }
-}
-
-void Multiprocessing::sleep(unsigned ms)
-{
-  CALL("Multiprocessing::sleep");
-
-  timespec init;
-  timespec ts;
-  timespec remaining;
-  init.tv_nsec = (ms%1000)*1000000;
-  init.tv_sec = ms/1000;
-  ts = init;
-  for(;;) {
-    int res = nanosleep(&ts, &remaining);
-    if(!res || remaining.tv_sec>init.tv_sec) { //the latter statement covers remaining time underflow
-      return;
-    }
-    ASS_EQ(res,-1);
-    if(errno!=EINTR) {
-      SYSTEM_FAIL("Call to nanosleep() function failed.", errno);
-    }
-    ts = remaining;
-  }
-}
-
 void Multiprocessing::kill(pid_t child, int signal)
 {
   CALL("Multiprocessing::kill");
@@ -239,7 +144,7 @@ void Multiprocessing::killNoCheck(pid_t child, int signal)
   ::kill(child, signal);
 }
 
-pid_t Multiprocessing::poll_children(bool &stopped, bool &exited, bool &signalled, int &code)
+pid_t Multiprocessing::poll_children(bool &exited, bool &signalled, int &code)
 {
   CALL("Multiprocessing::poll_child");
 
@@ -250,7 +155,6 @@ pid_t Multiprocessing::poll_children(bool &stopped, bool &exited, bool &signalle
     SYSTEM_FAIL("Call to waitpid() function failed.", errno);
   }
 
-  stopped = WIFSTOPPED(status);
   exited = WIFEXITED(status);
   signalled = WIFSIGNALED(status);
   if(exited)
@@ -260,10 +164,6 @@ pid_t Multiprocessing::poll_children(bool &stopped, bool &exited, bool &signalle
   if(signalled)
   {
     code = WTERMSIG(status);
-  }
-  if(stopped)
-  {
-    code = WSTOPSIG(status);
   }
   return pid;
 }
