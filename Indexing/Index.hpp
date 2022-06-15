@@ -24,6 +24,7 @@
 #include "Saturation/ClauseContainer.hpp"
 #include "ResultSubstitution.hpp"
 #include "Kernel/SortHelper.hpp"
+#include "Lib/Reflection.hpp"
 
 #include "Lib/Allocator.hpp"
 
@@ -50,7 +51,7 @@ struct DefaultLiteralLeafData
     : clause(cls), literal(literal) {  }
 
 private:
-  auto toTuple() const
+  auto asTuple() const
   { return make_tuple(
       clause == nullptr, 
       clause == nullptr ? 0 : clause->number(), 
@@ -58,18 +59,7 @@ private:
       literal == nullptr ? 0 : literal->getId()); }
 public:
 
-  friend bool operator==(DefaultLiteralLeafData const& l, DefaultLiteralLeafData const& r)
-  { return l.toTuple() == r.toTuple(); }
-
-  friend bool operator!=(DefaultLiteralLeafData const& l, DefaultLiteralLeafData const& r)
-  { return !(l == r); }
-
-  friend bool operator<(DefaultLiteralLeafData const& l, DefaultLiteralLeafData const& r)
-  { return l.toTuple() < r.toTuple(); }
-
-  friend bool operator> (DefaultLiteralLeafData const& l, DefaultLiteralLeafData const& r) { return r < l; }
-  friend bool operator<=(DefaultLiteralLeafData const& l, DefaultLiteralLeafData const& r) { return l == r || l < r; }
-  friend bool operator>=(DefaultLiteralLeafData const& l, DefaultLiteralLeafData const& r) { return l == r || l > r; }
+  IMPL_COMPARISONS_FROM_TUPLE(DefaultLiteralLeafData)
 
   Clause* clause;
   Literal* literal;
@@ -113,25 +103,14 @@ public:
   { return _value; }
 
 private:
-  auto toTuple() const
+  auto asTuple() const
   { return std::tie(key(), sort(), value()); }
 public:
 
-  friend bool operator==(TermIndexData const& l, TermIndexData const& r)
-  { return l.toTuple() == r.toTuple(); }
-
-  friend bool operator!=(TermIndexData const& l, TermIndexData const& r)
-  { return !(l == r); }
-
-  friend bool operator<(TermIndexData const& l, TermIndexData const& r)
-  { return l.toTuple() < r.toTuple(); }
-
-  friend bool operator> (TermIndexData const& l, TermIndexData const& r) { return r < l; }
-  friend bool operator<=(TermIndexData const& l, TermIndexData const& r) { return l == r || l < r; }
-  friend bool operator>=(TermIndexData const& l, TermIndexData const& r) { return l == r || l > r; }
+  IMPL_COMPARISONS_FROM_TUPLE(TermIndexData)
 
   friend std::ostream& operator<<(std::ostream& out, TermIndexData const& self)
-  { return out << "TermIndexData" << self.toTuple(); }
+  { return out << "TermIndexData" << self.asTuple(); }
 };
 
 struct ClauseLiteralPair 
@@ -144,7 +123,7 @@ struct ClauseLiteralPair
     : clause(c), literal(l) {}
 
 protected:
-  auto  toTuple() const
+  auto  asTuple() const
   { return make_tuple(
       clause == nullptr, 
       clause == nullptr ? 0 : clause->number(), 
@@ -152,18 +131,7 @@ protected:
       literal == nullptr ? 0 : literal->getId()); }
 public:
 
-  friend bool operator==(ClauseLiteralPair const& l, ClauseLiteralPair const& r)
-  { return l.toTuple() == r.toTuple(); }
-
-  friend bool operator!=(ClauseLiteralPair const& l, ClauseLiteralPair const& r)
-  { return !(l == r); }
-
-  friend bool operator<(ClauseLiteralPair const& l, ClauseLiteralPair const& r)
-  { return l.toTuple() < r.toTuple(); }
-
-  friend bool operator> (ClauseLiteralPair const& l, ClauseLiteralPair const& r) { return r < l; }
-  friend bool operator<=(ClauseLiteralPair const& l, ClauseLiteralPair const& r) { return l == r || l < r; }
-  friend bool operator>=(ClauseLiteralPair const& l, ClauseLiteralPair const& r) { return l == r || l > r; }
+  IMPL_COMPARISONS_FROM_TUPLE(ClauseLiteralPair)
 
   Clause* clause;
   Literal* literal;
@@ -185,6 +153,11 @@ struct DefaultTermLeafData
 {
   CLASS_NAME(DefaultTermLeafData);
 
+  Clause* clause;
+  Literal* literal;
+  TermList term;
+
+
   using Key = TermList;
 
   DefaultTermLeafData() {}
@@ -204,7 +177,7 @@ struct DefaultTermLeafData
   { return term; }
 
 private:
-  auto  toTuple() const
+  auto  asTuple() const
   { return make_tuple(
       clause == nullptr, 
       clause == nullptr ? 0 : clause->number(), 
@@ -213,23 +186,7 @@ private:
       term); }
 public:
 
-  // TODO shouldn't extraTerm be compared as well?
-  friend bool operator==(DefaultTermLeafData const& l, DefaultTermLeafData const& r)
-  { return l.toTuple() == r.toTuple(); }
-
-  friend bool operator!=(DefaultTermLeafData const& l, DefaultTermLeafData const& r)
-  { return !(l == r); }
-
-  friend bool operator<(DefaultTermLeafData const& l, DefaultTermLeafData const& r)
-  { return l.toTuple() < r.toTuple(); }
-
-  friend bool operator> (DefaultTermLeafData const& l, DefaultTermLeafData const& r) { return r < l; }
-  friend bool operator<=(DefaultTermLeafData const& l, DefaultTermLeafData const& r) { return l == r || l < r; }
-  friend bool operator>=(DefaultTermLeafData const& l, DefaultTermLeafData const& r) { return l == r || l > r; }
-
-  Clause* clause;
-  Literal* literal;
-  TermList term;
+  IMPL_COMPARISONS_FROM_TUPLE(DefaultTermLeafData)
 
   friend std::ostream& operator<<(std::ostream& out, DefaultTermLeafData const& self)
   { 
