@@ -152,9 +152,6 @@ Index* IndexManager::create(IndexType t)
   switch(t) {
   case GENERATING_SUBST_TREE:
     is=new LiteralSubstitutionTree(useConstraints);
-#if VDEBUG
-    //is->markTagged();
-#endif
     _genLitIndex=is;
     res=new GeneratingLiteralIndex(is);
     isGenerating = true;
@@ -183,16 +180,12 @@ Index* IndexManager::create(IndexType t)
 
   case SUPERPOSITION_SUBTERM_SUBST_TREE:
     tis=new TermSubstitutionTree(useConstraints, extByAbs);
-#if VDEBUG
-    //tis->markTagged();
-#endif
     res=new SuperpositionSubtermIndex(tis, _alg->getOrdering());
     isGenerating = true;
     break;
   case SUPERPOSITION_LHS_SUBST_TREE:
     tis=new TermSubstitutionTree(useConstraints, extByAbs);
     res=new SuperpositionLHSIndex(tis, _alg->getOrdering(), _alg->getOptions());
-    //tis->markTagged();
     isGenerating = true;
     break;
     
@@ -200,9 +193,6 @@ Index* IndexManager::create(IndexType t)
     //using a substitution tree to store variable.
     //TODO update
     tis=new TermSubstitutionTree();
-#if VDEBUG
-    //tis->markTagged();
-#endif
     res=new SubVarSupSubtermIndex(tis, _alg->getOrdering());
     isGenerating = true;
     break;

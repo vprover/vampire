@@ -57,10 +57,6 @@ public:
   TermQueryResultIterator getGeneralizations(TermList t, bool retrieveSubstitutions = true) final override;
   bool generalizationExists(TermList t) final override;
 
-#if VDEBUG
-  virtual void markTagged() final override { NOT_IMPLEMENTED; } 
-#endif
-
 private:
   class ResultIterator;
 

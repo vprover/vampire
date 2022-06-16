@@ -84,10 +84,6 @@ public:
   TermQueryResultIterator getInstances(TermList t,
 	  bool retrieveSubstitutions) final override;
 
-#if VDEBUG
-  virtual void markTagged() final override { SubstitutionTree::markTagged();}
-#endif
-
 private:
 
   void handleTerm(LeafData, bool insert);

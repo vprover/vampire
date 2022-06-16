@@ -46,11 +46,6 @@ public:
     return countIteratorElements(getUnifications(lit, complementary, false));
   }
 
-#if VDEBUG
-  virtual vstring toString() { return "<not supported>"; }
-  virtual void markTagged() = 0;
-#endif
-
 };
 
 };
