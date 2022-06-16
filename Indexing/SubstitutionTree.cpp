@@ -682,7 +682,10 @@ SubstitutionTree::UnificationsIterator::UnificationsIterator(SubstitutionTree* p
 svStack(32), literalRetrieval(query->isLiteral()),
   retrieveSubstitution(retrieveSubstitution), inLeaf(false),
 ldIterator(LDIterator::getEmpty()), nodeIterators(8), bdStack(8),
-clientBDRecording(false), tree(parent), useUWAConstraints(useC)
+clientBDRecording(false), useUWAConstraints(useC)
+#if VDEBUG
+  , tree(parent)
+#endif
 {
   CALL("SubstitutionTree::UnificationsIterator::UnificationsIterator");
 

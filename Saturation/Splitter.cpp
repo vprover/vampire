@@ -776,9 +776,8 @@ Unit* Splitter::getDefinitionFromName(SplitLevel compName) const
 {
   CALL("Splitter::getDefinitionFromName");
 
-  Unit* def;
-  ALWAYS(_defs.find((compName&~1) /*always stored positively*/,def));
-  return def;
+  // always stored positively
+  return _defs.get(compName & ~1);
 }
 
 void Splitter::collectDependenceLits(SplitSet* splits, SATLiteralStack& acc) const

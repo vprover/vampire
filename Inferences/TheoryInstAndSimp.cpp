@@ -578,7 +578,7 @@ Option<Substitution> TheoryInstAndSimp::instantiateGeneralised(
       });
     }
 
-    auto res = _solver->solveUnderAssumptions(theoryLits, 0, false);
+    DEBUG_CODE(auto res =) _solver->solveUnderAssumptions(theoryLits, 0, false);
     ASS_EQ(res, SATSolver::UNSATISFIABLE)
 
     Set<TermList> usedDefs;
@@ -707,7 +707,7 @@ Clause* instantiate(Clause* original, Substitution& subst, Stack<Literal*> const
     Literal* lit_inst = SubstHelper::apply(lit,subst);
     SubtermIterator iter(lit_inst);
     while (iter.hasNext()) {
-      auto t = iter.next();
+      DEBUG_CODE(auto t =) iter.next();
       ASS_REP(t.isVar() || SortHelper::areSortsValid(t.term()), t);
     }
     ASS_REP(SortHelper::areSortsValid(lit_inst), *lit_inst);

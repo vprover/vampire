@@ -1957,7 +1957,7 @@ void FiniteModelBuilder::onModelFound()
     if(env.signature->functionArity(f)>0) continue;
     if(del_f[f]) continue;
 
-    bool found=false;
+    DEBUG_CODE(bool found=false;)
     for(unsigned c=1;c<=_sortModelSizes[_sortedSignature->functionSignatures[f][0]];c++){
       static DArray<unsigned> grounding(1);
       grounding[0]=c;
@@ -1965,7 +1965,7 @@ void FiniteModelBuilder::onModelFound()
       if(_solver->trueInAssignment(slit)){
         //if(found){ cout << "Error: multiple interpretations of " << name << endl;}
         ASS(!found);
-        found=true;
+        DEBUG_CODE(found=true;)
         model.addConstantDefinition(f,c);
       }
     }

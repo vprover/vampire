@@ -880,10 +880,12 @@ public:
     bool clientBDRecording;
     BacktrackData clientBacktrackData;
     Renaming queryNormalizer;
-    SubstitutionTree* tree;
     bool useUWAConstraints;
     bool useHOConstraints;
     UnificationConstraintStack constraints;
+#if VDEBUG
+    SubstitutionTree* tree;
+#endif
   };
 
 /*
