@@ -90,12 +90,6 @@ private:
       UwaResult& uwa
       ) const;
 
-  template<class NumTraits, class Subst, class CnstIter> Option<Clause*> applyRule(
-      Clause* hyp1, Literal* lit1, IrcLiteral<NumTraits> l1, Monom<NumTraits> j_s1,
-      Clause* hyp2, Literal* lit2, IrcLiteral<NumTraits> l2, Monom<NumTraits> k_s2,
-      Subst sigma, CnstIter cnst, unsigned nCnst
-      ) const;
-
   template<class NumTraits> ClauseIterator generateClauses(Clause* clause, Literal* lit, IrcLiteral<NumTraits> l1, Monom<NumTraits> j_s1) const;
 
   shared_ptr<IrcState> _shared;

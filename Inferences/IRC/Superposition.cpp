@@ -215,11 +215,13 @@ ClauseIterator Superposition::generateClauses(Clause* premise)
     for (auto lhs_sigma : _lhs->find(rhs.key())) {
       auto& lhs   = std::get<0>(lhs_sigma);
       auto& sigma = std::get<1>(lhs_sigma);
-      DEBUG("  lhs: ", lhs)
-      auto res = applyRule(lhs, 1, rhs, 0, sigma);
-      DEBUG("")
-      if (res.isSome()) {
-        out.push(res.unwrap());
+      if (lhs.clause() != premise) { // <- self application. the same one has been run already in the previous loop
+        DEBUG("  lhs: ", lhs)
+        auto res = applyRule(lhs, 1, rhs, 0, sigma);
+        DEBUG("")
+        if (res.isSome()) {
+          out.push(res.unwrap());
+        }
       }
     }
   }

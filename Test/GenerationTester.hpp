@@ -32,18 +32,18 @@
 
 namespace Test {
 
-#define TEST_FN_ASS_EQ(VAL1, VAL2)                         \
-  [] (vstring& s1, vstring& s2) {                          \
-    bool res = (VAL1 == VAL2);                             \
-    if (!res) {                                            \
-      s1 = Int::toString(VAL1);                            \
-      s1.append(" != ");                                   \
-      s1.append(Int::toString(VAL2));                      \
-      s2 = vstring(#VAL1);                                 \
-      s2.append(" == ");                                   \
-      s2.append(#VAL2);                                    \
-    }                                                      \
-    return res;                                            \
+#define TEST_FN_ASS_EQ(VAL1, VAL2)                                                                  \
+  [] (vstring& s1, vstring& s2) {                                                                   \
+    bool res = (VAL1 == VAL2);                                                                      \
+    if (!res) {                                                                                     \
+      s1 = Int::toString(VAL1);                                                                     \
+      s1.append(" != ");                                                                            \
+      s1.append(Int::toString(VAL2));                                                               \
+      s2 = vstring(#VAL1);                                                                          \
+      s2.append(" == ");                                                                            \
+      s2.append(#VAL2);                                                                             \
+    }                                                                                               \
+    return res;                                                                                     \
   }
 
 template<class... As>
@@ -89,6 +89,7 @@ class AsymmetricTest
   Stack<ClausePattern> _expected;
   Stack<Clause*> _context;
   bool _premiseRedundant;
+  bool _selfApplications;
   Stack<std::function<Indexing::Index*()>> _indices;
   OptionMap _options;
   Stack<Condition> _preConditions;
@@ -107,19 +108,20 @@ class AsymmetricTest
 
 public:
 
-  AsymmetricTest() : _rule(), _input(NULL), _expected(), _premiseRedundant(false), _options() {}
+  AsymmetricTest() : _rule(), _input(NULL), _expected(), _premiseRedundant(false), _selfApplications(true), _options() {}
 
-#define BUILDER_METHOD(type, field)                                                                           \
-  AsymmetricTest field(type field)                                                                            \
-  {                                                                                                           \
-    this->_##field = decltype(_##field)(std::move(field));                                                    \
-    return *this;                                                                                             \
-  }                                                                                                           \
+#define BUILDER_METHOD(type, field)                                                                 \
+  AsymmetricTest field(type field)                                                                  \
+  {                                                                                                 \
+    this->_##field = decltype(_##field)(std::move(field));                                          \
+    return *this;                                                                                   \
+  }                                                                                                 \
 
   BUILDER_METHOD(Clause*, input)
   BUILDER_METHOD(Stack<Clause*>, context)
   BUILDER_METHOD(Stack<ClausePattern>, expected)
   BUILDER_METHOD(bool, premiseRedundant)
+  BUILDER_METHOD(bool, selfApplications)
   BUILDER_METHOD(SimplifyingGeneratingInference*, rule)
   BUILDER_METHOD(Stack<std::function<Indexing::Index*()>>, indices)
   BUILDER_METHOD(OptionMap, options)
@@ -161,13 +163,15 @@ public:
     }
 
     // run rule
-    _input->setStore(Clause::ACTIVE);
-    container.add(_input);
+    if (_selfApplications) {
+      _input->setStore(Clause::ACTIVE);
+      container.add(_input);
+    }
     auto res = rule.generateSimplify(_input);
 
     // run checks
-    auto& sExp = this->_expected;
-    auto  sRes = Stack<Kernel::Clause*>::fromIterator(res.clauses);
+    auto sExp = this->_expected;
+    auto sRes = Stack<Kernel::Clause*>::fromIterator(res.clauses);
 
     if (!TestUtils::permEq(sExp, sRes, [&](auto exp, auto res) { return exp.matches(simpl, res); })) {
       testFail(sRes, sExp);
@@ -207,6 +211,7 @@ class SymmetricTest
   Stack<Clause*> _inputs;
   Stack<ClausePattern> _expected;
   bool _premiseRedundant;
+  bool _selfApplications;
   Stack<std::function<Indexing::Index*()>> _indices;
 
   template<class Is, class Expected>
@@ -220,18 +225,19 @@ class SymmetricTest
 
 public:
 
-  SymmetricTest() : _rule(), _expected(), _premiseRedundant(false) {}
+  SymmetricTest() : _rule(), _expected(), _premiseRedundant(false), _selfApplications(true) {}
 
-#define _BUILDER_METHOD(type, field)                                                                          \
-  SymmetricTest field(type field)                                                                             \
-  {                                                                                                           \
-    this->_##field = decltype(_##field)(std::move(field));                                                    \
-    return *this;                                                                                             \
-  }                                                                                                           \
+#define _BUILDER_METHOD(type, field)                                                                \
+  SymmetricTest field(type field)                                                                   \
+  {                                                                                                 \
+    this->_##field = decltype(_##field)(std::move(field));                                          \
+    return *this;                                                                                   \
+  }                                                                                                 \
 
   _BUILDER_METHOD(Stack<Clause*>, inputs)
   _BUILDER_METHOD(Stack<ClausePattern>, expected)
   _BUILDER_METHOD(bool, premiseRedundant)
+  _BUILDER_METHOD(bool, selfApplications)
   _BUILDER_METHOD(SimplifyingGeneratingInference*, rule)
   _BUILDER_METHOD(Stack<std::function<Indexing::Index*()>>, indices)
 
@@ -239,14 +245,12 @@ public:
   template<class Rule>
   void run(GenerationTester<Rule>& simpl) {
     for (unsigned i = 0; i < _inputs.size(); i++) {
-      // cout << "\tusing clause " << i << " as input... " << endl;
       Stack<Clause*> context;
       auto input = _inputs[i];
       for (unsigned j = 0; j < _inputs.size(); j++) 
         if (i != j) 
           context.push(_inputs[j]);
       run(simpl, input, context);
-      // cout << "\t-> ok (clause " << i << " as input)" << endl;
     }
   }
 
@@ -258,6 +262,7 @@ public:
       .context(context)
       .expected(_expected)
       .premiseRedundant(_premiseRedundant)
+      .selfApplications(_selfApplications)
       .rule(rule)
       .indices(_indices)
       .run(simpl);
@@ -268,16 +273,16 @@ public:
 
 #define REGISTER_GEN_TESTER(t) const auto __CREATE_GEN_TESTER = []()  { return t; };
 
-#define TEST_GENERATION(name, ...)                                                                            \
+#define TEST_GENERATION(name, ...)                                                                  \
         TEST_GENERATION_WITH_SUGAR(name, MY_SYNTAX_SUGAR, __VA_ARGS__) 
 
-#define TEST_GENERATION_WITH_SUGAR(name, syntax_sugar, ...)                                                   \
-  TEST_FUN(name) {                                                                                            \
-    auto tester = __CREATE_GEN_TESTER();                                                                      \
-    __ALLOW_UNUSED(syntax_sugar)                                                                              \
-    auto test = __VA_ARGS__;                                                                                  \
-    test.run(tester);                                                                                         \
-  }                                                                                                           \
+#define TEST_GENERATION_WITH_SUGAR(name, syntax_sugar, ...)                                         \
+  TEST_FUN(name) {                                                                                  \
+    auto tester = __CREATE_GEN_TESTER();                                                            \
+    __ALLOW_UNUSED(syntax_sugar)                                                                    \
+    auto test = __VA_ARGS__;                                                                        \
+    test.run(tester);                                                                               \
+  }                                                                                                 \
 
 } // namespace Simplification
 

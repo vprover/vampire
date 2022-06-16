@@ -84,7 +84,7 @@ public:
    *    - `bool operator(const elem_type&, const elem_type&)`
    */
   template<class L1, class L2, class Eq> 
-  static bool permEq(L1& lhs, L2& rhs, Eq elemEq);
+  static bool permEq(L1 const& lhs, L2 const& rhs, Eq elemEq);
 
 private:
 
@@ -258,7 +258,7 @@ bool anyPerm(unsigned size, P pred) {
 
 
 template<class L1, class L2, class Eq>
-bool TestUtils::permEq(L1& lhs, L2& rhs, Eq elemEq) 
+bool TestUtils::permEq(L1 const& lhs, L2 const& rhs, Eq elemEq) 
 {
   if (lhs.size() != rhs.size()) 
     return false;

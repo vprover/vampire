@@ -40,6 +40,12 @@ using namespace Inferences::IRC;
 #define SUGAR(Num)                                                                                  \
   NUMBER_SUGAR(Num)                                                                                 \
   DECL_DEFAULT_VARS                                                                                 \
+  DECL_VAR(x0, 0)                                                                                   \
+  DECL_VAR(x1, 1)                                                                                   \
+  DECL_VAR(x2, 2)                                                                                   \
+  DECL_VAR(x3, 3)                                                                                   \
+  DECL_VAR(x4, 4)                                                                                   \
+  DECL_VAR(x5, 5)                                                                                   \
   DECL_FUNC(f, {Num}, Num)                                                                          \
   DECL_FUNC(g, {Num}, Num)                                                                          \
   DECL_FUNC(f2, {Num, Num}, Num)                                                                    \
@@ -172,6 +178,30 @@ TEST_GENERATION(uwa1,
     )
 
 
+TEST_GENERATION(self_applications_run_only_once,
+    Generation::SymmetricTest()
+      .indices(ircSuperpositionIndices())
+      .selfApplications(true)
+      .inputs  ({ clause({ selected( f(x) + f(y) == 0 )  }) })
+      .expected(exactly(
+                  // clause({ f(x0) + f(x1) == 0    }) 
+                  // clause({ f(x2) + f(x3) == 0    }) 
+       
+                  // x2 -> x0
+                  clause({ - f(x3) + f(x1) == 0    }) 
+
+                  // x2 -> x1
+                , clause({ -f(x3) + f(x0) == 0 })
+
+                  // x3 -> x0
+                , clause({ -f(x2) + f(x1) == 0 })
+
+                  // x3 -> x1
+                , clause({ -f(x2) + f(x0) == 0 })
+      ))
+    )
+
+
 TEST_GENERATION(misc01,
     Generation::SymmetricTest()
       .indices(ircSuperpositionIndices())
@@ -230,18 +260,22 @@ TEST_GENERATION(ordering2_fail,
       .expected(exactly(  /* nothing */  ))
     )
 
+
 // •        s1  σ is strictly maximal in terms(s1 + t1)σ
 TEST_GENERATION(ordering3_ok,
     Generation::SymmetricTest()
       .indices(ircSuperpositionIndices())
-      .inputs  ({         clause({ selected( g2(x,y) + g2(z,z) + g2(z,z) == 0 ) })
+      .selfApplications(false)
+      .inputs  ({         clause({ selected( g2(x,y) + 2 * g2(z,z) == 0 ) })
                 ,         clause({ selected( f(g2(a,a)) > 0                   ) }) }) 
       .expected(exactly(  clause({ f(       -2  * g2(z,z)) > 0 }) 
-                       ,  clause({ f(frac(-1,2) * g2(x,y)) > 0 }) ))
+                       ,  clause({ f(frac(-1,2) * g2(x,y)) > 0 }) 
+                       ))
     )
 TEST_GENERATION(ordering3_fail,
     Generation::SymmetricTest()
       .indices(ircSuperpositionIndices())
+      .selfApplications(false)
       .inputs  ({         clause({  g2(x,y) + g2(y,x) + g2(y,x) == 0 })
                 ,         clause({ f(g2(a,a)) > 0 }) }) 
       .expected(exactly(  /* nothing */  ))
@@ -297,6 +331,7 @@ TEST_GENERATION(uninterpreted_sort_2,
 TEST_GENERATION(bug01a,
     Generation::SymmetricTest()
       .indices(ircSuperpositionIndices())
+      .selfApplications(false)
       .inputs  ({        clause({ selected(  z + -g2(f2(y, z), y) > 0 ), 0 == y  })
                           // (1) {y -> x, z -> y + z}
                           // ==> { (y + z) + -g2(f2(x, (y + z)), x) > 0 , 0 == x }
@@ -318,6 +353,7 @@ TEST_GENERATION(bug01a,
 TEST_GENERATION(bug01b,
     Generation::SymmetricTest()
       .indices(ircSuperpositionIndices())
+      .selfApplications(false)
       .inputs  ({        clause({ selected(  z + -g2((y * z), y) > 0 ), 0 == y  })
                           // (1) {y -> x, z -> y + z}
                           // ==> { (y + z) + -g2((x * (y + z)), x) > 0 , 0 == x }
@@ -338,6 +374,7 @@ TEST_GENERATION(bug01b,
 TEST_GENERATION(only_replace_max_rat,
     Generation::SymmetricTest()
       .indices(ircSuperpositionIndices())
+      .selfApplications(false)
       .inputs  ({        clause({ selected( 0 == f(x) + f(y) + x ) })
                 ,        clause({ selected( p(f(g(a)))           ) })
                 })
@@ -362,6 +399,7 @@ TEST_GENERATION(only_replace_max_uninter_01,
 TEST_GENERATION(only_replace_max_uninter_02,
     Generation::SymmetricTest()
       .indices(ircSuperpositionIndices())
+      .selfApplications(false)
       .inputs  ({        clause({ selected( fa(x) == fa(y)   ) })
                 ,        clause({ selected( p(fn(fa(f(b))))  ) })
                 })
@@ -487,6 +525,7 @@ TEST_GENERATION_WITH_SUGAR(int_03, SUGAR(Int),
 TEST_GENERATION(two_var_01,
     Generation::SymmetricTest()
       .indices(ircSuperpositionIndices())
+      .selfApplications(false)
       .inputs  ({ clause({ x == aa   }) 
                 , clause({ p(f(a))  }) })
       .expected(exactly(
@@ -494,11 +533,12 @@ TEST_GENERATION(two_var_01,
       ))
     )
 
-TEST_GENERATION(bug_01,
+TEST_GENERATION(bug02,
     Generation::SymmetricTest()
       .indices(ircSuperpositionIndices())
       .inputs  ({ clause({ x == aa   }) })
       .expected(exactly(
+          clause({ sorted(x, alpha) == y })
           /* nothing */
       ))
     )

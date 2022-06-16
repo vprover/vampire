@@ -16,8 +16,7 @@
 #include "Saturation/SaturationAlgorithm.hpp"
 #include "Shell/Statistics.hpp"
 
-#define TODO ASSERTION_VIOLATION
-#define DEBUG(...) DBG(__VA_ARGS__)
+#define DEBUG(...) // DBG(__VA_ARGS__)
 
 namespace Inferences {
 namespace IRC {
@@ -198,12 +197,6 @@ Option<Clause*> InequalityResolution::applyRule(
     // ASS_REP(_shared->equivalent(sσ.term(), s2σ().term()), make_pair(sσ, s2σ()))
     Stack<TermList> t1σ(rhs.nContextTerms());
     Stack<TermList> t2σ(lhs.nContextTerms());
-
-    // auto mul = [](auto num, auto term) 
-    //            { return num == NumTraits::constant(1) ? term
-    //                 : num == NumTraits::constant(-1) ? NumTraits::minus(term)
-    //                 : term == NumTraits::constantTl(1) ? NumTraits::constantTl(num)
-    //                 : NumTraits::mul(NumTraits::constantTl(num), term); };
 
     check_side_condition(
         "s₁σ /⪯ t₁σ",

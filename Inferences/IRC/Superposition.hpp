@@ -24,7 +24,7 @@
 #include "Indexing/InequalityResolutionIndex.hpp"
 #include "Shell/Options.hpp"
 
-#define DEBUG(...) //DBG(__VA_ARGS__)
+#define DEBUG(...) // DBG(__VA_ARGS__)
 
 namespace Inferences {
 namespace IRC {
