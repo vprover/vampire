@@ -78,9 +78,9 @@ void Preprocess::preprocess(Problem& prb)
   CALL("Preprocess::preprocess");
 
   auto normalizeInterpreted = [&]() {
-    if (env.options->inequalityResolution()) {
+    if (env.options->lasca()) {
 
-      static InequalityNormalizer norm = InequalityNormalizer(env.options->ircStrongNormalization());
+      static InequalityNormalizer norm = InequalityNormalizer(env.options->lascaStrongNormalization());
       InterpretedNormalizer(&norm).apply(prb);
 
     } else {

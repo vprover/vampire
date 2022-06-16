@@ -1203,101 +1203,29 @@ void Options::init()
     _pushUnaryMinus.tag(OptionTag::INFERENCES);
 
 
-    _inequalityResolution  = BoolOptionValue("inequality_resolution","ir",false);
-    _inequalityResolution.description=
-            "Enables the inequality resolution calculus. In exact this means the ordering is set to LaKBO (a compatible version of KBO), inequalites are normalized to t > 0, or t >= 0, and following inference rules are enabled: \n"
-            "\n"
-            "///////////////////////////////////////////////////////////////////////\n"
-            "//////////////////////// Inequality Resolution ////////////////////////\n"
-            "///////////////////////////////////////////////////////////////////////\n"
-            "\n"
-            "For reals and rationals:\n"
-            "\n"
-            "n1 t1 + r1 > 0 \\/ C1                  n2 t2 + r2 > 0 \\/ C2 \n"
-            "============================================================ (IR_strict)\n"
-            "  (k1 r1 + k2 r2 > 0 \\/ C1 \\/ C2 )sigma \\/ constraints\n"
-            "\n"
-            "n1 t1 + r1 >= 0 \\/ C1                  n2 t2 + r2 >= 0 \\/ C2 \n"
-            "============================================================ (IR_lax)\n"
-            "  (k1 r1 + k2 r2 >= 0 \\/ C1 \\/ C2 )sigma \\/ constraints\n"
-            "\n"
-            "n1 t1 + r1 > 0 \\/ C1                  n2 t2 + r2 >= 0 \\/ C2 \n"
-            "============================================================ (IR_mix)\n"
-            "  (k1 r1 + k2 r2 > 0 \\/ C1 \\/ C2 )sigma \\/ constraints\n"
-            "\n"
-            "For integers:\n"
-            "\n"
-            "n1 t1 + r1 > 0 \\/ C1                  n2 t2 + r2 > 0 \\/ C2 \n"
-            "============================================================ (IR)\n"
-            "  (k1 r1 + k2 r2 - 1 > 0 \\/ C1 \\/ C2 )sigma \\/ constraints\n"
-            "\n"
-            "where \n"
-            "- uwa(t_1, t_2) = (sigma, constraints)\n"
-            "- t_1, and t_2 are maximal within their respective sums\n"
-            "- n1, n2 are numerals\n"
-            "- sign(n1) != sign(n1)\n"
-            "- k1 n1 = -k2 n2\n"
-            "\n"
-            "\n"
-            "\n"
-            "Example:\n"
-            "3 a + -2 > 0      -6 a > 0\n"
-            "==========================\n"
-            "      -4 > 0\n"
-            "\n"
-            "///////////////////////////////////////////////////////////////////////\n"
-            "///////////////////////// Inequality Factoring ////////////////////////\n"
-            "///////////////////////////////////////////////////////////////////////\n"
-            "\n"
-            " n t + n' t' + r <> 0 \\/ C\n"
-            "==========================\n"
-            " ((n + n') t + r <> 0 \\/ C) sigma \\/ constraints \n"
-            "\n"
-            "where \n"
-            "- <> in { >, >= }\n"
-            "- uwa(t, t') = (sigma, constraints)\n"
-            "- t, and t' are maximal within the sum\n"
-            "- n, n' are numerals\n"
-            "\n"
-            "\n"
-            "Example:\n"
-            "3 f(x) + 7 f(y) > 0\n"
-            "==========================\n"
-            "      10 f(x) > 0\n"
-            // TODO describe all rules
-            "\n";
-    _lookup.insert(&_inequalityResolution);
-    _inequalityResolution.tag(OptionTag::INFERENCES);
-    _inequalityResolution.setExperimental();
-    _inequalityResolution.reliesOn(Or(
+    _lasca  = BoolOptionValue("lasca","lasca",false);
+    _lasca.description= "Enables the Linear Arithmetic Superposition CAlculus\n";
+    _lookup.insert(&_lasca);
+    _lasca.tag(OptionTag::INFERENCES);
+    _lasca.setExperimental();
+    _lasca.reliesOn(Or(
            _termOrdering.is(equal(TermOrdering::LALPO)),
            _termOrdering.is(equal(TermOrdering::QKBO))
            ));
-    _inequalityResolution.reliesOn(_cancellation.is(equal(ArithmeticSimplificationMode::OFF)));
-    _inequalityResolution.reliesOn(_evaluationMode.is(equal(EvaluationMode::POLYNOMIAL_FORCE)));
-    _inequalityResolution.reliesOn(_highSchool.is(equal(false)));
-    _inequalityResolution.reliesOn(_unificationWithAbstraction.is(Or(equal(UnificationWithAbstraction::IRC1), equal(UnificationWithAbstraction::IRC2), equal(UnificationWithAbstraction::IRC3))));
+    _lasca.reliesOn(_cancellation.is(equal(ArithmeticSimplificationMode::OFF)));
+    // _lasca.reliesOn(_evaluationMode.is(equal(EvaluationMode::POLYNOMIAL_FORCE)));
+    _lasca.reliesOn(_highSchool.is(equal(false)));
+    _lasca.reliesOn(_unificationWithAbstraction.is(Or(equal(UnificationWithAbstraction::IRC1), equal(UnificationWithAbstraction::IRC2), equal(UnificationWithAbstraction::IRC3))));
 
-    _ircVariableElimination  = choiceArithmeticSimplificationMode(
-         "irc_variable_eliminiation_simpliying", "irc_ve",
-         ArithmeticSimplificationMode::OFF);
-    _ircVariableElimination.description=
-            "enables or disables the rule `variable eliminiation` either as a simplifying or a generating inference."
-            // TODO describe all rules
-            "\n";
-    _lookup.insert(&_ircVariableElimination);
-    _ircVariableElimination.tag(OptionTag::INFERENCES);
-    _ircVariableElimination.reliesOn(_inequalityResolution.is(equal(true)));
-
-    _ircStrongNormalization  = BoolOptionValue("irc_strong_normalziation","irc_strnorm",true);
-    _ircStrongNormalization.description=
+    _lascaStrongNormalization  = BoolOptionValue("lasca_strong_normalziation","lasca_sn",true);
+    _lascaStrongNormalization.description=
             "enables stronger normalizations for inequalities: \n"
             "s >= 0 ==> s > 0 \\/  s == 0\n"
             "s != 0 ==> s > 0 \\/ -s  > 0\n"
             "\n";
-    _lookup.insert(&_ircStrongNormalization);
-    _ircStrongNormalization.tag(OptionTag::INFERENCES);
-    _ircStrongNormalization.reliesOn(_inequalityResolution.is(equal(true)));
+    _lookup.insert(&_lascaStrongNormalization);
+    _lascaStrongNormalization.tag(OptionTag::INFERENCES);
+    _lascaStrongNormalization.reliesOn(_lasca.is(equal(true)));
 
     _gaussianVariableElimination = choiceArithmeticSimplificationMode(
        "gaussian_variable_elimination", "gve",

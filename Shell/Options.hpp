@@ -2370,9 +2370,8 @@ public:
   bool inequalityNormalization() const { return _inequalityNormalization.actualValue; }
   EvaluationMode evaluationMode() const { return _highSchool.actualValue ? EvaluationMode::POLYNOMIAL_FORCE : _evaluationMode.actualValue; }
   ArithmeticSimplificationMode gaussianVariableElimination() const { return _highSchool.actualValue ? ArithmeticSimplificationMode::CAUTIOUS : _gaussianVariableElimination.actualValue; }
-  bool inequalityResolution() const { return _inequalityResolution.actualValue; }
-  ArithmeticSimplificationMode ircVariableElimination() const { return _ircVariableElimination.actualValue; }
-  bool ircStrongNormalization() const { return _ircStrongNormalization.actualValue; }
+  bool lasca() const { return _lasca.actualValue; }
+  bool lascaStrongNormalization() const { return _lascaStrongNormalization.actualValue; }
   bool pushUnaryMinus() const { return _pushUnaryMinus.actualValue || _highSchool.actualValue; }
   ArithmeticSimplificationMode cancellation() const { return _highSchool.actualValue ? ArithmeticSimplificationMode::CAUTIOUS : _cancellation.actualValue; }
   ArithmeticSimplificationMode arithmeticSubtermGeneralizations() const { return  _highSchool.actualValue ? ArithmeticSimplificationMode::CAUTIOUS : _arithmeticSubtermGeneralizations.actualValue; }
@@ -2799,9 +2798,8 @@ private:
   BoolOptionValue _pushUnaryMinus;
   BoolOptionValue _highSchool;
   ChoiceOptionValue<ArithmeticSimplificationMode> _gaussianVariableElimination;
-  BoolOptionValue _inequalityResolution;
-  ChoiceOptionValue<ArithmeticSimplificationMode> _ircVariableElimination;
-  BoolOptionValue _ircStrongNormalization;
+  BoolOptionValue _lasca;
+  BoolOptionValue _lascaStrongNormalization;
   ChoiceOptionValue<ArithmeticSimplificationMode> _cancellation;
   ChoiceOptionValue<ArithmeticSimplificationMode> _arithmeticSubtermGeneralizations;
 

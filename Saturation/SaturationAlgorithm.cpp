@@ -1527,11 +1527,11 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
   }
 
   if (prb.hasEquality()) {
-    if (!env.options->inequalityResolution()) {
+    if (!env.options->lasca()) { // in lasca we have a special equality factoring rule
       gie->addFront(new EqualityFactoring());
     }
     gie->addFront(new EqualityResolution());
-    if(env.options->superposition() && !env.options->inequalityResolution()){
+    if(env.options->superposition() && !env.options->lasca()){ // in lasca we have a special equality factoring rule
       gie->addFront(new Superposition());
     }
   } else if(opt.unificationWithAbstraction()!=Options::UnificationWithAbstraction::OFF){
@@ -1627,9 +1627,9 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
     }
   }
 
-  if (env.options->inequalityResolution()) {
+  if (env.options->lasca()) {
     auto shared = make_shared(new Kernel::IrcState {
-        .normalizer = InequalityNormalizer(env.options->ircStrongNormalization()), 
+        .normalizer = InequalityNormalizer(env.options->lascaStrongNormalization()), 
         .ordering = &ordering, 
         .uwa = env.options->unificationWithAbstraction(),
     });
@@ -1637,15 +1637,11 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
       auto& ord = dynamic_cast<Kernel::LaLpo&>(ordering);
       ord.setState(shared);
     } catch (std::bad_cast&) { /* do nothing */ }
-    res->addForwardSimplifierToFront(new IRC::FwdDemodulationModLA(shared));
-    res->addBackwardSimplifierToFront(new IRC::BwdDemodulationModLA(shared));
+    // res->addForwardSimplifierToFront(new IRC::FwdDemodulationModLA(shared));
+    // res->addBackwardSimplifierToFront(new IRC::BwdDemodulationModLA(shared));
     // TODO properly create an option for that, make it a simplifying rule
     sgi->push(new IRC::InequalityTautologyDetection(shared));
-    switch(env.options->ircVariableElimination()) {
-      case Options::ArithmeticSimplificationMode::OFF: break;
-      case Options::ArithmeticSimplificationMode::FORCE:    sgi->push(new IRC::VariableElimination(shared, /* simpl */ true )); break;
-      case Options::ArithmeticSimplificationMode::CAUTIOUS: sgi->push(new IRC::VariableElimination(shared, /* simpl */ false)); break;
-    }
+    sgi->push(new IRC::VariableElimination(shared, /* simpl */ true ));
     sgi->push(new IRC::LiteralFactoring(shared));
     sgi->push(new IRC::Superposition(shared)); 
     sgi->push(new IRC::EqFactoring(shared)); 
@@ -1846,7 +1842,9 @@ CompositeISE* SaturationAlgorithm::createISE(Problem& prb, const Options& opt, O
       res->addFront(&(new Cancellation(ordering))->asISE()); 
     }
 
-    switch (env.options->evaluationMode()) {
+    if (env.options->lasca()) {
+        res->addFront(&(new PolynomialEvaluationRule(ordering))->asISE());
+    } else switch (env.options->evaluationMode()) {
       case Options::EvaluationMode::OFF:
         break;
       case Options::EvaluationMode::SIMPLE: 
