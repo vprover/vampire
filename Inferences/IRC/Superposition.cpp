@@ -18,7 +18,7 @@
 #include "Shell/Statistics.hpp"
 #include "Kernel/EqHelper.hpp"
 
-#define DEBUG(...) DBG(__VA_ARGS__)
+#define DEBUG(...) // DBG(__VA_ARGS__)
 
 namespace Inferences {
 namespace IRC {
