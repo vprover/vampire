@@ -27,10 +27,10 @@ void BwdDemodulationModLAIndex::handleClause(Clause* toSimplify, bool adding)
       if (isRightNumberTerm) {
         if (adding) {
           DEBUG("\tinserting: ", term);
-          _is->insert(pos.term, pos.lit, toSimplify);
+          _is->insert(DefaultTermLeafData(pos.term, pos.lit, toSimplify));
         } else {
           DEBUG("\tremoving: ", term);
-          _is->remove(pos.term, pos.lit, toSimplify);
+          _is->remove(DefaultTermLeafData(pos.term, pos.lit, toSimplify));
         }
       }
     }

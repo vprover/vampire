@@ -57,7 +57,7 @@ public:
   CLASS_NAME(TermSubstitutionTree);
   USE_ALLOCATOR(TermSubstitutionTree);
   
-  TermSubstitutionTree(Shell::Options::UnificationWithAbstraction uwa, bool useC=false, bool replaceFunctionalSubterms = false);
+  TermSubstitutionTree(Shell::Options::UnificationWithAbstraction uwa = Shell::Options::UnificationWithAbstraction::OFF, bool useC=false, bool replaceFunctionalSubterms = false);
 
   void insert(LeafData d) final override { handleTerm(d, /* insert */ true); }
   // TODO use (LeafData const& d) here

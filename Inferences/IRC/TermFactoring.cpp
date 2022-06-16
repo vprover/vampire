@@ -158,7 +158,7 @@ Option<Clause*> TermFactoring::applyRule(
           .all([&](auto l) {
             auto lσ = sigma(l);
             conclusion.push(lσ);
-            return OrderingUtils2::notLess(_shared->ordering->compare(pivot_sigma, lσ));
+            return _shared->notLess(pivot_sigma, lσ);
           }))
 
   auto s1_sigma = sigma(s1);
@@ -184,8 +184,8 @@ Option<Clause*> TermFactoring::applyRule(
             auto ki_ti = sel1.ircLiteral<NumTraits>().term().summandAt(i);
             auto tiσ = sigma(ki_ti.factors->denormalize());
             t_sigma.push(NumTraits::mulSimpl(ki_ti.numeral, tiσ));
-            return OrderingUtils2::notLess(_shared->ordering->compare(s1_sigma, tiσ))
-                && OrderingUtils2::notLess(_shared->ordering->compare(s2_sigma, tiσ));
+            return _shared->notLess(s1_sigma, tiσ)
+                && _shared->notLess(s2_sigma, tiσ);
           }))
 
   auto resSum = NumTraits::sum(concatIters(getSingletonIterator(resTerm), t_sigma.iterFifo()));

@@ -107,7 +107,7 @@ Option<Clause*> EqFactoring::applyRule(SelectedEquality const& l1, SelectedEqual
           .all([&](auto L) {
              auto Lσ = sigma(L);
              concl.push(Lσ);
-             return OrderingUtils2::notLess(_shared->ordering->compare(L2σ, Lσ));
+             return _shared->notLess(L2σ, Lσ);
            }))
 
   auto s1σ = sigma(s1);
@@ -115,8 +115,8 @@ Option<Clause*> EqFactoring::applyRule(SelectedEquality const& l1, SelectedEqual
   auto t1σ = sigma(t1);
   auto t2σ = sigma(t2);
 
-  check_side_condition( "s1σ /⪯ t1σ", OrderingUtils2::notLeq(_shared->ordering->compare(s1σ, t1σ)))
-  check_side_condition( "s2σ /⪯ t2σ", OrderingUtils2::notLeq(_shared->ordering->compare(s2σ, t1σ)))
+  check_side_condition( "s1σ /⪯ t1σ", _shared->notLeq(s1σ, t1σ))
+  check_side_condition( "s2σ /⪯ t2σ", _shared->notLeq(s2σ, t1σ))
 
 
   auto res = Literal::createEquality(false, t1σ, t2σ, srt);

@@ -41,7 +41,7 @@ public:
   CLASS_NAME(LiteralSubstitutionTree);
   USE_ALLOCATOR(LiteralSubstitutionTree);
 
-  LiteralSubstitutionTree(Shell::Options::UnificationWithAbstraction uwa, bool useC=false);
+  LiteralSubstitutionTree(Shell::Options::UnificationWithAbstraction uwa = Shell::Options::UnificationWithAbstraction::OFF, bool useC=false);
 
   void insert(Literal* lit, Clause* cls);
   void remove(Literal* lit, Clause* cls);

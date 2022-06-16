@@ -243,7 +243,7 @@ Index* IndexManager::create(IndexType t)
     break;
   
   case SKOLEMISING_FORMULA_INDEX:
-    res=new SkolemisingFormulaIndex(new Indexing::TermSubstitutionTree<TermIndexData<TermList>>(false, false));
+    res=new SkolemisingFormulaIndex(new Indexing::TermSubstitutionTree<TermIndexData<TermList>>(Options::UnificationWithAbstraction::OFF, false, false));
     isGenerating = false;
     break;
 

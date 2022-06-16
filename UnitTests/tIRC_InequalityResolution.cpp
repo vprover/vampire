@@ -127,7 +127,6 @@ TEST_GENERATION(new01,
             clause({  2 * a + 5 * (-3 * f(y)) > 0  })
           , clause({  3 * a + 5 * (-2 * f(x)) > 0  })
       ))
-      .premiseRedundant(false)
     )
 
 // check whether we apply the rule only for strictly maximal positive
@@ -138,7 +137,6 @@ TEST_GENERATION(new02,
                ,  clause({selected(-2 * f(a) - 3 * f(a) > 0 ) }) })
       .expected(exactly(
       ))
-      .premiseRedundant(false)
     )
 
 // inequaity symbols right
@@ -150,7 +148,6 @@ TEST_GENERATION(new0301,
       .expected(exactly(
         clause({ a + c > 0 })
       ))
-      .premiseRedundant(false)
     )
 TEST_GENERATION(new0302,
     Generation::SymmetricTest()
@@ -160,7 +157,6 @@ TEST_GENERATION(new0302,
       .expected(exactly(
         clause({ a + c > 0 })
       ))
-      .premiseRedundant(false)
     )
 TEST_GENERATION(new0303,
     Generation::SymmetricTest()
@@ -170,7 +166,6 @@ TEST_GENERATION(new0303,
       .expected(exactly(
         clause({ a + c > 0 })
       ))
-      .premiseRedundant(false)
     )
 TEST_GENERATION(new0304,
     Generation::SymmetricTest()
@@ -180,7 +175,6 @@ TEST_GENERATION(new0304,
       .expected(exactly(
         clause({ a + c > 0, -f(a) + c == 0 })
       ))
-      .premiseRedundant(false)
     )
 
 
@@ -192,7 +186,6 @@ TEST_GENERATION(basic01,
       .expected(exactly(
             clause({ num(0) > 0,  x - 7 == 0  })
       ))
-      .premiseRedundant(false)
     )
 
 TEST_GENERATION(basic02,
@@ -203,18 +196,28 @@ TEST_GENERATION(basic02,
       .expected(exactly(
             clause({  a > 0  })
       ))
-      .premiseRedundant(false)
     )
 
-TEST_GENERATION(basic03,
+TEST_GENERATION(basic03a,
+    Generation::SymmetricTest()
+      .indices(inequalityResolutionIdx())
+      .inputs  ({ clause({selected( -g(x,a) + -g(g(a,b), f(x)) > 0) }) 
+               ,  clause({selected(  g(a,a) +  g(g(a,b), f(b)) > 0) }) })
+      .expected(exactly(
+            clause({  g(a,a) + -g(b,a)  > 0  })
+      ))
+    )
+
+// ordering condition not fulfilled
+// • ( -k s₂ + t₂ >₂ 0 )σ /⪯  ( +j s₁ + t₁ >₁ 0 )σ
+TEST_GENERATION(basic03b,
     Generation::SymmetricTest()
       .indices(inequalityResolutionIdx())
       .inputs  ({ clause({selected( -g(x,a) + -g(g(a,b), f(x)) > 0) }) 
                ,  clause({selected(  g(b,a) +  g(g(a,b), f(a)) > 0) }) })
       .expected(exactly(
-            clause({  g(b,a) + (-g(a,a))  > 0  })
+          /* nothing */
       ))
-      .premiseRedundant(false)
     )
 
 TEST_GENERATION(basic04,
@@ -225,7 +228,6 @@ TEST_GENERATION(basic04,
       .expected(exactly(
             clause({  a - 7 == 0, a + a > 0   })
       ))
-      .premiseRedundant(false)
     )
 
 TEST_GENERATION(basic04_variation,
@@ -236,7 +238,6 @@ TEST_GENERATION(basic04_variation,
       .expected(exactly(
             clause({  a + a > 0, a - 7 == 0  })
       ))
-      .premiseRedundant(false)
     )
 
 TEST_GENERATION(basic05,
@@ -247,7 +248,6 @@ TEST_GENERATION(basic05,
       .expected(exactly(
             clause({  a + a > 0, x - 7 == 0  })
       ))
-      .premiseRedundant(false)
     )
 
 TEST_GENERATION(basic06,
@@ -259,7 +259,6 @@ TEST_GENERATION(basic06,
             clause({  g(x,a) > 0 })
           , clause({  g(a,y) > 0 })
       ))
-      .premiseRedundant(false)
     )
 
 TEST_GENERATION(basic07,
@@ -269,7 +268,6 @@ TEST_GENERATION(basic07,
                ,  clause({ selected(a > 0) }) })
       .expected(exactly(
       ))
-      .premiseRedundant(false)
     )
 
 TEST_GENERATION(basic08,
@@ -279,7 +277,6 @@ TEST_GENERATION(basic08,
                ,  clause({ selected(a > 0 )}) })
       .expected(exactly(
       ))
-      .premiseRedundant(false)
     )
 
 TEST_GENERATION(basic09,
@@ -290,7 +287,6 @@ TEST_GENERATION(basic09,
       .expected(exactly(
           clause({ num(0) > 0 })
       ))
-      .premiseRedundant(false)
     )
 
 TEST_GENERATION(greater_equal01a,
@@ -301,7 +297,6 @@ TEST_GENERATION(greater_equal01a,
       .expected(exactly(
             clause({  a + a > 0, -f(a) + a == 0, x - 7 == 0  })
       ))
-      .premiseRedundant(false)
     )
 
 TEST_GENERATION(greater_equal01b,
@@ -312,7 +307,6 @@ TEST_GENERATION(greater_equal01b,
       .expected(exactly(
             clause({  a + a > 0, x - 7 == 0  })
       ))
-      .premiseRedundant(false)
     )
 
 TEST_GENERATION(greater_equal01c,
@@ -323,19 +317,29 @@ TEST_GENERATION(greater_equal01c,
       .expected(exactly(
             clause({  a + a > 0, x - 7 == 0  })
       ))
-      .premiseRedundant(false)
     )
 
 
-TEST_GENERATION(strictly_max_after_unification_01a,
+// ordering condition not fulfilled
+// • ( -k s₂ + t₂ >₂ 0 )σ /⪯  ( +j s₁ + t₁ >₁ 0 )σ
+TEST_GENERATION(strictly_max_after_unification_0,
     Generation::SymmetricTest()
       .indices(inequalityResolutionIdx())
       .inputs  ({ clause({ selected(-f(x) + f(a) > 0) }) 
                ,  clause({ selected( f(a)        > 0) }) })
       .expected(exactly(
+          /* nothing */
+      ))
+    )
+
+TEST_GENERATION(strictly_max_after_unification_01a,
+    Generation::SymmetricTest()
+      .indices(inequalityResolutionIdx())
+      .inputs  ({ clause({ selected(-2 * f(x) + f(a) > 0) }) 
+               ,  clause({ selected( f(a)        > 0) }) })
+      .expected(exactly(
           clause({ f(a) > 0 })
       ))
-      .premiseRedundant(false)
     )
 
 TEST_GENERATION(strictly_max_after_unification_01b,
@@ -345,7 +349,6 @@ TEST_GENERATION(strictly_max_after_unification_01b,
                ,  clause({ selected(-f(a)        > 0) }) })
       .expected(exactly(
       ))
-      .premiseRedundant(false)
     )
 
 
@@ -355,7 +358,6 @@ TEST_GENERATION(strictly_max_after_unification_02a,
       .inputs  ({        clause({ selected(-f(x) + f(a) > 0 )}) 
                ,         clause({ selected( f(b)        > 0) }) })
       .expected(exactly( clause({           f(a)        > 0 }) ))
-      .premiseRedundant(false)
     )
 
 TEST_GENERATION(strictly_max_after_unification_02b,
@@ -364,7 +366,6 @@ TEST_GENERATION(strictly_max_after_unification_02b,
       .inputs  ({        clause({ selected( f(b)        > 0) })  
                ,         clause({ selected(-f(x) + f(a) > 0 )}) })
       .expected(exactly( clause({           f(a)        > 0 }) ))
-      .premiseRedundant(false)
     )
 
 
@@ -374,7 +375,6 @@ TEST_GENERATION(max_compared_to_uniterpreted_equalites_01,
       .inputs  ({        clause({ selected( a > 0), selected( fu(a) == au  ) })  
                ,         clause({ selected(-a > 0 )}) })
       .expected(exactly( /* nothing */ ))
-      .premiseRedundant(false)
     )
 
 TEST_GENERATION(max_compared_to_uniterpreted_equalites_02,
@@ -383,7 +383,6 @@ TEST_GENERATION(max_compared_to_uniterpreted_equalites_02,
       .inputs  ({        clause({ selected( a > 0), selected( fu(a) != au  ) })  
                ,         clause({ selected(-a > 0 )}) })
       .expected(exactly( /* nothing */ ))
-      .premiseRedundant(false)
     )
 
 TEST_GENERATION(max_compared_to_uniterpreted_equalites_03,
@@ -392,7 +391,6 @@ TEST_GENERATION(max_compared_to_uniterpreted_equalites_03,
       .inputs  ({        clause({ selected( fn(fu(a)) > 0), selected( fu(a) == au  ) })  
                ,         clause({ selected(-fn(fu(a)) > 0 )}) })
       .expected(exactly( clause({              num(0) > 0,            fu(a) == au    })  ))
-      .premiseRedundant(false)
     )
 
 TEST_GENERATION(max_compared_to_uniterpreted_equalites_04,
@@ -401,7 +399,6 @@ TEST_GENERATION(max_compared_to_uniterpreted_equalites_04,
       .inputs  ({        clause({ selected( fn(fu(a)) > 0), selected( fu(a) != au  ) })  
                ,         clause({ selected(-fn(fu(a)) > 0 )}) })
       .expected(exactly( clause({              num(0) > 0,            fu(a) != au    })  ))
-      .premiseRedundant(false)
     )
 
 /////////////////////////////////////////////////////////
@@ -416,7 +413,6 @@ TEST_GENERATION(substitution01,
       .expected(exactly(
             clause({  f(a) > 0 })
       ))
-      .premiseRedundant(false)
     )
 
 TEST_GENERATION(substitution02,
@@ -427,7 +423,6 @@ TEST_GENERATION(substitution02,
       .expected(exactly(
             clause({  f(a) + f(b) > 0 })
       ))
-      .premiseRedundant(false)
     )
 
 /////////////////////////////////////////////////////////
@@ -437,22 +432,20 @@ TEST_GENERATION(substitution02,
 TEST_GENERATION(abstraction1,
     Generation::SymmetricTest()
       .indices(inequalityResolutionIdx())
-      .inputs  ({ clause({ selected(-f(     0        ) > 0) })  
+      .inputs  ({ clause({ selected(-f(   f(y)       ) > 0) })  
                ,  clause({ selected( f(f(a) + g(b, c)) > 0) }) })
       .expected(exactly(
-            clause({ num(0) > 0, f(a) + g(b, c) != 0 })
+            clause({ num(0) > 0, f(a) + g(b, c) != f(y) })
       ))
-      .premiseRedundant(false)
     )
 
 TEST_GENERATION(abstraction2,
     Generation::SymmetricTest()
       .rule(    new InequalityResolution(testInequalityResolution(Options::UnificationWithAbstraction::IRC1))  )
       .indices(inequalityResolutionIdx(Options::UnificationWithAbstraction::IRC1))
-      .inputs  ({         clause({ selected(-f(     0        ) > 0) })  
+      .inputs  ({         clause({ selected(-f(   f(y)       ) > 0) })  
                ,          clause({ selected( f(f(a) + g(b, c)) > 0) }) })
-      .expected(exactly(  clause({ num(0) > 0, f(a) + g(b, c) != 0  }) ))
-      .premiseRedundant(false)
+      .expected(exactly(  clause({ num(0) > 0, f(a) + g(b, c) != f(y)  }) ))
     )
 
 TEST_GENERATION(abstraction3,
@@ -462,7 +455,6 @@ TEST_GENERATION(abstraction3,
       .inputs  ({ clause({ selected(-f(b) > 0) })  
                ,  clause({ selected( f(a) > 0) }) })
       .expected(exactly())
-      .premiseRedundant(false)
     )
 
 TEST_GENERATION(abstraction4,
@@ -472,7 +464,6 @@ TEST_GENERATION(abstraction4,
       .inputs  ({        clause({ -f(3 * a) > 0 })  
                ,         clause({  f(7 * a) > 0 }) })
       .expected(exactly(                           ))
-      .premiseRedundant(false)
     )
 
 TEST_GENERATION(abstraction5,
@@ -482,7 +473,6 @@ TEST_GENERATION(abstraction5,
       .inputs  ({        clause({ selected(-f(a + b) > 0) })  
                ,         clause({ selected( f(7 * a) > 0) }) })
       .expected(exactly( clause({ num(0) > 0, a + b != 7 * a }) ))
-      .premiseRedundant(false)
     )
 
 TEST_GENERATION(abstraction6,
@@ -492,7 +482,6 @@ TEST_GENERATION(abstraction6,
       .inputs  ({        clause({ selected(-f(g(a,x)) > 0) })  
                ,         clause({ selected( f(7 * y)  > 0) }) })
       .expected(exactly( clause({ num(0) > 0, g(a,x) != 7 * y }) ))
-      .premiseRedundant(false)
     )
 
 TEST_GENERATION(abstraction7,
@@ -502,7 +491,6 @@ TEST_GENERATION(abstraction7,
       .inputs  ({        clause({ selected(-f(a + b) > 0) })           
                ,         clause({ selected(     f(c) > 0) })              })
       .expected(exactly( clause({ num(0) > 0, c != a + b }) ))
-      .premiseRedundant(false)
     )
 
 TEST_GENERATION(abstraction1_irc2,
@@ -512,7 +500,6 @@ TEST_GENERATION(abstraction1_irc2,
       .inputs  ({        clause({ -f(a + b) > 0 })           
                ,         clause({  f(c) > 0 })              })
       .expected(exactly(                                    ))
-      .premiseRedundant(false)
     )
 
 TEST_GENERATION(abstraction2_irc2,
@@ -522,7 +509,6 @@ TEST_GENERATION(abstraction2_irc2,
       .inputs  ({        clause({ selected(-f(a + b) > 0) })           
                ,         clause({ selected( f(c + x) > 0) })              })
       .expected(exactly( clause({  num(0) > 0, c + x != a + b   }) ))
-      .premiseRedundant(false)
     )
 
 TEST_GENERATION(abstraction3_irc2,
@@ -532,7 +518,6 @@ TEST_GENERATION(abstraction3_irc2,
       .inputs  ({        clause({ -f(3 * a) > 0 })           
                ,         clause({  f(4 * a) > 0 })              })
       .expected(exactly(   ))
-      .premiseRedundant(false)
     )
 
 TEST_GENERATION(abstraction4_irc2,
@@ -542,7 +527,6 @@ TEST_GENERATION(abstraction4_irc2,
       .inputs  ({        clause({ -f(-a ) > 0 })           
                ,         clause({  f( a ) > 0 })              })
       .expected(exactly(   ))
-      .premiseRedundant(false)
     )
 
 TEST_GENERATION(abstraction5_irc2,
@@ -552,7 +536,6 @@ TEST_GENERATION(abstraction5_irc2,
       .inputs  ({        clause({ -f( a ) > 0 })           
                ,         clause({  f( a + f(b) ) > 0 })              })
       .expected(exactly(   ))
-      .premiseRedundant(false)
     )
 
 
@@ -564,36 +547,33 @@ TEST_GENERATION(abstraction5_irc2,
 TEST_GENERATION(misc01,
     Generation::SymmetricTest()
       .indices(inequalityResolutionIdx())
-      .inputs  ({ clause({ selected(-f(a) > 0    ) }) 
-               ,  clause({ selected(a + f(a) > 0) }) })
+      .inputs  ({ clause({ selected(a + -f(a) > 0    ) }) 
+               ,  clause({ selected(f(a) > 0) }) })
       .expected(exactly(
             clause({  a > 0  })
       ))
-      .premiseRedundant(false)
     )
 
 TEST_GENERATION_WITH_SUGAR(misc02_INT,
     SUGAR(Int),
     Generation::SymmetricTest()
       .indices(inequalityResolutionIdx())
-      .inputs  ({ clause({selected(-f(a) + 1 > 0 )  }) 
-               ,  clause({selected(a + f(a) > 0) }) }) 
+      .inputs  ({ clause({selected(a + -f(a) + 1 > 0 )  }) 
+               ,  clause({selected(f(a) > 0) }) }) 
       .expected(exactly(
             clause({ -1 + a + 1 > 0  })
       ))
-      .premiseRedundant(false)
     )
 
 TEST_GENERATION_WITH_SUGAR(misc02_Rat,
     SUGAR(Rat),
     Generation::SymmetricTest()
       .indices(inequalityResolutionIdx())
-      .inputs  ({ clause({selected(-f(a) >= 0)  }) 
-               ,  clause({selected( a + f(a) > 0) }) })
+      .inputs  ({ clause({selected( a + -f(a) >= 0)  }) 
+               ,  clause({selected(f(a) > 0) }) })
       .expected(exactly(
             clause({  a > 0  })
       ))
-      .premiseRedundant(false)
     )
 
 // only for integers (which we r using here)
@@ -606,7 +586,6 @@ TEST_GENERATION_WITH_SUGAR(misc03,
       .expected(exactly(
             clause({ -1 +  a + 1 > 0  })
       ))
-      .premiseRedundant(false)
     )
 
 TEST_GENERATION_WITH_SUGAR(bug01a,
@@ -618,17 +597,24 @@ TEST_GENERATION_WITH_SUGAR(bug01a,
       //                                      (y - 1 > 0) 
       .expected(exactly(
       ))
-      .premiseRedundant(false)
     )
 
-TEST_GENERATION_WITH_SUGAR(bug02,
+TEST_GENERATION_WITH_SUGAR(bug02a,
     SUGAR(Real),
     Generation::SymmetricTest()
       .indices(inequalityResolutionIdx())
       .inputs  ({        clause({ selected( 3 +  a  > 0 ) })  
                ,         clause({ selected( 0 + -a  > 0 ) }) })
+      .expected(exactly(           /* nothing */      ))
+    )
+
+TEST_GENERATION_WITH_SUGAR(bug02b,
+    SUGAR(Real),
+    Generation::SymmetricTest()
+      .indices(inequalityResolutionIdx())
+      .inputs  ({        clause({ selected( 0 +  a  > 0 ) })  
+               ,         clause({ selected( 3 + -a  > 0 ) }) })
       .expected(exactly( clause({            num(3) > 0   }) ))
-      .premiseRedundant(false)
     )
 
 TEST_GENERATION_WITH_SUGAR(bug03a,
@@ -640,7 +626,6 @@ TEST_GENERATION_WITH_SUGAR(bug03a,
       .inputs  ({        clause({            selected(1 + -f(a)        > 0) })  
                ,         clause({  selected(~r(y,z)), 1 + -f(x) + f(a) > 0  }) })
       .expected(exactly(                      ))
-      .premiseRedundant(false)
     )
 
 TEST_GENERATION_WITH_SUGAR(bug03b,
@@ -652,7 +637,6 @@ TEST_GENERATION_WITH_SUGAR(bug03b,
       .inputs  ({        clause({               selected(1 + -f(a)            > 0) })  
                ,         clause({  a - 1 != 0 , selected(1 + -f(x) + f(a)     > 0) }) })
       .expected(exactly( clause({  a - 1 != 0 ,          1 + -f(x)        + 1 > 0  }) ))
-      .premiseRedundant(false)
     )
 
 
@@ -665,7 +649,6 @@ TEST_GENERATION_WITH_SUGAR(bug_overflow_01,
       .expected(exactly(
           // clause({ num(0) > 0 }) // we don't perform the rule if we overflow
       ))
-      .premiseRedundant(false)
     )
 
   // 2 f13(f14, 1) 1073741824
@@ -678,7 +661,6 @@ TEST_GENERATION_WITH_SUGAR(bug_overflow_02,
                ,  clause({ selected( 3  + -a > 0 )  }) })
       .expected(exactly(
       ))
-      .premiseRedundant(false)
     )
 
 
@@ -689,7 +671,6 @@ TEST_GENERATION_WITH_SUGAR(misc04,
       .inputs  ({        clause({ selected(-f(x0 + -x1 + g(x0,x1)) > 0) })
                ,         clause({ selected( f(x2 + -g(x3,x2)     ) > 0) }) })
       .expected(exactly( clause({                           num(0) > 0 , x0 + -x1 + g(x0,x1) != x2 + -g(x3,x2) })))
-      .premiseRedundant(false)
     )
 
 TEST_GENERATION_WITH_SUGAR(bug05,
@@ -709,7 +690,6 @@ TEST_GENERATION_WITH_SUGAR(bug05,
                        , clause({         num(0) > 0 , x0 + 3 * a != a  + a3 })
                        , clause({         num(0) > 0 , x0 + 3 * a != b  + a3 })
                        ))
-      .premiseRedundant(false)
     )
 
 // TEST_GENERATION_WITH_SUGAR(don_t_resolve_with_self,
@@ -720,7 +700,6 @@ TEST_GENERATION_WITH_SUGAR(bug05,
 //       .context ({ })
 //       .expected(exactly( {}
 //                        ))
-//       .premiseRedundant(false)
 //     )
 
 // [       is ]: [ $greater(0.0, 0.0) | ~((((15.0 * X0) + ((-15.0 * X1) + g((15.0 * X0), X1))) = ((15.0 * X2) + $uminus(g(X3, X2))))) ]

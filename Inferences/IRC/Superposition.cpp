@@ -134,7 +134,7 @@ Option<Clause*> Superposition::applyRule(
            .all([&](auto L) {
              auto Lσ = uwa.sigma(L, lhsVarBank);
              concl.push(Lσ);
-             return OrderingUtils2::notLeq(_shared->ordering->compare(L1σ, Lσ));
+             return _shared->notLeq(L1σ, Lσ);
            }))
 
   // •    L[s2]σ  ∈ Lit+ and L[s2]σ /⪯ C2σ
@@ -148,8 +148,8 @@ Option<Clause*> Superposition::applyRule(
            .all([&](auto L) {
              auto Lσ = uwa.sigma(L, rhsVarBank);
              concl.push(Lσ);
-             return inLitPlus ? OrderingUtils2::notLeq(_shared->ordering->compare(L2σ, Lσ))
-                              : OrderingUtils2::notLess(_shared->ordering->compare(L2σ, Lσ));
+             return inLitPlus ? _shared->notLeq(L2σ, Lσ)
+                              : _shared->notLess(L2σ, Lσ);
            }));
 
   auto s2σ = uwa.sigma(s2, rhsVarBank);
@@ -162,14 +162,14 @@ Option<Clause*> Superposition::applyRule(
 
   check_side_condition(
       "L[s2]σ /⪯ L1σ", // TODO is this the correct thing? if so make sure we do that for fourrier motzkin and friends as well
-      OrderingUtils2::notLeq(_shared->ordering->compare(L2σ, L1σ)))
+      _shared->notLeq(L2σ, L1σ))
 
 
   auto s1σ = uwa.sigma(lhs.biggerSide(), lhsVarBank);
   auto tσ  = uwa.sigma(lhs.smallerSide(), lhsVarBank);
   check_side_condition(
       "s1σ /⪯ tσ",
-      OrderingUtils2::notLeq(_shared->ordering->compare(s1σ, tσ)))
+      _shared->notLeq(s1σ, tσ))
 
 
   auto resolvent = EqHelper::replace(L2σ, s2σ, tσ);
@@ -199,7 +199,7 @@ ClauseIterator Superposition::generateClauses(Clause* premise)
   for (auto const& lhs : Lhs::iter(*_shared, premise)) {
     DEBUG("lhs: ", lhs)
     for (auto rhs_sigma : _rhs->find(lhs.key())) {
-      auto& rhs = *std::get<0>(rhs_sigma);
+      auto& rhs   = std::get<0>(rhs_sigma);
       auto& sigma = std::get<1>(rhs_sigma);
       DEBUG("  rhs: ", rhs)
       auto res = applyRule(lhs, 0, rhs, 1, sigma);
@@ -213,7 +213,7 @@ ClauseIterator Superposition::generateClauses(Clause* premise)
   for (auto const& rhs : Rhs::iter(*_shared, premise)) {
     DEBUG("rhs: ", rhs)
     for (auto lhs_sigma : _lhs->find(rhs.key())) {
-      auto& lhs = *std::get<0>(lhs_sigma);
+      auto& lhs   = std::get<0>(lhs_sigma);
       auto& sigma = std::get<1>(lhs_sigma);
       DEBUG("  lhs: ", lhs)
       auto res = applyRule(lhs, 1, rhs, 0, sigma);

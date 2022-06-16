@@ -90,7 +90,7 @@ Option<Clause*> LiteralFactoring::applyRule(
         .all([&](auto ki_ti) {
           auto tiσ = sigma(ki_ti.factors->denormalize());
           t1_sigma.push(NumTraits::mulSimpl(ki_ti.numeral, tiσ));
-          return OrderingUtils2::notLeq(_shared->ordering->compare(s1_sigma, tiσ));
+          return _shared->notLeq(s1_sigma, tiσ);
         }));
 
   auto s2_sigma = sigma(s2);
@@ -100,7 +100,7 @@ Option<Clause*> LiteralFactoring::applyRule(
         .all([&](auto ki_ti) {
           auto tiσ = sigma(ki_ti.factors->denormalize());
           t2_sigma.push(NumTraits::mulSimpl(ki_ti.numeral, tiσ));
-          return OrderingUtils2::notLeq(_shared->ordering->compare(s2_sigma, tiσ));
+          return _shared->notLeq(s2_sigma, tiσ);
         }));
 
                                   //
@@ -123,11 +123,11 @@ Option<Clause*> LiteralFactoring::applyRule(
   auto L2σ = sigma(l2.literal()); // <- (j s1 + t1 >1 0)σ
   auto cond1 = concatIters(concl.iter(), getSingletonIterator(L2σ))
     .all([&](auto Lσ) 
-        { return  OrderingUtils2::notLess(_shared->ordering->compare(L1σ, Lσ)); });
+        { return  _shared->notLess(L1σ, Lσ); });
 
   auto cond2 = concatIters(concl.iter(), getSingletonIterator(L1σ))
     .all([&](auto Lσ) 
-        { return  OrderingUtils2::notLess(_shared->ordering->compare(L2σ, Lσ)); });
+        { return  _shared->notLess(L2σ, Lσ); });
 
   CHECK_CONDITION(
       "(j s1 + t1 >1 0)σ /≺ (k s2 + t2 >2 0 \\/ C)σ or (k s2 + t2 >2 0)σ /≺ (j s1 + t1 >1 0 \\/ C)σ",

@@ -302,4 +302,8 @@ TermQueryResultIterator<LeafData_> TypeSubstitutionTree<LeafData_>::getAllUnifyi
 }
 
 
+template<class LeafData_>
+std::ostream& TypeSubstitutionTree<LeafData_>::output(std::ostream& out) const 
+{ return out << *static_cast<SubstitutionTree const*>(this); }
+
 }

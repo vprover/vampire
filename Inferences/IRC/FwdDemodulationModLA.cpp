@@ -20,10 +20,10 @@ void FwdDemodulationModLAIndex::handleClause(Clause* cl, bool add)
        auto lit = (*cl)[0];
       if (add) {
         DEBUG("\tinserting: ", term);
-        _is->insert(term, lit, cl);
+        _is->insert(DefaultTermLeafData(term, lit, cl));
       } else {
         DEBUG("\tremoving: ", term);
-        _is->remove(term, lit, cl);
+        _is->remove(DefaultTermLeafData(term, lit, cl));
       }
     });
   }

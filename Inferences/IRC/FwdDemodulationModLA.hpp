@@ -24,8 +24,10 @@
 namespace Indexing {
 
 class FwdDemodulationModLAIndex
-: public TermIndex
+: public TermIndex<>
 {
+  using TermIndex = Indexing::TermIndex<>;
+  using TermIndexingStructure = Indexing::TermIndexingStructure<>;
 public:
   CLASS_NAME(FwdDemodulationModLAIndex);
   USE_ALLOCATOR(FwdDemodulationModLAIndex);

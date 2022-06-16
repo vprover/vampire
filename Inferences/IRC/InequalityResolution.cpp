@@ -17,7 +17,7 @@
 #include "Shell/Statistics.hpp"
 
 #define TODO ASSERTION_VIOLATION
-#define DEBUG(...) // DBG(__VA_ARGS__)
+#define DEBUG(...) DBG(__VA_ARGS__)
 
 namespace Inferences {
 namespace IRC {
@@ -73,7 +73,7 @@ ClauseIterator InequalityResolution::generateClauses(Clause* premise)
   for (auto const& lhs : Lhs::iter(*_shared, premise)) {
     DEBUG("lhs: ", lhs)
     for (auto rhs_sigma : _rhsIndex->find(lhs.monom())) {
-      auto& rhs = *std::get<0>(rhs_sigma);
+      auto& rhs   = std::get<0>(rhs_sigma);
       auto& sigma = std::get<1>(rhs_sigma);
       DEBUG("  rhs: ", rhs)
       auto res = applyRule(lhs, 0, rhs, 1, sigma);
@@ -86,7 +86,7 @@ ClauseIterator InequalityResolution::generateClauses(Clause* premise)
   for (auto const& rhs : Rhs::iter(*_shared, premise)) {
     DEBUG("rhs: ", rhs)
     for (auto lhs_sigma : _lhsIndex->find(rhs.monom())) {
-      auto& lhs = *std::get<0>(lhs_sigma);
+      auto& lhs   = std::get<0>(lhs_sigma);
       auto& sigma = std::get<1>(lhs_sigma);
       DEBUG("  lhs: ", lhs)
       auto res = applyRule(lhs, 1, rhs, 0, sigma);
@@ -96,55 +96,6 @@ ClauseIterator InequalityResolution::generateClauses(Clause* premise)
     }
   }
   return pvi(ownedArrayishIterator(std::move(out)));
-}
-
-template<class NumTraits> 
-ClauseIterator InequalityResolution::generateClauses(Clause* hyp1, Literal* lit1, IrcLiteral<NumTraits> l1, Monom<NumTraits> j_s1) const
-{
-  ASSERTION_VIOLATION
-      //   return pvi(iterTraits(_index->getUnificationsWithConstraints(j_s1.factors->denormalize(), true))
-      //       .filterMap([=](TermQueryResult unif) {
-      //         auto hyp2 = unif.clause;
-      //         auto lit2 = unif.literal;
-      //         auto l2 = _shared->renormalize(lit2)
-      //           .unwrap()
-      //           .template unwrap<decltype(l1)>();
-      //
-      //         auto s2 = _shared->normalize(TypedTermList(unif.term, NumTraits::sort()))
-      //           .downcast<NumTraits>().unwrap()->tryMonom().unwrap()
-      //           .factors;
-      //
-      //         Monom<NumTraits> k_s2 = l2.term()
-      //           .iterSummands()
-      //           .find([&](auto monom) { return monom.factors == s2; })
-      //           .unwrap();
-      //
-      //         if (!l2.isInequality())
-      //           return Option<Clause*>();
-      //
-      //         if (j_s1.numeral.isNegative() == k_s2.numeral.isNegative())
-      //           return Option<Clause*>();
-      //
-      //         auto swap = j_s1.numeral.isNegative();
-      //
-      //         // TODO check maximality conditions here (?)
-      //
-      //         Stack<UnificationConstraint> _constr;
-      //         auto& constr = unif.constraints.isEmpty() ? _constr : *unif.constraints;
-      //         auto constrIter = UwaResult::cnstLiterals(*unif.substitution, constr);
-      //         
-      //         auto sigma = [&](auto t, int varBank) { 
-      //           ASS(varBank == 0 || varBank == 1)
-      //           return unif.substitution->applyTo(t, swap ? 1 - varBank 
-      //                                                     :     varBank); 
-      //         };
-      //         return swap 
-      //           ?  applyRule(hyp2, lit2, l2, k_s2, hyp1, lit1, l1, j_s1, sigma, constrIter, constr.size() )
-      //           :  applyRule(hyp1, lit1, l1, j_s1, hyp2, lit2, l2, k_s2, sigma, constrIter, constr.size() );
-      //       })
-      //   );
-      // // })
-      // );
 }
 
 // Fourier Motzkin normal:
@@ -160,6 +111,9 @@ ClauseIterator InequalityResolution::generateClauses(Clause* hyp1, Literal* lit1
 // - s₁, s₂ are not variables
 // - {>} ⊆ {>₁,>₂} ⊆ {>,≥}
 //
+// TODO this condition is not in the theory yet:
+// • ( -k s₂ + t₂ >₂ 0 )σ /⪯  ( +j s₁ + t₁ >₁ 0 )σ
+//
 // Fourier Motzkin tight:
 //
 // C₁ \/ +j s₁ + t₁ ≥ 0                 C₂ \/ -k s₂ + t₂ ≥ 0 
@@ -173,6 +127,9 @@ ClauseIterator InequalityResolution::generateClauses(Clause* hyp1, Literal* lit1
 // • s₁σ /⪯ t₁σ 
 // • s₂σ /≺ t₂σ 
 // • s₁, s₂ are not variables
+//
+// TODO this condition is not in the theory yet:
+// • ( -k s₂ + t₂ >₂ 0 )σ /⪯  ( +j s₁ + t₁ >₁ 0 )σ
 //
 Option<Clause*> InequalityResolution::applyRule(
     Lhs const& lhs, unsigned lhsVarBank,
@@ -202,21 +159,6 @@ Option<Clause*> InequalityResolution::applyRule(
                        + (tight ? 1 : 0)          // <- -k s₂ + t₂ ≈ 0
                        + uwa.cnst().size());      // Cnst
 
-    auto mainLiteralMaximal = [this](auto& selected, UwaResult& uwa, unsigned varBank, auto applyMax) {
-      auto main = uwa.sigma(selected.literal(), varBank);
-      for (auto lit_ : selected.contextLiterals()) {
-        auto lit = uwa.sigma(lit_, varBank);
-        switch (_shared->ordering->compare(main, lit)) {
-          case Ordering::LESS: 
-          case Ordering::EQUAL: 
-            return false;
-          default:
-            applyMax(lit);
-        }
-      }
-      return true;
-    };
-
 
 #define check_side_condition(cond, cond_code)                                                       \
     if (!(cond_code)) {                                                                             \
@@ -230,13 +172,25 @@ Option<Clause*> InequalityResolution::applyRule(
     //     "s₁, s₂ are not variables",
     //     !lhs.monom().isVar() && !rhs.monom().isVar())
 
+    auto L1σ = uwa.sigma(lhs.literal(), rhsVarBank);
     check_side_condition( 
         "(+j s₁ + t₁ >₁ 0)σ /⪯ C₁σ",
-        mainLiteralMaximal(lhs, uwa, lhsVarBank, [&](auto lit) { out.push(lit); }))
+        lhs.contextLiterals()
+           .all([&](auto L) {
+             auto Lσ = uwa.sigma(L, lhsVarBank);
+             out.push(Lσ);
+             return _shared->notLeq(L1σ, Lσ);
+           }));
 
+    auto L2σ = uwa.sigma(rhs.literal(), rhsVarBank);
     check_side_condition(
         "(-k s₂ + t₂ >₂ 0)σ /⪯ C₂σ",
-        mainLiteralMaximal(rhs, uwa, rhsVarBank, [&](auto lit) { out.push(lit); }))
+        rhs.contextLiterals()
+           .all([&](auto L) {
+             auto Lσ = uwa.sigma(L, rhsVarBank);
+             out.push(Lσ);
+             return _shared->notLeq(L2σ, Lσ);
+           }));
 
 
     auto s1σ = uwa.sigma(lhs.monom(), lhsVarBank);
@@ -245,19 +199,19 @@ Option<Clause*> InequalityResolution::applyRule(
     Stack<TermList> t1σ(rhs.nContextTerms());
     Stack<TermList> t2σ(lhs.nContextTerms());
 
-    auto mul = [](auto num, auto term) 
-               { return num == NumTraits::constant(1) ? term
-                    : num == NumTraits::constant(-1) ? NumTraits::minus(term)
-                    : term == NumTraits::constantTl(1) ? NumTraits::constantTl(num)
-                    : NumTraits::mul(NumTraits::constantTl(num), term); };
+    // auto mul = [](auto num, auto term) 
+    //            { return num == NumTraits::constant(1) ? term
+    //                 : num == NumTraits::constant(-1) ? NumTraits::minus(term)
+    //                 : term == NumTraits::constantTl(1) ? NumTraits::constantTl(num)
+    //                 : NumTraits::mul(NumTraits::constantTl(num), term); };
 
     check_side_condition(
         "s₁σ /⪯ t₁σ",
         lhs.contextTerms<NumTraits>()
            .all([&](auto ti) {
              auto tiσ = uwa.sigma(ti.factors->denormalize(), lhsVarBank);
-             t1σ.push(mul(ti.numeral, tiσ));
-             return OrderingUtils2::notLeq(_shared->ordering->compare(s1σ, tiσ));
+             t1σ.push(NumTraits::mulSimpl(ti.numeral, tiσ));
+             return _shared->notLeq(s1σ, tiσ);
            }))
 
     check_side_condition(
@@ -265,9 +219,13 @@ Option<Clause*> InequalityResolution::applyRule(
         rhs.contextTerms<NumTraits>()
            .all([&](auto ti) {
              auto tiσ = uwa.sigma(ti.factors->denormalize(), rhsVarBank);
-             t2σ.push(mul(ti.numeral, tiσ));
-             return OrderingUtils2::notLess(_shared->ordering->compare(s2σ, tiσ));
+             t2σ.push(NumTraits::mulSimpl(ti.numeral, tiσ));
+             return _shared->notLess(s2σ, tiσ);
            }))
+
+    check_side_condition(
+        "( -k s₂ + t₂ >₂ 0 )σ /⪯  ( +j s₁ + t₁ >₁ 0 )σ",
+        _shared->notLeq(L2σ, L1σ));
 
     auto j = lhs.numeral().unwrap<typename NumTraits::ConstantType>();
     auto k = rhs.numeral().unwrap<typename NumTraits::ConstantType>().abs();
@@ -278,8 +236,8 @@ Option<Clause*> InequalityResolution::applyRule(
            : NumTraits::add(l, r); };
 
     auto resolventTerm // -> (k t₁ + j t₂)σ
-        = add( mul(k, NumTraits::sum(t1σ.iterFifo())),
-               mul(j, NumTraits::sum(t2σ.iterFifo())));
+        = add( NumTraits::mulSimpl(k, NumTraits::sum(t1σ.iterFifo())),
+               NumTraits::mulSimpl(j, NumTraits::sum(t2σ.iterFifo())));
 
     if (std::is_same<IntTraits, NumTraits>::value) {
       resolventTerm = add(resolventTerm, NumTraits::constantTl(-1));
@@ -296,7 +254,9 @@ Option<Clause*> InequalityResolution::applyRule(
     out.loadFromIterator(uwa.cnstLiterals());
 
     Inference inf(GeneratingInference2(Kernel::InferenceRule::IRC_INEQUALITY_RESOLUTION, lhs.clause(), rhs.clause()));
-    return Option<Clause*>(Clause::fromStack(out, inf));
+    auto cl = Clause::fromStack(out, inf);
+    DEBUG("out: ", *cl);
+    return Option<Clause*>(cl);
   });
 }
 

@@ -345,6 +345,7 @@ namespace Kernel {
     Clause* cl;
     unsigned litIdx;
     Option<AnyIrcLiteral> interpreted;
+
     SelectedLiteral(Clause* cl, unsigned litIdx, IrcState& shared);
 
     Literal* literal() const { return (*cl)[litIdx]; }
@@ -356,6 +357,10 @@ namespace Kernel {
               .filter([&](auto i) { return i != litIdx; }) 
               .map([&](auto i) { return (*clause())[i]; }); }
               
+    auto asTuple() const
+    { return std::make_tuple(cl->number(), litIdx); }
+
+    IMPL_COMPARISONS_FROM_TUPLE(SelectedLiteral)
   };
 
 
@@ -378,6 +383,8 @@ namespace Kernel {
     TermList smallerSide() const
     { return literal()->termArg(1 - _term); }
 
+    auto asTuple() const { return std::tie(_term, (SelectedLiteral const&) *this); }
+    IMPL_COMPARISONS_FROM_TUPLE(SelectedUninterpretedEquality)
   };
 
   class SelectedSummand : public SelectedLiteral
@@ -451,11 +458,13 @@ namespace Kernel {
     { return ircLiteral().apply([](auto& l) { return l.symbol(); }); }
 
     using Key = TermList;
-    auto key() -> Key { return monom(); }
+    auto key() const { return monom(); }
     friend std::ostream& operator<<(std::ostream& out, SelectedSummand const& self);
 
     auto asTuple() const
     { return std::tie(_term, (SelectedLiteral const&)*this); }
+
+    IMPL_COMPARISONS_FROM_TUPLE(SelectedSummand)
   };
 
   class SelectedIntegerEquality : public SelectedSummand 
@@ -562,6 +571,8 @@ namespace Kernel {
       return out; 
     }
 
+    auto asTuple() const { return std::tie(_inner); }
+    IMPL_COMPARISONS_FROM_TUPLE(SelectedEquality)
   };
   class SelectedUninterpretedPredicate : public SelectedLiteral {
   public:
@@ -595,6 +606,14 @@ namespace Kernel {
         .map([=](auto i) 
             { return SelectedLiteral(cl, i, *this); });
     }
+
+    template<class LitOrTerm>
+    bool notLess(LitOrTerm lhs, LitOrTerm rhs)
+    { return OrderingUtils2::notLess(ordering->compare(lhs, rhs)); }
+
+    template<class LitOrTerm>
+    bool notLeq(LitOrTerm lhs, LitOrTerm rhs)
+    { return OrderingUtils2::notLeq(ordering->compare(lhs, rhs)); }
 
     template<class NumTraits>
     auto maxSummandIndices(IrcLiteral<NumTraits> const& lit, SelectionCriterion selection)
