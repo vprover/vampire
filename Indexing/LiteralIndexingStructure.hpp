@@ -45,11 +45,6 @@ public:
     CALL("LiteralIndexingStructure::getUnificationCount");
     return countIteratorElements(getUnifications(lit, complementary, false));
   }
-
-#if VDEBUG
-  virtual vstring toString() { return "<not supported>"; }
-#endif
-
 };
 
 };

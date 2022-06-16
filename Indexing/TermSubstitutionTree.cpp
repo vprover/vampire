@@ -354,7 +354,7 @@ struct TermSubstitutionTree<LeafData_>::UnifyingContext
     , _withConstraints(withConstraints)
 #endif
   {}
-  bool enter(TermQueryResult<LeafData> qr)
+  bool enter(TermQueryResult<LeafData> const& qr)
   {
     //if(_withConstraints){ cout << "enter " << qr.key() << endl; }
 
@@ -366,7 +366,7 @@ struct TermSubstitutionTree<LeafData_>::UnifyingContext
     ASS(unified || _withConstraints);
     return unified;
   }
-  void leave(TermQueryResult<LeafData> qr)
+  void leave(TermQueryResult<LeafData> const& qr)
   {
     RobSubstitution* subst=qr.substitution->tryGetRobSubstitution();
     ASS(subst);

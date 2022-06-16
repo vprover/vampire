@@ -62,10 +62,6 @@ public:
   TermQueryResultIterator getUnifications(TermList sort, TermList trm, 
     bool retrieveSubstitutions);
 
-#if VDEBUG
-  virtual void markTagged() final override { SubstitutionTree::markTagged();}
-#endif
-  
 private:
   using TermIndexingStructure::insert; // state explicitly that "insert(TermList sort, LeafData ld);" is not meant to be an overload of any of the parent's inserts
 

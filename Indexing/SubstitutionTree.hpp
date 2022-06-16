@@ -80,13 +80,8 @@ public:
   SubstitutionTree(int nodes, Shell::Options::UnificationWithAbstraction uwa, bool useC=false, bool rfSubs=false);
   ~SubstitutionTree();
 
-  // Tags are used as a debug tool to turn debugging on for a particular instance
-  bool tag;
-  virtual void markTagged(){ tag=true;}
-
   friend std::ostream& operator<<(std::ostream& out, SubstitutionTree const& self)
   { return out << "SubstitutionTree(...)"; }
-
   
   typedef VirtualIterator<LeafData&> LDIterator;
 
@@ -794,7 +789,6 @@ public:
 
     bool hasNext();
     QueryResult next();
-    bool tag;
   protected:
     virtual bool associate(TermList query, TermList node, BacktrackData& bd);
     virtual NodeIterator getNodeIterator(IntermediateNode* n);

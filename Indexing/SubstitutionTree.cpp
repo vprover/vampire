@@ -22,7 +22,7 @@ namespace Indexing {
  */
 template<class LeafData_>
 SubstitutionTree<LeafData_>::SubstitutionTree(int nodes, Shell::Options::UnificationWithAbstraction uwa, bool useC, bool rfSubs)
-  : tag(false), _nextVar(0), _nodes(nodes), _useC(useC), _uwa(uwa), _rfSubs(rfSubs)
+  : _nextVar(0), _nodes(nodes), _useC(useC), _uwa(uwa), _rfSubs(rfSubs)
 {
   CALL("SubstitutionTree::SubstitutionTree");
 
@@ -118,10 +118,6 @@ void SubstitutionTree<LeafData_>::insert(Node** pnode,BindingMap& svBindings,Lea
 {
   CALL("SubstitutionTree::insert/3");
   ASS_EQ(_iteratorCnt,0);
-
-#if VDEBUG
-  if(tag){cout << "Insert " << ld << endl;}
-#endif
 
   if(*pnode == 0) {
     if(svBindings.isEmpty()) {
@@ -634,7 +630,6 @@ template<class LeafData_>
 bool SubstitutionTree<LeafData_>::LeafIterator::hasNext()
 {
   CALL("SubstitutionTree::Leaf::hasNext");
-  //if(tag){cout << "leafIterator::hasNext" << endl;}
   for(;;) {
     while(!_nodeIterators.isEmpty() && !_nodeIterators.top().hasNext()) {
       _nodeIterators.pop();
@@ -661,7 +656,7 @@ template<class LeafData_>
 SubstitutionTree<LeafData_>::UnificationsIterator::UnificationsIterator(SubstitutionTree* parent,
 	Node* root, Term* query, bool retrieveSubstitution, bool reversed, 
   bool withoutTop, bool useC, FuncSubtermMap* funcSubtermMap)
-: tag(parent->tag), 
+: 
 svStack(32), retrieveSubstitution(retrieveSubstitution), inLeaf(false),
 ldIterator(LDIterator::getEmpty()), nodeIterators(8), bdStack(8),
 clientBDRecording(false), useUWAConstraints(useC)
@@ -707,11 +702,6 @@ clientBDRecording(false), useUWAConstraints(useC)
       createInitialBindings(queryNorm);
     }
   }
-#if VDEBUG
-  if(tag){
-    cout << "Starting iterator with "  << endl; cout << subst.toString() << endl;
-  }
-#endif
 
   BacktrackData bd;
   enter(root, bd);
@@ -766,8 +756,6 @@ bool SubstitutionTree<LeafData_>::UnificationsIterator::hasNext()
 {
   CALL("SubstitutionTree::UnificationsIterator::hasNext");
 
-  //if(tag){cout << "UnificationsIterator::hasNext" << endl;}
-
   if(clientBDRecording) {
     subst.bdDone();
     clientBDRecording=false;
@@ -814,8 +802,6 @@ template<class LeafData_>
 bool SubstitutionTree<LeafData_>::UnificationsIterator::findNextLeaf()
 {
   CALL("SubstitutionTree::UnificationsIterator::findNextLeaf");
-
-  //if(tag){cout << "findNextLeaf" << endl;}
 
   if(nodeIterators.isEmpty()) {
     //There are no node iterators in the stack, so there's nowhere
@@ -865,16 +851,6 @@ template<class LeafData_>
 bool SubstitutionTree<LeafData_>::UnificationsIterator::enter(Node* n, BacktrackData& bd)
 {
   CALL("SubstitutionTree::UnificationsIterator::enter");
-
-#if VDEBUG
-  if(tag){
-    cout << "=========================================" << endl;
-    cout << "entering..." << endl; n->print(0); cout << endl;
-    cout << "subst is " << endl; cout << subst.toString() << endl;
-    cout << "svstack is " << svStack.toString() << endl;
-    cout << "=========================================" << endl;
-  } 
-#endif
 
   bool success=true;
   bool recording=false;

@@ -60,6 +60,7 @@ public:
   TermSubstitutionTree(Shell::Options::UnificationWithAbstraction uwa, bool useC=false, bool replaceFunctionalSubterms = false);
 
   void insert(LeafData d) final override { handleTerm(d, /* insert */ true); }
+  // TODO use (LeafData const& d) here
   void remove(LeafData d) final override { handleTerm(d, /* insert */ false); }
 
   bool generalizationExists(TermList t) final override;
@@ -82,10 +83,6 @@ public:
 
   TermQueryResultIterator getInstances(TermList t,
 	  bool retrieveSubstitutions) final override;
-
-#if VDEBUG
-  virtual void markTagged() final override { SubstitutionTree::markTagged();}
-#endif
 
 private:
 
