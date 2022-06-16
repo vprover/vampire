@@ -186,6 +186,7 @@ public:
   Ordering& getOrdering() const;
   
   void init(SaturationAlgorithm* sa);
+  void onRestart();
 
   bool doSplitting(Clause* cl);
 

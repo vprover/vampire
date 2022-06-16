@@ -53,7 +53,7 @@ public:
   CLASS_NAME(SaturationAlgorithm);
   USE_ALLOCATOR(SaturationAlgorithm);
 
-  static SaturationAlgorithm* createFromOptions(Problem& prb, const Options& opt, IndexManager* indexMgr=0);
+  static SaturationAlgorithm* createFromOptions(Problem& prb, const Options& opt, IndexManager* indexMgr=0, SaturationAlgorithm *placement = nullptr);
 
   SaturationAlgorithm(Problem& prb, const Options& opt);
   virtual ~SaturationAlgorithm();
@@ -234,6 +234,10 @@ protected:
   unsigned _activationLimit;
 private:
   static ImmediateSimplificationEngine* createISE(Problem& prb, const Options& opt, Ordering& ordering);
+
+  unsigned _activationsSinceRestart;
+  unsigned _nextRestartAt;
+  Stack<Clause *> _useful;
 };
 
 

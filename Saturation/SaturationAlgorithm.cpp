@@ -222,7 +222,9 @@ SaturationAlgorithm::SaturationAlgorithm(Problem& prb, const Options& opt)
     _consFinder(0), _labelFinder(0), _symEl(0), _answerLiteralManager(0),
     _instantiation(0),
     _generatedClauseCount(0),
-    _activationLimit(0)
+    _activationLimit(0),
+    _activationsSinceRestart(0),
+    _nextRestartAt(1)
 {
   CALL("SaturationAlgorithm::SaturationAlgorithm");
   ASS_EQ(s_instance, 0);  //there can be only one saturation algorithm at a time
@@ -232,7 +234,7 @@ SaturationAlgorithm::SaturationAlgorithm(Problem& prb, const Options& opt)
   _ordering = OrderingSP(Ordering::create(prb, opt));
   if (!Ordering::trySetGlobalOrdering(_ordering)) {
     //this is not an error, it may just lead to lower performance (and most likely not significantly lower)
-    cerr << "SaturationAlgorithm cannot set its ordering as global" << endl;
+    //cerr << "SaturationAlgorithm cannot set its ordering as global" << endl;
   }
   _selector = LiteralSelector::getSelector(*_ordering, opt, opt.selection());
 
@@ -593,6 +595,21 @@ void SaturationAlgorithm::onNonRedundantClause(Clause* c)
   if (_symEl) {
     _symEl->onNonRedundantClause(c);
   }
+
+  if(_opt.warmRestarts()) {
+    if(!c->isFromPreprocessing() && c->noSplits() && c->length() == 1) {
+      Literal *l = c->literals()[0];
+      if(l->isEquality() && l->polarity()) {
+        Ordering::Result comparison = _ordering->getEqualityArgumentOrder(l);
+        if(comparison == Ordering::LESS || comparison == Ordering::GREATER) {
+          _useful.push(c);
+        }
+      }
+      else if(!l->isEquality()) {
+        _useful.push(c);
+      }
+    }
+  }
 }
 
 /**
@@ -744,7 +761,7 @@ simpl_start:
     goto fin;
   }
 
-  ASS(!cl->numSelected());
+  ASS(!cl->numSelected() || _opt.warmRestarts());
   {
     LiteralSelector& sosSelector = getSosLiteralSelector();
     sosSelector.select(cl);
@@ -1362,6 +1379,34 @@ void SaturationAlgorithm::doOneAlgorithmStep()
   }
 
   activate(cl);
+
+  if(_opt.warmRestarts()) {
+    if(++_activationsSinceRestart == _nextRestartAt) {
+      Problem &prb = _prb;
+      const Options &opt = _opt;
+      Stack<Clause *> useful = std::move(_useful);
+      unsigned nextRestartAt = 2 * _nextRestartAt;
+
+      this->~SaturationAlgorithm();
+      ALWAYS(createFromOptions(prb, opt, nullptr, this) == this);
+      if(_splitter) _splitter->init(this);
+
+      ClauseIterator problem = prb.clauseIterator();
+      while(problem.hasNext()) {
+        Clause *c = problem.next();
+        c->setStore(Clause::NONE);
+        addInputClause(c);
+      }
+      while(useful.isNonEmpty()) {
+        Clause *c = useful.pop();
+        c->setStore(Clause::NONE);
+        c->setAge(0);
+        addNewClause(c);
+      }
+
+      _nextRestartAt = nextRestartAt;
+    }
+  }
 }
 
 
@@ -1472,24 +1517,42 @@ void SaturationAlgorithm::addBackwardSimplifierToFront(BackwardSimplificationEng
  * @since 05/05/2013 Manchester, splitting changed to new values
  * @author Andrei Voronkov
  */
-SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const Options& opt, IndexManager* indexMgr)
+SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const Options& opt, IndexManager* indexMgr, SaturationAlgorithm *placement)
 {
   CALL("SaturationAlgorithm::createFromOptions");
 
-  SaturationAlgorithm* res;
-  switch(opt.saturationAlgorithm()) {
-  case Shell::Options::SaturationAlgorithm::DISCOUNT:
-    res=new Discount(prb, opt);
-    break;
-  case Shell::Options::SaturationAlgorithm::LRS:
-    res=new LRS(prb, opt);
-    break;
-  case Shell::Options::SaturationAlgorithm::OTTER:
-    res=new Otter(prb, opt);
-    break;
-  default:
-    NOT_IMPLEMENTED;
+  SaturationAlgorithm* res = placement;
+  if(placement) {
+    switch(opt.saturationAlgorithm()) {
+    case Shell::Options::SaturationAlgorithm::DISCOUNT:
+      ::new (res) Discount(prb, opt);
+      break;
+    case Shell::Options::SaturationAlgorithm::LRS:
+      ::new (res) LRS(prb, opt);
+      break;
+    case Shell::Options::SaturationAlgorithm::OTTER:
+      ::new (res) Otter(prb, opt);
+      break;
+    default:
+      NOT_IMPLEMENTED;
+    }
   }
+  else {
+    switch(opt.saturationAlgorithm()) {
+    case Shell::Options::SaturationAlgorithm::DISCOUNT:
+      res=new Discount(prb, opt);
+      break;
+    case Shell::Options::SaturationAlgorithm::LRS:
+      res=new LRS(prb, opt);
+      break;
+    case Shell::Options::SaturationAlgorithm::OTTER:
+      res=new Otter(prb, opt);
+      break;
+    default:
+      NOT_IMPLEMENTED;
+    }
+  }
+
   if (indexMgr) {
     res->_imgr = SmartPtr<IndexManager>(indexMgr, true);
     indexMgr->setSaturationAlgorithm(res);

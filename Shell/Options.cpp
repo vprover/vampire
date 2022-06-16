@@ -762,6 +762,13 @@ void Options::init()
                 And(_saturationAlgorithm.is(equal(SaturationAlgorithm::INST_GEN)),_instGenWithResolution.is(equal(true))));
     };
 
+    _warmRestarts = BoolOptionValue("warm_restarts", "wr", false);
+    _warmRestarts.description = "restart after an increasing number of activations, retaining demodulators and unit predicates";
+    _warmRestarts.setExperimental();
+    _warmRestarts.onlyUsefulWith(ProperSaturationAlgorithm());
+    _warmRestarts.tag(OptionTag::SATURATION);
+    _lookup.insert(&_warmRestarts);
+
     _sos = ChoiceOptionValue<Sos>("sos","sos",Sos::OFF,{"all","off","on","theory"});
     _sos.description=
     "Set of support strategy. All formulas annotated as axioms are put directly among active clauses, without performing any inferences between them."
