@@ -348,7 +348,7 @@ MaybeOverflow<Polynom<Number>> simplifyPoly(Polynom<Number> const& in, MaybeOver
           auto poly = simpl.factors->factorAt(0).tryPolynom().unwrap();
           for (auto fac : poly->iterSummands()) {
             fac.numeral = fac.numeral * simpl.numeral;
-            ASS(fac.numeral != Number::zeroC)
+            ASS(!removeZeros || fac.numeral != Number::zeroC)
             sum.push(fac);
           }
         } catch (MachineArithmeticException&) {

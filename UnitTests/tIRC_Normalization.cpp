@@ -440,3 +440,10 @@ TEST_INT(misc_02,
       .out = { { -f(a) + 1 > 0  } },
       .strong = false,
     })
+
+TEST_ALL(misc_03, 
+    TestCase {
+      .in  =     a + 3 * ( 0 * f(a) +     b + 0 ) > 0  ,
+      .out = { { a +       0 * f(a) + 3 * b + 0   > 0  } },
+      .strong = false,
+    })
