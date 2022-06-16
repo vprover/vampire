@@ -207,7 +207,7 @@ namespace Kernel {
                 unsigned row = l < r ? r : l;
 
 
-                auto idx = std::make_tuple(col, row);
+                auto idx = std::make_pair(col, row);
                 auto res = cmpCache->getOrInit(idx,
                     [&]() { return cmp_(col, row); });
 

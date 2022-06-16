@@ -28,58 +28,10 @@
 #include "Kernel/LaLpo.hpp"
 #include "Kernel/KBO.hpp"
 #include "Kernel/OrderingUtils.hpp"
-#include "Lib/Coproduct_.hpp"
 
 namespace Kernel {
 
 using namespace Lib;
-
-// template<class... Is>
-// class CoproductIter 
-// {
-//   Coproduct<Is...> _inner;
-// public:
-//   DECL_ELEMENT_TYPE(ELEMENT_TYPE(TypeList::Get<0, TypeList::List<Is...>>));
-// 
-//   template<class I>
-//   CoproductIter(I i) : _inner(Coproduct<Is...>(std::move(i))) {}
-// 
-//   bool hasNext()
-//   { 
-//     using Co = Coproduct_<unsigned, unsigned>;
-//     Co bla_(Co::variant<0>(0));
-//     Co& bla = bla_;
-//     unsigned lala_ = 0;
-//     unsigned& lala = lala_;
-//     auto clsr = [](auto & x) {
-//       // static_assert(!std::is_const<std::remove_reference_t<decltype(x)>>::value, "fail");
-//       static_assert(std::is_same<decltype(x), unsigned&>::value, "fail");
-//     };
-//     #define BLA(REF) \
-//     static_assert(std::is_same< \
-//       std::result_of_t<decltype(clsr)(unsigned REF)>, \
-//       void \
-//     >::value,"la" );
-// 
-//     BLA(&)
-//     bla.apply(clsr);
-//   ASSERTION_VIOLATION
-//   }
-//     // Coproduct<Is...>& inner = _inner;
-//     // return inner.apply([](auto& x) { 
-//     //   static_assert(!std::is_const<std::remove_reference_t<decltype(x)>>::value);
-//     //   return x.hasNext();}); }
-// 
-//   OWN_ELEMENT_TYPE next()
-//   { ASSERTION_VIOLATION }
-//   // { return _inner.apply([](auto&& x) { return x.next();}); }
-// 
-//   bool knowsSize() const 
-//   { return _inner.apply([](auto& x) { return x.knowsSize();}); }
-// 
-//   size_t size() const
-//   { return _inner.apply([](auto& x) { return x.size();}); }
-// };
 
 template<class IfIter, class ElseIter>
 static auto ifElseIter(bool cond, IfIter ifIter, ElseIter elseIter) 

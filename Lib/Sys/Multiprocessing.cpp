@@ -17,9 +17,11 @@
 #include "Lib/Portability.hpp"
 
 #include <csignal>
+#include <errno.h>
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <cstring>
 
 #include "Lib/Environment.hpp"
 #include "Lib/List.hpp"
