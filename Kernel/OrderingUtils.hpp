@@ -236,6 +236,7 @@ namespace Kernel {
               return isMax ? Option<unsigned>(i) : Option<unsigned>();
             }
           }
+          ASSERTION_VIOLATION
         })));
     }
 

@@ -146,14 +146,21 @@ template<class... A> void Tracer::printDbg(const char* file, int line, const A&.
 #  define WARN(...) { Debug::Tracer::printDbg(__FILENAME__, __LINE__, "WARNING: ", __VA_ARGS__); }
 #  define DBG(...) { Debug::Tracer::printDbg(__FILENAME__, __LINE__, __VA_ARGS__); }
 #  define DBGE(x) DBG(#x, " = ", x)
+
+#  define WRAP_DBG(msg, ...)                                                                        \
+    auto __WRAP_DBG_FUNC = [&]() { __VA_ARGS__ };                                                   \
+    DBG(msg, " start")                                                                              \
+    auto out = __WRAP_DBG_FUNC();                                                                   \
+    DBG(msg, " end")                                                                                \
+    return out; 
 #  define ECHO(x) Debug::Tracer::echoValue(__FILENAME__, __LINE__, #x " = ", x)
 #  define CALLC(Fun,check) if (check){ AUX_CALL(__LINE__,Fun) }
 #  define CONTROL(description) Debug::Tracer::controlPoint(description)
-#  define AFTER(number,command) \
+#  define AFTER(number,command)                                                                     \
             if (Debug::Tracer::passedControlPoints() >= number) { command };
-#  define BETWEEN(number1,number2,command) \
-            if (Debug::Tracer::passedControlPoints() >= number1 &&	\
-                Debug::Tracer::passedControlPoints() <= number2)	\
+#  define BETWEEN(number1,number2,command)                                                          \
+            if (Debug::Tracer::passedControlPoints() >= number1 &&	                                 \
+                Debug::Tracer::passedControlPoints() <= number2)	                                   \
               { command };
 
 #else // ! VDEBUG
@@ -161,6 +168,7 @@ template<class... A> void Tracer::printDbg(const char* file, int line, const A&.
 #  define DBG(...) {}
 #  define DBGE(x) {}
 #  define CALL(Fun) 
+#  define WRAP_DBG(msg, ...) __VA_ARGS__
 #  define CALLC(Fun,check) 
 #  define CONTROL(description)
 #endif

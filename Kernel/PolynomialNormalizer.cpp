@@ -316,12 +316,6 @@ NormalizationResult normalizeNumSort(TermList t, NormalizationResult* ts)
   }
 }
 
-#define PRINT_AND_RETURN(...)                                                                                 \
-  auto f = [&](){ __VA_ARGS__ };                                                                              \
-  auto out = f();                                                                                             \
-  DBG("out : ", out);                                                                                         \
-  return out;                                                                                                 \
-
 PolyNf normalizeTerm(TypedTermList t) 
 {
   CALL("PolyNf::normalize")

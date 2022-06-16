@@ -28,6 +28,7 @@ namespace IRC {
 void InequalityResolution::attach(SaturationAlgorithm* salg) 
 {
   CALL("InequalityResolution::attach");
+  GeneratingInferenceEngine::attach(salg);
 
   ASS(!_lhsIndex);
   ASS(!_rhsIndex);

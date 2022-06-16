@@ -34,6 +34,7 @@
 #include "Kernel/InferenceStore.hpp"
 #include "Kernel/KBO.hpp"
 #include "Kernel/LaLpo.hpp"
+#include "Kernel/QKbo.hpp"
 #include "Kernel/LiteralSelector.hpp"
 #include "Kernel/MLVariant.hpp"
 #include "Kernel/Problem.hpp"
@@ -1633,6 +1634,10 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
         .ordering = &ordering, 
         .uwa = env.options->unificationWithAbstraction(),
     });
+    try {
+      auto& ord = dynamic_cast<Kernel::QKbo&>(ordering);
+      ord.setState(shared);
+    } catch (std::bad_cast&) { /* do nothing */ }
     try {
       auto& ord = dynamic_cast<Kernel::LaLpo&>(ordering);
       ord.setState(shared);

@@ -73,6 +73,7 @@ public:
   using Result = SimplifyingGeneratingLiteralSimplification::Result;
   CLASS_NAME(PolynomialEvaluation);
   USE_ALLOCATOR(PolynomialEvaluation);
+  PolynomialEvaluation() = delete;
   explicit PolynomialEvaluation(bool removeZeros) 
     : _removeZeros(removeZeros) 
   {  }

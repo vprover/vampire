@@ -2234,6 +2234,9 @@ void Options::init()
     _termOrdering.description="The term ordering used by Vampire to orient equations and order literals";
     _termOrdering.onlyUsefulWith(InferencingSaturationAlgorithm());
     _termOrdering.tag(OptionTag::SATURATION);
+    _termOrdering.addHardConstraint(
+        If(Or(equal(TermOrdering::QKBO), equal(TermOrdering::QKBO)))
+          .then(_lasca.is(equal(true)))) // <- lasca must be enabled, because the orderings rely on IrcState to be set
     _lookup.insert(&_termOrdering);
 
     _symbolPrecedence = ChoiceOptionValue<SymbolPrecedence>("symbol_precedence","sp",SymbolPrecedence::ARITY,
