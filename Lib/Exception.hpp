@@ -233,8 +233,8 @@ class NotImplementedException
 
 #define VAMPIRE_EXCEPTION \
   throw Lib::Exception(__FILE__,__LINE__)
-#define USER_ERROR(msg) \
-  throw Lib::UserErrorException(msg)
+#define USER_ERROR(...) \
+  throw Lib::UserErrorException(__VA_ARGS__)
 #define INVALID_OPERATION(msg) \
   throw Lib::InvalidOperationException(msg)
 #define SYSTEM_FAIL(msg,err) \

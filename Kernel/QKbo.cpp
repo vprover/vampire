@@ -401,7 +401,6 @@ Ordering::Result QKbo::cmpNonAbstr(TermList s, TermList t) const
 Option<TermList> QKbo::abstr(TermList t) const 
 {
   CALL("QKbo::abstr(TermList t) const ")
-  auto noAbstraction = []() { return Option<TermList>(); };
   using Out = Option<TermList>;
   if (t.isVar()) {
     return Option<TermList>(t);
