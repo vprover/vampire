@@ -69,7 +69,8 @@ public:
     {
       CALL("IRC::Superposition::Lhs::iter")
       return shared.selectedEqualities(cl, /* literal */ SelectionCriterion::STRICTLY_MAX, 
-                                           /* terms   */ SelectionCriterion::STRICTLY_MAX)
+                                           /* terms   */ SelectionCriterion::STRICTLY_MAX,
+                                           /* include number vars */ false)
              .filter([](auto x) { return x.literal()->isPositive(); })
              .map([](auto x) { return Lhs(std::move(x)); });
     }
@@ -102,7 +103,8 @@ public:
       using Out = Rhs;
       return shared.selectedActivePositions(cl, 
           /* literals */ SelectionCriterion::WEAKLY_MAX, 
-          /* terms    */ SelectionCriterion::STRICTLY_MAX)
+          /* terms    */ SelectionCriterion::STRICTLY_MAX,
+          /* include number vars */ false)
         .flatMap([&](auto sel_lit) -> VirtualIterator<Out> {
            auto tup = sel_lit.match(
              [=](SelectedSummand& x) -> tuple<SelectedLiteral, TermList, bool, bool> 

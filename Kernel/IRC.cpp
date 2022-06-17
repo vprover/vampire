@@ -143,47 +143,47 @@ Option<MaybeOverflow<AnyIrcLiteral>> InequalityNormalizer::renormalize(Literal* 
     || Option<MaybeOverflow<Out>>();
 }
 
-Stack<std::pair<Literal*, unsigned>> IrcState::selectedLiteralsWithIdx(Clause* cl, bool strictlyMax)
-{
-  return iterTraits(getRangeIterator((unsigned)0, cl->numSelected()))
-    .map([=](auto i) 
-        { return make_pair((*cl)[i], i); })
-    .template collect<Stack>();
-}
-
-
-Stack<Literal*> IrcState::selectedLiterals(Clause* cl, bool strictlyMax)
-{
-  // TODO use strictly max
-  return iterTraits(cl->getSelectedLiteralIterator()).template collect<Stack>();
-}
-
-
-Stack<std::pair<Literal*, unsigned>> IrcState::maxLiteralsWithIdx(Clause* cl, bool strictlyMax)
-{
-  return maxElements([&](unsigned i) { return make_pair((*cl)[i], i); }, 
-                     cl->size(),
-                     [&](auto l, auto r) { return ordering->compare(l.first, r.first); },
-                     strictlyMax);
-}
-
-
-Stack<Literal*> IrcState::maxLiterals(Clause* cl, bool strictlyMax)
-{
-  return maxElements([&](auto i) { return (*cl)[i]; }, 
-                     cl->size(),
-                     [&](auto l, auto r) { return ordering->compare(l, r); },
-                     strictlyMax);
-}
-
-
-Stack<Literal*> IrcState::maxLiterals(Stack<Literal*> cl, bool strictlyMax)
-{
-  return maxElements([&](auto i) { return cl[i]; }, 
-                     cl.size(),
-                     [&](auto l, auto r) { return ordering->compare(l, r); },
-                     strictlyMax);
-}
+// Stack<std::pair<Literal*, unsigned>> IrcState::selectedLiteralsWithIdx(Clause* cl, bool strictlyMax)
+// {
+//   return iterTraits(getRangeIterator((unsigned)0, cl->numSelected()))
+//     .map([=](auto i) 
+//         { return make_pair((*cl)[i], i); })
+//     .template collect<Stack>();
+// }
+//
+//
+// Stack<Literal*> IrcState::selectedLiterals(Clause* cl, bool strictlyMax)
+// {
+//   // TODO use strictly max
+//   return iterTraits(cl->getSelectedLiteralIterator()).template collect<Stack>();
+// }
+//
+//
+// Stack<std::pair<Literal*, unsigned>> IrcState::maxLiteralsWithIdx(Clause* cl, bool strictlyMax)
+// {
+//   return maxElements([&](unsigned i) { return make_pair((*cl)[i], i); }, 
+//                      cl->size(),
+//                      [&](auto l, auto r) { return ordering->compare(l.first, r.first); },
+//                      strictlyMax);
+// }
+//
+//
+// Stack<Literal*> IrcState::maxLiterals(Clause* cl, bool strictlyMax)
+// {
+//   return maxElements([&](auto i) { return (*cl)[i]; }, 
+//                      cl->size(),
+//                      [&](auto l, auto r) { return ordering->compare(l, r); },
+//                      strictlyMax);
+// }
+//
+//
+// Stack<Literal*> IrcState::maxLiterals(Stack<Literal*> cl, bool strictlyMax)
+// {
+//   return maxElements([&](auto i) { return cl[i]; }, 
+//                      cl.size(),
+//                      [&](auto l, auto r) { return ordering->compare(l, r); },
+//                      strictlyMax);
+// }
 
 
 Option<AnyIrcLiteral> IrcState::renormalize(Literal* lit)

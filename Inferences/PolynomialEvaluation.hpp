@@ -120,6 +120,7 @@ private:
   Result simplifyLiteral(Literal*) override;
   // TODO make this one the same as in IRCState
   PolynomialEvaluation _inner;
+  const bool _alwaysEvaluate;
 };
 
 } // namespace Inferences 

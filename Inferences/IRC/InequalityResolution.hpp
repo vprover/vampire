@@ -55,7 +55,10 @@ public:
     static auto iter(IrcState& shared, Clause* cl)
     { 
       CALL("Irc::InequalityResolution::Lhs::iter")
-      return shared.selectedSummands(cl, /* literal*/ SelectionCriterion::STRICTLY_MAX, /* term */ SelectionCriterion::STRICTLY_MAX)
+      return shared.selectedSummands(cl, 
+                        /* literal*/ SelectionCriterion::STRICTLY_MAX, 
+                        /* term */ SelectionCriterion::STRICTLY_MAX,
+                        /* include number vars */ false)
               .filter([&](auto const& selected) { return selected.isInequality(); })
               .filter([&](auto const& selected) { return selected.sign()   == Sign::Pos; })
               .map([&]   (auto selected)        { return Lhs(std::move(selected));     }); }
@@ -72,7 +75,10 @@ public:
     static auto iter(IrcState& shared, Clause* cl) 
     { 
       CALL("Irc::InequalityResolution::Rhs::iter")
-      return shared.selectedSummands(cl, /* literal*/ SelectionCriterion::STRICTLY_MAX, /* term */ SelectionCriterion::WEAKLY_MAX)
+      return shared.selectedSummands(cl, 
+                        /* literal*/ SelectionCriterion::STRICTLY_MAX,
+                        /* term */ SelectionCriterion::WEAKLY_MAX,
+                        /* include number vars */ false)
               .filter([&](auto const& selected) { return selected.isInequality(); })
               .filter([&](auto const& selected) { return selected.sign() == Sign::Neg; })
               .map([&]   (auto selected)        { return Rhs(std::move(selected));     }); }

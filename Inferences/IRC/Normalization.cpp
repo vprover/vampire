@@ -40,7 +40,7 @@
 #include "Kernel/IRC.hpp"
 #include "Indexing/TermIndexingStructure.hpp"
 
-#define DEBUG(...) // DBG(__VA_ARGS__)
+#define DEBUG(...) DBG(__VA_ARGS__)
 
 using Kernel::InequalityLiteral;
 
@@ -67,6 +67,7 @@ Clause* Normalization::simplify(Clause* cl)
     DEBUG(*cl, " ==> ", *outCl)
     return outCl;
   } else {
+    DEBUG(*cl, " stays the same")
     return cl;
   }
 

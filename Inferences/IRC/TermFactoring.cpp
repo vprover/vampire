@@ -221,8 +221,10 @@ ClauseIterator TermFactoring::generateClauses(Clause* premise)
   DEBUG("in: ", *premise)
 
   auto selected = make_shared(move_to_heap(
-        _shared->selectedSummands(premise, /* literal */ SelectionCriterion::WEAKLY_MAX, /* summand */ SelectionCriterion::WEAKLY_MAX)
-        .filter([](auto& s) { return !s.monom().isVar(); })
+        _shared->selectedSummands(premise, 
+                      /* literal */ SelectionCriterion::WEAKLY_MAX, 
+                      /* summand */ SelectionCriterion::WEAKLY_MAX,
+                      /* include number vars */ false)
         .template collect<Stack>()));
 
   std::sort(selected->begin(), selected->end(), [](auto& l, auto& r) { return l.literal() < r.literal(); });

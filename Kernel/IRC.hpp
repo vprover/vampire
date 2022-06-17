@@ -700,15 +700,18 @@ namespace Kernel {
                      { return SelectedSummand(sel_lit, i); }); }
 
 
-    auto selectedActivePositions(Clause* cl, SelectionCriterion selLit, SelectionCriterion selSum)
+    auto selectedActivePositions(
+        Clause* cl, SelectionCriterion selLit, 
+        SelectionCriterion selSum,
+        bool includeUnshieldedNumberVariables)
     {
       using Out = Coproduct<SelectedSummand, SelectedUninterpretedEquality, SelectedUninterpretedPredicate>;
       return maxLits(cl, selLit)
-        // filter out interpreted number literals
         .flatMap([=](auto sel_lit) -> VirtualIterator<Out> {
             auto lit = sel_lit.literal();
             if (sel_lit.interpreted.isSome()) {
               return pvi(maxSummands(sel_lit, selSum)
+                  .filter([=](auto x) { return includeUnshieldedNumberVariables || x.numTraits().apply([](auto x) { return !x.isFractional(); }) || !x.monom().isVar(); })
                   .map([](auto x) { return Out(std::move(x)); }));
 
             } else if (lit->isEquality()) {
@@ -721,9 +724,9 @@ namespace Kernel {
         });
     }
 
-    auto selectedEqualities(Clause* cl, SelectionCriterion selLit, SelectionCriterion selTerm) {
+    auto selectedEqualities(Clause* cl, SelectionCriterion selLit, SelectionCriterion selTerm, bool includeUnshieldedNumberVariables) {
       using Out = SelectedEquality;
-      return selectedActivePositions(cl, selLit, selTerm)
+      return selectedActivePositions(cl, selLit, selTerm, includeUnshieldedNumberVariables)
         .filterMap([](auto x) -> Option<Out>
                    { return x.match(
                        [](SelectedSummand& x) {
@@ -741,9 +744,9 @@ namespace Kernel {
     }
 
 
-    auto selectedSummands(Clause* cl, SelectionCriterion selLit, SelectionCriterion selTerm) {
+    auto selectedSummands(Clause* cl, SelectionCriterion selLit, SelectionCriterion selTerm, bool includeUnshieldedNumberVariables) {
       using Out = SelectedSummand;
-      return selectedActivePositions(cl, selLit, selTerm)
+      return selectedActivePositions(cl, selLit, selTerm, includeUnshieldedNumberVariables)
         .filterMap([](auto x) -> Option<Out> {
             return x.match(
                  [](SelectedSummand& x) 
@@ -758,59 +761,20 @@ namespace Kernel {
     }
 
 
-    // auto selectedSummands(Clause* cl, bool strictlyMaxLiteral, bool strictlyMaxSummand) {
-    //   using Out = SelectedSummand;
-    //
-    //   return selectedActivePositions(cl, strictlyMaxLiteral, strictlyMaxSummand)
-    //     .filterMap([](auto x) -> Option<SelectedSummand>
-    //                { return x.template is<SelectedSummand>() 
-    //                  ? Option<SelectedSummand>(std::move(x.template unwrap<SelectedSummand>()))
-    //                  : Option<SelectedSummand>(); });
-    //
-    //   // ASS(this)
-    //   // return OrderingUtils2::maxElems(
-    //   //     cl->size(), 
-    //   //     [=](unsigned l, unsigned r) 
-    //   //     { return ordering->compare((*cl)[l], (*cl)[r]); },
-    //   //     strictlyMaxLiteral)
-    //   //
-    //   //   // filter out interpreted number literals
-    //   //   .filterMap([=](unsigned i) {
-    //   //
-    //   //       auto lit = (*cl)[i];
-    //   //       return renormalize(lit)
-    //   //         .map([=](auto ircLit) {
-    //   //           auto monomAt = [=](auto i) 
-    //   //             { return ircLit.apply([i](auto& lit) 
-    //   //                   { return lit.term().summandAt(i).factors->denormalize(); }); };
-    //   //
-    //   //           return pvi(OrderingUtils2::maxElems(
-    //   //               ircLit.apply([](auto& l) { return l.term().nSummands(); }),
-    //   //               [=](unsigned l, unsigned r) 
-    //   //               { return ordering->compare(monomAt(l), monomAt(r)); },
-    //   //               strictlyMaxSummand)
-    //   //             .map([=](auto j) -> SelectedSummand 
-    //   //               { return SelectedSummand(cl, i, ircLit, j); }));
-    //   //         });
-    //   //
-    //   //   })
-    //   //   .flatten();
-    // }
+    // template<class GetSummand> auto iterSelectedTerms(GetSummand getSummand, unsigned litSize, bool strict = false);
+    // template<class NumTraits> Stack<Monom<NumTraits>> selectedTerms(IrcLiteral<NumTraits>const& lit, bool strict = false);
+    // template<class NumTraits> Stack<SelectedAtomicTerm<NumTraits>> selectedTerms(Clause* cl, bool strictlyMaxLiterals = false, bool strictlyMaxTerms = false);
 
-    template<class GetSummand> auto iterSelectedTerms(GetSummand getSummand, unsigned litSize, bool strict = false);
-    template<class NumTraits> Stack<Monom<NumTraits>> selectedTerms(IrcLiteral<NumTraits>const& lit, bool strict = false);
-    template<class NumTraits> Stack<SelectedAtomicTerm<NumTraits>> selectedTerms(Clause* cl, bool strictlyMaxLiterals = false, bool strictlyMaxTerms = false);
-
-    Stack<Literal*> selectedLiterals(Clause* cl, bool strictlyMax = false);
-    Stack<std::pair<Literal*, unsigned>> selectedLiteralsWithIdx(Clause* cl, bool strictlyMax = false);
+    // Stack<Literal*> selectedLiterals(Clause* cl, bool strictlyMax = false);
+    // Stack<std::pair<Literal*, unsigned>> selectedLiteralsWithIdx(Clause* cl, bool strictlyMax = false);
     // Stack<Literal*> selectedLiterals(Stack<Literal*> cl, bool strictlyMax = false);
-    Stack<Literal*> strictlySelectedLiterals(Clause* cl) { return selectedLiterals(cl, true); }
+    // Stack<Literal*> strictlySelectedLiterals(Clause* cl) { return selectedLiterals(cl, true); }
 
   private:
-    Stack<Literal*> maxLiterals(Clause* cl, bool strictlyMax = false);
-    Stack<std::pair<Literal*, unsigned>> maxLiteralsWithIdx(Clause* cl, bool strictlyMax = false);
-    Stack<Literal*> maxLiterals(Stack<Literal*> cl, bool strictlyMax = false);
-    Stack<Literal*> strictlyMaxLiterals(Clause* cl) { return maxLiterals(cl, true); }
+    // Stack<Literal*> maxLiterals(Clause* cl, bool strictlyMax = false);
+    // Stack<std::pair<Literal*, unsigned>> maxLiteralsWithIdx(Clause* cl, bool strictlyMax = false);
+    // Stack<Literal*> maxLiterals(Stack<Literal*> cl, bool strictlyMax = false);
+    // Stack<Literal*> strictlyMaxLiterals(Clause* cl) { return maxLiterals(cl, true); }
 
   public:
 
@@ -1085,15 +1049,15 @@ auto maxElements(GetElem getElem, unsigned size, Cmp compare, bool strictlyMax) 
 }
 
 
-template<class GetSummand> auto IrcState::iterSelectedTerms(GetSummand getSummand, unsigned litSize, bool strictlyMax)
-{
-  return iterTraits(ownedArrayishIterator(
-      maxElements([=](unsigned i) { return i; }, litSize,
-                     [&](auto l, auto r) { return ordering->compare(getSummand(l).factors->denormalize(), getSummand(r).factors->denormalize()); },
-                     strictlyMax)
-      ))
-    .filter([=](unsigned i) { return !getSummand(i).isVar(); }) ;
-}
+// template<class GetSummand> auto IrcState::iterSelectedTerms(GetSummand getSummand, unsigned litSize, bool strictlyMax)
+// {
+//   return iterTraits(ownedArrayishIterator(
+//       maxElements([=](unsigned i) { return i; }, litSize,
+//                      [&](auto l, auto r) { return ordering->compare(getSummand(l).factors->denormalize(), getSummand(r).factors->denormalize()); },
+//                      strictlyMax)
+//       ))
+//     .filter([=](unsigned i) { return !getSummand(i).isVar(); }) ;
+// }
 
 
 // TODO check whether superposition modulo LA uses strictly max
@@ -1121,50 +1085,50 @@ template<class GetSummand> auto IrcState::iterSelectedTerms(GetSummand getSumman
 //   return max;
 // }
 
-// TODO check whether superposition modulo LA uses strictly max
-template<class NumTraits>
-Stack<Monom<NumTraits>> IrcState::selectedTerms(IrcLiteral<NumTraits>const& lit, bool strictlyMax)
-{
-  return iterSelectedTerms([&](auto i) { return lit.term().summandAt(i); }, lit.term().nSummands(), strictlyMax)
-    .map([=](unsigned i) { return lit.term().summandAt(i); })
-    .template collect<Stack>();
-}
-
-template<class NumTraits> Stack<SelectedAtomicTerm<NumTraits>> IrcState::selectedTerms(Clause* cl, bool strictlyMaxLiterals, bool strictlyMaxTerms)
-{
-  CALL("IrcState::selectedTerms(Clause* cl)")
-
-  return iterTraits(getRangeIterator((unsigned)0, cl->numSelected()))
-    .filterMap([&](auto i) {
-        // auto i = lit_idx.second;
-        auto lit = (*cl)[i];
-
-        return normalizer.template renormalizeIrc<NumTraits>(lit)
-          .andThen([&](auto norm) -> Option<IrcLiteral<NumTraits>> {
-              return norm.overflowOccurred 
-                ? Option<IrcLiteral<NumTraits>>()
-                : Option<IrcLiteral<NumTraits>>(norm.value);
-              })
-          .map([&](auto irc) { 
-              return pvi(iterSelectedTerms(
-                    [=](unsigned i ) { return irc.term().summandAt(i); }, 
-                    irc.term().nSummands(),
-                    strictlyMaxTerms)
-                .map([=](auto j)  {
-                    return SelectedAtomicTerm<NumTraits> {
-                      .litIdx = i,
-                      .literal = lit,
-                      .ircLit = irc,
-                      .termIdx = j,
-                      .self = irc.term().summandAt(j),
-                    };
-                }));
-          });
-        })
-        .flatten()
-        .template collect<Stack>();
-
-}
+// // TODO check whether superposition modulo LA uses strictly max
+// template<class NumTraits>
+// Stack<Monom<NumTraits>> IrcState::selectedTerms(IrcLiteral<NumTraits>const& lit, bool strictlyMax)
+// {
+//   return iterSelectedTerms([&](auto i) { return lit.term().summandAt(i); }, lit.term().nSummands(), strictlyMax)
+//     .map([=](unsigned i) { return lit.term().summandAt(i); })
+//     .template collect<Stack>();
+// }
+//
+// template<class NumTraits> Stack<SelectedAtomicTerm<NumTraits>> IrcState::selectedTerms(Clause* cl, bool strictlyMaxLiterals, bool strictlyMaxTerms)
+// {
+//   CALL("IrcState::selectedTerms(Clause* cl)")
+//
+//   return iterTraits(getRangeIterator((unsigned)0, cl->numSelected()))
+//     .filterMap([&](auto i) {
+//         // auto i = lit_idx.second;
+//         auto lit = (*cl)[i];
+//
+//         return normalizer.template renormalizeIrc<NumTraits>(lit)
+//           .andThen([&](auto norm) -> Option<IrcLiteral<NumTraits>> {
+//               return norm.overflowOccurred 
+//                 ? Option<IrcLiteral<NumTraits>>()
+//                 : Option<IrcLiteral<NumTraits>>(norm.value);
+//               })
+//           .map([&](auto irc) { 
+//               return pvi(iterSelectedTerms(
+//                     [=](unsigned i ) { return irc.term().summandAt(i); }, 
+//                     irc.term().nSummands(),
+//                     strictlyMaxTerms)
+//                 .map([=](auto j)  {
+//                     return SelectedAtomicTerm<NumTraits> {
+//                       .litIdx = i,
+//                       .literal = lit,
+//                       .ircLit = irc,
+//                       .termIdx = j,
+//                       .self = irc.term().summandAt(j),
+//                     };
+//                 }));
+//           });
+//         })
+//         .flatten()
+//         .template collect<Stack>();
+//
+// }
 
 Ordering::Result compare(IrcPredicate l, IrcPredicate r);
 

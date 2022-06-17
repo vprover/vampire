@@ -86,6 +86,7 @@ template<class T> RationalConstantType rat(T n) { return RationalConstantType(n)
 
 QKbo::Result QKbo::compare(Literal* l1, Literal* l2) const 
 {
+  CALL("QKbo::compare(Literal* l1, Literal* l2) const ")
   if (l1 == l2) 
     return Result::EQUAL;
 

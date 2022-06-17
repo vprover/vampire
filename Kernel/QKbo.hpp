@@ -222,9 +222,11 @@ public:
   Option<AtomsStar> atomsStar(Literal* literal) const
   {
     auto mainIdx = literal->isEquality() && literal->termArg(0) == NumTraits::zero() ? 1 : 0;
-    ASS_REP(NumTraits::zero() == literal->termArg(1 - mainIdx), *literal);
+
+    auto term = NumTraits::zero() == literal->termArg(1 - mainIdx) ? literal->termArg(mainIdx)
+                                                                   : NumTraits::add(literal->termArg(0), NumTraits::minus(literal->termArg(1)));
     auto level = literal->isEquality() && literal->isPositive() ? POS_EQ_LEVEL : NEG_EQ_LEVEL;
-    auto nf = sigmaNf<NumTraits>(literal->termArg(mainIdx));
+    auto nf = sigmaNf<NumTraits>(term);
     if (hasSubstitutionProperty(nf)) {
       return Option<AtomsStar>(std::make_tuple(std::move(nf.sum), level));
     } else {
@@ -238,7 +240,8 @@ public:
     using Out = Option<AtomsStar>;
     return tryNumTraits([&](auto numTraits) {
       using NumTraits = decltype(numTraits);
-      if (NumTraits::sort() != SortHelper::getTermArgSort(literal, 0)) {
+      auto srt =  SortHelper::getTermArgSort(literal, 0);
+      if (NumTraits::sort() != srt) {
         return Option<Out>();
       } else {
         return Option<Out>(atomsStar<NumTraits>(literal));

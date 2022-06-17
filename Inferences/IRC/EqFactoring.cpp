@@ -139,15 +139,21 @@ ClauseIterator EqFactoring::generateClauses(Clause* premise)
   DEBUG("in: ", *premise)
 
   auto selected = make_shared(
-      _shared->selectedEqualities(premise, /* literal */ SelectionCriterion::WEAKLY_MAX, /* summand */ SelectionCriterion::STRICTLY_MAX)
+      _shared->selectedEqualities(premise, 
+                       /* literal */ SelectionCriterion::WEAKLY_MAX, 
+                       /* summand */ SelectionCriterion::STRICTLY_MAX,
+                       /* include number vars */ false)
         .filter([](auto& s) { return s.positive(); })
-        .filter([](auto& s) { return !s.isFracNum() || !s.biggerSide().isVar(); })
+        // .filter([](auto& s) { return !s.isFracNum() || !s.biggerSide().isVar(); })
         .template collect<Stack>());
 
   auto rest = make_shared(
-      _shared->selectedEqualities(premise, /* literal */ SelectionCriterion::ANY, /* summand */ SelectionCriterion::STRICTLY_MAX)
+      _shared->selectedEqualities(premise, 
+                       /* literal */ SelectionCriterion::ANY, 
+                       /* summand */ SelectionCriterion::STRICTLY_MAX,
+                       /* include number vars */ false)
         .filter([](auto& s) { return s.positive(); })
-        .filter([](auto& s) { return !s.isFracNum() || !s.biggerSide().isVar(); })
+        // .filter([](auto& s) { return !s.isFracNum() || !s.biggerSide().isVar(); })
         .template collect<Stack>());
 
   return pvi(range(0, selected->size())

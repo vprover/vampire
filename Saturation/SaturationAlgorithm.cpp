@@ -53,8 +53,8 @@
 #include "Inferences/IRC/LiteralFactoring.hpp"
 #include "Inferences/IRC/Superposition.hpp"
 #include "Inferences/IRC/VariableElimination.hpp"
-#include "Inferences/IRC/FwdDemodulationModLA.hpp"
-#include "Inferences/IRC/BwdDemodulationModLA.hpp"
+// #include "Inferences/IRC/FwdDemodulationModLA.hpp"
+// #include "Inferences/IRC/BwdDemodulationModLA.hpp"
 #include "Inferences/EquationalTautologyRemoval.hpp"
 #include "Inferences/Condensation.hpp"
 #include "Inferences/FastCondensation.hpp"
@@ -1645,6 +1645,7 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
     // res->addForwardSimplifierToFront(new IRC::FwdDemodulationModLA(shared));
     // res->addBackwardSimplifierToFront(new IRC::BwdDemodulationModLA(shared));
     // TODO properly create an option for that, make it a simplifying rule
+    ise->addFront(new IRC::Normalization(shared)); 
     sgi->push(new IRC::InequalityTautologyDetection(shared));
     sgi->push(new IRC::VariableElimination(shared, /* simpl */ true ));
     sgi->push(new IRC::LiteralFactoring(shared));
@@ -1652,7 +1653,6 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
     sgi->push(new IRC::EqFactoring(shared)); 
     sgi->push(new IRC::TermFactoring(shared)); 
     sgi->push(new IRC::InequalityResolution(shared)); 
-    ise->addFront(new IRC::Normalization(shared)); 
   }
 
 

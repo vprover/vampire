@@ -16,7 +16,7 @@
 #include "Saturation/SaturationAlgorithm.hpp"
 #include "Shell/Statistics.hpp"
 
-#define DEBUG(...) // DBG(__VA_ARGS__)
+#define DEBUG(...) DBG(__VA_ARGS__)
 
 namespace Inferences {
 namespace IRC {
@@ -166,13 +166,13 @@ Option<Clause*> InequalityResolution::applyRule(
       return Option<Clause*>();                                                                     \
     }                                                                                               \
 
-    ASS(!lhs.monom().isVar() && !rhs.monom().isVar())
+    ASS(!NumTraits::isFractional() || (!lhs.monom().isVar() && !rhs.monom().isVar()))
 
     // check_side_condition(
     //     "s₁, s₂ are not variables",
     //     !lhs.monom().isVar() && !rhs.monom().isVar())
 
-    auto L1σ = uwa.sigma(lhs.literal(), rhsVarBank);
+    auto L1σ = uwa.sigma(lhs.literal(), lhsVarBank);
     check_side_condition( 
         "(+j s₁ + t₁ >₁ 0)σ /⪯ C₁σ",
         lhs.contextLiterals()

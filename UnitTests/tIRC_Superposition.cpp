@@ -58,6 +58,7 @@ using namespace Inferences::IRC;
                                                                                                     \
   DECL_SORT(alpha)                                                                                  \
   DECL_FUNC(fa, {Num}, alpha)                                                                       \
+  DECL_PRED(pa, {alpha})                                                                            \
   DECL_FUNC(ga, {Num, Num}, alpha)                                                                  \
   DECL_CONST(aa, alpha)                                                                             \
   DECL_CONST(ba, alpha)                                                                             \
@@ -542,3 +543,31 @@ TEST_GENERATION(bug02,
           /* nothing */
       ))
     )
+
+
+TEST_GENERATION(bug03,
+    Generation::SymmetricTest()
+      .indices(ircSuperpositionIndices())
+      .inputs  ({ 
+          clause({ pa(aa)   })
+        , clause({ x == sorted(y, alpha), fa(x) != fa(y) })
+        })
+      .expected(exactly(
+          /* nothing */
+      ))
+    )
+
+TEST_GENERATION(bug04,
+    Generation::SymmetricTest()
+      .indices(ircSuperpositionIndices())
+      .inputs  ({ 
+          clause({ p(a)   })
+        , clause({ 0  == x - y, 0 != f(x) - f(y) })
+        })
+      .expected(exactly(
+          /* nothing */
+      ))
+    )
+
+// iG8(sK29)[ sK29 ] ( inLitPlus: 1 )
+// X0 = X1 \/ real__refqtmk(X0) != real__refqtmk(X1)

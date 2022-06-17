@@ -443,12 +443,12 @@ set(VAMPIRE_INFERENCE_SOURCES
     Inferences/IRC/VariableElimination.hpp
     Inferences/IRC/Superposition.cpp
     Inferences/IRC/Superposition.hpp
-    Inferences/IRC/DemodulationModLA.cpp
-    Inferences/IRC/DemodulationModLA.hpp
-    Inferences/IRC/FwdDemodulationModLA.cpp
-    Inferences/IRC/FwdDemodulationModLA.hpp
-    Inferences/IRC/BwdDemodulationModLA.cpp
-    Inferences/IRC/BwdDemodulationModLA.hpp
+    # Inferences/IRC/DemodulationModLA.cpp
+    # Inferences/IRC/DemodulationModLA.hpp
+    # Inferences/IRC/FwdDemodulationModLA.cpp
+    # Inferences/IRC/FwdDemodulationModLA.hpp
+    # Inferences/IRC/BwdDemodulationModLA.cpp
+    # Inferences/IRC/BwdDemodulationModLA.hpp
     Inferences/IRC/InequalityResolution.cpp
     Inferences/IRC/InequalityResolution.hpp
     Inferences/IRC/TermFactoring.cpp
@@ -761,7 +761,7 @@ set(UNIT_TESTS
     UnitTests/tIRC_EqFactoring.cpp
     UnitTests/tIRC_VariableElimination.cpp
     UnitTests/tIRC_TermFactoring.cpp
-    UnitTests/tIRC_DemodulationModLA.cpp
+    # UnitTests/tIRC_DemodulationModLA.cpp
     UnitTests/tPushUnaryMinus.cpp
     UnitTests/tArithmeticSubtermGeneralization.cpp
     UnitTests/tInterpretedFunctions.cpp

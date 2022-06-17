@@ -30,7 +30,9 @@ PolynomialEvaluationRule::~PolynomialEvaluationRule() {}
 PolynomialEvaluationRule::PolynomialEvaluationRule(Ordering& ordering) 
   : SimplifyingGeneratingLiteralSimplification(InferenceRule::EVALUATION, ordering)
   // TODO we have an additional step of normalization here. simplify!
-  , _inner(/* removeZeros */ true) {}
+  , _inner(/* removeZeros */ true) 
+  , _alwaysEvaluate(env.options->lasca())
+  {}
 
 
 Literal* createLiteral(Literal* orig, PolyNf* evaluatedArgs) {
@@ -72,7 +74,7 @@ PolynomialEvaluationRule::Result PolynomialEvaluationRule::simplifyLiteral(Liter
   auto simplified = _inner.tryEvalPredicate(lit, terms.begin());
   anyChange = anyChange || simplified.isSome();
 
-  return anyChange 
+  return anyChange || _alwaysEvaluate
       ? std::move(simplified)
         .unwrapOrElse([&]()
           { return LitSimplResult::literal(createLiteral(lit, terms.begin())); })

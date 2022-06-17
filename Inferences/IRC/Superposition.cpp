@@ -165,7 +165,7 @@ Option<Clause*> Superposition::applyRule(
       _shared->notLeq(L2σ, L1σ))
 
 
-  auto s1σ = uwa.sigma(lhs.biggerSide(), lhsVarBank);
+  auto s1σ = uwa.sigma(lhs.biggerSide() , lhsVarBank);
   auto tσ  = uwa.sigma(lhs.smallerSide(), lhsVarBank);
   check_side_condition(
       "s1σ /⪯ tσ",
