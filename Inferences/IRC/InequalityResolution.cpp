@@ -16,7 +16,7 @@
 #include "Saturation/SaturationAlgorithm.hpp"
 #include "Shell/Statistics.hpp"
 
-#define DEBUG(...) DBG(__VA_ARGS__)
+#define DEBUG(...) // DBG(__VA_ARGS__)
 
 namespace Inferences {
 namespace IRC {
@@ -143,8 +143,19 @@ Option<Clause*> InequalityResolution::applyRule(
     using NumTraits = decltype(numTraits);
 
 
+
+#define check_side_condition(cond, cond_code)                                                       \
+    if (!(cond_code)) {                                                                             \
+      DEBUG("side condition not fulfiled: " cond)                                                   \
+      return Option<Clause*>();                                                                     \
+    }                                                                                               \
+
+    check_side_condition("literals are of the same sort",
+        lhs.numTraits() == rhs.numTraits()) // <- we must make this check because variables are unsorted
+   
     ASS(lhs.sign() == Sign::Pos)
     ASS(rhs.sign() == Sign::Neg)
+    ASS_EQ(lhs.sort(), rhs.sort())
     ASS(lhs.literal()->functor() == NumTraits::geqF()
      || lhs.literal()->functor() == NumTraits::greaterF())
     ASS(rhs.literal()->functor() == NumTraits::geqF()
@@ -159,12 +170,6 @@ Option<Clause*> InequalityResolution::applyRule(
                        + (tight ? 1 : 0)          // <- -k s₂ + t₂ ≈ 0
                        + uwa.cnst().size());      // Cnst
 
-
-#define check_side_condition(cond, cond_code)                                                       \
-    if (!(cond_code)) {                                                                             \
-      DEBUG("side condition not fulfiled: " cond)                                                   \
-      return Option<Clause*>();                                                                     \
-    }                                                                                               \
 
     ASS(!NumTraits::isFractional() || (!lhs.monom().isVar() && !rhs.monom().isVar()))
 

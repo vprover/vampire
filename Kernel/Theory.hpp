@@ -35,13 +35,14 @@ namespace Kernel {
  */
 class ArithmeticException : public Exception {
 protected:
-  ArithmeticException(const char* msg) : Exception(msg) {}
+  ArithmeticException(vstring msg) : Exception(msg) {}
 };
 
 class MachineArithmeticException : public ArithmeticException 
 { 
 public:
   MachineArithmeticException() : ArithmeticException("machine arithmetic exception"){} 
+  MachineArithmeticException(vstring msg) : ArithmeticException("machine arithmetic exception: " + msg){} 
 };
 
 class DivByZeroException         : public ArithmeticException 

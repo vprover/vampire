@@ -212,13 +212,13 @@ PolyNf IrcState::normalize(TypedTermList term)
 { 
   auto norm = PolyNf::normalize(term);
   auto out = this->normalizer.evaluator().evaluate(norm); 
-  ASS(!out.overflowOccurred)
+  if (out.overflowOccurred) 
+    throw MachineArithmeticException("overflow while normalizing irc term");
   return out.value || norm;
 }
 
 Option<UwaResult> IrcState::unify(TermList lhs, TermList rhs) const 
 {
-  ASS(this)
   RobSubstitution sigma;
   Stack<UnificationConstraint> cnst;
   Kernel::UWAMismatchHandler hndlr(uwa, cnst);
