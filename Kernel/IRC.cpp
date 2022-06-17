@@ -212,8 +212,10 @@ PolyNf IrcState::normalize(TypedTermList term)
 { 
   auto norm = PolyNf::normalize(term);
   auto out = this->normalizer.evaluator().evaluate(norm); 
-  if (out.overflowOccurred) 
+  if (out.overflowOccurred)  {
+    WARN("failed to normalize: ", out.value)
     throw MachineArithmeticException("overflow while normalizing irc term");
+  }
   return out.value || norm;
 }
 

@@ -23,6 +23,7 @@
 #include "Forwards.hpp"
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/RobSubstitution.hpp"
+#include "Indexing/ResultSubstitution.hpp"
 
 #include "Signature.hpp" 
 #include "SortHelper.hpp"

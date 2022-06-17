@@ -12,6 +12,7 @@
 #define __OrderingUtils__
 
 #include "Lib/Option.hpp"
+#include "Kernel/Theory.hpp"
 #include "Kernel/Ordering.hpp"
 
 namespace Kernel {
@@ -210,7 +211,12 @@ namespace Kernel {
 
                 auto idx = std::make_pair(col, row);
                 auto res = cmpCache->getOrInit(idx,
-                    [&]() { return cmp_(col, row); });
+                    [&]() { 
+                        try { 
+                          return cmp_(col, row); 
+                        } catch (MachineArithmeticException& e) { 
+                          return Ordering::Result::INCOMPARABLE;
+                        } });
 
                 res = l < r ? res : Ordering::reverse(res);
 
