@@ -43,16 +43,18 @@ public:
   // void setShared(shared_ptr<Kernel::IrcState> shared) { _shared = std::move(shared); }
   // TODO remove?!
   auto find(TermList key)
-  { return iterTraits(_index.getUnificationsWithConstraints(key, /* retrieveSubstitutions */ true))
+  { 
+    CALL("IrcIndex::find")
+    return iterTraits(_index.getUnificationsWithConstraints(key, /* retrieveSubstitutions */ true))
       .map([](TermQueryResult<T> r) 
            { return std::tuple<T, UwaResult>( std::move(r.data()), UwaResult(r));  }); }
 
 
   virtual void handleClause(Clause* c, bool adding) final override 
   {
+    CALL("IrcIndex::handleClause")
     for (auto appl : T::iter(*_shared, c)) {
       if (adding) {
-        // TODO this is very hacky. implement nicer ?!
         _index.insert(std::move(appl));
       } else {
         _index.remove(std::move(appl));

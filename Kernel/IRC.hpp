@@ -598,6 +598,7 @@ namespace Kernel {
      { return normalize(lhs) == normalize(rhs); }
 
     auto maxLits(Clause* cl, SelectionCriterion sel) {
+      CALL("IrcState::maxLits")
       return OrderingUtils2::maxElems(
           cl->size(), 
           [=](unsigned l, unsigned r) 

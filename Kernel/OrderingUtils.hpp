@@ -190,7 +190,8 @@ namespace Kernel {
     template<class Cmp>
     static auto maxElems(unsigned nElems, Cmp cmp_, SelectionCriterion sel) 
     {
-      auto cmpCache = make_shared(new Map<std::pair<unsigned, unsigned>, Ordering::Result>());
+      CALL("OrderingUtils::maxElems")
+      auto cmpCache = make_shared(move_to_heap(Map<std::pair<unsigned, unsigned>, Ordering::Result>()));
       return iterTraits(pvi(range(0, nElems)
         .filterMap([=](auto i) {
 

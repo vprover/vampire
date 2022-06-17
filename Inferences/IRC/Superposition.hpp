@@ -67,6 +67,7 @@ public:
 
     static auto iter(IrcState& shared, Clause* cl)
     {
+      CALL("IRC::Superposition::Lhs::iter")
       return shared.selectedEqualities(cl, /* literal */ SelectionCriterion::STRICTLY_MAX, 
                                            /* terms   */ SelectionCriterion::STRICTLY_MAX)
              .filter([](auto x) { return x.literal()->isPositive(); })
@@ -97,6 +98,7 @@ public:
 
     static auto iter(IrcState& shared, Clause* cl)
     { 
+      CALL("IRC::Superposition::Rhs::iter")
       using Out = Rhs;
       return shared.selectedActivePositions(cl, 
           /* literals */ SelectionCriterion::WEAKLY_MAX, 
