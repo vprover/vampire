@@ -1208,14 +1208,14 @@ void Options::init()
     _lookup.insert(&_lasca);
     _lasca.tag(OptionTag::INFERENCES);
     _lasca.setExperimental();
-    _lasca.reliesOn(Or(
+    _lasca.onlyUsefulWith2(Or(
            _termOrdering.is(equal(TermOrdering::LALPO)),
            _termOrdering.is(equal(TermOrdering::QKBO))
            ));
-    _lasca.reliesOn(_cancellation.is(equal(ArithmeticSimplificationMode::OFF)));
-    // _lasca.reliesOn(_evaluationMode.is(equal(EvaluationMode::POLYNOMIAL_FORCE)));
-    _lasca.reliesOn(_highSchool.is(equal(false)));
-    _lasca.reliesOn(_unificationWithAbstraction.is(Or(equal(UnificationWithAbstraction::IRC1), equal(UnificationWithAbstraction::IRC2), equal(UnificationWithAbstraction::IRC3))));
+    _lasca.onlyUsefulWith2(_cancellation.is(equal(ArithmeticSimplificationMode::OFF)));
+    // _lasca.onlyUsefulWith2(_evaluationMode.is(equal(EvaluationMode::POLYNOMIAL_FORCE)));
+    _lasca.onlyUsefulWith2(_highSchool.is(equal(false)));
+    _lasca.onlyUsefulWith2(_unificationWithAbstraction.is(Or(equal(UnificationWithAbstraction::IRC1), equal(UnificationWithAbstraction::IRC2), equal(UnificationWithAbstraction::IRC3))));
 
     _lascaStrongNormalization  = BoolOptionValue("lasca_strong_normalziation","lasca_sn",true);
     _lascaStrongNormalization.description=
@@ -1225,7 +1225,7 @@ void Options::init()
             "\n";
     _lookup.insert(&_lascaStrongNormalization);
     _lascaStrongNormalization.tag(OptionTag::INFERENCES);
-    _lascaStrongNormalization.reliesOn(_lasca.is(equal(true)));
+    _lascaStrongNormalization.onlyUsefulWith2(_lasca.is(equal(true)));
 
     _gaussianVariableElimination = choiceArithmeticSimplificationMode(
        "gaussian_variable_elimination", "gve",
