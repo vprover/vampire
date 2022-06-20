@@ -17,6 +17,7 @@
 
 using namespace std;
 using namespace Lib;
+using namespace Kernel;
 
 TEST_FUN(list_1)
 {
@@ -33,13 +34,71 @@ TEST_FUN(list_1)
   ASS_ALLOC_TYPE(lst, "List");
 }
 
+inline auto ict(int i) -> IntegerConstantType { return IntegerConstantType(i); }
+inline auto rct(int i) -> RationalConstantType { return RationalConstantType(ict(i)); }
+inline auto rct(int i, int j) -> RationalConstantType { return RationalConstantType(ict(i), ict(j)); }
+
 TEST_FUN(test01) {
-  using Num = Kernel::IntegerConstantType;
 
   for (int i = -512; i <= 512; i++) {
      ASS_EQ(
-         Num(BitUtils::log2(Int::safeAbs(i))), 
-         Num(i).abs().log2()
+         ict(BitUtils::log2(Int::safeAbs(i))), 
+         ict(i).abs().log2()
          )
   }
+}
+
+TEST_FUN(divides) {
+
+  ASS( ict(  1).divides(ict(15)))
+  ASS( ict(  3).divides(ict(15)))
+  ASS( ict(  5).divides(ict(15)))
+  ASS( ict( -1).divides(ict(15)))
+  ASS( ict( -3).divides(ict(15)))
+  ASS( ict( -5).divides(ict(15)))
+
+  ASS( ict(  3).divides(ict(-15)))
+  ASS( ict(  5).divides(ict(-15)))
+  ASS( ict(  1).divides(ict(-15)))
+  ASS( ict( -1).divides(ict(-15)))
+  ASS( ict( -3).divides(ict(-15)))
+  ASS( ict( -5).divides(ict(-15)))
+
+  ASS(!ict(  7).divides(ict(15)))
+  ASS(!ict( -7).divides(ict(15)))
+  ASS(!ict( 15).divides(ict(3)))
+  ASS(!ict(-15).divides(ict(3)))
+
+}
+
+TEST_FUN(floor) {
+  ASS_EQ( rct(3,5).floor(), rct(0) )
+  ASS_EQ( rct(7,5).floor(), rct(1) )
+  ASS_EQ( rct(10,5).floor(), rct(2) )
+  ASS_EQ( rct(12,5).floor(), rct(2) )
+
+  ASS_EQ( rct(-12,5).floor(), rct(-3) )
+  ASS_EQ( rct(-10,5).floor(), rct(-2) )
+  ASS_EQ( rct( -7,5).floor(), rct(-2) )
+  ASS_EQ( rct( -3,5).floor(), rct(-1) )
+}
+
+TEST_FUN(ceiling) {
+  ASS_EQ( rct(3,5).ceiling(), rct(1) )
+  ASS_EQ( rct(7,5).ceiling(), rct(2) )
+  ASS_EQ( rct(10,5).ceiling(), rct(2) )
+  ASS_EQ( rct(12,5).ceiling(), rct(3) )
+
+  ASS_EQ( rct(-12,5).ceiling(), rct(-2) )
+  ASS_EQ( rct(-10,5).ceiling(), rct(-2) )
+  ASS_EQ( rct( -7,5).ceiling(), rct(-1) )
+  ASS_EQ( rct( -3,5).ceiling(), rct( 0) )
+}
+
+TEST_FUN(precedence) {
+  ASS_EQ(Comparison::LESS, IntegerConstantType::comparePrecedence(ict( 1), ict(-1)))
+  ASS_EQ(Comparison::LESS, IntegerConstantType::comparePrecedence(ict( 1), ict( 3)))
+  ASS_EQ(Comparison::LESS, IntegerConstantType::comparePrecedence(ict(-1), ict( 3)))
+  ASS_EQ(Comparison::LESS, IntegerConstantType::comparePrecedence(ict( 1), ict(-3)))
+  ASS_EQ(Comparison::LESS, IntegerConstantType::comparePrecedence(ict(-1), ict(-3)))
 }

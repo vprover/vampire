@@ -233,6 +233,13 @@ IntegerConstantType IntegerConstantType::quotientT(const IntegerConstantType& nu
   return IntegerConstantType(::trunc(realDivide(num)));
 }
 
+IntegerConstantType IntegerConstantType::remainderF(const IntegerConstantType& num) const
+{ return (*this) - num * quotientF(num); } 
+
+IntegerConstantType IntegerConstantType::remainderT(const IntegerConstantType& num) const
+{ return (*this) - num * quotientT(num); }
+
+
 bool IntegerConstantType::divides(const IntegerConstantType& num) const 
 {
   CALL("IntegerConstantType:divides");

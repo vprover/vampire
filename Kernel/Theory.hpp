@@ -64,7 +64,6 @@ enum class Sign : uint8_t {
 
 std::ostream& operator<<(std::ostream& out, Sign const& self);
 
-
 class IntegerConstantType
 {
 public:
@@ -118,10 +117,8 @@ public:
   static IntegerConstantType gcd(IntegerConstantType const& lhs, IntegerConstantType const& rhs);
   static IntegerConstantType lcm(IntegerConstantType const& lhs, IntegerConstantType const& rhs);
 
-  IntegerConstantType remainderT(const IntegerConstantType& num) const
-  { return (*this) - num * quotientT(num); }
-  IntegerConstantType remainderF(const IntegerConstantType& num) const
-  { return (*this) - num * quotientF(num); } 
+  IntegerConstantType remainderT(const IntegerConstantType& num) const;
+  IntegerConstantType remainderF(const IntegerConstantType& num) const;
 
   bool operator==(const IntegerConstantType& num) const;
   bool operator>(const IntegerConstantType& num) const;
@@ -131,7 +128,7 @@ public:
   bool operator>=(const IntegerConstantType& o) const { return !(o>(*this)); }
   bool operator<=(const IntegerConstantType& o) const { return !((*this)>o); }
 
-  InnerType toInner() const { return _val; }
+  InnerType const& toInner() const { return _val; }
 
   bool isZero()     const { return _val == 0; }
   bool isNegative() const { return _val  < 0; }
@@ -154,6 +151,7 @@ public:
   size_t hash() const;
 
   vstring toString() const;
+  friend std::ostream& operator<<(ostream& out, const IntegerConstantType& val);
 private:
   InnerType _val;
   IntegerConstantType operator/(const IntegerConstantType& num) const;
@@ -162,11 +160,6 @@ private:
   friend class SAT::Z3Interfacing;
 #endif
 };
-
-inline
-std::ostream& operator<< (ostream& out, const IntegerConstantType& val) {
-  return out << val.toInner();
-}
 
 /**
  * A class for representing rational numbers
@@ -218,6 +211,7 @@ struct RationalConstantType {
   bool operator>=(const RationalConstantType& o) const { return !(o>(*this)); }
   bool operator<=(const RationalConstantType& o) const { return !((*this)>o); }
 
+
   bool isZero() const { return _num.toInner()==0; } 
   // relies on the fact that cannonize ensures that _den>=0
   bool isNegative() const { ASS(_den >= IntegerConstantType(0)); return _num.toInner() < 0; }
@@ -234,8 +228,12 @@ struct RationalConstantType {
 
   static Comparison comparePrecedence(RationalConstantType n1, RationalConstantType n2);
 
+  friend std::ostream& operator<<(ostream& out, const RationalConstantType& val); 
+
+#if !WITH_GMP
 protected:
   void init(InnerType num, InnerType den);
+#endif
 
 private:
   void cannonize();
@@ -244,10 +242,7 @@ private:
   InnerType _den;
 };
 
-inline
-std::ostream& operator<< (ostream& out, const RationalConstantType& val) {
-  return out << val.toString();
-}
+std::ostream& operator<<(ostream& out, const IntegerConstantType& val); 
 
 
 class RealConstantType : public RationalConstantType
@@ -304,6 +299,8 @@ public:
    * so we get a compiler error if we change the underlying datatype.
    */
   RationalConstantType representation() const;
+
+  friend std::ostream& operator<<(ostream& out, const RealConstantType& val);
 private:
   static bool parseDouble(const vstring& num, RationalConstantType& res);
 
@@ -322,10 +319,6 @@ inline bool operator>=(const RealConstantType& lhs, const RealConstantType& rhs)
   return static_cast<const RationalConstantType&>(lhs) >= static_cast<const RationalConstantType&>(rhs);
 }
 
-inline
-std::ostream& operator<< (ostream& out, const RealConstantType& val) {
-  return out << val.toString();
-}
 
 
 /**

@@ -864,8 +864,10 @@ endif()
 # gmp stuff
 ################################################################
 
-find_package(GMP REQUIRED)
-message(STATUS "Using libgmp")
+find_library(GMP gmp)
+# message(STATUS "Using libgmp")
+
+link_libraries(${GMP})
 
 ################################################################
 # z3 stuff
