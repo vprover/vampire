@@ -296,12 +296,6 @@ Sign RationalConstantType::sign() const
 Comparison IntegerConstantType::comparePrecedence(IntegerConstantType n1, IntegerConstantType n2)
 {
   CALL("IntegerConstantType::comparePrecedence");
-  auto& an1 = n1.abs().toInner();
-  auto& an2 = n2.abs().toInner();
-
-  ASS_GE(an1,0);
-  ASS_GE(an2,0);
-
   auto cmp = ::cmp(n1.abs().toInner(), n2.abs().toInner());
   if (cmp > 0) return Comparison::GREATER;
   if (cmp < 0) return Comparison::LESS;
