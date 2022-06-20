@@ -30,7 +30,6 @@
 #include "Lib/StringUtils.hpp"
 
 #include "Theory.hpp"
-#define USES_2_COMPLEMENT (~0 == -1)
 
 std::ostream& operator<<(std::ostream& out, mpz_class const& self)
 { 
@@ -316,7 +315,8 @@ vstring IntegerConstantType::toString() const
 {
   CALL("IntegerConstantType::toString");
   BYPASSING_ALLOCATOR;
-  return vstring(_val.get_str());
+  string s = _val.get_str();
+  return vstring(s.c_str());
 }
 ///////////////////////
 // RationalConstantType
