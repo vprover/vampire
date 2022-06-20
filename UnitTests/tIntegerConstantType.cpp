@@ -9,6 +9,9 @@
  */
 #include <iostream>
 #include "Lib/List.hpp"
+#include "Lib/BitUtils.hpp"
+// TODO rename to theory test
+#include "Kernel/Theory.hpp"
 
 #include "Test/UnitTesting.hpp"
 
@@ -28,4 +31,15 @@ TEST_FUN(list_1)
   dit.del();
   ASS_EQ(lst->head(), 0);
   ASS_ALLOC_TYPE(lst, "List");
+}
+
+TEST_FUN(test01) {
+  using Num = Kernel::IntegerConstantType;
+
+  for (int i = -512; i <= 512; i++) {
+     ASS_EQ(
+         Num(BitUtils::log2(Int::safeAbs(i))), 
+         Num(i).abs().log2()
+         )
+  }
 }

@@ -17,11 +17,11 @@
 #define DEBUGE(x) DEBUG(#x, " = ", x)
 
 IntegerConstantType quotientE(int lhs, int rhs) {
-  return IntegerConstantType(lhs).quotientE(rhs);
+  return IntegerConstantType(lhs).quotientE(IntegerConstantType(rhs));
 }
 
 IntegerConstantType remainderE(int lhs, int rhs) {
-  return IntegerConstantType(lhs).remainderE(rhs);
+  return IntegerConstantType(lhs).remainderE(IntegerConstantType(rhs));
 }
 
 bool operator==(IntegerConstantType lhs, int rhs) {
@@ -36,6 +36,7 @@ bool operator<=(int lhs, IntegerConstantType rhs) {
   return IntegerConstantType(lhs) <= rhs;
 }
 
+#if !WITH_GMP
 TEST_FUN(check_spec) {
   for (int j = std::numeric_limits<int>::min();;) {
     for (int i = std::numeric_limits<int>::min();;) {
@@ -108,6 +109,7 @@ TEST_FUN(check_spec) {
     }
   }
 }
+#endif // !WITH_GMP
 
 template<class Const>
 void checkQuotientE(Const i, Const j) {

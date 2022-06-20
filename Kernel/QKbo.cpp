@@ -81,7 +81,8 @@ auto iterSummands(TermList t)
 
 using MulExtMemo = DArray<Option<Ordering::Result>>;
 
-RationalConstantType rat(IntegerConstantType n) { return RationalConstantType(n, 1); };
+RationalConstantType rat(int n) { return RationalConstantType(IntegerConstantType(n), IntegerConstantType(1)); };
+RationalConstantType rat(IntegerConstantType n) { return RationalConstantType(n, IntegerConstantType(1)); };
 template<class T> RationalConstantType rat(T n) { return RationalConstantType(n);    };
 
 QKbo::Result QKbo::compare(Literal* l1, Literal* l2) const 

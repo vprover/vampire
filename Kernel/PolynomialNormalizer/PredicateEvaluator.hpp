@@ -159,11 +159,11 @@ IMPL_EVALUATE_IS(Int, Int , true)
 IMPL_EVALUATE_IS(Int, Rat , true)
 IMPL_EVALUATE_IS(Int, Real, true)
 
-IMPL_EVALUATE_IS(Rat, Int , num.denominator() == 1)
+IMPL_EVALUATE_IS(Rat, Int , num.denominator() == IntegerConstantType(1))
 IMPL_EVALUATE_IS(Rat, Rat , true)
 IMPL_EVALUATE_IS(Rat, Real, true)
 
-IMPL_EVALUATE_IS(Real, Int , num.representation().denominator() == 1)
+IMPL_EVALUATE_IS(Real, Int , num.representation().denominator() == IntegerConstantType(1))
 IMPL_EVALUATE_IS(Real, Rat , [&](){ RationalConstantType x = num.representation(); (void)x; return true;}())
 IMPL_EVALUATE_IS(Real, Real, true)
 

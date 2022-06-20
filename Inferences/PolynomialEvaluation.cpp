@@ -305,7 +305,7 @@ MaybeOverflow<Polynom<Number>> PolynomialEvaluation::simplifySummation(Stack<Mon
         }
         i++;
       }
-      if (!removeZeros || numeral != 0) 
+      if (!removeZeros || numeral != Number::constant(0)) 
         summands[offs++] = Monom(numeral, factors);
     }
     summands.truncate(offs);

@@ -350,7 +350,7 @@ public:
 	  if (!theory->tryInterpretConstant(argTrm, arg)) { 
 	    return false;
 	  }
-	  RationalConstantType resNum(arg,1);
+	  RationalConstantType resNum(arg,IntegerConstantType(1));
 	  res = TermList(theory->representConstant(resNum));
 	  return true;
 	}
@@ -360,7 +360,7 @@ public:
 	  if (!theory->tryInterpretConstant(argTrm, arg)) {
 	    return false;
 	  }
-	  RealConstantType resNum(RationalConstantType(arg,1));
+	  RealConstantType resNum(RationalConstantType(arg,IntegerConstantType(1)));
 	  res = TermList(theory->representConstant(resNum));
 	  return true;
 	}
@@ -706,14 +706,14 @@ protected:
       res = -arg;
       return true;
     case Theory::INT_ABS:
-      if (arg < 0) {
+      if (arg < IntegerConstantType(0)) {
         res = -arg;
       } else {
         res = arg;
       }
       return true;
     case Theory::INT_SUCCESSOR:
-      res = arg+1;
+      res = arg+ IntegerConstantType(1);
       return true;
     case Theory::INT_FLOOR:
     case Theory::INT_CEILING:

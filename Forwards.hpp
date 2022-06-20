@@ -360,6 +360,9 @@ typedef Stack<SATClause*> SATClauseStack;
 typedef VirtualIterator<SATLiteral> SATLiteralIterator;
 typedef Stack<SATLiteral> SATLiteralStack;
 
+#if VZ3
+class Z3Interfacing;
+#endif
 }
 
 namespace Shell

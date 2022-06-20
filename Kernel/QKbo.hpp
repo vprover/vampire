@@ -76,9 +76,11 @@ struct SignedTerm
 // with the intended semantics that the term that has been normalized to this
 // sigmaNf is equivalent to 1/k * ( t1 + t2 + ... + tn )
 struct SigmaNf {
-  unsigned k;
+  IntegerConstantType k;
   MultiSet<SignedTerm> sum;
-  SigmaNf(unsigned k, MultiSet<SignedTerm> sum) : k(k), sum(std::move(sum)) {}
+  SigmaNf(IntegerConstantType k, MultiSet<SignedTerm> sum) : k(k), sum(std::move(sum)) {
+    ASS_G(k, IntegerConstantType(0))
+  }
   friend std::ostream& operator<<(std::ostream& out, SigmaNf const& self)
   { return out << "(1 / " << self.k << ") " << self.sum; }
 
@@ -117,20 +119,20 @@ public:
 
 private:
   template<class NumTraits>
-  SigmaNf rmNum(std::tuple<unsigned, Perfect<Polynom<NumTraits>>> t) const
+  SigmaNf rmNum(std::tuple<IntegerConstantType, Perfect<Polynom<NumTraits>>> t) const
   {
     auto counts =  std::get<1>(t)->iterSummands()
           .map([](auto s) {
-            auto count  = Int::safeAbs(ifOfType<IntegerConstantType>(s.numeral, 
+            auto count  = ifOfType<IntegerConstantType>(s.numeral, 
                            [&](IntegerConstantType num) { return num; },
                             /* decltype(num) in { RatTraits, RealTraits } */
                            [&](auto num) { 
                              ASS_EQ(num.denominator(), IntegerConstantType(1))
                              return num.numerator();
-                           }).toInner());
-            if (count == 0) {
+                           }).abs();
+            if (count == IntegerConstantType(0)) {
               ASS(s.numeral.sign() == Sign::Zero)
-              count = 1;
+              count = IntegerConstantType(1);
             }
             SignedTerm term = { 
               .sign = s.numeral.sign(),
@@ -143,17 +145,17 @@ private:
     return SigmaNf(std::get<0>(t), MultiSet<SignedTerm>::fromSortedStack(std::move(counts)));
   }
 
-  std::tuple<unsigned, Perfect<Polynom<IntTraits>>> divNf(Perfect<Polynom<IntTraits>> t) const
-  { return std::make_tuple(1, t); }
+  std::tuple<IntegerConstantType, Perfect<Polynom<IntTraits>>> divNf(Perfect<Polynom<IntTraits>> t) const
+  { return std::make_tuple(IntegerConstantType(1), t); }
 
   template<class NumTraits>
-  std::tuple<unsigned, Perfect<Polynom<NumTraits>>> divNf(Perfect<Polynom<NumTraits>> t) const
+  std::tuple<IntegerConstantType, Perfect<Polynom<NumTraits>>> divNf(Perfect<Polynom<NumTraits>> t) const
   {
     auto l = t->iterSummands()
       .map([](auto s) { return s.numeral.denominator(); })
       .fold(IntegerConstantType(1), [&](auto acc, auto next) 
                { return IntegerConstantType::lcm(acc, next); });
-    return std::make_tuple(Int::safeAbs(l.toInner()), typename NumTraits::ConstantType(l, IntegerConstantType(1)) * t);
+    return std::make_tuple(l.abs(), typename NumTraits::ConstantType(l, IntegerConstantType(1)) * t);
   }
 
   auto asClosure() const 

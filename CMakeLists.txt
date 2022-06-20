@@ -8,6 +8,7 @@ project(Vampire)
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
+set(CMAKE_MODULE_PATH cmake/modules/)
 
 # make __FILENAME__ macro as relative path used instead of absoulte source path __FILE__
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D__FILENAME__='\"$(subst ${CMAKE_SOURCE_DIR}/,,$(abspath $<))\"'")
@@ -858,6 +859,13 @@ endif()
 if(CMAKE_CXX_COMPILER_ID STREQUAL GNU OR CMAKE_CXX_COMPILER_ID MATCHES Clang$)
   add_compile_options(-Wall)
 endif()
+
+################################################################
+# gmp stuff
+################################################################
+
+find_package(GMP REQUIRED)
+message(STATUS "Using libgmp")
 
 ################################################################
 # z3 stuff

@@ -37,6 +37,7 @@
 #include "Shell/UIHelper.hpp"
 #include "Indexing/TermSharing.hpp"
 #include "Z3Interfacing.hpp"
+#include <gmp.h>
 
 #define DEBUG(...) //DBG(__VA_ARGS__)
 #define TRACE_Z3 0
@@ -407,16 +408,34 @@ struct EvaluateInModel
   {
     CALL("EvaluateInModel::operator()")
     DEBUG("in: ", expr)
-    auto intVal = [](z3::expr e) -> Option<int> {
+    using InnerType =  typename IntegerConstantType::InnerType;
+    auto intVal = [&](z3::expr e) -> Option<InnerType> {
+#if WITH_GMP
+      int64_t i64_val;
+      std::string str_val;
+      static_assert(sizeof(signed long int) == sizeof(int64_t), "unexpected number type sizes");
+      BYPASSING_ALLOCATOR;
+      if (e.is_numeral_i64(i64_val)) {
+        mpz_class out;
+        mpz_set_si(out.get_mpz_t(), i64_val);
+        return Option<InnerType>(std::move(out));
+      } else if (e.is_numeral(str_val)) {
+        mpz_class out(str_val);
+        return Option<InnerType>(std::move(out));
+      } else {
+        return Option<InnerType>();
+      }
+#else
       int val;
       return e.is_numeral_i(val)
         ? Option<int>(val)
         : Option<int>();
+#endif
     };
 
     if (expr.is_int()) {
       return intVal(expr)
-        .map([](int i) { return Copro(IntTraits::constantT(i)); });
+        .map([](InnerType i) { return Copro(IntTraits::constantT(IntegerConstantType(i))); });
 
     } else if(expr.is_real()) {
       if (!expr.is_numeral()) {
@@ -425,9 +444,10 @@ struct EvaluateInModel
         return Result();
       }      
 
-      auto toFrac = [&](int l, int r)  { return Copro(RatTraits::constant(l,r)); };
+      auto toFrac = [&](InnerType l, InnerType r)  
+      { return Copro(RationalConstantType(IntegerConstantType(l),IntegerConstantType(r))); };
 
-      auto nonFractional = intVal(expr).map([&](int i) { return toFrac(i,1); });
+      auto nonFractional = intVal(expr).map([&](InnerType i) { return toFrac(std::move(i),1); });
       if (nonFractional.isSome()) {
         return nonFractional;
       } else {
@@ -830,6 +850,34 @@ namespace tptp {
 }
 
 
+template<class UInt64ToExpr>
+z3::expr int_to_z3_expr(IntegerConstantType const& val, UInt64ToExpr toExpr) {
+    auto sign = val.sign();
+    auto abs = val.abs().toInner();
+
+#if WITH_GMP
+    Stack<uint64_t> digits;
+    z3::expr base = z3::pw(toExpr(2), sizeof(uint64_t));
+    while(!abs.fits_ulong_p()) {
+      unsigned long int ui = mpz_get_ui(abs.get_mpz_t());
+      static_assert(sizeof(unsigned long int) == sizeof(uint64_t), "unexpected number size");
+      digits.push(uint64_t(ui));
+      mpz_tdiv_q_2exp(abs.get_mpz_t(), abs.get_mpz_t(), sizeof(uint64_t));
+    }
+    z3::expr res = toExpr(uint64_t(mpz_get_ui(abs.get_mpz_t())));
+    while(digits.isNonEmpty()) {
+      res = toExpr(digits.pop()) + (res * base);
+    }
+
+#else // !WITH_GMP
+    static_assert(sizeof(decltype(abs)) <= sizeof(uint64_t), "unexpected inner type for integers");
+    auto res = toExpr(abs);
+#endif
+    return sign == Sign::Neg ? -res : res;
+};
+
+
+
 struct ToZ3Expr
 {
   Z3Interfacing& self;
@@ -866,21 +914,22 @@ struct ToZ3Expr
       }
     }
 
-
-
     //if constant treat specially
     if(trm->numTermArguments()==0) {
       if(symb->integerConstant()){
-        IntegerConstantType value = symb->integerValue();
-        return self._context.int_val(value.toInner());
+        return int_to_z3_expr(symb->integerValue(), [&](uint64_t i) { return self._context.int_val(i); });
       }
       if(symb->realConstant()) {
         RealConstantType value = symb->realValue();
-        return self._context.real_val(value.numerator().toInner(),value.denominator().toInner());
+        auto num = int_to_z3_expr(value.numerator()  , [&](uint64_t i) { return self._context.real_val(i); });
+        auto den = int_to_z3_expr(value.denominator(), [&](uint64_t i) { return self._context.real_val(i); });
+        return num / den;
       }
       if(symb->rationalConstant()) {
         RationalConstantType value = symb->rationalValue();
-        return self._context.real_val(value.numerator().toInner(),value.denominator().toInner());
+        auto num = int_to_z3_expr(value.numerator()  , [&](uint64_t i) { return self._context.real_val(i); });
+        auto den = int_to_z3_expr(value.denominator(), [&](uint64_t i) { return self._context.real_val(i); });
+        return num / den;
       }
       if(!isLit && env.signature->isFoolConstantSymbol(true,trm->functor())) {
         return self._context.bool_val(true);

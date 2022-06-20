@@ -36,6 +36,8 @@ DArray<int> funcPrec() {
   return out;
 }
 
+auto ict(int i) { return IntegerConstantType(i); }
+
 DArray<int> predPrec() {
   unsigned num = env.signature->predicates();
   DArray<int> out(num);
@@ -313,43 +315,43 @@ TEST_FUN(normal_form_lcm) {
   auto sigmaNf = [&](auto t) 
     { return ord.template sigmaNf<RealTraits>(t); };
 
-  ASS_EQ(sigmaNf(frac(1,2) * a + b), SigmaNf(2, {
+  ASS_EQ(sigmaNf(frac(1,2) * a + b), SigmaNf(ict(2), {
         SignedTerm::pos(a),
         SignedTerm::pos(b),
         SignedTerm::pos(b),
       }));
 
-  ASS_EQ(sigmaNf(frac(1,2) * a + -b), SigmaNf(2, {
+  ASS_EQ(sigmaNf(frac(1,2) * a + -b), SigmaNf(ict(2), {
         SignedTerm::pos(a),
         SignedTerm::neg(b),
         SignedTerm::neg(b),
       }));
 
-  ASS_EQ(sigmaNf(frac(-1,2) * a + -b), SigmaNf(2, {
+  ASS_EQ(sigmaNf(frac(-1,2) * a + -b), SigmaNf(ict(2), {
         SignedTerm::neg(a),
         SignedTerm::neg(b),
         SignedTerm::neg(b),
       }));
 
-  ASS_EQ(sigmaNf(frac(1,-2) * a + -b), SigmaNf(2, {
+  ASS_EQ(sigmaNf(frac(1,-2) * a + -b), SigmaNf(ict(2), {
         SignedTerm::neg(a),
         SignedTerm::neg(b),
         SignedTerm::neg(b),
       }));
 
-  ASS_EQ(sigmaNf(frac(-1,2) * a + b), SigmaNf(2, {
+  ASS_EQ(sigmaNf(frac(-1,2) * a + b), SigmaNf(ict(2), {
         SignedTerm::neg(a),
         SignedTerm::pos(b),
         SignedTerm::pos(b),
       }));
 
-  ASS_EQ(sigmaNf(frac(1,2) * a + frac(1,4) * b), SigmaNf(4, {
+  ASS_EQ(sigmaNf(frac(1,2) * a + frac(1,4) * b), SigmaNf(ict(4), {
         SignedTerm::pos(a),
         SignedTerm::pos(a),
         SignedTerm::pos(b),
       }));
 
-  // ASS_EQ(sigmaNf(frac(1,2) * a + frac(0,4) * b), SigmaNf(2, {
+  // ASS_EQ(sigmaNf(frac(1,2) * a + frac(0,4) * b), SigmaNf(ict(2), {
   //       SignedTerm::pos(a),
   //       SignedTerm::zero(b),
   //     }));
@@ -521,62 +523,62 @@ TEST_FUN(normal_form01) {
     }                                                                                               \
   };                                                                                                \
 
-  CHECK_EQ(sigmaNf(2 * a + b), SigmaNf(1, {
+  CHECK_EQ(sigmaNf(2 * a + b), SigmaNf(ict(1), {
         SignedTerm::pos(a),
         SignedTerm::pos(a),
         SignedTerm::pos(b),
       }));
 
-  CHECK_EQ(sigmaNf(2 * a + 0 * b), SigmaNf(1, {
+  CHECK_EQ(sigmaNf(2 * a + 0 * b), SigmaNf(ict(1), {
         SignedTerm::pos(a),
         SignedTerm::pos(a),
         SignedTerm::zero(b),
       }));
 
-  CHECK_EQ(sigmaNf(2 * a + 0 * a), SigmaNf(1, {
+  CHECK_EQ(sigmaNf(2 * a + 0 * a), SigmaNf(ict(1), {
         SignedTerm::pos(a),
         SignedTerm::pos(a),
       }));
 
-  CHECK_EQ(sigmaNf(2 * a + 1 * a), SigmaNf(1, {
+  CHECK_EQ(sigmaNf(2 * a + 1 * a), SigmaNf(ict(1), {
         SignedTerm::pos(a),
         SignedTerm::pos(a),
         SignedTerm::pos(a),
       }));
 
-  CHECK_EQ(sigmaNf(2 * a + -3 * a), SigmaNf(1, {
+  CHECK_EQ(sigmaNf(2 * a + -3 * a), SigmaNf(ict(1), {
         SignedTerm::neg(a),
       }));
 
-  CHECK_EQ(sigmaNf(2 * a + -4 * a), SigmaNf(1, {
+  CHECK_EQ(sigmaNf(2 * a + -4 * a), SigmaNf(ict(1), {
         SignedTerm::neg(a),
         SignedTerm::neg(a),
       }));
 
-  CHECK_EQ(sigmaNf(frac(1, 2) * a +  b), SigmaNf(2, {
+  CHECK_EQ(sigmaNf(frac(1, 2) * a +  b), SigmaNf(ict(2), {
         SignedTerm::pos(a),
         SignedTerm::pos(b),
         SignedTerm::pos(b),
       }));
 
-  CHECK_EQ(sigmaNf(2 * a - a + -3 * a), SigmaNf(1, {
+  CHECK_EQ(sigmaNf(2 * a - a + -3 * a), SigmaNf(ict(1), {
         SignedTerm::neg(a),
         SignedTerm::neg(a),
       }));
 
-  CHECK_EQ(sigmaNf(2 * a + a + -3 * a), SigmaNf(1, {
+  CHECK_EQ(sigmaNf(2 * a + a + -3 * a), SigmaNf(ict(1), {
         SignedTerm::zero(a),
       }));
 
-  CHECK_EQ(sigmaNf(-2 * a - a + 3 * a), SigmaNf(1, {
+  CHECK_EQ(sigmaNf(-2 * a - a + 3 * a), SigmaNf(ict(1), {
         SignedTerm::zero(a),
       }));
 
-  CHECK_EQ(sigmaNf(2 * f(a + 3 * b) - f(a - b + 4 * b)), SigmaNf(1, {
+  CHECK_EQ(sigmaNf(2 * f(a + 3 * b) - f(a - b + 4 * b)), SigmaNf(ict(1), {
         SignedTerm::pos(f(a + 3 * b)),
       }));
 
-  CHECK_EQ(sigmaNf(f(3 * b) + f(0 * a - b + 4 * b)), SigmaNf(1, {
+  CHECK_EQ(sigmaNf(f(3 * b) + f(0 * a - b + 4 * b)), SigmaNf(ict(1), {
         SignedTerm::pos(f(3 * b)),
         SignedTerm::pos(f(0 * a + 3 * b)),
       }));

@@ -37,6 +37,7 @@
 #include "SAT2FO.hpp"
 #include "Lib/Option.hpp"
 #include "Lib/Coproduct.hpp"
+#include "Kernel/Theory.hpp"
 
 #define __EXCEPTIONS 1
 #include "z3++.h"

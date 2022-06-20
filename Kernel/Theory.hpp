@@ -27,7 +27,7 @@
 #include "OperatorType.hpp"
 #include "Term.hpp"
 
-#define WITH_GMP 0
+#define WITH_GMP 1
 #if WITH_GMP
 #include <gmpxx.h>
 #endif
@@ -82,17 +82,25 @@ public:
   IntegerConstantType(const IntegerConstantType&) = default;
   IntegerConstantType& operator=(const IntegerConstantType&) = default;
 #if WITH_GMP
-private:
   explicit IntegerConstantType(InnerType v) : _val(v) {}
-public:
+  explicit IntegerConstantType(int v) : _val(v) {}
+#else // !WITH_GMP
+  IntegerConstantType(int v) : _val(v) {} // <- not explicit to support legacy code from Theory_int.cpp
 #endif // WITH_GMP
-  IntegerConstantType(int v) : _val(v) {}
   explicit IntegerConstantType(const vstring& str);
 
   IntegerConstantType operator+(const IntegerConstantType& num) const;
   IntegerConstantType operator-(const IntegerConstantType& num) const;
   IntegerConstantType operator-() const;
   IntegerConstantType operator*(const IntegerConstantType& num) const;
+  IntegerConstantType operator++() { return IntegerConstantType(++_val); }
+  IntegerConstantType operator--() { return IntegerConstantType(--_val); }
+  IntegerConstantType operator++(int) { return IntegerConstantType(_val++); }
+  IntegerConstantType operator--(int) { return IntegerConstantType(_val--); }
+
+  IntegerConstantType& operator*=(IntegerConstantType const& r) { _val *= r._val; return *this; }
+  IntegerConstantType& operator+=(IntegerConstantType const& r) { _val += r._val; return *this; }
+  IntegerConstantType& operator-=(IntegerConstantType const& r) { _val -= r._val; return *this; }
 
   // true if this divides num
   bool divides(const IntegerConstantType& num) const ;
@@ -102,7 +110,7 @@ public:
     return ((float)_val)/num._val; 
   }
 #endif // WITH_GMP
-  InnerType intDivide(const IntegerConstantType& num) const ;  
+  IntegerConstantType intDivide(const IntegerConstantType& num) const ;  
   IntegerConstantType remainderE(const IntegerConstantType& num) const; 
   IntegerConstantType quotientE(const IntegerConstantType& num) const; 
   IntegerConstantType quotientT(const IntegerConstantType& num) const;
@@ -137,6 +145,10 @@ public:
   static IntegerConstantType ceiling(RationalConstantType rat);
   static IntegerConstantType ceiling(IntegerConstantType rat);
   IntegerConstantType abs() const;
+  IntegerConstantType log2() const;
+
+  // might throw an exception
+  int unwrapInt() const;
 
   static Comparison comparePrecedence(IntegerConstantType n1, IntegerConstantType n2);
   size_t hash() const;
@@ -146,6 +158,9 @@ private:
   InnerType _val;
   IntegerConstantType operator/(const IntegerConstantType& num) const;
   IntegerConstantType operator%(const IntegerConstantType& num) const;
+#if VZ3
+  friend class SAT::Z3Interfacing;
+#endif
 };
 
 inline
@@ -167,14 +182,15 @@ struct RationalConstantType {
   static TermList getSort() { return AtomicSort::rationalSort(); }
 
   RationalConstantType() {}
-  RationalConstantType(int n) : _num(n), _den(1) {}
   RationalConstantType(RationalConstantType&&) = default;
   RationalConstantType(const RationalConstantType&) = default;
   RationalConstantType& operator=(const RationalConstantType&) = default;
 
-  RationalConstantType(InnerType num, InnerType den);
   RationalConstantType(const vstring& num, const vstring& den);
-  explicit RationalConstantType(InnerType num) : _num(num), _den(1) {} //assuming den=1
+  explicit RationalConstantType(int n);
+  explicit RationalConstantType(IntegerConstantType num);
+  RationalConstantType(int num, int den);
+  RationalConstantType(IntegerConstantType num, IntegerConstantType den);
 
   RationalConstantType operator+(const RationalConstantType& num) const;
   RationalConstantType operator-(const RationalConstantType& num) const;

@@ -193,7 +193,7 @@ Term* Instantiation::tryGetDifferentValue(Term* t)
         if(sort == AtomicSort::intSort()){
               IntegerConstantType constant;
               if(theory->tryInterpretConstant(t,constant)){
-                return theory->representConstant(constant+1);
+                return theory->representConstant(constant+IntegerConstantType(1));
               }
         } else if(sort == AtomicSort::rationalSort()){
               RationalConstantType constant;

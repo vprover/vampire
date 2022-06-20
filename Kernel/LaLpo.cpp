@@ -296,7 +296,7 @@ Ordering::Result LaLpo::compare(TermList s, TermList t) const
 }
 
 std::tuple<IntegerConstantType, IntegerConstantType, TermList> toIntPair(IntegerConstantType i)
-{ return make_tuple(i, 1, IntegerConstantType::getSort()); }
+{ return make_tuple(i, IntegerConstantType(1), IntegerConstantType::getSort()); }
 
 template<class C>
 std::tuple<IntegerConstantType, IntegerConstantType, TermList> toIntPair(C c)

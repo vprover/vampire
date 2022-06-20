@@ -20,11 +20,11 @@ namespace Kernel {
 
   template<class T>
   class MultiSet {
-    Stack<std::tuple<T, unsigned>> _elems;
+    Stack<std::tuple<T, IntegerConstantType>> _elems;
     void integrity() const {
       ASS(std::is_sorted(_elems.begin(), _elems.end(), [](auto l, auto r) { return std::get<0>(l) < std::get<0>(r); }))
       for (auto e : _elems) {
-        ASS(get<1>(e) != 0)
+        ASS_G(get<1>(e), IntegerConstantType(0))
       }
     }
   public:
@@ -55,9 +55,9 @@ namespace Kernel {
       auto iter = elems.begin();
       while (iter != elems.end()) {
         auto elem = *iter++;
-        unsigned n = 1;
+        auto n = IntegerConstantType(1);
         while (iter != elems.end() && *iter == elem) {
-          n++;
+          ++n;
           iter++;
         }
         _elems.push(std::make_tuple(elem, n));
@@ -67,7 +67,7 @@ namespace Kernel {
 
     MultiSet(std::initializer_list<T> elems0) : MultiSet(Stack<T>(elems0)) {}
 
-    static MultiSet fromSortedStack(Stack<std::tuple<T, unsigned>> elems) 
+    static MultiSet fromSortedStack(Stack<std::tuple<T, IntegerConstantType>> elems) 
     {
       MultiSet out;
       out._elems = std::move(elems);
@@ -78,7 +78,7 @@ namespace Kernel {
     T const& elemAt(unsigned i) const 
     { return std::get<0>(_elems[i]); }
 
-    unsigned cntAt(unsigned i) const 
+    IntegerConstantType cntAt(unsigned i) const 
     { return std::get<1>(_elems[i]); }
 
     unsigned distinctElems() const 
@@ -103,14 +103,11 @@ namespace Kernel {
     friend bool operator!=(MultiSet const& lhs, MultiSet const& rhs)
     { return !(lhs == rhs); }
 
-    void repeat(unsigned n)
+    void repeat(IntegerConstantType n)
     {
+      ASS_G(n, IntegerConstantType(0))
       for (auto& x : _elems) {
-        unsigned res;
-        auto overflow = __builtin_umul_overflow(std::get<1>(x), n, &res);
-        if (overflow)
-          throw MachineArithmeticException();
-        std::get<1>(x) = res;
+        std::get<1>(x) *= IntegerConstantType(n);
       }
     }
 
@@ -318,10 +315,10 @@ namespace Kernel {
             .map([&](auto i){ return std::make_tuple(i, rs.cntAt(i)); } )
             .template collect<Stack>();
 
-      auto getCount = [](std::tuple<unsigned, unsigned>& tup) -> unsigned&
+      auto getCount = [](std::tuple<unsigned, IntegerConstantType>& tup) -> IntegerConstantType&
         { return std::get<1>(tup); };
 
-      auto getElem = [](std::tuple<unsigned, unsigned>& tup) -> unsigned
+      auto getElem = [](std::tuple<unsigned, IntegerConstantType>& tup) -> unsigned
         { return std::get<0>(tup); };
 
       // removing duplicates
@@ -330,13 +327,13 @@ namespace Kernel {
         for(unsigned ir = 0; ir < r.size();) {
           auto& j = r[ir];
           if (cmp(getElem(i), getElem(j)) == Ordering::Result::EQUAL) {
-            unsigned min = std::min(getCount(i), getCount(j));
+            auto min = std::min(getCount(i), getCount(j));
             getCount(i) -= min;
             getCount(j) -= min;
-            ASS(getCount(i) == 0 || getCount(j) == 0);
-            if (getCount(i) == 0)
+            ASS(getCount(i) == IntegerConstantType(0) || getCount(j) == IntegerConstantType(0));
+            if (getCount(i) == IntegerConstantType(0))
               l.swapRemove(il);
-            if (getCount(j) == 0)
+            if (getCount(j) == IntegerConstantType(0))
               r.swapRemove(ir);
             goto continue_outer;
           } else {
