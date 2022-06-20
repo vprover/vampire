@@ -27,6 +27,11 @@
 #include "OperatorType.hpp"
 #include "Term.hpp"
 
+#define WITH_GMP 0
+#if WITH_GMP
+#include <gmpxx.h>
+#endif
+
 namespace Kernel {
 
 /**
@@ -66,13 +71,22 @@ public:
   CLASS_NAME(IntegerConstantType)
   static TermList getSort() { return AtomicSort::intSort(); }
 
+#if WITH_GMP
+  using InnerType = mpz_class;
+#else // !WITH_GMP
   typedef int InnerType;
+#endif // WITH_GMP
 
   IntegerConstantType() {}
   IntegerConstantType(IntegerConstantType&&) = default;
   IntegerConstantType(const IntegerConstantType&) = default;
   IntegerConstantType& operator=(const IntegerConstantType&) = default;
-  constexpr IntegerConstantType(InnerType v) : _val(v) {}
+#if WITH_GMP
+private:
+  explicit IntegerConstantType(InnerType v) : _val(v) {}
+public:
+#endif // WITH_GMP
+  IntegerConstantType(int v) : _val(v) {}
   explicit IntegerConstantType(const vstring& str);
 
   IntegerConstantType operator+(const IntegerConstantType& num) const;
@@ -82,11 +96,13 @@ public:
 
   // true if this divides num
   bool divides(const IntegerConstantType& num) const ;
+#if !WITH_GMP
   float realDivide(const IntegerConstantType& num) const { 
     if(num._val==0) throw DivByZeroException();
     return ((float)_val)/num._val; 
   }
-  int intDivide(const IntegerConstantType& num) const ;  
+#endif // WITH_GMP
+  InnerType intDivide(const IntegerConstantType& num) const ;  
   IntegerConstantType remainderE(const IntegerConstantType& num) const; 
   IntegerConstantType quotientE(const IntegerConstantType& num) const; 
   IntegerConstantType quotientT(const IntegerConstantType& num) const;
@@ -151,13 +167,14 @@ struct RationalConstantType {
   static TermList getSort() { return AtomicSort::rationalSort(); }
 
   RationalConstantType() {}
+  RationalConstantType(int n) : _num(n), _den(1) {}
   RationalConstantType(RationalConstantType&&) = default;
   RationalConstantType(const RationalConstantType&) = default;
   RationalConstantType& operator=(const RationalConstantType&) = default;
 
   RationalConstantType(InnerType num, InnerType den);
   RationalConstantType(const vstring& num, const vstring& den);
-  explicit constexpr RationalConstantType(InnerType num) : _num(num), _den(1) {} //assuming den=1
+  explicit RationalConstantType(InnerType num) : _num(num), _den(1) {} //assuming den=1
 
   RationalConstantType operator+(const RationalConstantType& num) const;
   RationalConstantType operator-(const RationalConstantType& num) const;
@@ -187,8 +204,8 @@ struct RationalConstantType {
 
   bool isZero() const { return _num.toInner()==0; } 
   // relies on the fact that cannonize ensures that _den>=0
-  bool isNegative() const { ASS(_den>=0); return _num.toInner() < 0; }
-  bool isPositive() const { ASS(_den>=0); return _num.toInner() > 0; }
+  bool isNegative() const { ASS(_den >= IntegerConstantType(0)); return _num.toInner() < 0; }
+  bool isPositive() const { ASS(_den >= IntegerConstantType(0)); return _num.toInner() > 0; }
 
   RationalConstantType abs() const;
 
@@ -229,9 +246,9 @@ public:
   RealConstantType& operator=(const RealConstantType&) = default;
 
   explicit RealConstantType(const vstring& number);
-  explicit constexpr RealConstantType(const RationalConstantType& rat) : RationalConstantType(rat) {}
+  explicit RealConstantType(const RationalConstantType& rat) : RationalConstantType(rat) {}
   RealConstantType(int num, int den) : RationalConstantType(num, den) {}
-  explicit constexpr RealConstantType(typename IntegerConstantType::InnerType number) : RealConstantType(RationalConstantType(number)) {}
+  explicit RealConstantType(int number) : RealConstantType(RationalConstantType(number)) {}
   RealConstantType(typename RationalConstantType::InnerType  num, typename RationalConstantType::InnerType den) : RealConstantType(RationalConstantType(num, den)) {}
 
   RealConstantType operator+(const RealConstantType& num) const

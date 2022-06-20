@@ -59,13 +59,6 @@ namespace Kernel {
  *
  * =====
  *
- * For a special constant cons there is 
- * constexpr static ConstantType consC;
- *
- * e.g.: NumTraits<IntegerConstantType>::zeroC;
- *
- * =====
- *
  * For a complete picture build the doxygen documentaion.
  *
  */
@@ -118,9 +111,11 @@ struct NumTraits;
     }                                                                                               \
 
 #define IMPL_NUM_TRAITS__SPECIAL_CONSTANT(name, value, isName)                                      \
-    constexpr static ConstantType name ## C = ConstantType(value);                                  \
-    static Term* name ## T() {  /* TODO refactor to const& Term */                                  \
-      static Term* trm = theory->representConstant(name ## C);                                      \
+    static ConstantType name ## C() {                                                               \
+      return ConstantType(value);                                                                   \
+    }                                                                                               \
+    static Term* name ## T() {                                                                      \
+      static Term* trm = theory->representConstant(name ## C());                                    \
       return trm;                                                                                   \
     }                                                                                               \
     static TermList name()                                                                          \
@@ -224,10 +219,6 @@ struct NumTraits;
                                                                                                     \
     static const char* name() {return #CamelCase;}                                                  \
   };                                                                                                \
-
-#define __INSTANTIATE_NUM_TRAITS(CamelCase)                                                         \
-  constexpr CamelCase ## ConstantType NumTraits<CamelCase ## ConstantType>::oneC;                   \
-  constexpr CamelCase ## ConstantType NumTraits<CamelCase ## ConstantType>::zeroC;                  \
 
 #define __INSTANTIATE_NUM_TRAITS_ALL                                                                \
   __INSTANTIATE_NUM_TRAITS(Rational)                                                                \

@@ -647,3 +647,37 @@ TEST_FUN(absEq) {
   check(ord, -f(a) - f(b) == 0, Greater   , f(b) - f(a) == 0);
 
 }
+
+TEST_FUN(check_one_smallest) {
+
+  DECL_DEFAULT_VARS
+  NUMBER_SUGAR(Real)
+
+
+  TermList one = num(1);
+  (void) one;
+  DECL_CONST(a, Real)
+  DECL_CONST(b, Real)
+  DECL_CONST(c, Real)
+  auto& ord = qkbo();
+
+  check(ord, num(1), Less, a);
+  check(ord, num(1), Less, b);
+  check(ord, num(1), Less, c);
+}
+
+TEST_FUN(check_one_smallest_2) {
+
+  DECL_DEFAULT_VARS
+  NUMBER_SUGAR(Real)
+
+
+  DECL_CONST(a, Real)
+  DECL_CONST(b, Real)
+  DECL_CONST(c, Real)
+  auto& ord = qkbo();
+
+  check(ord, num(1), Less, a);
+  check(ord, num(1), Less, b);
+  check(ord, num(1), Less, c);
+}

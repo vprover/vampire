@@ -352,6 +352,7 @@ public:
 template<class Number> 
 struct MonomFactor 
 {
+  using Numeral = typename Number::ConstantType;
   CLASS_NAME(MonomFactor)
   PolyNf term;
   int power;
@@ -964,7 +965,7 @@ MonomFactor<Number> MonomFactor<Number>::mapVars(F fun) const
   auto poly_ = mapped.template downcast<Number>();
   if (poly_.isSome()) {
     auto poly  = poly_.unwrap();
-    if (poly->nSummands() == 1 && poly->summandAt(0).numeral == Number::oneC) {
+    if (poly->nSummands() == 1 && poly->summandAt(0).numeral == Numeral(1)) {
       auto facs = poly->summandAt(0).factors;
       if (facs->nFactors() == 1 && facs->factorAt(0).power == 1) {
         return MonomFactor(facs->factorAt(0).term, this->power);
@@ -1010,7 +1011,7 @@ MonomFactors<Number>::MonomFactors(Stack<MonomFactor>&& factors)
   if (_factors.size() == 1 
     && _factors[0].tryPolynom().isSome()
     && _factors[0].tryPolynom().unwrap()->nSummands() == 1
-    && _factors[0].tryPolynom().unwrap()->summandAt(0).numeral == Number::oneC) {
+    && _factors[0].tryPolynom().unwrap()->summandAt(0).numeral == Numeral(1)) {
     _factors = _factors[0].tryPolynom().unwrap()->summandAt(0).factors->_factors;
   }
   // integrity(); 
@@ -1170,7 +1171,7 @@ void MonomFactors<Number>::integrity() const
       auto poly = fac.tryPolynom().unwrap();
       if (poly->nSummands() == 1) {
         auto sum = poly->summandAt(0);
-        if (sum.numeral == Number::oneC) {
+        if (sum.numeral == Numeral(1)) {
           ASSERTION_VIOLATION_REP(*this)
         }
       }
@@ -1345,7 +1346,7 @@ TermList Polynom<Number>::denormalize(TermList* results) const
       return c;
     } else {
       auto mon = monom.factors->denormalize(t);
-      if (monom.numeral == Number::oneC) {
+      if (monom.numeral == Numeral(1)) {
         return mon;
       } else if (monom.numeral == Number::constant(-1)) {
         return Number::minus(mon);

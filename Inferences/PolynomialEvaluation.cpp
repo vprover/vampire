@@ -305,7 +305,7 @@ MaybeOverflow<Polynom<Number>> PolynomialEvaluation::simplifySummation(Stack<Mon
         }
         i++;
       }
-      if (!removeZeros || numeral != Number::zeroC) 
+      if (!removeZeros || numeral != 0) 
         summands[offs++] = Monom(numeral, factors);
     }
     summands.truncate(offs);
@@ -350,7 +350,7 @@ MaybeOverflow<Polynom<Number>> simplifyPoly(Polynom<Number> const& in, MaybeOver
           auto poly = simpl.factors->factorAt(0).tryPolynom().unwrap();
           for (auto fac : poly->iterSummands()) {
             fac.numeral = fac.numeral * simpl.numeral;
-            ASS(!removeZeros || fac.numeral != Number::zeroC)
+            ASS(!removeZeros || fac.numeral != Number::constant(0))
             sum.push(fac);
           }
         } catch (MachineArithmeticException&) {
