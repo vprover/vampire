@@ -763,7 +763,10 @@ void Options::init()
     };
 
     _warmRestarts = BoolOptionValue("warm_restarts", "wr", false);
-    _warmRestarts.description = "restart after an increasing number of activations, retaining demodulators and unit predicates";
+    _warmRestarts.description =
+      "Restart after an increasing number of activations."
+      "Retains preordered demodulators and unit non-equations."
+      "Also retains AVATAR SAT/SMT state.";
     _warmRestarts.setExperimental();
     _warmRestarts.onlyUsefulWith(ProperSaturationAlgorithm());
     _warmRestarts.tag(OptionTag::SATURATION);

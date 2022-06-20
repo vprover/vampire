@@ -605,9 +605,8 @@ void SaturationAlgorithm::onNonRedundantClause(Clause* c)
           _useful.push(c);
         }
       }
-      else if(!l->isEquality()) {
+      else
         _useful.push(c);
-      }
     }
   }
 }
@@ -1359,9 +1358,12 @@ void SaturationAlgorithm::doOneAlgorithmStep()
     if (termReason == Statistics::SATISFIABLE && getOptions().proof() != Options::Proof::OFF) {
       res.saturatedSet = collectSaturatedSet();
 
+      // TODO figure out what to do with that
+      /*
       if (_splitter) {
         res.saturatedSet = _splitter->preprendCurrentlyAssumedComponentClauses(res.saturatedSet);
       }
+      */
     }
     throw MainLoopFinishedException(res);
   }
@@ -1382,14 +1384,19 @@ void SaturationAlgorithm::doOneAlgorithmStep()
 
   if(_opt.warmRestarts()) {
     if(++_activationsSinceRestart == _nextRestartAt) {
+      std::cout << "restart!" << std::endl;
       Problem &prb = _prb;
       const Options &opt = _opt;
       Stack<Clause *> useful = std::move(_useful);
+      Splitter *splitter = _splitter;
       unsigned nextRestartAt = 2 * _nextRestartAt;
 
+      _splitter = nullptr;
       this->~SaturationAlgorithm();
       ALWAYS(createFromOptions(prb, opt, nullptr, this) == this);
-      if(_splitter) _splitter->init(this);
+      _splitter = splitter;
+      if(_splitter)
+        _splitter->onRestart();
 
       ClauseIterator problem = prb.clauseIterator();
       while(problem.hasNext()) {
@@ -1397,10 +1404,10 @@ void SaturationAlgorithm::doOneAlgorithmStep()
         c->setStore(Clause::NONE);
         addInputClause(c);
       }
+
       while(useful.isNonEmpty()) {
         Clause *c = useful.pop();
         c->setStore(Clause::NONE);
-        c->setAge(0);
         addNewClause(c);
       }
 

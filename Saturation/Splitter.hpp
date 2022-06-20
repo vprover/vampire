@@ -68,6 +68,7 @@ _solver=0;
 
   /** To be called from Splitter::init() */
   void init();
+  void onRestart();
 
   void updateVarCnt();
   void considerPolarityAdvice(SATLiteral lit);
@@ -230,6 +231,7 @@ private:
 
   void collectDependenceLits(SplitSet* splits, SATLiteralStack& acc) const;
 
+  SATLiteral tryReuseSATLiteralOrAddNew(unsigned size, Literal* const *lits);
   SplitLevel addNonGroundComponent(unsigned size, Literal* const * lits, Clause* orig, Clause*& compCl);
   SplitLevel addGroundComponent(Literal* lit, Clause* orig, Clause*& compCl);
 
@@ -260,7 +262,7 @@ private:
 
   //utility objects
   SplittingBranchSelector _branchSelector;
-  ScopedPtr<ClauseVariantIndex> _componentIdx;
+  ScopedPtr<ClauseVariantIndex> _componentIdx, _allIdx;
   /**
    * Registers all the sat variables and keeps track
    * of associated ground literals for those variables

@@ -117,6 +117,12 @@ void SplittingBranchSelector::init()
   }
 }
 
+void SplittingBranchSelector::onRestart()
+{
+  CALL("SplittingBranchSelector::onRestart");
+  _selected.reset();
+}
+
 void SplittingBranchSelector::updateVarCnt()
 {
   CALL("SplittingBranchSelector::updateVarCnt");
@@ -719,9 +725,28 @@ void Splitter::init(SaturationAlgorithm* sa)
 
   if (opts.useHashingVariantIndex()) {
     _componentIdx = new HashingClauseVariantIndex();
+    _allIdx = new HashingClauseVariantIndex();
   } else {
     _componentIdx = new SubstitutionTreeClauseVariantIndex();
+    _allIdx = new SubstitutionTreeClauseVariantIndex();
   }
+}
+
+void Splitter::onRestart() {
+  CALL("Splitter::onRestart");
+
+  _branchSelector.onRestart();
+
+  for(int i = 0; i < _db.size(); i++) {
+    delete _db[i];
+    _db[i] = nullptr;
+  }
+  _fastClauses.reset();
+
+  if(getOptions().useHashingVariantIndex())
+    _componentIdx = new HashingClauseVariantIndex();
+  else
+    _componentIdx = new SubstitutionTreeClauseVariantIndex();
 }
 
 SplitLevel Splitter::getNameFromLiteral(SATLiteral lit) const
@@ -1304,10 +1329,35 @@ Clause* Splitter::buildAndInsertComponentClause(SplitLevel name, unsigned size, 
   {
     TimeCounter tc(TC_SPLITTING_COMPONENT_INDEX_MAINTENANCE);
     _componentIdx->insert(compCl);
+    _allIdx->insert(compCl);
+    compCl->incRefCnt();
   }
   _compNames.insert(compCl, name);
 
   return compCl;
+}
+
+SATLiteral Splitter::tryReuseSATLiteralOrAddNew(unsigned size, Literal* const * lits)
+{
+  CALL("Splitter::tryReuseSATLiteral");
+
+  ClauseIterator existingComponents;
+  {
+    TimeCounter tc(TC_SPLITTING_COMPONENT_INDEX_USAGE);
+    existingComponents = _allIdx->retrieveVariants(lits, size);
+  }
+
+  if(!existingComponents.hasNext()) {
+    SATLiteral result = size == 1 && lits[0]->ground()
+      ? _sat2fo.toSAT(lits[0])
+      : SATLiteral(_sat2fo.createSpareSatVar(), true);
+    return result;
+  }
+
+  Clause *compCl = existingComponents.next();
+  SplitLevel comp = _compNames.get(compCl);
+  ASS(_db[comp] == nullptr);
+  return getLiteralFromName(comp);
 }
 
 SplitLevel Splitter::addNonGroundComponent(unsigned size, Literal* const * lits, Clause* orig, Clause*& compCl)
@@ -1318,12 +1368,13 @@ SplitLevel Splitter::addNonGroundComponent(unsigned size, Literal* const * lits,
   ASS(forAll(getArrayishObjectIterator(lits, size), 
           [] (Literal* l) { return !l->ground(); } )); //none of the literals can be ground
 
-  SATLiteral posLit(_sat2fo.createSpareSatVar(), true);
+  SATLiteral posLit = tryReuseSATLiteralOrAddNew(size, lits);
   SplitLevel compName = getNameFromLiteralUnsafe(posLit);
   ASS_EQ(compName&1,0); //positive levels are even
-  ASS_GE(compName,_db.size());
-  _db.push(0);
-  _db.push(0);
+  if(compName >= _db.size()) {
+    _db.push(0);
+    _db.push(0);
+  }
   ASS_L(compName,_db.size());
 
   _branchSelector.updateVarCnt();
@@ -1340,17 +1391,12 @@ SplitLevel Splitter::addGroundComponent(Literal* lit, Clause* orig, Clause*& com
   ASS_REP(_db.size()%2==0, _db.size());
   ASS(lit->ground());
 
-  SATLiteral satLit = _sat2fo.toSAT(lit);
+  SATLiteral satLit = tryReuseSATLiteralOrAddNew(1, &lit);
   SplitLevel compName = getNameFromLiteralUnsafe(satLit);
 
   if(compName>=_db.size()) {
     _db.push(0);
     _db.push(0);
-  }
-  else {
-    ASS_EQ(_complBehavior,Options::SplittingAddComplementary::NONE); 
-    //otherwise the complement would have been created below ...
-    // ... in the respective previous pass through this method 
   }
   ASS_L(compName,_db.size());
 
