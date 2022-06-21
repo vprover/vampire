@@ -499,7 +499,7 @@ bool ForwardSubsumptionDemodulation::perform(Clause* cl, Clause*& replacement, C
               // If all these checks fail, we try to find a literal M in D such that lΘ=rΘ < M.
               if (!_allowIncompleteness) {
                 bool dli_was_checked = false;
-                if (!_ordIsKbo) {
+                if (!_enableOrderingOptimizations) {
                   goto afterOptimizations;
                 }
                 if (!dlit->isEquality()) {

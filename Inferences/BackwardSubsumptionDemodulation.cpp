@@ -55,9 +55,10 @@ using namespace Indexing;
 using namespace Saturation;
 
 
-BackwardSubsumptionDemodulation::BackwardSubsumptionDemodulation()
+BackwardSubsumptionDemodulation::BackwardSubsumptionDemodulation(bool enableOrderingOptimizations)
   : _preorderedOnly{false}
   , _allowIncompleteness{false}
+  , _enableOrderingOptimizations{enableOrderingOptimizations}
 { }
 
 
@@ -550,6 +551,11 @@ bool BackwardSubsumptionDemodulation::rewriteCandidate(Clause* sideCl, Clause* m
 
         // NOTE: see comments in ForwardSubsumptionDemodulation::perform for explanation
         if (!_allowIncompleteness) {
+          bool dli_was_checked = false;
+          if (!_enableOrderingOptimizations) {
+            goto afterOptimizations;
+          }
+          {
           if (!dlit->isEquality()) {
             // non-equality literals are always larger than equality literals ==>  eqLitS < dlit
             ASS_EQ(ordering.compare(binder.applyTo(eqLit), dlit), Ordering::LESS);
@@ -602,6 +608,7 @@ bool BackwardSubsumptionDemodulation::rewriteCandidate(Clause* sideCl, Clause* m
               return true;
             }
           }
+          dli_was_checked = true;
           Ordering::Result r_cmp_t = ordering.compare(rhsS, t);
           ASS_NEQ(r_cmp_t, Ordering::LESS_EQ);  // NOTE: LESS_EQ doesn't seem to occur in the code currently. It is unclear why the ordering is not simplified to LESS, EQUAL and GREATER.
           if (r_cmp_t == Ordering::LESS) {
@@ -609,13 +616,15 @@ bool BackwardSubsumptionDemodulation::rewriteCandidate(Clause* sideCl, Clause* m
             ASS_EQ(ordering.compare(binder.applyTo(eqLit), dlit), Ordering::LESS);
             goto isRedundant;
           }
+          }
+afterOptimizations:
           // We could not show redundancy with dlit alone,
           // so now we have to look at the other literals of the main premise
           Literal* eqLitS = Literal::createEquality(true, lhsS, rhsS, lhsSSort);
           ASS_EQ(eqLitS, binder.applyTo(eqLit));
           for (unsigned li2 = 0; li2 < mainCl->length(); li2++) {
             // skip dlit (already checked with r_cmp_t above) and matched literals (i.e., CΘ)
-            if (dli != li2 && !isMatched[li2]) {
+            if ((!dli_was_checked || dli != li2) && !isMatched[li2]) {
               Literal* lit2 = (*mainCl)[li2];
               if (ordering.compare(eqLitS, lit2) == Ordering::LESS) {
                 // we found that eqLitS < lit2; and thus sideCl < mainCl => after inference, mainCl is redundant

@@ -1689,12 +1689,15 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
   if (opt.forwardLiteralRewriting()) {
     res->addForwardSimplifierToFront(new ForwardLiteralRewriting());
   }
+  bool subDemodOrdOpt = /* enables ordering optimizations of subsumption demodulation rules */
+            opt.termOrdering() == Shell::Options::TermOrdering::KBO
+            || opt.termOrdering() == Shell::Options::TermOrdering::LPO;
   if (prb.hasEquality()) {
     // NOTE:
     // fsd should be performed after forward subsumption,
     // because every successful forward subsumption will lead to a (useless) match in fsd.
     if (opt.forwardSubsumptionDemodulation()) {
-      res->addForwardSimplifierToFront(new ForwardSubsumptionDemodulation(false, opt.termOrdering() == Shell::Options::TermOrdering::KBO));
+      res->addForwardSimplifierToFront(new ForwardSubsumptionDemodulation(false, subDemodOrdOpt));
     }
   }
   if (prb.hasEquality()) {
@@ -1745,7 +1748,7 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
     }
   }
   if (prb.hasEquality() && opt.backwardSubsumptionDemodulation()) {
-    res->addBackwardSimplifierToFront(new BackwardSubsumptionDemodulation());
+    res->addBackwardSimplifierToFront(new BackwardSubsumptionDemodulation(subDemodOrdOpt));
   }
   if (opt.backwardSubsumption() != Options::Subsumption::OFF) {
     bool byUnitsOnly=opt.backwardSubsumption()==Options::Subsumption::UNIT_ONLY;

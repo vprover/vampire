@@ -52,7 +52,7 @@ class BackwardSubsumptionDemodulation
     CLASS_NAME(BackwardSubsumptionDemodulation);
     USE_ALLOCATOR(BackwardSubsumptionDemodulation);
 
-    BackwardSubsumptionDemodulation();
+    BackwardSubsumptionDemodulation(bool enableOrderingOptimizations);
 
     void attach(SaturationAlgorithm* salg) override;
     void detach() override;
@@ -64,6 +64,7 @@ class BackwardSubsumptionDemodulation
 
     bool _preorderedOnly;
     bool _allowIncompleteness;
+    const bool _enableOrderingOptimizations;
 
     void performWithQueryLit(Clause* premise, Literal* candidateQueryLit, vvector<BwSimplificationRecord>& simplifications);
     bool simplifyCandidate(Clause* sideCl, Clause* mainCl, vvector<BwSimplificationRecord>& simplifications);

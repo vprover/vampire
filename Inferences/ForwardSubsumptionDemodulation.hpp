@@ -51,8 +51,8 @@ class ForwardSubsumptionDemodulation
     CLASS_NAME(ForwardSubsumptionDemodulation);
     USE_ALLOCATOR(ForwardSubsumptionDemodulation);
 
-    ForwardSubsumptionDemodulation(bool doSubsumption, bool ordIsKbo)
-      : _doSubsumption(doSubsumption), _ordIsKbo(ordIsKbo)
+    ForwardSubsumptionDemodulation(bool doSubsumption, bool enableOrderingOptimizations)
+      : _doSubsumption(doSubsumption), _enableOrderingOptimizations(enableOrderingOptimizations)
     { }
 
     void attach(SaturationAlgorithm* salg) override;
@@ -67,7 +67,7 @@ class ForwardSubsumptionDemodulation
     bool _allowIncompleteness;
 
     bool _doSubsumption;
-    const bool _ordIsKbo;
+    const bool _enableOrderingOptimizations;
 };
 
 
