@@ -449,10 +449,6 @@ struct EvaluateInModel
       { return Copro(RationalConstantType(IntegerConstantType(l),IntegerConstantType(r))); };
 
 #if WITH_GMP
-      // auto nonFractional = intVal(expr).map([&](InnerType i) { return toFrac(std::move(i),1); });
-      // if (nonFractional.isSome()) {
-      //   return nonFractional;
-      // } else {
         auto num = intVal(expr.numerator());
         auto den = intVal(expr.denominator());
         ASS_REP(num.isSome(), expr.numerator())
@@ -462,7 +458,6 @@ struct EvaluateInModel
         // } else {
         //   return Result();
         // }
-      // }
 
 #else // !WITH_GMP
       auto nonFractional = intVal(expr).map([&](InnerType i) { return toFrac(std::move(i),1); });
