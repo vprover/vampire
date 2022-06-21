@@ -1861,6 +1861,35 @@ bool _hard;
       vstring msg(){ return " only useful with equality"; }
     };
 
+    struct NegatedOptionProblemConstraint : OptionProblemConstraint {
+      OptionProblemConstraintUP  _inner;
+      CLASS_NAME(NegatedOptionProblemConstraint);
+      USE_ALLOCATOR(NegatedOptionProblemConstraint);
+
+      bool check(Property*p){
+        return !_inner->check(p);
+      }
+      vstring msg(){ return "not (" + _inner->msg() + ")"; }
+    };
+      
+    friend OptionProblemConstraintUP operator~(OptionProblemConstraintUP x) {
+      return OptionProblemConstraintUP({std::move(x)});
+    }
+
+
+    struct HasPolymorphism : OptionProblemConstraint{
+      CLASS_NAME(HasHigherOrder);
+      USE_ALLOCATOR(HasHigherOrder);
+
+      bool check(Property*p){
+        CALL("Options::HasPolymorphism::check");
+        ASS(p)
+        return (p->hasPolymorphicSym());
+      }
+      vstring msg(){ return " only useful with higher-order problems"; }
+    };
+
+
     struct HasHigherOrder : OptionProblemConstraint{
       CLASS_NAME(HasHigherOrder);
       USE_ALLOCATOR(HasHigherOrder);
@@ -1965,6 +1994,7 @@ bool _hard;
       return OptionProblemConstraintUP(new CategoryCondition(c,true));
     }
     static OptionProblemConstraintUP hasEquality(){ return OptionProblemConstraintUP(new UsesEquality); }
+    static OptionProblemConstraintUP hasPolymorphism(){ return OptionProblemConstraintUP(new HasPolymorphism); }
     static OptionProblemConstraintUP hasHigherOrder(){ return OptionProblemConstraintUP(new HasHigherOrder); }
     static OptionProblemConstraintUP onlyFirstOrder(){ return OptionProblemConstraintUP(new OnlyFirstOrder); }
     static OptionProblemConstraintUP mayHaveNonUnits(){ return OptionProblemConstraintUP(new MayHaveNonUnits); }

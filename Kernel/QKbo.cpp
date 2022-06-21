@@ -458,8 +458,8 @@ Option<TermList> QKbo::abstr(TermList t) const
     if (res.isSome()) {
       return res.unwrap();
     } else {
-      // TODO polymorphism
       Stack<TermList> args(term->arity());
+      args.loadFromIterator(typeArgIter(term));
       for (auto a : termArgIter(term)) {
         auto abs = abstr(a);
         if (abs.isNone()) {
@@ -483,7 +483,10 @@ bool QKbo::hasSubstitutionProperty(SigmaNf const& l) const
   {
     ASS_NEQ(l, r)
 
-    if (_shared->unify(l, r).isSome()) {
+    if (l.ground() && r.ground()) {
+      return _shared->equivalent(l.term(), r.term());
+
+    } else if (_shared->unify(l, r).isSome()) {
       return true;
 
     } else {

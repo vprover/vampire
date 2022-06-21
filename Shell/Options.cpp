@@ -384,6 +384,11 @@ void Options::init()
     _lookup.insert(&_guessTheGoalLimit);
 
 
+    auto noZ3 = [this](auto& x) {
+      x.reliesOn(_satSolver.is(notEqual(SatSolver::Z3))); 
+      x.reliesOn(_theoryInstAndSimp.is(equal(TheoryInstSimp::OFF)));
+    };
+
 //*********************** Preprocessing  ***********************
 
     _ignoreConjectureInPreprocessing = BoolOptionValue("ignore_conjecture_in_preprocessing","icip",false);
@@ -427,6 +432,7 @@ void Options::init()
     _lookup.insert(&_useMonoEqualityProxy);
     _useMonoEqualityProxy.onlyUsefulWith(_equalityProxy.is(notEqual(EqualityProxy::OFF)));
     _useMonoEqualityProxy.tag(OptionTag::PREPROCESSING);
+    noZ3(_useMonoEqualityProxy);
 
     _equalityResolutionWithDeletion = BoolOptionValue("equality_resolution_with_deletion","erd",true);
     _equalityResolutionWithDeletion.description="Perform equality resolution with deletion.";
@@ -1122,6 +1128,7 @@ void Options::init()
     _theoryInstAndSimp.addProblemConstraint(hasTheories());
     _lookup.insert(&_theoryInstAndSimp);
 
+
     _thiGeneralise = BoolOptionValue("theory_instantiation_generalisation", "thigen", false);
     _thiGeneralise.description = "Enable retrieval of generalised instances in theory instantiation. This can help with datatypes but requires thi to call the smt solver twice. "
     "\n"
@@ -1705,12 +1712,14 @@ void Options::init()
     _addCombAxioms.addProblemConstraint(hasHigherOrder());
     _addCombAxioms.onlyUsefulWith(_combinatorySuperposition.is(equal(false))); //no point having two together
     _addCombAxioms.tag(OptionTag::HIGHER_ORDER);
+    noZ3(_addCombAxioms);
 
     _addProxyAxioms = BoolOptionValue("add_proxy_axioms","apa",false);
     _addProxyAxioms.description="Add logical proxy axioms";
     _lookup.insert(&_addProxyAxioms);
     _addProxyAxioms.addProblemConstraint(hasHigherOrder());    
     _addProxyAxioms.tag(OptionTag::HIGHER_ORDER);
+    noZ3(_addProxyAxioms);
 
     _combinatorySuperposition = BoolOptionValue("combinatory_sup","csup",false);
     _combinatorySuperposition.description="Switches on a specific ordering and that orients combinator axioms left-right."
@@ -1720,12 +1729,14 @@ void Options::init()
     _combinatorySuperposition.onlyUsefulWith(_addCombAxioms.is(equal(false))); //no point having two together
     _combinatorySuperposition.onlyUsefulWith(ProperSaturationAlgorithm());    
     _combinatorySuperposition.tag(OptionTag::HIGHER_ORDER);
+    noZ3(_combinatorySuperposition);
 
     _choiceAxiom = BoolOptionValue("choice_ax","cha",false);
     _choiceAxiom.description="Adds the cnf form of the Hilbert choice axiom";
     _lookup.insert(&_choiceAxiom);
     _choiceAxiom.addProblemConstraint(hasHigherOrder());
     _choiceAxiom.tag(OptionTag::HIGHER_ORDER);
+    noZ3(_choiceAxiom);
 
     _choiceReasoning = BoolOptionValue("choice_reasoning","chr",false);
     _choiceReasoning.description="Reason about choice by adding relevant instances of the axiom";
@@ -1733,18 +1744,21 @@ void Options::init()
     _choiceReasoning.addProblemConstraint(hasHigherOrder());    
     _choiceReasoning.onlyUsefulWith(_choiceAxiom.is(equal(false))); //no point having two together
     _choiceReasoning.tag(OptionTag::HIGHER_ORDER);
+    noZ3(_choiceReasoning);
 
     _priortyToLongReducts = BoolOptionValue("priority_to_long_reducts","ptlr",false);
     _priortyToLongReducts.description="give priority to clauses produced by lengthy reductions";
     _lookup.insert(&_priortyToLongReducts);
     _priortyToLongReducts.addProblemConstraint(hasHigherOrder());        
     _priortyToLongReducts.tag(OptionTag::HIGHER_ORDER);
+    noZ3(_priortyToLongReducts);
 
     _injectivity = BoolOptionValue("injectivity","inj",false);
     _injectivity.description="Attempts to identify injective functions and postulates a left-inverse";
     _lookup.insert(&_injectivity);
     _injectivity.addProblemConstraint(hasHigherOrder());            
     _injectivity.tag(OptionTag::HIGHER_ORDER);
+    noZ3(_injectivity);
 
     _pragmatic = BoolOptionValue("pragmatic","prag",false);
     _pragmatic.description="Modifes various parameters to help Vampire solve 'hard' higher-order";
@@ -1752,6 +1766,7 @@ void Options::init()
     _lookup.insert(&_pragmatic);
     _pragmatic.addProblemConstraint(hasHigherOrder());
     _pragmatic.tag(OptionTag::HIGHER_ORDER);
+    noZ3(_pragmatic);
 
     _maximumXXNarrows = IntOptionValue("max_XX_narrows","mXXn", 0);
     _maximumXXNarrows.description="Maximum number of BXX', CXX' and SXX' narrows that"
@@ -1759,6 +1774,7 @@ void Options::init()
     _lookup.insert(&_maximumXXNarrows);
     _maximumXXNarrows.addProblemConstraint(hasHigherOrder());    
     _maximumXXNarrows.tag(OptionTag::HIGHER_ORDER);
+    noZ3(_maximumXXNarrows);
 
     _functionExtensionality = ChoiceOptionValue<FunctionExtensionality>("func_ext","fe",FunctionExtensionality::ABSTRACTION,
                                                                           {"off", "axiom", "abstraction"});
@@ -1766,6 +1782,7 @@ void Options::init()
     _lookup.insert(&_functionExtensionality);
     _functionExtensionality.addProblemConstraint(hasHigherOrder());
     _functionExtensionality.tag(OptionTag::HIGHER_ORDER);
+    noZ3(_functionExtensionality);
 
     _clausificationOnTheFly = ChoiceOptionValue<CNFOnTheFly>("cnf_on_the_fly","cnfonf",CNFOnTheFly::EAGER,
                                                                           {"eager",
@@ -1779,6 +1796,7 @@ void Options::init()
     _lookup.insert(&_clausificationOnTheFly);
     _clausificationOnTheFly.addProblemConstraint(hasHigherOrder());    
     _clausificationOnTheFly.tag(OptionTag::HIGHER_ORDER);
+    noZ3(_clausificationOnTheFly);
 
 
     _piSet = ChoiceOptionValue<PISet>("prim_inst_set","piset",PISet::ALL_EXCEPT_NOT_EQ,
@@ -1790,6 +1808,7 @@ void Options::init()
     _lookup.insert(&_piSet);
     _piSet.addProblemConstraint(hasHigherOrder());     
     _piSet.tag(OptionTag::HIGHER_ORDER);
+    noZ3(_piSet);
 
 
     _narrow = ChoiceOptionValue<Narrow>("narrow","narr",Narrow::ALL,
@@ -1801,6 +1820,7 @@ void Options::init()
     _lookup.insert(&_narrow);
     _narrow.addProblemConstraint(hasHigherOrder());
     _narrow.tag(OptionTag::HIGHER_ORDER);
+    noZ3(_narrow);
 
 
     _equalityToEquivalence = BoolOptionValue("equality_to_equiv","e2e",false);
@@ -1810,6 +1830,7 @@ void Options::init()
     _lookup.insert(&_equalityToEquivalence);
     // potentially could be useful for FOOL, so am not adding the HOL constraint
     _equalityToEquivalence.tag(OptionTag::HIGHER_ORDER);
+    noZ3(_equalityToEquivalence);
 
     _complexBooleanReasoning = BoolOptionValue("complex_bool_reasoning","cbe",true);
     _complexBooleanReasoning.description=
@@ -1818,6 +1839,7 @@ void Options::init()
     _lookup.insert(&_complexBooleanReasoning);
     _complexBooleanReasoning.addProblemConstraint(hasHigherOrder());    
     _complexBooleanReasoning.tag(OptionTag::HIGHER_ORDER);
+    noZ3(_complexBooleanReasoning);
 
     _booleanEqTrick = BoolOptionValue("bool_eq_trick","bet",false);
     _booleanEqTrick.description=
@@ -1827,6 +1849,7 @@ void Options::init()
     _lookup.insert(&_booleanEqTrick);
     // potentially could be useful for FOOL, so am not adding the HOL constraint    
     _booleanEqTrick.tag(OptionTag::HIGHER_ORDER);
+    noZ3(_booleanEqTrick);
 
     _superposition = BoolOptionValue("superposition_hol","suph",true);
     _superposition.description=
@@ -1834,6 +1857,7 @@ void Options::init()
     _lookup.insert(&_superposition);
     _superposition.addProblemConstraint(hasHigherOrder());
     _superposition.tag(OptionTag::HIGHER_ORDER);
+    noZ3(_superposition);
 
     _casesSimp = BoolOptionValue("cases_simp","cs",false);
     _casesSimp.description=
@@ -1842,6 +1866,7 @@ void Options::init()
     _lookup.insert(&_casesSimp);
     // potentially could be useful for FOOL, so am not adding the HOL constraint
     _casesSimp.tag(OptionTag::HIGHER_ORDER);
+    noZ3(_casesSimp);
 
     //TODO, sort out the mess with cases and FOOLP.
     //One should be removed. AYB
@@ -1852,6 +1877,7 @@ void Options::init()
     _lookup.insert(&_cases);
     // potentially could be useful for FOOL, so am not adding the HOL constraint    
     _cases.tag(OptionTag::HIGHER_ORDER);
+    noZ3(_cases);
 
     _newTautologyDel = BoolOptionValue("new_taut_del","ntd",false);
     _newTautologyDel.description=
@@ -1859,6 +1885,7 @@ void Options::init()
     _lookup.insert(&_newTautologyDel);
     // potentially could be useful for FOOL, so am not adding the HOL constraint    
     _newTautologyDel.tag(OptionTag::HIGHER_ORDER);
+    noZ3(_newTautologyDel);
 
     _lambdaFreeHol = BoolOptionValue("lam_free_hol","lfh",false);
     _lambdaFreeHol.description=
@@ -1866,6 +1893,7 @@ void Options::init()
     _lookup.insert(&_lambdaFreeHol);
     _lambdaFreeHol.addProblemConstraint(hasHigherOrder());    
     _lambdaFreeHol.tag(OptionTag::HIGHER_ORDER);
+    noZ3(_lambdaFreeHol);
 
 //*********************** InstGen  ***********************
 
@@ -2155,6 +2183,7 @@ void Options::init()
     });
 
 #if VZ3
+
     _satFallbackForSMT = BoolOptionValue("sat_fallback_for_smt","sffsmt",false);
     _satFallbackForSMT.description="If using z3 run a sat solver alongside to use if the smt"
        " solver returns unknown at any point";

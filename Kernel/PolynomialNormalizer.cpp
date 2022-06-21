@@ -368,10 +368,12 @@ TermList PolyNf::denormalize() const
         [&](Perfect<FuncTerm> t) { 
           auto f = t->function();
           Stack<TermList> args(f.numTermArguments() + f.numTypeArguments());
-          for (unsigned i = 0; i < f.numTypeArguments(); i++) 
+          for (unsigned i = 0; i < f.numTypeArguments(); i++)  {
             args.push(f.typeArg(i));
-          for (unsigned i = 0; i < t->numTermArguments(); i++)
+          }
+          for (unsigned i = 0; i < t->numTermArguments(); i++) {
             args.push(results[i]);
+          }
           return TermList(Term::create(t->function().id(), args.size(), args.begin())); 
         },
         [&](Variable          v) { return TermList::var(v.id()); },

@@ -46,10 +46,10 @@ std::ostream& operator<<(std::ostream& out, const Variable& self)
 // impl FuncId
 /////////////////////////////////////////////////////////
 
-FuncId::FuncId(unsigned num, const TermList* typeArgs) : _num(num), _typeArgs(typeArgs) {}
+FuncId::FuncId(unsigned num, Stack<TermList> typeArgs) : _num(num), _typeArgs(std::move(typeArgs)) {}
 
 FuncId FuncId::symbolOf(Term* term) 
-{ return FuncId(term->functor(), term->typeArgs()); }
+{ return FuncId(term->functor(), typeArgIter(term).template collect<Stack>()); }
 
 unsigned FuncId::numTermArguments() const
 { return symbol()->numTermArguments(); }
