@@ -658,7 +658,9 @@ isRedundant:
         Literal* newLit = EqHelper::replace(dlit, lhsS, rhsS);
         ASS_EQ(ordering.compare(lhsS, rhsS), Ordering::GREATER);
 #if VDEBUG
-        if (getOptions().literalComparisonMode() != Options::LiteralComparisonMode::REVERSE) {
+        if (getOptions().literalComparisonMode() != Options::LiteralComparisonMode::REVERSE 
+            && getOptions().termOrdering() != Shell::Options::TermOrdering::QKBO) {
+          // TODO integrate this properly with LASCA/QKBO
           // blows up with "-lcm reverse"; but the same thing happens with normal demodulation, so this might be intended?
           ASS_EQ(ordering.compare(dlit, newLit), Ordering::GREATER);
         }
@@ -708,7 +710,9 @@ isRedundant:
 #endif
 
 #if VDEBUG && BSD_VDEBUG_REDUNDANCY_ASSERTIONS
-        if (getOptions().literalComparisonMode() != Options::LiteralComparisonMode::REVERSE) {  // see note above
+        if (getOptions().literalComparisonMode() != Options::LiteralComparisonMode::REVERSE
+            && getOptions().termOrdering() != Shell::Options::TermOrdering::QKBO) {  // see note above
+          // TODO integrate this properly with LASCA/QKBO
           // Check newCl < mainCl.
           ASS(SDHelper::clauseIsSmaller(newCl, mainCl, ordering));
         }

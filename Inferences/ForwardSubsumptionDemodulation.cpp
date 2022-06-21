@@ -608,7 +608,9 @@ isRedundant:
               Literal* newLit = EqHelper::replace(dlit, lhsS, rhsS);
               ASS_EQ(ordering.compare(lhsS, rhsS), Ordering::GREATER);
 #if VDEBUG
-              if (getOptions().literalComparisonMode() != Options::LiteralComparisonMode::REVERSE) {
+              if (getOptions().literalComparisonMode() != Options::LiteralComparisonMode::REVERSE 
+                  && getOptions().termOrdering() != Shell::Options::TermOrdering::QKBO) {
+                // TODO integrate this properly with LASCA/QKBO
                 // blows up with "-lcm reverse"; but the same thing happens with normal demodulation, so this might be intended?
                 ASS_EQ(ordering.compare(dlit, newLit), Ordering::GREATER);
               }
@@ -662,7 +664,9 @@ isRedundant:
               RSTAT_MCTR_INC("FSD, successes by MLMatch", numMatches + 1);  // +1 so it fits with the previous output
 
 #if VDEBUG && FSD_VDEBUG_REDUNDANCY_ASSERTIONS
-              if (getOptions().literalComparisonMode() != Options::LiteralComparisonMode::REVERSE) {  // see note above
+              if (getOptions().literalComparisonMode() != Options::LiteralComparisonMode::REVERSE
+                  && getOptions().termOrdering() != Shell::Options::TermOrdering::QKBO) {  // see note above
+                // TODO integrate this properly with LASCA/QKBO
                 // Check newCl < cl.
                 // This is quite obvious, and there should be no problems with this.
                 ASS(SDHelper::clauseIsSmaller(newCl, cl, ordering));

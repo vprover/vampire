@@ -105,6 +105,8 @@ QKbo::Result QKbo::compare(Literal* l1, Literal* l2) const
    
     auto a1_ = atomsStar(l1);
     auto a2_ = atomsStar(l2);
+      // DBGE(a1_)
+      // DBGE(a2_)
     if (!a1_.isSome() || !a2_.isSome())
       return Result::INCOMPARABLE;
     auto& a1 = a1_.unwrap();
@@ -308,6 +310,9 @@ Ordering::Result QKbo::compare(TermList s, TermList t) const
   CALL("QKbo::compare(TermList, TermList) const")
   if (s.isVar() && t.isVar()) 
     return s == t ? Ordering::EQUAL : Ordering::INCOMPARABLE;
+
+  if (s.isTerm() && t.isTerm() && _shared->equivalent(s.term(), t.term()))
+    return Ordering::EQUAL;
 
   auto as = abstr(s);
   auto at = abstr(t);
