@@ -420,6 +420,7 @@ struct EvaluateInModel
         mpz_set_si(out.get_mpz_t(), i64_val);
         return Option<InnerType>(std::move(out));
       } else if (e.is_numeral(str_val)) {
+        DBGE(str_val)
         mpz_class out(str_val);
         return Option<InnerType>(std::move(out));
       } else {
@@ -447,6 +448,23 @@ struct EvaluateInModel
       auto toFrac = [&](InnerType l, InnerType r)  
       { return Copro(RationalConstantType(IntegerConstantType(l),IntegerConstantType(r))); };
 
+#if WITH_GMP
+      // auto nonFractional = intVal(expr).map([&](InnerType i) { return toFrac(std::move(i),1); });
+      // if (nonFractional.isSome()) {
+      //   return nonFractional;
+      // } else {
+        auto num = intVal(expr.numerator());
+        auto den = intVal(expr.denominator());
+        ASS_REP(num.isSome(), expr.numerator())
+        ASS_REP(num.isSome(), expr.denominator())
+        // if (num.isSome() && den.isSome()) {
+          return Result(Copro(toFrac(num.unwrap(), den.unwrap())));
+        // } else {
+        //   return Result();
+        // }
+      // }
+
+#else // !WITH_GMP
       auto nonFractional = intVal(expr).map([&](InnerType i) { return toFrac(std::move(i),1); });
       if (nonFractional.isSome()) {
         return nonFractional;
@@ -459,6 +477,7 @@ struct EvaluateInModel
           return Result();
         }
       }
+#endif // WITH_GMP
 
     } else if (expr.is_app()) {
       auto f = expr.decl();
