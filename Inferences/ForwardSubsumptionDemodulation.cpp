@@ -498,6 +498,10 @@ bool ForwardSubsumptionDemodulation::perform(Clause* cl, Clause*& replacement, C
               // 3. L is lΘ = t, but t is larger that rΘ.
               // If all these checks fail, we try to find a literal M in D such that lΘ=rΘ < M.
               if (!_allowIncompleteness) {
+                bool dli_was_checked = false;
+                if (!_ordIsKbo) {
+                  goto afterOptimizations;
+                }
                 if (!dlit->isEquality()) {
                   // non-equality literals are always larger than equality literals ==>  eqLitS < dlit
                   ASS_EQ(ordering.compare(binder.applyTo(eqLit), dlit), Ordering::LESS);
@@ -518,6 +522,7 @@ bool ForwardSubsumptionDemodulation::perform(Clause* cl, Clause*& replacement, C
                 //             rhsS ?= t \/ CΘ \/ D
                 //
                 //  where "?=" is either "=" or "≠".
+                {
                 TermList t = EqHelper::getOtherEqualitySide(dlit, lhsS);
                 if (t == rhsS) {
                   ASS(eqLit->isPositive());
@@ -554,19 +559,22 @@ bool ForwardSubsumptionDemodulation::perform(Clause* cl, Clause*& replacement, C
                   }
                 }
                 Ordering::Result r_cmp_t = ordering.compare(rhsS, t);
+                dli_was_checked = true;
                 ASS_NEQ(r_cmp_t, Ordering::LESS_EQ);  // NOTE: LESS_EQ doesn't seem to occur in the code currently. It is unclear why the ordering is not simplified to LESS, EQUAL and GREATER.
                 if (r_cmp_t == Ordering::LESS) {
                   // rhsS < t implies eqLitS < dlit
                   ASS_EQ(ordering.compare(binder.applyTo(eqLit), dlit), Ordering::LESS);
                   goto isRedundant;
                 }
+                }
+afterOptimizations:
                 // We could not show redundancy with dlit alone,
                 // so now we have to look at the other literals of cl
                 Literal* eqLitS = Literal::createEquality(true, lhsS, rhsS, lhsSSort);
                 ASS_EQ(eqLitS, binder.applyTo(eqLit));
                 for (unsigned li2 = 0; li2 < cl->length(); li2++) {
                   // skip dlit (already checked with r_cmp_t above) and matched literals (i.e., CΘ)
-                  if (dli != li2 && !isMatched[li2]) {
+                  if ((!dli_was_checked || dli != li2) && !isMatched[li2]) {
                     Literal* lit2 = (*cl)[li2];
                     if (ordering.compare(eqLitS, lit2) == Ordering::LESS) {
                       // we found that eqLitS < lit2; and thus mcl < cl => after inference, cl is redundant
