@@ -904,25 +904,23 @@ vstring Kernel::ruleName(InferenceRule rule)
   case InferenceRule::INSTANTIATION:
     return "instantiation";
   case InferenceRule::IRC_VARIABLE_ELIMINATION:
-    return "inequality variable elimination";
+    return "lasca variable elimination";
   case InferenceRule::IRC_SUPERPOSITION:
-    return "superposition modulo LA";
-  case InferenceRule::IRC_TOTALITY:
-    return "totality";
+    return "lasca superposition";
   case InferenceRule::IRC_LITERAL_FACTORING:
-    return "inequality literal factoring";
+    return "lasca inequality literal factoring";
   case InferenceRule::IRC_EQ_FACTORING:
-    return "arithmetic equality factoring";
+    return "lasca equality factoring";
   case InferenceRule::IRC_TERM_FACTORING:
-    return "inequality term factoring";
+    return "laca term factoring";
   case InferenceRule::IRC_INEQUALITY_RESOLUTION:
-    return "inequality resolution";
+    return "lasca fourrier motzkin";
   case InferenceRule::IRC_NORMALIZATION:
-    return "inequality normalization";
+    return "lasca normalization";
   case InferenceRule::IRC_FWD_DEMODULATION:
-    return "forward demodulation modulo LA";
+    return "lasca forward demodulation";
   case InferenceRule::IRC_BWD_DEMODULATION:
-    return "backward demodulation modulo LA";
+    return "lascsa backward demodulation";
   case InferenceRule::MODEL_NOT_FOUND:
     return "finite model not found : exhaustively excluded all possible domain size assignments";
   case InferenceRule::ARITHMETIC_SUBTERM_GENERALIZATION:

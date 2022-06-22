@@ -319,8 +319,6 @@ enum class InferenceRule : unsigned char {
   IRC_LITERAL_FACTORING,
   /** superposition rule of the Inequality Resolution Calculus */
   IRC_SUPERPOSITION,
-  /** totality rule of the Inequality Resolution Calculus */
-  IRC_TOTALITY,
   /** variable elimination rule of the Inequality Resolution Calculus */
   IRC_VARIABLE_ELIMINATION,
   /** the last generating inference marker --
