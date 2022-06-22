@@ -420,7 +420,6 @@ struct EvaluateInModel
         mpz_set_si(out.get_mpz_t(), i64_val);
         return Option<InnerType>(std::move(out));
       } else if (e.is_numeral(str_val)) {
-        DBGE(str_val)
         mpz_class out(str_val);
         return Option<InnerType>(std::move(out));
       } else {

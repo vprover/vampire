@@ -94,9 +94,10 @@ void check_in_different_contexts(QKbo& ord, TermList l, QKbo::Result exp, TermLi
   check(ord, l != 0, exp, r != 0);
 }
 
-QKbo& qkbo() {
+QKbo& qkbo(bool rand = false) {
   CALL("qkbo(...)")
-  auto out = new QKbo(Precedence(funcPrec(), predPrec()));
+    
+  auto out = new QKbo(KBO::testKBO(rand, /* qkboPrec */ true));
   auto shared = testIrcState(Options::UnificationWithAbstraction::IRC2, 
     /* strongNormalization */ false, 
     /* ordering */ out);
@@ -682,4 +683,22 @@ TEST_FUN(check_one_smallest_2) {
   check(ord, num(1), Less, a);
   check(ord, num(1), Less, b);
   check(ord, num(1), Less, c);
+}
+
+TEST_FUN(check_numerals_smallest) {
+
+  DECL_DEFAULT_VARS
+  NUMBER_SUGAR(Real)
+
+
+  DECL_CONST(a, Real)
+  DECL_CONST(b, Real)
+  DECL_CONST(c, Real)
+  for (auto i = 0; i < 1000; i++) {
+    auto& ord = qkbo(/* rand */ true);
+
+    check(ord, num(1), Less, a);
+    check(ord, num(1), Less, b);
+    check(ord, num(1), Less, c);
+  }
 }

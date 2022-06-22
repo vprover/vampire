@@ -101,10 +101,10 @@ public:
 
   QKbo(QKbo&& kbo) = default;
   QKbo& operator=(QKbo&& kbo) = default;
-  explicit QKbo(Precedence);
+  explicit QKbo(KBO kbo);
 
   QKbo(Problem& prb, const Options& opts) 
-    : QKbo(Precedence(prb,opts)) {}
+    : QKbo(KBO(prb,opts, /* qkboPrecedence */ true)) {}
 
   virtual ~QKbo() {}
 
@@ -269,7 +269,6 @@ private:
   Result cmpNonAbstr(TermList, TermList) const;
   Option<TermList> abstr(TermList) const;
 
-  Precedence _prec;
   std::shared_ptr<IrcState> _shared;
   KBO _kbo;
 };

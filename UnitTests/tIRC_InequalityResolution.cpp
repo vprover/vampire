@@ -250,14 +250,13 @@ TEST_GENERATION(basic05,
       ))
     )
 
+// fails: "( -k s₂ + t₂ >₂ 0 )σ /⪯  ( +j s₁ + t₁ >₁ 0 )σ",
 TEST_GENERATION(basic06,
     Generation::SymmetricTest()
       .indices(inequalityResolutionIdx())
       .inputs  ({ clause({ selected(         -g(x,y) > 0 ) }) 
-               ,  clause({ selected( g(a,z) + g(z,a) > 0 ) }) })
+               ,  clause({ selected( g(b,z) + g(z,b) > 0 ) }) })
       .expected(exactly(
-            clause({  g(x,a) > 0 })
-          , clause({  g(a,y) > 0 })
       ))
     )
 
@@ -322,8 +321,9 @@ TEST_GENERATION(greater_equal01c,
 
 // ordering condition not fulfilled
 // • ( -k s₂ + t₂ >₂ 0 )σ /⪯  ( +j s₁ + t₁ >₁ 0 )σ
-TEST_GENERATION(strictly_max_after_unification_0,
+TEST_GENERATION(strictly_max_after_unification_0a,
     Generation::SymmetricTest()
+      .selfApplications(false)
       .indices(inequalityResolutionIdx())
       .inputs  ({ clause({ selected(-f(x) + f(a) > 0) }) 
                ,  clause({ selected( f(a)        > 0) }) })
@@ -332,8 +332,10 @@ TEST_GENERATION(strictly_max_after_unification_0,
       ))
     )
 
+
 TEST_GENERATION(strictly_max_after_unification_01a,
     Generation::SymmetricTest()
+      .selfApplications(false)
       .indices(inequalityResolutionIdx())
       .inputs  ({ clause({ selected(-2 * f(x) + f(a) > 0) }) 
                ,  clause({ selected( f(a)        > 0) }) })
@@ -344,6 +346,7 @@ TEST_GENERATION(strictly_max_after_unification_01a,
 
 TEST_GENERATION(strictly_max_after_unification_01b,
     Generation::SymmetricTest()
+      .selfApplications(false)
       .indices(inequalityResolutionIdx())
       .inputs  ({ clause({ selected( f(x) - f(a) > 0) }) 
                ,  clause({ selected(-f(a)        > 0) }) })
@@ -354,6 +357,7 @@ TEST_GENERATION(strictly_max_after_unification_01b,
 
 TEST_GENERATION(strictly_max_after_unification_02a,
     Generation::SymmetricTest()
+      .selfApplications(false)
       .indices(inequalityResolutionIdx())
       .inputs  ({        clause({ selected(-f(x) + f(a) > 0 )}) 
                ,         clause({ selected( f(b)        > 0) }) })
@@ -362,6 +366,7 @@ TEST_GENERATION(strictly_max_after_unification_02a,
 
 TEST_GENERATION(strictly_max_after_unification_02b,
     Generation::SymmetricTest()
+      .selfApplications(false)
       .indices(inequalityResolutionIdx())
       .inputs  ({        clause({ selected( f(b)        > 0) })  
                ,         clause({ selected(-f(x) + f(a) > 0 )}) })
@@ -418,8 +423,8 @@ TEST_GENERATION(substitution01,
 TEST_GENERATION(substitution02,
     Generation::SymmetricTest()
       .indices(inequalityResolutionIdx())
-      .inputs  ({ clause({ selected(-g(f(x), f(f(b))) +    f(x)  > 0) })  
-               ,  clause({ selected( g(f(a), f(f(y))) +    f(y)  > 0) }) })
+      .inputs  ({ clause({ selected( g(f(x), f(f(b))) +    f(x)  > 0) })  
+               ,  clause({ selected(-g(f(a), f(f(y))) +    f(y)  > 0) }) })
       .expected(exactly(
             clause({  f(a) + f(b) > 0 })
       ))
@@ -490,7 +495,16 @@ TEST_GENERATION(abstraction7,
       .indices(inequalityResolutionIdx(Options::UnificationWithAbstraction::IRC1))
       .inputs  ({        clause({ selected(-f(a + b) > 0) })           
                ,         clause({ selected(     f(c) > 0) })              })
-      .expected(exactly( clause({ num(0) > 0, c != a + b }) ))
+      .expected(exactly( /* nothing as a + b << c */         ))
+    )
+
+TEST_GENERATION(abstraction8,
+    Generation::SymmetricTest()
+      .rule(    new InequalityResolution(testInequalityResolution(Options::UnificationWithAbstraction::IRC1))  )
+      .indices(inequalityResolutionIdx(Options::UnificationWithAbstraction::IRC1))
+      .inputs  ({        clause({ selected(-f(c + b) > 0) })           
+               ,         clause({ selected(     f(a) > 0) })              })
+      .expected(exactly( clause({ num(0) > 0, a != c + b }) ))
     )
 
 TEST_GENERATION(abstraction1_irc2,
@@ -631,6 +645,7 @@ TEST_GENERATION_WITH_SUGAR(bug03a,
 TEST_GENERATION_WITH_SUGAR(bug03b,
     SUGAR(Real),
     Generation::SymmetricTest()
+      .selfApplications(false)
 // *cl2 = ~P(X1,X2) | 1 + -X1 + a > 0
 // *resolvent = $greater($sum(1,$uminus(X1)),0) | ~'MS'(X0,X1,s2)
       .indices(inequalityResolutionIdx())
@@ -640,6 +655,21 @@ TEST_GENERATION_WITH_SUGAR(bug03b,
     )
 
 
+#if WITH_GMP
+
+TEST_GENERATION_WITH_SUGAR(bug_overflow_01,
+    SUGAR(Real),
+    Generation::SymmetricTest()
+      .indices(inequalityResolutionIdx())
+      .inputs  ({ clause({ selected(          num(2) * (1073741824 * a + 536870912) > 0 ) })  
+               ,  clause({ selected(num(-1) * num(2) * (1073741824 * a + 536870912) > 0 )   }) })
+      .expected(exactly(
+          clause({  2 * -num(1) + 2 > 0  })
+          // clause({ num(0) > 0 }) // we don't perform the rule if we overflow
+      ))
+    )
+
+#else // !WITH_GMP
 TEST_GENERATION_WITH_SUGAR(bug_overflow_01,
     SUGAR(Real),
     Generation::SymmetricTest()
@@ -650,6 +680,7 @@ TEST_GENERATION_WITH_SUGAR(bug_overflow_01,
           // clause({ num(0) > 0 }) // we don't perform the rule if we overflow
       ))
     )
+#endif
 
   // 2 f13(f14, 1) 1073741824
 

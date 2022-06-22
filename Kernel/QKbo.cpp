@@ -29,54 +29,65 @@ bool interpretedPred(Literal* t) {
 }
 
 
-QKbo::QKbo(Precedence prec) 
-  : _prec(std::move(prec))
-  , _shared(nullptr)
-  , _kbo(
-      KboWeightMap<FuncSigTraits>::dflt(),
-      KboWeightMap<PredSigTraits>::dflt(),
-      _prec.funPrec(),
-      _prec.predPrec(),
-        DArray<int>(), /* <- pred levels will never be used */
-        /* reverseLCM */ false
-      )
+// Precedence makeOneSmallest(Precedence p) {
+//
+// }
+
+QKbo::QKbo(KBO kbo) 
+  : _shared(nullptr)
+  , _kbo(std::move(kbo))
 {
+  ASS(_kbo.usesQkboPrecedence())
 }
 
-class SummandIter 
-{
-  unsigned _plus;
-  Stack<TermList> _work;
-public:
-  SummandIter(TermList t) 
-    : _plus(t.isVar() ? 0 
-                      : tryNumTraits([&](auto numTraits) { 
-                        if (numTraits.sort() == SortHelper::getResultSort(t.term())) {
-                          return Option<unsigned>(numTraits.addF());
-                        } else {
-                          return Option<unsigned>();
-                        } }).unwrap())
-    , _work({ t }) {  }
+// QKbo::QKbo(Precedence prec) 
+//   : _prec(std::move(prec))
+//   , _shared(nullptr)
+//   , _kbo(
+//       KboWeightMap<FuncSigTraits>::dflt(),
+//       KboWeightMap<PredSigTraits>::dflt(),
+//       _prec.funPrec(),
+//       _prec.predPrec(),
+//         DArray<int>(), /* <- pred levels will never be used */
+//         /* reverseLCM */ false
+//       )
+// {
+// }
 
-  DECL_ELEMENT_TYPE(TermList);
-
-  bool hasNext() const 
-  { return !_work.isEmpty(); }
-
-  TermList next() 
-  {
-    while (_work.top().isTerm() && _work.top().term()->functor() == _plus) {
-      auto t = _work.pop();
-      _work.push(*t.term()->nthArgument(0));
-      _work.push(*t.term()->nthArgument(1));
-    }
-    return _work.pop();
-  }
-};
-
-
-auto iterSummands(TermList t)
-{ return iterTraits(SummandIter(t)); }
+// class SummandIter 
+// {
+//   unsigned _plus;
+//   Stack<TermList> _work;
+// public:
+//   SummandIter(TermList t) 
+//     : _plus(t.isVar() ? 0 
+//                       : tryNumTraits([&](auto numTraits) { 
+//                         if (numTraits.sort() == SortHelper::getResultSort(t.term())) {
+//                           return Option<unsigned>(numTraits.addF());
+//                         } else {
+//                           return Option<unsigned>();
+//                         } }).unwrap())
+//     , _work({ t }) {  }
+//
+//   DECL_ELEMENT_TYPE(TermList);
+//
+//   bool hasNext() const 
+//   { return !_work.isEmpty(); }
+//
+//   TermList next() 
+//   {
+//     while (_work.top().isTerm() && _work.top().term()->functor() == _plus) {
+//       auto t = _work.pop();
+//       _work.push(*t.term()->nthArgument(0));
+//       _work.push(*t.term()->nthArgument(1));
+//     }
+//     return _work.pop();
+//   }
+// };
+//
+//
+// auto iterSummands(TermList t)
+// { return iterTraits(SummandIter(t)); }
 
 
 using MulExtMemo = DArray<Option<Ordering::Result>>;
@@ -96,7 +107,7 @@ QKbo::Result QKbo::compare(Literal* l1, Literal* l2) const
        if ( i1 && !i2) return Result::LESS;
   else if (!i1 &&  i2) return Result::GREATER;
   else if (!i1 && !i2) return OrderingUtils2::lexProductCapture(
-        [&]() { return Ordering::fromComparison(_prec.cmpPred(l1->functor(), l2->functor())); }
+        [&]() { return _kbo.comparePrecedence(l1, l2); }
       , [&]() { return OrderingUtils2::lexExt(termArgIter(l1), termArgIter(l2), this->asClosure()); }
       , [&]() { return OrderingUtils2::stdCompare(l1->isNegative(), l2->isNegative()); }
     );
@@ -105,8 +116,6 @@ QKbo::Result QKbo::compare(Literal* l1, Literal* l2) const
    
     auto a1_ = atomsStar(l1);
     auto a2_ = atomsStar(l2);
-      // DBGE(a1_)
-      // DBGE(a2_)
     if (!a1_.isSome() || !a2_.isSome())
       return Result::INCOMPARABLE;
     auto& a1 = a1_.unwrap();
@@ -153,7 +162,7 @@ QKbo::Result QKbo::compare(Literal* l1, Literal* l2) const
               ASS(l2->isPositive())
               return Option<Ordering::Result>(OrderingUtils2::lexProductCapture(
                   [&]() { return this->compare(l1->termArg(0), l2->termArg(0)); }
-                , [&]() { return Ordering::fromComparison(_prec.cmpPred(l1->functor(), l2->functor())); }
+                , [&]() { return _kbo.comparePrecedence(l1, l2); }
               ));
             } 
           } 
@@ -166,71 +175,6 @@ QKbo::Result QKbo::compare(Literal* l1, Literal* l2) const
     );
   }
 }
-// {
-//   CALL("QKbo::compare(Literal* l1_, Literal* l2_) const")
-//   auto l1 = LaLpo::Lit(l1_);
-//   auto l2 = LaLpo::Lit(l2_);
-//   if (!l1.interpreted() && l2.interpreted()) {
-//     return Ordering::Result::GREATER;
-
-//   } else if (l1.interpreted() && !l2.interpreted()) {
-//     return Ordering::Result::LESS;
-
-//   } else if (!l1.interpreted() && !l2.interpreted()) {
-
-//     if (l1.orig->functor() != l2.orig->functor()) {
-//       return Ordering::fromComparison(_prec.cmpPred(l1.orig->functor(), l2.orig->functor()));
-
-//     } else {
-//       auto lex = OrderingUtils::lexExt(termArgIter(l1.orig), termArgIter(l2.orig), [&](auto& l, auto& r) { return compare(l,r); } );
-//       if (lex == Result::EQUAL) {
-//         return l1.orig->isPositive() == l2.orig->isPositive() 
-//           ? Result::EQUAL
-//           : (l1.orig->isPositive() ? Result::LESS 
-//                                    : Result::GREATER);
-//       } else {
-//         return lex;
-//       }
-//     }
-
-//   } else {
-
-//     ASS(l1.interpreted() && l2.interpreted())
-
-//     auto cmpPreds =  [](auto l, auto r) 
-//     { 
-//       auto cmpSorts = [](auto l, auto r) {
-//         return l.sort() == r.sort() ? Result::EQUAL
-//              : l.sort() <  r.sort() ? Result::LESS
-//              :                        Result::GREATER;
-//       };
-//       auto unsorted = Ordering::fromComparison(Int::compare((int)l.pred, (int)r.pred));
-//       return unsorted == Ordering::EQUAL ? cmpSorts(l,r) 
-//                                          : unsorted; 
-//     };
-
-//     auto terms = [&](auto s) {
-//       return tryNumTraits([&](auto numTraits) { 
-//             if (numTraits.sort() == s.sort()) {
-//              auto sum = *s.orig->nthArgument(0) == numTraits.constantTl(0) 
-//                ? *s.orig->nthArgument(1) 
-//                : *s.orig->nthArgument(0);
-//              return Option<FlatSum>(flatWithCoeffs(sum));
-//             } else {
-//               return Option<FlatSum>();
-//             }
-//         })
-//       || FlatSum {
-//           make_pair(some(*s.orig->nthArgument(0)), rat(1)), 
-//           make_pair(some(*s.orig->nthArgument(1)), rat(1)), 
-//         };
-//     };
-
-//     auto cmp = cmpSum(terms(l1), terms(l2));
-//     if (cmp != Ordering::EQUAL) return cmp;
-//     else return cmpPreds(l1, l2);
-//   }
-// }
 
 bool interpretedFun(Term* t) {
   auto f = t->functor();
@@ -277,31 +221,6 @@ auto toNumeralMul(TermList t) -> std::tuple<Option<TermList>, RationalConstantTy
         }
     }).unwrap();
   }
-}
-
-
-Stack<TermList> flatWithoutCoeffs(TermList t) 
-{
-  Stack<TermList> out;
-  for (auto ti : iterSummands(t)) {
-    auto term = std::get<0>(toNumeralMul(ti));
-    if (term.isSome()) {
-      out.push(term.unwrap());
-    }
-  }
-  return out;
-}
-
-
-QKbo::FlatSum QKbo::flatWithCoeffs(TermList t) const
-{ 
-  CALL("QKbo::flatWithCoeffs(TermList t) const")
-
-  Stack<std::tuple<Option<TermList>, RationalConstantType>> out;
-  for (auto ti : iterSummands(t)) {
-    out.push(toNumeralMul(ti));
-  }
-  return out;
 }
 
 
@@ -479,7 +398,7 @@ Option<TermList> QKbo::abstr(TermList t) const
 }
 
 void QKbo::show(ostream& out) const 
-{ _prec.show(out); }
+{ _kbo.show(out); }
 
 bool QKbo::hasSubstitutionProperty(SigmaNf const& l) const
 {

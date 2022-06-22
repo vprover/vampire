@@ -41,7 +41,7 @@ using namespace Kernel;
 template<class SigTraits>
 KboWeightMap<SigTraits> toWeightMap(unsigned introducedSymbolWeight, KboSpecialWeights<SigTraits> ws, const Map<unsigned, KboWeight>& xs, unsigned sz) 
 {
-  auto df = KboWeightMap<SigTraits>::dflt();
+  auto df = KboWeightMap<SigTraits>::dflt(/* qkbo*/ false);
   df._specialWeights = ws;
 
   DArray<KboWeight> out(sz);
@@ -69,7 +69,7 @@ inline KBO kbo(unsigned introducedSymbolWeight,
         }, funcs, env.signature->functions()), 
 #if __KBO__CUSTOM_PREDICATE_WEIGHTS__
              toWeightMap<PredSigTraits>(introducedSymbolWeight,
-               KboSpecialWeights<PredSigTraits>::dflt(), 
+               KboSpecialWeights<PredSigTraits>::dflt(/* qkbo */ false), 
                preds,
                env.signature->predicates()), 
 #endif

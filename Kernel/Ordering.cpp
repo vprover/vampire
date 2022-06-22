@@ -379,13 +379,30 @@ Ordering::Result PrecedenceOrdering::compareFunctionPrecedences(unsigned fun1, u
   if (fun1 == fun2)
     return EQUAL;
 
-  if (fun1 == IntTraits::minusF()) { return GREATER; } 
-  if (fun1 == RatTraits::minusF()) { return GREATER; }
-  if (fun1 == RealTraits::minusF()) { return GREATER; }
+  if (_qkboPrecedence) {
 
-  if (fun2 == IntTraits::minusF()) { return LESS; }
-  if (fun2 == RatTraits::minusF()) { return LESS; }
-  if (fun2 == RealTraits::minusF()) { return LESS; }
+    // one is less than everything else
+    if (fun1 == IntTraits::oneF()) { return LESS; }
+    if (fun1 == RatTraits::oneF()) { return LESS; }
+    if (fun1 == RealTraits::oneF()) { return LESS; }
+
+    if (fun2 == IntTraits::oneF()) { return GREATER; } 
+    if (fun2 == RatTraits::oneF()) { return GREATER; }
+    if (fun2 == RealTraits::oneF()) { return GREATER; }
+
+
+  } else {
+
+    // unary minus is the biggest
+    if (fun1 == IntTraits::minusF()) { return GREATER; } 
+    if (fun1 == RatTraits::minusF()) { return GREATER; }
+    if (fun1 == RealTraits::minusF()) { return GREATER; }
+
+    if (fun2 == IntTraits::minusF()) { return LESS; }
+    if (fun2 == RatTraits::minusF()) { return LESS; }
+    if (fun2 == RealTraits::minusF()) { return LESS; }
+
+  }
 
   // $$false is the smallest
   if (env.signature->isFoolConstantSymbol(false,fun1)) {
@@ -664,13 +681,14 @@ bool isPermutation(const DArray<int>& xs) {
 /**
  * Create a PrecedenceOrdering object.
  */
-PrecedenceOrdering::PrecedenceOrdering(const DArray<int>& funcPrec, const DArray<int>& predPrec, const DArray<int>& predLevels, bool reverseLCM)
+PrecedenceOrdering::PrecedenceOrdering(const DArray<int>& funcPrec, const DArray<int>& predPrec, const DArray<int>& predLevels, bool reverseLCM, bool qkboPrecedence)
   : _predicates(predPrec.size()),
     _functions(funcPrec.size()),
     _predicateLevels(predLevels),
     _predicatePrecedences(predPrec),
     _functionPrecedences(funcPrec),
-    _reverseLCM(reverseLCM)
+    _reverseLCM(reverseLCM),
+    _qkboPrecedence(qkboPrecedence)
 {
   CALL("PrecedenceOrdering::PrecedenceOrdering(const DArray<int>&, const DArray<int>&, const DArray<int>&, bool)");
   ASS_EQ(env.signature->predicates(), _predicates);
@@ -685,12 +703,13 @@ PrecedenceOrdering::PrecedenceOrdering(const DArray<int>& funcPrec, const DArray
  *
  * "Intermediate" constructor; this is needed so that we only call predPrecFromOpts once (and use it here twice).
  */
-PrecedenceOrdering::PrecedenceOrdering(Problem& prb, const Options& opt, const DArray<int>& predPrec)
+PrecedenceOrdering::PrecedenceOrdering(Problem& prb, const Options& opt, const DArray<int>& predPrec, bool qkboPrecedence)
 : PrecedenceOrdering(
     funcPrecFromOpts(prb,opt),
     predPrec,
     predLevelsFromOptsAndPrec(prb,opt,predPrec),
-    opt.literalComparisonMode()==Shell::Options::LiteralComparisonMode::REVERSE
+    opt.literalComparisonMode()==Shell::Options::LiteralComparisonMode::REVERSE,
+    qkboPrecedence
     )
 {
   CALL("PrecedenceOrdering::PrecedenceOrdering((Problem&,const Options&,const DArray<int>&)");
@@ -699,15 +718,25 @@ PrecedenceOrdering::PrecedenceOrdering(Problem& prb, const Options& opt, const D
 /**
  * Create a PrecedenceOrdering object.
  */
-PrecedenceOrdering::PrecedenceOrdering(Problem& prb, const Options& opt)
+PrecedenceOrdering::PrecedenceOrdering(Problem& prb, const Options& opt, bool qkboPrecedence)
 : PrecedenceOrdering(prb,opt,
-    (
+    [&]() {
        // Make sure we (re-)compute usageCnt's for all the symbols;
        // in particular, the sP's (the Tseitin predicates) and sK's (the Skolem functions), which only exists since preprocessing.
-       prb.getProperty(),
-       // also, fetch the unary minuses, we intruduce later anyway
-       (void)IntTraits::minusF(),(void)RatTraits::minusF(),(void)RealTraits::minusF(), 
-       predPrecFromOpts(prb, opt)))
+       prb.getProperty();
+       // also, fetch the unary minuses, and ones we intruduce later anyway
+       (void)IntTraits::minusF();
+       (void)RatTraits::minusF();
+       (void)RealTraits::minusF();
+       if (qkboPrecedence) {
+         (void) IntTraits::oneF();
+         (void) RatTraits::oneF();
+         (void)RealTraits::oneF();
+       }
+
+       return predPrecFromOpts(prb, opt);
+   }(),
+   qkboPrecedence)
 {
   CALL("PrecedenceOrdering::PrecedenceOrdering(Problem&,const Options&)");
   ASS_G(_predicates, 0);

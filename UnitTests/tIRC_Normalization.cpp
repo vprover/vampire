@@ -357,12 +357,27 @@ TEST_FRAC(gcd_04,
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
 
+#if WITH_GMP
+
+TEST_ALL(bug_01, 
+    TestCase {
+      .in  =     0 * num(-1) + 2 * a * 1073741824 > 0,
+      .out = { {         0  + a > 0 } },
+      .strong = true,
+    })
+
+
+#else // !WITH_GMP
+
+// due to overflow we can't compute the gcd
 TEST_ALL(bug_01, 
     TestCase {
       .in  =     0 * num(-1) + 2 * a * 1073741824 > 0,
       .out = { {     num(0)  +     a * 1073741824 > 0 } },
       .strong = true,
     })
+
+#endif // WITH_GMP
 
 TEST_INT(bug_02, 
     TestCase {
@@ -401,7 +416,21 @@ TEST_FRAC(bug_06,
       .strong = false,
     })
 
-TEST_INT(bug_07, 
+#if WITH_GMP
+
+TEST_ALL(bug_07, 
+    TestCase {
+      .in  =   -600335 * (-a * 251886) + 251886 * (-a * 600335) == 0 ,
+      //       -600335 * ( a * 251886) + 251886 * ( a * 600335) == 0
+      //       -600335 *   a           +            a * 600335  == 0
+      //                  -a           +            a           == 0
+      .out = { { 0 * a == 0 } },
+      .strong = false,
+    })
+
+#else // !WITH_GMP
+
+TEST_ALL(bug_07, 
     TestCase {
       .in  =   -600335 * (-a * 251886) + 251886 * (-a * 600335) == 0 ,
       //       -600335 * ( a * 251886) + 251886 * ( a * 600335) == 0
@@ -410,6 +439,8 @@ TEST_INT(bug_07,
       .out = { { 0 * (600335 * a) == 0 } },
       .strong = false,
     })
+
+#endif // WITH_GMP
 
 TEST_INT(bug_08, 
     TestCase {

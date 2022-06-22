@@ -36,6 +36,16 @@
 #include <unordered_set>
 #include <vector>
 
+#define ASS_ORD(ord, l, exp, r)                                                                     \
+{                                                                                                   \
+  auto cmp =  ord.compare(l,r);                                                                     \
+  if (cmp != exp) {                                                                                 \
+    ASSERTION_VIOLATION_REP(                                                                        \
+        "is:       " + l + " " + cmp + " " r + "\n"                                                 \
+        "expected: " + l + " " + exp + " " r)                                                       \
+  }                                                                                                 \
+}                                                                                                   \
+
 using namespace Kernel;
 using namespace Lib;
 using namespace Inferences;
@@ -606,8 +616,9 @@ isRedundant:
                * Step 4: found application of FSD; now create the conclusion
                */
               Literal* newLit = EqHelper::replace(dlit, lhsS, rhsS);
-              ASS_EQ(ordering.compare(lhsS, rhsS), Ordering::GREATER);
 #if VDEBUG
+              if (env.options->termOrdering () != Shell::Options::TermOrdering::QKBO) // <- TODO properyl investgate this
+                ASS_EQ(ordering.compare(lhsS, rhsS), Ordering::GREATER);
               if (getOptions().literalComparisonMode() != Options::LiteralComparisonMode::REVERSE 
                   && getOptions().termOrdering() != Shell::Options::TermOrdering::QKBO) {
                 // TODO integrate this properly with LASCA/QKBO

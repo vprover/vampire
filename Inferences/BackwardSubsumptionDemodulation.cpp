@@ -656,8 +656,9 @@ isRedundant:
          * Step 4: found application of SD; now create the conclusion
          */
         Literal* newLit = EqHelper::replace(dlit, lhsS, rhsS);
-        ASS_EQ(ordering.compare(lhsS, rhsS), Ordering::GREATER);
 #if VDEBUG
+        if (env.options->termOrdering () != Shell::Options::TermOrdering::QKBO)
+          ASS_EQ(ordering.compare(lhsS, rhsS), Ordering::GREATER);
         if (getOptions().literalComparisonMode() != Options::LiteralComparisonMode::REVERSE 
             && getOptions().termOrdering() != Shell::Options::TermOrdering::QKBO) {
           // TODO integrate this properly with LASCA/QKBO

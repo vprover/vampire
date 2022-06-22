@@ -118,6 +118,10 @@ struct NumTraits;
       static Term* trm = theory->representConstant(name ## C());                                    \
       return trm;                                                                                   \
     }                                                                                               \
+    static unsigned name ## F() {                                                                   \
+      static unsigned f = name ## T()->functor();                                                   \
+      return f;                                                                                     \
+    }                                                                                               \
     static TermList name()                                                                          \
     { return TermList(name ## T()); }                                                               \
                                                                                                     \

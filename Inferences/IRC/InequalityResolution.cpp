@@ -16,7 +16,7 @@
 #include "Saturation/SaturationAlgorithm.hpp"
 #include "Shell/Statistics.hpp"
 
-#define DEBUG(...) // DBG(__VA_ARGS__)
+#define DEBUG(...) //DBG(__VA_ARGS__)
 
 namespace Inferences {
 namespace IRC {
@@ -88,10 +88,12 @@ ClauseIterator InequalityResolution::generateClauses(Clause* premise)
     for (auto lhs_sigma : _lhsIndex->find(rhs.monom())) {
       auto& lhs   = std::get<0>(lhs_sigma);
       auto& sigma = std::get<1>(lhs_sigma);
-      DEBUG("  lhs: ", lhs)
-      auto res = applyRule(lhs, 1, rhs, 0, sigma);
-      if (res.isSome()) {
-        out.push(res.unwrap());
+      if (lhs.clause() != premise) { // <- self application. the same one has been run already in the previous loop
+        DEBUG("  lhs: ", lhs)
+        auto res = applyRule(lhs, 1, rhs, 0, sigma);
+        if (res.isSome()) {
+          out.push(res.unwrap());
+        }
       }
     }
   }
@@ -222,6 +224,8 @@ Option<Clause*> InequalityResolution::applyRule(
              return _shared->notLess(s2σ, tiσ);
            }))
 
+    DEBUG("(+j s₁ + t₁ >₁ 0)σ = ", *L1σ)
+    DEBUG("(-k s₂ + t₂ >₂ 0)σ = ", *L2σ)
     check_side_condition(
         "( -k s₂ + t₂ >₂ 0 )σ /⪯  ( +j s₁ + t₁ >₁ 0 )σ",
         _shared->notLeq(L2σ, L1σ));
