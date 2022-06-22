@@ -85,7 +85,7 @@ IntegerConstantType Kernel::IntegerConstantType::log2() const
   ASS(_val >= 0);
   // TODO double check this
   size_t size = mpz_sizeinbase(_val.get_mpz_t(), 2);
-  return IntegerConstantType(size);
+  return IntegerConstantType(size - 1);
 }
 
 

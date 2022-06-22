@@ -41,10 +41,16 @@ inline auto rct(int i, int j) -> RationalConstantType { return RationalConstantT
 TEST_FUN(test01) {
 
   for (int i = -512; i <= 512; i++) {
-     ASS_EQ(
-         ict(BitUtils::log2(Int::safeAbs(i))), 
-         ict(i).abs().log2()
-         )
+    auto exp = ict(BitUtils::log2(Int::safeAbs(i)));
+    auto is = ict(i).abs().log2();
+    if (is != exp ) {
+      std::cout << "[ fail ] ict(" << i << ").abs().log2()" << std::endl;
+      std::cout << "[   is ] " << is << std::endl;
+      std::cout << "[  exp ] " << exp << std::endl;
+      ASSERTION_VIOLATION
+    }  else {
+      std::cout << "[  ok  ] ict(" << i << ").abs().log2()" << std::endl;
+    }
   }
 }
 
