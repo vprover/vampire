@@ -914,7 +914,7 @@ vstring Kernel::ruleName(InferenceRule rule)
   case InferenceRule::IRC_TERM_FACTORING:
     return "laca term factoring";
   case InferenceRule::IRC_INEQUALITY_RESOLUTION:
-    return "lasca fourrier motzkin";
+    return "lasca fourier motzkin";
   case InferenceRule::IRC_NORMALIZATION:
     return "lasca normalization";
   case InferenceRule::IRC_FWD_DEMODULATION:
