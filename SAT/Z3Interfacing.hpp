@@ -223,6 +223,11 @@ public:
 
 private:
 
+  // we make this public for testing
+#if VDEBUG
+public:
+#endif
+
   struct Representation
   {
     Representation(z3::expr expr, Stack<z3::expr> defs) : expr(expr), defs(defs) {}
@@ -234,6 +239,11 @@ private:
   Representation getRepresentation(Term* trm);
   Representation getRepresentation(SATLiteral lit);
   Representation getRepresentation(SATClause* cl);
+
+// end of making this public for testing
+#if VDEBUG
+private:
+#endif
 
   // arrays are a bit fragile in Z3, so we need to do things differently for them
   bool _hasSeenArrays;

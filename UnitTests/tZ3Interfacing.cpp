@@ -69,6 +69,49 @@ void checkStatus(SATSolver::Status expected, Stack<Literal*> assumptions)
 }
 
 
+#if WITH_GMP
+///////////////////////////
+// GMP TEST
+//
+TEST_FUN(gmp_numeral_translation) {
+
+  SAT2FO s2f;
+  SAT::Z3Interfacing z3(s2f, /* show z3 */ DBG_ON == 1, /* unsat core */ false, /* export smtlib */ "");
+
+
+  auto check = [&](auto num) {
+    auto orig = theory->representConstant(num);
+    auto ev = z3.evaluateInModel(orig);
+    if (ev != orig) {
+      std::cout << "[ fail ] evaluating numeral in model " << std::endl;
+      std::cout << "[  is  ] " << *ev << std::endl;
+      std::cout << "[  exp ] " << *orig << std::endl;
+      ASSERTION_VIOLATION
+    } else {
+      std::cout << "[  ok  ] " << *orig << std::endl;
+    }
+  };
+
+  for (int i = -10; i <= 10; i++ )
+    check(IntegerConstantType(i));
+
+  // checking the limits around maximal value of uint64_t
+  check(IntegerConstantType("18446744073709551615"));
+  check(IntegerConstantType("18446744073709551616"));
+  check(IntegerConstantType("18446744073709551617"));
+
+  // some random value that caused a bug
+  check(IntegerConstantType("23058430092136939515"));
+
+  // some very very big values
+  check(IntegerConstantType("184467440737095516118446744073709551617718446744073709551617"));
+  check(IntegerConstantType("18446744073709551611844674407370955161771844674407370955161611844674407370955161771844674407370955161611844674407370955161771844674407370955161777"));
+  check(IntegerConstantType("-18446744073709551611844674407370955161771844674407370955161611844674407370955161771844674407370955161611844674407370955161771844674407370955161777"));
+
+}
+#endif // WITH_GMP
+
+
 ////////////////////////////////////
 // Real Tests
 /////////////////
