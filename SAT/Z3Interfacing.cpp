@@ -878,7 +878,6 @@ z3::expr int_to_z3_expr(IntegerConstantType const& val, UInt64ToExpr toExpr) {
       digits.push(uint64_t(ui));
       mpz_tdiv_q_2exp(abs.get_mpz_t(), abs.get_mpz_t(), 64);
     }
-    DBGE(digits)
     z3::expr res = toExpr(uint64_t(mpz_get_ui(abs.get_mpz_t())));
     while(digits.isNonEmpty()) {
       res = toExpr(digits.pop()) + (res * base);
@@ -888,8 +887,6 @@ z3::expr int_to_z3_expr(IntegerConstantType const& val, UInt64ToExpr toExpr) {
     static_assert(sizeof(decltype(abs)) <= sizeof(uint64_t), "unexpected inner type for integers");
     auto res = toExpr(abs);
 #endif
-    DBGE(res)
-    DBGE(res.get_sort())
     return sign == Sign::Neg ? -res : res;
 };
 

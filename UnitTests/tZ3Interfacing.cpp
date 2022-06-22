@@ -69,6 +69,8 @@ void checkStatus(SATSolver::Status expected, Stack<Literal*> assumptions)
 }
 
 
+
+
 #if WITH_GMP
 ///////////////////////////
 // GMP TEST
@@ -108,6 +110,57 @@ TEST_FUN(gmp_numeral_translation) {
   check(IntegerConstantType("18446744073709551611844674407370955161771844674407370955161611844674407370955161771844674407370955161611844674407370955161771844674407370955161777"));
   check(IntegerConstantType("-18446744073709551611844674407370955161771844674407370955161611844674407370955161771844674407370955161611844674407370955161771844674407370955161777"));
 
+  check(RealConstantType(
+        IntegerConstantType("-18446744073709551611844674407370955161771844674407370955161611844674407370955161771844674407370955161611844674407370955161771844674407370955161777"), 
+        IntegerConstantType("42")));
+
+  check(RealConstantType(
+        IntegerConstantType("-42"),
+        IntegerConstantType("18446744073709551611844674407370955161771844674407370955161611844674407370955161771844674407370955161611844674407370955161771844674407370955161777")
+        ));
+
+  check(RealConstantType(7, 4));
+  check(RealConstantType(7, 1));
+
+}
+
+TEST_FUN(gmp_numeral_translation_memory_leak) {
+
+  SAT2FO s2f;
+  SAT::Z3Interfacing z3(s2f, /* show z3 */ DBG_ON == 1, /* unsat core */ false, /* export smtlib */ "");
+
+  // struct PrintingInt {
+  //   int i;
+  //   PrintingInt& operator=(PrintingInt&& other) { 
+  //     i = other.i;
+  //     other.i = -1;
+  //     return *this;
+  //   }
+  //   PrintingInt(int i) : i(i) { }
+  //   PrintingInt(PrintingInt&& other) : i(other.i) {
+  //     other.i = -1;
+  //   }
+  //   ~PrintingInt() {
+  //     std::cout << "destroyed " << i << std::endl;
+  //   }
+  // };
+  //
+  // {
+  //   Stack<PrintingInt> stack;
+  //   stack.push(1);
+  //   stack.push(2);
+  //   stack.push(3);
+  //   std::cout << "finished init. popping" << std::endl;
+  //   std::cout << "pop: 1" << std::endl;
+  //   stack.pop();
+  //   std::cout << "pop: 2" << std::endl;
+  //   stack.pop();
+  //   // std::cout << "pop: 3" << std::endl;
+  //   // stack.pop();
+  // }
+
+  // TODO figure out how we get a memory leak here
+  z3.getRepresentation(theory->representConstant(IntegerConstantType("18446744073709551616")));
 }
 #endif // WITH_GMP
 

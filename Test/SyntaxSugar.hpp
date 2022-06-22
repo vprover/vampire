@@ -577,6 +577,8 @@ inline void createTermAlgebra(SortSugar sort, initializer_list<FuncSugar> fs) {
       vstringstream name;
       name << f << "@" << i;
       auto d = FuncSugar(name.str(), { f.result() }, f.arg(i));
+      env.signature->getFunction(d.functor())
+        ->markTermAlgebraDest();
       return d;
     };
 
