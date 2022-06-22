@@ -582,6 +582,7 @@ INT_TEST(div_zero_2,
     r(remainderE(num(7), 0),     11     )
     )
 
+#if !WITH_GMP
 ALL_NUMBERS_TEST(eval_overflow_1,
     p(num(1661992960) + 1661992960),
     evaluationFail
@@ -619,6 +620,8 @@ FRACTIONAL_TEST(eval_overflow_7,
     frac(5,90) < num(-1260453006),
     false
     )
+
+#endif // WITH_GMP
 
 ALL_NUMBERS_TEST(NUM_IS_NUM_01,
      ~isInt(num(3)),

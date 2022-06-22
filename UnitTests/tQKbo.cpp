@@ -206,8 +206,9 @@ TEST_FUN(interpreted_terms_01) {
   auto& ord = qkbo();
 
   check(ord, x, Incomp, a); 
-  check(ord, x + y, Incomp, y + x); 
-  check(ord, x + y, Incomp, x + y); 
+  check(ord, a + b, Equal, b + a); 
+  check(ord, x + y, Equal, y + x); 
+  // check(ord, x + y, Incomp, x + y); 
 
   check(ord,     f(x), Less,    3 * f(x));
   check(ord, 5 * f(x), Greater, 3 * f(x));

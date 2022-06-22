@@ -48,8 +48,6 @@ TEST_FUN(test01) {
       std::cout << "[   is ] " << is << std::endl;
       std::cout << "[  exp ] " << exp << std::endl;
       ASSERTION_VIOLATION
-    }  else {
-      std::cout << "[  ok  ] ict(" << i << ").abs().log2()" << std::endl;
     }
   }
 }
