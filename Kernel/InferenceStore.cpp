@@ -1224,17 +1224,23 @@ protected:
       switch(f) {
         case Term::SF_FORMULA: outputFormula(out, sd->getFormula()); return;
         case Term::SF_LET: {
-          out << "(let (";
+          out << "(let ((";
           VList* variables = sd->getVariables();
           if (VList::isNonEmpty(variables)) 
             throw UserErrorException("bindings with variables are not supperted in smt2 proofcheck");
 
           auto binding = sd->getBinding();
-          // bool isPredicate = binding.isTerm() && binding.term()->isBoolean();
-          // auto& functor = isPredicate ? env.signature->predicateName(sd->getFunctor())
-          //                             : env.signature->functionName(sd->getFunctor());
+          bool isPredicate = binding.isTerm() && binding.term()->isBoolean();
+
+          out << "?";
+          if (isPredicate) {
+            outputPredicateName(out, sd->getFunctor());
+          } else {
+            outputFunctionName(out, sd->getFunctor());
+          }
+          out << " ";
           outputTerm(out, binding);
-          out << ")";
+          out << "))";
           ASS_EQ(t->numTermArguments(), 1)
           outputTerm(out, t->termArg(0));
           out << ")";
