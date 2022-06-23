@@ -962,7 +962,6 @@ protected:
     out << "%#\n";
   }
 
-
   bool hideProofStep(InferenceRule rule)
   {
     switch(rule) {
@@ -1012,20 +1011,29 @@ struct InferenceStore::Smt2ProofCheckPrinter
   : ProofPrinter(out, is) {}
 
 protected:
+
+  bool isBuiltInSort(unsigned sortCons) {
+    auto& sig = *env.signature;
+    auto arity = sig.typeConArity(sortCons);
+    auto args = range(0, arity)
+              .map([](auto _a) { return AtomicSort::intSort(); })
+              .template collect<Stack>();
+    auto sortInstance = TermList(AtomicSort::create(sortCons, arity, args.begin()));
+    if (env.signature->isTermAlgebraSort(sortInstance)) {
+      out << "=== warning term algebras are not yet implemented for proof checking ==" << std::endl;
+    }
+    return sig.isArrayCon(sortCons)
+      || sortInstance == AtomicSort::intSort()
+      || sortInstance == AtomicSort::realSort()
+      || sortInstance == AtomicSort::rationalSort();
+  }
+
   void outputSymbolDeclarations(std::ostream& out)
   {
     auto& sig = *env.signature;
 
     for (unsigned i=0; i < sig.typeCons(); ++i) {
-      if (!sig.isArrayCon(i)) {
-        auto arity = sig.typeConArity(i);
-        auto args = range(0, arity)
-                  .map([](auto _a) { return AtomicSort::intSort(); })
-                  .template collect<Stack>();
-        auto instance = AtomicSort::create(i, arity, args.begin());
-        if (env.signature->isTermAlgebraSort(TermList(instance))) {
-          out << "=== warning term algebras are not yet implemented for proof checking ==" << std::endl;
-        }
+      if (!isBuiltInSort(i)) {
         out << "(declare-sort "
             << sig.typeConName(i) << " "
             << sig.typeConArity(i) << ")" 
@@ -1043,7 +1051,7 @@ protected:
         outputFunctionName(out, i);
         out << " (";
         auto fty = sig.getFunction(i)->fnType();
-        for (unsigned a = 0; a < sig.functionArity(a); a++) {
+        for (auto a : range(0, sig.functionArity(i))) {
           out << " ";
           outputSort(out, fty->arg(a));
         }
@@ -1066,9 +1074,10 @@ protected:
         out << "(declare-fun ";
         outputPredicateName(out, i);
         out << " (";
-        for (unsigned a = 0; a < sig.predicateArity(i); a++) {
+        for (auto a : range(0, sig.predicateArity(i))) {
           out << " ";
-          outputSort(out, fty->arg(a));
+          auto s = fty->arg(a);
+          outputSort(out, s);
         }
         out << ") Bool)"
             << std::endl;
@@ -1293,6 +1302,7 @@ protected:
     }
   }
 
+
   void outputLiteral(std::ostream& out, Literal* lit) 
   {
     if (lit->isNegative()) {
@@ -1389,9 +1399,6 @@ protected:
 
   void outputSort(std::ostream& out, TermList sort)
   { 
-    // if (env.signature->isTermAlgebraSort(sort)) {
-    //   nferkjthrow UserErrorException("data types are not yet implemented in smt2 proof checking");
-    // }
     ASS(sort.isTerm())
     if (AtomicSort::intSort() == sort) {
       out << "Int"; 
@@ -1401,8 +1408,6 @@ protected:
       out << "Real";
     } else if (AtomicSort::boolSort() == sort) {
       out << "Bool";
-    // } else if (atom->isArraySort()) {
-    //   ASSERTION_VIOLATION
     } else {
       auto term = sort.term();
       if (term->arity() == 0) {
