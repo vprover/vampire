@@ -2215,6 +2215,7 @@ public:
   const vstring& functionWeights() const { return _functionWeights.actualValue; }
   const vstring& predicateWeights() const { return _predicateWeights.actualValue; }
   const vstring& functionPrecedence() const { return _functionPrecedence.actualValue; }
+  const vstring& typeConPrecedence() const { return _typeConPrecedence.actualValue; }
   const vstring& predicatePrecedence() const { return _predicatePrecedence.actualValue; }
   // Return time limit in deciseconds, or 0 if there is no time limit
   int timeLimitInDeciseconds() const { return _timeLimitInDeciseconds.actualValue; }
@@ -2752,6 +2753,7 @@ private:
   ChoiceOptionValue<KboAdmissibilityCheck> _kboAdmissabilityCheck;
   StringOptionValue _functionWeights;
   StringOptionValue _predicateWeights;
+  StringOptionValue _typeConPrecedence;
   StringOptionValue _functionPrecedence;
   StringOptionValue _predicatePrecedence;
 

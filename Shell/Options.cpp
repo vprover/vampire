@@ -2268,7 +2268,7 @@ void Options::init()
     _kboMaxZero = BoolOptionValue("kbo_max_zero","kmz",false);
     _kboMaxZero.setExperimental();
     _kboMaxZero.onlyUsefulWith(_termOrdering.is(equal(TermOrdering::KBO)));
-    _kboMaxZero.description="Modifies any kbo_weight_scheme by setting (for each sort) a maximal (by the precedence) function symbol to have weight 0.";
+    _kboMaxZero.description="Modifies any kbo_weight_scheme by setting the maximal (by the precedence) function symbol to have weight 0.";
     _lookup.insert(&_kboMaxZero);
 
     _kboAdmissabilityCheck = ChoiceOptionValue<KboAdmissibilityCheck>(
@@ -2308,6 +2308,11 @@ void Options::init()
     _functionWeights.setExperimental();
     _functionWeights.onlyUsefulWith(_termOrdering.is(equal(TermOrdering::KBO)));
     _lookup.insert(&_functionWeights);
+
+    _typeConPrecedence = StringOptionValue("function_precendence","fp","");
+    _typeConPrecedence.description = "A name of a file with an explicit user specified precedence on type constructor symbols.";
+    _typeConPrecedence.setExperimental();
+    _lookup.insert(&_typeConPrecedence);
 
     _functionPrecedence = StringOptionValue("function_precendence","fp","");
     _functionPrecedence.description = "A name of a file with an explicit user specified precedence on function symbols.";

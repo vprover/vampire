@@ -340,10 +340,10 @@ struct FuncSigTraits {
   { return opts.functionWeights(); } 
 
   static bool isUnaryFunction (unsigned functor) 
-  { return env.signature->getFunction(functor)->arity() == 1; } 
+  { return env.signature->getFunction(functor)->numTermArguments() == 1; } 
 
   static bool isConstantSymbol(unsigned functor) 
-  { return env.signature->getFunction(functor)->arity() == 0; } 
+  { return env.signature->getFunction(functor)->numTermArguments() == 0; } 
 
   static Signature::Symbol* getSymbol(unsigned functor) 
   { return env.signature->getFunction(functor); }
@@ -523,13 +523,14 @@ KBO::KBO(
 #endif
 
     // precedence ordering params
-    DArray<int> funcPrec, 
+    DArray<int> funcPrec,
+    DArray<int> typeConPrec,     
     DArray<int> predPrec, 
     DArray<int> predLevels, 
 
     // other
     bool reverseLCM
-  ) : PrecedenceOrdering(funcPrec, predPrec, predLevels, reverseLCM)
+  ) : PrecedenceOrdering(funcPrec, typeConPrec, predPrec, predLevels, reverseLCM)
   , _funcWeights(funcWeights)
 #if __KBO__CUSTOM_PREDICATE_WEIGHTS__
   , _predWeights(predWeights)
@@ -544,6 +545,13 @@ KBO KBO::testKBO()
 
   auto funcPrec = []() -> DArray<int>{
     unsigned num = env.signature->functions();
+    DArray<int> out(num);
+    out.initFromIterator(getRangeIterator(0u, num));
+    return out;
+  };
+
+  auto typeConPrec = []() -> DArray<int>{
+    unsigned num = env.signature->typeCons();
     DArray<int> out(num);
     out.initFromIterator(getRangeIterator(0u, num));
     return out;
@@ -568,71 +576,70 @@ KBO KBO::testKBO()
       KboWeightMap<PredSigTraits>::randomized(), 
 #endif
       funcPrec(),
+      typeConPrec(),
       predPrec(),
       predLevels(),
       false);
 }
 
-void KBO::zeroOutWeightForMaximalFuncs() {
+void KBO::zeroWeightForMaximalFunc() {
   // actually, it's non-constant maximal func, as constants cannot be weight 0
 
-  using SortType = TermList;
   using FunctionSymbol = unsigned;
   auto nFunctions = _funcWeights._weights.size();
-  auto maximalFunctions = Map<SortType, FunctionSymbol>();
 
-  for (FunctionSymbol i = 0; i < nFunctions; i++) {
-    auto symb = env.signature->getFunction(i);
-    auto sort = symb->fnType()->result();
-    auto maxFn = maximalFunctions.getOrInit(sort, [&](){ return i; } );
+  FunctionSymbol maxFn = 0;
+
+  for (FunctionSymbol i = 1; i < nFunctions; i++) {
     if (compareFunctionPrecedences(maxFn, i) == LESS) {
-      maximalFunctions.replace(sort, i);
+      maxFn = i;
     }
   }
 
-  Map<SortType, FunctionSymbol>::Iterator it(maximalFunctions);
-  while (it.hasNext()) {
-    FunctionSymbol i = it.next().value();
-    auto symb = env.signature->getFunction(i);
-    auto arity = symb->arity();
+  auto symb = env.signature->getFunction(maxFn);
+  auto arity = symb->numTermArguments();
 
-    // skip constants here (they can't be smaller than $var)
-    if (arity == 0) continue;
+  // skip constants here (they can't be smaller than $var)
+  if (arity != 0){
     // TODO: we could also have remembered the "second largest" symbol, if a constant was the largest
     // (but we could not use them if they were of arity 1)
 
-    _funcWeights._weights[i] = 0;
+    _funcWeights._weights[maxFn] = 0;
   }
+  
 }
 
 template<class HandleError>
 void KBO::checkAdmissibility(HandleError handle) const 
 {
-  using SortType = TermList;
   using FunctionSymbol = unsigned;
   auto nFunctions = _funcWeights._weights.size();
-  auto maximalFunctions = Map<SortType, FunctionSymbol>();
+  FunctionSymbol maxFn = 0;
 
-  for (FunctionSymbol i = 0; i < nFunctions; i++) {
-    auto sort = env.signature->getFunction(i)->fnType()->result();
-    /* register min function */
-    auto maxFn = maximalFunctions.getOrInit(sort, [&](){ return i; } );
+  for (FunctionSymbol i = 1; i < nFunctions; i++) {
     if (compareFunctionPrecedences(maxFn, i) == LESS) {
-      maximalFunctions.replace(sort, i);
+      maxFn = i;
     }
   }
+
+  // TODO remove unary minus check once new 
+  // theory calculus goes into master
+  auto isUnaryMinus = [](unsigned functor){
+    return functor == IntTraits::minusF() ||
+           functor == RatTraits::minusF() ||
+           functor == RealTraits::minusF();
+  };
 
   ////////////////// check kbo-releated constraints //////////////////
   unsigned varWght = _funcWeights._specialWeights._variableWeight;
 
   for (unsigned i = 0; i < nFunctions; i++) {
-    auto sort = env.signature->getFunction(i)->fnType()->result();
-    auto arity = env.signature->getFunction(i)->arity();
+    auto arity = env.signature->getFunction(i)->numTermArguments();
 
     if (_funcWeights._weights[i] < varWght && arity == 0) {
       handle(UserErrorException("weight of constants (i.e. ", env.signature->getFunction(i)->name(), ") must be greater or equal to the variable weight (", varWght, ")"));
 
-    } else if (_funcWeights.symbolWeight(i) == 0 && arity == 1 && maximalFunctions.get(sort) != i) {
+    } else if (_funcWeights.symbolWeight(i) == 0 && arity == 1 && maxFn != i && !isUnaryMinus(i)) {
       handle(UserErrorException( "a unary function of weight zero (i.e.: ", env.signature->getFunction(i)->name(), ") must be maximal wrt. the precedence ordering"));
 
     }
@@ -670,7 +677,7 @@ KBO::KBO(Problem& prb, const Options& opts)
   CALL("KBO::KBO(Prb&, Opts&)");
 
   if (opts.kboMaxZero()) {
-    zeroOutWeightForMaximalFuncs();
+    zeroWeightForMaximalFunc();
   }
 
   if (opts.kboAdmissabilityCheck() == Options::KboAdmissibilityCheck::ERROR)
@@ -785,7 +792,7 @@ int KBO::symbolWeight(Term* t) const
     //For now just give all type constructors minimal weight
     return _funcWeights._specialWeights._variableWeight;
   }
-    return _funcWeights.symbolWeight(t);
+  return _funcWeights.symbolWeight(t);
 }
 
 template<class SigTraits>
