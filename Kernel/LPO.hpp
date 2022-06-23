@@ -39,8 +39,9 @@ public:
   LPO(Problem& prb, const Options& opt) :
     PrecedenceOrdering(prb, opt)
   {}
-  LPO(const DArray<int>& funcPrec, const DArray<int>& predPrec, const DArray<int>& predLevels, bool reverseLCM) :
-    PrecedenceOrdering(funcPrec, predPrec, predLevels, reverseLCM)
+  LPO(const DArray<int>& funcPrec, const DArray<int>& typeConPrec, 
+      const DArray<int>& predPrec, const DArray<int>& predLevels, bool reverseLCM) :
+    PrecedenceOrdering(funcPrec, typeConPrec, predPrec, predLevels, reverseLCM)
   {}
   ~LPO() override = default;
 
