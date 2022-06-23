@@ -1018,6 +1018,14 @@ protected:
 
     for (unsigned i=0; i < sig.typeCons(); ++i) {
       if (!sig.isArrayCon(i)) {
+        auto arity = sig.typeConArity(i);
+        auto args = range(0, arity)
+                  .map([](auto _a) { return AtomicSort::intSort(); })
+                  .template collect<Stack>();
+        auto instance = AtomicSort::create(i, arity, args.begin());
+        if (env.signature->isTermAlgebraSort(TermList(instance))) {
+          out << "=== warning term algebras are not yet implemented for proof checking ==" << std::endl;
+        }
         out << "(declare-sort "
             << sig.typeConName(i) << " "
             << sig.typeConArity(i) << ")" 
@@ -1161,7 +1169,17 @@ protected:
     if (theory->isInterpretedPredicate(p)) {
       outputInterpretationName(out, theory->interpretPredicate(p));
     } else {
-      out << env.signature->predicateName(p);
+      outputQuoted(out, env.signature->predicateName(p));
+    }
+  }
+
+  void outputQuoted(std::ostream& out, vstring const& name) 
+  {
+    if ( name[0] == '\'' || name[0] == '$') {
+      // add one more level of quoting
+      out << '|' << name << "|";
+    } else  {
+      out << name;
     }
   }
 
@@ -1190,9 +1208,10 @@ protected:
           || name == "tan"
           || name == "sqrt"
           ) {
-        out << "_";
+        out << "_" << name;
+      } else {
+        outputQuoted(out, name);
       }
-      out << name;
     }
   }
 
@@ -1364,6 +1383,9 @@ protected:
 
   void outputSort(std::ostream& out, TermList sort)
   { 
+    // if (env.signature->isTermAlgebraSort(sort)) {
+    //   nferkjthrow UserErrorException("data types are not yet implemented in smt2 proof checking");
+    // }
     ASS(sort.isTerm())
     if (AtomicSort::intSort() == sort) {
       out << "Int"; 
@@ -1384,7 +1406,7 @@ protected:
         if (sort.isArraySort()){
           out << "Array";
         } else {
-          out << env.signature->typeConName(term->functor());
+          outputQuoted(out, env.signature->typeConName(term->functor()));
         }
         for (unsigned a = 0; a < term->arity(); a++) {
            out << " ";
