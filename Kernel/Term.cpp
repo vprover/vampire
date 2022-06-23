@@ -42,7 +42,7 @@
 #define ALWAYS_OUTPUT_TERM_ITE 0
 
 // changes whether theory terms are nicely formatted ($plus($uminus(s),t) vs (-(s) + t) )
-#define NICE_THEORY_OUTPUT 1
+#define NICE_THEORY_OUTPUT 0
 
 using namespace std;
 using namespace Lib;

@@ -188,9 +188,45 @@ void checkCeiling()
 }
 
 
-#define CHECK_FRAC(Const) \
-  TEST_FUN(check_ceiling_##Const) { checkCeiling<Const>(); } \
-  TEST_FUN(check_floor_  ##Const) { checkFloor  <Const>(); } \
+#define CHECK_FRAC(Const)                                                                           \
+  TEST_FUN(check_ceiling_##Const) { checkCeiling<Const>(); }                                        \
+  TEST_FUN(check_floor_  ##Const) { checkFloor  <Const>(); }                                        \
 
 CHECK_FRAC(RationalConstantType)
 CHECK_FRAC(RealConstantType)
+
+
+template<class Quot, class Rem>
+void check_quotient(int n_, int d_, int q_, Quot quotient, Rem remainder)
+{
+  auto n = IntegerConstantType(n_);
+  auto d = IntegerConstantType(d_);
+  auto q = IntegerConstantType(q_);
+  auto res = quotient(n,d);
+  auto rem = remainder(n,d);
+  auto exp = q;
+  if (res != exp) {
+    std::cout << "[ fail ]" << n << " / " << d << std::endl;
+    std::cout << "[   is ]" << n.quotientT(d) << std::endl;
+    std::cout << "[  exp ]" << q << std::endl;
+    ASSERTION_VIOLATION
+  } else if (res * d + rem != n) {
+    std::cout << "[ fail ]" << n << " mod " <<  d << std::endl;
+    std::cout << "[   is ]" << rem << std::endl;
+    std::cout << "[  exp ]" << n - exp * d << std::endl;
+    ASSERTION_VIOLATION
+  }
+};
+
+
+TEST_FUN(quotient_t) {
+  auto check = [](auto n, auto d, auto q) {
+    check_quotient(n,d,q, 
+        [](auto l, auto r) { return l.quotientT(r); },
+        [](auto l, auto r) { return l.remainderT(r); });
+  };
+
+  check( 1, 2,  0);
+  check( 7, 2,  3);
+  check(-7, 2, -3);
+}
