@@ -28,6 +28,13 @@ DArray<int> lpoPredPrec() {
   return out;
 }
 
+DArray<int> lpoTypeConPrec(){
+  unsigned num = env.signature->typeCons();
+  DArray<int> out(num);
+  out.initFromIterator(getRangeIterator(0u, num));
+  return out;
+};
+
 DArray<int> lpoPredLevels() {
   DArray<int> out(env.signature->predicates());
   out.init(out.size(), 1);
@@ -40,7 +47,7 @@ inline void compareTwoWays(const Ordering& ord, TermSugar t1, TermSugar t2) {
 }
 
 LPO lpo() {
-  return LPO(lpoFuncPrec(), lpoPredPrec(), lpoPredLevels(), false /* reverseLCM */);
+  return LPO(lpoFuncPrec(), lpoTypeConPrec(), lpoPredPrec(), lpoPredLevels(), false /* reverseLCM */);
 }
 
 ////////////////////////////////////////////////////////////////////////////////

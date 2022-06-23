@@ -36,6 +36,13 @@ DArray<int> predPrec() {
   return out;
 }
 
+DArray<int> typeConPrec(){
+  unsigned num = env.signature->typeCons();
+  DArray<int> out(num);
+  out.initFromIterator(getRangeIterator(0u, num));
+  return out;
+};
+
 DArray<int> predLevels() {
   DArray<int> out(env.signature->predicates());
   out.init(out.size(), 1);
@@ -79,6 +86,7 @@ KBO kbo(unsigned introducedSymbolWeight,
                env.signature->predicates()), 
 #endif
              funcPrec(), 
+             typeConPrec(),
              predPrec(), 
              predLevels(),
              /*revereseLCM*/ false);
