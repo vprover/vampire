@@ -1046,11 +1046,18 @@ protected:
       }
     }
     for (unsigned i = 0; i < sig.predicates(); ++i) {
-      if (!theory->isInterpretedPredicate(i)) {
+      auto fty = sig.getPredicate(i)->predType();
+      // we might introduce an equality proxy for rationals, which 
+      // we cannot translate to smt2 as there are no rationals there
+      // therefore we skip that
+      auto hasRatArg = range(0, sig.predicateArity(i))
+          .any([&](auto a)
+              { return fty->arg(a) == AtomicSort::rationalSort(); });
+      if (!theory->isInterpretedPredicate(i) && !hasRatArg) {
+
         out << "(declare-fun ";
         outputPredicateName(out, i);
         out << " (";
-        auto fty = sig.getPredicate(i)->predType();
         for (unsigned a = 0; a < sig.predicateArity(i); a++) {
           out << " ";
           outputSort(out, fty->arg(a));
