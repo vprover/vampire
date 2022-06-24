@@ -1313,6 +1313,13 @@ protected:
       } else {
         throw UserErrorException("only reals and integers are allowed in smt2");
       }
+
+    } else if (env.signature->isFoolConstantSymbol(true, f)) {
+      out << "true";
+
+    } else if (env.signature->isFoolConstantSymbol(false, f)) {
+      out << "false";
+
     } else {
       auto& name = env.signature->functionName(f);
       outputQuoted(out, name);
