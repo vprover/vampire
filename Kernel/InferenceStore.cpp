@@ -1059,7 +1059,7 @@ protected:
         }
         out << " )";
         outputSort(out, fty->result());
-        out << " )" 
+        out << ")" 
             << std::endl;
       }
     }
@@ -1081,7 +1081,7 @@ protected:
           auto s = fty->arg(a);
           outputSort(out, s);
         }
-        out << ") Bool)"
+        out << " ) Bool)"
             << std::endl;
       }
     }

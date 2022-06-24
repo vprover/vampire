@@ -158,6 +158,26 @@ Z3Interfacing::Z3Interfacing(SAT2FO& s2f, bool showZ3, bool unsatCoresForAssumpt
 #endif // TRACE_Z3
 
   _solver.set(p);
+  for (auto c : { 'f', 't' }) {
+    for (auto s : { _context.real_sort(), _context.int_sort() }) {
+      // we need these auxilary variables to make $quotient_t and friends 
+      // uninterpreted functions for a zero divisor. i.e. we need to make 
+      // sure that they are completely freely interpreted, and that there
+      // is for example no relationship between $quotient_t(2, 0), 
+      // $remainder_t(2, 0). in previous definitions they functionally
+      // deptendet on the result of 2/0, which is not sound.
+      // We make sure that they are freely interpreted by introducing 
+      // an uninterpreted function $quotient_t0, and defining
+      // $quotient_t(x, y) = if(y == 0) $quotient_t0(y)
+      //                     else <actual definition >
+      //
+      // This is done later in ToZ3Expr
+      auto q_name = vstring("$quotient_") + c + "0";
+      auto r_name = vstring("$remainder_") + c + "0";
+      outputln(_context.function(q_name.c_str(), _context.real_sort(), _context.real_sort()));
+      outputln(_context.function(r_name.c_str(), _context.real_sort(), _context.real_sort()));
+    }
+  }
   // TODO some way to serizalize the params for z3 to an smtlib file
 }
 
@@ -832,14 +852,35 @@ namespace tptp {
   z3::expr truncate(z3::expr x)
   { return ite(x >= 0, tptp::floor(x), tptp::ceiling(x)); }
 
-  z3::expr quotient_e(z3::expr n, z3::expr d)
-  { return ite(d >= 0, floor(n / d), ceiling(n / d)); }
+  z3::expr quotient0(const char* name, z3::expr x)
+  {
+      vstring fname = vstring("$quotient_") + name + "0";
+      // uninterpreted remainder for zero division
+      auto quotient0 = x.ctx().function(fname.c_str(), x.get_sort(), x.get_sort());
+      return quotient0(x);
+  }
+
+  z3::expr remainder0(const char* name, z3::expr x)
+  {
+      vstring fname = vstring("$quotient_") + name + "0";
+      // uninterpreted remainder for zero division
+      auto remainder0 = x.ctx().function(fname.c_str(), x.get_sort(), x.get_sort());
+      return remainder0(x);
+  }
+
+  z3::expr quotient_e(z3::expr l, z3::expr r)
+  { return z3::mod(l, r); }
+
+  z3::expr remainder_e(z3::expr l, z3::expr r)
+  { return z3::rem(l, r); }
 
   z3::expr quotient_t(z3::expr l, z3::expr r)
-  { return tptp::truncate(l / r); }
+  { return ite(r == 0, tptp::quotient0("t", r)
+                     , tptp::truncate(l / r)); }
 
   z3::expr quotient_f(z3::expr l, z3::expr r)
-  { return tptp::floor(l / r); }
+  { return ite(r == 0, tptp::quotient0("f", l / r)
+                     , tptp::floor(l / r)); }
 
   template<class F>
   struct LiftInt
@@ -854,12 +895,14 @@ namespace tptp {
   template<class F>
   struct RemainderOp
   {
+    const char* name;
     F quotient;
 
     z3::expr operator()(z3::expr l, z3::expr r)
-    { return l / r - quotient(l,r); }
+    { return ite(r == 0, remainder0(name, l)
+                       , l - r * quotient(l,r)); }
   };
-  template<class F> RemainderOp<F> remainder(F f) { return RemainderOp<F>{ f }; }
+  template<class F> RemainderOp<F> remainder(const char* name, F f) { return RemainderOp<F>{ name, f }; }
 }
 
 
@@ -1038,25 +1081,25 @@ struct ToZ3Expr
         case Theory::INT_QUOTIENT_E:  return args[0] / args[1];          /* <--- same semantics of tptp and smtlib2 for int */
         case Theory::INT_REMAINDER_E: return z3::mod(args[0], args[1]);  /* <---                                            */
         case Theory::RAT_QUOTIENT_E:
-        case Theory::REAL_QUOTIENT_E:  return                 tptp::quotient_e (args[0], args[1]);
+        case Theory::REAL_QUOTIENT_E:  return                      tptp::quotient_e (args[0], args[1]);
         case Theory::RAT_REMAINDER_E:
-        case Theory::REAL_REMAINDER_E: return tptp::remainder(tptp::quotient_e)(args[0], args[1]);
+        case Theory::REAL_REMAINDER_E: return tptp::remainder("e", tptp::quotient_e)(args[0], args[1]);
 
          /** {quotient,remainder}_t */
-        case Theory::INT_QUOTIENT_T:  return tptp::liftInt(                tptp::quotient_t )(args[0],args[1]);
-        case Theory::INT_REMAINDER_T: return tptp::liftInt(tptp::remainder(tptp::quotient_t))(args[0],args[1]);
+        case Theory::INT_QUOTIENT_T:  return tptp::liftInt(                     tptp::quotient_t )(args[0],args[1]);
+        case Theory::INT_REMAINDER_T: return tptp::liftInt(tptp::remainder("t", tptp::quotient_t))(args[0],args[1]);
         case Theory::RAT_QUOTIENT_T:
-        case Theory::REAL_QUOTIENT_T: return                 tptp::quotient_t (args[0], args[1]);
+        case Theory::REAL_QUOTIENT_T: return                      tptp::quotient_t (args[0], args[1]);
         case Theory::REAL_REMAINDER_T:
-        case Theory::RAT_REMAINDER_T: return tptp::remainder(tptp::quotient_t)(args[0], args[1]);
+        case Theory::RAT_REMAINDER_T: return tptp::remainder("t", tptp::quotient_t)(args[0], args[1]);
 
         /** {quotient,remainder}_f */
-        case Theory::INT_QUOTIENT_F:  return tptp::liftInt(                tptp::quotient_f )(args[0], args[1]);
-        case Theory::INT_REMAINDER_F: return tptp::liftInt(tptp::remainder(tptp::quotient_f))(args[0],args[1]);
+        case Theory::INT_QUOTIENT_F:  return tptp::liftInt(                     tptp::quotient_f )(args[0], args[1]);
+        case Theory::INT_REMAINDER_F: return tptp::liftInt(tptp::remainder("f", tptp::quotient_f))(args[0],args[1]);
         case Theory::RAT_QUOTIENT_F:
-        case Theory::REAL_QUOTIENT_F: return                 tptp::quotient_f (args[0], args[1]);
+        case Theory::REAL_QUOTIENT_F: return                      tptp::quotient_f (args[0], args[1]);
         case Theory::REAL_REMAINDER_F:
-        case Theory::RAT_REMAINDER_F: return tptp::remainder(tptp::quotient_f)(args[0], args[1]);
+        case Theory::RAT_REMAINDER_F: return tptp::remainder("f", tptp::quotient_f)(args[0], args[1]);
 
 
         case Theory::RAT_TO_INT:
