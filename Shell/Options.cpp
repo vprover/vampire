@@ -3589,6 +3589,8 @@ Lib::vvector<float> Options::theorySplitQueueCutoffs() const
   CALL("Options::theorySplitQueueCutoffs");
   // initialize cutoffs
   Lib::vvector<float> cutoffs;
+
+  /*
   if (_theorySplitQueueCutoffs.isDefault()) {
     // if no custom cutoffs are set, use heuristics: (0,4*d,10*d,infinity)
     auto d = _theorySplitQueueExpectedRatioDenom.actualValue;
@@ -3596,7 +3598,8 @@ Lib::vvector<float> Options::theorySplitQueueCutoffs() const
     cutoffs.push_back(4.0f * d);
     cutoffs.push_back(10.0f * d);
     cutoffs.push_back(std::numeric_limits<float>::max());
-  } else {
+  } else */ 
+  {
     // if custom cutoffs are set, parse them and add float-max as last value
     cutoffs = parseCommaSeparatedList<float>(_theorySplitQueueCutoffs.actualValue);
     cutoffs.push_back(std::numeric_limits<float>::max());
