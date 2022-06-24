@@ -1231,7 +1231,7 @@ protected:
          throw UserErrorException("divides function", itp, " does not exist in SMT2");
 
       case Theory::INT_SUCCESSOR: out << "+ 1"; return;
-      case Theory::INT_ABS: out << "asb"; return;
+      case Theory::INT_ABS: out << "abs"; return;
 
       case Theory::INT_QUOTIENT_E: out << "div"; return;
       case Theory::INT_REMAINDER_E: out << "mod"; return;
