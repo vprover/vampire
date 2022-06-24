@@ -1035,8 +1035,9 @@ protected:
 
     for (unsigned i=0; i < sig.typeCons(); ++i) {
       if (!isBuiltInSort(/* may output warning */ out, i)) {
-        out << "(declare-sort "
-            << sig.typeConName(i) << " "
+        out << "(declare-sort ";
+        outputQuoted(out, sig.typeConName(i));
+        out << " "
             << sig.typeConArity(i) << ")" 
             << std::endl;
       }
@@ -1056,9 +1057,9 @@ protected:
           out << " ";
           outputSort(out, fty->arg(a));
         }
-        out << ")";
+        out << " )";
         outputSort(out, fty->result());
-        out << ")" 
+        out << " )" 
             << std::endl;
       }
     }
@@ -1269,7 +1270,16 @@ protected:
 
   static void outputQuoted(std::ostream& out, vstring const& name) 
   {
-    if ( name[0] == '\'' || name[0] == '$') {
+    if (   name == "exp"
+        || name == "log"
+        || name == "cos"
+        || name == "sin"
+        || name == "tan"
+        || name == "sqrt"
+        || name == "const"
+        ) {
+        out << "_" << name;
+    } else if ( name[0] == '\'' || name[0] == '$') {
       // add one more level of quoting
       out << '|' << name << "|";
     } else  {
@@ -1305,18 +1315,7 @@ protected:
       }
     } else {
       auto& name = env.signature->functionName(f);
-      if (   name == "exp"
-          || name == "log"
-          || name == "cos"
-          || name == "sin"
-          || name == "tan"
-          || name == "sqrt"
-          || name == "const"
-          ) {
-        out << "_" << name;
-      } else {
-        outputQuoted(out, name);
-      }
+      outputQuoted(out, name);
     }
   }
 
@@ -1563,7 +1562,8 @@ protected:
     } else {
       auto term = sort.term();
       if (term->arity() == 0) {
-        out << sort;
+        outputQuoted(out, env.signature->typeConName(term->functor()));
+
       } else {
         out << "(";
         if (sort.isArraySort()){
