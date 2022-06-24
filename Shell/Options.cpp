@@ -2306,7 +2306,7 @@ void Options::init()
     _functionWeights.onlyUsefulWith(_termOrdering.is(equal(TermOrdering::KBO)));
     _lookup.insert(&_functionWeights);
 
-    _typeConPrecedence = StringOptionValue("function_precendence","fp","");
+    _typeConPrecedence = StringOptionValue("type_con_precendence","tcp","");
     _typeConPrecedence.description = "A name of a file with an explicit user specified precedence on type constructor symbols.";
     _typeConPrecedence.setExperimental();
     _lookup.insert(&_typeConPrecedence);
