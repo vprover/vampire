@@ -1013,52 +1013,6 @@ struct InferenceStore::Smt2ProofCheckPrinter
 
 protected:
 
-  // template<class... As>
-  // struct Par {
-  //   std::tuple<typename As::Type...> const& as;
-  //
-  //   template<class B, class... Bs>
-  //   void _out(std::ostream& out, typename B::Type b, typename Bs::Type... bs)
-  //   { 
-  //     out << " ";
-  //     B::output(b);
-  //     _out<Bs...>(out, bs...);
-  //   }
-  //
-  //   void _out(std::ostream& out)
-  //   { out << " "; }
-  //
-  //   friend std::ostream& operator<<(std::ostream& out, Par const& self)
-  //   { 
-  //     out << "(";
-  //     _out<As...>(as)
-  //     out << as...;
-  //     A::output(self.func);
-  //     for (auto& a : self.args.begin())  {
-  //       out << " ";
-  //       B::output(a);
-  //     }
-  //     out << ")";
-  //   }
-  // };
-
-
-  // template<class A, class B>
-  // struct Appl {
-  //   typename A::Type const& func;
-  //   Stack<typename B::Type> args;
-  //   friend std::ostream& operator<<(std::ostream& out, Appl const& self)
-  //   { 
-  //     out << "(";
-  //     A::output(self.func);
-  //     for (auto& a : self.args.begin())  {
-  //       out << " ";
-  //       B::output(a);
-  //     }
-  //     out << ")";
-  //   }
-  // };
-
   static bool isBuiltInSort(std::ostream& out, unsigned sortCons) {
     auto& sig = *env.signature;
     auto arity = sig.typeConArity(sortCons);
@@ -1130,12 +1084,6 @@ protected:
             << std::endl;
       }
     }
-    // from smtlib quotient definition:
-    //
-    // Regardless of sign of m, 
-    // when n is positive, (div m n) is the floor of the rational number m/n;
-    // when n is negative, (div m n) is the ceiling of m/n.
-
 
     auto defRemainderInTermsOfQuotient = [&](auto kind, auto definition) {
       out << "(declare-fun |$quotient_"  << kind << "0| (Int) Int)         " << std::endl
@@ -1561,6 +1509,18 @@ protected:
     switch (f->connective()) {
       case NAME:
         // TODO
+        // try {
+        //   auto& name = static_cast<const NamedFormula*>(f)->name();
+        //   bool negated = name[0] == '~';
+        //   BYPASSING_ALLOCATOR
+        //   SplitLevel num = name[0] == '~' 
+        //                  ? std::stoi(name.substr(1).c_str()) 
+        //                  : std::stoi(name.c_str());
+        //   outputFormula(out, env.splitter)
+        // } catch (std::invalid_argument) {
+        //   throw UserErrorException("could not parse named formula ", *f);
+        // }
+        // return;
         out << static_cast<const NamedFormula*>(f)->name();
         return;
 
@@ -1662,32 +1622,36 @@ protected:
     // out << std::endl;
     // exit(-1);
   }
-  void printStep(Unit* cs)
+  void printStep(Unit* concl)
   {
     CALL("InferenceStore::ProofCheckPrinter::printStep");
+
     InferenceRule rule;
-    UnitIterator parents=_is->getParents(cs, rule);
+    auto prems = iterTraits(_is->getParents(concl, rule));
+
+    // if (InferenceRule::AVATAR_REFUTATION_SMT != rule)
+    //   return;
  
-    //outputSymbolDeclarations also deals with sorts for now
-    //UIHelper::outputSortDeclarations(out);
-    // UIHelper::outputSymbolDeclarations(out);
     outputSymbolDeclarations(out);
+    out        << std::endl;
+    out        << std::endl;
 
-    // vstring kind = "fof";
-    // if(env.property->hasNonDefaultSorts()){ kind="tff"; } 
-    // if(env.property->higherOrder()){ kind="thf"; }
-
-    // _is->getUnitIdStr(prem)
-    out << "(assert (not ";
-    output(out, cs);
-    out  << ")) ;- rule: " << ruleName(rule) << std::endl;
-
-    while(parents.hasNext()) {
-      auto prem = parents.next();
+    for (auto prem : prems) {
+      out << ";- unit id: " << _is->getUnitIdStr(prem) << std::endl;
       out << "(assert ";
       output(out, prem);
       out << ")" << std::endl;
+      out        << std::endl;
     }
+
+    out << std::endl;
+    out << ";- rule: " << ruleName(rule) << std::endl;
+    out << std::endl;
+    out << ";- unit id: " << _is->getUnitIdStr(concl) << std::endl;
+    out << "(assert (not ";
+    output(out, concl);
+    out  << "))" << std::endl;
+
     out << "(check-sat)" << std::endl;
     out << "%#" << std::endl;
   }
