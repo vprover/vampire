@@ -433,7 +433,12 @@ struct EvaluateInModel
 #if WITH_GMP
       int64_t i64_val;
       std::string str_val;
+      static_assert(std::is_same<decltype(mpz_class(0).get_si()), signed long int>::value, "unexpected number type sizes");
       static_assert(sizeof(signed long int) == sizeof(int64_t), "unexpected number type sizes");
+      static_assert(sizeof(int64_t) == sizeof(signed long int), "unexpected number size");
+      static_assert(sizeof(int64_t) == 64 / 8, "unexpected number size");
+      static_assert(numeric_limits<signed long int>::max() == numeric_limits<int64_t>::max(), "unexpected number size");
+      static_assert(numeric_limits<signed long int>::min() == numeric_limits<int64_t>::min(), "unexpected number size");
       BYPASSING_ALLOCATOR;
       if (e.is_numeral_i64(i64_val)) {
         mpz_class out;
