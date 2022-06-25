@@ -918,6 +918,8 @@ z3::expr int_to_z3_expr(IntegerConstantType const& val, UInt64ToExpr toExpr) {
     while(!abs.fits_ulong_p()) {
       unsigned long int ui = mpz_get_ui(abs.get_mpz_t());
       static_assert(sizeof(unsigned long int) == sizeof(uint64_t), "unexpected number size");
+      static_assert(sizeof(unsigned long int) == 64 / 8, "unexpected number size");
+      static_assert(numeric_limits<unsigned long int>::max() == numeric_limits<uint64_t>::max(), "unexpected number size");
       digits.push(uint64_t(ui));
       mpz_tdiv_q_2exp(abs.get_mpz_t(), abs.get_mpz_t(), 64);
     }
