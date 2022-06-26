@@ -308,6 +308,7 @@ SATSolver::Status Z3Interfacing::solve()
   if(_showZ3){
     env.beginOutput();
     env.out() << "[Z3] solve result: " << result << std::endl;
+    env.out() << "[Z3] solve result: " << (int)result << std::endl;
     env.endOutput();
   }
 
