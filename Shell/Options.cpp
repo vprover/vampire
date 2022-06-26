@@ -910,7 +910,8 @@ void Options::init()
 
     _ageWeightRatioShape = ChoiceOptionValue<AgeWeightRatioShape>("age_weight_ratio_shape","awrs",AgeWeightRatioShape::CONSTANT,{"constant","decay", "converge"});
     _ageWeightRatioShape.description = "How to change the age/weight ratio during proof search.";
-    _ageWeightRatioShape.onlyUsefulWith(_ageWeightRatio.is(isNotDefaultRatio()));
+    _ageWeightRatioShape.onlyUsefulWith(Or(_ageWeightRatio.is(isNotDefaultRatio()),
+                                           _instGenWithResolution.is(equal(true)))); // because _instGenWithResolution hardwires awr 7:1 for its attached SA
     _lookup.insert(&_ageWeightRatioShape);
     _ageWeightRatioShape.tag(OptionTag::SATURATION);
 

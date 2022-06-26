@@ -61,8 +61,7 @@ static const int LOOKAHEAD_SELECTION = 1011;
 
 IGAlgorithm::IGAlgorithm(Problem& prb,const Options& opt)
 : MainLoop(prb, opt),
-    _instGenResolutionRatio(opt.instGenResolutionRatioInstGen(),
-	opt.instGenResolutionRatioResolution(), 50),
+    _instGenResolutionRatio(opt.instGenResolutionRatioInstGen(),opt.instGenResolutionRatioResolution(), 50),
     _passive(opt),
     _tautologyDeletion(false),
     _equalityProxy(0)
