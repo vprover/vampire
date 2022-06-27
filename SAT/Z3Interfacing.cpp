@@ -308,7 +308,6 @@ SATSolver::Status Z3Interfacing::solve()
   if(_showZ3){
     env.beginOutput();
     env.out() << "[Z3] solve result: " << result << std::endl;
-    env.out() << "[Z3] solve result: " << (int)result << std::endl;
     env.endOutput();
   }
 
@@ -875,10 +874,10 @@ namespace tptp {
   }
 
   z3::expr quotient_e(z3::expr l, z3::expr r)
-  { return z3::mod(l, r); }
+  { return l / r; }
 
   z3::expr remainder_e(z3::expr l, z3::expr r)
-  { return z3::rem(l, r); }
+  { return z3::mod(l, r); }
 
   z3::expr quotient_t(z3::expr l, z3::expr r)
   { return ite(r == 0, tptp::quotient0("t", r)
