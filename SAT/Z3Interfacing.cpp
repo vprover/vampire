@@ -153,9 +153,9 @@ Z3Interfacing::Z3Interfacing(SAT2FO& s2f, bool showZ3, bool unsatCoresForAssumpt
 
 #if TRACE_Z3
   setOption("trace", "true");
-  //Z3_enable_trace("memory");
-  //Z3_enable_trace("datatype");
   Z3_enable_trace("arith");
+  // Z3_enable_trace("memory");
+  // Z3_enable_trace("datatype");
 #endif // TRACE_Z3
 
   _solver.set(p);
@@ -445,8 +445,8 @@ struct EvaluateInModel
         mpz_class out;
         std::cout << "i64_val: " << " " << i64_val << std::endl;
         mpz_set_si(out.get_mpz_t(), i64_val);
-        std::cout << "out: " << " " << out << std::endl;
-        std::cout << i64_val << std::endl;
+        // std::cout << "out: " << " " << out << std::endl;
+        // std::cout << i64_val << std::endl;
         return Option<InnerType>(std::move(out));
       } else if (e.is_numeral(str_val)) {
         mpz_class out(str_val);
