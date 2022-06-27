@@ -152,7 +152,7 @@ Z3Interfacing::Z3Interfacing(SAT2FO& s2f, bool showZ3, bool unsatCoresForAssumpt
   // Z3_set_error_handler(_context, handleZ3Error); // MS: a handled error only reveals Z3_error_code, a propragated z3::exception is typically more informative
 
 #if TRACE_Z3
-  setOption("trace", "true");
+  // setOption("trace", "true");
   Z3_enable_trace("arith");
   // Z3_enable_trace("memory");
   // Z3_enable_trace("datatype");
