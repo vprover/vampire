@@ -55,7 +55,7 @@ Clause* CombinatorNormalisationISE::simplify(Clause* c)
     
     if((t0r != t0) || (t1r != t1)){
       modified = true;
-      newLit = Literal::createEquality(lit->polarity(), TermList(t0r), TermList(t1r), SortHelper::getResultSort(t0.term()));
+      newLit = Literal::createEquality(lit->polarity(), t0r, t1r, t0.term()->sort());
       litStack.push(newLit);
     } else {
       litStack.push(lit);
@@ -173,7 +173,7 @@ bool CombinatorNormalisationISE::replaceWithSmallerCombinator(TermList& t)
   
   TermList sort;
   if(t.isTerm()){
-    sort = SortHelper::getResultSort(t.term());
+    sort = t.term()->sort();
   }
 
   //cout << "The original term is " + t.toString() << endl;
@@ -197,7 +197,7 @@ bool CombinatorNormalisationISE::replaceWithSmallerCombinator(TermList& t)
           if(args1.size() == 2 &&
              AH::isComb(head1) && AH::getComb(head1) == Signature::B_COMB &&
              AH::isComb(args1[1]) && AH::getComb(args1[1]) == Signature::K_COMB){
-            TermList s1 = AH::getNthArg(SortHelper::getResultSort(head1.term()), 2);
+            TermList s1 = AH::getNthArg(head1.term()->sort(), 2);
             TermList s2 = AH::getNthArg(sort, 1);
             t = createKTerm(s1, s2, args1[0]);
             return true;
@@ -222,9 +222,9 @@ bool CombinatorNormalisationISE::replaceWithSmallerCombinator(TermList& t)
           bool arg1isKX = args1.size() == 1 && AH::isComb(head1) && AH::getComb(head1) == Signature::K_COMB;
           if(arg1isKX){
             if(arg2isKY){
-              TermList xSort = AH::getNthArg(SortHelper::getResultSort(head1.term()), 1);
+              TermList xSort = AH::getNthArg(head1.term()->sort(), 1);
               TermList xy = AH::createAppTerm(xSort, args1[0], args2[0]);
-              TermList s1 = SortHelper::getResultSort(xy.term());
+              TermList s1 = xy.term()->sort();
               TermList s2 = AH::getNthArg(sort, 1);
               t =  createKTerm(s1, s2, xy);
               return true;              
@@ -233,14 +233,14 @@ bool CombinatorNormalisationISE::replaceWithSmallerCombinator(TermList& t)
               t =  args1[0];
               return true;
             }
-            TermList arg1sort = AH::getNthArg(SortHelper::getResultSort(head1.term()),1);
-            TermList arg2sort = AH::getNthArg(SortHelper::getResultSort(head.term()),2);
+            TermList arg1sort = AH::getNthArg(head1.term()->sort(),1);
+            TermList arg2sort = AH::getNthArg(head.term()->sort(),2);
             t = createSCorBTerm(args1[0], arg1sort, args[0], arg2sort, Signature::B_COMB);
             return true;
           }
           if(arg2isKY){
-            TermList arg1sort = AH::getNthArg(SortHelper::getResultSort(head.term()),1);
-            TermList arg2sort = AH::getNthArg(SortHelper::getResultSort(head2.term()),1);
+            TermList arg1sort = AH::getNthArg(head.term()->sort(),1);
+            TermList arg2sort = AH::getNthArg(head2.term()->sort(),1);
             t =  createSCorBTerm(args[1], arg1sort, args2[0], arg2sort, Signature::C_COMB);    
             return true;        
           }
@@ -262,9 +262,9 @@ bool CombinatorNormalisationISE::replaceWithSmallerCombinator(TermList& t)
           AH::getHeadAndArgs(args[0], head2, args2);
           bool arg2isKY = args2.size() == 1 && AH::isComb(head2) && AH::getComb(head2) == Signature::K_COMB; 
           if(arg2isKY){
-            TermList xSort = AH::getNthArg(SortHelper::getResultSort(head.term()), 1);
+            TermList xSort = AH::getNthArg(head.term()->sort(), 1);
             TermList xy = AH::createAppTerm(xSort, args[1], args2[0]);
-            TermList s1 = SortHelper::getResultSort(xy.term());
+            TermList s1 = xy.term()->sort();
             TermList s2 = AH::getNthArg(sort, 1);
             t = createKTerm(s1, s2, xy);  
             return true;
@@ -286,9 +286,9 @@ bool CombinatorNormalisationISE::replaceWithSmallerCombinator(TermList& t)
           AH::getHeadAndArgs(args[1], head1, args1);
           bool arg1isKX = args1.size() == 1 && AH::isComb(head1) && AH::getComb(head1) == Signature::K_COMB;
           if(arg1isKX){
-            TermList xSort = AH::getNthArg(SortHelper::getResultSort(head1.term()), 1);
+            TermList xSort = AH::getNthArg(head1.term()->sort(), 1);
             TermList xy = AH::createAppTerm(xSort, args1[0], args[0]);
-            TermList s1 = SortHelper::getResultSort(xy.term());
+            TermList s1 = xy.term()->sort();
             TermList s2 = AH::getNthArg(sort, 1);
             t = createKTerm(s1, s2, xy);   
             return true;          
@@ -310,7 +310,7 @@ TermList CombinatorNormalisationISE::createKTerm(TermList s1, TermList s2, TermL
   
   unsigned kcomb = env.signature->getCombinator(Signature::K_COMB);
   TermList res = TermList(Term::create2(kcomb, s1, s2));
-  res = AH::createAppTerm(SortHelper::getResultSort(res.term()), res, arg1);             
+  res = AH::createAppTerm(res.term()->sort(), res, arg1);             
   return res;
 }   
     
@@ -336,7 +336,7 @@ TermList CombinatorNormalisationISE::createSCorBTerm(TermList arg1, TermList arg
   
   TermList args[] = {s1, s2, s3};
   TermList c = TermList(Term::create(cb, 3, args));
-  return AH::createAppTerm3(SortHelper::getResultSort(c.term()), c, arg1, arg2); 
+  return AH::createAppTerm3(c.term()->sort(), c, arg1, arg2); 
 }
 
 

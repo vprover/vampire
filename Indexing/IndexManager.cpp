@@ -216,12 +216,6 @@ Index* IndexManager::create(IndexType t)
     isGenerating = false;
     break;
 
-  /*case RENAMING_FORMULA_INDEX:
-    tis=new TermSubstitutionTree(false, false, true);
-    res=new RenamingFormulaIndex(tis);
-    attachPassive = true;
-    break;*/
-
   case NARROWING_INDEX:
     tis=new TermSubstitutionTree();
     res=new NarrowingIndex(tis); 

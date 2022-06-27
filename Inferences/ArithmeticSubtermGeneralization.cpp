@@ -92,7 +92,7 @@ SimplifyingGeneratingInference1::Result generalizeBottomUp(Clause* cl, EvalFn ev
         auto termArgs = termArgIter(lit)
           .map([&](TermList term) -> TermList { 
               CALL("generalizeBottomUp(Clause* cl, EvalFn)@closure 2")
-              auto norm = PolyNf::normalize(TypedTermList(term, SortHelper::getTermArgSort(lit, j++)));
+              auto norm = PolyNf::normalize(TypedTermList(term, lit->termArgSort(j++)));
               auto res = evaluateBottomUp(norm, eval);
               if (res != norm) {
                 anyChange = true;

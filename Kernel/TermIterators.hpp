@@ -180,7 +180,7 @@ public:
   {
     ASS(!_used);
     _used=true;
-    return make_pair(*_stack.top(),  SortHelper::getArgSort(const_cast<Term*>(_terms.top()), _argNums.top()));
+    return make_pair(*_stack.top(), _terms.top()->argSort(_argNums.top()));
   }
 private:
   Stack<const TermList*> _stack;
@@ -391,16 +391,16 @@ public: //includeSelf for compatibility
       TermList t1 = *t->nthArgument(1);
       if(!t0.isVar()){ 
         _stack.push(t0);
-        _sorts.push(SortHelper::getResultSort(t0.term()));
+        _sorts.push(t0.term()->sort());
       }
       if(!t1.isVar()){ 
         _stack.push(t1); 
-        _sorts.push(SortHelper::getResultSort(t1.term()));
+        _sorts.push(t1.term()->sort());
       }      
       return;      
     }     
     _stack.push(TermList(t));
-    _sorts.push(SortHelper::getResultSort(t));
+    _sorts.push(t->sort());
   }
 
   bool hasNext();

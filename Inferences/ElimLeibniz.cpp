@@ -108,8 +108,6 @@ ClauseIterator ElimLeibniz::generateClauses(Clause* premise)
 {
   CALL("ElimLeibniz::generateClauses");
 
-  typedef SortHelper SH;
-
   static TermStack args;
   TermList head;
 
@@ -161,21 +159,21 @@ afterLoop:
   TermList var = TermList(lerPosLit.var, false);
 
   TermList vEquals = TermList(Term::create1(env.signature->getEqualityProxy(), argS));
-  TermList t1 = AH::createAppTerm(SH::getResultSort(vEquals.term()), vEquals, lerNegLit.arg);
+  TermList t1 = AH::createAppTerm(vEquals.term()->sort(), vEquals, lerNegLit.arg);
   if(subst.unify(var, 0, t1, 0)){
     Clause* c = createConclusion(premise, newLit, posLit, negLit, subst);
     clauses.push(c);
     subst.reset();
   }
 
-  TermList t2 = AH::createAppTerm(SH::getResultSort(vEquals.term()), vEquals, lerPosLit.arg);
+  TermList t2 = AH::createAppTerm(vEquals.term()->sort(), vEquals, lerPosLit.arg);
   
   TermList typeArgs[] = {argS, AtomicSort::boolSort(), AtomicSort::boolSort()};
   unsigned b_comb = env.signature->getCombinator(Signature::B_COMB);
   
   TermList bComb  = TermList(Term::create(b_comb, 3, typeArgs));
   TermList vNot   = TermList(Term::createConstant(env.signature->getNotProxy()));
-  t2 = AH::createAppTerm3(SH::getResultSort(bComb.term()), bComb,vNot,t2);
+  t2 = AH::createAppTerm3(bComb.term()->sort(), bComb,vNot,t2);
 
   if(subst.unify(var, 0, t2, 0)){
     Clause* c = createConclusion(premise, newLit, posLit, negLit, subst);

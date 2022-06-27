@@ -494,8 +494,7 @@ void FiniteModelBuilder::init()
         if(left->isTerm() && left->term()->arity()==0 &&
            right->isTerm() && right->term()->arity()==0){
 
-          TermList srtT = SortHelper::getResultSort(left->term());
-          unsigned srt = srtT.term()->functor();
+          unsigned srt = left->term()->sort().term()->functor();
           auto map = _distinctConstants[srt];
           if(map==0){
             map = new DHMap<unsigned,DHSet<unsigned>*>();

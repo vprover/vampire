@@ -187,7 +187,7 @@ Term* Instantiation::tryGetDifferentValue(Term* t)
 {
   CALL("Instantiation::tryGetDifferentValue");
 
-  TermList sort = SortHelper::getResultSort(t);
+  TermList sort = t->sort();
 
   try {
         if(sort == AtomicSort::intSort()){

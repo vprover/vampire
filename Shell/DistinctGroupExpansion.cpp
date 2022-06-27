@@ -106,8 +106,8 @@ Formula* DistinctGroupExpansion::expand(Stack<unsigned>& constants)
   if(constants.size()==2){
     TermList a = TermList(Term::createConstant(constants[0]));
     TermList b = TermList(Term::createConstant(constants[1]));
-    TermList sort = SortHelper::getResultSort(a.term()); //TODO where is the type of these constants set?
-    return new AtomicFormula(Literal::createEquality(false,a,b,sort));
+    //TODO where is the type of these constants set?
+    return new AtomicFormula(Literal::createEquality(false,a,b,a.term()->sort()));
   }
 
   // Otherwise create a formula list of disequalities
@@ -116,13 +116,12 @@ Formula* DistinctGroupExpansion::expand(Stack<unsigned>& constants)
   for(unsigned i=0;i<constants.size();i++){
     TermList a = TermList(Term::createConstant(constants[i]));
     ASS(a.isSafe());
-    TermList sort = SortHelper::getResultSort(a.term());
 
     for(unsigned j=0;j<i;j++){
       TermList b = TermList(Term::createConstant(constants[j]));
       ASS(b.isSafe());
       
-      Formula* new_dis = new AtomicFormula(Literal::createEquality(false,a,b,sort));
+      Formula* new_dis = new AtomicFormula(Literal::createEquality(false,a,b,a.term()->sort()));
       if(diseqs) FormulaList::push(new_dis,diseqs);
       else diseqs = new FormulaList(new_dis);
 

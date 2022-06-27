@@ -61,7 +61,7 @@ void AnswerExtractor::tryOutputAnswer(Clause* refutation)
     if(aLit.isTerm()){
       InterpretedLiteralEvaluator eval;
       unsigned p = env.signature->addFreshPredicate(1,"p"); 
-      TermList sort = SortHelper::getResultSort(aLit.term());
+      TermList sort = aLit.term()->sort();
       OperatorType* type = OperatorType::getPredicateType({sort});
       env.signature->getPredicate(p)->setType(type);
       Literal* l = Literal::create1(p,true,aLit); 

@@ -625,7 +625,7 @@ void Property::scan(Literal* lit, int polarity, unsigned cLen, bool goal)
     }
 
     for (int i=0; i<arity; i++) {
-      scanSort(SortHelper::getArgSort(lit, i));
+      scanSort(lit->argSort(i));
     }
   }
 
@@ -712,8 +712,7 @@ void Property::scan(TermList ts,bool unit,bool goal)
 
     if(t->isApplication()){
       _hasApp = true;
-      TermList sort = SortHelper::getResultSort(t);
-      if(ApplicativeHelper::getResultSort(sort) == AtomicSort::boolSort()){
+      if(ApplicativeHelper::getResultSort(t->sort()) == AtomicSort::boolSort()){
         TermList head = ApplicativeHelper::getHead(ts);
         if(head.isVar()){
           _hasBoolVar = true;
@@ -745,9 +744,9 @@ void Property::scan(TermList ts,bool unit,bool goal)
     }
 
     for (int i = 0; i < arity; i++) {
-      scanSort(SortHelper::getArgSort(t, i));
+      scanSort(t->argSort(i));
     }
-    scanSort(SortHelper::getResultSort(t));  
+    scanSort(t->sort());  
   }
 }
 

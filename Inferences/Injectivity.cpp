@@ -99,7 +99,7 @@ ClauseIterator Injectivity::generateClauses(Clause* premise) {
   //at this point, we know the clause is of the form f x1 y x2... = f x1 z x2 ... \/ x != y 
   //index holds the index of the different argument
   TermList newLhs = createNewLhs(headLhs, termArgs, index);
-  TermList sort = SortHelper::getResultSort(newLhs.term());
+  TermList sort = newLhs.term()->sort();
   Literal* lit = Literal::createEquality(true, newLhs, differingArg, sort);
 
   Clause* conclusion = new(1) Clause(1, GeneratingInference1(InferenceRule::INJECTIVITY, premise));
@@ -146,7 +146,7 @@ TermList Injectivity::createNewLhs(TermList oldhead, TermStack& termArgs, unsign
   invFunc->setType(invFuncType);
   TermList invFuncHead = TermList(Term::create(iFunc, func->arity(), typeArgs.begin()));
 
-  TermList invFuncHeadType = SortHelper::getResultSort(invFuncHead.term());
+  TermList invFuncHeadType = invFuncHead.term()->sort();
   return ApplicativeHelper::createAppTerm(invFuncHeadType, invFuncHead, termArgs);  
 }
 

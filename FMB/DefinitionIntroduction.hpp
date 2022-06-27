@@ -122,9 +122,8 @@ namespace FMB {
         if(t->arity()==0) continue;
         if(!_introduced.find(t)){
           unsigned newConstant = env.signature->addFreshFunction(0,"fmbdef");
-          TermList srt = SortHelper::getResultSort(t);
           Signature::Symbol* newConstantSymb = env.signature->getFunction(newConstant);
-          newConstantSymb->setType(OperatorType::getConstantsType(srt));
+          newConstantSymb->setType(OperatorType::getConstantsType(t->sort()));
           newConstantSymb->incUsageCnt();
           Term* c = Term::createConstant(newConstant); 
           _introduced.insert(t,c);
@@ -146,8 +145,7 @@ namespace FMB {
           if(updated){
             t = Term::create(t,args.begin());
           }
-          TermList sort = SortHelper::getResultSort(t); //TODO set sort of c as this
-          Literal* l = Literal::createEquality(true,TermList(t),TermList(c),sort);
+          Literal* l = Literal::createEquality(true,TermList(t),TermList(c),t->sort());
           static Stack<Literal*> lstack;
           lstack.reset();
           lstack.push(l);

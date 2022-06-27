@@ -293,7 +293,7 @@ bool BooleanSubtermIt::hasNext()
   while(!_stack.isEmpty()){
     Term* t = _stack.pop();
     AH::getHeadAndArgs(t, head, args);
-    if(SortHelper::getResultSort(t) == AtomicSort::boolSort() && !AH::isBool(head)){
+    if(t->sort() == AtomicSort::boolSort() && !AH::isBool(head)){
       _next = TermList(t);
       _used = false;
     }

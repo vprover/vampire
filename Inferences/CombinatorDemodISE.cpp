@@ -63,7 +63,7 @@ Clause* CombinatorDemodISE::simplify(Clause* c)
 
     if((t0r != t0) || (t1r != t1)){
       modified = true;
-      newLit = Literal::createEquality(lit->polarity(), TermList(t0r), TermList(t1r), SortHelper::getResultSort(t0.term()));
+      newLit = Literal::createEquality(lit->polarity(), t0r, t1r, t0.term()->sort());
       litStack.push(newLit);
     } else {
       litStack.push(lit);

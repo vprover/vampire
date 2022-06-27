@@ -318,6 +318,14 @@ unsigned Term::numTypeArguments() const {
       : env.signature->getFunction(_functor)->numTypeArguments();
 }
 
+const TermList* Term::termArgs() const
+{
+  CALL("Term::termArgs");
+  ASS(!isSort());
+
+  return _args + (_arity - numTypeArguments());
+}
+
 TermList* Term::termArgs()
 {
   CALL("Term::termArgs");
@@ -327,7 +335,11 @@ TermList* Term::termArgs()
 }
 
 const TermList* Term::typeArgs() const
-{ return numTypeArguments() == 0 ? nullptr : args(); }
+{ 
+  CALL("Term::typeArgs");
+
+  return numTypeArguments() == 0 ? nullptr : args(); 
+}
 
 unsigned Term::numTermArguments() const
 { 
@@ -1955,8 +1967,62 @@ bool Kernel::positionIn(TermList& subterm,Term* term,vstring& position)
   return false;
 }
 
+TermList Term::argSort(unsigned idx) const
+{
+  CALL("Term::argSort");
+  ASS(idx < _arity);
+
+  if(isSort()){
+    return AtomicSort::superSort();
+  }
+
+  if (isLiteral() && static_cast<const Literal*>(this)->isEquality()) {
+    return SortHelper::getEqualityArgumentSort(static_cast<const Literal*>(this));
+  }
+
+  OperatorType* ot = SortHelper::getType(this);
+
+  if(!numTypeArguments()){
+    //optimisation for monomorphic case
+    return  ot->arg(idx);
+  }
+
+  if(idx < numTypeArguments()){
+    return AtomicSort::superSort();
+  }
+
+  Substitution subst;  
+  SortHelper::getTypeSub(this, subst);
+  return SubstHelper::apply(ot->arg(idx), subst);  
+}
+
+TermList Term::sort() const
+{
+  CALL("Term::sort");
+  ASS(!isSpecial());
+  ASS(!isLiteral());
+
+  if(isSort()){
+    return TermList(AtomicSort::superSort());
+  }
+
+  TermList result = SortHelper::getType(this)->result();
+
+  if(!numTypeArguments()){
+    // optimisation for monomorphic case; 
+    return result;
+  }
+
+  Substitution subst;
+  SortHelper::getTypeSub(this, subst);
+  ASS(!subst.isEmpty()  || (result.isTerm() && (result.term()->isSuper() || result.term()->ground())));  
+  return SubstHelper::apply(result, subst);
+}
+
 TermList Term::termArg(unsigned n) const
 {
+  CALL("Term::termArg");
+
   ASS_LE(0, n)
   ASS_L(n, numTermArguments())
   return *nthArgument(n + numTypeArguments());
@@ -1964,6 +2030,8 @@ TermList Term::termArg(unsigned n) const
 
 TermList Term::typeArg(unsigned n) const 
 {
+  CALL("Term::typeArg");
+
   ASS_LE(0, n)
   ASS_L(n, numTypeArguments())
   return *nthArgument(n);

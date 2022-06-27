@@ -530,7 +530,7 @@ ClauseIterator produceClauses(Clause* c, bool generating, SkolemisingFormulaInde
     }
 
     if((prox == Signature::EQUALS) && (args.size() == 2)){
-      TermList srt = *SortHelper::getResultSort(head.term()).term()->nthArgument(0);
+      TermList srt = *(head.term()->sort().term()->nthArgument(0));
       Literal* l1 = Literal::createEquality(positive, args[0], args[1], srt);
       Clause* res = replaceLits(c, lit, l1, convert(prox), false);
       resultStack.push(res);
@@ -547,7 +547,7 @@ ClauseIterator produceClauses(Clause* c, bool generating, SkolemisingFormulaInde
 
     if((prox == Signature::PI || prox == Signature::SIGMA ) && (args.size())){
       TermList rhs = positive ? troo : fols; 
-      TermList srt = *SortHelper::getResultSort(head.term()).term()->nthArgument(0);
+      TermList srt = *(head.term()->sort().term()->nthArgument(0));
       TermList newTerm;
       InferenceRule rule;
       if((prox == Signature::PI && positive) || 
@@ -685,7 +685,7 @@ TermList sigmaRemoval(TermList sigmaTerm, TermList expsrt){
   TermList skSymSort = AtomicSort::arrowSort(termVarSorts, resultSort);
   unsigned fun = Skolem::addSkolemFunction(typeVars.size(), typeVars.size(), 0, skSymSort);
   TermList head = TermList(Term::create(fun, typeVars.size(), typeVars.begin()));
-  TermList skolemTerm = ApplicativeHelper::createAppTerm(SortHelper::getResultSort(head.term()), head, termVars);
+  TermList skolemTerm = ApplicativeHelper::createAppTerm(head.term()->sort(), head, termVars);
 
   ASS(*expsrt.term()->nthArgument(1) == AtomicSort::boolSort());
   //cout << "OUT OF sigmaRemoval " + sigmaTerm.toString() << endl;

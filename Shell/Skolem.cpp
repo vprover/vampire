@@ -525,8 +525,7 @@ Formula* Skolem::skolemise (Formula* f)
           if(!successfully_reused)
             sym = addSkolemFunction(typeVars.size(), 0, skSymSort, v, typeVars.size());
           TermList head = TermList(Term::create(sym, typeVars.size(), typeVars.begin()));
-          skolemTerm = ApplicativeHelper::createAppTerm(
-            SortHelper::getResultSort(head.term()), head, termVars).term();      
+          skolemTerm = ApplicativeHelper::createAppTerm(head.term()->sort(), head, termVars).term();      
         }
         _introducedSkolemSyms.push(sym);
 

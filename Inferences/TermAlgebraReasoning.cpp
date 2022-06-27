@@ -425,7 +425,7 @@ namespace Inferences {
 
   void pushSubterms(TermList *tl, Stack<TermList*> &stack)
   {
-    CALL("getSubterms");
+    CALL("pushSubterms");
 
     if (!termAlgebraConstructor(tl)) {
       return;
@@ -434,7 +434,7 @@ namespace Inferences {
     ASS(tl->isTerm());
     Term *t = tl->term();
     
-    TermList sort = SortHelper::getResultSort(t);
+    TermList sort = t->sort();
     ASS(env.signature->isTermAlgebraSort(sort));
 
     if (env.signature->getTermAlgebraOfSort(sort)->allowsCyclicTerms()) {
@@ -444,7 +444,7 @@ namespace Inferences {
     Stack<Term*> toVisit;
 
     for (unsigned i = 0; i < t->arity(); i++) {
-      if (SortHelper::getArgSort(t, i) == sort) {
+      if (t->argSort(i) == sort) {
         TermList *s = t->nthArgument(i);
         stack.push(s);
         if (s->isTerm()) {
@@ -457,7 +457,7 @@ namespace Inferences {
       Term *u = toVisit.pop();
       if (env.signature->getFunction(u->functor())->termAlgebraCons()) {
         for (unsigned i = 0; i < u->arity(); i++) {
-          if (SortHelper::getArgSort(u, i) == sort) {
+          if (u->argSort(i) == sort) {
             TermList *s = u->nthArgument(i);
             stack.push(s);
             if (s->isTerm()) {

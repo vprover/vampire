@@ -226,7 +226,7 @@ void ModelPrinter::generateNewInstances(Literal* base, TermStack& domain, DHSet<
       Literal* inst;
       if(base->isEquality()) {
 	ASS(args[0].isTerm());
-	inst = Literal::createEquality(base->isPositive(), args[0], args[1], SortHelper::getResultSort(args[0].term()));
+	inst = Literal::createEquality(base->isPositive(), args[0], args[1], args[0].term()->sort());
       }
       else {
 	inst = Literal::create(base, args.array());
@@ -257,7 +257,7 @@ void ModelPrinter::generateNewInstances(Literal* base, TermStack& domain, DHSet<
         }
         arg = domain[nextIndexes[depth]];
         nextIndexes[depth]++;
-      } while(SortHelper::getResultSort(arg.term())!=predType->arg(depth));
+      } while(arg.term()->sort()!=predType->arg(depth));
       args[depth] = arg;
       goingDown = false;
     }
@@ -333,7 +333,7 @@ void ModelPrinter::analyzeEqualityAndPopulateDomain()
     }
     TermList firstTerm = TermList(Term::create(firstFunc, 0, 0));
     vstring firstTermStr = firstTerm.toString();
-    TermList eqClassSort = SortHelper::getResultSort(firstTerm.term());
+    TermList eqClassSort = firstTerm.term()->sort();
     unsigned reprFunc = env.signature->addStringConstant(firstTermStr);
     OperatorType* reprType = OperatorType::getConstantsType(eqClassSort);
     env.signature->getFunction(reprFunc)->setType(reprType);
@@ -345,7 +345,7 @@ void ModelPrinter::analyzeEqualityAndPopulateDomain()
     while(ecElIt.hasNext()) {
       unsigned elFunc = ecElIt.next();
       TermList elTerm = TermList(Term::create(elFunc, 0, 0));
-      ASS_EQ(eqClassSort, SortHelper::getResultSort(elTerm.term()));
+      ASS_EQ(eqClassSort, elTerm.term()->sort());
       _rewrites.insert(elTerm, reprTerm);
     }
   }

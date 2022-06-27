@@ -408,7 +408,7 @@ TermList LambdaElimination::sortOf(TermList t)
   CALL("LambdaElimination::sortOf");
   
   ASS(t.isTerm());
-  return SortHelper::getResultSort(t.term());
+  return t.term()->sort();
 }
 
 void LambdaElimination::addCombinatorAxioms(Problem& prb)
@@ -417,7 +417,7 @@ void LambdaElimination::addCombinatorAxioms(Problem& prb)
  
   auto srtOf = [] (TermList t) { 
      ASS(t.isTerm());
-     return SortHelper::getResultSort(t.term());
+     return t.term()->sort();
   };
 
   TermList s1 = TermList(0, false);  
@@ -493,7 +493,7 @@ void LambdaElimination::addFunctionExtensionalityAxiom(Problem& prb)
  
   auto srtOf = [] (TermList t) { 
      ASS(t.isTerm());
-     return SortHelper::getResultSort(t.term());
+     return t.term()->sort();
   };
 
   TermList alpha = TermList(0, false);
@@ -553,7 +553,7 @@ void LambdaElimination::addProxyAxioms(Problem& prb)
 
   auto srtOf = [] (TermList t) { 
     ASS(t.isTerm());
-    return SortHelper::getResultSort(t.term());
+    return t.term()->sort();
   };
 
   TermList s1 = TermList(0, false);  

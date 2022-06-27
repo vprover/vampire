@@ -144,7 +144,7 @@ bool TheoryInstAndSimp::isSupportedLiteral(Literal* lit) {
 
   //check if arguments of predicate are supported
   for (unsigned i=0; i<lit->numTermArguments(); i++) {
-    TermList sort = SortHelper::getArgSort(lit,i);
+    TermList sort = lit->termArgSort(i);
     if (! isSupportedSort(sort))
       return false;
   }
@@ -218,14 +218,14 @@ bool TheoryInstAndSimp::isPure(Literal* lit) {
         return false;
       }
       //check if return value of term is supported
-      if (! isSupportedSort(SortHelper::getResultSort(term))){
+      if (! isSupportedSort(term->sort())){
         return false;
       }
       //check if arguments of term are supported. covers e.g. f(X) = 0 where
       // f could map uninterpreted sorts to integer. when iterating over X
       // itself, its sort cannot be checked.
       for (unsigned i=0; i<term->numTermArguments(); i++) {
-        TermList sort = SortHelper::getArgSort(term,i);
+        TermList sort = term->termArgSort(i);
         if (! isSupportedSort(sort))
           return false;
       }
@@ -502,8 +502,7 @@ public:
   {
     for (unsigned i = 0; i < toAbstract.term()->numTermArguments(); i++) {
       auto arg  = toAbstract.term()->termArg(i);
-      auto sort = SortHelper::getResultSort(arg.term());
-      _args.push(GeneralisationTree(cache.freshConstant(sort), arg, cache));
+      _args.push(GeneralisationTree(cache.freshConstant(arg.term()->sort()), arg, cache));
     }
   }
 
@@ -516,7 +515,7 @@ public:
       a.foreachDef(f);
     }
     auto definition = TermList(Term::create(_functor, args.size(), args.begin()));
-    f(*this, Literal::createEquality(true, _introduced, definition, SortHelper::getResultSort(_introduced.term())));
+    f(*this, Literal::createEquality(true, _introduced, definition, _introduced.term()->sort()));
   }
 
   TermList buildGeneralTerm(Set<TermList> const& usedDefs, unsigned& freshVar)
@@ -640,7 +639,7 @@ template<class IterLits> TheoryInstAndSimp::SkolemizedLiterals TheoryInstAndSimp
       TermList fc;
       if(!subst.findBinding(var,fc)){
         Term* fc = _instantiationConstants.freshConstant(sort);
-        ASS_EQ(SortHelper::getResultSort(fc), sort);
+        ASS_EQ(fc->sort(), sort);
         subst.bind(var,fc);
         vars.push(var);
       }

@@ -181,8 +181,7 @@ struct EqualityFactoring::ResultFn
       TermList qT = subst.apply(con.first.first,0);
       TermList rT = subst.apply(con.second.first,0);
 
-      TermList sort = SortHelper::getResultSort(rT.term());
-      Literal* constraint = Literal::createEquality(false,qT,rT,sort);
+      Literal* constraint = Literal::createEquality(false,qT,rT,rT.term()->sort());
 
       (*res)[next++] = constraint;
     }

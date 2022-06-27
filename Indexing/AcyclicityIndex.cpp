@@ -61,11 +61,11 @@ namespace Indexing
     Stack<Term*> toVisit;
     List<TermList>* res = List<TermList>::empty();
     
-    TermList sort = SortHelper::getResultSort(t);
+    TermList sort = t->sort();
     ASS(env.signature->isTermAlgebraSort(sort));
 
     for (unsigned i = 0; i < t->arity(); i++) {
-      if (SortHelper::getArgSort(t, i) == sort) {
+      if (t->argSort(i) == sort) {
         TermList *s = t->nthArgument(i);
         addSubterm(*s, res);
         if (s->isTerm()) {
@@ -78,7 +78,7 @@ namespace Indexing
       Term *u = toVisit.pop();
       if (env.signature->getFunction(u->functor())->termAlgebraCons()) {
         for (unsigned i = 0; i < u->arity(); i++) {
-          if (SortHelper::getArgSort(u, i) == sort) {
+          if (u->argSort(i) == sort) {
             TermList *s = u->nthArgument(i);
             addSubterm(*s, res);
             if (s->isTerm()) {

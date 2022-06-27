@@ -1197,8 +1197,7 @@ Literal* Naming::getDefinitionLiteral(Formula* f, VList* freeVars) {
         name_reuse->put(reuse_key, fun);
     }
     TermList head = TermList(Term::create(fun, typeVars.size(), typeVars.begin()));
-    TermList t = ApplicativeHelper::createAppTerm(
-                 SortHelper::getResultSort(head.term()), head, termVars);
+    TermList t = ApplicativeHelper::createAppTerm(head.term()->sort(), head, termVars);
     return  Literal::createEquality(true, TermList(t), TermList(Term::foolTrue()), AtomicSort::boolSort());  
   }
 }

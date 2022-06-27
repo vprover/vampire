@@ -130,15 +130,8 @@ bool HyperSuperposition::tryMakeTopUnifiableByRewriter(TermList t1, TermList t2,
 
   ASS(ut1.isTerm() || ut2.isTerm());
 
-  TermList srt;
-  if(ut1.isTerm()) {
-    srt = SortHelper::getResultSort(ut1.term());
-  }
-  else {
-    ASS(ut2.isTerm());
-    srt = SortHelper::getResultSort(ut2.term());
-  }
-  Literal* queryEq = Literal::createEquality(true, ut1, ut2, srt);
+  Literal* queryEq = Literal::createEquality(true, ut1, ut2, 
+    ut1.isTerm() ? ut1.term()->sort() : ut2.term()->sort());
 
   SLQueryResultIterator srqi = _index->getUnifications(queryEq, false, false);
   if(!srqi.hasNext()) {

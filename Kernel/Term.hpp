@@ -398,6 +398,13 @@ public:
   static vstring variableToString(unsigned var);
   static vstring variableToString(TermList var);
 
+  TermList sort() const;
+  TermList argSort(unsigned idx) const;
+  TermList termArgSort(unsigned idx) const
+  {
+    return argSort(idx + numTypeArguments());
+  }
+
   /** return the arguments 
    *
    *  WARNING: this function returns a pointer to the first argument
@@ -433,10 +440,10 @@ public:
     return _args + (_arity - n);
   }
 
-  /** returns the nth term argument. for 0 <= n <= numTermArguments  */
+  /** returns the nth term argument. for 0 <= n < numTermArguments  */
   TermList termArg(unsigned n) const;
 
-  /** returns the nth type argument. for 0 <= n <= numTypeArguments  */
+  /** returns the nth type argument. for 0 <= n < numTypeArguments  */
   TermList typeArg(unsigned n) const;
 
   /**
@@ -453,6 +460,7 @@ public:
     * non-emptiness
     * In the monomorphic case, the same as args()
     */
+  const TermList* termArgs() const;
   TermList* termArgs();
 
   /** Return the 1st type argument for a polymorphic term.

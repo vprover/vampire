@@ -1072,7 +1072,7 @@ void SimpleCongruenceClosure::getModel(LiteralStack& model)
     computeConstsNormalForm(r,normalForms); // maybe calling for a second time, but that's cheap    
     if (!seen.contains(_cInfos[r].normalForm)) {
       //cout << _cInfos[r].normalForm << " -> " << nf << endl;
-      model.push(Literal::createEquality(true,_cInfos[r].normalForm,nf,SortHelper::getResultSort(nf.term())));
+      model.push(Literal::createEquality(true,_cInfos[r].normalForm,nf,nf.term()->sort()));
       seen.insert(_cInfos[r].normalForm);
     }
     
@@ -1084,7 +1084,7 @@ void SimpleCongruenceClosure::getModel(LiteralStack& model)
       computeConstsNormalForm(c,normalForms); // maybe calling for a second time, but that's cheap
       if (!seen.contains(_cInfos[c].normalForm)) {
         //cout << _cInfos[c].normalForm << " -> " << nf << endl;
-        model.push(Literal::createEquality(true,_cInfos[c].normalForm,nf,SortHelper::getResultSort(nf.term())));
+        model.push(Literal::createEquality(true,_cInfos[c].normalForm,nf,nf.term()->sort()));
         seen.insert(_cInfos[c].normalForm);
       }
     }

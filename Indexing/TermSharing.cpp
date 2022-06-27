@@ -196,11 +196,9 @@ Term* TermSharing::insert(Term* t)
 
     //poly function works for mono as well, but is slow
     //it is fine to use for debug
-    ASS_REP(_wellSortednessCheckingDisabled || SortHelper::areImmediateSortsValidPoly(t), t->toString());
-    if (!_poly && !SortHelper::areImmediateSortsValidMono(t) && !_wellSortednessCheckingDisabled){
+    ASS_REP(_wellSortednessCheckingDisabled || SortHelper::areImmediateSortsValid(t), t->toString());
+    if(!SortHelper::areImmediateSortsValid(t) && !_wellSortednessCheckingDisabled){
       USER_ERROR("Immediate (shared) subterms of  term/literal "+t->toString()+" have different types/not well-typed!");
-    } else if (_poly && !SortHelper::areImmediateSortsValidPoly(t) && !_wellSortednessCheckingDisabled){
-      USER_ERROR("Immediate (shared) subterms of  term/literal "+t->toString()+" have different types/not well-typed!");      
     }
   }
   else {
@@ -315,8 +313,7 @@ Literal* TermSharing::insert(Literal* t)
         weight += r->weight();
 
         if(t->isEquality()){
-          TermList sort = SortHelper::getResultSort(r);
-          weight += sort.weight() - 1;
+          weight += r->sort().weight() - 1;
         }
 
         if (env.colorUsed) {
@@ -340,11 +337,9 @@ Literal* TermSharing::insert(Literal* t)
     t->setInterpretedConstantsPresence(hasInterpretedConstants);
     _totalLiterals++;
 
-    ASS_REP(_wellSortednessCheckingDisabled || SortHelper::areImmediateSortsValidPoly(t), t->toString());
-    if (!_poly && !SortHelper::areImmediateSortsValidMono(t) && !_wellSortednessCheckingDisabled){
+    ASS_REP(_wellSortednessCheckingDisabled || SortHelper::areImmediateSortsValid(t), t->toString());
+    if (!SortHelper::areImmediateSortsValid(t) && !_wellSortednessCheckingDisabled){
       USER_ERROR("Immediate (shared) subterms of  term/literal "+t->toString()+" have different types/not well-typed!");
-    } else if (_poly && !SortHelper::areImmediateSortsValidPoly(t) && !_wellSortednessCheckingDisabled){
-      USER_ERROR("Immediate (shared) subterms of  term/literal "+t->toString()+" have different types/not well-typed!");      
     }
   }
   else {

@@ -85,7 +85,7 @@ ClauseIterator FOOLParamodulation::generateClauses(Clause* premise) {
     }
 
     // we shouldn't replace variables, hence NonVariableIterator
-    NonVariableIterator nvi(literal);
+    NonVariableNonTypeIterator nvi(literal);
     while (nvi.hasNext()) {
       TermList subterm = nvi.next();
       unsigned functor = subterm.term()->functor();
@@ -95,8 +95,7 @@ ClauseIterator FOOLParamodulation::generateClauses(Clause* premise) {
         continue;
       }
 
-      TermList resultType = env.signature->getFunction(functor)->fnType()->result();
-      if (resultType == AtomicSort::boolSort()) {
+      if (subterm->sort() == AtomicSort::boolSort()) {
         booleanTerm = subterm;
         goto substitution;
       }

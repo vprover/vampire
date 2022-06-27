@@ -773,49 +773,6 @@ unsigned Signature::getChoice(){
   return choice;
 }
 
-void Signature::incrementFormulaCount(Term* t){
-  CALL("Signature::incrementFormulaCount");
-  ASS(SortHelper::getResultSort(t) == AtomicSort::boolSort());
-
-  if(_formulaCounts.find(t)){
-    int count =  _formulaCounts.get(t);
-    if(count != -1){
-      _formulaCounts.set(t, count + 1);
-    }
-  } else {
-    _formulaCounts.set(t, 1);
-  }
-}
-
-void Signature::decrementFormulaCount(Term* t){
-  CALL("Signature::incrementFormulaCount");
-  ASS(SortHelper::getResultSort(t) == AtomicSort::boolSort());
-
-  ASS(_formulaCounts.find(t))
-  int count = _formulaCounts.get(t);
-  if(count != -1){
-    _formulaCounts.set(t, count - 1);
-  }
-}
-
-void Signature::formulaNamed(Term* t){
-  CALL("Signature::formulaNamed");
-  ASS(SortHelper::getResultSort(t) == AtomicSort::boolSort());
-
-  ASS(_formulaCounts.find(t));
-  _formulaCounts.set(t, -1);
-}
-
-unsigned Signature::formulaCount(Term* t){
-  CALL("Signature::formulaCount");
-  
-  if(_formulaCounts.find(t)){
-    return _formulaCounts.get(t);
-  }
-  return 0;
-}
-
-
 /**
  * If a type constructor with this name and arity exists, return its number.
  * Otherwise, add a new one and return its number.

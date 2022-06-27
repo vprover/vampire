@@ -101,7 +101,7 @@ void TermSubstitutionTree::handleTerm(TermList t, Literal* lit, Clause* cls, boo
   LeafData ld(cls, lit, t);
 
   if(_extByAbs && t.isTerm()){ 
-    TermList sort = SortHelper::getResultSort(t.term());
+    TermList sort = t.term()->sort();
     if(sort.isVar() || sort.isArrowSort()){
       _funcSubtermsByType->handleTerm(sort, ld, insert);
       if(sort.isArrowSort()){ return; }

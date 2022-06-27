@@ -716,7 +716,7 @@ TermList SKIKBO::reduce(TermStack& args, TermList& head)
   Signature::Combinator c = AH::getComb(head);
   ASS(c != Signature::NOT_COMB);
   
-  TermList headSort = SortHelper::getResultSort(head.term());
+  TermList headSort = head.term()->sort();
   
   TermList newHeadSort = ApplicativeHelper::getNthArg(headSort, 1);
 

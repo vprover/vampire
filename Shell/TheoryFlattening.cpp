@@ -241,8 +241,7 @@ Clause* TheoryFlattening::apply(Clause*& cl,Stack<Literal*>& target)
       }
       args.push(TermList(newVar,false));
       if(create){
-        TermList sort = SortHelper::getResultSort(t);
-        Literal* lit = Literal::createEquality(false,TermList(t),TermList(newVar,false),sort);
+        Literal* lit = Literal::createEquality(false,TermList(t),TermList(newVar,false),t->sort());
         newLits.push(lit);
         abstracted.insert(t,newVar);
       }
@@ -311,8 +310,7 @@ Clause* TheoryFlattening::apply(Clause*& cl,Stack<Literal*>& target)
       }
       args.push(TermList(newVar,false));
       if(create){
-        TermList sort = SortHelper::getResultSort(t);
-        Literal* lit = Literal::createEquality(false,TermList(t),TermList(newVar,false),sort);
+        Literal* lit = Literal::createEquality(false,TermList(t),TermList(newVar,false),t->sort());
         newLits.push(lit);
         abstracted.insert(t,newVar);
       }

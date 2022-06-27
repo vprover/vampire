@@ -128,7 +128,6 @@ class Definizator : public BottomUpTermTransformer {
       std::pair<unsigned,Clause*> symAndDef;
       TermList res;
       if (!_cache.find(key,symAndDef)) {
-        TermList outSort = SortHelper::getResultSort(t);
         unsigned newSym;
         Clause* newDef;
         scanVars(t);
@@ -139,7 +138,7 @@ class Definizator : public BottomUpTermTransformer {
           // this is always true in the ground case (where t->weight()>=2 and _allVars.size() == 0)
 
           newSym = env.signature->addFreshFunction(_allVars.size(), "sF");
-          OperatorType* type = OperatorType::getFunctionType(_termVarSorts.size(),_termVarSorts.begin(),outSort,_typeArity);
+          OperatorType* type = OperatorType::getFunctionType(_termVarSorts.size(),_termVarSorts.begin(),t->sort(),_typeArity);
           env.signature->getFunction(newSym)->setType(type);
 
           // res is used both to replace here, but also in the new definition
@@ -147,7 +146,7 @@ class Definizator : public BottomUpTermTransformer {
 
           // (we don't care the definition is not rectified, as long as it's correct)
           // it is correct, because the lhs below is t and not key
-          Literal* equation = Literal::createEquality(true, TermList(t), res, outSort);
+          Literal* equation = Literal::createEquality(true, TermList(t), res, t->sort());
           Inference inference(NonspecificInference0(UnitInputType::AXIOM,InferenceRule::FUNCTION_DEFINITION));
           newDef = new (1) Clause(1, inference);
           newDef->literals()[0] = equation;

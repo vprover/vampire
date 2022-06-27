@@ -34,7 +34,7 @@ using namespace Kernel;
  * Return the type of a term or a literal @c t
  * @author Andrei Voronkov
  */
-OperatorType* SortHelper::getType(Term* t)
+OperatorType* SortHelper::getType(const Term* t)
 {
   CALL("SortHelper::getType(Term*)");
 
@@ -72,43 +72,6 @@ void SortHelper::getTypeSub(const Term* t, Substitution& subst)
     typeArg = typeArg->next();
   }  
 } // getTypeSub
-
-/**
- * Return the sort of a non-variable term t. This function cannot be applied
- * to a special term, such as if-then-else.
- *
- * The return sort is calculated by applying the relavant type substitution
- * to return sort of the type of the head symbol of t. For monomorphic problems,
- * it is more efficient to use getResultSortMono since the substitution will always
- * be empty.
- */
-TermList SortHelper::getResultSort(const Term* t)
-{
-  CALL("SortHelper::getResultSort(Term*)");
-  ASS(!t->isSpecial());
-  ASS(!t->isLiteral());
-
-  if(t->isSort()){
-    return TermList(AtomicSort::superSort());
-  }
-
-  Substitution subst;
-  getTypeSub(t, subst);
-  Signature::Symbol* sym = env.signature->getFunction(t->functor());
-  TermList result = sym->fnType()->result();
-  ASS(!subst.isEmpty()  || (result.isTerm() && (result.term()->isSuper() || result.term()->ground())));  
-  return SubstHelper::apply(result, subst);
-}
-
-TermList SortHelper::getResultSortMono(const Term* t)
-{
-  CALL("SortHelper::getResultSortMono(Term*)");
-  ASS(!t->isSpecial());
-  ASS(!t->isLiteral());
-
-  Signature::Symbol* sym = env.signature->getFunction(t->functor());
-  return sym->fnType()->result();
-}
 
 /**
  * Try get result sort of a term.
@@ -178,12 +141,12 @@ bool SortHelper::getResultSortOrMasterVariable(const Term* t, TermList& resultSo
       return true;
     }
     case Term::SF_TUPLE: {
-      resultSort = getResultSort(t->getSpecialData()->getTupleTerm());
+      resultSort = t->getSpecialData()->getTupleTerm()->sort();
       return true;
     }
     default:
       ASS(!t->isSpecial());
-      resultSort = getResultSort(t);
+      resultSort = t->sort();
       return true;
   }
 } // SortHelper::getResultSortOrMasterVariable
@@ -203,37 +166,6 @@ bool SortHelper::getResultSortOrMasterVariable(const TermList t, TermList& resul
   }
   return getResultSortOrMasterVariable(t.term(), resultSort, resultVar);
 }
-
-/**
- * Return sort of the argument @c argIndex of the term or literal @c t
- */
-TermList SortHelper::getArgSort(Term* t, unsigned argIndex)
-{
-  CALL("SortHelper::getArgSort(Term*,unsigned)");
-  ASS_L(argIndex, t->arity());
-
-  if(t->isSort()){
-    return AtomicSort::superSort();
-  }
-
-  if (t->isLiteral() && static_cast<Literal*>(t)->isEquality()) {
-    return getEqualityArgumentSort(static_cast<Literal*>(t));
-  }
-
-  Substitution subst;
-  OperatorType* ot = getType(t);
-
-  if(argIndex < ot->numTypeArguments()){
-    return AtomicSort::superSort();
-  }
-  
-  getTypeSub(t, subst);
-  return SubstHelper::apply(ot->arg(argIndex), subst);
-} // getArgSort
-
-/* returns the sort of the nth term argument */
-TermList SortHelper::getTermArgSort(Term* t, unsigned n)
-{ return getArgSort(t, n + t->numTypeArguments()); }
 
 TermList SortHelper::getEqualityArgumentSort(const Literal* lit)
 {
@@ -264,7 +196,7 @@ TermList SortHelper::getTermSort(TermList trm, Literal* lit)
   CALL("SortHelper::getTermSort");
 
   if (trm.isTerm()) {
-    return getResultSort(trm.term());
+    return trm.term()->sort();
   }
   if(!trm.isVar()){
     cout << "ERROR with " << trm.toString() << " in " << lit->toString() << endl;
@@ -364,7 +296,7 @@ void SortHelper::collectVariableSortsIter(CollectTask task, DHMap<unsigned,TermL
           CollectTask newTask;
           newTask.fncTag = COLLECT_TERMLIST;
           newTask.ts = *ts;
-          newTask.contextSort = getArgSort(term, position++);
+          newTask.contextSort = term->argSort(position++);
           todo.push(newTask);
         }
 
@@ -868,7 +800,7 @@ bool SortHelper::tryGetVariableSort(TermList var, Term* t0, TermList& result)
 //      cout << "The arg is " + args->toString() << endl;
 //      cout << "the var is " + var.toString() << endl;
       if (*args==var) {
-        result = getArgSort(t, idx);
+        result = t->argSort(idx);
         return true;
       }
       idx++;
@@ -884,7 +816,7 @@ bool SortHelper::tryGetVariableSort(TermList var, Term* t0, TermList& result)
  *
  * @pre Arguments of t must be shared.
  */
-bool SortHelper::areImmediateSortsValidPoly(Term* t)
+bool SortHelper::areImmediateSortsValid(Term* t)
 {
   CALL("SortHelper::areImmediateSortsValidPoly");
 
@@ -897,8 +829,7 @@ bool SortHelper::areImmediateSortsValidPoly(Term* t)
       TermList arg = *t->nthArgument(i);
       if (!arg.isTerm()) { continue; }
       Term* ta = arg.term();
-      TermList argSort = getResultSort(ta);
-      if (eqSrt != argSort) {
+      if (eqSrt != ta->sort()) {
         return false;
       }
     }
@@ -907,71 +838,43 @@ bool SortHelper::areImmediateSortsValidPoly(Term* t)
     
   OperatorType* type = getType(t);
   unsigned arity = t->arity();
-  Substitution subst;
-  getTypeSub(t, subst);
-  for (unsigned i=0; i<arity; i++) {
-    TermList arg = *t->nthArgument(i);
-    if (!arg.isTerm()) { continue; }
-    Term* ta = arg.term();
-    TermList argSort = getResultSort(ta);
-    TermList instantiatedTypeSort = SubstHelper::apply(type->arg(i), subst);
-    if (instantiatedTypeSort != argSort) {
-/*
-#if VDEBUG
-      cout << "the term is " + t->toString() << endl;
-      cout << "the type of function " + env.signature->getFunction(t->functor())->name() + " is: " + type->toString() << endl;
-      //cout << "function name : "+ env.signature->getFunction(t->functor())->name() << endl;
-      //cout << "function name 2 :" + t->functionName() << endl;
-      cout << "error with expected " << instantiatedTypeSort.toString() << " and actual " << argSort.toString() << " when functor is " << t->functor() << " and arg is " << arg << endl;
-      ASSERTION_VIOLATION;
-#endif
-*/
-      return false;
-    }
-  }
-  return true;
-}
+  unsigned typeArity = t->numTypeArguments();
 
-
-/**
- * Return true iff sorts of immediate subterms of term/literal @c t correspond
- * to the type of @c t.
- *
- * @pre Arguments of t must be shared.
- */
-bool SortHelper::areImmediateSortsValidMono(Term* t)
-{
-  CALL("SortHelper::areImmediateSortsValidMono");
-
-  ASS(!t->isSuper());  
-
-  if (t->isLiteral() && static_cast<Literal*>(t)->isEquality()) {
-    Literal* lit = static_cast<Literal*>(t);
-    TermList eqSrt = getEqualityArgumentSort(lit);
-    for (unsigned i=0; i<2; i++) {
+  if(typeArity){
+    Substitution subst;
+    getTypeSub(t, subst);
+    for (unsigned i=typeArity; i<arity; i++) {
       TermList arg = *t->nthArgument(i);
       if (!arg.isTerm()) { continue; }
       Term* ta = arg.term();
-      TermList argSort = getResultSortMono(ta);
-      if (eqSrt != argSort) {
+      TermList instantiatedTypeSort = SubstHelper::apply(type->arg(i), subst);
+      if (instantiatedTypeSort != ta->sort()) {
+  /*
+  #if VDEBUG
+        cout << "the term is " + t->toString() << endl;
+        cout << "the type of function " + env.signature->getFunction(t->functor())->name() + " is: " + type->toString() << endl;
+        //cout << "function name : "+ env.signature->getFunction(t->functor())->name() << endl;
+        //cout << "function name 2 :" + t->functionName() << endl;
+        cout << "error with expected " << instantiatedTypeSort.toString() << " and actual " << argSort.toString() << " when functor is " << t->functor() << " and arg is " << arg << endl;
+        ASSERTION_VIOLATION;
+  #endif
+  */
         return false;
       }
     }
-    return true;
-  }
-
-  OperatorType* type = getType(t);
-  unsigned arity = t->arity();
-  for (unsigned i=0; i<arity; i++) {
-    TermList arg = *t->nthArgument(i);
-    if (!arg.isTerm()) { continue; }
-    Term* ta = arg.term();
-    TermList argSort = getResultSortMono(ta);
-    if (type->arg(i) != argSort) {
-      //cout << "error with expected " << type.arg(i) << " and actual " << argSort << " when functor is " << t->functor() << " and arg is " << arg << endl;
-      return false;
+  } else {
+    for (unsigned i=0; i<arity; i++) {
+      TermList arg = *t->nthArgument(i);
+      if (!arg.isTerm()) { continue; }
+      Term* ta = arg.term();
+      TermList argSort = ta->sort();
+      if (type->arg(i) != argSort) {
+        //cout << "error with expected " << type.arg(i) << " and actual " << argSort << " when functor is " << t->functor() << " and arg is " << arg << endl;
+        return false;
+      }
     }
   }
+
   return true;
 }
 
@@ -1056,7 +959,7 @@ bool SortHelper::areSortsValid(Term* t0, DHMap<unsigned,TermList>& varSorts)
     int idx = 0;
     TermList* args = t->args();
     while (!args->isEmpty()) {
-      TermList argSrt = getArgSort(t,idx);
+      TermList argSrt = t->argSort(idx);
       TermList arg = *args;
       if (arg.isVar()) {
         TermList varSrt;
@@ -1067,7 +970,7 @@ bool SortHelper::areSortsValid(Term* t0, DHMap<unsigned,TermList>& varSorts)
           }
         }
       } else {
-        if (argSrt != getResultSort(arg.term())) {
+        if (argSrt != arg.term()->sort()) {
           return false;
         }
       }

@@ -25,7 +25,7 @@ TermList ApplicativeHelper::createAppTerm(TermList sort, TermList arg1, TermList
   CALL("ApplicativeHelper::createAppTerm/3");
 
   TermList t1 = createAppTerm3(sort, arg1, arg2, arg3);
-  return createAppTerm(SortHelper::getResultSort(t1.term()), t1, arg4);
+  return createAppTerm(t1.term()->sort(), t1, arg4);
 }
 
 TermList ApplicativeHelper::createAppTerm3(TermList sort, TermList arg1, TermList arg2, TermList arg3)
@@ -68,7 +68,7 @@ TermList ApplicativeHelper::createAppTerm(TermList s1, TermList s2, TermList arg
 TermList ApplicativeHelper::createAppTerm(TermList sort, TermList head, TermStack& terms)
 {
   CALL("ApplicativeHelper::createAppTerm/4");
-  ASS(head.isVar() || SortHelper::getResultSort(head.term()) == sort);
+  ASS(head.isVar() || head.term()->sort() == sort);
 
   TermList res = head;
   TermList s1, s2;
@@ -86,7 +86,7 @@ TermList ApplicativeHelper::createAppTerm(TermList sort, TermList head, TermStac
 TermList ApplicativeHelper::createAppTerm(TermList sort, TermList head, TermList* args, unsigned arity, bool shared)
 {
   CALL("ApplicativeHelper::createAppTerm/5");
-  ASS_REP(head.isVar() || SortHelper::getResultSort(head.term()) == sort, sort.toString() );
+  ASS_REP(head.isVar() || head.term()->sort() == sort, sort.toString() );
 
   TermList res = head;
   TermList s1, s2;
@@ -423,7 +423,7 @@ TermList ApplicativeHelper::replaceFunctionalAndBooleanSubterms(Term* term, Func
 
     TermList tl= argIts.top()->next();
     if(tl.isTerm()){
-      TermList sort = SortHelper::getResultSort(tl.term());
+      TermList sort = tl.term()->sort();
       if(sort.isVar() || sort.isArrowSort() ||
          sort == AtomicSort::boolSort()){
         tl = getVSpecVar(tl.term(), fsm);

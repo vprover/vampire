@@ -309,7 +309,7 @@ void PrimitiveInstantiationIndex::populateIndex()
 
   auto srtOf = [] (TermList t) {
     ASS(t.isTerm());
-    return SortHelper::getResultSort(t.term());
+    return t.term()->sort();
   };
 
   static TermList boolS = AtomicSort::boolSort();
@@ -389,7 +389,7 @@ void NarrowingIndex::populateIndex()
 
   auto srtOf = [] (TermList t) {
      ASS(t.isTerm());
-     return SortHelper::getResultSort(t.term());
+     return t.term()->sort();
   };
 
   TermList s1 = TermList(0, false);
@@ -524,37 +524,5 @@ void HeuristicInstantiationIndex::handleClause(Clause* c, bool adding)
 
   VList::destroy(boundVar);
 }
-
-void RenamingFormulaIndex::insertFormula(TermList formula, TermList name,
-                                         Literal* lit, Clause* cls)
-{
-  CALL("RenamingFormulaIndex::insertFormula");
-  _is->insert(formula, name, lit, cls);
-}
-
-void RenamingFormulaIndex::handleClause(Clause* c, bool adding)
-{
-  CALL("RenamingFormulaIndex::handleClause");
-
-  typedef ApplicativeHelper AH;
-
-  for (unsigned i=0; i<c->length(); i++) {
-    Literal* lit=(*c)[i];
-    NonVariableNonTypeIterator it(lit);
-    while (it.hasNext()) {
-      TermList trm = it.next();
-      Term* t = trm.term();
-      if(SortHelper::getResultSort(t) == AtomicSort::boolSort() && 
-         AH::getProxy(AH::getHead(t)) != Signature::NOT_PROXY){
-        if(adding){
-          env.signature->incrementFormulaCount(t);
-        } else {
-          env.signature->decrementFormulaCount(t);
-        }
-      }
-    }
-  }
-}
-
 
 } // namespace Indexing

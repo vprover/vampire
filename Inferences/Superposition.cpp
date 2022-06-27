@@ -631,8 +631,7 @@ Clause* Superposition::performSuperposition(
       TermList qT = subst->applyTo(con.first.first,con.first.second);
       TermList rT = subst->applyTo(con.second.first,con.second.second);
 
-      TermList sort = SortHelper::getResultSort(rT.term());
-      Literal* constraint = Literal::createEquality(false,qT,rT,sort);
+      Literal* constraint = Literal::createEquality(false,qT,rT,rT.term()->sort());
 
       static Options::UnificationWithAbstraction uwa = env.options->unificationWithAbstraction();
       if(uwa==Options::UnificationWithAbstraction::GROUND && 

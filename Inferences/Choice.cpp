@@ -48,7 +48,7 @@ Clause* Choice::createChoiceAxiom(TermList op, TermList set)
 {
   CALL("Choice::createChoiceAxiom");
 
-  TermList opType = SortHelper::getResultSort(op.term());
+  TermList opType = op.term()->sort();
   TermList setType = ApplicativeHelper::getNthArg(opType, 1);
 
   unsigned max = 0;
@@ -114,8 +114,7 @@ struct Choice::AxiomsIterator
         typeArgs.push(typeArg);
       }
       Term* choiceOp = Term::create(op, typeArgs.size(), typeArgs.begin());
-      TermList choiceOpSort = SortHelper::getResultSort(choiceOp);
-      if(subst.unify(choiceOpSort, 0, _headSort, 1)){
+      if(subst.unify(choiceOp->sort(), 0, _headSort, 1)){
         _nextChoiceOperator = TermList(choiceOp);
         _opApplied = subst.apply(_nextChoiceOperator, 0);
         _setApplied = subst.apply(_set, 1);

@@ -473,7 +473,7 @@ Term* Z3Interfacing::evaluateInModel(Term* trm)
   z3::expr rep = getRepresentation(trm).expr;
   output("(get-value (", rep, "))");
   z3::expr ev = _model.eval(rep,true); // true means "model_completion"
-  SortId sort = SortHelper::getResultSort(trm);
+  SortId sort = trm->sort();
 
   DEBUG("z3 expr: ", ev)
   auto result = evaluateBottomUp(ev, EvaluateInModel { *this })

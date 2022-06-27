@@ -41,7 +41,8 @@ Clause* BoolSimp::simplify(Clause* premise) {
 
     while (nvi.hasNext()) {
       subTerm = nvi.next();
-      if(SortHelper::getResultSort(subTerm.term()) == AtomicSort::boolSort()){
+      // TODO we have a Boolean subterm iterator, no?
+      if(subTerm.term()->sort() == AtomicSort::boolSort()){
         simpedSubTerm = boolSimplify(subTerm);
         if(simpedSubTerm != subTerm){
           goto substitution;
@@ -101,8 +102,7 @@ TermList BoolSimp::negate(TermList term){
   TermList constant, constSort;
 
   constant = TermList(Term::createConstant(env.signature->getNotProxy()));
-  constSort = SortHelper::getResultSort(constant.term());
-  return ApplicativeHelper::createAppTerm(constSort, constant, term);
+  return ApplicativeHelper::createAppTerm(constant.term()->sort(), constant, term);
 }
 
 TermList BoolSimp::boolSimplify(TermList term){

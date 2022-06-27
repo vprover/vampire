@@ -137,7 +137,7 @@ struct NegativeExt::ResultFn
     TermList head = TermList(Term::create(fun, typeVars.size(), typeVars.begin()));
     //cout << "the head is " + head.toString() << endl;
     //cout << "It has sort " + skSymSort.toString() << endl;
-    TermList skolemTerm = ApplicativeHelper::createAppTerm(SortHelper::getResultSort(head.term()), head, termVars);
+    TermList skolemTerm = ApplicativeHelper::createAppTerm(head.term()->sort(), head, termVars);
 
     TermList newLhs = ApplicativeHelper::createAppTerm(alpha1, alpha2, lhs, skolemTerm);
     TermList newRhs = ApplicativeHelper::createAppTerm(alpha1, alpha2, rhs, skolemTerm);

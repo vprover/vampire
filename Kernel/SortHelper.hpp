@@ -50,11 +50,7 @@ private:
 
   static void collectVariableSortsIter(CollectTask task, DHMap<unsigned,TermList>& map, bool ignoreBound = false);
 public:
-  static TermList getResultSort(const Term* t);
-  static TermList getResultSortMono(const Term* t);
   static TermList getResultSort(TermList t, DHMap<unsigned,TermList>& varSorts);
-  static TermList getArgSort(Term* t, unsigned argIndex);
-  static TermList getTermArgSort(Term* t, unsigned argIndex);
 
   static bool tryGetResultSort(const Term* t, TermList& result);
   static bool tryGetResultSort(const TermList t, TermList& result);
@@ -71,8 +67,7 @@ public:
   static void collectVariableSorts(Term* t, DHMap<unsigned,TermList>& map);
   static void collectVariableSorts(Formula* f, DHMap<unsigned,TermList>& map, bool ignoreBound = false);
 
-  static bool areImmediateSortsValidPoly(Term* t); 
-  static bool areImmediateSortsValidMono(Term* t);
+  static bool areImmediateSortsValid(Term* t); 
   static bool allTopLevelArgsAreSorts(AtomicSort* sort);
 
   static TermList getIndexSort(TermList arraySort);
@@ -83,7 +78,7 @@ public:
   static void normaliseArgSorts(TermStack& qVars, TermStack& argSorts);
   static void normaliseSort(TermStack qVars, TermList& sort);    
 
-  static OperatorType* getType(Term* t);
+  static OperatorType* getType(const Term* t);
 
   static void getTypeSub(const Term* t, Substitution& subst);
 

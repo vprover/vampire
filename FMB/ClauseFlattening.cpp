@@ -216,8 +216,7 @@ Clause* ClauseFlattening::flatten(Clause* cl)
           else{
             TermList v; v.makeVar(++maxVar);
             args.push(v);
-            TermList rSort = SortHelper::getResultSort(ts->term());
-            lits.push(Literal::createEquality(false,*ts,v,rSort));
+            lits.push(Literal::createEquality(false,*ts,v,ts->term()->sort()));
           }
         }
         // construct the function for t
@@ -237,8 +236,7 @@ Clause* ClauseFlattening::flatten(Clause* cl)
           else{
             TermList v; v.makeVar(++maxVar);
             args.push(v);
-            TermList rSort = SortHelper::getResultSort(ts->term());
-            lits.push(Literal::createEquality(false,*ts,v,rSort));
+            lits.push(Literal::createEquality(false,*ts,v,ts->term()->sort()));
           }
         }
         // add the resulting equality 
