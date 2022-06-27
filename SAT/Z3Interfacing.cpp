@@ -40,7 +40,7 @@
 #include <gmp.h>
 
 #define DEBUG(...) //DBG(__VA_ARGS__)
-#define TRACE_Z3 1
+#define TRACE_Z3 0
 namespace Lib {
 using SortId = TermList;
 
