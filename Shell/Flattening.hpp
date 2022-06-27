@@ -32,13 +32,18 @@ class Flattening
 {
 public:
   static FormulaUnit* flatten (FormulaUnit*);
-  static Formula* flatten (Formula*);
+  static Formula* flatten (Formula* f){
+    Formula* res  = innerFlatten(f);
+    res->label(f->getLabel()); 
+    return res;
+  }
   static FormulaList* flatten (FormulaList*,Connective con);
   static Literal* flatten (Literal*);
   static TermList flatten (TermList);
 
   static Formula* getFlattennedNegation(Formula* f);
 private:
+ static Formula* innerFlatten(Formula*);
 }; // class Flattening
 
 }

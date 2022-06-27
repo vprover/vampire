@@ -29,7 +29,7 @@ namespace Kernel
 {
 
 Formula* FormulaTransformer::transform(Formula* f) {
-  CALL("FormulaTransformar::transform");
+  CALL("FormulaTransformer::transform");
   Formula* res = apply(f);
   return res;
 }
@@ -240,7 +240,7 @@ Formula* TermTransformingFormulaTransformer::applyLiteral(Formula* f)
 // TermTransformingFormulaTransformer
 //
 
-Formula* TermTransformerTransformTransformedFormulaTransformer::applyLiteral(Formula* f)
+Formula* BottomUpTermTransformerFormulaTransformer::applyLiteral(Formula* f)
 {
   CALL("TermTransformingFormulaTransformer::applyLiteral");
 
@@ -272,7 +272,7 @@ TermList PolarityAwareFormulaTransformer::getVarSort(unsigned var) const
 {
   CALL("PolarityAwareFormulaTransformer::getVarSort");
 
-  return _varSorts->get(var, Term::defaultSort());
+  return _varSorts->get(var, AtomicSort::defaultSort());
 }
 
 Formula* PolarityAwareFormulaTransformer::transformWithPolarity(Formula* f, int polarity)
@@ -437,93 +437,6 @@ void ScanAndApplyFormulaUnitTransformer::updateModifiedProblem(Problem& prb)
 
   prb.invalidateEverything();
 }
-
-
-///////////////////////////////////
-// ScanAndApplyLiteralTransformer
-//
-
-struct ScanAndApplyLiteralTransformer::LitFormulaTransformer : public FormulaTransformer
-{
-  LitFormulaTransformer(ScanAndApplyLiteralTransformer& parent, UnitStack& premAcc)
-      : _parent(parent), _premAcc(premAcc) {}
-
-  virtual Formula* applyLiteral(Formula* f) {
-    Literal* l = f->literal();
-    Literal* l1 = _parent.apply(l, _premAcc);
-    if(l1!=l) {
-      return new AtomicFormula(l1);
-    }
-    return f;
-  }
-
-private:
-  ScanAndApplyLiteralTransformer& _parent;
-  UnitStack& _premAcc;
-};
-
-bool ScanAndApplyLiteralTransformer::apply(FormulaUnit* unit, Unit*& res)
-{
-  CALL("ScanAndApplyLiteralTransformer::apply(FormulaUnit*,Unit*&)");
-
-  Formula* f = unit->formula();
-
-  static UnitStack prems;
-  prems.reset();
-
-  LitFormulaTransformer ft(*this, prems);
-
-  Formula* newForm = ft.transform(f);
-  if(f==newForm) {
-    return false;
-  }
-
-  makeUnique(prems);
-
-  UnitList* premLst = 0;
-  UnitList::pushFromIterator(UnitStack::Iterator(prems), premLst);
-  UnitList::push(unit, premLst);
-
-  res = new FormulaUnit(newForm, FormulaTransformationMany(_infRule, premLst));
-
-  return true;
-}
-
-bool ScanAndApplyLiteralTransformer::apply(Clause* cl, Unit*& res)
-{
-  CALL("ScanAndApplyLiteralTransformer::apply(Clause*,Unit*&)");
-
-  static LiteralStack lits;
-  lits.reset();
-
-  static UnitStack prems;
-  prems.reset();
-
-  bool modified = false;
-
-  Clause::Iterator cit(*cl);
-  while(cit.hasNext()) {
-    Literal* l = cit.next();
-    Literal* l1 = apply(l, prems);
-    lits.push(l);
-    modified |= l!=l1;
-  }
-
-  if(!modified) {
-    return false;
-  }
-
-  makeUnique(prems);
-
-  UnitList* premLst = 0;
-  UnitList::pushFromIterator(UnitStack::Iterator(prems), premLst);
-  UnitList::push(cl, premLst);
-
-  res = Clause::fromIterator(LiteralStack::Iterator(lits), FormulaTransformationMany(_infRule, premLst));
-  return true;
-}
-
-
 
 }
 

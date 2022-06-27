@@ -9,8 +9,7 @@
  */
 #ifndef __Portability__
 #define __Portability__
-
-#include "Debug/Assertion.hpp"
+#include <climits>
 
 //////////////////////////////////////////////////////
 // Detect compiler
@@ -24,84 +23,32 @@
 #endif
 
 //////////////////////////////////////////////////////
-// Detect architecture
+// architecture sanity check
 
-#ifdef _LP64
-#define ARCH_X64 1
-#define ARCH_X86 0
-#elif _M_X64
-//this should handle MS C++ compiler
-#define ARCH_X64 1
-#define ARCH_X86 0
+static_assert(
+    CHAR_BIT == 8,
+    "Vampire assumes that there are 8 bits in a `char`"
+);
+
+static_assert(
+    sizeof(void *) == 8,
+    "Vampire assumes that the size of a pointer is 8 bytes for efficiency reasons. "
+    "This may be fixed/relaxed in future, but for the moment expect problems if running on other architectures."
+);
+
+// enable warnings for unused results
+// C++17: replace this with [[nodiscard]]
+#ifdef __GNUC__
+#define VWARN_UNUSED [[gnu::warn_unused_result]]
 #else
-#define ARCH_X64 0
-#define ARCH_X86 1
+#define VWARN_UNUSED
 #endif
 
-//////////////////////////////////////////////////////
-// Definitions for non-GCC compilers
-
-/* If we're not using GNU C, elide __attribute__ */
-#ifndef __GNUC__
-# define  __attribute__(x)  /*NOTHING*/
-#endif
-
-//////////////////////////////////////////////////////
-// Function directives
-
-/** Marks function which does not return */
-#define NO_RETURN __attribute__((noreturn))
-
-//////////////////////////////////////////////////////
-// Prefetching
-
-#ifdef EFENCE
-# define NO_PREFETCH
-#endif
-
-#ifdef VALGRIND
-# define NO_PREFETCH
-#endif
-
-#ifdef NO_PREFETCH
-# define PREFETCH(x)
-# define PREFETCH_LOC(x)
+// clang can attach to class, struct etc, but GCC cannot
+#ifdef __clang__
+#define VWARN_UNUSED_TYPE [[clang::warn_unused_result]]
 #else
-# ifdef __GNUC__
-#  define PREFETCH(x) __builtin_prefetch((x),0,2)
-#  define PREFETCH_LOC(x) __builtin_prefetch((x),0,0)
-# else
-#  define PREFETCH(x)
-#  define PREFETCH_LOC(x)
-# endif
-#endif
-
-//////////////////////////////////////////////////////
-// Attempt to detect endianness
-
-#include <sys/param.h>  
-#ifdef linux
-# include <endian.h>    
-#endif
-
-/*
- * Best guess at if we're using big-endian or little-endian.  This may
- * need adjustment.
- */
-#if (defined(__BYTE_ORDER) && defined(__LITTLE_ENDIAN) && \
-     __BYTE_ORDER == __LITTLE_ENDIAN) || \
-    (defined(i386) || defined(__i386__) || defined(__i486__) || \
-     defined(__i586__) || defined(__i686__) || defined(vax) || defined(MIPSEL))
-# define HASH_LITTLE_ENDIAN 1
-# define HASH_BIG_ENDIAN 0
-#elif (defined(__BYTE_ORDER) && defined(__BIG_ENDIAN) && \
-       __BYTE_ORDER == __BIG_ENDIAN) || \
-      (defined(sparc) || defined(POWERPC) || defined(mc68000) || defined(sel))
-# define HASH_LITTLE_ENDIAN 0
-# define HASH_BIG_ENDIAN 1
-#else
-# define HASH_LITTLE_ENDIAN 1
-# define HASH_BIG_ENDIAN 0
+#define VWARN_UNUSED_TYPE
 #endif
 
 #endif /*__Portability__*/

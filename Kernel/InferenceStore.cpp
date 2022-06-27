@@ -170,8 +170,9 @@ vstring getQuantifiedStr(const VarContainer& vars, vstring inner, DHMap<unsigned
     unsigned var =vit.next();
     vstring ty="";
     TermList t;
-    if(t_map.find(var,t) && env.statistics->hasTypes){
-      //hasTypes is true if the problem that contains a sort
+
+    if(t_map.find(var,t) && env.property->hasNonDefaultSorts()){
+      //hasNonDefaultSorts is true if the problem contains a sort
       //that is not $i and not a variable
       ty=" : " + t.toString();
     }
@@ -320,48 +321,32 @@ protected:
 
     cs->inference().updateStatistics(); // in particular, update inductionDepth (which could have decreased, since we might have fewer parents after miniminization)
 
+    // TODO: This does not reflect the way we count applications in Induction
+    // since there an entire induction formula resolved is 1 application, here
+    // each resolution step counts as one, counting potentially much more
+    // switch (rule) {
+    //   case InferenceRule::GEN_INDUCTION_HYPERRESOLUTION:
+    //     env.statistics->generalizedInductionApplicationInProof++;
+    //   case InferenceRule::INDUCTION_HYPERRESOLUTION:
+    //     env.statistics->inductionApplicationInProof++;
+    //     break;
+    //   default:
+    //     ;
+    // }
     switch (rule) {
-      case InferenceRule::GEN_INDUCTION_AXIOM:
-      case InferenceRule::INT_INF_UP_GEN_INDUCTION_AXIOM:
-      case InferenceRule::INT_FIN_UP_GEN_INDUCTION_AXIOM:
-      case InferenceRule::INT_DB_UP_GEN_INDUCTION_AXIOM:
-      case InferenceRule::INT_INF_DOWN_GEN_INDUCTION_AXIOM:
-      case InferenceRule::INT_FIN_DOWN_GEN_INDUCTION_AXIOM:
-      case InferenceRule::INT_DB_DOWN_GEN_INDUCTION_AXIOM:
-        env.statistics->generalizedInductionInProof++;
-      case InferenceRule::INDUCTION_AXIOM:
-      case InferenceRule::INT_INF_UP_INDUCTION_AXIOM:
-      case InferenceRule::INT_FIN_UP_INDUCTION_AXIOM:
-      case InferenceRule::INT_DB_UP_INDUCTION_AXIOM:
-      case InferenceRule::INT_INF_DOWN_INDUCTION_AXIOM:
-      case InferenceRule::INT_FIN_DOWN_INDUCTION_AXIOM:
-      case InferenceRule::INT_DB_DOWN_INDUCTION_AXIOM:
-        env.statistics->inductionInProof++;
-        break;
-      default:
-        ;
-    }
-    switch (rule) {
-      case InferenceRule::INDUCTION_AXIOM:
-      case InferenceRule::GEN_INDUCTION_AXIOM:
+      case InferenceRule::STRUCT_INDUCTION_AXIOM:
         env.statistics->structInductionInProof++;
         break;
       case InferenceRule::INT_INF_UP_INDUCTION_AXIOM:
-      case InferenceRule::INT_INF_UP_GEN_INDUCTION_AXIOM:
       case InferenceRule::INT_INF_DOWN_INDUCTION_AXIOM:
-      case InferenceRule::INT_INF_DOWN_GEN_INDUCTION_AXIOM:
         env.statistics->intInfInductionInProof++;
         break;
       case InferenceRule::INT_FIN_UP_INDUCTION_AXIOM:
-      case InferenceRule::INT_FIN_UP_GEN_INDUCTION_AXIOM:
       case InferenceRule::INT_FIN_DOWN_INDUCTION_AXIOM:
-      case InferenceRule::INT_FIN_DOWN_GEN_INDUCTION_AXIOM:
         env.statistics->intFinInductionInProof++;
         break;
       case InferenceRule::INT_DB_UP_INDUCTION_AXIOM:
-      case InferenceRule::INT_DB_UP_GEN_INDUCTION_AXIOM:
       case InferenceRule::INT_DB_DOWN_INDUCTION_AXIOM:
-      case InferenceRule::INT_DB_DOWN_GEN_INDUCTION_AXIOM:
         env.statistics->intDBInductionInProof++;
         break;
       default:
@@ -369,27 +354,21 @@ protected:
     }
     switch (rule) {
       case InferenceRule::INT_INF_UP_INDUCTION_AXIOM:
-      case InferenceRule::INT_INF_UP_GEN_INDUCTION_AXIOM:
         env.statistics->intInfUpInductionInProof++;
         break;
       case InferenceRule::INT_INF_DOWN_INDUCTION_AXIOM:
-      case InferenceRule::INT_INF_DOWN_GEN_INDUCTION_AXIOM:
         env.statistics->intInfDownInductionInProof++;
         break;
       case InferenceRule::INT_FIN_UP_INDUCTION_AXIOM:
-      case InferenceRule::INT_FIN_UP_GEN_INDUCTION_AXIOM:
         env.statistics->intFinUpInductionInProof++;
         break;
       case InferenceRule::INT_FIN_DOWN_INDUCTION_AXIOM:
-      case InferenceRule::INT_FIN_DOWN_GEN_INDUCTION_AXIOM:
         env.statistics->intFinDownInductionInProof++;
         break;
       case InferenceRule::INT_DB_UP_INDUCTION_AXIOM:
-      case InferenceRule::INT_DB_UP_GEN_INDUCTION_AXIOM:
         env.statistics->intDBUpInductionInProof++;
         break;
       case InferenceRule::INT_DB_DOWN_INDUCTION_AXIOM:
-      case InferenceRule::INT_DB_DOWN_GEN_INDUCTION_AXIOM:
         env.statistics->intDBDownInductionInProof++;
         break;
       default:
@@ -669,8 +648,8 @@ protected:
     CALL("InferenceStore::TPTPProofPrinter::getFofString");
 
     vstring kind = "fof";
-    if(env.statistics->hasTypes){ kind="tff"; }
-    if(env.statistics->higherOrder){ kind="thf"; }
+    if(env.property->hasNonDefaultSorts()){ kind="tff"; }
+    if(env.property->higherOrder()){ kind="thf"; }
 
     return kind+"("+id+","+getRole(rule,origin)+",("+"\n"
 	+"  "+formula+"),\n"
@@ -963,8 +942,8 @@ protected:
     UIHelper::outputSymbolDeclarations(out);
 
     vstring kind = "fof";
-    if(env.statistics->hasTypes){ kind="tff"; } 
-    if(env.statistics->higherOrder){ kind="thf"; }
+    if(env.property->hasNonDefaultSorts()){ kind="tff"; } 
+    if(env.property->higherOrder()){ kind="thf"; }
 
     out << kind
         << "(r"<<_is->getUnitIdStr(cs)
@@ -1057,30 +1036,49 @@ void InferenceStore::outputUnsatCore(ostream& out, Unit* refutation)
 
   Stack<Unit*> todo;
   todo.push(refutation);
-  Set<vstring> printed;
+  Set<Unit*> visited;
   while(!todo.isEmpty()){
 
     Unit* u = todo.pop();
+    visited.insert(u);
 
-    if(u->number() <= Unit::getLastParsingNumber()){
-      if(!u->isClause()  && u->getFormula()->hasLabel()){
-        vstring label =  u->getFormula()->getLabel();
-        if(!printed.contains(label)){
-          out << label << endl; 
-          printed.insert(label);
+    if(u->inference().rule() ==  InferenceRule::INPUT){
+      if(!u->isClause()){
+        if(u->getFormula()->hasLabel()){
+          vstring label =  u->getFormula()->getLabel();
+          out << label << endl;
         }
+        else{
+          ASS(env.options->ignoreMissingInputsInUnsatCore() || u->getFormula()->hasLabel());
+          if(!(env.options->ignoreMissingInputsInUnsatCore() || u->getFormula()->hasLabel())){
+            cout << "ERROR: There is a problem with the unsat core. There is an input formula in the proof" <<  endl;
+            cout << "that does not have a label. We expect all  input formulas to have labels as this  is what" << endl;
+            cout << "smtcomp does. If you don't want this then use the ignore_missing_inputs_in_unsat_core option" << endl;
+            cout << "The unlabelled  input formula is " << endl;
+            cout << u->toString() << endl;
+          }
+        }
+      }
+      else{
+        //Currently ignore clauses as they cannot come from SMT-LIB as input formulas
       }
     }
     else{
       InferenceRule rule;
       UnitIterator parents = InferenceStore::instance()->getParents(u,rule);
-      while(parents.hasNext()){ todo.push(parents.next()); }
+      while(parents.hasNext()){
+        Unit* parent = parents.next();
+        if(!visited.contains(parent)){
+          todo.push(parent);
+        }
+      }
     }
-
   }
 
   out << ")" << endl;
 }
+
+
 
 /**
  * Output a proof of refutation to out

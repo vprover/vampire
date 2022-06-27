@@ -34,10 +34,8 @@
 #include "Kernel/MainLoop.hpp"
 
 #include "Shell/Options.hpp"
-#include "Shell/Refutation.hpp"
 #include "Shell/Statistics.hpp"
 
-#include "SAT/Preprocess.hpp"
 #include "SAT/SATInference.hpp"
 #include "SAT/MinimizingSolver.hpp"
 #include "SAT/BufferedSolver.hpp"
@@ -74,6 +72,7 @@ void SplittingBranchSelector::init()
 #if VZ3
     case Options::SatSolver::Z3:
       { BYPASSING_ALLOCATOR
+        _solverIsSMT = true;
         _solver = new Z3Interfacing(_parent.getOptions(),_parent.satNaming(), /* unsat core */ false, _parent.getOptions().exportAvatarProblem());
         if(_parent.getOptions().satFallbackForSMT()){
           // TODO make fallback minimizing?
@@ -156,7 +155,7 @@ void SplittingBranchSelector::considerPolarityAdvice(SATLiteral lit)
 static Color colorFromPossiblyDeepFOConversion(SATClause* scl,Unit*& u)
 {
   /* all the clauses added to AVATAR are FO_CONVERSIONs except when there is a duplicate literal
-   and Preprocess::removeDuplicateLiterals creates an extra inference with a single premise ``in between''.*/
+   and SATClause::removeDuplicateLiterals creates an extra inference with a single premise ``in between''.*/
   if (scl->inference()->getType() != SATInference::FO_CONVERSION) {
     ASS_EQ(scl->inference()->getType(),SATInference::PROP_INF);
     PropInference* inf = static_cast<PropInference*>(scl->inference());
@@ -189,7 +188,8 @@ void SplittingBranchSelector::handleSatRefutation()
   if (!env.colorUsed) { // color oblivious, simple approach
     UnitList* prems = SATInference::getFOPremises(satRefutation);
 
-    Clause* foRef = Clause::fromIterator(LiteralIterator::getEmpty(),FromSatRefutation(InferenceRule::AVATAR_REFUTATION, prems, satPremises));
+    Clause* foRef = Clause::fromIterator(LiteralIterator::getEmpty(),
+        FromSatRefutation(_solverIsSMT ? InferenceRule::AVATAR_REFUTATION_SMT : InferenceRule::AVATAR_REFUTATION, prems, satPremises));
     // TODO: in principle, the user might be interested in this final clause's age (currently left 0)
     throw MainLoop::RefutationFoundException(foRef);
   } else { // we must produce a well colored proof
@@ -560,7 +560,7 @@ void SplittingBranchSelector::addSatClauseToSolver(SATClause* cl, bool branchRef
 {
   CALL("SplittingBranchSelector::addSatClauseToSolver");
 
-  cl = Preprocess::removeDuplicateLiterals(cl);
+  cl = SATClause::removeDuplicateLiterals(cl);
   if(!cl) {
     RSTAT_CTR_INC("splitter_tautology");
     return;
@@ -702,10 +702,16 @@ void Splitter::init(SaturationAlgorithm* sa)
   hasSMTSolver = (opts.satSolver() == Options::SatSolver::Z3);
 #endif
 
-  if (opts.splittingAvatimer() > 0.0) {
-    _stopSplittingAt = opts.splittingAvatimer() * opts.timeLimitInDeciseconds() * 100;
+  if (opts.splittingAvatimer() < 1.0) {
+    _stopSplittingAtTime = opts.splittingAvatimer() * opts.timeLimitInDeciseconds() * 100;
+#ifdef __linux__
+    _stopSplittingAtInst = opts.splittingAvatimer() * opts.instructionLimit();
+#endif
   } else {
-    _stopSplittingAt = 0;
+    _stopSplittingAtTime = 0;
+#ifdef __linux__
+    _stopSplittingAtInst = 0;
+#endif
   }
 
   _fastRestart = opts.splittingFastRestart();
@@ -765,9 +771,8 @@ Unit* Splitter::getDefinitionFromName(SplitLevel compName) const
 {
   CALL("Splitter::getDefinitionFromName");
 
-  Unit* def;
-  ALWAYS(_defs.find((compName&~1) /*always stored positively*/,def));
-  return def;
+  // always stored positively
+  return _defs.get(compName & ~1);
 }
 
 void Splitter::collectDependenceLits(SplitSet* splits, SATLiteralStack& acc) const
@@ -1038,7 +1043,7 @@ bool Splitter::getComponents(Clause* cl, Stack<LiteralStack>& acc)
 
   //Master literal of an variable is the literal
   //with lowest index, in which it appears.
-  static DHMap<unsigned, unsigned, IdentityHash> varMasters;
+  static DHMap<unsigned, unsigned, IdentityHash, Hash> varMasters;
   varMasters.reset();
   IntUnionFind components(clen);
 
@@ -1093,7 +1098,11 @@ bool Splitter::doSplitting(Clause* cl)
   if (hasStopped) {
     return false;
   }
-  if (_stopSplittingAt && (unsigned)env.timer->elapsedMilliseconds() >= _stopSplittingAt) {
+  if ((_stopSplittingAtTime && (unsigned)env.timer->elapsedMilliseconds() >= _stopSplittingAtTime)
+#ifdef __linux__
+    || (_stopSplittingAtInst && env.timer->elapsedMegaInstructions() >= _stopSplittingAtInst)
+#endif
+    ) {
     if (_showSplitting) {
       env.beginOutput();
       env.out() << "[AVATAR] Stopping the splitting process."<< std::endl;

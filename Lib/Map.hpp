@@ -489,14 +489,6 @@ public:
   } 
 
 
- 
-  /**
-   * Find the entry with key @b key, or initialize the value with the default initializer. 
-   */
-  template<class InitFun>
-  Val& getOrInit(Key key)
-  { return getOrInit(std::move(key), [](){ return Val(); }); } 
-
   /**
    * Assign pointer to value stored under @b key into @b pval.
    * If nothing was previously stored under @b key, initialize

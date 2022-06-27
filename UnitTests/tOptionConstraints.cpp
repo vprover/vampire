@@ -49,14 +49,11 @@ TEST_FUN(int_bounds)
   ASS(testOptionBad("extensionality_max_length","1"));
 }
 
-TEST_FUN(choice_con)
-{
-  ASS(testOptionBad("equality_resolution_with_deletion","on"));
-}
-
 TEST_FUN(default_dependence)
 {
-  ASS(testOptionBad("saturation_algorithm","inst_gen"));
+  // we shouldn't just be able to set extensionality_allow_pos_eq to true,
+  // since it does no make sense, unless extensionality_resolution is something else than the (default) off
+  ASS(testOptionBad("extensionality_allow_pos_eq","true"));
 }
 
 TEST_FUN(urr)

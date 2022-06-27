@@ -116,13 +116,13 @@ struct EqualityFactoring::ResultFn
     ASS_NEQ(sLit, fLit);
 
     static Options::FunctionExtensionality ext = env.options->functionExtensionality();
-    bool use_ho_handler = (ext == Options::FunctionExtensionality::ABSTRACTION) && env.statistics->higherOrder;
+    bool use_ho_handler = (ext == Options::FunctionExtensionality::ABSTRACTION) && env.property->higherOrder();
 
     if(use_ho_handler){
       TermList sLHSreplaced = sLHS;
       TermList fLHSreplaced = fLHS;
       if(!sLHS.isVar() && !fLHS.isVar() && 
-         !srtS.isVar() && !ApplicativeHelper::isArrowSort(srtS)){
+         !srtS.isVar() && !srtS.isArrowSort()){
         sLHSreplaced = ApplicativeHelper::replaceFunctionalAndBooleanSubterms(sLHS.term(), &funcSubtermMap);
         fLHSreplaced = ApplicativeHelper::replaceFunctionalAndBooleanSubterms(fLHS.term(), &funcSubtermMap);
       }

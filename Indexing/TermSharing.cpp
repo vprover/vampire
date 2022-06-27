@@ -19,7 +19,7 @@
 #include "Lib/Environment.hpp"
 #include "Kernel/Signature.hpp"
 #include "Kernel/SortHelper.hpp"
-#include "Kernel/Sorts.hpp"
+#include "Kernel/OperatorType.hpp"
 #include "Kernel/Term.hpp"
 #include "Kernel/TermIterators.hpp"
 #include "Kernel/ApplicativeHelper.hpp"
@@ -39,10 +39,12 @@ typedef ApplicativeHelper AH;
  */
 TermSharing::TermSharing()
   : _totalTerms(0),
+    _totalSorts(0),
     // _groundTerms(0), //MS: unused
     _totalLiterals(0),
     // _groundLiterals(0), //MS: unused
     _literalInsertions(0),
+    _sortInsertions(0),
     _termInsertions(0),
     _poly(1),
     _wellSortednessCheckingDisabled(false)
@@ -57,7 +59,7 @@ TermSharing::TermSharing()
 TermSharing::~TermSharing()
 {
   CALL("TermSharing::~TermSharing");
-
+  
 #if CHECK_LEAKS
   Set<Term*,TermSharing>::Iterator ts(_terms);
   while (ts.hasNext()) {
@@ -67,6 +69,10 @@ TermSharing::~TermSharing()
   while (ls.hasNext()) {
     ls.next()->destroy();
   }
+  Set<AtomicSort*,TermSharing>::Iterator ss(_sorts);
+  while (ss.hasNext()) {
+    ss.next()->destroy();
+  }
 #endif
 }
 
@@ -74,12 +80,9 @@ void TermSharing::setPoly()
 {
   CALL("TermSharing::setPoly()");
 
-  //combinatory superposiiton can introduce polymorphism into a 
-  //monomorphic problem
-  _poly = env.statistics->higherOrder ||
-          env.statistics->polymorphic ||
-          env.options->equalityProxy() != Options::EqualityProxy::OFF ||
-          env.options->saturationAlgorithm() == Options::SaturationAlgorithm::INST_GEN;
+  //combinatory superposiiton can introduce polymorphism into a monomorphic problem
+  _poly = env.property->higherOrder() || env.property->hasPolymorphicSym() ||
+    (env.options->equalityProxy() != Options::EqualityProxy::OFF && !env.options->useMonoEqualityProxy());
 }
 
 /**
@@ -92,6 +95,7 @@ Term* TermSharing::insert(Term* t)
   CALL("TermSharing::insert(Term*)");
   ASS(!t->isLiteral());
   ASS(!t->isSpecial());
+  ASS(!t->isSort());
 
   TimeCounter tc(TC_TERM_SHARING);
 
@@ -115,7 +119,7 @@ Term* TermSharing::insert(Term* t)
 	env.signature->getFunction(t->functor())->interpreted();
     Color color = COLOR_TRANSPARENT;
 
-    if(env.options->combinatorySup() && !AH::isType(t)){ 
+    if(env.options->combinatorySup()){ 
       int maxRedLength = -1;
       TermList head;
       TermStack args;
@@ -167,7 +171,7 @@ Term* TermSharing::insert(Term* t)
         
         Term* r = tt->term();
   
-        vars += r->vars();
+        vars += r->numVarOccs();
         weight += r->weight();
         if (env.colorUsed) {
             color = static_cast<Color>(color | r->color());
@@ -179,7 +183,7 @@ Term* TermSharing::insert(Term* t)
     }
     t->markShared();
     t->setId(_totalTerms);
-    t->setVars(vars);
+    t->setNumVarOccs(vars);
     t->setWeight(weight);
     if (env.colorUsed) {
       Color fcolor = env.signature->getFunction(t->functor())->color();
@@ -205,6 +209,62 @@ Term* TermSharing::insert(Term* t)
   return s;
 } // TermSharing::insert
 
+AtomicSort* TermSharing::insert(AtomicSort* sort)
+{
+  CALL("TermSharing::insert(AtomicSort*)");
+  ASS(!sort->isLiteral());
+  ASS(!sort->isSpecial());
+  ASS(sort->isSort());
+
+  // cannot use TC_TERM_SHARING
+  // as inserting a term can result in the insertion of
+  // a sort and TimeCounter design forbids starting a timer 
+  // when it is already running 
+  TimeCounter tc(TC_SORT_SHARING);
+
+  _sortInsertions++;
+  AtomicSort* s = _sorts.insert(sort);
+  if (s == sort) {
+    if(sort->isArraySort()){
+      _arraySorts.insert(TermList(sort));
+    }    
+    unsigned weight = 1;
+    unsigned vars = 0;
+
+    for (TermList* tt = sort->args(); ! tt->isEmpty(); tt = tt->next()) {
+      if (tt->isVar()) {
+        ASS(tt->isOrdinaryVar());
+        vars++;
+        weight += 1;
+      }
+      else 
+      {
+        ASS_REP(tt->term()->shared(), tt->term()->toString());
+        
+        Term* r = tt->term();
+  
+        vars += r->numVarOccs();
+        weight += r->weight();
+      }
+    }
+    sort->markShared();
+    sort->setId(_totalSorts);
+    sort->setNumVarOccs(vars);
+    sort->setWeight(weight);
+      
+    _totalSorts++;
+
+    ASS_REP(SortHelper::allTopLevelArgsAreSorts(sort), sort->toString());
+    if (!SortHelper::allTopLevelArgsAreSorts(sort)){
+      USER_ERROR("Immediate subterms of sort "+sort->toString()+" are not all sorts as mandated in rank-1 polymorphism!");      
+    }
+  }
+  else {
+    sort->destroy();
+  }
+  return s;
+} // TermSharing::insert
+
 /**
  * Insert a new literal in the index and return the result.
  *
@@ -217,6 +277,7 @@ Literal* TermSharing::insert(Literal* t)
 {
   CALL("TermSharing::insert(Literal*)");
   ASS(t->isLiteral());
+  ASS(!t->isSort());
   ASS(!t->isSpecial());
 
   //equalities between variables must be inserted using insertVariableEquality() function
@@ -243,27 +304,33 @@ Literal* TermSharing::insert(Literal* t)
     bool hasInterpretedConstants=false;
     for (TermList* tt = t->args(); ! tt->isEmpty(); tt = tt->next()) {
       if (tt->isVar()) {
-	ASS(tt->isOrdinaryVar());
-	vars++;
-	weight += 1;
+        ASS(tt->isOrdinaryVar());
+        vars++;
+        weight += 1;
       }
       else {
-	ASS_REP(tt->term()->shared(), tt->term()->toString());
-	Term* r = tt->term();
-	vars += r->vars();
-	weight += r->weight();
-	if (env.colorUsed) {
-	  ASS(color == COLOR_TRANSPARENT || r->color() == COLOR_TRANSPARENT || color == r->color());
-	  color = static_cast<Color>(color | r->color());
-	}
-	if(!hasInterpretedConstants && r->hasInterpretedConstants()) {
-	  hasInterpretedConstants=true;
-	}
+        ASS_REP(tt->term()->shared(), tt->term()->toString());
+        Term* r = tt->term();
+        vars += r->numVarOccs();
+        weight += r->weight();
+
+        if(t->isEquality()){
+          TermList sort = SortHelper::getResultSort(r);
+          weight += sort.weight() - 1;
+        }
+
+        if (env.colorUsed) {
+          ASS(color == COLOR_TRANSPARENT || r->color() == COLOR_TRANSPARENT || color == r->color());
+          color = static_cast<Color>(color | r->color());
+        }
+        if(!hasInterpretedConstants && r->hasInterpretedConstants()) {
+          hasInterpretedConstants=true;
+        }
       }
     }
     t->markShared();
     t->setId(_totalLiterals);
-    t->setVars(vars);
+    t->setNumVarOccs(vars);
     t->setWeight(weight);
     if (env.colorUsed) {
       Color fcolor = env.signature->getPredicate(t->functor())->color();
@@ -273,7 +340,7 @@ Literal* TermSharing::insert(Literal* t)
     t->setInterpretedConstantsPresence(hasInterpretedConstants);
     _totalLiterals++;
 
-     ASS_REP(_wellSortednessCheckingDisabled || SortHelper::areImmediateSortsValidPoly(t), t->toString());
+    ASS_REP(_wellSortednessCheckingDisabled || SortHelper::areImmediateSortsValidPoly(t), t->toString());
     if (!_poly && !SortHelper::areImmediateSortsValidMono(t) && !_wellSortednessCheckingDisabled){
       USER_ERROR("Immediate (shared) subterms of  term/literal "+t->toString()+" have different types/not well-typed!");
     } else if (_poly && !SortHelper::areImmediateSortsValidPoly(t) && !_wellSortednessCheckingDisabled){
@@ -312,14 +379,22 @@ Literal* TermSharing::insertVariableEquality(Literal* t, TermList sort)
   t->markTwoVarEquality();
   t->setTwoVarEqSort(sort);
 
-  unsigned sortWeight = sort.isVar() ? 1 : sort.term()->weight();
-
   _literalInsertions++;
   Literal* s = _literals.insert(t);
   if (s == t) {
     t->markShared();
     t->setId(_totalLiterals);
-    t->setWeight(2 + sortWeight);
+    // 3 since we have two variables and the equality symbol itself.
+    // Additionally, we need sort.weight() in the polymorphic case since
+    // the sort may contain variables and Vampire assumes the invariant
+    // weight(lit) >= distinct_vars(lit)
+    // The -1 factor is there not to make the overall weight different,
+    // for the monomorpic case, than it was in the olden days
+    // (which was 3 and sort.weight() is in such cases 1)
+    // Note that this is not perfect with arrays, who's complex (ground) sort weighs more than 1
+    // However, we don't want the calculation to depend on _poly
+    // which switches from 1 to possibly 0 only after preprocessing.
+    t->setWeight(3 + (sort.weight() - 1));
     if (env.colorUsed) {
       t->setColor(COLOR_TRANSPARENT);
     }

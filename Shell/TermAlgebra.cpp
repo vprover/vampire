@@ -26,25 +26,29 @@ TermAlgebraConstructor::TermAlgebraConstructor(unsigned functor, Lib::Array<unsi
   : _functor(functor), _hasDiscriminator(false), _destructors(destructors)
 {
   _type = env.signature->getFunction(_functor)->fnType();
+#if VDEBUG
   ASS_REP(env.signature->getFunction(_functor)->termAlgebraCons(), env.signature->functionName(_functor));
   ASS_EQ(_type->arity(), destructors.size());
   unsigned i = 0;
   for (auto d : destructors) {
-    auto sym = _type->arg(i++) == Term::boolSort() ? env.signature->getPredicate(d) 
+    auto sym = _type->arg(i++) == AtomicSort::boolSort() ? env.signature->getPredicate(d)
                                                    : env.signature->getFunction(d);
     ASS_REP(sym->termAlgebraDest(), sym->name())
   }
+#endif
 }
 
 TermAlgebraConstructor::TermAlgebraConstructor(unsigned functor, unsigned discriminator, Lib::Array<unsigned> destructors)
   : _functor(functor), _hasDiscriminator(true), _discriminator(discriminator), _destructors(destructors)
 {
   _type = env.signature->getFunction(_functor)->fnType();
+#if VDEBUG
   ASS_REP(env.signature->getFunction(_functor)->termAlgebraCons(), env.signature->functionName(_functor));
   ASS_EQ(_type->arity(), destructors.size());
   for (auto d : destructors) {
     ASS(env.signature->getFunction(d)->termAlgebraDest())
   }
+#endif
 }
 
 //This is only safe for monomorphic term algebras AYB
@@ -222,6 +226,6 @@ std::ostream& operator<<(std::ostream& out, TermAlgebraConstructor const& self)
 { return out << "ctor " << env.signature->getFunction(self.functor())->name(); }
 
 std::ostream& operator<<(std::ostream& out, TermAlgebra const& self) 
-{ return out << "term_algebra " << env.sorts->sortName(self.sort()); }
+{ return out << "term_algebra " << self.sort().toString(); }
 
 }

@@ -18,7 +18,7 @@
 
 using namespace Test;
 
-REGISTER_GEN_TESTER(Test::Generation::GenerationTester<Inferences::EqualityResolution>)
+REGISTER_GEN_TESTER(EqualityResolution)
 
 /**
  * NECESSARY: We neet to tell the tester which syntax sugar to import for creating terms & clauses. 

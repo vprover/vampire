@@ -24,6 +24,7 @@
 #include <cstring>
 #include <cstdlib>
 #include "Lib/System.hpp"
+#include "Lib/Timer.hpp"
 #include "Shell/UIHelper.hpp"
 
 #define SAFE_OUT_OF_MEM_SOLUTION 1
@@ -343,6 +344,8 @@ void Allocator::deallocateKnown(void* obj,size_t size)
   CALLC("Allocator::deallocateKnown",MAKE_CALLS);
   ASS(obj);
 
+  TimeoutProtector tp;
+
 #if VDEBUG
   Descriptor* desc = Descriptor::find(obj);
   desc->timestamp = ++Descriptor::globalTimestamp;
@@ -415,6 +418,8 @@ void Allocator::deallocateUnknown(void* obj)
 #endif
 {
   CALLC("Allocator::deallocateUnknown",MAKE_CALLS);
+
+  TimeoutProtector tp;
 
 #if VDEBUG
   Descriptor* desc = Descriptor::find(obj);
@@ -763,6 +768,8 @@ void* Allocator::allocateKnown(size_t size)
   CALLC("Allocator::allocateKnown",MAKE_CALLS);
   ASS(size > 0);
 
+  TimeoutProtector tp;
+
   char* result = allocatePiece(size);
 
 #if VDEBUG
@@ -883,6 +890,8 @@ void* Allocator::allocateUnknown(size_t size)
 {
   CALLC("Allocator::allocateUnknown",MAKE_CALLS);
   ASS(size>0);
+
+  TimeoutProtector tp;
 
   size += sizeof(Known);
   char* result = allocatePiece(size);
@@ -1050,9 +1059,9 @@ unsigned Allocator::Descriptor::hash (const void* addr)
   CALLC("Allocator::Descriptor::hash",MAKE_CALLS);
 
   char* val = reinterpret_cast<char*>(&addr);
-  unsigned hash = 2166136261u;
+  unsigned hash = FNV32_OFFSET_BASIS;
   for (int i = sizeof(void*)-1;i >= 0;i--) {
-    hash = (hash ^ val[i]) * 16777619u;
+    hash = (hash ^ val[i]) * FNV32_PRIME;
   }
   return hash;
 } // Allocator::Descriptor::hash(const char* str)

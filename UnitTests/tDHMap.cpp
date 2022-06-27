@@ -8,72 +8,10 @@
  * and in the source directory
  */
 
-#include <iostream>
-
 #include "Lib/DHMap.hpp"
-
 #include "Test/UnitTesting.hpp"
 
-using namespace std;
-using namespace Lib;
-
-class IdHash {
-public:
-  static unsigned hash(unsigned i)
-  {
-    return i;
-  }
-};
-
-class ConstHash {
-public:
-  static unsigned hash(unsigned i)
-  {
-    return 1;
-  }
-};
-
-/**
- * Hash class for integers which iterates through
- * {0,1,...,capacity-1} in a zig-zag manner:
- * 
- * E.g. for capacity==3, the transformation is { 0->2,
- * 1->1, 2->0, 3->0, 4->1, 5->2, 6->2,... }
- */
-class ZigZagHash {
-public:
-  /**
-   * Hash function for integers which iterates through
-   * {0,1,...,capacity-1} in a zig-zag manner:
-   * 
-   * E.g. for capacity==3, the transformation is { 0->2,
-   * 1->1, 2->0, 3->0, 4->1, 5->2, 6->2,... }
-   */
-  static unsigned hash(unsigned i, int capacity)
-  {
-    int res=(i%(capacity*2) - capacity);
-    if(res<0)
-      //this turns x into -x-1
-      res = ~res;
-    return static_cast<unsigned>(res);
-  }
-};
-
-namespace Lib 
-{
-/**
- * Traits structure specialisation. (See DHMap.hpp) 
- */
-template<>
-struct HashTraits<ZigZagHash>
-{
-  enum {SINGLE_PARAM_HASH=0};
-};
-};
-
-
-
-typedef DHMap<unsigned, unsigned, ZigZagHash, ConstHash> MyMap;
+typedef DHMap<unsigned, unsigned> MyMap;
 
 TEST_FUN(dhmap1)
 {

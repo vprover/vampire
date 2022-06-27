@@ -80,12 +80,9 @@ public:
   static Literal* apply(Literal* lit, Applicator& applicator)
   {
     CALL("SubstHelper::apply(Literal*...)");
-    TermList sort;
-    if(lit->isTwoVarEquality()){
-      sort = lit->twoVarEqSort();
-    }
     Literal* subbedLit = static_cast<Literal*>(apply(static_cast<Term*>(lit),applicator));
     if(subbedLit->isTwoVarEquality()){ //either nothing's changed or variant
+      TermList sort = lit->twoVarEqSort();
       TermList newSort = apply(sort, applicator);
       if((sort != newSort)){
         subbedLit = Literal::createEquality(subbedLit->polarity(), *subbedLit->nthArgument(0), *subbedLit->nthArgument(1), newSort);
@@ -277,6 +274,7 @@ TermList SubstHelper::applyImpl(TermList trm, Applicator& applicator, bool noSha
  * bound inside the formula.
  *
  * This function can handle special terms.
+ * This function can handle the substitution of sorts.
  */
 template<bool ProcessSpecVars, class Applicator>
 Term* SubstHelper::applyImpl(Term* trm, Applicator& applicator, bool noSharing)
@@ -370,7 +368,11 @@ Term* SubstHelper::applyImpl(Term* trm, Applicator& applicator, bool noSharing)
 
       Term* newTrm;
       if(shouldShare) {
-        newTrm=Term::create(orig,argLst);
+        if(orig->isSort()){
+          newTrm=AtomicSort::create(static_cast<AtomicSort*>(orig), argLst);
+        } else {
+          newTrm=Term::create(orig,argLst);
+        }
       }
       else {
         newTrm=Term::createNonShared(orig,argLst);
@@ -434,12 +436,15 @@ Term* SubstHelper::applyImpl(Term* trm, Applicator& applicator, bool noSharing)
       ASS(!noSharing);
       Literal* lit = static_cast<Literal*>(trm);
       result=Literal::create(lit,argLst);
-    }
-    else {
+    } else if(trm->isSort()){
+      ASS(!noSharing);
+      result=AtomicSort::create(static_cast<AtomicSort*>(trm),argLst);
+    } else {
       bool shouldShare=!noSharing && canBeShared(argLst, trm->arity());
       if(shouldShare) {
-        result=Term::create(trm,argLst);
+        result=Term::create(trm,argLst);          
       } else {
+        //At the memoent all sorts should be shared.
         result=Term::createNonShared(trm,argLst);
       }
     }
@@ -467,6 +472,7 @@ Term* SubstHelper::applyImpl(Term* trm, Applicator& applicator, bool noSharing)
  * bound inside the formula.
  *
  * This function can handle special terms.
+ * This function can handle the substitution of sorts. 
  */
 template<bool ProcessSpecVars, class Applicator>
 Formula* SubstHelper::applyImpl(Formula* f, Applicator& applicator, bool noSharing)

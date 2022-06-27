@@ -37,8 +37,6 @@ struct EmptyStruct {};
 
 class Hash;
 struct IdentityHash;
-struct PtrIdentityHash;
-
 
 template<typename T> class VirtualIterator;
 
@@ -74,11 +72,11 @@ typedef Stack<vstring> StringStack;
 
 typedef Map<vstring,unsigned,Hash> SymbolMap;
 
-template<typename T> struct FirstHashTypeInfo;
+template<typename T, typename=void> struct SecondaryHash;
 /**
- * First hash for DHMap and DHMultiset classes.
+ * Second hash for DHMap and DHMultiset classes.
  */
-#define FIRST_HASH(Cl) typename FirstHashTypeInfo<Cl>::Type
+#define SECONDARY_HASH(Cl) typename SecondaryHash<Cl>::Type
 
 //There is a bug (what else can it be?) in the VS2008 compiler that
 //requires the name of the template parameter in the declaration to
@@ -90,10 +88,10 @@ template<typename T> struct FirstHashTypeInfo;
 //definition of the class starts with
 //template <typename Key, typename Val, class Hash1, class Hash2> class DHMap
 //                   ^^^
-template <typename Key, typename Val, class Hash1=FIRST_HASH(Key), class Hash2=Hash> class DHMap;
-template <typename Val, class Hash1=FIRST_HASH(Val), class Hash2=Hash> class DHSet;
-template <typename K,typename V, class Hash1=FIRST_HASH(K), class Hash2=Hash> class MapToLIFO;
-
+template <typename Key, typename Val, class Hash1=Hash, class Hash2=SECONDARY_HASH(Key)> class DHMap;
+template <typename Val, class Hash1=Hash, class Hash2=SECONDARY_HASH(Val)> class DHSet;
+template <typename K,typename V, class Hash1=Hash, class Hash2=SECONDARY_HASH(K)> class MapToLIFO;
+template <typename Val, class Hash1=Hash, class Hash2=SECONDARY_HASH(Val)> class DHMultiset;
 template <typename Val,class Hash=Lib::Hash> class Set;
 
 
@@ -205,18 +203,13 @@ class RobSubstitution;
 typedef VirtualIterator<RobSubstitution*> SubstIterator;
 typedef Lib::SmartPtr<RobSubstitution> RobSubstitutionSP;
 
-class EGSubstitution;
-typedef VirtualIterator<EGSubstitution*> RSubstIterator;
-typedef Lib::SmartPtr<EGSubstitution> EGSubstitutionSP;
-
 class Matcher;
 typedef VirtualIterator<Matcher*> MatchIterator;
 
 class TermTransformer;
-class TermTransformerTransformTransformed;
+class BottomUpTermTransformer;
 class FormulaTransformer;
 class FormulaUnitTransformer;
-
 
 class LiteralSelector;
 typedef Lib::SmartPtr<LiteralSelector> LiteralSelectorSP;
@@ -275,7 +268,6 @@ class LiteralIndexingStructure;
 class TermIndex;
 class TermIndexingStructure;
 class ClauseSubsumptionIndex;
-class FormulaIndex;
 
 class TermSharing;
 

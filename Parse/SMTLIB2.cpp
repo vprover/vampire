@@ -86,8 +86,10 @@ void SMTLIB2::readBenchmark(LExprList* bench)
   CALL("SMTLIB2::readBenchmark");
   LispListReader bRdr(bench);
 
+  bool afterCheckSat = false;
+
   // iteration over benchmark top level entries
-  while(bRdr.hasNext()){
+  while(bRdr.hasNext()) {
     LExpr* lexp = bRdr.next();
 
     LOG2("readBenchmark ",lexp->toString(true));
@@ -303,21 +305,8 @@ void SMTLIB2::readBenchmark(LExprList* bench)
     }
 
     if (ibRdr.tryAcceptAtom("check-sat")) {
-      if (bRdr.hasNext()) {
-        LispListReader exitRdr(bRdr.readList());
-        // The only thing we allow after check-sat is get-unsat-core
-        if(exitRdr.tryAcceptAtom("get-unsat-core")){
-           env.options->setOutputMode(Options::Output::UCORE);
-           exitRdr = LispListReader(bRdr.readList());
-        }
-        if (!exitRdr.tryAcceptAtom("exit")) {
-          if(env.options->mode()!=Options::Mode::SPIDER) {
-            env.beginOutput();
-            env.out() << "% Warning: check-sat is not the last entry. Skipping the rest!" << endl;
-            env.endOutput();
-          }
-        }
-      }
+      ibRdr.acceptEOL();
+      afterCheckSat = true;
       break;
     }
 
@@ -347,6 +336,36 @@ void SMTLIB2::readBenchmark(LExprList* bench)
     }
 
     USER_ERROR("unrecognized entry "+ibRdr.readAtom());
+  }
+  
+  // the above while loop is aborted on the first check-sat,
+  // however, we want to learn about an unsat core printing request
+  // (or other things we might support in the future)
+  if (afterCheckSat) {
+    while(bRdr.hasNext()) {
+      LispListReader ibRdr(bRdr.next());
+      
+      if (ibRdr.tryAcceptAtom("exit")) {
+        ibRdr.acceptEOL(); // no arguments of exit
+        bRdr.acceptEOL();  // exit should be the last thing in the file
+        break;
+      }
+      
+      if (ibRdr.tryAcceptAtom("get-unsat-core")) {
+        env.options->setOutputMode(Options::Output::UCORE);
+        ibRdr.acceptEOL(); // no arguments of get-unsat-core
+        continue;
+      }
+      
+      // can't read anything else (and it does not make sense to read get-unsat-core more than once)
+      // so let's just warn and exit
+      if(env.options->mode()!=Options::Mode::SPIDER) {
+        env.beginOutput();
+        env.out() << "% Warning: check-sat is not the last entry. Skipping the rest!" << endl;
+        env.endOutput();
+      }
+      break;
+    }
   }
 }
 
@@ -675,17 +694,8 @@ TermList SMTLIB2::declareSort(LExpr* sExpr)
         }
         sortName += ")";
 
-        bool added = false;
-        unsigned newSort = TPTP::addUninterpretedConstant(sortName,_overflow,added);
-        if(added){
-          OperatorType* ot = OperatorType::getConstantsType(Term::superSort());
-          env.signature->getFunction(newSort)->setType(ot);
-        }
-        TermList sort = TermList(Term::createConstant(newSort));
+        TermList sort = TermList(AtomicSort::createConstant(sortName));
         results.push(sort);
-        if(added){
-          env.sorts->addSort(sort);
-        }
         continue;
       }
 
@@ -720,13 +730,13 @@ TermList SMTLIB2::declareSort(LExpr* sExpr)
       BuiltInSorts bs = getBuiltInSortFromString(id);
       switch (bs) {
         case BS_BOOL:
-          results.push(Term::boolSort());
+          results.push(AtomicSort::boolSort());
           continue;
         case BS_INT:
-          results.push(Term::intSort());
+          results.push(AtomicSort::intSort());
           continue;
         case BS_REAL:
-          results.push(Term::realSort());
+          results.push(AtomicSort::realSort());
           continue;
         case BS_ARRAY:
           if (results.size() < 2) {
@@ -737,7 +747,7 @@ TermList SMTLIB2::declareSort(LExpr* sExpr)
             if (indexSort == SEPARATOR || innerSort == SEPARATOR) {
               goto malformed;
             }
-            results.push(Term::arraySort(indexSort,innerSort));
+            results.push(AtomicSort::arraySort(indexSort,innerSort));
             continue;
           }
 
@@ -877,7 +887,7 @@ SMTLIB2::DeclaredFunction SMTLIB2::declareFunctionOrPredicate(const vstring& nam
   Signature::Symbol* sym;
   OperatorType* type;
 
-  if (rangeSort == Term::boolSort()) { // predicate
+  if (rangeSort == AtomicSort::boolSort()) { // predicate
     symNum = env.signature->addPredicate(name, argSorts.size(), added);
 
     sym = env.signature->getPredicate(symNum);
@@ -1008,11 +1018,10 @@ void SMTLIB2::readDeclareDatatype(LExpr *sort, LExprList *datatype)
 
   bool added = false;
   auto taName = dtypeName + "()";
-  unsigned srt = TPTP::addUninterpretedConstant(taName, _overflow, added);
+  unsigned srt = env.signature->addTypeCon(taName,0,added);
   ASS(added);
-  env.signature->getFunction(srt)->setType(OperatorType::getConstantsType(Term::superSort()));
-  TermList taSort = TermList(Term::createConstant(srt));
-  env.sorts->addSort(taSort);
+  env.signature->getTypeCon(srt)->setType(OperatorType::getConstantsType(AtomicSort::superSort()));
+  TermList taSort = TermList(AtomicSort::createConstant(srt));
 
   LispListReader dtypeRdr(datatype);
   while (dtypeRdr.hasNext()) {
@@ -1082,12 +1091,11 @@ void SMTLIB2::readDeclareDatatypes(LExprList* sorts, LExprList* datatypes, bool 
 
     ALWAYS(_declaredSorts.insert(dtypeName, 0));
     bool added = false;
-    unsigned srt = TPTP::addUninterpretedConstant(dtypeName + "()",_overflow,added);
+    unsigned srt = env.signature->addTypeCon(dtypeName + "()",0,added);
     ASS(added);
-    env.signature->getFunction(srt)->setType(OperatorType::getConstantsType(Term::superSort()));
-    TermList sort = TermList(Term::createConstant(srt));
-    env.sorts->addSort(sort);
-    //(void)srt; // to get rid of compiler warning when logging is off
+    env.signature->getTypeCon(srt)->setType(OperatorType::getConstantsType(AtomicSort::superSort()));
+    TermList sort = TermList(AtomicSort::createConstant(srt));
+    (void)sort; // to get rid of compiler warning when logging is off
     // TODO: is it really OK we normally don't need the sort?
     LOG2("reading datatype "+dtypeName+" as sort ",sort);
     dtypeNames.push(dtypeName+"()");
@@ -1104,9 +1112,9 @@ void SMTLIB2::readDeclareDatatypes(LExprList* sorts, LExprList* datatypes, bool 
     constructors.reset();
     const vstring& taName = dtypeNameIter.next(); 
     bool added = false;
-    unsigned sort = TPTP::addUninterpretedConstant(taName,_overflow,added);
+    unsigned sort = env.signature->addTypeCon(taName,0,added);
     ASS(!added);
-    TermList taSort = TermList(Term::createConstant(sort));
+    TermList taSort = TermList(AtomicSort::createConstant(sort));
 
     LispListReader dtypeRdr(dtypesDefsRdr.readList());
     while (dtypeRdr.hasNext()) {
@@ -1178,7 +1186,7 @@ TermAlgebraConstructor* SMTLIB2::buildTermAlgebraConstructor(vstring constrName,
       USER_ERROR("Redeclaring function symbol: " + destructorName);
     }
 
-    bool isPredicate = destructorSort == Term::boolSort();
+    bool isPredicate = destructorSort == AtomicSort::boolSort();
     bool added;
     unsigned destructorFunctor = isPredicate ? env.signature->addPredicate(destructorName, 1, added)
                                              : env.signature->addFunction(destructorName,  1, added);
@@ -1207,19 +1215,20 @@ bool SMTLIB2::ParseResult::asFormula(Formula*& resFrm)
   CALL("SMTLIB2::ParseResult::asFormula");
 
   if (formula) {
-    ASS_EQ(sort, Term::boolSort());
-    resFrm = frm;
+    ASS_EQ(sort, AtomicSort::boolSort());
+    resFrm = attachLabelToFormula(frm);
+
 
     LOG2("asFormula formula ",resFrm->toString());
     return true;
   }
 
-  if (sort == Term::boolSort()) {
+  if (sort == AtomicSort::boolSort()) {
     // can we unwrap instead of wrapping back and forth?
     if (trm.isTerm()) {
       Term* t = trm.term();
       if (t->isFormula()) {
-        resFrm = t->getSpecialData()->getFormula();
+        resFrm = attachLabelToFormula(t->getSpecialData()->getFormula());
 
         // t->destroy(); -- we cannot -- it can be accessed more than once
 
@@ -1231,7 +1240,7 @@ bool SMTLIB2::ParseResult::asFormula(Formula*& resFrm)
 
     LOG2("asFormula wrap ",trm.toString());
 
-    resFrm = new BoolTermFormula(trm);
+    resFrm = attachLabelToFormula(new BoolTermFormula(trm));
     return true;
   }
 
@@ -1243,14 +1252,14 @@ TermList SMTLIB2::ParseResult::asTerm(TermList& resTrm)
   CALL("SMTLIB2::ParseResult::asTerm");
 
   if (formula) {
-    ASS_EQ(sort, Term::boolSort());
+    ASS_EQ(sort, AtomicSort::boolSort());
 
     LOG2("asTerm wrap ",frm->toString());
 
     resTrm = TermList(Term::createFormula(frm));
 
     LOG2("asTerm sort ",sort);
-    return Term::boolSort();
+    return AtomicSort::boolSort();
   } else {
     resTrm = trm;
 
@@ -1274,36 +1283,44 @@ vstring SMTLIB2::ParseResult::toString()
   return "term of sort "+sort.toString()+": "+trm.toString();
 }
 
+Formula* SMTLIB2::ParseResult::attachLabelToFormula(Formula* frm)
+{
+  if (!label.empty()) {
+    frm->label(label);
+  }
+  return frm;
+}
+
 Interpretation SMTLIB2::getFormulaSymbolInterpretation(FormulaSymbol fs, TermList firstArgSort)
 {
   CALL("SMTLIB2::getFormulaSymbolInterpretation");
 
   switch(fs) {
   case FS_LESS:
-    if(firstArgSort == Term::intSort()){
+    if(firstArgSort == AtomicSort::intSort()){
       return Theory::INT_LESS;
-    } else if(firstArgSort == Term::realSort()) {
+    } else if(firstArgSort == AtomicSort::realSort()) {
       return Theory::REAL_LESS;
     } 
     break;
   case FS_LESS_EQ:
-    if(firstArgSort == Term::intSort()){
+    if(firstArgSort == AtomicSort::intSort()){
       return Theory::INT_LESS_EQUAL;
-    } else if(firstArgSort == Term::realSort()) {
+    } else if(firstArgSort == AtomicSort::realSort()) {
       return Theory::REAL_LESS_EQUAL;
     } 
     break;
   case FS_GREATER:
-    if(firstArgSort == Term::intSort()){
+    if(firstArgSort == AtomicSort::intSort()){
       return Theory::INT_GREATER;
-    } else if(firstArgSort == Term::realSort()) {
+    } else if(firstArgSort == AtomicSort::realSort()) {
       return Theory::REAL_GREATER;
     } 
     break;
   case FS_GREATER_EQ:
-    if(firstArgSort == Term::intSort()){
+    if(firstArgSort == AtomicSort::intSort()){
       return Theory::INT_GREATER_EQUAL;
-    } else if(firstArgSort == Term::realSort()) {
+    } else if(firstArgSort == AtomicSort::realSort()) {
       return Theory::REAL_GREATER_EQUAL;
     }
     break;
@@ -1318,9 +1335,9 @@ Interpretation SMTLIB2::getUnaryMinusInterpretation(TermList argSort)
 {
   CALL("SMTLIB2::getUnaryMinusInterpretation");
 
-  if(argSort == Term::intSort()){
+  if(argSort == AtomicSort::intSort()){
       return Theory::INT_UNARY_MINUS;
-  } else if(argSort == Term::realSort()) {
+  } else if(argSort == AtomicSort::realSort()) {
       return Theory::REAL_UNARY_MINUS;
   } else {
     USER_ERROR("invalid sort "+ argSort.toString() +" for interpretation -");
@@ -1333,34 +1350,34 @@ Interpretation SMTLIB2::getTermSymbolInterpretation(TermSymbol ts, TermList firs
 
   switch(ts) {
   case TS_MINUS:
-    if(firstArgSort == Term::intSort()){
+    if(firstArgSort == AtomicSort::intSort()){
       return Theory::INT_MINUS;
-    } else if(firstArgSort == Term::realSort()) {
+    } else if(firstArgSort == AtomicSort::realSort()) {
       return Theory::REAL_MINUS;
     } 
     break;
   case TS_PLUS:
-    if(firstArgSort == Term::intSort()){
+    if(firstArgSort == AtomicSort::intSort()){
       return Theory::INT_PLUS;
-    } else if(firstArgSort == Term::realSort()) {
+    } else if(firstArgSort == AtomicSort::realSort()) {
       return Theory::REAL_PLUS;
     } 
     break;
   case TS_MULTIPLY:
-    if(firstArgSort == Term::intSort()){
+    if(firstArgSort == AtomicSort::intSort()){
       return Theory::INT_MULTIPLY;
-    } else if(firstArgSort == Term::realSort()) {
+    } else if(firstArgSort == AtomicSort::realSort()) {
       return Theory::REAL_MULTIPLY;
     } 
     break;
 
   case TS_DIVIDE:
-    if (firstArgSort == Term::realSort())
+    if (firstArgSort == AtomicSort::realSort())
       return Theory::REAL_QUOTIENT;
     break;
 
   case TS_DIV:
-    if (firstArgSort == Term::intSort())
+    if (firstArgSort == AtomicSort::intSort())
       return Theory::INT_QUOTIENT_E;
     break;
 
@@ -1452,7 +1469,7 @@ void SMTLIB2::parseLetPrepareLookup(LExpr* exp)
     TermList sort = (--boundExprs)->sort; // the should be big enough (
 
     TermList trm;
-    if (sort == Term::boolSort()) {
+    if (sort == AtomicSort::boolSort()) {
       unsigned symb = env.signature->addFreshPredicate(0,"sLP");
       OperatorType* type = OperatorType::getPredicateType(0, nullptr);
       env.signature->getPredicate(symb)->setType(type);
@@ -1509,13 +1526,12 @@ void SMTLIB2::parseLetEnd(LExpr* exp)
     LOG2("BOUND name  ",cName);
     LOG2("BOUND term  ",boundExpr.toString());
 
-    SortedTerm term;
-    ALWAYS(lookup->find(cName,term));
+    SortedTerm term = lookup->get(cName);
     TermList exprTerm = term.first;
     TermList exprSort = term.second;
 
     unsigned symbol = 0;
-    if (exprSort == Term::boolSort()) { // it has to be formula term, with atomic formula
+    if (exprSort == AtomicSort::boolSort()) { // it has to be formula term, with atomic formula
       symbol = exprTerm.term()->getSpecialData()->getFormula()->literal()->functor();
     } else {
       symbol = exprTerm.term()->functor();
@@ -1553,7 +1569,7 @@ void SMTLIB2::parseMatchBegin(LExpr *exp)
   LispListReader lRdr(exp->list);
 
   // the match atom
-  const vstring &theMatchAtom = lRdr.readAtom();
+  DEBUG_CODE(const vstring &theMatchAtom =) lRdr.readAtom();
   ASS_EQ(theMatchAtom, MATCH);
 
   // next is the matched term
@@ -1685,12 +1701,13 @@ void SMTLIB2::parseMatchEnd(LExpr *exp)
 
   ASS(exp->isList());
   LispListReader lRdr(exp->list);
-  const vstring &theMatchAtom = lRdr.readAtom();
+  DEBUG_CODE(const vstring &theMatchAtom =) lRdr.readAtom();
   ASS_EQ(getBuiltInTermSymbol(theMatchAtom), TS_MATCH);
 
   vstring matched = lRdr.readAtom();
   TermList matchedTerm;
   auto matchedTermSort = _results.pop().asTerm(matchedTerm);
+
   LOG2("CASE matched ", matchedTerm.toString());
 
   vmap<unsigned, TermAlgebraConstructor *> ctorFunctors;
@@ -1707,7 +1724,7 @@ void SMTLIB2::parseMatchEnd(LExpr *exp)
   bool varUsed = false;
   Stack<TermList> elements;
   elements.push(matchedTerm);
-  TermList sort = Term::defaultSort();
+  TermList sort = AtomicSort::defaultSort();
 
   LispListReader cRdr(lRdr.readList());
   while (cRdr.hasNext()) {
@@ -1797,7 +1814,13 @@ void SMTLIB2::parseQuantBegin(LExpr* exp)
     LispListReader pRdr(pair);
 
     vstring vName = pRdr.readAtom();
+    if(!pRdr.hasNext()) {
+      USER_ERROR("No associated sort for "+vName+" in quantification "+exp->toString());
+    }
     TermList vSort = declareSort(pRdr.readNext());
+    if(pRdr.hasNext()) {
+      USER_ERROR("More than one sort for "+vName+" in quantification "+exp->toString());
+    }
 
     pRdr.acceptEOL();
 
@@ -1880,7 +1903,7 @@ bool SMTLIB2::parseAsSpecConstant(const vstring& id)
 
     unsigned symb = TPTP::addIntegerConstant(id,_overflow,false);
     TermList res = TermList(Term::createConstant(symb));
-    _results.push(ParseResult(Term::intSort(),res));
+    _results.push(ParseResult(AtomicSort::intSort(),res));
 
     return true;
   }
@@ -1890,7 +1913,7 @@ bool SMTLIB2::parseAsSpecConstant(const vstring& id)
 
     unsigned symb = TPTP::addRealConstant(id,_overflow,false);
     TermList res = TermList(Term::createConstant(symb));
-    _results.push(ParseResult(Term::realSort(),res));
+    _results.push(ParseResult(AtomicSort::realSort(),res));
 
     return true;
   }
@@ -2186,7 +2209,7 @@ bool SMTLIB2::parseAsBuiltinFormulaSymbol(const vstring& id, LExpr* exp)
     {
       TermList arg;
       if (_results.isEmpty() || _results.top().isSeparator() ||
-          _results.pop().asTerm(arg) != Term::realSort()) {
+          _results.pop().asTerm(arg) != AtomicSort::realSort()) {
         complainAboutArgShortageOrWrongSorts(BUILT_IN_SYMBOL,exp);
       }
 
@@ -2265,28 +2288,28 @@ bool SMTLIB2::parseAsBuiltinTermSymbol(const vstring& id, LExpr* exp)
     {
       TermList theInt;
       if (_results.isEmpty() || _results.top().isSeparator() ||
-          _results.pop().asTerm(theInt) != Term::intSort()) {
+          _results.pop().asTerm(theInt) != AtomicSort::intSort()) {
         complainAboutArgShortageOrWrongSorts(BUILT_IN_SYMBOL,exp);
       }
 
       unsigned fun = env.signature->getInterpretingSymbol(Theory::INT_TO_REAL);
       TermList res = TermList(Term::create1(fun,theInt));
 
-      _results.push(ParseResult(Term::realSort(),res));
+      _results.push(ParseResult(AtomicSort::realSort(),res));
       return true;
     }
     case TS_TO_INT:
     {
       TermList theReal;
       if (_results.isEmpty() || _results.top().isSeparator() ||
-          _results.pop().asTerm(theReal) != Term::realSort()) {
+          _results.pop().asTerm(theReal) != AtomicSort::realSort()) {
         complainAboutArgShortageOrWrongSorts(BUILT_IN_SYMBOL,exp);
       }
 
       unsigned fun = env.signature->getInterpretingSymbol(Theory::REAL_TO_INT);
       TermList res = TermList(Term::create1(fun,theReal));
 
-      _results.push(ParseResult(Term::intSort(),res));
+      _results.push(ParseResult(AtomicSort::intSort(),res));
       return true;
     }
     case TS_SELECT:
@@ -2296,7 +2319,7 @@ bool SMTLIB2::parseAsBuiltinTermSymbol(const vstring& id, LExpr* exp)
         complainAboutArgShortageOrWrongSorts(BUILT_IN_SYMBOL,exp);
       }
       TermList arraySortIdx = _results.pop().asTerm(theArray);
-      if (!SortHelper::isArraySort(arraySortIdx)) {
+      if (!arraySortIdx.isArraySort()) {
         complainAboutArgShortageOrWrongSorts(BUILT_IN_SYMBOL,exp);
       }
 
@@ -2306,7 +2329,7 @@ bool SMTLIB2::parseAsBuiltinTermSymbol(const vstring& id, LExpr* exp)
         complainAboutArgShortageOrWrongSorts(BUILT_IN_SYMBOL,exp);
       }
 
-      if (SortHelper::getInnerSort(arraySortIdx)== Term::boolSort()) {
+      if (SortHelper::getInnerSort(arraySortIdx)== AtomicSort::boolSort()) {
         OperatorType* predType = Theory::getArrayOperatorType(arraySortIdx,Theory::ARRAY_BOOL_SELECT);
         unsigned pred = env.signature->getInterpretingSymbol(Theory::ARRAY_BOOL_SELECT,predType);
 
@@ -2331,7 +2354,7 @@ bool SMTLIB2::parseAsBuiltinTermSymbol(const vstring& id, LExpr* exp)
         complainAboutArgShortageOrWrongSorts(BUILT_IN_SYMBOL,exp);
       }
       TermList arraySortIdx = _results.pop().asTerm(theArray);
-      if (!SortHelper::isArraySort(arraySortIdx)) {
+      if (!arraySortIdx.isArraySort()) {
         complainAboutArgShortageOrWrongSorts(BUILT_IN_SYMBOL,exp);
       }
 
@@ -2361,29 +2384,29 @@ bool SMTLIB2::parseAsBuiltinTermSymbol(const vstring& id, LExpr* exp)
     {
       TermList theInt;
       if (_results.isEmpty() || _results.top().isSeparator() ||
-          _results.pop().asTerm(theInt) != Term::intSort()) {
+          _results.pop().asTerm(theInt) != AtomicSort::intSort()) {
         complainAboutArgShortageOrWrongSorts(BUILT_IN_SYMBOL,exp);
       }
 
       unsigned fun = env.signature->getInterpretingSymbol(Theory::INT_ABS);
       TermList res = TermList(Term::create1(fun,theInt));
 
-      _results.push(ParseResult(Term::intSort(),res));
+      _results.push(ParseResult(AtomicSort::intSort(),res));
 
       return true;
     }
     case TS_MOD:
     {
       TermList int1, int2;
-      if (_results.isEmpty() || _results.top().isSeparator() || _results.pop().asTerm(int1) != Term::intSort() ||
-          _results.isEmpty() || _results.top().isSeparator() || _results.pop().asTerm(int2) != Term::intSort()) {
+      if (_results.isEmpty() || _results.top().isSeparator() || _results.pop().asTerm(int1) != AtomicSort::intSort() ||
+          _results.isEmpty() || _results.top().isSeparator() || _results.pop().asTerm(int2) != AtomicSort::intSort()) {
         complainAboutArgShortageOrWrongSorts(BUILT_IN_SYMBOL,exp);
       }
 
       unsigned fun = env.signature->getInterpretingSymbol(Theory::INT_REMAINDER_E); // TS_MOD is the always positive remainder, therefore INT_REMAINDER_E
       TermList res = TermList(Term::create2(fun,int1,int2));
 
-      _results.push(ParseResult(Term::intSort(),res));
+      _results.push(ParseResult(AtomicSort::intSort(),res));
 
       return true;
     }
@@ -2467,7 +2490,7 @@ void SMTLIB2::parseRankedFunctionApplication(LExpr* exp)
 
     TermList arg;
     if (_results.isEmpty() || _results.top().isSeparator() ||
-        _results.pop().asTerm(arg) != Term::intSort()) {
+        _results.pop().asTerm(arg) != AtomicSort::intSort()) {
       complainAboutArgShortageOrWrongSorts("ranked function symbol",exp);
     }
 
@@ -2653,12 +2676,9 @@ SMTLIB2::ParseResult SMTLIB2::parseTermOrFormula(LExpr* body)
       case PO_LABEL: {
         ASS_GE(_results.size(),1);
         ParseResult res =  _results.pop();
-        ASS(res.formula);
-        Formula* f;
-        res.asFormula(f);
         vstring label = exp->toString();
-        f->label(label);
-        _results.push(res); 
+        res.setLabel(label);
+        _results.push(res);
         continue;
       }
       case PO_LET_PREPARE_LOOKUP:

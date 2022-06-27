@@ -8,6 +8,7 @@
  * and in the source directory
  */
 
+#if VZ3
 
 #include "Test/UnitTesting.hpp"
 #include "Test/SyntaxSugar.hpp"
@@ -93,7 +94,7 @@ TheoryInstAndSimp* theoryInstAndSimp(Options::TheoryInstSimp mode, bool withGene
 }
 
 using Shell::Int;
-REGISTER_GEN_TESTER(Test::Generation::GenerationTester<TheoryInstAndSimp>)
+REGISTER_GEN_TESTER(TheoryInstAndSimp)
 
 TEST_GENERATION(test_01,
     Generation::TestCase()
@@ -374,3 +375,5 @@ TEST_GENERATION_WITH_SUGAR(generalisation_5,
       .input            (clause({ p(p(x)) == zero, q(x) }))
       .expected         (exactly( clause({ q(s(s(s(y)))) }) ))
     )
+
+#endif // VZ3

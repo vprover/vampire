@@ -38,7 +38,8 @@
 #include "Kernel/Renaming.hpp"
 #include "Kernel/Clause.hpp"
 #include "Kernel/SortHelper.hpp"
-#include "Kernel/Sorts.hpp"
+#include "Kernel/OperatorType.hpp"
+#include "Kernel/Signature.hpp"
 
 #include "Lib/Allocator.hpp"
 
@@ -51,9 +52,6 @@
 using namespace std;
 using namespace Lib;
 using namespace Kernel;
-
-#define SUBST_CLASS RobSubstitution
-//#define SUBST_CLASS EGSubstitution
 
 #define UARR_INTERMEDIATE_NODE_MAX_SIZE 4
 
@@ -235,8 +233,8 @@ public:
         
         ChildBySortHelper(IntermediateNode* p):  _parent(p)
         {
-            bySort.ensure(Sorts::FIRST_USER_SORT);
-            bySortTerms.ensure(Sorts::FIRST_USER_SORT);
+            bySort.ensure(Signature::FIRST_USER_CON);
+            bySortTerms.ensure(Signature::FIRST_USER_CON);
         }
 
         void loadFrom(ChildBySortHelper* other){
@@ -259,14 +257,16 @@ public:
           CALL("SubstitutionTree::ChildBySortHelper::childBySort");
           TermList srt;
           // only consider interpreted sorts
-          if(SortHelper::tryGetResultSort(t,srt) && !srt.isVar() 
-             && !srt.term()->isSuper() && !srt.term()->arity() &&
-             SortHelper::isInterpretedNonDefault(SortHelper::sortNum(srt))){
-            unsigned top = t.term()->functor();
-            TermStack::Iterator fit(bySortTerms[SortHelper::sortNum(srt)]);
-            auto withoutThisTop = getFilteredIterator(fit,NotTop(top));
-            auto nodes = getMappingIterator(withoutThisTop,ByTopFn(this));
-            return pvi(getFilteredIterator(nodes,NonzeroFn()));
+          if(SortHelper::tryGetResultSort(t,srt) && !srt.isVar()){
+            ASS(srt.isTerm());
+            unsigned con = srt.term()->functor(); 
+            if(!srt.term()->isSuper() && env.signature->isInterpretedNonDefault(con)){
+              unsigned top = t.term()->functor();
+              TermStack::Iterator fit(bySortTerms[con]);
+              auto withoutThisTop = getFilteredIterator(fit,NotTop(top));
+              auto nodes = getMappingIterator(withoutThisTop,ByTopFn(this));
+              return pvi(getFilteredIterator(nodes,NonzeroFn()));
+             }
           }
           return NodeIterator::getEmpty();
         } 
@@ -282,14 +282,14 @@ public:
         {
           CALL("SubstitutionTree::ChildBySortHelper::mightExistAsTop");
           if(!t.isTerm()){ return; }
-          TermList srtT;
-          if(SortHelper::tryGetResultSort(t,srtT) && !srtT.isVar() && 
-             !srtT.term()->isSuper() && !srtT.term()->arity()){
-            unsigned srt = SortHelper::sortNum(srtT);
-            if(SortHelper::isInterpretedNonDefault(srt)){
+          TermList srt;
+          if(SortHelper::tryGetResultSort(t,srt) &&  !srt.isVar() && 
+             !srt.term()->isSuper()){
+            unsigned con = srt.term()->functor();
+            if(env.signature->isInterpretedNonDefault(con)){
               unsigned f = t.term()->functor();
-              if(bySort[srt].insert(f)){
-                bySortTerms[srt].push(t);
+              if(bySort[con].insert(f)){
+                bySortTerms[con].push(t);
               }
             }
           }
@@ -298,15 +298,14 @@ public:
         {
           CALL("SubstitutionTree::ChildBySortHelper::remove");
           if(!t.isTerm()){ return;}
-          TermList srtT;
-
-          if(SortHelper::tryGetResultSort(t,srtT) && !srtT.isVar() && 
-             !srtT.term()->isSuper() && !srtT.term()->arity()){
-            unsigned srt = SortHelper::sortNum(srtT);
-            if(SortHelper::isInterpretedNonDefault(srt)){
+          TermList srt;
+          if(SortHelper::tryGetResultSort(t,srt) && !srt.isVar() &&  
+             !srt.term()->isSuper()){
+            unsigned con = srt.term()->functor();
+            if(env.signature->isInterpretedNonDefault(con)){
               unsigned f = t.term()->functor();
-              if(bySort[srt].remove(f)){
-                bySortTerms[srt].remove(t);
+              if(bySort[con].remove(f)){
+                bySortTerms[con].remove(t);
               }
             }
           }
@@ -676,7 +675,7 @@ public:
     { return 0u; }
   };
 
-  typedef DHMap<unsigned,TermList,IdentityHash> BindingMap;
+  typedef DHMap<unsigned,TermList,IdentityHash,Hash> BindingMap;
   //Using BinaryHeap as a BindingQueue leads to about 30% faster insertion,
   //that when SkipList is used.
   typedef BinaryHeap<Binding,Binding::Comparator> BindingQueue;
@@ -868,7 +867,7 @@ public:
     static const int NORM_QUERY_BANK=2;
     static const int NORM_RESULT_BANK=3;
 
-    SUBST_CLASS subst;
+    RobSubstitution subst;
     VarStack svStack;
 
   private:
@@ -881,10 +880,12 @@ public:
     bool clientBDRecording;
     BacktrackData clientBacktrackData;
     Renaming queryNormalizer;
-    SubstitutionTree* tree;
     bool useUWAConstraints;
     bool useHOConstraints;
     UnificationConstraintStack constraints;
+#if VDEBUG
+    SubstitutionTree* tree;
+#endif
   };
 
 /*

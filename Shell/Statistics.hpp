@@ -58,14 +58,16 @@ public:
   unsigned inputClauses;
   /** number of input formulas */
   unsigned inputFormulas;
-  /** has types */
-  bool hasTypes;
 
   // Preprocessing
   /** number of formula names introduced during preprocessing */
   unsigned formulaNames;
+  /** number of formula names re-used during preprocessing */
+  unsigned reusedFormulaNames;
   /** number of skolem functions (also predicates in FOOL) introduced during skolemization */
   unsigned skolemFunctions;
+  /** number of formula names re-used during preprocessing */
+  unsigned reusedSkolemFunctions;
   /** number of initial clauses */
   unsigned initialClauses;
   /** number of inequality splittings performed */
@@ -126,10 +128,6 @@ public:
   unsigned theoryInstSimpEmptySubstitution;
   /** number of induction applications **/
   unsigned maxInductionDepth;
-  unsigned induction;
-  unsigned inductionInProof;
-  unsigned generalizedInduction;
-  unsigned generalizedInductionInProof;
   unsigned structInduction;
   unsigned structInductionInProof;
   unsigned intInfInduction;
@@ -150,6 +148,10 @@ public:
   unsigned intFinDownInductionInProof;
   unsigned intDBDownInduction;
   unsigned intDBDownInductionInProof;
+  unsigned inductionApplication;
+  unsigned inductionApplicationInProof;
+  unsigned generalizedInductionApplication;
+  unsigned generalizedInductionApplicationInProof;
   /** number of argument congruences */
   unsigned argumentCongruence;
   unsigned narrow;
@@ -238,11 +240,6 @@ public:
   unsigned taNegativeInjectivitySimplifications;
   unsigned taAcyclicityGeneratedDisequalities;
 
-  //to be moved to the property object once that
-  //is controlled by environment
-  bool higherOrder;
-  bool polymorphic;
-
   // Saturation
   /** all clauses ever occurring in the unprocessed queue */
   unsigned generatedClauses;
@@ -293,94 +290,6 @@ public:
   /** Number of pure variables eliminated by SAT solver */
   unsigned satPureVarsEliminated;
 
-#if GNUMP
-  /**
-   * added for the purpose of Bound propagation
-   * @since 25.10.2012 Vienna
-   * @author Ioan Dragan
-   */
-  
-  // Input
-  /** number of input constraints */
-  unsigned inputConstraints;
-  /** number of input variables */
-  unsigned inputVariables;
-  /** number of constraints after preprocessing */
-  unsigned preprocessedConstraints;
-  /** number of variables after preprocessing */
-  unsigned preprocessedVariables;
-
-  // Preprocessing
-  /** number of variables that were equivalent to some other
-   * variable and were eliminated */
-  unsigned equivalentVariables;
-  /** number of variables eliminated by equality propagation */
-  unsigned equalityPropagationVariables;
-  /** number of constraints affected by equality propagation */
-  unsigned equalityPropagationConstraints;
-  /** number of eliminated constant variables */
-  unsigned constantVariables;
-  /** number of constraints updated by constant propagation */
-  unsigned updatedByConstantPropagation;
-  /** number of subsumed constraints */
-  unsigned subsumedConstraints;
-  /** number of variables appearing either only positively or only
-   * negatively */
-  unsigned halfBoundingVariables;
-  /** number of constraints deleted due to half-bounding variables */
-  unsigned halfBoundingConstraints;
-  /** number of variables appearing either only positively or only
-   * negatively except for one constraint */
-  unsigned almostHalfBoundingVariables;
-  /** number of constraints removed or replaced due to almost half-bounding variables */
-  unsigned almostHalfBoundingConstraints;
-  /** number of variables that were eliminated by Fourier-Motzkin because the
-   * elimination introduced allowed amount of clauses */
-  unsigned fmRemovedVariables;
-  /** number of constraints introduced by Fourier-Motzkin variable elimination
-   * in preprocessing */
-  unsigned preprocessingFMIntroduced;
-  /** number of constraints removed by Fourier-Motzkin variable elimination
-   * in preprocessing */
-  unsigned preprocessingFMRemoved;
-
-  // Solving
-  /** number of decision points where the variable was picked by heuristics */
-  unsigned freeDecisionPoints;
-  /** number of decision points where the variable was predetermined */
-  unsigned forcedDecisionPoints;
-  /** maximal number of decision points at a moment*/
-  DecisionLevel maxDecisionDepth;
-  /** number of backtracks */
-  unsigned backtracks;
-  /** number of backtracks by more than one decision level */
-  unsigned longBacktracks;
-  /** number of propagated bounds */
-  unsigned propagatedBounds;
-  /** number of generated conflict clauses */
-  unsigned conflictClauses;
-  /** how many times the conservative assigment selector reused previous assignment */
-  unsigned assignmentsReusedByConservative;
-  /** number of selected conflict that were not the most recent conflicts available */
-  unsigned nonRecentConflicts;
-  /** number of collapsing clauses that we retained for bound propagation */
-  unsigned retainedConstraints;
-
-  //Number representation
-  /** True if native numbers were used during computation */
-  bool nativeUsed;
-  /** True if precise numbers were used during computation */
-  bool preciseUsed;
-  /** Time (in ms) when we switched from native to precise numbers */
-  unsigned switchToPreciseTimeInMs;
-
-  /** refutation if @c terminationReason==REFUTATION */
-  ConstraintRCPtr bpRefutation;
-  /** satisfying assignment if @c terminationReason==SATISFIABLE */
-  ScopedPtr<Assignment> satisfyingAssigment;
-
-#endif //GNUMP
-  
   /** termination reason */
   enum TerminationReason {
     /** refutation found */
@@ -444,6 +353,7 @@ public:
     PREDICATE_DEFINITION_INLINING,
     UNUSED_PREDICATE_DEFINITION_REMOVAL,
     BLOCKED_CLAUSE_ELIMINATION,
+    TWEE,
     PREPROCESS_2,
     NEW_CNF,
     NAMING,

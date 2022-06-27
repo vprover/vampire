@@ -29,8 +29,9 @@
 
 #include "Kernel/NumTraits.hpp"
 #include "Kernel/Signature.hpp"
-#include "Kernel/Sorts.hpp"
+#include "Kernel/OperatorType.hpp"
 #include "Kernel/SortHelper.hpp"
+#include "Kernel/SubstHelper.hpp"
 #include "Kernel/BottomUpEvaluation.hpp"
 #include "Kernel/BottomUpEvaluation/TermList.hpp"
 #include "Lib/Coproduct.hpp"
@@ -219,7 +220,10 @@ void handleZ3Error(Z3_context ctxt, Z3_error_code code)
   throw z3::exception(errToString(code));
 }
 
+#define STATEMENTS_TO_EXPRESSION(...) [&]() { __VA_ARGS__; return 0; }()
+
 Z3Interfacing::Z3Interfacing(SAT2FO& s2f, bool showZ3, bool unsatCore, vstring const& exportSmtlib,  Shell::Options::ProblemExportSyntax exportSyntax):
+  _hasSeenArrays(false),
   _varCnt(0),
   _sat2fo(s2f),
   _outSyntax(exportSyntax),
@@ -250,6 +254,8 @@ Z3Interfacing::Z3Interfacing(SAT2FO& s2f, bool showZ3, bool unsatCore, vstring c
         }
       }
     }())
+//   _unsatCore(unsatCoresForAssumptions),
+//   _out()
 {
   CALL("Z3Interfacing::Z3Interfacing");
   BYPASSING_ALLOCATOR
@@ -257,13 +263,14 @@ Z3Interfacing::Z3Interfacing(SAT2FO& s2f, bool showZ3, bool unsatCore, vstring c
   _exporter.apply([&](auto& e) { e.initialize(); });
 
   z3_set_param("rewriter.expand_store_eq", true);
-  z3_set_param("model.completion", MODEL_COMPLETION);
+  // z3_set_param("model.completion", MODEL_COMPLETION);
   // z3_set_param("model.compact", false); // keeps z3 from compressing its model. ~50% of the runtime of get_model is spent doing that otherwise
   z3_set_param("model.compact", true); // keeps z3 from compressing its model. ~50% of the runtime of get_model is spent doing that otherwise
+
   if (_unsatCore) {
     z3_set_param(":unsat-core", true);
   }
-  Z3_set_error_handler(_context, handleZ3Error);
+  // Z3_set_error_handler(_context, handleZ3Error); // MS: a handled error only reveals Z3_error_code, a propragated z3::exception is typically more informative
 
 #if TRACE_Z3
   z3_set_param("trace", true);
@@ -691,6 +698,13 @@ void ProblemExport::ApiCalls::declare_fun(vstring const& name, z3::sort_vector d
   out << "}), " << escapeVarName(codomain) << " );" << std::endl;
 }
 
+z3::sort Z3Interfacing::z3_array_sort(z3::sort const& index_sort, z3::sort const& value_sort)
+{
+  auto z3_sort = _context.array_sort(index_sort,value_sort);
+  _exporter.apply([&](auto& e) { e.declare_array_sort(z3_sort, index_sort, value_sort); });
+  return z3_sort;
+}
+
 z3::sort Z3Interfacing::z3_declare_sort(vstring const& name) {
   auto sort = _context.uninterpreted_sort(_context.str_symbol(name.c_str()));
   _exporter.apply([&](auto& e) { e.declareSort(sort); });
@@ -731,6 +745,7 @@ z3::expr Z3Interfacing::z3_declare_const(vstring const& name, z3::sort sort) {
   _exporter.apply([&](auto& e) { e.declare_fun(name, z3::sort_vector(_context), sort); });
   return _context.function(name.c_str(), z3::sort_vector(_context), sort)();
 }
+
 
 z3::func_decl Z3Interfacing::z3_declare_fun(vstring const& name, z3::sort_vector domain, z3::sort codomain) {
   _exporter.apply([&](auto& e) { e.declare_fun(name, domain, codomain); });
@@ -840,6 +855,22 @@ SATSolver::Status Z3Interfacing::solve()
   CALL("Z3Interfacing::solve()");
   BYPASSING_ALLOCATOR;
   DEBUG("assumptions: ", _assumptions);
+
+  /* The purpose of this class is to conditionally disable variable elimination inside Z3's _solver.check,
+   * which results in some literals not being evaluated to either true and false, that we need for AVATAR.
+   * Why a class? To be able to rely on RAII for the call to pop() (via the destructor) and thus not forget about it.
+   * Why conditional? Because push/pop slightly decreases z3's performance and so we want to do it only in
+   * the cases where the problem has been observed - namely, when arrays are involved.
+  */
+  class ScopedPushAndPop {
+    z3::solver& _s;
+    bool _dpp;
+  public:
+    ScopedPushAndPop(z3::solver& s, bool doPushPop) : _s(s), _dpp(doPushPop) { if (_dpp) {_s.push();} }
+    ~ScopedPushAndPop() { if (_dpp) {_s.pop();} }
+  } _maybePushAndPop(_solver,_hasSeenArrays);
+
+
   auto result = z3_check();
 
   if(_showZ3){
@@ -871,7 +902,7 @@ SATSolver::Status Z3Interfacing::solve()
       break;
     default: ASSERTION_VIOLATION;
   }
-
+  
   return _status;
 }
 
@@ -928,6 +959,7 @@ OperatorType* operatorType(Z3Interfacing::FuncOrPredId f)
 }
 
 
+// TODO does this correctly work with polymorphism?
 Term* createTermOrPred(Z3Interfacing::FuncOrPredId f, unsigned arity, TermList* ts)
 {
   return f.isPredicate
@@ -977,6 +1009,12 @@ struct EvaluateInModel
         .map([](int i) { return Copro(IntTraits::constantT(i)); });
 
     } else if(expr.is_real()) {
+      if (!expr.is_numeral()) {
+        // non-numeral reals are, e.g., the algebraic numbers such as (root-obj (+ (^ x 2) (- 2)) 2)),
+        // which we currently cannot handle
+        return Result();
+      }      
+
       auto toFrac = [&](int l, int r)  { return Copro(RatTraits::constant(l,r)); };
 
       auto nonFractional = intVal(expr).map([&](int i) { return toFrac(i,1); });
@@ -995,8 +1033,10 @@ struct EvaluateInModel
     } else if (expr.is_app()) {
       auto f = expr.decl();
       auto vfunc = self._fromZ3.get(f);
-      Stack<TermList> args(f.arity());
-      for (unsigned i = 0; i < f.arity(); i++) {
+      unsigned arity = f.arity();
+      ASS(arity == 0 || evaluatedArgs != nullptr)
+      Stack<TermList> args(arity);
+      for (unsigned i = 0; i < arity; i++) {
         if (evaluatedArgs[i].isNone()) {
           // evaluation failed somewhere in a recursive call
           return Result();
@@ -1007,9 +1047,7 @@ struct EvaluateInModel
         }
       }
       return Result(Copro(createTermOrPred(vfunc, args.size(), args.begin())));
-
     } else {
-
       return Result();
     }
   }
@@ -1084,24 +1122,23 @@ z3::sort Z3Interfacing::getz3sort(SortId s)
     // TODO what about built-in tuples?
 
     // Deal with known sorts differently
-         if(s ==   Term::boolSort()) insert(_context.bool_sort());
+         if(s == AtomicSort::boolSort()) insert(_context.bool_sort());
     else if(s ==  IntTraits::sort()) insert( _context.int_sort());
     else if(s == RealTraits::sort()) insert(_context.real_sort());
     else if(s ==  RatTraits::sort()) insert(_context.real_sort()); // Drops notion of rationality
-    // TODO: are we really allowed to do this ???                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    else if(SortHelper::isArraySort(s)) {
-
-      z3::sort index_sort = getz3sort(SortHelper::getIndexSort(s));
-      z3::sort value_sort = getz3sort(SortHelper::getInnerSort(s));
-      auto z3_sort = _context.array_sort(index_sort,value_sort);
-      _exporter.apply([&](auto& e) { e.declare_array_sort(z3_sort, index_sort, value_sort); });
-      insert(z3_sort);
+    // TODO: are we really allowed to do this ???                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    else if(s.isArraySort()) {
+      _hasSeenArrays = true;
+      insert(z3_array_sort(
+            getz3sort(SortHelper::getIndexSort(s)),
+            getz3sort(SortHelper::getInnerSort(s))
+            ));
 
     } else if (env.signature->isTermAlgebraSort(s)) {
       createTermAlgebra(*env.signature->getTermAlgebraOfSort(s));
 
     } else {
-      insert(z3_declare_sort(env.sorts->sortName(s)));
+      insert(z3_declare_sort(s.toString()));
     }
   }
   return _sorts.get(s);
@@ -1134,7 +1171,7 @@ void Z3Interfacing::createTermAlgebra(TermAlgebra& start)
     }
   }
 
-  auto new_string_symobl = [&](vstring const& str)
+  auto new_string_symbol = [&](vstring const& str)
   { return Z3_mk_string_symbol(_context, str.c_str()); };
 
   Z3MkDatatypesCall mkDatatypes(_context, tas);
@@ -1153,7 +1190,7 @@ void Z3Interfacing::createTermAlgebra(TermAlgebra& start)
 
       auto i = 0;
       for (auto argSort : cons->iterArgSorts()) {
-        auto dtorName = new_string_symobl(env.signature->getFunction(cons->functor())->name() + "_arg" + to_vstring(i++));
+        auto dtorName = new_string_symbol(env.signature->getFunction(cons->functor())->name() + "_arg" + to_vstring(i++));
         argNames.push(dtorName);
         recSorts.tryGet(argSort)
           .match([&](unsigned idx) {
@@ -1171,22 +1208,36 @@ void Z3Interfacing::createTermAlgebra(TermAlgebra& start)
       cons->createDiscriminator();
       vstring discrName = cons->discriminatorName();
 
-      DEBUG("\t", env.sorts->sortName(ta->sort()), "::", env.signature->getFunction(cons->functor())->name(), ": ", env.signature->getFunction(cons->functor())->fnType()->toString());
+      DEBUG("\t", ta->sort().toString(), "::", env.signature->getFunction(cons->functor())->name(), ": ", env.signature->getFunction(cons->functor())->fnType()->toString());
 
       ASS_EQ(argSortRefs.size(), cons->arity())
       ASS_EQ(   argSorts.size(), cons->arity())
       ASS_EQ(   argNames.size(), cons->arity())
 
+// <<<<<<< HEAD
       mkDatatypes.mkConstrs.top().push(Z3MkConstructorCall {
           .c           = _context,
-          .name        = Z3_mk_string_symbol(_context, env.signature->getFunction(cons->functor())->name().c_str()),
-          .tester      = Z3_mk_string_symbol(_context, discrName.c_str()),
+          .name        = new_string_symbol(env.signature->getFunction(cons->functor())->name()),
+          .tester      = new_string_symbol(discrName),
           .field_names = std::move(argNames),
           .sorts       = std::move(argSorts),
           .sort_refs   = std::move(argSortRefs),
+// =======
+//     }
+//     ASS_EQ(ctors.size(), ta->nConstructors());
+//
+//     ctorss.push(std::move(ctors));
+//     ASS_EQ(ctorss.top().size(), ta->nConstructors());
+//     ctorss_z3.push(Z3_mk_constructor_list(_context, ctorss.top().size(),  ctorss.top().begin()));
+//     sortNames.push(Z3_mk_string_symbol(_context, ta->sort().toString().c_str()));
+//     if (_out.isSome())
+//       toSerialize.push(SerDtype {
+//         .name = ta->sort(),
+//         .ctors = std::move(serCtors),
+// >>>>>>> master
       });
     }
-    mkDatatypes.sortNames.push(Z3_mk_string_symbol(_context, env.sorts->sortName(ta->sort()).c_str()));
+    mkDatatypes.sortNames.push(new_string_symbol(ta->sort().toString()));
   }
 
   ASS_EQ(mkDatatypes.sortNames.size(), tas.size())
@@ -1196,9 +1247,54 @@ void Z3Interfacing::createTermAlgebra(TermAlgebra& start)
   auto dtys = mkDatatypes();
 
   // register the `z3::func_decl`s created by `Z3_mk_datatypes` in indices to be queried when needed
+// <<<<<<< HEAD
   for (unsigned iSort = 0; iSort < mkDatatypes.sortNames.size(); iSort++) {
     auto& dty_v  = tas[iSort];
     auto& dty_z3 = dtys[iSort];
+// =======
+//   for (unsigned iSort = 0; iSort < sorts.size(); iSort++) {
+//     _sorts.insert(tas[iSort]->sort(), z3::sort(_context, sorts[iSort]));
+//     auto ta = tas[iSort];
+//     auto& ctors = ctorss[iSort];
+//     for (unsigned iCons = 0; iCons < ta->nConstructors(); iCons++) {
+//       auto ctor = ta->constructor(iCons);
+//
+//       Z3_func_decl constr_;
+//       Z3_func_decl discr_;
+//       Array<Z3_func_decl> destr(ctor->arity());
+//
+//       Z3_query_constructor(_context,
+//                            ctors[iCons],
+//                            ctor->arity(),
+//                            &constr_,
+//                            &discr_,
+//                            destr.begin());
+//
+//       auto discr = z3::func_decl(_context, discr_);
+//       auto constr = z3::func_decl(_context, constr_);
+//
+//       auto ctorId = FuncOrPredId::monomorphicFunction(ctor->functor());
+//       _toZ3.insert(ctorId, constr);
+//       _fromZ3.insert(constr, ctorId);
+//
+//       if (ctor->hasDiscriminator()) {
+//         auto discrId = FuncOrPredId::monomorphicPredicate(ctor->discriminator());
+//         _toZ3.insert(discrId, discr);
+//         // _fromZ3.insert(discr, discrId);
+//       }
+//       for (unsigned iDestr = 0; iDestr < ctor->arity(); iDestr++)  {
+//         auto dtor = z3::func_decl(_context, destr[iDestr]);
+//         // careful: datatypes can have boolean fields!
+//         auto id = FuncOrPredId(
+//           ctor->destructorFunctor(iDestr),
+//           dtor.range().is_bool()
+//         );
+//         _toZ3.insert(id, dtor);
+//         _fromZ3.insert(dtor, id);
+//       }
+//     }
+//   }
+// >>>>>>> master
 
     _sorts.insert(dty_v->sort(), dty_z3.sort);
 
@@ -1206,19 +1302,19 @@ void Z3Interfacing::createTermAlgebra(TermAlgebra& start)
       auto ctor_v  = dty_v->constructor(iCons);
       auto ctor_z3 = dty_z3.ctors[iCons];
 
-      _toZ3.insert(FuncOrPredId::function(ctor_v->functor()), ctor_z3.func);
-      _fromZ3.insert(ctor_z3.func, FuncOrPredId::function(ctor_v->functor()));
+      _toZ3.insert(FuncOrPredId::monomorphicFunction(ctor_v->functor()), ctor_z3.func);
+      _fromZ3.insert(ctor_z3.func, FuncOrPredId::monomorphicFunction(ctor_v->functor()));
 
       if (ctor_v->hasDiscriminator()) {
-        _toZ3  .insert(FuncOrPredId::predicate(ctor_v->discriminator()), ctor_z3.tester);
-        _fromZ3.insert(ctor_z3.tester, FuncOrPredId::predicate(ctor_v->discriminator()));
+        _toZ3  .insert(FuncOrPredId::monomorphicPredicate(ctor_v->discriminator()), ctor_z3.tester);
+        _fromZ3.insert(ctor_z3.tester, FuncOrPredId::monomorphicPredicate(ctor_v->discriminator()));
       }
 
       for (unsigned iDestr = 0; iDestr < ctor_v->arity(); iDestr++)  {
         auto dtor_z3 = z3::func_decl(_context, ctor_z3.args[iDestr]);
-        auto dtor_v  = ctor_v->argSort(iDestr) == Term::boolSort()
-                     ? FuncOrPredId::predicate(ctor_v->destructorFunctor(iDestr))
-                     : FuncOrPredId::function (ctor_v->destructorFunctor(iDestr));
+        auto dtor_v  = ctor_v->argSort(iDestr) == AtomicSort::boolSort()
+                     ? FuncOrPredId::monomorphicPredicate(ctor_v->destructorFunctor(iDestr))
+                     : FuncOrPredId::monomorphicFunction (ctor_v->destructorFunctor(iDestr));
         _toZ3  .insert(dtor_v, dtor_z3);
         _fromZ3.insert(dtor_z3, dtor_v);
       }
@@ -1230,7 +1326,7 @@ void Z3Interfacing::createTermAlgebra(TermAlgebra& start)
 z3::func_decl const& Z3Interfacing::findConstructor(FuncId id_)
 {
   CALL("Z3Interfacing::findConstructor(FuncId id)")
-  auto id = FuncOrPredId::function(id_);
+  auto id = FuncOrPredId::monomorphicFunction(id_);
   auto f = _toZ3.tryGet(id);
   if (f.isSome()) {
     return f.unwrap();
@@ -1304,17 +1400,16 @@ struct ToZ3Expr
     auto trm = toEval.term();
     bool isLit = trm->isLiteral();
 
-
     Signature::Symbol* symb;
     SortId range_sort;
-    bool is_equality = false;
     if (isLit) {
       symb = env.signature->getPredicate(trm->functor());
-      range_sort = Term::boolSort();
+      range_sort = AtomicSort::boolSort();
       // check for equality
-      if(trm->functor()==0){
-         is_equality=true;
-         ASS(trm->arity()==2);
+      if( trm->functor()==0 || symb->equalityProxy()){
+        ASS(trm->numTermArguments()==2);
+        // both equality and equality proxy translated as z3 equality
+        return args[0] == args[1];
       }
     } else {
       symb = env.signature->getFunction(trm->functor());
@@ -1326,7 +1421,7 @@ struct ToZ3Expr
     }
 
     //if constant treat specially
-    if(trm->arity()==0) {
+    if(trm->numTermArguments()==0) {
       if(symb->integerConstant()){
         IntegerConstantType value = symb->integerValue();
         return self._context.int_val(value.toInner());
@@ -1352,7 +1447,6 @@ struct ToZ3Expr
       // TODO do we really have overflownConstants ?? not in evaluation(s) at least
       if (symb->overflownConstant()) {
         // too large for native representation, but z3 should cope
-
         auto s = symb->fnType()->result();
         if (s == IntTraits::sort()) {
           return self._context.int_val(symb->name().c_str());
@@ -1368,12 +1462,7 @@ struct ToZ3Expr
       // If not value then create constant symbol
       return self.getConst(symb, self.getz3sort(range_sort));
     }
-    ASS(trm->arity()>0);
-
-   //Check for equality
-    if(is_equality){
-      return args[0] == args[1];
-    }
+    ASS(trm->numTermArguments()>0);
 
     // Currently do not deal with all intepreted operations, should extend
     // - constants dealt with above
@@ -1530,7 +1619,7 @@ struct ToZ3Expr
 
     // uninterpretd function
     auto f = self.z3Function(Z3Interfacing::FuncOrPredId(trm));
-    return f(trm->arity(), args);
+    return f(f.arity(), args);
   }
 };
 
@@ -1538,24 +1627,35 @@ struct ToZ3Expr
 
 z3::func_decl Z3Interfacing::z3Function(FuncOrPredId functor)
 {
+  CALL("Z3Interfacing::z3Function");
   auto& self = *this;
 
   auto found = self._toZ3.tryGet(functor);
   if (found.isSome()) {
     return found.unwrap();
   } else {
-    // function does not yet exits
+    // function does not yet exist, create it
     auto symb = functor.isPredicate ? env.signature->getPredicate(functor.id)
                                     : env.signature->getFunction(functor.id);
     auto type = functor.isPredicate ? symb->predType() : symb->fnType();
 
-    // Does not yet exits. initialize it!
+    // polymorphic symbol application: treat f(<sorts>, ...) as f<sorts>(...) for Z3
+    vstring namebuf = symb->name();
+    Substitution typeSubst;
+    if(functor.forSorts) {
+      SortHelper::getTypeSub(functor.forSorts, typeSubst);
+      namebuf += '$';
+      for(unsigned i = 0; i < functor.forSorts->numTypeArguments(); i++)
+        namebuf += functor.forSorts->termArg(i).toString();
+    }
+
     z3::sort_vector domain_sorts = z3::sort_vector(self._context);
-    for (unsigned i=0; i<type->arity(); i++) {
-      domain_sorts.push_back(self.getz3sort(type->arg(i)));
+    for (unsigned i=type->numTypeArguments(); i<type->arity(); i++) {
+      TermList arg = SubstHelper::apply(type->arg(i), typeSubst);
+      domain_sorts.push_back(self.getz3sort(arg));
     }
     auto codomain = functor.isPredicate ? self._context.bool_sort() : self.getz3sort(type->result());
-    auto decl = self.z3_declare_fun(symb->name(), domain_sorts, codomain);
+    auto decl = self.z3_declare_fun(namebuf, domain_sorts, codomain);
     self._toZ3.insert(functor, decl);
     return decl;
   }
@@ -1569,7 +1669,7 @@ z3::func_decl Z3Interfacing::z3Function(FuncOrPredId functor)
  */
 Z3Interfacing::Representation Z3Interfacing::getRepresentation(Term* trm)
 {
-  CALL("Z3Interfacing::getRepresentation");
+  CALL("Z3Interfacing::getRepresentation(Term*)");
   Stack<z3::expr> defs;
   auto expr = evaluateBottomUp(TermList(trm), ToZ3Expr{ *this, defs });
   return Representation(expr, std::move(defs));
@@ -1577,7 +1677,7 @@ Z3Interfacing::Representation Z3Interfacing::getRepresentation(Term* trm)
 
 Z3Interfacing::Representation Z3Interfacing::getRepresentation(SATLiteral slit)
 {
-  CALL("Z3Interfacing::getRepresentation");
+  CALL("Z3Interfacing::getRepresentation(SATLiteral)");
   BYPASSING_ALLOCATOR;
 
 
@@ -1623,14 +1723,13 @@ Z3Interfacing::Representation Z3Interfacing::getRepresentation(SATLiteral slit)
 
 SATClause* Z3Interfacing::getRefutation()
 {
+  CALL("Z3Interfacing::getRefutation");
 
-    if(!_unsatCore)
-      return PrimitiveProofRecordingSATSolver::getRefutation();
-    else {
-      ASS_EQ(_status, SATISFIABLE);
-      ASSERTION_VIOLATION
-      //TODO
-    }
+  return PrimitiveProofRecordingSATSolver::getRefutation();
+
+  // TODO: optionally, we could try getting an unsat core from Z3 (could be smaller than all the added clauses so far)
+  // NOTE: this will not (necessarily) be the same option as _unsatCore, which takes care of minimization of added assumptions
+  // also ':core.minimize' might need to be set to get some effect
 }
 
 Z3Interfacing::~Z3Interfacing()

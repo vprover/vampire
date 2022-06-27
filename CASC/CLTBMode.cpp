@@ -14,6 +14,7 @@
  * @author Andrei Voronkov
  */
 #include <fstream>
+#include <climits>
 #include <cstdlib>
 #include <csignal>
 #include <sstream>
@@ -672,7 +673,6 @@ void CLTBProblem::searchForProof(int terminationTime,int timeLimit,const Categor
   // special reporting in Timer.cpp
   UIHelper::portfolioParent = true;
 
-  env.timer->makeChildrenIncluded();
   TimeCounter::reinitialize();
 
   env.options->setInputFile(problemFile);
@@ -727,7 +727,7 @@ void CLTBProblem::searchForProof(int terminationTime,int timeLimit,const Categor
   env.statistics->phase=Statistics::UNKNOWN_PHASE;
 
   // now all the cpu usage will be in children, we'll just be waiting for them
-  Timer::setTimeLimitEnforcement(false);
+  Timer::setLimitEnforcement(false);
 
   env.options->setOutputMode(Options::Output::SZS);
 
@@ -953,7 +953,7 @@ void CLTBProblem::runSlice(Options& strategyOpt)
   env.timer->reset();
   env.timer->start();
   TimeCounter::reinitialize();
-  Timer::setTimeLimitEnforcement(true);
+  Timer::setLimitEnforcement(true);
 
   Options opt = strategyOpt;
   //we have already performed the normalization

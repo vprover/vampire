@@ -21,7 +21,7 @@
 #include "Kernel/Term.hpp"
 #include "Kernel/TermIterators.hpp"
 #include "Kernel/Signature.hpp"
-#include "Kernel/Sorts.hpp"
+#include "Kernel/OperatorType.hpp"
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/ApplicativeHelper.hpp"
 
@@ -139,9 +139,9 @@ TermList Injectivity::createNewLhs(TermList oldhead, TermStack& termArgs, unsign
     }
   }
 
-  TermList inverseType = Term::arrowSort(sorts, newResult);
+  TermList inverseType = AtomicSort::arrowSort(sorts, newResult);
 
-  OperatorType* invFuncType = OperatorType::getConstantsType(inverseType, funcType->typeArgsArity());
+  OperatorType* invFuncType = OperatorType::getConstantsType(inverseType, funcType->numTypeArguments());
   Signature::Symbol* invFunc = env.signature->getFunction(iFunc);
   invFunc->setType(invFuncType);
   TermList invFuncHead = TermList(Term::create(iFunc, func->arity(), typeArgs.begin()));

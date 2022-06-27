@@ -56,7 +56,7 @@ class Splitter;
  */
 class SplittingBranchSelector {
 public:
-  SplittingBranchSelector(Splitter& parent) : _ccModel(false), _parent(parent)  {}
+  SplittingBranchSelector(Splitter& parent) : _ccModel(false), _parent(parent), _solverIsSMT(false)  {}
   ~SplittingBranchSelector(){
 #if VZ3
 {
@@ -98,6 +98,7 @@ private:
 
   Splitter& _parent;
 
+  bool _solverIsSMT;
   SATSolverSCP _solver;
   ScopedPtr<DecisionProcedure> _dp;
   // use a separate copy of the decision procedure for ccModel computations and fill it up only with equalities
@@ -290,7 +291,12 @@ private:
   /** true if there was a refutation added to the SAT solver */
   bool _haveBranchRefutation;
 
-  unsigned _stopSplittingAt; // time elapsed in milliseconds
+  /* as there can be both limits, it's hard to covert between them,
+   * and we terminate at the earlier one, let's just keep checking both. */
+  unsigned _stopSplittingAtTime; // time elapsed in milliseconds
+#ifdef __linux__
+  unsigned _stopSplittingAtInst; // mega-instructions elapsed
+#endif
 
   bool _fastRestart; // option's value copy
   /**

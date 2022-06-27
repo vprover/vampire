@@ -68,7 +68,16 @@ Term* TermTransformer::transform(Term* term)
       //&top()-2, etc...
       TermList *argLst = &args.top() - (orig->arity() - 1);
       args.truncate(args.length() - orig->arity()); // potentially evil. Calls destructors on the truncated objects, which we are happily reading just below
-      args.push(TermList(Term::create(orig, argLst)));
+      Term* newTrm;
+      if(orig->isSort()){
+        //For most applications we probably dont want to transform sorts.
+        //However, we don't enforce that here, inheriting classes can decide
+        //for themselves        
+        newTrm=AtomicSort::create(static_cast<AtomicSort*>(orig), argLst);
+      } else {
+        newTrm=Term::create(orig,argLst);
+      }
+      args.push(TermList(newTrm));
       modified.setTop(true);
       continue;
     } else {
@@ -239,9 +248,9 @@ Formula* TermTransformer::transform(Formula* f)
   return ttft.transform(f);
 }
 
-Term* TermTransformerTransformTransformed::transform(Term* term)
+Term* BottomUpTermTransformer::transform(Term* term)
 {
-  CALL("TermTransformerTransformTransformed::transform(Term* term)");
+  CALL("BottomUpTermTransformer::transform(Term* term)");
   ASS(term->shared());
 
   static Stack<TermList*> toDo(8);
@@ -281,8 +290,14 @@ Term* TermTransformerTransformTransformed::transform(Term* term)
       }
 
       // cout << "args.length() - orig->arity() = " << args.length() - orig->arity() << endl;
-
-      args.push(transformSubterm(TermList(Term::create(orig,argLst))));
+      if(orig->isSort()){
+        //For most applications we probably dont want to transform sorts
+        //however, we don't enforce that here, inheriting classes can decide
+        //for themselves
+        args.push(transformSubterm(TermList(AtomicSort::create(static_cast<AtomicSort*>(orig),argLst))));
+      } else {
+        args.push(transformSubterm(TermList(Term::create(orig,argLst))));
+      }
       continue;
     } else {
       toDo.push(tt->next());
@@ -317,7 +332,7 @@ Term* TermTransformerTransformTransformed::transform(Term* term)
   }
 }
 
-Literal* TermTransformerTransformTransformed::transform(Literal* lit)
+Literal* BottomUpTermTransformer::transform(Literal* lit)
 {
   CALL("TermTransformer::transform(Literal* lit)");
   Term* t = transform(static_cast<Term*>(lit));
@@ -325,10 +340,10 @@ Literal* TermTransformerTransformTransformed::transform(Literal* lit)
   return static_cast<Literal*>(t);
 }
 
-Formula* TermTransformerTransformTransformed::transform(Formula* f)
+Formula* BottomUpTermTransformer::transform(Formula* f)
 {
-  CALL("TermTransformerTransformTransformed::transform(Formula* f)");
-  static TermTransformerTransformTransformedFormulaTransformer ttft(*this);
+  CALL("BottomUpTermTransformer::transform(Formula* f)");
+  static BottomUpTermTransformerFormulaTransformer ttft(*this);
   return ttft.transform(f);
 }
 

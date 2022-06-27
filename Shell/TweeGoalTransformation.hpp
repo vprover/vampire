@@ -7,16 +7,19 @@
  * https://vprover.github.io/license.html
  * and in the source directory
  */
-/**
- * @file GlobalOptions.cpp
- * Implements class GlobalOptions.
- */
 
-#include "GlobalOptions.hpp"
+#ifndef __TweeGoalTransformation__
+#define __TweeGoalTransformation__
 
-namespace Shell
-{
+#include "Forwards.hpp"
 
+namespace Shell {
 
+class TweeGoalTransformation {
+public:
+  void apply(Kernel::Problem &, bool grounOnly);
+};
 
-}
+};
+
+#endif /* __TweeGoalTransformation__ */

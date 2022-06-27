@@ -155,8 +155,8 @@ public:
   CLASS_NAME(Z3Interfacing);
   USE_ALLOCATOR(Z3Interfacing);
 
-  Z3Interfacing(const Shell::Options& opts, SAT2FO& s2f, bool unsatCore, vstring const& exportSmtlib);
-  Z3Interfacing(SAT2FO& s2f, bool showZ3, bool unsatCore, vstring const& exportSmtlib, Shell::Options::ProblemExportSyntax s = Shell::Options::ProblemExportSyntax::SMTLIB);
+  Z3Interfacing(const Shell::Options& opts, SAT2FO& s2f, bool unsatCoreForAssumptions, vstring const& exportSmtlib);
+  Z3Interfacing(SAT2FO& s2f, bool showZ3, bool unsatCoreForAssumptions, vstring const& exportSmtlib, Shell::Options::ProblemExportSyntax s = Shell::Options::ProblemExportSyntax::SMTLIB);
   ~Z3Interfacing();
 
   static char const* z3_full_version();
@@ -212,6 +212,15 @@ public:
 
   virtual Status solveUnderAssumptions(const SATLiteralStack& assumps, unsigned conflictCountLimit, bool onlyProperSubusets) override;
 
+  /**
+   * The set of inserted clauses may not be propositionally UNSAT
+   * due to theory reasoning inside Z3.
+   * We cannot later minimize this set with minisat.
+   *
+   * TODO: think of extracting true refutation from Z3 instead.
+   */
+  SATClauseList* getRefutationPremiseList() override{ return 0; }
+
   SATClause* getRefutation() override;
 
   template<class F>
@@ -229,19 +238,54 @@ public:
 
   struct FuncOrPredId
   {
-    explicit FuncOrPredId(unsigned id, bool isPredicate) : id(id), isPredicate(isPredicate) {}
-    explicit FuncOrPredId(Term* term) : FuncOrPredId(term->functor(), term->isLiteral()) {}
-    static FuncOrPredId function(FuncId id) { return FuncOrPredId ( id, false ); }
-    static FuncOrPredId predicate(PredId id) { return FuncOrPredId ( id, true ); }
+    explicit FuncOrPredId(unsigned id, bool isPredicate, Term *forSorts = nullptr) : id(id), isPredicate(isPredicate), forSorts(forSorts) {}
+    explicit FuncOrPredId(Term* term) :
+      FuncOrPredId(
+        term->functor(),
+        term->isLiteral(),
+        term->numTypeArguments() == 0 ? nullptr : term
+      )
+    {}
+    static FuncOrPredId monomorphicFunction(FuncId id) { return FuncOrPredId (id, false); }
+    static FuncOrPredId monomorphicPredicate(PredId id) { return FuncOrPredId (id, true); }
     unsigned id;
     bool isPredicate;
+    /**
+     * polymorphic symbol application: treat e.g. f(<sorts>, ...) as f<sorts>(...) for Z3
+     * in the monomorphic case, nullptr
+     * in the polymorphic case, some term of the form f(<sorts>, ...) which we use only for sort information
+     */
+    Term *forSorts;
 
     friend struct std::hash<FuncOrPredId> ;
     friend bool operator==(FuncOrPredId const& l, FuncOrPredId const& r)
-    { return l.id == r.id && l.isPredicate == r.isPredicate; }
+    {
+      if(l.id != r.id || l.isPredicate != r.isPredicate)
+        return false;
+      if(!l.forSorts)
+        return true;
+      ASS(r.forSorts != nullptr);
+
+      // compare sort arguments
+      for(unsigned i = 0; i < l.forSorts->numTypeArguments(); i++)
+        // sorts are perfectly shared
+        if(!l.forSorts->typeArg(i).sameContent(r.forSorts->typeArg(i)))
+          return false;
+
+      return true;
+    }
     friend std::ostream& operator<<(std::ostream& out, FuncOrPredId const& self)
-    { return out << (self.isPredicate ? "pred " : "func " )
-      << (self.isPredicate ? env.signature->getPredicate(self.id)->name() : env.signature->getFunction(self.id)->name());
+    {
+      out << (self.isPredicate ? "pred " : "func ");
+      out << (
+        self.isPredicate
+          ? env.signature->getPredicate(self.id)->name()
+          : env.signature->getFunction(self.id)->name()
+      );
+      if(self.forSorts)
+        for(unsigned i = 0; i < self.forSorts->numTypeArguments(); i++)
+          out << " " << self.forSorts->typeArg(i).toString();
+      return out;
     }
   };
 
@@ -250,10 +294,12 @@ private:
   Map<SortId, z3::sort> _sorts;
   struct Z3Hash {
     static unsigned hash(z3::func_decl const& c) { return c.hash(); }
+    static unsigned hash(z3::expr const& c) { return c.hash(); }
     static bool equals(z3::func_decl const& l, z3::func_decl const& r) { return z3::eq(l,r); }
+    static bool equals(z3::expr const& l, z3::expr const& r) { return z3::eq(l,r); }
   };
   Map<z3::func_decl, FuncOrPredId , Z3Hash > _fromZ3;
-  Map<FuncOrPredId,  z3::func_decl, StlHash<FuncOrPredId>> _toZ3;
+  Map<FuncOrPredId,  z3::func_decl, StlHash> _toZ3;
   Set<SortId> _createdTermAlgebras;
 
   z3::func_decl const& findConstructor(FuncId id);
@@ -267,7 +313,7 @@ private:
   friend struct EvaluateInModel;
 public:
   Term* evaluateInModel(Term* trm);
-#ifdef VDEBUG
+#if VDEBUG
   z3::model& getModel() { return _model; }
 #endif
 
@@ -286,12 +332,13 @@ private:
   Representation getRepresentation(SATLiteral lit);
   Representation getRepresentation(SATClause* cl);
 
+  // arrays are a bit fragile in Z3, so we need to do things differently for them
+  bool _hasSeenArrays;
 
   unsigned _varCnt; // just to conform to the interface
   SAT2FO& _sat2fo; // Memory belongs to Splitter
 
   Shell::Options::ProblemExportSyntax const _outSyntax;
-  // Option<std::ofstream> _out;
   Status _status;
   const bool _showZ3;
   const bool _unsatCore;
@@ -301,7 +348,7 @@ private:
   z3::solver _solver;
   z3::model _model;
 
-  BiMap<SATLiteral, z3::expr> _assumptionLookup;
+  BiMap<SATLiteral, z3::expr, Hash, Z3Hash> _assumptionLookup;
   Map<unsigned, z3::expr> _varNames;
   Map<TermList, z3::expr> _termIndexedConstants;
   Map<Signature::Symbol*, z3::expr> _constantNames;
@@ -322,6 +369,7 @@ private:
   z3::expr_vector  z3_unsat_core();
   z3::expr         z3_eval(z3::expr const& x);
   z3::sort         z3_declare_sort(vstring const& name);
+  z3::sort         z3_array_sort(z3::sort const& idxSort, z3::sort const& value_sort);
   z3::func_decl    z3_declare_fun(vstring const& name, z3::sort_vector domain, z3::sort codomain);
   z3::expr         z3_declare_const(vstring const& name, z3::sort sort);
   void             z3_output_initialize();
@@ -334,8 +382,13 @@ private:
 namespace std {
     template<>
     struct hash<SAT::Z3Interfacing::FuncOrPredId> {
-      size_t operator()(SAT::Z3Interfacing::FuncOrPredId const& self)
-      { return Lib::HashUtils::combine(self.id, self.isPredicate); }
+      size_t operator()(SAT::Z3Interfacing::FuncOrPredId const& self) {
+        unsigned hash = Lib::HashUtils::combine(self.id, self.isPredicate);
+        if(self.forSorts)
+          for(unsigned i = 0; i < self.forSorts->numTypeArguments(); i++)
+            hash = Lib::HashUtils::combine(hash, self.forSorts->typeArg(i).content());
+        return hash;
+      }
     };
 }
 

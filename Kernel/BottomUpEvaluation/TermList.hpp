@@ -15,6 +15,7 @@
 
 namespace Lib {
 
+// iterate up through TermLists, ignoring sort arguments
 template<>
 struct BottomUpChildIter<Kernel::TermList>
 {
@@ -22,18 +23,19 @@ struct BottomUpChildIter<Kernel::TermList>
   unsigned _idx;
 
   BottomUpChildIter(Kernel::TermList self) : _self(self), _idx(0)
-  {}
+  { }
 
   Kernel::TermList next() 
   {
     ASS(hasNext());
-    return *_self.term()->nthArgument(_idx++);
+    return _self.term()->termArg(_idx++);
   }
+
   bool hasNext() const 
-  { return _self.isTerm() && _idx < _self.term()->arity(); }
+  { return _self.isTerm() && _idx < _self.term()->numTermArguments(); }
 
   unsigned nChildren() const 
-  { return _self.isVar() ? 0 : _self.term()->arity(); }
+  { return _self.isVar() ? 0 : _self.term()->numTermArguments(); }
 
   Kernel::TermList self() const 
   { return _self; }

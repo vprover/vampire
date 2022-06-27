@@ -18,7 +18,7 @@
 #include "Forwards.hpp"
 
 #include "Inference.hpp"
-#include "Sorts.hpp"
+#include "OperatorType.hpp"
 
 namespace Kernel {
 
@@ -91,15 +91,15 @@ protected:
   TermTransformer& _termTransformer;
 };
 
-class TermTransformerTransformTransformedFormulaTransformer : public FormulaTransformer
+class BottomUpTermTransformerFormulaTransformer : public FormulaTransformer
 {
   public:
-    TermTransformerTransformTransformedFormulaTransformer(TermTransformerTransformTransformed& termTransformer)
+    BottomUpTermTransformerFormulaTransformer(BottomUpTermTransformer& termTransformer)
       : _termTransformer(termTransformer) {}
   protected:
     virtual Formula* applyLiteral(Formula* f);
 
-    TermTransformerTransformTransformed& _termTransformer;
+    BottomUpTermTransformer& _termTransformer;
 };
 
 class PolarityAwareFormulaTransformer : protected FormulaTransformer {
@@ -193,32 +193,6 @@ protected:
 
   virtual void updateModifiedProblem(Problem& prb);
 };
-
-class ScanAndApplyLiteralTransformer : public ScanAndApplyFormulaUnitTransformer {
-public:
-  using ScanAndApplyFormulaUnitTransformer::apply;
-protected:
-
-  /**
-   * @param infRule the rule that will be used to derive modified units
-   */
-  ScanAndApplyLiteralTransformer(InferenceRule infRule) : _infRule(infRule) {}
-
-  /**
-   * @param l the literal
-   * @param premAcc premises of the transformation should be added on this stack
-   */
-  virtual Literal* apply(Literal* l, UnitStack& premAcc) = 0;
-
-  virtual bool apply(FormulaUnit* unit, Unit*& res);
-  virtual bool apply(Clause* cl, Unit*& res);
-
-private:
-  struct LitFormulaTransformer;
-
-  InferenceRule _infRule;
-};
-
 
 }
 

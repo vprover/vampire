@@ -342,7 +342,7 @@ Comparison Normalisation::compare (Literal* l1, Literal* l2)
       return comp;
     }
     if (l1->shared() && l2->shared()) {
-      comp = compare((int)l1->vars(),(int)l2->vars());
+      comp = compare((int)l1->numVarOccs(),(int)l2->numVarOccs());
       if (comp != EQUAL) {
         return comp;
       }
@@ -426,6 +426,7 @@ Comparison Normalisation::compare(Term* t1, Term* t2)
 {
   CALL("Normalisation::compare(const Term*...)");
 
+
   if (t1 == t2) {
     return EQUAL;
   }
@@ -437,6 +438,14 @@ Comparison Normalisation::compare(Term* t1, Term* t2)
   }
 
   if (t1->isSpecial() && !t2->isSpecial()) {
+    return LESS;
+  }
+
+  if(!t1->isSort() && t2->isSort()){
+    return GREATER;
+  } 
+
+  if(t1->isSort() && !t2->isSort()){
     return LESS;
   }
 
@@ -532,7 +541,7 @@ Comparison Normalisation::compare(Term* t1, Term* t2)
       return comp;
     }
 
-    comp = compare((int)t1->vars(),(int)t2->vars());
+    comp = compare((int)t1->numVarOccs(),(int)t2->numVarOccs());
     if (comp != EQUAL) {
       return comp;
     }
@@ -545,8 +554,9 @@ Comparison Normalisation::compare(Term* t1, Term* t2)
     if (comp != EQUAL) {
       return comp;
     }
-    comp = compare(_counter.getFun(f1).occ(),
-       _counter.getFun(f2).occ());
+    int countf1 = t1->isSort() ? _counter.getTypeCon(f1).occ() : _counter.getFun(f1).occ();
+    int countf2 = t1->isSort() ? _counter.getTypeCon(f2).occ() : _counter.getFun(f2).occ();
+    comp = compare(countf1, countf2);
     if (comp != EQUAL) {
       return comp;
     }

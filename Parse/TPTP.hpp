@@ -589,6 +589,8 @@ private:
   bool _isFof;
   /** */
   bool _isThf;
+  /** */
+  bool _containsPolymorphism;
   /** various strings saved during parsing */
   Stack<vstring> _strings;
   /** various connectives saved during parsing */ // they must be int, since non-existing value -1 can be used
@@ -776,6 +778,7 @@ private:
   Literal* createEquality(bool polarity,TermList& lhs,TermList& rhs);
   Formula* createPredicateApplication(vstring name,unsigned arity);
   TermList createFunctionApplication(vstring name,unsigned arity);
+  TermList createTypeConApplication(vstring name,unsigned arity);
   void endEquality();
   void midEquality();
   void formulaInfix();
