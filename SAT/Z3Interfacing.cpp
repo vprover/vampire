@@ -823,8 +823,7 @@ namespace tptp {
   {
     F quotient;
 
-    z3::expr operator()(z3::expr l, z3::expr r)
-    { return l / r - quotient(l,r); }
+    z3::expr operator()(z3::expr l, z3::expr r) { return l - r*quotient(l,r); }
   };
   template<class F> RemainderOp<F> remainder(F f) { return RemainderOp<F>{ f }; }
 }
