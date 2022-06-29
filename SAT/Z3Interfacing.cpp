@@ -402,7 +402,7 @@ template<class Outputable>
 vstring const& ProblemExport::ApiCalls::_escapeVarName(Outputable const& sym) {
   vstringstream cvar;
   auto generatePrefix = [&](vstring const& toEscape) -> vstring {
-    auto iter = 0;
+    unsigned iter = 0;
     while (iter < toEscape.length()) {
       if (std::isalnum(toEscape[iter]) || toEscape[iter] == '_') break;
       else iter++;
