@@ -627,7 +627,7 @@ std::ostream& ProblemExport::operator<<(std::ostream& out, ProblemExport::ApiCal
   if (self.inner.kind() == Z3_INT_SYMBOL) {
     return out << "ctx.int_symbol(" << self.inner.to_int() << ")";
   } else  {
-    return out << "ctx.str_symbol(" << ProblemExport::ApiCalls::EscapeString(vstring(self.inner.str())) << ")";
+    return out << "ctx.str_symbol(" << ProblemExport::ApiCalls::EscapeString(toString(self)) << ")";
   }
 }
 
