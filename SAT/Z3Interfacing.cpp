@@ -955,7 +955,6 @@ SATSolver::Status Z3Interfacing::solve()
     ScopedPushAndPop(z3::solver& s, bool doPushPop) : _s(s), _dpp(doPushPop) { if (_dpp) {_s.push();} }
     ~ScopedPushAndPop() { if (_dpp) {_s.pop();} }
   } _maybePushAndPop(_solver,_hasSeenArrays);
-  ASS(!_hasSeenArrays) // TODO remove this assertion. just for debgging
 
 
   auto result = z3_check();
