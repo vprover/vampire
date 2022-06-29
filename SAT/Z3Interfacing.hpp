@@ -75,6 +75,9 @@ namespace ProblemExport {
     void set_param(const char* k, Value const& v) {  }
     void Z3_mk_datatypes(Z3MkDatatypesCall const& call) {  }
     void declare_fun(vstring const& name, z3::sort_vector domain, z3::sort codomain) {  }
+    void declare_const(vstring const& name, z3::sort codomain) {}
+    void instantiate_expression(z3::expr const& e) {}
+    void enableTrace(const char*) {  }
   };
 
   struct Smtlib {
@@ -92,12 +95,15 @@ namespace ProblemExport {
     void addAssert(z3::expr const& x);
     void get_model();
     void reset();
+    void enableTrace(const char*) {  }
 
     void declare_fun(vstring const& name, z3::sort_vector domain, z3::sort codomain);
+    void declare_const(vstring const& name, z3::sort codomain);
     void check(Stack<z3::expr> const& assumptions);
     void declare_array_sort(z3::sort array, z3::sort index, z3::sort result);
     template<class Value>
     void set_param(const char* k, Value const& v);
+    void instantiate_expression(z3::expr const& e);
 
     void Z3_mk_datatypes(Z3MkDatatypesCall const& call);
   };
@@ -108,6 +114,7 @@ namespace ProblemExport {
     Map<vstring, vstring> _escapedNames; // <- maps string -> unique string that can be used as c++ variable
     Map<vstring, Map<vstring, unsigned>> _escapePrefixes; // <- maps c++ variable prefix of _escapedNames -> strings that have been escaped to it
 
+    Set<vstring> _predeclaredConstants; // <- c++ variable names of been declard using declare_const
     ApiCalls(ApiCalls &&) = default;
     ApiCalls(std::ofstream out, z3::context& context) : out(std::move(out)), _context(context) {}
 
@@ -146,6 +153,9 @@ namespace ProblemExport {
     void set_param(const char* k, Value const& v);
     void Z3_mk_datatypes(Z3MkDatatypesCall const& call);
     void declare_fun(vstring const& name, z3::sort_vector domain, z3::sort codomain);
+    void declare_const(vstring const& name, z3::sort codomain);
+    void enableTrace(const char*);
+    void instantiate_expression(z3::expr const& e);
   };
 } // namespace ProblemExport
 
@@ -355,6 +365,7 @@ private:
   const bool _unsatCore;
   Stack<z3::expr> _assumptions;
 
+  char buffer[128];
   z3::context _context;
   z3::solver _solver;
   z3::model _model;
@@ -375,7 +386,7 @@ private:
   void             z3_set_param(const char* k, Value const& v);
   z3::check_result z3_check();
   z3::model        z3_get_model();
-  void             z3_reset();
+  // void             z3_reset();
   void             z3_add(z3::expr const&);
   z3::expr_vector  z3_unsat_core();
   z3::expr         z3_eval(z3::expr const& x);
@@ -383,6 +394,7 @@ private:
   z3::sort         z3_array_sort(z3::sort const& idxSort, z3::sort const& value_sort);
   z3::func_decl    z3_declare_fun(vstring const& name, z3::sort_vector domain, z3::sort codomain);
   z3::expr         z3_declare_const(vstring const& name, z3::sort sort);
+  void             z3_enable_trace(const char* name);
   void             z3_output_initialize();
 
   // template<class Clsr>
