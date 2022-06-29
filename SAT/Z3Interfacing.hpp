@@ -53,14 +53,111 @@ namespace SAT{
     }
   };
 
+struct Z3MkDatatypesCall;
+
+namespace ProblemExport {
+
+  struct NoExport {
+    NoExport() {}
+    NoExport(NoExport &&) = default;
+
+    void initialize() {  }
+    void terminate() {  }
+    void declare_array_sort(z3::sort array, z3::sort index, z3::sort result) {  }
+    void declareSort(z3::sort sort) {  }
+    void eval(z3::expr const& x) {  }
+    void unsatCore() {  }
+    void addAssert(z3::expr const& x) {  }
+    void check(Stack<z3::expr> const& xs) {  }
+    void get_model() {  }
+    void reset() {  }
+    template<class Value>
+    void set_param(const char* k, Value const& v) {  }
+    void Z3_mk_datatypes(Z3MkDatatypesCall const& call) {  }
+    void declare_fun(vstring const& name, z3::sort_vector domain, z3::sort codomain) {  }
+  };
+
+  struct Smtlib {
+    std::ofstream out;
+    z3::context& _context;
+
+    Smtlib(std::ofstream out, z3::context& context) : out(std::move(out)), _context(context) {}
+    Smtlib(Smtlib &&) = default;
+
+    void initialize();
+    void terminate();
+    void declareSort(z3::sort sort);
+    void eval(z3::expr const& x);
+    void unsatCore();
+    void addAssert(z3::expr const& x);
+    void get_model();
+    void reset();
+
+    void declare_fun(vstring const& name, z3::sort_vector domain, z3::sort codomain);
+    void check(Stack<z3::expr> const& assumptions);
+    void declare_array_sort(z3::sort array, z3::sort index, z3::sort result);
+    template<class Value>
+    void set_param(const char* k, Value const& v);
+
+    void Z3_mk_datatypes(Z3MkDatatypesCall const& call);
+  };
+
+  struct ApiCalls {
+    std::ofstream out;
+    z3::context& _context;
+    Map<vstring, vstring> _escapedNames; // <- maps string -> unique string that can be used as c++ variable
+    Map<vstring, Map<vstring, unsigned>> _escapePrefixes; // <- maps c++ variable prefix of _escapedNames -> strings that have been escaped to it
+
+    ApiCalls(ApiCalls &&) = default;
+    ApiCalls(std::ofstream out, z3::context& context) : out(std::move(out)), _context(context) {}
+
+    template<class Outputable>
+    vstring const& _escapeVarName(Outputable const& sym);
+
+    vstring const& escapeVarName(z3::sort const& sym);
+    vstring const& escapeVarName(z3::symbol const& sym);
+
+
+    void initialize();
+    void terminate();
+
+    void declare_array_sort(z3::sort array, z3::sort index, z3::sort result);
+
+
+    struct EscapeString;
+
+    template<class C> struct Serialize { C const& inner; ApiCalls& state; };
+    template<class C> Serialize<C> serialize(C const& c){ return Serialize<C>{ c, *this, }; };
+
+    friend std::ostream& operator<<(std::ostream& out, Serialize<vstring> const& self);
+    friend std::ostream& operator<<(std::ostream& out, Serialize<bool> const& self);
+    friend std::ostream& operator<<(std::ostream& out, Serialize<z3::expr> const& self);
+    template<class A>
+    friend std::ostream& operator<<(std::ostream& out, Serialize<A> const& self);
+    friend std::ostream& operator<<(std::ostream& out, Serialize<z3::symbol> const& self);
+    void declareSort(z3::sort sort);
+    void eval(z3::expr const& x);
+    void unsatCore();
+    void addAssert(z3::expr const& x);
+    void check(Stack<z3::expr> const& xs);
+    void get_model();
+    void reset();
+    template<class Value>
+    void set_param(const char* k, Value const& v);
+    void Z3_mk_datatypes(Z3MkDatatypesCall const& call);
+    void declare_fun(vstring const& name, z3::sort_vector domain, z3::sort codomain);
+  };
+} // namespace ProblemExport
+
+
 class Z3Interfacing : public PrimitiveProofRecordingSATSolver
 {
 public:
   CLASS_NAME(Z3Interfacing);
   USE_ALLOCATOR(Z3Interfacing);
 
-  Z3Interfacing(const Shell::Options& opts, SAT2FO& s2f, bool unsatCoresForAssumptions, vstring const& exportSmtlib);
-  Z3Interfacing(SAT2FO& s2f, bool showZ3, bool unsatCoresForAssumptions, vstring const& exportSmtlib);
+  Z3Interfacing(const Shell::Options& opts, SAT2FO& s2f, bool unsatCoreForAssumptions, vstring const& exportSmtlib);
+  Z3Interfacing(SAT2FO& s2f, bool showZ3, bool unsatCoreForAssumptions, vstring const& exportSmtlib, Shell::Options::ProblemExportSyntax s = Shell::Options::ProblemExportSyntax::SMTLIB);
   ~Z3Interfacing();
 
   static char const* z3_full_version();
@@ -236,6 +333,7 @@ public:
     Stack<z3::expr> defs;
   };
 
+
   Representation getRepresentation(Term* trm);
   Representation getRepresentation(SATLiteral lit);
   Representation getRepresentation(SATClause* cl);
@@ -251,19 +349,21 @@ private:
   unsigned _varCnt; // just to conform to the interface
   SAT2FO& _sat2fo; // Memory belongs to Splitter
 
+  Shell::Options::ProblemExportSyntax const _outSyntax;
   Status _status;
-  z3::config _config;
+  const bool _showZ3;
+  const bool _unsatCore;
+  Stack<z3::expr> _assumptions;
+
   z3::context _context;
   z3::solver _solver;
   z3::model _model;
-  Stack<z3::expr> _assumptions;
+
   BiMap<SATLiteral, z3::expr, Hash, Z3Hash> _assumptionLookup;
-  const bool _showZ3;
-  const bool _unsatCore;
-  Option<std::ofstream> _out;
   Map<unsigned, z3::expr> _varNames;
   Map<TermList, z3::expr> _termIndexedConstants;
   Map<Signature::Symbol*, z3::expr> _constantNames;
+  Coproduct<ProblemExport::NoExport, ProblemExport::Smtlib, ProblemExport::ApiCalls> _exporter;
 
   bool     isNamedExpr(unsigned var) const;
   z3::expr getNameExpr(unsigned var);
@@ -271,21 +371,22 @@ private:
   z3::expr getNamingConstantFor(TermList name, z3::sort sort);
   z3::expr getConst(Signature::Symbol* symb, z3::sort srt);
 
-                                 void __output(std::ostream& out               ) {                                 }
-  template<class A, class... As> void __output(std::ostream& out, A a, As... as) { out << a; __output(out, as...); }
+  template<class Value>
+  void             z3_set_param(const char* k, Value const& v);
+  z3::check_result z3_check();
+  z3::model        z3_get_model();
+  void             z3_reset();
+  void             z3_add(z3::expr const&);
+  z3::expr_vector  z3_unsat_core();
+  z3::expr         z3_eval(z3::expr const& x);
+  z3::sort         z3_declare_sort(vstring const& name);
+  z3::sort         z3_array_sort(z3::sort const& idxSort, z3::sort const& value_sort);
+  z3::func_decl    z3_declare_fun(vstring const& name, z3::sort_vector domain, z3::sort codomain);
+  z3::expr         z3_declare_const(vstring const& name, z3::sort sort);
+  void             z3_output_initialize();
 
-  template<class... As>
-  void _output(bool endl, As... as)
-  {
-    if (_out.isSome()) {
-      __output(_out.unwrap(), as...);
-      if (endl)
-        _out.unwrap() << std::endl;
-    }
-  }
-
-  template<class... As> void outputln(As... as) { _output(true , as...); }
-  template<class... As> void output  (As... as) { _output(false, as...); }
+  // template<class Clsr>
+  // void exportCall(Clsr f);
 };
 
 }//end SAT namespace

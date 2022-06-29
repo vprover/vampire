@@ -182,13 +182,12 @@ TEST_FUN(move_01) {
   ASS((y != Coproduct<int,NonCopy>::variant<0>(0)));
 }
 
-// TEST_FUN(move_02) {
-//
-//   auto x = Coproduct<int, NonCopy>::variant<1>(NonCopy( true ));
-//
-//   auto y = x;
-//
-//   ASS(!x.unwrap<NonCopy>().wasMoved)
-//   ASS(!y.unwrap<NonCopy>().wasMoved)
-//
-// }
+
+TEST_FUN(constness_bug_01) {
+  struct Inner 
+  { void mutate() {} };
+
+  auto co = Lib::Coproduct<Inner>(Inner{});
+  // did not compile due to bug
+  co.apply([&](auto& inner) { inner.mutate(); });
+}

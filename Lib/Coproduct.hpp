@@ -104,9 +104,9 @@ namespace CoproductImpl {
     /** same as `match`, but using the same function for every type.*/                                        \
     template <class R, class F> inline R apply(unsigned idx, F f) REF {                                       \
       if (idx == 0) {                                                                                         \
-        static_assert(std::is_same<decltype(MOVE(_head)), A REF>::value, "unexpected head type"); \
-        A REF head = MOVE(_head);                          \
-        return f(MOVE(head));                        \
+        static_assert(std::is_same<decltype(MOVE(_head)), A REF>::value, "unexpected head type");             \
+        A REF head = MOVE(_head);                                                                             \
+        return f(MOVE(head));                                                                                 \
       } else {                                                                                                \
         return MOVE(_tail).template apply<R>(idx - 1, f);                                                     \
       }                                                                                                       \
@@ -360,7 +360,7 @@ public:
    * can transform any variant instead of multiple functions per variant.                                     \
    */                                                                                                         \
   template <class F>                                                                                          \
-  inline auto apply(F f) REF -> decltype(auto) {                                                                  \
+  inline auto apply(F f) REF -> decltype(auto) {                                                              \
     ASS_REP(_tag <= size, _tag);                                                                              \
     return MOVE(_content).template apply<ResultOf<F, A REF>>(_tag,f);                                         \
   }                                                                                                           \
