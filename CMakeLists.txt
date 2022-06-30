@@ -575,6 +575,7 @@ set(VAMPIRE_SHELL_SOURCES
     Shell/Naming.cpp
     Shell/NNF.cpp
     Shell/Normalisation.cpp
+    Shell/Shuffling.cpp
     Shell/Options.cpp
     Shell/PredicateDefinition.cpp
     Shell/Preprocess.cpp

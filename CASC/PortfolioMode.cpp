@@ -27,6 +27,7 @@
 #include "Shell/Statistics.hpp"
 #include "Shell/UIHelper.hpp"
 #include "Shell/Normalisation.hpp"
+#include "Shell/Shuffling.hpp"
 #include "Shell/TheoryFinder.hpp"
 
 #include <unistd.h>
@@ -141,7 +142,12 @@ bool PortfolioMode::searchForProof()
 
     //we normalize now so that we don't have to do it in every child Vampire
     ScopedLet<Statistics::ExecutionPhase> phaseLet(env.statistics->phase,Statistics::NORMALIZATION);
-    Normalisation().normalise(*_prb);
+
+    if (env.options->shuffleInput()) { // instead to "combing things into shape" we shuffle and ruffle them
+      Shuffling().shuffle(*_prb);
+    } else {
+      Normalisation().normalise(*_prb);
+    }
     
     //TheoryFinder cannot cope with polymorphic input
     if(!env.property->hasPolymorphicSym()){
@@ -172,6 +178,13 @@ bool PortfolioMode::performStrategy(Shell::Property* property)
   getSchedules(*property,main,fallback);
   getExtraSchedules(*property,main,main_extra,true,3);
   getExtraSchedules(*property,fallback,fallback_extra,true,3);
+
+  if(env.options->randomiseSchedule()){
+     Shuffling().shuffleArray(main,main.length());
+     Shuffling().shuffleArray(main_extra,main_extra.length());
+     Shuffling().shuffleArray(fallback,fallback.length());
+     Shuffling().shuffleArray(fallback_extra,fallback_extra.length());
+  }
 
   // Normally we do main fallback main_extra fallback_extra
   // However, in SMTCOMP mode the fallback is universal for all

@@ -165,6 +165,12 @@ void Options::init()
     _lookup.insert(&_scheduleFile);
     _scheduleFile.onlyUsefulWith(_schedule.is(equal(Schedule::FILE)));
 
+    _randomiseSchedule = BoolOptionValue("rand_sched","rs",false);
+    _randomiseSchedule.description="Randomly reorders the selected schedule";
+    _lookup.insert(&_randomiseSchedule);
+    //TODO: add back in if this code leaves branch
+    //_randomiseSchedule.reliesOnHard(Or(_mode.is(equal(Mode::CASC)),_mode.is(equal(Mode::CASC_SAT)),_mode.is(equal(Mode::SMTCOMP)),_mode.is(equal(Mode::PORTFOLIO))));
+
     _multicore = UnsignedOptionValue("cores","",1);
     _multicore.description = "When running in portfolio modes (including casc or smtcomp modes) specify the number of cores, set to 0 to use maximum";
     _lookup.insert(&_multicore);
@@ -2201,6 +2207,11 @@ void Options::init()
     _normalize.description="Normalize the problem so that the ordering of clauses etc does not effect proof search.";
     _lookup.insert(&_normalize);
     _normalize.tag(OptionTag::PREPROCESSING);
+
+    _shuffleInput = BoolOptionValue("shuffle_input","si",false);
+    _shuffleInput.description="Randomly shuffle the input problem. (Runs after and thus destroys normalize.)";
+    _lookup.insert(&_shuffleInput);
+    _shuffleInput.tag(OptionTag::PREPROCESSING);
 
     _questionAnswering = ChoiceOptionValue<QuestionAnsweringMode>("question_answering","qa",QuestionAnsweringMode::OFF,
                                                                   {"answer_literal","from_proof","off"});
