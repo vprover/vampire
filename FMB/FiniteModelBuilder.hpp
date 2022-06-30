@@ -320,7 +320,11 @@ private:
     CLASS_NAME(FiniteModedlBuilder::SmtBasedDSAE);
     USE_ALLOCATOR(FiniteModelBuilder::SmtBasedDSAE);
 
-    SmtBasedDSAE() : _smtSolver(_context) {}
+    SmtBasedDSAE() : _smtSolver(_context) {
+      z3::params p(_context);
+      p.set(":unsat-core",true);
+      _smtSolver.set(p);
+    }
 
     bool init(unsigned, DArray<unsigned>&, Stack<std::pair<unsigned,unsigned>>&, Stack<std::pair<unsigned,unsigned>>&) override;
     void learnNogood(Constraint_Generator_Vals& nogood, unsigned weight) override;

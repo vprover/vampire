@@ -60,9 +60,9 @@
 #include "Monotonicity.hpp"
 #include "FiniteModelBuilder.hpp"
 
-#define VTRACE_FMB 0
+#define VTRACE_FMB 1
 
-#define VTRACE_DOMAINS 0
+#define VTRACE_DOMAINS 1
 
 #define LOG(X) // cout << #X <<  X << endl;
 
@@ -417,7 +417,7 @@ void FiniteModelBuilder::createSymmetryOrdering()
           if(outOfBounds) continue;
   
           _sortedGroundedTerms[s].push(g);
-          //cout << "Adding " << g.toString() << " to " << s << endl;
+          cout << "Adding " << g.toString() << " to " << s << endl;
         }
       }
     }
@@ -1592,6 +1592,7 @@ MainLoopResult FiniteModelBuilder::runImpl()
       doPrinting = true;
 #endif
       vstring res = "[";
+      vstring res_mon = "[";
       for(unsigned s=0;s<_sortedSignature->distinctSorts;s++){
         if(_distinctSortMaxs[s]==UINT_MAX){
           res+="max";
@@ -1599,10 +1600,16 @@ MainLoopResult FiniteModelBuilder::runImpl()
           res+=Lib::Int::toString(_distinctSortMaxs[s]);
           doPrinting=true;
         }
-        if(s+1 < _sortedSignature->distinctSorts) res+=",";
+        if(_sortedSignature->monotonicSorts[s]) { res_mon+="1";}
+ 	else { res_mon+="-";}
+        if(s+1 < _sortedSignature->distinctSorts){
+           res+=",";
+           res_mon+=",";
+        }
       }
       if(doPrinting){
         cout << "Detected maximum model sizes of " << res << "]" << endl;
+        cout << "Monotonicity: " << res_mon << "]" << endl;
       }
   }
 
@@ -2639,6 +2646,10 @@ bool FiniteModelBuilder::SmtBasedDSAE::increaseModelSizes(DArray<unsigned>& newS
     z3::check_result result = _smtSolver.check();
 
     if (result == z3::check_result::unsat) {
+      auto core = _smtSolver.unsat_core();
+      cout << "UNSAT CORE: ";
+      for (auto phi : core){ cout << phi << " "; }
+      cout << endl;
       return false;
     }
 
