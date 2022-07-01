@@ -253,5 +253,7 @@ SelectedLiteral::SelectedLiteral(Clause* clause, unsigned litIdx, IrcState& shar
   , interpreted(shared.renormalize(literal()))
 {}
 
+std::shared_ptr<IrcState> IrcState::globalState = nullptr;
+
 } // namespace Kernel
 

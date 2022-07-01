@@ -17,6 +17,7 @@
 #include "Lib/Environment.hpp"
 #include "Kernel/SortHelper.hpp"
 #include "Inferences/PolynomialEvaluation.hpp"
+#include "Kernel/IRC.hpp"
 
 
 #include "Forwards.hpp"
@@ -91,16 +92,8 @@ bool UWAMismatchHandler::checkUWA(TermList t1, TermList t2)
         return ircAbsractCoarse(t1) || ircAbsractCoarse(t2);
 
       case Shell::Options::UnificationWithAbstraction::IRC2:  {
-        auto sort = SortHelper::getResultSort(t1.term());
-        return (ircAbsractCoarse(t1) || ircAbsractCoarse(t2)) && forAnyNumTraits([&](auto numTraits){
-            using NumTraits = decltype(numTraits);
-            if (NumTraits::sort() != sort) return false;
-            // TODO get the polynomial evaluation instance less dirty
-            static Inferences::PolynomialEvaluation ev(false);
-            auto sub = ev.evaluateToTerm(NumTraits::add( NumTraits::minus(t1), t2).term());
-            //   ^^^--> `t2 - t1`
-            return !sub.ground() || sub == NumTraits::zero();
-        });
+        return (ircAbsractCoarse(t1) || ircAbsractCoarse(t2)) 
+          && !IrcState::globalState->equivalent(t1.term(), t2.term());
       }
 
       case Shell::Options::UnificationWithAbstraction::IRC3:  {

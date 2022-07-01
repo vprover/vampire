@@ -591,9 +591,33 @@ namespace Kernel {
     CLASS_NAME(IrcState);
     USE_ALLOCATOR(IrcState);
 
+    // TODO get rid of this
+    static std::shared_ptr<IrcState> globalState;
+
+  private:
+    IrcState(
+          InequalityNormalizer normalizer,
+          Ordering* const ordering,
+          Shell::Options::UnificationWithAbstraction const uwa
+        )
+      : normalizer(std::move(normalizer))
+      , ordering(std::move(ordering))
+      , uwa(std::move(uwa)) {}
+
+  public:
     InequalityNormalizer normalizer;
     Ordering* const ordering;
     Shell::Options::UnificationWithAbstraction const uwa;
+
+    static std::shared_ptr<IrcState> create(
+          InequalityNormalizer normalizer,
+          Ordering* const ordering,
+          Shell::Options::UnificationWithAbstraction const uwa
+        ) 
+    {
+      globalState = make_shared(IrcState(std::move(normalizer), ordering, uwa));
+      return globalState;
+    }
 
     bool equivalent(TypedTermList lhs, TypedTermList rhs) 
      { return normalize(lhs) == normalize(rhs); }
