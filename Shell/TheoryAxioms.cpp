@@ -363,7 +363,7 @@ void TheoryAxioms::addAdditionAndOrderingAxioms(TermList sort, Interpretation pl
 {
   CALL("TheoryAxioms::addAdditionAndOrderingAxioms");
 
-  if(env.options->lasca() && sort != IntTraits::sort())
+  if(env.options->lasca())
     return;
 
   addCommutativeGroupAxioms(plus, unaryMinus, zeroElement);
@@ -400,7 +400,7 @@ void TheoryAxioms::addAdditionOrderingAndMultiplicationAxioms(Interpretation plu
   unsigned mulFun = env.signature->getInterpretingSymbol(multiply);
   auto srt = theory->getOperationSort(plus);
   TermList x(0,false);
-  if (!env.options->lasca() || srt == IntTraits::sort()) {
+  if (!env.options->lasca()) {
 
     ASS_EQ(srt, theory->getOperationSort(unaryMinus));
     ASS_EQ(srt, theory->getOperationSort(less));
@@ -411,12 +411,12 @@ void TheoryAxioms::addAdditionOrderingAndMultiplicationAxioms(Interpretation plu
     addCommutativity(multiply);
     addAssociativity(multiply);
     addRightIdentity(multiply, oneElement);
-
-    //axiom( X0*zero==zero );
-    TermList xMulZero(Term::create2(mulFun, x, zeroElement));
-    Literal* xEqXMulZero = Literal::createEquality(true, xMulZero, zeroElement, srt);
-    addTheoryClauseFromLits({xEqXMulZero}, InferenceRule::THA_TIMES_ZERO, EXPENSIVE);
   }
+
+  //axiom( X0*zero==zero );
+  TermList xMulZero(Term::create2(mulFun, x, zeroElement));
+  Literal* xEqXMulZero = Literal::createEquality(true, xMulZero, zeroElement, srt);
+  addTheoryClauseFromLits({xEqXMulZero}, InferenceRule::THA_TIMES_ZERO, EXPENSIVE);
 
   // Distributivity
   //axiom x*(y+z) = (x*y)+(x*z)
