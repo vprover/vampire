@@ -102,12 +102,7 @@ shared_ptr<IrcState> testIrcState(Options::UnificationWithAbstraction uwa, bool 
 
   auto qkbo = ordering == nullptr ? new QKbo(KBO::testKBO(/*rand*/ false, /*qkbo*/ true)) : nullptr;
   auto& ord = ordering == nullptr ? *qkbo : *ordering;
-  // auto& ord = ordering == nullptr ? *new LaLpo(Precedence::random()) : *ordering;
-  auto state = shared_ptr<IrcState>(new IrcState {
-      .normalizer = InequalityNormalizer(strongNormalization),
-      .ordering = &ord,
-      .uwa = uwa,
-  });
+  auto state = IrcState::create(InequalityNormalizer(strongNormalization), &ord, uwa);
   if (qkbo)
         qkbo->setState(state);
   return state;

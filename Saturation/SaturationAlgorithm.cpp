@@ -1629,11 +1629,11 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
   }
 
   if (env.options->lasca()) {
-    auto shared = make_shared(new Kernel::IrcState {
-        .normalizer = InequalityNormalizer(env.options->lascaStrongNormalization()), 
-        .ordering = &ordering, 
-        .uwa = env.options->unificationWithAbstraction(),
-    });
+    auto shared = Kernel::IrcState::create(
+        InequalityNormalizer(env.options->lascaStrongNormalization()), 
+        &ordering, 
+        env.options->unificationWithAbstraction()
+        );
     try {
       auto& ord = dynamic_cast<Kernel::QKbo&>(ordering);
       ord.setState(shared);
