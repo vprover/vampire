@@ -1099,7 +1099,6 @@ struct EvaluateInModel
       BYPASSING_ALLOCATOR;
       if (e.is_numeral_i64(i64_val)) {
         mpz_class out;
-        std::cout << "i64_val: " << " " << i64_val << std::endl;
         mpz_set_si(out.get_mpz_t(), i64_val);
         // std::cout << "out: " << " " << out << std::endl;
         // std::cout << i64_val << std::endl;
