@@ -257,9 +257,9 @@ void PortfolioMode::getExtraSchedules(Property& prop, Schedule& old, Schedule& e
      extra_opts.push("ind=struct:sik=all:indmd=1");
    }
 
-   // If in SMT-COMP mode try guessing the goal
+   // If in SMT-COMP mode try guessing the goal (and adding the twee trick!)
    if(env.options->schedule() == Options::Schedule::SMTCOMP){
-    extra_opts.push("gtg=exists_all");
+    extra_opts.push("gtg=exists_all:tgt=full");
    }
    else{
    // Don't try this in SMT-COMP mode as it requires a goal
