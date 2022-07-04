@@ -3443,6 +3443,8 @@ bool Options::complete(const Problem& prb) const
   bool unitEquality = prop.category() == Property::UEQ;
   bool hasEquality = (prop.equalityAtoms() != 0);
 
+  if (hasEquality && !_superposition.actualValue) return false;
+
   if((prop.hasCombs() || prop.hasAppliedVar())  &&
     !_addCombAxioms.actualValue && !_combinatorySuperposition.actualValue) {
     //TODO make a more complex more precise case here

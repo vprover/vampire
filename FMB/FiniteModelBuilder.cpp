@@ -94,10 +94,12 @@ FiniteModelBuilder::FiniteModelBuilder(Problem& prb, const Options& opt)
       || prop.knownInfiniteDomain() || // recursive data type provably infinite --> don't bother model building
       env.property->hasInterpretedOperations()) {
 
-      env.beginOutput();
-      addCommentSignForSZS(env.out());
-      env.out() << "WARNING: trying to run FMB on interpreted or otherwise provably infinite-domain problem!" << endl;
-      env.endOutput();
+      if(outputAllowed()) {
+        env.beginOutput();
+        addCommentSignForSZS(env.out());
+        env.out() << "WARNING: trying to run FMB on interpreted or otherwise provably infinite-domain problem!" << endl;
+        env.endOutput();
+      }
 
      _isAppropriate = false;
      _dsaEnumerator = 0; // to ensure it is initialised
