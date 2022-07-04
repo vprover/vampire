@@ -41,10 +41,14 @@ void Shuffling::polarityFlip(Problem& prb)
   DArray<bool> flippage(env.signature->predicates());
 
   for (unsigned p = 0; p < flippage.size(); p++) {
-    if (!env.signature->getPredicate(p)->protectedSymbol()) { 
+    auto pSymb = env.signature->getPredicate(p);
+    if (!pSymb->protectedSymbol()) { 
       // don't try to flip interpreted or otherwise protected predicates
       ASS(p); // the equality predicate (at index 0) is protected
       flippage[p] = Random::getBit();
+      if (flippage[p]) {
+        pSymb->markFlipped();
+      }
     } else {
       flippage[p] = false;
     }
