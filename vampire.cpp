@@ -222,7 +222,7 @@ void profileMode()
 
   env.beginOutput();
   env.out()
-    << property->category() << ' '
+    << property->categoryString() << ' '
     << property->props() << ' '
 	  << property->atoms() << ' '
 
@@ -231,13 +231,12 @@ void profileMode()
 
 	  << property->_positiveEqualityAtoms << ' '
 	  << property->_equalityAtoms << ' '
-	  // << property->_atoms << ' '
+    << property->_atoms << ' '
 
 	  << property->_goalFormulas << ' '
 	  << property->_axiomFormulas << ' '
 	  << property->_subformulas << ' '
 
-    << property->_terms << ' '
     << property->_unitGoals << ' '
     << property->_unitAxioms << ' '
 
@@ -252,12 +251,14 @@ void profileMode()
     << property->_groundGoals << ' '
     << property->_maxFunArity << ' '
     << property->_maxPredArity << ' '
+    << property->_maxTypeConArity << ' '
 
     << property->_totalNumberOfVariables << ' '
     << property->_maxVariablesInClause << ' '
 
     << property->_hasInterpreted << ' '
-    << property->_hasInterpretedEquality << ' '
+    << property->hasNumerals() << ' '  // can be derived from Prop
+
     << property->_hasNonDefaultSorts << ' '
     << property->_sortsUsed << ' '
 
