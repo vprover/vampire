@@ -604,9 +604,9 @@ void KBO::checkAdmissibility(HandleError handle) const
   // TODO remove unary minus check once new 
   // theory calculus goes into master
   auto isUnaryMinus = [](unsigned functor){
-    return functor == IntTraits::minusF() ||
-           functor == RatTraits::minusF() ||
-           functor == RealTraits::minusF();
+    return theory->isInterpretedFunction(functor, IntTraits::minusI) ||
+           theory->isInterpretedFunction(functor, RatTraits::minusI) ||
+           theory->isInterpretedFunction(functor, RealTraits::minusI);
   };
 
   ////////////////// check kbo-releated constraints //////////////////
@@ -961,9 +961,9 @@ bool KboSpecialWeights<FuncSigTraits>::tryGetWeight(unsigned functor, unsigned& 
   if (sym->rationalConstant()) { weight = _numRat;  return true; }
   if (sym->realConstant())     { weight = _numReal; return true; }
   if (env.options->pushUnaryMinus()) {
-    if (functor == IntTraits ::minusF()) { weight = 0; return true; }
-    if (functor == RatTraits ::minusF()) { weight = 0; return true; }
-    if (functor == RealTraits::minusF()) { weight = 0; return true; }
+    if (theory->isInterpretedFunction(functor, IntTraits ::minusI)) { weight = 0; return true; }
+    if (theory->isInterpretedFunction(functor, RatTraits ::minusI)) { weight = 0; return true; }
+    if (theory->isInterpretedFunction(functor, RealTraits::minusI)) { weight = 0; return true; }
   }
   return false;
 }

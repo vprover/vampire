@@ -361,13 +361,13 @@ Ordering::Result PrecedenceOrdering::compareFunctionPrecedences(unsigned fun1, u
   if (fun1 == fun2)
     return EQUAL;
 
-  if (fun1 == IntTraits::minusF()) { return GREATER; } 
-  if (fun1 == RatTraits::minusF()) { return GREATER; }
-  if (fun1 == RealTraits::minusF()) { return GREATER; }
+  if (theory->isInterpretedFunction(fun1, IntTraits::minusI)) { return GREATER; } 
+  if (theory->isInterpretedFunction(fun1, RatTraits::minusI)) { return GREATER; }
+  if (theory->isInterpretedFunction(fun1, RealTraits::minusI)) { return GREATER; }
 
-  if (fun2 == IntTraits::minusF()) { return LESS; }
-  if (fun2 == RatTraits::minusF()) { return LESS; }
-  if (fun2 == RealTraits::minusF()) { return LESS; }
+  if (theory->isInterpretedFunction(fun2, IntTraits::minusI)) { return LESS; }
+  if (theory->isInterpretedFunction(fun2, RatTraits::minusI)) { return LESS; }
+  if (theory->isInterpretedFunction(fun2, RealTraits::minusI)) { return LESS; }
 
   // $$false is the smallest
   if (env.signature->isFoolConstantSymbol(false,fun1)) {
@@ -706,8 +706,6 @@ PrecedenceOrdering::PrecedenceOrdering(Problem& prb, const Options& opt)
        // Make sure we (re-)compute usageCnt's for all the symbols;
        // in particular, the sP's (the Tseitin predicates) and sK's (the Skolem functions), which only exists since preprocessing.
        prb.getProperty(),
-       // also, fetch the unary minuses, we intruduce later anyway
-       (void)IntTraits::minusF(),(void)RatTraits::minusF(),(void)RealTraits::minusF(), 
        predPrecFromOpts(prb, opt)))
 {
   CALL("PrecedenceOrdering::PrecedenceOrdering(Problem&,const Options&)");
