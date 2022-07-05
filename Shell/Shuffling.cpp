@@ -54,22 +54,30 @@ void Shuffling::polarityFlip(Problem& prb)
     }
   }
 
-  UnitList::Iterator us(prb.units());
+  Stack<Literal*> newLits;
+  UnitList::RefIterator us(prb.units());
   while (us.hasNext()) {
-    Unit* u = us.next(); ASS(u->isClause()); Clause* cl = u->asClause();
+    Unit* &u = us.next(); ASS(u->isClause()); Clause* cl = u->asClause();
 
     // cout << "Before: " << cl->toString() << endl;
-
+    newLits.reset();
+    bool modified = false;
     for (unsigned i = 0; i < cl->length(); i++) {
-      Literal*& l = (*cl)[i];
+      Literal* l = (*cl)[i];
       // cout << "  bef: " << l->toString() << endl;
       if (flippage[l->functor()]) {
         l = Literal::complementaryLiteral(l);
+        modified = true;
       }
+      newLits.push(l);
       // cout << "  aft: " << l->toString() << endl;
     }
-
     // cout << "After: " << cl->toString() << endl;
+    if (modified) {
+      Clause* nc = Clause::fromStack(newLits,
+        NonspecificInferenceMany(InferenceRule::POLARITY_FLIPPING,UnitList::singleton(cl)));
+      u = nc; // replace the original in the Problem's list
+    }
   }
 }
 
