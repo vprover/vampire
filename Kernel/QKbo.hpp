@@ -72,26 +72,6 @@ struct SignedTerm
   friend bool operator>=(SignedTerm const& l, SignedTerm const& r) { return l == r || l > r; }
 };
 
-// represents a tuple of a numeral (1/k), and a multiset { ti | i in I } of signed terms
-// with the intended semantics that the term that has been normalized to this
-// sigmaNf is equivalent to 1/k * ( t1 + t2 + ... + tn )
-struct SigmaNf {
-  IntegerConstantType k;
-  MultiSet<SignedTerm> sum;
-  SigmaNf(IntegerConstantType k, MultiSet<SignedTerm> sum) : k(k), sum(std::move(sum)) {
-    ASS_G(k, IntegerConstantType(0))
-  }
-  friend std::ostream& operator<<(std::ostream& out, SigmaNf const& self)
-  { return out << "(1 / " << self.k << ") " << self.sum; }
-
-  friend bool operator==(SigmaNf const& lhs, SigmaNf const& rhs)
-  { return lhs.k == rhs.k && lhs.sum == rhs.sum; }
-
-  friend bool operator!=(SigmaNf const& lhs, SigmaNf const& rhs)
-  { return !(lhs == rhs); }
-};
-
-
 class QKbo 
   : public Ordering
 {
@@ -119,7 +99,7 @@ public:
 
 private:
   template<class NumTraits>
-  SigmaNf rmNum(std::tuple<IntegerConstantType, Perfect<Polynom<NumTraits>>> t) const
+  WeightedMultiSet<SignedTerm> rmNum(std::tuple<IntegerConstantType, Perfect<Polynom<NumTraits>>> t) const
   {
     auto counts =  std::get<1>(t)->iterSummands()
           .map([](auto s) {
@@ -142,7 +122,7 @@ private:
           })
           .template collect<Stack>();
     std::sort(counts.begin(), counts.end(), [](auto& l, auto& r) { return std::get<0>(l) < std::get<0>(r); });
-    return SigmaNf(std::get<0>(t), MultiSet<SignedTerm>::fromSortedStack(std::move(counts)));
+    return WeightedMultiSet<SignedTerm>(std::get<0>(t), MultiSet<SignedTerm>::fromSortedStack(std::move(counts)));
   }
 
   std::tuple<IntegerConstantType, Perfect<Polynom<IntTraits>>> divNf(Perfect<Polynom<IntTraits>> t) const
@@ -164,16 +144,22 @@ private:
 #ifdef VDEBUG
 public:
 #endif
+  using SignedAtoms = WeightedMultiSet<SignedTerm>;
+
   template<class NumTraits>
-  SigmaNf sigmaNf(TermList t) const
+  Option<SignedAtoms> signedAtoms(TermList t) const
   {
-    // TODO: without normalizing?
     auto norm = _shared->normalize(TypedTermList(t, NumTraits::sort())).template wrapPoly<NumTraits>();
-    return rmNum(divNf(norm));
+    auto atoms = rmNum(divNf(norm));
+    if (hasSubstitutionProperty(atoms)) {
+      return Option<decltype(atoms)>(std::move(atoms));
+    } else {
+      return Option<decltype(atoms)>();
+    }
   }
 
   template<class NumTraits>
-  MultiSet<TermList> absEq(Literal* l) const
+  MultiSet<TermList> nfEquality(Literal* l) const
   {
     ASS(l->isEquality())
     using Num = typename NumTraits::ConstantType;
@@ -189,83 +175,56 @@ public:
     };
   }
 
- 
-  // template<class NumTraits> 
-  // auto iterAtomsT(TermList t) const
-  // {
-  //   // TODO: without normalizing?
-  //   auto nf = sigmaNf(t);
-  //   return nf.sum.iter()
-  //     .map([](auto ))
-  //   // auto norm = _shared->normalize(TypedTermList(t, NumTraits::sort())) .template wrapPoly<NumTraits>();
-  //   // return norm->iterSummands()
-  //   //   .map([&](auto const& monom) -> TermList 
-  //   //       { return monom.factors->denormalize(); });
-  // }
- 
-  // template<class NumTraits> 
-  // auto iterAtomsL(Literal* t) const
-  // {
-  //   return ifElseIter(t->isEquality(), 
-  //       [&]() { return concatIters(iterAtomsT<NumTraits>(t->termArg(0)), iterAtomsT<NumTraits>(t->termArg(1))); }
-  //     , [&]() { return iterAtomsT<NumTraits>(t->termArg(0)); }
-  //   );
-  // }
 
+  static constexpr uint8_t POS_EQ_LEVEL = 0;
+  static constexpr uint8_t NEG_EQ_LEVEL = 1;
+  bool hasSubstitutionProperty(SignedAtoms const& l) const;
 
-  static constexpr unsigned POS_EQ_LEVEL = 0;
-  static constexpr unsigned NEG_EQ_LEVEL = 1;
-  bool hasSubstitutionProperty(SigmaNf const& l) const;
-
-  using AtomsStar = std::tuple<MultiSet<SignedTerm>, uint8_t>;
+  using AtomsWithLvl = std::tuple<SignedAtoms, uint8_t>;
 
   template<class NumTraits>
-  // the signs are not used here, but only there since we reuse code from sigmaNf and don't want to copy the datastructure.
-  Option<AtomsStar> atomsStar(Literal* literal) const
+  // the signs are not used here, but only there since we reuse code from signedAtoms and don't want to copy the datastructure.
+  Option<AtomsWithLvl> atomsWithLvl(Literal* literal) const
   {
     auto mainIdx = literal->isEquality() && literal->termArg(0) == NumTraits::zero() ? 1 : 0;
 
     auto term = NumTraits::zero() == literal->termArg(1 - mainIdx) ? literal->termArg(mainIdx)
                                                                    : NumTraits::add(literal->termArg(0), NumTraits::minus(literal->termArg(1)));
     auto level = literal->isEquality() && literal->isPositive() ? POS_EQ_LEVEL : NEG_EQ_LEVEL;
-    auto nf = sigmaNf<NumTraits>(term);
-    if (hasSubstitutionProperty(nf)) {
-      return Option<AtomsStar>(std::make_tuple(std::move(nf.sum), level));
-    } else {
-      return Option<AtomsStar>();
-    }
+    return signedAtoms<NumTraits>(term)
+      .map([level](auto atoms) {
+          return std::make_tuple(std::move(atoms), level);
+      });
   }
 
  
-  Option<AtomsStar> atomsStar(Literal* literal) const
+  Option<AtomsWithLvl> atomsWithLvl(Literal* literal) const
   {
-    using Out = Option<AtomsStar>;
+    using Out = Option<AtomsWithLvl>;
     return tryNumTraits([&](auto numTraits) {
       using NumTraits = decltype(numTraits);
       auto srt =  SortHelper::getTermArgSort(literal, 0);
       if (NumTraits::sort() != srt) {
         return Option<Out>();
       } else {
-        return Option<Out>(atomsStar<NumTraits>(literal));
+        return Option<Out>(atomsWithLvl<NumTraits>(literal));
       }
     }) || [&]() -> Out {
       ASS(literal->isEquality())
       auto level = literal->isPositive() ? POS_EQ_LEVEL : NEG_EQ_LEVEL;
       auto multiset = MultiSet<SignedTerm>({ 
-        // the sign is only a dummy here to match the type of atomsStar<NumTraits>
+        // the sign is only a dummy here to match the type of atomsWithLvl<NumTraits>
           SignedTerm::zero(literal->termArg(0)), 
           SignedTerm::zero(literal->termArg(1)), 
         });
-      return Option<AtomsStar>(std::make_tuple(std::move(multiset), level));
+      return Option<AtomsWithLvl>(std::make_tuple(WeightedMultiSet<SignedTerm>(
+              IntegerConstantType(1),
+              std::move(multiset)), level));
     };
   } 
 
 private:
-  Result compare(SigmaNf l, SigmaNf r) const;
 
-  using FlatSum = Stack<std::tuple<Option<TermList>, RationalConstantType>>;
-  Ordering::Result cmpSum(FlatSum const& l, FlatSum const& r) const;
-  FlatSum flatWithCoeffs(TermList t) const;
   Result cmpNonAbstr(TermList, TermList) const;
   Option<TermList> abstr(TermList) const;
 

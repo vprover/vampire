@@ -159,6 +159,28 @@ namespace Kernel {
     };
 
   };
+
+  //  TODO document
+  template<class A>
+  struct WeightedMultiSet {
+    IntegerConstantType weight;
+    MultiSet<A> elems;
+    WeightedMultiSet(IntegerConstantType weight, MultiSet<A> elems) : weight(weight), elems(std::move(elems)) {
+      ASS_G(weight, IntegerConstantType(0))
+    }
+
+    friend std::ostream& operator<<(std::ostream& out, WeightedMultiSet const& self)
+    { return out << "(1 / " << self.weight << ") " << self.elems; }
+
+    friend bool operator==(WeightedMultiSet const& lhs, WeightedMultiSet const& rhs)
+    { return lhs.weight == rhs.weight && lhs.elems == rhs.elems; }
+
+    friend bool operator!=(WeightedMultiSet const& lhs, WeightedMultiSet const& rhs)
+    { return !(lhs == rhs); }
+
+  };
+
+
   class OrderingUtils2 {
   public:
     using MulExtMemo = DArray<Option<Ordering::Result>>;
@@ -189,7 +211,7 @@ namespace Kernel {
     static auto maxElems(unsigned nElems, Cmp cmp_, SelectionCriterion sel) 
     {
       CALL("OrderingUtils::maxElems")
-      auto cmpCache = make_shared(move_to_heap(Map<std::pair<unsigned, unsigned>, Ordering::Result>()));
+      auto cmpCache = make_shared(Map<std::pair<unsigned, unsigned>, Ordering::Result>());
       return iterTraits(pvi(range(0, nElems)
         .filterMap([=](auto i) {
 
@@ -289,7 +311,10 @@ namespace Kernel {
 
   private:
     template<class A, class B, class Cmp> 
-    static Ordering::Result _mulExt(MultiSet<A> const& ls, MultiSet<B> const& rs, Cmp cmp_, Option<MulExtMemo&> memo)
+    static Ordering::Result _mulExt(
+        MultiSet<A> const& ls, IntegerConstantType mulL, 
+        MultiSet<B> const& rs, IntegerConstantType mulR, 
+        Cmp cmp_, Option<MulExtMemo&> memo)
     {
       CALL("mulExt")
       memo.andThen([&](auto& memo) {
@@ -309,10 +334,10 @@ namespace Kernel {
       };
 
       auto l = iterTraits(getRangeIterator<unsigned>(0, ls.distinctElems()))
-            .map([&](auto i){ return std::make_tuple(i, ls.cntAt(i)); } )
+            .map([&](auto i){ return std::make_tuple(i, ls.cntAt(i) * mulL); } )
             .template collect<Stack>();
       auto r = iterTraits(getRangeIterator<unsigned>(0, rs.distinctElems()))
-            .map([&](auto i){ return std::make_tuple(i, rs.cntAt(i)); } )
+            .map([&](auto i){ return std::make_tuple(i, rs.cntAt(i) * mulR); } )
             .template collect<Stack>();
 
       auto getCount = [](std::tuple<unsigned, IntegerConstantType>& tup) -> IntegerConstantType&
@@ -384,18 +409,33 @@ namespace Kernel {
       return Ordering::Result::EQUAL;
     }
 
+
+    template<class A, class B, class Cmp> 
+    static Ordering::Result weightedMulExt(WeightedMultiSet<A> const& l, WeightedMultiSet<B> const& r, Cmp cmp)
+    { MulExtMemo memo; return weightedMulExt(l, r, cmp, memo); }
+
+
+    template<class A, class B, class Cmp> 
+    static Ordering::Result weightedMulExtWithoutMemo(WeightedMultiSet<A> const& l, WeightedMultiSet<B> const& r, Cmp cmp)
+    { return _mulExt(l.elems, r.weight, r.elems, l.weight, cmp, Option<MulExtMemo&>()); }
+
+    template<class A, class B, class Cmp> 
+    static Ordering::Result weightedMulExt(WeightedMultiSet<A> const& l, WeightedMultiSet<B> const& r, Cmp cmp, MulExtMemo& memo)
+    { return _mulExt(l.elems, r.weight, r.elems, l.weight, cmp, Option<MulExtMemo&>(memo)); }
+
+
+
     template<class A, class B, class Cmp> 
     static Ordering::Result mulExt(MultiSet<A> const& l, MultiSet<B> const& r, Cmp cmp)
     { MulExtMemo memo; return mulExt(l, r, cmp, memo); }
 
-
     template<class A, class B, class Cmp> 
     static Ordering::Result mulExtWithoutMemo(MultiSet<A> const& l, MultiSet<B> const& r, Cmp cmp)
-    { return _mulExt(l, r, cmp, Option<MulExtMemo&>()); }
+    { return _mulExt(l, IntegerConstantType(1), r, IntegerConstantType(1), cmp, Option<MulExtMemo&>()); }
 
     template<class A, class B, class Cmp> 
     static Ordering::Result mulExt(MultiSet<A> const& l, MultiSet<B> const& r, Cmp cmp, MulExtMemo& memo)
-    { return _mulExt(l, r, cmp, Option<MulExtMemo&>(memo)); }
+    { return _mulExt(l, IntegerConstantType(1), r, IntegerConstantType(1), cmp, Option<MulExtMemo&>(memo)); }
 
 //     template<class A, class Cmp> 
 //     static Option<A> strictlyMax(Stack<A> elems, Cmp cmp) 

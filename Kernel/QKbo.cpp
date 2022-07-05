@@ -28,6 +28,7 @@ bool interpretedPred(Literal* t) {
   });
 }
 
+using OU = OrderingUtils2;
 
 // Precedence makeOneSmallest(Precedence p) {
 //
@@ -106,26 +107,26 @@ QKbo::Result QKbo::compare(Literal* l1, Literal* l2) const
   auto i2 = interpretedPred(l2);
        if ( i1 && !i2) return Result::LESS;
   else if (!i1 &&  i2) return Result::GREATER;
-  else if (!i1 && !i2) return OrderingUtils2::lexProductCapture(
+  else if (!i1 && !i2) return OU::lexProductCapture(
         [&]() { return _kbo.comparePrecedence(l1, l2); }
-      , [&]() { return OrderingUtils2::lexExt(termArgIter(l1), termArgIter(l2), this->asClosure()); }
-      , [&]() { return OrderingUtils2::stdCompare(l1->isNegative(), l2->isNegative()); }
+      , [&]() { return OU::lexExt(termArgIter(l1), termArgIter(l2), this->asClosure()); }
+      , [&]() { return OU::stdCompare(l1->isNegative(), l2->isNegative()); }
     );
   else {
     ASS(i1 && i2)
    
-    auto a1_ = atomsStar(l1);
-    auto a2_ = atomsStar(l2);
+    auto a1_ = atomsWithLvl(l1);
+    auto a2_ = atomsWithLvl(l2);
     if (!a1_.isSome() || !a2_.isSome())
       return Result::INCOMPARABLE;
     auto& a1 = a1_.unwrap();
     auto& a2 = a2_.unwrap();
-    return OrderingUtils2::lexProductCapture(
-        [&]() -> Ordering::Result { return OrderingUtils2::mulExt(std::get<0>(a1), std::get<0>(a2), 
+    return OU::lexProductCapture(
+        [&]() -> Ordering::Result { return OU::weightedMulExt(std::get<0>(a1), std::get<0>(a2), 
                           [&](auto const& l, auto const& r)
-                          { return OrderingUtils2::lexProductCapture(
+                          { return OU::lexProductCapture(
                               [&]() { return this->compare(l.term, r.term); }
-                            , [&]() { return OrderingUtils2::stdCompare(std::get<1>(a1),std::get<1>(a2)); }
+                            , [&]() { return OU::stdCompare(std::get<1>(a1),std::get<1>(a2)); }
                           );}); }
       , [&]() {
         // the atoms of the two literals are the same. 
@@ -140,10 +141,10 @@ QKbo::Result QKbo::compare(Literal* l1, Literal* l2) const
           } else {
             if (l1->isEquality() && l2->isEquality()) {
               ASS_EQ(l1->isPositive(), l2->isPositive())
-              return Option<Ordering::Result>(OrderingUtils2::lexProductCapture(
+              return Option<Ordering::Result>(OU::lexProductCapture(
                   // TODO make use of the constant size of the multiset
-                  [&]() { return OrderingUtils2::mulExt(absEq<NumTraits>(l1), absEq<NumTraits>(l2), this->asClosure()); }
-                , [&]() { return OrderingUtils2::mulExt(
+                  [&]() { return OU::mulExt(nfEquality<NumTraits>(l1), nfEquality<NumTraits>(l2), this->asClosure()); }
+                , [&]() { return OU::mulExt(
                   // TODO make use of the constant size of the multiset
                                     MultiSet<TermList>{l1->termArg(0), l1->termArg(1)}, 
                                     MultiSet<TermList>{l2->termArg(0), l2->termArg(1)}, 
@@ -160,7 +161,7 @@ QKbo::Result QKbo::compare(Literal* l1, Literal* l2) const
               ASS(l2->functor() == numTraits.greaterF() || l2->functor() == numTraits.geqF())
               ASS(l1->isPositive())
               ASS(l2->isPositive())
-              return Option<Ordering::Result>(OrderingUtils2::lexProductCapture(
+              return Option<Ordering::Result>(OU::lexProductCapture(
                   [&]() { return this->compare(l1->termArg(0), l2->termArg(0)); }
                 , [&]() { return _kbo.comparePrecedence(l1, l2); }
               ));
@@ -255,67 +256,42 @@ Ordering::Result QKbo::compare(TermList s, TermList t) const
 }
 
 
-Ordering::Result QKbo::cmpSum(FlatSum const& l, FlatSum const& r) const {
-
-  auto cmpUnint = [&](auto l_, auto r_) { 
-    auto l = std::get<0>(l_);
-    auto r = std::get<0>(r_);
-         if (l.isNone() && r.isNone()) return Ordering::EQUAL;
-    else if (l.isNone() && r.isSome()) return Ordering::LESS;
-    else if (l.isSome() && r.isNone()) return Ordering::GREATER;
-    else return this->compare(l.unwrap(), r.unwrap()); 
-  };
-  auto cmpWithCoeffs = [&](auto l, auto r) -> Ordering::Result { 
-    auto c  = cmpUnint(l,r);
-    if (c != Ordering::EQUAL) return c;
-    return fromComparison(RationalConstantType::comparePrecedence(std::get<1>(l), std::get<1>(r)));
-  };
-
-  auto cmp = OrderingUtils::mulExt(l, r, cmpUnint);
-
-  if (cmp != Ordering::EQUAL) {
-    // 2.b)i. interpreted stuff
-    return cmp;
-
-  } else {
-    // 2.b)ii. interpreted stuff
-    return OrderingUtils::mulExt(l, r, cmpWithCoeffs);
-  }
-}
-
-// bool operator<(Sign l, Sign r) {
-//   return 
-// }
-
-// SigmaNf QKbo::sigmaNf(TermList t) 
-// { TODO }
-
-/// case 2. precondition: we know that abstr(s) == abstr(t)
-Ordering::Result QKbo::cmpNonAbstr(TermList s, TermList t) const 
+/// case 2. precondition: we know that abstr(t1) == abstr(t2)
+Ordering::Result QKbo::cmpNonAbstr(TermList t1, TermList t2) const 
 {
   CALL("QKbo::cmpNonAbstr(TermList, TermList) const")
-  if (s == t) return Result::EQUAL;
-  if (s.isTerm() && t.isTerm() 
-      && s.term()->functor() == t.term()->functor() 
-      && uninterpretedFun(s.term())) {
+  if (t1 == t2) return Result::EQUAL;
+  if (t1.isTerm() && t2.isTerm() 
+      && t1.term()->functor() == t2.term()->functor() 
+      && uninterpretedFun(t1.term())) {
     // 2.a) LEX
-    return OrderingUtils::lexExt(termArgIter(s.term()), termArgIter(t.term()), 
+    return OrderingUtils::lexExt(termArgIter(t1.term()), termArgIter(t2.term()), 
           [&](auto l, auto r) { return this->compare(l,r); });
 
   } else {
     // 2.b) interpreted stuff
-    if (s.isVar() && t.isVar()) {
-      ASS_NEQ(s, t);
+    if (t1.isVar() && t2.isVar()) {
+      ASS_NEQ(t1, t2);
       return INCOMPARABLE;
     }
 
     return forAnyNumTraits([&](auto numTraits){
         using NumTraits = decltype(numTraits);
         if (
-               ( s.isTerm() && SortHelper::getResultSort(s.term()) == numTraits.sort() )
-            || ( t.isTerm() && SortHelper::getResultSort(t.term()) == numTraits.sort() )
+               ( t1.isTerm() && SortHelper::getResultSort(t1.term()) == numTraits.sort() )
+            || ( t2.isTerm() && SortHelper::getResultSort(t2.term()) == numTraits.sort() )
             ) {
-          return Option<Result>(compare(sigmaNf<NumTraits>(s), sigmaNf<NumTraits>(t)));
+          auto a1 = signedAtoms<NumTraits>(t1);
+          auto a2 = signedAtoms<NumTraits>(t2);
+          if (a1.isNone() || a2.isNone()) {
+            return Option<Result>(Result::INCOMPARABLE);
+          } else {
+            return Option<Result>(OU::weightedMulExt(a1.unwrap(), a2.unwrap(),
+                  [this](auto& l, auto& r) 
+                  { return OU::lexProductCapture(
+                      [&]() { return this->compare(l.term, r.term); },
+                      [&]() { return OU::stdCompare(l.sign, r.sign); }); }));
+          }
         } else {
           return Option<Result>();
         }
@@ -400,7 +376,7 @@ Option<TermList> QKbo::abstr(TermList t) const
 void QKbo::show(ostream& out) const 
 { _kbo.show(out); }
 
-bool QKbo::hasSubstitutionProperty(SigmaNf const& l) const
+bool QKbo::hasSubstitutionProperty(SignedAtoms const& l) const
 {
 
   auto maybeEquiv = [this](TermList l, TermList r) -> bool 
@@ -420,7 +396,7 @@ bool QKbo::hasSubstitutionProperty(SigmaNf const& l) const
 
   Stack<TermList> pos;
   Stack<TermList> neg;
-  for (auto const& t_ : l.sum.iter()) {
+  for (auto const& t_ : l.elems.iter()) {
     auto const& sign = std::get<0>(t_).sign;
     auto const& term = std::get<0>(t_).term;
 
@@ -446,25 +422,6 @@ bool QKbo::hasSubstitutionProperty(SigmaNf const& l) const
     }
   }
   return true;
-}
-
-QKbo::Result QKbo::compare(SigmaNf l, SigmaNf r) const
-{ 
-  l.sum.repeat(r.k);
-  r.sum.repeat(l.k);
-
-  if (!hasSubstitutionProperty(l) || !hasSubstitutionProperty(r))  {
-    return Ordering::Result::INCOMPARABLE;
-  } else {
-    return OrderingUtils2::mulExt(l.sum, r.sum, 
-      OrderingUtils2::lexProduct(
-        [this](SignedTerm const& l, SignedTerm const& r) -> Ordering::Result
-        { return compare(l.term, r.term);  },
-        [](SignedTerm const& l, SignedTerm const& r) -> Ordering::Result
-        { return OrderingUtils2::stdCompare(l.sign, r.sign); }
-      )
-    );
-  }
 }
 
 } // Kernel

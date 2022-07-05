@@ -46,7 +46,7 @@ DArray<int> predPrec() {
 }
 
 template<class T>
-void check___(Ordering& ord, T lhs, QKbo::Result exp, T rhs) {
+void check___(Ordering& ord, T lhs, QKbo::Result exp, T rhs, bool silent) {
   // std::cout << std::endl;
   auto check_ = [&](T lhs, QKbo::Result exp, T rhs) {
     auto res = ord.compare(lhs,rhs);
@@ -54,7 +54,8 @@ void check___(Ordering& ord, T lhs, QKbo::Result exp, T rhs) {
       std::cout << "\r[ fail ] " << pretty(lhs) << "\t" << res << "\t" << pretty(rhs)  << "\t(expected: " << exp << " )"<< std::endl;
       exit(-1);
     } else {
-      std::cout << "\r[  ok  ] " << pretty(lhs) << "\t" << res << "\t" << pretty(rhs)  << std::endl;
+      if (!silent)
+        std::cout << "\r[  ok  ] " << pretty(lhs) << "\t" << res << "\t" << pretty(rhs)  << std::endl;
     }
   };
   switch (exp) {
@@ -76,11 +77,11 @@ void check___(Ordering& ord, T lhs, QKbo::Result exp, T rhs) {
   }
 }
 
-void check(QKbo& ord, TermList lhs, QKbo::Result exp, TermList rhs) 
-{ check___(ord, lhs,exp,rhs); }
+void check(QKbo& ord, TermList lhs, QKbo::Result exp, TermList rhs, bool silent = false)
+{ check___(ord, lhs,exp,rhs, silent); }
 
-void check(QKbo& ord, Literal* lhs, QKbo::Result exp, Literal* rhs) 
-{ check___(ord, lhs,exp,rhs); }
+void check(QKbo& ord, Literal* lhs, QKbo::Result exp, Literal* rhs, bool silent = false) 
+{ check___(ord, lhs,exp,rhs, silent); }
 
 void check_in_different_contexts(QKbo& ord, TermList l, QKbo::Result exp, TermList r, PredSugar ctxt, FuncSugar func) 
 { 
@@ -304,6 +305,56 @@ TEST_FUN(misc02) {
   check(ord, f(x + y), Incomp, x);
 }
 
+TEST_FUN(normal_subsafe) {
+  DECL_DEFAULT_VARS
+  NUMBER_SUGAR(Real)
+  DECL_CONST(a, Real)
+  // DECL_CONST(c, Real)
+  DECL_FUNC (f, {Real}, Real)
+
+  auto& ord = qkbo();
+  auto signedAtoms = [&](auto t) 
+    { return ord.template signedAtoms<RealTraits>(t); };
+
+  auto none = Option<QKbo::SignedAtoms>();
+  auto some = [&](int i, std::initializer_list<SignedTerm> ts) 
+  { return Option<QKbo::SignedAtoms>(QKbo::SignedAtoms(ict(i), ts)); };
+
+  ASS_EQ(signedAtoms(frac(1,2) * x + 7 * a), none);
+  ASS_EQ(signedAtoms( x +  7 * a), none);
+  ASS_EQ(signedAtoms(-x +  7 * a), none);
+  ASS_EQ(signedAtoms( x + -7 * a), none);
+  ASS_EQ(signedAtoms(-x + -7 * a), none);
+  ASS_EQ(signedAtoms(-x + 2 * x), some(1, { SignedTerm::pos(x) }));
+  ASS_EQ(signedAtoms(-f(x) + 2 * f(a)), none);
+  ASS_EQ(signedAtoms(f(x) + 2 * f(a)), some(1, { 
+        SignedTerm::pos(f(x)),
+        SignedTerm::pos(f(a)),
+        SignedTerm::pos(f(a)),
+  }));
+  ASS_EQ(signedAtoms(-f(x) + -2 * f(a)), some(1, { 
+        SignedTerm::neg(f(x)),
+        SignedTerm::neg(f(a)),
+        SignedTerm::neg(f(a)),
+  }));
+  ASS_EQ(signedAtoms(-f(a) + 2 * f(a)), some(1, { SignedTerm::pos(f(a)) }));
+
+
+  // ASS_EQ(signedAtoms(f(frac(1,2) * x + 7 * a)), none);
+  // ASS_EQ(signedAtoms(f( x +  7 * a)), none);
+  // ASS_EQ(signedAtoms(f(-x +  7 * a)), none);
+  // ASS_EQ(signedAtoms(f( x + -7 * a)), none);
+  // ASS_EQ(signedAtoms(f(-x + -7 * a)), none);
+  // ASS_EQ(signedAtoms(f(-x + 2 * x)), some(1, { SignedTerm::pos(f(x)) }));
+  // ASS_EQ(signedAtoms(f(-f(x) + 2 * f(a))), none);
+  // ASS_EQ(signedAtoms(f( f(x) + 2 * f(a))), some(1, { SignedTerm::pos(f( f(x) + 2 * f(a))), }));
+  // ASS_EQ(signedAtoms(f(-f(x) + -2 * f(a))), some(1, { 
+  //       SignedTerm::pos(f(-f(x) + -2 * f(a))),
+  // }));
+  // ASS_EQ(signedAtoms(-f(a) + 2 * f(a)), some(1, { SignedTerm::pos(f(a)) }));
+
+
+}
 
 TEST_FUN(normal_form_lcm) {
   DECL_DEFAULT_VARS
@@ -314,46 +365,56 @@ TEST_FUN(normal_form_lcm) {
   // DECL_FUNC (f, {Real}, Real)
 
   auto& ord = qkbo();
-  auto sigmaNf = [&](auto t) 
-    { return ord.template sigmaNf<RealTraits>(t); };
+  auto signedAtoms = [&](auto t) 
+    { return ord.template signedAtoms<RealTraits>(t); };
 
-  ASS_EQ(sigmaNf(frac(1,2) * a + b), SigmaNf(ict(2), {
+  auto ok = [&](int i, std::initializer_list<SignedTerm> ts) 
+  { return Option<QKbo::SignedAtoms>(QKbo::SignedAtoms(ict(i), ts)); };
+
+  ASS_EQ(signedAtoms(frac(1,2) * a + b), 
+      ok(2, {
         SignedTerm::pos(a),
         SignedTerm::pos(b),
         SignedTerm::pos(b),
       }));
 
-  ASS_EQ(sigmaNf(frac(1,2) * a + -b), SigmaNf(ict(2), {
+  ASS_EQ(signedAtoms(frac(1,2) * a + -b), 
+      ok(2, {
         SignedTerm::pos(a),
         SignedTerm::neg(b),
         SignedTerm::neg(b),
       }));
 
-  ASS_EQ(sigmaNf(frac(-1,2) * a + -b), SigmaNf(ict(2), {
+  ASS_EQ(signedAtoms(frac(-1,2) * a + -b), 
+      ok(2, {
         SignedTerm::neg(a),
         SignedTerm::neg(b),
         SignedTerm::neg(b),
       }));
 
-  ASS_EQ(sigmaNf(frac(1,-2) * a + -b), SigmaNf(ict(2), {
+  ASS_EQ(signedAtoms(frac(1,-2) * a + -b), 
+      ok(2, {
         SignedTerm::neg(a),
         SignedTerm::neg(b),
         SignedTerm::neg(b),
       }));
 
-  ASS_EQ(sigmaNf(frac(-1,2) * a + b), SigmaNf(ict(2), {
+  ASS_EQ(signedAtoms(frac(-1,2) * a + b), 
+      ok(2, {
         SignedTerm::neg(a),
         SignedTerm::pos(b),
         SignedTerm::pos(b),
       }));
 
-  ASS_EQ(sigmaNf(frac(1,2) * a + frac(1,4) * b), SigmaNf(ict(4), {
+  ASS_EQ(signedAtoms(frac(1,2) * a + frac(1,4) * b), 
+      ok(4, {
         SignedTerm::pos(a),
         SignedTerm::pos(a),
         SignedTerm::pos(b),
       }));
 
-  // ASS_EQ(sigmaNf(frac(1,2) * a + frac(0,4) * b), SigmaNf(ict(2), {
+  // ASS_EQ(signedAtoms(frac(1,2) * a + frac(0,4) * b), 
+  // ok(2, {
   //       SignedTerm::pos(a),
   //       SignedTerm::zero(b),
   //     }));
@@ -511,8 +572,8 @@ TEST_FUN(normal_form01) {
   DECL_FUNC (f, {Real}, Real)
 
   auto& ord = qkbo();
-  auto sigmaNf = [&](auto t) 
-    { return ord.template sigmaNf<RealTraits>(t); };
+  auto signedAtoms = [&](auto t) 
+    { return ord.template signedAtoms<RealTraits>(t); };
 #define CHECK_EQ(is, exp) {                                                                         \
     if (is != exp) {                                                                                \
       std::cout << "[ FAIL ] ";                                                                     \
@@ -525,62 +586,77 @@ TEST_FUN(normal_form01) {
     }                                                                                               \
   };                                                                                                \
 
-  CHECK_EQ(sigmaNf(2 * a + b), SigmaNf(ict(1), {
+  auto ok = [&](int i, std::initializer_list<SignedTerm> ts) 
+  { return Option<QKbo::SignedAtoms>(QKbo::SignedAtoms(ict(i), ts)); };
+
+  CHECK_EQ(signedAtoms(2 * a + b), 
+      ok(1, {
         SignedTerm::pos(a),
         SignedTerm::pos(a),
         SignedTerm::pos(b),
       }));
 
-  CHECK_EQ(sigmaNf(2 * a + 0 * b), SigmaNf(ict(1), {
+  CHECK_EQ(signedAtoms(2 * a + 0 * b), 
+      ok(1, {
         SignedTerm::pos(a),
         SignedTerm::pos(a),
         SignedTerm::zero(b),
       }));
 
-  CHECK_EQ(sigmaNf(2 * a + 0 * a), SigmaNf(ict(1), {
+  CHECK_EQ(signedAtoms(2 * a + 0 * a), 
+      ok(1, {
         SignedTerm::pos(a),
         SignedTerm::pos(a),
       }));
 
-  CHECK_EQ(sigmaNf(2 * a + 1 * a), SigmaNf(ict(1), {
+  CHECK_EQ(signedAtoms(2 * a + 1 * a), 
+      ok(1, {
         SignedTerm::pos(a),
         SignedTerm::pos(a),
         SignedTerm::pos(a),
       }));
 
-  CHECK_EQ(sigmaNf(2 * a + -3 * a), SigmaNf(ict(1), {
+  CHECK_EQ(signedAtoms(2 * a + -3 * a), 
+      ok(1, {
         SignedTerm::neg(a),
       }));
 
-  CHECK_EQ(sigmaNf(2 * a + -4 * a), SigmaNf(ict(1), {
+  CHECK_EQ(signedAtoms(2 * a + -4 * a), 
+      ok(1, {
         SignedTerm::neg(a),
         SignedTerm::neg(a),
       }));
 
-  CHECK_EQ(sigmaNf(frac(1, 2) * a +  b), SigmaNf(ict(2), {
+  CHECK_EQ(signedAtoms(frac(1, 2) * a +  b), 
+      ok(2, {
         SignedTerm::pos(a),
         SignedTerm::pos(b),
         SignedTerm::pos(b),
       }));
 
-  CHECK_EQ(sigmaNf(2 * a - a + -3 * a), SigmaNf(ict(1), {
+  CHECK_EQ(signedAtoms(2 * a - a + -3 * a), 
+      ok(1, {
         SignedTerm::neg(a),
         SignedTerm::neg(a),
       }));
 
-  CHECK_EQ(sigmaNf(2 * a + a + -3 * a), SigmaNf(ict(1), {
+  CHECK_EQ(signedAtoms(2 * a + a + -3 * a), 
+      ok(1, {
         SignedTerm::zero(a),
       }));
 
-  CHECK_EQ(sigmaNf(-2 * a - a + 3 * a), SigmaNf(ict(1), {
+  CHECK_EQ(signedAtoms(-2 * a - a + 3 * a), 
+      ok(1, {
         SignedTerm::zero(a),
       }));
 
-  CHECK_EQ(sigmaNf(2 * f(a + 3 * b) - f(a - b + 4 * b)), SigmaNf(ict(1), {
+  CHECK_EQ(signedAtoms(2 * f(a + 3 * b) - f(a - b + 4 * b)), 
+      ok(1, {
         SignedTerm::pos(f(a + 3 * b)),
       }));
 
-  CHECK_EQ(sigmaNf(f(3 * b) + f(0 * a - b + 4 * b)), SigmaNf(ict(1), {
+  CHECK_EQ(signedAtoms(f(3 * b) + f(0 * a - b + 4 * b)), 
+      ok(1, {
         SignedTerm::pos(f(3 * b)),
         SignedTerm::pos(f(0 * a + 3 * b)),
       }));
@@ -698,8 +774,8 @@ TEST_FUN(check_numerals_smallest) {
   for (auto i = 0; i < 1000; i++) {
     auto& ord = qkbo(/* rand */ true);
 
-    check(ord, num(1), Less, a);
-    check(ord, num(1), Less, b);
-    check(ord, num(1), Less, c);
+    check(ord, num(1), Less, a, /* silent */ true);
+    check(ord, num(1), Less, b, /* silent */ true);
+    check(ord, num(1), Less, c, /* silent */ true);
   }
 }
