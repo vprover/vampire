@@ -543,27 +543,6 @@ KBO::KBO(
 KBO KBO::testKBO() 
 {
 
-  auto funcPrec = []() -> DArray<int>{
-    unsigned num = env.signature->functions();
-    DArray<int> out(num);
-    out.initFromIterator(getRangeIterator(0u, num));
-    return out;
-  };
-
-  auto typeConPrec = []() -> DArray<int>{
-    unsigned num = env.signature->typeCons();
-    DArray<int> out(num);
-    out.initFromIterator(getRangeIterator(0u, num));
-    return out;
-  };
-
-  auto predPrec = []() -> DArray<int>{
-    unsigned num = env.signature->predicates();
-    DArray<int> out(num);
-    out.initFromIterator(getRangeIterator(0u, num));
-    return out;
-  };
-
   auto predLevels = []() -> DArray<int>{
     DArray<int> out(env.signature->predicates());
     out.init(out.size(), 1);
@@ -575,9 +554,9 @@ KBO KBO::testKBO()
 #if __KBO__CUSTOM_PREDICATE_WEIGHTS__
       KboWeightMap<PredSigTraits>::randomized(), 
 #endif
-      funcPrec(),
-      typeConPrec(),
-      predPrec(),
+      DArray<int>::fromIterator(getRangeIterator(0, (int)env.signature->functions())),
+      DArray<int>::fromIterator(getRangeIterator(0, (int)env.signature->typeCons())),
+      DArray<int>::fromIterator(getRangeIterator(0, (int)env.signature->predicates())),
       predLevels(),
       false);
 }

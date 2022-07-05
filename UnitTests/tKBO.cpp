@@ -22,27 +22,6 @@
 /////////////////////////////// HELPER FUNCTIONS /////////////////////////////// 
 //////////////////////////////////////////////////////////////////////////////// 
 
-DArray<int> funcPrec() {
-  unsigned num = env.signature->functions();
-  DArray<int> out(num);
-  out.initFromIterator(getRangeIterator(0u, num));
-  return out;
-}
-
-DArray<int> predPrec() {
-  unsigned num = env.signature->predicates();
-  DArray<int> out(num);
-  out.initFromIterator(getRangeIterator(0u, num));
-  return out;
-}
-
-DArray<int> typeConPrec(){
-  unsigned num = env.signature->typeCons();
-  DArray<int> out(num);
-  out.initFromIterator(getRangeIterator(0u, num));
-  return out;
-};
-
 DArray<int> predLevels() {
   DArray<int> out(env.signature->predicates());
   out.init(out.size(), 1);
@@ -85,9 +64,9 @@ KBO kbo(unsigned introducedSymbolWeight,
                preds,
                env.signature->predicates()), 
 #endif
-             funcPrec(), 
-             typeConPrec(),
-             predPrec(), 
+             DArray<int>::fromIterator(getRangeIterator(0, (int) env.signature->functions())),
+             DArray<int>::fromIterator(getRangeIterator(0, (int) env.signature->typeCons())),
+             DArray<int>::fromIterator(getRangeIterator(0, (int) env.signature->predicates())),
              predLevels(),
              /*revereseLCM*/ false);
 }
