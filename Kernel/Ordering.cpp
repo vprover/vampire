@@ -922,7 +922,7 @@ void PrecedenceOrdering::show(ostream& out) const
   _show("type constructor", 
       env.signature->typeCons(), 
       [](unsigned f) { return env.signature->getTypeCon(f); },
-      [&](unsigned l, unsigned r){ return intoComparison(compareFunctionPrecedences(l,r)); });
+      [&](unsigned l, unsigned r){ return intoComparison(compareTypeConPrecedences(l,r)); });
 
   _show("function", 
       env.signature->functions(),
