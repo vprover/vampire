@@ -104,8 +104,8 @@ const char* errToString(Z3_error_code code)
     case Z3_INVALID_USAGE: return "Z3_INVALID_USAGE";
     case Z3_DEC_REF_ERROR: return "Z3_DEC_REF_ERROR";
     case Z3_EXCEPTION: return "Z3_EXCEPTION";
-    default: ASSERTION_VIOLATION; return "UNKNOWN ERROR";
   }
+  ASSERTION_VIOLATION; return "UNKNOWN ERROR";
 }
 
 struct Z3MkConstructorCall {
@@ -272,6 +272,7 @@ Z3Interfacing::Z3Interfacing(SAT2FO& s2f, bool showZ3, bool unsatCore, vstring c
         case Shell::Options::ProblemExportSyntax::SMTLIB:    return decltype(_exporter)(Smtlib  (std::move(file), _context));
         case Shell::Options::ProblemExportSyntax::API_CALLS: return decltype(_exporter)(ApiCalls(std::move(file), _context));
         }
+        ASSERTION_VIOLATION
       }
     }())
 {
