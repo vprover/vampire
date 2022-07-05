@@ -187,7 +187,7 @@ bool TestUnit::spawnTest(TestProc proc)
     _exit(0); // don't call parent's atexit! 
   } else {
     int childRes;
-    Multiprocessing::instance()->waitForParticularChildTermination(fres, childRes);
+    Multiprocessing::instance()->waitForChildTermination(childRes);
     return  childRes == 0;
   }
 }

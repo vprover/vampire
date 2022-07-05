@@ -40,6 +40,7 @@
 #include "Shell/Options.hpp"
 #include "Shell/Statistics.hpp"
 #include "Shell/TheoryFlattening.hpp"
+#include "Shell/UIHelper.hpp"
 
 #include "SAT/SATLiteral.hpp"
 #include "SAT/SAT2FO.hpp"
@@ -74,9 +75,11 @@ Options::TheoryInstSimp manageDeprecations(Options::TheoryInstSimp mode)
   switch (mode) {
     case Options::TheoryInstSimp::FULL:
     case Options::TheoryInstSimp::NEW:
-      env.beginOutput();
-      env.out() << "WARNING: the modes full & new are deprecated for theory instantiation. using all instead." << std::endl;
-      env.endOutput();
+      if(outputAllowed()) {
+        env.beginOutput();
+        env.out() << "WARNING: the modes full & new are deprecated for theory instantiation. using all instead." << std::endl;
+        env.endOutput();
+      }
       return Options::TheoryInstSimp::ALL;
     default:
       return mode;

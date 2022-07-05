@@ -723,12 +723,10 @@ source_group(smt_comp_source_files FILES ${VAMPIRE_SMTCOMP_SOURCES})
 set(VAMPIRE_CASC_SOURCES
     CASC/PortfolioMode.cpp
     CASC/Schedules.cpp
-    CASC/ScheduleExecutor.cpp
     CASC/CLTBMode.cpp
     CASC/CLTBModeLearning.cpp
     CASC/PortfolioMode.hpp
     CASC/Schedules.hpp
-    CASC/ScheduleExecutor.hpp
     CASC/CLTBMode.hpp
     CASC/CLTBModeLearning.hpp
     )
@@ -775,7 +773,6 @@ set(UNIT_TESTS
     UnitTests/tArithCompare.cpp
     UnitTests/tSyntaxSugar.cpp
     UnitTests/tSkipList.cpp
-    UnitTests/tfork.cpp
     UnitTests/tBinaryHeap.cpp
     UnitTests/tSafeRecursion.cpp
     UnitTests/tKBO.cpp

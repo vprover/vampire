@@ -1342,7 +1342,6 @@ void Z3Interfacing::createTermAlgebra(TermAlgebra& start)
       ASS_EQ(   argSorts.size(), cons->arity())
       ASS_EQ(   argNames.size(), cons->arity())
 
-// <<<<<<< HEAD
       mkDatatypes.mkConstrs.top().push(Z3MkConstructorCall {
           .c           = _context,
           .name        = new_string_symbol(env.signature->getFunction(cons->functor())->name()),
@@ -1350,19 +1349,6 @@ void Z3Interfacing::createTermAlgebra(TermAlgebra& start)
           .field_names = std::move(argNames),
           .sorts       = std::move(argSorts),
           .sort_refs   = std::move(argSortRefs),
-// =======
-//     }
-//     ASS_EQ(ctors.size(), ta->nConstructors());
-//
-//     ctorss.push(std::move(ctors));
-//     ASS_EQ(ctorss.top().size(), ta->nConstructors());
-//     ctorss_z3.push(Z3_mk_constructor_list(_context, ctorss.top().size(),  ctorss.top().begin()));
-//     sortNames.push(Z3_mk_string_symbol(_context, ta->sort().toString().c_str()));
-//     if (_out.isSome())
-//       toSerialize.push(SerDtype {
-//         .name = ta->sort(),
-//         .ctors = std::move(serCtors),
-// >>>>>>> master
       });
     }
     mkDatatypes.sortNames.push(new_string_symbol(ta->sort().toString()));
@@ -1374,55 +1360,9 @@ void Z3Interfacing::createTermAlgebra(TermAlgebra& start)
   _exporter.apply([&](auto& e) { e.Z3_mk_datatypes(mkDatatypes); });
   auto dtys = mkDatatypes();
 
-  // register the `z3::func_decl`s created by `Z3_mk_datatypes` in indices to be queried when needed
-// <<<<<<< HEAD
   for (unsigned iSort = 0; iSort < mkDatatypes.sortNames.size(); iSort++) {
     auto& dty_v  = tas[iSort];
     auto& dty_z3 = dtys[iSort];
-// =======
-//   for (unsigned iSort = 0; iSort < sorts.size(); iSort++) {
-//     _sorts.insert(tas[iSort]->sort(), z3::sort(_context, sorts[iSort]));
-//     auto ta = tas[iSort];
-//     auto& ctors = ctorss[iSort];
-//     for (unsigned iCons = 0; iCons < ta->nConstructors(); iCons++) {
-//       auto ctor = ta->constructor(iCons);
-//
-//       Z3_func_decl constr_;
-//       Z3_func_decl discr_;
-//       Array<Z3_func_decl> destr(ctor->arity());
-//
-//       Z3_query_constructor(_context,
-//                            ctors[iCons],
-//                            ctor->arity(),
-//                            &constr_,
-//                            &discr_,
-//                            destr.begin());
-//
-//       auto discr = z3::func_decl(_context, discr_);
-//       auto constr = z3::func_decl(_context, constr_);
-//
-//       auto ctorId = FuncOrPredId::monomorphicFunction(ctor->functor());
-//       _toZ3.insert(ctorId, constr);
-//       _fromZ3.insert(constr, ctorId);
-//
-//       if (ctor->hasDiscriminator()) {
-//         auto discrId = FuncOrPredId::monomorphicPredicate(ctor->discriminator());
-//         _toZ3.insert(discrId, discr);
-//         // _fromZ3.insert(discr, discrId);
-//       }
-//       for (unsigned iDestr = 0; iDestr < ctor->arity(); iDestr++)  {
-//         auto dtor = z3::func_decl(_context, destr[iDestr]);
-//         // careful: datatypes can have boolean fields!
-//         auto id = FuncOrPredId(
-//           ctor->destructorFunctor(iDestr),
-//           dtor.range().is_bool()
-//         );
-//         _toZ3.insert(id, dtor);
-//         _fromZ3.insert(dtor, id);
-//       }
-//     }
-//   }
-// >>>>>>> master
 
     _sorts.insert(dty_v->sort(), dty_z3.sort);
 
