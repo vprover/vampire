@@ -1,0 +1,36 @@
+#!/usr/bin/env python3
+
+import json
+import subprocess
+import time
+import logging
+import os
+import sys
+
+from arg_satcomp_solver_base.solver.command_line_solver import CommandLineSolver
+
+logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+
+def run_updater(path):
+    cmd = os.path.join(path, "updater")
+    stdout = os.path.join(path, "updater_stdout.log")
+    stderr = os.path.join(path, "updater_stderr.log")
+    with open(stdout, "wb") as out, open(stderr, "wb") as err:
+        subprocess.Popen(cmd, stdout=out, stderr=err)
+
+def get_main_ip(self):
+    with open("leader_node_status.json") as f:
+      status = json.loads(f.read()) 
+      return status.get("ipVer")
+
+if __name__ == "__main__":
+    logger = logging.getLogger("Worker")
+    logger.setLevel(logging.DEBUG)
+    logger.info("Worker started") 
+
+    dir = "/competition"
+    run_updater(dir)
+
+    main_ip = get_main_ip()
+    logger.info("Found leader ip to be %s",str(main_ip))
+
