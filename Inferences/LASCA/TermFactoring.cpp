@@ -38,7 +38,6 @@
 #include "Shell/Statistics.hpp"
 
 #include "TermFactoring.hpp"
-#include "InequalityResolution.hpp"
 #include "Kernel/PolynomialNormalizer.hpp"
 #include "Kernel/LASCA.hpp"
 #include "Indexing/TermIndexingStructure.hpp"

@@ -189,11 +189,11 @@ Option<Clause*> Superposition::applyRule(
 
 ClauseIterator Superposition::generateClauses(Clause* premise) 
 {
-  CALL("InequalityResolution::generateClauses(Clause* premise)")
+  CALL("Superposition::generateClauses(Clause* premise)")
   ASS(_lhs)
   ASS(_rhs)
   ASS(_shared)
-  // TODO get rid of stack and unify with InequalityResolution
+  // TODO get rid of stack and unify with FourierMotzkin
   Stack<Clause*> out;
 
   for (auto const& lhs : Lhs::iter(*_shared, premise)) {

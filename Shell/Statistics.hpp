@@ -56,7 +56,7 @@ struct RuleStats {
   void output(const char* name, std::ostream& out) const;
 };
 
-/** stats for the rule InequalityResolution */
+/** stats for the rule FourierMotzkin */
 struct LascaIrStats : RuleStats
 {
   unsigned cntTight;

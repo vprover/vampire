@@ -27,7 +27,7 @@
 #include "TermSubstitutionTree.hpp"
 // #include "Inferences/LASCA/FwdDemodulationModLA.hpp"
 // #include "Inferences/LASCA/BwdDemodulationModLA.hpp"
-#include "Inferences/LASCA/InequalityResolution.hpp"
+#include "Inferences/LASCA/FourierMotzkin.hpp"
 #include "Inferences/LASCA/Superposition.hpp"
 
 #include "Shell/Statistics.hpp"
@@ -198,12 +198,12 @@ Index* IndexManager::create(IndexType t)
   //   break;
 
   case LASCA_INEQUALITY_RESOLUTION_LHS_SUBST_TREE:
-    res=new LascaIndex<Inferences::LASCA::InequalityResolution::Lhs>(uwaMode);
+    res=new LascaIndex<Inferences::LASCA::FourierMotzkin::Lhs>(uwaMode);
     isGenerating = true;
     break;
 
   case LASCA_INEQUALITY_RESOLUTION_RHS_SUBST_TREE:
-    res=new LascaIndex<Inferences::LASCA::InequalityResolution::Rhs>(uwaMode);
+    res=new LascaIndex<Inferences::LASCA::FourierMotzkin::Rhs>(uwaMode);
     isGenerating = true;
     break;
 

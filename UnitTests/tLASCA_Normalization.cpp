@@ -11,7 +11,7 @@
 #include "Test/UnitTesting.hpp"
 #include "Test/SyntaxSugar.hpp"
 #include "Indexing/TermSharing.hpp"
-#include "Inferences/LASCA/InequalityResolution.hpp"
+#include "Inferences/LASCA/FourierMotzkin.hpp"
 #include "Inferences/InterpretedEvaluation.hpp"
 #include "Kernel/Ordering.hpp"
 #include "Inferences/PolynomialEvaluation.hpp"

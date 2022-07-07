@@ -96,7 +96,7 @@ namespace Kernel {
   std::ostream& operator<<(std::ostream& out, LascaPredicate const& self);
 
   /** 
-   * Represents an inequality literal normalized for the rule InequalityResolution.
+   * Represents an inequality literal normalized for the rule FourierMotzkin.
    * this means it is a literal of the form
    *      term == 0 or term != 0 or term >= 0 or term > 0 (for Reals and Rationals)
    * or   term == 0 or term != 0              or term > 0 (for Integers)
@@ -175,7 +175,7 @@ namespace Kernel {
                                  >;
 
   /** 
-   * Represents an inequality literal normalized for the rule InequalityResolution.
+   * Represents an inequality literal normalized for the rule FourierMotzkin.
    * this means it is a literal of the form
    *      term > 0 or term >= 0 (for Reals and Rationals)
    * or   term > 0              (for Integers)

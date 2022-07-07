@@ -450,8 +450,8 @@ set(VAMPIRE_INFERENCE_SOURCES
     # Inferences/LASCA/FwdDemodulationModLA.hpp
     # Inferences/LASCA/BwdDemodulationModLA.cpp
     # Inferences/LASCA/BwdDemodulationModLA.hpp
-    Inferences/LASCA/InequalityResolution.cpp
-    Inferences/LASCA/InequalityResolution.hpp
+    Inferences/LASCA/FourierMotzkin.cpp
+    Inferences/LASCA/FourierMotzkin.hpp
     Inferences/LASCA/TermFactoring.cpp
     Inferences/LASCA/TermFactoring.hpp
     Inferences/TautologyDeletionISE.cpp
@@ -753,7 +753,7 @@ set(UNIT_TESTS
     UnitTests/tUnificationWithAbstraction.cpp
     UnitTests/tTermIndex.cpp
     UnitTests/tGaussianElimination.cpp
-    UnitTests/tLASCA_InequalityResolution.cpp
+    UnitTests/tLASCA_FourierMotzkin.cpp
     UnitTests/tLASCA_LiteralFactoring.cpp
     UnitTests/tLASCA_Normalization.cpp
     UnitTests/tLASCA_Superposition.cpp

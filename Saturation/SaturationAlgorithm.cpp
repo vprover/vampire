@@ -46,7 +46,7 @@
 #include "Inferences/PushUnaryMinus.hpp"
 #include "Inferences/Cancellation.hpp"
 #include "Inferences/GaussianVariableElimination.hpp"
-#include "Inferences/LASCA/InequalityResolution.hpp"
+#include "Inferences/LASCA/FourierMotzkin.hpp"
 #include "Inferences/LASCA/Normalization.hpp"
 #include "Inferences/LASCA/TermFactoring.hpp"
 #include "Inferences/LASCA/EqFactoring.hpp"
@@ -1652,7 +1652,7 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
     sgi->push(new LASCA::Superposition(shared)); 
     sgi->push(new LASCA::EqFactoring(shared)); 
     sgi->push(new LASCA::TermFactoring(shared)); 
-    sgi->push(new LASCA::InequalityResolution(shared)); 
+    sgi->push(new LASCA::FourierMotzkin(shared)); 
   }
 
 
