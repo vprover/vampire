@@ -320,8 +320,8 @@ set(VAMPIRE_KERNEL_SOURCES
     Kernel/ApplicativeHelper.cpp
     Kernel/SKIKBO.hpp
     Kernel/SKIKBO.cpp
-    Kernel/IRC.hpp
-    Kernel/IRC.cpp
+    Kernel/LASCA.hpp
+    Kernel/LASCA.cpp
     Indexing/TypeSubstitutionTree.hpp
     Inferences/CNFOnTheFly.cpp
     Inferences/CNFOnTheFly.hpp
@@ -394,8 +394,8 @@ set(VAMPIRE_INDEXING_SOURCES
     Indexing/TermIndexingStructure.hpp
     Indexing/TermSharing.hpp
     Indexing/TermSubstitutionTree.hpp
-    Indexing/InequalityResolutionIndex.cpp
-    Indexing/InequalityResolutionIndex.hpp
+    Indexing/LascaIndex.cpp
+    Indexing/LascaIndex.hpp
     )
 source_group(indexing_source_files FILES ${VAMPIRE_INDEXING_SOURCES})
 
@@ -434,26 +434,26 @@ set(VAMPIRE_INFERENCE_SOURCES
     Kernel/Rebalancing/Inverters.cpp
     Inferences/SLQueryBackwardSubsumption.cpp
     Inferences/Superposition.cpp
-    Inferences/IRC/Normalization.cpp
-    Inferences/IRC/Normalization.hpp
-    Inferences/IRC/LiteralFactoring.cpp
-    Inferences/IRC/LiteralFactoring.hpp
-    Inferences/IRC/EqFactoring.cpp
-    Inferences/IRC/EqFactoring.hpp
-    Inferences/IRC/VariableElimination.cpp
-    Inferences/IRC/VariableElimination.hpp
-    Inferences/IRC/Superposition.cpp
-    Inferences/IRC/Superposition.hpp
-    # Inferences/IRC/DemodulationModLA.cpp
-    # Inferences/IRC/DemodulationModLA.hpp
-    # Inferences/IRC/FwdDemodulationModLA.cpp
-    # Inferences/IRC/FwdDemodulationModLA.hpp
-    # Inferences/IRC/BwdDemodulationModLA.cpp
-    # Inferences/IRC/BwdDemodulationModLA.hpp
-    Inferences/IRC/InequalityResolution.cpp
-    Inferences/IRC/InequalityResolution.hpp
-    Inferences/IRC/TermFactoring.cpp
-    Inferences/IRC/TermFactoring.hpp
+    Inferences/LASCA/Normalization.cpp
+    Inferences/LASCA/Normalization.hpp
+    Inferences/LASCA/LiteralFactoring.cpp
+    Inferences/LASCA/LiteralFactoring.hpp
+    Inferences/LASCA/EqFactoring.cpp
+    Inferences/LASCA/EqFactoring.hpp
+    Inferences/LASCA/VariableElimination.cpp
+    Inferences/LASCA/VariableElimination.hpp
+    Inferences/LASCA/Superposition.cpp
+    Inferences/LASCA/Superposition.hpp
+    # Inferences/LASCA/DemodulationModLA.cpp
+    # Inferences/LASCA/DemodulationModLA.hpp
+    # Inferences/LASCA/FwdDemodulationModLA.cpp
+    # Inferences/LASCA/FwdDemodulationModLA.hpp
+    # Inferences/LASCA/BwdDemodulationModLA.cpp
+    # Inferences/LASCA/BwdDemodulationModLA.hpp
+    Inferences/LASCA/InequalityResolution.cpp
+    Inferences/LASCA/InequalityResolution.hpp
+    Inferences/LASCA/TermFactoring.cpp
+    Inferences/LASCA/TermFactoring.hpp
     Inferences/TautologyDeletionISE.cpp
     Inferences/TermAlgebraReasoning.cpp
     Inferences/URResolution.cpp
@@ -753,14 +753,14 @@ set(UNIT_TESTS
     UnitTests/tUnificationWithAbstraction.cpp
     UnitTests/tTermIndex.cpp
     UnitTests/tGaussianElimination.cpp
-    UnitTests/tIRC_InequalityResolution.cpp
-    UnitTests/tIRC_LiteralFactoring.cpp
-    UnitTests/tIRC_Normalization.cpp
-    UnitTests/tIRC_Superposition.cpp
-    UnitTests/tIRC_EqFactoring.cpp
-    UnitTests/tIRC_VariableElimination.cpp
-    UnitTests/tIRC_TermFactoring.cpp
-    # UnitTests/tIRC_DemodulationModLA.cpp
+    UnitTests/tLASCA_InequalityResolution.cpp
+    UnitTests/tLASCA_LiteralFactoring.cpp
+    UnitTests/tLASCA_Normalization.cpp
+    UnitTests/tLASCA_Superposition.cpp
+    UnitTests/tLASCA_EqFactoring.cpp
+    UnitTests/tLASCA_VariableElimination.cpp
+    UnitTests/tLASCA_TermFactoring.cpp
+    # UnitTests/tLASCA_DemodulationModLA.cpp
     UnitTests/tPushUnaryMinus.cpp
     UnitTests/tArithmeticSubtermGeneralization.cpp
     UnitTests/tInterpretedFunctions.cpp

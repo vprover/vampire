@@ -118,7 +118,7 @@ public:
 
 private:
   Result simplifyLiteral(Literal*) override;
-  // TODO make this one the same as in IRCState
+  // TODO make this one the same as in LascaState
   PolynomialEvaluation _inner;
   const bool _alwaysEvaluate;
 };

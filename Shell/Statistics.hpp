@@ -57,11 +57,11 @@ struct RuleStats {
 };
 
 /** stats for the rule InequalityResolution */
-struct IrcIrStats : RuleStats
+struct LascaIrStats : RuleStats
 {
   unsigned cntTight;
   unsigned cntInt;
-  IrcIrStats() : RuleStats(), cntTight(0) {}
+  LascaIrStats() : RuleStats(), cntTight(0) {}
   operator bool() const {  return RuleStats::operator bool() || cntTight || cntInt; }
   void output(const char* name, std::ostream& out) const;
 };
@@ -277,7 +277,7 @@ public:
   unsigned ircVarElimKMax;
 
   RuleStats ircVarElim;
-  IrcIrStats ircIr;
+  LascaIrStats ircIr;
   RuleStats ircSup;
   RuleStats ircEqFact;
   RuleStats ircTermFac;

@@ -25,16 +25,16 @@
 #include "LiteralSubstitutionTree.hpp"
 #include "TermIndex.hpp"
 #include "TermSubstitutionTree.hpp"
-// #include "Inferences/IRC/FwdDemodulationModLA.hpp"
-// #include "Inferences/IRC/BwdDemodulationModLA.hpp"
-#include "Inferences/IRC/InequalityResolution.hpp"
-#include "Inferences/IRC/Superposition.hpp"
+// #include "Inferences/LASCA/FwdDemodulationModLA.hpp"
+// #include "Inferences/LASCA/BwdDemodulationModLA.hpp"
+#include "Inferences/LASCA/InequalityResolution.hpp"
+#include "Inferences/LASCA/Superposition.hpp"
 
 #include "Shell/Statistics.hpp"
 
 #include "IndexManager.hpp"
-#include "Kernel/IRC.hpp"
-#include "Indexing/InequalityResolutionIndex.hpp"
+#include "Kernel/LASCA.hpp"
+#include "Indexing/LascaIndex.hpp"
 
 using namespace Lib;
 using namespace Indexing;
@@ -185,35 +185,35 @@ Index* IndexManager::create(IndexType t)
     isGenerating = true;
     break;
 
-  // case IRC_FWD_DEMODULATION_SUBST_TREE:
+  // case LASCA_FWD_DEMODULATION_SUBST_TREE:
   //   tis=new TermSubstitutionTree(uwaMode, true);
   //   res=new FwdDemodulationModLAIndex(tis);
   //   isGenerating = true;
   //   break;
   //
-  // case IRC_BWD_DEMODULATION_SUBST_TREE:
+  // case LASCA_BWD_DEMODULATION_SUBST_TREE:
   //   tis=new TermSubstitutionTree(uwaMode, true);
   //   res=new BwdDemodulationModLAIndex(tis);
   //   isGenerating = true;
   //   break;
 
-  case IRC_INEQUALITY_RESOLUTION_LHS_SUBST_TREE:
-    res=new IrcIndex<Inferences::IRC::InequalityResolution::Lhs>(uwaMode);
+  case LASCA_INEQUALITY_RESOLUTION_LHS_SUBST_TREE:
+    res=new LascaIndex<Inferences::LASCA::InequalityResolution::Lhs>(uwaMode);
     isGenerating = true;
     break;
 
-  case IRC_INEQUALITY_RESOLUTION_RHS_SUBST_TREE:
-    res=new IrcIndex<Inferences::IRC::InequalityResolution::Rhs>(uwaMode);
+  case LASCA_INEQUALITY_RESOLUTION_RHS_SUBST_TREE:
+    res=new LascaIndex<Inferences::LASCA::InequalityResolution::Rhs>(uwaMode);
     isGenerating = true;
     break;
 
-  case IRC_SUPERPOSITION_LHS_SUBST_TREE: 
-    res = new IrcIndex<Inferences::IRC::Superposition::Lhs>(uwaMode);
+  case LASCA_SUPERPOSITION_LHS_SUBST_TREE: 
+    res = new LascaIndex<Inferences::LASCA::Superposition::Lhs>(uwaMode);
     isGenerating = true;
     break;
 
-  case IRC_SUPERPOSITION_RHS_SUBST_TREE:
-    res = new IrcIndex<Inferences::IRC::Superposition::Rhs>(uwaMode);
+  case LASCA_SUPERPOSITION_RHS_SUBST_TREE:
+    res = new LascaIndex<Inferences::LASCA::Superposition::Rhs>(uwaMode);
     isGenerating = true;
     break;
 

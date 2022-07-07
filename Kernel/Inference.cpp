@@ -905,23 +905,23 @@ vstring Kernel::ruleName(InferenceRule rule)
     return "add sort functions";
   case InferenceRule::INSTANTIATION:
     return "instantiation";
-  case InferenceRule::IRC_VARIABLE_ELIMINATION:
+  case InferenceRule::LASCA_VARIABLE_ELIMINATION:
     return "lasca variable elimination";
-  case InferenceRule::IRC_SUPERPOSITION:
+  case InferenceRule::LASCA_SUPERPOSITION:
     return "lasca superposition";
-  case InferenceRule::IRC_LITERAL_FACTORING:
+  case InferenceRule::LASCA_LITERAL_FACTORING:
     return "lasca inequality literal factoring";
-  case InferenceRule::IRC_EQ_FACTORING:
+  case InferenceRule::LASCA_EQ_FACTORING:
     return "lasca equality factoring";
-  case InferenceRule::IRC_TERM_FACTORING:
+  case InferenceRule::LASCA_TERM_FACTORING:
     return "lasca term factoring";
-  case InferenceRule::IRC_INEQUALITY_RESOLUTION:
+  case InferenceRule::LASCA_INEQUALITY_RESOLUTION:
     return "lasca fourier motzkin";
-  case InferenceRule::IRC_NORMALIZATION:
+  case InferenceRule::LASCA_NORMALIZATION:
     return "lasca normalization";
-  case InferenceRule::IRC_FWD_DEMODULATION:
+  case InferenceRule::LASCA_FWD_DEMODULATION:
     return "lasca forward demodulation";
-  case InferenceRule::IRC_BWD_DEMODULATION:
+  case InferenceRule::LASCA_BWD_DEMODULATION:
     return "lascsa backward demodulation";
   case InferenceRule::MODEL_NOT_FOUND:
     return "finite model not found : exhaustively excluded all possible domain size assignments";

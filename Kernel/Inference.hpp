@@ -222,9 +222,9 @@ enum class InferenceRule : unsigned char {
   /** backward demodulation inference */
   BACKWARD_DEMODULATION,
   /** forward demodulation modulo LA of the Inequality Resolution Calculus */
-  IRC_FWD_DEMODULATION,
+  LASCA_FWD_DEMODULATION,
   /** backward demodulation modulo LA of the Inequality Resolution Calculus */
-  IRC_BWD_DEMODULATION,
+  LASCA_BWD_DEMODULATION,
   /** forward subsumption demodulation inference */
   FORWARD_SUBSUMPTION_DEMODULATION,
   /** backward subsumption demodulation inference */
@@ -238,7 +238,7 @@ enum class InferenceRule : unsigned char {
   /** evaluation inference */
   EVALUATION,
   /** normalization rule of the Inequality Resolution Calculus */
-  IRC_NORMALIZATION,
+  LASCA_NORMALIZATION,
   CANCELLATION,
   /** interpreted simplification inference */
   INTERPRETED_SIMPLIFICATION,
@@ -312,15 +312,15 @@ enum class InferenceRule : unsigned char {
   /* Instantiation */
   INSTANTIATION, // used for theory reasoning
   /* inequality factoring rule of the Inequality Resolution Calculs */
-  IRC_INEQUALITY_RESOLUTION,
+  LASCA_INEQUALITY_RESOLUTION,
   /* factoring rules of the Inequality Resolution Calculs */
-  IRC_TERM_FACTORING,
-  IRC_EQ_FACTORING,
-  IRC_LITERAL_FACTORING,
+  LASCA_TERM_FACTORING,
+  LASCA_EQ_FACTORING,
+  LASCA_LITERAL_FACTORING,
   /** superposition rule of the Inequality Resolution Calculus */
-  IRC_SUPERPOSITION,
+  LASCA_SUPERPOSITION,
   /** variable elimination rule of the Inequality Resolution Calculus */
-  IRC_VARIABLE_ELIMINATION,
+  LASCA_VARIABLE_ELIMINATION,
   /** the last generating inference marker --
         inferences between GENERIC_GENERATING_INFERNCE and INTERNAL_GENERATING_INFERNCE_LAST will be automatically understood generating
         (see also isGeneratingInferenceRule) */

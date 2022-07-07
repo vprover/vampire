@@ -542,7 +542,7 @@ void RuleStats::output(const char* name, std::ostream& out) const
   VAL_OUT("meanTotal",  (millisSucc + millisFail)/(double)( cntSucc + cntFail ));
 }
 
-void IrcIrStats::output(const char* name, std::ostream& out) const
+void LascaIrStats::output(const char* name, std::ostream& out) const
 {
   RuleStats::output(name, out);
   FIELD_OUT(cntTight);

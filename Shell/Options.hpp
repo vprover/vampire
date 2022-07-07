@@ -223,9 +223,9 @@ public:
     CONSTANT,
     ALL,
     GROUND,
-    IRC1,
-    IRC2,
-    IRC3,
+    LASCA1,
+    LASCA2,
+    LASCA3,
   };
 
   enum class Induction : unsigned int {

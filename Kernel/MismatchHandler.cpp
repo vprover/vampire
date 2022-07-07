@@ -17,7 +17,7 @@
 #include "Lib/Environment.hpp"
 #include "Kernel/SortHelper.hpp"
 #include "Inferences/PolynomialEvaluation.hpp"
-#include "Kernel/IRC.hpp"
+#include "Kernel/LASCA.hpp"
 
 
 #include "Forwards.hpp"
@@ -88,15 +88,15 @@ bool UWAMismatchHandler::checkUWA(TermList t1, TermList t2)
       case Shell::Options::UnificationWithAbstraction::GROUND: // TODO should ground & all really behave in the same way?
         return true;
 
-      case Shell::Options::UnificationWithAbstraction::IRC1: 
+      case Shell::Options::UnificationWithAbstraction::LASCA1: 
         return ircAbsractCoarse(t1) || ircAbsractCoarse(t2);
 
-      case Shell::Options::UnificationWithAbstraction::IRC2:  {
+      case Shell::Options::UnificationWithAbstraction::LASCA2:  {
         return (ircAbsractCoarse(t1) || ircAbsractCoarse(t2)) 
-          && !IrcState::globalState->equivalent(t1.term(), t2.term());
+          && !LascaState::globalState->equivalent(t1.term(), t2.term());
       }
 
-      case Shell::Options::UnificationWithAbstraction::IRC3:  {
+      case Shell::Options::UnificationWithAbstraction::LASCA3:  {
         // auto sort = SortHelper::getResultSort(t1.term());
         auto isAdd = [&](Term* t) {
           auto f = t->functor();

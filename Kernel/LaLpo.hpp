@@ -21,7 +21,7 @@
 #include "Forwards.hpp"
 
 #include "Lib/DArray.hpp"
-#include "Kernel/IRC.hpp"
+#include "Kernel/LASCA.hpp"
 
 #include "Ordering.hpp"
 #include "Lib/DArray.hpp"
@@ -82,7 +82,7 @@ public:
 
   Comparison compareFunctors(unsigned fun1, unsigned fun2) const override { ASSERTION_VIOLATION }
 
-  void setState(std::shared_ptr<IrcState> s) { _shared = std::move(s); }
+  void setState(std::shared_ptr<LascaState> s) { _shared = std::move(s); }
 
   enum class Pred 
   { Eq, Neq, Greater, Geq, Uninterpreted };
@@ -113,7 +113,7 @@ private:
   Comparison cmpFun(Term* s, Term* t) const;
 
   Precedence _prec;
-  std::shared_ptr<IrcState> _shared;
+  std::shared_ptr<LascaState> _shared;
 };
 
 } // namespace Kernel

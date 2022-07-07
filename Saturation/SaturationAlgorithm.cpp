@@ -46,15 +46,15 @@
 #include "Inferences/PushUnaryMinus.hpp"
 #include "Inferences/Cancellation.hpp"
 #include "Inferences/GaussianVariableElimination.hpp"
-#include "Inferences/IRC/InequalityResolution.hpp"
-#include "Inferences/IRC/Normalization.hpp"
-#include "Inferences/IRC/TermFactoring.hpp"
-#include "Inferences/IRC/EqFactoring.hpp"
-#include "Inferences/IRC/LiteralFactoring.hpp"
-#include "Inferences/IRC/Superposition.hpp"
-#include "Inferences/IRC/VariableElimination.hpp"
-// #include "Inferences/IRC/FwdDemodulationModLA.hpp"
-// #include "Inferences/IRC/BwdDemodulationModLA.hpp"
+#include "Inferences/LASCA/InequalityResolution.hpp"
+#include "Inferences/LASCA/Normalization.hpp"
+#include "Inferences/LASCA/TermFactoring.hpp"
+#include "Inferences/LASCA/EqFactoring.hpp"
+#include "Inferences/LASCA/LiteralFactoring.hpp"
+#include "Inferences/LASCA/Superposition.hpp"
+#include "Inferences/LASCA/VariableElimination.hpp"
+// #include "Inferences/LASCA/FwdDemodulationModLA.hpp"
+// #include "Inferences/LASCA/BwdDemodulationModLA.hpp"
 #include "Inferences/EquationalTautologyRemoval.hpp"
 #include "Inferences/Condensation.hpp"
 #include "Inferences/FastCondensation.hpp"
@@ -1629,7 +1629,7 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
   }
 
   if (env.options->lasca()) {
-    auto shared = Kernel::IrcState::create(
+    auto shared = Kernel::LascaState::create(
         InequalityNormalizer(env.options->lascaStrongNormalization()), 
         &ordering, 
         env.options->unificationWithAbstraction()
@@ -1642,17 +1642,17 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
       auto& ord = dynamic_cast<Kernel::LaLpo&>(ordering);
       ord.setState(shared);
     } catch (std::bad_cast&) { /* do nothing */ }
-    // res->addForwardSimplifierToFront(new IRC::FwdDemodulationModLA(shared));
-    // res->addBackwardSimplifierToFront(new IRC::BwdDemodulationModLA(shared));
+    // res->addForwardSimplifierToFront(new LASCA::FwdDemodulationModLA(shared));
+    // res->addBackwardSimplifierToFront(new LASCA::BwdDemodulationModLA(shared));
     // TODO properly create an option for that, make it a simplifying rule
-    ise->addFront(new IRC::Normalization(shared)); 
-    sgi->push(new IRC::InequalityTautologyDetection(shared));
-    sgi->push(new IRC::VariableElimination(shared, /* simpl */ true ));
-    sgi->push(new IRC::LiteralFactoring(shared));
-    sgi->push(new IRC::Superposition(shared)); 
-    sgi->push(new IRC::EqFactoring(shared)); 
-    sgi->push(new IRC::TermFactoring(shared)); 
-    sgi->push(new IRC::InequalityResolution(shared)); 
+    ise->addFront(new LASCA::Normalization(shared)); 
+    sgi->push(new LASCA::InequalityTautologyDetection(shared));
+    sgi->push(new LASCA::VariableElimination(shared, /* simpl */ true ));
+    sgi->push(new LASCA::LiteralFactoring(shared));
+    sgi->push(new LASCA::Superposition(shared)); 
+    sgi->push(new LASCA::EqFactoring(shared)); 
+    sgi->push(new LASCA::TermFactoring(shared)); 
+    sgi->push(new LASCA::InequalityResolution(shared)); 
   }
 
 

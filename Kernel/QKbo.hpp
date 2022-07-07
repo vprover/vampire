@@ -21,7 +21,7 @@
 #include "Forwards.hpp"
 
 #include "Lib/DArray.hpp"
-#include "Kernel/IRC.hpp"
+#include "Kernel/LASCA.hpp"
 
 #include "Ordering.hpp"
 #include "Lib/DArray.hpp"
@@ -40,7 +40,7 @@ static auto ifElseIter(bool cond, IfIter ifIter, ElseIter elseIter)
               : CoproductIter<Lib::ResultOf<IfIter>, Lib::ResultOf<ElseIter>>(elseIter())); }
 
 
-// TODO move to right place (IRC.hpp ?)
+// TODO move to right place (LASCA.hpp ?)
 struct SignedTerm 
 {
   Sign sign;
@@ -95,7 +95,7 @@ public:
 
   Comparison compareFunctors(unsigned fun1, unsigned fun2) const override { ASSERTION_VIOLATION }
 
-  void setState(std::shared_ptr<IrcState> s) { _shared = std::move(s); }
+  void setState(std::shared_ptr<LascaState> s) { _shared = std::move(s); }
 
 private:
   template<class NumTraits>
@@ -228,7 +228,7 @@ private:
   Result cmpNonAbstr(TermList, TermList) const;
   Option<TermList> abstr(TermList) const;
 
-  std::shared_ptr<IrcState> _shared;
+  std::shared_ptr<LascaState> _shared;
   KBO _kbo;
 };
 

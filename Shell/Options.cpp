@@ -1228,7 +1228,7 @@ void Options::init()
     _lasca.onlyUsefulWith2(_cancellation.is(equal(ArithmeticSimplificationMode::OFF)));
     // _lasca.onlyUsefulWith2(_evaluationMode.is(equal(EvaluationMode::POLYNOMIAL_FORCE)));
     _lasca.onlyUsefulWith2(_highSchool.is(equal(false)));
-    _lasca.onlyUsefulWith2(_unificationWithAbstraction.is(Or(equal(UnificationWithAbstraction::IRC1), equal(UnificationWithAbstraction::IRC2), equal(UnificationWithAbstraction::IRC3))));
+    _lasca.onlyUsefulWith2(_unificationWithAbstraction.is(Or(equal(UnificationWithAbstraction::LASCA1), equal(UnificationWithAbstraction::LASCA2), equal(UnificationWithAbstraction::LASCA3))));
 
     _lascaStrongNormalization  = BoolOptionValue("lasca_strong_normalziation","lasca_sn",true);
     _lascaStrongNormalization.description=
@@ -2271,7 +2271,7 @@ void Options::init()
     _termOrdering.tag(OptionTag::SATURATION);
     _termOrdering.addHardConstraint(
         If(Or(equal(TermOrdering::QKBO), equal(TermOrdering::QKBO)))
-          .then(_lasca.is(equal(true)))); // <- lasca must be enabled, because the orderings rely on IrcState to be set
+          .then(_lasca.is(equal(true)))); // <- lasca must be enabled, because the orderings rely on LascaState to be set
     _lookup.insert(&_termOrdering);
 
     _symbolPrecedence = ChoiceOptionValue<SymbolPrecedence>("symbol_precedence","sp",SymbolPrecedence::ARITY,

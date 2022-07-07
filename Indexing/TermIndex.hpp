@@ -78,8 +78,6 @@ private:
   Ordering& _ord;
 };
 
-class InequalityResolutionIndex;
-
 class SuperpositionLHSIndex
 : public TermIndex<DefaultTermLeafData>
 {
