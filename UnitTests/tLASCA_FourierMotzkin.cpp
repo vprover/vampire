@@ -118,7 +118,7 @@ REGISTER_GEN_TESTER(LascaGenerationTester<FourierMotzkin>(testFourierMotzkin()))
 //////////////////////////////////////
 
 // check whether we apply the rule for every weakly maximal negative term
-TEST_GENERATION(new01,
+TEST_GENERATION(basic01,
     Generation::SymmetricTest()
       .indices(inequalityResolutionIdx())
       .inputs  ({ clause({selected( 5 * f(x) +       a  > 0 )   }) 
@@ -130,7 +130,7 @@ TEST_GENERATION(new01,
     )
 
 // check whether we apply the rule only for strictly maximal positive
-TEST_GENERATION(new02,
+TEST_GENERATION(basic02,
     Generation::SymmetricTest()
       .indices(inequalityResolutionIdx())
       .inputs  ({ clause({selected( 5 * f(x) + 2 * f(f(a)) + a > 0 )   }) 
@@ -140,7 +140,7 @@ TEST_GENERATION(new02,
     )
 
 // inequaity symbols right
-TEST_GENERATION(new0301,
+TEST_GENERATION(basic0301,
     Generation::SymmetricTest()
       .indices(inequalityResolutionIdx())
       .inputs  ({ clause({selected(  f(a) + a > 0 )   }) 
@@ -149,7 +149,7 @@ TEST_GENERATION(new0301,
         clause({ a + c > 0 })
       ))
     )
-TEST_GENERATION(new0302,
+TEST_GENERATION(basic0302,
     Generation::SymmetricTest()
       .indices(inequalityResolutionIdx())
       .inputs  ({ clause({selected(  f(a) + a >= 0 )   }) 
@@ -158,7 +158,7 @@ TEST_GENERATION(new0302,
         clause({ a + c > 0 })
       ))
     )
-TEST_GENERATION(new0303,
+TEST_GENERATION(basic0303,
     Generation::SymmetricTest()
       .indices(inequalityResolutionIdx())
       .inputs  ({ clause({selected(  f(a) + a > 0 )   }) 
@@ -167,7 +167,7 @@ TEST_GENERATION(new0303,
         clause({ a + c > 0 })
       ))
     )
-TEST_GENERATION(new0304,
+TEST_GENERATION(basic0304,
     Generation::SymmetricTest()
       .indices(inequalityResolutionIdx())
       .inputs  ({ clause({selected(  f(a) + a >= 0 )   }) 
@@ -178,7 +178,7 @@ TEST_GENERATION(new0304,
     )
 
 
-TEST_GENERATION(basic01,
+TEST_GENERATION(basic04,
     Generation::SymmetricTest()
       .indices(inequalityResolutionIdx())
       .inputs  ({ clause({selected( f(x) > 0 ), x - 7 == 0   }) 
@@ -188,7 +188,7 @@ TEST_GENERATION(basic01,
       ))
     )
 
-TEST_GENERATION(basic02,
+TEST_GENERATION(basic05,
     Generation::SymmetricTest()
       .indices(inequalityResolutionIdx())
       .inputs  ({ clause({selected(     f(a) > 0) }) 
@@ -198,7 +198,7 @@ TEST_GENERATION(basic02,
       ))
     )
 
-TEST_GENERATION(basic03a,
+TEST_GENERATION(basic06a,
     Generation::SymmetricTest()
       .indices(inequalityResolutionIdx())
       .inputs  ({ clause({selected( -g(x,a) + -g(g(a,b), f(x)) > 0) }) 
@@ -210,7 +210,7 @@ TEST_GENERATION(basic03a,
 
 // ordering condition not fulfilled
 // • ( -k s₂ + t₂ >₂ 0 )σ /⪯  ( +j s₁ + t₁ >₁ 0 )σ
-TEST_GENERATION(basic03b,
+TEST_GENERATION(basic06b,
     Generation::SymmetricTest()
       .indices(inequalityResolutionIdx())
       .inputs  ({ clause({selected( -g(x,a) + -g(g(a,b), f(x)) > 0) }) 
@@ -220,7 +220,7 @@ TEST_GENERATION(basic03b,
       ))
     )
 
-TEST_GENERATION(basic04,
+TEST_GENERATION(basic07,
     Generation::SymmetricTest()
       .indices(inequalityResolutionIdx())
       .inputs  ({ clause({ selected( a + -f(x) > 0), x - 7 == 0 })  
@@ -230,7 +230,7 @@ TEST_GENERATION(basic04,
       ))
     )
 
-TEST_GENERATION(basic04_variation,
+TEST_GENERATION(basic07_variation,
     Generation::SymmetricTest()
       .indices(inequalityResolutionIdx())
       .inputs  ({ clause({ selected( a +  f(a) > 0) })          
@@ -240,7 +240,7 @@ TEST_GENERATION(basic04_variation,
       ))
     )
 
-TEST_GENERATION(basic05,
+TEST_GENERATION(basic10,
     Generation::SymmetricTest()
       .indices(inequalityResolutionIdx())
       .inputs  ({ clause({ selected( a + -f(y) > 0) }) 
@@ -251,7 +251,7 @@ TEST_GENERATION(basic05,
     )
 
 // fails: "( -k s₂ + t₂ >₂ 0 )σ /⪯  ( +j s₁ + t₁ >₁ 0 )σ",
-TEST_GENERATION(basic06,
+TEST_GENERATION(basic11,
     Generation::SymmetricTest()
       .indices(inequalityResolutionIdx())
       .inputs  ({ clause({ selected(         -g(x,y) > 0 ) }) 
@@ -260,7 +260,7 @@ TEST_GENERATION(basic06,
       ))
     )
 
-TEST_GENERATION(basic07,
+TEST_GENERATION(basic12,
     Generation::SymmetricTest()
       .indices(inequalityResolutionIdx())
       .inputs  ({ clause({ selected(a > 0) }) 
@@ -269,7 +269,7 @@ TEST_GENERATION(basic07,
       ))
     )
 
-TEST_GENERATION(basic08,
+TEST_GENERATION(basic13,
     Generation::SymmetricTest()
       .indices(inequalityResolutionIdx())
       .inputs  ({ clause({ selected(num(0) >= 0) }) 
@@ -278,7 +278,7 @@ TEST_GENERATION(basic08,
       ))
     )
 
-TEST_GENERATION(basic09,
+TEST_GENERATION(basic14,
     Generation::SymmetricTest()
       .indices(inequalityResolutionIdx())
       .inputs  ({ clause({ selected(-a > 0) }) 
@@ -287,6 +287,72 @@ TEST_GENERATION(basic09,
           clause({ num(0) > 0 })
       ))
     )
+
+// Testing only strictly maximal atoms are being chained
+TEST_GENERATION(basic15a_new,
+    Generation::SymmetricTest()
+      .indices(inequalityResolutionIdx())
+      .inputs  ({ clause({ selected(- g(x,y) - g(y,x) > 0) }) 
+               ,  clause({ selected(  g(x,x) > 0) }) })
+      .expected(exactly( /* nothing */ ))
+    )
+
+// Testing only strictly maximal atoms are being chained
+TEST_GENERATION(basic15b_new,
+    Generation::SymmetricTest()
+      .indices(inequalityResolutionIdx())
+      .inputs  ({ clause({ selected(  g(x,y) + g(y,x) > 0) }) 
+               ,  clause({ selected(- g(x,x) > 0) }) })
+      .expected(exactly( /* nothing */))
+    )
+
+// Testing only strictly maximal atoms are being chained
+TEST_GENERATION(basic15c_new,
+    Generation::SymmetricTest()
+      .indices(inequalityResolutionIdx())
+      .inputs         ({ clause({ selected(  g(x,y) > 0) }) 
+                      ,  clause({ selected(- g(x,x) > 0) }) })
+      .expected(exactly( clause({            num(0) > 0  }) ))
+    )
+
+// Testing that the rhs may be only weakly not only strictly maximal
+TEST_GENERATION(basic16a_new,
+    Generation::SymmetricTest()
+      .indices(inequalityResolutionIdx())
+      .inputs         ({ clause({ - g(x,y) + f(z) > 0, -g(y, x) + f(z) > 0 }) 
+                       , clause({ g(x,x) > 0   }) })
+      .expected(exactly( clause({ f(z) > 0   }) 
+                       , clause({ f(z) > 0   }) 
+          ))
+    )
+TEST_GENERATION(basic16b_new,
+    Generation::SymmetricTest()
+      .indices(inequalityResolutionIdx())
+      .inputs         ({ clause({ - g(x,y) + f(x) > 0, -g(y, x) + f(z) > 0 }) 
+                       , clause({ g(x,x) > 0   }) })
+      .expected(exactly( clause({ f(x) > 0   }) 
+                       , clause({ f(z) > 0   }) 
+          ))
+    )
+
+// Testing that the lhs may be only strictly maximal
+TEST_GENERATION(basic17a_new,
+    Generation::SymmetricTest()
+      .indices(inequalityResolutionIdx())
+      .inputs         ({ clause({ - g(x,y) + f(z) > 0, -g(y, x) + f(z) > 0 }) 
+                       , clause({ g(x,x) > 0   }) })
+      .expected(exactly( /* nothing */ ))
+    )
+TEST_GENERATION(basic17b_new,
+    Generation::SymmetricTest()
+      .indices(inequalityResolutionIdx())
+      .inputs         ({ clause({ - g(x,y) + f(x) > 0, -g(y, x) + f(z) > 0 }) 
+                       , clause({ g(x,x) > 0   }) })
+      .expected(exactly( clause({ f(x) > 0   }) 
+                       , clause({ f(z) > 0   }) 
+          ))
+    )
+
 
 TEST_GENERATION(greater_equal01a,
     Generation::SymmetricTest()

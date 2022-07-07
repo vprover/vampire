@@ -76,8 +76,8 @@ public:
     { 
       CALL("Lasca::FourierMotzkin::Rhs::iter")
       return shared.selectedSummands(cl, 
-                        /* literal*/ SelectionCriterion::STRICTLY_MAX,
-                        /* term */ SelectionCriterion::WEAKLY_MAX,
+                        /* literal*/ SelectionCriterion::WEAKLY_MAX,
+                        /* term */ SelectionCriterion::STRICTLY_MAX,
                         /* include number vars */ false)
               .filter([&](auto const& selected) { return selected.isInequality(); })
               .filter([&](auto const& selected) { return selected.sign() == Sign::Neg; })

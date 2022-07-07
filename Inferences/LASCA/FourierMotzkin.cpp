@@ -108,13 +108,12 @@ ClauseIterator FourierMotzkin::generateClauses(Clause* premise)
 //
 // where 
 // - (σ, Cnst) = uwa(s₁, s₂)
-// - C₁σ /⪯ (+j s₁  + t₁ >₁ 0)σ
+// - C₁σ /≺ (+j s₁  + t₁ >₁ 0)σ
 // - C₂σ /⪯ (-k s₂ + t₂ >₂ 0)σ
 // - s₁, s₂ are not variables
+// • s₁σ /≺ t₁σ 
+// • s₂σ /≺ t₂σ 
 // - {>} ⊆ {>₁,>₂} ⊆ {>,≥}
-//
-// TODO this condition is not in the theory yet:
-// • ( -k s₂ + t₂ >₂ 0 )σ /⪯  ( +j s₁ + t₁ >₁ 0 )σ
 //
 // Fourier Motzkin tight:
 //
@@ -124,14 +123,11 @@ ClauseIterator FourierMotzkin::generateClauses(Clause* premise)
 //
 // where 
 // • (σ, Cnst) = uwa(s₁, s₂)
-// • (+j s₁ + t₁ >₁ 0)σ /⪯ C₁σ
+// • (+j s₁ + t₁ >₁ 0)σ /≺ C₁σ
 // • (-k s₂ + t₂ >₂ 0)σ /⪯ C₂σ
-// • s₁σ /⪯ t₁σ 
+// • s₁σ /≺ t₁σ 
 // • s₂σ /≺ t₂σ 
 // • s₁, s₂ are not variables
-//
-// TODO this condition is not in the theory yet:
-// • ( -k s₂ + t₂ >₂ 0 )σ /⪯  ( +j s₁ + t₁ >₁ 0 )σ
 //
 Option<Clause*> FourierMotzkin::applyRule(
     Lhs const& lhs, unsigned lhsVarBank,
@@ -181,12 +177,12 @@ Option<Clause*> FourierMotzkin::applyRule(
 
     auto L1σ = uwa.sigma(lhs.literal(), lhsVarBank);
     check_side_condition( 
-        "(+j s₁ + t₁ >₁ 0)σ /⪯ C₁σ",
+        "(+j s₁ + t₁ >₁ 0)σ /≺ C₁σ",
         lhs.contextLiterals()
            .all([&](auto L) {
              auto Lσ = uwa.sigma(L, lhsVarBank);
              out.push(Lσ);
-             return _shared->notLeq(L1σ, Lσ);
+             return _shared->notLess(L1σ, Lσ);
            }));
 
     auto L2σ = uwa.sigma(rhs.literal(), rhsVarBank);
@@ -207,12 +203,12 @@ Option<Clause*> FourierMotzkin::applyRule(
     Stack<TermList> t2σ(lhs.nContextTerms());
 
     check_side_condition(
-        "s₁σ /⪯ t₁σ",
+        "s₁σ /≺ t₁σ",
         lhs.contextTerms<NumTraits>()
            .all([&](auto ti) {
              auto tiσ = uwa.sigma(ti.factors->denormalize(), lhsVarBank);
              t1σ.push(NumTraits::mulSimpl(ti.numeral, tiσ));
-             return _shared->notLeq(s1σ, tiσ);
+             return _shared->notLess(s1σ, tiσ);
            }))
 
     check_side_condition(
@@ -224,11 +220,11 @@ Option<Clause*> FourierMotzkin::applyRule(
              return _shared->notLess(s2σ, tiσ);
            }))
 
-    DEBUG("(+j s₁ + t₁ >₁ 0)σ = ", *L1σ)
-    DEBUG("(-k s₂ + t₂ >₂ 0)σ = ", *L2σ)
-    check_side_condition(
-        "( -k s₂ + t₂ >₂ 0 )σ /⪯  ( +j s₁ + t₁ >₁ 0 )σ",
-        _shared->notLeq(L2σ, L1σ));
+    // DEBUG("(+j s₁ + t₁ >₁ 0)σ = ", *L1σ)
+    // DEBUG("(-k s₂ + t₂ >₂ 0)σ = ", *L2σ)
+    // check_side_condition(
+    //     "( -k s₂ + t₂ >₂ 0 )σ /⪯  ( +j s₁ + t₁ >₁ 0 )σ",
+    //     _shared->notLeq(L2σ, L1σ));
 
     auto j = lhs.numeral().unwrap<typename NumTraits::ConstantType>();
     auto k = rhs.numeral().unwrap<typename NumTraits::ConstantType>().abs();
