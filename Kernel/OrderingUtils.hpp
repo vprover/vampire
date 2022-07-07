@@ -22,10 +22,12 @@ namespace Kernel {
   class MultiSet {
     Stack<std::tuple<T, IntegerConstantType>> _elems;
     void integrity() const {
+#if VDEBUG
       ASS(std::is_sorted(_elems.begin(), _elems.end(), [](auto l, auto r) { return std::get<0>(l) < std::get<0>(r); }))
       for (auto e : _elems) {
         ASS_G(get<1>(e), IntegerConstantType(0))
       }
+#endif
     }
   public:
     MultiSet() : _elems() {}
@@ -222,7 +224,7 @@ namespace Kernel {
             case SelectionCriterion::STRICTLY_MAX: {
               bool strict = sel == SelectionCriterion::STRICTLY_MAX;
               
-              auto cmp = [&](unsigned l, unsigned r) {
+              auto cmp = [=](unsigned l, unsigned r) {
                 ASS_NEQ(l, r)
                 unsigned col = l < r ? l : r;
                 unsigned row = l < r ? r : l;

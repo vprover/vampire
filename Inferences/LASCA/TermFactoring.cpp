@@ -43,7 +43,13 @@
 #include "Indexing/TermIndexingStructure.hpp"
 #include "Kernel/RobSubstitution.hpp"
 
-#define DEBUG(...)  //DBG(__VA_ARGS__)
+#define __DEBUG_OUTPUT 0
+#if __DEBUG_OUTPUT
+#  define DEBUG(...) \
+    DBG(__VA_ARGS__)
+#else
+#  define DEBUG(...)
+#endif // __DEBUG_OUTPUT
 
 using Kernel::InequalityLiteral;
 
@@ -234,6 +240,8 @@ Option<Clause*> TermFactoring::applyRule(
       { return applyRule<decltype(numTraits)>(l, r, maxAtoms); });
 }
 
+#define D(...) std::cout  << __VA_ARGS__ << std::endl;
+
 ClauseIterator TermFactoring::generateClauses(Clause* premise)
 {
   CALL("TermFactoring::generateClauses");
@@ -253,10 +261,12 @@ ClauseIterator TermFactoring::generateClauses(Clause* premise)
 
   std::sort(selected->begin(), selected->end(), [](auto& l, auto& r) { return l.literal() < r.literal(); });
 
+#if __DEBUG_OUTPUT
   DEBUG("selected summands:")
   for (auto& s : *selected) {
     DEBUG("  ", s)
   }
+#endif
 
   Stack<pair<unsigned, unsigned>> litRanges;
   unsigned last = 0;

@@ -1845,7 +1845,7 @@ public:
 
   template<class F>
   auto inspect(F f)
-  { return map([&](auto x) { f(x); return x; }); }
+  { return map([f = std::move(f)](auto x) { f(x); return x; }); }
 
   template<class F>
   IterTraits<FilteredIterator<Iter, F>> filter(F f)
