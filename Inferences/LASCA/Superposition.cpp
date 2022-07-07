@@ -25,7 +25,7 @@ namespace LASCA {
 
 void Superposition::attach(SaturationAlgorithm* salg) 
 { 
-  CALL("Superposition::attach");
+  CALL("LASCA::Superposition::attach");
   ASS(!_rhs);
   ASS(!_lhs);
 
@@ -43,7 +43,7 @@ void Superposition::attach(SaturationAlgorithm* salg)
 
 void Superposition::detach() 
 {
-  CALL("Superposition::detach");
+  CALL("LASCA::Superposition::detach");
   ASS(_salg);
 
   _lhs=0;
@@ -82,7 +82,7 @@ Option<Clause*> Superposition::applyRule(
     UwaResult& uwa
     ) const 
 {
-  CALL("Superposition::applyRule(Lhs const&, unsigned, Rhs const&, unsigned, UwaResult&)")
+  CALL("LASCA::Superposition::applyRule(Lhs const&, unsigned, Rhs const&, unsigned, UwaResult&)")
   MeasureTime time(env.statistics->ircSup);
 
   ASS (lhs.literal()->isEquality() && lhs.literal()->isPositive())
@@ -189,7 +189,7 @@ Option<Clause*> Superposition::applyRule(
 
 ClauseIterator Superposition::generateClauses(Clause* premise) 
 {
-  CALL("Superposition::generateClauses(Clause* premise)")
+  CALL("LASCA::Superposition::generateClauses(Clause* premise)")
   ASS(_lhs)
   ASS(_rhs)
   ASS(_shared)

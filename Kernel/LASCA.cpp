@@ -54,8 +54,8 @@ Literal* InequalityNormalizer::normalizeUninterpreted(Literal* lit) const
 {
   CALL("InequalityNormalizer::normalizeUninterpreted(Literal* lit) const")
   Stack<TermList> args(lit->arity());
-  for (unsigned i = 0; i < lit->arity(); i++) {
-    auto orig = *lit->nthArgument(i);
+  args.loadFromIterator(typeArgIter(lit));
+  for (auto orig : termArgIter(lit)) {
     if (orig.isVar()) {
       args.push(orig);
     } else {
@@ -63,7 +63,7 @@ Literal* InequalityNormalizer::normalizeUninterpreted(Literal* lit) const
         .evaluate(PolyNf::normalize(TypedTermList(orig.term())))
         .value.map([](auto t) { return t.denormalize(); }) 
         || orig;  // <- nothing was done during evaluation
-      args.push(eval);;
+      args.push(eval);
     }
   }
   auto out = Literal::create(lit, args.begin());
