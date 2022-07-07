@@ -8,12 +8,12 @@
  * and in the source directory
  */
 /**
- * @file LiteralFactoring.cpp
- * Defines class LiteralFactoring
+ * @file InequalityFactoring.cpp
+ * Defines class InequalityFactoring
  *
  */
 
-#include "LiteralFactoring.hpp"
+#include "InequalityFactoring.hpp"
 #include "Shell/Statistics.hpp"
 
 #define DEBUG(...) // DBG(__VA_ARGS__)
@@ -21,9 +21,9 @@
 namespace Inferences {
 namespace LASCA {
 
-void LiteralFactoring::attach(SaturationAlgorithm* salg) { }
+void InequalityFactoring::attach(SaturationAlgorithm* salg) { }
 
-void LiteralFactoring::detach() { }
+void InequalityFactoring::detach() { }
 
 
 #define CHECK_CONDITION(name, condition)                                                            \
@@ -48,13 +48,13 @@ void LiteralFactoring::detach() { }
 //                                else (>)
 
 template<class NumTraits>
-Option<Clause*> LiteralFactoring::applyRule(
+Option<Clause*> InequalityFactoring::applyRule(
     SelectedSummand const& l1,  // +j s1 + t1 >1 0
     SelectedSummand const& l2   // +k s2 + t2 >2 0
     )
 {
   using Numeral = typename NumTraits::ConstantType;
-  CALL("LiteralFactoring::applyRule(SelectedSummand const& l1, SelectedSummand const& l2)")
+  CALL("InequalityFactoring::applyRule(SelectedSummand const& l1, SelectedSummand const& l2)")
   DEBUG("l1: ", l1)
   DEBUG("l2: ", l2)
 
@@ -163,7 +163,7 @@ Option<Clause*> LiteralFactoring::applyRule(
   return Option<Clause*>(out);
 }
 
-Option<Clause*> LiteralFactoring::applyRule(SelectedSummand const& l1, SelectedSummand const& l2)
+Option<Clause*> InequalityFactoring::applyRule(SelectedSummand const& l1, SelectedSummand const& l2)
 {
   ASS_EQ(l1.clause(), l2.clause())
   return l1.numTraits().apply([&](auto numTraits) {
@@ -171,7 +171,7 @@ Option<Clause*> LiteralFactoring::applyRule(SelectedSummand const& l1, SelectedS
   });
 }
 
-ClauseIterator LiteralFactoring::generateClauses(Clause* premise) 
+ClauseIterator InequalityFactoring::generateClauses(Clause* premise) 
 {
 
   DEBUG("in: ", *premise)
@@ -234,7 +234,7 @@ ClauseIterator LiteralFactoring::generateClauses(Clause* premise)
   
 
 #if VDEBUG
-void LiteralFactoring::setTestIndices(Stack<Indexing::Index*> const&) { }
+void InequalityFactoring::setTestIndices(Stack<Indexing::Index*> const&) { }
 #endif
 
 } // namespace LASCA 

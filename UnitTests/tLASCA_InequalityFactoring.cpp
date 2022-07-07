@@ -11,7 +11,7 @@
 #include "Test/UnitTesting.hpp"
 #include "Test/SyntaxSugar.hpp"
 #include "Indexing/TermSharing.hpp"
-#include "Inferences/LASCA/LiteralFactoring.hpp"
+#include "Inferences/LASCA/InequalityFactoring.hpp"
 #include "Inferences/InterpretedEvaluation.hpp"
 #include "Kernel/Ordering.hpp"
 #include "Inferences/PolynomialEvaluation.hpp"
@@ -58,16 +58,16 @@ using namespace Inferences::LASCA;
 
 #define MY_SYNTAX_SUGAR SUGAR(Rat)
 
-LiteralFactoring testLiteralFactoring(
+InequalityFactoring testInequalityFactoring(
     Ordering* ordering = nullptr,
     bool strongNorm = false,
     Options::UnificationWithAbstraction uwa = Options::UnificationWithAbstraction::LASCA1
     )
-{ return LiteralFactoring(testLascaState(uwa, strongNorm, ordering)); }
+{ return InequalityFactoring(testLascaState(uwa, strongNorm, ordering)); }
 
 template<class A> A* heap(A&& a) { return new A(std::move(a)); }
 
-REGISTER_GEN_TESTER(Test::Generation::GenerationTester<LiteralFactoring>(testLiteralFactoring()))
+REGISTER_GEN_TESTER(Test::Generation::GenerationTester<InequalityFactoring>(testInequalityFactoring()))
 
 /////////////////////////////////////////////////////////
 // Basic tests

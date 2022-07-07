@@ -50,7 +50,7 @@
 #include "Inferences/LASCA/Normalization.hpp"
 #include "Inferences/LASCA/TermFactoring.hpp"
 #include "Inferences/LASCA/EqFactoring.hpp"
-#include "Inferences/LASCA/LiteralFactoring.hpp"
+#include "Inferences/LASCA/InequalityFactoring.hpp"
 #include "Inferences/LASCA/Superposition.hpp"
 #include "Inferences/LASCA/VariableElimination.hpp"
 // #include "Inferences/LASCA/FwdDemodulationModLA.hpp"
@@ -1648,7 +1648,7 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
     ise->addFront(new LASCA::Normalization(shared)); 
     sgi->push(new LASCA::InequalityTautologyDetection(shared));
     sgi->push(new LASCA::VariableElimination(shared, /* simpl */ true ));
-    sgi->push(new LASCA::LiteralFactoring(shared));
+    sgi->push(new LASCA::InequalityFactoring(shared));
     sgi->push(new LASCA::Superposition(shared)); 
     sgi->push(new LASCA::EqFactoring(shared)); 
     sgi->push(new LASCA::TermFactoring(shared)); 

@@ -436,8 +436,8 @@ set(VAMPIRE_INFERENCE_SOURCES
     Inferences/Superposition.cpp
     Inferences/LASCA/Normalization.cpp
     Inferences/LASCA/Normalization.hpp
-    Inferences/LASCA/LiteralFactoring.cpp
-    Inferences/LASCA/LiteralFactoring.hpp
+    Inferences/LASCA/InequalityFactoring.cpp
+    Inferences/LASCA/InequalityFactoring.hpp
     Inferences/LASCA/EqFactoring.cpp
     Inferences/LASCA/EqFactoring.hpp
     Inferences/LASCA/VariableElimination.cpp
@@ -754,7 +754,7 @@ set(UNIT_TESTS
     UnitTests/tTermIndex.cpp
     UnitTests/tGaussianElimination.cpp
     UnitTests/tLASCA_FourierMotzkin.cpp
-    UnitTests/tLASCA_LiteralFactoring.cpp
+    UnitTests/tLASCA_InequalityFactoring.cpp
     UnitTests/tLASCA_Normalization.cpp
     UnitTests/tLASCA_Superposition.cpp
     UnitTests/tLASCA_EqFactoring.cpp

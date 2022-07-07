@@ -8,13 +8,13 @@
  * and in the source directory
  */
 /**
- * @file LiteralFactoring.hpp
- * Defines class LiteralFactoring
+ * @file InequalityFactoring.hpp
+ * Defines class InequalityFactoring
  *
  */
 
-#ifndef __LiteralFactoring__
-#define __LiteralFactoring__
+#ifndef __InequalityFactoring__
+#define __InequalityFactoring__
 
 #include "Forwards.hpp"
 
@@ -31,15 +31,15 @@ using namespace Kernel;
 using namespace Indexing;
 using namespace Saturation;
 
-class LiteralFactoring
+class InequalityFactoring
 : public GeneratingInferenceEngine
 {
 public:
-  CLASS_NAME(LiteralFactoring);
-  USE_ALLOCATOR(LiteralFactoring);
+  CLASS_NAME(InequalityFactoring);
+  USE_ALLOCATOR(InequalityFactoring);
 
-  LiteralFactoring(LiteralFactoring&&) = default;
-  LiteralFactoring(shared_ptr<LascaState> shared)
+  InequalityFactoring(InequalityFactoring&&) = default;
+  InequalityFactoring(shared_ptr<LascaState> shared)
     : _shared(std::move(shared))
   {  }
 
@@ -85,4 +85,4 @@ private:
 } // namespace LASCA 
 } // namespace Inferences 
 
-#endif /*__LiteralFactoring__*/
+#endif /*__InequalityFactoring__*/
