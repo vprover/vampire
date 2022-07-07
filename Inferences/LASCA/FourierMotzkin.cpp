@@ -16,7 +16,7 @@
 #include "Saturation/SaturationAlgorithm.hpp"
 #include "Shell/Statistics.hpp"
 
-#define DEBUG(...) //DBG(__VA_ARGS__)
+#define DEBUG(...) // DBG(__VA_ARGS__)
 
 namespace Inferences {
 namespace LASCA {
@@ -107,13 +107,13 @@ ClauseIterator FourierMotzkin::generateClauses(Clause* premise)
 //           (C₁ \/ C₂ \/ k t₁ + j t₂ > 0)σ \/ Cnst
 //
 // where 
-// - (σ, Cnst) = uwa(s₁, s₂)
-// - C₁σ /≺ (+j s₁  + t₁ >₁ 0)σ
-// - C₂σ /⪯ (-k s₂ + t₂ >₂ 0)σ
-// - s₁, s₂ are not variables
-// • s₁σ /≺ t₁σ 
-// • s₂σ /≺ t₂σ 
-// - {>} ⊆ {>₁,>₂} ⊆ {>,≥}
+// • (σ, Cnst) = uwa(s₁, s₂)
+// • (+j s₁ + t₁ >₁ 0)σ /⪯ C₁σ
+// • (-k s₂ + t₂ >₂ 0)σ /≺ C₂σ
+// • s₁σ /⪯ t₁σ 
+// • s₂σ /⪯ t₂σ 
+// • s₁, s₂ are not variables
+// • {>} ⊆ {>₁,>₂} ⊆ {>,≥}
 //
 // Fourier Motzkin tight:
 //
@@ -123,10 +123,10 @@ ClauseIterator FourierMotzkin::generateClauses(Clause* premise)
 //
 // where 
 // • (σ, Cnst) = uwa(s₁, s₂)
-// • (+j s₁ + t₁ >₁ 0)σ /≺ C₁σ
-// • (-k s₂ + t₂ >₂ 0)σ /⪯ C₂σ
-// • s₁σ /≺ t₁σ 
-// • s₂σ /≺ t₂σ 
+// • (+j s₁ + t₁ >₁ 0)σ /⪯ C₁σ
+// • (-k s₂ + t₂ >₂ 0)σ /≺ C₂σ
+// • s₁σ /⪯ t₁σ 
+// • s₂σ /⪯ t₂σ 
 // • s₁, s₂ are not variables
 //
 Option<Clause*> FourierMotzkin::applyRule(
@@ -177,22 +177,23 @@ Option<Clause*> FourierMotzkin::applyRule(
 
     auto L1σ = uwa.sigma(lhs.literal(), lhsVarBank);
     check_side_condition( 
-        "(+j s₁ + t₁ >₁ 0)σ /≺ C₁σ",
+        "(+j s₁ + t₁ >₁ 0)σ /⪯ C₁σ",
         lhs.contextLiterals()
            .all([&](auto L) {
              auto Lσ = uwa.sigma(L, lhsVarBank);
              out.push(Lσ);
-             return _shared->notLess(L1σ, Lσ);
+             return _shared->notLeq(L1σ, Lσ);
            }));
+
 
     auto L2σ = uwa.sigma(rhs.literal(), rhsVarBank);
     check_side_condition(
-        "(-k s₂ + t₂ >₂ 0)σ /⪯ C₂σ",
+        "(-k s₂ + t₂ >₂ 0)σ /≺ C₂σ",
         rhs.contextLiterals()
            .all([&](auto L) {
              auto Lσ = uwa.sigma(L, rhsVarBank);
              out.push(Lσ);
-             return _shared->notLeq(L2σ, Lσ);
+             return _shared->notLess(L2σ, Lσ);
            }));
 
 
@@ -203,21 +204,21 @@ Option<Clause*> FourierMotzkin::applyRule(
     Stack<TermList> t2σ(lhs.nContextTerms());
 
     check_side_condition(
-        "s₁σ /≺ t₁σ",
+        "s₁σ /⪯ t₁σ",
         lhs.contextTerms<NumTraits>()
            .all([&](auto ti) {
              auto tiσ = uwa.sigma(ti.factors->denormalize(), lhsVarBank);
              t1σ.push(NumTraits::mulSimpl(ti.numeral, tiσ));
-             return _shared->notLess(s1σ, tiσ);
+             return _shared->notLeq(s1σ, tiσ);
            }))
 
     check_side_condition(
-        "s₂σ /≺ t₂σ ",
+        "s₂σ /⪯ t₂σ ",
         rhs.contextTerms<NumTraits>()
            .all([&](auto ti) {
              auto tiσ = uwa.sigma(ti.factors->denormalize(), rhsVarBank);
              t2σ.push(NumTraits::mulSimpl(ti.numeral, tiσ));
-             return _shared->notLess(s2σ, tiσ);
+             return _shared->notLeq(s2σ, tiσ);
            }))
 
     // DEBUG("(+j s₁ + t₁ >₁ 0)σ = ", *L1σ)

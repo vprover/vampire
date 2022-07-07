@@ -19,15 +19,6 @@ vstring output_to_string(T const& t)
   return out.str();
 }
 
-bool interpretedPred(Literal* t) {
-  auto f = t->functor();
-  return t->isEquality()
-    || forAnyNumTraits([&](auto numTraits) -> bool {
-        return f == numTraits.geqF()
-          ||  f == numTraits.greaterF();
-  });
-}
-
 using OU = OrderingUtils2;
 
 // Precedence makeOneSmallest(Precedence p) {
@@ -103,8 +94,8 @@ QKbo::Result QKbo::compare(Literal* l1, Literal* l2) const
   if (l1 == l2) 
     return Result::EQUAL;
 
-  auto i1 = interpretedPred(l1);
-  auto i2 = interpretedPred(l2);
+  auto i1 = _shared->interpretedPred(l1);
+  auto i2 = _shared->interpretedPred(l2);
        if ( i1 && !i2) return Result::LESS;
   else if (!i1 &&  i2) return Result::GREATER;
   else if (!i1 && !i2) return OU::lexProductCapture(

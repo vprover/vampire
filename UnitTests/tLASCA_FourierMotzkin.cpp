@@ -208,18 +208,6 @@ TEST_GENERATION(basic06a,
       ))
     )
 
-// ordering condition not fulfilled
-// • ( -k s₂ + t₂ >₂ 0 )σ /⪯  ( +j s₁ + t₁ >₁ 0 )σ
-TEST_GENERATION(basic06b,
-    Generation::SymmetricTest()
-      .indices(inequalityResolutionIdx())
-      .inputs  ({ clause({selected( -g(x,a) + -g(g(a,b), f(x)) > 0) }) 
-               ,  clause({selected(  g(b,a) +  g(g(a,b), f(a)) > 0) }) })
-      .expected(exactly(
-          /* nothing */
-      ))
-    )
-
 TEST_GENERATION(basic07,
     Generation::SymmetricTest()
       .indices(inequalityResolutionIdx())
@@ -247,16 +235,6 @@ TEST_GENERATION(basic10,
                ,  clause({ selected( a +  f(a) > 0), x - 7 == 0 }) })
       .expected(exactly(
             clause({  a + a > 0, x - 7 == 0  })
-      ))
-    )
-
-// fails: "( -k s₂ + t₂ >₂ 0 )σ /⪯  ( +j s₁ + t₁ >₁ 0 )σ",
-TEST_GENERATION(basic11,
-    Generation::SymmetricTest()
-      .indices(inequalityResolutionIdx())
-      .inputs  ({ clause({ selected(         -g(x,y) > 0 ) }) 
-               ,  clause({ selected( g(b,z) + g(z,b) > 0 ) }) })
-      .expected(exactly(
       ))
     )
 
@@ -289,7 +267,7 @@ TEST_GENERATION(basic14,
     )
 
 // Testing only strictly maximal atoms are being chained
-TEST_GENERATION(basic15a_new,
+TEST_GENERATION(basic15a,
     Generation::SymmetricTest()
       .indices(inequalityResolutionIdx())
       .inputs  ({ clause({ selected(- g(x,y) - g(y,x) > 0) }) 
@@ -298,7 +276,7 @@ TEST_GENERATION(basic15a_new,
     )
 
 // Testing only strictly maximal atoms are being chained
-TEST_GENERATION(basic15b_new,
+TEST_GENERATION(basic15b,
     Generation::SymmetricTest()
       .indices(inequalityResolutionIdx())
       .inputs  ({ clause({ selected(  g(x,y) + g(y,x) > 0) }) 
@@ -307,7 +285,7 @@ TEST_GENERATION(basic15b_new,
     )
 
 // Testing only strictly maximal atoms are being chained
-TEST_GENERATION(basic15c_new,
+TEST_GENERATION(basic15c,
     Generation::SymmetricTest()
       .indices(inequalityResolutionIdx())
       .inputs         ({ clause({ selected(  g(x,y) > 0) }) 
@@ -316,40 +294,40 @@ TEST_GENERATION(basic15c_new,
     )
 
 // Testing that the rhs may be only weakly not only strictly maximal
-TEST_GENERATION(basic16a_new,
+TEST_GENERATION(basic16a,
     Generation::SymmetricTest()
       .indices(inequalityResolutionIdx())
       .inputs         ({ clause({ - g(x,y) + f(z) > 0, -g(y, x) + f(z) > 0 }) 
                        , clause({ g(x,x) > 0   }) })
-      .expected(exactly( clause({ f(z) > 0   }) 
-                       , clause({ f(z) > 0   }) 
+      .expected(exactly( clause({ f(z) > 0, - g(x,x) + f(z) > 0   }) 
+                       , clause({ f(z) > 0, - g(x,x) + f(z) > 0   }) 
           ))
     )
-TEST_GENERATION(basic16b_new,
+TEST_GENERATION(basic16b,
     Generation::SymmetricTest()
       .indices(inequalityResolutionIdx())
-      .inputs         ({ clause({ - g(x,y) + f(x) > 0, -g(y, x) + f(z) > 0 }) 
+      .inputs         ({ clause({ -g(x,y) + f(x) > 0, -g(y,x) + f(z) > 0 }) 
                        , clause({ g(x,x) > 0   }) })
-      .expected(exactly( clause({ f(x) > 0   }) 
-                       , clause({ f(z) > 0   }) 
+      .expected(exactly( clause({ f(x) > 0, -g(x,x) + f(z) > 0   }) 
+                       , clause({ f(z) > 0, -g(x,x) + f(x) > 0   }) 
           ))
     )
 
 // Testing that the lhs may be only strictly maximal
-TEST_GENERATION(basic17a_new,
+TEST_GENERATION(basic17a,
     Generation::SymmetricTest()
       .indices(inequalityResolutionIdx())
-      .inputs         ({ clause({ - g(x,y) + f(z) > 0, -g(y, x) + f(z) > 0 }) 
-                       , clause({ g(x,x) > 0   }) })
+      .inputs         ({ clause({ g(x,y) + f(z) > 0, g(y, x) + f(z) > 0 }) 
+                       , clause({ -g(x,x) > 0   }) })
       .expected(exactly( /* nothing */ ))
     )
-TEST_GENERATION(basic17b_new,
+TEST_GENERATION(basic17b,
     Generation::SymmetricTest()
       .indices(inequalityResolutionIdx())
-      .inputs         ({ clause({ - g(x,y) + f(x) > 0, -g(y, x) + f(z) > 0 }) 
-                       , clause({ g(x,x) > 0   }) })
-      .expected(exactly( clause({ f(x) > 0   }) 
-                       , clause({ f(z) > 0   }) 
+      .inputs         ({ clause({ g(x,y) + f(x) > 0, g(y, x) + f(z) > 0 }) 
+                       , clause({ -g(x,x) > 0   }) })
+      .expected(exactly( clause({ f(x) > 0, g(x,x) + f(z) > 0   }) 
+                       , clause({ f(z) > 0, g(x,x) + f(x) > 0   }) 
           ))
     )
 
@@ -405,9 +383,7 @@ TEST_GENERATION(strictly_max_after_unification_01a,
       .indices(inequalityResolutionIdx())
       .inputs  ({ clause({ selected(-2 * f(x) + f(a) > 0) }) 
                ,  clause({ selected( f(a)        > 0) }) })
-      .expected(exactly(
-          clause({ f(a) > 0 })
-      ))
+      .expected(exactly( /* nothing */ ))
     )
 
 TEST_GENERATION(strictly_max_after_unification_01b,
@@ -416,8 +392,7 @@ TEST_GENERATION(strictly_max_after_unification_01b,
       .indices(inequalityResolutionIdx())
       .inputs  ({ clause({ selected( f(x) - f(a) > 0) }) 
                ,  clause({ selected(-f(a)        > 0) }) })
-      .expected(exactly(
-      ))
+      .expected(exactly( /* nothing */ ))
     )
 
 
@@ -561,7 +536,7 @@ TEST_GENERATION(abstraction7,
       .indices(inequalityResolutionIdx(Options::UnificationWithAbstraction::LASCA1))
       .inputs  ({        clause({ selected(-f(a + b) > 0) })           
                ,         clause({ selected(     f(c) > 0) })              })
-      .expected(exactly( /* nothing as a + b << c */         ))
+      .expected(exactly( clause({ num(0) > 0, a + b != c })  ))
     )
 
 TEST_GENERATION(abstraction8,
@@ -579,7 +554,7 @@ TEST_GENERATION(abstraction1_irc2,
       .indices(inequalityResolutionIdx(Options::UnificationWithAbstraction::LASCA2))
       .inputs  ({        clause({ -f(a + b) > 0 })           
                ,         clause({  f(c) > 0 })              })
-      .expected(exactly(                                    ))
+      .expected(exactly( clause({ num(0) > 0, a + b != c }) ))
     )
 
 TEST_GENERATION(abstraction2_irc2,
@@ -615,7 +590,7 @@ TEST_GENERATION(abstraction5_irc2,
       .indices(inequalityResolutionIdx(Options::UnificationWithAbstraction::LASCA2))
       .inputs  ({        clause({ -f( a ) > 0 })           
                ,         clause({  f( a + f(b) ) > 0 })              })
-      .expected(exactly(   ))
+      .expected(exactly( clause({ num(0) > 0, a != a + f(b) })  ))
     )
 
 
@@ -679,22 +654,22 @@ TEST_GENERATION_WITH_SUGAR(bug01a,
       ))
     )
 
-TEST_GENERATION_WITH_SUGAR(bug02a,
+TEST_GENERATION_WITH_SUGAR(misc02a,
     SUGAR(Real),
     Generation::SymmetricTest()
       .indices(inequalityResolutionIdx())
-      .inputs  ({        clause({ selected( 3 +  a  > 0 ) })  
-               ,         clause({ selected( 0 + -a  > 0 ) }) })
-      .expected(exactly(           /* nothing */      ))
+      .inputs  ({        clause({ selected( -3 +  a  > 0 ) })  
+               ,         clause({ selected(  0 + -a  > 0 ) }) })
+      .expected(exactly( clause({            num(-3) > 0   }) ))
     )
 
-TEST_GENERATION_WITH_SUGAR(bug02b,
+TEST_GENERATION_WITH_SUGAR(misc02b,
     SUGAR(Real),
     Generation::SymmetricTest()
       .indices(inequalityResolutionIdx())
-      .inputs  ({        clause({ selected( 0 +  a  > 0 ) })  
-               ,         clause({ selected( 3 + -a  > 0 ) }) })
-      .expected(exactly( clause({            num(3) > 0   }) ))
+      .inputs  ({        clause({ selected(  0 +  a  > 0 ) })  
+               ,         clause({ selected( -3 + -a  > 0 ) }) })
+      .expected(exactly( clause({            num(-3) > 0   }) ))
     )
 
 TEST_GENERATION_WITH_SUGAR(bug03a,

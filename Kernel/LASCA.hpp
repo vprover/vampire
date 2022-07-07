@@ -329,18 +329,18 @@ namespace Kernel {
     friend struct LascaState;
   };
 
-  template<class NumTraits>
-  struct SelectedAtomicTerm 
-  {
-    unsigned litIdx;
-    Literal* literal;
-    LascaLiteral<NumTraits> ircLit;
-    unsigned termIdx;
-    Monom<NumTraits> self;
-
-    friend std::ostream& operator<<(std::ostream& out, SelectedAtomicTerm const& self)
-    { return out << self.self << " @ " << *self.literal; }
-  };
+  // template<class NumTraits>
+  // struct SelectedAtomicTerm 
+  // {
+  //   unsigned litIdx;
+  //   Literal* literal;
+  //   LascaLiteral<NumTraits> ircLit;
+  //   unsigned termIdx;
+  //   Monom<NumTraits> self;
+  //
+  //   friend std::ostream& operator<<(std::ostream& out, SelectedAtomicTerm const& self)
+  //   { return out << self.self << " @ " << *self.literal; }
+  // };
 
   struct SelectedLiteral {
     Clause* cl;
@@ -383,6 +383,9 @@ namespace Kernel {
 
     TermList smallerSide() const
     { return literal()->termArg(1 - _term); }
+
+    TermList selectedAtom() const
+    { return biggerSide(); }
 
     auto asTuple() const { return std::tie(_term, (SelectedLiteral const&) *this); }
     IMPL_COMPARISONS_FROM_TUPLE(SelectedUninterpretedEquality)
@@ -445,6 +448,9 @@ namespace Kernel {
           .apply([this](auto& lit) 
               { return lit.term().summandAt(_term).factors->denormalize(); }); }
 
+    TermList selectedAtom() const
+    { return monom(); }
+
     auto sign() const 
     { return numeral().apply([](auto const& self) { return self.sign(); }); }
 
@@ -467,6 +473,18 @@ namespace Kernel {
 
     IMPL_COMPARISONS_FROM_TUPLE(SelectedSummand)
   };
+
+  class SelectedAtom: public Coproduct<SelectedUninterpretedEquality, SelectedSummand>
+  {
+    using Super = Coproduct<SelectedUninterpretedEquality, SelectedSummand>;
+    public:
+      SelectedAtom(SelectedUninterpretedEquality e) : Super(std::move(e)) {}
+      SelectedAtom(SelectedSummand               e) : Super(std::move(e)) {}
+
+      TermList atom()
+      { return apply([](auto& self) { return self.selectedAtom(); }); }
+  };
+
 
   class SelectedIntegerEquality : public SelectedSummand 
   {
@@ -654,6 +672,7 @@ namespace Kernel {
                   selection);
     }
 
+
     auto maxEqIndices(Literal* lit, SelectionCriterion sel)
     {
       Stack<unsigned> is(2);
@@ -687,6 +706,10 @@ namespace Kernel {
 
       return iterTraits(ownedArrayishIterator(std::move(is)));
     }
+
+    auto selectUninterpretedEquality(SelectedLiteral lit, SelectionCriterion sel)
+    { return maxEqIndices(lit.literal(), sel)
+        .map([lit](auto i) { return SelectedUninterpretedEquality(lit, i); }); }
 
     auto activePositions(Literal* l) -> IterTraits<VirtualIterator<TermList>>
     {
@@ -766,6 +789,59 @@ namespace Kernel {
                        [](SelectedUninterpretedPredicate&) 
                        { return Option<Out>(); });
         });
+    }
+
+
+    bool interpretedPred(Literal* t) {
+      auto f = t->functor();
+      return t->isEquality()
+        || forAnyNumTraits([&](auto numTraits) -> bool {
+            return f == numTraits.geqF()
+              ||  f == numTraits.greaterF();
+      });
+    }
+
+    bool isUninterpretedEquality(Literal* t) {
+      return t->isEquality()
+        && !forAnyNumTraits([&](auto numTraits) -> bool {
+            return SortHelper::getEqualityArgumentSort(t) == numTraits.sort();
+      });
+    }
+
+
+    auto maxAtoms(Clause* cl, SelectionCriterion criterion, bool includeUnshieldedNumberVariables) {
+      using Out = SelectedAtom;
+      auto atoms = make_shared(Stack<Out>());
+      for (unsigned i : range(0, cl->size())) {
+        auto l = SelectedLiteral(cl, i, *this);
+        if (interpretedPred(l.literal())) {
+          if (l.interpreted.isSome()) {
+            for (auto a : maxSummands(l, criterion)) {
+              atoms->push(Out(a));
+            }
+          } else {
+            // must be an equality of uninterpreted terms
+            ASS(isUninterpretedEquality(l.literal()));
+            for (auto a : selectUninterpretedEquality(l, criterion)) {
+              atoms->push(Out(a));
+            }
+          }
+        } else {
+          atoms = make_shared(Stack<Out>());
+          break;
+        }
+      }
+
+      return OrderingUtils2::maxElems(
+          atoms->size(), 
+          [=](unsigned l, unsigned r) 
+          { return ordering->compare((*atoms)[l].atom(), (*atoms)[r].atom()); },
+          criterion)
+        .map([=](auto i) 
+            { return (*atoms)[i]; })
+      .filter([=](auto x) 
+          { return !x.template is<SelectedSummand>() 
+                || !x.template unwrap<SelectedSummand>().monom().isVar(); });
     }
 
 

@@ -73,19 +73,13 @@ REGISTER_GEN_TESTER(Test::Generation::GenerationTester<TermFactoring>(testTermFa
 // Basic tests
 //////////////////////////////////////
 
-TEST_GENERATION(new0101,
-    Generation::SymmetricTest()
-      .inputs  ({  clause({selected( -g(a, x) + -g(y, b) > 0 ) }) })
-      .expected(exactly(
-          /* nothing because both negative */
-      )))
-TEST_GENERATION(new0102,
+TEST_GENERATION(basic01a,
     Generation::SymmetricTest()
       .inputs  ({  clause({selected( g(a, x) + -g(y, b) > 0 ) }) })
       .expected(exactly(
           clause({ 0 * g(a, b) > 0 })
       )))
-TEST_GENERATION(new0103,
+TEST_GENERATION(basic01b,
     Generation::SymmetricTest()
       .inputs  ({  clause({selected( g(a, x) + g(y, b) > 0 ) }) })
       .expected(exactly(
@@ -95,18 +89,18 @@ TEST_GENERATION(new0103,
 
 // checking different symbols
 
-#define test_new02(sym, name)                                                                       \
-TEST_GENERATION(new02_ ## name,                                                                     \
+#define test_basic03(sym, name)                                                                       \
+TEST_GENERATION(basic03_ ## name,                                                                     \
     Generation::SymmetricTest()                                                                     \
       .inputs  ({  clause({selected( g(a, x) + g(y, b) sym 0 ) }) })                                \
       .expected(exactly(                                                                            \
           clause({ 2 * g(a, b) sym 0 })                                                             \
       )))                                                                                           \
 
-test_new02(>=, geq)
-test_new02(> , greater)
-test_new02(==, eq)
-test_new02(!=, neq)
+test_basic03(>=, geq)
+test_basic03(> , greater)
+test_basic03(==, eq)
+test_basic03(!=, neq)
 
 // TEST_GENERATION(new02_neq,
 //     Generation::SymmetricTest()
@@ -115,26 +109,59 @@ test_new02(!=, neq)
 //           /* we do not factor for negative equalities  */
 //       )))
 
-TEST_GENERATION(basic01a,
+TEST_GENERATION(basic02,
+    Generation::SymmetricTest()
+      .inputs  ({              clause({ - f(x) + f(y) > 0 }) })
+      .expected(exactly(       clause({      0 * f(x) > 0 }) )))
+
+TEST_GENERATION(basic03,
+    Generation::SymmetricTest()
+      .inputs  ({              clause({ - f(x) - f(y) > 0 }) })
+      .expected(exactly(       clause({     -2 * f(x) > 0 }) )))
+
+TEST_GENERATION(basic04,
+    Generation::SymmetricTest()
+      .inputs  ({              clause({   f(x) + f(y) > 0 }) })
+      .expected(exactly(       clause({      2 * f(x) > 0 }) )))
+
+
+TEST_GENERATION(basic05a,
     Generation::SymmetricTest()
       .inputs  ({  clause({selected( 3 * g(a, x) + 2 * g(y, b) > 0 ), p(x) }) })
       .expected(exactly(
           /* nothing because uninterpreted stuff is bigger */
       )))
 
-TEST_GENERATION(basic01b,
+TEST_GENERATION(basic05b,
     Generation::SymmetricTest()
       .inputs  ({  clause({selected( 3 * g(a, x) + 2 * g(y, b) > 0 ), f(x) - 1 == 0 }) })
       .expected(exactly(
             clause({ 5 * g(a,b) > 0, f(b) - 1 == 0  })
       )))
 
-TEST_GENERATION(basic02,
+TEST_GENERATION(basic06,
     Generation::SymmetricTest()
       .inputs  ({  clause({ selected( 1 * f(x) +  -1 * f(a) > 0 )  }) })
       .expected(exactly(
             clause({      0 * f(a) > 0 }) 
       )))
+
+TEST_GENERATION(basic07a,
+    Generation::SymmetricTest()
+      .inputs  ({              clause({   f(x) + f(y) != 0 }) })
+      .expected(exactly(       clause({      2 * f(x) != 0 }) )))
+
+TEST_GENERATION(basic07b,
+    Generation::SymmetricTest()
+      .inputs  ({              clause({   f(x) + f(y) == 0 }) })
+      .expected(exactly(       clause({      2 * f(x) == 0 }) )))
+
+
+TEST_GENERATION(basic07c,
+    Generation::SymmetricTest()
+      .inputs  ({              clause({   f(x) + f(y) >= 0 }) })
+      .expected(exactly(       clause({      2 * f(x) >= 0 }) )))
+
 
 // checking (k1 s1 + k2 s2 + t <> 0)σ /≺ Cσ
 TEST_GENERATION(lit_max_after_unif_1,
@@ -175,14 +202,14 @@ TEST_GENERATION(term_max_after_unif_2,
       .inputs  ({        clause({ g(a, c) + -g(a, x) + g(x, x) > 0 }) })
       .expected(exactly(                               )))
 
-TEST_GENERATION(basic03,
+TEST_GENERATION(basic07,
     Generation::SymmetricTest()
       .inputs  ({  clause({ selected( 1 * f(x) +  -1 * f(y) > 0 )  }) })
       .expected(exactly(
             clause({      num(0) * f(x) > 0 }) 
       )))
 
-TEST_GENERATION(basic04,
+TEST_GENERATION(basic10,
     Generation::SymmetricTest()
       .rule(new TermFactoring(testTermFactoring(Shell::Options::UnificationWithAbstraction::OFF)))
       .inputs  ({  clause({ selected(h(a, x, x1) + h(x, x, x2) + h(b, x, x3) > 0)  }) })
@@ -284,6 +311,11 @@ TEST_GENERATION(factor_only_global_max_atomic_terms_04,
     Generation::SymmetricTest()
       .inputs  ({              clause({ f(x) + f(y) + b > 0, 2 * f(x) + a > 0 }) })
       .expected(exactly(       clause({    2 * f(x) + b > 0, 2 * f(x) + a > 0 }) )))
+
+TEST_GENERATION(factor_only_global_max_atomic_terms_05,
+    Generation::SymmetricTest()
+      .inputs  ({              clause({ g(x,y) + g(y,x) + b > 0, f(g(x,x)) > 0 }) })
+      .expected(exactly(       /* nothing */                                     )))
 
 /////////////////////////////////////////////////////////
 // Bug fixes

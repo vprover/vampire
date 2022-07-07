@@ -57,9 +57,8 @@ public:
 
 private:
 
-                            Option<Clause*> applyRule(SelectedSummand const& l, SelectedSummand const& r);
-  template<class NumTraits> Option<Clause*> applyRule(SelectedSummand const& l, SelectedSummand const& r);
-  template<class NumTraits> ClauseIterator generateClauses(Clause* premise, Literal* lit, LascaLiteral<NumTraits> L);
+                            Option<Clause*> applyRule(SelectedSummand const& l, SelectedSummand const& r, Stack<TermList> const& maxAtoms);
+  template<class NumTraits> Option<Clause*> applyRule(SelectedSummand const& l, SelectedSummand const& r, Stack<TermList> const& maxAtoms);
 
   InequalityNormalizer const& normalizer() const { return _shared->normalizer; }
   Ordering* ord() const { return _shared->ordering; }

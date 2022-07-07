@@ -84,21 +84,22 @@ void TermFactoring::setTestIndices(Stack<Indexing::Index*> const& indices)
 auto rng(unsigned from, unsigned to)
 { return iterTraits(getRangeIterator(from,to)); }
 
-//   C ∨  k1 s1 + k2 s2  + t <> 0
+//   C ∨ k₁ s₁ + k₂ s₂  + t <> 0
 // ---------------------------------------
-// ( C ∨    (k1 + k2)s1 + t <> 0 )σ ∨ Cnst
+// ( C ∨  (k₁ + k₂) s₁ + t <> 0 )σ ∨ Cnst
 //
 // where 
-// - (σ, Cnst) = uwa(s1, s2)
-// - <> ∈ {>,≥,≈}
-// - s,s /∈ Vars
-// - (k1 s1 + k2 s2 + t <> 0)σ /≺ Cσ
-// - s1σ /≺ terms(s2 + t)σ
-// - s2σ /≺ terms(s1 + t)σ
-// - k1 or k2 is positive
+// • (σ, Cnst) = uwa(s₁, s₂)
+// • <> ∈ {>,≥,≈,/≈}
+// • s₁,s₂ /∈ Vars
+// • (k₁ s₁ + k₂ s₂ + t <> 0)σ /≺ Cσ
+// • s₁σ,s₂σ ∈ maxAtoms((C ∨ k₁ s₁ + k₂ s₂  + t <> 0)σ)
 template<class NumTraits> 
 Option<Clause*> TermFactoring::applyRule(
-    SelectedSummand const& sel1, SelectedSummand const& sel2)
+    SelectedSummand const& sel1, 
+    SelectedSummand const& sel2,
+    Stack<TermList> const& maxAtoms
+    )
 {
   MeasureTime time(env.statistics->ircTermFac);
   using Numeral = typename NumTraits::ConstantType;
@@ -131,11 +132,7 @@ Option<Clause*> TermFactoring::applyRule(
   auto s2 = sel2.monom();
 
   check_side_condition(
-      "k1 or k2 is positive ",
-      (sel1.sign() == Sign::Pos || sel2.sign() == Sign::Pos || sel1.literal()->isEquality()))
-
-  check_side_condition(
-      "s1, s2 are not variables",
+      "s₁, s₂ are not variables",
       !sel1.monom().isVar() && !sel2.monom().isVar())
 
   auto uwa_ = _shared->unify(s1, s2);
@@ -145,56 +142,75 @@ Option<Clause*> TermFactoring::applyRule(
   auto& uwa = uwa_.unwrap();
   auto sigma = [&](auto t) { return uwa.sigma(t, /* var bank */ 0); };
 
-  auto pivot_sigma = sigma(sel1.literal());
-  //   ^^^^^^^^^^^ (k1 s1 + k2 s2 + t <> 0)σ
+  // auto pivot_sigma = sigma(sel1.literal());
+  // //   ^^^^^^^^^^^ (k₁ s₁ + k₂ s₂ + t <> 0)σ
 
   Stack<Literal*> conclusion(sel1.clause()->size() + uwa.cnst().size());
 
   // adding `Cσ`, and checking side condition
-  check_side_condition(
-      "(k1 s1 + k2 s2 + t <> 0)σ /≺ Cσ",
-      sel1.contextLiterals()
-          .all([&](auto l) {
-            auto lσ = sigma(l);
-            conclusion.push(lσ);
-            return _shared->notLess(pivot_sigma, lσ);
-          }))
+  for (auto l : sel1.contextLiterals()) {
+    conclusion.push(sigma(l));
+  }
+
+  // • s₁,s₂ /∈ MaxTerms(C ∨ k₁ s₁ + k₂ s₂  + t <> 0)σ
 
   auto s1_sigma = sigma(s1);
   auto s2_sigma = sigma(s2);
   auto resTerm = NumTraits::mul(NumTraits::constantTl(k1 + k2), s1_sigma); 
-  //   ^^^^^^^---> ((k1 + s1)s2)σ
+  //   ^^^^^^^---> ((k₁ + s₁)s₂)σ
 
 
-  {
-    auto cmp = _shared->ordering->compare(s1_sigma, s2_sigma);
+
+  // • s₁σ,s₂σ ∈ maxAtoms((C ∨ k₁ s₁ + k₂ s₂  + t <> 0)σ)
     check_side_condition(
-        "s1σ /≺ s2σ and s2σ /≺ s2σ ",
-        cmp == Ordering::Result::EQUAL || cmp == Ordering::Result::INCOMPARABLE)
-  }
-
-  Stack<TermList> t_sigma(sel1.nContextTerms());
-
-  check_side_condition(
-      "s1σ /≺ atoms(t)σ and s2σ /≺ atoms(t)σ ",
-      range(0, sel1.ircLiteral<NumTraits>().term().nSummands())
+        "s₁σ,s₂σ ∈ maxAtoms((C ∨ k₁ s₁ + k₂ s₂  + t <> 0)σ)",
+        iterTraits(maxAtoms.iterFifo())
+          .all([&](auto a) {
+            auto a_sigma = sigma(a);
+            return _shared->notLess(s1_sigma, a_sigma) 
+               &&  _shared->notLess(s2_sigma, a_sigma);
+            }))
+  //
+  // {
+  //   auto cmp = _shared->ordering->compare(s1_sigma, s2_sigma);
+  //   check_side_condition(
+  //       "s₁σ /≺ s₂σ and s₂σ /≺ s₂σ ",
+  //       cmp == Ordering::Result::EQUAL || cmp == Ordering::Result::INCOMPARABLE)
+  // }
+  //
+  // Stack<TermList> t_sigma(sel1.nContextTerms());
+  //
+  // check_side_condition(
+  //     "s₁σ /≺ atoms(t)σ and s₂σ /≺ atoms(t)σ ",
+  //     range(0, sel1.ircLiteral<NumTraits>().term().nSummands())
+  //         .filter([&](auto i) { return i != sel1.termIdx() && i != sel2.termIdx(); })
+  //         .all([&](auto i) {
+  //           auto ki_ti = sel1.ircLiteral<NumTraits>().term().summandAt(i);
+  //           auto tiσ = sigma(ki_ti.factors->denormalize());
+  //           t_sigma.push(NumTraits::mulSimpl(ki_ti.numeral, tiσ));
+  //           return _shared->notLess(s1_sigma, tiσ)
+  //               && _shared->notLess(s2_sigma, tiσ);
+  //         }))
+  //
+  // auto resSum = NumTraits::sum(concatIters(getSingletonIterator(resTerm), t_sigma.iterFifo()));
+  // //   ^^^^^^---> ((k₁ + s₁)s₂ + t)σ
+    
+  auto t_sigma = range(0, sel1.ircLiteral<NumTraits>().term().nSummands())
           .filter([&](auto i) { return i != sel1.termIdx() && i != sel2.termIdx(); })
-          .all([&](auto i) {
+          .map([&](auto i) {
             auto ki_ti = sel1.ircLiteral<NumTraits>().term().summandAt(i);
             auto tiσ = sigma(ki_ti.factors->denormalize());
-            t_sigma.push(NumTraits::mulSimpl(ki_ti.numeral, tiσ));
-            return _shared->notLess(s1_sigma, tiσ)
-                && _shared->notLess(s2_sigma, tiσ);
-          }))
+            return NumTraits::mulSimpl(ki_ti.numeral, tiσ);
+          });
 
-  auto resSum = NumTraits::sum(concatIters(getSingletonIterator(resTerm), t_sigma.iterFifo()));
-  //   ^^^^^^---> ((k1 + s1)s2 + t)σ
+  auto resSum = NumTraits::sum(concatIters(getSingletonIterator(resTerm), t_sigma));
+  //   ^^^^^^---> ((k₁ + s₁)s₂ + t)σ
     
   auto resLit = createLiteral(resSum, sel1.symbol());
-  //   ^^^^^^---> ((k1 + s1)s2 + t <> 0)σ
+  //   ^^^^^^---> ((k₁ + s₁)s₂ + t <> 0)σ
 
 
-  // adding `((k1 + k2)s1 + t <> 0)σ`
+  // adding `((k₁ + k₂)s₁ + t <> 0)σ`
   conclusion.push(resLit);
 
   // adding `Cnst`
@@ -206,12 +222,16 @@ Option<Clause*> TermFactoring::applyRule(
   return Option<Clause*>(clause);
 }
 
-Option<Clause*> TermFactoring::applyRule(SelectedSummand const& l, SelectedSummand const& r)
+Option<Clause*> TermFactoring::applyRule(
+    SelectedSummand const& l, 
+    SelectedSummand const& r,
+    Stack<TermList> const& maxAtoms
+    )
 { 
   ASS_EQ(l.clause(), r.clause())
   ASS_EQ(l.literal(), r.literal())
   return l.numTraits().apply([&](auto numTraits) 
-      { return applyRule<decltype(numTraits)>(l, r); });
+      { return applyRule<decltype(numTraits)>(l, r, maxAtoms); });
 }
 
 ClauseIterator TermFactoring::generateClauses(Clause* premise)
@@ -219,12 +239,17 @@ ClauseIterator TermFactoring::generateClauses(Clause* premise)
   CALL("TermFactoring::generateClauses");
   DEBUG("in: ", *premise)
 
-  auto selected = make_shared(move_to_heap(
-        _shared->selectedSummands(premise, 
-                      /* literal */ SelectionCriterion::WEAKLY_MAX, 
-                      /* summand */ SelectionCriterion::WEAKLY_MAX,
-                      /* include number vars */ false)
-        .template collect<Stack>()));
+  auto max = make_shared(Stack<TermList>());
+  auto selected = make_shared(
+        _shared->maxAtoms(premise,
+          SelectionCriterion::WEAKLY_MAX,
+          /* include number vars */ false)
+        .inspect([&](auto& sel) { max->push(sel.atom()); })
+        .filterMap([](auto x) -> Option<SelectedSummand> { return x.template as<SelectedSummand>().toOwned(); })
+        .template collect<Stack>());
+
+  max->sort();
+  max->dedup();
 
   std::sort(selected->begin(), selected->end(), [](auto& l, auto& r) { return l.literal() < r.literal(); });
 
@@ -245,13 +270,13 @@ ClauseIterator TermFactoring::generateClauses(Clause* premise)
     litRanges.push(make_pair(last, selected->size()));
 
   return pvi(iterTraits(ownedArrayishIterator(std::move(litRanges)))
-                .flatMap([this, selected = std::move(selected)] (auto r) {
+                .flatMap([=] (auto r) {
                        ASS_REP(r.first < r.second, r)
                        return range(r.first, r.second - 1)
                                 .flatMap([=](auto i) {
                                    return range(i + 1, r.second)
                                             .filterMap([=](auto j) 
-                                              { return applyRule((*selected)[i], (*selected)[j]); });
+                                              { return applyRule((*selected)[i], (*selected)[j], *max); });
                         });
                      }));
 }
