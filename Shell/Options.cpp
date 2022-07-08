@@ -1845,7 +1845,7 @@ void Options::init()
     _superposition.description=
     "Control superposition. Only used in higher-order strategies";
     _lookup.insert(&_superposition);
-    _superposition.addProblemConstraint(hasHigherOrder());
+    // _superposition.addProblemConstraint(hasHigherOrder());
     _superposition.tag(OptionTag::HIGHER_ORDER);
 
     _casesSimp = BoolOptionValue("cases_simp","cs",false);
