@@ -16,6 +16,7 @@
 #define __NameReuse__
 
 #include "Forwards.hpp"
+#include "Kernel/Renaming.hpp"
 #include "Lib/DHMap.hpp"
 
 using namespace Kernel;
@@ -37,7 +38,7 @@ public:
   // definitions
   static NameReuse *definitionInstance();
 
-  // convert `f` to a string in some way to use as a key: saves recomputing it later
+  // convert `f` to a string in some way to use as a key
   vstring key(Formula *f);
 
   // try and reuse a symbol for `key`
@@ -52,6 +53,15 @@ public:
   VirtualIterator<unsigned> freeVariablesInKeyOrder(Formula *f);
 
 private:
+  // convert `ts` to a string in some way to use as a key, writing into `buf`
+  void key(vstringstream &buf, TermList ts);
+  // convert `t`'s arguments to a string in some way to use as a key, writing into `buf`
+  void key(vstringstream &buf, Term *t);
+
+  // canonical renaming, reset in every call to key(Formula *)
+  Renaming _renaming;
+
+  // map from keys to ids
   DHMap<vstring, unsigned> _map;
 };
 

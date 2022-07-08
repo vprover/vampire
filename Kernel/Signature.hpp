@@ -38,6 +38,7 @@
 #include "OperatorType.hpp"
 #include "Theory.hpp"
 
+#include <climits>
 
 namespace Kernel {
 
@@ -192,10 +193,15 @@ class Signature
     bool label() const { return _label; }
     /** return the colour of the symbol */
     Color color() const { return static_cast<Color>(_color); }
-    /** Return the arity of the symbol */
+    /** Return the arity of the symbol
+     * this includes the term as well as the type arguments of the symbol
+     */
     inline unsigned arity() const { return _arity; }
+    /* the number of term arguments for this symbol */
+    inline unsigned numTermArguments() const { return arity() - numTypeArguments(); }
     /** Return the type argument arity of the symbol. Only accurate once type has been set. */
-    inline unsigned typeArgsArity() const { 
+    inline unsigned numTypeArguments() const 
+    { 
       if(name() == "="){ 
         //for some reason, equality is never assigned a type (probably because it is poly)
         return 0; 
@@ -607,15 +613,15 @@ class Signature
   bool isArrayCon(unsigned con) const{
     //second part of conditions ensures that _arrayCon
     //has been initialised.
-    return (con == _arrayCon && _arrayConSet);    
+    return (con == _arrayCon && _arrayCon != UINT_MAX);    
   }
 
   bool isArrowCon(unsigned con) const{
-    return (con == _arrowCon && _arrowConSet);    
+    return (con == _arrowCon && _arrowCon != UINT_MAX);    
   }
   
   bool isAppFun(unsigned fun) const{
-    return (fun == _appFun && _appFunSet);
+    return (fun == _appFun && _appFun != UINT_MAX);
   }
 
   bool tryGetFunctionNumber(const vstring& name, unsigned arity, unsigned& out) const;
@@ -713,7 +719,7 @@ class Signature
 
   unsigned getArrowConstructor(){
     bool added = false;
-    unsigned arrow = addTypeCon(">",2, added);
+    unsigned arrow = addTypeCon("sTfun",2, added);
     if(added){
       _arrowCon = arrow;
       _arrowConSet = true;

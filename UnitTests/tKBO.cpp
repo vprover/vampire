@@ -355,4 +355,25 @@ TEST_FUN(kbo_test22) {
   }
 }
 
+// POLYMORPHIC TESTS START FROM HERE
+
+TEST_FUN(kbo_test23) {
+  DECL_DEFAULT_SORT_VARS  
+  DECL_TYPE_CON(list, 1)
+
+  auto s1 = list(alpha);
+  auto s2 = list(beta);
+
+  DECL_POLY_CONST(f,1,s1)
+  DECL_POLY_CONST(g,1,s2)
+
+  auto ord = kbo(
+    weights(
+      make_pair(f, 10u),
+      make_pair(g, 10u)
+    ), 
+    weights());
+
+  ASS_EQ(ord.compare(f(alpha), g(beta)), Ordering::Result::INCOMPARABLE)
+}
 

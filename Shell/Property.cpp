@@ -66,6 +66,7 @@ Property::Property()
     _groundGoals(0),
     _maxFunArity(0),
     _maxPredArity(0),
+    _maxTypeConArity(0),
     _totalNumberOfVariables(0),
     _maxVariablesInClause(0),
     _props(0),
@@ -74,10 +75,12 @@ Property::Property()
     _sortsUsed(0),
     _hasFOOL(false),
     _hasCombs(false),
+    _hasArrowSort(false),
     _hasApp(false),
     _hasAppliedVar(false),
     _hasBoolVar(false),
     _hasLogicalProxy(false),
+    _hasLambda(false),
     _hasPolymorphicSym(false),
     _quantifiesOverPolymorphicVar(false),
     _onlyFiniteDomainDatatypes(true),
@@ -88,7 +91,6 @@ Property::Property()
     _smtlibLogic(SMTLIBLogic::SMT_UNDEFINED)
 {
   _interpretationPresence.init(Theory::instance()->numberOfFixedInterpretations(), false);
-  env.property = this;
 } // Property::Property
 
 /**
@@ -122,9 +124,7 @@ Property::~Property()
 {
   CALL("Property::~Property");
 
-  if (this == env.property) {
-    env.property = 0;
-  }
+  ASS(this == env.property);
 }
 
 /**
@@ -499,11 +499,20 @@ void Property::scanSort(TermList sort)
 {
   CALL("Property::scanSort");
 
-  if(sort.isVar() || sort.term()->isSuper()){
+  if(sort.isVar()){
+    _hasNonDefaultSorts = true;
     return;
   }
 
-  if(!env.statistics->higherOrder && !_hasPolymorphicSym){
+  if(sort.term()->isSuper()){
+    return;
+  }
+
+  if(sort.isArrowSort()){
+    _hasArrowSort = true;
+  }
+
+  if(!higherOrder() && !hasPolymorphicSym()){
     //used sorts is for FMB which is not compatible with 
     //higher-order or polymorphism
     unsigned sortU = sort.term()->functor();
@@ -517,8 +526,7 @@ void Property::scanSort(TermList sort)
     return;
   }
   _hasNonDefaultSorts = true;
-  env.statistics->hasTypes=true;
-
+  
   if(sort.isArraySort()){
     // an array sort is infinite, if the index or value sort is infinite
     // we rely on the recursive calls setting appropriate flags
@@ -603,7 +611,7 @@ void Property::scan(Literal* lit, int polarity, unsigned cLen, bool goal)
     static bool weighted = env.options->symbolPrecedence() == Options::SymbolPrecedence::WEIGHTED_FREQUENCY ||
                            env.options->symbolPrecedence() == Options::SymbolPrecedence::REVERSE_WEIGHTED_FREQUENCY;
     unsigned w = weighted ? cLen : 1; 
-    for(unsigned i=0;i<w;i++){pred->incUsageCnt();}
+    for(unsigned i=0;i<w;i++){pred->incUsageCnt();} //MS: Giles, was this a joke?
     if(cLen==1){
       pred->markInUnit();
     }
@@ -612,7 +620,7 @@ void Property::scan(Literal* lit, int polarity, unsigned cLen, bool goal)
     }
 
     OperatorType* type = pred->predType();
-    if(type->typeArgsArity()){
+    if(type->numTypeArguments()){
       _hasPolymorphicSym = true;
     }
 
@@ -656,10 +664,6 @@ void Property::scan(TermList ts,bool unit,bool goal)
     return;
   }
 
-  if(ts.term()->isSort()){
-    return;
-  }
-
   ASS(ts.isTerm());
   Term* t = ts.term();
 
@@ -683,10 +687,21 @@ void Property::scan(TermList ts,bool unit,bool goal)
         _hasFOOL = true;
         break;
 
+      case Term::SF_LAMBDA:
+        _hasLambda = true;
+        break;
+
       default:
         break;
     }
   } else {
+    if(t->isSort()){
+      if(t->arity() > _maxTypeConArity){
+        _maxTypeConArity = t->arity();
+      }
+      return;
+    }
+
     scanForInterpreted(t);
 
     _symbolsInFormula.insert(t->functor());
@@ -719,20 +734,20 @@ void Property::scan(TermList ts,bool unit,bool goal)
       _hasLogicalProxy = true;
     }
 
-    OperatorType* type = func->fnType();
-    if(!t->isApplication() && type->typeArgsArity()){
+    if(!t->isApplication() && t->numTypeArguments() > 0){
       _hasPolymorphicSym = true;
     }
 
     int arity = t->arity();
-    for (int i = 0; i < arity; i++) {
-      scanSort(SortHelper::getArgSort(t, i));
-    }
-    scanSort(SortHelper::getResultSort(t));
 
     if (arity > _maxFunArity) {
       _maxFunArity = arity;
     }
+
+    for (int i = 0; i < arity; i++) {
+      scanSort(SortHelper::getArgSort(t, i));
+    }
+    scanSort(SortHelper::getResultSort(t));  
   }
 }
 
@@ -821,11 +836,8 @@ vstring Property::categoryToString(Category cat)
       return "EPR";
     case UEQ:
       return "UEQ";
-#if VDEBUG
     default:
       ASSERTION_VIOLATION;
-      return "";
-#endif
     }
 } // categoryString
 

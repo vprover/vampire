@@ -110,6 +110,7 @@
 #define __REPEAT(arity, sort) __REPEAT_ ## arity(sort)
 
 #define DECL_CONST(f, sort) auto f = ConstSugar(#f, sort);
+#define DECL_SKOLEM_CONST(f, sort) auto f = ConstSugar(#f, sort, true);
 #define DECL_FUNC(f, ...)   auto f = FuncSugar(#f, __VA_ARGS__);
 #define DECL_POLY_FUNC(f, i, ...)   auto f = FuncSugar(#f, __VA_ARGS__, i); 
 #define DECL_POLY_CONST(f, i, sort)   auto f = FuncSugar(#f, Stack<SortSugar>(0), sort, i);    
@@ -401,9 +402,13 @@ public:
   /** explicit conversion */ 
   SortId sort() const { return _srt; }
 
-  static TermSugar createConstant(const char* name, SortSugar s) {
+  static TermSugar createConstant(const char* name, SortSugar s, bool skolem) {
     unsigned f = env.signature->addFunction(name,0);                                                                
-    env.signature->getFunction(f)->setType(OperatorType::getFunctionType({}, s.sugaredExpr())); 
+
+    env.signature->getFunction(f)->setType(OperatorType::getFunctionType({}, s.sugaredExpr()));
+    if (skolem) {
+      env.signature->getFunction(f)->markSkolem();
+    }
     return TermSugar(TermList(Term::createConstant(f)));                                                          
   }                                                                                                                 
 };
@@ -574,8 +579,8 @@ class ConstSugar : public TermSugar, public FuncSugar
 {
 public:
 
-  ConstSugar(const char* name, SortSugar s) 
-    : TermSugar(TermSugar::createConstant(name, s).sugaredExpr()) 
+  ConstSugar(const char* name, SortSugar s, bool skolem = false)
+    : TermSugar(TermSugar::createConstant(name, s, skolem).sugaredExpr())
     , FuncSugar(functor())
   { }
   unsigned functor() const { return this->sugaredExpr().term()->functor(); }

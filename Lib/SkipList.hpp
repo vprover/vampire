@@ -44,7 +44,7 @@ class SkipList
 public:
   CLASS_NAME(SkipList);
   USE_ALLOCATOR(SkipList);
-  
+
   class Node {
   public:
     Value value;
@@ -503,6 +503,7 @@ public:
   inline
   List<Value>* toList()
   {
+    // TODO: just make SkipList::Node a List<Value>?
     //!!! Assuming that SkipList::Node can be reinterpreted to List object !!!
 
     //Compiler gives this warning here:
@@ -517,6 +518,7 @@ public:
       ASS_EQ((void*)&(reinterpret_cast<List<Value>*&>(_left->nodes[0])->tailReference()),
 	      (void*)&_left->nodes[0]->nodes[0]);
     }
+
 
     return reinterpret_cast<List<Value>*&>(_left->nodes[0]);
   }

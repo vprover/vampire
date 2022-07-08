@@ -35,9 +35,7 @@
 
 #include "AnswerExtractor.hpp"
 #include "InterpolantMinimizer.hpp"
-#include "InterpolantMinimizerNew.hpp"
 #include "Interpolants.hpp"
-#include "InterpolantsNew.hpp"
 #include "LaTeX.hpp"
 #include "LispLexer.hpp"
 #include "LispParser.hpp"
@@ -45,7 +43,6 @@
 #include "Statistics.hpp"
 #include "TPTPPrinter.hpp"
 #include "UIHelper.hpp"
-// #include "SMTPrinter.hpp"
 
 #include "Lib/RCPtr.hpp"
 #include "Lib/List.hpp"
@@ -172,9 +169,6 @@ void UIHelper::outputSaturatedSet(ostream& out, UnitIterator uit)
   out << "# SZS output end Saturation." << endl;
 } // outputSaturatedSet
 
-UnitList* parsedUnits;
-
-
 // String utility function that probably belongs elsewhere
 static bool hasEnding (vstring const &fullString, vstring const &ending) {
     if (fullString.length() >= ending.length()) {
@@ -197,6 +191,7 @@ UnitList* UIHelper::tryParseTPTP(istream* input)
       s_haveConjecture=parser.containsConjecture();
       return parser.units();
 }
+
 UnitList* UIHelper::tryParseSMTLIB2(const Options& opts,istream* input,SMTLIBLogic& smtLibLogic)
 {
           Parse::SMTLIB2 parser(opts);
@@ -215,6 +210,26 @@ UnitList* UIHelper::tryParseSMTLIB2(const Options& opts,istream* input,SMTLIBLog
           }
 #endif
           return parser.getFormulas();
+}
+
+// Call this function to report a parsing attempt has failed and to reset the input
+template<typename T>
+void resetParsing(T exception, vstring inputFile, istream*& input,vstring nowtry)
+{
+  if (env.options->mode()!=Options::Mode::SPIDER) {
+    env.beginOutput();
+    addCommentSignForSZS(env.out());
+    env.out() << "Failed with\n";
+    addCommentSignForSZS(env.out());
+    exception.cry(env.out());
+    addCommentSignForSZS(env.out());
+    env.out() << "Trying " << nowtry  << endl;
+    env.endOutput();
+  }
+
+  BYPASSING_ALLOCATOR;
+  delete static_cast<ifstream*>(input);
+  input=new ifstream(inputFile.c_str());
 }
 
 /**
@@ -255,53 +270,41 @@ Problem* UIHelper::getInputProblem(const Options& opts)
        bool smtlib = hasEnding(inputFile,"smt") || hasEnding(inputFile,"smt2");
 
        if(smtlib){
-         env.beginOutput();
-         addCommentSignForSZS(env.out());
-         env.out() << "Running in auto input_syntax mode. Trying SMTLIB2\n";
-         env.endOutput();
+         if (env.options->mode()!=Options::Mode::SPIDER) {
+           env.beginOutput();
+           addCommentSignForSZS(env.out());
+           env.out() << "Running in auto input_syntax mode. Trying SMTLIB2\n";
+           env.endOutput();
+         }
          try{
            units = tryParseSMTLIB2(opts,input,smtLibLogic);
          }
          catch (UserErrorException& exception) {
-           env.beginOutput();
-           addCommentSignForSZS(env.out());
-           env.out() << "Failed with\n";
-           addCommentSignForSZS(env.out());
-           exception.cry(env.out());
-           addCommentSignForSZS(env.out());
-           env.out() << "Trying TPTP\n";
-           env.endOutput();
-           {
-             BYPASSING_ALLOCATOR;
-             delete static_cast<ifstream*>(input);
-             input=new ifstream(inputFile.c_str());
-           }
+           resetParsing(exception,inputFile,input,"TPTP");
+           units = tryParseTPTP(input);
+         }
+         catch (LexerException& exception) {
+           resetParsing(exception,inputFile,input,"TPTP");
+           units = tryParseTPTP(input);
+         }
+         catch (LispParser::Exception& exception) {
+           resetParsing(exception,inputFile,input,"TPTP");
            units = tryParseTPTP(input);
          }
 
        }
        else{
-         env.beginOutput();
-         addCommentSignForSZS(env.out());
-         env.out() << "Running in auto input_syntax mode. Trying TPTP\n";
-         env.endOutput();
+         if (env.options->mode()!=Options::Mode::SPIDER) {
+           env.beginOutput();
+           addCommentSignForSZS(env.out());
+           env.out() << "Running in auto input_syntax mode. Trying TPTP\n";
+           env.endOutput();
+         }
          try{
            units = tryParseTPTP(input); 
          }
-         catch (UserErrorException& exception) {
-           env.beginOutput();
-           addCommentSignForSZS(env.out());
-           env.out() << "Failed with\n";
-           addCommentSignForSZS(env.out());
-           exception.cry(env.out());
-           addCommentSignForSZS(env.out());
-           env.out() << "Trying SMTLIB2\n";
-           env.endOutput();
-           {
-             BYPASSING_ALLOCATOR;
-             delete static_cast<ifstream*>(input);
-             input=new ifstream(inputFile.c_str());
-           }
+         catch (Parse::TPTP::ParseErrorException& exception) {
+           resetParsing(exception,inputFile,input,"SMTLIB2"); 
            units = tryParseSMTLIB2(opts,input,smtLibLogic); 
          }
        }
@@ -322,44 +325,12 @@ Problem* UIHelper::getInputProblem(const Options& opts)
     input=0;
   }
 
-  // parsedUnits = units->copy();
-
   Problem* res = new Problem(units);
   res->setSMTLIBLogic(smtLibLogic);
 
   env.statistics->phase=Statistics::UNKNOWN_PHASE;
   return res;
 }
-
-/*
-static void printInterpolationProofTask(ostream& out, Formula* intp, Color avoid_color, bool negate)
-{
-  CALL("printInterpolationProofTask");
-
-  UIHelper::outputSortDeclarations(out);
-  UIHelper::outputSymbolDeclarations(out);
-
-  UnitList::Iterator uit(parsedUnits);
-  while (uit.hasNext()) {
-    Unit* u = uit.next();
-
-    if (u->inheritedColor() != avoid_color) { // TODO: this does not work, since some inherited colors are modified destructively by the interpolation extraction code
-      Unit* toPrint = u;
-      if (toPrint->isClause()) { // need formulas, for the many sorted case
-        Formula* f = Formula::fromClause(toPrint->asClause());
-        toPrint = new FormulaUnit(f,u->inference(),Unit::AXIOM);
-      } else {
-        u->setInputType(Unit::AXIOM); // need it to be axiom in any case; the interpolant will be the conjecture
-      }
-
-      out << TPTPPrinter::toString(toPrint) << endl;
-    }
-  }
-
-  FormulaUnit* intpUnit = new FormulaUnit(negate ? new NegatedFormula(intp) : intp,new Inference0(Inference::INPUT),Unit::CONJECTURE);
-  out << TPTPPrinter::toString(intpUnit) << "\n";
-}
-*/
 
 /**
  * Output result based on the content of
@@ -416,38 +387,16 @@ void UIHelper::outputResult(ostream& out)
       switch(env.options->showInterpolant()) {
       // new interpolation methods described in master thesis of Bernhard Gleiss
       case Options::InterpolantMode::NEW_HEUR:
-        InterpolantsNew().removeTheoryInferences(formulifiedRefutation); // do this only once for each proof!
-
-        // InterpolantMinimizerNew().analyzeLocalProof(formulifiedRefutation);
-
-        interpolant = InterpolantsNew().getInterpolant(formulifiedRefutation, InterpolantsNew::UnitWeight::VAMPIRE);
+        Interpolants().removeTheoryInferences(formulifiedRefutation); // do this only once for each proof!
+        interpolant = Interpolants().getInterpolant(formulifiedRefutation, Interpolants::UnitWeight::VAMPIRE);
         break;
-      case Options::InterpolantMode::NEW_OPT:
 #if VZ3
-        InterpolantsNew().removeTheoryInferences(formulifiedRefutation); // do this only once for each proof!
-        interpolant = InterpolantMinimizerNew().getInterpolant(formulifiedRefutation, InterpolantsNew::UnitWeight::VAMPIRE);
-#else
-        NOT_IMPLEMENTED;
+      case Options::InterpolantMode::NEW_OPT:
+
+        Interpolants().removeTheoryInferences(formulifiedRefutation); // do this only once for each proof!
+        interpolant = InterpolantMinimizer().getInterpolant(formulifiedRefutation, Interpolants::UnitWeight::VAMPIRE);
+        break;
 #endif
-        break;
-
-      case Options::InterpolantMode::OLD:
-        interpolant = Interpolants().getInterpolant(formulifiedRefutation);
-        break;
-        
-      case Options::InterpolantMode::OLD_OPT:
-        Interpolants::fakeNodesFromRightButGrayInputsRefutation(formulifiedRefutation); // grey right input formulas are artificially made children of proper blue parents
-        interpolant = InterpolantMinimizer(InterpolantMinimizer::OT_WEIGHT, false, true, "Minimized interpolant weight").getInterpolant(formulifiedRefutation);
-        
-        /*
-        Formula* oldInterpolant = InterpolantMinimizer(InterpolantMinimizer::OT_WEIGHT, true, true, "Original interpolant weight").getInterpolant(static_cast<Clause*>(env.statistics->refutation));
-        Formula* interpolant = InterpolantMinimizer(InterpolantMinimizer::OT_WEIGHT, false, true, "Minimized interpolant weight").getInterpolant(static_cast<Clause*>(env.statistics->refutation));
-        InterpolantMinimizer(InterpolantMinimizer::OT_COUNT, true, true, "Original interpolant count").getInterpolant(static_cast<Clause*>(env.statistics->refutation));
-        Formula* cntInterpolant = InterpolantMinimizer(InterpolantMinimizer::OT_COUNT, false, true, "Minimized interpolant count").getInterpolant(static_cast<Clause*>(env.statistics->refutation));
-        Formula* quantInterpolant =  InterpolantMinimizer(InterpolantMinimizer::OT_QUANTIFIERS, false, true, "Minimized interpolant quantifiers").getInterpolant(static_cast<Clause*>(env.statistics->refutation));
-        */
-
-        break;
       case Options::InterpolantMode::OFF:
         ASSERTION_VIOLATION;
       }
@@ -663,7 +612,7 @@ void UIHelper::outputSymbolTypeDeclarationIfNeeded(ostream& out, bool function, 
 
   //don't output type of app. It is an internal Vampire thing
   if(!(function && env.signature->isAppFun(symNumber))){
-    out << (env.statistics->higherOrder ? "thf(" : "tff(")
+    out << (env.property->higherOrder() ? "thf(" : "tff(")
         << (function ? "func" : (typeCon ?  "type" : "pred")) 
         << "_def_" << symNumber << ", type, "
         << sym->name() << ": ";

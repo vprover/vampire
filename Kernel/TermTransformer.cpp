@@ -248,9 +248,9 @@ Formula* TermTransformer::transform(Formula* f)
   return ttft.transform(f);
 }
 
-Term* TermTransformerTransformTransformed::transform(Term* term)
+Term* BottomUpTermTransformer::transform(Term* term)
 {
-  CALL("TermTransformerTransformTransformed::transform(Term* term)");
+  CALL("BottomUpTermTransformer::transform(Term* term)");
   ASS(term->shared());
 
   static Stack<TermList*> toDo(8);
@@ -332,7 +332,7 @@ Term* TermTransformerTransformTransformed::transform(Term* term)
   }
 }
 
-Literal* TermTransformerTransformTransformed::transform(Literal* lit)
+Literal* BottomUpTermTransformer::transform(Literal* lit)
 {
   CALL("TermTransformer::transform(Literal* lit)");
   Term* t = transform(static_cast<Term*>(lit));
@@ -340,10 +340,10 @@ Literal* TermTransformerTransformTransformed::transform(Literal* lit)
   return static_cast<Literal*>(t);
 }
 
-Formula* TermTransformerTransformTransformed::transform(Formula* f)
+Formula* BottomUpTermTransformer::transform(Formula* f)
 {
-  CALL("TermTransformerTransformTransformed::transform(Formula* f)");
-  static TermTransformerTransformTransformedFormulaTransformer ttft(*this);
+  CALL("BottomUpTermTransformer::transform(Formula* f)");
+  static BottomUpTermTransformerFormulaTransformer ttft(*this);
   return ttft.transform(f);
 }
 

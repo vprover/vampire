@@ -93,10 +93,12 @@ FiniteModelBuilder::FiniteModelBuilder(Problem& prb, const Options& opt)
       || prop.knownInfiniteDomain() || // recursive data type provably infinite --> don't bother model building
       env.property->hasInterpretedOperations()) {
 
-      env.beginOutput();
-      addCommentSignForSZS(env.out());
-      env.out() << "WARNING: trying to run FMB on interpreted or otherwise provably infinite-domain problem!" << endl;
-      env.endOutput();
+      if(outputAllowed()) {
+        env.beginOutput();
+        addCommentSignForSZS(env.out());
+        env.out() << "WARNING: trying to run FMB on interpreted or otherwise provably infinite-domain problem!" << endl;
+        env.endOutput();
+      }
 
      _isAppropriate = false;
      _dsaEnumerator = 0; // to ensure it is initialised
@@ -453,7 +455,7 @@ void FiniteModelBuilder::init()
   if(env.options->fmbAdjustSorts() == Options::FMBAdjustSorts::PREDICATE){
     DArray<unsigned> deleted_functions(env.signature->functions());
     for(unsigned f=0;f<env.signature->functions();f++){
-      deleted_functions[f] = _deletedFunctions.find(f);
+      deleted_functions[f] = _deletedFunctions.find(f) || env.signature->getFunction(f)->usageCnt()==0;
      }
     ClauseList::pushFromIterator(_prb.clauseIterator(),clist);
     Monotonicity::addSortPredicates(true, clist,deleted_functions);
@@ -568,7 +570,7 @@ void FiniteModelBuilder::init()
     Renaming n;
     Clause* c = it.next();
 
-    //cout << "Normalize " << c->toString() <<endl;
+    // cout << "Normalize " << c->toString() <<endl;
     for(unsigned i=0;i<c->length();i++){
       Literal* l = (*c)[i];
       n.normalizeVariables(l);
@@ -582,6 +584,9 @@ void FiniteModelBuilder::init()
 
   // TODO: consider updating usage count by rescanning property
   // in particular, terms replaced by definitions have disappeared!
+  
+  // TODO: consider updating usage count by rescanning property as we have had to 
+  //       OR ensure that usage count is updated for any introduced symbols e.g. in Monotonicity
 
   // record the deleted functions and predicates
   // we do this here so that there are slots for symbols introduce in previous
@@ -591,6 +596,9 @@ void FiniteModelBuilder::init()
 
   for(unsigned f=0;f<env.signature->functions();f++){
     del_f[f] = _deletedFunctions.find(f) || env.signature->getFunction(f)->usageCnt()==0;
+#if VTRACE_FMB
+    if(del_f[f]) cout << "Mark " << env.signature->functionName(f)  << " as deleted" << endl;
+#endif
   }
   for(unsigned p=0;p<env.signature->predicates();p++){
     del_p[p] = (_deletedPredicates.find(p) || _trivialPredicates.find(p));
@@ -830,8 +838,9 @@ void FiniteModelBuilder::init()
     ClauseList::Iterator cit(_clauses);
     while(cit.hasNext()){
       Clause* c = cit.next();
-      //cout << "CLAUSE " << c->toString() << endl;  
-
+#if VTRACE_FMB
+      cout << "CLAUSE " << c->toString() << endl;  
+#endif
       // will record the sorts for each variable in the clause 
       // note that clauses have been normalized so variables go from 0 to varCnt
       DArray<unsigned>* csig = new DArray<unsigned>(c->varCnt()); 
@@ -849,7 +858,9 @@ void FiniteModelBuilder::init()
           ASS(lit->nthArgument(0)->isTerm());
           ASS(lit->nthArgument(1)->isVar());
           Term* t = lit->nthArgument(0)->term();
+          ASS(!del_f[t->functor()]);
           const DArray<unsigned>& fsg = _sortedSignature->functionSignatures[t->functor()];
+          ASS_REP(fsg.size() == env.signature->functionArity(t->functor())+1,  fsg.size());
           unsigned var = lit->nthArgument(1)->var();
           unsigned ret = fsg[env.signature->functionArity(t->functor())];
           if(csig_set[var]){ ASS_EQ((*csig)[var],ret); }
@@ -861,6 +872,7 @@ void FiniteModelBuilder::init()
             ASS(t->nthArgument(j)->isVar());
             unsigned asrt = fsg[j]; 
             unsigned avar = (t->nthArgument(j))->var();
+            ASS(avar < csig->size());
             if(!csig_set[var]){ ASS((*csig)[avar]==asrt); }
             else{ 
               (*csig)[avar]=asrt;
@@ -891,7 +903,17 @@ void FiniteModelBuilder::init()
         //cout << var1 << " and " << var2 << endl;
         if(csig_set[var1]){
           if(csig_set[var2]){
-            ASS_EQ((*csig)[var1],(*csig)[var2]);
+            // This is a special edge case where we process a two-var equality before having
+            // enough information, see below
+            if((*csig)[var1] != (*csig)[var2]){
+              TermList litSort = lit->twoVarEqSort();
+              unsigned litSortU = litSort.term()->functor();
+              unsigned dsort = _sortedSignature->vampireToDistinctParent.get(litSortU);
+              unsigned sort = _sortedSignature->varEqSorts[dsort];
+              ASS((*csig)[var1] == sort || (*csig)[var2] == sort);
+              if((*csig)[var1] == sort){ (*csig)[var1] = (*csig)[var2]; }
+              else{ (*csig)[var2] = (*csig)[var1]; } 
+            }
           }
           else{ 
             (*csig)[var2] = (*csig)[var1]; 
@@ -914,6 +936,9 @@ void FiniteModelBuilder::init()
           (*csig)[var2] = sort;
           csig_set[var1]=true;
           csig_set[var2]=true;
+          // NOTE - we might later  find out that the special sort wasn't necessary  e.g.
+          // if we have X0 = X1 | X1 = X2 | p(X2) we may first give special sort to X0 and X1
+          // but then replace this by the sort of X2 when we  process  X1 = X2
         }
       }
 
@@ -943,6 +968,10 @@ void FiniteModelBuilder::addGroundClauses()
 
       Clause* c = cit.next();
       ASS(c);
+
+#if VTRACE_FMB
+      cout << "Ground clause " << c->toString() << endl;
+#endif
 
       static SATLiteralStack satClauseLits;
       satClauseLits.reset();
@@ -1670,6 +1699,39 @@ MainLoopResult FiniteModelBuilder::runImpl()
 
     // if the clauses are satisfiable then we have found a finite model
     if(satResult == SATSolver::SATISFIABLE){
+
+      if (_xmass) { // for CONTOUR
+        // before printing possibly retract _distinctSortSizes (and the corresponding _sortModelSizes) according to the set assumptions
+        // (as the model found may in fact be smaller than the assumed contour in some of the sort dimensions)
+
+        for (unsigned i = 0; i < _distinctSortSizes.size(); i++) {
+          unsigned j = 0;
+          for (; j < _distinctSortSizes[i]; j++) {
+            if (_solver->trueInAssignment(SATLiteral(marker_offsets[i]+j,0))) {
+              break;
+            }
+          }
+          ASS_L(j,_distinctSortSizes[i]); // at the latest "marker_offsets[i]+_distinctSortSizes[i]-1" must have been false (see the assumptions above)
+
+#if VTRACE_DOMAINS
+          cout << "dom " << i << " has final size " << (j+1) << endl;
+#endif
+          _distinctSortSizes[i] = j+1;
+        }
+
+        /* We might think we want to transfer from _distinctSortSizes to _sortModelSizes e.g.
+          for(unsigned s=0;s<_sortedSignature->sorts;s++) {
+            _sortModelSizes[s] = _distinctSortSizes[_sortedSignature->parents[s]];
+          }
+          as we do elsewhere when we update _distinctSortSizes. However, in onModelFound we need to remember what _distinctSortSizes
+          was when we created the model (as this defines the offsets into the variable encoding). Thankfully, this information is
+          encoded in _sortModelSizes so we don't need to do any work here, just don't update _sortModelSizes.
+
+          So, we retract _distinctSortSizes to ensure the model uses the correct sizes but preserve _sortModelSizes to use to query
+          the model.
+        */
+      }
+
       onModelFound();
       return MainLoopResult(Statistics::SATISFIABLE);
     }
@@ -1889,7 +1951,7 @@ void FiniteModelBuilder::onModelFound()
     if(env.signature->functionArity(f)>0) continue;
     if(del_f[f]) continue;
 
-    bool found=false;
+    DEBUG_CODE(bool found=false;)
     for(unsigned c=1;c<=_sortModelSizes[_sortedSignature->functionSignatures[f][0]];c++){
       static DArray<unsigned> grounding(1);
       grounding[0]=c;
@@ -1897,7 +1959,7 @@ void FiniteModelBuilder::onModelFound()
       if(_solver->trueInAssignment(slit)){
         //if(found){ cout << "Error: multiple interpretations of " << name << endl;}
         ASS(!found);
-        found=true;
+        DEBUG_CODE(found=true;)
         model.addConstantDefinition(f,c);
       }
     }
@@ -2446,6 +2508,8 @@ bool FiniteModelBuilder::SmtBasedDSAE::init(unsigned _startModelSize, DArray<uns
       Stack<std::pair<unsigned,unsigned>>& _distinct_sort_constraints, Stack<std::pair<unsigned,unsigned>>& _strict_distinct_sort_constraints)
 {
   CALL("FiniteModelBuilder::SmtBasedDSAE::init");
+
+  _skippedSomeSizes = (_startModelSize > 1);
 
   BYPASSING_ALLOCATOR;
 

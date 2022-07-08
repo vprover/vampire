@@ -141,19 +141,54 @@ public:
 
   struct FuncOrPredId
   {
-    explicit FuncOrPredId(unsigned id, bool isPredicate) : id(id), isPredicate(isPredicate) {}
-    explicit FuncOrPredId(Term* term) : FuncOrPredId(term->functor(), term->isLiteral()) {}
-    static FuncOrPredId function(FuncId id) { return FuncOrPredId ( id, false ); }
-    static FuncOrPredId predicate(PredId id) { return FuncOrPredId ( id, true ); }
+    explicit FuncOrPredId(unsigned id, bool isPredicate, Term *forSorts = nullptr) : id(id), isPredicate(isPredicate), forSorts(forSorts) {}
+    explicit FuncOrPredId(Term* term) :
+      FuncOrPredId(
+        term->functor(),
+        term->isLiteral(),
+        term->numTypeArguments() == 0 ? nullptr : term
+      )
+    {}
+    static FuncOrPredId monomorphicFunction(FuncId id) { return FuncOrPredId (id, false); }
+    static FuncOrPredId monomorphicPredicate(PredId id) { return FuncOrPredId (id, true); }
     unsigned id;
     bool isPredicate;
+    /**
+     * polymorphic symbol application: treat e.g. f(<sorts>, ...) as f<sorts>(...) for Z3
+     * in the monomorphic case, nullptr
+     * in the polymorphic case, some term of the form f(<sorts>, ...) which we use only for sort information
+     */
+    Term *forSorts;
 
     friend struct std::hash<FuncOrPredId> ;
     friend bool operator==(FuncOrPredId const& l, FuncOrPredId const& r)
-    { return l.id == r.id && l.isPredicate == r.isPredicate; }
+    {
+      if(l.id != r.id || l.isPredicate != r.isPredicate)
+        return false;
+      if(!l.forSorts)
+        return true;
+      ASS(r.forSorts != nullptr);
+
+      // compare sort arguments
+      for(unsigned i = 0; i < l.forSorts->numTypeArguments(); i++)
+        // sorts are perfectly shared
+        if(!l.forSorts->typeArg(i).sameContent(r.forSorts->typeArg(i)))
+          return false;
+
+      return true;
+    }
     friend std::ostream& operator<<(std::ostream& out, FuncOrPredId const& self)
-    { return out << (self.isPredicate ? "pred " : "func " )
-      << (self.isPredicate ? env.signature->getPredicate(self.id)->name() : env.signature->getFunction(self.id)->name());
+    {
+      out << (self.isPredicate ? "pred " : "func ");
+      out << (
+        self.isPredicate
+          ? env.signature->getPredicate(self.id)->name()
+          : env.signature->getFunction(self.id)->name()
+      );
+      if(self.forSorts)
+        for(unsigned i = 0; i < self.forSorts->numTypeArguments(); i++)
+          out << " " << self.forSorts->typeArg(i).toString();
+      return out;
     }
   };
 
@@ -162,10 +197,12 @@ private:
   Map<SortId, z3::sort> _sorts;
   struct Z3Hash {
     static unsigned hash(z3::func_decl const& c) { return c.hash(); }
+    static unsigned hash(z3::expr const& c) { return c.hash(); }
     static bool equals(z3::func_decl const& l, z3::func_decl const& r) { return z3::eq(l,r); }
+    static bool equals(z3::expr const& l, z3::expr const& r) { return z3::eq(l,r); }
   };
   Map<z3::func_decl, FuncOrPredId , Z3Hash > _fromZ3;
-  Map<FuncOrPredId,  z3::func_decl, StlHash<FuncOrPredId>> _toZ3;
+  Map<FuncOrPredId,  z3::func_decl, StlHash> _toZ3;
   Set<SortId> _createdTermAlgebras;
 
   z3::func_decl const& findConstructor(FuncId id);
@@ -179,7 +216,7 @@ private:
   friend struct EvaluateInModel;
 public:
   Term* evaluateInModel(Term* trm);
-#ifdef VDEBUG
+#if VDEBUG
   z3::model& getModel() { return _model; }
 #endif
 
@@ -209,7 +246,7 @@ private:
   z3::solver _solver;
   z3::model _model;
   Stack<z3::expr> _assumptions;
-  BiMap<SATLiteral, z3::expr> _assumptionLookup;
+  BiMap<SATLiteral, z3::expr, Hash, Z3Hash> _assumptionLookup;
   const bool _showZ3;
   const bool _unsatCore;
   Option<std::ofstream> _out;
@@ -244,8 +281,13 @@ private:
 namespace std {
     template<>
     struct hash<SAT::Z3Interfacing::FuncOrPredId> {
-      size_t operator()(SAT::Z3Interfacing::FuncOrPredId const& self)
-      { return Lib::HashUtils::combine(self.id, self.isPredicate); }
+      size_t operator()(SAT::Z3Interfacing::FuncOrPredId const& self) {
+        unsigned hash = Lib::HashUtils::combine(self.id, self.isPredicate);
+        if(self.forSorts)
+          for(unsigned i = 0; i < self.forSorts->numTypeArguments(); i++)
+            hash = Lib::HashUtils::combine(hash, self.forSorts->typeArg(i).content());
+        return hash;
+      }
     };
 }
 

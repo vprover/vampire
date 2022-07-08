@@ -109,7 +109,7 @@ struct Choice::AxiomsIterator
       typeArgs.reset();
       subst.reset();
 
-      for(int i = type->typeArgsArity() -1; i >= 0; i--){
+      for(int i = type->numTypeArguments() -1; i >= 0; i--){
         TermList typeArg = TermList((unsigned)i, false);
         typeArgs.push(typeArg);
       }

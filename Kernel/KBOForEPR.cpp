@@ -106,6 +106,10 @@ Ordering::Result KBOForEPR::compare(TermList tl1, TermList tl2) const
   //the terms would be equal as well.
   ASS_NEQ(tl1.term()->functor(), tl2.term()->functor());
 
+  if(tl1.term()->isSort()){
+    //should only be comparing sorts with sorts
+    return compareTypeConPrecedences(tl1.term()->functor(), tl2.term()->functor());
+  }
   return compareFunctionPrecedences(tl1.term()->functor(), tl2.term()->functor());
 }
 

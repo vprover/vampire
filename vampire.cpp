@@ -145,13 +145,15 @@ Problem* getPreprocessedProblem()
 
   TimeCounter tc2(TC_PREPROCESSING);
 
+  // this will provide warning if options don't make sense for problem
+  if (env.options->mode()!=Options::Mode::SPIDER) {
+    env.options->checkProblemOptionConstraints(prb->getProperty(), /*before_preprocessing = */ true);
+  }
+
   Shell::Preprocess prepro(*env.options);
   //phases for preprocessing are being set inside the preprocess method
   prepro.preprocess(*prb);
   
-  // TODO: could this be the right way to freeing the currently leaking classes like Units, Clauses and Inferences?
-  // globUnitList = prb->units();
-
   return prb;
 } // getPreprocessedProblem
 
@@ -178,7 +180,7 @@ void getRandomStrategy()
 
   // It is possible that the random strategy is still incorrect as we don't
   // have access to the Property when setting preprocessing
-  env.options->checkProblemOptionConstraints(prb->getProperty());
+  env.options->checkProblemOptionConstraints(prb->getProperty(), /*before_preprocessing = */ false);
 }
 
 void doProving()
@@ -193,7 +195,9 @@ void doProving()
   env.options->randomizeStrategy(prb->getProperty()); 
 
   // this will provide warning if options don't make sense for problem
-  //env.options->checkProblemOptionConstraints(prb->getProperty()); 
+  if (env.options->mode()!=Options::Mode::SPIDER) {
+    env.options->checkProblemOptionConstraints(prb->getProperty(), /*before_preprocessing = */ false);
+  }
 
   ProvingHelper::runVampireSaturation(*prb, *env.options);
 }
@@ -406,7 +410,7 @@ void modelCheckMode()
   env.options->setOutputAxiomNames(true);
   Problem* prb = UIHelper::getInputProblem(*env.options);
 
-  if(env.statistics->polymorphic || env.statistics->higherOrder){
+  if(env.property->hasPolymorphicSym() || env.property->higherOrder()){
     USER_ERROR("Polymorphic Vampire is not yet compatible with theory reasoning");
   }
 
@@ -746,7 +750,6 @@ int main(int argc, char* argv[])
       env.options->setProof(Options::Proof::TPTP);
       env.options->setOutputAxiomNames(true);
       //env.options->setTimeLimitInSeconds(300);
-      env.options->setMemoryLimit(128000);
 
       if (CASC::PortfolioMode::perform(env.options->slowness())) {
         vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
@@ -760,7 +763,6 @@ int main(int argc, char* argv[])
       env.options->setProof(Options::Proof::TPTP);
       env.options->setMulticore(0); // use all available cores
       env.options->setOutputAxiomNames(true);
-      env.options->setMemoryLimit(128000);
 
       unsigned int nthreads = std::thread::hardware_concurrency();
       float slowness = 1.00 + (0.04 * nthreads);
@@ -777,7 +779,6 @@ int main(int argc, char* argv[])
       env.options->setProof(Options::Proof::TPTP);
       env.options->setOutputAxiomNames(true);
       //env.options->setTimeLimitInSeconds(300);
-      env.options->setMemoryLimit(128000);
 
       if (CASC::PortfolioMode::perform(env.options->slowness())) {
         vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
@@ -794,7 +795,6 @@ int main(int argc, char* argv[])
       env.options->setProof(Options::Proof::OFF);
       env.options->setMulticore(0); // use all available cores
       env.options->setTimeLimitInSeconds(1800);
-      env.options->setMemoryLimit(128000);
       env.options->setStatistics(Options::Statistics::NONE);
 
       //TODO needed?

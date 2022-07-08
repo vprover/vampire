@@ -30,6 +30,7 @@
 #include "Shell/TheoryFinder.hpp"
 
 #include <unistd.h>
+#include <signal.h>
 #include <fstream>
 #include <stdio.h>
 #include <cstdio>
@@ -46,6 +47,14 @@ using namespace Lib;
 using namespace CASC;
 
 PortfolioMode::PortfolioMode() : _slowness(1.0), _syncSemaphore(2) {
+  unsigned cores = System::getNumberOfCores();
+  cores = cores < 1 ? 1 : cores;
+  _numWorkers = min(cores, env.options->multicore());
+  if(!_numWorkers)
+  {
+    _numWorkers = cores >= 8 ? cores - 2 : cores;
+  }
+
   // We need the following two values because the way the semaphore class is currently implemented:
   // 1) dec is the only operation which is blocking
   // 2) dec is done in the mode SEM_UNDO, so is undone when a process terminates
@@ -118,7 +127,6 @@ bool PortfolioMode::searchForProof()
 {
   CALL("PortfolioMode::searchForProof");
 
-  env.timer->makeChildrenIncluded();
   TimeCounter::reinitialize();
 
   _prb = UIHelper::getInputProblem(*env.options);
@@ -136,7 +144,7 @@ bool PortfolioMode::searchForProof()
     Normalisation().normalise(*_prb);
     
     //TheoryFinder cannot cope with polymorphic input
-    if(!env.statistics->polymorphic){
+    if(!env.property->hasPolymorphicSym()){
       TheoryFinder(_prb->units(),property).search();
     }
   }
@@ -147,6 +155,7 @@ bool PortfolioMode::searchForProof()
   return performStrategy(property);
 }
 
+// TODO this name confuses me
 bool PortfolioMode::performStrategy(Shell::Property* property)
 {
   CALL("PortfolioMode::performStrategy");
@@ -156,6 +165,10 @@ bool PortfolioMode::performStrategy(Shell::Property* property)
   Schedule main_extra;
   Schedule fallback_extra;
 
+  // TODO this doesn't make a lot of sense to me either
+  // first make *_extra (x3 multiplier with new options) schedules
+  // then later repeat them (x2 multiplier, no new options) until timeout
+  // if this is really what we want, fine, but why?!
   getSchedules(*property,main,fallback);
   getExtraSchedules(*property,main,main_extra,true,3);
   getExtraSchedules(*property,fallback,fallback_extra,true,3);
@@ -164,42 +177,26 @@ bool PortfolioMode::performStrategy(Shell::Property* property)
   // However, in SMTCOMP mode the fallback is universal for all
   // logics e.g. it's not very strong. Therefore, in SMTCOMP
   // mode we do main main_extra fallback fallback_extra
- 
-  Stack<Schedule> schedules;
+
+  Schedule schedule;
   if(env.options->schedule() == Options::Schedule::SMTCOMP){
-    schedules.push(fallback_extra);
-    schedules.push(fallback);
-    schedules.push(main_extra);
-    schedules.push(main);
+    schedule.loadFromIterator(main.iterFifo());
+    schedule.loadFromIterator(main_extra.iterFifo());
+    schedule.loadFromIterator(fallback.iterFifo());
+    schedule.loadFromIterator(fallback_extra.iterFifo());
   }
   else{
-    schedules.push(fallback_extra);
-    schedules.push(main_extra);
-    schedules.push(fallback);
-    schedules.push(main);
+    schedule.loadFromIterator(main.iterFifo());
+    schedule.loadFromIterator(fallback.iterFifo());
+    schedule.loadFromIterator(main_extra.iterFifo());
+    schedule.loadFromIterator(fallback_extra.iterFifo());
   }
 
-  int remainingTime = env.remainingTime()/100;
-
-  while(remainingTime > 0) {
-    // After running for the first time we replace schedules
-    // by copies with x2 time limits and do this forever
-    // We build these next_schedules as we go
-    Stack<Schedule> next_schedules;
-
-    Stack<Schedule>::Iterator sit(schedules);
-    while(sit.hasNext() && remainingTime > 0){
-      Schedule s = sit.next();
-      if(runSchedule(s)){ return true; }
-      Schedule ns;
-      getExtraSchedules(*property,s,ns,false,2);
-      next_schedules.push(ns);
-      remainingTime = env.remainingTime()/100;
-    }
-
-    schedules = next_schedules;
+  if (schedule.isEmpty()) {
+    USER_ERROR("The schedule is empty.");
   }
-  return false;
+
+  return runScheduleAndRecoverProof(property, std::move(schedule));
 }
 
 /**
@@ -236,7 +233,7 @@ void PortfolioMode::getExtraSchedules(Property& prop, Schedule& old, Schedule& e
    //extra_opts.push("etr=on");         // equational_tautology_removal
    extra_opts.push("av=on:atotf=0.5");     // turn AVATAR off
 
-   if(!env.statistics->higherOrder){
+   if(!prop.higherOrder()){
      //these options are not currently HOL compatible
      extra_opts.push("bsd=on:fsd=on"); // subsumption demodulation
      extra_opts.push("to=lpo");           // lpo
@@ -260,9 +257,9 @@ void PortfolioMode::getExtraSchedules(Property& prop, Schedule& old, Schedule& e
      extra_opts.push("ind=struct:sik=all:indmd=1");
    }
 
-   // If in SMT-COMP mode try guessing the goal
+   // If in SMT-COMP mode try guessing the goal (and adding the twee trick!)
    if(env.options->schedule() == Options::Schedule::SMTCOMP){
-    extra_opts.push("gtg=exists_all");
+    extra_opts.push("gtg=exists_all:tgt=full");
    }
    else{
    // Don't try this in SMT-COMP mode as it requires a goal
@@ -301,6 +298,9 @@ void PortfolioMode::getSchedules(Property& prop, Schedule& quick, Schedule& fall
   CALL("PortfolioMode::getSchedules");
 
   switch(env.options->schedule()) {
+  case Options::Schedule::FILE:
+    Schedules::getScheduleFromFile(env.options->scheduleFile(), quick);
+    break;
   case Options::Schedule::CASC_2019:
   case Options::Schedule::CASC:
     Schedules::getCasc2019Schedule(prop,quick,fallback);
@@ -347,72 +347,91 @@ void PortfolioMode::getSchedules(Property& prop, Schedule& quick, Schedule& fall
   }
 }
 
+bool PortfolioMode::runSchedule(Shell::Property *property, Schedule schedule) {
+  CALL("PortfolioMode::runSchedule");
 
-// Simple one-after-the-other priority.
-float PortfolioProcessPriorityPolicy::staticPriority(vstring sliceCode)
-{
-  static float priority = 0.;
-  priority += 1.;
-  return priority;
-}
-
-//should never be called
-float PortfolioProcessPriorityPolicy::dynamicPriority(pid_t pid)
-{
-  ASSERTION_VIOLATION;
-  return 0.;
-}
-
-PortfolioSliceExecutor::PortfolioSliceExecutor(PortfolioMode *mode)
-  : _mode(mode)
-{}
-
-void PortfolioSliceExecutor::runSlice(vstring sliceCode,int remainingTime)
-{
-  CALL("PortfolioSliceExecutor::runSlice");
-
-  vstring chopped;
-  int sliceTime = _mode->getSliceTime(sliceCode, chopped);
-
-  if (sliceTime > remainingTime)
+  Schedule::BottomFirstIterator it(schedule);
+  Set<pid_t> processes;
+  bool success = false;
+  int remainingTime;
+  while(Timer::syncClock(), remainingTime = env.remainingTime() / 100, remainingTime > 0)
   {
-    sliceTime = remainingTime;
-  }
-
-  ASS_GE(sliceTime,0);
-  try
-  {
-    _mode->runSlice(sliceCode, sliceTime);
-  }
-  catch(Exception &e)
-  {
-    if(outputAllowed())
+    // running under capacity, wake up more tasks
+    while(processes.size() < _numWorkers)
     {
-      std::cerr << "% Exception at run slice level" << std::endl;
-      e.cry(std::cerr);
+      // after exhaustion we replace the schedule
+      // by copies with x2 time limits and do this forever
+      if(!it.hasNext()) {
+        Schedule next;
+        getExtraSchedules(*property, schedule, next, false, 2);
+        schedule = next;
+        it = Schedule::BottomFirstIterator(schedule);
+      }
+      ALWAYS(it.hasNext());
+
+      vstring code = it.next();
+      pid_t process = Multiprocessing::instance()->fork();
+      ASS_NEQ(process, -1);
+      if(process == 0)
+      {
+        runSlice(code, remainingTime);
+        ASSERTION_VIOLATION; // should not return
+      }
+      ALWAYS(processes.insert(process));
     }
-    System::terminateImmediately(1); // didn't find proof
+
+    bool exited, signalled;
+    int code;
+    // sleep until process changes state
+    pid_t process = Multiprocessing::instance()->poll_children(exited, signalled, code);
+
+    /*
+    cout << "Child " << process
+        << " exit " << exited
+        << " sig " << signalled << " code " << code << endl;
+        */
+
+    // child died, remove it from the pool and check if succeeded
+    if(exited)
+    {
+      ALWAYS(processes.remove(process));
+      if(!code)
+      {
+        success = true;
+        break;
+      }
+    } else if (signalled) {
+      // killed by an external agency (could be e.g. a slurm cluster killing for too much memory allocated)
+      env.beginOutput();
+      Shell::addCommentSignForSZS(env.out());
+      env.out()<<"Child killed by signal " << code << endl;
+      env.endOutput();
+      ALWAYS(processes.remove(process));
+    }
   }
+
+  // kill all running processes first
+  decltype(processes)::Iterator killIt(processes);
+  while(killIt.hasNext())
+    Multiprocessing::instance()->killNoCheck(killIt.next(), SIGKILL);
+
+  return success;
 }
 
 /**
  * Run a schedule.
  * Return true if a proof was found, otherwise return false.
  */
-bool PortfolioMode::runSchedule(Schedule& schedule)
+bool PortfolioMode::runScheduleAndRecoverProof(Shell::Property *property, Schedule schedule)
 {
-  CALL("PortfolioMode::runSchedule");
+  CALL("PortfolioMode::runScheduleAndRecoverProof");
 
   if (schedule.size() == 0)
     return false;
 
   UIHelper::portfolioParent = true; // to report on overall-solving-ended in Timer.cpp
 
-  PortfolioProcessPriorityPolicy policy;
-  PortfolioSliceExecutor executor(this);
-  ScheduleExecutor sched(&policy, &executor);
-
-  bool result = sched.run(schedule);
+  bool result = runSchedule(property, std::move(schedule));
 
   //All children have been killed. Now safe to print proof
   if(result && env.options->printProofToFile().empty()){
@@ -450,21 +469,20 @@ bool PortfolioMode::runSchedule(Schedule& schedule)
 }
 
 /**
- * Return the intended slice time in deciseconds and assign the slice
- * vstring with chopped time limit to @b chopped.
+ * Return the intended slice time in deciseconds
  */
-unsigned PortfolioMode::getSliceTime(vstring sliceCode,vstring& chopped)
+unsigned PortfolioMode::getSliceTime(const vstring &sliceCode)
 {
   CALL("PortfolioMode::getSliceTime");
 
   unsigned pos = sliceCode.find_last_of('_');
   vstring sliceTimeStr = sliceCode.substr(pos+1);
-  chopped.assign(sliceCode.substr(0,pos));
   unsigned sliceTime;
   ALWAYS(Int::stringToUnsignedInt(sliceTimeStr,sliceTime));
   ASS_G(sliceTime,0); //strategies with zero time don't make sense
 
   unsigned time = _slowness * sliceTime + 1;
+  // TODO: huh?
   if (time < 10) {
     time++;
   }
@@ -472,54 +490,39 @@ unsigned PortfolioMode::getSliceTime(vstring sliceCode,vstring& chopped)
 } // getSliceTime
 
 /**
- * Wait for termination of a child
- * return true if a proof was found
- */
-bool PortfolioMode::waitForChildAndCheckIfProofFound()
-{
-  CALL("PortfolioMode::waitForChildAndCheckIfProofFound");
-  ASS(!childIds.isEmpty());
-
-  int resValue;
-  DEBUG_CODE(pid_t finishedChild =)
-    Multiprocessing::instance()->waitForChildTermination(resValue);
-  ASS(childIds.remove(finishedChild));
-  if (!resValue) {
-    // we have found the proof. It has been already written down by the writer child,
-
-    /*
-    env.beginOutput();
-    lineOutput() << "terminated slice pid " << finishedChild << " (success)" << endl << flush;
-    env.endOutput();
-    */
-    return true;
-  }
-  // proof not found
-
-  /*
-  env.beginOutput();
-  lineOutput() << "terminated slice pid " << finishedChild << " (fail)" << endl;
-  env.endOutput();
-  */
-  return false;
-} // waitForChildAndExitWhenProofFound
-
-
-/**
  * Run a slice given by its code using the specified time limit.
  */
-void PortfolioMode::runSlice(vstring sliceCode, unsigned timeLimitInDeciseconds)
+void PortfolioMode::runSlice(vstring sliceCode, int timeLimitInDeciseconds)
 {
   CALL("PortfolioMode::runSlice");
 
-  Options opt = *env.options;
-  opt.readFromEncodedOptions(sliceCode);
-  opt.setTimeLimitInDeciseconds(timeLimitInDeciseconds);
-  int stl = opt.simulatedTimeLimit();
-  if (stl) {
-    opt.setSimulatedTimeLimit(int(stl * _slowness));
+  int sliceTime = getSliceTime(sliceCode);
+  if (sliceTime > timeLimitInDeciseconds)
+  {
+    sliceTime = timeLimitInDeciseconds;
   }
-  runSlice(opt);
+
+  ASS_GE(sliceTime,0);
+  try
+  {
+    Options opt = *env.options;
+    opt.readFromEncodedOptions(sliceCode);
+    opt.setTimeLimitInDeciseconds(sliceTime);
+    int stl = opt.simulatedTimeLimit();
+    if (stl) {
+      opt.setSimulatedTimeLimit(int(stl * _slowness));
+    }
+    runSlice(opt);
+  }
+  catch(Exception &e)
+  {
+    if(outputAllowed())
+    {
+      std::cerr << "% Exception at run slice level" << std::endl;
+      e.cry(std::cerr);
+    }
+    System::terminateImmediately(1); // didn't find proof
+  }
 } // runSlice
 
 /**
@@ -582,7 +585,7 @@ void PortfolioMode::runSlice(Options& strategyOpt)
   if(outputResult) { // this get only true for the first child to find a proof
     ASS(!resultValue);
 
-    if (outputAllowed() && (Lib::env.options && Lib::env.options->multicore() != 1)) {
+    if (outputAllowed() && env.options->multicore() != 1) {
       env.beginOutput();
       addCommentSignForSZS(env.out()) << "First to succeed." << endl;
       env.endOutput();
@@ -630,71 +633,3 @@ void PortfolioMode::runSlice(Options& strategyOpt)
 
   exit(resultValue);
 } // runSlice
-
-// BELOW ARE TWO LEFT-OVER FUNCTIONS FROM THE ORIGINAL (SINGLE-CHILD) CASC-MODE
-// THE CODE WAS KEPT FOR NOW AS IT DOESN'T DIRECTLY CORRESPOND TO ANYTHING ABOVE
-
-/*
-
-void handleSIGINT()
-{
-  CALL("CASCMode::handleSIGINT");
-
-  env.beginOutput();
-  env.out()<<"% Terminated by SIGINT!"<<endl;
-  env.out()<<"% SZS status User for "<<env.options->problemName() <<endl;
-  env.statistics->print(env.out());
-  env.endOutput();
-  exit(VAMP_RESULT_STATUS_SIGINT);
-}
-
-bool CASCMode::runSlice(Options& opt)
-{
-  CALL("CASCMode::runSlice");
-
-  pid_t fres=Multiprocessing::instance()->fork();
-
-  if(!fres) {
-    childRun(opt);
-
-    INVALID_OPERATION("ForkingCM::childRun should never return.");
-  }
-
-  System::ignoreSIGINT();
-
-  int status;
-  errno=0;
-  pid_t res=waitpid(fres, &status, 0);
-  if(res==-1) {
-    SYSTEM_FAIL("Error in waiting for forked process.",errno);
-  }
-
-  System::heedSIGINT();
-
-  Timer::syncClock();
-
-  if(res!=fres) {
-    INVALID_OPERATION("Invalid waitpid return value: "+Int::toString(res)+"  pid of forked Vampire: "+Int::toString(fres));
-  }
-
-  ASS(!WIFSTOPPED(status));
-
-  if( (WIFSIGNALED(status) && WTERMSIG(status)==SIGINT) ||
-      (WIFEXITED(status) && WEXITSTATUS(status)==3) )  {
-    //if the forked Vampire was terminated by SIGINT (Ctrl+C), we also terminate
-    //(3 is the return value for this case; see documentation for the
-    //@b vampireReturnValue global variable)
-
-    handleSIGINT();
-  }
-
-  if(WIFEXITED(status) && WEXITSTATUS(status)==0) {
-    //if Vampire succeeds, its return value is zero
-    return true;
-  }
-
-  return false;
-}
-
-*/
-

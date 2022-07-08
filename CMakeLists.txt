@@ -67,12 +67,6 @@ endif()
 #       displayed by the IDEs (we wouldn't need to add them because
 #       of dependendy tracking, this is figured out automatically
 #       by the compiler)
-# TODO: there are unused files (I guess both headers and source 
-#       files). I included only the source files which are also 
-#       included in the makefile, but then added all headers 
-#       which don't have a corresponding source file (since I don't
-#       know which of them are really used, that information is
-#       of course not contained in the makefile)
 ################################################################
 
 set(VAMPIRE_MINISAT_SOURCES
@@ -119,7 +113,6 @@ set(VAMPIRE_LIB_SOURCES
     Lib/Environment.cpp
     Lib/Event.cpp
     Lib/Exception.cpp
-    Lib/Hash.cpp
     Lib/Int.cpp
     Lib/IntNameTable.cpp
     Lib/IntUnionFind.cpp
@@ -257,12 +250,15 @@ set(VAMPIRE_KERNEL_SOURCES
     Kernel/Theory.cpp
     Kernel/Signature.cpp
     Kernel/Unit.cpp
+    Kernel/BottomUpEvaluation.hpp
+    Kernel/BottomUpEvaluation/TermList.hpp
+    Kernel/BottomUpEvaluation/TypedTermList.hpp
+    Kernel/BottomUpEvaluation/PolyNf.hpp
     Kernel/BestLiteralSelector.hpp
     Kernel/Clause.hpp
     Kernel/ClauseQueue.hpp
     Kernel/ColorHelper.hpp
     Kernel/Connective.hpp
-    Kernel/Curryfier.hpp
     Kernel/ELiteralSelector.hpp
     Kernel/EqHelper.hpp
     Kernel/FlatTerm.hpp
@@ -360,6 +356,7 @@ set(VAMPIRE_INDEXING_SOURCES
     Indexing/GroundingIndex.cpp
     Indexing/Index.cpp
     Indexing/IndexManager.cpp
+    Indexing/InductionFormulaIndex.cpp
     Indexing/LiteralIndex.cpp
     Indexing/LiteralMiniIndex.cpp
     Indexing/LiteralSubstitutionTree.cpp
@@ -380,6 +377,7 @@ set(VAMPIRE_INDEXING_SOURCES
     Indexing/GroundingIndex.hpp
     Indexing/Index.hpp
     Indexing/IndexManager.hpp
+    Indexing/InductionFormulaIndex.hpp
     Indexing/LiteralIndex.hpp
     Indexing/LiteralIndexingStructure.hpp
     Indexing/LiteralMiniIndex.hpp
@@ -475,8 +473,6 @@ set(VAMPIRE_INFERENCE_SOURCES
     Inferences/PolynomialEvaluation.cpp
     Inferences/Cancellation.hpp
     Inferences/Cancellation.cpp
-#    Inferences/TheoryRuleAttempt.hpp
-#    Inferences/TheoryRuleAttempt.cpp
     )
 source_group(inference_source_files FILES ${VAMPIRE_INFERENCE_SOURCES})
 
@@ -554,7 +550,6 @@ source_group(saturation_source_files FILES ${VAMPIRE_SATURATION_SOURCES})
 
 set(VAMPIRE_SHELL_SOURCES
     Shell/AnswerExtractor.cpp
-    #Shell/AxiomGenerator.cpp
     Shell/CommandLine.cpp
     Shell/CNF.cpp
     Shell/NewCNF.cpp
@@ -571,9 +566,7 @@ set(VAMPIRE_SHELL_SOURCES
     Shell/Grounding.cpp
     Shell/InequalitySplitting.cpp
     Shell/InterpolantMinimizer.cpp
-    Shell/InterpolantMinimizerNew.cpp
     Shell/Interpolants.cpp
-    Shell/InterpolantsNew.cpp    
     Shell/InterpretedNormalizer.cpp
     Shell/LaTeX.cpp
     Shell/Lexer.cpp
@@ -590,8 +583,6 @@ set(VAMPIRE_SHELL_SOURCES
     Shell/Skolem.cpp
     Shell/SimplifyFalseTrue.cpp
     Shell/SineUtils.cpp
-    Shell/SMTFormula.cpp
-    #Shell/SMTPrinter.cpp
     Shell/FOOLElimination.cpp
     Shell/Statistics.cpp
     Shell/SymbolDefinitionInlining.cpp
@@ -604,17 +595,12 @@ set(VAMPIRE_SHELL_SOURCES
     Shell/BlockedClauseElimination.cpp
     Shell/Token.cpp
     Shell/TPTPPrinter.cpp
-    #Shell/TrivialPredicateRemover.cpp
+    Shell/TweeGoalTransformation.cpp
     Shell/UIHelper.cpp
     Shell/VarManager.cpp
-    #Shell/EqualityVariableRemover.cpp
     Shell/Lexer.cpp
-    #Shell/PARSER_TKV.cpp
     Shell/Preprocess.cpp
-    #Shell/SMTLEX.cpp
-    #Shell/SMTPAR.cpp
     Shell/AnswerExtractor.hpp
-    #Shell/AxiomGenerator.hpp
     Shell/CommandLine.hpp
     Shell/CNF.hpp
     Shell/NewCNF.hpp
@@ -630,9 +616,7 @@ set(VAMPIRE_SHELL_SOURCES
     Shell/Grounding.hpp
     Shell/InequalitySplitting.hpp
     Shell/InterpolantMinimizer.hpp
-    Shell/InterpolantMinimizerNew.hpp    
     Shell/Interpolants.hpp
-    Shell/InterpolantsNew.hpp
     Shell/InterpretedNormalizer.hpp
     Shell/LaTeX.hpp
     Shell/Lexer.hpp
@@ -649,9 +633,7 @@ set(VAMPIRE_SHELL_SOURCES
     Shell/Skolem.hpp
     Shell/SimplifyFalseTrue.hpp
     Shell/SineUtils.hpp
-    Shell/SMTFormula.hpp
     Shell/SMTLIBLogic.hpp
-    #Shell/SMTPrinter.hpp
     Shell/FOOLElimination.hpp
     Shell/Statistics.hpp
     Shell/SymbolDefinitionInlining.hpp
@@ -664,19 +646,15 @@ set(VAMPIRE_SHELL_SOURCES
     Shell/BlockedClauseElimination.hpp
     Shell/Token.hpp
     Shell/TPTPPrinter.hpp
+    Shell/TweeGoalTransformation.hpp
     Shell/UnificationWithAbstractionConfig.hpp
     Shell/UnificationWithAbstractionConfig.cpp
-    #Shell/TrivialPredicateRemover.hpp
     Shell/UIHelper.hpp
     Shell/VarManager.hpp
     Shell/Lexer.hpp
-    #Shell/PARSER_TKV.hpp
     Shell/Preprocess.hpp
-    #Shell/SMTLEX.hpp
-    #Shell/SMTPAR.hpp
     Shell/SubexpressionIterator.cpp
     Shell/SubexpressionIterator.hpp
-    # Shell/version.cpp
     )
 source_group(shell_source_files FILES ${VAMPIRE_SHELL_SOURCES})
 
@@ -718,12 +696,10 @@ source_group(smt_comp_source_files FILES ${VAMPIRE_SMTCOMP_SOURCES})
 set(VAMPIRE_CASC_SOURCES
     CASC/PortfolioMode.cpp
     CASC/Schedules.cpp
-    CASC/ScheduleExecutor.cpp
     CASC/CLTBMode.cpp
     CASC/CLTBModeLearning.cpp
     CASC/PortfolioMode.hpp
     CASC/Schedules.hpp
-    CASC/ScheduleExecutor.hpp
     CASC/CLTBMode.hpp
     CASC/CLTBModeLearning.hpp
     )
@@ -745,21 +721,23 @@ set(UNIT_TESTS
     UnitTests/tImplicationSetClosure.cpp
     UnitTests/tUnificationWithAbstraction.cpp
     UnitTests/tGaussianElimination.cpp
+    UnitTests/tPushUnaryMinus.cpp
     UnitTests/tArithmeticSubtermGeneralization.cpp
     UnitTests/tInterpretedFunctions.cpp
     UnitTests/tRebalance.cpp
     UnitTests/tDisagreement.cpp
     UnitTests/tDynamicHeap.cpp
+    UnitTests/tInduction.cpp
     UnitTests/tIntegerConstantType.cpp
     UnitTests/tSATSolver.cpp
     UnitTests/tArithCompare.cpp
     UnitTests/tSyntaxSugar.cpp
     UnitTests/tSkipList.cpp
-    UnitTests/tfork.cpp
     UnitTests/tBinaryHeap.cpp
     UnitTests/tSafeRecursion.cpp
     UnitTests/tKBO.cpp
     UnitTests/tSKIKBO.cpp
+    UnitTests/tLPO.cpp
     UnitTests/tRatioKeeper.cpp
     UnitTests/tTwoVampires.cpp
     UnitTests/tOptionConstraints.cpp
@@ -825,7 +803,7 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 # set preprocessor defines
 add_compile_definitions(CHECK_LEAKS=0)
 if(CMAKE_BUILD_TYPE STREQUAL Debug)
-  add_compile_definitions(VDEBUG=1 UNIX_USE_SIGALRM=1)
+  add_compile_definitions(VDEBUG=1)
 elseif(CMAKE_BUILD_TYPE STREQUAL Release)
   add_compile_definitions(VDEBUG=0)
 endif()
