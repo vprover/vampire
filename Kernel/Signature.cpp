@@ -730,7 +730,6 @@ unsigned Signature::getApp()
   unsigned app = addFunction("vAPP", 4, added);
   if(added){
     _appFun = app;
-    _appFunSet = true;
     TermList tv1 = TermList(0, false);
     TermList tv2 = TermList(1, false);
     TermList arrowType = AtomicSort::arrowSort(tv1, tv2);

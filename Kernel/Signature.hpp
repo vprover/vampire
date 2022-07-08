@@ -722,7 +722,6 @@ class Signature
     unsigned arrow = addTypeCon("sTfun",2, added);
     if(added){
       _arrowCon = arrow;
-      _arrowConSet = true;
       TermList ss = AtomicSort::superSort();
       Symbol* arr = getTypeCon(arrow);
       arr->setType(OperatorType::getFunctionType({ss, ss}, ss));
@@ -735,7 +734,6 @@ class Signature
     unsigned array = addTypeCon("Array",2, added);
     if(added){
       _arrayCon = array;
-      _arrayConSet = true;
       TermList ss = AtomicSort::superSort();
       Symbol* arr = getTypeCon(array);
       arr->setType(OperatorType::getFunctionType({ss, ss}, ss));
@@ -968,10 +966,6 @@ private:
   unsigned _arrayCon;
   unsigned _arrowCon;
   unsigned _appFun;
-
-  bool _arrayConSet;
-  bool _arrowConSet;
-  bool _appFunSet;
 
   /**
    * Map from sorts to the associated term algebra, if applicable for the sort
