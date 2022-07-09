@@ -25,8 +25,9 @@ Kernel::ClauseIterator Inferences::DisequationFlattening::generateClauses(Clause
   static Stack<Literal *> out;
 
   results.reset();
-  for (unsigned i = 0; i < cl->size(); i++) {
-    Literal *l = cl->literals()[i];
+  auto selected = cl->getSelectedLiteralIterator();
+  while(selected.hasNext()) {
+    Literal *l = selected.next();
     if (l->isPositive() || !l->isEquality() || l->isTwoVarEquality())
       continue;
 
@@ -34,22 +35,28 @@ Kernel::ClauseIterator Inferences::DisequationFlattening::generateClauses(Clause
     TermList rtl = *l->nthArgument(1);
     if (!TermList::sameTopFunctor(ltl, rtl))
       continue;
-
-    out.reset();
-    for (unsigned j = 0; j < i; j++)
-      out.push(cl->literals()[j]);
-
     Term *lt = ltl.term();
     Term *rt = rtl.term();
-    for (unsigned j = 0; j < lt->arity(); j++)
+
+    // applying to polymorphic functions could create ill-typed terms
+    // consider f: !>[X: $tType]: X > $i, a: t, b: s and
+    // f(t, a) != f(s, b)
+    // producing a != b
+    if(lt->numTypeArguments())
+      continue;
+
+    out.reset();
+    for (unsigned i = 0; i < cl->length(); i++)
+      if(cl->literals()[i] != l)
+        out.push(cl->literals()[i]);
+
+    // NB no polymorphism
+    for (unsigned i = 0; i < lt->arity(); i++)
       out.push(Literal::createEquality(
           false,
-          *lt->nthArgument(j),
-          *rt->nthArgument(j),
-          SortHelper::getArgSort(lt, j)));
-
-    for (unsigned j = i + 1; j < cl->size(); j++)
-      out.push(cl->literals()[j]);
+          *lt->nthArgument(i),
+          *rt->nthArgument(i),
+          SortHelper::getArgSort(lt, i)));
 
     Clause *result = Clause::fromStack(
         out,
