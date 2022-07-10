@@ -212,7 +212,7 @@ void PortfolioMode::getExtraSchedules(Property& prop, Schedule& old, Schedule& e
   Stack<vstring> extra_opts;
 
   if (add_extra) {
-    extra_opts.push("rp=on");
+    extra_opts.push("si=on:rawr=on:rtra=on:rp=on"); // should someone have forgotten to mention shuffling in the old schedule, we do want it in extra (and add "rp" on top!)
 
     // the usual room for more
   }
