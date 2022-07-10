@@ -3143,3 +3143,13 @@ void Schedules::getStructInductionSchedule(const Shell::Property& property, Sche
 
   fallback.push("lrs+10_1__50");
 }
+
+void Schedules::getSnakeTptpUnsSchedule(const Shell::Property& property, Schedule& quick) {  
+  // TODO: add the property breakdown of the possible problems
+
+  quick.push("lrs+10_1_tgt=full:i=1000_10");
+}
+
+void Schedules::getSnakeTptpSatSchedule(const Shell::Property& property, Schedule& quick) {
+  quick.push("fmb+10_1__10");
+}
