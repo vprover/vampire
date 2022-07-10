@@ -80,9 +80,9 @@ void Options::init()
 
     _memoryLimit = UnsignedOptionValue("memory_limit","m",
 #if VDEBUG
-                                       1000
+                                       1024     //   1 GB
 #else
-                                       128000
+                                       131072   // 128 GB (current max on the StarExecs)
 #endif
                                        );
     _memoryLimit.description="Memory limit in MB";
