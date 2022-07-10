@@ -146,10 +146,11 @@ bool PortfolioMode::searchForProof()
     
     /* if (env.options->shuffleInput()) { // instead to "combing things into shape" we shuffle and ruffle them
       Shuffling().shuffle(*_prb);
-    } else */
+    } else */ /*
     {
       Normalisation().normalise(*_prb);
     }
+    */
 
     //TheoryFinder cannot cope with polymorphic input
     if(!env.property->hasPolymorphicSym()){
