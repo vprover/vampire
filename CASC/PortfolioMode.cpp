@@ -462,6 +462,12 @@ void PortfolioMode::runSlice(vstring sliceCode, int timeLimitInDeciseconds)
   try
   {
     Options opt = *env.options;
+
+    // opt.randomSeed() would normally be inherited from the parent
+    // addCommentSignForSZS(cout) << "runSlice - seed before setting: " << opt.randomSeed() << endl;
+    // but we want each worker to have their own ...
+    opt.setRandomSeed(getpid());
+    // ... unless a strategy sets a seed explicitly, just here below
     opt.readFromEncodedOptions(sliceCode);
     opt.setTimeLimitInDeciseconds(sliceTime);
     int stl = opt.simulatedTimeLimit();
@@ -499,7 +505,7 @@ void PortfolioMode::runSlice(Options& strategyOpt)
   Timer::setLimitEnforcement(true);
 
   Options opt = strategyOpt;
-  //we have already performed the normalization
+  //we have already performed the normalization (or don't care about it)
   opt.setNormalize(false);
   opt.setForcedOptionValues();
   opt.checkGlobalOptionConstraints();

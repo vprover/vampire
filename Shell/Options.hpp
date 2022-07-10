@@ -2115,7 +2115,8 @@ public:
   void setInclude(vstring val) { _include.actualValue = val; }
   vstring inputFile() const { return _inputFile.actualValue; }
   int activationLimit() const { return _activationLimit.actualValue; }
-  unsigned randomSeed() const { return _randomSeed.actualValue; }
+  unsigned randomSeed() const { return _randomSeed.actualValue; }  
+  void setRandomSeed(unsigned seed) { _randomSeed.actualValue = seed; }
   unsigned randomStrategySeed() const { return _randomStrategySeed.actualValue; }
   bool printClausifierPremises() const { return _printClausifierPremises.actualValue; }
 
