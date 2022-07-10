@@ -3110,9 +3110,9 @@ void Schedules::getStructInductionSchedule(const Shell::Property& property, Sche
 void Schedules::getSnakeTptpUnsSchedule(const Shell::Property& property, Schedule& quick) {  
   // TODO: add the property breakdown of the possible problems
 
-  quick.push("lrs+10_1_tgt=full:i=1000_10");
+  quick.push("lrs+10_1_tgt=full:i=1000_0");
 }
 
 void Schedules::getSnakeTptpSatSchedule(const Shell::Property& property, Schedule& quick) {
-  quick.push("fmb+10_1__10");
+  quick.push("fmb+10_1__0");
 }

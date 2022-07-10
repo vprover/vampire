@@ -93,6 +93,7 @@ public:
 
   // only returns non-zero, if actually measuring
   // (when instruction counting is supported and an instruction limit is set)
+  static bool instructionLimitingInPlace();
   static unsigned elapsedMegaInstructions();
   static void resetInstructionMeasuring();
 
