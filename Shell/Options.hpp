@@ -414,6 +414,8 @@ public:
     LTB_MZR_2017,
     SMTCOMP,
     SMTCOMP_2018,
+    SNAKE_TPTP_UNS,
+    SNAKE_TPTP_SAT,
     STRUCT_INDUCTION
   };
 

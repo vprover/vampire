@@ -310,6 +310,14 @@ void PortfolioMode::getSchedules(Property& prop, Schedule& quick, Schedule& fall
   case Options::Schedule::FILE:
     Schedules::getScheduleFromFile(env.options->scheduleFile(), quick);
     break;
+
+  case Options::Schedule::SNAKE_TPTP_UNS:
+    Schedules::getSnakeTptpUnsSchedule(prop,quick);
+    break;
+  case Options::Schedule::SNAKE_TPTP_SAT:
+    Schedules::getSnakeTptpSatSchedule(prop,quick);
+    break;
+
   case Options::Schedule::CASC_2019:
   case Options::Schedule::CASC:
     Schedules::getCasc2019Schedule(prop,quick,fallback);
