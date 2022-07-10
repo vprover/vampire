@@ -286,6 +286,14 @@ void Timer::resetInstructionMeasuring()
 #endif
 }
 
+bool Timer::instructionLimitingInPlace()
+{
+#ifdef __linux__
+  return (perf_fd >= 0);
+#else
+  return false;
+#endif
+}
 
 void Timer::deinitializeTimer()
 {

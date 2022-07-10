@@ -3222,7 +3222,6 @@ void Options::readOptionsString(vstring optionsString,bool assign)
                 USER_ERROR("value "+value+" for option "+ param +" not known");
                 break;
               case IgnoreMissing::WARN:
-                env.beginOutput();
                 if (outputAllowed()) {
                   env.beginOutput();
                   addCommentSignForSZS(env.out());

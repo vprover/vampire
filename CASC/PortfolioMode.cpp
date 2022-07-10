@@ -510,7 +510,34 @@ unsigned PortfolioMode::getSliceTime(const vstring &sliceCode)
   vstring sliceTimeStr = sliceCode.substr(pos+1);
   unsigned sliceTime;
   ALWAYS(Int::stringToUnsignedInt(sliceTimeStr,sliceTime));
-  
+
+  if (sliceTime == 0 && !Timer::instructionLimitingInPlace()) {
+    if (outputAllowed()) {
+      env.beginOutput();
+      addCommentSignForSZS(env.out());
+      env.out() << "WARNING: time unlimited strategy and instruction limiting not in place - attemping to traslate instructions to time" << endl;
+      env.endOutput();
+    }
+
+    size_t bidx = sliceCode.find(":i=");
+    if (bidx == std::string::npos) {
+      bidx = sliceCode.find("_i=");
+      if (bidx == std::string::npos) {
+        return 0; // run (essentially) forever
+      }
+    } // we have a valid begin index
+    bidx += 3; // advance it past the "*i=" bit
+    size_t eidx = sliceCode.find_first_of(":_",bidx); // find the end of the number there
+    ASS_NEQ(eidx,std::string::npos);
+    vstring sliceInstrStr = sliceCode.substr(bidx,eidx-bidx);
+    unsigned sliceInstr;
+    ALWAYS(Int::stringToUnsignedInt(sliceInstrStr,sliceInstr));
+    
+    // sliceTime is in deci second, we assume a roughly 2GHz CPU here
+    sliceTime = sliceInstr / 200;
+    if (sliceTime == 0) { sliceTime = 1; }
+  }
+
   return _slowness * sliceTime;
 } // getSliceTime
 
@@ -522,7 +549,8 @@ void PortfolioMode::runSlice(vstring sliceCode, int timeLimitInDeciseconds)
   CALL("PortfolioMode::runSlice");
 
   int sliceTime = getSliceTime(sliceCode);
-  if (sliceTime > timeLimitInDeciseconds)
+  if (sliceTime > timeLimitInDeciseconds 
+    || !sliceTime) // no limit set, i.e. "infinity"
   {
     sliceTime = timeLimitInDeciseconds;
   }
@@ -584,7 +612,12 @@ void PortfolioMode::runSlice(Options& strategyOpt)
 
   if (outputAllowed()) {
     env.beginOutput();
-    addCommentSignForSZS(env.out()) << opt.testId() << " on " << opt.problemName() << endl;
+    addCommentSignForSZS(env.out()) << opt.testId() << " on " << opt.problemName() << 
+      " for (" << opt.timeLimitInDeciseconds() << "ds"<<
+#ifdef __linux__
+      "/" << opt.instructionLimit() << "Mi" <<
+#endif
+      ")" << endl;
     env.endOutput();
   }
 
