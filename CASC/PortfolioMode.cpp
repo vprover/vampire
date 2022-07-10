@@ -137,7 +137,6 @@ bool PortfolioMode::searchForProof()
    * is the same as in profileMode (vampire.cpp)
    * also, cf. the beginning of Preprocessing::preprocess*/
   Shell::Property* property = _prb->getProperty();
-  /*
   {
     TimeCounter tc(TC_PREPROCESSING);
 
@@ -145,9 +144,10 @@ bool PortfolioMode::searchForProof()
     
     ScopedLet<Statistics::ExecutionPhase> phaseLet(env.statistics->phase,Statistics::NORMALIZATION);
     
-    if (env.options->shuffleInput()) { // instead to "combing things into shape" we shuffle and ruffle them
+    /* if (env.options->shuffleInput()) { // instead to "combing things into shape" we shuffle and ruffle them
       Shuffling().shuffle(*_prb);
-    } else {
+    } else */
+    {
       Normalisation().normalise(*_prb);
     }
 
@@ -156,7 +156,6 @@ bool PortfolioMode::searchForProof()
       TheoryFinder(_prb->units(),property).search();
     }
   }
-  */
 
   // now all the cpu usage will be in children, we'll just be waiting for them
   Timer::setLimitEnforcement(false);
