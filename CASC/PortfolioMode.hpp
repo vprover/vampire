@@ -48,7 +48,7 @@ private:
   bool searchForProof();
   bool performStrategy(Shell::Property* property);
   void getSchedules(Property& prop, Schedule& quick, Schedule& fallback);
-  void getExtraSchedules(Property& prop, Schedule& old, Schedule& extra, bool add_extra, int time_multiplier); 
+  void getExtraSchedules(Property& prop, Schedule& old, Schedule& extra, bool add_extra, float time_multiplier); 
   bool runSchedule(Shell::Property *property, Schedule schedule);
   bool runScheduleAndRecoverProof(Shell::Property *property, Schedule schedule);
   [[noreturn]] void runSlice(vstring sliceCode, int remainingTime);
