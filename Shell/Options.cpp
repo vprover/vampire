@@ -170,7 +170,7 @@ void Options::init()
     _lookup.insert(&_multicore);
     _multicore.reliesOn(UsingPortfolioTechnology());
 
-    _slowness = FloatOptionValue("slowness","",1.3);
+    _slowness = FloatOptionValue("slowness","",1.0);
     _slowness.description = "The factor by which is multiplied the time limit of each configuration in casc/casc_sat/smtcomp/portfolio mode";
     _lookup.insert(&_slowness);
     _slowness.onlyUsefulWith(UsingPortfolioTechnology());
