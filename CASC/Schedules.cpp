@@ -3144,12 +3144,25 @@ void Schedules::getStructInductionSchedule(const Shell::Property& property, Sche
   fallback.push("lrs+10_1__50");
 }
 
-void Schedules::getSnakeTptpUnsSchedule(const Shell::Property& property, Schedule& quick) {  
-  // TODO: add the property breakdown of the possible problems
+void Schedules::getSnakeTptpUnsSchedule(const Shell::Property& property, Schedule& quick) {    
+  if (property.hasNumerals() || property.hasInterpretedOperations()) { 
+    // THA 
 
-  quick.push("lrs+10_1_tgt=full:i=1000_0");
+  } else if (property.category() == Property::Category::UEQ) {
+    // UEQ
+
+  } else if (property.category() == Property::Category::FNE || property.category() == Property::Category::FEQ) {
+    // FOF
+
+  } else {
+    // CNF
+
+  }
+
+  quick.push("lrs+10_1_i=1000:tgt=full_0");
 }
 
 void Schedules::getSnakeTptpSatSchedule(const Shell::Property& property, Schedule& quick) {
-  quick.push("fmb+10_1__0");
+  // FNT
+  quick.push("fmb+10_1_i=1_10");
 }
