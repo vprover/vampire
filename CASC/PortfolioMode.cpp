@@ -264,6 +264,7 @@ void PortfolioMode::getExtraSchedules(Property& prop, Schedule& old, Schedule& e
    else{
    // Don't try this in SMT-COMP mode as it requires a goal
     extra_opts.push("slsq=on");
+    extra_opts.push("tgt=full");
    }
 
   }
