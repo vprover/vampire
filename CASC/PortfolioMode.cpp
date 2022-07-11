@@ -560,7 +560,7 @@ void PortfolioMode::runSlice(Options& strategyOpt)
     addCommentSignForSZS(env.out()) << opt.testId() << " on " << opt.problemName() << 
       " for (" << opt.timeLimitInDeciseconds() << "ds"<<
 #ifdef __linux__
-      "/" << opt.instructionLimit() << "Mi";
+      "/" << opt.instructionLimit() << "Mi" <<
 #endif
       ")" << endl;
     env.endOutput();
