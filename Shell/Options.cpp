@@ -2744,7 +2744,7 @@ bool Options::OptionValue<T>::randomize(Property* prop){
 template<typename T>
 bool Options::OptionValue<T>::checkConstraints(){
      CALL("Options::OptionValue::checkConstraints");
-     typename Lib::Stack<OptionValueConstraintUP<T>>::Iterator it(_constraints);
+     typename Lib::Stack<OptionValueConstraintUP<T>>::RefIterator it(_constraints);
      while(it.hasNext()){
        const OptionValueConstraintUP<T>& con = it.next();
        if(!con->check(*this)){
@@ -2785,7 +2785,7 @@ template<typename T>
 bool Options::OptionValue<T>::checkProblemConstraints(Property* prop){
     CALL("Options::OptionValue::checkProblemConstraints");
 
-    Lib::Stack<OptionProblemConstraintUP>::Iterator it(_prob_constraints);
+    Lib::Stack<OptionProblemConstraintUP>::RefIterator it(_prob_constraints);
     while(it.hasNext()){
       OptionProblemConstraintUP& con = it.next();
       // Constraint should hold whenever the option is set

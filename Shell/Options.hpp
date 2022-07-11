@@ -1999,7 +1999,7 @@ bool _hard;
       bool check(Property*p){
         CALL("Options::ManyOptionProblemConstraints::check");
         bool res = is_and;
-        Stack<OptionProblemConstraintUP>::Iterator it(cons);
+        Stack<OptionProblemConstraintUP>::RefIterator it(cons);
         while(it.hasNext()){ 
           bool n=it.next()->check(p);res = is_and ? (res && n) : (res || n);}
         return res;
@@ -2007,7 +2007,7 @@ bool _hard;
 
       vstring msg(){
         vstring res="";
-        Stack<OptionProblemConstraintUP>::Iterator it(cons);
+        Stack<OptionProblemConstraintUP>::RefIterator it(cons);
         if(it.hasNext()){ res=it.next()->msg();}
         while(it.hasNext()){ res+=",and\n"+it.next()->msg();}
         return res;
