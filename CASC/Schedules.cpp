@@ -3683,7 +3683,7 @@ void Schedules::getSnakeTptpSatSchedule(const Shell::Property& property, Schedul
   quick.push("ott+3_1:1_lcm=predicate:gsp=on:i=2880:i=140_0");
   quick.push("ott+35_1:128_i=123360:i=266_0");
   quick.push("fmb+10_1:1_si=on:rtra=on:rawr=on:newcnf=on:fmbsr=2.0:i=41550:nm=2:i=31976_0");
-  quick.push("ott+10_1:1_st=2.0:i=1320:gsp=on:ss=included:i=575_0");
+  quick.push("ott+10_1:1_st=2.0:i=1320:gsp=on:i=575_0");
   quick.push("dis+21_1:1_to=lpo:fde=none:sp=const_frequency:abs=on:urr=ec_only:nwc=5.0:s2a=on:i=40000:s2at=4.0:aac=none:fsr=off:er=known:i=885_0");
   quick.push("fmb+10_1:1_bce=on:skr=on:dr=on:fmbsr=1.47:i=401700:nm=2:gsp=on:i=367554_0");
   quick.push("ott+3_1:1_anc=none:spb=goal_then_units:abs=on:bs=on:fsr=off:i=7680:i=1392_0");
@@ -3691,7 +3691,7 @@ void Schedules::getSnakeTptpSatSchedule(const Shell::Property& property, Schedul
   quick.push("fmb+10_1:1_si=on:rtra=on:rawr=on:skr=on:newcnf=on:fmbsr=2.0:i=52200:nm=2:i=24715_0");
   quick.push("ott+1_27:428_bsr=unit_only:slsqr=1,4:drc=off:sp=reverse_frequency:uwa=one_side_constant:fd=preordered:nwc=1.5:slsqc=2:skr=on:newcnf=on:slsq=on:i=73320:awrs=converge:awrsf=8:av=off:slsql=off:i=27757_0");
   quick.push("fmb+10_1:1_fmbas=function:bce=on:skr=on:fmbsr=2.0:i=100350:nm=4:i=93433_0");
-  quick.push("ott+10_1:1_st=2.0:i=409560:sd=10:ss=included:i=369247_0");
+  quick.push("ott+10_1:1_st=2.0:i=409560:sd=10:i=369247_0");
   quick.push("ott+4_1:1_sp=frequency:spb=units:bce=on:atotf=0.5:i=300720:ins=1:i=262588_0");
-  quick.push("ott+10_1:1_to=lpo:sp=frequency:i=387000:ss=included:i=336541_0");
+  quick.push("ott+10_1:1_to=lpo:sp=frequency:i=387000:i=336541_0");
 }
