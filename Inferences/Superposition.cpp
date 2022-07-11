@@ -43,6 +43,7 @@
 #include "Shell/Statistics.hpp"
 
 #include "Superposition.hpp"
+#include "DisequationFlattening.hpp"
 #include "Shell/UnificationWithAbstractionConfig.hpp"
 
 #if VDEBUG
@@ -111,6 +112,24 @@ struct Superposition::RewriteableSubtermsFn
   VirtualIterator<pair<Literal*, TermList> > operator()(Literal* lit)
   {
     CALL("Superposition::RewriteableSubtermsFn()");
+    if(env.options->disequationFlattening() && DisequationFlattening::eligibleForFlattening(lit)) {
+      TermList left = *lit->nthArgument(0);
+      TermList right = *lit->nthArgument(1);
+      switch(_ord.getEqualityArgumentOrder(lit)) {
+      case Ordering::INCOMPARABLE:
+        return pvi(pushPairIntoRightIterator(lit, getConcatenatedIterator(
+          getSingletonIterator(left),
+          getSingletonIterator(right)
+        )));
+      case Ordering::EQUAL:
+      case Ordering::GREATER:
+      case Ordering::GREATER_EQ:
+        return pvi(pushPairIntoRightIterator(lit, getSingletonIterator(left)));
+      case Ordering::LESS:
+      case Ordering::LESS_EQ:
+        return pvi(pushPairIntoRightIterator(lit, getSingletonIterator(right)));
+      }
+    }
     TermIterator it = env.options->combinatorySup() ? EqHelper::getFoSubtermIterator(lit, _ord) :
                                                       EqHelper::getSubtermIterator(lit, _ord);
     return pvi( pushPairIntoRightIterator(lit, it) );

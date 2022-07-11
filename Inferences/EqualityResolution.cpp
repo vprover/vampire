@@ -37,6 +37,7 @@
 
 
 #include "EqualityResolution.hpp"
+#include "DisequationFlattening.hpp"
 #include "Shell/UnificationWithAbstractionConfig.hpp"
 
 #if VDEBUG
@@ -68,6 +69,9 @@ struct EqualityResolution::ResultFn
 
     ASS(lit->isEquality());
     ASS(lit->isNegative());
+
+    if(env.options->disequationFlattening() && DisequationFlattening::eligibleForFlattening(lit))
+      return 0;
 
     FuncSubtermMap funcSubtermMap;
 

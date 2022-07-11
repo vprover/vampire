@@ -23,6 +23,7 @@ public:
   USE_ALLOCATOR(DisequationFlattening);
 
   virtual ~DisequationFlattening();
+  static bool eligibleForFlattening(Literal *l);
   ClauseIterator generateClauses(Clause* cl);
 };
 
