@@ -220,6 +220,24 @@ void PortfolioMode::getExtraSchedules(Property& prop, Schedule& old, Schedule& e
   Schedule::BottomFirstIterator it(old);
   while(it.hasNext()){
       vstring s = it.next();
+
+      if (time_multiplier > 1.0) { // also blow up any present instruction limits      
+        size_t bidx = s.rfind(":i=");
+        if (bidx == vstring::npos) {
+          bidx = s.rfind("_i=");
+        }
+        if (bidx != vstring::npos) {
+          bidx += 3; // advance past the "*i=" bit
+          size_t eidx = s.find_first_of(":_",bidx); // find the end of the number there
+          ASS_NEQ(eidx,vstring::npos);
+          vstring instrStr = s.substr(bidx,eidx-bidx);
+          unsigned instr;
+          ALWAYS(Int::stringToUnsignedInt(instrStr,instr));
+          instr *= time_multiplier;
+          s = s.substr(0,bidx) + Lib::Int::toString(instr) + s.substr(eidx);
+        }
+      }
+
       // try and grab time string
       vstring ts = s.substr(s.find_last_of("_")+1,vstring::npos);
       int t;
@@ -444,20 +462,20 @@ unsigned PortfolioMode::getSliceTime(const vstring &sliceCode)
     if (outputAllowed()) {
       env.beginOutput();
       addCommentSignForSZS(env.out());
-      env.out() << "WARNING: time unlimited strategy and instruction limiting not in place - attemping to traslate instructions to time" << endl;
+      env.out() << "WARNING: time unlimited strategy and instruction limiting not in place - attemping to translate instructions to time" << endl;
       env.endOutput();
     }
 
     size_t bidx = sliceCode.find(":i=");
-    if (bidx == std::string::npos) {
+    if (bidx == vstring::npos) {
       bidx = sliceCode.find("_i=");
-      if (bidx == std::string::npos) {
+      if (bidx == vstring::npos) {
         return 0; // run (essentially) forever
       }
     } // we have a valid begin index
     bidx += 3; // advance it past the "*i=" bit
     size_t eidx = sliceCode.find_first_of(":_",bidx); // find the end of the number there
-    ASS_NEQ(eidx,std::string::npos);
+    ASS_NEQ(eidx,vstring::npos);
     vstring sliceInstrStr = sliceCode.substr(bidx,eidx-bidx);
     unsigned sliceInstr;
     ALWAYS(Int::stringToUnsignedInt(sliceInstrStr,sliceInstr));
