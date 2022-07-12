@@ -141,7 +141,20 @@ Problem* getPreprocessedProblem()
 {
   CALL("getPreprocessedProblem");
 
+#ifdef __linux__
+  unsigned saveInstrLimit = env.options->instructionLimit();
+  if (env.options->parsingDoesNotCount()) {  
+    env.options->setInstructionLimit(0);
+  }
+#endif
+
   Problem* prb = UIHelper::getInputProblem(*env.options);
+
+#ifdef __linux__
+  if (env.options->parsingDoesNotCount()) {
+    env.options->setInstructionLimit(saveInstrLimit+Timer::elapsedMegaInstructions());
+  }
+#endif
 
   TimeCounter tc2(TC_PREPROCESSING);
 

@@ -92,6 +92,11 @@ void Options::init()
   _instructionLimit = UnsignedOptionValue("instruction_limit","i",0);
   _instructionLimit.description="Limit the number (in millions) of executed instructions (excluding the kernel ones).";
   _lookup.insert(&_instructionLimit);
+
+  _parsingDoesNotCount = BoolOptionValue("parsing_does_not_count","",false);
+  _parsingDoesNotCount.description= "Extend the instruction limit by the amount of instructions it took to parse the input problem.";
+  _lookup.insert(&_parsingDoesNotCount);
+  _parsingDoesNotCount.tag(OptionTag::DEVELOPMENT);
 #endif
 
     _mode = ChoiceOptionValue<Mode>("mode","",Mode::VAMPIRE,
