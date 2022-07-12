@@ -143,6 +143,12 @@ Problem* getPreprocessedProblem()
 
   Problem* prb = UIHelper::getInputProblem(*env.options);
 
+#ifdef __linux__
+  if (env.options->parsingDoesNotCount()) {
+    env.options->extendInstructionLimit(Timer::elapsedMegaInstructions());
+  }
+#endif
+
   TimeCounter tc2(TC_PREPROCESSING);
 
   // this will provide warning if options don't make sense for problem

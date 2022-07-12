@@ -2230,6 +2230,8 @@ public:
   void setMemoryLimitOptionValue(size_t newVal) { _memoryLimit.actualValue = newVal; }
 #ifdef __linux__
   unsigned instructionLimit() const { return _instructionLimit.actualValue; }
+  void extendInstructionLimit(unsigned byHowMuch) const { return _instructionLimit.actualValue += byHowMuch; }
+  bool parsingDoesNotCount() const { return _parsingDoesNotCount.actualValue; }
 #endif
   int inequalitySplitting() const { return _inequalitySplitting.actualValue; }
   int ageRatio() const { return _ageWeightRatio.actualValue; }
@@ -2661,6 +2663,7 @@ private:
 
 #ifdef __linux__
   UnsignedOptionValue _instructionLimit; 
+  BoolOptionValue _parsingDoesNotCount;
 #endif
 
   UnsignedOptionValue _memoryLimit; // should be size_t, making an assumption
