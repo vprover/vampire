@@ -2230,7 +2230,7 @@ public:
   void setMemoryLimitOptionValue(size_t newVal) { _memoryLimit.actualValue = newVal; }
 #ifdef __linux__
   unsigned instructionLimit() const { return _instructionLimit.actualValue; }
-  void extendInstructionLimit(unsigned byHowMuch) const { return _instructionLimit.actualValue += byHowMuch; }
+  void setInstructionLimit(unsigned newVal) { _instructionLimit.actualValue = newVal; }
   bool parsingDoesNotCount() const { return _parsingDoesNotCount.actualValue; }
 #endif
   int inequalitySplitting() const { return _inequalitySplitting.actualValue; }
