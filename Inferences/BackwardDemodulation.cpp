@@ -238,6 +238,7 @@ void BackwardDemodulation::perform(Clause* cl,
 	BwSimplificationRecordIterator& simplifications)
 {
   CALL("BackwardDemodulation::perform");
+  TIME_TRACE("BackwardDemodulation::perform");
 
   if(cl->length()!=1 || !(*cl)[0]->isEquality() || !(*cl)[0]->isPositive() ) {
     simplifications=BwSimplificationRecordIterator::getEmpty();

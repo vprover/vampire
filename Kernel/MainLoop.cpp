@@ -57,6 +57,7 @@ void MainLoopResult::updateStatistics()
 MainLoopResult MainLoop::run()
 {
   CALL("MainLoop::run");
+  TIME_TRACE("MainLoop::run");
 
   try {
     init();

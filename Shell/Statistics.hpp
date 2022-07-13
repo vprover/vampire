@@ -25,6 +25,7 @@
 #include "Lib/ScopedPtr.hpp"
 
 #include "Lib/Allocator.hpp"
+#include "Lib/Option.hpp"
 
 
 extern const char* VERSION_STRING;
@@ -37,6 +38,52 @@ namespace Shell {
 
 using namespace Kernel;
 using namespace Solving;
+
+#define TIME_TRACE(name) TimeTrace::ScopedTimer __time_trace_ ## __LINE__ (env.statistics->timeTrace, name);
+
+class TimeTrace 
+{
+
+  TimeTrace(TimeTrace     &&) = delete;
+  TimeTrace(TimeTrace const&) = delete;
+  struct Measurement
+  {
+    unsigned millis;
+  };
+
+  struct Node {
+    CLASS_NAME(Node)
+    USE_ALLOCATOR(Node)
+    const char* name;
+    Stack<unique_ptr<Node>> children;
+    Stack<Measurement> measurements;
+    Node(const char* name) : name(name), children(), measurements() {}
+    void print(std::ostream& out, unsigned indent, Option<Node const&> parent);
+    unsigned totalMillis() const;
+  };
+
+public:
+  TimeTrace();
+
+  using StartTime = unsigned;
+
+  class ScopedTimer {
+    TimeTrace& _trace;
+#if VDEBUG
+    StartTime _start;
+    const char* _name;
+#endif
+  public:
+    ScopedTimer(TimeTrace& trace, const char* name);
+    ~ScopedTimer();
+  };
+
+  void print(std::ostream& out);
+private:
+
+  Node _root;
+  Stack<std::tuple<Node*, StartTime>> _stack;
+};
 
 /**
  * Class Statistics
@@ -338,6 +385,8 @@ public:
   /** if problem is satisfiable and we obtained a model, contains its
    * representation; otherwise it is an empty string */
   vstring model;
+
+  TimeTrace timeTrace;
 
   enum ExecutionPhase {
     /** Whatever happens before we start parsing the problem */

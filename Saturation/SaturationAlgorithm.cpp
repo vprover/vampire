@@ -793,6 +793,7 @@ void SaturationAlgorithm::init()
 Clause* SaturationAlgorithm::doImmediateSimplification(Clause* cl0)
 {
   CALL("SaturationAlgorithm::doImmediateSimplification");
+  TIME_TRACE("SaturationAlgorithm::doImmediateSimplification");
 
   static bool sosTheoryLimit = _opt.sos()==Options::Sos::THEORY;
   static unsigned sosTheoryLimitAge = _opt.sosTheoryLimit();
@@ -995,6 +996,7 @@ void SaturationAlgorithm::handleEmptyClause(Clause* cl)
 bool SaturationAlgorithm::forwardSimplify(Clause* cl)
 {
   CALL("SaturationAlgorithm::forwardSimplify");
+  TIME_TRACE("SaturationAlgorithm::forwardSimplify");
 
   if (!_passive->fulfilsAgeLimit(cl) && !_passive->fulfilsWeightLimit(cl)) {
     RSTAT_CTR_INC("clauses discarded by weight limit in forward simplification");
@@ -1064,6 +1066,7 @@ bool SaturationAlgorithm::forwardSimplify(Clause* cl)
 void SaturationAlgorithm::backwardSimplify(Clause* cl)
 {
   CALL("SaturationAlgorithm::backwardSimplify");
+  TIME_TRACE("SaturationAlgorithm::backwardSimplify");
 
 
   BwSimplList::Iterator bsit(_bwSimplifiers);
@@ -1173,6 +1176,7 @@ void SaturationAlgorithm::removeSelected(Clause* cl)
 void SaturationAlgorithm::activate(Clause* cl)
 {
   CALL("SaturationAlgorithm::activate");
+  TIME_TRACE("SaturationAlgorithm::activate")
 
   if (_consFinder && _consFinder->isRedundant(cl)) {
     return removeSelected(cl);
@@ -1372,6 +1376,7 @@ void SaturationAlgorithm::doOneAlgorithmStep()
 MainLoopResult SaturationAlgorithm::runImpl()
 {
   CALL("SaturationAlgorithm::runImpl");
+  TIME_TRACE("SaturationAlgorithm::runImpl")
 
   unsigned l = 0;
   try

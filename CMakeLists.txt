@@ -732,6 +732,7 @@ set(UNIT_TESTS
     UnitTests/tSATSolver.cpp
     UnitTests/tArithCompare.cpp
     UnitTests/tSyntaxSugar.cpp
+    UnitTests/tTimeTrace.cpp
     UnitTests/tSkipList.cpp
     UnitTests/tBinaryHeap.cpp
     UnitTests/tSafeRecursion.cpp

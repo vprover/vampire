@@ -1775,6 +1775,23 @@ public:
   }
 
 
+  template<class Init, class F> 
+  auto fold(Init init, F fun)
+  { 
+    Init res = std::move(init);
+    while (hasNext()) {
+      res = fun(std::move(res), next());
+    }
+    return res;
+  }
+
+  template<class F> 
+  auto fold(F fun)
+  { return fold(next(), std::move(fun)); }
+
+  auto sum()
+  { return fold(0, [](auto l, Elem&& r) { return l + r; }); }
+
   template<class Container>
   Container collect()
   { 
