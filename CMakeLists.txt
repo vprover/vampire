@@ -585,6 +585,8 @@ set(VAMPIRE_SHELL_SOURCES
     Shell/SineUtils.cpp
     Shell/FOOLElimination.cpp
     Shell/Statistics.cpp
+    Shell/TimeTracing.hpp
+    Shell/TimeTracing.cpp
     Shell/SymbolDefinitionInlining.cpp
     Shell/SymbolOccurrenceReplacement.cpp
     Shell/SymCounter.cpp

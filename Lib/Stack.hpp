@@ -599,7 +599,7 @@ public:
 
     /** return the next element */
     inline
-    C next()
+    C const& next()
     {
       ASS(_pointer > _stack._stack);
       _pointer--;
