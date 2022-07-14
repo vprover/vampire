@@ -27,6 +27,7 @@
 
 #include "Lib/Allocator.hpp"
 #include "Lib/Option.hpp"
+#include "Shell/TimeTracing.hpp"
 
 
 extern const char* VERSION_STRING;
@@ -39,101 +40,6 @@ namespace Shell {
 
 using namespace Kernel;
 using namespace Solving;
-
-struct RuleStats {
-  unsigned millisSucc;
-  unsigned cntSucc;
-  unsigned millisFail;
-  unsigned cntFail;
-
-  RuleStats() 
-    : millisSucc(0)
-    , cntSucc(0)
-    , millisFail(0)
-    , cntFail(0)
-    {}
-
-  operator bool() const {  return millisSucc || cntSucc || millisFail || cntFail; }
-  void output(const char* name, std::ostream& out) const;
-};
-
-/** stats for the rule FourierMotzkin */
-struct LascaIrStats : RuleStats
-{
-  unsigned cntTight;
-  unsigned cntInt;
-  LascaIrStats() : RuleStats(), cntTight(0) {}
-  operator bool() const {  return RuleStats::operator bool() || cntTight || cntInt; }
-  void output(const char* name, std::ostream& out) const;
-};
-
-class MeasureTime {
-  RuleStats& _stats;
-  int _start;
-  bool _cancelled;
-public:
-  MeasureTime(RuleStats& stats)
-    : _stats(stats)
-    , _start(Timer::instance()->elapsedMilliseconds())
-    , _cancelled(false)
-  { }
-
-  void applicationCancelled() 
-  { _cancelled = true; }
-
-  ~MeasureTime() 
-  {
-    auto time = Timer::instance()->elapsedMilliseconds() - _start;
-    if (_cancelled) {
-      _stats.millisFail += time;
-      _stats.cntFail += 1;
-    } else {
-      _stats.millisSucc += time;
-      _stats.cntSucc += 1;
-    }
-  }
-};
-
-class TimeTrace 
-{
-  using Clock = std::chrono::high_resolution_clock;
-  using Duration = typename Clock::duration;
-  using TimePoint = typename Clock::time_point;
-
-  TimeTrace(TimeTrace     &&) = delete;
-  TimeTrace(TimeTrace const&) = delete;
-
-  struct Node {
-    CLASS_NAME(Node)
-    USE_ALLOCATOR(Node)
-    const char* name;
-    Stack<unique_ptr<Node>> children;
-    Stack<Duration> measurements;
-    Node(const char* name) : name(name), children(), measurements() {}
-    void print(std::ostream& out, unsigned indent, Option<Node const&> parent);
-    Duration totalDuration() const;
-  };
-
-public:
-  TimeTrace();
-
-  class ScopedTimer {
-    TimeTrace& _trace;
-#if VDEBUG
-    TimePoint _start;
-    const char* _name;
-#endif
-  public:
-    ScopedTimer(TimeTrace& trace, const char* name);
-    ~ScopedTimer();
-  };
-
-  void print(std::ostream& out);
-private:
-
-  Node _root;
-  Stack<std::tuple<Node*, TimePoint>> _stack;
-};
 
 /**
  * Class Statistics
@@ -316,14 +222,6 @@ public:
   unsigned ircVarElimKNonZeroCnt;
   unsigned ircVarElimKSum;
   unsigned ircVarElimKMax;
-
-  RuleStats ircVarElim;
-  LascaIrStats ircIr;
-  RuleStats ircSup;
-  RuleStats ircEqFact;
-  RuleStats ircTermFac;
-  RuleStats ircLitFac;
-  RuleStats ircDemod;
 
   /** number of (proper) inner rewrites */
   unsigned innerRewrites;

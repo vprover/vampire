@@ -110,7 +110,6 @@ Option<Clause*> TermFactoring::applyRule(
 {
   CALL("LASCA::TermFactoring::applyRule(...)")
   TIME_TRACE("LASCA::TermFactoring::applyRule(...)")
-  MeasureTime time(env.statistics->ircTermFac);
   using Numeral = typename NumTraits::ConstantType;
   DEBUG("L1: ", sel1)
   DEBUG("L2: ", sel2)
@@ -122,7 +121,7 @@ Option<Clause*> TermFactoring::applyRule(
       return nothing();                                                                             \
     }                                                                                               \
 
-  auto nothing = [&]() { time.applicationCancelled(); return Option<Clause*>(); };
+  auto nothing = [&]() { return Option<Clause*>(); };
   auto createLiteral = [&](auto term, auto sym) -> Literal* {
       switch(sym) {
         case LascaPredicate::EQ:         return NumTraits::eq(true,  term, NumTraits::zero());

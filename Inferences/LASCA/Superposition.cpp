@@ -84,14 +84,12 @@ Option<Clause*> Superposition::applyRule(
     ) const 
 {
   CALL("LASCA::Superposition::applyRule(Lhs const&, unsigned, Rhs const&, unsigned, UwaResult&)")
-  TIME_TRACE("LASCA::Superposition::applyRule(...)")
-  MeasureTime time(env.statistics->ircSup);
+  TIME_TRACE("lasca superposition application")
 
   ASS (lhs.literal()->isEquality() && lhs.literal()->isPositive())
   auto s1 = lhs.biggerSide();
   auto s2 = rhs.toRewrite();
   auto nothing = [&]() {
-    time.applicationCancelled();
     return Option<Clause*>();
   };
   ASS(!(s1.isVar() && lhs.isFracNum()))

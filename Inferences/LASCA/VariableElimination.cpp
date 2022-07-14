@@ -193,7 +193,6 @@ ClauseIterator VariableElimination::applyRule(Clause* premise, FoundVariable<Num
   CALL("LASCA::VampireElimination::applyRule")
   TIME_TRACE("LASCA::VampireElimination::applyRule")
   using Numeral = typename NumTraits::ConstantType;
-  MeasureTime time(env.statistics->ircVarElim);
   auto x = found.var;
   DEBUG("eliminating var: ", x)
   auto& I = found.posIneq;

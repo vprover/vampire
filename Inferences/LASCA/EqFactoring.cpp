@@ -54,12 +54,11 @@ void EqFactoring::detach()
 Option<Clause*> EqFactoring::applyRule(SelectedEquality const& l1, SelectedEquality const& l2)
 {
   CALL("EqFactoring::applyRule(SelectedEquality const& l1, SelectedEquality const& l2)")
-  TIME_TRACE("EqFactoring::applyRule(...)")
+  TIME_TRACE("lasca equality factoring application")
   DEBUG("============")
   DEBUG("l1: ", l1)
   DEBUG("l2: ", l2)
 
-  MeasureTime time(env.statistics->ircEqFact);
 
   auto unifySorts = [](auto s1, auto s2) -> Option<TermList> {
     static RobSubstitution subst;
@@ -71,10 +70,7 @@ Option<Clause*> EqFactoring::applyRule(SelectedEquality const& l1, SelectedEqual
     }
   };
 
-  auto nothing = [&]() {
-    time.applicationCancelled();
-    return Option<Clause*>();
-  };
+  auto nothing = [&]() { return Option<Clause*>(); };
 
   auto s1 = l1.biggerSide();
   auto s2 = l2.biggerSide();

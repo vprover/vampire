@@ -56,12 +56,11 @@ Option<Clause*> InequalityFactoring::applyRule(
 {
   using Numeral = typename NumTraits::ConstantType;
   CALL("InequalityFactoring::applyRule(SelectedSummand const& l1, SelectedSummand const& l2)")
-  TIME_TRACE("InequalityFactoring::applyRule(...)")
+  TIME_TRACE("lasca inequality factoring application")
   DEBUG("l1: ", l1)
   DEBUG("l2: ", l2)
 
-  MeasureTime time(env.statistics->ircLitFac);
-  auto nothing = [&]() { time.applicationCancelled(); return Option<Clause*>{}; };
+  auto nothing = [&]() { return Option<Clause*>{}; };
 
   auto uwa_ = _shared->unify(l1.monom(), l2.monom());
 

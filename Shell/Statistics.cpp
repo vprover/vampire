@@ -138,13 +138,6 @@ Statistics::Statistics()
     ircVarElimKNonZeroCnt(0),
     ircVarElimKSum(0),
     ircVarElimKMax(0),
-    ircVarElim(),
-    ircIr(),
-    ircSup(),
-    ircEqFact(),
-    ircTermFac(),
-    ircLitFac(),
-    ircDemod(),
 
     innerRewrites(0),
     innerRewritesToEqTaut(0),
@@ -226,7 +219,6 @@ void Statistics::print(ostream& out)
   bool separable=false;
 #define HEADING(text,num) if (num) { addCommentSignForSZS(out); out << ">>> " << (text) << endl;}
 #define COND_OUT(text, num) if (num) { addCommentSignForSZS(out); out << text << ": " << (num) << endl; separable = true; }
-#define RULE_STATS_OUT(rule) if (rule) { rule.output(#rule, out); separable = true; }
 #define SEPARATOR if (separable) { addCommentSignForSZS(out); out << endl; separable = false; }
 
   addCommentSignForSZS(out);
@@ -469,20 +461,11 @@ void Statistics::print(ostream& out)
   SEPARATOR;
 
   HEADING("Inequality Resolution Calculus", ircVarElimKNonZeroCnt || ircVarElimKSum || ircVarElimKMax
-                                           || ircVarElim || ircSup|| ircEqFact || ircIr  || ircTermFac || ircLitFac || ircDemod
                                           );
 
   COND_OUT("ircVarElimKNonZeroCnt" , ircVarElimKNonZeroCnt);
   COND_OUT("ircVarElimKSum" , ircVarElimKSum);
   COND_OUT("ircVarElimKMax", ircVarElimKMax);
-
-  RULE_STATS_OUT(ircVarElim);
-  RULE_STATS_OUT(ircSup);
-  RULE_STATS_OUT(ircEqFact);
-  RULE_STATS_OUT(ircIr);
-  RULE_STATS_OUT(ircTermFac);
-  RULE_STATS_OUT(ircLitFac);
-  RULE_STATS_OUT(ircDemod);
 
   SEPARATOR;
 
@@ -528,32 +511,6 @@ void Statistics::print(ostream& out)
   timeTrace.print(out);
 }
 
-#define VAL_OUT(valname,val) { bool separable; COND_OUT(name << "." << valname, val); (void) separable; }
-#define FIELD_OUT(field) VAL_OUT(#field, field)
-void RuleStats::output(const char* name, std::ostream& out) const
-{
-  FIELD_OUT(millisSucc);
-  FIELD_OUT(cntSucc);
-  VAL_OUT("meanMillisSucc", millisSucc / (double) cntSucc);
-
-  FIELD_OUT(millisFail);
-  FIELD_OUT(cntFail);
-  VAL_OUT("meanMillisFail", millisFail / (double) cntFail);
-
-  VAL_OUT("millisTotal", millisSucc + millisFail);
-  VAL_OUT("cntTotal", cntSucc + cntFail);
-  VAL_OUT("meanTotal",  (millisSucc + millisFail)/(double)( cntSucc + cntFail ));
-}
-
-void LascaIrStats::output(const char* name, std::ostream& out) const
-{
-  RuleStats::output(name, out);
-  FIELD_OUT(cntTight);
-  FIELD_OUT(cntInt);
-}
-
-#undef VAL_OUT
-#undef FIELD_OUT
 #undef COND_OUT
 
 
@@ -623,92 +580,5 @@ const char* Statistics::phaseToString(ExecutionPhase p)
   default:
     ASSERTION_VIOLATION;
     return "Invalid ExecutionPhase value";
-  }
-}
-
-TimeTrace::TimeTrace() 
-  : _root("<root>")
-  , _stack({ {&_root, Clock::now(), }, }) 
-{  }
-
-TimeTrace::ScopedTimer::ScopedTimer(TimeTrace& trace, const char* name)
-  : _trace(trace)
-#if VDEBUG
-  , _start()
-  , _name(name)
-#endif
-{
-  // DBG("ScopedTimer() ", name)
-  auto& children = std::get<0>(trace._stack.top())->children;
-  auto node = iterTraits(children.iter())
-    .map([](auto& x) { return &*x; })
-    .find([&](Node* n) { return n->name == name; })
-    .unwrapOrElse([&]() { 
-        children.push(Lib::make_unique<Node>(name));
-        return &*children.top();
-    });
-  auto start = Clock::now();
-#if VDEBUG
-  _start = start;
-#endif 
-
-  _trace._stack.push(std::make_pair(node, start));
-}
-
-TimeTrace::ScopedTimer::~ScopedTimer()
-{
-  auto now = Clock::now();
-  auto cur = _trace._stack.pop();
-  auto node = get<0>(cur);
-  auto start = get<1>(cur);
-  node->measurements.push(now  - start);
-  ASS_EQ(node->name, _name);
-  ASS(start == _start);
-}
-
-
-TimeTrace::Duration TimeTrace::Node::totalDuration() const
-{ return iterTraits(measurements.iter())
-           .fold(Duration::zero(), 
-                 [](auto l, auto r){ return l + r; }); }
-
-void TimeTrace::Node::print(std::ostream& out, unsigned indent, Option<Node const&> parent)
-{
-  for (unsigned i = 0; i < indent; i++) {
-    out << "  ";
-  }
-  auto percent = [](Duration a, Duration b) {
-    auto prec = 100;
-    return double(100 * prec * a / b) / prec;
-  };
-  auto total = totalDuration();
-  if (parent.isSome()) {
-    out << percent(total, parent.unwrap().totalDuration()) << " % ";
-  }
-  auto cnt = measurements.size();
-  out << name
-      << " (total: " << std::chrono::duration_cast<std::chrono::milliseconds>(total).count() << " ms"
-      << ", cnt: " << cnt 
-      << ", avg: " << std::chrono::duration_cast<std::chrono::microseconds>(total / cnt).count() << " μs"
-      << ")"
-      << std::endl;
-  std::sort(children.begin(), children.end(), [](auto& l, auto& r) { return l->totalDuration() > r->totalDuration(); });
-  for (auto& c : children) {
-    c->print(out, indent + 1, Option<Node const&>(*this));
-  }
-}
-
-void TimeTrace::print(std::ostream& out)
-{
-  out << "Time trace: " << std::endl;
-  auto now = Clock::now();
-  for (auto& x : _stack) {
-    auto node = get<0>(x);
-    auto start = get<1>(x);
-    node->measurements.push(now - start);
-  }
-  _root.print(out, /* indent */ 0, Option<Node const&>());
-  for (auto& x : _stack) {
-    get<0>(x)->measurements.pop();
   }
 }

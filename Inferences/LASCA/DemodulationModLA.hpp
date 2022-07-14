@@ -169,11 +169,7 @@ Option<Clause*> DemodulationModLA::apply(
                       Sigma sigma)
 {
             
-  MeasureTime time(env.statistics->ircDemod);
-  auto nothing = [&]() {
-    time.applicationCancelled();
-    return Option<Clause*>();
-  };
+  auto nothing = [&]() { return Option<Clause*>(); };
   ASS(Hyp1->size() == 1)
   ASS((*Hyp1)[0]->isEquality())
   ASS((*Hyp1)[0]->isPositive())
