@@ -41,6 +41,7 @@
 
 #include "Shell/Options.hpp"
 #include "Shell/Statistics.hpp"
+#include "Shell/TimeTracing.hpp"
 
 #include "ForwardDemodulation.hpp"
 
@@ -73,6 +74,7 @@ template <bool combinatorySupSupport>
 bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*& replacement, ClauseIterator& premises)
 {
   CALL("ForwardDemodulation::perform");
+  TIME_TRACE("ForwardDemodulation::perform");
 
   TimeCounter tc(TC_FORWARD_DEMODULATION);
 

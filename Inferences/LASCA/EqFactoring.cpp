@@ -15,6 +15,7 @@
 
 #include "EqFactoring.hpp"
 #include "Shell/Statistics.hpp"
+#include "Shell/TimeTracing.hpp"
 
 #define DEBUG(...) //DBG(__VA_ARGS__)
 
@@ -53,6 +54,7 @@ void EqFactoring::detach()
 Option<Clause*> EqFactoring::applyRule(SelectedEquality const& l1, SelectedEquality const& l2)
 {
   CALL("EqFactoring::applyRule(SelectedEquality const& l1, SelectedEquality const& l2)")
+  TIME_TRACE("EqFactoring::applyRule(...)")
   DEBUG("============")
   DEBUG("l1: ", l1)
   DEBUG("l2: ", l2)

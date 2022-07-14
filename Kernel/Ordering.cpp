@@ -39,6 +39,7 @@
 #include "Kernel/NumTraits.hpp" 
 #include "Kernel/LaLpo.hpp"
 #include "Kernel/QKbo.hpp"
+#include "Shell/TimeTracing.hpp"
 
 #include "Ordering.hpp"
 
@@ -106,6 +107,19 @@ Ordering* Ordering::tryGetGlobalOrdering()
   }
 }
 
+#define TIME_TRACING_ORD 1
+
+#if TIME_TRACING_ORD
+#  define NEW_ORD(Ord, ...) \
+      new TimeTraceOrdering<Ord>(#Ord " (literal)", #Ord "(term)", Ord(__VA_ARGS__))
+
+#else // !TIME_TRACING_ORD
+#  define NEW_ORD(Ord, ...) \
+      new Ord(__VA_ARGS__)
+
+#endif // TIME_TRACING_ORD
+
+
 /**
  * Creates the ordering
  *
@@ -135,16 +149,16 @@ Ordering* Ordering::create(Problem& prb, const Options& opt)
         && !env.options->kboMaxZero()
         && !prb.hasInterpretedOperations()
         ) {
-      out = new KBOForEPR(prb, opt);
+      out = NEW_ORD(KBOForEPR, prb, opt);
     } else {
-      out = new KBO(prb, opt);
+      out = NEW_ORD(KBO, prb, opt);
     }
     break;
   case Options::TermOrdering::LALPO:
-    out = new LaLpo(prb, opt);
+    out = NEW_ORD(LaLpo, prb, opt);
     break;
   case Options::TermOrdering::QKBO:
-    out = new QKbo(prb, opt);
+    out = NEW_ORD(QKbo, prb, opt);
     break;
   case Options::TermOrdering::LPO:
     out = new LPO(prb, opt);

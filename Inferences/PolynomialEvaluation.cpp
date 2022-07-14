@@ -12,6 +12,7 @@
 #include "Kernel/Clause.hpp"
 #include "Kernel/Ordering.hpp"
 #include "Shell/Statistics.hpp"
+#include "Shell/TimeTracing.hpp"
 #include "Lib/VirtualIterator.hpp"
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/BottomUpEvaluation/PolyNf.hpp"
@@ -61,6 +62,7 @@ Literal* createLiteral(Literal* orig, PolyNf* evaluatedArgs) {
 PolynomialEvaluationRule::Result PolynomialEvaluationRule::simplifyLiteral(Literal* lit) 
 {
   CALL("PolynomialEvaluation::simplifyLiteral");
+  TIME_TRACE("PolynomialEvaluation::simplifyLiteral");
 
   Stack<PolyNf> terms(lit->numTermArguments());
   auto anyChange = false;

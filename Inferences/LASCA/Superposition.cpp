@@ -16,6 +16,7 @@
 #include "Superposition.hpp"
 #include "Saturation/SaturationAlgorithm.hpp"
 #include "Shell/Statistics.hpp"
+#include "Shell/TimeTracing.hpp"
 #include "Kernel/EqHelper.hpp"
 
 #define DEBUG(...) // DBG(__VA_ARGS__)
@@ -83,6 +84,7 @@ Option<Clause*> Superposition::applyRule(
     ) const 
 {
   CALL("LASCA::Superposition::applyRule(Lhs const&, unsigned, Rhs const&, unsigned, UwaResult&)")
+  TIME_TRACE("LASCA::Superposition::applyRule(...)")
   MeasureTime time(env.statistics->ircSup);
 
   ASS (lhs.literal()->isEquality() && lhs.literal()->isPositive())

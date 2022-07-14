@@ -1401,6 +1401,7 @@ private:
   TimeCounterUnit _tcu;
 };
 
+
 /**
  * Return iterator, that yields the same values in
  * the same order as @b it. Benefit of this iterator
@@ -1798,15 +1799,6 @@ public:
     return true;
   }
 
-  Elem sum() 
-  {
-    Elem res(0);
-    while (hasNext()) {
-      res = res + next();
-    }
-    return res;
-  }
-
   template<class P>
   Option<Elem> find(P p) 
   {
@@ -1889,6 +1881,24 @@ public:
     return i;
   }
 
+  template<class Result, class F>
+  auto fold(Result init, F f) -> Result
+  { 
+    CALL("IterTraits::fold")
+    Result accum = std::move(init);
+    while (hasNext()) {
+      accum = f(std::move(accum), next());
+    }
+    return accum;
+  }
+
+  template<class F> 
+  auto fold(F fun)
+  { return fold(next(), std::move(fun)); }
+
+  auto sum()
+  { return fold(Elem(0), [](Elem l, Elem r) { return l + r; }); }
+
   template<class Container>
   Container collect()
   { 
@@ -1896,17 +1906,6 @@ public:
     return Container::fromIterator(*this); 
   }
   
-
-  template<class Result, class F>
-  auto fold(Result init, F f) -> Result
-  { 
-    CALL("IterTraits::fold")
-    auto accum = std::move(init);
-    while (hasNext()) {
-      accum = f(std::move(accum), next());
-    }
-    return accum;
-  }
 
 
   template<class F>

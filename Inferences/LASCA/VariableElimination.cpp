@@ -17,6 +17,7 @@
 #include "Lib/Map.hpp"
 #include "Lib/Set.hpp"
 #include "Shell/Statistics.hpp"
+#include "Shell/TimeTracing.hpp"
 #include "Kernel/TermIterators.hpp"
 
 #define TODO ASSERTION_VIOLATION
@@ -114,7 +115,7 @@ SimplifyingGeneratingInference::ClauseGenerationResult VariableElimination::gene
   auto var = this->findUnshieldedVar(premise);
   if (var.isSome()) {
     return ClauseGenerationResult {
-      .clauses          = std::move(var).unwrap().apply([&](auto var) { return eliminateVar(premise, std::move(var)); }),
+      .clauses          = std::move(var).unwrap().apply([&](auto var) { return applyRule(premise, std::move(var)); }),
       .premiseRedundant = _simplify,
     };
   } else {
@@ -187,9 +188,10 @@ public:
 template<class A> PartitionIter<A> partitionIter(Stack<A> orig) { return PartitionIter<A>(std::move(orig)); }
 
 template<class NumTraits>
-ClauseIterator VariableElimination::eliminateVar(Clause* premise, FoundVariable<NumTraits> found) const
+ClauseIterator VariableElimination::applyRule(Clause* premise, FoundVariable<NumTraits> found) const
 {
-
+  CALL("LASCA::VampireElimination::applyRule")
+  TIME_TRACE("LASCA::VampireElimination::applyRule")
   using Numeral = typename NumTraits::ConstantType;
   MeasureTime time(env.statistics->ircVarElim);
   auto x = found.var;

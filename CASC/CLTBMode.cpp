@@ -390,7 +390,7 @@ void CLTBMode::doTraining()
   System::readDir(_trainingDirectory+"/Solutions",solutions);
 
 
-  Stack<vstring>::Iterator it(solutions);
+  Stack<vstring>::RefIterator it(solutions);
   while (it.hasNext()) {
     TimeCounter tc(TC_PARSING);
     env.statistics->phase=Statistics::PARSING;

@@ -39,6 +39,7 @@
 
 #include "Shell/Options.hpp"
 #include "Shell/Statistics.hpp"
+#include "Shell/TimeTracing.hpp"
 
 #include "BackwardDemodulation.hpp"
 
@@ -241,6 +242,7 @@ void BackwardDemodulation::perform(Clause* cl,
 	BwSimplificationRecordIterator& simplifications)
 {
   CALL("BackwardDemodulation::perform");
+  TIME_TRACE("BackwardDemodulation::perform");
 
   if(cl->length()!=1 || !(*cl)[0]->isEquality() || !(*cl)[0]->isPositive() ) {
     simplifications=BwSimplificationRecordIterator::getEmpty();

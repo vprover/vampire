@@ -37,5 +37,5 @@ cmake-build
 .clangd
 .lldbinit
 
-# vim cache files
+# vim swap files
 **/.*.swp

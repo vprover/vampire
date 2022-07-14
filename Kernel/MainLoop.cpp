@@ -27,6 +27,7 @@
 
 #include "Shell/Options.hpp"
 #include "Shell/UIHelper.hpp"
+#include "Shell/TimeTracing.hpp"
 
 #include "Signature.hpp"
 #include "Clause.hpp"
@@ -57,6 +58,7 @@ void MainLoopResult::updateStatistics()
 MainLoopResult MainLoop::run()
 {
   CALL("MainLoop::run");
+  TIME_TRACE("MainLoop::run");
 
   try {
     init();

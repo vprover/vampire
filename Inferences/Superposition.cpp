@@ -42,6 +42,7 @@
 
 #include "Shell/Options.hpp"
 #include "Shell/Statistics.hpp"
+#include "Shell/TimeTracing.hpp"
 
 #include "Superposition.hpp"
 #include "Shell/UnificationWithAbstractionConfig.hpp"
@@ -388,6 +389,7 @@ Clause* Superposition::performSuperposition(
     UnificationConstraintStackSP constraints, bool isTypeSub)
 {
   CALL("Superposition::performSuperposition");
+  TIME_TRACE("Superposition::performSuperposition");
   // we want the rwClause and eqClause to be active
   ASS(rwClause->store()==Clause::ACTIVE);
   ASS(eqClause->store()==Clause::ACTIVE);

@@ -15,6 +15,7 @@
 
 #include "InequalityFactoring.hpp"
 #include "Shell/Statistics.hpp"
+#include "Shell/TimeTracing.hpp"
 
 #define DEBUG(...) // DBG(__VA_ARGS__)
 
@@ -55,6 +56,7 @@ Option<Clause*> InequalityFactoring::applyRule(
 {
   using Numeral = typename NumTraits::ConstantType;
   CALL("InequalityFactoring::applyRule(SelectedSummand const& l1, SelectedSummand const& l2)")
+  TIME_TRACE("InequalityFactoring::applyRule(...)")
   DEBUG("l1: ", l1)
   DEBUG("l2: ", l2)
 
@@ -121,11 +123,11 @@ Option<Clause*> InequalityFactoring::applyRule(
 
   auto L1σ = sigma(l1.literal()); // <- (j s1 + t1 >1 0)σ
   auto L2σ = sigma(l2.literal()); // <- (j s1 + t1 >1 0)σ
-  auto cond1 = concatIters(concl.iter(), getSingletonIterator(L2σ))
+  auto cond1 = concatIters(concl.iterCloned(), getSingletonIterator(L2σ))
     .all([&](auto Lσ) 
         { return  _shared->notLess(L1σ, Lσ); });
 
-  auto cond2 = concatIters(concl.iter(), getSingletonIterator(L1σ))
+  auto cond2 = concatIters(concl.iterCloned(), getSingletonIterator(L1σ))
     .all([&](auto Lσ) 
         { return  _shared->notLess(L2σ, Lσ); });
 

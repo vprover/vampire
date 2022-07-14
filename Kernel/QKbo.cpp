@@ -6,6 +6,7 @@
 #include "Lib/Metaiterators.hpp"
 #include "Kernel/OrderingUtils.hpp"
 #include "Theory.hpp"
+#include "Shell/TimeTracing.hpp"
 
 #define DEBUG(...) // DBG(__VA_ARGS__)
 

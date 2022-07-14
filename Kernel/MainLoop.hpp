@@ -21,6 +21,7 @@
 #include "Lib/Exception.hpp"
 
 #include "Shell/Statistics.hpp"
+#include "Shell/TimeTracing.hpp"
 
 #include "Lib/Allocator.hpp"
 

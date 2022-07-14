@@ -26,6 +26,7 @@
 #include "Lib/ScopedPtr.hpp"
 
 #include "Lib/Allocator.hpp"
+#include "Lib/Option.hpp"
 
 
 extern const char* VERSION_STRING;
@@ -91,6 +92,47 @@ public:
       _stats.cntSucc += 1;
     }
   }
+};
+
+class TimeTrace 
+{
+  using Clock = std::chrono::high_resolution_clock;
+  using Duration = typename Clock::duration;
+  using TimePoint = typename Clock::time_point;
+
+  TimeTrace(TimeTrace     &&) = delete;
+  TimeTrace(TimeTrace const&) = delete;
+
+  struct Node {
+    CLASS_NAME(Node)
+    USE_ALLOCATOR(Node)
+    const char* name;
+    Stack<unique_ptr<Node>> children;
+    Stack<Duration> measurements;
+    Node(const char* name) : name(name), children(), measurements() {}
+    void print(std::ostream& out, unsigned indent, Option<Node const&> parent);
+    Duration totalDuration() const;
+  };
+
+public:
+  TimeTrace();
+
+  class ScopedTimer {
+    TimeTrace& _trace;
+#if VDEBUG
+    TimePoint _start;
+    const char* _name;
+#endif
+  public:
+    ScopedTimer(TimeTrace& trace, const char* name);
+    ~ScopedTimer();
+  };
+
+  void print(std::ostream& out);
+private:
+
+  Node _root;
+  Stack<std::tuple<Node*, TimePoint>> _stack;
 };
 
 /**
@@ -217,8 +259,7 @@ public:
   unsigned primitiveInstantiations;
   unsigned choiceInstances;
   unsigned proxyEliminations;
-  unsigned leibnizElims;
-  unsigned booleanSimps;
+  unsigned leibnizElims; unsigned booleanSimps;
 
   // Simplifying inferences
   /** number of duplicate literals deleted */
@@ -408,6 +449,8 @@ public:
   /** if problem is satisfiable and we obtained a model, contains its
    * representation; otherwise it is an empty string */
   vstring model;
+
+  TimeTrace timeTrace;
 
   enum ExecutionPhase {
     /** Whatever happens before we start parsing the problem */

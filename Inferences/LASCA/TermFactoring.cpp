@@ -29,6 +29,7 @@
 #include "Kernel/SortHelper.hpp"
 #include "Lib/TypeList.hpp"
 #include "Shell/Statistics.hpp"
+#include "Shell/TimeTracing.hpp"
 
 #include "Indexing/Index.hpp"
 
@@ -107,6 +108,8 @@ Option<Clause*> TermFactoring::applyRule(
     Stack<TermList> const& maxAtoms
     )
 {
+  CALL("LASCA::TermFactoring::applyRule(...)")
+  TIME_TRACE("LASCA::TermFactoring::applyRule(...)")
   MeasureTime time(env.statistics->ircTermFac);
   using Numeral = typename NumTraits::ConstantType;
   DEBUG("L1: ", sel1)
