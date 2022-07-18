@@ -1491,6 +1491,9 @@ void Options::init()
     _binaryResolution.setRandomChoices(And(isRandSat(),saNotInstGen(),Or(hasEquality(),hasCat(Property::HNE))),{"on"});
     _binaryResolution.setRandomChoices({"on","off"});
 
+    _superposition = BoolOptionValue("superposition","sup",true);
+    _superposition.description= "Control superposition. Turning off this core inference leads to an incomplete calculus on equational problems.";
+    _lookup.insert(&_superposition);
 
     _condensation = ChoiceOptionValue<Condensation>("condensation","cond",Condensation::OFF,{"fast","off","on"});
     _condensation.description=
@@ -1822,13 +1825,6 @@ void Options::init()
     _lookup.insert(&_booleanEqTrick);
     // potentially could be useful for FOOL, so am not adding the HOL constraint    
     _booleanEqTrick.tag(OptionTag::HIGHER_ORDER);
-
-    _superposition = BoolOptionValue("superposition_hol","suph",true);
-    _superposition.description=
-    "Control superposition. Only used in higher-order strategies";
-    _lookup.insert(&_superposition);
-    _superposition.addProblemConstraint(hasHigherOrder());
-    _superposition.tag(OptionTag::HIGHER_ORDER);
 
     _casesSimp = BoolOptionValue("cases_simp","cs",false);
     _casesSimp.description=
