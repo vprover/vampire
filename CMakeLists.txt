@@ -159,7 +159,6 @@ set(VAMPIRE_LIB_SOURCES
     Lib/IntNameTable.hpp
     Lib/IntUnionFind.hpp
     Lib/InverseLookup.hpp
-    Lib/LastCopyWatcher.hpp
     Lib/List.hpp
     Lib/Map.hpp
     Lib/MaybeBool.hpp
