@@ -15,6 +15,7 @@
  */
 
 #include "Debug/Tracer.hpp"
+#include "Lib/Environment.hpp"
 #include "Kernel/Term.hpp"
 #include "Kernel/Clause.hpp"
 #include "SAT/SATInference.hpp"
@@ -775,10 +776,6 @@ vstring Kernel::ruleName(InferenceRule rule)
     return "inequality splitting";
   case InferenceRule::INEQUALITY_SPLITTING_NAME_INTRODUCTION:
     return "inequality splitting name introduction";
-  case InferenceRule::GROUNDING:
-    return "grounding";
-  case InferenceRule::EQUALITY_AXIOM:
-    return "equality axiom";
   case InferenceRule::CHOICE_AXIOM:
     return "choice axiom";
   case InferenceRule::DISTINCTNESS_AXIOM:
