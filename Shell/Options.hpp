@@ -219,10 +219,12 @@ public:
   enum class UnificationWithAbstraction : unsigned int {
     OFF,
     INTERP_ONLY,
-    ONE_INTERP,
-    CONSTANT,
-    ALL,
-    GROUND
+    ONE_INTERP//,
+    //CONSTANT,
+    //ALL,
+    //GROUND
+    // removed final three options
+    // can add them back once we agree on desired behaviour
   };
 
   enum class Induction : unsigned int {
