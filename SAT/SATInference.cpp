@@ -58,22 +58,6 @@ UnitList* SATInference::getFOPremises(SATClause* cl)
   return res;
 }
 
-SATInference* SATInference::copy(const SATInference* inf)
-{
-  CALL("SATInference::copy");
-
-  switch(inf->getType()) {
-  case PROP_INF:
-    return new PropInference(SATClauseList::copy(static_cast<const PropInference*>(inf)->getPremises()));
-  case FO_CONVERSION:
-    return new FOConversionInference(static_cast<const FOConversionInference*>(inf)->getOrigin());
-  case ASSUMPTION:
-    return new AssumptionInference();
-  default:
-    ASSERTION_VIOLATION;
-  }
-}
-
 void SATInference::collectPropAxioms(SATClause* cl, SATClauseStack& res)
 {
   CALL("SATInference::collectPropAxioms");

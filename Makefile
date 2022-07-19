@@ -313,8 +313,7 @@ VINF_OBJ=Inferences/BackwardDemodulation.o\
          Inferences/TheoryInstAndSimp.o
 #         Inferences/RenamingOnTheFly.o\
 
-VSAT_OBJ=SAT/DIMACS.o\
-         SAT/MinimizingSolver.o\
+VSAT_OBJ=SAT/MinimizingSolver.o\
          SAT/SAT2FO.o\
          SAT/SATClause.o\
          SAT/SATInference.o\
@@ -353,7 +352,6 @@ VS_OBJ = Shell/AnswerExtractor.o\
          Shell/FunctionDefinition.o\
          Shell/GeneralSplitting.o\
          Shell/GoalGuessing.o\
-         Shell/Grounding.o\
          Shell/InequalitySplitting.o\
          Shell/InterpolantMinimizer.o\
          Shell/Interpolants.o\
