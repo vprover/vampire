@@ -39,6 +39,7 @@
 #include "Theory.hpp"
 
 #include <climits>
+#include <fstream>
 
 namespace Kernel {
 
@@ -100,7 +101,7 @@ class Signature
 
     // both _arity and _typeArgsArity could be recovered from _type. Storing directly here as well for convenience
 
-    /** arity */
+    /** arity - number of type and term arguments */
     unsigned _arity;
     /** arity of type arguments */
     unsigned _typeArgsArity;
@@ -170,6 +171,8 @@ class Signature
 
     unsigned _chain : 1;
 
+    unsigned _nullPtr : 1;
+
     unsigned _objArray : 1;
 
     /** if arrow constructor */
@@ -230,6 +233,8 @@ class Signature
 
     void markChain() { _chain=1; }
 
+    void markNullPtr() { _nullPtr=1; }
+
     void markObjectArray() { _objArray=1; }
 
     /** return true iff symbol is marked as skip for the purpose of symbol elimination */
@@ -288,6 +293,8 @@ class Signature
     inline bool malloc() const { return _malloc; }
 
     inline bool chain() const { return _chain; }
+
+    inline bool nullPtr() const { return _nullPtr; }
 
     inline bool objArray() const { return _objArray; }
 
@@ -960,6 +967,11 @@ class Signature
 
   static bool symbolNeedsQuoting(vstring name, bool interpreted, unsigned arity);
 
+  bool getNextSelection(unsigned& sel);
+  void addSelection(unsigned num){
+    _autoSelects.push(num);
+  }
+
 private:
   Stack<TermList> _dividesNvalues;
   DHMap<Term*, int> _formulaCounts;
@@ -1034,6 +1046,9 @@ private:
    * Map from sorts to the associated term algebra, if applicable for the sort
    */ 
   DHMap<TermList, Shell::TermAlgebra*> _termAlgebras;
+
+  Stack<unsigned> _autoSelects;
+  unsigned _indexIntoAutoSelect;
 
   Shell::NatTermAlgebra* _natTermAlgebra = nullptr;
 

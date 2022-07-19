@@ -233,6 +233,7 @@ void MultiClauseNatInduction::createConclusions(ClauseStack& premises,
           resolved = true;
         }
       }
+      //cout << "ADDING " + cls->toString() << endl;
       conclusions.push(cls);    
     }
   } else {

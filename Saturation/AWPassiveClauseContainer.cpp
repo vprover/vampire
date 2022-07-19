@@ -65,6 +65,24 @@ AWPassiveClauseContainer::AWPassiveClauseContainer(bool isOutermost, const Shell
 {
   CALL("AWPassiveClauseContainer::AWPassiveClauseContainer");
 
+  BYPASSING_ALLOCATOR
+
+  auto fileName = opt.manualSelFile();
+  if(fileName != ""){
+    ifstream file(fileName.c_str());
+    if (!file.is_open()) {
+      throw UserErrorException("failed to open file ", fileName);
+    }
+    for (vstring ln; getline(file, ln);) {
+      vstringstream lnstr(ln);
+      unsigned sel;
+      bool ok = !!(lnstr >> sel);
+      if(ok)
+        env.signature->addSelection(sel);
+    }
+  }
+  
+
   if(_opt.ageWeightRatioShape() == Options::AgeWeightRatioShape::CONVERGE) {
     _ageRatio = 1;
     _weightRatio = 1;
@@ -269,41 +287,54 @@ Clause* AWPassiveClauseContainer::popSelected()
   ASS( ! isEmpty());
 
   if(_manual){
+    unsigned selectedId;
     Clause* c = 0;
-    while(true)
-    {
-      ClauseQueue::Iterator it(_ageQueue);
+    ClauseQueue::Iterator it(_ageQueue);
 
-      // ask user to pick a clause id
-      std::cout << "Pick a clause:\n";
-      std::string id;
-      std::cin >> id;
-      if(id == "auto"){
-        _manual = false;
-        // stop all manual selection procedures
-        env.options->stopManualSupLhsSelection();
-        env.options->stopManualLiteralSelection();
-        goto after_manual;
-      }
-      unsigned selectedId = std::stoi(id);
-
-      bool found = false;
+    if(env.signature->getNextSelection(selectedId)){
+      cout << "ID " << selectedId << endl;
       while(it.hasNext()){
         c = it.next();
         if(c->number() == selectedId){
-          found = true;
           break;
         }
       }
+      ASS(c->number() == selectedId);
+    } else {
 
-      if(found){  break; }
-      else
+      while(true)
       {
-        std::cout << "User error: No clause in Passive has id " << id << "!\n";
+        // ask user to pick a clause id
+        std::cout << "Pick a clause:\n";
+        std::string id;
+        std::cin >> id;
+        if(id == "auto"){
+          _manual = false;
+          // stop all manual selection procedures
+          env.options->stopManualSupLhsSelection();
+          env.options->stopManualLiteralSelection();
+          goto after_manual;
+        }
+
+        selectedId = std::stoi(id);
+
+        bool found = false;
+        while(it.hasNext()){
+          c = it.next();
+          if(c->number() == selectedId){
+            found = true;
+            break;
+          }
+        }
+
+        if(found){  break; }
+        else
+        {
+          std::cout << "User error: No clause in Passive has id " << id << "!\n";
+        }
       }
     }
 
-    std::cout << "Selected: " << c->toString() << "!\n";
     _ageQueue.remove(c);
     _weightQueue.remove(c); 
     selectedEvent.fire(c);
@@ -344,16 +375,21 @@ after_manual:
 
   Clause* cl;
   if (byWeight(_balance)) {
+    /*WeightQueue::Iterator it(_weightQueue);
+    while(it.hasNext()){
+      auto c = it.next();
+      cout << c->number() << " ";
+    }*/
     _balance -= _ageRatio;
     cl = _weightQueue.pop();
     //if(one_iteration_at_a_time)
-      //cout << "[SG] given clause weight: " << cl->toString() << endl;         
+      //cout << "[SG] given clause: " << cl->toString() << endl;         
     _ageQueue.remove(cl);
   } else {
     _balance += _weightRatio;
     cl = _ageQueue.pop();
     //if(one_iteration_at_a_time)
-      //cout << "[SG] given clause age: "  << cl->toString() << endl;     
+      //cout << "[SG] given clause: "  << cl->toString() << endl;     
     _weightQueue.remove(cl);
   }
 

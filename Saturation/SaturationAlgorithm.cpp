@@ -79,6 +79,7 @@
 #include "Inferences/ElimLeibniz.hpp"
 #include "Inferences/SubVarSup.hpp"
 #include "Inferences/CNFOnTheFly.hpp"
+#include "Inferences/ChainReasoning.hpp"
 //#include "Inferences/RenamingOnTheFly.hpp"
 #include "Inferences/URResolution.hpp"
 #include "Inferences/Instantiation.hpp"
@@ -1201,6 +1202,8 @@ void SaturationAlgorithm::activate(Clause* cl)
     _selector->select(cl);
   }
 
+  std::cout << "Activated: " << cl->toString() << "    " <<  cl->numSelected() << "  !\n";
+
   ASS_EQ(cl->store(), Clause::SELECTED);
   cl->setStore(Clause::ACTIVE);
   env.statistics->activeClauses++;
@@ -1569,6 +1572,7 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
   if(env.options->choiceReasoning()){
     gie->addFront(new Choice());
   }
+  gie->addFront(new ChainReasoning());
 
   gie->addFront(new Factoring());
   if (opt.binaryResolution()) {

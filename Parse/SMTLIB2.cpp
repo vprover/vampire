@@ -164,11 +164,12 @@ void SMTLIB2::readBenchmark(LExprList* bench)
     bool programVarDeclared = ibRdr.tryAcceptAtom("declare-program-var");
     bool mallocFunDeclared = ibRdr.tryAcceptAtom("declare-malloc-func");
     bool chainFunDeclared = ibRdr.tryAcceptAtom("declare-chain-func");
+    bool nullPtrDeclared = ibRdr.tryAcceptAtom("declare-null");    
     bool objArrayDeclared = ibRdr.tryAcceptAtom("declare-object-array");
 
     if(timePointDeclared || lemmaPredicateDeclared || constVarDeclared ||
        finalLoopCountDeclared || programVarDeclared || mallocFunDeclared ||
-       chainFunDeclared || objArrayDeclared){
+       chainFunDeclared || nullPtrDeclared || objArrayDeclared){
       vstring name = ibRdr.readAtom();
       LExprList* iSorts;
       if(!ibRdr.tryReadList(iSorts)){
@@ -190,7 +191,9 @@ void SMTLIB2::readBenchmark(LExprList* bench)
       } else if(mallocFunDeclared){
         rsym = RapidSymbol::RAP_MALLOC;
       } else if(chainFunDeclared){
-        rsym = RapidSymbol::RAP_CHAIN;        
+        rsym = RapidSymbol::RAP_CHAIN;
+      } else if(nullPtrDeclared){
+        rsym = RapidSymbol::RAP_NULL_PTR;                  
       } else if(objArrayDeclared){
         rsym = RapidSymbol::RAP_OBJ_ARRAY;        
       }
@@ -1016,6 +1019,10 @@ SMTLIB2::DeclaredFunction SMTLIB2::declareFunctionOrPredicate(const vstring& nam
 
     if(rapSym == RapidSymbol::RAP_CHAIN){
       sym->markChain();
+    }
+
+    if(rapSym == RapidSymbol::RAP_NULL_PTR){
+      sym->markNullPtr();
     }
 
     if(rapSym == RapidSymbol::RAP_OBJ_ARRAY){

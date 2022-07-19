@@ -254,8 +254,8 @@ void BackwardSubsumptionDemodulation::performWithQueryLit(Clause* sideCl, Litera
           continue;
         }
         // only count in the other literals (see case B.2)
-        if (blit->isPositive() && blit->isEquality()) {
-          ++numPosEqs;
+        if (blit->isPositive() && blit->isEquality() && !RapidHelper::forceOrder(blit)) {
+          ++numPosEqs; 
         }
         unsigned pred = blit->header();
         if (pred > mustPred) {
@@ -328,7 +328,8 @@ bool BackwardSubsumptionDemodulation::simplifyCandidate(Clause* sideCl, Clause* 
         // MLMatcher would exclude cases 2 and 3 as well, but with additional overhead.)
         baseLitsWithoutAlternatives += 1;
         if (baseLitsWithoutAlternatives == 1) {
-          if (!baseLit->isEquality() || !baseLit->isPositive()) {
+          // I think soundness can be contained without final condition, but not sure...
+          if (!baseLit->isEquality() || !baseLit->isPositive() || RapidHelper::forceOrder(baseLit)) {
             // We are in case 2 => skip
             baseLitsWithoutAlternatives += 1;  // a hack so we don't need another variable to check whether to skip below (in other words, merge case 2 into case 3 for purpose of the "if" below)
             break;

@@ -7,8 +7,6 @@ int main() {
 
   try{
 
-    for(int i = 0; i < 1000000; i++){}
-
     Solver& solver = Solver::getSolver();
 
     solver.setTimeLimit(2);

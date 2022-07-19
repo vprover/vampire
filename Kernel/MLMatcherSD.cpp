@@ -21,6 +21,7 @@
 #include "Matcher.hpp"
 #include "Term.hpp"
 #include "TermIterators.hpp"
+#include "RapidHelper.hpp"
 
 #include "MLMatcherSD.hpp"
 
@@ -1044,6 +1045,7 @@ bool MLMatcherSD::Impl::nextMatch()
     else if (!md->haveSelectedEqLitForDemodulation()
              && md->bases[md->currBLit]->isEquality()
              && md->bases[md->currBLit]->isPositive()
+             && !RapidHelper::forceOrder(md->bases[md->currBLit])
              && md->selectForDemodulation(md->currBLit)) {
       // Selected current base literal as equality for demodulation
 #if MLMATCHERSD_DEBUG_OUTPUT

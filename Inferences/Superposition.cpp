@@ -198,18 +198,6 @@ ClauseIterator Superposition::generateClauses(Clause* premise)
   static bool extByAbstraction = (env.options->functionExtensionality() == Options::FunctionExtensionality::ABSTRACTION)
                                && env.property->higherOrder();
 
-  /*if(premise->number() == 212){
-    auto it1 = premise->getSelectedLiteralIterator();
-    while(it1.hasNext()){
-      auto lit = it1.next();
-      cout << "LIT " << lit->toString() << endl;
-      auto it2 = EqHelper::getSubtermIterator(lit, _salg->getOrdering());
-      while(it2.hasNext()){
-        cout << "SUBTERM " << it2.next().toString() << endl;
-      }
-    }
-   }*/
-
   auto itf1 = premise->getSelectedLiteralIterator();
 
   // Get an iterator of pairs of selected literals and rewritable subterms of those literals

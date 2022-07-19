@@ -417,6 +417,36 @@ public:
   }
 };
 
+class InterpretedLiteralEvaluator::LoopTimePointEvaluator : public Evaluator
+{
+
+  using number = NumTraits<IntegerConstantType>;
+
+  LoopTimePointEvaluator() {}
+
+  virtual bool canEvaluateFunc(unsigned func) override { 
+    CALL("InterpretedLiteralEvaluator::LoopTimePointEvaluator::canEvaluateFunc");
+
+    return env.signature->getFunction(func)->timePoint(); 
+  }
+
+  virtual bool tryEvaluateFunc(Term* trm, TermList& res) override { 
+    CALL("InterpretedLiteralEvaluator::LoopTimePointEvaluator::tryEvaluateFunc");
+    
+    // not a loop timepoint
+    if(!t->arity()){ return false; }
+
+    TermList innerIt = t->nthArgument(t->arity() - 1);
+    // TODO 
+    // what we want is to rewrite the iteration into 
+    // a polynomial normal form, then see whether it can
+    // be written as expr + 1 for some arithmetic expression
+    // expr
+
+
+  }
+};
+
 /**
  * Evaluates constant theory expressions
  *
@@ -638,7 +668,7 @@ protected:
           // case number::addI:
           //   ASS_EQ(t.arity(), 2);
           //   result = TermList(Term::create2(t.functor(), 
-          //       simplifyUnaryMinus(uminus_functor, t[0]),
+          //        (uminus_functor, t[0]),
           //       simplifyUnaryMinus(uminus_functor, t[1])));
           //   return true; 
 

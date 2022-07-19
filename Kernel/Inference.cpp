@@ -906,8 +906,8 @@ vstring Kernel::ruleName(InferenceRule rule)
     return "general splitting";
   case InferenceRule::INTERMEDIATE_VALUE:
     return "intermediate value induction";
-  case InferenceRule::REBALANCE_FOR_FINAL_LOOP_COUNTS:
-    return "equation rebalancing";
+  case InferenceRule::CHAIN_REASONING:
+    return "chain reasoning";
   case InferenceRule::COLOR_UNBLOCKING:
     return "color unblocking";
   case InferenceRule::INSTANCE_GENERATION:

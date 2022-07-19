@@ -247,19 +247,23 @@ void LiteralSelector::select(Clause* c, unsigned eligibleInp)
   if(_opt.useManualLiteralSelection()){
     unsigned selectedId = 0;
     if( c->length() > 1){ 
-      cout << "Manual literal selection for " + c->toString() << endl;
-      while(true)
-      {
-        // ask user to pick a clause id
-        std::cout << "Pick a literal:\n";
-        std::string id;
-        std::cin >> id;
-        selectedId = std::stoi(id);
-
-        if(selectedId >= 0 && selectedId < c->length()){  break; }
-        else
+      if(env.signature->getNextSelection(selectedId)){
+        ASS(selectedId < c->length());
+      } else {        
+        cout << "Manual literal selection for " + c->toString() << endl;
+        while(true)
         {
-          std::cout << "User error: No literal with id " << id << "!\n";
+          // ask user to pick a clause id
+          std::cout << "Pick a literal:\n";
+          std::string id;
+          std::cin >> id;
+          selectedId = std::stoi(id);
+
+          if(selectedId >= 0 && selectedId < c->length()){  break; }
+          else
+          {
+            std::cout << "User error: No literal with id " << id << "!\n";
+          }
         }
       }
     }

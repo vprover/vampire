@@ -173,8 +173,6 @@ Symbol FormulaBuilder::symbol(const string& name, unsigned arity, Sort rangeSort
    
   bool pred = (rangeSort == FormulaBuilder::boolSort());
 
-  ASS(!(mallocSym && pred));
-
   vstring vname = StringUtils::copy2vstr(name);
 
   bool added;
@@ -223,6 +221,9 @@ Symbol FormulaBuilder::symbol(const string& name, unsigned arity, Sort rangeSort
   if(rs == RapidSym::CHAIN){
     sym->markChain();
   }
+  if(rs == RapidSym::NULL_PTR){
+    sym->markNullPtr();
+  }  
   if(rs == RapidSym::OBJ_ARRAY){
     sym->markObjectArray();
   }                

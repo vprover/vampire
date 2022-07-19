@@ -637,6 +637,7 @@ unsigned Clause::computeWeightForClauseSelection(unsigned w, unsigned splitWeigh
   if (opt.increasedNumeralWeight()) {
     w = (2 * w + numeralWeight);
   }
+
   return w * ( !derivedFromGoal ? nongoalWeightCoeffNum : nongoalWeightCoefDenom);
 }
 

@@ -303,7 +303,7 @@ enum class InferenceRule : unsigned char {
   
   INTERMEDIATE_VALUE,
 
-  REBALANCE_FOR_FINAL_LOOP_COUNTS,
+  CHAIN_REASONING,
 
   /* argument congruence: t = t' => tx = t'x*/
   ARG_CONG,

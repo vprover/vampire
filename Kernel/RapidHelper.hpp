@@ -18,6 +18,8 @@
 
 #include "Forwards.hpp"
 
+#include "Kernel/Signature.hpp"
+
 namespace Kernel {
 
 class RapidHelper {
@@ -71,6 +73,13 @@ public:
    */
   static bool mallocClause(Clause* c);
 
+  /** Returns true if clause c is of the form
+   *  struct_field_chain(...) = null
+   */
+  static bool isChainEqualsNullClause(Clause* c, Term*& chainTerm);
+  static bool isChainEqualsValueAt(Clause* c, Term*& chainTerm, Term*& valueTerm);  
+  static bool isChainExtensionalityCls(Clause* c);
+
   /** return true if the literal is of the form 
    *  [~]$less(program-var(l#(sK)), numeral)  
    */
@@ -94,6 +103,25 @@ public:
   static ArgumentOrderVals forceOrder(Literal* lit);
 
   static bool increasing(Literal* lit, TermList term);
+
+  static bool isZeroLessThanLit(Literal* lit);
+
+  static inline bool isChain(TermList t) {
+    if(t.isVar()){ return false; }
+    return env.signature->getFunction(t.term()->functor())->chain();
+  };
+
+  static inline bool isNull(TermList t) {
+    if(t.isVar()){ return false; }
+    return env.signature->getFunction(t.term()->functor())->nullPtr();
+  };
+
+  static inline bool isObjArray(TermList t) {
+    if(t.isVar()){ return false; }
+    return env.signature->getFunction(t.term()->functor())->objArray();
+  };
+
+
 private:
 
   static TermList replaceFinalArg(Term* t, TermList replacement);

@@ -43,6 +43,7 @@ protected:
   class Evaluator;
   class EqualityEvaluator;
   class ConversionEvaluator;
+  class LoopTimePointEvaluator;
   template<class T> class ACFunEvaluator;
   template<class T> class PolynomialNormalizer;
   template<class T> class InequalityNormalizer;

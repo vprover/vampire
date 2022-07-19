@@ -144,6 +144,13 @@ struct ExtensionalityResolution::NegEqSortFn
   {
     CALL("ExtensionalityResolution::NegEqSortFn::operator()");
     
+  /*  auto str = lit->toString();
+    bool ok = false;
+    if(str.find("count") != vstring::npos &&
+       str.find("nl") != vstring::npos){
+      ok = true;
+    }*/
+
     return lit->isEquality() && lit->isNegative() &&
       SortHelper::getEqualityArgumentSort(lit) == _sort;
   }

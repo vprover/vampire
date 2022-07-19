@@ -250,7 +250,9 @@ Ordering::Result Ordering::getEqualityArgumentOrder(Literal* eq) const
   ArgumentOrderVals precomputed = static_cast<ArgumentOrderVals>(eq->getArgumentOrderValue());
   if(precomputed!=AO_UNKNOWN) {
     res = static_cast<Result>(precomputed);
-    ASS_EQ(res, compare(*eq->nthArgument(0), *eq->nthArgument(1)));
+    // for clauses of the form value_node(...) = node_next_chain(...)
+    // we rewrite against the ordering...
+    //ASS_EQ(res, compare(*eq->nthArgument(0), *eq->nthArgument(1)));
   }
   else {
     res = compare(*eq->nthArgument(0), *eq->nthArgument(1));
@@ -605,6 +607,14 @@ struct FnRevFreqComparator
     return res;
   }
 };
+struct FnRevOccComparator
+{
+  Comparison compare(unsigned f1, unsigned f2)
+  {
+    return  Int::compare(-f1,-f2);;
+  }
+};
+
 struct PredRevFreqComparator
 {
   Comparison compare(unsigned p1, unsigned p2)
@@ -616,6 +626,14 @@ struct PredRevFreqComparator
       res = Int::compare(p1,p2);
     }
     return res;
+  }
+};
+
+struct PredRevOccComparator
+{
+  Comparison compare(unsigned p1, unsigned p2)
+  {
+    return Int::compare(-p1, -p2);
   }
 };
 
@@ -790,6 +808,9 @@ DArray<int> PrecedenceOrdering::funcPrecFromOpts(Problem& prb, const Options& op
         break;
       case Shell::Options::SymbolPrecedence::OCCURRENCE:
         break;
+      case Shell::Options::SymbolPrecedence::REVERSE_OCCURRENCE:
+       aux.sort(FnBoostWrapper<FnRevOccComparator>(FnRevOccComparator()));
+       break;          
       case Shell::Options::SymbolPrecedence::SCRAMBLE:
         for(unsigned i=0;i<nFunctions;i++){
           unsigned j = Random::getInteger(nFunctions-i)+i;
@@ -858,7 +879,10 @@ DArray<int> PrecedenceOrdering::predPrecFromOpts(Problem& prb, const Options& op
      break;
     case Shell::Options::SymbolPrecedence::OCCURRENCE:
       break;
-      case Shell::Options::SymbolPrecedence::SCRAMBLE:
+    case Shell::Options::SymbolPrecedence::REVERSE_OCCURRENCE:
+     aux.sort(PredBoostWrapper<PredRevOccComparator>(PredRevOccComparator()));
+     break;      
+    case Shell::Options::SymbolPrecedence::SCRAMBLE:
         for(unsigned i=0;i<nPredicates;i++){
           unsigned j = Random::getInteger(nPredicates-i)+i;
           unsigned tmp = aux[j];
@@ -896,6 +920,9 @@ DArray<int> PrecedenceOrdering::predLevelsFromOptsAndPrec(Problem& prb, const Op
   DArray<int> predicateLevels(nPredicates);
 
   switch(opt.literalComparisonMode()) {
+  // TODO get rid of below
+  // it is going to be a lot of work to get Vampire
+  // to compare equalities with non-equalities
   case Shell::Options::LiteralComparisonMode::ALL_SAME:
     predicateLevels.init(nPredicates, 1);
     return predicateLevels;    

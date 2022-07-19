@@ -338,7 +338,7 @@ bool RobSubstitution::unify(TermSpec t1, TermSpec t2,MismatchHandler* hndlr)
       ASS(hndlr);
       addToConstraints(getVarSpec(dt1), getVarSpec(dt2), hndlr);
     } 
-    // Deal with the case where eithe rare variables
+    // Deal with the case where either are variables
     // Do an occurs-check and note that the variable 
     // cannot be currently bound as we already dereferenced
     else if(dt1.isVar() && !dt1.isVSpecialVar()) {

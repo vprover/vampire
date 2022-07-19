@@ -181,7 +181,6 @@ protected:
   void handleClause(Clause* c, bool adding);
 };
 
-/* NOTE: at the moment, this index is not used at all */
 class RapidArrayIndex
 : public TermIndex
 {
@@ -196,6 +195,35 @@ protected:
   void handleClause(Clause* c, bool adding);
 };
 
+class ChainReasoningLengthClauseIndex
+: public TermIndex
+{
+public:
+  CLASS_NAME(ChainReasoningLengthClauseIndex);
+  USE_ALLOCATOR(ChainReasoningLengthClauseIndex);
+
+  ChainReasoningLengthClauseIndex(TermIndexingStructure* is)
+  : TermIndex(is) {}
+
+protected:
+  void handleClause(Clause* c, bool adding);
+};
+
+class ChainReasoningChainTermIndex
+: public TermIndex
+{
+public:
+  CLASS_NAME(ChainReasoningChainTermIndex);
+  USE_ALLOCATOR(ChainReasoningChainTermIndex);
+
+  ChainReasoningChainTermIndex(TermIndexingStructure* is, Ordering& ord)
+  : TermIndex(is), _ord(ord) {};
+
+protected:
+  void handleClause(Clause* c, bool adding);
+private:
+  Ordering& _ord;
+};
 
 /////////////////////////////////////////////////////
 // Indices for higher-order inferences from here on//

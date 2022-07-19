@@ -186,6 +186,7 @@ private:
     RAP_PROGRAM_VAR,
     RAP_MALLOC,  
     RAP_CHAIN,  
+    RAP_NULL_PTR,
     RAP_OBJ_ARRAY,
     RAP_NONE
   };

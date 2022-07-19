@@ -1493,7 +1493,7 @@ void Options::init()
     _extensionalityMaxLength.setRandomChoices({"0","0","0","2","3"}); // TODO what are good values?
 
     _extensionalityResolution = ChoiceOptionValue<ExtensionalityResolution>("extensionality_resolution","er",
-                      ExtensionalityResolution::OFF,{"filter","known","tagged","malloc", "off"});
+                      ExtensionalityResolution::OFF,{"filter","known","tagged","malloc","chain", "off"});
     _extensionalityResolution.description=
       "Turns on the following inference rule:\n"
       "  x=y \\/ C    s != t \\/ D\n"
@@ -2195,7 +2195,7 @@ void Options::init()
     _lookup.insert(&_termOrdering);
 
     _symbolPrecedence = ChoiceOptionValue<SymbolPrecedence>("symbol_precedence","sp",SymbolPrecedence::ARITY,
-                                                            {"arity","occurrence","reverse_arity","scramble",
+                                                            {"arity","occurrence", "rev_occ", "reverse_arity","scramble",
                                                              "frequency","reverse_frequency",
                                                              "weighted_frequency","reverse_weighted_frequency"});
     _symbolPrecedence.description="Vampire uses term orderings which require a precedence relation between symbols. Arity orders symbols by their arity (and reverse_arity takes the reverse of this) and occurence orders symbols by the order they appear in the problem.";
@@ -2288,6 +2288,13 @@ void Options::init()
     //*********************** Vinter???  *******************************
     //******************************************************************
     
+    _selectionChoiceFile = StringOptionValue("sel_choice_file","scf","");
+    _selectionChoiceFile.description = "A name of a file with that contains a set of manual clause and literal selections allowing them to be replayed";
+    _selectionChoiceFile.setExperimental();
+    _selectionChoiceFile.onlyUsefulWith(_manualClauseSelection.is(equal(true)));    
+    _lookup.insert(&_selectionChoiceFile);
+
+
     _colorUnblocking = BoolOptionValue("color_unblocking","",false);
     _colorUnblocking.description="";
     _lookup.insert(&_colorUnblocking);

@@ -20,6 +20,7 @@
 #include "SubstHelper.hpp"
 #include "TermIterators.hpp"
 #include "RobSubstitution.hpp"
+#include "Ordering.hpp"
 
 #include "Term.hpp"
 #include "FormulaVarIterator.hpp"
@@ -749,32 +750,35 @@ vstring Literal::toString() const
   CALL("Literal::toString");
 
   if (isEquality()) {
-    /*int order = getArgumentOrderValue();
+    auto ordering = Ordering::tryGetGlobalOrdering();
     vstring addToLhs = "";
-    vstring addToRhs = "";
+    vstring addToRhs = "";    
+    if(ordering){
+      int order = ordering->getEqualityArgumentOrder(const_cast<Literal*>(this));
 
-    if(order != 0){
-      if(order == 1){
-        addToLhs = " >>";
-      } else if (order == 2){
-        addToRhs = " >>";
-      } else if (order == 3){
-        addToLhs = " >=";
-      } else if (order == 4){
-        addToRhs = " >=";
-      } else if (order == 5){
-        addToLhs = " ==";        
-        addToRhs = " ==";        
-      } else if (order == 6){
-        addToRhs = " <>";
-        addToLhs = " <>";
-      } else {
-        cout << "ERROR " << order << endl;
+      if(order != 0){
+        if(order == 1){
+          addToLhs = " >>";
+        } else if (order == 2){
+          addToRhs = " >>";
+        } else if (order == 3){
+          addToLhs = " >=";
+        } else if (order == 4){
+          addToRhs = " >=";
+        } else if (order == 5){
+          addToLhs = " ==";        
+          addToRhs = " ==";        
+        } else if (order == 6){
+          addToRhs = " <>";
+          addToLhs = " <>";
+        } else {
+          cout << "ERROR " << order << endl;
+        }
       }
-    }*/
+    }
 
     const TermList* lhs = args();
-    vstring s = lhs->toString(); /*+ addToLhs*/
+    vstring s = lhs->toString() + addToLhs;
     if (isPositive()) {
       s += " = ";
     }
@@ -782,7 +786,7 @@ vstring Literal::toString() const
       s += " != ";
     }
 
-    vstring res = s + lhs->next()->toString(); /*+ addToRhs*/
+    vstring res = s + lhs->next()->toString() + addToRhs;
     if (env.property->higherOrder() || 
        (SortHelper::getEqualityArgumentSort(this) == AtomicSort::boolSort())){
       res = "("+res+")";

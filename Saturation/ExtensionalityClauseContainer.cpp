@@ -48,7 +48,14 @@ Literal* ExtensionalityClauseContainer::addIfExtensionality(Clause* c) {
   Literal* varEq = 0;
   TermList sort;
 
-  if(_mallocCls) {
+  if(_chainCls){
+    //TODO use TheoryFinder instead?
+    if(!RapidHelper::isChainExtensionalityCls(c))
+      return 0;
+
+    varEq = getSingleVarEq(c);
+    sort = varEq->twoVarEqSort(); //always going to be Int
+  } else if(_mallocCls) {
     //TODO use TheoryFinder instead?
     if(!RapidHelper::mallocClause(c))
       return 0;

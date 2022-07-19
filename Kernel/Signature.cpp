@@ -65,6 +65,7 @@ Signature::Symbol::Symbol(const vstring& nm, unsigned arity, bool interpreted, b
     _constantProgramVar(0),
     _malloc(0),
     _chain(0),
+    _nullPtr(0),
     _objArray(0),
     _arrow(0),
     _app(0),
@@ -264,6 +265,7 @@ Signature::Signature ():
 {
   CALL("Signature::Signature");
 
+  _indexIntoAutoSelect = 0;
   unsigned aux;
   aux = createDistinctGroup();
   ASS_EQ(STRING_DISTINCT_GROUP, aux);
@@ -299,6 +301,18 @@ Signature::~Signature ()
     _typeCons[i]->destroyTypeConSymbol();
   }
 } // Signature::~Signature
+
+bool Signature::getNextSelection(unsigned& sel)
+{
+  CALL("Signature::getNextSelection");
+
+  if(_indexIntoAutoSelect < _autoSelects.size()){
+    sel = _autoSelects[_indexIntoAutoSelect++];
+    return true;
+  }
+  return false;
+}
+
 
 /**
  * Add an integer constant to the signature. If defaultSort is true, treat it as

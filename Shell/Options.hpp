@@ -524,12 +524,13 @@ public:
   enum class SymbolPrecedence : unsigned int {
     ARITY = 0,
     OCCURRENCE = 1,
-    REVERSE_ARITY = 2,
-    SCRAMBLE = 3,
-    FREQUENCY = 4,
-    REVERSE_FREQUENCY = 5,
-    WEIGHTED_FREQUENCY = 6,
-    REVERSE_WEIGHTED_FREQUENCY = 7
+    REVERSE_OCCURRENCE = 2,
+    REVERSE_ARITY = 3,
+    SCRAMBLE = 4,
+    FREQUENCY = 5,
+    REVERSE_FREQUENCY = 6,
+    WEIGHTED_FREQUENCY = 7,
+    REVERSE_WEIGHTED_FREQUENCY = 8
   };
   enum class SymbolPrecedenceBoost : unsigned int {
     NONE = 0,
@@ -571,7 +572,8 @@ public:
     KNOWN = 1,
     TAGGED = 2,
     MALLOC = 3,
-    OFF = 4
+    CHAIN = 4,
+    OFF = 5
   };
 
   enum class SplittingLiteralPolarityAdvice : unsigned int {
@@ -2350,6 +2352,8 @@ public:
   ArithmeticSimplificationMode cancellation() const { return _highSchool.actualValue ? ArithmeticSimplificationMode::CAUTIOUS : _cancellation.actualValue; }
   ArithmeticSimplificationMode arithmeticSubtermGeneralizations() const { return  _highSchool.actualValue ? ArithmeticSimplificationMode::CAUTIOUS : _arithmeticSubtermGeneralizations.actualValue; }
 
+  const vstring& manualSelFile() const { return _selectionChoiceFile.actualValue; }
+
   //Higher-order Options
 
   bool addCombAxioms() const { return _addCombAxioms.actualValue; }
@@ -2788,8 +2792,9 @@ private:
   ChoiceOptionValue<ArithmeticSimplificationMode> _gaussianVariableElimination;
   ChoiceOptionValue<ArithmeticSimplificationMode> _cancellation;
   ChoiceOptionValue<ArithmeticSimplificationMode> _arithmeticSubtermGeneralizations;
-
  
+  StringOptionValue _selectionChoiceFile;  
+
   //Higher-order options
   BoolOptionValue _addCombAxioms;
   BoolOptionValue _addProxyAxioms;

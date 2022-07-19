@@ -19,11 +19,11 @@
 #include "Lib/Metaiterators.hpp"
 
 #include "Kernel/Clause.hpp"
-#include "Kernel/Signature.hpp"
 #include "Kernel/Term.hpp"
 #include "Kernel/Theory.hpp"
 #include "Kernel/TermIterators.hpp"
 #include "Kernel/EqHelper.hpp"
+#include "Kernel/SortHelper.hpp"
 
 #include "Shell/Options.hpp"
 
@@ -166,6 +166,103 @@ bool RapidHelper::mallocClause(Clause* c) {
   return false;
 
 }
+
+bool RapidHelper::isChainExtensionalityCls(Clause* c) {
+  CALL("RapidHelper::isChainExtensionalityCls");
+
+  auto isChain = [](TermList t) {
+    if(t.isVar()){ return false; }
+    return env.signature->getFunction(t.term()->functor())->chain();
+  };
+
+  if(c->length() != 2){ return false; }
+  Literal* l1 = (*c)[0];
+  Literal* l2 = (*c)[1];
+  Literal* equalityLit;
+  Literal* otherLit;
+
+  if(l1->isTwoVarEquality() && l1->isPositive() &&
+     *l1->nthArgument(0) != *l1->nthArgument(1) ){
+    equalityLit = l1;
+    otherLit = l2;
+  } else if(l2->isTwoVarEquality() && l2->isPositive() &&
+           *l2->nthArgument(0) != *l2->nthArgument(1)){
+    equalityLit = l2;
+    otherLit = l1;
+  } else {
+    // neither literal of the form X = Y
+    return false;
+  }
+
+  if(!otherLit->isEquality() || otherLit->isPositive()){
+    return false;
+  }
+
+  TermList x = *equalityLit->nthArgument(0);
+  TermList y = *equalityLit->nthArgument(1);
+
+  TermList t1 = *otherLit->nthArgument(0);
+  TermList t2 = *otherLit->nthArgument(1);
+  if(t1.isVar() || t2.isVar() || !isChain(t1) || !isChain(t2)){
+    return false;
+  }
+
+  TermList t1Arg3 = *t1.term()->nthArgument(2);
+  TermList t2Arg3 = *t2.term()->nthArgument(2);
+
+  if(((t1Arg3 == x) && (t2Arg3 == y)) || 
+     ((t1Arg3 == y) && (t2Arg3 == x))){
+    return true;
+  }
+  return false;
+
+}
+
+bool RapidHelper::isChainEqualsNullClause(Clause* c, Term*& chainTerm) {
+  CALL("RapidHelper::isChainEqualsNullClause");
+
+  if(c->length() > 1){ return false; }
+  Literal* lit = (*c)[0];
+  if(!lit->isEquality() || !lit->isPositive()){
+    return false;
+  }
+  TermList t1 = *lit->nthArgument(0);
+  TermList t2 = *lit->nthArgument(1);
+  if(isChain(t1) && isNull(t2)){
+    chainTerm = t1.term();
+    return true;
+  }
+  if(isChain(t2) && isNull(t1)){
+    chainTerm = t2.term();
+    return true;    
+  }
+  return false;
+}
+
+
+bool RapidHelper::isChainEqualsValueAt(Clause* c, Term*& chainTerm, Term*& valueTerm)
+{
+  CALL("RapidHelper::isChainEqualsValueAt");
+
+  if(c->length() > 1){ return false; }
+  Literal* lit = (*c)[0];
+  if(!lit->isEquality() || !lit->isPositive()){
+    return false;
+  }
+  TermList t1 = *lit->nthArgument(0);
+  TermList t2 = *lit->nthArgument(1);
+  if(isChain(t1) && isObjArray(t2)){
+    chainTerm = t1.term();
+    valueTerm = t2.term();
+    return true;
+  }
+  if(isChain(t2) && isObjArray(t1)){
+    chainTerm = t2.term();
+    valueTerm = t1.term();    
+    return true;    
+  }
+  return false;
+} 
 
 
 bool RapidHelper::isDensityLiteral(Literal* l, unsigned& varFunctor, unsigned& tpFunctor)
@@ -690,14 +787,32 @@ bool RapidHelper::increasing(Literal* lit, TermList term) {
   return true;
 }
 
+bool RapidHelper::isZeroLessThanLit(Literal* lit) {
+  CALL("RapidHelper::isZeroLessThanLit");
+
+  if(isIntegerComparisonLiteral(lit) && lit->isPositive()){
+    TermList arg1 = *lit->nthArgument(0);
+    if(theory->isZero(arg1)){
+      return true;
+    }
+  }
+  return false;
+}
+
 bool RapidHelper::forceOrder(TermList t1, TermList t2)
 {
   CALL("RapidHelper::forceOrder");
 
+  //return false;
+
+  auto isObjectArrayOrMalloc = [](Signature::Symbol* sym){
+    return sym->objArray() /*|| sym->malloc()*/;
+  };
+
   if(t1.isVar() || t2.isVar()){ return false; }
   auto t1Sym = env.signature->getFunction(t1.term()->functor());
   auto t2Sym = env.signature->getFunction(t2.term()->functor());
-  if((t1Sym->objArray() && t2Sym->chain()) ||  (t2Sym->objArray() && t1Sym->chain())){
+  if((isObjectArrayOrMalloc(t1Sym) && t2Sym->chain()) ||  (isObjectArrayOrMalloc(t2Sym) && t1Sym->chain())){
     return true;
   }
   return false;
@@ -707,6 +822,12 @@ ArgumentOrderVals RapidHelper::forceOrder(Literal* l)
 {
   CALL("RapidHelper::forceOrder");
 
+  //return ArgumentOrderVals::AO_UNKNOWN;
+
+  auto isObjectArrayOrMalloc = [](Signature::Symbol* sym){
+    return sym->objArray() /*|| sym->malloc()*/;
+  };
+
   if(l->isEquality()){
     TermList t1 = *l->nthArgument(0);
     TermList t2 = *l->nthArgument(1);
@@ -714,10 +835,10 @@ ArgumentOrderVals RapidHelper::forceOrder(Literal* l)
     if(t1.isTerm() && t2.isTerm()){
       auto t1Sym = env.signature->getFunction(t1.term()->functor());
       auto t2Sym = env.signature->getFunction(t2.term()->functor());
-      if(t1Sym->objArray() && t2Sym->chain()){
+      if(isObjectArrayOrMalloc(t1Sym) && t2Sym->chain()){
         return ArgumentOrderVals::AO_GREATER;
       }
-      if(t2Sym->objArray() && t1Sym->chain()){
+      if(isObjectArrayOrMalloc(t2Sym) && t1Sym->chain()){
         return ArgumentOrderVals::AO_LESS;
       }      
     }

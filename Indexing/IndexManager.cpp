@@ -174,6 +174,7 @@ Index* IndexManager::create(IndexType t)
     isGenerating = true;
     break;
   case INTERMEDIATE_VALUE:
+    // Consider removing...
     is=new LiteralSubstitutionTree();
     res=new IntermediateValueLimitClauseIndex(is);
     isGenerating = true;
@@ -318,6 +319,18 @@ Index* IndexManager::create(IndexType t)
     res = new RapidArrayIndex(tis);
     isGenerating = true;
     break;  
+
+  case CHAIN_TERM_INDEX:
+    tis = new TermSubstitutionTree();
+    res = new ChainReasoningChainTermIndex(tis, _alg->getOrdering());
+    isGenerating = true;
+    break;
+
+  case CHAIN_BOUND_INDEX:
+    tis = new TermSubstitutionTree();
+    res = new ChainReasoningLengthClauseIndex(tis);
+    isGenerating = true;
+    break;
 
   default:
     INVALID_OPERATION("Unsupported IndexType.");

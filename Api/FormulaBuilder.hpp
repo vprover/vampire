@@ -103,6 +103,7 @@ enum RapidSym {
   PROGRAM_VAR,
   MALLOC,  
   CHAIN,  
+  NULL_PTR,
   OBJ_ARRAY,
   NONE
 };

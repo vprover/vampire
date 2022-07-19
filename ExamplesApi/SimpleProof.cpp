@@ -20,9 +20,10 @@ int main() {
     Expression and_formula = solver.andFormula(formula1, not_formula1);
 
     solver.assertFormula(and_formula);
-    Result r = solver.solve();
+    
+    solver.outputProblem();
 
-    cout << "proof found: " << r.unsatisfiable() << endl;
+    Result r = solver.solve();
 
     AnnotatedFormulaIterator afi = solver.formulas();
     while(afi.hasNext()){

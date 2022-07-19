@@ -26,6 +26,7 @@
 #include "Kernel/Term.hpp"
 #include "Kernel/TermIterators.hpp"
 #include "Kernel/RapidHelper.hpp"
+#include "Kernel/Theory.hpp"
 
 #include "Shell/LambdaElimination.hpp"
 
@@ -90,7 +91,9 @@ void SuperpositionSubtermIndex::handleClause(Clause* c, bool adding)
     }
     while (rsti.hasNext()) {
       if (adding) {
-        _is->insert(rsti.next(), lit, c);
+        auto t = rsti.next();
+        //cout << "ADDING " << t.toString() << endl;
+        _is->insert(t, lit, c);
       }
       else {
         _is->remove(rsti.next(), lit, c);
@@ -289,6 +292,52 @@ void RapidArrayIndex::handleClause(Clause* c, bool adding)
       _is->remove(term, l, c);
     }    
 
+  }
+}
+
+void ChainReasoningChainTermIndex::handleClause(Clause* c, bool adding)
+{
+  CALL("ChainReasoningChainTermIndex::handleClause");
+
+  unsigned selCnt=c->numSelected();
+  for (unsigned i=0; i<selCnt; i++) {
+    Literal* lit=(*c)[i];
+    NonVariableNonTypeIterator rsti(lit);
+    while (rsti.hasNext()) {
+      auto term = rsti.next();
+      if(env.signature->getFunction(term.term()->functor())->chain()){
+        auto length = *term.term()->nthArgument(2);
+        if(!length.isVar()){
+          if (adding) {
+            _is->insert(length, lit, c);
+          }
+          else {
+            _is->remove(length, lit, c);
+          }
+        }
+      }
+    }
+  }
+
+}
+
+void ChainReasoningLengthClauseIndex::handleClause(Clause* c, bool adding)
+{
+  CALL("ChainReasoningLengthClauseIndex::handleClause");
+
+  if(c->length() > 1){
+    return;
+  }
+
+  Literal* lit = (*c)[0];
+  if(RapidHelper::isZeroLessThanLit(lit)){
+    // we know that clause is of the form
+    // 0 < term
+    if (adding) {
+      _is->insert(*lit->nthArgument(1), lit, c);
+    } else {
+      _is->remove(*lit->nthArgument(1), lit, c);
+    } 
   }
 }
 
