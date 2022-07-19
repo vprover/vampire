@@ -38,6 +38,7 @@ namespace Kernel {
  */
 class TermTransformer {
 public:
+  TermTransformer(bool shared = true) : _sharedResult(shared) {}
   virtual ~TermTransformer() {}
   Term* transform(Term* term);
   Literal* transform(Literal* lit);
@@ -46,6 +47,7 @@ protected:
   Term* transformSpecial(Term* specialTerm);
   TermList transform(TermList ts);
   virtual Formula* transform(Formula* f);
+  bool _sharedResult;
 };
 
 /**

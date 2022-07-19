@@ -164,7 +164,7 @@ typedef Stack<UnificationConstraint> UnificationConstraintStack;
 typedef Lib::SmartPtr<UnificationConstraintStack> UnificationConstraintStackSP;
 
 class Term;
-typedef BiMap<unsigned, Term*> FuncSubtermMap;
+typedef BiMap<unsigned, Term*> VSpecVarToTermMap;
 class Literal;
 typedef List<Literal*> LiteralList;
 typedef Stack<Literal*> LiteralStack;

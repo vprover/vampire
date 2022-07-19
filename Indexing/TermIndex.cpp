@@ -47,12 +47,6 @@ TermQueryResultIterator TermIndex::getUnifications(TermList t,
   return _is->getUnifications(t, retrieveSubstitutions);
 }
 
-TermQueryResultIterator TermIndex::getUnificationsWithConstraints(TermList t,
-          bool retrieveSubstitutions)
-{
-  return _is->getUnificationsWithConstraints(t, retrieveSubstitutions);
-}
-
 TermQueryResultIterator TermIndex::getUnificationsUsingSorts(TermList t, TermList sort,
           bool retrieveSubstitutions)
 {

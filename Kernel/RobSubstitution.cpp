@@ -203,29 +203,6 @@ void RobSubstitution::bind(const VarSpec& v, const TermSpec& b)
   _bank.set(v,b);
 }
 
-void RobSubstitution::addToConstraints(const VarSpec& v1, const VarSpec& v2, MismatchHandler* hndlr)
-{
-  CALL("RobSubstitution::addToConstraints");
-
-  Term* t1 = _funcSubtermMap->get(v1.var);
-  Term* t2 = _funcSubtermMap->get(v2.var);
-
-  if(t1 == t2 && t1->shared() && t1->ground()){ return; }
- 
-  TermList tt1 = TermList(t1);
-  TermList tt2 = TermList(t2);
-
-  TermSpec t1spec = TermSpec(tt1, v1.index);
-  TermSpec t2spec = TermSpec(tt2, v2.index);
-
-  if(t1spec.sameTermContent(t2spec)){ return; }
-
-  //cout << "adding to constraints <" + tt1.toString() + ", " + tt2.toString() + ">" << endl; 
-
-  hndlr->handle(this, tt1, v1.index, tt2, v2.index);
-}
-
-
 void RobSubstitution::bindVar(const VarSpec& var, const VarSpec& to)
 {
   CALL("RobSubstitution::bindVar");
@@ -253,7 +230,7 @@ bool RobSubstitution::occurs(VarSpec vs, TermSpec ts)
   vs=root(vs);
   Stack<TermSpec> toDo(8);
   if(ts.isVSpecialVar()){
-    Term* t = _funcSubtermMap->get(ts.term.var());
+    Term* t = _termMap->get(ts.term.var());
     ts = TermSpec(TermList(t), ts.index);
   }else if(ts.isVar()) {
     ts=derefBound(ts);
@@ -281,12 +258,12 @@ bool RobSubstitution::occurs(VarSpec vs, TermSpec ts)
         if(!isVSpecialVar){
           dtvar=derefBound(TermSpec(tvar));
         } else {
-          Term* t = _funcSubtermMap->get(var.var());
+          Term* t = _termMap->get(var.var());
           dtvar = TermSpec(TermList(t), ts.index);
         }
         if(!dtvar.isVar() || dtvar.isVSpecialVar()) {
           if(dtvar.isVSpecialVar()){
-            Term* t = _funcSubtermMap->get(dtvar.term.var());
+            Term* t = _termMap->get(dtvar.term.var());
             dtvar = TermSpec(TermList(t), dtvar.index);            
           }
           encountered.insert(tvar);
@@ -336,9 +313,11 @@ bool RobSubstitution::unify(TermSpec t1, TermSpec t2,MismatchHandler* hndlr)
     if(dt1.sameTermContent(dt2)) {
     } else if(dt1.isVSpecialVar() && dt2.isVSpecialVar()){
       ASS(hndlr);
-      addToConstraints(getVarSpec(dt1), getVarSpec(dt2), hndlr);
+      // if both are constraint terms (e.g. $sum(...)  or $product(...) or higher-order stuff)
+      // then hand pair over to relevant handler to create constraint
+      hndlr->handle(dt1.term, dt1.index, dt2.term, dt2.index, _termMap);
     } 
-    // Deal with the case where eithe rare variables
+    // Deal with the case where either are variables
     // Do an occurs-check and note that the variable 
     // cannot be currently bound as we already dereferenced
     else if(dt1.isVar() && !dt1.isVSpecialVar()) {
@@ -355,14 +334,23 @@ bool RobSubstitution::unify(TermSpec t1, TermSpec t2,MismatchHandler* hndlr)
         break;
       }
       bind(v2,dt1);
-    } else if(dt1.isVSpecialVar()){
-      Term* t = _funcSubtermMap->get(dt1.term.var());
-      t1 = TermSpec(TermList(t), dt1.index);
-      toDo.push(TTPair(t1, dt2));
-    } else if(dt2.isVSpecialVar()){
-      Term* t = _funcSubtermMap->get(dt2.term.var());
-      t2 = TermSpec(TermList(t), dt2.index);
-      toDo.push(TTPair(dt1, t2));
+    } else if(dt1.isVSpecialVar()){    
+      // Only one term is a constraint term
+      // (e.g. trying to unify f(a) with $sum(...))
+      // In this case we create constraint if settings allow.
+      // If they do not, handler will return false and we continue with
+      // standard unification.
+      if(!hndlr->handle(dt1.term, dt1.index, dt2.term, dt2.index, _termMap)){
+        Term* t = _termMap->get(dt1.term.var());
+        t1 = TermSpec(TermList(t), dt1.index);
+        toDo.push(TTPair(t1, dt2));
+      }
+    } else if(dt2.isVSpecialVar()){    
+      if(!hndlr->handle(dt1.term, dt1.index, dt2.term, dt2.index, _termMap)){
+        Term* t = _termMap->get(dt2.term.var());
+        t2 = TermSpec(TermList(t), dt2.index);
+        toDo.push(TTPair(dt1, t2));
+      }
     } else {
     // Case where both are terms
       TermList* ss=&dt1.term;
@@ -384,6 +372,7 @@ bool RobSubstitution::unify(TermSpec t1, TermSpec t2,MismatchHandler* hndlr)
 
           Term* s = ss->term();
           Term* t = tt->term();
+
           ASS(s->arity() > 0);
           ASS(s->functor() == t->functor());
 
@@ -408,14 +397,8 @@ bool RobSubstitution::unify(TermSpec t1, TermSpec t2,MismatchHandler* hndlr)
                 encountered.insert(itm);
               }
             } else {
-              // Eventually, we want to make theories using the hashing/very special variable
-              // mechanism used by higher-order logic to pruduce constraints.
-              // until then the first condition ensures that the handler is never called
-              // incorrectly. HOL also uses a handler, but it shouldn't be called here.
-              if(env.property->higherOrder() || !hndlr || !hndlr->handle(this,tsss.term,tsss.index,tstt.term,tstt.index)){
-                mismatch=true;
-                break;
-              }
+              mismatch=true;
+              break;
             }
           }
 
@@ -662,7 +645,7 @@ TermList RobSubstitution::apply(TermList trm, int index) const
     }
     Term* t;
     if(ts.term.isVSpecialVar()){
-      t = _funcSubtermMap->get(ts.term.var());
+      t = _termMap->get(ts.term.var());
     } else {
       t = ts.term.term();
     }
@@ -757,7 +740,7 @@ size_t RobSubstitution::getApplicationResultWeight(TermList trm, int index) cons
     }
     Term* t;
     if(ts.term.isVSpecialVar()){
-      t = _funcSubtermMap->get(ts.term.var());
+      t = _termMap->get(ts.term.var());
     }else{
       t=ts.term.term();
     }

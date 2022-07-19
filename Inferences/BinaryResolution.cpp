@@ -56,8 +56,6 @@ void BinaryResolution::attach(SaturationAlgorithm* salg)
   GeneratingInferenceEngine::attach(salg);
   _index=static_cast<GeneratingLiteralIndex*> (
 	  _salg->getIndexManager()->request(GENERATING_SUBST_TREE) );
-
-  _unificationWithAbstraction = env.options->unificationWithAbstraction()!=Options::UnificationWithAbstraction::OFF;
 }
 
 void BinaryResolution::detach()
@@ -73,22 +71,18 @@ void BinaryResolution::detach()
 
 struct BinaryResolution::UnificationsFn
 {
-  UnificationsFn(GeneratingLiteralIndex* index,bool cU)
-  : _index(index),_unificationWithAbstraction(cU) {}
+  UnificationsFn(GeneratingLiteralIndex* index)
+  : _index(index) {}
   VirtualIterator<pair<Literal*, SLQueryResult> > operator()(Literal* lit)
   {
     if(lit->isEquality()) {
       //Binary resolution is not performed with equality literals
       return VirtualIterator<pair<Literal*, SLQueryResult> >::getEmpty();
     }
-    if(_unificationWithAbstraction){
-      return pvi( pushPairIntoRightIterator(lit, _index->getUnificationsWithConstraints(lit, true)) );
-    }
     return pvi( pushPairIntoRightIterator(lit, _index->getUnifications(lit, true)) );
   }
 private:
   GeneratingLiteralIndex* _index;
-  bool _unificationWithAbstraction;
 };
 
 struct BinaryResolution::ResultFn
@@ -220,7 +214,12 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
 
       Literal* constraint = Literal::createEquality(false,qT,rT,sort);
 
-      static Options::UnificationWithAbstraction uwa = opts.unificationWithAbstraction();
+      // AYB ground option removed until we clarify the desired behaviour.
+      // If/when we reintroduce, code below is the wrong place to check for groundness
+      // We should NOT have started creating result clause before we check for 
+      // groundness of constraint. This can be done wwithin unification procedure
+
+      /*static Options::UnificationWithAbstraction uwa = opts.unificationWithAbstraction();
       if(uwa==Options::UnificationWithAbstraction::GROUND &&
          !constraint->ground() &&
          (!UnificationWithAbstractionConfig::isInterpreted(qT) && 
@@ -229,7 +228,7 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
         // the unification was between two uninterpreted things that were not ground 
         res->destroy();
         return 0;
-      }
+      }*/
 
       (*res)[next] = constraint; 
       next++;    
@@ -326,7 +325,7 @@ ClauseIterator BinaryResolution::generateClauses(Clause* premise)
   PassiveClauseContainer* passiveClauseContainer = _salg->getPassiveClauseContainer();
 
   // generate pairs of the form (literal selected in premise, unifying object in index)
-  auto it1 = getMappingIterator(premise->getSelectedLiteralIterator(),UnificationsFn(_index,_unificationWithAbstraction));
+  auto it1 = getMappingIterator(premise->getSelectedLiteralIterator(),UnificationsFn(_index));
   // actually, we got one iterator per selected literal; we flatten the obtained iterator of iterators:
   auto it2 = getFlattenedIterator(it1);
   // perform binary resolution on these pairs

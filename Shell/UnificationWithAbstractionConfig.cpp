@@ -31,3 +31,12 @@ bool UnificationWithAbstractionConfig::isInterpreted(Term* t)
     || theory->isInterpretedConstant(t) 
     || env.signature->getFunction(t->functor())->termAlgebraCons();
 }
+
+bool UnificationWithAbstractionConfig::isNumeral(TermList t)
+{
+  if (t.isVar()) {
+    return false;
+  } else {
+    return theory->isInterpretedConstant(t.term());
+  }
+}

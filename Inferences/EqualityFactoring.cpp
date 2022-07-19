@@ -35,6 +35,8 @@
 
 #include "EqualityFactoring.hpp"
 
+#include "Indexing/SubstitutionTree.hpp"
+
 #if VDEBUG
 #include <iostream>
 using namespace std;
@@ -94,7 +96,7 @@ struct EqualityFactoring::ResultFn
     ASS(sLit->isEquality());
     ASS(fLit->isEquality());
 
-    FuncSubtermMap funcSubtermMap;
+    VSpecVarToTermMap termMap;
 
     TermList srt = SortHelper::getEqualityArgumentSort(sLit);
 
@@ -102,6 +104,7 @@ struct EqualityFactoring::ResultFn
     static UnificationConstraintStack constraints;
     subst.reset();
     constraints.reset();
+    subst.setMap(&termMap);
 
     if (!subst.unify(srt, 0, SortHelper::getEqualityArgumentSort(fLit), 0)) {
       return 0;
@@ -116,26 +119,44 @@ struct EqualityFactoring::ResultFn
     ASS_NEQ(sLit, fLit);
 
     static Options::FunctionExtensionality ext = env.options->functionExtensionality();
+    static Options::UnificationWithAbstraction uwa = env.options->unificationWithAbstraction();
     bool use_ho_handler = (ext == Options::FunctionExtensionality::ABSTRACTION) && env.property->higherOrder();
+    bool use_uwa_handler = uwa != Options::UnificationWithAbstraction::OFF;
 
-    if(use_ho_handler){
-      TermList sLHSreplaced = sLHS;
-      TermList fLHSreplaced = fLHS;
-      if(!sLHS.isVar() && !fLHS.isVar() && 
-         !srtS.isVar() && !srtS.isArrowSort()){
-        sLHSreplaced = ApplicativeHelper::replaceFunctionalAndBooleanSubterms(sLHS.term(), &funcSubtermMap);
-        fLHSreplaced = ApplicativeHelper::replaceFunctionalAndBooleanSubterms(fLHS.term(), &funcSubtermMap);
-      }
-      subst.setMap(&funcSubtermMap);
-      HOMismatchHandler hndlr(constraints);
-      if(!subst.unify(sLHSreplaced,0,fLHSreplaced,0, &hndlr)) {
-        return 0;
-      }
-    } else {
-      if(!subst.unify(sLHS,0,fLHS,0)) {
-        return 0;
+    ASS(!(use_uwa_handler && use_ho_handler));
+
+    if(use_ho_handler && !sLHS.isVar() && !fLHS.isVar() && 
+       !srtS.isVar() && !srtS.isArrowSort()){
+      sLHS = ApplicativeHelper::replaceFunctionalAndBooleanSubterms(sLHS.term(), &termMap);
+      fLHS = ApplicativeHelper::replaceFunctionalAndBooleanSubterms(fLHS.term(), &termMap);
+    }
+
+    // We only care about non-trivial constraints where the top-sybmol of the two terns are the same
+    // and therefore a constraint can be created between arguments
+    if(use_uwa_handler && !sLHS.isVar() && !fLHS.isVar() &&
+       sLHS.term()->functor() == fLHS.term()->functor()){
+      TheoryTermReplacement ttr(&termMap);
+      sLHS = TermList(ttr.transform(sLHS.term()));
+      fLHS = TermList(ttr.transform(fLHS.term()));
+    }
+
+    if(use_uwa_handler){
+      UWAMismatchHandler hndlr(constraints);
+      if(!subst.unify(sLHS,0,fLHS,0,&hndlr)){ 
+        return 0; 
       }
     }
+
+    if(use_ho_handler){
+      HOMismatchHandler hndlr(constraints);
+      if(!subst.unify(sLHS,0,fLHS,0,&hndlr)){ 
+        return 0; 
+      }    
+    }
+
+    if(!use_uwa_handler && !use_ho_handler && !subst.unify(sLHS,0,fLHS,0)){
+      return 0;    
+    }    
 
     TermList sLHSS=subst.apply(sLHS,0);
     TermList sRHSS=subst.apply(sRHS,0);

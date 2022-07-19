@@ -1198,26 +1198,26 @@ void SaturationAlgorithm::activate(Clause* cl)
   _active->add(cl);
 
     
-    auto generated = _generator->generateSimplify(cl);
+  auto generated = _generator->generateSimplify(cl);
 
-    ClauseIterator toAdd = generated.clauses;
+  ClauseIterator toAdd = generated.clauses;
 
-    while (toAdd.hasNext()) {
-      Clause* genCl=toAdd.next();
-      addNewClause(genCl);
+  while (toAdd.hasNext()) {
+    Clause* genCl=toAdd.next();
+    addNewClause(genCl);
 
-      Inference::Iterator iit=genCl->inference().iterator();
-      while (genCl->inference().hasNext(iit)) {
-        Unit* premUnit=genCl->inference().next(iit);
-        // Now we can get generated clauses having parents that are not clauses
-        // Indeed, from induction we can have generated clauses whose parents do 
-        // not include the activated clause
-        if(premUnit->isClause()){
-          Clause* premCl=static_cast<Clause*>(premUnit);
-          onParenthood(genCl, premCl);
-        }
+    Inference::Iterator iit=genCl->inference().iterator();
+    while (genCl->inference().hasNext(iit)) {
+      Unit* premUnit=genCl->inference().next(iit);
+      // Now we can get generated clauses having parents that are not clauses
+      // Indeed, from induction we can have generated clauses whose parents do 
+      // not include the activated clause
+      if(premUnit->isClause()){
+        Clause* premCl=static_cast<Clause*>(premUnit);
+        onParenthood(genCl, premCl);
       }
     }
+  }
 
   _clauseActivationInProgress=false;
 

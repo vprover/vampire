@@ -27,6 +27,12 @@
 
 namespace Indexing {
 
+// A substitution tree based indexing structure, that stores sorts in the tree
+// and terms of the relevant sorts in the leaves.
+// It is useful when we are interested in finding terms that can type unify, but 
+// not necessarily term unify. For example it is used in unification with abstraction.
+
+
 class TypeSubstitutionTree
 : public TermIndexingStructure, SubstitutionTree
 {
@@ -46,6 +52,10 @@ public:
   TermQueryResultIterator getUnifications(TermList sort,
 	  bool retrieveSubstitutions){ NOT_IMPLEMENTED; }
 
+  // Returns all terms whose sort unifies with @param sort
+  // @param trm is a term of sort sort. 
+  // If trm is a variable, the resulting substitution is extending to be a term
+  // substitution as well. Likewise if the result is a variable
   TermQueryResultIterator getUnifications(TermList sort, TermList trm, 
     bool retrieveSubstitutions);
 
@@ -66,7 +76,7 @@ private:
   struct LDToTermQueryResultWithSubstFn;
   struct LeafToLDIteratorFn;
   struct UnifyingContext;
-  struct VarUnifFn;
+  struct ToTermUnifier;
   struct ToTypeSubFn;
 
   template<class LDIt>

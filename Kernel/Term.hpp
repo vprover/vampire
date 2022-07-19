@@ -171,6 +171,7 @@ public:
   static bool equals(TermList t1, TermList t2);
   static bool allShared(TermList* args);
   static TermList var(unsigned var, bool special = false) { return TermList(var, special); }
+  static TermList getVSpecVar(Term* trm, VSpecVarToTermMap* map);
   /** if not var, the inner term must be shared */
   unsigned weight() const;
   /** returns true if this termList is wrapping a higher-order "arrow" sort */
@@ -178,6 +179,9 @@ public:
   bool isBoolSort();
   bool isArraySort();
   bool isTupleSort();
+  bool isIntSort();
+  bool isRatSort();
+  bool isRealSort();
   bool isApplication() const;
   bool containsSubterm(TermList v);
   bool containsAllVariablesOf(TermList t);
@@ -804,7 +808,8 @@ public:
 
   static AtomicSort* create(unsigned typeCon, unsigned arity, const TermList* args);
   static AtomicSort* create2(unsigned tc, TermList arg1, TermList arg2);
-  static AtomicSort* create(AtomicSort* t,TermList* args);
+  static AtomicSort* create(AtomicSort* a,TermList* args);
+  static AtomicSort* createNonShared(AtomicSort* a,TermList* args);    
   static AtomicSort* createConstant(unsigned typeCon) { return create(typeCon,0,0); }
   static AtomicSort* createConstant(const vstring& name); 
 
@@ -816,6 +821,12 @@ public:
   bool isArraySort() const;
   /** true if sort is the sort of an tuple */
   bool isTupleSort() const;
+  /** True if the sort $int */
+  bool isIntSort() const;
+  /** True if rational sort */  
+  bool isRatSort() const;
+  /** True if real sort */  
+  bool isRealSort() const;
 
   const vstring& typeConName() const;  
   
@@ -832,7 +843,6 @@ public:
   static TermList rationalSort();
 
 private:
-
   static AtomicSort* createNonShared(unsigned typeCon, unsigned arity, TermList* arg);
   static AtomicSort* createNonSharedConstant(unsigned typeCon) { return createNonShared(typeCon,0,0); }
 };
@@ -887,6 +897,7 @@ public:
 	  bool commutative, const TermList* args);
   static Literal* create(Literal* l,bool polarity);
   static Literal* create(Literal* l,TermList* args);
+  static Literal* createNonShared(Literal* l,TermList* args);  
   static Literal* createEquality(bool polarity, TermList arg1, TermList arg2, TermList sort);
   static Literal* create1(unsigned predicate, bool polarity, TermList arg);
   static Literal* create2(unsigned predicate, bool polarity, TermList arg1, TermList arg2);

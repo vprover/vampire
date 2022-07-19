@@ -369,7 +369,7 @@ bool ApplicativeHelper::isSafe(TermStack& args)
   return true;
 }
 
-TermList ApplicativeHelper::replaceFunctionalAndBooleanSubterms(Term* term, FuncSubtermMap* fsm)
+TermList ApplicativeHelper::replaceFunctionalAndBooleanSubterms(Term* term, VSpecVarToTermMap* fsm)
 {
   CALL("TermSubstitutionTree::replaceFunctionalAndBooleanSubterms");
   
@@ -426,7 +426,7 @@ TermList ApplicativeHelper::replaceFunctionalAndBooleanSubterms(Term* term, Func
       TermList sort = SortHelper::getResultSort(tl.term());
       if(sort.isVar() || sort.isArrowSort() ||
          sort == AtomicSort::boolSort()){
-        tl = getVSpecVar(tl.term(), fsm);
+        tl = TermList::getVSpecVar(tl.term(), fsm);
         modified.setTop(true);
       }      
     } 

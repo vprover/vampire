@@ -28,7 +28,7 @@ public:
   CLASS_NAME(LiteralSubstitutionTree);
   USE_ALLOCATOR(LiteralSubstitutionTree);
 
-  LiteralSubstitutionTree(bool useC=false);
+  LiteralSubstitutionTree(bool useC = false);
 
   void insert(Literal* lit, Clause* cls);
   void remove(Literal* lit, Clause* cls);
@@ -38,9 +38,6 @@ public:
 
   SLQueryResultIterator getUnifications(Literal* lit,
 	  bool complementary, bool retrieveSubstitutions);
-
-  SLQueryResultIterator getUnificationsWithConstraints(Literal* lit,
-          bool complementary, bool retrieveSubstitutions);
 
   SLQueryResultIterator getGeneralizations(Literal* lit,
 	  bool complementary, bool retrieveSubstitutions);
@@ -158,9 +155,12 @@ private:
     BacktrackData _bdataEq;
   };
 
+  bool _theoryConstraints;
+  VSpecVarToTermMap _termMap;
+
   template<class Iterator, class Filter>
   SLQueryResultIterator getResultIterator(Literal* lit,
-	  bool complementary, bool retrieveSubstitutions, bool useConstraints);
+	  bool complementary, bool retrieveSubstitutions);
 
   unsigned getRootNodeIndex(Literal* t, bool complementary=false);
   bool _polymorphic;

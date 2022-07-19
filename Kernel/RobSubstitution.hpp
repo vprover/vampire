@@ -38,7 +38,7 @@ public:
   CLASS_NAME(RobSubstitution);
   USE_ALLOCATOR(RobSubstitution);
   
-  RobSubstitution() : _funcSubtermMap(nullptr), _nextUnboundAvailable(0) {}
+  RobSubstitution() : _termMap(nullptr), _nextUnboundAvailable(0) {}
 
   SubstIterator matches(Literal* base, int baseIndex,
 	  Literal* instance, int instanceIndex, bool complementary);
@@ -57,13 +57,13 @@ public:
   }
   void reset()
   {
-    _funcSubtermMap = 0;
+    _termMap = 0;
     _bank.reset();
     _nextUnboundAvailable=0;
   }
 
-  void setMap(FuncSubtermMap* fmap){
-    _funcSubtermMap = fmap;
+  void setMap(VSpecVarToTermMap* map){
+    _termMap = map;
   }
   /**
    * Bind special variable to a specified term
@@ -220,7 +220,6 @@ private:
   TermSpec deref(VarSpec v) const;
   TermSpec derefBound(TermSpec v) const;
 
-  void addToConstraints(const VarSpec& v1, const VarSpec& v2,MismatchHandler* hndlr);
   void bind(const VarSpec& v, const TermSpec& b);
   void bindVar(const VarSpec& var, const VarSpec& to);
   VarSpec root(VarSpec v) const;
@@ -244,7 +243,7 @@ private:
 
   typedef DHMap<VarSpec,TermSpec,VarSpec::Hash1, VarSpec::Hash2> BankType;
 
-  FuncSubtermMap* _funcSubtermMap;
+  VSpecVarToTermMap* _termMap;
   BankType _bank;
   mutable unsigned _nextUnboundAvailable;
 

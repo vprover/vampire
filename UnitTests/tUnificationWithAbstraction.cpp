@@ -132,7 +132,7 @@ LiteralIndexingStructure* getBasicIndex()
 
 void reportMatches(LiteralIndexingStructure* index, Literal* qlit)
 {
-  SLQueryResultIterator it= index->getUnificationsWithConstraints(qlit,false,true);
+  SLQueryResultIterator it= index->getUnifications(qlit,false,true);
   cout << endl;
   cout << "Unify with " << qlit->toString() << endl;
   while(it.hasNext()){
@@ -152,10 +152,12 @@ void reportMatches(LiteralIndexingStructure* index, Literal* qlit)
   cout << endl;
 }
 
+// AYB look into rewriting these test now that UWA has been heavily modified
+
 // This test demonstrates the current issue. The constraints produced depend on
 TEST_FUN(current_issue)
 {
-  env.options->setUWA(Options::UnificationWithAbstraction::ALL); 
+  env.options->setUWA(Options::UnificationWithAbstraction::ONE_INTERP); 
 
   LiteralIndexingStructure* index = getBasicIndex();
 
@@ -184,7 +186,7 @@ TEST_FUN(current_issue)
 static const int NORM_QUERY_BANK=2;
 static const int NORM_RESULT_BANK=3;
 
-struct testMismatchHandler : MismatchHandler
+/*struct testMismatchHandler : MismatchHandler
 {
 testMismatchHandler(Stack<UnificationConstraint>* c) : _constraints(c) {}
 bool handle(RobSubstitution* subst, TermList query, unsigned index1, TermList node, unsigned index2){
@@ -198,7 +200,7 @@ bool handle(RobSubstitution* subst, TermList query, unsigned index1, TermList no
     return true;
 }
 Stack<UnificationConstraint>* _constraints;
-};
+};*/
 
 void reportRobUnify(TermList a, TermList b)
 {
@@ -227,7 +229,7 @@ void reportRobUnify(TermList a, TermList b)
 
 TEST_FUN(using_robsub)
 {
-  env.options->setUWA(Options::UnificationWithAbstraction::ALL);
+  env.options->setUWA(Options::UnificationWithAbstraction::ONE_INTERP);
 
   TermList b_plus_two = int_plus(int_constant("b"),number("2"));
   TermList one_plus_a = int_plus(number("1"),int_constant("a"));
@@ -241,7 +243,7 @@ TEST_FUN(using_robsub)
 
 TEST_FUN(complex_case)
 {
-  env.options->setUWA(Options::UnificationWithAbstraction::ALL);
+  env.options->setUWA(Options::UnificationWithAbstraction::ONE_INTERP);
 
   // The complex case is where we have a variable that needs to be instantiated elsewhere
   // e.g. unifying f(f(g(X),X),f(Y,a)) with f(f(1,2),(3,g(Z)))
