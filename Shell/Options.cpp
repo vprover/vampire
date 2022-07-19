@@ -820,7 +820,8 @@ void Options::init()
                                                      FMBWidgetOrders::FUNCTION_FIRST,
                                                      {"function_first","argument_first","diagonal"});
     _fmbSymmetryWidgetOrders.description = "The order of constructed principal terms used in symmetry avoidance. See Symmetry Avoidance in MACE-Style Finite Model Finding.";
-    _lookup.insert(&_fmbSymmetryWidgetOrders);
+    // TODO: put back only when debugged (see https://github.com/vprover/vampire/issues/393)
+    // _lookup.insert(&_fmbSymmetryWidgetOrders);
     _fmbSymmetryWidgetOrders.onlyUsefulWith(_saturationAlgorithm.is(equal(SaturationAlgorithm::FINITE_MODEL_BUILDING)));
     _fmbSymmetryWidgetOrders.tag(OptionTag::FMB);
 
