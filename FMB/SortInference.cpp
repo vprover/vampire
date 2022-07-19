@@ -264,7 +264,7 @@ void SortInference::doInference()
     Literal* l = (*c)[i];
     if(l->isEquality()) {
       // Positive equality means we might be in the { X = t_i } scenario
-      if(l->polarity()){
+      if(l->isPositive()) {
         if (num_vars_always_in_equalities == 3) {         // the unitialized case
           num_vars_always_in_equalities = 0;
           for(unsigned i : {0,1}) {
@@ -272,7 +272,7 @@ void SortInference::doInference()
               v[num_vars_always_in_equalities++] = l->nthArgument(i)->var();
             }
           }
-        } else if (num_vars_always_in_equalities == 2) { // we are keeping track of 2 variables (we just saw "X"="Y" as the last (and first literal) and have v[0]=="X" and v[1]=="Y")
+        } else if (num_vars_always_in_equalities == 2) { // we are keeping track of 2 variables (we just saw "X"="Y" as the last (and first) literal and have v[0]=="X" and v[1]=="Y")
           // we assume duplicate literals have been eliminated, so at most one var will be kept after this stage
           for(unsigned i : {0,1}) {
             if (l->nthArgument(i)->isVar()) {
