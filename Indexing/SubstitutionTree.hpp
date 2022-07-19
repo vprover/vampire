@@ -238,7 +238,6 @@ public:
 
 
   typedef VirtualIterator<Node**> NodeIterator;
-  typedef List<Node*> NodeList;
 
   class IntermediateNode
     	: public Node
