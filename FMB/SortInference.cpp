@@ -250,102 +250,130 @@ void SortInference::doInference()
    cout << "CLAUSE " << c->toString() << endl;
 #endif
 
-   Array<Stack<unsigned>> varPositions(c->varCnt());
-   ZIArray<unsigned> varsWithPosEq(c->varCnt());
-   IntUnionFind localUF(c->varCnt()+1); // +1 to avoid it being 0.. last pos will not be used
+  Array<Stack<unsigned>> varPositions(c->varCnt());
+  ZIArray<unsigned> varsWithPosEq(c->varCnt());
+  IntUnionFind localUF(c->varCnt()+1); // +1 to avoid it being 0.. last pos will not be used
+   
+  // When scanning the clause, keep info about whether it could be of the form C : X = t_1 | ... | X = t_n , where t_i may be a variable as well
+  // If the first literal is X = Y we remember X in v[0] and Y in v[1], subsequent literals will be different and only at most one candidate for "X" will remain
+  // Any literal of the form X = nonvar reduces the num_vars_consdired to 1 or 0 (depending on whether X is possibly one of the two vars we keep track of)
+  unsigned v[2];
+  short unsigned num_vars_always_in_equalities = 3; // 3 means we are still open to the possibility of assigning both v1 and v2, but they are uninitialized at the moment
+   
+  for(unsigned i=0;i<c->length();i++){
+    Literal* l = (*c)[i];
+    if(l->isEquality()) {
+      // Positive equality means we might be in the { X = t_i } scenario
+      if(l->polarity()){
+        if (num_vars_always_in_equalities == 3) {         // the unitialized case
+          num_vars_always_in_equalities = 0;
+          for(unsigned i : {0,1}) {
+            if (l->nthArgument(i)->isVar()) {
+              v[num_vars_always_in_equalities++] = l->nthArgument(i)->var();
+            }
+          }
+        } else if (num_vars_always_in_equalities == 2) { // we are keeping track of 2 variables (we just saw "X"="Y" as the last (and first literal) and have v[0]=="X" and v[1]=="Y")
+          // we assume duplicate literals have been eliminated, so at most one var will be kept after this stage
+          for(unsigned i : {0,1}) {
+            if (l->nthArgument(i)->isVar()) {
+              unsigned var = l->nthArgument(i)->var();
+              if (v[0] == var) {
+                num_vars_always_in_equalities = 1; 
+                break; // and we are done
+              } 
+              if (v[1] == var) {
+                v[0] = var;
+                num_vars_always_in_equalities = 1; 
+                break; // and we are done
+              } 
+              // this side is a completely different var (than v[0] or v[1])
+            }
+          }
+          if (num_vars_always_in_equalities == 2) { 
+            // we didn't succeed for either side, so it's over for this clause
+            num_vars_always_in_equalities = 0;
+          }
+        } else if (num_vars_always_in_equalities == 1) {
+          bool found = false;
+          for(unsigned i : {0,1}) {
+            if (l->nthArgument(i)->isVar()) {
+              if (v[0] == l->nthArgument(i)->var()) {
+                found = true;
+                break; 
+              } 
+              // this side is a different var than v[0]
+            }
+          }
+          if (!found) {
+            num_vars_always_in_equalities = 0;
+          }
+        }
+      } else {
+        num_vars_always_in_equalities = 0; 
+      }
 
-   // This set will be used to collect the variables that occur as part of an equality in every literal (implicitly becomes empty if there's a non-equality literal).
-   // We will use this information to detect maximum model sizes as any claues which is just {X = t_i} means that the sort of X is at most i
-   // We start by assuming that all variables are always in all equalities and then remove variables that are not
-   Set<unsigned> vars_always_in_equalities;
-   vars_always_in_equalities.insertFromIterator(c->getVariableIterator());
-
-   for(unsigned i=0;i<c->length();i++){
-     Literal* l = (*c)[i];
-     if(l->isEquality()){
-
-       // Positive equality means we might  be in a { X = t_i } scenario
-       if(l->polarity()){
-         // For each variable in vars_always_in_equalities remove it if it isn't
-         Set<unsigned>::Iterator vaie_iter(vars_always_in_equalities);
-         while(vaie_iter.hasNext()){ 
-           unsigned var = vaie_iter.next();
-           if((l->nthArgument(0)->isVar() && l->nthArgument(0)->var() != var) ||
-              (l->nthArgument(1)->isVar() && l->nthArgument(1)->var() != var)){
-                vars_always_in_equalities.remove(var);
-           } 
-         }
-       }else {vars_always_in_equalities.reset();}
-
-       if(l->isTwoVarEquality()){
-         varEqualityVampireSorts.push(l->twoVarEqSort().term()->functor());
+      if(l->isTwoVarEquality()) {
+        varEqualityVampireSorts.push(l->twoVarEqSort().term()->functor());
 #if DEBUG_SORT_INFERENCE
-         cout << "join X" << l->nthArgument(0)->var()<< " and X" << l->nthArgument(1)->var() << endl;
+        cout << "join X" << l->nthArgument(0)->var()<< " and X" << l->nthArgument(1)->var() << endl;
 #endif
-         localUF.doUnion(l->nthArgument(0)->var(),l->nthArgument(1)->var());
-         if(l->polarity()){
-           varsWithPosEq[l->nthArgument(0)->var()]=1;
-           varsWithPosEq[l->nthArgument(1)->var()]=1;
+        localUF.doUnion(l->nthArgument(0)->var(),l->nthArgument(1)->var());
+        if(l->polarity()) {
+          varsWithPosEq[l->nthArgument(0)->var()]=1;
+          varsWithPosEq[l->nthArgument(1)->var()]=1;
 #if DEBUG_SORT_INFERENCE
-           cout << "varsWithPosEq X" << l->nthArgument(0)->var() << endl;
-           cout << "varsWithPosEq X" << l->nthArgument(1)->var() << endl;
+          cout << "varsWithPosEq X" << l->nthArgument(0)->var() << endl;
+          cout << "varsWithPosEq X" << l->nthArgument(1)->var() << endl;
 #endif
-         }
-         
-       }else{
-         ASS(!l->nthArgument(0)->isVar());
-         ASS(l->nthArgument(1)->isVar());
-         Term* t = l->nthArgument(0)->term();
+        }         
+      } else {
+        ASS(!l->nthArgument(0)->isVar());
+        ASS(l->nthArgument(1)->isVar());
+        Term* t = l->nthArgument(0)->term();
 
-         unsigned f = t->functor();
-         unsigned n = offset_f[f];
-         varPositions[l->nthArgument(1)->var()].push(n);
+        unsigned f = t->functor();
+        unsigned n = offset_f[f];
+        varPositions[l->nthArgument(1)->var()].push(n);
 #if DEBUG_SORT_INFERENCE
-         cout << "push " << n << " for X" << l->nthArgument(1)->var() << endl;
+        cout << "push " << n << " for X" << l->nthArgument(1)->var() << endl;
 #endif
-         for(unsigned i=0;i<t->arity();i++){
-           ASS(t->nthArgument(i)->isVar());
-           varPositions[t->nthArgument(i)->var()].push(n+1+i);
+        for(unsigned i=0;i<t->arity();i++){
+          ASS(t->nthArgument(i)->isVar());
+          varPositions[t->nthArgument(i)->var()].push(n+1+i);
 #if DEBUG_SORT_INFERENCE
-           cout << "push " << (n+1+i) << " for X" << t->nthArgument(i)->var() << endl;
+          cout << "push " << (n+1+i) << " for X" << t->nthArgument(i)->var() << endl;
 #endif
-         }
-         if(l->polarity()){
-           posEqualitiesOnPos[n]=true;
-         }
-       }
-     }
-     else{
-       vars_always_in_equalities.reset();
-       unsigned n = offset_p[l->functor()];
-       for(unsigned i=0;i<l->arity();i++){
-           ASS(l->nthArgument(i)->isVar());
-           varPositions[l->nthArgument(i)->var()].push(n+i);
+        }
+        if(l->polarity()){
+          posEqualitiesOnPos[n]=true;
+        }
+      }
+    } else {
+      num_vars_always_in_equalities = 0;
+
+      unsigned n = offset_p[l->functor()];
+      for(unsigned i=0;i<l->arity();i++){
+        ASS(l->nthArgument(i)->isVar());
+        varPositions[l->nthArgument(i)->var()].push(n+i);
 #if DEBUG_SORT_INFERENCE
-           cout << "push " << (n+i) << " for X" << l->nthArgument(i)->var() << endl;
+        cout << "push " << (n+i) << " for X" << l->nthArgument(i)->var() << endl;
 #endif
-       }
-     }
-   } 
+      }
+    }
+  } 
 
 #if DEBUG_SORT_INFERENCE
-   cout << "vars_always_in_equalities:" << vars_always_in_equalities << endl;
+   cout << "num_vars_always_in_equalities: " << num_vars_always_in_equalities << endl;
+   for (unsigned i = 0; i < num_vars_always_in_equalities; i++) {
+    cout << "X" << v[i] << endl;
+   }
 #endif
-   ASS(vars_always_in_equalities.size() <= 1); // as X=X should be filtered out in preprocessing
-
-   if(vars_always_in_equalities.size() == 1){
+   if(0 < num_vars_always_in_equalities && num_vars_always_in_equalities <= 2) {
      // We don't actually need the variable, just need to know this is a X = t_i clause
      // If so, the first literal can be used to find the sort of X
      //  - if it is a two var equality we take the sort
      //  - otherwise, it will be of the form X = t and we get the sort of t
-     unsigned sort;
-     Literal* l = (*c)[0];
-     if(l->isTwoVarEquality()){
-         sort = l->twoVarEqSort().term()->functor();
-     }
-     else{
-         sort = SortHelper::getResultSort(l->nthArgument(0)->term()).term()->functor();
-     }
+     unsigned sort = SortHelper::getEqualityArgumentSort((*c)[0]).term()->functor();     
      unsigned max = c->length();
      unsigned old;
      // set the new max if it is smaller than an existing max
