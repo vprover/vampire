@@ -116,7 +116,7 @@ public:
   , _ord(std::move(ord))
   { }
 
-  ~TimeTraceOrdering() override { this->~Ordering(); }
+  ~TimeTraceOrdering() override {  }
 
   Result compare(Kernel::Literal* l1, Kernel::Literal* l2) const final override
   { TIME_TRACE(_nameLit); return _ord.compare(l1,l2); }
