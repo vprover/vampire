@@ -231,7 +231,7 @@ private:
       /** true if atomic sort */
       unsigned sort : 1;
       /** true if term contains at least one term var */
-      unsigned containsTermVar : 1;
+      unsigned hasTermVar : 1;
       /** Ordering comparison result for commutative term arguments, one of
        * 0 (unknown) 1 (less), 2 (equal), 3 (greater), 4 (incomparable)
        * @see Term::ArgumentOrder */
@@ -506,11 +506,12 @@ public:
     return numVarOccs() == 0;
   } // ground
 
-  /** True if the term is contains no term variables. Only applicable to shared terms */
-  bool termGround() const
+  /** True if the term contains a term variable (type variables don't count)
+   *  Only applicable to shared terms */
+  bool hasTermVar() const
   {
     ASS(_args[0]._info.shared);
-    return ! _args[0]._info.containsTermVar;
+    return _args[0]._info.hasTermVar;
   } // ground
 
   /** True if the term is shared */
@@ -586,7 +587,7 @@ public:
   {
     CALL("setHasTermVar");
     ASS(shared() && !isSort());
-    _args[0]._info.containsTermVar = b;
+    _args[0]._info.hasTermVar = b;
   }
 
   /** Return the number of variable _occurrences_ */

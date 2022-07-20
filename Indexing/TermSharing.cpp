@@ -117,7 +117,7 @@ Term* TermSharing::insert(Term* t)
     unsigned vars = 0;
     bool hasInterpretedConstants=t->arity()==0 &&
 	env.signature->getFunction(t->functor())->interpreted();
-    bool containsTermVar = false;
+    bool hasTermVar = false;
     Color color = COLOR_TRANSPARENT;
 
     if(env.options->combinatorySup()){ 
@@ -167,7 +167,7 @@ Term* TermSharing::insert(Term* t)
       if (tt->isVar()) {
         ASS(tt->isOrdinaryVar());
         if(i >= typeArity){
-          containsTermVar = true;
+          hasTermVar = true;
         }
         vars++;
         weight += 1;
@@ -180,9 +180,7 @@ Term* TermSharing::insert(Term* t)
   
         vars += r->numVarOccs();
         weight += r->weight();
-        if(!containsTermVar && !r->termGround()){
-          containsTermVar = true;
-        }
+        hasTermVar |= r->hasTermVar();
         if (env.colorUsed) {
           color = static_cast<Color>(color | r->color());
         }
@@ -195,7 +193,7 @@ Term* TermSharing::insert(Term* t)
     t->setId(_totalTerms);
     t->setNumVarOccs(vars);
     t->setWeight(weight);
-    t->setHasTermVar(containsTermVar);
+    t->setHasTermVar(hasTermVar);
     if (env.colorUsed) {
       Color fcolor = env.signature->getFunction(t->functor())->color();
       color = static_cast<Color>(color | fcolor);

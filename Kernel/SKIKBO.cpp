@@ -355,7 +355,7 @@ bool SKIKBO::safe(Term* t1, Term* t2) const
       continue;
     }
 
-    if(term1.term()->termGround() && term2.term()->termGround()){
+    if(!term1.term()->hasTermVar() && !term2.term()->hasTermVar()){
       TermList head1 = AH::getHead(term1);
       TermList head2 = AH::getHead(term2);
       if(!AH::isComb(head1) && !AH::isComb(head2)){
@@ -367,7 +367,7 @@ bool SKIKBO::safe(Term* t1, Term* t2) const
       } else {
         return false;
       }
-    } else if (term1.term()->termGround() || term2.term()->termGround()){
+    } else if (!term1.term()->hasTermVar() || !term2.term()->hasTermVar()){
       // early failure, it is impossible for these terms to be safe
       // e.g. (f X) and g. 
       return false;
