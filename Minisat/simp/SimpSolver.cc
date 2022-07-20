@@ -28,7 +28,7 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 #include "Minisat/utils/System.h"
 
 #include "Debug/Tracer.hpp"
-#include "Lib/TimeCounter.hpp"
+#include "Shell/TimeTracing.hpp"
 
 using namespace Minisat;
 

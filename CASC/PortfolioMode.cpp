@@ -19,7 +19,7 @@
 #include "Lib/Stack.hpp"
 #include "Lib/System.hpp"
 #include "Lib/ScopedLet.hpp"
-#include "Lib/TimeCounter.hpp"
+#include "Shell/TimeTracing.hpp"
 #include "Lib/Timer.hpp"
 #include "Lib/Sys/Multiprocessing.hpp"
 
@@ -115,7 +115,7 @@ bool PortfolioMode::perform(float slowness)
       }
     }
     if (env.options && env.options->timeStatistics()) {
-      TimeCounter::printReport(env.out());
+        env.statistics->timeTrace.print(env.out());
     }
     env.endOutput();
   }
@@ -126,8 +126,6 @@ bool PortfolioMode::perform(float slowness)
 bool PortfolioMode::searchForProof()
 {
   CALL("PortfolioMode::searchForProof");
-
-  TimeCounter::reinitialize();
 
   _prb = UIHelper::getInputProblem(*env.options);
 
@@ -538,8 +536,6 @@ void PortfolioMode::runSlice(Options& strategyOpt)
   int resultValue=1;
   env.timer->reset();
   env.timer->start();
-  // TODO why reinit
-  TimeCounter::reinitialize();
   Timer::setLimitEnforcement(true);
 
   Options opt = strategyOpt;

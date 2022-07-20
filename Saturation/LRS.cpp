@@ -14,7 +14,7 @@
 
 #include "Lib/Environment.hpp"
 #include "Lib/Timer.hpp"
-#include "Lib/TimeCounter.hpp"
+#include "Shell/TimeTracing.hpp"
 #include "Lib/VirtualIterator.hpp"
 #include "Kernel/Clause.hpp"
 #include "Kernel/LiteralSelector.hpp"

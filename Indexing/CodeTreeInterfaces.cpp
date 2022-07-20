@@ -15,7 +15,7 @@
 
 #include "Lib/Allocator.hpp"
 #include "Lib/Recycler.hpp"
-#include "Lib/TimeCounter.hpp"
+#include "Shell/TimeTracing.hpp"
 #include "Lib/VirtualIterator.hpp"
 
 #include "Kernel/Renaming.hpp"

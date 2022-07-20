@@ -28,6 +28,13 @@ namespace Shell {
 #define TIME_TRACE_EXPR(name, ...)                                                                  \
   [&](){ TIME_TRACE(name); return __VA_ARGS__; }()
 
+
+#define TC_LITERAL_ORDER_AFTERCHECK "literal order aftercheck"
+#define TC_CONDENSATION "condensation"
+#define TC_PARSING "parsing"
+#define TC_PREPROCESSING "preprocessing"
+#define TC_TERM_SHARING "term sharing"
+
 class TimeTrace 
 {
   using Clock = std::chrono::high_resolution_clock;

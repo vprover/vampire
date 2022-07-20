@@ -29,7 +29,7 @@
 #include "Lib/Random.hpp"
 #include "Lib/Set.hpp"
 #include "Lib/Stack.hpp"
-#include "Lib/TimeCounter.hpp"
+#include "Shell/TimeTracing.hpp"
 #include "Lib/Timer.hpp"
 #include "Lib/VString.hpp"
 #include "Lib/List.hpp"
@@ -717,9 +717,6 @@ int main(int argc, char* argv[])
       env.endOutput();
       exit(0);
     }
-
-    //having read option reinitialize the counter
-    TimeCounter::reinitialize();
 
     Allocator::setMemoryLimit(env.options->memoryLimit() * 1048576ul);
     Lib::Random::setSeed(env.options->randomSeed());

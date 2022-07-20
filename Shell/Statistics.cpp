@@ -20,7 +20,6 @@
 
 #include "Lib/Allocator.hpp"
 #include "Lib/Environment.hpp"
-#include "Lib/TimeCounter.hpp"
 #include "Lib/Timer.hpp"
 #include "SAT/Z3Interfacing.hpp"
 
@@ -489,7 +488,6 @@ void Statistics::print(ostream& out)
 #undef COND_OUT
 
   if (env.options && env.options->timeStatistics()) {
-    TimeCounter::printReport(out);
     timeTrace.print(out);
   }
 }

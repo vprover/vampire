@@ -26,8 +26,6 @@
 
 #include "Lib/Allocator.hpp"
 #include "Lib/Option.hpp"
-#include "Shell/TimeTracing.hpp"
-
 
 extern const char* VERSION_STRING;
 

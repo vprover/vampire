@@ -13,7 +13,7 @@
  */
 
 #include "Lib/Environment.hpp"
-#include "Lib/TimeCounter.hpp"
+#include "Shell/TimeTracing.hpp"
 #include "Lib/Timer.hpp"
 
 #include "Kernel/Problem.hpp"

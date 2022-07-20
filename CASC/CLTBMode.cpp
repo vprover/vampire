@@ -27,7 +27,7 @@
 #include "Lib/Int.hpp"
 #include "Lib/StringUtils.hpp"
 #include "Lib/System.hpp"
-#include "Lib/TimeCounter.hpp"
+#include "Shell/TimeTracing.hpp"
 #include "Lib/Timer.hpp"
 #include "Lib/ScopedPtr.hpp"
 
@@ -672,10 +672,6 @@ void CLTBProblem::searchForProof(int terminationTime,int timeLimit,const Categor
 
   // special reporting in Timer.cpp
   UIHelper::portfolioParent = true;
-
-  // TODO why?
-  TimeCounter::reinitialize();
-
   env.options->setInputFile(problemFile);
 
   Stack<unsigned> cutoffs;
@@ -953,7 +949,6 @@ void CLTBProblem::runSlice(Options& strategyOpt)
   int resultValue=1;
   env.timer->reset();
   env.timer->start();
-  TimeCounter::reinitialize();
   Timer::setLimitEnforcement(true);
 
   Options opt = strategyOpt;

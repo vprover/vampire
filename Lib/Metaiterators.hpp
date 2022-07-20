@@ -26,7 +26,7 @@
 #include "DHSet.hpp"
 #include "Recycler.hpp"
 #include "VirtualIterator.hpp"
-#include "TimeCounter.hpp"
+#include "Shell/TimeTracing.hpp"
 #include "Lib/Option.hpp"
 
 namespace Lib {

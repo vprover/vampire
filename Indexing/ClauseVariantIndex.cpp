@@ -15,7 +15,7 @@
 #include "Lib/List.hpp"
 #include "Lib/Metaiterators.hpp"
 #include "Lib/SmartPtr.hpp"
-#include "Lib/TimeCounter.hpp"
+#include "Shell/TimeTracing.hpp"
 
 #include "Kernel/Clause.hpp"
 #include "Kernel/LiteralComparators.hpp"

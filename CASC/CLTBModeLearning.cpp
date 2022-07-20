@@ -27,7 +27,7 @@
 #include "Lib/Int.hpp"
 #include "Lib/StringUtils.hpp"
 #include "Lib/System.hpp"
-#include "Lib/TimeCounter.hpp"
+#include "Shell/TimeTracing.hpp"
 #include "Lib/Timer.hpp"
 #include "Lib/ScopedPtr.hpp"
 #include "Lib/Sort.hpp"
@@ -828,9 +828,6 @@ void CLTBProblemLearning::searchForProof(int terminationTime,int timeLimit, Sche
 
   System::registerForSIGHUPOnParentDeath();
 
-  // TODO why reinit?
-  TimeCounter::reinitialize();
-
   env.options->setInputFile(problemFile);
 
   // this local scope will delete a potentially large parser
@@ -1104,8 +1101,6 @@ void CLTBProblemLearning::runSlice(Options& strategyOpt, bool printProof)
   int resultValue=1;
   env.timer->reset();
   env.timer->start();
-  // TODO why reinit?
-  TimeCounter::reinitialize();
   Timer::setLimitEnforcement(true);
 
   Options opt = strategyOpt;

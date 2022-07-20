@@ -16,7 +16,7 @@
 #include "Lib/List.hpp"
 #include "Lib/Metaiterators.hpp"
 #include "Lib/ScopedLet.hpp"
-#include "Lib/TimeCounter.hpp"
+#include "Shell/TimeTracing.hpp"
 #include "Lib/VirtualIterator.hpp"
 
 #include "Shell/Property.hpp"

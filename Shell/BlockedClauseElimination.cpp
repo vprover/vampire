@@ -34,7 +34,7 @@
 #include "Lib/DHSet.hpp"
 #include "Lib/DHMap.hpp"
 #include "Lib/BinaryHeap.hpp"
-#include "Lib/TimeCounter.hpp"
+#include "Shell/TimeTracing.hpp"
 #include "Lib/IntUnionFind.hpp"
 
 #include "Shell/Statistics.hpp"

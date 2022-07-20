@@ -15,7 +15,7 @@
 #include "Lib/DArray.hpp"
 #include "Lib/Int.hpp"
 #include "Lib/Metaiterators.hpp"
-#include "Lib/TimeCounter.hpp"
+#include "Shell/TimeTracing.hpp"
 #include "Lib/VirtualIterator.hpp"
 
 #include "Kernel/Term.hpp"
