@@ -85,11 +85,11 @@ private:
    * Proxy predicate numbers for each sort (which can be a complex term, even in mono - think arrays)
    * but must be ground (and shared).
    */
-  static DHMap<TermList,unsigned> s_proxyPredicates;
+  static DHMap<TermList, unsigned> s_proxyPredicates;
   /** equality proxy predicate sorts */
   static DHMap<unsigned,TermList> s_proxyPredicateSorts;
   /** array of proxy definitions E(x,y) <=> x = y  */
-  static ZIArray<Unit*> s_proxyPremises;
+  static DHMap<TermList, Unit*> s_proxyPremises;
 };
 
 };

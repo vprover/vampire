@@ -148,6 +148,7 @@ void Options::init()
          "casc_sat",
          "casc_sat_2019",
          "casc_hol_2020",
+         "file",
          "induction",
          "integer_induction",
          "ltb_default_2017",
@@ -161,16 +162,21 @@ void Options::init()
          "rapid_induction",
          "struct_induction"});
 
-    _schedule.description = "Schedule to be run by the portfolio mode. casc and smtcomp usually point to the most recent schedule in that category. Note that some old schedules may contain option values that are no longer supported - see ignore_missing.";
+    _schedule.description = "Schedule to be run by the portfolio mode. casc and smtcomp usually point to the most recent schedule in that category. file loads the schedule from a file specified in --schedule_file. Note that some old schedules may contain option values that are no longer supported - see ignore_missing.";
     _lookup.insert(&_schedule);
     _schedule.reliesOn(UsingPortfolioTechnology());
+
+    _scheduleFile = StringOptionValue("schedule_file", "", "");
+    _scheduleFile.description = "Path to the input schedule file. Each line contains an encoded strategy. Disabled unless `--schedule file` is set.";
+    _lookup.insert(&_scheduleFile);
+    _scheduleFile.onlyUsefulWith(_schedule.is(equal(Schedule::FILE)));
 
     _multicore = UnsignedOptionValue("cores","",1);
     _multicore.description = "When running in portfolio modes (including casc or smtcomp modes) specify the number of cores, set to 0 to use maximum";
     _lookup.insert(&_multicore);
     _multicore.reliesOn(UsingPortfolioTechnology());
 
-    _slowness = FloatOptionValue("slowness","",1.3);
+    _slowness = FloatOptionValue("slowness","",1.0);
     _slowness.description = "The factor by which is multiplied the time limit of each configuration in casc/casc_sat/smtcomp/portfolio mode";
     _lookup.insert(&_slowness);
     _slowness.onlyUsefulWith(UsingPortfolioTechnology());
@@ -468,13 +474,23 @@ void Options::init()
     _definitionReuse.addProblemConstraint(hasFormulas());
     _definitionReuse.tag(OptionTag::PREPROCESSING);
 
+    _tweeGoalTransformation = ChoiceOptionValue<TweeGoalTransformation>("twee_goal_transformation",
+       "tgt", TweeGoalTransformation::OFF, {"off","ground","full"});
+    _tweeGoalTransformation.description =
+      "Add definitions for `ground` subterms in the conjecture, inspired by Twee. "
+      "This adds a goal-directed flavour to equational reasoning. "
+      "`full` is a generalization, where also non-ground subterms are considered.";
+    _tweeGoalTransformation.tag(OptionTag::PREPROCESSING);
+    _tweeGoalTransformation.setExperimental();
+    _lookup.insert(&_tweeGoalTransformation);
+
     _generalSplitting = BoolOptionValue("general_splitting","gsp",false);
     _generalSplitting.description=
     "Splits clauses in order to reduce number of different variables in each clause. "
     "A clause C[X] \\/ D[Y] with subclauses C and D over non-equal sets of variables X and Y can be split into S(Z) \\/ C[X] and ~S(Z) \\/ D[Y] where Z is the intersection of X and Y.";
     _lookup.insert(&_generalSplitting);
     _generalSplitting.tag(OptionTag::PREPROCESSING);
-    _generalSplitting.addProblemConstraint(hasNonUnits());
+    _generalSplitting.addProblemConstraint(mayHaveNonUnits());
     _generalSplitting.setRandomChoices({"off","on"});
 
     _unusedPredicateDefinitionRemoval = BoolOptionValue("unused_predicate_definition_removal","updr",true);
@@ -773,7 +789,7 @@ void Options::init()
     _sos.tag(OptionTag::PREPROCESSING);
     _sos.onlyUsefulWith(InferencingSaturationAlgorithm());
     _sos.setRandomChoices(And(isRandSat(),saNotInstGen()),{"on","off","off","off","off"});
-    _sos.setRandomChoices(And(isRandOn(),hasNonUnits()),{"on","off","off","off","off"});
+    _sos.setRandomChoices(And(isRandOn(),mayHaveNonUnits()),{"on","off","off","off","off"});
     _sos.setRandomChoices(isRandOn(),{"all","off","on"});
 
     _sosTheoryLimit = UnsignedOptionValue("sos_theory_limit","sstl",0);
@@ -822,7 +838,8 @@ void Options::init()
                                                      FMBWidgetOrders::FUNCTION_FIRST,
                                                      {"function_first","argument_first","diagonal"});
     _fmbSymmetryWidgetOrders.description = "The order of constructed principal terms used in symmetry avoidance. See Symmetry Avoidance in MACE-Style Finite Model Finding.";
-    _lookup.insert(&_fmbSymmetryWidgetOrders);
+    // TODO: put back only when debugged (see https://github.com/vprover/vampire/issues/393)
+    // _lookup.insert(&_fmbSymmetryWidgetOrders);
     _fmbSymmetryWidgetOrders.onlyUsefulWith(_saturationAlgorithm.is(equal(SaturationAlgorithm::FINITE_MODEL_BUILDING)));
     _fmbSymmetryWidgetOrders.tag(OptionTag::FMB);
 
@@ -1064,7 +1081,10 @@ void Options::init()
     _sineToAgeGeneralityThreshold.description = "Like sine_generality_threshold but influences sine_to_age, sine_to_pred_levels, and sine_level_split_queue rather than sine_selection.";
     _lookup.insert(&_sineToAgeGeneralityThreshold);
     _sineToAgeGeneralityThreshold.tag(OptionTag::SATURATION);
-    _sineToAgeGeneralityThreshold.onlyUsefulWith(Or(_sineToAge.is(equal(true)),_sineToPredLevels.is(notEqual(PredicateSineLevels::OFF))));
+    _sineToAgeGeneralityThreshold.onlyUsefulWith(Or(
+      _sineToAge.is(equal(true)),
+      _sineToPredLevels.is(notEqual(PredicateSineLevels::OFF)),
+      _useSineLevelSplitQueues.is(equal(true))));
 
     // Like generality threshold for SiNE, except used by the sine2age trick
     _sineToAgeTolerance = FloatOptionValue("sine_to_age_tolerance","s2at",1.0);
@@ -1073,7 +1093,10 @@ void Options::init()
     _sineToAgeTolerance.tag(OptionTag::SATURATION);
     _sineToAgeTolerance.addConstraint(Or(equal(0.0f),greaterThanEq(1.0f)));
     // Captures that if the value is not 1.0 then sineSelection must be on
-    _sineToAgeTolerance.onlyUsefulWith(Or(_sineToAge.is(equal(true)),_sineToPredLevels.is(notEqual(PredicateSineLevels::OFF))));
+    _sineToAgeTolerance.onlyUsefulWith(Or(
+      _sineToAge.is(equal(true)),
+      _sineToPredLevels.is(notEqual(PredicateSineLevels::OFF)),
+      _useSineLevelSplitQueues.is(equal(true))));
     _sineToAgeTolerance.setRandomChoices({"1.0","1.2","1.5","2.0","3.0","5.0"});
 
     _lrsFirstTimeCheck = IntOptionValue("lrs_first_time_check","",5);
@@ -1156,7 +1179,7 @@ void Options::init()
 
     _unificationWithAbstraction = ChoiceOptionValue<UnificationWithAbstraction>("unification_with_abstraction","uwa",
                                      UnificationWithAbstraction::OFF,
-                                     {"off","interpreted_only","one_side_interpreted","one_side_constant","all","ground"});
+                                     {"off","interpreted_only","one_side_interpreted"});
     _unificationWithAbstraction.description=
       "During unification, if two terms s and t fail to unify we will introduce a constraint s!=t and carry on. For example, "
       "resolving p(1) \\/ C with ~p(a+2) would produce C \\/ 1 !=a+2. This is controlled by a check on the terms. The expected "
@@ -1247,6 +1270,21 @@ void Options::init()
     _lookup.insert(&_arithmeticSubtermGeneralizations);
     _arithmeticSubtermGeneralizations.addProblemConstraint(hasTheories());
     _arithmeticSubtermGeneralizations.tag(OptionTag::INFERENCES);
+
+    _evaluationMode = ChoiceOptionValue<EvaluationMode>("evaluation","ev",
+                                                        EvaluationMode::SIMPLE,
+                                                        {"simple","force","cautious"});
+    _evaluationMode.description=
+    "Chooses the algorithm used to simplify interpreted integer, rational, and real terms. \
+                                 \
+    - simple: will only evaluate expressions built from interpreted constants only.\
+    - cautious: will evaluate abstract expressions to a weak polynomial normal form. This is more powerful but may fail in some rare cases where the resulting polynomial is not strictly smaller than the initial one wrt. the simplification ordering. In these cases a new clause with the normal form term will be added to the search space instead of replacing the orignal clause.  \
+    - force: same as `cautious`, but ignoring the simplification ordering and replacing the hypothesis with the normal form clause in any case. \
+    ";
+    _lookup.insert(&_evaluationMode);
+    _evaluationMode.addProblemConstraint(hasTheories());
+    _evaluationMode.tag(OptionTag::SATURATION);
+    _evaluationMode.setExperimental();
 
     _induction = ChoiceOptionValue<Induction>("induction","ind",Induction::NONE,
                       {"none","struct","int","both"});
@@ -1378,6 +1416,74 @@ void Options::init()
     _maxDistanceFromGoal.addHardConstraint(lessThan(7u));
     _lookup.insert(&_maxDistanceFromGoal);
 
+    OptionChoiceValues integerInductionLiteralStrictnessValues {
+      "none",
+      "toplevel_not_in_other",
+      "only_one_occurrence",
+      "not_in_both",
+      "always"
+    };
+
+    _integerInductionStrictnessEq = ChoiceOptionValue<IntegerInductionLiteralStrictness>(
+        "int_induction_strictness_eq",
+        "intindsteq",
+        IntegerInductionLiteralStrictness::NONE,
+        integerInductionLiteralStrictnessValues
+    );
+    _integerInductionStrictnessEq.description =
+      "Exclude induction term t/literal l combinations from integer induction.\n"
+      "Induction is not applied to _equality_ literals l:\n"
+      "  - none: no exclusion\n"
+      "  - toplevel_not_in_other: t is a top-level argument of l,\n"
+      "    but it does not occur in the other argument of l\n"
+      "  - only_one_occurrence: t has only one occurrence in l\n"
+      "  - not_in_both: t does not occur in both arguments of l\n"
+      "  - always: induction on l is not allowed at all\n";
+    _integerInductionStrictnessEq.tag(OptionTag::INFERENCES);
+    _integerInductionStrictnessEq.reliesOn(Or(_induction.is(equal(Induction::INTEGER)),_induction.is(equal(Induction::BOTH))));
+    _lookup.insert(&_integerInductionStrictnessEq);
+
+    _integerInductionStrictnessComp = ChoiceOptionValue<IntegerInductionLiteralStrictness>(
+        "int_induction_strictness_comp",
+        "intindstcomp",
+        IntegerInductionLiteralStrictness::TOPLEVEL_NOT_IN_OTHER,
+        integerInductionLiteralStrictnessValues
+    );
+    _integerInductionStrictnessComp.description =
+      "Exclude induction term t/literal l combinations from integer induction.\n"
+      "Induction is not applied to _comparison_ literals l:\n"
+      "  - none: no exclusion\n"
+      "  - toplevel_not_in_other: t is a top-level argument of l,\n"
+      "    but it does not occur in the other argument of l\n"
+      "  - only_one_occurrence: t has only one occurrence in l\n"
+      "  - not_in_both: t does not occur in both arguments of l\n"
+      "  - always: induction on l is not allowed at all\n";
+    _integerInductionStrictnessComp.tag(OptionTag::INFERENCES);
+    _integerInductionStrictnessComp.reliesOn(Or(_induction.is(equal(Induction::INTEGER)),_induction.is(equal(Induction::BOTH))));
+    _lookup.insert(&_integerInductionStrictnessComp);
+
+    _integerInductionStrictnessTerm = ChoiceOptionValue<IntegerInductionTermStrictness>(
+      "int_induction_strictness_term",
+      "intindstterm",
+      IntegerInductionTermStrictness::INTERPRETED_CONSTANT,
+      {"none", "interpreted_constant", "no_skolems"}
+    );
+    _integerInductionStrictnessTerm.description =
+      "Exclude induction term t/literal l combinations from integer induction.\n"
+      "Induction is not applied to the induction term t:\n"
+      "  - none: no exclusion\n"
+      "  - interpreted_constant: t is an interpreted constant\n"
+      "  - no_skolems: t does not contain a skolem function";
+    _integerInductionStrictnessTerm.tag(OptionTag::INFERENCES);
+    _integerInductionStrictnessTerm.reliesOn(Or(_induction.is(equal(Induction::INTEGER)),_induction.is(equal(Induction::BOTH))));
+    _lookup.insert(&_integerInductionStrictnessTerm);
+
+    _nonUnitInduction = BoolOptionValue("non_unit_induction","nui",false);
+    _nonUnitInduction.description = "Induction on certain clauses or clause sets instead of just unit clauses";
+    _nonUnitInduction.tag(OptionTag::INFERENCES);
+    _nonUnitInduction.reliesOn(_induction.is(notEqual(Induction::NONE)));
+    _lookup.insert(&_nonUnitInduction);
+
     _instantiation = ChoiceOptionValue<Instantiation>("instantiation","inst",Instantiation::OFF,{"off","on"});
     _instantiation.description = "Heuristically instantiate variables. Often wastes a lot of effort. Consider using thi instead.";
     _instantiation.tag(OptionTag::INFERENCES);
@@ -1405,6 +1511,9 @@ void Options::init()
     _lookup.insert(&_backwardSubsumption);
     _backwardSubsumption.tag(OptionTag::INFERENCES);
     _backwardSubsumption.onlyUsefulWith(InferencingSaturationAlgorithm());
+    // bs without fs may lead to rapid looping (when a newly derived clause subsumes its own ancestor already in active) and makes little sense
+    _backwardSubsumption.addHardConstraint(
+        If(notEqual(Subsumption::OFF)).then(_forwardSubsumption.is(notEqual(false))));
     _backwardSubsumption.setRandomChoices({"on","off"});
 
     _backwardSubsumptionResolution = ChoiceOptionValue<Subsumption>("backward_subsumption_resolution","bsr",
@@ -1443,11 +1552,13 @@ void Options::init()
     _binaryResolution.onlyUsefulWith(InferencingSaturationAlgorithm());
     _binaryResolution.tag(OptionTag::INFERENCES);
     // If urr is off then binary resolution should be on
-    _binaryResolution.addConstraint(
-      If(equal(false)).then(_unitResultingResolution.is(notEqual(URResolution::OFF))));
+    // _binaryResolution.addConstraint(If(equal(false)).then(_unitResultingResolution.is(notEqual(URResolution::OFF))));
     _binaryResolution.setRandomChoices(And(isRandSat(),saNotInstGen(),Or(hasEquality(),hasCat(Property::HNE))),{"on"});
     _binaryResolution.setRandomChoices({"on","off"});
 
+    _superposition = BoolOptionValue("superposition","sup",true);
+    _superposition.description= "Control superposition. Turning off this core inference leads to an incomplete calculus on equational problems.";
+    _lookup.insert(&_superposition);
 
     _condensation = ChoiceOptionValue<Condensation>("condensation","cond",Condensation::OFF,{"fast","off","on"});
     _condensation.description=
@@ -1568,7 +1679,7 @@ void Options::init()
     _forwardLiteralRewriting.description="Perform forward literal rewriting.";
     _lookup.insert(&_forwardLiteralRewriting);
     _forwardLiteralRewriting.tag(OptionTag::INFERENCES);
-    _forwardLiteralRewriting.addProblemConstraint(hasNonUnits());
+    _forwardLiteralRewriting.addProblemConstraint(mayHaveNonUnits());
     _forwardLiteralRewriting.onlyUsefulWith(InferencingSaturationAlgorithm());
     _forwardLiteralRewriting.setRandomChoices({"on","off"});
 
@@ -1787,13 +1898,6 @@ void Options::init()
     // potentially could be useful for FOOL, so am not adding the HOL constraint    
     _booleanEqTrick.tag(OptionTag::HIGHER_ORDER);
 
-    _superposition = BoolOptionValue("superposition_hol","suph",true);
-    _superposition.description=
-    "Control superposition. Only used in higher-order strategies";
-    _lookup.insert(&_superposition);
-    _superposition.addProblemConstraint(hasHigherOrder());
-    _superposition.tag(OptionTag::HIGHER_ORDER);
-
     _casesSimp = BoolOptionValue("cases_simp","cs",false);
     _casesSimp.description=
     "FOOL Paramodulation with two conclusion as a simplification";
@@ -1833,7 +1937,7 @@ void Options::init()
     _lookup.insert(&_globalSubsumption);
     _globalSubsumption.onlyUsefulWith(InferencingSaturationAlgorithm());
     _globalSubsumption.tag(OptionTag::INFERENCES);
-    _globalSubsumption.addProblemConstraint(hasNonUnits());
+    // _globalSubsumption.addProblemConstraint(mayHaveNonUnits()); - this is too strict, think of a better one
     _globalSubsumption.setRandomChoices({"off","on"});
 
     _globalSubsumptionSatSolverPower = ChoiceOptionValue<GlobalSubsumptionSatSolverPower>("global_subsumption_sat_solver_power","gsssp",
@@ -1945,7 +2049,7 @@ void Options::init()
     _lookup.insert(&_splitting);
     _splitting.onlyUsefulWith(ProperSaturationAlgorithm());
     _splitting.tag(OptionTag::AVATAR);
-    //_splitting.addProblemConstraint(hasNonUnits());
+    //_splitting.addProblemConstraint(mayHaveNonUnits());
     _splitting.setRandomChoices({"on","off"}); //TODO change balance?
 
     _splitAtActivation = BoolOptionValue("split_at_activation","sac",false);
@@ -2088,7 +2192,7 @@ void Options::init()
     _lookup.insert(&_nonliteralsInClauseWeight);
     _nonliteralsInClauseWeight.tag(OptionTag::AVATAR);
     _nonliteralsInClauseWeight.onlyUsefulWith(_splitting.is(equal(true)));
-    _nonliteralsInClauseWeight.addProblemConstraint(hasNonUnits());
+    // _nonliteralsInClauseWeight.addProblemConstraint(mayHaveNonUnits()); (for the same reason this is disabled in splitting)
     _nonliteralsInClauseWeight.setRandomChoices({"on","off"});
 
 //*********************** SAT solver (used in various places)  ***********************
@@ -2119,6 +2223,7 @@ void Options::init()
        " solver returns unknown at any point";
     _lookup.insert(&_satFallbackForSMT);
     _satFallbackForSMT.tag(OptionTag::SAT);
+    _satFallbackForSMT.addProblemConstraint(hasTheories()); // Z3 won't be incomplete for pure FOL
     _satFallbackForSMT.onlyUsefulWith(_satSolver.is(equal(SatSolver::Z3)));
 
 #endif
@@ -2141,7 +2246,7 @@ void Options::init()
     _lookup.insert(&_literalComparisonMode);
     _literalComparisonMode.onlyUsefulWith(InferencingSaturationAlgorithm());
     _literalComparisonMode.tag(OptionTag::SATURATION);
-    _literalComparisonMode.addProblemConstraint(hasNonUnits());
+    _literalComparisonMode.addProblemConstraint(mayHaveNonUnits());
     _literalComparisonMode.addProblemConstraint(notJustEquality());
     // TODO: if sat then should not use reverse
     _literalComparisonMode.setRandomChoices({"predicate","reverse","standard"});
@@ -2195,10 +2300,21 @@ void Options::init()
     _lookup.insert(&_termOrdering);
 
     _symbolPrecedence = ChoiceOptionValue<SymbolPrecedence>("symbol_precedence","sp",SymbolPrecedence::ARITY,
-                                                            {"arity","occurrence", "rev_occ", "reverse_arity","scramble",
-                                                             "frequency","reverse_frequency",
-                                                             "weighted_frequency","reverse_weighted_frequency"});
-    _symbolPrecedence.description="Vampire uses term orderings which require a precedence relation between symbols. Arity orders symbols by their arity (and reverse_arity takes the reverse of this) and occurence orders symbols by the order they appear in the problem.";
+                                                            {"arity","occurrence","rev_occ","reverse_arity","unary_first",
+                                                            "const_max", "const_min",
+                                                            "scramble","frequency","unary_frequency","const_frequency",
+                                                            "reverse_frequency", "weighted_frequency","reverse_weighted_frequency"});
+    _symbolPrecedence.description="Vampire uses term orderings which require a precedence relation between symbols.\n"
+                                  "Arity orders symbols by their arity (and reverse_arity takes the reverse of this) and occurence orders symbols by the order they appear in the problem. "
+                                  "reverse occurence orders symbols in the reverse of the order they occur in"
+                                  "Then we have a few precedence generating schemes adopted from E: frequency - sort by frequency making rare symbols large, reverse does the opposite, "
+                                  "(For the weighted versions, each symbol occurence counts as many times as is the lenght of the clause in which it occurs.) "
+                                  "unary_first is like arity, except that unary symbols are maximal (and ties are broken by frequency), "
+                                  "unary_frequency is like frequency, except that unary symbols are maximal, "
+                                  "const_max makes constants the largest, then falls back to arity, "
+                                  "const_min makes constants the smallest, then falls back to reverse_arity, "
+                                  "const_frequency makes constants the smallest, then falls back to frequency.";
+
     _lookup.insert(&_symbolPrecedence);
     _symbolPrecedence.onlyUsefulWith(InferencingSaturationAlgorithm());
     _symbolPrecedence.tag(OptionTag::SATURATION);
@@ -2211,25 +2327,24 @@ void Options::init()
     _lookup.insert(&_introducedSymbolPrecedence);
     _introducedSymbolPrecedence.tag(OptionTag::SATURATION);
 
-    _evaluationMode = ChoiceOptionValue<EvaluationMode>("evaluation","ev",
-                                                        EvaluationMode::SIMPLE,
-                                                        {"simple","force","cautious"});
-    _evaluationMode.description=
-    "Choses the algorithm used to simplify interpreted integer, rational, and real terms. \
-                                 \
-    - simple: will only evaluate expressions built from interpreted constants only.\
-    - cautious: will evaluate abstract expressions to a weak polynomial normal form. This is more powerful but may fail in some rare cases where the resulting polynomial is not strictly smaller than the initial one wrt. the simplification ordering. In these cases a new clause with the normal form term will be added to the search space instead of replacing the orignal clause.  \
-    - force: same as `cautious`, but ignoring the simplificaiton ordering and replacing the hypothesis with the normal form clause in any case. \
-    ";
-    _lookup.insert(&_evaluationMode);
-    _evaluationMode.tag(OptionTag::SATURATION);
-    _evaluationMode.setExperimental();
+    _kboWeightGenerationScheme = ChoiceOptionValue<KboWeightGenerationScheme>("kbo_weight_scheme","kws",KboWeightGenerationScheme::CONST,
+                                          {"const","random","arity","inv_arity","arity_squared","inv_arity_squared",
+                                          "precedence","inv_precedence","frequency","inv_frequency"});
+    _kboWeightGenerationScheme.description = "Weight generation schemes from KBO inspired by E. This gets overridden by the function_weights option if used.";
+    _kboWeightGenerationScheme.setExperimental();
+    _kboWeightGenerationScheme.onlyUsefulWith(_termOrdering.is(equal(TermOrdering::KBO)));
+    _lookup.insert(&_kboWeightGenerationScheme);
 
+    _kboMaxZero = BoolOptionValue("kbo_max_zero","kmz",false);
+    _kboMaxZero.setExperimental();
+    _kboMaxZero.onlyUsefulWith(_termOrdering.is(equal(TermOrdering::KBO)));
+    _kboMaxZero.description="Modifies any kbo_weight_scheme by setting (for each sort) a maximal (by the precedence) function symbol to have weight 0.";
+    _lookup.insert(&_kboMaxZero);
 
     _kboAdmissabilityCheck = ChoiceOptionValue<KboAdmissibilityCheck>(
         "kbo_admissibility_check", "", KboAdmissibilityCheck::ERROR,
                                      {"error","warning" });
-    _kboAdmissabilityCheck.description = "Choose to emmit a warning instead of throwing an exception if the weight function and precedence ordering for kbo are not compatible.";
+    _kboAdmissabilityCheck.description = "Choose to emit a warning instead of throwing an exception if the weight function and precedence ordering for kbo are not compatible.";
     _kboAdmissabilityCheck.setExperimental();
     _kboAdmissabilityCheck.onlyUsefulWith(_termOrdering.is(equal(TermOrdering::KBO)));
     _lookup.insert(&_kboAdmissabilityCheck);
@@ -2237,11 +2352,9 @@ void Options::init()
 
     _functionWeights = StringOptionValue("function_weights","fw","");
     _functionWeights.description = 
-      "Path to a file that defines weights for KBO for function symbols, or 'random'.\n"
+      "Path to a file that defines weights for KBO for function symbols.\n"
       "\n"
-      "If 'random' is used the weights will be assigned randomly.\n"
-      "\n"
-      "If the option is a file path, each line in the file is expected to contain a function name, followed by the functions arity, and a positive integer, that specifies symbols weight.\n"
+      "Each line in the file is expected to contain a function name, followed by the functions arity, and a positive integer, that specifies symbols weight.\n"
       "\n"
       "Additionally there are special values that can be specified:\n"
       "- `$default    <number>` specifies the default symbol weight, that is used for all symbols not present in the file (if not specified 0 is used)\n"
@@ -2277,8 +2390,10 @@ void Options::init()
     _lookup.insert(&_predicatePrecedence);
 
     _symbolPrecedenceBoost = ChoiceOptionValue<SymbolPrecedenceBoost>("symbol_precedence_boost","spb",SymbolPrecedenceBoost::NONE,
-                                     {"none","goal","units","goal_then_units"});
-    _symbolPrecedenceBoost.description = "Boost the symbol precedence of symbols occurring in certain kinds of clauses in the input.";
+                                     {"none","goal","units","goal_then_units",
+                                      "non_intro","intro"});
+    _symbolPrecedenceBoost.description = "Boost the symbol precedence of symbols occurring in certain kinds of clauses in the input.\n"
+                                         "Additionally, non_intro/intro suppress/boost the precedence of symbols introduced during preprocessing (i.e., mainly, the naming predicates and the skolems).";
     _symbolPrecedenceBoost.onlyUsefulWith(InferencingSaturationAlgorithm());
     _symbolPrecedenceBoost.tag(OptionTag::SATURATION);
     _lookup.insert(&_symbolPrecedenceBoost);
@@ -2303,7 +2418,11 @@ void Options::init()
     
     
     _showInterpolant = ChoiceOptionValue<InterpolantMode>("show_interpolant","",InterpolantMode::OFF,
-                                                          {"new_heur","new_opt","off", "old", "old_opt"});
+                                                          {"new_heur",
+#if VZ3
+                                                          "new_opt",
+#endif
+                                                          "off"});
     _lookup.insert(&_showInterpolant);
     _showInterpolant.tag(OptionTag::OTHER);
     _showInterpolant.setExperimental();
@@ -2802,7 +2921,7 @@ bool Options::RatioOptionValue::readRatio(const char* val, char separator)
       return false;
     }
     char copy[COPY_SIZE];
-    strncpy(copy,val,COPY_SIZE);
+    strncpy(copy,val,COPY_SIZE - 1); // leave space for trailing NUL
     copy[colonIndex] = 0;
     int age;
     if (! Int::stringToInt(copy,age)) {
@@ -2953,7 +3072,7 @@ bool Options::TimeLimitOptionValue::setValue(const vstring& value)
   }
 
   char copy[COPY_SIZE];
-  strncpy(copy,value.c_str(),COPY_SIZE);
+  strncpy(copy,value.c_str(),COPY_SIZE - 1); // leave space for trailing NUL
   char* end = copy;
   // search for the end of the string for
   while (*end) {
@@ -3366,6 +3485,8 @@ bool Options::complete(const Problem& prb) const
   
   bool unitEquality = prop.category() == Property::UEQ;
   bool hasEquality = (prop.equalityAtoms() != 0);
+
+  if (hasEquality && !_superposition.actualValue) return false;
 
   if((prop.hasCombs() || prop.hasAppliedVar())  &&
     !_addCombAxioms.actualValue && !_combinatorySuperposition.actualValue) {

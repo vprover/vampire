@@ -36,8 +36,6 @@ public:
 	  bool retrieveSubstitutions = true);
   TermQueryResultIterator getUnificationsUsingSorts(TermList t, TermList sort,
     bool retrieveSubstitutions = true);
-  TermQueryResultIterator getUnificationsWithConstraints(TermList t,
-    bool retrieveSubstitutions = true);
   TermQueryResultIterator getGeneralizations(TermList t,
 	  bool retrieveSubstitutions = true);
   TermQueryResultIterator getInstances(TermList t,
@@ -162,6 +160,23 @@ protected:
   void handleClause(Clause* c, bool adding);
 };
 
+/**
+ * Term index for structural induction
+ */
+class StructInductionTermIndex
+: public TermIndex
+{
+public:
+  CLASS_NAME(StructInductionTermIndex);
+  USE_ALLOCATOR(StructInductionTermIndex);
+
+  StructInductionTermIndex(TermIndexingStructure* is)
+  : TermIndex(is) {}
+
+protected:
+  void handleClause(Clause* c, bool adding);
+};
+
 
 /**
  * Term index for induction on arrays from the
@@ -225,6 +240,8 @@ private:
   Ordering& _ord;
 };
 
+=======
+>>>>>>> ahmed-changing-uwa-implementation
 /////////////////////////////////////////////////////
 // Indices for higher-order inferences from here on//
 /////////////////////////////////////////////////////

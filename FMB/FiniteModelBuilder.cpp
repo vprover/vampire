@@ -93,10 +93,12 @@ FiniteModelBuilder::FiniteModelBuilder(Problem& prb, const Options& opt)
       || prop.knownInfiniteDomain() || // recursive data type provably infinite --> don't bother model building
       env.property->hasInterpretedOperations()) {
 
-      env.beginOutput();
-      addCommentSignForSZS(env.out());
-      env.out() << "WARNING: trying to run FMB on interpreted or otherwise provably infinite-domain problem!" << endl;
-      env.endOutput();
+      if(outputAllowed()) {
+        env.beginOutput();
+        addCommentSignForSZS(env.out());
+        env.out() << "WARNING: trying to run FMB on interpreted or otherwise provably infinite-domain problem!" << endl;
+        env.endOutput();
+      }
 
      _isAppropriate = false;
      _dsaEnumerator = 0; // to ensure it is initialised
@@ -1949,7 +1951,7 @@ void FiniteModelBuilder::onModelFound()
     if(env.signature->functionArity(f)>0) continue;
     if(del_f[f]) continue;
 
-    bool found=false;
+    DEBUG_CODE(bool found=false;)
     for(unsigned c=1;c<=_sortModelSizes[_sortedSignature->functionSignatures[f][0]];c++){
       static DArray<unsigned> grounding(1);
       grounding[0]=c;
@@ -1957,7 +1959,7 @@ void FiniteModelBuilder::onModelFound()
       if(_solver->trueInAssignment(slit)){
         //if(found){ cout << "Error: multiple interpretations of " << name << endl;}
         ASS(!found);
-        found=true;
+        DEBUG_CODE(found=true;)
         model.addConstantDefinition(f,c);
       }
     }

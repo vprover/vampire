@@ -31,6 +31,8 @@
 #include "Lib/DHMultiset.hpp"
 
 #include "TermSharing.hpp"
+#include "Shell/UnificationWithAbstractionConfig.hpp"
+
 
 #include <iostream>
 #if VDEBUG
@@ -47,13 +49,23 @@ vstring SingleTermListToString(const TermList* ts);
 using namespace std;
 using namespace Indexing;
 
+TermList TheoryTermReplacement::transformSubterm(TermList trm)
+{
+  CALL("SubstitutionTree::TheoryTermReplacement::transformSubterm");
+ 
+  if( Shell::UnificationWithAbstractionConfig::isInterpreted(trm) &&
+     !Shell::UnificationWithAbstractionConfig::isNumeral(trm)){
+    return TermList::getVSpecVar(trm.term(), _termMap);
+  }
+  return trm;
+}
 
 /**
  * Initialise the substitution tree.
  * @since 16/08/2008 flight Sydney-San Francisco
  */
-SubstitutionTree::SubstitutionTree(int nodes,bool useC, bool rfSubs)
-  : tag(false), _nextVar(0), _nodes(nodes), _useC(useC), _rfSubs(rfSubs)
+SubstitutionTree::SubstitutionTree(int nodes)
+  : tag(false), _nextVar(0), _nodes(nodes)
 {
   CALL("SubstitutionTree::SubstitutionTree");
 
@@ -154,7 +166,7 @@ void SubstitutionTree::insert(Node** pnode,BindingMap& svBindings,LeafData ld)
     if(svBindings.isEmpty()) {
       *pnode=createLeaf();
     } else {
-      *pnode=createIntermediateNode(svBindings.getOneKey(),_useC);
+      *pnode=createIntermediateNode(svBindings.getOneKey());
     }
   }
   if(svBindings.isEmpty()) {
@@ -221,7 +233,7 @@ start:
       UnresolvedSplitRecord urr=unresolvedSplits.pop();
 
       Node* node=*pnode;
-      IntermediateNode* newNode = createIntermediateNode(node->term, urr.var,_useC);
+      IntermediateNode* newNode = createIntermediateNode(node->term, urr.var);
       node->term=urr.original;
 
       *pnode=newNode;
@@ -258,7 +270,7 @@ start:
     }
     while (!remainingBindings.isEmpty()) {
       Binding b=remainingBindings.pop();
-      IntermediateNode* inode = createIntermediateNode(term, b.var,_useC);
+      IntermediateNode* inode = createIntermediateNode(term, b.var);
       term=b.term;
 
       *pnode = inode;
@@ -616,7 +628,7 @@ void SubstitutionTree::Node::split(Node** pnode, TermList* where, int var)
 
   Node* node=*pnode;
 
-  IntermediateNode* newNode = createIntermediateNode(node->term, var,node->withSorts());
+  IntermediateNode* newNode = createIntermediateNode(node->term, var);
   node->term=*where;
   *pnode=newNode;
 
@@ -677,17 +689,22 @@ bool SubstitutionTree::LeafIterator::hasNext()
 
 SubstitutionTree::UnificationsIterator::UnificationsIterator(SubstitutionTree* parent,
 	Node* root, Term* query, bool retrieveSubstitution, bool reversed, 
-  bool withoutTop, bool useC, FuncSubtermMap* funcSubtermMap)
+  bool withoutTop, ConstraintType ct, VSpecVarToTermMap* termMap)
 : tag(parent->tag), 
 svStack(32), literalRetrieval(query->isLiteral()),
   retrieveSubstitution(retrieveSubstitution), inLeaf(false),
 ldIterator(LDIterator::getEmpty()), nodeIterators(8), bdStack(8),
-clientBDRecording(false), tree(parent), useUWAConstraints(useC)
+clientBDRecording(false)
+#if VDEBUG
+  , tree(parent)
+#endif
 {
   CALL("SubstitutionTree::UnificationsIterator::UnificationsIterator");
 
-  ASS(!useUWAConstraints || retrieveSubstitution);
-  ASS(!useUWAConstraints || parent->_useC);
+  useUWAConstraints = ct == ConstraintType::THEORY_CONSTRAINTS;
+  useHOConstraints  = ct == ConstraintType::HO_CONSTRAINTS;
+
+  ASS(!(useHOConstraints && useUWAConstraints));
 
 #if VDEBUG
   tree->_iteratorCnt++;
@@ -697,19 +714,27 @@ clientBDRecording(false), tree(parent), useUWAConstraints(useC)
     return;
   }
 
-  useHOConstraints = false;
-  if(funcSubtermMap){
-    useHOConstraints = true;
-    subst.setMap(funcSubtermMap);
+  if(useUWAConstraints || useHOConstraints){
+    subst.setMap(termMap);
   }
 
   queryNormalizer.normalizeVariables(query);
   Term* queryNorm=queryNormalizer.apply(query);
 
-  if(funcSubtermMap){
-    TermList t = ApplicativeHelper::replaceFunctionalAndBooleanSubterms(queryNorm, funcSubtermMap);
+  //cout << "FINDING Partners for " << query->toString() << endl;
+
+  if(useHOConstraints){
+    TermList t = ApplicativeHelper::replaceFunctionalAndBooleanSubterms(queryNorm, termMap);
     ASS(!t.isVar());
     queryNorm = t.term();
+  }
+
+
+  if(useUWAConstraints){
+    // replace theory subterms by very special variables
+    // For example f($sum(X,Y), b) ---> f(#, b)
+    TheoryTermReplacement ttr(termMap);
+    queryNorm = ttr.transform(queryNorm);
   }
 
   if(withoutTop){
@@ -906,14 +931,7 @@ bool SubstitutionTree::UnificationsIterator::enter(Node* n, BacktrackData& bd)
       IntermediateNode* inode=static_cast<IntermediateNode*>(n);
       svStack.push(inode->childVar);
       NodeIterator nit=getNodeIterator(inode);
-      if(useUWAConstraints){
-        TermList qt = subst.getSpecialVarTop(inode->childVar);
-        NodeIterator enit = pvi(getConcatenatedIterator(inode->childBySort(qt),nit));
-        nodeIterators.backtrackablePush(enit,bd);
-      }
-      else{
-        nodeIterators.backtrackablePush(nit, bd);
-      }
+      nodeIterators.backtrackablePush(nit, bd);
     }
   }
   if(recording) {
@@ -931,10 +949,9 @@ bool SubstitutionTree::SubstitutionTreeMismatchHandler::introduceConstraint(Term
   return true;
 }
 
-bool SubstitutionTree::STHOMismatchHandler::handle
-     (RobSubstitution* subst,TermList query,unsigned index1, TermList node,unsigned index2)
+bool SubstitutionTree::STHOMismatchHandler::introduceConstraint(TermList query,unsigned index1, TermList node,unsigned index2)
 {
-  CALL("SubstitutionTree::STHOMismatchHandler::handle");
+  CALL("SubstitutionTree::STHOMismatchHandler::introduceConstraint");
 
   auto constraint = make_pair(make_pair(query,index1),make_pair(node,index2));
   _constraints.backtrackablePush(constraint,_bd);

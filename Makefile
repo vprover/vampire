@@ -240,6 +240,7 @@ VI_OBJ = Indexing/AcyclicityIndex.o\
          Indexing/GroundingIndex.o\
          Indexing/Index.o\
          Indexing/IndexManager.o\
+         Indexing/InductionFormulaIndex.o\
          Indexing/LiteralIndex.o\
          Indexing/LiteralMiniIndex.o\
          Indexing/LiteralSubstitutionTree.o\
@@ -355,9 +356,7 @@ VS_OBJ = Shell/AnswerExtractor.o\
          Shell/Grounding.o\
          Shell/InequalitySplitting.o\
          Shell/InterpolantMinimizer.o\
-         Shell/InterpolantMinimizerNew.o\
          Shell/Interpolants.o\
-         Shell/InterpolantsNew.o\
          Shell/InterpretedNormalizer.o\
          Shell/LambdaElimination.o\
          Shell/LaTeX.o\
@@ -374,7 +373,6 @@ VS_OBJ = Shell/AnswerExtractor.o\
          Shell/Skolem.o\
          Shell/SimplifyFalseTrue.o\
          Shell/SineUtils.o\
-         Shell/SMTFormula.o\
          Shell/FOOLElimination.o\
          Shell/Statistics.o\
          Shell/SubexpressionIterator.o\
@@ -385,6 +383,7 @@ VS_OBJ = Shell/AnswerExtractor.o\
          Shell/TheoryAxioms.o\
          Shell/TheoryFinder.o\
          Shell/TheoryFlattening.o\
+         Shell/TweeGoalTransformation.o\
          Shell/BlockedClauseElimination.o\
          Shell/Token.o\
          Shell/TPTPPrinter.o\
@@ -405,7 +404,6 @@ DP_OBJ = DP/ShortConflictMetaDP.o\
 
 CASC_OBJ = CASC/PortfolioMode.o\
            CASC/Schedules.o\
-	   CASC/ScheduleExecutor.o\
            CASC/CLTBMode.o\
            CASC/CLTBModeLearning.o
 
@@ -510,7 +508,7 @@ all: #default make disabled
 ################################################################
 # automated generation of Vampire revision information
 
-VERSION_NUMBER = 4.6.1
+VERSION_NUMBER = 4.7
 
 # We extract the revision number from svn every time the svn meta-data are modified
 # (that's why there is the dependency on .svn/entries) 

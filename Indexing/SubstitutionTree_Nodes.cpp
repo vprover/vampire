@@ -128,17 +128,15 @@ SubstitutionTree::Leaf* SubstitutionTree::createLeaf(TermList ts)
   return new UListLeaf(ts);
 }
 
-SubstitutionTree::IntermediateNode* SubstitutionTree::createIntermediateNode(unsigned childVar,bool useC)
+SubstitutionTree::IntermediateNode* SubstitutionTree::createIntermediateNode(unsigned childVar)
 {
   CALL("SubstitutionTree::createIntermediateNode/2");
-  if(useC){ return new UArrIntermediateNodeWithSorts(childVar); }
   return new UArrIntermediateNode(childVar);
 }
 
-SubstitutionTree::IntermediateNode* SubstitutionTree::createIntermediateNode(TermList ts, unsigned childVar,bool useC)
+SubstitutionTree::IntermediateNode* SubstitutionTree::createIntermediateNode(TermList ts, unsigned childVar)
 {
   CALL("SubstitutionTree::createIntermediateNode/3");
-  if(useC){ return new UArrIntermediateNodeWithSorts(ts, childVar); }
   return new UArrIntermediateNode(ts, childVar);
 }
 
@@ -174,7 +172,6 @@ SubstitutionTree::Node** SubstitutionTree::UArrIntermediateNode::
     }
   }
   if(canCreate) {
-    mightExistAsTop(t);
     ASS_L(_size,UARR_INTERMEDIATE_NODE_MAX_SIZE);
     ASS_EQ(_nodes[_size],0);
     _nodes[++_size]=0;
@@ -207,13 +204,7 @@ SubstitutionTree::IntermediateNode* SubstitutionTree::SListIntermediateNode
 {
   CALL("SubstitutionTree::SListIntermediateNode::assimilate");
 
-  IntermediateNode* res= 0;
-  if(orig->withSorts()){
-    res = new SListIntermediateNodeWithSorts(orig->term, orig->childVar);
-    res->_childBySortHelper->loadFrom(orig->_childBySortHelper);
-  }else{
-    res = new SListIntermediateNode(orig->term, orig->childVar);
-  }
+  IntermediateNode* res = new SListIntermediateNode(orig->term, orig->childVar);
   res->loadChildren(orig->allChildren());
   orig->makeEmpty();
   delete orig;

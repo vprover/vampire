@@ -72,10 +72,18 @@ Term* TermTransformer::transform(Term* term)
       if(orig->isSort()){
         //For most applications we probably dont want to transform sorts.
         //However, we don't enforce that here, inheriting classes can decide
-        //for themselves        
-        newTrm=AtomicSort::create(static_cast<AtomicSort*>(orig), argLst);
+        //for themselves     
+        if(_sharedResult){   
+          newTrm=AtomicSort::create(static_cast<AtomicSort*>(orig), argLst);
+        } else {
+          newTrm=AtomicSort::createNonShared(static_cast<AtomicSort*>(orig), argLst);          
+        }
       } else {
-        newTrm=Term::create(orig,argLst);
+        if(_sharedResult){   
+          newTrm=Term::create(orig,argLst);
+        } else {
+          newTrm=Term::createNonShared(orig,argLst);          
+        }
       }
       args.push(TermList(newTrm));
       modified.setTop(true);
@@ -128,10 +136,16 @@ Term* TermTransformer::transform(Term* term)
   TermList* argLst = &args.top() - (term->arity() - 1);
 
   if (term->isLiteral()) {
-    return Literal::create(static_cast<Literal*>(term), argLst);
-  } else {
+    if(_sharedResult){
+      return Literal::create(static_cast<Literal*>(term), argLst);
+    }
+    return Literal::createNonShared(static_cast<Literal*>(term), argLst);
+  } 
+  if(_sharedResult){
     return Term::create(term, argLst);
   }
+  return Term::createNonShared(term, argLst);
+
 }
 
 Literal* TermTransformer::transform(Literal* lit)
@@ -248,9 +262,9 @@ Formula* TermTransformer::transform(Formula* f)
   return ttft.transform(f);
 }
 
-Term* TermTransformerTransformTransformed::transform(Term* term)
+Term* BottomUpTermTransformer::transform(Term* term)
 {
-  CALL("TermTransformerTransformTransformed::transform(Term* term)");
+  CALL("BottomUpTermTransformer::transform(Term* term)");
   ASS(term->shared());
 
   static Stack<TermList*> toDo(8);
@@ -332,7 +346,7 @@ Term* TermTransformerTransformTransformed::transform(Term* term)
   }
 }
 
-Literal* TermTransformerTransformTransformed::transform(Literal* lit)
+Literal* BottomUpTermTransformer::transform(Literal* lit)
 {
   CALL("TermTransformer::transform(Literal* lit)");
   Term* t = transform(static_cast<Term*>(lit));
@@ -340,10 +354,10 @@ Literal* TermTransformerTransformTransformed::transform(Literal* lit)
   return static_cast<Literal*>(t);
 }
 
-Formula* TermTransformerTransformTransformed::transform(Formula* f)
+Formula* BottomUpTermTransformer::transform(Formula* f)
 {
-  CALL("TermTransformerTransformTransformed::transform(Formula* f)");
-  static TermTransformerTransformTransformedFormulaTransformer ttft(*this);
+  CALL("BottomUpTermTransformer::transform(Formula* f)");
+  static BottomUpTermTransformerFormulaTransformer ttft(*this);
   return ttft.transform(f);
 }
 

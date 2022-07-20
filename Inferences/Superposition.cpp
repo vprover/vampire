@@ -83,15 +83,12 @@ void Superposition::detach()
 
 struct Superposition::RewritableResultsFn
 {
-  RewritableResultsFn(SuperpositionSubtermIndex* index,bool wc,bool ea) : _index(index),
-                     _withC(wc), _extByAbs(ea) {}
+  RewritableResultsFn(SuperpositionSubtermIndex* index,bool wc) : _index(index),
+                     _withC(wc) {}
   VirtualIterator<pair<pair<Literal*, TermList>, TermQueryResult> > operator()(pair<Literal*, TermList> arg)
   {
     CALL("Superposition::RewritableResultsFn()");
     if(_withC){
-      return pvi( pushPairIntoRightIterator(arg, _index->getUnificationsWithConstraints(arg.second, true)) );
-    }
-    else if(_extByAbs){
       TermList sort = SortHelper::getTermSort(arg.second, arg.first);
       return pvi( pushPairIntoRightIterator(arg, _index->getUnificationsUsingSorts(arg.second, sort, true)) );
     }
@@ -102,7 +99,6 @@ struct Superposition::RewritableResultsFn
 private:
   SuperpositionSubtermIndex* _index;
   bool _withC;
-  bool _extByAbs;
 };
 
 struct Superposition::RewriteableSubtermsFn
@@ -123,15 +119,12 @@ private:
 
 struct Superposition::ApplicableRewritesFn
 {
-  ApplicableRewritesFn(SuperpositionLHSIndex* index, bool wc, bool ea) : _index(index), 
-                      _withC(wc), _extByAbs(ea) {}
+  ApplicableRewritesFn(SuperpositionLHSIndex* index, bool wc) : _index(index), 
+                      _withC(wc) {}
   VirtualIterator<pair<pair<Literal*, TermList>, TermQueryResult> > operator()(pair<Literal*, TermList> arg)
   {
     CALL("Superposition::ApplicableRewritesFn()");
     if(_withC){
-      return pvi( pushPairIntoRightIterator(arg, _index->getUnificationsWithConstraints(arg.second, true)) );
-    }  
-    else if(_extByAbs){
       TermList sort = SortHelper::getTermSort(arg.second, arg.first);
       return pvi( pushPairIntoRightIterator(arg, _index->getUnificationsUsingSorts(arg.second, sort, true)) );
     }
@@ -142,7 +135,6 @@ struct Superposition::ApplicableRewritesFn
 private:
   SuperpositionLHSIndex* _index;
   bool _withC;
-  bool _extByAbs;
 };
 
 
@@ -194,9 +186,10 @@ ClauseIterator Superposition::generateClauses(Clause* premise)
   //cout << "SUPERPOSITION with " << premise->toString() << endl;
 
   //TODO probably shouldn't go here!
-  static bool withConstraints = env.options->unificationWithAbstraction()!=Options::UnificationWithAbstraction::OFF;
-  static bool extByAbstraction = (env.options->functionExtensionality() == Options::FunctionExtensionality::ABSTRACTION)
-                               && env.property->higherOrder();
+  static bool withConstraints = 
+      env.options->unificationWithAbstraction()!=Options::UnificationWithAbstraction::OFF
+  || (env.options->functionExtensionality() == Options::FunctionExtensionality::ABSTRACTION
+                               && env.property->higherOrder());
 
   auto itf1 = premise->getSelectedLiteralIterator();
 
@@ -207,14 +200,14 @@ ClauseIterator Superposition::generateClauses(Clause* premise)
 
   // Get clauses with a literal whose complement unifies with the rewritable subterm,
   // returns a pair with the original pair and the unification result (includes substitution)
-  auto itf3 = getMapAndFlattenIterator(itf2,ApplicableRewritesFn(_lhsIndex,withConstraints, extByAbstraction));
+  auto itf3 = getMapAndFlattenIterator(itf2,ApplicableRewritesFn(_lhsIndex,withConstraints));
 
   //Perform forward superposition
   auto itf4 = getMappingIterator(itf3,ForwardResultFn(premise, passiveClauseContainer, *this));
 
   auto itb1 = premise->getSelectedLiteralIterator();
   auto itb2 = getMapAndFlattenIterator(itb1,EqHelper::SuperpositionLHSIteratorFn(_salg->getOrdering(), _salg->getOptions()));
-  auto itb3 = getMapAndFlattenIterator(itb2,RewritableResultsFn(_subtermIndex,withConstraints, extByAbstraction));
+  auto itb3 = getMapAndFlattenIterator(itb2,RewritableResultsFn(_subtermIndex,withConstraints));
 
   //Perform backward superposition
   auto itb4 = getMappingIterator(itb3,BackwardResultFn(premise, passiveClauseContainer, *this));
@@ -638,7 +631,9 @@ Clause* Superposition::performSuperposition(
       TermList sort = SortHelper::getResultSort(rT.term());
       Literal* constraint = Literal::createEquality(false,qT,rT,sort);
 
-      static Options::UnificationWithAbstraction uwa = env.options->unificationWithAbstraction();
+      // view comment in binary resolution regarding check below AYB
+
+      /*static Options::UnificationWithAbstraction uwa = env.options->unificationWithAbstraction();
       if(uwa==Options::UnificationWithAbstraction::GROUND && 
          !constraint->ground() &&
          (!UnificationWithAbstractionConfig::isInterpreted(qT) 
@@ -647,7 +642,7 @@ Clause* Superposition::performSuperposition(
         // the unification was between two uninterpreted things that were not ground 
         res->destroy();
         return 0;
-      }
+      }*/
 
       (*res)[next] = constraint;
       next++;   

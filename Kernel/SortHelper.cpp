@@ -61,7 +61,7 @@ void SortHelper::getTypeSub(const Term* t, Substitution& subst)
   
   TermList* typeArg;
   OperatorType* ot       = getType(const_cast<Term*>(t)); //sym->fnType();
-  unsigned typeArgsArity = ot->typeArgsArity();
+  unsigned typeArgsArity = ot->numTypeArguments();
   //cout << "typeArgsArity " << typeArgsArity << endl;
 
   typeArg = const_cast<TermList*>(t->args());
@@ -223,13 +223,17 @@ TermList SortHelper::getArgSort(Term* t, unsigned argIndex)
   Substitution subst;
   OperatorType* ot = getType(t);
 
-  if(argIndex < ot->typeArgsArity()){
+  if(argIndex < ot->numTypeArguments()){
     return AtomicSort::superSort();
   }
   
   getTypeSub(t, subst);
   return SubstHelper::apply(ot->arg(argIndex), subst);
 } // getArgSort
+
+/* returns the sort of the nth term argument */
+TermList SortHelper::getTermArgSort(Term* t, unsigned n)
+{ return getArgSort(t, n + t->numTypeArguments()); }
 
 TermList SortHelper::getEqualityArgumentSort(const Literal* lit)
 {

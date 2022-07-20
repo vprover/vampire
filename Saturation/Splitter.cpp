@@ -771,9 +771,8 @@ Unit* Splitter::getDefinitionFromName(SplitLevel compName) const
 {
   CALL("Splitter::getDefinitionFromName");
 
-  Unit* def;
-  ALWAYS(_defs.find((compName&~1) /*always stored positively*/,def));
-  return def;
+  // always stored positively
+  return _defs.get(compName & ~1);
 }
 
 void Splitter::collectDependenceLits(SplitSet* splits, SATLiteralStack& acc) const
@@ -1099,9 +1098,9 @@ bool Splitter::doSplitting(Clause* cl)
   if (hasStopped) {
     return false;
   }
-  if (_stopSplittingAtTime && (unsigned)env.timer->elapsedMilliseconds() >= _stopSplittingAtTime
+  if ((_stopSplittingAtTime && (unsigned)env.timer->elapsedMilliseconds() >= _stopSplittingAtTime)
 #ifdef __linux__
-    || _stopSplittingAtInst && env.timer->elapsedMegaInstructions() >= _stopSplittingAtInst
+    || (_stopSplittingAtInst && env.timer->elapsedMegaInstructions() >= _stopSplittingAtInst)
 #endif
     ) {
     if (_showSplitting) {

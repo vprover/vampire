@@ -18,6 +18,7 @@
 
 
 #include "Kernel/Renaming.hpp"
+
 #include "Lib/SkipList.hpp"
 #include "Lib/BiMap.hpp"
 
@@ -52,7 +53,7 @@ public:
    * store Terms of type $o (formulas) in the tree, but in the leaf we store
    * the skolem terms used to witness them (to facilitate the reuse of Skolems)
    */
-  TermSubstitutionTree(bool useC=false, bool replaceFunctionalSubterms = false, bool extra = false);
+  TermSubstitutionTree(bool theoryConstraints = false, bool hoConstraints = false, bool extra = false);
 
   void insert(TermList t, Literal* lit, Clause* cls);
   void remove(TermList t, Literal* lit, Clause* cls);
@@ -65,12 +66,6 @@ public:
   TermQueryResultIterator getUnifications(TermList t,
 	  bool retrieveSubstitutions);
 
-  TermQueryResultIterator getUnificationsWithConstraints(TermList t,
-    bool retrieveSubstitutions);
-
-  /*
-   * A higher order concern (though it may be useful in other situations)
-   */
   TermQueryResultIterator getUnificationsUsingSorts(TermList t, TermList sort,
     bool retrieveSubstitutions);
 
@@ -88,12 +83,13 @@ private:
 
   void insert(TermList t, LeafData ld);
   void handleTerm(TermList t, Literal* lit, Clause* cls, bool insert);
+  bool constraintTermHandled(TermList t, LeafData ld, bool insert);
 
   struct TermQueryResultFn;
 
   template<class Iterator>
   TermQueryResultIterator getResultIterator(Term* term,
-	  bool retrieveSubstitutions,bool withConstraints);
+	  bool retrieveSubstitutions);
 
   struct LDToTermQueryResultFn;
   struct LDToTermQueryResultWithSubstFn;
@@ -102,11 +98,10 @@ private:
 
   template<class LDIt>
   TermQueryResultIterator ldIteratorToTQRIterator(LDIt ldIt,
-	  TermList queryTerm, bool retrieveSubstitutions,
-          bool withConstraints);
+	  TermList queryTerm, bool retrieveSubstitutions);
 
   TermQueryResultIterator getAllUnifyingIterator(TermList trm,
-	  bool retrieveSubstitutions,bool withConstraints);
+	  bool retrieveSubstitutions);
 
   inline
   unsigned getRootNodeIndex(Term* t)
@@ -116,14 +111,21 @@ private:
 
   typedef SkipList<LeafData,LDComparator> LDSkipList;
   LDSkipList _vars;
+  bool _withConstraints;
+  bool _theoryConstraints;
+
+  bool _higherOrderConstraints;
+
+  VSpecVarToTermMap _termMap;
+
+  /* 
+   * Used to store terms that are not to be unified, but rather to form part of constraints
+   * For example $sum(X, Y) will be stored in _termsByType
+   */
+  TypeSubstitutionTree* _termsByType;
 
   //higher-order concerns
   bool _extra;
-  bool _extByAbs;
-
-  FuncSubtermMap _functionalSubtermMap;
-
-  TypeSubstitutionTree* _funcSubtermsByType;
 
 };
 

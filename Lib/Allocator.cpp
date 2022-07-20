@@ -26,6 +26,8 @@
 #include "Lib/System.hpp"
 #include "Lib/Timer.hpp"
 #include "Shell/UIHelper.hpp"
+// we leak the allocator because we cannot make sure that it will be deallocated as last static object
+#define LEAK_ALLOCATOR 1
 
 #define SAFE_OUT_OF_MEM_SOLUTION 1
 
@@ -125,6 +127,7 @@ string Lib::___prettyFunToClassName(std::string str)
 }
 
 #endif
+
 
 void* Allocator::operator new(size_t s) {
   return malloc(s);
@@ -276,10 +279,12 @@ void Allocator::cleanup()
   CALLC("Allocator::cleanup",MAKE_CALLS);
   BYPASSING_ALLOCATOR;
 
+#if !LEAK_ALLOCATOR
   // delete all allocators
   for (int i = _total-1;i >= 0;i--) {
     delete _all[i];
   }
+#endif
        
 #if CHECK_LEAKS
   if (MemoryLeak::report()) {
@@ -300,6 +305,7 @@ void Allocator::cleanup()
   }
 #endif
 
+#if !LEAK_ALLOCATOR
   // release all the pages
   for (int i = MAX_PAGES-1;i >= 0;i--) {
 #if VDEBUG && TRACE_ALLOCATIONS
@@ -325,6 +331,7 @@ void Allocator::cleanup()
 #if VDEBUG
   delete[] Descriptor::map;
 #endif  
+#endif // !LEAK_ALLOCATOR
 } // Allocator::initialise
 
 
@@ -1049,6 +1056,8 @@ Allocator::Descriptor::Descriptor ()
 {
 //   CALL("Allocator::Descriptor::Descriptor");
 } // Allocator::Descriptor::Descriptor
+
+Allocator::Descriptor::~Descriptor() {}
 
 /**
  * The FNV-hashing.

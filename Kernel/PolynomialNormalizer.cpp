@@ -25,13 +25,16 @@ struct RenderMonom {
     using Monom        = Monom       <NumTraits>;
     auto& raw = x.raw();
     std::sort(raw.begin(), raw.end());
-    auto fstNum = Option<Numeral>();
+
+    Numeral num(1);
+    bool found = false;
     unsigned len = 0;
     for (auto x : raw) {
       ASS_EQ(x.power, 1)
-      if (x.term.template tryNumeral<NumTraits>().isSome() && fstNum.isNone()) {
-        fstNum = x.term.template tryNumeral<NumTraits>();
-
+      Option<Numeral> attempt(x.term.template tryNumeral<NumTraits>());
+      if (!found && attempt.isSome()) {
+        found = true;
+        num = attempt.unwrap();
       } else if (len == 0) {
         len++;
         raw[len - 1].term = x.term;
@@ -50,7 +53,6 @@ struct RenderMonom {
     raw.truncate(len);
     ASS_EQ(raw.size(), len)
     x.integrity();
-    auto num = fstNum.map([](Numeral& n) -> Numeral { return n; }).unwrapOrElse([](){return Numeral(1);});
     return Monom(num, perfect(std::move(x)));
   }
 };
@@ -243,7 +245,7 @@ template<class ConstantType>
 NormalizationResult wrapNumeral(ConstantType c) 
 { 
   using NumTraits = NumTraits<ConstantType>;
-  PolyNf numPolyNf(PolyNf(perfect(FuncTerm(FuncId(NumTraits::constantT(c)->functor()), nullptr))));
+  PolyNf numPolyNf(PolyNf(perfect(FuncTerm(FuncId::symbolOf(NumTraits::constantT(c)), nullptr))));
   return NormalizationResult(MonomFactors<NumTraits>(numPolyNf));
 }
 
@@ -282,8 +284,7 @@ NormalizationResult normalizeNumSort(TermList t, NormalizationResult* ts)
 
   } else {
     auto term = t.term();
-    auto fn = FuncId(term->functor());
-
+    auto fn = FuncId::symbolOf(term);
     if (fn.isInterpreted()) {
       switch(fn.interpretation()) {
         case NumTraits::mulI:
@@ -308,13 +309,18 @@ NormalizationResult normalizeNumSort(TermList t, NormalizationResult* ts)
     return singletonProduct(PolyNf(perfect(FuncTerm(
         fn, 
         Stack<PolyNf>::fromIterator(
-            iterTraits(getArrayishObjectIterator<mut_ref_t>(ts, fn.arity()))
+            iterTraits(getArrayishObjectIterator<mut_ref_t>(ts, fn.numTermArguments()))
             .map( [](NormalizationResult& r) -> PolyNf { return std::move(r).apply(RenderPolyNf{}); }))
       )
     )));
   }
 }
 
+#define PRINT_AND_RETURN(...)                                                                                 \
+  auto f = [&](){ __VA_ARGS__ };                                                                              \
+  auto out = f();                                                                                             \
+  DBG("out : ", out);                                                                                         \
+  return out;                                                                                                 \
 
 PolyNf normalizeTerm(TypedTermList t) 
 {
@@ -337,16 +343,17 @@ PolyNf normalizeTerm(TypedTermList t)
         if (t.isVar()) {
           return NormalizationResult(PolyNf(Variable(t.var())));
         } else {
-          auto fn = FuncId(t.term()->functor());
+          auto fn = FuncId::symbolOf(t.term());
           return NormalizationResult(PolyNf(perfect(FuncTerm(
               fn, 
               Stack<PolyNf>::fromIterator(
-                  iterTraits(getArrayishObjectIterator<mut_ref_t>(ts, fn.arity()))
+                  iterTraits(getArrayishObjectIterator<mut_ref_t>(ts, fn.numTermArguments()))
                   .map( [](NormalizationResult& r) -> PolyNf { return std::move(r).apply(RenderPolyNf{}); }))
             )
           )));
         }
       }
+
     }
   };
   NormalizationResult r = evaluateBottomUp(t, Eval{}, memo);
@@ -364,7 +371,7 @@ TermList PolyNf::denormalize() const
 
     TermList operator()(PolyNf orig, TermList* results)
     { return orig.match(
-        [&](Perfect<FuncTerm> t) { return TermList(Term::create(t->function().id(), t->arity(), results)); },
+        [&](Perfect<FuncTerm> t) { return TermList(Term::create(t->function().id(), t->numTermArguments(), results)); },
         [&](Variable          v) { return TermList::var(v.id()); },
         [&](AnyPoly           p) { return p.denormalize(results); }
         ); }

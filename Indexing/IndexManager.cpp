@@ -302,6 +302,12 @@ Index* IndexManager::create(IndexType t)
     isGenerating = true;
     break;
 
+  case STRUCT_INDUCTION_TERM_INDEX:
+    tis = new TermSubstitutionTree();
+    res = new StructInductionTermIndex(tis);
+    isGenerating = true;
+    break;
+
   case MULTI_CLAUSE_NAT_IND_INDEX:
     tis = new TermSubstitutionTree();
     res = new MultiClauseNatInductionIndex(tis);
@@ -330,7 +336,7 @@ Index* IndexManager::create(IndexType t)
     tis = new TermSubstitutionTree();
     res = new ChainReasoningLengthClauseIndex(tis);
     isGenerating = true;
-    break;
+    break;    
 
   default:
     INVALID_OPERATION("Unsupported IndexType.");

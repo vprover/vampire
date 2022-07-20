@@ -49,12 +49,6 @@ SLQueryResultIterator LiteralIndex::getUnifications(Literal* lit,
   return _is->getUnifications(lit, complementary, retrieveSubstitutions);
 }
 
-SLQueryResultIterator LiteralIndex::getUnificationsWithConstraints(Literal* lit,
-          bool complementary, bool retrieveSubstitutions)
-{
-  return _is->getUnificationsWithConstraints(lit, complementary, retrieveSubstitutions);
-}
-
 SLQueryResultIterator LiteralIndex::getGeneralizations(Literal* lit,
 	  bool complementary, bool retrieveSubstitutions)
 {
@@ -91,7 +85,10 @@ void GeneratingLiteralIndex::handleClause(Clause* c, bool adding)
 
   int selCnt=c->numSelected();
   for(int i=0; i<selCnt; i++) {
-    handleLiteral((*c)[i], c, adding);
+    Literal* lit = (*c)[i];
+    if (!lit->isEquality()) {
+      handleLiteral(lit, c, adding);
+    }
   }
 }
 

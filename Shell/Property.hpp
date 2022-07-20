@@ -227,12 +227,14 @@ public:
   bool hasNonDefaultSorts() const { return _hasNonDefaultSorts; }
   bool hasFOOL() const { return _hasFOOL; }
   bool hasCombs() const { return _hasCombs;}
+  bool hasArrowSort() const { return _hasArrowSort; }
   bool hasApp() const { return _hasApp; }
   bool hasAppliedVar() const { return _hasAppliedVar; }
   bool hasBoolVar() const { return _hasBoolVar; }
   bool hasLogicalProxy() const { return _hasLogicalProxy; }
   bool hasPolymorphicSym() const { return _hasPolymorphicSym; }
-  bool higherOrder() const { return hasCombs() || hasApp() || hasLogicalProxy() || _hasLambda; }
+  bool higherOrder() const { return hasCombs() || hasApp() || hasLogicalProxy() ||
+                                    hasArrowSort() || _hasLambda; }
   bool quantifiesOverPolymorphicVar() const { return _quantifiesOverPolymorphicVar; }
   bool usesSort(unsigned sort) const { 
     CALL("Property::usesSort");
@@ -332,6 +334,7 @@ public:
 
   bool _hasFOOL;
   bool _hasCombs;
+  bool _hasArrowSort;
   bool _hasApp;
   bool _hasAppliedVar;
   bool _hasBoolVar;

@@ -80,7 +80,7 @@ using namespace Shell;
     write(fd[WRITE],&termReason,sizeof(termReason));    //write to pipe
     close(fd[WRITE]);
     // child of the API
-    // we don't want ocntrol to return, but to terminate
+    // we don't want control to return, but to terminate
     // and let the parent take ove    
     System::terminateImmediately(1);    
   }

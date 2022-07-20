@@ -92,7 +92,8 @@ bool operator<(const TermList& lhs, const TermList& rhs);
 class TermList {
 public:
   CLASS_NAME(TermList)
-  static const unsigned SPEC_UPPER_BOUND = 10000000;
+  // divide by 4 because of the tag, by 2 to split the space evenly
+  static const unsigned SPEC_UPPER_BOUND = (UINT_MAX / 4) / 2;
   /** dummy constructor, does nothing */
   TermList() {}
   /** creates a term list and initialises its content with data */
@@ -148,6 +149,8 @@ public:
    * arguments of shared terms. */
   inline bool sameContent(const TermList* t) const
   { return _content == t->_content ; }
+  inline bool sameContent(const TermList& t) const
+  { return sameContent(&t); }
   /** return the content, useful for e.g., term argument comparison */
   inline size_t content() const { return _content; }
   vstring toString(bool topLevel = true) const;
@@ -168,6 +171,7 @@ public:
   static bool equals(TermList t1, TermList t2);
   static bool allShared(TermList* args);
   static TermList var(unsigned var, bool special = false) { return TermList(var, special); }
+  static TermList getVSpecVar(Term* trm, VSpecVarToTermMap* map);
   /** if not var, the inner term must be shared */
   unsigned weight() const;
   /** returns true if this termList is wrapping a higher-order "arrow" sort */
@@ -175,6 +179,9 @@ public:
   bool isBoolSort();
   bool isArraySort();
   bool isTupleSort();
+  bool isIntSort();
+  bool isRatSort();
+  bool isRealSort();
   bool isApplication() const;
   bool containsSubterm(TermList v);
   bool containsAllVariablesOf(TermList t);
@@ -405,7 +412,7 @@ public:
    */
   const TermList* args() const
   { return _args + _arity; }
-  /** return the nth argument (counting from 0) */
+  /** @see nthArguement(int) */ 
   const TermList* nthArgument(int n) const
   {
     ASS(n >= 0);
@@ -413,7 +420,15 @@ public:
 
     return _args + (_arity - n);
   }
-  /** return the nth argument (counting from 0) */
+  /** return the nth argument (counting from 0) 
+   *
+   *  Note that the arguments may be sort arguments as well as term arguments.
+   *  i.e. nthArgument(n) will return 
+   *    - a sort, for 0 <= n < numTypeArguemnts()
+   *    - a term, for numTypeArguments() <= n < arity()
+   *
+   *  If you want to access a specific term or type argument use typeArg(int) or termArg(int) instead.
+   */ 
   TermList* nthArgument(int n)
   {
     ASS(n >= 0);
@@ -421,6 +436,12 @@ public:
 
     return _args + (_arity - n);
   }
+
+  /** returns the nth term argument. for 0 <= n <= numTermArguments  */
+  TermList termArg(unsigned n) const;
+
+  /** returns the nth type argument. for 0 <= n <= numTypeArguments  */
+  TermList typeArg(unsigned n) const;
 
   /**
    * Return the number of type arguments for a polymorphic term (or 0 if monomorphic).
@@ -437,6 +458,13 @@ public:
     * In the monomorphic case, the same as args()
     */
   TermList* termArgs();
+
+  /** Return the 1st type argument for a polymorphic term.
+    * returns a nullpointer if the term not polymorphic
+    * This is technically almost the same thing as calling args(), 
+    * but can be used to increase readability of code.
+    */
+  const TermList* typeArgs() const;
 
   /** Indexing operator for accessing arguments */
   const TermList operator[](int i) const {
@@ -780,7 +808,8 @@ public:
 
   static AtomicSort* create(unsigned typeCon, unsigned arity, const TermList* args);
   static AtomicSort* create2(unsigned tc, TermList arg1, TermList arg2);
-  static AtomicSort* create(AtomicSort* t,TermList* args);
+  static AtomicSort* create(AtomicSort* a,TermList* args);
+  static AtomicSort* createNonShared(AtomicSort* a,TermList* args);    
   static AtomicSort* createConstant(unsigned typeCon) { return create(typeCon,0,0); }
   static AtomicSort* createConstant(const vstring& name); 
 
@@ -792,6 +821,12 @@ public:
   bool isArraySort() const;
   /** true if sort is the sort of an tuple */
   bool isTupleSort() const;
+  /** True if the sort $int */
+  bool isIntSort() const;
+  /** True if rational sort */  
+  bool isRatSort() const;
+  /** True if real sort */  
+  bool isRealSort() const;
 
   const vstring& typeConName() const;  
   
@@ -808,7 +843,6 @@ public:
   static TermList rationalSort();
 
 private:
-
   static AtomicSort* createNonShared(unsigned typeCon, unsigned arity, TermList* arg);
   static AtomicSort* createNonSharedConstant(unsigned typeCon) { return createNonShared(typeCon,0,0); }
 };
@@ -863,6 +897,7 @@ public:
 	  bool commutative, const TermList* args);
   static Literal* create(Literal* l,bool polarity);
   static Literal* create(Literal* l,TermList* args);
+  static Literal* createNonShared(Literal* l,TermList* args);  
   static Literal* createEquality(bool polarity, TermList arg1, TermList arg2, TermList sort);
   static Literal* create1(unsigned predicate, bool polarity, TermList arg);
   static Literal* create2(unsigned predicate, bool polarity, TermList arg1, TermList arg2);

@@ -22,6 +22,7 @@
 #include "Lib/Environment.hpp"
 #include "Shell/Statistics.hpp"
 #include "Shell/Options.hpp"
+#include "Indexing/SubstitutionTree.hpp"
 
 #include "Kernel/Clause.hpp"
 #include "Kernel/Unit.hpp"
@@ -69,7 +70,7 @@ struct EqualityResolution::ResultFn
     ASS(lit->isEquality());
     ASS(lit->isNegative());
 
-    FuncSubtermMap funcSubtermMap;
+    VSpecVarToTermMap termMap;
 
     TermList arg0 = *lit->nthArgument(0);
     TermList arg1 = *lit->nthArgument(1);
@@ -84,26 +85,27 @@ struct EqualityResolution::ResultFn
       TermList sort = SortHelper::getEqualityArgumentSort(lit);
       if(!arg0.isVar() && !arg1.isVar() && 
          !sort.isVar() && !sort.isArrowSort()){
-        arg0 = ApplicativeHelper::replaceFunctionalAndBooleanSubterms(arg0.term(), &funcSubtermMap);
-        arg1 = ApplicativeHelper::replaceFunctionalAndBooleanSubterms(arg1.term(), &funcSubtermMap);
+        arg0 = ApplicativeHelper::replaceFunctionalAndBooleanSubterms(arg0.term(), &termMap);
+        arg1 = ApplicativeHelper::replaceFunctionalAndBooleanSubterms(arg1.term(), &termMap);
       }
     }
 
-    //cout << "arg0 " + arg0.toString() << endl;
-    //cout << "arg1 " + arg1.toString() << endl;
-
-    // We only care about non-trivial constraints where the top-sybmol of the two literals are the same
+    // We only care about non-trivial constraints where the top-sybmol of the two terms are the same
     // and therefore a constraint can be created between arguments
-    if(use_uwa_handler &&  arg0.isTerm() && arg1.isTerm() &&
+    if(use_uwa_handler && !arg0.isVar() && !arg1.isVar() &&
        arg0.term()->functor() == arg1.term()->functor()){
-      use_uwa_handler = false;
+      TheoryTermReplacement ttr(&termMap);
+      arg0 = TermList(ttr.transform(arg0.term()));
+      arg1 = TermList(ttr.transform(arg1.term()));
     }
+
+    ASS(!(use_uwa_handler && use_ho_handler));
 
     static RobSubstitution subst;
     static UnificationConstraintStack constraints;
     subst.reset();
     constraints.reset();
-    subst.setMap(&funcSubtermMap);
+    subst.setMap(&termMap);
 
     if(use_uwa_handler){
       UWAMismatchHandler hndlr(constraints);
@@ -164,8 +166,10 @@ struct EqualityResolution::ResultFn
 
       TermList sort = SortHelper::getResultSort(rT.term());
       Literal* constraint = Literal::createEquality(false,qT,rT,sort);      
+  
+      // view comment in binary resolution regarding check below AYB
 
-      if(use_uwa_handler && uwa==Options::UnificationWithAbstraction::GROUND &&
+      /*if(use_uwa_handler && uwa==Options::UnificationWithAbstraction::GROUND &&
          !constraint->ground() &&
          !UnificationWithAbstractionConfig::isInterpreted(qT) && 
          !UnificationWithAbstractionConfig::isInterpreted(rT) ) {
@@ -173,7 +177,7 @@ struct EqualityResolution::ResultFn
         // the unification was between two uninterpreted things that were not ground 
         res->destroy();
         return 0;
-      }
+      }*/
 
       (*res)[next++] = constraint;
     }

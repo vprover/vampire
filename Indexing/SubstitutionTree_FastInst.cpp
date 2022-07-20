@@ -565,8 +565,8 @@ finish:
  * 	reversed. (useful for retrieval commutative terms)
  */
 SubstitutionTree::FastInstancesIterator::FastInstancesIterator(SubstitutionTree* parent, Node* root,
-	Term* query, bool retrieveSubstitution, bool reversed, bool withoutTop, bool useC, 
-  FuncSubtermMap* fstm) //final two for compatibility purposes
+	Term* query, bool retrieveSubstitution, bool reversed, bool withoutTop, 
+  ConstraintType ct, VSpecVarToTermMap* termMap) //termMap for compatibility purposes
 : _literalRetrieval(query->isLiteral()), _retrieveSubstitution(retrieveSubstitution),
   _inLeaf(false), _ldIterator(LDIterator::getEmpty()),  _root(root),
   _alternatives(64), _specVarNumbers(64), _nodeTypes(64)
@@ -687,7 +687,7 @@ bool SubstitutionTree::FastInstancesIterator::findNextLeaf()
   CALL("SubstitutionTree::FastInstancesIterator::findNextLeaf");
 
   Node* curr;
-  bool sibilingsRemain;
+  bool sibilingsRemain = false;
   if(_inLeaf) {
     if(_alternatives.isEmpty()) {
       return false;
@@ -707,7 +707,7 @@ bool SubstitutionTree::FastInstancesIterator::findNextLeaf()
   }
   for(;;) {
 main_loop_start:
-    unsigned currSpecVar;
+    unsigned currSpecVar = 0;
 
     if(curr) {
       if(sibilingsRemain) {
@@ -746,7 +746,7 @@ main_loop_start:
 	}
       } else {
 	ASS_EQ(parentType,SKIP_LIST)
-	NodeList* alts=static_cast<NodeList*>(currAlt);
+	auto alts = static_cast<SListIntermediateNode::NodeSkipList::Node *>(currAlt);
 	ASS(alts);
 
 	curr=alts->head();
@@ -882,9 +882,8 @@ bool SubstitutionTree::FastInstancesIterator::enterNode(Node*& curr)
       return true;
     }
   } else {
-    NodeList* nl;
     ASS_EQ(currType, SKIP_LIST);
-    nl=static_cast<SListIntermediateNode*>(inode)->_nodes.toList();
+    auto nl=static_cast<SListIntermediateNode*>(inode)->_nodes.listLike();
     ASS(nl); //inode is not empty
     if(query.isTerm()) {
       //only term with the same top functor will be matched by a term

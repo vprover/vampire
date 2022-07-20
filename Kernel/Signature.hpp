@@ -244,10 +244,15 @@ class Signature
     bool label() const { return _label; }
     /** return the colour of the symbol */
     Color color() const { return static_cast<Color>(_color); }
-    /** Return the arity of the symbol */
+    /** Return the arity of the symbol
+     * this includes the term as well as the type arguments of the symbol
+     */
     inline unsigned arity() const { return _arity; }
+    /* the number of term arguments for this symbol */
+    inline unsigned numTermArguments() const { return arity() - numTypeArguments(); }
     /** Return the type argument arity of the symbol. Only accurate once type has been set. */
-    inline unsigned typeArgsArity() const { 
+    inline unsigned numTypeArguments() const 
+    { 
       if(name() == "="){ 
         //for some reason, equality is never assigned a type (probably because it is poly)
         return 0; 
@@ -670,6 +675,18 @@ class Signature
 
   bool isBoolCon(unsigned con) const{
     return con == BOOL_SRT_CON;    
+  }
+
+  bool isIntegerCon(unsigned con) const{
+    return con == INTEGER_SRT_CON;
+  }
+
+  bool isRealCon(unsigned con) const{
+    return con == REAL_SRT_CON;
+  }
+
+  bool isRationalCon(unsigned con) const{
+    return con == RATIONAL_SRT_CON;
   }
 
   bool isTupleCon(unsigned con) {

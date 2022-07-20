@@ -20,6 +20,7 @@
 
 #include "Forwards.hpp"
 
+#include "Indexing/InductionFormulaIndex.hpp"
 #include "Indexing/LiteralIndex.hpp"
 #include "Indexing/TermIndex.hpp"
 
@@ -39,6 +40,8 @@ namespace Inferences
 using namespace Kernel;
 using namespace Saturation;
 
+Term* getPlaceholderForTerm(Term* t);
+
 class TermReplacement : public TermTransformer {
 public:
   TermReplacement(Term* o, TermList r) : _o(o), _r(r) {} 
@@ -53,30 +56,87 @@ public:
   SkolemSquashingTermReplacement(Term* o, TermList r, unsigned& var)
     : TermReplacement(o, r), _v(var) {}
   TermList transformSubterm(TermList trm) override;
+  DHMap<Term*, unsigned> _tv; // maps terms to their variable replacement
 private:
   unsigned& _v;               // fresh variable counter supported by caller
-  DHMap<Term*, unsigned> _tv; // maps terms to their variable replacement
 };
 
-class LiteralSubsetReplacement : TermTransformer {
-public:
-  LiteralSubsetReplacement(Literal* lit, Term* o, TermList r, const unsigned maxSubsetSize)
-      : _lit(lit), _o(o), _r(r), _maxSubsetSize(maxSubsetSize) {
-    _occurrences = _lit->countSubtermOccurrences(TermList(_o));
-    _maxIterations = pow(2, _occurrences);
+struct InductionContext {
+  explicit InductionContext(Term* t)
+    : _indTerm(t) {}
+  InductionContext(Term* t, Literal* l, Clause* cl)
+    : InductionContext(t)
+  {
+    insert(cl, l);
   }
 
-  // Returns transformed lit for the first 2^(_occurences) - 1 calls, then returns nullptr.
-  // Sets rule to INDUCTION_AXIOM if all occurrences were transformed, otherwise sets rule
-  // to GEN_INDUCTION_AXIOM.
-  Literal* transformSubset(InferenceRule& rule);
+  void insert(Clause* cl, Literal* lit) {
+    // this constructs an empty inner map if cl is not yet mapped
+    auto node = _cls.emplace(cl, LiteralStack()).first;
+    node->second.push(lit);
+  }
 
-  List<pair<Literal*, InferenceRule>>* getListOfTransformedLiterals(InferenceRule rule);
+  Formula* getFormula(TermList r, bool opposite, Substitution* subst = nullptr) const;
+  Formula* getFormulaWithSquashedSkolems(TermList r, bool opposite, unsigned& var,
+    VList** varList = nullptr, Substitution* subst = nullptr) const;
+
+  vstring toString() const {
+    vstringstream str;
+    str << *_indTerm << endl;
+    for (const auto& kv : _cls) {
+      str << *kv.first << endl;
+      for (const auto& lit : kv.second) {
+        str << *lit << endl;
+      }
+    }
+    return str.str();
+  }
+
+  Term* _indTerm = nullptr;
+  // One could induct on all literals of a clause, but if a literal
+  // doesn't contain the induction term, it just introduces a couple
+  // of tautologies and duplicate literals (a hypothesis clause will
+  // be of the form ~L v L v C, other clauses L v L v C). So instead,
+  // we only store the literals we actually induct on. An alternative
+  // would be storing indices but then we need to pass around the
+  // clause as well.
+  vunordered_map<Clause*, LiteralStack> _cls;
+private:
+  Formula* getFormula(TermReplacement& tr, bool opposite) const;
+};
+
+class ContextReplacement
+  : public TermReplacement, public IteratorCore<InductionContext> {
+public:
+  ContextReplacement(const InductionContext& context);
+
+  bool hasNext() override {
+    return !_used;
+  }
+  InductionContext next() override;
 
 protected:
-  virtual TermList transformSubterm(TermList trm);
+  InductionContext _context;
+private:
+  bool _used;
+};
+
+class ContextSubsetReplacement
+  : public ContextReplacement {
+public:
+  static ContextReplacement* instance(const InductionContext& context, const Options& opt);
+  ContextSubsetReplacement(const InductionContext& context, const unsigned maxSubsetSize);
+
+  bool hasNext() override;
+  InductionContext next() override;
+
+protected:
+  TermList transformSubterm(TermList trm) override;
 
 private:
+  bool hasNextInner() const {
+    return _iteration < _maxIterations;
+  }
   // _iteration serves as a map of occurrences to replace
   unsigned _iteration = 0;
   unsigned _maxIterations;
@@ -84,10 +144,8 @@ private:
   unsigned _matchCount = 0;
   unsigned _occurrences;
   const unsigned _maxOccurrences = 20;
-  Literal* _lit;
-  Term* _o;
-  TermList _r;
   const unsigned _maxSubsetSize;
+  bool _ready;
 };
 
 class Induction
@@ -97,8 +155,6 @@ public:
   CLASS_NAME(Induction);
   USE_ALLOCATOR(Induction);
 
-  Induction() {}
-
   void attach(SaturationAlgorithm* salg) override;
   void detach() override;
 
@@ -107,6 +163,8 @@ public:
 #if VDEBUG
   void setTestIndices(const Stack<Index*>& indices) override {
     _comparisonIndex = static_cast<LiteralIndex*>(indices[0]);
+    _inductionTermIndex = static_cast<TermIndex*>(indices[1]);
+    _structInductionTermIndex = static_cast<TermIndex*>(indices[2]);
   }
 #endif // VDEBUG
 
@@ -114,14 +172,18 @@ private:
   // The following pointers can be null if int induction is off.
   LiteralIndex* _comparisonIndex = nullptr;
   TermIndex* _inductionTermIndex = nullptr;
+  TermIndex* _structInductionTermIndex = nullptr;
+  InductionFormulaIndex _formulaIndex;
 };
 
 class InductionClauseIterator
 {
 public:
   // all the work happens in the constructor!
-  InductionClauseIterator(Clause* premise, InductionHelper helper, const Options& opt)
-      : _helper(helper), _opt(opt)
+  InductionClauseIterator(Clause* premise, InductionHelper helper, const Options& opt,
+    TermIndex* structInductionTermIndex, InductionFormulaIndex& formulaIndex)
+      : _helper(helper), _opt(opt), _structInductionTermIndex(structInductionTermIndex),
+      _formulaIndex(formulaIndex)
   {
     processClause(premise);
   }
@@ -132,13 +194,7 @@ public:
 
   inline bool hasNext() { return _clauses.isNonEmpty(); }
   inline OWN_ELEMENT_TYPE next() { 
-    Clause* c = _clauses.pop();
-    if(_opt.showInduction()){
-      env.beginOutput();
-      env.out() << "[Induction] generate " << c->toString() << endl; 
-      env.endOutput();
-    }
-    return c; 
+    return _clauses.pop();
   }
 
 private:
@@ -146,40 +202,25 @@ private:
   void processLiteral(Clause* premise, Literal* lit);
   void processIntegerComparison(Clause* premise, Literal* lit);
 
-  // Clausifies the hypothesis, resolves it against the conclusion/toResolve,
-  // and increments relevant statistics.
-  void produceClauses(Clause* premise, Literal* origLit, Formula* hypothesis, InferenceRule rule, const pair<Literal*, SLQueryResult>& conclusion);
-  void produceClauses(Clause* premise, Literal* origLit, Formula* hypothesis, InferenceRule rule, const List<pair<Literal*, SLQueryResult>>* bounds);
+  ClauseStack produceClauses(Formula* hypothesis, InferenceRule rule, const InductionContext& context);
+  void resolveClauses(InductionContext context, InductionFormulaIndex::Entry* e, const TermQueryResult* bound1, const TermQueryResult* bound2);
+  void resolveClauses(const ClauseStack& cls, const InductionContext& context, Substitution& subst, bool applySubst = false);
 
-  // Calls generalizeAndPerformIntInduction(...) for those induction literals from inductionTQRsIt,
-  // which are non-redundant with respect to the indTerm, bounds, and increasingness.
-  // Note: indTerm is passed to avoid recomputation.
-  void performIntInductionOnEligibleLiterals(Term* origTerm, Term* indTerm, TermQueryResultIterator inductionTQRsIt, bool increasing, TermQueryResult bound1, DHMap<Term*, TermQueryResult>& bounds2);
-  // Calls generalizeAndPerformIntInduction(...) for those bounds from lowerBound, upperBound
-  // (and the default bound) which are non-redundant with respect to the origLit, origTerm,
-  // and increasingness.
-  // Note: indLits and indTerm are passed to avoid recomputation.
-  void performIntInductionForEligibleBounds(Clause* premise, Literal* origLit, Term* origTerm, List<pair<Literal*, InferenceRule>>*& indLits, Term* indTerm, bool increasing, DHMap<Term*, TermQueryResult>& bounds1, DHMap<Term*, TermQueryResult>& bounds2);
-  // If indLits is empty, first fills it with either generalized origLit, or just by origLit itself
-  // (depending on whether -indgen is on).
-  // Then, performs int induction for each induction literal from indLits using bound1
-  // (and optionalBound2 if provided) as bounds.
-  // Note: indLits may be created in this method, but it needs to be destroyed outside of it.
-  void generalizeAndPerformIntInduction(Clause* premise, Literal* origLit, Term* origTerm, List<pair<Literal*, InferenceRule>>*& indLits, Term* indTerm, bool increasing, TermQueryResult& bound1, TermQueryResult* optionalBound2);
+  void performFinIntInduction(const InductionContext& context, const TermQueryResult& lb, const TermQueryResult& ub);
+  void performInfIntInduction(const InductionContext& context, bool increasing, const TermQueryResult& bound);
+  void performIntInduction(const InductionContext& context, InductionFormulaIndex::Entry* e, bool increasing, const TermQueryResult& bound1, const TermQueryResult* optionalBound2);
 
-  void performIntInduction(Clause* premise, Literal* origLit, Literal* lit, Term* t, InferenceRule rule, bool increasing, const TermQueryResult& bound1, TermQueryResult* optionalBound2);
+  void performStructInductionOne(const InductionContext& context, InductionFormulaIndex::Entry* e);
+  void performStructInductionTwo(const InductionContext& context, InductionFormulaIndex::Entry* e);
+  void performStructInductionThree(const InductionContext& context, InductionFormulaIndex::Entry* e);
 
-  void performStructInductionOne(Clause* premise, Literal* origLit, Literal* lit, Term* t, InferenceRule rule);
-  void performStructInductionTwo(Clause* premise, Literal* origLit, Literal* lit, Term* t, InferenceRule rule);
-  void performStructInductionThree(Clause* premise, Literal* origLit, Literal* lit, Term* t, InferenceRule rule);
-
-  bool notDone(Literal* lit, Term* t);
-  bool notDoneInt(Literal* lit, Term* t, bool increasing, Term* bound1, Term* optionalBound2, bool fromComparison);
-  Term* getPlaceholderForTerm(Term* t);
+  bool notDoneInt(InductionContext context, Literal* bound1, Literal* bound2, InductionFormulaIndex::Entry*& e);
 
   Stack<Clause*> _clauses;
   InductionHelper _helper;
   const Options& _opt;
+  TermIndex* _structInductionTermIndex;
+  InductionFormulaIndex& _formulaIndex;
 };
 
 };
