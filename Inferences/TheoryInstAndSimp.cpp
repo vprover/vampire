@@ -978,7 +978,7 @@ SimplifyingGeneratingInference::ClauseGenerationResult TheoryInstAndSimp::genera
     })
     .filter([](Clause* cl) { return cl != nullptr; });
 
-  auto it2 = getTimeCountedIterator(it1,TC_THEORY_INST_SIMP);
+  auto it2 = timeTracedIter(TC_THEORY_INST_SIMP, it1);
 
   // we need to strictily evaluate the iterator to 
   auto clauses =  getPersistentIterator(it2);

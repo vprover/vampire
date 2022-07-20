@@ -225,7 +225,7 @@ ClauseIterator Superposition::generateClauses(Clause* premise)
   auto it6 = getFilteredIterator(it5,NonzeroFn());
 
   // The outer iterator ensures we update the time counter for superposition
-  auto it7 = getTimeCountedIterator(it6, "superposition");
+  auto it7 = timeTracedIter("superposition", it6);
 
   return pvi( it7 );
 }

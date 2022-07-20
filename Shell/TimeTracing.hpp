@@ -78,35 +78,6 @@ private:
 };
 
 
-template<class Iter>
-class TimeTraceIter
-{
-  const char* _name;
-  Iter _iter;
-public:
-  TimeTraceIter(const char* name, Iter iter) 
-    : _name(name)
-    , _iter(std::move(iter)) 
-  {}
-
-  DECL_ELEMENT_TYPE(ELEMENT_TYPE(Iter));
-
-  OWN_ELEMENT_TYPE next() { TIME_TRACE(_name); return _iter.next(); }
-  bool hasNext() { TIME_TRACE(_name); return _iter.hasNext(); }
-
-  bool knowsSize() const 
-  { return _iter.knowsSize(); }
-
-  size_t size() const
-  { return _iter.size(); }
-
-};
-
-template<class Iter>
-auto timeTraced(const char* name, Iter iter) 
-{ return TimeTraceIter<Iter>(name, std::move(iter)); }
-
-
 template<class Ord>
 class TimeTraceOrdering : public Kernel::Ordering
 {

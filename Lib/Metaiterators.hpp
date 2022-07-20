@@ -1330,45 +1330,34 @@ ContextualIterator<Inner,Ctx> getContextualIterator(Inner it, Ctx context)
 }
 
 
-template<class Inner>
-class TimeCountedIterator
-: public IteratorCore<ELEMENT_TYPE(Inner)>
+template<class Iter>
+class TimeTracedIter
 {
+  const char* _name;
+  Iter _iter;
 public:
-  typedef ELEMENT_TYPE(Inner) T;
+  TimeTracedIter(const char* name, Iter iter) 
+    : _name(name)
+    , _iter(std::move(iter)) 
+  {}
 
-  explicit TimeCountedIterator(Inner inn, const char* tcu)
-  : _inn(inn), _tcu(tcu) {}
+  DECL_ELEMENT_TYPE(ELEMENT_TYPE(Iter));
 
-  inline bool hasNext()
-  {
-    TIME_TRACE(_tcu);
-    return _inn.hasNext();
-  };
-  inline
-  T next()
-  {
-    TIME_TRACE(_tcu);
-    return _inn.next();
-  };
-private:
-  Inner _inn;
-  const char* _tcu;
+  OWN_ELEMENT_TYPE next() { TIME_TRACE(_name); return _iter.next(); }
+  bool hasNext() { TIME_TRACE(_name); return _iter.hasNext(); }
+
+  bool knowsSize() const 
+  { return _iter.knowsSize(); }
+
+  size_t size() const
+  { return _iter.size(); }
+
 };
 
-/**
- * Return iterator, that yields the same values in
- * the same order as @b it. Benefit of this iterator
- * is, that @b it object is used only during
- * initialization. (So it's underlying object can be
- * freed and the returned iterator will remain valid.)
- */
-template<class Inner>
-inline
-VirtualIterator<ELEMENT_TYPE(Inner)> getTimeCountedIterator(Inner it, const char* tcu)
-{
-  return vi( new TimeCountedIterator<Inner>(it, tcu) );
-}
+template<class Iter>
+auto timeTraceIter(const char* name, Iter iter) 
+{ return TimeTracedIter<Iter>(name, std::move(iter)); }
+
 
 /**
  * Return true iff @c it1 and it2 contain the same values in the same order
@@ -1774,6 +1763,8 @@ public:
     }
   }
 
+  auto timeTraced(const char* name)
+  { return iterTraits(timeTracedIter(name, std::move(_iter))); }
 
   template<class Init, class F> 
   auto fold(Init init, F fun)

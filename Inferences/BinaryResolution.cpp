@@ -335,7 +335,7 @@ ClauseIterator BinaryResolution::generateClauses(Clause* premise)
   // filter out only non-zero results
   auto it4 = getFilteredIterator(it3, NonzeroFn());
   // measure time (on the TC_RESOLUTION budget) of the overall processing
-  auto it5 = getTimeCountedIterator(it4,"resolution");
+  auto it5 = timeTracedIter("resolution", it4);
 
   return pvi(it5);
 }
