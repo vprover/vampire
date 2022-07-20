@@ -551,7 +551,7 @@ struct BoostWrapper : public SymbolComparator
 };
 
 struct OccurenceTiebreak {
-  OccurenceTiebreak(SymbolType) {} // the bool is a dummy argument, required by the template recursion convention
+  OccurenceTiebreak(SymbolType) {} // here the SymbolType is a dummy argument, required by the template recursion convention
 
   Comparison compare(unsigned s1, unsigned s2) {  return Int::compare(s1,s2); }
 };

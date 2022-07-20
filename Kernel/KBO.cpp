@@ -592,8 +592,8 @@ void KBO::checkAdmissibility(HandleError handle) const
 {
   using FunctionSymbol = unsigned;
   auto nFunctions = _funcWeights._weights.size();
-  FunctionSymbol maxFn = 0;
 
+  FunctionSymbol maxFn = 0; // only properly initialized when (nFunctions > 0)
   for (FunctionSymbol i = 1; i < nFunctions; i++) {
     if (compareFunctionPrecedences(maxFn, i) == LESS) {
       maxFn = i;
