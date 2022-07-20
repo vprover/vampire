@@ -141,6 +141,7 @@ public:
 
       // precedence ordering params
       DArray<int> funcPrec, 
+      DArray<int> typeConPrec,       
       DArray<int> predPrec, 
       DArray<int> predLevels,
 
@@ -153,7 +154,7 @@ public:
   void showConcrete(ostream&) const override;
   template<class HandleError>
   void checkAdmissibility(HandleError handle) const;
-  void zeroOutWeightForMaximalFuncs();
+  void zeroWeightForMaximalFunc();
 
   using PrecedenceOrdering::compare;
   Result compare(TermList tl1, TermList tl2) const override;

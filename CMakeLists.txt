@@ -9,6 +9,13 @@ set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
+# configure compilers
+if(CMAKE_CXX_COMPILER_ID STREQUAL GNU OR CMAKE_CXX_COMPILER_ID MATCHES Clang$)
+  add_compile_options(-Wall)
+  # we don't use multithreading in (mainline!) Vampire
+  add_compile_options(-fno-threadsafe-statics)
+endif()
+
 # compile command database
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
@@ -161,7 +168,6 @@ set(VAMPIRE_LIB_SOURCES
     Lib/MemoryLeak.hpp
     Lib/Metaarrays.hpp
     Lib/Metaiterators.hpp
-    Lib/MultiColumnMap.hpp
     Lib/MultiCounter.hpp
     Lib/NameArray.hpp
     Lib/Numbering.hpp
@@ -921,7 +927,7 @@ endif() # COMPILE_TESTS
 #################################################################
 # automated generation of Vampire revision information from git #
 #################################################################
-set(VAMPIRE_VERSION_NUMBER 4.6.1)
+set(VAMPIRE_VERSION_NUMBER 4.7)
 
 execute_process(
     COMMAND git rev-parse --is-inside-work-tree

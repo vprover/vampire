@@ -1591,18 +1591,22 @@ MainLoopResult FiniteModelBuilder::runImpl()
 #if VTRACE_FMB
       doPrinting = true;
 #endif
-      vstring res = "[";
+      vstring min_res = "[";
+      vstring max_res = "[";
       for(unsigned s=0;s<_sortedSignature->distinctSorts;s++){
         if(_distinctSortMaxs[s]==UINT_MAX){
-          res+="max";
+          max_res+="max";
         }else{
-          res+=Lib::Int::toString(_distinctSortMaxs[s]);
+          max_res+=Lib::Int::toString(_distinctSortMaxs[s]);
           doPrinting=true;
         }
-        if(s+1 < _sortedSignature->distinctSorts) res+=",";
+	if(_distinctSortMins[s]!=1){ doPrinting=true;}
+        min_res+=Lib::Int::toString(_distinctSortMins[s]);
+        if(s+1 < _sortedSignature->distinctSorts){ max_res+=","; min_res+=",";}
       }
       if(doPrinting){
-        cout << "Detected maximum model sizes of " << res << "]" << endl;
+        cout << "Detected minimum model sizes of " << min_res << "]" << endl;
+        cout << "Detected maximum model sizes of " << max_res << "]" << endl;
       }
   }
 

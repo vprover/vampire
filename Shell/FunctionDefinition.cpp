@@ -17,7 +17,6 @@
 #include "Debug/Tracer.hpp"
 
 #include "Lib/Allocator.hpp"
-#include "Lib/BitUtils.hpp"
 #include "Lib/DHMultiset.hpp"
 #include "Lib/Environment.hpp"
 #include "Lib/Int.hpp"
@@ -501,7 +500,7 @@ void FunctionDefinition::assignArgOccursData(Def* updDef)
 
   updDef->argOccurs=reinterpret_cast<bool*>(ALLOC_KNOWN(updDef->lhs->arity()*sizeof(bool),
 	    "FunctionDefinition::Def::argOccurs"));
-  BitUtils::zeroMemory(updDef->argOccurs, updDef->lhs->arity()*sizeof(bool));
+  std::memset(updDef->argOccurs, 0, updDef->lhs->arity() * sizeof(bool));
 
   static DHMap<unsigned, unsigned, IdentityHash, Hash> var2argIndex;
   var2argIndex.reset();

@@ -2183,6 +2183,7 @@ public:
   unsigned forwardSubsumptionDemodulationMaxMatches() const { return _forwardSubsumptionDemodulationMaxMatches.actualValue; }
   Demodulation forwardDemodulation() const { return _forwardDemodulation.actualValue; }
   bool binaryResolution() const { return _binaryResolution.actualValue; }
+  bool superposition() const {return _superposition.actualValue; }
   URResolution unitResultingResolution() const { return _unitResultingResolution.actualValue; }
   bool hyperSuperposition() const { return _hyperSuperposition.actualValue; }
   bool simulatenousSuperposition() const { return _simultaneousSuperposition.actualValue; }
@@ -2215,6 +2216,7 @@ public:
   const vstring& functionWeights() const { return _functionWeights.actualValue; }
   const vstring& predicateWeights() const { return _predicateWeights.actualValue; }
   const vstring& functionPrecedence() const { return _functionPrecedence.actualValue; }
+  const vstring& typeConPrecedence() const { return _typeConPrecedence.actualValue; }
   const vstring& predicatePrecedence() const { return _predicatePrecedence.actualValue; }
   // Return time limit in deciseconds, or 0 if there is no time limit
   int timeLimitInDeciseconds() const { return _timeLimitInDeciseconds.actualValue; }
@@ -2386,7 +2388,6 @@ public:
   bool equalityToEquivalence () const { return _equalityToEquivalence.actualValue; }
   bool complexBooleanReasoning () const { return _complexBooleanReasoning.actualValue; }
   bool booleanEqTrick() const { return _booleanEqTrick.actualValue; }
-  bool superposition() const {return _superposition.actualValue; }
   bool casesSimp() const { return _casesSimp.actualValue; }
   bool cases() const { return _cases.actualValue; }
   bool newTautologyDel() const { return _newTautologyDel.actualValue; }
@@ -2758,6 +2759,7 @@ private:
   ChoiceOptionValue<KboAdmissibilityCheck> _kboAdmissabilityCheck;
   StringOptionValue _functionWeights;
   StringOptionValue _predicateWeights;
+  StringOptionValue _typeConPrecedence;
   StringOptionValue _functionPrecedence;
   StringOptionValue _predicatePrecedence;
 

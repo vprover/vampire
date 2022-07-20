@@ -23,6 +23,31 @@
 /////////////////////////////// HELPER FUNCTIONS /////////////////////////////// 
 //////////////////////////////////////////////////////////////////////////////// 
 
+DArray<int> predLevels() {
+  DArray<int> out(env.signature->predicates());
+  out.init(out.size(), 1);
+  return out;
+}
+using namespace Kernel;
+
+template<class SigTraits>
+KboWeightMap<SigTraits> toWeightMap(unsigned introducedSymbolWeight, KboSpecialWeights<SigTraits> ws, const Map<unsigned, KboWeight>& xs, unsigned sz) 
+{
+  auto df = KboWeightMap<SigTraits>::dflt();
+  df._specialWeights = ws;
+
+  DArray<KboWeight> out(sz);
+  for (unsigned i = 0; i < sz; i++) {
+    auto w = xs.getPtr(i);
+    out[i] = w == NULL ? df.symbolWeight(i) : *w;
+  }
+  return  {
+    ._weights = out,
+    ._introducedSymbolWeight = introducedSymbolWeight,
+    ._specialWeights         = ws,
+  };
+}
+
 KBO kbo(unsigned introducedSymbolWeight, 
     unsigned variableWeight, 
     const Map<unsigned, KboWeight>& funcs, 
@@ -40,8 +65,9 @@ KBO kbo(unsigned introducedSymbolWeight,
                preds,
                env.signature->predicates()), 
 #endif
-             funcPrec(), 
-             predPrec(), 
+             DArray<int>::fromIterator(getRangeIterator(0, (int) env.signature->functions())),
+             DArray<int>::fromIterator(getRangeIterator(0, (int) env.signature->typeCons())),
+             DArray<int>::fromIterator(getRangeIterator(0, (int) env.signature->predicates())),
              predLevels(),
              /*revereseLCM*/ false);
 }
