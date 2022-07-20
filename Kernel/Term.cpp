@@ -20,6 +20,7 @@
 #include "SubstHelper.hpp"
 #include "TermIterators.hpp"
 #include "RobSubstitution.hpp"
+#include "Lib/Metaiterators.hpp"
 
 #include "Term.hpp"
 #include "FormulaVarIterator.hpp"

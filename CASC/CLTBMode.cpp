@@ -246,7 +246,7 @@ void CLTBMode::loadIncludes()
 
   UnitList* theoryAxioms=0;
   {
-    TimeCounter tc(TC_PARSING);
+    TIME_TRACE(TC_PARSING);
     env.statistics->phase=Statistics::PARSING;
 
     StringList::Iterator iit(_theoryIncludes);
@@ -391,7 +391,7 @@ void CLTBMode::doTraining()
 
   Stack<vstring>::RefIterator it(solutions);
   while (it.hasNext()) {
-    TimeCounter tc(TC_PARSING);
+    TIME_TRACE(TC_PARSING);
     env.statistics->phase=Statistics::PARSING;
 
     vstring& solnFileName = it.next();
@@ -673,6 +673,7 @@ void CLTBProblem::searchForProof(int terminationTime,int timeLimit,const Categor
   // special reporting in Timer.cpp
   UIHelper::portfolioParent = true;
 
+  // TODO why?
   TimeCounter::reinitialize();
 
   env.options->setInputFile(problemFile);
@@ -692,7 +693,7 @@ void CLTBProblem::searchForProof(int terminationTime,int timeLimit,const Categor
 
   // this local scope will delete a potentially large parser
   {
-    TimeCounter tc(TC_PARSING);
+    TIME_TRACE(TC_PARSING);
     env.statistics->phase=Statistics::PARSING;
 
     // Ensure the parser is recording axiom names
@@ -718,7 +719,7 @@ void CLTBProblem::searchForProof(int terminationTime,int timeLimit,const Categor
 
   Shell::Property* property = prb.getProperty();
   if (property->atoms()<=1000000) {
-    TimeCounter tc(TC_PREPROCESSING);
+    TIME_TRACE(TC_PREPROCESSING);
     env.statistics->phase=Statistics::NORMALIZATION;
     Normalisation norm;
     norm.normalise(prb);

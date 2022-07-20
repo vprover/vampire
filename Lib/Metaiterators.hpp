@@ -1337,23 +1337,23 @@ class TimeCountedIterator
 public:
   typedef ELEMENT_TYPE(Inner) T;
 
-  explicit TimeCountedIterator(Inner inn, TimeCounterUnit tcu)
+  explicit TimeCountedIterator(Inner inn, const char* tcu)
   : _inn(inn), _tcu(tcu) {}
 
   inline bool hasNext()
   {
-    TimeCounter tc(_tcu);
+    TIME_TRACE(_tcu);
     return _inn.hasNext();
   };
   inline
   T next()
   {
-    TimeCounter tc(_tcu);
+    TIME_TRACE(_tcu);
     return _inn.next();
   };
 private:
   Inner _inn;
-  TimeCounterUnit _tcu;
+  const char* _tcu;
 };
 
 /**
@@ -1365,7 +1365,7 @@ private:
  */
 template<class Inner>
 inline
-VirtualIterator<ELEMENT_TYPE(Inner)> getTimeCountedIterator(Inner it, TimeCounterUnit tcu)
+VirtualIterator<ELEMENT_TYPE(Inner)> getTimeCountedIterator(Inner it, const char* tcu)
 {
   return vi( new TimeCountedIterator<Inner>(it, tcu) );
 }

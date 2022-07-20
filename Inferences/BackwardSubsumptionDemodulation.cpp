@@ -116,7 +116,7 @@ void BackwardSubsumptionDemodulation::perform(Clause* sideCl, BwSimplificationRe
   CALL("BackwardSubsumptionDemodulation::perform");
   ASSERT_VALID(*sideCl);
 
-  TimeCounter tc(TC_BACKWARD_SUBSUMPTION_DEMODULATION);
+  TIME_TRACE("backward subsumption demodulation");
 
   simplifications = BwSimplificationRecordIterator::getEmpty();
 

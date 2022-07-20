@@ -50,7 +50,6 @@ TimeTrace::ScopedTimer::~ScopedTimer()
   ASS(start == _start);
 }
 
-
 TimeTrace::Duration TimeTrace::Node::totalDuration() const
 { return iterTraits(measurements.iter())
            .fold(Duration::zero(), 

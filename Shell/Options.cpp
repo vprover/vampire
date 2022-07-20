@@ -3043,7 +3043,7 @@ void Options::randomizeStrategy(Property* prop)
   CALL("Options::randomizeStrategy");
   if(_randomStrategy.actualValue==RandomStrategy::OFF) return;
 
-  TimeCounter tc(TC_RAND_OPT);
+  TIME_TRACE("random option generation");
 
   // The pseudo random sequence is deterministic given a seed.
   // By default the seed is 1

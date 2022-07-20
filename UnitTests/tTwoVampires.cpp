@@ -52,6 +52,7 @@ void runChild(UnitList* units, vstring slice)
   try {    
     env.timer->reset();
     env.timer->start();
+    // TODO why?
     TimeCounter::reinitialize();
 
     env.options->readFromEncodedOptions(slice);

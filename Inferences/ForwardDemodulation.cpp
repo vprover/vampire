@@ -75,7 +75,7 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
   CALL("ForwardDemodulation::perform");
   TIME_TRACE("ForwardDemodulation::perform");
 
-  TimeCounter tc(TC_FORWARD_DEMODULATION);
+  TIME_TRACE("forward demodulation");
 
   Ordering& ordering = _salg->getOrdering();
 

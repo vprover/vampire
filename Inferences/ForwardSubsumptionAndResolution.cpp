@@ -224,7 +224,7 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl, Clause *&replacement, 
     return false;
   }
 
-  TimeCounter tc_fs(TC_FORWARD_SUBSUMPTION);
+  TIME_TRACE("forward subsumption");
 
   bool result = false;
 
@@ -278,14 +278,12 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl, Clause *&replacement, 
       }
     }
 
-    tc_fs.stop();
-
     if (!_subsumptionResolution) {
       goto fin;
     }
 
     {
-      TimeCounter tc_fsr(TC_FORWARD_SUBSUMPTION_RESOLUTION);
+      TIME_TRACE("forward subsumption resolution");
 
       for (unsigned li = 0; li < clen; li++) {
         Literal *resLit = (*cl)[li];

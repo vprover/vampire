@@ -34,9 +34,10 @@ namespace FMB {
       //_ng = env.options->fmbNonGroundDefs();
     }
 
+#define TC_NAME "fmb definition introduction"
 
     bool hasNext(){
-      TimeCounter tc(TC_FMB_DEF_INTRO);
+      TIME_TRACE(TC_NAME);
       CALL("DefinitionIntroduction::hasNext");
       // first see if we have any processed clauses
       if(_processed.length()==0){
@@ -49,11 +50,13 @@ namespace FMB {
     }
 
     Clause* next(){
-      TimeCounter tc(TC_FMB_DEF_INTRO);
+      TIME_TRACE(TC_NAME);
       CALL("DefinitionIntroduction::next");
       ASS_G(_processed.length(),0);
       return _processed.pop();
     }
+
+#undef TC_NAME
 
   private:
 

@@ -421,7 +421,7 @@ bool SimpSolver::backwardSubsumptionCheck(bool verbose)
 {
   CALL("SimpSolver::backwardSubsumptionCheck");
 
-  Lib::TimeCounter tc(Lib::TC_MINISAT_BWD_SUBSUMPTION_CHECK);
+  TIME_TRACE("minisat bwd subsumption check");
 
     int cnt = 0;
     int subsumed = 0;
@@ -588,7 +588,7 @@ bool SimpSolver::eliminateVar(Var v)
   CALL("SimpSolver::eliminateVar");
 
   {
-    Lib::TimeCounter tc(Lib::TC_MINISAT_ELIMINATE_VAR);
+    TIME_TRACE("minisat eliminate var");
 
     assert(!frozen[v]);
     assert(!isEliminated(v));

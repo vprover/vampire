@@ -18,16 +18,12 @@
 
 #include "Lib/Environment.hpp"
 #include "Lib/IntUnionFind.hpp"
-
 #include "Kernel/Matcher.hpp"
 #include "Kernel/Problem.hpp"
 #include "Kernel/Signature.hpp"
 #include "Kernel/SortHelper.hpp"
-
 #include "Indexing/GroundingIndex.hpp"
-
 #include "Shell/PredicateDefinition.hpp"
-
 #include "IGAlgorithm.hpp"
 
 namespace InstGen

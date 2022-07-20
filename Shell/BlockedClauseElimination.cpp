@@ -52,7 +52,7 @@ void BlockedClauseElimination::apply(Problem& prb)
 {
   CALL("BlockedClauseElimination::apply(Problem&)");
 
-  TimeCounter tc(TC_BCE);
+  TIME_TRACE("blocked clause elimination");
 
   bool modified = false;
   bool equationally = prb.hasEquality() && prb.getProperty()->positiveEqualityAtoms();

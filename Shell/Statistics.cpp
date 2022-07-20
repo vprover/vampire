@@ -490,9 +490,8 @@ void Statistics::print(ostream& out)
 
   if (env.options && env.options->timeStatistics()) {
     TimeCounter::printReport(out);
+    timeTrace.print(out);
   }
-
-  timeTrace.print(out);
 }
 
 const char* Statistics::phaseToString(ExecutionPhase p)

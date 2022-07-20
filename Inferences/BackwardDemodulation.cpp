@@ -34,6 +34,7 @@
 #include "Indexing/Index.hpp"
 #include "Indexing/TermIndex.hpp"
 #include "Indexing/IndexManager.hpp"
+#include "Shell/TimeTracing.hpp"
 
 #include "Saturation/SaturationAlgorithm.hpp"
 
@@ -259,7 +260,7 @@ void BackwardDemodulation::perform(Clause* cl,
   //replacementIterator right at this point, so we can measure the time just
   //simply (which cannot be generally done when iterators are involved)
 
-  TimeCounter tc(TC_BACKWARD_DEMODULATION);
+  TIME_TRACE("backward demodulation");
   simplifications=getPersistentIterator(replacementIterator);
 }
 

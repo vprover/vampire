@@ -117,7 +117,7 @@ public:
 
     Literal* skippedAfter = 0;
     if (_afterCheck && _cl->numSelected() > 1) {
-      TimeCounter tc(TC_LITERAL_ORDER_AFTERCHECK);
+      TIME_TRACE(TC_LITERAL_ORDER_AFTERCHECK);
 
       skippedAfter = arg.second->apply(skipped, 0);
     }
@@ -128,7 +128,7 @@ public:
         Literal* currAfter = arg.second->apply(curr, 0);
 
         if (skippedAfter) {
-          TimeCounter tc(TC_LITERAL_ORDER_AFTERCHECK);
+          TIME_TRACE(TC_LITERAL_ORDER_AFTERCHECK);
 
           if (i < _cl->numSelected() && _ord.compare(currAfter,skippedAfter) == Ordering::GREATER) {
             env.statistics->inferencesBlockedForOrderingAftercheck++;

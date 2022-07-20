@@ -18,7 +18,6 @@
 #include "Lib/Comparison.hpp"
 #include "Lib/Int.hpp"
 #include "Lib/Sort.hpp"
-#include "Lib/TimeCounter.hpp"
 
 #include "Kernel/Clause.hpp"
 #include "Kernel/FlatTerm.hpp"

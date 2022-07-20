@@ -52,7 +52,7 @@ void LRS::onUnprocessedSelected(Clause* c)
   SaturationAlgorithm::onUnprocessedSelected(c);
 
   if(shouldUpdateLimits()) {
-    TimeCounter tc(TC_LRS_LIMIT_MAINTENANCE);
+    TIME_TRACE("LRS limit maintenance");
 
     long long estimatedReachable=estimatedReachableCount();
     if(estimatedReachable>=0) {

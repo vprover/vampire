@@ -187,7 +187,7 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
 
   Literal* queryLitAfter = 0;
   if (ord && queryCl->numSelected() > 1) {
-    TimeCounter tc(TC_LITERAL_ORDER_AFTERCHECK);
+    TIME_TRACE(TC_LITERAL_ORDER_AFTERCHECK);
     queryLitAfter = qr.substitution->applyToQuery(queryLit);
   }
 #if VDEBUG
@@ -249,7 +249,7 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
         }
       }
       if (queryLitAfter && i < queryCl->numSelected()) {
-        TimeCounter tc(TC_LITERAL_ORDER_AFTERCHECK);
+        TIME_TRACE(TC_LITERAL_ORDER_AFTERCHECK);
 
         Ordering::Result o = ord->compare(newLit,queryLitAfter);
 
@@ -269,7 +269,7 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
 
   Literal* qrLitAfter = 0;
   if (ord && qr.clause->numSelected() > 1) {
-    TimeCounter tc(TC_LITERAL_ORDER_AFTERCHECK);
+    TIME_TRACE(TC_LITERAL_ORDER_AFTERCHECK);
     qrLitAfter = qr.substitution->applyToResult(qr.literal);
   }
 
@@ -287,7 +287,7 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
         }
       }
       if (qrLitAfter && i < qr.clause->numSelected()) {
-        TimeCounter tc(TC_LITERAL_ORDER_AFTERCHECK);
+        TIME_TRACE(TC_LITERAL_ORDER_AFTERCHECK);
 
         Ordering::Result o = ord->compare(newLit,qrLitAfter);
 
@@ -335,7 +335,7 @@ ClauseIterator BinaryResolution::generateClauses(Clause* premise)
   // filter out only non-zero results
   auto it4 = getFilteredIterator(it3, NonzeroFn());
   // measure time (on the TC_RESOLUTION budget) of the overall processing
-  auto it5 = getTimeCountedIterator(it4,TC_RESOLUTION);
+  auto it5 = getTimeCountedIterator(it4,"resolution");
 
   return pvi(it5);
 }

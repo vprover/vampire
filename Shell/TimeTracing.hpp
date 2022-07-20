@@ -12,18 +12,18 @@
 #ifndef __TimeTracing__
 #define __TimeTracing__
 
-#include "Forwards.hpp"
-#include "Kernel/Term.hpp"
 #include "Lib/Stack.hpp"
 #include "Lib/Option.hpp"
 #include "Kernel/Ordering.hpp"
 #include "Debug/Assertion.hpp"
+#include "Kernel/Term.hpp"
 #include <chrono>
+#include "Lib/MacroUtils.hpp"
 
 namespace Shell {
 
 #define TIME_TRACE(name)                                                                            \
-  Shell::TimeTrace::ScopedTimer __time_trace_ ## __LINE__ (name);
+  Shell::TimeTrace::ScopedTimer CONCAT_IDENTS(__time_trace_, __LINE__) (name);
 
 #define TIME_TRACE_EXPR(name, ...)                                                                  \
   [&](){ TIME_TRACE(name); return __VA_ARGS__; }()
@@ -125,7 +125,7 @@ public:
   { TIME_TRACE(_nameTerm); return _ord.compare(l1,l2); }
 
   // TODO shouldn't this be a function of PrecedenceOrdering?
-  Comparison compareFunctors(unsigned fun1, unsigned fun2) const final override 
+  Kernel::Comparison compareFunctors(unsigned fun1, unsigned fun2) const final override 
   { ASSERTION_VIOLATION }
 
   void show(ostream& out) const final override

@@ -927,6 +927,7 @@ unsigned getFreshVar(Clause& clause)
   }
   return freshVar;
 }
+#define TC_THEORY_INST_SIMP "theory instantiation and simplification"
 
 SimplifyingGeneratingInference::ClauseGenerationResult TheoryInstAndSimp::generateSimplify(Clause* premise)
 {
@@ -962,7 +963,7 @@ SimplifyingGeneratingInference::ClauseGenerationResult TheoryInstAndSimp::genera
   DEBUG("guards:            ", iterTraits(guards.iterFifo())
                                  .map([](Literal* l) -> vstring { return l->toString(); })
                                  .collect<Stack>())
-  TimeCounter t(TC_THEORY_INST_SIMP);
+  TIME_TRACE(TC_THEORY_INST_SIMP);
 
   auto invertedLiterals = iterTraits(selectedLiterals.iterFifo())
     .map(Literal::complementaryLiteral)

@@ -93,7 +93,7 @@ void ProvingHelper::runVampire(Problem& prb, const Options& opt)
   {
     ClauseIterator clauses;
     {
-      TimeCounter tc2(TC_PREPROCESSING);
+      TIME_TRACE(TC_PREPROCESSING);
 
       Preprocess prepro(opt);
       prepro.preprocess(prb);

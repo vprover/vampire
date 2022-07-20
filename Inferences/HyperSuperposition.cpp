@@ -48,6 +48,7 @@
 
 namespace Inferences
 {
+#define TC_NAME "hyper superposition"
 
 using namespace Lib;
 using namespace Kernel;
@@ -395,6 +396,7 @@ void HyperSuperposition::tryUnifyingToResolveWithUnit(Clause* cl, unsigned liter
   }
 }
 
+
 /**
  * Interface for a generating inference
  */
@@ -402,7 +404,7 @@ ClauseIterator HyperSuperposition::generateClauses(Clause* cl)
 {
   CALL("HyperSuperposition::generateClauses");
 
-  TimeCounter tc(TC_HYPER_SUPERPOSITION);
+  TIME_TRACE(TC_NAME);
 
   static ClausePairStack res;
   res.reset();
@@ -555,7 +557,7 @@ bool HyperSuperposition::perform(Clause* cl, Clause*& replacement, ClauseIterato
     return false;
   }
 
-  TimeCounter tc(TC_HYPER_SUPERPOSITION);
+  TIME_TRACE(TC_NAME);
 
   Literal* lit = (*cl)[0];
 

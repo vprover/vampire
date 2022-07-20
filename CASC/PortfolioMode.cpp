@@ -137,7 +137,7 @@ bool PortfolioMode::searchForProof()
    * also, cf. the beginning of Preprocessing::preprocess*/
   Shell::Property* property = _prb->getProperty();
   {
-    TimeCounter tc(TC_PREPROCESSING);
+    TIME_TRACE(TC_PREPROCESSING);
 
     //we normalize now so that we don't have to do it in every child Vampire
     ScopedLet<Statistics::ExecutionPhase> phaseLet(env.statistics->phase,Statistics::NORMALIZATION);
@@ -538,6 +538,7 @@ void PortfolioMode::runSlice(Options& strategyOpt)
   int resultValue=1;
   env.timer->reset();
   env.timer->start();
+  // TODO why reinit
   TimeCounter::reinitialize();
   Timer::setLimitEnforcement(true);
 
