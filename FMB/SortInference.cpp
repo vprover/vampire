@@ -255,6 +255,7 @@ void SortInference::doInference()
   IntUnionFind localUF(c->varCnt()+1); // +1 to avoid it being 0.. last pos will not be used
    
   // When scanning the clause, keep info about whether it could be of the form C : X = t_1 | ... | X = t_n , where t_i may be a variable as well
+  // (however, we can't have X \in \Vars(t_i): think of the unit clause X = f(X) which does not restrict the domain size to 1)
   // If the first literal is X = Y we remember X in v[0] and Y in v[1], subsequent literals will be different and only at most one candidate for "X" will remain
   // Any literal of the form X = nonvar reduces the num_vars_consdired to 1 or 0 (depending on whether X is possibly one of the two vars we keep track of)
   unsigned v[2];
@@ -268,14 +269,14 @@ void SortInference::doInference()
         if (num_vars_always_in_equalities == 3) {         // the unitialized case
           num_vars_always_in_equalities = 0;
           for(unsigned i : {0,1}) {
-            if (l->nthArgument(i)->isVar()) {
+            if (l->nthArgument(i)->isVar() && !l->nthArgument(1-i)->containsSubterm(*l->nthArgument(i))) {
               v[num_vars_always_in_equalities++] = l->nthArgument(i)->var();
             }
           }
         } else if (num_vars_always_in_equalities == 2) { // we are keeping track of 2 variables (we just saw "X"="Y" as the last (and first) literal and have v[0]=="X" and v[1]=="Y")
           // we assume duplicate literals have been eliminated, so at most one var will be kept after this stage
           for(unsigned i : {0,1}) {
-            if (l->nthArgument(i)->isVar()) {
+            if (l->nthArgument(i)->isVar() && !l->nthArgument(1-i)->containsSubterm(*l->nthArgument(i))) {
               unsigned var = l->nthArgument(i)->var();
               if (v[0] == var) {
                 num_vars_always_in_equalities = 1; 
@@ -296,7 +297,7 @@ void SortInference::doInference()
         } else if (num_vars_always_in_equalities == 1) {
           bool found = false;
           for(unsigned i : {0,1}) {
-            if (l->nthArgument(i)->isVar()) {
+            if (l->nthArgument(i)->isVar() && !l->nthArgument(1-i)->containsSubterm(*l->nthArgument(i))) {
               if (v[0] == l->nthArgument(i)->var()) {
                 found = true;
                 break; 
