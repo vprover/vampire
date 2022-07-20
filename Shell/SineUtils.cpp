@@ -395,12 +395,12 @@ void SineSelector::perform(Problem& prb)
   prb.invalidateByRemoval();
 }
 
-#define TC_SINE_SELECTION "sine selection"
+static const char* SINE_SELECTION = "sine selection";
 bool SineSelector::perform(UnitList*& units)
 {
   CALL("SineSelector::perform");
 
-  TIME_TRACE(TC_SINE_SELECTION);
+  TIME_TRACE(SINE_SELECTION);
 
   initGeneralityFunction(units);
 
@@ -626,7 +626,7 @@ void SineTheorySelector::initSelectionStructure(UnitList* units)
 {
   CALL("SineTheorySelector::initSelectionStructure");
 
-  TIME_TRACE(TC_SINE_SELECTION)
+  TIME_TRACE(SINE_SELECTION)
 
   initGeneralityFunction(units);
 
@@ -646,7 +646,7 @@ void SineTheorySelector::perform(UnitList*& units)
 {
   CALL("SineTheorySelector::perform");
 
-  TIME_TRACE(TC_SINE_SELECTION);
+  TIME_TRACE(SINE_SELECTION);
 
   handlePossibleSignatureChange();
 

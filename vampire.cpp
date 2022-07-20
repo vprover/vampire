@@ -143,7 +143,7 @@ Problem* getPreprocessedProblem()
 
   Problem* prb = UIHelper::getInputProblem(*env.options);
 
-  TIME_TRACE(TC_PREPROCESSING);
+  TIME_TRACE(TimeTrace::Groups::PREPROCESSING);
 
   // this will provide warning if options don't make sense for problem
   if (env.options->mode()!=Options::Mode::SPIDER) {
@@ -353,7 +353,7 @@ void preprocessMode(bool theory)
 
   Problem* prb = UIHelper::getInputProblem(*env.options);
 
-  TIME_TRACE(TC_PREPROCESSING);
+  TIME_TRACE(TimeTrace::Groups::PREPROCESSING);
 
   // preprocess without clausification
   Shell::Preprocess prepro(*env.options);

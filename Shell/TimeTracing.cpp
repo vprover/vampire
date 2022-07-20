@@ -55,6 +55,10 @@ TimeTrace::Duration TimeTrace::Node::totalDuration() const
            .fold(Duration::zero(), 
                  [](Duration l, Duration r){ return l + r; }); }
 
+const char* TimeTrace::Groups::PREPROCESSING = "preprocessing";
+const char* TimeTrace::Groups::PARSING = "parsing";
+const char* TimeTrace::Groups::LITERAL_ORDER_AFTERCHECK = "literal order aftercheck";
+
 void TimeTrace::Node::print(std::ostream& out, unsigned indent, Option<Node const&> parent)
 {
   for (unsigned i = 0; i < indent; i++) {

@@ -29,7 +29,8 @@
 
 #undef LOGGING
 #define LOGGING 0
-#define TC_NAME "property evaluation"
+
+static const char* PROPERTY_EVALUATION = "property evaluation";
 
 using namespace Kernel;
 
@@ -120,7 +121,7 @@ void Problem::addUnits(UnitList* newUnits)
   }
   _units = UnitList::concat(newUnits, _units);
   if(_propertyValid) {
-    TIME_TRACE(TC_NAME);
+    TIME_TRACE(PROPERTY_EVALUATION);
     _property->add(newUnits);
     readDetailsFromProperty();
   }
@@ -277,7 +278,7 @@ void Problem::refreshProperty() const
 {
   CALL("Problem::refreshProperty");
 
-  TIME_TRACE(TC_NAME);
+  TIME_TRACE(PROPERTY_EVALUATION);
   ScopedLet<Statistics::ExecutionPhase> phaseLet(env.statistics->phase, Statistics::PROPERTY_SCANNING);
 
   if(_property) {

@@ -927,7 +927,7 @@ unsigned getFreshVar(Clause& clause)
   }
   return freshVar;
 }
-#define TC_THEORY_INST_SIMP "theory instantiation and simplification"
+static const char* THEORY_INST_SIMP = "theory instantiation and simplification";
 
 SimplifyingGeneratingInference::ClauseGenerationResult TheoryInstAndSimp::generateSimplify(Clause* premise)
 {
@@ -963,7 +963,7 @@ SimplifyingGeneratingInference::ClauseGenerationResult TheoryInstAndSimp::genera
   DEBUG("guards:            ", iterTraits(guards.iterFifo())
                                  .map([](Literal* l) -> vstring { return l->toString(); })
                                  .collect<Stack>())
-  TIME_TRACE(TC_THEORY_INST_SIMP);
+  TIME_TRACE(THEORY_INST_SIMP);
 
   auto invertedLiterals = iterTraits(selectedLiterals.iterFifo())
     .map(Literal::complementaryLiteral)
@@ -978,7 +978,7 @@ SimplifyingGeneratingInference::ClauseGenerationResult TheoryInstAndSimp::genera
     })
     .filter([](Clause* cl) { return cl != nullptr; });
 
-  auto it2 = timeTracedIter(TC_THEORY_INST_SIMP, it1);
+  auto it2 = timeTraceIter(THEORY_INST_SIMP, it1);
 
   // we need to strictily evaluate the iterator to 
   auto clauses =  getPersistentIterator(it2);

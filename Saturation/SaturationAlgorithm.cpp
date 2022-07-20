@@ -1100,7 +1100,8 @@ void SaturationAlgorithm::backwardSimplify(Clause* cl)
   }
 }
 
-#define TC_PASSIVE_CONTAINER_MAINTENANCE "passive container maintenance"
+static const char* PASSIVE_CONTAINER_MAINTENANCE = "passive container maintenance";
+
 /**
  * Remove either passive or active (or reactivated, which is both)
  * clause @b cl
@@ -1125,7 +1126,7 @@ void SaturationAlgorithm::removeActiveOrPassiveClause(Clause* cl)
   switch(cl->store()) {
   case Clause::PASSIVE:
   {
-    TIME_TRACE(TC_PASSIVE_CONTAINER_MAINTENANCE);
+    TIME_TRACE(PASSIVE_CONTAINER_MAINTENANCE);
     _passive->remove(cl);
     break;
   }
@@ -1150,7 +1151,7 @@ void SaturationAlgorithm::addToPassive(Clause* cl)
   env.statistics->passiveClauses++;
 
   {
-    TIME_TRACE(TC_PASSIVE_CONTAINER_MAINTENANCE);
+    TIME_TRACE(PASSIVE_CONTAINER_MAINTENANCE);
     _passive->add(cl);
   }
 }
@@ -1209,9 +1210,10 @@ void SaturationAlgorithm::activate(Clause* cl)
   _active->add(cl);
 
     
-    auto generated = TIME_TRACE_EXPR("clause generation", _generator->generateSimplify(cl));
+    static const char* CLAUSE_GENERATION = "clause generation";
 
-    auto toAdd = timeTraced("clause generation", generated.clauses);
+    auto generated = TIME_TRACE_EXPR(CLAUSE_GENERATION, _generator->generateSimplify(cl));
+    auto toAdd = timeTraceIter(CLAUSE_GENERATION, generated.clauses);
 
     while (toAdd.hasNext()) {
       Clause* genCl=toAdd.next();
@@ -1362,7 +1364,7 @@ void SaturationAlgorithm::doOneAlgorithmStep()
 
   Clause* cl = nullptr;
   {
-    TIME_TRACE(TC_PASSIVE_CONTAINER_MAINTENANCE);
+    TIME_TRACE(PASSIVE_CONTAINER_MAINTENANCE);
     cl = _passive->popSelected();
   }
   ASS_EQ(cl->store(),Clause::PASSIVE);

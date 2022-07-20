@@ -225,7 +225,7 @@ ClauseIterator Superposition::generateClauses(Clause* premise)
   auto it6 = getFilteredIterator(it5,NonzeroFn());
 
   // The outer iterator ensures we update the time counter for superposition
-  auto it7 = timeTracedIter("superposition", it6);
+  auto it7 = timeTraceIter("superposition", it6);
 
   return pvi( it7 );
 }
@@ -575,7 +575,7 @@ Clause* Superposition::performSuperposition(
       }
 
       if (afterCheck) {
-        TIME_TRACE(TC_LITERAL_ORDER_AFTERCHECK)
+        TIME_TRACE(TimeTrace::Groups::LITERAL_ORDER_AFTERCHECK)
         if (i < rwClause->numSelected() && ordering.compare(currAfter,rwLitS) == Ordering::GREATER) {
           env.statistics->inferencesBlockedForOrderingAftercheck++;
           goto construction_fail;
@@ -589,7 +589,7 @@ Clause* Superposition::performSuperposition(
   {
     Literal* eqLitS = 0;
     if (afterCheck && eqClause->numSelected() > 1) {
-      TIME_TRACE(TC_LITERAL_ORDER_AFTERCHECK);
+      TIME_TRACE(TimeTrace::Groups::LITERAL_ORDER_AFTERCHECK);
       eqLitS = Literal::createEquality(true,eqLHSS,tgtTermS,eqLHSsort);
     }
 
@@ -611,7 +611,7 @@ Clause* Superposition::performSuperposition(
         }
 
         if (eqLitS && i < eqClause->numSelected()) {
-          TIME_TRACE(TC_LITERAL_ORDER_AFTERCHECK);
+          TIME_TRACE(TimeTrace::Groups::LITERAL_ORDER_AFTERCHECK);
 
           Ordering::Result o = ordering.compare(currAfter,eqLitS);
 

@@ -380,7 +380,7 @@ int SplittingBranchSelector::assertedGroundPositiveEqualityCompomentMaxAge()
 
   return max;
 }
-#define TC_SAT_SOLVER "SAT solver"
+static const char* SAT_SOLVER = "SAT solver";
 
 SATSolver::Status SplittingBranchSelector::processDPConflicts()
 {
@@ -430,7 +430,7 @@ SATSolver::Status SplittingBranchSelector::processDPConflicts()
 
     // there was conflict, so we try looking for a different model
     {
-      TIME_TRACE(TC_SAT_SOLVER);
+      TIME_TRACE(SAT_SOLVER);
       
       if (_solver->solve() == SATSolver::UNSATISFIABLE) {
         return SATSolver::UNSATISFIABLE;
@@ -586,7 +586,7 @@ void SplittingBranchSelector::recomputeModel(SplitLevelStack& addedComps, SplitL
   
   SATSolver::Status stat;
   {
-    TIME_TRACE(TC_SAT_SOLVER);
+    TIME_TRACE(SAT_SOLVER);
     if (randomize) {
       _solver->randomizeForNextAssignment(maxSatVar);
     }
@@ -1557,7 +1557,6 @@ void Splitter::onNewClause(Clause* cl)
   //bool isComponent = false;
   //{
   //  //TODO - would it be better to use tryGetExistingComponent here?
-  //  TimeCounter tc(TC_SPLITTING_COMPONENT_INDEX_USAGE);
   //  isComponent = _componentIdx->retrieveVariants(cl).hasNext();
   //}
   //if(isComponent){

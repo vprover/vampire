@@ -48,7 +48,7 @@
 
 namespace Inferences
 {
-#define TC_NAME "hyper superposition"
+static const char* HYPER_SUP = "hyper superposition";
 
 using namespace Lib;
 using namespace Kernel;
@@ -404,7 +404,7 @@ ClauseIterator HyperSuperposition::generateClauses(Clause* cl)
 {
   CALL("HyperSuperposition::generateClauses");
 
-  TIME_TRACE(TC_NAME);
+  TIME_TRACE(HYPER_SUP);
 
   static ClausePairStack res;
   res.reset();
@@ -557,7 +557,7 @@ bool HyperSuperposition::perform(Clause* cl, Clause*& replacement, ClauseIterato
     return false;
   }
 
-  TIME_TRACE(TC_NAME);
+  TIME_TRACE(HYPER_SUP);
 
   Literal* lit = (*cl)[0];
 

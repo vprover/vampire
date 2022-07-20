@@ -43,7 +43,7 @@ using namespace Saturation;
 Clause* Condensation::simplify(Clause* cl)
 {
   CALL("Condensation::perform");
-  TIME_TRACE(TC_CONDENSATION);
+  TIME_TRACE("condensation");
 
   unsigned clen=cl->length();
   if(clen<=1) {

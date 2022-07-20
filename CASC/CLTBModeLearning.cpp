@@ -274,7 +274,7 @@ void CLTBModeLearning::loadIncludes()
 
   UnitList* theoryAxioms=0;
   {
-    TIME_TRACE(TC_PARSING);
+    TIME_TRACE(TimeTrace::Groups::PARSING);
     env.statistics->phase=Statistics::PARSING;
 
     StringList::Iterator iit(_theoryIncludes);
@@ -832,7 +832,7 @@ void CLTBProblemLearning::searchForProof(int terminationTime,int timeLimit, Sche
 
   // this local scope will delete a potentially large parser
   {
-    TIME_TRACE(TC_PARSING);
+    TIME_TRACE(TimeTrace::Groups::PARSING);
     env.statistics->phase=Statistics::PARSING;
 
     ifstream inp(problemFile.c_str());
@@ -855,7 +855,7 @@ void CLTBProblemLearning::searchForProof(int terminationTime,int timeLimit, Sche
 
   Shell::Property* property = prb.getProperty();
   if (property->atoms()<=1000000) {
-    TIME_TRACE(TC_PREPROCESSING);
+    TIME_TRACE(TimeTrace::Groups::PREPROCESSING);
     env.statistics->phase=Statistics::NORMALIZATION;
     Normalisation norm;
     norm.normalise(prb);

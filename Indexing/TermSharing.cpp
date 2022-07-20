@@ -34,6 +34,7 @@ using namespace Indexing;
 
 typedef ApplicativeHelper AH;
 
+static const char* TERM_SHARING = "term sharing";
 /**
  * Initialise the term sharing structure.
  * @since 29/12/2007 Manchester
@@ -98,7 +99,7 @@ Term* TermSharing::insert(Term* t)
   ASS(!t->isSpecial());
   ASS(!t->isSort());
 
-  TIME_TRACE(TC_TERM_SHARING);
+  TIME_TRACE(TERM_SHARING);
 
   // normalise commutative terms
   if (t->commutative()) {
@@ -217,7 +218,7 @@ AtomicSort* TermSharing::insert(AtomicSort* sort)
   ASS(!sort->isSpecial());
   ASS(sort->isSort());
 
-  // cannot use TC_TERM_SHARING
+  // cannot use TERM_SHARING
   // as inserting a term can result in the insertion of
   // a sort and TimeCounter design forbids starting a timer 
   // when it is already running 
@@ -284,7 +285,7 @@ Literal* TermSharing::insert(Literal* t)
   //equalities between variables must be inserted using insertVariableEquality() function
   ASS_REP(!t->isEquality() || !t->nthArgument(0)->isVar() || !t->nthArgument(1)->isVar(), t->toString());
 
-  TIME_TRACE(TC_TERM_SHARING);
+  TIME_TRACE(TERM_SHARING);
 
   if (t->commutative()) {
     ASS(t->arity() == 2);
@@ -368,7 +369,7 @@ Literal* TermSharing::insertVariableEquality(Literal* t, TermList sort)
   ASS(t->nthArgument(1)->isVar());
   ASS(!t->isSpecial());
 
-  TIME_TRACE(TC_TERM_SHARING);
+  TIME_TRACE(TERM_SHARING);
 
   TermList* ts1 = t->args();
   TermList* ts2 = ts1->next();
@@ -416,7 +417,7 @@ Term* TermSharing::insertRecurrently(Term* t)
 {
   CALL("TermSharing::insert");
 
-  TIME_TRACE(TC_TERM_SHARING);
+  TIME_TRACE(TERM_SHARING);
 
   TermList tRef;
   tRef.setTerm(t);

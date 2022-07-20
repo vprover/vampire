@@ -677,6 +677,7 @@ set(
     FMB/SortInference.cpp
     FMB/ClauseFlattening.hpp
     FMB/DefinitionIntroduction.hpp
+    FMB/DefinitionIntroduction.cpp
     FMB/FiniteModel.hpp
     FMB/FiniteModelBuilder.hpp
     FMB/FiniteModelMultiSorted.hpp    

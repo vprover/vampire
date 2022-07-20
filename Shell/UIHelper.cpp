@@ -242,7 +242,7 @@ Problem* UIHelper::getInputProblem(const Options& opts)
 {
   CALL("UIHelper::getInputProblem");
     
-  TIME_TRACE(TC_PARSING);
+  TIME_TRACE(TimeTrace::Groups::PARSING);
   env.statistics->phase = Statistics::PARSING;
 
   SMTLIBLogic smtLibLogic = SMT_UNDEFINED;

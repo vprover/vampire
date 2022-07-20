@@ -267,7 +267,7 @@ Clause* Narrow::performNarrow(
       }
 
       if (afterCheck) {
-        TIME_TRACE(TC_LITERAL_ORDER_AFTERCHECK);
+        TIME_TRACE(TimeTrace::Groups::LITERAL_ORDER_AFTERCHECK);
         if (i < nClause->numSelected() && ordering.compare(currAfter,nLiteralS) == Ordering::GREATER) {
           env.statistics->inferencesBlockedForOrderingAftercheck++;
           goto construction_fail;
