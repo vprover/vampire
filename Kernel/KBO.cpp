@@ -562,13 +562,16 @@ KBO KBO::testKBO()
 }
 
 void KBO::zeroWeightForMaximalFunc() {
+  CALL("KBO::zeroWeightForMaximalFunc");
   // actually, it's non-constant maximal func, as constants cannot be weight 0
 
   using FunctionSymbol = unsigned;
   auto nFunctions = _funcWeights._weights.size();
+  if (!nFunctions) {
+    return;
+  }
 
   FunctionSymbol maxFn = 0;
-
   for (FunctionSymbol i = 1; i < nFunctions; i++) {
     if (compareFunctionPrecedences(maxFn, i) == LESS) {
       maxFn = i;
@@ -578,14 +581,10 @@ void KBO::zeroWeightForMaximalFunc() {
   auto symb = env.signature->getFunction(maxFn);
   auto arity = symb->numTermArguments();
 
-  // skip constants here (they can't be smaller than $var)
+  // skip constants here (they mustn't be lighter than $var)
   if (arity != 0){
-    // TODO: we could also have remembered the "second largest" symbol, if a constant was the largest
-    // (but we could not use them if they were of arity 1)
-
     _funcWeights._weights[maxFn] = 0;
   }
-  
 }
 
 template<class HandleError>
