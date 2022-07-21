@@ -2,6 +2,7 @@
 #include "Lib/Environment.hpp"
 #include "Shell/Statistics.hpp"
 #include <iomanip>
+#include <cstring>
 
 namespace Shell {
 
