@@ -204,9 +204,7 @@ void Statistics::explainRefutationNotFound(ostream& out)
 
 void Statistics::print(ostream& out)
 {
-  if (env.options->statistics()==Options::Statistics::NONE) {
-    return;
-  }
+  if (env.options->statistics() != Options::Statistics::NONE) {
 
   SaturationAlgorithm::tryUpdateFinalClauseCount();
 
@@ -486,6 +484,7 @@ void Statistics::print(ostream& out)
 
 #undef SEPARATOR
 #undef COND_OUT
+  } // if (env.options->statistics()!=Options::Statistics::NONE)
 
   if (env.options && env.options->timeStatistics()) {
     timeTrace.printPretty(out);
