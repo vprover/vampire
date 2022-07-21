@@ -19,7 +19,7 @@
 #include "Lib/Stack.hpp"
 #include "Lib/System.hpp"
 #include "Lib/ScopedLet.hpp"
-#include "Shell/TimeTracing.hpp"
+#include "Debug/TimeProfiling.hpp"
 #include "Lib/Timer.hpp"
 #include "Lib/Sys/Multiprocessing.hpp"
 

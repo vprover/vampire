@@ -26,7 +26,7 @@
 #include "Lib/Timer.hpp"
 
 #include "Multiprocessing.hpp"
-#include "Shell/TimeTracing.hpp"
+#include "Debug/TimeProfiling.hpp"
 
 namespace Lib
 {

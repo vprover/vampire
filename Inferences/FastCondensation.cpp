@@ -14,7 +14,7 @@
 
 #include "Lib/DHMap.hpp"
 #include "Lib/Int.hpp"
-#include "Shell/TimeTracing.hpp"
+#include "Debug/TimeProfiling.hpp"
 
 #include "Kernel/Term.hpp"
 #include "Kernel/Clause.hpp"

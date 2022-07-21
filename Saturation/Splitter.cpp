@@ -21,7 +21,7 @@
 #include "Lib/IntUnionFind.hpp"
 #include "Lib/Metaiterators.hpp"
 #include "Lib/SharedSet.hpp"
-#include "Shell/TimeTracing.hpp"
+#include "Debug/TimeProfiling.hpp"
 #include "Lib/Timer.hpp"
 
 #include "Kernel/Signature.hpp"

@@ -18,7 +18,7 @@
 #include "Lib/Int.hpp"
 #include "Lib/List.hpp"
 #include "Lib/Metaiterators.hpp"
-#include "Shell/TimeTracing.hpp"
+#include "Debug/TimeProfiling.hpp"
 #include "Lib/VirtualIterator.hpp"
 
 #include "Kernel/Clause.hpp"
@@ -34,7 +34,7 @@
 #include "Indexing/Index.hpp"
 #include "Indexing/TermIndex.hpp"
 #include "Indexing/IndexManager.hpp"
-#include "Shell/TimeTracing.hpp"
+#include "Debug/TimeProfiling.hpp"
 
 #include "Saturation/SaturationAlgorithm.hpp"
 

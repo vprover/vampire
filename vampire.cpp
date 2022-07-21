@@ -29,7 +29,7 @@
 #include "Lib/Random.hpp"
 #include "Lib/Set.hpp"
 #include "Lib/Stack.hpp"
-#include "Shell/TimeTracing.hpp"
+#include "Debug/TimeProfiling.hpp"
 #include "Lib/Timer.hpp"
 #include "Lib/VString.hpp"
 #include "Lib/List.hpp"

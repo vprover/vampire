@@ -27,7 +27,7 @@
 #include "Lib/Int.hpp"
 #include "Lib/StringUtils.hpp"
 #include "Lib/System.hpp"
-#include "Shell/TimeTracing.hpp"
+#include "Debug/TimeProfiling.hpp"
 #include "Lib/Timer.hpp"
 #include "Lib/ScopedPtr.hpp"
 #include "Lib/Sort.hpp"

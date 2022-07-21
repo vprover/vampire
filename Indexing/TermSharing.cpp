@@ -25,7 +25,7 @@
 #include "Kernel/ApplicativeHelper.hpp"
 
 #include "Shell/Statistics.hpp"
-#include "Shell/TimeTracing.hpp"
+#include "Debug/TimeProfiling.hpp"
 
 #include "TermSharing.hpp"
 

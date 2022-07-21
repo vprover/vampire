@@ -17,7 +17,7 @@
 #include "Lib/List.hpp"
 #include "Lib/Comparison.hpp"
 #include "Lib/Metaiterators.hpp"
-#include "Shell/TimeTracing.hpp"
+#include "Debug/TimeProfiling.hpp"
 
 #include "Kernel/Term.hpp"
 #include "Kernel/Clause.hpp"

@@ -19,7 +19,7 @@
 #include "Kernel/Clause.hpp"
 #include "SAT/SATInference.hpp"
 #include "SAT/MinisatInterfacing.hpp"
-#include "Shell/TimeTracing.hpp"
+#include "Debug/TimeProfiling.hpp"
 
 #include "Inference.hpp"
 

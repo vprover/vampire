@@ -1,4 +1,4 @@
-#include "Shell/TimeTracing.hpp"
+#include "Debug/TimeProfiling.hpp"
 #include "Lib/Environment.hpp"
 #include "Shell/Statistics.hpp"
 
@@ -22,7 +22,6 @@ TimeTrace::ScopedTimer::ScopedTimer(TimeTrace& trace, const char* name)
   , _name(name)
 #endif
 {
-  // DBG("ScopedTimer() ", name)
   auto& children = std::get<0>(trace._stack.top())->children;
   auto node = iterTraits(children.iter())
     .map([](auto& x) { return &*x; })
@@ -115,12 +114,14 @@ struct TimeTrace::Node::NodeFormatOpts {
            }; }
 };
 
-void TimeTrace::Node::printPretty(std::ostream& out, NodeFormatOpts& opts)
+static constexpr const char* indentBeforeLast = "  │  ";
+static constexpr const char* internalChild    = "  ├──";
+static constexpr const char* lastChild        = "  └──";
+static constexpr const char* indentAfterLast  = "     ";
+
+void TimeTrace::Node::printPrettyRec(std::ostream& out, NodeFormatOpts& opts)
 {
-  const char* indentBeforeLast = "  │  ";
-  const char* internalChild    = "  ├──";
-  const char* lastChild        = "  └──";
-  const char* indentAfterLast  = "     ";
+
   auto& indent = opts.indent;
   for (int i = 0; i < int(indent.size()) - 1; i++) {
     out << indent[i];
@@ -143,11 +144,6 @@ void TimeTrace::Node::printPretty(std::ostream& out, NodeFormatOpts& opts)
     out << "[" << setw(2) << percent(total, opts.parentDuration.unwrap()) << "%] ";
   }
   out << name;
-  // if (opts.nameWidth.isSome()) {
-  //   for (unsigned i = 0; i < opts.nameWidth.unwrap() - strlen(name); i++) {
-  //     out << " ";
-  //   }
-  // }
   if (opts.parentDuration.isSome()) {
     out << " " << percent(total, opts.parentDuration.unwrap()) << " % ";
   }
@@ -164,28 +160,89 @@ void TimeTrace::Node::printPretty(std::ostream& out, NodeFormatOpts& opts)
     if (copts.last) {
       indent.top() = indentAfterLast;
     }
-    children[i]->printPretty(out, copts);
+    children[i]->printPrettyRec(out, copts);
   }
   indent.pop();
 }
 
+struct TimeTrace::Node::FlattenState {
+  Stack<unique_ptr<Node>> nodes;
+  Stack<Node*> recPath;
+};
+
+TimeTrace::Node TimeTrace::Node::flatten()
+{
+  FlattenState s;
+  flatten_(s);
+  auto root = Node("[root]");
+  root.children = std::move(s.nodes);
+  root.measurements = measurements;
+  return root;
+}
+
+void TimeTrace::Node::flatten_(FlattenState& s)
+{
+
+  auto node_ = iterTraits(s.nodes.iter())
+    .find([&](auto& n) { return n->name == name; });
+
+  if (node_.isNone()) {
+    s.nodes.push(make_unique<Node>(name));
+  }
+  auto& node = node_.isSome() ? node_.unwrap() : s.nodes.top();
+
+  if (!iterTraits(s.recPath.iter()).any([&](auto& x) { return x->name == name; })) {
+    // prevent double counting time
+    for (auto d : measurements) {
+      node->measurements.push(d);
+    }
+  }
+
+  s.recPath.push(this);
+  for (auto& c : children) {
+    c->flatten_(s);
+  }
+  s.recPath.pop();
+}
+
 void TimeTrace::printPretty(std::ostream& out)
 {
-  out << "===== start of time trace =====" << std::endl;
+
   auto now = Clock::now();
   for (auto& x : _stack) {
     auto node = get<0>(x);
     auto start = get<1>(x);
     node->measurements.push(now - start);
   }
-  Stack<const char*> indent;
-  auto opts = Node::NodeFormatOpts::root(indent);
+
   auto& root = _tmpRoots.size() == 0 ? _root : *_tmpRoots.top();
-  root.printPretty(out, opts);
+  Stack<const char*> indent;
+  auto rootOpts = Node::NodeFormatOpts::root(indent);
+
+  out << "===== start of time trace =====" << std::endl;
+  {
+    Stack<const char*> indent;
+    auto rootOpts = Node::NodeFormatOpts::root(indent);
+    root.printPrettyRec(out, rootOpts);
+  }
+  out << "===== end of time trace =====" << std::endl;
+
+  out <<                                                  std::endl;
+
+  out << "===== start of flattened time profile =====" << std::endl;
+  {
+    Stack<const char*> indent;
+    auto rootOpts = Node::NodeFormatOpts::root(indent);
+    auto flat = root.flatten();
+    flat.printPrettyRec(out, rootOpts);
+  }
+  out << "===== end of flattened time profile =====" << std::endl;
+
+
   for (auto& x : _stack) {
     get<0>(x)->measurements.pop();
   }
-  out << "===== end of time trace =====" << std::endl;
+
 }
 
 } // namespace Shell

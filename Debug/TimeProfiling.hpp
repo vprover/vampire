@@ -9,8 +9,8 @@
  */
 
 
-#ifndef __TimeTracing__
-#define __TimeTracing__
+#ifndef __TimeProfiling__
+#define __TimeProfiling__
 
 #include "Lib/Stack.hpp"
 #include "Lib/Option.hpp"
@@ -22,7 +22,7 @@
 
 namespace Shell {
 
-#define TIME_TRACE_NEW_ROOT \
+#define TIME_TRACE_NEW_ROOT                                                                         \
   Shell::TimeTrace::ScopedChangeRoot CONCAT_IDENTS(__time_trace_, __LINE__);
 
 #define TIME_TRACE(name)                                                                            \
@@ -49,9 +49,14 @@ class TimeTrace
     Lib::Stack<Duration> measurements;
     Node(const char* name) : name(name), children(), measurements() {}
     struct NodeFormatOpts ;
-    void printPretty(std::ostream& out, NodeFormatOpts& opts);
+    void printPrettyRec(std::ostream& out, NodeFormatOpts& opts);
+    void printPrettySelf(std::ostream& out, NodeFormatOpts& opts);
     void serialize(std::ostream& out);
     Duration totalDuration() const;
+
+    Node flatten();
+    struct FlattenState;
+    void flatten_(FlattenState&);
   };
 
   friend std::ostream& operator<<(std::ostream& out, Duration const& self);
@@ -134,4 +139,4 @@ public:
 
 } // namespace Shell
 
-#endif // __TimeTracing__
+#endif // __TimeProfiling__

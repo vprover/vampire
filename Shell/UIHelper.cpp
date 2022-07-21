@@ -22,7 +22,7 @@
 #include "Forwards.hpp"
 
 #include "Lib/Environment.hpp"
-#include "Shell/TimeTracing.hpp"
+#include "Debug/TimeProfiling.hpp"
 #include "Lib/VString.hpp"
 #include "Lib/Timer.hpp"
 
