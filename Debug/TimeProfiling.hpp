@@ -100,6 +100,7 @@ private:
   Node _root;
   Lib::Stack<Node*> _tmpRoots;
   Lib::Stack<std::tuple<Node*, TimePoint>> _stack;
+  bool const _enabled;
 };
 
 

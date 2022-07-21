@@ -3,6 +3,7 @@
 #include "Shell/Statistics.hpp"
 #include <iomanip>
 #include <cstring>
+#include "Shell/Options.hpp"
 
 namespace Shell {
 
@@ -11,6 +12,7 @@ using namespace Lib;
 TimeTrace::TimeTrace() 
   : _root("[root]")
   , _stack({ {&_root, Clock::now(), }, }) 
+  , _enabled(env.options->timeStatistics())
 {  }
 
 TimeTrace::ScopedTimer::ScopedTimer(const char* name)
@@ -24,31 +26,35 @@ TimeTrace::ScopedTimer::ScopedTimer(TimeTrace& trace, const char* name)
   , _name(name)
 #endif
 {
-  auto& children = std::get<0>(trace._stack.top())->children;
-  auto node = iterTraits(children.iter())
-    .map([](auto& x) { return &*x; })
-    .find([&](Node* n) { return n->name == name; })
-    .unwrapOrElse([&]() { 
-        children.push(Lib::make_unique<Node>(name));
-        return &*children.top();
-    });
-  auto start = Clock::now();
+  if (_trace._enabled) {
+    auto& children = std::get<0>(trace._stack.top())->children;
+    auto node = iterTraits(children.iter())
+      .map([](auto& x) { return &*x; })
+      .find([&](Node* n) { return n->name == name; })
+      .unwrapOrElse([&]() { 
+          children.push(Lib::make_unique<Node>(name));
+          return &*children.top();
+      });
+    auto start = Clock::now();
 #if VDEBUG
-  _start = start;
+    _start = start;
 #endif 
 
-  _trace._stack.push(std::make_pair(node, start));
+    _trace._stack.push(std::make_pair(node, start));
+  }
 }
 
 TimeTrace::ScopedTimer::~ScopedTimer()
 {
-  auto now = Clock::now();
-  auto cur = _trace._stack.pop();
-  auto node = get<0>(cur);
-  auto start = get<1>(cur);
-  node->measurements.push(now  - start);
-  ASS_EQ(node->name, _name);
-  ASS(start == _start);
+  if (_trace._enabled) {
+    auto now = Clock::now();
+    auto cur = _trace._stack.pop();
+    auto node = get<0>(cur);
+    auto start = get<1>(cur);
+    node->measurements.push(now  - start);
+    ASS_EQ(node->name, _name);
+    ASS(start == _start);
+  }
 }
 
 
@@ -59,12 +65,16 @@ TimeTrace::ScopedChangeRoot::ScopedChangeRoot()
 TimeTrace::ScopedChangeRoot::ScopedChangeRoot(TimeTrace& trace)
   : _trace(trace)
 {
-  _trace._tmpRoots.push(get<0>(trace._stack.top()));
+  if (_trace._enabled) {
+    _trace._tmpRoots.push(get<0>(trace._stack.top()));
+  }
 }
 
 TimeTrace::ScopedChangeRoot::~ScopedChangeRoot()
 {
-  _trace._tmpRoots.pop();
+  if (_trace._enabled) {
+    _trace._tmpRoots.pop();
+  }
 }
 
 TimeTrace::Duration TimeTrace::Node::totalDuration() const
