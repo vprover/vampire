@@ -201,6 +201,7 @@ void CLTBModeLearning::solveBatch(istream& batchFile, bool first,vstring inputDi
 
     pid_t child = Multiprocessing::instance()->fork();
     if (!child) {
+      TIME_TRACE_NEW_ROOT
       // child process
       CLTBProblemLearning prob(this, probFile, outFile);
       try {
