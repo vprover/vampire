@@ -944,8 +944,7 @@ void CLTBProblem::runSlice(vstring sliceCode, unsigned timeLimitInMilliseconds)
 void CLTBProblem::runSlice(Options& strategyOpt)
 {
   CALL("CLTBProblem::runSlice(Option&)");
-  TIME_TRACE("run slice")
-  TIME_TRACE_NEW_ROOT
+  TIME_TRACE_NEW_ROOT("run slice")
 
   System::registerForSIGHUPOnParentDeath();
   UIHelper::portfolioParent = false;
