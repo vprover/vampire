@@ -9,24 +9,28 @@
  */
 
 
-#ifndef __TimeTracing__
-#define __TimeTracing__
+#ifndef __TimeProfiling__
+#define __TimeProfiling__
 
-#include "Forwards.hpp"
-#include "Kernel/Term.hpp"
 #include "Lib/Stack.hpp"
 #include "Lib/Option.hpp"
 #include "Kernel/Ordering.hpp"
 #include "Debug/Assertion.hpp"
+#include "Kernel/Term.hpp"
 #include <chrono>
+#include "Lib/MacroUtils.hpp"
 
 namespace Shell {
 
+#define TIME_TRACE_NEW_ROOT                                                                         \
+  Shell::TimeTrace::ScopedChangeRoot CONCAT_IDENTS(__time_trace_, __LINE__);
+
 #define TIME_TRACE(name)                                                                            \
-  Shell::TimeTrace::ScopedTimer __time_trace_ ## __LINE__ (name);
+  Shell::TimeTrace::ScopedTimer CONCAT_IDENTS(__time_trace_, __LINE__) (name);
 
 #define TIME_TRACE_EXPR(name, ...)                                                                  \
   [&](){ TIME_TRACE(name); return __VA_ARGS__; }()
+
 
 class TimeTrace 
 {
@@ -44,10 +48,18 @@ class TimeTrace
     Lib::Stack<unique_ptr<Node>> children;
     Lib::Stack<Duration> measurements;
     Node(const char* name) : name(name), children(), measurements() {}
-    void print(std::ostream& out, unsigned indent, Lib::Option<Node const&> parent);
+    struct NodeFormatOpts ;
+    void printPrettyRec(std::ostream& out, NodeFormatOpts& opts);
+    void printPrettySelf(std::ostream& out, NodeFormatOpts& opts);
+    void serialize(std::ostream& out);
     Duration totalDuration() const;
+
+    Node flatten();
+    struct FlattenState;
+    void flatten_(FlattenState&);
   };
 
+  friend std::ostream& operator<<(std::ostream& out, Duration const& self);
 public:
   TimeTrace();
 
@@ -63,41 +75,31 @@ public:
     ~ScopedTimer();
   };
 
-  void print(std::ostream& out);
+
+  class ScopedChangeRoot {
+    TimeTrace& _trace;
+  public:
+    ScopedChangeRoot();
+    ScopedChangeRoot(TimeTrace& trace);
+    ~ScopedChangeRoot();
+  };
+
+  // resets the trace
+  void reset();
+  void printPretty(std::ostream& out);
+  void serialize(std::ostream& out);
+
+  struct Groups {
+    static const char* PREPROCESSING;
+    static const char* PARSING;
+    static const char* LITERAL_ORDER_AFTERCHECK;
+  };
 private:
 
   Node _root;
+  Lib::Stack<Node*> _tmpRoots;
   Lib::Stack<std::tuple<Node*, TimePoint>> _stack;
 };
-
-
-template<class Iter>
-class TimeTraceIter
-{
-  const char* _name;
-  Iter _iter;
-public:
-  TimeTraceIter(const char* name, Iter iter) 
-    : _name(name)
-    , _iter(std::move(iter)) 
-  {}
-
-  DECL_ELEMENT_TYPE(ELEMENT_TYPE(Iter));
-
-  OWN_ELEMENT_TYPE next() { TIME_TRACE(_name); return _iter.next(); }
-  bool hasNext() { TIME_TRACE(_name); return _iter.hasNext(); }
-
-  bool knowsSize() const 
-  { return _iter.knowsSize(); }
-
-  size_t size() const
-  { return _iter.size(); }
-
-};
-
-template<class Iter>
-auto timeTraced(const char* name, Iter iter) 
-{ return TimeTraceIter<Iter>(name, std::move(iter)); }
 
 
 template<class Ord>
@@ -125,7 +127,7 @@ public:
   { TIME_TRACE(_nameTerm); return _ord.compare(l1,l2); }
 
   // TODO shouldn't this be a function of PrecedenceOrdering?
-  Comparison compareFunctors(unsigned fun1, unsigned fun2) const final override 
+  Kernel::Comparison compareFunctors(unsigned fun1, unsigned fun2) const final override 
   { ASSERTION_VIOLATION }
 
   void show(ostream& out) const final override
@@ -137,4 +139,4 @@ public:
 
 } // namespace Shell
 
-#endif // __TimeTracing__
+#endif // __TimeProfiling__

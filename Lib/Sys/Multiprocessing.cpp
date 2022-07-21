@@ -28,6 +28,7 @@
 #include "Lib/Timer.hpp"
 
 #include "Multiprocessing.hpp"
+#include "Debug/TimeProfiling.hpp"
 
 namespace Lib
 {
@@ -107,6 +108,7 @@ pid_t Multiprocessing::fork()
 pid_t Multiprocessing::waitForChildTermination(int& resValue)
 {
   CALL("Multiprocessing::waitForChildTermination");
+  TIME_TRACE("waiting for child")
 
   int status;
   pid_t childPid;

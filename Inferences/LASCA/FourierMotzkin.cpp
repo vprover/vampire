@@ -15,7 +15,7 @@
 #include "FourierMotzkin.hpp"
 #include "Saturation/SaturationAlgorithm.hpp"
 #include "Shell/Statistics.hpp"
-#include "Shell/TimeTracing.hpp"
+#include "Debug/TimeProfiling.hpp"
 
 #define DEBUG(...) // DBG(__VA_ARGS__)
 
@@ -137,7 +137,7 @@ Option<Clause*> FourierMotzkin::applyRule(
     ) const 
 {
   CALL("FourierMotzkin::applyRule")
-  TIME_TRACE("FourierMotzkin::applyRule")
+  TIME_TRACE("fourier motzkin")
 
   return lhs.numTraits().apply([&](auto numTraits) {
     using NumTraits = decltype(numTraits);

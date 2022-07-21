@@ -20,7 +20,6 @@
 
 #include "Lib/Allocator.hpp"
 #include "Lib/Environment.hpp"
-#include "Lib/TimeCounter.hpp"
 #include "Lib/Timer.hpp"
 #include "SAT/Z3Interfacing.hpp"
 
@@ -505,10 +504,8 @@ void Statistics::print(ostream& out)
 #undef SEPARATOR
 
   if (env.options && env.options->timeStatistics()) {
-    TimeCounter::printReport(out);
+    timeTrace.printPretty(out);
   }
-
-  timeTrace.print(out);
 }
 
 #undef COND_OUT

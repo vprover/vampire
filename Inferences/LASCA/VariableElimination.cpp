@@ -17,7 +17,7 @@
 #include "Lib/Map.hpp"
 #include "Lib/Set.hpp"
 #include "Shell/Statistics.hpp"
-#include "Shell/TimeTracing.hpp"
+#include "Debug/TimeProfiling.hpp"
 #include "Kernel/TermIterators.hpp"
 
 #define TODO ASSERTION_VIOLATION
@@ -191,7 +191,7 @@ template<class NumTraits>
 ClauseIterator VariableElimination::applyRule(Clause* premise, FoundVariable<NumTraits> found) const
 {
   CALL("LASCA::VampireElimination::applyRule")
-  TIME_TRACE("LASCA::VampireElimination::applyRule")
+  TIME_TRACE("lasca vampire elimination")
   using Numeral = typename NumTraits::ConstantType;
   auto x = found.var;
   DEBUG("eliminating var: ", x)

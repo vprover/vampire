@@ -26,6 +26,7 @@
 #include "Lib/Int.hpp"
 #include "Lib/Metaiterators.hpp"
 #include "Lib/Random.hpp"
+#include "Debug/TimeProfiling.hpp"
 
 #include "Shell/Options.hpp"
 #include "Shell/Property.hpp"
@@ -39,7 +40,6 @@
 #include "Kernel/NumTraits.hpp" 
 #include "Kernel/LaLpo.hpp"
 #include "Kernel/QKbo.hpp"
-#include "Shell/TimeTracing.hpp"
 
 #include "Ordering.hpp"
 

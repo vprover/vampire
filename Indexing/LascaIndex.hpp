@@ -47,12 +47,14 @@ public:
     CALL("LascaIndex::find")
     return iterTraits(_index.getUnificationsWithConstraints(key, /* retrieveSubstitutions */ true))
       .map([](TermQueryResult<T> r) 
-           { return std::tuple<T, UwaResult>( std::move(r.data()), UwaResult(r));  }); }
+           { return std::tuple<T, UwaResult>( std::move(r.data()), UwaResult(r));  })
+      .timeTraced("lasca index lookup"); }
 
 
   virtual void handleClause(Clause* c, bool adding) final override 
   {
     CALL("LascaIndex::handleClause")
+    TIME_TRACE("lasca index maintance")
     for (auto appl : T::iter(*_shared, c)) {
       if (adding) {
         _index.insert(std::move(appl));

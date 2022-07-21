@@ -19,6 +19,7 @@
 #include "Kernel/Clause.hpp"
 #include "SAT/SATInference.hpp"
 #include "SAT/MinisatInterfacing.hpp"
+#include "Debug/TimeProfiling.hpp"
 
 #include "Inference.hpp"
 
@@ -556,7 +557,7 @@ void Inference::minimizePremises()
   if (_ptr2 == nullptr)
     return; // already minimized
 
-  TimeCounter tc(TC_SAT_PROOF_MINIMIZATION);
+  TIME_TRACE("sat proof minimization");
 
   FromSatRefutationInfo* info = static_cast<FromSatRefutationInfo*>(_ptr2);
 

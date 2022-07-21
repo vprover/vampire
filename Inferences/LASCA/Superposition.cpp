@@ -16,7 +16,7 @@
 #include "Superposition.hpp"
 #include "Saturation/SaturationAlgorithm.hpp"
 #include "Shell/Statistics.hpp"
-#include "Shell/TimeTracing.hpp"
+#include "Debug/TimeProfiling.hpp"
 #include "Kernel/EqHelper.hpp"
 
 #define DEBUG(...) // DBG(__VA_ARGS__)

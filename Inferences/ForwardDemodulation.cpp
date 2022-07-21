@@ -18,7 +18,7 @@
 #include "Lib/Environment.hpp"
 #include "Lib/Int.hpp"
 #include "Lib/Metaiterators.hpp"
-#include "Lib/TimeCounter.hpp"
+#include "Debug/TimeProfiling.hpp"
 #include "Lib/Timer.hpp"
 #include "Lib/VirtualIterator.hpp"
 
@@ -41,7 +41,7 @@
 
 #include "Shell/Options.hpp"
 #include "Shell/Statistics.hpp"
-#include "Shell/TimeTracing.hpp"
+#include "Debug/TimeProfiling.hpp"
 
 #include "ForwardDemodulation.hpp"
 
@@ -74,9 +74,7 @@ template <bool combinatorySupSupport>
 bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*& replacement, ClauseIterator& premises)
 {
   CALL("ForwardDemodulation::perform");
-  TIME_TRACE("ForwardDemodulation::perform");
-
-  TimeCounter tc(TC_FORWARD_DEMODULATION);
+  TIME_TRACE("forward demodulation");
 
   Ordering& ordering = _salg->getOrdering();
 

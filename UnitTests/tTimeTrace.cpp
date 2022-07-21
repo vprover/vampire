@@ -15,7 +15,7 @@
 
 #include "Test/UnitTesting.hpp"
 #include "Shell/Statistics.hpp"
-#include "Shell/TimeTracing.hpp"
+#include "Debug/TimeProfiling.hpp"
 #include "Lib/Environment.hpp"
 using namespace Shell;
 

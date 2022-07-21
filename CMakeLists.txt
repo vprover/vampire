@@ -128,7 +128,6 @@ set(VAMPIRE_LIB_SOURCES
     Lib/Random.cpp
     Lib/StringUtils.cpp
     Lib/System.cpp
-    Lib/TimeCounter.cpp
     Lib/Timer.cpp
 
     Lib/Allocator.hpp
@@ -192,7 +191,6 @@ set(VAMPIRE_LIB_SOURCES
     Lib/STLAllocator.hpp
     Lib/StringUtils.hpp
     Lib/System.hpp
-    Lib/TimeCounter.hpp
     Lib/Timer.hpp
     Lib/TriangularArray.hpp
     Lib/Vector.hpp
@@ -612,8 +610,8 @@ set(VAMPIRE_SHELL_SOURCES
     Shell/SineUtils.cpp
     Shell/FOOLElimination.cpp
     Shell/Statistics.cpp
-    Shell/TimeTracing.hpp
-    Shell/TimeTracing.cpp
+    Debug/TimeProfiling.hpp
+    Debug/TimeProfiling.cpp
     Shell/SymbolDefinitionInlining.cpp
     Shell/SymbolOccurrenceReplacement.cpp
     Shell/SymCounter.cpp
@@ -706,6 +704,7 @@ set(
     FMB/SortInference.cpp
     FMB/ClauseFlattening.hpp
     FMB/DefinitionIntroduction.hpp
+    FMB/DefinitionIntroduction.cpp
     FMB/FiniteModel.hpp
     FMB/FiniteModelBuilder.hpp
     FMB/FiniteModelMultiSorted.hpp    
@@ -774,7 +773,6 @@ set(UNIT_TESTS
     UnitTests/tSATSolver.cpp
     UnitTests/tArithCompare.cpp
     UnitTests/tSyntaxSugar.cpp
-    UnitTests/tTimeTrace.cpp
     UnitTests/tSkipList.cpp
     UnitTests/tBinaryHeap.cpp
     UnitTests/tSafeRecursion.cpp

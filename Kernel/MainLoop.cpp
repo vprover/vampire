@@ -27,7 +27,6 @@
 
 #include "Shell/Options.hpp"
 #include "Shell/UIHelper.hpp"
-#include "Shell/TimeTracing.hpp"
 
 #include "Signature.hpp"
 #include "Clause.hpp"
@@ -61,8 +60,8 @@ MainLoopResult MainLoop::run()
   TIME_TRACE("main loop");
 
   try {
-    init();
-    return runImpl();
+    TIME_TRACE_EXPR("init", init());
+    return TIME_TRACE_EXPR("run", runImpl());
   }
   catch(RefutationFoundException& rs)
   {

@@ -15,7 +15,7 @@
 
 #include "Lib/Allocator.hpp"
 #include "Lib/Recycler.hpp"
-#include "Lib/TimeCounter.hpp"
+#include "Debug/TimeProfiling.hpp"
 #include "Lib/VirtualIterator.hpp"
 
 #include "Kernel/Renaming.hpp"
@@ -445,7 +445,7 @@ void CodeTreeSubsumptionIndex::handleClause(Clause* cl, bool adding)
 {
   CALL("CodeTreeSubsumptionIndex::handleClause");
   
-  TimeCounter tc(TC_FORWARD_SUBSUMPTION_INDEX_MAINTENANCE);
+  TIME_TRACE("codetree subsumption index maintanance");
 
   if(adding) {
     _ct.insert(cl);

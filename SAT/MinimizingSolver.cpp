@@ -233,7 +233,7 @@ void MinimizingSolver::updateAssignment()
 {
   CALL("MinimizingSolver::updateAssignment");
 
-  TimeCounter tca(TC_MINIMIZING_SOLVER);
+  TIME_TRACE("minimizing solver time");
   
   processInnerAssignmentChanges();
   processUnprocessedAndFillHeap();

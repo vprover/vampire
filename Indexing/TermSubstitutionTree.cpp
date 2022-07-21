@@ -12,23 +12,6 @@
  * Implements class TermSubstitutionTree.
  */
 
-// #include "Lib/Environment.hpp"
-// #include "Lib/Metaiterators.hpp"
-// #include "Lib/Random.hpp"
-// #include "Lib/SmartPtr.hpp"
-// #include "Lib/TimeCounter.hpp"
-//
-// #include "Kernel/TermIterators.hpp"
-// #include "Kernel/Matcher.hpp"
-// #include "Kernel/Signature.hpp"
-// #include "Kernel/Term.hpp"
-// #include "Kernel/SortHelper.hpp"
-// #include "Kernel/ApplicativeHelper.hpp"
-//
-// #include "Shell/Options.hpp"
-//
-// #include "TermSubstitutionTree.hpp"
-
 namespace Indexing
 {
 

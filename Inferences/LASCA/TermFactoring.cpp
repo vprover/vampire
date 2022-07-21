@@ -29,7 +29,7 @@
 #include "Kernel/SortHelper.hpp"
 #include "Lib/TypeList.hpp"
 #include "Shell/Statistics.hpp"
-#include "Shell/TimeTracing.hpp"
+#include "Debug/TimeProfiling.hpp"
 
 #include "Indexing/Index.hpp"
 
@@ -109,7 +109,7 @@ Option<Clause*> TermFactoring::applyRule(
     )
 {
   CALL("LASCA::TermFactoring::applyRule(...)")
-  TIME_TRACE("LASCA::TermFactoring::applyRule(...)")
+  TIME_TRACE("lasca term factoring")
   using Numeral = typename NumTraits::ConstantType;
   DEBUG("L1: ", sel1)
   DEBUG("L2: ", sel2)

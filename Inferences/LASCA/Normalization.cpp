@@ -33,7 +33,7 @@
 
 #include "Shell/Options.hpp"
 #include "Shell/Statistics.hpp"
-#include "Shell/TimeTracing.hpp"
+#include "Debug/TimeProfiling.hpp"
 
 #include "Normalization.hpp"
 #include "Shell/UnificationWithAbstractionConfig.hpp"
@@ -56,7 +56,7 @@ using namespace Saturation;
 Clause* Normalization::simplify(Clause* cl) 
 {
   CALL("LASCA::Normalization::simplify(...)")
-  TIME_TRACE("LASCA::Normalization::simplify(...)")
+  TIME_TRACE("perform lasca normalization")
   bool altered = false; 
   auto out = Stack<Literal*>(cl->size());
   for (unsigned i = 0; i < cl->size(); i++) {

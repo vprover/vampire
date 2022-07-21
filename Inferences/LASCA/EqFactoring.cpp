@@ -15,7 +15,7 @@
 
 #include "EqFactoring.hpp"
 #include "Shell/Statistics.hpp"
-#include "Shell/TimeTracing.hpp"
+#include "Debug/TimeProfiling.hpp"
 
 #define DEBUG(...) //DBG(__VA_ARGS__)
 

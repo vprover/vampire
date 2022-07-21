@@ -14,7 +14,7 @@
 
 #include "Lib/DHMap.hpp"
 #include "Lib/Int.hpp"
-#include "Lib/TimeCounter.hpp"
+#include "Debug/TimeProfiling.hpp"
 
 #include "Kernel/Term.hpp"
 #include "Kernel/Clause.hpp"
@@ -71,7 +71,7 @@ Clause* FastCondensation::simplify(Clause* cl)
 {
   CALL("FastCondensation::perform");
 
-  TimeCounter tc(TC_CONDENSATION);
+  TIME_TRACE("condensation");
 
   unsigned clen=cl->length();
   if(clen<=1) {
