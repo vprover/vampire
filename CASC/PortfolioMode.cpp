@@ -373,7 +373,7 @@ bool PortfolioMode::runSchedule(Shell::Property *property, Schedule schedule) {
       ASS_NEQ(process, -1);
       if(process == 0)
       {
-        TIME_TRACE_NEW_ROOT;
+        TIME_TRACE_NEW_ROOT("child process")
         runSlice(code, remainingTime);
         ASSERTION_VIOLATION; // should not return
       }

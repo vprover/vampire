@@ -1,6 +1,7 @@
 #include "Debug/TimeProfiling.hpp"
 #include "Lib/Environment.hpp"
 #include "Shell/Statistics.hpp"
+#include <iomanip>
 
 namespace Shell {
 
@@ -174,7 +175,7 @@ TimeTrace::Node TimeTrace::Node::flatten()
 {
   FlattenState s;
   flatten_(s);
-  auto root = Node("[root]");
+  auto root = Node(name);
   root.children = std::move(s.nodes);
   root.measurements = measurements;
   return root;
