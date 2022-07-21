@@ -22,14 +22,15 @@
 
 namespace Shell {
 
-#define TIME_TRACE_NEW_ROOT                                                                         \
-  Shell::TimeTrace::ScopedChangeRoot CONCAT_IDENTS(__time_trace_, __LINE__);
-
 #define TIME_TRACE(name)                                                                            \
   Shell::TimeTrace::ScopedTimer CONCAT_IDENTS(__time_trace_, __LINE__) (name);
 
 #define TIME_TRACE_EXPR(name, ...)                                                                  \
   [&](){ TIME_TRACE(name); return __VA_ARGS__; }()
+
+#define TIME_TRACE_NEW_ROOT(name)                                                                   \
+  TIME_TRACE(name)                                                                                  \
+  Shell::TimeTrace::ScopedChangeRoot CONCAT_IDENTS(__change_root_, __LINE__);
 
 
 class TimeTrace 

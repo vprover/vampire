@@ -187,7 +187,7 @@ void CLTBMode::solveBatch(istream& batchFile, bool first,vstring inputDirectory)
     pid_t child = Multiprocessing::instance()->fork();
     if (!child) {
       // child process
-      TIME_TRACE_NEW_ROOT
+      TIME_TRACE_NEW_ROOT("child process")
       CLTBProblem prob(this, probFile, outFile);
       try {
         prob.searchForProof(problemTerminationTime,nextProblemTimeLimit,_category);
