@@ -65,6 +65,7 @@ DHMap<vstring,Stack<vstring>*> CLTBModeLearning::stratWins;
 void CLTBModeLearning::perform()
 {
   CALL("CLTBModeLearning::perform");
+  TIME_TRACE("cltb learning");
 
   if (env.options->inputFile() == "") {
     USER_ERROR("Input file must be specified for ltb mode");

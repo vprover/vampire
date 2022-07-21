@@ -186,6 +186,7 @@ void CLTBMode::solveBatch(istream& batchFile, bool first,vstring inputDirectory)
     pid_t child = Multiprocessing::instance()->fork();
     if (!child) {
       // child process
+      TIME_TRACE_NEW_ROOT
       CLTBProblem prob(this, probFile, outFile);
       try {
         prob.searchForProof(problemTerminationTime,nextProblemTimeLimit,_category);
@@ -667,6 +668,7 @@ void CLTBProblem::performStrategy(int terminationTime,int timeLimit,Category cat
 void CLTBProblem::searchForProof(int terminationTime,int timeLimit,const Category category)
 {
   CALL("CLTBProblem::searchForProof");
+  TIME_TRACE("search for proof")
 
   System::registerForSIGHUPOnParentDeath();
 
@@ -942,6 +944,8 @@ void CLTBProblem::runSlice(vstring sliceCode, unsigned timeLimitInMilliseconds)
 void CLTBProblem::runSlice(Options& strategyOpt)
 {
   CALL("CLTBProblem::runSlice(Option&)");
+  TIME_TRACE("run slice")
+  TIME_TRACE_NEW_ROOT
 
   System::registerForSIGHUPOnParentDeath();
   UIHelper::portfolioParent = false;

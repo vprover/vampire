@@ -1746,14 +1746,20 @@ public:
   { return iterTraits(getFlattenedIterator(getMappingIterator(std::move(_iter), f))); }
 
 
-  Option<Elem> min()
+  /** 
+   * returns the first minimal element wrt the function `less` 
+   * less takes two arguments of this iterators element type and 
+   * returns the wheter the first is smaller than the second.
+   * */
+  template<class IsLess>
+  Option<Elem> minBy(IsLess isLess)
   { 
     CALL("IterTraits::min")
     if (hasNext()) {
-      auto&& min = next();
-      while (hasNext())  {
-        auto&& e = next();
-        if (std::less<Elem>{}(e, min)) {
+      Elem min = next();
+      while (hasNext()) {
+        Elem e = next();
+        if (isLess(e, min)) {
           min = e;
         }
       }
@@ -1762,6 +1768,17 @@ public:
       return none<Elem>();
     }
   }
+
+
+  Option<Elem> min()
+  { return minBy(std::less<Elem>{}); }
+
+  template<class IsLess>
+  Option<Elem> maxBy(IsLess isLess)
+  { return minBy([isLess = std::move(isLess)](Elem const& l, Elem const& r) { return isLess(r,l); }); }
+
+  Option<Elem> max()
+  { return maxBy(std::less<Elem>{}); }
 
   auto timeTraced(const char* name)
   { return iterTraits(timeTracedIter(name, std::move(_iter))); }

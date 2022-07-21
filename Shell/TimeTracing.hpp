@@ -22,6 +22,9 @@
 
 namespace Shell {
 
+#define TIME_TRACE_NEW_ROOT \
+  Shell::TimeTrace::ScopedChangeRoot CONCAT_IDENTS(__time_trace_, __LINE__);
+
 #define TIME_TRACE(name)                                                                            \
   Shell::TimeTrace::ScopedTimer CONCAT_IDENTS(__time_trace_, __LINE__) (name);
 
@@ -45,10 +48,13 @@ class TimeTrace
     Lib::Stack<unique_ptr<Node>> children;
     Lib::Stack<Duration> measurements;
     Node(const char* name) : name(name), children(), measurements() {}
-    void print(std::ostream& out, unsigned indent, Lib::Option<Node const&> parent);
+    struct NodeFormatOpts ;
+    void printPretty(std::ostream& out, NodeFormatOpts& opts);
+    void serialize(std::ostream& out);
     Duration totalDuration() const;
   };
 
+  friend std::ostream& operator<<(std::ostream& out, Duration const& self);
 public:
   TimeTrace();
 
@@ -64,7 +70,19 @@ public:
     ~ScopedTimer();
   };
 
-  void print(std::ostream& out);
+
+  class ScopedChangeRoot {
+    TimeTrace& _trace;
+  public:
+    ScopedChangeRoot();
+    ScopedChangeRoot(TimeTrace& trace);
+    ~ScopedChangeRoot();
+  };
+
+  // resets the trace
+  void reset();
+  void printPretty(std::ostream& out);
+  void serialize(std::ostream& out);
 
   struct Groups {
     static const char* PREPROCESSING;
@@ -74,6 +92,7 @@ public:
 private:
 
   Node _root;
+  Lib::Stack<Node*> _tmpRoots;
   Lib::Stack<std::tuple<Node*, TimePoint>> _stack;
 };
 

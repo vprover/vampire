@@ -7,7 +7,7 @@ namespace Shell {
 using namespace Lib;
 
 TimeTrace::TimeTrace() 
-  : _root("<root>")
+  : _root("[root]")
   , _stack({ {&_root, Clock::now(), }, }) 
 {  }
 
@@ -50,6 +50,22 @@ TimeTrace::ScopedTimer::~ScopedTimer()
   ASS(start == _start);
 }
 
+
+TimeTrace::ScopedChangeRoot::ScopedChangeRoot()
+  : ScopedChangeRoot(env.statistics->timeTrace)
+{ }
+
+TimeTrace::ScopedChangeRoot::ScopedChangeRoot(TimeTrace& trace)
+  : _trace(trace)
+{
+  _trace._tmpRoots.push(get<0>(trace._stack.top()));
+}
+
+TimeTrace::ScopedChangeRoot::~ScopedChangeRoot()
+{
+  _trace._tmpRoots.pop();
+}
+
 TimeTrace::Duration TimeTrace::Node::totalDuration() const
 { return iterTraits(measurements.iter())
            .fold(Duration::zero(), 
@@ -59,45 +75,117 @@ const char* TimeTrace::Groups::PREPROCESSING = "preprocessing";
 const char* TimeTrace::Groups::PARSING = "parsing";
 const char* TimeTrace::Groups::LITERAL_ORDER_AFTERCHECK = "literal order aftercheck";
 
-void TimeTrace::Node::print(std::ostream& out, unsigned indent, Option<Node const&> parent)
+
+  
+std::ostream& operator<<(std::ostream& out, TimeTrace::Duration const& self)
+{ 
+  using namespace std::chrono;
+  if(self > 1s) {
+    return out << duration_cast<seconds>(self).count() << " s"; 
+  } else if (self > 1ms) {
+    return out << duration_cast<milliseconds>(self).count() << " ms"; 
+  } else if (self > 1us) {
+    return out << duration_cast<microseconds>(self).count() << " μs"; 
+  } else {
+    return out << duration_cast<nanoseconds>(self).count() << " ns"; 
+  }
+// << duration_cast<microseconds>(total / cnt).count() << " μs"
+}
+
+struct TimeTrace::Node::NodeFormatOpts {
+  Kernel::Stack<const char*>& indent;
+  Lib::Option<Duration> parentDuration;
+  bool last;
+  Lib::Option<unsigned> nameWidth;
+
+  static NodeFormatOpts child(decltype(indent) indent, Node& parent) 
+  { return { .indent = indent, 
+             .parentDuration = some(parent.totalDuration()), 
+             .last = false, 
+             .nameWidth = iterTraits(parent.children.iter())
+               .map([](auto& c) { return unsigned(strlen(c->name)); })
+               .max(),
+           }; }
+
+  static NodeFormatOpts root(decltype(indent) indent) 
+  { return { .indent = indent, 
+             .parentDuration = Option<Duration>(), 
+             .last = true, 
+             .nameWidth = none<unsigned>(),
+           }; }
+};
+
+void TimeTrace::Node::printPretty(std::ostream& out, NodeFormatOpts& opts)
 {
-  for (unsigned i = 0; i < indent; i++) {
-    out << "  ";
+  const char* indentBeforeLast = "  │  ";
+  const char* internalChild    = "  ├──";
+  const char* lastChild        = "  └──";
+  const char* indentAfterLast  = "     ";
+  auto& indent = opts.indent;
+  for (int i = 0; i < int(indent.size()) - 1; i++) {
+    out << indent[i];
+  }
+  if (indent.size() > 0) {
+    out << (opts.last ? lastChild : internalChild);
   }
   auto percent = [](Duration a, Duration b) {
-    auto prec = 100;
-    return double(100 * prec * a / b) / prec;
+    return 100 * a / b;
+    // auto prec = 100;
+    // return double(100 * prec * a / b) / prec;
   };
+  // auto percent = [](Duration a, Duration b) {
+  //   auto prec = 100;
+  //   return double(100 * prec * a / b) / prec;
+  // };
   auto total = totalDuration();
-  if (parent.isSome()) {
-    out << percent(total, parent.unwrap().totalDuration()) << " % ";
-  }
   auto cnt = measurements.size();
-  out << name
-      << " (total: " << std::chrono::duration_cast<std::chrono::milliseconds>(total).count() << " ms"
+  if (opts.parentDuration.isSome()) {
+    out << "[" << setw(2) << percent(total, opts.parentDuration.unwrap()) << "%] ";
+  }
+  out << name;
+  // if (opts.nameWidth.isSome()) {
+  //   for (unsigned i = 0; i < opts.nameWidth.unwrap() - strlen(name); i++) {
+  //     out << " ";
+  //   }
+  // }
+  if (opts.parentDuration.isSome()) {
+    out << " " << percent(total, opts.parentDuration.unwrap()) << " % ";
+  }
+  out << " (total: " << total
       << ", cnt: " << cnt 
-      << ", avg: " << std::chrono::duration_cast<std::chrono::microseconds>(total / cnt).count() << " μs"
+      << ", avg: " <<  total / cnt
       << ")"
       << std::endl;
   std::sort(children.begin(), children.end(), [](auto& l, auto& r) { return l->totalDuration() > r->totalDuration(); });
-  for (auto& c : children) {
-    c->print(out, indent + 1, Option<Node const&>(*this));
+  indent.push(indentBeforeLast);
+  auto copts = NodeFormatOpts::child(indent, *this);
+  for (unsigned i = 0; i < children.size(); i++) {
+    copts.last = i == children.size() - 1;
+    if (copts.last) {
+      indent.top() = indentAfterLast;
+    }
+    children[i]->printPretty(out, copts);
   }
+  indent.pop();
 }
 
-void TimeTrace::print(std::ostream& out)
+void TimeTrace::printPretty(std::ostream& out)
 {
-  out << "Time trace: " << std::endl;
+  out << "===== start of time trace =====" << std::endl;
   auto now = Clock::now();
   for (auto& x : _stack) {
     auto node = get<0>(x);
     auto start = get<1>(x);
     node->measurements.push(now - start);
   }
-  _root.print(out, /* indent */ 0, Option<Node const&>());
+  Stack<const char*> indent;
+  auto opts = Node::NodeFormatOpts::root(indent);
+  auto& root = _tmpRoots.size() == 0 ? _root : *_tmpRoots.top();
+  root.printPretty(out, opts);
   for (auto& x : _stack) {
     get<0>(x)->measurements.pop();
   }
+  out << "===== end of time trace =====" << std::endl;
 }
 
 } // namespace Shell

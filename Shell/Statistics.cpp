@@ -488,7 +488,7 @@ void Statistics::print(ostream& out)
 #undef COND_OUT
 
   if (env.options && env.options->timeStatistics()) {
-    timeTrace.print(out);
+    timeTrace.printPretty(out);
   }
 }
 
