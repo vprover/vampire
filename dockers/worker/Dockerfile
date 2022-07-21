@@ -14,7 +14,6 @@ WORKDIR /
 # Copy vampire
 COPY --from=builder /home/vampire/build/bin/vampire /competition
 COPY --chown=ecs-user /worker /competition
-COPY --chown=ecs-user /updater /competition
 COPY --chown=ecs-user /worker_vampire.sh /competition
 USER ecs-user
 RUN chmod +x /competition/worker

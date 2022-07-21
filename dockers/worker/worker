@@ -6,31 +6,68 @@ import time
 import logging
 import os
 import sys
-
-from arg_satcomp_solver_base.solver.command_line_solver import CommandLineSolver
+import threading
 
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
-def run_updater(path):
-    cmd = os.path.join(path, "updater")
-    stdout = os.path.join(path, "updater_stdout.log")
-    stderr = os.path.join(path, "updater_stderr.log")
-    with open(stdout, "wb") as out, open(stderr, "wb") as err:
-        subprocess.Popen(cmd, stdout=out, stderr=err)
+class WorkerStatusUpdater(threading.Thread):
+    """Thread that runs in the background publishing worker READY status"""
 
-def get_main_ip(self):
-    with open("leader_node_status.json") as f:
+    def __init__(self):
+        threading.Thread.__init__(self)
+        self.logger = logging.getLogger("WorkerStatusUpdater")
+        self.logger.setLevel(logging.DEBUG)
+        self.setDaemon(True)
+        self.logger.info("WorkerStatusUpdater started")
+
+    def check_process_status(self):
+        status = 'READY'
+        output = subprocess.check_output(['ps', 'ax', '-ocomm']).decode("utf-8").strip()
+
+        if 'orted' in output:
+            status = 'BUSY'
+
+        if 'sshd' not in output:
+            status = 'ERROR'
+
+        if 'vampire' in output:
+          logger.info("Vampire detected")
+
+        return status
+
+
+    def write_status(self,status):
+        data = {"status": status, "timestamp": int(time.time())}
+        with open(
+                "/competition/worker_node_status.json",
+                "w+",
+        ) as statusfile:
+            statusfile.write(json.dumps(data))
+
+    def run(self):
+        while True:
+            status = self.check_process_status()
+            self.write_status(status)
+            self.logger.info("Worker updated status")
+            time.sleep(1)
+
+def get_main_ip():
+    with open("/competition/leader_node_status.json") as f:
       status = json.loads(f.read()) 
-      return status.get("ipVer")
+      return status.get("nodeIp")
 
 if __name__ == "__main__":
     logger = logging.getLogger("Worker")
     logger.setLevel(logging.DEBUG)
     logger.info("Worker started") 
 
-    dir = "/competition"
-    run_updater(dir)
+    updater = WorkerStatusUpdater()
+    updater.start()
 
     main_ip = get_main_ip()
     logger.info("Found leader ip to be %s",str(main_ip))
 
+    while True:
+    	os.system("competition/worker_vampire.sh")
+
+    updater.join()
