@@ -62,7 +62,7 @@ Literal* createLiteral(Literal* orig, PolyNf* evaluatedArgs) {
 PolynomialEvaluationRule::Result PolynomialEvaluationRule::simplifyLiteral(Literal* lit) 
 {
   CALL("PolynomialEvaluation::simplifyLiteral");
-  TIME_TRACE("polynomial evaluation simplify litearl");
+  TIME_TRACE("polynomial evaluation");
 
   Stack<PolyNf> terms(lit->numTermArguments());
   auto anyChange = false;

@@ -163,6 +163,7 @@ void PassiveClauseContainer::updateLimits(long long estReachableCnt)
 void ActiveClauseContainer::add(Clause* c)
 {
   CALL("ActiveClauseContainer::add");
+  TIME_TRACE("add clause")
 
   _size++;
 

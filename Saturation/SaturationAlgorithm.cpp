@@ -1189,6 +1189,7 @@ void SaturationAlgorithm::removeSelected(Clause* cl)
 void SaturationAlgorithm::activate(Clause* cl)
 {
   CALL("SaturationAlgorithm::activate");
+      TIME_TRACE("activation")
 
   {
   TIME_TRACE("redundancy check")
@@ -1255,6 +1256,7 @@ void SaturationAlgorithm::activate(Clause* cl)
 	cl->store() != Clause::PASSIVE) {
       continue;
     }
+    TIME_TRACE("clause removal")
     removeActiveOrPassiveClause(cl);
   }
 
