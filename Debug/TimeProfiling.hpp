@@ -25,12 +25,36 @@ namespace Shell {
 
 #if ENABLE_TIME_PROFILING
 
+/**
+ * Enables the runtime of the current block to be measured.
+ * Time traces are stored in a tree starting with a root node that measures the runtime of the whole
+ * probram execution, and subtrees that correspond to calls to TIME_TRACE.
+ * The parameter \param name is a human-readable name to be presented when the time trace is being
+ * outputed.
+ * If you want two blocks to contribute to the same node in the tree, they have to occur in the same
+ * subtree, and have to have the same const char* name. Note that just specifying the same literal
+ * twice does not guarantee that const char* are the same, even though that is the case for some
+ * compilers. Therefore one should use one static const char* for these kind of measurements.
+ *
+ * In addition to the time profiling tree a flattened version of the tree is being outputted at the
+ * end of a program execution, that presents the sum of all the runtimes a node was encountered on
+ * any branch of the tree.
+ */
 #define TIME_TRACE(name)                                                                            \
   Shell::TimeTrace::ScopedTimer CONCAT_IDENTS(__time_trace_, __LINE__) (name);
 
+/**
+ * same as TIME_TRACE, but measures the time it takes for an expression to be evaluated. the
+ * arguments ... are the experssion to be time profiled.
+ */
 #define TIME_TRACE_EXPR(name, ...)                                                                  \
   [&](){ TIME_TRACE(name); return __VA_ARGS__; }()
 
+/**
+ * sets a new node as the root of the time trace. this is useful when launching child process.
+ * The subtree will be set to the original root, when the call of TIME_TRACE_NEW_ROOT goes out of
+ * scope.  Therefore the statistics must be outputted before that to see any effect of this call.
+ */
 #define TIME_TRACE_NEW_ROOT(name)                                                                   \
   TIME_TRACE(name)                                                                                  \
   Shell::TimeTrace::ScopedChangeRoot CONCAT_IDENTS(__change_root_, __LINE__);
@@ -45,7 +69,14 @@ namespace Shell {
 
 
 #if ENABLE_TIME_PROFILING
-class TimeTrace 
+
+
+/**
+ * A class to trace time for particular blocks. this class shall never be used directly,
+ * as it is preprocessed away when the flag ENABLE_TIME_PROFILING is set to false.
+ * Use the macros TIME_TRACE, TIME_TRACE_EXPR, and TIME_TRACE_NEW_ROOT instead.
+ */
+class TimeTrace
 {
   using Clock = std::chrono::high_resolution_clock;
   using Duration = typename Clock::duration;
@@ -54,12 +85,35 @@ class TimeTrace
   TimeTrace(TimeTrace     &&) = delete;
   TimeTrace(TimeTrace const&) = delete;
 
+  class Measurements {
+    Duration _sum;
+    unsigned _cnt;
+
+  public:
+    void add(Duration d) {
+      _cnt += 1;
+      _sum += d;
+    }
+    void remove(Duration d) {
+      _cnt -= 1;
+      _sum -= d;
+    }
+    Duration sum() const { return _sum; }
+    unsigned cnt() const { return _cnt; }
+    Duration avg() const { return sum() / cnt(); }
+    void extend(Measurements other) {
+      _sum += other._sum;
+      _cnt += other._cnt;
+    }
+  };
+
+
   struct Node {
     CLASS_NAME(Node)
     USE_ALLOCATOR(Node)
     const char* name;
     Lib::Stack<unique_ptr<Node>> children;
-    Lib::Stack<Duration> measurements;
+    Measurements measurements;
     Node(const char* name) : name(name), children(), measurements() {}
     struct NodeFormatOpts ;
     void printPrettyRec(std::ostream& out, NodeFormatOpts& opts);
@@ -140,7 +194,7 @@ public:
   { TIME_TRACE(_nameTerm); return _ord.compare(l1,l2); }
 
   // TODO shouldn't this be a function of PrecedenceOrdering?
-  Kernel::Comparison compareFunctors(unsigned fun1, unsigned fun2) const final override 
+  Kernel::Comparison compareFunctors(unsigned fun1, unsigned fun2) const final override
   { ASSERTION_VIOLATION }
 
   void show(ostream& out) const final override

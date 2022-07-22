@@ -54,7 +54,7 @@ TimeTrace::ScopedTimer::~ScopedTimer()
     auto cur = _trace._stack.pop();
     auto node = get<0>(cur);
     auto start = get<1>(cur);
-    node->measurements.push(now  - start);
+    node->measurements.add(now  - start);
     ASS_EQ(node->name, _name);
     ASS(start == _start);
   }
@@ -81,9 +81,7 @@ TimeTrace::ScopedChangeRoot::~ScopedChangeRoot()
 }
 
 TimeTrace::Duration TimeTrace::Node::totalDuration() const
-{ return iterTraits(measurements.iter())
-           .fold(Duration::zero(), 
-                 [](Duration l, Duration r){ return l + r; }); }
+{ return measurements.sum(); }
 
 const char* TimeTrace::Groups::PREPROCESSING = "preprocessing";
 const char* TimeTrace::Groups::PARSING = "parsing";
@@ -154,7 +152,7 @@ void TimeTrace::Node::printPrettyRec(std::ostream& out, NodeFormatOpts& opts)
   //   return double(100 * prec * a / b) / prec;
   // };
   auto total = totalDuration();
-  auto cnt = measurements.size();
+  auto cnt = measurements.cnt();
   if (opts.parentDuration.isSome()) {
     out << "[" << setw(2) << percent(total, opts.parentDuration.unwrap()) << "%] ";
   }
@@ -208,9 +206,7 @@ void TimeTrace::Node::flatten_(FlattenState& s)
 
   if (!iterTraits(s.recPath.iter()).any([&](auto& x) { return x->name == name; })) {
     // prevent double counting time
-    for (auto d : measurements) {
-      node->measurements.push(d);
-    }
+    node->measurements.extend(measurements);
   }
 
   s.recPath.push(this);
@@ -227,7 +223,7 @@ void TimeTrace::printPretty(std::ostream& out)
   for (auto& x : _stack) {
     auto node = get<0>(x);
     auto start = get<1>(x);
-    node->measurements.push(now - start);
+    node->measurements.add(now - start);
   }
 
   auto& root = _tmpRoots.size() == 0 ? _root : *_tmpRoots.top();
@@ -255,9 +251,10 @@ void TimeTrace::printPretty(std::ostream& out)
 
 
   for (auto& x : _stack) {
-    get<0>(x)->measurements.pop();
+    auto node = get<0>(x);
+    auto start = get<1>(x);
+    node->measurements.remove(now - start);
   }
-
 }
 
 } // namespace Shell
