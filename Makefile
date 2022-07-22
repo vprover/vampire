@@ -138,7 +138,7 @@ endif
 ################################################################
 
 CXX = g++
-CXXFLAGS = $(XFLAGS) -Wall -std=c++14  $(INCLUDES) # -Wno-unknown-warning-option for clang
+CXXFLAGS = $(XFLAGS) -Wall -fno-threadsafe-statics -std=c++14  $(INCLUDES) # -Wno-unknown-warning-option for clang
 
 CC = gcc 
 CCFLAGS = -Wall -O3 -DNDBLSCR -DNLGLOG -DNDEBUG -DNCHKSOL -DNLGLPICOSAT 
@@ -312,8 +312,7 @@ VINF_OBJ=Inferences/BackwardDemodulation.o\
          Inferences/InterpretedEvaluation.o\
          Inferences/TheoryInstAndSimp.o
 
-VSAT_OBJ=SAT/DIMACS.o\
-         SAT/MinimizingSolver.o\
+VSAT_OBJ=SAT/MinimizingSolver.o\
          SAT/SAT2FO.o\
          SAT/SATClause.o\
          SAT/SATInference.o\
@@ -352,7 +351,6 @@ VS_OBJ = Shell/AnswerExtractor.o\
          Shell/FunctionDefinition.o\
          Shell/GeneralSplitting.o\
          Shell/GoalGuessing.o\
-         Shell/Grounding.o\
          Shell/InequalitySplitting.o\
          Shell/InterpolantMinimizer.o\
          Shell/Interpolants.o\
@@ -403,7 +401,6 @@ DP_OBJ = DP/ShortConflictMetaDP.o\
 
 CASC_OBJ = CASC/PortfolioMode.o\
            CASC/Schedules.o\
-	   CASC/ScheduleExecutor.o\
            CASC/CLTBMode.o\
            CASC/CLTBModeLearning.o
 
@@ -508,7 +505,7 @@ all: #default make disabled
 ################################################################
 # automated generation of Vampire revision information
 
-VERSION_NUMBER = 4.6.1
+VERSION_NUMBER = 4.7
 
 # We extract the revision number from svn every time the svn meta-data are modified
 # (that's why there is the dependency on .svn/entries) 

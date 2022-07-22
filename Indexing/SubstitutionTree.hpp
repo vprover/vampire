@@ -155,7 +155,6 @@ public:
 
 
   typedef VirtualIterator<Node**> NodeIterator;
-  typedef List<Node*> NodeList;
   class IntermediateNode;
     
     //We can remove this class once we deal with UWA uniformly for

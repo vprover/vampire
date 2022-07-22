@@ -27,6 +27,7 @@
 #include "Kernel/Signature.hpp"
 #include "Kernel/Clause.hpp"
 #include "Kernel/Inference.hpp"
+#include "Kernel/InferenceStore.hpp"
 #include "Kernel/RCClauseStack.hpp"
 #include "Kernel/TermIterators.hpp"
 #include "Kernel/Formula.hpp"

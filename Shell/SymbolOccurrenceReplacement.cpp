@@ -19,6 +19,8 @@ using namespace Shell;
 
 Term* SymbolOccurrenceReplacement::process(Term* term) {
   CALL("FOOLElimination::SymbolOccurrenceReplacement::process(Term*)");
+  ASS(!term->isSort());
+
   if (term->isSpecial()) {
     Term::SpecialTermData* sd = term->getSpecialData();
     switch (term->functor()) {
@@ -79,7 +81,11 @@ Term* SymbolOccurrenceReplacement::process(Term* term) {
     }
   } else {
     while (!arg->isEmpty()) {
-      arguments.push(process(*arg));
+      if(arg->isVar() || arg->term()->isSort()){
+        arguments.push(*arg);
+      } else {
+        arguments.push(process(*arg));        
+      }
       arg = arg->next();
     }  
   }
@@ -122,7 +128,11 @@ Formula* SymbolOccurrenceReplacement::process(Formula* formula) {
         }
       } else {
         while (!arg->isEmpty()) {
-          arguments.push(process(*arg));
+          if(arg->isVar() || arg->term()->isSort()){
+            arguments.push(*arg);
+          } else {
+            arguments.push(process(*arg));
+          }
           arg = arg->next();
         }    
       }

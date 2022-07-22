@@ -23,6 +23,7 @@
 #include "Kernel/Unit.hpp"
 #include "Kernel/Term.hpp"
 #include "Kernel/Clause.hpp"
+#include "Kernel/Signature.hpp"
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/TermTransformer.hpp"
 

@@ -16,6 +16,7 @@
 
 #include "Indexing/IndexManager.hpp"
 
+#include "Lib/BitUtils.hpp"
 #include "Lib/DHMap.hpp"
 #include "Lib/IntUnionFind.hpp"
 #include "Lib/Metaiterators.hpp"
@@ -214,13 +215,12 @@ bool ContextSubsetReplacement::hasNext()
   _ready = true;
   // Increment _iteration, since it either is 0, or was already used.
   _iteration++;
-  // Note: __builtin_popcount() is a GCC built-in function.
-  unsigned setBits = __builtin_popcount(_iteration);
+  unsigned setBits = BitUtils::oneBits(_iteration);
   // Skip this iteration if not all bits are set, but more than maxSubset are set.
   while (hasNextInner() &&
          ((_maxSubsetSize > 0) && (setBits < _occurrences) && (setBits > _maxSubsetSize))) {
     _iteration++;
-    setBits = __builtin_popcount(_iteration);
+    setBits = BitUtils::oneBits(_iteration);
   }
   if (!hasNextInner() ||
       ((_occurrences > _maxOccurrences) && (_iteration > 1))) {
