@@ -706,7 +706,7 @@ PrecedenceOrdering::PrecedenceOrdering(const DArray<int>& funcPrec,
     _predicatePrecedences(predPrec),
     _functionPrecedences(funcPrec),
     _typeConPrecedences(typeConPrec),
-    _reverseLCM(reverseLCM)
+    _reverseLCM(reverseLCM),
     _qkboPrecedence(qkboPrecedence)
 {
   CALL("PrecedenceOrdering::PrecedenceOrdering(const DArray<int>&, const DArray<int>&, const DArray<int>&, bool)");

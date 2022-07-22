@@ -14,3 +14,34 @@
 #else
 #include "Theory_int.cpp"
 #endif
+
+
+/**
+ * Return true iff @b t is an interpreted function interpreted
+ * as @b itp
+ */
+bool Theory::isInterpretedFunction(unsigned f, Interpretation itp)
+{
+  CALL("Theory::isInterpretedFunction(unsigned,Interpretation)");
+  return isInterpretedFunction(f) && interpretFunction(f)==itp;
+}
+/**
+ * Return true iff @b t is an interpreted function interpreted
+ * as @b itp
+ */
+bool Theory::isInterpretedFunction(Term* t, Interpretation itp)
+{
+  CALL("Theory::isInterpretedFunction(Term*,Interpretation)");
+
+  return isInterpretedFunction(t->functor(), itp);
+}
+
+/**
+ * Return true iff @b t is an interpreted function interpreted
+ * as @b itp
+ */
+bool Theory::isInterpretedFunction(TermList t, Interpretation itp)
+{
+  CALL("Theory::isInterpretedFunction(TermList,Interpretation)");
+  return t.isTerm() && isInterpretedFunction(t.term(), itp);
+}

@@ -1654,30 +1654,6 @@ bool Theory::isInterpretedFunction(TermList t)
   return t.isTerm() && isInterpretedFunction(t.term());
 }
 
-/**
- * Return true iff @b t is an interpreted function interpreted
- * as @b itp
- */
-bool Theory::isInterpretedFunction(Term* t, Interpretation itp)
-{
-  CALL("Theory::isInterpretedFunction(Term*,Interpretation)");
-
-  return isInterpretedFunction(t->functor()) &&
-      interpretFunction(t)==itp;
-}
-
-/**
- * Return true iff @b t is an interpreted function interpreted
- * as @b itp
- */
-bool Theory::isInterpretedFunction(TermList t, Interpretation itp)
-{
-  CALL("Theory::isInterpretedFunction(TermList,Interpretation)");
-
-  return t.isTerm() && isInterpretedFunction(t.term(), itp);
-}
-
-
 Interpretation Theory::interpretFunction(unsigned func)
 {
   CALL("Theory::interpretFunction");

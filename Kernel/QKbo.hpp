@@ -93,8 +93,6 @@ public:
 
   void show(ostream& out) const final override;
 
-  Comparison compareFunctors(unsigned fun1, unsigned fun2) const override { ASSERTION_VIOLATION }
-
   void setState(std::shared_ptr<LascaState> s) { _shared = std::move(s); }
 
 private:

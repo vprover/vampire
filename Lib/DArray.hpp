@@ -332,22 +332,10 @@ public:
       }
     }
   }
+
   /**
    * Creates an array initialized with all the elements of the iterator it.
    */
-  template<class It>
-  static DArray fromIterator(It it) {
-    CALL("DArray::fromIterator");
-
-    DArray out;
-    if (it.knowsSize()) {
-      out.initFromIterator(it, it.size());
-    } else {
-      out.initFromIterator(it);
-    }
-    return out;
-  }
-
   template<class It>
   static DArray fromIterator(It it, size_t count=0) {
     CALL("DArray::fromIterator");

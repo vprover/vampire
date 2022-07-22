@@ -208,12 +208,11 @@ public:
 
   static DArray<int> testLevels();
 
-  static DArray<int> funcPrecFromOpts(Problem& prb, const Options& opt);
-  static DArray<int> predPrecFromOpts(Problem& prb, const Options& opt);
-
 #ifdef VDEBUG
   bool usesQkboPrecedence() const { return _qkboPrecedence; }
 #endif
+  static DArray<int> funcPrecFromOpts(Problem& prb, const Options& opt);
+  static DArray<int> predPrecFromOpts(Problem& prb, const Options& opt);
 
 protected:
   // l1 and l2 are not equalities and have the same predicate
@@ -226,8 +225,6 @@ protected:
 
 
   static DArray<int> typeConPrecFromOpts(Problem& prb, const Options& opt);
-  static DArray<int> funcPrecFromOpts(Problem& prb, const Options& opt);
-  static DArray<int> predPrecFromOpts(Problem& prb, const Options& opt);
   static DArray<int> predLevelsFromOptsAndPrec(Problem& prb, const Options& opt, const DArray<int>& predicatePrecedences);
 
   Result compareFunctionPrecedences(unsigned fun1, unsigned fun2) const;
