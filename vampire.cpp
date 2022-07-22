@@ -705,6 +705,9 @@ int main(int argc, char* argv[])
     // read the command line and interpret it
     Shell::CommandLine cl(argc, argv);
     cl.interpret(*env.options);
+#if ENABLE_TIME_PROFILING
+    env.statistics->timeTrace.setEnabled(env.options->timeStatistics());
+#endif
 
     // If any of these options are set then we just need to output and exit
     if (env.options->showHelp() ||

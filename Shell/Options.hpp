@@ -2292,7 +2292,9 @@ public:
   //void setTheoryAxioms(bool newValue) { _theoryAxioms = newValue; }
   Condensation condensation() const { return _condensation.actualValue; }
   bool generalSplitting() const { return _generalSplitting.actualValue; }
+#if ENABLE_TIME_PROFILING
   bool timeStatistics() const { return _timeStatistics.actualValue; }
+#endif // ENABLE_TIME_PROFILING
   bool splitting() const { return _splitting.actualValue; }
   void setSplitting(bool value){ _splitting.actualValue=value; }
   bool nonliteralsInClauseWeight() const { return _nonliteralsInClauseWeight.actualValue; }

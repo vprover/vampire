@@ -12,7 +12,7 @@ using namespace Lib;
 TimeTrace::TimeTrace() 
   : _root("[root]")
   , _stack({ {&_root, Clock::now(), }, }) 
-  , _enabled(env.options->timeStatistics())
+  , _enabled(false)
 {  }
 
 TimeTrace::ScopedTimer::ScopedTimer(const char* name)
@@ -43,6 +43,9 @@ TimeTrace::ScopedTimer::ScopedTimer(TimeTrace& trace, const char* name)
     _trace._stack.push(std::make_pair(node, start));
   }
 }
+
+void TimeTrace::setEnabled(bool v) 
+{ _enabled = v; }
 
 TimeTrace::ScopedTimer::~ScopedTimer()
 {
