@@ -16,7 +16,6 @@
 
 #include "Debug/RuntimeStatistics.hpp"
 
-#include "Lib/BitUtils.hpp"
 #include "Lib/Comparison.hpp"
 #include "Lib/Int.hpp"
 #include "Lib/Portability.hpp"
@@ -246,8 +245,7 @@ bool CodeTree::ILStruct::equalsForOpMatching(const ILStruct& o) const
   if(varCnt!=o.varCnt) {
     return false;
   }
-  size_t gvnSize=sizeof(unsigned)*varCnt;
-  return BitUtils::memEqual(globalVarNumbers, o.globalVarNumbers, gvnSize);
+  return std::memcmp(globalVarNumbers, o.globalVarNumbers, varCnt * sizeof(unsigned)) == 0;
 }
 
 void CodeTree::ILStruct::ensureFreshness(unsigned globalTimestamp)

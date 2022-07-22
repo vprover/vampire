@@ -17,7 +17,7 @@
 #define __TriangularArray__
 
 #include "Allocator.hpp"
-#include "BitUtils.hpp"
+#include <cstring>
 
 namespace Lib {
 
@@ -88,7 +88,7 @@ public:
 
   void zeroAll()
   {
-    BitUtils::zeroMemory(_data, _capacity*sizeof(T));
+    std::memset(_data, 0, _capacity * sizeof(T));
   }
 
 private:

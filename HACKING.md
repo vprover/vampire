@@ -36,6 +36,7 @@ In a pinch, `git grep PAT` works OK too.
 * Some amount of unused/dead code. If it looks like nonsense, doesn't compile, or isn't reachable, it might well just not be used any more. Pull requests appreciated.
 * A (possibly slightly outdated) explanation for the message [Attempted to use global new operator, thus bypassing Allocator!](https://github.com/vprover/vampire/wiki/Attempted-to-use-global-new-operator,-thus-bypassing-Allocator!)
 * for historians: [Yes, we had (and still have) a wiki on our github page](https://github.com/vprover/vampire/wiki) - maybe miscellaneous things can go here, I don't think it's completely historic just yet! - Michael
+* Vampire assumes that it runs in a single-threaded (but not necessarily single-process) context. Some constructs take advantage of this. In particular we disable C++11 thread-safe statics.
 * TODO more tips
 
 ## Building with CMake
