@@ -92,11 +92,11 @@ const char* TimeTrace::Groups::LITERAL_ORDER_AFTERCHECK = "literal order afterch
 std::ostream& operator<<(std::ostream& out, TimeTrace::Duration const& self)
 { 
   using namespace std::chrono;
-  if(self > 1s) {
+  if(self >= 10s) {
     return out << duration_cast<seconds>(self).count() << " s"; 
-  } else if (self > 1ms) {
+  } else if (self >= 10ms) {
     return out << duration_cast<milliseconds>(self).count() << " ms"; 
-  } else if (self > 1us) {
+  } else if (self >= 10us) {
     return out << duration_cast<microseconds>(self).count() << " μs"; 
   } else {
     return out << duration_cast<nanoseconds>(self).count() << " ns"; 
@@ -108,21 +108,26 @@ struct TimeTrace::Node::NodeFormatOpts {
   Kernel::Stack<const char*>& indent;
   Lib::Option<Duration> parentDuration;
   bool last;
+  bool align;
   Lib::Option<unsigned> nameWidth;
 
-  static NodeFormatOpts child(decltype(indent) indent, Node& parent) 
-  { return { .indent = indent, 
+  NodeFormatOpts child(Node& parent) 
+  { return { .indent = this->indent, 
              .parentDuration = some(parent.totalDuration()), 
              .last = false, 
-             .nameWidth = iterTraits(parent.children.iter())
-               .map([](auto& c) { return unsigned(strlen(c->name)); })
-               .max(),
-           }; }
+             .align = this->align,
+             .nameWidth = align 
+               ? iterTraits(parent.children.iter())
+                   .map([](auto& c) { return unsigned(strlen(c->name)); })
+                   .max()
+               : none<unsigned>(),
+               }; }
 
   static NodeFormatOpts root(decltype(indent) indent) 
   { return { .indent = indent, 
              .parentDuration = Option<Duration>(), 
              .last = true, 
+             .align = false,
              .nameWidth = none<unsigned>(),
            }; }
 };
@@ -132,8 +137,20 @@ static constexpr const char* internalChild    = "  ├──";
 static constexpr const char* lastChild        = "  └──";
 static constexpr const char* indentAfterLast  = "     ";
 
+struct MaybeSetw {
+  bool enabled;
+  int width;
+  friend std::ostream& operator<<(std::ostream& out, MaybeSetw const& self)
+  { 
+    if (self.enabled) return out << setw(self.width);
+    else return out;
+  }
+};
+
 void TimeTrace::Node::printPrettyRec(std::ostream& out, NodeFormatOpts& opts)
 {
+
+  auto msetw = [&](int i){ return MaybeSetw { opts.align, i }; };
 
   auto& indent = opts.indent;
   for (int i = 0; i < int(indent.size()) - 1; i++) {
@@ -147,27 +164,24 @@ void TimeTrace::Node::printPrettyRec(std::ostream& out, NodeFormatOpts& opts)
     // auto prec = 100;
     // return double(100 * prec * a / b) / prec;
   };
-  // auto percent = [](Duration a, Duration b) {
-  //   auto prec = 100;
-  //   return double(100 * prec * a / b) / prec;
-  // };
   auto total = totalDuration();
   auto cnt = measurements.cnt();
   if (opts.parentDuration.isSome()) {
     out << "[" << setw(2) << percent(total, opts.parentDuration.unwrap()) << "%] ";
   }
-  out << name;
-  if (opts.parentDuration.isSome()) {
-    out << " " << percent(total, opts.parentDuration.unwrap()) << " % ";
+  BYPASSING_ALLOCATOR
+  if (opts.nameWidth.isSome()) {
+    out << msetw(opts.nameWidth.unwrap()) << left;
   }
-  out << " (total: " << total
-      << ", cnt: " << cnt 
-      << ", avg: " <<  total / cnt
-      << ")"
-      << std::endl;
+  out << name << right;
+
+  out << " (total: "<< msetw(4) << total
+      << ", avg: "  << msetw(4) << total / cnt
+      << ", cnt: "  << msetw(6) << cnt
+      << ")" << std::endl;
   std::sort(children.begin(), children.end(), [](auto& l, auto& r) { return l->totalDuration() > r->totalDuration(); });
   indent.push(indentBeforeLast);
-  auto copts = NodeFormatOpts::child(indent, *this);
+  auto copts = opts.child(*this);
   for (unsigned i = 0; i < children.size(); i++) {
     copts.last = i == children.size() - 1;
     if (copts.last) {
@@ -196,24 +210,27 @@ TimeTrace::Node TimeTrace::Node::flatten()
 void TimeTrace::Node::flatten_(FlattenState& s)
 {
 
+  for (auto& c : children) {
+
   auto node_ = iterTraits(s.nodes.iter())
-    .find([&](auto& n) { return n->name == name; });
+    .find([&](auto& n) { return n->name == c->name; });
 
   if (node_.isNone()) {
-    s.nodes.push(make_unique<Node>(name));
+    s.nodes.push(make_unique<Node>(c->name));
   }
   auto& node = node_.isSome() ? node_.unwrap() : s.nodes.top();
 
-  if (!iterTraits(s.recPath.iter()).any([&](auto& x) { return x->name == name; })) {
+  if (!iterTraits(s.recPath.iter()).any([&](auto& x) { return x->name == c->name; })) {
     // prevent double counting time
-    node->measurements.extend(measurements);
+    node->measurements.extend(c->measurements);
   }
 
   s.recPath.push(this);
-  for (auto& c : children) {
+  // for (auto& c : children) {
     c->flatten_(s);
-  }
+  // }
   s.recPath.pop();
+  }
 }
 
 void TimeTrace::printPretty(std::ostream& out)
@@ -231,22 +248,15 @@ void TimeTrace::printPretty(std::ostream& out)
   auto rootOpts = Node::NodeFormatOpts::root(indent);
 
   out << "===== start of time trace =====" << std::endl;
-  {
-    Stack<const char*> indent;
-    auto rootOpts = Node::NodeFormatOpts::root(indent);
-    root.printPrettyRec(out, rootOpts);
-  }
+  rootOpts.align = false;
+  root.printPrettyRec(out, rootOpts);
   out << "===== end of time trace =====" << std::endl;
 
   out <<                                                  std::endl;
 
   out << "===== start of flattened time profile =====" << std::endl;
-  {
-    Stack<const char*> indent;
-    auto rootOpts = Node::NodeFormatOpts::root(indent);
-    auto flat = root.flatten();
-    flat.printPrettyRec(out, rootOpts);
-  }
+  rootOpts.align = true;
+  root.flatten().printPrettyRec(out, rootOpts);
   out << "===== end of flattened time profile =====" << std::endl;
 
 

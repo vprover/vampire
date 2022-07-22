@@ -39,6 +39,8 @@ namespace Shell {
  * In addition to the time profiling tree a flattened version of the tree is being outputted at the
  * end of a program execution, that presents the sum of all the runtimes a node was encountered on
  * any branch of the tree.
+ *
+ * ```
  */
 #define TIME_TRACE(name)                                                                            \
   Shell::TimeTrace::ScopedTimer CONCAT_IDENTS(__time_trace_, __LINE__) (name);
