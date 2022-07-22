@@ -348,6 +348,21 @@ public:
     return out;
   }
 
+  template<class It>
+  static DArray fromIterator(It it, size_t count=0) {
+    CALL("DArray::fromIterator");
+
+    DArray out;
+    if (count != 0) {
+      out.initFromIterator(it, count);
+    } else if (it.knowsSize()) {
+      out.initFromIterator(it, it.size());
+    } else {
+      out.initFromIterator(it);
+    }
+    return out;
+  }
+
 
   /**
    * Sort first @b count items using @b Comparator::compare

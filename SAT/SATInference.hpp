@@ -77,7 +77,6 @@ public:
   static void collectPropAxioms(SATClause* cl, SATClauseStack& res);
 
   static UnitList* getFOPremises(SATClause* cl);
-  static SATInference* copy(const SATInference* inf);
 };
 
 class PropInference : public SATInference

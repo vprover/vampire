@@ -39,6 +39,8 @@
 #include "Lib/Coproduct.hpp"
 #include "Kernel/Theory.hpp"
 
+#include "Kernel/Signature.hpp"
+
 #define __EXCEPTIONS 1
 #include "z3++.h"
 #include "z3_api.h"

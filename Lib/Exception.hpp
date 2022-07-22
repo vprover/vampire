@@ -18,7 +18,6 @@
 
 #include <iostream>
 
-#include "LastCopyWatcher.hpp"
 #include "VString.hpp"
 
 namespace Lib {
@@ -62,13 +61,9 @@ class Exception : public ThrowableBase
   }
 public:
   /** Create an exception with a given error message */
-  explicit Exception (const char* msg)
-    : _message(msg)
-  { s_exceptionCounter++; }
+  explicit Exception (const char* msg) : _message(msg) {}
   Exception (const char* msg, int line);
-  explicit Exception (const vstring msg)
-    : _message(msg)
-  { s_exceptionCounter++; }
+  explicit Exception (const vstring msg) : _message(msg) {}
 
   template<class... Msg>
   explicit Exception(Msg... msg) 
@@ -76,29 +71,15 @@ public:
   { }
 
   virtual void cry (ostream&) const;
-  virtual ~Exception()
-  {
-    if(_lcw.isLast()) {
-      s_exceptionCounter--;
-      ASS_GE(s_exceptionCounter,0);
-    }
-  }
+  virtual ~Exception() {}
 
-  static bool isThrown() { return s_exceptionCounter!=0; }
-  static bool isThrownDuringExceptionHandling() { return s_exceptionCounter>1; }
   const vstring& msg() { return _message; }
 protected:
   /** Default constructor, required for some subclasses, made protected
    * so that it cannot be called directly */
-  Exception () { s_exceptionCounter++; }
+  Exception () {}
   /** The error message */
   vstring _message;
-
-  LastCopyWatcher _lcw;
-
-  /** Number of currently existing Exception objects
-   * (not counting copies of the same object) */
-  static int s_exceptionCounter;
 
   friend std::ostream& operator<<(std::ostream& out, Exception const& self)
   { self.cry(out); return out; }

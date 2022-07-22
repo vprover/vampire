@@ -22,20 +22,11 @@
 /////////////////////////////// HELPER FUNCTIONS /////////////////////////////// 
 //////////////////////////////////////////////////////////////////////////////// 
 
-inline DArray<int> funcPrec() {
-  unsigned num = env.signature->functions();
-  DArray<int> out(num);
-  out.initFromIterator(getRangeIterator(0u, num));
+DArray<int> predLevels() {
+  DArray<int> out(env.signature->predicates());
+  out.init(out.size(), 1);
   return out;
 }
-
-inline DArray<int> predPrec() {
-  unsigned num = env.signature->predicates();
-  DArray<int> out(num);
-  out.initFromIterator(getRangeIterator(0u, num));
-  return out;
-}
-
 using namespace Kernel;
 
 template<class SigTraits>
@@ -73,8 +64,9 @@ inline KBO kbo(unsigned introducedSymbolWeight,
                preds,
                env.signature->predicates()), 
 #endif
-             funcPrec(), 
-             predPrec(), 
+             DArray<int>::fromIterator(getRangeIterator(0, (int) env.signature->functions())),
+             DArray<int>::fromIterator(getRangeIterator(0, (int) env.signature->typeCons())),
+             DArray<int>::fromIterator(getRangeIterator(0, (int) env.signature->predicates())),
              PrecedenceOrdering::testLevels(),
              /*revereseLCM*/ false);
 }

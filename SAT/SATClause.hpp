@@ -20,15 +20,9 @@
 
 #include "Forwards.hpp"
 
-#include "Lib/Allocator.hpp"
-#include "Lib/InverseLookup.hpp"
-#include "Lib/List.hpp"
 #include "Lib/Metaiterators.hpp"
 #include "Lib/Reflection.hpp"
-#include "Lib/VirtualIterator.hpp"
 #include "Lib/VString.hpp"
-
-#include "Kernel/InferenceStore.hpp"
 
 #include "SATLiteral.hpp"
 
@@ -51,10 +45,8 @@ public:
 
   DECL_ITERATOR_TYPE(Iterator);
 
-  typedef double ActivityType;
-
   /** New clause */
-  SATClause(unsigned length,bool kept=true);
+  SATClause(unsigned length);
   
   SATInference* inference() const { return _inference; }
   void setInference(SATInference* val);
@@ -75,64 +67,26 @@ public:
   /** Alternative name for length to conform with other containers */
   inline unsigned size() const { return _length; }
 
-  inline bool kept() const { return _kept; }
-  inline void makeKept() { _kept=true; }
-  inline void setKept(bool kept) { _kept=kept; }
-
   /** Return a pointer to the array of literals. */
   inline SATLiteral* literals() { return _literals; }
 
   /** True if the clause is empty */
   inline bool isEmpty() const { return _length == 0; }
 
-  ActivityType& activity() { return _activity; }
-
   void sort();
 
   void destroy();
 
   vstring toString() const;
-  vstring toDIMACSString() const;
-
-  bool hasUniqueVariables() const;
 
   static SATClause* removeDuplicateLiterals(SATClause *cl);
 
-  /**
-   * A numbering of literals for conversion of ground Clause objects into
-   * SATClause objects.
-   *
-   * Positive literals are assigned positive numbers, and
-   * negative ones assigned negative numbers.
-   *
-   * For each negative literal numbered as @b -n, the map must contain
-   * also its positive counterpart numbered as @b n.
-   */
-  struct NamingContext {
-    NamingContext() : nextVar(1) {}
-
-    DHMap<Literal*, int> map;
-    unsigned nextVar;
-  };
-  static SATClauseList* fromFOClauses(ClauseIterator clauses);
-  static SATClauseList* fromFOClauses(NamingContext& context, ClauseIterator clauses);
-  static SATClause* fromFOClause(NamingContext& context, Clause* clause);
-
   static SATClause* fromStack(SATLiteralStack& stack);
 
-  static SATClause* copy(SATClause* cl);
-
-protected:
-  static SATLiteral litToSAT(NamingContext& context, Literal* lit);
-
-  ActivityType _activity;
-
+private:
   /** number of literals */
-  unsigned _length : 30;
-
-  unsigned _kept : 1;
+  unsigned _length : 31;
   unsigned _nonDestroyable : 1;
-//  unsigned _genCounter;
 
   SATInference* _inference;
 

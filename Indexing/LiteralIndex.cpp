@@ -90,7 +90,10 @@ void GeneratingLiteralIndex::handleClause(Clause* c, bool adding)
 
   int selCnt=c->numSelected();
   for(int i=0; i<selCnt; i++) {
-    handleLiteral((*c)[i], c, adding);
+    Literal* lit = (*c)[i];
+    if (!lit->isEquality()) {
+      handleLiteral(lit, c, adding);
+    }
   }
 }
 

@@ -532,6 +532,7 @@ public:
   bool isInterpretedFunction(unsigned func);
   bool isInterpretedFunction(Term* t);
   bool isInterpretedFunction(TermList t);
+  bool isInterpretedFunction(unsigned func, Interpretation itp);
   bool isInterpretedFunction(Term* t, Interpretation itp);
   bool isInterpretedFunction(TermList t, Interpretation itp);
 

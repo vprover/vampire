@@ -102,7 +102,6 @@ void Options::init()
                                         "casc_ltb",
                                         "clausify",
                                         "consequence_elimination",
-                                        "grounding",
                                         "model_check",
                                         "output",
                                         "portfolio",
@@ -120,7 +119,7 @@ void Options::init()
     "  -vampire: the standard mode of operation for first-order theorem proving\n"
     "  -portfolio: a portfolio mode running a specified schedule (see schedule)\n"
     "  -casc, casc_sat, smtcomp - like portfolio mode, with competition specific\n     presets for schedule, etc.\n"
-    "  -preprocess,axiom_selection,clausify,grounding: modes for producing output\n      for other solvers.\n"
+    "  -preprocess,axiom_selection,clausify: modes for producing output\n      for other solvers.\n"
     "  -tpreprocess,tclausify: output modes for theory input (clauses are quantified\n      with sort information).\n"
     "  -output,profile: output information about the problem\n"
     "Some modes are not currently maintained (get in touch if interested):\n"
@@ -170,7 +169,7 @@ void Options::init()
     _lookup.insert(&_multicore);
     _multicore.reliesOn(UsingPortfolioTechnology());
 
-    _slowness = FloatOptionValue("slowness","",1.3);
+    _slowness = FloatOptionValue("slowness","",1.0);
     _slowness.description = "The factor by which is multiplied the time limit of each configuration in casc/casc_sat/smtcomp/portfolio mode";
     _lookup.insert(&_slowness);
     _slowness.onlyUsefulWith(UsingPortfolioTechnology());
@@ -832,7 +831,8 @@ void Options::init()
                                                      FMBWidgetOrders::FUNCTION_FIRST,
                                                      {"function_first","argument_first","diagonal"});
     _fmbSymmetryWidgetOrders.description = "The order of constructed principal terms used in symmetry avoidance. See Symmetry Avoidance in MACE-Style Finite Model Finding.";
-    _lookup.insert(&_fmbSymmetryWidgetOrders);
+    // TODO: put back only when debugged (see https://github.com/vprover/vampire/issues/393)
+    // _lookup.insert(&_fmbSymmetryWidgetOrders);
     _fmbSymmetryWidgetOrders.onlyUsefulWith(_saturationAlgorithm.is(equal(SaturationAlgorithm::FINITE_MODEL_BUILDING)));
     _fmbSymmetryWidgetOrders.tag(OptionTag::FMB);
 
@@ -1509,6 +1509,9 @@ void Options::init()
     _binaryResolution.setRandomChoices(And(isRandSat(),saNotInstGen(),Or(hasEquality(),hasCat(Property::HNE))),{"on"});
     _binaryResolution.setRandomChoices({"on","off"});
 
+    _superposition = BoolOptionValue("superposition","sup",true);
+    _superposition.description= "Control superposition. Turning off this core inference leads to an incomplete calculus on equational problems.";
+    _lookup.insert(&_superposition);
 
     _condensation = ChoiceOptionValue<Condensation>("condensation","cond",Condensation::OFF,{"fast","off","on"});
     _condensation.description=
@@ -1856,14 +1859,6 @@ void Options::init()
     // potentially could be useful for FOOL, so am not adding the HOL constraint    
     _booleanEqTrick.tag(OptionTag::HIGHER_ORDER);
     noZ3(_booleanEqTrick);
-
-    _superposition = BoolOptionValue("superposition_hol","suph",true);
-    _superposition.description=
-    "Control superposition. Only used in higher-order strategies";
-    _lookup.insert(&_superposition);
-    _superposition.addProblemConstraint(hasHigherOrder());
-    _superposition.tag(OptionTag::HIGHER_ORDER);
-    noZ3(_superposition);
 
     _casesSimp = BoolOptionValue("cases_simp","cs",false);
     _casesSimp.description=
@@ -2326,7 +2321,7 @@ void Options::init()
     _kboMaxZero = BoolOptionValue("kbo_max_zero","kmz",false);
     _kboMaxZero.setExperimental();
     _kboMaxZero.onlyUsefulWith(_termOrdering.is(equal(TermOrdering::KBO)));
-    _kboMaxZero.description="Modifies any kbo_weight_scheme by setting (for each sort) a maximal (by the precedence) function symbol to have weight 0.";
+    _kboMaxZero.description="Modifies any kbo_weight_scheme by setting the maximal (by the precedence) function symbol to have weight 0.";
     _lookup.insert(&_kboMaxZero);
 
     _kboAdmissabilityCheck = ChoiceOptionValue<KboAdmissibilityCheck>(
@@ -2366,6 +2361,11 @@ void Options::init()
     _functionWeights.setExperimental();
     _functionWeights.onlyUsefulWith(_termOrdering.is(equal(TermOrdering::KBO)));
     _lookup.insert(&_functionWeights);
+
+    _typeConPrecedence = StringOptionValue("type_con_precendence","tcp","");
+    _typeConPrecedence.description = "A name of a file with an explicit user specified precedence on type constructor symbols.";
+    _typeConPrecedence.setExperimental();
+    _lookup.insert(&_typeConPrecedence);
 
     _functionPrecedence = StringOptionValue("function_precendence","fp","");
     _functionPrecedence.description = "A name of a file with an explicit user specified precedence on function symbols.";
