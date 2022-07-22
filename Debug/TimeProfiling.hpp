@@ -195,10 +195,6 @@ public:
   Result compare(Kernel::TermList l1, Kernel::TermList l2) const final override
   { TIME_TRACE(_nameTerm); return _ord.compare(l1,l2); }
 
-  // TODO shouldn't this be a function of PrecedenceOrdering?
-  Kernel::Comparison compareFunctors(unsigned fun1, unsigned fun2) const final override
-  { ASSERTION_VIOLATION }
-
   void show(ostream& out) const final override
   { _ord.show(out); }
 

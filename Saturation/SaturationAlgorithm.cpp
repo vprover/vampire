@@ -1178,6 +1178,7 @@ void SaturationAlgorithm::removeSelected(Clause* cl)
 void SaturationAlgorithm::activate(Clause* cl)
 {
   CALL("SaturationAlgorithm::activate");
+      TIME_TRACE("activation")
 
   {
   TIME_TRACE("redundancy check")

@@ -1329,7 +1329,7 @@ ContextualIterator<Inner,Ctx> getContextualIterator(Inner it, Ctx context)
   return ContextualIterator<Inner,Ctx>(it, context);
 }
 
-#if ENABLE_TIME_PROFILINGG
+#if ENABLE_TIME_PROFILING
 
 template<class Iter>
 class TimeTracedIter
@@ -1359,14 +1359,14 @@ template<class Iter>
 auto timeTraceIter(const char* name, Iter iter) 
 { return TimeTracedIter<Iter>(name, std::move(iter)); }
 
-#else // !ENABLE_TIME_PROFILINGG
+#else // !ENABLE_TIME_PROFILING
 
 
 template<class Iter>
 auto timeTraceIter(const char* name, Iter iter) 
 { return std::move(iter); }
 
-#endif // ENABLE_TIME_PROFILINGG
+#endif // ENABLE_TIME_PROFILING
 
 
 /**

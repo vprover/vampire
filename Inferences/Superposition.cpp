@@ -386,7 +386,7 @@ Clause* Superposition::performSuperposition(
     UnificationConstraintStackSP constraints, bool isTypeSub)
 {
   CALL("Superposition::performSuperposition");
-  TIME_TRACE("superposition");
+  TIME_TRACE("perform superposition");
   // we want the rwClause and eqClause to be active
   ASS(rwClause->store()==Clause::ACTIVE);
   ASS(eqClause->store()==Clause::ACTIVE);

@@ -221,25 +221,22 @@ void TimeTrace::Node::flatten_(FlattenState& s)
 {
 
   for (auto& c : children) {
+    auto node_ = iterTraits(s.nodes.iter())
+      .find([&](auto& n) { return n->name == c->name; });
 
-  auto node_ = iterTraits(s.nodes.iter())
-    .find([&](auto& n) { return n->name == c->name; });
+    if (node_.isNone()) {
+      s.nodes.push(make_unique<Node>(c->name));
+    }
+    auto& node = node_.isSome() ? node_.unwrap() : s.nodes.top();
 
-  if (node_.isNone()) {
-    s.nodes.push(make_unique<Node>(c->name));
-  }
-  auto& node = node_.isSome() ? node_.unwrap() : s.nodes.top();
+    if (!iterTraits(s.recPath.iter()).any([&](auto& x) { return x->name == c->name; })) {
+      // prevent double counting time
+      node->measurements.extend(c->measurements);
+    }
 
-  if (!iterTraits(s.recPath.iter()).any([&](auto& x) { return x->name == c->name; })) {
-    // prevent double counting time
-    node->measurements.extend(c->measurements);
-  }
-
-  s.recPath.push(this);
-  // for (auto& c : children) {
+    s.recPath.push(this);
     c->flatten_(s);
-  // }
-  s.recPath.pop();
+    s.recPath.pop();
   }
 }
 
