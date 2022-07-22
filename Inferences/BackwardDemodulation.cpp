@@ -239,7 +239,7 @@ void BackwardDemodulation::perform(Clause* cl,
 	BwSimplificationRecordIterator& simplifications)
 {
   CALL("BackwardDemodulation::perform");
-  TIME_TRACE("BackwardDemodulation::perform");
+  TIME_TRACE("backward demodulation");
 
   if(cl->length()!=1 || !(*cl)[0]->isEquality() || !(*cl)[0]->isPositive() ) {
     simplifications=BwSimplificationRecordIterator::getEmpty();
@@ -260,7 +260,6 @@ void BackwardDemodulation::perform(Clause* cl,
   //replacementIterator right at this point, so we can measure the time just
   //simply (which cannot be generally done when iterators are involved)
 
-  TIME_TRACE("backward demodulation");
   simplifications=getPersistentIterator(replacementIterator);
 }
 
