@@ -1243,6 +1243,7 @@ void SaturationAlgorithm::activate(Clause* cl)
 	cl->store() != Clause::PASSIVE) {
       continue;
     }
+    TIME_TRACE("clause removal")
     removeActiveOrPassiveClause(cl);
   }
 
