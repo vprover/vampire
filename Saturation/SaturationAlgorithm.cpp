@@ -66,7 +66,6 @@
 #include "Inferences/ForwardSubsumptionAndResolution.hpp"
 #include "Inferences/ForwardSubsumptionDemodulation.hpp"
 #include "Inferences/GlobalSubsumption.hpp"
-#include "Inferences/HyperSuperposition.hpp"
 #include "Inferences/InnerRewriting.hpp"
 #include "Inferences/TermAlgebraReasoning.hpp"
 #include "Inferences/SLQueryBackwardSubsumption.hpp"
@@ -1686,9 +1685,6 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
   // create forward simplification engine
   if (prb.hasEquality() && opt.innerRewriting()) {
     res->addForwardSimplifierToFront(new InnerRewriting());
-  }
-  if (opt.hyperSuperposition()) {
-    res->addForwardSimplifierToFront(new HyperSuperposition());
   }
   if (opt.globalSubsumption()) {
     res->addForwardSimplifierToFront(new GlobalSubsumption(opt));

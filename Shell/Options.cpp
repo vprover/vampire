@@ -1693,12 +1693,6 @@ void Options::init()
     _forwardSubsumptionDemodulationMaxMatches.tag(OptionTag::INFERENCES);
     _forwardSubsumptionDemodulationMaxMatches.setRandomChoices({"0", "1", "3"});
 
-    _hyperSuperposition = BoolOptionValue("hyper_superposition","",false);
-    _hyperSuperposition.description=
-    "Simplifying inference that attempts to do several rewritings at once if it will eliminate literals of the original clause (now we aim just for elimination by equality resolution)";
-    _lookup.insert(&_hyperSuperposition);
-    _hyperSuperposition.tag(OptionTag::INFERENCES);
-
     _simultaneousSuperposition = BoolOptionValue("simultaneous_superposition","sims",true);
     _simultaneousSuperposition.description="Rewrite the whole RHS clause during superposition, not just the target literal.";
     _lookup.insert(&_simultaneousSuperposition);

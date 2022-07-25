@@ -881,9 +881,6 @@ vstring Kernel::ruleName(InferenceRule rule)
     return "instance generation";
   case InferenceRule::UNIT_RESULTING_RESOLUTION:
     return "unit resulting resolution";
-  case InferenceRule::HYPER_SUPERPOSITION_SIMPLIFYING:
-  case InferenceRule::HYPER_SUPERPOSITION_GENERATING:
-    return "hyper superposition";
   case InferenceRule::GLOBAL_SUBSUMPTION:
     return "global subsumption";
   case InferenceRule::SAT_INSTGEN_REFUTATION:
