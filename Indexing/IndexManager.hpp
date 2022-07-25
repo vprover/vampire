@@ -19,6 +19,7 @@
 #include "Forwards.hpp"
 #include "Lib/DHMap.hpp"
 #include "Index.hpp"
+#include "Kernel/MismatchHandler.hpp"
 
 #include "Lib/Allocator.hpp"
 
@@ -96,6 +97,7 @@ private:
   LiteralIndexingStructure* _genLitIndex;
 
   Index* create(IndexType t);
+  MismatchHandler _handler;
 };
 
 };

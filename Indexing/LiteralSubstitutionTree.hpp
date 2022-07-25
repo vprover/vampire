@@ -28,7 +28,7 @@ public:
   CLASS_NAME(LiteralSubstitutionTree);
   USE_ALLOCATOR(LiteralSubstitutionTree);
 
-  LiteralSubstitutionTree(bool useC = false);
+  LiteralSubstitutionTree(MismatchHandler const& handler);
 
   void insert(Literal* lit, Clause* cls);
   void remove(Literal* lit, Clause* cls);
@@ -64,10 +64,11 @@ private:
   template <bool instantiation>
   struct MatchingFilter
   {
-    MatchingFilter(Literal* queryLit, bool retrieveSubstitutions)
-    : _queryEqSort(SortHelper::getEqualityArgumentSort(queryLit)),
-      _isTwoVarEq(queryLit->isTwoVarEquality()),
-      _retrieveSubstitutions(retrieveSubstitutions) {}
+    MatchingFilter(Literal* queryLit, bool retrieveSubstitutions, MismatchHandler const& handler)
+      : _queryEqSort(SortHelper::getEqualityArgumentSort(queryLit))
+      , _isTwoVarEq(queryLit->isTwoVarEquality())
+      , _retrieveSubstitutions(retrieveSubstitutions) 
+    {}
 
     bool enter(const SLQueryResult& res)
     {
@@ -109,9 +110,11 @@ private:
   template <bool polymorphic>
   struct UnificationFilter
   {
-    UnificationFilter(Literal* queryLit, bool retrieveSubstitutions)
-    : _queryEqSort(SortHelper::getEqualityArgumentSort(queryLit)), 
-      _retrieveSubs(retrieveSubstitutions) {}
+    UnificationFilter(Literal* queryLit, bool retrieveSubstitutions, MismatchHandler const& handler)
+    : _queryEqSort(SortHelper::getEqualityArgumentSort(queryLit))
+    , _retrieveSubs(retrieveSubstitutions) 
+    , _handler(handler) 
+    {}
 
     bool enter(const SLQueryResult& res)
     {
@@ -129,7 +132,7 @@ private:
         RobSubstitution* subst = res.substitution->tryGetRobSubstitution();
         ASS(subst);
         subst->bdRecord(_bdataEq);
-        bool success = subst->unify(_queryEqSort, 0, resSort, 1);
+        bool success = subst->unify(_queryEqSort, 0, resSort, 1, _handler, *res.constraints);
         subst->bdDone();
         if(!success){
           _bdataEq.backtrack();
@@ -138,7 +141,7 @@ private:
       } else {
         static RobSubstitution subst;
         subst.reset();
-        return subst.unify(_queryEqSort, 0, resSort, 1);
+        return subst.unify(_queryEqSort, 0, resSort, 1, _handler, *res.constraints);
       }
     }
 
@@ -153,9 +156,9 @@ private:
     TermList _queryEqSort;
     bool _retrieveSubs;
     BacktrackData _bdataEq;
+    MismatchHandler const& _handler;
   };
 
-  bool _theoryConstraints;
   VSpecVarToTermMap _termMap;
 
   template<class Iterator, class Filter>

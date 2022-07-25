@@ -369,11 +369,24 @@ ResultSubstitutionSP SubstitutionTree::GenMatcher::getSubstitution(
  * If @b reversed If true, parameters of supplied binary literal are
  * 	reversed. (useful for retrieval commutative terms)
  */
-SubstitutionTree::FastGeneralizationsIterator::FastGeneralizationsIterator(SubstitutionTree* parent, Node* root, Term* query, 
-  bool retrieveSubstitution, bool reversed, bool withoutTop, ConstraintType ct, VSpecVarToTermMap* termMap)
-: _literalRetrieval(query->isLiteral()), _retrieveSubstitution(retrieveSubstitution),
-  _inLeaf(false), _ldIterator(LDIterator::getEmpty()), _root(root), _tree(parent),
-  _alternatives(64), _specVarNumbers(64), _nodeTypes(64)
+SubstitutionTree::FastGeneralizationsIterator::FastGeneralizationsIterator(
+    SubstitutionTree* parent, 
+    Node* root, 
+    Term* query, 
+    bool retrieveSubstitution, 
+    bool reversed, 
+    bool withoutTop, 
+    VSpecVarToTermMap* termMap, 
+    MismatchHandler const& handler)
+  : _literalRetrieval(query->isLiteral())
+  , _retrieveSubstitution(retrieveSubstitution)
+  , _inLeaf(false)
+  , _ldIterator(LDIterator::getEmpty())
+  , _root(root)
+  , _tree(parent)
+  , _alternatives(64)
+  , _specVarNumbers(64)
+  , _nodeTypes(64)
 {
   CALL("SubstitutionTree::FastGeneralizationsIterator::FastGeneralizationsIterator");
   ASS(root);

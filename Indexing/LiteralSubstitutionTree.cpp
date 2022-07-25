@@ -28,8 +28,8 @@
 namespace Indexing
 {
 
-LiteralSubstitutionTree::LiteralSubstitutionTree(bool useC)
-: SubstitutionTree(2*env.signature->predicates()), _theoryConstraints(useC) 
+LiteralSubstitutionTree::LiteralSubstitutionTree(MismatchHandler const& handler)
+  : SubstitutionTree(2*env.signature->predicates(), handler)
 {
   //EqualityProxy transformation can introduce polymorphism in a monomorphic problem
   //However, there is no need to guard aginst it, as equalityProxy removes all
@@ -56,11 +56,12 @@ void LiteralSubstitutionTree::handleLiteral(Literal* lit, Clause* cls, bool inse
 
   Literal* normLit=Renaming::normalize(lit);
 
-  if(_theoryConstraints){
+  if(!_handler.isEmpty()){
+    // TODO why not equality ?!
     ASS(!lit->isEquality());
     // replace theory subterms by very special variables
     // For example f($sum(X,Y), b)   ---> f(#, b)
-    TheoryTermReplacement ttr(&_termMap);
+    TheoryTermReplacement ttr(&_termMap, _handler);
     normLit = ttr.transform(normLit);
   }
 
@@ -155,8 +156,10 @@ private:
 
 struct LiteralSubstitutionTree::UnifyingContext
 {
-  UnifyingContext(Literal* queryLit)
-  : _queryLit(queryLit) {}
+  UnifyingContext(Literal* queryLit, MismatchHandler const& handler)
+    : _queryLit(queryLit) 
+    , _handler(handler)
+  {}
   bool enter(SLQueryResult qr)
   {
     ASS(qr.substitution);
@@ -167,7 +170,7 @@ struct LiteralSubstitutionTree::UnifyingContext
     //literal commutativity doesn't need to concern us, as
     //we normalize the query literal, so the argument order
     //of commutative literals is always the right one.
-    ALWAYS(subst->unifyArgs(_queryLit, QRS_QUERY_BANK, qr.literal, QRS_RESULT_BANK));
+    ALWAYS(subst->unifyArgs(_queryLit, QRS_QUERY_BANK, qr.literal, QRS_RESULT_BANK, _handler, *qr.constraints));
 
     return true;
   }
@@ -179,6 +182,7 @@ struct LiteralSubstitutionTree::UnifyingContext
   }
 private:
   Literal* _queryLit;
+  MismatchHandler const& _handler;
 };
 
 
@@ -204,46 +208,46 @@ private:
 };
 
 
-SLQueryResultIterator LiteralSubstitutionTree::getVariants(Literal* lit,
-	  bool complementary, bool retrieveSubstitutions)
-{
-  CALL("LiteralSubstitutionTree::getVariants");
-
-  Node* root=_nodes[getRootNodeIndex(lit, complementary)];
-
-  if(root==0) {
-    return SLQueryResultIterator::getEmpty();
-  }
-  if(root->isLeaf()) {
-    LDIterator ldit=static_cast<Leaf*>(root)->allChildren();
-    if(retrieveSubstitutions) {
-      // a single substitution will be used for all in ldit, but that's OK
-      return pvi( getMappingIterator(ldit,PropositionalLDToSLQueryResultWithSubstFn()) );
-    } else {
-      return pvi( getMappingIterator(ldit,LDToSLQueryResultFn()) );
-    }
-  }
-
-  Literal* normLit=Renaming::normalize(lit);
-
-  BindingMap svBindings;
-  getBindings(normLit, svBindings);
-  Leaf* leaf=findLeaf(root,svBindings);
-  if(leaf==0) {
-    return SLQueryResultIterator::getEmpty();
-  }
-
-  LDIterator ldit=leaf->allChildren();
-  if(retrieveSubstitutions) {
-    return pvi( getContextualIterator(
-	    getMappingIterator(
-		    ldit,
-		    LDToSLQueryResultWithSubstFn()),
-	    UnifyingContext(lit)) );
-  } else {
-    return pvi( getMappingIterator(ldit,LDToSLQueryResultFn()) );
-  }
-}
+// SLQueryResultIterator LiteralSubstitutionTree::getVariants(Literal* lit,
+// 	  bool complementary, bool retrieveSubstitutions)
+// {
+//   CALL("LiteralSubstitutionTree::getVariants");
+//
+//   Node* root=_nodes[getRootNodeIndex(lit, complementary)];
+//
+//   if(root==0) {
+//     return SLQueryResultIterator::getEmpty();
+//   }
+//   if(root->isLeaf()) {
+//     LDIterator ldit=static_cast<Leaf*>(root)->allChildren();
+//     if(retrieveSubstitutions) {
+//       // a single substitution will be used for all in ldit, but that's OK
+//       return pvi( getMappingIterator(ldit,PropositionalLDToSLQueryResultWithSubstFn()) );
+//     } else {
+//       return pvi( getMappingIterator(ldit,LDToSLQueryResultFn()) );
+//     }
+//   }
+//
+//   Literal* normLit=Renaming::normalize(lit);
+//
+//   BindingMap svBindings;
+//   getBindings(normLit, svBindings);
+//   Leaf* leaf=findLeaf(root,svBindings);
+//   if(leaf==0) {
+//     return SLQueryResultIterator::getEmpty();
+//   }
+//
+//   LDIterator ldit=leaf->allChildren();
+//   if(retrieveSubstitutions) {
+//     return pvi( getContextualIterator(
+// 	    getMappingIterator(
+// 		    ldit,
+// 		    LDToSLQueryResultWithSubstFn()),
+// 	    UnifyingContext(lit)) );
+//   } else {
+//     return pvi( getMappingIterator(ldit,LDToSLQueryResultFn()) );
+//   }
+// }
 
 SLQueryResultIterator LiteralSubstitutionTree::getAll()
 {
@@ -304,22 +308,20 @@ SLQueryResultIterator LiteralSubstitutionTree::getResultIterator(Literal* lit,
   if(lit->commutative()) {
     // Amongst inferences that require literal unification, constraints are only used for
     // binary resolution which does not involve equality
-    ASS(!_theoryConstraints);
     VirtualIterator<QueryResult> qrit1=vi(
-  	    new Iterator(this, root, lit, retrieveSubstitutions, false, false) );
+  	    new Iterator(this, root, lit, retrieveSubstitutions, false, false, &_termMap, _handler) );
     VirtualIterator<QueryResult> qrit2=vi(
-  	    new Iterator(this, root, lit, retrieveSubstitutions, true, false) );
+  	    new Iterator(this, root, lit, retrieveSubstitutions, true, false, &_termMap, _handler) );
     ASS(lit->isEquality());
     return pvi(
 	getContextualIterator(
 	    getMappingIterator(
 		getConcatenatedIterator(qrit1,qrit2), SLQueryResultFunctor()),
-	    Filter(lit, retrieveSubstitutions))
+	    Filter(lit, retrieveSubstitutions, _handler))
 	);
   } else {
-    auto cType = _theoryConstraints ? THEORY_CONSTRAINTS : NO_CONSTRAINTS;
     VirtualIterator<QueryResult> qrit=VirtualIterator<QueryResult>(
-  	    new Iterator(this, root, lit, retrieveSubstitutions,false,false, cType, &_termMap) );
+  	    new Iterator(this, root, lit, retrieveSubstitutions,false,false, &_termMap, _handler) );
     return pvi( getMappingIterator(qrit, SLQueryResultFunctor()) );
   }
 }

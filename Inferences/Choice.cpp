@@ -115,13 +115,17 @@ struct Choice::AxiomsIterator
       }
       Term* choiceOp = Term::create(op, typeArgs.size(), typeArgs.begin());
       TermList choiceOpSort = SortHelper::getResultSort(choiceOp);
-      if(subst.unify(choiceOpSort, 0, _headSort, 1)){
+      MismatchHandler h;
+      Stack<UnificationConstraint> c;
+      if(subst.unify(choiceOpSort, 0, _headSort, 1, h, c)){
         _nextChoiceOperator = TermList(choiceOp);
         _opApplied = subst.apply(_nextChoiceOperator, 0);
         _setApplied = subst.apply(_set, 1);
         _inBetweenNextandHasNext = true;
+        ASS(c.isEmpty())
         return true;
       }
+      ASS(c.isEmpty())
     }
      
     return false;   

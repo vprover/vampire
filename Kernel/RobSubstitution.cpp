@@ -35,11 +35,11 @@ const int RobSubstitution::UNBOUND_INDEX=-1;
 /**
  * Unify @b t1 and @b t2, and return true iff it was successful.
  */
-bool RobSubstitution::unify(TermList t1,int index1, TermList t2, int index2, MismatchHandler* hndlr)
+bool RobSubstitution::unify(TermList t1,int index1, TermList t2, int index2, MismatchHandler const& hndlr, Stack<UnificationConstraint>& constraints)
 {
   CALL("RobSubstitution::unify/4");
 
-  return unify(TermSpec(t1,index1), TermSpec(t2,index2),hndlr);
+  return unify(TermSpec(t1,index1), TermSpec(t2,index2), hndlr, constraints);
 }
 
 /**
@@ -47,7 +47,7 @@ bool RobSubstitution::unify(TermList t1,int index1, TermList t2, int index2, Mis
  *
  * @b t1 and @b t2 can be either terms or literals.
  */
-bool RobSubstitution::unifyArgs(Term* t1,int index1, Term* t2, int index2, MismatchHandler* hndlr)
+bool RobSubstitution::unifyArgs(Term* t1,int index1, Term* t2, int index2, MismatchHandler const& hndlr, Stack<UnificationConstraint>& constr)
 {
   CALL("RobSubstitution::unifyArgs");
   ASS_EQ(t1->functor(),t2->functor());
@@ -55,7 +55,7 @@ bool RobSubstitution::unifyArgs(Term* t1,int index1, Term* t2, int index2, Misma
   TermList t1TL(t1);
   TermList t2TL(t2);
 
-  return unify(TermSpec(t1TL,index1), TermSpec(t2TL,index2),hndlr);
+  return unify(TermSpec(t1TL,index1), TermSpec(t2TL,index2), hndlr, constr);
 }
 
 bool RobSubstitution::match(TermList base,int baseIndex,
@@ -279,7 +279,36 @@ bool RobSubstitution::occurs(VarSpec vs, TermSpec ts)
   }
 }
 
-bool RobSubstitution::unify(TermSpec t1, TermSpec t2,MismatchHandler* hndlr)
+bool RobSubstitution::introduceConstraint(TermSpec ts1, TermSpec ts2, MismatchHandler const& handler)
+{
+  CALL("RobSubstitution::introduceConstraint");
+
+  if(!ts1.isVSpecialVar() && !ts2.isVSpecialVar()){
+    return false;
+  }
+
+  TermList t1 = ts1.isVSpecialVar() ?  TermList(_termMap->get(ts1.term.var()))
+                                    : ts1.term;
+  TermList t2 = ts2.isVSpecialVar() ?  TermList(_termMap->get(ts2.term.var()))
+                                    : ts2.term;
+  auto i1 = ts1.index;
+  auto i2 = ts2.index;
+
+  // we would introduce the constraint t != t, which is obv false, 
+  // hence we can skip introducing it
+  if (t1 == t2 && i1 == i2) 
+    return true;
+
+
+  if (handler.canAbstract(t1, i1, t2, i2)) {
+    ASSERTION_VIOLATION_REP("TODO")
+    return true;
+  } else {
+    return false;
+  }
+}
+
+bool RobSubstitution::unify(TermSpec t1, TermSpec t2, MismatchHandler const& hndlr, Stack<UnificationConstraint>& constraints)
 {
   CALL("RobSubstitution::unify/2");
 
@@ -310,49 +339,30 @@ bool RobSubstitution::unify(TermSpec t1, TermSpec t2,MismatchHandler* hndlr)
     TermSpec dt2=derefBound(t2);
     // If they have the same content then skip
     // (note that sameTermContent is best-effort)
-    if(dt1.sameTermContent(dt2)) {
-    } else if(dt1.isVSpecialVar() && dt2.isVSpecialVar()){
-      ASS(hndlr);
-      // if both are constraint terms (e.g. $sum(...)  or $product(...) or higher-order stuff)
-      // then hand pair over to relevant handler to create constraint
-      hndlr->handle(dt1.term, dt1.index, dt2.term, dt2.index, _termMap);
-    } 
+
     // Deal with the case where either are variables
     // Do an occurs-check and note that the variable 
     // cannot be currently bound as we already dereferenced
-    else if(dt1.isVar() && !dt1.isVSpecialVar()) {
-      VarSpec v1=getVarSpec(dt1);
-      if(occurs(v1, dt2)) {
+    if (dt1.isVar() || dt2.isVar()) {
+      auto v = dt1.isVar() ? getVarSpec(dt1) : getVarSpec(dt2);
+      auto t = dt1.isVar() ? dt2 : dt1;
+      if(occurs(v, t)) {
         mismatch=true;
         break;
+      } else {
+        bind(v,t);
       }
-      bind(v1,dt2);
-    } else if(dt2.isVar() && !dt2.isVSpecialVar()) {
-      VarSpec v2=getVarSpec(dt2);
-      if(occurs(v2, dt1)) {
-        mismatch=true;
-        break;
+    // if both are constraint terms (e.g. $sum(...)  or $product(...) or higher-order stuff)
+    // then hand pair over to relevant handler to create constraint
+    } else if (introduceConstraint(dt1, dt2, hndlr)) {
+      if (dt1.term == dt2.term && dt1.index == dt2.index) {
+        // we skip introducing a constraint `t != t`
+      } else {
+        constraints.push(make_pair(make_pair(dt1.term, dt1.index),make_pair(dt2.term, dt2.index)));
       }
-      bind(v2,dt1);
-    } else if(dt1.isVSpecialVar()){    
-      // Only one term is a constraint term
-      // (e.g. trying to unify f(a) with $sum(...))
-      // In this case we create constraint if settings allow.
-      // If they do not, handler will return false and we continue with
-      // standard unification.
-      if(!hndlr->handle(dt1.term, dt1.index, dt2.term, dt2.index, _termMap)){
-        Term* t = _termMap->get(dt1.term.var());
-        t1 = TermSpec(TermList(t), dt1.index);
-        toDo.push(TTPair(t1, dt2));
-      }
-    } else if(dt2.isVSpecialVar()){    
-      if(!hndlr->handle(dt1.term, dt1.index, dt2.term, dt2.index, _termMap)){
-        Term* t = _termMap->get(dt2.term.var());
-        t2 = TermSpec(TermList(t), dt2.index);
-        toDo.push(TTPair(dt1, t2));
-      }
+
     } else {
-    // Case where both are terms
+    // Case where both are terms, and we do not abstract
       TermList* ss=&dt1.term;
       TermList* tt=&dt2.term;
 
@@ -783,10 +793,10 @@ size_t RobSubstitution::getApplicationResultWeight(Literal* lit, int index) cons
  * RobSubstitution::AssocIterator.
  */
 SubstIterator RobSubstitution::matches(Literal* base, int baseIndex,
-	Literal* instance, int instanceIndex, bool complementary)
+	Literal* instance, int instanceIndex, bool complementary, MismatchHandler const& h)
 {
   return getAssocIterator<MatchingFn>(this, base, baseIndex,
-	  instance, instanceIndex, complementary);
+	  instance, instanceIndex, complementary, h);
 }
 
 /**
@@ -796,15 +806,15 @@ SubstIterator RobSubstitution::matches(Literal* base, int baseIndex,
  * RobSubstitution::AssocIterator.
  */
 SubstIterator RobSubstitution::unifiers(Literal* l1, int l1Index,
-	Literal* l2, int l2Index, bool complementary)
+	Literal* l2, int l2Index, bool complementary, MismatchHandler const& h)
 {
   return getAssocIterator<UnificationFn>(this, l1, l1Index,
-	  l2, l2Index, complementary);
+	  l2, l2Index, complementary, h);
 }
 
 template<class Fn>
 SubstIterator RobSubstitution::getAssocIterator(RobSubstitution* subst,
-	  Literal* l1, int l1Index, Literal* l2, int l2Index, bool complementary)
+	  Literal* l1, int l1Index, Literal* l2, int l2Index, bool complementary, MismatchHandler const& h)
 {
   CALL("RobSubstitution::getAssocIterator");
 
@@ -814,22 +824,28 @@ SubstIterator RobSubstitution::getAssocIterator(RobSubstitution* subst,
 
   if( !l1->commutative() ) {
     return pvi( getContextualIterator(getSingletonIterator(subst),
-	    AssocContext<Fn>(l1, l1Index, l2, l2Index)) );
+	    AssocContext<Fn>(l1, l1Index, l2, l2Index, h)) );
   } else {
     return vi(
-	    new AssocIterator<Fn>(subst, l1, l1Index, l2, l2Index));
+	    new AssocIterator<Fn>(subst, l1, l1Index, l2, l2Index, h));
   }
 }
 
 template<class Fn>
 struct RobSubstitution::AssocContext
 {
-  AssocContext(Literal* l1, int l1Index, Literal* l2, int l2Index)
-  : _l1(l1), _l1i(l1Index), _l2(l2), _l2i(l2Index) { ASS(!l1->isEquality()); ASS(!l2->isEquality()); } // only used for non-commutative, i.e. also non-equality, literals
+  AssocContext(Literal* l1, int l1Index, Literal* l2, int l2Index, MismatchHandler const& handler)
+    : _l1(l1)
+    , _l1i(l1Index)
+    , _l2(l2)
+    , _l2i(l2Index) 
+    , _handler(handler)
+  { ASS(!l1->isEquality()); ASS(!l2->isEquality()); } // only used for non-commutative, i.e. also non-equality, literals
   bool enter(RobSubstitution* subst)
   {
     subst->bdRecord(_bdata);
-    bool res=Fn::associate(subst, _l1, _l1i, _l2, _l2i);
+    // TODO return constraints
+    bool res=Fn::associate(subst, _l1, _l1i, _l2, _l2i, _handler, _constr);
     if(!res) {
       subst->bdDone();
       ASS(_bdata.isEmpty());
@@ -847,6 +863,8 @@ private:
   Literal* _l2;
   int _l2i;
   BacktrackData _bdata;
+  MismatchHandler const& _handler;
+  Stack<UnificationConstraint> _constr;
 };
 
 /**
@@ -885,9 +903,16 @@ template<class Fn>
 class RobSubstitution::AssocIterator: public IteratorCore<RobSubstitution*> {
 public:
   AssocIterator(RobSubstitution* subst, Literal* l1, int l1Index, Literal* l2,
-      int l2Index) :
-      _subst(subst), _l1(l1), _l1i(l1Index), _l2(l2), _l2i(l2Index),
-      _state(FIRST), _used(true) {
+      int l2Index, MismatchHandler const& handler) 
+    : _subst(subst)
+    , _l1(l1)
+    , _l1i(l1Index)
+    , _l2(l2)
+    , _l2i(l2Index)
+    , _state(FIRST)
+    , _used(true) 
+    , _handler(handler)
+  {
     ASS_EQ(_l1->functor(), _l2->functor());
     ASS(_l1->commutative());
     ASS_EQ(_l1->arity(), 2);
@@ -927,7 +952,7 @@ public:
 
     switch (_state) {
     case NEXT_STRAIGHT:
-      if (Fn::associate(_subst, _l1, _l1i, _l2, _l2i)) {
+      if (Fn::associate(_subst, _l1, _l1i, _l2, _l2i, _handler, _constraints)) {
         _state = NEXT_REVERSED;
         break;
       }
@@ -937,8 +962,8 @@ public:
       TermList t12 = *_l1->nthArgument(1);
       TermList t21 = *_l2->nthArgument(0);
       TermList t22 = *_l2->nthArgument(1);
-      if (Fn::associate(_subst, t11, _l1i, t22, _l2i)) {
-        if (Fn::associate(_subst, t12, _l1i, t21, _l2i)) {
+      if (Fn::associate(_subst, t11, _l1i, t22, _l2i, _handler, _constraints)) {
+        if (Fn::associate(_subst, t12, _l1i, t21, _l2i, _handler, _constraints)) {
           _state = NEXT_CLEANUP;
           break;
         }
@@ -983,6 +1008,7 @@ private:
   };
 
   RobSubstitution* _subst;
+  Stack<UnificationConstraint> _constraints;
   Literal* _l1;
   int _l1i;
   Literal* _l2;
@@ -997,6 +1023,7 @@ private:
    * any (hasNext() hasn't been called yet)
    */
   bool _used;
+  MismatchHandler const& _handler;
 };
 
 struct RobSubstitution::MatchingFn {
@@ -1013,11 +1040,11 @@ struct RobSubstitution::MatchingFn {
     return true;
   }
   static bool associate(RobSubstitution* subst, Literal* l1, int l1Index,
-	  Literal* l2, int l2Index)
+	  Literal* l2, int l2Index, MismatchHandler const& h, Stack<UnificationConstraint>& c)
   { return subst->matchArgs(l1,l1Index,l2,l2Index); }
 
   static bool associate(RobSubstitution* subst, TermList t1, int t1Index,
-	  TermList t2, int t2Index)
+	  TermList t2, int t2Index, MismatchHandler const& h, Stack<UnificationConstraint>& c)
   { return subst->match(t1,t1Index,t2,t2Index); }
 };
 
@@ -1029,18 +1056,24 @@ struct RobSubstitution::UnificationFn {
       ASS(l2->isEquality());
       TermList s1 = SortHelper::getEqualityArgumentSort(l1);
       TermList s2 = SortHelper::getEqualityArgumentSort(l2);
-      return subst->unify(s1, l1Index, s2, l2Index);
+      MismatchHandler handler;
+      Stack<UnificationConstraint> constr;
+      auto out = subst->unify(s1, l1Index, s2, l2Index, handler, constr);
+      ASS(constr.isEmpty());
+      return out;
     }
     return true;
   }
 
   static bool associate(RobSubstitution* subst, Literal* l1, int l1Index,
-	  Literal* l2, int l2Index)
-  { return subst->unifyArgs(l1,l1Index,l2,l2Index); }
+	  Literal* l2, int l2Index, 
+          MismatchHandler const& h, Stack<UnificationConstraint>& constr)
+  { return subst->unifyArgs(l1,l1Index,l2,l2Index, h, constr); }
 
   static bool associate(RobSubstitution* subst, TermList t1, int t1Index,
-	  TermList t2, int t2Index)
-  { return subst->unify(t1,t1Index,t2,t2Index); }
+	  TermList t2, int t2Index, 
+          MismatchHandler const& h, Stack<UnificationConstraint>& constr)
+  { return subst->unify(t1,t1Index,t2,t2Index, h, constr); }
 };
 
 

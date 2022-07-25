@@ -101,28 +101,11 @@ struct EqualityResolution::ResultFn
 
     ASS(!(use_uwa_handler && use_ho_handler));
 
-    static RobSubstitution subst;
-    static UnificationConstraintStack constraints;
-    subst.reset();
-    constraints.reset();
-    subst.setMap(&termMap);
+    RobSubstitution subst;
+    UnificationConstraintStack constraints;
 
-    if(use_uwa_handler){
-      UWAMismatchHandler hndlr(constraints);
-      if(!subst.unify(arg0,0,arg1,0,&hndlr)){ 
-        return 0; 
-      }
-    }
-
-    if(use_ho_handler){
-      HOMismatchHandler hndlr(constraints);
-      if(!subst.unify(arg0,0,arg1,0,&hndlr)){ 
-        return 0; 
-      }    
-    }
-
-    if(!use_uwa_handler && !use_ho_handler && !subst.unify(arg0,0,arg1,0)){
-      return 0;    
+    if (!subst.unify(arg0, 0, arg1, 0, _handler, constraints)) {
+      return nullptr;
     }
 
     //cout << "equalityResolution with " + _cl->toString() << endl;

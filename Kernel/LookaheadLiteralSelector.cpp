@@ -110,10 +110,14 @@ struct LookaheadLiteralSelector::GenIteratorIterator
       bool haveEqRes=false;
       if(lit->isNegative() && lit->isEquality()) {
 	RobSubstitution rs;
-	if(rs.unify(*lit->nthArgument(0), 0, *lit->nthArgument(1), 0)) {
+        // TODO shouldn't we use the same handler as in the eq resolution rule here?
+        Stack<UnificationConstraint> constr;
+        MismatchHandler handler;
+	if(rs.unify(*lit->nthArgument(0), 0, *lit->nthArgument(1), 0, handler, constr)) {
 	  haveEqRes=true;
 	  nextIt=pvi( getStaticCastIterator<void>(getSingletonIterator(0)) );
 	}
+        ASS(constr.isEmpty())
       }
       if(!haveEqRes) {
 	stage++;

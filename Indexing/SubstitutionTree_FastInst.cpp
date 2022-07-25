@@ -564,12 +564,23 @@ finish:
  * If @b reversed If true, parameters of supplied binary literal are
  * 	reversed. (useful for retrieval commutative terms)
  */
-SubstitutionTree::FastInstancesIterator::FastInstancesIterator(SubstitutionTree* parent, Node* root,
-	Term* query, bool retrieveSubstitution, bool reversed, bool withoutTop, 
-  ConstraintType ct, VSpecVarToTermMap* termMap) //termMap for compatibility purposes
-: _literalRetrieval(query->isLiteral()), _retrieveSubstitution(retrieveSubstitution),
-  _inLeaf(false), _ldIterator(LDIterator::getEmpty()),  _root(root),
-  _alternatives(64), _specVarNumbers(64), _nodeTypes(64)
+SubstitutionTree::FastInstancesIterator::FastInstancesIterator(
+    SubstitutionTree* parent, 
+    Node* root,
+    Term* query, 
+    bool retrieveSubstitution, 
+    bool reversed, 
+    bool withoutTop, 
+    VSpecVarToTermMap* termMap,
+    MismatchHandler const& handler)
+  : _literalRetrieval(query->isLiteral())
+  , _retrieveSubstitution(retrieveSubstitution)
+  , _inLeaf(false)
+  , _ldIterator(LDIterator::getEmpty())
+  , _root(root)
+  , _alternatives(64)
+  , _specVarNumbers(64)
+  , _nodeTypes(64)
 #if VDEBUG
   , _tree(parent)
 #endif 

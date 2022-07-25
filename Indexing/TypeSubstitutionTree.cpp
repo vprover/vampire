@@ -36,7 +36,7 @@ using namespace Lib;
 using namespace Kernel;
 
 TypeSubstitutionTree::TypeSubstitutionTree()
-: SubstitutionTree(env.signature->functions())
+: SubstitutionTree(env.signature->functions(), MismatchHandler::emptyHandler())
 {
 }
 
@@ -66,7 +66,11 @@ struct TypeSubstitutionTree::ToTermUnifier
     if((_queryTerm.isVar() || tqr.term.isVar()) && retrieveSubstitutions){
       RobSubstitution* subst=tqr.substitution->tryGetRobSubstitution();
       ASS(subst);
-      ALWAYS(subst->unify(_queryTerm, QRS_QUERY_BANK, tqr.term, QRS_RESULT_BANK));
+      // we use a dummy empty handler, as we never want to introduce constraints for types.
+      MismatchHandler handler;
+      Stack<UnificationConstraint> constraints;
+      ALWAYS(subst->unify(_queryTerm, QRS_QUERY_BANK, tqr.term, QRS_RESULT_BANK, handler, constraints));
+      ASS(constraints.isEmpty())
     } else {
       tqr.isTypeSub = true;
     }
@@ -175,7 +179,8 @@ TermQueryResultIterator TypeSubstitutionTree::getResultIterator(Term* trm,
       result = ldIteratorToTQRIterator(ldit,TermList(trm),retrieveSubstitutions);
     }
     else{
-      VirtualIterator<QueryResult> qrit=vi( new Iterator(this, root, trm, retrieveSubstitutions,false,false) );
+      VSpecVarToTermMap dummyMap;
+      VirtualIterator<QueryResult> qrit=vi( new Iterator(this, root, trm, retrieveSubstitutions,false,false, &dummyMap, MismatchHandler::emptyHandler()) );
       result = pvi( getMappingIterator(qrit, TermQueryResultFn()) );
     }
   }
@@ -226,7 +231,10 @@ struct TypeSubstitutionTree::UnifyingContext
     ASS(qr.substitution);
     RobSubstitution* subst=qr.substitution->tryGetRobSubstitution();
     ASS(subst);
-    bool unified = subst->unify(_querySort, QRS_QUERY_BANK, qrSort, QRS_RESULT_BANK);
+    MismatchHandler h;
+    Stack<UnificationConstraint> c;
+    bool unified = subst->unify(_querySort, QRS_QUERY_BANK, qrSort, QRS_RESULT_BANK, h,c);
+    ASS(c.isEmpty())
     return unified;
   }
   void leave(TermQueryResult qr)

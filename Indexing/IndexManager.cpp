@@ -143,13 +143,14 @@ Index* IndexManager::create(IndexType t)
   TermIndexingStructure* tis;
 
   bool isGenerating;
-  static bool const useConstraints = env.options->unificationWithAbstraction()!=Options::UnificationWithAbstraction::OFF;
+  // static bool const useConstraints = env.options->unificationWithAbstraction()!=Options::UnificationWithAbstraction::OFF;
   static bool const extByAbs = (env.options->functionExtensionality() == Options::FunctionExtensionality::ABSTRACTION) &&
                     env.property->higherOrder();
                     
+  ASSERTION_VIOLATION_REP("TODO init _handler")
   switch(t) {
   case GENERATING_SUBST_TREE:
-    is=new LiteralSubstitutionTree(useConstraints);
+    is=new LiteralSubstitutionTree(_handler);
 #if VDEBUG
     //is->markTagged();
 #endif
@@ -158,29 +159,29 @@ Index* IndexManager::create(IndexType t)
     isGenerating = true;
     break;
   case SIMPLIFYING_SUBST_TREE:
-    is=new LiteralSubstitutionTree();
+    is=new LiteralSubstitutionTree(MismatchHandler::emptyHandler());
     res=new SimplifyingLiteralIndex(is);
     isGenerating = false;
     break;
 
   case SIMPLIFYING_UNIT_CLAUSE_SUBST_TREE:
-    is=new LiteralSubstitutionTree();
+    is=new LiteralSubstitutionTree(MismatchHandler::emptyHandler());
     res=new UnitClauseLiteralIndex(is);
     isGenerating = false;
     break;
   case GENERATING_UNIT_CLAUSE_SUBST_TREE:
-    is=new LiteralSubstitutionTree();
+    is=new LiteralSubstitutionTree(MismatchHandler::emptyHandler());
     res=new UnitClauseLiteralIndex(is);
     isGenerating = true;
     break;
   case GENERATING_NON_UNIT_CLAUSE_SUBST_TREE:
-    is=new LiteralSubstitutionTree();
+    is=new LiteralSubstitutionTree(MismatchHandler::emptyHandler());
     res=new NonUnitClauseLiteralIndex(is);
     isGenerating = true;
     break;
 
   case SUPERPOSITION_SUBTERM_SUBST_TREE:
-    tis=new TermSubstitutionTree(useConstraints, extByAbs);
+    tis=new TermSubstitutionTree(_handler, extByAbs);
 #if VDEBUG
     //tis->markTagged();
 #endif
@@ -188,7 +189,7 @@ Index* IndexManager::create(IndexType t)
     isGenerating = true;
     break;
   case SUPERPOSITION_LHS_SUBST_TREE:
-    tis=new TermSubstitutionTree(useConstraints, extByAbs);
+    tis=new TermSubstitutionTree(_handler, extByAbs);
     res=new SuperpositionLHSIndex(tis, _alg->getOrdering(), _alg->getOptions());
     //tis->markTagged();
     isGenerating = true;
@@ -197,7 +198,7 @@ Index* IndexManager::create(IndexType t)
   case SUB_VAR_SUP_SUBTERM_SUBST_TREE:
     //using a substitution tree to store variable.
     //TODO update
-    tis=new TermSubstitutionTree();
+    tis=new TermSubstitutionTree(MismatchHandler::emptyHandler());
 #if VDEBUG
     //tis->markTagged();
 #endif
@@ -205,13 +206,13 @@ Index* IndexManager::create(IndexType t)
     isGenerating = true;
     break;
   case SUB_VAR_SUP_LHS_SUBST_TREE:
-    tis=new TermSubstitutionTree();
+    tis=new TermSubstitutionTree(MismatchHandler::emptyHandler());
     res=new SubVarSupLHSIndex(tis, _alg->getOrdering(), _alg->getOptions());
     isGenerating = true;
     break;
   
   case SKOLEMISING_FORMULA_INDEX:
-    tis=new TermSubstitutionTree(false, false, true);
+    tis=new TermSubstitutionTree(MismatchHandler::emptyHandler(), true);
     res=new SkolemisingFormulaIndex(tis);
     isGenerating = false;
     break;
@@ -223,24 +224,24 @@ Index* IndexManager::create(IndexType t)
     break;*/
 
   case NARROWING_INDEX:
-    tis=new TermSubstitutionTree();
+    tis=new TermSubstitutionTree(MismatchHandler::emptyHandler());
     res=new NarrowingIndex(tis); 
     isGenerating = true;
     break; 
 
   case PRIMITIVE_INSTANTIATION_INDEX:
-    tis=new TermSubstitutionTree();
+    tis=new TermSubstitutionTree(MismatchHandler::emptyHandler());
     res=new PrimitiveInstantiationIndex(tis); 
     isGenerating = true;
     break;  
    case ACYCLICITY_INDEX:
-    tis = new TermSubstitutionTree();
+    tis = new TermSubstitutionTree(MismatchHandler::emptyHandler());
     res = new AcyclicityIndex(tis);
     isGenerating = true;
     break; 
 
   case DEMODULATION_SUBTERM_SUBST_TREE:
-    tis=new TermSubstitutionTree();
+    tis=new TermSubstitutionTree(MismatchHandler::emptyHandler());
     if (env.options->combinatorySup()) {
       res=new DemodulationSubtermIndexImpl<true>(tis);
     } else {
@@ -249,7 +250,7 @@ Index* IndexManager::create(IndexType t)
     isGenerating = false;
     break;
   case DEMODULATION_LHS_SUBST_TREE:
-//    tis=new TermSubstitutionTree();
+//    tis=new TermSubstitutionTree(MismatchHandler::emptyHandler());
     tis=new CodeTreeTIS();
     res=new DemodulationLHSIndex(tis, _alg->getOrdering(), _alg->getOptions());
     isGenerating = false;
@@ -261,21 +262,21 @@ Index* IndexManager::create(IndexType t)
     break;
 
   case FW_SUBSUMPTION_SUBST_TREE:
-    is=new LiteralSubstitutionTree();
+    is=new LiteralSubstitutionTree(MismatchHandler::emptyHandler());
 //    is=new CodeTreeLIS();
     res=new FwSubsSimplifyingLiteralIndex(is);
     isGenerating = false;
     break;
 
   case FSD_SUBST_TREE:
-    is = new LiteralSubstitutionTree();
+    is = new LiteralSubstitutionTree(MismatchHandler::emptyHandler());
     res = new FSDLiteralIndex(is);
     isGenerating = false;
     break;
 
   case REWRITE_RULE_SUBST_TREE:
-    is=new LiteralSubstitutionTree();
-    res=new RewriteRuleIndex(is, _alg->getOrdering());
+    is=new LiteralSubstitutionTree(MismatchHandler::emptyHandler());
+    res=new RewriteRuleIndex(is, _alg->getOrdering(), MismatchHandler::emptyHandler());
     isGenerating = false;
     break;
 
@@ -285,19 +286,19 @@ Index* IndexManager::create(IndexType t)
     break;
 
   case UNIT_INT_COMPARISON_INDEX:
-    is = new LiteralSubstitutionTree();
+    is = new LiteralSubstitutionTree(MismatchHandler::emptyHandler());
     res = new UnitIntegerComparisonLiteralIndex(is);
     isGenerating = true;
     break;
 
   case INDUCTION_TERM_INDEX:
-    tis = new TermSubstitutionTree();
+    tis = new TermSubstitutionTree(MismatchHandler::emptyHandler());
     res = new InductionTermIndex(tis);
     isGenerating = true;
     break;
 
   case STRUCT_INDUCTION_TERM_INDEX:
-    tis = new TermSubstitutionTree();
+    tis = new TermSubstitutionTree(MismatchHandler::emptyHandler());
     res = new StructInductionTermIndex(tis);
     isGenerating = true;
     break;

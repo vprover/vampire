@@ -17,6 +17,7 @@
 #define __LiteralIndex__
 
 #include "Lib/DHMap.hpp"
+#include "Kernel/MismatchHandler.hpp"
 
 #include "Index.hpp"
 
@@ -145,7 +146,7 @@ public:
   CLASS_NAME(RewriteRuleIndex);
   USE_ALLOCATOR(RewriteRuleIndex);
 
-  RewriteRuleIndex(LiteralIndexingStructure* is, Ordering& ordering);
+  RewriteRuleIndex(LiteralIndexingStructure* is, Ordering& ordering, MismatchHandler const& h);
   ~RewriteRuleIndex();
 
   Clause* getCounterpart(Clause* c) {

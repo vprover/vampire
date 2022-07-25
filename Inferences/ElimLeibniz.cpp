@@ -162,11 +162,14 @@ afterLoop:
 
   TermList vEquals = TermList(Term::create1(env.signature->getEqualityProxy(), argS));
   TermList t1 = AH::createAppTerm(SH::getResultSort(vEquals.term()), vEquals, lerNegLit.arg);
-  if(subst.unify(var, 0, t1, 0)){
+  MismatchHandler h;
+  Stack<UnificationConstraint> c;
+  if(subst.unify(var, 0, t1, 0, h, c)){
     Clause* c = createConclusion(premise, newLit, posLit, negLit, subst);
     clauses.push(c);
     subst.reset();
   }
+  ASS(c.isEmpty())
 
   TermList t2 = AH::createAppTerm(SH::getResultSort(vEquals.term()), vEquals, lerPosLit.arg);
   
@@ -177,10 +180,11 @@ afterLoop:
   TermList vNot   = TermList(Term::createConstant(env.signature->getNotProxy()));
   t2 = AH::createAppTerm3(SH::getResultSort(bComb.term()), bComb,vNot,t2);
 
-  if(subst.unify(var, 0, t2, 0)){
+  if(subst.unify(var, 0, t2, 0, h, c)){
     Clause* c = createConclusion(premise, newLit, posLit, negLit, subst);
     clauses.push(c);
   }  
+  ASS(c.isEmpty())
 
   env.statistics->leibnizElims++;
   return pvi(getUniquePersistentIterator(ClauseStack::Iterator(clauses)));

@@ -21,6 +21,7 @@
 #include "Lib/Array.hpp"
 #include "Lib/List.hpp"
 #include "Lib/DHMap.hpp"
+#include "Kernel/MismatchHandler.hpp"
 
 #include "Kernel/Term.hpp"
 
@@ -47,6 +48,7 @@ public:
   }
 protected:
   class ResultClauseToVariantClauseFn;
+  MismatchHandler _dummyHandler;
 };
 
 

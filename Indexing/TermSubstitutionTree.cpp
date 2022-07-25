@@ -36,17 +36,11 @@ namespace Indexing
 using namespace Lib;
 using namespace Kernel;
 
-TermSubstitutionTree::TermSubstitutionTree(bool theoryConstraints, bool hoConstraints, bool extra)
-: SubstitutionTree(env.signature->functions()), 
-  _theoryConstraints(theoryConstraints),
-  _higherOrderConstraints(hoConstraints)
+TermSubstitutionTree::TermSubstitutionTree(MismatchHandler const& handler, bool extra)
+: SubstitutionTree(env.signature->functions(), handler)
 {
   _extra = extra;
-  _withConstraints = _higherOrderConstraints || _theoryConstraints;
-  // at the moment, unification with abstraction for theory reasoning
-  // and higher-order are not compatible.
-  ASS(!(_higherOrderConstraints && _theoryConstraints));
-  if(_withConstraints){
+  if(!handler.isEmpty()){
     _termsByType = new TypeSubstitutionTree();
   }
 }
@@ -122,17 +116,7 @@ void TermSubstitutionTree::handleTerm(TermList t, Literal* lit, Clause* cls, boo
 
     Term* normTerm=Renaming::normalize(term);
 
-    if(_higherOrderConstraints){
-      t = ApplicativeHelper::replaceFunctionalAndBooleanSubterms(normTerm, &_termMap);   
-      normTerm = t.term();
-    }
-
-    if(_theoryConstraints){
-      // replace theory subterms by very special variables
-      // For example f($sum(X,Y), b) ---> f(#, b)
-      TheoryTermReplacement ttr(&_termMap);
-      normTerm = ttr.transform(normTerm);
-    }
+    normTerm = _handler.introduceSpecialVars(normTerm);
 
     BindingMap svBindings;
     getBindings(normTerm, svBindings);
@@ -323,14 +307,8 @@ TermQueryResultIterator TermSubstitutionTree::getResultIterator(Term* trm,
       result = ldIteratorToTQRIterator(ldit,TermList(trm),retrieveSubstitutions);
     }
     else{
-      auto cType = NO_CONSTRAINTS;
-      if(_withConstraints){
-        if(_theoryConstraints) cType = THEORY_CONSTRAINTS;
-        if(_higherOrderConstraints) cType = HO_CONSTRAINTS;
-      }
-
       VirtualIterator<QueryResult> qrit=vi( 
-        new Iterator(this, root, trm, retrieveSubstitutions,false,false, cType, &_termMap));
+        new Iterator(this, root, trm, retrieveSubstitutions, false, false, &_termMap, _handler));
       result = pvi( getMappingIterator(qrit, TermQueryResultFn(_extra)) );
     }
   }
@@ -374,8 +352,9 @@ struct TermSubstitutionTree::LeafToLDIteratorFn
 
 struct TermSubstitutionTree::UnifyingContext
 {
-  UnifyingContext(TermList queryTerm)
+  UnifyingContext(TermList queryTerm, MismatchHandler const& handler)
   : _queryTerm(queryTerm)
+  , _handler(handler)
   {}
 
   bool enter(TermQueryResult qr)
@@ -386,7 +365,7 @@ struct TermSubstitutionTree::UnifyingContext
     ASS(qr.substitution);
     RobSubstitution* subst=qr.substitution->tryGetRobSubstitution();
     ASS(subst);
-    bool unified = subst->unify(_queryTerm, QRS_QUERY_BANK, qr.term, QRS_RESULT_BANK);
+    bool unified = subst->unify(_queryTerm, QRS_QUERY_BANK, qr.term, QRS_RESULT_BANK, _handler, *qr.constraints);
     ASS(unified);
     return unified;
   }
@@ -402,6 +381,7 @@ struct TermSubstitutionTree::UnifyingContext
   }
 private:
   TermList _queryTerm;
+  MismatchHandler const& _handler;
 };
 
 template<class LDIt>

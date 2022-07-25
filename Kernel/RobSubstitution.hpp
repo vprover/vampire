@@ -20,6 +20,7 @@
 #include "Lib/Backtrackable.hpp"
 #include "Term.hpp"
 #include "MismatchHandler.hpp"
+#include "Lib/Option.hpp"
 
 #if VDEBUG
 #include <iostream>
@@ -40,14 +41,16 @@ public:
   
   RobSubstitution() : _termMap(nullptr), _nextUnboundAvailable(0) {}
 
-  SubstIterator matches(Literal* base, int baseIndex,
-	  Literal* instance, int instanceIndex, bool complementary);
-  SubstIterator unifiers(Literal* l1, int l1Index, Literal* l2, int l2Index, bool complementary);
 
-  bool unify(TermList t1,int index1, TermList t2, int index2, MismatchHandler* hndlr=0);
+  // TODO iterator must return constraints as well
+  SubstIterator matches(Literal* base, int baseIndex,
+	  Literal* instance, int instanceIndex, bool complementary, MismatchHandler const&);
+  SubstIterator unifiers(Literal* l1, int l1Index, Literal* l2, int l2Index, bool complementary, MismatchHandler const&);
+
+  bool unify(TermList t1,int index1, TermList t2, int index2, MismatchHandler const& hndlr, Stack<UnificationConstraint>& constraints);
   bool match(TermList base,int baseIndex, TermList instance, int instanceIndex);
 
-  bool unifyArgs(Term* t1,int index1, Term* t2, int index2, MismatchHandler* hndlr=0);
+  bool unifyArgs(Term* t1,int index1, Term* t2, int index2, MismatchHandler const& hndlr, Stack<UnificationConstraint> & constr);
   bool matchArgs(Term* base,int baseIndex, Term* instance, int instanceIndex);
 
   void denormalize(const Renaming& normalizer, int normalIndex, int denormalizedIndex);
@@ -206,6 +209,7 @@ public:
    }
   };
 
+  bool introduceConstraint(TermSpec t1, TermSpec t2, MismatchHandler const& handler);
 private:
   /** Copy constructor is private and without a body, because we don't want any. */
   RobSubstitution(const RobSubstitution& obj);
@@ -224,7 +228,7 @@ private:
   void bindVar(const VarSpec& var, const VarSpec& to);
   VarSpec root(VarSpec v) const;
   bool match(TermSpec base, TermSpec instance);
-  bool unify(TermSpec t1, TermSpec t2,MismatchHandler* hndlr);
+  bool unify(TermSpec t1, TermSpec t2, MismatchHandler const& hndlr, Stack<UnificationConstraint>& constrains);
   bool occurs(VarSpec vs, TermSpec ts);
 
   inline
@@ -282,7 +286,7 @@ private:
 
   template<class Fn>
   SubstIterator getAssocIterator(RobSubstitution* subst,
-    Literal* l1, int l1Index, Literal* l2, int l2Index, bool complementary);
+    Literal* l1, int l1Index, Literal* l2, int l2Index, bool complementary, MismatchHandler const& h);
 
   template<class Fn>
   struct AssocContext;

@@ -333,15 +333,20 @@ namespace Indexing
           if (n->parent) {
             BacktrackData btData;
             _subst->bdRecord(btData);
+            MismatchHandler h;
+            Stack<UnificationConstraint> c;
             if (_subst->unify(n->parent->term,
                               n->parent->substIndex,
                               n->term,
-                              n->substIndex)) {
+                              n->substIndex,
+                              h, c)) {
+              ASS(c.isEmpty())
               _substChanges.push(btData);
               _currentDepth++;
               ASS_EQ(_currentDepth, _substChanges.size());
               _subst->bdDone();
             } else {
+              ASS(c.isEmpty())
               _subst->bdDone();
               ASS(btData.isEmpty());
               // unification can fail because the term indexing

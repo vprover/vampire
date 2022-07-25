@@ -20,6 +20,7 @@
 
 #include "InferenceEngine.hpp"
 #include "Shell/Options.hpp"
+#include "Kernel/MismatchHandler.hpp"
 
 namespace Inferences {
 
@@ -34,12 +35,17 @@ public:
   CLASS_NAME(EqualityResolution);
   USE_ALLOCATOR(EqualityResolution);
 
+  EqualityResolution(MismatchHandler const& handler) 
+    : _handler(handler) 
+  {}
+
   ClauseIterator generateClauses(Clause* premise);
   static Clause* tryResolveEquality(Clause* cl, Literal* toResolve);
 private:
   struct ResultFn;
   struct IsNegativeEqualityFn;
 
+  MismatchHandler const& _handler;
 };
 
 
