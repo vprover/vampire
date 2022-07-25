@@ -23,7 +23,6 @@
 
 #include "Lib/Allocator.hpp"
 #include "Lib/Event.hpp"
-#include "Lib/InverseLookup.hpp"
 #include "Lib/Metaiterators.hpp"
 #include "Lib/Reflection.hpp"
 #include "Lib/Stack.hpp"
@@ -148,7 +147,6 @@ public:
     ASS(s >= 0);
     ASS(s <= _length);
     _numSelected = s;
-    notifyLiteralReorder();
   }
 
   /** Return the weight */
@@ -200,8 +198,17 @@ public:
 
   bool skip() const;
 
-  unsigned getLiteralPosition(Literal* lit);
-  void notifyLiteralReorder();
+  /**
+   * Return index of @b lit in the clause
+   *
+   * @b lit has to be present in the clause
+   */
+  unsigned getLiteralPosition(Literal* lit) {
+    for(unsigned i = 0; i < length(); i++)
+      if(literals()[i] == lit)
+        return i;
+    ASSERTION_VIOLATION;
+  }
 
   bool shouldBeDestroyed();
   void destroyIfUnnecessary();
@@ -246,7 +253,13 @@ public:
 
   VirtualIterator<unsigned> getVariableIterator();
 
-  bool contains(Literal* lit);
+  bool contains(Literal* lit) {
+    for (unsigned i = 0; i < length(); i++)
+      if (_literals[i] == lit)
+        return true;
+    return false;
+  }
+
 #if VDEBUG
   void assertValid();
 #endif
@@ -385,8 +398,6 @@ protected:
   unsigned _refCnt;
   /** for splitting: timestamp marking when has the clause been reduced or restored by splitting */
   unsigned _reductionTimestamp;
-  /** a map that translates Literal* to its index in the clause */
-  InverseLookup<Literal>* _literalPositions;
 
   int _numActiveSplits;
 
@@ -397,8 +408,6 @@ protected:
 #if VDEBUG
   static bool _auxInUse;
 #endif
-
-//#endif
 
   /** Array of literals of this unit */
   Literal* _literals[1];

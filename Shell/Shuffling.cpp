@@ -134,8 +134,6 @@ void Shuffling::shuffle(Clause* clause)
   shuffleArray(clause->literals()+s,clause->length()-s);
 
   // literals must be shared in typical clauses (I think), so let's not even try shuffling them
-
-  clause->notifyLiteralReorder();
 }
 
 // iterative implementation of shuffling Formula* / Literal* / TermList

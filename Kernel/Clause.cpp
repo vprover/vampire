@@ -72,7 +72,6 @@ Clause::Clause(unsigned length,const Inference& inf)
     _weightForClauseSelection(0),
     _refCnt(0),
     _reductionTimestamp(0),
-    _literalPositions(0),
     _numActiveSplits(0),
     _auxTimestamp(0)
 {
@@ -121,10 +120,6 @@ void Clause::operator delete(void* ptr,unsigned length)
 
 void Clause::destroyExceptInferenceObject()
 {
-  if (_literalPositions) {
-    delete _literalPositions;
-  }
-
   RSTAT_CTR_INC("clauses deleted");
 
   //We have to get sizeof(Clause) + (_length-1)*sizeof(Literal*)
@@ -709,82 +704,12 @@ unsigned Clause::numPositiveLiterals()
   return count;
 }
 
-/**
- * Return index of @b lit in the clause
- *
- * @b lit has to be present in the clause
- */
-unsigned Clause::getLiteralPosition(Literal* lit)
-{
-  switch(length()) {
-  case 1:
-    ASS_EQ(lit,(*this)[0]);
-    return 0;
-  case 2:
-    if (lit==(*this)[0]) {
-      return 0;
-    } else {
-      ASS_EQ(lit,(*this)[1]);
-      return 1;
-    }
-  case 3:
-    if (lit==(*this)[0]) {
-      return 0;
-    } else if (lit==(*this)[1]) {
-      return 1;
-    } else {
-      ASS_EQ(lit,(*this)[2]);
-      return 2;
-    }
 #if VDEBUG
-  case 0:
-    ASSERTION_VIOLATION;
-#endif
-  default:
-    if (!_literalPositions) {
-      _literalPositions=new InverseLookup<Literal>(_literals,length());
-    }
-    return static_cast<unsigned>(_literalPositions->get(lit));
-  }
-}
-
-/**
- * This method should be called when literals of the clause are
- * reordered (e.g. after literal selection), so that the information
- * about literal positions can be updated.
- */
-void Clause::notifyLiteralReorder()
-{
-  CALL("Clause::notifyLiteralReorder");
-  if (_literalPositions) {
-    _literalPositions->update(_literals);
-  }
-}
-
-#if VDEBUG
-
 void Clause::assertValid()
 {
   ASS_ALLOC_TYPE(this, "Clause");
-  if (_literalPositions) {
-    unsigned clen=length();
-    for (unsigned i = 0; i<clen; i++) {
-      ASS_EQ(getLiteralPosition((*this)[i]),i);
-    }
-  }
 }
-
 #endif
-
-bool Clause::contains(Literal* lit)
-{
-  for (int i = _length-1; i >= 0; i--) {
-    if (_literals[i]==lit) {
-      return true;
-    }
-  }
-  return false;
-}
 
 std::ostream& operator<<(std::ostream& out, Clause::Store const& store) 
 {

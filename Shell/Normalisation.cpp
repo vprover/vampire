@@ -111,7 +111,6 @@ void Normalisation::normalise (Unit* unit)
     clause[i] = srt[i];
   }
 
-  clause.notifyLiteralReorder();
   return;
 } // Normalisation::normalise(Unit*)
 
