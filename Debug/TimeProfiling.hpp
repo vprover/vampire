@@ -40,6 +40,12 @@ namespace Shell {
  * end of a program execution, that presents the sum of all the runtimes a node was encountered on
  * any branch of the tree.
  *
+ * It is important to note that calls to this macro may preform allocations (i.e. the first time
+ * when it is called on a certain level of the trace tree). Therefore it should be avoided in
+ * recursive functions.
+ * Further it should be noted that the macro introduces some overhead, hence it should also be
+ * avoided to be used in parts of the codebase that are called very often and only perform short
+ * tasks.
  * ```
  */
 #define TIME_TRACE(name)                                                                            \
@@ -80,7 +86,7 @@ namespace Shell {
  */
 class TimeTrace
 {
-  using Clock = std::chrono::high_resolution_clock;
+  using Clock = std::chrono::steady_clock;
   using Duration = typename Clock::duration;
   using TimePoint = typename Clock::time_point;
 
