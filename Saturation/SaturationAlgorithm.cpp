@@ -1659,10 +1659,10 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
     SET_ORD_STATE(Kernel::LaLpo, [](auto& o) -> decltype(auto) { return o; })
     SET_ORD_STATE(TimeTraceOrdering<Kernel::QKbo>, [](auto& o) -> decltype(auto) { return o.inner(); })
     SET_ORD_STATE(TimeTraceOrdering<Kernel::LaLpo>, [](auto& o) -> decltype(auto) { return o.inner(); })
-    // if (env.options->lascaDemodulation()) { // TODO
+    if (env.options->lascaDemodulation()) {
       res->addForwardSimplifierToFront(new LASCA::FwdDemodulationModLA(shared));
       res->addBackwardSimplifierToFront(new LASCA::BwdDemodulationModLA(shared));
-    // }
+    }
     // TODO properly create an option for that, make it a simplifying rule
     ise->addFront(new LASCA::Normalization(shared)); 
     sgi->push(new LASCA::InequalityTautologyDetection(shared));
