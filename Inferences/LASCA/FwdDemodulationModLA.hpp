@@ -19,33 +19,7 @@
 #include "Forwards.hpp"
 
 #include "Inferences/LASCA/DemodulationModLA.hpp"
-#include "Indexing/TermIndex.hpp"
-
-namespace Indexing {
-
-class FwdDemodulationModLAIndex
-: public TermIndex<>
-{
-  using TermIndex = Indexing::TermIndex<>;
-  using TermIndexingStructure = Indexing::TermIndexingStructure<>;
-public:
-  CLASS_NAME(FwdDemodulationModLAIndex);
-  USE_ALLOCATOR(FwdDemodulationModLAIndex);
-
-  FwdDemodulationModLAIndex(TermIndexingStructure* is)
-    : TermIndex(is) {}
-
-  void setShared(shared_ptr<Kernel::LascaState> shared) { _shared = std::move(shared); }
-// protected:
-  void handleClause(Clause* cl, bool adding) final override;
-private:
-  template<class NumTraits> void handle(Clause* cl, Literal* lit, LascaLiteral<NumTraits> norm, bool add);
-                            void handle(Clause* cl, Literal* lit, LascaLiteral<IntTraits> norm, bool add) { /* do nothing */ }
-
-  shared_ptr<Kernel::LascaState> _shared;
-};
-
-} // namespace Indexing
+#include "Indexing/LascaIndex.hpp"
 
 
 namespace Inferences {
@@ -58,6 +32,8 @@ using namespace Saturation;
 class FwdDemodulationModLA
 : public ForwardSimplificationEngine
 {
+  using Rhs = DemodulationModLA::Rhs;
+  using Lhs = DemodulationModLA::Lhs;
 public:
   CLASS_NAME(FwdDemodulationModLA);
   USE_ALLOCATOR(FwdDemodulationModLA);
@@ -79,7 +55,8 @@ public:
 
 private:
   shared_ptr<LascaState> _shared;
-  FwdDemodulationModLAIndex* _index;
+  // FwdDemodulationModLAIndex* _index;
+  LascaIndex<DemodulationModLA::Lhs>* _index;
 };
 
 } // namespaceLASCA 

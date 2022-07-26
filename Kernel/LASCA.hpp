@@ -652,6 +652,10 @@ namespace Kernel {
     }
 
     template<class LitOrTerm>
+    bool greater(LitOrTerm lhs, LitOrTerm rhs)
+    { return ordering->compare(lhs, rhs) == Ordering::Result::GREATER; }
+
+    template<class LitOrTerm>
     bool notLess(LitOrTerm lhs, LitOrTerm rhs)
     { return OrderingUtils2::notLess(ordering->compare(lhs, rhs)); }
 
@@ -676,13 +680,24 @@ namespace Kernel {
     auto maxEqIndices(Literal* lit, SelectionCriterion sel)
     {
       Stack<unsigned> is(2);
-      auto iter = [](Stack<unsigned> out)  
-                  { return iterTraits(ownedArrayishIterator(std::move(out))); };
+      auto iter = [](std::initializer_list<unsigned> out)  
+                  { return iterTraits(ownedArrayishIterator(Stack<unsigned>(out))); };
       switch (sel) {
+        case SelectionCriterion::STRICTLY_MAX:
+          switch (ordering->compare(lit->termArg(0), lit->termArg(1))) {
+            case Ordering::Result::GREATER: return iter({0});
+            case Ordering::Result::LESS:    return iter({1});
+
+            case Ordering::Result::LESS_EQ:
+            case Ordering::Result::GREATER_EQ:
+            case Ordering::Result::EQUAL:
+            case Ordering::Result::INCOMPARABLE: return iter({});
+          }
+
         case SelectionCriterion::ANY:
           return iter({0,1});
 
-        case SelectionCriterion::WEAKLY_MAX:
+        case SelectionCriterion::NOT_LESS:
           switch (ordering->compare(lit->termArg(0), lit->termArg(1))) {
             case Ordering::Result::GREATER: return iter({0});
             case Ordering::Result::LESS:    return iter({1});
@@ -693,13 +708,13 @@ namespace Kernel {
             case Ordering::Result::INCOMPARABLE: return iter({0, 1});
           }
 
-        case SelectionCriterion::STRICTLY_MAX:
+        case SelectionCriterion::NOT_LEQ:
           switch (ordering->compare(lit->termArg(0), lit->termArg(1))) {
             case Ordering::Result::GREATER_EQ:
             case Ordering::Result::GREATER: return iter({0});
             case Ordering::Result::LESS_EQ:
             case Ordering::Result::LESS:    return iter({1});
-            case Ordering::Result::EQUAL:        return iter(Stack<unsigned>());
+            case Ordering::Result::EQUAL:        return iter({});
             case Ordering::Result::INCOMPARABLE: return iter({0, 1});
           }
       }
@@ -717,7 +732,7 @@ namespace Kernel {
         .match(
           [=](AnyLascaLiteral l) -> VirtualIterator<TermList> {
             return std::move(l).apply([=](auto l) -> VirtualIterator<TermList> {
-                return pvi(maxSummandIndices(l, SelectionCriterion::STRICTLY_MAX)
+                return pvi(maxSummandIndices(l, SelectionCriterion::NOT_LEQ)
                          .map([=](auto i) {
                              return l.term().summandAt(i).factors->denormalize();
                          }));
@@ -725,7 +740,7 @@ namespace Kernel {
           },
           [=]() {
             if (l->isEquality()) {
-              return pvi(maxEqIndices(l, SelectionCriterion::STRICTLY_MAX)
+              return pvi(maxEqIndices(l, SelectionCriterion::NOT_LEQ)
                 .map([=](auto i) { return l->termArg(i); }));
             } else {
                 return pvi(termArgIter(l));

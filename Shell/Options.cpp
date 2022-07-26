@@ -1230,6 +1230,20 @@ void Options::init()
     _lasca.onlyUsefulWith2(_highSchool.is(equal(false)));
     _lasca.onlyUsefulWith2(_unificationWithAbstraction.is(Or(equal(UnificationWithAbstraction::LASCA1), equal(UnificationWithAbstraction::LASCA2), equal(UnificationWithAbstraction::LASCA3))));
 
+    // _lasca  = BoolOptionValue("lasca","lasca",false);
+    // _lasca.description= "Enables the Linear Arithmetic Superposition CAlculus\n";
+    // _lookup.insert(&_lasca);
+    // _lasca.tag(OptionTag::INFERENCES);
+    // _lasca.setExperimental();
+    // _lasca.onlyUsefulWith2(Or(
+    //        _termOrdering.is(equal(TermOrdering::LALPO)),
+    //        _termOrdering.is(equal(TermOrdering::QKBO))
+    //        ));
+    // _lasca.onlyUsefulWith2(_cancellation.is(equal(ArithmeticSimplificationMode::OFF)));
+    // // _lasca.onlyUsefulWith2(_evaluationMode.is(equal(EvaluationMode::POLYNOMIAL_FORCE)));
+    // _lasca.onlyUsefulWith2(_highSchool.is(equal(false)));
+    // _lasca.onlyUsefulWith2(_unificationWithAbstraction.is(Or(equal(UnificationWithAbstraction::LASCA1), equal(UnificationWithAbstraction::LASCA2), equal(UnificationWithAbstraction::LASCA3))));
+
     _lascaStrongNormalization  = BoolOptionValue("lasca_strong_normalziation","lasca_sn",true);
     _lascaStrongNormalization.description=
             "enables stronger normalizations for inequalities: \n"

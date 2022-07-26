@@ -19,31 +19,7 @@
 #include "Forwards.hpp"
 
 #include "Inferences/LASCA/DemodulationModLA.hpp"
-#include "Indexing/TermIndex.hpp"
-
-namespace Indexing {
-
-class BwdDemodulationModLAIndex
-: public TermIndex<>
-{
-  using TermIndex = Indexing::TermIndex<>;
-  using TermIndexingStructure = Indexing::TermIndexingStructure<>;
-public:
-  CLASS_NAME(BwdDemodulationModLAIndex);
-  USE_ALLOCATOR(BwdDemodulationModLAIndex);
-
-  BwdDemodulationModLAIndex(TermIndexingStructure* is)
-    : TermIndex(is) {}
-
-  void setShared(shared_ptr<Kernel::LascaState> shared) { _shared = std::move(shared); }
-// protected:
-  void handleClause(Clause* c, bool adding) final override;
-private:
-  shared_ptr<Kernel::LascaState> _shared;
-};
-
-} // namespace Indexing
-
+#include "Indexing/LascaIndex.hpp"
 
 namespace Inferences {
 namespace LASCA {
@@ -55,6 +31,8 @@ using namespace Saturation;
 class BwdDemodulationModLA
 : public BackwardSimplificationEngine
 {
+  using Rhs = DemodulationModLA::Rhs;
+  using Lhs = DemodulationModLA::Lhs;
 public:
   CLASS_NAME(BwdDemodulationModLA);
   USE_ALLOCATOR(BwdDemodulationModLA);
@@ -76,7 +54,7 @@ public:
 
 private:
   shared_ptr<LascaState> _shared;
-  BwdDemodulationModLAIndex* _index;
+  LascaIndex<Rhs>* _index;
 };
 
 } // namespaceLASCA 

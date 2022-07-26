@@ -45,59 +45,111 @@ public:
   // where
   // • sσ ≻ tσ 
   // • C[sσ] ≻ (±ks + t ≈ 0)σ
- 
-  template<class NumTraits, class Sigma> 
-  static Option<Clause*> apply(
-                        LascaState& shared,
-                        Clause* Hyp1,                    // <- { ±ks + t ≈ 0 }
-                        Clause* C,                       // <- C[sσ]
-                        LascaLiteral<NumTraits> ks_t, // <- ±ks + t ≈ 0
-                        TermList s,
-                        Perfect<MonomFactors<NumTraits>> s_norm,
-                        Sigma sigma);
 
-  template<class Sigma> 
-  static Option<Clause*> apply(
-                        LascaState& shared,
-                        Clause* Hyp1,                    // <- { ±ks + t ≈ 0 }
-                        Clause* C,                       // <- C[sσ]
-                        LascaLiteral<IntTraits> ks_t, // <- ±ks + t ≈ 0
-                        TermList s,
-                        Perfect<MonomFactors<IntTraits>> s_norm,
-                        Sigma sigma)
-  { ASSERTION_VIOLATION }
+  struct Lhs : public SelectedEquality {
+    Lhs(SelectedEquality self) : SelectedEquality(std::move(self)) {}
 
-  struct SimplifyablePosition {
-    Literal* lit;
-    TermList term;
+    static auto iter(LascaState& shared, Clause* simplifyWith) {
+      return iterTraits(getSingletonIterator(simplifyWith))
+        .filter([](Clause* cl) { return cl->size() == 1 && (*cl)[0]->isEquality() && (*cl)[0]->isPositive(); })
+        .flatMap([&](Clause* cl) 
+            { return shared.selectedEqualities(cl, 
+                /* literals */ SelectionCriterion::ANY, 
+                /* terms */    SelectionCriterion::STRICTLY_MAX,
+                /* unshielded vars */ false); })
+        .map([](auto x) { return Lhs(std::move(x)); });
+    }
   };
 
-  static auto simplifyablePositions(LascaState& shared, Clause* toSimplify) 
-  {
-    CALL("BwdDemodulationModLAIndex::handleClause");
-  
-    return iterTraits(toSimplify->iterLits())
-      .flatMap([](Literal* lit) {
+  struct Rhs  {
+    TermList term;
+    Clause* clause;
+    auto key() const { return term; }
+    auto sort() const { return SortHelper::getResultSort(term.term()); }
+    auto asTuple() const { return std::tie(term, clause); }
+    IMPL_COMPARISONS_FROM_TUPLE(Rhs)
 
-        return pvi(iterTraits(vi(new SubtermIterator(lit)))
-          .filter([](TermList t) {
-            if (t.isTerm()) {
-              auto term = t.term();
-              return forAnyNumTraits([&](auto numTraits){
-                  using NumTraits = decltype(numTraits);
-                  return SortHelper::getResultSort(term) == NumTraits::sort()
-                      && !NumTraits::isNumeral(term)
-                      && !(NumTraits::mulF() == term->functor() && NumTraits::isNumeral(*term->nthArgument(0)) );
-                              // ^^^ term = k * t
-              });
-            } else {
-              return false; 
-            }
-          })
-          .map([lit](TermList term) 
-                     { return SimplifyablePosition { .lit = lit, .term = term, }; }));
-      });
-  }
+    friend std::ostream& operator<<(std::ostream& out, Rhs const& self)
+    { return out << self.clause << "[ " << self.term << " ]"; }
+
+    static auto iter(LascaState& shared, Clause* cl) 
+    {
+      return iterTraits(cl->iterLits())
+        .flatMap([cl](Literal* lit) {
+
+          return pvi(iterTraits(vi(new SubtermIterator(lit)))
+              // TODO filter our things that can never be rewritten 
+            // .filter([](TermList t) {
+            //   if (t.isTerm()) {
+            //     auto term = t.term();
+            //     return forAnyNumTraits([&](auto numTraits){
+            //         using NumTraits = decltype(numTraits);
+            //         return SortHelper::getResultSort(term) == NumTraits::sort()
+            //             && !NumTraits::isNumeral(term)
+            //             && !(NumTraits::mulF() == term->functor() && NumTraits::isNumeral(*term->nthArgument(0)) );
+            //                     // ^^^ term = k * t
+            //     });
+            //   } else {
+            //     return false; 
+            //   }
+            // })
+            .filter([](TermList t) { return t.isTerm(); })
+            .map([=](TermList t) { return Rhs { .term = t, .clause = cl, }; }));
+        });
+
+    }
+  };
+
+ 
+  template<class Sigma> 
+  static Option<Clause*> apply(
+                      LascaState& shared,
+                      Lhs lhs,               // <- { ±ks + t ≈ 0 }
+                      Rhs rhs,                    // <- C[sσ]
+                      Sigma sigma);
+
+  // template<class Sigma> 
+  // static Option<Clause*> apply(
+  //                       LascaState& shared,
+  //                       Clause* Hyp1,                    // <- { ±ks + t ≈ 0 }
+  //                       Clause* C,                       // <- C[sσ]
+  //                       LascaLiteral<IntTraits> ks_t, // <- ±ks + t ≈ 0
+  //                       TermList s,
+  //                       Perfect<MonomFactors<IntTraits>> s_norm,
+  //                       Sigma sigma)
+  // { ASSERTION_VIOLATION }
+
+  // struct SimplifyablePosition {
+  //   Literal* lit;
+  //   TermList term;
+  // };
+
+  // static auto simplifyablePositions(LascaState& shared, Clause* toSimplify) 
+  // {
+  //   CALL("BwdDemodulationModLAIndex::handleClause");
+  //
+  //   return iterTraits(toSimplify->iterLits())
+  //     .flatMap([](Literal* lit) {
+  //
+  //       return pvi(iterTraits(vi(new SubtermIterator(lit)))
+  //         .filter([](TermList t) {
+  //           if (t.isTerm()) {
+  //             auto term = t.term();
+  //             return forAnyNumTraits([&](auto numTraits){
+  //                 using NumTraits = decltype(numTraits);
+  //                 return SortHelper::getResultSort(term) == NumTraits::sort()
+  //                     && !NumTraits::isNumeral(term)
+  //                     && !(NumTraits::mulF() == term->functor() && NumTraits::isNumeral(*term->nthArgument(0)) );
+  //                             // ^^^ term = k * t
+  //             });
+  //           } else {
+  //             return false; 
+  //           }
+  //         })
+  //         .map([lit](TermList term) 
+  //                    { return SimplifyablePosition { .lit = lit, .term = term, }; }));
+  //     });
+  // }
 
   // ±ks + t ≈ 0          C[sσ]
   // ============================
@@ -115,33 +167,31 @@ public:
 
   using AnySimplification = Coproduct<Simplification<RatTraits>, Simplification<RealTraits>>;
 
-  template<class NumTraits>
-  static auto __simplifiers(LascaState& shared, Clause* simplifyWith, LascaLiteral<NumTraits> lit)
-  {
-
-    return pvi(iterTraits(ownedArrayishIterator(shared.selectedTerms(lit, /* strictlyMax */ true)))
-      .map([lit](auto monom) { 
-          return AnySimplification(Simplification<NumTraits> {
-            // .clause = simplifyWith,
-            .lit    = lit,
-            .monom  = monom,
-          });
-      }));
-  }
-
-
-  static auto __simplifiers(LascaState& shared, Clause* simplifyWith, LascaLiteral<IntTraits> lit)
-  { return pvi(VirtualIterator<AnySimplification>::getEmpty()); }
+  // template<class NumTraits>
+  // static auto __simplifiers(LascaState& shared, Clause* simplifyWith, LascaLiteral<NumTraits> lit)
+  // {
+  //   return pvi(iterTraits(ownedArrayishIterator(shared.maxSummandIndices(lit, SelectionCriterion::STRICTLY_MAX)))
+  //     .map([lit](auto monom) { 
+  //         return AnySimplification(Simplification<NumTraits> {
+  //           // .clause = simplifyWith,
+  //           .lit    = lit,
+  //           .monom  = monom,
+  //         });
+  //     }));
+  // }
+  //
+  //
+  // static auto __simplifiers(LascaState& shared, Clause* simplifyWith, LascaLiteral<IntTraits> lit)
+  // { return pvi(VirtualIterator<AnySimplification>::getEmpty()); }
 
   static auto simplifiers(LascaState& shared, Clause* simplifyWith) {
     return iterTraits(getSingletonIterator(simplifyWith))
       .filter([](Clause* cl) { return cl->size() == 1 && (*cl)[0]->isEquality() && (*cl)[0]->isPositive(); })
-      .filterMap([&](Clause* simplifyWith) 
-          { return shared.renormalize((*simplifyWith)[0]); })
-      .flatMap([&shared, simplifyWith](AnyLascaLiteral lit) {
-          return lit.apply([&shared, simplifyWith](auto lit) 
-              { return __simplifiers(shared, simplifyWith, lit); });
-      });
+      .flatMap([&](Clause* cl) 
+          { return shared.selectedEqualities(cl, 
+              /* literals */ SelectionCriterion::ANY, 
+              /* terms */    SelectionCriterion::STRICTLY_MAX,
+              /* unshielded vars */ false); });
   }
 
 
@@ -158,79 +208,41 @@ public:
 // • sσ ≻ tσ 
 // • C[sσ] ≻ (±ks + t ≈ 0)σ
 //
-template<class NumTraits, class Sigma> 
+template<class Sigma> 
 Option<Clause*> DemodulationModLA::apply(
                       LascaState& shared,
-                      Clause* C,                  // <- C[sσ]
-                      Clause* Hyp1,               // <- { ±ks + t ≈ 0 }
-                      LascaLiteral<NumTraits> ks_t, // <- ±ks + t ≈ 0
-                      TermList s,
-                      Perfect<MonomFactors<NumTraits>> s_norm,
+                      Lhs lhs,  // <- { ±ks + t ≈ 0 }
+                      Rhs rhs,  // <- C[sσ]
                       Sigma sigma)
 {
             
   auto nothing = [&]() { return Option<Clause*>(); };
-  ASS(Hyp1->size() == 1)
-  ASS((*Hyp1)[0]->isEquality())
-  ASS((*Hyp1)[0]->isPositive())
+  ASS(lhs.clause()->size() == 1)
+  ASS(lhs.literal()->isEquality())
+  ASS(lhs.literal()->isPositive())
+  ASS(sigma(lhs.biggerSide()) == rhs.term)
 
-  auto k = ks_t.term().iterSummands()
-             .find([&](auto monom) { return monom.factors == s_norm; })
-             .unwrap().numeral;
-
-  auto replacement =  // <- (∓ (1/k) t)σ
-    NumTraits::sum( 
-      ks_t.term().iterSummands()
-       .filter([&](auto monom) { return monom.factors != s_norm; })
-       .map([&](auto monom) { return (monom / -k).denormalize(); }));
-
-  auto s_sigma = sigma(s);
-  // checking `sσ ≻ (∓ (1/k) t)σ` and applying sigma to replacement
-  {
-    FormulaVarIterator vars(&replacement);
-    while (vars.hasNext()) {
-      if (!s.isFreeVariable(vars.next())) {
-        // if we have a variable `x` s.t. 
-        // `x subtermeq t`, and `x not subtermeq s`
-        // then `sσ /≻ tσ`, since `σ` is an mgu, hence 
-        // it does not map `x`, and `tσ[x -> sσ] ≻ sσ == sσ[x -> sσ]` 
-        // due to the subterm property.
-        // Hence `sσ /≻ tσ` due to substitutability
-        //
-        // We need this property because of the technical problem, that 
-        // cannot apply the substitution sigma to replacement if it 
-        // contains variables that are not in `s` (this could also be fixed 
-        // changing the implementation of subsitutions, but proving this 
-        // property is easier ;) )
-        return nothing();
-      }
-    }
-
-    replacement = sigma(replacement);
-
-    if (shared.ordering->compare(s_sigma, replacement) != Ordering::GREATER) {
-      return nothing();
-    }
-  }
-     
+  // TODO i think this assertion always holds due to the QKBO properties on the ground level, but the impl might return incomparable if the lifting's too weak
+  // ASS_REP(shared.ordering->compare(lhs.biggerSide(), lhs.smallerSide()) == Ordering::Result::GREATER, lhs)
 
   // checking `C[sσ] ≻ (±ks + t ≈ 0)σ`
   {
-    auto ks_t_sigma = sigma((*Hyp1)[0]);
-    auto greater = iterTraits(C->iterLits())
+    auto lhs_sigma = sigma(lhs.literal());
+    auto greater = iterTraits(rhs.clause->iterLits())
       .any([&](auto lit) 
-          { return Ordering::Result::GREATER == shared.ordering->compare(lit, ks_t_sigma); });
+          { return shared.greater(lit, lhs_sigma); });
     if (!greater)  {
       return nothing();
     }
-    
   }
 
-  auto lits = iterTraits(C->iterLits())
-    .map([&](auto lit) { return EqHelper::replace(lit, s_sigma, replacement); })
+  auto replacement = sigma(lhs.smallerSide());
+
+  auto lits = iterTraits(rhs.clause->iterLits())
+    .map([&](auto lit) { return EqHelper::replace(lit, rhs.term, replacement); })
     .template collect<Stack>();
 
-  Inference inf(SimplifyingInference2(Kernel::InferenceRule::LASCA_FWD_DEMODULATION, Hyp1, C));
+  Inference inf(SimplifyingInference2(Kernel::InferenceRule::LASCA_FWD_DEMODULATION, lhs.clause(), rhs.clause));
   return Option<Clause*>(Clause::fromStack(lits, inf));
 }
 

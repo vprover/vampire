@@ -68,8 +68,8 @@ public:
     static auto iter(LascaState& shared, Clause* cl)
     {
       CALL("LASCA::Superposition::Lhs::iter")
-      return shared.selectedEqualities(cl, /* literal */ SelectionCriterion::STRICTLY_MAX, 
-                                           /* terms   */ SelectionCriterion::STRICTLY_MAX,
+      return shared.selectedEqualities(cl, /* literal */ SelectionCriterion::NOT_LEQ, 
+                                           /* terms   */ SelectionCriterion::NOT_LEQ,
                                            /* include number vars */ false)
              .filter([](auto x) { return x.literal()->isPositive(); })
              .map([](auto x) { return Lhs(std::move(x)); });
@@ -102,8 +102,8 @@ public:
       CALL("LASCA::Superposition::Rhs::iter")
       using Out = Rhs;
       return shared.selectedActivePositions(cl, 
-          /* literals */ SelectionCriterion::WEAKLY_MAX, 
-          /* terms    */ SelectionCriterion::STRICTLY_MAX,
+          /* literals */ SelectionCriterion::NOT_LESS, 
+          /* terms    */ SelectionCriterion::NOT_LEQ,
           /* include number vars */ false)
         .flatMap([&](auto sel_lit) -> VirtualIterator<Out> {
            auto tup = sel_lit.match(

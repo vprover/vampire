@@ -40,7 +40,6 @@ public:
 
   void setShared(shared_ptr<Kernel::LascaState> shared) { _shared = std::move(shared); }
 
-  // void setShared(shared_ptr<Kernel::LascaState> shared) { _shared = std::move(shared); }
   // TODO remove?!
   auto find(TermList key)
   { 
@@ -50,6 +49,12 @@ public:
            { return std::tuple<T, UwaResult>( std::move(r.data()), UwaResult(r));  })
       .timeTraced("lasca index lookup"); }
 
+
+  auto generalizations(TermList key, bool retrieveSubstitutions = true)
+  { return iterTraits(_index.getGeneralizations(key, retrieveSubstitutions)); }
+
+  auto instances(TermList key, bool retrieveSubstitutions = true)
+  { return iterTraits(_index.getInstances(key, retrieveSubstitutions)); }
 
   virtual void handleClause(Clause* c, bool adding) final override 
   {

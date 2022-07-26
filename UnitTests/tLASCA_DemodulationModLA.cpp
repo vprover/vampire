@@ -59,13 +59,13 @@ FwdDemodulationModLA* testFwdDemodulationModLA     ()
 { return new FwdDemodulationModLA(testLascaState(UWA_MODE)); }
 
 Indexing::Index* testFwdDemodulationModLAIndex() 
-{ return new FwdDemodulationModLAIndex(new TermSubstitutionTree<>(UWA_MODE, /* useC = */ true)); }
+{ return new LascaIndex<DemodulationModLA::Lhs>(UWA_MODE); }
 
 BwdDemodulationModLA* testBwdDemodulationModLA     () 
 { return new BwdDemodulationModLA(testLascaState(UWA_MODE)); }
 
 Indexing::Index* testBwdDemodulationModLAIndex() 
-{ return new BwdDemodulationModLAIndex(new TermSubstitutionTree<>(UWA_MODE, /* useC = */ true)); }
+{ return new LascaIndex<DemodulationModLA::Rhs>(UWA_MODE); }
 
 BUILDER_SET_DEFAULT(FwdBwdSimplification::TestCase, fwd   ,   testFwdDemodulationModLA     ()  );
 BUILDER_SET_DEFAULT(FwdBwdSimplification::TestCase, fwdIdx, { testFwdDemodulationModLAIndex() });

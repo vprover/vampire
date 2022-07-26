@@ -8,37 +8,13 @@ using Demod = Inferences::LASCA::DemodulationModLA;
 // INDEXING
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-namespace Indexing {
-
-void FwdDemodulationModLAIndex::handleClause(Clause* cl, bool add)
-{
-  CALL("FwdDemodulationModLAIndex::handleClause");
-  DEBUG("handling: ", *cl);
-  for (auto simplifier : Demod::simplifiers(*_shared, cl)) {
-    simplifier.apply([&](auto simplifier){
-       auto term = simplifier.monom.factors->denormalize();
-       auto lit = (*cl)[0];
-      if (add) {
-        DEBUG("\tinserting: ", term);
-        _is->insert(DefaultTermLeafData(term, lit, cl));
-      } else {
-        DEBUG("\tremoving: ", term);
-        _is->remove(DefaultTermLeafData(term, lit, cl));
-      }
-    });
-  }
-}
-
-} // namespace Indexing
-
-
 namespace Inferences {
 namespace LASCA {
 
 #if VDEBUG
 void FwdDemodulationModLA::setTestIndices(Stack<Indexing::Index*> const& indices) 
 {
-  _index = (FwdDemodulationModLAIndex*) indices[0]; 
+  _index = (decltype(_index)) indices[0]; 
   _index->setShared(_shared);
 }
 #endif
@@ -48,8 +24,8 @@ void FwdDemodulationModLA::attach(SaturationAlgorithm* salg)
   ASS(!_index);
 
   this->ForwardSimplificationEngine::attach(salg);
-  _index=static_cast<FwdDemodulationModLAIndex*> (
-	  _salg->getIndexManager()->request(LASCA_FWD_DEMODULATION_SUBST_TREE) );
+  _index=static_cast<decltype(_index)> (
+	  _salg->getIndexManager()->request(LASCA_FWD_DEMODULATION_SUBST_TREE));
   _index->setShared(_shared);
 }
 
@@ -82,35 +58,15 @@ bool FwdDemodulationModLA::perform(Clause* toSimplify, Clause*& replacement, Cla
 {
   ASS_EQ(replacement, NULL)
   Stack<Literal*> simplified;
-  for (auto pos : Demod::simplifyablePositions(*_shared, toSimplify)) {
-    DEBUG("simplifyable position: ", pos.term, " in ", *pos.lit)
-    auto gen = _index->getGeneralizations(pos.term, /* retrieveSubstitutions */ true);
-    while (gen.hasNext()) {
-      auto res = gen.next();
-      auto applied = _shared->renormalize(res.literal).unwrap()
-        .apply([&](auto lit) {
-            using NumTraits = typename decltype(lit)::NumTraits;
-            auto s = res.term;
-            auto s_norm  = _shared
-              ->normalize(TypedTermList(s, NumTraits::sort()))
-              .template wrapPoly<NumTraits>()
-              ->tryMonom().unwrap().factors; 
-
-
-            auto sigma = [&](auto t) 
-              { return res.substitution ? res.substitution->applyToBoundResult(t)
-                                        : t; };
-
-            auto simplified = Demod::apply(*_shared, toSimplify, res.clause, lit, s, s_norm, sigma);
-            if (simplified.isSome()) {
-              replacement = simplified.unwrap();
-              premises    = pvi(getSingletonIterator(res.clause));
-              return true;
-            } else {
-              return false;
-            }
-        });
-      if (applied) {
+  for (auto rhs : Rhs::iter(*_shared, toSimplify)) {
+    // DEBUG("simplifyable position: ", pos.term, " in ", *pos.lit)
+    for (auto lhs : _index->generalizations(rhs.term)) {
+      auto sigma = [&](auto t) 
+        { return lhs.substitution ? lhs.substitution->applyToBoundResult(t) : t; };
+      auto simplified = DemodulationModLA::apply(*_shared, lhs.data(), rhs, sigma);
+      if (simplified.isSome()) {
+        replacement = simplified.unwrap();
+        premises    = pvi(getSingletonIterator(lhs.clause()));
         return true;
       }
     }

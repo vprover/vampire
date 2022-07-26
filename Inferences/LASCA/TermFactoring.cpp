@@ -252,7 +252,7 @@ ClauseIterator TermFactoring::generateClauses(Clause* premise)
   auto max = make_shared(Stack<TermList>());
   auto selected = make_shared(
         _shared->maxAtoms(premise,
-          SelectionCriterion::WEAKLY_MAX,
+          SelectionCriterion::NOT_LESS,
           /* include number vars */ false)
         .inspect([&](auto& sel) { max->push(sel.atom()); })
         .filterMap([](auto x) -> Option<SelectedSummand> { return x.template as<SelectedSummand>().toOwned(); })

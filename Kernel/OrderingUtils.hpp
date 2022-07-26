@@ -188,8 +188,9 @@ namespace Kernel {
     using MulExtMemo = DArray<Option<Ordering::Result>>;
 
     enum class SelectionCriterion {
+      NOT_LEQ,
+      NOT_LESS,
       STRICTLY_MAX,
-      WEAKLY_MAX,
       ANY,
     };
 
@@ -210,61 +211,86 @@ namespace Kernel {
     }
 
     template<class Cmp>
-    static auto maxElems(unsigned nElems, Cmp cmp_, SelectionCriterion sel) 
+    static auto maxElems(unsigned nElems, Cmp cmp_, SelectionCriterion sel)
     {
       CALL("OrderingUtils::maxElems")
       auto cmpCache = make_shared(Map<std::pair<unsigned, unsigned>, Ordering::Result>());
       return iterTraits(pvi(range(0, nElems)
         .filterMap([=](auto i) {
+          if (sel == SelectionCriterion::ANY) 
+            return some(i);
 
-          switch (sel) {
-            case SelectionCriterion::ANY:
-              return Option<unsigned>(i);
-            case SelectionCriterion::WEAKLY_MAX:
-            case SelectionCriterion::STRICTLY_MAX: {
-              bool strict = sel == SelectionCriterion::STRICTLY_MAX;
-              
-              auto cmp = [=](unsigned l, unsigned r) {
-                ASS_NEQ(l, r)
-                unsigned col = l < r ? l : r;
-                unsigned row = l < r ? r : l;
+          auto cmp = [=](unsigned l, unsigned r) {
+            ASS_NEQ(l, r)
+            unsigned col = l < r ? l : r;
+            unsigned row = l < r ? r : l;
 
 
-                auto idx = std::make_pair(col, row);
-                auto res = cmpCache->getOrInit(idx,
-                    [&]() { 
-                        try { 
-                          return cmp_(col, row); 
-                        } catch (MachineArithmeticException& e) { 
-                          return Ordering::Result::INCOMPARABLE;
-                        } });
+            auto idx = std::make_pair(col, row);
+            auto res = cmpCache->getOrInit(idx,
+                [&]() { 
+                    try { 
+                      return cmp_(col, row); 
+                    } catch (MachineArithmeticException& e) { 
+                      return Ordering::Result::INCOMPARABLE;
+                    } });
 
-                res = l < r ? res : Ordering::reverse(res);
+            res = l < r ? res : Ordering::reverse(res);
 
-                ASS_EQ(res, cmp_(l, r))
-                return res;
-              };
+            ASS_EQ(res, cmp_(l, r))
+            return res;
+          };
 
-              bool isMax = range(0, nElems)
-                .filter([&](auto j) { return i != j; })
-                .all([&](auto j) {
-                  switch (cmp(i, j)) {
-                    case Ordering::Result::INCOMPARABLE: 
-                    case Ordering::Result::GREATER: 
-                      return true;
-                    case Ordering::Result::LESS:
-                      return false;
-                    case Ordering::Result::EQUAL: 
-                      return strict ? false : true;
-                    default:
-                      ASSERTION_VIOLATION
-                  }
-                });
-
-              return isMax ? Option<unsigned>(i) : Option<unsigned>();
+          auto matches = [](SelectionCriterion sel, Ordering::Result res)  {
+            switch(sel) {
+              case SelectionCriterion::ANY: return true;
+              case SelectionCriterion::NOT_LESS:
+                switch(res) {
+                  case Ordering::Result::INCOMPARABLE:
+                  case Ordering::Result::GREATER:
+                  case Ordering::Result::GREATER_EQ:
+                  case Ordering::Result::EQUAL: 
+                    return true;
+                  case Ordering::Result::LESS:
+                  case Ordering::Result::LESS_EQ:
+                    return false;
+                  default:
+                    ASSERTION_VIOLATION
+                }
+              case SelectionCriterion::NOT_LEQ:
+                switch(res) {
+                  case Ordering::Result::INCOMPARABLE:
+                  case Ordering::Result::GREATER:
+                    return true;
+                  case Ordering::Result::GREATER_EQ:
+                  case Ordering::Result::LESS:
+                  case Ordering::Result::LESS_EQ:
+                  case Ordering::Result::EQUAL: 
+                    return false;
+                  default:
+                    ASSERTION_VIOLATION
+                }
+              case SelectionCriterion::STRICTLY_MAX:
+                switch(res) {
+                  case Ordering::Result::GREATER:
+                    return true;
+                  case Ordering::Result::INCOMPARABLE:
+                  case Ordering::Result::GREATER_EQ:
+                  case Ordering::Result::LESS:
+                  case Ordering::Result::LESS_EQ:
+                  case Ordering::Result::EQUAL: 
+                    return false;
+                  default:
+                    ASSERTION_VIOLATION
+                }
             }
-          }
-          ASSERTION_VIOLATION
+          };
+
+          bool isMax = range(0, nElems)
+            .filter([&](auto j) { return i != j; })
+            .all([&](auto j) { return matches(sel, cmp(i,j)); });
+
+          return isMax ? Option<unsigned>(i) : Option<unsigned>();
         })));
     }
 

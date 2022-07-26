@@ -179,8 +179,8 @@ ClauseIterator InequalityFactoring::generateClauses(Clause* premise)
 
     auto selected = make_shared(
         _shared->selectedSummands(premise, 
-                       /* literal */ SelectionCriterion::WEAKLY_MAX, 
-                       /* summand */ SelectionCriterion::STRICTLY_MAX,
+                       /* literal */ SelectionCriterion::NOT_LESS, 
+                       /* summand */ SelectionCriterion::NOT_LEQ,
                        /* include number vars */ false)
           .filter([](auto& s) { return s.isInequality(); })
           .filter([](auto& s) { return s.sign() == Sign::Pos; })
@@ -189,7 +189,7 @@ ClauseIterator InequalityFactoring::generateClauses(Clause* premise)
   auto rest = make_shared(
       _shared->selectedSummands(premise,  
                     /* literal */ SelectionCriterion::ANY, 
-                    /* summand */ SelectionCriterion::STRICTLY_MAX,
+                    /* summand */ SelectionCriterion::NOT_LEQ,
                     /* include number vars */ false)
         .filter([](auto& s) { return s.isInequality(); })
         .filter([](auto& s) { return s.sign() == Sign::Pos; })

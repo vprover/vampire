@@ -1,4 +1,4 @@
-LASCAclude "BwdDemodulationModLA.hpp"
+#include "BwdDemodulationModLA.hpp"
 #include "Saturation/SaturationAlgorithm.hpp"
 
 #define DEBUG(...)  // DBG(__VA_ARGS__)
@@ -8,37 +8,37 @@ using Demod = Inferences::LASCA::DemodulationModLA;
 // INDEXING
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-namespace Indexing {
-
-void BwdDemodulationModLAIndex::handleClause(Clause* toSimplify, bool adding)
-{
-  CALL("BwdDemodulationModLAIndex::handleClause");
-  
-  for (auto pos : Demod::simplifyablePositions(*_shared, toSimplify)) {
-    if (pos.term.isTerm()) {
-      auto term = pos.term.term();
-      auto isRightNumberTerm = forAnyNumTraits([&](auto numTraits){
-          using NumTraits = decltype(numTraits);
-          return SortHelper::getResultSort(term) == NumTraits::sort()
-              && !NumTraits::isNumeral(term)
-              && !(NumTraits::mulF() == term->functor() && NumTraits::isNumeral(*term->nthArgument(0)) );
-                      // ^^^ term = k * t
-      });
-      if (isRightNumberTerm) {
-        if (adding) {
-          DEBUG("\tinserting: ", term);
-          _is->insert(DefaultTermLeafData(pos.term, pos.lit, toSimplify));
-        } else {
-          DEBUG("\tremoving: ", term);
-          _is->remove(DefaultTermLeafData(pos.term, pos.lit, toSimplify));
-        }
-      }
-    }
-  }
-}
-
-} // namespace Indexing
-
+// namespace Indexing {
+//
+// // void BwdDemodulationModLAIndex::handleClause(Clause* toSimplify, bool adding)
+// // {
+// //   CALL("BwdDemodulationModLAIndex::handleClause");
+// //   
+// //   for (auto pos : Demod::simplifyablePositions(*_shared, toSimplify)) {
+// //     if (pos.term.isTerm()) {
+// //       auto term = pos.term.term();
+// //       auto isRightNumberTerm = forAnyNumTraits([&](auto numTraits){
+// //           using NumTraits = decltype(numTraits);
+// //           return SortHelper::getResultSort(term) == NumTraits::sort()
+// //               && !NumTraits::isNumeral(term)
+// //               && !(NumTraits::mulF() == term->functor() && NumTraits::isNumeral(*term->nthArgument(0)) );
+// //                       // ^^^ term = k * t
+// //       });
+// //       if (isRightNumberTerm) {
+// //         if (adding) {
+// //           DEBUG("\tinserting: ", term);
+// //           _is->insert(DefaultTermLeafData(pos.term, pos.lit, toSimplify));
+// //         } else {
+// //           DEBUG("\tremoving: ", term);
+// //           _is->remove(DefaultTermLeafData(pos.term, pos.lit, toSimplify));
+// //         }
+// //       }
+// //     }
+// //   }
+// // }
+//
+// } // namespace Indexing
+//
 
 namespace Inferences {
 namespace LASCA {
@@ -47,7 +47,7 @@ namespace LASCA {
 #if VDEBUG
 void BwdDemodulationModLA::setTestIndices(Stack<Indexing::Index*> const& indices) 
 {
-  _index = (BwdDemodulationModLAIndex*) indices[0]; 
+  _index = (decltype(_index)) indices[0]; 
   _index->setShared(_shared);
 }
 #endif
@@ -59,7 +59,7 @@ void BwdDemodulationModLA::attach(SaturationAlgorithm* salg)
   ASS(!_index);
 
   this->BackwardSimplificationEngine::attach(salg);
-  _index=static_cast<BwdDemodulationModLAIndex*> (
+  _index = static_cast<decltype(_index)> (
 	  _salg->getIndexManager()->request(LASCA_BWD_DEMODULATION_SUBST_TREE) );
   _index->setShared(_shared);
 }
@@ -102,41 +102,32 @@ auto applyResultSubstitution(ResultSubstitution& subs, Literal* lit)
  */
 void BwdDemodulationModLA::perform(Clause* premise, BwSimplificationRecordIterator& simplifications)
 {
-  for (auto simpl : Demod::simplifiers(*_shared, premise)) {
-    auto simpls = simpl.apply([&](auto simpl) {
-      auto s = simpl.monom.factors->denormalize();
-      auto inst = _index->getInstances(s, /* retrieveSubstitutions */ true);
-      Stack<BwSimplificationRecord> simpls;
-      Set<Clause*> simplified;
-      while (inst.hasNext()) {
-        auto res = inst.next();
-        auto toSimpl = res.clause;
+  unsigned cnt = 0;
+  for (auto lhs : Lhs::iter(*_shared, premise)) {
+    cnt++;
+    Stack<BwSimplificationRecord> simpls;
+    Set<Clause*> simplified;
+    for (auto rhs : _index->instances(lhs.biggerSide())) {
+        auto toSimpl = rhs.clause;
         if (simplified.contains(toSimpl)) {
           /* We skip this potential simplification, because we do not simplify the same clause in 
-           * two different ways with the same equality. 
-           * This could result into things like 
-           *   r(f(a), f(a)) ==> { r(a, f(a)), r(f(a), a) } ==> { r(a,a), r(a,a) }
-           * instead of
-           *   r(f(a), f(a)) ==> r(a, f(a)) ==> r(a,a)
-           * (for premise 0 = f(a) - a)
-           */
+           * two different ways with the same equality.  */
         } else {
           auto sigma = [&](auto t) 
-            { return res.substitution ? applyResultSubstitution(*res.substitution, t) : t; };
-          auto maybeSimpl = Demod::apply(*_shared, toSimpl, premise, simpl.lit, simpl.monom.factors->denormalize(), simpl.monom.factors, sigma);
+            { return rhs.substitution ? applyResultSubstitution(*rhs.substitution, t) : t; };
+          auto maybeSimpl = Demod::apply(*_shared, lhs, rhs.data(), sigma);
           if (maybeSimpl.isSome()) {
             simplified.insert(toSimpl);
             simpls.push(BwSimplificationRecord(toSimpl, maybeSimpl.unwrap()));
           }
         }
-      }
-      return simpls;
-    });
+    }
     if (!simpls.isEmpty()) {
       simplifications = pvi(ownedArrayishIterator(std::move(simpls)));
       return;
     }
   }
+  ASS(cnt <= 1)
   simplifications = BwSimplificationRecordIterator::getEmpty();
 }
 
