@@ -7,11 +7,6 @@
  * https://vprover.github.io/license.html
  * and in the source directory
  */
-/**
- * @file Reflection.hpp
- * Defines class Reflection.
- */
-
 
 #ifndef __MacroUtils__
 #define __MacroUtils__

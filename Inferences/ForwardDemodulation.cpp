@@ -73,8 +73,6 @@ template <bool combinatorySupSupport>
 bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*& replacement, ClauseIterator& premises)
 {
   CALL("ForwardDemodulation::perform");
-  TIME_TRACE("forward demodulation")
-
   TIME_TRACE("forward demodulation");
 
   Ordering& ordering = _salg->getOrdering();
