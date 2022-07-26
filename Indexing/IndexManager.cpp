@@ -25,7 +25,7 @@
 #include "LiteralSubstitutionTree.hpp"
 #include "TermIndex.hpp"
 #include "TermSubstitutionTree.hpp"
-#include "Inferences/LASCA/DemodulationModLA.hpp"
+#include "Inferences/LASCA/Demodulation.hpp"
 #include "Inferences/LASCA/FourierMotzkin.hpp"
 #include "Inferences/LASCA/Superposition.hpp"
 
@@ -185,12 +185,12 @@ Index* IndexManager::create(IndexType t)
     break;
 
   case LASCA_FWD_DEMODULATION_SUBST_TREE:
-    res = new LascaIndex<LASCA::DemodulationModLA::Lhs>(Options::UnificationWithAbstraction::OFF);
+    res = new LascaIndex<LASCA::Demodulation::Lhs>(Options::UnificationWithAbstraction::OFF);
     isGenerating = false;
     break;
 
   case LASCA_BWD_DEMODULATION_SUBST_TREE:
-    res = new LascaIndex<LASCA::DemodulationModLA::Rhs>(Options::UnificationWithAbstraction::OFF);
+    res = new LascaIndex<LASCA::Demodulation::Rhs>(Options::UnificationWithAbstraction::OFF);
     isGenerating = false;
     break;
 

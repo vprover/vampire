@@ -1,8 +1,8 @@
-#include "Inferences/LASCA/FwdDemodulationModLA.hpp"
+#include "Inferences/LASCA/FwdDemodulation.hpp"
 #include "Saturation/SaturationAlgorithm.hpp"
 
 #define DEBUG(...)  // DBG(__VA_ARGS__)
-using Demod = Inferences::LASCA::DemodulationModLA;
+using Demod = Inferences::LASCA::Demodulation;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // INDEXING
@@ -12,14 +12,14 @@ namespace Inferences {
 namespace LASCA {
 
 #if VDEBUG
-void FwdDemodulationModLA::setTestIndices(Stack<Indexing::Index*> const& indices) 
+void FwdDemodulation::setTestIndices(Stack<Indexing::Index*> const& indices) 
 {
   _index = (decltype(_index)) indices[0]; 
   _index->setShared(_shared);
 }
 #endif
 
-void FwdDemodulationModLA::attach(SaturationAlgorithm* salg)
+void FwdDemodulation::attach(SaturationAlgorithm* salg)
 {  
   ASS(!_index);
 
@@ -29,7 +29,7 @@ void FwdDemodulationModLA::attach(SaturationAlgorithm* salg)
   _index->setShared(_shared);
 }
 
-void FwdDemodulationModLA::detach()
+void FwdDemodulation::detach()
 {
 
   CALL("Superposition::detach");
@@ -54,7 +54,7 @@ void FwdDemodulationModLA::detach()
  * @b premises will contain clauses that justify the simplification
  * performed.
  */
-bool FwdDemodulationModLA::perform(Clause* toSimplify, Clause*& replacement, ClauseIterator& premises)
+bool FwdDemodulation::perform(Clause* toSimplify, Clause*& replacement, ClauseIterator& premises)
 {
   ASS_EQ(replacement, NULL)
   Stack<Literal*> simplified;
@@ -63,7 +63,7 @@ bool FwdDemodulationModLA::perform(Clause* toSimplify, Clause*& replacement, Cla
     for (auto lhs : _index->generalizations(rhs.term)) {
       auto sigma = [&](auto t) 
         { return lhs.substitution ? lhs.substitution->applyToBoundResult(t) : t; };
-      auto simplified = DemodulationModLA::apply(*_shared, lhs.data(), rhs, sigma);
+      auto simplified = Demodulation::apply(*_shared, lhs.data(), rhs, sigma);
       if (simplified.isSome()) {
         replacement = simplified.unwrap();
         premises    = pvi(getSingletonIterator(lhs.clause()));

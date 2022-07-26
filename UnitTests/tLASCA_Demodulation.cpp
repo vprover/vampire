@@ -11,8 +11,8 @@
 #include "Test/UnitTesting.hpp"
 #include "Test/SyntaxSugar.hpp"
 #include "Indexing/TermSharing.hpp"
-#include "Inferences/LASCA/FwdDemodulationModLA.hpp"
-#include "Inferences/LASCA/BwdDemodulationModLA.hpp"
+#include "Inferences/LASCA/FwdDemodulation.hpp"
+#include "Inferences/LASCA/BwdDemodulation.hpp"
 #include "Inferences/InterpretedEvaluation.hpp"
 #include "Kernel/Ordering.hpp"
 #include "Inferences/PolynomialEvaluation.hpp"
@@ -55,22 +55,22 @@ using namespace Inferences::LASCA;
 
 #define UWA_MODE Options::UnificationWithAbstraction::LASCA1
 
-FwdDemodulationModLA* testFwdDemodulationModLA     () 
-{ return new FwdDemodulationModLA(testLascaState(UWA_MODE)); }
+FwdDemodulation* testFwdDemodulation     () 
+{ return new FwdDemodulation(testLascaState(UWA_MODE)); }
 
-Indexing::Index* testFwdDemodulationModLAIndex() 
-{ return new LascaIndex<DemodulationModLA::Lhs>(UWA_MODE); }
+Indexing::Index* testFwdDemodulationIndex() 
+{ return new LascaIndex<Demodulation::Lhs>(UWA_MODE); }
 
-BwdDemodulationModLA* testBwdDemodulationModLA     () 
-{ return new BwdDemodulationModLA(testLascaState(UWA_MODE)); }
+BwdDemodulation* testBwdDemodulation     () 
+{ return new BwdDemodulation(testLascaState(UWA_MODE)); }
 
-Indexing::Index* testBwdDemodulationModLAIndex() 
-{ return new LascaIndex<DemodulationModLA::Rhs>(UWA_MODE); }
+Indexing::Index* testBwdDemodulationIndex() 
+{ return new LascaIndex<Demodulation::Rhs>(UWA_MODE); }
 
-BUILDER_SET_DEFAULT(FwdBwdSimplification::TestCase, fwd   ,   testFwdDemodulationModLA     ()  );
-BUILDER_SET_DEFAULT(FwdBwdSimplification::TestCase, fwdIdx, { testFwdDemodulationModLAIndex() });
-BUILDER_SET_DEFAULT(FwdBwdSimplification::TestCase, bwd   ,   testBwdDemodulationModLA     ()  );
-BUILDER_SET_DEFAULT(FwdBwdSimplification::TestCase, bwdIdx, { testBwdDemodulationModLAIndex() });
+BUILDER_SET_DEFAULT(FwdBwdSimplification::TestCase, fwd   ,   testFwdDemodulation     ()  );
+BUILDER_SET_DEFAULT(FwdBwdSimplification::TestCase, fwdIdx, { testFwdDemodulationIndex() });
+BUILDER_SET_DEFAULT(FwdBwdSimplification::TestCase, bwd   ,   testBwdDemodulation     ()  );
+BUILDER_SET_DEFAULT(FwdBwdSimplification::TestCase, bwdIdx, { testBwdDemodulationIndex() });
 
 // ±ks + t ≈ 0          C[sσ]
 // ============================

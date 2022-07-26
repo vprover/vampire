@@ -444,12 +444,12 @@ set(VAMPIRE_INFERENCE_SOURCES
     Inferences/LASCA/VariableElimination.hpp
     Inferences/LASCA/Superposition.cpp
     Inferences/LASCA/Superposition.hpp
-    Inferences/LASCA/DemodulationModLA.cpp
-    Inferences/LASCA/DemodulationModLA.hpp
-    Inferences/LASCA/FwdDemodulationModLA.cpp
-    Inferences/LASCA/FwdDemodulationModLA.hpp
-    Inferences/LASCA/BwdDemodulationModLA.cpp
-    Inferences/LASCA/BwdDemodulationModLA.hpp
+    Inferences/LASCA/Demodulation.cpp
+    Inferences/LASCA/Demodulation.hpp
+    Inferences/LASCA/FwdDemodulation.cpp
+    Inferences/LASCA/FwdDemodulation.hpp
+    Inferences/LASCA/BwdDemodulation.cpp
+    Inferences/LASCA/BwdDemodulation.hpp
     Inferences/LASCA/FourierMotzkin.cpp
     Inferences/LASCA/FourierMotzkin.hpp
     Inferences/LASCA/TermFactoring.cpp
@@ -758,7 +758,7 @@ set(UNIT_TESTS
     UnitTests/tLASCA_EqFactoring.cpp
     UnitTests/tLASCA_VariableElimination.cpp
     UnitTests/tLASCA_TermFactoring.cpp
-    UnitTests/tLASCA_DemodulationModLA.cpp
+    UnitTests/tLASCA_Demodulation.cpp
     UnitTests/tPushUnaryMinus.cpp
     UnitTests/tArithmeticSubtermGeneralization.cpp
     UnitTests/tInterpretedFunctions.cpp

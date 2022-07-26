@@ -8,13 +8,13 @@
  * and in the source directory
  */
 /**
- * @file DemodulationModLA.hpp
+ * @file Demodulation.hpp
  *
- * Shared code between  FwdDemodulationModLA and BwdDemodulationModLA.
+ * Shared code between  FwdDemodulation and BwdDemodulation.
  */
 
-#ifndef __LASCA_DemodulationModLA__
-#define __LASCA_DemodulationModLA__
+#ifndef __LASCA_Demodulation__
+#define __LASCA_Demodulation__
 
 #include "Forwards.hpp"
 #include "Inferences/InferenceEngine.hpp"
@@ -33,11 +33,11 @@ using namespace Kernel;
 using namespace Indexing;
 using namespace Saturation;
 
-class DemodulationModLA
+class Demodulation
 {
 public:
-  CLASS_NAME(DemodulationModLA);
-  USE_ALLOCATOR(DemodulationModLA);
+  CLASS_NAME(Demodulation);
+  USE_ALLOCATOR(Demodulation);
 
   // ±ks + t ≈ 0          C[sσ]
   // ============================
@@ -108,49 +108,6 @@ public:
                       Rhs rhs,                    // <- C[sσ]
                       Sigma sigma);
 
-  // template<class Sigma> 
-  // static Option<Clause*> apply(
-  //                       LascaState& shared,
-  //                       Clause* Hyp1,                    // <- { ±ks + t ≈ 0 }
-  //                       Clause* C,                       // <- C[sσ]
-  //                       LascaLiteral<IntTraits> ks_t, // <- ±ks + t ≈ 0
-  //                       TermList s,
-  //                       Perfect<MonomFactors<IntTraits>> s_norm,
-  //                       Sigma sigma)
-  // { ASSERTION_VIOLATION }
-
-  // struct SimplifyablePosition {
-  //   Literal* lit;
-  //   TermList term;
-  // };
-
-  // static auto simplifyablePositions(LascaState& shared, Clause* toSimplify) 
-  // {
-  //   CALL("BwdDemodulationModLAIndex::handleClause");
-  //
-  //   return iterTraits(toSimplify->iterLits())
-  //     .flatMap([](Literal* lit) {
-  //
-  //       return pvi(iterTraits(vi(new SubtermIterator(lit)))
-  //         .filter([](TermList t) {
-  //           if (t.isTerm()) {
-  //             auto term = t.term();
-  //             return forAnyNumTraits([&](auto numTraits){
-  //                 using NumTraits = decltype(numTraits);
-  //                 return SortHelper::getResultSort(term) == NumTraits::sort()
-  //                     && !NumTraits::isNumeral(term)
-  //                     && !(NumTraits::mulF() == term->functor() && NumTraits::isNumeral(*term->nthArgument(0)) );
-  //                             // ^^^ term = k * t
-  //             });
-  //           } else {
-  //             return false; 
-  //           }
-  //         })
-  //         .map([lit](TermList term) 
-  //                    { return SimplifyablePosition { .lit = lit, .term = term, }; }));
-  //     });
-  // }
-
   // ±ks + t ≈ 0          C[sσ]
   // ============================
   //         C[sσ -> (∓ (1/k) t)σ]
@@ -166,23 +123,6 @@ public:
   };
 
   using AnySimplification = Coproduct<Simplification<RatTraits>, Simplification<RealTraits>>;
-
-  // template<class NumTraits>
-  // static auto __simplifiers(LascaState& shared, Clause* simplifyWith, LascaLiteral<NumTraits> lit)
-  // {
-  //   return pvi(iterTraits(ownedArrayishIterator(shared.maxSummandIndices(lit, SelectionCriterion::STRICTLY_MAX)))
-  //     .map([lit](auto monom) { 
-  //         return AnySimplification(Simplification<NumTraits> {
-  //           // .clause = simplifyWith,
-  //           .lit    = lit,
-  //           .monom  = monom,
-  //         });
-  //     }));
-  // }
-  //
-  //
-  // static auto __simplifiers(LascaState& shared, Clause* simplifyWith, LascaLiteral<IntTraits> lit)
-  // { return pvi(VirtualIterator<AnySimplification>::getEmpty()); }
 
   static auto simplifiers(LascaState& shared, Clause* simplifyWith) {
     return iterTraits(getSingletonIterator(simplifyWith))
@@ -209,7 +149,7 @@ public:
 // • C[sσ] ≻ (±ks + t ≈ 0)σ
 //
 template<class Sigma> 
-Option<Clause*> DemodulationModLA::apply(
+Option<Clause*> Demodulation::apply(
                       LascaState& shared,
                       Lhs lhs,  // <- { ±ks + t ≈ 0 }
                       Rhs rhs,  // <- C[sσ]
@@ -249,4 +189,4 @@ Option<Clause*> DemodulationModLA::apply(
 } // namespace LASCA
 } // namespace Inferences
 
-#endif /*__LASCA_DemodulationModLA__*/
+#endif /*__LASCA_Demodulation__*/

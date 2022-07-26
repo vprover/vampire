@@ -1,4 +1,4 @@
-#include "DemodulationModLA.hpp"
+#include "Demodulation.hpp"
 
 namespace Inferences {
 namespace LASCA {

@@ -8,19 +8,18 @@
  * and in the source directory
  */
 /**
- * @file FwdDemodulationModLA.hpp
- * Defines class FwdDemodulationModLA.hpp
+ * @file BwdDemodulation.hpp
+ * Defines class BwdDemodulation.hpp
  *
  */
 
-#ifndef __LASCA_FwdDemodulationModLA__
-#define __LASCA_FwdDemodulationModLA__
+#ifndef __LASCA_BwdDemodulation__
+#define __LASCA_BwdDemodulation__
 
 #include "Forwards.hpp"
 
-#include "Inferences/LASCA/DemodulationModLA.hpp"
+#include "Inferences/LASCA/Demodulation.hpp"
 #include "Indexing/LascaIndex.hpp"
-
 
 namespace Inferences {
 namespace LASCA {
@@ -29,37 +28,36 @@ using namespace Kernel;
 using namespace Indexing;
 using namespace Saturation;
 
-class FwdDemodulationModLA
-: public ForwardSimplificationEngine
+class BwdDemodulation
+: public BackwardSimplificationEngine
 {
-  using Rhs = DemodulationModLA::Rhs;
-  using Lhs = DemodulationModLA::Lhs;
+  using Rhs = Demodulation::Rhs;
+  using Lhs = Demodulation::Lhs;
 public:
-  CLASS_NAME(FwdDemodulationModLA);
-  USE_ALLOCATOR(FwdDemodulationModLA);
+  CLASS_NAME(BwdDemodulation);
+  USE_ALLOCATOR(BwdDemodulation);
 
-  FwdDemodulationModLA(FwdDemodulationModLA&&) = default;
-  FwdDemodulationModLA(shared_ptr<LascaState> shared) 
+  BwdDemodulation(BwdDemodulation&&) = default;
+  BwdDemodulation(shared_ptr<LascaState> shared) 
     : _shared(shared)
     , _index(nullptr)
-  { ASS(_shared); }
+  {  }
 
   void attach(SaturationAlgorithm* salg) final override;
   void detach() final override;
 
 
-  virtual bool perform(Clause* cl, Clause*& replacement, ClauseIterator& premises) override;
+  virtual void perform(Clause* premise, BwSimplificationRecordIterator& simplifications) final override;
 #if VDEBUG
   virtual void setTestIndices(Stack<Indexing::Index*> const& indices) override;
 #endif // VDEBUG
 
 private:
   shared_ptr<LascaState> _shared;
-  // FwdDemodulationModLAIndex* _index;
-  LascaIndex<DemodulationModLA::Lhs>* _index;
+  LascaIndex<Rhs>* _index;
 };
 
 } // namespaceLASCA 
 } // namespace Inferences
 
-#endif /*__LASCA_FwdDemodulationModLA__*/
+#endif /*__LASCA_BwdDemodulation__*/

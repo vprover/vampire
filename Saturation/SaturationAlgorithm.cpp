@@ -53,8 +53,8 @@
 #include "Inferences/LASCA/InequalityFactoring.hpp"
 #include "Inferences/LASCA/Superposition.hpp"
 #include "Inferences/LASCA/VariableElimination.hpp"
-#include "Inferences/LASCA/FwdDemodulationModLA.hpp"
-#include "Inferences/LASCA/BwdDemodulationModLA.hpp"
+#include "Inferences/LASCA/FwdDemodulation.hpp"
+#include "Inferences/LASCA/BwdDemodulation.hpp"
 #include "Inferences/EquationalTautologyRemoval.hpp"
 #include "Inferences/Condensation.hpp"
 #include "Inferences/FastCondensation.hpp"
@@ -1660,8 +1660,8 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
     SET_ORD_STATE(TimeTraceOrdering<Kernel::QKbo>, [](auto& o) -> decltype(auto) { return o.inner(); })
     SET_ORD_STATE(TimeTraceOrdering<Kernel::LaLpo>, [](auto& o) -> decltype(auto) { return o.inner(); })
     if (env.options->lascaDemodulation()) {
-      res->addForwardSimplifierToFront(new LASCA::FwdDemodulationModLA(shared));
-      res->addBackwardSimplifierToFront(new LASCA::BwdDemodulationModLA(shared));
+      res->addForwardSimplifierToFront(new LASCA::FwdDemodulation(shared));
+      res->addBackwardSimplifierToFront(new LASCA::BwdDemodulation(shared));
     }
     // TODO properly create an option for that, make it a simplifying rule
     ise->addFront(new LASCA::Normalization(shared)); 

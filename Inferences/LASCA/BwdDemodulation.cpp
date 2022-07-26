@@ -1,51 +1,15 @@
-#include "BwdDemodulationModLA.hpp"
+#include "BwdDemodulation.hpp"
 #include "Saturation/SaturationAlgorithm.hpp"
 
 #define DEBUG(...)  // DBG(__VA_ARGS__)
-using Demod = Inferences::LASCA::DemodulationModLA;
-
-////////////////////////////////////////////////////////////////////////////////////////////////////
-// INDEXING
-////////////////////////////////////////////////////////////////////////////////////////////////////
-
-// namespace Indexing {
-//
-// // void BwdDemodulationModLAIndex::handleClause(Clause* toSimplify, bool adding)
-// // {
-// //   CALL("BwdDemodulationModLAIndex::handleClause");
-// //   
-// //   for (auto pos : Demod::simplifyablePositions(*_shared, toSimplify)) {
-// //     if (pos.term.isTerm()) {
-// //       auto term = pos.term.term();
-// //       auto isRightNumberTerm = forAnyNumTraits([&](auto numTraits){
-// //           using NumTraits = decltype(numTraits);
-// //           return SortHelper::getResultSort(term) == NumTraits::sort()
-// //               && !NumTraits::isNumeral(term)
-// //               && !(NumTraits::mulF() == term->functor() && NumTraits::isNumeral(*term->nthArgument(0)) );
-// //                       // ^^^ term = k * t
-// //       });
-// //       if (isRightNumberTerm) {
-// //         if (adding) {
-// //           DEBUG("\tinserting: ", term);
-// //           _is->insert(DefaultTermLeafData(pos.term, pos.lit, toSimplify));
-// //         } else {
-// //           DEBUG("\tremoving: ", term);
-// //           _is->remove(DefaultTermLeafData(pos.term, pos.lit, toSimplify));
-// //         }
-// //       }
-// //     }
-// //   }
-// // }
-//
-// } // namespace Indexing
-//
+using Demod = Inferences::LASCA::Demodulation;
 
 namespace Inferences {
 namespace LASCA {
 
 
 #if VDEBUG
-void BwdDemodulationModLA::setTestIndices(Stack<Indexing::Index*> const& indices) 
+void BwdDemodulation::setTestIndices(Stack<Indexing::Index*> const& indices) 
 {
   _index = (decltype(_index)) indices[0]; 
   _index->setShared(_shared);
@@ -54,7 +18,7 @@ void BwdDemodulationModLA::setTestIndices(Stack<Indexing::Index*> const& indices
 
 
 
-void BwdDemodulationModLA::attach(SaturationAlgorithm* salg)
+void BwdDemodulation::attach(SaturationAlgorithm* salg)
 {
   ASS(!_index);
 
@@ -64,7 +28,7 @@ void BwdDemodulationModLA::attach(SaturationAlgorithm* salg)
   _index->setShared(_shared);
 }
 
-void BwdDemodulationModLA::detach()
+void BwdDemodulation::detach()
 {
 
   CALL("Superposition::detach");
@@ -100,7 +64,7 @@ auto applyResultSubstitution(ResultSubstitution& subs, Literal* lit)
  * the premise could be present in the simplification indexes at
  * the time of call to this method.
  */
-void BwdDemodulationModLA::perform(Clause* premise, BwSimplificationRecordIterator& simplifications)
+void BwdDemodulation::perform(Clause* premise, BwSimplificationRecordIterator& simplifications)
 {
   unsigned cnt = 0;
   for (auto lhs : Lhs::iter(*_shared, premise)) {
