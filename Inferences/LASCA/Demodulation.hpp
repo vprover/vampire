@@ -155,7 +155,7 @@ Option<Clause*> Demodulation::apply(
                       Rhs rhs,  // <- C[sσ]
                       Sigma sigma)
 {
-            
+  TIME_TRACE("lasca demodulation")
   auto nothing = [&]() { return Option<Clause*>(); };
   ASS(lhs.clause()->size() == 1)
   ASS(lhs.literal()->isEquality())
