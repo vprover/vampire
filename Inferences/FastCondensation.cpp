@@ -71,7 +71,7 @@ Clause* FastCondensation::simplify(Clause* cl)
 {
   CALL("FastCondensation::perform");
 
-  TIME_TRACE("condensation");
+  TIME_TRACE("fast condensation");
 
   unsigned clen=cl->length();
   if(clen<=1) {
