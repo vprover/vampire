@@ -44,7 +44,7 @@ namespace Memo {
   };
 
   /** a memoization realized as a hashmap */
-  template<class Arg, class Result, class Hash = Hash>
+  template<class Arg, class Result, class Hash = DefaultHash>
   class Hashed 
   {
     Map<Arg, Result, Hash> _memo;

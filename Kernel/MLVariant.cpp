@@ -47,7 +47,7 @@ namespace Kernel
 
 using namespace Lib;
 
-typedef DHMap<unsigned,unsigned, IdentityHash, Hash> UUMap;
+typedef DHMap<unsigned,unsigned, IdentityHash, DefaultHash> UUMap;
 
 namespace MLVariant_AUX
 {

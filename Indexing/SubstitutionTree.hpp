@@ -674,7 +674,7 @@ public:
     { return 0u; }
   };
 
-  typedef DHMap<unsigned,TermList,IdentityHash,Hash> BindingMap;
+  typedef DHMap<unsigned,TermList,IdentityHash,DefaultHash> BindingMap;
   //Using BinaryHeap as a BindingQueue leads to about 30% faster insertion,
   //that when SkipList is used.
   typedef BinaryHeap<Binding,Binding::Comparator> BindingQueue;
