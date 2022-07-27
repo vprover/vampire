@@ -89,10 +89,10 @@ struct Superposition::RewritableResultsFn
     CALL("Superposition::RewritableResultsFn()");
     if(_withC){
       TermList sort = SortHelper::getTermSort(arg.second, arg.first);
-      return pvi( pushPairIntoRightIterator(arg, _index->getUnificationsUsingSorts(arg.second, sort, true)) );
+      return pvi( pushPairIntoRightIterator(arg, _index->getUnificationsUsingSorts(arg.second, sort)) );
     }
     else{
-      return pvi( pushPairIntoRightIterator(arg, _index->getUnifications(arg.second, true)) );
+      return pvi( pushPairIntoRightIterator(arg, _index->getUnifications(arg.second)) );
     }
   }
 private:

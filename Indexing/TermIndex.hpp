@@ -20,9 +20,9 @@
 
 #include "TermIndexingStructure.hpp"
 #include "Lib/Set.hpp"
+#include "AbstracingIndex.hpp"
 
 namespace Indexing {
-
 class TermIndex
 : public Index
 {
@@ -48,14 +48,14 @@ protected:
 };
 
 class SuperpositionSubtermIndex
-: public TermIndex
+: public AbstractingIndex
 {
 public:
   CLASS_NAME(SuperpositionSubtermIndex);
   USE_ALLOCATOR(SuperpositionSubtermIndex);
 
-  SuperpositionSubtermIndex(TermIndexingStructure* is, Ordering& ord)
-  : TermIndex(is), _ord(ord) {};
+  SuperpositionSubtermIndex(shared_ptr<Stack<Abstractor>> abs, TermIndexingStructure* is, Ordering& ord)
+  : AbstractingIndex(abs, is), _ord(ord) {};
 protected:
   void handleClause(Clause* c, bool adding);
 private:

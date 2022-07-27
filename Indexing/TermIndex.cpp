@@ -83,10 +83,10 @@ void SuperpositionSubtermIndex::handleClause(Clause* c, bool adding)
     }
     while (rsti.hasNext()) {
       if (adding) {
-        _is->insert(rsti.next(), lit, c);
+        insert(rsti.next(), lit, c);
       }
       else {
-        _is->remove(rsti.next(), lit, c);
+        remove(rsti.next(), lit, c);
       }
     }
   }

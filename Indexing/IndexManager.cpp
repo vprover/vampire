@@ -146,6 +146,9 @@ Index* IndexManager::create(IndexType t)
   static bool const useConstraints = env.options->unificationWithAbstraction()!=Options::UnificationWithAbstraction::OFF;
   static bool const extByAbs = (env.options->functionExtensionality() == Options::FunctionExtensionality::ABSTRACTION) &&
                     env.property->higherOrder();
+
+  auto abstractors = make_shared(Stack<Abstractor>());
+  ASSERTION_VIOLATION_REP("TODO")
                     
   switch(t) {
   case GENERATING_SUBST_TREE:
@@ -184,7 +187,7 @@ Index* IndexManager::create(IndexType t)
 #if VDEBUG
     //tis->markTagged();
 #endif
-    res=new SuperpositionSubtermIndex(tis, _alg->getOrdering());
+    res=new SuperpositionSubtermIndex(abstractors, tis, _alg->getOrdering());
     isGenerating = true;
     break;
   case SUPERPOSITION_LHS_SUBST_TREE:
