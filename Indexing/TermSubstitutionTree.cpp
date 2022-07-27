@@ -222,9 +222,15 @@ TermQueryResultIterator TermSubstitutionTree::getUnificationsUsingSorts(TermList
     auto it1 = _vars.isEmpty() ? TermQueryResultIterator::getEmpty() :
                ldIteratorToTQRIterator(LDSkipList::RefIterator(_vars), t, retrieveSubstitutions);
 
-    auto it2 = _termsByType->getUnifications(sort, t, retrieveSubstitutions);
-    auto it3 = !sort.isArrowSort() ? getResultIterator<UnificationsIterator>(t.term(), retrieveSubstitutions):
-               TermQueryResultIterator::getEmpty();
+    bool addConstraints = 
+      (Shell::UnificationWithAbstractionConfig::isInterpreted(t.term()) &&
+      !Shell::UnificationWithAbstractionConfig::isNumeral(t)) ||
+      env.options->unificationWithAbstraction() != Shell::Options::UnificationWithAbstraction::INTERP_ONLY;
+
+    auto it2 = addConstraints ?
+      _termsByType->getUnifications(sort, t, retrieveSubstitutions) :
+      TermQueryResultIterator::getEmpty();
+    auto it3 = getResultIterator<UnificationsIterator>(t.term(), retrieveSubstitutions);
     return pvi(getConcatenatedIterator(getConcatenatedIterator(it1, it2), it3));
   }
 }
