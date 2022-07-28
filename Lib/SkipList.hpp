@@ -44,11 +44,16 @@ class SkipList
 public:
   CLASS_NAME(SkipList);
   USE_ALLOCATOR(SkipList);
-  
+
   class Node {
   public:
     Value value;
     Node* nodes[1];
+
+    // façade to look a bit like a List<Value>
+    // used by Substitution_Fast*
+    inline Value head() const { return value; }
+    inline Node *tail() const { return nodes[0]; }
   };
   /**
    * Insert an element in the skip list.
@@ -500,27 +505,9 @@ public:
     }
   }
 
-  inline
-  List<Value>* toList()
-  {
-    //!!! Assuming that SkipList::Node can be reinterpreted to List object !!!
-
-    //Compiler gives this warning here:
-    //
-    //warning: dereferencing type-punned pointer will break strict-aliasing rules
-    //
-    //It (hopefully) shouldn't cause any problems if no values get modified
-    //through pointer retrieved from this method and the underlying SkipList
-    //doesn't change either.
-    if(_left->nodes[0]) {
-      ASS_EQ(reinterpret_cast<List<Value>*&>(_left->nodes[0])->headPtr(), &_left->nodes[0]->value);
-      ASS_EQ((void*)&(reinterpret_cast<List<Value>*&>(_left->nodes[0])->tailReference()),
-	      (void*)&_left->nodes[0]->nodes[0]);
-    }
-
-    return reinterpret_cast<List<Value>*&>(_left->nodes[0]);
-  }
-
+  // allow iterating over something like a List<Value>
+  // used by SubstitutionTree_Fast*
+  inline Node *listLike() { return _left->nodes[0]; }
 
   /**
    * Create a skip list and initialise its left-most node to a node of the

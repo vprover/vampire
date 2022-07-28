@@ -417,10 +417,8 @@ vstring TPTP::toString(Tag tag)
   case T_DOLLARS:
   case T_STRING:
     return "";
-#if VDEBUG
   default:
-    ASS(false);
-#endif
+    ASSERTION_VIOLATION
   }
 } // toString(Tag)
 
@@ -1760,7 +1758,7 @@ void TPTP::endHolFormula()
 
   Formula* f;
   TermList fun;
-  bool conReverse;
+  bool conReverse = false;
   switch (con) {
   case IMP:
   case AND:
@@ -1898,10 +1896,8 @@ switch (tag) {
 
     case -1:
       return;
-#if VDEBUG
     default:
       ASSERTION_VIOLATION;
-#endif
     }
   }
 
@@ -3258,7 +3254,7 @@ Formula* TPTP::createPredicateApplication(vstring name, unsigned arity)
     TermList sort = type->arg(i);
     TermList ts = _termLists.pop();
     TermList tsSort = sortOf(ts);
-    if((unsigned)i < type->typeArgsArity()){
+    if((unsigned)i < type->numTypeArguments()){
       if(tsSort != AtomicSort::superSort()){
         USER_ERROR("The sort " + tsSort.toString() + " of type argument " + ts.toString() + " "
                    "is not $ttype as mandated by TF1");
@@ -3312,7 +3308,7 @@ TermList TPTP::createFunctionApplication(vstring name, unsigned arity)
     TermList sort = type->arg(i);
     TermList ss = _termLists.pop();
     TermList ssSort = sortOf(ss);
-    if((unsigned)i < type->typeArgsArity()){
+    if((unsigned)i < type->numTypeArguments()){
       if(ssSort != AtomicSort::superSort()){
         USER_ERROR("The sort " + ssSort.toString() + " of type argument " + ss.toString() + " "
                    "is not $tType as mandated by TF1");
@@ -3379,7 +3375,7 @@ void TPTP::endFormula()
 
   int con = _connectives.pop();
   Formula* f;
-  bool conReverse;
+  bool conReverse = false;
   switch (con) {
   case IMP:
   case AND:
@@ -3491,10 +3487,8 @@ void TPTP::endFormula()
 
     case -1:
       return;
-#if VDEBUG
     default:
       ASSERTION_VIOLATION;
-#endif
     }
   }
 
@@ -3885,7 +3879,7 @@ void TPTP::endTff()
       symbol->setType(ot);
       //TODO check whether the below is actually required or not.
       if(_isThf){
-        if(!_typeArities.insert(name, ot->typeArgsArity())){
+        if(!_typeArities.insert(name, ot->numTypeArguments())){
           USER_ERROR("Symbol " + name + " used with different type arities");
         }
       }
@@ -3941,11 +3935,8 @@ OperatorType* TPTP::constructOperatorType(Type* t, VList* vars)
             types.push(pt->lhs());
             break;
           }
-
-#if VDEBUG
           default:
             ASSERTION_VIOLATION;
-#endif
         }
       }
       break;
@@ -3958,10 +3949,8 @@ OperatorType* TPTP::constructOperatorType(Type* t, VList* vars)
       //TODO check that all free variables in ot are from quantifiedVars
     }
 
-#if VDEBUG
     default:
       ASSERTION_VIOLATION;
-#endif
   }
 
   bool isPredicate = resultSort == AtomicSort::boolSort();

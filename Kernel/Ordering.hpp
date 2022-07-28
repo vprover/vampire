@@ -70,8 +70,6 @@ public:
 
   static bool isGorGEorE(Result r) { return (r == GREATER || r == GREATER_EQ || r == EQUAL); }
 
-  virtual Comparison compareFunctors(unsigned fun1, unsigned fun2) const = 0;
-
   void removeNonMaximal(LiteralList*& lits) const;
 
   static Result fromComparison(Comparison c);
@@ -133,18 +131,20 @@ class PrecedenceOrdering
 {
 public:
   Result compare(Literal* l1, Literal* l2) const override;
-  Comparison compareFunctors(unsigned fun1, unsigned fun2) const override;
   void show(ostream&) const override;
   virtual void showConcrete(ostream&) const = 0;
 
 protected:
   // l1 and l2 are not equalities and have the same predicate
   virtual Result comparePredicates(Literal* l1,Literal* l2) const = 0;
-  
-  PrecedenceOrdering(const DArray<int>& funcPrec, const DArray<int>& predPrec, const DArray<int>& predLevels, bool reverseLCM);
+
+  PrecedenceOrdering(const DArray<int>& funcPrec, const DArray<int>& typeConPrec, 
+                     const DArray<int>& predPrec, const DArray<int>& predLevels, bool reverseLCM);
   PrecedenceOrdering(Problem& prb, const Options& opt, const DArray<int>& predPrec);
   PrecedenceOrdering(Problem& prb, const Options& opt);
 
+
+  static DArray<int> typeConPrecFromOpts(Problem& prb, const Options& opt);
   static DArray<int> funcPrecFromOpts(Problem& prb, const Options& opt);
   static DArray<int> predPrecFromOpts(Problem& prb, const Options& opt);
   static DArray<int> predLevelsFromOptsAndPrec(Problem& prb, const Options& opt, const DArray<int>& predicatePrecedences);
@@ -165,6 +165,8 @@ protected:
   DArray<int> _predicatePrecedences;
   /** Array of function precedences */
   DArray<int> _functionPrecedences;
+  /** Array of type con precedences */
+  DArray<int> _typeConPrecedences;
 
   bool _reverseLCM;
 };

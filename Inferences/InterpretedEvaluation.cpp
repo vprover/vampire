@@ -60,7 +60,7 @@ bool InterpretedEvaluation::simplifyLiteral(Literal* lit,
 {
   CALL("InterpretedEvaluation::evaluateLiteral");
 
-  if(lit->arity()==0) {
+  if(lit->numTermArguments()==0) {
     //we have no interpreted predicates of zero arity
     return false;
   }

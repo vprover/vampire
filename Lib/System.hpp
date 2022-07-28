@@ -34,8 +34,6 @@ public:
   static vstring extractFileNameFromPath(vstring str);
   static bool extractDirNameFromPath(vstring path, vstring& dir);
 
-  static vstring guessExecutableDirectory();
-
   static void ignoreSIGINT() { s_shouldIgnoreSIGINT=true; }
   static void heedSIGINT() { s_shouldIgnoreSIGINT=false; }
   static bool shouldIgnoreSIGINT() { return s_shouldIgnoreSIGINT; }
@@ -68,10 +66,6 @@ public:
   static unsigned getNumberOfCores();
 
   static bool fileExists(vstring fname);
-
-  static pid_t getPID();
-
-  static int executeCommand(vstring command, vstring input, Stack<vstring>& outputLines);
 
 private:
   /**

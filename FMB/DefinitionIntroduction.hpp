@@ -138,8 +138,7 @@ namespace FMB {
             // do not add definitions for constants
             if(ts->term()->arity()==0){args.push(*ts);}
             else{
-              Term* argT;
-              ALWAYS(_introduced.find(ts->term(),argT));
+              Term* argT = _introduced.get(ts->term());
               args.push(TermList(argT));
               updated = true; 
             }

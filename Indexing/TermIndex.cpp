@@ -203,6 +203,8 @@ void InductionTermIndex::handleClause(Clause* c, bool adding)
         while (it.hasNext()) {
           TermList tl = it.next();
           if (!tl.term()) continue;
+          // TODO: each term (and its subterms) should be processed
+          // only once per literal, see DemodulationSubtermIndex
           if (InductionHelper::isInductionTermFunctor(tl.term()->functor()) &&
               InductionHelper::isIntInductionTermListInLiteral(tl, lit)) {
             if (adding) {
@@ -211,6 +213,41 @@ void InductionTermIndex::handleClause(Clause* c, bool adding)
               _is->remove(tl, lit, c);
             }
           }
+        }
+      }
+    }
+  }
+}
+
+void StructInductionTermIndex::handleClause(Clause* c, bool adding)
+{
+  CALL("StructInductionTermIndex::handleClause");
+
+  if (!InductionHelper::isInductionClause(c)) {
+    return;
+  }
+  static DHSet<TermList> inserted;
+  // Iterate through literals & check if the literal is suitable for induction
+  for (unsigned i=0;i<c->length();i++) {
+    inserted.reset();
+    Literal* lit = (*c)[i];
+    if (!lit->ground()) {
+      continue;
+    }
+    SubtermIterator it(lit);
+    while (it.hasNext()) {
+      TermList tl = it.next();
+      if (!inserted.insert(tl)) {
+        it.right();
+        continue;
+      }
+      ASS(tl.isTerm());
+      if (InductionHelper::isInductionTermFunctor(tl.term()->functor()) &&
+          InductionHelper::isStructInductionFunctor(tl.term()->functor())) {
+        if (adding) {
+          _is->insert(tl, lit, c);
+        } else {
+          _is->remove(tl, lit, c);
         }
       }
     }

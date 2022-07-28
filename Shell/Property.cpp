@@ -611,7 +611,7 @@ void Property::scan(Literal* lit, int polarity, unsigned cLen, bool goal)
     static bool weighted = env.options->symbolPrecedence() == Options::SymbolPrecedence::WEIGHTED_FREQUENCY ||
                            env.options->symbolPrecedence() == Options::SymbolPrecedence::REVERSE_WEIGHTED_FREQUENCY;
     unsigned w = weighted ? cLen : 1; 
-    for(unsigned i=0;i<w;i++){pred->incUsageCnt();}
+    for(unsigned i=0;i<w;i++){pred->incUsageCnt();} //MS: Giles, was this a joke?
     if(cLen==1){
       pred->markInUnit();
     }
@@ -620,7 +620,7 @@ void Property::scan(Literal* lit, int polarity, unsigned cLen, bool goal)
     }
 
     OperatorType* type = pred->predType();
-    if(type->typeArgsArity()){
+    if(type->numTypeArguments()){
       _hasPolymorphicSym = true;
     }
 
@@ -836,11 +836,8 @@ vstring Property::categoryToString(Category cat)
       return "EPR";
     case UEQ:
       return "UEQ";
-#if VDEBUG
     default:
       ASSERTION_VIOLATION;
-      return "";
-#endif
     }
 } // categoryString
 

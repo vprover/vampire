@@ -27,6 +27,7 @@
 #include "Kernel/Signature.hpp"
 #include "Kernel/Clause.hpp"
 #include "Kernel/Inference.hpp"
+#include "Kernel/InferenceStore.hpp"
 #include "Kernel/RCClauseStack.hpp"
 #include "Kernel/TermIterators.hpp"
 #include "Kernel/Formula.hpp"
@@ -771,9 +772,8 @@ Unit* Splitter::getDefinitionFromName(SplitLevel compName) const
 {
   CALL("Splitter::getDefinitionFromName");
 
-  Unit* def;
-  ALWAYS(_defs.find((compName&~1) /*always stored positively*/,def));
-  return def;
+  // always stored positively
+  return _defs.get(compName & ~1);
 }
 
 void Splitter::collectDependenceLits(SplitSet* splits, SATLiteralStack& acc) const

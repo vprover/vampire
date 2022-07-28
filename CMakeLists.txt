@@ -9,6 +9,13 @@ set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
+# configure compilers
+if(CMAKE_CXX_COMPILER_ID STREQUAL GNU OR CMAKE_CXX_COMPILER_ID MATCHES Clang$)
+  add_compile_options(-Wall)
+  # we don't use multithreading in (mainline!) Vampire
+  add_compile_options(-fno-threadsafe-statics)
+endif()
+
 # compile command database
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
@@ -148,20 +155,16 @@ set(VAMPIRE_LIB_SOURCES
     Lib/fdstream.hpp
     Lib/FreshnessGuard.hpp
     Lib/Hash.hpp
-    Lib/ImplicationSetClosure.hpp
     Lib/Int.hpp
     Lib/IntNameTable.hpp
     Lib/IntUnionFind.hpp
     Lib/InverseLookup.hpp
-    Lib/LastCopyWatcher.hpp
     Lib/List.hpp
     Lib/Map.hpp
-    Lib/MapToLIFO.hpp
     Lib/MaybeBool.hpp
     Lib/MemoryLeak.hpp
     Lib/Metaarrays.hpp
     Lib/Metaiterators.hpp
-    Lib/MultiColumnMap.hpp
     Lib/MultiCounter.hpp
     Lib/NameArray.hpp
     Lib/Numbering.hpp
@@ -174,7 +177,6 @@ set(VAMPIRE_LIB_SOURCES
     Lib/ReferenceCounter.hpp
     Lib/Reflection.hpp
     Lib/SafeRecursion.hpp
-    Lib/SCCAnalyzer.hpp
     Lib/ScopedLet.hpp
     Lib/ScopedPtr.hpp
     Lib/Set.hpp
@@ -356,6 +358,7 @@ set(VAMPIRE_INDEXING_SOURCES
     Indexing/GroundingIndex.cpp
     Indexing/Index.cpp
     Indexing/IndexManager.cpp
+    Indexing/InductionFormulaIndex.cpp
     Indexing/LiteralIndex.cpp
     Indexing/LiteralMiniIndex.cpp
     Indexing/LiteralSubstitutionTree.cpp
@@ -376,6 +379,7 @@ set(VAMPIRE_INDEXING_SOURCES
     Indexing/GroundingIndex.hpp
     Indexing/Index.hpp
     Indexing/IndexManager.hpp
+    Indexing/InductionFormulaIndex.hpp
     Indexing/LiteralIndex.hpp
     Indexing/LiteralIndexingStructure.hpp
     Indexing/LiteralMiniIndex.hpp
@@ -484,7 +488,6 @@ source_group(instancegeneration_source_files FILES ${VAMPIRE_INSTANCEGENERATION_
 
 set(VAMPIRE_SAT_SOURCES
     SAT/BufferedSolver.cpp
-    SAT/DIMACS.cpp
     SAT/FallbackSolverWrapper.cpp
     SAT/MinimizingSolver.cpp
     SAT/SAT2FO.cpp
@@ -494,7 +497,6 @@ set(VAMPIRE_SAT_SOURCES
     SAT/Z3Interfacing.cpp
 
     SAT/BufferedSolver.hpp
-    SAT/DIMACS.hpp
     SAT/FallbackSolverWrapper.hpp
     SAT/MinimizingSolver.hpp
     SAT/SAT2FO.hpp
@@ -561,12 +563,9 @@ set(VAMPIRE_SHELL_SOURCES
     Shell/FunctionDefinition.cpp
     Shell/GeneralSplitting.cpp
     Shell/GoalGuessing.cpp
-    Shell/Grounding.cpp
     Shell/InequalitySplitting.cpp
     Shell/InterpolantMinimizer.cpp
-    Shell/InterpolantMinimizerNew.cpp
     Shell/Interpolants.cpp
-    Shell/InterpolantsNew.cpp    
     Shell/InterpretedNormalizer.cpp
     Shell/LaTeX.cpp
     Shell/Lexer.cpp
@@ -583,7 +582,6 @@ set(VAMPIRE_SHELL_SOURCES
     Shell/Skolem.cpp
     Shell/SimplifyFalseTrue.cpp
     Shell/SineUtils.cpp
-    Shell/SMTFormula.cpp
     Shell/FOOLElimination.cpp
     Shell/Statistics.cpp
     Shell/SymbolDefinitionInlining.cpp
@@ -596,6 +594,7 @@ set(VAMPIRE_SHELL_SOURCES
     Shell/BlockedClauseElimination.cpp
     Shell/Token.cpp
     Shell/TPTPPrinter.cpp
+    Shell/TweeGoalTransformation.cpp
     Shell/UIHelper.cpp
     Shell/VarManager.cpp
     Shell/Lexer.cpp
@@ -613,12 +612,9 @@ set(VAMPIRE_SHELL_SOURCES
     Shell/Flattening.hpp
     Shell/FunctionDefinition.hpp
     Shell/GeneralSplitting.hpp
-    Shell/Grounding.hpp
     Shell/InequalitySplitting.hpp
     Shell/InterpolantMinimizer.hpp
-    Shell/InterpolantMinimizerNew.hpp    
     Shell/Interpolants.hpp
-    Shell/InterpolantsNew.hpp
     Shell/InterpretedNormalizer.hpp
     Shell/LaTeX.hpp
     Shell/Lexer.hpp
@@ -635,7 +631,6 @@ set(VAMPIRE_SHELL_SOURCES
     Shell/Skolem.hpp
     Shell/SimplifyFalseTrue.hpp
     Shell/SineUtils.hpp
-    Shell/SMTFormula.hpp
     Shell/SMTLIBLogic.hpp
     Shell/FOOLElimination.hpp
     Shell/Statistics.hpp
@@ -649,6 +644,7 @@ set(VAMPIRE_SHELL_SOURCES
     Shell/BlockedClauseElimination.hpp
     Shell/Token.hpp
     Shell/TPTPPrinter.hpp
+    Shell/TweeGoalTransformation.hpp
     Shell/UnificationWithAbstractionConfig.hpp
     Shell/UnificationWithAbstractionConfig.cpp
     Shell/UIHelper.hpp
@@ -698,12 +694,10 @@ source_group(smt_comp_source_files FILES ${VAMPIRE_SMTCOMP_SOURCES})
 set(VAMPIRE_CASC_SOURCES
     CASC/PortfolioMode.cpp
     CASC/Schedules.cpp
-    CASC/ScheduleExecutor.cpp
     CASC/CLTBMode.cpp
     CASC/CLTBModeLearning.cpp
     CASC/PortfolioMode.hpp
     CASC/Schedules.hpp
-    CASC/ScheduleExecutor.hpp
     CASC/CLTBMode.hpp
     CASC/CLTBModeLearning.hpp
     )
@@ -722,9 +716,9 @@ source_group(testing_files FILES ${VAMPIRE_TESTING_SOURCES})
 set(UNIT_TESTS
     UnitTests/tDHMap.cpp
     UnitTests/tQuotientE.cpp
-    UnitTests/tImplicationSetClosure.cpp
     UnitTests/tUnificationWithAbstraction.cpp
     UnitTests/tGaussianElimination.cpp
+    UnitTests/tPushUnaryMinus.cpp
     UnitTests/tArithmeticSubtermGeneralization.cpp
     UnitTests/tInterpretedFunctions.cpp
     UnitTests/tRebalance.cpp
@@ -736,7 +730,6 @@ set(UNIT_TESTS
     UnitTests/tArithCompare.cpp
     UnitTests/tSyntaxSugar.cpp
     UnitTests/tSkipList.cpp
-    UnitTests/tfork.cpp
     UnitTests/tBinaryHeap.cpp
     UnitTests/tSafeRecursion.cpp
     UnitTests/tKBO.cpp
@@ -744,7 +737,6 @@ set(UNIT_TESTS
     UnitTests/tRatioKeeper.cpp
     UnitTests/tTwoVampires.cpp
     UnitTests/tOptionConstraints.cpp
-    UnitTests/tSCCAnalyzer.cpp
     UnitTests/tDHMultiset.cpp
     UnitTests/tList.cpp
     UnitTests/tBottomUpEvaluation.cpp
@@ -924,7 +916,7 @@ endif() # COMPILE_TESTS
 #################################################################
 # automated generation of Vampire revision information from git #
 #################################################################
-set(VAMPIRE_VERSION_NUMBER 4.6.1)
+set(VAMPIRE_VERSION_NUMBER 4.7)
 
 execute_process(
     COMMAND git rev-parse --is-inside-work-tree

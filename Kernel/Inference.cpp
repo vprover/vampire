@@ -15,6 +15,7 @@
  */
 
 #include "Debug/Tracer.hpp"
+#include "Lib/Environment.hpp"
 #include "Kernel/Term.hpp"
 #include "Kernel/Clause.hpp"
 #include "SAT/SATInference.hpp"
@@ -243,11 +244,13 @@ void Inference::updateStatistics()
     case Kind::INFERENCE_MANY:
     case Kind::INFERENCE_FROM_SAT_REFUTATION:
       _inductionDepth = 0;
+      _XXNarrows = 0;
+      _reductions = 0;
       UnitList* it= static_cast<UnitList*>(_ptr1);
       while(it) {
         _inductionDepth = max(_inductionDepth,it->head()->inference().inductionDepth());
-        _XXNarrows = max(_XXNarrows,it->head()->inference().inductionDepth());
-        _reductions = max(_reductions,it->head()->inference().inductionDepth());
+        _XXNarrows = max(_XXNarrows,it->head()->inference().xxNarrows());
+        _reductions = max(_reductions,it->head()->inference().reductions());
         it=it->tail();
       }
       break;
@@ -715,6 +718,8 @@ vstring Kernel::ruleName(InferenceRule rule)
     return "definition unfolding";
   case InferenceRule::DEFINITION_FOLDING:
     return "definition folding";
+  case InferenceRule::FUNCTION_DEFINITION: 
+    return "function definition";
   case InferenceRule::PREDICATE_DEFINITION:
     return "predicate definition introduction";
   case InferenceRule::PREDICATE_DEFINITION_UNFOLDING:
@@ -771,10 +776,6 @@ vstring Kernel::ruleName(InferenceRule rule)
     return "inequality splitting";
   case InferenceRule::INEQUALITY_SPLITTING_NAME_INTRODUCTION:
     return "inequality splitting name introduction";
-  case InferenceRule::GROUNDING:
-    return "grounding";
-  case InferenceRule::EQUALITY_AXIOM:
-    return "equality axiom";
   case InferenceRule::CHOICE_AXIOM:
     return "choice axiom";
   case InferenceRule::DISTINCTNESS_AXIOM:
@@ -902,37 +903,27 @@ vstring Kernel::ruleName(InferenceRule rule)
   case InferenceRule::INSTANTIATION:
     return "instantiation";
   case InferenceRule::MODEL_NOT_FOUND:
-    return "finite model not found";
-  case InferenceRule::INDUCTION_AXIOM:
-    return "induction hypothesis";
-  case InferenceRule::GEN_INDUCTION_AXIOM:
-    return "generalized induction hypothesis";
+    return "finite model not found : exhaustively excluded all possible domain size assignments";
   case InferenceRule::ARITHMETIC_SUBTERM_GENERALIZATION:
     return "arithmetic subterm generalization";
+  case InferenceRule::STRUCT_INDUCTION_AXIOM:
+    return "structural induction hypothesis";
   case InferenceRule::INT_INF_UP_INDUCTION_AXIOM:
     return "integer induction hypothesis (up, infinite interval)";
   case InferenceRule::INT_INF_DOWN_INDUCTION_AXIOM:
     return "integer induction hypothesis (down, infinite interval)";
-  case InferenceRule::INT_INF_UP_GEN_INDUCTION_AXIOM:
-    return "generalized integer induction hypothesis (up, infinite interval)";
-  case InferenceRule::INT_INF_DOWN_GEN_INDUCTION_AXIOM:
-    return "generalized integer induction hypothesis (down, infinite interval)";
   case InferenceRule::INT_FIN_UP_INDUCTION_AXIOM:
     return "integer induction hypothesis (up, finite interval)";
   case InferenceRule::INT_FIN_DOWN_INDUCTION_AXIOM:
     return "integer induction hypothesis (down, finite interval)";
-  case InferenceRule::INT_FIN_UP_GEN_INDUCTION_AXIOM:
-    return "generalized integer induction hypothesis (up, finite interval)";
-  case InferenceRule::INT_FIN_DOWN_GEN_INDUCTION_AXIOM:
-    return "generalized integer induction hypothesis (down, finite interval)";
   case InferenceRule::INT_DB_UP_INDUCTION_AXIOM:
     return "integer induction hypothesis (up, default bound)";
   case InferenceRule::INT_DB_DOWN_INDUCTION_AXIOM:
     return "integer induction hypothesis (down, default bound)";
-  case InferenceRule::INT_DB_UP_GEN_INDUCTION_AXIOM:
-    return "generalized integer induction hypothesis (up, default bound)";
-  case InferenceRule::INT_DB_DOWN_GEN_INDUCTION_AXIOM:
-    return "generalized integer induction hypothesis (down, default bound)";
+  case InferenceRule::INDUCTION_HYPERRESOLUTION:
+    return "induction hyperresolution";
+  case InferenceRule::GEN_INDUCTION_HYPERRESOLUTION:
+    return "generalized induction hyperresolution";
   case InferenceRule::GAUSSIAN_VARIABLE_ELIMINIATION:
     return "gaussian variable elimination";
   case InferenceRule::COMBINATOR_AXIOM:

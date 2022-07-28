@@ -14,20 +14,6 @@
 #include "Kernel/Ordering.hpp"
 #include "Kernel/Problem.hpp"
 
-DArray<int> lpoFuncPrec() {
-  unsigned num = env.signature->functions();
-  DArray<int> out(num);
-  out.initFromIterator(getRangeIterator(0u, num));
-  return out;
-}
-
-DArray<int> lpoPredPrec() {
-  unsigned num = env.signature->predicates();
-  DArray<int> out(num);
-  out.initFromIterator(getRangeIterator(0u, num));
-  return out;
-}
-
 DArray<int> lpoPredLevels() {
   DArray<int> out(env.signature->predicates());
   out.init(out.size(), 1);
@@ -40,7 +26,11 @@ inline void compareTwoWays(const Ordering& ord, TermSugar t1, TermSugar t2) {
 }
 
 LPO lpo() {
-  return LPO(lpoFuncPrec(), lpoPredPrec(), lpoPredLevels(), false /* reverseLCM */);
+  return LPO(
+      DArray<int>::fromIterator(getRangeIterator(0, (int) env.signature->functions())),
+      DArray<int>::fromIterator(getRangeIterator(0, (int) env.signature->typeCons())), 
+      DArray<int>::fromIterator(getRangeIterator(0, (int) env.signature->predicates())),
+      lpoPredLevels(), false /* reverseLCM */);
 }
 
 ////////////////////////////////////////////////////////////////////////////////

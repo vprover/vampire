@@ -90,7 +90,6 @@ template<typename T, typename=void> struct SecondaryHash;
 //                   ^^^
 template <typename Key, typename Val, class Hash1=Hash, class Hash2=SECONDARY_HASH(Key)> class DHMap;
 template <typename Val, class Hash1=Hash, class Hash2=SECONDARY_HASH(Val)> class DHSet;
-template <typename K,typename V, class Hash1=Hash, class Hash2=SECONDARY_HASH(K)> class MapToLIFO;
 template <typename Val, class Hash1=Hash, class Hash2=SECONDARY_HASH(Val)> class DHMultiset;
 template <typename Val,class Hash=Lib::Hash> class Set;
 
@@ -207,7 +206,7 @@ class Matcher;
 typedef VirtualIterator<Matcher*> MatchIterator;
 
 class TermTransformer;
-class TermTransformerTransformTransformed;
+class BottomUpTermTransformer;
 class FormulaTransformer;
 class FormulaUnitTransformer;
 

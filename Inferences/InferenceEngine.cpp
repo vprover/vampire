@@ -574,6 +574,8 @@ SimplifyingGeneratingInference::ClauseGenerationResult SimplifyingGeneratingInfe
 }
 
 SimplifyingGeneratingInference1::Result SimplifyingGeneratingLiteralSimplification::simplify(Clause* cl_, bool doOrderingCheck) {
+  CALL("SimplifyingGeneratingLiteralSimplification::simplify"); 
+ 
   DEBUG("in:  ", *cl_)
   auto& cl = *cl_;
   Stack<Literal*> out(cl.size());

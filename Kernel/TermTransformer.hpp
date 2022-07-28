@@ -33,6 +33,8 @@ namespace Kernel {
  *
  * This class can be used to transform sort arguments as well by suitably
  * implementing the transform(TermList) function
+ * 
+ * TermTransformer goes top down but does no recurse into the replaced term
  */
 class TermTransformer {
 public:
@@ -47,18 +49,23 @@ protected:
 };
 
 /**
- * TODO: WTF the name?
- *   --> rename to SumbtermEvaluator?
+ * Has similar philosophy to TermTransformer, but:
+ *  goes bottom up and so subterms of currently considered terms
+ *  might already be some replacements that happened earlier, e.g.:
+ *  transforming g(f(a,b)) will consider (provided transformSubterm is the identity function)
+ *  the following sequence: a,b,f(a,b),g(f(a,b)) 
+ *  and if transformSubterm is the identitify everywhere except for f(a,b) for which it returns c,
+ *  the considered sequence will be: a,b,f(a,b)->c,g(c)
  */
-class TermTransformerTransformTransformed {
+class BottomUpTermTransformer {
 public:
-  virtual ~TermTransformerTransformTransformed() {}
+  virtual ~BottomUpTermTransformer() {}
   Term* transform(Term* term);
   Literal* transform(Literal* lit);
 protected:
   virtual TermList transformSubterm(TermList trm) = 0;
   /**
-   * TODO: these functions are exactly the same as in TermTransformer, code duplication must be removed!
+   * TODO: these functions are similar as in TermTransformer, code duplication could be removed
    */
   TermList transform(TermList ts);
   Formula* transform(Formula* f);
