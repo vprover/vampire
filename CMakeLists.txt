@@ -367,8 +367,8 @@ set(VAMPIRE_INDEXING_SOURCES
     Indexing/TermCodeTree.cpp
     Indexing/TermIndex.cpp
     Indexing/TermSharing.cpp
-    Indexing/AbstracingIndex.cpp
-    Indexing/AbstracingIndex.hpp
+    Indexing/AbstractingIndex.cpp
+    Indexing/AbstractingIndex.hpp
     Indexing/TermSubstitutionTree.cpp
     Indexing/AcyclicityIndex.hpp
     Indexing/ClauseCodeTree.hpp

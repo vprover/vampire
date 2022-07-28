@@ -20,7 +20,7 @@
 
 #include "TermIndexingStructure.hpp"
 #include "Lib/Set.hpp"
-#include "AbstracingIndex.hpp"
+#include "AbstractingIndex.hpp"
 
 namespace Indexing {
 class TermIndex
