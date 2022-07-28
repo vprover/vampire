@@ -48,7 +48,9 @@
 
 namespace Inferences
 {
+#if VTIME_PROFILING
 static const char* HYPER_SUP = "hyper superposition";
+#endif // VTIME_PROFILING
 
 using namespace Lib;
 using namespace Kernel;

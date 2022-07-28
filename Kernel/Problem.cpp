@@ -30,7 +30,9 @@
 #undef LOGGING
 #define LOGGING 0
 
+#if VTIME_PROFILING
 static const char* PROPERTY_EVALUATION = "property evaluation";
+#endif // VTIME_PROFILING
 
 using namespace Kernel;
 

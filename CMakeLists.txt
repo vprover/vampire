@@ -804,6 +804,8 @@ elseif(CMAKE_BUILD_TYPE STREQUAL Release)
   add_compile_definitions(VDEBUG=0)
 endif()
 
+add_compile_definitions(VTIME_PROFILING=1)
+
 if (CYGWIN)
  add_compile_definitions(_BSD_SOURCE)
 endif()

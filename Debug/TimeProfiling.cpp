@@ -8,9 +8,9 @@
  * and in the source directory
  */
 
+#if VTIME_PROFILING
+
 #include "Debug/TimeProfiling.hpp"
-#include "Lib/Environment.hpp"
-#include "Shell/Statistics.hpp"
 #include <iomanip>
 #include <cstring>
 #include "Shell/Options.hpp"
@@ -26,7 +26,7 @@ TimeTrace::TimeTrace()
 {  }
 
 TimeTrace::ScopedTimer::ScopedTimer(const char* name)
-  : ScopedTimer(env.statistics->timeTrace, name)
+  : ScopedTimer(TimeTrace::instance(), name)
 { }
 
 TimeTrace::ScopedTimer::ScopedTimer(TimeTrace& trace, const char* name)
@@ -54,6 +54,8 @@ TimeTrace::ScopedTimer::ScopedTimer(TimeTrace& trace, const char* name)
   }
 }
 
+TimeTrace TimeTrace::_instance;
+
 void TimeTrace::setEnabled(bool v) 
 { _enabled = v; }
 
@@ -72,7 +74,7 @@ TimeTrace::ScopedTimer::~ScopedTimer()
 
 
 TimeTrace::ScopedChangeRoot::ScopedChangeRoot()
-  : ScopedChangeRoot(env.statistics->timeTrace)
+  : ScopedChangeRoot(TimeTrace::instance())
 { }
 
 TimeTrace::ScopedChangeRoot::ScopedChangeRoot(TimeTrace& trace)
@@ -146,6 +148,7 @@ static constexpr const char* indentBeforeLast = "  │  ";
 static constexpr const char* internalChild    = "  ├──";
 static constexpr const char* lastChild        = "  └──";
 static constexpr const char* indentAfterLast  = "     ";
+
 
 struct MaybeSetw {
   bool enabled;
@@ -275,3 +278,5 @@ void TimeTrace::printPretty(std::ostream& out)
 }
 
 } // namespace Shell
+
+#endif // VTIME_PROFILING

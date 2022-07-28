@@ -114,9 +114,11 @@ bool PortfolioMode::perform(float slowness)
         env.out()<<"SZS status Timeout for "<<env.options->problemName()<<endl;
       }
     }
+#if VTIME_PROFILING
     if (env.options && env.options->timeStatistics()) {
-        env.statistics->timeTrace.printPretty(env.out());
+      TimeTrace::instance().printPretty(env.out());
     }
+#endif // VTIME_PROFILING
     env.endOutput();
   }
 

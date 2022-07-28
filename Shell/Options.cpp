@@ -341,10 +341,12 @@ void Options::init()
     _timeLimitInDeciseconds.description="Time limit in wall clock seconds, you can use d,s,m,h,D suffixes also i.e. 60s, 5m. Setting it to 0 effectively gives no time limit.";
     _lookup.insert(&_timeLimitInDeciseconds);
 
+#if VTIME_PROFILING
     _timeStatistics = BoolOptionValue("time_statistics","tstat",false);
     _timeStatistics.description="Show how much running time was spent in each part of Vampire";
     _lookup.insert(&_timeStatistics);
     _timeStatistics.tag(OptionTag::OUTPUT);
+#endif // VTIME_PROFILING
 
 //*********************** Input  ***********************
 
