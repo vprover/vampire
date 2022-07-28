@@ -79,7 +79,6 @@ AbstractingIndex::TransformedTerm const& AbstractingIndex::replaceAbstractableSu
     auto trafo = AbstractingTransformer(*this, t);
     auto res = trafo.transformTermList(t);
 
-    DBG("inserting: ", t)
     auto entry = TransformedTerm {
         .term = res,
         .introducedVars = std::move(trafo.introducedVars)
@@ -93,12 +92,14 @@ AbstractingIndex::TransformedTerm const& AbstractingIndex::replaceAbstractableSu
 
 
 void AbstractingIndex::insert(TermList t, Literal* lit, Clause* cls)
-{ _inner->insert(replaceAbstractableSubterms(t).term, lit, cls); }
+{ 
+  CALL("AbstractingIndex::insert")
+  _inner->insert(replaceAbstractableSubterms(t).term, lit, cls); 
+}
 
 void AbstractingIndex::remove(TermList t, Literal* lit, Clause* cls)
 { 
-
-  DBG("removing: ", t)
+  CALL("AbstractingIndex::remove")
   auto& trafo = *_transformedTerms.findPtr(t);
   _inner->remove(trafo.first.term, lit, cls); 
   if (--trafo.second == 0) {
