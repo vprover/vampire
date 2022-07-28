@@ -32,11 +32,29 @@
 
 namespace Test {
 
+#define TEST_FN_ASS_EQ(VAL1, VAL2)                         \
+  [] (vstring& s1, vstring& s2) {                          \
+    bool res = (VAL1 == VAL2);                             \
+    if (!res) {                                            \
+      s1 = Int::toString(VAL1);                            \
+      s1.append(" != ");                                   \
+      s1.append(Int::toString(VAL2));                      \
+      s2 = vstring(#VAL1);                                 \
+      s2.append(" == ");                                   \
+      s2.append(#VAL2);                                    \
+    }                                                      \
+    return res;                                            \
+  }
+
 template<class... As>
 Stack<ClausePattern> exactly(As... as) 
 {
   Stack<ClausePattern> out { as... };
   return out;
+}
+
+inline Stack<ClausePattern> none() {
+  return Stack<ClausePattern>();
 }
 
 namespace Generation {
@@ -48,11 +66,11 @@ class GenerationTester
   Rule _rule;
 
 public:
-  GenerationTester() 
-    : _rule() 
+  GenerationTester()
+    : _rule()
   {}
 
-  virtual bool eq(Kernel::Clause const* lhs, Kernel::Clause const* rhs) const 
+  virtual bool eq(Kernel::Clause const* lhs, Kernel::Clause const* rhs, BacktrackData& btd)
   { return TestUtils::eqModAC(lhs, rhs); }
 
   friend class TestCase;
@@ -61,14 +79,23 @@ public:
 class TestCase
 {
   using Clause = Kernel::Clause;
+  using OptionMap = Stack<pair<vstring,vstring>>;
+  using Condition = std::function<bool(vstring&, vstring&)>;
   Option<SimplifyingGeneratingInference*> _rule;
   Clause* _input;
   Stack<ClausePattern> _expected;
+  Stack<Clause*> _context;
   bool _premiseRedundant;
+  Stack<Indexing::Index*> _indices;
+  OptionMap _options;
+  Stack<Condition> _preConditions;
+  Stack<Condition> _postConditions;
 
   template<class Is, class Expected>
   void testFail(Is const& is, Expected const& expected) {
       cout  << endl;
+      cout << "[  context ]: " << pretty(_context) << endl;
+      cout << "[  options ]: " << pretty(_options) << endl;
       cout << "[     case ]: " << pretty(*_input) << endl;
       cout << "[       is ]: " << pretty(is) << endl;
       cout << "[ expected ]: " << pretty(expected) << endl;
@@ -77,7 +104,7 @@ class TestCase
 
 public:
 
-  TestCase() : _rule(), _input(NULL), _expected(), _premiseRedundant(false) {}
+  TestCase() : _rule(), _input(NULL), _expected(), _premiseRedundant(false), _options() {}
 
 #define BUILDER_METHOD(type, field)                                                                           \
   TestCase field(type field)                                                                                  \
@@ -87,60 +114,90 @@ public:
   }                                                                                                           \
 
   BUILDER_METHOD(Clause*, input)
+  BUILDER_METHOD(Stack<Clause*>, context)
   BUILDER_METHOD(Stack<ClausePattern>, expected)
   BUILDER_METHOD(bool, premiseRedundant)
   BUILDER_METHOD(SimplifyingGeneratingInference*, rule)
+  BUILDER_METHOD(Stack<Indexing::Index*>, indices)
+  BUILDER_METHOD(OptionMap, options)
+  BUILDER_METHOD(Stack<Condition>, preConditions)
+  BUILDER_METHOD(Stack<Condition>, postConditions)
 
   template<class Rule>
   void run(GenerationTester<Rule>& simpl) {
 
     // set up saturation algorithm
+    auto container = PlainClauseContainer();
     Problem p;
     Options o;
+    for (const auto& kv : _options) {
+      o.set(kv.first, kv.second);
+      env.options->set(kv.first, kv.second);
+    }
     MockedSaturationAlgorithm alg(p, o);
     SimplifyingGeneratingInference& rule = *_rule.unwrapOrElse([&](){ return &simpl._rule; });
-    rule.attach(&alg);
+    rule.setTestIndices(_indices);
+    rule.InferenceEngine::attach(&alg);
+    for (auto i : _indices) {
+      i->attachContainer(&container);
+    }
+
+    // add the clauses to the index
+    for (auto c : _context) {
+      c->setStore(Clause::ACTIVE);
+      container.add(c);
+    }
+
+    // check that the preconditions hold
+    vstring s1, s2;
+    for (auto c : _preConditions) {
+      if (!c(s1, s2)) {
+        s2.append(" (precondition)");
+        testFail(s1, s2);
+      }
+    }
 
     // run rule
+    _input->setStore(Clause::ACTIVE);
     auto res = rule.generateSimplify(_input);
 
     // run checks
     auto& sExp = this->_expected;
     auto  sRes = Stack<Kernel::Clause*>::fromIterator(res.clauses);
 
-    auto iExp = getArrayishObjectIterator<mut_ref_t>(sExp);
-    auto iRes = getArrayishObjectIterator<mut_ref_t>(sRes);
-
-    while (iRes.hasNext() && iExp.hasNext()) {
-      auto& exp = iExp.next();
-      auto& res = iRes.next();
-      if (!exp.matches(simpl, res)) {
-        testFail(sRes, sExp);
-      }
-    }
-
-    if (iExp.hasNext() || iRes.hasNext()) {
+    if (!TestUtils::permEq(sExp, sRes, [&](auto exp, auto res, BacktrackData& btd) { return exp.matches(simpl, res, btd); })) {
       testFail(sRes, sExp);
     }
 
     if (_premiseRedundant != res.premiseRedundant) {
-      auto wrapStr = [](bool b) -> vstring { return b ? "premise is redundant" : "premis not redundant"; };
+      auto wrapStr = [](bool b) -> vstring { return b ? "premise is redundant" : "premise is not redundant"; };
       testFail( wrapStr(res.premiseRedundant), wrapStr(_premiseRedundant));
     }
 
+    // check that the postconditions hold
+    for (auto c : _postConditions) {
+      if (!c(s1, s2)) {
+        s2.append(" (postcondition)");
+        testFail(s1, s2);
+      }
+    }
+
+
     // tear down saturation algorithm
-    rule.detach();
+    rule.InferenceEngine::detach();
   }
 };
 
-#define REGISTER_GEN_TESTER(t) using __GenerationTester = t;
+#define __CREATE_GEN_TESTER CAT(__createGenTester_, UNIT_ID)
+
+#define REGISTER_GEN_TESTER(t, ...) auto __CREATE_GEN_TESTER() { return Test::Generation::GenerationTester<t>(); }
 
 #define TEST_GENERATION(name, ...)                                                                            \
         TEST_GENERATION_WITH_SUGAR(name, MY_SYNTAX_SUGAR, __VA_ARGS__) 
 
 #define TEST_GENERATION_WITH_SUGAR(name, syntax_sugar, ...)                                                   \
   TEST_FUN(name) {                                                                                            \
-    __GenerationTester tester;                                                                                \
+    auto tester = __CREATE_GEN_TESTER();                                                                      \
     __ALLOW_UNUSED(syntax_sugar)                                                                              \
     auto test = __VA_ARGS__;                                                                                  \
     test.run(tester);                                                                                         \

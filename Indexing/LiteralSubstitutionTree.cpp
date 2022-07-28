@@ -35,7 +35,7 @@ LiteralSubstitutionTree::LiteralSubstitutionTree(bool useC)
   //However, there is no need to guard aginst it, as equalityProxy removes all
   //equality literals. The flag below is only used during the unification of 
   //equality literals.
-  _polymorphic = env.statistics->polymorphic || env.statistics->higherOrder;
+  _polymorphic = env.property->hasPolymorphicSym() || env.property->higherOrder();
 }
 
 void LiteralSubstitutionTree::insert(Literal* lit, Clause* cls)

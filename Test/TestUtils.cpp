@@ -51,51 +51,11 @@ SAT::SATClause* TestUtils::buildSATClause(unsigned len,...)
   return SATClause::fromStack(lits);
 }
 
-template<class List, class Eq>
-bool __permEq(const List& lhs, const List& rhs, Eq elemEq, DArray<unsigned>& perm, unsigned idx) {
-  auto checkPerm = [&] (const List& lhs, const List& rhs, DArray<unsigned>& perm) {
-    ASS_EQ(lhs.size(), perm.size());
-    ASS_EQ(rhs.size(), perm.size());
-
-    for (unsigned i = 0; i < perm.size(); i++) {
-      if (!elemEq(lhs[i], rhs[perm[i]])) return false;
-    }
-    return true;
-  };
-  if (checkPerm(lhs, rhs, perm)) {
-    return true;
-  }
-  for (unsigned i = idx; i < perm.size(); i++) {
-    swap(perm[i], perm[idx]);
-
-
-    if (__permEq(lhs,rhs, elemEq, perm, idx+1)) return true;
-
-    swap(perm[i], perm[idx]);
-  }
-
-  return false;
-}
-
-
-template<class List, class Eq>
-bool TestUtils::permEq(const List& lhs, const List& rhs, Eq elemEq) 
-{
-  if (lhs.size() != rhs.size()) return false;
-  // ASS_EQ(lhs.size(), rhs.size());
-  DArray<unsigned> perm(lhs.size());
-  for (unsigned i = 0; i < lhs.size(); i++) {
-    perm[i] = i;
-  }
-  return __permEq(lhs, rhs, elemEq, perm, 0);
-}
-
 std::ostream& printOp(std::ostream& out, const Term* t, const char* op) {
   auto l = *t->nthArgument(0);
   auto r = *t->nthArgument(1);
   return out << "(" << pretty(l) << " " << op << " " << pretty(r) << ")";
 }
-
 
 template<>
 std::ostream& Pretty<Kernel::TermList>::prettyPrint(std::ostream& out) const
@@ -236,7 +196,7 @@ bool TestUtils::isAC(Theory::Interpretation i)
 }
 
 bool TestUtils::eqModAC(const Kernel::Clause* lhs, const Kernel::Clause* rhs)
-{ return permEq(*lhs, *rhs, [](Literal* l, Literal* r) -> bool { return TestUtils::eqModAC(l, r); }); }
+{ return permEq(*lhs, *rhs, [](Literal* l, Literal* r, BacktrackData& btd) -> bool { return TestUtils::eqModAC(l, r); }); }
 
 bool TestUtils::eqModAC(Kernel::Literal* lhs, Kernel::Literal* rhs)
 { return TestUtils::eqModAC(TermList(lhs), TermList(rhs)); }
@@ -281,7 +241,7 @@ bool TestUtils::eqModAC_(TermList lhs, TermList rhs, Comparisons comp)
     if (isAC(&l)) {
       Stack<TermList> lstack = collect(fun, &l);
       Stack<TermList> rstack = collect(fun, &r);
-      return permEq(lstack, rstack, [&](TermList l, TermList r) -> bool {
+      return permEq(lstack, rstack, [&](TermList l, TermList r, BacktrackData& btd) -> bool {
             return comp.subterm(l, r);
       });
     } else {

@@ -568,7 +568,7 @@ void FiniteModelBuilder::init()
     Renaming n;
     Clause* c = it.next();
 
-    //cout << "Normalize " << c->toString() <<endl;
+    // cout << "Normalize " << c->toString() <<endl;
     for(unsigned i=0;i<c->length();i++){
       Literal* l = (*c)[i];
       n.normalizeVariables(l);
@@ -966,6 +966,10 @@ void FiniteModelBuilder::addGroundClauses()
 
       Clause* c = cit.next();
       ASS(c);
+
+#if VTRACE_FMB
+      cout << "Ground clause " << c->toString() << endl;
+#endif
 
       static SATLiteralStack satClauseLits;
       satClauseLits.reset();
@@ -1693,6 +1697,39 @@ MainLoopResult FiniteModelBuilder::runImpl()
 
     // if the clauses are satisfiable then we have found a finite model
     if(satResult == SATSolver::SATISFIABLE){
+
+      if (_xmass) { // for CONTOUR
+        // before printing possibly retract _distinctSortSizes (and the corresponding _sortModelSizes) according to the set assumptions
+        // (as the model found may in fact be smaller than the assumed contour in some of the sort dimensions)
+
+        for (unsigned i = 0; i < _distinctSortSizes.size(); i++) {
+          unsigned j = 0;
+          for (; j < _distinctSortSizes[i]; j++) {
+            if (_solver->trueInAssignment(SATLiteral(marker_offsets[i]+j,0))) {
+              break;
+            }
+          }
+          ASS_L(j,_distinctSortSizes[i]); // at the latest "marker_offsets[i]+_distinctSortSizes[i]-1" must have been false (see the assumptions above)
+
+#if VTRACE_DOMAINS
+          cout << "dom " << i << " has final size " << (j+1) << endl;
+#endif
+          _distinctSortSizes[i] = j+1;
+        }
+
+        /* We might think we want to transfer from _distinctSortSizes to _sortModelSizes e.g.
+          for(unsigned s=0;s<_sortedSignature->sorts;s++) {
+            _sortModelSizes[s] = _distinctSortSizes[_sortedSignature->parents[s]];
+          }
+          as we do elsewhere when we update _distinctSortSizes. However, in onModelFound we need to remember what _distinctSortSizes
+          was when we created the model (as this defines the offsets into the variable encoding). Thankfully, this information is
+          encoded in _sortModelSizes so we don't need to do any work here, just don't update _sortModelSizes.
+
+          So, we retract _distinctSortSizes to ensure the model uses the correct sizes but preserve _sortModelSizes to use to query
+          the model.
+        */
+      }
+
       onModelFound();
       return MainLoopResult(Statistics::SATISFIABLE);
     }

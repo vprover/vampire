@@ -58,6 +58,7 @@ Environment::Environment()
   statistics = new Statistics;  
   signature = new Signature;
   sharing = new TermSharing;
+  property = new Property;
 
   //view comment in Signature.cpp
   signature->addEquality();
@@ -94,6 +95,7 @@ Environment::~Environment()
   delete sharing;
   delete signature;
   delete statistics;
+  delete property;
   if (predicateSineLevels) delete predicateSineLevels;
   {
     BYPASSING_ALLOCATOR; // use of std::function in options

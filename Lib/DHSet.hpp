@@ -29,10 +29,7 @@ namespace Lib {
  *        and compared using ==
  * @param Hash1 class containig the hash function for keys which
  *	  determines position of entry in hashtable when no collision
- *	  occurs. This function can also take second int parameter,
- * 	  which will contain current capacity of the hashtable. In
- * 	  this case, HashTraits struct has to be specialized for this
- * 	  class, so that enum member SINGLE_PARAM_HASH is equal to 0.
+ *	  occurs.
  * @param Hash2 class containig the hash function for keys which
  *	  will be used when collision occurs. Otherwise it will not be
  *	  enumerated.

@@ -596,6 +596,9 @@ private:
   // this saves time, because bindings are potentially shared
   DHMap<BindingList*,Substitution*> _substitutionsByBindings;
 
+  // do not provide definitions for names we've already seen (when -dr on)
+  DHSet<Literal *> _already_seen[2];
+
   void skolemise(QuantifiedFormula* g, BindingList* &bindings, BindingList*& foolBindings);
 
   Literal* createNamingLiteral(Formula* g, VList* free);

@@ -150,7 +150,7 @@ public:
   };
 
 private:
-  typedef DHMap<unsigned,TermList,IdentityHash> BindingMap;
+  typedef DHMap<unsigned,TermList,IdentityHash,Hash> BindingMap;
   struct MapBinder
   {
     bool bind(unsigned var, TermList term)

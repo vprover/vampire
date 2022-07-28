@@ -436,8 +436,10 @@ struct EvaluateInModel
     } else if (expr.is_app()) {
       auto f = expr.decl();
       auto vfunc = self._fromZ3.get(f);
-      Stack<TermList> args(f.arity());
-      for (unsigned i = 0; i < f.arity(); i++) {
+      unsigned arity = f.arity();
+      ASS(arity == 0 || evaluatedArgs != nullptr)
+      Stack<TermList> args(arity);
+      for (unsigned i = 0; i < arity; i++) {
         if (evaluatedArgs[i].isNone()) {
           // evaluation failed somewhere in a recursive call
           return Result();

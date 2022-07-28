@@ -54,7 +54,7 @@ public:
     static GaussianVariableElimination gve = GaussianVariableElimination();
 
     /* applies gve and evaluation until they're not applicable anymore */
-    Kernel::Clause* last = simpl(in);
+    Kernel::Clause* last = nullptr;
     Kernel::Clause* latest = simpl(in);
     do {
       last = latest;
@@ -67,7 +67,7 @@ public:
    * OPTIONAL: override how equality between clauses is checked. 
    * Defaults to TestUtils::eqModAC(Clause const*, Clause const*).
    */
-  virtual bool eq(Kernel::Clause const* lhs, Kernel::Clause const* rhs) const override
+  virtual bool eq(Kernel::Clause const* lhs, Kernel::Clause const* rhs, BacktrackData& btd) const override
   {
     return TestUtils::eqModAC(lhs, rhs);
   }
@@ -160,7 +160,7 @@ TEST_SIMPLIFY(gve_test_div,
 /////////////////////////////////////
 
 
-REGISTER_GEN_TESTER(Test::Generation::GenerationTester<LfpRule<GaussianVariableElimination>>)
+REGISTER_GEN_TESTER(LfpRule<GaussianVariableElimination>)
 
 TEST_GENERATION(test_redundancy_01,
     Generation::TestCase()

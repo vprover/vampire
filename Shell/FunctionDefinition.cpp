@@ -503,7 +503,7 @@ void FunctionDefinition::assignArgOccursData(Def* updDef)
 	    "FunctionDefinition::Def::argOccurs"));
   BitUtils::zeroMemory(updDef->argOccurs, updDef->lhs->arity()*sizeof(bool));
 
-  static DHMap<unsigned, unsigned, IdentityHash> var2argIndex;
+  static DHMap<unsigned, unsigned, IdentityHash, Hash> var2argIndex;
   var2argIndex.reset();
   int argIndex=0;
   for (TermList* ts = updDef->lhs->args(); ts->isNonEmpty(); ts=ts->next()) {
@@ -561,8 +561,8 @@ void FunctionDefinition::assignArgOccursData(Def* updDef)
 
 
 typedef pair<unsigned,unsigned> BindingSpec;
-typedef DHMap<BindingSpec, TermList, IntPairSimpleHash> BindingMap;
-typedef DHMap<BindingSpec, bool, IntPairSimpleHash> UnfoldedSet;
+typedef DHMap<BindingSpec, TermList> BindingMap;
+typedef DHMap<BindingSpec, bool> UnfoldedSet;
 
 Term* FunctionDefinition::applyDefinitions(Literal* lit, Stack<Def*>* usedDefs)
 {
@@ -893,13 +893,13 @@ FunctionDefinition::defines (Term* lhs, Term* rhs)
     }
     //Higher-order often contains definitions of the form
     //f = ^x^y...
-    if (rhs->arity() && !env.statistics->higherOrder) { // c = f(...)
+    if (rhs->arity() && !env.property->higherOrder()) { // c = f(...)
       return 0;
     }
     if (rhs->functor() == f) {
       return 0;
     }
-    if(!env.statistics->higherOrder){
+    if(!env.property->higherOrder()){
       return new Def(lhs,rhs,true,true);
     }
   }

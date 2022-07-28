@@ -776,21 +776,32 @@ Formula* Formula::createLet(unsigned predicate, VList* variables, Formula* body,
 
 Formula* Formula::quantify(Formula* f)
 {
-  Set<unsigned> vars;
-  FormulaVarIterator fvit( f );
-  while(fvit.hasNext()) {
-    vars.insert(fvit.next());
-  }
+
+  DHMap<unsigned,TermList> tMap;
+  SortHelper::collectVariableSorts(f,tMap,/*ignoreBound=*/true);
 
   //we have to quantify the formula
   VList* varLst = VList::empty();
-  Set<unsigned>::Iterator vit(vars);
-  while(vit.hasNext()) {
-    VList::push(vit.next(), varLst);
+  SList* sortLst = SList::empty();
+  VList::FIFO quantifiedVars(varLst);
+  SList::FIFO theirSorts(sortLst);
+
+  DHMap<unsigned,TermList>::Iterator tmit(tMap);
+  while(tmit.hasNext()) {
+    unsigned v; 
+    TermList s;
+    tmit.next(v, s);
+    if(s.isTerm() && s.term()->isSuper()){
+      // type variable must appear at the start of the list
+      quantifiedVars.pushFront(v);
+      theirSorts.pushFront(s);
+    } else {
+      quantifiedVars.pushBack(v);
+      theirSorts.pushBack(s);
+    }
   }
   if(varLst) {
-    //TODO could compute the sorts list, but don't want to!
-    f=new QuantifiedFormula(FORALL, varLst, 0, f);
+    f=new QuantifiedFormula(FORALL, varLst, sortLst, f);
   }
   return f;
 }
@@ -812,25 +823,7 @@ Formula* Formula::fromClause(Clause* cl)
   }
 
   Formula* res=JunctionFormula::generalJunction(OR, resLst);
-  
-  Set<unsigned> vars;
-  FormulaVarIterator fvit( res );
-  while(fvit.hasNext()) {
-    vars.insert(fvit.next());
-  }
-
-  //we have to quantify the formula
-  VList* varLst = VList::empty();
-  Set<unsigned>::Iterator vit(vars);
-  while(vit.hasNext()) {
-    VList::push(vit.next(), varLst);
-  }
-  if(varLst) {
-    //TODO could compute the sorts list, but don't want to!
-    res=new QuantifiedFormula(FORALL, varLst, 0, res);
-  }
-
-  return res;
+  return Formula::quantify(res);
 }
 
 /*
