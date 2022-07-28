@@ -147,8 +147,25 @@ Index* IndexManager::create(IndexType t)
   static bool const extByAbs = (env.options->functionExtensionality() == Options::FunctionExtensionality::ABSTRACTION) &&
                     env.property->higherOrder();
 
+
   auto abstractors = make_shared(Stack<Abstractor>());
-  ASSERTION_VIOLATION_REP("TODO")
+
+  switch (env.options->unificationWithAbstraction()) {
+    case Options::UnificationWithAbstraction::ONE_INTERP: 
+      abstractors->push(Abstractors::OneSideInterpreted{});
+      break;
+
+    case Options::UnificationWithAbstraction::INTERP_ONLY: 
+      abstractors->push(Abstractors::InterpretedOnly{});
+      break;
+
+    case Options::UnificationWithAbstraction::OFF: 
+      break;
+  }
+
+  if (env.options->functionExtensionality() == Options::FunctionExtensionality::ABSTRACTION 
+      && env.property->higherOrder())
+    abstractors->push(Abstractors::FunctionExtensionality{});
                     
   switch(t) {
   case GENERATING_SUBST_TREE:
