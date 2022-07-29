@@ -99,11 +99,11 @@ QKbo::Result QKbo::compare(Literal* l1, Literal* l2) const
   auto i2 = _shared->interpretedPred(l2);
        if ( i1 && !i2) return Result::LESS;
   else if (!i1 &&  i2) return Result::GREATER;
-  else if (!i1 && !i2) return OU::lexProductCapture(
+  else if (!i1 && !i2) return TIME_TRACE_EXPR("uninterpreted", OU::lexProductCapture(
         [&]() { return _kbo.comparePrecedence(l1, l2); }
       , [&]() { return OU::lexExt(termArgIter(l1), termArgIter(l2), this->asClosure()); }
       , [&]() { return OU::stdCompare(l1->isNegative(), l2->isNegative()); }
-    );
+    ));
   else {
     ASS(i1 && i2)
    
@@ -114,7 +114,9 @@ QKbo::Result QKbo::compare(Literal* l1, Literal* l2) const
     auto& a1 = a1_.unwrap();
     auto& a2 = a2_.unwrap();
     return OU::lexProductCapture(
-        [&]() -> Ordering::Result { return OU::weightedMulExt(std::get<0>(a1), std::get<0>(a2), 
+        [&]() -> Ordering::Result { 
+        TIME_TRACE("atoms with levels")
+        return OU::weightedMulExt(std::get<0>(a1), std::get<0>(a2), 
                           [&](auto const& l, auto const& r)
                           { return OU::lexProductCapture(
                               [&]() { return this->compare(l.term, r.term); }
@@ -132,6 +134,7 @@ QKbo::Result QKbo::compare(Literal* l1, Literal* l2) const
             return Option<Ordering::Result>();
           } else {
             if (l1->isEquality() && l2->isEquality()) {
+              TIME_TRACE("compare equalities")
               ASS_EQ(l1->isPositive(), l2->isPositive())
               return Option<Ordering::Result>(OU::lexProductCapture(
                   // TODO make use of the constant size of the multiset
@@ -149,6 +152,7 @@ QKbo::Result QKbo::compare(Literal* l1, Literal* l2) const
               ASS(l2->isNegative())
               return Option<Ordering::Result>(Result::GREATER);
             } else {
+              TIME_TRACE("compare inequqlities")
               ASS(l1->functor() == numTraits.greaterF() || l1->functor() == numTraits.geqF())
               ASS(l2->functor() == numTraits.greaterF() || l2->functor() == numTraits.geqF())
               ASS(l1->isPositive())
