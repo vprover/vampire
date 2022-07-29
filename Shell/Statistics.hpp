@@ -346,8 +346,6 @@ public:
    * representation; otherwise it is an empty string */
   vstring model;
 
-  TimeTrace timeTrace;
-
   enum ExecutionPhase {
     /** Whatever happens before we start parsing the problem */
     INITIALIZATION,

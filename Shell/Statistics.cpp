@@ -503,9 +503,11 @@ void Statistics::print(ostream& out)
 #undef COND_OUT
   } // if (env.options->statistics()!=Options::Statistics::NONE)
 
+#if VTIME_PROFILING
   if (env.options && env.options->timeStatistics()) {
-    timeTrace.printPretty(out);
+    TimeTrace::instance().printPretty(out);
   }
+#endif // VTIME_PROFILING
 }
 
 const char* Statistics::phaseToString(ExecutionPhase p)

@@ -19,11 +19,10 @@
 #include "Kernel/Term.hpp"
 #include <chrono>
 #include "Lib/MacroUtils.hpp"
-#define ENABLE_TIME_PROFILING 1
 
 namespace Shell {
 
-#if ENABLE_TIME_PROFILING
+#if VTIME_PROFILING
 
 /**
  * Enables the runtime of the current block to be measured.
@@ -67,21 +66,21 @@ namespace Shell {
   TIME_TRACE(name)                                                                                  \
   Shell::TimeTrace::ScopedChangeRoot CONCAT_IDENTS(__change_root_, __LINE__);
 
-#else // !ENABLE_TIME_PROFILING
+#else // !VTIME_PROFILING
 
 #define TIME_TRACE(name) {}
 #define TIME_TRACE_EXPR(name, ...) __VA_ARGS__
 #define TIME_TRACE_NEW_ROOT(name)
 
-#endif // ENABLE_TIME_PROFILING
+#endif // VTIME_PROFILING
 
 
-#if ENABLE_TIME_PROFILING
+#if VTIME_PROFILING
 
 
 /**
  * A class to trace time for particular blocks. this class shall never be used directly,
- * as it is preprocessed away when the flag ENABLE_TIME_PROFILING is set to false.
+ * as it is preprocessed away when the flag VTIME_PROFILING is set to false.
  * Use the macros TIME_TRACE, TIME_TRACE_EXPR, and TIME_TRACE_NEW_ROOT instead.
  */
 class TimeTrace
@@ -129,14 +128,22 @@ class TimeTrace
     void serialize(std::ostream& out);
     Duration totalDuration() const;
 
+    Node clone() const;
+
     Node flatten();
+    void _focus(const char* name, Node& newRoot);
+    Node focus(const char* name);
+    void extendWith(Node const& n);
     struct FlattenState;
     void flatten_(FlattenState&);
   };
 
   friend std::ostream& operator<<(std::ostream& out, Duration const& self);
-public:
   TimeTrace();
+
+public:
+  static TimeTrace _instance;
+  static TimeTrace& instance() { return _instance; }
 
   class ScopedTimer {
     TimeTrace& _trace;
@@ -207,7 +214,7 @@ public:
   Ord      & inner()       { return _ord; }
   Ord const& inner() const { return _ord; }
 };
-#endif // ENABLE_TIME_PROFILING
+#endif // VTIME_PROFILING
 
 } // namespace Shell
 

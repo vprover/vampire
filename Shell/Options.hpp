@@ -2336,9 +2336,10 @@ public:
   //void setTheoryAxioms(bool newValue) { _theoryAxioms = newValue; }
   Condensation condensation() const { return _condensation.actualValue; }
   bool generalSplitting() const { return _generalSplitting.actualValue; }
-#if ENABLE_TIME_PROFILING
+#if VTIME_PROFILING
   bool timeStatistics() const { return _timeStatistics.actualValue; }
-#endif // ENABLE_TIME_PROFILING
+  vstring const& timeStatisticsFocus() const { return _timeStatisticsFocus.actualValue; }
+#endif // VTIME_PROFILING
   bool splitting() const { return _splitting.actualValue; }
   void setSplitting(bool value){ _splitting.actualValue=value; }
   bool nonliteralsInClauseWeight() const { return _nonliteralsInClauseWeight.actualValue; }
@@ -2815,6 +2816,7 @@ private:
   /** Time limit in deciseconds */
   TimeLimitOptionValue _timeLimitInDeciseconds;
   BoolOptionValue _timeStatistics;
+  StringOptionValue _timeStatisticsFocus;
 
   ChoiceOptionValue<URResolution> _unitResultingResolution;
   BoolOptionValue _unusedPredicateDefinitionRemoval;

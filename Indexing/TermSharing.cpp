@@ -34,7 +34,10 @@ using namespace Indexing;
 
 typedef ApplicativeHelper AH;
 
+#if VTIME_PROFILING
 static const char* TERM_SHARING = "term sharing";
+#endif // VTIME_PROFILING
+
 /**
  * Initialise the term sharing structure.
  * @since 29/12/2007 Manchester
