@@ -30,7 +30,7 @@ public:
   };
 
 private:
-  /// Internally, index 0 is used for the "invalid" group (to save branching in 'assigned'/'unassigned').
+  /// Internally, index 0 is used for the "invalid" group (to avoid branching in 'assigned'/'unassigned').
   /// InternalGroup == Group + 1.
   using InternalGroup = std::uint32_t;
   enum : InternalGroup {
@@ -107,6 +107,7 @@ public:
     }
   }
 
+  // TODO: rename on_assigned?
   void assigned(Var v)
   {
     assert(v.is_valid());
@@ -133,7 +134,7 @@ public:
   {
     assert(check_invariants(values));
     // TODO: for now, we just do a simple linear search
-    //       a smarter algorithm could mark the whole group as inactive as soon as one variable from it is assigned to TRUE (the others will be immediately propagated false by the theory propagator).
+    //       a smarter algorithm could mark the whole group as inactive as soon as one variable from it is assigned to TRUE (the others will be immediately propagated false by the theory propagator [this is because Vampire first applies duplicate literal removal -- so there cannot be another match with compatible bindings]).
     // TODO: for now, we choose the first unassigned variable from the group. Maybe we should choose the most "recent" one (recent in the VMTF sense), or something else?
     // Find group with minimal non-zero size
     InternalGroup sg = InvalidInternalGroup;
