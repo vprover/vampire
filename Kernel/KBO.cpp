@@ -508,22 +508,10 @@ KBO KBO::testKBO(bool randomized, bool qkboPrecedence)
 
   auto rng = std::minstd_rand(Random::getInteger());
 
-  auto funcPrec = [&]() -> DArray<int>{
-    unsigned num = env.signature->functions();
-    DArray<int> out(num);
-    out.initFromIterator(getRangeIterator(0u, num));
+  auto shuffle = [&](auto xs) { 
     if (randomized) 
-      std::shuffle(out.begin(), out.end(), rng);
-    return out;
-  };
-
-  auto predPrec = [&]() -> DArray<int>{
-    unsigned num = env.signature->predicates();
-    DArray<int> out(num);
-    out.initFromIterator(getRangeIterator(0u, num));
-    if (randomized) 
-      std::shuffle(out.begin(), out.end(), rng);
-    return out;
+      std::shuffle(xs.begin(), xs.end(), rng);
+    return xs;
   };
 
   auto predLevels = []() -> DArray<int>
@@ -534,9 +522,9 @@ KBO KBO::testKBO(bool randomized, bool qkboPrecedence)
 #if __KBO__CUSTOM_PREDICATE_WEIGHTS__
       randomized ? KboWeightMap<PredSigTraits>::randomized(qkboPrecedence) : KboWeightMap<PredSigTraits>::dflt(qkboPrecedence),
 #endif
-      DArray<int>::fromIterator(getRangeIterator(0, (int)env.signature->functions())),
-      DArray<int>::fromIterator(getRangeIterator(0, (int)env.signature->typeCons())),
-      DArray<int>::fromIterator(getRangeIterator(0, (int)env.signature->predicates())),
+      shuffle(DArray<int>::fromIterator(getRangeIterator(0, (int)env.signature->functions() ))),
+      shuffle(DArray<int>::fromIterator(getRangeIterator(0, (int)env.signature->typeCons()  ))),
+      shuffle(DArray<int>::fromIterator(getRangeIterator(0, (int)env.signature->predicates()))),
       predLevels(),
       /* reverseLCM */ false,
       qkboPrecedence);
