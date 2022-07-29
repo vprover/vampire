@@ -46,7 +46,6 @@ public:
 
   static void getSnakeTptpUnsSchedule(const Shell::Property& property, Schedule& quick);
   static void getSnakeTptpSatSchedule(const Shell::Property& property, Schedule& quick);
-  static void getSnakeTptpSatFilipSchedule(const Shell::Property& property, Schedule& quick);
 };
 
 }

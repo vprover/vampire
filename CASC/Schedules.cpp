@@ -4339,8 +4339,3 @@ void Schedules::getSnakeTptpSatSchedule(const Shell::Property& property, Schedul
   quick.push("ott+10_1:1_afp=1:sac=on:sas=z3:slsq=on:i=27702_0");
   quick.push("ott+3_1:1_atotf=0.2:fsr=off:kws=precedence:sp=weighted_frequency:spb=intro:tgt=ground:i=2894_0");
 }
-
-void Schedules::getSnakeTptpSatFilipSchedule(const Shell::Property& property, Schedule& quick) {
-  // FNT
-  quick.push("fmb+10_1:1_i=45_0");
-}
