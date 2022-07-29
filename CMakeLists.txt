@@ -741,8 +741,6 @@ set(VAMPIRE_SAT_SUBSUMPTION_SOURCES
     SATSubsumption/SMTSubsumptionImpl2.hpp
     SATSubsumption/SMTSubsumptionImpl3.cpp
     SATSubsumption/SMTSubsumptionImpl3.hpp
-    SATSubsumption/MapBinder.cpp
-    SATSubsumption/MapBinder.hpp
     SATSubsumption/Util.cpp
     SATSubsumption/Util.hpp
 
