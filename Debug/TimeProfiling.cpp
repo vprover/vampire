@@ -14,6 +14,7 @@
 #include <iomanip>
 #include <cstring>
 #include "Shell/Options.hpp"
+#include "Lib/Environment.hpp"
 
 namespace Shell {
 
