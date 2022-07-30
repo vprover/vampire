@@ -24,6 +24,53 @@ using namespace Indexing;
 using namespace Kernel;
 using namespace SMTSubsumption;
 
+/*
+struct SubsumptionBenchmark {
+  vvector<SubsumptionInstance> subsumptions;
+  vvector<SubsumptionResolutionInstance> subsumptionResolutions;
+  vvector<SubsumptionRound> rounds;
+};
+*/
+
+template <typename PredS, typename PredSR>
+void filter_benchmark(SubsumptionBenchmark& b, PredS should_keep_s, PredSR should_keep_sr) {
+  ASS_EQ(b.rounds.back().s_end, b.subsumptions.size());
+  ASS_EQ(b.rounds.back().sr_end, b.subsumptionResolutions.size());
+
+  unsigned i = 0;
+  unsigned j = 0;
+  for (auto& r : b.rounds) {
+    unsigned s_end = r.s_end;
+    while (i < s_end) {
+      if (should_keep_s(b.subsumptions[i])) {
+        b.subsumptions[j++] = b.subsumptions[i++];
+      } else {
+        i++;
+      }
+    }
+    r.s_end = j;
+  }
+  ASS_EQ(i, b.subsumptions.size());
+  b.subsumptions.resize(j);
+  ASS_EQ(b.rounds.back().s_end, b.subsumptions.size());
+
+  i = 0;
+  j = 0;
+  for (auto& r : b.rounds) {
+    unsigned sr_end = r.sr_end;
+    while (i < sr_end) {
+      if (should_keep_sr(b.subsumptionResolutions[i])) {
+        b.subsumptionResolutions[j++] = b.subsumptionResolutions[i++];
+      } else {
+        i++;
+      }
+    }
+    r.sr_end = j;
+  }
+  ASS_EQ(i, b.subsumptionResolutions.size());
+  b.subsumptionResolutions.resize(j);
+  ASS_EQ(b.rounds.back().sr_end, b.subsumptionResolutions.size());
+}
 
 
 /****************************************************************************
@@ -531,6 +578,7 @@ void bench_smt2_run(benchmark::State& state, vvector<FwSubsumptionRound> const& 
     benchmark::ClobberMemory();
   }
 }
+
 void bench_smt3_fwrun_setup(benchmark::State& state, vvector<FwSubsumptionRound> const& fw_rounds)
 {
   for (auto _ : state) {
@@ -821,6 +869,44 @@ void ProofOfConcept::benchmark_run(SubsumptionBenchmark b)
     fw_rounds_only_subsumption.push_back(r.withoutSubsumptionResolution());
   }
 
+  SubsumptionBenchmark b_sat = b;
+  filter_benchmark(b_sat,
+    [](SubsumptionInstance const& s) {
+      ASS(s.result >= 0 && s.result <= 1);
+      return s.result == 1;
+    },
+    [](SubsumptionResolutionInstance const& sr) {
+      return false;
+    });
+  vvector<FwSubsumptionRound> fw_rounds_sat;
+  for (size_t round = 0; round <= b.rounds.size(); ++round) {
+    fw_rounds_sat.emplace_back(b_sat, round);
+    if (!fw_rounds_sat.back().main_premise()) {
+      fw_rounds_sat.pop_back();
+    }
+  }
+
+  SubsumptionBenchmark b_unsat = b;
+  filter_benchmark(b_unsat,
+    [](SubsumptionInstance const& s) {
+      ASS(s.result >= 0 && s.result <= 1);
+      return s.result == 0;
+    },
+    [](SubsumptionResolutionInstance const& sr) {
+      return false;
+    });
+  vvector<FwSubsumptionRound> fw_rounds_unsat;
+  for (size_t round = 0; round <= b.rounds.size(); ++round) {
+    fw_rounds_unsat.emplace_back(b_unsat, round);
+    if (!fw_rounds_unsat.back().main_premise()) {
+      fw_rounds_unsat.pop_back();
+    }
+  }
+
+  ASS(b_sat.subsumptions.size() + b_unsat.subsumptions.size() == b.subsumptions.size());
+  ASS(b_sat.subsumptionResolutions.size() == 0);
+  ASS(b_unsat.subsumptionResolutions.size() == 0);
+
   vvector<vstring> args = {
     "vampire-sbench-run",
     // "--help",
@@ -835,19 +921,32 @@ void ProofOfConcept::benchmark_run(SubsumptionBenchmark b)
   //   benchmark::RegisterBenchmark("smt2 S+SR (setup)", bench_smt2_run_setup, fw_rounds);
   // benchmark::RegisterBenchmark(  "smt2 S+SR (full)", bench_smt2_run, fw_rounds);
 
-  if (also_setup)
-    benchmark::RegisterBenchmark("smt3 S    (setup)", bench_smt3_fwrun_setup, fw_rounds_only_subsumption);
-  benchmark::RegisterBenchmark(  "smt3 S    (full)", bench_smt3_fwrun, fw_rounds_only_subsumption);
-  if (also_setup)
-    benchmark::RegisterBenchmark("smt3 S+SR (setup)", bench_smt3_fwrun_setup, fw_rounds);
-  benchmark::RegisterBenchmark(  "smt3 S+SR (full)", bench_smt3_fwrun, fw_rounds);
+  // if (also_setup)
+  //   benchmark::RegisterBenchmark("smt3 S    (setup)", bench_smt3_fwrun_setup, fw_rounds_only_subsumption);
+  // benchmark::RegisterBenchmark(  "smt3 S    (full)", bench_smt3_fwrun, fw_rounds_only_subsumption);
+  // if (also_setup)
+  //   benchmark::RegisterBenchmark("smt3 S+SR (setup)", bench_smt3_fwrun_setup, fw_rounds);
+  // benchmark::RegisterBenchmark(  "smt3 S+SR (full)", bench_smt3_fwrun, fw_rounds);
+
+  // if (also_setup)
+  //   benchmark::RegisterBenchmark("orig S    (setup)", bench_orig_fwrun_setup, fw_rounds_only_subsumption);
+  // benchmark::RegisterBenchmark(  "orig S    (full)", bench_orig_fwrun, fw_rounds_only_subsumption);
+  // if (also_setup)
+  //   benchmark::RegisterBenchmark("orig S+SR (setup)", bench_orig_fwrun_setup, fw_rounds);
+  // benchmark::RegisterBenchmark(  "orig S+SR (full)", bench_orig_fwrun, fw_rounds);
 
   if (also_setup)
-    benchmark::RegisterBenchmark("orig S    (setup)", bench_orig_fwrun_setup, fw_rounds_only_subsumption);
-  benchmark::RegisterBenchmark(  "orig S    (full)", bench_orig_fwrun, fw_rounds_only_subsumption);
+    benchmark::RegisterBenchmark("smt3 S    (setup) sat", bench_smt3_fwrun_setup, fw_rounds_sat);
+  benchmark::RegisterBenchmark(  "smt3 S    (full)  sat", bench_smt3_fwrun, fw_rounds_sat);
   if (also_setup)
-    benchmark::RegisterBenchmark("orig S+SR (setup)", bench_orig_fwrun_setup, fw_rounds);
-  benchmark::RegisterBenchmark(  "orig S+SR (full)", bench_orig_fwrun, fw_rounds);
+    benchmark::RegisterBenchmark("orig S    (setup) sat", bench_orig_fwrun_setup, fw_rounds_sat);
+  benchmark::RegisterBenchmark(  "orig S    (full)  sat", bench_orig_fwrun, fw_rounds_sat);
+  if (also_setup)
+    benchmark::RegisterBenchmark("smt3 S    (setup) unsat", bench_smt3_fwrun_setup, fw_rounds_unsat);
+  benchmark::RegisterBenchmark(  "smt3 S    (full)  unsat", bench_smt3_fwrun, fw_rounds_unsat);
+  if (also_setup)
+    benchmark::RegisterBenchmark("orig S    (setup) unsat", bench_orig_fwrun_setup, fw_rounds_unsat);
+  benchmark::RegisterBenchmark(  "orig S    (full)  unsat", bench_orig_fwrun, fw_rounds_unsat);
 
   init_benchmark(std::move(args));
   benchmark::RunSpecifiedBenchmarks();

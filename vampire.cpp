@@ -738,6 +738,12 @@ SMTSubsumption::SubsumptionBenchmark getSubsumptionBenchmark(UnitList const* uni
       USER_ERROR("expected 'R', 'S', or 'SR'");
     }
   }
+  if (!round_is_empty) {
+    b.rounds.emplace_back();
+    b.rounds.back().s_end = b.subsumptions.size();
+    b.rounds.back().sr_end = b.subsumptionResolutions.size();
+    round_is_empty = true;
+  }
   return b;
 }
 
@@ -762,6 +768,27 @@ void subsumptionBenchmarkMode(bool simulate_full_run)
   prepro.preprocess_very_lightly(*prb);
 
   auto b = getSubsumptionBenchmark(prb->units());
+
+  long n_total = 0;
+  long n_sat = 0;
+  long n_unsat = 0;
+  long n_unknown = 0;
+  for (auto const& s : b.subsumptions) {
+    n_total += 1;
+    if (s.result == 0) {
+      n_unsat += 1;
+    } else if (s.result == 1) {
+      n_sat += 1;
+    } else if (s.result < 0) {
+      n_unknown += 1;
+    } else {
+      n_sat = std::numeric_limits<long>::min();
+      n_unsat = std::numeric_limits<long>::min();
+      n_unknown = std::numeric_limits<long>::min();
+      std::cerr << "got unexpected result" << std::endl;
+    }
+  }
+  std::cerr << "Subsumption SAT vs. UNSAT: total= " << n_total << " sat= " << n_sat << " unsat= " << n_unsat << " unknown= " << n_unknown << std::endl;
 
   SMTSubsumption::ProofOfConcept s;
   if (simulate_full_run) {
