@@ -853,6 +853,44 @@ void ProofOfConcept::benchmark_run(SubsumptionBenchmark b)
   std::cerr << "\n\n\nWARNING: compiled in debug mode!\n\n\n" << std::endl;
 #endif
 
+  std::cerr << "trying to decide unknown subsumptions, if any..." << std::endl;
+  for (auto& s : b.subsumptions) {
+    if (s.result < 0) {
+      std::cerr << "working on unknown subsumption, number= " << s.number << std::endl;
+      std::cerr << "    main premise: " << s.main_premise->toString() << std::endl;
+      std::cerr << "    side premise: " << s.side_premise->toString() << std::endl;
+      SMTSubsumptionImpl3 impl;
+      auto token = impl.setupMainPremise(s.main_premise);
+      bool const subsumed = impl.setupSubsumption(s.side_premise) && impl.solve();
+      std::cerr << "    subsumed? " << subsumed << std::endl;
+      s.result = subsumed;
+    }
+  }
+
+  long n_total = 0;
+  long n_sat = 0;
+  long n_unsat = 0;
+  long n_unknown = 0;
+  for (auto const& s : b.subsumptions) {
+    n_total += 1;
+    if (s.result == 0) {
+      n_unsat += 1;
+    } else if (s.result == 1) {
+      n_sat += 1;
+    } else if (s.result < 0) {
+      n_unknown += 1;
+    } else {
+      n_sat = std::numeric_limits<long>::min();
+      n_unsat = std::numeric_limits<long>::min();
+      n_unknown = std::numeric_limits<long>::min();
+      std::cerr << "got unexpected result" << std::endl;
+    }
+  }
+  std::cerr << "Subsumption SAT vs. UNSAT, updated: total= " << n_total << " sat= " << n_sat << " unsat= " << n_unsat << " unknown= " << n_unknown << std::endl;
+
+  // TODO: remove for actual benchmark, for now only collecting stats
+  return;
+
   vvector<FwSubsumptionRound> fw_rounds;
   for (size_t round = 0; round <= b.rounds.size(); ++round) {
     fw_rounds.emplace_back(b, round);
