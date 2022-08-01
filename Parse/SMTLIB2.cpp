@@ -23,6 +23,7 @@
 #include "Kernel/Formula.hpp"
 #include "Kernel/FormulaUnit.hpp"
 #include "Kernel/Inference.hpp"
+#include "Kernel/Matcher.hpp"
 #include "Kernel/Signature.hpp"
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/SubstHelper.hpp"
@@ -38,7 +39,7 @@
 #include "TPTP.hpp"
 
 #undef LOGGING
-#define LOGGING 0
+#define LOGGING 1
 
 #if LOGGING
 #define LOG1(arg) cout << arg << endl;
@@ -565,7 +566,10 @@ void SMTLIB2::readDeclareSort(const vstring& name, const vstring& arity)
     USER_ERROR("Couldn't convert sort arity: "+arity);
   }
 
-  ALWAYS(_declaredSorts.insert(name,val));
+  bool added;
+  unsigned srt = env.signature->addTypeCon(name,val,added);
+  ASS(added);
+  ALWAYS(_declaredSorts.insert(name,srt));
 }
 
 void SMTLIB2::readDefineSort(const vstring& name, LExprList* args, LExpr* body)
@@ -589,9 +593,10 @@ void SMTLIB2::readDefineSort(const vstring& name, LExprList* args, LExpr* body)
  *
  * Taking into account built-in sorts, declared sorts and sort definitions.
  */
-TermList SMTLIB2::declareSort(LExpr* sExpr)
+TermList SMTLIB2::declareSort(LExpr* sExpr, DHMap<vstring,TermList>* parameterLookup)
 {
   CALL("SMTLIB2::declareSort");
+  LOG2("declareSort ",sExpr->toString());
 
   enum SortParseOperation {
     SPO_PARSE,
@@ -610,6 +615,9 @@ TermList SMTLIB2::declareSort(LExpr* sExpr)
   typedef DHMap<vstring,TermList> SortLookup;
   static Stack<SortLookup*> lookups;
   ASS(lookups.isEmpty());
+  if (parameterLookup) {
+    lookups.push(parameterLookup);
+  }
 
   // to store defined sort's identifier when expanding its definition
   // (for preventing circular non-sense)
@@ -678,23 +686,21 @@ TermList SMTLIB2::declareSort(LExpr* sExpr)
       }
 
       // try declared sorts
-      unsigned arity;
-      if (_declaredSorts.find(id,arity)) {
+      unsigned srt;
+      if (_declaredSorts.find(id,srt)) {
         // building an arbitrary but unique sort string
         // TODO: this may not be good enough for a tptp-compliant output!
-        vstring sortName = id + "(";
+        vstring sortName = id;
+        TermStack args;
+        auto arity = env.signature->getTypeCon(srt)->arity();
         while (arity--) {
           if (results.isEmpty() || results.top() == SEPARATOR) {
             goto malformed;
           }
-          sortName += results.pop().toString();
-          if (arity) {
-            sortName += ",";
-          }
+          args.push(results.pop());
         }
-        sortName += ")";
 
-        TermList sort = TermList(AtomicSort::createConstant(sortName));
+        TermList sort = TermList(AtomicSort::create(srt,args.size(),args.begin()));
         results.push(sort);
         continue;
       }
@@ -757,6 +763,10 @@ TermList SMTLIB2::declareSort(LExpr* sExpr)
 
       USER_ERROR("Unrecognized sort identifier "+id);
     }
+  }
+
+  if (parameterLookup) {
+    lookups.pop();
   }
 
   if (results.size() == 1) {
@@ -951,6 +961,7 @@ void SMTLIB2::readDefineFun(const vstring& name, LExprList* iArgs, LExpr* oSort,
 
     vstring vName = pRdr.readAtom();
     TermList vSort = declareSort(pRdr.readNext());
+    cout << "var " << vName << " with sort " << vSort << endl;
 
     pRdr.acceptEOL();
 
@@ -1002,6 +1013,39 @@ void SMTLIB2::readDefineFun(const vstring& name, LExprList* iArgs, LExpr* oSort,
   UnitList::push(fu, _formulas);
 }
 
+LExprList* SMTLIB2::tryReadTypeParameters(LExprList* datatype, DHMap<vstring,TermList>& lookup, TermStack& parSorts)
+{
+  _nextVar = 0;
+  LispListReader dtypeRdr(datatype);
+  LExpr *constr = dtypeRdr.next();
+  if (constr->isAtom()) {
+    if (constr->str != "par") {
+      USER_ERROR("Unrecognized keyword '" + constr->str + " in datatype declaration");
+    }
+    if (!dtypeRdr.hasNext()) {
+      USER_ERROR("'par' keyword must be followed by a list of parameters");
+    }
+    LExpr* pars = dtypeRdr.next();
+    if (!pars->isList()) {
+      USER_ERROR("'par' keyword must be followed by a list of parameters");
+    }
+    LispListReader parRdr(pars);
+    while (parRdr.hasNext()) {
+      auto par = parRdr.next();
+      if (!par->isAtom()) {
+        USER_ERROR("List of parameters contains non-atomic expression '"+par->str+"'");
+      }
+      TermList sortVar(_nextVar++, false);
+      if (!lookup.insert(par->str, sortVar)) {
+        USER_ERROR("Type parameter '" + par->str + "' has already been defined");
+      }
+      parSorts.push(sortVar);
+    }
+    return dtypeRdr.readList();
+  }
+  return datatype;
+}
+
 void SMTLIB2::readDeclareDatatype(LExpr *sort, LExprList *datatype)
 {
   CALL("SMTLIB2::readDeclareDatatype");
@@ -1011,17 +1055,20 @@ void SMTLIB2::readDeclareDatatype(LExpr *sort, LExprList *datatype)
   if (isAlreadyKnownSortSymbol(dtypeName)) {
     USER_ERROR("Redeclaring built-in, declared or defined sort symbol as datatype: " + dtypeName);
   }
-  ALWAYS(_declaredSorts.insert(dtypeName, 0));
+  DHMap<vstring,TermList> pars;
+  TermStack parSorts;
+  datatype = tryReadTypeParameters(datatype, pars, parSorts);
+  bool added = false;
+  unsigned srt = env.signature->addTypeCon(dtypeName,parSorts.size(),added);
+  ALWAYS(_declaredSorts.insert(dtypeName, srt));
   Stack<TermAlgebraConstructor *> constructors;
   TermStack argSorts;
   Stack<vstring> destructorNames;
 
-  bool added = false;
-  auto taName = dtypeName + "()";
-  unsigned srt = env.signature->addTypeCon(taName,0,added);
   ASS(added);
-  env.signature->getTypeCon(srt)->setType(OperatorType::getConstantsType(AtomicSort::superSort()));
-  TermList taSort = TermList(AtomicSort::createConstant(srt));
+  env.signature->getTypeCon(srt)->setType(OperatorType::getTypeConType(parSorts.size()));
+  TermList taSort = TermList(AtomicSort::create(srt,parSorts.size(),parSorts.begin()));
+  cout << "TA sort " << dtypeName << " " << taSort << endl;
 
   LispListReader dtypeRdr(datatype);
   while (dtypeRdr.hasNext()) {
@@ -1030,26 +1077,17 @@ void SMTLIB2::readDeclareDatatype(LExpr *sort, LExprList *datatype)
     // read each constructor declaration
     vstring constrName;
     LExpr *constr = dtypeRdr.next();
-    if (constr->isAtom()) {
-      // atom, constructor of arity 0
-      constrName = constr->str;
-      if (constrName == "par") {
-        USER_ERROR("Datatype '" + dtypeName + "' is declared parametric which is unsupported");
-      }
-    }
-    else {
-      ASS(constr->isList());
-      LispListReader constrRdr(constr);
-      constrName = constrRdr.readAtom();
+    ASS(constr->isList());
+    LispListReader constrRdr(constr);
+    constrName = constrRdr.readAtom();
 
-      while (constrRdr.hasNext()) {
-        LExpr *arg = constrRdr.next();
-        LispListReader argRdr(arg);
-        destructorNames.push(argRdr.readAtom());
-        argSorts.push(declareSort(argRdr.next()));
-        if (argRdr.hasNext()) {
-          USER_ERROR("Bad constructor argument:" + arg->toString());
-        }
+    while (constrRdr.hasNext()) {
+      LExpr *arg = constrRdr.next();
+      LispListReader argRdr(arg);
+      destructorNames.push(argRdr.readAtom());
+      argSorts.push(declareSort(argRdr.next(),&pars));
+      if (argRdr.hasNext()) {
+        USER_ERROR("Bad constructor argument:" + arg->toString());
       }
     }
     constructors.push(buildTermAlgebraConstructor(constrName, taSort, destructorNames, argSorts));
@@ -1059,7 +1097,7 @@ void SMTLIB2::readDeclareDatatype(LExpr *sort, LExprList *datatype)
   TermAlgebra* ta = new TermAlgebra(taSort, constructors.size(), constructors.begin(), false);
 
   if (ta->emptyDomain()) {
-    USER_ERROR("Datatype " + taName + " defines an empty sort");
+    USER_ERROR("Datatype " + dtypeName + " defines an empty sort");
   }
 
   env.signature->addTermAlgebra(ta);
@@ -1089,10 +1127,10 @@ void SMTLIB2::readDeclareDatatypes(LExprList* sorts, LExprList* datatypes, bool 
       USER_ERROR("Redeclaring built-in, declared or defined sort symbol as datatype: "+dtypeName);
     }
 
-    ALWAYS(_declaredSorts.insert(dtypeName, 0));
     bool added = false;
     unsigned srt = env.signature->addTypeCon(dtypeName + "()",0,added);
     ASS(added);
+    ALWAYS(_declaredSorts.insert(dtypeName, srt));
     env.signature->getTypeCon(srt)->setType(OperatorType::getConstantsType(AtomicSort::superSort()));
     TermList sort = TermList(AtomicSort::createConstant(srt));
     (void)sort; // to get rid of compiler warning when logging is off
@@ -1606,9 +1644,9 @@ void SMTLIB2::parseMatchBegin(LExpr *exp)
     LExpr *l = new LExpr(LispParser::LIST);
     LExprList::push(body, l->list);
     LExprList::push(pattern, l->list);
-    LExprList::push(matchedAtom, l->list);
     _todo.push(make_pair(PO_MATCH_CASE_END, l));
     _todo.push(make_pair(PO_MATCH_CASE_START, l));
+    _todo.push(make_pair(PO_PARSE, matchedAtom));
     pRdr.acceptEOL();
   }
 }
@@ -1621,28 +1659,13 @@ void SMTLIB2::parseMatchCaseStart(LExpr *exp)
   LispListReader eRdr(exp->list);
 
   ASS(eRdr.hasNext());
-  auto matched = eRdr.readNext();
-  ASS(eRdr.hasNext());
   LExpr *pattern = eRdr.readNext();
   ASS(eRdr.hasNext());
   LExpr *body = eRdr.readNext();
   eRdr.acceptEOL();
 
-  // find the matched term -- it must
-  // be a variable already in some scope
-  SortedTerm matchedTerm;
-  Scopes::Iterator sIt(_scopes);
-  bool foundMatched = false;
-  while (sIt.hasNext()) {
-    if (sIt.next()->find(matched->str, matchedTerm)) {
-      foundMatched = true;
-      break;
-    }
-  }
-
-  if (!foundMatched) {
-    complainAboutArgShortageOrWrongSorts(MATCH, exp);
-  }
+  TermList matchedTerm;
+  auto matchedTermSort = _results.pop().asTerm(matchedTerm);
 
   // now parse the match pattern which
   // potentially declares new variables
@@ -1670,7 +1693,7 @@ void SMTLIB2::parseMatchCaseStart(LExpr *exp)
     }
     // in case of _ nothing to add to lookup
     if (pattern->str != UNDERSCORE) {
-      if (!lookup->insert(pattern->str, make_pair(TermList(_nextVar++, false), matchedTerm.second))) {
+      if (!lookup->insert(pattern->str, make_pair(TermList(_nextVar++, false), matchedTermSort))) {
         USER_ERROR("Variable '" + pattern->str + "' has already been defined");
       }
     }
@@ -1704,16 +1727,17 @@ void SMTLIB2::parseMatchEnd(LExpr *exp)
   DEBUG_CODE(const vstring &theMatchAtom =) lRdr.readAtom();
   ASS_EQ(getBuiltInTermSymbol(theMatchAtom), TS_MATCH);
 
-  vstring matched = lRdr.readAtom();
+  lRdr.readNext();
   TermList matchedTerm;
   auto matchedTermSort = _results.pop().asTerm(matchedTerm);
+  cout << "SORT " << matchedTermSort << endl;
 
   LOG2("CASE matched ", matchedTerm.toString());
 
   vmap<unsigned, TermAlgebraConstructor *> ctorFunctors;
   TermAlgebra *ta = env.signature->getTermAlgebraOfSort(matchedTermSort);
   if (ta == nullptr) {
-    USER_ERROR("Match term '" + matched + "' is not of a term algebra type in expression '" + exp->toString() + "'");
+    USER_ERROR("Match term '" + matchedTerm.toString() + "' is not of a term algebra type in expression '" + exp->toString() + "'");
   }
   for (unsigned int i = 0; i < ta->nConstructors(); i++) {
     ctorFunctors.insert(make_pair(ta->constructor(i)->functor(), ta->constructor(i)));
@@ -1949,9 +1973,11 @@ bool SMTLIB2::parseAsUserDefinedSymbol(const vstring& id,LExpr* exp)
 
     TermList arg;
     if (_results.isEmpty() || _results.top().isSeparator() ||
-        _results.pop().asTerm(arg) != sort) {
+        !MatchingUtils::matchTerms(_results.pop().asTerm(arg), sort)) {
+      cout << 1 << endl;
       complainAboutArgShortageOrWrongSorts("user defined symbol",exp);
     }
+    cout << "base " << arg << " matched by " << sort << endl;
 
     args.push(arg);
   }

@@ -169,7 +169,7 @@ private:
    * register any missing sort in vampire and return vampire's sort id
    * corresponding to the give expression.
    */
-  TermList declareSort(LExpr* sExpr);
+  TermList declareSort(LExpr* sExpr, DHMap<vstring,TermList>* parameterLookup = nullptr);
 
   /**
    * Some built-in symbols represent functions with result of sort Bool.
@@ -265,6 +265,7 @@ private:
    */
   void readDefineFun(const vstring& name, LExprList* iArgs, LExpr* oSort, LExpr* body, bool recursive = false);
 
+  LExprList* tryReadTypeParameters(LExprList* datatype, DHMap<vstring,TermList>& lookup, TermStack& parSorts);
   void readDeclareDatatype(LExpr* sort, LExprList* datatype);
 
   void readDeclareDatatypes(LExprList* sorts, LExprList* datatypes, bool codatatype = false);
