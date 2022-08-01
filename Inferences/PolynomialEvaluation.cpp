@@ -222,6 +222,7 @@ MaybeOverflow<AnyPoly> simplifyPoly(AnyPoly const& p, MaybeOverflow<PolyNf>* ts,
 MaybeOverflow<Option<PolyNf>> PolynomialEvaluation::evaluate(PolyNf normalized) const 
 {
   CALL("PolynomialEvaluation::evaluate(TypedTermList term) const")
+  TIME_TRACE("evaluating polynomial")
 
   DEBUG("evaluating ", normalized)
   struct Eval 

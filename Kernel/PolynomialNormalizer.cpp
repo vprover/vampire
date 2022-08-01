@@ -319,8 +319,10 @@ NormalizationResult normalizeNumSort(TermList t, NormalizationResult* ts)
 PolyNf normalizeTerm(TypedTermList t) 
 {
   CALL("PolyNf::normalize")
+  TIME_TRACE("normalizing to plnf")
   DEBUG("normalizing ", t)
-  Memo::None<TypedTermList,NormalizationResult> memo;
+  // Memo::None<TypedTermList,NormalizationResult> memo;
+  Memo::Hashed<TypedTermList,NormalizationResult, StlHash> memo;
   struct Eval 
   {
     using Arg    = TypedTermList;

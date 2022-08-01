@@ -205,6 +205,7 @@ Option<AnyInequalityLiteral> LascaState::renormalizeIneq(Literal* lit)
 
 PolyNf LascaState::normalize(TypedTermList term) 
 { 
+  TIME_TRACE("lasca normalize term")
   auto norm = PolyNf::normalize(term);
   auto out = this->normalizer.evaluator().evaluate(norm); 
   if (out.overflowOccurred)  {
