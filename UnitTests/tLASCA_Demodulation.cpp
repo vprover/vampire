@@ -40,16 +40,17 @@ using namespace Inferences::LASCA;
 ////// TEST CASES 
 /////////////////////////////////////
 
-#define SUGAR(Num)                                                                                            \
-  NUMBER_SUGAR(Num)                                                                                           \
-  DECL_DEFAULT_VARS                                                                                           \
-  DECL_CONST(a, Num)                                                                                          \
-  DECL_CONST(b, Num)                                                                                          \
-  DECL_CONST(c, Num)                                                                                          \
-  DECL_FUNC(f, {Num}, Num)                                                                                    \
-  DECL_FUNC(g, {Num, Num}, Num)                                                                               \
-  DECL_PRED(p, {Num})                                                                                         \
-  DECL_PRED(r, {Num,Num})                                                                                     \
+#define SUGAR(Num)                                                                                  \
+  NUMBER_SUGAR(Num)                                                                                 \
+  DECL_DEFAULT_VARS                                                                                 \
+  DECL_CONST(a, Num)                                                                                \
+  DECL_CONST(b, Num)                                                                                \
+  DECL_CONST(c, Num)                                                                                \
+  DECL_FUNC(f, {Num}, Num)                                                                          \
+  DECL_FUNC(g, {Num, Num}, Num)                                                                     \
+  DECL_PRED(p, {Num})                                                                               \
+  DECL_PRED(p0, {})                                                                                 \
+  DECL_PRED(r, {Num,Num})                                                                           \
 
 #define MY_SYNTAX_SUGAR SUGAR(Rat)
 
@@ -204,5 +205,21 @@ TEST_SIMPLIFICATION(bug01,
       .simplifyWith({    clause(   { 0 == g(x, y) - y  }   ) })
       .toSimplify  ({    clause(   { p(g(z,a))         }   ) })
       .expected(    {    clause(   { p(    a )         }   ) })
+    )
+
+
+TEST_SIMPLIFICATION(misc01,
+    FwdBwdSimplification::TestCase()
+      .simplifyWith({    clause(   { 0 == a  }   ) })
+      .toSimplify  ({    clause(   { ~p0(), a == b }   ) })
+      .expected(    {    clause(   { ~p0(), b == 0 }   ) })
+    )
+
+
+TEST_SIMPLIFICATION(misc02,
+    FwdBwdSimplification::TestCase()
+      .simplifyWith({    clause(   { 0 == b  }   ) })
+      .toSimplify  ({    clause(   { ~p0(), a == b }   ) })
+      .expected(    {    clause(   { ~p0(), a == 0 }   ) })
     )
 

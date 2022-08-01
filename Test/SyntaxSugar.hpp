@@ -505,7 +505,7 @@ class PredSugar {
   unsigned _functor;
 
 public:
-  PredSugar(const char* name, Stack<SortSugar> args) 
+  PredSugar(const char* name, std::initializer_list<SortSugar> args) 
   {
     BYPASSING_ALLOCATOR
     Stack<SortId> as;
@@ -515,7 +515,7 @@ public:
     _functor = env.signature->addPredicate(name, as.size());
     env.signature
       ->getPredicate(_functor)
-      ->setType(OperatorType::getPredicateType(as.size(), &as[0]));    
+      ->setType(OperatorType::getPredicateType(as.size(), as.size() == 0 ? nullptr : &as[0]));    
   }
 
   template<class... As>
