@@ -50,6 +50,7 @@ public:
 
         // precedence ordering params
         DArray<int> funcPrec, 
+        DArray<int> typeConPrec,
         // pred prec and pred levels are useless
         // as in higher-order we treat all symbol as function symbols (or type cons)
         DArray<int> predPrec, 

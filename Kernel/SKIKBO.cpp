@@ -310,12 +310,13 @@ SKIKBO::SKIKBO(
 
   // precedence ordering params
   DArray<int> funcPrec, 
+  DArray<int> typeConPrec,
   DArray<int> predPrec, 
   DArray<int> predLevels, 
 
   // other
   bool reverseLCM
-  ) : PrecedenceOrdering(funcPrec, predPrec, predLevels, reverseLCM)
+  ) : PrecedenceOrdering(funcPrec, typeConPrec, predPrec, predLevels, reverseLCM)
   , _weights(symbolWeights)
   , _state(new State(this))
   , _basic_hol(0)
