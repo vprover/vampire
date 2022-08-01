@@ -59,7 +59,7 @@ namespace Memo {
     { 
       auto out = _memo.getPtr(orig);
       if (out) {
-        return Option<Result>(*out);
+        return Option<Result>(Result(*out));
       } else {
         return Option<Result>();
       }

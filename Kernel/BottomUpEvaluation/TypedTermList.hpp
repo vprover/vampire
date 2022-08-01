@@ -14,6 +14,7 @@
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/BottomUpEvaluation.hpp"
 #include "Kernel/Term.hpp"
+#include "Lib/Hash.hpp"
 
 using SortId = TermList;
 
@@ -28,9 +29,20 @@ public:
   TypedTermList(Term* t) : TypedTermList(TermList(t), SortHelper::getResultSort(t)) {}
   TypedTermList(Literal* t) = delete;
   SortId sort() const { return _sort; }
+  void content() {}
+  friend bool operator==(TypedTermList const& l, TypedTermList const& r) 
+  { return (TermList)l == (TermList) r && l.sort() == r.sort(); }
+  friend bool operator!=(TypedTermList const& l, TypedTermList const& r) 
+  { return !(l == r); }
 };
 
 } // namespace Kernel 
+
+template<>
+struct std::hash<Kernel::TypedTermList> {
+  size_t operator()(Kernel::TypedTermList const& t) 
+  { return Lib::HashUtils::combine(Lib::stlHash((Kernel::TermList) t), Lib::stlHash(t.sort())); }
+};
 
 namespace Lib {
 

@@ -1003,4 +1003,10 @@ struct SecondaryHash<Kernel::TermList> {
 
 }
 
+template<>
+struct std::hash<Kernel::TermList> {
+  size_t operator()(Kernel::TermList const& t) const 
+  { return Kernel::TermListHash::hash(t); }
+};
+
 #endif
