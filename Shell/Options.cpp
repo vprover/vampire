@@ -1238,12 +1238,12 @@ void Options::init()
     _lasca.onlyUsefulWith2(_highSchool.is(equal(false)));
     _lasca.onlyUsefulWith2(_unificationWithAbstraction.is(Or(equal(UnificationWithAbstraction::LASCA1), equal(UnificationWithAbstraction::LASCA2), equal(UnificationWithAbstraction::LASCA3))));
 
-    _lasca  = BoolOptionValue("lasca_demodulation","la_demod",false);
-    _lasca.description= "Enables the linear arithmetic demodulation rule\n";
-    _lookup.insert(&_lasca);
-    _lasca.tag(OptionTag::INFERENCES);
-    _lasca.setExperimental();
-    _lasca.onlyUsefulWith2(_lasca.is(equal(true)));
+    _lascaDemodulation  = BoolOptionValue("lasca_demodulation","la_demod",false);
+    _lascaDemodulation.description= "Enables the linear arithmetic demodulation rule\n";
+    _lookup.insert(&_lascaDemodulation);
+    _lascaDemodulation.tag(OptionTag::INFERENCES);
+    _lascaDemodulation.setExperimental();
+    _lascaDemodulation.onlyUsefulWith2(_lasca.is(equal(true)));
 
     _lascaStrongNormalization  = BoolOptionValue("lasca_strong_normalziation","la_sn",false);
     _lascaStrongNormalization.description=
