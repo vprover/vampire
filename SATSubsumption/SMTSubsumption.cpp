@@ -888,9 +888,6 @@ void ProofOfConcept::benchmark_run(SubsumptionBenchmark b)
   }
   std::cerr << "Subsumption SAT vs. UNSAT, updated: total= " << n_total << " sat= " << n_sat << " unsat= " << n_unsat << " unknown= " << n_unknown << std::endl;
 
-  // TODO: remove for actual benchmark, for now only collecting stats
-  return;
-
   vvector<FwSubsumptionRound> fw_rounds;
   for (size_t round = 0; round <= b.rounds.size(); ++round) {
     fw_rounds.emplace_back(b, round);
