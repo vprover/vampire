@@ -57,11 +57,12 @@ public:
                 /* literals */ SelectionCriterion::ANY, 
                 /* terms */    SelectionCriterion::STRICTLY_MAX,
                 /* unshielded vars */ false); })
-        .map([](auto x) { return Lhs(std::move(x)); });
+        .map([](auto x) { return Lhs(std::move(x)); })
+        .timeTraced("lasca demodulation lhs");
     }
   };
 
-  struct Rhs  {
+  struct Rhs {
     TermList term;
     Clause* clause;
     auto key() const { return term; }
@@ -74,6 +75,7 @@ public:
 
     static auto iter(LascaState& shared, Clause* cl) 
     {
+      // TIME_TRACE("lasca demodulation rhs")
       return iterTraits(cl->iterLits())
         .flatMap([cl](Literal* lit) {
 
@@ -95,7 +97,8 @@ public:
             // })
             .filter([](TermList t) { return t.isTerm(); })
             .map([=](TermList t) { return Rhs { .term = t, .clause = cl, }; }));
-        });
+        })
+      .timeTraced("lasca demodulation rhs");
 
     }
   };
