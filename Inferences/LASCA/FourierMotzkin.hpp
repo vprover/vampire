@@ -47,6 +47,7 @@ public:
 
   class Lhs : public SelectedSummand { 
   public: 
+    static const char* name() { return "lasca fourier motzkin lhs"; }
     explicit Lhs(Lhs const&) = default;
     Lhs(SelectedSummand s) : SelectedSummand(std::move(s)) {} 
     Lhs(Lhs&&) = default;
@@ -66,6 +67,7 @@ public:
 
   class Rhs : public SelectedSummand { 
   public: 
+    static const char* name() { return "lasca fourier motzkin rhs"; }
 
     explicit Rhs(Rhs const&) = default;
     Rhs(SelectedSummand s) : SelectedSummand(std::move(s)) {} 

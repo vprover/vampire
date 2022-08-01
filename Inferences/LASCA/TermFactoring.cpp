@@ -247,6 +247,7 @@ Option<Clause*> TermFactoring::applyRule(
 ClauseIterator TermFactoring::generateClauses(Clause* premise)
 {
   CALL("TermFactoring::generateClauses");
+  TIME_TRACE("lasca term factoring generate")
   DEBUG("in: ", *premise)
 
   auto max = make_shared(Stack<TermList>());

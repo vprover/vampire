@@ -145,6 +145,7 @@ Option<Clause*> EqFactoring::applyRule(SelectedEquality const& l1, SelectedEqual
 ClauseIterator EqFactoring::generateClauses(Clause* premise) 
 {
 
+  TIME_TRACE("lasca equality factoring generate")
   DEBUG("in: ", *premise)
 
   auto selected = make_shared(

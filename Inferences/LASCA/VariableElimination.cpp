@@ -112,6 +112,7 @@ Option<VariableElimination::AnyFoundVariable> VariableElimination::findUnshielde
 
 SimplifyingGeneratingInference::ClauseGenerationResult VariableElimination::generateSimplify(Clause* premise) 
 {
+  TIME_TRACE("lasca variable elimination generate")
   auto var = this->findUnshieldedVar(premise);
   if (var.isSome()) {
     return ClauseGenerationResult {

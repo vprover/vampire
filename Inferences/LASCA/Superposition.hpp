@@ -61,6 +61,7 @@ public:
 public:
   struct Lhs : public SelectedEquality
   {
+    static const char* name() { return "lasca superposition lhs"; }
 
     Lhs(SelectedEquality inner) : SelectedEquality(std::move(inner)) {}
 
@@ -80,6 +81,8 @@ public:
 
   struct Rhs : public SelectedLiteral
   {
+    static const char* name() { return "lasca superposition rhs"; }
+
     Rhs(SelectedLiteral lit, TermList toRewrite, bool inLitPlus) 
       : SelectedLiteral(std::move(lit))
       , _toRewrite(toRewrite)

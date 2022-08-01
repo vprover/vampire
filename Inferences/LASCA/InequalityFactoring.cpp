@@ -174,7 +174,7 @@ Option<Clause*> InequalityFactoring::applyRule(SelectedSummand const& l1, Select
 
 ClauseIterator InequalityFactoring::generateClauses(Clause* premise) 
 {
-
+  TIME_TRACE("lasca inequality factoring generate")
   DEBUG("in: ", *premise)
 
     auto selected = make_shared(

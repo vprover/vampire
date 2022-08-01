@@ -319,7 +319,7 @@ NormalizationResult normalizeNumSort(TermList t, NormalizationResult* ts)
 PolyNf normalizeTerm(TypedTermList t) 
 {
   CALL("PolyNf::normalize")
-  TIME_TRACE("normalizing to plnf")
+  TIME_TRACE("normalizing to PolyNf")
   DEBUG("normalizing ", t)
   // Memo::None<TypedTermList,NormalizationResult> memo;
   Memo::Hashed<TypedTermList,NormalizationResult, StlHash> memo;
@@ -352,14 +352,14 @@ PolyNf normalizeTerm(TypedTermList t)
 
     }
   };
-  NormalizationResult r = evaluateBottomUp(t, Eval{}, memo);
+  NormalizationResult r = evaluateBottomUp(t, Eval{});
   return std::move(r).apply(RenderPolyNf{});
 }
 
 TermList PolyNf::denormalize() const
 { 
   CALL("PolyNf::denormalize")
-  DEBUG("converting ", *this)
+  TIME_TRACE("denormalize PolyNf")
   struct Eval 
   {
     using Arg    = PolyNf;

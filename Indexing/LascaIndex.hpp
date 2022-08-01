@@ -36,6 +36,8 @@ public:
   LascaIndex(Options::UnificationWithAbstraction uwa)
     : _index(uwa, /* use constraints */  true)
     , _shared()
+    , _lookupStr(T::name() + vstring(" lookup"))
+    , _maintananceStr(T::name() + vstring(" maintance"))
   {  }
 
   void setShared(shared_ptr<Kernel::LascaState> shared) { _shared = std::move(shared); }
@@ -47,7 +49,7 @@ public:
     return iterTraits(_index.getUnificationsWithConstraints(key, /* retrieveSubstitutions */ true))
       .map([](TermQueryResult<T> r) 
            { return std::tuple<T, UwaResult>( std::move(r.data()), UwaResult(r));  })
-      .timeTraced("lasca index lookup"); }
+      .timeTraced(_lookupStr.c_str()); }
 
 
   auto generalizations(TermList key, bool retrieveSubstitutions = true)
@@ -59,7 +61,7 @@ public:
   virtual void handleClause(Clause* c, bool adding) final override 
   {
     CALL("LascaIndex::handleClause")
-    TIME_TRACE("lasca index maintance")
+    TIME_TRACE(_maintananceStr.c_str())
     for (auto appl : T::iter(*_shared, c)) {
       if (adding) {
         _index.insert(std::move(appl));
@@ -72,6 +74,8 @@ public:
 private:
   TermSubstitutionTree<T> _index;
   shared_ptr<Kernel::LascaState> _shared;
+  vstring _lookupStr;
+  vstring _maintananceStr;
 };
 
 } // namespace Indexing

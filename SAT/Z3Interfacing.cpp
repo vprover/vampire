@@ -940,6 +940,7 @@ Z3Interfacing::Representation Z3Interfacing::getRepresentation(SATClause* cl)
 SATSolver::Status Z3Interfacing::solve()
 {
   CALL("Z3Interfacing::solve()");
+  TIME_TRACE("z3 solve");
   BYPASSING_ALLOCATOR;
   DEBUG("assumptions: ", _assumptions);
 

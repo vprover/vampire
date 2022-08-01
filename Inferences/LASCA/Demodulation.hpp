@@ -48,6 +48,7 @@ public:
 
   struct Lhs : public SelectedEquality {
     Lhs(SelectedEquality self) : SelectedEquality(std::move(self)) {}
+    static const char* name() { return "lasca demodulation lhs"; }
 
     static auto iter(LascaState& shared, Clause* simplifyWith) {
       return iterTraits(getSingletonIterator(simplifyWith))
@@ -63,6 +64,7 @@ public:
   };
 
   struct Rhs {
+    static const char* name() { return "lasca demodulation rhs"; }
     TermList term;
     Clause* clause;
     auto key() const { return term; }

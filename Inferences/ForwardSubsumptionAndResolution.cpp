@@ -224,7 +224,7 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl, Clause *&replacement, 
     return false;
   }
 
-  TIME_TRACE("forward subsumption");
+  TIME_TRACE("forward subsumption resolution 1");
 
   bool result = false;
 
@@ -283,7 +283,7 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl, Clause *&replacement, 
     }
 
     {
-      TIME_TRACE("forward subsumption resolution");
+      TIME_TRACE("forward subsumption resolution 2");
 
       for (unsigned li = 0; li < clen; li++) {
         Literal *resLit = (*cl)[li];
