@@ -250,7 +250,7 @@ void TimeTrace::Node::_focus(const char* name, Node& newRoot)
 
 void TimeTrace::Node::extendWith(TimeTrace::Node const& other)
 {
-  ASS_EQ(other.name, name)
+  ASS(strcmp(other.name, name) == 0)
   measurements.extend(other.measurements);
   for (auto& c : other.children) {
     auto node_ = iterTraits(this->children.iter())
