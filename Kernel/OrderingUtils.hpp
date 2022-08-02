@@ -254,8 +254,6 @@ namespace Kernel {
                   case Ordering::Result::LESS:
                   case Ordering::Result::LESS_EQ:
                     return false;
-                  default:
-                    ASSERTION_VIOLATION
                 }
               case SelectionCriterion::NOT_LEQ:
                 switch(res) {
@@ -267,8 +265,6 @@ namespace Kernel {
                   case Ordering::Result::LESS_EQ:
                   case Ordering::Result::EQUAL: 
                     return false;
-                  default:
-                    ASSERTION_VIOLATION
                 }
               case SelectionCriterion::STRICTLY_MAX:
                 switch(res) {
@@ -280,10 +276,9 @@ namespace Kernel {
                   case Ordering::Result::LESS_EQ:
                   case Ordering::Result::EQUAL: 
                     return false;
-                  default:
-                    ASSERTION_VIOLATION
                 }
             }
+            ASSERTION_VIOLATION
           };
 
           bool isMax = range(0, nElems)
