@@ -28,7 +28,7 @@ public:
   CLASS_NAME(LiteralSubstitutionTree);
   USE_ALLOCATOR(LiteralSubstitutionTree);
 
-  LiteralSubstitutionTree(bool useC = false);
+  LiteralSubstitutionTree(MismatchHandler* hndlr = 0);
 
   void insert(Literal* lit, Clause* cls);
   void remove(Literal* lit, Clause* cls);
@@ -155,8 +155,7 @@ private:
     BacktrackData _bdataEq;
   };
 
-  bool _theoryConstraints;
-  VSpecVarToTermMap _termMap;
+  MismatchHandler* _handler;
 
   template<class Iterator, class Filter>
   SLQueryResultIterator getResultIterator(Literal* lit,

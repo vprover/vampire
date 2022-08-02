@@ -33,9 +33,25 @@
 using namespace Lib;
 using namespace Indexing;
 
-IndexManager::IndexManager(SaturationAlgorithm* alg) : _alg(alg), _genLitIndex(0)
+IndexManager::IndexManager(SaturationAlgorithm* alg) : _alg(alg), _genLitIndex(0), _handler(0)
 {
   CALL("IndexManager::IndexManager");
+
+  static bool const uwa = env.options->unificationWithAbstraction()!=Options::UnificationWithAbstraction::OFF;
+  static bool const eba = (env.options->functionExtensionality() == Options::FunctionExtensionality::ABSTRACTION) &&
+                          env.property->higherOrder();
+
+  // urther handlers can be added here
+  if(uwa || eba){
+    _handler = new CompositeMismatchHandler();
+    
+    if(uwa){
+      _handler->addHandler(new UWAMismatchHandler());
+    }
+    if(eba){
+      _handler->addHandler(new HOMismatchHandler());
+    }
+  }
 
   if(alg) {
     attach(alg);
@@ -48,6 +64,10 @@ IndexManager::~IndexManager()
 
   if(_alg) {
     release(GENERATING_SUBST_TREE);
+  }
+
+  if(_handler){
+    delete _handler;
   }
 }
 
@@ -143,13 +163,10 @@ Index* IndexManager::create(IndexType t)
   TermIndexingStructure* tis;
 
   bool isGenerating;
-  static bool const useConstraints = env.options->unificationWithAbstraction()!=Options::UnificationWithAbstraction::OFF;
-  static bool const extByAbs = (env.options->functionExtensionality() == Options::FunctionExtensionality::ABSTRACTION) &&
-                    env.property->higherOrder();
                     
   switch(t) {
   case GENERATING_SUBST_TREE:
-    is=new LiteralSubstitutionTree(useConstraints);
+    is=new LiteralSubstitutionTree(_handler);
 #if VDEBUG
     //is->markTagged();
 #endif
@@ -180,7 +197,7 @@ Index* IndexManager::create(IndexType t)
     break;
 
   case SUPERPOSITION_SUBTERM_SUBST_TREE:
-    tis=new TermSubstitutionTree(useConstraints, extByAbs);
+    tis=new TermSubstitutionTree(_handler);
 #if VDEBUG
     //tis->markTagged();
 #endif
@@ -188,7 +205,7 @@ Index* IndexManager::create(IndexType t)
     isGenerating = true;
     break;
   case SUPERPOSITION_LHS_SUBST_TREE:
-    tis=new TermSubstitutionTree(useConstraints, extByAbs);
+    tis=new TermSubstitutionTree(_handler);
     res=new SuperpositionLHSIndex(tis, _alg->getOrdering(), _alg->getOptions());
     //tis->markTagged();
     isGenerating = true;
@@ -211,7 +228,7 @@ Index* IndexManager::create(IndexType t)
     break;
   
   case SKOLEMISING_FORMULA_INDEX:
-    tis=new TermSubstitutionTree(false, false, true);
+    tis=new TermSubstitutionTree(0, true);
     res=new SkolemisingFormulaIndex(tis);
     isGenerating = false;
     break;

@@ -25,7 +25,8 @@
 #include "Indexing/Index.hpp"
 #include "Indexing/LiteralSubstitutionTree.hpp"
 #include "Indexing/LiteralIndex.hpp"
-
+#include "Indexing/TermSubstitutionTree.hpp"
+#include "Indexing/TermIndex.hpp"
 
 #include "Test/UnitTesting.hpp"
 
@@ -110,11 +111,32 @@ Clause* unit(Literal* lit)
 }
 
 
-LiteralIndexingStructure* getBasicIndex()
+TermIndexingStructure* getBasicTermIndex()
 {
+  UWAMismatchHandler* handler = new UWAMismatchHandler();
   // Let's create an index with some data in it
   // We pass true to say that we want to use constraints
-  LiteralIndexingStructure * is = new LiteralSubstitutionTree(true); 
+  TermIndexingStructure* is = new TermSubstitutionTree(handler); 
+
+
+  TermList one_plus_one = int_plus(number("1"),number("1"));
+  TermList one_plus_a = int_plus(number("1"),int_constant("a"));
+
+  Literal* p1 = pred("p",one_plus_one);
+  Literal* p2 = pred("p",one_plus_a);
+
+  is->insert(one_plus_one,p1,unit(p1));
+  is->insert(one_plus_a,p2,unit(p2));
+
+  return is;
+}
+
+LiteralIndexingStructure* getBasicIndex()
+{
+  UWAMismatchHandler* handler = new UWAMismatchHandler();
+  // Let's create an index with some data in it
+  // We pass true to say that we want to use constraints
+  LiteralIndexingStructure * is = new LiteralSubstitutionTree(handler); 
 
 
   TermList one_plus_one = int_plus(number("1"),number("1"));
@@ -130,6 +152,25 @@ LiteralIndexingStructure* getBasicIndex()
 
 }
 
+void reportTermMatches(TermIndexingStructure* index, TermList term, TermList sort)
+{
+  TermQueryResultIterator it= index->getUnificationsUsingSorts(term,sort,true);
+  cout << endl;
+  cout << "Unify with " << term.toString() << endl;
+  while(it.hasNext()){
+    TermQueryResult qr = it.next();
+    cout << qr.term.toString() << " matches with substitution: "<< endl;
+    // cout << qr.substitution->tryGetRobSubstitution()->toString() << endl;
+    cout << "and constraints: "<< endl;
+    auto constraints = qr.substitution->getConstraints();
+    while(constraints.hasNext()){
+      Literal* constraint = constraints.next();
+      cout << "> " << constraint->toString() << endl;
+    }
+  }
+  cout << endl;
+}
+
 void reportMatches(LiteralIndexingStructure* index, Literal* qlit)
 {
   SLQueryResultIterator it= index->getUnifications(qlit,false,true);
@@ -140,16 +181,56 @@ void reportMatches(LiteralIndexingStructure* index, Literal* qlit)
     cout << qr.clause->toString() << " matches with substitution: "<< endl;
     // cout << qr.substitution->tryGetRobSubstitution()->toString() << endl;
     cout << "and constraints: "<< endl;
-    auto constraints = qr.constraints;
-    for(unsigned i=0;i<constraints->size();i++){
-      auto con = (*constraints)[i];
-      TermList qT = qr.substitution->applyTo(con.first.first,con.first.second);
-      TermList rT = qr.substitution->applyTo(con.second.first,con.second.second);
-
-      cout << "> "<< qT.toString() << "!=" << rT.toString() << "\t\t from " << con.first.first.toString() << "!=" << con.second.first.toString() << endl;
+    auto constraints = qr.substitution->getConstraints();
+    while(constraints.hasNext()){
+      Literal* constraint = constraints.next();
+      cout << "> " << constraint->toString() << endl;
     }
   }
   cout << endl;
+}
+
+
+TEST_FUN(term_indexing_one_side_interp)
+{
+  env.options->setUWA(Options::UnificationWithAbstraction::ONE_INTERP); 
+
+  TermIndexingStructure* index = getBasicTermIndex();
+
+  TermList t = int_plus(int_constant("b"),number("2"));
+
+  reportTermMatches(index,t,SortHelper::getResultSort(t.term()));
+
+  TermList s = int_constant("a");
+  Literal* p = pred("p",s);
+
+  index->insert(s,p,unit(p));
+
+  reportTermMatches(index,t,SortHelper::getResultSort(t.term()));
+
+  TermList u(0, false);
+  reportTermMatches(index,u,AtomicSort::intSort());  
+}
+
+TEST_FUN(term_indexing_interp_only)
+{
+  env.options->setUWA(Options::UnificationWithAbstraction::INTERP_ONLY); 
+
+  TermIndexingStructure* index = getBasicTermIndex();
+
+  TermList t = int_plus(int_constant("b"),number("2"));
+
+  reportTermMatches(index,t,SortHelper::getResultSort(t.term()));
+
+  TermList s = int_constant("a");
+  Literal* p = pred("p",s);
+
+  index->insert(s,p,unit(p));
+
+  reportTermMatches(index,t,SortHelper::getResultSort(t.term()));
+
+  TermList u(0, false);
+  reportTermMatches(index,u,AtomicSort::intSort());  
 }
 
 // AYB look into rewriting these test now that UWA has been heavily modified
@@ -186,42 +267,22 @@ TEST_FUN(current_issue)
 static const int NORM_QUERY_BANK=2;
 static const int NORM_RESULT_BANK=3;
 
-/*struct testMismatchHandler : MismatchHandler
-{
-testMismatchHandler(Stack<UnificationConstraint>* c) : _constraints(c) {}
-bool handle(RobSubstitution* subst, TermList query, unsigned index1, TermList node, unsigned index2){
-    ASS(index1 == NORM_QUERY_BANK && index2 == NORM_RESULT_BANK);
-    static unsigned _var = 0;
-    unsigned x = _var++;
-    TermList nodeVar = TermList(x,true);
-    subst->bindSpecialVar(x,node,index2);
-    auto constraint = make_pair(make_pair(query,index1),make_pair(nodeVar,index2));
-    _constraints->push(constraint);
-    return true;
-}
-Stack<UnificationConstraint>* _constraints;
-};*/
-
 void reportRobUnify(TermList a, TermList b)
 {
   cout << endl;
   cout << "Unifying " << a.toString() << " with " << b.toString() << endl;
-  RobSubstitution sub;
-  Stack<UnificationConstraint> constraints;
+  MismatchHandler* hndlr = new UWAMismatchHandler();
+  RobSubstitution sub(hndlr);
   //MismatchHandler* hndlr = new testMismatchHandler(&constraints);
-  MismatchHandler* hndlr = new UWAMismatchHandler(constraints);
-  bool result = sub.unify(a,NORM_QUERY_BANK,b,NORM_RESULT_BANK,hndlr);
+  bool result = sub.unify(a,NORM_QUERY_BANK,b,NORM_RESULT_BANK);
   cout << "Result is " << result << endl;
   if(result){
     // cout << "> Substitution is " << endl << sub.toString();
     cout << "> Constraints are:" << endl;
-    auto rs = ResultSubstitution::fromSubstitution(&sub,NORM_QUERY_BANK,NORM_RESULT_BANK);
-    for(unsigned i=0;i<constraints.size();i++){
-      auto con = (constraints)[i];
-      TermList qT = sub.apply(con.first.first,con.first.second);
-      TermList rT = sub.apply(con.second.first,con.second.second);
-
-      cout << "> "<< qT.toString() << "!=" << rT.toString() << "\t\t from " << con.first.first.toString() << "!=" << con.second.first.toString() << endl;
+    auto constraints = sub.getConstraints();
+    while(constraints.hasNext()){
+      Literal* constraint = constraints.next();
+      cout << "> " << constraint->toString() << endl;
     }
   }
   cout << endl;
@@ -241,7 +302,7 @@ TEST_FUN(using_robsub)
 }
 
 
-TEST_FUN(complex_case)
+/*TEST_FUN(complex_case)
 {
   env.options->setUWA(Options::UnificationWithAbstraction::ONE_INTERP);
 
@@ -263,4 +324,4 @@ TEST_FUN(complex_case)
   Literal* qlit = pred("p",query);
   reportMatches(index,qlit);
 
-}
+}*/

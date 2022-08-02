@@ -60,24 +60,6 @@ using namespace Kernel;
 
 namespace Indexing {
 
-
-class TheoryTermReplacement : public TermTransformer {
-public:
-  // false here means that the transformed terms
-  // are not shared
-  TheoryTermReplacement(VSpecVarToTermMap* termMap) : TermTransformer(false), _termMap(termMap) {} 
-  TermList transformSubterm(TermList trm) override;
-protected:
-  VSpecVarToTermMap* _termMap;
-};
-
-enum ConstraintType
-{
-  NO_CONSTRAINTS,
-  THEORY_CONSTRAINTS,
-  HO_CONSTRAINTS
-};
-
 /**
  * Class of substitution trees. In fact, contains an array of substitution
  * trees.
@@ -577,7 +559,7 @@ public:
     Stack<NodeIterator> _nodeIterators;
   };
 
-  typedef pair<pair<LeafData*, ResultSubstitutionSP>,UnificationConstraintStackSP> QueryResult;
+  typedef pair<LeafData*, ResultSubstitutionSP> QueryResult;
 
 
   class GenMatcher;
@@ -590,8 +572,7 @@ public:
   {
   public:
     FastGeneralizationsIterator(SubstitutionTree* parent, Node* root, Term* query,
-            bool retrieveSubstitution, bool reversed,bool withoutTop, 
-            ConstraintType ct = NO_CONSTRAINTS, VSpecVarToTermMap* termMap = 0);
+            bool retrieveSubstitution, bool reversed,bool withoutTop, MismatchHandler* hndler = 0);
 
     ~FastGeneralizationsIterator();
 
@@ -638,7 +619,7 @@ public:
   public:
     FastInstancesIterator(SubstitutionTree* parent, Node* root, Term* query,
 	    bool retrieveSubstitution, bool reversed, bool withoutTop, 
-      ConstraintType ct = NO_CONSTRAINTS, VSpecVarToTermMap* termMap = 0);
+      MismatchHandler* hndler = 0);
     ~FastInstancesIterator();
 
     bool hasNext();
@@ -669,43 +650,20 @@ public:
 #endif
   };
 
-  class SubstitutionTreeMismatchHandler : public UWAMismatchHandler 
-  {
-  public:
-    SubstitutionTreeMismatchHandler(Stack<UnificationConstraint>& c, BacktrackData& bd) : 
-      UWAMismatchHandler(c), _constraints(c), _bd(bd) {}
-    //virtual bool handle(RobSubstitution* subst, TermList query, unsigned index1, TermList node, unsigned index2);
-  private:
-    virtual bool introduceConstraint(TermList t1,unsigned index1, TermList t2,unsigned index2);
-    Stack<UnificationConstraint>& _constraints;
-    BacktrackData& _bd;
-  };
-
-  class STHOMismatchHandler : public HOMismatchHandler 
-  {
-  public:
-    STHOMismatchHandler(Stack<UnificationConstraint>& c, BacktrackData& bd) : 
-      HOMismatchHandler(c), _constraints(c), _bd(bd) {}
-  private:
-    virtual bool introduceConstraint(TermList t1,unsigned index1, TermList t2,unsigned index2);
-    Stack<UnificationConstraint>& _constraints;
-    BacktrackData& _bd;
-  };  
-
   class UnificationsIterator
   : public IteratorCore<QueryResult>
   {
   public:
     UnificationsIterator(SubstitutionTree* parent, Node* root, Term* query, 
       bool retrieveSubstitution, bool reversed, bool withoutTop,
-      ConstraintType ct = NO_CONSTRAINTS, VSpecVarToTermMap* termMap = 0);
+      MismatchHandler* hndler = 0);
     ~UnificationsIterator();
 
     bool hasNext();
     QueryResult next();
     bool tag;
   protected:
-    virtual bool associate(TermList query, TermList node, BacktrackData& bd);
+    virtual bool associate(TermList query, TermList node);
     virtual NodeIterator getNodeIterator(IntermediateNode* n);
 
     void createInitialBindings(Term* t);
@@ -736,8 +694,7 @@ public:
     bool clientBDRecording;
     BacktrackData clientBacktrackData;
     Renaming queryNormalizer;
-    bool useUWAConstraints;
-    bool useHOConstraints;
+    MismatchHandler* handler;
     UnificationConstraintStack constraints;
 #if VDEBUG
     SubstitutionTree* tree;

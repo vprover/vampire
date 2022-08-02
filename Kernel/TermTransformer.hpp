@@ -42,10 +42,10 @@ public:
   virtual ~TermTransformer() {}
   Term* transform(Term* term);
   Literal* transform(Literal* lit);
+  TermList transform(TermList ts);
 protected:
   virtual TermList transformSubterm(TermList trm) = 0;
   Term* transformSpecial(Term* specialTerm);
-  TermList transform(TermList ts);
   virtual Formula* transform(Formula* f);
   bool _sharedResult;
 };

@@ -26,7 +26,6 @@
 #include "Kernel/ApplicativeHelper.hpp"
 
 #include "Shell/Options.hpp"
-#include "Shell/UnificationWithAbstractionConfig.hpp"
 
 #include "TermSubstitutionTree.hpp"
 
@@ -36,18 +35,11 @@ namespace Indexing
 using namespace Lib;
 using namespace Kernel;
 
-TermSubstitutionTree::TermSubstitutionTree(bool theoryConstraints, bool hoConstraints, bool extra)
-: SubstitutionTree(env.signature->functions()), 
-  _theoryConstraints(theoryConstraints),
-  _higherOrderConstraints(hoConstraints)
+TermSubstitutionTree::TermSubstitutionTree(MismatchHandler* hndlr, bool extra)
+: SubstitutionTree(env.signature->functions()), _handler(hndlr), _extra(extra)
 {
-  _extra = extra;
-  _withConstraints = _higherOrderConstraints || _theoryConstraints;
-  // at the moment, unification with abstraction for theory reasoning
-  // and higher-order are not compatible.
-  ASS(!(_higherOrderConstraints && _theoryConstraints));
-  if(_withConstraints){
-    _termsByType = new TypeSubstitutionTree();
+  if(_handler){
+    _termsByType = new TypeSubstitutionTree(_handler);
   }
 }
 
@@ -107,7 +99,7 @@ void TermSubstitutionTree::handleTerm(TermList t, Literal* lit, Clause* cls, boo
 
   LeafData ld(cls, lit, t);
 
-  if(constraintTermHandled(t, ld, insert)) return;
+  if(_handler && constraintTermHandled(t, ld, insert)) return;
 
   if(t.isOrdinaryVar()) {
     if(insert) {
@@ -121,17 +113,8 @@ void TermSubstitutionTree::handleTerm(TermList t, Literal* lit, Clause* cls, boo
     Term* term=t.term();
 
     Term* normTerm=Renaming::normalize(term);
-
-    if(_higherOrderConstraints){
-      t = ApplicativeHelper::replaceFunctionalAndBooleanSubterms(normTerm, &_termMap);   
-      normTerm = t.term();
-    }
-
-    if(_theoryConstraints){
-      // replace theory subterms by very special variables
-      // For example f($sum(X,Y), b) ---> f(#, b)
-      TheoryTermReplacement ttr(&_termMap);
-      normTerm = ttr.transform(normTerm);
+    if(_handler){
+      normTerm = _handler->transform(normTerm);
     }
 
     BindingMap svBindings;
@@ -150,31 +133,17 @@ void TermSubstitutionTree::handleTerm(TermList t, Literal* lit, Clause* cls, boo
 bool TermSubstitutionTree::constraintTermHandled(TermList t, LeafData ld, bool insert){
   CALL("TermSubstitutionTree::constraintTermHandled");
 
-  if(!_withConstraints) return false;
-  if(!t.isTerm()) return false;
+  ASS(_handler);
 
-  auto trm = t.term();
-  auto sort = SortHelper::getResultSort(trm);
-  
-  if(_higherOrderConstraints){ 
-    if(sort.isVar() || sort.isArrowSort()){
-      _termsByType->handleTerm(sort, ld, insert);
-      // In the case where the sort is a variable
-      // we want to also insert term into the normal tree
-      // since it could have non-function type depending
-      // on type instantiation
-      if(sort.isArrowSort()){ return true; }
-    } 
+  auto res = _handler->isConstraintTerm(t);
+  if(!res.isFalse()){
+    auto sort = SortHelper::getResultSort(t.term()); 
+    _termsByType->handleTerm(sort, ld, insert);
+    // if it is only possibly a constraint term, we still want to insert
+    // it into the standard tree as well
+    if(!res.maybe())
+      return true;
   }
-
-  if(_theoryConstraints){
-    if( Shell::UnificationWithAbstractionConfig::isInterpreted(trm) &&
-       !Shell::UnificationWithAbstractionConfig::isNumeral(t)){
-      _termsByType->handleTerm(sort, ld, insert);
-      return true;    
-    }    
-  }
-
   return false;
 }
 
@@ -188,14 +157,11 @@ TermQueryResultIterator TermSubstitutionTree::getUnifications(TermList t,
   } else {
     ASS(t.isTerm());
     if(_vars.isEmpty()) {
-      // false here means without constraints
       return getResultIterator<UnificationsIterator>(t.term(), retrieveSubstitutions);
     } else {
       return pvi( getConcatenatedIterator(
-          // false here means without constraints
-	  ldIteratorToTQRIterator(LDSkipList::RefIterator(_vars), t, retrieveSubstitutions),
-          // false here means without constraints
-	  getResultIterator<UnificationsIterator>(t.term(), retrieveSubstitutions)) );
+	      ldIteratorToTQRIterator(LDSkipList::RefIterator(_vars), t, retrieveSubstitutions),
+	      getResultIterator<UnificationsIterator>(t.term(), retrieveSubstitutions)) );
     }
   }
 }
@@ -205,26 +171,28 @@ TermQueryResultIterator TermSubstitutionTree::getUnificationsUsingSorts(TermList
     bool retrieveSubstitutions)
 {
   CALL("TermSubstitutionTree::getUnificationsUsingSorts");
-  ASS(_withConstraints);
 
   if(t.isOrdinaryVar()) {
+    // get all constraint terms whose sort can be unified with @param sort
+    // constraint terms that are also in the standard tree are not included
     auto it1 = _termsByType->getUnifications(sort, t, retrieveSubstitutions);
-    // in the case of a variable of higher-order sort (e.g. X : i > i > i)
-    // we do not want to unify with all terms in the tree only to subsequently
-    // fail the typing check (since all terms of sort i > i > i will be in _termsByType)
-    auto it2 = !sort.isArrowSort() ? 
-                  getAllUnifyingIterator(t,retrieveSubstitutions):
-                  ldIteratorToTQRIterator(LDSkipList::RefIterator(_vars), t, retrieveSubstitutions);;
+
+    auto it2 = getAllUnifyingIterator(t,retrieveSubstitutions);
+    
     return pvi(getConcatenatedIterator(it1, it2));
   } else {
     ASS(t.isTerm());
-    //TODO Is it OK to use t below?
-    auto it1 = _vars.isEmpty() ? TermQueryResultIterator::getEmpty() :
-               ldIteratorToTQRIterator(LDSkipList::RefIterator(_vars), t, retrieveSubstitutions);
+    // get all variables
+    auto it1 = ldIteratorToTQRIterator(LDSkipList::RefIterator(_vars), t, retrieveSubstitutions);
 
-    auto it2 = _termsByType->getUnifications(sort, t, retrieveSubstitutions);
-    auto it3 = !sort.isArrowSort() ? getResultIterator<UnificationsIterator>(t.term(), retrieveSubstitutions):
-               TermQueryResultIterator::getEmpty();
+    // get top level constraints
+    // if @param t can play no part in constraints, we optimise
+    auto it2 = !_handler->isConstraintTerm(t).isFalse() ?
+       _termsByType->getUnifications(sort, t, retrieveSubstitutions) :
+       TermQueryResultIterator::getEmpty();
+
+    // get unifiers from standard tree
+    auto it3 = getResultIterator<UnificationsIterator>(t.term(), retrieveSubstitutions);
     return pvi(getConcatenatedIterator(getConcatenatedIterator(it1, it2), it3));
   }
 }
@@ -296,9 +264,9 @@ struct TermSubstitutionTree::TermQueryResultFn
   }
 
   TermQueryResult operator() (const QueryResult& qr) {
-    TermList trm = _extra ? qr.first.first->extraTerm : qr.first.first->term;
-    return TermQueryResult(trm, qr.first.first->literal,
-	    qr.first.first->clause, qr.first.second,qr.second);
+    TermList trm = _extra ? qr.first->extraTerm : qr.first->term;
+    return TermQueryResult(trm, qr.first->literal,
+	    qr.first->clause, qr.second);
   }
 
 private:
@@ -323,14 +291,8 @@ TermQueryResultIterator TermSubstitutionTree::getResultIterator(Term* trm,
       result = ldIteratorToTQRIterator(ldit,TermList(trm),retrieveSubstitutions);
     }
     else{
-      auto cType = NO_CONSTRAINTS;
-      if(_withConstraints){
-        if(_theoryConstraints) cType = THEORY_CONSTRAINTS;
-        if(_higherOrderConstraints) cType = HO_CONSTRAINTS;
-      }
-
       VirtualIterator<QueryResult> qrit=vi( 
-        new Iterator(this, root, trm, retrieveSubstitutions,false,false, cType, &_termMap));
+        new Iterator(this, root, trm, retrieveSubstitutions,false,false, _handler));
       result = pvi( getMappingIterator(qrit, TermQueryResultFn(_extra)) );
     }
   }
@@ -350,15 +312,14 @@ struct TermSubstitutionTree::LDToTermQueryResultFn
 
 struct TermSubstitutionTree::LDToTermQueryResultWithSubstFn
 {
-  LDToTermQueryResultWithSubstFn()
+  LDToTermQueryResultWithSubstFn(MismatchHandler* hndlr)
   {
-    _subst=RobSubstitutionSP(new RobSubstitution());
+    _subst=RobSubstitutionSP(new RobSubstitution(hndlr));
   }
   TermQueryResult operator() (const LeafData& ld) {
-    // see no harm in always adding an empty constraint
     return TermQueryResult(ld.term, ld.literal, ld.clause,
           ResultSubstitution::fromSubstitution(_subst.ptr(),
-                  QRS_QUERY_BANK,QRS_RESULT_BANK), UnificationConstraintStackSP());
+                  QRS_QUERY_BANK,QRS_RESULT_BANK));
   }
 private:
   RobSubstitutionSP _subst;
@@ -381,7 +342,6 @@ struct TermSubstitutionTree::UnifyingContext
   bool enter(TermQueryResult qr)
   {
     CALL("TermSubstitutionTree::UnifyingContext::enter");
-    //if(_withConstraints){ cout << "enter " << qr.term << endl; }
 
     ASS(qr.substitution);
     RobSubstitution* subst=qr.substitution->tryGetRobSubstitution();
@@ -395,10 +355,6 @@ struct TermSubstitutionTree::UnifyingContext
     RobSubstitution* subst=qr.substitution->tryGetRobSubstitution();
     ASS(subst);
     subst->reset();
-    if(!qr.constraints.isEmpty()){
-      //cout << "reset constraints" << endl;
-      qr.constraints->reset();
-    }
   }
 private:
   TermList _queryTerm;
@@ -414,7 +370,7 @@ TermQueryResultIterator TermSubstitutionTree::ldIteratorToTQRIterator(LDIt ldIt,
     return pvi( getContextualIterator(
 	    getMappingIterator(
 		    ldIt,
-		    LDToTermQueryResultWithSubstFn()),
+		    LDToTermQueryResultWithSubstFn(_handler)),
 	    UnifyingContext(queryTerm)) );
   } else {
     return pvi( getMappingIterator(
@@ -431,18 +387,9 @@ TermQueryResultIterator TermSubstitutionTree::getAllUnifyingIterator(TermList tr
 
   auto it1 = getFlattenedIterator(getMappingIterator(vi( new LeafIterator(this) ), LeafToLDIteratorFn()));
 
-  // If we are searching withConstraints it means that we have already added in
-  // the results related to _vars, we are only interested in non-unifying leaves
-
-  // STOP DOING THIS AT THE TOP LEVEL
-  if(false){
-    return ldIteratorToTQRIterator(it1,trm, retrieveSubstitutions);
-  }
-  else{
-    return ldIteratorToTQRIterator(
-	    getConcatenatedIterator(it1,LDSkipList::RefIterator(_vars)),
-	    trm, retrieveSubstitutions);
-  }
+  return ldIteratorToTQRIterator(
+    getConcatenatedIterator(it1,LDSkipList::RefIterator(_vars)),
+    trm, retrieveSubstitutions);
 }
 
 

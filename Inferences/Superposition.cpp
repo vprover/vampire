@@ -146,7 +146,7 @@ struct Superposition::ForwardResultFn
 
     TermQueryResult& qr = arg.second;
     return _parent.performSuperposition(_cl, arg.first.first, arg.first.second,
-	    qr.clause, qr.literal, qr.term, qr.substitution, true, _passiveClauseContainer, qr.constraints, qr.isTypeSub);
+	    qr.clause, qr.literal, qr.term, qr.substitution, true, _passiveClauseContainer);
   }
 private:
   Clause* _cl;
@@ -168,7 +168,7 @@ struct Superposition::BackwardResultFn
 
     TermQueryResult& qr = arg.second;
     return _parent.performSuperposition(qr.clause, qr.literal, qr.term,
-	    _cl, arg.first.first, arg.first.second, qr.substitution, false, _passiveClauseContainer, qr.constraints, qr.isTypeSub);
+	    _cl, arg.first.first, arg.first.second, qr.substitution, false, _passiveClauseContainer);
   }
 private:
   Clause* _cl;
@@ -375,8 +375,7 @@ bool Superposition::earlyWeightLimitCheck(Clause* eqClause, Literal* eqLit,
 Clause* Superposition::performSuperposition(
     Clause* rwClause, Literal* rwLit, TermList rwTerm,
     Clause* eqClause, Literal* eqLit, TermList eqLHS,
-    ResultSubstitutionSP subst, bool eqIsResult, PassiveClauseContainer* passiveClauseContainer,
-    UnificationConstraintStackSP constraints, bool isTypeSub)
+    ResultSubstitutionSP subst, bool eqIsResult, PassiveClauseContainer* passiveClauseContainer)
 {
   CALL("Superposition::performSuperposition");
   // we want the rwClause and eqClause to be active
@@ -399,8 +398,7 @@ Clause* Superposition::performSuperposition(
 */
 
   // the first checks the reference and the second checks the stack
-  bool hasConstraints = !constraints.isEmpty() && !constraints->isEmpty();
-  ASS(!hasConstraints || !isTypeSub);
+  bool hasConstraints = subst->numberOfConstraints();
   TermList eqLHSsort = SortHelper::getEqualityArgumentSort(eqLit); 
 
   if(eqLHS.isVar()) { 
@@ -428,7 +426,6 @@ Clause* Superposition::performSuperposition(
 
   unsigned rwLength = rwClause->length();
   unsigned eqLength = eqClause->length();
-  unsigned conLength = hasConstraints ? constraints->size() : 0;
 
   TermList tgtTerm = EqHelper::getOtherEqualitySide(eqLit, eqLHS);
 
@@ -458,7 +455,7 @@ Clause* Superposition::performSuperposition(
   TermList rwTermS = subst->apply(rwTerm, !eqIsResult);
 
 #if VDEBUG
-  if(!hasConstraints && !isTypeSub){
+  if(!hasConstraints){
     ASS_EQ(rwTermS,eqLHSS);
   }
 #endif
@@ -495,7 +492,7 @@ Clause* Superposition::performSuperposition(
     return 0;
   }
 
-  unsigned newLength = rwLength+eqLength-1+conLength + isTypeSub;
+  unsigned newLength = rwLength+eqLength-1+subst->numberOfConstraints();
 
   static bool afterCheck = getOptions().literalMaximalityAftercheck() && _salg->getLiteralSelector().isBGComplete();
 
@@ -540,6 +537,8 @@ Clause* Superposition::performSuperposition(
     }
     env.proofExtra->insert(res,extra);
   }
+
+  auto constraints = subst->getConstraints();  
 
   (*res)[0] = tgtLitS;
   int next = 1;
@@ -617,39 +616,10 @@ Clause* Superposition::performSuperposition(
       }
     }
   }
-  if(hasConstraints){
-    for(unsigned i=0;i<constraints->size();i++){
-      UnificationConstraint con = (*constraints)[i];
-
-      TermList qT = subst->applyTo(con.first.first,con.first.second);
-      TermList rT = subst->applyTo(con.second.first,con.second.second);
-
-      TermList sort = SortHelper::getResultSort(rT.term());
-      Literal* constraint = Literal::createEquality(false,qT,rT,sort);
-
-      // view comment in binary resolution regarding check below AYB
-
-      /*static Options::UnificationWithAbstraction uwa = env.options->unificationWithAbstraction();
-      if(uwa==Options::UnificationWithAbstraction::GROUND && 
-         !constraint->ground() &&
-         (!UnificationWithAbstractionConfig::isInterpreted(qT) 
-          && !UnificationWithAbstractionConfig::isInterpreted(rT) )) {
-
-        // the unification was between two uninterpreted things that were not ground 
-        res->destroy();
-        return 0;
-      }*/
-
-      (*res)[next] = constraint;
-      next++;   
-    }
-  }
-
-  if(isTypeSub){
-    TermList eqLHSsortS = subst->apply(eqLHSsort, eqIsResult);
-    Literal* constraint = Literal::createEquality(false,eqLHSS,rwTermS,eqLHSsortS);
-    (*res)[next] = constraint;
-  }
+  while(constraints.hasNext()){
+    Literal* constraint = constraints.next();
+    (*res)[next++] = constraint;
+  } 
 
   if(needsToFulfilWeightLimit && !passiveClauseContainer->fulfilsWeightLimit(weight, numPositiveLiteralsLowerBound, res->inference())) {
     RSTAT_CTR_INC("superpositions skipped for weight limit after the clause was built");

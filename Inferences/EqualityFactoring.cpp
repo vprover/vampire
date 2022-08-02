@@ -83,10 +83,18 @@ private:
   Clause* _cl;
 };
 
+void EqualityFactoring::attach(SaturationAlgorithm* salg)
+{
+  CALL("EqualityFactoring::attach");
+
+  GeneratingInferenceEngine::attach(salg);
+  _handler = salg->getIndexManager()->getHandler();
+}
+
 struct EqualityFactoring::ResultFn
 {
-  ResultFn(Clause* cl, bool afterCheck, Ordering& ordering)
-      : _cl(cl), _cLen(cl->length()), _afterCheck(afterCheck), _ordering(ordering) {}
+  ResultFn(Clause* cl, MismatchHandler* hndlr, bool afterCheck, Ordering& ordering)
+      : _cl(cl), _cLen(cl->length()), _handler(hndlr), _afterCheck(afterCheck), _ordering(ordering) {}
   Clause* operator() (pair<pair<Literal*,TermList>,pair<Literal*,TermList> > arg)
   {
     CALL("EqualityFactoring::ResultFn::operator()");
@@ -100,11 +108,8 @@ struct EqualityFactoring::ResultFn
 
     TermList srt = SortHelper::getEqualityArgumentSort(sLit);
 
-    static RobSubstitution subst;
-    static UnificationConstraintStack constraints;
+    static RobSubstitution subst(_handler);
     subst.reset();
-    constraints.reset();
-    subst.setMap(&termMap);
 
     if (!subst.unify(srt, 0, SortHelper::getEqualityArgumentSort(fLit), 0)) {
       return 0;
@@ -118,43 +123,14 @@ struct EqualityFactoring::ResultFn
     TermList fRHS=EqHelper::getOtherEqualitySide(fLit, fLHS);
     ASS_NEQ(sLit, fLit);
 
-    static Options::FunctionExtensionality ext = env.options->functionExtensionality();
-    static Options::UnificationWithAbstraction uwa = env.options->unificationWithAbstraction();
-    bool use_ho_handler = (ext == Options::FunctionExtensionality::ABSTRACTION) && env.property->higherOrder();
-    bool use_uwa_handler = uwa != Options::UnificationWithAbstraction::OFF;
-
-    ASS(!(use_uwa_handler && use_ho_handler));
-
-    if(use_ho_handler && !sLHS.isVar() && !fLHS.isVar() && 
-       !srtS.isVar() && !srtS.isArrowSort()){
-      sLHS = ApplicativeHelper::replaceFunctionalAndBooleanSubterms(sLHS.term(), &termMap);
-      fLHS = ApplicativeHelper::replaceFunctionalAndBooleanSubterms(fLHS.term(), &termMap);
+    if(_handler){
+      // replacing subterms that could be part of constraints with very special variables
+      // for example f($sum(1, Y)) -> f(#)
+      sLHS = _handler->transform(sLHS);
+      fLHS = _handler->transform(fLHS);
     }
 
-    // We only care about non-trivial constraints where the top-sybmol of the two terns are the same
-    // and therefore a constraint can be created between arguments
-    if(use_uwa_handler && !sLHS.isVar() && !fLHS.isVar() &&
-       sLHS.term()->functor() == fLHS.term()->functor()){
-      TheoryTermReplacement ttr(&termMap);
-      sLHS = TermList(ttr.transform(sLHS.term()));
-      fLHS = TermList(ttr.transform(fLHS.term()));
-    }
-
-    if(use_uwa_handler){
-      UWAMismatchHandler hndlr(constraints);
-      if(!subst.unify(sLHS,0,fLHS,0,&hndlr)){ 
-        return 0; 
-      }
-    }
-
-    if(use_ho_handler){
-      HOMismatchHandler hndlr(constraints);
-      if(!subst.unify(sLHS,0,fLHS,0,&hndlr)){ 
-        return 0; 
-      }    
-    }
-
-    if(!use_uwa_handler && !use_ho_handler && !subst.unify(sLHS,0,fLHS,0)){
+    if(!subst.unify(sLHS,0,fLHS,0)){
       return 0;    
     }    
 
@@ -168,7 +144,7 @@ struct EqualityFactoring::ResultFn
       return 0;
     }
 
-    unsigned newLen=_cLen+constraints.length();
+    unsigned newLen=_cLen+subst.numberOfConstraints();
     Clause* res = new(newLen) Clause(newLen, GeneratingInference1(InferenceRule::EQUALITY_FACTORING, _cl));
 
     (*res)[0]=Literal::createEquality(false, sRHSS, fRHSS, srtS);
@@ -197,14 +173,9 @@ struct EqualityFactoring::ResultFn
         (*res)[next++] = currAfter;
       }
     }
-    for(unsigned i=0;i<constraints.length();i++){
-      UnificationConstraint con = (constraints)[i];
-      TermList qT = subst.apply(con.first.first,0);
-      TermList rT = subst.apply(con.second.first,0);
-
-      TermList sort = SortHelper::getResultSort(rT.term());
-      Literal* constraint = Literal::createEquality(false,qT,rT,sort);
-
+    auto constraints = subst.getConstraints();
+    while(constraints.hasNext()){
+      Literal* constraint = constraints.next();
       (*res)[next++] = constraint;
     }
     ASS_EQ(next,newLen);
@@ -216,6 +187,7 @@ struct EqualityFactoring::ResultFn
 private:
   Clause* _cl;
   unsigned _cLen;
+  MismatchHandler* _handler;
   bool _afterCheck;
   Ordering& _ordering;
 };
@@ -237,7 +209,7 @@ ClauseIterator EqualityFactoring::generateClauses(Clause* premise)
 
   auto it4 = getMapAndFlattenIterator(it3,FactorablePairsFn(premise));
 
-  auto it5 = getMappingIterator(it4,ResultFn(premise,
+  auto it5 = getMappingIterator(it4,ResultFn(premise, _handler,
       getOptions().literalMaximalityAftercheck() && _salg->getLiteralSelector().isBGComplete(), _salg->getOrdering()));
 
   auto it6 = getFilteredIterator(it5,NonzeroFn());

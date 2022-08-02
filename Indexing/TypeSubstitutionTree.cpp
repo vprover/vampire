@@ -35,10 +35,9 @@ namespace Indexing
 using namespace Lib;
 using namespace Kernel;
 
-TypeSubstitutionTree::TypeSubstitutionTree()
-: SubstitutionTree(env.signature->functions())
-{
-}
+TypeSubstitutionTree::TypeSubstitutionTree(MismatchHandler* hndlr)
+: SubstitutionTree(env.signature->typeCons()), _handler(hndlr)
+{}
 
 void TypeSubstitutionTree::insert(TermList sort, LeafData ld)
 {
@@ -57,30 +56,50 @@ void TypeSubstitutionTree::remove(TermList sort, LeafData ld)
 
 struct TypeSubstitutionTree::ToTermUnifier
 {
-  ToTermUnifier(TermList queryTerm, bool retrieveSubstitutions)
-  : _queryTerm(queryTerm) {}
+  ToTermUnifier(TermList queryTerm, bool retrieveSubstitutions, MismatchHandler* hndlr)
+  : _queryTerm(queryTerm), _retrieveSubstitutions(retrieveSubstitutions), _handler(hndlr) {}
 
-  TermQueryResult operator() (TermQueryResult tqr) {
-    CALL("TypeSubstitutionTree::VarUnifFn::operator()");
-    
-    if((_queryTerm.isVar() || tqr.term.isVar()) && retrieveSubstitutions){
+  bool enter (const TermQueryResult& tqr) {
+    CALL("TypeSubstitutionTree::ToTermUnifier::enter");
+    if(_retrieveSubstitutions){
       RobSubstitution* subst=tqr.substitution->tryGetRobSubstitution();
       ASS(subst);
-      ALWAYS(subst->unify(_queryTerm, QRS_QUERY_BANK, tqr.term, QRS_RESULT_BANK));
-    } else {
-      tqr.isTypeSub = true;
+      if(_queryTerm.isVar() || tqr.term.isVar()){
+        if(_handler){
+          ASS(!tqr.term.isVar()); // constraints should never be variables
+          if(_handler->isConstraintTerm(tqr.term).maybe()){
+            // term is also in the standard tree and we will unify with it there
+            return false;
+          }
+        }
+        subst->bdRecord(_bdata);
+        ALWAYS(subst->unify(_queryTerm, QRS_QUERY_BANK, tqr.term, QRS_RESULT_BANK));
+        subst->bdDone();        
+      } else {
+        return subst->tryAddConstraint(_queryTerm, QRS_QUERY_BANK, tqr.term, QRS_RESULT_BANK, _bdata);
+      }
     }
+    return true;
+  }
 
-    return tqr;
+  void leave(const TermQueryResult& tqr) {
+    CALL("TypeSubstitutionTree::ToTermUnifier::leave");
+
+    if(_retrieveSubstitutions){
+       _bdata.backtrack();
+      ASS(_bdata.isEmpty());
+    }
   }
 
 private:
   TermList _queryTerm;
-  bool retrieveSubstitutions;
+  bool _retrieveSubstitutions;
+  MismatchHandler* _handler;
+  BacktrackData _bdata;
 };
 
 /**
- * According to value of @b insert, insert or remove term.
+ * According to value of @b insert, insert or remove leaf data.
  */
 void TypeSubstitutionTree::handleTerm(TermList sort, LeafData ld, bool insert)
 {
@@ -117,30 +136,24 @@ void TypeSubstitutionTree::handleTerm(TermList sort, LeafData ld, bool insert)
   }
 }
 
-//TODO use sorts and delete non-shared
 TermQueryResultIterator TypeSubstitutionTree::getUnifications(TermList sort, TermList trm,
 	  bool retrieveSubstitutions)
 {
   CALL("TypeSubstitutionTree::getUnifications");
  
-  //cout << "getting unification partners for " + sort.toString() << endl;
-  //Debug::Tracer::printStack(cout);
+  auto it1 = 
+   pvi(getContextualIterator(ldIteratorToTQRIterator(LDSkipList::RefIterator(_vars), sort, false), 
+      ToTermUnifier(trm, retrieveSubstitutions, _handler)));
 
-
-  auto it1 = !_vars.isEmpty() ? 
-    pvi(getMappingIterator(ldIteratorToTQRIterator(LDSkipList::RefIterator(_vars), sort, false), 
-      ToTermUnifier(trm, retrieveSubstitutions))) :
-             TermQueryResultIterator::getEmpty();
-
-  if(sort.isOrdinaryVar()) { //TODO return vars as well?
-    auto it2 = getMappingIterator(getAllUnifyingIterator(sort,retrieveSubstitutions), 
-      ToTermUnifier(trm, retrieveSubstitutions));
+  if(sort.isOrdinaryVar()) {
+    auto it2 = getContextualIterator(getAllUnifyingIterator(sort,retrieveSubstitutions), 
+      ToTermUnifier(trm, retrieveSubstitutions, _handler));
     return pvi(getConcatenatedIterator(it1, it2)); 
   } else {
     ASS(sort.isTerm());
-    auto it2 =  getMappingIterator(
-	  getResultIterator<UnificationsIterator>(sort.term(), retrieveSubstitutions), 
-      ToTermUnifier(trm, retrieveSubstitutions));
+    auto it2 = getContextualIterator(
+	    getResultIterator<UnificationsIterator>(sort.term(), retrieveSubstitutions), 
+        ToTermUnifier(trm, retrieveSubstitutions, _handler));
     return pvi(getConcatenatedIterator(it1, it2));     
   }
 }
@@ -152,8 +165,8 @@ TermQueryResultIterator TypeSubstitutionTree::getUnifications(TermList sort, Ter
 struct TypeSubstitutionTree::TermQueryResultFn
 {
   TermQueryResult operator() (const QueryResult& qr) {
-    return TermQueryResult(qr.first.first->term, qr.first.first->literal,
-	    qr.first.first->clause, qr.first.second,qr.second);
+    return TermQueryResult(qr.first->term, qr.first->literal,
+	    qr.first->clause, qr.second);
   }
 };
 
@@ -175,7 +188,7 @@ TermQueryResultIterator TypeSubstitutionTree::getResultIterator(Term* trm,
       result = ldIteratorToTQRIterator(ldit,TermList(trm),retrieveSubstitutions);
     }
     else{
-      VirtualIterator<QueryResult> qrit=vi( new Iterator(this, root, trm, retrieveSubstitutions,false,false) );
+      VirtualIterator<QueryResult> qrit=vi( new Iterator(this, root, trm, retrieveSubstitutions,false,false,_handler) );
       result = pvi( getMappingIterator(qrit, TermQueryResultFn()) );
     }
   }
@@ -192,9 +205,9 @@ struct TypeSubstitutionTree::LDToTermQueryResultFn
 
 struct TypeSubstitutionTree::LDToTermQueryResultWithSubstFn
 {
-  LDToTermQueryResultWithSubstFn()
+  LDToTermQueryResultWithSubstFn(MismatchHandler* hndlr)
   {
-    _subst=RobSubstitutionSP(new RobSubstitution());
+    _subst=RobSubstitutionSP(new RobSubstitution(hndlr));
   }
   TermQueryResult operator() (const LeafData& ld) {
     return TermQueryResult(ld.term, ld.literal, ld.clause,
@@ -251,7 +264,7 @@ TermQueryResultIterator TypeSubstitutionTree::ldIteratorToTQRIterator(LDIt ldIt,
     return pvi( getContextualIterator(
 	    getMappingIterator(
 		    ldIt,
-		    LDToTermQueryResultWithSubstFn()),
+		    LDToTermQueryResultWithSubstFn(_handler)),
 	    UnifyingContext(querySort)) );
   } else {
     return pvi( getMappingIterator(

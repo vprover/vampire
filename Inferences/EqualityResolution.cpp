@@ -59,10 +59,18 @@ struct EqualityResolution::IsNegativeEqualityFn
   { return l->isEquality() && l->isNegative(); }
 };
 
+void EqualityResolution::attach(SaturationAlgorithm* salg)
+{
+  CALL("EqualityResolution::attach");
+
+  GeneratingInferenceEngine::attach(salg);
+  _handler = salg->getIndexManager()->getHandler();
+}
+
 struct EqualityResolution::ResultFn
 {
-  ResultFn(Clause* cl, bool afterCheck = false, Ordering* ord = nullptr)
-      : _afterCheck(afterCheck), _ord(ord), _cl(cl), _cLen(cl->length()) {}
+  ResultFn(Clause* cl, MismatchHandler* hndlr=0, bool afterCheck = false, Ordering* ord = nullptr)
+      : _afterCheck(afterCheck), _ord(ord), _cl(cl), _cLen(cl->length()), _handler(hndlr) {}
   Clause* operator() (Literal* lit)
   {
     CALL("EqualityResolution::ResultFn::operator()");
@@ -70,58 +78,18 @@ struct EqualityResolution::ResultFn
     ASS(lit->isEquality());
     ASS(lit->isNegative());
 
-    VSpecVarToTermMap termMap;
-
     TermList arg0 = *lit->nthArgument(0);
     TermList arg1 = *lit->nthArgument(1);
 
-    static Options::UnificationWithAbstraction uwa = env.options->unificationWithAbstraction();
-    static Options::FunctionExtensionality ext = env.options->functionExtensionality();
-    bool use_uwa_handler = uwa != Options::UnificationWithAbstraction::OFF;
-    bool use_ho_handler = (ext == Options::FunctionExtensionality::ABSTRACTION) &&
-                          env.property->higherOrder();
-
-    if(use_ho_handler){
-      TermList sort = SortHelper::getEqualityArgumentSort(lit);
-      if(!arg0.isVar() && !arg1.isVar() && 
-         !sort.isVar() && !sort.isArrowSort()){
-        arg0 = ApplicativeHelper::replaceFunctionalAndBooleanSubterms(arg0.term(), &termMap);
-        arg1 = ApplicativeHelper::replaceFunctionalAndBooleanSubterms(arg1.term(), &termMap);
-      }
-    }
-
-    // We only care about non-trivial constraints where the top-sybmol of the two terms are the same
-    // and therefore a constraint can be created between arguments
-    if(use_uwa_handler && !arg0.isVar() && !arg1.isVar() &&
-       arg0.term()->functor() == arg1.term()->functor()){
-      TheoryTermReplacement ttr(&termMap);
-      arg0 = TermList(ttr.transform(arg0.term()));
-      arg1 = TermList(ttr.transform(arg1.term()));
-    }
-
-    ASS(!(use_uwa_handler && use_ho_handler));
-
-    static RobSubstitution subst;
-    static UnificationConstraintStack constraints;
+    static RobSubstitution subst(_handler);
     subst.reset();
-    constraints.reset();
-    subst.setMap(&termMap);
-
-    if(use_uwa_handler){
-      UWAMismatchHandler hndlr(constraints);
-      if(!subst.unify(arg0,0,arg1,0,&hndlr)){ 
-        return 0; 
-      }
+       
+    if(_handler){
+      arg0 = _handler->transform(arg0);
+      arg1 = _handler->transform(arg1);
     }
 
-    if(use_ho_handler){
-      HOMismatchHandler hndlr(constraints);
-      if(!subst.unify(arg0,0,arg1,0,&hndlr)){ 
-        return 0; 
-      }    
-    }
-
-    if(!use_uwa_handler && !use_ho_handler && !subst.unify(arg0,0,arg1,0)){
+    if(!subst.unify(arg0,0,arg1,0)){
       return 0;    
     }
 
@@ -129,7 +97,7 @@ struct EqualityResolution::ResultFn
     //cout << "The literal is " + lit->toString() << endl;
     //cout << "cLength " << cLength << endl;
 
-    unsigned newLen=_cLen-1+ constraints.length();
+    unsigned newLen=_cLen-1+ subst.numberOfConstraints();
 
     Clause* res = new(newLen) Clause(newLen, GeneratingInference1(InferenceRule::EQUALITY_RESOLUTION, _cl));
 
@@ -159,26 +127,9 @@ struct EqualityResolution::ResultFn
         (*res)[next++] = currAfter;
       }
     }
-    for(unsigned i=0;i<constraints.length();i++){
-      UnificationConstraint con = (constraints)[i];
-      TermList qT = subst.apply(con.first.first,0);
-      TermList rT = subst.apply(con.second.first,0);
-
-      TermList sort = SortHelper::getResultSort(rT.term());
-      Literal* constraint = Literal::createEquality(false,qT,rT,sort);      
-  
-      // view comment in binary resolution regarding check below AYB
-
-      /*if(use_uwa_handler && uwa==Options::UnificationWithAbstraction::GROUND &&
-         !constraint->ground() &&
-         !UnificationWithAbstractionConfig::isInterpreted(qT) && 
-         !UnificationWithAbstractionConfig::isInterpreted(rT) ) {
-
-        // the unification was between two uninterpreted things that were not ground 
-        res->destroy();
-        return 0;
-      }*/
-
+    auto constraints = subst.getConstraints();
+    while(constraints.hasNext()){
+      Literal* constraint = constraints.next();
       (*res)[next++] = constraint;
     }
     ASS_EQ(next,newLen);
@@ -192,6 +143,7 @@ private:
   Ordering* _ord;
   Clause* _cl;
   unsigned _cLen;
+  MismatchHandler* _handler;
 };
 
 ClauseIterator EqualityResolution::generateClauses(Clause* premise)
@@ -207,7 +159,7 @@ ClauseIterator EqualityResolution::generateClauses(Clause* premise)
 
   auto it2 = getFilteredIterator(it1,IsNegativeEqualityFn());
 
-  auto it3 = getMappingIterator(it2,ResultFn(premise,
+  auto it3 = getMappingIterator(it2,ResultFn(premise, _handler,
       getOptions().literalMaximalityAftercheck() && _salg->getLiteralSelector().isBGComplete(),
       &_salg->getOrdering()));
 

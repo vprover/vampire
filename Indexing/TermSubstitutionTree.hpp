@@ -53,7 +53,7 @@ public:
    * store Terms of type $o (formulas) in the tree, but in the leaf we store
    * the skolem terms used to witness them (to facilitate the reuse of Skolems)
    */
-  TermSubstitutionTree(bool theoryConstraints = false, bool hoConstraints = false, bool extra = false);
+  TermSubstitutionTree(MismatchHandler* hndlr = 0, bool extra = false);
 
   void insert(TermList t, Literal* lit, Clause* cls);
   void remove(TermList t, Literal* lit, Clause* cls);
@@ -111,18 +111,13 @@ private:
 
   typedef SkipList<LeafData,LDComparator> LDSkipList;
   LDSkipList _vars;
-  bool _withConstraints;
-  bool _theoryConstraints;
-
-  bool _higherOrderConstraints;
-
-  VSpecVarToTermMap _termMap;
 
   /* 
-   * Used to store terms that are not to be unified, but rather to form part of constraints
+   * Used to store terms that could be part of constraints
    * For example $sum(X, Y) will be stored in _termsByType
    */
   TypeSubstitutionTree* _termsByType;
+  MismatchHandler* _handler;
 
   //higher-order concerns
   bool _extra;
