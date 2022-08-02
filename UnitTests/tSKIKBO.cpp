@@ -37,9 +37,10 @@ SKIKBO skikbo(unsigned introducedSymbolWeight,
                     ._numRat  = variableWeight,
                     ._numReal = variableWeight,
                   }, 
-                  symbolWeights, env.signature->functions()),
-                funcPrec(), 
-                predPrec(), 
+                symbolWeights, env.signature->functions()),
+                DArray<int>::fromIterator(getRangeIterator(0, (int) env.signature->functions())),
+                DArray<int>::fromIterator(getRangeIterator(0, (int) env.signature->typeCons())),
+                DArray<int>::fromIterator(getRangeIterator(0, (int) env.signature->predicates())),
                 predLevels(),                
                 /*revereseLCM*/ false);
 }

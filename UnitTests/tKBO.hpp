@@ -8,20 +8,6 @@
  * and in the source directory
  */
 
-inline DArray<int> funcPrec() {
-  unsigned num = env.signature->functions();
-  DArray<int> out(num);
-  out.initFromIterator(getRangeIterator(0u, num));
-  return out;
-}
-
-inline DArray<int> predPrec() {
-  unsigned num = env.signature->predicates();
-  DArray<int> out(num);
-  out.initFromIterator(getRangeIterator(0u, num));
-  return out;
-}
-
 inline DArray<int> predLevels() {
   DArray<int> out(env.signature->predicates());
   out.init(out.size(), 1);
