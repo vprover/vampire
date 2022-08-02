@@ -34,25 +34,25 @@ namespace Kernel {
 using namespace Lib;
 
 template<class IfIter, class ElseIter>
-static auto ifElseIter(bool cond, IfIter ifIter, ElseIter elseIter) 
+static auto ifElseIter(bool cond, IfIter ifIter, ElseIter elseIter)
 { return iterTraits(
          cond ? CoproductIter<Lib::ResultOf<IfIter>, Lib::ResultOf<ElseIter>>(ifIter())
               : CoproductIter<Lib::ResultOf<IfIter>, Lib::ResultOf<ElseIter>>(elseIter())); }
 
 
 // TODO move to right place (LASCA.hpp ?)
-struct SignedTerm 
+struct SignedTerm
 {
   Sign sign;
   TermList term;
 
-  static SignedTerm pos(TermList t) 
+  static SignedTerm pos(TermList t)
   { return { .sign = Sign::Pos, .term = t, }; }
 
-  static SignedTerm neg(TermList t) 
+  static SignedTerm neg(TermList t)
   { return { .sign = Sign::Neg, .term = t, }; }
 
-  static SignedTerm zero(TermList t) 
+  static SignedTerm zero(TermList t)
   { return { .sign = Sign::Zero, .term = t, }; }
 
   friend std::ostream& operator<<(std::ostream& out, SignedTerm const& self)
@@ -72,7 +72,7 @@ struct SignedTerm
   friend bool operator>=(SignedTerm const& l, SignedTerm const& r) { return l == r || l > r; }
 };
 
-class QKbo 
+class QKbo
   : public Ordering
 {
 public:
@@ -83,7 +83,7 @@ public:
   QKbo& operator=(QKbo&& kbo) = default;
   explicit QKbo(KBO kbo);
 
-  QKbo(Problem& prb, const Options& opts) 
+  QKbo(Problem& prb, const Options& opts)
     : QKbo(KBO(prb,opts, /* qkboPrecedence */ true)) {}
 
   virtual ~QKbo() {}
@@ -101,10 +101,10 @@ private:
   {
     auto counts =  std::get<1>(t)->iterSummands()
           .map([](auto s) {
-            auto count  = ifOfType<IntegerConstantType>(s.numeral, 
+            auto count  = ifOfType<IntegerConstantType>(s.numeral,
                            [&](IntegerConstantType num) { return num; },
                             /* decltype(num) in { RatTraits, RealTraits } */
-                           [&](auto num) { 
+                           [&](auto num) {
                              ASS_EQ(num.denominator(), IntegerConstantType(1))
                              return num.numerator();
                            }).abs();
@@ -112,7 +112,7 @@ private:
               ASS(s.numeral.sign() == Sign::Zero)
               count = IntegerConstantType(1);
             }
-            SignedTerm term = { 
+            SignedTerm term = {
               .sign = s.numeral.sign(),
               .term = s.factors->denormalize(),
             };
@@ -131,12 +131,12 @@ private:
   {
     auto l = t->iterSummands()
       .map([](auto s) { return s.numeral.denominator(); })
-      .fold(IntegerConstantType(1), [&](auto acc, auto next) 
+      .fold(IntegerConstantType(1), [&](auto acc, auto next)
                { return IntegerConstantType::lcm(acc, next); });
     return std::make_tuple(l.abs(), typename NumTraits::ConstantType(l, IntegerConstantType(1)) * t);
   }
 
-  auto asClosure() const 
+  auto asClosure() const
   { return [this](auto const& l, auto const& r) { return this->compare(l, r); }; }
 
 #ifdef VDEBUG
@@ -176,6 +176,7 @@ public:
 
   static constexpr uint8_t POS_EQ_LEVEL = 0;
   static constexpr uint8_t NEG_EQ_LEVEL = 1;
+  static constexpr uint8_t INEQ_LEVEL = 1;
   bool hasSubstitutionProperty(SignedAtoms const& l) const;
 
   using AtomsWithLvl = std::tuple<SignedAtoms, uint8_t>;
@@ -188,14 +189,19 @@ public:
 
     auto term = NumTraits::zero() == literal->termArg(1 - mainIdx) ? literal->termArg(mainIdx)
                                                                    : NumTraits::add(literal->termArg(0), NumTraits::minus(literal->termArg(1)));
-    auto level = literal->isEquality() && literal->isPositive() ? POS_EQ_LEVEL : NEG_EQ_LEVEL;
+
+    auto level =
+        literal->isEquality() ? (literal->isPositive() ? POS_EQ_LEVEL : NEG_EQ_LEVEL)
+                              :  INEQ_LEVEL;
+
+
     return signedAtoms<NumTraits>(term)
       .map([level](auto atoms) {
           return std::make_tuple(std::move(atoms), level);
       });
   }
 
- 
+
   Option<AtomsWithLvl> atomsWithLvl(Literal* literal) const
   {
     using Out = Option<AtomsWithLvl>;
@@ -210,16 +216,16 @@ public:
     }) || [&]() -> Out {
       ASS(literal->isEquality())
       auto level = literal->isPositive() ? POS_EQ_LEVEL : NEG_EQ_LEVEL;
-      auto multiset = MultiSet<SignedTerm>({ 
+      auto multiset = MultiSet<SignedTerm>({
         // the sign is only a dummy here to match the type of atomsWithLvl<NumTraits>
-          SignedTerm::zero(literal->termArg(0)), 
-          SignedTerm::zero(literal->termArg(1)), 
+          SignedTerm::zero(literal->termArg(0)),
+          SignedTerm::zero(literal->termArg(1)),
         });
       return Option<AtomsWithLvl>(std::make_tuple(WeightedMultiSet<SignedTerm>(
               IntegerConstantType(1),
               std::move(multiset)), level));
     };
-  } 
+  }
 
 private:
 

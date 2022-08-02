@@ -77,9 +77,7 @@ void BwdDemodulation::perform(Clause* premise, BwSimplificationRecordIterator& s
           /* We skip this potential simplification, because we do not simplify the same clause in 
            * two different ways with the same equality.  */
         } else {
-          auto sigma = [&](auto t) 
-            { return rhs.substitution ? applyResultSubstitution(*rhs.substitution, t) : t; };
-          auto maybeSimpl = Demod::apply(*_shared, lhs, rhs.data(), sigma);
+          auto maybeSimpl = Demod::apply(*_shared, lhs, rhs.data());
           if (maybeSimpl.isSome()) {
             simplified.insert(toSimpl);
             simpls.push(BwSimplificationRecord(toSimpl, maybeSimpl.unwrap()));
