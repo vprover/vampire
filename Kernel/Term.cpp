@@ -1265,7 +1265,7 @@ Term *Term::createMatch(TermList sort, TermList matchedSort, unsigned int arity,
 Term* Term::createRegularITE(Term* condition, TermList thenBranch, TermList elseBranch, TermList branchSort)
 {
   CALL("Term::createRegularITE");
-  static unsigned itefn = AnswerLiteralManager::getITEFunctionSymbol(branchSort);
+  unsigned itefn = AnswerLiteralManager::getITEFunctionSymbol(branchSort);
   return Term::create(itefn, {TermList(condition), thenBranch, elseBranch});
 }
 

@@ -90,7 +90,7 @@ private:
    public:
     ConjectureSkolemReplacement() : _skolemToVar() {}
     void bindSkolemToVar(Term* t, unsigned v);
-    TermList transformTermList(TermList tl);
+    TermList transformTermList(TermList tl, TermList sort);
    protected:
     virtual TermList transformSubterm(TermList trm);
     virtual TermList transform(TermList ts);

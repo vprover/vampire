@@ -24,6 +24,7 @@
 #include "Kernel/Problem.hpp"
 #include "Kernel/RobSubstitution.hpp"
 #include "Kernel/SortHelper.hpp"
+#include "Kernel/TermIterators.hpp"
 #include "Kernel/OperatorType.hpp"
 #include "Kernel/InterpretedLiteralEvaluator.hpp"
 
@@ -332,7 +333,7 @@ bool AnswerLiteralManager::tryGetAnswer(Clause* refutation, Stack<TermList>& ans
     Literal* lit = (*ansCl)[0];
     unsigned arity = lit->arity();
     for(unsigned i=0; i<arity; i++) {
-      answer.push(_skolemReplacement.transformTermList(*lit->nthArgument(i)));
+      answer.push(_skolemReplacement.transformTermList(*lit->nthArgument(i), env.signature->getFunction(lit->functor())->fnType()->arg(i)));
     }
     return true;
   }
@@ -533,6 +534,7 @@ Literal* AnswerLiteralManager::makeITEAnswerLiteral(Literal* condition, Literal*
   for (unsigned i = 0; i < thenLit->arity(); ++i) {
     TermList* ttl = thenLit->nthArgument(i);
     TermList* etl = elseLit->nthArgument(i);
+    // TODO(hzzv): maybe unify variables if they do not occur anywhere else in the clause?
     if (ttl == etl) litArgs.push(*ttl);
     else {
       // TODO(hzzv): using special-term-ITEs:
@@ -554,20 +556,33 @@ void AnswerLiteralManager::ConjectureSkolemReplacement::bindSkolemToVar(Term* t,
   _skolemToVar[t] = v;
 }
 
-TermList AnswerLiteralManager::ConjectureSkolemReplacement::transformTermList(TermList tl) {
+TermList AnswerLiteralManager::ConjectureSkolemReplacement::transformTermList(TermList tl, TermList sort) {
   // First replace free variables by 0
   if (tl.isVar() || (tl.isTerm() && !tl.term()->ground())) {
     TermList zero(theory->representConstant(IntegerConstantType(0)));
-    if (tl.isVar()) return zero;
-    else {
+    if (tl.isVar()) {
+      if (sort == AtomicSort::intSort()) return zero;
+      else {
+        TermList res(Term::createConstant("cz"));
+        env.signature->getFunction(res.term()->functor())->setType(OperatorType::getConstantsType(sort));
+        return res;
+      }
+    } else {
       Substitution s;
       vset<unsigned> done;
-      TermIterator vit = Term::getVariableIterator(tl);
+      Kernel::VariableWithSortIterator vit(tl.term());
       while (vit.hasNext()) {
-        unsigned v = vit.next().var();
+        pair<TermList, TermList> p = vit.next();
+        unsigned v = p.first.var();
+        TermList& vsort = p.second;
         if (done.count(v) == 0) {
           done.insert(v);
-          s.bind(v, zero);
+          if (vsort == AtomicSort::intSort()) s.bind(v, zero);
+          else {
+            TermList res(Term::createConstant("cz"));
+            env.signature->getFunction(res.term()->functor())->setType(OperatorType::getConstantsType(vsort));
+            s.bind(v, res);
+          }
         }
       }
       tl = TermList(tl.term()->apply(s));
