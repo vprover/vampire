@@ -19,6 +19,7 @@
 #include "Lib/DHSet.hpp"
 #include "Lib/DHMap.hpp"
 #include "Lib/Int.hpp"
+#include "Lib/Metaiterators.hpp"
 
 #include "Renaming.hpp"
 #include "SortHelper.hpp"
@@ -35,11 +36,11 @@ const int RobSubstitution::UNBOUND_INDEX=-1;
 /**
  * Unify @b t1 and @b t2, and return true iff it was successful.
  */
-bool RobSubstitution::unify(TermList t1,int index1, TermList t2, int index2, MismatchHandler* hndlr)
+bool RobSubstitution::unify(TermList t1,int index1, TermList t2, int index2)
 {
   CALL("RobSubstitution::unify/4");
 
-  return unify(TermSpec(t1,index1), TermSpec(t2,index2),hndlr);
+  return unify(TermSpec(t1,index1), TermSpec(t2,index2));
 }
 
 /**
@@ -47,7 +48,7 @@ bool RobSubstitution::unify(TermList t1,int index1, TermList t2, int index2, Mis
  *
  * @b t1 and @b t2 can be either terms or literals.
  */
-bool RobSubstitution::unifyArgs(Term* t1,int index1, Term* t2, int index2, MismatchHandler* hndlr)
+bool RobSubstitution::unifyArgs(Term* t1,int index1, Term* t2, int index2)
 {
   CALL("RobSubstitution::unifyArgs");
   ASS_EQ(t1->functor(),t2->functor());
@@ -55,7 +56,7 @@ bool RobSubstitution::unifyArgs(Term* t1,int index1, Term* t2, int index2, Misma
   TermList t1TL(t1);
   TermList t2TL(t2);
 
-  return unify(TermSpec(t1TL,index1), TermSpec(t2TL,index2),hndlr);
+  return unify(TermSpec(t1TL,index1), TermSpec(t2TL,index2));
 }
 
 bool RobSubstitution::match(TermList base,int baseIndex,
@@ -230,7 +231,8 @@ bool RobSubstitution::occurs(VarSpec vs, TermSpec ts)
   vs=root(vs);
   Stack<TermSpec> toDo(8);
   if(ts.isVSpecialVar()){
-    Term* t = _termMap->get(ts.term.var());
+    ASS(_handler)
+    Term* t = _handler->get(ts.term.var());
     ts = TermSpec(TermList(t), ts.index);
   }else if(ts.isVar()) {
     ts=derefBound(ts);
@@ -258,12 +260,14 @@ bool RobSubstitution::occurs(VarSpec vs, TermSpec ts)
         if(!isVSpecialVar){
           dtvar=derefBound(TermSpec(tvar));
         } else {
-          Term* t = _termMap->get(var.var());
+          ASS(_handler)
+          Term* t = _handler->get(var.var());
           dtvar = TermSpec(TermList(t), ts.index);
         }
         if(!dtvar.isVar() || dtvar.isVSpecialVar()) {
           if(dtvar.isVSpecialVar()){
-            Term* t = _termMap->get(dtvar.term.var());
+            ASS(_handler);
+            Term* t = _handler->get(dtvar.term.var());
             dtvar = TermSpec(TermList(t), dtvar.index);            
           }
           encountered.insert(tvar);
@@ -279,7 +283,7 @@ bool RobSubstitution::occurs(VarSpec vs, TermSpec ts)
   }
 }
 
-bool RobSubstitution::unify(TermSpec t1, TermSpec t2,MismatchHandler* hndlr)
+bool RobSubstitution::unify(TermSpec t1, TermSpec t2)
 {
   CALL("RobSubstitution::unify/2");
 
@@ -287,6 +291,9 @@ bool RobSubstitution::unify(TermSpec t1, TermSpec t2,MismatchHandler* hndlr)
     return true;
   }
 
+  // Recording is true if called from an index
+  // and false otherwise
+  bool recording = bdIsRecording();
   bool mismatch=false;
   BacktrackData localBD;
   bdRecord(localBD);
@@ -312,10 +319,10 @@ bool RobSubstitution::unify(TermSpec t1, TermSpec t2,MismatchHandler* hndlr)
     // (note that sameTermContent is best-effort)
     if(dt1.sameTermContent(dt2)) {
     } else if(dt1.isVSpecialVar() && dt2.isVSpecialVar()){
-      ASS(hndlr);
+      ASS(_handler);
       // if both are constraint terms (e.g. $sum(...)  or $product(...) or higher-order stuff)
       // then hand pair over to relevant handler to create constraint
-      hndlr->handle(dt1.term, dt1.index, dt2.term, dt2.index, _termMap);
+      ALWAYS(_handler->handle(dt1.term, dt1.index, dt2.term, dt2.index, _constraints, localBD, recording));
     } 
     // Deal with the case where either are variables
     // Do an occurs-check and note that the variable 
@@ -340,14 +347,14 @@ bool RobSubstitution::unify(TermSpec t1, TermSpec t2,MismatchHandler* hndlr)
       // In this case we create constraint if settings allow.
       // If they do not, handler will return false and we continue with
       // standard unification.
-      if(!hndlr->handle(dt1.term, dt1.index, dt2.term, dt2.index, _termMap)){
-        Term* t = _termMap->get(dt1.term.var());
+      if(!_handler->handle(dt1.term, dt1.index, dt2.term, dt2.index, _constraints, localBD, recording)){
+        Term* t = _handler->get(dt1.term.var());
         t1 = TermSpec(TermList(t), dt1.index);
         toDo.push(TTPair(t1, dt2));
       }
     } else if(dt2.isVSpecialVar()){    
-      if(!hndlr->handle(dt1.term, dt1.index, dt2.term, dt2.index, _termMap)){
-        Term* t = _termMap->get(dt2.term.var());
+      if(!_handler->handle(dt1.term, dt1.index, dt2.term, dt2.index, _constraints, localBD, recording)){
+        Term* t = _handler->get(dt2.term.var());
         t2 = TermSpec(TermList(t), dt2.index);
         toDo.push(TTPair(dt1, t2));
       }
@@ -645,7 +652,8 @@ TermList RobSubstitution::apply(TermList trm, int index) const
     }
     Term* t;
     if(ts.term.isVSpecialVar()){
-      t = _termMap->get(ts.term.var());
+      ASS(_handler);
+      t = _handler->get(ts.term.var());
     } else {
       t = ts.term.term();
     }
@@ -740,7 +748,8 @@ size_t RobSubstitution::getApplicationResultWeight(TermList trm, int index) cons
     }
     Term* t;
     if(ts.term.isVSpecialVar()){
-      t = _termMap->get(ts.term.var());
+      ASS(_handler);
+      t = _handler->get(ts.term.var());
     }else{
       t=ts.term.term();
     }
@@ -998,6 +1007,40 @@ private:
    */
   bool _used;
 };
+
+struct RobSubstitution::ConstraintToLiteralFn {
+
+  ConstraintToLiteralFn(RobSubstitution* subst) : _subst(subst) {}
+
+  Literal* operator() (const UnificationConstraint& uc) {
+    CALL("ConstraintToLiteralFn::operator()");
+
+    TermList lhs = _subst->apply(uc.first.first,uc.first.second);
+    TermList rhs = _subst->apply(uc.second.first,uc.second.second);
+    
+    TermList sort = SortHelper::getResultSort(lhs.term());
+    return Literal::createEquality(false, lhs, rhs, sort);
+  }
+
+  RobSubstitution* _subst;
+};
+
+bool RobSubstitution::tryAddConstraint(TermList t1,int index1, TermList t2, int index2, BacktrackData& bd)
+{
+  CALL("RobSubstitution::tryAddConstraint");
+  
+  if(_handler){
+    return _handler->handle(t1, index1, t2, index2, _constraints, bd, true);
+  }
+  return false;
+}
+
+LiteralIterator RobSubstitution::getConstraints() { 
+  CALL("RobSubstitution::getConstraints");
+
+  return pvi(getMappingIterator(pvi(UnificationConstraintStack::Iterator(_constraints)),
+   ConstraintToLiteralFn(this)));
+}
 
 struct RobSubstitution::MatchingFn {
   static bool associateEqualitySorts(RobSubstitution* subst, Literal* l1, int l1Index,
