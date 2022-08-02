@@ -842,6 +842,7 @@ void bench_orig_fwrun(benchmark::State& state, vvector<FwSubsumptionRound> const
 }
 
 
+#define SAT_VS_UNSAT 0
 
 void ProofOfConcept::benchmark_run(SubsumptionBenchmark b)
 {
@@ -853,6 +854,7 @@ void ProofOfConcept::benchmark_run(SubsumptionBenchmark b)
   std::cerr << "\n\n\nWARNING: compiled in debug mode!\n\n\n" << std::endl;
 #endif
 
+#if SAT_VS_UNSAT
   std::cerr << "trying to decide unknown subsumptions, if any..." << std::endl;
   for (auto& s : b.subsumptions) {
     if (s.result < 0) {
@@ -887,6 +889,7 @@ void ProofOfConcept::benchmark_run(SubsumptionBenchmark b)
     }
   }
   std::cerr << "Subsumption SAT vs. UNSAT, updated: total= " << n_total << " sat= " << n_sat << " unsat= " << n_unsat << " unknown= " << n_unknown << std::endl;
+#endif
 
   vvector<FwSubsumptionRound> fw_rounds;
   for (size_t round = 0; round <= b.rounds.size(); ++round) {
@@ -904,6 +907,7 @@ void ProofOfConcept::benchmark_run(SubsumptionBenchmark b)
     fw_rounds_only_subsumption.push_back(r.withoutSubsumptionResolution());
   }
 
+#if SAT_VS_UNSAT
   SubsumptionBenchmark b_sat = b;
   filter_benchmark(b_sat,
     [](SubsumptionInstance const& s) {
@@ -941,6 +945,7 @@ void ProofOfConcept::benchmark_run(SubsumptionBenchmark b)
   ASS(b_sat.subsumptions.size() + b_unsat.subsumptions.size() == b.subsumptions.size());
   ASS(b_sat.subsumptionResolutions.size() == 0);
   ASS(b_unsat.subsumptionResolutions.size() == 0);
+#endif
 
   vvector<vstring> args = {
     "vampire-sbench-run",
@@ -956,20 +961,21 @@ void ProofOfConcept::benchmark_run(SubsumptionBenchmark b)
   //   benchmark::RegisterBenchmark("smt2 S+SR (setup)", bench_smt2_run_setup, fw_rounds);
   // benchmark::RegisterBenchmark(  "smt2 S+SR (full)", bench_smt2_run, fw_rounds);
 
-  // if (also_setup)
-  //   benchmark::RegisterBenchmark("smt3 S    (setup)", bench_smt3_fwrun_setup, fw_rounds_only_subsumption);
-  // benchmark::RegisterBenchmark(  "smt3 S    (full)", bench_smt3_fwrun, fw_rounds_only_subsumption);
+  if (also_setup)
+    benchmark::RegisterBenchmark("smt3 S    (setup)", bench_smt3_fwrun_setup, fw_rounds_only_subsumption);
+  benchmark::RegisterBenchmark(  "smt3 S    (full)", bench_smt3_fwrun, fw_rounds_only_subsumption);
   // if (also_setup)
   //   benchmark::RegisterBenchmark("smt3 S+SR (setup)", bench_smt3_fwrun_setup, fw_rounds);
   // benchmark::RegisterBenchmark(  "smt3 S+SR (full)", bench_smt3_fwrun, fw_rounds);
 
-  // if (also_setup)
-  //   benchmark::RegisterBenchmark("orig S    (setup)", bench_orig_fwrun_setup, fw_rounds_only_subsumption);
-  // benchmark::RegisterBenchmark(  "orig S    (full)", bench_orig_fwrun, fw_rounds_only_subsumption);
+  if (also_setup)
+    benchmark::RegisterBenchmark("orig S    (setup)", bench_orig_fwrun_setup, fw_rounds_only_subsumption);
+  benchmark::RegisterBenchmark(  "orig S    (full)", bench_orig_fwrun, fw_rounds_only_subsumption);
   // if (also_setup)
   //   benchmark::RegisterBenchmark("orig S+SR (setup)", bench_orig_fwrun_setup, fw_rounds);
   // benchmark::RegisterBenchmark(  "orig S+SR (full)", bench_orig_fwrun, fw_rounds);
 
+#if SAT_VS_UNSAT
   if (also_setup)
     benchmark::RegisterBenchmark("smt3 S    (setup) sat", bench_smt3_fwrun_setup, fw_rounds_sat);
   benchmark::RegisterBenchmark(  "smt3 S    (full)  sat", bench_smt3_fwrun, fw_rounds_sat);
@@ -982,6 +988,7 @@ void ProofOfConcept::benchmark_run(SubsumptionBenchmark b)
   if (also_setup)
     benchmark::RegisterBenchmark("orig S    (setup) unsat", bench_orig_fwrun_setup, fw_rounds_unsat);
   benchmark::RegisterBenchmark(  "orig S    (full)  unsat", bench_orig_fwrun, fw_rounds_unsat);
+#endif
 
   init_benchmark(std::move(args));
   benchmark::RunSpecifiedBenchmarks();
