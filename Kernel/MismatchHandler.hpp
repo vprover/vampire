@@ -91,6 +91,11 @@ public:
 
   MaybeBool isConstraintTerm(TermList t) override; 
 
+#if VDEBUG
+  // only used in unit tests. see tUnificationWithAbstraction
+  Term* get(unsigned var) override;
+#endif
+
   CLASS_NAME(UWAMismatchHandler);
   USE_ALLOCATOR(UWAMismatchHandler);
 private:

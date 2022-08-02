@@ -43,7 +43,7 @@ bool UWAMismatchHandler::handle(TermList t1, unsigned index1, TermList t2, unsig
 
   if(!tm1) tm1 = t1.term();
   if(!tm2) tm2 = t2.term();
-
+  
   if(checkUWA(TermList(tm1),TermList(tm2))){
     if(areIdentical(tm1,tm2,index1,index2))
       return true;
@@ -62,8 +62,10 @@ bool UWAMismatchHandler::checkUWA(TermList t1, TermList t2)
   switch(opt){
     case Shell::Options::UnificationWithAbstraction::ONE_INTERP:
       return isConstraintTerm(t1).isTrue() || isConstraintTerm(t2).isTrue();
-    case Shell::Options::UnificationWithAbstraction::INTERP_ONLY:
-      return isConstraintTerm(t1).isTrue() && isConstraintTerm(t2).isTrue();
+    case Shell::Options::UnificationWithAbstraction::INTERP_ONLY:{
+      bool b = isConstraintTerm(t1).isTrue() && isConstraintTerm(t2).isTrue();
+      return b;
+    }
     default:
       // handler should never be called if UWA is off
       ASSERTION_VIOLATION;
@@ -103,6 +105,17 @@ MaybeBool UWAMismatchHandler::isConstraintTerm(TermList t){
 
   return false;
 }
+
+#if VDEBUG
+  Term* UWAMismatchHandler::get(unsigned var)
+  {
+    CALL("UWAMismatchHandler::get");
+     
+    auto res = _termMap.tryGet(var);
+    ASS(res.isSome());
+    return res.unwrap();
+  }
+#endif
 
 bool MismatchHandler::introduceConstraint(TermList t1,unsigned index1, TermList t2,unsigned index2, 
   UnificationConstraintStack& ucs, BacktrackData& bd, bool recording)

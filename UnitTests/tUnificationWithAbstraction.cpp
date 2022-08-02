@@ -29,6 +29,7 @@
 #include "Indexing/TermIndex.hpp"
 
 #include "Test/UnitTesting.hpp"
+#include "Test/SyntaxSugar.hpp"
 
 // TODO make this test use assertions, instead of printing output
 
@@ -36,72 +37,6 @@ using namespace Kernel;
 using namespace Indexing;
 using SortType = TermList;
 
-TermList number(vstring n)
-{
-  return TermList(Term::create(env.signature->addIntegerConstant(n,false),0,0));
-}
-TermList var(unsigned i)
-{
-  return TermList(i,false);
-}
-unsigned function_symbol(vstring name,unsigned arity,SortType srt)
-{
-  bool added;
-  unsigned f = env.signature->addFunction(name,arity,added);
-  if(added){
-    Signature::Symbol* symbol = env.signature->getFunction(f);
-    OperatorType* ot = OperatorType::getFunctionTypeUniformRange(arity,srt,srt);
-    symbol->setType(ot); 
-  }
-  return f; 
-}
-TermList constant(vstring name,SortType srt)
-{
-  auto c =  function_symbol(name,0,srt);
-  Term* t = Term::create(c,0,0);
-  return TermList(t);
-}
-TermList int_constant(vstring name)
-{
-  return constant(name,IntegerConstantType::getSort());
-}
-TermList binary(Interpretation fun, TermList n1, TermList n2)
-{
-  return TermList(Term::create2(env.signature->getInterpretingSymbol(fun),n1,n2));
-}
-TermList int_plus(TermList n1, TermList n2)
-{
-  return binary(Theory::INT_PLUS,n1,n2);
-}
-Literal* equals(TermList t1, TermList t2)
-{
-   SortType srt;
-   if(!SortHelper::tryGetResultSort(t1,srt)){
-     cout << "Don't call equals with two variables" << endl;
-     exit(0);
-   }
-   return Literal::createEquality(true, t1,t2,srt); 
-}
-Literal* pred(vstring p, TermList t, SortType srt)
-{
-  bool added;
-  unsigned ps = env.signature->addPredicate(p,1,added);
-  if(added){
-    Signature::Symbol* symbol = env.signature->getPredicate(ps);
-    OperatorType* ot = OperatorType::getPredicateTypeUniformRange(1,srt);
-    symbol->setType(ot);
-  }
-  return Literal::create1(ps,true,t);
-}
-Literal* pred(vstring p, TermList t)
-{
-  SortType srt;
-  if(!SortHelper::tryGetResultSort(t,srt)){
-    cout << "Don't call this pred with a variable argument" << endl;
-    exit(0);
-  }
-  return pred(p,t,srt);
-}
 Clause* unit(Literal* lit)
 {
   static Inference testInf = Kernel::NonspecificInference0(UnitInputType::ASSUMPTION, InferenceRule::INPUT); 
@@ -111,45 +46,16 @@ Clause* unit(Literal* lit)
 }
 
 
-TermIndexingStructure* getBasicTermIndex()
+TermIndexingStructure* getTermIndex()
 {
   UWAMismatchHandler* handler = new UWAMismatchHandler();
-  // Let's create an index with some data in it
-  // We pass true to say that we want to use constraints
-  TermIndexingStructure* is = new TermSubstitutionTree(handler); 
-
-
-  TermList one_plus_one = int_plus(number("1"),number("1"));
-  TermList one_plus_a = int_plus(number("1"),int_constant("a"));
-
-  Literal* p1 = pred("p",one_plus_one);
-  Literal* p2 = pred("p",one_plus_a);
-
-  is->insert(one_plus_one,p1,unit(p1));
-  is->insert(one_plus_a,p2,unit(p2));
-
-  return is;
+  return new TermSubstitutionTree(handler); 
 }
 
-LiteralIndexingStructure* getBasicIndex()
+LiteralIndexingStructure* getLiteralIndex()
 {
   UWAMismatchHandler* handler = new UWAMismatchHandler();
-  // Let's create an index with some data in it
-  // We pass true to say that we want to use constraints
-  LiteralIndexingStructure * is = new LiteralSubstitutionTree(handler); 
-
-
-  TermList one_plus_one = int_plus(number("1"),number("1"));
-  TermList one_plus_a = int_plus(number("1"),int_constant("a"));
-
-  Literal* p1 = pred("p",one_plus_one);
-  Literal* p2 = pred("p",one_plus_a);
-
-  is->insert(p1,unit(p1));
-  is->insert(p2,unit(p2));
-
-  return is;
-
+  return new LiteralSubstitutionTree(handler); 
 }
 
 void reportTermMatches(TermIndexingStructure* index, TermList term, TermList sort)
@@ -195,84 +101,82 @@ TEST_FUN(term_indexing_one_side_interp)
 {
   env.options->setUWA(Options::UnificationWithAbstraction::ONE_INTERP); 
 
-  TermIndexingStructure* index = getBasicTermIndex();
+  TermIndexingStructure* index = getTermIndex();
 
-  TermList t = int_plus(int_constant("b"),number("2"));
+  DECL_DEFAULT_VARS
+  NUMBER_SUGAR(Int)
+  DECL_PRED(p, {Int})
 
-  reportTermMatches(index,t,SortHelper::getResultSort(t.term()));
+  DECL_CONST(a, Int) 
+  DECL_CONST(b, Int) 
 
-  TermList s = int_constant("a");
-  Literal* p = pred("p",s);
+  index->insert(num(1) + num(1), p(num(1) + num(1)), unit(p(num(1) + num(1))));
+  index->insert(1 + a, p(1 + a), unit(p(a + a)));
+  
+  reportTermMatches(index,b + 2, Int);
 
-  index->insert(s,p,unit(p));
+  index->insert(a,p(a),unit(p(a)));
 
-  reportTermMatches(index,t,SortHelper::getResultSort(t.term()));
-
-  TermList u(0, false);
-  reportTermMatches(index,u,AtomicSort::intSort());  
+  reportTermMatches(index,b + 2, Int);
+  reportTermMatches(index,x,Int);  
 }
 
 TEST_FUN(term_indexing_interp_only)
 {
   env.options->setUWA(Options::UnificationWithAbstraction::INTERP_ONLY); 
 
-  TermIndexingStructure* index = getBasicTermIndex();
+  TermIndexingStructure* index = getTermIndex();
 
-  TermList t = int_plus(int_constant("b"),number("2"));
+  DECL_DEFAULT_VARS
+  NUMBER_SUGAR(Int)
+  DECL_PRED(p, {Int})
 
-  reportTermMatches(index,t,SortHelper::getResultSort(t.term()));
+  DECL_CONST(a, Int) 
+  DECL_CONST(b, Int) 
 
-  TermList s = int_constant("a");
-  Literal* p = pred("p",s);
+  index->insert(num(1) + num(1), p(num(1) + num(1)), unit(p(num(1) + num(1))));
+  index->insert(1 + a, p(1 + a), unit(p(a + a)));
 
-  index->insert(s,p,unit(p));
+  reportTermMatches(index,b + 2,Int);
 
-  reportTermMatches(index,t,SortHelper::getResultSort(t.term()));
+  index->insert(a,p(a),unit(p(a)));
 
-  TermList u(0, false);
-  reportTermMatches(index,u,AtomicSort::intSort());  
+  reportTermMatches(index,b + 2,Int);
+  reportTermMatches(index,x,Int);  
 }
 
-// AYB look into rewriting these test now that UWA has been heavily modified
-
 // This test demonstrates the current issue. The constraints produced depend on
-TEST_FUN(current_issue)
+TEST_FUN(literal_indexing)
 {
   env.options->setUWA(Options::UnificationWithAbstraction::ONE_INTERP); 
 
-  LiteralIndexingStructure* index = getBasicIndex();
+  LiteralIndexingStructure* index = getLiteralIndex();
 
-  Literal* qlit = pred("p",int_plus(int_constant("b"),number("2")));
+  DECL_DEFAULT_VARS
+  NUMBER_SUGAR(Int)
+  DECL_PRED(p, {Int})
 
-  reportMatches(index,qlit);
-  // Currently this produces
-  //1. p($sum(1,1)) [input] matches with constraints 
-  //> $sum(b,2)!=$sum(1,1)
-  //2. p($sum(1,a)) [input] matches with constraints 
-  //> $sum(b,2)!=$sum(1,a)
+  DECL_CONST(a, Int) 
+  DECL_CONST(b, Int) 
 
-  index->insert(qlit,unit(qlit));
+  index->insert(p(num(1) + num(1)), unit(p(num(1) + num(1))));
+  index->insert(p(1 + a), unit(p(1 + a)));  
 
-  reportMatches(index,qlit);
-  // Whereas this produces
-  //2. p($sum(1,a)) [input] matches with constraints 
-  //> b!=1
-  //> 2!=a
-  //1. p($sum(1,1)) [input] matches with constraints 
-  //> b!=1
-  //> 2!=1
-  //3. p($sum(b,2)) [input] matches with constraints 
+
+  reportMatches(index,p(b + 2));
+
+  index->insert(p(b + 2),unit(p(b + 2)));
+
+  reportMatches(index,p(b +2)); 
 }
 
 static const int NORM_QUERY_BANK=2;
 static const int NORM_RESULT_BANK=3;
 
-void reportRobUnify(TermList a, TermList b)
+void reportRobUnify(TermList a, TermList b, RobSubstitution& sub)
 {
   cout << endl;
   cout << "Unifying " << a.toString() << " with " << b.toString() << endl;
-  MismatchHandler* hndlr = new UWAMismatchHandler();
-  RobSubstitution sub(hndlr);
   //MismatchHandler* hndlr = new testMismatchHandler(&constraints);
   bool result = sub.unify(a,NORM_QUERY_BANK,b,NORM_RESULT_BANK);
   cout << "Result is " << result << endl;
@@ -292,13 +196,26 @@ TEST_FUN(using_robsub)
 {
   env.options->setUWA(Options::UnificationWithAbstraction::ONE_INTERP);
 
-  TermList b_plus_two = int_plus(int_constant("b"),number("2"));
-  TermList one_plus_a = int_plus(number("1"),int_constant("a"));
-  TermList x_plus_two = int_plus(var(0),number("2"));
+  DECL_DEFAULT_VARS
+  NUMBER_SUGAR(Int)
+  DECL_FUNC(f, {Int}, Int)
+  DECL_FUNC(g, {Int}, Int)  
+  DECL_CONST(a, Int) 
+  DECL_CONST(b, Int) 
 
-  reportRobUnify(b_plus_two,x_plus_two);
-  reportRobUnify(b_plus_two,one_plus_a);
+  MismatchHandler* hndlr = new UWAMismatchHandler();
+  RobSubstitution sub(hndlr);
 
+  auto t1 = hndlr->transform(f(b + 2));
+  auto t2 = hndlr->transform(f(x + 2));
+  auto t3 = hndlr->transform(f(a));
+  auto t4 = hndlr->transform(g(1 + a));
+
+  reportRobUnify(t1, t2,sub);
+  sub.reset();
+  reportRobUnify(t2, t3,sub);
+  sub.reset();
+  reportRobUnify(t3, t4,sub);
 }
 
 

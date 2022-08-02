@@ -198,6 +198,8 @@ public:
     : SortSugar(TermList(AtomicSort::createConstant(name))) 
   {  }
 
+  operator TermList() const {return _srt;}
+
   SortId sortId() const { return _srt; }
 };
 
