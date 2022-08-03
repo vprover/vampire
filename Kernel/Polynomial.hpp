@@ -228,7 +228,7 @@ using PolyNfSuper = Lib::Coproduct<Perfect<FuncTerm>, Variable, AnyPoly>;
  *
  * See the file-level documentation for how this datatype is composed.
  */
-class PolyNf : public PolyNfSuper
+class PolyNf : PolyNfSuper
 {
 public:
   CLASS_NAME(PolyNf)
@@ -238,6 +238,11 @@ public:
   PolyNf(AnyPoly                t);
 
   static PolyNf normalize(TypedTermList t);
+  using PolyNfSuper::match;
+  Option<Variable const&> asVar() const { return as<Variable>(); }
+  Option<AnyPoly const&> asPoly() const { return as<AnyPoly>(); }
+  Variable unwrapVar() const { return asVar().unwrap(); }
+  bool isVar() const { return asVar().isSome(); }
 
   /** 
    * If this term is a polynomial of sort NumTraits, it is downcasted to that sort,

@@ -66,14 +66,14 @@ public:
 static const auto iterPolynoms = [](Clause* cl) {
   return iterTerms(cl)
     .filterMap([](PolyNf subterm) 
-        { return subterm.template as<AnyPoly>().toOwned(); });
+        { return subterm.asPoly().toOwned(); });
 };
 
 /** iterator over all subterms of a clause that are variables */
 static const auto iterVars = [](Clause* cl) {
   return iterTerms(cl)
     .filterMap([](PolyNf subterm) 
-        { return subterm.template as<Variable>().toOwned(); });
+        { return subterm.asVar().toOwned(); });
 };
 
 template<class EvalFn>

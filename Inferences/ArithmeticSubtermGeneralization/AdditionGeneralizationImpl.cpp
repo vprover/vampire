@@ -99,8 +99,8 @@ struct Preprocess
             [&]() { return AnyNumber<MonomSet>(move(gen)); });
       } else {
         for (auto factor : monom.factors->iter()) {
-           if (factor.term.template is<Variable>()) {
-             auto v = factor.term.template unwrap<Variable>();
+           if (factor.term.isVar()) {
+             auto v = factor.term.unwrapVar();
              map.replaceOrInsert(v, MonomSet<NumTraits>::bot());
            }
         }
