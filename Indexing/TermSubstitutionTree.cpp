@@ -39,7 +39,7 @@ TermSubstitutionTree::TermSubstitutionTree(MismatchHandler* hndlr, bool extra)
 : SubstitutionTree(env.signature->functions()), _handler(hndlr), _extra(extra)
 {
   if(_handler){
-    _termsByType = new TypeSubstitutionTree(_handler);
+    _constraintTerms = new TypeSubstitutionTree(_handler);
   }
 }
 
@@ -138,7 +138,7 @@ bool TermSubstitutionTree::constraintTermHandled(TermList t, LeafData ld, bool i
   auto res = _handler->isConstraintTerm(t);
   if(!res.isFalse()){
     auto sort = SortHelper::getResultSort(t.term()); 
-    _termsByType->handleTerm(sort, ld, insert);
+    _constraintTerms->handleTerm(sort, ld, insert);
     // if it is only possibly a constraint term, we still want to insert
     // it into the standard tree as well
     if(!res.maybe())
@@ -175,7 +175,7 @@ TermQueryResultIterator TermSubstitutionTree::getUnificationsUsingSorts(TermList
   if(t.isOrdinaryVar()) {
     // get all constraint terms whose sort can be unified with @param sort
     // constraint terms that are also in the standard tree are not included
-    auto it1 = _termsByType->getUnifications(sort, t, retrieveSubstitutions);
+    auto it1 = _constraintTerms->getUnifications(sort, t, retrieveSubstitutions);
 
     auto it2 = getAllUnifyingIterator(t,retrieveSubstitutions);
     
@@ -188,11 +188,15 @@ TermQueryResultIterator TermSubstitutionTree::getUnificationsUsingSorts(TermList
     // get top level constraints
     // if @param t can play no part in constraints, we optimise
     auto it2 = !_handler->isConstraintTerm(t).isFalse() ?
-       _termsByType->getUnifications(sort, t, retrieveSubstitutions) :
+       _constraintTerms->getUnifications(sort, t, retrieveSubstitutions) :
        TermQueryResultIterator::getEmpty();
 
     // get unifiers from standard tree
-    auto it3 = getResultIterator<UnificationsIterator>(t.term(), retrieveSubstitutions);
+    // again we optimise and avoid uselessly traversing the tree
+    auto it3 = !_handler->isConstraintTerm(t).isTrue() ?
+       getResultIterator<UnificationsIterator>(t.term(), retrieveSubstitutions) :
+       TermQueryResultIterator::getEmpty();
+
     return pvi(getConcatenatedIterator(getConcatenatedIterator(it1, it2), it3));
   }
 }

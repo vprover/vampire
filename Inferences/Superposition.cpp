@@ -398,7 +398,8 @@ Clause* Superposition::performSuperposition(
 */
 
   // the first checks the reference and the second checks the stack
-  bool hasConstraints = subst->numberOfConstraints();
+  unsigned numberOfConstraints = subst->numberOfConstraints();
+  bool hasConstraints = numberOfConstraints > 0;
   TermList eqLHSsort = SortHelper::getEqualityArgumentSort(eqLit); 
 
   if(eqLHS.isVar()) { 
@@ -492,7 +493,7 @@ Clause* Superposition::performSuperposition(
     return 0;
   }
 
-  unsigned newLength = rwLength+eqLength-1+subst->numberOfConstraints();
+  unsigned newLength = rwLength+eqLength-1+numberOfConstraints;
 
   static bool afterCheck = getOptions().literalMaximalityAftercheck() && _salg->getLiteralSelector().isBGComplete();
 

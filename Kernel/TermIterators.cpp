@@ -155,9 +155,9 @@ void SubtermIterator::right()
 ///                                                                    ///
 //////////////////////////////////////////////////////////////////////////
 
-bool UnstableSubtermIt::hasNext()
+bool TopLevelVarLikeTermIterator::hasNext()
 {
-  CALL("UnstableSubtermIt::hasNext");
+  CALL("TopLevelVarLikeTermIterator::hasNext");
 
   static TermStack args;
   TermList head;
@@ -185,14 +185,37 @@ bool UnstableSubtermIt::hasNext()
   return false;  
 }
 
-
-bool StableVarIt::hasNext()
+TopLevelVarIterator::TopLevelVarIterator(TermList t)
 {
-  CALL("StableVarIt::hasNext");
+  if(t.isVar()){
+    _next = t;
+    return;
+  }
+  _next.makeEmpty();
 
   static TermStack args;
   args.reset();
   TermList head;
+
+  AH::getHeadAndArgs(t, head, args);
+
+  if(!t.term()->ground() && !head.isVar() && 
+     (!AH::isComb(head) || AH::isUnderApplied(head, args.size()))){
+    _stack.push(t);
+  }  
+}
+
+
+bool TopLevelVarIterator::hasNext()
+{
+  CALL("TopLevelVarIterator::hasNext");
+
+  static TermStack args;
+  static TermStack args2;
+  args.reset();
+  args2.reset();
+  TermList head;
+  TermList head2;
   
   if(!_next.isEmpty()){ return true; }
   while(!_stack.isEmpty()){
@@ -201,13 +224,16 @@ bool StableVarIt::hasNext()
       _next = t;
     } else {
       AH::getHeadAndArgs(t, head, args);
-      if(head.isVar()){
-        _next = t;
-      }
+      ASS(!head.isVar());
       while(!args.isEmpty()){
         TermList tl = args.pop();
-        if(tl.isVar() || (!tl.term()->ground() && !_unstableTerms->find(tl.term()))){
+        if(tl.isVar()){
           _stack.push(tl);
+        } else if (!tl.term()->ground()) {
+          AH::getHeadAndArgs(tl, head2, args2);
+          if(!head2.isVar() && (!AH::isComb(head2) || AH::isUnderApplied(head2, args2.size())) ){
+             _stack.push(tl);
+          }
         }
       }
     }
@@ -354,9 +380,7 @@ bool UnstableVarIt::hasNext()
     if(head.isVar()){
       if(!stable || args.size()){
         _next = head;
-      }/* else if (!AH::isSafe(args)){
-        _next = head;
-      } */
+      }
     } 
     bool argsStable = !head.isVar() && (!AH::isComb(head) || 
          (AH::isUnderApplied(head, args.size()) && stable));

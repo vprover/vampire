@@ -39,6 +39,11 @@ public:
   // With polymorphism, a term may end up being a constraint term
   // depending on type substitutions.
   // Also a term such as f(a,b) : $int may be a constraint term
+  //
+  // Function used as follows:
+  // if returns true, term is ONLY involved in constraints and never unified
+  // if returns false, term is ONLY unified and never involved in constraints
+  // if returns maybe, term is involved in constraints and unified
   virtual MaybeBool isConstraintTerm(TermList t) = 0;
 
   bool areIdentical(Term* t1, Term* t2, unsigned idx1, unsigned idx2);

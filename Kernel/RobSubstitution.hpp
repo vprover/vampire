@@ -60,6 +60,7 @@ public:
     _bank.reset();
     _nextUnboundAvailable=0;
     _constraints.reset();
+    _constraintsAsLits.reset();
   }
   void setHandler(MismatchHandler* hndlr){
     _handler = hndlr;
@@ -85,11 +86,15 @@ public:
   size_t getApplicationResultWeight(Literal* lit, int index) const;
 
   bool tryAddConstraint(TermList t1,int index1, TermList t2, int index2, BacktrackData& bd);
-  unsigned numberOfConstraints() { return _constraints.size(); }
+  // WARNING functions below must only be called
+  // at a point where this object represents the complete
+  // substitution between two terms. It is not safe to call either function
+  // if this object represents a partial substitution
+  // WARNING for the return from getConstraints() to be valid, numberOfConstraints()
+  // must have been called before.
+  unsigned numberOfConstraints();
   LiteralIterator getConstraints();
-  
-  struct ConstraintToLiteralFn;
- 
+   
 #if VDEBUG
   vstring toString(bool deref=false) const;
   /**
@@ -235,6 +240,7 @@ private:
 
   MismatchHandler* _handler;
   UnificationConstraintStack _constraints;
+  LiteralStack _constraintsAsLits;
 
   inline
   VarSpec getVarSpec(TermSpec ts) const

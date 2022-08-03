@@ -114,9 +114,9 @@ private:
 
   /* 
    * Used to store terms that could be part of constraints
-   * For example $sum(X, Y) will be stored in _termsByType
+   * For example $sum(X, Y) will be stored in _constraintTerms
    */
-  TypeSubstitutionTree* _termsByType;
+  TypeSubstitutionTree* _constraintTerms;
   MismatchHandler* _handler;
 
   //higher-order concerns

@@ -1008,23 +1008,6 @@ private:
   bool _used;
 };
 
-struct RobSubstitution::ConstraintToLiteralFn {
-
-  ConstraintToLiteralFn(RobSubstitution* subst) : _subst(subst) {}
-
-  Literal* operator() (const UnificationConstraint& uc) {
-    CALL("ConstraintToLiteralFn::operator()");
-
-    TermList lhs = _subst->apply(uc.first.first,uc.first.second);
-    TermList rhs = _subst->apply(uc.second.first,uc.second.second);
-    
-    TermList sort = SortHelper::getResultSort(lhs.term());
-    return Literal::createEquality(false, lhs, rhs, sort);
-  }
-
-  RobSubstitution* _subst;
-};
-
 bool RobSubstitution::tryAddConstraint(TermList t1,int index1, TermList t2, int index2, BacktrackData& bd)
 {
   CALL("RobSubstitution::tryAddConstraint");
@@ -1035,11 +1018,38 @@ bool RobSubstitution::tryAddConstraint(TermList t1,int index1, TermList t2, int 
   return false;
 }
 
+unsigned RobSubstitution::numberOfConstraints() {
+  CALL("RobSubstitution::numberOfConstraints");
+
+  _constraintsAsLits.reset();
+  // set used to avoid adding same constraint twice
+  // for example, we do not want C \/ a != b \/ a != b
+  // since this clause will then immediately be simplified
+  DHSet<Literal*> literals;
+
+  unsigned count = 0;
+  for(unsigned i = 0; i < _constraints.size(); i++){
+    UnificationConstraint uc = _constraints[i];
+
+    TermList lhs = apply(uc.first.first,uc.first.second);
+    TermList rhs = apply(uc.second.first,uc.second.second);
+    
+    if(lhs != rhs){
+      TermList sort = SortHelper::getResultSort(lhs.term());
+      Literal* lit = Literal::createEquality(false, lhs, rhs, sort);
+      if(literals.insert(lit)){
+        count++;
+        _constraintsAsLits.push(lit);
+      }
+    }
+  }
+  return count;
+}
+
 LiteralIterator RobSubstitution::getConstraints() { 
   CALL("RobSubstitution::getConstraints");
 
-  return pvi(getMappingIterator(pvi(UnificationConstraintStack::Iterator(_constraints)),
-   ConstraintToLiteralFn(this)));
+  return pvi(LiteralStack::Iterator(_constraintsAsLits));
 }
 
 struct RobSubstitution::MatchingFn {

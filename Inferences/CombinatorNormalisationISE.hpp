@@ -17,6 +17,7 @@
 #define __CombinatorNormalisationISE__
 
 #include "Kernel/Signature.hpp"
+#include "Kernel/TermTransformer.hpp"
 #include "Forwards.hpp"
 #include "InferenceEngine.hpp"
 
@@ -36,6 +37,14 @@
 
 namespace Inferences {
 
+class CombinatorNormaliser : public TermTransformer {
+public:
+  // false means create shared terms
+  // true means recurse into replaced terms
+  CombinatorNormaliser() : TermTransformer(false, true) {} 
+  TermList transformSubterm(TermList trm) override;
+};
+
 class CombinatorNormalisationISE
 : public ImmediateSimplificationEngine
 {
@@ -43,13 +52,13 @@ public:
   CLASS_NAME(CombinatorNormalisationISE);
   USE_ALLOCATOR(CombinatorNormalisationISE);
 
+  static TermList replaceWithSmallerCombinator(TermList t);
+
   CombinatorNormalisationISE(){}
   Clause* simplify(Clause* cl);
 private:
-   TermList normalise(TermList t);
-   bool replaceWithSmallerCombinator(TermList& t);
-   TermList createKTerm(TermList s1, TermList s2, TermList arg1);
-   TermList createSCorBTerm(TermList arg1, TermList arg1sort, TermList arg2, TermList arg2sort, Signature::Combinator comb);
+  static TermList createKTerm(TermList s1, TermList s2, TermList arg1);
+  static TermList createSCorBTerm(TermList arg1, TermList arg1sort, TermList arg2, TermList arg2sort, Signature::Combinator comb);
 };
 
 };

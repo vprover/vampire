@@ -266,9 +266,17 @@ TermList HOMismatchHandler::transformSubterm(TermList trm)
 {
   CALL("HOMismatchHandler::transformSubterm");
 
-  // isConstraintTerm or Bool?  
-  //TODO
-  ASSERTION_VIOLATION;
+  if(trm.isVar()) return trm;
+
+  TermList sort = SortHelper::getResultSort(trm.term());
+  if(sort.isBoolSort()){
+    return TermList::getVSpecVar(trm.term(), &_termMap);    
+  }
+
+  if(!isConstraintTerm(trm).isFalse()){
+    return TermList::getVSpecVar(trm.term(), &_termMap);
+  }
+  return trm;
 }
 
 

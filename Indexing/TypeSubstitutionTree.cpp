@@ -141,16 +141,14 @@ TermQueryResultIterator TypeSubstitutionTree::getUnifications(TermList sort, Ter
 {
   CALL("TypeSubstitutionTree::getUnifications");
  
-  auto it1 = 
-   pvi(getContextualIterator(ldIteratorToTQRIterator(LDSkipList::RefIterator(_vars), sort, false), 
-      ToTermUnifier(trm, retrieveSubstitutions, _handler)));
-
   if(sort.isOrdinaryVar()) {
-    auto it2 = getContextualIterator(getAllUnifyingIterator(sort,retrieveSubstitutions), 
-      ToTermUnifier(trm, retrieveSubstitutions, _handler));
-    return pvi(getConcatenatedIterator(it1, it2)); 
+    return pvi(getContextualIterator(getAllUnifyingIterator(sort,retrieveSubstitutions), 
+      ToTermUnifier(trm, retrieveSubstitutions, _handler)));
   } else {
     ASS(sort.isTerm());
+    auto it1 = 
+      pvi(getContextualIterator(ldIteratorToTQRIterator(LDSkipList::RefIterator(_vars), sort, retrieveSubstitutions), 
+        ToTermUnifier(trm, retrieveSubstitutions, _handler)));
     auto it2 = getContextualIterator(
 	    getResultIterator<UnificationsIterator>(sort.term(), retrieveSubstitutions), 
         ToTermUnifier(trm, retrieveSubstitutions, _handler));

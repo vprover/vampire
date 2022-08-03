@@ -340,10 +340,10 @@ struct FuncSigTraits {
   { return opts.functionWeights(); } 
 
   static bool isUnaryFunction (unsigned functor) 
-  { return env.signature->getFunction(functor)->arity() == 1; } 
+  { return env.signature->getFunction(functor)->numTermArguments() == 1; } 
 
   static bool isConstantSymbol(unsigned functor) 
-  { return env.signature->getFunction(functor)->arity() == 0; } 
+  { return env.signature->getFunction(functor)->numTermArguments() == 0; } 
 
   static Signature::Symbol* getSymbol(unsigned functor) 
   { return env.signature->getFunction(functor); }
@@ -523,13 +523,14 @@ KBO::KBO(
 #endif
 
     // precedence ordering params
-    DArray<int> funcPrec, 
+    DArray<int> funcPrec,
+    DArray<int> typeConPrec,     
     DArray<int> predPrec, 
     DArray<int> predLevels, 
 
     // other
     bool reverseLCM
-  ) : PrecedenceOrdering(funcPrec, predPrec, predLevels, reverseLCM)
+  ) : PrecedenceOrdering(funcPrec, typeConPrec, predPrec, predLevels, reverseLCM)
   , _funcWeights(funcWeights)
 #if __KBO__CUSTOM_PREDICATE_WEIGHTS__
   , _predWeights(predWeights)
@@ -542,20 +543,6 @@ KBO::KBO(
 KBO KBO::testKBO() 
 {
 
-  auto funcPrec = []() -> DArray<int>{
-    unsigned num = env.signature->functions();
-    DArray<int> out(num);
-    out.initFromIterator(getRangeIterator(0u, num));
-    return out;
-  };
-
-  auto predPrec = []() -> DArray<int>{
-    unsigned num = env.signature->predicates();
-    DArray<int> out(num);
-    out.initFromIterator(getRangeIterator(0u, num));
-    return out;
-  };
-
   auto predLevels = []() -> DArray<int>{
     DArray<int> out(env.signature->predicates());
     out.init(out.size(), 1);
@@ -567,72 +554,70 @@ KBO KBO::testKBO()
 #if __KBO__CUSTOM_PREDICATE_WEIGHTS__
       KboWeightMap<PredSigTraits>::randomized(), 
 #endif
-      funcPrec(),
-      predPrec(),
+      DArray<int>::fromIterator(getRangeIterator(0, (int)env.signature->functions())),
+      DArray<int>::fromIterator(getRangeIterator(0, (int)env.signature->typeCons())),
+      DArray<int>::fromIterator(getRangeIterator(0, (int)env.signature->predicates())),
       predLevels(),
       false);
 }
 
-void KBO::zeroOutWeightForMaximalFuncs() {
+void KBO::zeroWeightForMaximalFunc() {
+  CALL("KBO::zeroWeightForMaximalFunc");
   // actually, it's non-constant maximal func, as constants cannot be weight 0
 
-  using SortType = TermList;
   using FunctionSymbol = unsigned;
   auto nFunctions = _funcWeights._weights.size();
-  auto maximalFunctions = Map<SortType, FunctionSymbol>();
+  if (!nFunctions) {
+    return;
+  }
 
-  for (FunctionSymbol i = 0; i < nFunctions; i++) {
-    auto symb = env.signature->getFunction(i);
-    auto sort = symb->fnType()->result();
-    auto maxFn = maximalFunctions.getOrInit(sort, [&](){ return i; } );
+  FunctionSymbol maxFn = 0;
+  for (FunctionSymbol i = 1; i < nFunctions; i++) {
     if (compareFunctionPrecedences(maxFn, i) == LESS) {
-      maximalFunctions.replace(sort, i);
+      maxFn = i;
     }
   }
 
-  Map<SortType, FunctionSymbol>::Iterator it(maximalFunctions);
-  while (it.hasNext()) {
-    FunctionSymbol i = it.next().value();
-    auto symb = env.signature->getFunction(i);
-    auto arity = symb->arity();
+  auto symb = env.signature->getFunction(maxFn);
+  auto arity = symb->numTermArguments();
 
-    // skip constants here (they can't be smaller than $var)
-    if (arity == 0) continue;
-    // TODO: we could also have remembered the "second largest" symbol, if a constant was the largest
-    // (but we could not use them if they were of arity 1)
-
-    _funcWeights._weights[i] = 0;
+  // skip constants here (they mustn't be lighter than $var)
+  if (arity != 0){
+    _funcWeights._weights[maxFn] = 0;
   }
 }
 
 template<class HandleError>
 void KBO::checkAdmissibility(HandleError handle) const 
 {
-  using SortType = TermList;
   using FunctionSymbol = unsigned;
   auto nFunctions = _funcWeights._weights.size();
-  auto maximalFunctions = Map<SortType, FunctionSymbol>();
 
-  for (FunctionSymbol i = 0; i < nFunctions; i++) {
-    auto sort = env.signature->getFunction(i)->fnType()->result();
-    /* register min function */
-    auto maxFn = maximalFunctions.getOrInit(sort, [&](){ return i; } );
+  FunctionSymbol maxFn = 0; // only properly initialized when (nFunctions > 0)
+  for (FunctionSymbol i = 1; i < nFunctions; i++) {
     if (compareFunctionPrecedences(maxFn, i) == LESS) {
-      maximalFunctions.replace(sort, i);
+      maxFn = i;
     }
   }
+
+  // TODO remove unary minus check once new 
+  // theory calculus goes into master
+  auto isUnaryMinus = [](unsigned functor){
+    return theory->isInterpretedFunction(functor, IntTraits::minusI) ||
+           theory->isInterpretedFunction(functor, RatTraits::minusI) ||
+           theory->isInterpretedFunction(functor, RealTraits::minusI);
+  };
 
   ////////////////// check kbo-releated constraints //////////////////
   unsigned varWght = _funcWeights._specialWeights._variableWeight;
 
   for (unsigned i = 0; i < nFunctions; i++) {
-    auto sort = env.signature->getFunction(i)->fnType()->result();
-    auto arity = env.signature->getFunction(i)->arity();
+    auto arity = env.signature->getFunction(i)->numTermArguments();
 
     if (_funcWeights._weights[i] < varWght && arity == 0) {
       handle(UserErrorException("weight of constants (i.e. ", env.signature->getFunction(i)->name(), ") must be greater or equal to the variable weight (", varWght, ")"));
 
-    } else if (_funcWeights.symbolWeight(i) == 0 && arity == 1 && maximalFunctions.get(sort) != i) {
+    } else if (_funcWeights.symbolWeight(i) == 0 && arity == 1 && maxFn != i && !isUnaryMinus(i)) {
       handle(UserErrorException( "a unary function of weight zero (i.e.: ", env.signature->getFunction(i)->name(), ") must be maximal wrt. the precedence ordering"));
 
     }
@@ -670,7 +655,7 @@ KBO::KBO(Problem& prb, const Options& opts)
   CALL("KBO::KBO(Prb&, Opts&)");
 
   if (opts.kboMaxZero()) {
-    zeroOutWeightForMaximalFuncs();
+    zeroWeightForMaximalFunc();
   }
 
   if (opts.kboAdmissabilityCheck() == Options::KboAdmissibilityCheck::ERROR)
@@ -785,7 +770,7 @@ int KBO::symbolWeight(Term* t) const
     //For now just give all type constructors minimal weight
     return _funcWeights._specialWeights._variableWeight;
   }
-    return _funcWeights.symbolWeight(t);
+  return _funcWeights.symbolWeight(t);
 }
 
 template<class SigTraits>
@@ -975,18 +960,11 @@ bool KboSpecialWeights<FuncSigTraits>::tryGetWeight(unsigned functor, unsigned& 
   if (sym->rationalConstant()) { weight = _numRat;  return true; }
   if (sym->realConstant())     { weight = _numReal; return true; }
   if (env.options->pushUnaryMinus()) {
-    if (functor == IntTraits ::minusF()) { weight = 0; return true; }
-    if (functor == RatTraits ::minusF()) { weight = 0; return true; }
-    if (functor == RealTraits::minusF()) { weight = 0; return true; }
+    if (theory->isInterpretedFunction(functor, IntTraits ::minusI)) { weight = 0; return true; }
+    if (theory->isInterpretedFunction(functor, RatTraits ::minusI)) { weight = 0; return true; }
+    if (theory->isInterpretedFunction(functor, RealTraits::minusI)) { weight = 0; return true; }
   }
   return false;
 }
-
-template KboWeightMap<FuncSigTraits> KboWeightMap<FuncSigTraits>::dflt();
-template KboWeight KboWeightMap<FuncSigTraits>::symbolWeight(unsigned) const;
-#if __KBO__CUSTOM_PREDICATE_WEIGHTS__
-template KboWeightMap<PredSigTraits> KboWeightMap<PredSigTraits>::dflt();
-template KboWeight KboWeightMap<PredSigTraits>::symbolWeight(unsigned) const;
-#endif
 
 }

@@ -133,7 +133,8 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
     return 0;
   }
 
-  bool withConstraints = qr.substitution->numberOfConstraints();
+  unsigned numberOfConstraints = qr.substitution->numberOfConstraints();
+  bool withConstraints = numberOfConstraints > 0;
   unsigned clength = queryCl->length();
   unsigned dlength = qr.clause->length();
 
@@ -172,7 +173,7 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
     }
   }
 
-  unsigned newLength = clength+dlength-2+qr.substitution->numberOfConstraints();
+  unsigned newLength = clength+dlength-2+numberOfConstraints;
 
   inf_destroyer.disable(); // ownership passed to the the clause below
   Clause* res = new(newLength) Clause(newLength, inf); // the inference object owned by res from now on
