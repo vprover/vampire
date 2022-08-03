@@ -968,9 +968,9 @@ void ProofOfConcept::benchmark_run(SubsumptionBenchmark b)
   //   benchmark::RegisterBenchmark("smt3 S+SR (setup)", bench_smt3_fwrun_setup, fw_rounds);
   // benchmark::RegisterBenchmark(  "smt3 S+SR (full)", bench_smt3_fwrun, fw_rounds);
 
-  if (also_setup)
-    benchmark::RegisterBenchmark("orig S    (setup)", bench_orig_fwrun_setup, fw_rounds_only_subsumption);
-  benchmark::RegisterBenchmark(  "orig S    (full)", bench_orig_fwrun, fw_rounds_only_subsumption);
+  // if (also_setup)
+  //   benchmark::RegisterBenchmark("orig S    (setup)", bench_orig_fwrun_setup, fw_rounds_only_subsumption);
+  // benchmark::RegisterBenchmark(  "orig S    (full)", bench_orig_fwrun, fw_rounds_only_subsumption);
   // if (also_setup)
   //   benchmark::RegisterBenchmark("orig S+SR (setup)", bench_orig_fwrun_setup, fw_rounds);
   // benchmark::RegisterBenchmark(  "orig S+SR (full)", bench_orig_fwrun, fw_rounds);

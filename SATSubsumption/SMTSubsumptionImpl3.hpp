@@ -6,7 +6,7 @@
 #include "./subsat/subsat.hpp"
 
 
-#define SUBSAT_SOLVER_REUSE 1
+#define SUBSAT_SOLVER_REUSE 0
 
 
 namespace SMTSubsumption {
