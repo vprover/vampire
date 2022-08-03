@@ -333,7 +333,7 @@ bool AnswerLiteralManager::tryGetAnswer(Clause* refutation, Stack<TermList>& ans
     Literal* lit = (*ansCl)[0];
     unsigned arity = lit->arity();
     for(unsigned i=0; i<arity; i++) {
-      answer.push(_skolemReplacement.transformTermList(*lit->nthArgument(i), env.signature->getFunction(lit->functor())->fnType()->arg(i)));
+      answer.push(_skolemReplacement.transformTermList(*lit->nthArgument(i), env.signature->getPredicate(lit->functor())->predType()->arg(i)));
     }
     return true;
   }
@@ -557,14 +557,20 @@ void AnswerLiteralManager::ConjectureSkolemReplacement::bindSkolemToVar(Term* t,
 }
 
 TermList AnswerLiteralManager::ConjectureSkolemReplacement::transformTermList(TermList tl, TermList sort) {
+  CALL("AnswerLiteralManager::ConjectureSkolemReplacement::transformTermList");
   // First replace free variables by 0
   if (tl.isVar() || (tl.isTerm() && !tl.term()->ground())) {
     TermList zero(theory->representConstant(IntegerConstantType(0)));
     if (tl.isVar()) {
       if (sort == AtomicSort::intSort()) return zero;
       else {
-        TermList res(Term::createConstant("cz"));
-        env.signature->getFunction(res.term()->functor())->setType(OperatorType::getConstantsType(sort));
+        vstring name = "cz_" + sort.toString();
+        unsigned czfn;
+        if (!env.signature->tryGetFunctionNumber(name, 0, czfn)) {
+          czfn = env.signature->addFreshFunction(0, name.c_str());
+          env.signature->getFunction(czfn)->setType(OperatorType::getConstantsType(sort));
+        } 
+        TermList res(Term::createConstant(czfn));
         return res;
       }
     } else {
@@ -579,8 +585,13 @@ TermList AnswerLiteralManager::ConjectureSkolemReplacement::transformTermList(Te
           done.insert(v);
           if (vsort == AtomicSort::intSort()) s.bind(v, zero);
           else {
-            TermList res(Term::createConstant("cz"));
-            env.signature->getFunction(res.term()->functor())->setType(OperatorType::getConstantsType(vsort));
+            vstring name = "cz_" + vsort.toString();
+            unsigned czfn;
+            if (!env.signature->tryGetFunctionNumber(name, 0, czfn)) {
+              czfn = env.signature->addFreshFunction(0, name.c_str());
+              env.signature->getFunction(czfn)->setType(OperatorType::getConstantsType(sort));
+            } 
+            TermList res(Term::createConstant(czfn));
             s.bind(v, res);
           }
         }
