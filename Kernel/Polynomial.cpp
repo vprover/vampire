@@ -160,31 +160,17 @@ std::ostream& operator<<(std::ostream& out, const AnyPoly& self)
 // impl PolyNf 
 ////////////////////////////
 
-PolyNf::PolyNf(Perfect<FuncTerm> t) : Coproduct(t) {}
-PolyNf::PolyNf(Variable          t) : Coproduct(t) {}
-PolyNf::PolyNf(AnyPoly           t) : Coproduct(t) {}
+// TODO
+// PolyNf::PolyNf(Perfect<FuncTerm> t) : Coproduct(t) {}
+// PolyNf::PolyNf(Variable          t) : Coproduct(t) {}
+// PolyNf::PolyNf(AnyPoly           t) : Coproduct(t) {}
 
-
-bool operator==(PolyNf const& lhs, PolyNf const& rhs) 
-{ return static_cast<PolyNfSuper const&>(lhs) == static_cast<PolyNfSuper const&>(rhs); }
-
-bool operator!=(PolyNf const& lhs, PolyNf const& rhs) 
-{ return !(lhs == rhs); }
 
 std::ostream& operator<<(std::ostream& out, const PolyNf& self)
-{ return self.apply([&](auto& t) -> decltype(auto) { return out << t; }); }
-
-Option<Variable> PolyNf::tryVar() const 
-{ return as<Variable>().toOwned(); }
+{ return self._self.apply([&](auto& t) -> decltype(auto) { return out << t; }); }
 
 IterTraits<PolyNf::SubtermIter> PolyNf::iterSubterms() const 
 { return iterTraits(SubtermIter(*this)); }
-
-bool operator<(const PolyNf& lhs, const PolyNf& rhs) 
-{ return std::less<PolyNfSuper>{}(lhs,rhs); }
-
-bool operator<=(const PolyNf& lhs, const PolyNf& rhs) 
-{ return lhs < rhs || lhs == rhs; }
 
 PolyNf::SubtermIter::SubtermIter(PolyNf p) 
   : _stack(decltype(_stack){ BottomUpChildIter<PolyNf>(p) }) 

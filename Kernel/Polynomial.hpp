@@ -158,8 +158,10 @@ struct Monom
  */
 class FuncTerm 
 {
+  friend class PolyNf;
   FuncId _fun;
   Stack<PolyNf> _args;
+  FuncTerm(Term* t);
 public:
   CLASS_NAME(FuncTerm)
   USE_ALLOCATOR(FuncTerm)
@@ -188,6 +190,9 @@ using AnyPolySuper = Coproduct<
 
 class AnyPoly : public AnyPolySuper
 {
+  AnyPoly(Term* t);
+  AnyPoly(Term const* t);
+  friend class PolyNf;
 public:
   /** creates a new dynamically typed polynom from a statically typed one */
   template<class NumTraits> AnyPoly(Perfect<Polynom<NumTraits>> x);
@@ -221,33 +226,69 @@ public:
   friend struct std::hash<AnyPoly>;
 };
 
-using PolyNfSuper = Lib::Coproduct<Perfect<FuncTerm>, Variable, AnyPoly>;
 
 /**
  * Represents the polynomial normal form of a term, that is used for performing several simplifications and evaluations.
  *
  * See the file-level documentation for how this datatype is composed.
  */
-class PolyNf : PolyNfSuper
+class PolyNf 
 {
-  // struct PTerm {
-  //   enum { Poly, Uninterpreted, } _tag;
-  //   Term* _self;
-  // };
-  // Coproduct<Variable, PTerm> _self;
+  struct PTerm {
+    enum { Poly, Unint, } _tag;
+    Term* _term;
+    auto asTuple() const 
+    { return std::make_tuple((char) _tag, _term); }
+
+    IMPL_COMPARISONS_FROM_TUPLE(PTerm)
+    IMPL_HASH_FROM_TUPLE(PTerm)
+    friend class std::hash<PTerm>;
+
+    friend std::ostream& operator<<(std::ostream& out, PTerm const& self)
+    { return out << *self._term; }
+  };
+    friend class std::hash<PTerm>;
+  Coproduct<Variable, PTerm> _self;
 public:
   CLASS_NAME(PolyNf)
 
   PolyNf(Perfect<FuncTerm> t);
-  PolyNf(Variable               t);
-  PolyNf(AnyPoly                t);
+  PolyNf(Variable          t);
+  PolyNf(AnyPoly           t);
 
   static PolyNf normalize(TypedTermList t);
-  using PolyNfSuper::match;
-  Option<Variable const&> asVar() const { return as<Variable>(); }
-  Option<AnyPoly const&> asPoly() const { return as<AnyPoly>(); }
+  template<class FUnint, class FVar, class FPoly>
+  auto match(FUnint unint, FVar var, FPoly poly) const
+  {
+    using Out = std::result_of_t<FVar(Variable)>;
+    return _self.match(
+        var,
+        [poly = std::move(poly), unint = std::move(unint)](PTerm const& t) { 
+          switch (t._tag) {
+            case PTerm::Poly: return Out(poly(AnyPoly(t._term)));
+            case PTerm::Unint: return Out(unint(perfect(FuncTerm(t._term))));
+          }
+        });
+  }
+
+  Option<Variable const&> asVar() const { return _self.as<Variable>(); }
+  Option<AnyPoly> asPoly() const { 
+    return _self.as<PTerm>()
+    .andThen([](auto t) {
+        return t._tag == PTerm::Poly 
+        ? Option<AnyPoly>(AnyPoly(t._term))
+        : Option<AnyPoly>();
+     });
+  }
+
   Variable unwrapVar() const { return asVar().unwrap(); }
   bool isVar() const { return asVar().isSome(); }
+
+  auto asTuple() const -> decltype(auto)
+  { return std::tie(_self); }
+
+  IMPL_COMPARISONS_FROM_TUPLE(PolyNf)
+  IMPL_HASH_FROM_TUPLE(PolyNf)
 
   /** 
    * If this term is a polynomial of sort NumTraits, it is downcasted to that sort,
@@ -275,7 +316,7 @@ public:
   Option<typename Number::ConstantType> tryNumeral() const;
 
   /** if this PolyNf is a Variable, the variable is returned */
-  Option<Variable> tryVar() const;
+  Option<Variable> tryVar() const { return asVar().toOwned(); }
 
   /** an iterator over all PolyNf s that are subterms of this one */
   class SubtermIter;
@@ -283,11 +324,6 @@ public:
   /** returns an iterator over all PolyNf s that are subterms of this one */
   IterTraits<SubtermIter> iterSubterms() const;
 
-  friend struct std::hash<PolyNf>;
-  friend bool operator==(PolyNf const& lhs, PolyNf const& rhs);
-  friend bool operator!=(PolyNf const& lhs, PolyNf const& rhs);
-  friend bool operator<(const PolyNf& lhs, const PolyNf& rhs);
-  friend bool operator<=(const PolyNf& lhs, const PolyNf& rhs);
   friend std::ostream& operator<<(std::ostream& out, const PolyNf& self);
 };
 
@@ -535,6 +571,9 @@ public:
 
 } // namespace Kernel
 
+IMPL_STD_HASH(Kernel::PolyNf)
+IMPL_STD_HASH(Kernel::PolyNf::PTerm)
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // TEMPLATE STUFF IMPLEMENTATIONS
@@ -646,6 +685,7 @@ template<> struct std::hash<Kernel::FuncTerm>
   { return Lib::HashUtils::combine(std::hash<Kernel::FuncId>{}(f._fun), std::hash<Stack<Kernel::PolyNf>>{}(f._args));  }
 };
 
+
 /////////////////////////////////////////////////////////
 // impl AnyPoly  template stuff
 ////////////////////////////
@@ -720,7 +760,7 @@ template<class NumTraits>
 Option<Perfect<Polynom<NumTraits>>> PolyNf::downcast()  const
 {
   using Result = Perfect<Polynom<NumTraits>>;
-  return as<AnyPoly>()
+  return asPoly()
     .andThen([](AnyPoly const& p) { return p.as<Result>(); })
     .map([](Result const& p) -> Result { return p; });
 }
@@ -729,8 +769,9 @@ Option<Perfect<Polynom<NumTraits>>> PolyNf::downcast()  const
 template<class Number> 
 Perfect<Polynom<Number>> PolyNf::wrapPoly() const
 {
-  if (this->is<AnyPoly>()) {
-    return this->unwrap<AnyPoly>()
+  auto poly = this->asPoly();
+  if (poly.isSome()) {
+    return poly.unwrap()
             .unwrap<Perfect<Polynom<Number>>>();
   } else {
     return perfect(Polynom<Number>(*this));
@@ -749,12 +790,6 @@ Option<typename Number::ConstantType> PolyNf::tryNumeral() const
 }
 
 } // namespace Kernel
-
-template<> struct std::hash<Kernel::PolyNf> 
-{
-  size_t operator()(Kernel::PolyNf const& f) const 
-  { return std::hash<Kernel::PolyNfSuper>{}(f); }
-};
 
 /////////////////////////////////////////////////////////
 // impl MonomFactor  tempalte stuff

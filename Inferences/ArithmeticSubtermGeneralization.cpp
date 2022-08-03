@@ -66,7 +66,7 @@ public:
 static const auto iterPolynoms = [](Clause* cl) {
   return iterTerms(cl)
     .filterMap([](PolyNf subterm) 
-        { return subterm.asPoly().toOwned(); });
+        { return subterm.asPoly(); });
 };
 
 /** iterator over all subterms of a clause that are variables */
@@ -181,7 +181,7 @@ struct EvaluateAnyPoly
         { return perfect(FuncTerm(t->function(), evaluatedArgs)); },
 
         [&](Variable v) 
-        { return v; },
+        { return PolyNf(v); },
 
         [&](AnyPoly p) 
         { return PolyNf(eval(p, evaluatedArgs)); }

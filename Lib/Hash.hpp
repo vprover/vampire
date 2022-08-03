@@ -61,6 +61,36 @@ struct HashUtils
    */
   template<class... Ts> static unsigned combine(unsigned h1, unsigned h2, unsigned h3, Ts... ts) 
   { return combine(h1, combine(h2, h3, ts...)); }
+
+
+  template<unsigned i, class Hash, class... TsCntr>
+  struct __HashTuple;
+  template<unsigned i, class Hash, class T, class... TsCntr>
+
+  struct __HashTuple<i, Hash, T, TsCntr...>
+  {
+    template<class... Ts>
+    size_t operator()(std::tuple<Ts...> const& ts) 
+    { 
+      static_assert(std::is_same<decltype(std::get<i>(ts)), T const&>::value, "something wrong with tuple indices");
+      return HashUtils::combine(
+        Hash::hash(std::get<i>(ts)), 
+        __HashTuple<i + 1, Hash, TsCntr...>{}(ts)); }
+  };
+
+
+  template<unsigned i, class Hash> 
+  struct __HashTuple<i, Hash>
+  {
+    template<class... Ts>
+    size_t operator()(std::tuple<Ts...> const& ts) 
+    { return 0; }
+  };
+
+  template<class Hash, class... Ts> 
+  static unsigned hashTuple(std::tuple<Ts...> const& ts) 
+  { return __HashTuple<0, Hash, Ts...>{}(ts); }
+
 };
 
 // the identity hash
