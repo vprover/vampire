@@ -384,7 +384,6 @@ public:
     CASC_LTB,
     CLAUSIFY,
     CONSEQUENCE_ELIMINATION,
-    GROUNDING,
     MODEL_CHECK,
     /** this mode only outputs the input problem, without any preprocessing */
     OUTPUT,

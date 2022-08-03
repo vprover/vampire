@@ -155,15 +155,12 @@ set(VAMPIRE_LIB_SOURCES
     Lib/fdstream.hpp
     Lib/FreshnessGuard.hpp
     Lib/Hash.hpp
-    Lib/ImplicationSetClosure.hpp
     Lib/Int.hpp
     Lib/IntNameTable.hpp
     Lib/IntUnionFind.hpp
     Lib/InverseLookup.hpp
-    Lib/LastCopyWatcher.hpp
     Lib/List.hpp
     Lib/Map.hpp
-    Lib/MapToLIFO.hpp
     Lib/MaybeBool.hpp
     Lib/MemoryLeak.hpp
     Lib/Metaarrays.hpp
@@ -180,7 +177,6 @@ set(VAMPIRE_LIB_SOURCES
     Lib/ReferenceCounter.hpp
     Lib/Reflection.hpp
     Lib/SafeRecursion.hpp
-    Lib/SCCAnalyzer.hpp
     Lib/ScopedLet.hpp
     Lib/ScopedPtr.hpp
     Lib/Set.hpp
@@ -492,7 +488,6 @@ source_group(instancegeneration_source_files FILES ${VAMPIRE_INSTANCEGENERATION_
 
 set(VAMPIRE_SAT_SOURCES
     SAT/BufferedSolver.cpp
-    SAT/DIMACS.cpp
     SAT/FallbackSolverWrapper.cpp
     SAT/MinimizingSolver.cpp
     SAT/SAT2FO.cpp
@@ -502,7 +497,6 @@ set(VAMPIRE_SAT_SOURCES
     SAT/Z3Interfacing.cpp
 
     SAT/BufferedSolver.hpp
-    SAT/DIMACS.hpp
     SAT/FallbackSolverWrapper.hpp
     SAT/MinimizingSolver.hpp
     SAT/SAT2FO.hpp
@@ -569,7 +563,6 @@ set(VAMPIRE_SHELL_SOURCES
     Shell/FunctionDefinition.cpp
     Shell/GeneralSplitting.cpp
     Shell/GoalGuessing.cpp
-    Shell/Grounding.cpp
     Shell/InequalitySplitting.cpp
     Shell/InterpolantMinimizer.cpp
     Shell/Interpolants.cpp
@@ -619,7 +612,6 @@ set(VAMPIRE_SHELL_SOURCES
     Shell/Flattening.hpp
     Shell/FunctionDefinition.hpp
     Shell/GeneralSplitting.hpp
-    Shell/Grounding.hpp
     Shell/InequalitySplitting.hpp
     Shell/InterpolantMinimizer.hpp
     Shell/Interpolants.hpp
@@ -724,7 +716,6 @@ source_group(testing_files FILES ${VAMPIRE_TESTING_SOURCES})
 set(UNIT_TESTS
     UnitTests/tDHMap.cpp
     UnitTests/tQuotientE.cpp
-    UnitTests/tImplicationSetClosure.cpp
     UnitTests/tUnificationWithAbstraction.cpp
     UnitTests/tGaussianElimination.cpp
     UnitTests/tPushUnaryMinus.cpp
@@ -747,7 +738,6 @@ set(UNIT_TESTS
     UnitTests/tRatioKeeper.cpp
     UnitTests/tTwoVampires.cpp
     UnitTests/tOptionConstraints.cpp
-    UnitTests/tSCCAnalyzer.cpp
     UnitTests/tDHMultiset.cpp
     UnitTests/tList.cpp
     UnitTests/tBottomUpEvaluation.cpp

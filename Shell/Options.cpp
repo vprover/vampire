@@ -102,7 +102,6 @@ void Options::init()
                                         "casc_ltb",
                                         "clausify",
                                         "consequence_elimination",
-                                        "grounding",
                                         "model_check",
                                         "output",
                                         "portfolio",
@@ -120,7 +119,7 @@ void Options::init()
     "  -vampire: the standard mode of operation for first-order theorem proving\n"
     "  -portfolio: a portfolio mode running a specified schedule (see schedule)\n"
     "  -casc, casc_sat, smtcomp - like portfolio mode, with competition specific\n     presets for schedule, etc.\n"
-    "  -preprocess,axiom_selection,clausify,grounding: modes for producing output\n      for other solvers.\n"
+    "  -preprocess,axiom_selection,clausify: modes for producing output\n      for other solvers.\n"
     "  -tpreprocess,tclausify: output modes for theory input (clauses are quantified\n      with sort information).\n"
     "  -output,profile: output information about the problem\n"
     "Some modes are not currently maintained (get in touch if interested):\n"
