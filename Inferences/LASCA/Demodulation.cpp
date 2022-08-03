@@ -46,8 +46,11 @@ Option<Clause*> Demodulation::apply(
 
   // checking `C[sσ] ≻ (±ks + t ≈ 0)σ`
   {
+    TIME_TRACE("checking C[sσ] ≻ (±ks + t ≈ 0)σ")
     auto lhs_sigma = sigmaL(lhs.literal());
-    auto greater = iterTraits(rhs.clause->iterLits())
+    // TODO more optimizations
+    auto optimized_greater = rhs.ordOptimization;
+    auto greater = optimized_greater || iterTraits(rhs.clause->iterLits())
       .any([&](auto lit)
           { return shared.greater(sigmaR(lit), lhs_sigma); });
     if (!greater)  {

@@ -67,10 +67,11 @@ public:
   struct Rhs {
     static const char* name() { return "lasca demodulation rhs"; }
     TermList term;
+    bool ordOptimization;
     Clause* clause;
     auto key() const { return term; }
     auto sort() const { return SortHelper::getResultSort(term.term()); }
-    auto asTuple() const { return std::tie(term, clause); }
+    auto asTuple() const { return std::tie(term, clause, ordOptimization); }
     IMPL_COMPARISONS_FROM_TUPLE(Rhs)
 
     friend std::ostream& operator<<(std::ostream& out, Rhs const& self)
@@ -82,7 +83,7 @@ public:
       return iterTraits(cl->iterLits())
         .flatMap([cl](Literal* lit) {
 
-          return pvi(iterTraits(vi(new SubtermIterator(lit)))
+          return iterTraits(vi(new SubtermIterator(lit)))
               // TODO filter our things that can never be rewritten
             // .filter([](TermList t) {
             //   if (t.isTerm()) {
@@ -99,7 +100,10 @@ public:
             //   }
             // })
             .filter([](TermList t) { return t.isTerm(); })
-            .map([=](TermList t) { return Rhs { .term = t, .clause = cl, }; }));
+            // TODO better optimizations
+            .map([=](TermList t) { return Rhs { .term = t, .ordOptimization = !(lit->isEquality() && lit->isPositive()), .clause = cl, }; })
+            // .filter([](auto& t) { return t.ordOptimization; })
+            ;
         })
       .timeTraced("lasca demodulation rhs");
 
