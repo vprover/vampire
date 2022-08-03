@@ -230,6 +230,11 @@ using PolyNfSuper = Lib::Coproduct<Perfect<FuncTerm>, Variable, AnyPoly>;
  */
 class PolyNf : PolyNfSuper
 {
+  // struct PTerm {
+  //   enum { Poly, Uninterpreted, } _tag;
+  //   Term* _self;
+  // };
+  // Coproduct<Variable, PTerm> _self;
 public:
   CLASS_NAME(PolyNf)
 
