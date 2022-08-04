@@ -89,46 +89,46 @@ Option<Theory::Interpretation> FuncId::tryInterpret() const
 
 namespace Kernel {
 
-FuncTerm::FuncTerm(FuncId f, Stack<PolyNf>&& args) 
-  : _fun(f)
-  , _args(std::move(args)) 
-{ }
+FuncTerm::FuncTerm(Term* t) 
+  : _self(t)
+{  }
 
-FuncTerm::FuncTerm(FuncId f, PolyNf* args) 
-  : _fun(f)
-  , _args(Stack<PolyNf>::fromIterator(getArrayishObjectIterator(args, f.numTermArguments()))) 
-{ }
+// FuncTerm::FuncTerm(FuncId f, Stack<PolyNf>&& args) 
+//   : _fun(f)
+//   , _args(std::move(args)) 
+// { }
 
-bool operator==(FuncTerm const& lhs, FuncTerm const& rhs) 
-{ return lhs._fun == rhs._fun && lhs._args == rhs._args; }
-
-bool operator!=(FuncTerm const& lhs, FuncTerm const& rhs) 
-{ return !(lhs == rhs); }
+// FuncTerm::FuncTerm(FuncId f, PolyNf* args) 
+//   : _fun(f)
+//   , _args(Stack<PolyNf>::fromIterator(getArrayishObjectIterator(args, f.numTermArguments()))) 
+// { }
 
 unsigned FuncTerm::numTermArguments() const 
-{ return _args.size(); }
+{ return _self->numTermArguments(); }
 
 FuncId FuncTerm::function() const 
-{ return _fun; }
+{ return FuncId(_self->functor(), _self->typeArgs()); }
 
-PolyNf const& FuncTerm::arg(unsigned i) const 
-{ return _args[i]; }
+PolyNf FuncTerm::arg(unsigned i) const 
+{ return PolyNf::fromNormalized(TypedTermList(_self->termArg(i), SortHelper::getTermArgSort(_self, i))); }
 
 std::ostream& operator<<(std::ostream& out, const FuncTerm& self) 
 { 
-  out << self._fun;
-  auto& stack = self._args;
-  auto iter = stack.iterFifo();
-
-  if (iter.hasNext()) {
-    out << "(" << iter.next();
-    while (iter.hasNext()) {
-      out << ", " << iter.next();
-    }
-    out << ")";
-  }
-
-  return out;
+  // TODO nicer outputting?!
+  return out << self._self;
+  // out << self._fun;
+  // auto& stack = self._args;
+  // auto iter = stack.iterFifo();
+  //
+  // if (iter.hasNext()) {
+  //   out << "(" << iter.next();
+  //   while (iter.hasNext()) {
+  //     out << ", " << iter.next();
+  //   }
+  //   out << ")";
+  // }
+  //
+  // return out;
 }
 
 

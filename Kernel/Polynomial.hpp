@@ -159,8 +159,7 @@ struct Monom
 class FuncTerm 
 {
   friend class PolyNf;
-  FuncId _fun;
-  Stack<PolyNf> _args;
+  Term* _self;
   FuncTerm(Term* t);
 public:
   CLASS_NAME(FuncTerm)
@@ -171,15 +170,15 @@ public:
 
   unsigned numTermArguments() const;
   FuncId function() const;
-  PolyNf const& arg(unsigned i) const;
+  PolyNf arg(unsigned i) const;
 
   template<class Number> 
   Option<typename Number::ConstantType> tryNumeral() const;
 
   friend std::ostream& operator<<(std::ostream& out, const FuncTerm& self);
-  friend bool operator==(FuncTerm const& lhs, FuncTerm const& rhs);
-  friend bool operator!=(FuncTerm const& lhs, FuncTerm const& rhs);
-  friend struct std::hash<FuncTerm>;
+  auto asTuple() const { return std::tie(_self); }
+  IMPL_COMPARISONS_FROM_TUPLE(FuncTerm)
+  IMPL_HASH_FROM_TUPLE(FuncTerm)
 };
 
 using AnyPolySuper = Coproduct< 
@@ -325,6 +324,8 @@ public:
   IterTraits<SubtermIter> iterSubterms() const;
 
   friend std::ostream& operator<<(std::ostream& out, const PolyNf& self);
+
+  static PolyNf fromNormalized(TypedTermList);
 };
 
 
@@ -572,6 +573,7 @@ public:
 } // namespace Kernel
 
 IMPL_STD_HASH(Kernel::PolyNf)
+IMPL_STD_HASH(Kernel::FuncTerm)
 IMPL_STD_HASH(Kernel::PolyNf::PTerm)
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -674,16 +676,9 @@ namespace Kernel {
 
 template<class Number>
 Option<typename Number::ConstantType> FuncTerm::tryNumeral() const
-{ return _fun.template tryNumeral<Number>(); }
+{ return function().template tryNumeral<Number>(); }
 
 } // namespace Kernel
-
-
-template<> struct std::hash<Kernel::FuncTerm> 
-{
-  size_t operator()(Kernel::FuncTerm const& f) const 
-  { return Lib::HashUtils::combine(std::hash<Kernel::FuncId>{}(f._fun), std::hash<Stack<Kernel::PolyNf>>{}(f._args));  }
-};
 
 
 /////////////////////////////////////////////////////////
