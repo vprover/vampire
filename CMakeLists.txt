@@ -776,6 +776,8 @@ set(UNIT_TESTS
     UnitTests/tKBO.cpp
     UnitTests/tLaLpo.cpp
     UnitTests/tQKbo.cpp
+    UnitTests/tSKIKBO.cpp
+    UnitTests/tLPO.cpp
     UnitTests/tRatioKeeper.cpp
     UnitTests/tTwoVampires.cpp
     UnitTests/tOptionConstraints.cpp

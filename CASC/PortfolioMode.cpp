@@ -243,7 +243,7 @@ void PortfolioMode::getExtraSchedules(Property& prop, Schedule& old, Schedule& e
    if(prop.props() & (Property::PR_HAS_INTEGERS | Property::PR_HAS_RATS | Property::PR_HAS_REALS)){
 
     extra_opts.push("hsm=on");             // Sets a sensible set of Joe's arithmetic rules (TACAS-21) 
-    extra_opts.push("gve=force:asg=force:canc=force:ev=force:pum=on"); // More drastic set of rules
+    extra_opts.push("gve=force:asg=force:canc=force:ev=simple:pum=on"); // More drastic set of rules
     extra_opts.push("sos=theory:sstl=5");  // theory sos with non-default limit 
     extra_opts.push("thsq=on");            // theory split queues, default
     extra_opts.push("thsq=on:thsqd=16");   // theory split queues, other ratio

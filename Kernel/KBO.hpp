@@ -20,6 +20,8 @@
 #include "Forwards.hpp"
 
 #include "Lib/DArray.hpp"
+#include "Lib/Hash.hpp"
+#include "Lib/DHMap.hpp"
 
 #include "Ordering.hpp"
 

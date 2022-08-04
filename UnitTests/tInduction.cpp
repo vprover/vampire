@@ -56,7 +56,7 @@ inline Clause* fromInduction(Clause* cl) {
 }
 
 InductionContext inductionContext(TermSugar t, std::initializer_list<Clause*> cls) {
-  InductionContext res(t.toTerm().term());
+  InductionContext res(t.sugaredExpr().term());
   for (const auto& cl : cls) {
     for (unsigned i = 0; i < cl->length(); i++) {
       res.insert(cl, (*cl)[i]);
@@ -240,7 +240,7 @@ private:
   DECL_TERM_ALGEBRA(s, {b, r})                                                             \
   __ALLOW_UNUSED(                                                                          \
     auto r0 = r.dtor(0);                                                                   \
-    TermSugar ph_s(TermList(getPlaceholderForTerm(sK1.toTerm().term())));                  \
+    TermSugar ph_s(TermList(getPlaceholderForTerm(sK1.sugaredExpr().term())));                  \
   )                                                                                        \
   DECL_CONST(b1, u)                                                                        \
   DECL_CONST(b2, u)                                                                        \

@@ -44,6 +44,7 @@ OperatorType::OperatorKey* OperatorType::setupKey(unsigned arity, const TermList
   } else {
     // initialise all the argument types to those taken from sorts
     for (unsigned i = 0; i < arity; i++) {
+      ASS(sorts[i].isVar() || sorts[i].term()->isSort());
       (*key)[i] = sorts[i];
     }
   }
@@ -62,6 +63,7 @@ OperatorType::OperatorKey* OperatorType::setupKey(std::initializer_list<TermList
   // initialise all the argument types to those taken from sorts
   unsigned i = 0;
   for (auto sort : sorts) {
+    ASS(sort.isVar() || sort.term()->isSort());
     (*key)[i++] = sort;
   }
 
@@ -74,6 +76,7 @@ OperatorType::OperatorKey* OperatorType::setupKey(std::initializer_list<TermList
 OperatorType::OperatorKey* OperatorType::setupKeyUniformRange(unsigned arity, TermList argsSort)
 {
   CALL("OperatorType::setupKeyUniformRange");
+  ASS(argsSort.isVar() || argsSort.term()->isSort());
 
   OperatorKey* key = OperatorKey::allocate(arity+1);
 

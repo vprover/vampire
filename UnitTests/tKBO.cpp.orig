@@ -13,8 +13,11 @@
  * @date 2020-04-29
  */
 
+#include "Kernel/KBO.hpp"
+#include "Kernel/Ordering.hpp"
+#include "Test/UnitTesting.hpp"
+#include "Test/SyntaxSugar.hpp"
 #include "tKBO.hpp"
-
 
 //////////////////////////////////////////////////////////////////////////////// 
 /////////////////////////////// HELPER FUNCTIONS /////////////////////////////// 
@@ -22,7 +25,29 @@
 
 using namespace Kernel;
 
+<<<<<<< HEAD
+template<class SigTraits>
+KboWeightMap<SigTraits> toWeightMap(unsigned introducedSymbolWeight, KboSpecialWeights<SigTraits> ws, const Map<unsigned, KboWeight>& xs, unsigned sz) 
+{
+  auto df = KboWeightMap<SigTraits>::dflt(/* qkbo*/ false);
+  df._specialWeights = ws;
+
+  DArray<KboWeight> out(sz);
+  for (unsigned i = 0; i < sz; i++) {
+    auto w = xs.getPtr(i);
+    out[i] = w == NULL ? df.symbolWeight(i) : *w;
+  }
+  return  {
+    ._weights = out,
+    ._introducedSymbolWeight = introducedSymbolWeight,
+    ._specialWeights         = ws,
+  };
+}
+
+inline KBO kbo(unsigned introducedSymbolWeight, 
+=======
 KBO kbo(unsigned introducedSymbolWeight, 
+>>>>>>> fix-evaluation-option
     unsigned variableWeight, 
     const Map<unsigned, KboWeight>& funcs, 
     const Map<unsigned, KboWeight>& preds) {
@@ -46,13 +71,36 @@ KBO kbo(unsigned introducedSymbolWeight,
              /*revereseLCM*/ false);
 }
 
+<<<<<<< HEAD
 
-KBO kbo(const Map<unsigned, KboWeight>& funcs, const Map<unsigned, KboWeight>& preds) {
+inline KBO kbo(const Map<unsigned, KboWeight>& funcs, const Map<unsigned, KboWeight>& preds) {
   return kbo(1, 1, funcs, preds);
+}
+
+inline void __weights(Map<unsigned, KboWeight>& ws) {
+}
+
+template<class A, class... As>
+void __weights(Map<unsigned, KboWeight>& ws, pair<A, KboWeight> a, pair<As, KboWeight>... as) {
+  ws.insert(get<0>(a).functor(), get<1>(a));
+  __weights(ws, as...);
+}
+
+template<class... As>
+Map<unsigned, KboWeight> weights(pair<As, KboWeight>... as) {
+  Map<unsigned, KboWeight> out;
+  __weights(out, as...);
+  return out;
 }
 
 
 
+=======
+KBO kbo(const Map<unsigned, KboWeight>& funcs, const Map<unsigned, KboWeight>& preds) {
+  return kbo(1, 1, funcs, preds);
+}
+
+>>>>>>> fix-evaluation-option
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////// TEST CASES //////////////////////////////////
 //

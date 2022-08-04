@@ -190,10 +190,9 @@ public:
     auto term = NumTraits::zero() == literal->termArg(1 - mainIdx) ? literal->termArg(mainIdx)
                                                                    : NumTraits::add(literal->termArg(0), NumTraits::minus(literal->termArg(1)));
 
-    auto level =
-        literal->isEquality() ? (literal->isPositive() ? POS_EQ_LEVEL : NEG_EQ_LEVEL)
-                              :  INEQ_LEVEL;
-
+    auto level = literal->isEquality() 
+      ? (literal->isPositive() ? POS_EQ_LEVEL : NEG_EQ_LEVEL)
+      :  INEQ_LEVEL;
 
     return signedAtoms<NumTraits>(term)
       .map([level](auto atoms) {

@@ -1290,6 +1290,21 @@ void Options::init()
     _arithmeticSubtermGeneralizations.addProblemConstraint(hasTheories());
     _arithmeticSubtermGeneralizations.tag(OptionTag::INFERENCES);
 
+    _evaluationMode = ChoiceOptionValue<EvaluationMode>("evaluation","ev",
+                                                        EvaluationMode::SIMPLE,
+                                                        {"off","simple","force","cautious"});
+    _evaluationMode.description=
+    "Chooses the algorithm used to simplify interpreted integer, rational, and real terms. \
+                                 \
+    - simple: will only evaluate expressions built from interpreted constants only.\
+    - cautious: will evaluate abstract expressions to a weak polynomial normal form. This is more powerful but may fail in some rare cases where the resulting polynomial is not strictly smaller than the initial one wrt. the simplification ordering. In these cases a new clause with the normal form term will be added to the search space instead of replacing the orignal clause.  \
+    - force: same as `cautious`, but ignoring the simplification ordering and replacing the hypothesis with the normal form clause in any case. \
+    ";
+    _lookup.insert(&_evaluationMode);
+    _evaluationMode.addProblemConstraint(hasTheories());
+    _evaluationMode.tag(OptionTag::SATURATION);
+    _evaluationMode.setExperimental();
+
     _induction = ChoiceOptionValue<Induction>("induction","ind",Induction::NONE,
                       {"none","struct","int","both"});
     _induction.description = "Apply structural and/or integer induction on datatypes and integers.";
@@ -1911,6 +1926,14 @@ void Options::init()
     _lambdaFreeHol.tag(OptionTag::HIGHER_ORDER);
     noZ3(_lambdaFreeHol);
 
+    _complexVarCondition = BoolOptionValue("complex_var_cond","cvc",false);
+    _complexVarCondition.description=
+    "Use the more complex variable condition provided in the SKIKBO paper.\n"
+    "More terms are comparable with this ordering, but it has worst case"
+    "exponential complexity";
+    _lookup.insert(&_complexVarCondition);
+    _complexVarCondition.tag(OptionTag::HIGHER_ORDER);
+
 //*********************** InstGen  ***********************
 
     _globalSubsumption = BoolOptionValue("global_subsumption","gs",false);
@@ -2309,21 +2332,6 @@ void Options::init()
     _introducedSymbolPrecedence.description="Decides where to place symbols introduced during proof search in the symbol precedence";
     _lookup.insert(&_introducedSymbolPrecedence);
     _introducedSymbolPrecedence.tag(OptionTag::SATURATION);
-
-    _evaluationMode = ChoiceOptionValue<EvaluationMode>("evaluation","ev",
-                                                        EvaluationMode::SIMPLE,
-                                                        {"simple","force","cautious"});
-    _evaluationMode.description=
-    "Chooses the algorithm used to simplify interpreted integer, rational, and real terms. \
-                                 \
-    - simple: will only evaluate expressions built from interpreted constants only.\
-    - cautious: will evaluate abstract expressions to a weak polynomial normal form. This is more powerful but may fail in some rare cases where the resulting polynomial is not strictly smaller than the initial one wrt. the simplification ordering. In these cases a new clause with the normal form term will be added to the search space instead of replacing the orignal clause.  \
-    - force: same as `cautious`, but ignoring the simplification ordering and replacing the hypothesis with the normal form clause in any case. \
-    ";
-    _lookup.insert(&_evaluationMode);
-    _evaluationMode.addProblemConstraint(hasTheories());
-    _evaluationMode.tag(OptionTag::SATURATION);
-    _evaluationMode.setExperimental();
 
     _kboWeightGenerationScheme = ChoiceOptionValue<KboWeightGenerationScheme>("kbo_weight_scheme","kws",KboWeightGenerationScheme::CONST,
                                           {"const","random","arity","inv_arity","arity_squared","inv_arity_squared",
