@@ -29,33 +29,9 @@
 namespace Kernel
 {
 
-bool UWAMismatchHandler::handle(TermList t1, unsigned index1, TermList t2, unsigned index2, 
-  UnificationConstraintStack& ucs,BacktrackData& bd, bool recording)
+bool UWAMismatchHandler::isConstraintPair(TermList t1, TermList t2)
 {
-  CALL("UWAMismatchHandler::handle");
-
-  if(t1.isOrdinaryVar() || t2.isOrdinaryVar()) return false;
-
-  Term* tm1 = 0;
-  Term* tm2 = 0;
-  if(t1.isVSpecialVar() && !_termMap.find(t1.var(), tm1)) return false;
-  if(t2.isVSpecialVar() && !_termMap.find(t2.var(), tm2)) return false;
-
-  if(!tm1) tm1 = t1.term();
-  if(!tm2) tm2 = t2.term();
-  
-  if(checkUWA(TermList(tm1),TermList(tm2))){
-    if(areIdentical(tm1,tm2,index1,index2))
-      return true;
-
-    return introduceConstraint(TermList(tm1),index1,TermList(tm2),index2,ucs,bd,recording);
-  }
-  return false;
-}
-
-bool UWAMismatchHandler::checkUWA(TermList t1, TermList t2)
-{
-  CALL("UWAMismatchHandler::checkUWA");
+  CALL("UWAMismatchHandler::isConstraintPair");
 
   static Shell::Options::UnificationWithAbstraction opt = env.options->unificationWithAbstraction();
 
@@ -63,8 +39,7 @@ bool UWAMismatchHandler::checkUWA(TermList t1, TermList t2)
     case Shell::Options::UnificationWithAbstraction::ONE_INTERP:
       return isConstraintTerm(t1).isTrue() || isConstraintTerm(t2).isTrue();
     case Shell::Options::UnificationWithAbstraction::INTERP_ONLY:{
-      bool b = isConstraintTerm(t1).isTrue() && isConstraintTerm(t2).isTrue();
-      return b;
+      return isConstraintTerm(t1).isTrue() && isConstraintTerm(t2).isTrue();
     }
     default:
       // handler should never be called if UWA is off
@@ -106,18 +81,7 @@ MaybeBool UWAMismatchHandler::isConstraintTerm(TermList t){
   return false;
 }
 
-#if VDEBUG
-  Term* UWAMismatchHandler::get(unsigned var)
-  {
-    CALL("UWAMismatchHandler::get");
-     
-    auto res = _termMap.tryGet(var);
-    ASS(res.isSome());
-    return res.unwrap();
-  }
-#endif
-
-bool MismatchHandler::introduceConstraint(TermList t1,unsigned index1, TermList t2,unsigned index2, 
+void MismatchHandler::introduceConstraint(TermList t1,unsigned index1, TermList t2,unsigned index2, 
   UnificationConstraintStack& ucs, BacktrackData& bd, bool recording)
 {
   CALL("MismatchHandler::introduceConstraint");
@@ -128,7 +92,6 @@ bool MismatchHandler::introduceConstraint(TermList t1,unsigned index1, TermList 
   } else {
     ucs.push(constraint);
   }
-  return true;
 }
 
 bool MismatchHandler::areIdentical(Term* t1, Term* t2, unsigned idx1, unsigned idx2)
@@ -149,6 +112,8 @@ bool MismatchHandler::areIdentical(Term* t1, Term* t2, unsigned idx1, unsigned i
 
 
 CompositeMismatchHandler::~CompositeMismatchHandler(){
+  CALL("CompositeMismatchHandler::~CompositeMismatchHandler");
+
   MHList::destroyWithDeletion(_inners);
 }
 
@@ -157,9 +122,21 @@ bool CompositeMismatchHandler::handle(TermList t1, unsigned index1, TermList t2,
 {
   CALL("CompositeMismatchHandler::handle");
 
+  // make assumtion that we never create a constraint involving a variable
+  // this seems reasonable
+  if(t1.isOrdinaryVar() || t2.isOrdinaryVar())
+    return false;
+
+  t1 = t1.isVSpecialVar() ? TermList(get(t1.var())) : t1;
+  t2 = t2.isVSpecialVar() ? TermList(get(t2.var())) : t2;
+
+  if(areIdentical(t1.term(),t2.term(),index1,index2))
+    return true;
+
   MHList* hit=_inners;
   while(hit) {
-    if(hit->head()->handle(t1,index1,t2,index2,ucs,bd,recording)){
+    if(hit->head()->isConstraintPair(t1,t2)){
+      introduceConstraint(t1,index1,t2,index2,ucs,bd,recording);      
       return true;
     }
     hit=hit->tail();
@@ -219,34 +196,19 @@ Term* CompositeMismatchHandler::get(unsigned var)
 }
 
 
-bool HOMismatchHandler::handle(TermList t1, unsigned index1, TermList t2, unsigned index2,
-  UnificationConstraintStack& ucs, BacktrackData& bd, bool recording)
+bool HOMismatchHandler::isConstraintPair(TermList t1, TermList t2)
 {
-  CALL("HOMismatchHandler::handle");
+  CALL("HOMismatchHandler::isConstraintPair");
 
-  if(t1.isOrdinaryVar() || t2.isOrdinaryVar()) return false;
-
-  Term* tm1 = 0;
-  Term* tm2 = 0;
-  if(t1.isVSpecialVar() && !_termMap.find(t1.var(), tm1)) return false;
-  if(t2.isVSpecialVar() && !_termMap.find(t2.var(), tm2)) return false;
-
-  if(!tm1) tm1 = t1.term();
-  if(!tm2) tm2 = t2.term();
-
-  if(isConstraintTerm(TermList(tm1)).isFalse() || isConstraintTerm(TermList(tm2)).isFalse())
+  if(isConstraintTerm(t1).isFalse() || isConstraintTerm(t2).isFalse())
     return false;
   
-  if(areIdentical(tm1,tm2,index1,index2))
-    return true;
-
-  return introduceConstraint(TermList(tm1),index1,TermList(tm2),index2,ucs,bd,recording);
+  return true;
 }
 
 MaybeBool HOMismatchHandler::isConstraintTerm(TermList t){
   CALL("CompositeMismatcHandler::isConstraintTerm");
   
-  //TODO Bool sort???
   if(t.isVar()){ return false; }
 
   auto trm = t.term();

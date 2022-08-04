@@ -40,7 +40,21 @@ bool RobSubstitution::unify(TermList t1,int index1, TermList t2, int index2)
 {
   CALL("RobSubstitution::unify/4");
 
-  return unify(TermSpec(t1,index1), TermSpec(t2,index2));
+  if(_handler){
+    // replacing subterms that could be part of constraints with very special variables
+    // for example f($sum(1, Y)) -> f(#)    
+    t1 = _handler->transform(t1);
+    t2 = _handler->transform(t2);
+  }
+
+  return unifyConstraintProcessed(t1,index1,t2,index2);
+}
+
+bool RobSubstitution::unifyConstraintProcessed(TermList t1,int index1, TermList t2, int index2)
+{
+  CALL("RobSubstitution::unifyConstraintProcessed");
+
+  return unify(TermSpec(t1,index1), TermSpec(t2,index2));  
 }
 
 /**

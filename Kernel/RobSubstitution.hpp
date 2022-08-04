@@ -45,6 +45,8 @@ public:
   SubstIterator unifiers(Literal* l1, int l1Index, Literal* l2, int l2Index, bool complementary);
 
   bool unify(TermList t1,int index1, TermList t2, int index2);
+  // used to unify terms that have already been processed for constraints
+  bool unifyConstraintProcessed(TermList t1,int index1, TermList t2, int index2);
   bool match(TermList base,int baseIndex, TermList instance, int instanceIndex);
 
   bool unifyArgs(Term* t1,int index1, Term* t2, int index2);

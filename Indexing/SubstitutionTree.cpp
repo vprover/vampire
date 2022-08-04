@@ -916,7 +916,7 @@ bool SubstitutionTree::UnificationsIterator::associate(TermList query, TermList 
 {
   CALL("SubstitutionTree::UnificationsIterator::associate");
 
-  return subst.unify(query,NORM_QUERY_BANK,node,NORM_RESULT_BANK);
+  return subst.unifyConstraintProcessed(query,NORM_QUERY_BANK,node,NORM_RESULT_BANK);
 }
 
 //TODO I think this works for VSpcialVars as well. Since .isVar() will return true 

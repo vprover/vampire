@@ -58,7 +58,7 @@ public:
   /** if implementation cannot easily give result for this, zero is returned */
   virtual size_t getResultApplicationWeight(Literal* l) { return 0; }
   /** number of constraints created during unification */
-  virtual unsigned numberOfConstraints() { return 0; }
+  virtual unsigned numberOfConstraints() { NOT_IMPLEMENTED; }
   /** return iterator over constraints */
   virtual LiteralIterator getConstraints() { NOT_IMPLEMENTED; }
 

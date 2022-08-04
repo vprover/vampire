@@ -31,19 +31,39 @@ public:
 
   MismatchHandler() : TermTransformer(false) {}
 
-  // returns true if the mismatch was handled.
+  // Returns true if the mismatch can be handled by some handler
+  //
+  // Implementors do NOT need to override this function. Only the composite handler
+  // needs to.
   virtual bool handle(TermList t1, unsigned index1, TermList t2, unsigned index2, 
-    UnificationConstraintStack& ucs, BacktrackData& bd, bool recording) = 0;
+    UnificationConstraintStack& ucs, BacktrackData& bd, bool recording){ NOT_IMPLEMENTED; };
+  
+  // Returns true if <t1, t2> can form a constraint
+  // Implementors NEED to override this function with
+  // their specific logic. 
+  // It shold be possible to make use of isConstraintTerm() here
+  virtual bool isConstraintPair(TermList t1, TermList t2) = 0;
   virtual TermList transformSubterm(TermList t) = 0;
 
   // With polymorphism, a term may end up being a constraint term
   // depending on type substitutions.
-  // Also a term such as f(a,b) : $int may be a constraint term
+  // Also a term such as f(a,b) : $int may be a constraint term 
+  // but we also want to unify against it.
   //
-  // Function used as follows:
-  // if returns true, term is ONLY involved in constraints and never unified
-  // if returns false, term is ONLY unified and never involved in constraints
-  // if returns maybe, term is involved in constraints and unified
+  // Implementors of this function need to be aware of the following:
+  // - when a term t is inserted into a substitution tree that uses a handler
+  //   this function is run on t. 
+  //   + If it returns true, we subsequently ONLY create constraints with t and 
+  //     do not try and unify with t (unless the query term is a variable)
+  //   + If it returns false, we ONLY unify and do not create constraints with t
+  //   + If it returns maybe we will attempt to do BOTH. Unify query terms with t
+  //     and create constraints.
+  // - Similarly, when we query with a term trm, we run this function on trm
+  //   + If it returns true, we ONLY attempt to find constraint partners for trm
+  //   + If it returns false, we ONLY attempt to find unification partners for trm
+  //   + If it returns maybe, we attempt to find BOTH type of partners for trm
+  // - It may be convenient to use this function in the implementation of transformSubterm
+  //   View UWAMismatchHandler::transformSubterm() for an example of this
   virtual MaybeBool isConstraintTerm(TermList t) = 0;
 
   bool areIdentical(Term* t1, Term* t2, unsigned idx1, unsigned idx2);
@@ -53,7 +73,7 @@ public:
   VSpecVarToTermMap* getTermMap() { return &_termMap; }
 
 protected: 
-  virtual bool introduceConstraint(TermList t1,unsigned index1, TermList t2, unsigned index2, 
+  void introduceConstraint(TermList t1,unsigned index1, TermList t2, unsigned index2, 
     UnificationConstraintStack& ucs, BacktrackData& bd, bool recording);
   
   VSpecVarToTermMap _termMap;
@@ -74,6 +94,7 @@ public:
     UnificationConstraintStack& ucs, BacktrackData& bd, bool recording) override;
   TermList transformSubterm(TermList trm) override;
   MaybeBool isConstraintTerm(TermList t) override; 
+  bool isConstraintPair(TermList t1, TermList t2) override { NOT_IMPLEMENTED; }  
   Term* get(unsigned var) override;
 
   void addHandler(MismatchHandler* hndlr);
@@ -90,16 +111,10 @@ class UWAMismatchHandler : public MismatchHandler
 {
 public:
   UWAMismatchHandler() {}
-  virtual bool handle(TermList t1, unsigned index1, TermList t2, unsigned index2,
-    UnificationConstraintStack& ucs, BacktrackData& bd,  bool recording) override;
+
+  bool isConstraintPair(TermList t1, TermList t2) override; 
   TermList transformSubterm(TermList trm) override;
-
   MaybeBool isConstraintTerm(TermList t) override; 
-
-#if VDEBUG
-  // only used in unit tests. see tUnificationWithAbstraction
-  Term* get(unsigned var) override;
-#endif
 
   CLASS_NAME(UWAMismatchHandler);
   USE_ALLOCATOR(UWAMismatchHandler);
@@ -112,8 +127,7 @@ class HOMismatchHandler : public MismatchHandler
 public:
   HOMismatchHandler() {}
   
-  virtual bool handle(TermList t1, unsigned index1, TermList t2, unsigned index2, 
-    UnificationConstraintStack& ucs, BacktrackData& bd, bool recording) override;
+  bool isConstraintPair(TermList t1, TermList t2) override;
   TermList transformSubterm(TermList trm) override;
   MaybeBool isConstraintTerm(TermList t) override; 
 

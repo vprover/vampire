@@ -123,13 +123,6 @@ struct EqualityFactoring::ResultFn
     TermList fRHS=EqHelper::getOtherEqualitySide(fLit, fLHS);
     ASS_NEQ(sLit, fLit);
 
-    if(_handler){
-      // replacing subterms that could be part of constraints with very special variables
-      // for example f($sum(1, Y)) -> f(#)
-      sLHS = _handler->transform(sLHS);
-      fLHS = _handler->transform(fLHS);
-    }
-
     if(!subst.unify(sLHS,0,fLHS,0)){
       return 0;    
     }    

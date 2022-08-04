@@ -38,28 +38,25 @@ using namespace Indexing;
 
 Clause* unit(Literal* lit)
 {
-  static Inference testInf = Kernel::NonspecificInference0(UnitInputType::ASSUMPTION, InferenceRule::INPUT); 
-  Clause * cl = new(1) Clause(1,testInf);
-  (* cl)[0] = lit;
-  return cl;
+  return clause({ lit });
 }
-
 
 TermIndexingStructure* getTermIndex(bool uwa = true)
 {
+  CompositeMismatchHandler* cmh = new CompositeMismatchHandler();
   if(uwa){
-    UWAMismatchHandler* handler = new UWAMismatchHandler();
-    return new TermSubstitutionTree(handler); 
+    cmh->addHandler(new UWAMismatchHandler());
   } else {
-    HOMismatchHandler* handler = new HOMismatchHandler();
-    return new TermSubstitutionTree(handler);     
+    cmh->addHandler(new HOMismatchHandler());
   }
+  return new TermSubstitutionTree(cmh); 
 }
 
 LiteralIndexingStructure* getLiteralIndex()
 {
-  UWAMismatchHandler* handler = new UWAMismatchHandler();
-  return new LiteralSubstitutionTree(handler); 
+  CompositeMismatchHandler* cmh = new CompositeMismatchHandler();
+  cmh->addHandler(new UWAMismatchHandler());
+  return new LiteralSubstitutionTree(cmh); 
 }
 
 void reportTermMatches(TermIndexingStructure* index, TermList term, TermList sort)
@@ -290,13 +287,14 @@ TEST_FUN(using_robsub)
   DECL_CONST(a, Int) 
   DECL_CONST(b, Int) 
 
-  MismatchHandler* hndlr = new UWAMismatchHandler();
-  RobSubstitution sub(hndlr);
+  CompositeMismatchHandler* cmh = new CompositeMismatchHandler();
+  cmh->addHandler(new UWAMismatchHandler());  
+  RobSubstitution sub(cmh);
 
-  auto t1 = hndlr->transform(f(b + 2));
-  auto t2 = hndlr->transform(f(x + 2));
-  auto t3 = hndlr->transform(f(a));
-  auto t4 = hndlr->transform(g(1 + a));
+  auto t1 = f(b + 2);
+  auto t2 = f(x + 2);
+  auto t3 = f(a);
+  auto t4 = g(1 + a);
 
   reportRobUnify(t1, t2,sub);
   sub.reset();

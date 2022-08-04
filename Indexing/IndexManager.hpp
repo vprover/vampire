@@ -79,7 +79,7 @@ public:
   void release(IndexType t);
   bool contains(IndexType t);
   Index* get(IndexType t);
-  MismatchHandler* getHandler(){ return _handler; }
+  MismatchHandler* getHandler(){ return &_handler; }
 
   void provideIndex(IndexType t, Index* index);
 
@@ -96,7 +96,7 @@ private:
   DHMap<IndexType,Entry> _store;
 
   LiteralIndexingStructure* _genLitIndex;
-  CompositeMismatchHandler* _handler;
+  CompositeMismatchHandler _handler;
 
   Index* create(IndexType t);
 };

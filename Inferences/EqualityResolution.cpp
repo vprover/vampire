@@ -83,11 +83,6 @@ struct EqualityResolution::ResultFn
 
     static RobSubstitution subst(_handler);
     subst.reset();
-       
-    if(_handler){
-      arg0 = _handler->transform(arg0);
-      arg1 = _handler->transform(arg1);
-    }
 
     if(!subst.unify(arg0,0,arg1,0)){
       return 0;    
