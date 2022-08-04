@@ -24,7 +24,7 @@ namespace Inferences {
 
 class TermReducer : public TermTransformer {
 public:
-  TermReducer() : TermTransformer(false, true), _reducLen(0) {} 
+  TermReducer() : TermTransformer(true, true), _reducLen(0) {} 
   TermList transformSubterm(TermList trm) override;
   
   // TODO are we calculating reduction length in the best way?

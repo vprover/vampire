@@ -39,9 +39,9 @@ namespace Inferences {
 
 class CombinatorNormaliser : public TermTransformer {
 public:
-  // false means create shared terms
+  // true means create shared terms
   // true means recurse into replaced terms
-  CombinatorNormaliser() : TermTransformer(false, true) {} 
+  CombinatorNormaliser() : TermTransformer(true, true) {} 
   TermList transformSubterm(TermList trm) override;
 };
 
