@@ -683,6 +683,7 @@ public:
   };
 
   enum class EvaluationMode : unsigned int {
+    OFF,
     SIMPLE,
     POLYNOMIAL_FORCE,
     POLYNOMIAL_CAUTIOUS,
