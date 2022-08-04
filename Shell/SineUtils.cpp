@@ -22,7 +22,7 @@
 #include "Lib/List.hpp"
 #include "Lib/Metaiterators.hpp"
 #include "Lib/Set.hpp"
-#include "Lib/TimeCounter.hpp"
+#include "Debug/TimeProfiling.hpp"
 #include "Lib/VirtualIterator.hpp"
 
 #include "Kernel/Clause.hpp"
@@ -395,11 +395,12 @@ void SineSelector::perform(Problem& prb)
   prb.invalidateByRemoval();
 }
 
+static const char* SINE_SELECTION = "sine selection";
 bool SineSelector::perform(UnitList*& units)
 {
   CALL("SineSelector::perform");
 
-  TimeCounter tc(TC_SINE_SELECTION);
+  TIME_TRACE(SINE_SELECTION);
 
   initGeneralityFunction(units);
 
@@ -625,7 +626,7 @@ void SineTheorySelector::initSelectionStructure(UnitList* units)
 {
   CALL("SineTheorySelector::initSelectionStructure");
 
-  TimeCounter tc(TC_SINE_SELECTION);
+  TIME_TRACE(SINE_SELECTION)
 
   initGeneralityFunction(units);
 
@@ -645,7 +646,7 @@ void SineTheorySelector::perform(UnitList*& units)
 {
   CALL("SineTheorySelector::perform");
 
-  TimeCounter tc(TC_SINE_SELECTION);
+  TIME_TRACE(SINE_SELECTION);
 
   handlePossibleSignatureChange();
 

@@ -341,10 +341,12 @@ void Options::init()
     _timeLimitInDeciseconds.description="Time limit in wall clock seconds, you can use d,s,m,h,D suffixes also i.e. 60s, 5m. Setting it to 0 effectively gives no time limit.";
     _lookup.insert(&_timeLimitInDeciseconds);
 
+#if VTIME_PROFILING
     _timeStatistics = BoolOptionValue("time_statistics","tstat",false);
     _timeStatistics.description="Show how much running time was spent in each part of Vampire";
     _lookup.insert(&_timeStatistics);
     _timeStatistics.tag(OptionTag::OUTPUT);
+#endif // VTIME_PROFILING
 
 //*********************** Input  ***********************
 
@@ -2753,7 +2755,7 @@ bool Options::OptionValue<T>::randomize(Property* prop){
 template<typename T>
 bool Options::OptionValue<T>::checkConstraints(){
      CALL("Options::OptionValue::checkConstraints");
-     typename Lib::Stack<OptionValueConstraintUP<T>>::Iterator it(_constraints);
+     typename Lib::Stack<OptionValueConstraintUP<T>>::RefIterator it(_constraints);
      while(it.hasNext()){
        const OptionValueConstraintUP<T>& con = it.next();
        if(!con->check(*this)){
@@ -2794,7 +2796,7 @@ template<typename T>
 bool Options::OptionValue<T>::checkProblemConstraints(Property* prop){
     CALL("Options::OptionValue::checkProblemConstraints");
 
-    Lib::Stack<OptionProblemConstraintUP>::Iterator it(_prob_constraints);
+    Lib::Stack<OptionProblemConstraintUP>::RefIterator it(_prob_constraints);
     while(it.hasNext()){
       OptionProblemConstraintUP& con = it.next();
       // Constraint should hold whenever the option is set
@@ -3052,7 +3054,7 @@ void Options::randomizeStrategy(Property* prop)
   CALL("Options::randomizeStrategy");
   if(_randomStrategy.actualValue==RandomStrategy::OFF) return;
 
-  TimeCounter tc(TC_RAND_OPT);
+  TIME_TRACE("random option generation");
 
   // The pseudo random sequence is deterministic given a seed.
   // By default the seed is 1

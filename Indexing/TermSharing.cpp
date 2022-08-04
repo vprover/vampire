@@ -25,6 +25,7 @@
 #include "Kernel/ApplicativeHelper.hpp"
 
 #include "Shell/Statistics.hpp"
+#include "Debug/TimeProfiling.hpp"
 
 #include "TermSharing.hpp"
 
@@ -32,6 +33,10 @@ using namespace Kernel;
 using namespace Indexing;
 
 typedef ApplicativeHelper AH;
+
+#if VTIME_PROFILING
+static const char* TERM_SHARING = "term sharing";
+#endif // VTIME_PROFILING
 
 /**
  * Initialise the term sharing structure.
@@ -97,7 +102,7 @@ Term* TermSharing::insert(Term* t)
   ASS(!t->isSpecial());
   ASS(!t->isSort());
 
-  TimeCounter tc(TC_TERM_SHARING);
+  TIME_TRACE(TERM_SHARING);
 
   // normalise commutative terms
   if (t->commutative()) {
@@ -225,11 +230,7 @@ AtomicSort* TermSharing::insert(AtomicSort* sort)
   ASS(!sort->isSpecial());
   ASS(sort->isSort());
 
-  // cannot use TC_TERM_SHARING
-  // as inserting a term can result in the insertion of
-  // a sort and TimeCounter design forbids starting a timer 
-  // when it is already running 
-  TimeCounter tc(TC_SORT_SHARING);
+  TIME_TRACE("sort sharing");
 
   _sortInsertions++;
   AtomicSort* s = _sorts.insert(sort);
@@ -292,7 +293,7 @@ Literal* TermSharing::insert(Literal* t)
   //equalities between variables must be inserted using insertVariableEquality() function
   ASS_REP(!t->isEquality() || !t->nthArgument(0)->isVar() || !t->nthArgument(1)->isVar(), t->toString());
 
-  TimeCounter tc(TC_TERM_SHARING);
+  TIME_TRACE(TERM_SHARING);
 
   if (t->commutative()) {
     ASS(t->arity() == 2);
@@ -376,7 +377,7 @@ Literal* TermSharing::insertVariableEquality(Literal* t, TermList sort)
   ASS(t->nthArgument(1)->isVar());
   ASS(!t->isSpecial());
 
-  TimeCounter tc(TC_TERM_SHARING);
+  TIME_TRACE(TERM_SHARING);
 
   TermList* ts1 = t->args();
   TermList* ts2 = ts1->next();
@@ -424,7 +425,7 @@ Term* TermSharing::insertRecurrently(Term* t)
 {
   CALL("TermSharing::insert");
 
-  TimeCounter tc(TC_TERM_SHARING);
+  TIME_TRACE(TERM_SHARING);
 
   TermList tRef;
   tRef.setTerm(t);

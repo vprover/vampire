@@ -27,7 +27,7 @@
 #include "Lib/Int.hpp"
 #include "Lib/StringUtils.hpp"
 #include "Lib/System.hpp"
-#include "Lib/TimeCounter.hpp"
+#include "Debug/TimeProfiling.hpp"
 #include "Lib/Timer.hpp"
 #include "Lib/ScopedPtr.hpp"
 
@@ -186,6 +186,7 @@ void CLTBMode::solveBatch(istream& batchFile, bool first,vstring inputDirectory)
     pid_t child = Multiprocessing::instance()->fork();
     if (!child) {
       // child process
+      TIME_TRACE_NEW_ROOT("child process")
       CLTBProblem prob(this, probFile, outFile);
       try {
         prob.searchForProof(problemTerminationTime,nextProblemTimeLimit,_category);
@@ -246,7 +247,7 @@ void CLTBMode::loadIncludes()
 
   UnitList* theoryAxioms=0;
   {
-    TimeCounter tc(TC_PARSING);
+    TIME_TRACE(TimeTrace::Groups::PARSING);
     env.statistics->phase=Statistics::PARSING;
 
     StringList::Iterator iit(_theoryIncludes);
@@ -389,9 +390,9 @@ void CLTBMode::doTraining()
   System::readDir(_trainingDirectory+"/Solutions",solutions);
 
 
-  Stack<vstring>::Iterator it(solutions);
+  Stack<vstring>::RefIterator it(solutions);
   while (it.hasNext()) {
-    TimeCounter tc(TC_PARSING);
+    TIME_TRACE(TimeTrace::Groups::PARSING);
     env.statistics->phase=Statistics::PARSING;
 
     vstring& solnFileName = it.next();
@@ -667,14 +668,12 @@ void CLTBProblem::performStrategy(int terminationTime,int timeLimit,Category cat
 void CLTBProblem::searchForProof(int terminationTime,int timeLimit,const Category category)
 {
   CALL("CLTBProblem::searchForProof");
+  TIME_TRACE("search for proof")
 
   System::registerForSIGHUPOnParentDeath();
 
   // special reporting in Timer.cpp
   UIHelper::portfolioParent = true;
-
-  TimeCounter::reinitialize();
-
   env.options->setInputFile(problemFile);
 
   Stack<unsigned> cutoffs;
@@ -692,7 +691,7 @@ void CLTBProblem::searchForProof(int terminationTime,int timeLimit,const Categor
 
   // this local scope will delete a potentially large parser
   {
-    TimeCounter tc(TC_PARSING);
+    TIME_TRACE(TimeTrace::Groups::PARSING);
     env.statistics->phase=Statistics::PARSING;
 
     // Ensure the parser is recording axiom names
@@ -718,7 +717,7 @@ void CLTBProblem::searchForProof(int terminationTime,int timeLimit,const Categor
 
   Shell::Property* property = prb.getProperty();
   if (property->atoms()<=1000000) {
-    TimeCounter tc(TC_PREPROCESSING);
+    TIME_TRACE(TimeTrace::Groups::PREPROCESSING);
     env.statistics->phase=Statistics::NORMALIZATION;
     Normalisation norm;
     norm.normalise(prb);
@@ -945,6 +944,7 @@ void CLTBProblem::runSlice(vstring sliceCode, unsigned timeLimitInMilliseconds)
 void CLTBProblem::runSlice(Options& strategyOpt)
 {
   CALL("CLTBProblem::runSlice(Option&)");
+  TIME_TRACE_NEW_ROOT("run slice")
 
   System::registerForSIGHUPOnParentDeath();
   UIHelper::portfolioParent = false;
@@ -952,7 +952,6 @@ void CLTBProblem::runSlice(Options& strategyOpt)
   int resultValue=1;
   env.timer->reset();
   env.timer->start();
-  TimeCounter::reinitialize();
   Timer::setLimitEnforcement(true);
 
   Options opt = strategyOpt;

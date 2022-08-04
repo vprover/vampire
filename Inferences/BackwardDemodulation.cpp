@@ -18,7 +18,7 @@
 #include "Lib/Int.hpp"
 #include "Lib/List.hpp"
 #include "Lib/Metaiterators.hpp"
-#include "Lib/TimeCounter.hpp"
+#include "Debug/TimeProfiling.hpp"
 #include "Lib/VirtualIterator.hpp"
 
 #include "Kernel/Clause.hpp"
@@ -34,6 +34,7 @@
 #include "Indexing/Index.hpp"
 #include "Indexing/TermIndex.hpp"
 #include "Indexing/IndexManager.hpp"
+#include "Debug/TimeProfiling.hpp"
 
 #include "Saturation/SaturationAlgorithm.hpp"
 
@@ -238,6 +239,7 @@ void BackwardDemodulation::perform(Clause* cl,
 	BwSimplificationRecordIterator& simplifications)
 {
   CALL("BackwardDemodulation::perform");
+  TIME_TRACE("backward demodulation");
 
   if(cl->length()!=1 || !(*cl)[0]->isEquality() || !(*cl)[0]->isPositive() ) {
     simplifications=BwSimplificationRecordIterator::getEmpty();
@@ -258,7 +260,6 @@ void BackwardDemodulation::perform(Clause* cl,
   //replacementIterator right at this point, so we can measure the time just
   //simply (which cannot be generally done when iterators are involved)
 
-  TimeCounter tc(TC_BACKWARD_DEMODULATION);
   simplifications=getPersistentIterator(replacementIterator);
 }
 

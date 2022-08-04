@@ -28,7 +28,7 @@
 #include "Lib/Random.hpp"
 #include "Lib/Set.hpp"
 #include "Lib/Stack.hpp"
-#include "Lib/TimeCounter.hpp"
+#include "Debug/TimeProfiling.hpp"
 #include "Lib/Timer.hpp"
 #include "Lib/VString.hpp"
 #include "Lib/List.hpp"
@@ -139,7 +139,7 @@ Problem* getPreprocessedProblem()
 
   Problem* prb = UIHelper::getInputProblem(*env.options);
 
-  TimeCounter tc2(TC_PREPROCESSING);
+  TIME_TRACE(TimeTrace::Groups::PREPROCESSING);
 
   // this will provide warning if options don't make sense for problem
   if (env.options->mode()!=Options::Mode::SPIDER) {
@@ -349,7 +349,7 @@ void preprocessMode(bool theory)
 
   Problem* prb = UIHelper::getInputProblem(*env.options);
 
-  TimeCounter tc2(TC_PREPROCESSING);
+  TIME_TRACE(TimeTrace::Groups::PREPROCESSING);
 
   // preprocess without clausification
   Shell::Preprocess prepro(*env.options);
@@ -652,6 +652,9 @@ int main(int argc, char* argv[])
     // read the command line and interpret it
     Shell::CommandLine cl(argc, argv);
     cl.interpret(*env.options);
+#if VTIME_PROFILING
+    TimeTrace::instance().setEnabled(env.options->timeStatistics());
+#endif
 
     // If any of these options are set then we just need to output and exit
     if (env.options->showHelp() ||
@@ -664,9 +667,6 @@ int main(int argc, char* argv[])
       env.endOutput();
       exit(0);
     }
-
-    //having read option reinitialize the counter
-    TimeCounter::reinitialize();
 
     Allocator::setMemoryLimit(env.options->memoryLimit() * 1048576ul);
     Lib::Random::setSeed(env.options->randomSeed());

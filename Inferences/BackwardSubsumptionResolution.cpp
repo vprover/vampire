@@ -93,7 +93,7 @@ void BackwardSubsumptionResolution::perform(Clause* cl,
 
   //we do all work in this method, so we can just measure time simply
   //(which cannot generally be done when iterators are involved)
-  TimeCounter tc(TC_BACKWARD_SUBSUMPTION_RESOLUTION);
+  TIME_TRACE("backward subsumption resolution");
 
   unsigned clen=cl->length();
 

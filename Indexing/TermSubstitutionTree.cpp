@@ -16,7 +16,6 @@
 #include "Lib/Metaiterators.hpp"
 #include "Lib/Random.hpp"
 #include "Lib/SmartPtr.hpp"
-#include "Lib/TimeCounter.hpp"
 
 #include "Kernel/TermIterators.hpp"
 #include "Kernel/Matcher.hpp"

@@ -22,7 +22,7 @@
 #include "Forwards.hpp"
 
 #include "Lib/Environment.hpp"
-#include "Lib/TimeCounter.hpp"
+#include "Debug/TimeProfiling.hpp"
 #include "Lib/VString.hpp"
 #include "Lib/Timer.hpp"
 
@@ -242,7 +242,7 @@ Problem* UIHelper::getInputProblem(const Options& opts)
 {
   CALL("UIHelper::getInputProblem");
     
-  TimeCounter tc1(TC_PARSING);
+  TIME_TRACE(TimeTrace::Groups::PARSING);
   env.statistics->phase = Statistics::PARSING;
 
   SMTLIBLogic smtLibLogic = SMT_UNDEFINED;

@@ -218,13 +218,6 @@ public:
     out.loadFromIterator(it);
     return out;
   }
-
-  Iterator iter() &
-  { return Iterator(*this); }
-
-  ConstIterator iter() const&
-  { return ConstIterator(*this); }
-
   /* a first-in-first-out iterator  */
   BottomFirstIterator iterFifo() const 
   { return BottomFirstIterator(*this); }
@@ -490,7 +483,7 @@ public:
 
 #endif
 
-  friend class Iterator;
+  friend class RefIterator;
 
   /** Iterator iterates over the elements of a stack and can
    *  delete elements from the stack.
@@ -501,12 +494,12 @@ public:
    *           iterator
    *  @since 13/02/2008 Manchester
    */
-  class Iterator {
+  class RefIterator {
   public:
-    DECL_ELEMENT_TYPE(C);
+    DECL_ELEMENT_TYPE(C&);
     /** create an iterator for @b s */
     inline
-    explicit Iterator (Stack& s)
+    explicit RefIterator (Stack& s)
       : _pointer(s._cursor),
 	_stack(s)
 #if VDEBUG
@@ -579,12 +572,19 @@ public:
 #endif
   };
 
-  class ConstIterator {
+  class Iterator : public RefIterator {
   public:
+    Iterator(Stack & s) : RefIterator(s) {}
     DECL_ELEMENT_TYPE(C);
+    C next() { return RefIterator::next(); }
+  };
+
+  class ConstRefIterator {
+  public:
+    DECL_ELEMENT_TYPE(C const&);
     /** create an iterator for @b s */
     inline
-    explicit ConstIterator (const Stack& s)
+    explicit ConstRefIterator (const Stack& s)
       : _pointer(s._cursor),
 	_stack(s)
     {
@@ -599,7 +599,7 @@ public:
 
     /** return the next element */
     inline
-    C next()
+    C const& next()
     {
       ASS(_pointer > _stack._stack);
       _pointer--;
@@ -612,6 +612,21 @@ public:
     /** stack over which we iterate */
     const Stack& _stack;
   };
+
+  class ConstIterator : public ConstRefIterator {
+  public:
+    ConstIterator(Stack const& s) : ConstRefIterator(s) {}
+    DECL_ELEMENT_TYPE(C);
+    C next() { return ConstRefIterator::next(); }
+  };
+
+  RefIterator iter() &
+  { return RefIterator(*this); }
+
+  ConstRefIterator iter() const&
+  { return ConstRefIterator(*this); }
+
+
 
   typedef Iterator DelIterator;
   typedef ConstIterator TopFirstIterator;

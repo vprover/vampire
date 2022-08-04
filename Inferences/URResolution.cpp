@@ -368,7 +368,7 @@ ClauseIterator URResolution::generateClauses(Clause* cl)
     return ClauseIterator::getEmpty();
   }
 
-  TimeCounter tc(TC_UR_RESOLUTION);
+  TIME_TRACE("unit resulting resolution");
 
   ClauseList* res = 0;
   processAndGetClauses(new Item(cl, _selectedOnly, *this, _emptyClauseOnly), 0, res);
