@@ -1244,7 +1244,7 @@ void Options::init()
 
     _evaluationMode = ChoiceOptionValue<EvaluationMode>("evaluation","ev",
                                                         EvaluationMode::SIMPLE,
-                                                        {"simple","force","cautious"});
+                                                        {"off","simple","force","cautious"});
     _evaluationMode.description=
     "Chooses the algorithm used to simplify interpreted integer, rational, and real terms. \
                                  \
