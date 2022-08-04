@@ -1870,7 +1870,7 @@ CompositeISE* SaturationAlgorithm::createISE(Problem& prb, const Options& opt, O
     }
 
     if (env.options->lasca()) {
-        res->addFront(&(new PolynomialEvaluationRule(ordering))->asISE());
+        res->addFront(new InterpretedEvaluation(env.options->inequalityNormalization(), ordering));
     } else switch (env.options->evaluationMode()) {
       case Options::EvaluationMode::OFF:
         break;
