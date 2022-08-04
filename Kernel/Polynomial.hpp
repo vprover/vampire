@@ -260,9 +260,9 @@ public:
   template<class FUnint, class FVar, class FPoly>
   auto match(FUnint unint, FVar var, FPoly poly) const
   {
-    using Out = std::result_of_t<FVar(Variable)>;
+    using Out = std::result_of_t<FUnint(Perfect<FuncTerm>)>;
     return _self.match(
-        var,
+        [var=std::move(var)](auto const& x) { return Out(var(x)); },
         [poly = std::move(poly), unint = std::move(unint)](PTerm const& t) { 
           switch (t._tag) {
             case PTerm::Poly: return Out(poly(AnyPoly(t._term)));
