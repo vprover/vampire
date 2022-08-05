@@ -197,7 +197,7 @@ Option<PolyNf> PolynomialEvaluation::evaluate(TypedTermList term) const
 { return evaluate(PolyNf::normalize(term)); }
 
 template<class Number>
-Polynom<Number> simplifyPoly(Polynom<Number> const& in, PolyNf* simplifiedArgs);
+Polynom<Number> simplifyPoly(Polynom<Number> in, PolyNf* simplifiedArgs);
 
 template<class Number>
 Monom<Number> simplifyMonom(Monom<Number> const&, PolyNf* simplifiedArgs);

@@ -268,6 +268,8 @@ public:
 
   Stack<Monom>& raw();
 
+  static Option<Polynom> tryFromNormalized(TypedTermList t);
+
   template<class N> friend std::ostream& operator<<(std::ostream& out, const Polynom<N>& self);
 };  
 
@@ -323,7 +325,10 @@ public:
 
   friend std::ostream& operator<<(std::ostream& out, const AnyPoly& self);
 
-  static Option<AnyPoly> tryFromNormalized(TypedTermList t);
+  static Option<AnyPoly> tryFromNormalized(TypedTermList t)
+  { return tryNumTraits([&](auto numTraits) 
+        { return Polynom<decltype(numTraits)>::tryFromNormalized(t)
+                   .map([](auto x) { return AnyPoly(std::move(x)); }); }); }
 };
 
 
