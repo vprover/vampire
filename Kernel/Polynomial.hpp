@@ -164,7 +164,7 @@ public:
   CLASS_NAME(FuncTerm)
   USE_ALLOCATOR(FuncTerm)
 
-  FuncTerm(FuncId f, Stack<PolyNf>&& args);
+  // FuncTerm(FuncId f, Stack<PolyNf>&& args);
   FuncTerm(FuncId f, PolyNf* args);
 
   unsigned numTermArguments() const;
