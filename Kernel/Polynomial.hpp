@@ -318,7 +318,8 @@ public:
   /** \see template<class N> Polynom<N>::termAt */
   PolyNf const& termAt(unsigned summand, unsigned factor) const;
 
-  TermList denormalize() const;
+  TermList denormalize() const 
+  { return _self.apply([](auto& x) { return x.denormalize(); }); }
 
   friend std::ostream& operator<<(std::ostream& out, const AnyPoly& self);
 
@@ -621,6 +622,35 @@ std::ostream& operator<<(std::ostream& out, const Monom<Number>& self)
   return out << self.factors; 
 }
 
+
+
+template<class Number>
+TermList MonomFactors<Number>::denormalize()  const
+{
+  CALL("MonomFactors::denormalize()")
+
+  if (_factors.size() == 0) {
+    return Number::one();
+  } else {
+
+    auto powerTerm = [](TermList t, int pow) -> TermList {
+      ASS(pow > 0)
+      TermList out = t;
+      for (int i = 1; i < pow; i++) {
+        out = Number::mul(t,out);
+      }
+      return out;
+    };
+
+    TermList out = powerTerm(_factors[0].term.denormalize(), _factors[0].power);
+
+    for (unsigned i = 1; i < nFactors(); i++) {
+      out = Number::mul(out, powerTerm(_factors[i].term.denormalize(), _factors[i].power));
+    }
+
+    return out;
+  }
+}
 
 
 
@@ -1033,42 +1063,42 @@ template<class Number>
 typename Number::ConstantType Polynom<Number>::unwrapNumber() const& 
 { return toNumber().unwrap(); }
 
-// template<class Number>
-// TermList Polynom<Number>::denormalize(TermList* results) const
-// {
-//   CALL("Polynom::denormalize()")
-//
-//   auto monomToTerm = [](Monom const& monom, TermList* t) -> TermList {
-//     auto c = TermList(theory->representConstant(monom.numeral));
-//     if (monom.factors.isOne()) {
-//       return c;
-//     } else {
-//       auto mon = monom.factors.denormalize(t);
-//       if (monom.numeral == Number::oneC()) {
-//         return mon;
-//       } else if (monom.numeral == Number::constant(-1)) {
-//         return Number::minus(mon);
-//       } else {
-//         return Number::mul(c, mon);
-//       }
-//     }
-//   };
-//
-//   if (_summands.size() == 0) {
-//     return Number::zero();
-//   } else {
-//
-//     TermList out = monomToTerm(_summands[0], results);
-//     auto flatIdx = _summands[0].factors.nFactors();
-//
-//     for (unsigned i = 1; i < nSummands(); i++) {
-//       auto& monom = _summands[i];
-//       out = Number::add(monomToTerm(monom, &results[flatIdx]), out);
-//       flatIdx += monom.factors.nFactors();
-//     }
-//     return out;
-//   }
-// }
+template<class Number>
+TermList Polynom<Number>::denormalize() const
+{
+  CALL("Polynom::denormalize()")
+
+  auto monomToTerm = [](Monom const& monom) -> TermList {
+    auto c = TermList(theory->representConstant(monom.numeral));
+    if (monom.factors.isOne()) {
+      return c;
+    } else {
+      auto mon = monom.factors.denormalize();
+      if (monom.numeral == Number::oneC()) {
+        return mon;
+      } else if (monom.numeral == Number::constant(-1)) {
+        return Number::minus(mon);
+      } else {
+        return Number::mul(c, mon);
+      }
+    }
+  };
+
+  if (_summands.size() == 0) {
+    return Number::zero();
+  } else {
+
+    TermList out = monomToTerm(_summands[0]);
+    auto flatIdx = _summands[0].factors.nFactors();
+
+    for (unsigned i = 1; i < nSummands(); i++) {
+      auto& monom = _summands[i];
+      out = Number::add(monomToTerm(monom), out);
+      flatIdx += monom.factors.nFactors();
+    }
+    return out;
+  }
+}
 
 template<class Number>
 Stack<Monom<Number>>& Polynom<Number>::raw()
