@@ -361,6 +361,7 @@ public:
 
   Term() throw();
   explicit Term(const Term& t) throw();
+  static Term* create(unsigned function, Stack<TermList> const& args);
   static Term* create(unsigned function, unsigned arity, const TermList* args);
   static Term* create(unsigned fn, std::initializer_list<TermList> args);
   static Term* create(Term* t,TermList* args);

@@ -98,10 +98,15 @@ FuncTerm::FuncTerm(Term* t)
 //   , _args(std::move(args)) 
 // { }
 
-// FuncTerm::FuncTerm(FuncId f, PolyNf* args) 
-//   : _self(Term::create(f.id(), jjj))
-//   , _args(Stack<PolyNf>::fromIterator(getArrayishObjectIterator(args, f.numTermArguments()))) 
-// { }
+FuncTerm::FuncTerm(FuncId f, PolyNf* args) 
+  : _self(Term::create(f.id(), 
+        concatIters(
+          f.iterTypeArgs(),
+          range(0, f.numTermArguments())
+             .map([=](auto i) { return args[i].denormalize(); })
+          ).collect <Stack>()
+        ))
+{ }
 
 unsigned FuncTerm::numTermArguments() const 
 { return _self->numTermArguments(); }

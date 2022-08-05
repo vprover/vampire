@@ -958,6 +958,11 @@ Term* Term::create(Term* t,TermList* args)
   return s;
 }
 
+
+/** \see Term::create(unsigned function, unsigned arity, const TermList* args) */
+Term* Term::create(unsigned function, Stack<TermList> const& args)
+{ return Term::create(function, args.size(), args.begin()); }
+
 /** Create a new complex term, and insert it into the sharing
  *  structure if all arguments are shared.
  */

@@ -41,6 +41,7 @@
 #include <type_traits>
 #include "Kernel/BottomUpEvaluation.hpp"
 #include "Kernel/BottomUpEvaluation/TypedTermList.hpp"
+#include "Lib/Metaiterators.hpp"
 
 #define DEBUG(...) // DBG(__VA_ARGS__)
 
@@ -86,6 +87,9 @@ public:
   unsigned numTermArguments() const;
   unsigned numTypeArguments() const;
   TermList typeArg(unsigned i) const;
+
+  auto iterTypeArgs() const
+  { return range(0, numTypeArguments()).map([this](auto i) { return typeArg(i); }); }
 
   friend std::ostream& operator<<(std::ostream& out, const FuncId& self);
 
