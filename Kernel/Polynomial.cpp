@@ -99,7 +99,7 @@ FuncTerm::FuncTerm(Term* t)
 // { }
 
 // FuncTerm::FuncTerm(FuncId f, PolyNf* args) 
-//   : _fun(f)
+//   : _self(Term::create(f.id(), jjj))
 //   , _args(Stack<PolyNf>::fromIterator(getArrayishObjectIterator(args, f.numTermArguments()))) 
 // { }
 
