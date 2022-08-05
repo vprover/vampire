@@ -128,22 +128,22 @@ std::ostream& operator<<(std::ostream& out, const FuncTerm& self)
 
 
 AnyPoly AnyPoly::replaceTerms(PolyNf* newTs) const 
-{ return apply([&](auto& t) -> decltype(auto) { return AnyPoly(t.replaceTerms(newTs)); }); }
+{ return _self.apply([&](auto& t) -> decltype(auto) { return AnyPoly(t.replaceTerms(newTs)); }); }
 
 // TermList AnyPoly::denormalize(TermList* results) const
 // { return apply([&](auto& t) -> decltype(auto) { return t->denormalize(results); }); }
 
 PolyNf const& AnyPoly::termAt(unsigned summand, unsigned factor)  const
-{ return apply([&](auto& t) -> decltype(auto) { return t.summandAt(summand).factors.termAt(factor); }); }
+{ return _self.apply([&](auto& t) -> decltype(auto) { return t.summandAt(summand).factors.termAt(factor); }); }
 
 unsigned AnyPoly::nSummands() const 
-{ return apply([&](auto& t) -> decltype(auto) { return t.nSummands(); }); }
+{ return _self.apply([&](auto& t) -> decltype(auto) { return t.nSummands(); }); }
 
 unsigned AnyPoly::nFactors(unsigned i) const 
-{ return apply([&](auto& t) -> decltype(auto) { return t.nFactors(i); }); }
+{ return _self.apply([&](auto& t) -> decltype(auto) { return t.nFactors(i); }); }
 
 std::ostream& operator<<(std::ostream& out, const AnyPoly& self) 
-{ return self.apply([&](auto& t) -> decltype(auto) { return out << t; }); }
+{ return self._self.apply([&](auto& t) -> decltype(auto) { return out << t; }); }
 
 
 /////////////////////////////////////////////////////////

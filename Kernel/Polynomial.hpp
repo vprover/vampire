@@ -35,7 +35,6 @@
 #include "Lib/Option.hpp"
 #include "Lib/Map.hpp"
 #include "Kernel/Theory.hpp"
-#include "Lib/Perfect.hpp"
 #include "Kernel/NumTraits.hpp"
 #include "Kernel/Ordering.hpp"
 #include <type_traits>
@@ -140,6 +139,7 @@ struct Monom
   MAKE_DERIVABLE(Monom, numeral, factors)
     DERIVE_EQ
     DERIVE_CMP
+    DERIVE_HASH
 
 
   Monom(Numeral numeral, MonomFactors<Number> factors);
@@ -202,6 +202,7 @@ public:
   MAKE_DERIVABLE(Polynom, _summands)
     DERIVE_EQ
     DERIVE_CMP
+    DERIVE_HASH
 
   /** 
    * constructs a new Polynom with a list of summands 
@@ -270,20 +271,26 @@ public:
   template<class N> friend std::ostream& operator<<(std::ostream& out, const Polynom<N>& self);
 };  
 
-using AnyPolySuper = Coproduct< 
-    Polynom< IntTraits>
-  , Polynom< RatTraits>
-  , Polynom<RealTraits>
-  >;
-
-class AnyPoly: public AnyPolySuper
+class AnyPoly
 {
   AnyPoly(Term* t);
   AnyPoly(Term const* t);
+  Coproduct< 
+      Polynom< IntTraits>
+    , Polynom< RatTraits>
+    , Polynom<RealTraits>
+    > _self;
   friend class PolyNf;
 public:
+  MAKE_DERIVABLE(AnyPoly, _self)
+    DERIVE_EQ
+    DERIVE_CMP
+    DERIVE_HASH
+
   /** creates a new dynamically typed polynom from a statically typed one */
-  template<class NumTraits> AnyPoly(Polynom<NumTraits> x);
+  template<class NumTraits> AnyPoly(Polynom<NumTraits> self) 
+    : _self(std::move(self)) 
+  {}
 
   /** tries to turn this polynom into a polynom of the given NumTraits. */
   template<class NumTraits> Option<Polynom<NumTraits> const&> downcast() const;
@@ -299,6 +306,9 @@ public:
   /** \see template<class N> Polynom<N>::replaceTerms */
   AnyPoly replaceTerms(PolyNf* newTs) const;
 
+  template<class F> auto apply(F f) const { return _self.apply(std::move(f)); }
+  template<class F> auto apply(F f)       { return _self.apply(std::move(f)); }
+
   /** \see template<class N> Polynom<N>::nSummands */
   unsigned nSummands() const;
 
@@ -311,7 +321,6 @@ public:
   TermList denormalize() const;
 
   friend std::ostream& operator<<(std::ostream& out, const AnyPoly& self);
-  friend struct std::hash<AnyPoly>;
 
   static Option<AnyPoly> tryFromNormalized(TypedTermList t);
 };
@@ -547,6 +556,7 @@ public:
 } // namespace Kernel
 
 DERIVE_STD_HASH(Kernel::PolyNf)
+DERIVE_STD_HASH(Kernel::AnyPoly)
 DERIVE_STD_HASH(Kernel::FuncId)
 DERIVE_STD_HASH(Kernel::Variable)
 DERIVE_STD_HASH(Kernel::FuncTerm)
@@ -658,15 +668,15 @@ Option<typename Number::ConstantType> FuncTerm::tryNumeral() const
 
 namespace Kernel {
 
-template<class NumTraits>
-AnyPoly::AnyPoly(Polynom<NumTraits> x) : Coproduct(std::move(x)) {  }
+template<class NumTraits> Option<Polynom<NumTraits> const&>  AnyPoly::downcast() const
+{ return _self.as<Polynom<NumTraits>>(); }
 
-template<class NumTraits> Option<Polynom<NumTraits> const&>  AnyPoly::downcast() const { return as<Polynom<NumTraits>>(); }
-template<class NumTraits> Option<Polynom<NumTraits>      &>  AnyPoly::downcast()       { return as<Polynom<NumTraits>>(); }
+template<class NumTraits> Option<Polynom<NumTraits>      &>  AnyPoly::downcast()
+{ return _self.as<Polynom<NumTraits>>(); }
 
 template<class NumTraits> 
 bool AnyPoly::isType() const 
-{ return is<Polynom<NumTraits>>(); }
+{ return _self.is<Polynom<NumTraits>>(); }
 
 /* helper function for AnyPoly::tryNumeral */
 template<class NumIn, class NumOut>
@@ -699,21 +709,6 @@ Option<typename NumTraits::ConstantType> AnyPoly::tryNumeral() const&
 
 } // namespace Kernel
 
-template<> struct std::less<Kernel::AnyPoly> 
-{
-  bool operator()(Kernel::AnyPoly const& lhs, Kernel::AnyPoly const& rhs) const 
-  { return PolymorphicCoproductOrdering<std::less>{}(lhs,rhs); }
-};
-
-
-template<> struct std::hash<Kernel::AnyPoly> 
-{
-  size_t operator()(Kernel::AnyPoly const& self) const 
-  { return std::hash<Kernel::AnyPolySuper>{}(self); }
-};
-
-
-
 /////////////////////////////////////////////////////////
 // impl PolyNf  template stuff
 ////////////////////////////
@@ -723,21 +718,21 @@ namespace Kernel {
 
 template<class NumTraits>
 Option<Polynom<NumTraits> const&> PolyNf::downcast() const
-{ auto poly = asPoly(); return poly.andThen([](auto& p) { return p.template as<Polynom<NumTraits>>(); }); }
+{ auto poly = asPoly(); return poly.andThen([](auto& p) { return p.template downcast<NumTraits>(); }); }
 
 template<class NumTraits>
 Option<Polynom<NumTraits>      &> PolyNf::downcast()
-{ auto poly = asPoly(); return poly.andThen([](auto& p) { return p.template as<Polynom<NumTraits>>(); }); }
+{ auto poly = asPoly(); return poly.andThen([](auto& p) { return p.template downcast<NumTraits>(); }); }
 
 
 
+// TODO maybe get rid of copying here?
 template<class Number> 
 Polynom<Number> PolyNf::wrapPoly() const
 {
   auto poly = this->asPoly();
   if (poly.isSome()) {
-    return poly.unwrap()
-            .unwrap<Polynom<Number>>();
+    return Polynom<Number>(poly.unwrap().downcast<Number>().unwrap());
   } else {
     return Polynom<Number>(*this);
   }
