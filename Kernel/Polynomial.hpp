@@ -239,20 +239,7 @@ public:
  */
 class PolyNf 
 {
-  struct PTerm {
-    enum { Poly, Unint, } _tag;
-    Term* _term;
-
-    MAKE_DERIVABLE(PTerm, (char&) _tag, _term)
-      DERIVE_EQ
-      DERIVE_CMP
-      DERIVE_HASH
-
-    friend std::ostream& operator<<(std::ostream& out, PTerm const& self)
-    { return out << *self._term; }
-  };
-    friend class std::hash<PTerm>;
-  Coproduct<Variable, PTerm> _self;
+  Coproduct<FuncTerm, Variable, AnyPoly> _self;
 public:
   CLASS_NAME(PolyNf)
 
@@ -261,29 +248,13 @@ public:
   PolyNf(AnyPoly           t);
 
   static PolyNf normalize(TypedTermList t);
+
   template<class FUnint, class FVar, class FPoly>
   auto match(FUnint unint, FVar var, FPoly poly) const
-  {
-    using Out = std::result_of_t<FUnint(FuncTerm)>;
-    return _self.match(
-        [var=std::move(var)](auto const& x) { return Out(var(x)); },
-        [poly = std::move(poly), unint = std::move(unint)](PTerm const& t) { 
-          switch (t._tag) {
-            case PTerm::Poly: return Out(poly(AnyPoly(t._term)));
-            case PTerm::Unint: return Out(unint(FuncTerm(t._term)));
-          }
-        });
-  }
+  { return _self.match(unint, var, poly); }
 
   Option<Variable const&> asVar() const { return _self.as<Variable>(); }
-  Option<AnyPoly> asPoly() const { 
-    return _self.as<PTerm>()
-    .andThen([](auto t) {
-        return t._tag == PTerm::Poly 
-        ? Option<AnyPoly>(AnyPoly(t._term))
-        : Option<AnyPoly>();
-     });
-  }
+  Option<AnyPoly> asPoly() const { return _self.as<AnyPoly>().toOwned(); }
 
   Variable unwrapVar() const { return asVar().unwrap(); }
   bool isVar() const { return asVar().isSome(); }
@@ -575,7 +546,6 @@ public:
 DERIVE_STD_HASH(Kernel::PolyNf)
 DERIVE_STD_HASH(Kernel::FuncId)
 DERIVE_STD_HASH(Kernel::FuncTerm)
-DERIVE_STD_HASH(Kernel::PolyNf::PTerm)
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////

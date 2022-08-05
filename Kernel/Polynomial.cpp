@@ -93,11 +93,6 @@ FuncTerm::FuncTerm(Term* t)
   : _self(t)
 {  }
 
-// FuncTerm::FuncTerm(FuncId f, Stack<PolyNf>&& args) 
-//   : _fun(f)
-//   , _args(std::move(args)) 
-// { }
-
 FuncTerm::FuncTerm(FuncId f, PolyNf* args) 
   : _self(Term::create(f.id(), 
         concatIters(
@@ -165,15 +160,9 @@ std::ostream& operator<<(std::ostream& out, const AnyPoly& self)
 // impl PolyNf 
 ////////////////////////////
 
-PolyNf::PolyNf(FuncTerm t) 
-  : _self(PolyNf::PTerm { ._tag = PTerm::Unint, ._term = t._self, })
-{ }
-
-PolyNf::PolyNf(Variable t) 
-  : _self(std::move(t))
-{ }
-
-// PolyNf::PolyNf(AnyPoly  t) : Coproduct(t) {}
+PolyNf::PolyNf(FuncTerm t) : _self(std::move(t)) { }
+PolyNf::PolyNf(Variable t) : _self(std::move(t)) { }
+PolyNf::PolyNf(AnyPoly  t) : _self(std::move(t)) { }
 
 PolyNf PolyNf::fromNormalized(TypedTermList t)
 {
