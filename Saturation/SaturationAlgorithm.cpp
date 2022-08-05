@@ -1832,6 +1832,8 @@ ImmediateSimplificationEngine* SaturationAlgorithm::createISE(Problem& prb, cons
         break;
       case Options::EvaluationMode::POLYNOMIAL_CAUTIOUS:
         break;
+      case Options::EvaluationMode::OFF:
+        break;
     }
 
     if (env.options->pushUnaryMinus()) {

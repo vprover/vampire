@@ -78,16 +78,15 @@ namespace Kernel {
 class FuncId 
 {
   unsigned _num;
-  // const TermList* _typeArgs; // private field not used
+  const TermList* _typeArgs; // private field not used
   
 public: 
   explicit FuncId(unsigned num, const TermList* typeArgs);
   static FuncId symbolOf(Term* term);
-  unsigned numTermArguments();
+  unsigned numTermArguments() const;
+  unsigned numTypeArguments() const;
+  TermList typeArg(unsigned i) const;
 
-  friend struct std::hash<FuncId>;
-  friend bool operator==(FuncId const& lhs, FuncId const& rhs);
-  friend bool operator!=(FuncId const& lhs, FuncId const& rhs);
   friend std::ostream& operator<<(std::ostream& out, const FuncId& self);
 
   Signature::Symbol* symbol() const;
@@ -99,16 +98,16 @@ public:
 
   template<class Number>
   Option<typename Number::ConstantType> tryNumeral() const;
+
+  MAKE_DERIVABLE(FuncId, _num, _typeArgs)
+    DERIVE_EQ
+    DERIVE_CMP
+    DERIVE_HASH
 };
 
 } // namespace Kernel
 
 
-template<> struct std::hash<Kernel::FuncId> 
-{
-  size_t operator()(Kernel::FuncId const& f) const 
-  { return std::hash<unsigned>{}(f._num); }
-};
 
 
 /////////////////////////////////////////////////////////////////////////////////////////////
@@ -176,9 +175,10 @@ public:
   Option<typename Number::ConstantType> tryNumeral() const;
 
   friend std::ostream& operator<<(std::ostream& out, const FuncTerm& self);
-  auto asTuple() const { return std::tie(_self); }
-  IMPL_COMPARISONS_FROM_TUPLE(FuncTerm)
-  IMPL_HASH_FROM_TUPLE(FuncTerm)
+  MAKE_DERIVABLE(FuncTerm, _self)
+    DERIVE_EQ
+    DERIVE_CMP
+    DERIVE_HASH
 };
 
 using AnyPolySuper = Coproduct< 
@@ -236,12 +236,11 @@ class PolyNf
   struct PTerm {
     enum { Poly, Unint, } _tag;
     Term* _term;
-    auto asTuple() const 
-    { return std::make_tuple((char) _tag, _term); }
 
-    IMPL_COMPARISONS_FROM_TUPLE(PTerm)
-    IMPL_HASH_FROM_TUPLE(PTerm)
-    friend class std::hash<PTerm>;
+    MAKE_DERIVABLE(PTerm, (char&) _tag, _term)
+      DERIVE_EQ
+      DERIVE_CMP
+      DERIVE_HASH
 
     friend std::ostream& operator<<(std::ostream& out, PTerm const& self)
     { return out << *self._term; }
@@ -283,11 +282,10 @@ public:
   Variable unwrapVar() const { return asVar().unwrap(); }
   bool isVar() const { return asVar().isSome(); }
 
-  auto asTuple() const -> decltype(auto)
-  { return std::tie(_self); }
-
-  IMPL_COMPARISONS_FROM_TUPLE(PolyNf)
-  IMPL_HASH_FROM_TUPLE(PolyNf)
+  MAKE_DERIVABLE(PolyNf, _self)
+    DERIVE_HASH
+    DERIVE_EQ
+    DERIVE_CMP
 
   /** 
    * If this term is a polynomial of sort NumTraits, it is downcasted to that sort,
@@ -572,9 +570,10 @@ public:
 
 } // namespace Kernel
 
-IMPL_STD_HASH(Kernel::PolyNf)
-IMPL_STD_HASH(Kernel::FuncTerm)
-IMPL_STD_HASH(Kernel::PolyNf::PTerm)
+DERIVE_STD_HASH(Kernel::PolyNf)
+DERIVE_STD_HASH(Kernel::FuncId)
+DERIVE_STD_HASH(Kernel::FuncTerm)
+DERIVE_STD_HASH(Kernel::PolyNf::PTerm)
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////

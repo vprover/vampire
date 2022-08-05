@@ -47,19 +47,19 @@ std::ostream& operator<<(std::ostream& out, const Variable& self)
 // impl FuncId
 /////////////////////////////////////////////////////////
 
-FuncId::FuncId(unsigned num, const TermList* typeArgs) : _num(num) /*, _typeArgs(typeArgs)*/ {}
+FuncId::FuncId(unsigned num, TermList const* typeArgs) : _num(num), _typeArgs(std::move(typeArgs)) {}
 
 FuncId FuncId::symbolOf(Term* term) 
 { return FuncId(term->functor(), term->typeArgs()); }
 
-unsigned FuncId::numTermArguments() 
+unsigned FuncId::numTermArguments() const
 { return symbol()->numTermArguments(); }
 
-bool operator==(FuncId const& lhs, FuncId const& rhs) 
-{ return lhs._num == rhs._num; }
+unsigned FuncId::numTypeArguments() const
+{ return symbol()->numTypeArguments(); }
 
-bool operator!=(FuncId const& lhs, FuncId const& rhs) 
-{ return !(lhs == rhs); }
+TermList FuncId::typeArg(unsigned i) const
+{ return _typeArgs[i]; }
 
 std::ostream& operator<<(std::ostream& out, const FuncId& self) 
 { return out << self.symbol()->name(); }

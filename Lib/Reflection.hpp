@@ -30,37 +30,88 @@
   Class& operator=(Class const&) = default;                                                         \
   Class& operator=(Class     &&) = default;                                                         \
 
-#define IMPL_COMPARISONS_FROM_TUPLE(Class)                                                          \
-  friend bool operator==(Class const& l, Class const& r)                                            \
+/** 
+ * utility to quickly implement standard operations like 
+ * equality, hash, and comparision operators
+ *
+ * In order to use them a class has to use 
+ * MAKE_DERIVABLE(ClassName, <fileds to be used for operators>)
+ *
+ * Then the macros DERIVE_* can be used to automatically implement different operators.
+ *
+ * example:
+ * class Foo {
+ *  int _field1;
+ *  unsigned _field2;
+ *  enum Bar { Val1, Val2 };
+ *  Bar _field3;
+ *
+ *  MAKE_DERIVABLE(Foo, _field1, _field2, (char&) _field3)
+ *  DERIVE_EQ
+ * };
+ *
+ * then the class will have an operator== and operator!= defined
+ */
+#define MAKE_DERIVABLE(Class, ...)                                                                  \
+  using Self = Class;                                                                               \
+  auto asTuple()       { return std::tie(__VA_ARGS__); }                                            \
+  auto asTuple() const { return std::tie(__VA_ARGS__); }                                            \
+
+/** automatically implements 
+ * - operator==
+ * - operator!=
+ * 
+ * Must be called within a class, that is derivable. 
+ * \see MAKE_DERIVABLE
+ */
+#define DERIVE_EQ                                                                                   \
+  friend bool operator==(Self const& l, Self const& r)                                              \
   { return l.asTuple() == r.asTuple(); }                                                            \
                                                                                                     \
-  friend bool operator!=(Class const& l, Class const& r)                                            \
+  friend bool operator!=(Self const& l, Self const& r)                                              \
   { return !(l == r); }                                                                             \
-                                                                                                    \
-  friend bool operator<(Class const& l, Class const& r)                                             \
+
+/** automatically implements 
+ * - operator<
+ * - operator<=
+ * - operator>
+ * - operator>=
+ * 
+ * Must be called within a class, that is derivable. 
+ * \see MAKE_DERIVABLE
+ */
+#define DERIVE_CMP                                                                                  \
+  friend bool operator<(Self const& l, Self const& r)                                               \
   { return l.asTuple() < r.asTuple(); }                                                             \
                                                                                                     \
-  friend bool operator> (Class const& l, Class const& r) { return r < l; }                          \
-  friend bool operator<=(Class const& l, Class const& r) { return l == r || l < r; }                \
-  friend bool operator>=(Class const& l, Class const& r) { return l == r || l > r; }                \
-
-#define IMPL_HASH_FROM_TUPLE(Class)                                                                 \
-  template<class Hash = Lib::StlHash> \
+  friend bool operator> (Self const& l, Self const& r) { return r < l; }                            \
+  friend bool operator<=(Self const& l, Self const& r) { return l == r || l < r; }                  \
+  friend bool operator>=(Self const& l, Self const& r) { return l == r || l > r; }                  \
+ 
+/** automatically implementes a function 
+ * template<class Hash = Lib::StlHash>
+ * size_t hash() const;
+ * That function uses a Lib::Hash object to combine the hashes of the individual fields. 
+ * 
+ * Must be called within a class, that is derivable. 
+ * \see MAKE_DERIVABLE
+ */
+#define DERIVE_HASH                                                                                 \
+  template<class Hash = Lib::StlHash>                                                               \
   size_t hash() const                                                                               \
   { return Lib::HashUtils::hashTuple<Hash>(asTuple()); }
 
-#define IMPL_STD_HASH(Class)                                                                        \
+#define DERIVE_MOVE_SEMANTICS                                                                       \
+  explicit Self(Self const&) = default;                                                             \
+  Self(Self     &&) = default;                                                                      \
+  Self& operator=(Self const&) = default;                                                           \
+  Self& operator=(Self     &&) = default;                                                           \
+
+#define DERIVE_STD_HASH(Class)                                                                        \
   template<>                                                                                        \
   struct std::hash<Class>                                                                           \
   { size_t operator()(Class const& self)                                                            \
-    { return self.hash(); } };
-
-//The obvious way to define this macro would be
-//#define DECL_ELEMENT_TYPE(T) typedef T _ElementType
-//but the preprocessor understands for example
-//M(pair<A,B>)
-//as an instantiation of  macro M with two arguments --
-//pair<A is first and B> second.
+    { return self.hash<Lib::StlHash>(); } };
 
 /**
  * Declare type returned by an iterator
