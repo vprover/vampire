@@ -134,7 +134,7 @@ AnyPoly AnyPoly::replaceTerms(PolyNf* newTs) const
 // { return apply([&](auto& t) -> decltype(auto) { return t->denormalize(results); }); }
 
 PolyNf const& AnyPoly::termAt(unsigned summand, unsigned factor)  const
-{ return apply([&](auto& t) -> decltype(auto) { return t.summandAt(summand).factors->termAt(factor); }); }
+{ return apply([&](auto& t) -> decltype(auto) { return t.summandAt(summand).factors.termAt(factor); }); }
 
 unsigned AnyPoly::nSummands() const 
 { return apply([&](auto& t) -> decltype(auto) { return t.nSummands(); }); }

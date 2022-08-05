@@ -77,7 +77,7 @@ struct Preprocess
   GenMap& map;
 
   template<class NumTraits> 
-  void operator()(Polynom<NumTraits> poly)
+  void operator()(Polynom<NumTraits> const& poly)
   {
     CALL("AdditionGeneralizationImpl::Preprocess::operator()")
     // a variable might occur twice within one sum.
@@ -98,7 +98,7 @@ struct Preprocess
             },
             [&]() { return AnyNumber<MonomSet>(move(gen)); });
       } else {
-        for (auto factor : monom.factors->iter()) {
+        for (auto& factor : monom.factors.iter()) {
            if (factor.term.isVar()) {
              auto v = factor.term.unwrapVar();
              map.replaceOrInsert(v, MonomSet<NumTraits>::bot());
@@ -143,18 +143,18 @@ struct Generalize
 
     auto pushGeneralized = [&]()  
     { 
-      auto factors = perfect(poly.summandAt(p).factors->replaceTerms(&generalizedArgs[genOffs]));
+      auto factors = poly.summandAt(p).factors.replaceTerms(&generalizedArgs[genOffs]);
       auto coeff = poly.summandAt(p).numeral;
 
-      genOffs += factors->nFactors();
+      genOffs += factors.nFactors();
       p++;
 
-      return out.push(Monom(coeff, factors));
+      return out.push(Monom(coeff, std::move(factors)));
     };
 
     auto skipGeneralized = [&]() 
     {
-      genOffs += poly.summandAt(p).factors->nFactors();
+      genOffs += poly.summandAt(p).factors.nFactors();
       p++;
     };
 

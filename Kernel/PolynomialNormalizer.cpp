@@ -53,7 +53,7 @@
 //     raw.truncate(len);
 //     ASS_EQ(raw.size(), len)
 //     x.integrity();
-//     return Monom(num, perfect(std::move(x)));
+//     return Monom(num, std::move(x));
 //   }
 // };
 //
@@ -68,7 +68,7 @@
 //   { 
 //     std::sort(x.raw().begin(), x.raw().end());
 //     x.integrity();
-//     return PolyNf(perfect(std::move(x))); 
+//     return PolyNf(std::move(x)); 
 //   }
 //
 //   template<class NumTraits>
@@ -245,7 +245,7 @@
 // NormalizationResult wrapNumeral(ConstantType c) 
 // { 
 //   using NumTraits = NumTraits<ConstantType>;
-//   PolyNf numPolyNf(PolyNf(perfect(FuncTerm(FuncId::symbolOf(NumTraits::constantT(c)), nullptr))));
+//   PolyNf numPolyNf(PolyNf(FuncTerm(FuncId::symbolOf(NumTraits::constantT(c)), nullptr)));
 //   return NormalizationResult(MonomFactors<NumTraits>(numPolyNf));
 // }
 //
@@ -306,13 +306,13 @@
 //       }
 //     }
 //
-//     return singletonProduct(PolyNf(perfect(FuncTerm(
+//     return singletonProduct(PolyNf(FuncTerm(
 //         fn, 
 //         Stack<PolyNf>::fromIterator(
 //             iterTraits(getArrayishObjectIterator<mut_ref_t>(ts, fn.numTermArguments()))
 //             .map( [](NormalizationResult& r) -> PolyNf { return std::move(r).apply(RenderPolyNf{}); }))
 //       )
-//     )));
+//     ));
 //   }
 // }
 //
@@ -344,13 +344,13 @@
 //           return NormalizationResult(PolyNf(Variable(t.var())));
 //         } else {
 //           auto fn = FuncId::symbolOf(t.term());
-//           return NormalizationResult(PolyNf(perfect(FuncTerm(
+//           return NormalizationResult(PolyNf(FuncTerm(
 //               fn, 
 //               Stack<PolyNf>::fromIterator(
 //                   iterTraits(getArrayishObjectIterator<mut_ref_t>(ts, fn.numTermArguments()))
 //                   .map( [](NormalizationResult& r) -> PolyNf { return std::move(r).apply(RenderPolyNf{}); }))
 //             )
-//           )));
+//           ));
 //         }
 //       }
 //

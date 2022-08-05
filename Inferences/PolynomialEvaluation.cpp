@@ -252,7 +252,7 @@ Option<PolyNf> PolynomialEvaluation::evaluate(PolyNf normalized) const
 // { return perfect(FuncTerm(FuncId(fun), evaluatedArgs)); }
 
 template<class Number>
-Polynom<Number> simplifyPoly(Polynom<Number> const& in, PolyNf* simplifiedArgs)
+Polynom<Number> simplifyPoly(Polynom<Number> in, PolyNf* simplifiedArgs)
 { 
   CALL("simplify(Polynom<Number>const&, PolyNf* simplifiedArgs)") 
   using Monom   = Monom<Number>;
@@ -271,7 +271,7 @@ Polynom<Number> simplifyPoly(Polynom<Number> const& in, PolyNf* simplifiedArgs)
         } else {
           out.push(simpl);
         }
-        offs += monom.factors->nFactors();
+        offs += monom.factors.nFactors();
       }
     }
 
@@ -284,13 +284,13 @@ Polynom<Number> simplifyPoly(Polynom<Number> const& in, PolyNf* simplifiedArgs)
       for (unsigned i = 0; i < out.size(); i++) { 
         auto monom = out[i];
         auto numeral = monom.numeral;
-        auto factors = monom.factors;
+        auto& factors = monom.factors;
         while ( i + 1 < out.size() && out[i+1].factors == factors ) {
           numeral = numeral + out[i+1].numeral;
           i++;
         }
         if (numeral != Number::zeroC()) 
-          out[offs++] = Monom(numeral, factors);
+          out[offs++] = Monom(numeral, std::move(factors));
       }
       out.truncate(offs);
 
@@ -323,7 +323,7 @@ Monom<Number> simplifyMonom(Monom<Number> const& in, PolyNf* simplifiedArgs)
     return out;
   };
 
-  auto& facs = *in.factors;
+  auto& facs = in.factors;
   Stack<MonomFactor> args(facs.nFactors());
   for (unsigned i = 0; i < facs.nFactors(); i++) {
     args.push(MonomFactor(simplifiedArgs[i], facs.factorAt(i).power));
@@ -357,7 +357,7 @@ Monom<Number> simplifyMonom(Monom<Number> const& in, PolyNf* simplifiedArgs)
     return Monom::zero();
   } else {
     args.truncate(offs);
-    return Monom(numeral, perfect(MonomFactors(std::move(args)))); 
+    return Monom(numeral, MonomFactors(std::move(args))); 
   }
 }
 

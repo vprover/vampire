@@ -133,7 +133,7 @@ struct Monom
   using Numeral = typename Number::ConstantType;
 
   Numeral numeral;
-  Perfect<MonomFactors<Number>> factors;
+  MonomFactors<Number> factors;
 
   CLASS_NAME(Monom)
   USE_ALLOCATOR(Monom)
@@ -142,7 +142,7 @@ struct Monom
     DERIVE_CMP
 
 
-  Monom(Numeral numeral, Perfect<MonomFactors<Number>> factors);
+  Monom(Numeral numeral, MonomFactors<Number> factors);
 
   static Monom zero();
 
@@ -262,11 +262,8 @@ public:
   /** integrity check of the data structure. does noly have an effect in debug mode */
   void integrity() const;
 
-  /** an iterator over all summands of this Polyom */
-  using SummandIter = IterTraits<ArrayishObjectIterator<typename std::remove_reference<decltype(_summands)>::type, no_ref_t>>;
-
   /** returns iterator over all summands of this Polyom */
-  SummandIter iterSummands() const&;
+  auto iterSummands() const { return iterTraits(_summands.iter()); }
 
   Stack<Monom>& raw();
 
@@ -437,6 +434,7 @@ public:
   USE_ALLOCATOR(MonomFactors)
   MAKE_DERIVABLE(MonomFactors, _factors)
     DERIVE_EQ
+    DERIVE_CMP
 
   /** 
    * constructs a new MonomFactors. 
@@ -489,11 +487,9 @@ public:
   /** replaces all the factors, by new ones, keeping the power of each term the same  */
   MonomFactors replaceTerms(PolyNf* simplifiedTerms) const;
 
-  /** an iterator over all factors */
-  using FactorIter = IterTraits<ArrayishObjectIterator<typename std::remove_reference<decltype(_factors)>::type, no_ref_t>>;
-
   /** returns an iterator over all factors */
-  FactorIter iter() const&;
+  auto iter() const 
+  { return iterTraits(_factors.iter()); }
 
   explicit MonomFactors(const MonomFactors&) = default;
   explicit MonomFactors(MonomFactors&) = default;
@@ -567,14 +563,14 @@ DERIVE_STD_HASH(Kernel::FuncTerm)
 namespace Kernel {
 
 template<class Number>
-Monom<Number>::Monom(Monom<Number>::Numeral numeral, Perfect<MonomFactors<Number>> factors) 
+Monom<Number>::Monom(Monom<Number>::Numeral numeral, MonomFactors<Number> factors) 
   : numeral(numeral), factors(factors)
 {}
 
 template<class Number>
 Monom<Number> Monom<Number>::zero() 
 { 
-  static Monom p = Monom(Numeral(0), perfect(MonomFactors<Number>()));
+  static Monom p = Monom(Numeral(0), MonomFactors<Number>());
   return p; 
 }
 
@@ -583,7 +579,7 @@ Option<Variable> Monom<Number>::tryVar() const
 {
   using Opt = Option<Variable>;
   if (numeral == Numeral(1)) {
-    return  factors->tryVar();
+    return  factors.tryVar();
   } else {
     return  Opt();
   }
@@ -593,7 +589,7 @@ template<class Number>
 void Monom<Number>::integrity() const 
 {
 #if VDEBUG
-  this->factors->integrity();
+  this->factors.integrity();
 #endif // VDEBUG
 }
 
@@ -935,10 +931,6 @@ MonomFactors<Number> MonomFactors<Number>::replaceTerms(PolyNf* simplifiedTerms)
   return out;
 }
 
-template<class Number>
-typename MonomFactors<Number>::FactorIter MonomFactors<Number>::iter() const&
-{ return iterTraits(getArrayishObjectIterator<no_ref_t>(_factors)); }
-
 } // namespace Kernel
 
 template<class NumTraits>
@@ -981,7 +973,7 @@ Polynom<Number>::Polynom(Monom m)
 
 template<class Number>
 Polynom<Number>::Polynom(Numeral numeral, PolyNf term) 
-  : Polynom(Monom(numeral, perfect(MonomFactors(term))))
+  : Polynom(Monom(numeral, MonomFactors(term)))
 {  }
 
 template<class Number>
@@ -991,7 +983,7 @@ Polynom<Number>::Polynom(PolyNf t)
 
 template<class Number>
 Polynom<Number>::Polynom(Numeral constant) 
-  : Polynom(Monom(constant, perfect(MonomFactors::one()))) 
+  : Polynom(Monom(constant, MonomFactors::one())) 
 {  }
 
 
@@ -1028,7 +1020,7 @@ Option<typename Number::ConstantType> Polynom<Number>::toNumber() const&
   if ( _summands.size() == 0) {
     return Option<Numeral>(Numeral(0));
 
-  } else if (_summands.size() == 1 && _summands[0].factors->nFactors() == 0) {
+  } else if (_summands.size() == 1 && _summands[0].factors.nFactors() == 0) {
     return Option<Numeral>(_summands[0].numeral);
 
   } else {
@@ -1053,10 +1045,10 @@ typename Number::ConstantType Polynom<Number>::unwrapNumber() const&
 //
 //   auto monomToTerm = [](Monom const& monom, TermList* t) -> TermList {
 //     auto c = TermList(theory->representConstant(monom.numeral));
-//     if (monom.factors->isOne()) {
+//     if (monom.factors.isOne()) {
 //       return c;
 //     } else {
-//       auto mon = monom.factors->denormalize(t);
+//       auto mon = monom.factors.denormalize(t);
 //       if (monom.numeral == Number::oneC()) {
 //         return mon;
 //       } else if (monom.numeral == Number::constant(-1)) {
@@ -1072,12 +1064,12 @@ typename Number::ConstantType Polynom<Number>::unwrapNumber() const&
 //   } else {
 //
 //     TermList out = monomToTerm(_summands[0], results);
-//     auto flatIdx = _summands[0].factors->nFactors();
+//     auto flatIdx = _summands[0].factors.nFactors();
 //
 //     for (unsigned i = 1; i < nSummands(); i++) {
 //       auto& monom = _summands[i];
 //       out = Number::add(monomToTerm(monom, &results[flatIdx]), out);
-//       flatIdx += monom.factors->nFactors();
+//       flatIdx += monom.factors.nFactors();
 //     }
 //     return out;
 //   }
@@ -1098,8 +1090,8 @@ Polynom<Number> Polynom<Number>::replaceTerms(PolyNf* simplifiedTerms) const
   for (auto& monom : _summands) {
     out.push(Monom(
           monom.numeral, 
-          perfect(monom.factors->replaceTerms(&simplifiedTerms[offs]))));
-    offs += monom.factors->nFactors();
+          monom.factors.replaceTerms(&simplifiedTerms[offs])));
+    offs += monom.factors.nFactors();
   }
   return Polynom(std::move(out));
 }
@@ -1111,7 +1103,7 @@ unsigned Polynom<Number>::nSummands() const
 
 template<class Number>
 unsigned Polynom<Number>::nFactors(unsigned summand) const
-{ return _summands[summand].factors->nFactors(); }
+{ return _summands[summand].factors.nFactors(); }
 
 template<class Number>
 Monom<Number> const& Polynom<Number>::summandAt(unsigned summand) const
@@ -1129,7 +1121,7 @@ void Polynom<Number>::integrity() const {
     auto iter = this->_summands.begin();
     auto last = iter++;
     while (iter != _summands.end()) {
-      // ASS_REP(std::less<Perfect<MonomFactors>>{}(last->factors, iter->factors), *this);
+      // ASS_REP(std::less<MonomFactors>{}(last->factors, iter->factors), *this);
       ASS_REP(last->factors <= iter->factors, *this);
       iter->integrity();
       last = iter++;
@@ -1137,11 +1129,6 @@ void Polynom<Number>::integrity() const {
   } 
 #endif
 }
-
-template<class Number>
-typename Polynom<Number>::SummandIter Polynom<Number>::iterSummands() const&
-{ return iterTraits(getArrayishObjectIterator<no_ref_t>(_summands)); }
-
 
 } // namespace Kernel
 

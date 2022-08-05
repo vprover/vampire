@@ -101,6 +101,7 @@ CancelAddResult<Number> cancelAdd(Polynom<Number> const& oldl, Polynom<Number> c
 
   using Numeral = typename Number::ConstantType;
   using Monom        = Monom       <Number>;
+  using MonomFactors = MonomFactors<Number>;
   using NumeralVec   = Stack<Monom>;
   unsigned itl = 0;
   unsigned itr = 0;
@@ -134,8 +135,8 @@ CancelAddResult<Number> cancelAdd(Polynom<Number> const& oldl, Polynom<Number> c
 
       auto lMinusR = safeMinus(l.numeral, r.numeral);
       auto rMinusL = safeMinus(r.numeral, l.numeral);
-      auto pushDiffLeft  = [&]() { newl.push(Monom(lMinusR.unwrap(), m)); };
-      auto pushDiffRight = [&]() { newr.push(Monom(rMinusL.unwrap(), m)); };
+      auto pushDiffLeft  = [&]() { newl.push(Monom(lMinusR.unwrap(), MonomFactors(m))); };
+      auto pushDiffRight = [&]() { newr.push(Monom(rMinusL.unwrap(), MonomFactors(m))); };
       auto pushSmaller = [&] () {
         if (cmpPrecedence(rMinusL, lMinusR.unwrap())) {
           pushDiffRight();

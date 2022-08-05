@@ -122,14 +122,14 @@ struct Preprocess
   { return components.root(varMap.toInt(v)); }
 
   template<class NumTraits> 
-  void operator()(Polynom<NumTraits> p) 
+  void operator()(Polynom<NumTraits> const& p) 
   {
     CALL("Preprocess::operator()")
 
     for (auto summand : p.iterSummands()) {
 
-      auto varIter = summand.factors->iter()
-            .filter([](MonomFactor<NumTraits> factor) { return factor.term.isVar(); });
+      auto varIter = summand.factors.iter()
+            .filter([](auto& factor) { return factor.term.isVar(); });
 
       auto varIter2 = varIter;
       auto varStack = VariableRegion(
@@ -184,25 +184,21 @@ struct Generalize
 
   template<class NumTraits>
   Monom<NumTraits> operator()(Monom<NumTraits> p, PolyNf* evaluatedArgs)  
-  {
-    CALL("Generalize::operator()")
-    using Pair = Monom<NumTraits>;
-    return Pair(p.numeral, perfect(MonomFactors<NumTraits>(filter(p.factors, evaluatedArgs))));
-  }
+  { return  Monom<NumTraits>(p.numeral, MonomFactors<NumTraits>(filter(p.factors, evaluatedArgs))); }
 
   template<class NumTraits>
-  Stack<MonomFactor<NumTraits>> filter(Perfect<MonomFactors<NumTraits>> const& factors, PolyNf* evaluatedArgs)
+  Stack<MonomFactor<NumTraits>> filter(MonomFactors<NumTraits> const& factors, PolyNf* evaluatedArgs)
   {
     Stack<MonomFactor<NumTraits>> out;
     unsigned rmI = 0;
     unsigned m = 0;
 
     auto skip = [&]() { rmI++; m++; };
-    auto push = [&]() { out.push(MonomFactor<NumTraits>(evaluatedArgs[m], factors->factorAt(m).power)); m++; };
+    auto push = [&]() { out.push(MonomFactor<NumTraits>(evaluatedArgs[m], factors.factorAt(m).power)); m++; };
 
 
-    while (m < factors->nFactors() && rmI < toRem.size()) {
-      auto factor = factors->factorAt(m);
+    while (m < factors.nFactors() && rmI < toRem.size()) {
+      auto factor = factors.factorAt(m);
       auto rm = toRem[rmI].template downcast<NumTraits>();
       if (rm.isNone()) {
         push();
@@ -215,7 +211,7 @@ struct Generalize
         rmI++;
       }
     }
-    while (m < factors->nFactors()) {
+    while (m < factors.nFactors()) {
       push();
     }
 

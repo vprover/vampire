@@ -36,10 +36,10 @@ struct Preprocess
 {
   PowerMap &powers;
 
-  void operator()(Polynom<RealTraits> p) 
+  void operator()(Polynom<RealTraits> const& p) 
   {
     for (auto summand : p.iterSummands()) {
-      for (auto factor : summand.factors->iter()) {
+      for (auto& factor : summand.factors.iter()) {
         auto var = factor.term.tryVar();
         if (var.isSome()) {
 
@@ -75,8 +75,8 @@ struct Generalize
     unsigned i = 0;
     return Monom<RealTraits>(
         p.numeral, 
-        perfect(MonomFactors<RealTraits>(
-          p.factors->iter()
+        MonomFactors<RealTraits>(
+          p.factors.iter()
            .map([&](MonomFactor<RealTraits> m) 
              { 
                 auto var = m.term.tryVar();
@@ -87,12 +87,12 @@ struct Generalize
                   return MonomFactor<RealTraits>(evaluatedArgs[i++], m.power); 
                 }
               })
-           .template collect<Stack>())));
+           .template collect<Stack>()));
   }
 
   template<class Num, EnableIfNotReal<Num> = 0>
   Monom<Num> operator()(Monom<Num> p, PolyNf* evaluatedArgs)  
-  { return Monom<Num>(p.numeral, perfect(p.factors->replaceTerms(evaluatedArgs))); }
+  { return Monom<Num>(p.numeral, p.factors.replaceTerms(evaluatedArgs)); }
 
 };
 

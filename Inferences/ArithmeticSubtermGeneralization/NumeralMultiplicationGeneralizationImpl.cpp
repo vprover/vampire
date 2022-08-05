@@ -50,14 +50,14 @@ struct Generalize
   {
     CALL("NumeralMultiplicationGeneralizationImpl::Generalize::operator()")
     using Monom = Monom<NumTraits>;
-    auto newFactors = perfect(monom.factors->replaceTerms(evaluatedArgs));
-    for (auto f : monom.factors->iter()) {
+    auto newFactors = monom.factors.replaceTerms(evaluatedArgs);
+    for (auto& f : monom.factors.iter()) {
       if (f.tryVar() == Option<Variable>(var)) {
         ASS_EQ(num.downcast<NumTraits>().unwrap(), monom.numeral)
-        return Monom(Numeral<NumTraits>(1), newFactors);
+        return Monom(Numeral<NumTraits>(1), std::move(newFactors));
       }
     }
-    return Monom(monom.numeral, newFactors);
+    return Monom(monom.numeral, std::move(newFactors));
   }
 };
 
@@ -74,7 +74,7 @@ SimplifyingGeneratingInference1::Result applyRule(Clause* cl, bool doOrderingChe
   for (auto poly : iterPolynoms(cl)) {
     poly.apply([&](auto& poly) {
       for (auto monom : poly.iterSummands()) {
-        for (auto factor : monom.factors->iter()) {
+        for (auto& factor : monom.factors.iter()) {
           
           auto var = factor.term.tryVar();
           if (var.isSome()) {

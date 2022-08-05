@@ -247,7 +247,7 @@ struct EvaluateMonom
                    CALL("EvaluateMonom::clsr01")
 
                    auto result = eval(m, &evaluatedArgs[offs]);
-                   offs += m.factors->nFactors();
+                   offs += m.factors.nFactors();
                    return result;
                })
             .template collect<Stack>());
@@ -322,7 +322,7 @@ Stack<C> intersectSortedStack(Stack<C>&& l, Stack<C>&& r)
   unsigned roffs = 0;
   while (loffs < l.size() && roffs < r.size()) {
     if (l[loffs] == r[roffs]) {
-      out[outOffs++] = l[loffs];
+      out[outOffs++] = std::move(l[loffs]);
       loffs++;
       roffs++;
     } else if(l[loffs] < r[roffs]) {
