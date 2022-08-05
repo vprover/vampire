@@ -145,8 +145,8 @@ std::ostream& operator<<(std::ostream& out, const FuncTerm& self)
 AnyPoly AnyPoly::replaceTerms(PolyNf* newTs) const 
 { return apply([&](auto& t) -> decltype(auto) { return AnyPoly(perfect(t->replaceTerms(newTs))); }); }
 
-TermList AnyPoly::denormalize(TermList* results) const
-{ return apply([&](auto& t) -> decltype(auto) { return t->denormalize(results); }); }
+// TermList AnyPoly::denormalize(TermList* results) const
+// { return apply([&](auto& t) -> decltype(auto) { return t->denormalize(results); }); }
 
 PolyNf const& AnyPoly::termAt(unsigned summand, unsigned factor)  const
 { return apply([&](auto& t) -> decltype(auto) { return t->summandAt(summand).factors->termAt(factor); }); }
@@ -165,9 +165,14 @@ std::ostream& operator<<(std::ostream& out, const AnyPoly& self)
 // impl PolyNf 
 ////////////////////////////
 
-// TODO
-// PolyNf::PolyNf(FuncTerm t) : Coproduct(t) {}
-// PolyNf::PolyNf(Variable t) : Coproduct(t) {}
+PolyNf::PolyNf(FuncTerm t) 
+  : _self(PolyNf::PTerm { ._tag = PTerm::Unint, ._term = t._self, })
+{ }
+
+PolyNf::PolyNf(Variable t) 
+  : _self(std::move(t))
+{ }
+
 // PolyNf::PolyNf(AnyPoly  t) : Coproduct(t) {}
 
 PolyNf PolyNf::fromNormalized(TypedTermList t)
