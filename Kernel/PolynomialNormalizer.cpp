@@ -371,9 +371,9 @@
 //
 //     TermList operator()(PolyNf orig, TermList* results)
 //     { return orig.match(
-//         [&](Perfect<FuncTerm> t) { return TermList(Term::create(t->function().id(), t->numTermArguments(), results)); },
-//         [&](Variable          v) { return TermList::var(v.id()); },
-//         [&](AnyPoly           p) { return p.denormalize(results); }
+//         [&](FuncTerm t) { return TermList(Term::create(t->function().id(), t->numTermArguments(), results)); },
+//         [&](Variable v) { return TermList::var(v.id()); },
+//         [&](AnyPoly  p) { return p.denormalize(results); }
 //         ); }
 //   };
 //

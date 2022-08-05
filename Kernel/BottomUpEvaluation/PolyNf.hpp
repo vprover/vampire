@@ -61,19 +61,19 @@ struct BottomUpChildIter<Kernel::PolyNf>
   struct FuncTermBottomUpChildIter 
   {
 
-    Perfect<Kernel::FuncTerm> _self;
+    Kernel::FuncTerm _self;
     unsigned _idx;
 
-    FuncTermBottomUpChildIter(Perfect<Kernel::FuncTerm> self) : _self(self), _idx(0) {}
+    FuncTermBottomUpChildIter(Kernel::FuncTerm self) : _self(std::move(self)), _idx(0) {}
 
     bool hasNext() const
-    { return _idx < _self->numTermArguments(); }
+    { return _idx < _self.numTermArguments(); }
 
     Kernel::PolyNf next() 
-    { return _self->arg(_idx++); }
+    { return _self.arg(_idx++); }
 
     unsigned nChildren() const
-    { return _self->numTermArguments(); }
+    { return _self.numTermArguments(); }
 
     friend ostream& operator<<(ostream& out, FuncTermBottomUpChildIter const& self) 
     { return out << self._self << "@" << self._idx; }
@@ -102,9 +102,9 @@ struct BottomUpChildIter<Kernel::PolyNf>
   Inner _self;
 
   BottomUpChildIter(Kernel::PolyNf self) : _self(self.match(
-        [&](Perfect<Kernel::FuncTerm> self) { return Inner(FuncTermBottomUpChildIter( self ));            },
-        [&](Kernel::Variable                  self) { return Inner(VariableBottomUpChildIter( self ));            },
-        [&](Kernel::AnyPoly           self) { return Inner(PolynomialBottomUpChildIter(std::move(self))); }
+        [&](Kernel::FuncTerm self) { return Inner( FuncTermBottomUpChildIter(std::move(self))); },
+        [&](Kernel::Variable self) { return Inner( VariableBottomUpChildIter(std::move(self))); },
+        [&](Kernel::AnyPoly  self) { return Inner(PolynomialBottomUpChildIter(std::move(self))); }
       ))
   {}
 

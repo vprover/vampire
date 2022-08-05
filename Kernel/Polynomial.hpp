@@ -254,7 +254,7 @@ class PolyNf
 public:
   CLASS_NAME(PolyNf)
 
-  PolyNf(Perfect<FuncTerm> t);
+  PolyNf(FuncTerm t);
   PolyNf(Variable          t);
   PolyNf(AnyPoly           t);
 
@@ -262,13 +262,13 @@ public:
   template<class FUnint, class FVar, class FPoly>
   auto match(FUnint unint, FVar var, FPoly poly) const
   {
-    using Out = std::result_of_t<FUnint(Perfect<FuncTerm>)>;
+    using Out = std::result_of_t<FUnint(FuncTerm)>;
     return _self.match(
         [var=std::move(var)](auto const& x) { return Out(var(x)); },
         [poly = std::move(poly), unint = std::move(unint)](PTerm const& t) { 
           switch (t._tag) {
             case PTerm::Poly: return Out(poly(AnyPoly(t._term)));
-            case PTerm::Unint: return Out(unint(perfect(FuncTerm(t._term))));
+            case PTerm::Unint: return Out(unint(FuncTerm(t._term)));
           }
         });
   }
@@ -781,9 +781,9 @@ Option<typename Number::ConstantType> PolyNf::tryNumeral() const
 { 
   using Numeral = typename Number::ConstantType;
   return match(
-      [](Perfect<FuncTerm> t) { return (*t).tryNumeral<Number>(); },
-      [](Variable               t) { return Option<Numeral>();              },
-      [](AnyPoly                t) { return t.template tryNumeral<Number>(); }
+      [](FuncTerm t) { return t.tryNumeral<Number>(); },
+      [](Variable t) { return Option<Numeral>();              },
+      [](AnyPoly  t) { return t.template tryNumeral<Number>(); }
     );
 }
 

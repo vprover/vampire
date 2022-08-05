@@ -166,9 +166,9 @@ std::ostream& operator<<(std::ostream& out, const AnyPoly& self)
 ////////////////////////////
 
 // TODO
-// PolyNf::PolyNf(Perfect<FuncTerm> t) : Coproduct(t) {}
-// PolyNf::PolyNf(Variable          t) : Coproduct(t) {}
-// PolyNf::PolyNf(AnyPoly           t) : Coproduct(t) {}
+// PolyNf::PolyNf(FuncTerm t) : Coproduct(t) {}
+// PolyNf::PolyNf(Variable t) : Coproduct(t) {}
+// PolyNf::PolyNf(AnyPoly  t) : Coproduct(t) {}
 
 
 std::ostream& operator<<(std::ostream& out, const PolyNf& self)

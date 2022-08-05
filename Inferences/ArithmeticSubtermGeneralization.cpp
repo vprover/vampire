@@ -177,8 +177,8 @@ struct EvaluateAnyPoly
   {
     CALL("EvaluateAnyPoly::operator()")
     auto out = term.match(
-        [&](Perfect<FuncTerm> t) -> PolyNf
-        { return perfect(FuncTerm(t->function(), evaluatedArgs)); },
+        [&](FuncTerm t) -> PolyNf
+        { return FuncTerm(t.function(), evaluatedArgs); },
 
         [&](Variable v) 
         { return PolyNf(v); },
