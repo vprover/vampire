@@ -421,6 +421,8 @@ struct MonomFactor
   CLASS_NAME(MonomFactor)
   MAKE_DERIVABLE(MonomFactor, term, power)
     DERIVE_EQ
+    DERIVE_CMP
+    DERIVE_HASH
 
   MonomFactor(PolyNf term, int power);
    
@@ -442,7 +444,6 @@ class MonomFactors
   using Numeral = typename Number::ConstantType;
 
   Stack<MonomFactor> _factors;
-  friend struct std::hash<MonomFactors>;
 
 public:
   CLASS_NAME(MonomFactors)
@@ -450,6 +451,7 @@ public:
   MAKE_DERIVABLE(MonomFactors, _factors)
     DERIVE_EQ
     DERIVE_CMP
+    DERIVE_HASH
 
   /** 
    * constructs a new MonomFactors. 
@@ -566,6 +568,10 @@ DERIVE_STD_HASH(Kernel::AnyPoly)
 DERIVE_STD_HASH(Kernel::FuncId)
 DERIVE_STD_HASH(Kernel::Variable)
 DERIVE_STD_HASH(Kernel::FuncTerm)
+template<class NumTraits> TEMPLATE_DERIVE_STD_HASH(Kernel::MonomFactor<NumTraits>)
+template<class NumTraits> TEMPLATE_DERIVE_STD_HASH(Kernel::MonomFactors<NumTraits>)
+template<class NumTraits> TEMPLATE_DERIVE_STD_HASH(Kernel::Monom<NumTraits>)
+template<class NumTraits> TEMPLATE_DERIVE_STD_HASH(Kernel::Polynom<NumTraits>)
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -820,19 +826,6 @@ Option<Variable> MonomFactor<Number>::tryVar() const
 
 } // namespace Kernel
 
-template<class NumTraits>
-struct std::hash<Kernel::MonomFactor<NumTraits>> 
-{
-  size_t operator()(Kernel::MonomFactor<NumTraits> const& x) const noexcept 
-  {
-    using namespace Lib;
-    using namespace Kernel;
-
-    return HashUtils::combine(stlHash(x.term), stlHash(x.power));
-  }
-};
-
-
 /////////////////////////////////////////////////////////
 // impl MonomFactors  tempalte stuff
 ////////////////////////////
@@ -962,23 +955,6 @@ MonomFactors<Number> MonomFactors<Number>::replaceTerms(PolyNf* simplifiedTerms)
 }
 
 } // namespace Kernel
-
-template<class NumTraits>
-struct std::hash<Kernel::MonomFactors<NumTraits>> 
-{
-  size_t operator()(Kernel::MonomFactors<NumTraits> const& x) const noexcept 
-  {
-    using namespace Lib;
-    using namespace Kernel;
-
-    unsigned out = HashUtils::combine(84586,10);
-    for (auto f : x._factors) {
-      out = HashUtils::combine(stlHash(f), out);
-    }
-    return out;
-  }
-};
-
 
 /////////////////////////////////////////////////////////
 // impl Polynom tempalte stuff
@@ -1161,26 +1137,6 @@ void Polynom<Number>::integrity() const {
 }
 
 } // namespace Kernel
-
-template<class NumTraits>
-struct std::hash<Kernel::Polynom<NumTraits>> 
-{
-  size_t operator()(Kernel::Polynom<NumTraits> const& x) const noexcept 
-  {
-    using namespace Lib;
-    using namespace Kernel;
-
-    unsigned out = HashUtils::combine(0,0);
-    for (auto c : x._summands) {
-      out = HashUtils::combine(
-              stlHash(c.factors),
-              stlHash(c.numeral),
-              out);
-    }
-    return out;
-  }
-};
-
 
 #undef DEBUG
 #endif // __POLYNOMIAL__H__

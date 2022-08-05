@@ -107,11 +107,15 @@
   Self& operator=(Self const&) = default;                                                           \
   Self& operator=(Self     &&) = default;                                                           \
 
-#define DERIVE_STD_HASH(Class)                                                                        \
-  template<>                                                                                        \
+#define TEMPLATE_DERIVE_STD_HASH(Class)                                                                        \
   struct std::hash<Class>                                                                           \
   { size_t operator()(Class const& self)                                                            \
     { return self.hash<Lib::StlHash>(); } };
+
+
+#define DERIVE_STD_HASH(Class)                                                                        \
+  template<>                                                                                        \
+  TEMPLATE_DERIVE_STD_HASH(Class)
 
 /**
  * Declare type returned by an iterator
