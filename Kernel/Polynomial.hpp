@@ -150,6 +150,9 @@ struct Monom
 
   /** performs an integrity check on the datastructure, only has an effect in debug mode */
   void integrity() const;
+
+  static Monom fromNormalized(TermList);
+  TermList denormalize() const;
 };
 
 
@@ -159,6 +162,8 @@ struct Monom
 class FuncTerm 
 {
   friend class PolyNf;
+  template<class NumTraits>
+  friend struct MonomFactor;
   Term* _self;
   FuncTerm(Term* t);
 public:
@@ -180,7 +185,7 @@ public:
   template<class Number> 
   Option<typename Number::ConstantType> tryNumeral() const;
 
-  static FuncTerm fromNormalized(Term* t);
+  static FuncTerm fromNormalized(Term* t) { return FuncTerm(t); }
   friend std::ostream& operator<<(std::ostream& out, const FuncTerm& self);
   TermList denormalize() const { return TermList(_self); }
 };
@@ -428,6 +433,9 @@ struct MonomFactor
    
   /** if this monomfactor is a Variable and has power one it is turned into a variable */
   Option<Variable> tryVar() const;
+
+  static MonomFactor fromNormalized(TermList);
+  TermList denormalize() const;
 };
 
 
@@ -519,6 +527,7 @@ public:
   TermList denormalize()  const;
 
   Stack<MonomFactor>& raw();
+  static MonomFactors fromNormalized(TermList);
 };
 
 
@@ -636,7 +645,22 @@ std::ostream& operator<<(std::ostream& out, const Monom<Number>& self)
 
 
 template<class Number>
-TermList MonomFactors<Number>::denormalize()  const
+TermList MonomFactor<Number>::denormalize() const
+{
+  CALL("MonomFactors::denormalize()")
+
+  ASS(this->power > 0)
+  auto t = this->term.denormalize();
+  TermList out = t;
+  for (int i = 1; i < this->power; i++) {
+    out = Number::mul(t, out);
+  }
+  return out;
+}
+
+
+template<class Number>
+TermList MonomFactors<Number>::denormalize() const
 {
   CALL("MonomFactors::denormalize()")
 
@@ -644,19 +668,10 @@ TermList MonomFactors<Number>::denormalize()  const
     return Number::one();
   } else {
 
-    auto powerTerm = [](TermList t, int pow) -> TermList {
-      ASS(pow > 0)
-      TermList out = t;
-      for (int i = 1; i < pow; i++) {
-        out = Number::mul(t,out);
-      }
-      return out;
-    };
-
-    TermList out = powerTerm(_factors[0].term.denormalize(), _factors[0].power);
+    TermList out = _factors[_factors.size() - 1].denormalize();
 
     for (unsigned i = 1; i < nFactors(); i++) {
-      out = Number::mul(out, powerTerm(_factors[i].term.denormalize(), _factors[i].power));
+      out = Number::mul(_factors[_factors.size() - i - 1].denormalize(), out);
     }
 
     return out;
@@ -1044,6 +1059,122 @@ template<class Number>
 typename Number::ConstantType Polynom<Number>::unwrapNumber() const& 
 { return toNumber().unwrap(); }
 
+template<class NumTraits>
+Option<Polynom<NumTraits>> Polynom<NumTraits>::tryFromNormalized(TypedTermList t)
+{
+  if (t.sort() != NumTraits::sort()) {
+    return Option<Polynom>();
+  } else {
+    auto isAdd = [](auto t) 
+    { return t.isTerm() && t.term()->functor() == NumTraits::addF(); };
+
+    Stack<Monom> summands(1);
+    TermList curr = t;
+    while (isAdd(curr)) {
+      ASS(!isAdd(curr.term()->termArg(0)))
+      summands.push(Monom::fromNormalized(curr.term()->termArg(0)));
+      curr = curr.term()->termArg(1);
+    }
+  // TODO sorted assertions
+    return Option<Polynom>(Polynom(std::move(summands)));
+  }
+}
+
+
+template<class NumTraits>
+Monom<NumTraits> Monom<NumTraits>::fromNormalized(TermList t)
+{
+  ASS(t.isVar() || SortHelper::getResultSort(t.term()) == NumTraits::sort())
+  if (t.isTerm()) {
+    auto trm = t.term();
+
+    if (trm->functor() == NumTraits::mulF()) {
+      auto num = NumTraits::tryNumeral(trm->termArg(0));
+      if (num.isSome()) {
+        ASS(num.unwrap() != Numeral(1))
+        return Monom(num.unwrap(), MonomFactors<NumTraits>::fromNormalized(t.term()->termArg(1)));
+      }
+
+    } else if (NumTraits::tryNumeral(t).isSome()) {
+      auto num = NumTraits::tryNumeral(t).unwrap();
+      return Monom(num, MonomFactors<NumTraits>::one());
+    }
+
+  }
+  return Monom(Numeral(1), MonomFactors<NumTraits>::fromNormalized(t));
+}
+
+
+template<class NumTraits>
+MonomFactors<NumTraits> MonomFactors<NumTraits>::fromNormalized(TermList t)
+{
+  ASS(t.isVar() || SortHelper::getResultSort(t.term()) == NumTraits::sort())
+  auto isMul = [](auto t) 
+  { return t.isTerm() && t.term()->functor() == NumTraits::mulF(); };
+
+  Stack<MonomFactor> factors(1);
+  TermList curr = t;
+  while (isMul(curr)) {
+    // ASS(!isMul(curr.term()->termArg(0)))
+    factors.push(MonomFactor::fromNormalized(curr.term()->termArg(0)));
+    curr = curr.term()->termArg(1);
+  }
+  // TODO sorted assertions
+  return MonomFactors(std::move(factors));
+}
+
+
+template<class NumTraits>
+MonomFactor<NumTraits> MonomFactor<NumTraits>::fromNormalized(TermList t)
+{
+  ASS(t.isVar() || SortHelper::getResultSort(t.term()) == NumTraits::sort())
+  auto isMul = [](auto t) 
+  { return t.isTerm() && t.term()->functor() == NumTraits::mulF(); };
+
+  unsigned cnt;
+  TermList inner;
+  if (isMul(t)) {
+    inner = t.term()->termArg(0);
+    TermList curr = t;
+    cnt = 1;
+    
+    while (isMul(curr)) {
+      ASS_EQ(curr.term()->termArg(0), inner)
+      curr = curr.term()->termArg(1);
+      cnt++;
+    }
+
+  } else {
+    inner = t;
+    cnt = 1;
+  }
+  // TODO sorted assertions
+  return MonomFactor(inner.isVar() 
+      ? PolyNf(Variable(inner.var())) 
+      : PolyNf(FuncTerm(inner.term())), cnt);
+}
+
+
+template<class Number>
+TermList Monom<Number>::denormalize() const
+{
+  CALL("Monom::denormalize()")
+  auto c = TermList(theory->representConstant(this->numeral));
+  if (this->factors.isOne()) {
+    return c;
+  } else {
+    auto mon = this->factors.denormalize();
+    if (this->numeral == Number::oneC()) {
+      return mon;
+    } else if (this->numeral == Number::constant(-1)) {
+      return Number::minus(mon);
+    } else {
+      return Number::mul(c, mon);
+    }
+  }
+}
+
+
 template<class Number>
 TermList Polynom<Number>::denormalize() const
 {
@@ -1069,13 +1200,11 @@ TermList Polynom<Number>::denormalize() const
     return Number::zero();
   } else {
 
-    TermList out = monomToTerm(_summands[0]);
-    auto flatIdx = _summands[0].factors.nFactors();
+    TermList out = monomToTerm(_summands[_summands.size() - 1]);
 
     for (unsigned i = 1; i < nSummands(); i++) {
-      auto& monom = _summands[i];
+      auto& monom = _summands[_summands.size() - i - 1];
       out = Number::add(monomToTerm(monom), out);
-      flatIdx += monom.factors.nFactors();
     }
     return out;
   }
