@@ -19,7 +19,7 @@
 #include "Lib/Stack.hpp"
 #include "Lib/System.hpp"
 #include "Lib/ScopedLet.hpp"
-#include "Lib/TimeCounter.hpp"
+#include "Debug/TimeProfiling.hpp"
 #include "Lib/Timer.hpp"
 #include "Lib/Sys/Multiprocessing.hpp"
 
@@ -114,9 +114,11 @@ bool PortfolioMode::perform(float slowness)
         env.out()<<"SZS status Timeout for "<<env.options->problemName()<<endl;
       }
     }
+#if VTIME_PROFILING
     if (env.options && env.options->timeStatistics()) {
-      TimeCounter::printReport(env.out());
+      TimeTrace::instance().printPretty(env.out());
     }
+#endif // VTIME_PROFILING
     env.endOutput();
   }
 
@@ -127,8 +129,6 @@ bool PortfolioMode::searchForProof()
 {
   CALL("PortfolioMode::searchForProof");
 
-  TimeCounter::reinitialize();
-
   _prb = UIHelper::getInputProblem(*env.options);
 
   /* CAREFUL: Make sure that the order
@@ -137,7 +137,7 @@ bool PortfolioMode::searchForProof()
    * also, cf. the beginning of Preprocessing::preprocess*/
   Shell::Property* property = _prb->getProperty();
   {
-    TimeCounter tc(TC_PREPROCESSING);
+    TIME_TRACE(TimeTrace::Groups::PREPROCESSING);
 
     //we normalize now so that we don't have to do it in every child Vampire
     ScopedLet<Statistics::ExecutionPhase> phaseLet(env.statistics->phase,Statistics::NORMALIZATION);
@@ -350,6 +350,7 @@ void PortfolioMode::getSchedules(Property& prop, Schedule& quick, Schedule& fall
 
 bool PortfolioMode::runSchedule(Shell::Property *property, Schedule schedule) {
   CALL("PortfolioMode::runSchedule");
+  TIME_TRACE("run schedule");
 
   Schedule::BottomFirstIterator it(schedule);
   Set<pid_t> processes;
@@ -375,6 +376,7 @@ bool PortfolioMode::runSchedule(Shell::Property *property, Schedule schedule) {
       ASS_NEQ(process, -1);
       if(process == 0)
       {
+        TIME_TRACE_NEW_ROOT("child process")
         runSlice(code, remainingTime);
         ASSERTION_VIOLATION; // should not return
       }
@@ -496,6 +498,7 @@ unsigned PortfolioMode::getSliceTime(const vstring &sliceCode)
 void PortfolioMode::runSlice(vstring sliceCode, int timeLimitInDeciseconds)
 {
   CALL("PortfolioMode::runSlice");
+  TIME_TRACE("run slice");
 
   int sliceTime = getSliceTime(sliceCode);
   if (sliceTime > timeLimitInDeciseconds)
@@ -539,7 +542,6 @@ void PortfolioMode::runSlice(Options& strategyOpt)
   int resultValue=1;
   env.timer->reset();
   env.timer->start();
-  TimeCounter::reinitialize();
   Timer::setLimitEnforcement(true);
 
   Options opt = strategyOpt;
@@ -631,6 +633,5 @@ void PortfolioMode::runSlice(Options& strategyOpt)
   }
 
   STOP_CHECKING_FOR_ALLOCATOR_BYPASSES;
-
   exit(resultValue);
 } // runSlice
