@@ -18,12 +18,12 @@ Option<PolyNf> trySimplifyUnaryMinus(PolyNf* evalArgs)
   using Numeral = typename Number::ConstantType;
   using Polynom = Polynom<Number>;
 
-  auto out = Polynom(*evalArgs[0].template wrapPoly<Number>());
+  auto out = Polynom(evalArgs[0].template wrapPoly<Number>());
 
   for (unsigned i = 0; i < out.nSummands(); i++) {
      out.summandAt(i).numeral = out.summandAt(i).numeral * Numeral(-1);
   }
-  return some<PolyNf>(PolyNf(AnyPoly(perfect(std::move(out)))));
+  return some<PolyNf>(PolyNf(AnyPoly(std::move(out))));
 }
 
 template<class Number, class Clsr>
@@ -32,7 +32,7 @@ Option<PolyNf> trySimplifyConst2(PolyNf* evalArgs, Clsr f)
   auto lhs = evalArgs[0].template tryNumeral<Number>();
   auto rhs = evalArgs[1].template tryNumeral<Number>();
   if (lhs.isSome() && rhs.isSome()) {
-    return some<PolyNf>(PolyNf(AnyPoly(perfect(Polynom<Number>(f(lhs.unwrap(), rhs.unwrap()))))));
+    return some<PolyNf>(PolyNf(AnyPoly(Polynom<Number>(f(lhs.unwrap(), rhs.unwrap())))));
   } else {
     return none<PolyNf>();
   }
@@ -51,7 +51,7 @@ Option<PolyNf> trySimplifyQuotient(PolyNf* evalArgs, NumEval f)
   if (rhs.isSome() && rhs.unwrap() == Numeral(1)) {
     return some<PolyNf>(evalArgs[0]);
   } else if (lhs.isSome() && rhs.isSome()) {
-    return some<PolyNf>(PolyNf(AnyPoly(perfect(Polynom<Number>(f(lhs.unwrap(), rhs.unwrap()))))));
+    return some<PolyNf>(PolyNf(AnyPoly(Polynom<Number>(f(lhs.unwrap(), rhs.unwrap())))));
   } else {
     return none<PolyNf>();
   }
@@ -64,9 +64,9 @@ Option<PolyNf> trySimplifyRemainder(PolyNf* evalArgs, NumEval f)
   auto lhs = evalArgs[0].template tryNumeral<Number>();
   auto rhs = evalArgs[1].template tryNumeral<Number>();
   if (rhs.isSome() && rhs.unwrap() == Numeral(1)) {
-    return some<PolyNf>(PolyNf(AnyPoly(perfect(Polynom<Number>(Numeral(0))))));
+    return some<PolyNf>(PolyNf(AnyPoly(Polynom<Number>(Numeral(0)))));
   } else if (lhs.isSome() && rhs.isSome()) {
-    return some<PolyNf>(PolyNf(AnyPoly(perfect(Polynom<Number>(f(lhs.unwrap(), rhs.unwrap()))))));
+    return some<PolyNf>(PolyNf(AnyPoly(Polynom<Number>(f(lhs.unwrap(), rhs.unwrap())))));
   } else {
     return none<PolyNf>();
   }
@@ -110,7 +110,7 @@ IMPL_QUOTIENT_REMAINDER(E)
       auto lhs = evalArgs[0].tryNumeral<NumTraits>();                                                         \
       auto rhs = evalArgs[1].tryNumeral<NumTraits>();                                                         \
       if (lhs.isSome() && rhs.isSome() && rhs.unwrap() != Numeral(0)) {                                       \
-        return Option<PolyNf>(PolyNf(AnyPoly(perfect(Polynom<NumTraits>(lhs.unwrap() / rhs.unwrap())))));     \
+        return Option<PolyNf>(PolyNf(AnyPoly(Polynom<NumTraits>(lhs.unwrap() / rhs.unwrap()))));              \
       } else {                                                                                                \
         return Option<PolyNf>();                                                                              \
       }                                                                                                       \

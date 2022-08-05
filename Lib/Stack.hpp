@@ -865,6 +865,27 @@ public:
     }
   }
 
+  friend bool operator<(Stack const& l, Stack const& r) 
+  {
+    if (l.size() < r.size()) 
+      return true;
+    else if (r.size() < l.size())
+      return false;
+    else {
+      auto liter = l.iter();
+      auto riter = r.iter();
+      while (liter.hasNext()) {
+        auto& li = liter.next();
+        auto& ri = riter.next();
+        if (li < ri)
+          return true;
+        else if (ri < li)
+          return false;
+      }
+      return false;
+    }
+  }
+  friend bool operator>(Stack const& l, Stack const& r) { return r < l; }
 };
 
 template<typename C>

@@ -36,9 +36,9 @@ struct Preprocess
 {
   PowerMap &powers;
 
-  void operator()(Perfect<Polynom<RealTraits>> p) 
+  void operator()(Polynom<RealTraits> p) 
   {
-    for (auto summand : p->iterSummands()) {
+    for (auto summand : p.iterSummands()) {
       for (auto factor : summand.factors->iter()) {
         auto var = factor.term.tryVar();
         if (var.isSome()) {
@@ -60,7 +60,7 @@ struct Preprocess
 
 
   template<class Num, EnableIfNotReal<Num> = 0> 
-  void operator()(Perfect<Polynom<Num>> p) 
+  void operator()(Polynom<Num> p) 
   { }
 
 };

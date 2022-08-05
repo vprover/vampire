@@ -73,7 +73,7 @@ SimplifyingGeneratingInference1::Result applyRule(Clause* cl, bool doOrderingChe
   /* scan candidate numeral multiplications n * x  */
   for (auto poly : iterPolynoms(cl)) {
     poly.apply([&](auto& poly) {
-      for (auto monom : poly->iterSummands()) {
+      for (auto monom : poly.iterSummands()) {
         for (auto factor : monom.factors->iter()) {
           
           auto var = factor.term.tryVar();

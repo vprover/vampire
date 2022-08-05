@@ -203,7 +203,7 @@ template<class Number>
 Monom<Number> simplifyMonom(Monom<Number> const&, PolyNf* simplifiedArgs);
 
 AnyPoly simplifyPoly(AnyPoly const& p, PolyNf* ts)
-{ return p.apply([&](auto& p) { return AnyPoly(perfect(simplifyPoly(*p, ts))); }); }
+{ return p.apply([&](auto& p) { return AnyPoly(simplifyPoly(p, ts)); }); }
 
 Option<PolyNf> PolynomialEvaluation::evaluate(PolyNf normalized) const 
 {

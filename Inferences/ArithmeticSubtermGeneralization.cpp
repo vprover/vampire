@@ -198,7 +198,7 @@ struct EvalPolynomClsr {
   PolyNf* evaluatedArgs;
 
   template<class NumTraits>
-  AnyPoly operator()(Perfect<Polynom<NumTraits>> poly)
+  AnyPoly operator()(Polynom<NumTraits> const& poly)
   { return AnyPoly(eval(poly, evaluatedArgs)); }
 };
 
@@ -233,7 +233,7 @@ struct EvaluateMonom
   using Result = PolyNf;
 
   template<class NumTraits>
-  Perfect<Polynom<NumTraits>> operator()(Perfect<Polynom<NumTraits>> poly, PolyNf* evaluatedArgs)
+  Polynom<NumTraits> operator()(Polynom<NumTraits> const& poly, PolyNf* evaluatedArgs)
   { 
     CALL("EvaluateMonom::operator()(AnyPoly, PolyNf*)")
 
@@ -241,8 +241,8 @@ struct EvaluateMonom
     using Monom  = Kernel::Monom<NumTraits>;
 
     unsigned offs = 0;
-    return perfect(Polynom(
-                poly->iterSummands()
+    return Polynom(
+                poly.iterSummands()
                  .map([&](Monom m) -> Monom { 
                    CALL("EvaluateMonom::clsr01")
 
@@ -250,7 +250,7 @@ struct EvaluateMonom
                    offs += m.factors->nFactors();
                    return result;
                })
-            .template collect<Stack>()));
+            .template collect<Stack>());
   }
 
   PolyNf operator()(PolyNf term, PolyNf* evaluatedArgs) 

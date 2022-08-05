@@ -30,16 +30,6 @@ Variable::Variable(unsigned num) : _num(num) {}
 unsigned Variable::id() const 
 { return _num; }
 
-
-bool operator==(Variable lhs, Variable rhs) 
-{ return lhs._num == rhs._num; }
-
-bool operator!=(Variable lhs, Variable rhs) 
-{ return !(lhs == rhs); }
-
-bool operator<(Variable const& lhs, Variable const& rhs)
-{ return lhs._num < rhs._num; }
-
 std::ostream& operator<<(std::ostream& out, const Variable& self) 
 { return out << "X" << self._num; }
 
@@ -138,22 +128,22 @@ std::ostream& operator<<(std::ostream& out, const FuncTerm& self)
 
 
 AnyPoly AnyPoly::replaceTerms(PolyNf* newTs) const 
-{ return apply([&](auto& t) -> decltype(auto) { return AnyPoly(perfect(t->replaceTerms(newTs))); }); }
+{ return apply([&](auto& t) -> decltype(auto) { return AnyPoly(t.replaceTerms(newTs)); }); }
 
 // TermList AnyPoly::denormalize(TermList* results) const
 // { return apply([&](auto& t) -> decltype(auto) { return t->denormalize(results); }); }
 
 PolyNf const& AnyPoly::termAt(unsigned summand, unsigned factor)  const
-{ return apply([&](auto& t) -> decltype(auto) { return t->summandAt(summand).factors->termAt(factor); }); }
+{ return apply([&](auto& t) -> decltype(auto) { return t.summandAt(summand).factors->termAt(factor); }); }
 
 unsigned AnyPoly::nSummands() const 
-{ return apply([&](auto& t) -> decltype(auto) { return t->nSummands(); }); }
+{ return apply([&](auto& t) -> decltype(auto) { return t.nSummands(); }); }
 
 unsigned AnyPoly::nFactors(unsigned i) const 
-{ return apply([&](auto& t) -> decltype(auto) { return t->nFactors(i); }); }
+{ return apply([&](auto& t) -> decltype(auto) { return t.nFactors(i); }); }
 
 std::ostream& operator<<(std::ostream& out, const AnyPoly& self) 
-{ return self.apply([&](auto& t) -> decltype(auto) { return out << *t; }); }
+{ return self.apply([&](auto& t) -> decltype(auto) { return out << t; }); }
 
 
 /////////////////////////////////////////////////////////

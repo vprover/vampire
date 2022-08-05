@@ -40,19 +40,14 @@ Literal* cancelAdd(Literal* lit) {
 
   auto oldL = normL.template wrapPoly<NumTraits>();
   auto oldR = normR.template wrapPoly<NumTraits>();
-  auto res = cancelAdd(*oldL, *oldR);
+  // TODO prevent copying here
+  auto res = cancelAdd(oldL, oldR);
 
   res.lhs.integrity();
   res.rhs.integrity();
 
-  auto newL = perfect(std::move(res.lhs));
-  auto newR = perfect(std::move(res.rhs));
-
-  if (newL != oldL || newR != oldR)  {
-    TermList args[] = {
-      newL->denormalize(),
-      newR->denormalize(),
-    };
+  if (res.lhs != oldL || res.rhs != oldR)  {
+    TermList args[] = {res.lhs.denormalize(), res.rhs.denormalize()};
     return Literal::create(lit, args);
   } else  {
     return lit;

@@ -38,8 +38,8 @@ template<class ConstantType, class EvalGround>
 Option<LitSimplResult> tryEvalConstant2(Literal* orig, PolyNf* evaluatedArgs, EvalGround fun) 
 {
   using Number = NumTraits<ConstantType>;
-  auto& lhs = *evaluatedArgs[0].downcast<Number>().unwrap();
-  auto& rhs = *evaluatedArgs[1].downcast<Number>().unwrap();
+  auto const& lhs = evaluatedArgs[0].downcast<Number>().unwrap();
+  auto const& rhs = evaluatedArgs[1].downcast<Number>().unwrap();
   if (lhs.isNumber() && rhs.isNumber()) {
     return Option<LitSimplResult>(LitSimplResult::constant(fun(lhs.unwrapNumber(), rhs.unwrapNumber())));
   } else {
@@ -51,9 +51,9 @@ Option<LitSimplResult> tryEvalConstant2(Literal* orig, PolyNf* evaluatedArgs, Ev
 /// Equality
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-template<class Number> inline Option<LitSimplResult> interpretEquality(bool polarity, Perfect<Polynom<Number>> lhs, Perfect<Polynom<Number>> rhs) {
-  if (lhs->isNumber() && rhs->isNumber()) {
-    return Option<LitSimplResult>(LitSimplResult::constant(polarity == (lhs->unwrapNumber() == rhs->unwrapNumber())));
+template<class Number> inline Option<LitSimplResult> interpretEquality(bool polarity, Polynom<Number> const& lhs, Polynom<Number> const& rhs) {
+  if (lhs.isNumber() && rhs.isNumber()) {
+    return Option<LitSimplResult>(LitSimplResult::constant(polarity == (lhs.unwrapNumber() == rhs.unwrapNumber())));
   } else if (lhs == rhs) {
     return Option<LitSimplResult>(LitSimplResult::constant(polarity));
   } else {
@@ -93,12 +93,13 @@ template<class ConstantType, class EvalIneq> Option<LitSimplResult> evaluateIneq
   ASS(orig->numTermArguments() == 2);
 
 
+  // TODO we don't need to wrapPoly here. add function PolyNf::isNumber instead
   auto lhs = evaluatedArgs[0].template wrapPoly<NumTraits<ConstantType>>();
   auto rhs = evaluatedArgs[1].template wrapPoly<NumTraits<ConstantType>>();
 
   auto polarity = orig->polarity();
-  if (lhs->isNumber() && rhs->isNumber()) {
-    return Option<LitSimplResult>(LitSimplResult::constant(polarity == evalIneq(lhs->unwrapNumber(), rhs->unwrapNumber())));
+  if (lhs.isNumber() && rhs.isNumber()) {
+    return Option<LitSimplResult>(LitSimplResult::constant(polarity == evalIneq(lhs.unwrapNumber(), rhs.unwrapNumber())));
   } else if (lhs == rhs) {
     return Option<LitSimplResult>(LitSimplResult::constant(polarity != strict));
   } else {

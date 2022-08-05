@@ -45,10 +45,10 @@ public:
   static MonomSet bot() 
   { return MonomSet(decltype(_cancellable){}); }
 
-  MonomSet(Variable var, Perfect<Polynom<NumTraits>> poly) : MonomSet(decltype(_cancellable)()) 
+  MonomSet(Variable var, Polynom<NumTraits> poly) : MonomSet(decltype(_cancellable)()) 
   {
-    _cancellable.reserve(poly->nSummands() - 1);
-    for (auto const& monom : poly->iterSummands()) {
+    _cancellable.reserve(poly.nSummands() - 1);
+    for (auto const& monom : poly.iterSummands()) {
       if (monom.tryVar() != some(var)) {
         _cancellable.push(monom);
       }
@@ -77,12 +77,12 @@ struct Preprocess
   GenMap& map;
 
   template<class NumTraits> 
-  void operator()(Perfect<Polynom<NumTraits>> poly)
+  void operator()(Polynom<NumTraits> poly)
   {
     CALL("AdditionGeneralizationImpl::Preprocess::operator()")
     // a variable might occur twice within one sum.
     Set<Variable, StlHash> didOccur;
-    for (auto monom : poly->iterSummands()) {
+    for (auto monom : poly.iterSummands()) {
       auto var = monom.tryVar();
 
       if (var.isSome() && !didOccur.contains(var.unwrap())) {
@@ -121,30 +121,30 @@ struct Generalize
   bool doOrderingCheck;
 
   template<class NumTraits>
-  Perfect<Polynom<NumTraits>> operator()(Perfect<Polynom<NumTraits>> poly, PolyNf* generalizedArgs)  
+  Polynom<NumTraits> operator()(Polynom<NumTraits> poly, PolyNf* generalizedArgs)  
   {
     CALL("AdditionGeneralizationImpl::Generalize::operator()")
     using Monom = Kernel::Monom<NumTraits>;
 
-    auto found = poly->iterSummands()
+    auto found = poly.iterSummands()
       .find([&](Monom p) 
           { return p.tryVar() == some(var); });
     if (found.isNone()) {
-      return perfect(poly->replaceTerms(generalizedArgs));
+      return poly.replaceTerms(generalizedArgs);
     }
 
     auto& toCancel = gen.downcast<NumTraits>().unwrap().summands();
 
 
-    Stack<Monom> out(poly->nSummands() - toCancel.size());
+    Stack<Monom> out(poly.nSummands() - toCancel.size());
 
     unsigned p = 0;
     unsigned genOffs = 0;
 
     auto pushGeneralized = [&]()  
     { 
-      auto factors = perfect(poly->summandAt(p).factors->replaceTerms(&generalizedArgs[genOffs]));
-      auto coeff = poly->summandAt(p).numeral;
+      auto factors = perfect(poly.summandAt(p).factors->replaceTerms(&generalizedArgs[genOffs]));
+      auto coeff = poly.summandAt(p).numeral;
 
       genOffs += factors->nFactors();
       p++;
@@ -154,39 +154,28 @@ struct Generalize
 
     auto skipGeneralized = [&]() 
     {
-      genOffs += poly->summandAt(p).factors->nFactors();
+      genOffs += poly.summandAt(p).factors->nFactors();
       p++;
     };
 
     unsigned c = 0; 
-    while (c < toCancel.size() && poly->summandAt(p) < toCancel[c]  ) {
+    while (c < toCancel.size() && poly.summandAt(p) < toCancel[c]  ) {
       pushGeneralized();
     }
-    while (p < poly->nSummands() && c < toCancel.size()) {
-      if (toCancel[c] == poly->summandAt(p)) {
+    while (p < poly.nSummands() && c < toCancel.size()) {
+      if (toCancel[c] == poly.summandAt(p)) {
         skipGeneralized();
         c++;
       } else {
-        ASS_L(poly->summandAt(p), toCancel[c]);
+        ASS_L(poly.summandAt(p), toCancel[c]);
         pushGeneralized();
       }
     }
-    while (p < poly->nSummands()) {
+    while (p < poly.nSummands()) {
       pushGeneralized();
     }
 
-    return perfect(Polynom<NumTraits>(std::move(out)));
-      //
-    // using Monom = Monom<NumTraits>;
-    // auto numeral = num.downcast<NumTraits>().unwrap();
-    // auto newFactors = perfect(monom.factors->replaceTerms(evaluatedArgs));
-    // for (auto f : monom.factors->iter()) {
-    //   if (f.tryVar() == Option<Variable>(var)) {
-    //     ASS_EQ(numeral, monom.numeral)
-    //     return Monom(decltype(numeral)(1), newFactors);
-    //   }
-    // }
-    // return Monom(monom.numeral, newFactors);
+    return Polynom<NumTraits>(std::move(out));
   }
 };
 
