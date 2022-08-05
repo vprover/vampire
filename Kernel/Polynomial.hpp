@@ -178,6 +178,7 @@ public:
   template<class Number> 
   Option<typename Number::ConstantType> tryNumeral() const;
 
+  static FuncTerm fromNormalized(Term* t);
   friend std::ostream& operator<<(std::ostream& out, const FuncTerm& self);
   MAKE_DERIVABLE(FuncTerm, _self)
     DERIVE_EQ
@@ -227,6 +228,8 @@ public:
 
   friend std::ostream& operator<<(std::ostream& out, const AnyPoly& self);
   friend struct std::hash<AnyPoly>;
+
+  static Option<AnyPoly> tryFromNormalized(TypedTermList t);
 };
 
 
@@ -1127,7 +1130,7 @@ TermList Polynom<Number>::denormalize(TermList* results) const
       return c;
     } else {
       auto mon = monom.factors->denormalize(t);
-      if (monom.numeral == Number::oneC) {
+      if (monom.numeral == Number::oneC()) {
         return mon;
       } else if (monom.numeral == Number::constant(-1)) {
         return Number::minus(mon);

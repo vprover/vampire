@@ -170,6 +170,12 @@ std::ostream& operator<<(std::ostream& out, const AnyPoly& self)
 // PolyNf::PolyNf(Variable t) : Coproduct(t) {}
 // PolyNf::PolyNf(AnyPoly  t) : Coproduct(t) {}
 
+PolyNf PolyNf::fromNormalized(TypedTermList t)
+{
+    return AnyPoly::tryFromNormalized(t).map([](auto p) { return PolyNf(std::move(p)); })
+       || [&]() { return t.isTerm() ? PolyNf(FuncTerm::fromNormalized(t.term()))
+                                    : PolyNf(Variable(t.var())); };
+}
 
 std::ostream& operator<<(std::ostream& out, const PolyNf& self)
 { return self._self.apply([&](auto& t) -> decltype(auto) { return out << t; }); }

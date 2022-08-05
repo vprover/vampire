@@ -266,7 +266,7 @@ Polynom<Number> simplifyPoly(Polynom<Number> const& in, PolyNf* simplifiedArgs)
       for (unsigned i = 0; i < in.nSummands(); i++) {
         auto monom  = in.summandAt(i);
         auto simpl = simplifyMonom(monom, &simplifiedArgs[offs]);
-        if (simpl.numeral == Number::zeroC) {
+        if (simpl.numeral == Number::zeroC()) {
           /* we don't add it */
         } else {
           out.push(simpl);
@@ -289,7 +289,7 @@ Polynom<Number> simplifyPoly(Polynom<Number> const& in, PolyNf* simplifiedArgs)
           numeral = numeral + out[i+1].numeral;
           i++;
         }
-        if (numeral != Number::zeroC) 
+        if (numeral != Number::zeroC()) 
           out[offs++] = Monom(numeral, factors);
       }
       out.truncate(offs);
