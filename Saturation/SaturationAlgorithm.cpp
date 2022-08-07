@@ -1663,15 +1663,17 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
       res->addForwardSimplifierToFront(new LASCA::FwdDemodulation(shared));
       res->addBackwardSimplifierToFront(new LASCA::BwdDemodulation(shared));
     }
-    // TODO properly create an option for that, make it a simplifying rule
+    ise->addFront(new InterpretedEvaluation(/* inequalityNormalization() */ false, ordering));
     ise->addFront(new LASCA::Normalization(shared)); 
+    // TODO properly create an option for that, make it a simplifying rule
     sgi->push(new LASCA::InequalityTautologyDetection(shared));
+    // TODO properly create an option for that, make it a simplifying rule
     sgi->push(new LASCA::VariableElimination(shared, /* simpl */ true ));
-    sgi->push(new LASCA::InequalityFactoring(shared));
-    sgi->push(new LASCA::Superposition(shared)); 
-    sgi->push(new LASCA::EqFactoring(shared)); 
     sgi->push(new LASCA::TermFactoring(shared)); 
+    sgi->push(new LASCA::InequalityFactoring(shared));
+    sgi->push(new LASCA::EqFactoring(shared)); 
     sgi->push(new LASCA::FourierMotzkin(shared)); 
+    sgi->push(new LASCA::Superposition(shared)); 
   }
 
 
@@ -1870,7 +1872,7 @@ CompositeISE* SaturationAlgorithm::createISE(Problem& prb, const Options& opt, O
     }
 
     if (env.options->lasca()) {
-        res->addFront(new InterpretedEvaluation(env.options->inequalityNormalization(), ordering));
+      // all lasca rules are added later
     } else switch (env.options->evaluationMode()) {
       case Options::EvaluationMode::OFF:
         break;

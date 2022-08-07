@@ -79,7 +79,7 @@ Option<VariableElimination::AnyFoundVariable> VariableElimination::findUnshielde
               case LascaPredicate::GREATER_EQ:
                       if (k.isPositive()) found.posIneq.push(std::move(entry));
                  else if (k.isNegative()) found.negIneq.push(std::move(entry));
-                 else { ASSERTION_VIOLATION }
+                 else { ASSERTION_VIOLATION_REP(*premise) }
                  break;
               }
             }

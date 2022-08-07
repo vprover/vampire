@@ -2204,7 +2204,8 @@ public:
   UnificationWithAbstraction unificationWithAbstraction() const { return _unificationWithAbstraction.actualValue; }
   void setUWA(UnificationWithAbstraction value){ _unificationWithAbstraction.actualValue = value; } 
   bool fixUWA() const { return _fixUWA.actualValue; }
-  bool useACeval() const { return _useACeval.actualValue;}
+  // TODO make lasca independent of normal eveluation
+  bool useACeval() const { return lasca() ? false : _useACeval.actualValue;}
 
   bool unusedPredicateDefinitionRemoval() const { return _unusedPredicateDefinitionRemoval.actualValue; }
   bool blockedClauseElimination() const { return _blockedClauseElimination.actualValue; }
