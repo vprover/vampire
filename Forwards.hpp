@@ -247,6 +247,8 @@ enum Color {
   COLOR_INVALID = 3u
 };
 
+enum SymbolType{FUNC, PRED, TYPE_CON};
+
 class MainLoop;
 typedef Lib::SmartPtr<MainLoop> MainLoopSP;
 

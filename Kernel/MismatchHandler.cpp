@@ -53,6 +53,7 @@ TermList UWAMismatchHandler::transformSubterm(TermList trm)
   CALL("UWAMismatchHandler::transformSubterm");
  
   if(isConstraintTerm(trm).isTrue()){
+    ASS(trm.term()->shared());
     return TermList::getVSpecVar(trm.term(), &_termMap);
   }
   return trm;
@@ -200,10 +201,12 @@ bool HOMismatchHandler::isConstraintPair(TermList t1, TermList t2)
 {
   CALL("HOMismatchHandler::isConstraintPair");
 
-  if(isConstraintTerm(t1).isFalse() || isConstraintTerm(t2).isFalse())
-    return false;
-  
-  return true;
+  auto isBooleanOrConstraintTerm = [&](TermList t){
+    TermList sort = SortHelper::getResultSort(t.term());
+    return !isConstraintTerm(t).isFalse() || sort.isBoolSort();
+  };
+
+  return isBooleanOrConstraintTerm(t1) && isBooleanOrConstraintTerm(t2);
 }
 
 MaybeBool HOMismatchHandler::isConstraintTerm(TermList t){
@@ -229,6 +232,8 @@ TermList HOMismatchHandler::transformSubterm(TermList trm)
   CALL("HOMismatchHandler::transformSubterm");
 
   if(trm.isVar()) return trm;
+
+  ASS(trm.term()->shared());
 
   TermList sort = SortHelper::getResultSort(trm.term());
   if(sort.isBoolSort()){

@@ -41,13 +41,18 @@ IndexManager::IndexManager(SaturationAlgorithm* alg) : _alg(alg), _genLitIndex(0
   static bool const eba = (env.options->functionExtensionality() == Options::FunctionExtensionality::ABSTRACTION) &&
                           env.property->higherOrder();
 
-  // urther handlers can be added here
-
-  if(uwa){
-    _handler.addHandler(new UWAMismatchHandler());
-  }
-  if(eba){
-    _handler.addHandler(new HOMismatchHandler());
+  // other handlers can be added here
+  
+  if(uwa || eba){
+ 
+    _handler = new CompositeMismatchHandler();
+   
+    if(uwa){
+      _handler->addHandler(new UWAMismatchHandler());
+    }
+    if(eba){
+      _handler->addHandler(new HOMismatchHandler());
+    }
   }
 
   if(alg) {
@@ -58,6 +63,10 @@ IndexManager::IndexManager(SaturationAlgorithm* alg) : _alg(alg), _genLitIndex(0
 IndexManager::~IndexManager()
 {
   CALL("IndexManager::~IndexManager");
+
+  if(_handler){
+    delete _handler;
+  }
 
   if(_alg) {
     release(GENERATING_SUBST_TREE);
@@ -159,7 +168,7 @@ Index* IndexManager::create(IndexType t)
                     
   switch(t) {
   case GENERATING_SUBST_TREE:
-    is=new LiteralSubstitutionTree(&_handler);
+    is=new LiteralSubstitutionTree(_handler);
 #if VDEBUG
     //is->markTagged();
 #endif
@@ -190,7 +199,7 @@ Index* IndexManager::create(IndexType t)
     break;
 
   case SUPERPOSITION_SUBTERM_SUBST_TREE:
-    tis=new TermSubstitutionTree(&_handler);
+    tis=new TermSubstitutionTree(_handler);
 #if VDEBUG
     //tis->markTagged();
 #endif
@@ -198,7 +207,7 @@ Index* IndexManager::create(IndexType t)
     isGenerating = true;
     break;
   case SUPERPOSITION_LHS_SUBST_TREE:
-    tis=new TermSubstitutionTree(&_handler);
+    tis=new TermSubstitutionTree(_handler);
     res=new SuperpositionLHSIndex(tis, _alg->getOrdering(), _alg->getOptions());
     //tis->markTagged();
     isGenerating = true;

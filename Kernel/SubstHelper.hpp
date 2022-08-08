@@ -437,14 +437,16 @@ Term* SubstHelper::applyImpl(Term* trm, Applicator& applicator, bool noSharing)
       Literal* lit = static_cast<Literal*>(trm);
       result=Literal::create(lit,argLst);
     } else if(trm->isSort()){
-      ASS(!noSharing);
-      result=AtomicSort::create(static_cast<AtomicSort*>(trm),argLst);
+      if(!noSharing){
+        result=AtomicSort::create(static_cast<AtomicSort*>(trm),argLst);
+      } else {
+        result=AtomicSort::createNonShared(static_cast<AtomicSort*>(trm),argLst);        
+      }
     } else {
       bool shouldShare=!noSharing && canBeShared(argLst, trm->arity());
       if(shouldShare) {
         result=Term::create(trm,argLst);          
       } else {
-        //At the memoent all sorts should be shared.
         result=Term::createNonShared(trm,argLst);
       }
     }
