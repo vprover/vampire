@@ -33,7 +33,7 @@
 using namespace Lib;
 using namespace Indexing;
 
-IndexManager::IndexManager(SaturationAlgorithm* alg) : _alg(alg), _genLitIndex(0)
+IndexManager::IndexManager(SaturationAlgorithm* alg) : _alg(alg), _genLitIndex(0), _handler(0)
 {
   CALL("IndexManager::IndexManager");
 
