@@ -37,7 +37,9 @@ public:
 
   /** Check if the unit contains expressions that are not syntactically first-order */
   static bool needsElimination(FormulaUnit* unit);
-
+  // Converts a boolean term t to a formula 't = true'
+  static Formula* toEquality(TermList booleanTerm);
+  
 private:
   FormulaUnit* apply(FormulaUnit* fu);
 
@@ -87,9 +89,6 @@ private:
   // Creates a stack of sorts for the given variables, using the sorting
   // context of the current formula
   void collectSorts(VList* vars, TermStack& typeVars, TermStack& termVars, TermStack& allVars, TermStack& termVarSorts);
-
-  // Converts a boolean term t to a formula 't = true'
-  static Formula* toEquality(TermList booleanTerm);
 
   // Introduces a fresh predicate or function (depending on the context) symbol
   // with given arguments and result sort
