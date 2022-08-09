@@ -435,7 +435,7 @@ TermIterator EqHelper::getDemodulationLHSIterator(Literal* lit, bool forward, co
       return pvi( getSingletonIterator(t1) );
     //there should be no equality literals of equal terms
     case Ordering::EQUAL:
-      ASSERTION_VIOLATION;
+      ASSERTION_VIOLATION_REP(*lit);
     }
     return TermIterator::getEmpty();
   } else {

@@ -59,10 +59,11 @@ Literal* InequalityNormalizer::normalizeUninterpreted(Literal* lit) const
     if (orig.isVar()) {
       args.push(orig);
     } else {
+      auto norm = PolyNf::normalize(TypedTermList(orig.term()));
       auto eval = evaluator()
-        .evaluate(PolyNf::normalize(TypedTermList(orig.term())))
+        .evaluate(norm)
         .value.map([](auto t) { return t.denormalize(); }) 
-        || orig;  // <- nothing was done during evaluation
+        || norm.denormalize();  // <- nothing was done during evaluation
       args.push(eval);
     }
   }
