@@ -32,6 +32,7 @@
 #include "Forwards.hpp"
 #include "Debug/Assertion.hpp"
 #include "Debug/Tracer.hpp"
+#include "Lib/Hash.hpp"
 
 #include "Lib/Allocator.hpp"
 #include "Lib/Portability.hpp"
@@ -1020,5 +1021,13 @@ struct SecondaryHash<Kernel::TermList> {
 
 
 }
+
+
+template<> 
+struct std::hash<Kernel::TermList>
+{ 
+  size_t operator()(Kernel::TermList const& self) const 
+  { return Lib::Hash::hash(self); }
+};
 
 #endif

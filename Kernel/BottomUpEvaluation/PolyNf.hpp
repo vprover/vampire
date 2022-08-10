@@ -21,41 +21,23 @@ struct BottomUpChildIter<Kernel::PolyNf>
   struct PolynomialBottomUpChildIter 
   {
     Kernel::AnyPoly _self;
-    unsigned _idx1;
-    unsigned _idx2;
+    decltype(_self.immediateSubterms()) _childIter;
     unsigned _nChildren;
 
-    PolynomialBottomUpChildIter(Kernel::AnyPoly self) : _self(self), _idx1(0), _idx2(0), _nChildren(0)
-    {
-      while (_idx1 < _self.nSummands() && _self.nFactors(_idx1) == 0) {
-        _idx1++;
-      }
-      for (unsigned i = 0; i < _self.nSummands(); i++) {
-        _nChildren += self.nFactors(i);
-      }
-    }
+    PolynomialBottomUpChildIter(Kernel::AnyPoly self) 
+      : _self(std::move(self))
+      , _childIter(_self.immediateSubterms())
+      , _nChildren(_self.immediateSubterms().count())
+    { }
 
-    bool hasNext() const
-    { return _idx1 < _self.nSummands(); }
-
-    Kernel::PolyNf next() 
-    { 
-      auto out = _self.termAt(_idx1, _idx2++);
-      if (_idx2 >= _self.nFactors(_idx1)) {
-        _idx1++;
-        while (_idx1 < _self.nSummands() && _self.nFactors(_idx1) == 0) {
-          _idx1++;
-        }
-        _idx2 = 0;
-      }
-      return out;
-    }
+    bool hasNext()        { return _childIter.hasNext(); }
+    Kernel::PolyNf next() { return _childIter.next(); }
 
     unsigned nChildren() const
     { return _nChildren; }
 
     friend ostream& operator<<(ostream& out, PolynomialBottomUpChildIter const& self) 
-    { return out << self._self << "@(" << self._idx1 << ", " << self._idx2 << ")"; }
+    { return out << self._self; }
   };
 
   struct FuncTermBottomUpChildIter 
@@ -111,7 +93,7 @@ struct BottomUpChildIter<Kernel::PolyNf>
   Kernel::PolyNf next() 
   { ALWAYS(hasNext()); return _self.apply([](auto& x) -> Kernel::PolyNf { return x.next(); }); }
 
-  bool hasNext() const 
+  bool hasNext()
   { return _self.apply([](auto& x) { return x.hasNext(); }); }
 
   unsigned nChildren() const 

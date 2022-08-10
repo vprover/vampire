@@ -247,7 +247,7 @@ struct EvaluateMonom
                    CALL("EvaluateMonom::clsr01")
 
                    auto result = eval(m, &evaluatedArgs[offs]);
-                   offs += m.factors.nFactors();
+                   offs += m.factors.cntFactors();
                    return result;
                })
             .template collect<Stack>());

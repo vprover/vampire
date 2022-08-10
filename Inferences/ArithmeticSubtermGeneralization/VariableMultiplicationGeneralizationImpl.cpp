@@ -190,28 +190,38 @@ struct Generalize
   Stack<MonomFactor<NumTraits>> filter(MonomFactors<NumTraits> const& factors, PolyNf* evaluatedArgs)
   {
     Stack<MonomFactor<NumTraits>> out;
-    unsigned rmI = 0;
-    unsigned m = 0;
+    auto facIter = factors.iter();
+    auto rmIter = iterTraits(toRem.iter())
+      .map([](auto x) { return x.template downcast<NumTraits>().unwrap(); });
+    // unsigned rmI = 0;
+    unsigned offs = 0;
 
-    auto skip = [&]() { rmI++; m++; };
-    auto push = [&]() { out.push(MonomFactor<NumTraits>(evaluatedArgs[m], factors.factorAt(m).power)); m++; };
+    auto cur = facIter.tryNext();
+    auto rm = facIter.tryNext(); 
+
+    auto push = [&]() { 
+      out.push(MonomFactor<NumTraits>(evaluatedArgs[offs], cur.unwrap().power)); 
+      cur = facIter.tryNext();
+      offs++;
+    };
 
 
-    while (m < factors.nFactors() && rmI < toRem.size()) {
-      auto factor = factors.factorAt(m);
-      auto rm = toRem[rmI].template downcast<NumTraits>();
-      if (rm.isNone()) {
-        push();
-      } else if (factor == rm.unwrap()) {
-        skip();
-      } else if (factor < rm.unwrap()) {
+    while (cur.isSome() && rm.isSome()) {
+      // if (rm.unwrap().isNone()) {
+      //   push();
+      // } else 
+      if (cur.unwrap() == rm.unwrap()) {
+        rm = rmIter.tryNext();
+        cur = facIter.tryNext();
+        offs++;
+      } else if (cur.unwrap() < rm.unwrap()) {
         push();
       } else {
-        ASS_L(rm.unwrap(), factor)
-        rmI++;
+        ASS_L(rm.unwrap(), cur.unwrap())
+        rm = rmIter.tryNext();
       }
     }
-    while (m < factors.nFactors()) {
+    while (cur.isSome()) {
       push();
     }
 

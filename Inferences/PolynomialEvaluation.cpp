@@ -260,20 +260,19 @@ Polynom<Number> simplifyPoly(Polynom<Number> in, PolyNf* simplifiedArgs)
   try {
 
     // first we simplify all the monoms containted in this polynom
-    Stack<Monom> out;
-    {
-      auto offs = 0;
-      for (unsigned i = 0; i < in.nSummands(); i++) {
-        auto monom  = in.summandAt(i);
-        auto simpl = simplifyMonom(monom, &simplifiedArgs[offs]);
-        if (simpl.numeral == Number::zeroC()) {
-          /* we don't add it */
-        } else {
-          out.push(simpl);
-        }
-        offs += monom.factors.nFactors();
-      }
-    }
+    auto offs = 0;
+    auto out = in.iterSummands()
+      .filterMap([&](auto monom) {
+          auto simpl = simplifyMonom(monom, &simplifiedArgs[offs]);
+          offs += monom.factors.cntFactors();
+          if (simpl.numeral == Number::zeroC()) {
+            /* we don't add it */
+            return Option<Monom>();
+          } else {
+            return Option<Monom>(simpl);
+          }
+      })
+      .template collect<Stack>();
 
     // then we sort them by their monom, in order to add up the coefficients efficiently
     std::sort(out.begin(), out.end());
@@ -293,7 +292,6 @@ Polynom<Number> simplifyPoly(Polynom<Number> in, PolyNf* simplifiedArgs)
           out[offs++] = Monom(numeral, std::move(factors));
       }
       out.truncate(offs);
-
     }
 
     auto poly = Polynom(std::move(out));
@@ -323,17 +321,16 @@ Monom<Number> simplifyMonom(Monom<Number> const& in, PolyNf* simplifiedArgs)
     return out;
   };
 
-  auto& facs = in.factors;
-  Stack<MonomFactor> args(facs.nFactors());
-  for (unsigned i = 0; i < facs.nFactors(); i++) {
-    args.push(MonomFactor(simplifiedArgs[i], facs.factorAt(i).power));
-  }
+  auto offs = 0;
+  auto args = in.factors.iter()
+    .map([&](auto f) { return MonomFactor(simplifiedArgs[offs++], f.power); })
+    .template collect<Stack>();
 
   std::sort(args.begin(), args.end());
 
-  auto offs = 0;
+  offs = 0;
   auto numeral = in.numeral;
-  for (unsigned i = 0; i < facs.nFactors(); i++) {
+  for (unsigned i = 0; i < args.size(); i++) {
     auto& arg = args[i];
     auto c = arg.term.template tryNumeral<Number>();
     if (c.isSome()) {
@@ -343,7 +340,7 @@ Monom<Number> simplifyMonom(Monom<Number> const& in, PolyNf* simplifiedArgs)
       // arg is a non-number term
       auto term  = arg.term;
       auto power = arg.power;
-      while (i + 1 < facs.nFactors() && args[i + 1].term == term) {
+      while (i + 1 < args.size() && args[i + 1].term == term) {
         power += args[i + 1].power;
         i++;
       }

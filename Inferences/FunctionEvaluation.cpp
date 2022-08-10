@@ -18,12 +18,19 @@ Option<PolyNf> trySimplifyUnaryMinus(PolyNf* evalArgs)
   using Numeral = typename Number::ConstantType;
   using Polynom = Polynom<Number>;
 
-  auto out = Polynom(evalArgs[0].template wrapPoly<Number>());
 
-  for (unsigned i = 0; i < out.nSummands(); i++) {
-     out.summandAt(i).numeral = out.summandAt(i).numeral * Numeral(-1);
-  }
-  return some<PolyNf>(PolyNf(AnyPoly(std::move(out))));
+  return Option<PolyNf>(PolyNf(AnyPoly(Polynom(
+          evalArgs[0].template wrapPoly<Number>()
+                     .iterSummands()
+                     .map([](auto monom) { return -monom; })
+                     .template collect<Stack>()
+            ))));
+  // auto out = Polynom(evalArgs[0].template wrapPoly<Number>());
+  //
+  // for (unsigned i = 0; i < out.nSummands(); i++) {
+  //    out.summandAt(i).numeral = out.summandAt(i).numeral * Numeral(-1);
+  // }
+  // return some<PolyNf>(PolyNf(AnyPoly(std::move(out))));
 }
 
 template<class Number, class Clsr>

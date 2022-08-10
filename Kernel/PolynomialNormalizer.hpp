@@ -41,16 +41,6 @@
 namespace Kernel {
 
 using LitSimplResult = Inferences::SimplifyingGeneratingLiteralSimplification::Result;
-
-using NormalizationResult = Coproduct<PolyNf 
-        , Polynom< IntTraits>
-        , Polynom< RatTraits>
-        , Polynom<RealTraits>
-        , MonomFactors< IntTraits>
-        , MonomFactors< RatTraits>
-        , MonomFactors<RealTraits>
-        >;
-
 PolyNf normalizeTerm(TypedTermList t);
 
 } // namespace Kernel

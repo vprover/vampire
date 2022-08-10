@@ -47,7 +47,7 @@ public:
 
   MonomSet(Variable var, Polynom<NumTraits> poly) : MonomSet(decltype(_cancellable)()) 
   {
-    _cancellable.reserve(poly.nSummands() - 1);
+    _cancellable.reserve(poly.cntSummands() - 1);
     for (auto const& monom : poly.iterSummands()) {
       if (monom.tryVar() != some(var)) {
         _cancellable.push(monom);
@@ -98,7 +98,7 @@ struct Preprocess
             },
             [&]() { return AnyNumber<MonomSet>(move(gen)); });
       } else {
-        for (auto& factor : monom.factors.iter()) {
+        for (auto factor : monom.factors.iter()) {
            if (factor.term.isVar()) {
              auto v = factor.term.unwrapVar();
              map.replaceOrInsert(v, MonomSet<NumTraits>::bot());
@@ -136,42 +136,46 @@ struct Generalize
     auto& toCancel = gen.downcast<NumTraits>().unwrap().summands();
 
 
-    Stack<Monom> out(poly.nSummands() - toCancel.size());
+    Stack<Monom> out(poly.cntSummands() - toCancel.size());
 
-    unsigned p = 0;
+    auto summandIter = poly.iterSummands();
+    ASS(summandIter.hasNext())
+    auto cur = summandIter.tryNext();
     unsigned genOffs = 0;
 
-    auto pushGeneralized = [&]()  
-    { 
-      auto factors = poly.summandAt(p).factors.replaceTerms(&generalizedArgs[genOffs]);
-      auto coeff = poly.summandAt(p).numeral;
+    auto pushGeneralized = [&]()
+    {
+      // TODO make replaceTerms return the number of factors
+      unsigned cnt;
+      auto factors = cur.unwrap().factors.replaceTerms(&generalizedArgs[genOffs], cnt);
+      auto coeff = cur.unwrap().numeral;
 
-      genOffs += factors.nFactors();
-      p++;
+      genOffs += cnt;
+      cur = summandIter.tryNext();
 
       return out.push(Monom(coeff, std::move(factors)));
     };
 
     auto skipGeneralized = [&]() 
-    {
-      genOffs += poly.summandAt(p).factors.nFactors();
-      p++;
+    { 
+      genOffs += cur.unwrap().factors.cntFactors(); 
+      cur = summandIter.tryNext();
     };
 
     unsigned c = 0; 
-    while (c < toCancel.size() && poly.summandAt(p) < toCancel[c]  ) {
+    while (c < toCancel.size() && cur.unwrap() < toCancel[c]  ) {
       pushGeneralized();
     }
-    while (p < poly.nSummands() && c < toCancel.size()) {
-      if (toCancel[c] == poly.summandAt(p)) {
+    while (cur.isSome() && c < toCancel.size()) {
+      if (cur.unwrap() == toCancel[c]) {
         skipGeneralized();
         c++;
       } else {
-        ASS_L(poly.summandAt(p), toCancel[c]);
+        ASS_L(cur.unwrap(), toCancel[c]);
         pushGeneralized();
       }
     }
-    while (p < poly.nSummands()) {
+    while (cur.isSome()) {
       pushGeneralized();
     }
 

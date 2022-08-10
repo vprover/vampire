@@ -39,7 +39,7 @@ struct Preprocess
   void operator()(Polynom<RealTraits> const& p) 
   {
     for (auto summand : p.iterSummands()) {
-      for (auto& factor : summand.factors.iter()) {
+      for (auto factor : summand.factors.iter()) {
         auto var = factor.term.tryVar();
         if (var.isSome()) {
 

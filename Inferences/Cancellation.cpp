@@ -103,10 +103,8 @@ CancelAddResult<Number> cancelAdd(Polynom<Number> const& oldl, Polynom<Number> c
   using Monom        = Monom       <Number>;
   using MonomFactors = MonomFactors<Number>;
   using NumeralVec   = Stack<Monom>;
-  unsigned itl = 0;
-  unsigned itr = 0;
-  auto endl = oldl.nSummands();
-  auto endr = oldr.nSummands();
+  auto itl = oldl.iterSummands();
+  auto itr = oldr.iterSummands();
 
   auto safeMinus = [](Numeral l, Numeral r) 
   { 
@@ -127,9 +125,9 @@ CancelAddResult<Number> cancelAdd(Polynom<Number> const& oldl, Polynom<Number> c
 
   NumeralVec newl;
   NumeralVec newr;
-  while(itl != endl && itr !=  endr) {
-    auto l = oldl.summandAt(itl);
-    auto r = oldr.summandAt(itr);
+  auto l = itl.next();
+  auto r = itr.next();
+  while(itl.hasNext() && itr.hasNext()) {
     if (l.factors == r.factors) {
       auto& m = l.factors;
 
@@ -178,22 +176,22 @@ CancelAddResult<Number> cancelAdd(Polynom<Number> const& oldl, Polynom<Number> c
           newr.push(r);
         }
       }
-      itl++;
-      itr++;
+      l = itl.next();
+      r = itr.next();
     } else if (l.factors < r.factors) {
       newl.push(l);
-      itl++;
+      l = itl.next();
     } else {
       ASS(r.factors < l.factors)
       newr.push(r);
-      itr++;
+      r = itr.next();
     }
   }
-  for(; itl != endl; itl++) {
-    newl.push(oldl.summandAt(itl));
+  while (itl.hasNext()) {
+    newl.push(itl.next());
   }
-  for(; itr != endr; itr++) {
-    newr.push(oldr.summandAt(itr));
+  while (itr.hasNext()) {
+    newr.push(itr.next());
   }
   auto outl = Polynom<Number>(std::move(newl));
   auto outr = Polynom<Number>(std::move(newr));

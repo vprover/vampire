@@ -8,11 +8,32 @@
  * and in the source directory
  */
 
-// #include "PolynomialNormalizer.hpp"
+#include "PolynomialNormalizer.hpp"
+
+// using NormalizationResult = Coproduct<PolyNf 
+//         , Polynom< IntTraits>
+//         , Polynom< RatTraits>
+//         , Polynom<RealTraits>
+//         , MonomFactors< IntTraits>
+//         , MonomFactors< RatTraits>
+//         , MonomFactors<RealTraits>
+//         >;
+
+namespace Kernel {
+
+using NormalizationResult = PolyNf;
+
+struct PolyNormTerm 
+{
+  TypedTermList _self;
+  PolyNormTerm(TypedTermList t) : _self(std::move(t)) {}
+};
+
+
+
+
+#define DEBUG(...) //DBG(__VA_ARGS__)
 //
-// #define DEBUG(...) //DBG(__VA_ARGS__)
-//
-// namespace Kernel {
 //
 // /** a struct that normalizes an object of type MonomFactors to a Monom */
 // struct RenderMonom {
@@ -322,44 +343,47 @@
 //   DBG("out : ", out);                                                                                         \
 //   return out;                                                                                                 \
 //
-// PolyNf normalizeTerm(TypedTermList t) 
-// {
-//   CALL("PolyNf::normalize")
-//   DEBUG("normalizing ", t)
-//   Memo::None<TypedTermList,NormalizationResult> memo;
-//   struct Eval 
-//   {
-//     using Arg    = TypedTermList;
-//     using Result = NormalizationResult;
-//
-//     NormalizationResult operator()(TypedTermList t, NormalizationResult* ts) const
-//     { 
-//       CALL("normalizeTerm(TypedTermList)::eval::operator()")
-//       auto sort = t.sort();
-//       if (sort ==  IntTraits::sort()) { return normalizeNumSort< IntTraits>(t, ts); }
-//       if (sort ==  RatTraits::sort()) { return normalizeNumSort< RatTraits>(t, ts); }
-//       if (sort == RealTraits::sort()) { return normalizeNumSort<RealTraits>(t, ts); }
-//       else {
-//         if (t.isVar()) {
-//           return NormalizationResult(PolyNf(Variable(t.var())));
-//         } else {
-//           auto fn = FuncId::symbolOf(t.term());
-//           return NormalizationResult(PolyNf(FuncTerm(
-//               fn, 
-//               Stack<PolyNf>::fromIterator(
-//                   iterTraits(getArrayishObjectIterator<mut_ref_t>(ts, fn.numTermArguments()))
-//                   .map( [](NormalizationResult& r) -> PolyNf { return std::move(r).apply(RenderPolyNf{}); }))
-//             )
-//           ));
-//         }
-//       }
-//
-//     }
-//   };
-//   NormalizationResult r = evaluateBottomUp(t, Eval{}, memo);
-//   return std::move(r).apply(RenderPolyNf{});
-// }
-//
+
+PolyNf normalizeTerm(TypedTermList t) 
+{
+  CALL("PolyNf::normalize")
+  DEBUG("normalizing ", t)
+  Memo::None<PolyNormTerm,NormalizationResult> memo;
+  struct Eval 
+  {
+    using Arg    = PolyNormTerm;
+    using Result = NormalizationResult;
+
+    NormalizationResult operator()(PolyNormTerm t, NormalizationResult* ts) const
+    ;
+    // { 
+    //   ASSERTION_VIOLATION_REP("unimplemented")
+    //   // CALL("normalizeTerm(TypedTermList)::eval::operator()")
+    //   // auto sort = t.sort();
+    //   // if (sort ==  IntTraits::sort()) { return normalizeNumSort< IntTraits>(t, ts); }
+    //   // if (sort ==  RatTraits::sort()) { return normalizeNumSort< RatTraits>(t, ts); }
+    //   // if (sort == RealTraits::sort()) { return normalizeNumSort<RealTraits>(t, ts); }
+    //   // else {
+    //   //   if (t.isVar()) {
+    //   //     return NormalizationResult(PolyNf(Variable(t.var())));
+    //   //   } else {
+    //   //     auto fn = FuncId::symbolOf(t.term());
+    //   //     return NormalizationResult(PolyNf(FuncTerm(
+    //   //         fn, 
+    //   //         Stack<PolyNf>::fromIterator(
+    //   //             iterTraits(getArrayishObjectIterator<mut_ref_t>(ts, fn.numTermArguments()))
+    //   //             .map( [](NormalizationResult& r) -> PolyNf { return std::move(r).apply(RenderPolyNf{}); }))
+    //   //       )
+    //   //     ));
+    //   //   }
+    //   // }
+    //
+    // }
+  };
+  NormalizationResult r = evaluateBottomUp(PolyNormTerm(t), Eval{}, memo);
+  return r;
+}
+
 // TermList PolyNf::denormalize() const
 // { 
 //   CALL("PolyNf::denormalize")
@@ -383,4 +407,73 @@
 //
 //
 //
-// } // namespace Kernel
+} // namespace Kernel
+
+namespace Lib {
+
+template<>
+struct BottomUpChildIter<Kernel::PolyNormTerm>
+{
+  struct AcIter {
+    unsigned _symbol;
+    Term* _self;
+    Stack<TermList> _elems;
+
+    Kernel::PolyNormTerm self();
+    Kernel::PolyNormTerm next();
+    bool hasNext();
+    unsigned nChildren();
+  };
+  struct Uninter {
+    PolyNormTerm _self;
+    unsigned _idx;
+
+    Kernel::PolyNormTerm self() { return _self; }
+    Kernel::PolyNormTerm next() 
+    { return TypedTermList(_self._self.term()->termArg(_idx), SortHelper::getTermArgSort(_self._self.term(), _idx++)); }
+    bool hasNext();
+    unsigned nChildren();
+  };
+
+  Coproduct<AcIter, Uninter> _self;
+  BottomUpChildIter(Kernel::PolyNormTerm);
+
+  // struct SummandIter 
+  // {
+  //
+  // };  
+  //
+  // struct UninterIter 
+  // {
+  //
+  // };
+  //
+  //
+  // // Kernel::PolyNormTerm _self;
+  // Coproduct< SummandIter 
+  //          , UninterIter
+  //          >  _inner;
+  // // unsigned      _idx;
+  // Stack<Kernel::PolyNormTerm> _summands;
+  //
+  // BottomUpChildIter(Kernel::PolyNormTerm self) 
+  //   : _summands()
+  // {
+  //   auto todo = Lib::Stack<TermList>{self};
+  //
+  // }
+
+  Kernel::PolyNormTerm next() 
+  { return _self.apply([](auto& x) { return x.next(); }); }
+
+  bool hasNext()
+  { return _self.apply([](auto& x) { return x.hasNext(); }); }
+
+  unsigned nChildren()
+  { return _self.apply([](auto& x) { return x.nChildren(); }); }
+
+  Kernel::PolyNormTerm self()
+  { return _self.apply([](auto& x) { return x.self(); }); }
+};
+
+} // namespace Lib
