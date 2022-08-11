@@ -40,16 +40,18 @@ public:
   CLASS_NAME(RobSubstitution);
   USE_ALLOCATOR(RobSubstitution);
   
-  RobSubstitution() : _funcSubtermMap(nullptr), _nextUnboundAvailable(0) {}
+  RobSubstitution(MismatchHandler* hndlr = 0) : _handler(hndlr), _nextUnboundAvailable(0) {}
 
   SubstIterator matches(Literal* base, int baseIndex,
 	  Literal* instance, int instanceIndex, bool complementary);
   SubstIterator unifiers(Literal* l1, int l1Index, Literal* l2, int l2Index, bool complementary);
 
-  bool unify(TermList t1,int index1, TermList t2, int index2, MismatchHandler* hndlr=0);
+  bool unify(TermList t1,int index1, TermList t2, int index2);
+  // used to unify terms that have already been processed for constraints
+  bool unifyConstraintProcessed(TermList t1,int index1, TermList t2, int index2);
   bool match(TermList base,int baseIndex, TermList instance, int instanceIndex);
 
-  bool unifyArgs(Term* t1,int index1, Term* t2, int index2, MismatchHandler* hndlr=0);
+  bool unifyArgs(Term* t1,int index1, Term* t2, int index2);
   bool matchArgs(Term* base,int baseIndex, Term* instance, int instanceIndex);
 
   void denormalize(const Renaming& normalizer, int normalIndex, int denormalizedIndex);
@@ -59,14 +61,15 @@ public:
   }
   void reset()
   {
-    _funcSubtermMap = 0;
     _bank.reset();
     _nextUnboundAvailable=0;
+    _constraints.reset();
+    _constraintsAsLits.reset();
+  }
+  void setHandler(MismatchHandler* hndlr){
+    _handler = hndlr;
   }
 
-  void setMap(FuncSubtermMap* fmap){
-    _funcSubtermMap = fmap;
-  }
   /**
    * Bind special variable to a specified term
    *
@@ -87,6 +90,16 @@ public:
   size_t getApplicationResultWeight(TermList t, int index) const;
   size_t getApplicationResultWeight(Literal* lit, int index) const;
 
+  bool tryAddConstraint(TermList t1,int index1, TermList t2, int index2, BacktrackData& bd);
+  // WARNING functions below must only be called
+  // at a point where this object represents the complete
+  // substitution between two terms. It is not safe to call either function
+  // if this object represents a partial substitution
+  // WARNING for the return from getConstraints() to be valid, numberOfConstraints()
+  // must have been called before.
+  unsigned numberOfConstraints();
+  LiteralIterator getConstraints();
+   
 #if VDEBUG
   vstring toString(bool deref=false) const;
   /**
@@ -231,13 +244,16 @@ private:
   TermSpec deref(VarSpec v) const;
   TermSpec derefBound(TermSpec v) const;
 
-  void addToConstraints(const VarSpec& v1, const VarSpec& v2,MismatchHandler* hndlr);
   void bind(const VarSpec& v, const TermSpec& b);
   void bindVar(const VarSpec& var, const VarSpec& to);
   VarSpec root(VarSpec v) const;
   bool match(TermSpec base, TermSpec instance);
-  bool unify(TermSpec t1, TermSpec t2,MismatchHandler* hndlr);
+  bool unify(TermSpec t1, TermSpec t2);
   bool occurs(VarSpec vs, TermSpec ts);
+
+  MismatchHandler* _handler;
+  UnificationConstraintStack _constraints;
+  LiteralStack _constraintsAsLits;
 
   inline
   VarSpec getVarSpec(TermSpec ts) const
@@ -255,7 +271,6 @@ private:
 
   typedef DHMap<VarSpec,TermSpec,VarSpec::Hash1, VarSpec::Hash2> BankType;
 
-  FuncSubtermMap* _funcSubtermMap;
   BankType _bank;
   mutable unsigned _nextUnboundAvailable;
 

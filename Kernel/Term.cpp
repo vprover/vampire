@@ -203,6 +203,8 @@ bool TermList::sameTop(TermList ss,TermList tt)
  */
 bool TermList::sameTopFunctor(TermList ss, TermList tt)
 {
+  CALL("TermList::sameTopFunctor");
+
   if (!ss.isTerm() || !tt.isTerm()) {
     return false;
   }
@@ -215,6 +217,8 @@ bool TermList::sameTopFunctor(TermList ss, TermList tt)
  */
 bool TermList::equals(TermList t1, TermList t2)
 {
+  CALL("TermList::equals");
+
   static Stack<TermList*> stack(8);
   ASS(stack.isEmpty());
 
@@ -254,6 +258,8 @@ bool TermList::equals(TermList t1, TermList t2)
  */
 bool TermList::allShared(TermList* args)
 {
+  CALL("TermList::allShared");
+
   while (args->isNonEmpty()) {
     if (args->isTerm() && !args->term()->shared()) {
       return false;
@@ -261,6 +267,21 @@ bool TermList::allShared(TermList* args)
     args = args->next();
   }
   return true;
+}
+
+TermList TermList::getVSpecVar(Term* trm, VSpecVarToTermMap* map)
+{
+  CALL("TermList::getVSpecVar");
+
+  unsigned vNum;
+  if(map->find(trm, vNum)){
+    ASS(vNum > TermList::SPEC_UPPER_BOUND);
+    return TermList(vNum, true);
+  } else {
+    unsigned vNum = TermList::SPEC_UPPER_BOUND + map->size() + 1;
+    map->insert(vNum, trm);
+    return TermList(vNum, true);
+  }
 }
 
 unsigned TermList::weight() const
@@ -296,6 +317,24 @@ bool TermList::isTupleSort()
          static_cast<AtomicSort*>(term())->isTupleSort();
 }
 
+bool TermList::isIntSort(){
+  CALL("TermList::isIntSort");    
+  return !isVar() && term()->isSort() && 
+         static_cast<AtomicSort*>(term())->isIntSort();
+}
+
+bool TermList::isRatSort(){
+  CALL("TermList::isRatSort");    
+  return !isVar() && term()->isSort() && 
+         static_cast<AtomicSort*>(term())->isRatSort();
+}
+
+bool TermList::isRealSort(){
+  CALL("TermList::isRealSort");    
+  return !isVar() && term()->isSort() && 
+         static_cast<AtomicSort*>(term())->isRealSort();
+}
+
 bool AtomicSort::isArrowSort() const { 
   CALL("AtomicSort::isArrowSort");
   
@@ -318,6 +357,24 @@ bool AtomicSort::isTupleSort() const {
   CALL("AtomicSort::isTupleSort");
   
   return env.signature->isTupleCon(_functor);
+}
+
+bool AtomicSort::isIntSort() const {
+  CALL("AtomicSort::isIntSort");
+
+  return env.signature->isIntegerCon(_functor);
+}
+
+bool AtomicSort::isRatSort() const {
+  CALL("AtomicSort::isRatSort");
+
+  return env.signature->isRationalCon(_functor);
+}
+
+bool AtomicSort::isRealSort() const {
+  CALL("AtomicSort::isRealSort");
+
+  return env.signature->isRealCon(_functor);
 }
 
 bool TermList::isApplication() const { 
@@ -1106,8 +1163,6 @@ Term* Term::createNonShared(Term* t,TermList* args)
   return s;
 } // Term::createNonShared(const Term* t,Term* args)
 
-
-
 /** Create a new complex term, and do not insert it into the sharing
  *  structure.
  */
@@ -1643,6 +1698,21 @@ AtomicSort* AtomicSort::create(AtomicSort* sort,TermList* args)
   return s;
 }
 
+AtomicSort* AtomicSort::createNonShared(AtomicSort* sort,TermList* args)
+{
+  CALL("AtomicSort::createNonShared");
+
+  int arity = sort->arity();
+  AtomicSort* s = new(arity) AtomicSort(*sort);
+
+  TermList* ss = s->args();
+  for (int i = 0;i < arity;i++) {
+    ASS(!args[i].isEmpty());
+    *ss-- = args[i];
+  }
+  return s;  
+}    
+
 
 AtomicSort* AtomicSort::create2(unsigned tc, TermList arg1, TermList arg2)
 {
@@ -1779,6 +1849,22 @@ Literal* Literal::create(Literal* l,TermList* args)
   return m;
 } // Literal::create
 
+Literal* Literal::createNonShared(Literal* l, TermList* args)
+{
+  CALL("Literal::createNonShared");
+  // no need to create non-shared equalities currently
+  ASS(!l->isEquality());
+
+  int arity = l->arity();
+  Literal* m = new(arity) Literal(*l);
+
+  TermList* ts = m->args();
+  for (int i = 0;i < arity;i++) {
+    ASS(!args[i].isEmpty());
+    *ts-- = args[i];
+  }
+  return m; 
+}
 
 /**
  * Return a new equality literal, with polarity @b polarity and

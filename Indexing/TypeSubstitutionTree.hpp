@@ -27,6 +27,12 @@
 
 namespace Indexing {
 
+
+// A substitution tree based indexing structure, that stores sorts in the tree
+// and terms of the relevant sorts in the leaves.
+// It is useful when we are interested in finding terms that can type unify, but 
+// not necessarily term unify. For example it is used in unification with abstraction.
+
 template<class LeafData_>
 class TypeSubstitutionTree
 : public TermIndexingStructure<LeafData_>, Indexing::SubstitutionTree<LeafData_>
@@ -49,7 +55,7 @@ public:
   CLASS_NAME(TypeSubstitutionTree);
   USE_ALLOCATOR(TypeSubstitutionTree);
 
-  TypeSubstitutionTree();
+  TypeSubstitutionTree(MismatchHandler* hndlr = 0);
 
   void insert(LeafData ld) final override { handleTerm(std::move(ld), true); }
   void remove(LeafData ld) final override { handleTerm(std::move(ld), false); }
@@ -59,6 +65,12 @@ public:
   // TermQueryResultIterator getUnifications(TermList sort, bool retrieveSubstitutions) final override;
   TermQueryResultIterator getUnifications(TermList sort, bool retrieveSubstitutions) final override { NOT_IMPLEMENTED; }
 
+  // Returns all terms whose sort unifies with @param sort
+  // @param trm is a term of sort sort. 
+  // If @param trm is a variable, the resulting substitution is extending to be a term
+  // substitution as well. Likewise if the result is a variable
+  // If neither query nor result is a variable, attempt to create a
+  // constraint between them
   TermQueryResultIterator getUnifications(TermList sort, TermList trm, 
     bool retrieveSubstitutions);
 
@@ -75,7 +87,7 @@ private:
   struct LDToTermQueryResultWithSubstFn;
   struct LeafToLDIteratorFn;
   struct UnifyingContext;
-  struct VarUnifFn;
+  struct ToTermUnifier;
   struct ToTypeSubFn;
 
   template<class LDIt>
@@ -99,6 +111,7 @@ private:
   { }
 
 
+  MismatchHandler* _handler;
   typedef SkipList<LeafData,LDComparator> LDSkipList;
   LDSkipList _vars;
   virtual std::ostream& output(std::ostream& out) const final override;

@@ -48,12 +48,6 @@ SLQueryResultIterator LiteralIndex::getUnifications(Literal* lit,
   return _is->getUnifications(lit, complementary, retrieveSubstitutions);
 }
 
-SLQueryResultIterator LiteralIndex::getUnificationsWithConstraints(Literal* lit,
-          bool complementary, bool retrieveSubstitutions)
-{
-  return _is->getUnificationsWithConstraints(lit, complementary, retrieveSubstitutions);
-}
-
 SLQueryResultIterator LiteralIndex::getGeneralizations(Literal* lit,
 	  bool complementary, bool retrieveSubstitutions)
 {
@@ -190,7 +184,7 @@ void NonUnitClauseLiteralIndex::handleClause(Clause* c, bool adding)
 RewriteRuleIndex::RewriteRuleIndex(LiteralIndexingStructure* is, Ordering& ordering)
 : LiteralIndex(is), _ordering(ordering)
 {
-  _partialIndex=new LiteralSubstitutionTree<>(env.options->unificationWithAbstraction());
+  _partialIndex=new LiteralSubstitutionTree<>();
 }
 
 RewriteRuleIndex::~RewriteRuleIndex()

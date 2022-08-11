@@ -153,7 +153,7 @@ Option<Clause*> TermFactoring::applyRule(
   // auto pivot_sigma = sigma(sel1.literal());
   // //   ^^^^^^^^^^^ (k₁ s₁ + k₂ s₂ + t <> 0)σ
 
-  Stack<Literal*> conclusion(sel1.clause()->size() + uwa.cnst().size());
+  Stack<Literal*> conclusion(sel1.clause()->size() + uwa.numberOfConstraints());
 
   // adding `Cσ`, and checking side condition
   for (auto l : sel1.contextLiterals()) {

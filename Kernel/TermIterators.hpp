@@ -448,11 +448,12 @@ public:
   : _stack(8), _added(0)
   {
     CALL("FirstOrderSubtermIt::FirstOrderSubtermIt");
+    
     if(term->isLiteral()){
-      TermList t0 = *term->nthArgument(0);
-      TermList t1 = *term->nthArgument(1);
-      if(!t0.isVar()){ _stack.push(t0.term()); }
-      if(!t1.isVar()){ _stack.push(t1.term()); }      
+      for(unsigned i = 0; i < term->arity(); i++){
+        TermList t = *term->nthArgument(i);
+        if(!t.isVar()){ _stack.push(t.term()); }
+      }      
       return;      
     } 
     _stack.push(term);
@@ -515,10 +516,10 @@ public:
   {
     CALL("BooleanSubtermIt::BooleanSubtermIt");
     if(term->isLiteral()){
-      TermList t0 = *term->nthArgument(0);
-      TermList t1 = *term->nthArgument(1);
-      if(!t0.isVar()){ _stack.push(t0.term()); }
-      if(!t1.isVar()){ _stack.push(t1.term()); }      
+      for(unsigned i = 0; i < term->arity(); i++){
+        TermList t = *term->nthArgument(i);
+        if(!t.isVar()){ _stack.push(t.term()); }
+      }  
       return;      
     } 
     _stack.push(term);

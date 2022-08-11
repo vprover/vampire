@@ -16,8 +16,8 @@ namespace Indexing
 {
 
 template<class LeafData_>
-LiteralSubstitutionTree<LeafData_>::LiteralSubstitutionTree(Shell::Options::UnificationWithAbstraction uwa, bool useC)
-: SubstitutionTree(2*env.signature->predicates(), uwa, useC)
+LiteralSubstitutionTree<LeafData_>::LiteralSubstitutionTree(MismatchHandler* hndlr)
+: SubstitutionTree(2*env.signature->predicates()), _handler(hndlr) 
 {
   //EqualityProxy transformation can introduce polymorphism in a monomorphic problem
   //However, there is no need to guard aginst it, as equalityProxy removes all
@@ -47,6 +47,15 @@ void LiteralSubstitutionTree<LeafData_>::handleLiteral(Literal* lit, Clause* cls
 
   Literal* normLit=Renaming::normalize(lit);
 
+  if(_handler){
+    // assertion below reflects that currently we only use 
+    // constraints with binary resolution (amongst inferences that require literal unification)
+    ASS(!lit->isEquality());
+    // replace subterms by very special variables
+    // For example f($sum(X,Y), b)   ---> f(#, b)
+    normLit = _handler->transform(normLit);
+  }
+
   BindingMap svBindings;
   this->getBindings(normLit, svBindings);
   if(insert) {
@@ -64,23 +73,10 @@ SLQueryResultIterator LiteralSubstitutionTree<LeafData_>::getUnifications(Litera
   CALL("LiteralSubstitutionTree::getUnifications");
   if(_polymorphic){
     return getResultIterator<UnificationsIterator, UnificationFilter<true>>(lit,
-  	  complementary, retrieveSubstitutions,false);
+  	  complementary, retrieveSubstitutions);
   } else {
     return getResultIterator<UnificationsIterator, UnificationFilter<false>>(lit,
-      complementary, retrieveSubstitutions,false);  
-  }
-}
-template<class LeafData_>
-SLQueryResultIterator LiteralSubstitutionTree<LeafData_>::getUnificationsWithConstraints(Literal* lit,
-          bool complementary, bool retrieveSubstitutions)
-{
-  CALL("LiteralSubstitutionTree::getUnificationsWithConstraints");
-  if(_polymorphic){
-    return getResultIterator<UnificationsIterator, UnificationFilter<true>>(lit,
-      complementary, retrieveSubstitutions,true);
-  } else {
-    return getResultIterator<UnificationsIterator, UnificationFilter<false>>(lit,
-      complementary, retrieveSubstitutions,true);
+      complementary, retrieveSubstitutions);  
   }
 }
 
@@ -93,7 +89,7 @@ SLQueryResultIterator LiteralSubstitutionTree<LeafData_>::getGeneralizations(Lit
   SLQueryResultIterator res=
 //  getResultIterator<GeneralizationsIterator>(lit,
     getResultIterator<FastGeneralizationsIterator, MatchingFilter<false>>(lit,
-	  	  complementary, retrieveSubstitutions,false);
+	  	  complementary, retrieveSubstitutions);
 //  ASS_EQ(res.hasNext(), getResultIterator<GeneralizationsIterator>(lit,
 //	  	  complementary, retrieveSubstitutions).hasNext());
   return res;
@@ -105,7 +101,6 @@ SLQueryResultIterator LiteralSubstitutionTree<LeafData_>::getInstances(Literal* 
 {
   CALL("LiteralSubstitutionTree::getInstances");
 
-//  return getResultIterator<InstancesIterator>(lit, complementary, true);
 
   if(retrieveSubstitutions) {
     NOT_IMPLEMENTED;
@@ -115,11 +110,9 @@ SLQueryResultIterator LiteralSubstitutionTree<LeafData_>::getInstances(Literal* 
   }
 
   SLQueryResultIterator res=
-//      getResultIterator<InstancesIterator>(lit,
       getResultIterator<FastInstancesIterator, MatchingFilter<true>>(lit,
-	  complementary, retrieveSubstitutions, false);
-//  ASS_EQ(res.hasNext(), getResultIterator<InstancesIterator>(lit,
-//      complementary, retrieveSubstitutions).hasNext());
+	  complementary, retrieveSubstitutions);
+
   return res;
 }
 
@@ -127,7 +120,7 @@ template<class LeafData_>
 struct LiteralSubstitutionTree<LeafData_>::SLQueryResultFunctor
 {
   SLQueryResult operator() (const QueryResult& qr) {
-    return SLQueryResult(qr.first.first->literal, qr.first.first->clause, qr.first.second,qr.second);
+    return SLQueryResult(qr.first->literal, qr.first->clause, qr.second);
   }
 };
 
@@ -287,7 +280,7 @@ SLQueryResultIterator LiteralSubstitutionTree<LeafData_>::getAll()
 template<class LeafData_>
 template<class Iterator, class Filter>
 SLQueryResultIterator LiteralSubstitutionTree<LeafData_>::getResultIterator(Literal* lit,
-	  bool complementary, bool retrieveSubstitutions, bool useConstraints)
+	  bool complementary, bool retrieveSubstitutions)
 {
   CALL("LiteralSubstitutionTree::getResultIterator");
 
@@ -313,10 +306,13 @@ SLQueryResultIterator LiteralSubstitutionTree<LeafData_>::getResultIterator(Lite
   }
 
   if(lit->commutative()) {
+    // Amongst inferences that require literal unification, constraints are only used for
+    // binary resolution which does not involve equality
+    ASS(!_handler);
     VirtualIterator<QueryResult> qrit1=vi(
-  	    new Iterator(this, root, lit, retrieveSubstitutions, false, false, useConstraints) );
+  	    new Iterator(this, root, lit, retrieveSubstitutions, false, false) );
     VirtualIterator<QueryResult> qrit2=vi(
-  	    new Iterator(this, root, lit, retrieveSubstitutions, true, false, useConstraints) );
+  	    new Iterator(this, root, lit, retrieveSubstitutions, true, false) );
     ASS(lit->isEquality());
     return pvi(
 	getContextualIterator(
@@ -326,7 +322,7 @@ SLQueryResultIterator LiteralSubstitutionTree<LeafData_>::getResultIterator(Lite
 	);
   } else {
     VirtualIterator<QueryResult> qrit=VirtualIterator<QueryResult>(
-  	    new Iterator(this, root, lit, retrieveSubstitutions,false,false, useConstraints) );
+  	    new Iterator(this, root, lit, retrieveSubstitutions,false,false, _handler) );
     return pvi( getMappingIterator(qrit, SLQueryResultFunctor()) );
   }
 }

@@ -20,9 +20,10 @@ namespace Indexing {
  * Initialise the substitution tree.
  * @since 16/08/2008 flight Sydney-San Francisco
  */
+
 template<class LeafData_>
-SubstitutionTree<LeafData_>::SubstitutionTree(int nodes, Shell::Options::UnificationWithAbstraction uwa, bool useC, bool rfSubs)
-  : _nextVar(0), _nodes(nodes), _useC(useC), _uwa(uwa), _rfSubs(rfSubs)
+SubstitutionTree<LeafData_>::SubstitutionTree(int nodes)
+  : _nextVar(0), _nodes(nodes)
 {
   CALL("SubstitutionTree::SubstitutionTree");
 
@@ -123,7 +124,7 @@ void SubstitutionTree<LeafData_>::insert(Node** pnode,BindingMap& svBindings,Lea
     if(svBindings.isEmpty()) {
       *pnode=createLeaf();
     } else {
-      *pnode=createIntermediateNode(svBindings.getOneKey(),_useC);
+      *pnode=createIntermediateNode(svBindings.getOneKey());
     }
   }
   if(svBindings.isEmpty()) {
@@ -190,7 +191,7 @@ start:
       UnresolvedSplitRecord urr=unresolvedSplits.pop();
 
       Node* node=*pnode;
-      IntermediateNode* newNode = createIntermediateNode(node->term, urr.var,_useC);
+      IntermediateNode* newNode = createIntermediateNode(node->term, urr.var);
       node->term=urr.original;
 
       *pnode=newNode;
@@ -227,7 +228,7 @@ start:
     }
     while (!remainingBindings.isEmpty()) {
       Binding b=remainingBindings.pop();
-      IntermediateNode* inode = createIntermediateNode(term, b.var,_useC);
+      IntermediateNode* inode = createIntermediateNode(term, b.var);
       term=b.term;
 
       *pnode = inode;
@@ -591,7 +592,7 @@ void SubstitutionTree<LeafData_>::Node::split(Node** pnode, TermList* where, int
 
   Node* node=*pnode;
 
-  IntermediateNode* newNode = createIntermediateNode(node->term, var,node->withSorts());
+  IntermediateNode* newNode = createIntermediateNode(node->term, var);
   node->term=*where;
   *pnode=newNode;
 
@@ -655,20 +656,16 @@ bool SubstitutionTree<LeafData_>::LeafIterator::hasNext()
 template<class LeafData_>
 SubstitutionTree<LeafData_>::UnificationsIterator::UnificationsIterator(SubstitutionTree* parent,
 	Node* root, Term* query, bool retrieveSubstitution, bool reversed, 
-  bool withoutTop, bool useC, FuncSubtermMap* funcSubtermMap)
+  bool withoutTop, MismatchHandler* hndlr)
 : 
 svStack(32), retrieveSubstitution(retrieveSubstitution), inLeaf(false),
 ldIterator(LDIterator::getEmpty()), nodeIterators(8), bdStack(8),
-clientBDRecording(false), useUWAConstraints(useC)
-  , uwa(parent->_uwa)
+clientBDRecording(false), handler(hndlr)
 #if VDEBUG
   , tree(parent)
 #endif
 {
   CALL("SubstitutionTree::UnificationsIterator::UnificationsIterator");
-
-  ASS(!useUWAConstraints || retrieveSubstitution);
-  ASS(!useUWAConstraints || parent->_useC);
 
 #if VDEBUG
   tree->_iteratorCnt++;
@@ -678,19 +675,14 @@ clientBDRecording(false), useUWAConstraints(useC)
     return;
   }
 
-  useHOConstraints = false;
-  if(funcSubtermMap){
-    useHOConstraints = true;
-    subst.setMap(funcSubtermMap);
-  }
-
   queryNormalizer.normalizeVariables(query);
   Term* queryNorm=queryNormalizer.apply(query);
 
-  if(funcSubtermMap){
-    TermList t = ApplicativeHelper::replaceFunctionalAndBooleanSubterms(queryNorm, funcSubtermMap);
-    ASS(!t.isVar());
-    queryNorm = t.term();
+  if(handler){
+    subst.setHandler(handler);
+    // replace subterms by very special variables
+    // For example f($sum(X,Y), b) ---> f(#, b)
+    queryNorm = handler->transform(queryNorm);
   }
 
   if(withoutTop){
@@ -789,11 +781,10 @@ typename SubstitutionTree<LeafData_>::QueryResult SubstitutionTree<LeafData_>::U
     subst.denormalize(normalizer,NORM_RESULT_BANK,RESULT_BANK);
     subst.denormalize(queryNormalizer,NORM_QUERY_BANK,QUERY_BANK);
 
-    return QueryResult(make_pair(&ld, ResultSubstitution::fromSubstitution(
-	    &subst, QUERY_BANK, RESULT_BANK)),
-            UnificationConstraintStackSP(new UnificationConstraintStack(constraints))); 
+    return QueryResult(&ld, ResultSubstitution::fromSubstitution(
+	    &subst, QUERY_BANK, RESULT_BANK)); 
   } else {
-    return QueryResult(make_pair(&ld, ResultSubstitutionSP()),UnificationConstraintStackSP());
+    return QueryResult(&ld, ResultSubstitutionSP());
   }
 }
 
@@ -861,7 +852,7 @@ bool SubstitutionTree<LeafData_>::UnificationsIterator::enter(Node* n, Backtrack
 
     recording=true;
     subst.bdRecord(bd);
-    success=associate(qt,n->term,bd);
+    success=associate(qt,n->term);
   }
   if(success) {
     if(n->isLeaf()) {
@@ -871,14 +862,7 @@ bool SubstitutionTree<LeafData_>::UnificationsIterator::enter(Node* n, Backtrack
       IntermediateNode* inode=static_cast<IntermediateNode*>(n);
       svStack.push(inode->childVar);
       NodeIterator nit=getNodeIterator(inode);
-      if(useUWAConstraints){
-        TermList qt = subst.getSpecialVarTop(inode->childVar);
-        NodeIterator enit = pvi(getConcatenatedIterator(inode->childBySort(qt),nit));
-        nodeIterators.backtrackablePush(enit,bd);
-      }
-      else{
-        nodeIterators.backtrackablePush(nit, bd);
-      }
+      nodeIterators.backtrackablePush(nit, bd);
     }
   }
   if(recording) {
@@ -887,49 +871,16 @@ bool SubstitutionTree<LeafData_>::UnificationsIterator::enter(Node* n, Backtrack
   return success;
 }
 
-template<class LeafData_>
-bool SubstitutionTree<LeafData_>::SubstitutionTreeMismatchHandler::introduceConstraint(TermList query,unsigned index1, TermList node,unsigned index2)
-{
-  CALL("SubstitutionTree::MismatchHandler::introduceConstraint");
-  
-  auto constraint = make_pair(make_pair(query,index1),make_pair(node,index2));
-  _constraints.backtrackablePush(constraint,_bd);
-  return true;
-}
-
-template<class LeafData_>
-bool SubstitutionTree<LeafData_>::STHOMismatchHandler::handle
-     (RobSubstitution* subst,TermList query,unsigned index1, TermList node,unsigned index2)
-{
-  CALL("SubstitutionTree::STHOMismatchHandler::handle");
-
-  auto constraint = make_pair(make_pair(query,index1),make_pair(node,index2));
-  _constraints.backtrackablePush(constraint,_bd);
-  return true;
-}
-
 /**
  * TODO: explain properly what associate does
  * called from enter(...)
  */
 template<class LeafData_>
-bool SubstitutionTree<LeafData_>::UnificationsIterator::associate(TermList query, TermList node, BacktrackData& bd)
+bool SubstitutionTree<LeafData_>::UnificationsIterator::associate(TermList query, TermList node)
 {
   CALL("SubstitutionTree::UnificationsIterator::associate");
 
-  //The ordering of the if statements is important here. Higher-order problems
-  //should never require theory resoning (at the moment, theories cannot be parsed in HOL)
-  //However, a user can still set UWA option on. We don't wan't that to result in 
-  //the wrong handler being used.
-  if(useHOConstraints){
-    STHOMismatchHandler hndlr(constraints,bd);
-    return subst.unify(query,NORM_QUERY_BANK,node,NORM_RESULT_BANK,&hndlr);    
-  }
-  if(useUWAConstraints){ 
-    SubstitutionTreeMismatchHandler hndlr(uwa, constraints,bd);
-    return subst.unify(query,NORM_QUERY_BANK,node,NORM_RESULT_BANK,&hndlr);
-  } 
-  return subst.unify(query,NORM_QUERY_BANK,node,NORM_RESULT_BANK);
+  return subst.unifyConstraintProcessed(query,NORM_QUERY_BANK,node,NORM_RESULT_BANK);
 }
 
 //TODO I think this works for VSpcialVars as well. Since .isVar() will return true 

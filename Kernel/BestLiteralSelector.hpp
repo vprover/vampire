@@ -153,12 +153,11 @@ protected:
       LiteralList::Iterator maxIt(maximals);
       while(maxIt.hasNext()){
         Literal* lit = maxIt.next();
-        TermList t0 = *lit->nthArgument(0);
-        TermList t1 = *lit->nthArgument(1);
-        TermList h0 = ApplicativeHelper::getHead(t0);  
-        TermList h1 = ApplicativeHelper::getHead(t1);
-        if(h0.isVar()){ maxTermHeads.insert(h0.var()); }
-        if(h1.isVar()){ maxTermHeads.insert(h1.var()); }
+        for(unsigned i = 0; i < lit->arity(); i ++){
+          TermList t = *lit->nthArgument(i);
+          TermList h = ApplicativeHelper::getHead(t);  
+          if(h.isVar()){ maxTermHeads.insert(h.var()); }
+        }
       }
     }
     //literals will be selected.

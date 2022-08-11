@@ -15,16 +15,13 @@
 
 #include "Shell/Options.hpp"
 #include "Lib/Environment.hpp"
-#include "Kernel/SortHelper.hpp"
-#include "Inferences/PolynomialEvaluation.hpp"
-#include "Kernel/LASCA.hpp"
-
+#include "Lib/BiMap.hpp"
 
 #include "Forwards.hpp"
 #include "Signature.hpp"
 #include "Term.hpp"
 #include "RobSubstitution.hpp"
-#include "Kernel/NumTraits.hpp"
+#include "SortHelper.hpp"
 
 #include "MismatchHandler.hpp"
 #include "Shell/UnificationWithAbstractionConfig.hpp"
@@ -32,118 +29,222 @@
 namespace Kernel
 {
 
-bool UWAMismatchHandler::handle(RobSubstitution* sub, TermList t1, unsigned index1, TermList t2, unsigned index2)
+bool UWAMismatchHandler::isConstraintPair(TermList t1, TermList t2)
 {
-  CALL("UWAMismatchHandler::handle");
+  CALL("UWAMismatchHandler::isConstraintPair");
 
-    TermList tt1 = sub->apply(t1,index1);
-    TermList tt2 = sub->apply(t2,index2);
+  static Shell::Options::UnificationWithAbstraction opt = env.options->unificationWithAbstraction();
 
-  if(checkUWA(tt1,tt2)){
-    return introduceConstraint(t1,index1,t2,index2);
+  switch(opt){
+    case Shell::Options::UnificationWithAbstraction::ONE_INTERP:
+      return isConstraintTerm(t1).isTrue() || isConstraintTerm(t2).isTrue();
+    case Shell::Options::UnificationWithAbstraction::INTERP_ONLY:{
+      return isConstraintTerm(t1).isTrue() && isConstraintTerm(t2).isTrue();
+    }
+    default:
+      // handler should never be called if UWA is off
+      ASSERTION_VIOLATION;
+      return false;
+  }
+}
+
+TermList UWAMismatchHandler::transformSubterm(TermList trm)
+{
+  CALL("UWAMismatchHandler::transformSubterm");
+ 
+  if(isConstraintTerm(trm).isTrue()){
+    ASS(trm.term()->shared());
+    return TermList::getVSpecVar(trm.term(), &_termMap);
+  }
+  return trm;
+}
+
+MaybeBool UWAMismatchHandler::isConstraintTerm(TermList t){
+  CALL("UWAMismatchHandler::isConstraintTerm");
+  
+  if(t.isVar()){ return false; }
+
+  static Shell::Options::UnificationWithAbstraction opt = env.options->unificationWithAbstraction();
+  bool onlyInterpreted = opt == Shell::Options::UnificationWithAbstraction::INTERP_ONLY;
+
+  auto trm = t.term();
+  bool isNumeral = Shell::UnificationWithAbstractionConfig::isNumeral(t);
+
+  if(Shell::UnificationWithAbstractionConfig::isInterpreted(trm) && !isNumeral){
+    return true;    
+  }
+
+  TermList sort = SortHelper::getResultSort(t.term()); 
+  if(!onlyInterpreted && (sort.isVar() || sort.isIntSort() || sort.isRatSort() || sort.isRealSort())){
+    return MaybeBool::UNKNOWN;
+  }  
+
+  return false;
+}
+
+void MismatchHandler::introduceConstraint(TermList t1,unsigned index1, TermList t2,unsigned index2, 
+  UnificationConstraintStack& ucs, BacktrackData& bd, bool recording)
+{
+  CALL("MismatchHandler::introduceConstraint");
+
+  auto constraint = make_pair(make_pair(t1,index1),make_pair(t2,index2));
+  if(recording){
+    ucs.backtrackablePush(constraint, bd);
+  } else {
+    ucs.push(constraint);
+  }
+}
+
+bool MismatchHandler::areIdentical(Term* t1, Term* t2, unsigned idx1, unsigned idx2)
+{
+  CALL("MismatchHandler::areIdentical");
+
+  if(t1 == t2 && t1->shared() && t1->ground()){ return true; }
+ 
+  TermList tt1 = TermList(t1);
+  TermList tt2 = TermList(t2);
+
+  RobSubstitution::TermSpec t1spec = RobSubstitution::TermSpec(tt1, idx1);
+  RobSubstitution::TermSpec t2spec = RobSubstitution::TermSpec(tt2, idx2);
+  if(t1spec.sameTermContent(t2spec)){ return true; }
+
+  return false;
+}
+
+
+CompositeMismatchHandler::~CompositeMismatchHandler(){
+  CALL("CompositeMismatchHandler::~CompositeMismatchHandler");
+
+  MHList::destroyWithDeletion(_inners);
+}
+
+bool CompositeMismatchHandler::handle(TermList t1, unsigned index1, TermList t2, unsigned index2, 
+  UnificationConstraintStack& ucs,BacktrackData& bd, bool recording)
+{
+  CALL("CompositeMismatchHandler::handle");
+
+  // make assumtion that we never create a constraint involving a variable
+  // this seems reasonable
+  if(t1.isOrdinaryVar() || t2.isOrdinaryVar())
+    return false;
+
+  t1 = t1.isVSpecialVar() ? TermList(get(t1.var())) : t1;
+  t2 = t2.isVSpecialVar() ? TermList(get(t2.var())) : t2;
+
+  if(areIdentical(t1.term(),t2.term(),index1,index2))
+    return true;
+
+  MHList* hit=_inners;
+  while(hit) {
+    if(hit->head()->isConstraintPair(t1,t2)){
+      introduceConstraint(t1,index1,t2,index2,ucs,bd,recording);      
+      return true;
+    }
+    hit=hit->tail();
   }
   return false;
 }
 
-bool UWAMismatchHandler::checkUWA(TermList t1, TermList t2)
-{
-  CALL("UWAMismatchHandler::checkUWA");
+void CompositeMismatchHandler::addHandler(MismatchHandler* hndlr){
+  CALL("CompositeMismatchHandler::addHandler");
 
-    if(!(t1.isTerm() && t2.isTerm())) return false;
+  MHList::push(hndlr,_inners);
+}
 
-    bool t1Interp = Shell::UnificationWithAbstractionConfig::isInterpreted(t1.term());
-    bool t2Interp = Shell::UnificationWithAbstractionConfig::isInterpreted(t2.term());
-    bool bothNumbers = (theory->isInterpretedConstant(t1) && theory->isInterpretedConstant(t2));
+MaybeBool CompositeMismatchHandler::isConstraintTerm(TermList t){
+  CALL("CompositeMismatchHandler::isConstraintTerm");
+  
+  if(t.isVar()){ return false; }
 
-    auto ircAbsractCoarse = [&](auto t) { 
-      if (t.isTerm()) {
-        auto f = t.term()->functor();
-        return forAnyNumTraits([&](auto numTraits) {
-            using NumTraits = decltype(numTraits);
-            return f == NumTraits::addF()  // t == ( t1 + t2 )
-               || (f == NumTraits::mulF() && ( t.term()->nthArgument(0)->isVar() || t.term()->nthArgument(1)->isVar() ));// t == ( x * t1 ) or t == ( t1 * x )
-        });
-      } else {
-        return false;
-      }
-    };
-
-    switch(_mode) {
-      case Shell::Options::UnificationWithAbstraction::OFF:
-        return false;
-
-      case Shell::Options::UnificationWithAbstraction::INTERP_ONLY:
-        return t1Interp && t2Interp && !bothNumbers;
-
-      case Shell::Options::UnificationWithAbstraction::ONE_INTERP:
-        return !bothNumbers && (t1Interp || t2Interp);
-
-      case Shell::Options::UnificationWithAbstraction::CONSTANT:
-        return  !bothNumbers 
-             && (t1Interp || t2Interp)
-             && (t1Interp || env.signature->functionArity(t1.term()->functor()))
-             && (t2Interp || env.signature->functionArity(t2.term()->functor()));
-
-      case Shell::Options::UnificationWithAbstraction::ALL:
-      case Shell::Options::UnificationWithAbstraction::GROUND: // TODO should ground & all really behave in the same way?
-        return true;
-
-      case Shell::Options::UnificationWithAbstraction::LASCA1: 
-        return ircAbsractCoarse(t1) || ircAbsractCoarse(t2);
-
-      case Shell::Options::UnificationWithAbstraction::LASCA2:  {
-        return (ircAbsractCoarse(t1) || ircAbsractCoarse(t2)) 
-          && !LascaState::globalState->equivalent(t1.term(), t2.term());
-      }
-
-      case Shell::Options::UnificationWithAbstraction::LASCA3:  {
-        // auto sort = SortHelper::getResultSort(t1.term());
-        auto isAdd = [&](Term* t) {
-          auto f = t->functor();
-          return forAnyNumTraits([&](auto numTraits) {
-              return f == numTraits.addF();
-          });
-        };
-
-        // auto isNumMul = [&](Term* t) {
-        //   auto f = t->functor();
-        //   return forAnyNumTraits([&](auto numTraits) {
-        //       using NumTraits = decltype(numTraits);
-        //       return f == NumTraits::mulF() && ( numTraits.isNumeral(*t->nthArgument(0)) ||  numTraits.isNumeral(*t->nthArgument(1)) );
-        //   });
-        // };
-
-        auto isVarMul = [&](Term* t) {
-          auto f = t->functor();
-          return forAnyNumTraits([&](auto numTraits) {
-              using NumTraits = decltype(numTraits);
-              return f == NumTraits::mulF() && ( t->nthArgument(0)->isVar() ||  t->nthArgument(1)->isVar() );
-          });
-        };
-
-        auto s = t1.term();
-        auto t = t2.term();
-        return (isAdd(s) && isAdd(t)) 
-            || isVarMul(s) || isVarMul(t);
-            // || (isNumMul(s) && isNumMul(t));
-
-      }
+  MHList* hit=_inners;
+  while(hit) {
+    auto res = hit->head()->isConstraintTerm(t);
+    if(!res.isFalse()){
+      return res;
     }
-    ASSERTION_VIOLATION;
+    hit=hit->tail();
+  }
+  return false; 
 }
 
-bool UWAMismatchHandler::introduceConstraint(TermList t1,unsigned index1, TermList t2,unsigned index2)
+TermList CompositeMismatchHandler::transformSubterm(TermList trm){
+  CALL("CompositeMismatchHandler::transformSubterm");
+
+  MHList* hit=_inners;
+  while(hit) {
+    TermList t = hit->head()->transformSubterm(trm);
+    if(t != trm){
+      return t;
+    }
+    hit=hit->tail();
+  }
+  return trm;
+}
+
+Term* CompositeMismatchHandler::get(unsigned var)
 {
-  _constraints.push(make_pair(make_pair(t1,index1),make_pair(t2,index2)));
-  return true;
+  CALL("CompositeMismatchHandler::get");
+
+  MHList* hit=_inners;
+  while(hit) {
+    auto res = hit->head()->getTermMap()->tryGet(var);
+    if(res.isSome()){
+      return res.unwrap();
+    }
+    hit=hit->tail();
+  } 
+  ASSERTION_VIOLATION;
 }
 
-bool HOMismatchHandler::handle(RobSubstitution* sub, TermList t1, unsigned index1, TermList t2, unsigned index2)
+
+bool HOMismatchHandler::isConstraintPair(TermList t1, TermList t2)
 {
-  CALL("HOMismatchHandler::handle");
+  CALL("HOMismatchHandler::isConstraintPair");
 
-  _constraints.push(make_pair(make_pair(t1,index1),make_pair(t2,index2)));
-  return true; 
+  auto isBooleanOrConstraintTerm = [&](TermList t){
+    TermList sort = SortHelper::getResultSort(t.term());
+    return !isConstraintTerm(t).isFalse() || sort.isBoolSort();
+  };
+
+  return isBooleanOrConstraintTerm(t1) && isBooleanOrConstraintTerm(t2);
 }
+
+MaybeBool HOMismatchHandler::isConstraintTerm(TermList t){
+  CALL("CompositeMismatcHandler::isConstraintTerm");
+  
+  if(t.isVar()){ return false; }
+
+  auto trm = t.term();
+  auto sort = SortHelper::getResultSort(trm);
+  
+  if(sort.isArrowSort()){
+    return true;
+  }
+
+  if(sort.isVar()){
+    return MaybeBool::UNKNOWN;
+  }
+  return false;
+}
+
+TermList HOMismatchHandler::transformSubterm(TermList trm)
+{
+  CALL("HOMismatchHandler::transformSubterm");
+
+  if(trm.isVar()) return trm;
+
+  ASS(trm.term()->shared());
+
+  TermList sort = SortHelper::getResultSort(trm.term());
+  if(sort.isBoolSort()){
+    return TermList::getVSpecVar(trm.term(), &_termMap);    
+  }
+
+  if(!isConstraintTerm(trm).isFalse()){
+    return TermList::getVSpecVar(trm.term(), &_termMap);
+  }
+  return trm;
+}
+
 
 }

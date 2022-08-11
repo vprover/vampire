@@ -41,7 +41,7 @@ public:
   CLASS_NAME(LiteralSubstitutionTree);
   USE_ALLOCATOR(LiteralSubstitutionTree);
 
-  LiteralSubstitutionTree(Shell::Options::UnificationWithAbstraction uwa = Shell::Options::UnificationWithAbstraction::OFF, bool useC=false);
+  LiteralSubstitutionTree(MismatchHandler* hndlr = 0);
 
   void insert(Literal* lit, Clause* cls);
   void remove(Literal* lit, Clause* cls);
@@ -51,9 +51,6 @@ public:
 
   SLQueryResultIterator getUnifications(Literal* lit,
 	  bool complementary, bool retrieveSubstitutions);
-
-  SLQueryResultIterator getUnificationsWithConstraints(Literal* lit,
-          bool complementary, bool retrieveSubstitutions);
 
   SLQueryResultIterator getGeneralizations(Literal* lit,
 	  bool complementary, bool retrieveSubstitutions);
@@ -166,9 +163,11 @@ private:
     BacktrackData _bdataEq;
   };
 
+  MismatchHandler* _handler;
+
   template<class Iterator, class Filter>
   SLQueryResultIterator getResultIterator(Literal* lit,
-	  bool complementary, bool retrieveSubstitutions, bool useConstraints);
+	  bool complementary, bool retrieveSubstitutions);
 
   unsigned getRootNodeIndex(Literal* t, bool complementary=false);
   bool _polymorphic;

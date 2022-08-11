@@ -69,7 +69,6 @@ Option<Clause*> InequalityFactoring::applyRule(
   auto& uwa = uwa_.unwrap();
 
   auto sigma = [&](auto x){ return uwa.sigma(x, /* varbank */ 0); };
-  auto& cnst  = uwa.cnst();
   auto j = l1.numeral().unwrap<Numeral>();
   auto k = l2.numeral().unwrap<Numeral>();
   auto s1 = l1.monom();
@@ -105,7 +104,7 @@ Option<Clause*> InequalityFactoring::applyRule(
         }));
 
                                   //
-  Stack<Literal*> concl(premise->size() + cnst.size());
+  Stack<Literal*> concl(premise->size() + uwa.numberOfConstraints());
 
   // adding `Cσ`
   { 

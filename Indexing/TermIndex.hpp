@@ -43,9 +43,6 @@ public:
   TermQueryResultIterator getUnificationsUsingSorts(TermList t, TermList sort, bool retrieveSubstitutions = true)
   { return _is->getUnificationsUsingSorts(t, sort, retrieveSubstitutions); }
 
-  TermQueryResultIterator getUnificationsWithConstraints(TermList t, bool retrieveSubstitutions = true)
-  { return _is->getUnificationsWithConstraints(t, retrieveSubstitutions); }
-
   TermQueryResultIterator getGeneralizations(TermList t, bool retrieveSubstitutions = true)
   { return _is->getGeneralizations(t, retrieveSubstitutions); }
 

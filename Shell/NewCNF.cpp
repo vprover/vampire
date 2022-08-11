@@ -32,6 +32,7 @@
 #include "Shell/SymbolOccurrenceReplacement.hpp"
 #include "Shell/SymbolDefinitionInlining.hpp"
 #include "Shell/Statistics.hpp"
+#include "Shell/FOOLElimination.hpp"
 
 #include "NewCNF.hpp"
 
@@ -1244,7 +1245,7 @@ void NewCNF::process(QuantifiedFormula* g, Occurrences &occurrences)
 
 void NewCNF::processBoolterm(TermList ts, Occurrences &occurrences)
 {
-  CALL("NewCNF::process(TermList)");
+  CALL("NewCNF::processBoolterm");
 
   if (ts.isVar()) {
     processBoolVar(POSITIVE, ts.var(), occurrences);
@@ -1252,35 +1253,38 @@ void NewCNF::processBoolterm(TermList ts, Occurrences &occurrences)
   }
 
   Term* term = ts.term();
-  ASS_REP(term->isSpecial(), term->toString());
+  //ASS_REP(term->isSpecial(), term->toString());
+  
+  if(term->isSpecial()){
+    Term::SpecialTermData* sd = term->getSpecialData();
+    switch (sd->getType()) {
+      case Term::SF_FORMULA:
+        process(sd->getFormula(), occurrences);
+        break;
 
-  Term::SpecialTermData* sd = term->getSpecialData();
-  switch (sd->getType()) {
-    case Term::SF_FORMULA:
-      process(sd->getFormula(), occurrences);
-      break;
+      case Term::SF_ITE: {
+        Formula* condition = sd->getCondition();
 
-    case Term::SF_ITE: {
-      Formula* condition = sd->getCondition();
+        Formula* left = BoolTermFormula::create(*term->nthArgument(LEFT));
+        Formula* right = BoolTermFormula::create(*term->nthArgument(RIGHT));
+        processITE(condition, left, right, occurrences);
+        break;
+      }
 
-      Formula* left = BoolTermFormula::create(*term->nthArgument(LEFT));
-      Formula* right = BoolTermFormula::create(*term->nthArgument(RIGHT));
-      processITE(condition, left, right, occurrences);
-      break;
+      case Term::SF_LET:
+      case Term::SF_LET_TUPLE:
+        processLet(sd, *term->nthArgument(0), occurrences);
+        break;
+
+      case Term::SF_MATCH: {
+        processMatch(sd, term, occurrences);
+        break;
+      }
+
+      default: {
+        ASSERTION_VIOLATION_REP(term->toString());
+      }
     }
-
-    case Term::SF_LET:
-    case Term::SF_LET_TUPLE:
-      processLet(sd, *term->nthArgument(0), occurrences);
-      break;
-
-    case Term::SF_MATCH: {
-      processMatch(sd, term, occurrences);
-      break;
-    }
-
-    default:
-      ASSERTION_VIOLATION_REP(term->toString());
   }
 }
 
@@ -1643,6 +1647,14 @@ Clause* NewCNF::toClause(SPGenClause gc)
   while (lit.hasNext()) {
     GenLit gl = lit.next();
     Formula* g = formula(gl);
+
+    // This can happen when the problem is pseudo-higher-order
+    // I.e. marked as THF, but only containing FOOL constructs.
+    // THF parses works a little differntly to FOOL parses, so 
+    // internal structures will be different.
+    if(g->connective() == BOOL_TERM){
+      g = FOOLElimination::toEquality(static_cast<BoolTermFormula*>(g)->getTerm());
+    }
 
     ASS_REP(g->connective() == LITERAL, gc->toString());
     ASS_REP(g->literal()->shared(), g->toString());

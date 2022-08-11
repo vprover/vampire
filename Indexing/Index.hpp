@@ -215,14 +215,10 @@ struct SLQueryResult
   : literal(l), clause(c), substitution(s) {}
   SLQueryResult(Literal* l, Clause* c)
   : literal(l), clause(c) {}
-  SLQueryResult(Literal* l, Clause* c, ResultSubstitutionSP s,UnificationConstraintStackSP con)
-  : literal(l), clause(c), substitution(s), constraints(con) {}
-
 
   Literal* literal;
   Clause* clause;
   ResultSubstitutionSP substitution;
-  UnificationConstraintStackSP constraints;
 
   struct ClauseExtractFn
   {
@@ -246,25 +242,13 @@ struct TermQueryResult : public Data
   TermQueryResult(Data d, ResultSubstitutionSP s)
     : Data(std::move(d)), substitution(s) {}
 
-  TermQueryResult(Data d, ResultSubstitutionSP s, bool b)
-    : Data(std::move(d)), substitution(s), isTypeSub(b) {}
-
   TermQueryResult(Data d)
     : Data(std::move(d)) {}
-
-  TermQueryResult(Data d, ResultSubstitutionSP s,UnificationConstraintStackSP con) 
-    : Data(std::move(d)), substitution(s), constraints(con) {}
-
-  TermQueryResult(Data d, ResultSubstitutionSP s,UnificationConstraintStackSP con, bool b)
-    : Data(std::move(d)), substitution(s), constraints(con), isTypeSub(b) {}
-
 
   Data const& data() const
   { return *this; }
 
   ResultSubstitutionSP substitution;
-  UnificationConstraintStackSP constraints;
-  bool isTypeSub = false; //true if the substitution only unifies the types of the terms
 };
 
 struct ClauseSResQueryResult

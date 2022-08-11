@@ -103,7 +103,7 @@ shared_ptr<LascaState> testLascaState(Options::UnificationWithAbstraction uwa, b
 
   auto qkbo = ordering == nullptr ? new QKbo(KBO::testKBO(/*rand*/ false, /*qkbo*/ true)) : nullptr;
   auto& ord = ordering == nullptr ? *qkbo : *ordering;
-  auto state = LascaState::create(InequalityNormalizer(strongNormalization), &ord, uwa);
+  auto state = LascaState::create(InequalityNormalizer(strongNormalization), &ord);
   if (qkbo)
         qkbo->setState(state);
   return state;
@@ -218,12 +218,12 @@ PolyNf LascaState::normalize(TypedTermList term)
 
 Option<UwaResult> LascaState::unify(TermList lhs, TermList rhs) const 
 {
-  RobSubstitution sigma;
-  Stack<UnificationConstraint> cnst;
-  Kernel::UWAMismatchHandler hndlr(uwa, cnst);
+  RobSubstitution sigma(handler);
+  // TODO AYB get handler and add it to substitution
+
   if (sigma.unify(lhs, /* var bank: */ 0, 
-                  rhs, /* var bank: */ 0, &hndlr)) {
-    return Option<UwaResult>(UwaResult(std::move(sigma), std::move(cnst)));
+                  rhs, /* var bank: */ 0)) {
+    return Option<UwaResult>(UwaResult(std::move(sigma)));
   } else {
     return Option<UwaResult>();
   }

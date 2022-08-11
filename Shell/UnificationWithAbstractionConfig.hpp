@@ -23,6 +23,8 @@ public:
 
   static bool isInterpreted(Kernel::Term* t   );
   static bool isInterpreted(Kernel::TermList t);
+  static bool isNumeral(Kernel::TermList t);
+  
 };
 
 } // namespace Shell

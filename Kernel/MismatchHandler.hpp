@@ -18,48 +18,121 @@
 
 #include "Forwards.hpp"
 #include "Term.hpp"
-#include "Shell/Options.hpp"
+#include "Kernel/TermTransformer.hpp"
+#include "Lib/MaybeBool.hpp"
+#include "Lib/BiMap.hpp"
 
 namespace Kernel
 {
 
-class MismatchHandler
+class MismatchHandler : public TermTransformer
 {
 public:
-  // returns true if the mismatch was handled.
-  virtual bool handle(RobSubstitution* sub, TermList t1, unsigned index1, TermList t2, unsigned index2) = 0;
+
+  MismatchHandler() : TermTransformer(false) {}
+
+  // Returns true if the mismatch can be handled by some handler
+  //
+  // Implementors do NOT need to override this function. Only the composite handler
+  // needs to.
+  virtual bool handle(TermList t1, unsigned index1, TermList t2, unsigned index2, 
+    UnificationConstraintStack& ucs, BacktrackData& bd, bool recording){ NOT_IMPLEMENTED; };
+  
+  // Returns true if <t1, t2> can form a constraint
+  // Implementors NEED to override this function with
+  // their specific logic. 
+  // It shold be possible to make use of isConstraintTerm() here
+  virtual bool isConstraintPair(TermList t1, TermList t2) = 0;
+  virtual TermList transformSubterm(TermList t) = 0;
+
+  // With polymorphism, a term may end up being a constraint term
+  // depending on type substitutions.
+  // Also a term such as f(a,b) : $int may be a constraint term 
+  // but we also want to unify against it.
+  //
+  // Implementors of this function need to be aware of the following:
+  // - when a term t is inserted into a substitution tree that uses a handler
+  //   this function is run on t. 
+  //   + If it returns true, we subsequently ONLY create constraints with t and 
+  //     do not try and unify with t (unless the query term is a variable)
+  //   + If it returns false, we ONLY unify and do not create constraints with t
+  //   + If it returns maybe we will attempt to do BOTH. Unify query terms with t
+  //     and create constraints.
+  // - Similarly, when we query with a term trm, we run this function on trm
+  //   + If it returns true, we ONLY attempt to find constraint partners for trm
+  //   + If it returns false, we ONLY attempt to find unification partners for trm
+  //   + If it returns maybe, we attempt to find BOTH type of partners for trm
+  // - It may be convenient to use this function in the implementation of transformSubterm
+  //   View UWAMismatchHandler::transformSubterm() for an example of this
+  virtual MaybeBool isConstraintTerm(TermList t) = 0;
+
+  bool areIdentical(Term* t1, Term* t2, unsigned idx1, unsigned idx2);
+
+  virtual Term* get(unsigned var){ NOT_IMPLEMENTED; }
+
+  VSpecVarToTermMap* getTermMap() { return &_termMap; }
+
+protected: 
+  void introduceConstraint(TermList t1,unsigned index1, TermList t2, unsigned index2, 
+    UnificationConstraintStack& ucs, BacktrackData& bd, bool recording);
+  
+  VSpecVarToTermMap _termMap;
+};
+
+/**
+ * Meta handler
+ * Invariant: for all handlers in _inner, a maximum of ONE handler
+ * can return a non-false value on a call to isConstraintTerm 
+ */
+class CompositeMismatchHandler : 
+  public MismatchHandler
+{
+public:
+
+  ~CompositeMismatchHandler();
+  virtual bool handle(TermList t1, unsigned index1, TermList t2, unsigned index2, 
+    UnificationConstraintStack& ucs, BacktrackData& bd, bool recording) override;
+  TermList transformSubterm(TermList trm) override;
+  MaybeBool isConstraintTerm(TermList t) override; 
+  bool isConstraintPair(TermList t1, TermList t2) override { NOT_IMPLEMENTED; }  
+  Term* get(unsigned var) override;
+
+  void addHandler(MismatchHandler* hndlr);
+
+  CLASS_NAME(CompositeMismatchHandler);
+  USE_ALLOCATOR(CompositeMismatchHandler);
+
+private:
+  typedef List<MismatchHandler*> MHList;
+  MHList* _inners;
 };
 
 class UWAMismatchHandler : public MismatchHandler
 {
 public:
-  UWAMismatchHandler(Shell::Options::UnificationWithAbstraction mode, Stack<UnificationConstraint>& c) : _mode(mode), _constraints(c) /*, specialVar(0)*/ {}
-  virtual bool handle(RobSubstitution* sub, TermList t1, unsigned index1, TermList t2, unsigned index2);
+  UWAMismatchHandler() {}
+
+  bool isConstraintPair(TermList t1, TermList t2) override; 
+  TermList transformSubterm(TermList trm) override;
+  MaybeBool isConstraintTerm(TermList t) override; 
 
   CLASS_NAME(UWAMismatchHandler);
   USE_ALLOCATOR(UWAMismatchHandler);
-
 private:
   bool checkUWA(TermList t1, TermList t2); 
-  virtual bool introduceConstraint(TermList t1,unsigned index1, TermList t2, unsigned index2);
-
-  const Shell::Options::UnificationWithAbstraction _mode;
-  Stack<UnificationConstraint>& _constraints;
 };
 
 class HOMismatchHandler : public MismatchHandler
 {
 public:
-  HOMismatchHandler(UnificationConstraintStack& c) : _constraints(c) {}
+  HOMismatchHandler() {}
   
-  virtual bool handle(RobSubstitution* sub, TermList t1, unsigned index1, TermList t2, unsigned index2);
+  bool isConstraintPair(TermList t1, TermList t2) override;
+  TermList transformSubterm(TermList trm) override;
+  MaybeBool isConstraintTerm(TermList t) override; 
 
   CLASS_NAME(HOMismatchHandler);
   USE_ALLOCATOR(HOMismatchHandler);
-
-private:
-
-  Stack<UnificationConstraint>& _constraints;
 };
 
 

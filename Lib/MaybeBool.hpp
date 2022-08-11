@@ -37,6 +37,7 @@ public:
   MaybeBool(Value val) : _value(val) {}
 
   bool known() const { return _value!=UNKNOWN; }
+  bool maybe() const { return _value==UNKNOWN; }
   bool isTrue() const { return _value==TRUE; }
   bool isFalse() const { return _value==FALSE; }
 

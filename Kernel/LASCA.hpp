@@ -272,46 +272,40 @@ namespace Kernel {
   auto applySubst(UwaSubstitution const& subst, TermOrLit t, int varBank)
   { return subst.apply([&](auto& s) { return applySubst(s, t, varBank); });  }
 
-
   struct UwaResult {
     UwaSubstitution _sigma;
-    Stack<UnificationConstraint> _cnst;
 
-    UwaResult(RobSubstitution sigma, Stack<UnificationConstraint> cnst) 
+    UwaResult(RobSubstitution sigma) 
       : _sigma(decltype(_sigma)(std::move(sigma)))
-      , _cnst(std::move(cnst)) 
     {  }
 
     template<class T>
     UwaResult(Indexing::TermQueryResult<T> const& qr)
       : _sigma(decltype(_sigma)(qr.substitution))
-      , _cnst( qr.constraints ? *qr.constraints : decltype(_cnst)() )
     { }
 
     UwaResult(UwaResult&&) = default;
     UwaResult& operator=(UwaResult&&) = default;
-
-    template<class Subst>
-    static auto cnstLiterals(Subst& sigma, Stack<UnificationConstraint> const& cnst)
-    {
-      return iterTraits(cnst.iterFifo())
-        .map([&](auto c){
-          auto toTerm = [&](pair<TermList, unsigned> & constraintPair) -> TermList
-                        { return applySubst(sigma, constraintPair.first, constraintPair.second); };
-          auto sort = SortHelper::getResultSort(c.first.first.term());
-          // lσ != rσ
-          return Literal::createEquality(false, toTerm(c.first), toTerm(c.second), sort);
-        });
-    }
-
-    auto const& cnst() const { return _cnst; }
 
     template<class TermOrLit>
     auto sigma(TermOrLit x, unsigned varBank) const 
     { return applySubst(_sigma, x, varBank); }
 
     auto cnstLiterals() const
-    { return cnstLiterals(_sigma, _cnst); }
+    { 
+      if(_sigma.is<0>()){
+        return const_cast<RobSubstitution&>(_sigma.unwrap<0>()).getConstraints();
+      }
+      return _sigma.unwrap<1>()->getConstraints();        
+    }
+
+    auto numberOfConstraints() const
+    {       
+      if(_sigma.is<0>()){
+        return const_cast<RobSubstitution&>(_sigma.unwrap<0>()).numberOfConstraints();
+      }
+      return _sigma.unwrap<1>()->numberOfConstraints(); 
+    }
 
     friend std::ostream& operator<<(std::ostream& out, UwaResult const& self)
     { 
@@ -616,24 +610,24 @@ namespace Kernel {
     LascaState(
           InequalityNormalizer normalizer,
           Ordering* const ordering,
-          Shell::Options::UnificationWithAbstraction const uwa
+          MismatchHandler* hndlr = 0
         )
       : normalizer(std::move(normalizer))
-      , ordering(std::move(ordering))
-      , uwa(std::move(uwa)) {}
+      , ordering(std::move(ordering)) 
+      , handler(hndlr) {}
 
   public:
     InequalityNormalizer normalizer;
     Ordering* const ordering;
-    Shell::Options::UnificationWithAbstraction const uwa;
+    MismatchHandler* handler;
 
     static std::shared_ptr<LascaState> create(
           InequalityNormalizer normalizer,
           Ordering* const ordering,
-          Shell::Options::UnificationWithAbstraction const uwa
+          MismatchHandler* handler = 0
         ) 
     {
-      globalState = make_shared(LascaState(std::move(normalizer), ordering, uwa));
+      globalState = make_shared(LascaState(std::move(normalizer), ordering, handler));
       return globalState;
     }
 
@@ -934,7 +928,8 @@ namespace Kernel {
 
 #if VDEBUG
   shared_ptr<LascaState> testLascaState(
-    Options::UnificationWithAbstraction uwa = Options::UnificationWithAbstraction::LASCA1,
+    // changed from LASCA1 AYB
+    // Options::UnificationWithAbstraction uwa = Options::UnificationWithAbstraction::ONE_INTERP,
     bool strongNormalization = false,
     Ordering* ordering = nullptr
     );

@@ -19,6 +19,7 @@
 #include "Forwards.hpp"
 #include "Lib/DHMap.hpp"
 #include "Index.hpp"
+#include "Kernel/MismatchHandler.hpp"
 
 #include "Lib/Allocator.hpp"
 
@@ -84,6 +85,7 @@ public:
   void release(IndexType t);
   bool contains(IndexType t);
   Index* get(IndexType t);
+  MismatchHandler* getHandler(){ return _handler; }
 
   void provideIndex(IndexType t, Index* index);
 
@@ -100,6 +102,7 @@ private:
   DHMap<IndexType,Entry> _store;
 
   LiteralIndexingStructure* _genLitIndex;
+  CompositeMismatchHandler* _handler;
 
   Index* create(IndexType t);
 };

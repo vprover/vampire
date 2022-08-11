@@ -101,10 +101,20 @@ FormulaUnit* Skolem::skolemiseImpl (FormulaUnit* unit, bool appify)
 
   ASS(_introducedSkolemSyms.isNonEmpty());
   while(_introducedSkolemSyms.isNonEmpty()) {
-    unsigned fn = _introducedSkolemSyms.pop();
-    InferenceStore::instance()->recordIntroducedSymbol(res,true,fn);
+    auto symPair = _introducedSkolemSyms.pop();
+
+    if(symPair.first){
+      InferenceStore::instance()->recordIntroducedSymbol(res,TYPE_CON,symPair.second);
+    } else {
+      InferenceStore::instance()->recordIntroducedSymbol(res,FUNC,symPair.second);
+    }
+
     if(unit->derivedFromGoal()){
-      env.signature->getFunction(fn)->markInGoal();
+      if(symPair.first){
+        env.signature->getTypeCon(symPair.second)->markInGoal();       
+      } else {
+        env.signature->getFunction(symPair.second)->markInGoal();
+      }
     }
   }
 
@@ -483,6 +493,7 @@ Formula* Skolem::skolemise (Formula* f)
         reuse_key = name_reuse->key(before);
         successfully_reused = name_reuse->get(reuse_key, sym);
         if (successfully_reused) { // only counts one per the whole quantifier block
+          cout << "SYM " << sym << endl;
           env.statistics->reusedSkolemFunctions++;
         }
       }
@@ -528,7 +539,7 @@ Formula* Skolem::skolemise (Formula* f)
           skolemTerm = ApplicativeHelper::createAppTerm(
             SortHelper::getResultSort(head.term()), head, termVars).term();      
         }
-        _introducedSkolemSyms.push(sym);
+        _introducedSkolemSyms.push(make_pair(skolemisingTypeVar, sym));
 
         if(!successfully_reused) {
           env.statistics->skolemFunctions++;
@@ -561,7 +572,7 @@ Formula* Skolem::skolemise (Formula* f)
         }
 
 #if VDEBUG
-        ASS(first_pass || sym == last_sym+1);
+        ASS(!name_reuse || first_pass || sym == last_sym+1);
         last_sym = sym;
 #endif
         // in case we are reusing and there is more than one f->vars() in the block

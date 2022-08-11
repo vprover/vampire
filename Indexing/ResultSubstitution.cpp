@@ -51,6 +51,9 @@ public:
   virtual size_t getResultApplicationWeight(TermList t) final override { return _subst->getApplicationResultWeight(t, _resultBank); }
   virtual size_t getResultApplicationWeight(Literal* l) final override { return _subst->getApplicationResultWeight(l, _resultBank); }
 
+  virtual unsigned numberOfConstraints() { return _subst->numberOfConstraints(); }
+  virtual LiteralIterator getConstraints() { return _subst->getConstraints(); }
+
   RobSubstitution* tryGetRobSubstitution() final override { return _subst; }
 
 #if VDEBUG

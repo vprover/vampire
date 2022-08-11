@@ -34,6 +34,8 @@ public:
   CLASS_NAME(EqualityFactoring);
   USE_ALLOCATOR(EqualityFactoring);
 
+  void attach(SaturationAlgorithm* salg);
+
   ClauseIterator generateClauses(Clause* premise);
 private:
   struct IsPositiveEqualityFn;
@@ -41,6 +43,7 @@ private:
   struct FactorablePairsFn;
   struct ResultFn;
 
+  MismatchHandler* _handler;
 };
 
 

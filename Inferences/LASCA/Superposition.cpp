@@ -106,7 +106,7 @@ Option<Clause*> Superposition::applyRule(
   Stack<Literal*> concl(lhs.clause()->size() - 1 // <- C1σ
                       + rhs.clause()->size() - 1 // <- C2σ
                       + 1                        // <- L[s2]σ 
-                      + uwa.cnst().size());      // <- Cnstσ
+                      + uwa.numberOfConstraints());      // <- Cnstσ
 
 
   auto unifySorts = [](auto s1, auto s2) -> Option<TermList> {
@@ -198,7 +198,7 @@ ClauseIterator Superposition::generateClauses(Clause* premise)
 
   for (auto const& lhs : Lhs::iter(*_shared, premise)) {
     DEBUG("lhs: ", lhs)
-    for (auto rhs_sigma : _rhs->find(lhs.key())) {
+    for (auto rhs_sigma : _rhs->find(lhs.key(),lhs.sort())) {
       auto& rhs   = std::get<0>(rhs_sigma);
       auto& sigma = std::get<1>(rhs_sigma);
       DEBUG("  rhs: ", rhs)
@@ -212,7 +212,7 @@ ClauseIterator Superposition::generateClauses(Clause* premise)
 
   for (auto const& rhs : Rhs::iter(*_shared, premise)) {
     DEBUG("rhs: ", rhs)
-    for (auto lhs_sigma : _lhs->find(rhs.key())) {
+    for (auto lhs_sigma : _lhs->find(rhs.key(),rhs.sort())) {
       auto& lhs   = std::get<0>(lhs_sigma);
       auto& sigma = std::get<1>(lhs_sigma);
       if (lhs.clause() != premise) { // <- self application. the same one has been run already in the previous loop

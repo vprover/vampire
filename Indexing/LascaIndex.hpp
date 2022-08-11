@@ -24,6 +24,8 @@
 #include "Indexing/Index.hpp"
 #include "Indexing/TermSubstitutionTree.hpp"
 
+#include "Kernel/MismatchHandler.hpp"
+
 namespace Indexing {
 
 template<class T>
@@ -33,18 +35,18 @@ public:
   CLASS_NAME(LascaIndex);
   USE_ALLOCATOR(LascaIndex);
 
-  LascaIndex(Options::UnificationWithAbstraction uwa)
-    : _index(uwa, /* use constraints */  true)
+  LascaIndex(Kernel::MismatchHandler* hndlr = 0)
+    : _index(hndlr)
     , _shared()
   {}
 
   void setShared(shared_ptr<Kernel::LascaState> shared) { _shared = std::move(shared); }
 
   // TODO remove?!
-  auto find(TermList key)
+  auto find(TermList key, TermList sort)
   { 
     CALL("LascaIndex::find")
-    return iterTraits(_index.getUnificationsWithConstraints(key, /* retrieveSubstitutions */ true))
+    return iterTraits(_index.getUnificationsUsingSorts(key,sort, /* retrieveSubstitutions */ true))
       .map([](TermQueryResult<T> r) 
            { return std::tuple<T, UwaResult>( std::move(r.data()), UwaResult(r));  })
       .timeTraced(_lookupStr.c_str()); }

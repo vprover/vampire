@@ -34,76 +34,69 @@ using namespace Lib;
 using namespace Kernel;
 
 template<class LeafData_>
-TypeSubstitutionTree<LeafData_>::TypeSubstitutionTree()
-: SubstitutionTree(env.signature->functions(), Options::UnificationWithAbstraction::OFF)
-{
-}
+TypeSubstitutionTree<LeafData_>::TypeSubstitutionTree(MismatchHandler* hndlr)
+: SubstitutionTree(env.signature->typeCons()), _handler(hndlr)
+{}
 
 #define QRS_QUERY_BANK 0
 #define QRS_RESULT_BANK 1
 
 template<class LeafData_>
-struct TypeSubstitutionTree<LeafData_>::VarUnifFn
+struct TypeSubstitutionTree<LeafData_>::ToTermUnifier
 {
-  VarUnifFn(TermList queryTerm, TermList sort)
-  : _queryTerm(queryTerm), _sort(sort) {
-    _subst=RobSubstitutionSP(new RobSubstitution());
+  ToTermUnifier(TermList queryTerm, bool retrieveSubstitutions, MismatchHandler* hndlr)
+  : _queryTerm(queryTerm), _retrieveSubstitutions(retrieveSubstitutions), _handler(hndlr) {}
+
+  bool enter (const TermQueryResult<LeafData>& tqr) {
+    CALL("TypeSubstitutionTree::ToTermUnifier::enter");
+
+    if(_retrieveSubstitutions){
+      RobSubstitution* subst=tqr.substitution->tryGetRobSubstitution();
+      ASS(subst);
+      if(_queryTerm.isVar() || tqr.data().key().isVar()){
+        if(_handler){
+          ASS(!tqr.data().key().isVar()); // constraints should never be variables
+          if(_handler->isConstraintTerm(tqr.data().key()).maybe()){
+            // term is also in the standard tree and we will unify with it there
+            return false;
+          }
+        }
+        subst->bdRecord(_bdata);
+        ALWAYS(subst->unify(_queryTerm, QRS_QUERY_BANK, tqr.data().key(), QRS_RESULT_BANK));
+        subst->bdDone();        
+      } else {
+        return subst->tryAddConstraint(_queryTerm, QRS_QUERY_BANK, tqr.data().key(), QRS_RESULT_BANK, _bdata);
+      }
+    }
+    return true;
   }
 
-  TermQueryResult<LeafData> operator() (TermQueryResult<LeafData> tqr) {
-    TermList tqrSort = tqr.sort();
-    _subst->reset();
+  void leave(const TermQueryResult<LeafData>& tqr) {
+    CALL("TypeSubstitutionTree::ToTermUnifier::leave");
 
-    ASS(_sort.isVar() || tqrSort.isVar());
-    ALWAYS(_subst->unify(_sort, QRS_QUERY_BANK, tqrSort, QRS_RESULT_BANK));
-    
-    bool isTypeSub = false;
-    if(_queryTerm.isVar() || tqr.key().isVar()){
-      ALWAYS(_subst->unify(_queryTerm, QRS_QUERY_BANK, tqr.key(), QRS_RESULT_BANK));
-    } else {
-      isTypeSub = true;
+    if(_retrieveSubstitutions){
+       _bdata.backtrack();
+      ASS(_bdata.isEmpty());
     }
-
-    return TermQueryResult<LeafData>(tqr,
-    ResultSubstitution::fromSubstitution(_subst.ptr(),
-      QRS_QUERY_BANK,QRS_RESULT_BANK), isTypeSub);
-  }
-
-private:
-  RobSubstitutionSP _subst;
-  TermList _queryTerm;
-  TermList _sort;
-};
-
-template<class LeafData_>
-struct TypeSubstitutionTree<LeafData_>::ToTypeSubFn
-{
-
-  ToTypeSubFn(TermList queryTerm)
-  : _queryTerm(queryTerm) {}
-
-  TermQueryResult<LeafData> operator() (TermQueryResult<LeafData> tqr) {
-    if(!_queryTerm.isVar() && !tqr.key().isVar()){
-      tqr.isTypeSub = true;
-    } else {
-      RobSubstitution* subst = tqr.substitution->tryGetRobSubstitution();
-      ALWAYS(subst->unify(_queryTerm, QRS_QUERY_BANK, tqr.key(), QRS_RESULT_BANK));      
-    }
-    return tqr;
   }
 
 private:
   TermList _queryTerm;
+  bool _retrieveSubstitutions;
+  MismatchHandler* _handler;
+  BacktrackData _bdata;
 };
 
 /**
- * According to value of @b insert, insert or remove term.
+ * According to value of @b insert, insert or remove leaf data.
  */
 template<class LeafData_>
 void TypeSubstitutionTree<LeafData_>::handleTerm(LeafData ld, bool insert)
 {
   CALL("TypeSubstitutionTree::handleTerm");
-  auto sort = ld.key();
+  auto sort = ld.sort();
+
+  ASS(sort.isVar() || sort.term()->isSort());
 
   if(sort.isOrdinaryVar()) {
     if(insert) {
@@ -135,27 +128,24 @@ void TypeSubstitutionTree<LeafData_>::handleTerm(LeafData ld, bool insert)
   }
 }
 
-//TODO use sorts and delete non-shared
 template<class LeafData_>
-TermQueryResultIterator<LeafData_> TypeSubstitutionTree<LeafData_>::getUnifications(TermList sort, TermList trm,
-	  bool retrieveSubstitutions)
+TermQueryResultIterator<LeafData_> 
+TypeSubstitutionTree<LeafData_>::getUnifications(TermList sort, TermList trm,bool retrieveSubstitutions)
 {
   CALL("TypeSubstitutionTree::getUnifications");
- 
-  //cout << "getting unification partners for " + sort.toString() << endl;
-  //Debug::Tracer::printStack(cout);
 
-
-  auto it1 = !_vars.isEmpty() ? pvi(getMappingIterator(ldIteratorToTQRIterator(typename LDSkipList::RefIterator(_vars), sort, false), VarUnifFn(trm, sort))) :
-             TermQueryResultIterator::getEmpty();
-
-  if(sort.isOrdinaryVar()) { //TODO return vars as well?
-    auto it2 = getMappingIterator(getAllUnifyingIterator(sort,false), VarUnifFn(trm, sort));
-    return pvi(getConcatenatedIterator(it1, it2)); 
+  if(sort.isOrdinaryVar()) {
+    return pvi(getContextualIterator(getAllUnifyingIterator(sort,retrieveSubstitutions), 
+      ToTermUnifier(trm, retrieveSubstitutions, _handler)));
   } else {
     ASS(sort.isTerm());
-    auto it2 =  getMappingIterator(
-	  getResultIterator<UnificationsIterator>(sort.term(), retrieveSubstitutions), ToTypeSubFn(trm));
+    auto it1 = 
+      pvi(getContextualIterator(
+        ldIteratorToTQRIterator(typename LDSkipList::RefIterator(_vars), sort, retrieveSubstitutions), 
+        ToTermUnifier(trm, retrieveSubstitutions, _handler)));
+    auto it2 = getContextualIterator(
+	    getResultIterator<UnificationsIterator>(sort.term(), retrieveSubstitutions), 
+        ToTermUnifier(trm, retrieveSubstitutions, _handler));
     return pvi(getConcatenatedIterator(it1, it2));     
   }
 }
@@ -168,7 +158,7 @@ template<class LeafData_>
 struct TypeSubstitutionTree<LeafData_>::TermQueryResultFn
 {
   TermQueryResult<LeafData> operator() (const QueryResult& qr) {
-    return TermQueryResult<LeafData>(*qr.first.first, qr.first.second,qr.second);
+    return TermQueryResult<LeafData>(*qr.first, qr.second);
   }
 };
 
@@ -191,7 +181,7 @@ TermQueryResultIterator<LeafData_> TypeSubstitutionTree<LeafData_>::getResultIte
       result = ldIteratorToTQRIterator(ldit,TermList(trm),retrieveSubstitutions);
     }
     else{
-      VirtualIterator<QueryResult> qrit=vi( new Iterator(this, root, trm, retrieveSubstitutions,false,false,false) );
+      VirtualIterator<QueryResult> qrit=vi( new Iterator(this, root, trm, retrieveSubstitutions,false,false,_handler) );
       result = pvi( getMappingIterator(qrit, TermQueryResultFn()) );
     }
   }
@@ -210,9 +200,9 @@ struct TypeSubstitutionTree<LeafData_>::LDToTermQueryResultFn
 template<class LeafData_>
 struct TypeSubstitutionTree<LeafData_>::LDToTermQueryResultWithSubstFn
 {
-  LDToTermQueryResultWithSubstFn()
+  LDToTermQueryResultWithSubstFn(MismatchHandler* hndlr)
   {
-    _subst=RobSubstitutionSP(new RobSubstitution());
+    _subst=RobSubstitutionSP(new RobSubstitution(hndlr));
   }
   TermQueryResult<LeafData> operator() (const LeafData& ld) {
     return TermQueryResult<LeafData>(ld,
@@ -235,16 +225,16 @@ struct TypeSubstitutionTree<LeafData_>::LeafToLDIteratorFn
 template<class LeafData_>
 struct TypeSubstitutionTree<LeafData_>::UnifyingContext
 {
-  UnifyingContext(TermList queryTerm)
-  : _queryTerm(queryTerm) {}
+  UnifyingContext(TermList querySort)
+  : _querySort(querySort) {}
   bool enter(TermQueryResult<LeafData> qr)
   {
-    //if(_withConstraints){ cout << "enter " << qr.key() << endl; }
+    CALL("TypeSubstitutionTree::UnifyingContext::enter");
 
     ASS(qr.substitution);
     RobSubstitution* subst=qr.substitution->tryGetRobSubstitution();
     ASS(subst);
-    bool unified = subst->unify(_queryTerm, QRS_QUERY_BANK, qr.key(), QRS_RESULT_BANK);
+    bool unified = subst->unify(_querySort, QRS_QUERY_BANK, qr.sort(), QRS_RESULT_BANK);
     return unified;
   }
   void leave(TermQueryResult<LeafData> qr)
@@ -254,23 +244,24 @@ struct TypeSubstitutionTree<LeafData_>::UnifyingContext
     subst->reset();
   }
 private:
-  TermList _queryTerm;
+  TermList _querySort;
 };
 
 template<class LeafData_>
 template<class LDIt>
-TermQueryResultIterator<LeafData_> TypeSubstitutionTree<LeafData_>::ldIteratorToTQRIterator(LDIt ldIt,
+TermQueryResultIterator<LeafData_> 
+TypeSubstitutionTree<LeafData_>::ldIteratorToTQRIterator(LDIt ldIt,
 	TermList queryTerm, bool retrieveSubstitutions)
 {
   CALL("TypeSubstitutionTree::ldIteratorToTQRIterator");
   // only call withConstraints if we are also getting substitions, the other branch doesn't handle constraints
   //ASS(retrieveSubstitutions); 
-
+ 
   if(retrieveSubstitutions) {
     return pvi( getContextualIterator(
 	    getMappingIterator(
 		    ldIt,
-		    LDToTermQueryResultWithSubstFn()),
+		    LDToTermQueryResultWithSubstFn(_handler)),
 	    UnifyingContext(queryTerm)) );
   } else {
     return pvi( getMappingIterator(
@@ -280,23 +271,18 @@ TermQueryResultIterator<LeafData_> TypeSubstitutionTree<LeafData_>::ldIteratorTo
 }
 
 template<class LeafData_>
-TermQueryResultIterator<LeafData_> TypeSubstitutionTree<LeafData_>::getAllUnifyingIterator(TermList trm,
-	  bool retrieveSubstitutions)
+TermQueryResultIterator<LeafData_> 
+TypeSubstitutionTree<LeafData_>::getAllUnifyingIterator(TermList sort, bool retrieveSubstitutions)
 {
   CALL("TypeSubstitutionTree::getAllUnifyingIterator");
 
-  //if(withConstraints){ cout << "getAllUnifyingIterator for " << trm.toString() << endl; }
-
-  ASS(trm.isVar());
+  ASS(sort.isVar());
 
   auto it1 = getFlattenedIterator(getMappingIterator(vi( new LeafIterator(this) ), LeafToLDIteratorFn()));
 
-  // If we are searching withConstraints it means that we have already added in
-  // the results related to _vars, we are only interested in non-unifying leaves
-
   return ldIteratorToTQRIterator(
     getConcatenatedIterator(it1,typename LDSkipList::RefIterator(_vars)),
-    trm, retrieveSubstitutions);
+    sort, retrieveSubstitutions);
   
 }
 

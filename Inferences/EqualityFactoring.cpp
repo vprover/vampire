@@ -35,6 +35,8 @@
 
 #include "EqualityFactoring.hpp"
 
+#include "Indexing/SubstitutionTree.hpp"
+
 #if VDEBUG
 #include <iostream>
 using namespace std;
@@ -81,10 +83,18 @@ private:
   Clause* _cl;
 };
 
+void EqualityFactoring::attach(SaturationAlgorithm* salg)
+{
+  CALL("EqualityFactoring::attach");
+
+  GeneratingInferenceEngine::attach(salg);
+  _handler = salg->getIndexManager()->getHandler();
+}
+
 struct EqualityFactoring::ResultFn
 {
-  ResultFn(Clause* cl, bool afterCheck, Ordering& ordering)
-      : _cl(cl), _cLen(cl->length()), _afterCheck(afterCheck), _ordering(ordering) {}
+  ResultFn(Clause* cl, MismatchHandler* hndlr, bool afterCheck, Ordering& ordering)
+      : _cl(cl), _cLen(cl->length()), _handler(hndlr), _afterCheck(afterCheck), _ordering(ordering) {}
   Clause* operator() (pair<pair<Literal*,TermList>,pair<Literal*,TermList> > arg)
   {
     CALL("EqualityFactoring::ResultFn::operator()");
@@ -94,14 +104,12 @@ struct EqualityFactoring::ResultFn
     ASS(sLit->isEquality());
     ASS(fLit->isEquality());
 
-    FuncSubtermMap funcSubtermMap;
+    VSpecVarToTermMap termMap;
 
     TermList srt = SortHelper::getEqualityArgumentSort(sLit);
 
-    static RobSubstitution subst;
-    static UnificationConstraintStack constraints;
+    static RobSubstitution subst(_handler);
     subst.reset();
-    constraints.reset();
 
     if (!subst.unify(srt, 0, SortHelper::getEqualityArgumentSort(fLit), 0)) {
       return 0;
@@ -115,27 +123,9 @@ struct EqualityFactoring::ResultFn
     TermList fRHS=EqHelper::getOtherEqualitySide(fLit, fLHS);
     ASS_NEQ(sLit, fLit);
 
-    static Options::FunctionExtensionality ext = env.options->functionExtensionality();
-    bool use_ho_handler = (ext == Options::FunctionExtensionality::ABSTRACTION) && env.property->higherOrder();
-
-    if(use_ho_handler){
-      TermList sLHSreplaced = sLHS;
-      TermList fLHSreplaced = fLHS;
-      if(!sLHS.isVar() && !fLHS.isVar() && 
-         !srtS.isVar() && !srtS.isArrowSort()){
-        sLHSreplaced = ApplicativeHelper::replaceFunctionalAndBooleanSubterms(sLHS.term(), &funcSubtermMap);
-        fLHSreplaced = ApplicativeHelper::replaceFunctionalAndBooleanSubterms(fLHS.term(), &funcSubtermMap);
-      }
-      subst.setMap(&funcSubtermMap);
-      HOMismatchHandler hndlr(constraints);
-      if(!subst.unify(sLHSreplaced,0,fLHSreplaced,0, &hndlr)) {
-        return 0;
-      }
-    } else {
-      if(!subst.unify(sLHS,0,fLHS,0)) {
-        return 0;
-      }
-    }
+    if(!subst.unify(sLHS,0,fLHS,0)){
+      return 0;    
+    }    
 
     TermList sLHSS=subst.apply(sLHS,0);
     TermList sRHSS=subst.apply(sRHS,0);
@@ -147,7 +137,7 @@ struct EqualityFactoring::ResultFn
       return 0;
     }
 
-    unsigned newLen=_cLen+constraints.length();
+    unsigned newLen=_cLen+subst.numberOfConstraints();
     Clause* res = new(newLen) Clause(newLen, GeneratingInference1(InferenceRule::EQUALITY_FACTORING, _cl));
 
     (*res)[0]=Literal::createEquality(false, sRHSS, fRHSS, srtS);
@@ -176,14 +166,9 @@ struct EqualityFactoring::ResultFn
         (*res)[next++] = currAfter;
       }
     }
-    for(unsigned i=0;i<constraints.length();i++){
-      UnificationConstraint con = (constraints)[i];
-      TermList qT = subst.apply(con.first.first,0);
-      TermList rT = subst.apply(con.second.first,0);
-
-      TermList sort = SortHelper::getResultSort(rT.term());
-      Literal* constraint = Literal::createEquality(false,qT,rT,sort);
-
+    auto constraints = subst.getConstraints();
+    while(constraints.hasNext()){
+      Literal* constraint = constraints.next();
       (*res)[next++] = constraint;
     }
     ASS_EQ(next,newLen);
@@ -195,6 +180,7 @@ struct EqualityFactoring::ResultFn
 private:
   Clause* _cl;
   unsigned _cLen;
+  MismatchHandler* _handler;
   bool _afterCheck;
   Ordering& _ordering;
 };
@@ -216,7 +202,7 @@ ClauseIterator EqualityFactoring::generateClauses(Clause* premise)
 
   auto it4 = getMapAndFlattenIterator(it3,FactorablePairsFn(premise));
 
-  auto it5 = getMappingIterator(it4,ResultFn(premise,
+  auto it5 = getMappingIterator(it4,ResultFn(premise, _handler,
       getOptions().literalMaximalityAftercheck() && _salg->getLiteralSelector().isBGComplete(), _salg->getOrdering()));
 
   auto it6 = getFilteredIterator(it5,NonzeroFn());

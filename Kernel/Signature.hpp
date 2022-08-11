@@ -617,6 +617,18 @@ class Signature
     return con == BOOL_SRT_CON;    
   }
 
+  bool isIntegerCon(unsigned con) const{
+    return con == INTEGER_SRT_CON;
+  }
+
+  bool isRealCon(unsigned con) const{
+    return con == REAL_SRT_CON;
+  }
+
+  bool isRationalCon(unsigned con) const{
+    return con == RATIONAL_SRT_CON;
+  }
+
   bool isTupleCon(unsigned con) {
     return getTypeCon(con)->tupleSort();
   }

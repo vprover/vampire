@@ -579,8 +579,8 @@ finish:
  */
 template<class LeafData_>
 SubstitutionTree<LeafData_>::FastInstancesIterator::FastInstancesIterator(SubstitutionTree* parent, Node* root,
-	Term* query, bool retrieveSubstitution, bool reversed, bool withoutTop, bool useC, 
-  FuncSubtermMap* fstm) //final two for compatibility purposes
+	Term* query, bool retrieveSubstitution, bool reversed, bool withoutTop, 
+  MismatchHandler* hndler) //MismatchHandler for compatibility purposes
 : _retrieveSubstitution(retrieveSubstitution),
   _inLeaf(false), _ldIterator(LDIterator::getEmpty()),  _root(root),
   _alternatives(64), _specVarNumbers(64), _nodeTypes(64)
@@ -682,10 +682,9 @@ typename SubstitutionTree<LeafData_>::QueryResult SubstitutionTree<LeafData_>::F
       _resultDenormalizer.makeInverse(normalizer);
     }
 
-    return QueryResult(make_pair(&ld,
-	    _subst->getSubstitution(&_resultDenormalizer)),UnificationConstraintStackSP());
+    return QueryResult(&ld,_subst->getSubstitution(&_resultDenormalizer));
   } else {
-    return QueryResult(make_pair(&ld, ResultSubstitutionSP()),UnificationConstraintStackSP());
+    return QueryResult(&ld, ResultSubstitutionSP());
   }
 }
 #undef LOGGING

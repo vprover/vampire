@@ -383,7 +383,7 @@ ResultSubstitutionSP SubstitutionTree<LeafData_>::GenMatcher::getSubstitution(
  */
 template<class LeafData_>
 SubstitutionTree<LeafData_>::FastGeneralizationsIterator::FastGeneralizationsIterator(SubstitutionTree* parent, Node* root, Term* query, 
-  bool retrieveSubstitution, bool reversed, bool withoutTop, bool useC, FuncSubtermMap* fstm)
+  bool retrieveSubstitution, bool reversed, bool withoutTop, MismatchHandler* hndler)
 : _retrieveSubstitution(retrieveSubstitution),
   _inLeaf(false), _ldIterator(LDIterator::getEmpty()), _root(root), _tree(parent),
   _alternatives(64), _specVarNumbers(64), _nodeTypes(64)
@@ -475,10 +475,9 @@ typename SubstitutionTree<LeafData_>::QueryResult SubstitutionTree<LeafData_>::F
     _resultNormalizer.reset();
     _resultNormalizer.normalizeVariables(ld.key());
 
-    return QueryResult(
-          make_pair(&ld,_subst->getSubstitution(&_resultNormalizer)),UnificationConstraintStackSP());
+    return QueryResult(&ld,_subst->getSubstitution(&_resultNormalizer));
   } else {
-    return QueryResult(make_pair(&ld, ResultSubstitutionSP()),UnificationConstraintStackSP());
+    return QueryResult(&ld, ResultSubstitutionSP());
   }
 }
 

@@ -18,6 +18,7 @@
 
 
 #include "Kernel/Renaming.hpp"
+
 #include "Lib/SkipList.hpp"
 #include "Lib/PairUtils.hpp"
 
@@ -56,8 +57,8 @@ public:
   using LeafData = LeafData_;
   CLASS_NAME(TermSubstitutionTree);
   USE_ALLOCATOR(TermSubstitutionTree);
-  
-  TermSubstitutionTree(Shell::Options::UnificationWithAbstraction uwa = Shell::Options::UnificationWithAbstraction::OFF, bool useC=false, bool replaceFunctionalSubterms = false);
+
+  TermSubstitutionTree(MismatchHandler* hndlr = 0);
 
   void insert(LeafData d) final override { handleTerm(d, /* insert */ true); }
   // TODO use (LeafData const& d) here
@@ -69,12 +70,6 @@ public:
   TermQueryResultIterator getUnifications(TermList t,
 	  bool retrieveSubstitutions) final override;
 
-  TermQueryResultIterator getUnificationsWithConstraints(TermList t,
-    bool retrieveSubstitutions) final override;
-
-  /*
-   * A higher order concern (though it may be useful in other situations)
-   */
   TermQueryResultIterator getUnificationsUsingSorts(TermList t, TermList sort,
     bool retrieveSubstitutions) final override;
 
@@ -87,12 +82,14 @@ public:
 private:
 
   void handleTerm(LeafData, bool insert);
+  void handleTerm(TermList t, Literal* lit, Clause* cls, bool insert);
+  bool constraintTermHandled(TermList t, LeafData ld, bool insert);
 
   struct TermQueryResultFn;
 
   template<class Iterator>
   TermQueryResultIterator getResultIterator(Term* term,
-	  bool retrieveSubstitutions,bool withConstraints);
+	  bool retrieveSubstitutions);
 
   struct LDToTermQueryResultFn;
   struct LDToTermQueryResultWithSubstFn;
@@ -101,11 +98,10 @@ private:
 
   template<class LDIt>
   TermQueryResultIterator ldIteratorToTQRIterator(LDIt ldIt,
-	  TermList queryTerm, bool retrieveSubstitutions,
-          bool withConstraints);
+	  TermList queryTerm, bool retrieveSubstitutions);
 
   TermQueryResultIterator getAllUnifyingIterator(TermList trm,
-	  bool retrieveSubstitutions,bool withConstraints);
+	  bool retrieveSubstitutions);
 
   inline
   unsigned getRootNodeIndex(Term* t)
@@ -118,13 +114,12 @@ private:
   typedef SkipList<LeafData,typename SubstitutionTree::LDComparator> LDSkipList;
   LDSkipList _vars;
 
-  //higher-order concerns
-  bool _extByAbs;
-
-  FuncSubtermMap _functionalSubtermMap;
-
-  TypeSubstitutionTree* _funcSubtermsByType;
-
+  /* 
+   * Used to store terms that could be part of constraints
+   * For example $sum(X, Y) will be stored in _constraintTerms
+   */
+  TypeSubstitutionTree* _constraintTerms;
+  MismatchHandler* _handler;
 };
 
 } // namespace Indexing

@@ -107,7 +107,7 @@ Option<Clause*> EqFactoring::applyRule(SelectedEquality const& l1, SelectedEqual
   auto sigma = [&](auto t) { return uwa.sigma(t, /* varbank */ 0); };
 
   Stack<Literal*> concl(l1.clause()->size() // <- (C \/ s1 ≈ t1 \/ t1  ̸≈ t2)σ
-                      + uwa.cnst().size()); // <- Cnstσ
+                      + uwa.numberOfConstraints()); // <- Cnstσ
 
   auto L2σ = sigma(l2.literal());
   check_side_condition(

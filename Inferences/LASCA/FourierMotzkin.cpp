@@ -73,7 +73,7 @@ ClauseIterator FourierMotzkin::generateClauses(Clause* premise)
 
   for (auto const& lhs : Lhs::iter(*_shared, premise)) {
     DEBUG("lhs: ", lhs)
-    for (auto rhs_sigma : _rhsIndex->find(lhs.monom())) {
+    for (auto rhs_sigma : _rhsIndex->find(lhs.monom(), lhs.sort())) {
       auto& rhs   = std::get<0>(rhs_sigma);
       auto& sigma = std::get<1>(rhs_sigma);
       DEBUG("  rhs: ", rhs)
@@ -86,7 +86,7 @@ ClauseIterator FourierMotzkin::generateClauses(Clause* premise)
 
   for (auto const& rhs : Rhs::iter(*_shared, premise)) {
     DEBUG("rhs: ", rhs)
-    for (auto lhs_sigma : _lhsIndex->find(rhs.monom())) {
+    for (auto lhs_sigma : _lhsIndex->find(rhs.monom(),rhs.sort())) {
       auto& lhs   = std::get<0>(lhs_sigma);
       auto& sigma = std::get<1>(lhs_sigma);
       if (lhs.clause() != premise) { // <- self application. the same one has been run already in the previous loop
@@ -168,7 +168,7 @@ Option<Clause*> FourierMotzkin::applyRule(
                        + rhs.clause()->size() - 1 // <- C2
                        + 1                        // <- k t₁ + j t₂ > 0
                        + (tight ? 1 : 0)          // <- -k s₂ + t₂ ≈ 0
-                       + uwa.cnst().size());      // Cnst
+                       + uwa.numberOfConstraints());      // Cnst
 
 
     ASS(!NumTraits::isFractional() || (!lhs.monom().isVar() && !rhs.monom().isVar()))

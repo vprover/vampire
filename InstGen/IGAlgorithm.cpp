@@ -111,7 +111,7 @@ IGAlgorithm::IGAlgorithm(Problem& prb,const Options& opt)
   } else {
     _variantIdx = new SubstitutionTreeClauseVariantIndex();
   }
-  _selected = new LiteralSubstitutionTree(env.options->unificationWithAbstraction());
+  _selected = new LiteralSubstitutionTree();
 
   _doingSatisfiabilityCheck = false;
 }
@@ -743,7 +743,7 @@ void IGAlgorithm::wipeIndexes()
   } else {
     _variantIdx = new SubstitutionTreeClauseVariantIndex();
   }
-  _selected = new LiteralSubstitutionTree(env.options->unificationWithAbstraction());
+  _selected = new LiteralSubstitutionTree();
 }
 
 

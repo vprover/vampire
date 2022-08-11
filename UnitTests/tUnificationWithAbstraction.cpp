@@ -25,114 +25,75 @@
 #include "Indexing/Index.hpp"
 #include "Indexing/LiteralSubstitutionTree.hpp"
 #include "Indexing/LiteralIndex.hpp"
-
+#include "Indexing/TermSubstitutionTree.hpp"
+#include "Indexing/TermIndex.hpp"
 
 #include "Test/UnitTesting.hpp"
+#include "Test/SyntaxSugar.hpp"
 
 // TODO make this test use assertions, instead of printing output
 
 using namespace Kernel;
-using namespace Indexing;
-using SortType = TermList;
+//using namespace Indexing;
 
-TermList number(vstring n)
-{
-  return TermList(Term::create(env.signature->addIntegerConstant(n,false),0,0));
-}
-TermList var(unsigned i)
-{
-  return TermList(i,false);
-}
-unsigned function_symbol(vstring name,unsigned arity,SortType srt)
-{
-  bool added;
-  unsigned f = env.signature->addFunction(name,arity,added);
-  if(added){
-    Signature::Symbol* symbol = env.signature->getFunction(f);
-    OperatorType* ot = OperatorType::getFunctionTypeUniformRange(arity,srt,srt);
-    symbol->setType(ot); 
-  }
-  return f; 
-}
-TermList constant(vstring name,SortType srt)
-{
-  auto c =  function_symbol(name,0,srt);
-  Term* t = Term::create(c,0,0);
-  return TermList(t);
-}
-TermList int_constant(vstring name)
-{
-  return constant(name,IntegerConstantType::getSort());
-}
-TermList binary(Interpretation fun, TermList n1, TermList n2)
-{
-  return TermList(Term::create2(env.signature->getInterpretingSymbol(fun),n1,n2));
-}
-TermList int_plus(TermList n1, TermList n2)
-{
-  return binary(Theory::INT_PLUS,n1,n2);
-}
-Literal* equals(TermList t1, TermList t2)
-{
-   SortType srt;
-   if(!SortHelper::tryGetResultSort(t1,srt)){
-     cout << "Don't call equals with two variables" << endl;
-     exit(0);
-   }
-   return Literal::createEquality(true, t1,t2,srt); 
-}
-Literal* pred(vstring p, TermList t, SortType srt)
-{
-  bool added;
-  unsigned ps = env.signature->addPredicate(p,1,added);
-  if(added){
-    Signature::Symbol* symbol = env.signature->getPredicate(ps);
-    OperatorType* ot = OperatorType::getPredicateTypeUniformRange(1,srt);
-    symbol->setType(ot);
-  }
-  return Literal::create1(ps,true,t);
-}
-Literal* pred(vstring p, TermList t)
-{
-  SortType srt;
-  if(!SortHelper::tryGetResultSort(t,srt)){
-    cout << "Don't call this pred with a variable argument" << endl;
-    exit(0);
-  }
-  return pred(p,t,srt);
-}
+using LeafData                = Indexing::DefaultTermLeafData;
+using TermIndexingStructure    = Indexing::TermIndexingStructure<LeafData>;
+using LiteralIndexingStructure = Indexing::LiteralIndexingStructure;
+
+using SLQueryResult           = Indexing::SLQueryResult;
+using SLQueryResultIterator   = Indexing::SLQueryResultIterator;
+using TermQueryResult         = Indexing::TermQueryResult<LeafData>;
+using TermQueryResultIterator = VirtualIterator<TermQueryResult>;
+
+using TermSubstitutionTree    = Indexing::TermSubstitutionTree<LeafData>;
+using LiteralSubstitutionTree = Indexing::LiteralSubstitutionTree<>;
+
 Clause* unit(Literal* lit)
 {
-  static Inference testInf = Kernel::NonspecificInference0(UnitInputType::ASSUMPTION, InferenceRule::INPUT); 
-  Clause * cl = new(1) Clause(1,testInf);
-  (* cl)[0] = lit;
-  return cl;
+  return clause({ lit });
 }
 
-
-LiteralIndexingStructure* getBasicIndex()
+TermIndexingStructure* getTermIndex(bool uwa = true)
 {
-  // Let's create an index with some data in it
-  // We pass true to say that we want to use constraints
-  LiteralIndexingStructure * is = new LiteralSubstitutionTree<>(env.options->unificationWithAbstraction(), true); 
+  CompositeMismatchHandler* cmh = new CompositeMismatchHandler();
+  if(uwa){
+    cmh->addHandler(new UWAMismatchHandler());
+  } else {
+    cmh->addHandler(new HOMismatchHandler());
+  }
+  return new TermSubstitutionTree(cmh); 
+}
 
+LiteralIndexingStructure* getLiteralIndex()
+{
+  CompositeMismatchHandler* cmh = new CompositeMismatchHandler();
+  cmh->addHandler(new UWAMismatchHandler());
+  return new LiteralSubstitutionTree(cmh); 
+}
 
-  TermList one_plus_one = int_plus(number("1"),number("1"));
-  TermList one_plus_a = int_plus(number("1"),int_constant("a"));
-
-  Literal* p1 = pred("p",one_plus_one);
-  Literal* p2 = pred("p",one_plus_a);
-
-  is->insert(p1,unit(p1));
-  is->insert(p2,unit(p2));
-
-  return is;
-
+void reportTermMatches(TermIndexingStructure* index, TermList term, TermList sort)
+{
+  TermQueryResultIterator it= index->getUnificationsUsingSorts(term,sort,true);
+  cout << endl;
+  cout << "Unify with " << term.toString() << endl;
+  while(it.hasNext()){
+    TermQueryResult qr = it.next();
+    cout << qr.term.toString() << " matches with substitution: "<< endl;
+    // cout << qr.substitution->tryGetRobSubstitution()->toString() << endl;
+    cout << "and constraints: "<< endl;
+    qr.substitution->numberOfConstraints();
+    auto constraints = qr.substitution->getConstraints();
+    while(constraints.hasNext()){
+      Literal* constraint = constraints.next();
+      cout << "> " << constraint->toString() << endl;
+    }
+  }
+  cout << endl;
 }
 
 void reportMatches(LiteralIndexingStructure* index, Literal* qlit)
 {
-  SLQueryResultIterator it= index->getUnificationsWithConstraints(qlit,false,true);
+  SLQueryResultIterator it= index->getUnifications(qlit,false,true);
   cout << endl;
   cout << "Unify with " << qlit->toString() << endl;
   while(it.hasNext()){
@@ -140,86 +101,187 @@ void reportMatches(LiteralIndexingStructure* index, Literal* qlit)
     cout << qr.clause->toString() << " matches with substitution: "<< endl;
     // cout << qr.substitution->tryGetRobSubstitution()->toString() << endl;
     cout << "and constraints: "<< endl;
-    auto constraints = qr.constraints;
-    for(unsigned i=0;i<constraints->size();i++){
-      auto con = (*constraints)[i];
-      TermList qT = qr.substitution->applyTo(con.first.first,con.first.second);
-      TermList rT = qr.substitution->applyTo(con.second.first,con.second.second);
-
-      cout << "> "<< qT.toString() << "!=" << rT.toString() << "\t\t from " << con.first.first.toString() << "!=" << con.second.first.toString() << endl;
+    qr.substitution->numberOfConstraints();
+    auto constraints = qr.substitution->getConstraints();
+    while(constraints.hasNext()){
+      Literal* constraint = constraints.next();
+      cout << "> " << constraint->toString() << endl;
     }
   }
   cout << endl;
 }
 
-// This test demonstrates the current issue. The constraints produced depend on
-TEST_FUN(current_issue)
+
+TEST_FUN(term_indexing_one_side_interp)
 {
-  env.options->setUWA(Options::UnificationWithAbstraction::ALL); 
+  env.options->setUWA(Options::UnificationWithAbstraction::ONE_INTERP); 
 
-  LiteralIndexingStructure* index = getBasicIndex();
+  TermIndexingStructure* index = getTermIndex();
 
-  Literal* qlit = pred("p",int_plus(int_constant("b"),number("2")));
+  DECL_DEFAULT_VARS
+  NUMBER_SUGAR(Int)
+  DECL_PRED(p, {Int})
+  DECL_FUNC(f, {Int}, Int)
+  DECL_CONST(a, Int) 
+  DECL_CONST(b, Int) 
 
-  reportMatches(index,qlit);
-  // Currently this produces
-  //1. p($sum(1,1)) [input] matches with constraints 
-  //> $sum(b,2)!=$sum(1,1)
-  //2. p($sum(1,a)) [input] matches with constraints 
-  //> $sum(b,2)!=$sum(1,a)
+  index->insert(LeafData(num(1) + num(1), p(num(1) + num(1)), unit(p(num(1) + num(1)))));
+  index->insert(LeafData(1 + a, p(1 + a), unit(p(a + a))));
+  
+  reportTermMatches(index,b + 2, Int);
 
-  index->insert(qlit,unit(qlit));
+  index->insert(LeafData(a,p(a),unit(p(a))));
 
-  reportMatches(index,qlit);
-  // Whereas this produces
-  //2. p($sum(1,a)) [input] matches with constraints 
-  //> b!=1
-  //> 2!=a
-  //1. p($sum(1,1)) [input] matches with constraints 
-  //> b!=1
-  //> 2!=1
-  //3. p($sum(b,2)) [input] matches with constraints 
+  reportTermMatches(index,b + 2, Int);
+  reportTermMatches(index,x,Int);  
+
+  index->insert(LeafData(f(x),p(f(x)),unit(p(f(x)))));
+
+  reportTermMatches(index, f(a), Int);
+  reportTermMatches(index, a + 3 ,Int); 
+}
+
+TEST_FUN(term_indexing_poly)
+{
+  env.options->setUWA(Options::UnificationWithAbstraction::ONE_INTERP); 
+
+  TermIndexingStructure* index = getTermIndex();
+
+  DECL_DEFAULT_VARS
+  DECL_DEFAULT_SORT_VARS  
+  NUMBER_SUGAR(Int)
+  DECL_PRED(p, {Int})
+  DECL_CONST(a, Int) 
+  DECL_POLY_CONST(h, 1, alpha)
+
+  index->insert(LeafData(1 + a, p(1 + a), unit(p(a + a))));
+  index->insert(LeafData(h(Int), p(h(Int)), unit(p(h(Int)))));
+  
+  reportTermMatches(index,h(alpha), alpha);
+}
+
+TEST_FUN(term_indexing_interp_only)
+{
+  env.options->setUWA(Options::UnificationWithAbstraction::INTERP_ONLY); 
+
+  TermIndexingStructure* index = getTermIndex();
+
+  DECL_DEFAULT_VARS
+  NUMBER_SUGAR(Int)
+  DECL_PRED(p, {Int})
+
+  DECL_CONST(a, Int) 
+  DECL_CONST(b, Int) 
+
+  index->insert(LeafData(num(1) + num(1), p(num(1) + num(1)), unit(p(num(1) + num(1)))));
+  index->insert(LeafData(1 + a, p(1 + a), unit(p(a + a))));
+
+  reportTermMatches(index,b + 2,Int);
+
+  index->insert(LeafData(a,p(a),unit(p(a))));
+
+  reportTermMatches(index,b + 2,Int);
+  reportTermMatches(index,x,Int);  
+}
+
+TEST_FUN(literal_indexing)
+{
+  env.options->setUWA(Options::UnificationWithAbstraction::ONE_INTERP); 
+
+  LiteralIndexingStructure* index = getLiteralIndex();
+
+  DECL_DEFAULT_VARS
+  NUMBER_SUGAR(Int)
+  DECL_PRED(p, {Int})
+
+  DECL_CONST(a, Int) 
+  DECL_CONST(b, Int) 
+
+  index->insert(p(num(1) + num(1)), unit(p(num(1) + num(1))));
+  index->insert(p(1 + a), unit(p(1 + a)));  
+
+  reportMatches(index,p(b + 2));
+
+  index->insert(p(b + 2),unit(p(b + 2)));
+
+  reportMatches(index,p(b +2)); 
+}
+
+TEST_FUN(higher_order)
+{
+  env.options->setFE(Options::FunctionExtensionality::ABSTRACTION); 
+
+  TermIndexingStructure* index = getTermIndex(false);
+
+  DECL_DEFAULT_VARS
+  DECL_DEFAULT_SORT_VARS  
+  NUMBER_SUGAR(Int)
+  DECL_SORT(srt) 
+  DECL_ARROW_SORT(xSrt, {srt, srt}) 
+  DECL_ARROW_SORT(fSrt, {xSrt, srt}) 
+  DECL_ARROW_SORT(gSrt, {srt, xSrt})   
+  DECL_HOL_VAR(x0, 0, xSrt)
+  DECL_CONST(a, xSrt)
+  DECL_CONST(b, xSrt)
+  DECL_CONST(c, srt)  
+  DECL_CONST(f, fSrt)
+  DECL_CONST(g, gSrt)
+  DECL_POLY_CONST(h, 1, alpha)
+
+  index->insert(LeafData(ap(f,a), 0, 0));
+
+  reportTermMatches(index,ap(f,b),srt);
+
+  index->insert(LeafData(ap(g,c), 0, 0));
+  index->insert(LeafData(g, 0, 0));
+
+  reportTermMatches(index,x0,xSrt);
+
+  index->insert(LeafData(h(alpha), 0, 0));
+
+  reportTermMatches(index,h(beta),beta);
+  reportTermMatches(index,h(srt),srt);
+}
+
+TEST_FUN(higher_order2)
+{
+  env.options->setFE(Options::FunctionExtensionality::ABSTRACTION); 
+
+  TermIndexingStructure* index = getTermIndex(false);
+
+  DECL_DEFAULT_VARS
+  DECL_DEFAULT_SORT_VARS  
+  NUMBER_SUGAR(Int)
+  DECL_SORT(srt) 
+  DECL_ARROW_SORT(xSrt, {srt, srt}) 
+  DECL_ARROW_SORT(fSrt, {xSrt, xSrt, srt}) 
+  DECL_CONST(a, xSrt)
+  DECL_CONST(b, xSrt)
+  DECL_CONST(f, fSrt)
+
+  index->insert(LeafData(ap(ap(f,a),b), 0, 0));
+
+  reportTermMatches(index,ap(ap(f,b),a),srt);
 }
 
 static const int NORM_QUERY_BANK=2;
 static const int NORM_RESULT_BANK=3;
 
-struct testMismatchHandler : MismatchHandler
-{
-testMismatchHandler(Stack<UnificationConstraint>* c) : _constraints(c) {}
-bool handle(RobSubstitution* subst, TermList query, unsigned index1, TermList node, unsigned index2){
-    ASS(index1 == NORM_QUERY_BANK && index2 == NORM_RESULT_BANK);
-    static unsigned _var = 0;
-    unsigned x = _var++;
-    TermList nodeVar = TermList(x,true);
-    subst->bindSpecialVar(x,node,index2);
-    auto constraint = make_pair(make_pair(query,index1),make_pair(nodeVar,index2));
-    _constraints->push(constraint);
-    return true;
-}
-Stack<UnificationConstraint>* _constraints;
-};
-
-void reportRobUnify(TermList a, TermList b)
+void reportRobUnify(TermList a, TermList b, RobSubstitution& sub)
 {
   cout << endl;
   cout << "Unifying " << a.toString() << " with " << b.toString() << endl;
-  RobSubstitution sub;
-  Stack<UnificationConstraint> constraints;
-  //MismatchHandler* hndlr = new testMismatchHandler(&constraints);
-  MismatchHandler* hndlr = new UWAMismatchHandler(env.options->unificationWithAbstraction(), constraints);
-  bool result = sub.unify(a,NORM_QUERY_BANK,b,NORM_RESULT_BANK,hndlr);
+
+  bool result = sub.unify(a,NORM_QUERY_BANK,b,NORM_RESULT_BANK);
   cout << "Result is " << result << endl;
   if(result){
     // cout << "> Substitution is " << endl << sub.toString();
     cout << "> Constraints are:" << endl;
-    auto rs = ResultSubstitution::fromSubstitution(&sub,NORM_QUERY_BANK,NORM_RESULT_BANK);
-    for(unsigned i=0;i<constraints.size();i++){
-      auto con = (constraints)[i];
-      TermList qT = sub.apply(con.first.first,con.first.second);
-      TermList rT = sub.apply(con.second.first,con.second.second);
-
-      cout << "> "<< qT.toString() << "!=" << rT.toString() << "\t\t from " << con.first.first.toString() << "!=" << con.second.first.toString() << endl;
+    sub.numberOfConstraints();
+    auto constraints = sub.getConstraints();
+    while(constraints.hasNext()){
+      Literal* constraint = constraints.next();
+      cout << "> " << constraint->toString() << endl;
     }
   }
   cout << endl;
@@ -227,21 +289,35 @@ void reportRobUnify(TermList a, TermList b)
 
 TEST_FUN(using_robsub)
 {
-  env.options->setUWA(Options::UnificationWithAbstraction::ALL);
+  env.options->setUWA(Options::UnificationWithAbstraction::ONE_INTERP);
 
-  TermList b_plus_two = int_plus(int_constant("b"),number("2"));
-  TermList one_plus_a = int_plus(number("1"),int_constant("a"));
-  TermList x_plus_two = int_plus(var(0),number("2"));
+  DECL_DEFAULT_VARS
+  NUMBER_SUGAR(Int)
+  DECL_FUNC(f, {Int}, Int)
+  DECL_FUNC(g, {Int}, Int)  
+  DECL_CONST(a, Int) 
+  DECL_CONST(b, Int) 
 
-  reportRobUnify(b_plus_two,x_plus_two);
-  reportRobUnify(b_plus_two,one_plus_a);
+  CompositeMismatchHandler* cmh = new CompositeMismatchHandler();
+  cmh->addHandler(new UWAMismatchHandler());  
+  RobSubstitution sub(cmh);
 
+  auto t1 = f(b + 2);
+  auto t2 = f(x + 2);
+  auto t3 = f(a);
+  auto t4 = g(1 + a);
+
+  reportRobUnify(t1, t2,sub);
+  sub.reset();
+  reportRobUnify(t2, t3,sub);
+  sub.reset();
+  reportRobUnify(t3, t4,sub);
 }
 
 
-TEST_FUN(complex_case)
+/*TEST_FUN(complex_case)
 {
-  env.options->setUWA(Options::UnificationWithAbstraction::ALL);
+  env.options->setUWA(Options::UnificationWithAbstraction::ONE_INTERP);
 
   // The complex case is where we have a variable that needs to be instantiated elsewhere
   // e.g. unifying f(f(g(X),X),f(Y,a)) with f(f(1,2),(3,g(Z)))
@@ -261,4 +337,4 @@ TEST_FUN(complex_case)
   Literal* qlit = pred("p",query);
   reportMatches(index,qlit);
 
-}
+}*/
