@@ -556,7 +556,7 @@ main_loop_start:
 	}
       } else {
 	ASS_EQ(parentType,SKIP_LIST)
-	auto alts = static_cast<SListIntermediateNode::NodeSkipList::Node *>(currAlt);
+	auto alts = static_cast<typename SListIntermediateNode::NodeSkipList::Node *>(currAlt);
 	if(alts->head()->term.isVar()) {
 	  curr=alts->head();
 	  if(alts->tail() && alts->tail()->head()->term.isVar()) {
