@@ -93,8 +93,45 @@ struct BottomUpChildIter
   unsigned nChildren();
 };
 
-template<class A> BottomUpChildIter<A> bottomUpChildIter(A a) 
-{ return BottomUpChildIter<A>(a); }
+// template<class A> BottomUpChildIter<A> bottomUpChildIter(A a) 
+// { return BottomUpChildIter<A>(a); }
+//
+// template<class A> struct NChildrenSpec;
+// template<class A, std::enable_if_t<
+//   std::is_same<BottomUpChildIter<A>::nChildren,BottomUpChildIter<A>::nChildren>::value
+//   , bool> = false> struct NChildrenSpec<A> {
+//
+//   };
+// template<class A, bool val = true> struct HasNChildren { static constexpr bool value = val;};
+// template<class A, std::enable_if_t<
+//      std::is_same<decltype(((BottomUpChildIter<A>*)nullptr)->nChildren()),unsigned>::value
+// , bool> = false> struct HasNChildren<A, false> { static constexpr bool value = true;};
+
+template<class A> 
+struct CountingBottomUpChildIter
+{
+  BottomUpChildIter<A> _inner;
+  // will be compiled away if _inner has the function unsigned nChildren()
+  unsigned _cnt;
+
+  CountingBottomUpChildIter(BottomUpChildIter<A> inner) : _inner(std::move(inner)), _cnt(0) {}
+
+  A self() { return _inner.self(); }
+  A next() { _cnt++; return _inner.next(); }
+  bool hasNext() { return _inner.hasNext(); }
+
+  // template<class Dummy, std::enable_if_t<
+  //   HasNChildren<A>::value,
+  //   bool> = false> 
+  // unsigned _nChildren() { return _inner.nChildren(); }
+  //
+  // template<class Dummy, std::enable_if_t<
+  //   !HasNChildren<A>::value,
+  //   bool> = false> 
+  // unsigned nChildren() { return _nChildren<void>(); }
+
+  unsigned nChildren() { return _cnt; }
+};
 
 /** 
  * Evaluates a term-like datastructure (i.e.: a Directed Acyclic Graph (DAG)), without using recursion.
@@ -122,14 +159,15 @@ typename EvalFn::Result evaluateBottomUp(typename EvalFn::Arg const& term, EvalF
   using Result = typename EvalFn::Result;
   using Arg    = typename EvalFn::Arg;
 
+
   static_assert(std::is_same<ResultOf<EvalFn, Arg, Result*>, Result>::value, "evaluation function must have signature `Result eval(Arg term, Result* evaluatedArgs)`");
 
   
   /* recursion state. Contains a stack of items that are being recursed on. */
-  Stack<BottomUpChildIter<Arg>> recState;
+  Stack<CountingBottomUpChildIter<Arg>> recState;
   Stack<Result> recResults;
 
-  recState.push(BottomUpChildIter<Arg>(term));
+  recState.push(CountingBottomUpChildIter<Arg>(term));
 
   while (!recState.isEmpty()) {
 
@@ -140,12 +178,12 @@ typename EvalFn::Result evaluateBottomUp(typename EvalFn::Arg const& term, EvalF
       if (cached.isSome()) {
         recResults.push(std::move(cached).unwrap()); 
       } else {
-        recState.push(BottomUpChildIter<Arg>(t));
+        recState.push(CountingBottomUpChildIter<Arg>(t));
       }
 
     } else { 
 
-      BottomUpChildIter<Arg> orig = recState.pop();
+      CountingBottomUpChildIter<Arg> orig = recState.pop();
       Result eval = memo.getOrInit(orig.self(), [&](){ 
             CALL("evaluateBottomUp(..)::closure@1")
             Result* argLst = NULL;

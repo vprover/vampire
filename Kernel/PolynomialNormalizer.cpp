@@ -417,60 +417,64 @@ struct BottomUpChildIter<Kernel::PolyNormTerm>
   struct AcIter {
     unsigned _symbol;
     Term* _self;
-    Stack<TermList> _elems;
+    Stack<TermList> _next;
+    unsigned _idx;
+    AcIter(Term* self) : _self(self), _next{ TermList(self) } {
+      ASS(self->numTermArguments() == 2)
+      ASS(SortHelper::getTermArgSort(self, 0) == SortHelper::getResultSort(self))
+      ASS(SortHelper::getTermArgSort(self, 1) == SortHelper::getResultSort(self))
+    }
 
-    Kernel::PolyNormTerm self();
-    Kernel::PolyNormTerm next();
-    bool hasNext();
-    unsigned nChildren();
+    Kernel::PolyNormTerm self() { return PolyNormTerm(TypedTermList(_self)); }
+    Kernel::PolyNormTerm next() 
+    { 
+      auto val = _next.pop();
+      while (val.isTerm() && val.term()->functor() == _self->functor()) {
+        _next.push(val.term()->termArg(1));
+        val = val.term()->termArg(0);
+      }
+      return TypedTermList(val, TypedTermList(_self).sort()); 
+    }
+
+    bool hasNext() { return _next.isNonEmpty(); }
   };
+
   struct Uninter {
     PolyNormTerm _self;
     unsigned _idx;
+    Uninter(PolyNormTerm self) : _self(std::move(self)), _idx(0) {}
 
     Kernel::PolyNormTerm self() { return _self; }
+
     Kernel::PolyNormTerm next() 
-    { return TypedTermList(_self._self.term()->termArg(_idx), SortHelper::getTermArgSort(_self._self.term(), _idx++)); }
-    bool hasNext();
-    unsigned nChildren();
+    { 
+      auto out = TypedTermList(_self._self.term()->termArg(_idx), SortHelper::getTermArgSort(_self._self.term(), _idx)); 
+      _idx++; 
+      return out; 
+    }
+
+    bool hasNext() 
+    { return _self._self.isTerm() && _idx < _self._self.term()->numTermArguments(); }
+
+    unsigned nChildren()
+    { return _self._self.isVar() ? 0 : _self._self.term()->numTermArguments(); }
   };
 
-  Coproduct<AcIter, Uninter> _self;
-  BottomUpChildIter(Kernel::PolyNormTerm);
+  static bool isSum(TermList);
+  static bool isProd(TermList);
 
-  // struct SummandIter 
-  // {
-  //
-  // };  
-  //
-  // struct UninterIter 
-  // {
-  //
-  // };
-  //
-  //
-  // // Kernel::PolyNormTerm _self;
-  // Coproduct< SummandIter 
-  //          , UninterIter
-  //          >  _inner;
-  // // unsigned      _idx;
-  // Stack<Kernel::PolyNormTerm> _summands;
-  //
-  // BottomUpChildIter(Kernel::PolyNormTerm self) 
-  //   : _summands()
-  // {
-  //   auto todo = Lib::Stack<TermList>{self};
-  //
-  // }
+  Coproduct<AcIter, Uninter> _self;
+  BottomUpChildIter(Kernel::PolyNormTerm t) 
+    : _self((isSum(t._self) || isProd(t._self))
+                       ? decltype(_self)(AcIter(t._self.term()))
+                       : decltype(_self)(Uninter(t))) 
+    {}
 
   Kernel::PolyNormTerm next() 
   { return _self.apply([](auto& x) { return x.next(); }); }
 
   bool hasNext()
   { return _self.apply([](auto& x) { return x.hasNext(); }); }
-
-  unsigned nChildren()
-  { return _self.apply([](auto& x) { return x.nChildren(); }); }
 
   Kernel::PolyNormTerm self()
   { return _self.apply([](auto& x) { return x.self(); }); }
