@@ -34,7 +34,7 @@ TEST_FUN(example_01__replace_all_vars_by_term) {
     using Arg    = TermList;
     using Result = TermList;
 
-    TermList operator()(TermList toEval, TermList* evaluatedChildren) {
+    TermList operator()(TermList toEval, TermList* evaluatedChildren, unsigned nEvaluatedChildren) {
       if (toEval.isVar()) {
         return replacement;
       } else {
@@ -67,7 +67,7 @@ TEST_FUN(example_02__compute_size) {
     using Arg    = TermList;
     using Result = unsigned;
 
-    unsigned operator()(TermList toEval, unsigned* evaluatedChildren) {
+    unsigned operator()(TermList toEval, unsigned* evaluatedChildren, unsigned nEvaluatedChildren) {
       if (toEval.isVar()) {
         return 1;
       } else {

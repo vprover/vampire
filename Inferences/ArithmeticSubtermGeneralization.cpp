@@ -173,7 +173,7 @@ struct EvaluateAnyPoly
   using Arg    = PolyNf;
   using Result = PolyNf;
 
-  PolyNf operator()(PolyNf term, PolyNf* evaluatedArgs) 
+  PolyNf operator()(PolyNf term, PolyNf* evaluatedArgs, unsigned nEvaluatedArgs) 
   {
     CALL("EvaluateAnyPoly::operator()")
     auto out = term.match(
@@ -184,7 +184,7 @@ struct EvaluateAnyPoly
         { return PolyNf(v); },
 
         [&](AnyPoly p) 
-        { return PolyNf(eval(p, evaluatedArgs)); }
+        { return PolyNf(eval(p, evaluatedArgs, nEvaluatedArgs)); }
         );
     return out;
   }
@@ -211,16 +211,16 @@ struct EvaluatePolynom
   using Arg    = PolyNf;
   using Result = PolyNf;
 
-  AnyPoly operator()(AnyPoly poly, PolyNf* evaluatedArgs)
+  AnyPoly operator()(AnyPoly poly, PolyNf* evaluatedArgs, unsigned _nEvaluatedArgs)
   { 
     CALL("EvaluatePolynom::operator()(AnyPoly, PolyNf*)")
     return poly.apply(EvalPolynomClsr<Eval>{eval, evaluatedArgs}); 
   }
 
-  PolyNf operator()(PolyNf term, PolyNf* evaluatedArgs) 
+  PolyNf operator()(PolyNf term, PolyNf* evaluatedArgs, unsigned nEvaluatedArgs) 
   {
     CALL("EvaluatePolynom::operator()")
-    return EvaluateAnyPoly<EvaluatePolynom>{*this}(term, evaluatedArgs);
+    return EvaluateAnyPoly<EvaluatePolynom>{*this}(term, evaluatedArgs, nEvaluatedArgs);
   }
 };
 
@@ -253,11 +253,8 @@ struct EvaluateMonom
             .template collect<Stack>());
   }
 
-  PolyNf operator()(PolyNf term, PolyNf* evaluatedArgs) 
-  {
-    CALL("EvaluateMonom::operator()")
-    return EvaluatePolynom<EvaluateMonom>{*this}(term, evaluatedArgs);
-  }
+  PolyNf operator()(PolyNf term, PolyNf* evaluatedArgs, unsigned nEvaluatedChildren)
+  { return EvaluatePolynom<EvaluateMonom>{*this}(term, evaluatedArgs, nEvaluatedChildren); }
 };
 
 template<class A>

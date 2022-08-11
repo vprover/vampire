@@ -354,7 +354,7 @@ PolyNf normalizeTerm(TypedTermList t)
     using Arg    = PolyNormTerm;
     using Result = NormalizationResult;
 
-    NormalizationResult operator()(PolyNormTerm t, NormalizationResult* ts) const
+    NormalizationResult operator()(PolyNormTerm t, NormalizationResult* ts, unsigned nTs) const
     ;
     // { 
     //   ASSERTION_VIOLATION_REP("unimplemented")

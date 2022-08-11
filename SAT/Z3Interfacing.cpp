@@ -403,7 +403,7 @@ struct EvaluateInModel
             );
   }
 
-  Result operator()(z3::expr expr, Result* evaluatedArgs)
+  Result operator()(z3::expr expr, Result* evaluatedArgs, unsigned _nEvaluatedArgs)
   {
     CALL("EvaluateInModel::operator()")
     DEBUG("in: ", expr)
@@ -837,7 +837,7 @@ struct ToZ3Expr
   using Arg    = TermList;
   using Result = z3::expr;
 
-  z3::expr operator()(TermList toEval, z3::expr* args)
+  z3::expr operator()(TermList toEval, z3::expr* args, unsigned _nArgs)
   {
     CALL("ToZ3Expr::operator()");
     // DEBUG("in: ", toEval)

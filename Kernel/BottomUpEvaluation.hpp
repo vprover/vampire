@@ -88,24 +88,7 @@ struct BottomUpChildIter
 
   /** returns the next child of the current node in the structure to be traversed */
   bool hasNext();
-
-  /** returns how many children this node has */
-  unsigned nChildren();
 };
-
-// template<class A> BottomUpChildIter<A> bottomUpChildIter(A a) 
-// { return BottomUpChildIter<A>(a); }
-//
-// template<class A> struct NChildrenSpec;
-// template<class A, std::enable_if_t<
-//   std::is_same<BottomUpChildIter<A>::nChildren,BottomUpChildIter<A>::nChildren>::value
-//   , bool> = false> struct NChildrenSpec<A> {
-//
-//   };
-// template<class A, bool val = true> struct HasNChildren { static constexpr bool value = val;};
-// template<class A, std::enable_if_t<
-//      std::is_same<decltype(((BottomUpChildIter<A>*)nullptr)->nChildren()),unsigned>::value
-// , bool> = false> struct HasNChildren<A, false> { static constexpr bool value = true;};
 
 template<class A> 
 struct CountingBottomUpChildIter
@@ -130,6 +113,7 @@ struct CountingBottomUpChildIter
   //   bool> = false> 
   // unsigned nChildren() { return _nChildren<void>(); }
 
+  // TODO check if _inner has function nChildren and optimize in case
   unsigned nChildren() { return _cnt; }
 };
 
@@ -147,7 +131,7 @@ struct CountingBottomUpChildIter
  *
  *    // The actual evaluation function. It will be called once for each node in the directed acyclic graph, together with 
  *    // the already recursively evaluated children.
- *    Result operator()(Arg const& orig, Result* evaluatedChildren); 
+ *    Result operator()(Arg const& orig, Result* evaluatedChildren, unsigned nEvaluatedChildren); 
  * }
  * 
  * The term to be evaluated will be traversed using a BottomUpChildIter<Arg>. 
@@ -160,7 +144,7 @@ typename EvalFn::Result evaluateBottomUp(typename EvalFn::Arg const& term, EvalF
   using Arg    = typename EvalFn::Arg;
 
 
-  static_assert(std::is_same<ResultOf<EvalFn, Arg, Result*>, Result>::value, "evaluation function must have signature `Result eval(Arg term, Result* evaluatedArgs)`");
+  static_assert(std::is_same<ResultOf<EvalFn, Arg, Result*, unsigned>, Result>::value, "evaluation function must have signature `Result eval(Arg term, Result* evaluatedArgs, unsigned)`");
 
   
   /* recursion state. Contains a stack of items that are being recursed on. */
@@ -191,7 +175,7 @@ typename EvalFn::Result evaluateBottomUp(typename EvalFn::Arg const& term, EvalF
               ASS_GE(recResults.size(), orig.nChildren());
               argLst = static_cast<Result*>(&recResults[recResults.size() - orig.nChildren()]);
             }
-            return evaluateStep(orig.self(), argLst);
+            return evaluateStep(orig.self(), argLst, orig.nChildren());
           });
 
       DEBUG("evaluated: ", orig.self(), " -> ", eval);

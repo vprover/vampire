@@ -217,7 +217,7 @@ Option<PolyNf> PolynomialEvaluation::evaluate(PolyNf normalized) const
     using Result = PolyNf;
     using Arg    = PolyNf;
 
-    PolyNf operator()(PolyNf orig, PolyNf* ts) 
+    PolyNf operator()(PolyNf orig, PolyNf* ts, unsigned _nTs)
     { 
       return orig.match(
           [&](FuncTerm f)  -> PolyNf
