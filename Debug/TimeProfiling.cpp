@@ -237,7 +237,7 @@ void TimeTrace::Node::flatten_(FlattenState& s)
       node->measurements.extend(c->measurements);
     }
 
-    s.recPath.push(this);
+    s.recPath.push(&*c);
     c->flatten_(s);
     s.recPath.pop();
   }
