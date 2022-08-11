@@ -399,9 +399,8 @@ public:
    * otherwise (when it is a Variable, or a FuncTerm) it will be 
    * wrapped in a polynom.
    */
-  template<class Number>
+  template<class Number> 
   Polynom<Number> wrapPoly() const;
-  
 
   /** if this PolyNf is a numeral, the numeral is returned */
   template<class Number>
@@ -445,6 +444,9 @@ struct MonomFactor
    
   /** if this monomfactor is a Variable and has power one it is turned into a variable */
   Option<Variable> tryVar() const;
+
+  MonomFactor replaceTerm(PolyNf const& t) const
+  { return MonomFactor(t, this->power); }
 
   static MonomFactor fromNormalized(TermList);
   TermList denormalize() const;
@@ -969,19 +971,16 @@ void MonomFactors<Number>::integrity() const
 #endif
 }
 
-// template<class Number>
-// MonomFactors<Number> MonomFactors<Number>::replaceTerms(PolyNf* simplifiedTerms) const 
-// {
-//   int offs = 0;
-//   MonomFactors out;
-//   out._factors.reserve(nFactors());
-//
-//   for (auto& fac : _factors) {
-//     out._factors.push(MonomFactor(simplifiedTerms[offs++], fac.power));
-//   }
-//
-//   return out;
-// }
+template<class Number>
+MonomFactors<Number> MonomFactors<Number>::replaceTerms(PolyNf* simplifiedTerms, unsigned& cnt) const
+{
+  int offs = 0;
+  auto out = MonomFactors(iter()
+      .map([&](MonomFactor f) { return f.replaceTerm(simplifiedTerms[offs++]); })
+      .template collect<Stack>());
+  cnt = offs;
+  return out;
+}
 
 } // namespace Kernel
 

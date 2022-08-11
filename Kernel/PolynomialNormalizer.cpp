@@ -354,59 +354,63 @@ PolyNf normalizeTerm(TypedTermList t)
     using Arg    = PolyNormTerm;
     using Result = NormalizationResult;
 
-    NormalizationResult operator()(PolyNormTerm t, NormalizationResult* ts, unsigned nTs) const
-    ;
-    // { 
-    //   ASSERTION_VIOLATION_REP("unimplemented")
-    //   // CALL("normalizeTerm(TypedTermList)::eval::operator()")
-    //   // auto sort = t.sort();
-    //   // if (sort ==  IntTraits::sort()) { return normalizeNumSort< IntTraits>(t, ts); }
-    //   // if (sort ==  RatTraits::sort()) { return normalizeNumSort< RatTraits>(t, ts); }
-    //   // if (sort == RealTraits::sort()) { return normalizeNumSort<RealTraits>(t, ts); }
-    //   // else {
-    //   //   if (t.isVar()) {
-    //   //     return NormalizationResult(PolyNf(Variable(t.var())));
-    //   //   } else {
-    //   //     auto fn = FuncId::symbolOf(t.term());
-    //   //     return NormalizationResult(PolyNf(FuncTerm(
-    //   //         fn, 
-    //   //         Stack<PolyNf>::fromIterator(
-    //   //             iterTraits(getArrayishObjectIterator<mut_ref_t>(ts, fn.numTermArguments()))
-    //   //             .map( [](NormalizationResult& r) -> PolyNf { return std::move(r).apply(RenderPolyNf{}); }))
-    //   //       )
-    //   //     ));
-    //   //   }
-    //   // }
-    //
-    // }
+    NormalizationResult operator()(PolyNormTerm t_, NormalizationResult* ts, unsigned nTs) const
+    { 
+      // ASSERTION_VIOLATION_REP("unimplemented")
+      auto t = t_._self;
+      if (t.isVar()) {
+        return PolyNf(Variable(t.var()));
+      } else {
+        auto poly = tryNumTraits([&](auto n) -> Option<PolyNf> {
+            using NumTraits = decltype(n);
+            if (NumTraits::addF() == t.term()->functor()) {
+              auto summands = range(0, nTs)
+                .map([&](auto i) { return Monom<NumTraits>::fromNormalized(ts[i].denormalize()); })
+                .template collect<Stack<Monom<NumTraits>>>();
+              std::sort(summands.begin(), summands.end());
+              return some(PolyNf(AnyPoly(Polynom<NumTraits>(std::move(summands)))));
+            } else if (NumTraits::mulF() == t.term()->functor()) {
+              Stack<pair<PolyNf, unsigned>> facs = range(0, nTs)
+                .map([&](auto i) { return make_pair(ts[i], unsigned(0)); })
+                .template collect<Stack>();
+
+              std::sort(facs.begin(), facs.end(),
+                  [](auto& l, auto& r) { return l.first < r.first; });
+
+              unsigned offs = 0;
+              unsigned i = 0;
+              while (i < facs.size()) {
+                facs[offs].first = facs[i].first;
+                while (i < facs.size() && facs[i].first == facs[offs].first) {
+                  facs[offs].second++;
+                  i++;
+                }
+                offs++;
+              }
+
+              return some(PolyNf(AnyPoly(Polynom<NumTraits>({Monom<NumTraits>(NumTraits::constant(1), std::move(iterTraits(facs.iter())
+                            .map([](pair<PolyNf, unsigned> x) { return MonomFactor<NumTraits>(x.first, x.second); })
+                            .template collect<Stack>()))}))));
+              // Stack<MonomFactor<NumTraits>> facs = range(0, nTs)
+              //   .map([&](auto i) { return MonomFactor<NumTraits>::fromNormalized(ts[i].denormalize()); })
+              //   .template collect<Stack>();
+              //
+              // std::sort(facs.begin(), facs.end(),
+              //     [](auto& l, auto& r) { return l.term < r.term; });
+              //
+              // return some(PolyNf(AnyPoly(Polynom<NumTraits>({Monom<NumTraits>(NumTraits::constant(1), std::move(facs))}))));
+            } else {
+              return Option<PolyNf>();
+            }
+        });
+        return poly || PolyNf(FuncTerm(FuncId::symbolOf(t.term()), ts));
+      }
+    }
   };
   NormalizationResult r = evaluateBottomUp(PolyNormTerm(t), Eval{}, memo);
   return r;
 }
 
-// TermList PolyNf::denormalize() const
-// { 
-//   CALL("PolyNf::denormalize")
-//   DEBUG("converting ", *this)
-//   struct Eval 
-//   {
-//     using Arg    = PolyNf;
-//     using Result = TermList;
-//
-//     TermList operator()(PolyNf orig, TermList* results)
-//     { return orig.match(
-//         [&](FuncTerm t) { return TermList(Term::create(t->function().id(), t->numTermArguments(), results)); },
-//         [&](Variable v) { return TermList::var(v.id()); },
-//         [&](AnyPoly  p) { return p.denormalize(results); }
-//         ); }
-//   };
-//
-//   static Memo::Hashed<PolyNf, TermList, StlHash> memo;
-//   return evaluateBottomUp(*this, Eval{}, memo);
-// }
-//
-//
-//
 } // namespace Kernel
 
 namespace Lib {
@@ -460,8 +464,10 @@ struct BottomUpChildIter<Kernel::PolyNormTerm>
     { return _self._self.isVar() ? 0 : _self._self.term()->numTermArguments(); }
   };
 
-  static bool isSum(TermList);
-  static bool isProd(TermList);
+  static bool isSum (unsigned functor) { return forAnyNumTraits([=](auto n) { return n.addF() == functor; }); }
+  static bool isProd(unsigned functor) { return forAnyNumTraits([=](auto n) { return n.mulF() == functor; }); }
+  static bool isSum (TermList t) { return t.isTerm() && isSum (t.term()->functor()); }
+  static bool isProd(TermList t) { return t.isTerm() && isProd(t.term()->functor()); }
 
   Coproduct<AcIter, Uninter> _self;
   BottomUpChildIter(Kernel::PolyNormTerm t) 
