@@ -77,8 +77,9 @@ struct LookaheadLiteralSelector::GenIteratorIterator
     switch(stage) {
     case 0:  //resolution
     {
-      LiteralIndexingStructure* gli=imgr->getGeneratingLiteralIndexingStructure();
-      if(!gli) { stage++; goto start; }
+      if(!imgr->contains(GENERATING_SUBST_TREE)) { stage++; goto start; }
+      GeneratingLiteralIndex* gli=static_cast<GeneratingLiteralIndex*>(imgr->get(GENERATING_SUBST_TREE));
+      ASS(gli);
 
       nextIt=pvi( getStaticCastIterator<void>(gli->getUnifications(lit,true,false)) );
       break;

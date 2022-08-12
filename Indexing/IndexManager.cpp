@@ -33,41 +33,6 @@
 using namespace Lib;
 using namespace Indexing;
 
-IndexManager::IndexManager(SaturationAlgorithm* alg) : _alg(alg), _genLitIndex(0)
-{
-  CALL("IndexManager::IndexManager");
-
-  if(alg) {
-    attach(alg);
-  }
-}
-
-IndexManager::~IndexManager()
-{
-  CALL("IndexManager::~IndexManager");
-
-  if(_alg) {
-    release(GENERATING_SUBST_TREE);
-  }
-}
-
-void IndexManager::setSaturationAlgorithm(SaturationAlgorithm* alg)
-{
-  CALL("IndexManager::setSaturationAlgorithm");
-  ASS(!_alg);
-  ASS(alg);
-
-  _alg = alg;
-  attach(alg);
-}
-
-void IndexManager::attach(SaturationAlgorithm* salg)
-{
-  CALL("IndexManager::attach");
-
-  request(GENERATING_SUBST_TREE);
-}
-
 Index* IndexManager::request(IndexType t)
 {
   CALL("IndexManager::request");
@@ -91,9 +56,6 @@ void IndexManager::release(IndexType t)
 
   e.refCnt--;
   if(e.refCnt==0) {
-    if(t==GENERATING_SUBST_TREE) {
-      _genLitIndex=0;
-    }
     delete e.index;
     _store.remove(t);
   } else {
@@ -153,7 +115,6 @@ Index* IndexManager::create(IndexType t)
 #if VDEBUG
     //is->markTagged();
 #endif
-    _genLitIndex=is;
     res=new GeneratingLiteralIndex(is);
     isGenerating = true;
     break;
