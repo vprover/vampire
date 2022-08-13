@@ -59,6 +59,7 @@ void ForwardDemodulation::attach(SaturationAlgorithm* salg)
 	  _salg->getIndexManager()->request(DEMODULATION_LHS_CODE_TREE) );
 
   _preorderedOnly=getOptions().forwardDemodulation()==Options::Demodulation::PREORDERED;
+  _encompassing = getOptions().demodulationEncompassment();
 }
 
 void ForwardDemodulation::detach()
@@ -104,8 +105,21 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
 
       TermList querySort = SortHelper::getTermSort(trm, lit);
 
-      bool toplevelCheck=getOptions().demodulationRedundancyCheck() && lit->isEquality() &&
-	  (trm==*lit->nthArgument(0) || trm==*lit->nthArgument(1));
+      bool toplevelCheck=getOptions().demodulationRedundancyCheck() && lit->isEquality() &&           
+	         (trm==*lit->nthArgument(0) || trm==*lit->nthArgument(1));
+
+      // encompassing demodulation is always fine into negative literals or into non-units
+      if (_encompassing) {
+        toplevelCheck &= lit->isPositive() && (cLen == 1);        
+      }
+      // encompassing demodulation is also fine when rewriting the smaller guy
+      if (_encompassing && toplevelCheck) { 
+        Ordering::Result litOrder = ordering.getEqualityArgumentOrder(lit);
+        if ((trm==*lit->nthArgument(0) && litOrder == Ordering::LESS) || 
+            (trm==*lit->nthArgument(1) && litOrder == Ordering::GREATER)) {
+          toplevelCheck = false;
+        }
+      }
 
       TermQueryResultIterator git=_index->getGeneralizations(trm, true);
       while(git.hasNext()) {
@@ -177,11 +191,11 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
             bool isMax=true;
             for(unsigned li2=0;li2<cLen;li2++) {
               if(li==li2) {
-          continue;
+                continue;
               }
               if(ordering.compare(eqLitS, (*cl)[li2])==Ordering::LESS) {
-          isMax=false;
-          break;
+                isMax=false;
+                break;
               }
             }
             if(isMax) {
@@ -205,8 +219,6 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
 
         Clause* res = new(cLen) Clause(cLen,
           SimplifyingInference2(InferenceRule::FORWARD_DEMODULATION, cl, qr.clause));
-
-
         (*res)[0]=resLit;
 
         unsigned next=1;

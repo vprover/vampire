@@ -40,6 +40,7 @@ public:
   bool perform(Clause* cl, Clause*& replacement, ClauseIterator& premises) override = 0;
 protected:
   bool _preorderedOnly;
+  bool _encompassing;
   DemodulationLHSIndex* _index;
 };
 
