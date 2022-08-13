@@ -1518,6 +1518,15 @@ void Options::init()
     _demodulationRedundancyCheck.addProblemConstraint(hasEquality());
     _demodulationRedundancyCheck.setRandomChoices({"on","off"});
 
+    _demodulationEncompassment = BoolOptionValue("demodulation_encompassment","de",false);
+    _demodulationEncompassment.description= "Treat demodulations (both forward and backward) as encompassment demodulations (as defined by Duarte and Korovin around 2022)";
+    _lookup.insert(&_demodulationEncompassment);
+    _demodulationEncompassment.tag(OptionTag::INFERENCES);
+    _demodulationEncompassment.onlyUsefulWith(InferencingSaturationAlgorithm());
+    _demodulationEncompassment.onlyUsefulWith(Or(_forwardDemodulation.is(notEqual(Demodulation::OFF)),_backwardDemodulation.is(notEqual(Demodulation::OFF))));
+    _demodulationEncompassment.onlyUsefulWith(_demodulationRedundancyCheck.is(equal(true)));
+    _demodulationEncompassment.addProblemConstraint(hasEquality());
+    _demodulationEncompassment.setRandomChoices({"on","off"});
 
     _extensionalityAllowPosEq = BoolOptionValue( "extensionality_allow_pos_eq","",false);
     _extensionalityAllowPosEq.description="If extensionality resolution equals filter, this dictates"
