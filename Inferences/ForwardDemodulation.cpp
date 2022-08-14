@@ -112,14 +112,6 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
       if (_encompassing) {
         toplevelCheck &= lit->isPositive() && (cLen == 1);        
       }
-      // encompassing demodulation is also fine when rewriting the smaller guy
-      if (_encompassing && toplevelCheck) { 
-        Ordering::Result litOrder = ordering.getEqualityArgumentOrder(lit);
-        if ((trm==*lit->nthArgument(0) && litOrder == Ordering::LESS) || 
-            (trm==*lit->nthArgument(1) && litOrder == Ordering::GREATER)) {
-          toplevelCheck = false;
-        }
-      }
 
       TermQueryResultIterator git=_index->getGeneralizations(trm, true);
       while(git.hasNext()) {
@@ -183,29 +175,48 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
           continue;
         }
 
+        // encompassing demodulation is fine when rewriting the smaller guy
+        if (toplevelCheck && _encompassing) { 
+          // this will only run at most once; 
+          // could have been factored out of the getGeneralizations loop, 
+          // but then it would run exactly once there
+          Ordering::Result litOrder = ordering.getEqualityArgumentOrder(lit);
+          if ((trm==*lit->nthArgument(0) && litOrder == Ordering::LESS) || 
+              (trm==*lit->nthArgument(1) && litOrder == Ordering::GREATER)) {
+            toplevelCheck = false;
+          }
+        }
+
         if(toplevelCheck) {
           TermList other=EqHelper::getOtherEqualitySide(lit, trm);
           Ordering::Result tord=ordering.compare(rhsS, other);
           if(tord!=Ordering::LESS && tord!=Ordering::LESS_EQ) {
-            Literal* eqLitS=qr.substitution->applyToBoundResult(qr.literal);
-            bool isMax=true;
-            for(unsigned li2=0;li2<cLen;li2++) {
-              if(li==li2) {
+            if (_encompassing) {
+              // last chance, if the matcher is a renaming
+              if (qr.substitution->isRenamingOn(qr.term,true /* we talk of result term */)) {
+                continue; // under _encompassing, we know there are no other literals in cl
+              }
+            } else {
+              Literal* eqLitS=qr.substitution->applyToBoundResult(qr.literal);
+              bool isMax=true;
+              for(unsigned li2=0;li2<cLen;li2++) {
+                if(li==li2) {
+                  continue;
+                }
+                if(ordering.compare(eqLitS, (*cl)[li2])==Ordering::LESS) {
+                  isMax=false;
+                  break;
+                }
+              }
+              if(isMax) {
+                //RSTAT_CTR_INC("tlCheck prevented");
+                //The demodulation is this case which doesn't preserve completeness:
+                //s = t     s = t1 \/ C
+                //---------------------
+                //     t = t1 \/ C
+                //where t > t1 and s = t > C
                 continue;
               }
-              if(ordering.compare(eqLitS, (*cl)[li2])==Ordering::LESS) {
-                isMax=false;
-                break;
-              }
-            }
-            if(isMax) {
-              //RSTAT_CTR_INC("tlCheck prevented");
-              //The demodulation is this case which doesn't preserve completeness:
-              //s = t     s = t1 \/ C
-              //---------------------
-              //     t = t1 \/ C
-              //where t > t1 and s = t > C
-              continue;
             }
           }
         }

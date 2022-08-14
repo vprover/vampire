@@ -14,6 +14,7 @@
 
 #include "Kernel/RobSubstitution.hpp"
 #include "Kernel/SubstHelper.hpp"
+#include "Kernel/TermIterators.hpp"
 
 #include "ResultSubstitution.hpp"
 
@@ -68,6 +69,35 @@ ResultSubstitutionSP ResultSubstitution::fromSubstitution(RobSubstitution* s, in
   return ResultSubstitutionSP(new RSProxy(s, queryBank, resultBank));
 }
 
+bool ResultSubstitution::isRenamingOn(TermList t, bool result) 
+{
+  CALL("ResultSubstitution::isRenamingOn");
+
+  DHMap<TermList,TermList> renamingInMaking;
+
+  VariableIterator it(t);
+  while(it.hasNext()) {
+    TermList v = it.next();
+    ASS(v.isVar());
+
+    TermList vSubst;
+    if (result) {
+      ASS(isIdentityOnQueryWhenResultBound());
+      // code trees don't implement general apply, but satisfy the assertion which makes the following OK
+      vSubst = applyToBoundResult(v);
+    } else {
+      ASSERTION_VIOLATION;
+    }
+    if (!vSubst.isVar()) {
+      return false;
+    }
+    TermList vStored;
+    if (!renamingInMaking.findOrInsert(v,vStored,vSubst) && vStored != vSubst) {
+      return false;
+    }
+  }
+  return true;
+}
 
 /////////////////////////
 // IdentitySubstitution
