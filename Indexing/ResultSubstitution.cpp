@@ -86,7 +86,9 @@ bool ResultSubstitution::isRenamingOn(TermList t, bool result)
       // code trees don't implement general apply, but satisfy the assertion which makes the following OK
       vSubst = applyToBoundResult(v);
     } else {
-      ASSERTION_VIOLATION;
+      ASS(isIdentityOnResultWhenQueryBound());
+      // the above holds, for a change, for the used substitution trees
+      vSubst = applyToBoundQuery(v);
     }
     if (!vSubst.isVar()) {
       return false;
