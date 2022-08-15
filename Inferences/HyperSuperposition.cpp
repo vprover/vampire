@@ -62,7 +62,7 @@ void HyperSuperposition::attach(SaturationAlgorithm* salg)
 //  GeneratingInferenceEngine::attach(salg);
   ForwardSimplificationEngine::attach(salg);
   _index=static_cast<UnitClauseLiteralIndex*> (
-	  _salg->getIndexManager()->request(SIMPLIFYING_UNIT_CLAUSE_SUBST_TREE) );
+	  _salg->getIndexManager()->request(FW_SUBSUMPTION_UNIT_CLAUSE_SUBST_TREE) );
 }
 
 void HyperSuperposition::detach()
@@ -71,7 +71,7 @@ void HyperSuperposition::detach()
   ASS(_salg);
 
   _index=0;
-  _salg->getIndexManager()->release(SIMPLIFYING_UNIT_CLAUSE_SUBST_TREE);
+  _salg->getIndexManager()->release(FW_SUBSUMPTION_UNIT_CLAUSE_SUBST_TREE);
 //  GeneratingInferenceEngine::detach();
   ForwardSimplificationEngine::detach();
 }

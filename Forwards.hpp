@@ -276,8 +276,8 @@ typedef Lib::SmartPtr<ResultSubstitution> ResultSubstitutionSP;
 struct SLQueryResult;
 struct TermQueryResult;
 
-class GeneratingLiteralIndex;
-class SimplifyingLiteralIndex;
+class BinaryResolutionIndex;
+class BackwardSubsumptionIndex;
 class UnitClauseLiteralIndex;
 class FwSubsSimplifyingLiteralIndex;
 
