@@ -558,21 +558,19 @@ struct OccurenceTiebreak {
 
   Comparison compare(unsigned s1, unsigned s2) {  return Int::compare(s1,s2); }
 };
-<<<<<<< HEAD
-struct FnRevOccComparator
+
+struct RevOccComparator
 {
+  RevOccComparator(bool) {}
+
   Comparison compare(unsigned f1, unsigned f2)
   {
     return  Int::compare(-f1,-f2);;
   }
 };
 
-struct PredRevFreqComparator
-=======
-
 template<bool revert = false, typename InnerComparator = OccurenceTiebreak>
 struct FreqComparator : public SymbolComparator
->>>>>>> ahmed-changing-uwa-implementation
 {
   FreqComparator(bool forFunct) : SymbolComparator(forFunct) {}
 
@@ -590,20 +588,8 @@ struct FreqComparator : public SymbolComparator
   }
 };
 
-<<<<<<< HEAD
-struct PredRevOccComparator
-{
-  Comparison compare(unsigned p1, unsigned p2)
-  {
-    return Int::compare(-p1, -p2);
-  }
-};
-
-struct FnArityComparator
-=======
 template<bool revert = false, typename InnerComparator = OccurenceTiebreak>
 struct ArityComparator : public SymbolComparator
->>>>>>> ahmed-changing-uwa-implementation
 {
   ArityComparator(bool forFunct) : SymbolComparator(forFunct) {}
 
@@ -771,6 +757,9 @@ static void sortAuxBySymbolPrecedence(DArray<unsigned>& aux, const Options& opt,
     case Shell::Options::SymbolPrecedence::OCCURRENCE:
       // already sorted by occurrence
       break;
+    case Shell::Options::SymbolPrecedence::REVERSE_OCCURRENCE:
+      aux.sort(BoostWrapper<RevOccComparator>(forFunc));
+      break;        
     case Shell::Options::SymbolPrecedence::SCRAMBLE:
       unsigned sz = aux.size();
       for(unsigned i=0;i<sz;i++){
@@ -800,39 +789,7 @@ DArray<int> PrecedenceOrdering::funcPrecFromOpts(Problem& prb, const Options& op
         precedence_file.close();
       }
     } else {
-<<<<<<< HEAD
-      switch(opt.symbolPrecedence()) {
-      case Shell::Options::SymbolPrecedence::ARITY:
-        aux.sort(FnBoostWrapper<FnArityComparator>(FnArityComparator()));
-        break;
-      case Shell::Options::SymbolPrecedence::REVERSE_ARITY:
-        aux.sort(FnBoostWrapper<FnRevArityComparator>(FnRevArityComparator()));
-        break;
-      case Shell::Options::SymbolPrecedence::FREQUENCY:
-      case Shell::Options::SymbolPrecedence::WEIGHTED_FREQUENCY:
-        aux.sort(FnBoostWrapper<FnFreqComparator>(FnFreqComparator()));
-        break;
-      case Shell::Options::SymbolPrecedence::REVERSE_FREQUENCY:
-      case Shell::Options::SymbolPrecedence::REVERSE_WEIGHTED_FREQUENCY:
-        aux.sort(FnBoostWrapper<FnRevFreqComparator>(FnRevFreqComparator()));
-        break;
-      case Shell::Options::SymbolPrecedence::OCCURRENCE:
-        break;
-      case Shell::Options::SymbolPrecedence::REVERSE_OCCURRENCE:
-       aux.sort(FnBoostWrapper<FnRevOccComparator>(FnRevOccComparator()));
-       break;          
-      case Shell::Options::SymbolPrecedence::SCRAMBLE:
-        for(unsigned i=0;i<nFunctions;i++){
-          unsigned j = Random::getInteger(nFunctions-i)+i;
-          unsigned tmp = aux[j];
-          aux[j]=aux[i];
-          aux[i]=tmp;
-        }
-        break;
-      }
-=======
       sortAuxBySymbolPrecedence(aux,opt,true /* forFunc */);
->>>>>>> ahmed-changing-uwa-implementation
     }
     
     /*cout << "Function precedences:" << endl;
@@ -874,39 +831,7 @@ DArray<int> PrecedenceOrdering::predPrecFromOpts(Problem& prb, const Options& op
       precedence_file.close();
     }
   } else {
-<<<<<<< HEAD
-    switch(opt.symbolPrecedence()) {
-    case Shell::Options::SymbolPrecedence::ARITY:
-      aux.sort(PredBoostWrapper<PredArityComparator>(PredArityComparator()));
-      break;
-    case Shell::Options::SymbolPrecedence::REVERSE_ARITY:
-      aux.sort(PredBoostWrapper<PredRevArityComparator>(PredRevArityComparator()));
-      break;
-    case Shell::Options::SymbolPrecedence::FREQUENCY:
-    case Shell::Options::SymbolPrecedence::WEIGHTED_FREQUENCY:
-      aux.sort(PredBoostWrapper<PredFreqComparator>(PredFreqComparator()));
-      break;
-    case Shell::Options::SymbolPrecedence::REVERSE_FREQUENCY:
-    case Shell::Options::SymbolPrecedence::REVERSE_WEIGHTED_FREQUENCY:
-     aux.sort(PredBoostWrapper<PredRevFreqComparator>(PredRevFreqComparator()));
-     break;
-    case Shell::Options::SymbolPrecedence::OCCURRENCE:
-      break;
-    case Shell::Options::SymbolPrecedence::REVERSE_OCCURRENCE:
-     aux.sort(PredBoostWrapper<PredRevOccComparator>(PredRevOccComparator()));
-     break;      
-    case Shell::Options::SymbolPrecedence::SCRAMBLE:
-        for(unsigned i=0;i<nPredicates;i++){
-          unsigned j = Random::getInteger(nPredicates-i)+i;
-          unsigned tmp = aux[j];
-          aux[j]=aux[i];
-          aux[i]=tmp;
-        }
-        break;
-    }
-=======
     sortAuxBySymbolPrecedence(aux,opt,false /* forFunc */);
->>>>>>> ahmed-changing-uwa-implementation
   }
   /*
   cout << "Predicate precedences:" << endl;

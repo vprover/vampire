@@ -687,7 +687,9 @@ void SaturationAlgorithm::addInputClause(Clause* cl)
   }
 
   if (sosForAxioms || (cl->isPureTheoryDescendant() && sosForTheory)){
-    addInputSOSClause(cl);
+    //hack
+    if(!cl->isPureTheoryDescendant())
+      addInputSOSClause(cl);
   } else {
     addNewClause(cl);
   }
@@ -1202,7 +1204,7 @@ void SaturationAlgorithm::activate(Clause* cl)
     _selector->select(cl);
   }
 
-  std::cout << "Activated: " << cl->toString() << "    " <<  cl->numSelected() << "  !\n";
+  //std::cout << "Activated: " << cl->toString() << "    " <<  cl->numSelected() << "  !\n";
 
   ASS_EQ(cl->store(), Clause::SELECTED);
   cl->setStore(Clause::ACTIVE);

@@ -331,6 +331,7 @@ Clause* AWPassiveClauseContainer::popSelected()
         else
         {
           std::cout << "User error: No clause in Passive has id " << id << "!\n";
+          it.reset();
         }
       }
     }
@@ -383,13 +384,13 @@ after_manual:
     _balance -= _ageRatio;
     cl = _weightQueue.pop();
     //if(one_iteration_at_a_time)
-      //cout << "[SG] given clause: " << cl->toString() << endl;         
+      //cout << "[SG] given clause by weight: " << cl->toString() << endl;         
     _ageQueue.remove(cl);
   } else {
     _balance += _weightRatio;
     cl = _ageQueue.pop();
     //if(one_iteration_at_a_time)
-      //cout << "[SG] given clause: "  << cl->toString() << endl;     
+      //cout << "[SG] given clause by age: "  << cl->toString() << endl;     
     _weightQueue.remove(cl);
   }
 

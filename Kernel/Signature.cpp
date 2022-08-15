@@ -264,15 +264,9 @@ Signature::Signature ():
     _termAlgebras()
 {
   CALL("Signature::Signature");
-<<<<<<< HEAD
 
   _indexIntoAutoSelect = 0;
-  unsigned aux;
-  aux = createDistinctGroup();
-  ASS_EQ(STRING_DISTINCT_GROUP, aux);
-=======
   ALWAYS(createDistinctGroup() == STRING_DISTINCT_GROUP);
->>>>>>> ahmed-changing-uwa-implementation
 } // Signature::Signature
 
 /* Adding equality predicate used to be carried out in the constructor.

@@ -370,6 +370,8 @@ bool PortfolioMode::runSchedule(Shell::Property *property, Schedule schedule) {
 
   Schedule::BottomFirstIterator it(schedule);
   Set<pid_t> processes;
+  PidToPipeMap ptpm;
+
   bool success = false;
   int remainingTime;
   while(Timer::syncClock(), remainingTime = env.remainingTime() / 100, remainingTime > 0)
@@ -610,7 +612,7 @@ void PortfolioMode::runSlice(Options& strategyOpt, int* fd)
 
     auto termReason = env.statistics->terminationReason;
     write(fd[WRITE],&termReason,sizeof(termReason));    //write to pipe
-    close(fd[WRITE])
+    close(fd[WRITE]);
   }
 
   System::ignoreSIGHUP(); // don't interrupt now, we need to finish printing the proof !

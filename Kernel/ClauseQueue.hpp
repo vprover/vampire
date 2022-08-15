@@ -78,8 +78,9 @@ public:
 
     /** Create a new iterator */
     inline explicit Iterator(ClauseQueue& queue)
-      : _current(queue._left)
+      : _left(queue._left),  _current(queue._left)
     {}
+    inline void reset(){ _current = _left; }
     /** true if there is a next clause */
     inline bool hasNext() const
     { return _current->nodes[0]; }
@@ -91,6 +92,8 @@ public:
       return _current->clause;
     }
   private:
+    /** leftmost node */
+    Node* _left;
     /** Current node */
     Node* _current;
   }; // class ClauseQueue::Iterator

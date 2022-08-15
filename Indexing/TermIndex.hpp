@@ -240,8 +240,7 @@ private:
   Ordering& _ord;
 };
 
-=======
->>>>>>> ahmed-changing-uwa-implementation
+
 /////////////////////////////////////////////////////
 // Indices for higher-order inferences from here on//
 /////////////////////////////////////////////////////

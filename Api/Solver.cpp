@@ -852,7 +852,7 @@ namespace Vampire
       close(fd[WRITE]);
       int res;
       // goto sleep and let child do its thing
-      Multiprocessing::instance()->waitForParticularChildTermination(pid, res);
+      Multiprocessing::instance()->waitForChildTermination(res);
 
       Shell::Statistics::TerminationReason r = 
           Shell::Statistics::TerminationReason::UNKNOWN;

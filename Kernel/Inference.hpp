@@ -466,6 +466,8 @@ enum class InferenceRule : unsigned char {
   /* Integer induction hypothesis for infinite interval and the default bound */
   INT_DB_UP_INDUCTION_AXIOM,
   INT_DB_DOWN_INDUCTION_AXIOM,
+  /* induction axiom that does not fit one of the above categories */
+  INDUCTION_AXIOM,
 
   /* the unit clause against which the Answer is extracted in the last step */
   ANSWER_LITERAL_RESOLVER,
