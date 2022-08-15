@@ -196,7 +196,7 @@ void ActiveClauseContainer::onLimitsUpdated()
   static Stack<Clause*> toRemove(64);
   toRemove.reset();
 
-  auto rit = _clauses.iterator();
+  auto rit = _clauses.iter();
   while (rit.hasNext()) {
     Clause* cl=rit.next();
     ASS(cl);
