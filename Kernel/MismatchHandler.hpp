@@ -65,9 +65,7 @@ public:
   // - It may be convenient to use this function in the implementation of transformSubterm
   //   View UWAMismatchHandler::transformSubterm() for an example of this
   virtual MaybeBool isConstraintTerm(TermList t) = 0;
-
-  bool areIdentical(Term* t1, Term* t2, unsigned idx1, unsigned idx2);
-
+  
   virtual Term* get(unsigned var){ NOT_IMPLEMENTED; }
 
   VSpecVarToTermMap* getTermMap() { return &_termMap; }

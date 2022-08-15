@@ -95,23 +95,6 @@ void MismatchHandler::introduceConstraint(TermList t1,unsigned index1, TermList 
   }
 }
 
-bool MismatchHandler::areIdentical(Term* t1, Term* t2, unsigned idx1, unsigned idx2)
-{
-  CALL("MismatchHandler::areIdentical");
-
-  if(t1 == t2 && t1->shared() && t1->ground()){ return true; }
- 
-  TermList tt1 = TermList(t1);
-  TermList tt2 = TermList(t2);
-
-  RobSubstitution::TermSpec t1spec = RobSubstitution::TermSpec(tt1, idx1);
-  RobSubstitution::TermSpec t2spec = RobSubstitution::TermSpec(tt2, idx2);
-  if(t1spec.sameTermContent(t2spec)){ return true; }
-
-  return false;
-}
-
-
 CompositeMismatchHandler::~CompositeMismatchHandler(){
   CALL("CompositeMismatchHandler::~CompositeMismatchHandler");
 
@@ -130,9 +113,6 @@ bool CompositeMismatchHandler::handle(TermList t1, unsigned index1, TermList t2,
 
   t1 = t1.isVSpecialVar() ? TermList(get(t1.var())) : t1;
   t2 = t2.isVSpecialVar() ? TermList(get(t2.var())) : t2;
-
-  if(areIdentical(t1.term(),t2.term(),index1,index2))
-    return true;
 
   MHList* hit=_inners;
   while(hit) {
