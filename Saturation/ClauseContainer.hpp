@@ -22,7 +22,7 @@
 #include "Lib/VirtualIterator.hpp"
 #include "Lib/Deque.hpp"
 #include "Lib/Stack.hpp"
-#include "Lib/DHSet.hpp"
+#include "Lib/Set.hpp"
 
 #include "Lib/Allocator.hpp"
 
@@ -191,12 +191,12 @@ public:
   void remove(Clause* c) override;
 
   unsigned sizeEstimate() const override { return _clauses.size(); }
-  ClauseIterator clauses() const { return _clauses.iterator(); }
+  ClauseIterator clauses() const { return pvi(_clauses.iter()); }
 
 protected:
   void onLimitsUpdated() override;
 private:
-  DHSet<Clause*> _clauses;
+  Set<Clause*> _clauses;
   // const Shell::Options& _opt;
 };
 
