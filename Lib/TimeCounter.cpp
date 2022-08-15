@@ -227,7 +227,7 @@ void TimeCounter::outputSingleStat(TimeCounterUnit tcu, ostream& out)
   case TC_GLOBAL_SUBSUMPTION:
     out<<"global subsumption";
     break;
-  case TC_SIMPLIFYING_UNIT_LITERAL_INDEX_MAINTENANCE:
+  case TC_UNIT_LITERAL_INDEX_MAINTENANCE:
     out<<"unit clause index maintenance";
     break;
   case TC_NON_UNIT_LITERAL_INDEX_MAINTENANCE:
