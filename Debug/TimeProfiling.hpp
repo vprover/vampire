@@ -85,6 +85,16 @@ namespace Shell {
  */
 class TimeTrace
 {
+public:
+  // Let's fake a big enum like the one we used to have using a bunch of constexpr's
+  // (NB: TimeTrace can only group TIME_TRACE calls with identical identifiers as pointers
+  //  so always going through one place to declare a TIME_TRACE-able call site sounds like a nice routine)
+  // Also: don't forget to add definition to the cpp file (until we swith to C++17)
+  static constexpr const char* const PREPROCESSING = "preprocessing";
+  static constexpr const char* const PARSING = "parsing";
+  static constexpr const char* const LITERAL_ORDER_AFTERCHECK = "literal order aftercheck";
+
+private:
   using Clock = std::chrono::steady_clock;
   using Duration = typename Clock::duration;
   using TimePoint = typename Clock::time_point;
@@ -164,12 +174,6 @@ public:
   void printPretty(std::ostream& out);
   void serialize(std::ostream& out);
   void setEnabled(bool);
-
-  struct Groups {
-    static const char* PREPROCESSING;
-    static const char* PARSING;
-    static const char* LITERAL_ORDER_AFTERCHECK;
-  };
 private:
 
   Node _root;

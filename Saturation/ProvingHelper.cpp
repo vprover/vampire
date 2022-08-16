@@ -93,7 +93,7 @@ void ProvingHelper::runVampire(Problem& prb, const Options& opt)
   {
     ClauseIterator clauses;
     {
-      TIME_TRACE(TimeTrace::Groups::PREPROCESSING);
+      TIME_TRACE(TimeTrace::PREPROCESSING);
 
       Preprocess prepro(opt);
       prepro.preprocess(prb);

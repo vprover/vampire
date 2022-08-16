@@ -247,7 +247,7 @@ void CLTBMode::loadIncludes()
 
   UnitList* theoryAxioms=0;
   {
-    TIME_TRACE(TimeTrace::Groups::PARSING);
+    TIME_TRACE(TimeTrace::PARSING);
     env.statistics->phase=Statistics::PARSING;
 
     StringList::Iterator iit(_theoryIncludes);
@@ -392,7 +392,7 @@ void CLTBMode::doTraining()
 
   Stack<vstring>::RefIterator it(solutions);
   while (it.hasNext()) {
-    TIME_TRACE(TimeTrace::Groups::PARSING);
+    TIME_TRACE(TimeTrace::PARSING);
     env.statistics->phase=Statistics::PARSING;
 
     vstring& solnFileName = it.next();
@@ -691,7 +691,7 @@ void CLTBProblem::searchForProof(int terminationTime,int timeLimit,const Categor
 
   // this local scope will delete a potentially large parser
   {
-    TIME_TRACE(TimeTrace::Groups::PARSING);
+    TIME_TRACE(TimeTrace::PARSING);
     env.statistics->phase=Statistics::PARSING;
 
     // Ensure the parser is recording axiom names
@@ -717,7 +717,7 @@ void CLTBProblem::searchForProof(int terminationTime,int timeLimit,const Categor
 
   Shell::Property* property = prb.getProperty();
   if (property->atoms()<=1000000) {
-    TIME_TRACE(TimeTrace::Groups::PREPROCESSING);
+    TIME_TRACE(TimeTrace::PREPROCESSING);
     env.statistics->phase=Statistics::NORMALIZATION;
     Normalisation norm;
     norm.normalise(prb);

@@ -310,7 +310,7 @@ Clause* SubVarSup::performSubVarSup(
       }
       
       if (afterCheck) {
-        TIME_TRACE(TimeTrace::Groups::LITERAL_ORDER_AFTERCHECK);
+        TIME_TRACE(TimeTrace::LITERAL_ORDER_AFTERCHECK);
         if (i < rwClause->numSelected() && ordering.compare(currAfter,rwLitS) == Ordering::GREATER) {
           env.statistics->inferencesBlockedForOrderingAftercheck++;
           goto construction_fail;

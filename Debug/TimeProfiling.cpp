@@ -19,6 +19,11 @@ namespace Shell {
 
 using namespace Lib;
 
+// TODO: these should be dispensable with C++17 onwards
+const char* const TimeTrace::PREPROCESSING;
+const char* const TimeTrace::PARSING;
+const char* const TimeTrace::LITERAL_ORDER_AFTERCHECK;
+
 TimeTrace::TimeTrace() 
   : _root("[root]")
   , _stack({ {&_root, Clock::now(), }, }) 
@@ -94,12 +99,6 @@ TimeTrace::ScopedChangeRoot::~ScopedChangeRoot()
 
 TimeTrace::Duration TimeTrace::Node::totalDuration() const
 { return measurements.sum(); }
-
-const char* TimeTrace::Groups::PREPROCESSING = "preprocessing";
-const char* TimeTrace::Groups::PARSING = "parsing";
-const char* TimeTrace::Groups::LITERAL_ORDER_AFTERCHECK = "literal order aftercheck";
-
-
   
 std::ostream& operator<<(std::ostream& out, TimeTrace::Duration const& self)
 { 

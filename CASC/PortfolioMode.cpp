@@ -137,7 +137,7 @@ bool PortfolioMode::searchForProof()
    * also, cf. the beginning of Preprocessing::preprocess*/
   Shell::Property* property = _prb->getProperty();
   {
-    TIME_TRACE(TimeTrace::Groups::PREPROCESSING);
+    TIME_TRACE(TimeTrace::PREPROCESSING);
 
     //we normalize now so that we don't have to do it in every child Vampire
     ScopedLet<Statistics::ExecutionPhase> phaseLet(env.statistics->phase,Statistics::NORMALIZATION);

@@ -187,7 +187,7 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
 
   Literal* queryLitAfter = 0;
   if (ord && queryCl->numSelected() > 1) {
-    TIME_TRACE(TimeTrace::Groups::LITERAL_ORDER_AFTERCHECK);
+    TIME_TRACE(TimeTrace::LITERAL_ORDER_AFTERCHECK);
     queryLitAfter = qr.substitution->applyToQuery(queryLit);
   }
 #if VDEBUG
@@ -249,7 +249,7 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
         }
       }
       if (queryLitAfter && i < queryCl->numSelected()) {
-        TIME_TRACE(TimeTrace::Groups::LITERAL_ORDER_AFTERCHECK);
+        TIME_TRACE(TimeTrace::LITERAL_ORDER_AFTERCHECK);
 
         Ordering::Result o = ord->compare(newLit,queryLitAfter);
 
@@ -269,7 +269,7 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
 
   Literal* qrLitAfter = 0;
   if (ord && qr.clause->numSelected() > 1) {
-    TIME_TRACE(TimeTrace::Groups::LITERAL_ORDER_AFTERCHECK);
+    TIME_TRACE(TimeTrace::LITERAL_ORDER_AFTERCHECK);
     qrLitAfter = qr.substitution->applyToResult(qr.literal);
   }
 
@@ -287,7 +287,7 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
         }
       }
       if (qrLitAfter && i < qr.clause->numSelected()) {
-        TIME_TRACE(TimeTrace::Groups::LITERAL_ORDER_AFTERCHECK);
+        TIME_TRACE(TimeTrace::LITERAL_ORDER_AFTERCHECK);
 
         Ordering::Result o = ord->compare(newLit,qrLitAfter);
 

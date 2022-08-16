@@ -575,7 +575,7 @@ Clause* Superposition::performSuperposition(
       }
 
       if (afterCheck) {
-        TIME_TRACE(TimeTrace::Groups::LITERAL_ORDER_AFTERCHECK)
+        TIME_TRACE(TimeTrace::LITERAL_ORDER_AFTERCHECK)
         if (i < rwClause->numSelected() && ordering.compare(currAfter,rwLitS) == Ordering::GREATER) {
           env.statistics->inferencesBlockedForOrderingAftercheck++;
           goto construction_fail;
@@ -589,7 +589,7 @@ Clause* Superposition::performSuperposition(
   {
     Literal* eqLitS = 0;
     if (afterCheck && eqClause->numSelected() > 1) {
-      TIME_TRACE(TimeTrace::Groups::LITERAL_ORDER_AFTERCHECK);
+      TIME_TRACE(TimeTrace::LITERAL_ORDER_AFTERCHECK);
       eqLitS = Literal::createEquality(true,eqLHSS,tgtTermS,eqLHSsort);
     }
 
@@ -611,7 +611,7 @@ Clause* Superposition::performSuperposition(
         }
 
         if (eqLitS && i < eqClause->numSelected()) {
-          TIME_TRACE(TimeTrace::Groups::LITERAL_ORDER_AFTERCHECK);
+          TIME_TRACE(TimeTrace::LITERAL_ORDER_AFTERCHECK);
 
           Ordering::Result o = ordering.compare(currAfter,eqLitS);
 
