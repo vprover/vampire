@@ -1829,6 +1829,7 @@ Term::Term() throw()
   _args[0]._info.shared = 0;
   _args[0]._info.literal = 0;
   _args[0]._info.sort = 0;
+  _args[0]._info.hasTermVar = 0;
   _args[0]._info.order = 0;
   _args[0]._info.tag = FUN;
   _args[0]._info.distinctVars = TERM_DIST_VAR_UNKNOWN;

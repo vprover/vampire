@@ -2393,6 +2393,12 @@ public:
   bool cases() const { return _cases.actualValue; }
   bool newTautologyDel() const { return _newTautologyDel.actualValue; }
   bool lambdaFreeHol() const { return _lambdaFreeHol.actualValue; }
+  bool complexVarCondition() const { return _complexVarCondition.actualValue; }
+  // For unit testing
+  void useCombSup() { 
+    _combinatorySuperposition.actualValue = true;
+    _complexVarCondition.actualValue = true; 
+  }
 
 private:
     
@@ -2819,6 +2825,7 @@ private:
   BoolOptionValue _cases;
   BoolOptionValue _newTautologyDel;
   BoolOptionValue _lambdaFreeHol;
+  BoolOptionValue _complexVarCondition;
 
 }; // class Options
 

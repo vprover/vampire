@@ -81,9 +81,9 @@ void LiteralIndex::handleLiteral(Literal* lit, Clause* cl, bool add)
   }
 }
 
-void GeneratingLiteralIndex::handleClause(Clause* c, bool adding)
+void BinaryResolutionIndex::handleClause(Clause* c, bool adding)
 {
-  CALL("GeneratingLiteralIndex::handleClause");
+  CALL("BinaryResolutionIndex::handleClause");
 
   TIME_TRACE("binary resolution index maintenance");
 
@@ -96,9 +96,9 @@ void GeneratingLiteralIndex::handleClause(Clause* c, bool adding)
   }
 }
 
-void SimplifyingLiteralIndex::handleClause(Clause* c, bool adding)
+void BackwardSubsumptionIndex::handleClause(Clause* c, bool adding)
 {
-  CALL("SimplifyingLiteralIndex::handleClause");
+  CALL("BackwardSubsumptionIndex::handleClause");
 
   TIME_TRACE("backward subsumption index maintenance");
 
@@ -166,7 +166,7 @@ void UnitClauseLiteralIndex::handleClause(Clause* c, bool adding)
 
   if(c->length()==1) {
     TIME_TRACE("unit clause index maintenance");
-
+    
     handleLiteral((*c)[0], c, adding);
   }
 }

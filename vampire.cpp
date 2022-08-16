@@ -705,13 +705,13 @@ int main(int argc, char* argv[])
       env.options->setSchedule(Options::Schedule::CASC_HOL_2020);
       env.options->setOutputMode(Options::Output::SZS);
       env.options->setProof(Options::Proof::TPTP);
-      env.options->setMulticore(0); // use all available cores
+      //env.options->setMulticore(0); // use all available cores
       env.options->setOutputAxiomNames(true);
 
-      unsigned int nthreads = std::thread::hardware_concurrency();
-      float slowness = 1.00 + (0.04 * nthreads);
+      //unsigned int nthreads = std::thread::hardware_concurrency();
+      //float slowness = 1.00 + (0.04 * nthreads);
  
-      if (CASC::PortfolioMode::perform(slowness)) {
+      if (CASC::PortfolioMode::perform(env.options->slowness())) {
         vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
       }
       break;
