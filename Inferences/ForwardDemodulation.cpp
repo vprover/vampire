@@ -192,7 +192,7 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
           Ordering::Result tord=ordering.compare(rhsS, other);
           if(tord!=Ordering::LESS && tord!=Ordering::LESS_EQ) {
             if (_encompassing) {
-              // last chance, if the matcher is a renaming
+              // last chance, if the matcher is not a renaming
               if (qr.substitution->isRenamingOn(qr.term,true /* we talk of result term */)) {
                 continue; // under _encompassing, we know there are no other literals in cl
               }
