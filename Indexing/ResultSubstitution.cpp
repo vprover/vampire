@@ -69,6 +69,11 @@ ResultSubstitutionSP ResultSubstitution::fromSubstitution(RobSubstitution* s, in
   return ResultSubstitutionSP(new RSProxy(s, queryBank, resultBank));
 }
 
+/**
+ * Test whether this substitution object is a renaming on the variables of @param t
+ * @param result indicates whether we mean the "bank" applied 
+ * to a result term or a query one (cf. applyToQuery/applyToResult)
+ */
 bool ResultSubstitution::isRenamingOn(TermList t, bool result) 
 {
   CALL("ResultSubstitution::isRenamingOn");

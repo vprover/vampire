@@ -1527,7 +1527,7 @@ void Options::init()
     _demodulationRedundancyCheck.setRandomChoices({"on","off"});
 
     _demodulationEncompassment = BoolOptionValue("demodulation_encompassment","de",false);
-    _demodulationEncompassment.description= "Treat demodulations (both forward and backward) as encompassment demodulations (as defined by Duarte and Korovin around 2022)";
+    _demodulationEncompassment.description= "Treat demodulations (both forward and backward) as encompassment demodulations (as defined by Duarte and Korovin in 2022's IJCAR paper)";
     _lookup.insert(&_demodulationEncompassment);
     _demodulationEncompassment.tag(OptionTag::INFERENCES);
     _demodulationEncompassment.onlyUsefulWith(InferencingSaturationAlgorithm());
