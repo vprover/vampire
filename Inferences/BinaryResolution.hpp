@@ -50,7 +50,7 @@ private:
   struct UnificationsFn;
   struct ResultFn;
 
-  GeneratingLiteralIndex* _index;
+  BinaryResolutionIndex* _index;
 };
 
 };

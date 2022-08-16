@@ -54,8 +54,8 @@ void BinaryResolution::attach(SaturationAlgorithm* salg)
   ASS(!_index);
 
   GeneratingInferenceEngine::attach(salg);
-  _index=static_cast<GeneratingLiteralIndex*> (
-	  _salg->getIndexManager()->request(GENERATING_SUBST_TREE) );
+  _index=static_cast<BinaryResolutionIndex*> (
+	  _salg->getIndexManager()->request(BINARY_RESOLUTION_SUBST_TREE) );
 }
 
 void BinaryResolution::detach()
@@ -64,25 +64,24 @@ void BinaryResolution::detach()
   ASS(_salg);
 
   _index=0;
-  _salg->getIndexManager()->release(GENERATING_SUBST_TREE);
+  _salg->getIndexManager()->release(BINARY_RESOLUTION_SUBST_TREE);
   GeneratingInferenceEngine::detach();
 }
 
 
 struct BinaryResolution::UnificationsFn
 {
-  UnificationsFn(GeneratingLiteralIndex* index)
-  : _index(index) {}
-  VirtualIterator<pair<Literal*, SLQueryResult> > operator()(Literal* lit)
+  UnificationsFn(BinaryResolutionIndex* index) : _index(index) {}
+  VirtualIterator<pair<Literal*, SLQueryResult>> operator()(Literal* lit)
   {
     if(lit->isEquality()) {
       //Binary resolution is not performed with equality literals
-      return VirtualIterator<pair<Literal*, SLQueryResult> >::getEmpty();
+      return VirtualIterator<pair<Literal*, SLQueryResult>>::getEmpty();
     }
     return pvi( pushPairIntoRightIterator(lit, _index->getUnifications(lit, true)) );
   }
 private:
-  GeneratingLiteralIndex* _index;
+  BinaryResolutionIndex* _index;
 };
 
 struct BinaryResolution::ResultFn
