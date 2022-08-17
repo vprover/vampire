@@ -2205,6 +2205,7 @@ public:
   int lookaheadDelay() const { return _lookaheadDelay.actualValue; }
   int simulatedTimeLimit() const { return _simulatedTimeLimit.actualValue; }
   void setSimulatedTimeLimit(int newVal) { _simulatedTimeLimit.actualValue = newVal; }
+  float lrsEstimateCorrectionCoef() const { return _lrsEstimateCorrectionCoef.actualValue; }
   TermOrdering termOrdering() const { return _termOrdering.actualValue; }
   SymbolPrecedence symbolPrecedence() const { return _symbolPrecedence.actualValue; }
   SymbolPrecedenceBoost symbolPrecedenceBoost() const { return _symbolPrecedenceBoost.actualValue; }
@@ -2722,6 +2723,7 @@ private:
   BoolOptionValue _fixUWA;
   BoolOptionValue _useACeval;
   TimeLimitOptionValue _simulatedTimeLimit;
+  FloatOptionValue _lrsEstimateCorrectionCoef;
   UnsignedOptionValue _sineDepth;
   UnsignedOptionValue _sineGeneralityThreshold;
   UnsignedOptionValue _sineToAgeGeneralityThreshold;
