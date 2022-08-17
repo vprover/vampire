@@ -242,7 +242,7 @@ private:
   bool _encompassing;
 
   BackwardDemodulation& _parent;
-  Ordering& _ordering;  
+  Ordering& _ordering;
 };
 
 
