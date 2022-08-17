@@ -1101,7 +1101,7 @@ void Options::init()
     _simulatedTimeLimit.tag(OptionTag::LRS);
 
     _lrsEstimateCorrectionCoef = FloatOptionValue("lrs_estimate_correction_coef","lecc",1.0);
-    _lrsEstimateCorrectionCoef.description = "Make lrs more (<1.0) or less (>1.0) agressive by multiplying this coef its estimate of how many clauses are still reachable.";
+    _lrsEstimateCorrectionCoef.description = "Make lrs more (<1.0) or less (>1.0) agressive by multiplying by this coef its estimate of how many clauses are still reachable.";
     _lookup.insert(&_lrsEstimateCorrectionCoef);
     _lrsEstimateCorrectionCoef.tag(OptionTag::SATURATION);
     _lrsEstimateCorrectionCoef.addConstraint(greaterThan(0.0f));
