@@ -292,23 +292,30 @@ namespace Inferences {
         OperatorType *type = env.signature->getFunction(lit->nthArgument(0)->term()->functor())->fnType();
         unsigned oldLength = c->length();
         unsigned arity = lit->nthArgument(0)->term()->arity();
-        unsigned newLength = oldLength + arity - 1;
+        unsigned numTypeArgs = lit->nthArgument(0)->term()->numTypeArguments();
+        unsigned newLength = oldLength + arity - numTypeArgs - 1;
+#if VDEBUG
+        for (unsigned j = 0; j < numTypeArgs; j++) {
+          ASS_EQ(*lit->nthArgument(0)->term()->nthArgument(j),
+            *lit->nthArgument(1)->term()->nthArgument(j));
+        }
+#endif
         Clause* res = new(newLength) Clause(newLength,SimplifyingInference1(InferenceRule::TERM_ALGEBRA_INJECTIVITY_SIMPLIFYING, c));
         Literal *newLit = Literal::createEquality(false,
-                                                  *lit->nthArgument(0)->term()->nthArgument(0),
-                                                  *lit->nthArgument(1)->term()->nthArgument(0),
-                                                  type->arg(0));
-        unsigned i = 0;
-        while ((*c)[i] != lit) { i++; }
+                                                  *lit->nthArgument(0)->term()->nthArgument(numTypeArgs),
+                                                  *lit->nthArgument(1)->term()->nthArgument(numTypeArgs),
+                                                  type->arg(numTypeArgs));
+        unsigned j = 0;
+        while ((*c)[j] != lit) { j++; }
         std::memcpy(res->literals(), c->literals(), length * sizeof(Literal*));
-        (*res)[i] = newLit;
+        (*res)[j] = newLit;
         
-        for (unsigned i = 1; i < arity; i++) {
+        for (unsigned j = numTypeArgs+1; j < arity; j++) {
           newLit = Literal::createEquality(false,
-                                           *lit->nthArgument(0)->term()->nthArgument(i),
-                                           *lit->nthArgument(1)->term()->nthArgument(i),
-                                           type->arg(i));
-          (*res)[oldLength + i - 1] = newLit;
+                                           *lit->nthArgument(0)->term()->nthArgument(j),
+                                           *lit->nthArgument(1)->term()->nthArgument(j),
+                                           type->arg(j));
+          (*res)[oldLength + j - numTypeArgs - 1] = newLit;
         }
         env.statistics->taNegativeInjectivitySimplifications++;
 
