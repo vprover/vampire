@@ -82,12 +82,6 @@ Clause::Clause(unsigned length,const Inference& inf)
     _extensionalityTag = true;
     inference().setInputType(UnitInputType::AXIOM);
   }
-
-  if (env.options->randomAWTiebreak()) {
-    _salt = Random::getInteger(1 << 31);
-  } else {
-    _salt = 0;
-  }
 }
 
 /**

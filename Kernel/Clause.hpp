@@ -357,8 +357,6 @@ public:
 
   unsigned numPositiveLiterals(); // number of positive literals in the clause
 
-  int _salt; // just a random int assigned (or left 0) at birth
-
 protected:
   /** number of literals */
   unsigned _length : 20;

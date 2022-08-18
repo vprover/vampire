@@ -1046,11 +1046,6 @@ void Options::init()
     _randomAWR.tag(OptionTag::SATURATION);
     _randomAWR.setExperimental();
 
-    _randomAWTiebreak = BoolOptionValue("random_aw_tiebreak","rawtb",false);
-    _lookup.insert(&_randomAWTiebreak);
-    _randomAWTiebreak.tag(OptionTag::SATURATION);
-    _randomAWTiebreak.setExperimental();
-
     _sineToPredLevels = ChoiceOptionValue<PredicateSineLevels>("sine_to_pred_levels","s2pl",PredicateSineLevels::OFF,{"no","off","on"});
     _sineToPredLevels.description = "Assign levels to predicate symbols as they are used to trigger axioms during SInE computation. "
         "Then use them as predicateLevels determining the ordering. 'on' means conjecture symbols are larger, 'no' means the opposite. (equality keeps its standard lowest level).";
