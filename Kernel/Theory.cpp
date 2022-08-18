@@ -1599,7 +1599,7 @@ void Theory::defineTupleTermAlgebra(unsigned arity, TermList* sorts) {
     destructors[i] = destructor;
   }
 
-  Shell::TermAlgebraConstructor* constructor = new Shell::TermAlgebraConstructor(functor, destructors);
+  Shell::TermAlgebraConstructor* constructor = new Shell::TermAlgebraConstructor(functor, destructors, 0);
 
   Shell::TermAlgebraConstructor* constructors[] = { constructor };
   env.signature->addTermAlgebra(new Shell::TermAlgebra(tupleSort, 1, constructors, false));

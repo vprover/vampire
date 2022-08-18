@@ -18,33 +18,33 @@ using namespace Lib;
 
 namespace Shell {
 
-TermAlgebraConstructor::TermAlgebraConstructor(unsigned functor, std::initializer_list<unsigned> destructors)
-  : TermAlgebraConstructor(functor, Lib::Array<unsigned>(destructors))
+TermAlgebraConstructor::TermAlgebraConstructor(unsigned functor, std::initializer_list<unsigned> destructors, unsigned pars)
+  : TermAlgebraConstructor(functor, Lib::Array<unsigned>(destructors), pars)
 { }
 
-TermAlgebraConstructor::TermAlgebraConstructor(unsigned functor, Lib::Array<unsigned> destructors)
-  : _functor(functor), _hasDiscriminator(false), _destructors(destructors)
+TermAlgebraConstructor::TermAlgebraConstructor(unsigned functor, Lib::Array<unsigned> destructors, unsigned pars)
+  : _functor(functor), _hasDiscriminator(false), _destructors(destructors), _pars(pars)
 {
   _type = env.signature->getFunction(_functor)->fnType();
 #if VDEBUG
   ASS_REP(env.signature->getFunction(_functor)->termAlgebraCons(), env.signature->functionName(_functor));
-  ASS_EQ(_type->arity(), destructors.size());
+  ASS_EQ(_type->arity(), _pars+destructors.size());
   unsigned i = 0;
   for (auto d : destructors) {
-    auto sym = _type->arg(i++) == AtomicSort::boolSort() ? env.signature->getPredicate(d)
+    auto sym = _type->arg(_pars+i++) == AtomicSort::boolSort() ? env.signature->getPredicate(d)
                                                    : env.signature->getFunction(d);
     ASS_REP(sym->termAlgebraDest(), sym->name())
   }
 #endif
 }
 
-TermAlgebraConstructor::TermAlgebraConstructor(unsigned functor, unsigned discriminator, Lib::Array<unsigned> destructors)
-  : _functor(functor), _hasDiscriminator(true), _discriminator(discriminator), _destructors(destructors)
+TermAlgebraConstructor::TermAlgebraConstructor(unsigned functor, unsigned discriminator, Lib::Array<unsigned> destructors, unsigned pars)
+  : _functor(functor), _hasDiscriminator(true), _discriminator(discriminator), _destructors(destructors), _pars(pars)
 {
   _type = env.signature->getFunction(_functor)->fnType();
 #if VDEBUG
   ASS_REP(env.signature->getFunction(_functor)->termAlgebraCons(), env.signature->functionName(_functor));
-  ASS_EQ(_type->arity(), destructors.size());
+  ASS_EQ(_type->arity(), _pars+destructors.size());
   for (auto d : destructors) {
     ASS(env.signature->getFunction(d)->termAlgebraDest())
   }
@@ -131,6 +131,7 @@ TermAlgebra::TermAlgebra(TermList sort,
                          Lib::Array<TermAlgebraConstructor*> constrs,
                          bool allowsCyclicTerms) :
   _sort(sort),
+  _pars(VList::length(_sort.freeVariables())),
   _n(constrs.size()),
   _allowsCyclicTerms(allowsCyclicTerms),
   _constrs(constrs)
@@ -145,6 +146,7 @@ TermAlgebra::TermAlgebra(TermList sort,
                          TermAlgebraConstructor** constrs,
                          bool allowsCyclicTerms) :
   _sort(sort),
+  _pars(VList::length(_sort.freeVariables())),
   _n(n),
   _allowsCyclicTerms(allowsCyclicTerms),
   _constrs(n)
@@ -202,6 +204,7 @@ bool TermAlgebra::infiniteDomain()
 }
   
 Lib::vstring TermAlgebra::getSubtermPredicateName() {
+  // TODO maybe change this for polymorphic types
   return "$subterm" + _sort.toString();
 }
 
@@ -209,14 +212,14 @@ unsigned TermAlgebra::getSubtermPredicate() {
   CALL("TermAlgebra::getSubtermPredicate");
 
   bool added;
-  unsigned s = env.signature->addPredicate(getSubtermPredicateName(), 2, added);
+  unsigned s = env.signature->addPredicate(getSubtermPredicateName(), _pars+2, added);
 
   if (added) {
     // declare a binary predicate subterm
     TermStack args;
     args.push(_sort); 
     args.push(_sort);
-    env.signature->getPredicate(s)->setType(OperatorType::getPredicateType(args.size(),args.begin()));
+    env.signature->getPredicate(s)->setType(OperatorType::getPredicateType(args.size(),args.begin(),_pars));
   }
 
   return s;

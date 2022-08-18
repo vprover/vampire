@@ -31,12 +31,13 @@ namespace Shell {
     /* A term algebra constructor, described by its name, range,
        arity, and for each argument: the name of its destructor and
        its sort*/
-    TermAlgebraConstructor(unsigned functor, Lib::Array<unsigned> destructors);
-    TermAlgebraConstructor(unsigned functor, std::initializer_list<unsigned> destructors);
-    TermAlgebraConstructor(unsigned functor, unsigned discriminator, Lib::Array<unsigned> destructors);
+    TermAlgebraConstructor(unsigned functor, Lib::Array<unsigned> destructors, unsigned pars);
+    TermAlgebraConstructor(unsigned functor, std::initializer_list<unsigned> destructors, unsigned pars);
+    TermAlgebraConstructor(unsigned functor, unsigned discriminator, Lib::Array<unsigned> destructors, unsigned pars);
     ~TermAlgebraConstructor() {}
 
     unsigned arity() const;
+    unsigned pars() const { return _pars; }
     TermList argSort(unsigned ith) const;
     TermList rangeSort() const;
 
@@ -83,6 +84,7 @@ namespace Shell {
     bool _hasDiscriminator;
     unsigned _discriminator;
     Lib::Array<unsigned> _destructors;
+    unsigned _pars;
   };
 
   typedef Lib::Array<TermAlgebraConstructor*> ConstructorArray;
@@ -110,6 +112,7 @@ namespace Shell {
                 bool allowsCyclicTerms = false);
     ~TermAlgebra() {}
 
+    unsigned nPars() const { return _pars; }
     unsigned nConstructors() const { return _n; }
     TermList sort() const { return _sort; }
     TermAlgebraConstructor* constructor(unsigned ith) { ASS_L(ith, _n); return _constrs[ith]; }
@@ -168,6 +171,7 @@ namespace Shell {
     friend std::ostream& operator<<(std::ostream& out, TermAlgebra const& self);
   private:
     TermList _sort;
+    unsigned _pars;
     unsigned _n; /* number of constructors */
     bool _allowsCyclicTerms;
     ConstructorArray _constrs;

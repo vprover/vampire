@@ -248,12 +248,19 @@ namespace Inferences {
     return c;
   }
 
-  bool NegativeInjectivityISE::litCondition(Clause *c, unsigned i) {
+  bool NegativeInjectivityISE::litCondition(Clause *c, unsigned i)
+  {
+    CALL("NegativeInjectivityISE::litCondition");
     Literal *lit = (*c)[i];
     if (sameConstructorsEquality(lit) && !lit->polarity()) {
       unsigned arity = lit->nthArgument(0)->term()->arity();
       OperatorType *type = env.signature->getFunction(lit->nthArgument(0)->term()->functor())->fnType();
       for (unsigned j = 0; j < arity; j++) {
+        if (j < lit->nthArgument(0)->term()->numTypeArguments()) {
+          ASS_EQ(*lit->nthArgument(0)->term()->nthArgument(j),
+                 *lit->nthArgument(1)->term()->nthArgument(j));
+          continue;
+        }
         Literal *l = Literal::createEquality(true,
                                              *lit->nthArgument(0)->term()->nthArgument(j),
                                              *lit->nthArgument(1)->term()->nthArgument(j),

@@ -100,36 +100,6 @@ private:
   /** Content of the ":source: info entry. */
   vstring _sourceInfo;
 
-  enum BuiltInSorts
-  {
-    BS_ARRAY,
-    BS_BOOL,
-    BS_INT,
-    BS_REAL,
-
-    BS_INVALID
-  };
-  static const char * s_builtInSortNameStrings[];
-
-  /**
-   * Maps smtlib built-in sort name to BuiltInSorts value.
-   */
-  static BuiltInSorts getBuiltInSortFromString(const vstring& str);
-
-  /**
-   * Test string for being either a built-in sort
-   * or a sort already declared or defined within this parser object.
-   */
-  bool isAlreadyKnownSortSymbol(const vstring& name);
-
-  /** Maps smtlib name of a declared sort to its arity.
-   *
-   * Declared sorts are just names with arity-many "argument slots".
-   * However, this is just a way to make new sorts from old ones.
-   * There is no implied semantic relation to the argument sorts.
-   */
-  DHMap<vstring,unsigned> _declaredSorts;
-
   /**
    * Handle "declare-sort" entry.
    */
@@ -164,12 +134,9 @@ private:
   void readDefineSort(const vstring& name, LExprList* args, LExpr* body);
 
   /**
-   * Take an smtlib sort expression, evaluate it in the context of previous
-   * sort declarations and definitions,
-   * register any missing sort in vampire and return vampire's sort id
-   * corresponding to the give expression.
+   * Helper funtion to check that a parsed sort is indeed a sort.
    */
-  TermList declareSort(LExpr* sExpr, DHMap<vstring,TermList>* parameterLookup = nullptr);
+  TermList parseSort(LExpr* sExpr);
 
   /**
    * Some built-in symbols represent functions with result of sort Bool.
@@ -213,6 +180,10 @@ private:
     TS_PLUS,
     TS_MINUS,
     TS_DIVIDE,
+    TS_ARRAY,
+    TS_BOOL,
+    TS_INT,
+    TS_REAL,
     TS_ABS,
     TS_DIV,
     TS_ITE,
@@ -236,20 +207,25 @@ private:
   /**
    * Is the given vstring a built-in FormulaSymbol, built-in TermSymbol or a declared function?
    */
-  bool isAlreadyKnownFunctionSymbol(const vstring& name);
+  bool isAlreadyKnownSymbol(const vstring& name);
 
-  /** <vampire signature id, is_function flag (otherwise it is a predicate) > */
-  typedef std::pair<unsigned,bool> DeclaredFunction;
+  enum class SymbolType {
+    FUNCTION,
+    PREDICATE,
+    TYPECON,
+  };
+  /** <vampire signature id, symbol type> */
+  typedef std::pair<unsigned,SymbolType> DeclaredSymbol;
   /** functions are implicitly declared also when they are defined (see below) */
-  DHMap<vstring, DeclaredFunction> _declaredFunctions;
+  DHMap<vstring, DeclaredSymbol> _declaredSymbols;
 
   /**
    * Given a symbol name, range sort (which can be Bool) and argSorts,
    * register a new function (or predicate) symbol in vampire,
-   * store the ensuing DeclaredFunction in _declaredFunctions
+   * store the ensuing DeclaredSymbol in _declaredSymbols
    * and return it.
    */
-  DeclaredFunction declareFunctionOrPredicate(const vstring& name, TermList rangeSort, const TermStack& argSorts);
+  DeclaredSymbol declareFunctionOrPredicate(const vstring& name, TermList rangeSort, const TermStack& argSorts);
 
   /**
    * Handle "declare-fun" entry.
@@ -265,12 +241,12 @@ private:
    */
   void readDefineFun(const vstring& name, LExprList* iArgs, LExpr* oSort, LExpr* body, bool recursive = false);
 
-  LExprList* tryReadTypeParameters(LExprList* datatype, DHMap<vstring,TermList>& lookup, TermStack& parSorts);
+  LExprList* tryReadTypeParameters(LExprList* datatype, DHMap<vstring,pair<TermList,TermList>>* lookup, TermStack& parSorts);
   void readDeclareDatatype(LExpr* sort, LExprList* datatype);
 
   void readDeclareDatatypes(LExprList* sorts, LExprList* datatypes, bool codatatype = false);
 
-  TermAlgebraConstructor* buildTermAlgebraConstructor(vstring constrName, TermList taSort,
+  TermAlgebraConstructor* buildTermAlgebraConstructor(vstring constrName, TermList taSort, unsigned numPars,
                                                       Stack<vstring> destructorNames, TermStack argSorts);
 
   /**
@@ -375,7 +351,9 @@ private:
     PO_LET_END,            // takes LExpr* (the whole let expression again, why not)
     PO_MATCH_CASE_START,   // takes LExpr*, a list containing the matched term, pattern, case
     PO_MATCH_CASE_END,     // takes LExpr*, a list containing the matched term, pattern, case
-    PO_MATCH_END           // takes LExpr* (the whole match again)
+    PO_MATCH_END,          // takes LExpr* (the whole match again)
+    PO_QUANT,
+    PO_POP_LOOKUP,
   };
   /**
    * Main smtlib term parsing stack.
@@ -399,11 +377,13 @@ private:
   void parseMatchEnd(LExpr* exp);
 
   void parseQuantBegin(LExpr* exp);
+  void parseQuantEnd(LExpr* exp);
 
   void parseAnnotatedTerm(LExpr* exp);
 
   /** Scope's are filled by forall, exists, and let */
   bool parseAsScopeLookup(const vstring& id);
+  bool parseAsSortDefinition(const vstring& id, LExpr* exp);
   /** Currently either numeral or decimal */
   bool parseAsSpecConstant(const vstring& id);
   /** Declared or defined functions (and predicates) - which includes 0-arity ones */
