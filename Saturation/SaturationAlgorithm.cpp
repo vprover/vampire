@@ -770,13 +770,18 @@ void SaturationAlgorithm::init()
 {
   CALL("SaturationAlgorithm::init");
 
+  ClauseIterator toAdd;
+
   if (env.options->randomTraversals()) {
     TimeCounter tc(TC_SHUFFLING);
 
-    Shuffling::shuffle(_prb);
+    Stack<Clause*> aux;
+    aux.loadFromIterator(_prb.clauseIterator());
+    Shuffling::shuffleArray(aux,aux.size());
+    toAdd = pvi(ownedArrayishIterator(std::move(aux)));
+  } else {
+    toAdd = _prb.clauseIterator();
   }
-
-  ClauseIterator toAdd = _prb.clauseIterator();
 
   while (toAdd.hasNext()) {
     Clause* cl=toAdd.next();

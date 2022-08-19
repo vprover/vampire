@@ -184,18 +184,17 @@ void IGAlgorithm::init()
     _equalityProxy->apply(_prb);
   }
 
-  if (env.options->randomTraversals()) {
-    TimeCounter tc(TC_SHUFFLING);
-
-    Shuffling::shuffle(_prb);
-  }
-
   ClauseIterator cit = _prb.clauseIterator();
 
   while(cit.hasNext()) {
     Clause* cl = cit.next();
     ASS(cl->isClause());
     _inputClauses.push(cl);
+  }
+
+  if (env.options->randomTraversals()) {
+    TimeCounter tc(TC_SHUFFLING);
+    Shuffling::shuffleArray(_inputClauses.naked(),_inputClauses.size());
   }
 }
 
