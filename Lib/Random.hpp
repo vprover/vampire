@@ -61,8 +61,7 @@ public:
   }
   
   /**
-   * Return a random bit. The function is optimized so it does not generates
-   * a new integer upon every call.
+   * Return a random bit.
    */
   static inline bool getBit()
   {
@@ -82,7 +81,7 @@ public:
   /** Return the current value of the random seed. */
   inline static unsigned seed() { return _seed; }
 
-  /** Reset the seed based on the current time */
+  /** Try hard to set the seed to something non-deterministic random. */
   inline static void resetSeed ()
   {
     CALL("Random::resetSeed");

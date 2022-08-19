@@ -98,9 +98,6 @@ private:
    * then by weight */
   int _balance;
 
-  /** Experimental: if set to true by an option, we use randomization instead of _balance to determine the next clause's selection. */
-  bool _randomize;
-
   unsigned _size;
 
   /*

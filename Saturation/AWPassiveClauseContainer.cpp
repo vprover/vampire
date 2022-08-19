@@ -69,8 +69,6 @@ AWPassiveClauseContainer::AWPassiveClauseContainer(bool isOutermost, const Shell
     _weightRatio = 1;
   }
 
-  _randomize = _opt.randomAWR();
-
   ASS_GE(_ageRatio, 0);
   ASS_GE(_weightRatio, 0);
   ASS(_ageRatio > 0 || _weightRatio > 0);
@@ -299,7 +297,11 @@ Clause* AWPassiveClauseContainer::popSelected()
   _size--;
 
   Clause* cl;
-  bool selByWeight = _randomize ? (Random::getInteger(_ageRatio+_weightRatio) < _weightRatio) : byWeight(_balance);
+  bool selByWeight = _opt.randomAWR() ? 
+    // we respect the ratio, but choose probabilistically
+    (Random::getInteger(_ageRatio+_weightRatio) < _weightRatio) : 
+    // the deterministic way
+    byWeight(_balance);
 
   if (selByWeight) {
     _balance -= _ageRatio;

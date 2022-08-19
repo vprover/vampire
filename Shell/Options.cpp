@@ -1048,6 +1048,7 @@ void Options::init()
     _sineToAge.tag(OptionTag::SATURATION);
 
     _randomAWR = BoolOptionValue("random_awr","rawr",false);
+    _randomAWR.description = "Respecting age_weight_ratio, always choose the next clause selection queue probabilistically (rather than deterministically).";
     _lookup.insert(&_randomAWR);
     _randomAWR.tag(OptionTag::SATURATION);
     _randomAWR.setExperimental();

@@ -852,7 +852,7 @@ struct ToZ3Expr
       symb = env.signature->getPredicate(trm->functor());
       range_sort = AtomicSort::boolSort();
       // check for equality
-      if( trm->functor()==0 || (symb->equalityProxy())){
+      if( trm->functor()==0 || symb->equalityProxy()){
         ASS(trm->numTermArguments()==2);
         // both equality and equality proxy translated as z3 equality
         if (symb->wasFlipped()) {

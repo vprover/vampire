@@ -56,10 +56,11 @@ public:
   static void shuffle(TermList tl) { shuffleIter(Shufflable(tl)); }
 
   template<typename Arrayish>
+  // Implements Fisher–Yates shuffling (each permutation equally likely)
   static void shuffleArray(Arrayish& a, unsigned len) {
     CALL("Shuffling::shuffleArray");
 
-    for(unsigned i=0;i<len;i++){
+    for(unsigned i=0;i<len-1;i++){
       unsigned j = Random::getInteger(len-i)+i;
       std::swap(a[i],a[j]);
     }
