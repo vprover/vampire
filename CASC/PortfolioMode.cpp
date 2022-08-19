@@ -143,11 +143,15 @@ bool PortfolioMode::searchForProof()
     //we normalize now so that we don't have to do it in every child Vampire
     ScopedLet<Statistics::ExecutionPhase> phaseLet(env.statistics->phase,Statistics::NORMALIZATION);
     
-    if (env.options->shuffleInput()) { // instead to "combing things into shape" we shuffle and ruffle them
-      Shuffling().shuffle(*_prb);
-    } else {
+    if (env.options->normalize()) { // set explicitly by CASC(SAT) and SMTCOMP modes
       Normalisation().normalise(*_prb);
     }
+
+    // note that this is shuffleInput for the master process (for exceptional/experimental use)
+    // the usual way is to have strategies request shuffling explicitly in the schedule strings
+    if (env.options->shuffleInput()) {
+      Shuffling().shuffle(*_prb);
+    } 
 
     //TheoryFinder cannot cope with polymorphic input
     if(!env.property->hasPolymorphicSym()){
