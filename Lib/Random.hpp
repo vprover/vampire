@@ -35,11 +35,14 @@ namespace Lib
  */
 class Random 
 {
-  /* TODO:
+  /* 
+   * An entertaining talk on why using the c++11 approach is an improvement 
+   * over the old C style via rand():
+   * 
    * https://channel9.msdn.com/Events/GoingNative/2013/rand-Considered-Harmful
    *
-   * We should consider moving to c++11 approach to random number generation.
-   * Although carefully, as uniform_int_distribution is implementation dependent!
+   * Still, this is not reproducible across platforms
+   * as e.g. uniform_int_distribution is implementation dependent!
    */
 
   static std::mt19937 _eng; // Standard mersenne_twister_engine
