@@ -25,8 +25,8 @@
 namespace Kernel {
 
 /**
- * Class SpassLiteralSelector implements literal
- * selectors as understood from the code of SPASS 3.7.
+ * Class RndLiteralSelector selectes a random literal,
+ * but makes sure not to violate the BG condition when asked to be complete.
  */
 class RndLiteralSelector
 : public LiteralSelector
