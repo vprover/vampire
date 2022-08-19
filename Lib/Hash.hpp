@@ -129,11 +129,6 @@ public:
   static bool equals(const T &o1, const T &o2)
   { return o1 == o2; }
 
-  // special-case for Units (and their descendants) as they have a unique incrementing identifier  
-  template<typename T>
-  static unsigned hash(typename std::enable_if<std::is_base_of<Kernel::Unit, T>::value,T>::type *unit) 
-  { return unit ? unit->number() : 0; }
-
   // if T has a unsigned defaultHash() method, invoke that
   template<typename T>
   static typename std::enable_if<
@@ -147,6 +142,28 @@ public:
     return ref.defaultHash();
   }
 
+  // special-case for Units (and their descendants) as they have a unique incrementing identifier  
+  template<typename T>
+  static typename std::enable_if<
+    std::is_base_of<Kernel::Unit, T>::value,
+    unsigned
+  >::type hash(T *unit) 
+  { return hash(unit ? unit->number() : 0); }
+
+  // other pointers are hashed as bytes without dereference
+  // if this isn't what you want, consider using DerefPtrHash
+  template<typename T>
+  static typename std::enable_if<
+    !std::is_base_of<Kernel::Unit, T>::value,
+    unsigned
+  >::type hash(T* ptr, unsigned hash = FNV32_OFFSET_BASIS) {
+    return hashBytes(
+      reinterpret_cast<const unsigned char*>(&ptr),
+      sizeof(ptr),
+      hash
+    );
+  }
+
   // arithmetic and enumeration types are hashed as bytes
   template<typename T>
   static typename std::enable_if<
@@ -156,17 +173,6 @@ public:
     return hashBytes(
       reinterpret_cast<const unsigned char *>(&val),
       sizeof(val),
-      hash
-    );
-  }
-
-  // pointers are hashed as bytes without dereference
-  // if this isn't what you want, consider using DerefPtrHash
-  template<typename T>
-  static unsigned hash(T* ptr, unsigned hash = FNV32_OFFSET_BASIS) {
-    return hashBytes(
-      reinterpret_cast<const unsigned char*>(&ptr),
-      sizeof(ptr),
       hash
     );
   }
@@ -243,17 +249,29 @@ public:
     return ref.defaultHash();
   }
 
+  // special-case for Units (and their descendants) as they have a unique incrementing identifier  
+  template<typename T>
+  static typename std::enable_if<
+    std::is_base_of<Kernel::Unit, T>::value,
+    unsigned
+  >::type hash(T *unit) 
+  { return unit ? unit->number() : 0; }
+
+  // other pointer types are cast to unsigned
+  template<typename T>
+  static typename std::enable_if<
+    !std::is_base_of<Kernel::Unit, T>::value,
+    unsigned
+  >::type hash(T* ptr) {
+    return static_cast<unsigned>(reinterpret_cast<uintptr_t>(ptr));
+  }
+
   // arithmetic and enumeration types are cast to unsigned
   template<typename T> static typename std::enable_if<
     std::is_fundamental<T>::value || std::is_enum<T>::value,
     unsigned
   >::type hash(T val) {
     return static_cast<unsigned>(val);
-  }
-
-  // pointer types are cast to unsigned
-  template<typename T> static unsigned hash(const T *ptr) {
-    return static_cast<unsigned>(reinterpret_cast<uintptr_t>(ptr));
   }
 
   // vstrings use their length
