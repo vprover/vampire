@@ -281,7 +281,7 @@ public:
   /** Return the rhs subformula of this formula */
   Formula* rhs() { return _right; }
 
-  // careful, this really swaps the left and right subformulas
+  // careful, this really (destructively) swaps the left and right subformulas
   void swapLeftRight() {
     std::swap(_left,_right);
   }
