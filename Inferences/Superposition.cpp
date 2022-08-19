@@ -543,7 +543,7 @@ Clause* Superposition::performSuperposition(
     //NOT_IMPLEMENTED;
 
     if (!env.proofExtra) {
-      env.proofExtra = new DHMap<void*,vstring>();
+      env.proofExtra = new DHMap<Unit*,vstring>();
     }
     env.proofExtra->insert(res,extra);
   }
