@@ -465,6 +465,12 @@ private:
   Set<vstring> _overflow;
 
   /**
+   * Top-level expression that is parsed presently.
+   * Saved for better error output.
+   */
+  LExpr* _topLevelExpr;
+
+  /**
    * Toplevel parsing dispatch for a benchmark.
    */
   void readBenchmark(LExprList* bench);
