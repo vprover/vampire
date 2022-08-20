@@ -46,9 +46,9 @@ private:
   // some of these names are kind of arbitrary and should be perhaps changed
   unsigned getSliceTime(const vstring &sliceCode);
   bool searchForProof();
-  bool performStrategy(Shell::Property* property);
+  bool prepareScheduleAndPerform(Shell::Property* property);
   void getSchedules(Property& prop, Schedule& quick, Schedule& fallback);
-  void getExtraSchedules(Property& prop, Schedule& old, Schedule& extra, bool add_extra, int time_multiplier); 
+  void getExtraSchedules(Property& prop, Schedule& old, Schedule& extra, bool add_extra = true, float time_multiplier = 1.0); 
   bool runSchedule(Shell::Property *property, Schedule schedule);
   bool runScheduleAndRecoverProof(Shell::Property *property, Schedule schedule);
   [[noreturn]] void runSlice(vstring sliceCode, int remainingTime);

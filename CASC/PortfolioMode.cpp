@@ -162,32 +162,26 @@ bool PortfolioMode::searchForProof()
   // now all the cpu usage will be in children, we'll just be waiting for them
   Timer::setLimitEnforcement(false);
 
-  return performStrategy(property);
+  return prepareScheduleAndPerform(property);
 }
 
-// TODO this name confuses me
-bool PortfolioMode::performStrategy(Shell::Property* property)
+bool PortfolioMode::prepareScheduleAndPerform(Shell::Property* property)
 {
-  CALL("PortfolioMode::performStrategy");
+  CALL("PortfolioMode::prepareScheduleAndPerform");
 
   Schedule main;
   Schedule fallback;
   Schedule main_extra;
   Schedule fallback_extra;
 
-  // TODO this doesn't make a lot of sense to me either
-  // first make *_extra (x3 multiplier with new options) schedules
-  // then later repeat them (x2 multiplier, no new options) until timeout
-  // if this is really what we want, fine, but why?!
   getSchedules(*property,main,fallback);
-  getExtraSchedules(*property,main,main_extra,true,3);
-  getExtraSchedules(*property,fallback,fallback_extra,true,3);
+  getExtraSchedules(*property,main,main_extra);
+  getExtraSchedules(*property,fallback,fallback_extra);
 
   // Normally we do main fallback main_extra fallback_extra
   // However, in SMTCOMP mode the fallback is universal for all
   // logics e.g. it's not very strong. Therefore, in SMTCOMP
   // mode we do main main_extra fallback fallback_extra
-
   Schedule schedule;
   if(env.options->schedule() == Options::Schedule::SMTCOMP){
     schedule.loadFromIterator(main.iterFifo());
@@ -228,7 +222,7 @@ bool PortfolioMode::performStrategy(Shell::Property* property)
  *
  * @author Giles
  **/
-void PortfolioMode::getExtraSchedules(Property& prop, Schedule& old, Schedule& extra, bool add_extra, int time_multiplier)
+void PortfolioMode::getExtraSchedules(Property& prop, Schedule& old, Schedule& extra, bool add_extra, float time_multiplier)
 {
   CALL("PortfolioMode::getExtraSchedules");
 
@@ -236,72 +230,90 @@ void PortfolioMode::getExtraSchedules(Property& prop, Schedule& old, Schedule& e
   Stack<vstring> extra_opts;
 
   if(add_extra){
+    /*
+    if (env.options->schedule() == Options::Schedule::CASC_SAT) { 
+      // TODO - check: do all these below really make sense for SAT-checking?
+    }
+    */
 
-   // Always try these
-   extra_opts.push("sp=frequency");     // frequency sp; this is in casc19 but not smt18
-   extra_opts.push("avsq=on:plsq=on");  // split queues
-   //extra_opts.push("etr=on");         // equational_tautology_removal
-   extra_opts.push("av=on:atotf=0.5");     // turn AVATAR off
+    // Always try these
+    extra_opts.push("si=on:rtra=on:rawr=on:rp=on"); // shuffling options
+    extra_opts.push("sp=frequency");          // frequency sp; this is in casc19 but not smt18
+    extra_opts.push("avsq=on:plsq=on");       // split queues
+    extra_opts.push("av=on:atotf=0.5");       // turn AVATAR off
 
-   if(!prop.higherOrder()){
-     //these options are not currently HOL compatible
-     extra_opts.push("bsd=on:fsd=on"); // subsumption demodulation
-     extra_opts.push("to=lpo");           // lpo
-   }
+    if(!prop.higherOrder()){
+      //these options are not currently HOL compatible
+      extra_opts.push("bsd=on:fsd=on"); // subsumption demodulation
+      extra_opts.push("to=lpo");        // lpo
+    }
 
-   // If contains integers, rationals and reals
-   if(prop.props() & (Property::PR_HAS_INTEGERS | Property::PR_HAS_RATS | Property::PR_HAS_REALS)){
+    // If contains integers, rationals and reals
+    if(prop.props() & (Property::PR_HAS_INTEGERS | Property::PR_HAS_RATS | Property::PR_HAS_REALS)){
+      extra_opts.push("hsm=on");             // Sets a sensible set of Joe's arithmetic rules (TACAS-21) 
+      extra_opts.push("gve=force:asg=force:canc=force:ev=force:pum=on"); // More drastic set of rules
+      extra_opts.push("sos=theory:sstl=5");  // theory sos with non-default limit 
+      extra_opts.push("thsq=on");            // theory split queues, default
+      extra_opts.push("thsq=on:thsqd=16");   // theory split queues, other ratio
+    }
+    // If contains datatypes
+    if(prop.props() & Property::PR_HAS_DT_CONSTRUCTORS){
+      extra_opts.push("gtg=exists_all:ind=struct");
+      extra_opts.push("ind=struct:sik=one:indgen=on:indoct=on:drc=off");
+      extra_opts.push("ind=struct:sik=one:indgen=on");
+      extra_opts.push("ind=struct:sik=one:indoct=on");
+      extra_opts.push("ind=struct:sik=all:indmd=1");
+    }
 
-    extra_opts.push("hsm=on");             // Sets a sensible set of Joe's arithmetic rules (TACAS-21) 
-    extra_opts.push("gve=force:asg=force:canc=force:ev=force:pum=on"); // More drastic set of rules
-    extra_opts.push("sos=theory:sstl=5");  // theory sos with non-default limit 
-    extra_opts.push("thsq=on");            // theory split queues, default
-    extra_opts.push("thsq=on:thsqd=16");   // theory split queues, other ratio
-   }
-   // If contains datatypes
-   if(prop.props() & Property::PR_HAS_DT_CONSTRUCTORS){
-     extra_opts.push("gtg=exists_all:ind=struct");
-     extra_opts.push("ind=struct:sik=one:indgen=on:indoct=on:drc=off");
-     extra_opts.push("ind=struct:sik=one:indgen=on");
-     extra_opts.push("ind=struct:sik=one:indoct=on");
-     extra_opts.push("ind=struct:sik=all:indmd=1");
-   }
+    // If in SMT-COMP mode try guessing the goal (and adding the twee trick!)
+    if(env.options->schedule() == Options::Schedule::SMTCOMP){
+      extra_opts.push("gtg=exists_all:tgt=full");
+    }
+    else
+    {
+      // Don't try this in SMT-COMP mode as it requires a goal
+      extra_opts.push("slsq=on");
+      extra_opts.push("tgt=full");
+    }
 
-   // If in SMT-COMP mode try guessing the goal (and adding the twee trick!)
-   if(env.options->schedule() == Options::Schedule::SMTCOMP){
-    extra_opts.push("gtg=exists_all:tgt=full");
-   }
-   else{
-   // Don't try this in SMT-COMP mode as it requires a goal
-    extra_opts.push("slsq=on");
-    extra_opts.push("tgt=full");
-   }
-
+    // (almost) all of the above are integrated into SNAKE schedules
+    if (env.options->schedule() == Options::Schedule::SNAKE_TPTP_UNS) 
+    {
+      extra_opts.reset();
+      extra_opts.push("rp=on");
+    } else if (env.options->schedule() == Options::Schedule::SNAKE_TPTP_SAT)
+    {
+      extra_opts.reset();
+      extra_opts.push("rp=on:fmbksg=on");
+    }
   }
 
   Schedule::BottomFirstIterator it(old);
   while(it.hasNext()){
-      vstring s = it.next();
-      // try and grab time string
-      vstring ts = s.substr(s.find_last_of("_")+1,vstring::npos);
-      int t;
-      if(Lib::Int::stringToInt(ts,t)){
-        vstring prefix = s.substr(0,s.find_last_of("_")); 
+    vstring s = it.next();
+    // try and grab time string
+    vstring ts = s.substr(s.find_last_of("_")+1,vstring::npos);
+    int t;
+    if(Lib::Int::stringToInt(ts,t)){
+      vstring prefix = s.substr(0,s.find_last_of("_")); 
 
-        // Add a copy with increased time limit
-        vstring new_s = prefix + "_" + Lib::Int::toString(t*time_multiplier);
-        extra.push(new_s);
+      // Add a copy with increased time limit ...
+      vstring new_time_suffix = Lib::Int::toString((int)(t*time_multiplier));
 
-        // Add copies with new extra options (keeping the old time limit) 
+      if (add_extra) {
+        // ... for every possible extra_opt
         Stack<vstring>::Iterator addit(extra_opts);
-        while(addit.hasNext()){
-          vstring new_s = prefix + ":" + addit.next() + "_" + Lib::Int::toString(t);
+        while(addit.hasNext()) {
+          vstring new_s = prefix + ((prefix.back() != '_') ? ":" : "") + addit.next() + "_" + new_time_suffix;
           extra.push(new_s);
         }
+      } else {
+        // ... or only the strategy itself
+        extra.push(prefix + "_" + new_time_suffix);
       }
-      else{ASSERTION_VIOLATION;}
+    }
+    else{ASSERTION_VIOLATION;}
   }
-
 }
 
 void PortfolioMode::getSchedules(Property& prop, Schedule& quick, Schedule& fallback)
@@ -382,7 +394,7 @@ bool PortfolioMode::runSchedule(Shell::Property *property, Schedule schedule) {
       // by copies with x2 time limits and do this forever
       if(!it.hasNext()) {
         Schedule next;
-        getExtraSchedules(*property, schedule, next, false, 2);
+        getExtraSchedules(*property, schedule, next, false /* add extras */, 2.0);
         schedule = next;
         it = Schedule::BottomFirstIterator(schedule);
       }
