@@ -2116,6 +2116,7 @@ public:
   vstring inputFile() const { return _inputFile.actualValue; }
   int activationLimit() const { return _activationLimit.actualValue; }
   unsigned randomSeed() const { return _randomSeed.actualValue; }
+  void setRandomSeed(unsigned seed) { _randomSeed.actualValue = seed; }
   unsigned randomStrategySeed() const { return _randomStrategySeed.actualValue; }
   bool printClausifierPremises() const { return _printClausifierPremises.actualValue; }
 
@@ -2282,7 +2283,7 @@ public:
   bool randomPolarities() const { return _randomPolarities.actualValue; }
   bool randomAWR() const { return _randomAWR.actualValue; }
   bool randomTraversals() const { return _randomTraversals.actualValue; }
-
+  bool randomizedPortfolioWorkers() const { return _randomizedPortfolioWorkers.actualValue; }
 
   bool ignoreConjectureInPreprocessing() const {return _ignoreConjectureInPreprocessing.actualValue;}
 
@@ -2681,6 +2682,7 @@ private:
   StringOptionValue _scheduleFile;
   UnsignedOptionValue _multicore;
   FloatOptionValue _slowness;
+  BoolOptionValue _randomizedPortfolioWorkers;
 
   IntOptionValue _naming;
   BoolOptionValue _nonliteralsInClauseWeight;
