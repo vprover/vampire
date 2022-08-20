@@ -124,7 +124,7 @@ FiniteModelBuilder::FiniteModelBuilder(Problem& prb, const Options& opt)
 
   switch(opt.fmbEnumerationStrategy()) {
     case Options::FMBEnumerationStrategy::SBMEAM:
-      _dsaEnumerator = new HackyDSAE();
+      _dsaEnumerator = new HackyDSAE(opt.keepSbeamGenerators());
       _xmass = false;
       break;
 #if VZ3
@@ -2419,9 +2419,8 @@ bool FiniteModelBuilder::HackyDSAE::increaseModelSizes(DArray<unsigned>& newSort
         }
       }
 
-      // test 2b -- old generators // keeping old generators degraded performance on average ...
-      /*
-      {
+      // test 2b -- old generators 
+      if (_keepOldGenerators ) {
         for (unsigned n = 0; n < _old_generators.size(); n++) {
           if (checkConstriant(newSortSizes,_old_generators[n]->_vals)) {
 
@@ -2439,7 +2438,6 @@ bool FiniteModelBuilder::HackyDSAE::increaseModelSizes(DArray<unsigned>& newSort
           }
         }
       }
-      */
 
       // test 3 -- (strict)_distinct_sort_constraints
       {
@@ -2496,11 +2494,14 @@ bool FiniteModelBuilder::HackyDSAE::increaseModelSizes(DArray<unsigned>& newSort
       newSortSizes[i] -= 1;
     }
 
-    delete _constraints_generators.pop();
-    // _old_generators.push(_constraints_generators.pop()); // keeping old generators degraded performance on average ...
+    if (_keepOldGenerators) {
+      _old_generators.push(_constraints_generators.pop()); // keeping old generators degraded performance on average ...
+    } else {
+      delete _constraints_generators.pop();
 #if VTRACE_DOMAINS
-    cout << "Deleted" << endl;
-#endif
+      cout << "Deleted" << endl;
+#endif    
+    }
   }
 
   return false;

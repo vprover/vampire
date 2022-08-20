@@ -865,6 +865,14 @@ void Options::init()
     _fmbEnumerationStrategy.onlyUsefulWith(_saturationAlgorithm.is(equal(SaturationAlgorithm::FINITE_MODEL_BUILDING)));
     _fmbEnumerationStrategy.tag(OptionTag::FMB);
 
+    _fmbKeepSbeamGenerators = BoolOptionValue("fmb_keep_sbeam_generators","fmbksg",false);
+    _fmbKeepSbeamGenerators.description = "A modification of the sbeam emuration strategy which (for a performance price) makes it more enumeration-complete.";
+    // for an example where this helps try "-sa fmb -fmbas expand Problems/KRS/KRS185+1.p"
+    _lookup.insert(&_fmbKeepSbeamGenerators);
+    _fmbKeepSbeamGenerators.onlyUsefulWith(_saturationAlgorithm.is(equal(SaturationAlgorithm::FINITE_MODEL_BUILDING)));
+    _fmbKeepSbeamGenerators.onlyUsefulWith(_fmbEnumerationStrategy.is(equal(FMBEnumerationStrategy::SBMEAM)));
+    _fmbKeepSbeamGenerators.tag(OptionTag::FMB);
+
     _selection = SelectionOptionValue("selection","s",10);
     _selection.description=
     "Selection methods 2,3,4,10,11 are complete by virtue of extending Maximal i.e. they select the best among maximal. Methods 1002,1003,1004,1010,1011 relax this restriction and are therefore not complete.\n"
