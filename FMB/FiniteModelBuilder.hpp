@@ -129,6 +129,7 @@ private:
   // The per-sort ordering of grounded terms used for symmetry breaking
   DArray<Stack<GroundedTerm>> _sortedGroundedTerms;
 
+  unsigned _curMaxVar;
   // SAT solver used to solve constraints (a new one is used for each model size)
   ScopedPtr<SATSolverWithAssumptions> _solver;
 

@@ -115,7 +115,7 @@ void SplittingBranchSelector::init()
     if (_ccModel) {
       _dpModel = new DP::SimpleCongruenceClosure(&_parent.getOrdering());
     }
-  }
+  }  
 }
 
 void SplittingBranchSelector::updateVarCnt()
@@ -150,6 +150,11 @@ void SplittingBranchSelector::considerPolarityAdvice(SATLiteral lit)
     case Options::SplittingLiteralPolarityAdvice::NONE:
       // do nothing
     break;
+    case Options::SplittingLiteralPolarityAdvice::RANDOM:
+      _solver->suggestPolarity(lit.var(),Random::getBit());
+    break;
+    default:
+      ASSERTION_VIOLATION;
   }
 }
 

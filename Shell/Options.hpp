@@ -589,7 +589,8 @@ public:
   enum class SplittingLiteralPolarityAdvice : unsigned int {
     FALSE,
     TRUE,
-    NONE
+    NONE,
+    RANDOM
   };
 
   enum class SplittingMinimizeModel : unsigned int {
@@ -1849,7 +1850,9 @@ bool _hard;
       bool check(Property*p){
         CALL("Options::UsesEquality::check");
         ASS(p)
-        return (p->equalityAtoms() != 0);
+        return (p->equalityAtoms() != 0) ||
+          // theories may introduce equality at various places of the pipeline!
+          HasTheories::actualCheck(p);
       }
       vstring msg(){ return " only useful with equality"; }
     };
@@ -1923,6 +1926,8 @@ bool _hard;
     struct HasTheories : OptionProblemConstraint {
       CLASS_NAME(HasTheories);
       USE_ALLOCATOR(HasTheories);
+
+      static bool actualCheck(Property*p);
 
       bool check(Property*p);
       vstring msg(){ return " only useful with theories"; }
@@ -2108,8 +2113,8 @@ public:
   void setInclude(vstring val) { _include.actualValue = val; }
   vstring inputFile() const { return _inputFile.actualValue; }
   int activationLimit() const { return _activationLimit.actualValue; }
-  int randomSeed() const { return _randomSeed.actualValue; }
-  int randomStrategySeed() const { return _randomStrategySeed.actualValue; }
+  unsigned randomSeed() const { return _randomSeed.actualValue; }
+  unsigned randomStrategySeed() const { return _randomStrategySeed.actualValue; }
   bool printClausifierPremises() const { return _printClausifierPremises.actualValue; }
 
   // IMPORTANT, if you add a showX command then include showAll
@@ -2226,6 +2231,8 @@ public:
   void setMemoryLimitOptionValue(size_t newVal) { _memoryLimit.actualValue = newVal; }
 #ifdef __linux__
   unsigned instructionLimit() const { return _instructionLimit.actualValue; }
+  void setInstructionLimit(unsigned newVal) { _instructionLimit.actualValue = newVal; }
+  bool parsingDoesNotCount() const { return _parsingDoesNotCount.actualValue; }
 #endif
   int inequalitySplitting() const { return _inequalitySplitting.actualValue; }
   int ageRatio() const { return _ageWeightRatio.actualValue; }
@@ -2268,6 +2275,12 @@ public:
   Sos sos() const { return _sos.actualValue; }
   unsigned sosTheoryLimit() const { return _sosTheoryLimit.actualValue; }
   //void setSos(Sos newVal) { _sos = newVal; }
+
+  bool shuffleInput() const { return _shuffleInput.actualValue; }
+  bool randomPolarities() const { return _randomPolarities.actualValue; }
+  bool randomAWR() const { return _randomAWR.actualValue; }
+  bool randomTraversals() const { return _randomTraversals.actualValue; }
+
 
   bool ignoreConjectureInPreprocessing() const {return _ignoreConjectureInPreprocessing.actualValue;}
 
@@ -2511,6 +2524,7 @@ private:
   RatioOptionValue _ageWeightRatio;
 	ChoiceOptionValue<AgeWeightRatioShape> _ageWeightRatioShape;
 	UnsignedOptionValue _ageWeightRatioShapeFrequency;
+
   BoolOptionValue _useTheorySplitQueues;
   StringOptionValue _theorySplitQueueRatios;
   StringOptionValue _theorySplitQueueCutoffs;
@@ -2528,9 +2542,12 @@ private:
   StringOptionValue _positiveLiteralSplitQueueRatios;
   StringOptionValue _positiveLiteralSplitQueueCutoffs;
   BoolOptionValue _positiveLiteralSplitQueueLayeredArrangement;
+	BoolOptionValue _randomAWR;
   BoolOptionValue _literalMaximalityAftercheck;
   BoolOptionValue _arityCheck;
   
+  BoolOptionValue _randomTraversals;
+
   ChoiceOptionValue<BadOption> _badOption;
   ChoiceOptionValue<Demodulation> _backwardDemodulation;
   ChoiceOptionValue<Subsumption> _backwardSubsumption;
@@ -2653,6 +2670,7 @@ private:
 
 #ifdef __linux__
   UnsignedOptionValue _instructionLimit; 
+  BoolOptionValue _parsingDoesNotCount;
 #endif
 
   UnsignedOptionValue _memoryLimit; // should be size_t, making an assumption
@@ -2665,6 +2683,8 @@ private:
   IntOptionValue _naming;
   BoolOptionValue _nonliteralsInClauseWeight;
   BoolOptionValue _normalize;
+  BoolOptionValue _shuffleInput;
+  BoolOptionValue _randomPolarities;
 
   BoolOptionValue _outputAxiomNames;
 
@@ -2679,8 +2699,8 @@ private:
 
   ChoiceOptionValue<QuestionAnsweringMode> _questionAnswering;
 
-  IntOptionValue _randomSeed;
-  IntOptionValue _randomStrategySeed;
+  UnsignedOptionValue _randomSeed;
+  UnsignedOptionValue _randomStrategySeed;
 
   IntOptionValue _activationLimit;
 

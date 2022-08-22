@@ -47,6 +47,7 @@
 #include "Shell/TPTPPrinter.hpp"
 #include "Shell/Statistics.hpp"
 #include "Shell/GeneralSplitting.hpp"
+#include "Shell/Shuffling.hpp"
 
 #include "DP/DecisionProcedure.hpp"
 #include "DP/SimpleCongruenceClosure.hpp"
@@ -300,7 +301,8 @@ bool FiniteModelBuilder::reset(){
 */
 
   // set the number of SAT variables, this could cause an exception
-  _solver->ensureVarCount(offsets-1);
+  _curMaxVar = offsets-1;
+  _solver->ensureVarCount(_curMaxVar);
 
   // needs to be redone for each size as we use this to pick the number of
   // things to order and the constants to ground with 
@@ -1673,6 +1675,9 @@ MainLoopResult FiniteModelBuilder::runImpl()
     // pass clauses and assumption to SAT Solver
     {
       TimeCounter tc(TC_FMB_SAT_SOLVING);
+      if (_opt.randomTraversals()) {
+        Shuffling::shuffleArray(_clausesToBeAdded,_clausesToBeAdded.size());
+      }
       _solver->addClausesIter(pvi(SATClauseStack::ConstIterator(_clausesToBeAdded)));
     }
 
@@ -1697,6 +1702,9 @@ MainLoopResult FiniteModelBuilder::runImpl()
         }
       }
 
+      if (_opt.randomTraversals()) {
+        _solver->randomizeForNextAssignment(_curMaxVar);
+      }
       satResult = _solver->solveUnderAssumptions(assumptions);
       env.statistics->phase = Statistics::FMB_CONSTRAINT_GEN;
     }
