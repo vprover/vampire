@@ -809,6 +809,14 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL GNU OR CMAKE_CXX_COMPILER_ID MATCHES Clang$)
 endif()
 
 ################################################################
+# pytorch stuff
+################################################################
+
+find_package(Torch REQUIRED)
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${TORCH_CXX_FLAGS}")
+link_libraries("${TORCH_LIBRARIES}")
+
+################################################################
 # z3 stuff
 ################################################################
 

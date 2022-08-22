@@ -81,7 +81,7 @@ OS = $(shell uname)
 ifeq ($(OS),Darwin)
 INCLUDES := $(INCLUDES) -Ilibtorch/include -Ilibtorch/include/torch/csrc/api/include
 else
-INCLUDES := $(INCLUDES) -Ilibtorch/include -Ilibtorch/include/torch/csrc/api/include -D_GLIBCXX_USE_CXX11_ABI=1
+INCLUDES := $(INCLUDES) -DUSE_C10D_GLOO -DUSE_DISTRIBUTED -DUSE_RPC -DUSE_TENSORPIPE -isystem /nfs/sudamar2/projects/vampire/libtorch/include -isystem /nfs/sudamar2/projects/vampire/libtorch/include/torch/csrc/api/include  -D_GLIBCXX_USE_CXX11_ABI=1   -D_GLIBCXX_USE_CXX11_ABI=1
 endif
 
 Z3FLAG= -DVZ3=0
@@ -101,8 +101,8 @@ ifeq ($(OS),Darwin)
 TORCHLINK= -Wl,-search_paths_first -Wl,-headerpad_max_install_names
 TORCHLIB= -Wl,-rpath,/Users/mbassms6/libtorch/lib /Users/mbassms6/libtorch/lib/libc10.dylib /Users/mbassms6/libtorch/lib/libtorch.dylib /Users/mbassms6/libtorch/lib/libtorch_cpu.dylib  
 else
-TORCHLINK=
-TORCHLIB= -Wl,-rpath,/nfs/sudamar2/projects/vampire/libtorch/lib /nfs/sudamar2/projects/vampire/libtorch/lib/libtorch.so /nfs/sudamar2/projects/vampire/libtorch/lib/libc10.so -Wl,--no-as-needed,/nfs/sudamar2/projects/vampire/libtorch/lib/libtorch_cpu.so -Wl,--as-needed /nfs/sudamar2/projects/vampire/libtorch/lib/libc10.so -lpthread -Wl,--no-as-needed,/nfs/sudamar2/projects/vampire/libtorch/lib/libtorch.so -Wl,--as-needed 
+TORCHLINK= -D_GLIBCXX_USE_CXX11_ABI=1 -rdynamic
+TORCHLIB= -Wl,-rpath,/nfs/sudamar2/projects/vampire/libtorch/lib /nfs/sudamar2/projects/vampire/libtorch/lib/libtorch.so /nfs/sudamar2/projects/vampire/libtorch/lib/libc10.so /nfs/sudamar2/projects/vampire/libtorch/lib/libkineto.a -Wl,--no-as-needed,"/nfs/sudamar2/projects/vampire/libtorch/lib/libtorch_cpu.so" -Wl,--as-needed /nfs/sudamar2/projects/vampire/libtorch/lib/libc10.so -lpthread -Wl,--no-as-needed,"/nfs/sudamar2/projects/vampire/libtorch/lib/libtorch.so" -Wl,--as-needed 
 endif
 
 ifneq (,$(filter vtest%,$(MAKECMDGOALS)))
