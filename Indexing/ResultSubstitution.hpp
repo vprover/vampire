@@ -61,12 +61,15 @@ public:
   template<typename T>
   T apply(T t, bool result)
   {
+    CALL("ResultSubstitution::apply")
     if(result) {
       return applyToResult(t);
     } else {
       return applyToQuery(t);
     }
   }
+
+  bool isRenamingOn(TermList t, bool result);
 
   /** if implementation cannot easily give result for this, zero is returned */
   template<typename T>

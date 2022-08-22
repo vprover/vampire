@@ -94,10 +94,12 @@ FiniteModelBuilder::FiniteModelBuilder(Problem& prb, const Options& opt)
       || prop.knownInfiniteDomain() || // recursive data type provably infinite --> don't bother model building
       env.property->hasInterpretedOperations()) {
 
-      env.beginOutput();
-      addCommentSignForSZS(env.out());
-      env.out() << "WARNING: trying to run FMB on interpreted or otherwise provably infinite-domain problem!" << endl;
-      env.endOutput();
+      if(outputAllowed()) {
+        env.beginOutput();
+        addCommentSignForSZS(env.out());
+        env.out() << "WARNING: trying to run FMB on interpreted or otherwise provably infinite-domain problem!" << endl;
+        env.endOutput();
+      }
 
      _isAppropriate = false;
      _dsaEnumerator = 0; // to ensure it is initialised
@@ -123,7 +125,7 @@ FiniteModelBuilder::FiniteModelBuilder(Problem& prb, const Options& opt)
 
   switch(opt.fmbEnumerationStrategy()) {
     case Options::FMBEnumerationStrategy::SBMEAM:
-      _dsaEnumerator = new HackyDSAE();
+      _dsaEnumerator = new HackyDSAE(opt.keepSbeamGenerators());
       _xmass = false;
       break;
 #if VZ3
@@ -1591,18 +1593,22 @@ MainLoopResult FiniteModelBuilder::runImpl()
 #if VTRACE_FMB
       doPrinting = true;
 #endif
-      vstring res = "[";
+      vstring min_res = "[";
+      vstring max_res = "[";
       for(unsigned s=0;s<_sortedSignature->distinctSorts;s++){
         if(_distinctSortMaxs[s]==UINT_MAX){
-          res+="max";
+          max_res+="max";
         }else{
-          res+=Lib::Int::toString(_distinctSortMaxs[s]);
+          max_res+=Lib::Int::toString(_distinctSortMaxs[s]);
           doPrinting=true;
         }
-        if(s+1 < _sortedSignature->distinctSorts) res+=",";
+	if(_distinctSortMins[s]!=1){ doPrinting=true;}
+        min_res+=Lib::Int::toString(_distinctSortMins[s]);
+        if(s+1 < _sortedSignature->distinctSorts){ max_res+=","; min_res+=",";}
       }
       if(doPrinting){
-        cout << "Detected maximum model sizes of " << res << "]" << endl;
+        cout << "Detected minimum model sizes of " << min_res << "]" << endl;
+        cout << "Detected maximum model sizes of " << max_res << "]" << endl;
       }
   }
 
@@ -1957,7 +1963,7 @@ void FiniteModelBuilder::onModelFound()
     if(env.signature->functionArity(f)>0) continue;
     if(del_f[f]) continue;
 
-    bool found=false;
+    DEBUG_CODE(bool found=false;)
     for(unsigned c=1;c<=_sortModelSizes[_sortedSignature->functionSignatures[f][0]];c++){
       static DArray<unsigned> grounding(1);
       grounding[0]=c;
@@ -1965,7 +1971,7 @@ void FiniteModelBuilder::onModelFound()
       if(_solver->trueInAssignment(slit)){
         //if(found){ cout << "Error: multiple interpretations of " << name << endl;}
         ASS(!found);
-        found=true;
+        DEBUG_CODE(found=true;)
         model.addConstantDefinition(f,c);
       }
     }
@@ -2421,9 +2427,8 @@ bool FiniteModelBuilder::HackyDSAE::increaseModelSizes(DArray<unsigned>& newSort
         }
       }
 
-      // test 2b -- old generators // keeping old generators degraded performance on average ...
-      /*
-      {
+      // test 2b -- old generators 
+      if (_keepOldGenerators ) {
         for (unsigned n = 0; n < _old_generators.size(); n++) {
           if (checkConstriant(newSortSizes,_old_generators[n]->_vals)) {
 
@@ -2441,7 +2446,6 @@ bool FiniteModelBuilder::HackyDSAE::increaseModelSizes(DArray<unsigned>& newSort
           }
         }
       }
-      */
 
       // test 3 -- (strict)_distinct_sort_constraints
       {
@@ -2498,11 +2502,14 @@ bool FiniteModelBuilder::HackyDSAE::increaseModelSizes(DArray<unsigned>& newSort
       newSortSizes[i] -= 1;
     }
 
-    delete _constraints_generators.pop();
-    // _old_generators.push(_constraints_generators.pop()); // keeping old generators degraded performance on average ...
+    if (_keepOldGenerators) {
+      _old_generators.push(_constraints_generators.pop()); // keeping old generators degraded performance on average ...
+    } else {
+      delete _constraints_generators.pop();
 #if VTRACE_DOMAINS
-    cout << "Deleted" << endl;
-#endif
+      cout << "Deleted" << endl;
+#endif    
+    }
   }
 
   return false;

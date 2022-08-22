@@ -283,8 +283,8 @@ private:
 
     bool _skippedSomeSizes;
 
-    // Stack<Constraint_Generator*> _old_generators; // keeping old generators degraded performance on average ...
-
+    bool _keepOldGenerators;
+    Stack<Constraint_Generator*> _old_generators; // keeping old generators degraded performance on average ...
   protected:
     bool checkConstriant(DArray<unsigned>& newSortSizes, Constraint_Generator_Vals& constraint);
 
@@ -292,7 +292,7 @@ private:
     CLASS_NAME(FiniteModedlBuilder::HackyDSAE);
     USE_ALLOCATOR(FiniteModelBuilder::HackyDSAE);
 
-    HackyDSAE() : _maxWeightSoFar(0) {}
+    HackyDSAE(bool keepOldGenerators) : _maxWeightSoFar(0), _keepOldGenerators(keepOldGenerators) {}
 
     bool init(unsigned _startSize, DArray<unsigned>&, Stack<std::pair<unsigned,unsigned>>& dsc, Stack<std::pair<unsigned,unsigned>>& sdsc) override {
       _skippedSomeSizes = (_startSize > 1);

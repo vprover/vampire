@@ -388,10 +388,6 @@ enum class InferenceRule : unsigned char {
   INEQUALITY_SPLITTING,
   /** inequality splitting name introduction */
   INEQUALITY_SPLITTING_NAME_INTRODUCTION,
-  /** grounding */
-  GROUNDING,
-  /** equality axiom */
-  EQUALITY_AXIOM,
   /** distinctness axiom */
   DISTINCTNESS_AXIOM,
   /** Introduction of formula to convert formulas used as argument positions.

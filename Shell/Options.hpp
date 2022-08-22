@@ -382,7 +382,6 @@ public:
     CASC_LTB,
     CLAUSIFY,
     CONSEQUENCE_ELIMINATION,
-    GROUNDING,
     MODEL_CHECK,
     /** this mode only outputs the input problem, without any preprocessing */
     OUTPUT,
@@ -2088,6 +2087,7 @@ public:
   unsigned fmbDetectSortBoundsTimeLimit() const { return _fmbDetectSortBoundsTimeLimit.actualValue; }
   unsigned fmbSizeWeightRatio() const { return _fmbSizeWeightRatio.actualValue; }
   FMBEnumerationStrategy fmbEnumerationStrategy() const { return _fmbEnumerationStrategy.actualValue; }
+  bool keepSbeamGenerators() const { return _fmbKeepSbeamGenerators.actualValue; }
 
   bool flattenTopLevelConjunctions() const { return _flattenTopLevelConjunctions.actualValue; }
   LTBLearning ltbLearning() const { return _ltbLearning.actualValue; }
@@ -2188,6 +2188,7 @@ public:
   unsigned forwardSubsumptionDemodulationMaxMatches() const { return _forwardSubsumptionDemodulationMaxMatches.actualValue; }
   Demodulation forwardDemodulation() const { return _forwardDemodulation.actualValue; }
   bool binaryResolution() const { return _binaryResolution.actualValue; }
+  bool superposition() const {return _superposition.actualValue; }
   URResolution unitResultingResolution() const { return _unitResultingResolution.actualValue; }
   bool hyperSuperposition() const { return _hyperSuperposition.actualValue; }
   bool simulatenousSuperposition() const { return _simultaneousSuperposition.actualValue; }
@@ -2197,6 +2198,7 @@ public:
   //void setArityCheck(bool newVal) { _arityCheck=newVal; }
   Demodulation backwardDemodulation() const { return _backwardDemodulation.actualValue; }
   bool demodulationRedundancyCheck() const { return _demodulationRedundancyCheck.actualValue; }
+  bool demodulationEncompassment() const { return _demodulationEncompassment.actualValue; }
   //void setBackwardDemodulation(Demodulation newVal) { _backwardDemodulation = newVal; }
   Subsumption backwardSubsumption() const { return _backwardSubsumption.actualValue; }
   //void setBackwardSubsumption(Subsumption newVal) { _backwardSubsumption = newVal; }
@@ -2210,6 +2212,7 @@ public:
   int lookaheadDelay() const { return _lookaheadDelay.actualValue; }
   int simulatedTimeLimit() const { return _simulatedTimeLimit.actualValue; }
   void setSimulatedTimeLimit(int newVal) { _simulatedTimeLimit.actualValue = newVal; }
+  float lrsEstimateCorrectionCoef() const { return _lrsEstimateCorrectionCoef.actualValue; }
   TermOrdering termOrdering() const { return _termOrdering.actualValue; }
   SymbolPrecedence symbolPrecedence() const { return _symbolPrecedence.actualValue; }
   SymbolPrecedenceBoost symbolPrecedenceBoost() const { return _symbolPrecedenceBoost.actualValue; }
@@ -2220,6 +2223,7 @@ public:
   const vstring& functionWeights() const { return _functionWeights.actualValue; }
   const vstring& predicateWeights() const { return _predicateWeights.actualValue; }
   const vstring& functionPrecedence() const { return _functionPrecedence.actualValue; }
+  const vstring& typeConPrecedence() const { return _typeConPrecedence.actualValue; }
   const vstring& predicatePrecedence() const { return _predicatePrecedence.actualValue; }
   // Return time limit in deciseconds, or 0 if there is no time limit
   int timeLimitInDeciseconds() const { return _timeLimitInDeciseconds.actualValue; }
@@ -2399,11 +2403,16 @@ public:
   bool equalityToEquivalence () const { return _equalityToEquivalence.actualValue; }
   bool complexBooleanReasoning () const { return _complexBooleanReasoning.actualValue; }
   bool booleanEqTrick() const { return _booleanEqTrick.actualValue; }
-  bool superposition() const {return _superposition.actualValue; }
   bool casesSimp() const { return _casesSimp.actualValue; }
   bool cases() const { return _cases.actualValue; }
   bool newTautologyDel() const { return _newTautologyDel.actualValue; }
   bool lambdaFreeHol() const { return _lambdaFreeHol.actualValue; }
+  bool complexVarCondition() const { return _complexVarCondition.actualValue; }
+  // For unit testing
+  void useCombSup() { 
+    _combinatorySuperposition.actualValue = true;
+    _complexVarCondition.actualValue = true; 
+  }
 
 private:
     
@@ -2551,6 +2560,7 @@ private:
   ChoiceOptionValue<Condensation> _condensation;
 
   BoolOptionValue _demodulationRedundancyCheck;
+  BoolOptionValue _demodulationEncompassment;
 
   ChoiceOptionValue<EqualityProxy> _equalityProxy;
   BoolOptionValue _useMonoEqualityProxy;
@@ -2575,6 +2585,7 @@ private:
   UnsignedOptionValue _fmbDetectSortBoundsTimeLimit;
   UnsignedOptionValue _fmbSizeWeightRatio;
   ChoiceOptionValue<FMBEnumerationStrategy> _fmbEnumerationStrategy;
+  BoolOptionValue _fmbKeepSbeamGenerators;
 
   BoolOptionValue _flattenTopLevelConjunctions;
   StringOptionValue _forbiddenOptions;
@@ -2736,6 +2747,7 @@ private:
   BoolOptionValue _fixUWA;
   BoolOptionValue _useACeval;
   TimeLimitOptionValue _simulatedTimeLimit;
+  FloatOptionValue _lrsEstimateCorrectionCoef;
   UnsignedOptionValue _sineDepth;
   UnsignedOptionValue _sineGeneralityThreshold;
   UnsignedOptionValue _sineToAgeGeneralityThreshold;
@@ -2772,6 +2784,7 @@ private:
   ChoiceOptionValue<KboAdmissibilityCheck> _kboAdmissabilityCheck;
   StringOptionValue _functionWeights;
   StringOptionValue _predicateWeights;
+  StringOptionValue _typeConPrecedence;
   StringOptionValue _functionPrecedence;
   StringOptionValue _predicatePrecedence;
 
@@ -2836,6 +2849,7 @@ private:
   BoolOptionValue _cases;
   BoolOptionValue _newTautologyDel;
   BoolOptionValue _lambdaFreeHol;
+  BoolOptionValue _complexVarCondition;
 
 }; // class Options
 

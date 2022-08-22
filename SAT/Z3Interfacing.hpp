@@ -38,6 +38,8 @@
 #include "Lib/Option.hpp"
 #include "Lib/Coproduct.hpp"
 
+#include "Kernel/Signature.hpp"
+
 #define __EXCEPTIONS 1
 #include "z3++.h"
 #include "z3_api.h"
@@ -216,7 +218,7 @@ private:
   friend struct EvaluateInModel;
 public:
   Term* evaluateInModel(Term* trm);
-#ifdef VDEBUG
+#if VDEBUG
   z3::model& getModel() { return _model; }
 #endif
 

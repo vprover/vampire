@@ -219,7 +219,6 @@ public:
 
 
   typedef VirtualIterator<Node**> NodeIterator;
-  typedef List<Node*> NodeList;
   class IntermediateNode;
     
     //We can remove this class once we deal with UWA uniformly for
@@ -880,10 +879,12 @@ public:
     bool clientBDRecording;
     BacktrackData clientBacktrackData;
     Renaming queryNormalizer;
-    SubstitutionTree* tree;
     bool useUWAConstraints;
     bool useHOConstraints;
     UnificationConstraintStack constraints;
+#if VDEBUG
+    SubstitutionTree* tree;
+#endif
   };
 
 /*

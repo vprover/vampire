@@ -26,6 +26,7 @@ TermAlgebraConstructor::TermAlgebraConstructor(unsigned functor, Lib::Array<unsi
   : _functor(functor), _hasDiscriminator(false), _destructors(destructors)
 {
   _type = env.signature->getFunction(_functor)->fnType();
+#if VDEBUG
   ASS_REP(env.signature->getFunction(_functor)->termAlgebraCons(), env.signature->functionName(_functor));
   ASS_EQ(_type->arity(), destructors.size());
   unsigned i = 0;
@@ -34,17 +35,20 @@ TermAlgebraConstructor::TermAlgebraConstructor(unsigned functor, Lib::Array<unsi
                                                    : env.signature->getFunction(d);
     ASS_REP(sym->termAlgebraDest(), sym->name())
   }
+#endif
 }
 
 TermAlgebraConstructor::TermAlgebraConstructor(unsigned functor, unsigned discriminator, Lib::Array<unsigned> destructors)
   : _functor(functor), _hasDiscriminator(true), _discriminator(discriminator), _destructors(destructors)
 {
   _type = env.signature->getFunction(_functor)->fnType();
+#if VDEBUG
   ASS_REP(env.signature->getFunction(_functor)->termAlgebraCons(), env.signature->functionName(_functor));
   ASS_EQ(_type->arity(), destructors.size());
   for (auto d : destructors) {
     ASS(env.signature->getFunction(d)->termAlgebraDest())
   }
+#endif
 }
 
 //This is only safe for monomorphic term algebras AYB

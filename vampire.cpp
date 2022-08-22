@@ -25,7 +25,6 @@
 #include "Lib/Exception.hpp"
 #include "Lib/Environment.hpp"
 #include "Lib/Int.hpp"
-#include "Lib/MapToLIFO.hpp"
 #include "Lib/Random.hpp"
 #include "Lib/Set.hpp"
 #include "Lib/Stack.hpp"
@@ -54,14 +53,11 @@
 
 //#include "InstGen/IGAlgorithm.hpp"
 
-#include "SAT/DIMACS.hpp"
-
 #include "CASC/PortfolioMode.hpp"
 #include "CASC/CLTBMode.hpp"
 #include "CASC/CLTBModeLearning.hpp"
 #include "Shell/CommandLine.hpp"
 //#include "Shell/EqualityProxy.hpp"
-#include "Shell/Grounding.hpp"
 #include "Shell/Normalisation.hpp"
 #include "Shell/Options.hpp"
 #include "Shell/Property.hpp"
@@ -648,55 +644,6 @@ void axiomSelectionMode()
   vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
 }
 
-void groundingMode()
-{
-  CALL("groundingMode()");
-
-  try {
-    ScopedPtr<Problem> prb(UIHelper::getInputProblem(*env.options));
-
-    Shell::Preprocess prepro(*env.options);
-    prepro.preprocess(*prb);
-
-    ClauseIterator clauses = prb->clauseIterator();
-
-    if (prb->hasEquality()) {
-      ClauseList* eqAxioms = Grounding::getEqualityAxioms(
-	      prb->getProperty()->positiveEqualityAtoms() != 0);
-      clauses = pvi(
-	      getConcatenatedIterator(ClauseList::DestructiveIterator(eqAxioms),
-		      clauses));
-    }
-
-    MapToLIFO<Clause*, SATClause*> insts;
-    Grounding gnd;
-    SATClause::NamingContext nameCtx;
-
-    while (clauses.hasNext()) {
-      Clause* cl = clauses.next();
-      ClauseList* grounded = gnd.ground(cl);
-      SATClauseList* sGrounded = 0;
-      while (grounded) {
-	Clause* gcl = ClauseList::pop(grounded);
-	SATClauseList::push(SATClause::fromFOClause(nameCtx, gcl), sGrounded);
-      }
-      insts.pushManyToKey(cl, sGrounded);
-    }
-    env.beginOutput();
-    DIMACS::outputGroundedProblem(insts, nameCtx, env.out());
-    env.endOutput();
-
-  } catch (MemoryLimitExceededException&) {
-    env.beginOutput();
-    env.out() << "Memory limit exceeded\n";
-    env.endOutput();
-  } catch (TimeLimitExceededException&) {
-    env.beginOutput();
-    env.out() << "Time limit exceeded\n";
-    env.endOutput();
-  }
-} // groundingMode
-
 /**
  * The main function.
  * @since 03/12/2003 many changes related to logging
@@ -742,9 +689,6 @@ int main(int argc, char* argv[])
     case Options::Mode::AXIOM_SELECTION:
       axiomSelectionMode();
       break;
-    case Options::Mode::GROUNDING:
-      groundingMode();
-      break;
     case Options::Mode::SPIDER:
       spiderMode();
       break;
@@ -774,13 +718,13 @@ int main(int argc, char* argv[])
       env.options->setSchedule(Options::Schedule::CASC_HOL_2020);
       env.options->setOutputMode(Options::Output::SZS);
       env.options->setProof(Options::Proof::TPTP);
-      env.options->setMulticore(0); // use all available cores
+      //env.options->setMulticore(0); // use all available cores
       env.options->setOutputAxiomNames(true);
 
-      unsigned int nthreads = std::thread::hardware_concurrency();
-      float slowness = 1.00 + (0.04 * nthreads);
+      //unsigned int nthreads = std::thread::hardware_concurrency();
+      //float slowness = 1.00 + (0.04 * nthreads);
  
-      if (CASC::PortfolioMode::perform(slowness)) {
+      if (CASC::PortfolioMode::perform(env.options->slowness())) {
         vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
       }
       break;

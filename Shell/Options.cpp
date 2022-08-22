@@ -107,7 +107,6 @@ void Options::init()
                                         "casc_ltb",
                                         "clausify",
                                         "consequence_elimination",
-                                        "grounding",
                                         "model_check",
                                         "output",
                                         "portfolio",
@@ -125,7 +124,7 @@ void Options::init()
     "  -vampire: the standard mode of operation for first-order theorem proving\n"
     "  -portfolio: a portfolio mode running a specified schedule (see schedule)\n"
     "  -casc, casc_sat, smtcomp - like portfolio mode, with competition specific\n     presets for schedule, etc.\n"
-    "  -preprocess,axiom_selection,clausify,grounding: modes for producing output\n      for other solvers.\n"
+    "  -preprocess,axiom_selection,clausify: modes for producing output\n      for other solvers.\n"
     "  -tpreprocess,tclausify: output modes for theory input (clauses are quantified\n      with sort information).\n"
     "  -output,profile: output information about the problem\n"
     "Some modes are not currently maintained (get in touch if interested):\n"
@@ -175,7 +174,7 @@ void Options::init()
     _lookup.insert(&_multicore);
     _multicore.reliesOn(UsingPortfolioTechnology());
 
-    _slowness = FloatOptionValue("slowness","",1.3);
+    _slowness = FloatOptionValue("slowness","",1.0);
     _slowness.description = "The factor by which is multiplied the time limit of each configuration in casc/casc_sat/smtcomp/portfolio mode";
     _lookup.insert(&_slowness);
     _slowness.onlyUsefulWith(UsingPortfolioTechnology());
@@ -825,7 +824,8 @@ void Options::init()
                                                      FMBWidgetOrders::FUNCTION_FIRST,
                                                      {"function_first","argument_first","diagonal"});
     _fmbSymmetryWidgetOrders.description = "The order of constructed principal terms used in symmetry avoidance. See Symmetry Avoidance in MACE-Style Finite Model Finding.";
-    _lookup.insert(&_fmbSymmetryWidgetOrders);
+    // TODO: put back only when debugged (see https://github.com/vprover/vampire/issues/393)
+    // _lookup.insert(&_fmbSymmetryWidgetOrders);
     _fmbSymmetryWidgetOrders.onlyUsefulWith(_saturationAlgorithm.is(equal(SaturationAlgorithm::FINITE_MODEL_BUILDING)));
     _fmbSymmetryWidgetOrders.tag(OptionTag::FMB);
 
@@ -869,6 +869,14 @@ void Options::init()
     _lookup.insert(&_fmbEnumerationStrategy);
     _fmbEnumerationStrategy.onlyUsefulWith(_saturationAlgorithm.is(equal(SaturationAlgorithm::FINITE_MODEL_BUILDING)));
     _fmbEnumerationStrategy.tag(OptionTag::FMB);
+
+    _fmbKeepSbeamGenerators = BoolOptionValue("fmb_keep_sbeam_generators","fmbksg",false);
+    _fmbKeepSbeamGenerators.description = "A modification of the sbeam emuration strategy which (for a performance price) makes it more enumeration-complete.";
+    // for an example where this helps try "-sa fmb -fmbas expand Problems/KRS/KRS185+1.p"
+    _lookup.insert(&_fmbKeepSbeamGenerators);
+    _fmbKeepSbeamGenerators.onlyUsefulWith(_saturationAlgorithm.is(equal(SaturationAlgorithm::FINITE_MODEL_BUILDING)));
+    _fmbKeepSbeamGenerators.onlyUsefulWith(_fmbEnumerationStrategy.is(equal(FMBEnumerationStrategy::SBMEAM)));
+    _fmbKeepSbeamGenerators.tag(OptionTag::FMB);
 
     _selection = SelectionOptionValue("selection","s",10);
     _selection.description=
@@ -1107,11 +1115,14 @@ void Options::init()
     _lookup.insert(&_simulatedTimeLimit);
     _simulatedTimeLimit.tag(OptionTag::LRS);
 
-    _randomTraversals = BoolOptionValue("random_traversals","rtra",false);
-    _lookup.insert(&_randomTraversals);
-    _randomTraversals.tag(OptionTag::SATURATION);
-    _randomTraversals.setExperimental();
-
+    _lrsEstimateCorrectionCoef = FloatOptionValue("lrs_estimate_correction_coef","lecc",1.0);
+    _lrsEstimateCorrectionCoef.description = "Make lrs more (<1.0) or less (>1.0) agressive by multiplying by this coef its estimate of how many clauses are still reachable.";
+    _lookup.insert(&_lrsEstimateCorrectionCoef);
+    _lrsEstimateCorrectionCoef.tag(OptionTag::SATURATION);
+    _lrsEstimateCorrectionCoef.addConstraint(greaterThan(0.0f));
+    _lrsEstimateCorrectionCoef.onlyUsefulWith(_saturationAlgorithm.is(equal(SaturationAlgorithm::LRS)));
+    _lrsEstimateCorrectionCoef.setRandomChoices({"1.0","1.1","1.2","0.9","0.8"});    
+    
   //*********************** Inferences  ***********************
 
 #if VZ3
@@ -1506,11 +1517,13 @@ void Options::init()
     _binaryResolution.onlyUsefulWith(InferencingSaturationAlgorithm());
     _binaryResolution.tag(OptionTag::INFERENCES);
     // If urr is off then binary resolution should be on
-    _binaryResolution.addConstraint(
-      If(equal(false)).then(_unitResultingResolution.is(notEqual(URResolution::OFF))));
+    // _binaryResolution.addConstraint(If(equal(false)).then(_unitResultingResolution.is(notEqual(URResolution::OFF))));
     _binaryResolution.setRandomChoices(And(isRandSat(),saNotInstGen(),Or(hasEquality(),hasCat(Property::HNE))),{"on"});
     _binaryResolution.setRandomChoices({"on","off"});
 
+    _superposition = BoolOptionValue("superposition","sup",true);
+    _superposition.description= "Control superposition. Turning off this core inference leads to an incomplete calculus on equational problems.";
+    _lookup.insert(&_superposition);
 
     _condensation = ChoiceOptionValue<Condensation>("condensation","cond",Condensation::OFF,{"fast","off","on"});
     _condensation.description=
@@ -1535,6 +1548,15 @@ void Options::init()
     _demodulationRedundancyCheck.addProblemConstraint(hasEquality());
     _demodulationRedundancyCheck.setRandomChoices({"on","off"});
 
+    _demodulationEncompassment = BoolOptionValue("demodulation_encompassment","de",false);
+    _demodulationEncompassment.description= "Treat demodulations (both forward and backward) as encompassment demodulations (as defined by Duarte and Korovin in 2022's IJCAR paper)";
+    _lookup.insert(&_demodulationEncompassment);
+    _demodulationEncompassment.tag(OptionTag::INFERENCES);
+    _demodulationEncompassment.onlyUsefulWith(InferencingSaturationAlgorithm());
+    _demodulationEncompassment.onlyUsefulWith(Or(_forwardDemodulation.is(notEqual(Demodulation::OFF)),_backwardDemodulation.is(notEqual(Demodulation::OFF))));
+    _demodulationEncompassment.onlyUsefulWith(_demodulationRedundancyCheck.is(equal(true)));
+    _demodulationEncompassment.addProblemConstraint(hasEquality());
+    _demodulationEncompassment.setRandomChoices({"on","off"});
 
     _extensionalityAllowPosEq = BoolOptionValue( "extensionality_allow_pos_eq","",false);
     _extensionalityAllowPosEq.description="If extensionality resolution equals filter, this dictates"
@@ -1843,13 +1865,6 @@ void Options::init()
     // potentially could be useful for FOOL, so am not adding the HOL constraint    
     _booleanEqTrick.tag(OptionTag::HIGHER_ORDER);
 
-    _superposition = BoolOptionValue("superposition_hol","suph",true);
-    _superposition.description=
-    "Control superposition. Only used in higher-order strategies";
-    _lookup.insert(&_superposition);
-    _superposition.addProblemConstraint(hasHigherOrder());
-    _superposition.tag(OptionTag::HIGHER_ORDER);
-
     _casesSimp = BoolOptionValue("cases_simp","cs",false);
     _casesSimp.description=
     "FOOL Paramodulation with two conclusion as a simplification";
@@ -1881,6 +1896,14 @@ void Options::init()
     _lookup.insert(&_lambdaFreeHol);
     _lambdaFreeHol.addProblemConstraint(hasHigherOrder());    
     _lambdaFreeHol.tag(OptionTag::HIGHER_ORDER);
+
+    _complexVarCondition = BoolOptionValue("complex_var_cond","cvc",false);
+    _complexVarCondition.description=
+    "Use the more complex variable condition provided in the SKIKBO paper.\n"
+    "More terms are comparable with this ordering, but it has worst case"
+    "exponential complexity";
+    _lookup.insert(&_complexVarCondition);
+    _complexVarCondition.tag(OptionTag::HIGHER_ORDER);
 
 //*********************** InstGen  ***********************
 
@@ -2227,6 +2250,11 @@ void Options::init()
     _lookup.insert(&_shuffleInput);
     _shuffleInput.tag(OptionTag::PREPROCESSING);
 
+    _randomTraversals = BoolOptionValue("random_traversals","rtra",false);
+    _lookup.insert(&_randomTraversals);
+    _randomTraversals.tag(OptionTag::SATURATION);
+    _randomTraversals.setExperimental();
+
     _randomPolarities = BoolOptionValue("random_polarities","rp",false);
     _randomPolarities.description="As part of preprocesssing, randomly (though consisitently) flip polarities of non-equality predicates in the whole CNF.";
     _lookup.insert(&_randomPolarities);
@@ -2298,7 +2326,7 @@ void Options::init()
     _kboMaxZero = BoolOptionValue("kbo_max_zero","kmz",false);
     _kboMaxZero.setExperimental();
     _kboMaxZero.onlyUsefulWith(_termOrdering.is(equal(TermOrdering::KBO)));
-    _kboMaxZero.description="Modifies any kbo_weight_scheme by setting (for each sort) a maximal (by the precedence) function symbol to have weight 0.";
+    _kboMaxZero.description="Modifies any kbo_weight_scheme by setting the maximal (by the precedence) function symbol to have weight 0.";
     _lookup.insert(&_kboMaxZero);
 
     _kboAdmissabilityCheck = ChoiceOptionValue<KboAdmissibilityCheck>(
@@ -2338,6 +2366,11 @@ void Options::init()
     _functionWeights.setExperimental();
     _functionWeights.onlyUsefulWith(_termOrdering.is(equal(TermOrdering::KBO)));
     _lookup.insert(&_functionWeights);
+
+    _typeConPrecedence = StringOptionValue("type_con_precendence","tcp","");
+    _typeConPrecedence.description = "A name of a file with an explicit user specified precedence on type constructor symbols.";
+    _typeConPrecedence.setExperimental();
+    _lookup.insert(&_typeConPrecedence);
 
     _functionPrecedence = StringOptionValue("function_precendence","fp","");
     _functionPrecedence.description = "A name of a file with an explicit user specified precedence on function symbols.";
@@ -2875,7 +2908,7 @@ bool Options::RatioOptionValue::readRatio(const char* val, char separator)
       return false;
     }
     char copy[COPY_SIZE];
-    strncpy(copy,val,COPY_SIZE);
+    strncpy(copy,val,COPY_SIZE - 1); // leave space for trailing NUL
     copy[colonIndex] = 0;
     int age;
     if (! Int::stringToInt(copy,age)) {
@@ -3031,7 +3064,7 @@ bool Options::TimeLimitOptionValue::setValue(const vstring& value)
   }
 
   char copy[COPY_SIZE];
-  strncpy(copy,value.c_str(),COPY_SIZE);
+  strncpy(copy,value.c_str(),COPY_SIZE - 1); // leave space for trailing NUL
   char* end = copy;
   // search for the end of the string for
   while (*end) {
@@ -3444,6 +3477,8 @@ bool Options::complete(const Problem& prb) const
   
   bool unitEquality = prop.category() == Property::UEQ;
   bool hasEquality = (prop.equalityAtoms() != 0);
+
+  if (hasEquality && !_superposition.actualValue) return false;
 
   if((prop.hasCombs() || prop.hasAppliedVar())  &&
     !_addCombAxioms.actualValue && !_combinatorySuperposition.actualValue) {

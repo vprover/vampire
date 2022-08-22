@@ -350,8 +350,7 @@ ClauseIterator SaturationAlgorithm::activeClauses()
 {
   CALL("SaturationAlgorithm::activeClauses");
 
-  LiteralIndexingStructure* gis=getIndexManager()->getGeneratingLiteralIndexingStructure();
-  return pvi( getMappingIterator(gis->getAll(), SLQueryResult::ClauseExtractFn()) );
+  return _active->clauses();
 }
 
 /**
@@ -1340,14 +1339,12 @@ UnitList* SaturationAlgorithm::collectSaturatedSet()
 {
   CALL("SaturationAlgorithm::collectSaturatedSet");
 
-  LiteralIndexingStructure* gis=getIndexManager()->getGeneratingLiteralIndexingStructure();
-
   UnitList* res = 0;
-  SLQueryResultIterator qrit = gis->getAll();
-  while (qrit.hasNext()) {
-    SLQueryResult qres = qrit.next();
-    UnitList::push(qres.clause, res);
-    qres.clause->incRefCnt();
+  ClauseIterator it = _active->clauses();
+  while (it.hasNext()) {
+    Clause* cl = it.next();
+    cl->incRefCnt();
+    UnitList::push(cl, res);    
   }
   return res;
 }

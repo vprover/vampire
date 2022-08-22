@@ -15,6 +15,7 @@
  */
 
 #include "Debug/Tracer.hpp"
+#include "Lib/Environment.hpp"
 #include "Kernel/Term.hpp"
 #include "Kernel/Clause.hpp"
 #include "SAT/SATInference.hpp"
@@ -243,11 +244,13 @@ void Inference::updateStatistics()
     case Kind::INFERENCE_MANY:
     case Kind::INFERENCE_FROM_SAT_REFUTATION:
       _inductionDepth = 0;
+      _XXNarrows = 0;
+      _reductions = 0;
       UnitList* it= static_cast<UnitList*>(_ptr1);
       while(it) {
         _inductionDepth = max(_inductionDepth,it->head()->inference().inductionDepth());
-        _XXNarrows = max(_XXNarrows,it->head()->inference().inductionDepth());
-        _reductions = max(_reductions,it->head()->inference().inductionDepth());
+        _XXNarrows = max(_XXNarrows,it->head()->inference().xxNarrows());
+        _reductions = max(_reductions,it->head()->inference().reductions());
         it=it->tail();
       }
       break;
@@ -776,10 +779,6 @@ vstring Kernel::ruleName(InferenceRule rule)
     return "inequality splitting";
   case InferenceRule::INEQUALITY_SPLITTING_NAME_INTRODUCTION:
     return "inequality splitting name introduction";
-  case InferenceRule::GROUNDING:
-    return "grounding";
-  case InferenceRule::EQUALITY_AXIOM:
-    return "equality axiom";
   case InferenceRule::CHOICE_AXIOM:
     return "choice axiom";
   case InferenceRule::DISTINCTNESS_AXIOM:
