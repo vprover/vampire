@@ -18,8 +18,9 @@
 #include <iostream>
 #ifdef VDEBUG
 
-#define BOOST_STACKTRACE_USE_ADDR2LINE
-#include <boost/stacktrace.hpp>
+#include <cxxabi.h>
+#include <dlfcn.h>
+#include <execinfo.h>
 #include "Lib/Allocator.hpp"
 using namespace Lib;
 #endif
@@ -183,13 +184,26 @@ void Tracer::printOnlyStack (ostream& str)
  */
 void Tracer::printStack (ostream& str)
 {
-  int depth = 0;
-
   str << "Version : " << VERSION_STRING << "\n";
   str << "Control points passed: " << _passedControlPoints << "\n"
       << "last control point:\n";
   outputLastControlPoint(str);
-  printStackRec (_current, str, depth);
+
+  void *buf[1024];
+  int sz = ::backtrace(buf, 1024);
+  for(int i = 0; i < sz; i++) {
+    spaces(str, i);
+    Dl_info info;
+    if(dladdr(buf[sz - (i + 1)], &info) && info.dli_sname) {
+      int status;
+      size_t length;
+      const char *demangled = abi::__cxa_demangle(info.dli_sname, nullptr, &length, &status);
+      str << (status ? info.dli_sname : demangled) << std::endl;
+    }
+    else {
+      str << "???" << std::endl;
+    }
+  }
 } // Tracer::printStack (ostream& str)
 
 
@@ -201,7 +215,6 @@ void Tracer::printStack (ostream& str)
 void Tracer::printStackRec(Tracer* current, ostream& str, int& depth)
 {
   BYPASSING_ALLOCATOR;
-  str << boost::stacktrace::stacktrace();
   /*
   if (!current) { // beginning of the stack
     return;
