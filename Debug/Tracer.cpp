@@ -37,8 +37,6 @@
 
 #endif
 
-#include "Lib/Allocator.hpp"
-using namespace Lib;
 #endif
 
 #include "Tracer.hpp"
