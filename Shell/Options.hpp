@@ -2284,6 +2284,7 @@ public:
   bool randomAWR() const { return _randomAWR.actualValue; }
   bool randomTraversals() const { return _randomTraversals.actualValue; }
   bool randomizedPortfolioWorkers() const { return _randomizedPortfolioWorkers.actualValue; }
+  void setRandomizedPortfolioWorkers(bool val) { _randomizedPortfolioWorkers.actualValue = val; }
 
   bool ignoreConjectureInPreprocessing() const {return _ignoreConjectureInPreprocessing.actualValue;}
 
