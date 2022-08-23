@@ -278,6 +278,8 @@ protected:
   {
     CALL("InterpretedNormalizer::NLiteralTransformer::transformSubterm");
 
+    if(trm.isTerm() && trm.term()->isSort()) return trm;
+
   start:
     if(theory->isInterpretedFunction(trm)) {
       Interpretation itp = theory->interpretFunction(trm);
@@ -480,6 +482,7 @@ bool InterpretedNormalizer::apply(UnitList*& units)
   UnitList::DelIterator uit(units);
   while(uit.hasNext()) {
     Unit* u = uit.next();
+    cout << "UNIT " << u->toString() << endl;
     if(u->isClause()) {
       Clause* cl = static_cast<Clause*>(u);
       Clause* cl1 = apply(cl);
