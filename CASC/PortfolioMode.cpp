@@ -35,6 +35,7 @@
 #include <fstream>
 #include <stdio.h>
 #include <cstdio>
+#include <random>
 
 #include "Saturation/ProvingHelper.hpp"
 
@@ -582,7 +583,7 @@ void PortfolioMode::runSlice(vstring sliceCode, int timeLimitInDeciseconds)
     // addCommentSignForSZS(cout) << "runSlice - seed before setting: " << opt.randomSeed() << endl;    
     if (env.options->randomizedPortfolioWorkers()) {
       // but here we want each worker to have their own seed
-      opt.setRandomSeed(getpid());
+      opt.setRandomSeed(std::random_device()());
       // ... unless a strategy sets a seed explicitly, just below
     }
     opt.readFromEncodedOptions(sliceCode);
