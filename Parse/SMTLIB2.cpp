@@ -56,6 +56,8 @@
 
 namespace Parse {
 
+static const char* PAR = "par";
+
 SMTLIB2::SMTLIB2(const Options& opts)
 : _logicSet(false),
   _logic(SMT_UNDEFINED),
@@ -95,6 +97,7 @@ void SMTLIB2::readBenchmark(LExprList* bench)
   while(bRdr.hasNext()) {
     LExpr* lexp = bRdr.next();
     _topLevelExpr = lexp;
+    _nextVar = 0;
 
     LOG2("readBenchmark ",lexp->toString(true));
 
@@ -163,15 +166,26 @@ void SMTLIB2::readBenchmark(LExprList* bench)
     if (ibRdr.tryAcceptAtom("declare-fun")) {
       vstring name = ibRdr.readAtom();
       LExprList* iSorts = ibRdr.readList();
-
+      LispListReader iSortRdr(iSorts);
+      auto lookup = new TermLookup();
+      _scopes.push(lookup);
+      if (iSortRdr.hasNext() && iSortRdr.peekAtNext()->isAtom() && iSortRdr.peekAtNext()->str == PAR) {
+        ibRdr.acceptEOL();
+        iSortRdr.readAtom();
+        tryReadTypeParameters(iSortRdr, lookup);
+        iSorts = iSortRdr.readList();
+        ibRdr = iSortRdr;
+      }
       if (!ibRdr.hasNext()) {
         USER_ERROR_EXPR("declare-fun expects an output sort");
       }
       LExpr* oSort = ibRdr.readNext();
 
-      readDeclareFun(name,iSorts,oSort);
+      readDeclareFun(name,iSorts,oSort,lookup->size());
 
       ibRdr.acceptEOL();
+
+      delete _scopes.pop();
 
       continue;
     }
@@ -216,7 +230,7 @@ void SMTLIB2::readBenchmark(LExprList* bench)
       }
       LExpr* oSort = ibRdr.readNext();
 
-      readDeclareFun(name,nullptr,oSort);
+      readDeclareFun(name,nullptr,oSort,0);
 
       ibRdr.acceptEOL();
 
@@ -226,6 +240,16 @@ void SMTLIB2::readBenchmark(LExprList* bench)
     if (ibRdr.tryAcceptAtom("define-fun")) {
       vstring name = ibRdr.readAtom();
       LExprList* iArgs = ibRdr.readList();
+      LispListReader iArgRdr(iArgs);
+      auto lookup = new TermLookup();
+      _scopes.push(lookup);
+      if (iArgRdr.hasNext() && iArgRdr.peekAtNext()->isAtom() && iArgRdr.peekAtNext()->str == PAR) {
+        ibRdr.acceptEOL();
+        iArgRdr.readAtom(); // the "par" atom
+        tryReadTypeParameters(iArgRdr, lookup);
+        iArgs = iArgRdr.readList();
+        ibRdr = iArgRdr;
+      }
       if (!ibRdr.hasNext()) {
         USER_ERROR_EXPR("define-fun expects an output sort");
       }
@@ -238,6 +262,7 @@ void SMTLIB2::readBenchmark(LExprList* bench)
       readDefineFun(name,iArgs,oSort,body);
 
       ibRdr.acceptEOL();
+      delete _scopes.pop();
 
       continue;
     }
@@ -579,6 +604,7 @@ const char * SMTLIB2::s_formulaSymbolNameStrings[] = {
     "is_int",
     "not",
     "or",
+    PAR,
     "true",
     "xor"
 };
@@ -654,7 +680,7 @@ bool SMTLIB2::isAlreadyKnownSymbol(const vstring& name)
   return false;
 }
 
-void SMTLIB2::readDeclareFun(const vstring& name, LExprList* iSorts, LExpr* oSort)
+void SMTLIB2::readDeclareFun(const vstring& name, LExprList* iSorts, LExpr* oSort, unsigned taArity)
 {
   CALL("SMTLIB2::readDeclareFun");
 
@@ -673,10 +699,10 @@ void SMTLIB2::readDeclareFun(const vstring& name, LExprList* iSorts, LExpr* oSor
     argSorts.push(parseSort(isRdr.next()));
   }
 
-  declareFunctionOrPredicate(name,rangeSort,argSorts);
+  declareFunctionOrPredicate(name,rangeSort,argSorts,taArity);
 }
 
-SMTLIB2::DeclaredSymbol SMTLIB2::declareFunctionOrPredicate(const vstring& name, TermList rangeSort, const TermStack& argSorts)
+SMTLIB2::DeclaredSymbol SMTLIB2::declareFunctionOrPredicate(const vstring& name, TermList rangeSort, const TermStack& argSorts, unsigned taArity)
 {
   CALL("SMTLIB2::declareFunctionOrPredicate");
 
@@ -686,23 +712,24 @@ SMTLIB2::DeclaredSymbol SMTLIB2::declareFunctionOrPredicate(const vstring& name,
   OperatorType* type;
 
   if (rangeSort == AtomicSort::boolSort()) { // predicate
-    symNum = env.signature->addPredicate(name, argSorts.size(), added);
+    symNum = env.signature->addPredicate(name, argSorts.size()+taArity, added);
 
     sym = env.signature->getPredicate(symNum);
 
-    type = OperatorType::getPredicateType(argSorts.size(),argSorts.begin());
+    type = OperatorType::getPredicateType(argSorts.size(),argSorts.begin(),taArity);
 
     LOG1("declareFunctionOrPredicate-Predicate");
   } else { // proper function
-    if (argSorts.size() > 0) {
-      symNum = env.signature->addFunction(name, argSorts.size(), added);
+    if (argSorts.size() > 0 || taArity > 0) {
+      symNum = env.signature->addFunction(name, argSorts.size()+taArity, added);
     } else {
+      // TODO what about taArity here?
       symNum = TPTP::addUninterpretedConstant(name,_overflow,added);
     }
 
     sym = env.signature->getFunction(symNum);
 
-    type = OperatorType::getFunctionType(argSorts.size(), argSorts.begin(), rangeSort);
+    type = OperatorType::getFunctionType(argSorts.size(), argSorts.begin(), rangeSort, taArity);
 
     LOG1("declareFunctionOrPredicate-Function");
   }
@@ -734,7 +761,7 @@ void SMTLIB2::readDefineFun(const vstring& name, LExprList* iArgs, LExpr* oSort,
   TermList rangeSort = parseSort(oSort);
 
   _nextVar = 0;
-  ASS(_scopes.isEmpty());
+  // ASS(_scopes.isEmpty());
   TermLookup* lookup = new TermLookup();
 
   static TermStack argSorts;
@@ -767,7 +794,7 @@ void SMTLIB2::readDefineFun(const vstring& name, LExprList* iArgs, LExpr* oSort,
 
   DeclaredSymbol fun;
   if (recursive) {
-    fun = declareFunctionOrPredicate(name, rangeSort, argSorts);
+    fun = declareFunctionOrPredicate(name, rangeSort, argSorts, 0);
   }
 
   ParseResult res = parseTermOrFormula(body);
@@ -780,7 +807,7 @@ void SMTLIB2::readDefineFun(const vstring& name, LExprList* iArgs, LExpr* oSort,
   }
 
   if (!recursive) {
-    fun = declareFunctionOrPredicate(name, rangeSort, argSorts);
+    fun = declareFunctionOrPredicate(name, rangeSort, argSorts, 0);
   }
 
   unsigned symbIdx = fun.first;
@@ -802,37 +829,28 @@ void SMTLIB2::readDefineFun(const vstring& name, LExprList* iArgs, LExpr* oSort,
   UnitList::push(fu, _formulas);
 }
 
-LExprList* SMTLIB2::tryReadTypeParameters(LExprList* datatype, TermLookup* lookup, TermStack& parSorts)
+void SMTLIB2::tryReadTypeParameters(LispListReader& rdr, TermLookup* lookup)
 {
-  _nextVar = 0;
-  LispListReader dtypeRdr(datatype);
-  LExpr *constr = dtypeRdr.next();
-  if (constr->isAtom()) {
-    if (constr->str != "par") {
-      USER_ERROR_EXPR("Unrecognized keyword '" + constr->str + "' in datatype declaration");
-    }
-    if (!dtypeRdr.hasNext()) {
-      USER_ERROR_EXPR("'par' keyword must be followed by a list of parameters");
-    }
-    LExpr* pars = dtypeRdr.next();
-    if (!pars->isList()) {
-      USER_ERROR_EXPR("'par' keyword must be followed by a list of parameters");
-    }
-    LispListReader parRdr(pars);
-    while (parRdr.hasNext()) {
-      auto par = parRdr.next();
-      if (!par->isAtom()) {
-        USER_ERROR_EXPR("List of parameters contains non-atomic expression '"+par->str+"'");
-      }
-      TermList sortVar(_nextVar++, false);
-      if (!lookup->insert(par->str, make_pair(sortVar, AtomicSort::superSort()))) {
-        USER_ERROR_EXPR("Type parameter '" + par->str + "' has already been defined");
-      }
-      parSorts.push(sortVar);
-    }
-    return dtypeRdr.readList();
+  CALL("SMTLIB2::tryReadTypeParameters");
+
+  if (!rdr.hasNext()) {
+    USER_ERROR_EXPR("'par' keyword must be followed by a list of parameters");
   }
-  return datatype;
+  LExpr* pars = rdr.next();
+  if (!pars->isList()) {
+    USER_ERROR_EXPR("'par' keyword must be followed by a list of parameters");
+  }
+  LispListReader parRdr(pars);
+  while (parRdr.hasNext()) {
+    auto par = parRdr.next();
+    if (!par->isAtom()) {
+      USER_ERROR_EXPR("List of parameters contains non-atomic expression '"+par->str+"'");
+    }
+    TermList sortVar(_nextVar++, false);
+    if (!lookup->insert(par->str, make_pair(sortVar, AtomicSort::superSort()))) {
+      USER_ERROR_EXPR("Type parameter '" + par->str + "' has already been defined");
+    }
+  }
 }
 
 void SMTLIB2::readDeclareDatatype(LExpr *sort, LExprList *datatype)
@@ -844,22 +862,33 @@ void SMTLIB2::readDeclareDatatype(LExpr *sort, LExprList *datatype)
   if (isAlreadyKnownSymbol(dtypeName)) {
     USER_ERROR_EXPR("Redeclaring built-in, declared or defined sort symbol as datatype: " + dtypeName);
   }
+  LispListReader dtypeRdr(datatype);
   auto lookup = new TermLookup();
-  TermStack parSorts;
-  datatype = tryReadTypeParameters(datatype, lookup, parSorts);
   _scopes.push(lookup);
+  if (dtypeRdr.hasNext() && dtypeRdr.peekAtNext()->isAtom() && dtypeRdr.peekAtNext()->str == PAR) {
+    dtypeRdr.readAtom();
+    tryReadTypeParameters(dtypeRdr, lookup);
+    auto rest = dtypeRdr.readList();
+    dtypeRdr.acceptEOL();
+    dtypeRdr = LispListReader(rest);
+  }
+  auto numTypeVars = lookup->size();
+
   bool added = false;
-  unsigned srt = env.signature->addTypeCon(dtypeName,parSorts.size(),added);
+  unsigned srt = env.signature->addTypeCon(dtypeName,numTypeVars,added);
   ALWAYS(_declaredSymbols.insert(dtypeName, make_pair(srt,SymbolType::TYPECON)));
   Stack<TermAlgebraConstructor *> constructors;
   TermStack argSorts;
   Stack<vstring> destructorNames;
 
   ASS(added);
-  env.signature->getTypeCon(srt)->setType(OperatorType::getTypeConType(parSorts.size()));
+  env.signature->getTypeCon(srt)->setType(OperatorType::getTypeConType(numTypeVars));
+  TermStack parSorts;
+  for (unsigned i = 0; i < numTypeVars; i++) {
+    parSorts.push(TermList(i,false));
+  }
   TermList taSort = TermList(AtomicSort::create(srt,parSorts.size(),parSorts.begin()));
 
-  LispListReader dtypeRdr(datatype);
   while (dtypeRdr.hasNext()) {
     argSorts.reset();
     destructorNames.reset();
@@ -1701,6 +1730,31 @@ void SMTLIB2::parseQuantEnd(LExpr* exp)
 
   _scopes.push(lookup);
 
+  if (!lRdr.hasNext()) {
+    USER_ERROR_EXPR("Missing quantification body");
+  }
+  _todo.push(make_pair(PO_PARSE_APPLICATION,exp)); // will create the actual quantified formula and clear the lookup...
+  _todo.push(make_pair(PO_PARSE,lRdr.readNext())); // ... from the only remaining argument, the body
+  lRdr.acceptEOL();
+}
+
+void SMTLIB2::parseParametric(LExpr* exp)
+{
+  CALL("SMTLIB2::parseParametric");
+
+  ASS(exp->isList());
+  LispListReader lRdr(exp->list);
+
+  // the par atom
+  lRdr.readAtom();
+
+  TermLookup* lookup = new TermLookup();
+  tryReadTypeParameters(lRdr, lookup);
+  _scopes.push(lookup);
+
+  if (!lRdr.hasNext()) {
+    USER_ERROR_EXPR("Missing quantification body");
+  }
   _todo.push(make_pair(PO_PARSE_APPLICATION,exp)); // will create the actual quantified formula and clear the lookup...
   _todo.push(make_pair(PO_PARSE,lRdr.readNext())); // ... from the only remaining argument, the body
   lRdr.acceptEOL();
@@ -1855,12 +1909,7 @@ bool SMTLIB2::parseAsUserDefinedSymbol(const vstring& id,LExpr* exp)
   }
   }
 
-  // currently only term algebra ctors and dtors can be parametric
-  // but only ground instances can be actually used in assertions
-  // so the actual type needs to be instantiated, see below 
-  unsigned nPars = symbol->termAlgebraCons() || symbol->termAlgebraDest()
-    ? type->numTypeArguments() : 0;
-
+  unsigned numTypeArgs = type->numTypeArguments();
   unsigned arity = symbol->arity();
 
   static Stack<TermList> args;
@@ -1874,7 +1923,7 @@ bool SMTLIB2::parseAsUserDefinedSymbol(const vstring& id,LExpr* exp)
     TermList arg;
     auto argSort = _results.pop().asTerm(arg);
     TermList sort;
-    if (i < nPars) {
+    if (i < numTypeArgs) {
       // if the term has a parametric type, the parameters
       // are checked and saved to instantiate the concrete
       // types of later (non-type) arguments
@@ -2168,6 +2217,7 @@ bool SMTLIB2::parseAsBuiltinFormulaSymbol(const vstring& id, LExpr* exp)
     }
     case FS_EXISTS:
     case FS_FORALL:
+    case FS_PAR:
     {
       Formula* argFla;
       if (_results.isEmpty() || _results.top().isSeparator() ||
@@ -2555,6 +2605,11 @@ SMTLIB2::ParseResult SMTLIB2::parseTermOrFormula(LExpr* body)
 
             if (id == FORALL || id == EXISTS) {
               parseQuantBegin(exp);
+              continue;
+            }
+
+            if (id == PAR) {
+              parseParametric(exp);
               continue;
             }
 

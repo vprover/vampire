@@ -158,6 +158,7 @@ namespace Inferences {
     {
       if (lit->polarity() && sameConstructorsEquality(lit)) {
         _type = env.signature->getFunction(lit->nthArgument(0)->term()->functor())->fnType();
+        _index = lit->nthArgument(0)->term()->numTypeArguments();
         _length = lit->nthArgument(0)->term()->arity();
       } else {
         _length = 0;

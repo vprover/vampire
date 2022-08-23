@@ -158,6 +158,7 @@ private:
     FS_IS_INT,
     FS_NOT,
     FS_OR,
+    FS_PAR,
     FS_TRUE,
     FS_XOR,
 
@@ -225,14 +226,14 @@ private:
    * store the ensuing DeclaredSymbol in _declaredSymbols
    * and return it.
    */
-  DeclaredSymbol declareFunctionOrPredicate(const vstring& name, TermList rangeSort, const TermStack& argSorts);
+  DeclaredSymbol declareFunctionOrPredicate(const vstring& name, TermList rangeSort, const TermStack& argSorts, unsigned taArity);
 
   /**
    * Handle "declare-fun" entry.
    *
    * Declaring a function just extends the signature.
    */
-  void readDeclareFun(const vstring& name, LExprList* iSorts, LExpr* oSort);
+  void readDeclareFun(const vstring& name, LExprList* iSorts, LExpr* oSort, unsigned taArity);
 
   /**
    * Handle "define-fun" entry.
@@ -241,7 +242,6 @@ private:
    */
   void readDefineFun(const vstring& name, LExprList* iArgs, LExpr* oSort, LExpr* body, bool recursive = false);
 
-  LExprList* tryReadTypeParameters(LExprList* datatype, DHMap<vstring,pair<TermList,TermList>>* lookup, TermStack& parSorts);
   void readDeclareDatatype(LExpr* sort, LExprList* datatype);
 
   void readDeclareDatatypes(LExprList* sorts, LExprList* datatypes, bool codatatype = false);
@@ -366,6 +366,8 @@ private:
 
   [[noreturn]] void complainAboutArgShortageOrWrongSorts(const vstring& symbolClass, LExpr* exp);
 
+  void tryReadTypeParameters(LispListReader& rdr, TermLookup* lookup);
+
   void parseLetBegin(LExpr* exp);
   void parseLetPrepareLookup(LExpr* exp);
   void parseLetEnd(LExpr* exp);
@@ -378,6 +380,8 @@ private:
 
   void parseQuantBegin(LExpr* exp);
   void parseQuantEnd(LExpr* exp);
+
+  void parseParametric(LExpr* exp);
 
   void parseAnnotatedTerm(LExpr* exp);
 
