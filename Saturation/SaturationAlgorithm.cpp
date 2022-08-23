@@ -408,6 +408,33 @@ void SaturationAlgorithm::onPassiveAdded(Clause* c)
     env.endOutput();
   }
   
+  if (_opt.showPassiveTraffic()) {
+    if (!_shown.find(c)) {
+      Inference& inf = c->inference();
+
+      // cout << cl->toString() << endl;
+
+      // show the clause's features when arriving for the first time
+      cout << "i: "
+        << c->number() << " "
+        << c->age() << " "
+        << c->size() << " "
+        << c->weight() << " "
+        << c->splitWeight() << " "
+        << (c->derivedFromGoal() ? '1' : '0') << " "
+        << (unsigned)inf.getSineLevel() << " "
+        // << cl->getNumeralWeight() << " " -- only makes sense in arithmetic an requires a deep clause scan
+        << (c->isPureTheoryDescendant() ? '1' : '0') << " "
+        << inf.th_ancestors << " "
+        << inf.all_ancestors << " "
+        << inf.th_ancestors * 8 - inf.all_ancestors << endl;
+
+      ALWAYS(_shown.insert(c));
+    }
+
+    cout << "a: " << c->number() << endl;
+  }
+
   //when a clause is added to the passive container,
   //we know it is not redundant
   onNonRedundantClause(c);
@@ -421,6 +448,10 @@ void SaturationAlgorithm::onPassiveAdded(Clause* c)
 void SaturationAlgorithm::onPassiveRemoved(Clause* c)
 {
   CALL("SaturationAlgorithm::onPassiveRemoved");
+
+  if (_opt.showPassiveTraffic()) {
+    cout << "r: " << c->number() << endl;
+  }
 
   ASS(c->store()==Clause::PASSIVE);
   c->setStore(Clause::NONE);
@@ -436,7 +467,9 @@ void SaturationAlgorithm::onPassiveRemoved(Clause* c)
  */
 void SaturationAlgorithm::onPassiveSelected(Clause* c)
 {
-
+  if (_opt.showPassiveTraffic()) {
+    cout << "s: " << c->number() << endl;
+  }
 }
 
 /**

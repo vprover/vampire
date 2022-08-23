@@ -2128,6 +2128,8 @@ public:
   unsigned randomStrategySeed() const { return _randomStrategySeed.actualValue; }
   bool printClausifierPremises() const { return _printClausifierPremises.actualValue; }
 
+  bool showPassiveTraffic() const { return _showPassiveTraffic.actualValue; }
+
   // IMPORTANT, if you add a showX command then include showAll
   bool showAll() const { return _showAll.actualValue; }
   bool showActive() const { return showAll() || _showActive.actualValue; }
@@ -2745,6 +2747,8 @@ private:
   BoolOptionValue _showFMBsortInfo;
   BoolOptionValue _showInduction;
   BoolOptionValue _showSimplOrdering;
+
+  BoolOptionValue _showPassiveTraffic;
 #if VZ3
   BoolOptionValue _showZ3;
   StringOptionValue _exportAvatarProblem;

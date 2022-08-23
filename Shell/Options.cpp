@@ -242,6 +242,10 @@ void Options::init()
     _lookup.insert(&_printAllTheoryAxioms);
     _printAllTheoryAxioms.setExperimental();
 
+    _showPassiveTraffic = BoolOptionValue("show_passive_traffic","spt",false);
+    _showPassiveTraffic.description="Print information about new clauses and their feature vectors and how they enter end leave the passive container.";
+    _lookup.insert(&_showPassiveTraffic);
+
     _showHelp = BoolOptionValue("help","h",false);
     _showHelp.description="Display the help message";
     _lookup.insert(&_showHelp);
