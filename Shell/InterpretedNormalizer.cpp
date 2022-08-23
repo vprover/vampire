@@ -482,7 +482,6 @@ bool InterpretedNormalizer::apply(UnitList*& units)
   UnitList::DelIterator uit(units);
   while(uit.hasNext()) {
     Unit* u = uit.next();
-    cout << "UNIT " << u->toString() << endl;
     if(u->isClause()) {
       Clause* cl = static_cast<Clause*>(u);
       Clause* cl1 = apply(cl);
