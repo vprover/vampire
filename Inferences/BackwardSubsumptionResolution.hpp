@@ -40,7 +40,7 @@ private:
   struct ClauseToBwSimplRecordFn;
 
   bool _byUnitsOnly;
-  SimplifyingLiteralIndex* _index;
+  BackwardSubsumptionIndex* _index;
 };
 
 };

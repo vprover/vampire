@@ -15,6 +15,7 @@
  */
 
 #include "Debug/Tracer.hpp"
+#include "Lib/Environment.hpp"
 #include "Kernel/Term.hpp"
 #include "Kernel/Clause.hpp"
 #include "SAT/SATInference.hpp"
@@ -761,6 +762,7 @@ vstring Kernel::ruleName(InferenceRule rule)
     return "predicate definition unfolding";
   case InferenceRule::PREDICATE_DEFINITION_MERGING:
     return "predicate definition merging";
+
   case InferenceRule::REDUCE_FALSE_TRUE:
     return "true and false elimination";
 
@@ -797,6 +799,8 @@ vstring Kernel::ruleName(InferenceRule rule)
     return "condensation";
   case InferenceRule::THEORY_NORMALIZATION:
     return "theory normalization";
+  case InferenceRule::POLARITY_FLIPPING:
+    return "consistent polarity flipping";
   case InferenceRule::EVALUATION:
     return "evaluation";
   case InferenceRule::CANCELLATION:
@@ -811,10 +815,6 @@ vstring Kernel::ruleName(InferenceRule rule)
     return "inequality splitting";
   case InferenceRule::INEQUALITY_SPLITTING_NAME_INTRODUCTION:
     return "inequality splitting name introduction";
-  case InferenceRule::GROUNDING:
-    return "grounding";
-  case InferenceRule::EQUALITY_AXIOM:
-    return "equality axiom";
   case InferenceRule::CHOICE_AXIOM:
     return "choice axiom";
   case InferenceRule::DISTINCTNESS_AXIOM:

@@ -38,7 +38,7 @@ public:
    * For objects created by this constructor, methods  @c attach()
    * and @c detach() must not be called.
    */
-  SLQueryBackwardSubsumption(SimplifyingLiteralIndex* index, bool byUnitsOnly=false) : _byUnitsOnly(byUnitsOnly), _index(index) {}
+  SLQueryBackwardSubsumption(BackwardSubsumptionIndex* index, bool byUnitsOnly=false) : _byUnitsOnly(byUnitsOnly), _index(index) {}
 
   void attach(SaturationAlgorithm* salg);
   void detach();
@@ -49,7 +49,7 @@ private:
   struct ClauseToBwSimplRecordFn;
 
   bool _byUnitsOnly;
-  SimplifyingLiteralIndex* _index;
+  BackwardSubsumptionIndex* _index;
 };
 
 };

@@ -34,6 +34,15 @@ const unsigned Term::SF_FORMULA;
 const unsigned Term::SF_LAMBDA;
 const unsigned Term::SPECIAL_FUNCTOR_LOWER_BOUND;
 
+void Term::setId(unsigned id)
+{
+  CALL("Term::setId");
+  if (env.options->randomTraversals()) {
+    id += Random::getInteger(1 << 12) << 20; // the twelve most significant bits are randomized
+  }
+   _args[0]._info.id = id;
+}
+
 /**
  * Allocate enough bytes to fit a term of a given arity.
  * @since 01/05/2006 Bellevue
@@ -1942,6 +1951,7 @@ Term::Term() throw()
   _args[0]._info.shared = 0;
   _args[0]._info.literal = 0;
   _args[0]._info.sort = 0;
+  _args[0]._info.hasTermVar = 0;
   _args[0]._info.order = 0;
   _args[0]._info.tag = FUN;
   _args[0]._info.distinctVars = TERM_DIST_VAR_UNKNOWN;

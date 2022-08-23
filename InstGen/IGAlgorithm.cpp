@@ -41,6 +41,7 @@
 #include "Shell/Property.hpp"
 #include "Shell/Statistics.hpp"
 #include "Shell/UIHelper.hpp"
+#include "Shell/Shuffling.hpp"
 
 #include "IGAlgorithm.hpp"
 #include "ModelPrinter.hpp"
@@ -60,8 +61,7 @@ static const int LOOKAHEAD_SELECTION = 1011;
 
 IGAlgorithm::IGAlgorithm(Problem& prb,const Options& opt)
 : MainLoop(prb, opt),
-    _instGenResolutionRatio(opt.instGenResolutionRatioInstGen(),
-	opt.instGenResolutionRatioResolution(), 50),
+    _instGenResolutionRatio(opt.instGenResolutionRatioInstGen(),opt.instGenResolutionRatioResolution(), 50),
     _passive(opt),
     _tautologyDeletion(false),
     _equalityProxy(0)
@@ -191,6 +191,11 @@ void IGAlgorithm::init()
     ASS(cl->isClause());
     _inputClauses.push(cl);
   }
+
+  if (env.options->randomTraversals()) {
+    TimeCounter tc(TC_SHUFFLING);
+    Shuffling::shuffleArray(_inputClauses.naked(),_inputClauses.size());
+  }
 }
 
 bool IGAlgorithm::addClause(Clause* cl)
@@ -244,6 +249,12 @@ redundancy_check:
     }
   }
 
+  if (env.options->randomTraversals()) {
+    TimeCounter tc(TC_SHUFFLING);
+
+    Shuffling::shuffle(cl);
+  }
+
   cl->incRefCnt();
   _variantIdx->insert(cl);
 
@@ -272,6 +283,12 @@ void IGAlgorithm::processUnprocessed()
   CALL("IGAlgorithm::processUnprocessed");
 
   TimeCounter tc(TC_INST_GEN_SAT_SOLVING);
+
+  if (env.options->randomTraversals()) {
+    TimeCounter tc(TC_SHUFFLING);
+
+    Shuffling::shuffleArray(_unprocessed.naked().begin(),_unprocessed.size());
+  }
 
   while(_unprocessed.isNonEmpty()) {
     Clause* cl = _unprocessed.popWithoutDec();

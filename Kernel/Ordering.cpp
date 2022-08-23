@@ -37,6 +37,7 @@
 #include "Problem.hpp"
 #include "Signature.hpp"
 #include "Kernel/NumTraits.hpp" 
+#include "Shell/Shuffling.hpp"
 
 #include "Ordering.hpp"
 
@@ -219,25 +220,25 @@ void Ordering::removeNonMaximal(LiteralList*& lits) const
 {
   CALL("Ordering::removeNonMaximal");
 
-  LiteralList** ptr1=&lits;
-  while(*ptr1) {
-    LiteralList** ptr2=&(*ptr1)->tailReference();
-    while(*ptr2 && *ptr1) {
-      Ordering::Result res=compare((*ptr1)->head(), (*ptr2)->head());
+  LiteralList** ptr1 = &lits;
+  while (*ptr1) {
+    LiteralList** ptr2 = &(*ptr1)->tailReference();
+    while (*ptr2 && *ptr1) {
+      Ordering::Result res = compare((*ptr1)->head(), (*ptr2)->head());
 
-      if(res==Ordering::GREATER || res==Ordering::GREATER_EQ || res==Ordering::EQUAL) {
-	LiteralList::pop(*ptr2);
-	continue;
-      } else if(res==Ordering::LESS || res==Ordering::LESS_EQ) {
-	LiteralList::pop(*ptr1);
-	goto topLevelContinue;
+      if (res == Ordering::GREATER || res == Ordering::GREATER_EQ
+          || res == Ordering::EQUAL) {
+        LiteralList::pop(*ptr2);
+        continue;
+      } else if (res == Ordering::LESS || res == Ordering::LESS_EQ) {
+        LiteralList::pop(*ptr1);
+        goto topLevelContinue;
       }
-      ptr2=&(*ptr2)->tailReference();
+      ptr2 = &(*ptr2)->tailReference();
     }
-    ptr1=&(*ptr1)->tailReference();
-topLevelContinue: ;
+    ptr1 = &(*ptr1)->tailReference();
+    topLevelContinue: ;
   }
-
 }
 
 Ordering::Result Ordering::getEqualityArgumentOrder(Literal* eq) const
@@ -353,21 +354,6 @@ int PrecedenceOrdering::predicatePrecedence (unsigned pred) const
   return res;
 } // PrecedenceOrdering::predicatePrecedences
 
-Comparison PrecedenceOrdering::compareFunctors(unsigned fun1, unsigned fun2) const
-{
-  CALL("PrecedenceOrdering::compareFunctors");
-
-  if(fun1==fun2) {
-    return Lib::EQUAL;
-  }
-  switch(compareFunctionPrecedences(fun1, fun2)) {
-  case GREATER: return Lib::GREATER;
-  case LESS: return Lib::LESS;
-  default:
-    ASSERTION_VIOLATION;
-  }
-}
-
 /**
  * Compare precedences of two function symbols
  */ //TODO update for HOL>?
@@ -378,13 +364,13 @@ Ordering::Result PrecedenceOrdering::compareFunctionPrecedences(unsigned fun1, u
   if (fun1 == fun2)
     return EQUAL;
 
-  if (fun1 == IntTraits::minusF()) { return GREATER; } 
-  if (fun1 == RatTraits::minusF()) { return GREATER; }
-  if (fun1 == RealTraits::minusF()) { return GREATER; }
+  if (theory->isInterpretedFunction(fun1, IntTraits::minusI)) { return GREATER; } 
+  if (theory->isInterpretedFunction(fun1, RatTraits::minusI)) { return GREATER; }
+  if (theory->isInterpretedFunction(fun1, RealTraits::minusI)) { return GREATER; }
 
-  if (fun2 == IntTraits::minusF()) { return LESS; }
-  if (fun2 == RatTraits::minusF()) { return LESS; }
-  if (fun2 == RealTraits::minusF()) { return LESS; }
+  if (theory->isInterpretedFunction(fun2, IntTraits::minusI)) { return LESS; }
+  if (theory->isInterpretedFunction(fun2, RatTraits::minusI)) { return LESS; }
+  if (theory->isInterpretedFunction(fun2, RealTraits::minusI)) { return LESS; }
 
   // $$false is the smallest
   if (env.signature->isFoolConstantSymbol(false,fun1)) {
@@ -483,29 +469,43 @@ Ordering::Result PrecedenceOrdering::compareTypeConPrecedences(unsigned tyc1, un
 {
   CALL("PrecedenceOrdering::compareTypeConPrecedences");
 
+  auto size = _typeConPrecedences.size();
+
   if (tyc1 == tyc2)
     return EQUAL;
 
   static bool reverse = env.options->introducedSymbolPrecedence() == Shell::Options::IntroducedSymbolPrecedence::BOTTOM;
 
   return fromComparison(Int::compare(
-      (int)(reverse ? -tyc1 : tyc1),
-      (int)(reverse ? -tyc2 : tyc2)));
+    tyc1 >= size ? (int)(reverse ? -tyc1 : tyc1) : _typeConPrecedences[tyc1],
+    tyc2 >= size ? (int)(reverse ? -tyc2 : tyc2) : _typeConPrecedences[tyc2] ));
 }
 
+enum SymbolType {
+  FUNCTION,
+  PREDICATE,
+  TYPE_CON
+};
+
 struct SymbolComparator {
-  bool _forFunct;
-  SymbolComparator(bool forFunct) : _forFunct(forFunct) {}
+  SymbolType _symType;
+  SymbolComparator(SymbolType symType) : _symType(symType) {}
 
   Signature::Symbol* getSymbol(unsigned s) {
-    return _forFunct ? env.signature->getFunction(s) : env.signature->getPredicate(s);
+    if(_symType == SymbolType::FUNCTION){
+      return env.signature->getFunction(s);
+    } else if (_symType == SymbolType::PREDICATE){
+      return env.signature->getPredicate(s);      
+    } else {
+      return env.signature->getTypeCon(s);            
+    }
   }  
 };
 
 template<typename InnerComparator>
 struct BoostWrapper : public SymbolComparator
 {
-  BoostWrapper(bool forFunct) : SymbolComparator(forFunct) {}
+  BoostWrapper(SymbolType symType) : SymbolComparator(symType) {}
 
   Comparison compare(unsigned s1, unsigned s2)
   {
@@ -547,14 +547,14 @@ struct BoostWrapper : public SymbolComparator
     }
     if(res==EQUAL){
       // fallback to Inner
-      res = InnerComparator(_forFunct).compare(s1,s2);
+      res = InnerComparator(_symType).compare(s1,s2);
     }
     return res;
   }
 };
 
 struct OccurenceTiebreak {
-  OccurenceTiebreak(bool) {} // the bool is a dummy argument, required by the template recursion convention
+  OccurenceTiebreak(SymbolType) {} // here the SymbolType is a dummy argument, required by the template recursion convention
 
   Comparison compare(unsigned s1, unsigned s2) {  return Int::compare(s1,s2); }
 };
@@ -572,7 +572,7 @@ struct RevOccComparator
 template<bool revert = false, typename InnerComparator = OccurenceTiebreak>
 struct FreqComparator : public SymbolComparator
 {
-  FreqComparator(bool forFunct) : SymbolComparator(forFunct) {}
+  FreqComparator(SymbolType symType) : SymbolComparator(symType) {}
 
   Comparison compare(unsigned s1, unsigned s2)
   {
@@ -582,7 +582,7 @@ struct FreqComparator : public SymbolComparator
     Comparison res = revert ? Int::compare(c1,c2) : Int::compare(c2,c1);
     if(res==EQUAL){
       // fallback to Inner
-      res = InnerComparator(_forFunct).compare(s1,s2);
+      res = InnerComparator(_symType).compare(s1,s2);
     }
     return res;
   }
@@ -591,7 +591,7 @@ struct FreqComparator : public SymbolComparator
 template<bool revert = false, typename InnerComparator = OccurenceTiebreak>
 struct ArityComparator : public SymbolComparator
 {
-  ArityComparator(bool forFunct) : SymbolComparator(forFunct) {}
+  ArityComparator(SymbolType symType) : SymbolComparator(symType) {}
 
   Comparison compare(unsigned u1, unsigned u2)
   {
@@ -601,7 +601,7 @@ struct ArityComparator : public SymbolComparator
     }
     if(res==EQUAL) {
       // fallback to Inner 
-      res = InnerComparator(_forFunct).compare(u1,u2);
+      res = InnerComparator(_symType).compare(u1,u2);
     }
     return res;
   }
@@ -610,7 +610,7 @@ struct ArityComparator : public SymbolComparator
 template<int spc, bool revert = false, typename InnerComparator = OccurenceTiebreak>
 struct SpecAriFirstComparator : public SymbolComparator
 {
-  SpecAriFirstComparator(bool forFunct) : SymbolComparator(forFunct) {}
+  SpecAriFirstComparator(SymbolType symType) : SymbolComparator(symType) {}
 
   Comparison compare(unsigned s1, unsigned s2)
   {
@@ -622,7 +622,7 @@ struct SpecAriFirstComparator : public SymbolComparator
       return revert ? GREATER : LESS;
     }
     // fallback to Inner
-    return InnerComparator(_forFunct).compare(s1,s2);
+    return InnerComparator(_symType).compare(s1,s2);
   }
 };
 
@@ -673,12 +673,17 @@ bool isPermutation(const DArray<int>& xs) {
 /**
  * Create a PrecedenceOrdering object.
  */
-PrecedenceOrdering::PrecedenceOrdering(const DArray<int>& funcPrec, const DArray<int>& predPrec, const DArray<int>& predLevels, bool reverseLCM)
+PrecedenceOrdering::PrecedenceOrdering(const DArray<int>& funcPrec, 
+                                       const DArray<int>& typeConPrec,   
+                                       const DArray<int>& predPrec, 
+                                       const DArray<int>& predLevels, 
+                                       bool reverseLCM)
   : _predicates(predPrec.size()),
     _functions(funcPrec.size()),
     _predicateLevels(predLevels),
     _predicatePrecedences(predPrec),
     _functionPrecedences(funcPrec),
+    _typeConPrecedences(typeConPrec),
     _reverseLCM(reverseLCM)
 {
   CALL("PrecedenceOrdering::PrecedenceOrdering(const DArray<int>&, const DArray<int>&, const DArray<int>&, bool)");
@@ -696,6 +701,7 @@ PrecedenceOrdering::PrecedenceOrdering(const DArray<int>& funcPrec, const DArray
 PrecedenceOrdering::PrecedenceOrdering(Problem& prb, const Options& opt, const DArray<int>& predPrec)
 : PrecedenceOrdering(
     funcPrecFromOpts(prb,opt),
+    typeConPrecFromOpts(prb,opt),    
     predPrec,
     predLevelsFromOptsAndPrec(prb,opt,predPrec),
     opt.literalComparisonMode()==Shell::Options::LiteralComparisonMode::REVERSE
@@ -713,46 +719,50 @@ PrecedenceOrdering::PrecedenceOrdering(Problem& prb, const Options& opt)
        // Make sure we (re-)compute usageCnt's for all the symbols;
        // in particular, the sP's (the Tseitin predicates) and sK's (the Skolem functions), which only exists since preprocessing.
        prb.getProperty(),
-       // also, fetch the unary minuses, we intruduce later anyway
-       (void)IntTraits::minusF(),(void)RatTraits::minusF(),(void)RealTraits::minusF(), 
        predPrecFromOpts(prb, opt)))
 {
   CALL("PrecedenceOrdering::PrecedenceOrdering(Problem&,const Options&)");
   ASS_G(_predicates, 0);
 }
 
-static void sortAuxBySymbolPrecedence(DArray<unsigned>& aux, const Options& opt, bool forFunc) {
+static void sortAuxBySymbolPrecedence(DArray<unsigned>& aux, const Options& opt, SymbolType symType) {
   CALL("sortAuxBySymbolPrecedence");
+
+  // since the below sorts are stable, a proper input shuffling manifests itself (also) by initializing aux with a random permutation rather then the identity one
+  if (opt.shuffleInput() && opt.symbolPrecedence() != Shell::Options::SymbolPrecedence::SCRAMBLE) {
+    Shuffling::shuffleArray(aux,aux.size());
+    // in particular shuffleInput causes OCCURRENCE to be also random
+  }
 
   switch(opt.symbolPrecedence()) {
     case Shell::Options::SymbolPrecedence::ARITY:
-      aux.sort(BoostWrapper<ArityComparator<>>(forFunc));
+      aux.sort(BoostWrapper<ArityComparator<>>(symType));
       break;
     case Shell::Options::SymbolPrecedence::REVERSE_ARITY:
-      aux.sort(BoostWrapper<ArityComparator<true /*reverse*/>>(forFunc));
+      aux.sort(BoostWrapper<ArityComparator<true /*reverse*/>>(symType));
       break;
     case Shell::Options::SymbolPrecedence::UNARY_FIRST:
-      aux.sort(BoostWrapper<UnaryFirstComparator<false,ArityComparator<false,FreqComparator<>>>>(forFunc));
+      aux.sort(BoostWrapper<UnaryFirstComparator<false,ArityComparator<false,FreqComparator<>>>>(symType));
       break;
     case Shell::Options::SymbolPrecedence::CONST_MAX:
-      aux.sort(BoostWrapper<ConstFirstComparator<false,ArityComparator<>>>(forFunc));
+      aux.sort(BoostWrapper<ConstFirstComparator<false,ArityComparator<>>>(symType));
       break;
     case Shell::Options::SymbolPrecedence::CONST_MIN:
-      aux.sort(BoostWrapper<ConstFirstComparator<true /*reverse*/,ArityComparator<true /*reverse*/>>>(forFunc));
+      aux.sort(BoostWrapper<ConstFirstComparator<true /*reverse*/,ArityComparator<true /*reverse*/>>>(symType));
       break;
     case Shell::Options::SymbolPrecedence::FREQUENCY:
     case Shell::Options::SymbolPrecedence::WEIGHTED_FREQUENCY:
-      aux.sort(BoostWrapper<FreqComparator<>>(forFunc));
+      aux.sort(BoostWrapper<FreqComparator<>>(symType));
       break;
     case Shell::Options::SymbolPrecedence::REVERSE_FREQUENCY:
     case Shell::Options::SymbolPrecedence::REVERSE_WEIGHTED_FREQUENCY:
-      aux.sort(BoostWrapper<FreqComparator<true /*reverse*/>>(forFunc));
+      aux.sort(BoostWrapper<FreqComparator<true /*reverse*/>>(symType));
       break;
     case Shell::Options::SymbolPrecedence::UNARY_FREQ:
-      aux.sort(BoostWrapper<UnaryFirstComparator<false,FreqComparator<>>>(forFunc));
+      aux.sort(BoostWrapper<UnaryFirstComparator<false,FreqComparator<>>>(symType));
       break;
     case Shell::Options::SymbolPrecedence::CONST_FREQ:
-      aux.sort(BoostWrapper<ConstFirstComparator<true /*reverse*/,FreqComparator<>>>(forFunc));
+      aux.sort(BoostWrapper<ConstFirstComparator<true /*reverse*/,FreqComparator<>>>(symType));
       break;
     case Shell::Options::SymbolPrecedence::OCCURRENCE:
       // already sorted by occurrence
@@ -772,7 +782,40 @@ static void sortAuxBySymbolPrecedence(DArray<unsigned>& aux, const Options& opt,
   }
 }
 
+
+DArray<int> PrecedenceOrdering::typeConPrecFromOpts(Problem& prb, const Options& opt) {
+  CALL("PrecedenceOrdering::typeConPresFromOpts");
+
+  unsigned nTypeCons = env.signature->typeCons();
+  DArray<unsigned> aux(nTypeCons);
+
+  if(nTypeCons) {
+    aux.initFromIterator(getRangeIterator(0u, nTypeCons), nTypeCons);
+
+    if (!opt.typeConPrecedence().empty()) {
+      BYPASSING_ALLOCATOR;
+
+      vstring precedence;
+      ifstream precedence_file (opt.typeConPrecedence().c_str());
+      if (precedence_file.is_open() && getline(precedence_file, precedence)) {
+        loadPermutationFromString(aux,precedence);
+        precedence_file.close();
+      }
+    } else {
+      sortAuxBySymbolPrecedence(aux,opt,SymbolType::TYPE_CON);
+    }
+  }
+
+  DArray<int>  typeConPrecedences(nTypeCons);
+  for(unsigned i=0;i<nTypeCons;i++) {
+    typeConPrecedences[aux[i]]=i;
+  }
+  return typeConPrecedences;
+}
+
 DArray<int> PrecedenceOrdering::funcPrecFromOpts(Problem& prb, const Options& opt) {
+  CALL("PrecedenceOrdering::funcPrecFromOpts");
+
   unsigned nFunctions = env.signature->functions();
   DArray<unsigned> aux(nFunctions);
 
@@ -789,24 +832,8 @@ DArray<int> PrecedenceOrdering::funcPrecFromOpts(Problem& prb, const Options& op
         precedence_file.close();
       }
     } else {
-      sortAuxBySymbolPrecedence(aux,opt,true /* forFunc */);
+      sortAuxBySymbolPrecedence(aux,opt,SymbolType::FUNCTION);
     }
-    
-    /*cout << "Function precedences:" << endl;
-    for(unsigned i=0;i<nFunctions;i++){
-      cout << env.signature->functionName(aux[i]) << " ";
-    }
-    cout << endl;*/
-    
-
-    /*
-    cout << "Function precedence: ";
-    for(unsigned i=0;i<nFunctions;i++){
-      cout << aux[i] << ",";
-    }
-    cout << endl;
-    */
-
   }
 
   DArray<int>  functionPrecedences(nFunctions);
@@ -817,6 +844,8 @@ DArray<int> PrecedenceOrdering::funcPrecFromOpts(Problem& prb, const Options& op
 }
 
 DArray<int> PrecedenceOrdering::predPrecFromOpts(Problem& prb, const Options& opt) {
+  CALL("PrecedenceOrdering::typeConPresFromOpts");
+
   unsigned nPredicates = env.signature->predicates();
   DArray<unsigned> aux(nPredicates);
   aux.initFromIterator(getRangeIterator(0u, nPredicates), nPredicates);
@@ -831,22 +860,8 @@ DArray<int> PrecedenceOrdering::predPrecFromOpts(Problem& prb, const Options& op
       precedence_file.close();
     }
   } else {
-    sortAuxBySymbolPrecedence(aux,opt,false /* forFunc */);
+    sortAuxBySymbolPrecedence(aux,opt,SymbolType::PREDICATE);
   }
-  /*
-  cout << "Predicate precedences:" << endl;
-  for(unsigned i=0;i<nPredicates;i++){
-    cout << env.signature->predicateName(aux[i]) << " "; 
-  }
-  cout << endl;
-  */
-  /*
-  cout << "Predicate precedence: ";
-  for(unsigned i=0;i<nPredicates;i++){
-    cout << aux[i] << ",";
-  }
-  cout << endl;
-  */
 
   DArray<int> predicatePrecedences(nPredicates);
   for(unsigned i=0;i<nPredicates;i++) {
@@ -912,40 +927,42 @@ DArray<int> PrecedenceOrdering::predLevelsFromOptsAndPrec(Problem& prb, const Op
 
 void PrecedenceOrdering::show(ostream& out) const 
 {
-  CALL("PrecedenceOrdering::show(ostream& out)")
-  {
-    out << "% Function precedences, smallest symbols first (line format: `<name> <arity>`) " << std::endl;
-    out << "% ===== begin of function precedences ===== " << std::endl;
-    DArray<unsigned> functors;
+  CALL("PrecedenceOrdering::show(ostream& out)");
 
-    functors.initFromIterator(getRangeIterator(0u,env.signature->functions()),env.signature->functions());
-    functors.sort(closureComparator([&](unsigned l, unsigned r){ return intoComparison(compareFunctionPrecedences(l,r)); }));
-    for (unsigned i = 0; i < functors.size(); i++) {
-      auto sym = env.signature->getFunction(functors[i]);
-      out << "% " << sym->name() << " " << sym->arity() << std::endl;
-    }
+  auto _show = [&](const char* precKind, unsigned cntFunctors, auto getSymbol, auto compareFunctors)
+    {
+      out << "% " << precKind << " precedences, smallest symbols first (line format: `<name> <arity>`) " << std::endl;
+      out << "% ===== begin of " << precKind << " precedences ===== " << std::endl;
+      DArray<unsigned> functors;
 
-    out << "% ===== end of function precedences ===== " << std::endl;
-  }
+      functors.initFromIterator(getRangeIterator(0u, cntFunctors), cntFunctors);
+      functors.sort(closureComparator(compareFunctors));
+      for (unsigned i = 0; i < cntFunctors; i++) {
+        auto sym = getSymbol(functors[i]);
+        out << "% " << sym->name() << " " << sym->arity() << std::endl;
+      }
 
-  out << "%" << std::endl;
+      out << "% ===== end of " << precKind << " precedences ===== " << std::endl;
 
-  {
-    out << "% Predicate precedences, smallest symbols first (line format `<name> <arity>`) " << std::endl;
-    out << "% ===== begin of predicate precedences ===== " << std::endl;
+      out << "%" << std::endl;
+    };
 
-    DArray<unsigned> functors;
-    functors.initFromIterator(getRangeIterator(0u,env.signature->predicates()),env.signature->predicates());
-    functors.sort(closureComparator([&](unsigned l, unsigned r) { return Int::compare(_predicatePrecedences[l], _predicatePrecedences[r]); }));
-    for (unsigned i = 0; i < functors.size(); i++) {
-      auto sym = env.signature->getPredicate(functors[i]);
-      out << "% " << sym->name() << " " << sym->arity() << std::endl;
-    }
+  _show("type constructor", 
+      env.signature->typeCons(), 
+      [](unsigned f) { return env.signature->getTypeCon(f); },
+      [&](unsigned l, unsigned r){ return intoComparison(compareTypeConPrecedences(l,r)); });
 
-    out << "% ===== end of predicate precedences ===== " << std::endl;
-  }
+  _show("function", 
+      env.signature->functions(),
+      [](unsigned f) { return env.signature->getFunction(f); },
+      [&](unsigned l, unsigned r){ return intoComparison(compareFunctionPrecedences(l,r)); }
+      );
 
-  out << "%" << std::endl;
+  _show("predicate", 
+      env.signature->predicates(),
+      [](unsigned f) { return env.signature->getPredicate(f); },
+      [&](unsigned l, unsigned r) { return Int::compare(_predicatePrecedences[l], _predicatePrecedences[r]); });
+
 
   {
     out << "% Predicate levels (line format: `<name> <arity> <level>`)" << std::endl;
@@ -960,7 +977,7 @@ void PrecedenceOrdering::show(ostream& out) const
       out << "% " << sym->name() << " " << sym->arity() << " " << _predicateLevels[i] << std::endl;
     }
 
-    out << "% ===== end of predicate precedences ===== " << std::endl;
+    out << "% ===== end of predicate levels ===== " << std::endl;
   }
 
   out << "%" << std::endl;

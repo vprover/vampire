@@ -87,7 +87,7 @@ UnitInputType getInputType(UnitInputType t1, UnitInputType t2);
  *
  *  Further notes on creating inferences:
  *  - Immediate simplification inferences cannot be linked to an index
- *  - For an infernce that works at subterms, please consider carefully
+ *  - For an inference that works at subterms, please consider carefully
  *    which iterator to use to return these subterms. In Vampire, terms are
  *    of the form f(type_args, term_args). In most cases, inferences should NOT
  *    be working on type arguments. Please view TermIterators.hpp for a list of
@@ -194,7 +194,6 @@ enum class InferenceRule : unsigned char {
 //     MINISCOPE,
   /** normalizing inference */
   THEORY_NORMALIZATION,
-
   /** skolemization */
   SKOLEMIZE,
   /** obtain clause from a formula */
@@ -382,6 +381,8 @@ enum class InferenceRule : unsigned char {
   /** merging predicate definitions */
   PREDICATE_DEFINITION_MERGING,
 
+  /** (consistent) polarity flipping of (some selected) predicates **/
+  POLARITY_FLIPPING,
 
   /** unused predicate definition removal */
   UNUSED_PREDICATE_DEFINITION_REMOVAL,
@@ -391,10 +392,6 @@ enum class InferenceRule : unsigned char {
   INEQUALITY_SPLITTING,
   /** inequality splitting name introduction */
   INEQUALITY_SPLITTING_NAME_INTRODUCTION,
-  /** grounding */
-  GROUNDING,
-  /** equality axiom */
-  EQUALITY_AXIOM,
   /** distinctness axiom */
   DISTINCTNESS_AXIOM,
   /** Introduction of formula to convert formulas used as argument positions.

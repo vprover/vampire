@@ -150,9 +150,10 @@ public:
   static bool equals(T o1, T o2)
   { return o1 == o2; }
 
-  // special-case for Units as they have a unique incrementing identifier
-  static unsigned hash(Kernel::Unit* u)
-  { return u ? u->number() + 1 : 0; }
+  // special-case for Units (and their descendants) as they have a unique incrementing identifier  
+  template<typename T>
+  static unsigned hash(typename std::enable_if<std::is_base_of<Kernel::Unit, T>::value,T>::type *unit) 
+  { return unit ? unit->number() : 0; }
 
   // containers hash their contents
   static unsigned hash(const vstring& str)

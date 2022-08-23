@@ -138,7 +138,7 @@ endif
 ################################################################
 
 CXX = g++
-CXXFLAGS = $(XFLAGS) -Wall -std=c++14  $(INCLUDES) # -Wno-unknown-warning-option for clang
+CXXFLAGS = $(XFLAGS) -Wall -fno-threadsafe-statics -std=c++14  $(INCLUDES) # -Wno-unknown-warning-option for clang
 
 CC = gcc 
 CCFLAGS = -Wall -O3 -DNDBLSCR -DNLGLOG -DNDEBUG -DNCHKSOL -DNLGLPICOSAT 
@@ -204,6 +204,7 @@ VK_OBJ= Kernel/Clause.o\
         Kernel/MaximalLiteralSelector.o\
         Kernel/SpassLiteralSelector.o\
         Kernel/ELiteralSelector.o\
+        Kernel/RndLiteralSelector.o\
         Kernel/MLMatcher.o\
         Kernel/MLMatcherSD.o\
         Kernel/MLVariant.o\
@@ -313,8 +314,7 @@ VINF_OBJ=Inferences/BackwardDemodulation.o\
          Inferences/TheoryInstAndSimp.o
 #         Inferences/RenamingOnTheFly.o\
 
-VSAT_OBJ=SAT/DIMACS.o\
-         SAT/MinimizingSolver.o\
+VSAT_OBJ=SAT/MinimizingSolver.o\
          SAT/SAT2FO.o\
          SAT/SATClause.o\
          SAT/SATInference.o\
@@ -353,7 +353,6 @@ VS_OBJ = Shell/AnswerExtractor.o\
          Shell/FunctionDefinition.o\
          Shell/GeneralSplitting.o\
          Shell/GoalGuessing.o\
-         Shell/Grounding.o\
          Shell/InequalitySplitting.o\
          Shell/InterpolantMinimizer.o\
          Shell/Interpolants.o\
@@ -365,6 +364,7 @@ VS_OBJ = Shell/AnswerExtractor.o\
          Shell/Naming.o\
          Shell/NNF.o\
          Shell/Normalisation.o\
+         Shell/Shuffling.o\
          Shell/Options.o\
          Shell/PredicateDefinition.o\
          Shell/Preprocess.o\

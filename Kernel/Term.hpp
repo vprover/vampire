@@ -40,7 +40,7 @@
 #include "Lib/Metaiterators.hpp"
 
 // the number of bits used for "TermList::_info::distinctVars"
-#define TERM_DIST_VAR_BITS 22
+#define TERM_DIST_VAR_BITS 21
 #define TERM_DIST_VAR_UNKNOWN ((2 ^ TERM_DIST_VAR_BITS) - 1)
 
 namespace Kernel {
@@ -234,6 +234,8 @@ private:
       unsigned literal : 1;
       /** true if atomic sort */
       unsigned sort : 1;
+      /** true if term contains at least one term var */
+      unsigned hasTermVar : 1;
       /** Ordering comparison result for commutative term arguments, one of
        * 0 (unknown) 1 (less), 2 (equal), 3 (greater), 4 (incomparable)
        * @see Term::ArgumentOrder */
@@ -242,6 +244,7 @@ private:
       /** Number of distinct variables in the term, equal
        * to TERM_DIST_VAR_UNKNOWN if the number has not been
        * computed yet. */
+
       mutable unsigned distinctVars : TERM_DIST_VAR_BITS;
       /** term id hiding in this _info */
       // this should not be removed without care,
@@ -447,6 +450,7 @@ public:
    * Return the number of type arguments for a polymorphic term (or 0 if monomorphic).
    */
   unsigned numTypeArguments() const;
+
   /**
    * Return the number of term arguments for a term (equal to _arity if monomorphic).
    */  
@@ -506,6 +510,14 @@ public:
     return numVarOccs() == 0;
   } // ground
 
+  /** True if the term contains a term variable (type variables don't count)
+   *  Only applicable to shared terms */
+  bool hasTermVar() const
+  {
+    ASS(_args[0]._info.shared);
+    return _args[0]._info.hasTermVar;
+  } // ground
+
   /** True if the term is shared */
   bool shared() const
   { return _args[0]._info.shared; } // shared
@@ -518,6 +530,17 @@ public:
   {
     return _args[0]._info.commutative;
   } // commutative
+
+  // destructively swap arguments of a (binary) commutative term
+  // the term is assumed to be non-shared
+  void argSwap() {
+    ASS(commutative() && !shared());
+    ASS(arity() == 2);
+
+    TermList* ts1 = args();
+    TermList* ts2 = ts1->next();
+    swap(ts1->_content, ts2->_content);
+  }
 
   /** Return the weight. Applicable only to shared terms */
   unsigned weight() const
@@ -546,10 +569,7 @@ public:
   } // setWeight
 
   /** Set term id */
-  void setId(unsigned id)
-  {
-    _args[0]._info.id = id;
-  } // setWeight
+  void setId(unsigned id);
 
   /** Set (shared) term's id */
   unsigned getId() const
@@ -574,6 +594,13 @@ public:
     }
     _vars = v;
   } // setVars
+
+  void setHasTermVar(bool b)
+  {
+    CALL("setHasTermVar");
+    ASS(shared() && !isSort());
+    _args[0]._info.hasTermVar = b;
+  }
 
   /** Return the number of variable _occurrences_ */
   unsigned numVarOccs() const

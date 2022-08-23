@@ -134,7 +134,6 @@ Statistics::Statistics()
     evaluationIncomp(0),
     evaluationGreater(0),
     evaluationCnt(0),
-
     innerRewrites(0),
     innerRewritesToEqTaut(0),
     deepEquationalTautologies(0),
@@ -296,6 +295,7 @@ void Statistics::print(ostream& out)
       discardedNonRedundantClauses+inferencesSkippedDueToColors+inferencesBlockedForOrderingAftercheck);
   COND_OUT("Initial clauses", initialClauses);
   COND_OUT("Generated clauses", generatedClauses);
+  COND_OUT("Activations started", activations);
   COND_OUT("Active clauses", activeClauses);
   COND_OUT("Passive clauses", passiveClauses);
   COND_OUT("Extensionality clauses", extensionalityClauses);
@@ -507,6 +507,8 @@ const char* Statistics::phaseToString(ExecutionPhase p)
     return "Property scanning";
   case NORMALIZATION:
     return "Normalization";
+  case SHUFFLING:
+    return "shuffling";
   case SINE_SELECTION:
     return "SInE selection";
   case INCLUDING_THEORY_AXIOMS:

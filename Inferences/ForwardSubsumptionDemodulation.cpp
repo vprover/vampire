@@ -54,7 +54,7 @@ void ForwardSubsumptionDemodulation::attach(SaturationAlgorithm* salg)
   _allowIncompleteness = false;
 
   if (_doSubsumption) {
-    _unitIndex.request(salg->getIndexManager(), SIMPLIFYING_UNIT_CLAUSE_SUBST_TREE);
+    _unitIndex.request(salg->getIndexManager(), FW_SUBSUMPTION_UNIT_CLAUSE_SUBST_TREE);
   }
 }
 

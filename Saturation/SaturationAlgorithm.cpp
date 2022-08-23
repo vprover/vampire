@@ -102,6 +102,7 @@
 #include "Shell/Options.hpp"
 #include "Shell/Statistics.hpp"
 #include "Shell/UIHelper.hpp"
+#include "Shell/Shuffling.hpp"
 
 #include "Splitter.hpp"
 
@@ -359,8 +360,7 @@ ClauseIterator SaturationAlgorithm::activeClauses()
 {
   CALL("SaturationAlgorithm::activeClauses");
 
-  LiteralIndexingStructure* gis=getIndexManager()->getGeneratingLiteralIndexingStructure();
-  return pvi( getMappingIterator(gis->getAll(), SLQueryResult::ClauseExtractFn()) );
+  return _active->clauses();
 }
 
 /**
@@ -781,7 +781,18 @@ void SaturationAlgorithm::init()
 {
   CALL("SaturationAlgorithm::init");
 
-  ClauseIterator toAdd = _prb.clauseIterator();
+  ClauseIterator toAdd;
+
+  if (env.options->randomTraversals()) {
+    TimeCounter tc(TC_SHUFFLING);
+
+    Stack<Clause*> aux;
+    aux.loadFromIterator(_prb.clauseIterator());
+    Shuffling::shuffleArray(aux,aux.size());
+    toAdd = pvi(ownedArrayishIterator(std::move(aux)));
+  } else {
+    toAdd = _prb.clauseIterator();
+  }
 
   while (toAdd.hasNext()) {
     Clause* cl=toAdd.next();
@@ -860,6 +871,12 @@ void SaturationAlgorithm::addNewClause(Clause* cl)
 {
   CALL("SaturationAlgorithm::addNewClause");
 
+  if (env.options->randomTraversals()) {
+    TimeCounter tc(TC_SHUFFLING);
+
+    Shuffling::shuffle(cl);
+  }
+
   //we increase the reference counter here so that the clause wouldn't
   //get destroyed during handling in the onNewClause handler
   //(there the control flow goes out of the SaturationAlgorithm class,
@@ -875,6 +892,12 @@ void SaturationAlgorithm::addNewClause(Clause* cl)
 void SaturationAlgorithm::newClausesToUnprocessed()
 {
   CALL("SaturationAlgorithm::newClausesToUnprocessed");
+
+  if (env.options->randomTraversals()) {
+    TimeCounter tc(TC_SHUFFLING);
+
+    Shuffling::shuffleArray(_newClauses.naked().begin(),_newClauses.size());
+  }
 
   while (_newClauses.isNonEmpty()) {
     Clause* cl=_newClauses.popWithoutDec();
@@ -1201,6 +1224,12 @@ void SaturationAlgorithm::activate(Clause* cl)
   if (!cl->numSelected()) {
     TimeCounter tc(TC_LITERAL_SELECTION);
 
+    if (env.options->randomTraversals()) {
+      TimeCounter tc(TC_SHUFFLING);
+
+      Shuffling::shuffle(cl);
+    }
+
     _selector->select(cl);
   }
 
@@ -1210,7 +1239,6 @@ void SaturationAlgorithm::activate(Clause* cl)
   cl->setStore(Clause::ACTIVE);
   env.statistics->activeClauses++;
   _active->add(cl);
-
     
   auto generated = _generator->generateSimplify(cl);
 
@@ -1235,12 +1263,15 @@ void SaturationAlgorithm::activate(Clause* cl)
 
   _clauseActivationInProgress=false;
 
-
   //now we remove clauses that could not be removed during the clause activation process
+  if (env.options->randomTraversals()) {
+    TimeCounter tc(TC_SHUFFLING);
+
+    Shuffling::shuffleArray(_postponedClauseRemovals.begin(),_postponedClauseRemovals.size());
+  }
   while (_postponedClauseRemovals.isNonEmpty()) {
     Clause* cl=_postponedClauseRemovals.pop();
-    if (cl->store() != Clause::ACTIVE &&
-	cl->store() != Clause::PASSIVE) {
+    if (cl->store() != Clause::ACTIVE && cl->store() != Clause::PASSIVE) {
       continue;
     }
     removeActiveOrPassiveClause(cl);
@@ -1322,14 +1353,12 @@ UnitList* SaturationAlgorithm::collectSaturatedSet()
 {
   CALL("SaturationAlgorithm::collectSaturatedSet");
 
-  LiteralIndexingStructure* gis=getIndexManager()->getGeneratingLiteralIndexingStructure();
-
   UnitList* res = 0;
-  SLQueryResultIterator qrit = gis->getAll();
-  while (qrit.hasNext()) {
-    SLQueryResult qres = qrit.next();
-    UnitList::push(qres.clause, res);
-    qres.clause->incRefCnt();
+  ClauseIterator it = _active->clauses();
+  while (it.hasNext()) {
+    Clause* cl = it.next();
+    cl->incRefCnt();
+    UnitList::push(cl, res);    
   }
   return res;
 }
@@ -1401,6 +1430,8 @@ MainLoopResult SaturationAlgorithm::runImpl()
       if (env.timeLimitReached()) {
         throw TimeLimitExceededException();
       }
+
+      env.statistics->activations = l;
     }
   }
   catch(ThrowableBase&)

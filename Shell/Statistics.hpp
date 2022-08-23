@@ -242,6 +242,7 @@ public:
   unsigned taAcyclicityGeneratedDisequalities;
 
   // Saturation
+  unsigned activations;
   /** all clauses ever occurring in the unprocessed queue */
   unsigned generatedClauses;
   /** all passive clauses */
@@ -347,6 +348,7 @@ public:
     /** Scanning for properties to be passed to preprocessing */
     PROPERTY_SCANNING,
     NORMALIZATION,
+    SHUFFLING,
     SINE_SELECTION,
     INCLUDING_THEORY_AXIOMS,
     PREPROCESS_1,
