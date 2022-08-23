@@ -46,7 +46,6 @@ class Tracer {
   explicit Tracer (const char* fun);
   virtual ~Tracer ();
   static void printStack (ostream&);
-  static void printOnlyStack (ostream&);
   static void controlPoint (const char* name);
   static unsigned passedControlPoints () { return _passedControlPoints; }
   /** start outputting the trace independently of the first and last
@@ -59,7 +58,6 @@ class Tracer {
   const char* _fun;
   Tracer* _previous;
 
-  static void printStackRec (Tracer* current, ostream&, int& depth);
   static void spaces(ostream& str,int number);
 
   /** current trace point */

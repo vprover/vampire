@@ -9,11 +9,8 @@ set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-set(CMAKE_ENABLE_EXPORTS ON)
-
 # configure compilers
 if(CMAKE_CXX_COMPILER_ID STREQUAL GNU OR CMAKE_CXX_COMPILER_ID MATCHES Clang$)
-  add_compile_options(-ggdb)
   add_compile_options(-Wall)
   # we don't use multithreading in (mainline!) Vampire
   add_compile_options(-fno-threadsafe-statics)
@@ -44,6 +41,12 @@ if (NOT BUILD_SHARED_LIBS)
   set(CMAKE_EXE_LINKER_FLAGS -static)
   set(VAMPIRE_BINARY_STATIC _static)
 endif()
+
+# get symbol names in binary for backtraces
+set(CMAKE_ENABLE_EXPORTS ON)
+
+# link to libdl for dladdr() on POSIXy things, used for backtraces
+link_libraries(${CMAKE_DL_LIBS})
 
 # We compile tests only in debug mode, since in release mode assertions are NOPs anyways.
 if(CMAKE_BUILD_TYPE STREQUAL Debug)
@@ -913,10 +916,6 @@ if (COMPILE_TESTS)
   endforeach()
 
 endif() # COMPILE_TESTS
-
-if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-  link_libraries(${CMAKE_DL_LIBS})
-endif()
 
 #################################################################
 # automated generation of Vampire revision information from git #

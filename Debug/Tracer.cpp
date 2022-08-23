@@ -16,11 +16,27 @@
 
 #include <climits>
 #include <iostream>
-#ifdef VDEBUG
+#if VDEBUG
 
-#include <cxxabi.h>
-#include <dlfcn.h>
+#ifdef __has_include
+
+#if __has_include(<execinfo.h>)
 #include <execinfo.h>
+#define HAVE_EXECINFO
+#endif
+
+#if __has_include(<dlfcn.h>)
+#include <dlfcn.h>
+#define HAVE_DLFCN
+#endif
+
+#if __has_include(<cxxabi.h>)
+#include <cxxabi.h>
+#define HAVE_CXXABI
+#endif
+
+#endif
+
 #include "Lib/Allocator.hpp"
 using namespace Lib;
 #endif
@@ -166,18 +182,6 @@ void Tracer::outputLastControlPoint (ostream& str)
       << ")\n";
 } // Tracer::outputLastControlPoint
 
-
-/**
- * Print the stack.
- * @since 24/10/2002 Manchester
- */
-void Tracer::printOnlyStack (ostream& str)
-{
-  int depth = 0;
-  printStackRec (_current, str, depth);
-} // Tracer::printStack (ostream& str)
-
-
 /**
  * Print the stack.
  * @since 24/10/2002 Manchester
@@ -189,42 +193,39 @@ void Tracer::printStack (ostream& str)
       << "last control point:\n";
   outputLastControlPoint(str);
 
-  void *buf[1024];
-  int sz = ::backtrace(buf, 1024);
+#ifdef HAVE_EXECINFO
+  const unsigned MAX_CALLS = 1024;
+  void *call_stack[MAX_CALLS];
+  int sz = ::backtrace(call_stack, MAX_CALLS);
   for(int i = 0; i < sz; i++) {
     spaces(str, i);
+    void *call = call_stack[sz - (i + 1)];
+#ifdef HAVE_DLFCN
     Dl_info info;
-    if(dladdr(buf[sz - (i + 1)], &info) && info.dli_sname) {
+    if(dladdr(call, &info) && info.dli_sname) {
+      const char *name = info.dli_sname;
+#ifdef HAVE_CXXABI
       int status;
-      size_t length;
-      const char *demangled = abi::__cxa_demangle(info.dli_sname, nullptr, &length, &status);
-      str << (status ? info.dli_sname : demangled) << std::endl;
+      const char *demangled = abi::__cxa_demangle(info.dli_sname, nullptr, nullptr, &status);
+      if(status == 0)
+        name = demangled;
+#else
+      // TODO demangling support for other platforms
+#endif
+      str << name << std::endl;
     }
     else {
       str << "???" << std::endl;
     }
+#else
+    // TODO symbol name support for other platforms
+    str << "???" << std::endl;
+#endif
   }
+#else
+  // TODO backtrace support for other platforms
+#endif
 } // Tracer::printStack (ostream& str)
-
-
-/**
- * Print the stack at a certain depth. The depth is used
- * for indentation.
- * @since 24/10/2002 Manchester
- */
-void Tracer::printStackRec(Tracer* current, ostream& str, int& depth)
-{
-  BYPASSING_ALLOCATOR;
-  /*
-  if (!current) { // beginning of the stack
-    return;
-  }
-  printStackRec(current->_previous,str,depth);
-  spaces(str,depth);
-  str << current->_fun << "\n";
-  depth ++;
-  */
-} // Tracer::printStack (ostream& str, int& depth)
 
 
 /**
