@@ -147,7 +147,7 @@ public:
   static typename std::enable_if<
     std::is_base_of<Kernel::Unit, T>::value,
     unsigned
-  >::type hash(T *unit) 
+  >::type hash(T *unit)
   { return hash(unit ? unit->number() : 0); }
 
   // other pointers are hashed as bytes without dereference
