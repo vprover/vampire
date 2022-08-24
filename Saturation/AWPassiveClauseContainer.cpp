@@ -37,10 +37,35 @@
 
 #include "AWPassiveClauseContainer.hpp"
 
+#define DEBUG_MODEL 1
+#include <ATen/Parallel.h>
+
 namespace Saturation
 {
 using namespace Lib;
 using namespace Kernel;
+
+NeuralPassiveClauseContainer::NeuralPassiveClauseContainer(bool isOutermost, const Shell::Options& opt):
+  PassiveClauseContainer(isOutermost, opt)
+{
+  CALL("NeuralPassiveClauseContainer::NeuralPassiveClauseContainer");
+
+  ASS(_isOutermost);
+
+  TimeCounter t(TC_DEEP_STUFF);
+
+#if DEBUG_MODEL
+  auto start = env.timer->elapsedMilliseconds();
+#endif
+
+  // seems to be making this nicely single-threaded
+  at::set_num_threads(1);
+  _model = torch::jit::load(opt.neuralPassiveClauseContainer().c_str());
+
+#if DEBUG_MODEL
+  cout << "Model loaded in " << env.timer->elapsedMilliseconds() - start << " ms" << endl;
+#endif
+}
 
 AWPassiveClauseContainer::AWPassiveClauseContainer(bool isOutermost, const Shell::Options& opt, vstring name) :
   PassiveClauseContainer(isOutermost, opt, name),

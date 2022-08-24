@@ -25,6 +25,9 @@
 
 #include "Lib/Allocator.hpp"
 
+#include "Lib/Random.hpp"
+#include <torch/script.h>
+
 namespace Saturation {
 
 using namespace Kernel;
@@ -55,6 +58,93 @@ protected:
   friend class AWPassiveClauseContainer;
 private:
   const Shell::Options& _opt;
+};
+
+/**
+ * 
+ * 
+ */
+class NeuralPassiveClauseContainer
+: public PassiveClauseContainer
+{
+public:
+  CLASS_NAME(NeuralPassiveClauseContainer);
+  USE_ALLOCATOR(NeuralPassiveClauseContainer);
+
+  NeuralPassiveClauseContainer(bool isOutermost, const Shell::Options& opt);
+  virtual ~NeuralPassiveClauseContainer(){}
+
+  unsigned sizeEstimate() const override { return _clauses.size(); }
+  bool isEmpty() const override { return _clauses.size() == 0; } 
+  void add(Clause* cl) override { 
+    CALL("NeuralPassiveClauseContainer::add");
+    ASS(cl->store() == Clause::PASSIVE);
+    ALWAYS(_clauses.insert(cl)); 
+    addedEvent.fire(cl); 
+  }
+  void remove(Clause* cl) override { 
+    CALL("NeuralPassiveClauseContainer::remove");
+    ASS(cl->store()==Clause::PASSIVE);
+    ALWAYS(_clauses.remove(cl));
+    removedEvent.fire(cl); 
+    ASS(cl->store()!=Clause::PASSIVE);
+  }
+  Clause* popSelected() override { 
+    CALL("NeuralPassiveClauseContainer::popSelected");
+    ASS(_clauses.size());
+
+    unsigned i = Random::getInteger(_clauses.size());
+    decltype(_clauses)::Iterator it(_clauses);
+
+    Clause *cl;
+    while (it.hasNext()) {
+      cl = it.next();
+      if (i-- == 0) {
+        break;
+      }
+    }
+
+    _clauses.remove(cl); 
+    selectedEvent.fire(cl); 
+
+    return cl;
+  }
+private:
+  Set<Clause*> _clauses;
+  torch::jit::script::Module _model;
+
+  /*
+   * LRS specific methods for computation of Limits
+   */
+public:
+  void simulationInit() override { NOT_IMPLEMENTED; }
+  bool simulationHasNext() override { return false; }
+  void simulationPopSelected() override { NOT_IMPLEMENTED; }
+
+  // returns whether at least one of the limits was tightened
+  bool setLimitsToMax() override { return false; }
+  // returns whether at least one of the limits was tightened
+  bool setLimitsFromSimulation() override { return false; }
+
+  void onLimitsUpdated() override { NOT_IMPLEMENTED; }
+
+  /*
+   * LRS specific methods and fields for usage of limits
+   */
+  bool ageLimited() const override { return false; }
+  bool weightLimited() const override { return false; }
+
+  bool fulfilsAgeLimit(Clause* c) const override { return true; }
+  // note: w here denotes the weight as returned by weight().
+  // this method internally takes care of computing the corresponding weightForClauseSelection.
+
+  bool fulfilsAgeLimit(unsigned w, unsigned numPositiveLiterals, const Inference& inference) const override { return true; }
+  bool fulfilsWeightLimit(Clause* cl) const override { return true; }
+  // note: w here denotes the weight as returned by weight().
+  // this method internally takes care of computing the corresponding weightForClauseSelection.
+  bool fulfilsWeightLimit(unsigned w, unsigned numPositiveLiterals, const Inference& inference) const override { return true; }
+
+  bool childrenPotentiallyFulfilLimits(Clause* cl, unsigned upperBoundNumSelLits) const override { return true; }  
 };
 
 /**

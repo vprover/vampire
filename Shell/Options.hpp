@@ -2248,6 +2248,9 @@ public:
   bool parsingDoesNotCount() const { return _parsingDoesNotCount.actualValue; }
 #endif
   int inequalitySplitting() const { return _inequalitySplitting.actualValue; }
+
+  vstring neuralPassiveClauseContainer() const { return _neuralPassiveClauseContainer.actualValue; }
+
   int ageRatio() const { return _ageWeightRatio.actualValue; }
   void setAgeRatio(int v){ _ageWeightRatio.actualValue = v; }
   int weightRatio() const { return _ageWeightRatio.otherValue; }
@@ -2536,6 +2539,8 @@ private:
   ChoiceOptionValue<RandomStrategy> _randomStrategy;
   DecodeOptionValue _decode;
   BoolOptionValue _encode;
+
+  StringOptionValue _neuralPassiveClauseContainer;
 
   RatioOptionValue _ageWeightRatio;
 	ChoiceOptionValue<AgeWeightRatioShape> _ageWeightRatioShape;

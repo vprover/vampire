@@ -241,7 +241,11 @@ SaturationAlgorithm::SaturationAlgorithm(Problem& prb, const Options& opt)
 
   _unprocessed = new UnprocessedClauseContainer();
 
-  if (opt.useManualClauseSelection())
+  if (!opt.neuralPassiveClauseContainer().empty()) 
+  {
+    _passive = std::make_unique<NeuralPassiveClauseContainer>(true, opt);
+  } 
+  else if (opt.useManualClauseSelection())
   {
     _passive = std::make_unique<ManCSPassiveClauseContainer>(true, opt);
   }

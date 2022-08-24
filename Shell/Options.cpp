@@ -937,6 +937,12 @@ void Options::init()
     _lookup.insert(&_lookaheadDelay);
     _lookaheadDelay.onlyUsefulWith(_selection.isLookAheadSelection());
 
+    _neuralPassiveClauseContainer = StringOptionValue("neural_passive_clause_container","npcc","");
+    _neuralPassiveClauseContainer.description="If non-empty, specifies a path to a torch script model that should be used instead of the standard passive containers";
+    _lookup.insert(&_neuralPassiveClauseContainer);
+    _neuralPassiveClauseContainer.tag(OptionTag::SATURATION);
+    _neuralPassiveClauseContainer.onlyUsefulWith(ProperSaturationAlgorithm());
+
     _ageWeightRatio = RatioOptionValue("age_weight_ratio","awr",1,1,':');
     _ageWeightRatio.description=
     "Ratio in which clauses are being selected for activation i.e. a:w means that for every a clauses selected based on age "
