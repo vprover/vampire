@@ -1579,7 +1579,7 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
     gie->addFront(new EqualityResolution()); 
   }
 
-  if(opt.combinatorySup()){
+  if(opt.combinatorySup() && prb.higherOrder()){
     gie->addFront(new ArgCong());
     gie->addFront(new NegativeExt());//TODO add option
     if(opt.narrow() != Options::Narrow::OFF){
@@ -1592,7 +1592,6 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
 
   if(prb.hasFOOL() &&
     prb.higherOrder() && env.options->booleanEqTrick()){
-  //  gie->addFront(new ProxyElimination::NOTRemovalGIE());
     gie->addFront(new BoolEqToDiseq());
   }
 
@@ -1811,23 +1810,18 @@ ImmediateSimplificationEngine* SaturationAlgorithm::createISE(Problem& prb, cons
     break;
   }
 
-  if(env.options->combinatorySup()){
+  if(env.options->combinatorySup() && prb.higherOrder()){
     res->addFront(new CombinatorDemodISE());
     res->addFront(new CombinatorNormalisationISE());
   }
 
-  if(env.options->choiceReasoning()){
+  if(env.options->choiceReasoning() && prb.higherOrder()){
     res->addFront(new ChoiceDefinitionISE());
   }
 
   if((prb.hasLogicalProxy() || prb.hasBoolVar() || prb.hasFOOL()) &&
       prb.higherOrder() && !env.options->addProxyAxioms()){
     if(env.options->cnfOnTheFly() == Options::CNFOnTheFly::EAGER){
-      /*res->addFrontMany(new ProxyISE());
-      res->addFront(new OrImpAndProxyISE());
-      res->addFront(new NotProxyISE());   
-      res->addFront(new EqualsProxyISE());   
-      res->addFront(new PiSigmaProxyISE());*/
       res->addFrontMany(new EagerClausificationISE());
     } else {
       res->addFront(new IFFXORRewriterISE());

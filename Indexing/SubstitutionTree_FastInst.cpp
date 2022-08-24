@@ -566,7 +566,7 @@ finish:
  */
 SubstitutionTree::FastInstancesIterator::FastInstancesIterator(SubstitutionTree* parent, Node* root,
 	Term* query, bool retrieveSubstitution, bool reversed, bool withoutTop, 
-  ConstraintType ct, VSpecVarToTermMap* termMap) //termMap for compatibility purposes
+  MismatchHandler* hndler) //MismatchHandler for compatibility purposes
 : _literalRetrieval(query->isLiteral()), _retrieveSubstitution(retrieveSubstitution),
   _inLeaf(false), _ldIterator(LDIterator::getEmpty()),  _root(root),
   _alternatives(64), _specVarNumbers(64), _nodeTypes(64)
@@ -669,10 +669,9 @@ SubstitutionTree::QueryResult SubstitutionTree::FastInstancesIterator::next()
       _resultDenormalizer.makeInverse(normalizer);
     }
 
-    return QueryResult(make_pair(&ld,
-	    _subst->getSubstitution(&_resultDenormalizer)),UnificationConstraintStackSP());
+    return QueryResult(&ld,_subst->getSubstitution(&_resultDenormalizer));
   } else {
-    return QueryResult(make_pair(&ld, ResultSubstitutionSP()),UnificationConstraintStackSP());
+    return QueryResult(&ld, ResultSubstitutionSP());
   }
 }
 #undef LOGGING

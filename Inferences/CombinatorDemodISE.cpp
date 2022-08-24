@@ -44,22 +44,22 @@ Clause* CombinatorDemodISE::simplify(Clause* c)
  // cout << "into CombinatorDemodISE " + c->toString() << endl;
 
   unsigned length = 0;
-  unsigned length0;
-  unsigned length1;
+
 
   for(unsigned i = 0; i < c->length(); i++){
     Literal* lit = (*c)[i];
     ASS(lit->isEquality());
     TermList t0 = *lit->nthArgument(0);
     TermList t1 = *lit->nthArgument(1);
-    
-    length0 = 0;
-    length1 = 0;
 
-    TermList t0r = t0.isVar() ? t0 : reduce(t0, length0);
-    TermList t1r = t1.isVar() ? t1 : reduce(t1, length1);      
+    TermList t0r = headNormalForm(t0);  
+    TermList t1r = headNormalForm(t1);     
     
-    length = length + length0 + length1;
+    TermReducer tr;
+    t0r = tr.transform(t0r);
+    t1r = tr.transform(t1r);
+
+    length = length + tr.getReductionLen();
 
     if((t0r != t0) || (t1r != t1)){
       modified = true;
@@ -84,113 +84,33 @@ Clause* CombinatorDemodISE::simplify(Clause* c)
   return newC;
 }
 
-TermList CombinatorDemodISE::reduce(TermList t, unsigned& length)
+TermList TermReducer::transformSubterm(TermList trm)
 {
-  CALL("CombinatorDemodISE::reduce");
-  
-  typedef SmartPtr<ApplicativeArgsIt> ArgsIt_ptr;
+  CALL("TermReducer::transformSubterm");
 
-  ASS(!t.isVar());
-    
-  static Stack<Term*> terms(8);
-  static Stack<AH::HigherOrderTermInfo> infos(8);
-  static Stack<bool> modified(8);
-  static Stack<ArgsIt_ptr> argIts(8);
-  static TermStack args;
-
-  ASS(argIts.isEmpty());
-  ASS(terms.isEmpty());
-  ASS(infos.isEmpty());
-  modified.reset();
-  args.reset();
-
-  headNormalForm(t);
-  modified.push(false);
-  argIts.push(ArgsIt_ptr(new ApplicativeArgsIt(t, false)));
-  ArgsIt_ptr argsIt = argIts.top();
-  infos.push(AH::HigherOrderTermInfo(argsIt->head(), argsIt->headSort(), argsIt->argNum()));
-
-  for (;;) {
-    if (!argIts.top()->hasNext()) {
-      argIts.pop();
-      if (terms.isEmpty()) {
-        //we're done, args stack contains modified arguments
-        //of the literal.
-        ASS(argIts.isEmpty());
-        break;
-      }
-      Term* orig = terms.pop();
-      AH::HigherOrderTermInfo hoti=infos.pop();
-      if (!modified.pop()) {
-        args.truncate(args.length() - hoti.argNum);
-        args.push(TermList(orig));
-        continue;
-      }
-      //here we assume, that stack is an array with
-      //second topmost element as &top()-1, third at
-      //&top()-2, etc...
-      TermList* argLst=&args.top() - (hoti.argNum - 1);
-      args.truncate(args.length() - hoti.argNum);
-
-      TermList trm = AH::createAppTerm(hoti.headSort, hoti.head, argLst, hoti.argNum);
-      args.push(trm);
-      modified.setTop(true);
-      continue;
-    }
-
-    TermList tl= argIts.top()->next();
-    bool reduced = headNormalForm(tl);
-    if(reduced){
-      length++;
-      modified.setTop(true);
-    }
-    if (tl.isVar()) {
-      args.push(tl);
-      continue;
-    }
-    ASS(tl.isTerm());
-    Term* t=tl.term();
-    terms.push(t);
-    modified.push(false);
-    argIts.push(ArgsIt_ptr(new ApplicativeArgsIt(tl, false)));
-    argsIt = argIts.top();
-    infos.push(AH::HigherOrderTermInfo(argsIt->head(), argsIt->headSort(), argsIt->argNum()));
+  TermList res = CombinatorDemodISE::headNormalForm(trm);
+  if(res != trm){
+    _reducLen++;
   }
-  ASS(argIts.isEmpty());
-  ASS(terms.isEmpty());
-  ASS_EQ(modified.length(),1);
-  ASS_EQ(infos.length(),1);
-  AH::HigherOrderTermInfo hoti=infos.pop();
-  ASS_EQ(args.length(),hoti.argNum);
-
-  if (!modified.pop()) {
-    return t;
-  }
-
-  TermList* argLst=&args.top() - (hoti.argNum-1);
-  ASS(!t.term()->isLiteral());
-  return AH::createAppTerm(hoti.headSort, hoti.head, argLst, hoti.argNum);;
+  return res;
 }
 
-bool CombinatorDemodISE::headNormalForm(TermList& t)
+TermList CombinatorDemodISE::headNormalForm(TermList t)
 {
   CALL("CombinatorDemodISE::headNormalForm");
 
   static TermStack args;
   TermList head;
-  
-  bool modified = false;
-  
+    
   for(;;){
     AH::getHeadAndArgs(t, head, args);
     if(AH::isComb(head) && !AH::isUnderApplied(head, args.size())){
-      modified = true;
       t = SKIKBO::reduce(args, head);
     } else {
       break; 
     }
   }
-  return modified;
+  return t;
 }
 
 

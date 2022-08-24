@@ -32,22 +32,6 @@ using namespace Shell;
  */
 class ApplicativeHelper {
 public:
-
-  struct HigherOrderTermInfo
-  {
-  public:
-    HigherOrderTermInfo(TermList h, TermList hs, unsigned an){
-      head = h;
-      headSort = hs;
-      argNum = an;
-    }
-
-    TermList head;
-    TermList headSort;
-    unsigned argNum;
-  };
-
-  ApplicativeHelper() {};
   
   static TermList createAppTerm(TermList sort, TermList arg1, TermList arg2);
   static TermList createAppTerm(TermList s1, TermList s2, TermList arg1, TermList arg2, bool shared = true);
@@ -73,7 +57,6 @@ public:
   static bool isExactApplied(TermList head, unsigned argNum);
   static bool isOverApplied(TermList head, unsigned argNum);
   static bool isSafe(TermStack& args);
-  static TermList replaceFunctionalAndBooleanSubterms(Term* term, VSpecVarToTermMap* fsm);
   static bool isBool(TermList t);
   static bool isTrue(TermList term);
   static bool isFalse(TermList term);

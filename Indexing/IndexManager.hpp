@@ -19,6 +19,7 @@
 #include "Forwards.hpp"
 #include "Lib/DHMap.hpp"
 #include "Index.hpp"
+#include "Kernel/MismatchHandler.hpp"
 
 #include "Lib/Allocator.hpp"
 
@@ -80,7 +81,9 @@ public:
   USE_ALLOCATOR(IndexManager);
 
   /** alg can be zero, then it must be set by setSaturationAlgorithm */
-  explicit IndexManager(SaturationAlgorithm* alg) : _alg(alg) {}
+  explicit IndexManager(SaturationAlgorithm* alg);
+  ~IndexManager();
+
   void setSaturationAlgorithm(SaturationAlgorithm* alg) 
   { 
     CALL("IndexManager::setSaturationAlgorithm");
@@ -92,6 +95,7 @@ public:
   void release(IndexType t);
   bool contains(IndexType t);
   Index* get(IndexType t);
+  MismatchHandler* getHandler(){ return _handler; }
 
   void provideIndex(IndexType t, Index* index);
 private:
@@ -102,6 +106,8 @@ private:
   };
   SaturationAlgorithm* _alg;
   DHMap<IndexType,Entry> _store;
+
+  CompositeMismatchHandler* _handler;
 
   Index* create(IndexType t);
 };

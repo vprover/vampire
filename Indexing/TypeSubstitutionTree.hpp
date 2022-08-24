@@ -40,7 +40,7 @@ public:
   CLASS_NAME(TypeSubstitutionTree);
   USE_ALLOCATOR(TypeSubstitutionTree);
 
-  TypeSubstitutionTree();
+  TypeSubstitutionTree(MismatchHandler* hndlr = 0);
 
   void insert(TermList sort, LeafData ld);
   void remove(TermList sort, LeafData ld);
@@ -54,8 +54,10 @@ public:
 
   // Returns all terms whose sort unifies with @param sort
   // @param trm is a term of sort sort. 
-  // If trm is a variable, the resulting substitution is extending to be a term
+  // If @param trm is a variable, the resulting substitution is extending to be a term
   // substitution as well. Likewise if the result is a variable
+  // If neither query nor result is a variable, attempt to create a
+  // constraint between them
   TermQueryResultIterator getUnifications(TermList sort, TermList trm, 
     bool retrieveSubstitutions);
 
@@ -92,6 +94,7 @@ private:
     return t->functor();
   }
 
+  MismatchHandler* _handler;
   typedef SkipList<LeafData,LDComparator> LDSkipList;
   LDSkipList _vars;
 };

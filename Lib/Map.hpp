@@ -208,7 +208,7 @@ public:
    */
   Option<Val&> tryGet(Key const& key) const
   {
-    CALL("Map::find/2");
+    CALL("Map::tryGet");
     using Opt = Option<Val&>;
 
     auto code = hashCode(key);

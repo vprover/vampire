@@ -2184,7 +2184,6 @@ public:
 #endif
   UnificationWithAbstraction unificationWithAbstraction() const { return _unificationWithAbstraction.actualValue; }
   void setUWA(UnificationWithAbstraction value){ _unificationWithAbstraction.actualValue = value; } 
-  bool fixUWA() const { return _fixUWA.actualValue; }
   bool useACeval() const { return _useACeval.actualValue;}
 
   bool unusedPredicateDefinitionRemoval() const { return _unusedPredicateDefinitionRemoval.actualValue; }
@@ -2431,6 +2430,7 @@ public:
   bool prioritiseClausesProducedByLongReduction() const { return _priortyToLongReducts.actualValue; }
   int maxXXNarrows() const { return _maximumXXNarrows.actualValue; }
   FunctionExtensionality functionExtensionality() const { return _functionExtensionality.actualValue; }
+  void setFE(FunctionExtensionality value){ _functionExtensionality.actualValue = value; } 
   CNFOnTheFly cnfOnTheFly() const { return _clausificationOnTheFly.actualValue; }
   PISet piSet() const { return _piSet.actualValue; }
   Narrow narrow() const { return _narrow.actualValue; }
@@ -2797,7 +2797,6 @@ private:
   BoolOptionValue _thiTautologyDeletion;
 #endif
   ChoiceOptionValue<UnificationWithAbstraction> _unificationWithAbstraction; 
-  BoolOptionValue _fixUWA;
   BoolOptionValue _useACeval;
   TimeLimitOptionValue _simulatedTimeLimit;
   FloatOptionValue _lrsEstimateCorrectionCoef;

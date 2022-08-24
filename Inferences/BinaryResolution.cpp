@@ -72,14 +72,12 @@ void BinaryResolution::detach()
 
 struct BinaryResolution::UnificationsFn
 {
-
-  UnificationsFn(BinaryResolutionIndex* index)
-  : _index(index) {}
-  VirtualIterator<pair<Literal*, SLQueryResult> > operator()(Literal* lit)
+  UnificationsFn(BinaryResolutionIndex* index) : _index(index) {}
+  VirtualIterator<pair<Literal*, SLQueryResult>> operator()(Literal* lit)
   {
     if(lit->isEquality()) {
       //Binary resolution is not performed with equality literals
-      return VirtualIterator<pair<Literal*, SLQueryResult> >::getEmpty();
+      return VirtualIterator<pair<Literal*, SLQueryResult>>::getEmpty();
     }
     return pvi( pushPairIntoRightIterator(lit, _index->getUnifications(lit, true)) );
   }
@@ -135,8 +133,8 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
     return 0;
   }
 
-  auto constraints = qr.constraints;
-  bool withConstraints = !constraints.isEmpty() && !constraints->isEmpty();
+  unsigned numberOfConstraints = qr.substitution->numberOfConstraints();
+  bool withConstraints = numberOfConstraints > 0;
   unsigned clength = queryCl->length();
   unsigned dlength = qr.clause->length();
 
@@ -175,8 +173,7 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
     }
   }
 
-  unsigned conlength = withConstraints ? constraints->size() : 0;
-  unsigned newLength = clength+dlength-2+conlength;
+  unsigned newLength = clength+dlength-2+numberOfConstraints;
 
   inf_destroyer.disable(); // ownership passed to the the clause below
   Clause* res = new(newLength) Clause(newLength, inf); // the inference object owned by res from now on
@@ -201,41 +198,12 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
 #endif
 
   unsigned next = 0;
-  if(withConstraints){
-  for(unsigned i=0;i<constraints->size();i++){
-      pair<pair<TermList,unsigned>,pair<TermList,unsigned>> con = (*constraints)[i]; 
+  auto constraints = qr.substitution->getConstraints();
+  while(constraints.hasNext()){
+    Literal* constraint = constraints.next();
+    (*res)[next++] = constraint;
+  }  
 
-#if VDEBUG
-      //cout << "con pair " << con.first.toString() << " , " << con.second.toString() << endl;
-#endif
-  
-      TermList qT = qr.substitution->applyTo(con.first.first,con.first.second);
-      TermList rT = qr.substitution->applyTo(con.second.first,con.second.second);
-
-      TermList sort = SortHelper::getResultSort(rT.term()); 
-
-      Literal* constraint = Literal::createEquality(false,qT,rT,sort);
-
-      // AYB ground option removed until we clarify the desired behaviour.
-      // If/when we reintroduce, code below is the wrong place to check for groundness
-      // We should NOT have started creating result clause before we check for 
-      // groundness of constraint. This can be done wwithin unification procedure
-
-      /*static Options::UnificationWithAbstraction uwa = opts.unificationWithAbstraction();
-      if(uwa==Options::UnificationWithAbstraction::GROUND &&
-         !constraint->ground() &&
-         (!UnificationWithAbstractionConfig::isInterpreted(qT) && 
-          !UnificationWithAbstractionConfig::isInterpreted(rT))) {
-
-        // the unification was between two uninterpreted things that were not ground 
-        res->destroy();
-        return 0;
-      }*/
-
-      (*res)[next] = constraint; 
-      next++;    
-  }
-  }
   for(unsigned i=0;i<clength;i++) {
     Literal* curr=(*queryCl)[i];
     if(curr!=queryLit) {

@@ -33,6 +33,10 @@ Term* TermTransformer::transform(Term* term)
     return transformSpecial(term);
   }
 
+  if(term->isApplication()){
+    return transformApplication(term);
+  }
+
   Stack<TermList*> toDo(8);
   Stack<Term*> terms(8);
   Stack<bool> modified(8);
@@ -104,8 +108,8 @@ Term* TermTransformer::transform(Term* term)
 
     TermList dest = transformSubterm(tl);
     if (tl != dest) {
-      args.push(dest);
       modified.setTop(true);
+      args.push(dest);
       continue;
     }
     if (tl.isVar()) {
@@ -155,6 +159,141 @@ Literal* TermTransformer::transform(Literal* lit)
   ASS(t->isLiteral());
   return static_cast<Literal*>(t);
 }
+
+Term* TermTransformer::transformApplication(Term* appTerm)
+{
+  CALL("TermTransformer::transformApplication");
+
+  ASS(appTerm->isApplication());
+
+  Stack<TermList*> toDo(8);
+  Stack<unsigned> argNumbers;
+  Stack<Term*> terms(8);
+  Stack<bool> modified(8);
+  Stack<TermList> args(8);
+  ASS(toDo.isEmpty());
+  ASS(terms.isEmpty());
+  modified.reset();
+  args.reset();
+
+  modified.push(false);
+  toDo.push(appTerm->args());
+  argNumbers.push(0);
+
+  for (;;) {
+    TermList* tt = toDo.pop();
+    unsigned argNumber = argNumbers.pop();
+
+    if (tt->isEmpty()) {
+      if (terms.isEmpty()) {
+        //we're done, args stack contains modified arguments
+        //of the literal.
+        ASS(toDo.isEmpty());
+        break;
+      }
+      Term* orig = terms.pop();
+      if (!modified.pop()) {
+        args.truncate(args.length() - orig->arity());
+        args.push(TermList(orig));
+        continue;
+      }
+      ASS(orig->isApplication())
+
+      //here we assume, that stack is an array with
+      //second topmost element as &top()-1, third at
+      //&top()-2, etc...
+      TermList *argLst = &args.top() - (orig->arity() - 1);
+      args.truncate(args.length() - orig->arity()); // potentially evil. Calls destructors on the truncated objects, which we are happily reading just below
+      Term* newTrm;
+      if(orig->isSort()){
+        //For most applications we probably dont want to transform sorts.
+        //However, we don't enforce that here, inheriting classes can decide
+        //for themselves     
+        if(_sharedResult){   
+          newTrm=AtomicSort::create(static_cast<AtomicSort*>(orig), argLst);
+        } else {
+          newTrm=AtomicSort::createNonShared(static_cast<AtomicSort*>(orig), argLst);          
+        }
+      } else {
+        if(_sharedResult){   
+          newTrm=Term::create(orig,argLst);
+        } else {
+          newTrm=Term::createNonShared(orig,argLst);          
+        }
+      }
+      args.push(TermList(newTrm));
+      modified.setTop(true);
+      continue;
+    } else {
+      argNumbers.push(argNumber  + 1);
+      toDo.push(tt->next());
+    }
+
+    TermList tl = *tt;
+    if(argNumber == 0 || argNumber == 1){
+      // don't transform sorts
+      args.push(tl);
+      continue;      
+    }
+
+    if(argNumber == 3){
+      // only want to transform argument "first-order" subterms
+      // e.g @($int, $int, f, a), only transform a, not f
+      TermList dest = transformSubterm(tl);
+      if (tl != dest) {
+        modified.setTop(true);
+        if(!_recurseIntoReplaced){        
+          args.push(dest);
+          continue;
+        }
+        tl = dest;
+      }
+    }
+    if (tl.isVar()) {
+      args.push(tl);
+      continue;
+    }
+
+    ASS(tl.isTerm());
+    Term* t = tl.term();    
+    if(!t->isApplication()){
+      args.push(tl);
+      continue;
+    }
+
+    ASS(!t->isSpecial());
+    terms.push(t);
+    modified.push(false);
+    toDo.push(t->args());
+    argNumbers.push(0);
+  }
+  ASS(toDo.isEmpty());
+  ASS(terms.isEmpty());
+  ASS_EQ(modified.length(), 1);
+  ASS_EQ(args.length(), appTerm->arity());
+
+  if (!modified.pop()) {
+    return appTerm;
+  }
+
+  ASS_EQ(args.size(), appTerm->arity());
+  //here we assume, that stack is an array with
+  //second topmost element as &top()-1, third at
+  //&top()-2, etc...
+  TermList* argLst = &args.top() - (appTerm->arity() - 1);
+
+  if (appTerm->isLiteral()) {
+    if(_sharedResult){
+      return Literal::create(static_cast<Literal*>(appTerm), argLst);
+    }
+    return Literal::createNonShared(static_cast<Literal*>(appTerm), argLst);
+  } 
+  if(_sharedResult){
+    return Term::create(appTerm, argLst);
+  }
+  return Term::createNonShared(appTerm, argLst);  
+}
+
 
 Term* TermTransformer::transformSpecial(Term* term)
 {

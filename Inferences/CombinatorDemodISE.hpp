@@ -18,8 +18,24 @@
 
 #include "Forwards.hpp"
 #include "InferenceEngine.hpp"
+#include "Kernel/TermTransformer.hpp"
 
 namespace Inferences {
+
+class TermReducer : public TermTransformer {
+public:
+  TermReducer() : TermTransformer(true, true), _reducLen(0) {} 
+  TermList transformSubterm(TermList trm) override;
+  
+  // TODO are we calculating reduction length in the best way?
+  // should we not be counting individual reductions rahter than the number
+  // of separate head normal forms achieved?
+  unsigned getReductionLen(){ return _reducLen; }
+ 
+private:
+  unsigned _reducLen;
+};
+
 
 class CombinatorDemodISE
 : public ImmediateSimplificationEngine
@@ -28,11 +44,10 @@ public:
   CLASS_NAME(CombinatorDemodISE);
   USE_ALLOCATOR(CombinatorDemodISE);
 
+  static TermList headNormalForm(TermList t);
+
   CombinatorDemodISE(){}
   Clause* simplify(Clause* cl);
-private:
-   TermList reduce(TermList t, unsigned& length);
-   bool headNormalForm(TermList& t);
 };
 
 };

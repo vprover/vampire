@@ -370,7 +370,7 @@ ResultSubstitutionSP SubstitutionTree::GenMatcher::getSubstitution(
  * 	reversed. (useful for retrieval commutative terms)
  */
 SubstitutionTree::FastGeneralizationsIterator::FastGeneralizationsIterator(SubstitutionTree* parent, Node* root, Term* query, 
-  bool retrieveSubstitution, bool reversed, bool withoutTop, ConstraintType ct, VSpecVarToTermMap* termMap)
+  bool retrieveSubstitution, bool reversed, bool withoutTop, MismatchHandler* hndler)
 : _literalRetrieval(query->isLiteral()), _retrieveSubstitution(retrieveSubstitution),
   _inLeaf(false), _ldIterator(LDIterator::getEmpty()), _root(root), _tree(parent),
   _alternatives(64), _specVarNumbers(64), _nodeTypes(64)
@@ -461,10 +461,9 @@ SubstitutionTree::QueryResult SubstitutionTree::FastGeneralizationsIterator::nex
       _resultNormalizer.normalizeVariables(ld.term);
     }
 
-    return QueryResult(
-          make_pair(&ld,_subst->getSubstitution(&_resultNormalizer)),UnificationConstraintStackSP());
+    return QueryResult(&ld,_subst->getSubstitution(&_resultNormalizer));
   } else {
-    return QueryResult(make_pair(&ld, ResultSubstitutionSP()),UnificationConstraintStackSP());
+    return QueryResult(&ld, ResultSubstitutionSP());
   }
 }
 

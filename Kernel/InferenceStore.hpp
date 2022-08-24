@@ -73,7 +73,7 @@ public:
   };
 
   void recordSplittingNameLiteral(Unit* us, Literal* lit);
-  void recordIntroducedSymbol(Unit* u, bool func, unsigned number);
+  void recordIntroducedSymbol(Unit* u, SymbolType st, unsigned number);
   void recordIntroducedSplitName(Unit* u, vstring name);
 
   void outputUnsatCore(ostream& out, Unit* refutation);
@@ -101,7 +101,7 @@ private:
 
 
   /** first is true for function symbols, second is symbol number */
-  typedef pair<bool,unsigned> SymbolId;
+  typedef pair<SymbolType,unsigned> SymbolId;
   typedef Stack<SymbolId> SymbolStack;
   DHMap<unsigned,SymbolStack> _introducedSymbols;
   DHMap<unsigned,vstring> _introducedSplitNames;

@@ -55,7 +55,7 @@ OperatorType* SortHelper::getType(Term* t)
  * 
  * @author Ahmed Bhayat
  */
-void SortHelper::getTypeSub(const Term* t, Substitution& subst)
+bool SortHelper::getTypeSub(const Term* t, Substitution& subst)
 {
   CALL("SortHelper::getTypeSub(Term*)");
   
@@ -64,13 +64,21 @@ void SortHelper::getTypeSub(const Term* t, Substitution& subst)
   unsigned typeArgsArity = ot->numTypeArguments();
   //cout << "typeArgsArity " << typeArgsArity << endl;
 
+  bool resultShared = true;
   typeArg = const_cast<TermList*>(t->args());
   for(unsigned i = 0; i < typeArgsArity; i++){
     TermList var = ot->quantifiedVar(i);
     ASS_REP(var.isVar(), t->toString());
+    // when working with substitution trees we sometimes need to find the sort
+    // of terms within the tree. These terms can contain special variables 
+    // and may therefore not be shared.
+    if(typeArg->isSpecialVar() ||  (typeArg->isTerm() && !typeArg->term()->shared())){ 
+      resultShared = false;
+    }
     subst.bind(var.var(), *typeArg);
     typeArg = typeArg->next();
   }  
+  return resultShared;
 } // getTypeSub
 
 /**
@@ -88,16 +96,21 @@ TermList SortHelper::getResultSort(const Term* t)
   ASS(!t->isSpecial());
   ASS(!t->isLiteral());
 
+  //cout << "TERM " << t->toString() << endl;
+
   if(t->isSort()){
     return TermList(AtomicSort::superSort());
   }
 
   Substitution subst;
-  getTypeSub(t, subst);
+  bool shared = getTypeSub(t, subst);
+
+  //cout << "SHARED " << shared << endl;
+
   Signature::Symbol* sym = env.signature->getFunction(t->functor());
   TermList result = sym->fnType()->result();
   ASS(!subst.isEmpty()  || (result.isTerm() && (result.term()->isSuper() || result.term()->ground())));  
-  return SubstHelper::apply(result, subst);
+  return SubstHelper::apply(result, subst, !shared);
 }
 
 TermList SortHelper::getResultSortMono(const Term* t)
@@ -227,8 +240,8 @@ TermList SortHelper::getArgSort(Term* t, unsigned argIndex)
     return AtomicSort::superSort();
   }
   
-  getTypeSub(t, subst);
-  return SubstHelper::apply(ot->arg(argIndex), subst);
+  bool shared = getTypeSub(t, subst);
+  return SubstHelper::apply(ot->arg(argIndex), subst, !shared);
 } // getArgSort
 
 /* returns the sort of the nth term argument */

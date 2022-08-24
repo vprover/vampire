@@ -57,6 +57,10 @@ public:
   virtual size_t getResultApplicationWeight(TermList t) { return 0; }
   /** if implementation cannot easily give result for this, zero is returned */
   virtual size_t getResultApplicationWeight(Literal* l) { return 0; }
+  /** number of constraints created during unification */
+  virtual unsigned numberOfConstraints() { return 0; }
+  /** return iterator over constraints */
+  virtual LiteralIterator getConstraints() { return LiteralIterator::getEmpty(); }
 
   template<typename T>
   T apply(T t, bool result)

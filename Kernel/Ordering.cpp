@@ -481,20 +481,15 @@ Ordering::Result PrecedenceOrdering::compareTypeConPrecedences(unsigned tyc1, un
     tyc2 >= size ? (int)(reverse ? -tyc2 : tyc2) : _typeConPrecedences[tyc2] ));
 }
 
-enum SymbolType {
-  FUNCTION,
-  PREDICATE,
-  TYPE_CON
-};
 
 struct SymbolComparator {
   SymbolType _symType;
   SymbolComparator(SymbolType symType) : _symType(symType) {}
 
   Signature::Symbol* getSymbol(unsigned s) {
-    if(_symType == SymbolType::FUNCTION){
+    if(_symType == FUNC){
       return env.signature->getFunction(s);
-    } else if (_symType == SymbolType::PREDICATE){
+    } else if (_symType == PRED){
       return env.signature->getPredicate(s);      
     } else {
       return env.signature->getTypeCon(s);            
@@ -561,7 +556,7 @@ struct OccurenceTiebreak {
 
 struct RevOccComparator
 {
-  RevOccComparator(bool) {}
+  RevOccComparator(SymbolType) {}
 
   Comparison compare(unsigned f1, unsigned f2)
   {
@@ -768,7 +763,7 @@ static void sortAuxBySymbolPrecedence(DArray<unsigned>& aux, const Options& opt,
       // already sorted by occurrence
       break;
     case Shell::Options::SymbolPrecedence::REVERSE_OCCURRENCE:
-      aux.sort(BoostWrapper<RevOccComparator>(forFunc));
+      aux.sort(BoostWrapper<RevOccComparator>(symType));
       break;        
     case Shell::Options::SymbolPrecedence::SCRAMBLE:
       unsigned sz = aux.size();
@@ -802,7 +797,7 @@ DArray<int> PrecedenceOrdering::typeConPrecFromOpts(Problem& prb, const Options&
         precedence_file.close();
       }
     } else {
-      sortAuxBySymbolPrecedence(aux,opt,SymbolType::TYPE_CON);
+      sortAuxBySymbolPrecedence(aux,opt,TYPE_CON);
     }
   }
 
@@ -832,7 +827,7 @@ DArray<int> PrecedenceOrdering::funcPrecFromOpts(Problem& prb, const Options& op
         precedence_file.close();
       }
     } else {
-      sortAuxBySymbolPrecedence(aux,opt,SymbolType::FUNCTION);
+      sortAuxBySymbolPrecedence(aux,opt,FUNC);
     }
   }
 
@@ -860,7 +855,7 @@ DArray<int> PrecedenceOrdering::predPrecFromOpts(Problem& prb, const Options& op
       precedence_file.close();
     }
   } else {
-    sortAuxBySymbolPrecedence(aux,opt,SymbolType::PREDICATE);
+    sortAuxBySymbolPrecedence(aux,opt,PRED);
   }
 
   DArray<int> predicatePrecedences(nPredicates);
