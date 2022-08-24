@@ -431,7 +431,7 @@ void SaturationAlgorithm::onPassiveAdded(Clause* c)
         << (c->isPureTheoryDescendant() ? '1' : '0') << " "
         << inf.th_ancestors << " "
         << inf.all_ancestors << " "
-        << inf.th_ancestors * 8 - inf.all_ancestors << endl;
+        << inf.th_ancestors / inf.all_ancestors << endl;
 
       ALWAYS(_shown.insert(c));
     }
