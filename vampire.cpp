@@ -656,9 +656,6 @@ int main(int argc, char* argv[])
 
   System::registerArgv0(argv[0]);
   System::setSignalHandlers();
-  // create random seed for the random number generation 
-  // (probably redundant: immediately reset by what the user wanted (or by the default seed), after parsing the options string below)
-  Lib::Random::setSeed(123456);
 
   START_CHECKING_FOR_ALLOCATOR_BYPASSES;
 
