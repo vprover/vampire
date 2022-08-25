@@ -266,13 +266,18 @@ bool PortfolioMode::prepareScheduleAndPerform(const Shell::Property& prop)
     ASS(fallback.isEmpty());
 
     schedule.loadFromIterator(main.iterFifo());
-    addScheduleExtra(main,schedule,"rp=on");
-
+    addScheduleExtra(main,schedule,"rp=on:de=on"); // random polarities, demodulation encompassment
+    
   } else if (env.options->schedule() == Options::Schedule::SNAKE_TPTP_SAT) {
     ASS(fallback.isEmpty());
 
     schedule.loadFromIterator(main.iterFifo());
-    addScheduleExtra(main,schedule,"rp=on:fmbksg=on");
+    addScheduleExtra(main,schedule,"rp=on:fmbksg=on:de=on"); // random polarities, demodulation encompassment for saturation, fmbksg for the fmb's    
+  } else {
+    // all other schedules just get loaded plain
+
+    schedule.loadFromIterator(main.iterFifo());
+    schedule.loadFromIterator(fallback.iterFifo());
   }
 
   if (schedule.isEmpty()) {
