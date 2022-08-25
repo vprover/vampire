@@ -191,7 +191,7 @@ bool PortfolioMode::prepareScheduleAndPerform(const Shell::Property& prop)
    */
 
   // a (temporary) helper lambda that will go away as soon as we have new schedules from spider
-  auto additionsSinceTheLastSpiderings = [prop](const Schedule& sOrig, Schedule& sWithExtras) { 
+  auto additionsSinceTheLastSpiderings = [&prop](const Schedule& sOrig, Schedule& sWithExtras) { 
     CALL("PortfolioMode::prepareScheduleAndPerform-additionsSinceTheLastSpiderings");
 
     // Always try these
