@@ -42,15 +42,18 @@ class PortfolioMode {
 public:
   static bool perform(float slowness);
 
+  static void rescaleScheduleLimits(const Schedule& sOld, Schedule& sNew, float limit_multiplier);
+  static void addScheduleExtra(const Schedule& sOld, Schedule& sNew, vstring extra);
+
 private:
   // some of these names are kind of arbitrary and should be perhaps changed
   unsigned getSliceTime(const vstring &sliceCode);
   bool searchForProof();
-  bool prepareScheduleAndPerform(Shell::Property* property);
-  void getSchedules(Property& prop, Schedule& quick, Schedule& fallback);
-  void getExtraSchedules(Property& prop, Schedule& old, Schedule& extra, bool add_extra = true, float time_multiplier = 1.0); 
-  bool runSchedule(Shell::Property *property, Schedule schedule);
-  bool runScheduleAndRecoverProof(Shell::Property *property, Schedule schedule);
+  bool prepareScheduleAndPerform(const Shell::Property& prop);
+  void getSchedules(const Property& prop, Schedule& quick, Schedule& fallback);
+
+  bool runSchedule(Schedule schedule);
+  bool runScheduleAndRecoverProof(Schedule schedule);
   [[noreturn]] void runSlice(vstring sliceCode, int remainingTime);
   [[noreturn]] void runSlice(Options& strategyOpt);
 
