@@ -45,8 +45,8 @@ namespace Saturation
 using namespace Lib;
 using namespace Kernel;
 
-NeuralPassiveClauseContainer::NeuralPassiveClauseContainer(bool isOutermost, const Shell::Options& opt):
-  PassiveClauseContainer(isOutermost, opt)
+NeuralPassiveClauseContainer::NeuralPassiveClauseContainer(bool isOutermost, const Shell::Options& opt)
+  : PassiveClauseContainer(isOutermost, opt), _size(0)
 {
   CALL("NeuralPassiveClauseContainer::NeuralPassiveClauseContainer");
 
@@ -65,6 +65,83 @@ NeuralPassiveClauseContainer::NeuralPassiveClauseContainer(bool isOutermost, con
 #if DEBUG_MODEL
   cout << "Model loaded in " << env.timer->elapsedMilliseconds() - start << " ms" << endl;
 #endif
+}
+
+void NeuralPassiveClauseContainer::add(Clause* cl)
+{ 
+  CALL("NeuralPassiveClauseContainer::add");
+
+  std::vector<torch::jit::IValue> inputs;
+
+  if (!_known.find(cl)) { // TODO: keep in sync with SaturationAlgorithm::onPassiveAdded
+    // argument 1 - the clause id
+    inputs.push_back((int64_t)cl->number());
+
+    Inference& inf = cl->inference();
+
+    // argumet 2 - a tuple of floats, the features
+    inputs.push_back(std::make_tuple(
+      (double)cl->age(),
+      (double)cl->size(),
+      (double)cl->weight(),
+      (double)cl->splitWeight(),
+      (double)(cl->derivedFromGoal() ? 1 : 0),
+      (double)inf.getSineLevel(),
+      (double)(cl->isPureTheoryDescendant() ? 1 : 0),
+      (double)inf.th_ancestors,
+      (double)inf.all_ancestors,
+      (double)(inf.th_ancestors / inf.all_ancestors)
+    ));
+
+    ALWAYS(_known.insert(cl));
+    ALWAYS(_clausesById.insert(cl->number(),cl));
+
+    _model.get_method("regClause")(std::move(inputs));
+  }
+
+  inputs.clear();
+  inputs.push_back((int64_t)cl->number());
+  _model.get_method("add")(std::move(inputs));
+
+  _size++;
+
+  ASS(cl->store() == Clause::PASSIVE);
+  addedEvent.fire(cl); 
+}
+
+void NeuralPassiveClauseContainer::remove(Clause* cl) 
+{ 
+  CALL("NeuralPassiveClauseContainer::remove");
+
+  ASS(cl->store()==Clause::PASSIVE);
+  
+  std::vector<torch::jit::IValue> inputs;
+  
+  inputs.push_back((int64_t)cl->number());
+  _model.get_method("remove")(std::move(inputs));
+
+  _size--;
+
+  removedEvent.fire(cl); 
+  ASS(cl->store()!=Clause::PASSIVE);
+}
+
+Clause* NeuralPassiveClauseContainer::popSelected() 
+{ 
+  CALL("NeuralPassiveClauseContainer::popSelected");
+  ASS(_size);
+
+  std::vector<torch::jit::IValue> inputs;
+  auto out = _model.get_method("popSelected")(std::move(inputs));
+  unsigned id = out.toInt();
+
+  Clause* cl = nullptr;
+  ALWAYS(_clausesById.find(id,cl));
+
+  _size--;
+  selectedEvent.fire(cl);
+
+  return cl;
 }
 
 AWPassiveClauseContainer::AWPassiveClauseContainer(bool isOutermost, const Shell::Options& opt, vstring name) :

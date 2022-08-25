@@ -74,44 +74,18 @@ public:
   NeuralPassiveClauseContainer(bool isOutermost, const Shell::Options& opt);
   virtual ~NeuralPassiveClauseContainer(){}
 
-  unsigned sizeEstimate() const override { return _clauses.size(); }
-  bool isEmpty() const override { return _clauses.size() == 0; } 
-  void add(Clause* cl) override { 
-    CALL("NeuralPassiveClauseContainer::add");
-    ASS(cl->store() == Clause::PASSIVE);
-    ALWAYS(_clauses.insert(cl)); 
-    addedEvent.fire(cl); 
-  }
-  void remove(Clause* cl) override { 
-    CALL("NeuralPassiveClauseContainer::remove");
-    ASS(cl->store()==Clause::PASSIVE);
-    ALWAYS(_clauses.remove(cl));
-    removedEvent.fire(cl); 
-    ASS(cl->store()!=Clause::PASSIVE);
-  }
-  Clause* popSelected() override { 
-    CALL("NeuralPassiveClauseContainer::popSelected");
-    ASS(_clauses.size());
+  unsigned sizeEstimate() const override { return _size; }
+  bool isEmpty() const override { return _size == 0; }
+  void add(Clause* cl) override;
+  void remove(Clause* cl) override;
 
-    unsigned i = Random::getInteger(_clauses.size());
-    decltype(_clauses)::Iterator it(_clauses);
-
-    Clause *cl;
-    while (it.hasNext()) {
-      cl = it.next();
-      if (i-- == 0) {
-        break;
-      }
-    }
-
-    _clauses.remove(cl); 
-    selectedEvent.fire(cl); 
-
-    return cl;
-  }
+  Clause* popSelected() override; 
+  
 private:
-  Set<Clause*> _clauses;
+  DHSet<Clause*> _known;
+  DHMap<unsigned,Clause*> _clausesById;
   torch::jit::script::Module _model;
+  unsigned _size;
 
   /*
    * LRS specific methods for computation of Limits

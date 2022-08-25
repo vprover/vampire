@@ -413,7 +413,7 @@ void SaturationAlgorithm::onPassiveAdded(Clause* c)
   }
   
   if (_opt.showPassiveTraffic()) {
-    if (!_shown.find(c)) {
+    if (!_shown.find(c)) { // TODO: keep in sync with NeuralPassiveClauseContainer::add
       Inference& inf = c->inference();
 
       // cout << cl->toString() << endl;
