@@ -594,7 +594,7 @@ void PortfolioMode::runSlice(vstring sliceCode, int timeLimitInDeciseconds)
 
     // opt.randomSeed() would normally be inherited from the parent
     // addCommentSignForSZS(cout) << "runSlice - seed before setting: " << opt.randomSeed() << endl;    
-    if (env.options->randomizedPortfolioWorkers()) {
+    if (env.options->randomizeSeedForPortfolioWorkers()) {
       // but here we want each worker to have their own seed
       opt.setRandomSeed(std::random_device()());
       // ... unless a strategy sets a seed explicitly, just below

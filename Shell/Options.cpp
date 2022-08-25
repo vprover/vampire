@@ -181,10 +181,10 @@ void Options::init()
     _lookup.insert(&_slowness);
     _slowness.onlyUsefulWith(UsingPortfolioTechnology());
 
-    _randomizedPortfolioWorkers = BoolOptionValue("randomized_portfolio_workers","",true);
-    _randomizedPortfolioWorkers.description = "In portfolio mode, let each worker process start from its own independent random seed.";
-    _lookup.insert(&_randomizedPortfolioWorkers);
-    _randomizedPortfolioWorkers.onlyUsefulWith(UsingPortfolioTechnology());
+    _randomizSeedForPortfolioWorkers = BoolOptionValue("randomize_seed_for_portfolio_workers","",true);
+    _randomizSeedForPortfolioWorkers.description = "In portfolio mode, let each worker process start from its own independent random seed.";
+    _lookup.insert(&_randomizSeedForPortfolioWorkers);
+    _randomizSeedForPortfolioWorkers.onlyUsefulWith(UsingPortfolioTechnology());
 
     _ltbLearning = ChoiceOptionValue<LTBLearning>("ltb_learning","ltbl",LTBLearning::OFF,{"on","off","biased"});
     _ltbLearning.description = "Perform learning in LTB mode";

@@ -705,7 +705,7 @@ int main(int argc, char* argv[])
       env.options->setProof(Options::Proof::TPTP);
       env.options->setOutputAxiomNames(true);
       env.options->setNormalize(true);
-      env.options->setRandomizedPortfolioWorkers(false);
+      env.options->setRandomizeSeedForPortfolioWorkers(false);
       //env.options->setTimeLimitInSeconds(300);
 
       if (CASC::PortfolioMode::perform(env.options->slowness())) {
@@ -736,7 +736,7 @@ int main(int argc, char* argv[])
       env.options->setProof(Options::Proof::TPTP);
       env.options->setOutputAxiomNames(true);
       env.options->setNormalize(true);
-      env.options->setRandomizedPortfolioWorkers(false);
+      env.options->setRandomizeSeedForPortfolioWorkers(false);
       //env.options->setTimeLimitInSeconds(300);
 
       if (CASC::PortfolioMode::perform(env.options->slowness())) {
@@ -753,7 +753,7 @@ int main(int argc, char* argv[])
       env.options->setSchedule(Options::Schedule::SMTCOMP);
       env.options->setProof(Options::Proof::OFF);
       env.options->setNormalize(true);
-      env.options->setRandomizedPortfolioWorkers(false);
+      env.options->setRandomizeSeedForPortfolioWorkers(false);
 
       env.options->setMulticore(0); // use all available cores
       env.options->setTimeLimitInSeconds(1800);
