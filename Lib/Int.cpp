@@ -161,17 +161,23 @@ bool Int::stringToUnsignedInt (const vstring& str,unsigned& result)
 /**
  * Convert a string to an unsigned integer value.
  * @since 15/11/2004 Manchester
+ * @since 25/08/2022 Prague
  */
 bool Int::stringToUnsignedInt (const char* str,unsigned& result)
 {
   CALL("Int::stringToUnsignedInt");
 
-  int i;
-  if (stringToInt(str,i) && i >= 0) {
-    result = i;
-    return true;
+  if (! *str) { // empty string
+    return false;
   }
-  return false;
+
+  errno = 0;           // to fail on "rubbish instead of number"
+  char* endptr = 0;    // to fail on "rubbish after number"
+  result = strtoul(str,&endptr,10);
+
+  // careful strtoul will still happily take numbers larger or even smaller (i.e. negative) than the representable range and produce some value
+
+  return (errno == 0 && !*endptr);
 } // Int::stringToUnsignedInt
 
 /**
