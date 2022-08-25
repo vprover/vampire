@@ -2274,7 +2274,7 @@ void Options::init()
     _lookup.insert(&_questionAnswering);
     _questionAnswering.tag(OptionTag::OTHER);
 
-    _randomSeed = UnsignedOptionValue("random_seed","",Random::seed());
+    _randomSeed = UnsignedOptionValue("random_seed","",1 /* this should be the value of Random::_seed from Random.cpp */);
     _randomSeed.description="Some parts of vampire use random numbers. This seed allows for reproducability of results. By default the seed is not changed.";
     _lookup.insert(&_randomSeed);
     _randomSeed.tag(OptionTag::INPUT);
@@ -2445,6 +2445,7 @@ void Options::init()
 
 void Options::copyValuesFrom(const Options& that)
 {
+  CALL("Options::copyValuesFrom");
   //copy across the actual values in that
   VirtualIterator<AbstractOptionValue*> options = _lookup.values();
 
