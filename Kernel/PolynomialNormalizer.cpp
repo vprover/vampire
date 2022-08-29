@@ -377,15 +377,21 @@ PolyNf normalizeTerm(TypedTermList t)
               std::sort(facs.begin(), facs.end(),
                   [](auto& l, auto& r) { return l.first < r.first; });
 
+              typename NumTraits::ConstantType numeral(1);
               unsigned offs = 0;
               unsigned i = 0;
               while (i < facs.size()) {
-                facs[offs].first = facs[i].first;
-                while (i < facs.size() && facs[i].first == facs[offs].first) {
-                  facs[offs].second++;
+                if (NumTraits::isNumeral(facs[i].first.denormalize())) {
+                  numeral = numeral * NumTraits::tryNumeral(facs[i].first.denormalize()).unwrap();
                   i++;
+                } else {
+                  facs[offs].first = facs[i].first;
+                  while (i < facs.size() && facs[i].first == facs[offs].first) {
+                    facs[offs].second++;
+                    i++;
+                  }
+                  offs++;
                 }
-                offs++;
               }
 
               return some(PolyNf(AnyPoly(Polynom<NumTraits>({Monom<NumTraits>(NumTraits::constant(1), std::move(iterTraits(facs.iter())
