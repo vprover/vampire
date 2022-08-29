@@ -975,5 +975,10 @@ bool KboSpecialWeights<FuncSigTraits>::tryGetWeight(unsigned functor, unsigned& 
     return false;
   }
 }
+template struct KboWeightMap<FuncSigTraits>;
+
+#if __KBO__CUSTOM_PREDICATE_WEIGHTS__
+template struct KboWeightMap<PredSigTraits>;
+#endif
 
 }

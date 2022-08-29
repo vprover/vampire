@@ -244,9 +244,5 @@ private:
   mutable unique_ptr<State> _state;
 };
 
-template struct KboWeightMap<FuncSigTraits>;
-#if __KBO__CUSTOM_PREDICATE_WEIGHTS__
-template struct KboWeightMap<PredSigTraits>;
-#endif // __KBO__CUSTOM_PREDICATE_WEIGHTS__
 }
 #endif
