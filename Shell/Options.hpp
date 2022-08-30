@@ -2250,6 +2250,7 @@ public:
   int inequalitySplitting() const { return _inequalitySplitting.actualValue; }
 
   vstring neuralPassiveClauseContainer() const { return _neuralPassiveClauseContainer.actualValue; }
+  float npccTemperature() const { return _npccTemperature.actualValue; }
 
   int ageRatio() const { return _ageWeightRatio.actualValue; }
   void setAgeRatio(int v){ _ageWeightRatio.actualValue = v; }
@@ -2541,6 +2542,7 @@ private:
   BoolOptionValue _encode;
 
   StringOptionValue _neuralPassiveClauseContainer;
+  FloatOptionValue _npccTemperature;
 
   RatioOptionValue _ageWeightRatio;
 	ChoiceOptionValue<AgeWeightRatioShape> _ageWeightRatioShape;

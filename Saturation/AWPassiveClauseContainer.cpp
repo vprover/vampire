@@ -46,7 +46,7 @@ using namespace Lib;
 using namespace Kernel;
 
 NeuralPassiveClauseContainer::NeuralPassiveClauseContainer(bool isOutermost, const Shell::Options& opt)
-  : PassiveClauseContainer(isOutermost, opt), _size(0)
+  : PassiveClauseContainer(isOutermost, opt), _size(0), _temperature(opt.npccTemperature())
 {
   CALL("NeuralPassiveClauseContainer::NeuralPassiveClauseContainer");
 
@@ -132,6 +132,7 @@ Clause* NeuralPassiveClauseContainer::popSelected()
   ASS(_size);
 
   std::vector<torch::jit::IValue> inputs;
+  inputs.push_back(_temperature);
   auto out = _model.get_method("popSelected")(std::move(inputs));
   unsigned id = out.toInt();
 

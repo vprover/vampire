@@ -86,6 +86,7 @@ private:
   DHMap<unsigned,Clause*> _clausesById;
   torch::jit::script::Module _model;
   unsigned _size;
+  float _temperature;
 
   /*
    * LRS specific methods for computation of Limits
