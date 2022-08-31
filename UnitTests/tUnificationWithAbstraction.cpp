@@ -43,7 +43,7 @@ Clause* unit(Literal* lit)
 
 TermIndexingStructure* getTermIndex(bool uwa = true)
 {
-  CompositeMismatchHandler* cmh = new CompositeMismatchHandler();
+  auto cmh = new MismatchHandler();
   if(uwa){
     cmh->addHandler(new UWAMismatchHandler());
   } else {
@@ -54,7 +54,7 @@ TermIndexingStructure* getTermIndex(bool uwa = true)
 
 LiteralIndexingStructure* getLiteralIndex()
 {
-  CompositeMismatchHandler* cmh = new CompositeMismatchHandler();
+  auto cmh = new MismatchHandler();
   cmh->addHandler(new UWAMismatchHandler());
   return new LiteralSubstitutionTree(cmh); 
 }
@@ -287,7 +287,7 @@ TEST_FUN(using_robsub)
   DECL_CONST(a, Int) 
   DECL_CONST(b, Int) 
 
-  CompositeMismatchHandler* cmh = new CompositeMismatchHandler();
+  auto cmh = new MismatchHandler();
   cmh->addHandler(new UWAMismatchHandler());  
   RobSubstitution sub(cmh);
 

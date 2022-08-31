@@ -89,7 +89,7 @@ public:
   void release(IndexType t);
   bool contains(IndexType t);
   Index* get(IndexType t);
-  MismatchHandler* getHandler(){ return _handler; }
+  MismatchHandler* getHandler(){ return &_handler; }
 
   void provideIndex(IndexType t, Index* index);
 private:
@@ -101,7 +101,7 @@ private:
   SaturationAlgorithm* _alg;
   DHMap<IndexType,Entry> _store;
 
-  CompositeMismatchHandler* _handler;
+  MismatchHandler _handler;
 
   Index* create(IndexType t);
 };

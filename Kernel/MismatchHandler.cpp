@@ -85,7 +85,7 @@ MaybeBool UWAMismatchHandler::isConstraintTerm(TermList t){
 void MismatchHandler::introduceConstraint(TermList t1,unsigned index1, TermList t2,unsigned index2, 
   UnificationConstraintStack& ucs, BacktrackData& bd, bool recording)
 {
-  CALL("MismatchHandler::introduceConstraint");
+  CALL("AtomicMismatchHandler::introduceConstraint");
 
   auto constraint = make_pair(make_pair(t1,index1),make_pair(t2,index2));
   if(recording){
@@ -95,16 +95,16 @@ void MismatchHandler::introduceConstraint(TermList t1,unsigned index1, TermList 
   }
 }
 
-CompositeMismatchHandler::~CompositeMismatchHandler(){
-  CALL("CompositeMismatchHandler::~CompositeMismatchHandler");
+MismatchHandler::~MismatchHandler(){
+  CALL("MismatchHandler::~MismatchHandler");
 
   MHList::destroyWithDeletion(_inners);
 }
 
-bool CompositeMismatchHandler::handle(TermList t1, unsigned index1, TermList t2, unsigned index2, 
+bool MismatchHandler::handle(TermList t1, unsigned index1, TermList t2, unsigned index2, 
   UnificationConstraintStack& ucs,BacktrackData& bd, bool recording)
 {
-  CALL("CompositeMismatchHandler::handle");
+  CALL("MismatchHandler::handle");
 
   // make assumtion that we never create a constraint involving a variable
   // this seems reasonable
@@ -125,14 +125,14 @@ bool CompositeMismatchHandler::handle(TermList t1, unsigned index1, TermList t2,
   return false;
 }
 
-void CompositeMismatchHandler::addHandler(MismatchHandler* hndlr){
-  CALL("CompositeMismatchHandler::addHandler");
+void MismatchHandler::addHandler(AtomicMismatchHandler* hndlr){
+  CALL("MismatchHandler::addHandler");
 
   MHList::push(hndlr,_inners);
 }
 
-MaybeBool CompositeMismatchHandler::isConstraintTerm(TermList t){
-  CALL("CompositeMismatchHandler::isConstraintTerm");
+MaybeBool MismatchHandler::isConstraintTerm(TermList t){
+  CALL("MismatchHandler::isConstraintTerm");
   
   if(t.isVar()){ return false; }
 
@@ -147,8 +147,8 @@ MaybeBool CompositeMismatchHandler::isConstraintTerm(TermList t){
   return false; 
 }
 
-TermList CompositeMismatchHandler::transformSubterm(TermList trm){
-  CALL("CompositeMismatchHandler::transformSubterm");
+TermList MismatchHandler::transformSubterm(TermList trm){
+  CALL("MismatchHandler::transformSubterm");
 
   MHList* hit=_inners;
   while(hit) {
@@ -161,9 +161,9 @@ TermList CompositeMismatchHandler::transformSubterm(TermList trm){
   return trm;
 }
 
-Term* CompositeMismatchHandler::get(unsigned var)
+Term* MismatchHandler::get(unsigned var)
 {
-  CALL("CompositeMismatchHandler::get");
+  CALL("MismatchHandler::get");
 
   MHList* hit=_inners;
   while(hit) {
@@ -190,7 +190,7 @@ bool HOMismatchHandler::isConstraintPair(TermList t1, TermList t2)
 }
 
 MaybeBool HOMismatchHandler::isConstraintTerm(TermList t){
-  CALL("CompositeMismatcHandler::isConstraintTerm");
+  CALL("MismatcHandler::isConstraintTerm");
   
   if(t.isVar()){ return false; }
 

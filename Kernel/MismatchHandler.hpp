@@ -25,19 +25,12 @@
 namespace Kernel
 {
 
-class MismatchHandler : public TermTransformer
+class AtomicMismatchHandler : public TermTransformer
 {
 public:
 
-  MismatchHandler() : TermTransformer(false) {}
+  AtomicMismatchHandler() : TermTransformer(false) {}
 
-  // Returns true if the mismatch can be handled by some handler
-  //
-  // Implementors do NOT need to override this function. Only the composite handler
-  // needs to.
-  virtual bool handle(TermList t1, unsigned index1, TermList t2, unsigned index2, 
-    UnificationConstraintStack& ucs, BacktrackData& bd, bool recording){ NOT_IMPLEMENTED; };
-  
   // Returns true if <t1, t2> can form a constraint
   // Implementors NEED to override this function with
   // their specific logic. 
@@ -65,15 +58,8 @@ public:
   // - It may be convenient to use this function in the implementation of transformSubterm
   //   View UWAMismatchHandler::transformSubterm() for an example of this
   virtual MaybeBool isConstraintTerm(TermList t) = 0;
-  
-  virtual Term* get(unsigned var){ NOT_IMPLEMENTED; }
-
   VSpecVarToTermMap* getTermMap() { return &_termMap; }
-
-protected: 
-  void introduceConstraint(TermList t1,unsigned index1, TermList t2, unsigned index2, 
-    UnificationConstraintStack& ucs, BacktrackData& bd, bool recording);
-  
+protected:
   VSpecVarToTermMap _termMap;
 };
 
@@ -82,30 +68,42 @@ protected:
  * Invariant: for all handlers in _inner, a maximum of ONE handler
  * can return a non-false value on a call to isConstraintTerm 
  */
-class CompositeMismatchHandler : 
-  public MismatchHandler
+class MismatchHandler : 
+  public TermTransformer
 {
 public:
 
-  ~CompositeMismatchHandler();
-  virtual bool handle(TermList t1, unsigned index1, TermList t2, unsigned index2, 
-    UnificationConstraintStack& ucs, BacktrackData& bd, bool recording) override;
+  MismatchHandler() : TermTransformer(false) {}
+  ~MismatchHandler();
+
+  // Returns true if the mismatch can be handled by some handler
+  //
+  // Implementors do NOT need to override this function. Only the composite handler
+  // needs to.
+  bool handle(TermList t1, unsigned index1, 
+              TermList t2, unsigned index2, 
+              UnificationConstraintStack& ucs, BacktrackData& bd, bool recording);
+
   TermList transformSubterm(TermList trm) override;
-  MaybeBool isConstraintTerm(TermList t) override; 
-  bool isConstraintPair(TermList t1, TermList t2) override { NOT_IMPLEMENTED; }  
-  Term* get(unsigned var) override;
+  MaybeBool isConstraintTerm(TermList t); 
+  Term* get(unsigned var);
 
-  void addHandler(MismatchHandler* hndlr);
+  void addHandler(AtomicMismatchHandler* hndlr);
 
-  CLASS_NAME(CompositeMismatchHandler);
-  USE_ALLOCATOR(CompositeMismatchHandler);
+  CLASS_NAME(MismatchHandler);
+  USE_ALLOCATOR(MismatchHandler);
 
 private:
-  typedef List<MismatchHandler*> MHList;
+  void introduceConstraint(
+      TermList t1, unsigned index1, 
+      TermList t2, unsigned index2, 
+      UnificationConstraintStack& ucs, BacktrackData& bd, bool recording);
+
+  typedef List<AtomicMismatchHandler*> MHList;
   MHList* _inners;
 };
 
-class UWAMismatchHandler : public MismatchHandler
+class UWAMismatchHandler : public AtomicMismatchHandler
 {
 public:
   UWAMismatchHandler() {}
@@ -120,7 +118,7 @@ private:
   bool checkUWA(TermList t1, TermList t2); 
 };
 
-class HOMismatchHandler : public MismatchHandler
+class HOMismatchHandler : public AtomicMismatchHandler
 {
 public:
   HOMismatchHandler() {}

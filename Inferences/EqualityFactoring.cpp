@@ -88,6 +88,7 @@ void EqualityFactoring::attach(SaturationAlgorithm* salg)
   CALL("EqualityFactoring::attach");
 
   GeneratingInferenceEngine::attach(salg);
+  // TODO rename getHandler to getMismatchHandler ? it's not obv here what kind of handler we mean here
   _handler = salg->getIndexManager()->getHandler();
 }
 

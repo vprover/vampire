@@ -33,7 +33,7 @@
 using namespace Lib;
 using namespace Indexing;
 
-IndexManager::IndexManager(SaturationAlgorithm* alg) : _alg(alg), _handler(0)
+IndexManager::IndexManager(SaturationAlgorithm* alg) : _alg(alg), _handler()
 {
   CALL("IndexManager::IndexManager");
 
@@ -45,25 +45,17 @@ IndexManager::IndexManager(SaturationAlgorithm* alg) : _alg(alg), _handler(0)
   
   if(uwa || eba){
  
-    _handler = new CompositeMismatchHandler();
    
     if(uwa){
-      _handler->addHandler(new UWAMismatchHandler());
+      _handler.addHandler(new UWAMismatchHandler());
     }
     if(eba){
-      _handler->addHandler(new HOMismatchHandler());
+      _handler.addHandler(new HOMismatchHandler());
     }
   }
 }
 
-IndexManager::~IndexManager()
-{
-  CALL("IndexManager::~IndexManager");
-
-  if(_handler){
-    delete _handler;
-  }
-}
+IndexManager::~IndexManager() { }
 
 Index* IndexManager::request(IndexType t)
 {
@@ -140,7 +132,7 @@ Index* IndexManager::create(IndexType t)
                     
   switch(t) {
   case BINARY_RESOLUTION_SUBST_TREE:
-    is=new LiteralSubstitutionTree(_handler);
+    is=new LiteralSubstitutionTree(&_handler);
     res=new BinaryResolutionIndex(is);
     isGenerating = true;
     break;
@@ -166,12 +158,12 @@ Index* IndexManager::create(IndexType t)
     break;
 
   case SUPERPOSITION_SUBTERM_SUBST_TREE:
-    tis=new TermSubstitutionTree(_handler);
+    tis=new TermSubstitutionTree(&_handler);
     res=new SuperpositionSubtermIndex(tis, _alg->getOrdering());
     isGenerating = true;
     break;
   case SUPERPOSITION_LHS_SUBST_TREE:
-    tis=new TermSubstitutionTree(_handler);
+    tis=new TermSubstitutionTree(&_handler);
     res=new SuperpositionLHSIndex(tis, _alg->getOrdering(), _alg->getOptions());
     isGenerating = true;
     break;
