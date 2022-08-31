@@ -60,6 +60,9 @@ NeuralPassiveClauseContainer::NeuralPassiveClauseContainer(bool isOutermost, con
 
   // seems to be making this nicely single-threaded
   at::set_num_threads(1);
+
+  torch::manual_seed(opt.randomSeed());
+
   _model = torch::jit::load(opt.neuralPassiveClauseContainer().c_str());
 
 #if DEBUG_MODEL
