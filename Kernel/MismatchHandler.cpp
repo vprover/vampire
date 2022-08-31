@@ -98,7 +98,7 @@ void MismatchHandler::introduceConstraint(TermList t1,unsigned index1, TermList 
 MismatchHandler::~MismatchHandler(){
   CALL("MismatchHandler::~MismatchHandler");
 
-  MHList::destroyWithDeletion(_inners);
+  for (auto h : _inners) delete h;
 }
 
 bool MismatchHandler::handle(TermList t1, unsigned index1, TermList t2, unsigned index2, 
@@ -127,8 +127,7 @@ bool MismatchHandler::handle(TermList t1, unsigned index1, TermList t2, unsigned
 
 void MismatchHandler::addHandler(AtomicMismatchHandler* hndlr){
   CALL("MismatchHandler::addHandler");
-
-  MHList::push(hndlr,_inners);
+  _inners.push(hndlr);
 }
 
 MaybeBool MismatchHandler::isConstraintTerm(TermList t){
@@ -136,13 +135,11 @@ MaybeBool MismatchHandler::isConstraintTerm(TermList t){
   
   if(t.isVar()){ return false; }
 
-  MHList* hit=_inners;
-  while(hit) {
-    auto res = hit->head()->isConstraintTerm(t);
+  for (auto h : _inners) {
+    auto res = h->isConstraintTerm(t);
     if(!res.isFalse()){
       return res;
     }
-    hit=hit->tail();
   }
   return false; 
 }
@@ -150,13 +147,11 @@ MaybeBool MismatchHandler::isConstraintTerm(TermList t){
 TermList MismatchHandler::transformSubterm(TermList trm){
   CALL("MismatchHandler::transformSubterm");
 
-  MHList* hit=_inners;
-  while(hit) {
-    TermList t = hit->head()->transformSubterm(trm);
+  for (auto h : _inners) {
+    TermList t = h->transformSubterm(trm);
     if(t != trm){
       return t;
     }
-    hit=hit->tail();
   }
   return trm;
 }
@@ -165,13 +160,11 @@ Term* MismatchHandler::get(unsigned var)
 {
   CALL("MismatchHandler::get");
 
-  MHList* hit=_inners;
-  while(hit) {
-    auto res = hit->head()->getTermMap()->tryGet(var);
+  for (auto h : _inners) {
+    auto res = h->getTermMap()->tryGet(var);
     if(res.isSome()){
       return res.unwrap();
     }
-    hit=hit->tail();
   } 
   ASSERTION_VIOLATION;
 }
