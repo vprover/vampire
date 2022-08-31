@@ -25,11 +25,10 @@
 namespace Kernel
 {
 
-class AtomicMismatchHandler : public TermTransformer
+class AtomicMismatchHandler 
 {
 public:
 
-  AtomicMismatchHandler() : TermTransformer(false) {}
 
   // Returns true if <t1, t2> can form a constraint
   // Implementors NEED to override this function with
