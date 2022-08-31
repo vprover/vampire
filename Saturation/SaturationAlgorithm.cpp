@@ -98,6 +98,7 @@
 #include "Shell/Options.hpp"
 #include "Shell/Statistics.hpp"
 #include "Shell/UIHelper.hpp"
+#include "Shell/Shuffling.hpp"
 
 #include "Splitter.hpp"
 
@@ -768,7 +769,18 @@ void SaturationAlgorithm::init()
 {
   CALL("SaturationAlgorithm::init");
 
-  ClauseIterator toAdd = _prb.clauseIterator();
+  ClauseIterator toAdd;
+
+  if (env.options->randomTraversals()) {
+    TimeCounter tc(TC_SHUFFLING);
+
+    Stack<Clause*> aux;
+    aux.loadFromIterator(_prb.clauseIterator());
+    Shuffling::shuffleArray(aux,aux.size());
+    toAdd = pvi(ownedArrayishIterator(std::move(aux)));
+  } else {
+    toAdd = _prb.clauseIterator();
+  }
 
   while (toAdd.hasNext()) {
     Clause* cl=toAdd.next();
@@ -847,6 +859,12 @@ void SaturationAlgorithm::addNewClause(Clause* cl)
 {
   CALL("SaturationAlgorithm::addNewClause");
 
+  if (env.options->randomTraversals()) {
+    TimeCounter tc(TC_SHUFFLING);
+
+    Shuffling::shuffle(cl);
+  }
+
   //we increase the reference counter here so that the clause wouldn't
   //get destroyed during handling in the onNewClause handler
   //(there the control flow goes out of the SaturationAlgorithm class,
@@ -862,6 +880,12 @@ void SaturationAlgorithm::addNewClause(Clause* cl)
 void SaturationAlgorithm::newClausesToUnprocessed()
 {
   CALL("SaturationAlgorithm::newClausesToUnprocessed");
+
+  if (env.options->randomTraversals()) {
+    TimeCounter tc(TC_SHUFFLING);
+
+    Shuffling::shuffleArray(_newClauses.naked().begin(),_newClauses.size());
+  }
 
   while (_newClauses.isNonEmpty()) {
     Clause* cl=_newClauses.popWithoutDec();
@@ -1188,6 +1212,12 @@ void SaturationAlgorithm::activate(Clause* cl)
   if (!cl->numSelected()) {
     TimeCounter tc(TC_LITERAL_SELECTION);
 
+    if (env.options->randomTraversals()) {
+      TimeCounter tc(TC_SHUFFLING);
+
+      Shuffling::shuffle(cl);
+    }
+
     _selector->select(cl);
   }
 
@@ -1195,7 +1225,6 @@ void SaturationAlgorithm::activate(Clause* cl)
   cl->setStore(Clause::ACTIVE);
   env.statistics->activeClauses++;
   _active->add(cl);
-
     
   auto generated = _generator->generateSimplify(cl);
 
@@ -1209,7 +1238,7 @@ void SaturationAlgorithm::activate(Clause* cl)
     while (genCl->inference().hasNext(iit)) {
       Unit* premUnit=genCl->inference().next(iit);
       // Now we can get generated clauses having parents that are not clauses
-      // Indeed, from induction we can have generated clauses whose parents do 
+      // Indeed, from induction we can have generated clauses whose parents do
       // not include the activated clause
       if(premUnit->isClause()){
         Clause* premCl=static_cast<Clause*>(premUnit);
@@ -1220,12 +1249,15 @@ void SaturationAlgorithm::activate(Clause* cl)
 
   _clauseActivationInProgress=false;
 
-
   //now we remove clauses that could not be removed during the clause activation process
+  if (env.options->randomTraversals()) {
+    TimeCounter tc(TC_SHUFFLING);
+
+    Shuffling::shuffleArray(_postponedClauseRemovals.begin(),_postponedClauseRemovals.size());
+  }
   while (_postponedClauseRemovals.isNonEmpty()) {
     Clause* cl=_postponedClauseRemovals.pop();
-    if (cl->store() != Clause::ACTIVE &&
-	cl->store() != Clause::PASSIVE) {
+    if (cl->store() != Clause::ACTIVE && cl->store() != Clause::PASSIVE) {
       continue;
     }
     removeActiveOrPassiveClause(cl);
@@ -1384,6 +1416,8 @@ MainLoopResult SaturationAlgorithm::runImpl()
       if (env.timeLimitReached()) {
         throw TimeLimitExceededException();
       }
+
+      env.statistics->activations = l;
     }
   }
   catch(ThrowableBase&)

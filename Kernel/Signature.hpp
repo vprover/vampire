@@ -127,6 +127,8 @@ class Signature
     unsigned _label : 1;
     /** marks predicates that are equality proxy */
     unsigned _equalityProxy : 1;
+    /** was flipped **/ 
+    unsigned _wasFlipped : 1;
     /** used in coloured proofs and interpolation */
     unsigned _color : 2;
     /** marks distinct string constants */
@@ -179,6 +181,8 @@ class Signature
     void markAnswerPredicate() { _answerPredicate=1; markProtected(); }
     /** mark predicate to be an equality proxy */
     void markEqualityProxy() { _equalityProxy=1; }
+    /** mark predicate as (polarity) flipped */
+    void markFlipped() { _wasFlipped=1; }
     /** mark constant as overflown */
     void markOverflownConstant() { _overflownConstant=1; }
     /** mark symbol as a term algebra constructor */
@@ -225,6 +229,8 @@ class Signature
     inline bool answerPredicate() const { return _answerPredicate; }
     /** Return true iff symbol is an equality proxy */
     inline bool equalityProxy() const { return _equalityProxy; }
+    /** Return true iff symbol was polarity flipped */
+    inline bool wasFlipped() const { return _wasFlipped; }
     /** Return true iff symbol is an overflown constant */
     inline bool overflownConstant() const { return _overflownConstant; }
     /** Return true iff symbol is a term algebra constructor */
