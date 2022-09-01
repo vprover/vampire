@@ -71,20 +71,9 @@ Term* TermTransformer::transform(Term* term)
       //&top()-2, etc...
       TermList *argLst = &args.top() - (orig->arity() - 1);
       args.truncate(args.length() - orig->arity()); // potentially evil. Calls destructors on the truncated objects, which we are happily reading just below
-      Term* newTrm;
-      if(orig->isSort()){   
-        if(_sharedResult){   
-          newTrm=AtomicSort::create(static_cast<AtomicSort*>(orig), argLst);
-        } else {
-          newTrm=AtomicSort::createNonShared(static_cast<AtomicSort*>(orig), argLst);          
-        }
-      } else {
-        if(_sharedResult){   
-          newTrm=Term::create(orig,argLst);
-        } else {
-          newTrm=Term::createNonShared(orig,argLst);
-        }
-      }
+      Term* newTrm = orig->isSort() ? 
+        create<AtomicSort> (orig, argLst, _sharedResult) :
+        create<Term>       (orig, argLst, _sharedResult) ;
       args.push(TermList(newTrm));
       modified.setTop(true);
       continue;
@@ -149,17 +138,9 @@ Term* TermTransformer::transform(Term* term)
   //&top()-2, etc...
   TermList* argLst = &args.top() - (term->arity() - 1);
 
-  if (term->isLiteral()) {
-    if(_sharedResult){
-      return Literal::create(static_cast<Literal*>(term), argLst);
-    }
-    return Literal::createNonShared(static_cast<Literal*>(term), argLst);
-  } 
-  if(_sharedResult){
-    return Term::create(term, argLst);
-  }
-  return Term::createNonShared(term, argLst);
-
+  return term->isLiteral() ? 
+    create<Literal> (term, argLst, _sharedResult) :
+    create<Term>    (term, argLst, _sharedResult) ;
 }
 
 Literal* TermTransformer::transform(Literal* lit)

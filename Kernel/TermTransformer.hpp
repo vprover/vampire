@@ -66,6 +66,11 @@ protected:
   // can easily be extended to standard terms if required
   bool _recurseIntoReplaced;
   bool _transformSorts;
+
+private:
+  template<class T>
+  Term* create(Term* t, TermList* argLst, bool shared)
+  {  return shared ? T::create(static_cast<T*>(t), argLst) :  T::createNonShared(static_cast<T*>(t), argLst); }  
 };
 
 class ApplicativeTermTransformer : public TermTransformer 
