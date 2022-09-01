@@ -88,7 +88,7 @@ void EqualityFactoring::attach(SaturationAlgorithm* salg)
   CALL("EqualityFactoring::attach");
 
   GeneratingInferenceEngine::attach(salg);
-  _handler = salg->getIndexManager()->getHandler();
+  _handler = salg->getIndexManager()->mismatchHandler();
 }
 
 struct EqualityFactoring::ResultFn
