@@ -37,11 +37,17 @@ public:
   // reduce a term to normal form
   // uses a applicative order reduction stragegy
   // (inner-most left-most redex first)
-  class BetaReducer : public BottomUpTermTransformer
+  class BetaNormaliser : public BottomUpTermTransformer
   {
     TermList transformSubterm(TermList t) override;
   };
   
+  class RedexReducer : public TermTransformer 
+  {
+    TermList reduce(TermList redex);
+    TermList transformSubterm(TermList t) override;    
+  }
+
   static TermList createAppTerm(TermList sort, TermList arg1, TermList arg2);
   static TermList createAppTerm(TermList s1, TermList s2, TermList arg1, TermList arg2, bool shared = true);
   static TermList createAppTerm3(TermList sort, TermList arg1, TermList arg2, TermList arg3);
