@@ -34,7 +34,7 @@ namespace Kernel {
  * This class can be used to transform sort arguments as well by suitably
  * implementing the transform(TermList) function
  * 
- * TermTransformer goes top down but does no recurse into the replaced term
+ * TermTransformer goes top down
  */
 class TermTransformer {
 public:

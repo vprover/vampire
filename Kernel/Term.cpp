@@ -385,14 +385,14 @@ bool Term::isLambdaTerm() const {
   return !isSort() && !isLiteral() && env.signature->isLamFun(_functor);    
 }
 
-int TermList::deBruijnIndex() const {
+Option<unsigned> TermList::deBruijnIndex() const {
   CALL("TermList::deBruijnIndex");
-  return isVar() ? -1 : term()->deBruijnIndex();  
+  return isVar() ? Option<unsigned>() : term()->deBruijnIndex();  
 }
 
-int Term::deBruijnIndex() const {
+Option<unsigned> Term::deBruijnIndex() const {
   CALL("Term::deBruijnIndex");
-  return isSort() || isLiteral() ? -1 : env.signature->getFunction(_functor)->dbIndex();  
+  return isSort() || isLiteral() ? Option<unsigned>() : env.signature->getFunction(_functor)->dbIndex();  
 }
 
 unsigned Term::numTypeArguments() const {

@@ -20,14 +20,111 @@ using namespace Lib;
 using namespace Kernel;
 using namespace Shell;
 
-TermList BetaReducer::transformSubterm(TermList t)
+TermList BetaNormaliser::normalise(TermList t)
 {
-  CALL("BetaReducer::transformSubterm");
+  CALL("BetaNormaliser::normalise");
 
-  if(!t.isApplication()) return t;
-  t = ApplicativeHelper::betaReduce(t);
-  t = BetaReducer().transform(t);
+  // term transformer does not work at the top level...
+  t = transformSubterm(t);
+  return transform(t);
+}
+
+TermList BetaNormaliser::transformSubterm(TermList t)
+{
+  CALL("BetaNormaliser::transformSubterm");
+
+  while(ApplicativeHelper::isRedex(t)){
+    t = RedexReducer().reduce(t);
+  }
   return t;
+}
+
+TermList RedexReducer::reduce(TermList redex)
+{
+  CALL("RedexReducer::reduce");
+  ASS(ApplicativeHelper::isRedex(redex));
+
+  _replace = 0;
+  TermList t1 = *redex.term()->nthArgument(2)->term()->nthArgument(2);
+  _t2 = *redex.term()->nthArgument(3);
+
+  TermList transformed = transformSubterm(t1);
+  if(transformed != t1) return transformed;  
+  return transform(t1);
+}
+
+TermList RedexReducer::transformSubterm(TermList t)
+{
+  CALL("RedexReducer::transformSubterm");
+
+  if(t.deBruijnIndex().isSome()){
+    unsigned index = t.deBruijnIndex().unwrap();
+    if(index == _replace){
+      // any free indices in _t2 need to e lifted by the number of extra lambdas 
+      // that now surround them
+      return TermLifter().lift(_t2, _replace); 
+    }
+    if(index > _replace){
+      // free index. replace by index 1 less as now surrounded by one fewer lambdas
+      TermList sort = SortHelper::getResultSort(t.term());
+      return ApplicativeHelper::getDeBruijnIndex(index - 1, sort);
+    }
+  } 
+  return t;
+}
+
+void RedexReducer::onTermEntry(Term* t)
+{
+  CALL("RedexReducer::onTermEntry");
+   
+  if(t->isLambdaTerm()) _replace++;
+}
+
+void RedexReducer::onTermExit(Term* t)
+{
+  CALL("RedexReducer::onTermExit");
+
+  if(t->isLambdaTerm()) _replace--;
+}
+
+TermList TermLifter::lift(TermList term, unsigned liftBy)
+{
+  CALL("TermLifter::lift");
+
+  _cutOff = 0;
+  _liftBy = liftBy;
+  TermList transformed = transformSubterm(term);
+  if(transformed != term) return transformed;    
+  return transform(term);
+}
+
+TermList TermLifter::transformSubterm(TermList t)
+{
+  CALL("TermLifter::transformSubterm");
+
+  if(t.deBruijnIndex().isSome()){
+    unsigned index = t.deBruijnIndex().unwrap();
+    if(index > _cutOff){
+      // free index. lift
+      TermList sort = SortHelper::getResultSort(t.term());
+      return ApplicativeHelper::getDeBruijnIndex(index + _liftBy, sort);
+    }
+  }
+  return t;
+} 
+
+void TermLifter::onTermEntry(Term* t)
+{
+  CALL("TermLifter::onTermEntry");
+
+  if(t->isLambdaTerm()) _cutOff++;
+}
+
+void TermLifter::onTermExit(Term* t)
+{
+  CALL("TermLifter::onTermExit");
+
+  if(t->isLambdaTerm()) _cutOff--;
 }
 
 TermList ApplicativeHelper::createAppTerm(TermList sort, TermList arg1, TermList arg2, TermList arg3, TermList arg4)
@@ -133,7 +230,8 @@ TermList ApplicativeHelper::getDeBruijnIndex(int index, TermList sort)
   if(added){
     env.signature->getFunction(fun)->setType(OperatorType::getConstantsType(sort));
   }
-  return TermList(Term::createConstant(fun));
+  auto t = TermList(Term::createConstant(fun));
+  return t;
 }
 
 /** indexed from 1 */
@@ -334,94 +432,9 @@ bool ApplicativeHelper::isFalse(TermList term){
   return term.isTerm() && env.signature->isFoolConstantSymbol(false, term.term()->functor());
 }
 
-TermList ApplicativeHelper::betaReduce(TermList redex){
-  CALL("ApplicativeHelper::betaReduce");
+bool ApplicativeHelper::isRedex(TermList t){
+  CALL("ApplicativeHelper::isRedex");
 
-  ASS(redex.isApplication());
-  TermList t1 = *redex.term()->nthArgument(2);
-  TermList t2 = *redex.term()->nthArgument(3);
-  ASS(t1.isLambdaTerm());
-
-    Signature::Symbol* sym;
-  
-  unsigned replace = 0;
-  Stack<TermList*> toDo;
-  Stack<Term*> terms;
-  Stack<bool> modified;
-  Stack<TermList> args;
-
-  modified.push(false);
-  toDo.push(t1.term()->args());
-
-  for (;;) {
-
-    TermList* tt=toDo.pop();
-    if (tt->isEmpty()) {
-      if (terms.isEmpty()) {
-        //we're done, args stack contains modified arguments
-        //of the literal.
-        ASS(toDo.isEmpty());
-        break;
-      }
-      Term* orig=terms.pop();
-      if(orig->isLambdaTerm()){ replace--; }
-      
-      if (!modified.pop()) {
-        args.truncate(args.length() - orig->arity());
-        args.push(TermList(orig));
-        continue;
-      }
-      //here we assume, that stack is an array with
-      //second topmost element as &top()-1, third at
-      //&top()-2, etc...
-      TermList* argLst=&args.top() - (orig->arity()-1);
-      args.truncate(args.length() - orig->arity());
-
-      args.push(TermList(Term::create(orig,argLst)));
-      modified.setTop(true);
-      continue;
-    }
-    toDo.push(tt->next());
-
-    TermList tl=*tt;
-    if (tl.isVar()) {
-      args.push(tl);
-      continue;
-    }
-    ASS(tl.isTerm());
-    Term* t=tl.term();
-
-    if(t->isLambdaTerm()){ replace++; }
-
-    int index = t->deBruijnIndex();
-    if(index > -1){
-      if((unsigned)index == replace){
-        //replace index with appropriately lifted term
-        TermList liftedTerm = lift(t2, replace);
-        args.push(liftedTerm);
-        modified.setTop(true);
-        continue;
-      }
-      if((unsigned)index > replace){
-        //free index, decrement by one, as now surrounded by one less lambda.
-        args.push(getDeBruijnIndex(index - 1, SortHelper::getResultSort(t)));
-        modified.setTop(true);        
-        continue;
-      }
-    }      
-    
-    terms.push(t);
-    modified.push(false);
-    toDo.push(t->args());
-  }
-  ASS(toDo.isEmpty());
-  ASS(terms.isEmpty());
-  ASS_EQ(modified.length(),1);
-  ASS_EQ(args.length(), 1);
-
-  //original abstracted term being a lambda term must have
-  //arity 1. Currently, there is a problem if the abstractedTerm is of 
-  //the form lam(X). In that case we want to return X, but X is not 
-  //a term.   
-  return args.top();
+  return t.isApplication() && t.term()->nthArgument(2)->isLambdaTerm();
 }
+

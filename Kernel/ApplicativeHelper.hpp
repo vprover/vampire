@@ -24,29 +24,49 @@
 using namespace Kernel;
 using namespace Shell;
 
-/**
- * A class with function @b elimLambda() that eliminates a lambda expressions
- * It does this by applying the well known rewrite rules for SKIBC combinators.
- *
- * These can be found:
- * https://en.wikipedia.org/wiki/Combinatory_logic
- */
-class ApplicativeHelper {
+// reduce a term to normal form
+// uses a applicative order reduction stragegy
+// (inner-most left-most redex first)
+class BetaNormaliser : public TermTransformer
+{
 public:
 
-  // reduce a term to normal form
-  // uses a applicative order reduction stragegy
-  // (inner-most left-most redex first)
-  class BetaNormaliser : public BottomUpTermTransformer
-  {
-    TermList transformSubterm(TermList t) override;
-  };
-  
-  class RedexReducer : public TermTransformer 
-  {
-    TermList reduce(TermList redex);
-    TermList transformSubterm(TermList t) override;    
-  }
+  BetaNormaliser() {
+    recurseIntoReplaced();
+    dontTransformSorts();
+  }  
+  TermList normalise(TermList t);
+  TermList transformSubterm(TermList t) override;
+};
+
+class RedexReducer : public TermTransformer 
+{
+public:
+  TermList reduce(TermList redex);
+  TermList transformSubterm(TermList t) override; 
+  void onTermEntry(Term* t) override;
+  void onTermExit(Term* t) override;
+
+private:
+  TermList _t2; // term to replace index with (^x.t1) t2
+  unsigned _replace; // index to replace
+};
+
+class TermLifter : public TermTransformer
+{
+public:
+  TermList lift(TermList term, unsigned liftBy);
+  TermList transformSubterm(TermList t) override; 
+  void onTermEntry(Term* t) override;
+  void onTermExit(Term* t) override;
+
+private:
+  unsigned _cutOff; // any index higher than _cutOff is a free index
+  unsigned _liftBy; // the amount to lift a free index by (the number of extra lambdas between it and its binder)
+};
+
+class ApplicativeHelper {
+public:
 
   static TermList createAppTerm(TermList sort, TermList arg1, TermList arg2);
   static TermList createAppTerm(TermList s1, TermList s2, TermList arg1, TermList arg2, bool shared = true);
@@ -71,8 +91,7 @@ public:
   static bool isBool(TermList t);
   static bool isTrue(TermList term);
   static bool isFalse(TermList term);
-  // reduces a single redex
-  static TermList betaReduce(TermList redex);
+  static bool isRedex(TermList term);
 };
 
 #endif // __ApplicativeHelper__

@@ -184,7 +184,7 @@ public:
   bool isRealSort();
   bool isApplication() const;
   bool isLambdaTerm() const;
-  int deBruijnIndex() const;
+  Option<unsigned> deBruijnIndex() const;
   bool containsSubterm(TermList v);
   bool containsAllVariablesOf(TermList t);
 
@@ -637,8 +637,8 @@ public:
   bool isApplication() const;
   /** true if the term is a lambda term */
   bool isLambdaTerm() const;
-  /** returns -1 if not a De Bruijn index and index otherwise */
-  int deBruijnIndex() const;
+  /** returns empty option if not a De Bruijn index and index otherwise */
+  Option<unsigned> deBruijnIndex() const;
 
   /** Return an index of the argument to which @b arg points */
   unsigned getArgumentIndex(TermList* arg)

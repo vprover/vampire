@@ -34,6 +34,7 @@
 #include "Kernel/Signature.hpp"
 #include "Kernel/OperatorType.hpp"
 #include "Shell/TermAlgebra.hpp"
+#include "Shell/LambdaConversion.hpp"
 
 #define __TO_SORT_RAT RationalConstantType::getSort()
 #define __TO_SORT_INT IntegerConstantType::getSort()
@@ -122,11 +123,6 @@
 #define DECL_VAR(x, i) auto x = TermSugar(TermList::var(i));
 #define DECL_SORT_VAR(x, i) auto x = SortSugar(TermList::var(i));    
 #define DECL_HOL_VAR(x, i, s) auto x = TermSugar(TermList::var(i), s);
-#define DECL_I_COMB(i) auto i = FuncSugar(env.signature->getCombinator(Signature::I_COMB));
-#define DECL_K_COMB(k) auto k = FuncSugar(env.signature->getCombinator(Signature::K_COMB));
-#define DECL_B_COMB(b) auto b = FuncSugar(env.signature->getCombinator(Signature::B_COMB));
-#define DECL_C_COMB(c) auto c = FuncSugar(env.signature->getCombinator(Signature::C_COMB));
-#define DECL_S_COMB(s) auto s = FuncSugar(env.signature->getCombinator(Signature::S_COMB));
 
 #define DECL_DEFAULT_VARS                                                                                     \
   __ALLOW_UNUSED(                                                                                             \
@@ -144,15 +140,6 @@
     DECL_SORT_VAR(alpha, 101)                                                                                 \
     DECL_SORT_VAR(beta, 102)                                                                                  \
     DECL_SORT_VAR(gamma, 103)                                                                                 \
-  )
-
-#define DECL_COMBINATORS                                                                                      \
-  __ALLOW_UNUSED(                                                                                             \
-    DECL_I_COMB(I)                                                                                            \
-    DECL_K_COMB(K)                                                                                            \
-    DECL_B_COMB(B)                                                                                            \
-    DECL_C_COMB(C)                                                                                            \
-    DECL_S_COMB(S)                                                                                            \
   )
 
 
@@ -260,6 +247,7 @@ class SyntaxSugarGlobals
 public:
   static SyntaxSugarGlobals& instance() {
     _instance.setApply();
+    _instance.setLambda();
     return _instance;
   }
 
@@ -271,6 +259,18 @@ public:
       return app;
     };
   }
+
+  void setLambda()
+  {
+    lambda = [](TermList varSort, TermList var, TermList termSort, TermList term) {
+      VList* boundVar = new VList(var.var());
+      SList* boundVarSort = new SList(varSort);
+      Term* lambdaTerm = Term::createLambda(term, boundVar, boundVarSort, termSort);
+      // convert to De Bruijn indices
+      TermList lam = LambdaConversion().convertLambda(lambdaTerm);
+      return lam;
+    };
+  }  
 
   void setNumTraits(IntTraits)
   {
@@ -292,6 +292,7 @@ public:
   { setFracTraits<RealTraits>(); }
 
   std::function<TermList(TermList, TermList, TermList)> apply;
+  std::function<TermList(TermList, TermList, TermList, TermList)> lambda;
 
   std::function<TermList(int, int)> createFraction;
   std::function<TermList(int)> createNumeral;
@@ -447,6 +448,10 @@ inline TermSugar fool(bool b)
 inline TermSugar ap(TermSugar lhs, TermSugar rhs)  { 
   return syntaxSugarGlobals().apply(lhs.sort(), lhs, rhs); 
 }  
+
+inline TermSugar lam(TermSugar var, TermSugar term)  { 
+  return syntaxSugarGlobals().lambda(var.sort(), var, term.sort(), term); 
+}
 
 inline TermSugar operator+(TermSugar lhs, TermSugar rhs)  { return syntaxSugarGlobals().add(lhs, rhs); }  
 inline TermSugar operator*(TermSugar lhs, TermSugar rhs)  { return syntaxSugarGlobals().mul(lhs, rhs); }  

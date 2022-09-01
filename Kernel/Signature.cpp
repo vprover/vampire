@@ -934,6 +934,8 @@ unsigned Signature::addDeBruijnIndex(int index, TermList sort, bool& added)
   }
   added = true;
   fun = addFreshFunction(0, "db");
+  Symbol* sym = getFunction(fun);
+  sym->setDBIndex(index);  
   _dbIndices.insert(sortIndexPair, fun);
   return fun;
 }

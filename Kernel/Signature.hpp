@@ -253,8 +253,12 @@ class Signature
     inline Proxy proxy(){ return _prox; }
     
     inline void setDBIndex(int index){ _dbIndex = index; }
-    inline int dbIndex(){ return _dbIndex; }
-    inline bool isDBIndex(){ return _dbIndex > -1; }
+    inline Option<unsigned> dbIndex(){
+      if(_dbIndex > -1){
+        return Option<unsigned>((unsigned)_dbIndex);
+      } 
+      return Option<unsigned>(); 
+    }
 
     inline void markInductionSkolem(){ _inductionSkolem=1; _skolem=1;}
     inline bool inductionSkolem(){ return _inductionSkolem;}

@@ -750,6 +750,7 @@ set(UNIT_TESTS
     UnitTests/tIterator.cpp
     UnitTests/tOption.cpp
     UnitTests/tStack.cpp
+    UnitTests/tBetaReduction.cpp    
     )
 source_group(unit_tests FILES ${UNIT_TESTS})
 
