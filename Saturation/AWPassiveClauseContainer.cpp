@@ -29,16 +29,15 @@
 #include "Shell/Statistics.hpp"
 #include "Shell/Options.hpp"
 
+#include "AWPassiveClauseContainer.hpp"
 #include "SaturationAlgorithm.hpp"
 
 #if VDEBUG
 #include <iostream>
 #endif
 
-#include "AWPassiveClauseContainer.hpp"
-
 #define DEBUG_MODEL 1
-#include <ATen/Parallel.h>
+#include <torch/utils.h>
 
 namespace Saturation
 {
@@ -60,6 +59,7 @@ NeuralPassiveClauseContainer::NeuralPassiveClauseContainer(bool isOutermost, con
 
   // seems to be making this nicely single-threaded
   at::set_num_threads(1);
+  at::set_num_interop_threads(1);
 
   torch::manual_seed(opt.randomSeed());
 
@@ -67,6 +67,7 @@ NeuralPassiveClauseContainer::NeuralPassiveClauseContainer(bool isOutermost, con
 
 #if DEBUG_MODEL
   cout << "Model loaded in " << env.timer->elapsedMilliseconds() - start << " ms" << endl;
+  cout << at::get_parallel_info() << endl;
 #endif
 }
 
