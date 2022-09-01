@@ -39,11 +39,11 @@ bool UWAMismatchHandler::isConstraintPair(TermList t1, TermList t2)
     case Shell::Options::UnificationWithAbstraction::INTERP_ONLY:{
       return isConstraintTerm(t1).isTrue() && isConstraintTerm(t2).isTrue();
     }
-    default:
-      // handler should never be called if UWA is off
+    case Shell::Options::UnificationWithAbstraction::OFF:
       ASSERTION_VIOLATION;
       return false;
   }
+  ASSERTION_VIOLATION;
 }
 
 TermList UWAMismatchHandler::transformSubterm(TermList trm)
@@ -61,22 +61,30 @@ MaybeBool UWAMismatchHandler::isConstraintTerm(TermList t){
   CALL("UWAMismatchHandler::isConstraintTerm");
   
   if(t.isVar()){ return false; }
-
-  bool onlyInterpreted = _mode == Shell::Options::UnificationWithAbstraction::INTERP_ONLY;
-
   auto trm = t.term();
-  bool isNumeral = Shell::UnificationWithAbstractionConfig::isNumeral(t);
 
-  if(Shell::UnificationWithAbstractionConfig::isInterpreted(trm) && !isNumeral){
-    return true;    
+  switch (_mode) {
+    case Shell::Options::UnificationWithAbstraction::ONE_INTERP:
+    case Shell::Options::UnificationWithAbstraction::INTERP_ONLY: {
+      bool onlyInterpreted = _mode == Shell::Options::UnificationWithAbstraction::INTERP_ONLY;
+
+      bool isNumeral = Shell::UnificationWithAbstractionConfig::isNumeral(t);
+
+      if(Shell::UnificationWithAbstractionConfig::isInterpreted(trm) && !isNumeral){
+        return true;    
+      }
+
+      TermList sort = SortHelper::getResultSort(t.term()); 
+      if(!onlyInterpreted && (sort.isVar() || sort.isIntSort() || sort.isRatSort() || sort.isRealSort())){
+        return MaybeBool::UNKNOWN;
+      }  
+      return false;
+    }
+    case Shell::Options::UnificationWithAbstraction::OFF:
+      ASSERTION_VIOLATION
+      return false;
   }
-
-  TermList sort = SortHelper::getResultSort(t.term()); 
-  if(!onlyInterpreted && (sort.isVar() || sort.isIntSort() || sort.isRatSort() || sort.isRealSort())){
-    return MaybeBool::UNKNOWN;
-  }  
-
-  return false;
+  ASSERTION_VIOLATION
 }
 
 void MismatchHandler::introduceConstraint(TermList t1,unsigned index1, TermList t2,unsigned index2, 
