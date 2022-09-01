@@ -49,7 +49,7 @@
 #include "SineUtils.hpp"
 #include "Statistics.hpp"
 #include "FOOLElimination.hpp"
-#include "LambdaElimination.hpp"
+#include "LambdaConversion.hpp"
 #include "TheoryAxioms.hpp"
 #include "TheoryFlattening.hpp"
 #include "TweeGoalTransformation.hpp"
@@ -154,21 +154,17 @@ void Preprocess::preprocess(Problem& prb)
   }
 
   if(env.options->functionExtensionality() == Options::FunctionExtensionality::AXIOM){
-    LambdaElimination::addFunctionExtensionalityAxiom(prb);
+    LambdaConversion::addFunctionExtensionalityAxiom(prb);
   }
 
   if(env.options->choiceAxiom()){
-    LambdaElimination::addChoiceAxiom(prb);    
+    LambdaConversion::addChoiceAxiom(prb);    
   }
 
   prb.getProperty();
 
-  if ((prb.hasCombs() || prb.hasAppliedVar()) && env.options->addCombAxioms()){
-    LambdaElimination::addCombinatorAxioms(prb);
-  }
-
   if ((prb.hasLogicalProxy() || prb.hasBoolVar()) && env.options->addProxyAxioms()){
-    LambdaElimination::addProxyAxioms(prb);
+    LambdaConversion::addProxyAxioms(prb);
   }
   
   if (prb.hasInterpretedOperations() || env.signature->hasTermAlgebras()){

@@ -362,7 +362,7 @@ bool AtomicSort::isRealSort() const {
 }
 
 bool TermList::isApplication() const { 
-  CALL("Term::isApplication");
+  CALL("TermList::isApplication");
   
   return !isVar() && term()->isApplication();
 }
@@ -371,6 +371,28 @@ bool Term::isApplication() const {
   CALL("Term::isApplication");
   
   return !isSort() && !isLiteral() && env.signature->isAppFun(_functor);    
+}
+
+bool TermList::isLambdaTerm() const { 
+  CALL("TermList::isLambdaTerm");
+  
+  return !isVar() && term()->isLambdaTerm();
+}
+
+bool Term::isLambdaTerm() const {
+  CALL("Term::isLambdaTerm");
+  
+  return !isSort() && !isLiteral() && env.signature->isLamFun(_functor);    
+}
+
+int TermList::deBruijnIndex() const {
+  CALL("TermList::deBruijnIndex");
+  return isVar() ? -1 : term()->deBruijnIndex();  
+}
+
+int Term::deBruijnIndex() const {
+  CALL("Term::deBruijnIndex");
+  return isSort() || isLiteral() ? -1 : env.signature->getFunction(_functor)->dbIndex();  
 }
 
 unsigned Term::numTypeArguments() const {
@@ -687,8 +709,6 @@ vstring Term::headToString() const
     if (!isSort() && Theory::tuples()->findProjection(functor(), isLiteral(), proj)) {
       return "$proj(" + Int::toString(proj) + ", ";
     }
-    bool print = (isLiteral() || isSort() ||
-                 (env.signature->getFunction(_functor)->combinator() == Signature::NOT_COMB)) && arity();
     vstring name = "";
     if(isLiteral()) {
       name = static_cast<const Literal *>(this)->predicateName();
@@ -697,7 +717,7 @@ vstring Term::headToString() const
     } else {
       name = functionName();
     }
-    return name + (print ? "(" : "");
+    return name + (arity() ? "(" : "");
   }
 }
 
@@ -780,8 +800,6 @@ vstring Term::toString(bool topLevel) const
 {
   CALL("Term::toString");
 
-  bool printArgs = true;
-
   if(isSuper()){
     return "$tType";
   }
@@ -797,13 +815,11 @@ vstring Term::toString(bool topLevel) const
       res += topLevel ? "" : ")";
       return res;
     }
-
-    printArgs = isSort() || env.signature->getFunction(_functor)->combinator() == Signature::NOT_COMB;
   }
 
   vstring s = headToString();
 
-  if (_arity && printArgs) {
+  if (_arity) {
     s += args()->asArgsToString(); // will also print the ')'
   }
   return s;

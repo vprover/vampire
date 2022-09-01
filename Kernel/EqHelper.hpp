@@ -38,11 +38,8 @@ public:
   static TermIterator getSubtermIterator(Literal* lit, const Ordering& ord);
   static TermIterator getFoSubtermIterator(Literal* lit, const Ordering& ord);
   static TermIterator getBooleanSubtermIterator(Literal* lit, const Ordering& ord);  
-  static TermIterator getNarrowableSubtermIterator(Literal* lit, const Ordering& ord);  
-  static TermIterator getRewritableVarsIterator(DHSet<unsigned>* unstableVars, Literal* lit, const Ordering& ord);
   static TermIterator getLHSIterator(Literal* lit, const Ordering& ord);
   static TermIterator getSuperpositionLHSIterator(Literal* lit, const Ordering& ord, const Options& opt);
-  static TermIterator getSubVarSupLHSIterator(Literal* lit, const Ordering& ord);
   static TermIterator getDemodulationLHSIterator(Literal* lit, bool forward, const Ordering& ord, const Options& opt);
   static TermIterator getEqualityArgumentIterator(Literal* lit);
 
@@ -74,19 +71,6 @@ public:
     const Ordering& _ord;
     const Options& _opt;
   };
-
-  struct SubVarSupLHSIteratorFn
-  {
-    SubVarSupLHSIteratorFn(const Ordering& ord) : _ord(ord) {}
-
-    VirtualIterator<pair<Literal*, TermList> > operator()(Literal* lit)
-    {
-      return pvi( pushPairIntoRightIterator(lit, getSubVarSupLHSIterator(lit, _ord)) );
-    }
-  private:
-    const Ordering& _ord;
-  };
-
 
   struct EqualityArgumentIteratorFn
   {

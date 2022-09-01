@@ -183,6 +183,8 @@ public:
   bool isRatSort();
   bool isRealSort();
   bool isApplication() const;
+  bool isLambdaTerm() const;
+  int deBruijnIndex() const;
   bool containsSubterm(TermList v);
   bool containsAllVariablesOf(TermList t);
 
@@ -633,6 +635,10 @@ public:
   bool isSort() const { return _args[0]._info.sort; }
   /** true if the term is an application */
   bool isApplication() const;
+  /** true if the term is a lambda term */
+  bool isLambdaTerm() const;
+  /** returns -1 if not a De Bruijn index and index otherwise */
+  int deBruijnIndex() const;
 
   /** Return an index of the argument to which @b arg points */
   unsigned getArgumentIndex(TermList* arg)

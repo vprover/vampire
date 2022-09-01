@@ -20,6 +20,16 @@ using namespace Lib;
 using namespace Kernel;
 using namespace Shell;
 
+TermList BetaReducer::transformSubterm(TermList t)
+{
+  CALL("BetaReducer::transformSubterm");
+
+  if(!t.isApplication()) return t;
+  t = ApplicativeHelper::betaReduce(t);
+  t = BetaReducer().transform(t);
+  return t;
+}
+
 TermList ApplicativeHelper::createAppTerm(TermList sort, TermList arg1, TermList arg2, TermList arg3, TermList arg4)
 {
   CALL("ApplicativeHelper::createAppTerm/3");
@@ -100,6 +110,31 @@ TermList ApplicativeHelper::createAppTerm(TermList sort, TermList head, TermList
   return res; 
 }  
 
+TermList ApplicativeHelper::createLambdaTerm(TermList varSort, TermList termSort, TermList term)
+{
+  CALL("ApplicativeHelper::createLambdaTerm");
+
+  static TermStack args;
+  args.reset();
+  args.push(varSort);
+  args.push(termSort);
+  args.push(term);
+  unsigned lam = env.signature->getLam();
+  return TermList(Term::create(lam, 3, args.begin()));
+} 
+
+
+TermList ApplicativeHelper::getDeBruijnIndex(int index, TermList sort)
+{
+  CALL("ApplicativeHelper::createDBIndex");
+     
+  bool added;
+  unsigned fun = env.signature->addDeBruijnIndex(index, sort, added); 
+  if(added){
+    env.signature->getFunction(fun)->setType(OperatorType::getConstantsType(sort));
+  }
+  return TermList(Term::createConstant(fun));
+}
 
 /** indexed from 1 */
 TermList ApplicativeHelper::getResultApplieadToNArgs(TermList arrowSort, unsigned argNum)
@@ -247,7 +282,6 @@ void ApplicativeHelper::getHeadAndArgs(const Term* term, TermList& head, Deque<T
 }
 
 
-
 TermList ApplicativeHelper::getHead(TermList t)
 {
   CALL("ApplicativeHelper::getHead(TermList)");
@@ -276,19 +310,6 @@ TermList ApplicativeHelper::getHead(Term* t)
   return trm;
 }
 
-bool ApplicativeHelper::isComb(const TermList head)
-{
-  CALL("ApplicativeHelper::isComb");
-  if(head.isVar()){ return false; }
-  return env.signature->getFunction(head.term()->functor())->combinator() != Signature::NOT_COMB;
-}
-
-Signature::Combinator ApplicativeHelper::getComb (const TermList head) 
-{
-  CALL("ApplicativeHelper::getComb");
-  return env.signature->getFunction(head.term()->functor())->combinator();
-}
-
 Signature::Proxy ApplicativeHelper::getProxy(const TermList t)
 {
   CALL("ApplicativeHelper::getProxy");
@@ -296,45 +317,6 @@ Signature::Proxy ApplicativeHelper::getProxy(const TermList t)
     return Signature::NOT_PROXY;
   }
   return env.signature->getFunction(t.term()->functor())->proxy();
-}
-
-bool ApplicativeHelper::isUnderApplied(TermList head, unsigned argNum){
-  CALL("ApplicativeHelper::isPartiallyAppliedComb");
-
-  ASS(isComb(head));
-  Signature::Combinator c = getComb(head);
-  return ((c == Signature::I_COMB && argNum < 1) ||
-          (c == Signature::K_COMB && argNum < 2) ||
-          (c == Signature::B_COMB && argNum < 3) ||
-          (c == Signature::C_COMB && argNum < 3) ||
-          (c == Signature::S_COMB && argNum < 3));
-}
-
-bool ApplicativeHelper::isExactApplied(TermList head, unsigned argNum){
-  CALL("ApplicativeHelper::isExactApplied");
-
-  ASS(isComb(head));
-  Signature::Combinator c = getComb(head);
-  return ((c == Signature::I_COMB && argNum == 1) ||
-          (c == Signature::K_COMB && argNum == 2) ||
-          (c == Signature::B_COMB && argNum == 3) ||
-          (c == Signature::C_COMB && argNum == 3) ||
-          (c == Signature::S_COMB && argNum == 3));
-
-}
-
-
-bool ApplicativeHelper::isOverApplied(TermList head, unsigned argNum){
-  CALL("ApplicativeHelper::isOverApplied");
-
-  ASS(isComb(head));
-  Signature::Combinator c = getComb(head);
-  return ((c == Signature::I_COMB && argNum > 1) ||
-          (c == Signature::K_COMB && argNum > 2) ||
-          (c == Signature::B_COMB && argNum > 3) ||
-          (c == Signature::C_COMB && argNum > 3) ||
-          (c == Signature::S_COMB && argNum > 3));
-
 }
 
 bool ApplicativeHelper::isBool(TermList t){
@@ -352,19 +334,94 @@ bool ApplicativeHelper::isFalse(TermList term){
   return term.isTerm() && env.signature->isFoolConstantSymbol(false, term.term()->functor());
 }
 
-bool ApplicativeHelper::isSafe(TermStack& args)
-{
-  CALL("ApplicativeHelper::isSafe");
+TermList ApplicativeHelper::betaReduce(TermList redex){
+  CALL("ApplicativeHelper::betaReduce");
 
-  for(unsigned i = 0; i < args.size(); i++){
-    TermList ithArg = args[i];
-    /*if(ithArg.isVar() || !ithArg.term()->ground()){
-      return false;
-    }*/
-    TermList head = getHead(ithArg);
-    if(isComb(head) || head.isVar()){
-      return false;
+  ASS(redex.isApplication());
+  TermList t1 = *redex.term()->nthArgument(2);
+  TermList t2 = *redex.term()->nthArgument(3);
+  ASS(t1.isLambdaTerm());
+
+    Signature::Symbol* sym;
+  
+  unsigned replace = 0;
+  Stack<TermList*> toDo;
+  Stack<Term*> terms;
+  Stack<bool> modified;
+  Stack<TermList> args;
+
+  modified.push(false);
+  toDo.push(t1.term()->args());
+
+  for (;;) {
+
+    TermList* tt=toDo.pop();
+    if (tt->isEmpty()) {
+      if (terms.isEmpty()) {
+        //we're done, args stack contains modified arguments
+        //of the literal.
+        ASS(toDo.isEmpty());
+        break;
+      }
+      Term* orig=terms.pop();
+      if(orig->isLambdaTerm()){ replace--; }
+      
+      if (!modified.pop()) {
+        args.truncate(args.length() - orig->arity());
+        args.push(TermList(orig));
+        continue;
+      }
+      //here we assume, that stack is an array with
+      //second topmost element as &top()-1, third at
+      //&top()-2, etc...
+      TermList* argLst=&args.top() - (orig->arity()-1);
+      args.truncate(args.length() - orig->arity());
+
+      args.push(TermList(Term::create(orig,argLst)));
+      modified.setTop(true);
+      continue;
     }
+    toDo.push(tt->next());
+
+    TermList tl=*tt;
+    if (tl.isVar()) {
+      args.push(tl);
+      continue;
+    }
+    ASS(tl.isTerm());
+    Term* t=tl.term();
+
+    if(t->isLambdaTerm()){ replace++; }
+
+    int index = t->deBruijnIndex();
+    if(index > -1){
+      if((unsigned)index == replace){
+        //replace index with appropriately lifted term
+        TermList liftedTerm = lift(t2, replace);
+        args.push(liftedTerm);
+        modified.setTop(true);
+        continue;
+      }
+      if((unsigned)index > replace){
+        //free index, decrement by one, as now surrounded by one less lambda.
+        args.push(getDeBruijnIndex(index - 1, SortHelper::getResultSort(t)));
+        modified.setTop(true);        
+        continue;
+      }
+    }      
+    
+    terms.push(t);
+    modified.push(false);
+    toDo.push(t->args());
   }
-  return true;
+  ASS(toDo.isEmpty());
+  ASS(terms.isEmpty());
+  ASS_EQ(modified.length(),1);
+  ASS_EQ(args.length(), 1);
+
+  //original abstracted term being a lambda term must have
+  //arity 1. Currently, there is a problem if the abstractedTerm is of 
+  //the form lam(X). In that case we want to return X, but X is not 
+  //a term.   
+  return args.top();
 }

@@ -66,17 +66,6 @@ class Signature
   /** this is not a sort, it is just used to denote the first index of a user-define sort */
   static const unsigned FIRST_USER_CON=5;
   
-  //Order is important
-  //Narrow.cpp relies on it
-  enum Combinator {
-    S_COMB,
-    B_COMB,
-    C_COMB,
-    I_COMB,
-    K_COMB,
-    NOT_COMB
-  };
-  
   enum Proxy {
     AND,
     OR,
@@ -156,7 +145,7 @@ class Signature
     /** proxy type */
     Proxy _prox;
     /** combinator type */
-    Combinator _comb;
+    int _dbIndex;
 
   public:
     /** standard constructor */
@@ -262,9 +251,10 @@ class Signature
 
     inline void setProxy(Proxy prox){ _prox = prox; }
     inline Proxy proxy(){ return _prox; }
-
-    inline void setComb(Combinator comb){ _comb = comb; }
-    inline Combinator combinator(){ return _comb; }
+    
+    inline void setDBIndex(int index){ _dbIndex = index; }
+    inline int dbIndex(){ return _dbIndex; }
+    inline bool isDBIndex(){ return _dbIndex > -1; }
 
     inline void markInductionSkolem(){ _inductionSkolem=1; _skolem=1;}
     inline bool inductionSkolem(){ return _inductionSkolem;}
@@ -439,8 +429,10 @@ class Signature
   unsigned addSkolemPredicate(unsigned arity,const char* suffix = 0);
   unsigned addNamePredicate(unsigned arity);
   unsigned addNameFunction(unsigned arity);
+  unsigned addDeBruijnIndex(int index, TermList sort, bool& added);
   void addEquality();
   unsigned getApp();
+  unsigned getLam();
   unsigned getDiff();
   unsigned getChoice();
 
@@ -642,6 +634,10 @@ class Signature
     return (fun == _appFun && _appFun != UINT_MAX);
   }
 
+  bool isLamFun(unsigned fun) const{
+    return (fun == _lamFun && _lamFun != UINT_MAX);
+  }
+
   bool tryGetFunctionNumber(const vstring& name, unsigned arity, unsigned& out) const;
   bool tryGetPredicateNumber(const vstring& name, unsigned arity, unsigned& out) const;
   unsigned getFunctionNumber(const vstring& name, unsigned arity) const;
@@ -835,67 +831,6 @@ class Signature
     return proxy;  
   } //TODO merge with above?  
 
-  //TODO make all these names protected
-
-  unsigned getCombinator(Combinator c){
-    bool added = false;
-    unsigned comb;
-    
-    auto convert = [] (Combinator cb) { 
-      switch(cb){
-        case S_COMB:
-          return "sCOMB";
-        case C_COMB:
-          return "cCOMB";
-        case B_COMB:
-          return "bCOMB";
-        case K_COMB:
-          return "kCOMB";
-        default:
-          return "iCOMB";
-      }
-    };
-    
-    vstring name = convert(c);
-    if(c == S_COMB || c == B_COMB || c == C_COMB){
-      comb = addFunction(name,3, added);
-    } else if ( c == K_COMB) {
-      comb = addFunction(name,2, added);      
-    } else {
-      comb = addFunction(name,1, added);
-    }
-
-    if(added){
-      unsigned typeArgsArity = 3;
-      TermList x0 = TermList(0, false);
-      TermList x1 = TermList(1, false);
-      TermList x2 = TermList(2, false);
-      TermList t0 = AtomicSort::arrowSort(x1, x2);
-      TermList t1 = AtomicSort::arrowSort(x0, t0);
-      TermList t2 = AtomicSort::arrowSort(x0, x1);
-      TermList t3 = AtomicSort::arrowSort(x0, x2);
-      TermList sort; 
-      if(c == S_COMB){
-        sort = AtomicSort::arrowSort(t1, t2, t3);
-      }else if(c == C_COMB){
-        sort = AtomicSort::arrowSort(t1, x1, t3);
-      }else if(c == B_COMB){
-        sort = AtomicSort::arrowSort(t0, t2, t3);
-      }else if(c == K_COMB){
-        typeArgsArity = 2;
-        sort = AtomicSort::arrowSort(x0, x1 , x0);
-      }else if(c == I_COMB){
-        typeArgsArity = 1;
-        sort = AtomicSort::arrowSort(x0, x0);
-      }    
-
-      Symbol* sym = getFunction(comb);
-      sym->setType(OperatorType::getConstantsType(sort, typeArgsArity));
-      sym->setComb(c);
-    } 
-    return comb;
-  }
-
   void incrementFormulaCount(Term* t);
   void decrementFormulaCount(Term* t);
   void formulaNamed(Term* t);
@@ -972,6 +907,12 @@ private:
    */
   DHMap<Theory::MonomorphisedInterpretation, unsigned> _iSymbols;
 
+  /**
+   * Map from the sort and number of a de bruijn index, to the functor used to 
+   * represent it
+   */
+  DHMap<pair<TermList, int>, unsigned> _dbIndices;
+
   /** the number of string constants */
   unsigned _strings;
   /** the number of integer constants */
@@ -984,6 +925,7 @@ private:
   unsigned _arrayCon;
   unsigned _arrowCon;
   unsigned _appFun;
+  unsigned _lamFun;
 
   /**
    * Map from sorts to the associated term algebra, if applicable for the sort

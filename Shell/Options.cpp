@@ -3480,8 +3480,8 @@ bool Options::complete(const Problem& prb) const
 
   if (hasEquality && !_superposition.actualValue) return false;
 
-  if((prop.hasCombs() || prop.hasAppliedVar())  &&
-    !_addCombAxioms.actualValue && !_combinatorySuperposition.actualValue) {
+  // TODO fix this whole thing up
+  if((prop.hasAppliedVar())) {
     //TODO make a more complex more precise case here
     //There are instance where we are complete
     return false;

@@ -59,7 +59,7 @@
 #include "Inferences/BoolEqToDiseq.hpp"
 #include "Inferences/ExtensionalityResolution.hpp"
 #include "Inferences/FOOLParamodulation.hpp"
-#include "Inferences/Injectivity.hpp"
+//#include "Inferences/Injectivity.hpp"
 #include "Inferences/Factoring.hpp"
 #include "Inferences/ForwardDemodulation.hpp"
 #include "Inferences/ForwardLiteralRewriting.hpp"
@@ -73,11 +73,11 @@
 #include "Inferences/Superposition.hpp"
 #include "Inferences/ArgCong.hpp"
 #include "Inferences/NegativeExt.hpp"
-#include "Inferences/Narrow.hpp"
-#include "Inferences/PrimitiveInstantiation.hpp"
+//#include "Inferences/Narrow.hpp"
+//#include "Inferences/PrimitiveInstantiation.hpp"
 #include "Inferences/Choice.hpp"
-#include "Inferences/ElimLeibniz.hpp"
-#include "Inferences/SubVarSup.hpp"
+//#include "Inferences/ElimLeibniz.hpp"
+//#include "Inferences/SubVarSup.hpp"
 #include "Inferences/CNFOnTheFly.hpp"
 //#include "Inferences/RenamingOnTheFly.hpp"
 #include "Inferences/URResolution.hpp"
@@ -86,8 +86,7 @@
 #include "Inferences/Induction.hpp"
 #include "Inferences/ArithmeticSubtermGeneralization.hpp"
 #include "Inferences/TautologyDeletionISE.hpp"
-#include "Inferences/CombinatorDemodISE.hpp"
-#include "Inferences/CombinatorNormalisationISE.hpp"
+//#include "Inferences/CombinatorDemodISE.hpp"
 #include "Inferences/BoolSimp.hpp"
 #include "Inferences/CasesSimp.hpp"
 #include "Inferences/Cases.hpp"
@@ -1560,12 +1559,12 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
   if(opt.combinatorySup() && prb.higherOrder()){
     gie->addFront(new ArgCong());
     gie->addFront(new NegativeExt());//TODO add option
-    if(opt.narrow() != Options::Narrow::OFF){
+    /*if(opt.narrow() != Options::Narrow::OFF){
       gie->addFront(new Narrow());
     }
     if(!opt.pragmatic()){
       gie->addFront(new SubVarSup());
-    }
+    }*/
   }
 
   if(prb.hasFOOL() &&
@@ -1573,11 +1572,11 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
     gie->addFront(new BoolEqToDiseq());
   }
 
-  if(opt.complexBooleanReasoning() && prb.hasBoolVar() &&
+  /*if(opt.complexBooleanReasoning() && prb.hasBoolVar() &&
      prb.higherOrder() && !opt.lambdaFreeHol()){
     gie->addFront(new PrimitiveInstantiation()); //TODO only add in some cases
     gie->addFront(new ElimLeibniz());
-  }
+  }*/
 
   if(env.options->choiceReasoning()){
     gie->addFront(new Choice());
@@ -1608,9 +1607,9 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
     }
   }
 
-  if (opt.injectivityReasoning()) {
+  /*if (opt.injectivityReasoning()) {
     gie->addFront(new Injectivity());
-  }
+  }*/
   if(prb.hasEquality() && env.signature->hasTermAlgebras()) {
     if (opt.termAlgebraCyclicityCheck() == Options::TACyclicityCheck::RULE) {
       gie->addFront(new AcyclicityGIE());
@@ -1784,10 +1783,10 @@ ImmediateSimplificationEngine* SaturationAlgorithm::createISE(Problem& prb, cons
     break;
   }
 
-  if(env.options->combinatorySup() && prb.higherOrder()){
+  /*if(env.options->combinatorySup() && prb.higherOrder()){
     res->addFront(new CombinatorDemodISE());
     res->addFront(new CombinatorNormalisationISE());
-  }
+  }*/
 
   if(env.options->choiceReasoning() && prb.higherOrder()){
     res->addFront(new ChoiceDefinitionISE());

@@ -312,42 +312,42 @@ set(VAMPIRE_KERNEL_SOURCES
     Kernel/PolynomialNormalizer.cpp
     Kernel/ApplicativeHelper.hpp
     Kernel/ApplicativeHelper.cpp
-    Kernel/SKIKBO.hpp
-    Kernel/SKIKBO.cpp
+#    Kernel/SKIKBO.hpp
+#    Kernel/SKIKBO.cpp
     Indexing/TypeSubstitutionTree.cpp
     Indexing/TypeSubstitutionTree.hpp
     Inferences/CNFOnTheFly.cpp
     Inferences/CNFOnTheFly.hpp
-    Inferences/CombinatorDemodISE.cpp
-    Inferences/CombinatorDemodISE.hpp
-    Inferences/CombinatorNormalisationISE.hpp
-    Inferences/CombinatorNormalisationISE.cpp
+#    Inferences/CombinatorDemodISE.cpp
+#    Inferences/CombinatorDemodISE.hpp
+#    Inferences/CombinatorNormalisationISE.hpp
+#    Inferences/CombinatorNormalisationISE.cpp
     Inferences/ArgCong.hpp
     Inferences/ArgCong.cpp
     Inferences/NegativeExt.cpp
     Inferences/NegativeExt.hpp
-    Inferences/Narrow.hpp
-    Inferences/Narrow.cpp
-    Inferences/SubVarSup.hpp
-    Inferences/SubVarSup.cpp
+#    Inferences/Narrow.hpp
+#    Inferences/Narrow.cpp
+#    Inferences/SubVarSup.hpp
+#    Inferences/SubVarSup.cpp
     Inferences/BoolEqToDiseq.hpp
     Inferences/BoolEqToDiseq.cpp
-    Inferences/PrimitiveInstantiation.cpp
-    Inferences/PrimitiveInstantiation.hpp
-    Inferences/ElimLeibniz.cpp
-    Inferences/ElimLeibniz.hpp
+#    Inferences/PrimitiveInstantiation.cpp
+#    Inferences/PrimitiveInstantiation.hpp
+#    Inferences/ElimLeibniz.cpp
+#    Inferences/ElimLeibniz.hpp
     Inferences/Choice.cpp
     Inferences/Choice.hpp
-    Inferences/Injectivity.hpp
-    Inferences/Injectivity.cpp
+#    Inferences/Injectivity.hpp
+#    Inferences/Injectivity.cpp
     Inferences/BoolSimp.hpp
     Inferences/BoolSimp.cpp
     Inferences/CasesSimp.cpp
     Inferences/CasesSimp.hpp
     Inferences/Cases.cpp
     Inferences/Cases.hpp
-    Shell/LambdaElimination.cpp
-    Shell/LambdaElimination.hpp
+    Shell/LambdaConversion.cpp
+    Shell/LambdaConversion.hpp
     )
 source_group(kernel_source_files FILES ${VAMPIRE_KERNEL_SOURCES})
 
@@ -737,7 +737,7 @@ set(UNIT_TESTS
     UnitTests/tBinaryHeap.cpp
     UnitTests/tSafeRecursion.cpp
     UnitTests/tKBO.cpp
-    UnitTests/tSKIKBO.cpp
+#    UnitTests/tSKIKBO.cpp
     UnitTests/tLPO.cpp
     UnitTests/tRatioKeeper.cpp
     UnitTests/tTwoVampires.cpp

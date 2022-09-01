@@ -155,7 +155,7 @@ void SubtermIterator::right()
 ///                                                                    ///
 //////////////////////////////////////////////////////////////////////////
 
-bool TopLevelVarLikeTermIterator::hasNext()
+/*bool TopLevelVarLikeTermIterator::hasNext()
 {
   CALL("TopLevelVarLikeTermIterator::hasNext");
 
@@ -241,7 +241,7 @@ bool TopLevelVarIterator::hasNext()
   }
   return false;  
 
-}
+}*/
 
 TermList FirstOrderSubtermIt::next()
 {
@@ -253,7 +253,7 @@ TermList FirstOrderSubtermIt::next()
   args.reset();
   Term* t = _stack.pop();
   AH::getHeadAndArgs(t, head, args);
-  if(!AH::isComb(head) || AH::isUnderApplied(head, args.size())){
+  if(!head.isLambdaTerm()){
     for(unsigned i = 0; i < args.size(); i++){
       if(!args[i].isVar()){
         _added++;
@@ -273,40 +273,6 @@ void FirstOrderSubtermIt::right()
     _stack.pop();
   }
 } // FirstOrderSubtermIt::right
-
-
-bool NarrowableSubtermIt::hasNext()
-{
-  CALL("NarrowableSubtermIt::hasNext");
-
-  if(!_used){ return true; }
-
-  static TermStack args;
-  TermList head;
-  while(!_stack.isEmpty()){
-    Term* t = _stack.pop();
-    AH::getHeadAndArgs(t, head, args);
-    if((AH::isComb(head) && AH::isExactApplied(head, args.size())) ||
-       (head.isVar() && args.size() <= 3)){
-      _next = TermList(t);
-      _used = false;
-    }
-    if(t->isApplication() && (!AH::isComb(head) || _used)){
-      TermList* trm = t->nthArgument(2);
-      if(trm->isApplication()){
-        _stack.push(trm->term());
-      }
-      if(!AH::isComb(head) || AH::isUnderApplied(head, args.size())){
-        trm = t->nthArgument(3);
-        if(trm->isApplication()){
-          _stack.push(trm->term());
-        } 
-      }
-    }
-    if(!_used){ return true; }
-  }
-  return false;
-}
 
 bool BooleanSubtermIt::hasNext()
 {
@@ -332,66 +298,6 @@ bool BooleanSubtermIt::hasNext()
     if(!_used){ return true; }
   }
   return false;
-}
-
-bool RewritableVarsIt::hasNext()
-{
-  CALL("RewritableVarsIt::hasNext");
-
-  if(!_next.isEmpty()){ return true; }
-
-  static TermStack args;
-  TermList head;
-  TermList headSort;
-  while(!_stack.isEmpty()){
-    TermList t = _stack.pop();
-    TermList s = _sorts.pop();
-    AH::getHeadSortAndArgs(t, head, headSort, args);
-    if(head.isVar() && args.size() <= 1 && _unstableVars->find(head.var()) 
-       && (s.isVar() || s.isArrowSort())){
-      _next = head;
-    }
-    if(!AH::isComb(head) || AH::isUnderApplied(head, args.size())){
-      unsigned count = 1;
-      while(!args.isEmpty()){
-        _sorts.push(AH::getNthArg(headSort, count++));
-        _stack.push(args.pop());
-      }
-    }
-    if(!_next.isEmpty()){ return true; }
-  }
-  return false;
-}
-
-//TODO relook at stability and instability
-bool UnstableVarIt::hasNext()
-{
-  CALL("UnstableVarIt::hasNext");
-
-  if(!_next.isEmpty()){ return true; }
-
-  static TermStack args;
-  TermList head;
-  while(!_stack.isEmpty()){
-    ASS(_stack.size() == _stable.size());
-    TermList t = _stack.pop();
-    bool stable = _stable.pop();
-    AH::getHeadAndArgs(t, head, args);
-    if(head.isVar()){
-      if(!stable || args.size()){
-        _next = head;
-      }
-    } 
-    bool argsStable = !head.isVar() && (!AH::isComb(head) || 
-         (AH::isUnderApplied(head, args.size()) && stable));
-    for(unsigned i = 0; i < args.size(); i++){
-      _stack.push(args[i]);
-      _stable.push(argsStable);
-    }
-    if(!_next.isEmpty()){ return true; }
-  }
-  return false;
-
 }
 
 //////////////////////////////////////////////////////////////////////////

@@ -19,6 +19,7 @@
 #include "Signature.hpp"
 #include "Lib/Deque.hpp"
 #include "Lib/BiMap.hpp"
+#include "Kernel/TermTransformer.hpp"
 
 using namespace Kernel;
 using namespace Shell;
@@ -32,6 +33,14 @@ using namespace Shell;
  */
 class ApplicativeHelper {
 public:
+
+  // reduce a term to normal form
+  // uses a applicative order reduction stragegy
+  // (inner-most left-most redex first)
+  class BetaReducer : public BottomUpTermTransformer
+  {
+    TermList transformSubterm(TermList t) override;
+  };
   
   static TermList createAppTerm(TermList sort, TermList arg1, TermList arg2);
   static TermList createAppTerm(TermList s1, TermList s2, TermList arg1, TermList arg2, bool shared = true);
@@ -39,6 +48,8 @@ public:
   static TermList createAppTerm(TermList sort, TermList arg1, TermList arg2, TermList arg3, TermList arg4); 
   static TermList createAppTerm(TermList sort, TermList head, TermStack& terms); 
   static TermList createAppTerm(TermList sort, TermList head, TermList* args, unsigned arity, bool shared = true); 
+  static TermList createLambdaTerm(TermList varSort, TermList termSort, TermList term); 
+  static TermList getDeBruijnIndex(int index, TermList sort);
   static TermList getNthArg(TermList arrowSort, unsigned argNum);
   static TermList getResultApplieadToNArgs(TermList arrowSort, unsigned argNum);
   static TermList getResultSort(TermList sort);
@@ -48,18 +59,14 @@ public:
   static void getHeadAndArgs(Term* term, TermList& head, TermStack& args);  
   static void getHeadAndArgs(const Term* term, TermList& head, Deque<TermList>& args); 
   static void getHeadSortAndArgs(TermList term, TermList& head, TermList& headSort, TermStack& args); 
-  static bool isComb(const TermList t);
-  static Signature::Combinator getComb(const TermList t);
   static Signature::Proxy getProxy(const TermList t);
   static TermList getHead(TermList t);
   static TermList getHead(Term* t);  
-  static bool isUnderApplied(TermList head, unsigned argNum);
-  static bool isExactApplied(TermList head, unsigned argNum);
-  static bool isOverApplied(TermList head, unsigned argNum);
-  static bool isSafe(TermStack& args);
   static bool isBool(TermList t);
   static bool isTrue(TermList term);
   static bool isFalse(TermList term);
+  // reduces a single redex
+  static TermList betaReduce(TermList redex);
 };
 
 #endif // __ApplicativeHelper__

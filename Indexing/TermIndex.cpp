@@ -26,8 +26,6 @@
 #include "Kernel/Term.hpp"
 #include "Kernel/TermIterators.hpp"
 
-#include "Shell/LambdaElimination.hpp"
-
 #include "TermIndex.hpp"
 
 namespace Indexing {
@@ -251,53 +249,11 @@ void StructInductionTermIndex::handleClause(Clause* c, bool adding)
 // Indices for higher-order inferences from here on//
 /////////////////////////////////////////////////////
 
-void SubVarSupSubtermIndex::handleClause(Clause* c, bool adding)
-{
-  CALL("SubVarSupSubtermIndex::handleClause");
-
-
-  DHSet<unsigned> unstableVars;
-  c->collectUnstableVars(unstableVars);
-
-  unsigned selCnt=c->numSelected();
-  for (unsigned i=0; i<selCnt; i++) {
-    Literal* lit=(*c)[i];
-    TermIterator rvi=EqHelper::getRewritableVarsIterator(&unstableVars, lit,_ord);
-    while(rvi.hasNext()){
-      TermList var = rvi.next();
-      if (adding) {
-        _is->insert(var, lit, c);
-      } else {
-        _is->remove(var, lit, c);
-      }
-    }
-  }
-}
-
-void SubVarSupLHSIndex::handleClause(Clause* c, bool adding)
-{
-  CALL("SubVarSupLHSIndex::handleClause");
-
-  unsigned selCnt=c->numSelected();
-  for (unsigned i=0; i<selCnt; i++) {
-    Literal* lit=(*c)[i];
-    TermIterator lhsi=EqHelper::getSubVarSupLHSIterator(lit, _ord);
-    while (lhsi.hasNext()) {
-      TermList lhs=lhsi.next();
-      if (adding) {
-        _is->insert(lhs, lit, c);
-      }
-      else {
-        _is->remove(lhs, lit, c);
-      }
-    }
-  }
-}
 void PrimitiveInstantiationIndex::populateIndex()
 {
   CALL("PrimitiveInstantiationIndex::populateIndex");
 
-  typedef ApplicativeHelper AH;
+  /*typedef ApplicativeHelper AH;
 
   static Options::PISet set = env.options->piSet();
 
@@ -370,71 +326,7 @@ void PrimitiveInstantiationIndex::populateIndex()
     _is->insert(notTerm, 0, 0);
     _is->insert(equalsTerm, 0, 0);
     _is->insert(notEqualsTerm, 0, 0);
-  }
-}
-
-void NarrowingIndex::populateIndex()
-{
-  CALL("NarrowingIndex::populateIndex");
-
-  typedef ApplicativeHelper AH;
-
-  static Options::Narrow set = env.options->narrow();
-
-  auto srtOf = [] (TermList t) {
-     ASS(t.isTerm());
-     return SortHelper::getResultSort(t.term());
-  };
-
-  TermList s1 = TermList(0, false);
-  TermList s2 = TermList(1, false);
-  TermList s3 = TermList(2, false);
-  TermList x = TermList(3, false);
-  TermList y = TermList(4, false);
-  TermList z = TermList(5, false);
-  TermList args[] = {s1, s2, s3};
-
-  unsigned s_comb = env.signature->getCombinator(Signature::S_COMB);
-  TermList constant = TermList(Term::create(s_comb, 3, args));
-  TermList lhsS = AH::createAppTerm(srtOf(constant), constant, x, y, z);
-  TermList rhsS = AH::createAppTerm3(AtomicSort::arrowSort(s1, s2, s3), x, z, AH::createAppTerm(AtomicSort::arrowSort(s1, s2), y, z));
-  Literal* sLit = Literal::createEquality(true, lhsS, rhsS, s3);
-
-  unsigned c_comb = env.signature->getCombinator(Signature::C_COMB);
-  constant = TermList(Term::create(c_comb, 3, args));  TermList lhsC = AH::createAppTerm(srtOf(constant), constant, x, y, z); 
-  TermList rhsC = AH::createAppTerm3(AtomicSort::arrowSort(s1, s2, s3), x, z, y);
-  Literal* cLit = Literal::createEquality(true, lhsC, rhsC, s3);
-
-  unsigned b_comb = env.signature->getCombinator(Signature::B_COMB);
-  constant = TermList(Term::create(b_comb, 3, args));
-  TermList lhsB = AH::createAppTerm(srtOf(constant), constant, x, y, z); 
-  TermList rhsB = AH::createAppTerm(AtomicSort::arrowSort(s2, s3), x, AH::createAppTerm(AtomicSort::arrowSort(s1, s2), y, z));
-  Literal* bLit = Literal::createEquality(true, lhsB, rhsB, s3);
-
-  unsigned k_comb = env.signature->getCombinator(Signature::K_COMB);
-  constant = TermList(Term::create2(k_comb, s1, s2));
-  TermList lhsK = AH::createAppTerm3(srtOf(constant), constant, x, y);
-  Literal* kLit = Literal::createEquality(true, lhsK, x, s1);
-
-  unsigned i_comb = env.signature->getCombinator(Signature::I_COMB);
-  constant = TermList(Term::create1(i_comb, s1));
-  TermList lhsI = AH::createAppTerm(srtOf(constant), constant, x);
-  Literal* iLit = Literal::createEquality(true, lhsI, x, s1);
-
-  if(set == Options::Narrow::ALL){
-    _is->insert(lhsS, sLit, 0);
-    _is->insert(lhsC, cLit, 0);
-    _is->insert(lhsB, bLit, 0);
-    _is->insert(lhsK, kLit, 0);
-    _is->insert(lhsI, iLit, 0);
-  } else if (set == Options::Narrow::SKI) {
-    _is->insert(lhsS, sLit, 0);
-    _is->insert(lhsK, kLit, 0);
-    _is->insert(lhsI, iLit, 0);
-  } else if (set == Options::Narrow::SK){
-    _is->insert(lhsS, sLit, 0);
-    _is->insert(lhsK, kLit, 0);
-  }
+  }*/
 }
 
 void SkolemisingFormulaIndex::insertFormula(TermList formula, TermList skolem)
@@ -443,7 +335,7 @@ void SkolemisingFormulaIndex::insertFormula(TermList formula, TermList skolem)
   _is->insert(formula, skolem);
 }
 
-void HeuristicInstantiationIndex::insertInstantiation(TermList sort, TermList instantiation)
+/*void HeuristicInstantiationIndex::insertInstantiation(TermList sort, TermList instantiation)
 {
   CALL("HeuristicInstantiationIndex::insertInstantiation");
   _is->insert(sort, instantiation);
@@ -485,7 +377,7 @@ void HeuristicInstantiationIndex::handleClause(Clause* c, bool adding)
         /*cout << "lhs is " + lit->nthArgument(0)->toString() << endl;
         cout << "arg " + leftArgs[i].toString() << endl;
         cout << "inserting " + lambdaTerm->toString() << endl;
-        cout << "inserting " + combTerm.toString() << endl;*/
+        cout << "inserting " + combTerm.toString() << endl;
           _insertedInstantiations.insert(combTerm);
           insertInstantiation(lambdaTerm->getSpecialData()->getSort(), combTerm);
         }
@@ -503,7 +395,7 @@ void HeuristicInstantiationIndex::handleClause(Clause* c, bool adding)
         /*cout << "rhs is " + lit->nthArgument(1)->toString() << endl;
         cout << "arg " + rightArgs[i].toString() << endl;
         cout << "inserting " + lambdaTerm->toString() << endl;
-        cout << "inserting " + combTerm.toString() << endl; */
+        cout << "inserting " + combTerm.toString() << endl; 
           _insertedInstantiations.insert(combTerm);
           insertInstantiation(lambdaTerm->getSpecialData()->getSort(), combTerm);
         }
@@ -517,7 +409,7 @@ void HeuristicInstantiationIndex::handleClause(Clause* c, bool adding)
   }
 
   VList::destroy(boundVar);
-}
+}*/
 
 void RenamingFormulaIndex::insertFormula(TermList formula, TermList name,
                                          Literal* lit, Clause* cls)

@@ -175,19 +175,6 @@ Index* IndexManager::create(IndexType t)
     res=new SuperpositionLHSIndex(tis, _alg->getOrdering(), _alg->getOptions());
     isGenerating = true;
     break;
-    
-  case SUB_VAR_SUP_SUBTERM_SUBST_TREE:
-    //using a substitution tree to store variable.
-    //TODO update
-    tis=new TermSubstitutionTree();
-    res=new SubVarSupSubtermIndex(tis, _alg->getOrdering());
-    isGenerating = true;
-    break;
-  case SUB_VAR_SUP_LHS_SUBST_TREE:
-    tis=new TermSubstitutionTree();
-    res=new SubVarSupLHSIndex(tis, _alg->getOrdering(), _alg->getOptions());
-    isGenerating = true;
-    break;
   
   case SKOLEMISING_FORMULA_INDEX:
     tis=new TermSubstitutionTree(0, true);
@@ -200,12 +187,6 @@ Index* IndexManager::create(IndexType t)
     res=new RenamingFormulaIndex(tis);
     attachPassive = true;
     break;*/
-
-  case NARROWING_INDEX:
-    tis=new TermSubstitutionTree();
-    res=new NarrowingIndex(tis); 
-    isGenerating = true;
-    break; 
 
   case PRIMITIVE_INSTANTIATION_INDEX:
     tis=new TermSubstitutionTree();

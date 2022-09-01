@@ -60,7 +60,7 @@ Signature::Symbol::Symbol(const vstring& nm, unsigned arity, bool interpreted, b
     _skolem(0),
     _tuple(0),
     _prox(NOT_PROXY),
-    _comb(NOT_COMB)
+    _dbIndex(-1)
 {
   CALL("Signature::Symbol::Symbol");
   ASS(!stringConstant || arity==0);
@@ -250,6 +250,7 @@ Signature::Signature ():
     _arrayCon(UINT_MAX),
     _arrowCon(UINT_MAX),
     _appFun(UINT_MAX),
+    _lamFun(UINT_MAX),
     _termAlgebras()
 {
   CALL("Signature::Signature");
@@ -741,6 +742,24 @@ unsigned Signature::getApp()
   return app;
 }
 
+unsigned Signature::getLam()
+{
+  CALL("Signature::getLam");
+
+  bool added = false;
+  unsigned lam = addFunction("vLAM", 3, added);
+  if(added){
+    _lamFun = lam;
+    TermList tv1 = TermList(0, false);
+    TermList tv2 = TermList(1, false);
+    TermList arrowType = AtomicSort::arrowSort(tv1, tv2);
+    OperatorType* ot = OperatorType::getFunctionType({tv2}, arrowType, 2);
+    Symbol* sym = getFunction(lam);
+    sym->setType(ot);
+  }
+  return lam;
+}
+
 unsigned Signature::getDiff(){
   CALL("Signature::getDiff");
 
@@ -902,6 +921,23 @@ unsigned Signature::addNameFunction(unsigned arity)
   CALL("Signature::addNameFunction");
   return addFreshFunction(arity,"sP");
 } // addNamePredicate
+
+unsigned Signature::addDeBruijnIndex(int index, TermList sort, bool& added)
+{
+  CALL("Signature::addDeBruijnIndex");
+  
+  unsigned fun;
+  auto sortIndexPair = make_pair(sort,index);
+  if(_dbIndices.find(sortIndexPair,fun)){
+    added = false;
+    return fun;
+  }
+  added = true;
+  fun = addFreshFunction(0, "db");
+  _dbIndices.insert(sortIndexPair, fun);
+  return fun;
+}
+
 /**
  * Add fresh function of a given arity and with a given prefix. If suffix is non-zero,
  * the function name will be prefixI, where I is an integer, otherwise it will be

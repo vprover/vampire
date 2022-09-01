@@ -31,7 +31,7 @@
 
 #include "Shell/Options.hpp"
 #include "Shell/SymbolOccurrenceReplacement.hpp"
-#include "Shell/LambdaElimination.hpp"
+#include "Shell/LambdaConversion.hpp"
 #include "Shell/Statistics.hpp"
 
 #include "Rectify.hpp"
@@ -179,8 +179,7 @@ Formula* FOOLElimination::process(Formula* formula) {
 
   if(env.options->cnfOnTheFly() != Options::CNFOnTheFly::EAGER &&
      !_polymorphic){
-    LambdaElimination le = LambdaElimination();
-    TermList proxifiedFormula = le.elimLambda(formula);
+    TermList proxifiedFormula = LambdaConversion().convertLambda(formula);
     Formula* processedFormula = toEquality(proxifiedFormula);
 
     if (env.options->showPreprocessing()) {
@@ -762,16 +761,13 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
 
           termResult = freshSymbolApplication;
         } else {
-          LambdaElimination le = LambdaElimination();
-          termResult = le.elimLambda(sd->getFormula());
+          termResult = LambdaConversion().convertLambda(sd->getFormula());
         }
         break;
       }
       case Term::SF_LAMBDA: {
-        // Lambda terms are translated to FOL using SKIBC combinators which are extensively described in 
-        // the literature. 
-        LambdaElimination le = LambdaElimination();
-        termResult = le.elimLambda(term);
+        // Lambda terms using named representation are converted to nameless De Bruijn representation
+        termResult = LambdaConversion().convertLambda(term);
         break;
       }
 

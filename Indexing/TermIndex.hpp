@@ -179,55 +179,6 @@ protected:
   void populateIndex();
 };
 
-class SubVarSupSubtermIndex
-: public TermIndex
-{
-public:
-  CLASS_NAME(SubVarSupSubtermIndex);
-  USE_ALLOCATOR(SubVarSupSubtermIndex);
-
-  SubVarSupSubtermIndex(TermIndexingStructure* is, Ordering& ord)
-  : TermIndex(is), _ord(ord) {};
-protected:
-  void handleClause(Clause* c, bool adding);
-private:
-  Ordering& _ord;
-};
-
-class SubVarSupLHSIndex
-: public TermIndex
-{
-public:
-  CLASS_NAME(SubVarSupLHSIndex);
-  USE_ALLOCATOR(SubVarSupLHSIndex);
-
-  SubVarSupLHSIndex(TermIndexingStructure* is, Ordering& ord, const Options& opt)
-  : TermIndex(is), _ord(ord) {};
-protected:
-  void handleClause(Clause* c, bool adding);
-private:
-  Ordering& _ord;
-};
-
-/**
- * Index used for narrowing with combinator axioms
- */
-class NarrowingIndex
-: public TermIndex
-{
-public:
-  CLASS_NAME(NarrowingIndex);
-  USE_ALLOCATOR(NarrowingIndex);
-
-  NarrowingIndex(TermIndexingStructure* is) : TermIndex(is)
-  {
-    populateIndex();
-  }
-protected:
-  void populateIndex();
-};
-
-
 class SkolemisingFormulaIndex
 : public TermIndex
 {
@@ -240,7 +191,7 @@ public:
   void insertFormula(TermList formula, TermList skolem);
 };
 
-class HeuristicInstantiationIndex
+/*class HeuristicInstantiationIndex
 : public TermIndex
 {
 public:
@@ -254,7 +205,7 @@ protected:
   void handleClause(Clause* c, bool adding);
 private:
   Set<TermList> _insertedInstantiations;
-};
+};*/
 
 class RenamingFormulaIndex
 : public TermIndex

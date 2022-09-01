@@ -112,7 +112,6 @@ public:
   bool hasNumerals() const; // meaning the interpreted constants of arithmetic theories, e.g. 1,2, 3.1415,...
   /** Problem contains let terms or formulas, or term if-then-else */
   bool hasFOOL() const;
-  bool hasCombs() const;
   bool hasLogicalProxy() const;
   bool hasBoolVar() const;
   bool hasApp() const;
@@ -226,7 +225,6 @@ private:
   mutable MaybeBool _hasInterpretedOperations;
   mutable MaybeBool _hasNumerals;
   mutable MaybeBool _hasFOOL;
-  mutable MaybeBool _hasCombs;
   mutable MaybeBool _hasApp;
   mutable MaybeBool _hasAppliedVar;
   mutable MaybeBool _hasLogicalProxy;

@@ -302,7 +302,6 @@ void Problem::readDetailsFromProperty() const
   _hasInterpretedOperations = _property->hasInterpretedOperations();
   _hasNumerals = _property->hasNumerals();
   _hasFOOL = _property->hasFOOL();
-  _hasCombs = _property->hasCombs();
   _hasApp = _property->hasApp();
   _hasAppliedVar = _property->hasAppliedVar();
   _hasLogicalProxy = _property->hasLogicalProxy();
@@ -331,7 +330,6 @@ void Problem::invalidateEverything()
   _hasInterpretedOperations = MaybeBool::UNKNOWN;
   _hasNumerals = MaybeBool::UNKNOWN;
   _hasFOOL = MaybeBool::UNKNOWN;
-  _hasCombs = MaybeBool::UNKNOWN;
   _hasApp = MaybeBool::UNKNOWN;
   _hasAppliedVar = MaybeBool::UNKNOWN;
 
@@ -356,7 +354,6 @@ void Problem::invalidateByRemoval()
   _hasInterpretedOperations.mightBecameFalse();
   _hasNumerals.mightBecameFalse();
   _hasFOOL.mightBecameFalse();
-  _hasCombs.mightBecameFalse();
   _hasAppliedVar.mightBecameFalse();
   _hasLogicalProxy.mightBecameFalse();
   _hasPolymorphicSym.mightBecameFalse();
@@ -422,15 +419,6 @@ bool Problem::hasFOOL() const
   if(!_hasFOOL.known()) { refreshProperty(); }
   return _hasFOOL.value();
 }
-
-bool Problem::hasCombs() const
-{
-  CALL("Problem::hasCombs");
-
-  if(!_hasCombs.known()) { refreshProperty(); }
-  return _hasCombs.value();
-}
-
 
 bool Problem::hasApp() const
 {

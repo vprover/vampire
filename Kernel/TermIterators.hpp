@@ -256,7 +256,7 @@ protected:
  * that can be called at any time to return the head 
  * of @b applicative term
  */
-class ApplicativeArgsIt
+/*class ApplicativeArgsIt
   : public IteratorCore<TermList>
 {
 public:
@@ -273,8 +273,8 @@ public:
   bool hasNext(){
     return !_stack.isEmpty();
   }
-  /** Return next arg of _head
-   * @warning hasNext() must have been called before */
+  // Return next arg of _head
+   // @warning hasNext() must have been called before 
   TermList next()
   {
     ASS(!_stack.isEmpty());
@@ -361,84 +361,8 @@ public:
 private:
   TermStack _stack;
   TermList _next;
-};
+};*/
 
-
-class RewritableVarsIt
-  : public IteratorCore<TermList>
-{
-public: //includeSelf for compatibility
-  RewritableVarsIt(DHSet<unsigned>* unstableVars, Term* t, bool includeSelf = false) : _stack(8)
-  {
-    CALL("RewritableVarsIt");
-
-    _unstableVars = unstableVars;
-    _next.makeEmpty();
-    if(t->isLiteral()){
-      TermList t0 = *t->nthArgument(0);
-      TermList t1 = *t->nthArgument(1);
-      if(!t0.isVar()){ 
-        _stack.push(t0);
-        _sorts.push(SortHelper::getResultSort(t0.term()));
-      }
-      if(!t1.isVar()){ 
-        _stack.push(t1); 
-        _sorts.push(SortHelper::getResultSort(t1.term()));
-      }      
-      return;      
-    }     
-    _stack.push(TermList(t));
-    _sorts.push(SortHelper::getResultSort(t));
-  }
-
-  bool hasNext();
-  TermList next(){
-    ASS(!_next.isEmpty());
-    ASS(_next.isVar());
-    TermList res = _next;
-    _next.makeEmpty();
-    return res;
-  }
-private:
-  TermList _next;
-  Stack<TermList> _stack;
-  Stack<TermList> _sorts;
-  DHSet<unsigned>* _unstableVars;
-};
-
-class UnstableVarIt
-  : public IteratorCore<TermList>
-{
-public: 
-  UnstableVarIt(Term* t) : _stable(8), _stack(8)
-  {
-    CALL("UnstableVarIt");
-    _next.makeEmpty();
-    if(t->isLiteral()){
-      _stack.push(*t->nthArgument(0));
-      _stack.push(*t->nthArgument(1));
-      _stable.push(true);
-      _stable.push(true);   
-      return;      
-    }
-    _stable.push(true);
-    _stack.push(TermList(t)); 
-  }
-  
-  bool hasNext();
-  TermList next()
-  {
-    ASS(!_next.isEmpty());
-    TermList res = _next;
-    _next.makeEmpty();
-    return res;
-  }
-
-private:
-  TermList _next;
-  Stack<bool> _stable;
-  Stack<TermList> _stack;
-};
 
 class FirstOrderSubtermIt
 : public IteratorCore<TermList>
@@ -469,39 +393,6 @@ public:
 private:
   Stack<Term*> _stack;
   int _added;
-};
-
-
-class NarrowableSubtermIt
-: public IteratorCore<TermList>
-{
-public:
-  NarrowableSubtermIt(Term* term, bool includeSelf=false) 
-  : _used(true), _stack(8)
-  {
-    CALL("NarrowableSubtermIt::NarrowableSubtermIt");
-    if(term->isLiteral()){
-      TermList t0 = *term->nthArgument(0);
-      TermList t1 = *term->nthArgument(1);
-      if(!t0.isVar()){ _stack.push(t0.term()); }
-      if(!t1.isVar()){ _stack.push(t1.term()); }      
-      return;      
-    } 
-    _stack.push(term);
-    //TODO
-  }
-
-  bool hasNext();
-  TermList next(){
-    ASS(!_used);
-    _used = true;
-    return _next;
-  }
-
-private:
-  bool _used;
-  TermList _next;
-  Stack<Term*> _stack;
 };
 
 /*
