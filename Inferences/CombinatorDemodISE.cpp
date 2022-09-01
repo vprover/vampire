@@ -84,9 +84,9 @@ Clause* CombinatorDemodISE::simplify(Clause* c)
   return newC;
 }
 
-TermList TermReducer::transformSubterm(TermList trm)
+TermList TermReducer::transformFirstOrderSubterm(TermList trm)
 {
-  CALL("TermReducer::transformSubterm");
+  CALL("TermReducer::transformFirstOrderSubterm");
 
   TermList res = CombinatorDemodISE::headNormalForm(trm);
   if(res != trm){

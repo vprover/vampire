@@ -74,7 +74,10 @@ class MismatchHandler :
 {
 public:
 
-  MismatchHandler() : TermTransformer(false) {}
+  MismatchHandler() {
+    createNonShared(); 
+    dontTransformSorts();
+  }
 
   // Returns true if the mismatch can be handled by some handler
   //

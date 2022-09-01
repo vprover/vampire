@@ -38,25 +38,56 @@ namespace Kernel {
  */
 class TermTransformer {
 public:
-  TermTransformer(bool shared = true, bool recurseIntoReplaced = false) : 
-    _sharedResult(shared), _recurseIntoReplaced(recurseIntoReplaced) {}
+  TermTransformer() : 
+    _sharedResult(true), 
+    _recurseIntoReplaced(false), 
+    _transformSorts(true) {}
+
+  void createNonShared(){ _sharedResult = false; }
+  void recurseIntoReplaced(){ _recurseIntoReplaced = true; }
+  void dontTransformSorts(){ _transformSorts = false; }
+    
   virtual ~TermTransformer() {}
   Term* transform(Term* term);
   Literal* transform(Literal* lit);
   TermList transform(TermList ts);
+  
 protected:
   virtual TermList transformSubterm(TermList trm) = 0;
+  // Deliberately empty bodies. 
+  // By default we do nothing on entry and exit
+  virtual void onTermEntry(Term*){}
+  virtual void onTermExit(Term*){}
   Term* transformSpecial(Term* specialTerm);
-  // currently this can be used to transform the
-  // first-order / "green" subterms of an applicative term.
-  // TODO update to allow transformation of prefix subterms
-  // TODO try and code share with transform(Term*)
-  Term* transformApplication(Term* appTerm);
+
   virtual Formula* transform(Formula* f);
   bool _sharedResult;
   // recurse into repalced only affects applicative terms currently
   // can easily be extended to standard terms if required
   bool _recurseIntoReplaced;
+  bool _transformSorts;
+};
+
+class ApplicativeTermTransformer : public TermTransformer 
+{
+public:
+  ApplicativeTermTransformer() {} 
+
+  virtual TermList transformSubterm(TermList trm){
+    Term* t = _terms.top();
+    if(t->isApplication() && trm == *t->nthArgument(2)){
+      return trm;
+    }
+    return transformFirstOrderSubterm(trm);
+  }
+  virtual void onTermEntry(Term* t){ _terms.push(t);}
+  virtual void onTermExit(Term* t){ _terms.pop(); }
+protected:
+
+  virtual TermList transformFirstOrderSubterm(TermList trm) = 0;
+
+private:
+  Stack<Term*> _terms;
 };
 
 /**

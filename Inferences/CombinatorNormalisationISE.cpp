@@ -76,7 +76,7 @@ Clause* CombinatorNormalisationISE::simplify(Clause* c)
   return newC;
 }
 
-TermList CombinatorNormaliser::transformSubterm(TermList trm)
+TermList CombinatorNormaliser::transformFirstOrderSubterm(TermList trm)
 {
   CALL("CombinatorSimplifier::transformSubterm");
 
