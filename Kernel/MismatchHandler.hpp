@@ -89,6 +89,7 @@ public:
   Term* get(unsigned var);
 
   void addHandler(unique_ptr<AtomicMismatchHandler> hndlr);
+  bool isEmpty() const { return _inners.isEmpty(); }
 
   CLASS_NAME(MismatchHandler);
   USE_ALLOCATOR(MismatchHandler);

@@ -89,7 +89,7 @@ public:
   void release(IndexType t);
   bool contains(IndexType t);
   Index* get(IndexType t);
-  MismatchHandler* mismatchHandler(){ return &_handler; }
+  MismatchHandler* mismatchHandler(){ return _handler.isEmpty() ? nullptr : &_handler; }
 
   void provideIndex(IndexType t, Index* index);
 private:

@@ -124,7 +124,7 @@ Index* IndexManager::create(IndexType t)
                     
   switch(t) {
   case BINARY_RESOLUTION_SUBST_TREE:
-    is=new LiteralSubstitutionTree(&_handler);
+    is=new LiteralSubstitutionTree(mismatchHandler());
     res=new BinaryResolutionIndex(is);
     isGenerating = true;
     break;
@@ -150,12 +150,12 @@ Index* IndexManager::create(IndexType t)
     break;
 
   case SUPERPOSITION_SUBTERM_SUBST_TREE:
-    tis=new TermSubstitutionTree(&_handler);
+    tis=new TermSubstitutionTree(mismatchHandler());
     res=new SuperpositionSubtermIndex(tis, _alg->getOrdering());
     isGenerating = true;
     break;
   case SUPERPOSITION_LHS_SUBST_TREE:
-    tis=new TermSubstitutionTree(&_handler);
+    tis=new TermSubstitutionTree(mismatchHandler());
     res=new SuperpositionLHSIndex(tis, _alg->getOrdering(), _alg->getOptions());
     isGenerating = true;
     break;
