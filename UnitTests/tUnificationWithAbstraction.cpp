@@ -41,21 +41,20 @@ Clause* unit(Literal* lit)
   return clause({ lit });
 }
 
-TermIndexingStructure* getTermIndex(bool uwa = true)
+TermIndexingStructure* getTermIndex(unique_ptr<AtomicMismatchHandler> handler)
 {
   auto cmh = new MismatchHandler();
-  if(uwa){
-    cmh->addHandler(make_unique<UWAMismatchHandler>());
-  } else {
-    cmh->addHandler(make_unique<HOMismatchHandler>());
-  }
+  cmh->addHandler(std::move(handler));
   return new TermSubstitutionTree(cmh); 
 }
 
-LiteralIndexingStructure* getLiteralIndex()
+TermIndexingStructure* getTermIndex(Shell::Options::UnificationWithAbstraction uwa)
+{ return getTermIndex(make_unique<UWAMismatchHandler>(uwa)); }
+
+LiteralIndexingStructure* getLiteralIndex(Shell::Options::UnificationWithAbstraction uwa)
 {
   auto cmh = new MismatchHandler();
-  cmh->addHandler(make_unique<UWAMismatchHandler>());
+  cmh->addHandler(make_unique<UWAMismatchHandler>(uwa));
   return new LiteralSubstitutionTree(cmh); 
 }
 
@@ -102,9 +101,7 @@ void reportMatches(LiteralIndexingStructure* index, Literal* qlit)
 
 TEST_FUN(term_indexing_one_side_interp)
 {
-  env.options->setUWA(Options::UnificationWithAbstraction::ONE_INTERP); 
-
-  TermIndexingStructure* index = getTermIndex();
+  TermIndexingStructure* index = getTermIndex(Options::UnificationWithAbstraction::ONE_INTERP);
 
   DECL_DEFAULT_VARS
   NUMBER_SUGAR(Int)
@@ -131,9 +128,7 @@ TEST_FUN(term_indexing_one_side_interp)
 
 TEST_FUN(term_indexing_poly)
 {
-  env.options->setUWA(Options::UnificationWithAbstraction::ONE_INTERP); 
-
-  TermIndexingStructure* index = getTermIndex();
+  TermIndexingStructure* index = getTermIndex(Options::UnificationWithAbstraction::ONE_INTERP);
 
   DECL_DEFAULT_VARS
   DECL_DEFAULT_SORT_VARS  
@@ -150,9 +145,7 @@ TEST_FUN(term_indexing_poly)
 
 TEST_FUN(term_indexing_interp_only)
 {
-  env.options->setUWA(Options::UnificationWithAbstraction::INTERP_ONLY); 
-
-  TermIndexingStructure* index = getTermIndex();
+  TermIndexingStructure* index = getTermIndex(Options::UnificationWithAbstraction::INTERP_ONLY);
 
   DECL_DEFAULT_VARS
   NUMBER_SUGAR(Int)
@@ -174,9 +167,7 @@ TEST_FUN(term_indexing_interp_only)
 
 TEST_FUN(literal_indexing)
 {
-  env.options->setUWA(Options::UnificationWithAbstraction::ONE_INTERP); 
-
-  LiteralIndexingStructure* index = getLiteralIndex();
+  LiteralIndexingStructure* index = getLiteralIndex(Options::UnificationWithAbstraction::ONE_INTERP);
 
   DECL_DEFAULT_VARS
   NUMBER_SUGAR(Int)
@@ -198,9 +189,7 @@ TEST_FUN(literal_indexing)
 
 TEST_FUN(higher_order)
 {
-  env.options->setFE(Options::FunctionExtensionality::ABSTRACTION); 
-
-  TermIndexingStructure* index = getTermIndex(false);
+  TermIndexingStructure* index = getTermIndex(make_unique<HOMismatchHandler>());
 
   DECL_DEFAULT_VARS
   DECL_DEFAULT_SORT_VARS  
@@ -234,9 +223,7 @@ TEST_FUN(higher_order)
 
 TEST_FUN(higher_order2)
 {
-  env.options->setFE(Options::FunctionExtensionality::ABSTRACTION); 
-
-  TermIndexingStructure* index = getTermIndex(false);
+  TermIndexingStructure* index = getTermIndex(make_unique<HOMismatchHandler>());
 
   DECL_DEFAULT_VARS
   DECL_DEFAULT_SORT_VARS  
@@ -278,8 +265,6 @@ void reportRobUnify(TermList a, TermList b, RobSubstitution& sub)
 
 TEST_FUN(using_robsub)
 {
-  env.options->setUWA(Options::UnificationWithAbstraction::ONE_INTERP);
-
   DECL_DEFAULT_VARS
   NUMBER_SUGAR(Int)
   DECL_FUNC(f, {Int}, Int)
@@ -288,7 +273,7 @@ TEST_FUN(using_robsub)
   DECL_CONST(b, Int) 
 
   auto cmh = new MismatchHandler();
-  cmh->addHandler(make_unique<UWAMismatchHandler>());  
+  cmh->addHandler(make_unique<UWAMismatchHandler>(Options::UnificationWithAbstraction::ONE_INTERP));  
   RobSubstitution sub(cmh);
 
   auto t1 = f(b + 2);
@@ -302,28 +287,3 @@ TEST_FUN(using_robsub)
   sub.reset();
   reportRobUnify(t3, t4,sub);
 }
-
-
-/*TEST_FUN(complex_case)
-{
-  env.options->setUWA(Options::UnificationWithAbstraction::ONE_INTERP);
-
-  // The complex case is where we have a variable that needs to be instantiated elsewhere
-  // e.g. unifying f(f(g(X),X),f(Y,a)) with f(f(1,2),(3,g(Z)))
- 
-  unsigned f = function_symbol("f",2,IntegerConstantType::getSort()); 
-  unsigned g = function_symbol("g",1,IntegerConstantType::getSort()); 
-  TermList query = TermList(Term::create2(f,TermList(Term::create2(f,TermList(Term::create1(g,var(0))),var(0))), 
-  					    TermList(Term::create2(f,var(1),TermList(constant("a",IntegerConstantType::getSort()))))));
-  TermList node  = TermList(Term::create2(f,TermList(Term::create2(f,number("1"),number("2"))),
-  					    TermList(Term::create2(f,number("3"),TermList(Term::create1(g,var(1)))))));
-
-  reportRobUnify(query,node);
-
-  LiteralIndexingStructure* index = new LiteralSubstitutionTree(true); 
-  Literal* nlit = pred("p",node);
-  index->insert(nlit,unit(nlit));
-  Literal* qlit = pred("p",query);
-  reportMatches(index,qlit);
-
-}*/

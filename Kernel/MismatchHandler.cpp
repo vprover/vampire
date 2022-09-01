@@ -33,9 +33,7 @@ bool UWAMismatchHandler::isConstraintPair(TermList t1, TermList t2)
 {
   CALL("UWAMismatchHandler::isConstraintPair");
 
-  static Shell::Options::UnificationWithAbstraction opt = env.options->unificationWithAbstraction();
-
-  switch(opt){
+  switch(_mode){
     case Shell::Options::UnificationWithAbstraction::ONE_INTERP:
       return isConstraintTerm(t1).isTrue() || isConstraintTerm(t2).isTrue();
     case Shell::Options::UnificationWithAbstraction::INTERP_ONLY:{
@@ -64,8 +62,7 @@ MaybeBool UWAMismatchHandler::isConstraintTerm(TermList t){
   
   if(t.isVar()){ return false; }
 
-  static Shell::Options::UnificationWithAbstraction opt = env.options->unificationWithAbstraction();
-  bool onlyInterpreted = opt == Shell::Options::UnificationWithAbstraction::INTERP_ONLY;
+  bool onlyInterpreted = _mode == Shell::Options::UnificationWithAbstraction::INTERP_ONLY;
 
   auto trm = t.term();
   bool isNumeral = Shell::UnificationWithAbstractionConfig::isNumeral(t);

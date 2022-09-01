@@ -37,21 +37,13 @@ IndexManager::IndexManager(SaturationAlgorithm* alg) : _alg(alg), _handler()
 {
   CALL("IndexManager::IndexManager");
 
-  static bool const uwa = env.options->unificationWithAbstraction()!=Options::UnificationWithAbstraction::OFF;
-  static bool const eba = (env.options->functionExtensionality() == Options::FunctionExtensionality::ABSTRACTION) &&
-                          env.property->higherOrder();
-
   // other handlers can be added here
-  
-  if(uwa || eba){
- 
-   
-    if(uwa){
-      _handler.addHandler(make_unique<UWAMismatchHandler>());
-    }
-    if(eba){
-      _handler.addHandler(make_unique<HOMismatchHandler>());
-    }
+  if(env.options->unificationWithAbstraction() != Options::UnificationWithAbstraction::OFF){
+    _handler.addHandler(make_unique<UWAMismatchHandler>(env.options->unificationWithAbstraction()));
+  }
+  if((env.options->functionExtensionality() == Options::FunctionExtensionality::ABSTRACTION) 
+      && env.property->higherOrder()){
+    _handler.addHandler(make_unique<HOMismatchHandler>());
   }
 }
 

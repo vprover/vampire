@@ -17,6 +17,7 @@
 #define __MismatchHandler__
 
 #include "Forwards.hpp"
+#include "Shell/Options.hpp"
 #include "Term.hpp"
 #include "Kernel/TermTransformer.hpp"
 #include "Lib/MaybeBool.hpp"
@@ -104,7 +105,7 @@ private:
 class UWAMismatchHandler : public AtomicMismatchHandler
 {
 public:
-  UWAMismatchHandler() {}
+  UWAMismatchHandler(Shell::Options::UnificationWithAbstraction mode) : _mode(mode) {}
   ~UWAMismatchHandler() override {}
 
   bool isConstraintPair(TermList t1, TermList t2) override; 
@@ -115,6 +116,7 @@ public:
   USE_ALLOCATOR(UWAMismatchHandler);
 private:
   bool checkUWA(TermList t1, TermList t2); 
+  Shell::Options::UnificationWithAbstraction const _mode;
 };
 
 class HOMismatchHandler : public AtomicMismatchHandler
