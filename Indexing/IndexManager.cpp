@@ -47,10 +47,10 @@ IndexManager::IndexManager(SaturationAlgorithm* alg) : _alg(alg), _handler()
  
    
     if(uwa){
-      _handler.addHandler(new UWAMismatchHandler());
+      _handler.addHandler(make_unique<UWAMismatchHandler>());
     }
     if(eba){
-      _handler.addHandler(new HOMismatchHandler());
+      _handler.addHandler(make_unique<HOMismatchHandler>());
     }
   }
 }

@@ -29,6 +29,7 @@ class AtomicMismatchHandler
 {
 public:
 
+  virtual ~AtomicMismatchHandler();
 
   // Returns true if <t1, t2> can form a constraint
   // Implementors NEED to override this function with
@@ -73,7 +74,6 @@ class MismatchHandler :
 public:
 
   MismatchHandler() : TermTransformer(false) {}
-  ~MismatchHandler();
 
   // Returns true if the mismatch can be handled by some handler
   //
@@ -87,7 +87,7 @@ public:
   MaybeBool isConstraintTerm(TermList t); 
   Term* get(unsigned var);
 
-  void addHandler(AtomicMismatchHandler* hndlr);
+  void addHandler(unique_ptr<AtomicMismatchHandler> hndlr);
 
   CLASS_NAME(MismatchHandler);
   USE_ALLOCATOR(MismatchHandler);
@@ -98,14 +98,14 @@ private:
       TermList t2, unsigned index2, 
       UnificationConstraintStack& ucs, BacktrackData& bd, bool recording);
 
-  typedef List<AtomicMismatchHandler*> MHList;
-  MHList* _inners;
+  Stack<unique_ptr<AtomicMismatchHandler>> _inners;
 };
 
 class UWAMismatchHandler : public AtomicMismatchHandler
 {
 public:
   UWAMismatchHandler() {}
+  ~UWAMismatchHandler() override {}
 
   bool isConstraintPair(TermList t1, TermList t2) override; 
   TermList transformSubterm(TermList trm) override;
@@ -121,6 +121,7 @@ class HOMismatchHandler : public AtomicMismatchHandler
 {
 public:
   HOMismatchHandler() {}
+  ~HOMismatchHandler() override {}
   
   bool isConstraintPair(TermList t1, TermList t2) override;
   TermList transformSubterm(TermList trm) override;

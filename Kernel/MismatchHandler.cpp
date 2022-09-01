@@ -95,11 +95,7 @@ void MismatchHandler::introduceConstraint(TermList t1,unsigned index1, TermList 
   }
 }
 
-MismatchHandler::~MismatchHandler(){
-  CALL("MismatchHandler::~MismatchHandler");
-
-  for (auto h : _inners) delete h;
-}
+AtomicMismatchHandler::~AtomicMismatchHandler() {}
 
 bool MismatchHandler::handle(TermList t1, unsigned index1, TermList t2, unsigned index2, 
   UnificationConstraintStack& ucs,BacktrackData& bd, bool recording)
@@ -114,20 +110,18 @@ bool MismatchHandler::handle(TermList t1, unsigned index1, TermList t2, unsigned
   t1 = t1.isVSpecialVar() ? TermList(get(t1.var())) : t1;
   t2 = t2.isVSpecialVar() ? TermList(get(t2.var())) : t2;
 
-  MHList* hit=_inners;
-  while(hit) {
-    if(hit->head()->isConstraintPair(t1,t2)){
+  for (auto& h : _inners) {
+    if(h->isConstraintPair(t1,t2)){
       introduceConstraint(t1,index1,t2,index2,ucs,bd,recording);      
       return true;
     }
-    hit=hit->tail();
   }
   return false;
 }
 
-void MismatchHandler::addHandler(AtomicMismatchHandler* hndlr){
+void MismatchHandler::addHandler(unique_ptr<AtomicMismatchHandler> hndlr){
   CALL("MismatchHandler::addHandler");
-  _inners.push(hndlr);
+  _inners.push(std::move(hndlr));
 }
 
 MaybeBool MismatchHandler::isConstraintTerm(TermList t){
@@ -135,7 +129,7 @@ MaybeBool MismatchHandler::isConstraintTerm(TermList t){
   
   if(t.isVar()){ return false; }
 
-  for (auto h : _inners) {
+  for (auto& h : _inners) {
     auto res = h->isConstraintTerm(t);
     if(!res.isFalse()){
       return res;
@@ -147,7 +141,7 @@ MaybeBool MismatchHandler::isConstraintTerm(TermList t){
 TermList MismatchHandler::transformSubterm(TermList trm){
   CALL("MismatchHandler::transformSubterm");
 
-  for (auto h : _inners) {
+  for (auto& h : _inners) {
     TermList t = h->transformSubterm(trm);
     if(t != trm){
       return t;
@@ -160,7 +154,7 @@ Term* MismatchHandler::get(unsigned var)
 {
   CALL("MismatchHandler::get");
 
-  for (auto h : _inners) {
+  for (auto& h : _inners) {
     auto res = h->getTermMap()->tryGet(var);
     if(res.isSome()){
       return res.unwrap();
