@@ -64,7 +64,7 @@ void EqualityResolution::attach(SaturationAlgorithm* salg)
   CALL("EqualityResolution::attach");
 
   GeneratingInferenceEngine::attach(salg);
-  _handler = salg->getIndexManager()->getHandler();
+  _handler = salg->getIndexManager()->mismatchHandler();
 }
 
 struct EqualityResolution::ResultFn

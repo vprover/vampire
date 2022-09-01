@@ -33,19 +33,17 @@ bool UWAMismatchHandler::isConstraintPair(TermList t1, TermList t2)
 {
   CALL("UWAMismatchHandler::isConstraintPair");
 
-  static Shell::Options::UnificationWithAbstraction opt = env.options->unificationWithAbstraction();
-
-  switch(opt){
+  switch(_mode){
     case Shell::Options::UnificationWithAbstraction::ONE_INTERP:
       return isConstraintTerm(t1).isTrue() || isConstraintTerm(t2).isTrue();
     case Shell::Options::UnificationWithAbstraction::INTERP_ONLY:{
       return isConstraintTerm(t1).isTrue() && isConstraintTerm(t2).isTrue();
     }
-    default:
-      // handler should never be called if UWA is off
+    case Shell::Options::UnificationWithAbstraction::OFF:
       ASSERTION_VIOLATION;
       return false;
   }
+  ASSERTION_VIOLATION;
 }
 
 TermList UWAMismatchHandler::transformSubterm(TermList trm)
@@ -63,29 +61,36 @@ MaybeBool UWAMismatchHandler::isConstraintTerm(TermList t){
   CALL("UWAMismatchHandler::isConstraintTerm");
   
   if(t.isVar()){ return false; }
-
-  static Shell::Options::UnificationWithAbstraction opt = env.options->unificationWithAbstraction();
-  bool onlyInterpreted = opt == Shell::Options::UnificationWithAbstraction::INTERP_ONLY;
-
   auto trm = t.term();
-  bool isNumeral = Shell::UnificationWithAbstractionConfig::isNumeral(t);
 
-  if(Shell::UnificationWithAbstractionConfig::isInterpreted(trm) && !isNumeral){
-    return true;    
+  switch (_mode) {
+    case Shell::Options::UnificationWithAbstraction::ONE_INTERP:
+    case Shell::Options::UnificationWithAbstraction::INTERP_ONLY: {
+      bool onlyInterpreted = _mode == Shell::Options::UnificationWithAbstraction::INTERP_ONLY;
+
+      bool isNumeral = Shell::UnificationWithAbstractionConfig::isNumeral(t);
+
+      if(Shell::UnificationWithAbstractionConfig::isInterpreted(trm) && !isNumeral){
+        return true;    
+      }
+
+      TermList sort = SortHelper::getResultSort(t.term()); 
+      if(!onlyInterpreted && (sort.isVar() || sort.isIntSort() || sort.isRatSort() || sort.isRealSort())){
+        return MaybeBool::UNKNOWN;
+      }  
+      return false;
+    }
+    case Shell::Options::UnificationWithAbstraction::OFF:
+      ASSERTION_VIOLATION
+      return false;
   }
-
-  TermList sort = SortHelper::getResultSort(t.term()); 
-  if(!onlyInterpreted && (sort.isVar() || sort.isIntSort() || sort.isRatSort() || sort.isRealSort())){
-    return MaybeBool::UNKNOWN;
-  }  
-
-  return false;
+  ASSERTION_VIOLATION
 }
 
 void MismatchHandler::introduceConstraint(TermList t1,unsigned index1, TermList t2,unsigned index2, 
   UnificationConstraintStack& ucs, BacktrackData& bd, bool recording)
 {
-  CALL("MismatchHandler::introduceConstraint");
+  CALL("AtomicMismatchHandler::introduceConstraint");
 
   auto constraint = make_pair(make_pair(t1,index1),make_pair(t2,index2));
   if(recording){
@@ -95,16 +100,12 @@ void MismatchHandler::introduceConstraint(TermList t1,unsigned index1, TermList 
   }
 }
 
-CompositeMismatchHandler::~CompositeMismatchHandler(){
-  CALL("CompositeMismatchHandler::~CompositeMismatchHandler");
+AtomicMismatchHandler::~AtomicMismatchHandler() {}
 
-  MHList::destroyWithDeletion(_inners);
-}
-
-bool CompositeMismatchHandler::handle(TermList t1, unsigned index1, TermList t2, unsigned index2, 
+bool MismatchHandler::handle(TermList t1, unsigned index1, TermList t2, unsigned index2, 
   UnificationConstraintStack& ucs,BacktrackData& bd, bool recording)
 {
-  CALL("CompositeMismatchHandler::handle");
+  CALL("MismatchHandler::handle");
 
   // make assumtion that we never create a constraint involving a variable
   // this seems reasonable
@@ -114,64 +115,55 @@ bool CompositeMismatchHandler::handle(TermList t1, unsigned index1, TermList t2,
   t1 = t1.isVSpecialVar() ? TermList(get(t1.var())) : t1;
   t2 = t2.isVSpecialVar() ? TermList(get(t2.var())) : t2;
 
-  MHList* hit=_inners;
-  while(hit) {
-    if(hit->head()->isConstraintPair(t1,t2)){
+  for (auto& h : _inners) {
+    if(h->isConstraintPair(t1,t2)){
       introduceConstraint(t1,index1,t2,index2,ucs,bd,recording);      
       return true;
     }
-    hit=hit->tail();
   }
   return false;
 }
 
-void CompositeMismatchHandler::addHandler(MismatchHandler* hndlr){
-  CALL("CompositeMismatchHandler::addHandler");
-
-  MHList::push(hndlr,_inners);
+void MismatchHandler::addHandler(unique_ptr<AtomicMismatchHandler> hndlr){
+  CALL("MismatchHandler::addHandler");
+  _inners.push(std::move(hndlr));
 }
 
-MaybeBool CompositeMismatchHandler::isConstraintTerm(TermList t){
-  CALL("CompositeMismatchHandler::isConstraintTerm");
+MaybeBool MismatchHandler::isConstraintTerm(TermList t){
+  CALL("MismatchHandler::isConstraintTerm");
   
   if(t.isVar()){ return false; }
 
-  MHList* hit=_inners;
-  while(hit) {
-    auto res = hit->head()->isConstraintTerm(t);
+  for (auto& h : _inners) {
+    auto res = h->isConstraintTerm(t);
     if(!res.isFalse()){
       return res;
     }
-    hit=hit->tail();
   }
   return false; 
 }
 
-TermList CompositeMismatchHandler::transformSubterm(TermList trm){
-  CALL("CompositeMismatchHandler::transformSubterm");
+TermList MismatchHandler::transformSubterm(TermList trm){
+  CALL("MismatchHandler::transformSubterm");
 
-  MHList* hit=_inners;
-  while(hit) {
-    TermList t = hit->head()->transformSubterm(trm);
+  for (auto& h : _inners) {
+    TermList t = h->transformSubterm(trm);
     if(t != trm){
       return t;
     }
-    hit=hit->tail();
   }
   return trm;
 }
 
-Term* CompositeMismatchHandler::get(unsigned var)
+Term* MismatchHandler::get(unsigned var)
 {
-  CALL("CompositeMismatchHandler::get");
+  CALL("MismatchHandler::get");
 
-  MHList* hit=_inners;
-  while(hit) {
-    auto res = hit->head()->getTermMap()->tryGet(var);
+  for (auto& h : _inners) {
+    auto res = h->getTermMap()->tryGet(var);
     if(res.isSome()){
       return res.unwrap();
     }
-    hit=hit->tail();
   } 
   ASSERTION_VIOLATION;
 }
@@ -190,7 +182,7 @@ bool HOMismatchHandler::isConstraintPair(TermList t1, TermList t2)
 }
 
 MaybeBool HOMismatchHandler::isConstraintTerm(TermList t){
-  CALL("CompositeMismatcHandler::isConstraintTerm");
+  CALL("MismatcHandler::isConstraintTerm");
   
   if(t.isVar()){ return false; }
 
