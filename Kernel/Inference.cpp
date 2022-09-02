@@ -727,6 +727,7 @@ vstring Kernel::ruleName(InferenceRule rule)
     return "predicate definition unfolding";
   case InferenceRule::PREDICATE_DEFINITION_MERGING:
     return "predicate definition merging";
+
   case InferenceRule::REDUCE_FALSE_TRUE:
     return "true and false elimination";
 
@@ -763,6 +764,8 @@ vstring Kernel::ruleName(InferenceRule rule)
     return "condensation";
   case InferenceRule::THEORY_NORMALIZATION:
     return "theory normalization";
+  case InferenceRule::POLARITY_FLIPPING:
+    return "consistent polarity flipping";
   case InferenceRule::EVALUATION:
     return "evaluation";
   case InferenceRule::CANCELLATION:

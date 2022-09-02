@@ -203,6 +203,7 @@ VK_OBJ= Kernel/Clause.o\
         Kernel/MaximalLiteralSelector.o\
         Kernel/SpassLiteralSelector.o\
         Kernel/ELiteralSelector.o\
+        Kernel/RndLiteralSelector.o\
         Kernel/MLMatcher.o\
         Kernel/MLMatcherSD.o\
         Kernel/MLVariant.o\
@@ -362,6 +363,7 @@ VS_OBJ = Shell/AnswerExtractor.o\
          Shell/Naming.o\
          Shell/NNF.o\
          Shell/Normalisation.o\
+         Shell/Shuffling.o\
          Shell/Options.o\
          Shell/PredicateDefinition.o\
          Shell/Preprocess.o\

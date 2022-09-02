@@ -93,6 +93,8 @@ public:
   static constexpr const char* const PREPROCESSING = "preprocessing";
   static constexpr const char* const PARSING = "parsing";
   static constexpr const char* const LITERAL_ORDER_AFTERCHECK = "literal order aftercheck";
+  static constexpr const char* const CLAUSE_GENERATION = "clause generation";
+  static constexpr const char* const SHUFFLING = "shuffling things";
 
 private:
   using Clock = std::chrono::steady_clock;

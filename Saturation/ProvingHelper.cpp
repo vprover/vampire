@@ -89,6 +89,11 @@ void ProvingHelper::runVampire(Problem& prb, const Options& opt)
 {
   CALL("ProvingHelper::runVampire");
 
+  // when running a portfolio-mode worker, randomize for the first time for the preprocessing 
+  // (second time is in ProvingHelper::runVampireSaturationImpl, but not so important there)
+  Lib::Random::setSeed(opt.randomSeed());
+  // addCommentSignForSZS(cout) << "runVampire -- setSeed: " << opt.randomSeed() << endl;
+
   try
   {
     ClauseIterator clauses;
@@ -138,6 +143,9 @@ void ProvingHelper::runVampire(Problem& prb, const Options& opt)
    * This should help improve reproducibility when using vampire mode + "--decode" to reply a behavior of a strat from a schedule
    */
   Lib::Random::setSeed(opt.randomSeed());
+
+  // addCommentSignForSZS(cout) << "runVampireSaturationImpl -- setSeed: " << opt.randomSeed() << endl;
+
   //decide whether to use poly or mono well-typedness test
   //after options have been read. Equality Proxy can introduce poly in mono.
   env.sharing->setPoly();

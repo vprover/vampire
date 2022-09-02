@@ -23,6 +23,8 @@ using namespace Lib;
 const char* const TimeTrace::PREPROCESSING;
 const char* const TimeTrace::PARSING;
 const char* const TimeTrace::LITERAL_ORDER_AFTERCHECK;
+const char* const TimeTrace::CLAUSE_GENERATION;
+const char* const TimeTrace::SHUFFLING;
 
 TimeTrace::TimeTrace() 
   : _root("[root]")
