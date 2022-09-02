@@ -386,7 +386,6 @@ int SplittingBranchSelector::assertedGroundPositiveEqualityCompomentMaxAge()
 
   return max;
 }
-static const char* SAT_SOLVER = "SAT solver";
 
 SATSolver::Status SplittingBranchSelector::processDPConflicts()
 {
@@ -436,7 +435,7 @@ SATSolver::Status SplittingBranchSelector::processDPConflicts()
 
     // there was conflict, so we try looking for a different model
     {
-      TIME_TRACE(SAT_SOLVER);
+      TIME_TRACE(TimeTrace::AVATAR_SAT_SOLVER);
       
       if (_solver->solve() == SATSolver::UNSATISFIABLE) {
         return SATSolver::UNSATISFIABLE;
@@ -592,7 +591,7 @@ void SplittingBranchSelector::recomputeModel(SplitLevelStack& addedComps, SplitL
   
   SATSolver::Status stat;
   {
-    TIME_TRACE(SAT_SOLVER);
+    TIME_TRACE(TimeTrace::AVATAR_SAT_SOLVER);
     if (randomize) {
       _solver->randomizeForNextAssignment(maxSatVar);
     }

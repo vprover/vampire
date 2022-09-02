@@ -48,10 +48,6 @@
 
 namespace Inferences
 {
-#if VTIME_PROFILING
-static const char* HYPER_SUP = "hyper superposition";
-#endif // VTIME_PROFILING
-
 using namespace Lib;
 using namespace Kernel;
 using namespace Indexing;
@@ -406,7 +402,7 @@ ClauseIterator HyperSuperposition::generateClauses(Clause* cl)
 {
   CALL("HyperSuperposition::generateClauses");
 
-  TIME_TRACE(HYPER_SUP);
+  TIME_TRACE(TimeTrace::HYPER_SUP);
 
   static ClausePairStack res;
   res.reset();
@@ -559,7 +555,7 @@ bool HyperSuperposition::perform(Clause* cl, Clause*& replacement, ClauseIterato
     return false;
   }
 
-  TIME_TRACE(HYPER_SUP);
+  TIME_TRACE(TimeTrace::HYPER_SUP);
 
   Literal* lit = (*cl)[0];
 
