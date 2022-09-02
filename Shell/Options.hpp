@@ -413,6 +413,8 @@ public:
     LTB_MZR_2017,
     SMTCOMP,
     SMTCOMP_2018,
+    SNAKE_TPTP_UNS,
+    SNAKE_TPTP_SAT,
     STRUCT_INDUCTION
   };
 
@@ -2114,6 +2116,7 @@ public:
   vstring inputFile() const { return _inputFile.actualValue; }
   int activationLimit() const { return _activationLimit.actualValue; }
   unsigned randomSeed() const { return _randomSeed.actualValue; }
+  void setRandomSeed(unsigned seed) { _randomSeed.actualValue = seed; }
   unsigned randomStrategySeed() const { return _randomStrategySeed.actualValue; }
   bool printClausifierPremises() const { return _printClausifierPremises.actualValue; }
 
@@ -2280,7 +2283,8 @@ public:
   bool randomPolarities() const { return _randomPolarities.actualValue; }
   bool randomAWR() const { return _randomAWR.actualValue; }
   bool randomTraversals() const { return _randomTraversals.actualValue; }
-
+  bool randomizeSeedForPortfolioWorkers() const { return _randomizSeedForPortfolioWorkers.actualValue; }
+  void setRandomizeSeedForPortfolioWorkers(bool val) { _randomizSeedForPortfolioWorkers.actualValue = val; }
 
   bool ignoreConjectureInPreprocessing() const {return _ignoreConjectureInPreprocessing.actualValue;}
 
@@ -2679,6 +2683,7 @@ private:
   StringOptionValue _scheduleFile;
   UnsignedOptionValue _multicore;
   FloatOptionValue _slowness;
+  BoolOptionValue _randomizSeedForPortfolioWorkers;
 
   IntOptionValue _naming;
   BoolOptionValue _nonliteralsInClauseWeight;
