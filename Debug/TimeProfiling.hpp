@@ -95,6 +95,7 @@ public:
   static constexpr const char* const LITERAL_ORDER_AFTERCHECK = "literal order aftercheck";
   static constexpr const char* const CLAUSE_GENERATION = "clause generation";
   static constexpr const char* const SHUFFLING = "shuffling things";
+  static constexpr const char* const FMB_DEFINITION_INTRODUCTION = "fmb definition introduction";
 
 private:
   using Clock = std::chrono::steady_clock;

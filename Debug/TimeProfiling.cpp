@@ -25,6 +25,7 @@ const char* const TimeTrace::PARSING;
 const char* const TimeTrace::LITERAL_ORDER_AFTERCHECK;
 const char* const TimeTrace::CLAUSE_GENERATION;
 const char* const TimeTrace::SHUFFLING;
+const char* const TimeTrace::FMB_DEFINITION_INTRODUCTION;
 
 TimeTrace::TimeTrace() 
   : _root("[root]")

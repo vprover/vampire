@@ -409,7 +409,6 @@ CASC_OBJ = CASC/PortfolioMode.o\
 
 VFMB_OBJ = FMB/ClauseFlattening.o\
            FMB/SortInference.o\
-           FMB/DefinitionIntroduction.o\
 	   FMB/Monotonicity.o\
 	   FMB/FunctionRelationshipInference.o\
 	   FMB/FiniteModel.o\

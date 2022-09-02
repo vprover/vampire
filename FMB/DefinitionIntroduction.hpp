@@ -29,8 +29,6 @@ namespace FMB {
 
   //TODO mark as an actual iterator?
   class DefinitionIntroduction{
-     static const char* TIMER;
-
   public:
     DefinitionIntroduction(ClauseIterator cit) : _cit(cit) {
       //_ng = env.options->fmbNonGroundDefs();
@@ -38,7 +36,7 @@ namespace FMB {
 
 
     bool hasNext(){
-      TIME_TRACE(TIMER);
+      TIME_TRACE(TimeTrace::FMB_DEFINITION_INTRODUCTION);
       CALL("DefinitionIntroduction::hasNext");
       // first see if we have any processed clauses
       if(_processed.length()==0){
@@ -51,7 +49,7 @@ namespace FMB {
     }
 
     Clause* next(){
-      TIME_TRACE(TIMER);
+      TIME_TRACE(TimeTrace::FMB_DEFINITION_INTRODUCTION);
       CALL("DefinitionIntroduction::next");
       ASS_G(_processed.length(),0);
       return _processed.pop();
