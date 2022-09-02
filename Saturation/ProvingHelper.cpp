@@ -13,7 +13,7 @@
  */
 
 #include "Lib/Environment.hpp"
-#include "Lib/TimeCounter.hpp"
+#include "Debug/TimeProfiling.hpp"
 #include "Lib/Timer.hpp"
 
 #include "Kernel/Problem.hpp"
@@ -98,7 +98,7 @@ void ProvingHelper::runVampire(Problem& prb, const Options& opt)
   {
     ClauseIterator clauses;
     {
-      TimeCounter tc2(TC_PREPROCESSING);
+      TIME_TRACE(TimeTrace::PREPROCESSING);
 
       Preprocess prepro(opt);
       prepro.preprocess(prb);

@@ -2005,7 +2005,7 @@ bool _hard;
       bool check(Property*p){
         CALL("Options::ManyOptionProblemConstraints::check");
         bool res = is_and;
-        Stack<OptionProblemConstraintUP>::Iterator it(cons);
+        Stack<OptionProblemConstraintUP>::RefIterator it(cons);
         while(it.hasNext()){ 
           bool n=it.next()->check(p);res = is_and ? (res && n) : (res || n);}
         return res;
@@ -2013,7 +2013,7 @@ bool _hard;
 
       vstring msg(){
         vstring res="";
-        Stack<OptionProblemConstraintUP>::Iterator it(cons);
+        Stack<OptionProblemConstraintUP>::RefIterator it(cons);
         if(it.hasNext()){ res=it.next()->msg();}
         while(it.hasNext()){ res+=",and\n"+it.next()->msg();}
         return res;
@@ -2313,7 +2313,9 @@ public:
   //void setTheoryAxioms(bool newValue) { _theoryAxioms = newValue; }
   Condensation condensation() const { return _condensation.actualValue; }
   bool generalSplitting() const { return _generalSplitting.actualValue; }
+#if VTIME_PROFILING
   bool timeStatistics() const { return _timeStatistics.actualValue; }
+#endif // VTIME_PROFILING
   bool splitting() const { return _splitting.actualValue; }
   void setSplitting(bool value){ _splitting.actualValue=value; }
   bool nonliteralsInClauseWeight() const { return _nonliteralsInClauseWeight.actualValue; }

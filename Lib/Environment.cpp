@@ -54,7 +54,13 @@ Environment::Environment()
 {
   START_CHECKING_FOR_ALLOCATOR_BYPASSES;
 
+
   options = new Options;
+
+  // statistics calls the timer
+  timer = Timer::instance();
+  timer->start();
+
   statistics = new Statistics;  
   signature = new Signature;
   sharing = new TermSharing;
@@ -72,9 +78,6 @@ Environment::Environment()
   AtomicSort::intSort();
   AtomicSort::realSort();
   AtomicSort::rationalSort();
-
-  timer = Timer::instance();
-  timer->start();
 } // Environment::Environment
 
 Environment::~Environment()

@@ -20,7 +20,6 @@
 
 #include "Lib/Allocator.hpp"
 #include "Lib/Environment.hpp"
-#include "Lib/TimeCounter.hpp"
 #include "Lib/Timer.hpp"
 #include "SAT/Z3Interfacing.hpp"
 
@@ -204,9 +203,7 @@ void Statistics::explainRefutationNotFound(ostream& out)
 
 void Statistics::print(ostream& out)
 {
-  if (env.options->statistics()==Options::Statistics::NONE) {
-    return;
-  }
+  if (env.options->statistics() != Options::Statistics::NONE) {
 
   SaturationAlgorithm::tryUpdateFinalClauseCount();
 
@@ -487,10 +484,13 @@ void Statistics::print(ostream& out)
 
 #undef SEPARATOR
 #undef COND_OUT
+  } // if (env.options->statistics()!=Options::Statistics::NONE)
 
+#if VTIME_PROFILING
   if (env.options && env.options->timeStatistics()) {
-    TimeCounter::printReport(out);
+    TimeTrace::instance().printPretty(out);
   }
+#endif // VTIME_PROFILING
 }
 
 const char* Statistics::phaseToString(ExecutionPhase p)
@@ -563,3 +563,5 @@ const char* Statistics::phaseToString(ExecutionPhase p)
     return "Invalid ExecutionPhase value";
   }
 }
+
+

@@ -193,7 +193,7 @@ void IGAlgorithm::init()
   }
 
   if (env.options->randomTraversals()) {
-    TimeCounter tc(TC_SHUFFLING);
+    TIME_TRACE(TimeTrace::SHUFFLING);
     Shuffling::shuffleArray(_inputClauses.naked(),_inputClauses.size());
   }
 }
@@ -202,7 +202,7 @@ bool IGAlgorithm::addClause(Clause* cl)
 {
   CALL("IGAlgorithm::addClause");
 
-  TimeCounter tc(TC_INST_GEN_SIMPLIFICATIONS);
+  TIME_TRACE("inst gen simplifications");
 
   cl = _duplicateLiteralRemoval.simplify(cl);
   if(cl) { cl = _tautologyDeletion.simplify(cl); }
@@ -216,7 +216,7 @@ redundancy_check:
   {
     bool redundant;
     {
-      TimeCounter tc2(TC_INST_GEN_VARIANT_DETECTION);
+      TIME_TRACE("inst gen variant detection");
       redundant = _variantIdx->retrieveVariants(cl).hasNext();
     }
     if (redundant) {
@@ -250,8 +250,7 @@ redundancy_check:
   }
 
   if (env.options->randomTraversals()) {
-    TimeCounter tc(TC_SHUFFLING);
-
+    TIME_TRACE(TimeTrace::SHUFFLING);
     Shuffling::shuffle(cl);
   }
 
@@ -282,11 +281,10 @@ void IGAlgorithm::processUnprocessed()
 {
   CALL("IGAlgorithm::processUnprocessed");
 
-  TimeCounter tc(TC_INST_GEN_SAT_SOLVING);
+  TIME_TRACE("inst gen SAT solving");
 
   if (env.options->randomTraversals()) {
-    TimeCounter tc(TC_SHUFFLING);
-
+    TIME_TRACE(TimeTrace::SHUFFLING);
     Shuffling::shuffleArray(_unprocessed.naked().begin(),_unprocessed.size());
   }
 
@@ -351,7 +349,6 @@ bool IGAlgorithm::startGeneratingClause(Clause* orig, ResultSubstitution& subst,
   // with the clause being instantiated
   DismatchingContraints* dmatch = 0;
   if(_use_dm){
-    TimeCounter tc(TC_DISMATCHING);
     _dismatchMap.find(orig,dmatch);
   }
   */
@@ -368,7 +365,6 @@ bool IGAlgorithm::startGeneratingClause(Clause* orig, ResultSubstitution& subst,
 
     /*
     {
-      TimeCounter tc(TC_DISMATCHING);
       // check dismatching constraint here
       if (dmatch && dmatch->shouldBlock(olit,glit)) {
         RSTAT_CTR_INC("dismatch blocked");
@@ -411,7 +407,6 @@ void IGAlgorithm::finishGeneratingClause(Clause* orig, ResultSubstitution& subst
   /*
   //Update dismatch constraints
   if(added && _use_dm) {
-    TimeCounter tc(TC_DISMATCHING);
 
     DismatchingContraints* dmatch = 0;
 
@@ -443,7 +438,7 @@ void IGAlgorithm::tryGeneratingInstances(Clause* cl, unsigned litIdx)
 {
   CALL("IGAlgorithm::tryGeneratingInstances");
 
-  TimeCounter tc(TC_INST_GEN_GEN_INST);
+  TIME_TRACE("inst gen generating instances");
 
   Literal* lit = (*cl)[litIdx];
 
@@ -799,7 +794,6 @@ void IGAlgorithm::restartFromBeginning()
 
   /*
   {
-    TimeCounter tc(TC_DISMATCHING);
     // throw away dismatching constraints
     DismatchMap::Iterator iit(_dismatchMap);
     while(iit.hasNext()){ delete iit.next(); }

@@ -34,7 +34,7 @@
 #include "Lib/DHSet.hpp"
 #include "Lib/DHMap.hpp"
 #include "Lib/BinaryHeap.hpp"
-#include "Lib/TimeCounter.hpp"
+#include "Debug/TimeProfiling.hpp"
 #include "Lib/IntUnionFind.hpp"
 
 #include "Shell/Statistics.hpp"
@@ -52,7 +52,7 @@ void BlockedClauseElimination::apply(Problem& prb)
 {
   CALL("BlockedClauseElimination::apply(Problem&)");
 
-  TimeCounter tc(TC_BCE);
+  TIME_TRACE("blocked clause elimination");
 
   bool modified = false;
   bool equationally = prb.hasEquality() && prb.getProperty()->positiveEqualityAtoms();

@@ -16,7 +16,7 @@
 #include "Lib/Metaiterators.hpp"
 #include "Lib/SharedSet.hpp"
 #include "Lib/SkipList.hpp"
-#include "Lib/TimeCounter.hpp"
+#include "Debug/TimeProfiling.hpp"
 
 #include "Kernel/Clause.hpp"
 #include "Kernel/Signature.hpp"
@@ -51,12 +51,11 @@ ConsequenceFinder::~ConsequenceFinder()
   _sdRemoval->unsubscribe();
 }
 
-
 void ConsequenceFinder::onNewPropositionalClause(Clause* cl)
 {
   CALL("ConsequenceFinder::onNewPropositionalClause");
 
-  TimeCounter tc(TC_CONSEQUENCE_FINDING);
+  TIME_TRACE(TimeTrace::CONSEQUENCE_FINDING);
 
   //remove duplicate literals (necessary for tautology deletion)
   Clause* dlrCl=_dlr.simplify(cl);
@@ -118,7 +117,7 @@ void ConsequenceFinder::onAllProcessed()
 {
   CALL("ConsequenceFinder::onAllProcessed");
 
-  TimeCounter tc(TC_CONSEQUENCE_FINDING);
+  TIME_TRACE(TimeTrace::CONSEQUENCE_FINDING);
 
   while(_redundantsToHandle.isNonEmpty()) {
     unsigned red=_redundantsToHandle.pop();
@@ -169,7 +168,7 @@ void ConsequenceFinder::onClauseInserted(Clause* cl)
 {
   CALL("ConsequenceFinder::onClauseInserted");
 
-  TimeCounter tc(TC_CONSEQUENCE_FINDING);
+  TIME_TRACE(TimeTrace::CONSEQUENCE_FINDING);
 
   bool red=false;
   Clause::Iterator it(*cl);
@@ -200,7 +199,7 @@ void ConsequenceFinder::onClauseRemoved(Clause* cl)
 {
   CALL("ConsequenceFinder::onClauseRemoved");
 
-  TimeCounter tc(TC_CONSEQUENCE_FINDING);
+  TIME_TRACE(TimeTrace::CONSEQUENCE_FINDING);
 
   Clause::Iterator it(*cl);
   while(it.hasNext()) {
