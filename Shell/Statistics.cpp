@@ -20,7 +20,6 @@
 
 #include "Lib/Allocator.hpp"
 #include "Lib/Environment.hpp"
-#include "Lib/TimeCounter.hpp"
 #include "Lib/Timer.hpp"
 #include "SAT/Z3Interfacing.hpp"
 
@@ -133,7 +132,6 @@ Statistics::Statistics()
     evaluationIncomp(0),
     evaluationGreater(0),
     evaluationCnt(0),
-
     innerRewrites(0),
     innerRewritesToEqTaut(0),
     deepEquationalTautologies(0),
@@ -205,9 +203,7 @@ void Statistics::explainRefutationNotFound(ostream& out)
 
 void Statistics::print(ostream& out)
 {
-  if (env.options->statistics()==Options::Statistics::NONE) {
-    return;
-  }
+  if (env.options->statistics() != Options::Statistics::NONE) {
 
   SaturationAlgorithm::tryUpdateFinalClauseCount();
 
@@ -295,6 +291,7 @@ void Statistics::print(ostream& out)
       discardedNonRedundantClauses+inferencesSkippedDueToColors+inferencesBlockedForOrderingAftercheck);
   COND_OUT("Initial clauses", initialClauses);
   COND_OUT("Generated clauses", generatedClauses);
+  COND_OUT("Activations started", activations);
   COND_OUT("Active clauses", activeClauses);
   COND_OUT("Passive clauses", passiveClauses);
   COND_OUT("Extensionality clauses", extensionalityClauses);
@@ -487,10 +484,13 @@ void Statistics::print(ostream& out)
 
 #undef SEPARATOR
 #undef COND_OUT
+  } // if (env.options->statistics()!=Options::Statistics::NONE)
 
+#if VTIME_PROFILING
   if (env.options && env.options->timeStatistics()) {
-    TimeCounter::printReport(out);
+    TimeTrace::instance().printPretty(out);
   }
+#endif // VTIME_PROFILING
 }
 
 const char* Statistics::phaseToString(ExecutionPhase p)
@@ -504,6 +504,8 @@ const char* Statistics::phaseToString(ExecutionPhase p)
     return "Property scanning";
   case NORMALIZATION:
     return "Normalization";
+  case SHUFFLING:
+    return "shuffling";
   case SINE_SELECTION:
     return "SInE selection";
   case INCLUDING_THEORY_AXIOMS:
@@ -561,3 +563,5 @@ const char* Statistics::phaseToString(ExecutionPhase p)
     return "Invalid ExecutionPhase value";
   }
 }
+
+

@@ -15,7 +15,7 @@
 #include "Lib/List.hpp"
 #include "Lib/Metaiterators.hpp"
 #include "Lib/SmartPtr.hpp"
-#include "Lib/TimeCounter.hpp"
+#include "Debug/TimeProfiling.hpp"
 
 #include "Kernel/Clause.hpp"
 #include "Kernel/LiteralComparators.hpp"
@@ -256,7 +256,7 @@ void HashingClauseVariantIndex::insert(Clause* cl)
 {
   CALL("HashingClauseVariantIndex::insert");
 
-  TimeCounter tc( TC_HCVI_INSERT);
+  TIME_TRACE("hvci insert");
 
   // static unsigned insertions = 0;
 
@@ -278,7 +278,7 @@ ClauseIterator HashingClauseVariantIndex::retrieveVariants(Literal* const * lits
 {
   CALL("HashingClauseVariantIndex::retrieveVariants/2");
 
-  TimeCounter tc( TC_HCVI_RETRIEVE );
+  TIME_TRACE("hvci retrieve");
 
   unsigned h = computeHash(lits,length);
 
@@ -510,7 +510,7 @@ unsigned HashingClauseVariantIndex::computeHash(Literal* const * lits, unsigned 
 
   // cout << "length " <<  length << endl;
 
-  TimeCounter tc( TC_HCVI_COMPUTE_HASH );
+  TIME_TRACE("hvci compute hash");
 
   static Stack<unsigned> litOrder;
   litOrder.reset();

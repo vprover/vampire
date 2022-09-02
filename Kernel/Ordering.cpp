@@ -37,6 +37,7 @@
 #include "Problem.hpp"
 #include "Signature.hpp"
 #include "Kernel/NumTraits.hpp" 
+#include "Shell/Shuffling.hpp"
 
 #include "Ordering.hpp"
 
@@ -219,25 +220,25 @@ void Ordering::removeNonMaximal(LiteralList*& lits) const
 {
   CALL("Ordering::removeNonMaximal");
 
-  LiteralList** ptr1=&lits;
-  while(*ptr1) {
-    LiteralList** ptr2=&(*ptr1)->tailReference();
-    while(*ptr2 && *ptr1) {
-      Ordering::Result res=compare((*ptr1)->head(), (*ptr2)->head());
+  LiteralList** ptr1 = &lits;
+  while (*ptr1) {
+    LiteralList** ptr2 = &(*ptr1)->tailReference();
+    while (*ptr2 && *ptr1) {
+      Ordering::Result res = compare((*ptr1)->head(), (*ptr2)->head());
 
-      if(res==Ordering::GREATER || res==Ordering::GREATER_EQ || res==Ordering::EQUAL) {
-	LiteralList::pop(*ptr2);
-	continue;
-      } else if(res==Ordering::LESS || res==Ordering::LESS_EQ) {
-	LiteralList::pop(*ptr1);
-	goto topLevelContinue;
+      if (res == Ordering::GREATER || res == Ordering::GREATER_EQ
+          || res == Ordering::EQUAL) {
+        LiteralList::pop(*ptr2);
+        continue;
+      } else if (res == Ordering::LESS || res == Ordering::LESS_EQ) {
+        LiteralList::pop(*ptr1);
+        goto topLevelContinue;
       }
-      ptr2=&(*ptr2)->tailReference();
+      ptr2 = &(*ptr2)->tailReference();
     }
-    ptr1=&(*ptr1)->tailReference();
-topLevelContinue: ;
+    ptr1 = &(*ptr1)->tailReference();
+    topLevelContinue: ;
   }
-
 }
 
 Ordering::Result Ordering::getEqualityArgumentOrder(Literal* eq) const
@@ -709,6 +710,12 @@ PrecedenceOrdering::PrecedenceOrdering(Problem& prb, const Options& opt)
 
 static void sortAuxBySymbolPrecedence(DArray<unsigned>& aux, const Options& opt, SymbolType symType) {
   CALL("sortAuxBySymbolPrecedence");
+
+  // since the below sorts are stable, a proper input shuffling manifests itself (also) by initializing aux with a random permutation rather then the identity one
+  if (opt.shuffleInput() && opt.symbolPrecedence() != Shell::Options::SymbolPrecedence::SCRAMBLE) {
+    Shuffling::shuffleArray(aux,aux.size());
+    // in particular shuffleInput causes OCCURRENCE to be also random
+  }
 
   switch(opt.symbolPrecedence()) {
     case Shell::Options::SymbolPrecedence::ARITY:

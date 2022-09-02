@@ -14,7 +14,7 @@
 
 #include "Lib/Environment.hpp"
 #include "Lib/Timer.hpp"
-#include "Lib/TimeCounter.hpp"
+#include "Debug/TimeProfiling.hpp"
 #include "Lib/VirtualIterator.hpp"
 #include "Kernel/Clause.hpp"
 #include "Kernel/LiteralSelector.hpp"
@@ -52,7 +52,7 @@ void LRS::onUnprocessedSelected(Clause* c)
   SaturationAlgorithm::onUnprocessedSelected(c);
 
   if(shouldUpdateLimits()) {
-    TimeCounter tc(TC_LRS_LIMIT_MAINTENANCE);
+    TIME_TRACE("LRS limit maintenance");
 
     long long estimatedReachable=estimatedReachableCount();
     if(estimatedReachable>=0) {
@@ -107,6 +107,7 @@ long long LRS::estimatedReachableCount()
   // time spent in saturation (preprocessing is excluded)
   long long timeSpent=currTime-_startTime; // (in milliseconds) 
   int opt_timeLimitDeci = _opt.timeLimitInDeciseconds();
+  float correction_coef = _opt.lrsEstimateCorrectionCoef();
   int firstCheck=_opt.lrsFirstTimeCheck(); // (in percent)!
 
   unsigned opt_instruction_limit = 0; // (in mega-instructions)
@@ -144,11 +145,11 @@ long long LRS::estimatedReachableCount()
     // note that result is -1 here already
 
     if(timeLeft > 0) {      
-      result = (processed*timeLeft)/timeSpent;
+      result = correction_coef*(processed*timeLeft)/timeSpent;
     } // otherwise, it's somehow past the deadline, or no timilimit set
     
     if (instrsLeft > 0) {
-      long long res_by_instr = (processed*instrsLeft)/instrsBurned;
+      long long res_by_instr = correction_coef*(processed*instrsLeft)/instrsBurned;
       if (result > 0) {
         result = std::min(result,res_by_instr);
       } else {

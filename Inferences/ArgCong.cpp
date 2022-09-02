@@ -107,7 +107,7 @@ struct ArgCong::ResultFn
 
         if (sortIsVar /*&& _afterCheck && _cl->numSelected() > 1*/) {
           currAfter = SubstHelper::apply(curr, subst);
-          /*TimeCounter tc(TC_LITERAL_ORDER_AFTERCHECK);
+          /*
 
           if (i < _cl->numSelected() && _ord->compare(currAfter,newLit) == Ordering::GREATER) {
             env.statistics->inferencesBlockedForOrderingAftercheck++;

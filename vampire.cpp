@@ -28,7 +28,7 @@
 #include "Lib/Random.hpp"
 #include "Lib/Set.hpp"
 #include "Lib/Stack.hpp"
-#include "Lib/TimeCounter.hpp"
+#include "Debug/TimeProfiling.hpp"
 #include "Lib/Timer.hpp"
 #include "Lib/VString.hpp"
 #include "Lib/List.hpp"
@@ -137,9 +137,22 @@ Problem* getPreprocessedProblem()
 {
   CALL("getPreprocessedProblem");
 
+#ifdef __linux__
+  unsigned saveInstrLimit = env.options->instructionLimit();
+  if (env.options->parsingDoesNotCount()) {  
+    env.options->setInstructionLimit(0);
+  }
+#endif
+
   Problem* prb = UIHelper::getInputProblem(*env.options);
 
-  TimeCounter tc2(TC_PREPROCESSING);
+#ifdef __linux__
+  if (env.options->parsingDoesNotCount()) {
+    env.options->setInstructionLimit(saveInstrLimit+Timer::elapsedMegaInstructions());
+  }
+#endif
+
+  TIME_TRACE(TimeTrace::PREPROCESSING);
 
   // this will provide warning if options don't make sense for problem
   if (env.options->mode()!=Options::Mode::SPIDER) {
@@ -349,7 +362,7 @@ void preprocessMode(bool theory)
 
   Problem* prb = UIHelper::getInputProblem(*env.options);
 
-  TimeCounter tc2(TC_PREPROCESSING);
+  TIME_TRACE(TimeTrace::PREPROCESSING);
 
   // preprocess without clausification
   Shell::Preprocess prepro(*env.options);
@@ -643,8 +656,6 @@ int main(int argc, char* argv[])
 
   System::registerArgv0(argv[0]);
   System::setSignalHandlers();
-  // create random seed for the random number generation
-  Lib::Random::setSeed(123456);
 
   START_CHECKING_FOR_ALLOCATOR_BYPASSES;
 
@@ -652,6 +663,9 @@ int main(int argc, char* argv[])
     // read the command line and interpret it
     Shell::CommandLine cl(argc, argv);
     cl.interpret(*env.options);
+#if VTIME_PROFILING
+    TimeTrace::instance().setEnabled(env.options->timeStatistics());
+#endif
 
     // If any of these options are set then we just need to output and exit
     if (env.options->showHelp() ||
@@ -664,9 +678,6 @@ int main(int argc, char* argv[])
       env.endOutput();
       exit(0);
     }
-
-    //having read option reinitialize the counter
-    TimeCounter::reinitialize();
 
     Allocator::setMemoryLimit(env.options->memoryLimit() * 1048576ul);
     Lib::Random::setSeed(env.options->randomSeed());
@@ -693,6 +704,8 @@ int main(int argc, char* argv[])
       env.options->setOutputMode(Options::Output::SZS);
       env.options->setProof(Options::Proof::TPTP);
       env.options->setOutputAxiomNames(true);
+      env.options->setNormalize(true);
+      env.options->setRandomizeSeedForPortfolioWorkers(false);
       //env.options->setTimeLimitInSeconds(300);
 
       if (CASC::PortfolioMode::perform(env.options->slowness())) {
@@ -722,6 +735,8 @@ int main(int argc, char* argv[])
       env.options->setOutputMode(Options::Output::SZS);
       env.options->setProof(Options::Proof::TPTP);
       env.options->setOutputAxiomNames(true);
+      env.options->setNormalize(true);
+      env.options->setRandomizeSeedForPortfolioWorkers(false);
       //env.options->setTimeLimitInSeconds(300);
 
       if (CASC::PortfolioMode::perform(env.options->slowness())) {
@@ -737,6 +752,9 @@ int main(int argc, char* argv[])
       }
       env.options->setSchedule(Options::Schedule::SMTCOMP);
       env.options->setProof(Options::Proof::OFF);
+      env.options->setNormalize(true);
+      env.options->setRandomizeSeedForPortfolioWorkers(false);
+
       env.options->setMulticore(0); // use all available cores
       env.options->setTimeLimitInSeconds(1800);
       env.options->setStatistics(Options::Statistics::NONE);
