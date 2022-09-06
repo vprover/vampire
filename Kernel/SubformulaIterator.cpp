@@ -198,6 +198,7 @@ bool SubformulaIterator::hasNext ()
             _reserve = rest;
             return true;
           }
+#if VHOL
           case Term::SF_LAMBDA: {
             delete _reserve;
             TermList lambdaExp = term->getSpecialData()->getLambdaExp();
@@ -209,6 +210,7 @@ bool SubformulaIterator::hasNext ()
             }
             break;
           }
+#endif
           case Term::SF_TUPLE: {
             delete _reserve;
             Term* tupleTerm = term->getSpecialData()->getTupleTerm();

@@ -221,6 +221,7 @@ public:
     INCLUDE,
     /** after the equality */
     END_EQ,
+#if VHOL
     /** Read a HOL formula */
     HOL_FORMULA,
     /** build a HOL formula from a connective and one or more formulas */
@@ -229,6 +230,7 @@ public:
     HOL_TERM,
     /** create an application term after reading an app */
     END_APP,
+#endif
     /** tff declaration */
     TFF,
     /** THF declaration */
@@ -588,7 +590,9 @@ private:
    * between fof() and tff() in treating numeric constants */ 
   bool _isFof;
   /** */
+#if VHOL
   bool _isThf;
+#endif
   /** */
   bool _containsPolymorphism;
   /** various strings saved during parsing */
@@ -809,6 +813,7 @@ private:
   //these functions were all written in early 2017 (start of PhD) and are consequently
   //pretty nasty and don't follow the philosophy of the parser. However, they should
   //not impact standard parsing functions in any way.
+#if VHOL
   void endApp();
   void holFormula();
   void endHolFormula();
@@ -816,6 +821,7 @@ private:
   void foldl(TermStack*);
   TermList readArrowSort();
   void readTypeArgs(unsigned arity);
+#endif
   //End of higher-order specific functions
 
   void bindVariable(unsigned var,TermList sort);

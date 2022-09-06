@@ -506,6 +506,7 @@ Comparison Normalisation::compare(Term* t1, Term* t2)
         break; // compare body of the tuple below
       }
 
+#if VHOL
       case Term::SF_LAMBDA: {
         comp = compare((int) VList::length(t1->getSpecialData()->getLambdaVars()),
                        (int) VList::length(t2->getSpecialData()->getLambdaVars()));
@@ -517,7 +518,8 @@ Comparison Normalisation::compare(Term* t1, Term* t2)
         comp = compare(b1, b2);
         return comp;     
       }
-
+#endif
+      
       case Term::SF_MATCH: {
         break; // comparison by arity and pairwise by arguments is done below
       }

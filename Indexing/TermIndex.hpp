@@ -81,28 +81,16 @@ private:
 /**
  * Term index for backward demodulation
  */
+template <class SubtermIterator>
 class DemodulationSubtermIndex
 : public TermIndex
 {
 public:
-  // people seemed to like the class, although it add's no interface on top of TermIndex
+  CLASS_NAME(DemodulationSubtermIndex);
+  USE_ALLOCATOR(DemodulationSubtermIndex);
+
   DemodulationSubtermIndex(TermIndexingStructure* is)
   : TermIndex(is) {};
-protected:
-  // it's the implementation of this below in DemodulationSubtermIndexImpl, which makes this work
-  void handleClause(Clause* c, bool adding) = 0;
-};
-
-template <bool combinatorySupSupport>
-class DemodulationSubtermIndexImpl
-: public DemodulationSubtermIndex
-{
-public:
-  CLASS_NAME(DemodulationSubtermIndexImpl);
-  USE_ALLOCATOR(DemodulationSubtermIndexImpl);
-
-  DemodulationSubtermIndexImpl(TermIndexingStructure* is)
-  : DemodulationSubtermIndex(is) {};
 protected:
   void handleClause(Clause* c, bool adding);
 };
@@ -206,20 +194,6 @@ protected:
 private:
   Set<TermList> _insertedInstantiations;
 };*/
-
-class RenamingFormulaIndex
-: public TermIndex
-{
-public:
-  CLASS_NAME(RenamingFormulaIndex);
-  USE_ALLOCATOR(RenamingFormulaIndex);
-
-  RenamingFormulaIndex(TermIndexingStructure* is) : TermIndex(is)
-  {}
-  void insertFormula(TermList formula, TermList name, Literal* lit, Clause* cls);
-protected:
-  void handleClause(Clause* c, bool adding);
-};
 
 };
 #endif /* __TermIndex__ */

@@ -74,11 +74,15 @@ void SuperpositionSubtermIndex::handleClause(Clause* c, bool adding)
   for (unsigned i=0; i<selCnt; i++) {
     Literal* lit=(*c)[i];
     TermIterator rsti;
-    if(!env.options->combinatorySup()){
+#if VHOL    
+    if(!env.property->higherOrder()){
+#endif
       rsti = EqHelper::getSubtermIterator(lit,_ord);
+#if VHOL    
     } else {
       rsti = EqHelper::getFoSubtermIterator(lit,_ord);
     }
+#endif
     while (rsti.hasNext()) {
       if (adding) {
         _is->insert(rsti.next(), lit, c);
@@ -112,8 +116,8 @@ void SuperpositionLHSIndex::handleClause(Clause* c, bool adding)
   }
 }
 
-template <bool combinatorySupSupport>
-void DemodulationSubtermIndexImpl<combinatorySupSupport>::handleClause(Clause* c, bool adding)
+template <class SubtermIterator>
+void DemodulationSubtermIndex<SubtermIterator>::handleClause(Clause* c, bool adding)
 {
   CALL("DemodulationSubtermIndex::handleClause");
 
@@ -129,9 +133,7 @@ void DemodulationSubtermIndexImpl<combinatorySupSupport>::handleClause(Clause* c
     // the removes could be called on different literals than the inserts!
     inserted.reset();
     Literal* lit=(*c)[i];
-    typename std::conditional<!combinatorySupSupport,
-      NonVariableNonTypeIterator,
-      FirstOrderSubtermIt>::type it(lit);
+    SubtermIterator it(lit);
     while (it.hasNext()) {
       TermList t=it.next();
       if (!inserted.insert(t)) {//TODO existing error? Terms are inserted once per a literal
@@ -151,10 +153,10 @@ void DemodulationSubtermIndexImpl<combinatorySupSupport>::handleClause(Clause* c
   }
 }
 
-// This is necessary for templates defined in cpp files.
-// We are happy to do it for DemodulationSubtermIndexImpl, since it (at the moment) has only two specializations:
-template class DemodulationSubtermIndexImpl<false>;
-template class DemodulationSubtermIndexImpl<true>;
+#if VHOL
+template class DemodulationSubtermIndex<FirstOrderSubtermIt>;
+#endif
+template class DemodulationSubtermIndex<NonVariableNonTypeIterator>;
 
 void DemodulationLHSIndex::handleClause(Clause* c, bool adding)
 {
@@ -410,37 +412,6 @@ void HeuristicInstantiationIndex::handleClause(Clause* c, bool adding)
 
   VList::destroy(boundVar);
 }*/
-
-void RenamingFormulaIndex::insertFormula(TermList formula, TermList name,
-                                         Literal* lit, Clause* cls)
-{
-  CALL("RenamingFormulaIndex::insertFormula");
-  _is->insert(formula, name, lit, cls);
-}
-
-void RenamingFormulaIndex::handleClause(Clause* c, bool adding)
-{
-  CALL("RenamingFormulaIndex::handleClause");
-
-  typedef ApplicativeHelper AH;
-
-  for (unsigned i=0; i<c->length(); i++) {
-    Literal* lit=(*c)[i];
-    NonVariableNonTypeIterator it(lit);
-    while (it.hasNext()) {
-      TermList trm = it.next();
-      Term* t = trm.term();
-      if(SortHelper::getResultSort(t) == AtomicSort::boolSort() && 
-         AH::getProxy(AH::getHead(t)) != Signature::NOT_PROXY){
-        if(adding){
-          env.signature->incrementFormulaCount(t);
-        } else {
-          env.signature->decrementFormulaCount(t);
-        }
-      }
-    }
-  }
-}
 
 
 } // namespace Indexing

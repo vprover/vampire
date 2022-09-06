@@ -24,28 +24,35 @@
 using namespace Kernel;
 using namespace Shell;
 
+#if VHOL
 // reduce a term to normal form
-// uses a applicative order reduction stragegy
-// (inner-most left-most redex first)
+// uses a applicative order reduction strategy
+// Currently use a leftmost outermost stratgey
+// An innermost strategy is theoretically more efficient
+// but is difficult to write iteratively TODO
 class BetaNormaliser : public TermTransformer
 {
 public:
 
   BetaNormaliser() {
-    recurseIntoReplaced();
     dontTransformSorts();
   }  
   TermList normalise(TermList t);
   TermList transformSubterm(TermList t) override;
+  bool exploreSubterms(TermList orig, TermList newTerm) override;
 };
 
 class RedexReducer : public TermTransformer 
 {
 public:
+  RedexReducer() {
+    dontTransformSorts();
+  }    
   TermList reduce(TermList redex);
   TermList transformSubterm(TermList t) override; 
   void onTermEntry(Term* t) override;
   void onTermExit(Term* t) override;
+  bool exploreSubterms(TermList orig, TermList newTerm) override;
 
 private:
   TermList _t2; // term to replace index with (^x.t1) t2
@@ -55,10 +62,14 @@ private:
 class TermLifter : public TermTransformer
 {
 public:
+  TermLifter() {
+    dontTransformSorts();
+  }   
   TermList lift(TermList term, unsigned liftBy);
   TermList transformSubterm(TermList t) override; 
   void onTermEntry(Term* t) override;
   void onTermExit(Term* t) override;
+  bool exploreSubterms(TermList orig, TermList newTerm) override;
 
 private:
   unsigned _cutOff; // any index higher than _cutOff is a free index
@@ -78,7 +89,6 @@ public:
   static TermList getDeBruijnIndex(int index, TermList sort);
   static TermList getNthArg(TermList arrowSort, unsigned argNum);
   static TermList getResultApplieadToNArgs(TermList arrowSort, unsigned argNum);
-  static TermList getResultSort(TermList sort);
   static unsigned getArity(TermList sort);
   static void getHeadAndAllArgs(TermList term, TermList& head, TermStack& args); 
   static void getHeadAndArgs(TermList term, TermList& head, TermStack& args); 
@@ -86,12 +96,11 @@ public:
   static void getHeadAndArgs(const Term* term, TermList& head, Deque<TermList>& args); 
   static void getHeadSortAndArgs(TermList term, TermList& head, TermList& headSort, TermStack& args); 
   static Signature::Proxy getProxy(const TermList t);
-  static TermList getHead(TermList t);
-  static TermList getHead(Term* t);  
   static bool isBool(TermList t);
   static bool isTrue(TermList term);
   static bool isFalse(TermList term);
-  static bool isRedex(TermList term);
 };
+
+#endif
 
 #endif // __ApplicativeHelper__

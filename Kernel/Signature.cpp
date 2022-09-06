@@ -248,9 +248,11 @@ Signature::Signature ():
     _rationals(0),
     _reals(0),
     _arrayCon(UINT_MAX),
+#if VHOL
     _arrowCon(UINT_MAX),
     _appFun(UINT_MAX),
     _lamFun(UINT_MAX),
+#endif
     _termAlgebras()
 {
   CALL("Signature::Signature");
@@ -723,7 +725,7 @@ unsigned Signature::addStringConstant(const vstring& name)
   return result;
 } // addStringConstant
 
-
+#if VHOL
 unsigned Signature::getApp()
 {
   CALL("Signature::getApp");
@@ -792,49 +794,7 @@ unsigned Signature::getChoice(){
   }
   return choice;
 }
-
-void Signature::incrementFormulaCount(Term* t){
-  CALL("Signature::incrementFormulaCount");
-  ASS(SortHelper::getResultSort(t) == AtomicSort::boolSort());
-
-  if(_formulaCounts.find(t)){
-    int count =  _formulaCounts.get(t);
-    if(count != -1){
-      _formulaCounts.set(t, count + 1);
-    }
-  } else {
-    _formulaCounts.set(t, 1);
-  }
-}
-
-void Signature::decrementFormulaCount(Term* t){
-  CALL("Signature::incrementFormulaCount");
-  ASS(SortHelper::getResultSort(t) == AtomicSort::boolSort());
-
-  ASS(_formulaCounts.find(t))
-  int count = _formulaCounts.get(t);
-  if(count != -1){
-    _formulaCounts.set(t, count - 1);
-  }
-}
-
-void Signature::formulaNamed(Term* t){
-  CALL("Signature::formulaNamed");
-  ASS(SortHelper::getResultSort(t) == AtomicSort::boolSort());
-
-  ASS(_formulaCounts.find(t));
-  _formulaCounts.set(t, -1);
-}
-
-unsigned Signature::formulaCount(Term* t){
-  CALL("Signature::formulaCount");
-  
-  if(_formulaCounts.find(t)){
-    return _formulaCounts.get(t);
-  }
-  return 0;
-}
-
+#endif
 
 /**
  * If a type constructor with this name and arity exists, return its number.

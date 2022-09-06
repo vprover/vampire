@@ -609,16 +609,24 @@ void UIHelper::outputSymbolTypeDeclarationIfNeeded(ostream& out, bool function, 
 
   //out << "tff(" << (function ? "func" : "pred") << "_def_" << symNumber << ", type, "
   //    << sym->name() << ": ";
+  
+  bool higherOrder = false;
+#if VHOL
+  higherOrder = env.property->higherOrder();
 
   //don't output type of app. It is an internal Vampire thing
   if(!(function && env.signature->isAppFun(symNumber))){
-    out << (env.property->higherOrder() ? "thf(" : "tff(")
+#endif
+
+    out << (higherOrder ? "thf(" : "tff(")
         << (function ? "func" : (typeCon ?  "type" : "pred")) 
         << "_def_" << symNumber << ", type, "
         << sym->name() << ": ";
     out << type->toString();
     out << ")." << endl;
+#if VHOL    
   }
+#endif
   //out << ")." << endl;
 }
 

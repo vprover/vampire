@@ -48,7 +48,9 @@ private:
 
   /** A list of definitions, produced during preprocessing */
   UnitList* _defs;
+#if VHOL
   bool _higherOrder;
+#endif
   bool _polymorphic;
  
   /** Add a new definitions to _defs */

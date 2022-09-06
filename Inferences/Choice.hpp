@@ -15,6 +15,8 @@
 #ifndef __CHOICE__
 #define __CHOICE__
 
+#if VHOL
+
 #include "Forwards.hpp"
 
 #include "InferenceEngine.hpp"
@@ -38,5 +40,7 @@ class Choice : public GeneratingInferenceEngine
 };
 
 }
+
+#endif
 
 #endif

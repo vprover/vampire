@@ -426,6 +426,7 @@ private:
   Stack<GeneratingInferenceEngine*> _generators;
 };
 
+#if VHOL
 //removes clauses which define choice operators
 class ChoiceDefinitionISE
 : public ImmediateSimplificationEngine
@@ -442,22 +443,24 @@ public:
   bool is_of_form_xfx(Literal* lit, TermList x, TermList& f);
 };
 
-class DuplicateLiteralRemovalISE
-: public ImmediateSimplificationEngine
-{
-public:
-  CLASS_NAME(DuplicateLiteralRemovalISE);
-  USE_ALLOCATOR(DuplicateLiteralRemovalISE);
-
-  Clause* simplify(Clause* cl);
-};
-
 class TautologyDeletionISE2
 : public ImmediateSimplificationEngine
 {
 public:
   CLASS_NAME(TautologyDeletionISE2);
   USE_ALLOCATOR(TautologyDeletionISE2);
+
+  Clause* simplify(Clause* cl);
+};
+
+#endif
+
+class DuplicateLiteralRemovalISE
+: public ImmediateSimplificationEngine
+{
+public:
+  CLASS_NAME(DuplicateLiteralRemovalISE);
+  USE_ALLOCATOR(DuplicateLiteralRemovalISE);
 
   Clause* simplify(Clause* cl);
 };

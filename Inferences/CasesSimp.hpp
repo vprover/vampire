@@ -15,6 +15,8 @@
 #ifndef __CASES_SIMP__
 #define __CASES_SIMP__
 
+#if VHOL
+
 #include "Forwards.hpp"
 
 #include "InferenceEngine.hpp"
@@ -43,5 +45,7 @@ class CasesSimp : public ImmediateSimplificationEngine {
 };
 
 }
+
+#endif
 
 #endif

@@ -31,7 +31,9 @@
 
 #include "Shell/Options.hpp"
 #include "Shell/SymbolOccurrenceReplacement.hpp"
+#if VHOL
 #include "Shell/LambdaConversion.hpp"
+#endif
 #include "Shell/Statistics.hpp"
 
 #include "Rectify.hpp"
@@ -48,7 +50,11 @@ const char* FOOLElimination::LET_PREFIX  = "lG";
 const char* FOOLElimination::BOOL_PREFIX = "bG";
 const char* FOOLElimination::MATCH_PREFIX  = "mG";
 
-FOOLElimination::FOOLElimination() : _defs(0), _higherOrder(0), _polymorphic(0) {}
+FOOLElimination::FOOLElimination() : _defs(0), 
+#if VHOL
+  _higherOrder(0), 
+#endif
+  _polymorphic(0) {}
 
 bool FOOLElimination::needsElimination(FormulaUnit* unit) {
   CALL("FOOLElimination::needsElimination");
@@ -98,7 +104,9 @@ bool FOOLElimination::needsElimination(FormulaUnit* unit) {
 void FOOLElimination::apply(Problem& prb)  {
   CALL("FOOLElimination::apply(Problem*)");
 
+#if VHOL
   _higherOrder = prb.hasApp();
+#endif
   _polymorphic = prb.hasPolymorphicSym();
   apply(prb.units());
   prb.reportFOOLEliminated();
@@ -177,6 +185,7 @@ FormulaUnit* FOOLElimination::apply(FormulaUnit* unit) {
 Formula* FOOLElimination::process(Formula* formula) {
   CALL("FOOLElimination::process(Formula*)");
 
+#if VHOL
   if(env.options->cnfOnTheFly() != Options::CNFOnTheFly::EAGER &&
      !_polymorphic){
     TermList proxifiedFormula = LambdaConversion().convertLambda(formula);
@@ -188,6 +197,7 @@ Formula* FOOLElimination::process(Formula* formula) {
 
     return processedFormula;
   }
+#endif
 
   switch (formula->connective()) {
     case LITERAL: {
@@ -211,8 +221,11 @@ Formula* FOOLElimination::process(Formula* formula) {
        * between FOOL boolean terms.
        */
 
-      if (literal->isEquality() && 
-         (!env.property->higherOrder() || env.options->equalityToEquivalence())) { 
+      if (literal->isEquality() 
+#if VHOL
+         &&  (!env.property->higherOrder() || env.options->equalityToEquivalence())
+#endif
+         ) { 
         ASS_EQ(literal->arity(), 2);
         TermList lhs = *literal->nthArgument(0);
         TermList rhs = *literal->nthArgument(1);
@@ -737,7 +750,9 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
          *     where true is FOOL constant
          *  3) Replace the term with g(Y1, ..., Ym, X1, ..., Xn)
          */
+#if VHOL        
         if(!_higherOrder){
+#endif                  
           Formula *formula = process(sd->getFormula());
 
           collectSorts(freeVars, typeVars, termVars, allVars, termVarSorts);
@@ -760,16 +775,21 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
             NonspecificInference1(InferenceRule::FOOL_ELIMINATION, _unit)));
 
           termResult = freshSymbolApplication;
-        } else {
+#if VHOL
+        } 
+        else {
           termResult = LambdaConversion().convertLambda(sd->getFormula());
         }
+#endif        
         break;
       }
+#if VHOL      
       case Term::SF_LAMBDA: {
         // Lambda terms using named representation are converted to nameless De Bruijn representation
         termResult = LambdaConversion().convertLambda(term);
         break;
       }
+#endif
 
       case Term::SF_MATCH: {
         /**

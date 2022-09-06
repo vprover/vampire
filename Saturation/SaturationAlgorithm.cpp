@@ -71,6 +71,8 @@
 #include "Inferences/TermAlgebraReasoning.hpp"
 #include "Inferences/SLQueryBackwardSubsumption.hpp"
 #include "Inferences/Superposition.hpp"
+
+#if VHOL
 #include "Inferences/ArgCong.hpp"
 #include "Inferences/NegativeExt.hpp"
 //#include "Inferences/Narrow.hpp"
@@ -80,16 +82,19 @@
 //#include "Inferences/SubVarSup.hpp"
 #include "Inferences/CNFOnTheFly.hpp"
 //#include "Inferences/RenamingOnTheFly.hpp"
+#include "Inferences/BoolSimp.hpp"
+#include "Inferences/CasesSimp.hpp"
+#include "Inferences/Cases.hpp"
+#endif
+
 #include "Inferences/URResolution.hpp"
 #include "Inferences/Instantiation.hpp"
 #include "Inferences/TheoryInstAndSimp.hpp"
 #include "Inferences/Induction.hpp"
 #include "Inferences/ArithmeticSubtermGeneralization.hpp"
 #include "Inferences/TautologyDeletionISE.hpp"
-//#include "Inferences/CombinatorDemodISE.hpp"
-#include "Inferences/BoolSimp.hpp"
-#include "Inferences/CasesSimp.hpp"
-#include "Inferences/Cases.hpp"
+#include "Inferences/BetaNormaliser.hpp"
+
 
 #include "Saturation/ExtensionalityClauseContainer.hpp"
 
@@ -1556,7 +1561,8 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
     gie->addFront(new EqualityResolution()); 
   }
 
-  if(opt.combinatorySup() && prb.higherOrder()){
+#if VHOL
+  if(prb.higherOrder()){
     gie->addFront(new ArgCong());
     gie->addFront(new NegativeExt());//TODO add option
     /*if(opt.narrow() != Options::Narrow::OFF){
@@ -1582,6 +1588,19 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
     gie->addFront(new Choice());
   }
 
+  if (opt.cases() && prb.hasFOOL() && !opt.casesSimp()) {
+    gie->addFront(new Cases());
+  }
+
+  if((prb.hasLogicalProxy() || prb.hasBoolVar() || prb.hasFOOL()) &&
+      prb.higherOrder() && !prb.quantifiesOverPolymorphicVar()){
+    if(env.options->cnfOnTheFly() != Options::CNFOnTheFly::EAGER &&
+       env.options->cnfOnTheFly() != Options::CNFOnTheFly::OFF){
+      gie->addFront(new LazyClausificationGIE());
+    }
+  }    
+#endif
+
   gie->addFront(new Factoring());
   if (opt.binaryResolution()) {
     gie->addFront(new BinaryResolution());
@@ -1594,17 +1613,6 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
   }
   if (opt.FOOLParamodulation()) {
     gie->addFront(new FOOLParamodulation());
-  }
-  if (opt.cases() && prb.hasFOOL() && !opt.casesSimp()) {
-    gie->addFront(new Cases());
-  }
-
-  if((prb.hasLogicalProxy() || prb.hasBoolVar() || prb.hasFOOL()) &&
-      prb.higherOrder() && !prb.quantifiesOverPolymorphicVar()){
-    if(env.options->cnfOnTheFly() != Options::CNFOnTheFly::EAGER &&
-       env.options->cnfOnTheFly() != Options::CNFOnTheFly::OFF){
-      gie->addFront(new LazyClausificationGIE());
-    }
   }
 
   /*if (opt.injectivityReasoning()) {
@@ -1657,14 +1665,15 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
 
   //create simplification engine
 
+#if VHOL
   if((prb.hasLogicalProxy() || prb.hasBoolVar() || prb.hasFOOL()) &&
       prb.higherOrder() && !prb.quantifiesOverPolymorphicVar()){
     if(env.options->cnfOnTheFly() != Options::CNFOnTheFly::EAGER &&
        env.options->cnfOnTheFly() != Options::CNFOnTheFly::OFF){
       res->addSimplifierToFront(new LazyClausification());
     }
-    //res->addSimplifierToFront(new RenamingOnTheFly());
   }  
+#endif
 
   // create forward simplification engine
   if (prb.hasEquality() && opt.innerRewriting()) {
@@ -1691,11 +1700,15 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
     switch(opt.forwardDemodulation()) {
     case Options::Demodulation::ALL:
     case Options::Demodulation::PREORDERED:
-      if(opt.combinatorySup()){
-        res->addForwardSimplifierToFront(new ForwardDemodulationImpl<true>());
+#if VHOL    
+      if(prb.higherOrder()){
+        res->addForwardSimplifierToFront(new ForwardDemodulation<FirstOrderSubtermIt>());
       } else {
-        res->addForwardSimplifierToFront(new ForwardDemodulationImpl<false>());
+#endif
+        res->addForwardSimplifierToFront(new ForwardDemodulation<NonVariableNonTypeIterator>());
+#if VHOL
       }
+#endif
       break;
     case Options::Demodulation::OFF:
       break;
@@ -1724,7 +1737,15 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
     switch(opt.backwardDemodulation()) {
     case Options::Demodulation::ALL:
     case Options::Demodulation::PREORDERED:
-      res->addBackwardSimplifierToFront(new BackwardDemodulation());
+#if VHOL
+      if(prb.higherOrder()){
+        res->addBackwardSimplifierToFront(new BackwardDemodulation<FirstOrderSubtermIt>());
+      } else {
+#endif
+        res->addBackwardSimplifierToFront(new BackwardDemodulation<NonVariableNonTypeIterator>());        
+#if VHOL
+      }
+#endif
       break;
     case Options::Demodulation::OFF:
       break;
@@ -1783,11 +1804,7 @@ ImmediateSimplificationEngine* SaturationAlgorithm::createISE(Problem& prb, cons
     break;
   }
 
-  /*if(env.options->combinatorySup() && prb.higherOrder()){
-    res->addFront(new CombinatorDemodISE());
-    res->addFront(new CombinatorNormalisationISE());
-  }*/
-
+#if VHOL
   if(env.options->choiceReasoning() && prb.higherOrder()){
     res->addFront(new ChoiceDefinitionISE());
   }
@@ -1805,6 +1822,13 @@ ImmediateSimplificationEngine* SaturationAlgorithm::createISE(Problem& prb, cons
   if (prb.hasFOOL() && opt.casesSimp() && !opt.cases()) {
     res->addFrontMany(new CasesSimp());
   }
+
+  if(env.options->newTautologyDel()){
+    res->addFront(new TautologyDeletionISE2());
+  }  
+
+  res->addFront(new BetaSimplify());
+#endif
 
   // Only add if there are distinct groups 
   if(prb.hasEquality() && env.signature->hasDistinctGroups()) {
@@ -1852,9 +1876,6 @@ ImmediateSimplificationEngine* SaturationAlgorithm::createISE(Problem& prb, cons
     res->addFront(new TrivialInequalitiesRemovalISE());
   }
   res->addFront(new TautologyDeletionISE());
-  if(env.options->newTautologyDel()){
-    res->addFront(new TautologyDeletionISE2());
-  }
   res->addFront(new DuplicateLiteralRemovalISE());
 
   return res;

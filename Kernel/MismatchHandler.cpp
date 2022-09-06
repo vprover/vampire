@@ -168,7 +168,7 @@ Term* MismatchHandler::get(unsigned var)
   ASSERTION_VIOLATION;
 }
 
-
+#if VHOL
 bool HOMismatchHandler::isConstraintPair(TermList t1, TermList t2)
 {
   CALL("HOMismatchHandler::isConstraintPair");
@@ -217,6 +217,6 @@ TermList HOMismatchHandler::transformSubterm(TermList trm)
   }
   return trm;
 }
-
+#endif
 
 }

@@ -148,10 +148,11 @@ namespace Shell {
               _subexpressions.push(Expression(*term->nthArgument(0), polarity));
               break;
 
+#if VHOL
             case Term::SF_LAMBDA:
 			       _subexpressions.push(Expression(sd->getLambdaExp(), polarity));
 			       break;
-
+#endif
             /*case Term::SF_TUPLE:
               _subexpressions.push(Expression(sd->getTupleTerm()));
               break; */

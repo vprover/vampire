@@ -28,7 +28,9 @@
 #include "Kernel/Signature.hpp"
 #include "Kernel/Inference.hpp"
 #include "Kernel/TermIterators.hpp"
+#if VHOL    
 #include "Kernel/ApplicativeHelper.hpp"
+#endif
 
 #include "Options.hpp"
 #include "Statistics.hpp"
@@ -74,12 +76,13 @@ Property::Property()
     _hasNonDefaultSorts(false),
     _sortsUsed(0),
     _hasFOOL(false),
+    _hasBoolVar(false),
+#if VHOL    
     _hasArrowSort(false),
     _hasApp(false),
-    _hasAppliedVar(false),
-    _hasBoolVar(false),
     _hasLogicalProxy(false),
     _hasLambda(false),
+#endif
     _hasPolymorphicSym(false),
     _quantifiesOverPolymorphicVar(false),
     _onlyFiniteDomainDatatypes(true),
@@ -507,11 +510,17 @@ void Property::scanSort(TermList sort)
     return;
   }
 
+#if VHOL
   if(sort.isArrowSort()){
     _hasArrowSort = true;
   }
+#endif
 
-  if(!higherOrder() && !hasPolymorphicSym()){
+  if(
+#if VHOL
+    !higherOrder() && 
+#endif
+    !hasPolymorphicSym()){
     //used sorts is for FMB which is not compatible with 
     //higher-order or polymorphism
     unsigned sortU = sort.term()->functor();
@@ -553,7 +562,10 @@ void Property::scanSort(TermList sort)
     return;
   }
   
-  TermList resultSort = ApplicativeHelper::getResultSort(sort);
+  TermList resultSort = sort;
+#if VHOL    
+  resultSort = sort.finalResult();
+#endif
   if(resultSort == AtomicSort::boolSort()){
     _hasFOOL = true;
   }
@@ -594,8 +606,11 @@ void Property::scan(Literal* lit, int polarity, unsigned cLen, bool goal)
     if((lhs.isVar() || rhs.isVar()) && eqSort == AtomicSort::boolSort()){
       _hasBoolVar = true;
     }
-    if((eqSort.isVar() || eqSort.term()->arity()) && 
-       !eqSort.isArrowSort() && !eqSort.isArraySort() && !eqSort.isTupleSort()){
+    if((eqSort.isVar() || eqSort.term()->arity()) 
+#if VHOL
+      && !eqSort.isArrowSort() 
+#endif
+      && !eqSort.isArraySort() && !eqSort.isTupleSort()){
       _hasPolymorphicSym = true;      
     } 
     scanSort(eqSort);
@@ -685,11 +700,11 @@ void Property::scan(TermList ts,bool unit,bool goal)
       case Term::SF_MATCH:
         _hasFOOL = true;
         break;
-
+#if VHOL
       case Term::SF_LAMBDA:
         _hasLambda = true;
         break;
-
+#endif
       default:
         break;
     }
@@ -709,14 +724,12 @@ void Property::scan(TermList ts,bool unit,bool goal)
     if(unit){ func->markInUnit();}
     if(goal){ func->markInGoal();}
 
+#if VHOL
     if(t->isApplication()){
       _hasApp = true;
       TermList sort = SortHelper::getResultSort(t);
-      if(ApplicativeHelper::getResultSort(sort) == AtomicSort::boolSort()){
-        TermList head = ApplicativeHelper::getHead(ts);
-        if(head.isVar()){
-          _hasBoolVar = true;
-        }
+      if(sort.finalResult().isBoolSort() && ts.head().isVar()){
+        _hasBoolVar = true;
       }
     }
 
@@ -724,14 +737,19 @@ void Property::scan(TermList ts,bool unit,bool goal)
       if(func->proxy() == Signature::PI || func->proxy() == Signature::SIGMA){
         ASS(t->arity() == 1);
         TermList sort = *t->nthArgument(0);
-        if(ApplicativeHelper::getResultSort(sort) == AtomicSort::boolSort()){
+        if(sort.finalResult().isBoolSort()){
           _hasBoolVar = true;
         }
       }
       _hasLogicalProxy = true;
     }
+#endif
 
-    if(!t->isApplication() && t->numTypeArguments() > 0){
+    if(
+#if VHOL
+      !t->isApplication() && !t->isLambdaTerm() &&
+#endif
+       t->numTypeArguments() > 0){
       _hasPolymorphicSym = true;
     }
 

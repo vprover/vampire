@@ -107,8 +107,11 @@ struct Superposition::RewriteableSubtermsFn
   VirtualIterator<pair<Literal*, TermList> > operator()(Literal* lit)
   {
     CALL("Superposition::RewriteableSubtermsFn()");
-    TermIterator it = env.options->combinatorySup() ? EqHelper::getFoSubtermIterator(lit, _ord) :
-                                                      EqHelper::getSubtermIterator(lit, _ord);
+    TermIterator it = 
+#if VHOL
+      env.property->higherOrder() ? EqHelper::getFoSubtermIterator(lit, _ord) :
+#endif
+      EqHelper::getSubtermIterator(lit, _ord);
     return pvi( pushPairIntoRightIterator(lit, it) );
   }
 
@@ -186,10 +189,12 @@ ClauseIterator Superposition::generateClauses(Clause* premise)
 
   //TODO probably shouldn't go here!
   static bool withConstraints = 
-      env.options->unificationWithAbstraction()!=Options::UnificationWithAbstraction::OFF
-  || (env.options->functionExtensionality() == Options::FunctionExtensionality::ABSTRACTION
-                               && env.property->higherOrder());
+      env.options->unificationWithAbstraction()!=Options::UnificationWithAbstraction::OFF;
 
+#if VHOL
+   withConstraints = withConstraints || (env.options->functionExtensionality() == Options::FunctionExtensionality::ABSTRACTION && env.property->higherOrder());
+#endif
+   
   auto itf1 = premise->getSelectedLiteralIterator();
 
   // Get an iterator of pairs of selected literals and rewritable subterms of those literals

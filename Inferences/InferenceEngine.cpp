@@ -41,7 +41,9 @@ using namespace Kernel;
 using namespace Indexing;
 using namespace Saturation;
 
+#if VHOL
 typedef ApplicativeHelper AH;
+#endif
 
 /**
  * Return options that control the inference engine.
@@ -265,6 +267,8 @@ CompositeSGI::~CompositeSGI() {
   }
 }
 
+#if VHOL
+
 Clause* ChoiceDefinitionISE::simplify(Clause* c)
 {
   CALL("ChoiceDefinitionISE::simplify");
@@ -333,6 +337,64 @@ bool ChoiceDefinitionISE::is_of_form_xfx(Literal* lit, TermList x, TermList& f){
   }
   return false;
 }
+
+Clause* TautologyDeletionISE2::simplify(Clause* c)
+{
+  CALL("TautologyDeletionISE2::simplify");
+
+  typedef ApplicativeHelper AH;
+
+  static LiteralStack negLits;
+  static LiteralStack posLits;
+
+  negLits.reset();
+  posLits.reset();
+
+  for(unsigned i = 0; i < c->length(); i++){
+    Literal* lit = (*c)[i];
+    TermList lhs = *lit->nthArgument(0);
+    TermList rhs = *lit->nthArgument(1);
+    if(!lit->polarity() && AH::isBool(lhs) && AH::isBool(rhs) &&
+      (AH::isTrue(lhs) != AH::isTrue(rhs))){
+      //false != true
+      return 0;
+    } else if(AH::isBool(lhs) && AH::isBool(rhs)){
+      continue;
+    } 
+
+    if(AH::isBool(lhs)){
+      AH::isTrue(lhs) == lit->polarity() ? posLits.push(lit) : negLits.push(lit); 
+    } else if (AH::isBool(rhs)){
+      AH::isTrue(rhs) == lit->polarity() ? posLits.push(lit) : negLits.push(lit);   
+    }
+  }
+
+  for(unsigned i =0; i < posLits.size(); i++){
+    Literal* posLit = posLits[i];
+    TermList posNonBooleanSide = *posLit->nthArgument(0);
+    if(AH::isBool(posNonBooleanSide)){
+      posNonBooleanSide = *posLit->nthArgument(1);
+    }
+    ASS(!AH::isBool(posNonBooleanSide));
+    for(unsigned j = 0; j < negLits.size(); j++){
+      Literal* negLit = negLits[j];
+      TermList negNonBooleanSide = *negLit->nthArgument(0);
+      if(AH::isBool(negNonBooleanSide)){
+        negNonBooleanSide = *negLit->nthArgument(1);
+      }
+      ASS_REP(!AH::isBool(negNonBooleanSide), negLit->toString());
+      if(posNonBooleanSide == negNonBooleanSide){
+        //t = true \/ t = false
+        //t = true \/ t != true
+        return 0;
+      }
+    }
+  }
+
+  return c;
+}
+
+#endif //VHOL
 
 Clause* DuplicateLiteralRemovalISE::simplify(Clause* c)
 {
@@ -428,69 +490,11 @@ Clause* DuplicateLiteralRemovalISE::simplify(Clause* c)
   return d;
 }
 
-Clause* TautologyDeletionISE2::simplify(Clause* c)
-{
-  CALL("TautologyDeletionISE2::simplify");
-
-  typedef ApplicativeHelper AH;
-
-  static LiteralStack negLits;
-  static LiteralStack posLits;
-
-  negLits.reset();
-  posLits.reset();
-
-  for(unsigned i = 0; i < c->length(); i++){
-    Literal* lit = (*c)[i];
-    TermList lhs = *lit->nthArgument(0);
-    TermList rhs = *lit->nthArgument(1);
-    if(!lit->polarity() && AH::isBool(lhs) && AH::isBool(rhs) &&
-      (AH::isTrue(lhs) != AH::isTrue(rhs))){
-      //false != true
-      return 0;
-    } else if(AH::isBool(lhs) && AH::isBool(rhs)){
-      continue;
-    } 
-
-    if(AH::isBool(lhs)){
-      AH::isTrue(lhs) == lit->polarity() ? posLits.push(lit) : negLits.push(lit); 
-    } else if (AH::isBool(rhs)){
-      AH::isTrue(rhs) == lit->polarity() ? posLits.push(lit) : negLits.push(lit);   
-    }
-  }
-
-  for(unsigned i =0; i < posLits.size(); i++){
-    Literal* posLit = posLits[i];
-    TermList posNonBooleanSide = *posLit->nthArgument(0);
-    if(AH::isBool(posNonBooleanSide)){
-      posNonBooleanSide = *posLit->nthArgument(1);
-    }
-    ASS(!AH::isBool(posNonBooleanSide));
-    for(unsigned j = 0; j < negLits.size(); j++){
-      Literal* negLit = negLits[j];
-      TermList negNonBooleanSide = *negLit->nthArgument(0);
-      if(AH::isBool(negNonBooleanSide)){
-        negNonBooleanSide = *negLit->nthArgument(1);
-      }
-      ASS_REP(!AH::isBool(negNonBooleanSide), negLit->toString());
-      if(posNonBooleanSide == negNonBooleanSide){
-        //t = true \/ t = false
-        //t = true \/ t != true
-        return 0;
-      }
-    }
-  }
-
-  return c;
-}
-
 Clause* TrivialInequalitiesRemovalISE::simplify(Clause* c)
 {
   CALL("TrivialInequalitiesRemovalISE::simplify");
 
   static DArray<Literal*> lits(32);
-
-  typedef ApplicativeHelper AH;
 
   int length = c->length();
   int j = 0;
@@ -504,11 +508,13 @@ Clause* TrivialInequalitiesRemovalISE::simplify(Clause* c)
     }
     TermList* t1 = l->args();
     TermList* t2 = t1->next();
+#if VHOL
     if((AH::isTrue(*t1) && AH::isFalse(*t2) && l->polarity()) || 
        (AH::isTrue(*t2) && AH::isFalse(*t1) && l->polarity())){
       found++;
       continue;
     }
+#endif
     if(l->isPositive()){
       lits[j++] = l;
       continue;

@@ -32,7 +32,7 @@ namespace Shell {
 class Naming
 {
 public:
-  Naming (int threshold, bool preserveEpr, bool appify);
+  Naming (int threshold, bool preserveEpr, bool appify = false);
   FormulaUnit* apply(FormulaUnit* unit,UnitList*& defs);
 private:
   /** Encodes information about the position of the sub formula */
@@ -126,7 +126,9 @@ private:
    * Corresponds to the value of the epr_preserving_naming option.
    */
   bool _preserveEpr;
+#if VHOL    
   bool _appify; // higher-order stuff
+#endif
   /**
    * True if there are universally quantified variables at the scope of the current formula
    *

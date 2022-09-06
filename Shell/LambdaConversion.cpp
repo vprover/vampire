@@ -9,12 +9,12 @@
  */
 /**
  * @file LambdaElimination.cpp
- * Takes a single lambda term and eliminates the lambda(s)
- * from the term by translating to combinatory logic.
- * A term of the form ^[X, Y, Z]:exp is interpreted as:
- * ^[X]:(^[Y]:(^[Z]:exp)). I.e. as three lambdas in a single term.
+ * converts a term from namaed lambda representation to 
+ * a nameless one
  */
  
+
+#if VHOL
 
 #include "Indexing/TermSharing.hpp"
 
@@ -489,3 +489,5 @@ Literal* LambdaConversion::toEquality(TermList booleanTerm, bool polarity) {
   TermList boolVal = polarity ? TermList(Term::foolTrue()) : TermList(Term::foolFalse());
   return Literal::createEquality(true, booleanTerm, boolVal, AtomicSort::boolSort());
 }
+
+#endif

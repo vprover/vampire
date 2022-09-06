@@ -8,33 +8,35 @@
  * and in the source directory
  */
 /**
- * @file BoolSimp.hpp
- * Defines class BoolSimp.
+ * @file CombinatorDemodISE.hpp
+ * Defines class CombinatorDemodISE.
  */
 
-#ifndef __BoolEqToDiseq__
-#define __BoolEqToDiseq__
+
+#ifndef __BetaSimplify__
+#define __BetaSimplify__
 
 #if VHOL
 
 #include "Forwards.hpp"
-
 #include "InferenceEngine.hpp"
+#include "Kernel/TermTransformer.hpp"
 
 namespace Inferences {
 
-class BoolEqToDiseq : public GeneratingInferenceEngine
-{
-  public:
-    CLASS_NAME(BoolEqToDiseq);
-    USE_ALLOCATOR(BoolEqToDiseq);
 
-    ClauseIterator generateClauses(Clause* premise);
+class BetaSimplify
+: public ImmediateSimplificationEngine
+{
+public:
+  CLASS_NAME(BetaSimplify);
+  USE_ALLOCATOR(BetaSimplify);
+
+  Clause* simplify(Clause* cl);
+};
 
 };
 
-}
-
 #endif
 
-#endif
+#endif /* __CombinatorDemodISE__ */

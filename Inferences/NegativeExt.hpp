@@ -16,6 +16,8 @@
 #ifndef __NegativeExt__
 #define __NegativeExt__
 
+#if VHOL
+
 #include "Forwards.hpp"
 
 #include "InferenceEngine.hpp"
@@ -42,5 +44,7 @@ private:
 
 
 };
+
+#endif
 
 #endif /* __NegativeExt__ */

@@ -175,6 +175,8 @@ TermIterator EqHelper::getSubtermIterator(Literal* lit, const Ordering& ord)
   return getRewritableSubtermIterator<NonVariableNonTypeIterator>(lit, ord);
 }
 
+#if VHOL
+
 TermIterator EqHelper::getBooleanSubtermIterator(Literal* lit, const Ordering& ord)
 {
   CALL("EqHelper::getSubtermIterator");
@@ -186,6 +188,8 @@ TermIterator EqHelper::getFoSubtermIterator(Literal* lit, const Ordering& ord)
   CALL("EqHelper::getFoSubtermIterator");
   return getRewritableSubtermIterator<FirstOrderSubtermIt>(lit, ord);
 }
+
+#endif
 
 /**
  * Return iterator on subterms of a literal, that can be rewritten by

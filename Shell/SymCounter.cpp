@@ -253,6 +253,7 @@ void SymCounter::count(Term* term, int polarity, int add)
           count(sd->getTupleTerm(), 0, add);
           break;
         }
+#if VHOL
         case Term::SF_LAMBDA: {
           TermList lambdaExp = sd->getLambdaExp();
           if(lambdaExp.isTerm()){
@@ -260,6 +261,7 @@ void SymCounter::count(Term* term, int polarity, int add)
           }
           break;
         }
+#endif
         case Term::SF_MATCH: {
           for (unsigned i = 0; i < term->arity(); i++) {
             TermList t = *term->nthArgument(i);

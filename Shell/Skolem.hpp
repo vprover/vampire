@@ -42,7 +42,9 @@ namespace Shell {
 class Skolem
 {
 public:
-  static FormulaUnit* skolemise(FormulaUnit*, bool appify = false);
+  // AYB perhaps should hide appify behind compiler directive
+  // but resulting code is seriously ugly
+  static FormulaUnit* skolemise(FormulaUnit* , bool appify = false);
   static unsigned addSkolemFunction(unsigned arity, TermList* domainSorts, TermList rangeSort, unsigned var, unsigned taArity = 0);
   static unsigned addSkolemFunction(unsigned arity, unsigned taArity, TermList* domainSorts, TermList rangeSort, const char* suffix=0);
   static unsigned addSkolemTypeCon(unsigned arity, unsigned var);
@@ -114,7 +116,9 @@ private:
   // to create one big inference after we are done
   UnitList* _skolimizingDefinitions;
 
+#if VHOL
   bool _appify; // a higher-order solution
+#endif
 
 }; // class Skolem
 

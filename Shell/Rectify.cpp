@@ -201,6 +201,7 @@ Term* Rectify::rectifySpecialTerm(Term* t)
     }
     return Term::createFormula(orig);
   }
+#if VHOL
   case Term::SF_LAMBDA:
   {
     ASS_EQ(t->arity(),0);
@@ -235,6 +236,7 @@ Term* Rectify::rectifySpecialTerm(Term* t)
     }
     return Term::createLambda(lambdaTerm, vs, rectifiedSorts, lambdaTermS);   
   }
+#endif
   case Term::SF_TUPLE:
   {
     ASS_EQ(t->arity(),0);

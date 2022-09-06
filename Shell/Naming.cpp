@@ -28,7 +28,9 @@
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/SubformulaIterator.hpp"
 #include "Kernel/Term.hpp"
+#if VHOL
 #include "Kernel/ApplicativeHelper.hpp"
+#endif
 
 #include "Shell/Statistics.hpp"
 #include "Shell/Options.hpp"
@@ -52,7 +54,10 @@ using namespace Shell;
  */
 Naming::Naming(int threshold, bool preserveEpr, bool appify) :
     _threshold(threshold + 1), _preserveEpr(preserveEpr), 
-    _appify(appify), _varsInScope(false) {
+#if VHOL    
+    _appify(appify),
+#endif
+    _varsInScope(false) {
   ASS(threshold < 32768);
 } // Naming::Naming
 
@@ -1160,11 +1165,17 @@ Literal* Naming::getDefinitionLiteral(Formula* f, VList* freeVars) {
 
   SortHelper::normaliseArgSorts(typeVars, termVarSorts);
 
-  for(unsigned i = 0; i < termVars.size() && !_appify; i++){
+  for(unsigned i = 0; i < termVars.size()
+#if VHOL    
+     && !_appify
+#endif
+     ; i++){
     allVars.push(termVars[i]);
   }
 
+#if VHOL    
   if(!_appify){
+#endif
     unsigned pred = reused_symbol;
     if(!successfully_reused) {
       pred = env.signature->addNamePredicate(arity);
@@ -1186,6 +1197,7 @@ Literal* Naming::getDefinitionLiteral(Formula* f, VList* freeVars) {
       predSym->setType(OperatorType::getPredicateType(arity - typeArgArity, termVarSorts.begin(), typeArgArity));
     }
     return Literal::create(pred, arity, true, false, allVars.begin());
+#if VHOL    
   } else {
     unsigned fun = reused_symbol;
     if(!successfully_reused) {
@@ -1201,6 +1213,7 @@ Literal* Naming::getDefinitionLiteral(Formula* f, VList* freeVars) {
                  SortHelper::getResultSort(head.term()), head, termVars);
     return  Literal::createEquality(true, TermList(t), TermList(Term::foolTrue()), AtomicSort::boolSort());  
   }
+#endif
 }
 
 /**

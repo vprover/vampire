@@ -318,8 +318,8 @@ set(VAMPIRE_KERNEL_SOURCES
     Indexing/TypeSubstitutionTree.hpp
     Inferences/CNFOnTheFly.cpp
     Inferences/CNFOnTheFly.hpp
-#    Inferences/CombinatorDemodISE.cpp
-#    Inferences/CombinatorDemodISE.hpp
+    Inferences/BetaNormaliser.cpp
+    Inferences/BetaNormaliser.hpp
 #    Inferences/CombinatorNormalisationISE.hpp
 #    Inferences/CombinatorNormalisationISE.cpp
     Inferences/ArgCong.hpp
@@ -807,6 +807,12 @@ if(CMAKE_BUILD_TYPE STREQUAL Debug)
   add_compile_definitions(VDEBUG=1)
 elseif(CMAKE_BUILD_TYPE STREQUAL Release)
   add_compile_definitions(VDEBUG=0)
+endif()
+
+if(CMAKE_BUILD_HOL STREQUAL On)
+  add_compile_definitions(VHOL=1)
+elseif(CMAKE_BUILD_HOL STREQUAL Off)
+  add_compile_definitions(VHOL=0)
 endif()
 
 if (CYGWIN)

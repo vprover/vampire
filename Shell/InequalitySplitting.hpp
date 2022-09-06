@@ -46,7 +46,9 @@ private:
 
   Stack<Clause*> _predDefs;
   unsigned _splittingTreshold;
+#if VHOL
   bool _appify; // do it the higher-order way
+#endif
 };
 
 };

@@ -8,6 +8,7 @@
  * and in the source directory
  */
 
+#if VHOL
 
 #include "Lib/Environment.hpp"
 
@@ -189,3 +190,5 @@ TermList BoolSimp::boolSimplify(TermList term){
 
 
 }
+
+#endif

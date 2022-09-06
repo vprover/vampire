@@ -239,11 +239,15 @@ void PortfolioMode::getExtraSchedules(Property& prop, Schedule& old, Schedule& e
    //extra_opts.push("etr=on");         // equational_tautology_removal
    extra_opts.push("av=on:atotf=0.5");     // turn AVATAR off
 
+#if VHOL
    if(!prop.higherOrder()){
+#endif
      //these options are not currently HOL compatible
      extra_opts.push("bsd=on:fsd=on"); // subsumption demodulation
      extra_opts.push("to=lpo");           // lpo
+#if VHOL     
    }
+#endif
 
    // If contains integers, rationals and reals
    if(prop.props() & (Property::PR_HAS_INTEGERS | Property::PR_HAS_RATS | Property::PR_HAS_REALS)){

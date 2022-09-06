@@ -24,8 +24,6 @@
 namespace Kernel
 {
 
-typedef ApplicativeHelper AH;
-
 /**
  * True if there exists next variable
  */
@@ -243,6 +241,10 @@ bool TopLevelVarIterator::hasNext()
 
 }*/
 
+#if VHOL
+
+typedef ApplicativeHelper AH;
+
 TermList FirstOrderSubtermIt::next()
 {
   CALL("FirstOrderSubtermIt::next");
@@ -299,6 +301,8 @@ bool BooleanSubtermIt::hasNext()
   }
   return false;
 }
+
+#endif
 
 //////////////////////////////////////////////////////////////////////////
 ///                                                                    ///

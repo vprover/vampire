@@ -744,14 +744,6 @@ public:
     FALSE_TRUE_NOT_EQ_NOT_EQ = 3
   };
 
-  enum class Narrow : unsigned int {
-    ALL = 0,
-    SK = 1,
-    SKI = 2,
-    OFF = 3
-  };
-
-
     //==========================================================
     // The Internals
     //==========================================================
@@ -1859,6 +1851,7 @@ bool _hard;
       vstring msg(){ return " only useful with equality"; }
     };
 
+#if VHOL
     struct HasHigherOrder : OptionProblemConstraint{
       CLASS_NAME(HasHigherOrder);
       USE_ALLOCATOR(HasHigherOrder);
@@ -1882,6 +1875,7 @@ bool _hard;
       }
       vstring msg(){ return " not compatible with higher-order problems"; }
     };
+#endif
 
     struct MayHaveNonUnits : OptionProblemConstraint{
       CLASS_NAME(MayHaveNonUnits);
@@ -1964,9 +1958,11 @@ bool _hard;
     static OptionProblemConstraintUP hasCat(Property::Category c){
       return OptionProblemConstraintUP(new CategoryCondition(c,true));
     }
-    static OptionProblemConstraintUP hasEquality(){ return OptionProblemConstraintUP(new UsesEquality); }
+#if VHOL
     static OptionProblemConstraintUP hasHigherOrder(){ return OptionProblemConstraintUP(new HasHigherOrder); }
     static OptionProblemConstraintUP onlyFirstOrder(){ return OptionProblemConstraintUP(new OnlyFirstOrder); }
+#endif
+    static OptionProblemConstraintUP hasEquality(){ return OptionProblemConstraintUP(new UsesEquality); }
     static OptionProblemConstraintUP mayHaveNonUnits(){ return OptionProblemConstraintUP(new MayHaveNonUnits); }
     static OptionProblemConstraintUP notJustEquality(){ return OptionProblemConstraintUP(new NotJustEquality); }
     static OptionProblemConstraintUP atomsMoreThan(int a){
@@ -2108,7 +2104,6 @@ public:
   void setNormalize(bool normalize) { _normalize.actualValue = normalize; }
   GoalGuess guessTheGoal() const { return _guessTheGoal.actualValue; }
   unsigned gtgLimit() const { return _guessTheGoalLimit.actualValue; }
-  void setMaxXX(unsigned max) { _maximumXXNarrows.actualValue = max; }
 
   void setNaming(int n){ _naming.actualValue = n;} //TODO: ensure global constraints
   vstring include() const { return _include.actualValue; }
@@ -2388,20 +2383,17 @@ public:
 
   //Higher-order Options
 
-  bool addCombAxioms() const { return _addCombAxioms.actualValue; }
+#if VHOL
   bool addProxyAxioms() const { return _addProxyAxioms.actualValue; }
-  bool combinatorySup() const { return _combinatorySuperposition.actualValue; }
   bool choiceAxiom() const { return _choiceAxiom.actualValue; }
   bool injectivityReasoning() const { return _injectivity.actualValue; }
   bool pragmatic() const { return _pragmatic.actualValue; }
   bool choiceReasoning() const { return _choiceReasoning.actualValue; }
   bool prioritiseClausesProducedByLongReduction() const { return _priortyToLongReducts.actualValue; }
-  int maxXXNarrows() const { return _maximumXXNarrows.actualValue; }
   FunctionExtensionality functionExtensionality() const { return _functionExtensionality.actualValue; }
   void setFE(FunctionExtensionality value){ _functionExtensionality.actualValue = value; } 
   CNFOnTheFly cnfOnTheFly() const { return _clausificationOnTheFly.actualValue; }
   PISet piSet() const { return _piSet.actualValue; }
-  Narrow narrow() const { return _narrow.actualValue; }
   bool equalityToEquivalence () const { return _equalityToEquivalence.actualValue; }
   bool complexBooleanReasoning () const { return _complexBooleanReasoning.actualValue; }
   bool booleanEqTrick() const { return _booleanEqTrick.actualValue; }
@@ -2410,11 +2402,8 @@ public:
   bool newTautologyDel() const { return _newTautologyDel.actualValue; }
   bool lambdaFreeHol() const { return _lambdaFreeHol.actualValue; }
   bool complexVarCondition() const { return _complexVarCondition.actualValue; }
+#endif
   // For unit testing
-  void useCombSup() { 
-    _combinatorySuperposition.actualValue = true;
-    _complexVarCondition.actualValue = true; 
-  }
 
 private:
     
@@ -2829,19 +2818,15 @@ private:
 
  
   //Higher-order options
-  BoolOptionValue _addCombAxioms;
   BoolOptionValue _addProxyAxioms;
-  BoolOptionValue _combinatorySuperposition;
   BoolOptionValue _choiceAxiom;
   BoolOptionValue _injectivity;
   BoolOptionValue _pragmatic;
   BoolOptionValue _choiceReasoning;
   BoolOptionValue _priortyToLongReducts;
-  IntOptionValue  _maximumXXNarrows;
   ChoiceOptionValue<FunctionExtensionality> _functionExtensionality;
   ChoiceOptionValue<CNFOnTheFly> _clausificationOnTheFly;
   ChoiceOptionValue<PISet> _piSet;
-  ChoiceOptionValue<Narrow> _narrow;
   BoolOptionValue _equalityToEquivalence;
   BoolOptionValue _complexBooleanReasoning;
   BoolOptionValue _booleanEqTrick;

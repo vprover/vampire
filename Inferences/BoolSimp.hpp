@@ -15,6 +15,8 @@
 #ifndef __BOOL_SIMP__
 #define __BOOL_SIMP__
 
+#if VHOL
+
 #include "Forwards.hpp"
 
 #include "InferenceEngine.hpp"
@@ -35,5 +37,7 @@ class BoolSimp : public ImmediateSimplificationEngine
 };
 
 }
+
+#endif
 
 #endif

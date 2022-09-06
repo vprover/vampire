@@ -112,13 +112,15 @@ public:
   bool hasNumerals() const; // meaning the interpreted constants of arithmetic theories, e.g. 1,2, 3.1415,...
   /** Problem contains let terms or formulas, or term if-then-else */
   bool hasFOOL() const;
-  bool hasLogicalProxy() const;
   bool hasBoolVar() const;
-  bool hasApp() const;
-  bool hasAppliedVar() const;
   bool hasPolymorphicSym() const;
   bool quantifiesOverPolymorphicVar() const;
+  
+#if VHOL
+  bool hasApp() const;
   bool higherOrder() const;
+  bool hasLogicalProxy() const;
+#endif
 
   bool mayHaveEquality() const { return _mayHaveEquality; }
   bool mayHaveFormulas() const { return _mayHaveFormulas; }
@@ -225,13 +227,14 @@ private:
   mutable MaybeBool _hasInterpretedOperations;
   mutable MaybeBool _hasNumerals;
   mutable MaybeBool _hasFOOL;
-  mutable MaybeBool _hasApp;
-  mutable MaybeBool _hasAppliedVar;
-  mutable MaybeBool _hasLogicalProxy;
   mutable MaybeBool _hasPolymorphicSym;
   mutable MaybeBool _quantifiesOverPolymorphicVar;
-  mutable MaybeBool _hasBoolVar; 
+  mutable MaybeBool _hasBoolVar;
+#if VHOL
+  mutable MaybeBool _hasApp;
+  mutable MaybeBool _hasLogicalProxy;   
   mutable MaybeBool _higherOrder; 
+#endif
 
   SMTLIBLogic _smtlibLogic;
 

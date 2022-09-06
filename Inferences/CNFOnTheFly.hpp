@@ -15,6 +15,8 @@
 #ifndef __CNFOnTheFly__
 #define __CNFOnTheFly__
 
+#if VHOL
+
 #include "Forwards.hpp"
 #include "InferenceEngine.hpp"
 #include "Kernel/Term.hpp"
@@ -95,63 +97,9 @@ private:
   SkolemisingFormulaIndex* _formulaIndex;
 };
 
-/*class NotProxyISE
-  : public ImmediateSimplificationEngine
-{
-public:
-  CLASS_NAME(NotProxyISE);
-  USE_ALLOCATOR(NotProxyISE);
-  
-  Kernel::Clause* simplify(Kernel::Clause* c);
-};
-
-
-class EqualsProxyISE
-   : public ImmediateSimplificationEngine
-{
-
-public:
-  CLASS_NAME(EqualsProxyISE);
-  USE_ALLOCATOR(EqualsProxyISE);
-  
-  Kernel::Clause* simplify(Kernel::Clause* c);        
-};
-
-
-class OrImpAndProxyISE
-  : public ImmediateSimplificationEngine
-{
-
-public:
-  CLASS_NAME(OrImpAndProxyISE);
-  USE_ALLOCATOR(OrImpAndProxyISE);
-  
-  Kernel::Clause* simplify(Kernel::Clause* c);
-};
-
-
-class PiSigmaProxyISE
-   : public ImmediateSimplificationEngine
-{
-  
-public:
-  CLASS_NAME(PiSigmaProxyISE);
-  USE_ALLOCATOR(PiSigmaProxyISE);
-  
-  Kernel::Clause* simplify(Kernel::Clause* c);     
-};
-
-
-class ProxyISE 
-  : public ImmediateSimplificationEngine {
-  public:
-    CLASS_NAME(ProxyISE);
-    USE_ALLOCATOR(ProxyISE);
-    ClauseIterator simplifyMany(Clause* c);
-    Clause* simplify(Clause* c){ NOT_IMPLEMENTED; }
-};*/
-
 
 }
+
+#endif
 
 #endif

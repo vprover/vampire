@@ -234,9 +234,11 @@ void TPTPPrinter::outputSymbolTypeDefinitions(unsigned symNumber, SymbolType sym
   }
 
   vstring cat = "tff(";
+#if VHOL
   if(env.property->higherOrder()){
     cat = "thf(";
   }
+#endif
 
   vstring st = "func";
   if(symType == SymbolType::PRED){

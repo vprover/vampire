@@ -15,6 +15,8 @@
 #ifndef __Cases__
 #define __Cases__
 
+#if VHOL
+
 #include "Forwards.hpp"
 
 #include "InferenceEngine.hpp"
@@ -33,5 +35,7 @@ class Cases : public GeneratingInferenceEngine {
 };
 
 }
+
+#endif
 
 #endif

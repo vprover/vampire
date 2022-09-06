@@ -226,14 +226,17 @@ public:
   /** Problem contains non-default sorts */
   bool hasNonDefaultSorts() const { return _hasNonDefaultSorts; }
   bool hasFOOL() const { return _hasFOOL; }
+  bool hasBoolVar() const { return _hasBoolVar; }
+
+#if VHOL
   bool hasArrowSort() const { return _hasArrowSort; }
   bool hasApp() const { return _hasApp; }
-  bool hasAppliedVar() const { return _hasAppliedVar; }
-  bool hasBoolVar() const { return _hasBoolVar; }
   bool hasLogicalProxy() const { return _hasLogicalProxy; }
-  bool hasPolymorphicSym() const { return _hasPolymorphicSym; }
   bool higherOrder() const { return hasApp() || hasLogicalProxy() ||
                                     hasArrowSort() || _hasLambda; }
+#endif
+
+  bool hasPolymorphicSym() const { return _hasPolymorphicSym; }
   bool quantifiesOverPolymorphicVar() const { return _quantifiesOverPolymorphicVar; }
   bool usesSort(unsigned sort) const { 
     CALL("Property::usesSort");
@@ -329,12 +332,13 @@ public:
   DHSet<Theory::MonomorphisedInterpretation> _polymorphicInterpretations;
 
   bool _hasFOOL;
+  bool _hasBoolVar;
+#if VHOL  
   bool _hasArrowSort;
   bool _hasApp;
-  bool _hasAppliedVar;
-  bool _hasBoolVar;
   bool _hasLogicalProxy;
   bool _hasLambda;
+#endif
   bool _hasPolymorphicSym;
   bool _quantifiesOverPolymorphicVar;
 

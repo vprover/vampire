@@ -199,7 +199,7 @@ bool FormulaVarIterator::hasNext()
               }
               break;
             }
-      
+#if VHOL      
             case Term::SF_LAMBDA:{
               _instructions.push(FVI_UNBIND);
               SList* sorts = sd->getLambdaVarSorts();
@@ -216,7 +216,7 @@ bool FormulaVarIterator::hasNext()
               _vars.push(sd->getLambdaVars());
               break;
             }
-
+#endif
             case Term::SF_MATCH: {
               for (unsigned int i = 0; i < t->arity(); i++) {
                 _instructions.push(FVI_TERM_LIST);

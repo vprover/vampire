@@ -420,8 +420,9 @@ void Options::init()
     _lookup.insert(&_equalityProxy);
     _equalityProxy.tag(OptionTag::PREPROCESSING);
     _equalityProxy.addProblemConstraint(hasEquality());
+#if VHOL
     _equalityProxy.addProblemConstraint(onlyFirstOrder());
-    _equalityProxy.addHardConstraint(If(notEqual(EqualityProxy::OFF)).then(_combinatorySuperposition.is(notEqual(true))));
+#endif
     _equalityProxy.addHardConstraint(If(notEqual(EqualityProxy::OFF)).then(Or(_useMonoEqualityProxy.is(equal(true)),
                                                         _saturationAlgorithm.is(notEqual(SaturationAlgorithm::INST_GEN)))));      
     _equalityProxy.setRandomChoices(isRandOn(),{"R","RS","RST","RSTC","off","off","off","off","off"}); // wasn't tested, make off more likely
@@ -564,7 +565,9 @@ void Options::init()
     _newCNF.description="Use NewCNF algorithm to do naming, preprecess3 and clausificiation.";
     _lookup.insert(&_newCNF);
     _newCNF.addProblemConstraint(hasFormulas());
+#if VHOL
     _newCNF.addProblemConstraint(onlyFirstOrder());
+#endif
     _newCNF.tag(OptionTag::PREPROCESSING);
     _newCNF.setRandomChoices({"on","off"});
 
@@ -1496,7 +1499,6 @@ void Options::init()
     _backwardSubsumptionDemodulation.tag(OptionTag::INFERENCES);
     _backwardSubsumptionDemodulation.onlyUsefulWith(InferencingSaturationAlgorithm());
     _backwardSubsumptionDemodulation.addProblemConstraint(hasEquality());
-    _backwardSubsumptionDemodulation.onlyUsefulWith(_combinatorySuperposition.is(equal(false)));  // higher-order support is not yet implemented
     _backwardSubsumptionDemodulation.setRandomChoices({"on","off"});
 
     _backwardSubsumptionDemodulationMaxMatches = UnsignedOptionValue("backward_subsumption_demodulation_max_matches", "bsdmm", 0);
@@ -1677,7 +1679,6 @@ void Options::init()
     _forwardSubsumptionDemodulation.onlyUsefulWith(InferencingSaturationAlgorithm());
     _forwardSubsumptionDemodulation.tag(OptionTag::INFERENCES);
     _forwardSubsumptionDemodulation.addProblemConstraint(hasEquality());
-    _forwardSubsumptionDemodulation.onlyUsefulWith(_combinatorySuperposition.is(equal(false)));  // higher-order support is not yet implemented
     _forwardSubsumptionDemodulation.setRandomChoices({"off","on"});
 
     _forwardSubsumptionDemodulationMaxMatches = UnsignedOptionValue("forward_subsumption_demodulation_max_matches", "fsdmm", 0);
@@ -1736,27 +1737,12 @@ void Options::init()
 
 //*********************** Higher-order  ***********************
 
-    _addCombAxioms = BoolOptionValue("add_comb_axioms","aca",false);
-    _addCombAxioms.description="Add combinator axioms";
-    _lookup.insert(&_addCombAxioms);
-    _addCombAxioms.addProblemConstraint(hasHigherOrder());
-    _addCombAxioms.onlyUsefulWith(_combinatorySuperposition.is(equal(false))); //no point having two together
-    _addCombAxioms.tag(OptionTag::HIGHER_ORDER);
-
+#if VHOL
     _addProxyAxioms = BoolOptionValue("add_proxy_axioms","apa",false);
     _addProxyAxioms.description="Add logical proxy axioms";
     _lookup.insert(&_addProxyAxioms);
     _addProxyAxioms.addProblemConstraint(hasHigherOrder());    
     _addProxyAxioms.tag(OptionTag::HIGHER_ORDER);
-
-    _combinatorySuperposition = BoolOptionValue("combinatory_sup","csup",false);
-    _combinatorySuperposition.description="Switches on a specific ordering and that orients combinator axioms left-right."
-                                          " Also turns on a number of special inference rules";
-    _lookup.insert(&_combinatorySuperposition);
-    _combinatorySuperposition.addProblemConstraint(hasHigherOrder());        
-    _combinatorySuperposition.onlyUsefulWith(_addCombAxioms.is(equal(false))); //no point having two together
-    _combinatorySuperposition.onlyUsefulWith(ProperSaturationAlgorithm());    
-    _combinatorySuperposition.tag(OptionTag::HIGHER_ORDER);
 
     _choiceAxiom = BoolOptionValue("choice_ax","cha",false);
     _choiceAxiom.description="Adds the cnf form of the Hilbert choice axiom";
@@ -1785,17 +1771,9 @@ void Options::init()
 
     _pragmatic = BoolOptionValue("pragmatic","prag",false);
     _pragmatic.description="Modifes various parameters to help Vampire solve 'hard' higher-order";
-    _pragmatic.onlyUsefulWith(_combinatorySuperposition.is(equal(true)));
     _lookup.insert(&_pragmatic);
     _pragmatic.addProblemConstraint(hasHigherOrder());
     _pragmatic.tag(OptionTag::HIGHER_ORDER);
-
-    _maximumXXNarrows = IntOptionValue("max_XX_narrows","mXXn", 0);
-    _maximumXXNarrows.description="Maximum number of BXX', CXX' and SXX' narrows that"
-                                  "can be carried out 0 means that there is no limit. ";
-    _lookup.insert(&_maximumXXNarrows);
-    _maximumXXNarrows.addProblemConstraint(hasHigherOrder());    
-    _maximumXXNarrows.tag(OptionTag::HIGHER_ORDER);
 
     _functionExtensionality = ChoiceOptionValue<FunctionExtensionality>("func_ext","fe",FunctionExtensionality::ABSTRACTION,
                                                                           {"off", "axiom", "abstraction"});
@@ -1827,18 +1805,6 @@ void Options::init()
     _lookup.insert(&_piSet);
     _piSet.addProblemConstraint(hasHigherOrder());     
     _piSet.tag(OptionTag::HIGHER_ORDER);
-
-
-    _narrow = ChoiceOptionValue<Narrow>("narrow","narr",Narrow::ALL,
-                                                             {"all",
-                                                              "sk",
-                                                              "ski",
-                                                              "off"});
-    _narrow.description="Controls the set of combinator equations to use in narrowing";
-    _lookup.insert(&_narrow);
-    _narrow.addProblemConstraint(hasHigherOrder());
-    _narrow.tag(OptionTag::HIGHER_ORDER);
-
 
     _equalityToEquivalence = BoolOptionValue("equality_to_equiv","e2e",false);
     _equalityToEquivalence.description=
@@ -1904,6 +1870,7 @@ void Options::init()
     "exponential complexity";
     _lookup.insert(&_complexVarCondition);
     _complexVarCondition.tag(OptionTag::HIGHER_ORDER);
+#endif
 
 //*********************** InstGen  ***********************
 
@@ -3432,10 +3399,12 @@ bool Options::complete(const Problem& prb) const
 {
   CALL("Options::complete");
 
+#if VHOL
   if(prb.higherOrder()){
     //safer for competition
     return false;
   }
+#endif
 
   if (_showInterpolant.actualValue != InterpolantMode::OFF) {
     return false;
@@ -3479,18 +3448,6 @@ bool Options::complete(const Problem& prb) const
   bool hasEquality = (prop.equalityAtoms() != 0);
 
   if (hasEquality && !_superposition.actualValue) return false;
-
-  // TODO fix this whole thing up
-  if((prop.hasAppliedVar())) {
-    //TODO make a more complex more precise case here
-    //There are instance where we are complete
-    return false;
-  }
-
-  //TODO update once we have another method of dealing with bools
-  if((prop.hasLogicalProxy() || prop.hasBoolVar())  && !_addProxyAxioms.actualValue){
-    return false;
-  }
 
   if (!unitEquality) {
     if (_selection.actualValue <= -1000 || _selection.actualValue >= 1000) return false;

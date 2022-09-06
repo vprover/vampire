@@ -102,19 +102,14 @@ Term* TermTransformer::transform(Term* term)
     TermList dest = transformSubterm(tl);
     if (tl != dest) {
       modified.setTop(true);
-      if(!_recurseIntoReplaced){        
-        args.push(dest);
-        continue;
-      }
-      tl = dest;
     }
-    if (tl.isVar()) {
-      args.push(tl);
+    if (dest.isVar() || !exploreSubterms(tl, dest)) {
+      args.push(dest);
       continue;
     }
 
-    ASS(tl.isTerm());
-    Term* t = tl.term();
+    ASS(dest.isTerm());
+    Term* t = dest.term();
     
     onTermEntry(t);
 
@@ -141,6 +136,16 @@ Term* TermTransformer::transform(Term* term)
   return term->isLiteral() ? 
     create<Literal> (term, argLst, _sharedResult) :
     create<Term>    (term, argLst, _sharedResult) ;
+}
+
+// default implementation, can override if required
+bool TermTransformer::exploreSubterms(TermList orig, TermList newTerm)
+{
+  CALL("TermTransformer::exploreSubterms");
+  ASS(newTerm.isTerm())
+
+  if(orig != newTerm) return false;
+  return true;
 }
 
 Literal* TermTransformer::transform(Literal* lit)

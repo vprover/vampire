@@ -40,11 +40,9 @@ class TermTransformer {
 public:
   TermTransformer() : 
     _sharedResult(true), 
-    _recurseIntoReplaced(false), 
     _transformSorts(true) {}
 
   void createNonShared(){ _sharedResult = false; }
-  void recurseIntoReplaced(){ _recurseIntoReplaced = true; }
   void dontTransformSorts(){ _transformSorts = false; }
     
   virtual ~TermTransformer() {}
@@ -58,41 +56,20 @@ protected:
   // By default we do nothing on entry and exit
   virtual void onTermEntry(Term*){}
   virtual void onTermExit(Term*){}
+  // default implementation explores all subterms when
+  // a term has not been transformed (orig == new)
+  // and none otherwise
+  virtual bool exploreSubterms(TermList orig, TermList newTerm);
   Term* transformSpecial(Term* specialTerm);
 
   virtual Formula* transform(Formula* f);
   bool _sharedResult;
-  // recurse into repalced only affects applicative terms currently
-  // can easily be extended to standard terms if required
-  bool _recurseIntoReplaced;
   bool _transformSorts;
 
 private:
   template<class T>
   Term* create(Term* t, TermList* argLst, bool shared)
   {  return shared ? T::create(static_cast<T*>(t), argLst) :  T::createNonShared(static_cast<T*>(t), argLst); }  
-};
-
-class ApplicativeTermTransformer : public TermTransformer 
-{
-public:
-  ApplicativeTermTransformer() {} 
-
-  virtual TermList transformSubterm(TermList trm){
-    Term* t = _terms.top();
-    if(t->isApplication() && trm == *t->nthArgument(2)){
-      return trm;
-    }
-    return transformFirstOrderSubterm(trm);
-  }
-  virtual void onTermEntry(Term* t){ _terms.push(t);}
-  virtual void onTermExit(Term* t){ _terms.pop(); }
-protected:
-
-  virtual TermList transformFirstOrderSubterm(TermList trm) = 0;
-
-private:
-  Stack<Term*> _terms;
 };
 
 /**

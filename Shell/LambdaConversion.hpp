@@ -15,6 +15,8 @@
 #ifndef __LambdaConversion__
 #define __LambdaConversion__
 
+#if VHOL
+
 #include "Lib/Deque.hpp"
 #include "Forwards.hpp"
 
@@ -55,5 +57,7 @@ private:
       
   TermList sortOf(TermList t);
 };
+
+#endif
 
 #endif // __LambdaConversion__

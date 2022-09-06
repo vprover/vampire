@@ -40,7 +40,11 @@
 #include "Lib/Metaiterators.hpp"
 
 // the number of bits used for "TermList::_info::distinctVars"
-#define TERM_DIST_VAR_BITS 21
+#if VHOL
+  #define TERM_DIST_VAR_BITS 19
+#else
+  #define TERM_DIST_VAR_BITS 21
+#endif
 #define TERM_DIST_VAR_UNKNOWN ((2 ^ TERM_DIST_VAR_BITS) - 1)
 
 namespace Kernel {
@@ -175,16 +179,29 @@ public:
   /** if not var, the inner term must be shared */
   unsigned weight() const;
   /** returns true if this termList is wrapping a higher-order "arrow" sort */
+#if VHOL
   bool isArrowSort();
+#endif
   bool isBoolSort();
   bool isArraySort();
   bool isTupleSort();
   bool isIntSort();
   bool isRatSort();
   bool isRealSort();
+
+#if VHOL  
   bool isApplication() const;
-  bool isLambdaTerm() const;
+  bool isLambdaTerm() const;  
+  bool isRedex();
   Option<unsigned> deBruijnIndex() const;
+  TermList lhs() const;
+  TermList rhs() const;
+  TermList lambdaBody() const;
+  TermList head();
+  TermList result();
+  TermList finalResult();
+#endif
+
   bool containsSubterm(TermList v);
   bool containsAllVariablesOf(TermList t);
 
@@ -238,6 +255,13 @@ private:
       unsigned sort : 1;
       /** true if term contains at least one term var */
       unsigned hasTermVar : 1;
+#if VHOL
+      /** true if the term contains a De Bruijn index */
+      unsigned hasDBIndex : 1;
+      /** true if the term contains a redex */
+      unsigned hasRedex : 1;
+#endif
+
       /** Ordering comparison result for commutative term arguments, one of
        * 0 (unknown) 1 (less), 2 (equal), 3 (greater), 4 (incomparable)
        * @see Term::ArgumentOrder */
@@ -278,7 +302,9 @@ public:
   static const unsigned SF_FORMULA = 0xFFFFFFFD;
   static const unsigned SF_TUPLE = 0xFFFFFFFC;
   static const unsigned SF_LET_TUPLE = 0xFFFFFFFB;
+#if VHOL  
   static const unsigned SF_LAMBDA = 0xFFFFFFFA;
+#endif
   static const unsigned SF_MATCH = 0xFFFFFFF9;
   static const unsigned SPECIAL_FUNCTOR_LOWER_BOUND = 0xFFFFFFF9;
 
@@ -309,6 +335,7 @@ public:
         TermList binding;
         TermList sort;
       } _letTupleData;
+#if VHOL
       struct {
         TermList lambdaExp;
         VList* _vars;
@@ -316,6 +343,7 @@ public:
         TermList sort; 
         TermList expSort;//TODO is this needed?
       } _lambdaData;
+#endif      
       struct {
         TermList sort;
         TermList matchedSort;
@@ -334,16 +362,20 @@ public:
       ASS_REP(getType() == SF_LET || getType() == SF_LET_TUPLE, getType());
       return getType() == SF_LET ? _letData.functor : _letTupleData.functor;
     }
+#if VHOL          
     VList* getLambdaVars() const { ASS_EQ(getType(), SF_LAMBDA); return _lambdaData._vars; }
     SList* getLambdaVarSorts() const { ASS_EQ(getType(), SF_LAMBDA); return _lambdaData._sorts; }
     TermList getLambdaExp() const { ASS_EQ(getType(), SF_LAMBDA); return _lambdaData.lambdaExp; }
+#endif    
     VList* getVariables() const { ASS_EQ(getType(), SF_LET); return _letData.variables; }
     VList* getTupleSymbols() const { return _letTupleData.symbols; }
     TermList getBinding() const {
       ASS_REP(getType() == SF_LET || getType() == SF_LET_TUPLE, getType());
       return TermList(getType() == SF_LET ? _letData.binding : _letTupleData.binding);
     }
+#if VHOL    
     TermList getLambdaExpSort() const { ASS_EQ(getType(), SF_LAMBDA); return _lambdaData.expSort; }
+#endif    
     TermList getSort() const {
       switch (getType()) {
         case SF_ITE:
@@ -352,8 +384,10 @@ public:
           return _letData.sort;
         case SF_LET_TUPLE:
           return _letTupleData.sort;
+#if VHOL          
         case SF_LAMBDA:
           return _lambdaData.sort;
+#endif
         case SF_MATCH:
           return _matchData.sort;
         default:
@@ -381,7 +415,9 @@ public:
   static Term* createConstant(unsigned symbolNumber) { return create(symbolNumber,0,0); }
   static Term* createITE(Formula * condition, TermList thenBranch, TermList elseBranch, TermList branchSort);
   static Term* createLet(unsigned functor, VList* variables, TermList binding, TermList body, TermList bodySort);
+#if VHOL
   static Term* createLambda(TermList lambdaExp, VList* vars, SList* sorts, TermList expSort);
+#endif
   static Term* createTupleLet(unsigned functor, VList* symbols, TermList binding, TermList body, TermList bodySort);
   static Term* createFormula(Formula* formula);
   static Term* createTuple(unsigned arity, TermList* sorts, TermList* elements);
@@ -633,12 +669,45 @@ public:
   bool isLiteral() const { return _args[0]._info.literal; }
   /** True if the term is, in fact, a sort */
   bool isSort() const { return _args[0]._info.sort; }
+
+#if VHOL
   /** true if the term is an application */
   bool isApplication() const;
   /** true if the term is a lambda term */
   bool isLambdaTerm() const;
+  /** true if the term is a redex */
+  bool isRedex();
+
+  void setHasRedex(bool b)
+  {
+    CALL("setHasRedex");
+    ASS(shared() && !isSort());
+    _args[0]._info.hasRedex = b;
+  }  
+  /** true if term contains redex */
+  bool hasRedex() const
+  {
+    ASS(_args[0]._info.shared);
+    return _args[0]._info.hasRedex;    
+  }  
+  /** returns the head of an applicative term */ 
+  TermList head();
   /** returns empty option if not a De Bruijn index and index otherwise */
   Option<unsigned> deBruijnIndex() const;
+
+  void setHasDBIndex(bool b)
+  {
+    CALL("setHasDBIndex");
+    ASS(shared() && !isSort());
+    _args[0]._info.hasDBIndex = b;
+  }  
+  /** returns true if term contains De Bruijn index */
+  bool hasDBIndex() const
+  {
+    ASS(_args[0]._info.shared);
+    return _args[0]._info.hasDBIndex;    
+  }
+#endif
 
   /** Return an index of the argument to which @b arg points */
   unsigned getArgumentIndex(TermList* arg)
@@ -714,7 +783,9 @@ public:
   bool isTupleLet() const { return functor() == SF_LET_TUPLE; }
   bool isTuple() const { return functor() == SF_TUPLE; }
   bool isFormula() const { return functor() == SF_FORMULA; }
+#if VHOL  
   bool isLambda() const { return functor() == SF_LAMBDA; }
+#endif
   bool isMatch() const { return functor() == SF_MATCH; }
   bool isBoolean() const;
   bool isSuper() const; 
@@ -846,8 +917,10 @@ public:
   static AtomicSort* createConstant(unsigned typeCon) { return create(typeCon,0,0); }
   static AtomicSort* createConstant(const vstring& name); 
 
+#if VHOL
   /** True if the sort is a higher-order arrow sort */
   bool isArrowSort() const;
+#endif
   /** True if the sort $o */
   bool isBoolSort() const;
   /** true if sort is the sort of an array */
@@ -863,9 +936,19 @@ public:
 
   const vstring& typeConName() const;  
   
+#if VHOL  
+
+  /** domain of an arrow sort */
+  TermList domain();
+  /** result sort of an arrow sort */
+  TermList result();
+  /** */
+  TermList finalResult();
+
   static TermList arrowSort(TermStack& domSorts, TermList range);
   static TermList arrowSort(TermList s1, TermList s2);
   static TermList arrowSort(TermList s1, TermList s2, TermList s3);
+#endif
   static TermList arraySort(TermList indexSort, TermList innerSort);
   static TermList tupleSort(unsigned arity, TermList* sorts);
   static TermList defaultSort();
@@ -943,6 +1026,11 @@ public:
   static Literal* positiveLiteral(Literal* l) {
     return l->isPositive() ? l : complementaryLiteral(l);
   }
+
+#if VHOL
+  bool isFlexFlex() const;
+  bool isFlexRigid() const;
+#endif
 
   /** true if positive */
   bool isPositive() const

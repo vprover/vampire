@@ -20,6 +20,8 @@ using namespace Lib;
 using namespace Kernel;
 using namespace Shell;
 
+#if VHOL
+
 TermList BetaNormaliser::normalise(TermList t)
 {
   CALL("BetaNormaliser::normalise");
@@ -33,20 +35,28 @@ TermList BetaNormaliser::transformSubterm(TermList t)
 {
   CALL("BetaNormaliser::transformSubterm");
 
-  while(ApplicativeHelper::isRedex(t)){
+  while(t.isRedex()){
     t = RedexReducer().reduce(t);
   }
   return t;
 }
 
+bool BetaNormaliser::exploreSubterms(TermList orig, TermList newTerm)
+{
+  CALL("BetaNormaliser::exploreSubterms");
+
+  if(newTerm.term()->hasRedex()) return true;
+  return false;
+}
+
 TermList RedexReducer::reduce(TermList redex)
 {
   CALL("RedexReducer::reduce");
-  ASS(ApplicativeHelper::isRedex(redex));
+  ASS(redex.isRedex());
 
   _replace = 0;
-  TermList t1 = *redex.term()->nthArgument(2)->term()->nthArgument(2);
-  _t2 = *redex.term()->nthArgument(3);
+  TermList t1 = redex.lhs().lambdaBody();
+  _t2 = redex.rhs();
 
   TermList transformed = transformSubterm(t1);
   if(transformed != t1) return transformed;  
@@ -60,7 +70,7 @@ TermList RedexReducer::transformSubterm(TermList t)
   if(t.deBruijnIndex().isSome()){
     unsigned index = t.deBruijnIndex().unwrap();
     if(index == _replace){
-      // any free indices in _t2 need to e lifted by the number of extra lambdas 
+      // any free indices in _t2 need to be lifted by the number of extra lambdas 
       // that now surround them
       return TermLifter().lift(_t2, _replace); 
     }
@@ -85,6 +95,15 @@ void RedexReducer::onTermExit(Term* t)
   CALL("RedexReducer::onTermExit");
 
   if(t->isLambdaTerm()) _replace--;
+}
+
+bool RedexReducer::exploreSubterms(TermList orig, TermList newTerm)
+{
+  CALL("RedexReducer::exploreSubterms");
+
+  if(orig != newTerm) return false;
+  if(newTerm.term()->hasDBIndex()) return true;
+  return false;
 }
 
 TermList TermLifter::lift(TermList term, unsigned liftBy)
@@ -125,6 +144,16 @@ void TermLifter::onTermExit(Term* t)
   CALL("TermLifter::onTermExit");
 
   if(t->isLambdaTerm()) _cutOff--;
+}
+
+bool TermLifter::exploreSubterms(TermList orig, TermList newTerm)
+{
+  CALL("TermLifter::exploreSubterms");
+
+  // already lifted, so must be DB index and won't have subterms anyway
+  if(orig != newTerm) return false;
+  if(newTerm.term()->hasDBIndex()) return true;
+  return false;
 }
 
 TermList ApplicativeHelper::createAppTerm(TermList sort, TermList arg1, TermList arg2, TermList arg3, TermList arg4)
@@ -264,16 +293,6 @@ TermList ApplicativeHelper::getNthArg(TermList arrowSort, unsigned argNum)
   return res;
 }
 
-TermList ApplicativeHelper::getResultSort(TermList sort)
-{
-  CALL("ApplicativeHelper::getResultSort");
-
-  while(sort.isArrowSort()){
-    sort = *sort.term()->nthArgument(1);
-  }
-  return sort;
-}
-
 unsigned ApplicativeHelper::getArity(TermList sort)
 {
   CALL("ApplicativeHelper::getArity");
@@ -379,35 +398,6 @@ void ApplicativeHelper::getHeadAndArgs(const Term* term, TermList& head, Deque<T
   }  
 }
 
-
-TermList ApplicativeHelper::getHead(TermList t)
-{
-  CALL("ApplicativeHelper::getHead(TermList)");
-  
-  if(!t.isTerm()){
-    return t; 
-  }
-
-  while(t.isApplication()){
-    t = *t.term()->nthArgument(2);
-    if(!t.isTerm() || t.term()->isSpecial()){ break; } 
-  }
-  return t;
-}
-
-TermList ApplicativeHelper::getHead(Term* t)
-{
-  CALL("ApplicativeHelper::getHead(Term*)");
-  
-  TermList trm = TermList(t);
-  while(t->isApplication()){
-    trm = *t->nthArgument(2);
-    if(!trm.isTerm() || trm.term()->isSpecial()){ break; }
-    t = trm.term(); 
-  }
-  return trm;
-}
-
 Signature::Proxy ApplicativeHelper::getProxy(const TermList t)
 {
   CALL("ApplicativeHelper::getProxy");
@@ -432,9 +422,4 @@ bool ApplicativeHelper::isFalse(TermList term){
   return term.isTerm() && env.signature->isFoolConstantSymbol(false, term.term()->functor());
 }
 
-bool ApplicativeHelper::isRedex(TermList t){
-  CALL("ApplicativeHelper::isRedex");
-
-  return t.isApplication() && t.term()->nthArgument(2)->isLambdaTerm();
-}
-
+#endif

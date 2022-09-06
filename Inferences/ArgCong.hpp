@@ -16,6 +16,8 @@
 #ifndef __ArgCong__
 #define __ArgCong__
 
+#if VHOL
+
 #include "Forwards.hpp"
 
 #include "InferenceEngine.hpp"
@@ -43,5 +45,7 @@ private:
 
 
 };
+
+#endif
 
 #endif /* __ArgCong__ */

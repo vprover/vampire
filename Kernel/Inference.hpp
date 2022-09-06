@@ -253,14 +253,12 @@ enum class InferenceRule : unsigned char {
   /** the last simplifying inference marker --
     inferences between GENERIC_SIMPLIFYING_INFERNCE and INTERNAL_SIMPLIFYING_INFERNCE_LAST will be automatically understood simplifying
     (see also isSimplifyingInferenceRule) */
-   /* eager demodulation with combinator axioms */
-  COMBINATOR_DEMOD,
-  /* normalising combinators */
-  COMBINATOR_NORMALISE,
-  /* negative extnsionality */
+  /* FOOL paramodulation-like simplifying rule */
   CASES_SIMP,
 
   BOOL_SIMP,
+
+  BETA_NORMALISE,
 
   INTERNAL_SIMPLIFYING_INFERNCE_LAST,
 
@@ -309,32 +307,6 @@ enum class InferenceRule : unsigned char {
         (see also isGeneratingInferenceRule) */
   /* argument congruence: t = t' => tx = t'x*/
   ARG_CONG,
-  /* narrow with combinator axiom */
-  SXX_NARROW,
-
-  SX_NARROW,
-
-  S_NARROW,
-
-  CXX_NARROW,
-
-  CX_NARROW,
-
-  C_NARROW,
-
-  BXX_NARROW,
-
-  BX_NARROW,
-
-  B_NARROW,
-
-  KX_NARROW,
-
-  K_NARROW,
-
-  I_NARROW,
-  /* superposition beneath variable */
-  SUB_VAR_SUP,
 
   INJECTIVITY,
 
@@ -526,9 +498,7 @@ enum class InferenceRule : unsigned char {
   /** one of two axioms of FOOL (distinct constants or finite domain) */
   FOOL_AXIOM_TRUE_NEQ_FALSE,
   FOOL_AXIOM_ALL_IS_TRUE_OR_FALSE,
- 
-  COMBINATOR_AXIOM,
-  
+   
   FUNC_EXT_AXIOM,
 
   /** beginning of proxy funxtion axioms marker --*/
@@ -588,10 +558,6 @@ inline bool isGeneratingInferenceRule(InferenceRule r) {
 inline bool isInternalTheoryAxiomRule(InferenceRule r) {
   return (toNumber(r) >= toNumber(InferenceRule::GENERIC_THEORY_AXIOM) &&
       toNumber(r) < toNumber(InferenceRule::INTERNAL_THEORY_AXIOM_LAST));
-}
-
-inline bool isCombinatorAxiomRule(InferenceRule r) {
-  return r == InferenceRule::COMBINATOR_AXIOM;
 }
 
 inline bool isProxyAxiomRule(InferenceRule r) {
@@ -728,7 +694,6 @@ private:
     _rule = r;
     _included = false;
     _inductionDepth = 0;
-    _XXNarrows = 0;
     _reductions = 0;
     _sineLevel = std::numeric_limits<decltype(_sineLevel)>::max();
     _splits = nullptr;
@@ -895,10 +860,6 @@ public:
     return isInternalTheoryAxiomRule(_rule) || isExternalTheoryAxiomRule(_rule);
   }
 
-  bool isCombinatorAxiom() const {
-    return isCombinatorAxiomRule(_rule);
-  }
-
   bool isProxyAxiom() const {
     return isProxyAxiomRule(_rule);
   }  
@@ -941,22 +902,11 @@ public:
   /** This is how AVATAR sets it... */
   void setPureTheoryDescendant(bool val) { _isPureTheoryDescendant = val; }
 
-  bool isCombAxiomsDescendant() const { return _combAxiomsDescendant; }
-  void setCombAxiomsDescendant(bool val) { _combAxiomsDescendant=val; }
-
   bool isProxyAxiomsDescendant() const { return _proxyAxiomsDescendant; }
-  void setProxyAxiomsDescendant(bool val) { _proxyAxiomsDescendant=val; }
-
-  bool isHolAxiomsDescendant() const { return _holAxiomsDescendant; }
-  void setHolAxiomsDescendant(bool val) { _holAxiomsDescendant=val; }  
+  void setProxyAxiomsDescendant(bool val) { _proxyAxiomsDescendant=val; } 
 
   unsigned inductionDepth() const { return _inductionDepth; }
   void setInductionDepth(unsigned d) { _inductionDepth = d; }
-
-  unsigned xxNarrows() const { return _XXNarrows; }
-  /** used to propagate in AVATAR **/
-  void setXXNarrows(unsigned n) { _XXNarrows = n; }
-  void incXXNarrows(){ if(_XXNarrows < 8){ _XXNarrows++; } }
 
   unsigned reductions() const { return _reductions; }
   void setReductions(unsigned r) { _reductions = r; } 
@@ -989,12 +939,8 @@ private:
 
   /** track whether all leafs were theory axioms only */
   bool _isPureTheoryDescendant : 1;
-  /** Clause is a combinator axiom descendant */
-  unsigned _combAxiomsDescendant : 1;
   /** */
   unsigned _proxyAxiomsDescendant : 1;
-  /** clause is descended only from proxy or combinator axioms */
-  unsigned _holAxiomsDescendant : 1;
   /** Induction depth **/
   unsigned _inductionDepth : 5;
 
@@ -1003,8 +949,7 @@ private:
    **/
   unsigned char _sineLevel : 8; // updated as the minimum from parents to children
 
-  /** number of XX' narrows carried out on clause */
-  unsigned _XXNarrows : 3;
+  // AYB TODO
   /** number of weak reductions in the history of this clause */
   unsigned _reductions : 30;
 

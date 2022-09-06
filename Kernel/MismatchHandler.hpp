@@ -123,6 +123,7 @@ private:
   Shell::Options::UnificationWithAbstraction const _mode;
 };
 
+#if VHOL
 class HOMismatchHandler : public AtomicMismatchHandler
 {
 public:
@@ -136,7 +137,7 @@ public:
   CLASS_NAME(HOMismatchHandler);
   USE_ALLOCATOR(HOMismatchHandler);
 };
-
+#endif
 
 }
 #endif /*__MismatchHandler__*/

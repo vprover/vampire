@@ -12,6 +12,8 @@
  *
  */
 
+#if VHOL
+
 #include "Lib/Environment.hpp"
 
 #include "Kernel/Clause.hpp"
@@ -808,3 +810,5 @@ ClauseIterator LazyClausification::perform(Clause* c)
 
 
 }
+
+#endif

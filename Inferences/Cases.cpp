@@ -17,6 +17,8 @@
  * [1] http://arxiv.org/abs/1505.01682
  */
 
+#if VHOL
+
 #include "Lib/Environment.hpp"
 
 #include "Kernel/Clause.hpp"
@@ -120,3 +122,5 @@ ClauseIterator Cases::generateClauses(Clause* premise)
 }
 
 }
+
+#endif

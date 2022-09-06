@@ -302,13 +302,14 @@ void Problem::readDetailsFromProperty() const
   _hasInterpretedOperations = _property->hasInterpretedOperations();
   _hasNumerals = _property->hasNumerals();
   _hasFOOL = _property->hasFOOL();
-  _hasApp = _property->hasApp();
-  _hasAppliedVar = _property->hasAppliedVar();
-  _hasLogicalProxy = _property->hasLogicalProxy();
   _hasPolymorphicSym = _property->hasPolymorphicSym();
   _quantifiesOverPolymorphicVar = _property->quantifiesOverPolymorphicVar();
   _hasBoolVar = _property->hasBoolVar();
+#if VHOL  
   _higherOrder = _property->higherOrder();
+  _hasLogicalProxy = _property->hasLogicalProxy();
+  _hasApp = _property->hasApp();
+#endif
 
   _mayHaveFormulas = _hasFormulas.value();
   _mayHaveEquality = _hasEquality.value();
@@ -330,9 +331,9 @@ void Problem::invalidateEverything()
   _hasInterpretedOperations = MaybeBool::UNKNOWN;
   _hasNumerals = MaybeBool::UNKNOWN;
   _hasFOOL = MaybeBool::UNKNOWN;
+#if VHOL
   _hasApp = MaybeBool::UNKNOWN;
-  _hasAppliedVar = MaybeBool::UNKNOWN;
-
+#endif
   _mayHaveFormulas = true;
   _mayHaveEquality = true;
   _mayHaveFunctionDefinitions = true;
@@ -354,8 +355,9 @@ void Problem::invalidateByRemoval()
   _hasInterpretedOperations.mightBecameFalse();
   _hasNumerals.mightBecameFalse();
   _hasFOOL.mightBecameFalse();
-  _hasAppliedVar.mightBecameFalse();
+#if VHOL
   _hasLogicalProxy.mightBecameFalse();
+#endif
   _hasPolymorphicSym.mightBecameFalse();
   _quantifiesOverPolymorphicVar.mightBecameFalse();
   _hasBoolVar.mightBecameFalse();
@@ -420,6 +422,7 @@ bool Problem::hasFOOL() const
   return _hasFOOL.value();
 }
 
+#if VHOL
 bool Problem::hasApp() const
 {
   CALL("Problem::hasApp");
@@ -428,13 +431,22 @@ bool Problem::hasApp() const
   return _hasApp.value();
 }
 
-bool Problem::hasAppliedVar() const
+bool Problem::hasLogicalProxy() const
 {
-  CALL("Problem::hasAppliedVar");
+  CALL("Problem::hasLogicalProxy");
 
-  if(!_hasAppliedVar.known()) { refreshProperty(); }
-  return _hasAppliedVar.value();
+  if(!_hasLogicalProxy.known()) { refreshProperty(); }
+  return _hasLogicalProxy.value();
 }
+
+bool Problem::higherOrder() const
+{
+  CALL("Problem::hasPolymorphicSym");
+
+  if(!_higherOrder.known()) { refreshProperty(); }
+  return _higherOrder.value();
+}
+#endif
 
 bool Problem::hasBoolVar() const
 {
@@ -442,15 +454,6 @@ bool Problem::hasBoolVar() const
 
   if(!_hasBoolVar.known()) { refreshProperty(); }
   return _hasBoolVar.value();
-}
-
-
-bool Problem::hasLogicalProxy() const
-{
-  CALL("Problem::hasLogicalProxy");
-
-  if(!_hasLogicalProxy.known()) { refreshProperty(); }
-  return _hasLogicalProxy.value();
 }
 
 bool Problem::hasPolymorphicSym() const
@@ -467,14 +470,6 @@ bool Problem::quantifiesOverPolymorphicVar() const
 
   if(!_quantifiesOverPolymorphicVar.known()) { refreshProperty(); }
   return _quantifiesOverPolymorphicVar.value();
-}
-
-bool Problem::higherOrder() const
-{
-  CALL("Problem::hasPolymorphicSym");
-
-  if(!_higherOrder.known()) { refreshProperty(); }
-  return _higherOrder.value();
 }
 
 

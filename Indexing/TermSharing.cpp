@@ -31,8 +31,6 @@
 using namespace Kernel;
 using namespace Indexing;
 
-typedef ApplicativeHelper AH;
-
 /**
  * Initialise the term sharing structure.
  * @since 29/12/2007 Manchester
@@ -80,8 +78,11 @@ void TermSharing::setPoly()
 {
   CALL("TermSharing::setPoly()");
 
-  //combinatory superposiiton can introduce polymorphism into a monomorphic problem
-  _poly = env.property->higherOrder() || env.property->hasPolymorphicSym() ||
+  _poly = 
+#if VHOL
+    env.property->higherOrder() || 
+#endif
+    env.property->hasPolymorphicSym() ||
     (env.options->equalityProxy() != Options::EqualityProxy::OFF && !env.options->useMonoEqualityProxy());
 }
 
@@ -115,9 +116,11 @@ Term* TermSharing::insert(Term* t)
    if (s == t) {
     unsigned weight = 1;
     unsigned vars = 0;
-    bool hasInterpretedConstants=t->arity()==0 &&
-	env.signature->getFunction(t->functor())->interpreted();
     bool hasTermVar = false;
+    bool hasInterpretedConstants=t->arity()==0 && 
+         env.signature->getFunction(t->functor())->interpreted();
+    bool hasDBIndex = t->deBruijnIndex().isSome();
+    bool hasRedex = t->isRedex();
     Color color = COLOR_TRANSPARENT;
     
     unsigned typeArity = t->numTypeArguments();
@@ -140,11 +143,11 @@ Term* TermSharing::insert(Term* t)
         vars += r->numVarOccs();
         weight += r->weight();
         hasTermVar |= r->hasTermVar();
+        hasDBIndex              = hasDBIndex              ? true : r->hasDBIndex();
+        hasRedex                = hasRedex                ? true : r->hasRedex();
+        hasInterpretedConstants = hasInterpretedConstants ? true : r->hasInterpretedConstants();
         if (env.colorUsed) {
           color = static_cast<Color>(color | r->color());
-        }
-        if(!hasInterpretedConstants && r->hasInterpretedConstants()) {
-          hasInterpretedConstants=true; 
         }
       }
     }
@@ -153,12 +156,15 @@ Term* TermSharing::insert(Term* t)
     t->setNumVarOccs(vars);
     t->setWeight(weight);
     t->setHasTermVar(hasTermVar);
+
     if (env.colorUsed) {
       Color fcolor = env.signature->getFunction(t->functor())->color();
       color = static_cast<Color>(color | fcolor);
       t->setColor(color);
     }
-      
+
+    t->setHasRedex(hasRedex);
+    t->setHasDBIndex(hasDBIndex);      
     t->setInterpretedConstantsPresence(hasInterpretedConstants);
     _totalTerms++;
 

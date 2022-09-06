@@ -649,8 +649,9 @@ protected:
 
     vstring kind = "fof";
     if(env.property->hasNonDefaultSorts()){ kind="tff"; }
+#if VHOL
     if(env.property->higherOrder()){ kind="thf"; }
-
+#endif
     return kind+"("+id+","+getRole(rule,origin)+",("+"\n"
 	+"  "+formula+"),\n"
 	+"  "+inference+").";
@@ -945,8 +946,9 @@ protected:
 
     vstring kind = "fof";
     if(env.property->hasNonDefaultSorts()){ kind="tff"; } 
+#if VHOL
     if(env.property->higherOrder()){ kind="thf"; }
-
+#endif
     out << kind
         << "(r"<<_is->getUnitIdStr(cs)
     	<< ",conjecture, "

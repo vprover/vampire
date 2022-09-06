@@ -114,6 +114,7 @@ bool WeightQueue::lessThan(Clause* c1,Clause* c2)
 {
   CALL("WeightQueue::lessThan");
 
+#if VHOL
   if(env.options->prioritiseClausesProducedByLongReduction()){
     if(c1->inference().reductions() < c2->inference().reductions()){
       return false;
@@ -123,6 +124,7 @@ bool WeightQueue::lessThan(Clause* c1,Clause* c2)
       return true;
     }
   }
+#endif
 
   Comparison weightCmp=AWPassiveClauseContainer::compareWeight(c1, c2, _opt);
   if (weightCmp!=EQUAL) {

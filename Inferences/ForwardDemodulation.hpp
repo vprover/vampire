@@ -28,6 +28,7 @@ using namespace Kernel;
 using namespace Indexing;
 using namespace Saturation;
 
+template <class SubtermIterator>
 class ForwardDemodulation
 : public ForwardSimplificationEngine
 {
@@ -37,23 +38,11 @@ public:
 
   void attach(SaturationAlgorithm* salg) override;
   void detach() override;
-  bool perform(Clause* cl, Clause*& replacement, ClauseIterator& premises) override = 0;
+  bool perform(Clause* cl, Clause*& replacement, ClauseIterator& premises) override;
 protected:
   bool _preorderedOnly;
   bool _encompassing;
   DemodulationLHSIndex* _index;
-};
-
-template <bool combinatorySupSupport>
-class ForwardDemodulationImpl
-: public ForwardDemodulation
-{
-public:
-  CLASS_NAME(ForwardDemodulationImpl);
-  USE_ALLOCATOR(ForwardDemodulationImpl);
-
-  bool perform(Clause* cl, Clause*& replacement, ClauseIterator& premises) override;
-private:
 };
 
 

@@ -12,6 +12,8 @@
  * Implements class ArgCong.
  */
 
+#if VHOL
+
 #include <utility>
 
 #include "Lib/VirtualIterator.hpp"
@@ -162,3 +164,5 @@ ClauseIterator ArgCong::generateClauses(Clause* premise)
 }
 
 }
+
+#endif

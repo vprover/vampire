@@ -435,10 +435,12 @@ class Signature
   unsigned addNameFunction(unsigned arity);
   unsigned addDeBruijnIndex(int index, TermList sort, bool& added);
   void addEquality();
+#if VHOL
   unsigned getApp();
   unsigned getLam();
   unsigned getDiff();
   unsigned getChoice();
+#endif
 
   // Interpreted symbol declarations
   unsigned addIntegerConstant(const vstring& number,bool defaultSort);
@@ -630,6 +632,7 @@ class Signature
     return (con == _arrayCon && _arrayCon != UINT_MAX);    
   }
 
+#if VHOL
   bool isArrowCon(unsigned con) const{
     return (con == _arrowCon && _arrowCon != UINT_MAX);    
   }
@@ -641,6 +644,7 @@ class Signature
   bool isLamFun(unsigned fun) const{
     return (fun == _lamFun && _lamFun != UINT_MAX);
   }
+#endif
 
   bool tryGetFunctionNumber(const vstring& name, unsigned arity, unsigned& out) const;
   bool tryGetPredicateNumber(const vstring& name, unsigned arity, unsigned& out) const;
@@ -735,6 +739,7 @@ class Signature
     return ratSort;    
   }
 
+#if VHOL
   unsigned getArrowConstructor(){
     bool added = false;
     unsigned arrow = addTypeCon("sTfun",2, added);
@@ -746,6 +751,7 @@ class Signature
     }
     return arrow;    
   }
+#endif
 
   unsigned getArrayConstructor(){
     bool added = false;
@@ -771,6 +777,7 @@ class Signature
     return tuple;    
   }  
 
+#if VHOL
   unsigned getEqualityProxy(){
     bool added = false;
     unsigned eqProxy = addFunction("vEQ",1, added);
@@ -834,11 +841,7 @@ class Signature
     }
     return proxy;  
   } //TODO merge with above?  
-
-  void incrementFormulaCount(Term* t);
-  void decrementFormulaCount(Term* t);
-  void formulaNamed(Term* t);
-  unsigned formulaCount(Term* t);
+#endif
 
 
   bool isTermAlgebraSort(TermList sort) { return _termAlgebras.find(sort); }
@@ -856,7 +859,6 @@ class Signature
 
 private:
   Stack<TermList> _dividesNvalues;
-  DHMap<Term*, int> _formulaCounts;
 
   bool _foolConstantsDefined;
   unsigned _foolTrue;
@@ -927,9 +929,11 @@ private:
   unsigned _reals;
 
   unsigned _arrayCon;
+#if VHOL
   unsigned _arrowCon;
   unsigned _appFun;
   unsigned _lamFun;
+#endif
 
   /**
    * Map from sorts to the associated term algebra, if applicable for the sort

@@ -43,7 +43,10 @@ using namespace Kernel;
 
 
 InequalitySplitting::InequalitySplitting(const Options& opt)
-: _splittingTreshold(opt.inequalitySplitting()), _appify(false)
+: _splittingTreshold(opt.inequalitySplitting())
+#if VHOL
+  , _appify(false)
+#endif
 {
   ASS_G(_splittingTreshold,0);
 }
@@ -52,7 +55,9 @@ void InequalitySplitting::perform(Problem& prb)
 {
   CALL("InequalitySplitting::perform");
 
+#if VHOL
   _appify = prb.hasApp();
+#endif
   if(perform(prb.units())) {
     prb.invalidateByRemoval();
   }
@@ -161,22 +166,29 @@ Literal* InequalitySplitting::splitLiteral(Literal* lit, UnitInputType inpType, 
 
   unsigned fun;
   OperatorType* type;
+#if VHOL
   if(!_appify){
+#endif
     fun=env.signature->addNamePredicate(vars.size() + 1);
     type = OperatorType::getPredicateType({srt}, vars.size());
+#if VHOL
   } else {
     srt = AtomicSort::arrowSort(srt, AtomicSort::boolSort());
     fun=env.signature->addNameFunction(vars.size());
     type = OperatorType::getConstantsType(srt, vars.size());
   }
-
+#endif
 
   Signature::Symbol* sym;
+#if VHOL
   if(_appify){
     sym = env.signature->getFunction(fun);    
   } else {
-    sym = env.signature->getPredicate(fun);    
+#endif
+    sym = env.signature->getPredicate(fun);
+#if VHOL        
   }
+#endif
   sym->setType(type);
 
   TermList s;
@@ -202,11 +214,15 @@ Literal* InequalitySplitting::splitLiteral(Literal* lit, UnitInputType inpType, 
   (*defCl)[0]=makeNameLiteral(fun, t, false, vars);
   _predDefs.push(defCl);
 
+#if VHOL
   if(_appify){
     InferenceStore::instance()->recordIntroducedSymbol(defCl,FUNC,fun);
   } else {
+#endif
     InferenceStore::instance()->recordIntroducedSymbol(defCl,PRED,fun);
+#if VHOL
   }
+#endif
 
   premise=defCl;
 
@@ -233,9 +249,12 @@ Literal* InequalitySplitting::makeNameLiteral(unsigned predNum, TermList arg, bo
 {
   CALL("InequalitySplitting::makeNameLiteral");
  
+#if VHOL
   if(!_appify){
+#endif
     vars.push(arg);
     return Literal::create(predNum, vars.size(), polarity, false, vars.begin());
+#if VHOL
   } else {
     TermList boolT = polarity ? TermList(Term::foolTrue()) : TermList(Term::foolFalse());
     TermList head = TermList(Term::create(predNum, vars.size(), vars.begin()));
@@ -243,6 +262,7 @@ Literal* InequalitySplitting::makeNameLiteral(unsigned predNum, TermList arg, bo
     TermList t = ApplicativeHelper::createAppTerm(headS, head, arg);
     return Literal::createEquality(true, t, boolT, AtomicSort::boolSort());
   }
+#endif
 
 }
 

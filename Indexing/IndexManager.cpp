@@ -26,6 +26,8 @@
 #include "TermIndex.hpp"
 #include "TermSubstitutionTree.hpp"
 
+#include "Kernel/TermIterators.hpp"
+
 #include "Shell/Statistics.hpp"
 
 #include "IndexManager.hpp"
@@ -41,10 +43,12 @@ IndexManager::IndexManager(SaturationAlgorithm* alg) : _alg(alg), _handler()
   if(env.options->unificationWithAbstraction() != Options::UnificationWithAbstraction::OFF){
     _handler.addHandler(make_unique<UWAMismatchHandler>(env.options->unificationWithAbstraction()));
   }
+#if VHOL
   if((env.options->functionExtensionality() == Options::FunctionExtensionality::ABSTRACTION) 
       && env.property->higherOrder()){
     _handler.addHandler(make_unique<HOMismatchHandler>());
   }
+#endif
 }
 
 IndexManager::~IndexManager() { }
@@ -166,12 +170,6 @@ Index* IndexManager::create(IndexType t)
     isGenerating = false;
     break;
 
-  /*case RENAMING_FORMULA_INDEX:
-    tis=new TermSubstitutionTree(false, false, true);
-    res=new RenamingFormulaIndex(tis);
-    attachPassive = true;
-    break;*/
-
   case PRIMITIVE_INSTANTIATION_INDEX:
     tis=new TermSubstitutionTree();
     res=new PrimitiveInstantiationIndex(tis); 
@@ -185,11 +183,15 @@ Index* IndexManager::create(IndexType t)
 
   case DEMODULATION_SUBTERM_SUBST_TREE:
     tis=new TermSubstitutionTree();
-    if (env.options->combinatorySup()) {
-      res=new DemodulationSubtermIndexImpl<true>(tis);
+#if VHOL
+    if (env.property->higherOrder()) {
+      res=new DemodulationSubtermIndex<FirstOrderSubtermIt>(tis);
     } else {
-      res=new DemodulationSubtermIndexImpl<false>(tis);
+#endif
+      res=new DemodulationSubtermIndex<NonVariableNonTypeIterator>(tis);
+#if VHOL
     }
+#endif
     isGenerating = false;
     break;
   case DEMODULATION_LHS_CODE_TREE:

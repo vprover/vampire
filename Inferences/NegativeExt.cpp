@@ -12,6 +12,8 @@
  * Implements class NegativeExt.
  */
 
+#if VHOL
+
 #include <utility>
 
 #include "Lib/VirtualIterator.hpp"
@@ -187,3 +189,5 @@ ClauseIterator NegativeExt::generateClauses(Clause* premise)
 }
 
 }
+
+#endif

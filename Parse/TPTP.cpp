@@ -88,7 +88,9 @@ TPTP::TPTP(istream& in)
     _allowedNames(0),
     _in(&in),
     _includeDirectory(""),
+#if VHOL
     _isThf(false),
+#endif
     _containsPolymorphism(false),
     _currentColor(COLOR_TRANSPARENT),
     _lastPushed(TM),
@@ -137,7 +139,11 @@ void TPTP::parse()
       fof(true);
       break;
     case THF:
+#if VHOL
       _isThf = true;
+#else
+      PARSE_ERROR("To parse higher-order problems please build Vampire with higher-order support", _gpos);
+#endif
     case TFF:
       _isFof = false;
       tff();
@@ -191,6 +197,7 @@ void TPTP::parse()
     case END_FORMULA:
       endFormula();
       break;
+#if VHOL
     case END_APP:
       endApp();
       break;
@@ -203,6 +210,7 @@ void TPTP::parse()
     case HOL_TERM:
       holTerm();
       break;
+#endif
     case FORMULA_INSIDE_TERM:
       formulaInsideTerm();
       break;
@@ -1419,6 +1427,7 @@ void TPTP::tff()
     }
     vstring nm = name();
     consumeToken(T_COLON);
+#if VHOL
     if(_isThf){
       tok = getTok(0);
       if (tok.tag == T_TTYPE) {
@@ -1447,6 +1456,7 @@ void TPTP::tff()
         return;
       }
     }
+#endif
     // the matching number of rpars will be read
     _ints.push(lpars);
     // remember type name
@@ -1518,6 +1528,8 @@ unsigned TPTP::getConstructorArity()
   * @since 08/11/2017
   * @author Ahmed Bhayat
   */
+
+#if VHOL
 
 void TPTP::holFormula()
 {
@@ -1700,7 +1712,9 @@ void TPTP::holTerm()
   _lastPushed = TM;
 
 }
-  
+
+#endif
+
 vstring TPTP::convert(Tag t)
 {
   CALL("TPTP::convert(Tag t)");
@@ -1735,6 +1749,8 @@ vstring TPTP::convert(Tag t)
   * @since 05/11/2017 Manchester
   * @author Ahmed Bhayat
   */
+
+#if VHOL
 
 void TPTP::endHolFormula()
 {
@@ -1799,6 +1815,7 @@ void TPTP::endHolFormula()
      _states.push(UNBIND_VARIABLES);
      return; 
     }
+
   case LITERAL:
   default:
     throw ::Exception((vstring)"tell me how to handle connective " + Int::toString(con));
@@ -1946,7 +1963,6 @@ switch (tag) {
   _states.push(HOL_FORMULA);
 }
 
-
 /**
   * Process the end of an @ term
   * @since 05/11/2017 Manchester
@@ -1975,6 +1991,7 @@ void TPTP::endApp()
   _termLists.push(TermList(Term::create(app, 4, args.begin())));
   _lastPushed = TM;
 }
+#endif
 
 /**
  * Process the end of the $ite expression
@@ -2206,6 +2223,7 @@ void TPTP::formula()
 {
   CALL("TPTP::formula");
 
+#if VHOL
   if(_isThf){
     _connectives.push(-2); //special connective for HOL funcs
     _connectives.push(-1);
@@ -2213,10 +2231,13 @@ void TPTP::formula()
     _states.push(END_HOL_FORMULA);
     _states.push(HOL_FORMULA);
   }else{
+#endif
     _connectives.push(-1);
     _states.push(END_FORMULA);
     _states.push(SIMPLE_FORMULA);
+#if VHOL
   }
+#endif
 } // formula
 
 /**
@@ -2863,7 +2884,11 @@ void TPTP::varList()
         PARSE_ERROR("two declarations of variable sort",tok);
       }
       resetToks();
-      bindVariable(var,(_isThf ? readArrowSort() : readSort()));
+      bindVariable(var,(
+#if VHOL
+        _isThf ? readArrowSort() : 
+#endif
+        readSort()));
       sortDeclared = true;
       goto afterVar;
 
@@ -3120,9 +3145,11 @@ void TPTP::endEquality()
 
   _insideEqualityArgument--;
 
-  if((_isThf) && (_lastPushed == FORM)){
+#if VHOL
+  if(_isThf && (_lastPushed == FORM)){
     endFormulaInsideTerm();
   }
+#endif
 
   TermList rhs = _termLists.pop();
   TermList lhs = _termLists.pop();
@@ -3834,7 +3861,11 @@ void TPTP::endTff()
   vstring name = _strings.pop();
 
   unsigned arity = ot->arity();
-  bool isPredicate = ot->isPredicateType() && !_isThf;
+  bool isPredicate = ot->isPredicateType(); 
+#if VHOL
+  isPredicate = isPredicate && !_isThf;
+#endif
+  
   bool isTypeCon = !isPredicate && (ot->result() == AtomicSort::superSort());
 
   bool added;
@@ -3878,11 +3909,13 @@ void TPTP::endTff()
     else {   
       symbol->setType(ot);
       //TODO check whether the below is actually required or not.
+#if VHOL
       if(_isThf){
         if(!_typeArities.insert(name, ot->numTypeArguments())){
           USER_ERROR("Symbol " + name + " used with different type arities");
         }
       }
+#endif      
     }
     //cout << "added: " + symbol->name() + " of type " + ot->toString() + " and functor " << fun << endl;
   }
@@ -3961,7 +3994,11 @@ OperatorType* TPTP::constructOperatorType(Type* t, VList* vars)
     SortHelper::normaliseSort(vars, resultSort);
   }
 
-  if (isPredicate && !_isThf) { //in THF, we treat predicates and boolean terms the same
+  if (isPredicate
+#if VHOL
+   && !_isThf
+#endif 
+  ) { //in THF, we treat predicates and boolean terms the same
     return OperatorType::getPredicateType(arity, argumentSorts.begin(), VList::length(vars));
   } else {
     return OperatorType::getFunctionType(arity, argumentSorts.begin(), resultSort, VList::length(vars));
@@ -4244,10 +4281,12 @@ void TPTP::simpleType()
     return;
   }
 
+#if VHOL
   if(_isThf){
     _types.push(new AtomicType(readArrowSort()));
     return;
   } 
+#endif
 
   if (tok.tag == T_LPAR) {
     resetToks();
@@ -4265,6 +4304,8 @@ void TPTP::simpleType()
  * @since 10/11/2017 Leicester
  * @author Ahmed Bhayat
  */
+
+#if VHOL
  
 TermList TPTP::readArrowSort()
 {
@@ -4341,6 +4382,8 @@ void TPTP::readTypeArgs(unsigned arity)
   }
 }
 
+#endif
+
 /**
  * Read a sort and return its number. If a sort is not built-in, then raise an
  * exception if it has been declared and newSortExpected, or it has not been
@@ -4358,10 +4401,12 @@ TermList TPTP::readSort()
     {
       unsigned arity = 0;
       vstring fname = tok.content;
+#if VHOL
       if(_isThf){
         arity = _typeConstructorArities.find(fname) ? _typeConstructorArities.get(fname) : 0;
         readTypeArgs(arity);
       } else {
+#endif
         int c = getChar(0);
         //Polymorphic sorts of are of the form 
         //type_con(sort_1, ..., sort_n)
@@ -4386,7 +4431,9 @@ TermList TPTP::readSort()
             }
           }
         }
+#if VHOL
       } 
+#endif
       return createTypeConApplication(fname, arity);
     }
   case T_VAR:
@@ -4680,9 +4727,11 @@ unsigned TPTP::addFunction(vstring name,int arity,bool& added,TermList& arg)
 				 Theory::RAT_TO_REAL,
 				 Theory::REAL_TO_REAL);
   } 
+#if VHOL
   if (name == "vPI"  || name == "vSIGMA"){
     return env.signature->getPiSigmaProxy(name); 
   }
+#endif
   if (arity > 0) {
     return env.signature->addFunction(name,arity,added);
   }
@@ -4971,12 +5020,14 @@ unsigned TPTP::addUninterpretedConstant(const vstring& name, Set<vstring>& overf
   }
   //TODO make sure Vampire internal names are unique to Vampire
   //and cannot occur in the input AYB
+#if VHOL
   if(name == "vAND" || name == "vOR" || name == "vIMP" ||
      name == "vIFF" || name == "vXOR"){
     return env.signature->getBinaryProxy(name);
   } else if (name == "vNOT"){
     return env.signature->getNotProxy();
   }
+#endif
   return env.signature->addFunction(name,0,added);
 } // TPTP::addUninterpretedConstant
 
@@ -5213,6 +5264,7 @@ const char* TPTP::toString(State s)
     return "TYPE";
   case END_TFF:
     return "END_TFF";
+#if VHOL
   case END_APP:
     return "END_APP";
   case HOL_FORMULA:
@@ -5221,6 +5273,7 @@ const char* TPTP::toString(State s)
     return "END_HOL_FORMULA";
   case HOL_TERM:
     return "HOL_TERM";
+#endif
   case END_TYPE:
     return "END_TYPE";
   case SIMPLE_TYPE:

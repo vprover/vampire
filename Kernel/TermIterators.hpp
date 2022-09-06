@@ -363,6 +363,7 @@ private:
   TermList _next;
 };*/
 
+#if VHOL
 
 class FirstOrderSubtermIt
 : public IteratorCore<TermList>
@@ -428,6 +429,8 @@ private:
   TermList _next;
   Stack<Term*> _stack;
 };
+
+#endif
 
 //////////////////////////////////////////////////////////////////////////
 ///                                                                    ///

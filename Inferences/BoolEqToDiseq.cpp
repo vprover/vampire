@@ -12,6 +12,8 @@
  * Implements class PrimitiveInstantiation.
  */
 
+#if VHOL
+
 #include "Debug/RuntimeStatistics.hpp"
 
 #include "Kernel/OperatorType.hpp"
@@ -56,14 +58,14 @@ ClauseIterator BoolEqToDiseq::generateClauses(Clause* cl)
       continue;
     }
     TermList eqSort = SortHelper::getEqualityArgumentSort(lit);
-    if(eqSort == AtomicSort::boolSort()){
+    if(eqSort.isBoolSort()){
       TermList lhs = *lit->nthArgument(0);
       TermList rhs = *lit->nthArgument(1);
       if(AH::isBool(lhs) || AH::isBool(rhs)){
         pos++;
         continue;
       }
-      TermList head = AH::getHead(lhs);
+      TermList head = lhs.head();
       if(!head.isVar()){
         Signature::Symbol* sym = env.signature->getFunction(head.term()->functor());
         if(sym->proxy() != Signature::NOT){
@@ -74,7 +76,7 @@ ClauseIterator BoolEqToDiseq::generateClauses(Clause* cl)
           goto afterLoop;
         } 
       }
-      head = AH::getHead(rhs);
+      head = rhs.head();
       if(!head.isVar()){
         Signature::Symbol* sym = env.signature->getFunction(head.term()->functor());
         if(sym->proxy() != Signature::NOT){
@@ -104,3 +106,5 @@ afterLoop:
 }
 
 }
+
+#endif

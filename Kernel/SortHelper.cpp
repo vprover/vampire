@@ -186,10 +186,12 @@ bool SortHelper::getResultSortOrMasterVariable(const Term* t, TermList& resultSo
     case Term::SF_FORMULA:
       resultSort = AtomicSort::boolSort();
       return true;
+#if VHOL      
     case Term::SF_LAMBDA: {
       resultSort = t->getSpecialData()->getSort();
       return true;
     }
+#endif
     case Term::SF_TUPLE: {
       resultSort = getResultSort(t->getSpecialData()->getTupleTerm());
       return true;
@@ -496,6 +498,7 @@ void SortHelper::collectVariableSortsIter(CollectTask task, DHMap<unsigned,TermL
             newTask.f = sd->getFormula();
             todo.push(newTask);
           } break;
+#if VHOL
           case Term::SF_LAMBDA: {
             CollectTask newTask;
             newTask.fncTag = COLLECT_TERMLIST;
@@ -503,7 +506,7 @@ void SortHelper::collectVariableSortsIter(CollectTask task, DHMap<unsigned,TermL
             newTask.ts = sd->getLambdaExp();
             todo.push(newTask);              
           } break;
-
+#endif
           case Term::SF_TUPLE: {
             CollectTask newTask;
             newTask.fncTag = COLLECT_TERM;
@@ -846,6 +849,7 @@ bool SortHelper::tryGetVariableSort(TermList var, Term* t0, TermList& result)
         return true;
       }
     }
+#if VHOL
     if (t->isLambda()) {
       TermList sort = t->getSpecialData()->getLambdaExpSort();
       TermList lambdaTerm = t->getSpecialData()->getLambdaExp();
@@ -862,6 +866,7 @@ bool SortHelper::tryGetVariableSort(TermList var, Term* t0, TermList& result)
       }
       continue;
     }
+#endif
     if (t->isMatch()) {
       for (unsigned int i = 0; i < t->arity(); i++) {
         auto arg = t->nthArgument(i);

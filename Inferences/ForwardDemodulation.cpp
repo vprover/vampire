@@ -51,7 +51,8 @@ using namespace Kernel;
 using namespace Indexing;
 using namespace Saturation;
 
-void ForwardDemodulation::attach(SaturationAlgorithm* salg)
+template <class SubtermIterator>
+void ForwardDemodulation<SubtermIterator>::attach(SaturationAlgorithm* salg)
 {
   CALL("ForwardDemodulation::attach");
   ForwardSimplificationEngine::attach(salg);
@@ -62,7 +63,8 @@ void ForwardDemodulation::attach(SaturationAlgorithm* salg)
   _encompassing = getOptions().demodulationEncompassment();
 }
 
-void ForwardDemodulation::detach()
+template <class SubtermIterator>
+void ForwardDemodulation<SubtermIterator>::detach()
 {
   CALL("ForwardDemodulation::detach");
   _index=0;
@@ -70,8 +72,8 @@ void ForwardDemodulation::detach()
   ForwardSimplificationEngine::detach();
 }
 
-template <bool combinatorySupSupport>
-bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*& replacement, ClauseIterator& premises)
+template <class SubtermIterator>
+bool ForwardDemodulation<SubtermIterator>::perform(Clause* cl, Clause*& replacement, ClauseIterator& premises)
 {
   CALL("ForwardDemodulation::perform");
 
@@ -89,9 +91,7 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
   unsigned cLen=cl->length();
   for(unsigned li=0;li<cLen;li++) {
     Literal* lit=(*cl)[li];
-    typename std::conditional<!combinatorySupSupport,
-      NonVariableNonTypeIterator,
-      FirstOrderSubtermIt>::type it(lit);
+    SubtermIterator it(lit);
     while(it.hasNext()) {
       TermList trm=it.next();
       if(!attempted.insert(trm)) {
@@ -253,9 +253,9 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
   return false;
 }
 
-// This is necessary for templates defined in cpp files.
-// We are happy to do it for ForwardDemodulationImpl, since it (at the moment) has only two specializations:
-template class ForwardDemodulationImpl<false>;
-template class ForwardDemodulationImpl<true>;
+#if VHOL
+template class ForwardDemodulation<FirstOrderSubtermIt>;
+#endif
+template class ForwardDemodulation<NonVariableNonTypeIterator>;
 
 }

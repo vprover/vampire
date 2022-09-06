@@ -23,7 +23,9 @@
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/SubformulaIterator.hpp"
 #include "Kernel/TermIterators.hpp"
+#if VHOL    
 #include "Kernel/ApplicativeHelper.hpp"
+#endif
 #include "Lib/SharedSet.hpp"
 
 #include "Shell/NameReuse.hpp"
@@ -74,7 +76,9 @@ FormulaUnit* Skolem::skolemiseImpl (FormulaUnit* unit, bool appify)
 
   ASS(_introducedSkolemSyms.isEmpty());
   
+#if VHOL      
   _appify = appify;
+#endif
   _beingSkolemised=unit;
   _skolimizingDefinitions = UnitList::empty();
   _varOccs.reset();
@@ -474,7 +478,11 @@ Formula* Skolem::skolemise (Formula* f)
         arity++;
       }
 
-      for(unsigned i = 0; i < termVars.size() && !_appify; i++){
+      for(unsigned i = 0; i < termVars.size() 
+#if VHOL
+        && !_appify
+#endif
+        ; i++){
         allVars.push(termVars[i]);
       }
       SortHelper::normaliseArgSorts(typeVars, termVarSorts);
@@ -517,7 +525,9 @@ Formula* Skolem::skolemise (Formula* f)
         SortHelper::normaliseSort(typeVars, rangeSort);
         Term* skolemTerm;
 
+#if VHOL    
         if(!_appify || skolemisingTypeVar){
+#endif
           //Not the higher-order case. Create the term
           //sk(typevars, termvars).
           if(skolemisingTypeVar){
@@ -529,6 +539,7 @@ Formula* Skolem::skolemise (Formula* f)
               sym = addSkolemFunction(arity, termVarSorts.begin(), rangeSort, v, typeVars.size());
             skolemTerm = Term::create(sym, arity, allVars.begin());    
           }
+#if VHOL    
         } else {
           //The higher-order case. Create the term
           //sk(typevars) @ termvar_1 @ termvar_2 @ ... @ termvar_n
@@ -539,6 +550,7 @@ Formula* Skolem::skolemise (Formula* f)
           skolemTerm = ApplicativeHelper::createAppTerm(
             SortHelper::getResultSort(head.term()), head, termVars).term();      
         }
+#endif
         _introducedSkolemSyms.push(make_pair(skolemisingTypeVar, sym));
 
         if(!successfully_reused) {

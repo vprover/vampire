@@ -30,6 +30,7 @@
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/Term.hpp"
 #include "Kernel/RobSubstitution.hpp"
+#include "Kernel/TermIterators.hpp"
 
 #include "Indexing/Index.hpp"
 #include "Indexing/TermIndex.hpp"
@@ -49,15 +50,17 @@ using namespace Kernel;
 using namespace Indexing;
 using namespace Saturation;
 
-void BackwardDemodulation::attach(SaturationAlgorithm* salg)
+template <class SubtermIt>
+void BackwardDemodulation<SubtermIt>::attach(SaturationAlgorithm* salg)
 {
   CALL("BackwardDemodulation::attach");
   BackwardSimplificationEngine::attach(salg);
-  _index=static_cast<DemodulationSubtermIndex*>(
+  _index=static_cast<DemodulationSubtermIndex<SubtermIt>*>(
 	  _salg->getIndexManager()->request(DEMODULATION_SUBTERM_SUBST_TREE) );
 }
 
-void BackwardDemodulation::detach()
+template <class SubtermIt>
+void BackwardDemodulation<SubtermIt>::detach()
 {
   CALL("BackwardDemodulation::detach");
   _index=0;
@@ -65,7 +68,8 @@ void BackwardDemodulation::detach()
   BackwardSimplificationEngine::detach();
 }
 
-struct BackwardDemodulation::RemovedIsNonzeroFn
+template <class SubtermIt>
+struct BackwardDemodulation<SubtermIt>::RemovedIsNonzeroFn
 {
   bool operator() (BwSimplificationRecord arg)
   {
@@ -73,19 +77,20 @@ struct BackwardDemodulation::RemovedIsNonzeroFn
   }
 };
 
-struct BackwardDemodulation::RewritableClausesFn
+template <class SubtermIt>
+struct BackwardDemodulation<SubtermIt>::RewritableClausesFn
 {
-  RewritableClausesFn(DemodulationSubtermIndex* index) : _index(index) {}
+  RewritableClausesFn(DemodulationSubtermIndex<SubtermIt>* index) : _index(index) {}
   VirtualIterator<pair<TermList,TermQueryResult> > operator() (TermList lhs)
   {
     return pvi( pushPairIntoRightIterator(lhs, _index->getInstances(lhs, true)) );
   }
 private:
-  DemodulationSubtermIndex* _index;
+  DemodulationSubtermIndex<SubtermIt>* _index;
 };
 
-
-struct BackwardDemodulation::ResultFn
+template <class SubtermIt>
+struct BackwardDemodulation<SubtermIt>::ResultFn
 {
   typedef DHMultiset<Clause*> ClauseSet;
 
@@ -245,8 +250,8 @@ private:
   Ordering& _ordering;
 };
 
-
-void BackwardDemodulation::perform(Clause* cl,
+template <class SubtermIt>
+void BackwardDemodulation<SubtermIt>::perform(Clause* cl,
 	BwSimplificationRecordIterator& simplifications)
 {
   CALL("BackwardDemodulation::perform");
@@ -273,5 +278,10 @@ void BackwardDemodulation::perform(Clause* cl,
   TimeCounter tc(TC_BACKWARD_DEMODULATION);
   simplifications=getPersistentIterator(replacementIterator);
 }
+
+#if VHOL
+template class BackwardDemodulation<FirstOrderSubtermIt>;
+#endif
+template class BackwardDemodulation<NonVariableNonTypeIterator>;
 
 }
