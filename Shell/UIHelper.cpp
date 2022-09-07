@@ -198,45 +198,45 @@ void UIHelper::outputSaturatedSet(ostream& out, UnitIterator uit)
 
 // String utility function that probably belongs elsewhere
 static bool hasEnding (vstring const &fullString, vstring const &ending) {
-    if (fullString.length() >= ending.length()) {
-        return (0 == fullString.compare (fullString.length() - ending.length(), ending.length(), ending));
-    } else {
-        return false;
-    }
+  if (fullString.length() >= ending.length()) {
+      return (0 == fullString.compare (fullString.length() - ending.length(), ending.length(), ending));
+  } else {
+      return false;
+  }
 }
 
 UnitList* UIHelper::tryParseTPTP(istream* input)
 {
-      Parse::TPTP parser(*input);
-      try{
-        parser.parse();
-      }
-      catch (UserErrorException& exception) {
-        vstring msg = exception.msg();
-        throw Parse::TPTP::ParseErrorException(msg,parser.lineNumber());
-      }
-      s_haveConjecture=parser.containsConjecture();
-      return parser.units();
+  Parse::TPTP parser(*input);
+  try{
+    parser.parse();
+  }
+  catch (UserErrorException& exception) {
+    vstring msg = exception.msg();
+    throw Parse::TPTP::ParseErrorException(msg,parser.lineNumber());
+  }
+  s_haveConjecture=parser.containsConjecture();
+  return parser.units();
 }
 
 UnitList* UIHelper::tryParseSMTLIB2(const Options& opts,istream* input,SMTLIBLogic& smtLibLogic)
 {
-          Parse::SMTLIB2 parser(opts);
-          parser.parse(*input);
-          Unit::onParsingEnd();
+  Parse::SMTLIB2 parser(opts);
+  parser.parse(*input);
+  Unit::onParsingEnd();
 
-          smtLibLogic = parser.getLogic();
-          s_haveConjecture=false;
+  smtLibLogic = parser.getLogic();
+  s_haveConjecture=false;
 
 #if VDEBUG
-          const vstring& expected_status = parser.getStatus();
-          if (expected_status == "sat") {
-            s_expecting_sat = true;
-          } else if (expected_status == "unsat") {
-            s_expecting_unsat = true;
-          }
+  const vstring& expected_status = parser.getStatus();
+  if (expected_status == "sat") {
+    s_expecting_sat = true;
+  } else if (expected_status == "unsat") {
+    s_expecting_unsat = true;
+  }
 #endif
-          return parser.getFormulas();
+  return parser.getFormulas();
 }
 
 // Call this function to report a parsing attempt has failed and to reset the input
@@ -275,10 +275,20 @@ Problem* UIHelper::getInputProblem(const Options& opts)
   SMTLIBLogic smtLibLogic = SMT_UNDEFINED;
 
   vstring inputFile = opts.inputFile();
+  auto inputSyntax = opts.inputSyntax();
 
   istream* input;
   if (inputFile=="") {
     input=&cin;
+
+    if (inputSyntax == Options::InputSyntax::AUTO) {
+      env.beginOutput();
+      addCommentSignForSZS(env.out());
+      env.out() << "input_syntax=auto not supported for standard input parsing, switching to tptp.\n";
+      env.endOutput();
+
+      inputSyntax = Options::InputSyntax::TPTP;
+    }
   } else {
     // CAREFUL: this might not be enough if the ifstream (re)allocates while being operated
     BYPASSING_ALLOCATOR; 
@@ -290,7 +300,7 @@ Problem* UIHelper::getInputProblem(const Options& opts)
   }
 
   UnitList* units = nullptr;
-  switch (opts.inputSyntax()) {
+  switch (inputSyntax) {
   case Options::InputSyntax::AUTO:
     {
        // First lets pick a place to start based on the input file name
