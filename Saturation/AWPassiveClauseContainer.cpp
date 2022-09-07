@@ -36,7 +36,7 @@
 #include <iostream>
 #endif
 
-#define DEBUG_MODEL 1
+#define DEBUG_MODEL 0
 #include <torch/utils.h>
 
 namespace Saturation
