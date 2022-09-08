@@ -203,9 +203,9 @@ Literal* InequalitySplitting::splitLiteral(Literal* lit, UnitInputType inpType, 
   _predDefs.push(defCl);
 
   if(_appify){
-    InferenceStore::instance()->recordIntroducedSymbol(defCl,FUNC,fun);
+    InferenceStore::instance()->recordIntroducedSymbol(defCl,Kernel::SymbolType::FUNC,fun);
   } else {
-    InferenceStore::instance()->recordIntroducedSymbol(defCl,PRED,fun);
+    InferenceStore::instance()->recordIntroducedSymbol(defCl,Kernel::SymbolType::PRED,fun);
   }
 
   premise=defCl;

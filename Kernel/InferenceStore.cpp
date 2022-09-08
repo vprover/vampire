@@ -696,10 +696,10 @@ protected:
     vostringstream symsStr;
     while(symIt.hasNext()) {
       SymbolId sym = symIt.next();
-      if (sym.first == FUNC) {
+      if (sym.first == Kernel::SymbolType::FUNC) {
         symsStr << env.signature->functionName(sym.second);
       }
-      else if (sym.first == PRED) {
+      else if (sym.first == Kernel::SymbolType::PRED) {
         symsStr << env.signature->predicateName(sym.second);
       } else {
         symsStr << env.signature->typeConName(sym.second);        
@@ -886,7 +886,7 @@ protected:
     defStr=getQuantifiedStr(nameVars, defStr);
     List<unsigned>::destroy(nameVars);
 
-    SymbolId nameSymbol = SymbolId(PRED,nameLit->functor());
+    SymbolId nameSymbol = SymbolId(Kernel::SymbolType::PRED,nameLit->functor());
     vostringstream originStm;
     originStm << "introduced(" << tptpRuleName(rule)
 	      << ",[" << getNewSymbols("naming",getSingletonIterator(nameSymbol))
