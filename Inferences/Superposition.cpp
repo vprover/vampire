@@ -540,8 +540,6 @@ Clause* Superposition::performSuperposition(
     env.proofExtra->insert(res,extra);
   }
 
-  auto constraints = subst->getConstraints();  
-
   (*res)[0] = tgtLitS;
   int next = 1;
   unsigned weight=tgtLitS->weight();
@@ -618,9 +616,13 @@ Clause* Superposition::performSuperposition(
       }
     }
   }
-  while(constraints.hasNext()){
-    Literal* constraint = constraints.next();
-    (*res)[next++] = constraint;
+
+  {
+    auto constraints = subst->getConstraints();  
+    while(constraints.hasNext()){
+      Literal* constraint = constraints.next();
+      (*res)[next++] = constraint;
+    }
   } 
 
   if(needsToFulfilWeightLimit && !passiveClauseContainer->fulfilsWeightLimit(weight, numPositiveLiteralsLowerBound, res->inference())) {
