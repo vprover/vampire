@@ -1049,7 +1049,7 @@ bool Splitter::getComponents(Clause* cl, Stack<LiteralStack>& acc)
 
   //Master literal of an variable is the literal
   //with lowest index, in which it appears.
-  static DHMap<unsigned, unsigned, IdentityHash, Hash> varMasters;
+  static DHMap<unsigned, unsigned, IdentityHash, DefaultHash> varMasters;
   varMasters.reset();
   IntUnionFind components(clen);
 
