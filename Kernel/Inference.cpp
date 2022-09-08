@@ -20,6 +20,7 @@
 #include "Kernel/Clause.hpp"
 #include "SAT/SATInference.hpp"
 #include "SAT/MinisatInterfacing.hpp"
+#include "Debug/TimeProfiling.hpp"
 
 #include "Inference.hpp"
 
@@ -557,7 +558,7 @@ void Inference::minimizePremises()
   if (_ptr2 == nullptr)
     return; // already minimized
 
-  TimeCounter tc(TC_SAT_PROOF_MINIMIZATION);
+  TIME_TRACE("sat proof minimization");
 
   FromSatRefutationInfo* info = static_cast<FromSatRefutationInfo*>(_ptr2);
 
@@ -726,6 +727,7 @@ vstring Kernel::ruleName(InferenceRule rule)
     return "predicate definition unfolding";
   case InferenceRule::PREDICATE_DEFINITION_MERGING:
     return "predicate definition merging";
+
   case InferenceRule::REDUCE_FALSE_TRUE:
     return "true and false elimination";
 
@@ -762,6 +764,8 @@ vstring Kernel::ruleName(InferenceRule rule)
     return "condensation";
   case InferenceRule::THEORY_NORMALIZATION:
     return "theory normalization";
+  case InferenceRule::POLARITY_FLIPPING:
+    return "consistent polarity flipping";
   case InferenceRule::EVALUATION:
     return "evaluation";
   case InferenceRule::CANCELLATION:

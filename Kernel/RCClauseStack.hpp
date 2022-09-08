@@ -137,6 +137,11 @@ public:
   
 private:
   ClauseStack _s;
+
+public:
+  ClauseStack& naked() {
+    return _s;
+  }
 };
 
 }

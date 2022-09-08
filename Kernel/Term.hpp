@@ -37,7 +37,7 @@
 #include "Lib/Portability.hpp"
 #include "Lib/Comparison.hpp"
 #include "Lib/Stack.hpp"
-#include "Lib/Metaiterators.hpp"
+#include "Lib/Hash.hpp"
 
 // the number of bits used for "TermList::_info::distinctVars"
 #define TERM_DIST_VAR_BITS 21
@@ -545,6 +545,17 @@ public:
     return _args[0]._info.commutative;
   } // commutative
 
+  // destructively swap arguments of a (binary) commutative term
+  // the term is assumed to be non-shared
+  void argSwap() {
+    ASS(commutative() && !shared());
+    ASS(arity() == 2);
+
+    TermList* ts1 = args();
+    TermList* ts2 = ts1->next();
+    swap(ts1->_content, ts2->_content);
+  }
+
   /** Return the weight. Applicable only to shared terms */
   unsigned weight() const
   {
@@ -572,10 +583,7 @@ public:
   } // setWeight
 
   /** Set term id */
-  void setId(unsigned id)
-  {
-    _args[0]._info.id = id;
-  } // setWeight
+  void setId(unsigned id);
 
   /** Set (shared) term's id */
   unsigned getId() const

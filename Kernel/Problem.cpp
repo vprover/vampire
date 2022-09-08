@@ -16,7 +16,7 @@
 #include "Lib/List.hpp"
 #include "Lib/Metaiterators.hpp"
 #include "Lib/ScopedLet.hpp"
-#include "Lib/TimeCounter.hpp"
+#include "Debug/TimeProfiling.hpp"
 #include "Lib/VirtualIterator.hpp"
 
 #include "Shell/Property.hpp"
@@ -119,7 +119,7 @@ void Problem::addUnits(UnitList* newUnits)
   }
   _units = UnitList::concat(newUnits, _units);
   if(_propertyValid) {
-    TimeCounter tc(TC_PROPERTY_EVALUATION);
+    TIME_TRACE(TimeTrace::PROPERTY_EVALUATION);
     _property->add(newUnits);
     readDetailsFromProperty();
   }
@@ -276,7 +276,7 @@ void Problem::refreshProperty() const
 {
   CALL("Problem::refreshProperty");
 
-  TimeCounter tc(TC_PROPERTY_EVALUATION);
+  TIME_TRACE(TimeTrace::PROPERTY_EVALUATION);
   ScopedLet<Statistics::ExecutionPhase> phaseLet(env.statistics->phase, Statistics::PROPERTY_SCANNING);
 
   if(_property) {

@@ -7,17 +7,12 @@
  * https://vprover.github.io/license.html
  * and in the source directory
  */
-/**
- * @file Random.cpp
- * Implements random number generation.
- *
- * @since 20/02/2000 Manchester
- * modified Ioan Dragan
- */
 
-#include "Random.hpp"
+#ifndef __MacroUtils__
+#define __MacroUtils__
 
-using namespace Lib;
+#define __EXPAND(A) A
+#define __CONCAT_IDENTS(A, B) A ## B
+#define CONCAT_IDENTS(A, B) __EXPAND(__CONCAT_IDENTS)(A, B)
 
-unsigned Random::_seed = 1;
-std::mt19937 Random::_eng(Random::_seed);
+#endif // __MacroUtils__

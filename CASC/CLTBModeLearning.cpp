@@ -27,7 +27,7 @@
 #include "Lib/Int.hpp"
 #include "Lib/StringUtils.hpp"
 #include "Lib/System.hpp"
-#include "Lib/TimeCounter.hpp"
+#include "Debug/TimeProfiling.hpp"
 #include "Lib/Timer.hpp"
 #include "Lib/ScopedPtr.hpp"
 #include "Lib/Sort.hpp"
@@ -65,6 +65,7 @@ DHMap<vstring,Stack<vstring>*> CLTBModeLearning::stratWins;
 void CLTBModeLearning::perform()
 {
   CALL("CLTBModeLearning::perform");
+  TIME_TRACE("cltb learning");
 
   if (env.options->inputFile() == "") {
     USER_ERROR("Input file must be specified for ltb mode");
@@ -200,6 +201,7 @@ void CLTBModeLearning::solveBatch(istream& batchFile, bool first,vstring inputDi
 
     pid_t child = Multiprocessing::instance()->fork();
     if (!child) {
+      TIME_TRACE_NEW_ROOT("child process")
       // child process
       CLTBProblemLearning prob(this, probFile, outFile);
       try {
@@ -274,7 +276,7 @@ void CLTBModeLearning::loadIncludes()
 
   UnitList* theoryAxioms=0;
   {
-    TimeCounter tc(TC_PARSING);
+    TIME_TRACE(TimeTrace::PARSING);
     env.statistics->phase=Statistics::PARSING;
 
     StringList::Iterator iit(_theoryIncludes);
@@ -828,13 +830,11 @@ void CLTBProblemLearning::searchForProof(int terminationTime,int timeLimit, Sche
 
   System::registerForSIGHUPOnParentDeath();
 
-  TimeCounter::reinitialize();
-
   env.options->setInputFile(problemFile);
 
   // this local scope will delete a potentially large parser
   {
-    TimeCounter tc(TC_PARSING);
+    TIME_TRACE(TimeTrace::PARSING);
     env.statistics->phase=Statistics::PARSING;
 
     ifstream inp(problemFile.c_str());
@@ -857,7 +857,7 @@ void CLTBProblemLearning::searchForProof(int terminationTime,int timeLimit, Sche
 
   Shell::Property* property = prb.getProperty();
   if (property->atoms()<=1000000) {
-    TimeCounter tc(TC_PREPROCESSING);
+    TIME_TRACE(TimeTrace::PREPROCESSING);
     env.statistics->phase=Statistics::NORMALIZATION;
     Normalisation norm;
     norm.normalise(prb);
@@ -1103,7 +1103,6 @@ void CLTBProblemLearning::runSlice(Options& strategyOpt, bool printProof)
   int resultValue=1;
   env.timer->reset();
   env.timer->start();
-  TimeCounter::reinitialize();
   Timer::setLimitEnforcement(true);
 
   Options opt = strategyOpt;
