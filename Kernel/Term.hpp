@@ -37,6 +37,7 @@
 #include "Lib/Portability.hpp"
 #include "Lib/Comparison.hpp"
 #include "Lib/Stack.hpp"
+#include "Lib/Hash.hpp"
 
 // the number of bits used for "TermList::_info::distinctVars"
 #define TERM_DIST_VAR_BITS 21
@@ -152,6 +153,10 @@ public:
   { return sameContent(&t); }
   /** return the content, useful for e.g., term argument comparison */
   inline size_t content() const { return _content; }
+  /** default hash is to hash the content */
+  unsigned defaultHash() const { return DefaultHash::hash(content()); }
+  unsigned defaultHash2() const { return content(); }
+
   vstring toString(bool topLevel = true) const;
   /** make the term into an ordinary variable with a given number */
   inline void makeVar(unsigned vnumber)
@@ -483,7 +488,21 @@ public:
    */  
   TermList* args()
   { return _args + _arity; }
-  unsigned hash() const;
+
+  /**
+   * Return the hash function of the top-level of a complex term.
+   * @pre The term must be non-variable
+   * @since 28/12/2007 Manchester
+   */
+  unsigned hash() const {
+    CALL("Term::hash");
+    return DefaultHash::hashBytes(
+      reinterpret_cast<const unsigned char*>(_args+1),
+      _arity*sizeof(TermList),
+      DefaultHash::hash(_functor)
+    );
+  }
+
   /** return the arity */
   unsigned arity() const
   { return _arity; }
@@ -918,8 +937,28 @@ public:
   static Literal* create2(unsigned predicate, bool polarity, TermList arg1, TermList arg2);
   static Literal* create(unsigned fn, bool polarity, std::initializer_list<TermList> args);
 
-  unsigned hash() const;
-  unsigned oppositeHash() const;
+  /**
+   * Return the hash function of the top-level of a literal.
+   * @since 30/03/2008 Flight Murcia-Manchester
+   */
+  unsigned hash(bool flip = false) const
+  {
+    CALL("Literal::hash");
+    bool positive = (flip ^ isPositive());
+    unsigned hash = DefaultHash::hash(positive ? (2*_functor) : (2*_functor+1));
+    if (isTwoVarEquality()) {
+      hash = HashUtils::combine(
+        DefaultHash::hash(twoVarEqSort()),
+        hash
+      );
+    }
+    return DefaultHash::hashBytes(
+      reinterpret_cast<const unsigned char*>(_args+1),
+      _arity*sizeof(TermList),
+      hash
+    );
+  }
+
   static Literal* complementaryLiteral(Literal* l);
   /** If l is positive, return l; otherwise return its complementary literal. */
   static Literal* positiveLiteral(Literal* l) {
@@ -1003,29 +1042,10 @@ private:
 bool positionIn(TermList& subterm,TermList* term, vstring& position);
 bool positionIn(TermList& subterm,Term* term, vstring& position);
 
-struct TermListHash {
-  static unsigned hash(TermList t) {
-    return static_cast<unsigned>(t.content());
-  }
-};
-
 std::ostream& operator<< (ostream& out, TermList tl );
 std::ostream& operator<< (ostream& out, const Term& tl );
 std::ostream& operator<< (ostream& out, const Literal& tl );
 
 };
-
-/* template specializations */
-namespace Lib
-{
-
-
-template<>
-struct SecondaryHash<Kernel::TermList> {
-  typedef Kernel::TermListHash Type;
-};
-
-
-}
 
 #endif
