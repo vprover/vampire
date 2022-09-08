@@ -246,7 +246,7 @@ public:
     >::value,
     unsigned
   >::type hash(const T &ref) {
-    return ref.defaultHash();
+    return ref.defaultHash2();
   }
 
   // special-case for Units (and their descendants) as they have a unique incrementing identifier  
