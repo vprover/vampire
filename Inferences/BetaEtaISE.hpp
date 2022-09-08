@@ -13,8 +13,8 @@
  */
 
 
-#ifndef __BetaSimplify__
-#define __BetaSimplify__
+#ifndef __BetaEtaSimplify__
+#define __BetaEtaSimplify__
 
 #if VHOL
 
@@ -25,12 +25,12 @@
 namespace Inferences {
 
 
-class BetaSimplify
+class BetaEtaSimplify
 : public ImmediateSimplificationEngine
 {
 public:
-  CLASS_NAME(BetaSimplify);
-  USE_ALLOCATOR(BetaSimplify);
+  CLASS_NAME(BetaEtaSimplify);
+  USE_ALLOCATOR(BetaEtaSimplify);
 
   Clause* simplify(Clause* cl);
 };
@@ -39,4 +39,4 @@ public:
 
 #endif
 
-#endif /* __CombinatorDemodISE__ */
+#endif /* __BetaEtaSimplify__ */

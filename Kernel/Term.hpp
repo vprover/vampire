@@ -41,7 +41,7 @@
 
 // the number of bits used for "TermList::_info::distinctVars"
 #if VHOL
-  #define TERM_DIST_VAR_BITS 19
+  #define TERM_DIST_VAR_BITS 18
 #else
   #define TERM_DIST_VAR_BITS 21
 #endif
@@ -260,6 +260,8 @@ private:
       unsigned hasDBIndex : 1;
       /** true if the term contains a redex */
       unsigned hasRedex : 1;
+      /** true if a term contains a lambda */
+      unsigned hasLambda : 1;
 #endif
 
       /** Ordering comparison result for commutative term arguments, one of
@@ -707,6 +709,19 @@ public:
     ASS(_args[0]._info.shared);
     return _args[0]._info.hasDBIndex;    
   }
+
+  void setHasLambda(bool b)
+  {
+    CALL("setHasLambda");
+    ASS(shared() && !isSort());
+    _args[0]._info.hasLambda = b;
+  }  
+  /** true if term contains redex */
+  bool hasLambda() const
+  {
+    ASS(_args[0]._info.shared);
+    return _args[0]._info.hasLambda;    
+  }   
 #endif
 
   /** Return an index of the argument to which @b arg points */

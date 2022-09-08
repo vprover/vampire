@@ -22,6 +22,7 @@
 #include "Kernel/Clause.hpp"
 #include "Kernel/ColorHelper.hpp"
 #include "Kernel/EqHelper.hpp"
+#include "Kernel/TermTransformer.hpp"
 #include "Kernel/Inference.hpp"
 #include "Kernel/LiteralByMatchability.hpp"
 #include "Kernel/MLMatcherSD.hpp"
@@ -648,7 +649,7 @@ isRedundant:
         /**
          * Step 4: found application of SD; now create the conclusion
          */
-        Literal* newLit = EqHelper::replace(dlit, lhsS, rhsS);
+        Literal* newLit = SubtermReplacer(lhsS,rhsS).transform(dlit);
         ASS_EQ(ordering.compare(lhsS, rhsS), Ordering::GREATER);
 #if VDEBUG
         if (getOptions().literalComparisonMode() != Options::LiteralComparisonMode::REVERSE) {

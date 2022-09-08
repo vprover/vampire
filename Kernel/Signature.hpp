@@ -254,10 +254,7 @@ class Signature
     
     inline void setDBIndex(int index){ _dbIndex = index; }
     inline Option<unsigned> dbIndex(){
-      if(_dbIndex > -1){
-        return Option<unsigned>((unsigned)_dbIndex);
-      } 
-      return Option<unsigned>(); 
+      return _dbIndex > -1 ? Option<unsigned>((unsigned)_dbIndex) : Option<unsigned>();
     }
 
     inline void markInductionSkolem(){ _inductionSkolem=1; _skolem=1;}

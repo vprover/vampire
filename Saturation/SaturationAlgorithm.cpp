@@ -93,7 +93,7 @@
 #include "Inferences/Induction.hpp"
 #include "Inferences/ArithmeticSubtermGeneralization.hpp"
 #include "Inferences/TautologyDeletionISE.hpp"
-#include "Inferences/BetaNormaliser.hpp"
+#include "Inferences/BetaEtaISE.hpp"
 
 
 #include "Saturation/ExtensionalityClauseContainer.hpp"
@@ -1827,7 +1827,7 @@ ImmediateSimplificationEngine* SaturationAlgorithm::createISE(Problem& prb, cons
     res->addFront(new TautologyDeletionISE2());
   }  
 
-  res->addFront(new BetaSimplify());
+  res->addFront(new BetaEtaSimplify());
 #endif
 
   // Only add if there are distinct groups 

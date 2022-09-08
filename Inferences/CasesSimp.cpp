@@ -20,9 +20,10 @@
 #if VHOL
 
 #include "Lib/Environment.hpp"
+#include "Lib/PairUtils.hpp"
 
 #include "Kernel/Clause.hpp"
-#include "Kernel/EqHelper.hpp"
+#include "Kernel/TermTransformer.hpp"
 #include "Kernel/Inference.hpp"
 #include "Kernel/Term.hpp"
 #include "Kernel/TermIterators.hpp"
@@ -72,8 +73,8 @@ ClauseIterator CasesSimp::performSimplification(Clause* premise, Literal* lit, T
       (*conclusion1)[i] = (*premise)[i];
       (*conclusion2)[i] = (*premise)[i];      
     } else {
-      (*conclusion1)[i] = EqHelper::replace((*premise)[i], t, troo);
-      (*conclusion2)[i] = EqHelper::replace((*premise)[i], t, fols);
+      (*conclusion1)[i] = SubtermReplacer(t,troo).transform((*premise)[i]);
+      (*conclusion2)[i] = SubtermReplacer(t,fols).transform((*premise)[i]);
     }
   }
 
@@ -126,7 +127,6 @@ ClauseIterator CasesSimp::simplifyMany(Clause* premise)
 
   auto it3 = getMapAndFlattenIterator(it2,RewriteableSubtermsFn());
 
-  //Perform  Narrow
   auto it4 = getMapAndFlattenIterator(it3,ResultFn(premise, *this));
 
   return pvi( it4 );

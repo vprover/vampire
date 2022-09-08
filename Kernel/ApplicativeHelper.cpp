@@ -11,8 +11,7 @@
 #include "Kernel/Signature.hpp"
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/TermIterators.hpp"
-
-#include "Lib/SmartPtr.hpp"
+#include "Kernel/EqHelper.hpp"
 
 #include "ApplicativeHelper.hpp"
 
@@ -38,6 +37,7 @@ TermList BetaNormaliser::transformSubterm(TermList t)
   while(t.isRedex()){
     t = RedexReducer().reduce(t);
   }
+
   return t;
 }
 
@@ -49,6 +49,85 @@ bool BetaNormaliser::exploreSubterms(TermList orig, TermList newTerm)
   return false;
 }
 
+TermList EtaNormaliser::normalise(TermList t)
+{
+  CALL("EtaNormaliser::normalise");
+
+  _ignoring = false;
+  t = transformSubterm(t);
+  return transform(t);
+}
+
+TermList EtaNormaliser::transformSubterm(TermList t)
+{
+  CALL("EtaNormaliser::transformSubterm");
+
+  if(_ignoring && t != _awaiting) return t;
+  if(_ignoring && t == _awaiting) _ignoring = false;
+
+  TermList body = t;
+  unsigned l = 0; // number of lambda binders
+  while(body.isLambdaTerm()){
+    l++;
+    body = body.lambdaBody();
+  }
+  if(!l) return t; //not a lambda term, cannot eta reduce
+  
+  unsigned n = 0; // number of De bruijn indices at end of term 
+  TermList newBody = body;
+  while(body.isApplication()){
+    auto dbIndex = body.rhs().deBruijnIndex();
+    if(!dbIndex.isSome() || dbIndex.unwrap() != n){
+      break;
+    }
+    body = body.lhs();
+    n++;
+  }
+
+  TermShifter ts;
+  ts.shift(body, 0);
+  auto mfi = ts.minFreeIndex();
+  unsigned j = mfi.isSome() ? mfi.unwrap() : UINT_MAX; // j is minimum free index
+  unsigned k = std::min(l, std::min(n, j));
+
+  if(!k){
+    _ignoring = true;
+    _awaiting = newBody;
+    return t;
+  }
+
+  for(unsigned i = 0; i < k; i++){
+    newBody = newBody.lhs();
+  }
+  newBody = TermShifter().shift(newBody, 0 - k);
+
+  body = t;
+  for(unsigned i = 0; i < l - k; i++){
+    body = body.lambdaBody();
+  }
+
+  // TermTransform doesn't work at top level...
+  if(body == t){
+    return newBody;
+  }
+
+  _ignoring = true;
+  _awaiting = newBody;
+
+  return SubtermReplacer(body, newBody).transform(t);
+}
+
+bool EtaNormaliser::exploreSubterms(TermList orig, TermList newTerm)
+{
+  CALL("EtaNormaliser::exploreSubterms");
+
+  while(newTerm.isLambdaTerm()){
+    newTerm = newTerm.lambdaBody();
+  }
+  if(newTerm.isVar() || !newTerm.term()->hasLambda()) return false;
+  return true;
+}
+
 TermList RedexReducer::reduce(TermList redex)
 {
   CALL("RedexReducer::reduce");
@@ -58,7 +137,9 @@ TermList RedexReducer::reduce(TermList redex)
   TermList t1 = redex.lhs().lambdaBody();
   _t2 = redex.rhs();
 
+  if(t1.isTerm()) onTermEntry(t1.term());
   TermList transformed = transformSubterm(t1);
+
   if(transformed != t1) return transformed;  
   return transform(t1);
 }
@@ -72,7 +153,7 @@ TermList RedexReducer::transformSubterm(TermList t)
     if(index == _replace){
       // any free indices in _t2 need to be lifted by the number of extra lambdas 
       // that now surround them
-      return TermLifter().lift(_t2, _replace); 
+      return TermShifter().shift(_t2, _replace); 
     }
     if(index > _replace){
       // free index. replace by index 1 less as now surrounded by one fewer lambdas
@@ -106,51 +187,58 @@ bool RedexReducer::exploreSubterms(TermList orig, TermList newTerm)
   return false;
 }
 
-TermList TermLifter::lift(TermList term, unsigned liftBy)
+TermList TermShifter::shift(TermList term, int shiftBy)
 {
-  CALL("TermLifter::lift");
+  CALL("TermShifter::shift");
 
   _cutOff = 0;
-  _liftBy = liftBy;
+  _shiftBy = shiftBy;
+
+  if(term.isTerm()) onTermEntry(term.term());  
   TermList transformed = transformSubterm(term);
   if(transformed != term) return transformed;    
   return transform(term);
 }
 
-TermList TermLifter::transformSubterm(TermList t)
+TermList TermShifter::transformSubterm(TermList t)
 {
-  CALL("TermLifter::transformSubterm");
+  CALL("TermShifter::transformSubterm");
 
   if(t.deBruijnIndex().isSome()){
     unsigned index = t.deBruijnIndex().unwrap();
-    if(index > _cutOff){
+    if(index >= _cutOff){
       // free index. lift
-      TermList sort = SortHelper::getResultSort(t.term());
-      return ApplicativeHelper::getDeBruijnIndex(index + _liftBy, sort);
+      if(_shiftBy != 0){
+        TermList sort = SortHelper::getResultSort(t.term());
+        ASS(_shiftBy >= 0 || index >= std::abs(_shiftBy));
+        return ApplicativeHelper::getDeBruijnIndex(index + _shiftBy, sort);
+      } else {
+        _minFreeIndex = (int)index;
+      }
     }
   }
   return t;
 } 
 
-void TermLifter::onTermEntry(Term* t)
+void TermShifter::onTermEntry(Term* t)
 {
-  CALL("TermLifter::onTermEntry");
+  CALL("TermShifter::onTermEntry");
 
   if(t->isLambdaTerm()) _cutOff++;
 }
 
-void TermLifter::onTermExit(Term* t)
+void TermShifter::onTermExit(Term* t)
 {
-  CALL("TermLifter::onTermExit");
+  CALL("TermShifter::onTermExit");
 
   if(t->isLambdaTerm()) _cutOff--;
 }
 
-bool TermLifter::exploreSubterms(TermList orig, TermList newTerm)
+bool TermShifter::exploreSubterms(TermList orig, TermList newTerm)
 {
-  CALL("TermLifter::exploreSubterms");
+  CALL("TermShifter::exploreSubterms");
 
-  // already lifted, so must be DB index and won't have subterms anyway
+  // already shifted, so must be DB index and won't have subterms anyway
   if(orig != newTerm) return false;
   if(newTerm.term()->hasDBIndex()) return true;
   return false;
@@ -421,5 +509,6 @@ bool ApplicativeHelper::isFalse(TermList term){
   CALL("ApplicativeHelper::isFalse");
   return term.isTerm() && env.signature->isFoolConstantSymbol(false, term.term()->functor());
 }
+
 
 #endif

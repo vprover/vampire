@@ -83,9 +83,11 @@ Term* TermTransformer::transform(Term* term)
 
     TermList tl = *tt;
 
-    // We still transform sort variables ...
+    // We still transform sort and term variables ...
     // It is difficult to avoid this though
-    if(tl.isTerm() && tl.term()->isSort() && !_transformSorts){
+    if(tl.isTerm() && 
+      (( tl.term()->isSort() && _dontTransformSorts) || 
+       (!tl.term()->isSort() && _onlyTransformSorts))){
       args.push(tl);
       continue;      
     }
@@ -253,6 +255,14 @@ TermList TermTransformer::transform(TermList ts)
       return ts;
     }
   }
+}     
+
+TermList SubtermReplacer::transformSubterm(TermList t)
+{
+  CALL("SubtermReplacer::transformSubterm");
+
+  if(t == _what) return _by;
+  return t;
 }
 
 Formula* TermTransformer::transform(Formula* f)

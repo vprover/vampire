@@ -24,6 +24,7 @@
 #include "Kernel/Clause.hpp"
 #include "Kernel/ColorHelper.hpp"
 #include "Kernel/EqHelper.hpp"
+#include "Kernel/TermTransformer.hpp"
 #include "Kernel/Inference.hpp"
 #include "Kernel/Ordering.hpp"
 #include "Kernel/Renaming.hpp"
@@ -213,7 +214,7 @@ struct BackwardDemodulation<SubtermIt>::ResultFn
       }
     }
 
-    Literal* resLit=EqHelper::replace(qr.literal,lhsS,rhsS);
+    Literal* resLit=SubtermReplacer(lhsS,rhsS).transform(qr.literal);
     if(EqHelper::isEqTautology(resLit)) {
       env.statistics->backwardDemodulationsToEqTaut++;
       _removed->insert(qr.clause);

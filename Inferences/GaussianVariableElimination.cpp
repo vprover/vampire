@@ -11,7 +11,7 @@
 #include "Kernel/Rebalancing.hpp"
 #include "Kernel/Rebalancing/Inverters.hpp"
 #include "Kernel/Clause.hpp"
-#include "Kernel/EqHelper.hpp"
+#include "Kernel/TermTransformer.hpp"
 #include "Kernel/InterpretedLiteralEvaluator.hpp"
 #include "Inferences/InterpretedEvaluation.hpp"
 #include "Kernel/PolynomialNormalizer.hpp"
@@ -78,11 +78,11 @@ SimplifyingGeneratingInference1::Result GaussianVariableElimination::rewrite(Cla
   auto sz = cl.size() - 1;
   Clause& out = *new(sz) Clause(sz, inf); 
   for (unsigned i = 0; i < skipLiteral; i++) {
-    out[i] = checkLeq(cl[i], EqHelper::replace(cl[i], find, replace));
+    out[i] = checkLeq(cl[i], SubtermReplacer(find,replace).transform(cl[i]));
   }
 
   for (unsigned i = skipLiteral; i < sz; i++)  {
-    out[i] = checkLeq(cl[i+1], EqHelper::replace(cl[i+1], find, replace));
+    out[i] = checkLeq(cl[i+1], SubtermReplacer(find,replace).transform(cl[i+1]));
   }
 
   if(!premiseRedundant) {

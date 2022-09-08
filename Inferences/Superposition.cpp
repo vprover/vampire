@@ -24,6 +24,7 @@
 #include "Kernel/Clause.hpp"
 #include "Kernel/ColorHelper.hpp"
 #include "Kernel/EqHelper.hpp"
+#include "Kernel/TermTransformer.hpp"
 #include "Kernel/Inference.hpp"
 #include "Kernel/Ordering.hpp"
 #include "Kernel/SortHelper.hpp"
@@ -489,7 +490,7 @@ Clause* Superposition::performSuperposition(
     }
   }
 
-  Literal* tgtLitS = EqHelper::replace(rwLitS,rwTermS,tgtTermS);
+  Literal* tgtLitS = SubtermReplacer(rwTermS,tgtTermS).transform(rwLitS);
 
   static bool doSimS = getOptions().simulatenousSuperposition();
 
@@ -555,7 +556,7 @@ Clause* Superposition::performSuperposition(
       Literal* currAfter = subst->apply(curr, !eqIsResult);
 
       if (doSimS) {
-        currAfter = EqHelper::replace(currAfter,rwTermS,tgtTermS);
+        currAfter = SubtermReplacer(rwTermS,tgtTermS).transform(currAfter);
       }
 
       if(EqHelper::isEqTautology(currAfter)) {

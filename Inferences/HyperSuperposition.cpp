@@ -24,7 +24,7 @@
 
 #include "Kernel/Clause.hpp"
 #include "Kernel/ColorHelper.hpp"
-#include "Kernel/EqHelper.hpp"
+#include "Kernel/TermTransformer.hpp"
 #include "Kernel/Inference.hpp"
 #include "Kernel/RobSubstitution.hpp"
 #include "Kernel/SortHelper.hpp"
@@ -272,7 +272,7 @@ void HyperSuperposition::tryUnifyingSuperpositioins(Clause* cl, unsigned literal
     TermList tgtBase = rwr.first.second;
     TermList src = subst.apply(srcBase, rwrBank);
     TermList tgt = subst.apply(tgtBase, rwrBank);
-    t1Rwr = EqHelper::replace(t1Rwr, src, tgt);
+    t1Rwr = SubtermReplacer(src,tgt).transform(t1Rwr);
   }
 
   static RobSubstitution checkerSubst;
@@ -294,7 +294,7 @@ void HyperSuperposition::tryUnifyingSuperpositioins(Clause* cl, unsigned literal
       }
       else {
 	Literal* lSubst = subst.apply(lit0, 0);
-	Literal* lRwr = EqHelper::replace(lSubst, TermList(t1Subst), TermList(t1Rwr));
+	Literal* lRwr = SubtermReplacer(TermList(t1Subst),TermList(t1Rwr)).transform(lSubst);
 	resLits.push(lRwr);
       }
     }

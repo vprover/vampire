@@ -34,7 +34,6 @@
 #include "Kernel/Signature.hpp"
 #include "Kernel/OperatorType.hpp"
 #include "Shell/TermAlgebra.hpp"
-#include "Shell/LambdaConversion.hpp"
 
 #define __TO_SORT_RAT RationalConstantType::getSort()
 #define __TO_SORT_INT IntegerConstantType::getSort()
@@ -266,9 +265,7 @@ public:
       VList* boundVar = new VList(var.var());
       SList* boundVarSort = new SList(varSort);
       Term* lambdaTerm = Term::createLambda(term, boundVar, boundVarSort, termSort);
-      // convert to De Bruijn indices
-      TermList lam = LambdaConversion().convertLambda(lambdaTerm);
-      return lam;
+      return TermList(lambdaTerm);
     };
   }  
 
@@ -362,7 +359,11 @@ public:
     } else {
       Stack<SortId> as;     
       for (auto a : as_){ as.push(a.sugaredExpr()); }
-      _sugaredExpr = AtomicSort::arrowSort(as, as.pop());      
+      auto res = as.pop();
+      // reverse arguments. Bit of a hack really
+      Stack<SortId> as2;        
+      while(!as.isEmpty()){ as2.push(as.pop()); }
+      _sugaredExpr = AtomicSort::arrowSort(as2, res);      
     }
   }
 
@@ -389,7 +390,11 @@ public:
   { 
     ASS_REP(!_sugaredExpr.isEmpty(), _sugaredExpr);
     if(!_sugaredExpr.isVar()){
-      _srt = SortHelper::getResultSort(_sugaredExpr.term());
+      if(_sugaredExpr.term()->isSpecial()){
+        _srt = _sugaredExpr.term()->getSpecialData()->getSort();
+      } else {
+        _srt = SortHelper::getResultSort(_sugaredExpr.term());
+      }
     }
   }
 

@@ -13,7 +13,7 @@
 #include "Lib/Environment.hpp"
 
 #include "Kernel/Clause.hpp"
-#include "Kernel/EqHelper.hpp"
+#include "Kernel/TermTransformer.hpp"
 #include "Kernel/Inference.hpp"
 #include "Kernel/Term.hpp"
 #include "Kernel/TermIterators.hpp"
@@ -42,7 +42,7 @@ Clause* BoolSimp::simplify(Clause* premise) {
 
     while (nvi.hasNext()) {
       subTerm = nvi.next();
-      if(SortHelper::getResultSort(subTerm.term()) == AtomicSort::boolSort()){
+      if(SortHelper::getResultSort(subTerm.term()).isBoolSort()){
         simpedSubTerm = boolSimplify(subTerm);
         if(simpedSubTerm != subTerm){
           goto substitution;
@@ -60,7 +60,9 @@ substitution:
   Clause* conclusion = new(conclusionLength) Clause(conclusionLength, SimplifyingInference1(InferenceRule::BOOL_SIMP, premise));
 
   for (unsigned i = 0; i < conclusion->length(); i++) {
-    (*conclusion)[i] = i == literalPosition ? EqHelper::replace((*premise)[i], subTerm, simpedSubTerm) : (*premise)[i];
+    (*conclusion)[i] = i == literalPosition ? 
+      SubtermReplacer(subTerm, simpedSubTerm).transform((*premise)[i]) : 
+      (*premise)[i];
   }
 
   env.statistics->booleanSimps++;

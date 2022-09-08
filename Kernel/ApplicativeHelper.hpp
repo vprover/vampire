@@ -42,6 +42,25 @@ public:
   bool exploreSubterms(TermList orig, TermList newTerm) override;
 };
 
+// reduce to eta short form
+// normalises top down carrying out parallel eta reductions
+// for terms such as ^^^.f 2 1 0
+class EtaNormaliser : public TermTransformer
+{
+public:
+
+  EtaNormaliser() {
+    dontTransformSorts();
+  }  
+  TermList normalise(TermList t);
+  TermList transformSubterm(TermList t) override;
+  bool exploreSubterms(TermList orig, TermList newTerm) override;
+
+private:
+  bool _ignoring;
+  TermList _awaiting;
+};
+
 class RedexReducer : public TermTransformer 
 {
 public:
@@ -59,21 +78,29 @@ private:
   unsigned _replace; // index to replace
 };
 
-class TermLifter : public TermTransformer
+class TermShifter : public TermTransformer
 {
 public:
-  TermLifter() {
+  TermShifter() : _minFreeIndex(-1)  {
     dontTransformSorts();
   }   
-  TermList lift(TermList term, unsigned liftBy);
+  // positive value -> shift up
+  // negative -> shift down 
+  // 0 record minimum free index 
+  TermList shift(TermList term, int shiftBy); 
   TermList transformSubterm(TermList t) override; 
   void onTermEntry(Term* t) override;
   void onTermExit(Term* t) override;
   bool exploreSubterms(TermList orig, TermList newTerm) override;
 
+  Option<unsigned> minFreeIndex(){ 
+    return _minFreeIndex > -1 ? Option<unsigned>((unsigned)_minFreeIndex) : Option<unsigned>();
+  }
+
 private:
   unsigned _cutOff; // any index higher than _cutOff is a free index
-  unsigned _liftBy; // the amount to lift a free index by (the number of extra lambdas between it and its binder)
+  int _shiftBy; // the amount to shift a free index by
+  int _minFreeIndex;
 };
 
 class ApplicativeHelper {

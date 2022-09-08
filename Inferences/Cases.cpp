@@ -23,6 +23,7 @@
 
 #include "Kernel/Clause.hpp"
 #include "Kernel/EqHelper.hpp"
+#include "Kernel/TermTransformer.hpp"
 #include "Kernel/Inference.hpp"
 #include "Kernel/Term.hpp"
 #include "Kernel/TermIterators.hpp"
@@ -52,7 +53,7 @@ Clause* Cases::performParamodulation(Clause* premise, Literal* lit, TermList t) 
   static TermList fols(Term::foolFalse());
 
 
-  // Found a boolean term! Create the C[true] \/ s = false clause
+  // Create the C[true] \/ s = false clause
   unsigned conclusionLength = premise->length() + 1;
 
   Clause* conclusion = new(conclusionLength) Clause(conclusionLength,
@@ -65,7 +66,7 @@ Clause* Cases::performParamodulation(Clause* premise, Literal* lit, TermList t) 
     if(curr != lit){
       (*conclusion)[i] = (*premise)[i];
     } else {
-      (*conclusion)[i] = EqHelper::replace((*premise)[i], t, troo);
+      (*conclusion)[i] = SubtermReplacer(t,troo).transform((*premise)[i]);
     }
   }
 

@@ -20,7 +20,7 @@
 #include "Lib/Environment.hpp"
 
 #include "Kernel/Clause.hpp"
-#include "Kernel/EqHelper.hpp"
+#include "Kernel/TermTransformer.hpp"
 #include "Kernel/Inference.hpp"
 #include "Kernel/Term.hpp"
 #include "Kernel/TermIterators.hpp"
@@ -118,7 +118,7 @@ ClauseIterator FOOLParamodulation::generateClauses(Clause* premise) {
   // Copy the literals from the premise except for the one at `literalPosition`,
   // that has the occurrence of `booleanTerm` replaced with false
   for (unsigned i = 0; i < conclusion->length() - 1; i++) {
-    (*conclusion)[i] = i == literalPosition ? EqHelper::replace((*premise)[i], booleanTerm, troo) : (*premise)[i];
+    (*conclusion)[i] = i == literalPosition ? SubtermReplacer(booleanTerm,troo).transform((*premise)[i]) : (*premise)[i];
   }
 
   // Add s = false to the clause

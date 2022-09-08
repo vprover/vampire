@@ -111,6 +111,10 @@ Term* TermSharing::insert(Term* t)
     }
   }
 
+#if VHOL
+
+#endif
+
   _termInsertions++;
   Term* s = _terms.insert(t);
    if (s == t) {
@@ -119,8 +123,11 @@ Term* TermSharing::insert(Term* t)
     bool hasTermVar = false;
     bool hasInterpretedConstants=t->arity()==0 && 
          env.signature->getFunction(t->functor())->interpreted();
+#if VHOL
     bool hasDBIndex = t->deBruijnIndex().isSome();
     bool hasRedex = t->isRedex();
+    bool hasLambda = t->isLambdaTerm();
+#endif
     Color color = COLOR_TRANSPARENT;
     
     unsigned typeArity = t->numTypeArguments();
@@ -143,8 +150,11 @@ Term* TermSharing::insert(Term* t)
         vars += r->numVarOccs();
         weight += r->weight();
         hasTermVar |= r->hasTermVar();
+#if VHOL                
         hasDBIndex              = hasDBIndex              ? true : r->hasDBIndex();
         hasRedex                = hasRedex                ? true : r->hasRedex();
+        hasLambda               = hasLambda               ? true : r->hasLambda();
+#endif
         hasInterpretedConstants = hasInterpretedConstants ? true : r->hasInterpretedConstants();
         if (env.colorUsed) {
           color = static_cast<Color>(color | r->color());

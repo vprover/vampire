@@ -815,6 +815,11 @@ vstring Term::headToString() const
       name = static_cast<const AtomicSort *>(this)->typeConName();
     } else {
       name = functionName();
+#if VHOL
+      if(deBruijnIndex().isSome()){
+        name = name + "_" + Int::toString(deBruijnIndex().unwrap());
+      }
+#endif
     }
     return name + (arity() ? "(" : "");
   }
@@ -2012,9 +2017,17 @@ bool Literal::isFlexRigid() const
   CALL("Literal::isFlexRigid");
   ASS(isEquality());
  
+  auto check = [](TermList head1, TermList term1, TermList head2){
+    // only one side has a variable head, and that side isn't is a variable
+    return head1.isVar() && !term1.isVar() && !head2.isVar();
+  };   
+
   TermList lhs = *nthArgument(0);
   TermList rhs = *nthArgument(1);
-  return !polarity() && (lhs.head().isVar() != rhs.head().isVar());
+  TermList lhsHead = lhs.head();
+  TermList rhsHead = rhs.head();
+  
+  return !polarity() && (check(lhsHead, lhs, rhsHead) || check(rhsHead, rhs, lhsHead));
 }
 
 #endif

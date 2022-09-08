@@ -318,8 +318,8 @@ set(VAMPIRE_KERNEL_SOURCES
     Indexing/TypeSubstitutionTree.hpp
     Inferences/CNFOnTheFly.cpp
     Inferences/CNFOnTheFly.hpp
-    Inferences/BetaNormaliser.cpp
-    Inferences/BetaNormaliser.hpp
+    Inferences/BetaEtaISE.cpp
+    Inferences/BetaEtaISE.hpp
 #    Inferences/CombinatorNormalisationISE.hpp
 #    Inferences/CombinatorNormalisationISE.cpp
     Inferences/ArgCong.hpp

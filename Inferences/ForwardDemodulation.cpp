@@ -30,6 +30,7 @@
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/Term.hpp"
 #include "Kernel/TermIterators.hpp"
+#include "Kernel/TermTransformer.hpp"
 #include "Kernel/ColorHelper.hpp"
 #include "Kernel/RobSubstitution.hpp"
 
@@ -221,7 +222,7 @@ bool ForwardDemodulation<SubtermIterator>::perform(Clause* cl, Clause*& replacem
           }
         }
 
-        Literal* resLit = EqHelper::replace(lit,trm,rhsS);
+        Literal* resLit = SubtermReplacer(trm, rhsS).transform(lit);
         if(EqHelper::isEqTautology(resLit)) {
           env.statistics->forwardDemodulationsToEqTaut++;
           premises = pvi( getSingletonIterator(qr.clause));

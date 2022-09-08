@@ -20,7 +20,7 @@
 #include "Shell/Options.hpp"
 
 #include "Clause.hpp"
-#include "EqHelper.hpp"
+#include "TermTransformer.hpp"
 #include "Inference.hpp"
 #include "Renaming.hpp"
 #include "Signature.hpp"
@@ -117,7 +117,7 @@ Clause* ColorHelper::skolemizeColoredConstants(Clause* c)
     TermList newTrm = TermList(Term::create(newFn, 0, 0));
 
     for (unsigned i=0; i<clen; i++) {
-      resStack[i] = EqHelper::replace(resStack[i], replaced, newTrm);
+      resStack[i] = SubtermReplacer(replaced, newTrm).transform(resStack[i]);
     }
   }
   Clause* res = Clause::fromStack(resStack, NonspecificInference1(InferenceRule::COLOR_UNBLOCKING, c));
@@ -214,7 +214,7 @@ Clause* ColorHelper::skolemizeColoredTerms(Clause* c)
       if (!isTransparent(false,t->functor())) {
 	//here we each time remove at least one colored symbol
 	Term* newTrm = applyReplacement(t,replMap);
-	lit = EqHelper::replace(lit,TermList(t),TermList(newTrm));
+	lit = SubtermReplacer(TermList(t),TermList(newTrm)).transform(lit);
 	goto start_replacing;
       }
     }

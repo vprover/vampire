@@ -16,7 +16,7 @@
 #define __TermTransformer__
 
 #include "Forwards.hpp"
-
+#include "Term.hpp"
 
 
 namespace Kernel {
@@ -40,11 +40,13 @@ class TermTransformer {
 public:
   TermTransformer() : 
     _sharedResult(true), 
-    _transformSorts(true) {}
+    _dontTransformSorts(false),
+    _onlyTransformSorts(false) {}
 
   void createNonShared(){ _sharedResult = false; }
-  void dontTransformSorts(){ _transformSorts = false; }
-    
+  void dontTransformSorts(){ _dontTransformSorts = true; }
+  void onltTransformSorts(){ _onlyTransformSorts = true; }
+
   virtual ~TermTransformer() {}
   Term* transform(Term* term);
   Literal* transform(Literal* lit);
@@ -64,12 +66,26 @@ protected:
 
   virtual Formula* transform(Formula* f);
   bool _sharedResult;
-  bool _transformSorts;
+  bool _dontTransformSorts;
+  bool _onlyTransformSorts;  
 
 private:
   template<class T>
   Term* create(Term* t, TermList* argLst, bool shared)
   {  return shared ? T::create(static_cast<T*>(t), argLst) :  T::createNonShared(static_cast<T*>(t), argLst); }  
+};
+
+class SubtermReplacer : public TermTransformer {
+public:
+  SubtermReplacer(TermList what, TermList by) : _what(what), _by(by) {
+    dontTransformSorts();
+  }
+      
+  TermList transformSubterm(TermList t) override; 
+
+private:
+  TermList _what;
+  TermList _by;
 };
 
 /**

@@ -15,6 +15,7 @@
 #include "InnerRewriting.hpp"
 
 #include "Kernel/EqHelper.hpp"
+#include "Kernel/TermTransformer.hpp"
 #include "Kernel/Inference.hpp"
 
 #include "Saturation/SaturationAlgorithm.hpp"
@@ -39,7 +40,7 @@ bool InnerRewriting::perform(Clause* cl, Clause*& replacement, ClauseIterator& p
       for (unsigned j = 0; j < len; j++) {
         if (i != j) {
           Literal* lit = (*cl)[j];
-          Literal* nLit = EqHelper::replace(lit,lhs,rhs);
+          Literal* nLit = SubtermReplacer(lhs,rhs).transform(lit);
           if (nLit != lit) {
             if(EqHelper::isEqTautology(nLit)) {
               env.statistics->innerRewritesToEqTaut++;
@@ -57,7 +58,7 @@ bool InnerRewriting::perform(Clause* cl, Clause*& replacement, ClauseIterator& p
                 (*res)[k] = nLit;
               } else {
                 Literal* oLit = (*cl)[k];
-                Literal* rLit = EqHelper::replace(oLit,lhs,rhs);
+                Literal* rLit = SubtermReplacer(lhs,rhs).transform(oLit);
                 if(EqHelper::isEqTautology(rLit)) {
                   env.statistics->innerRewritesToEqTaut++;
                   res->destroy();
