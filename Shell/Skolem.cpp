@@ -493,7 +493,6 @@ Formula* Skolem::skolemise (Formula* f)
         reuse_key = name_reuse->key(before);
         successfully_reused = name_reuse->get(reuse_key, sym);
         if (successfully_reused) { // only counts one per the whole quantifier block
-          cout << "SYM " << sym << endl;
           env.statistics->reusedSkolemFunctions++;
         }
       }
