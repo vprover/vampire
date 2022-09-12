@@ -1253,7 +1253,7 @@ void NewCNF::processBoolterm(TermList ts, Occurrences &occurrences)
   }
 
   Term* term = ts.term();
-  //ASS_REP(term->isSpecial(), term->toString());
+  // a bool term can be a constant or a variable; these are not special
   
   if(term->isSpecial()){
     Term::SpecialTermData* sd = term->getSpecialData();
