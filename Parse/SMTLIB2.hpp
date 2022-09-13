@@ -191,6 +191,7 @@ private:
     FS_IS_INT,
     FS_NOT,
     FS_OR,
+    FS_SUBTERM,
     FS_TRUE,
     FS_XOR,
 
