@@ -364,6 +364,13 @@ TermList ApplicativeHelper::getResultApplieadToNArgs(TermList arrowSort, unsigne
   return arrowSort;
 }
 
+TermList ApplicativeHelper::headSort(TermList app)
+{
+  CALL("ApplicativeHelper::getHeadSort");
+  ASS(app.isApplication());
+
+  return AtomicSort::arrowSort(*app.term()->nthArgument(0), *app.term()->nthArgument(1));
+}
 
 /** indexed from 1 */
 TermList ApplicativeHelper::getNthArg(TermList arrowSort, unsigned argNum)
@@ -433,6 +440,17 @@ void ApplicativeHelper::getHeadSortAndArgs(TermList term, TermList& head,
   }
   head = term;
   
+}
+
+void ApplicativeHelper::getArgSorts(TermList t, TermStack& sorts)
+{
+  CALL("ApplicativeHelper::getArgSorts");
+  ASS(t.isApplication());
+
+  while(t.isApplication()){
+    sorts.push(*t.term()->nthArgument(0));
+    t = t.lhs();
+  }
 }
 
 

@@ -68,17 +68,69 @@ struct ImitateProject::IsFlexRigid
 struct ImitateProject::ResultFn
 {
   ResultFn(Clause* cl)
-      : _cl(cl), _cLen(cl->length()) {}
+      : _cl(cl), _cLen(cl->length()), _maxVar(cl->maxVar()) {}
   ClauseIterator operator() (Literal* lit)
   {
     CALL("EqualityResolution::ResultFn::operator()");
 
+    typedef ApplicativeHelper AH;
+
     ASS(lit->isEquality());
     ASS(lit->isFlexRigid());
+
+    static RobSubstitution subst;
+    static ClauseStack results;
+    results.reset();
 
     TermList arg0 = *lit->nthArgument(0);
     TermList arg1 = *lit->nthArgument(1);
 
+    TermList flexTerm, rigidTerm;
+
+    if(arg0.head().isVar()){
+      flexTerm = arg0;
+      rigidTerm = arg1;
+    } else {
+      flexTerm = arg1;
+      rigidTerm = arg0;
+    }
+
+    TermList headFlex, headRigid;
+    TermStack argsFlex, argsRigid;
+
+    AH::getHeadAndArgs(flexTerm, headFlex, argsFlex);
+    AH::getHeadAndArgs(rigidTerm, headRigid, argsRigid);
+    ASS(argsFlex.size()); // Flex side is not a variable
+
+    // replaces the result sort with a new result sort
+    // e.g. i > i > o  ==> i > i > nat
+    auto replaceRes = [](TermList arrowSort, TermList newRes){
+      TermStack args;
+      while(arrowSort.isArrowSort()){
+        args.push(arrowSort.domain());
+        arrowSort = arrowSort.result();
+      }
+      while(!args.isEmpty()){
+        newRes = AtomicSort::arrowSort(args.pop(), newRes);
+      }
+      return newRes;
+    };
+
+    // imitation
+    TermStack sorts; //sorts of arguments of flex head
+    TermStack deBruijnIndices;
+    AH::getArgSorts(flexTerm, sorts); 
+    if(argsRigid.size()){
+      for(int i = argsFlex.size() - 1; i >= 0; i--){
+        deBruijnIndices.push(AH::getDeBruijnIndex(i, sorts[i]));
+      }
+    } 
+
+    for(unsigned i = 0; i < argsRigid.size(); i++){
+
+    }
+
+  
     static RobSubstitution subst(_handler);
     subst.reset();
 
@@ -134,6 +186,7 @@ struct ImitateProject::ResultFn
 private:
   Clause* _cl;
   unsigned _cLen;
+  unsigned _maxVar;
 };
 
 ClauseIterator ImitateProject::generateClauses(Clause* premise)

@@ -116,12 +116,15 @@ public:
   static TermList getDeBruijnIndex(int index, TermList sort);
   static TermList getNthArg(TermList arrowSort, unsigned argNum);
   static TermList getResultApplieadToNArgs(TermList arrowSort, unsigned argNum);
+  //Broken!
+  static TermList headSort(TermList app);
   static unsigned getArity(TermList sort);
   static void getHeadAndAllArgs(TermList term, TermList& head, TermStack& args); 
   static void getHeadAndArgs(TermList term, TermList& head, TermStack& args); 
   static void getHeadAndArgs(Term* term, TermList& head, TermStack& args);  
   static void getHeadAndArgs(const Term* term, TermList& head, Deque<TermList>& args); 
-  static void getHeadSortAndArgs(TermList term, TermList& head, TermList& headSort, TermStack& args); 
+  static void getHeadSortAndArgs(TermList term, TermList& head, TermList& headSort, TermStack& args);
+  static void getArgSorts(TermList t, TermStack& sorts); 
   static Signature::Proxy getProxy(const TermList t);
   static bool isBool(TermList t);
   static bool isTrue(TermList term);

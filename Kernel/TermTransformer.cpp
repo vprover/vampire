@@ -135,9 +135,16 @@ Term* TermTransformer::transform(Term* term)
   //&top()-2, etc...
   TermList* argLst = &args.top() - (term->arity() - 1);
 
-  return term->isLiteral() ? 
-    create<Literal> (term, argLst, _sharedResult) :
-    create<Term>    (term, argLst, _sharedResult) ;
+  if(term->isLiteral()){
+    Literal* lit = static_cast<Literal*>(term);
+    if(lit->isEquality() && argLst[0].isVar() && argLst[1].isVar() && !_dontTransformSorts){
+      return Literal::createEquality(lit->polarity(), argLst[0], argLst[1], 
+        transform(SortHelper::getEqualityArgumentSort(lit)));
+    }
+    return create<Literal> (term, argLst, _sharedResult);
+  }
+
+  return create<Term>(term, argLst, _sharedResult);
 }
 
 // default implementation, can override if required
