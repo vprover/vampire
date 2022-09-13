@@ -319,6 +319,7 @@ public:
     REAL_GREATER_EQUAL,
     REAL_LESS,
     REAL_LESS_EQUAL,
+    SUBTERM,
 
     //numeric functions
 
@@ -603,7 +604,8 @@ public:
     case Kernel::Theory::REAL_GREATER_EQUAL:                                                                  \
     case Kernel::Theory::REAL_LESS:                                                                           \
     case Kernel::Theory::ARRAY_BOOL_SELECT:                                                                   \
-    case Kernel::Theory::REAL_LESS_EQUAL
+    case Kernel::Theory::REAL_LESS_EQUAL:                                                                     \
+    case Kernel::Theory::SUBTERM
 
 #define ANY_INTERPRETED_FUNCTION                                                                              \
          Kernel::Theory::INT_SUCCESSOR:                                                                       \

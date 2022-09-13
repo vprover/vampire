@@ -605,6 +605,7 @@ const char * SMTLIB2::s_formulaSymbolNameStrings[] = {
     "not",
     "or",
     PAR,
+    "subterm",
     "true",
     "xor"
 };
@@ -2253,6 +2254,29 @@ bool SMTLIB2::parseAsBuiltinFormulaSymbol(const vstring& id, LExpr* exp)
       Formula* res = new QuantifiedFormula((fs==FS_EXISTS) ? Kernel::EXISTS : Kernel::FORALL, qvars, qsorts, argFla);
 
       _results.push(ParseResult(res));
+      return true;
+    }
+    case FS_SUBTERM: {
+      TermList subterm;
+      if (_results.isEmpty() || _results.top().isSeparator()) {
+        complainAboutArgShortageOrWrongSorts(BUILT_IN_SYMBOL,exp);
+      }
+      TermList subterm_sort = _results.pop().asTerm(subterm);
+
+      TermList superterm;
+      if (_results.isEmpty() || _results.top().isSeparator()) {
+        complainAboutArgShortageOrWrongSorts(BUILT_IN_SYMBOL,exp);
+      }
+      TermList superterm_sort = _results.pop().asTerm(superterm);
+
+      if(!env.signature->isTermAlgebraSort(subterm_sort) || subterm_sort != superterm_sort)
+        complainAboutArgShortageOrWrongSorts(BUILT_IN_SYMBOL,exp);
+
+      unsigned predicate = env.signature->getInterpretingSymbol(
+        Theory::SUBTERM,
+        OperatorType::getPredicateType({subterm_sort, superterm_sort})
+      );
+      _results.push(new AtomicFormula(Literal::create2(predicate, true, subterm, superterm)));
       return true;
     }
 

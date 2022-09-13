@@ -677,6 +677,8 @@ unsigned Theory::getArity(Interpretation i)
   case REAL_LESS:
   case REAL_LESS_EQUAL:
 
+  case SUBTERM:
+
   case INT_PLUS:
   case INT_MINUS:
   case INT_MULTIPLY:
@@ -815,6 +817,8 @@ bool Theory::isFunction(Interpretation i)
   case REAL_LESS:
   case REAL_LESS_EQUAL:
 
+  case SUBTERM:
+
   case INT_IS_INT:
   case INT_IS_RAT:
   case INT_IS_REAL:
@@ -872,6 +876,7 @@ bool Theory::hasSingleSort(Interpretation i)
 {
   switch(i) {
   case EQUAL:  // This not SingleSort because we don't know the sorts of its args
+  case SUBTERM:
   case INT_TO_RAT:
   case INT_TO_REAL:
   case RAT_TO_INT:
@@ -897,6 +902,7 @@ bool Theory::isPolymorphic(Interpretation i)
 
   switch(i) {
   case EQUAL:
+  case SUBTERM:
   case ARRAY_SELECT:
   case ARRAY_BOOL_SELECT:
   case ARRAY_STORE:
@@ -1351,6 +1357,8 @@ vstring Theory::getInterpretationName(Interpretation interp) {
     case RAT_LESS_EQUAL:
     case REAL_LESS_EQUAL:
       return "$lesseq";
+    case SUBTERM:
+      return "$subterm";
     case INT_IS_INT:
     case RAT_IS_INT:
     case REAL_IS_INT:
@@ -1886,6 +1894,7 @@ std::ostream& operator<<(std::ostream& out, Kernel::Theory::Interpretation const
     case Kernel::Theory::REAL_GREATER_EQUAL: return out << "REAL_GREATER_EQUAL";
     case Kernel::Theory::REAL_LESS: return out << "REAL_LESS";
     case Kernel::Theory::REAL_LESS_EQUAL: return out << "REAL_LESS_EQUAL";
+    case Kernel::Theory::SUBTERM: return out << "SUBTERM";
     case Kernel::Theory::INT_SUCCESSOR: return out << "INT_SUCCESSOR";
     case Kernel::Theory::INT_UNARY_MINUS: return out << "INT_UNARY_MINUS";
     case Kernel::Theory::INT_PLUS: return out << "INT_PLUS";

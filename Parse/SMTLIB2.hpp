@@ -159,6 +159,7 @@ private:
     FS_NOT,
     FS_OR,
     FS_PAR,
+    FS_SUBTERM,
     FS_TRUE,
     FS_XOR,
 
