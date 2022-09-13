@@ -69,6 +69,7 @@
 #include "Inferences/HyperSuperposition.hpp"
 #include "Inferences/InnerRewriting.hpp"
 #include "Inferences/TermAlgebraReasoning.hpp"
+#include "Inferences/Subterm.hpp"
 #include "Inferences/SLQueryBackwardSubsumption.hpp"
 #include "Inferences/Superposition.hpp"
 #include "Inferences/ArgCong.hpp"
@@ -1632,6 +1633,7 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
     if (opt.termAlgebraInferences()) {
       gie->addFront(new InjectivityGIE());
     }
+    gie->addFront(new SubtermGIE());
   }
 
   CompositeSGI* sgi = new CompositeSGI();

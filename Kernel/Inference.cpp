@@ -848,6 +848,10 @@ vstring Kernel::ruleName(InferenceRule rule)
     return "term algebras acyclicity";
   case InferenceRule::TERM_ALGEBRA_DISTINCTNESS:
     return "term algebras distinctness";
+  case InferenceRule::POSITIVE_SUBTERM:
+    return "positive subterm";
+  case InferenceRule::NEGATIVE_SUBTERM:
+    return "negative subterm";
   case InferenceRule::TERM_ALGEBRA_INJECTIVITY_GENERATING:
   case InferenceRule::TERM_ALGEBRA_INJECTIVITY_SIMPLIFYING:
     return "term algebras injectivity";
