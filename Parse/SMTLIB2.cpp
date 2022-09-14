@@ -783,7 +783,7 @@ void SMTLIB2::readDefineFun(const vstring& name, LExprList* iArgs, LExpr* oSort,
     TermList arg = TermList(_nextVar++, false);
     args.push(arg);
 
-    if (!lookup->insert(vName,make_pair(arg,vSort))) {
+    if (!lookup->insert(vName,make_tuple(arg,vSort,false))) {
       USER_ERROR_EXPR("Multiple occurrence of variable "+vName+" in the definition of function "+name);
     }
 
@@ -847,7 +847,7 @@ void SMTLIB2::tryReadTypeParameters(LispListReader& rdr, TermLookup* lookup)
       USER_ERROR_EXPR("List of parameters contains non-atomic expression '"+par->str+"'");
     }
     TermList sortVar(_nextVar++, false);
-    if (!lookup->insert(par->str, make_pair(sortVar, AtomicSort::superSort()))) {
+    if (!lookup->insert(par->str, make_tuple(sortVar, AtomicSort::superSort(), false))) {
       USER_ERROR_EXPR("Type parameter '" + par->str + "' has already been defined");
     }
   }
@@ -1324,25 +1324,36 @@ void SMTLIB2::parseLetPrepareLookup(LExpr* exp)
     LispListReader pRdr(pair);
 
     const vstring& cName = pRdr.readAtom();
-    TermList sort = (--boundExprs)->sort; // the should be big enough (
+    ParseResult* pr = (--boundExprs);
+    TermList t;
+    TermList sort = pr->asTerm(t);
+    // TermList sort = (--boundExprs)->sort; // the should be big enough (
+    auto numTypeArgs = VList::length(sort.freeVariables());
+    TermStack typeArgs;
+    ASS(t.isTerm());
+    for (unsigned i = 0; i < numTypeArgs; i++) {
+      typeArgs.push(TermList(_nextVar++, false));
+    }
 
     TermList trm;
     if (sort == AtomicSort::boolSort()) {
-      unsigned symb = env.signature->addFreshPredicate(0,"sLP");
-      OperatorType* type = OperatorType::getPredicateType(0, nullptr);
+      unsigned symb = env.signature->addFreshPredicate(numTypeArgs,"sLP");
+      OperatorType* type = OperatorType::getPredicateType(0, nullptr, numTypeArgs);
       env.signature->getPredicate(symb)->setType(type);
 
-      Formula* atom = new AtomicFormula(Literal::create(symb,0,true,false,nullptr));
+      Formula* atom = new AtomicFormula(Literal::create(symb,numTypeArgs,true,false,typeArgs.begin()));
       trm = TermList(Term::createFormula(atom));
     } else {
-      unsigned symb = env.signature->addFreshFunction (0,"sLF");
-      OperatorType* type = OperatorType::getFunctionType(0, nullptr, sort);
+      DHMap<unsigned,TermList> vs;
+      TermList resultSort = SortHelper::getResultSort(t,vs);
+      unsigned symb = env.signature->addFreshFunction (numTypeArgs,"sLF");
+      OperatorType* type = OperatorType::getFunctionType(0, nullptr, resultSort, numTypeArgs);
       env.signature->getFunction(symb)->setType(type);
 
-      trm = TermList(Term::createConstant(symb));
+      trm = TermList(Term::create(symb,numTypeArgs,typeArgs.begin()));
     }
 
-    if (!lookup->insert(cName,make_pair(trm,sort))) {
+    if (!lookup->insert(cName,make_tuple(trm,sort,true))) {
       USER_ERROR_EXPR("Multiple bindings of symbol "+cName+" in let expression "+exp->toString());
     }
   }
@@ -1385,17 +1396,18 @@ void SMTLIB2::parseLetEnd(LExpr* exp)
     LOG2("BOUND term  ",boundExpr.toString());
 
     SortedTerm term = lookup->get(cName);
-    TermList exprTerm = term.first;
-    TermList exprSort = term.second;
+    TermList exprTerm = get<0>(term);
+    TermList exprSort = get<1>(term);
+    VList* vars = exprTerm.freeVariables();
 
-    unsigned symbol = 0;
+    unsigned symbol;
     if (exprSort == AtomicSort::boolSort()) { // it has to be formula term, with atomic formula
       symbol = exprTerm.term()->getSpecialData()->getFormula()->literal()->functor();
     } else {
       symbol = exprTerm.term()->functor();
     }
 
-    let = TermList(Term::createLet(symbol, nullptr, boundExpr, let, letSort));
+    let = TermList(Term::createLet(symbol, vars, boundExpr, let, letSort));
   }
 
   _results.push(ParseResult(letSort,let));
@@ -1525,9 +1537,9 @@ void SMTLIB2::parseMatchCaseStart(LExpr *exp)
         continue;
       }
       if (!arg->isAtom() || isAlreadyKnownSymbol(arg->str)) {
-        USER_ERROR_EXPR("Nested ctors in match patterns are disallowed: '" + exp->toString() + "'");
+        USER_ERROR_EXPR("Nested ctors ("+arg->toString()+") in match patterns are disallowed: '" + exp->toString() + "'");
       }
-      if (!lookup->insert(arg->str, make_pair(TermList(_nextVar++, false), SubstHelper::apply(fn->fnType()->arg(i++), subst)))) {
+      if (!lookup->insert(arg->str, make_tuple(TermList(_nextVar++, false), SubstHelper::apply(fn->fnType()->arg(i++), subst), false))) {
         USER_ERROR_EXPR("Variable '" + arg->str + "' has already been defined");
       }
     }
@@ -1539,7 +1551,7 @@ void SMTLIB2::parseMatchCaseStart(LExpr *exp)
     }
     // in case of _ nothing to add to lookup
     if (pattern->str != UNDERSCORE) {
-      if (!lookup->insert(pattern->str, make_pair(TermList(_nextVar++, false), matchedTermSort))) {
+      if (!lookup->insert(pattern->str, make_tuple(TermList(_nextVar++, false), matchedTermSort, false))) {
         USER_ERROR_EXPR("Variable '" + pattern->str + "' has already been defined");
       }
     }
@@ -1637,10 +1649,16 @@ void SMTLIB2::parseMatchEnd(LExpr *exp)
   // we add the missing ctors
   if (varUsed) {
     Stack<TermList> argTerms;
+    // the number of type arguments for all ctors is the arity of the type
+    unsigned numTypeArgs = env.signature->getTypeCon(sort.term()->functor())->typeConType()->arity();
     for (const auto &kv : ctorFunctors) {
       argTerms.reset();
       for (unsigned j = 0; j < kv.second->arity(); j++) {
-        argTerms.push(TermList(_nextVar++, false));
+        if (j < numTypeArgs) {
+          argTerms.push(*sort.term()->nthArgument(j));
+        } else {
+          argTerms.push(TermList(_nextVar++, false));
+        }
       }
       TermList pattern(Term::create(kv.second->functor(), argTerms.size(), argTerms.begin()));
       LOG2("CASE missing ", pattern);
@@ -1723,7 +1741,7 @@ void SMTLIB2::parseQuantEnd(LExpr* exp)
 
     pRdr.acceptEOL();
 
-    if (!lookup->insert(vName,make_pair(TermList(_nextVar++,false),vSort))) {
+    if (!lookup->insert(vName,make_tuple(TermList(_nextVar++,false),vSort,false))) {
       USER_ERROR_EXPR("Multiple occurrence of variable "+vName+" in quantification "+exp->toString());
     }
   }
@@ -1798,7 +1816,7 @@ void SMTLIB2::parseAnnotatedTerm(LExpr* exp)
 
 }
 
-bool SMTLIB2::parseAsScopeLookup(const vstring& id)
+bool SMTLIB2::parseAsScopeLookup(const vstring& id, LExpr* exp)
 {
   CALL("SMTLIB2::parseAsScopeLookup");
 
@@ -1808,7 +1826,69 @@ bool SMTLIB2::parseAsScopeLookup(const vstring& id)
 
     SortedTerm st;
     if (lookup->find(id,st)) {
-      _results.push(ParseResult(st.second,st.first));
+      if (get<2>(st)) {
+        auto t = get<0>(st);
+        auto s = get<1>(st);
+        ASS(t.isTerm());
+        auto f = t.term()->functor();
+        Signature::Symbol* symbol;
+        OperatorType* type;
+        if (s == AtomicSort::boolSort()) {
+          symbol = env.signature->getPredicate(f);
+          type = symbol->predType();
+        } else if (s == AtomicSort::superSort()) {
+          symbol = env.signature->getTypeCon(f);
+          type = symbol->typeConType();
+        } else {
+          symbol = env.signature->getFunction(f);
+          type = symbol->fnType();
+        }
+
+        unsigned numTypeArgs = type->numTypeArguments();
+        unsigned arity = symbol->arity();
+
+        static Stack<TermList> args;
+        args.reset();
+
+        Substitution subst;
+        for (unsigned i = 0; i < arity; i++) {
+          if (_results.isEmpty() || _results.top().isSeparator()) {
+            complainAboutArgShortageOrWrongSorts("user defined symbol",exp);
+          }
+          TermList arg;
+          auto argSort = _results.pop().asTerm(arg);
+          TermList sort;
+          if (i < numTypeArgs) {
+            // if the term has a parametric type, the parameters
+            // are checked and saved to instantiate the concrete
+            // types of later (non-type) arguments
+            subst.bind(type->quantifiedVar(i).var(), arg);
+            sort = type->arg(i);
+          } else {
+            sort = SubstHelper::apply(type->arg(i), subst);
+          }
+
+          if (sort != argSort) {
+            complainAboutArgShortageOrWrongSorts("user defined symbol",exp);
+          }
+          args.push(arg);
+        }
+
+        if (s == AtomicSort::boolSort()) {
+          Formula* res = new AtomicFormula(Literal::create(f,arity,true,false,args.begin()));
+          _results.push(ParseResult(res));
+        } else if (s == AtomicSort::superSort()) {
+          TermList res = TermList(AtomicSort::create(f,arity,args.begin()));
+          TermList sort = SortHelper::getResultSort(res.term());
+          _results.push(ParseResult(sort,res));
+        } else {
+          TermList res = TermList(Term::create(f,arity,args.begin()));
+          TermList sort = SortHelper::getResultSort(res.term());
+          _results.push(ParseResult(sort,res));
+        }
+      } else {
+        _results.push(ParseResult(get<1>(st),get<0>(st)));
+      }
       return true;
     }
   }
@@ -1836,7 +1916,7 @@ bool SMTLIB2::parseAsSortDefinition(const vstring& id,LExpr* exp)
     const vstring& argName = argRdr.readAtom();
     // TODO: could check if the same string names more than one argument positions
     // the following just takes the first and ignores the others
-    lookup->insert(argName,make_pair(arg,AtomicSort::superSort()));
+    lookup->insert(argName,make_tuple(arg,AtomicSort::superSort(),false));
   }
 
   _scopes.push(lookup);
@@ -2231,8 +2311,8 @@ bool SMTLIB2::parseAsBuiltinFormulaSymbol(const vstring& id, LExpr* exp)
       TermLookup::Iterator varIt(*_scopes.top());
       while(varIt.hasNext()) {
         SortedTerm vTerm = varIt.next();
-        unsigned varIdx = vTerm.first.var();
-        TermList sort = vTerm.second;
+        unsigned varIdx = get<0>(vTerm).var();
+        TermList sort = get<1>(vTerm);
         VList::push(varIdx, qvars);
         SList::push(sort,qsorts);
       }
@@ -2668,7 +2748,7 @@ SMTLIB2::ParseResult SMTLIB2::parseTermOrFormula(LExpr* body)
           id = head->str;
         }
 
-        if (parseAsScopeLookup(id)) {
+        if (parseAsScopeLookup(id,exp)) {
           continue;
         }
 

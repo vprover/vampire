@@ -318,7 +318,7 @@ private:
   unsigned _nextVar;
 
   /** < termlist, vampire sort id > */
-  typedef pair<TermList,TermList> SortedTerm;
+  typedef tuple<TermList,TermList,bool> SortedTerm;
   /** mast an identifier to SortedTerm */
   typedef DHMap<vstring,SortedTerm> TermLookup;
   typedef Stack<TermLookup*> Scopes;
@@ -386,7 +386,7 @@ private:
   void parseAnnotatedTerm(LExpr* exp);
 
   /** Scope's are filled by forall, exists, and let */
-  bool parseAsScopeLookup(const vstring& id);
+  bool parseAsScopeLookup(const vstring& id, LExpr* exp);
   bool parseAsSortDefinition(const vstring& id, LExpr* exp);
   /** Currently either numeral or decimal */
   bool parseAsSpecConstant(const vstring& id);
