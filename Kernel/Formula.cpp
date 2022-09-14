@@ -12,75 +12,15 @@
  *  Implements class Formula.
  */
 
-#include "Forwards.hpp"
-
-#include "Debug/Tracer.hpp"
-
-#include "Lib/Environment.hpp"
-#include "Lib/Exception.hpp"
-#include "Lib/Environment.hpp"
-#include "Lib/MultiCounter.hpp"
-#include "Lib/VString.hpp"
-#include "Lib/Set.hpp"
-
-#include "Kernel/Signature.hpp"
-#include "Kernel/SortHelper.hpp"
-
-#include "Shell/Options.hpp"
+#include "Formula.hpp"
 
 #include "Clause.hpp"
-#include "Term.hpp"
-#include "Formula.hpp"
 #include "SubformulaIterator.hpp"
 #include "FormulaVarIterator.hpp"
-
-using namespace Lib;
 
 namespace Kernel {
 
 vstring Formula::DEFAULT_LABEL = "none";
-
-
-// /**
-//  * Turn literal list into a formula representing the disjunction of
-//  * these literals.
-//  *
-//  * @since 10/10/2004 Manchester
-//  */
-// void Formula::makeFromLiteralList (const LiteralList& from,Formula& to)
-// {
-//   CALL("Formula::makeFromLiteralList");
-
-//   if (from.isEmpty()) {
-//     to = Formula(FALSE);
-//     return;
-//   }
-//   if (from.tail().isEmpty()) {
-//     to = Formula(from.head());
-//     return;
-//   }
-//   // at least two literals
-//   FormulaList fs;
-//   FormulaList::makeFromLiteralList(from,fs);
-//   to = Formula(OR,fs);
-// } // Formula::makeFromLiteralList
-
-// /**
-//  * Construct a list of formulas from a non-empty list of literals
-//  * @since 10/10/2004 Manchester
-//  */
-// void FormulaList::makeFromLiteralList (const LiteralList& ls,FormulaList& fs)
-// {
-//   CALL("FormulaList::makeFromLiteralList");
-
-//   Lib::ListPusher<Formula> stack(fs);
-//   Lib::Iterator<Literal> lits(ls);
-//   while (lits.hasNext()) {
-//     Formula f(lits.next());
-//     stack.push(f);
-//   }
-// } // FormulaList::FormulaList
-
 
 /**
  * Destroy the content of the formula. The destruction depends on the type
@@ -91,8 +31,7 @@ vstring Formula::DEFAULT_LABEL = "none";
  */
 void Formula::destroy ()
 {
-  CALL ("Formula::Data::destroy");
-  // ASS (this); -- new gcc thinks this is never null
+  CALL ("Formula::destroy");
 
   switch ( connective() ) {
   case LITERAL:
@@ -134,45 +73,7 @@ void Formula::destroy ()
   case NOCONN:
     ASSERTION_VIOLATION;
   }
-} // Formula::Data::deref ()
-
-
-// // the total number of symbols in the formula
-// // a bug fixed 30/06/2001, flight Kopenhagen-Manchester
-// int Formula::weight () const
-// {
-//   switch ( connective () ) {
-//     case LITERAL:
-//       return atom()->weight();
-
-//     case AND:
-//     case OR: {
-//       int sz = -1;
-
-//       for ( List* fs = args(); fs->isNonEmpty (); fs = fs->tail() )
-//         sz += fs->head()->weight() + 1;
-
-//       return sz;
-//     }
-
-//     case IMP:
-//     case IFF:
-//     case XOR:
-//       return left()->weight() +
-//              right()->weight () + 1;
-
-//     case NOT:
-//       return arg()->weight () + 1;
-
-//     case FORALL:
-//     case EXISTS:
-//       return vars()->length() + arg()->weight () + 1;
-
-//     default:
-//       ASSERTION_VIOLATION;
-//       return 0;
-//   }
-// } // Formula::weight
+}
 
 /**
  * Convert the connective to a vstring.
@@ -188,11 +89,15 @@ vstring Formula::toString (Connective c)
 } // Formula::toString (Connective c)
 
 /**
+ * Convert the formula to a vstring
  *
+ * @since 12/10/2002 Tbilisi, implemented as ostream output function
+ * @since 09/12/2003 Manchester
+ * @since 11/12/2004 Manchester, true and false added
  */
-vstring Formula::toString(const Formula* formula)
+vstring Formula::toString () const
 {
-  CALL("Formula::toString(const Formula*)");
+  CALL("Formula::toString");
 
   vstring res;
 
@@ -204,7 +109,7 @@ vstring Formula::toString(const Formula* formula)
   } Todo;
 
   Stack<Todo> stack;
-  stack.push({false,NOCONN,formula});
+  stack.push({false,NOCONN,this});
 
   while (stack.isNonEmpty()) {
     Todo todo = stack.pop();
@@ -328,20 +233,6 @@ vstring Formula::toString(const Formula* formula)
   }
 
   return res;
-}
-
-/**
- * Convert the formula to a vstring using the native syntax
- *
- * @since 12/10/2002 Tbilisi, implemented as ostream output function
- * @since 09/12/2003 Manchester
- * @since 11/12/2004 Manchester, true and false added
- */
-vstring Formula::toString () const
-{
-  CALL("Formula::toString");
-
-  return toString(this);
 } // Formula::toString
 
 /**
@@ -381,99 +272,6 @@ bool Formula::parenthesesRequired (Connective outer) const
   ASSERTION_VIOLATION;
 } // Formula::parenthesesRequired
 
-
-/**
- * Convert the formula in scope of another formula
- * to a vstring using the native syntax.
- * @param outer connective of the outer formula
- * @since 09/12/2003 Manchester
- */
-vstring Formula::toStringInScopeOf (Connective outer) const
-{
-  return parenthesesRequired(outer) ?
-         vstring("(") + toString() + ")" :
-         toString();
-} // Formula::toStringInScopeOf
-
-
-// /**
-//  * True if this formula is equal to f.
-//  *
-//  * @since 23/12/2003 Manchester
-//  * @since 11/12/2004 Manchester, true and false added
-//  */
-// bool Formula::equals (const Formula& f) const
-// {
-//   if (*this == f) {
-//     return true;
-//   }
-//   if (connective() != f.connective()) {
-//     return false;
-//   }
-
-//   switch (connective())
-//     {
-//     case LITERAL:
-//       return literal()->equals(f.literal());
-
-//     case AND:
-//     case OR:
-//       return args().equals(f.args());
-
-//     case IMP:
-//     case IFF:
-//     case XOR:
-//       return left().equals(f.left()) &&
-//              right().equals(f.right());
-
-//     case NOT:
-//       return uarg().equals(f.uarg());
-
-//     case FORALL:
-//     case EXISTS:
-//       {
-// 	// first check that the variables are equal
-// 	Iterator<int> vs(vars());
-// 	Iterator<int> ws(f.vars());
-// 	while (vs.hasNext()) {
-// 	  if (! ws.hasNext()) {
-// 	    return false;
-// 	  }
-// 	  if (vs.next() != ws.next()) {
-// 	    return false;
-// 	  }
-// 	}
-// 	if (ws.hasNext()) {
-// 	  return false;
-// 	}
-//       }
-//       // and then compare immediate subformulas
-//       return qarg().equals(f.qarg());
-
-//     case TRUE:
-//     case FALSE:
-//       return true;
-
-// #if VDEBUG
-//     default:
-//       ASSERTION_VIOLATION;
-// #endif
-//     }
-// }
-
-// /**
-//  * True if this list is equal to fs.
-//  * @since 23/12/2003 Manchester
-//  */
-// bool FormulaList::equals (const FormulaList& fs) const
-// {
-//   if (isEmpty()) {
-//     return fs.isEmpty();
-//   }
-//   return fs.isNonEmpty() &&
-//          head().equals(fs.head()) &&
-//          tail().equals(fs.tail());
-// } // FormulaList::equals
 
 /**
  * Return the list of all free variables of the formula
@@ -536,98 +334,6 @@ VList* Formula::boundVariables () const
   }
   return res;
 }
-
-/**
- * Add into @c acc numbers of all atoms in the formula.
- *
- * As we are collecting atoms, for negative literals we insert their
- * complements.
- */
-void Formula::collectAtoms(Stack<Literal*>& acc)
-{
-  CALL("Formula::collectPredicates");
-
-  SubformulaIterator sfit(this);
-  while(sfit.hasNext()) {
-    Formula* sf = sfit.next();
-    if(sf->connective()==LITERAL) {
-      Literal* l = sf->literal();
-      acc.push(Literal::positiveLiteral(l));
-    }
-  }
-}
-
-/**
- * Add into @c acc numbers of all predicates in the formula.
- */
-void Formula::collectPredicates(Stack<unsigned>& acc)
-{
-  CALL("Formula::collectPredicates");
-
-  SubformulaIterator sfit(this);
-  while(sfit.hasNext()) {
-    Formula* sf = sfit.next();
-    if(sf->connective()==LITERAL) {
-      acc.push(sf->literal()->functor());
-    }
-  }
-}
-
-void Formula::collectPredicatesWithPolarity(Stack<pair<unsigned,int> >& acc, int polarity)
-{
-  CALL("Formula::collectPredicatesWithPolarity");
-
-  switch (connective()) {
-    case LITERAL:
-    {
-      Literal* l=literal();
-      int pred = l->functor();
-      acc.push(make_pair(pred, l->isPositive() ? polarity : -polarity));
-      return;
-    }
-
-    case AND:
-    case OR: {
-      FormulaList::Iterator fs(args());
-      while (fs.hasNext()) {
-	fs.next()->collectPredicatesWithPolarity(acc,polarity);
-      }
-      return;
-    }
-
-    case IMP:
-      left()->collectPredicatesWithPolarity(acc,-polarity);
-      right()->collectPredicatesWithPolarity(acc,polarity);
-      return;
-
-    case NOT:
-      uarg()->collectPredicatesWithPolarity(acc,-polarity);
-      return;
-
-    case IFF:
-    case XOR:
-      left()->collectPredicatesWithPolarity(acc,0);
-      right()->collectPredicatesWithPolarity(acc,0);
-      return;
-
-    case FORALL:
-    case EXISTS:
-      qarg()->collectPredicatesWithPolarity(acc,polarity);
-      return;
-
-    case BOOL_TERM:
-      ASSERTION_VIOLATION;
-
-    case TRUE:
-    case FALSE:
-      return;
-
-    case NAME:
-    case NOCONN:
-      ASSERTION_VIOLATION;
-  }
-}
-
 
 /**
  * Compute the weight of the formula: the number of connectives plus the
@@ -825,27 +531,6 @@ Formula* Formula::fromClause(Clause* cl)
   Formula* res=JunctionFormula::generalJunction(OR, resLst);
   return Formula::quantify(res);
 }
-
-/*
-  THIS IS USEFUL
-  switch (connective()) {
-  case LITERAL:
-  case AND:
-  case OR:
-  case IMP:
-  case IFF:
-  case XOR:
-  case NOT:
-  case FORALL:
-  case EXISTS:
-  case TRUE:
-  case FALSE:
-#if VDEBUG
-  default:
-    ASSERTION_VIOLATION;
-#endif
-  }
-*/
 
 std::ostream& operator<< (ostream& out, const Formula& f)
 {

@@ -489,28 +489,6 @@ bool Problem::higherOrder() const
   return _higherOrder.value();
 }
 
-
-///////////////////////
-// utility functions
-//
-
-/**
- * Put predicate numbers present in the problem into @c acc
- *
- * The numbers added to acc are not unique.
- *
- */
-void Problem::collectPredicates(Stack<unsigned>& acc) const
-{
-  CALL("Problem::collectPredicates");
-
-  UnitList::Iterator uit(units());
-  while(uit.hasNext()) {
-    Unit* u = uit.next();
-    u->collectPredicates(acc);
-  }
-}
-
 #if VDEBUG
 ///////////////////////
 // debugging

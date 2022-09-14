@@ -187,12 +187,6 @@ public:
     _mayHaveXEqualsY = false;
   }
 
-
-  //utility functions
-
-  void collectPredicates(Stack<unsigned>& acc) const;
-
-
 #if VDEBUG
   //debugging functions
   void assertValid();
